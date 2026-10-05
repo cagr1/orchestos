@@ -1322,3 +1322,656 @@ queda escrita porque va a volver a pasar en cuanto otro ítem se delegue en vari
   **Carlos 2026-09-22 (noche):** un logo por marca (Codex = logo de ChatGPT, Claude Code = logo de Claude); ninguna
   cabecera o tooltip repite el nombre (ej. "Codex / codex"); avatar Bot para el LLM y User para el humano en los
   mensajes (reemplaza "sin avatar" del prompt de AI Studio).
+
+<a id="plan-orden-ui-13-4"></a>
+- [x] **UI.13.4 — 🧠 Comportamientos de la plantilla hechos reales.** (abierto 2026-09-22, cerrado 2026-09-23: 4a/4b/4c `[x]`)
+  Sin delegación: cierre de padre, el trabajo está en sus sub-ítems.
+  - [x] **UI.13.4a** (cerrado 2026-09-22) — puntos 1, 2, 3 y 6. Ejecutado por: luna · Spec borrado al cerrar.
+    Migración 12 `archived_at`; `POST /api/chat/sessions/:id/archive|restore`, `?archived=1`,
+    `DELETE /api/projects/:id` (solo filas de DB). El cerebro corrigió el tiempo relativo (medía vida de la
+    sesión, no tiempo desde la última actividad; +test). Gate en vivo: `docs/done/evidence/UI.13.4a-live.json`
+    — cerrar→History→restaurar→borrar, quitar proyecto deja la carpeta en disco, 0 errores.
+    `test:coverage` 1462 pass / 0 fail.
+  - [x] **UI.13.4b** (cerrado 2026-09-22) — punto 4. Ejecutado por: luna · Spec: docs/specs/UI.13.4b.md (2 rondas; borrado al cerrar)
+    Consola de Dev: `GET …/console` (turnos + pasos + comandos), `POST …/exec` sobre `runOneCheck` exportada,
+    migración 13 `console_commands`. Frontera endurecida para runner y consola: argumentos con forma de ruta
+    (incluido `--x=valor`) confinados a la raíz real del proyecto; checks internos `trusted`, no legible desde
+    `tasks.yaml`. Ronda 1 reportó verde con 7 fallos de migraciones: corregido en ronda 2.
+    Gate en vivo: `docs/done/evidence/UI.13.4b-live.json` — `ls` real, `ls | wc` sin pipe, `cat ../x` y `ls /`
+    rechazados, historial tras recargar, Archive Session → History, 0 errores. Pasos reales sin datos en vivo
+    (0 turnos con task_id en la DB): cubierto por test. `test:coverage` 1465 pass / 0 fail.
+    Límite conocido, avisado a Carlos: `node -e`/`sh -c` esquivan el confinamiento por argumentos.
+  - [x] **UI.13.4c** (cerrado 2026-09-23, Lote L1) — punto 5. Ejecutado por: luna (13 rondas) · Spec: docs/specs/UI.13.4c.md
+    Razonamiento y herramientas reales en el mensaje del bot (bloques de `ThreadsView.tsx` de la plantilla), ligados
+    al turno por `chat_messages.turn_id` (migración 14, paso `reasoning` en Codex/Claude/OpenCode; Codex con
+    `model_reasoning_summary=auto`). Tarjeta retenida con `Approve & Run` (corre la tarea) y `Reject` (la borra) contra
+    la API. Bugs reales hallados por el gate y corregidos: regresión de R.1 (`createSession` forzaba `mode:'chat'`: la
+    app no podía crear tareas); tarea con `output: []` se guardaba, arrancaba un run y dejaba `tasks.yaml` inválido
+    (`createTaskRecord` la rechaza, `saveTasks` valida antes de escribir, el chat no crea tareas sin archivos,
+    `extractMentionedPaths` para rutas nombradas); borrar tarea no commiteaba `tasks.yaml` (el siguiente run fallaba
+    por árbol sucio). **Decisión de Carlos 2026-09-23 "Lista por proyecto":** Chat lista los chats del proyecto de la
+    cabecera + generales, "New chat" se liga al proyecto visible, el diálogo ofrece "No project".
+    Gate en vivo: `docs/done/evidence/UI.13.4c-live.json` — Playwright en navegador real, turno real Codex ·
+    gpt-5.6-luna · medium, `PASS chat-turn-details 27/27` + `PASS smoke 6/6`. `test:coverage` 1526 pass / 0 fail.
+  Inventario (plantilla `~/Documents/screens/orchestos-ai-agent-dashboard` vs app, 2026-09-22); cada uno
+  necesita backend que hoy no existe (`server.ts` no tiene ruta):
+  1. Sidebar Dev: cerrar agente → pasa a History (`ShellSidebar.tsx:394` plantilla); falta archivar sesión.
+  2. Inspector History (`OrcaRightInspector.tsx:399-560` plantilla): sesiones cerradas agrupadas por
+     proyecto, Workspace|Project|All, búsqueda, detalle expandible, menú (restaurar/borrar).
+  3. Borrar/quitar proyecto (`ShellSidebar.tsx:310`, `DeleteProjectModal`): falta endpoint para
+     des-registrar un proyecto (no borra archivos).
+  4. Dev: consola del agente con logs del turno en vivo (`OrchestDevWorkspace.tsx:120-185` plantilla) y
+     controles de acción; entrada de comandos interactiva — decisión de Carlos pendiente (ejecuta shell).
+  5. Chat: razonamiento y llamadas a herramientas reales en el mensaje del bot; tarjeta de tarea retenida
+     con Aprobar/Rechazar contra la API real (el render ya existe, falta verificar que llegan los datos).
+  6. Duración/tiempo relativo de agentes (`0m` casi siempre).
+  **Decisiones de Carlos 2026-09-22:** consola = logs reales del turno + línea que ejecuta shell en la
+  carpeta del proyecto con la misma frontera de permisos del runner; cerrar agente = archivar (History
+  permite restaurar o borrar definitivo); borrar proyecto = solo des-registrarlo de OrchestOS con sus
+  sesiones, nunca toca archivos del disco.
+  **UI.13.4b (2026-09-22):** spec `docs/specs/UI.13.4b.md`. Carlos eligió: la consola reemplaza al chat en Dev
+  (como la plantilla), la frontera es idéntica al runner (`runOneCheck`: sin shell, cwd confinado, env
+  filtrado, timeout) y los comandos se guardan en DB. Luego, "hagamos lo mejor": la frontera se
+  endurece en `runOneCheck` para ambos (argumentos con forma de ruta confinados al proyecto; los checks internos, `trusted`).
+  Gate: cada comportamiento hecho en vivo contra la API, igual que en la plantilla.
+
+<a id="plan-orden-ui-13"></a>
+- [x] **UI.13 — 🧠 El prototipo de AI Studio ES el frontend: fuera el vanilla JS/CSS.** (abierto 2026-09-21, cerrado 2026-09-23: UI.13.1–13.4 `[x]`, vanilla borrado en UI.13.3 ff090e3)
+  Sin delegación: cierre de padre, el trabajo está en sus sub-ítems.
+  **Decisión de Carlos 2026-09-21, textual:** *"vanilla JS y el CSS ME ESTÁN DANDO PROBLEMAS QUE YA
+  UN FRAMEWORK ME LO HIZO EN MINUTOS!!!! no quiero ver nada de ese código, solo tengamos de
+  ejemplo"*. Reemplaza el resto de `UI.12` (2b, 3a–3d: trasplante pieza a pieza dentro del vanilla;
+  UI.12.2 costó 7 rondas y UI.12.2b otras 5 solo afinando el spec, por choques con CSS viejo y
+  gates de píxel). El diff de UI.12.2b quedó en `git stash` ("UI.12.2b de Luna…").
+  **Regla de la cadena:** el código del prototipo (`~/Documents/screens/orchestos-ai-agent-dashboard/src`)
+  se copia **tal cual**: componentes, className, animaciones, vistas. Lo único que se escribe es la
+  capa que cambia sus mocks (`src/data/*.ts`) por la API real (`/api/*`, que no cambia). El vanilla
+  (`src/dashboard/public/*.js`, `styles.css`, `screens.css`, islas) es solo **referencia** para saber
+  qué endpoint y qué payload usa cada acción; no se edita ni se migra su markup. Gates: comportamiento
+  real (acción → efecto en la API/DB) en el dashboard corriendo, no medidas en píxeles.
+  1. `UI.13.1` Andamio: prototipo copiado a `src/dashboard/app/`, build con Bun, servido en `/`;
+     el vanilla pasa a `/legacy` hasta que el último ítem lo borre.
+     **Carlos 2026-09-22: cero trabajo sobre el vanilla** — `/legacy` es un cascarón de referencia que
+     no se arregla ni se alimenta; look, animaciones, iconos, textura y comportamiento salen de la
+     plantilla `~/Documents/screens/orchestos-ai-agent-dashboard`. Lo que se conserva del producto
+     (ej. usage en la barra inferior) se porta con el look de la plantilla.
+     **Carlos 2026-09-22 (2): los comportamientos de la plantilla se hacen reales, no se quitan.** Lo que en el
+     prototipo es hardcodeado (terminal del agente, History, cerrar agente → historial, borrar proyecto,
+     razonamiento/herramientas en el mensaje del bot, etc.) es la especificación de cómo debe comportarse
+     OrchestOS. "Sin backend → se quita" queda reemplazado por "sin backend → ítem para construirlo" (UI.13.4).
+     **Carlos 2026-09-22 (3), "SI go":** las pantallas de la plantilla sin backend se copian **ya, tal cual**,
+     con sus datos de ejemplo visibles, en vez de esperar la API; se conectan después, una por una (sigue
+     valiendo "sin backend → ítem para construirlo", pero la pantalla no espera). Pasada de fidelidad
+     pantalla por pantalla con capturas lado a lado revisadas por el cerebro (la auditoría con haiku no sirvió).
+     Detalles reportados por Carlos el mismo día (ítem UI.13.5):
+     a) barra inferior: al hacer clic no pasa nada; clic en usage → solo cuota 5 h y semanal;
+     b) input del chat: Claude/Codex/OpenCode/API parecen hardcodeados → deben salir de los CLI detectados;
+        elegir Claude contestó "Opus 5.5": el selector debe dejar elegir modelo y esfuerzo por CLI
+        (modelo = decisión de Carlos, nunca implícito);
+     c) iconos propios de cada CLI (Claude, Codex/ChatGPT, OpenCode…) con colores vivos;
+     d) Settings → Usage es un caos: rediseñar como la vista de uso de GitHub.
+  2. `UI.13.2` Datos: capa `api.ts` que reemplaza los mocks, vista por vista — Chat, proyectos/Dev,
+     Settings, Tasks/Runs/Graph, Memory/Specs/Skills/Instincts/Plan (un sub-ítem cada una).
+  3. `UI.13.3` Borrar el vanilla, `/legacy`, sus islas, sus CSS y los ui-gates de píxel.
+  **Tope de tiempo (Carlos, 2026-09-21): lo que falta de UI.13 cabe en 2 h de la sesión siguiente.**
+  Para eso: un spec y una ronda por bloque grande (Settings; Tasks/Runs/Graph; Memory/Specs/Skills/
+  Instincts/Plan), sin sub-ítems; el ejecutor recibe también la lista de lo que el gate va a medir para
+  no enterarse en la ronda 2; gate del cerebro = smoke en vivo (carga con datos reales, 0 errores, una
+  acción clave por vista), no inventario exhaustivo. Una vista que no cierre en su ronda queda con su
+  ruta en `/legacy` y se anota; no se abre una tercera ronda dentro del tope.
+
+<a id="plan-orden-ui-13-2d"></a>
+- [x] **UI.13.2d — 🧠 Pantalla Tasks con datos reales.** (cerrado 2026-09-23, Lote L1 ítem 3; sub-ítem de UI.13.2)
+  Ejecutado por: luna (4 rondas) · Spec: `docs/specs/UI.13.2d.md`. Tasks lee `tasks.yaml` real (`/api/tasks` suma
+  `output`/`dependsOn`/`acceptanceCriteria`/`executorModel`); `Run Next Task` (pestaña y ⌘K) corre la primera tarea
+  con dependencias `done`, deshabilitado si no hay; el fin del run se detecta por estado, `retryCount` o `runId`
+  (un QA fallido deja la tarea `pending` con reintento: antes la espera se colgaba) y el reintento se muestra.
+  Gate en vivo: `docs/done/evidence/UI.13.2d-live.json` — turno real Codex · gpt-5.6-luna · medium,
+  `PASS tasks 13/13` (badge `DONE` en la fila sin recargar) + `PASS smoke 6/6`; `gate:all` 1529 pass / 0 fail.
+  Fuera de esta pasada: acciones de `PlanBoardView` sin cablear; Reset/Purge de Settings siguen siendo locales.
+
+<a id="plan-orden-ui-13-2e"></a>
+- [x] **UI.13.2e — 🧠 Runs y Graph con datos reales.** (cerrado 2026-09-23, Lote L2 ítem 1; sub-ítem de UI.13.2)
+  Ejecutado por: luna (3 rondas) · Spec: `docs/specs/UI.13.2e.md`. Runs por proyecto y detalle real (contrato,
+  archivos bloqueados, checks, QA, status); Graph con constitución/contexto/code graph del proyecto (`GET
+  /api/project/graph`: archivos, aristas, lenguajes, stale, git) y `Rebuild` real.
+  Bugs de fondo hallados por el gate: (1) todo run se guardaba con `project_id: null` → ahora se propaga
+  dashboard→CLI (`--project-id`)→harness; (2) una carpeta con symlink (`/var`↔`/private/var`) se registraba dos
+  veces al indexar → `getProject`/`upsertProject` comparan por `realpath` (`src/db/projects.ts`); dejó 14 proyectos
+  fantasma de gates en la DB real que rompían smoke con 410 (borrados).
+  **Fuera de scope declarado:** `src/run/harness.ts` y `src/cli.ts` (scope era `src/dashboard/**,src/db/**`):
+  necesarios para (1).
+  Gate en vivo: `docs/done/evidence/UI.13.2e-live.json` — turno real Codex · gpt-5.6-luna · medium,
+  `PASS runs-graph 16/16` + `PASS smoke 6/6`; `gate:all` 1533 pass / 0 fail.
+
+<a id="plan-orden-ui-13-2f"></a>
+- [x] **UI.13.2f — 🧠 Memory/Specs/Skills/Instincts/Plan con datos reales.** (cerrado 2026-09-23, Lote L2 ítem 2; sub-ítem de UI.13.2)
+  Ejecutado por: luna (4 rondas) · Spec: docs/specs/UI.13.2f.md (borrado al cerrar). Las 5 pestañas leen la API por proyecto;
+  `mockOrchestosData.ts` borrado. Acciones reales: resolver conflicto de memoria con texto (`POST
+  /api/memory/conflicts/:id/resolve` acepta `{content}` y reescribe la entrada A), Approve/Lint de specs, Compile de
+  skills (respuesta visible), Approve/Reject/alta de instincts, Run/Explain de Plan (`/explain` determinista: "0
+  tokens spent" es cierto) y "Add task" → Chat (tareas solo por chat). Antes 9 botones caían en `() => {}`.
+  Gate en vivo: `docs/done/evidence/UI.13.2f-live.json` — `PASS project-tabs 23/23` (turno real Codex ·
+  gpt-5.6-luna · medium, cleanup de DB verificado) + tasks 13/13 + runs-graph 16/16 + smoke 6/6; `gate:all` 1534/0.
+  Ronda 1 dio 14/14 con 6 pasos vacíos (Run sin esperar el run, "Chat" siempre visible, Lint/Compile sin medir):
+  hallados auditando el flujo, no la suite.
+
+<a id="plan-orden-ui-13-3"></a>
+- [x] **UI.13.3 — 🧠 Borrar el vanilla, `/legacy`, sus islas, CSS y ui-gates de píxel.** (cerrado 2026-09-23, Lote L2 ítem 3)
+  Ejecutado por: luna (2 rondas; r2: `orchestos dashboard` buscaba el bundle en el cwd del usuario → resuelto relativo al
+  módulo, `src/cli-dashboard-paths.ts` + test) · Spec: docs/specs/UI.13.3.md (borrado al cerrar). Recuperable por git (Carlos: no
+  cuenta como irreversible). Fuera: `src/dashboard/public/`, `public-src/` (islas), `scripts/ui-gates/` (16 gates de
+  píxel), `build-ui.ts`, `check-css-ratchet`, `check-ui-copy` (+ sus pasos del pre-commit, hooks reinstalados),
+  3 tests solo-vanilla, deps Radix/`cmdk`/`marked`; 80 archivos, −26.608 líneas. `/legacy` y cualquier estático fuera
+  de `/app/dist/` → 404.
+  Gate en vivo: `docs/done/evidence/UI.13.3-live.json` — smoke 6/6 · tasks 13/13 · runs-graph 16/16 ·
+  project-tabs 23/23 · chat-turn-details 26/26; `gate:all` 1518 pass / 0 fail (baja de 1534 = tests borrados;
+  cobertura sobre umbral). Resto inofensivo: `.impeccable/config.json` ignora `public/screens.css` (ya no existe).
+
+<a id="plan-orden-ui-13-5-2"></a>
+- [x] **UI.13.5 — 🧠 La barra inferior muestra las cuotas al día, no solo al recargar.** (abierto 2026-09-23, pedido de Carlos; cerrado 2026-09-23 — `ui:gate usage-bar` 9/9, evidencia `docs/done/evidence/UI.13.5-live.json`)
+  Síntoma: los usages de la barra inferior solo aparecen o se actualizan al recargar la página. Causa verificada en código
+  y con Playwright contra `:4242`: (1) `handleApiSessionStatus` (`src/dashboard/handlers/session-status.ts:30-33`)
+  devuelve la caché y refresca en segundo plano → cada respuesta trae el estado de la petición anterior; (2) el cliente
+  solo refresca cada 60 s o al volver a la pestaña (`App.tsx:427-430`), nunca al terminar un turno del chat → 60-120 s
+  de retraso; (3) la recarga "arregla" por casualidad: 4 peticiones sin `x-orchestos-project-id`
+  (`ShellStatusBar.tsx:73`, `AgentComposer.tsx:136` y duplicados) disparan el refresco antes de la del proyecto;
+  (4) en frío la barra sale vacía ~1,5-2 s. Arreglo: el servidor espera lectura nueva si la caché tiene más de ~10 s;
+  `refreshUsage()` al cerrar cada turno del chat; quitar los dos fetch sin proyecto (hermanos del bug).
+  (5) hallada 2026-09-23 por el cerebro: `scripts/claude-statusline-tee.sh` guarda la última lectura de CUALQUIER
+  sesión de Claude en un solo `~/.orchestos/claude-statusline.json`; con 4 sesiones abiertas (misma cuenta) una sesión
+  que se redibuja con datos viejos pisa a la actual → la cuota de 5 h "sube" sin reset (medido: 62→67→61 en minutos).
+  Arreglo: gana la lectura más nueva por ventana (mismo `resets_at` → mayor `used_percentage`; `resets_at` mayor gana).
+  Fantasmas: limpiados por el cerebro 2026-09-23 — 5 proyectos `orchestos-ui-13-2[de]-*` (corridas interrumpidas: el
+  cleanup del flujo no corre si el runner muere) + 43 `files`/14 `code_edges` huérfanos (gates y fixtures de tests
+  `gfc-*`/`ruby-check` que escriben la DB real; backup en `/tmp/l2/db-backup-before-orphans.sqlite`). Falta el diente:
+  el runner de ui:gate borra al arrancar los proyectos `orchestos-ui-*` de corridas previas.
+  Gate: flujo ui:gate que tras un turno real ve cambiar la cuota sin recargar, y 1 sola petición con proyecto al cargar.
+  Ejecutado por: luna (3 rondas; r2 rechazada: el paso del turno hacía clic manual) · Spec: docs/specs/UI.13.5.md (borrado al cerrar).
+  El cerebro añadió el borrado de archivos de sesión de statusline >7 días.
+  Gate en vivo: navegador real (Playwright, `bun run ui:gate usage-bar` 9/9 + `smoke` 6/6) — `docs/done/evidence/UI.13.5-live.json`.
+
+<a id="plan-orden-ui-13-6-2"></a>
+- [x] **UI.13.6 — 🧠 La cuota de Codex aparece siempre y una ventana vencida cuenta como libre.** (abierto 2026-09-23, pedido de Carlos; Lote L3; cerrado 2026-09-23 — `ui:gate usage-bar` 13/13)
+  Hallazgos post-cierre de UI.13.5 (NEXT.md): (1) `scripts/session-status.ts:196-203` solo llama
+  `readCodexRateLimitsLive` si el proyecto tiene sesión de Codex (`liveCodex`); Claude sí tiene respaldo de cuenta
+  (`:230`). Reproducido con Playwright: proyecto temporal + turno real Codex Luna → barra `86% — —` antes y después.
+  (2) `ShellStatusBar.tsx:36-38` devuelve `null` ("—") si `resetsAt` ya pasó; tras el reset la cuota está 100 % libre.
+  (3) `src/dashboard/http.ts:62` sirve `/app/dist/*` (y el `index.html`) sin `Cache-Control` ni hash → Brave mostró
+  un bundle viejo (sospecha, no verificado en Brave). Arreglo: `Cache-Control: no-cache`.
+  Gate: `ui:gate` con proyecto temporal SIN sesiones de Codex → la barra muestra la cuota de Codex antes y después de
+  un turno real; ventana con `resets_at` pasado → 100 %; respuestas de `/app/dist/main.js` y `/` con `no-cache`.
+  **Fuera de scope declarado:** `ShellStatusBar.test.ts`, `http.test.ts` y la evidencia — el scope se declaró con
+  directorios sin glob (`src/dashboard`, `docs`), que el scope-lock no expande; son los tests y la evidencia del ítem.
+  Ejecutado por: luna (1 ronda) · Spec: docs/specs/UI.13.6.md (borrado al cerrar). El respaldo de Codex lee el
+  app-server en cada refresco aunque el proyecto no use Codex. Brave: el header se verificó; Brave en sí no se probó.
+  Gate en vivo: navegador real (Playwright, `bun run ui:gate usage-bar` 13/13 + `smoke` 6/6) — `docs/done/evidence/UI.13.6-live.json`.
+  Codex 92 % sin sesión antes y después de un turno real Luna; Claude vencida → 100 %; `/` y `main.js` `no-cache`.
+  `test:coverage` 1527/0 (1.ª corrida: 1 fallo del test inestable conocido `context-adapters.test.ts:187`).
+
+<a id="plan-orden-ui-13-7"></a>
+- [x] **UI.13.7 — ⚡ La barra de cuota avisa por color: naranja pasado el 60 % consumido, rojo pasado el 80 %.** (abierto 2026-09-24, pedido de Carlos; Lote L4, tras CI.2; cerrado 2026-09-28)
+  Carlos: barra **y** número en naranja al pasar el 60 % de consumo; en rojo al pasar el 80 % (queda <20 %). La barra
+  muestra lo **restante** (`ShellStatusBar.tsx:38`): restante <40 → `app-warning`, <20 → `app-error`, si no el color
+  actual. Aplica a las tres barras (fila del footer `:118-126` y las de 5 h y semanal del popover `:171-194`) y a sus
+  números. Tokens ya definidos (`index.css:13-14`): nada de CSS ni colores nuevos. Umbral en una función pura con test.
+  Spec: `docs/specs/UI.13.7.md`. Gate: `ui:gate usage-bar` con pasos que afirmen el color en los tres tramos (sin turno real extra).
+  Gate en vivo: navegador real (Playwright), `docs/done/evidence/UI.13.7-live.json`: `usage-bar` 18/18 (footer normal/warning/error con 50/70/90 % usado, popover 5 h en error, vuelta a normal). `gate:all` verde (1561 pass). Su sandbox da 8 fallos de entorno en `bun test` (nota en AGENTS.md).
+  Ejecutado por: Codex · `gpt-6-luna` (2 rondas: la 1.ª paró por el baseline del sandbox) · Spec: docs/specs/UI.13.7.md (borrado al cerrar)
+
+<a id="plan-orden-ui-9-9"></a>
+- [x] **UI.9.9 — 🧠 Opciones de proyecto al hover: `Project settings` y `Delete project`.** (abierto 2026-09-18; cerrado 2026-09-23 — `ui:gate project-delete` 11/11)
+  Pedido de Carlos del 2026-09-16 (anotado abajo) y repetido el 2026-09-18. Al pasar el cursor por
+  la fila de un proyecto, botón de tres puntos a la derecha con acciones de proyecto. Incluir
+  también un control claro de expandir/colapsar los agentes de ese proyecto.
+  **Estado real leído en el código:** no existe en ninguna capa. `Sidebar.tsx:243-254` solo tiene
+  el `+` de agregar agente; `SessionRow` sí tiene borrado (`Sidebar.tsx:441-451`), los proyectos
+  no. **No hay endpoint de borrado de proyecto** en `server.ts` — es backend + front.
+  **Semántica del borrado — respondida por Carlos el 2026-09-18, no volver a preguntarla.** Son
+  **dos niveles distintos**, y `Delete project` es el suave:
+  - **`Delete project` (menú de tres puntos) borra el ESPACIO DE TRABAJO, no los datos.** Textual:
+    *"borrar el proyecto significa borrar ese espacio de trabajo"*. Sale de la lista; la data
+    sobrevive. **No hay cascada acá**, así que tampoco hace falta un diálogo que enumere lo que se
+    lleva puesto.
+  - **Borrar la data definitivamente vive en `Project settings`**, dentro del proyecto, como acción
+    aparte y explícita: *"para borrar la data definitivamente habría que ir al project settings y
+    ahí borrar todo sobre el proyecto"*. Carlos lo da por sobreentendido — es el patrón habitual de
+    "quitar de la lista" vs. "destruir".
+  **Referencia de comportamiento, Orca (citada por Carlos):** si borra un workspace y lo vuelve a
+  abrir, sigue viendo la barra lateral con `workspace | projects | all`, el **source control** y el
+  **explorer** (el repo en sí). O sea: reabrir un proyecto borrado del espacio de trabajo lo
+  restituye con su contenido, porque nunca se destruyó nada. Ese es el criterio de aceptación real
+  del ítem, más que el botón.
+  Al diseñarlo, volver a mirar las capturas de Orca (`docs/ui-reference-patterns.md` A.1-A.3).
+  Gate: navegador real — borrar un proyecto del espacio de trabajo, **volver a agregarlo con
+  "+ Add project"** y confirmar que sus chats/tasks/runs siguen ahí; y confirmar en SQLite que el
+  borrado suave NO tocó esas tablas.
+  Hallado al abrirlo: el menú ya existía, pero `DELETE /api/projects/:id` borraba los chats y dejaba los runs sin
+  proyecto (borrado duro disfrazado), y la Danger Zone de Project settings solo filtraba estado del cliente.
+  Hecho: `projects.removed_at` (migración 15); `DELETE` solo lo marca; `+ Add project` lo limpia (mismo id);
+  `POST /api/projects/:id/purge` borra toda tabla con `project_id` (descubierta por `PRAGMA`) y la fila. Los
+  cleanups de `ui:gate` usan la purga.
+  Ejecutado por: luna (2 rondas; r2 arregló `chat-turn-details`, que fallaba también en master: registraba el
+  proyecto sin recargar) · Spec: docs/specs/UI.9.9.md (borrado al cerrar).
+  El flujo re-agrega por `ensureProject` (el selector nativo no es automatizable) y siembra el run por SQLite.
+  Gate en vivo: navegador real (Playwright, `bun run ui:gate project-delete` 11/11 + smoke/usage-bar/tasks/runs-graph/project-tabs/chat-turn-details verdes) — `docs/done/evidence/UI.9.9-live.json`.
+  `gate:all` 1528/0; DB real: 0 proyectos `orchestos-ui-*` y 0 con `removed_at` tras los flujos.
+
+<a id="plan-orden-ui-9-8"></a>
+- [x] **UI.9.8 — ⚡ Barrido de texto que no aporta, y el modelo elegible en Codex.** (abierto 2026-09-18; cerrado 2026-09-23 — `ui:gate text-sweep` 10/10)
+  **Pedido textual de Carlos, 2026-09-18:** *"donde detectes que exista en la UI texto adicional
+  que no aporta a nada debe DESAPARECER"*. Disparador: bajo cada respuesta del chat aparece
+  `codex (cli default model) via Codex CLI` — *"esto está demás"*. Es la **tercera vez en el
+  mismo día** que señala lo mismo: antes fueron `Model: Decided by Codex · your subscription` y la
+  fila `Agent`, ambas cerradas en UI.9.7. El patrón se repite porque cada ítem arregla su
+  instancia y no el criterio; por eso este ítem barre, no parchea.
+  **Dónde vive el caso concreto:** `screens-core.js:415-416` pinta `.chat-model-tag` con el
+  `resultLabel` que compone `chat.ts:1374,1426`. **El dato no se borra del backend** —
+  `resultLabel` alimenta el costeo (`canonicalModel`, `chat.ts:1248`) y
+  `rememberResolvedClaudeModel()` (`screens-core.js:760`) aprende de `data.model`. La regla es de
+  superficie: se deja de renderizar, no se deja de calcular.
+  **Alcance del barrido:** recorrer las pantallas que Carlos usa hoy (chat y el shell Dev) y
+  listar cada texto que no habilita una decisión ni informa algo que el usuario no sepa.
+  **Borrar, no acortar.** Traer la lista antes de borrar lo dudoso; lo evidente se borra.
+  Cuidado con el modo de fallar de UI.9.7: sacar una etiqueta dejó alcanzable un fallback con el
+  literal `'CLI default model'` — verificar lo **renderizado**, no el diff.
+  **Segunda parte — elegir modelo en Codex** (*"en el chat Dev no puedo elegir el modelo"*).
+  Es lo que UI.9.7 dejó fuera por no haber catálogo verificado. Investigar antes de diseñar:
+  `~/.codex/config.toml` sí declara el modelo (`codex.ts:75-79` lo leyó: decía `gpt-5.6-luna`),
+  y los alias reales están en `AGENTS.md:293-299` (Luna/Terra/Sol/Astra). Ninguna lista
+  hardcodeada de catálogo frágil — ver `feedback-deteccion-generica-no-por-cli`. Si no hay fuente
+  confiable, decirlo y no poner un selector decorativo.
+  Gate: navegador real, cero texto de los listados sobreviviendo, y el modelo elegido llegando al
+  binario con un mensaje real (como se hizo con el esfuerzo en UI.9.7).
+  Hecho: inventario mecánico (parser TS) de 105 textos de ≥4 palabras en `app/src/components` + `App.tsx`:
+  15 borrados o corregidos por afirmar mecanismos que no existen (AST sandbox, vector embeddings, "Merge to Main",
+  "Reinforcement Learning Engine"…), 92 dudosos que quedan — lista en `docs/done/evidence/UI.9.8-sweep.md`.
+  El modelo de Codex ya era elegible (catálogo de la caché de Codex, `-m` con `--ignore-user-config`); se probó.
+  Límite del gate: la ausencia de los textos borrados se mira en la pantalla de Chat; Settings/Instincts/Memory/
+  Add project se verificaron por diff y grep, no en navegador.
+  **Fuera de scope declarado:** `chat-turn-details.mjs`, `PLAN.md`, la evidencia y el borrado del spec — Luna
+  re-corrió el preflight y estrechó el scope a sus archivos; son las referencias a los textos viejos y el cierre.
+  Ejecutado por: luna (4 rondas: r1 barrió ~11 textos; r2 inventario mecánico; r3 `chat-turn-details` buscaba los
+  textos viejos; r4 "SQLite full-text search" inexacto) · Spec: docs/specs/UI.9.8.md (borrado al cerrar).
+  Gate en vivo: navegador real (Playwright, `bun run ui:gate text-sweep` 10/10 + chat-turn-details 27/27 + project-tabs 23/23 + smoke 6/6) — `docs/done/evidence/UI.9.8-live.json`.
+  Turno real Codex registró `gpt-5.6-luna` · `medium`; `gate:all` 1528/0.
+
+<a id="plan-orden-ui-10-a"></a>
+- [x] **UI.10.A — 🧠 El plan por proyecto: `plan_items` y `plan_doc_segments` con proyecto.** (abierto 2026-09-21; cerrado 2026-09-24 — `ui:gate plan-doc` 15/15)
+  Sale de `UI.10`: el plan de la DB es uno solo, sin columna de proyecto, y `renderPlan(db)`
+  (`handlers/plan.ts:22`) arma siempre el de OrchestOS. Hoy la pestaña Plan de cualquier otro
+  proyecto muestra "not available yet" (`server.ts`, rutas `/api/plan*`). A diseñar: migración
+  (`project_id` + PK compuesta), `plan-import`/`plan:reconcile`/`plan:render` y el pre-commit por
+  proyecto, y quitar el corte por cwd de `server.ts`. Plan corto a Carlos antes de codear (toca
+  varios módulos).
+  **HALLAZGO QUE CAMBIA EL DISEÑO (2026-09-21, leído en el código y en el disco):** el `PLAN.md` de
+  SalaDespecho es una checklist libre (`- [ ] Auditar…`, sin ID ni 🧠⚡🔍). El parser
+  (`scripts/plan-status.ts:45`) exige `- [ ] **ID — 🧠 Título**`: sobre ese archivo devuelve **0
+  ítems**. Y el modelo "la DB es la fuente, `PLAN.md` se renderiza" solo se sostiene porque el
+  pre-commit de **este** repo corre `plan:render --check`; en otro repo nadie reconcilia, y a la
+  primera edición a mano vuelve el 409 "out of sync". Migrar las tablas (`project_id` + PK
+  compuesta) no alcanza para que el Plan de SalaDespecho muestre algo.
+  **Opciones planteadas a Carlos:** (a) migración completa, y los proyectos adoptan el formato de
+  OrchestOS y su hook; (b) sin migración: para un proyecto que no es OrchestOS, la pestaña Plan
+  lee su `PLAN.md` en solo lectura (secciones `##` y checkboxes, sin dependencias ni cierre), un
+  módulo nuevo más `server.ts`; (c) las dos. Recomendación del cerebro: (b). Pendiente de Carlos.
+  **DECIDIDO POR CARLOS 2026-09-21: (b).** Cada proyecto usa su propio `PLAN.md`, en solo lectura;
+  no se le impone el formato de OrchestOS. Sin migración de `plan_items`.
+  **DECIDIDO POR CARLOS 2026-09-24 (dónde se ve):** conmutador dentro de la pestaña Plan de Settings → proyecto:
+  `Kanban | Table | PLAN.md` (el toggle de `PlanBoardView.tsx:139-155` gana una tercera opción). Igual para todos
+  los proyectos, OrchestOS incluido. Hallazgo previo: esa pestaña muestra el tablero de `tasks.yaml` y nada en React
+  consumía `/api/plan`.
+  Hecho: `src/plan/read-plan-doc.ts` (secciones `#`–`###`, checkboxes con sangría, texto plano; solo lectura, tope
+  1 MB), `GET /api/plan/doc` por `x-orchestos-project-id` sin corte por cwd, tercera opción `PLAN.md` en el toggle de
+  `PlanBoardView`. Las rutas `/api/plan*` de la DB siguen solo para OrchestOS.
+  De paso: `project-tabs`, `tasks` y `runs-graph` registraban el proyecto temporal sin recargar (misma carrera que
+  `chat-turn-details` en UI.9.9; `project-tabs` falló también sin los cambios) → `page.reload` tras registrar.
+  Ejecutado por: luna (2 rondas; r2 la recarga en los flujos hermanos) · Spec: docs/specs/UI.10.A.md (borrado al cerrar).
+  Gate en vivo: navegador real (Playwright, `bun run ui:gate plan-doc` 15/15 + project-tabs 23/23 + tasks 13/13 + runs-graph 16/16 + smoke 6/6) — `docs/done/evidence/UI.10.A-live.json`.
+  Checklist libre estilo SalaDespecho, proyecto sin `PLAN.md` y el de este repo (`UI.10.A` visible); `test:coverage`
+  1533/0 (1.ª corrida: el test inestable `context-adapters.test.ts:187`).
+
+> **DECISIONES DE CARLOS 2026-09-21 — sidebar de proyectos, look nuevo y etiquetas del plan.**
+> Contestadas en una sola ronda (memoria `feedback-preguntas-todas-juntas`). Pendientes de
+> convertirse en ítems; no se implementan sueltas.
+> 1. **Fila de proyecto:** icono `folder-closed` (lucide) en vez del libro actual. En hover, a la
+>    derecha, tres iconos: chevron de expandir, `ellipsis` y `plus`; sin hover desaparecen. El
+>    clic **solo expande/colapsa sus agentes**, no navega (hoy salta a Dev → Tasks,
+>    `app.js:3410`). Sin nada elegido, el área principal queda vacía con el SVG de OrchestOS.
+> 2. **Menú `ellipsis` del proyecto:** solo *Project settings* y *Delete project* (icono rojo).
+>    *Project settings* lleva a Settings (la página de proyecto de `UI.10`). No existe hoy ni en
+>    el front ni en el back (no hay endpoint para borrar un proyecto).
+> 3. Tasks, Runs y Graph dejan de abrirse al clickear el proyecto; se ven solo desde su settings.
+> 4. **Cerrar un agente = archivarlo** en un historial por proyecto, al estilo del panel "Agents"
+>    de Orca en el lateral derecho. Hoy no hay forma de cerrarlos ni endpoint.
+> 5. **Contador de agentes:** chip chico, siempre real, sin tener que expandir (hoy se carga
+>    solo al expandir, `Sidebar.tsx:284-295`). La altura del chevron (hoy muy abajo) **no se
+>    parchea con CSS suelto**: se arregla cuando se rehaga la cara del sidebar en React. Mismo
+>    criterio para cualquier ajuste visual pedido antes de ese cambio: anotarlo, no gastar tokens.
+> 6. **Adiós a 🧠⚡🔍:** reemplazar por etiquetas de texto propias que cualquier LLM entienda.
+>    Toca parser (`scripts/plan-status.ts:45`), `CHECK` de `plan_items.delegation` y los ítems del
+>    plan en un solo cambio.
+> 7. = decisión (b) de arriba.
+> 8. **Look nuevo pieza por pieza**, pero cada pieza tiene que verse como las referencias. Si una
+>    referencia no está anotada con su fuente, preguntar en vez de suponer. Objetivo dicho por
+>    Carlos: "CRM moderno".
+> 9. **Referencia nueva:** Circle (https://circle.lndev.me/lndev-ui/team/DESIGN/overview, repo
+>    `ln-dev7/circle`, Next.js + shadcn/ui, estilo Linear). La guía principal sigue siendo
+>    `docs/ui-reference-patterns.md` + capturas en `~/Documents/screens/`.
+> **Segunda ronda, mismo día:**
+> - **Panel derecho = historial de agentes**, captura nueva `~/Documents/screens/rightside_agents.png`
+>   (Orca): tabs de iconos arriba (archivos, agentes, source control, tasks) + toggle del panel;
+>   título + "N shown", segmented `Workspace | Project | All`, buscador, grupo por proyecto con
+>   contador, y por sesión: título, última línea, icono del CLI, mensajes, hace cuánto, modelo,
+>   chevron y `ellipsis`. Cerrar un agente del sidebar lo manda acá. **No se llama "Agents"**: el
+>   cerebro elige **"History"** (i18n "Historial").
+> - **El botón que mostraba el panel derecho vuelve a ser permanente.** Hoy los botones de
+>   Explorer/Diff/Terminal solo viven en la barra de tabs del workspace (arreglo de `UI.9.A`), y con
+>   la decisión 1 (el clic en proyecto ya no abre el workspace) se vuelven a perder. Toggle fijo
+>   arriba a la derecha, como en Orca. Esto reemplaza el criterio "inspector cerrado = 0px" de
+>   `UI.9.5`.
+> - **Quitar el pill `IDLE`/`RUNNING`** del header (`Header.tsx:18-21`).
+> - **Estado del agente en la fila:** loader chico mientras trabaja, check chico al terminar.
+> - **Delete project = quitar del espacio de trabajo**, sin borrar la carpeta, con confirmación;
+>   coincide con lo que ya fijó `UI.9.9` el 2026-09-18 (ese ítem ya existía y es la pieza 2).
+> - **Tema:** oscuro por defecto. Renombrar los temas: `claude` no puede llamarse así
+>   (`theme.js:9`, `i18n.js:829,1742`).
+> - Reparto de referencias no contestado explícitamente: se sigue la recomendación (estructura de
+>   Orca, piel visual Circle/Linear, oscuro). Si Carlos lo corrige, manda lo suyo.
+> **Orden aprobado ("GO"):** 0. `CI.2.A` (Luna, spec listo). 1. Sidebar de proyectos en React con
+> la cara nueva (decisiones 1 y 5, loader/check, sin pill IDLE). 2. `UI.9.9` menú `ellipsis`
+> (Project settings / Delete project) + back. 3. Panel derecho History + archivar agente + toggle
+> permanente. 4. `UI.10.A` plan de cada proyecto en solo lectura. 5. Etiquetas de texto en vez de
+> emojis. Temas renombrados entran en la pieza 1.
+
+<a id="plan-orden-ui-15"></a>
+- [x] **UI.15 — ⚡ "+ Add project" abre el selector de carpeta directo, sin modal.** (abierto 2026-09-27, cerrado 2026-09-27, GO de Carlos)
+  El "+" del sidebar Dev (`ShellSidebar.tsx:217`) abre `AddProjectModal` ("Project Name" + "Default Git Branch"), pero
+  `App.tsx:1044` ignora ambos y abre el selector nativo (`chooseProject`): el modal es un paso que no aporta. Fix: "+"
+  llama `onNewProject` directo; borrar `AddProjectModal.tsx` y su paso en `scripts/ui-fidelity/capture.mjs:257`.
+  Fuera: "Clonar desde URL" (feature nueva, plan aparte). Gate: paso nuevo en `project-tabs` — clic en "+" dispara
+  `POST /api/projects/choose` (interceptado, `cancelled`) y no aparece ningún `dialog`.
+  Ejecutado por: Codex · `gpt-6-luna` (1 ronda) · Spec: docs/specs/UI.15.md (borrado al cerrar)
+  Gate en vivo: navegador real (Playwright), `docs/done/evidence/UI.15-live.json`: `project-tabs` 24/24 ("POST /api/projects/choose calls=1; dialog
+  visible=false") + `smoke` 6/6; `test:coverage` 1547/0; tsc back+app; biome; `ui:fidelity:jsx`. El selector nativo
+  real no se abre en el gate (interceptado): el clic del usuario sobre él queda sin verificar en vivo.
+
+<a id="plan-orden-ui-16"></a>
+- [x] **UI.16 — ⚡ Chat y Dev bajan hasta el último mensaje y se quedan abajo mientras crece.** (abierto 2026-09-27, cerrado 2026-09-27, GO de Carlos)
+  Visto 2026-09-26 (captura `chat-roles/task-held-for-confirmation`): la tarjeta de tarea retenida queda bajo el
+  pliegue. El Chat baja una sola vez, `smooth`, al cambiar `messages` (`OrchestChatView.tsx:156`); lo que se pinta
+  después (tarjeta, burbuja en vivo) no vuelve a bajar. Dev solo baja al enviar (`OrchestDevWorkspace.tsx:279`).
+  Fix: seguir el fondo mientras el usuario esté abajo. Gate: `chat-roles` y `chat-streaming` afirman el contenedor en
+  el fondo y la tarjeta/burbuja dentro de la vista.
+  Ejecutado por: Codex · `gpt-6-luna` (1 ronda) + ajustes del cerebro · Spec: docs/specs/UI.16.md (borrado al cerrar)
+  Gate en vivo: navegador real (Playwright), `docs/done/evidence/UI.16-live.json`: `chat-roles` 11/11 — ventana de 560 px
+  para que el turno desborde, y paso "chat follows content that grows after render" (crece 600 px tras el render):
+  front viejo FAIL `{"grew":true,"atBottom":false}`, front nuevo PASS. `chat-streaming` 9/9 y los otros 10 flujos
+  verdes; `test:coverage` 1547/0; tsc app; biome. Hook `useStickToBottom` (ResizeObserver + umbral 80 px), también al
+  cambiar de sesión/agente. Nota: el caso exacto de la captura (tarjeta en un segundo render) ya no se da desde MR.1.d3
+  (marcador en la misma respuesta); el gate prueba el mecanismo, no esa captura.
+  Hallazgo del pre-push: 404 intermitente en `project-delete` → UI.17.
+
+<a id="plan-orden-ui-17"></a>
+- [x] **UI.17 — ⚡ Purgar un proyecto aborta también las lecturas de Memory/Specs/Skills/Instincts.** (abierto 2026-09-27, cerrado 2026-09-27)
+  Visto en el pre-push de UI.16: `project-delete` falló 1/6 con "HTTP 404 /api/specs" — `refreshProjectTabs`
+  (`App.tsx:434`) no registraba sus 4 lecturas en `projectHydrationControllers`, así que el purge no las abortaba
+  (hermano del abort de config de MR.1.d1). Ahora reciben `signal` (`api/projectTabs.ts`) y se registran/limpian
+  como `loadThreadMessages`.
+  Sin delegación: fix de un solo flujo, hecho por el cerebro durante el pre-push.
+  Gate en vivo: navegador real (Playwright), `docs/done/evidence/UI.17-live.json`: `project-delete` 8/8 corridas
+  11/11 tras el fix (evidencia débil ante una base de 1/6); `test:coverage` 1547/0; tsc app; biome.
+
+<a id="plan-orden-ui-18"></a>
+- [x] **UI.18 — ⚡ Dev: el mensaje enviado se ve al instante y el loader se apaga al terminar.** (abierto 2026-09-28, cerrado 2026-09-28, reporte de Carlos)
+  Causa: `OrchestDevWorkspace.tsx` pintaba la burbuja solo desde `chat_messages` (se escribe al cerrar el turno, R.5)
+  y `handleSendMessage` ponía `working` sin volver nunca a `done`. Ahora: burbuja optimista hasta que llega la real;
+  el envío espera el `Promise<boolean>` de App y pasa a `done`/`failed`; cambiar de agente limpia ambos.
+  Ejecutado por: luna (1 ronda) · Spec: docs/specs/DEV-SEND.md (borrado al cerrar)
+  Gate en vivo: navegador real (Playwright), `docs/done/evidence/UI.18-dev-send.json`: `codex-live` 9/9 — burbuja a
+  los 18 ms, 0 loaders tras cada turno. Contraprueba: el mismo flujo con el componente de HEAD falla en burbuja y loader.
+
+<a id="plan-orden-ui-19"></a>
+- [x] **UI.19 — ⚡ Dev muestra la conversación completa, no solo el último intercambio.** (abierto 2026-09-28, cerrado 2026-09-28, pedido de Carlos)
+  `OrchestDevWorkspace.tsx` pintaba solo el último mensaje de usuario y la última respuesta, con los pasos de todos los
+  turnos aplanados. Carlos: "tiene que siempre mostrar todo, es lo lógico". Hecho: `buildExchanges` (un intercambio
+  por turno con sus propios pasos, respuesta y comandos; historial sin `turnId` emparejado por orden) renderizado con
+  el mismo JSX; burbuja optimista y texto en vivo en el turno en curso; `extraTurns` (mock de la plantilla) borrado,
+  con sus 27 clases en `jsx-allow.json`.
+  Ejecutado por: luna (3 rondas; r1 rompía el texto en vivo, r2 inventó un campo de API en el flujo) · Spec: docs/specs/UI.19.md (borrado al cerrar)
+  Gate en vivo: navegador real (Playwright), `docs/done/evidence/UI.19-live.json`: `codex-live` 11/11 — 2 intercambios
+  en orden tras el turno 2 y tras recargar, texto en vivo, burbuja al instante, 0 loaders. `ui:fidelity:jsx` verde.
+
+<a id="plan-orden-ui-20"></a>
+- [x] **UI.20 — ⚡ Orden natural del chat y todo lo del agente de su lado (Chat y Dev).** (abierto 2026-09-28, cerrado 2026-09-28, pedido de Carlos)
+  Carlos: "lo mío va debajo de tu respuesta… si está pensando, que todo se escriba de tu lado, no dentro de mi box".
+  Visto en código: Dev pinta `readSteps` dentro de la burbuja del usuario. Absorbe el bug del composer que conserva el
+  mensaje durante el turno.
+  Causa del orden: el mensaje de usuario se guardaba con `turn_id` NULL y hora de fin de turno; Dev (UI.19) lo
+  ordenaba después de la respuesta. Hecho: usuario con el `turn_id` del turno y hora de inicio
+  (`db/chat-sessions.ts`), migración 18 que rellena los existentes, emparejado defensivo en `buildExchanges`; Dev sin
+  `readSteps` en la burbuja del usuario; composer que se vacía al aceptar el envío y restaura si se rechaza.
+  Ejecutado por: luna (2 rondas; r1 omitió los asserts de los flujos) · Spec: docs/specs/UI.20.md (borrado al cerrar)
+  Gate en vivo: navegador real (Playwright), `docs/done/evidence/UI.20-live.json`: `chat-streaming` 15/15 y
+  `codex-live` 14/14 (orden u1<a1<u2<a2 durante, al final y tras recargar; nada del agente en la burbuja; composer
+  vacío). Contraprueba con los 4 archivos de producto de HEAD: falla Dev (a1 antes de u1) y el composer.
+  `test:coverage` 1571/0.
+
+<a id="plan-orden-ui-21"></a>
+- [x] **UI.21 — ⚡ Selector de modelo con altura y buscador + esfuerzo por modelo de OpenCode.** (abierto 2026-09-28, cerrado 2026-09-28, pedido de Carlos)
+  Lista de OpenCode "interminable" (392 modelos). `opencode models --verbose` trae variantes por modelo (199 con
+  esfuerzo) y `opencode run --variant` las aplica; hoy el catálogo devuelve `efforts: []`. Va después de UI.20 (mismo
+  composer).
+  Hecho: catálogo de OpenCode con `opencode models --verbose` (esfuerzos por modelo, parser tolerante); chat y engine
+  pasan `--variant` solo si el modelo lo admite; selector del composer y de Model routing con altura máxima, scroll,
+  buscador con foco y teclado; esfuerzo visible solo con los niveles del modelo elegido.
+  Ejecutado por: luna (4 rondas; r2-r3 flujo del composer, r4 menú cortado visto en captura; spec borrado al cerrar) · Spec: docs/specs/UI.21.md
+  Gate en vivo: navegador real (Playwright), `docs/done/evidence/UI.21-live.json`: `composer-picker` 11/11 (menú 477 px
+  de 1000, buscador y esfuerzo dentro del menú, niveles exactos, Codex intacto) + `model-routing` 14/14.
+  `test:coverage` 1573/0. Pendiente menor: nombres largos de OpenRouter truncados se ven iguales.
+
+<a id="plan-orden-ui-22"></a>
+- [x] **UI.22 — ⚡ Selector de OpenCode: sin el prefijo `opencode/` y buscador solo en OpenCode.** (abierto 2026-09-29, cerrado 2026-09-29, pedido de Carlos)
+  Carlos: la altura/buscador/esfuerzo de UI.21 era solo para OpenCode, y en OpenCode los modelos se leen
+  `opencode/…` — "la palabra OpenCode está de más". Hoy `src/dashboard/chat-cli-models.ts:163` usa el id crudo como
+  nombre y `AgentComposer.tsx:395` muestra el buscador para todos los CLIs.
+  Hecho: el catálogo de OpenCode muestra el nombre sin `opencode/` (el id intacto para `--model`); el buscador del
+  composer solo con OpenCode y se limpia al cambiar de CLI. Model routing conserva su filtro (listas de API largas).
+  Ejecutado por: luna (2 rondas; r1 se creyó planificadora — lanzar con `ORCHESTOS_ROLE=executor`) · Spec: docs/specs/UI.22.md
+  Gate en vivo: navegador real (Playwright), `docs/done/evidence/UI.22-live.json`: `composer-picker` 14/14,
+  `model-routing` 14/14, `test:coverage` 0 fail.
+
+<a id="plan-orden-ui-23"></a>
+- [x] **UI.23 — ⚡ Selector de OpenCode: filas por proveedor, sin `openrouter/` y distinguibles.** (abierto 2026-09-29, cerrado 2026-09-29, pedido de Carlos)
+  Tras UI.22 Carlos sigue viendo `openrouter/aion-labs/aion-3…`: el prefijo sobra y al truncar varias filas se ven
+  iguales. Ids de OpenCode: 8 `opencode/<modelo>` y 385 `openrouter/<fabricante>/<modelo>`; ningún `<modelo>` repetido.
+  Hecho: catálogo con `group` (Zen/OpenRouter) y `vendor`; filas = modelo + fabricante en gris, `title` = id; mismo
+  fabricante en Model routing. Bug de paso: el parser descartaba `openrouter/~anthropic/…` (faltaba `~` en el regex).
+  Ejecutado por: luna (3 rondas; r2-r3 localizadores de flujos que leían el id como texto visible) · Spec: docs/specs/UI.23.md
+  Gate en vivo: navegador real (Playwright), `docs/done/evidence/UI.23-live.json`: `composer-picker` 16/16,
+  `model-routing` 14/14, `test:coverage` 0 fail, lint verde.
+
+## Apéndice — Lotes L1–L4 y decisiones de Carlos 2026-09-22/24 (migrado de NEXT.md el 2026-10-05)
+
+Logs de rondas de Luna por ítem, lecciones y decisiones, tal como estaban en el handoff (sin editar; las lecciones
+reutilizables viven ahora en `AGENTS.md` § "Lecciones operativas de delegación y ui-gate").
+
+### Lote L4 (abierto 2026-09-24)
+Ejecutor desde 2026-09-24: **Luna 6** = `codex exec -m gpt-6-luna -c model_reasoning_effort=medium -s workspace-write
+"…" < /dev/null` (Carlos; AGENTS.md y memoria ya actualizados). Turno real de gate = Codex · `gpt-6-luna` · medium.
+Orden: **CI.4** → **CI.2** → **UI.13.7** (colores de cuota, pedido de Carlos 2026-09-24). CI.4: (spec ya escrito y commiteado: `docs/specs/CI.4.md` — Luna 6 en los flujos, test inestable
+`context-adapters:187`, test que deja `.orchestos/adversarial-review-state.json`) → **CI.2** (ui-gates exigibles:
+medir cuánto tardan los flujos de `scripts/ui-gate/flows/` juntos antes de decidir CI/pre-push/workflow; spec por
+escribir; la lista de "12 scripts de `scripts/ui-gates/`" del ítem es anterior a UI.13.3: verificar qué existe hoy).
+Respuestas de Carlos al cierre de L3: los 92 dudosos se quedan (no preguntar lo ya decidido); residuos de prueba se
+borran sin preguntar y se arregla el test que los deja (memorias nuevas).
+Lecciones L3: (5) Luna re-corre el preflight hasta sobre OTRO ítem (CI.2) y pisa `.orchestos/active-item.json`:
+revisar `scope:check` antes del commit; (6) flujo nuevo = `page.reload` tras registrar el proyecto.
+
+#### Log L4
+| ítem | rondas Luna | gate | min |
+|---|---|---|---|
+| CI.4 | 2 (r1 rompía `adversarial-review.test.ts`, revertido; r2 dos intermitentes más) | 9 flujos · test:coverage 5×1533/0 · gate:all | ~75 |
+| CI.2 | 2 (r2: flujos reintentan y registran QA) | 9 flujos · project-delete 3/3 · gate:all 1533/0 | ~120 |
+CI.2: spec `docs/specs/CI.2.md` (medición: 9 flujos ≈285 s, 7 con turno real; workflow aparte para los 3 sin turno,
+pre-push condicional para los 9; aislar `ORCHESTOS_HOME` del runner; arreglar `project-delete`/`runs-graph` intermitentes).
+**PAUSA L4 tras CI.2 (Carlos 2026-09-24):** antes de UI.13.7 va el ítem de roles de Model routing (4 roles
+{agente CLI/API, modelo, esfuerzo}: Orquestador/Ejecutor/Revisor/Auxiliar; absorbe AT.10/AT.13; fuera todo hardcode de
+modelo: `QA_JUDGE_DEFAULTS`, `diagnose.ts:166`, `memory/judge.ts:118`, `spec/draft.ts:177`). Esperando que Carlos confirme
+los 4 roles; luego plan en PLAN.md y GO antes de codear.
+Carlos 2026-09-24: `#69`/`#70` en IDEAS.md (Files no expande carpetas; Changes en vivo estilo VS Code).
+
+### Lote L3 (abierto 2026-09-23, pedido de Carlos)
+Orden: UI.13.6 → UI.9.9 → UI.9.8 → UI.10.A. Mismo flujo y paradas que L1/L2; spec commiteado al lanzar a Luna.
+| ítem | rondas Luna | gate | SHA | min |
+|---|---|---|---|---|
+| UI.13.6 | 1 (su "gate:all falló" era el sandbox, EADDRINUSE; fuera, solo el test inestable `context-adapters:187`, 2.ª corrida verde) | usage-bar 13/13 · smoke 6/6 · test:coverage 1527/0 | f723a51 | ~45 |
+| UI.9.9 | 2 (dijo que 4 flujos fallaban: 3 pasaban fuera del sandbox; el 4.º, `chat-turn-details`, fallaba también en master) | project-delete 11/11 · 6 flujos verdes · gate:all 1528/0 | ver git log | ~50 |
+| UI.9.8 | 4 (r1 barrido de ~11 textos, devuelto; r2 inventario mecánico 105; r3 flujo con textos viejos; r4 texto inexacto) | text-sweep 10/10 · chat-turn-details 27/27 · smoke · gate:all 1528/0 | ver git log | ~60 |
+| UI.10.A | 2 (r2: recarga tras registrar en project-tabs/tasks/runs-graph, carrera intermitente) | plan-doc 15/15 · project-tabs 23/23 · tasks · runs-graph · smoke · test:coverage 1533/0 | ver git log | ~50 |
+UI.10.A (respondido 2026-09-24: conmutador en Plan; cerrado): la pestaña Plan de Settings → proyecto muestra
+el tablero de tasks (`PlanBoardView`, fuente `tasks.yaml`), no `PLAN.md`; nada en React consume `/api/plan`. ¿Dónde va el
+`PLAN.md` en solo lectura? Recomendación del cerebro: vista `PLAN.md` dentro de la pestaña Plan (conmutador junto al
+tablero), igual para todos los proyectos incluido OrchestOS.
+Para Carlos al cierre de L3: 92 textos dudosos del barrido en `docs/done/evidence/UI.9.8-sweep.md` (se quedaron).
+Lecciones L3: (1) el `--scope` del preflight necesita globs (`src/dashboard/**`): un directorio pelado no cubre sus
+archivos; (2) incluir `NEXT.md` en el scope; (3) el preflight no se puede re-correr sobre un ítem ya `[x]`: si el
+scope quedó corto, línea "**Fuera de scope declarado:**" en el ítem; (4) `check-live-gate` exige la frase
+"Gate en vivo: …Playwright" y la cita del `.json` de evidencia en la MISMA línea.
+
+### Hallazgos post-cierre UI.13.5 (2026-09-23) — primero en L3, como UI.13.6
+1. Codex sin cuota en proyectos sin sesión de Codex: `scripts/session-status.ts` solo llama `readCodexRateLimitsLive`
+   si hay sesión de Codex del proyecto (`liveCodex`); Claude sí tiene respaldo de cuenta (`claudeStatusline && !found.has`).
+   Reproducido con Playwright: proyecto temporal + turno real Codex Luna → barra `86% — —` antes y después del turno.
+   Lo tapaban los fetch sin proyecto que quitó UI.13.5 (leían la raíz de orchestos).
+2. Ventana vencida se pinta "—" (`ShellStatusBar.tsx:36`) en vez de 100 %: tras el reset la cuota está libre.
+3. Brave no mostraba la barra y Chrome/Safari sí, con el mismo :4242: `/app/dist/main.js` se sirve sin `Cache-Control`
+   ni hash en el nombre → sospecha de bundle viejo en caché (no verificado en Brave). Arreglo: `Cache-Control: no-cache`.
+Nota de proceso: el cerebro escribió código en `session-status.ts` vía python en Bash (el hook solo mira Write/Edit en
+rutas); no repetir.
+
+### UI.13.5 CERRADO 2026-09-23 — siguiente: abrir Lote L3 (UI.9.9 → UI.9.8 → UI.10.A)
+3 rondas de Luna; evidencia `docs/done/evidence/UI.13.5-live.json`. Lección: el flujo de r2 pasaba con un clic manual
+del propio gate; medir el fin del turno con la respuesta de `POST /api/chat` y exigir la petición en ≤5 s sin clic.
+Lección 2: commitear el spec al lanzar a Luna — el plan gate exige que el cierre haga `git rm` del spec; UI.13.5 lo tuvo
+sin versionar y hubo que reconstruirlo (3695cfc).
+
+### Siguiente tab — Lote L2 CERRADO (2026-09-23); abrir L3
+L2: UI.13.2e, UI.13.2f, UI.13.3 cerrados y pusheados. Siguiente según PLAN.md § Rumbo Fase 1: **UI.13.5 primero** (cuotas de la barra
+inferior solo al recargar + proyectos temporales de gates en la DB real; causa ya diagnosticada en el ítem) → UI.9.9 → UI.9.8 →
+UI.10.A. Pendiente de decidir por Carlos: cerrar los padres UI.13 y UI.13.4 (sus sub-ítems están todos `[x]`).
+Lecciones L2: (1) la DB del gate es la real: todo flujo borra lo que siembra y el cerebro lo verifica por consulta;
+(2) auditar los `step()` del flujo, no el conteo PASS (r1 de 2f: 14/14 con 6 pasos vacíos); (3) cerrar un ítem:
+`git rm` del spec en el mismo commit o el plan gate rechaza; si `plan:reconcile` dice "Could not prove a closing
+commit SHA", reabrir `[ ]` → reconcile → `[x]` → reconcile; (4) `.orchestos/feature-status.json` lo regenera el
+pre-commit: incluirlo en el `--scope`; (5) Luna puede re-correr el preflight y estrechar el scope: revisarlo antes
+del commit.
+
+### Lote L1 CERRADO; L2 abierto (histórico)
+L1 terminado 2026-09-23: CI.2.B, UI.13.4c, UI.13.2d (Tasks real) con gate:all + ui:gate PASS y push.
+Siguiente: abrir **L2** con los 3 siguientes de la Fase 1 (PLAN.md § Rumbo): pantallas restantes de UI.13
+(Runs/Graph ya tienen parte; luego Memory/Specs/Skills/Instincts/Plan) → UI.9.9 → UI.9.8. Mismo bucle:
+spec en `docs/specs/`, Luna con `codex exec -m gpt-5.6-luna -c model_reasoning_effort=medium -s workspace-write "…" < /dev/null`,
+flujo en `scripts/ui-gate/flows/<pantalla>.mjs`, verificar con `bun run gate:all` + `bun run ui:gate <flujo>` + `smoke`.
+Lecciones nuevas de UI.13.2d:
+- El preflight solo reconoce ítems de **primer nivel** en PLAN.md (`^- [ ] **ID`); un sub-ítem con sangría lo bloquea.
+  Abrir el sub-ítem como línea propia antes de lanzar a Luna.
+- Luna volvió a decir "lint preexistente" en falso (era su archivo) y "typecheck PASS" corriendo solo el tsc raíz:
+  exigir `bun run typecheck` completo (dos tsconfig).
+- Tareas de fixture: `engine: codex` + `executor_model: openai/gpt-5.6-luna`, **nunca** `executor: codex` (exige
+  `OS_ENABLE_EXEC_CODEX`); así las crea el chat (`resolveAgentSelection`). La tarea debe modificar su output o el QA
+  la devuelve a `pending` con reintento.
+- Un QA fallido no cambia el status: fin de run = status, `retryCount` o `runId` distintos.
+- Hook PreToolUse bloquea que el cerebro edite código (`src/**`); los arreglos del flujo de gate pasaron sin bloqueo.
+- El hook de contexto pide cerrar tab desde ~8% de 1M: umbral a revisar.
+Antes (ítem 3, ya hecho): CI.2.B (47b4dbf) y UI.13.4c (aca8d90) cerrados y pusheados; dashboard :4242 reiniciado con el código nuevo.
+Ítem 3: siguiente pantalla de UI.13 (Tasks, PLAN.md § Fase 1). Mismo bucle: spec en `docs/specs/`, Luna con
+`codex exec -m gpt-5.6-luna -c model_reasoning_effort=medium -s workspace-write "…" < /dev/null` (NO `--full-auto`:
+esa flag no existe), flujo nuevo en `scripts/ui-gate/flows/<pantalla>.mjs`, verificar con `bun run gate:all` +
+`bun run ui:gate <flujo> smoke`. Preflight con `--scope` real del ítem (si no, el pre-commit bloquea).
+Lecciones del lote: Luna afirmó 3 veces cosas falsas ("DB aislada", "catálogo sin luna", "lint preexistente") →
+verificar siempre. `visible()` espera a que aparezca; para "desaparece" usar `ctx.hidden()`. Reproducciones por API:
+buscar el proyecto por `realpath` y pasar `x-orchestos-project-id`, o el fallback `legacy-cwd` escribe en el
+`tasks.yaml` de ESTE repo (pasó y se revirtió).
+
+### Lote L2 (abierto 2026-09-23, pedido de Carlos)
+Hallazgo de proceso: el hook PreToolUse bloquea `sed` del cerebro sobre `scripts/**` pero no un `python3` que escriba
+el mismo archivo — así ajusté 2 veces `runs-graph.mjs` en UI.13.2e sin darme cuenta. Agujero del freno, no permiso.
+Ítems: UI.13.2e Runs+Graph (`docs/specs/UI.13.2e.md`) → UI.13.2f Memory/Specs/Skills/Instincts/Plan (un spec,
+incluye acciones de PlanBoardView) → UI.13.3 borrar vanilla/`/legacy`/islas/CSS/ui-gates de píxel (recuperable
+por git). Mismo flujo y paradas que L1. Reemplaza el orden anterior (UI.9.9/UI.9.8 quedan para L3).
+| ítem | rondas Luna | gate | SHA | min |
+|---|---|---|---|---|
+| UI.13.2e | 3 (r1 runs sin `project_id`; r2 lo propagó dashboard→CLI→harness; r3 proyecto duplicado por symlink `/var`↔`/private/var` al indexar, dejó 14 fantasmas en la DB real que rompían smoke con 410 — borrados por el cerebro) | runs-graph 16/16 (flujo endurecido por el cerebro: QA se mira con la pestaña abierta, conteo real antes y +1 tras Rebuild) · smoke 6/6 · gate:all 1533/0 | ver git log | ~120 |
+| UI.13.2f | 4 (implementación 14/14 con pasos vacíos; flujo real 22/22; `[object Object]` en Explain; chequeo `exact:false`) | project-tabs 23/23 · tasks 13/13 · runs-graph 16/16 · smoke 6/6 · gate:all 1534/0 | ver git log | ~75 |
+| UI.13.3 | 1 (re-declaró el scope por su cuenta, más estrecho) | smoke/tasks/runs-graph/project-tabs/chat-turn-details verdes · gate:all 1518/0 | ver git log | ~40 |
+
+### Lote L1 — prueba del flujo por lote (abierto 2026-09-23, `docs/propuesta-flujo-por-lote.md`)
+Ítems: CI.2.B (`ui:gate`, spec `docs/specs/CI.2.B.md`) → UI.13.4c (`docs/specs/UI.13.4c.md`) → siguiente pantalla de UI.13.
+Fin: los 3 con `gate:all` + `ui:gate` PASS, commit, `[x]` en PLAN.md, push. Paradas: el MISMO fallo tras 2 reintentos
+(ajustado en el primer uso: CI.2.B tuvo 4 rondas por 4 causas distintas, cada una avanzando),
+decisión de producto no prevista, acción irreversible, tope de 3 ítems. Luna escribe; el cerebro vigila y verifica.
+Decisión tomada por el cerebro (Carlos no respondió las 3 preguntas; aplicó las recomendaciones): botón
+`Approve & Merge to Main` → `Approve & Run` (aprobar corre la tarea, no hace merge).
+**Preguntas para Carlos al cierre del lote (no bloquean):**
+1. **RESPONDIDA 2026-09-23 por Carlos: "Lista por proyecto".** La lista de Chat muestra los chats del proyecto de la
+   cabecera + los generales; "New chat" se liga al proyecto visible; el diálogo ofrece "Sin proyecto" explícito.
+   Pregunta original — Cabecera vs chat nuevo: sin proyecto activo, la cabecera muestra `projects[0]` (`App.tsx:220`) pero "New chat" crea
+   una sesión sin proyecto (`App.tsx:467`, modo Chat, no crea tareas). ¿Chat nuevo = proyecto que se ve en la cabecera,
+   o la cabecera dice "sin proyecto" (chat general)? Recomendación: ligar al proyecto visible y ofrecer "sin proyecto"
+   explícito en el diálogo de New chat.
+2. Decidido por el cerebro en UI.13.4c r7 (revisable): un mensaje clasificado como tarea cuyo borrador no nombra
+   archivos NO crea tarea ni añade nota de error (antes: guardaba `output: []`, arrancaba un run y dejaba `tasks.yaml`
+   inválido para siempre). También pendiente AT.10: `buildNaturalDraft` llama a haiku por OpenRouter en silencio.
+3. La tarjeta retenida copia el título literal de la plantilla "Task Ready for Git Commit Proof": no describe lo que
+   pasa (tarea retenida esperando aprobación). ¿Se cambia el texto?
+4. Test inestable (no del lote): `scripts/context-adapters.test.ts:187` (timeout 500 ms) falló 1 de 2 corridas de
+   `test:coverage` bajo carga; aislado pasa.
+5. DB real: filas huérfanas de fixtures de tests (`files`/`code_edges` de `gfc-*`, `ruby-check`) sin proyecto. ¿Limpiarlas?
+| ítem | rondas Luna | gate | SHA | min |
+|---|---|---|---|---|
+| UI.13.2d | 4 (preflight sin ítem, implementación, fin de run por reintento, cast TS) + fixture/gate corregidos por el cerebro | PASS tasks 13/13 · smoke 6/6 · gate:all verde | ver git log | ~70 |
+| UI.13.4c | 13 (código, regex, razonamiento+R.1, flujo, rutas, tarea vacía, popover, Reject/Approve, esperas, árbol sucio, decisión lista, fila) | PASS chat-turn-details 27/27 · smoke 6/6 · gate:all verde | ver git log | ~210 |
+| CI.2.B | 5 (spawn fd, espera, bug Settings, flujo) + 1 chore de lint innecesario revertido (diagnóstico mío errado: eran avisos, no errores) | PASS smoke 6/6 · gate:all verde | ver git log | ~75 |
+
+### Decisión vigente
+UI.13 (PLAN.md § UI.13): el prototipo de AI Studio **es** el frontend (`src/dashboard/app/`, servido en `/`);
+el vanilla vive en `/legacy` solo hasta UI.13.3 y no se edita. Tope: **lo que falta de UI.13 en 2 h**
+(regla escrita en PLAN.md § UI.13).
+
+### Regla de Carlos 2026-09-22
+Cero trabajo sobre el vanilla: `/legacy` es cascarón de referencia. Todo look/comportamiento sale de la
+plantilla `~/Documents/screens/orchestos-ai-agent-dashboard`. Anotado en PLAN.md § UI.13.
+
+### Hecho y pusheado
+UI.12.2a, UI.13.1, UI.13.1b, UI.13.2a (Chat), UI.13.2b (proyectos/Dev/Files, cerrado 2026-09-22).
+
+### Decisión 2026-09-22 (tarde) — "SI go"
+Copiar YA tal cual las pantallas de la plantilla sin backend (datos de ejemplo visibles), conectar después.
+Primero: pasada de fidelidad pantalla por pantalla, capturas lado a lado revisadas por Opus (no haiku).
+Detalles de Carlos → PLAN.md § UI.13 (3) a–d: barra inferior sin acción/usage 5h+semanal, selector de CLI/modelo/
+esfuerzo real en el input del chat, iconos de CLI con color, Settings→Usage estilo GitHub.
+CI verde otra vez en local (61b63b6, CI.3); pre-push ahora corre lint.
+
+### Estado 2026-09-22 (noche)
+UI.13.5 cerrado y pusheado (448f07a). Siguiente: **UI.14** — copiar la plantilla nueva de AI Studio (Dev como chat
+que actúa como CLI, AgentComposer, ContextRing, ShellStatusBar, logos de producto) y cablearla. Plan en el último
+mensaje del tab anterior; **espera el GO de Carlos** y su respuesta sobre tooltips (nativos `title` tal cual vs
+tooltip propio instantáneo). Luego UI.13.6 (cuotas reales: Claude sin fuente, Codex vencido desde 17-sep).
+
+### Rumbo nuevo (2026-09-22)
+- PLAN.md reordenado en tres fases (sección "Rumbo" al inicio): interfaz → producto mínimo → correr dentro de
+  OrchestOS igual que el CLI directo. Cerrados archivados en `docs/done/` (índice al final de PLAN.md).
+- Siguiente: Fase 1, empezando por UI.13.4c. 11 ítems retirados (`docs/done/retirados.md`); UI.8.6 pasó a Fase 2.
+- UI.14: sin verificar en vivo el selector nativo de nuevo proyecto.
+- Carlos: turno real de gate = **Codex · gpt-5.6-luna · medium**.
+
+### Siguiente (serial, una ronda cada uno)
+1. UI.13.2c Settings — cerrado 2026-09-22. Pendiente menor: idioma solo traduce Settings.
+2. UI.13.4a — cerrado 2026-09-22.
+3. UI.13.4b — cerrado 2026-09-22 (816a229). Decisión pendiente de Carlos: la frontera por argumentos no frena
+   `node -e`/`sh -c`; barrera real = sandbox de proceso o lista de binarios permitidos.
+   UI.13.4c razonamiento/herramientas/tarea retenida en el chat — spec por escribir.
+4. Tasks/Runs/Graph → Memory/Specs/Skills/Instincts/Plan → UI.13.3 borrar vanilla.
+Gate en vivo con el patrón de `/tmp/ui132b-gate*.mjs`. Regla nueva: comportamientos de la plantilla se
+hacen reales, no se quitan (PLAN.md § UI.13).

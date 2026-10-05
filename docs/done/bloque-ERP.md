@@ -99,3 +99,84 @@ puede entregarse después, pero el piloto debe mostrar permisos reales y los lí
 La corrida sobre carlosgallardo.dev citada en AT queda como smoke opcional, no criterio de éxito.
 Revisión documental de esta ruta: preflight AT.10 válido; verificación por lectura, sin corrida
 ERP ni prueba visual nueva. Los ítems permanecen abiertos hasta sus gates reales.
+
+<a id="plan-orden-erp-2"></a>
+- [x] **ERP.2 — 🧠 Alcance de proyecto real en navegación, memoria y capacidades.** (cerrado 2026-10-02)
+  Ejecutado por: luna (4 rondas: r1, r1b, gate, gate-fix) · Spec: docs/specs/ERP.2*.md (borrados al cerrar)
+  `src/dashboard/ownership.ts` (`requestScope`/`ownsRow`): runs, memoria (lista, `q`, delete, bulk, conflictos),
+  instincts, tasks steps y toda ruta `/api/chat/sessions/:id/*` + `POST /api/chat|upload` con `sessionId` validan
+  dueño; id ajeno = 404 idéntico al inexistente; bulk ignora ajenos; sin proyecto → solo filas sin dueño / `global`,
+  nunca todo. Instincts por proyecto (migración 18, índice único `(COALESCE(project_id,''), trigger)`); históricos
+  `NULL` rotulados "Sin proyecto (histórico)" y no aplicados (`listApplicable` solo del proyecto). Skills con
+  `origin` Proyecto/Biblioteca; `usageRuns` por proyecto. Front: cada llamada por sesión manda el proyecto DE ESA
+  sesión (r1 usaba el último proyecto de localStorage → chats generales daban 404; cazado en revisión). Archivados
+  sin selector siguen listando todos. Hermanos: 9 flujos ui-gate consultaban rutas por id sin proyecto.
+  Gate en vivo: navegador real con Playwright (`scripts/ui-gate/flows/project-isolation.mjs`) + `src/__tests__/project-isolation.test.ts` contra `route()` (A/B con centinelas, 17 casos 404, bulk mixto, migración 18,
+  origin/usageRuns); `bun run test:coverage` 1594/0; `ui:gate project-isolation tasks chat-turn-details` 10/10,
+  13/13, 27/27 (`ui-gate-85885`, capturas memoria/instincts/skills por proyecto). No cubierto: capturas "antes"
+  (requería worktree de HEAD, no creado sin pedirlo); recorrido único proyecto→chat→tarea→resultado→memoria en un
+  solo flujo (cubierto por tramos: tasks + chat-turn-details + project-isolation).
+  Original:
+  Completa UI.8.3–UI.8.5, no crea una segunda migración visual. Dónde: Sidebar citado arriba,
+  estado del shell y `src/dashboard/handlers/memory.ts:7-24,58-90`; revisar los consumidores
+  equivalentes de tasks/skills/specs/runs/graph y la selección de memoria para prompts.
+  Implementar filtros y validación del proyecto también en lectura, búsqueda y mutaciones;
+  datos históricos sin dueño quedan identificados, nunca reasignados o borrados por inferencia.
+  Gate: proyectos A/B con centinelas, navegar/buscar/editar y reabrir; A no muestra ni utiliza datos
+  de B, tampoco con ID ajeno enviado al endpoint. Biblioteca global y activación local distinguibles.
+  Navegador real: proyecto → chat → tarea → resultado → memoria, con Settings separados y
+  capturas antes/después contrastadas con las referencias. No cerrar con solo tokens CSS cambiados.
+
+<a id="plan-orden-erp-3"></a>
+- [x] **ERP.3 — 🧠 Orquestación opcional con freno efectivo de consumo.** (cerrado 2026-10-03)
+  Ejecutado por: luna (r1b, r2, r3, r4) · Spec: docs/specs/ERP.3.md (borrado al cerrar)
+  `orchestration: {enabled, maxConcurrent, maxTotal}` por proyecto; ausente = OFF; ON sin límites = rechazo del
+  loader/PUT (sin defaults). Freno único `src/run/orchestration-budget.ts` (migración 19): run por ejecución
+  (`sha256(root, padre, plan)` + `finished_at`; reanudar conserva total, terminar reinicia), concurrencia por leases
+  con PID (proceso muerto libera su lease), `reserveChild` en `BEGIN IMMEDIATE` antes de crear worktree;
+  `SchedulerOpts.orchestrationBudget` obligatorio. OFF: auto-split omitido (single-shot), `--expand` y approve-split
+  (409) rechazan antes del spawn; Claude se lanza con `--disallowedTools Agent` (medido en vivo: `Task` sale de
+  `tools`). Codex: `multi_agent` OFF no cambia nada observable (medido en vivo: mismos eventos) → **no garantizado**,
+  igual que OpenCode; capability en `cli-registry.ts`. Settings: switch + límites + activos/total + consumo
+  ("desconocida" sin dato) + llamadas adicionales (planner/QA/adversarial/refuter/retries) + garantía por adaptador.
+  Gate en vivo: navegador real con Playwright (`scripts/ui-gate/flows/orchestration.mjs`) + `src/__tests__/orchestration-budget.test.ts` (procesos reales: OFF/ausente 0 hijos, N admite y N+1 rechaza, concurrencia
+  entre procesos, SIGKILL con lease, reanudación, plan distinto) + handler/args; `bun run test:coverage` 1601/0;
+  `ui:gate orchestration` 6/6 por la UI (`ui-gate-16806`), `tasks` 13/13, `project-isolation` 10/10.
+  No cubierto: dreaming no existe en el código (no listado); paralelismo real (scheduler sigue serial); tope en USD.
+  Original:
+  Hueco nuevo: `src/config/schema.ts:72-103` tiene opciones de ejecutor y QA opt-in, pero no el
+  contrato unificado OFF/límite solicitado. Dónde: schema/loader, handler de config, Settings,
+  `src/agents/sub-agent.ts`, `src/run/scheduler.ts` y entradas de expansión desde CLI/dashboard.
+  Config por proyecto: `enabled=false` si ausente; al activar, límites explícitos de simultáneos
+  y total por ejecución (incluye descendientes y relanzamientos; solo limitar concurrencia no
+  limita consumo acumulado). Validar antes de lanzar cada hijo, también al reanudar.
+  OFF impide delegación/autoexpansión de OrchestOS y permite trabajo con un ejecutor. Inventariar
+  además planner/QA/retries/dreaming: mostrar qué llamadas adicionales siguen activas y no
+  confundirlas con subagentes. Conservar checks/QA requeridos, sin prometer costo cero.
+  Verificar por CLI si puede impedirse su delegación interna: si no, mostrar límite no garantizado
+  y no ofrecer ese adaptador como modo de cero subagentes. No basta una instrucción en el prompt.
+  Gate: configuración ausente y OFF → cero hijos; ON → admite N y rechaza N+1 antes del spawn;
+  recarga/reinicio mantienen política; intentos concurrentes no la saltan. Estado visible de
+  activos/total y consumo observado; cuota no disponible se rotula desconocida.
+
+<a id="plan-orden-erp-3-1"></a>
+- [x] **ERP.3.1 — 🧠 Settings no pide orquestación de un proyecto purgado.** (cerrado 2026-10-03)
+  Ejecutado por: luna · Spec: docs/specs/ERP.3.1.md (borrado al cerrar)
+  Settings omite la lectura de orquestación si el proyecto ya no está en la lista y cancela lecturas/guardados
+  pendientes al purgar; guardados con la misma validación de proyecto.
+  Gate en vivo: navegador real con Playwright (`src/dashboard/app/src/api/settings.ts`) — `ui:gate project-delete` 11/11
+  (antes FAIL por 404 en consola) y `orchestration` 6/6.
+  Original:
+  Hermano de ERP.3 cazado por el pre-push: `ui:gate project-delete` → `HTTP 404 /api/orchestration` en consola tras
+  purgar. Aplicar a la orquestación el mismo resguardo que las demás lecturas por proyecto de Settings.
+  Gate: `ui:gate project-delete orchestration` en dashboard real.
+
+<a id="plan-orden-erp-3-2"></a>
+- [x] **ERP.3.2 — 🧠 Orquestación solo en la pestaña Tasks del proyecto.** (cerrado 2026-10-03)
+  Ejecutado por: luna · Spec: docs/specs/ERP.3.2.md (borrado al cerrar)
+  Gate en vivo: navegador real con Playwright (`scripts/ui-gate/flows/orchestration.mjs`, nuevo paso Plan oculta /
+  Tasks muestra) — `ui:gate orchestration` 7/7, `plan-doc` 15/15 (antes FAIL, 4 checkboxes), `project-delete` 11/11.
+  Original:
+  Hermano de ERP.3 cazado por el pre-push: la sección se pinta en todas las pestañas (`OrchestSettingsView.tsx:2258`)
+  y `ui:gate plan-doc` cuenta 4 checkboxes en Plan. Mostrarla solo con `activeProjectTab === 'tasks'`.
+  Gate: `ui:gate plan-doc orchestration project-delete` en dashboard real.

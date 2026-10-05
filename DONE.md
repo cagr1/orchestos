@@ -41,7 +41,24 @@ tramo necesario. La sección transversal de ideas implementadas se conserva como
 - [Sprint 27](docs/done/sprint-27.md)
 - [Sprint 28](docs/done/sprint-28.md)
 - [Sprint 29](docs/done/sprint-29.md)
+- [Sprint 30 (UI)](docs/done/sprint-30.md)
+
+## Historial por bloque
+
+- [Bloque AT](docs/done/bloque-AT.md)
+- [Bloque CI](docs/done/bloque-CI.md)
+- [Bloque CX](docs/done/bloque-CX.md)
+- [Bloque DOC](docs/done/bloque-DOC.md)
+- [Bloque ERP](docs/done/bloque-ERP.md)
+- [Bloque GOV](docs/done/bloque-GOV.md)
+- [Bloque H](docs/done/bloque-H.md)
+- [Bloque I](docs/done/bloque-I.md)
+- [Bloque MR](docs/done/bloque-MR.md)
+- [Bloque R](docs/done/bloque-R.md)
+- [Bloque S](docs/done/bloque-S.md)
 
 ## Apéndice
 
 - [Ideas implementadas provenientes de IDEAS.md](docs/done/ideas-implementadas.md)
+- [Decisiones de Carlos](docs/done/decisiones.md)
+- [Ítems retirados](docs/done/retirados.md)

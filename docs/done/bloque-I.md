@@ -230,3 +230,79 @@ Evidencia movida literalmente desde PLAN.md en S.2; PLAN.md conserva el índice.
   de una la sacó del listado real. `curl` a `/screens-core.js` y `/app.js` confirmó el aside, los
   3 handlers nuevos y cero referencias a `chat-clear` en el bundle servido. Servidor bajado al
   terminar ([[feedback-siempre-cerrar-servidor]]).
+
+<a id="plan-orden-i-7"></a>
+- [x] **I.7 — 🔍 Gate: la puerta manual no existe y el flujo automático se ve.** (cerrado 2026-10-04)
+  Ejecutado por: claude (gate) · Spec: docs/specs/I.7.md
+  Cierre: I.7.1 e I.7.2 `[x]`; `auto-flow` 26/26 en vivo (puntos 1-5 verdes), `docs/done/evidence/I.7.2-live.json`. Sin delegación: no (Luna en I.7.1/I.7.2).
+  Contra el dashboard real corriendo, nunca mocks ([[feedback-verificar-gates-en-vivo]]):
+  1. En la pantalla principal **no hay ningún camino** para crear una tarea a mano — es el
+     criterio de cierre de I.1 y lo que faltó las tres veces anteriores.
+  2. Un mensaje que es tarea → confirma (I.2) → ejecuta → reporta inline, y queda persistido en
+     `chat_messages` **y** en `runs` con `result` no vacío (I.4).
+  3. Un mensaje que **no** es tarea no dispara nada.
+  4. Dos tareas del mismo DAG con agentes distintos (Claude/Codex) resuelven y **persisten**
+     engine y modelo distintos (I.3).
+  5. Ningún texto de implementación visible (I.5).
+
+  Bajar el servidor al terminar ([[feedback-siempre-cerrar-servidor]]).
+
+  **Gate en vivo 2026-10-03 (flujo `scripts/ui-gate/flows/auto-flow.mjs`, spec `docs/specs/I.7.md`, r4):**
+  21/25 verdes. Puntos 1 y 3 OK (sin puerta manual en Chat/Dev/Settings Tasks/Plan; "Add task" solo abre el
+  composer; pregunta no crea tarea ni toca el árbol). Fallos **de producto**, que dejan I.7 abierto:
+  - **I.7.1 — Tarea ruteada a Claude corre con el modelo de Codex.** `taskAgentRules` fija `engine: external`
+    pero el modelo sale del rol Ejecutor (`router/auto-route.ts:15`) → `gpt-6-luna` hacia `claude`
+    (`external.ts:126-162` pasa `--model` si no hay `/`). Resultado: `missing declared output(s)`, y el run se
+    persiste como `provider=role:codex model=gpt-6-luna` para una tarea `engine: external` (el registro miente).
+    Falta decisión de Carlos: qué modelo usa una tarea que una regla manda a otro agente.
+  - **I.7.2 — No hay reporte inline del final de la tarea.** El chat solo dice `▶ Started task <id>`
+    (`chat.ts:1119`); el estado final (`done`/`failed`) no aparece en el Chat (captura r4).
+  - Punto 4 falla como consecuencia de I.7.1. Punto 5 pasó en vacío en r4 (el flujo leía `<main>`, que el
+    Chat no tiene); corregido en r5, sin re-correr.
+  Visto sin ítem: el modal "Append to tasks.yaml" de `PlanBoardView.tsx:623` es código muerto (`showAddModal`
+  nunca pasa a true).
+
+<a id="plan-orden-i-7-1"></a>
+- [x] **I.7.1 — 🧠 La regla de proyecto declara el modelo; el run registra lo que de verdad corrió.** (cerrado 2026-10-03)
+  Decisión de Carlos (2026-10-03): opción "modelo en la regla". `TaskAgentRule` suma `model` (+ `cli_effort`
+  ya existe); editable en Settings → Task rules con el mismo catálogo que Model routing. Regla hacia un agente
+  distinto del Ejecutor sin `model` → la tarea no se crea y el chat lo dice. La tarea persiste
+  `engine`+`executor_model`; el harness usa ese modelo y `runs.provider/model` reflejan el engine real (hoy
+  `role:codex` para una tarea `external`, `role-runner.ts:29`). Archivos: `config/schema.ts`, `config/load.ts`,
+  `handlers/config.ts`, `handlers/chat.ts:1081`, `handlers/tasks.ts:362`, `router/auto-route.ts`,
+  `OrchestSettingsView.tsx` (Task rules). Gate: `ui:gate auto-flow` punto 4 verde + `model-routing`.
+  Ejecutado por: luna (4 rondas) · Spec: docs/specs/I.7.1.md
+  Rondas 2-4: gate del combobox, botón mostraba id en vez de nombre, "Default effort" partido. Causa raíz: `autoRoute` ignoraba `task.engine` y el harness
+  persistía `role:<agente del Ejecutor>`. Ahora: helper único `taskFieldsFromRule` (chat + `POST /api/tasks`),
+  `autoRoute` respeta engine CLI, `runs.provider` = agente real, combobox `rule model` en Task rules.
+  Gate en vivo: navegador real (Playwright), `docs/done/evidence/I.7.1-live.json`; `test:coverage` 1612/0;
+  `ui:gate model-routing` 18/18 (cubre el combobox nuevo);
+  `gate:evidence --label I.7.1-auto-flow` 24/26: punto 4 verde (`claude/haiku` vs `codex/gpt-6-luna`, ambos
+  `done`); los 2 rojos son "inline report" = I.7.2.
+
+<a id="plan-orden-i-7-2"></a>
+- [x] **I.7.2 — 🧠 El chat reporta el final de la tarea que lanzó.** (cerrado 2026-10-04)
+  Ejecutado por: luna (3 rondas) · Spec: docs/specs/I.7.2.md
+  Hoy solo `▶ Started task <id>` (`chat.ts:1119`). Al terminar, el mismo chat muestra estado final y resumen
+  del run sin salir de él, persistido (sobrevive recarga). Gate: `ui:gate auto-flow` paso "inline report".
+  Hecho: `spawnTaskRun` acepta `onExit`; `reportTaskOutcome` (`handlers/task-report.ts`) inserta un mensaje
+  assistant con `task_id` (`appendTaskReport`); también al aprobar una tarea retenida (`sessionId` en
+  `POST /api/tasks/:id/run`). El frontend sondea cada 5 s hasta que llega el reporte. Rondas 2-3: carrera
+  "tasks.yaml done antes del reporte" y el efecto que se relanzaba agotando los intentos en <1 s.
+  Fuera: si el dashboard se reinicia a mitad del run, ese reporte se pierde.
+  Gate en vivo: navegador real (Playwright), `docs/done/evidence/I.7.2-live.json`; `auto-flow` 26/26 (inline report
+  `dom=true; persisted=true` para Claude y Codex), `chat-streaming` 15/15, `codex-live` 14/14; `test:coverage` 1617/0.
+
+<a id="plan-orden-i-7-3"></a>
+- [x] **I.7.3 — ⚡ Regresión de I.7.2: aprobar una tarea retenida no oculta la tarjeta.** (cerrado 2026-10-04) `ui:gate chat-turn-details`
+  falla "Approve & Run removes card" (verde en CI.7/CI.9). Causa leída en código: el sondeo de I.7.2
+  (`App.tsx` ~299) hace `setThreads` con mensajes recargados mientras `tasks.yaml` aún dice `pending` y pisa el
+  `taskHeld:false` local; además sondea tareas rechazadas (borradas). Gate: `chat-turn-details` verde en vivo.
+  Ejecutado por: luna · Spec: docs/specs/I.7.3.md
+  Hecho: tarea borrada → deja de sondearse sin recargar; agotar intentos no toca el estado; el reporte se
+  agrega sin reemplazar los mensajes existentes.
+  Gate en vivo: navegador real (Playwright), `docs/done/evidence/I.7.3-live.json`; `chat-turn-details` 27/27
+  ("Approve & Run removes card" verde) y `auto-flow` 26/26.
+
+**Fuera de scope declarado del Bloque I:** dónde viven DB/`runs`/`specs` (Carlos lo pospuso
+explícitamente); `opencode`; y el rediseño de las pantallas que no son Chat ni Actividad.

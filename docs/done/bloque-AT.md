@@ -209,3 +209,129 @@ Ejecutado por: luna · Spec: docs/specs/AT.9.md
   presupuesto de delegación que referencia este ítem) y `PLAN.md`/`.orchestos/feature-status.json`
   (cierre del ítem) — el spec solo declaraba `.claude/hooks/**` y `tests/hooks/**`, pero el hook no
   entra en vigor sin el wiring en `settings.json` ni el `.gitignore` de su estado.
+
+<a id="plan-orden-at-10"></a>
+- [x] **AT.10 — 🧠 El chat usa de verdad el CLI elegido: Codex y OpenCode, sin caída silenciosa a OpenRouter.**
+  **Absorbido por MR.1.d (Carlos 2026-09-24):** se ejecuta dentro de MR.1, no por separado.
+  **Cerrado 2026-09-28:** Codex cumple el contrato (MR.1.d1-d5, `docs/done/evidence/MR.1.d5-live.json`); el tramo
+  OpenCode pasa a AT.15 (terminal real en Dev, decisión de Carlos 2026-09-28).
+  Ejecutado por: luna (AT.10 backend 2026-09-15 + MR.1.d1-d5) · Spec: docs/specs/AT.10.md (borrado al cerrar)
+  **Progreso 2026-09-15 (backend, ejecutado por luna · spec en `docs/specs/AT.10.md`, sigue
+  abierto):** `chat.ts:1098-1101` ya no pasa `deepseek/deepseek-v4-flash` como default a
+  `runCodexChat`/`runOpencodeChat` cuando `body.model` no vino explícito (`cliModel`); OpenCode sin
+  modelo se etiqueta `CLI default model`; el catch de OpenCode ya devolvía 502 `provider=opencode`
+  sin retry. Tests en `chat-sessions.test.ts` (12 pass) y `bun run test:coverage` (1430 pass) verdes.
+  Gate en vivo parcial — `docs/done/evidence/AT.10-live.json`: Codex cierra completo (sesión real,
+  sin credencial de OpenRouter en el entorno, SQLite confirma `provider=codex`, respuesta correcta,
+  sin fuga). OpenCode queda **bloqueado, no roto por este fix**: `opencode auth list` en esta
+  máquina solo tiene una credencial OpenRouter y ningún modelo/provider default propio — sin
+  `-m/--model` explícito el binario no tiene con qué correr (`opencode produced no step-finish
+  event`), confirmado que no reintenta por OpenRouter (SQLite `provider=opencode`, `status=failed`).
+  Fijar el modelo interno de OpenCode es explícitamente fuera de scope de este ítem — no cerrar
+  AT.10 hasta repetir el gate con OpenCode configurado con su propio default en la máquina de
+  prueba. El picker del composer y el mini-menú de "Nuevo chat" quedan para `ERP.1`
+  (`docs/specs/ERP.1.md`, ver contrato vigente en `PLAN.md:30-45,63-84`), que reemplaza el texto
+  original de abajo sobre `CHAT_UNSUPPORTED_AGENTS`/`PUT /api/config` como plan de UI.
+
+  **Decisión de Carlos, 2026-09-15 — el gate de OpenCode queda "visto, a planificar con otro
+  modelo" (Opus/Astra), no se fuerza ahora:** OpenCode conectado a OpenRouter con sus modelos
+  gratuitos es su uso normal para Carlos — no es un caso a "arreglar" con un modelo default
+  genérico. El punto real es más grande que este ítem: tratar OpenCode como CLI con reglas
+  propias, no como un motor de chat más. Para OpenCode específicamente, la superficie de "chat"
+  debería dejar de existir y convertirse en una **ventana de trabajo libre** donde OpenCode actúa
+  con su propia configuración — el mismo patrón que usa Orca. Cierra el ítem AT.10 solo con el
+  verdadero contrato mínimo (Codex ya lo cumple); el rediseño de la superficie de OpenCode se
+  planifica aparte, no se resuelve ad-hoc dentro de este spec. Sin ítem propio todavía — abrir uno
+  cuando se planifique.
+
+  Bloqueo reproducido por Carlos el 2026-09-15 y confirmado leyendo el recorrido: AT.9 conectó
+  las ramas backend de Codex/OpenCode, pero `src/dashboard/public/app.js:2908` todavía las incluye
+  en `CHAT_UNSUPPORTED_AGENTS`; además, elegir un agente solo hace `PUT /api/config` y no reemplaza
+  la sesión activa, cuyo `agent` quedó persistido al crearla. El proyecto sigue con `agent: api`,
+  `app.js:108` conserva DeepSeek como modelo inicial y `chat.ts:1098` lo usa como fallback. En
+  OpenCode ese id sí se traduce a `openrouter/deepseek/...`, por lo que hoy es posible seleccionar
+  conceptualmente un CLI y seguir usando DeepSeek/OpenRouter. No presentar AT.9 como selección
+  end-to-end hasta cerrar este ítem.
+
+  **Decisión de Carlos, 2026-09-28:** OpenCode se trata "tal cual trabaja": en el tab Dev se abre como en una
+  terminal (su TUI propia, su config y auth), no como rama de chat. Implica terminal embebida (PTY: `Bun.Terminal`
+  existe en Bun 1.3.14) — plan pendiente de GO; sin ítem abierto todavía.
+
+  **Contrato de esta pasada (Codex + OpenCode):**
+  1. El picker del chat habilita `codex` y `opencode` solo cuando
+     `GET /api/system/executor-modes` los detecta; si falta el binario, queda visible y deshabilitado
+     con el error concreto. Quitar el comentario/allowlist obsoletos que todavía dicen que el
+     backend no los soporta.
+  2. Elegir un CLI persiste `agent` y crea/activa inmediatamente una **sesión nueva** con ese agente.
+     La sesión anterior y su historial se conservan; nunca cambiar el agente de una conversación
+     que ya recibió mensajes. El siguiente envío debe usar el CLI elegido sin reiniciar el servidor
+     ni entrar a Settings.
+  3. Separar selección de transporte y selección de modelo. Al entrar a Codex/OpenCode no enviar el
+     fallback `deepseek/deepseek-v4-flash` ni ningún modelo de OpenRouter heredado: en la primera
+     entrega el CLI corre sin `-m`/`--model` y decide con su propia configuración/autenticación. La
+     preferencia de modelo API puede conservarse para volver a `agent: api`, pero no puede filtrarse
+     a una sesión CLI. La UI debe decir `modelo configurado en el CLI` hasta disponer del modelo real;
+     nunca rotular DeepSeek por un default del frontend que no fue pedido para esa sesión.
+  4. Un error de spawn, autenticación, timeout o parseo del CLI devuelve y persiste el error real con
+     `provider=codex|opencode`; está prohibido reintentar silenciosamente por OpenRouter/API. Codex
+     reutiliza el enlace de autenticación aislada entregado por AT.9. Para OpenCode, verificar primero
+     en vivo dónde lee su autenticación/configuración y conservar ese contrato; no asumirlo desde el
+     comportamiento de Codex.
+  5. La sesión, el turno y Recent Runs muestran el transporte ejecutado (`Codex CLI` u `OpenCode
+     CLI`) y, cuando el stream permita conocerlo, el modelo **observado**. Un modelo no observado se
+     etiqueta como `CLI default model`, no como DeepSeek ni como un modelo solicitado ficticio.
+
+  **Dónde:** `src/dashboard/public/app.js` (`buildChatModelFx`, estado por agente),
+  `src/dashboard/public/screens-core.js` (selección transaccional agente→sesión),
+  `src/dashboard/handlers/chat-sessions.ts` (creación explícita),
+  `src/dashboard/handlers/chat.ts` (modelo opcional y cero fallback API),
+  `src/run/executors/codex.ts`, `src/run/executors/opencode.ts`, tests de chat/config/executors e
+  i18n afectado. No cambiar `orchestos.config.yaml` como sustituto del arreglo: el flujo debe
+  funcionar desde la UI para cualquier proyecto.
+
+  **Gates:** tests deterministas que demuestren (a) picker habilitado según detección, (b) selección
+  crea y activa sesión con el agente exacto, (c) el request CLI no recibe DeepSeek por defecto,
+  (d) fallo del binario produce 502 sin llamar `fetch` de OpenRouter y (e) recarga conserva sesión,
+  agente, mensajes y proveedor. `bunx tsc --noEmit`, tests relevantes y `bun run test:coverage`.
+  Gate en vivo obligatorio con navegador real y ambos binarios reales: seleccionar Codex en el
+  composer → sesión nueva → respuesta marcador → SQLite registra `agent/provider=codex`; repetir
+  desde la UI con OpenCode y `agent/provider=opencode`. Ejecutar el gate sin credencial de
+  OpenRouter disponible para OrchestOS, manteniendo únicamente la autenticación propia de cada CLI,
+  para probar que no hubo fallback. Si uno de los binarios o su autenticación no está disponible,
+  AT.10 queda abierto con ese error exacto; una prueba solo con Codex no cierra OpenCode. Evidencia:
+  `docs/done/evidence/AT.10-live.json` y cierre en `docs/done/bloque-AT.md`.
+
+  **Fuera de scope:** elegir un modelo interno específico de cada CLI, modificar el motor de tareas,
+  y prometer soporte para los otros CLIs del registro antes de que tengan adaptador de chat real.
+
+<a id="plan-orden-at-15"></a>
+- [x] **AT.15 — 🧠 OpenCode tal cual trabaja: terminal real en el tab Dev.** (cerrado 2026-10-01) (abierto 2026-09-28, GO de Carlos; sustituye el
+  tramo OpenCode de AT.10) Carlos: "si en un terminal escribo OpenCode se abre como siempre; quiero el mismo tratamiento,
+  con más razón en el tab Dev". Plan aprobado: (1) servidor abre `opencode` en la carpeta del proyecto con PTY
+  (`Bun.Terminal`, presente en Bun 1.3.14), su propia config y auth, sin CODEX_HOME/OPENCODE aislado ni modelo elegido
+  por OrchestOS; (2) canal WebSocket entrada/salida/redimensión; (3) panel de terminal en el tab Dev (`xterm.js`,
+  dependencia nueva) que se ve y usa igual que la terminal; (4) OpenCode deja de ser opción del chat. Fuera: otros CLI en
+  la terminal, persistir el scrollback. Gate en vivo: navegador real, abrir OpenCode en Dev, escribir un prompt, ver la
+  TUI responder, redimensionar, cerrar sin procesos huérfanos (`ps`). Va después de MR.1.d5.
+  **Paso (4) hecho 2026-10-01 (GO de Carlos), spec `docs/specs/AT.15.md` rondas 4-8:** New chat no ofrece OpenCode;
+  `/api/chat` responde 400 si el agente resuelto (body, sesión u orchestrator) es opencode; Model routing no ofrece
+  OpenCode al orchestrator (Settings + PUT config 400), los otros 3 roles sí; buscador de modelos de OpenCode fuera del
+  composer. `loadOrcheConfig` sigue sin lanzar. `test:coverage` 1581 pass/0 fail.
+  Gate en vivo: navegador Playwright `docs/done/evidence/AT.15-step4-live.json` — `model-routing` 18/18 y
+  `composer-picker` 5/5 (New chat sin OpenCode; orchestrator sin OpenCode y executor/reviewer/auxiliary con OpenCode).
+  Sin delegación: no (Luna).
+  - [x] **AT.15.a — Pasos (1)–(3): PTY + WebSocket + panel xterm.js en Dev.** (2026-10-01) Spec `docs/specs/AT.15.md`,
+    Luna 3 rondas. `src/dashboard/terminal.ts` (PTY, SIGTERM→SIGKILL 2 s), WS `/api/terminal` con Origin obligatorio,
+    `OpenCodeTerminal.tsx` en Dev cuando la sesión es `opencode`. `test:coverage` 1579 pass/0 fail.
+    Gate en vivo: navegador Playwright `docs/done/evidence/AT.15a-live.json` — `ui:gate opencode-terminal` 7/7 (TUI
+    renderizada, pid nuevo, resize, ningún pid vivo tras cerrar); prompt real por el canal → OpenCode respondió `391` a
+    "17×23" en 7,5 s; `pgrep opencode` vacío. Sin delegación: no.
+
+<a id="plan-orden-at-14"></a>
+- [x] **AT.14 — ⚡ brain-no-code ve los intérpretes con script en línea (`python`/`node -e`/heredoc).** (abierto 2026-09-28, GO de Carlos; cerrado 2026-09-28)
+  Hueco visto en MR.1.d2: el cerebro editó `src/` con `python3 - <<EOF … open(..,'w')` y el hook no lo vio. Se amplía
+  `.claude/hooks/brain-no-code.js` (sin hook nuevo); de paso, `runHook` del test heredaba `ORCHESTOS_ROLE=executor`
+  (los 5 fallos de `brain-no-code` en el sandbox de Luna). Spec: `docs/specs/AT.14.md`. Gate: `bun test` + `gate:all`.
+  Cierre: `gate:all` verde (1564 pass); deny/allow probados a mano fuera del sandbox. Ronda 2: solo cuenta la ruta que es
+  un literal completo entre comillas (prosa sin comillas en un heredoc que edita PLAN.md no se deniega).
+  Ejecutado por: Codex · `gpt-6-luna` (2 rondas: la 2.ª quitó un falso positivo con prosa) · Spec: docs/specs/AT.14.md (borrado al cerrar)

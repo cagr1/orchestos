@@ -322,3 +322,309 @@ No es React. Es que **a mitad de camino queden dos sistemas conviviendo indefini
 Por eso UI.1 es un gate de abortar real, y por eso el orden es shell→pantallas y no al revés.
 
 ---
+
+<a id="plan-orden-ci-5"></a>
+- [x] **CI.5 — ⚡ CI rojo desde 2026-09-23 02:44: 5 tests que pasan en el Mac fallan en ubuntu.** (abierto 2026-09-24; cerrado 2026-09-24 — CI run 36056206658 verde, `test:coverage` 1533/0)
+  Causas (4 reproducidas en local con `env -i`, HOME temporal, sin CLI, `user.useConfigOnly=true`): `session-status`
+  llamaba `detectInstalledClis()` real (sin `codex` en CI) → `detectClis` inyectable; `serveStatic` servía el
+  `main.js` gitignoreado → `appDir` inyectable; R.6 hacía `process.env.HOME = home`, que **Bun ignora en runtime**
+  (`os.homedir()` sigue en el home real: leía el `~/.claude` del Mac) → `HOME` en el env del spawn; borrado de tareas:
+  sin identidad git en ubuntu el commit falla y `Bun.spawnSync` **tampoco ve cambios a `process.env`** → identidad en
+  el `.git/config` del repo temporal. Entorno limpio tras el arreglo: 28/0.
+  Hermano sin arreglar (producto, fuera de alcance): sin identidad git, borrar desde el dashboard responde 200 y deja
+  `tasks.yaml` staged (`commitTasksYaml` no mira el exit code, `handlers/tasks.ts:191`).
+  Luna hizo 3 de 4 arreglos; el de identidad git vía `process.env` no funcionaba y lo rehizo el cerebro.
+  Ejecutado por: luna · Spec: docs/specs/CI.5.md
+
+<a id="plan-orden-ci-4"></a>
+- [x] **CI.4 — ⚡ Higiene de gates: Luna 6 en los turnos reales, test inestable y residuo de tests.** (abierto 2026-09-24, pedido de Carlos; Lote L4; cerrado 2026-09-24 — `test:coverage` 5×1533/0)
+  Hecho: los 6 flujos con turno real eligen y comparan `gpt-6-luna`; comentarios de `codex.ts` al día;
+  `context-adapters.test.ts:187` con `timeoutMs` 5 000 / test 10 000. Dos intermitentes más que salieron al medir 5
+  corridas: `harness-retry.test.ts` (301 s: `runTask` real con `globalThis.fetch` compartido podía salir a OpenRouter
+  y escribía en la DB real) → prueba pura de `previousFailureForTask` (`src/run/prompt.ts`), se pierde el cableado
+  extremo a extremo `runTask`→provider; `roadmap-profile.test.ts` (18 s: sonda real `bunx tsc`) → sonda inyectada.
+  Residuo `.orchestos/adversarial-review-state.json`: no se reprodujo en 10 corridas + 2 `gate:all`; sin arreglo.
+  Ejecutado por: luna (2 rondas; r1 movía la credencial de `adversarial-review.test.ts` dentro de `root` y rompía el
+  test, revertido por el cerebro) · Spec: docs/specs/CI.4.md (borrado al cerrar).
+  Gate en vivo: navegador real (Playwright, `bun run ui:gate` 9 flujos, `text-sweep` registra `gpt-6-luna` · medium) — `docs/done/evidence/CI.4-live.json`.
+  **Fuera de scope declarado:** `LEDGER.md`, entrada que exige `ledger:gate` por tocar `src/run/harness.ts`.
+  Intermitentes vistos, van a CI.2: `project-delete` (404 `/api/tasks` en consola) y `runs-graph` (940 s), verdes en la 2.ª.
+  (1) Carlos 2026-09-24: de ahora en adelante Luna = `gpt-6-luna` (ya es el default de `~/.codex/config.toml`); los
+  flujos de `scripts/ui-gate/flows/*.mjs` eligen `gpt-5.6-luna` en el selector para su turno real, y fixtures/tests
+  lo nombran. (2) `scripts/context-adapters.test.ts:187` (`readCodexRateLimitsLive` con `timeoutMs: 500` contra un
+  binario falso en bun) falló 2 de 4 corridas de `test:coverage` el 2026-09-23: el arranque en frío del falso
+  supera 500 ms bajo carga. (3) Un test dejó `.orchestos/adversarial-review-state.json` en la raíz del repo real
+  durante `gate:all` (`STATE_PATH`, `scripts/adversarial-review.ts:33`); borrado por el cerebro.
+  Spec: `docs/specs/CI.4.md`. Gate: flujos con turno real verdes eligiendo `gpt-6-luna`; `test:coverage` 5 corridas
+  seguidas verdes; `git status` sin archivos nuevos tras `gate:all`.
+
+<a id="plan-orden-ci-2"></a>
+- [x] **CI.2 — 🧠 Los 12 ui-gates no los corre nada: hacerlos exigibles.** (abierto 2026-09-18; cerrado 2026-09-24, Lote L4 — 9 flujos verdes)
+  Hecho: los 13 scripts viejos ya no existen (UI.13.3); `CI.2.A` queda sin objeto. Medido: 9 flujos ≈285 s, 7 con turno
+  real Codex. `.github/workflows/ui-gate.yml` (workflow aparte) corre los 3 sin turno real (`smoke`, `plan-doc`,
+  `project-delete`); `scripts/pre-push.sh` corre los 9 solo si el push toca `src/dashboard/`, `scripts/ui-gate/` o
+  `src/run/`. `run.mjs` levanta el dashboard con `ORCHESTOS_HOME` en su tmpdir y aborta si la DB escapa (DB real
+  4|26|288 antes y después). `project-delete`: lecturas en vuelo del proyecto borrado → 404 en consola; `App.tsx` las
+  cancela y espera antes del purge. `runs-graph`/`tasks`/`project-tabs`: reintentan como una persona y registran el QA
+  del intento fallido en `result.json`.
+  **Causa real del `runs-graph` intermitente (sin arreglar aquí, pasa al ítem de roles):** el juez de QA es
+  `gpt-4o-mini` hardcodeado (`QA_JUDGE_DEFAULTS`, `harness.ts:172`) y a veces reformula los criterios → R.3 lo rechaza
+  (`qa.ts:258`). Rojo conocido ~1/3 hasta que cierre ese ítem (decisión de Carlos 2026-09-24).
+  Ejecutado por: luna (2 rondas) · Spec: docs/specs/CI.2.md (borrado al cerrar). Inventario de afordancias: fuera.
+  Gate en vivo: navegador real (Playwright, `bun run ui:gate` 9 flujos, project-delete 3/3, runs-graph 16/16 tras r2) — `docs/done/evidence/CI.2-live.json`.
+  `gate:all` 1533/0; typecheck y biome limpios.
+  - [x] **CI.2.B — `ui:gate`: comprobador en vivo de la app React.** (cerrado 2026-09-23, Lote L1) Ejecutado por: luna (5 rondas) · Spec: docs/specs/CI.2.B.md
+    `bun run ui:gate <flujo>`: arranca el dashboard en puerto libre, recorre `scripts/ui-gate/flows/<flujo>.mjs` clickeando,
+    una línea `PASS`/`FAIL` por flujo, mata por PID; rechaza flujos que naveguen por `window.state`/`window.OrchestOS`.
+    `gate:all` = typecheck + lint + test:coverage + build:app + ui:fidelity:jsx. Primer uso halló un bug real:
+    Settings abría en blanco (sección por defecto `project_orchestos`, id de mock) → ahora `project_<id actual>` o `general`.
+    Gate en vivo: `docs/done/evidence/CI.2.B-live.json` — Playwright en navegador real, `PASS smoke 6/6` (Chat, Dev,
+    Settings del proyecto actual, General → Appearance), 0 errores, sin procesos huérfanos. `test:coverage` 1506 pass / 0 fail.
+    Pendiente visto: "Loading live settings…" se superpone al título de Settings mientras carga.
+  **Medido el 2026-09-18, no estimado:** `ci.yml:15-19` corre `bun install`, `db:migrate`,
+  `test:coverage`, `typecheck` y `lint`. `scripts/pre-commit.sh` corre `tsc`, `security:secrets`,
+  `ledger:gate`, `plan:render`, `check-live-gate`, `check-ui-copy` y `check-scope-lock`.
+  `scripts/pre-push.sh` corre `test:coverage`. **Ninguno toca `scripts/ui-gates/`**, donde hay
+  **12 scripts** (`ui0`, `ui1`, `ui1b`, `ui2`, `ui3`, `ui4-specs`, `ui4-skills`, `ui81`, `ui97`,
+  `at91`, `s6`, `s6a`). Se corren a mano el día que cierra su ítem y nunca más.
+  **Consecuencia ya pagada, no hipotética:** el gate de `UI.9.4` pasó una vez y el botón
+  "+ Add project" se pudrió **dos veces** —invisible por CSS con el sidebar colapsado, después
+  borrado por `UI.9.1`— sin que nada se pusiera rojo, con el ítem en `[x]` todo el tiempo
+  (`UI.9.7`). Es exactamente el patrón de la Regla cero de `CLAUDE.md`: una regla que nadie hace
+  cumplir mecánicamente deja de existir.
+  **Pregunta que Carlos hizo y que este ítem contesta** (2026-09-18): *"¿este cambio que se hizo
+  se lo tomará en cuenta [al cambiar toda la interfaz]?"*. Hoy no. Lo que tiene que sobrevivir a
+  `UI.4`/`UI.5` no es el CSS, es el gate — y hoy el gate tampoco se hace cumplir.
+  **A resolver en el diseño, no asumir:** los ui-gates necesitan un dashboard corriendo y
+  Playwright; medir cuánto tardan los 12 juntos antes de decidir si van a CI, a `pre-push` o a un
+  workflow aparte. Si el costo es mayor que el beneficio, decirlo con el número y proponer un
+  subconjunto — no meter 12 gates en cada push por principio.
+  Relacionado: `bun run lint` está **rojo por 17 hallazgos preexistentes** (`check-coverage.ts`,
+  `check-ledger-gate.ts`, `check-secrets.ts`, `check-test-assertions.ts`, `context-adapters.ts`,
+  `eval-run.ts`, `check-sources-drift.test.ts`, `tests/run/*.test.ts`, `docs/done/evidence/*.json`),
+  todos `FIXABLE`. CI lo ejecuta, así que CI sigue rojo por eso. Un CI que falla siempre deja de
+  dar señal — mismo corolario que `CLAUDE.md` ya dejó escrito el 2026-08-01.
+  **Hallazgo 2026-09-18 que amplía este ítem: correr los 12 gates NO basta.** El diagnóstico de
+  `UI.9.A` mostró que `30ab117` reescribió `scripts/ui-gates/ui3-shell.mjs` en el **mismo commit**
+  que cambió la pantalla, y el gate resultante abre el inspector con
+  `page.evaluate(() => window.OrchestOS.openInspectorTool('terminal'))` (`ui3-shell.mjs:58`) en vez
+  de clickear. Es estructuralmente incapaz de notar que no existe ningún botón: pasaría en verde con
+  cero afordancias en pantalla. Los tres casos comparten forma —"+ Add project" invisible por CSS
+  (el gate medía existencia en DOM, no visibilidad), "+ Add project" borrado por `UI.9.1` (el gate
+  no se volvió a correr), inspector (el gate se reescribió para saltarse la UI)—: **los gates
+  afirman sobre estado alcanzable desde JS, no sobre lo que un humano alcanza con el mouse desde un
+  arranque en frío, y los escribe el mismo ítem que cambia la pantalla.**
+  Dos propiedades que el diseño de `CI.2` tiene que resolver además de la frecuencia:
+  1. **Camino clickeable desde frío:** toda función del producto se ejerce clickeando. Prohibido
+     `window.OrchestOS`/`window.state` para *llegar* a una pantalla en un gate (sí para *afirmar*
+     sobre el estado una vez ahí). Medir cuántos de los 12 gates violan esto hoy.
+  2. **Inventario de afordancias:** algo tiene que comparar qué controles clickeables existían antes
+     y cuáles después de un commit, y ponerse rojo cuando desaparece uno que nadie mandó quitar. Sin
+     esto, un gate reescrito por el mismo ítem que rompe la pantalla nunca da señal.
+
+  **MEDICIÓN EJECUTADA 2026-09-18 (números reales, un dashboard en :4323, `BASE`/`GATE_BASE`
+  apuntando ahí; no estimaciones).** Son **13** gates, no 12 — `ui9a-inspector.mjs` se sumó ayer.
+
+  | gate | runtime | tiempo | resultado hoy |
+  |---|---|---|---|
+  | `at91-format-smoke` | node | 15.4s | verde (formato JSON, sin líneas PASS/FAIL) |
+  | `s6-sprint-board` | **bun** | 31.7s | **ROJO — podrido** |
+  | `s6a-sprint-board` | **bun** | 31.6s | **ROJO — podrido** |
+  | `ui0-islands` | node | 9.3s | ROJO (2 FAIL) |
+  | `ui1-model-combo` | node | 15.0s | verde (27 PASS) |
+  | `ui1b-remaining-callsites` | node | 8.5s | verde (9 PASS) |
+  | `ui2-design-system` | node | 13.2s | ROJO (1 FAIL) |
+  | `ui3-shell` | node | 10.0s | verde (20 PASS) |
+  | `ui4-skills-screen` | node | 11.4s | verde (22 PASS) |
+  | `ui4-specs-screen` | node | 14.4s | ROJO (2 FAIL) |
+  | `ui81-visual-consistency` | node | 5.0s | ROJO (1 FAIL) |
+  | `ui97-bugs` | node | 11.5s | verde (25 PASS) |
+  | `ui9a-inspector` | node | 4.1s | verde (17 PASS) |
+
+  **Serie completa: ~181s (3 min)** con el runtime correcto de cada uno. **6 de 13 están rojos hoy**,
+  sin que nadie lo supiera.
+
+  **Paralelizar no es opción — medido, no supuesto.** Los 11 gates de node lanzados a la vez contra
+  el mismo dashboard: **98s** (apenas menos que en serie) y **resultados basura** — 9 de 11
+  terminaron con 0 PASS / 0 FAIL por `TimeoutError` de contención. Los gates asumen un dashboard
+  para ellos solos. Paralelizar exige un dashboard por gate, y ahí el ahorro se lo come el arranque.
+
+  **Dos podridos que la medición destapó, y son la prueba del ítem:**
+  - `s6`/`s6a` se importan con `bun:` y **fallan de entrada con `node`**
+    (`ERR_UNSUPPORTED_ESM_URL_SCHEME`). Con `bun` sí arrancan, y ahí mueren en
+    `click: Timeout 30000ms exceeded — waiting for locator('#navModeBtn')`: ese botón **ya no
+    existe**, lo borró `UI.7` al eliminar el flag de modo. Es el mismo patrón que el "+ Add project":
+    el gate quedó en `[x]` mientras la pantalla que medía desapareció.
+  - Ni siquiera hay un runtime común: 11 gates son `node`, 2 son `bun`. Nada lo declara en ningún
+    lado; se descubre corriéndolos.
+
+  **Propiedad 1 medida (camino clickeable desde frío): 6 de 13 la violan hoy** —
+  `ui3-shell.mjs:58` (`window.OrchestOS.openInspectorTool`), `ui1-model-combo.mjs:37`,
+  `ui1b-remaining-callsites.mjs:54-118`, `ui4-specs-screen.mjs:58-212`,
+  `ui4-skills-screen.mjs:47-204`, `ui81-visual-consistency.mjs:31` (todos siembran o navegan por
+  `window.state` en vez de clickear). Los 7 restantes ya llegan clickeando.
+
+  **Veredicto del número, antes de elegir dónde corren:** 3 min descarta `pre-push` (hoy tarda 20s;
+  multiplicarlo por 10 lo vuelve un `--no-verify` garantizado) y descarta meterlos en el job de CI
+  actual. Y con 6 de 13 rojos, engancharlos hoy a cualquier gate obligatorio los deja rojos
+  permanentes — exactamente el corolario que `CLAUDE.md` ya dejó escrito el 2026-08-01 ("un CI que
+  falla siempre deja de dar señal"). El orden obligado es: **primero verdes, después exigibles.**
+
+  **DIAGNÓSTICO DE LOS 6 ROJOS (2026-09-18, leído en el código y probado en vivo).** Pedido por
+  Carlos antes de decidir. El reparto importa: **5 de 6 son el gate podrido, 1 es un bug real
+  del producto.** Eso es el ítem probándose a sí mismo.
+
+  - **`ui2-design-system` — EL PRODUCTO, no el gate.** `.filter-tab` usa
+    `border-radius: var(--radius-lg)` (`screens.css:100`) y ese token vale **8px**
+    (`styles.css:44`). El componente React tiene `rounded-[20px]` **hardcodeado**
+    (`tabs.tsx:35`), con un comentario encima que afirma "Espeja `.filter-tab`: … radio 20px".
+    Alguien bajó el token de 20px a 8px y el React quedó atrás: hoy las pestañas React se ven
+    distintas de las vanilla en pantalla. Arreglo: consumir el token, no repetir el número.
+  - **`ui0-islands` — gate de una fase superada.** Afirma "sin `?island-probe` no se monta
+    ninguna isla". Era la regla del Mes 30 mientras React era experimental. Hoy hay **4 islas
+    permanentes en producción a propósito**: `model-combo` (`app.js:2675`), `screen-specs`,
+    `screen-skills` y `screen-plan` (`screens-ops.js:2352-2388`). El producto está bien; la
+    afirmación caducó con `UI.1`/`UI.4`.
+  - **`ui4-specs-screen` — dos afirmaciones caducadas.** (a) Exige 5 `<th>` incondicionalmente,
+    pero la 5ª columna es el checkbox de bulk y está detrás de `selectable`
+    (`SpecsScreen.tsx:178`); el gate nunca entra en modo bulk. (b) Busca `.badge` amber/green,
+    pero `UI.3.5` reemplazó los dos badges de color por `StatusRail` —glifo + mono—
+    deliberadamente (`SpecsScreen.tsx:292-299`).
+  - **`ui81-visual-consistency` — trinquete mal diseñado.** Los 5 `[style]` de Chat son:
+    `display:none` del `#chat-file-input`, un `pointer-events:none`, y **3 barras
+    `.session-statusbar-cli-fill` con `width:<pct>` dinámico — una por CLI**. El baseline de 4 se
+    calibró con menos CLIs. Cuenta atributos `[style]` a ciegas, así que se pone rojo cuando
+    cambian los **datos** (cuántos CLI hay configurados), no cuando empeora el código, y mete en
+    la misma bolsa el `width` calculado —única forma correcta de pintar una barra— que un estilo
+    de maquetación pegado a mano.
+  - **`s6` / `s6a` — se reparan, no se borran.** Miden el sprint board y el ciclo `commitPending`,
+    y **esa pantalla sigue viva**: es la isla `screen-plan` → `PlanBoardScreen` (`ui.tsx:47`). Lo
+    que murió es el camino: `#navModeBtn`, el toggle humano/operador que ambos clickean
+    (`s6:98,168`, `s6a:102,157,178,213,254`), lo borró `47b40c6` (`UI.8.3`, "muere el modo
+    avanzado"). Mismo patrón que "+ Add project" y que el inspector de `UI.9.A`. Además hay que
+    **declarar el runtime**: importan `bun:` y revientan con `node`
+    (`ERR_UNSUPPORTED_ESM_URL_SCHEME`); nada en el repo dice cuál usa cuál.
+
+  **DECIDIDO POR CARLOS 2026-09-18 — dónde corren:** workflow de CI **aparte**, no `pre-push` ni
+  el job de `ci.yml`. Levanta el dashboard, corre los 13 en serie (~3 min) y no toca la velocidad
+  del push local ni contamina el job de tests. Pendiente de decisión: qué se repara primero.
+
+  **PENDIENTE DE DECISIÓN DE CARLOS (planteado 2026-09-18, sin respuesta todavía):** son dos
+  trabajos distintos. El de `ui2` es un fix de producto de una línea (token en vez de `20px`
+  hardcodeado). Los otros 5 son reescribir afirmaciones de gates — y cuatro de ellos (`ui0`,
+  `ui4-specs`, `s6`, `s6a`) hay que reescribirlos igual bajo la propiedad 1 (llegar clickeando,
+  no por `window.state`), así que repararlos ahora por separado es hacer el trabajo dos veces.
+  Opciones: (a) un solo ítem "despodrir + reescribir clickeando los 13"; (b) el fix de `ui2` ya,
+  suelto, y el resto después. Nadie arranca a reparar hasta que esto se decida.
+  **DECIDIDO POR CARLOS 2026-09-21:** `ui2` ya salió suelto (`UI.9.B`); los **5 restantes**
+  (`ui0`, `ui4-specs`, `ui81`, `s6`, `s6a`) van en **un solo ítem**, `CI.2.A`: se despudren y se
+  reescriben llegando clickeando en la misma pasada. Spec del cerebro, ejecuta Luna.
+  **BLOQUEO HALLADO AL PREPARAR EL SPEC (2026-09-21, inventario de Luna, verificado por el
+  cerebro en el código):** Specs, Skills y Plan board **no tienen camino clickeable desde frío**.
+  `NAV` solo lista `chat` y `settings` (`app.js:144-149`), y el Sidebar solo pinta esos `data-nav`
+  (`Sidebar.tsx:354-367`). En todo el front, el único `App.go` a una de esas tres pantallas es
+  `App.go('skills')` desde el resultado de búsqueda de una skill en la paleta (`app.js:2335`).
+  Specs y Plan board no se alcanzan de ninguna forma. Las islas `screen-specs`/`screen-skills`/
+  `screen-plan` (`screens-ops.js:2349-2390`) montan bien, pero **ningún humano llega a ellas**:
+  es el mismo patrón que "+ Add project" y el inspector, ahora en tres pantallas enteras, y los
+  gates en verde lo tapaban justamente porque navegaban por `window.state`. Esto deja a 4 de los 5
+  gates (`ui0`, `ui4-specs`, `s6`, `s6a`) sin camino que clickear. Solo `ui81` (Chat) se puede
+  reescribir ya. **Decisión de producto pendiente de Carlos:** dónde vuelven a estar accesibles
+  estas pantallas, o si se retiran (y con ellas sus islas y sus gates).
+
+  **Efecto secundario descubierto al medir, a resolver en el diseño:** correr los gates **muta el
+  working tree**. `at91-format-smoke` sobreescribió `docs/done/evidence/AT.9.1-live.json` —la
+  evidencia de cierre commiteada el 2026-09-15— con la corrida de hoy (revertido a mano), y
+  `ui0`/`ui1`/`ui1b`/`ui2`/`ui4-*` dejan PNGs sueltos en la raíz del repo. Un workflow que corre
+  los 13 en cada push no puede ir pisando evidencia histórica: los artefactos van a un directorio
+  temporal o a artifacts del job, nunca sobre archivos versionados.
+
+  **Y lo más grave, descubierto al intentar commitear esta medición: `s6a` escribe en la DB real
+  del usuario.** El pre-commit abortó con `render(DB): "# S.6a fixture"` — `~/.orchestos/db.sqlite`
+  había quedado con los **3 ítems del fixture (A, B, C)** en lugar de los **113 de `PLAN.md`**, y
+  `plan_doc_segments` con el documento del fixture. `src/db/sqlite.ts:12` congela `DB_PATH` en el
+  primer import a partir de `ORCHESTOS_HOME`, y el fixture de `s6`/`s6a` no aísla esa parte. El
+  resto de las tablas quedó intacto (projects 2, chat_sessions 11, runs 111, run_steps 45), así
+  que el daño fue acotado a `plan_items`/`plan_doc_segments`. Reparado con `bun run plan:reconcile`
+  (113 ítems reconciliados desde `PLAN.md`, 3 huérfanos A/B/C borrados; `plan:render --check`
+  verde, `bun run next` vuelve a listar los 27 de siempre), con copia previa en
+  `~/.orchestos/db.sqlite.pre-reconcile-*`. **Lo salvó que `PLAN.md` es la fuente versionada.**
+  Requisito duro para el workflow de `CI.2`: ningún gate corre sin `ORCHESTOS_HOME` aislado, y eso
+  se verifica en el propio gate, no se confía. Si esto hubiera pasado en una tabla sin respaldo en
+  git —`runs`, `chat_messages`— no había vuelta atrás.
+  **Aislamiento de `s6`/`s6a` HECHO 2026-09-21.** Causa: importan `src/db/sqlite.ts` en el mismo
+  proceso (`s6a-sprint-board.mjs:79`) sin `ORCHESTOS_HOME`. Ahora cada uno crea un home temporal
+  propio, lo fija antes de cualquier import y **aborta si `DB_PATH` no cae dentro** (el requisito
+  de arriba, verificado en el gate). Evidencia en vivo: ambos corridos con `bun`; mueren en el
+  `TimeoutError` de `#navModeBtn` —después de `importPlan`— y la DB real queda igual antes y
+  después (114 `plan_items`, 0 de A/B/C, 225 `plan_doc_segments`). Los otros 11 gates no abren la
+  DB: pegan a un dashboard externo (`BASE`), así que su aislamiento depende de cómo se levanta ese
+  dashboard — lo resuelve el workflow.
+
+<a id="plan-orden-ci-6"></a>
+- [x] **CI.6 — ⚡ Flujos de ui:gate: fin de turno = respuesta de POST /api/chat, no composer vacío.** (abierto 2026-09-28, cerrado 2026-09-28)
+  UI.20 vacía el composer al enviar; `chat-roles` y `chat-context` leían SQLite antes de cerrar el turno y fallaban en
+  el pre-push de UI.21. Ahora esperan la respuesta del POST y el mensaje visible.
+  Ejecutado por: luna (1 ronda; la primera se detuvo en el preflight por falta de ítem) · Spec: docs/specs/CI.6.md
+  Gate en vivo: navegador real (Playwright), `docs/done/evidence/CI.6-live.json`: `chat-roles` 11/11, `chat-context` 5/5.
+
+<a id="plan-orden-ci-7"></a>
+- [x] **CI.7 — ⚡ Pre-push: 3 flujos fallan por latencia o capricho del modelo, no por la UI.** (abierto 2026-09-28, cerrado 2026-09-28)
+  Bloquea el push de UI.20/UI.21/CI.6. Evidencia (`$TMPDIR/ui-gate-*/result.json`, 2026-09-28): `usage-bar` 70 %
+  quedó `normal` (el endpoint devuelve la caché vieja si el refresco tarda >3 s,
+  `src/dashboard/handlers/session-status.ts:10`); `chat-turn-details` sin bloque de herramienta porque Codex respondió
+  "no puedo ejecutar comandos" (captura `tool-and-reasoning.png`); `chat-streaming` "turn 2 sampled while pending"
+  cuando el turno 2 terminó antes de muestrear; `chat-streaming`/`chat-context` HTTP 502 de Claude sin el cuerpo.
+  Hecho: `usage-bar` reintenta refresh hasta 30 s; `chat-turn-details` hasta 3 intentos y exige el bloque solo si el
+  timeline registró `tool_use`; `chat-streaming` hasta 3 turnos largos para muestrear mid-turn; errores HTTP de
+  `/api/chat` con cuerpo. Aprendido: biome por defecto no detecta identificadores sin declarar en los flujos —
+  `bunx biome lint --only=correctness/noUndeclaredVariables scripts/ui-gate/flows` sí (Luna dejó `secondChatPrompt`).
+  Ejecutado por: luna (4 rondas; r1 paró en baseline de sandbox, r2 esperaba el POST y mataba el muestreo) · Spec: docs/specs/CI.7.md
+  Gate en vivo: navegador real (Playwright), `docs/done/evidence/CI.7-live.json`: 15 flujos (14 verdes + `chat-streaming`
+  15/15 tras r4), `test:coverage` 1573/0.
+
+<a id="plan-orden-ci-8"></a>
+- [x] **CI.8 — ⚡ codex-live compara markdown crudo contra texto renderizado.** (abierto y cerrado 2026-10-01) Pre-push
+  bloqueado: 3 pasos de `codex-live` fallan con el DOM en orden correcto. Spec `docs/specs/CI.8.md`. Arreglo: `plain()`
+  normaliza markdown/comillas en ambos lados. Evidencia: `ui:gate codex-live chat-roles` → 14/14 y 11/11 (cerebro, fuera
+  del sandbox); pre-push completo en el push de este commit. Sin delegación: no (Luna).
+
+<a id="plan-orden-ci-9"></a>
+- [x] **CI.9 — 🔍 La sonda de `--restricted` se envenena dentro de la suite de ui-gates.** (abierto y cerrado 2026-10-03)
+  Ejecutado por: Sol (`gpt-6.1-sol`, 3 rondas: CI.9, CI.9.1, CI.9.2) · Spec: docs/specs/CI.9.md (borrado al cerrar)
+  Gate en vivo: navegador real (Playwright), `docs/done/evidence/CI.9-live.json`: los 15 flujos del pre-push en verde.
+  Pre-push bloqueado 2 de 2: tras 12 flujos verdes, `chat-streaming` y `chat-context` → HTTP 502 "Claude Code no soporta
+  --restricted"; solos pasaban. Causa medida (shim de `claude` en /tmp, 15 flujos, 134 `--help`): 131 bajo 0.5 s, pero 3
+  encimadas en un pico tardaron 3.09/2.12/1.63 s; con timeout de 2 s la sonda daba `null` y `capabilityCache` guardaba
+  ese `false` toda la vida del único dashboard del ui-gate (`scripts/ui-gate/run.mjs:257`). Arreglo en
+  `src/run/executors/cli-registry.ts`: no se cachean fallos (sigue fail-closed), timeout 10 s, línea `[cli-capability]`
+  en stderr al fallar; 3 tests nuevos. Hermanos cazados al re-correr: CI.9.1 `chat-streaming` tomaba la respuesta
+  anterior como burbuja en vivo ("Cuarenta" cierra 1–40 y abre 41–80) → ahora busca después del prompt; CI.9.2
+  `text-sweep` ENOTEMPTY al borrar el proyecto temporal → `maxRetries` en los 10 flujos que no lo tenían (precedente
+  `codex-live`); CI.9.3 tras recargar leía el DOM antes de que cargara la sesión → espera el último prompt; CI.9.4
+  corrige CI.9.1 (si el prompt aún no está pintado, vuelve a muestrear). `test:coverage`: 1604 pass, funciones 75.37 % / líneas 62.28 %. Sin delegación: no (Sol).
+
+<a id="plan-orden-ci-10"></a>
+- [x] **CI.10 — ⚡ `chat-streaming` y `codex-live` solo bloquean el push cuando cambia el chat.** (abierto y cerrado 2026-10-03, decisión de Carlos + QA de Sol)
+  Ejecutado por: Luna (`gpt-6-luna`, 3 rondas: CI.10, CI.9.5 A-C, CI.9.5 D) · Spec: docs/specs/CI.10.md y CI.9.5.md (borrados al cerrar)
+  Medido: con CI.9 aplicado, 6 corridas de los 15 ui-gates; esos dos fallaron 4 veces por latencia del modelo real
+  (cada vez un paso distinto), los otros 13 nunca. Primera versión: sacarlos del pre-push. **QA de Sol (`gpt-6.1-sol`),
+  1.ª vuelta: RECHAZADO**, 4 hallazgos verificados por el cerebro: (1) tras CI.9 un fallo de la sonda se reintentaba en
+  cada consulta, hasta 3 `spawnSync` de 10 s por POST de chat (también de Codex) → ahora timeout 5 s y fallo cacheado
+  30 s (`CAPABILITY_FAILURE_RETRY_MS`, reloj inyectable, test); (2) el muestreo de `chat-streaming` pasaba con
+  `[prompt, viva]` o con la burbuja viva duplicada → ahora exige la respuesta anterior y `liveCount === 1`; (3) sacarlos
+  dejaba el chat sin gate automático → `scripts/pre-push.sh` los corre cuando el diff toca `chat_paths`, con 1 reintento
+  (un fallo de latencia pasa, una regresión falla 2 veces); (4) no estaba demostrado que no hubiera bug → CI.11.
+  **2.ª vuelta: RECHAZADO** por `chat_paths` incompleto (`App.tsx` `handleSendMessage`, `chat-cli-models.ts`) →
+  agregados; comprobado: App.tsx/chat-cli-models.ts → chat, handlers/tasks.ts → no. `test:coverage` 1604 pass,
+  funciones 75.37 % / líneas 62.29 %. Hook sincronizado (`diff` vacío). Sin delegación: no (Luna, QA Sol).
+
+<a id="plan-orden-ci-13"></a>
+- [x] **CI.13 — ⚡ "Run" en Tasks deja escapar el error de la tarea.** (abierto y cerrado 2026-10-04) `onRunTask`
+  (`App.tsx:1234`) llama `runTask` sin `catch`: si la tarea falla, la excepción sale como `pageerror` y la UI no
+  muestra nada. Visto en el pre-push de 6432e9c (`project-tabs`: "Retry scheduled: missing declared output(s)").
+  Gate: `ui:gate project-tabs` verde y el error visible en `taskError`.
+  Ejecutado por: luna · Spec: docs/specs/CI.13.md
+  Hecho: `onRunTask` limpia el error, lo captura en `taskRunError` y recarga tareas (patrón de `handleRunNextTask`).
+  Gate en vivo: navegador real (Playwright), `docs/done/evidence/CI.13-live.json`; `project-tabs` 24/24. No
+  verificado en vivo: el camino de error (esa corrida la tarea de Codex sí escribió README); solo por lectura.

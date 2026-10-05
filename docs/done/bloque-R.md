@@ -612,3 +612,43 @@ Evidencia movida literalmente desde PLAN.md en S.2; PLAN.md conserva el índice.
   `git diff --check` ✅. No se tomó R.7/R.8 ni la limpieza global de warnings.
   **Gate en vivo:** navegador Playwright sobre Runs, con recarga y detalle; evidencia staged `scripts/r6-live-cost-evidence.json` (captura `r6-runs-browser.png`).
   **Fuera de scope declarado:** `.orchestos/feature-status.json` es el derivado regenerado por el hook al cerrar R.6; `r6-runs-browser.png` es la captura binaria del gate en vivo.
+
+<a id="plan-orden-r-7"></a>
+- [x] **R.7 — 🧠 Escritura atómica y coordinación entre procesos para tasks.yaml.** Prioridad alta. (cerrado 2026-10-02)
+  Ejecutado por: luna (2 rondas) · Spec: docs/specs/R.7.md (borrado al cerrar)
+  `src/run/file-lock.ts` nuevo (lockfile `pid:token`, se roba solo si el PID murió o, sin PID, por mtime; libera solo
+  con token propio); `withGitLock` delega en él. `loader.ts`: `mutateTasks` (lock `.orchestos/tasks.lock` → leer →
+  mutar → validar → tmp+fsync+rename) y limpieza de `.tasks.yaml.tmp-*` de PIDs muertos (el sandbox exige working
+  tree limpio, `sandbox-policy.ts:55`). Migrados: `handlers/tasks.ts` (crear/run/delete/bulk/approve-split),
+  `db/reset.ts`, `init.ts`; `cli.ts` vía `updateTaskStatus`. `commitTasksYaml` queda fuera del lock de tasks (sin anidar).
+  Cambio de semántica: un git.lock con dueño vivo ya no se roba a los 60 s (antes podía robarse a mitad de un merge).
+  Gate: `src/__tests__/tasks-concurrency.test.ts` con procesos reales (4×25 updates sin pérdida; misma tarea fusiona
+  campos y borrada no resucita; 5 `SIGKILL` a mitad de escritura → YAML válido, sin temporales, siguiente mutación
+  < 2 s; PID muerto/lock vacío viejo se recuperan; PID vivo → timeout con ruta). `bun run test:coverage` 1589/0;
+  `ui:gate tasks chat-turn-details` 13/13 y 27/27 en dashboard real. No cubierto: Windows (rename sobre archivo
+  abierto) — CI es ubuntu.
+  Riesgo original:
+  Riesgo identificado, pendiente de reproducir: `loader.ts:25` comprueba un hash opcional y luego
+  sobrescribe el archivo directamente; `tasks.ts:260` guarda antes del lock Git. Dos procesos
+  pueden perder actualizaciones y una interrupción puede dejar un YAML incompleto. Diseñar
+  exclusión/read-modify-write y reemplazo atómico con recuperación, cubriendo todos los writers;
+  mantener tasks.yaml como fuente de verdad. No migrar la cola a SQLite dentro de este ítem.
+  **Gate:** dos procesos actualizan tareas distintas sin pérdida; conflicto sobre una misma tarea
+  se resuelve o rechaza explícitamente; interrupción en escritura conserva un documento válido;
+  recuperación de lock y compatibilidad portable verificadas. Tests con procesos reales aislados.
+
+<a id="plan-orden-r-9"></a>
+- [x] **R.9 — ⚡ Los artefactos de OrchestOS no ensucian el árbol del proyecto.** (abierto 2026-09-27, cerrado 2026-09-27, GO de Carlos)
+  Visto 2026-09-26 en `project-tabs`: tras un QA fail, el reintento falla con "Worktree sandbox requires a clean
+  working tree: ?? runs/" (`src/run/sandbox-policy.ts:68`). `RunLogger` escribe `runs/*.log` en la raíz
+  (`src/run/logger.ts:13`) y el chat crea `.orchestos/agent-home/` (`src/run/executors/cli-registry.ts:159`); en un
+  proyecto de usuario nada los ignora. Fix: registrar esas dos rutas en `.git/info/exclude` del proyecto (local, sin
+  tocar su `.gitignore`) antes de escribirlas. Gate: test con repo temporal (status limpio tras logger + provisión);
+  `project-tabs` sin el error en `dashboard.log`; `test:coverage`.
+  Ejecutado por: Codex · `gpt-6-luna` (1 ronda) · Spec: docs/specs/R.9.md (borrado al cerrar)
+  Evidencia 2026-09-27: `src/run/git-exclude.ts` escribe `/runs/*.log` y `/.orchestos/agent-home/` en
+  `info/exclude` desde `RunLogger` y `provisionCliConfigHome`; test con repo temporal: status limpio, idempotente,
+  `.gitignore` intacto. `test:coverage` 1547/0 (75.50 %/61.20 %). Gate en vivo `project-tabs` 23/23, `tasks` 13/13,
+  `runs-graph` 16/16, 0 "Uncommitted changes" en `dashboard.log` — pero las 3 tareas pasaron QA a la primera: el
+  camino QA fail → reintento no se ejerció en vivo, lo cubre el test. Ajuste del cerebro: el mock de
+  `claude-chat.test.ts:110` contaba el nuevo `git rev-parse` como sonda de Claude.

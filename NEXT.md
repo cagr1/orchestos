@@ -1,353 +1,50 @@
-# NEXT — handoff 2026-09-21 (noche) → siguiente tab
+# NEXT — handoff 2026-10-05 → siguiente tab
 
-## I.7 en curso (2026-10-03) — gate escrito, producto falla
-Flujo `scripts/ui-gate/flows/auto-flow.mjs` (spec `docs/specs/I.7.md`, 5 rondas de Luna, sin commitear). r4 en
-vivo: 21/25; fallos de producto I.7.1 (tarea→Claude corre con modelo gpt-6-luna y el run se registra como codex)
-e I.7.2 (sin reporte inline del final). Detalle en PLAN.md § I.7. Espera decisión de Carlos sobre el modelo de
-I.7.1. Correr: `bun run gate:evidence -- --label I.7-auto-flow -- bun run ui:gate auto-flow` (~10 min, Codex+Claude
-reales; NO va al pre-push).
+## 2026-10-05: PLAN.md/NEXT.md saneados (cerrados → docs/done/). Siguiente: elegir de `bun run next`
+Arranque: tab nuevo → `bun run agent:preflight -- --item <ID> --agent claude`. Sin dashboard corriendo.
 
-## ERP.3 cerrado (2026-10-03) — siguiente: I.7
-Evidencia en PLAN.md. Aprendido: el gate en vivo cazó 2 bugs que Luna dio por verdes (flujo cambiaba config por API y
-no por UI; switch OFF no se movía hasta el GET). Codex no permite apagar su delegación interna (medido).
-Hermanos cazados por el pre-push y cerrados: ERP.3.1 (404 de orquestación tras purgar) y ERP.3.2 (sección pintada en
-todas las pestañas → plan-doc contaba 4 checkboxes). Pusheado hasta f764eb2.
-Flaky sin ítem: `ui:gate chat-streaming` falló 2 de 4 corridas completas del pre-push ("Chat turn 2 was sampled while
-pending"), pasa solo 15/15; depende de la latencia del modelo real bajo carga. No toca código de ERP.3.
-Visto sin ítem: Settings → Tasks del proyecto muestra "Create First Task" (contradice Tasks solo por chat) y
-"Loading live settings…" fijo en la cabecera.
+Cerrado 2026-10-04 (detalle y evidencia en PLAN.md y `docs/done/evidence/`):
+- I.7, I.7.2 (reporte de fin de tarea en el chat), I.7.3 (regresión: Approve & Run no ocultaba la tarjeta).
+- Bloque CX: CX.1 `gate:evidence` exporta runs de ui:gate · CX.2 anillo de contexto por hilo, recalcula al cambiar
+  de modelo · CX.3 hook de Claude Code solo por % de ventana · CX.4 tokens de caché + `elapsed_ms` en runs ·
+  CX.5 Settings → Usage = runs de OrchestOS + tabs CLI de proyectos registrados (en vivo: $3.88 + $1,131).
+- CI.13: "Run" en Tasks mostraba nada si la tarea fallaba (camino de error verificado solo por lectura).
 
-## ERP.2 cerrado (2026-10-02) — siguiente: ERP.3
-Evidencia en PLAN.md. Siguiente de Fase 2: **ERP.3** (multi-módulo → plan corto a Carlos antes de codear).
-Regla nueva tras ERP.2: toda llamada `api()` de un flujo ui-gate a rutas con scope (runs, memory, instincts, skills,
-tasks, chat/sessions) manda `x-orchestos-project-id` o `?project=none`; sin selector el back usa el cwd del servidor
-(costó 3 rondas: chat-turn-details, project-isolation, project-tabs).
-Visto en capturas, sin ítem: en Settings → Skills la pestaña "Instincts" aparece resaltada (pill) además de "Skills".
-IDEAS.md y orchestos.config.yaml tienen cambios sin commitear ajenos a ERP.2 (ideas #71/Orca, roles MR) — de Carlos.
+Pendientes anotados (sin ítem todavía; abrir si Carlos quiere):
+- CX.5: fila `<synthetic>` (0 tokens) visible en "CLI tabs"; "Avg cost / run" mezcla runs y sesiones.
+- `chat-roles` flaky dentro del pre-push completo (falló 2 veces, pasa solo); causa no reproducida.
+- I.7.2: si el dashboard se reinicia a mitad del run, el reporte de fin se pierde (gap declarado).
+- Runs de chat con caché no vistos en DB (el purge de los gates los borra); el anillo de CX.2 los usa y funciona.
+- Datos del entorno: Codex corre con `CODEX_HOME` de Orca (`~/Library/Application Support/orca/codex-accounts/*/home`);
+  sin API key de OpenRouter el catálogo se baja igual (endpoint público).
 
-## R.7 cerrado (2026-10-02) — siguiente: ERP.2
-R.7 cerrado (PLAN.md, evidencia ahí). Siguiente de Fase 2: **ERP.2** (multi-módulo → plan corto a Carlos antes de codear).
-Aprendido: `chat-sessions.test.ts` (timeout 5 s, subprocesos) falla por carga si corre mientras otro proceso pesado
-(Codex/Luna) termina; repetir antes de culpar al diff (sin R.7 y con R.7 dio 4/4 verde en frío).
-Pendiente sin ítem (2026-10-02): `usage-bar` falla a veces ("Codex: No quota limits reported") porque
-`codex app-server` no responde `account/rateLimits/read` dentro de 3 s (`scripts/context-adapters.ts:201`); medido: 1 s
-una vez, 15 s sin respuesta la siguiente. Los `rollout-*.jsonl` de `~/.codex/sessions` sí traen `rate_limits`: candidato a
-fallback cuando el live no responde. No es de R.7.
-Pendiente sin ítem (2026-10-02): el aviso del hook `context-budget.js:118` dice "Contexto alto: 15.5%" cuando lo
-disparó el tope ABSOLUTO (`context-budget.ts:45`, 60k avisa / 90k bloquea; esta sesión iba en 159k). El texto debería
-nombrar la causa real (tokens absolutos), no el % de ventana. Carlos preguntó qué significaba: confunde.
-`review-evidence/` y `.orchestos/adversarial-review-state.json` son artefactos locales del revisor: ya en `.gitignore`.
+Sin commitear y ajenos (no tocar sin Carlos): IDEAS.md, orchestos.config.yaml.
 
-## AT.15 en curso (2026-10-01)
-Spec `docs/specs/AT.15.md` (pasos 1–3: PTY `src/dashboard/terminal.ts`, WS `/api/terminal` con Origin obligatorio,
-`OpenCodeTerminal.tsx` en Dev cuando la sesión es `opencode`). Pasos 1–3 cerrados y
-commiteados (evidencia en PLAN.md AT.15). Paso (4) hecho: AT.15 cerrado completo.
-CI.8 cerrado (codex-live comparaba markdown crudo vs DOM). Pusheado: origin/master = bae15d7, pre-push verde.
-Visto 1 vez sin ítem: la sonda `--restricted` (`cli-registry.ts:214`, timeout 2 s) falló bajo carga en el pre-push.
-El flujo `opencode-terminal` NO va en el pre-push (necesita el binario opencode; CI no lo tiene).
+## Pendientes sin ítem heredados (consolidados 2026-10-05 desde handoffs 2026-09-22 → 2026-10-03)
+Sin verificar de nuevo hoy salvo lo indicado; abrir ítem solo si Carlos lo pide.
+- Settings → Tasks del proyecto muestra "Create First Task" (`OrchestSettingsView.tsx:2533`, verificado hoy en el
+  código; contradice "Tasks solo por chat") y "Loading live settings…" fijo en la cabecera (2026-10-03).
+- Settings → Skills: la pestaña "Instincts" aparece resaltada (pill) además de "Skills" (visto en capturas 2026-10-02).
+- `src/run/logger.ts:52` lanza ENOENT al escribir en `runs/` de un proyecto que el cleanup de un flujo ya borró
+  (visto en `ui-gate-68402/dashboard.log`, 2026-09-28).
+- Chat: historial en las ramas Claude/OpenCode (hoy solo Codex tiene memoria por thread; OpenCode pasó a terminal en Dev
+  con AT.15). Composer que conserva el mensaje durante el turno y Markdown que junta saltos simples ("uno\ndos" →
+  "uno dos"): vistos en captura 2026-09-27, UI.18–UI.20 pueden haberlos cubierto, no re-verificado.
+- "Clonar desde URL" (paso 2 de "+ Add project"): en espera por decisión de Carlos; feature nueva → plan corto antes.
+- Decisión pendiente de Carlos (UI.13.4b): la frontera por argumentos no frena `node -e`/`sh -c`; la barrera real es
+  sandbox de proceso o lista de binarios permitidos. AT.14 cerró solo el hueco del hook `brain-no-code`.
+- Ajustes menores: idioma solo traduce Settings; fuente del prototipo = del sistema (si Carlos quiere Plus Jakarta Sans
+  real es un cambio de una línea); reemplazar el prompt base del CLI (Codex ~96 % del input en el fixture; ver AT.13).
+- `usage-bar` falla a veces por `account/rateLimits/read` de Codex (>3 s); fallback candidato en `AGENTS.md` § Lecciones.
+- Migración de ruta (2026-09-28): confirmar con Carlos que Orca detecta el proyecto en `~/Projects/projects/orchestos`.
 
-## Siguiente tab — AT.15 (2026-10-01)
-Cerrados y pusheados: CI.7, UI.22, UI.23 (origin/master = d45e4f1, pre-push verde). Siguiente: **AT.15** (OpenCode =
-terminal real en Dev, plan aprobado en PLAN.md). Multi-módulo: arrancar con plan corto por pasos, no en caliente.
-Antes de codear, confirmar con Carlos el punto (4) "OpenCode deja de ser opción del chat": UI.22/UI.23 acaban de pulir
-su selector en el chat (Model routing usa el mismo catálogo y se queda).
-Aprendido: lanzar Luna con `ORCHESTOS_ROLE=executor codex exec … "Eres el EJECUTOR…"` (sin eso se cree planificadora
-y no edita); su sandbox falla siempre `adversarial-review` ×2 y `csrf-origin` (decirlo en el spec o se detiene); tras
-tocar flujos, `bunx biome lint --only=correctness/noUndeclaredVariables scripts/ui-gate/flows`; `ui:gate` exige la
-lista de flujos (sin args no corre nada; la del pre-push está en `scripts/pre-push.sh:49`).
-Pendiente sin ítem: menú del selector angosto (w-80) trunca nombres largos de OpenRouter (Carlos no lo pidió aún).
-
-## Siguiente tab — tras CI.7 (2026-09-28, noche)
-CI.7 cerrado (los flujos intermitentes del pre-push, PLAN.md). Siguiente: AT.15 (OpenCode = terminal real en Dev).
-Pendientes sin ítem: (1) `src/run/logger.ts:52` lanza ENOENT al escribir en `runs/` de un proyecto que el cleanup de
-un flujo ya borró (visto en `ui-gate-68402/dashboard.log`, task en curso durante el cleanup); (2) historial en las
-ramas Claude/OpenCode del chat; (3) nombres largos de OpenRouter truncados iguales en el selector.
-IDEAS.md (#71) y `orchestos.config.yaml` siguen con cambios de otra sesión, sin commitear.
-
-## Siguiente tab — CI.2 primero: push bloqueado por flujos intermitentes (2026-09-28, tarde)
-Cerrados hoy: MR.1 (d5 codex app-server), AT.10, UI.18, UI.19, UI.20, UI.21, CI.6 (PLAN.md). **3 commits locales sin
-push** (6da5b61 UI.20, e86f437 UI.21, e408ee1 CI.6): cada uno pasó sus flujos en navegador y `test:coverage` 0 fail,
-pero el pre-push (15 flujos) falló 3 veces con flujos de chat distintos que pasan al repetirlos solos:
-`usage-bar` (color 70 %), `chat-streaming` (turno Claude sin texto en 180 s; y "Chat turn 2 was sampled while
-pending" — assert de UI.20 que depende de que el modelo tarde: si responde rápido no alcanza a muestrear),
-`chat-context` (turno Claude), `chat-turn-details` ("tool block with command success" — sin confirmar si el modelo no
-usó la herramienta). Carlos eligió (2026-09-28): **abrir CI.2 en tab nuevo**, Luna vuelve robustos esos asserts (nada
-que dependa de la latencia del modelo; muestreo mid-turn con prompt largo o condicionado a que el turno siga
-pendiente), correr los 15 flujos juntos, luego `git push origin master` normal. Prohibido `--no-verify` sin pedido.
-Después: AT.15 (OpenCode = terminal real en Dev). Pendientes sin ítem: historial en las ramas Claude/OpenCode del chat
-(hoy solo Codex tiene memoria por thread); nombres largos de OpenRouter truncados se ven iguales en el selector.
-Aprendido hoy (Luna): el preflight exige un ítem de primer nivel abierto (sin ítem se detiene sin tocar nada);
-Luna omite asserts de flujos si no se le exigen, inventó un campo de API (`/api/projects.agents`) en un flujo y
-cambió el propio chequeo de fidelidad sin pedirlo → leer su diff completo. `plan:reconcile` falla al re-reconciliar
-un ítem ya `[x]`: desmarcar → reconcile → marcar → reconcile. La línea `Ejecutado por: … · Spec: docs/specs/<ID>.md`
-debe terminar en la ruta (sin texto después) o el plan gate exige borrar el spec. Hook `brain-no-code` bloquea al
-cerebro editando código (incluido `python3 - <<EOF`); `sed -i` se le escapó una vez — no usarlo como atajo.
-IDEAS.md (#71) y `orchestos.config.yaml` (orchestrator claude opus) tienen cambios de otra sesión: no commiteados aquí.
-
-## Siguiente tab — tras migración de ruta (2026-09-28)
-Migración cerrada: `~/Documents/projects` comparado con rsync -c contra `~/Projects/projects` (ningún objeto git ni
-rama solo en la vieja; diferencias = copia nueva más reciente) y BORRADO por Carlos. Restos inofensivos que se dejan a
-propósito: `~/.claude/projects/-Users-carlosgallardo-Documents-projects-orchestos` (transcripciones para /resume) y
-entradas `[projects."…/Documents/…"]` en los config.toml de Codex dentro de Orca.
-Push de 6 commits lanzado 11:10; el pre-push corre `ui:gate` de 13 gates (>7 min). Verificar `git status -sb`; si
-sigue `ahead`, repetir `git push origin master` y mostrar la salida si falla.
-Siguiente, en orden: (1) Carlos confirma que Orca detecta el proyecto en la ruta nueva (motivo del cambio de
-dirección; su registro ya apunta ahí); (2) AT.10 (MR.1 solo espera d5 = decisión de Carlos); (3) dos bugs de Chat sin
-ítem (composer conserva el mensaje durante el turno; Markdown junta saltos simples) → spec corto + Luna.
-
-## Siguiente tab — tras cerrar MR.1.d3 (2026-09-27)
-**MR.1.d4 cerrado 2026-09-27** (PLAN.md). R.9 (bug `runs/`, punto 3) cerrado 2026-09-27. UI.15 ("+ Add project" sin modal, punto 4 paso 1) cerrado 2026-09-27; "Clonar desde URL" sigue pendiente de plan. UI.16 (punto 5, scroll del chat) cerrado 2026-09-27. "Clonar desde URL" en espera por decisión de Carlos. Punto 6: MR.1.d2 cerrado 2026-09-27 (PLAN.md). UI.13.7 y AT.14 (hueco de brain-no-code) cerrados 2026-09-28. Repo migrado el 2026-09-28 a `/Users/carlosgallardo/Projects/projects/orchestos` (plantilla en `~/Projects/screens`; memoria, statusline, DB, Codex trust y dreaming ya apuntan ahí). Siguiente: lo que diga `bun run next`. Pendiente sin ítem: reemplazar el prompt base del CLI (Codex ~96 % del input en el fixture, ver PLAN.md MR.1.d2).
-Pendiente sin ítem (Carlos 2026-09-28, "déjalo escrito"): el cerebro editó código en MR.1.d2 con `python3 - <<EOF …
-open('src/…','w')` y `.claude/hooks/brain-no-code.js` no lo vio (en Bash solo detecta `>`, `tee`, `sed -i`/`perl -i`).
-Arreglo acordado: ampliar ESE hook (sin hook nuevo, sin texto nuevo en CLAUDE.md/memoria, 0 tokens salvo al
-bloquear) para denegar intérpretes con script en línea (`python`/`node -e`/`bun -e`, heredoc) que escriban
-(`open(..,'w')`, `writeFile`, `write_text`) en `src/`, `tests/`, `scripts/`, `.claude/hooks/`; `ORCHESTOS_ROLE=executor`
-sigue exento. Descartado: diff de `git status` pre/post (Luna corre en background → falsos positivos). Lo hace Luna con
-spec corto + test; no bloquea UI.13.7.
-Gotcha 2026-09-27: si el commit de cierre se bloquea (p. ej. `agent:live-gate` sin archivo de evidencia citado) DESPUÉS
-de un `plan:reconcile`, el siguiente reconcile falla con "Could not prove a closing commit SHA" (la DB ya lo tiene
-`done` y el SHA provisional solo vale al cerrar, `scripts/plan-import.ts:84`). Salida: pasar el ítem a `[ ]`,
-reconcile, volver a `[x]`, reconcile. Evitarlo: citar el `docs/done/evidence/*.json` staged antes del primer commit. Visto en la captura
-de `chat-streaming` y sin arreglar: (a) el composer conserva el mensaje enviado mientras dura el turno; (b) el Markdown
-del Chat junta los saltos de línea simples ("uno\ndos" se ve "uno dos"). `agent:preflight --item MR.1.d4` falla porque
-`findOpenPlanItem` (`scripts/agent-governance.ts:37`) solo acepta ítems de primer nivel; usar el padre (`--item MR.1`).
-**Siguiente tab (2026-09-27): ejecutar MR.1.d4** (PLAN.md, GO de Carlos): spec `docs/specs/MR.1.d4.md` → Luna →
-gate (`chat-streaming` + 11 ui:gate + test:coverage) → commit. Capa genérica para cualquier agente; Claude CLI ya da
-deltas. MR.1.d5 (`codex app-server`) espera decisión de Carlos: NO arrancarlo. d4 sustituye al paso 2 (animación):
-la burbuja que crece ES la señal de espera; si queda un hueco antes del primer evento, el indicador sale del prototipo.
-Orden acordado con Carlos (arrancar por 1+2 juntos, ambos atacan "la respuesta tarda"):
-1. Medir `codex exec resume` vs proceso frío por turno del Orquestador (hoy 11.1 s) → plan corto a Carlos antes de codear. **Medido 2026-09-27, descartado:** mismos flags del chat,
-   gpt-6-luna medium, prompt = CLAUDE.md (~7 KB): frío 4.8-5.6 s (5 corridas); `exec resume` 6.0/5.2/9.0 s y el input
-   crece ~16 K tokens por turno (32.7 K→49 K→65.5 K, reenvía el historial entero). Resume no acorta nada y encarece.
-   Además `resume` no acepta `--sandbox`/`--color` (hay que usar `-c sandbox_mode=…`). El piso del proceso frío es ~5 s;
-   los otros ~6 s de los 11.1 s están dentro de OrchestOS (prompt real, provisión de config, persistencia, UI) — sin
-   medir. Siguiente: instrumentar tiempos por etapa del turno (plan corto a Carlos) o pasar al paso 2.
-2. Animación de espera en Chat y Dev (detalle abajo).
-   **Hallazgo 2026-09-27 (Carlos pidió "pintar el texto mientras se genera"):** `codex exec --json` NO emite deltas:
-   un solo `item.completed` con el mensaje entero al final (medido: 0 eventos entre 382.9 s y 393.8 s). Pollear pasos
-   no daría streaming. `codex app-server` (experimental, JSON-RPC stdio; `codex app-server generate-ts`) SÍ:
-   `item/agentMessage/delta` token a token. Sonda: proceso persistente, `thread/start` 0.13 s; turno 1 primer texto
-   7.4 s / total 14.2 s (234 deltas, con config de usuario: hooks+MCP); turno 2 en el mismo thread primer texto 1.5 s /
-   total 2.2 s. Plan MR.1.d4 presentado a Carlos antes de codear.
-3. Bug `runs/` ensucia el árbol y rompe el reintento tras QA fail (abajo).
-4. "+ Add project" paso 1: quitar el modal, abrir el selector de carpeta directo (abajo).
-5. El chat no baja del todo al último mensaje (abajo).
-6. Spec de MR.1.d2. Después: UI.13.7 (retoma L4).
-MR.1.d3 cerrado 2026-09-26: el clasificador ya no existe (el Orquestador marca `[[orchestos:task]]`). Turno normal
-medido en vivo: 11.1 s con Orquestador = `codex exec` gpt-6-luna medium. Ese piso es un proceso Codex nuevo por
-mensaje (arranque + system prompt de Codex, sin caché de sesión). Siguiente paso posible para "respuesta enseguida"
-(sin investigar, plan corto a Carlos antes): reusar la sesión de Codex del chat (`codex exec resume` o app-server) en
-vez de un proceso frío por turno; medir primero `codex exec resume` vs frío.
-Pedido de Carlos 2026-09-26 — animación de espera visible en Chat y Dev mientras el modelo responde. Hoy Chat tiene
-solo un spinner mínimo (`OrchestChatView.tsx:423`, `Loader2` + "…" con `isWorking`) que Carlos no percibe; Dev sin
-verificar. Pasos: mirar qué muestra el prototipo/plantilla para "pensando" (copiar, no inventar CSS), aplicarlo en
-Chat y Dev, y verificar en vivo que aparece desde el Enter hasta la respuesta. Independiente del clasificador: la
-espera tiene dos partes (8-12 s del clasificador + la respuesta del Orquestador); arreglar el clasificador la acorta,
-la animación la hace visible.
-Visto en la captura `chat-roles/task-held-for-confirmation.png` y sin investigar: el chat no baja del todo al último
-mensaje (la tarjeta held queda bajo el pliegue).
-Bug visto 2026-09-26 (sin arreglar, fuera de MR.1.d1): tras un QA fail, el reintento de la tarea falla con
-"Uncommitted changes … Worktree sandbox requires a clean working tree: ?? runs/" — el `runs/` que OrchestOS escribe en
-la raíz del proyecto ensucia el árbol que su propio sandbox exige limpio. Visto en `project-tabs` (dashboard.log).
-
-## Inquietud de Carlos 2026-09-26 — "+ Add project" (después de cerrar MR.1.d1)
-Diagnóstico verificado en código: el "+" del sidebar (`ShellSidebar.tsx:217`) abre `AddProjectModal.tsx` (plantilla:
-"Project Name" + "Default Git Branch"), pero al confirmar `App.tsx:1044` → `handleNewProject` (`:551`) IGNORA nombre y
-rama y abre el selector nativo de carpeta (`chooseProject`). El modal es un paso que no aporta (Regla cero). Lo que
-pide Carlos (referencia: Orca, sin verificar cómo lo hace exactamente): "+" → elegir carpeta directo (nombre = nombre
-de la carpeta, rama detectada del repo si existe); preguntar por git solo en un camino aparte "Clonar repositorio"
-(URL → carpeta destino). Pasos: (1) quitar el modal y que "+" abra el selector nativo — fix chico; (2) "Clonar desde
-URL" es feature nueva → plan corto a Carlos antes. Mirar Orca antes de escribir el spec.
-
-## Lote L4 (abierto 2026-09-24)
-Ejecutor desde 2026-09-24: **Luna 6** = `codex exec -m gpt-6-luna -c model_reasoning_effort=medium -s workspace-write
-"…" < /dev/null` (Carlos; AGENTS.md y memoria ya actualizados). Turno real de gate = Codex · `gpt-6-luna` · medium.
-Orden: **CI.4** → **CI.2** → **UI.13.7** (colores de cuota, pedido de Carlos 2026-09-24). CI.4: (spec ya escrito y commiteado: `docs/specs/CI.4.md` — Luna 6 en los flujos, test inestable
-`context-adapters:187`, test que deja `.orchestos/adversarial-review-state.json`) → **CI.2** (ui-gates exigibles:
-medir cuánto tardan los flujos de `scripts/ui-gate/flows/` juntos antes de decidir CI/pre-push/workflow; spec por
-escribir; la lista de "12 scripts de `scripts/ui-gates/`" del ítem es anterior a UI.13.3: verificar qué existe hoy).
-Respuestas de Carlos al cierre de L3: los 92 dudosos se quedan (no preguntar lo ya decidido); residuos de prueba se
-borran sin preguntar y se arregla el test que los deja (memorias nuevas).
-Lecciones L3: (5) Luna re-corre el preflight hasta sobre OTRO ítem (CI.2) y pisa `.orchestos/active-item.json`:
-revisar `scope:check` antes del commit; (6) flujo nuevo = `page.reload` tras registrar el proyecto.
-
-### Log L4
-| ítem | rondas Luna | gate | min |
-|---|---|---|---|
-| CI.4 | 2 (r1 rompía `adversarial-review.test.ts`, revertido; r2 dos intermitentes más) | 9 flujos · test:coverage 5×1533/0 · gate:all | ~75 |
-| CI.2 | 2 (r2: flujos reintentan y registran QA) | 9 flujos · project-delete 3/3 · gate:all 1533/0 | ~120 |
-CI.2: spec `docs/specs/CI.2.md` (medición: 9 flujos ≈285 s, 7 con turno real; workflow aparte para los 3 sin turno,
-pre-push condicional para los 9; aislar `ORCHESTOS_HOME` del runner; arreglar `project-delete`/`runs-graph` intermitentes).
-**PAUSA L4 tras CI.2 (Carlos 2026-09-24):** antes de UI.13.7 va el ítem de roles de Model routing (4 roles
-{agente CLI/API, modelo, esfuerzo}: Orquestador/Ejecutor/Revisor/Auxiliar; absorbe AT.10/AT.13; fuera todo hardcode de
-modelo: `QA_JUDGE_DEFAULTS`, `diagnose.ts:166`, `memory/judge.ts:118`, `spec/draft.ts:177`). Esperando que Carlos confirme
-los 4 roles; luego plan en PLAN.md y GO antes de codear.
-Carlos 2026-09-24: `#69`/`#70` en IDEAS.md (Files no expande carpetas; Changes en vivo estilo VS Code).
-
-## Lote L3 (abierto 2026-09-23, pedido de Carlos)
-Orden: UI.13.6 → UI.9.9 → UI.9.8 → UI.10.A. Mismo flujo y paradas que L1/L2; spec commiteado al lanzar a Luna.
-| ítem | rondas Luna | gate | SHA | min |
-|---|---|---|---|---|
-| UI.13.6 | 1 (su "gate:all falló" era el sandbox, EADDRINUSE; fuera, solo el test inestable `context-adapters:187`, 2.ª corrida verde) | usage-bar 13/13 · smoke 6/6 · test:coverage 1527/0 | f723a51 | ~45 |
-| UI.9.9 | 2 (dijo que 4 flujos fallaban: 3 pasaban fuera del sandbox; el 4.º, `chat-turn-details`, fallaba también en master) | project-delete 11/11 · 6 flujos verdes · gate:all 1528/0 | ver git log | ~50 |
-| UI.9.8 | 4 (r1 barrido de ~11 textos, devuelto; r2 inventario mecánico 105; r3 flujo con textos viejos; r4 texto inexacto) | text-sweep 10/10 · chat-turn-details 27/27 · smoke · gate:all 1528/0 | ver git log | ~60 |
-| UI.10.A | 2 (r2: recarga tras registrar en project-tabs/tasks/runs-graph, carrera intermitente) | plan-doc 15/15 · project-tabs 23/23 · tasks · runs-graph · smoke · test:coverage 1533/0 | ver git log | ~50 |
-UI.10.A (respondido 2026-09-24: conmutador en Plan; cerrado): la pestaña Plan de Settings → proyecto muestra
-el tablero de tasks (`PlanBoardView`, fuente `tasks.yaml`), no `PLAN.md`; nada en React consume `/api/plan`. ¿Dónde va el
-`PLAN.md` en solo lectura? Recomendación del cerebro: vista `PLAN.md` dentro de la pestaña Plan (conmutador junto al
-tablero), igual para todos los proyectos incluido OrchestOS.
-Para Carlos al cierre de L3: 92 textos dudosos del barrido en `docs/done/evidence/UI.9.8-sweep.md` (se quedaron).
-Lecciones L3: (1) el `--scope` del preflight necesita globs (`src/dashboard/**`): un directorio pelado no cubre sus
-archivos; (2) incluir `NEXT.md` en el scope; (3) el preflight no se puede re-correr sobre un ítem ya `[x]`: si el
-scope quedó corto, línea "**Fuera de scope declarado:**" en el ítem; (4) `check-live-gate` exige la frase
-"Gate en vivo: …Playwright" y la cita del `.json` de evidencia en la MISMA línea.
-
-## Hallazgos post-cierre UI.13.5 (2026-09-23) — primero en L3, como UI.13.6
-1. Codex sin cuota en proyectos sin sesión de Codex: `scripts/session-status.ts` solo llama `readCodexRateLimitsLive`
-   si hay sesión de Codex del proyecto (`liveCodex`); Claude sí tiene respaldo de cuenta (`claudeStatusline && !found.has`).
-   Reproducido con Playwright: proyecto temporal + turno real Codex Luna → barra `86% — —` antes y después del turno.
-   Lo tapaban los fetch sin proyecto que quitó UI.13.5 (leían la raíz de orchestos).
-2. Ventana vencida se pinta "—" (`ShellStatusBar.tsx:36`) en vez de 100 %: tras el reset la cuota está libre.
-3. Brave no mostraba la barra y Chrome/Safari sí, con el mismo :4242: `/app/dist/main.js` se sirve sin `Cache-Control`
-   ni hash en el nombre → sospecha de bundle viejo en caché (no verificado en Brave). Arreglo: `Cache-Control: no-cache`.
-Nota de proceso: el cerebro escribió código en `session-status.ts` vía python en Bash (el hook solo mira Write/Edit en
-rutas); no repetir.
-
-## UI.13.5 CERRADO 2026-09-23 — siguiente: abrir Lote L3 (UI.9.9 → UI.9.8 → UI.10.A)
-3 rondas de Luna; evidencia `docs/done/evidence/UI.13.5-live.json`. Lección: el flujo de r2 pasaba con un clic manual
-del propio gate; medir el fin del turno con la respuesta de `POST /api/chat` y exigir la petición en ≤5 s sin clic.
-Lección 2: commitear el spec al lanzar a Luna — el plan gate exige que el cierre haga `git rm` del spec; UI.13.5 lo tuvo
-sin versionar y hubo que reconstruirlo (3695cfc).
-
-## Siguiente tab — Lote L2 CERRADO (2026-09-23); abrir L3
-L2: UI.13.2e, UI.13.2f, UI.13.3 cerrados y pusheados. Siguiente según PLAN.md § Rumbo Fase 1: **UI.13.5 primero** (cuotas de la barra
-inferior solo al recargar + proyectos temporales de gates en la DB real; causa ya diagnosticada en el ítem) → UI.9.9 → UI.9.8 →
-UI.10.A. Pendiente de decidir por Carlos: cerrar los padres UI.13 y UI.13.4 (sus sub-ítems están todos `[x]`).
-Lecciones L2: (1) la DB del gate es la real: todo flujo borra lo que siembra y el cerebro lo verifica por consulta;
-(2) auditar los `step()` del flujo, no el conteo PASS (r1 de 2f: 14/14 con 6 pasos vacíos); (3) cerrar un ítem:
-`git rm` del spec en el mismo commit o el plan gate rechaza; si `plan:reconcile` dice "Could not prove a closing
-commit SHA", reabrir `[ ]` → reconcile → `[x]` → reconcile; (4) `.orchestos/feature-status.json` lo regenera el
-pre-commit: incluirlo en el `--scope`; (5) Luna puede re-correr el preflight y estrechar el scope: revisarlo antes
-del commit.
-
-## Lote L1 CERRADO; L2 abierto (histórico)
-L1 terminado 2026-09-23: CI.2.B, UI.13.4c, UI.13.2d (Tasks real) con gate:all + ui:gate PASS y push.
-Siguiente: abrir **L2** con los 3 siguientes de la Fase 1 (PLAN.md § Rumbo): pantallas restantes de UI.13
-(Runs/Graph ya tienen parte; luego Memory/Specs/Skills/Instincts/Plan) → UI.9.9 → UI.9.8. Mismo bucle:
-spec en `docs/specs/`, Luna con `codex exec -m gpt-5.6-luna -c model_reasoning_effort=medium -s workspace-write "…" < /dev/null`,
-flujo en `scripts/ui-gate/flows/<pantalla>.mjs`, verificar con `bun run gate:all` + `bun run ui:gate <flujo>` + `smoke`.
-Lecciones nuevas de UI.13.2d:
-- El preflight solo reconoce ítems de **primer nivel** en PLAN.md (`^- [ ] **ID`); un sub-ítem con sangría lo bloquea.
-  Abrir el sub-ítem como línea propia antes de lanzar a Luna.
-- Luna volvió a decir "lint preexistente" en falso (era su archivo) y "typecheck PASS" corriendo solo el tsc raíz:
-  exigir `bun run typecheck` completo (dos tsconfig).
-- Tareas de fixture: `engine: codex` + `executor_model: openai/gpt-5.6-luna`, **nunca** `executor: codex` (exige
-  `OS_ENABLE_EXEC_CODEX`); así las crea el chat (`resolveAgentSelection`). La tarea debe modificar su output o el QA
-  la devuelve a `pending` con reintento.
-- Un QA fallido no cambia el status: fin de run = status, `retryCount` o `runId` distintos.
-- Hook PreToolUse bloquea que el cerebro edite código (`src/**`); los arreglos del flujo de gate pasaron sin bloqueo.
-- El hook de contexto pide cerrar tab desde ~8% de 1M: umbral a revisar.
-Antes (ítem 3, ya hecho): CI.2.B (47b4dbf) y UI.13.4c (aca8d90) cerrados y pusheados; dashboard :4242 reiniciado con el código nuevo.
-Ítem 3: siguiente pantalla de UI.13 (Tasks, PLAN.md § Fase 1). Mismo bucle: spec en `docs/specs/`, Luna con
-`codex exec -m gpt-5.6-luna -c model_reasoning_effort=medium -s workspace-write "…" < /dev/null` (NO `--full-auto`:
-esa flag no existe), flujo nuevo en `scripts/ui-gate/flows/<pantalla>.mjs`, verificar con `bun run gate:all` +
-`bun run ui:gate <flujo> smoke`. Preflight con `--scope` real del ítem (si no, el pre-commit bloquea).
-Lecciones del lote: Luna afirmó 3 veces cosas falsas ("DB aislada", "catálogo sin luna", "lint preexistente") →
-verificar siempre. `visible()` espera a que aparezca; para "desaparece" usar `ctx.hidden()`. Reproducciones por API:
-buscar el proyecto por `realpath` y pasar `x-orchestos-project-id`, o el fallback `legacy-cwd` escribe en el
-`tasks.yaml` de ESTE repo (pasó y se revirtió).
-
-## Lote L2 (abierto 2026-09-23, pedido de Carlos)
-Hallazgo de proceso: el hook PreToolUse bloquea `sed` del cerebro sobre `scripts/**` pero no un `python3` que escriba
-el mismo archivo — así ajusté 2 veces `runs-graph.mjs` en UI.13.2e sin darme cuenta. Agujero del freno, no permiso.
-Ítems: UI.13.2e Runs+Graph (`docs/specs/UI.13.2e.md`) → UI.13.2f Memory/Specs/Skills/Instincts/Plan (un spec,
-incluye acciones de PlanBoardView) → UI.13.3 borrar vanilla/`/legacy`/islas/CSS/ui-gates de píxel (recuperable
-por git). Mismo flujo y paradas que L1. Reemplaza el orden anterior (UI.9.9/UI.9.8 quedan para L3).
-| ítem | rondas Luna | gate | SHA | min |
-|---|---|---|---|---|
-| UI.13.2e | 3 (r1 runs sin `project_id`; r2 lo propagó dashboard→CLI→harness; r3 proyecto duplicado por symlink `/var`↔`/private/var` al indexar, dejó 14 fantasmas en la DB real que rompían smoke con 410 — borrados por el cerebro) | runs-graph 16/16 (flujo endurecido por el cerebro: QA se mira con la pestaña abierta, conteo real antes y +1 tras Rebuild) · smoke 6/6 · gate:all 1533/0 | ver git log | ~120 |
-| UI.13.2f | 4 (implementación 14/14 con pasos vacíos; flujo real 22/22; `[object Object]` en Explain; chequeo `exact:false`) | project-tabs 23/23 · tasks 13/13 · runs-graph 16/16 · smoke 6/6 · gate:all 1534/0 | ver git log | ~75 |
-| UI.13.3 | 1 (re-declaró el scope por su cuenta, más estrecho) | smoke/tasks/runs-graph/project-tabs/chat-turn-details verdes · gate:all 1518/0 | ver git log | ~40 |
-
-## Lote L1 — prueba del flujo por lote (abierto 2026-09-23, `docs/propuesta-flujo-por-lote.md`)
-Ítems: CI.2.B (`ui:gate`, spec `docs/specs/CI.2.B.md`) → UI.13.4c (`docs/specs/UI.13.4c.md`) → siguiente pantalla de UI.13.
-Fin: los 3 con `gate:all` + `ui:gate` PASS, commit, `[x]` en PLAN.md, push. Paradas: el MISMO fallo tras 2 reintentos
-(ajustado en el primer uso: CI.2.B tuvo 4 rondas por 4 causas distintas, cada una avanzando),
-decisión de producto no prevista, acción irreversible, tope de 3 ítems. Luna escribe; el cerebro vigila y verifica.
-Decisión tomada por el cerebro (Carlos no respondió las 3 preguntas; aplicó las recomendaciones): botón
-`Approve & Merge to Main` → `Approve & Run` (aprobar corre la tarea, no hace merge).
-**Preguntas para Carlos al cierre del lote (no bloquean):**
-1. **RESPONDIDA 2026-09-23 por Carlos: "Lista por proyecto".** La lista de Chat muestra los chats del proyecto de la
-   cabecera + los generales; "New chat" se liga al proyecto visible; el diálogo ofrece "Sin proyecto" explícito.
-   Pregunta original — Cabecera vs chat nuevo: sin proyecto activo, la cabecera muestra `projects[0]` (`App.tsx:220`) pero "New chat" crea
-   una sesión sin proyecto (`App.tsx:467`, modo Chat, no crea tareas). ¿Chat nuevo = proyecto que se ve en la cabecera,
-   o la cabecera dice "sin proyecto" (chat general)? Recomendación: ligar al proyecto visible y ofrecer "sin proyecto"
-   explícito en el diálogo de New chat.
-2. Decidido por el cerebro en UI.13.4c r7 (revisable): un mensaje clasificado como tarea cuyo borrador no nombra
-   archivos NO crea tarea ni añade nota de error (antes: guardaba `output: []`, arrancaba un run y dejaba `tasks.yaml`
-   inválido para siempre). También pendiente AT.10: `buildNaturalDraft` llama a haiku por OpenRouter en silencio.
-3. La tarjeta retenida copia el título literal de la plantilla "Task Ready for Git Commit Proof": no describe lo que
-   pasa (tarea retenida esperando aprobación). ¿Se cambia el texto?
-4. Test inestable (no del lote): `scripts/context-adapters.test.ts:187` (timeout 500 ms) falló 1 de 2 corridas de
-   `test:coverage` bajo carga; aislado pasa.
-5. DB real: filas huérfanas de fixtures de tests (`files`/`code_edges` de `gfc-*`, `ruby-check`) sin proyecto. ¿Limpiarlas?
-| ítem | rondas Luna | gate | SHA | min |
-|---|---|---|---|---|
-| UI.13.2d | 4 (preflight sin ítem, implementación, fin de run por reintento, cast TS) + fixture/gate corregidos por el cerebro | PASS tasks 13/13 · smoke 6/6 · gate:all verde | ver git log | ~70 |
-| UI.13.4c | 13 (código, regex, razonamiento+R.1, flujo, rutas, tarea vacía, popover, Reject/Approve, esperas, árbol sucio, decisión lista, fila) | PASS chat-turn-details 27/27 · smoke 6/6 · gate:all verde | ver git log | ~210 |
-| CI.2.B | 5 (spawn fd, espera, bug Settings, flujo) + 1 chore de lint innecesario revertido (diagnóstico mío errado: eran avisos, no errores) | PASS smoke 6/6 · gate:all verde | ver git log | ~75 |
-
-## Decisión vigente
-UI.13 (PLAN.md § UI.13): el prototipo de AI Studio **es** el frontend (`src/dashboard/app/`, servido en `/`);
-el vanilla vive en `/legacy` solo hasta UI.13.3 y no se edita. Tope: **lo que falta de UI.13 en 2 h**
-(regla escrita en PLAN.md § UI.13).
-
-## Regla de Carlos 2026-09-22
-Cero trabajo sobre el vanilla: `/legacy` es cascarón de referencia. Todo look/comportamiento sale de la
-plantilla `~/Documents/screens/orchestos-ai-agent-dashboard`. Anotado en PLAN.md § UI.13.
-
-## Hecho y pusheado
-UI.12.2a, UI.13.1, UI.13.1b, UI.13.2a (Chat), UI.13.2b (proyectos/Dev/Files, cerrado 2026-09-22).
-
-## Decisión 2026-09-22 (tarde) — "SI go"
-Copiar YA tal cual las pantallas de la plantilla sin backend (datos de ejemplo visibles), conectar después.
-Primero: pasada de fidelidad pantalla por pantalla, capturas lado a lado revisadas por Opus (no haiku).
-Detalles de Carlos → PLAN.md § UI.13 (3) a–d: barra inferior sin acción/usage 5h+semanal, selector de CLI/modelo/
-esfuerzo real en el input del chat, iconos de CLI con color, Settings→Usage estilo GitHub.
-CI verde otra vez en local (61b63b6, CI.3); pre-push ahora corre lint.
-
-## Estado 2026-09-22 (noche)
-UI.13.5 cerrado y pusheado (448f07a). Siguiente: **UI.14** — copiar la plantilla nueva de AI Studio (Dev como chat
-que actúa como CLI, AgentComposer, ContextRing, ShellStatusBar, logos de producto) y cablearla. Plan en el último
-mensaje del tab anterior; **espera el GO de Carlos** y su respuesta sobre tooltips (nativos `title` tal cual vs
-tooltip propio instantáneo). Luego UI.13.6 (cuotas reales: Claude sin fuente, Codex vencido desde 17-sep).
-
-## Rumbo nuevo (2026-09-22)
-- PLAN.md reordenado en tres fases (sección "Rumbo" al inicio): interfaz → producto mínimo → correr dentro de
-  OrchestOS igual que el CLI directo. Cerrados archivados en `docs/done/` (índice al final de PLAN.md).
-- Siguiente: Fase 1, empezando por UI.13.4c. 11 ítems retirados (`docs/done/retirados.md`); UI.8.6 pasó a Fase 2.
-- UI.14: sin verificar en vivo el selector nativo de nuevo proyecto.
-- Carlos: turno real de gate = **Codex · gpt-5.6-luna · medium**.
-
-## Siguiente (serial, una ronda cada uno)
-1. UI.13.2c Settings — cerrado 2026-09-22. Pendiente menor: idioma solo traduce Settings.
-2. UI.13.4a — cerrado 2026-09-22.
-3. UI.13.4b — cerrado 2026-09-22 (816a229). Decisión pendiente de Carlos: la frontera por argumentos no frena
-   `node -e`/`sh -c`; barrera real = sandbox de proceso o lista de binarios permitidos.
-   UI.13.4c razonamiento/herramientas/tarea retenida en el chat — spec por escribir.
-4. Tasks/Runs/Graph → Memory/Specs/Skills/Instincts/Plan → UI.13.3 borrar vanilla.
-Gate en vivo con el patrón de `/tmp/ui132b-gate*.mjs`. Regla nueva: comportamientos de la plantilla se
-hacen reales, no se quitan (PLAN.md § UI.13).
-
-## Avisos
-- Al lanzar Luna, agregar al prompt: "No invoques codex exec ni delegues a otro agente" (hoy se anidó sola).
-- Luna en segundo plano: `codex exec … < /dev/null`. Sin eso queda colgada en "Reading additional input from
-  stdin..." sin hacer nada (2026-09-22: 40 min perdidos).
-- No usar `pkill -f "<patrón>"` si una tarea en segundo plano tiene ese texto en su línea de comandos: la mata
-  también (2026-09-22 cortó el wrapper de Luna). Matar por PID (`lsof -ti :3000 | xargs kill`).
-- Sesiones interactivas de Codex viejas abiertas: PIDs 78537 (12-sep), 48287 (11-sep), 62791 (hoy 19:07).
-  No cerrarlas sin que Carlos confirme.
-- Pendiente de verificar con Carlos: un turno real de chat contra un LLM (el modelo lo elige él).
-- Fuente: el prototipo mismo renderiza con fuente del sistema (clase `font-sans` en `body`); la app es fiel.
-  Si Carlos quiere Plus Jakarta Sans real, es un cambio de una línea.
-- Stash guardados: `stash@{0}` UI.12.2b (reemplazado), `stash@{1}` UI.11 parcial. No aplicar.
+## Datos del entorno vigentes
+- Repo en `/Users/carlosgallardo/Projects/projects/orchestos` (migrado 2026-09-28; plantilla en `~/Projects/screens`).
+  Restos inofensivos dejados a propósito: `~/.claude/projects/-Users-carlosgallardo-Documents-projects-orchestos`
+  (transcripciones para /resume) y entradas `[projects."…/Documents/…"]` en los `config.toml` de Codex dentro de Orca.
+- El flujo `opencode-terminal` NO va en el pre-push (necesita el binario opencode; CI no lo tiene).
+- Delegación (Carlos): Luna = mecánico, Sonnet 5.5 = criterio, Sol 6.1 (`gpt-6.1-sol`) = QA. El cerebro no puede editar
+  código (hook): los ejecutores van por `ORCHESTOS_ROLE=executor codex exec …`.
+- `git stash list` conserva 5 stashes viejos (UI.12.2b, UI.11, AT.10 parcial, wip cascada E.16, config local): no aplicar.
+- Archivo histórico: handoffs anteriores y logs de lotes L1–L4 en `docs/done/sprint-30.md` § Apéndice; lecciones de
+  delegación/ui-gate en `AGENTS.md`; el resto vive en `git log -p NEXT.md`.

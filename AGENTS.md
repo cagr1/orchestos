@@ -139,8 +139,9 @@ en su propio ítem.
 **Diente mecánico (AT.1, 2026-09-14):** `.claude/hooks/brain-no-code.js` (`PreToolUse`) bloquea
 en sesiones de Claude Code las ediciones sobre `src/`, `tests/`, `scripts/` y `.claude/hooks/`,
 incluidas las escrituras por redirect/`tee`/`sed -i`. El Sonnet de excepción se lanza con
-`ORCHESTOS_ROLE=executor`. Límites declarados: no aplica a sesiones de Codex (Astra como cerebro
-se rige por este texto) ni a escrituras desde intérpretes (`python -c`, `bun -e`). Al cierre, el
+`ORCHESTOS_ROLE=executor`. Desde AT.14 también bloquea scripts inline de intérprete (`python -c`, `bun -e`,
+heredoc) que escriben a una ruta de código escrita como literal (`hasInlineCodeWrite`). Límites declarados: no
+aplica a sesiones de Codex (Astra como cerebro se rige por este texto) ni a rutas calculadas en runtime. Al cierre, el
 gate de procedencia de S.4b sigue exigiendo `Ejecutado por:` y el borrado del spec.
 
 **Ciclo de vida del spec:** `docs/specs/<ID>.md` nace al delegar y **se borra en el commit que
@@ -157,6 +158,41 @@ Mecánica del commit de cierre (medido en I.7.1, 2026-10-03; costó 6 intentos):
   con ese archivo staged en el mismo commit.
 - Un delegado que corre `agent:preflight --scope` deja `.orchestos/active-item.json` (ignorado por git) con su
   scope de ronda; el scope-lock del cierre lo usa. Revisarlo antes de commitear.
+
+### Lecciones operativas de delegación y ui-gate (migradas de NEXT.md, 2026-10-05)
+
+Medidas en los lotes L1–L4 y los ítems de Sprint 30/ERP/I/CX; cada una costó al menos una ronda perdida.
+
+- **Preflight.** Solo reconoce ítems de **primer nivel** (`^- [ ] **ID`, `findOpenPlanItem`,
+  `scripts/agent-governance.ts`): un sub-ítem con sangría lo bloquea; usar el padre (`--item MR.1`) o abrir el
+  sub-ítem como línea propia antes de lanzar al ejecutor. `--scope` necesita globs (`src/dashboard/**`; un directorio
+  pelado no cubre sus archivos) e incluir `NEXT.md` y `.orchestos/feature-status.json`. No se puede re-correr sobre un
+  ítem ya `[x]`: si el scope quedó corto, añadir la línea `**Fuera de scope declarado:**` en el ítem.
+- **Línea de procedencia.** `Ejecutado por: … · Spec: docs/specs/<ID>.md` debe terminar en la ruta (sin texto
+  después) o el plan gate exige borrar el spec. Commitear el spec al lanzar al ejecutor, no al cerrar.
+- **Prompt de Luna.** Añadir "No invoques `codex exec` ni delegues a otro agente" (se anidó sola) y lanzarla siempre
+  con `< /dev/null` (sin eso queda colgada en "Reading additional input from stdin…"). Matar procesos por PID, nunca
+  `pkill -f "<patrón>"` si una tarea en segundo plano lleva ese texto en su línea de comandos.
+- **Luna afirma cosas falsas** ("DB aislada", "lint preexistente", "typecheck PASS" con solo el tsc raíz, "gate:all
+  falló" por el sandbox): verificar siempre, exigir `bun run typecheck` completo (dos tsconfig), leer su diff completo,
+  auditar los `step()` de cada flujo (un 14/14 puede traer pasos vacíos) y revisar `.orchestos/active-item.json`
+  (re-corre el preflight y estrecha el scope) antes de commitear. Omite asserts que no se le exigen y puede inventar
+  campos de API.
+- **Flujos `scripts/ui-gate/flows/`.** `ui:gate` sin lista de flujos no corre nada (la del pre-push está en
+  `scripts/pre-push.sh`). Tras tocar flujos: `bunx biome lint --only=correctness/noUndeclaredVariables
+  scripts/ui-gate/flows`. Flujo nuevo = `page.reload` tras registrar el proyecto; `ctx.hidden()` para "desaparece"
+  (`visible()` espera a que aparezca). Todo `api()` a rutas con scope (runs, memory, instincts, skills, tasks,
+  chat/sessions) manda `x-orchestos-project-id` o `?project=none`; sin selector el back usa el cwd del servidor (y
+  una reproducción por API sin el header escribe en el `tasks.yaml` de ESTE repo: buscar el proyecto por `realpath`).
+  Fin de turno = respuesta de `POST /api/chat`, no composer vacío ni clic manual. La DB del gate es la real: todo
+  flujo borra lo que siembra y el cerebro lo verifica por consulta.
+- **Tareas de fixture.** `engine: codex` + `executor_model: openai/gpt-5.6-luna` (modelo de Luna al 2026-09-23; hoy `gpt-6-luna`), nunca `executor: codex` (exige
+  `OS_ENABLE_EXEC_CODEX`); la tarea debe modificar su output o el QA la devuelve a `pending`. Un QA fallido no cambia
+  el status: fin de run = status, `retryCount` o `runId` distintos.
+- **Flakiness bajo carga.** `chat-sessions.test.ts` (timeout 5 s, subprocesos) y `context-adapters` fallan por carga
+  si corre otro proceso pesado: repetir en frío antes de culpar al diff. `usage-bar` falla a veces porque
+  `codex app-server` no responde `account/rateLimits/read` en 3 s (`scripts/context-adapters.ts`); los
+  `rollout-*.jsonl` de `~/.codex/sessions` traen `rate_limits` y son candidato a fallback.
 
 ## Trabajo en equipo (Claude + Codex, en paralelo)
 
