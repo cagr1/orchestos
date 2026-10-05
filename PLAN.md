@@ -24,7 +24,7 @@ Todos sus ítems están archivados en `docs/done/` (UI.13.x, UI.9.8/9.9, UI.10.A
 ### Fase 2 — Producto mínimo para entrega (ruta ERP)
 **Decisión de Carlos 2026-10-05:** *"primero lo primero, que funcione"* — ERP.4 no se abre hasta que R.8 diga, con
 evidencia, que el recorrido funciona; las fallas que R.8 encuentre se corrigen antes. Cerrados y archivados: AT.10,
-R.7, ERP.2, ERP.3, I.7, H.5.3. Abiertos, en orden: H.9.4 (gate de lectura fuera del proyecto) → R.8 corto
+R.7, ERP.2, ERP.3, I.7, H.5.3, H.9.4. Abiertos, en orden: R.8 corto
 (validación independiente del recorrido) → corregir lo que R.8 encuentre → ERP.4 (piloto) → UI.8.6 (permisos visibles: aprobar en el
 chat lo que el CLI va a hacer).
 
@@ -362,27 +362,6 @@ ERP ni prueba visual nueva. Los ítems permanecen abiertos hasta sus gates reale
   los registros sin adaptador deben decir `chat no soportado`, nunca caer a API/OpenRouter.
 
 ## Fuera de fase
-
-- [ ] **H.9.4 — 🔍 El gate que lo vuelve real: el chat intenta leer el vault y no puede.**
-  **Dependencias actualizadas (auditoría 2026-09-06): R.2 y R.5.** El campo `files_read`
-  entregado originalmente por I.4 registraba solicitudes sin confirmar resultados. R.2 lo
-  corrigió el 2026-09-07 y añadió `read_audit_json` con evidencia real; R.5 sigue pendiente.
-  Ver Bloque R para resultados, cobertura y límites; este gate no se cierra automáticamente.
-  Sin este test, alguien cambia un flag en dos semanas y nadie se entera — literalmente lo que
-  pasó con el `pre-commit`. Un gate ejecutable, con el dashboard real corriendo
-  ([[feedback-verificar-gates-en-vivo]]), que para cada CLI con frontera declarada:
-  1. Pide al chat leer un archivo fuera del root del proyecto (un fixture temporal, **nunca el
-     vault real** — el test no debe depender de datos personales de nadie ni de que el vault
-     exista).
-  2. Afirma que la lectura no ocurrió, cruzando contra la lista de archivos leídos que persiste
-     H.9.1 — no contra lo que el modelo *dice* que hizo.
-  3. Para cualquier CLI con frontera `none` (incluido `codex`), afirma lo contrario: que el sistema
-     **reporta** el hueco sin bloquear el chat, en vez de prometer aislamiento. Un test que
-     documenta la limitación real vale más que uno que la esconde.
-
-  Escrito por Codex mientras Claude implementa H.9.2/H.9.3, que es el reparto que mejor ha
-  funcionado ([[feedback-codex-escribe-el-gate]]); acotado a los archivos que él crea para no
-  cruzarse con la edición en curso ([[feedback-codex-no-en-paralelo-con-claude]]).
 
 **Fuera de scope declarado de H.9:** `opencode` (mismo criterio que H.8 — sin contrato
 verificado); el sandbox de **escritura** de las tareas (worktrees ya lo cubren, es otro eje); la

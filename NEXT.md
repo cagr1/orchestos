@@ -26,6 +26,11 @@ Pendientes anotados (sin ítem todavía; abrir si Carlos quiere):
 
 Sin commitear y ajenos (no tocar sin Carlos): IDEAS.md, orchestos.config.yaml.
 
+## H.9.4 cerrado (2026-10-05) — siguiente: R.8 corto
+Gate `read-boundary` PASS 6/6 (`docs/done/evidence/H.9.4-live.json`).
+Pendientes nuevos: borrar `readBoundaryWarning` (sin consumidor, decisión de Carlos: sin aviso); cuando el CLI se queda
+sin cupo ("out of usage credits") el chat lo muestra como respuesta normal, no como error.
+
 ## Pendientes sin ítem heredados (consolidados 2026-10-05 desde handoffs 2026-09-22 → 2026-10-03)
 Sin verificar de nuevo hoy salvo lo indicado; abrir ítem solo si Carlos lo pide.
 - Settings → Tasks del proyecto muestra "Create First Task" (`OrchestSettingsView.tsx:2533`, verificado hoy en el

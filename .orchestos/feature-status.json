@@ -94,15 +94,6 @@
       "closedDate": null
     },
     {
-      "id": "H.9.4",
-      "sprint": "Fuera de fase",
-      "block": null,
-      "delegation": "🔍",
-      "title": "El gate que lo vuelve real: el chat intenta leer el vault y no puede",
-      "status": "open",
-      "closedDate": null
-    },
-    {
       "id": "H.10.2",
       "sprint": "Fuera de fase",
       "block": "H.10 — El gate de evidencia acepta prosa, no el hecho (ABIERTO 2026-09-08, GO de Carlos)",

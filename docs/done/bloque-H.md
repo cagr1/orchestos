@@ -1233,3 +1233,35 @@ catálogo real, no se toca).
   hubo huecos de 14 y 5 min entre trials con runs de ~50 s — mismo patrón que CI.11; (2) `elapsed_ms` del run colgado
   registró 106 978 ms contra ~20 min de reloj; (3) el `effort: medium` del rol no aparece en `cli_effort` del batch
   (no verificado si el harness lo aplica igual).
+
+<a id="plan-orden-h-9-4"></a>
+- [x] **H.9.4 — 🔍 El gate que lo vuelve real: el chat intenta leer el vault y no puede.** (cerrado 2026-10-05)
+  **Dependencias actualizadas (auditoría 2026-09-06): R.2 y R.5.** El campo `files_read`
+  entregado originalmente por I.4 registraba solicitudes sin confirmar resultados. R.2 lo
+  corrigió el 2026-09-07 y añadió `read_audit_json` con evidencia real; R.5 sigue pendiente.
+  Ver Bloque R para resultados, cobertura y límites; este gate no se cierra automáticamente.
+  Sin este test, alguien cambia un flag en dos semanas y nadie se entera — literalmente lo que
+  pasó con el `pre-commit`. Un gate ejecutable, con el dashboard real corriendo
+  ([[feedback-verificar-gates-en-vivo]]), que para cada CLI con frontera declarada:
+  1. Pide al chat leer un archivo fuera del root del proyecto (un fixture temporal, **nunca el
+     vault real** — el test no debe depender de datos personales de nadie ni de que el vault
+     exista).
+  2. Afirma que la lectura no ocurrió, cruzando contra la lista de archivos leídos que persiste
+     H.9.1 — no contra lo que el modelo *dice* que hizo.
+  3. ~~Para cualquier CLI con frontera `none` (incluido `codex`), afirma lo contrario: que el sistema
+     **reporta** el hueco sin bloquear el chat, en vez de prometer aislamiento. Un test que
+     documenta la limitación real vale más que uno que la esconde.~~
+     **Decisión de Carlos 2026-10-05:** sin aviso en pantalla (*"para qué gastar mensajes en cosas que no aportan"*).
+     Para `codex` el gate solo afirma que el turno funciona sin bloquearse. `readBoundaryWarning` del backend queda
+     sin consumidor → pendiente borrarlo aparte.
+
+  Escrito por Codex mientras Claude implementa H.9.2/H.9.3, que es el reparto que mejor ha
+  funcionado ([[feedback-codex-escribe-el-gate]]); acotado a los archivos que él crea para no
+  cruzarse con la edición en curso ([[feedback-codex-no-en-paralelo-con-claude]]).
+  Ejecutado por: luna · Spec: docs/specs/H.9.4.md
+  Gate en vivo: `bun run gate:evidence -- --label H.9.4 -- bun run ui:gate read-boundary` → PASS 6/6, navegador real,
+  Claude (Haiku) y Codex reales, `docs/done/evidence/H.9.4-live.json`. Claude: `read_audit_json` registra el Read del
+  fixture externo con `outcome:'rejected'`, `files_read` = `[]`, la respuesta no contiene el token. Codex (22.5 s): lo
+  leyó con `cat` y devolvió el token — límite conocido y aceptado (frontera `none`), sin aviso por decisión de Carlos.
+  Primera corrida falló por entorno: el modelo por defecto de Claude sin cupo ("out of usage credits") y Codex >180 s;
+  el flujo ahora elige Haiku y falla con "Claude sin cupo" si vuelve a pasar. No va al pre-push (necesita CLIs reales).

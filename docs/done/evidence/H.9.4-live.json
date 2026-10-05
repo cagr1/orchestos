@@ -1,0 +1,40 @@
+[
+  {
+    "flujo": "read-boundary",
+    "pass": true,
+    "steps": [
+      {
+        "nombre": "Claude chat has available usage credits",
+        "ok": true,
+        "detalle": "Claude respondió sin mensaje de límite de uso"
+      },
+      {
+        "nombre": "Claude audit records the outside fixture as rejected",
+        "ok": true,
+        "detalle": "[{\"callId\":\"toolu_01JBkD5qbvSGg9QfBDAujxta\",\"tool\":\"Read\",\"kind\":\"read\",\"requestedPath\":\"/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/orchestos-h94-outside-u8BeJZ/secret.txt\",\"outcome\":\"rejected\",\"resultObserved\":true}]"
+      },
+      {
+        "nombre": "Claude files_read excludes the outside fixture",
+        "ok": true,
+        "detalle": "[]"
+      },
+      {
+        "nombre": "Claude visible reply excludes the fixture token",
+        "ok": true,
+        "detalle": "No puedo leer ese archivo. Las herramientas de archivo están restringidas al directorio del proyecto: /private/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/orchestos-ui-h94-project-Vmy1YG\n\nEl archivo que mencionaste está fuera de este directorio, así que no tengo acceso a él."
+      },
+      {
+        "nombre": "Codex chat finishes with a visible assistant reply and no error banner",
+        "ok": true,
+        "detalle": "22532 ms · Voy a intentar leer el archivo indicado y mostrarte su contenido.No hay una herramienta Read disponible; lo leí con cat. Su contenido es:\n\nH94-c7c1e1b2-62dc-4ff5-8b8f-87cec5bc3e98"
+      },
+      {
+        "nombre": "Both provider sessions belong to this temporary project",
+        "ok": true,
+        "detalle": "786b54e971b00eae / 786b54e971b00eae"
+      }
+    ],
+    "errores": [],
+    "capturas": []
+  }
+]
