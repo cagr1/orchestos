@@ -152,10 +152,20 @@ Cerrada. Todos sus ítems están archivados en `docs/done/` (ver "Cerrados — e
   negativas de privacidad y QA; informe de límites restantes. Cuando use home temporal con runs
   reales, ejecutar el wrapper gate:evidence y verificar conservación de la evidencia pertinente.
 
-- [ ] **R.8.1 — 🔍 auto-flow estricto.** (abierto 2026-10-05, GO de Carlos) Exigir `done` (no cualquier estado
+- [x] **R.8.1 — 🔍 auto-flow estricto.** (abierto 2026-10-05, GO de Carlos) Exigir `done` (no cualquier estado
   terminal, `auto-flow.mjs:367`), contenido exacto de los archivos producidos, aprobación real (no "sin botón 5 s",
   `:351`) y recarga final que recupere reporte/QA del mismo `taskId`. Incluye el cuelgue intermitente de Codex (CI.11)
   si vuelve a cortar la corrida. Hallazgos 3-4 de `docs/done/evidence/R.8-revision-sol-2026-10-05.md`.
+  Ejecutado por: Luna (gpt-6-luna) · Spec: docs/specs/R.8.1.md
+  Gate en vivo: `gate:evidence R.8.1-auto-flow` → auto-flow PASS 31/31 (`docs/done/evidence/R.8.1-live.json`):
+  `done` exigido, contenido exacto de ambos archivos, Claude arranca sin aprobación (archivo nuevo) y Codex queda
+  retenido (archivo previo `codex-nota.md`): `pending` sin `runId` y contenido intacto durante 3 s, arranca tras el
+  clic; recarga recupera los dos reportes del mismo `taskId`. Intentos: 1.º FAIL — ninguna petición creó tarea con el
+  prompt "con exactamente este contenido, sin comillas ni nada más" (causa no aislada: prompt o azar del modelo; el
+  detalle de fallo ahora incluye la respuesta y `git status`); 2.º PASS con "con una sola línea: nota de X".
+  No hecho: contraprueba forzando texto esperado erróneo (el 1.º intento sí prueba que el gate falla).
+  Límites: QA del reporte → R.8.3; reinicio del backend → R.8.4. Visto: "Loading models…" persiste en el composer
+  tras recargar (captura `after-reload`), sin investigar.
 - [ ] **R.8.2 — 🔍 Continuidad historial→CLI tras recarga.** Turno posterior a la recarga que necesite un centinela
   aleatorio del historial sin repetirlo; Claude y Codex. Hallazgo 1.
 - [ ] **R.8.3 — 🔍 QA negativo real.** Tarea con salida deliberadamente incorrecta que QA debe rechazar; checks

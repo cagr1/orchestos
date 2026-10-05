@@ -1,5 +1,10 @@
 # NEXT — handoff 2026-10-05 → siguiente tab
 
+## R.8.1 cerrado (2026-10-05) — siguiente: R.8.2
+Arranque (tras /clear): `bun run agent:preflight -- --item R.8.2 --agent claude`. auto-flow 31/31 (detalle en PLAN.md).
+Nuevo pendiente: composer muestra "Loading models…" tras recargar un hilo (captura en la evidencia de R.8.1).
+`read-boundary.mjs`, IDEAS.md y orchestos.config.yaml siguen sin commitear y ajenos.
+
 ## 2026-10-05: PLAN.md/NEXT.md saneados (cerrados → docs/done/). Siguiente: elegir de `bun run next`
 Arranque: tab nuevo → `bun run agent:preflight -- --item <ID> --agent claude`. Sin dashboard corriendo.
 

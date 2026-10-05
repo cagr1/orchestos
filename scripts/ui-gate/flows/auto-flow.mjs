@@ -257,6 +257,7 @@ export default async function autoFlow({ page, api, step, shot, visible, cleanup
     { match: { output: ['codex-*.md'] }, agent: 'codex' },
   ]
   writeFileSync(configPath, yamlStringify(config))
+  writeFileSync(join(projectRoot, 'codex-nota.md'), 'borrador viejo\n')
   run('git', ['add', '-A'], projectRoot)
   run(
     'git',
@@ -326,8 +327,9 @@ export default async function autoFlow({ page, api, step, shot, visible, cleanup
   )
   await step('non-task message leaves project clean', questionTree === '', questionTree || 'clean')
 
-  const createTask = async (filename, agentName) => {
-    const text = `Crea el archivo ${filename} con una sola línea: "nota de ${agentName.toLowerCase()}".`
+  const taskIds = []
+  const createTask = async (filename, agentName, expectHeld) => {
+    const text = `Crea el archivo ${filename} con una sola línea: nota de ${agentName.toLowerCase()}`
     const initialTasks = await tasksFor(api, projectId)
     const initialIds = new Set(initialTasks.map((task) => task.id))
     const reply = await sendMessage({
@@ -345,29 +347,129 @@ export default async function autoFlow({ page, api, step, shot, visible, cleanup
       if (!task) await delay(1_000)
     }
     if (!task) {
-      await step(`${filename}: task created`, false, 'no new task appeared in /api/tasks')
+      const replyText = (await reply.innerText().catch(() => 'reply unavailable')).slice(0, 400)
+      const projectStatus = execFileSync('git', ['status', '--porcelain'], {
+        cwd: projectRoot,
+        encoding: 'utf8',
+      }).trim()
+      await step(
+        `${filename}: task created`,
+        false,
+        JSON.stringify({
+          reason: 'no new task appeared in /api/tasks',
+          reply: replyText,
+          projectStatus,
+        }),
+      )
       return null
     }
+    taskIds.push(task.id)
     const taskCard = page.getByText('Task ready to run', { exact: true }).last()
     const approveButton = page.getByRole('button', { name: 'Approve & Run', exact: true }).last()
-    const held = await visible(approveButton, 5_000)
-    if (held) {
-      await approveButton.click()
-      await step(`${filename}: approval path`, true, `held task approved: ${task.id}`)
-    } else {
+    if (expectHeld) {
+      const buttonVisible = await visible(approveButton, 30_000)
+      let heldState = (await tasksFor(api, projectId)).find((item) => item.id === task.id)
+      let oldContent = readFileSync(join(projectRoot, filename), 'utf8')
       await step(
-        `${filename}: approval path`,
-        true,
-        `task started automatically: ${task.id}; card visible=${await taskCard.isVisible().catch(() => false)}`,
+        `${filename}: held for approval`,
+        buttonVisible &&
+          heldState?.status === 'pending' &&
+          !heldState.runId &&
+          oldContent === 'borrador viejo\n',
+        JSON.stringify({
+          buttonVisible,
+          status: heldState?.status ?? 'missing',
+          runId: heldState?.runId ?? null,
+          content: oldContent,
+        }),
       )
+      if (
+        !buttonVisible ||
+        heldState?.status !== 'pending' ||
+        heldState.runId ||
+        oldContent !== 'borrador viejo\n'
+      )
+        return null
+      await delay(3_000)
+      heldState = (await tasksFor(api, projectId)).find((item) => item.id === task.id)
+      oldContent = readFileSync(join(projectRoot, filename), 'utf8')
+      const stayedHeld =
+        heldState?.status === 'pending' && !heldState.runId && oldContent === 'borrador viejo\n'
+      await step(
+        `${filename}: remains pending before approval`,
+        stayedHeld,
+        JSON.stringify({
+          status: heldState?.status ?? 'missing',
+          runId: heldState?.runId ?? null,
+          content: oldContent,
+        }),
+      )
+      if (!stayedHeld) return null
+      await approveButton.click()
+      const startsDeadline = Date.now() + 60_000
+      let started
+      while (Date.now() < startsDeadline) {
+        started = (await tasksFor(api, projectId)).find((item) => item.id === task.id)
+        if (started?.runId || started?.status === 'running' || started?.status === 'done') break
+        await delay(1_000)
+      }
+      const buttonHidden = !(await visible(approveButton, 1_000))
+      const didStart = Boolean(
+        started?.runId || started?.status === 'running' || started?.status === 'done',
+      )
+      await step(
+        `${filename}: starts after approval`,
+        didStart && buttonHidden,
+        JSON.stringify({
+          taskId: task.id,
+          status: started?.status ?? 'missing',
+          runId: started?.runId ?? null,
+          buttonHidden,
+        }),
+      )
+      if (!didStart || !buttonHidden) return null
+    } else {
+      const buttonVisible = await visible(approveButton, 1_000)
+      const current = (await tasksFor(api, projectId)).find((item) => item.id === task.id)
+      const didStart = Boolean(
+        current?.runId || current?.status === 'running' || current?.status === 'done',
+      )
+      await step(
+        `${filename}: starts without approval`,
+        !buttonVisible && didStart,
+        JSON.stringify({
+          taskId: task.id,
+          buttonVisible,
+          status: current?.status ?? 'missing',
+          runId: current?.runId ?? null,
+          cardVisible: await taskCard.isVisible().catch(() => false),
+        }),
+      )
+      if (buttonVisible || !didStart) return null
     }
     const finished = await waitForTaskFinished(api, projectId, task.id, task)
+    const done = finished?.status === 'done'
     await step(
       `${filename}: task finished`,
-      Boolean(finished && finished.status !== 'pending' && finished.status !== 'running'),
+      done,
       JSON.stringify(finished ?? { id: task.id, status: 'missing' }),
     )
-    const finalStatus = finished?.status ?? ''
+    if (!done) return null
+    const outputPath = join(projectRoot, filename)
+    let outputContent
+    try {
+      outputContent = readFileSync(outputPath, 'utf8')
+    } catch {
+      outputContent = null
+    }
+    const exactContent =
+      outputContent !== null &&
+      outputContent.replace(/\r?\n$/, '') === `nota de ${agentName.toLowerCase()}`
+    await step(
+      `${filename}: exact content`,
+      exactContent,
+      outputContent === null ? 'missing' : JSON.stringify(outputContent),
+    )
     const reportDeadline = Date.now() + 30_000
     let dom = false
     while (Date.now() < reportDeadline && !dom) {
@@ -380,11 +482,7 @@ export default async function autoFlow({ page, api, step, shot, visible, cleanup
             .innerText()
             .catch(() => '')
         ).toLowerCase()
-        if (
-          finalStatus &&
-          content.includes(task.id.toLowerCase()) &&
-          content.includes(finalStatus.toLowerCase())
-        ) {
+        if (content.includes(task.id.toLowerCase()) && content.includes('done')) {
           dom = true
           break
         }
@@ -396,7 +494,7 @@ export default async function autoFlow({ page, api, step, shot, visible, cleanup
       (message) =>
         message.role === 'assistant' &&
         message.task_id === task.id &&
-        message.content.toLowerCase().includes(finalStatus.toLowerCase()),
+        message.content.toLowerCase().includes('done'),
     )
     await step(`${filename}: inline report`, dom && persisted, `dom=${dom}; persisted=${persisted}`)
     const persistedUser = snapshot.messages.some(
@@ -405,7 +503,10 @@ export default async function autoFlow({ page, api, step, shot, visible, cleanup
     const persistedAssistant = snapshot.messages.some((message) => message.role === 'assistant')
     await step(
       `${filename}: chat and run persistence`,
-      persistedUser && persistedAssistant && Boolean(snapshot.run?.result?.trim()),
+      persistedUser &&
+        persistedAssistant &&
+        Boolean(snapshot.run?.result?.trim()) &&
+        snapshot.run?.status === 'done',
       JSON.stringify({
         status: snapshot.run?.status ?? 'missing',
         provider: snapshot.run?.provider ?? null,
@@ -419,8 +520,8 @@ export default async function autoFlow({ page, api, step, shot, visible, cleanup
     return { task, finished, snapshot }
   }
 
-  const claudeTask = await createTask('claude-nota.md', 'Claude')
-  const codexTask = await createTask('codex-nota.md', 'Codex')
+  const claudeTask = await createTask('claude-nota.md', 'Claude', false)
+  const codexTask = await createTask('codex-nota.md', 'Codex', true)
 
   if (claudeTask && codexTask) {
     const claudeDefinition = taskYamlBlock(projectRoot, claudeTask.task.id)
@@ -455,6 +556,52 @@ export default async function autoFlow({ page, api, step, shot, visible, cleanup
       }),
     )
   }
+
+  await page.reload({ waitUntil: 'domcontentloaded' })
+  await page.getByRole('button', { name: 'Dev', exact: true }).click()
+  const reloadedProjectButton = page.getByRole('button', {
+    name: basename(projectRoot),
+    exact: true,
+  })
+  await reloadedProjectButton.waitFor({ state: 'visible', timeout: 30_000 })
+  await reloadedProjectButton.click()
+  await page.getByRole('button', { name: 'Chat', exact: true }).click()
+  const questionThread = page
+    .locator('aside')
+    .getByText(/¿Qué es un DAG\?/i)
+    .first()
+  await questionThread.waitFor({ state: 'visible', timeout: 30_000 }).catch(() => undefined)
+  if (await questionThread.isVisible().catch(() => false)) await questionThread.click()
+  let recoveredTaskIds = []
+  if (taskIds.length === 0) {
+    await step('reload recovers task reports', false, 'no tasks to recover')
+  } else {
+    const prose = page.locator('div.prose').first()
+    await prose.waitFor({ state: 'visible', timeout: 30_000 }).catch(() => undefined)
+    const reloadDeadline = Date.now() + 30_000
+    while (Date.now() < reloadDeadline) {
+      const proseTexts = await page
+        .locator('div.prose')
+        .allInnerTexts()
+        .catch(() => [])
+      recoveredTaskIds = taskIds.filter((taskId) =>
+        proseTexts.some(
+          (text) =>
+            text.toLowerCase().includes(taskId.toLowerCase()) &&
+            text.toLowerCase().includes('done'),
+        ),
+      )
+      if (recoveredTaskIds.length === taskIds.length) break
+      await delay(1_000)
+    }
+    const missingTaskIds = taskIds.filter((taskId) => !recoveredTaskIds.includes(taskId))
+    await step(
+      'reload recovers task reports',
+      missingTaskIds.length === 0,
+      JSON.stringify({ found: recoveredTaskIds, missing: missingTaskIds }),
+    )
+  }
+  await shot('after-reload')
 
   const chatText = await page
     .locator('body')
