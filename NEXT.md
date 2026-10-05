@@ -14,6 +14,7 @@ H.5.3 cerrado 2026-10-05: baseline 8/9 (detalle en `docs/done/bloque-H.md#plan-o
 Rumbo: **ERP.4** (piloto de módulo ERP).
 
 Pendientes anotados (sin ítem todavía; abrir si Carlos quiere):
+- `chat-context` falló en el pre-push: el diálogo de nuevo chat no listó Claude (sonda de CI.10 en negativo bajo carga); pasó al reintentar (2026-10-05).
 - `usage-bar` falló en el pre-push con ENOTEMPTY al borrar su tmpdir (`orchestos-ui-13-5-*`); pasó al reintentar (2026-10-05).
 - H.5.3: Codex se cuelga sin salida a veces (timeout 20 min; huecos de 5-14 min entre trials) — ligar a CI.11;
   `elapsed_ms` no cuenta el cuelgue; `effort` del rol no llega a `cli_effort` del eval (sin verificar si se aplica).
@@ -25,6 +26,17 @@ Pendientes anotados (sin ítem todavía; abrir si Carlos quiere):
   sin API key de OpenRouter el catálogo se baja igual (endpoint público).
 
 Sin commitear y ajenos (no tocar sin Carlos): IDEAS.md, orchestos.config.yaml.
+
+## R.8 corto hecho (2026-10-05) — NO listo para ERP.4. GO de Carlos: R.8.1 → R.8.6 en orden (PLAN.md). Siguiente: R.8.1
+Arranque (tras /clear): `bun run agent:preflight -- --item R.8.1 --agent claude`. Ojo: `bun run next` lista ERP.4
+primero por posición en PLAN.md; el orden real es el del Rumbo (R.8.1 primero). Dashboard ajeno en `localhost:4242`
+(PID 41821, desde 13:17): preguntar a Carlos antes de cerrarlo.
+A: 5/6 gates verdes; read-boundary inconcluso (Claude se niega sin invocar Read; 2 corridas más: inconcluso y timeout
+180 s). B: revisión de Sol en `docs/done/evidence/R.8-revision-sol-2026-10-05.md` — 5 hallazgos altos: continuidad
+historial→CLI tras recarga sin gate; QA/checks sin prueba sustantiva ni negativa; auto-flow acepta estado terminal
+fallido y "sin botón 5 s" como aprobación; sin recarga/reinicio tras producir tareas (gap I.7.2); privacidad del
+contexto del CLI sin prueba. Medios: pasos `true` literales, nombres de pasos que exceden lo comprobado.
+`scripts/ui-gate/flows/read-boundary.mjs` tiene reintentos de Luna SIN commitear: se rehace en R.8.5 (no commitear tal cual).
 
 ## H.9.4 cerrado (2026-10-05) — siguiente: R.8 corto
 Gate `read-boundary` PASS 6/6 (`docs/done/evidence/H.9.4-live.json`).

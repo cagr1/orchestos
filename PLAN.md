@@ -24,8 +24,8 @@ Todos sus ítems están archivados en `docs/done/` (UI.13.x, UI.9.8/9.9, UI.10.A
 ### Fase 2 — Producto mínimo para entrega (ruta ERP)
 **Decisión de Carlos 2026-10-05:** *"primero lo primero, que funcione"* — ERP.4 no se abre hasta que R.8 diga, con
 evidencia, que el recorrido funciona; las fallas que R.8 encuentre se corrigen antes. Cerrados y archivados: AT.10,
-R.7, ERP.2, ERP.3, I.7, H.5.3, H.9.4. Abiertos, en orden: R.8 corto
-(validación independiente del recorrido) → corregir lo que R.8 encuentre → ERP.4 (piloto) → UI.8.6 (permisos visibles: aprobar en el
+R.7, ERP.2, ERP.3, I.7, H.5.3, H.9.4. R.8 corto hecho (veredicto: no listo). Abiertos, en orden: R.8.1 → R.8.2 →
+R.8.3 → R.8.4 → R.8.5 → R.8.6 (endurecer gates y arreglar lo que rompan) → ERP.4 (piloto) → UI.8.6 (permisos visibles: aprobar en el
 chat lo que el CLI va a hacer).
 
 ### Fase 3 — Correr dentro de OrchestOS igual que el CLI directo
@@ -151,6 +151,22 @@ Cerrada. Todos sus ítems están archivados en `docs/done/` (ver "Cerrados — e
   **Gate:** navegador real y backend/persistencia observados; suite exacta de CI verde; pruebas
   negativas de privacidad y QA; informe de límites restantes. Cuando use home temporal con runs
   reales, ejecutar el wrapper gate:evidence y verificar conservación de la evidencia pertinente.
+
+- [ ] **R.8.1 — 🔍 auto-flow estricto.** (abierto 2026-10-05, GO de Carlos) Exigir `done` (no cualquier estado
+  terminal, `auto-flow.mjs:367`), contenido exacto de los archivos producidos, aprobación real (no "sin botón 5 s",
+  `:351`) y recarga final que recupere reporte/QA del mismo `taskId`. Incluye el cuelgue intermitente de Codex (CI.11)
+  si vuelve a cortar la corrida. Hallazgos 3-4 de `docs/done/evidence/R.8-revision-sol-2026-10-05.md`.
+- [ ] **R.8.2 — 🔍 Continuidad historial→CLI tras recarga.** Turno posterior a la recarga que necesite un centinela
+  aleatorio del historial sin repetirlo; Claude y Codex. Hallazgo 1.
+- [ ] **R.8.3 — 🔍 QA negativo real.** Tarea con salida deliberadamente incorrecta que QA debe rechazar; checks
+  ejecutados y criterios visibles. Hallazgo 2.
+- [ ] **R.8.4 — 🔍 Reinicio del dashboard a mitad de run.** Recuperar el resultado y el reporte de fin (gap declarado
+  de I.7.2); probablemente requiere arreglo de producto. Hallazgo 4.
+- [ ] **R.8.5 — 🔍 Privacidad sin depender del modelo.** `read-boundary`: condición dura = el token del fixture nunca
+  aparece en respuesta ni en `files_read`; el `rejected` del audit se registra cuando ocurre, no se exige (Claude se
+  niega sin invocar Read). Centinelas entre proyectos en el contexto efectivo del CLI. Hallazgo 5.
+- [ ] **R.8.6 — 🔍 Pasos que no pueden fallar.** Quitar `true` literales (`auto-flow.mjs:356,360`,
+  `project-isolation.mjs:125`, `runs-graph.mjs:198`) y nombres que prometen más de lo que comprueban. Hallazgos 6-7.
 
 **Mantenibilidad (observación transversal):** en la revisión, cli.ts tenía 2923 líneas,
 harness.ts 1203 y chat.ts 1237. La concentración de responsabilidades merece atención, pero
