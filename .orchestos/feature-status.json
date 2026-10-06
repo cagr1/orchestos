@@ -13,6 +13,15 @@
       "closedDate": null
     },
     {
+      "id": "CI.14",
+      "sprint": "Fase 2 — Producto mínimo para entrega",
+      "block": "H.7 — El contexto se llena en silencio y nadie avisa (ABIERTO 2026-09-02)",
+      "delegation": "🔍",
+      "title": "GitHub Actions deja de fallar por la misma clase de bug",
+      "status": "open",
+      "closedDate": null
+    },
+    {
       "id": "CI.12",
       "sprint": "Fase 2 — Producto mínimo para entrega",
       "block": "H.7 — El contexto se llena en silencio y nadie avisa (ABIERTO 2026-09-02)",

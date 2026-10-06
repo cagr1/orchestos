@@ -125,6 +125,15 @@ Cerrada. Todos sus ítems están archivados en `docs/done/` (ver "Cerrados — e
   evidencia sin reconstruirlos a mano. Medir intervenciones, bloqueos, tiempo y uso disponible;
   verificar que una corrección guardada se recupera en el siguiente trabajo del mismo proyecto.
   Reutilizar R.8 para la revisión independiente; no afirmar aprendizaje por solo guardar memoria.
+- [ ] **CI.14 — 🔍 GitHub Actions deja de fallar por la misma clase de bug.** (abierto 2026-10-06, GO de Carlos)
+  Datos 2026-09-05→10-05: CI rojo en 42/73 pushes en 3 rachas (lint 11-22 sep; `process.env`/HOME 23-24 sep; fixture git
+  sin identidad 4-5 oct), todas "pasa en el Mac, falla en Linux". Mutation Shards cancelado 4 noches (10-03→10-06):
+  cada mutante corre `src/__tests__` entero; R.7 (`934c7b4`) sumó `tasks-concurrency` (9.5 s) y el dry run pasó de 8 s a
+  21 s × 2,227 mutantes > 180 min. Partes: (A) cada shard corre solo los tests que alcanzan sus archivos mutados;
+  (B) pre-push corre `test:coverage` sin config global de git, con HOME temporal y PATH mínimo; (C) startup-guard avisa
+  al arrancar si el último CI/Mutation/Secret Check/UI gate terminó distinto de `success`. Gate: dry run por shard
+  medido; contraprueba de (B) con el fixture sin identidad; tests del guard; disparo manual de Mutation Shards.
+
 - [ ] **CI.12 — 🔍 `tasks-concurrency` (5 SIGKILL) falla por timeout del lock dentro de la suite completa.** (abierto 2026-10-03)
   Visto 1 vez en el pre-push: `error: file-lock: timeout waiting for …/.orchestos/tasks.lock` → `(fail) … recovers valid
   YAML after five SIGKILL interruptions and accepts a following mutation quickly [14649.63ms]`. Solo pasa 3/3 y pasó en
