@@ -1,4 +1,11 @@
-# NEXT — handoff 2026-10-05 → siguiente tab
+# NEXT — handoff 2026-10-06 → siguiente tab
+
+## CI.14 cerrado (2026-10-06). Pendientes EN ORDEN, sin saltar (regla de Carlos: nada se deja "porque no rompe lo siguiente")
+1. `enforceContract` (tests de `contract.ts`) flaky bajo Stryker: 615 kills falsos en la corrida del 10-02. Abrir ítem.
+2. R.8.1.1 (plan presentado, espera GO): el marcador `[[orchestos:task]]` pegado al final de la frase no crea tarea
+   (2/4 corridas de auto-flow) y queda visible; `chat.ts:118`, `chat-live.ts:3`, prompt `chat.ts:1267`. Además
+   "Loading models…" bloquea el envío ~5 s tras recargar (medido 4.7–5.2 s): medir qué petición es la lenta.
+3. Luego R.8.2.
 
 ## R.8.1 cerrado (2026-10-05) — siguiente: R.8.2
 Arranque (tras /clear): `bun run agent:preflight -- --item R.8.2 --agent claude`. auto-flow 31/31 (detalle en PLAN.md).

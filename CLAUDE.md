@@ -119,6 +119,14 @@ solo se manifestaban fuera del Mac:
    desde 3409a86 (I.7.2) durante 7 pushes sin que nadie lo viera: para saber el estado de CI mirar
    `gh run list --workflow CI`, no los workflows `UI gate`/`Secret Check`, que pueden estar verdes con CI rojo.
 
+5. (CI.14, 2026-10-06) El pre-push corre `test:coverage` con HOME temporal, PATH mínimo (`bun`, `node`, `git` +
+   sistema) y un gitconfig global con solo `user.useConfigOnly = true`. `GIT_CONFIG_GLOBAL=/dev/null` NO basta: en el
+   Mac git deduce la identidad del usuario del sistema y el commit sin identidad pasa igual. Ese entorno destapó un bug
+   real: el perfil de Seatbelt comparaba rutas sin resolver symlinks (`/var` → `/private/var`). Mutation Shards: cada
+   shard corre solo los tests cuya clausura de imports alcanza sus archivos mutados (`scripts/mutation-test-shard.ts`);
+   un test lento nuevo en `src/__tests__` ya no cuesta en todos los shards. El startup-guard avisa si la última corrida
+   completada de CI/Mutation/Secret Check/UI gate no es `success`.
+
 Corolario que costó semanas: un CI que falla siempre deja de dar señal. Si CI está
 rojo, arreglarlo es prioridad — no ruido de fondo. Y `Mutation Shards` rojo casi nunca
 es un problema de mutación: Stryker aborta con "failed tests in the initial test run"
