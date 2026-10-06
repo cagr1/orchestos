@@ -6,8 +6,14 @@
    (2/4 corridas de auto-flow) y queda visible; `chat.ts:118`, `chat-live.ts:3`, prompt `chat.ts:1267`. Además
    "Loading models…" bloquea el envío ~5 s tras recargar (medido 4.7–5.2 s): medir qué petición es la lenta.
 3. Luego R.8.2.
+Arranque: `bun run agent:preflight -- --item <ID> --agent claude` (abrir antes el ítem en PLAN.md). Detalle de R.8.1.1:
+respuesta real que falló = `OrchestOS creará una tarea para crear claude-nota.md con una sola línea: nota de claude.
+[[orchestos:task]]` (misma línea). El test `src/dashboard/__tests__/chat-task-marker.test.ts:12` exige que el marcador
+a mitad de frase NO cuente: el arreglo acepta solo el marcador al FINAL de la última línea. Verificar con auto-flow 3
+corridas seguidas. Captura de "Loading models…": `AgentComposer.tsx:130-172` (getChatModels + getCliModels), envío
+bloqueado en `:249`.
 
-## R.8.1 cerrado (2026-10-05) — siguiente: R.8.2
+## R.8.1 cerrado (2026-10-05) — histórico (el orden vigente es el de arriba)
 Arranque (tras /clear): `bun run agent:preflight -- --item R.8.2 --agent claude`. auto-flow 31/31 (detalle en PLAN.md).
 Nuevo pendiente: composer muestra "Loading models…" tras recargar un hilo (captura en la evidencia de R.8.1).
 `read-boundary.mjs`, IDEAS.md y orchestos.config.yaml siguen sin commitear y ajenos.
