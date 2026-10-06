@@ -1,9 +1,14 @@
-import { afterEach, describe, expect, it } from 'bun:test'
-import { existsSync, readFileSync, rmSync } from 'fs'
+import { afterEach, beforeEach, describe, expect, it } from 'bun:test'
+import { existsSync, mkdtempSync, readFileSync, rmSync } from 'fs'
+import { tmpdir } from 'os'
 import { join } from 'path'
 import { enforceContract, parseLLMResponse } from '../run/contract.ts'
 
-const TMP_ROOT = join(import.meta.dir, '..', '..', 'tmp', 'contract-a1')
+let TMP_ROOT: string
+
+beforeEach(() => {
+  TMP_ROOT = mkdtempSync(join(tmpdir(), 'orchestos-contract-'))
+})
 
 afterEach(() => {
   rmSync(TMP_ROOT, { recursive: true, force: true })

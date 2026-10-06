@@ -142,7 +142,19 @@ Cerrada. Todos sus ítems están archivados en `docs/done/` (ver "Cerrados — e
   fallaba: git del Mac deduce la identidad). Destapó y arregló un bug real: el perfil Seatbelt de adversarial-review no
   resolvía symlinks (`/var`→`/private/var`) y la regla de credenciales no aplicaba. (C) startup-guard: 4 consultas
   `gh api` en paralelo, 1.3 s, avisó la Mutation cancelada; sin remoto falla abierto. CI/UI gate/Secret Check verdes en `9fda072`.
-  Visto sin ítem: `enforceContract` flaky bajo Stryker.
+  Visto sin ítem: `enforceContract` flaky bajo Stryker → CI.15.
+
+- [ ] **CI.15 — 🔍 `contract.test.ts` falla en el sandbox de Stryker por un tmp fijo compartido.** (abierto 2026-10-06)
+  Evidencia (reportes `mutation.json` de `36987578986` y `37480050158`): 189 kills falsos en 10-02 y 1 en 10-06 con la
+  misma firma: `ENOENT: realpath '.stryker-tmp/sandbox-*/tmp/contract-a1'` justo después de `mkdirSync` del mismo path,
+  a veces en `path-policy.ts:60` y a veces en `:74` (el directorio desaparece en una ventana < 1 ms de código síncrono →
+  otro proceso lo borra). 77 de los 189 son mutantes cosméticos (strings de `graph-summary.ts`) donde solo falla
+  contract: no lo causa el mutante. No reproduce en el Mac: 5/5 corridas de `bun test src/__tests__` verdes y ningún
+  `bun test` anidado al muestrear `ps`. Quién borra en Linux queda sin identificar. Arreglo: `TMP_ROOT` único por test
+  con `mkdtempSync(tmpdir())` (convención del repo), sin path compartido en `tmp/` del repo. Gate: `contract.test.ts`
+  verde, `test:coverage`, y próxima Mutation Shards sin `contract-a1` en ningún `statusReason`.
+  Ejecutado por: Luna (gpt-6-luna) · 2026-10-06: arreglo aplicado; `contract.test.ts` 18/18; `test:coverage` verde 3 de
+  4 corridas (la 1.ª: 1 fail + 1 error no capturados; las 3 siguientes 1636/0). Falta: Mutation Shards sin `contract-a1`.
 
 - [ ] **CI.12 — 🔍 `tasks-concurrency` (5 SIGKILL) falla por timeout del lock dentro de la suite completa.** (abierto 2026-10-03)
   Visto 1 vez en el pre-push: `error: file-lock: timeout waiting for …/.orchestos/tasks.lock` → `(fail) … recovers valid

@@ -22,6 +22,15 @@
       "closedDate": null
     },
     {
+      "id": "CI.15",
+      "sprint": "Fase 2 — Producto mínimo para entrega",
+      "block": "H.7 — El contexto se llena en silencio y nadie avisa (ABIERTO 2026-09-02)",
+      "delegation": "🔍",
+      "title": "`contract.test.ts` falla en el sandbox de Stryker por un tmp fijo compartido",
+      "status": "open",
+      "closedDate": null
+    },
+    {
       "id": "CI.12",
       "sprint": "Fase 2 — Producto mínimo para entrega",
       "block": "H.7 — El contexto se llena en silencio y nadie avisa (ABIERTO 2026-09-02)",
