@@ -1,8 +1,9 @@
 import { afterEach, describe, expect, it } from 'bun:test'
-import { spawnSync } from 'child_process'
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'fs'
-import { tmpdir } from 'os'
-import { join, resolve } from 'path'
+import { spawnSync } from 'node:child_process'
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
+import { tmpdir } from 'node:os'
+import { join, resolve } from 'node:path'
+import { parseGitHubRemote } from '../../.claude/hooks/startup-guard.js'
 
 const HOOK_PATH = resolve(import.meta.dir, '../../.claude/hooks/startup-guard.js')
 
@@ -62,18 +63,77 @@ function makeFixtures(opts: {
   return { home, root }
 }
 
-function runHook(home: string, root: string) {
+const ACTION_FIXTURE: Array<{
+  workflowName: string
+  conclusion: string | null
+  status: string
+  databaseId: number
+  headSha: string
+  createdAt: string
+}> = [
+  {
+    workflowName: 'CI',
+    conclusion: 'success',
+    status: 'completed',
+    databaseId: 1,
+    headSha: 'abcdef123456',
+    createdAt: '2026-10-01T00:00:00Z',
+  },
+  {
+    workflowName: 'Mutation Shards',
+    conclusion: 'success',
+    status: 'completed',
+    databaseId: 2,
+    headSha: 'abcdef123456',
+    createdAt: '2026-10-01T00:00:00Z',
+  },
+  {
+    workflowName: 'Secret Check',
+    conclusion: 'success',
+    status: 'completed',
+    databaseId: 3,
+    headSha: 'abcdef123456',
+    createdAt: '2026-10-01T00:00:00Z',
+  },
+  {
+    workflowName: 'UI gate',
+    conclusion: 'success',
+    status: 'completed',
+    databaseId: 4,
+    headSha: 'abcdef123456',
+    createdAt: '2026-10-01T00:00:00Z',
+  },
+]
+function actionRun(index: number) {
+  const run = ACTION_FIXTURE[index]
+  if (!run) throw new Error(`fixture Actions ausente: ${index}`)
+  return run
+}
+
+const CI_RUN = actionRun(0)
+const MUTATION_RUN = actionRun(1)
+
+function runHook(home: string, root: string, actions = ACTION_FIXTURE) {
+  const actionsPath = join(root, 'gh-runs.json')
+  writeFileSync(actionsPath, JSON.stringify(actions))
   return spawnSync('node', [HOOK_PATH], {
     encoding: 'utf8',
     env: {
       ...process.env,
       STARTUP_GUARD_HOME: home,
       STARTUP_GUARD_ROOT: root,
+      STARTUP_GUARD_GH_JSON: actionsPath,
     },
   })
 }
 
 describe('startup-guard hook', () => {
+  it('parsea remotos GitHub HTTPS y SSH', () => {
+    expect(parseGitHubRemote('https://github.com/acme/orchestos.git')).toBe('acme/orchestos')
+    expect(parseGitHubRemote('git@github.com:acme/orchestos.git')).toBe('acme/orchestos')
+    expect(parseGitHubRemote('https://example.com/acme/orchestos.git')).toBeNull()
+  })
+
   it('config correcta: stdout vacío, exit 0', () => {
     const { home, root } = makeFixtures({})
     const result = runHook(home, root)
@@ -114,5 +174,64 @@ describe('startup-guard hook', () => {
     expect(result.stdout).toContain(
       'plugin fuera de allowlist: frontend-design@claude-plugins-official',
     )
+  })
+
+  it('Actions con todos los workflows en success no añade salida', () => {
+    const { home, root } = makeFixtures({})
+    const result = runHook(home, root)
+    expect(result.status).toBe(0)
+    expect(result.stdout).not.toContain('Actions:')
+  })
+
+  it('usa el CI completed más reciente aunque el anterior fuera success', () => {
+    const { home, root } = makeFixtures({})
+    const result = runHook(home, root, [
+      ...ACTION_FIXTURE,
+      {
+        ...CI_RUN,
+        conclusion: 'failure',
+        databaseId: 11,
+        headSha: '1234567890',
+        createdAt: '2026-10-02T00:00:00Z',
+      },
+    ])
+    expect(result.stdout).toContain('Actions: CI failure (1234567, 2026-10-02T00:00:00Z)')
+    expect(result.stdout).toContain('gh run view 11')
+  })
+
+  it('Mutation Shards cancelled produce hallazgo', () => {
+    const { home, root } = makeFixtures({})
+    const result = runHook(home, root, [
+      ...ACTION_FIXTURE.filter((run) => run.workflowName !== 'Mutation Shards'),
+      { ...MUTATION_RUN, conclusion: 'cancelled', databaseId: 12 },
+    ])
+    expect(result.stdout).toContain('Actions: Mutation Shards cancelled')
+  })
+
+  it('ignora workflows que solo están in_progress', () => {
+    const { home, root } = makeFixtures({})
+    const result = runHook(home, root, [
+      ...ACTION_FIXTURE.filter((run) => run.workflowName !== 'CI'),
+      { ...CI_RUN, status: 'in_progress', conclusion: null },
+    ])
+    expect(result.stdout).not.toContain('Actions: CI')
+  })
+
+  it('JSON de Actions inválido no añade hallazgo ni error', () => {
+    const { home, root } = makeFixtures({})
+    const actionsPath = join(root, 'invalid.json')
+    writeFileSync(actionsPath, '{ invalid')
+    const result = spawnSync('node', [HOOK_PATH], {
+      encoding: 'utf8',
+      env: {
+        ...process.env,
+        STARTUP_GUARD_HOME: home,
+        STARTUP_GUARD_ROOT: root,
+        STARTUP_GUARD_GH_JSON: actionsPath,
+      },
+    })
+    expect(result.status).toBe(0)
+    expect(result.stderr).toBe('')
+    expect(result.stdout).not.toContain('Actions:')
   })
 })

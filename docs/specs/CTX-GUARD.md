@@ -54,7 +54,9 @@ enforcement (`docs/agent-work-protocol.md` § Principio).
 ### 1. `.claude/hooks/startup-guard.js` (nuevo, ESM, sin dependencias externas)
 
 Hook `SessionStart` (matcher `startup|resume|clear|compact`). Node puro, timeout 5 s.
-No debe llamar a `claude mcp list` (hace red, tarda segundos). Solo lee archivos.
+No debe llamar a `claude mcp list` (hace red, tarda segundos); además de leer archivos consulta GitHub Actions con `gh` y timeout propio de 3 s.
+También consulta el último run completed de CI, Mutation Shards, Secret Check y UI gate vía `gh run list`; un resultado distinto de success se muestra como hallazgo con enlace de comando `gh run view`.
+Para pruebas, `STARTUP_GUARD_GH_JSON` permite inyectar el JSON de runs; errores de `gh` o JSON inválido fallan abiertos sin añadir hallazgos.
 
 Comprueba, en este orden, y **acumula** los hallazgos:
 

@@ -57,3 +57,38 @@ claude/codex). Cambiar SOLO esa invocación (los ui-gates de más abajo siguen i
 `bunx tsc --noEmit`, `bun run lint`, `bun run test:coverage`; tiempos por shard; contraprueba de B (quitar `-c user.*` del
 fixture de `tasks.test.ts` → el pre-push falla; restaurar); `node .claude/hooks/startup-guard.js` real; disparo manual de
 Mutation Shards.
+
+## Ronda 2 (2026-10-06, tras verificar A y B)
+Medido por el cerebro: shard executors 42/104 archivos, 20.3 s vs 39.1 s la suite entera. La mitad no alcanza: el 10-02
+el shard tardó 168 min con un dry run de 8 s; hoy el dry run de CI es 21 s.
+1. `scripts/mutation-test-shard.ts`: añadir `--bail` a `bun test` (un mutante muerto termina en el primer fallo; el veredicto
+   de Stryker solo usa el código de salida). Test: los argumentos incluyen `--bail`.
+2. Bug destapado por B: `sandboxProfile` (`scripts/adversarial-review.ts:346-365`) escribe `HOME` y `sandboxRoot` sin
+   resolver symlinks; Seatbelt compara rutas reales, así que con `HOME=/var/folders/...` (`/var` → `/private/var`) la
+   regla de credenciales no aplica y la credencial se lee (reproducido: el test "c" no lanza). Resolver con `realpathSync`
+   (con fallback a la ruta original si falla) `home` y `sandboxRoot` antes de construir el perfil. Test unitario en
+   `scripts/adversarial-review.test.ts`: con un home que es symlink, el perfil contiene la ruta real.
+3. Re-medir `bun run scripts/mutation-test-shard.ts stryker.run-executors.config.mjs` y reportar.
+
+## Ronda 3 (2026-10-06) — la contraprueba de B falló
+Con `GIT_CONFIG_GLOBAL=/dev/null` un `git commit` sin identidad PASA en el Mac: git deduce el nombre del usuario del
+sistema (en el runner de Linux no puede → "empty ident name"). Verificado por el cerebro: con un gitconfig global que
+solo tiene `[user] useConfigOnly = true`, el commit sin identidad falla ("Author identity unknown") y con `-c user.*` pasa.
+1. `scripts/pre-push.sh`: escribir `"$ci_home/.gitconfig"` con `[user]\n\tuseConfigOnly = true` y usar
+   `GIT_CONFIG_GLOBAL="$ci_home/.gitconfig"` en vez de `/dev/null`. Actualizar el comentario.
+2. Contraprueba de punta a punta (no se commitea): quitar temporalmente el `-c user.name… -c user.email…` del fixture en
+   `src/dashboard/handlers/tasks.test.ts` (ver `git show b77bd07`), correr `bash scripts/pre-push.sh </dev/null` → debe
+   FALLAR por identidad; restaurar el archivo (`git checkout -- src/dashboard/handlers/tasks.test.ts`) y correrlo otra
+   vez → verde. Reportar las líneas relevantes de ambas corridas.
+
+## Ronda 4 (2026-10-06) — C: `gh run list --limit 100` tarda 2.6–3.0 s y supera el timeout de 3 s (el guard calla)
+Medido por el cerebro: 4 llamadas en paralelo `gh api repos/<owner>/<repo>/actions/workflows/<archivo>/runs?per_page=1&status=completed`
+(ci.yml, mutation-nightly.yml, security-secrets.yml, ui-gate.yml) = 0.81 s en total y dan exactamente la última corrida
+completada de cada workflow (sin problema de ventana).
+1. `checkActions`: si `STARTUP_GUARD_GH_JSON` existe, igual que hoy (fixture = lista de runs, misma selección). Si no:
+   owner/repo desde `git remote get-url origin` (execFileSync, timeout 1000; soportar `https://github.com/o/r(.git)` y
+   `git@github.com:o/r(.git)`); luego las 4 llamadas en paralelo con `execFile` promisificado (`timeout: 3000` cada una,
+   `Promise.allSettled`), `--jq '.workflow_runs[0]'`; mapear `name→workflowName`, `id→databaseId`, `head_sha→headSha`,
+   `created_at→createdAt`, `conclusion`, `status`. Una llamada fallida solo omite ese workflow.
+2. `main` pasa a async; mantener el try/catch que falla abierto (también para la promesa rechazada).
+3. Test: el parseo de la URL del remoto (https y ssh) como función exportada o probada vía fixture. Tests existentes verdes.

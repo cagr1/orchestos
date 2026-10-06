@@ -19,8 +19,19 @@ cd "$(git rev-parse --show-toplevel)"
 echo "🧪 pre-push: corriendo la suite + trinquete de cobertura (lo mismo que CI)..."
 log_dir="$(mktemp -d "${TMPDIR:-/tmp}/orchestos-pre-push.XXXXXX")"
 log_file="$log_dir/coverage.log"
+ci_home="$log_dir/home"
+ci_bin="$log_dir/bin"
+mkdir -p "$ci_home" "$ci_bin"
+ln -s "$(command -v bun)" "$ci_bin/bun"
+ln -s "$(command -v git)" "$ci_bin/git"
+if command -v node >/dev/null 2>&1; then
+  ln -s "$(command -v node)" "$ci_bin/node"
+fi
 
-if ! bun run test:coverage >"$log_file" 2>&1; then
+# A clean HOME and minimal PATH reproduce CI; useConfigOnly prevents Mac Git from inferring
+# an identity the Linux runner lacks, after three Mac-green/CI-red streaks.
+printf '[user]\n\tuseConfigOnly = true\n' > "$ci_home/.gitconfig"
+if ! env HOME="$ci_home" GIT_CONFIG_GLOBAL="$ci_home/.gitconfig" GIT_CONFIG_NOSYSTEM=1 PATH="$ci_bin:/usr/bin:/bin:/usr/sbin:/sbin" bun run test:coverage >"$log_file" 2>&1; then
   echo ""
   echo "❌ pre-push: esto mismo va a fallar en CI. Push abortado."
   echo "   Últimas 80 líneas:"

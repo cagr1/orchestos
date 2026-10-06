@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import { execFile, execFileSync } from 'node:child_process'
 /**
  * Hook `SessionStart`: detecta config derivada (conectores de cuenta no
  * declarados, env de skills bundled apagado, plugins habilitados fuera de la
@@ -12,6 +13,7 @@ import { readFileSync } from 'node:fs'
 import { homedir } from 'node:os'
 import { dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { promisify } from 'node:util'
 
 // `STARTUP_GUARD_ROOT`/`STARTUP_GUARD_HOME` solo existen para que el test pueda
 // apuntar a fixtures en tmpdir sin tocar el repo real ni `~/.claude.json`. Sin
@@ -32,6 +34,21 @@ const MEMORY_MD_PATH = resolve(
   HOME,
   '.claude/projects/-Users-carlosgallardo-Documents-projects-orchestos/memory/MEMORY.md',
 )
+const ACTION_WORKFLOWS = ['CI', 'Mutation Shards', 'Secret Check', 'UI gate']
+const ACTION_WORKFLOW_FILES = new Map([
+  ['CI', 'ci.yml'],
+  ['Mutation Shards', 'mutation-nightly.yml'],
+  ['Secret Check', 'security-secrets.yml'],
+  ['UI gate', 'ui-gate.yml'],
+])
+const execFileAsync = promisify(execFile)
+
+export function parseGitHubRemote(remote) {
+  const match = remote.match(
+    /^(?:https:\/\/github\.com\/|git@github\.com:)([^/]+\/[^/]+?)(?:\.git)?\/?$/,
+  )
+  return match?.[1] ?? null
+}
 
 function readJson(path) {
   try {
@@ -109,25 +126,90 @@ function checkStartupWeight(findings) {
   }
 }
 
-function main() {
+async function checkActions(findings) {
+  let runs
+  try {
+    const jsonPath = process.env.STARTUP_GUARD_GH_JSON
+    if (jsonPath) {
+      runs = JSON.parse(readFileSync(jsonPath, 'utf8'))
+      if (!Array.isArray(runs)) return
+    } else {
+      const remote = execFileSync('git', ['remote', 'get-url', 'origin'], {
+        encoding: 'utf8',
+        timeout: 1000,
+      }).trim()
+      const repository = parseGitHubRemote(remote)
+      if (!repository) return
+      const results = await Promise.allSettled(
+        [...ACTION_WORKFLOW_FILES].map(async ([_workflowName, file]) => {
+          const { stdout } = await execFileAsync(
+            'gh',
+            [
+              'api',
+              `repos/${repository}/actions/workflows/${file}/runs?per_page=1&status=completed`,
+              '--jq',
+              '.workflow_runs[0]',
+            ],
+            { encoding: 'utf8', timeout: 3000 },
+          )
+          const run = JSON.parse(stdout)
+          if (!run || typeof run !== 'object') return null
+          return {
+            workflowName: run.name,
+            databaseId: run.id,
+            headSha: run.head_sha,
+            createdAt: run.created_at,
+            conclusion: run.conclusion,
+            status: run.status,
+          }
+        }),
+      )
+      runs = results.flatMap((result) =>
+        result.status === 'fulfilled' && result.value ? [result.value] : [],
+      )
+    }
+  } catch {
+    return
+  }
+
+  for (const workflow of ACTION_WORKFLOWS) {
+    const latest = runs
+      .filter((run) => run?.workflowName === workflow && run?.status === 'completed')
+      .sort((a, b) => String(b.createdAt ?? '').localeCompare(String(a.createdAt ?? '')))[0]
+    if (latest && latest.conclusion !== 'success') {
+      const sha = String(latest.headSha ?? 'unknown').slice(0, 7)
+      findings.push(
+        `Actions: ${workflow} ${latest.conclusion ?? 'unknown'} (${sha}, ${latest.createdAt ?? 'fecha desconocida'}) — revisar antes de trabajar: gh run view ${latest.databaseId}`,
+      )
+    }
+  }
+}
+
+async function main() {
   const findings = []
   checkConnectorDrift(findings)
   checkEnvDrift(findings)
   checkPluginDrift(findings)
   checkStartupWeight(findings)
+  const configFindings = findings.length
+  await checkActions(findings)
 
   if (findings.length === 0) return
 
-  const lines = ['[startup-guard] arranque pesado o config derivada:']
+  const lines = ['[startup-guard] hallazgos al arrancar:']
   for (const finding of findings.slice(0, 6)) {
     lines.push(`- ${finding}`)
   }
-  lines.push('Arreglo: revisar docs/specs/CTX-GUARD.md y .claude/settings.json.')
+  if (configFindings > 0) {
+    lines.push('Arreglo: revisar docs/specs/CTX-GUARD.md y .claude/settings.json.')
+  }
   console.log(lines.slice(0, 8).join('\n'))
 }
 
-try {
-  main()
-} catch {
-  // Fallar abierto: el guard nunca puede romper el arranque de una sesión.
+if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+  try {
+    await main()
+  } catch {
+    // Fallar abierto: el guard nunca puede romper el arranque de una sesión.
+  }
 }

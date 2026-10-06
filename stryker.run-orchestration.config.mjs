@@ -1,7 +1,7 @@
 export default {
   testRunner: 'command',
   commandRunner: {
-    command: 'bun test src/__tests__ --timeout 30000',
+    command: 'bun run scripts/mutation-test-shard.ts stryker.run-orchestration.config.mjs',
   },
   mutate: [
     'src/run/contract.ts',

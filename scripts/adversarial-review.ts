@@ -345,7 +345,15 @@ export function sandboxAvailable(
 
 export function sandboxProfile(sandboxRoot: string): string {
   const quote = (path: string) => `"${path.replaceAll('\\', '\\\\').replaceAll('"', '\\"')}"`
-  const home = process.env.HOME ?? ''
+  const canonicalPath = (path: string) => {
+    try {
+      return realpathSync(path)
+    } catch {
+      return path
+    }
+  }
+  const home = process.env.HOME ? canonicalPath(process.env.HOME) : ''
+  const canonicalSandboxRoot = canonicalPath(sandboxRoot)
   const secrets = ['.ssh', '.aws', '.codex', '.claude', '.gnupg', '.config/gh']
     .map((dir) => `(subpath ${quote(join(home, dir))})`)
     .join(' ')
@@ -361,7 +369,7 @@ export function sandboxProfile(sandboxRoot: string): string {
     '(deny network*)',
     '(allow file-read*)',
     home ? `(deny file-read* ${secrets})` : '',
-    `(allow file-write* (subpath ${quote(sandboxRoot)}) (literal "/dev/null"))`,
+    `(allow file-write* (subpath ${quote(canonicalSandboxRoot)}) (literal "/dev/null"))`,
   ]
     .filter(Boolean)
     .join('\n')

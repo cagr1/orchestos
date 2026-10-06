@@ -31,6 +31,7 @@ import {
   runFindingTest,
   STATE_PATH,
   sandboxAvailable,
+  sandboxProfile,
   saveState,
   verifyModelUsed,
 } from './adversarial-review.ts'
@@ -58,6 +59,30 @@ const finding: Finding = {
 }
 
 describe('adversarial review — estado y rango', () => {
+  test('sandboxProfile canonicalizes HOME y sandboxRoot cuando son symlinks', () => {
+    const root = temp('orchestos-adversarial-profile-')
+    const home = join(root, 'home')
+    const homeLink = join(root, 'home-link')
+    const sandboxRoot = join(root, 'sandbox')
+    const sandboxLink = join(root, 'sandbox-link')
+    mkdirSync(home)
+    mkdirSync(sandboxRoot)
+    symlinkSync(home, homeLink)
+    symlinkSync(sandboxRoot, sandboxLink)
+    const previousHome = process.env.HOME
+    process.env.HOME = homeLink
+    try {
+      const profile = sandboxProfile(sandboxLink)
+      expect(profile).toContain(realpathSync(home))
+      expect(profile).toContain(realpathSync(sandboxRoot))
+      expect(profile).not.toContain(homeLink)
+      expect(profile).not.toContain(sandboxLink)
+    } finally {
+      if (previousHome === undefined) delete process.env.HOME
+      else process.env.HOME = previousHome
+    }
+  })
+
   test('guarda y recupera el SHA revisado; estados inválidos no lanzan', () => {
     const root = temp('orchestos-adversarial-state-')
     expect(loadState(root)).toBeNull()
