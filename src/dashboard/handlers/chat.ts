@@ -75,6 +75,7 @@ import { readCliModelCatalogs } from '../chat-cli-models.ts'
 import {
   appendLiveText,
   clearLiveText,
+  hasTaskMarker,
   replaceLiveText,
   stripTaskMarker,
   TASK_MARKER,
@@ -113,11 +114,7 @@ const CHAT_TURN_OWNER = randomUUID()
 const MAX_FILE_BYTES = 10 * 1024 * 1024
 const FILE_TTL_MS = 30 * 60 * 1000
 
-export { stripTaskMarker, TASK_MARKER }
-
-export function hasTaskMarker(text: string): boolean {
-  return text.split(/\r?\n/).some((line) => line.trim() === TASK_MARKER)
-}
+export { hasTaskMarker, stripTaskMarker, TASK_MARKER }
 
 /**
  * H.9.2 (reabierto 2026-09-06) — antes leía `cli.readBoundary` DECLARADO, así que

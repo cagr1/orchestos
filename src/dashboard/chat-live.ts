@@ -1,11 +1,24 @@
 export const TASK_MARKER = '[[orchestos:task]]'
 
+export function hasTaskMarker(text: string): boolean {
+  return (
+    text.split(/\r?\n/).some((line) => line.trim() === TASK_MARKER) ||
+    text.trimEnd().endsWith(TASK_MARKER)
+  )
+}
+
 export function stripTaskMarker(text: string): string {
-  return text
+  const withoutMarkerLines = text
     .split(/\r?\n/)
     .filter((line) => line.trim() !== TASK_MARKER)
     .join('\n')
-    .trimEnd()
+  const trimmed = withoutMarkerLines.trimEnd()
+  return trimmed.endsWith(TASK_MARKER)
+    ? trimmed
+        .slice(0, -TASK_MARKER.length)
+        .replace(/[ \t]+$/, '')
+        .trimEnd()
+    : trimmed
 }
 
 type LiveTurn = { turnId: string; text: string }
@@ -33,6 +46,7 @@ export function getLiveText(sessionId: string): LiveTurn | null {
   if (!live) return null
   const text = stripTaskMarker(live.text)
     .replace(/\[\[[^\]\n]*$/, '')
+    .replace(/\[\[orchestos:task\]?$/, '')
     .trimEnd()
   return { turnId: live.turnId, text }
 }

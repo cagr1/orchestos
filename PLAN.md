@@ -197,6 +197,21 @@ Cerrada. Todos sus ítems están archivados en `docs/done/` (ver "Cerrados — e
   No hecho: contraprueba forzando texto esperado erróneo (el 1.º intento sí prueba que el gate falla).
   Límites: QA del reporte → R.8.3; reinicio del backend → R.8.4. Visto: "Loading models…" persiste en el composer
   tras recargar (captura `after-reload`), sin investigar.
+- [ ] **R.8.1.1 — 🔍 Marcador de tarea al final de la frase y "Loading models…" tras recargar.** (abierto 2026-10-07, GO de Carlos)
+  auto-flow 2/4 corridas: la respuesta `… una sola línea: nota de claude. [[orchestos:task]]` (marcador al final de la
+  misma línea) no creó tarea y el marcador quedó visible. Arreglo: el marcador cuenta también al final de la última
+  línea (a mitad de frase sigue sin contar); detección y limpieza en una sola función de `chat-live.ts`, incluido el
+  prefijo parcial durante el streaming. "Loading models…" bloquea el envío ~5 s tras recargar (`AgentComposer.tsx:130-172`,
+  `:249`): medir qué petición es la lenta antes de tocar nada. Fuera: cambiar el prompt (`chat.ts:1267`).
+  Gate: tests de marcador; `gate:evidence` auto-flow 3 corridas seguidas + `chat-streaming codex-live`.
+  Ejecutado por: Luna (gpt-6-luna) · 2026-10-07 marcador: tests 12/12; `gate:evidence R.8.1.1-auto-flow` 3 corridas
+  seguidas PASS 31/31 c/u (en ninguna el modelo puso el marcador al final de la frase: el caso real lo cubren los
+  tests); `R.8.1.1-chat-live` chat-streaming 17/17 + codex-live 14/14.
+  Medición "Loading models…" (dashboard real + Playwright): Home lo muestra 2.9–3.4 s. Causa: el composer pide
+  `/api/chat/cli-models` 4 veces por carga (el efecto de `AgentComposer.tsx:128` se repite al cambiar
+  `lockedCli`/`defaultCli`) y cada una corre `opencode models --verbose` (0.56 s, 398 modelos, sin caché); se encolan
+  0.74→1.4→1.9→2.55 s. `/api/chat/models` ya tiene caché (~1 ms). Pendiente: arreglo (espera GO).
+
 - [ ] **R.8.2 — 🔍 Continuidad historial→CLI tras recarga.** Turno posterior a la recarga que necesite un centinela
   aleatorio del historial sin repetirlo; Claude y Codex. Hallazgo 1.
 - [ ] **R.8.3 — 🔍 QA negativo real.** Tarea con salida deliberadamente incorrecta que QA debe rechazar; checks

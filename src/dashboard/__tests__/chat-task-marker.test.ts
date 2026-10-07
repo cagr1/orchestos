@@ -16,4 +16,21 @@ describe('Orchestrator task marker', () => {
     expect(hasTaskMarker('Just a reply')).toBe(false)
     expect(stripTaskMarker('Just a reply  ')).toBe('Just a reply')
   })
+
+  it('recognizes and removes a task marker at the end of the response line', () => {
+    const response =
+      'OrchestOS creará una tarea para crear claude-nota.md con una sola línea: nota de claude. [[orchestos:task]]'
+    expect(hasTaskMarker(response)).toBe(true)
+    expect(stripTaskMarker(response)).toBe(
+      'OrchestOS creará una tarea para crear claude-nota.md con una sola línea: nota de claude.',
+    )
+    expect(hasTaskMarker(`${response}  \n\t`)).toBe(true)
+    expect(stripTaskMarker(`${response}  \n\t`)).toBe(
+      'OrchestOS creará una tarea para crear claude-nota.md con una sola línea: nota de claude.',
+    )
+    expect(hasTaskMarker('Antes [[orchestos:task]] después')).toBe(false)
+    expect(stripTaskMarker('Antes [[orchestos:task]] después')).toBe(
+      'Antes [[orchestos:task]] después',
+    )
+  })
 })

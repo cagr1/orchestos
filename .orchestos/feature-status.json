@@ -67,6 +67,15 @@
       "closedDate": null
     },
     {
+      "id": "R.8.1.1",
+      "sprint": "Fase 2 — Producto mínimo para entrega",
+      "block": "H.7 — El contexto se llena en silencio y nadie avisa (ABIERTO 2026-09-02)",
+      "delegation": "🔍",
+      "title": "Marcador de tarea al final de la frase y \"Loading models…\" tras recargar",
+      "status": "open",
+      "closedDate": null
+    },
+    {
       "id": "R.8.2",
       "sprint": "Fase 2 — Producto mínimo para entrega",
       "block": "H.7 — El contexto se llena en silencio y nadie avisa (ABIERTO 2026-09-02)",
