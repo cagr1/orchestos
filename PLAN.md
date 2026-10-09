@@ -197,7 +197,7 @@ Cerrada. Todos sus ítems están archivados en `docs/done/` (ver "Cerrados — e
   No hecho: contraprueba forzando texto esperado erróneo (el 1.º intento sí prueba que el gate falla).
   Límites: QA del reporte → R.8.3; reinicio del backend → R.8.4. Visto: "Loading models…" persiste en el composer
   tras recargar (captura `after-reload`), sin investigar.
-- [ ] **R.8.1.1 — 🔍 Marcador de tarea al final de la frase y "Loading models…" tras recargar.** (abierto 2026-10-07, GO de Carlos)
+- [x] **R.8.1.1 — 🔍 Marcador de tarea al final de la frase y "Loading models…" tras recargar.** (abierto 2026-10-07, GO de Carlos)
   auto-flow 2/4 corridas: la respuesta `… una sola línea: nota de claude. [[orchestos:task]]` (marcador al final de la
   misma línea) no creó tarea y el marcador quedó visible. Arreglo: el marcador cuenta también al final de la última
   línea (a mitad de frase sigue sin contar); detección y limpieza en una sola función de `chat-live.ts`, incluido el
@@ -210,7 +210,14 @@ Cerrada. Todos sus ítems están archivados en `docs/done/` (ver "Cerrados — e
   Medición "Loading models…" (dashboard real + Playwright): Home lo muestra 2.9–3.4 s. Causa: el composer pide
   `/api/chat/cli-models` 4 veces por carga (el efecto de `AgentComposer.tsx:128` se repite al cambiar
   `lockedCli`/`defaultCli`) y cada una corre `opencode models --verbose` (0.56 s, 398 modelos, sin caché); se encolan
-  0.74→1.4→1.9→2.55 s. `/api/chat/models` ya tiene caché (~1 ms). Pendiente: arreglo (espera GO).
+  0.74→1.4→1.9→2.55 s. `/api/chat/models` ya tiene caché (~1 ms).
+  Ejecutado por: Luna (gpt-6-luna) · Spec: docs/specs/R.8.1.1.md (parte 2)
+  Cerrado 2026-10-09 (GO de Carlos). Caché del catálogo CLI en el servidor (`readCliModelCatalogsCached`, TTL 10 min,
+  lecturas simultáneas comparten una; no cachea si algún CLI trae `error`), usada por `/api/chat/cli-models`, la
+  validación del turno de chat y `/api/models/catalog`. En vivo (Playwright, dashboard real): "Loading models…" se va
+  a 1.38 s en la primera carga (antes 3.4 s) y a 146 ms tras recargar (antes 2.9 s). `test:coverage` 1643/0.
+  Luna: 1.ª corrida colgada >12 h sin salida ni cambios (matada); 2.ª se detuvo por `EADDRINUSE` en
+  `csrf-origin.test.ts`, artefacto del sandbox de Codex que no deja abrir puertos (fuera del sandbox 185/0).
 
 - [ ] **R.8.2 — 🔍 Continuidad historial→CLI tras recarga.** Turno posterior a la recarga que necesite un centinela
   aleatorio del historial sin repetirlo; Claude y Codex. Hallazgo 1.

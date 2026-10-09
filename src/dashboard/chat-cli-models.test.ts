@@ -1,13 +1,75 @@
-import { describe, expect, test } from 'bun:test'
+import { beforeEach, describe, expect, test } from 'bun:test'
 import {
   formatClaudeModelIds,
   parseClaudeHelp,
   parseCodexModelsCache,
   parseOpencodeModels,
   readCliModelCatalogs,
+  readCliModelCatalogsCached,
+  resetCliModelCatalogCache,
 } from './chat-cli-models.ts'
 
 describe('UI.14 round 5 CLI model catalogs', () => {
+  beforeEach(() => resetCliModelCatalogCache())
+
+  test('shares one in-flight read between simultaneous callers', async () => {
+    let resolveRead!: (catalogs: Awaited<ReturnType<typeof readCliModelCatalogs>>) => void
+    let reads = 0
+    const read = () => {
+      reads += 1
+      return new Promise<Awaited<ReturnType<typeof readCliModelCatalogs>>>((resolve) => {
+        resolveRead = resolve
+      })
+    }
+    const first = readCliModelCatalogsCached({ read })
+    const second = readCliModelCatalogsCached({ read })
+    const catalogs = [{ id: 'codex', models: [], efforts: [] }]
+    resolveRead(catalogs)
+    const [result1, result2] = await Promise.all([first, second])
+    expect(reads).toBe(1)
+    expect(result1).toBe(result2)
+  })
+
+  test('caches within TTL and rereads after expiry', async () => {
+    let time = 100
+    let reads = 0
+    const read = async () => {
+      reads += 1
+      return [{ id: 'codex', models: [], efforts: [] }]
+    }
+    await readCliModelCatalogsCached({ ttlMs: 10, now: () => time, read })
+    await readCliModelCatalogsCached({ ttlMs: 10, now: () => time, read })
+    expect(reads).toBe(1)
+    time = 111
+    await readCliModelCatalogsCached({ ttlMs: 10, now: () => time, read })
+    expect(reads).toBe(2)
+  })
+
+  test('does not cache catalogs containing an error', async () => {
+    let reads = 0
+    const read = async () => {
+      reads += 1
+      return [{ id: 'codex', models: [], efforts: [], ...(reads === 1 ? { error: 'failed' } : {}) }]
+    }
+    await readCliModelCatalogsCached({ read })
+    await readCliModelCatalogsCached({ read })
+    expect(reads).toBe(2)
+  })
+
+  test('propagates a rejected read and retries on the next call', async () => {
+    let reads = 0
+    const read = async () => {
+      reads += 1
+      if (reads === 1) throw new Error('read failed')
+      return [{ id: 'codex', models: [], efforts: [] }]
+    }
+    await expect(readCliModelCatalogsCached({ read })).rejects.toThrow('read failed')
+    await expect(readCliModelCatalogsCached({ read })).resolves.toEqual([
+      { id: 'codex', models: [], efforts: [] },
+    ])
+    expect(reads).toBe(2)
+  })
+
   test('parses Codex models and per-model reasoning levels mechanically', () => {
     expect(
       parseCodexModelsCache(

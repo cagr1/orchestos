@@ -1,6 +1,15 @@
-# NEXT — handoff 2026-10-06 → siguiente tab
+# NEXT — handoff 2026-10-09 → siguiente tab
 
-## CI.14 cerrado (2026-10-06). Pendientes EN ORDEN, sin saltar (regla de Carlos: nada se deja "porque no rompe lo siguiente")
+## Orden vigente
+1. R.8.2 (`bun run agent:preflight -- --item R.8.2 --agent claude`).
+2. CI.15 sigue abierto solo por verificación: la próxima Mutation Shards no debe tener `contract-a1` en ningún
+   `statusReason` (`gh run download <id> -n mutation-orchestration` y grep). Si aparece, quien borra el path en Linux
+   sigue vivo: investigar ahí.
+Cerrados 2026-10-07/09: CI.15 (arreglo), R.8.1.1 (marcador al final de frase + caché del catálogo CLI). Detalle en PLAN.md.
+Lección: Luna (codex exec) en sandbox no puede abrir puertos → `EADDRINUSE` falso en tests que levantan servidor;
+decirle en el prompt que el baseline ya se verificó fuera del sandbox.
+
+## CI.14 cerrado (2026-10-06) — histórico. Pendientes que eran EN ORDEN, sin saltar (regla de Carlos: nada se deja "porque no rompe lo siguiente")
 1. `enforceContract` (tests de `contract.ts`) flaky bajo Stryker: 615 kills falsos en la corrida del 10-02. Abrir ítem.
 2. R.8.1.1 (plan presentado, espera GO): el marcador `[[orchestos:task]]` pegado al final de la frase no crea tarea
    (2/4 corridas de auto-flow) y queda visible; `chat.ts:118`, `chat-live.ts:3`, prompt `chat.ts:1267`. Además

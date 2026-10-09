@@ -1,5 +1,5 @@
 import { ROLE_AGENTS, type RoleAgent } from '../../config/schema.ts'
-import { readCliModelCatalogs } from '../chat-cli-models.ts'
+import { readCliModelCatalogsCached } from '../chat-cli-models.ts'
 import { jsonResponse } from '../http.ts'
 import { type ChatModelsFetch, readOpenRouterChatModels } from './chat.ts'
 
@@ -12,11 +12,11 @@ export interface CatalogAgent {
 }
 
 export async function handleApiModelCatalog(deps?: {
-  readCli?: typeof readCliModelCatalogs
+  readCli?: typeof readCliModelCatalogsCached
   fetchFn?: ChatModelsFetch
 }): Promise<Response> {
-  const reader = deps?.readCli ?? readCliModelCatalogs
-  let cli: Awaited<ReturnType<typeof readCliModelCatalogs>> = []
+  const reader = deps?.readCli ?? readCliModelCatalogsCached
+  let cli: Awaited<ReturnType<typeof readCliModelCatalogsCached>> = []
   try {
     cli = await reader()
   } catch {

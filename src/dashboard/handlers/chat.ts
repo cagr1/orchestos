@@ -71,7 +71,7 @@ import { untrustedContent } from '../../security/untrusted-content.ts'
 import { listAllSkillCandidates } from '../../skills/catalog.ts'
 import { listSpecs } from '../../spec/store.ts'
 import { loadTasks } from '../../tasks/loader.ts'
-import { readCliModelCatalogs } from '../chat-cli-models.ts'
+import { readCliModelCatalogsCached } from '../chat-cli-models.ts'
 import {
   appendLiveText,
   clearLiveText,
@@ -306,7 +306,7 @@ export async function handleApiChatModels(fetchFn: ChatModelsFetch = fetch): Pro
 }
 
 export async function handleApiChatCliModels(): Promise<Response> {
-  return jsonResponse(await readCliModelCatalogs())
+  return jsonResponse(await readCliModelCatalogsCached())
 }
 
 export async function executeFetchUrl(
@@ -857,7 +857,7 @@ async function handleApiChat(
   const readBoundaryWarning = hasProjectContext ? projectChatReadBoundaryWarning(chatAgent) : null
   const requestedCliModel = body.model?.trim() || chatAssignment?.model
   if ((useClaudeCli || useCodexCli) && chatAssignment?.model) {
-    const catalog = (await readCliModelCatalogs()).find((item) => item.id === chatAgent)
+    const catalog = (await readCliModelCatalogsCached()).find((item) => item.id === chatAgent)
     if (catalog?.models.length && !requestedCliModel) {
       return errorResponse(`A model is required for the ${chatAgent} CLI session`, 400)
     }

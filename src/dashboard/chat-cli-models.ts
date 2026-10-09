@@ -237,3 +237,40 @@ export async function readCliModelCatalogs(
   if (opencode) registerNativeOpencodeModels(opencode.models.map((model) => model.id))
   return catalogs
 }
+
+let cliModelCatalogCache: { value: CliModelCatalog[]; expiresAt: number } | undefined
+let cliModelCatalogRead: Promise<CliModelCatalog[]> | null = null
+
+// The composer requests the catalog four times per load, and each read runs `opencode models --verbose` (~0.56 s).
+// Without a cache, those reads queued up to ~2.5 s (R.8.1.1).
+export function readCliModelCatalogsCached(deps?: {
+  ttlMs?: number
+  now?: () => number
+  read?: () => Promise<CliModelCatalog[]>
+}): Promise<CliModelCatalog[]> {
+  const ttlMs = deps?.ttlMs ?? 10 * 60 * 1000
+  const now = deps?.now ?? Date.now
+  const read = deps?.read ?? (() => readCliModelCatalogs())
+  if (cliModelCatalogCache && now() < cliModelCatalogCache.expiresAt)
+    return Promise.resolve(cliModelCatalogCache.value)
+  if (cliModelCatalogRead) return cliModelCatalogRead
+
+  const request = read().then((catalogs) => {
+    if (!catalogs.some((catalog) => catalog.error)) {
+      cliModelCatalogCache = { value: catalogs, expiresAt: now() + ttlMs }
+    }
+    return catalogs
+  })
+  cliModelCatalogRead = request
+  void request
+    .finally(() => {
+      if (cliModelCatalogRead === request) cliModelCatalogRead = null
+    })
+    .catch(() => {})
+  return request
+}
+
+export function resetCliModelCatalogCache(): void {
+  cliModelCatalogCache = undefined
+  cliModelCatalogRead = null
+}
