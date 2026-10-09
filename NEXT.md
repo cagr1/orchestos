@@ -1,7 +1,7 @@
 # NEXT — handoff 2026-10-09 → siguiente tab
 
 ## Orden vigente
-1. R.8.2 (`bun run agent:preflight -- --item R.8.2 --agent claude`).
+1. CI.16 (usage-bar intermitente, diagnóstico en PLAN.md; espera GO) → luego R.8.2.
 2. CI.15 sigue abierto solo por verificación: la próxima Mutation Shards no debe tener `contract-a1` en ningún
    `statusReason` (`gh run download <id> -n mutation-orchestration` y grep). Si aparece, quien borra el path en Linux
    sigue vivo: investigar ahí.
