@@ -1,14 +1,27 @@
-# NEXT — handoff 2026-10-09 → siguiente tab
+# NEXT — handoff 2026-10-10 → siguiente tab (tras /clear)
 
 ## Orden vigente
-1. R.8.2 (`bun run agent:preflight -- --item R.8.2 --agent claude`). CI.16 cerrado 2026-10-10.
-2. CI.15 cerrado 2026-10-10 (Mutation `38040297323` sin `contract-a1`).
-Cerrados 2026-10-07/09: CI.15 (arreglo), R.8.1.1 (marcador al final de frase + caché del catálogo CLI). Detalle en PLAN.md.
-Lección: Luna (codex exec) en sandbox no puede abrir puertos → `EADDRINUSE` falso en tests que levantan servidor;
-decirle en el prompt que el baseline ya se verificó fuera del sandbox.
-Trampa (2 veces el 10-09/10): `plan:reconcile` con `[x]` antes de que el commit pase deja el ítem `done` en la DB sin
-SHA; si el commit falla, el siguiente reconcile da "Could not prove a closing commit SHA". Salida: volver a `[ ]`,
-reconcile, `[x]`, reconcile, commit. El cierre de un ítem delegado debe borrar un spec VERSIONADO (commitearlo antes).
+1. **R.8.2 — Continuidad historial→CLI tras recarga** (PLAN.md:240). Arranque:
+   `bun run agent:preflight -- --item R.8.2 --agent claude`.
+   Qué pide (hallazgo 1 de Sol, `docs/done/evidence/R.8-revision-sol-2026-10-05.md:19`): turno 1 que siembra un
+   centinela aleatorio → recarga → turno 2 que solo se responde con ese centinela, sin repetirlo en el pedido;
+   comprobar la entrada efectiva al CLI y la respuesta. Para Claude y para Codex.
+   Punto de partida: `codex-live.mjs:287-299` ya recarga y comprueba la sesión (no el centinela);
+   `chat-context.mjs:170` también recarga. Sospecha sin verificar (pendiente viejo de abajo): "hoy solo Codex tiene
+   memoria por thread" → para Claude probablemente hace falta arreglo de producto, no solo gate. Primero leer cómo
+   `handlers/chat.ts` arma la entrada del CLI de Claude (¿`--resume`/historial en el prompt?) y medir con un turno real.
+   Toca gate + quizá ejecutor de Claude (multi-módulo) → presentar plan corto a Carlos antes de codear.
+2. Después: R.8.3 → R.8.6 en orden (PLAN.md:242+), luego ERP.4.
+
+Cerrados 2026-10-07/10 (detalle y evidencia en PLAN.md): CI.15, R.8.1.1, CI.16. Todo pusheado; árbol limpio salvo
+los ajenos de siempre (IDEAS.md, orchestos.config.yaml, read-boundary.mjs: se rehace en R.8.5, no commitear tal cual).
+
+Lecciones de esta tanda:
+- Luna (codex exec) en sandbox no abre puertos → `EADDRINUSE` falso; decirle que el baseline se verificó fuera.
+  Una corrida de Luna se colgó >12 h sin salida: vigilar con un Monitor de 20 min y matar si no termina.
+- Trampa del plan gate: `plan:reconcile` con `[x]` antes de que el commit pase deja el ítem `done` en la DB sin SHA;
+  si el commit falla → "Could not prove a closing commit SHA". Salida: `[ ]`, reconcile, `[x]`, reconcile, commit.
+  Ítem delegado: commitear el spec ANTES (commit `docs(<ID>): spec`) para que el cierre lo borre.
 
 ## CI.14 cerrado (2026-10-06) — histórico. Pendientes que eran EN ORDEN, sin saltar (regla de Carlos: nada se deja "porque no rompe lo siguiente")
 1. `enforceContract` (tests de `contract.ts`) flaky bajo Stryker: 615 kills falsos en la corrida del 10-02. Abrir ítem.
