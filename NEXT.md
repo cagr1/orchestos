@@ -55,6 +55,7 @@ H.5.3 cerrado 2026-10-05: baseline 8/9 (detalle en `docs/done/bloque-H.md#plan-o
 Rumbo: **ERP.4** (piloto de módulo ERP).
 
 Pendientes anotados (sin ítem todavía; abrir si Carlos quiere):
+- (2026-10-10) startup-guard ciego a lo que de verdad carga: no mira `~/.claude/skills/*` (hyperframes, puesto por `npx skills add` el 10-01, movido a `~/agent-backups/2026-10-10-hyperframes/`), ni `~/.claude/skills/synced/` (anthropic-skills, de la cuenta) ni `~/.claude/plugins/synced/` (prisma, cowork-plugin-management, de la cuenta); Claude Docs cargó pese a `disabledMcpServers`. Candidato a CTX-GUARD.2.
 - `chat-context` falló en el pre-push: el diálogo de nuevo chat no listó Claude (sonda de CI.10 en negativo bajo carga); pasó al reintentar (2026-10-05).
 - `usage-bar` falló en el pre-push con ENOTEMPTY al borrar su tmpdir (`orchestos-ui-13-5-*`); pasó al reintentar (2026-10-05).
 - H.5.3: Codex se cuelga sin salida a veces (timeout 20 min; huecos de 5-14 min entre trials) — ligar a CI.11;
