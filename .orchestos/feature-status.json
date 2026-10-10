@@ -27,7 +27,7 @@
       "block": "H.7 — El contexto se llena en silencio y nadie avisa (ABIERTO 2026-09-02)",
       "delegation": "🔍",
       "title": "`contract.test.ts` falla en el sandbox de Stryker por un tmp fijo compartido",
-      "status": "open",
+      "status": "done",
       "closedDate": null
     },
     {

@@ -2,9 +2,7 @@
 
 ## Orden vigente
 1. CI.16 (usage-bar intermitente, diagnóstico en PLAN.md; espera GO) → luego R.8.2.
-2. CI.15 sigue abierto solo por verificación: la próxima Mutation Shards no debe tener `contract-a1` en ningún
-   `statusReason` (`gh run download <id> -n mutation-orchestration` y grep). Si aparece, quien borra el path en Linux
-   sigue vivo: investigar ahí.
+2. CI.15 cerrado 2026-10-10 (Mutation `38040297323` sin `contract-a1`).
 Cerrados 2026-10-07/09: CI.15 (arreglo), R.8.1.1 (marcador al final de frase + caché del catálogo CLI). Detalle en PLAN.md.
 Lección: Luna (codex exec) en sandbox no puede abrir puertos → `EADDRINUSE` falso en tests que levantan servidor;
 decirle en el prompt que el baseline ya se verificó fuera del sandbox.
