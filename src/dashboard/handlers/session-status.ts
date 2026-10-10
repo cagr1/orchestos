@@ -1,4 +1,8 @@
-import { readActiveSessionStatuses } from '../../../scripts/session-status.ts'
+import {
+  readActiveSessionStatuses,
+  readClaudeStatuslineRateLimits,
+  type SessionStatus,
+} from '../../../scripts/session-status.ts'
 import { jsonResponse } from '../http.ts'
 
 const statusCache = new Map<
@@ -8,6 +12,32 @@ const statusCache = new Map<
 const statusRefreshes = new Map<string, Promise<void>>()
 const STATUS_CACHE_MAX_AGE_MS = 10_000
 const STATUS_REFRESH_TIMEOUT_MS = 3_000
+
+export function withFreshClaudeQuota(
+  clis: SessionStatus[],
+  read = readClaudeStatuslineRateLimits,
+): SessionStatus[] {
+  let reading: ReturnType<typeof readClaudeStatuslineRateLimits>
+  try {
+    reading = read()
+  } catch {
+    return clis
+  }
+  if (!reading) return clis
+
+  return clis.map((cli) => {
+    if (cli.id !== 'claude') return cli
+    const rateLimits = { source: 'claude' as const, windows: reading.windows }
+    if (cli.available) return { ...cli, rateLimits }
+    return {
+      ...cli,
+      available: true,
+      observedAt: reading.observedAt,
+      context: null,
+      rateLimits,
+    }
+  })
+}
 
 /**
  * H.7.5 — métricas de la sesión interactiva más reciente del proyecto.
@@ -37,17 +67,21 @@ export async function handleApiSessionStatus(root: string): Promise<Response> {
       ])
       const refreshed = statusCache.get(cacheKey)
       if (refreshed) {
+        // Claude's statusline is cheap; keep its quota fresh even when Codex delays refresh.
+        // The slow Codex rate-limit request must not age Claude's displayed quota.
+        const clis = withFreshClaudeQuota(refreshed.clis)
         return jsonResponse({
-          available: refreshed.clis.some((cli) => cli.available),
-          clis: refreshed.clis,
+          available: clis.some((cli) => cli.available),
+          clis,
         })
       }
     } else {
       void refresh()
     }
-    return jsonResponse({ available: cached.clis.some((cli) => cli.available), clis: cached.clis })
+    const clis = withFreshClaudeQuota(cached.clis)
+    return jsonResponse({ available: clis.some((cli) => cli.available), clis })
   }
   await refresh()
-  const clis = statusCache.get(cacheKey)?.clis ?? []
+  const clis = withFreshClaudeQuota(statusCache.get(cacheKey)?.clis ?? [])
   return jsonResponse({ available: clis.some((cli) => cli.available), clis })
 }

@@ -159,7 +159,7 @@ Cerrada. Todos sus ítems están archivados en `docs/done/` (ver "Cerrados — e
   de `contract-a1` en los 4 `mutation.json`. Quién borraba el path en Linux sigue sin identificar (ya no afecta).
   Sin delegación: este cierre es solo verificación; el arreglo lo aplicó Luna en `42775b5` (spec no versionado).
 
-- [ ] **CI.16 — 🔍 `usage-bar` intermitente: la barra muestra la cuota de Claude vieja.** (abierto 2026-10-09)
+- [x] **CI.16 — 🔍 `usage-bar` intermitente: la barra muestra la cuota de Claude vieja.** (abierto 2026-10-09)
   Falló 2 de 4 corridas el 2026-10-09 (`an expired Claude window is shown as fully available: Claude Code: 61%`;
   61 % = 100 − 39 del fixture `new-session` anterior). Mecanismo verificado leyendo el código: `handleApiSessionStatus`
   (`src/dashboard/handlers/session-status.ts`) espera el refresco como mucho 3 s y si no, devuelve la caché vieja. El
@@ -168,6 +168,11 @@ Cerrada. Todos sus ítems están archivados en `docs/done/` (ver "Cerrados — e
   Codex. Es el pendiente anotado "usage-bar falla a veces por `account/rateLimits/read`". Contraprueba: sin la caché de
   R.8.1.1 pasó 1/1, y con ella falló 2 y pasó 2: no lo causa R.8.1.1. Arreglo (GO de Carlos 2026-10-10): separar la cuota de
   Claude (statusline, se lee en cada request) del refresco lento de Codex.
+  Ejecutado por: Luna (gpt-6-luna) · Spec: docs/specs/CI.16.md
+  Cerrado 2026-10-10. `withFreshClaudeQuota` en `src/dashboard/handlers/session-status.ts` relee el statusline de Claude
+  en las 3 respuestas del GET (la caché sigue para Codex). Tests 6/6; `test:coverage` 1646/0; `gate:evidence
+  CI.16-usage-bar` 4 corridas seguidas PASS 18/18 c/u (antes 2/4 fallaban). Sin contraprueba determinista: el fallo
+  dependía de que Codex tardara >3 s; queda la serie de 4 verdes como evidencia.
 
 - [ ] **CI.12 — 🔍 `tasks-concurrency` (5 SIGKILL) falla por timeout del lock dentro de la suite completa.** (abierto 2026-10-03)
   Visto 1 vez en el pre-push: `error: file-lock: timeout waiting for …/.orchestos/tasks.lock` → `(fail) … recovers valid

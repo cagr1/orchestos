@@ -2,13 +2,82 @@ import { afterEach, describe, expect, test } from 'bun:test'
 import { mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { readActiveSessionStatuses } from '../../../scripts/session-status.ts'
+import { readActiveSessionStatuses, type SessionStatus } from '../../../scripts/session-status.ts'
+import { withFreshClaudeQuota } from '../handlers/session-status.ts'
 import { route } from '../server.ts'
 
 const PORT = 4257
 const originalTranscript = process.env.ORCHESTOS_SESSION_TRANSCRIPT
 const originalOrchestosHome = process.env.ORCHESTOS_HOME
 const roots: string[] = []
+
+const quotaStatuses: SessionStatus[] = [
+  {
+    id: 'claude',
+    label: 'Claude Code',
+    binary: 'claude',
+    icon: 'claude',
+    readBoundary: { kind: 'none', reason: 'fixture' },
+    installed: true,
+    available: true,
+    observedAt: null,
+    context: null,
+    rateLimits: { source: 'claude', windows: [] },
+  },
+  {
+    id: 'codex',
+    label: 'Codex',
+    binary: 'codex',
+    icon: 'codex',
+    readBoundary: { kind: 'none', reason: 'fixture' },
+    installed: true,
+    available: true,
+    observedAt: null,
+    context: null,
+    rateLimits: { source: 'codex', windows: [] },
+  },
+]
+
+describe('withFreshClaudeQuota', () => {
+  test('replaces Claude quota windows and leaves Codex untouched', () => {
+    const windows = [
+      { id: 'seven_day', usedPct: 18, remainingPct: 82, windowMinutes: 10080, resetsAt: null },
+    ]
+    const result = withFreshClaudeQuota(quotaStatuses, () => ({ windows, observedAt: 'fresh' }))
+
+    expect(result).not.toBe(quotaStatuses)
+    expect(result[0]?.rateLimits).toEqual({ source: 'claude', windows })
+    expect(result[1]).toBe(quotaStatuses[1])
+  })
+
+  test('makes Claude available when the statusline has quota but no active transcript', () => {
+    const claude = quotaStatuses.find((status) => status.id === 'claude')
+    if (!claude) throw new Error('Claude fixture is missing')
+    const unavailable = [{ ...claude, available: false, rateLimits: null }]
+    const result = withFreshClaudeQuota(unavailable, () => ({
+      windows: [
+        { id: 'five_hour', usedPct: 20, remainingPct: 80, windowMinutes: 300, resetsAt: null },
+      ],
+      observedAt: 'fresh',
+    }))
+
+    expect(result[0]).toMatchObject({
+      available: true,
+      observedAt: 'fresh',
+      context: null,
+      rateLimits: { source: 'claude' },
+    })
+  })
+
+  test('returns the same array when the read is null or throws', () => {
+    expect(withFreshClaudeQuota(quotaStatuses, () => null)).toBe(quotaStatuses)
+    expect(
+      withFreshClaudeQuota(quotaStatuses, () => {
+        throw new Error('unavailable')
+      }),
+    ).toBe(quotaStatuses)
+  })
+})
 
 afterEach(() => {
   if (originalTranscript === undefined) delete process.env.ORCHESTOS_SESSION_TRANSCRIPT
