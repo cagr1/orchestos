@@ -28,8 +28,7 @@ async function sendTurn(page, composer, message) {
       `/api/chat returned HTTP ${response.status()}: ${(await response.text()).slice(0, 500)}`,
     )
   const apiText = (await response.json()).text
-  if (typeof apiText !== 'string')
-    throw new Error('/api/chat response text was not a string')
+  if (typeof apiText !== 'string') throw new Error('/api/chat response text was not a string')
   const reply = page.locator('div.prose').nth(previousReplyCount)
   const deadline = Date.now() + 30_000
   let domText = ''
