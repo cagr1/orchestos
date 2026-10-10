@@ -166,7 +166,7 @@ Cerrada. Todos sus ítems están archivados en `docs/done/` (ver "Cerrados — e
   refresco (`readActiveSessionStatuses`) incluye la lectura en vivo de la cuota de Codex y tarda 1.5–2.2 s sin carga,
   más de 3 s bajo la carga del gate. La cuota de Claude es una lectura de archivo barata, pero queda atada a la lenta de
   Codex. Es el pendiente anotado "usage-bar falla a veces por `account/rateLimits/read`". Contraprueba: sin la caché de
-  R.8.1.1 pasó 1/1, y con ella falló 2 y pasó 2: no lo causa R.8.1.1. Arreglo propuesto (espera GO): separar la cuota de
+  R.8.1.1 pasó 1/1, y con ella falló 2 y pasó 2: no lo causa R.8.1.1. Arreglo (GO de Carlos 2026-10-10): separar la cuota de
   Claude (statusline, se lee en cada request) del refresco lento de Codex.
 
 - [ ] **CI.12 — 🔍 `tasks-concurrency` (5 SIGKILL) falla por timeout del lock dentro de la suite completa.** (abierto 2026-10-03)
