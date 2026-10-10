@@ -6,6 +6,9 @@
 Cerrados 2026-10-07/09: CI.15 (arreglo), R.8.1.1 (marcador al final de frase + caché del catálogo CLI). Detalle en PLAN.md.
 Lección: Luna (codex exec) en sandbox no puede abrir puertos → `EADDRINUSE` falso en tests que levantan servidor;
 decirle en el prompt que el baseline ya se verificó fuera del sandbox.
+Trampa (2 veces el 10-09/10): `plan:reconcile` con `[x]` antes de que el commit pase deja el ítem `done` en la DB sin
+SHA; si el commit falla, el siguiente reconcile da "Could not prove a closing commit SHA". Salida: volver a `[ ]`,
+reconcile, `[x]`, reconcile, commit. El cierre de un ítem delegado debe borrar un spec VERSIONADO (commitearlo antes).
 
 ## CI.14 cerrado (2026-10-06) — histórico. Pendientes que eran EN ORDEN, sin saltar (regla de Carlos: nada se deja "porque no rompe lo siguiente")
 1. `enforceContract` (tests de `contract.ts`) flaky bajo Stryker: 615 kills falsos en la corrida del 10-02. Abrir ítem.
