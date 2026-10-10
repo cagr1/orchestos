@@ -401,6 +401,7 @@ export async function runCodexChat(
   onChatStep?: (event: ExecutorStepEvent) => void,
   sessionId?: string,
   onTextDelta?: (text: string) => void,
+  transcript?: string,
 ): Promise<CodexChatResult> {
   if (!sessionId)
     return runCodexChatExec(cwd, systemPrompt, userMessage, timeoutMs, model, cliEffort, onChatStep)
@@ -434,6 +435,7 @@ export async function runCodexChat(
       cwd,
       systemPrompt,
       message: userMessage,
+      transcript,
       model: orchestosModelToCodexModel(model),
       effort: cliEffort,
       timeoutMs,

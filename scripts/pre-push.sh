@@ -62,7 +62,7 @@ ui_flows=(smoke plan-doc project-delete usage-bar text-sweep chat-turn-details t
 ui_paths='^(src/dashboard/|scripts/ui-gate/|src/run/)'
 ui_required=0
 chat_required=0
-chat_paths='^(src/dashboard/handlers/chat|src/dashboard/chat-cli-models\.ts|src/dashboard/app/src/App\.tsx|src/dashboard/app/src/components/chat/|src/dashboard/app/src/api/chat|src/dashboard/app/src/components/common/AgentComposer|src/run/executors/|scripts/ui-gate/flows/(chat-streaming|codex-live)\.mjs)'
+chat_paths='^(src/dashboard/handlers/chat|src/dashboard/chat-cli-models\.ts|src/dashboard/app/src/App\.tsx|src/dashboard/app/src/components/chat/|src/dashboard/app/src/api/chat|src/dashboard/app/src/components/common/AgentComposer|src/run/executors/|scripts/ui-gate/flows/(chat-streaming|codex-live|chat-continuity)\.mjs)'
 while read -r local_ref local_sha remote_ref remote_sha; do
   [[ -n "$local_sha" ]] || continue
   if [[ "$remote_sha" =~ ^0+$ ]]; then
@@ -94,11 +94,11 @@ fi
 
 if (( chat_required )); then
   chat_log="$log_dir/chat-gate.log"
-  echo "💬 pre-push: cambios de chat detectados; corriendo chat-streaming y codex-live..."
-  if ! bun run ui:gate chat-streaming codex-live >"$chat_log" 2>&1; then
+  echo "💬 pre-push: cambios de chat detectados; corriendo chat-streaming, codex-live y chat-continuity..."
+  if ! bun run ui:gate chat-streaming codex-live chat-continuity >"$chat_log" 2>&1; then
     echo "⚠️ pre-push: falló el chat-gate; reintentando una vez (latencia de modelo real)."
     chat_retry_log="$log_dir/chat-gate-retry.log"
-    if ! bun run ui:gate chat-streaming codex-live >"$chat_retry_log" 2>&1; then
+    if ! bun run ui:gate chat-streaming codex-live chat-continuity >"$chat_retry_log" 2>&1; then
       echo "❌ pre-push: chat-gates fallaron dos veces. Push abortado."
       tail -n 100 "$chat_retry_log"
       echo "   Log completo: $chat_retry_log"

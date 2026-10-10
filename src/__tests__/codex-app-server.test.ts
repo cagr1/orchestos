@@ -136,6 +136,7 @@ describe('Codex app-server', () => {
       cwd: '/p',
       systemPrompt: 'rules',
       message: 'first',
+      transcript: 'Conversation so far\nUser: prior\nCurrent message:\n',
       timeoutMs: 1000,
       onDelta: (x) => deltas.push(x),
     })
@@ -144,6 +145,7 @@ describe('Codex app-server', () => {
       cwd: '/p',
       systemPrompt: 'rules',
       message: 'second',
+      transcript: 'must not duplicate',
       timeoutMs: 1000,
     })
     expect(deltas).toEqual(['uno ', 'dos ', 'tres'])
@@ -154,6 +156,9 @@ describe('Codex app-server', () => {
     expect(second.text).toBe('uno dos tres')
     expect(calls.filter((x) => x.method === 'thread/resume')).toHaveLength(0)
     expect(calls.filter((x) => x.method === 'thread/start')).toHaveLength(1)
+    expect(calls.filter((x) => x.method === 'turn/start')[0].params.input[0].text).toBe(
+      'Conversation so far\nUser: prior\nCurrent message:\nfirst',
+    )
     expect(calls.filter((x) => x.method === 'turn/start')[1].params.input).toEqual([
       { type: 'text', text: 'second' },
     ])
@@ -202,6 +207,7 @@ describe('Codex app-server', () => {
       cwd: '/p',
       systemPrompt: 'system\nNow: 2026-09-28 11:00',
       message: 'two',
+      transcript: 'must not duplicate',
       timeoutMs: 1000,
     })
     expect(requests.filter((x) => x.method === 'thread/resume')[0].params).toMatchObject({
@@ -258,6 +264,7 @@ describe('Codex app-server', () => {
       cwd: '/p',
       systemPrompt: 'current system prompt',
       message: 'new user message',
+      transcript: 'Conversation so far\nUser: earlier\nCurrent message:\n',
       timeoutMs: 1000,
       onStep: (step) => steps.push(step),
     })
@@ -266,7 +273,10 @@ describe('Codex app-server', () => {
       'current system prompt',
     )
     expect(requests.find((x) => x.method === 'turn/start').params.input).toEqual([
-      { type: 'text', text: 'new user message' },
+      {
+        type: 'text',
+        text: 'Conversation so far\nUser: earlier\nCurrent message:\nnew user message',
+      },
     ])
     expect(saved.api.get('s')).toEqual({
       threadId: 'thread-replacement',
@@ -275,7 +285,7 @@ describe('Codex app-server', () => {
     expect(steps).toContainEqual(
       expect.objectContaining({
         type: 'reasoning',
-        label: "Codex thread expired — started a new one (earlier turns are not in Codex's memory)",
+        label: 'Codex thread expired — started a new one (earlier turns were resent)',
       }),
     )
     server.kill()

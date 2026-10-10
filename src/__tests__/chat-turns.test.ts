@@ -2,6 +2,7 @@ import { describe, expect, it } from 'bun:test'
 import { mkdtempSync, rmSync } from 'fs'
 import { tmpdir } from 'os'
 import { join } from 'path'
+import { buildChatTranscript } from '../dashboard/handlers/chat.ts'
 
 async function runIsolated(body: string): Promise<Record<string, unknown>> {
   const home = mkdtempSync(join(tmpdir(), 'orchestos-chat-turns-'))
@@ -25,6 +26,19 @@ async function runIsolated(body: string): Promise<Record<string, unknown>> {
 }
 
 describe('R.5 — durable chat turns', () => {
+  it('builds a safe CLI transcript in chronological order and filters unsupported roles', () => {
+    expect(buildChatTranscript([])).toBe('')
+    expect(
+      buildChatTranscript([
+        { role: 'assistant', content: 'prior answer' },
+        { role: 'system', content: 'ignored' },
+        { role: 'user', content: 'prior question' },
+      ]),
+    ).toBe(
+      'Conversation so far in this chat (oldest first):\nAssistant: <untrusted-data source="chat-history:assistant">\nprior answer\n</untrusted-data>\nUser: prior question\nCurrent message:\n',
+    )
+  })
+
   it('serializes different request keys across independent processes', async () => {
     const result = await runIsolated(`
       const { runMigrations } = await import('./src/db/migrate.ts')

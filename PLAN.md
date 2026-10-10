@@ -237,8 +237,18 @@ Cerrada. Todos sus ítems están archivados en `docs/done/` (ver "Cerrados — e
   Luna: 1.ª corrida colgada >12 h sin salida ni cambios (matada); 2.ª se detuvo por `EADDRINUSE` en
   `csrf-origin.test.ts`, artefacto del sandbox de Codex que no deja abrir puertos (fuera del sandbox 185/0).
 
-- [ ] **R.8.2 — 🔍 Continuidad historial→CLI tras recarga.** Turno posterior a la recarga que necesite un centinela
+- [x] **R.8.2 — 🔍 Continuidad historial→CLI tras recarga.** (2026-10-10) Turno posterior a la recarga que necesite un centinela
   aleatorio del historial sin repetirlo; Claude y Codex. Hallazgo 1.
+  Defecto real: el chat por CLI de Claude no tenía memoria entre turnos (solo `systemPrompt` + mensaje actual);
+  Codex perdía los turnos al expirar el thread. Arreglo: `buildChatTranscript` (`handlers/chat.ts`) antepone los
+  últimos 10 mensajes de la sesión (asistente en `untrusted-data`) a la entrada de Claude, y a Codex solo cuando su
+  thread es nuevo o recreado. Gate nuevo `chat-continuity` (en el pre-push de chat): centinela → recarga → pregunta
+  sin repetirlo; comprueba la entrada efectiva al CLI (`chat-cli-input-<id>.txt`) y la respuesta en API y DOM.
+  Evidencia: `chat-continuity` 7/7 (incluye thread de Codex expirado, reconocido por `isExpiredThreadError` con el
+  error real), `chat-streaming` 17/17, `codex-live` 14/14, `test:coverage` 1647/0, `tsc` limpio.
+  Hallazgo al cerrar: en el turno 2 de Codex se reenvía el system prompt entero como `<orchestos-context-update>`
+  (el hash cambió entre turnos) — causa sin medir.
+  Ejecutado por: Luna (gpt-6-luna) · Spec: docs/specs/R.8.2.md (+2 correcciones del gate: UUID válido, leer API y DOM)
 - [ ] **R.8.3 — 🔍 QA negativo real.** Tarea con salida deliberadamente incorrecta que QA debe rechazar; checks
   ejecutados y criterios visibles. Hallazgo 2.
 - [ ] **R.8.4 — 🔍 Reinicio del dashboard a mitad de run.** Recuperar el resultado y el reporte de fin (gap declarado

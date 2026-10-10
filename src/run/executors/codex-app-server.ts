@@ -1,5 +1,7 @@
 import { type ChildProcessWithoutNullStreams, spawn } from 'node:child_process'
 import { createHash } from 'node:crypto'
+import { mkdirSync, writeFileSync } from 'node:fs'
+import { join } from 'node:path'
 import { createInterface } from 'node:readline'
 import type { ExecutorStepEvent } from './step-event.ts'
 
@@ -261,6 +263,7 @@ export class CodexAppServer {
     cwd: string
     systemPrompt: string
     message: string
+    transcript?: string
     model?: string
     effort?: string
     timeoutMs: number
@@ -328,8 +331,9 @@ export class CodexAppServer {
           this.resumed.add(threadId)
           input.onStep?.({
             type: 'reasoning',
-            label:
-              "Codex thread expired — started a new one (earlier turns are not in Codex's memory)",
+            label: input.transcript
+              ? 'Codex thread expired — started a new one (earlier turns were resent)'
+              : "Codex thread expired — started a new one (earlier turns are not in Codex's memory)",
           })
         }
       }
@@ -338,7 +342,8 @@ export class CodexAppServer {
     const dateIgnoredSystemPrompt = changed
       ? `<orchestos-context-update>\n${input.systemPrompt}\n</orchestos-context-update>\n\n`
       : ''
-    const message = `${dateIgnoredSystemPrompt}${input.message}`
+    const includeTranscript = !stored.threadId || threadRecreated
+    const message = `${dateIgnoredSystemPrompt}${includeTranscript ? (input.transcript ?? '') : ''}${input.message}`
     const state = {
       turnId: null as string | null,
       text: '',
@@ -356,6 +361,15 @@ export class CodexAppServer {
     this.turns.set(threadId, state)
     let turnStart: any
     try {
+      if (process.env.ORCHESTOS_GATE_CAPTURE_DIR) {
+        try {
+          mkdirSync(process.env.ORCHESTOS_GATE_CAPTURE_DIR, { recursive: true })
+          writeFileSync(
+            join(process.env.ORCHESTOS_GATE_CAPTURE_DIR, `chat-cli-input-${input.sessionId}.txt`),
+            message,
+          )
+        } catch {}
+      }
       turnStart = await this.request('turn/start', {
         threadId,
         input: [{ type: 'text', text: message }],

@@ -98,6 +98,32 @@ import { createTaskRecord, spawnTaskRun } from './tasks.ts'
 const VALID_EFFORTS = ['low', 'medium', 'high'] as const
 type ReasoningEffort = (typeof VALID_EFFORTS)[number]
 
+export function buildChatTranscript(history: { role: string; content: string }[]): string {
+  const messages = history.filter(
+    (message): message is { role: 'user' | 'assistant'; content: string } =>
+      message.role === 'user' || message.role === 'assistant',
+  )
+  if (messages.length === 0) return ''
+  const lines = messages.map(({ role, content }) => {
+    const label = role === 'user' ? 'User' : 'Assistant'
+    const text =
+      role === 'assistant' ? untrustedContent('chat-history:assistant', content) : content
+    return `${label}: ${text}`
+  })
+  return `Conversation so far in this chat (oldest first):\n${lines.join('\n')}\nCurrent message:\n`
+}
+
+function captureChatCliInput(sessionId: string, text: string): void {
+  if (!process.env.ORCHESTOS_GATE_CAPTURE_DIR) return
+  try {
+    mkdirSync(process.env.ORCHESTOS_GATE_CAPTURE_DIR, { recursive: true })
+    writeFileSync(
+      join(process.env.ORCHESTOS_GATE_CAPTURE_DIR, `chat-cli-input-${sessionId}.txt`),
+      text,
+    )
+  } catch {}
+}
+
 /** Effective effort contract for the interactive chat transport. */
 export function chatEffortLevelsForAgent(agent: string | undefined): readonly string[] {
   if (agent === 'claude') return CLAUDE_CLI_EFFORTS
@@ -1067,6 +1093,7 @@ async function handleApiChat(
       ? body.history
       : []
   const history = rawHistory.slice(-10)
+  const transcript = buildChatTranscript(history)
 
   const barShownByCount = rawHistory.length + 1 >= 3
   let taskSuggestion = { isTask: false, reason: '' }
@@ -1476,11 +1503,13 @@ async function handleApiChat(
     if (useClaudeCli) {
       const { runClaudeChat } = await import('../../run/executors/external.ts')
       const isolatedCwd = hasProjectContext ? null : mkdtempSync(join(tmpdir(), 'orchestos-chat-'))
+      const cliInput = `${transcript}${combinedText}`
+      if (session) captureChatCliInput(session.id, cliInput)
       try {
         const result = await runClaudeChat(
           isolatedCwd ?? root,
           systemPrompt,
-          combinedText,
+          cliInput,
           CLAUDE_CHAT_TIMEOUT_MS,
           model,
           cliEffort,
@@ -1551,6 +1580,7 @@ async function handleApiChat(
           (text) => {
             if (activeTurnId && session) appendLiveText(session.id, activeTurnId, text)
           },
+          transcript,
         )
         const resultLabel = `${result.model} via Codex CLI${cliEffort ? ` (effort: ${cliEffort})` : ''}`
         const { text: responseText } = await settleTaskIntent(result.text)
