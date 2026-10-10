@@ -1,17 +1,21 @@
-# NEXT — handoff 2026-10-10 → siguiente tab (tras /clear)
+# NEXT — handoff 2026-10-10 (tras R.8.2) → siguiente tab (tras /clear)
 
 ## Orden vigente
-1. **R.8.2 — Continuidad historial→CLI tras recarga** (PLAN.md:240). Arranque:
-   `bun run agent:preflight -- --item R.8.2 --agent claude`.
-   Qué pide (hallazgo 1 de Sol, `docs/done/evidence/R.8-revision-sol-2026-10-05.md:19`): turno 1 que siembra un
-   centinela aleatorio → recarga → turno 2 que solo se responde con ese centinela, sin repetirlo en el pedido;
-   comprobar la entrada efectiva al CLI y la respuesta. Para Claude y para Codex.
-   Punto de partida: `codex-live.mjs:287-299` ya recarga y comprueba la sesión (no el centinela);
-   `chat-context.mjs:170` también recarga. Sospecha sin verificar (pendiente viejo de abajo): "hoy solo Codex tiene
-   memoria por thread" → para Claude probablemente hace falta arreglo de producto, no solo gate. Primero leer cómo
-   `handlers/chat.ts` arma la entrada del CLI de Claude (¿`--resume`/historial en el prompt?) y medir con un turno real.
-   Toca gate + quizá ejecutor de Claude (multi-módulo) → presentar plan corto a Carlos antes de codear.
-2. Después: R.8.3 → R.8.6 en orden (PLAN.md:242+), luego ERP.4.
+1. **Antes de R.8.3 — hallazgo de cierre de R.8.2** (PLAN.md, nota de R.8.2): en el turno 2 de Codex se reenvía el
+   system prompt entero como `<orchestos-context-update>` porque `codexContextHash` cambió entre turnos. Medir qué
+   parte cambia (¿la lista de runs recientes, la hora?) comparando dos `chat-prompt-<id>.txt` de un gate; si cambia en
+   cada turno, se pagan tokens de más en todos los chats de Codex. Abrir ítem con la causa medida.
+2. R.8.3 → R.8.6 en orden (PLAN.md:242+), luego ERP.4.
+
+R.8.2 cerrado 2026-10-10 (`b9decaa`): historial al CLI de Claude y a threads nuevos de Codex; gate `chat-continuity`.
+Lecciones:
+- Subagente Sonnet (Agent tool) NO puede editar `src/`: hereda el entorno de la sesión cerebro y `brain-no-code`
+  lo bloquea. Ejecutor = Luna (`ORCHESTOS_ROLE=executor codex exec …`) o `ORCHESTOS_ROLE=executor claude -p --model sonnet`.
+- Si el ejecutor toca `scripts/*.sh`, correr `bun run hooks:install` antes de relanzarlo: su preflight bloquea.
+- Gates de chat: leer el texto final de la respuesta de `/api/chat`, no solo el DOM (el DOM puede estar a mitad del
+  render aunque la respuesta HTTP ya llegó).
+- La trampa de `plan:reconcile` reapareció: reconcile con `[x]` + commit fallido por otra causa (faltaba
+  `Ejecutado por:` en PLAN.md) → misma salida (`[ ]`, reconcile, `[x]`, reconcile, commit).
 
 Cerrados 2026-10-07/10 (detalle y evidencia en PLAN.md): CI.15, R.8.1.1, CI.16. Todo pusheado; árbol limpio salvo
 los ajenos de siempre (IDEAS.md, orchestos.config.yaml, read-boundary.mjs: se rehace en R.8.5, no commitear tal cual).
