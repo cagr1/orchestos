@@ -68,6 +68,31 @@ Recorrido (UI real: Dev → proyecto → Settings → `Run Next Task`, como `run
    - `passed criterion visible with evidence`: texto que empieza por `✓ ok.txt contains the line: VERDE` e incluye
      `ok.txt: `.
 
+### A.8 (ronda 2 — lo único pendiente; A.1-A.7, B y C ya están aplicados en el árbol, no rehacerlos)
+El run rechazado por QA no guarda el diff: `computeFileDiffs` solo se llama en la rama de éxito
+(`src/run/harness.ts:1128`, persistido en `:1159`). Sin eso no se ve qué salida se rechazó. En la rama
+`qa.verdict === 'fail'` (`src/run/harness.ts:~1022-1060`), antes del `insertRun`:
+`const rejectedDiffs = computeFileDiffs(beforeContent, contractResult.written)` y en ese `insertRun`
+`file_diffs: rejectedDiffs.length ? JSON.stringify(rejectedDiffs) : null`. `contractResult.written` conserva el
+contenido en memoria aunque el archivo ya se haya revertido. Añadir un test unitario en la suite del harness que ya
+cubra un QA fail (buscar `qa_verdict: 'fail'` / `QA fail` en `src/__tests__`) comprobando que el run rechazado trae
+`file_diffs` con el contenido escrito. No tocar nada más.
+
+### A.9 (ronda 3 — lo único pendiente; todo lo anterior ya está aplicado, no rehacerlo)
+A.1 estaba mal especificado: `safeAddColumn` corre ANTES de `applyMigrationSteps()` y la migración 10 reconstruye `runs`
+con lista fija de columnas (`src/db/migrate.ts:390-391`), así que la columna nueva se pierde en una DB fresca.
+Medido por el cerebro fuera del sandbox: `test:coverage` 1636 pass / 18 fail, con `table runs has no column named
+qa_criteria_json` y `duplicate column name: qa_criteria_json`.
+1. Quitar la línea `safeAddColumn('runs', 'qa_criteria_json', 'TEXT')` (`src/db/migrate.ts:~950`).
+2. Añadir al final de `FUTURE_MIGRATIONS` la migración **22**, `name: 'run-qa-criteria'`, copiando la forma exacta de la
+   21 (`src/db/migrate.ts:752-765`): `apply` = `ALTER TABLE runs ADD COLUMN qa_criteria_json TEXT;`, `postcondition`
+   que lanza `Migration 22 did not add runs.qa_criteria_json` si la columna no está.
+3. Actualizar los tests que enumeran versiones o columnas de `runs` (`src/__tests__/migration.test.ts:~179` y cualquier
+   otro que cite `cli_session_id`, `run-cli-session-id` o la versión 21 como última): buscar con
+   `grep -rn "cli_session_id\|run-cli-session-id" src scripts --include='*.test.ts'`.
+4. Correr `bun test src/__tests__/migration.test.ts src/__tests__/harness-evidence.test.ts src/dashboard/handlers/runs.test.ts`
+   y cualquier otro test de `src/db` que no abra puertos.
+
 ### C. Pre-push
 `scripts/pre-push.sh:61`: añadir `qa-negative` a `ui_flows` después de `runs-graph`.
 
