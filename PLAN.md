@@ -329,7 +329,10 @@ Cerrada. Todos sus ítems están archivados en `docs/done/` (ver "Cerrados — e
   `codex.ts:347,428`), así que el `~/.codex/AGENTS.md` global del usuario entra al prompt de cada tarea. Efecto
   medido: 1 de 5 corridas del caso A, Luna se negó a escribir citando "un árbol, un escritor" sin ejecutar ninguna herramienta
   (`~/.codex/sessions/2026/10/11/rollout-2026-10-11T13-20-04-01a12c31-….jsonl`, 34 tokens de salida). Decisión de
-  producto pendiente de Carlos: ¿las tareas heredan las instrucciones globales del usuario o corren aisladas como el chat?
+  Decisión de Carlos 2026-10-11: **aisladas**, con el mismo mecanismo del chat → R.8.5.1.
+  - [ ] **R.8.5.1 — 🧠 Las tareas corren con el home del CLI aislado, igual que el chat.** Spec:
+    `docs/specs/R.8.5.1.md`. Gate: test unitario del env del runner + paso en vivo que prueba que el rollout de una
+    tarea real de Codex vive en el home aislado y no contiene las instrucciones globales del usuario.
 - [ ] **R.8.6 — 🔍 Pasos que no pueden fallar.** Quitar `true` literales (`auto-flow.mjs:356,360`,
   `project-isolation.mjs:125`, `runs-graph.mjs:198`) y nombres que prometen más de lo que comprueban. Hallazgos 6-7.
 
