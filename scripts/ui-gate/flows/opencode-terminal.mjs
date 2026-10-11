@@ -52,7 +52,7 @@ export default async function opencodeTerminal({ page, api, step, visible, clean
   if (!project) throw new Error(`temporary project was not registered: ${projectRoot}`)
   cleanup(async () => {
     await api(`/api/projects/${encodeURIComponent(project.id)}/purge`, { method: 'POST' })
-    rmSync(projectRoot, { recursive: true, force: true })
+    rmSync(projectRoot, { recursive: true, force: true, maxRetries: 10, retryDelay: 300 })
   })
 
   const created = await api('/api/chat/sessions', {

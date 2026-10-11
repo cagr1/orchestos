@@ -42,7 +42,7 @@ export default async function orchestration({ page, api, step, shot, cleanup }) 
   }
   cleanup(async () => {
     await api(`/api/projects/${encodeURIComponent(project.id)}/purge`, { method: 'POST' })
-    rmSync(root, { recursive: true, force: true })
+    rmSync(root, { recursive: true, force: true, maxRetries: 10, retryDelay: 300 })
   })
 
   const openProjectSettings = async () => {

@@ -115,7 +115,7 @@ export default async function chatTurnDetails({ page, api, step, shot, visible, 
   if (!project) throw new Error(`temporary project was not registered: ${projectRoot}`)
   cleanup(async () => {
     await api(`/api/projects/${encodeURIComponent(project.id)}/purge`, { method: 'POST' })
-    rmSync(projectRoot, { recursive: true, force: true })
+    rmSync(projectRoot, { recursive: true, force: true, maxRetries: 10, retryDelay: 300 })
   })
 
   await page.reload({ waitUntil: 'domcontentloaded' })

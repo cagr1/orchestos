@@ -1,7 +1,22 @@
 {
-  "exported_at": "2026-10-11T14:09:05.871Z",
+  "exported_at": "2026-10-11T14:10:35.044Z",
   "total_runs": 20,
   "runs": [
+    {
+      "id": "31e256e5-a4af-4a27-83c0-6c06dbcf0cef",
+      "task_class": "gate:ci.17:doc",
+      "model": "openai/gpt-6-luna",
+      "provider": "codex",
+      "status": "done",
+      "qa_verdict": "pass",
+      "qa_reason": "README.md contains the requested line.",
+      "files_blocked": [],
+      "checks_failed": 0,
+      "usd_cost": 0.0028131,
+      "elapsed_ms": 19565,
+      "tokens": 23701,
+      "created_at": "2026-10-11T14:10:01.429Z"
+    },
     {
       "id": "ui-chat-context-seed-1791726711274",
       "task_class": "gate:r.8.2.1:implement",
@@ -286,21 +301,6 @@
       "elapsed_ms": 28064,
       "tokens": 5097,
       "created_at": "2026-10-05T20:42:41.158Z"
-    },
-    {
-      "id": "741631ad-8041-4401-9560-11e65e82cd34",
-      "task_class": "implement",
-      "model": "gpt-6-luna",
-      "provider": "codex",
-      "status": "done",
-      "qa_verdict": "pass",
-      "qa_reason": "The tests assert sum() behavior for positive, negative, and decimal inputs.",
-      "files_blocked": [],
-      "checks_failed": 0,
-      "usd_cost": 0.002018,
-      "elapsed_ms": 37870,
-      "tokens": 15576,
-      "created_at": "2026-10-05T16:28:24.464Z"
     }
   ],
   "stats": {
@@ -308,6 +308,6 @@
     "blocked": 0,
     "done": 20,
     "qa_failed": 2,
-    "total_cost_usd": "0.1242"
+    "total_cost_usd": "0.1250"
   }
 }

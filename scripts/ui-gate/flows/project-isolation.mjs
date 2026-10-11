@@ -83,7 +83,8 @@ export default async function projectIsolation({
         await api(`/api/projects/${encodeURIComponent(project.id)}/purge`, { method: 'POST' })
     }
     for (const root of [rootA, rootB]) {
-      if (root && existsSync(root)) rmSync(root, { recursive: true, force: true })
+      if (root && existsSync(root))
+        rmSync(root, { recursive: true, force: true, maxRetries: 10, retryDelay: 300 })
       if (root && existsSync(root)) throw new Error(`temporary project remains: ${root}`)
     }
   })

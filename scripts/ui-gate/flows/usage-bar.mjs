@@ -57,7 +57,7 @@ export default async function usageBar({ page, api, step, visible, cleanup, stat
   if (!project) throw new Error(`temporary project was not registered: ${projectRoot}`)
   cleanup(async () => {
     await api(`/api/projects/${encodeURIComponent(project.id)}/purge`, { method: 'POST' })
-    rmSync(projectRoot, { recursive: true, force: true })
+    rmSync(projectRoot, { recursive: true, force: true, maxRetries: 10, retryDelay: 300 })
     const projectsAfter = await api('/api/projects')
     await step(
       'no temporary UI projects remain after cleanup',
@@ -287,7 +287,7 @@ export default async function usageBar({ page, api, step, visible, cleanup, stat
     codexTitleAfterTurn ?? 'Codex button title missing after turn',
   )
 
-  rmSync(statuslineDirectory, { recursive: true, force: true })
+  rmSync(statuslineDirectory, { recursive: true, force: true, maxRetries: 10, retryDelay: 300 })
   mkdirSync(statuslineDirectory, { recursive: true })
   writeFileSync(
     join(statuslineDirectory, 'expired-session.json'),

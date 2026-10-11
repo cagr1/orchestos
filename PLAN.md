@@ -262,8 +262,11 @@ Cerrada. Todos sus ítems están archivados en `docs/done/` (ver "Cerrados — e
   Evidencia: `chat-continuity` 8/8 (paso nuevo: anillo de Dev 1.4214% = `/api/chat/sessions/<id>/context` 1.4214%),
   `chat-streaming` 17/17, `test:coverage` 1648/0, ambos `tsc` limpios.
   Ejecutado por: Luna (gpt-6-luna) · Spec: docs/specs/R.8.2.2.md
-- [ ] **CI.17 — 🔍 `usage-bar` falla con `ENOTEMPTY` al borrar su tmpdir.** 2.ª vez (2026-10-05, 2026-10-11, bloqueó un
-  push). Reintentos en `rmSync` de los flows de ui-gate. Spec: docs/specs/CI.17.md
+- [x] **CI.17 — 🔍 `usage-bar` falla con `ENOTEMPTY` al borrar su tmpdir.** (2026-10-11) 2.ª vez (2026-10-05, 2026-10-11,
+  bloqueó un push). `maxRetries: 10, retryDelay: 300` en los 8 `rmSync` de flows que no lo tenían (como chat-context).
+  Evidencia: `usage-bar` 18/18, `tasks` 13/13, biome limpio. Sin contraprueba determinista: el fallo es una carrera con
+  el dashboard escribiendo tras el purge; la prueba real es que no reaparezca en los pre-push.
+  Ejecutado por: Luna (gpt-6-luna) · Spec: docs/specs/CI.17.md
 - [ ] **R.8.3 — 🔍 QA negativo real.** Tarea con salida deliberadamente incorrecta que QA debe rechazar; checks
   ejecutados y criterios visibles. Hallazgo 2.
 - [ ] **R.8.4 — 🔍 Reinicio del dashboard a mitad de run.** Recuperar el resultado y el reporte de fin (gap declarado
