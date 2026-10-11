@@ -54,6 +54,42 @@ describe('projects API mappings', () => {
     expect(run.agentModel).toBe('codex')
   })
 
+  test('maps failed QA criteria without evidence and passed criteria with literal evidence', () => {
+    const run = mapRunRow({
+      id: 'r-qa',
+      taskId: 'task-qa',
+      status: 'failed',
+      qaVerdict: 'fail',
+      qaReason: 'criterion mismatch',
+      qaCriteria: [
+        { text: 'bad criterion', pass: false },
+        { text: 'good criterion', pass: true, evidence: { file: 'ok.txt', excerpt: 'VERDE' } },
+      ],
+      model: 'codex',
+      provider: 'codex',
+      inputTokens: 0,
+      outputTokens: 0,
+      costUsd: null,
+      elapsedMs: 0,
+      engine: 'codex',
+      iterations: 1,
+      fileDiffs: [],
+      costBreakdown: [],
+      contextWarnings: [],
+      createdAt: '2026-01-01T00:00:00Z',
+    })
+    expect(run.qaEvaluation).toContainEqual({
+      criterion: 'bad criterion',
+      passed: false,
+      rationale: 'no evidence in written files',
+    })
+    expect(run.qaEvaluation).toContainEqual({
+      criterion: 'good criterion',
+      passed: true,
+      rationale: 'ok.txt: VERDE',
+    })
+  })
+
   test('maps unevaluated runs without turning them into failures', () => {
     const run = mapRunRow({
       id: 'chat-1',

@@ -934,27 +934,35 @@ export default function App() {
   const handleApproveHeldTask = async (taskId: string) => {
     const thread = activeThread
     if (!thread) return
-    await runProjectTask(
-      taskId,
-      thread.projectId,
-      () => {
-        setThreads((prev) =>
-          prev.map((item) =>
-            item.id === thread.id
-              ? {
-                  ...item,
-                  messages: item.messages.map((message) =>
-                    message.proposedTask?.id === taskId
-                      ? { ...message, taskHeld: false, proposedTask: undefined }
-                      : message,
-                  ),
-                }
-              : item,
-          ),
-        )
-      },
-      thread.id,
-    )
+    try {
+      await runProjectTask(
+        taskId,
+        thread.projectId,
+        () => {
+          setThreads((prev) =>
+            prev.map((item) =>
+              item.id === thread.id
+                ? {
+                    ...item,
+                    messages: item.messages.map((message) =>
+                      message.proposedTask?.id === taskId
+                        ? { ...message, taskHeld: false, proposedTask: undefined }
+                        : message,
+                    ),
+                  }
+                : item,
+            ),
+          )
+        },
+        thread.id,
+      )
+    } finally {
+      if (thread.projectId === currentProject?.id) {
+        await listRuns(thread.projectId)
+          .then(setRuns)
+          .catch(() => undefined)
+      }
+    }
     if (thread) {
       const messages = await loadThreadMessages(thread.id, thread.projectId)
       setThreads((prev) =>
@@ -975,7 +983,6 @@ export default function App() {
         setTasks(loaded)
         setTaskError(null)
       })
-      setRuns(await listRuns(currentProject.id))
     } catch (error) {
       setTaskRunError(error instanceof Error ? error.message : String(error))
       await listTasks(currentProject.id)
@@ -986,6 +993,9 @@ export default function App() {
         .catch(() => undefined)
     } finally {
       setRunningTaskId(null)
+      await listRuns(currentProject.id)
+        .then(setRuns)
+        .catch(() => undefined)
       await refreshUsage()
     }
   }
@@ -1248,6 +1258,9 @@ export default function App() {
                     .catch(() => undefined)
                 } finally {
                   setRunningTaskId(null)
+                  await listRuns(currentProject.id)
+                    .then(setRuns)
+                    .catch(() => undefined)
                   await refreshUsage()
                 }
               }}

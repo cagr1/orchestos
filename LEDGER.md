@@ -303,3 +303,12 @@ fetch público sin key. Ninguna línea de `maxTokens`/`contextWindow`/`maxOutput
 tocada (`git diff … | grep -iE "maxTokens|maxOutput|contextWindow"` → vacío).
 **Reversibilidad/evidencia**: commit `feat(CX.5)`, revertible (migración 21 aditiva). `test:coverage` 1626/0 ·
 Settings → Usage en el dashboard real.
+
+## 2026-10-11 12:11 — claude-opus-5-5 (revisor) · ejecutor Codex gpt-6-luna
+**Contexto**: R.8.3 — `src/run/harness.ts` ([[feedback-context-no-max-tokens]]).
+**Clasificación**: RESPETÓ
+**Por qué**: el harness solo añade `qa_criteria_json` a los dos `insertRun` posteriores al juez y `file_diffs` al
+run rechazado por QA. Ninguna línea de `maxTokens`/`contextWindow`/`maxOutputTokensFor`/`knownMaxOutputTokensFor`
+tocada (`git diff -- src/run/harness.ts | grep -iE "maxTokens|maxOutput|contextWindow"` → vacío).
+**Reversibilidad/evidencia**: commit `feat(R.8.3)`, revertible (migración 22 aditiva). `test:coverage` 1654/0 ·
+`qa-negative` 18/18 · `runs-graph` 16/16.

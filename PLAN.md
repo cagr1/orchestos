@@ -274,8 +274,28 @@ Cerrada. Todos sus ítems están archivados en `docs/done/` (ver "Cerrados — e
   del pre-push de las 09:10). En las 3, Codex emitió el marcador sin que se le repitiera la instrucción → la hipótesis
   "R.8.2.1 quitó el refuerzo" no se sostiene. Causa del fallo sin medir: queda abierto hasta el próximo fallo, que ya
   deja evidencia. `dbTasks` siempre `[]` (las tareas no viven en la tabla `tasks` con `project_id`): campo inútil.
-- [ ] **R.8.3 — 🔍 QA negativo real.** Tarea con salida deliberadamente incorrecta que QA debe rechazar; checks
+- [x] **R.8.3 — 🔍 QA negativo real.** (2026-10-11) Tarea con salida deliberadamente incorrecta que QA debe rechazar; checks
   ejecutados y criterios visibles. Hallazgo 2.
+  Gate nuevo `qa-negative` (en el pre-push): tarea de control que QA aprueba con evidencia literal + tarea cuya
+  descripción pide `ROJO` y cuyo criterio exige `AZUL`. Tres defectos de producto que destapó:
+  (1) el juez ya devolvía el resultado por criterio y el harness lo descartaba → migración 22 `runs.qa_criteria_json`,
+  expuesto en `/api/runs` y pintado en Runs → QA Assertions; (2) el run rechazado no guardaba su diff
+  (`computeFileDiffs` solo en la rama de éxito, `harness.ts`); (3) Runs no se recargaba cuando la tarea era rechazada
+  (`App.tsx`: `listRuns` solo en el camino feliz; arreglados los 3 call sites).
+  Gate en vivo: navegador real (Playwright), `docs/done/evidence/R.8.3-live.json` (`ui:gate qa-negative runs-graph`).
+  Evidencia: `qa-negative` 18/18, `runs-graph` 16/16; `test:coverage` 1654/0,
+  ambos `tsc` limpios. Contraprueba: sin el cambio del harness falla en `control criterion passed with literal
+  evidence: []`; antes del arreglo de `App.tsx` falló `rejected run visible` (13/14). Estabilidad: 8 de 9 corridas
+  18/18; la que falló murió en el andamiaje (`git commit` del fixture) → CI.19.
+  Límites: el reporte de fin de tarea en el chat (`task-report.ts`) sigue sin mostrar criterios ni checks; el rechazo
+  depende de que el ejecutor escriba `ROJO` (el gate lo comprueba como premisa y lo declara si no se cumple).
+  Aprendizaje de specs: una columna nueva en `runs` va como migración numerada, no `safeAddColumn` (la migración 10
+  reconstruye la tabla con lista fija); un spec con rondas apiladas confunde al ejecutor → una ronda = un archivo.
+  Ejecutado por: Luna (gpt-6-luna) · Spec: docs/specs/R.8.3.md (+ rondas 4 y 5 en archivos propios)
+- [ ] **CI.19 — 🔍 El `git commit` del fixture falla a veces en el andamiaje de los ui-gates.** Visto 1 vez en
+  `qa-negative` (2026-10-11, 1 de 9): `Command failed: git … commit -qm task fixture`, sin motivo porque el helper
+  `run` usa `stdio: 'ignore'`. `qa-negative` ya reporta stdout/stderr y exit; los otros 20 flows con el mismo helper no.
+  Al próximo fallo, leer el motivo en el `result.json` antes de arreglar; llevar el helper a `scripts/ui-gate/lib.mjs`.
 - [ ] **R.8.4 — 🔍 Reinicio del dashboard a mitad de run.** Recuperar el resultado y el reporte de fin (gap declarado
   de I.7.2); probablemente requiere arreglo de producto. Hallazgo 4.
 - [ ] **R.8.5 — 🔍 Privacidad sin depender del modelo.** `read-boundary`: condición dura = el token del fixture nunca

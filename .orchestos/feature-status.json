@@ -135,6 +135,15 @@
       "block": "H.7 — El contexto se llena en silencio y nadie avisa (ABIERTO 2026-09-02)",
       "delegation": "🔍",
       "title": "QA negativo real",
+      "status": "done",
+      "closedDate": null
+    },
+    {
+      "id": "CI.19",
+      "sprint": "Fase 2 — Producto mínimo para entrega",
+      "block": "H.7 — El contexto se llena en silencio y nadie avisa (ABIERTO 2026-09-02)",
+      "delegation": "🔍",
+      "title": "El `git commit` del fixture falla a veces en el andamiaje de los ui-gates",
       "status": "open",
       "closedDate": null
     },

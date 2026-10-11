@@ -223,6 +223,10 @@ describe('F3.3 — every failure path leaves a row in runs and a non-empty runId
       const row = getRun(result.runId)!
       expect(row.qa_verdict).toBe('fail')
       expect(row.qa_reason).toContain('qa fail test reason')
+      const fileDiffs = JSON.parse(row.file_diffs ?? '[]') as Array<{ path: string; diff: string }>
+      expect(fileDiffs).toHaveLength(1)
+      expect(fileDiffs[0]).toMatchObject({ path: 'out.txt' })
+      expect(fileDiffs[0]?.diff).toContain('+hello')
     } finally {
       rmSync(dir, { recursive: true, force: true })
     }

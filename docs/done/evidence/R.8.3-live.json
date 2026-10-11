@@ -1,0 +1,192 @@
+[
+  {
+    "flujo": "qa-negative",
+    "pass": true,
+    "steps": [
+      {
+        "nombre": "temporary project visible",
+        "ok": true,
+        "detalle": "project visible in sidebar"
+      },
+      {
+        "nombre": "project settings visible",
+        "ok": true,
+        "detalle": "project settings heading visible"
+      },
+      {
+        "nombre": "Run Next Task enabled",
+        "ok": true,
+        "detalle": "task is runnable"
+      },
+      {
+        "nombre": "control task passes QA",
+        "ok": true,
+        "detalle": "{\"status\":\"done\",\"qaVerdict\":\"pass\"}"
+      },
+      {
+        "nombre": "control check executed",
+        "ok": true,
+        "detalle": "[{\"cmd\":\"grep -qx VERDE ok.txt\",\"version\":\"grep (BSD grep, GNU compatible) 2.6.0-FreeBSD\",\"exitCode\":0,\"stdout\":\"\",\"stderr\":\"\",\"elapsedMs\":6,\"timedOut\":false}]"
+      },
+      {
+        "nombre": "control criterion passed with literal evidence",
+        "ok": true,
+        "detalle": "[{\"text\":\"ok.txt contains the line: VERDE\",\"pass\":true,\"evidence\":{\"file\":\"ok.txt\",\"excerpt\":\"VERDE\"}}]"
+      },
+      {
+        "nombre": "control output on disk",
+        "ok": true,
+        "detalle": "{\"exists\":true,\"content\":\"VERDE\"}"
+      },
+      {
+        "nombre": "executor wrote the incorrect output",
+        "ok": true,
+        "detalle": "[{\"path\":\"nota.txt\",\"status\":\"added\",\"diff\":\"Index: nota.txt\\n===================================================================\\n--- nota.txt\\n+++ nota.txt\\n@@ -0,0 +1,1 @@\\n+ROJO\\n\"}]"
+      },
+      {
+        "nombre": "QA rejects the incorrect output",
+        "ok": true,
+        "detalle": "{\"qaVerdict\":\"fail\",\"qaReason\":\"nota.txt contains ROJO, not the required AZUL line.\",\"qaModel\":\"gpt-6-luna\",\"checks\":[{\"cmd\":\"test -f nota.txt\",\"exitCode\":0,\"stdout\":\"\",\"stderr\":\"\",\"elapsedMs\":5,\"timedOut\":false}],\"qaCriteria\":[{\"text\":\"nota.txt contains the line: AZUL\",\"pass\":false,\"evidence\":{\"file\":\"nota.txt\",\"excerpt\":\"ROJO\"}}]}"
+      },
+      {
+        "nombre": "check executed before QA",
+        "ok": true,
+        "detalle": "{\"qaVerdict\":\"fail\",\"qaReason\":\"nota.txt contains ROJO, not the required AZUL line.\",\"qaModel\":\"gpt-6-luna\",\"checks\":[{\"cmd\":\"test -f nota.txt\",\"exitCode\":0,\"stdout\":\"\",\"stderr\":\"\",\"elapsedMs\":5,\"timedOut\":false}],\"qaCriteria\":[{\"text\":\"nota.txt contains the line: AZUL\",\"pass\":false,\"evidence\":{\"file\":\"nota.txt\",\"excerpt\":\"ROJO\"}}]}"
+      },
+      {
+        "nombre": "failed criterion recorded",
+        "ok": true,
+        "detalle": "{\"qaVerdict\":\"fail\",\"qaReason\":\"nota.txt contains ROJO, not the required AZUL line.\",\"qaModel\":\"gpt-6-luna\",\"checks\":[{\"cmd\":\"test -f nota.txt\",\"exitCode\":0,\"stdout\":\"\",\"stderr\":\"\",\"elapsedMs\":5,\"timedOut\":false}],\"qaCriteria\":[{\"text\":\"nota.txt contains the line: AZUL\",\"pass\":false,\"evidence\":{\"file\":\"nota.txt\",\"excerpt\":\"ROJO\"}}]}"
+      },
+      {
+        "nombre": "task returns to pending with retry",
+        "ok": true,
+        "detalle": "{\"status\":\"pending\",\"retryCount\":1,\"qaVerdict\":\"fail\"}"
+      },
+      {
+        "nombre": "rejected output reverted",
+        "ok": true,
+        "detalle": "{\"exists\":false}"
+      },
+      {
+        "nombre": "rejected run visible",
+        "ok": true,
+        "detalle": "gate-qa-bad appears in Runs"
+      },
+      {
+        "nombre": "check visible in QA tab",
+        "ok": true,
+        "detalle": "✓ test -f nota.txt (exit 0)"
+      },
+      {
+        "nombre": "failed criterion visible in QA tab",
+        "ok": true,
+        "detalle": "✗ nota.txt contains the line: AZUL"
+      },
+      {
+        "nombre": "control run visible",
+        "ok": true,
+        "detalle": "gate-qa-ok appears in Runs"
+      },
+      {
+        "nombre": "passed criterion visible with evidence",
+        "ok": true,
+        "detalle": "✓ ok.txt contains the line: VERDE with ok.txt evidence"
+      }
+    ],
+    "errores": [],
+    "capturas": [
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-90302/qa-negative/qa-negative-rejected.png"
+    ]
+  },
+  {
+    "flujo": "runs-graph",
+    "pass": true,
+    "steps": [
+      {
+        "nombre": "temporary project visible",
+        "ok": true,
+        "detalle": "project visible in sidebar"
+      },
+      {
+        "nombre": "project settings visible",
+        "ok": true,
+        "detalle": "project settings heading visible"
+      },
+      {
+        "nombre": "graph count from API",
+        "ok": true,
+        "detalle": "files=1"
+      },
+      {
+        "nombre": "Run Next Task enabled",
+        "ok": true,
+        "detalle": "task is runnable"
+      },
+      {
+        "nombre": "task finished",
+        "ok": true,
+        "detalle": "status=done"
+      },
+      {
+        "nombre": "project run exists",
+        "ok": true,
+        "detalle": "run linked to task"
+      },
+      {
+        "nombre": "project runs are scoped",
+        "ok": true,
+        "detalle": "runs=1"
+      },
+      {
+        "nombre": "real run visible",
+        "ok": true,
+        "detalle": "task run appears in Runs"
+      },
+      {
+        "nombre": "contract output is real",
+        "ok": true,
+        "detalle": "README.md output"
+      },
+      {
+        "nombre": "mock QA copy absent",
+        "ok": true,
+        "detalle": "no hardcoded QA assertion"
+      },
+      {
+        "nombre": "real run status visible",
+        "ok": true,
+        "detalle": "status from run"
+      },
+      {
+        "nombre": "graph view visible",
+        "ok": true,
+        "detalle": "graph heading"
+      },
+      {
+        "nombre": "mock graph copy absent",
+        "ok": true,
+        "detalle": "no hardcoded language split"
+      },
+      {
+        "nombre": "graph count is real before rebuild",
+        "ok": true,
+        "detalle": "files=1, not the sample 48"
+      },
+      {
+        "nombre": "graph rebuild completes",
+        "ok": true,
+        "detalle": "indexed source count changed"
+      },
+      {
+        "nombre": "no duplicate project",
+        "ok": true,
+        "detalle": "basename=orchestos-ui-13-2e-f91gMn, matches=1"
+      }
+    ],
+    "errores": [],
+    "capturas": [
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-90302/runs-graph/runs-graph-real-data.png"
+    ]
+  }
+]

@@ -4,7 +4,18 @@
 1. R.8.2.1, R.8.2.2 y CI.17 cerrados 2026-10-11. CI.18 (`chat-roles` intermitente) instrumentado y medido 3/3 PASS;
    queda abierto hasta el próximo fallo: si el pre-push lo tumba, leer el detalle JSON del paso del marcador y la
    captura `marker-failure` en el `result.json` que imprime. Siguiente: R.8.3.
-2. R.8.3 → R.8.6 en orden (PLAN.md:242+), luego ERP.4.
+2. R.8.3 cerrado 2026-10-11 (gate `qa-negative`; detalle en PLAN.md). Siguiente: R.8.4 → R.8.6 en orden, luego ERP.4.
+   Abierto CI.19 (`git commit` del fixture falló 1 de 9 en el andamiaje; ya deja evidencia en `qa-negative`).
+   Lecciones de R.8.3 para delegar:
+   - macOS no tiene `timeout`: tope con `perl -e 'alarm N; exec @ARGV' ~/.agent-method/bin/delegate …`.
+   - El spec debe decir "NO correr `test:coverage` ni detenerse por el baseline" (en el sandbox de Codex dan 3 fallos
+     falsos: `csrf-origin` por puertos, `adversarial-review` ×2 por sandbox anidado) y aclarar que el candado de
+     escritor `ocupado: claude …` es el cerebro que delega; si no, Luna se detiene sola.
+   - Una ronda de corrección = un spec en archivo propio; rondas apiladas en el mismo archivo no se ejecutan.
+   - Visto sin verificar: en la captura de `qa-negative` la pestaña "Contract" aparece activa con el contenido de QA;
+     el código es correcto (`RunsEvidenceView.tsx:113-142`) y hay `transition: all 150ms` → probable captura a mitad
+     de transición.
+   - Dashboard en `localhost:4242` (PID 36588, desde 10:53 del 10-11): no lo levantó esta sesión; no se tocó.
 
 R.8.2 cerrado 2026-10-10 (`b9decaa`): historial al CLI de Claude y a threads nuevos de Codex; gate `chat-continuity`.
 Lecciones:

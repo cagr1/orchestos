@@ -13,6 +13,7 @@ interface RunRow {
   qaVerdict: RunItem['qaVerdict']
   qaReason?: string | null
   qaModel?: string | null
+  qaCriteria?: Array<{ text: string; pass: boolean; evidence?: { file: string; excerpt: string } }>
   adversarialVerdict?: string | null
   adversarialReason?: string | null
   refuterVerdict?: string | null
@@ -47,6 +48,13 @@ export function mapRunRow(row: RunRow): RunItem {
           rationale: row.qaReason || 'No reason recorded',
         }
       : null,
+    ...(row.qaCriteria || []).map((c) => ({
+      criterion: c.text,
+      passed: c.pass,
+      rationale: c.evidence
+        ? `${c.evidence.file}: ${c.evidence.excerpt}`
+        : 'no evidence in written files',
+    })),
     row.adversarialVerdict
       ? {
           criterion: `Adversarial verdict: ${row.adversarialVerdict}`,

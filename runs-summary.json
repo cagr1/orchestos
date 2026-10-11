@@ -1,7 +1,37 @@
 {
-  "exported_at": "2026-10-11T17:05:53.829Z",
+  "exported_at": "2026-10-11T17:13:11.686Z",
   "total_runs": 20,
   "runs": [
+    {
+      "id": "553af077-6ea1-4603-81e2-c6798cfb770c",
+      "task_class": "chat",
+      "model": "gpt-6-sol",
+      "provider": "codex",
+      "status": "done",
+      "qa_verdict": null,
+      "qa_reason": null,
+      "files_blocked": [],
+      "checks_failed": 0,
+      "usd_cost": 0.028934799999999997,
+      "elapsed_ms": 20458,
+      "tokens": 3473,
+      "created_at": "2026-10-11T17:09:15.964Z"
+    },
+    {
+      "id": "dc0f3ca1-1e81-43c4-ba00-0946c1a97ef2",
+      "task_class": "chat",
+      "model": "gpt-6-sol",
+      "provider": "codex",
+      "status": "done",
+      "qa_verdict": null,
+      "qa_reason": null,
+      "files_blocked": [],
+      "checks_failed": 0,
+      "usd_cost": 0.0278852,
+      "elapsed_ms": 22647,
+      "tokens": 4753,
+      "created_at": "2026-10-11T17:06:49.735Z"
+    },
     {
       "id": "183f2ce7-7099-4798-ba6e-10b61aeef11f",
       "task_class": "chat",
@@ -271,36 +301,6 @@
       "elapsed_ms": 3039,
       "tokens": 3057,
       "created_at": "2026-10-11T13:43:07.826Z"
-    },
-    {
-      "id": "f990dc55-c777-494e-b9b9-9954726fe165",
-      "task_class": "chat",
-      "model": "gpt-6-luna",
-      "provider": "codex",
-      "status": "done",
-      "qa_verdict": null,
-      "qa_reason": null,
-      "files_blocked": [],
-      "checks_failed": 0,
-      "usd_cost": 0.00119858,
-      "elapsed_ms": 4719,
-      "tokens": 10829,
-      "created_at": "2026-10-11T13:42:07.231Z"
-    },
-    {
-      "id": "3432503c-9666-4a3c-8caf-71a0e47a34fe",
-      "task_class": "gate:r.8.1.1-auto-flow:implement",
-      "model": "gpt-6-luna",
-      "provider": "codex",
-      "status": "done",
-      "qa_verdict": "pass",
-      "qa_reason": "codex-nota.md contains the requested single line, “nota de codex”.",
-      "files_blocked": [],
-      "checks_failed": 0,
-      "usd_cost": 0.00206516,
-      "elapsed_ms": 32271,
-      "tokens": 16639,
-      "created_at": "2026-10-07T19:41:57.708Z"
     }
   ],
   "stats": {
@@ -308,6 +308,6 @@
     "blocked": 0,
     "done": 18,
     "qa_failed": 3,
-    "total_cost_usd": "0.0642"
+    "total_cost_usd": "0.1178"
   }
 }

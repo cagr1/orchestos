@@ -1028,6 +1028,7 @@ export async function runTask(opts: HarnessOpts): Promise<TaskResult> {
       }
       const retryCount = ctx.task.retry_count + 1
       const newStatus = retryCount >= MAX_RETRIES ? 'failed_permanent' : 'pending'
+      const rejectedDiffs = computeFileDiffs(beforeContent, contractResult.written)
 
       const runId = insertRun({
         project_id: runProjectId,
@@ -1047,8 +1048,10 @@ export async function runTask(opts: HarnessOpts): Promise<TaskResult> {
         qa_verdict: 'fail',
         qa_reason: qa.reason,
         qa_model: qa.model,
+        qa_criteria_json: qa.criteria?.length ? JSON.stringify(qa.criteria) : null,
         skill_gates_json: gatesJson,
         checks_json: checksResults.length ? JSON.stringify(checksResults) : null,
+        file_diffs: rejectedDiffs.length ? JSON.stringify(rejectedDiffs) : null,
         constitution_rules: ctx.constitutionRules,
         context_source: ctx.contextSource,
         context_tokens: ctx.contextTokens,
@@ -1144,6 +1147,7 @@ export async function runTask(opts: HarnessOpts): Promise<TaskResult> {
       qa_verdict: 'pass',
       qa_reason: qa.reason,
       qa_model: qa.model,
+      qa_criteria_json: qa.criteria?.length ? JSON.stringify(qa.criteria) : null,
       skill_gates_json: gatesJson,
       checks_json: checksResults.length ? JSON.stringify(checksResults) : null,
       constitution_rules: ctx.constitutionRules,

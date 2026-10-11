@@ -763,6 +763,20 @@ export const FUTURE_MIGRATIONS: readonly SchemaMigrationStep[] = [
         throw new Error('Migration 21 did not add runs.cli_session_id')
     },
   },
+  {
+    version: 22,
+    name: 'run-qa-criteria',
+    precondition: () => {},
+    apply: (database) => database.exec('ALTER TABLE runs ADD COLUMN qa_criteria_json TEXT;'),
+    postcondition: (database) => {
+      const columns = database
+        .query<{ name: string }, []>('PRAGMA table_info(runs)')
+        .all()
+        .map((row) => row.name)
+      if (!columns.includes('qa_criteria_json'))
+        throw new Error('Migration 22 did not add runs.qa_criteria_json')
+    },
+  },
 ]
 
 function appliedVersions(database: Database): Set<number> {

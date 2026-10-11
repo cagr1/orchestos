@@ -24,6 +24,7 @@ export interface RunRecord {
   qa_verdict: string | null
   qa_reason: string | null
   qa_model: string | null
+  qa_criteria_json?: string | null
   checks_json: string | null
   constitution_rules: number | null
   context_source: string | null
@@ -60,6 +61,7 @@ type InsertRunRecord = Omit<
   | 'created_at'
   | 'files_read'
   | 'qa_model'
+  | 'qa_criteria_json'
   | 'checks_json'
   | 'constitution_rules'
   | 'context_source'
@@ -76,6 +78,7 @@ type InsertRunRecord = Omit<
 > & {
   files_read?: string | null
   qa_model?: string | null
+  qa_criteria_json?: string | null
   checks_json?: string | null
   constitution_rules?: number | null
   context_source?: string | null
@@ -103,12 +106,12 @@ export function insertRun(r: InsertRunRecord): string {
     `INSERT INTO runs (
       id, project_id, prompt, task_class, model, provider, skill_id, task_id,
       allowed_outputs, files_attempted, files_authorized, files_blocked,
-      files_read, read_audit_json,
+      files_read, read_audit_json, qa_criteria_json,
       snapshot_before, snapshot_after, qa_verdict, qa_reason, qa_model, checks_json,
       constitution_rules, context_source, context_tokens, embed_hits, context_warnings_json,
       cost_breakdown_json, file_diffs, adversarial_verdict, adversarial_reason, refuter_verdict, refuter_reason, skill_gates_json,
       status, input_tokens, cache_read_tokens, cache_write_tokens, output_tokens, usd_cost, elapsed_ms, result, created_at, cli_session_id
-    ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
+    ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
     [
       id,
       scrub(r.project_id),
@@ -124,6 +127,7 @@ export function insertRun(r: InsertRunRecord): string {
       scrub(r.files_blocked),
       scrub(r.files_read),
       scrub(r.read_audit_json),
+      scrub(r.qa_criteria_json) ?? null,
       scrub(r.snapshot_before),
       scrub(r.snapshot_after),
       scrub(r.qa_verdict),

@@ -100,6 +100,11 @@ export function runRecordToRow(r: RunRecord): RunRow {
     qaVerdict: r.qa_verdict as 'pass' | 'fail' | null,
     qaReason: r.qa_reason,
     qaModel: r.qa_model,
+    qaCriteria: parseJsonArray<{
+      text: string
+      pass: boolean
+      evidence?: { file: string; excerpt: string }
+    }>(r.qa_criteria_json),
     adversarialVerdict: r.adversarial_verdict,
     adversarialReason: r.adversarial_reason,
     refuterVerdict: r.refuter_verdict,
