@@ -532,14 +532,15 @@ como default de Codex). Es esquema de trabajo para desarrollar OrchestOS, no pro
   `bun run context:budget` → `level: warn`; con el umbral anterior era `ok`. Esta sesión, 193 669 tokens → `ok`.
   **No verificado:** ver el aviso aparecer en una sesión real al cruzar el tope; es el gate 🔍 de H.7.3, que sigue abierto.
 
-- [ ] **AT.18 — 🧠 Un solo escritor por árbol, hecho cumplir por un candado.** (abierto 2026-10-11)
+- [ ] **AT.18 — 🔍 Un solo escritor por árbol, hecho cumplir por un candado.** (abierto 2026-10-11)
   Incidente 2026-10-11: dos sesiones de Claude en el mismo árbol; el commit de AT.15 arrastró del índice compartido el
-  spec y la línea de `PLAN.md` de CI.17. Hoy la regla es solo texto (`docs/agent-work-protocol.md` paso 3).
-  Diseño a especificar: archivo de candado en `.orchestos/` con sesión, agente e ítem; lo toma la primera sesión que
-  edita (hook `PreToolUse` en Claude Code) y lo refresca al escribir; a otra sesión se le niegan las ediciones y, en
-  el pre-commit (lo único que también cubre a Codex), el commit. Caduca solo si la sesión dueña deja de escribir.
-  Leer antes `scripts/agent-preflight.ts` (ya escribe el ítem activo) y `scripts/pre-commit.sh`.
-  Gate 🔍: dos sesiones reales; la segunda ve el rechazo con el nombre del ítem que ocupa el árbol.
+  spec y la línea de `PLAN.md` de CI.17. Resuelto fuera del repo, portable a todo proyecto:
+  `~/.agent-method/hooks/writer-lock.js` (commit `feat(method): candado…` de `memories-vault`), registrado en
+  `~/.claude/settings.json` (`PreToolUse` + `SessionEnd`). Candado en el git-dir del árbol; 16/16 tests y prueba por el
+  enlace del home en un repo temporal.
+  Falta para cerrar: (1) gate 🔍 con dos sesiones reales nuevas en este repo — el hook solo carga al abrir sesión — y
+  ver el rechazo en la segunda; (2) decidir si el pre-commit llama a `writer-lock.js` para cubrir a Codex interactivo,
+  que hoy solo lo reclama por regla (`claim codex`).
 
 - [ ] **AT.17 — ⚡ El mensaje de `brain-no-code` nombra roles, no modelos.** (abierto 2026-10-11)
   `.claude/hooks/brain-no-code.js:16` dice "delega a Luna. Ejecutor Sonnet: lanzar con ORCHESTOS_ROLE=executor".
