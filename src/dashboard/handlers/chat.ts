@@ -92,7 +92,6 @@ import { readEnv } from '../settings-store.ts'
 import { checkSsrSafe } from '../ssrf.ts'
 import type { ChatFileType, ChatUploadResponse } from '../types.ts'
 import { buildNaturalDraft } from './project.ts'
-import { reportTaskOutcome } from './task-report.ts'
 import { createTaskRecord, spawnTaskRun } from './tasks.ts'
 
 const VALID_EFFORTS = ['low', 'medium', 'high'] as const
@@ -1143,15 +1142,7 @@ async function handleApiChat(
             else if (existingFiles.length) autoTask = { id: created.id, held: true, existingFiles }
             else {
               if (activeTurnId) requireTurnOwner(activeTurnId, CHAT_TURN_OWNER)
-              spawnTaskRun(
-                root,
-                created.id,
-                undefined,
-                undefined,
-                session
-                  ? () => reportTaskOutcome(root, session.id, created.id, session.project_id)
-                  : undefined,
-              )
+              spawnTaskRun(root, created.id, undefined, undefined, session?.id)
               autoTask = { id: created.id }
             }
           }

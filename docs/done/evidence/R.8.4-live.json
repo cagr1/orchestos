@@ -1,0 +1,154 @@
+[
+  {
+    "flujo": "restart-mid-run",
+    "pass": true,
+    "steps": [
+      {
+        "nombre": "temporary project visible",
+        "ok": true,
+        "detalle": "project in Dev sidebar"
+      },
+      {
+        "nombre": "A: run requested from the chat session",
+        "ok": true,
+        "detalle": "HTTP 200"
+      },
+      {
+        "nombre": "A: task is running with a watched runner before the restart",
+        "ok": true,
+        "detalle": "{\"status\":\"running\",\"watch\":{\"pid\":15786,\"session_id\":\"d4561b90-4119-44f5-9e53-f2b8577b6f75\"}}"
+      },
+      {
+        "nombre": "A: no report exists before the restart",
+        "ok": true,
+        "detalle": "[]"
+      },
+      {
+        "nombre": "A: runner was still alive while the dashboard was stopped",
+        "ok": true,
+        "detalle": "pid=15786 alive=true"
+      },
+      {
+        "nombre": "A: surviving runner ended its run by itself after the restart",
+        "ok": true,
+        "detalle": "{\"status\":\"done\",\"retryCount\":0,\"retryReason\":null,\"runsBefore\":0,\"runsAfter\":1}"
+      },
+      {
+        "nombre": "A: exactly one report for that taskId, matching the final status",
+        "ok": true,
+        "detalle": "[\"✓ Task `gate-restart-a` done · codex/openai/gpt-6-luna\\n\\n> 1 file(s) written\"]"
+      },
+      {
+        "nombre": "A: watch row removed after settling",
+        "ok": true,
+        "detalle": "null"
+      },
+      {
+        "nombre": "A: chat shows the report after reloading the page",
+        "ok": true,
+        "detalle": "report visible in the session"
+      },
+      {
+        "nombre": "A: Runs lists the run of that task",
+        "ok": true,
+        "detalle": "row gate-restart-a in Runs"
+      },
+      {
+        "nombre": "B: run requested from the chat session",
+        "ok": true,
+        "detalle": "HTTP 200"
+      },
+      {
+        "nombre": "B: task is running with a watched runner before the restart",
+        "ok": true,
+        "detalle": "{\"status\":\"running\",\"watch\":{\"pid\":17768,\"session_id\":\"6af897f5-dd97-466d-8695-02957d35ef18\"}}"
+      },
+      {
+        "nombre": "B: no report exists before the restart",
+        "ok": true,
+        "detalle": "[]"
+      },
+      {
+        "nombre": "B: runner was dead while the dashboard was stopped",
+        "ok": true,
+        "detalle": "pid=17768 alive=false"
+      },
+      {
+        "nombre": "B: task marked failed with the interruption reason",
+        "ok": true,
+        "detalle": "{\"status\":\"failed\",\"retryReason\":\"Interrupted: the task runner stopped before the task finished.\"}"
+      },
+      {
+        "nombre": "B: exactly one report for that taskId, with the interruption text",
+        "ok": true,
+        "detalle": "[\"✗ Task `gate-restart-b` failed\\n\\n> Interrupted: the task runner stopped before the task finished.\"]"
+      },
+      {
+        "nombre": "B: no second run was launched",
+        "ok": true,
+        "detalle": "{\"runsBefore\":0,\"runsAfter\":0}"
+      },
+      {
+        "nombre": "B: watch row removed after settling",
+        "ok": true,
+        "detalle": "null"
+      },
+      {
+        "nombre": "B: chat shows the interruption report after reloading the page",
+        "ok": true,
+        "detalle": "interruption report visible in the session"
+      },
+      {
+        "nombre": "C: run requested from the chat session",
+        "ok": true,
+        "detalle": "HTTP 200"
+      },
+      {
+        "nombre": "C: task is running with a watched runner before the restart",
+        "ok": true,
+        "detalle": "{\"status\":\"running\",\"watch\":{\"pid\":18838,\"session_id\":\"6bda0efa-eae2-46a7-b56b-962b9cd47b53\"}}"
+      },
+      {
+        "nombre": "C: no report exists before the restart",
+        "ok": true,
+        "detalle": "[]"
+      },
+      {
+        "nombre": "C: runner was killed while the dashboard stayed up",
+        "ok": true,
+        "detalle": "pid=18838 alive=false"
+      },
+      {
+        "nombre": "C: task marked failed with the interruption reason",
+        "ok": true,
+        "detalle": "{\"status\":\"failed\",\"retryReason\":\"Interrupted: the task runner stopped before the task finished.\"}"
+      },
+      {
+        "nombre": "C: exactly one report for that taskId, with the interruption text",
+        "ok": true,
+        "detalle": "[\"✗ Task `gate-restart-c` failed\\n\\n> Interrupted: the task runner stopped before the task finished.\"]"
+      },
+      {
+        "nombre": "C: no second run was launched",
+        "ok": true,
+        "detalle": "{\"runsBefore\":0,\"runsAfter\":0}"
+      },
+      {
+        "nombre": "C: watch row removed after settling",
+        "ok": true,
+        "detalle": "null"
+      },
+      {
+        "nombre": "C: chat shows the interruption report after reloading the page",
+        "ok": true,
+        "detalle": "interruption report visible in the session"
+      }
+    ],
+    "errores": [],
+    "capturas": [
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-15491/restart-mid-run/restart-mid-run-a-chat.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-15491/restart-mid-run/restart-mid-run-b-chat.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-15491/restart-mid-run/restart-mid-run-c-chat.png"
+    ]
+  }
+]

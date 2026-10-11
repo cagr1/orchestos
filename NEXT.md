@@ -6,6 +6,11 @@
    captura `marker-failure` en el `result.json` que imprime. Siguiente: R.8.3.
 2. R.8.3 cerrado 2026-10-11 (gate `qa-negative`; detalle en PLAN.md). Siguiente: R.8.4 → R.8.6 en orden, luego ERP.4.
    Abierto CI.19 (`git commit` del fixture falló 1 de 9 en el andamiaje; ya deja evidencia en `qa-negative`).
+3. R.8.4 cerrado 2026-10-11 (gate `restart-mid-run`; detalle en PLAN.md). Siguiente: R.8.5 → R.8.6, luego ERP.4.
+   Antes de R.8.5, decisión de Carlos: ¿las tareas de Codex heredan `~/.codex/AGENTS.md` global o corren con
+   `CODEX_HOME` aislado como el chat? (evidencia en PLAN.md, R.8.5). Recomendación: aisladas.
+   Lecciones de R.8.4: `delegate qa` exige archivo de spec, no acepta la pregunta directa; el cerebro no puede editar
+   `scripts/` (hook `brain-no-code`), ni una palabra: va por `mecanico`; no editar `src/` con un `ui:gate` corriendo.
    Lecciones de R.8.3 para delegar:
    - macOS no tiene `timeout`: tope con `perl -e 'alarm N; exec @ARGV' ~/.agent-method/bin/delegate …`.
    - El spec debe decir "NO correr `test:coverage` ni detenerse por el baseline" (en el sandbox de Codex dan 3 fallos

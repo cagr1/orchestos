@@ -40,7 +40,7 @@ describe('dashboard task run session reporting', () => {
       expect(proc.exitCode, new TextDecoder().decode(proc.stderr)).toBe(0)
     }
     const originalSpawn = Bun.spawn
-    Bun.spawn = (() => ({ exited: Promise.resolve(0) })) as unknown as typeof Bun.spawn
+    Bun.spawn = (() => ({ pid: 424242, exited: Promise.resolve(0) })) as unknown as typeof Bun.spawn
     try {
       const response = await handleApiTasksRun(
         new Request('http://localhost/api/tasks/task-test/run', {

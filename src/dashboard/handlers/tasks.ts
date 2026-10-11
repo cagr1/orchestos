@@ -8,6 +8,7 @@ import type { AgentChoice } from '../../config/schema.ts'
 import { getChatSession } from '../../db/chat-sessions.ts'
 import { getProject } from '../../db/projects.ts'
 import { getRunSteps } from '../../db/run-steps.ts'
+import { upsertTaskRunWatch } from '../../db/task-run-watch.ts'
 import { suggestContext } from '../../graph/suggest.ts'
 import { autoRoute, formatRoute } from '../../router/auto-route.ts'
 import { resolveProjectAgentRule, taskFieldsFromRule } from '../../router/engine-cascade.ts'
@@ -20,7 +21,7 @@ import { scaffoldTasksYaml } from '../../tasks/init.ts'
 import { loadTasks, mutateTasks } from '../../tasks/loader.ts'
 import { errorResponse, jsonResponse, validateTaskId } from '../http.ts'
 import type { DiagnoseRow, SplitPlanResponse, TaskRow } from '../types.ts'
-import { reportTaskOutcome } from './task-report.ts'
+import { settleExitedTaskRun } from './task-run-reconcile.ts'
 
 async function handleApiSystemExecutorModes(root = process.cwd()): Promise<Response> {
   let localDetected = false
@@ -330,7 +331,7 @@ function spawnTaskRun(
   id: string,
   model?: string,
   projectId?: string | null,
-  onExit?: () => void,
+  sessionId?: string | null,
 ): void {
   commitTasksYaml(root, `chore(tasks): run ${id} (dashboard)`)
   const args = [process.execPath, 'run', ORCHESTOS_CLI_PATH, 'task', 'run', root, '--id', id]
@@ -345,7 +346,16 @@ function spawnTaskRun(
       ? { ...process.env, ORCHESTOS_PROJECT_ID: selectedProjectId }
       : undefined,
   })
-  if (onExit) void proc.exited.then(onExit).catch(() => {})
+  // R.8.4 — el reporte pendiente se persiste (también sin chat): si el dashboard
+  // se reinicia a mitad del run, `reconcileTaskRuns` lo cierra al arrancar.
+  const watch = upsertTaskRunWatch({
+    root,
+    task_id: id,
+    project_id: selectedProjectId ?? null,
+    session_id: sessionId ?? null,
+    pid: proc.pid,
+  })
+  void proc.exited.then(() => settleExitedTaskRun(watch)).catch(() => {})
 }
 
 async function handleApiTasksCreate(req: Request, root: string): Promise<Response> {
@@ -415,13 +425,7 @@ async function handleApiTasksRun(
   })
   if (!taskResult) return errorResponse('Task not found', 404)
   const session = typeof body.sessionId === 'string' ? getChatSession(body.sessionId) : null
-  spawnTaskRun(
-    root,
-    id,
-    model,
-    projectId,
-    session ? () => reportTaskOutcome(root, session.id, id, projectId) : undefined,
-  )
+  spawnTaskRun(root, id, model, projectId, session?.id)
   return jsonResponse({ ok: true, id })
 }
 

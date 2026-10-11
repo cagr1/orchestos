@@ -114,6 +114,7 @@ import {
   handleApiSystemEnginesExternalAvailability,
   handleApiSystemReset,
 } from './handlers/system.ts'
+import { reconcileTaskRuns } from './handlers/task-run-reconcile.ts'
 import {
   handleApiSystemExecutorModes,
   handleApiTasks,
@@ -644,11 +645,19 @@ export function startServer(
     },
   })
   const stop = server.stop.bind(server)
+  // R.8.4 — cierra los reportes de runs que el reinicio anterior dejó a medias.
+  let taskRunReconcile: { stop(): void } | null = null
+  try {
+    taskRunReconcile = reconcileTaskRuns()
+  } catch (error) {
+    console.error('[dashboard] Could not reconcile task runs', error)
+  }
   let stopped = false
   const onSignal = () => server.stop(true)
   const stopWithCodex = (...args: any[]) => {
     if (!stopped) {
       stopped = true
+      taskRunReconcile?.stop()
       process.off('SIGINT', onSignal)
       process.off('SIGTERM', onSignal)
       stopCodexAppServers()

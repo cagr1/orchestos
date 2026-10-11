@@ -296,11 +296,40 @@ Cerrada. Todos sus ítems están archivados en `docs/done/` (ver "Cerrados — e
   `qa-negative` (2026-10-11, 1 de 9): `Command failed: git … commit -qm task fixture`, sin motivo porque el helper
   `run` usa `stdio: 'ignore'`. `qa-negative` ya reporta stdout/stderr y exit; los otros 20 flows con el mismo helper no.
   Al próximo fallo, leer el motivo en el `result.json` antes de arreglar; llevar el helper a `scripts/ui-gate/lib.mjs`.
-- [ ] **R.8.4 — 🔍 Reinicio del dashboard a mitad de run.** Recuperar el resultado y el reporte de fin (gap declarado
-  de I.7.2); probablemente requiere arreglo de producto. Hallazgo 4.
+- [x] **R.8.4 — 🔍 Reinicio del dashboard a mitad de run.** (2026-10-11) Recuperar el resultado y el reporte de fin
+  (gap declarado de I.7.2). Hallazgo 4.
+  Ejecutado por: sonnet (rondas 1-2) · gpt-6-luna (rondas 3-5) · revisión `qa` gpt-6.1-sol.
+  Decisión de Carlos 2026-10-11: un run huérfano se marca interrumpido y se reporta; **nunca se relanza solo**.
+  Causa: el reporte dependía de un callback en memoria (`proc.exited.then(onExit)`) y nada reconciliaba al arrancar.
+  Hecho: migración 23 `task_run_watch` (`root`, `task_id`, `project_id`, `session_id`, `pid`, `created_at`);
+  `spawnTaskRun` registra cada lanzamiento, también sin chat; `settleTaskRun` (`handlers/task-report.ts`) cierra por
+  reclamo atómico (borra la fila de ESE lanzamiento y escribe el reporte en una transacción; si falla, la fila queda
+  para el próximo arranque); `reconcileTaskRuns` (`handlers/task-run-reconcile.ts`) corre en `startServer`: tarea
+  terminal → reporta; `running` con runner vivo → vigila el PID; `running` con runner muerto → `failed` +
+  `Interrupted: the task runner stopped before the task finished.` La sonda de "runner vivo" es inyectable.
+  Hermano arreglado: runner que muere con el dashboard vivo dejaba la tarea en `running` y el chat decía
+  `✗ Task … running`; ahora pasa por el mismo cierre. `qa` encontró 4 defectos (cierre viejo que pisaba un
+  relanzamiento, reporte duplicado con dos dashboards, reporte perdido si fallaba la escritura, sonda que casaba
+  `task-1` con `--id task-10`): corregidos en la ronda 3 con sus regresiones.
+  Gate nuevo `restart-mid-run` (en el pre-push), 3 casos con tarea real de Codex: A runner sobrevive, B runner muere
+  con el dashboard, C runner muere con el dashboard vivo. `ctx.restartDashboard()` nuevo en `scripts/ui-gate/run.mjs`.
+  Gate en vivo: navegador real (Playwright), `docs/done/evidence/R.8.4-live.json` — `restart-mid-run` 28/28;
+  `auto-flow` 31/31 sobre el mismo código de producto; `test:coverage` 1670/0; `tsc` limpio.
+  Estabilidad: 2 de 3 corridas del cerebro en verde (más 2 verdes que reportó el ejecutor, no repetidas). La que falló (caso A): el ejecutor Codex se negó a escribir sin intentar nada
+  ("the workspace is locked for writes by another session") → ver R.8.5; el reporte sí se recuperó. El caso A ya no
+  exige `done`: comprueba un único reporte coherente con el estado final.
+  Límites: el gate lanza con `POST /api/tasks/:id/run {sessionId}` (ruta de "Approve & Run"), no con el auto-flow del
+  chat (`chat.ts:1145`), que usa el mismo `spawnTaskRun` pero no queda ejercitado aquí. Un run interrumpido no se
+  reanuda: se reintenta a mano. Si el cierre falla con el dashboard vivo, el reporte no aparece hasta el próximo arranque.
 - [ ] **R.8.5 — 🔍 Privacidad sin depender del modelo.** `read-boundary`: condición dura = el token del fixture nunca
   aparece en respuesta ni en `files_read`; el `rejected` del audit se registra cuando ocurre, no se exige (Claude se
   niega sin invocar Read). Centinelas entre proyectos en el contexto efectivo del CLI. Hallazgo 5.
+  Visto en R.8.4 (2026-10-11), verificado por lectura y por transcripción: las tareas de Codex corren sin
+  `CODEX_HOME` aislado (`src/run/executors/codex.ts:158-171` usa `safeChildEnv()`; el chat sí lo aísla,
+  `codex.ts:347,428`), así que el `~/.codex/AGENTS.md` global del usuario entra al prompt de cada tarea. Efecto
+  medido: 1 de 5 corridas del caso A, Luna se negó a escribir citando "un árbol, un escritor" sin ejecutar ninguna herramienta
+  (`~/.codex/sessions/2026/10/11/rollout-2026-10-11T13-20-04-01a12c31-….jsonl`, 34 tokens de salida). Decisión de
+  producto pendiente de Carlos: ¿las tareas heredan las instrucciones globales del usuario o corren aisladas como el chat?
 - [ ] **R.8.6 — 🔍 Pasos que no pueden fallar.** Quitar `true` literales (`auto-flow.mjs:356,360`,
   `project-isolation.mjs:125`, `runs-graph.mjs:198`) y nombres que prometen más de lo que comprueban. Hallazgos 6-7.
 

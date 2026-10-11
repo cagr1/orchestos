@@ -38,6 +38,32 @@ async function freePort() {
   })
 }
 
+// R.8.4 — el arranque vive en una función para que `ctx.restartDashboard()` lo repita
+// con el mismo ORCHESTOS_HOME, puerto y log.
+function startDashboard(port) {
+  dashboard = spawn('bun', ['run', 'src/cli.ts', 'dashboard', '--port', String(port)], {
+    cwd: process.cwd(),
+    env: {
+      ...process.env,
+      ORCHESTOS_HOME: home,
+      ORCHESTOS_GATE_CAPTURE_DIR: captureDir,
+      ORCHESTOS_CLAUDE_STATUSLINE_HOME: statuslineHome,
+    },
+    stdio: ['ignore', dashboardLogFd, dashboardLogFd],
+  })
+}
+
+// `whileStopped` corre con el dashboard ya detenido y antes de volver a levantarlo: permite
+// modelar "el runner murió junto con el dashboard" sin que el callback `exited` del
+// dashboard viejo alcance a reportar.
+async function restartDashboard(base, port, whileStopped) {
+  await killDashboard()
+  if (whileStopped) await whileStopped()
+  startDashboard(port)
+  if (!(await waitForHealth(base)))
+    throw new Error('dashboard did not become healthy after restart')
+}
+
 async function killDashboard() {
   if (!dashboard || dashboard.killed) return
   try {
@@ -122,7 +148,7 @@ async function waitForHealth(base) {
   return false
 }
 
-async function runFlow(name, base) {
+async function runFlow(name, base, port) {
   const result = { flujo: name, pass: false, steps: [], errores: [], capturas: [] }
   const sourcePath = path.resolve('scripts/ui-gate/flows', `${name}.mjs`)
   let browser
@@ -153,6 +179,7 @@ async function runFlow(name, base) {
       page,
       base,
       databasePath,
+      restartDashboard: (whileStopped) => restartDashboard(base, port, whileStopped),
       captureDir,
       statuslineHome,
       api: async (apiPath, init = {}) => {
@@ -274,16 +301,7 @@ async function main() {
   await fsp.mkdir(statuslineHome, { recursive: true })
   const port = await freePort()
   dashboardLogFd = fs.openSync(dashboardLog, 'a')
-  dashboard = spawn('bun', ['run', 'src/cli.ts', 'dashboard', '--port', String(port)], {
-    cwd: process.cwd(),
-    env: {
-      ...process.env,
-      ORCHESTOS_HOME: home,
-      ORCHESTOS_GATE_CAPTURE_DIR: captureDir,
-      ORCHESTOS_CLAUDE_STATUSLINE_HOME: statuslineHome,
-    },
-    stdio: ['ignore', dashboardLogFd, dashboardLogFd],
-  })
+  startDashboard(port)
   const base = `http://127.0.0.1:${port}`
   const results = []
   if (!(await waitForHealth(base))) {
@@ -307,7 +325,7 @@ async function main() {
       stdout(`WARN orphan cleanup: ${error instanceof Error ? error.message : String(error)}`)
     }
     for (const name of flows) {
-      const result = await runFlow(name, base)
+      const result = await runFlow(name, base, port)
       results.push(result)
       stdout(formatResult(result))
     }

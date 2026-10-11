@@ -777,6 +777,31 @@ export const FUTURE_MIGRATIONS: readonly SchemaMigrationStep[] = [
         throw new Error('Migration 22 did not add runs.qa_criteria_json')
     },
   },
+  {
+    version: 23,
+    name: 'task-run-watch',
+    precondition: () => {},
+    apply: (database) =>
+      database.exec(`
+      CREATE TABLE IF NOT EXISTS task_run_watch (
+        root TEXT NOT NULL,
+        task_id TEXT NOT NULL,
+        project_id TEXT,
+        session_id TEXT,
+        pid INTEGER NOT NULL,
+        created_at TEXT NOT NULL,
+        PRIMARY KEY(root, task_id)
+      );
+    `),
+    postcondition: (database) => {
+      const found = database
+        .query<{ count: number }, []>(
+          "SELECT COUNT(*) AS count FROM sqlite_master WHERE type='table' AND name='task_run_watch'",
+        )
+        .get()?.count
+      if (found !== 1) throw new Error('Migration 23 did not create task_run_watch')
+    },
+  },
 ]
 
 function appliedVersions(database: Database): Set<number> {

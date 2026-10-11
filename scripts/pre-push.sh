@@ -58,7 +58,7 @@ fi
 tail -n 6 "$lint_log"
 
 # CI.10/CI.9.5: los flujos con modelo real corren automáticamente cuando cambia el chat.
-ui_flows=(smoke plan-doc project-delete usage-bar text-sweep chat-turn-details tasks runs-graph qa-negative project-tabs model-routing composer-picker chat-roles chat-context)
+ui_flows=(smoke plan-doc project-delete usage-bar text-sweep chat-turn-details tasks runs-graph qa-negative restart-mid-run project-tabs model-routing composer-picker chat-roles chat-context)
 ui_paths='^(src/dashboard/|scripts/ui-gate/|src/run/)'
 ui_required=0
 chat_required=0
