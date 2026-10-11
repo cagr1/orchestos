@@ -267,6 +267,8 @@ Cerrada. Todos sus ítems están archivados en `docs/done/` (ver "Cerrados — e
   Evidencia: `usage-bar` 18/18, `tasks` 13/13, biome limpio. Sin contraprueba determinista: el fallo es una carrera con
   el dashboard escribiendo tras el purge; la prueba real es que no reaparezca en los pre-push.
   Ejecutado por: Luna (gpt-6-luna) · Spec: docs/specs/CI.17.md
+- [ ] **CI.18 — 🔍 `chat-roles` intermitente en el pre-push completo (3.ª vez, 2026-10-11).** Instrumentar el paso del
+  marcador y medir la causa antes de arreglar. Spec: docs/specs/CI.18.md
 - [ ] **R.8.3 — 🔍 QA negativo real.** Tarea con salida deliberadamente incorrecta que QA debe rechazar; checks
   ejecutados y criterios visibles. Hallazgo 2.
 - [ ] **R.8.4 — 🔍 Reinicio del dashboard a mitad de run.** Recuperar el resultado y el reporte de fin (gap declarado
