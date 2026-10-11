@@ -1,10 +1,7 @@
 # NEXT — handoff 2026-10-10 (tras R.8.2) → siguiente tab (tras /clear)
 
 ## Orden vigente
-1. **Antes de R.8.3 — hallazgo de cierre de R.8.2** (PLAN.md, nota de R.8.2): en el turno 2 de Codex se reenvía el
-   system prompt entero como `<orchestos-context-update>` porque `codexContextHash` cambió entre turnos. Medir qué
-   parte cambia (¿la lista de runs recientes, la hora?) comparando dos `chat-prompt-<id>.txt` de un gate; si cambia en
-   cada turno, se pagan tokens de más en todos los chats de Codex. Abrir ítem con la causa medida.
+1. R.8.2.1 y R.8.2.2 cerrados 2026-10-11 (PLAN.md). Siguiente: R.8.3.
 2. R.8.3 → R.8.6 en orden (PLAN.md:242+), luego ERP.4.
 
 R.8.2 cerrado 2026-10-10 (`b9decaa`): historial al CLI de Claude y a threads nuevos de Codex; gate `chat-continuity`.

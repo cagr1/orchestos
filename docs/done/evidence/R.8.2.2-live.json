@@ -1,0 +1,148 @@
+[
+  {
+    "flujo": "chat-continuity",
+    "pass": true,
+    "steps": [
+      {
+        "nombre": "temporary project visible",
+        "ok": true,
+        "detalle": "orchestos-ui-chat-continuity-ZIIiSL"
+      },
+      {
+        "nombre": "Claude second prompt excludes sentinel",
+        "ok": true,
+        "detalle": "What was the code I gave you earlier in this chat? Reply with only the code."
+      },
+      {
+        "nombre": "Claude CLI receives prior sentinel from transcript",
+        "ok": true,
+        "detalle": "Conversation so far in this chat (oldest first):\nUser: Remember this code for later: R82-AB6210B7. Reply only OK.\nAssistant: <untrusted-data source=\"chat-history:assistant\">\nOK\n</untrusted-data>\nCurrent message:\nWhat was the code I gave you earlier in this chat? Reply with only the code."
+      },
+      {
+        "nombre": "Claude first reply is non-empty",
+        "ok": true,
+        "detalle": "OK"
+      },
+      {
+        "nombre": "Claude recalls sentinel after reload in API and DOM",
+        "ok": true,
+        "detalle": "API: R82-AB6210B7\nDOM: R82-AB6210B7"
+      },
+      {
+        "nombre": "Codex thread remembers sentinel without transcript duplication",
+        "ok": true,
+        "detalle": "What was the code I gave you earlier in this chat? Reply with only the code.\nAPI: R82-AB6210B7\nDOM: R82-AB6210B7"
+      },
+      {
+        "nombre": "expired Codex thread resends transcript and recalls sentinel",
+        "ok": true,
+        "detalle": "Conversation so far in this chat (oldest first):\nUser: Remember this code for later: R82-AB6210B7. Reply only OK.\nAssistant: <untrusted-data source=\"chat-history:assistant\">\nOK\n</untrusted-data>\nUser: What was the code I gave you earlier in this chat? Reply with only the code.\nAssistant: <untrusted-data source=\"chat-history:assistant\">\nR82-AB6210B7\n</untrusted-data>\nCurrent message:\nWhat was the code I gave you earlier in this chat? Reply with only the code.\nAPI: R82-AB6210B7\nDOM: R82-AB6210B7"
+      },
+      {
+        "nombre": "Dev context ring matches the open session",
+        "ok": true,
+        "detalle": "ring=Context window usage: 1.4214285714285715%; session=1.4214285714285715%"
+      }
+    ],
+    "errores": [],
+    "capturas": [
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-65372/chat-continuity/chat-continuity-claude.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-65372/chat-continuity/chat-continuity-codex-expired.png"
+    ]
+  },
+  {
+    "flujo": "chat-streaming",
+    "pass": true,
+    "steps": [
+      {
+        "nombre": "temporary project visible",
+        "ok": true,
+        "detalle": "orchestos-ui-mr-1-d4-xdNVlp"
+      },
+      {
+        "nombre": "Claude option available",
+        "ok": true,
+        "detalle": "Start New Chat with Agent\nConversation Topic or Title (Optional)\nProject\nNo projectorchestos-ui-mr-1-d4-xdNVlp\nSelect Agent / Engine\nClaude Code\nCodex\nOpenRouter API\nCancel\nStart Chat"
+      },
+      {
+        "nombre": "first assistant text appears before completion",
+        "ok": true,
+        "detalle": "t_first=2801 ms; t_done=4693 ms"
+      },
+      {
+        "nombre": "visible text grows at least twice before completion",
+        "ok": true,
+        "detalle": "3 growth updates"
+      },
+      {
+        "nombre": "live bubble stays at the bottom",
+        "ok": true,
+        "detalle": "4 growth measurements; remained at bottom: true"
+      },
+      {
+        "nombre": "captured screenshot during active turn",
+        "ok": true,
+        "detalle": "chat-text-visible-mid-turn"
+      },
+      {
+        "nombre": "one assistant bubble matches persisted response",
+        "ok": true,
+        "detalle": "bubbles=1; persisted=1; visible=Uno Dos Tres Cuatro Cinco Seis Siete Ocho Nueve Diez Once Doce Trece Catorce Qui"
+      },
+      {
+        "nombre": "context ring reflects thread",
+        "ok": true,
+        "detalle": "used=7446, window=200000, pct=3.723"
+      },
+      {
+        "nombre": "context ring recalculates on model change",
+        "ok": true,
+        "detalle": "model=claude-sonnet-5, expected pct=0.7446, ring=Context window usage: 0.7446%"
+      },
+      {
+        "nombre": "task marker is not visible",
+        "ok": true,
+        "detalle": "no task marker in the DOM"
+      },
+      {
+        "nombre": "Chat composer empty during sampled turn",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "Chat DOM order during sampled turn is previous assistant, user, live assistant",
+        "ok": true,
+        "detalle": "{\"liveCount\":1,\"order\":[\"08:57 AM Escribe los números del 1 al 40 en palabr\",\"Uno Dos Tres Cuatro Cinco Seis Siete Ocho Nueve Di\",\"Just now Escribe los números del 41 al 80 en palab\",\"Cuarenta y uno Cuarenta y dos Cuarenta y tres Cuar\"]}"
+      },
+      {
+        "nombre": "Chat turn 2 was sampled while pending",
+        "ok": true,
+        "detalle": "1 long turn(s) sent; pending composer and live DOM order sampled"
+      },
+      {
+        "nombre": "Chat bubbles alternate for every sent turn",
+        "ok": true,
+        "detalle": "[\"08:57 AM Escribe los números del 1 al 40 en palabr\",\"Uno Dos Tres Cuatro Cinco Seis Siete Ocho Nueve Di\",\"08:57 AM Escribe los números del 41 al 80 en palab\",\"Cuarenta y uno Cuarenta y dos Cuarenta y tres Cuar\"]"
+      },
+      {
+        "nombre": "Chat user bubbles contain no agent text or step markup",
+        "ok": true,
+        "detalle": "user bubbles=2"
+      },
+      {
+        "nombre": "Chat exchange order remains correct after reload",
+        "ok": true,
+        "detalle": "messages=4"
+      },
+      {
+        "nombre": "Dev renders text during generation before completion",
+        "ok": true,
+        "detalle": "t_first=2465 ms; t_done=3586 ms; visible=Uno, dos, tres, cuatro y cinco."
+      }
+    ],
+    "errores": [],
+    "capturas": [
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-65372/chat-streaming/chat-text-visible-mid-turn.png"
+    ]
+  }
+]

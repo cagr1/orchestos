@@ -209,4 +209,30 @@ export default async function chatContinuity({
     `${expiredCapture}\nAPI: ${afterExpiry.api}\nDOM: ${afterExpiry.dom}`,
   )
   await shot('chat-continuity-codex-expired')
+
+  await reopenSession(page, api, project, codexSession)
+  const contextUrl = `/api/chat/sessions/${encodeURIComponent(codexSession.id)}/context`
+  const contextRing = page.locator('[aria-label^="Context window usage:"]').last()
+  const deadline = Date.now() + 15_000
+  let contextMatch = false
+  let contextDetails = ''
+  while (Date.now() < deadline) {
+    const context = await api(contextUrl, {
+      headers: { 'x-orchestos-project-id': project.id },
+    })
+    const label = await contextRing.getAttribute('aria-label')
+    const shownPct = Number(label?.match(/^Context window usage: ([\d.]+)%$/)?.[1])
+    const expectedPct = Number(context.data?.pct)
+    contextDetails = `ring=${label ?? 'missing'}; session=${expectedPct}%`
+    if (
+      Number.isFinite(shownPct) &&
+      Number.isFinite(expectedPct) &&
+      Math.abs(shownPct - expectedPct) < 0.5
+    ) {
+      contextMatch = true
+      break
+    }
+    await page.waitForTimeout(250)
+  }
+  await step('Dev context ring matches the open session', contextMatch, contextDetails)
 }

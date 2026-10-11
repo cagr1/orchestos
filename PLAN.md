@@ -255,8 +255,13 @@ Cerrada. Todos sus ítems están archivados en `docs/done/` (ver "Cerrados — e
   Evidencia: `chat-continuity` 7/7 (el turno 2 de Codex ya no lleva `<orchestos-context-update>`), `chat-context` 5/5
   (el run de chat de Codex no aparece en el contexto de Claude), `test:coverage` 1648/0, `tsc` limpio.
   Ejecutado por: Luna (gpt-6-luna) · Spec: docs/specs/R.8.2.1.md
-- [ ] **R.8.2.2 — 🔍 El anillo de contexto de Dev mide la sesión abierta.** Carlos vio 71% en Dev con Codex: era un
-  transcript de Codex CLI del 2026-10-04 (184k/258k), no la sesión (2.48%). Spec: docs/specs/R.8.2.2.md
+- [x] **R.8.2.2 — 🔍 El anillo de contexto de Dev mide la sesión abierta.** (2026-10-11) Carlos vio 71% en Dev con
+  Codex: era el transcript más nuevo de Codex CLI en disco para el proyecto (2026-10-04, 184k/258k), no la sesión
+  (2.48%). `OrchestDevWorkspace` usa ahora `getSessionContext` como la vista Chat; `session-status` queda para cuotas.
+  Gate en vivo: navegador real (Playwright), `docs/done/evidence/R.8.2.2-live.json` (`ui:gate chat-continuity chat-streaming`).
+  Evidencia: `chat-continuity` 8/8 (paso nuevo: anillo de Dev 1.4214% = `/api/chat/sessions/<id>/context` 1.4214%),
+  `chat-streaming` 17/17, `test:coverage` 1648/0, ambos `tsc` limpios.
+  Ejecutado por: Luna (gpt-6-luna) · Spec: docs/specs/R.8.2.2.md
 - [ ] **R.8.3 — 🔍 QA negativo real.** Tarea con salida deliberadamente incorrecta que QA debe rechazar; checks
   ejecutados y criterios visibles. Hallazgo 2.
 - [ ] **R.8.4 — 🔍 Reinicio del dashboard a mitad de run.** Recuperar el resultado y el reporte de fin (gap declarado

@@ -20,7 +20,12 @@ import { useEffect, useRef, useState } from 'react'
 import Markdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import type { ChatMessageRow, TimelineStep, TimelineTurn } from '../../api/chat'
-import { getTimeline, type TimelineResponse } from '../../api/chat'
+import {
+  getSessionContext,
+  getTimeline,
+  type SessionContextResponse,
+  type TimelineResponse,
+} from '../../api/chat'
 import { useStickToBottom } from '../../hooks/useStickToBottom'
 import type {
   AgentItem,
@@ -221,6 +226,7 @@ export const OrchestDevWorkspace: React.FC<OrchestDevWorkspaceProps> = ({
   // biome-ignore lint/correctness/useExhaustiveDependencies: solo al cambiar de agente.
   useEffect(() => stickToBottom(), [activeAgent?.id, stickToBottom])
   const [timeline, setTimeline] = useState<TimelineResponse | null>(null)
+  const [sessionContext, setSessionContext] = useState<SessionContextResponse | null>(null)
   const [pendingUserMessage, setPendingUserMessage] = useState<{
     content: string
     sentAt: number
@@ -253,6 +259,31 @@ export const OrchestDevWorkspace: React.FC<OrchestDevWorkspaceProps> = ({
       window.clearInterval(timer)
     }
   }, [activeAgent?.id, sessionStatus, timeline?.pending])
+
+  useEffect(() => {
+    if (!activeAgent?.id) {
+      setSessionContext(null)
+      return
+    }
+    let disposed = false
+    const controller = new AbortController()
+    void getSessionContext(
+      activeAgent.id,
+      activeAgent.model,
+      activeAgent.projectId ?? null,
+      controller.signal,
+    )
+      .then((context) => {
+        if (!disposed) setSessionContext(context)
+      })
+      .catch(() => {
+        if (!disposed) setSessionContext(null)
+      })
+    return () => {
+      disposed = true
+      controller.abort()
+    }
+  }, [activeAgent?.id, activeAgent?.model, activeAgent?.projectId, timeline?.messages.length])
 
   const exchanges = buildExchanges(timeline)
   const isWorking = sessionStatus === 'working' || timeline?.pending === true
@@ -289,7 +320,6 @@ export const OrchestDevWorkspace: React.FC<OrchestDevWorkspaceProps> = ({
   }
 
   const cliId = getCliId()
-  const activeContext = apiSessionStatus?.clis.find((cli) => cli.id === cliId)?.context
   const cliName =
     cliId === 'claude'
       ? 'Claude'
@@ -981,10 +1011,10 @@ export const OrchestDevWorkspace: React.FC<OrchestDevWorkspaceProps> = ({
 
           {/* Context ring (64% in Dev) */}
           <ContextRing
-            percent={activeContext?.pct}
-            model={activeContext?.model}
-            usedTokens={activeContext ? `${activeContext.used}` : undefined}
-            maxTokens={activeContext ? `${activeContext.window}` : undefined}
+            percent={sessionContext?.pct ?? undefined}
+            model={sessionContext?.model ?? undefined}
+            usedTokens={sessionContext?.used == null ? undefined : `${sessionContext.used}`}
+            maxTokens={sessionContext?.window == null ? undefined : `${sessionContext.window}`}
             className="ml-1"
           />
         </div>
