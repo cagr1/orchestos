@@ -1,11 +1,9 @@
 # NEXT — handoff 2026-10-10 (tras R.8.2) → siguiente tab (tras /clear)
 
 ## Orden vigente
-1. R.8.2.1, R.8.2.2 y CI.17 cerrados 2026-10-11 (PLAN.md). Antes de R.8.3: `chat-roles` falló por 3.ª vez en el
-   pre-push completo ("Orchestrator marker creates a held task": no apareció "Task ready to run"); aislado pasa 2/2.
-   El flow no guarda el texto del turno 2 ni una captura al fallar → instrumentarlo primero (respuesta + estado de la
-   tarea en DB). Hipótesis sin verificar: desde R.8.2.1 Codex no recibe de nuevo la instrucción del marcador en el
-   turno 2 (antes llegaba por `<orchestos-context-update>`); medir si el marcador falta en la respuesta.
+1. R.8.2.1, R.8.2.2 y CI.17 cerrados 2026-10-11. CI.18 (`chat-roles` intermitente) instrumentado y medido 3/3 PASS;
+   queda abierto hasta el próximo fallo: si el pre-push lo tumba, leer el detalle JSON del paso del marcador y la
+   captura `marker-failure` en el `result.json` que imprime. Siguiente: R.8.3.
 2. R.8.3 → R.8.6 en orden (PLAN.md:242+), luego ERP.4.
 
 R.8.2 cerrado 2026-10-10 (`b9decaa`): historial al CLI de Claude y a threads nuevos de Codex; gate `chat-continuity`.
