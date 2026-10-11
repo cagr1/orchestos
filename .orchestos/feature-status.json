@@ -94,6 +94,24 @@
       "closedDate": null
     },
     {
+      "id": "R.8.2.1",
+      "sprint": "Fase 2 — Producto mínimo para entrega",
+      "block": "H.7 — El contexto se llena en silencio y nadie avisa (ABIERTO 2026-09-02)",
+      "delegation": "🔍",
+      "title": "Los turnos del chat no entran en \"Recent runs\" del contexto",
+      "status": "open",
+      "closedDate": null
+    },
+    {
+      "id": "R.8.2.2",
+      "sprint": "Fase 2 — Producto mínimo para entrega",
+      "block": "H.7 — El contexto se llena en silencio y nadie avisa (ABIERTO 2026-09-02)",
+      "delegation": "🔍",
+      "title": "El anillo de contexto de Dev mide la sesión abierta",
+      "status": "open",
+      "closedDate": null
+    },
+    {
       "id": "R.8.3",
       "sprint": "Fase 2 — Producto mínimo para entrega",
       "block": "H.7 — El contexto se llena en silencio y nadie avisa (ABIERTO 2026-09-02)",

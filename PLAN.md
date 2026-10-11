@@ -249,6 +249,10 @@ Cerrada. Todos sus ítems están archivados en `docs/done/` (ver "Cerrados — e
   Hallazgo al cerrar: en el turno 2 de Codex se reenvía el system prompt entero como `<orchestos-context-update>`
   (el hash cambió entre turnos) — causa sin medir.
   Ejecutado por: Luna (gpt-6-luna) · Spec: docs/specs/R.8.2.md (+2 correcciones del gate: UUID válido, leer API y DOM)
+- [ ] **R.8.2.1 — 🔍 Los turnos del chat no entran en "Recent runs" del contexto.** Hallazgo de cierre de R.8.2: cada
+  turno cambiaba el prompt del siguiente y Codex reenviaba el system prompt entero. Spec: docs/specs/R.8.2.1.md
+- [ ] **R.8.2.2 — 🔍 El anillo de contexto de Dev mide la sesión abierta.** Carlos vio 71% en Dev con Codex: era un
+  transcript de Codex CLI del 2026-10-04 (184k/258k), no la sesión (2.48%). Spec: docs/specs/R.8.2.2.md
 - [ ] **R.8.3 — 🔍 QA negativo real.** Tarea con salida deliberadamente incorrecta que QA debe rechazar; checks
   ejecutados y criterios visibles. Hallazgo 2.
 - [ ] **R.8.4 — 🔍 Reinicio del dashboard a mitad de run.** Recuperar el resultado y el reporte de fin (gap declarado

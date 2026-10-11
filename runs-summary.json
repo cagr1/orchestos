@@ -1,7 +1,52 @@
 {
-  "exported_at": "2026-10-10T22:33:10.447Z",
+  "exported_at": "2026-10-11T13:48:58.672Z",
   "total_runs": 20,
   "runs": [
+    {
+      "id": "1badc0c0-8568-4ceb-a8e8-01ab66480761",
+      "task_class": "chat",
+      "model": "gpt-6-luna",
+      "provider": "codex",
+      "status": "done",
+      "qa_verdict": null,
+      "qa_reason": null,
+      "files_blocked": [],
+      "checks_failed": 0,
+      "usd_cost": 0.00057956,
+      "elapsed_ms": 3327,
+      "tokens": 2718,
+      "created_at": "2026-10-11T13:44:09.845Z"
+    },
+    {
+      "id": "ebaba8e4-356f-43b1-b738-aa3a84071f1d",
+      "task_class": "chat",
+      "model": "gpt-6-luna",
+      "provider": "codex",
+      "status": "done",
+      "qa_verdict": null,
+      "qa_reason": null,
+      "files_blocked": [],
+      "checks_failed": 0,
+      "usd_cost": 0.00054938,
+      "elapsed_ms": 3039,
+      "tokens": 3057,
+      "created_at": "2026-10-11T13:43:07.826Z"
+    },
+    {
+      "id": "f990dc55-c777-494e-b9b9-9954726fe165",
+      "task_class": "chat",
+      "model": "gpt-6-luna",
+      "provider": "codex",
+      "status": "done",
+      "qa_verdict": null,
+      "qa_reason": null,
+      "files_blocked": [],
+      "checks_failed": 0,
+      "usd_cost": 0.00119858,
+      "elapsed_ms": 4719,
+      "tokens": 10829,
+      "created_at": "2026-10-11T13:42:07.231Z"
+    },
     {
       "id": "3432503c-9666-4a3c-8caf-71a0e47a34fe",
       "task_class": "gate:r.8.1.1-auto-flow:implement",
@@ -256,51 +301,6 @@
       "elapsed_ms": 46562,
       "tokens": 15854,
       "created_at": "2026-10-05T16:27:05.392Z"
-    },
-    {
-      "id": "7da5f4c4-a8fc-4f76-820d-0f7615a23797",
-      "task_class": "fix",
-      "model": "gpt-6-luna",
-      "provider": "codex",
-      "status": "done",
-      "qa_verdict": "pass",
-      "qa_reason": "The inline JavaScript syntax is valid and renders the price message into the output element.",
-      "files_blocked": [],
-      "checks_failed": 0,
-      "usd_cost": 0.0019573,
-      "elapsed_ms": 31886,
-      "tokens": 15331,
-      "created_at": "2026-10-05T16:26:18.336Z"
-    },
-    {
-      "id": "d90d6f88-41eb-4ea2-9421-b5ba4e99f4ca",
-      "task_class": "fix",
-      "model": "gpt-6-luna",
-      "provider": "codex",
-      "status": "done",
-      "qa_verdict": "pass",
-      "qa_reason": "The inline JavaScript is syntactically valid and renders the price message into the output element.",
-      "files_blocked": [],
-      "checks_failed": 0,
-      "usd_cost": 0.0019773,
-      "elapsed_ms": 44370,
-      "tokens": 15592,
-      "created_at": "2026-10-05T16:25:46.074Z"
-    },
-    {
-      "id": "a638dc0a-3456-45b9-a285-d324d906d49f",
-      "task_class": "fix",
-      "model": "gpt-6-luna",
-      "provider": "codex",
-      "status": "done",
-      "qa_verdict": "pass",
-      "qa_reason": "The inline JavaScript is valid and assigns the rendered price message to the output element.",
-      "files_blocked": [],
-      "checks_failed": 0,
-      "usd_cost": 0.0019581,
-      "elapsed_ms": 55048,
-      "tokens": 15406,
-      "created_at": "2026-10-05T16:20:46.663Z"
     }
   ],
   "stats": {
@@ -308,6 +308,6 @@
     "blocked": 0,
     "done": 20,
     "qa_failed": 1,
-    "total_cost_usd": "0.1322"
+    "total_cost_usd": "0.1287"
   }
 }
