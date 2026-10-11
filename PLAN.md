@@ -262,6 +262,8 @@ Cerrada. Todos sus ítems están archivados en `docs/done/` (ver "Cerrados — e
   Evidencia: `chat-continuity` 8/8 (paso nuevo: anillo de Dev 1.4214% = `/api/chat/sessions/<id>/context` 1.4214%),
   `chat-streaming` 17/17, `test:coverage` 1648/0, ambos `tsc` limpios.
   Ejecutado por: Luna (gpt-6-luna) · Spec: docs/specs/R.8.2.2.md
+- [ ] **CI.17 — 🔍 `usage-bar` falla con `ENOTEMPTY` al borrar su tmpdir.** 2.ª vez (2026-10-05, 2026-10-11, bloqueó un
+  push). Reintentos en `rmSync` de los flows de ui-gate. Spec: docs/specs/CI.17.md
 - [ ] **R.8.3 — 🔍 QA negativo real.** Tarea con salida deliberadamente incorrecta que QA debe rechazar; checks
   ejecutados y criterios visibles. Hallazgo 2.
 - [ ] **R.8.4 — 🔍 Reinicio del dashboard a mitad de run.** Recuperar el resultado y el reporte de fin (gap declarado
@@ -488,6 +490,37 @@ verificado); el sandbox de **escritura** de las tareas (worktrees ya lo cubren, 
 frontera de red/SSRF (`src/dashboard/ssrf.ts` ya existe y no se toca); y cualquier cambio al
 vault o a `~/.claude`/`~/.codex` de Carlos — el vault sigue alimentando el trabajo de desarrollo
 igual que hoy, lo que se corta es que el **producto** lo herede por accidente.
+
+### AT.15–AT.17 — El roster de modelos vive en un solo archivo (ABIERTO 2026-10-11, GO de Carlos)
+
+Origen: Carlos repetía en cada sesión qué modelo hace qué. Causa verificada leyendo los archivos: cuatro
+rosters que se contradecían (`~/.agent-method/rules.md`, `detail/model-split.md`, `detail/host-codex.md` y dos
+secciones de `AGENTS.md`: Sol como `gpt-5.6-sol`/`gpt-6-sol`/`gpt-6.1-sol`, Terra o Sonnet con criterio, Astra
+como default de Codex). Es esquema de trabajo para desarrollar OrchestOS, no producto; si rinde, se lleva a los
+4 roles de Settings (MR.1).
+
+- [x] **AT.15 — 🧠 `AGENTS.md` habla de roles y apunta a `~/.agent-method/roster.conf`.** (abierto 2026-10-11; cerrado 2026-10-11)
+  Roster único y `bin/delegate <rol> <spec>` en el vault (`e6cb9bd` de `memories-vault`): roles `mecanico`,
+  `criterio`, `criterio-alt`, `qa`, `investigar`, `astra`. En este repo, las dos tablas de `AGENTS.md` pasan a roles.
+  Evidencia: `grep -nE "Terra|gpt-5\.6|gpt-6-|Sonnet|Opus 5" AGENTS.md` deja solo las dos notas de historial y la
+  línea de fixtures de producto (`executor_model`, no es roster). `delegate --dry-run` de los 6 roles arma el comando
+  esperado y las 5 rutas de error salen con 2; una corrida real de `delegate mecanico` aplicó una corrección.
+  No verificado en real: `criterio`, `qa` e `investigar` (solo `--dry-run`).
+  Sin delegación: solo reglas y docs; el script lo escribió Luna en el repo del vault.
+
+- [ ] **AT.16 — 🧠 Aviso de contexto al 50 %: el hook avisa al 60 %.** (abierto 2026-10-11)
+  La regla global dice 50 % desde 2026-10-04 (`~/.agent-method/detail/context-cost.md:29`); el piso común sigue en
+  `warn: 60` (`scripts/context-budget.ts:33`) y lo fijan fixtures y tests (`codex-59-9.jsonl`, `codex-60.jsonl`,
+  `scripts/context-budget*.test.ts`, `scripts/context-adapters.test.ts:98`). El texto de H.7.3 también dice 60 %.
+  El aviso dice "Cierra este tab y abre uno nuevo" (`.claude/hooks/context-budget.js:113`); la regla de Carlos es
+  `/clear` entre tareas y tab nuevo solo si cambia modelo o settings.
+  **Decisión pendiente de Carlos:** con ventana de 1 M (Opus hoy: `context:status` dio 106 434 / 1 000 000 = 10,6 %)
+  el 50 % son 500 000 tokens; el 50 % se decidió con ventanas de 200 K. Porcentaje, o tope absoluto en tokens.
+  Gate 🔍: el de H.7.3 (cruzar el umbral en una sesión real y ver el aviso).
+
+- [ ] **AT.17 — ⚡ El mensaje de `brain-no-code` nombra roles, no modelos.** (abierto 2026-10-11)
+  `.claude/hooks/brain-no-code.js:16` dice "delega a Luna. Ejecutor Sonnet: lanzar con ORCHESTOS_ROLE=executor".
+  Debe decir `~/.agent-method/bin/delegate <rol> docs/specs/<ID>.md`. Revisar el test que afirme el texto.
 
 ### H.10 — El gate de evidencia acepta prosa, no el hecho (ABIERTO 2026-09-08, GO de Carlos)
 

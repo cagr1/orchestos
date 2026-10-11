@@ -53,8 +53,8 @@ Rige de aquí hasta el final del desarrollo, para **cualquier** LLM que trabaje 
 
 **El modelo fuerte planifica y verifica. El chico ejecuta.** Diagrama de Carlos (2026-09-14):
 
-    cerebro (Opus 5 / Astra, esfuerzo medio) ── planifica y delega bajo demanda
-        └─ ejecutor (Luna): código + debugging, según el spec
+    cerebro (sesión principal, esfuerzo medio) ── planifica y delega bajo demanda
+        └─ ejecutor (rol `mecanico`): código + debugging, según el spec
     cerebro (esfuerzo medio) ── integra y verifica
         └─ solo si hace falta: cerebro en esfuerzo alto ── arquitectura + revisión final
 
@@ -63,7 +63,8 @@ Rige de aquí hasta el final del desarrollo, para **cualquier** LLM que trabaje 
 1. **Plan (cerebro).** Abre el ítem en `PLAN.md` (qué y gate, pocas líneas) y escribe
    `docs/specs/<ID>.md` corto: qué cambiar, dónde (`archivo:línea`), qué no tocar, cómo se
    verifica. Sin decisiones de diseño pendientes. `bun run plan:reconcile` y un commit.
-2. **Ejecución (Luna).** `codex exec -m gpt-6-luna --approve-for-me "Ejecuta docs/specs/<ID>.md" < /dev/null`.
+2. **Ejecución (rol `mecanico`).** `~/.agent-method/bin/delegate mecanico docs/specs/<ID>.md` (AT.15, 2026-10-11:
+   el script pone modelo, esfuerzo, sandbox, `< /dev/null`, el prompt de ejecutor y `ORCHESTOS_ROLE=executor`).
    Implementa, corre sus tests y `tsc`. **No commitea ni toca `PLAN.md`.**
    (2026-09-25, MR.1.c) Lanzarla con `ORCHESTOS_ROLE=executor` y decirle en el prompt que ella es la ejecutora y
    no delega: sin eso lee este protocolo como cerebro, intenta otro `codex exec` y su sandbox lo rechaza
@@ -74,8 +75,8 @@ Rige de aquí hasta el final del desarrollo, para **cualquier** LLM que trabaje 
    del test, que heredaba `ORCHESTOS_ROLE=executor`; corregido en AT.14.)
 3. **Integrar y verificar (cerebro).** Lee el diff, corre los gates con comandos propios y prueba
    en vivo cuando aplica. El reporte del ejecutor y su `exit 0` no son evidencia
-   (`reference-codex-exec-exit-0-con-error`). Si falla, corrige el spec y re-delega — o sube a
-   Terra —; nunca teclea el arreglo.
+   (`reference-codex-exec-exit-0-con-error`). Si falla, corrige el spec y re-delega — o sube al
+   rol `criterio` —; nunca teclea el arreglo.
 4. **Cierre (cerebro), un solo commit:** código del ejecutor + `[x]` + evidencia con
    `Ejecutado por: … · Spec: docs/specs/<ID>.md` como primera línea indentada + `Gate en vivo:`
    si toca dashboard/config + borrado del spec. Es lo que ya exigen `scripts/plan-gate.ts` y
@@ -85,7 +86,7 @@ Rige de aquí hasta el final del desarrollo, para **cualquier** LLM que trabaje 
 71% de su ventana de 5 h mientras tres subagentes fuertes heredaban el historial completo. Desde
 ahora hay un máximo de **dos subagentes activos simultáneos por sesión raíz**, sin contar al agente
 raíz. Antes de delegar, consultar los agentes activos; no abrir un tercero hasta que uno termine.
-En Codex, usar `gpt-6-luna` por defecto y `fork_turns: "none"` o el menor entero positivo que
+En Codex, usar el modelo del rol `mecanico` por defecto y `fork_turns: "none"` o el menor entero positivo que
 alcance: `fork_turns: "all"` queda reservado para una necesidad explícita y documentada. Si el
 cupo de 5 h ya está en 70% o más, no abrir subagentes salvo pedido explícito de Carlos; hacer la
 lectura local directamente y dejar la ejecución para Luna después del reset. Esto es enforcement
@@ -111,17 +112,25 @@ Los gates 🔍 se verifican en vivo, contra el sistema real corriendo, nunca con
 
 ### Roster de modelos (Carlos, 2026-09-09 — regla de hecho, no sugerencia)
 
-| Rol | Modelos | Qué puede hacer |
-|---|---|---|
-| **Cerebro** | Opus 5 · Fable 5.1 · `gpt-5.6-sol` · `gpt-6-astra` | pensar, abrir el ítem en PLAN.md, escribir el spec, verificar con comandos. **Nunca escribe código de producto** |
-| **Ejecutor por defecto** | `gpt-6-luna` (`codex exec`) | ⚡ y 🧠 ya especificados |
-| **Ejecutor con criterio** | `gpt-5.6-terra` | 🧠 cuyo spec no logró eliminar todas las decisiones |
-| **Excepción** | Sonnet, vía Claude CLI | solo si terra no alcanza |
-| **Fuera por ahora** | opencode / DeepSeek | — |
+**Desde AT.15 (2026-10-11) este repo no nombra modelos.** Qué modelo hace cada rol vive en un solo
+archivo, `~/.agent-method/roster.conf`, y se delega con `~/.agent-method/bin/delegate <rol> <spec>`:
+
+| Rol | Cuándo |
+|---|---|
+| **Cerebro** (sesión principal) | pensar, abrir el ítem en PLAN.md, escribir el spec, verificar con comandos y corregir. **Nunca escribe código de producto** |
+| `mecanico` | ⚡ y 🧠 ya especificados |
+| `criterio` | 🧠 cuyo spec no logró eliminar todas las decisiones, o una corrección reveló un fallo de razonamiento |
+| `criterio-alt` | `criterio` falló dos veces o el cupo de Claude aprieta; lo revisa el cerebro, no `qa` |
+| `qa` | revisión independiente, de otro proveedor que quien produjo |
+| `investigar` | buscar en internet o leer a fondo, con spec de qué se necesita; no edita |
+| `astra` | solo por pedido explícito de Carlos |
+
+Historial: la tabla del 2026-09-09 nombraba modelos (Terra como ejecutor con criterio, Sonnet como
+excepción) y convivía con otras tres que la contradecían. Texto anterior en `git log -p AGENTS.md`.
 
 **La regla no admite excepción por complejidad.** Un ítem 🧠 difícil no habilita al cerebro a
 teclear: el cerebro deja la ruta anotada en el spec y **la dificultad cambia el ejecutor**
-(luna → terra → Sonnet), nunca quién escribe. Si el ejecutor tiene que decidir algo, el defecto
+(`mecanico` → `criterio` → `criterio-alt`), nunca quién escribe. Si el ejecutor tiene que decidir algo, el defecto
 está en el spec, no en el ejecutor — se reescribe el spec, no se toma el teclado.
 
 Sí es trabajo de cerebro, y no cuenta como escribir código: editar `PLAN.md`, `AGENTS.md`,
@@ -138,10 +147,10 @@ en su propio ítem.
 
 **Diente mecánico (AT.1, 2026-09-14):** `.claude/hooks/brain-no-code.js` (`PreToolUse`) bloquea
 en sesiones de Claude Code las ediciones sobre `src/`, `tests/`, `scripts/` y `.claude/hooks/`,
-incluidas las escrituras por redirect/`tee`/`sed -i`. El Sonnet de excepción se lanza con
-`ORCHESTOS_ROLE=executor`. Desde AT.14 también bloquea scripts inline de intérprete (`python -c`, `bun -e`,
+incluidas las escrituras por redirect/`tee`/`sed -i`. Todo ejecutor se lanza con
+`ORCHESTOS_ROLE=executor`, que `bin/delegate` pone solo; un subagente del Agent tool no lo hereda y queda bloqueado. Desde AT.14 también bloquea scripts inline de intérprete (`python -c`, `bun -e`,
 heredoc) que escriben a una ruta de código escrita como literal (`hasInlineCodeWrite`). Límites declarados: no
-aplica a sesiones de Codex (Astra como cerebro se rige por este texto) ni a rutas calculadas en runtime. Al cierre, el
+aplica a sesiones de Codex (su cerebro se rige por este texto) ni a rutas calculadas en runtime. Al cierre, el
 gate de procedencia de S.4b sigue exigiendo `Ejecutado por:` y el borrado del spec.
 
 **Ciclo de vida del spec:** `docs/specs/<ID>.md` nace al delegar y **se borra en el commit que
@@ -344,14 +353,10 @@ vuelve a preguntar por sesión ni por tab.
 
 **Alias de Codex.** Cuando Carlos dice "Luna", "Terra", "Sol" o "Astra" se refiere a modelos de
 Codex, no a agentes ni a personas. IDs confirmados el 2026-09-11 leyendo los rollouts de
-`~/.codex/sessions`:
+`~/.codex/sessions`.
 
-- Luna = `gpt-6-luna` (Luna 6; desde 2026-09-24 por decisión de Carlos — antes `gpt-5.6-luna`)
-- Terra = `gpt-5.6-terra`
-- Sol = `gpt-5.6-sol`
-- Astra = `gpt-6-astra`
-
-Se invocan con `codex exec -m <id>`.
+IDs vigentes y qué rol cumple cada alias: `~/.agent-method/roster.conf` (AT.15, 2026-10-11). La lista
+que había aquí (Sol = `gpt-5.6-sol`, Terra = `gpt-5.6-terra`) quedó vieja; está en `git log -p AGENTS.md`.
 
 **Roles y flujo:** una sola fuente, § "Protocolo de delegación permanente" arriba (unificado el
 2026-09-14; esta sección repetía el roster con otra redacción). Motivo que se conserva: el cupo

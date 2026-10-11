@@ -112,6 +112,15 @@
       "closedDate": null
     },
     {
+      "id": "CI.17",
+      "sprint": "Fase 2 — Producto mínimo para entrega",
+      "block": "H.7 — El contexto se llena en silencio y nadie avisa (ABIERTO 2026-09-02)",
+      "delegation": "🔍",
+      "title": "`usage-bar` falla con `ENOTEMPTY` al borrar su tmpdir",
+      "status": "open",
+      "closedDate": null
+    },
+    {
       "id": "R.8.3",
       "sprint": "Fase 2 — Producto mínimo para entrega",
       "block": "H.7 — El contexto se llena en silencio y nadie avisa (ABIERTO 2026-09-02)",
@@ -198,6 +207,33 @@
       "block": null,
       "delegation": "🧠",
       "title": "Chat CLI extensible: cualquier adaptador registrado, no ramas hardcodeadas por marca",
+      "status": "open",
+      "closedDate": null
+    },
+    {
+      "id": "AT.15",
+      "sprint": "Fuera de fase",
+      "block": "AT.15–AT.17 — El roster de modelos vive en un solo archivo (ABIERTO 2026-10-11, GO de Carlos)",
+      "delegation": "🧠",
+      "title": "`AGENTS.md` habla de roles y apunta a `~/.agent-method/roster.conf`",
+      "status": "done",
+      "closedDate": null
+    },
+    {
+      "id": "AT.16",
+      "sprint": "Fuera de fase",
+      "block": "AT.15–AT.17 — El roster de modelos vive en un solo archivo (ABIERTO 2026-10-11, GO de Carlos)",
+      "delegation": "🧠",
+      "title": "Aviso de contexto al 50 %: el hook avisa al 60 %",
+      "status": "open",
+      "closedDate": null
+    },
+    {
+      "id": "AT.17",
+      "sprint": "Fuera de fase",
+      "block": "AT.15–AT.17 — El roster de modelos vive en un solo archivo (ABIERTO 2026-10-11, GO de Carlos)",
+      "delegation": "⚡",
+      "title": "El mensaje de `brain-no-code` nombra roles, no modelos",
       "status": "open",
       "closedDate": null
     },
