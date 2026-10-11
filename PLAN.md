@@ -381,6 +381,8 @@ ERP ni prueba visual nueva. Los ítems permanecen abiertos hasta sus gates reale
   **Gate:** sesión real con OpenCode como agente activo, cruzar el 60%, ver el aviso en vivo —
   mismo criterio que el gate 🔍 de H.7.3, no un test que mockee el adaptador.
 - [ ] **H.7.3 — ⚡ El hook: avisar al 60% y volcar el handoff una sola vez.**
+  (AT.16, 2026-10-11: `warn` es ahora 40 % o 250 000 tokens y `critical` 65 % o 400 000; los "60%" de abajo son
+  históricos. El gate 🔍 se cumple cruzando el umbral nuevo.)
   Depende de H.7.1, H.7.2 y **H.7.2b** (la fuente del número se rehizo como registro de
   adaptadores — no re-cerrar H.7.3 leyendo el JSONL directo). El hook debe consumir
   `readContextBudget()` del registro, sin saber qué CLI está corriendo.
@@ -518,14 +520,26 @@ como default de Codex). Es esquema de trabajo para desarrollar OrchestOS, no pro
   No verificado en real: `criterio`, `qa` e `investigar` (solo `--dry-run`).
   Sin delegación: solo reglas y docs; el script lo escribió Luna en el repo del vault.
 
-- [ ] **AT.16 — ⚡ Aviso de contexto: 40 % de la ventana o 250 000 tokens, lo que ocurra primero.** (abierto 2026-10-11)
-  Decidido por Carlos el 2026-10-11 ("40 %", y "lo que funcione mejor para los agentes" sobre el tope absoluto). Hoy el
-  piso común es `warn: 60` (`scripts/context-budget.ts:33`) y el aviso dice "cierra este tab"; la regla es `/clear`.
-  Con ventana de 1 M el porcentaje no protege: `context:status` dio 145 232 / 1 000 000 = 14,5 % en una sesión que ya
-  conviene cerrar. Spec: `docs/specs/AT.16.md`. Reemplaza el "60 %" del texto de H.7.3.
-  **No lanzar mientras otra sesión edite este árbol:** el gate del ejecutor leería un árbol en movimiento.
-  Tope subido de 150 000 a 250 000 el mismo día: Carlos lo vio corto (sesión de solo reglas llegó a 172 000).
-  Gate 🔍: sesión real por encima de 250 000 tokens muestra el aviso con `/clear`.
+- [x] **AT.16 — ⚡ Aviso de contexto: 40 % de la ventana o 250 000 tokens, lo que ocurra primero.** (abierto 2026-10-11; cerrado 2026-10-11)
+  Ejecutado por: gpt-6-luna · Spec: docs/specs/AT.16.md
+  Decidido por Carlos el 2026-10-11; el tope subió de 150 000 a 250 000 el mismo día (una sesión de solo reglas llegó a
+  172 000). `BudgetThresholds` gana `warnTokens`/`criticalTokens` (250 000 / 400 000) y `warn` baja de 60 a 40; el
+  aviso del hook lleva primero los tokens y manda `/clear` en vez de "cierra este tab". Lanzado con
+  `~/.agent-method/bin/delegate mecanico`.
+  Evidencia (comandos del cerebro, fuera del sandbox): `bunx tsc --noEmit` limpio; `bun run lint` 0 errores tras
+  `biome format` de `scripts/context-budget.test.ts` (el ejecutor lo dejó sin formatear); `bun run test:coverage`
+  1652 pass / 0 fail. Transcript real de 254 569 tokens (`8f65ea31…jsonl`, ventana 1 M, 25,5 %):
+  `bun run context:budget` → `level: warn`; con el umbral anterior era `ok`. Esta sesión, 193 669 tokens → `ok`.
+  **No verificado:** ver el aviso aparecer en una sesión real al cruzar el tope; es el gate 🔍 de H.7.3, que sigue abierto.
+
+- [ ] **AT.18 — 🧠 Un solo escritor por árbol, hecho cumplir por un candado.** (abierto 2026-10-11)
+  Incidente 2026-10-11: dos sesiones de Claude en el mismo árbol; el commit de AT.15 arrastró del índice compartido el
+  spec y la línea de `PLAN.md` de CI.17. Hoy la regla es solo texto (`docs/agent-work-protocol.md` paso 3).
+  Diseño a especificar: archivo de candado en `.orchestos/` con sesión, agente e ítem; lo toma la primera sesión que
+  edita (hook `PreToolUse` en Claude Code) y lo refresca al escribir; a otra sesión se le niegan las ediciones y, en
+  el pre-commit (lo único que también cubre a Codex), el commit. Caduca solo si la sesión dueña deja de escribir.
+  Leer antes `scripts/agent-preflight.ts` (ya escribe el ítem activo) y `scripts/pre-commit.sh`.
+  Gate 🔍: dos sesiones reales; la segunda ve el rechazo con el nombre del ítem que ocupa el árbol.
 
 - [ ] **AT.17 — ⚡ El mensaje de `brain-no-code` nombra roles, no modelos.** (abierto 2026-10-11)
   `.claude/hooks/brain-no-code.js:16` dice "delega a Luna. Ejecutor Sonnet: lanzar con ORCHESTOS_ROLE=executor".

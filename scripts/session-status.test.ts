@@ -102,7 +102,7 @@ describe('session status', () => {
       adapters: [
         {
           id: 'never-matches',
-          thresholds: { warn: 60, critical: 65 },
+          thresholds: { warn: 40, critical: 65 },
           async read() {
             reads += 1
             return null

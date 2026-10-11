@@ -108,9 +108,9 @@ function printWarning(budget) {
   const used = budget.used.toLocaleString('en-US')
   const window = budget.window.toLocaleString('en-US')
   console.log(
-    `Contexto ${budget.level === 'critical' ? 'crítico' : 'alto'}: ${pct} de la ventana de ${model} (${used} / ${window} tokens).${handoff}`,
+    `Contexto ${budget.level === 'critical' ? 'crítico' : 'alto'}: ${used} tokens, ${pct} de la ventana de ${model} (${window}).${handoff}`,
   )
-  console.log('Cierra este tab y abre uno nuevo para retomar con menos contexto.')
+  console.log('Cierra el ítem en curso, deja el estado en NEXT.md y haz /clear.')
 }
 
 main(readFileSync(0, 'utf8'))

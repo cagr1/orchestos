@@ -51,7 +51,7 @@ afterEach(() => {
 describe('context-budget hook', () => {
   test('nivel ok no imprime nada y sale con éxito', () => {
     const root = createHookWorkspace()
-    const result = runHook(root, 'ok-session', join(fixtures, 'codex-59-9.jsonl'))
+    const result = runHook(root, 'ok-session', join(fixtures, 'codex-39-9.jsonl'))
 
     expect(result).toMatchObject({ exitCode: 0, stdout: '', stderr: '' })
     expect(existsSync(join(root, '.orchestos', 'handoff.md'))).toBe(false)
@@ -72,11 +72,13 @@ describe('context-budget hook', () => {
 
   test('warn por primera vez avisa en tres líneas y genera el handoff aislado', () => {
     const root = createHookWorkspace()
-    const result = runHook(root, 'warn-session', join(fixtures, 'codex-60.jsonl'))
+    const result = runHook(root, 'warn-session', join(fixtures, 'codex-40.jsonl'))
 
     expect(result.exitCode, result.stderr).toBe(0)
     expect(result.stdout.trim().split('\n')).toHaveLength(2)
-    expect(result.stdout).toContain('% de la ventana de gpt-5.6-codex (600 / 1,000 tokens).')
+    expect(result.stdout).toContain('400 tokens, 40% de la ventana de gpt-5.6-codex (1,000).')
+    expect(result.stdout).toContain('/clear')
+    expect(result.stdout).not.toContain('abre uno nuevo')
     const handoff = join(root, '.orchestos', 'handoff.md')
     expect(existsSync(handoff)).toBe(true)
     expect(readFileSync(handoff, 'utf8')).toContain('# Handoff de sesión')
@@ -84,7 +86,7 @@ describe('context-budget hook', () => {
 
   test('warn repetido para la misma sesión no avisa ni regenera el handoff', () => {
     const root = createHookWorkspace()
-    const transcript = join(fixtures, 'codex-60.jsonl')
+    const transcript = join(fixtures, 'codex-40.jsonl')
     runHook(root, 'warn-session', transcript)
     const handoff = join(root, '.orchestos', 'handoff.md')
     const first = readFileSync(handoff, 'utf8')

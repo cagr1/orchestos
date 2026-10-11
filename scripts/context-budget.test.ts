@@ -121,11 +121,41 @@ describe('context budget', () => {
   })
 
   test('classifies configurable warning and critical thresholds', () => {
-    expect(budgetStatus({ used: 59, window: 100 })).toEqual({ pct: 59, level: 'ok' })
-    expect(budgetStatus({ used: 60, window: 100 })).toEqual({ pct: 60, level: 'warn' })
+    expect(budgetStatus({ used: 39, window: 100 })).toEqual({ pct: 39, level: 'ok' })
+    expect(budgetStatus({ used: 40, window: 100 })).toEqual({ pct: 40, level: 'warn' })
     expect(budgetStatus({ used: 75, window: 100 })).toEqual({ pct: 75, level: 'critical' })
     expect(budgetStatus({ used: 50, window: 100, thresholds: { warn: 50, critical: 80 } })).toEqual(
       { pct: 50, level: 'warn' },
     )
+  })
+
+  test('249_999 / 1_000_000 queda ok; 250_000 / 1_000_000 avisa por tokens', () => {
+    expect(budgetStatus({ used: 249_999, window: 1_000_000 })).toEqual({
+      pct: 24.9999,
+      level: 'ok',
+    })
+    expect(budgetStatus({ used: 250_000, window: 1_000_000 })).toEqual({ pct: 25, level: 'warn' })
+  })
+
+  test('400_000 / 1_000_000 es crítico por tokens', () => {
+    expect(budgetStatus({ used: 400_000, window: 1_000_000 })).toEqual({
+      pct: 40,
+      level: 'critical',
+    })
+  })
+
+  test('80_000 / 200_000 avisa por porcentaje y 79_999 / 200_000 queda ok', () => {
+    expect(budgetStatus({ used: 80_000, window: 200_000 })).toEqual({ pct: 40, level: 'warn' })
+    expect(budgetStatus({ used: 79_999, window: 200_000 })).toEqual({ pct: 39.9995, level: 'ok' })
+  })
+
+  test('rechaza criticalTokens menor que warnTokens', () => {
+    expect(() =>
+      budgetStatus({
+        used: 0,
+        window: 1,
+        thresholds: { warn: 40, critical: 65, warnTokens: 400_000, criticalTokens: 250_000 },
+      }),
+    ).toThrow('invalid budget thresholds')
   })
 })

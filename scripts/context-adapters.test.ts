@@ -95,7 +95,7 @@ describe('context adapters', () => {
   test('un adaptador sin cupo devuelve null y no finge 0%', async () => {
     const fake: ContextAdapter = {
       id: 'future-cli',
-      thresholds: { warn: 60, critical: 65 },
+      thresholds: { warn: 40, critical: 65 },
       read: async () => ({ used: 10, window: 100, model: null }),
     }
 
@@ -105,15 +105,15 @@ describe('context adapters', () => {
     })
   })
 
-  test('clasifica los bordes exactos de los umbrales por defecto', async () => {
-    await expect(readContextBudget(fixture('codex-59-9.jsonl'))).resolves.toMatchObject({
-      pct: 59.9,
+  test('clasifica los bordes exactos del umbral warn al 40%', async () => {
+    await expect(readContextBudget(fixture('codex-39-9.jsonl'))).resolves.toMatchObject({
       level: 'ok',
     })
-    await expect(readContextBudget(fixture('codex-60.jsonl'))).resolves.toMatchObject({
-      pct: 60,
+    expect((await readContextBudget(fixture('codex-39-9.jsonl')))?.pct).toBeCloseTo(39.9)
+    await expect(readContextBudget(fixture('codex-40.jsonl'))).resolves.toMatchObject({
       level: 'warn',
     })
+    expect((await readContextBudget(fixture('codex-40.jsonl')))?.pct).toBe(40)
     await expect(readContextBudget(fixture('codex-65.jsonl'))).resolves.toMatchObject({
       pct: 65,
       level: 'critical',

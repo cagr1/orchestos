@@ -93,7 +93,7 @@ export interface SessionMetrics {
  * (anthropics/claude-code#18264): el margen tiene que absorber un turno pesado
  * entero, o el aviso llega después de la compactación que existe para evitar.
  */
-export const DEFAULT_THRESHOLDS: BudgetThresholds = { warn: 60, critical: 65 }
+export const DEFAULT_THRESHOLDS: BudgetThresholds = DEFAULT_BUDGET_THRESHOLDS
 
 /**
  * Claude Code — el transcript no publica la ventana, así que se resuelve por

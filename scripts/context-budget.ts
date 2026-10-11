@@ -15,6 +15,8 @@ export interface TranscriptUsage {
 export interface BudgetThresholds {
   warn: number
   critical: number
+  warnTokens?: number
+  criticalTokens?: number
 }
 
 export interface BudgetStatus {
@@ -23,6 +25,8 @@ export interface BudgetStatus {
 }
 
 /**
+ * AT.16 (2026-10-11): avisar desde 40% o 250 K tokens, lo que ocurra primero,
+ * porque cada turno relee el historial y el porcentaje oculta el costo absoluto.
  * H.7.2b (2026-09-03): `critical` bajó de 75 a 65 por decisión de Carlos. El
  * autocompact de Claude Code dispara a ~78% y `autoCompact: false` es ignorado
  * (anthropics/claude-code#18264), así que 75 dejaba 3 puntos de margen — un
@@ -30,8 +34,10 @@ export interface BudgetStatus {
  * Los umbrales por CLI viven en `context-adapters.ts`; esto es el piso común.
  */
 export const DEFAULT_BUDGET_THRESHOLDS: BudgetThresholds = {
-  warn: 60,
+  warn: 40,
   critical: 65,
+  warnTokens: 250_000,
+  criticalTokens: 400_000,
 }
 
 /** Lee el último uso real del transcript; líneas parcialmente escritas se ignoran. */
@@ -125,11 +131,31 @@ export function budgetStatus(input: {
   ) {
     throw new Error('invalid budget thresholds')
   }
+  for (const threshold of [thresholds.warnTokens, thresholds.criticalTokens]) {
+    if (threshold !== undefined && (!Number.isFinite(threshold) || threshold < 0)) {
+      throw new Error('invalid budget thresholds')
+    }
+  }
+  if (
+    thresholds.warnTokens !== undefined &&
+    thresholds.criticalTokens !== undefined &&
+    thresholds.criticalTokens < thresholds.warnTokens
+  ) {
+    throw new Error('invalid budget thresholds')
+  }
 
   const pct = (input.used / input.window) * 100
+  const level =
+    pct >= thresholds.critical ||
+    (thresholds.criticalTokens !== undefined && input.used >= thresholds.criticalTokens)
+      ? 'critical'
+      : pct >= thresholds.warn ||
+          (thresholds.warnTokens !== undefined && input.used >= thresholds.warnTokens)
+        ? 'warn'
+        : 'ok'
   return {
     pct,
-    level: pct >= thresholds.critical ? 'critical' : pct >= thresholds.warn ? 'warn' : 'ok',
+    level,
   }
 }
 
