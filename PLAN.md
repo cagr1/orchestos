@@ -381,7 +381,7 @@ ERP ni prueba visual nueva. Los ítems permanecen abiertos hasta sus gates reale
   **Gate:** sesión real con OpenCode como agente activo, cruzar el 60%, ver el aviso en vivo —
   mismo criterio que el gate 🔍 de H.7.3, no un test que mockee el adaptador.
 - [ ] **H.7.3 — ⚡ El hook: avisar al 60% y volcar el handoff una sola vez.**
-  (AT.16, 2026-10-11: `warn` es ahora 40 % o 250 000 tokens y `critical` 65 % o 400 000; los "60%" de abajo son
+  (2026-10-11, commit `91687e4`: `warn` es ahora 40 % o 250 000 tokens y `critical` 65 % o 400 000; los "60%" de abajo son
   históricos. El gate 🔍 se cumple cruzando el umbral nuevo.)
   Depende de H.7.1, H.7.2 y **H.7.2b** (la fuente del número se rehizo como registro de
   adaptadores — no re-cerrar H.7.3 leyendo el JSONL directo). El hook debe consumir
@@ -503,34 +503,17 @@ frontera de red/SSRF (`src/dashboard/ssrf.ts` ya existe y no se toca); y cualqui
 vault o a `~/.claude`/`~/.codex` de Carlos — el vault sigue alimentando el trabajo de desarrollo
 igual que hoy, lo que se corta es que el **producto** lo herede por accidente.
 
-### AT.15–AT.17 — El roster de modelos vive en un solo archivo (ABIERTO 2026-10-11, GO de Carlos)
+### AT.17–AT.18 — Restos del esquema de trabajo (TEMPORAL: al cerrarlos se borra esta sección entera)
 
-Origen: Carlos repetía en cada sesión qué modelo hace qué. Causa verificada leyendo los archivos: cuatro
-rosters que se contradecían (`~/.agent-method/rules.md`, `detail/model-split.md`, `detail/host-codex.md` y dos
-secciones de `AGENTS.md`: Sol como `gpt-5.6-sol`/`gpt-6-sol`/`gpt-6.1-sol`, Terra o Sonnet con criterio, Astra
-como default de Codex). Es esquema de trabajo para desarrollar OrchestOS, no producto; si rinde, se lleva a los
-4 roles de Settings (MR.1).
+No son producto. El esquema de trabajo con agentes (roster, `delegate`, candado de escritor, reglas de autonomía y de
+contexto) vive en el vault, `~/Projects/MemoriesMD/method/` (instalado en `~/.agent-method/`), y su estado en el
+`NEXT.md` de ese repo. AT.15 y AT.16 se cerraron el 2026-10-11 (`8a5875e`, `91687e4`) y su registro se movió allí.
+Aquí quedan solo los dos pendientes que tocan archivos de este repo; **cuando ambos cierren, esta sección se elimina
+y `PLAN.md` queda sin ítems de método** (decisión de Carlos, 2026-10-11).
 
-- [x] **AT.15 — 🧠 `AGENTS.md` habla de roles y apunta a `~/.agent-method/roster.conf`.** (abierto 2026-10-11; cerrado 2026-10-11)
-  Roster único y `bin/delegate <rol> <spec>` en el vault (`e6cb9bd` de `memories-vault`): roles `mecanico`,
-  `criterio`, `criterio-alt`, `qa`, `investigar`, `astra`. En este repo, las dos tablas de `AGENTS.md` pasan a roles.
-  Evidencia: `grep -nE "Terra|gpt-5\.6|gpt-6-|Sonnet|Opus 5" AGENTS.md` deja solo las dos notas de historial y la
-  línea de fixtures de producto (`executor_model`, no es roster). `delegate --dry-run` de los 6 roles arma el comando
-  esperado y las 5 rutas de error salen con 2; una corrida real de `delegate mecanico` aplicó una corrección.
-  No verificado en real: `criterio`, `qa` e `investigar` (solo `--dry-run`).
-  Sin delegación: solo reglas y docs; el script lo escribió Luna en el repo del vault.
-
-- [x] **AT.16 — ⚡ Aviso de contexto: 40 % de la ventana o 250 000 tokens, lo que ocurra primero.** (abierto 2026-10-11; cerrado 2026-10-11)
-  Ejecutado por: gpt-6-luna · Spec: docs/specs/AT.16.md
-  Decidido por Carlos el 2026-10-11; el tope subió de 150 000 a 250 000 el mismo día (una sesión de solo reglas llegó a
-  172 000). `BudgetThresholds` gana `warnTokens`/`criticalTokens` (250 000 / 400 000) y `warn` baja de 60 a 40; el
-  aviso del hook lleva primero los tokens y manda `/clear` en vez de "cierra este tab". Lanzado con
-  `~/.agent-method/bin/delegate mecanico`.
-  Evidencia (comandos del cerebro, fuera del sandbox): `bunx tsc --noEmit` limpio; `bun run lint` 0 errores tras
-  `biome format` de `scripts/context-budget.test.ts` (el ejecutor lo dejó sin formatear); `bun run test:coverage`
-  1652 pass / 0 fail. Transcript real de 254 569 tokens (`8f65ea31…jsonl`, ventana 1 M, 25,5 %):
-  `bun run context:budget` → `level: warn`; con el umbral anterior era `ok`. Esta sesión, 193 669 tokens → `ok`.
-  **No verificado:** ver el aviso aparecer en una sesión real al cruzar el tope; es el gate 🔍 de H.7.3, que sigue abierto.
+- [ ] **AT.17 — ⚡ El mensaje de `brain-no-code` nombra roles, no modelos.** (abierto 2026-10-11)
+  `.claude/hooks/brain-no-code.js:16` dice "delega a Luna. Ejecutor Sonnet: lanzar con ORCHESTOS_ROLE=executor".
+  Debe decir `~/.agent-method/bin/delegate <rol> docs/specs/<ID>.md`. Revisar el test que afirme el texto.
 
 - [ ] **AT.18 — 🔍 Un solo escritor por árbol, hecho cumplir por un candado.** (abierto 2026-10-11)
   Incidente 2026-10-11: dos sesiones de Claude en el mismo árbol; el commit de AT.15 arrastró del índice compartido el
@@ -541,10 +524,6 @@ como default de Codex). Es esquema de trabajo para desarrollar OrchestOS, no pro
   Falta para cerrar: (1) gate 🔍 con dos sesiones reales nuevas en este repo — el hook solo carga al abrir sesión — y
   ver el rechazo en la segunda; (2) decidir si el pre-commit llama a `writer-lock.js` para cubrir a Codex interactivo,
   que hoy solo lo reclama por regla (`claim codex`).
-
-- [ ] **AT.17 — ⚡ El mensaje de `brain-no-code` nombra roles, no modelos.** (abierto 2026-10-11)
-  `.claude/hooks/brain-no-code.js:16` dice "delega a Luna. Ejecutor Sonnet: lanzar con ORCHESTOS_ROLE=executor".
-  Debe decir `~/.agent-method/bin/delegate <rol> docs/specs/<ID>.md`. Revisar el test que afirme el texto.
 
 ### H.10 — El gate de evidencia acepta prosa, no el hecho (ABIERTO 2026-09-08, GO de Carlos)
 
