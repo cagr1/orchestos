@@ -76,8 +76,10 @@ Recorrido (UI real: Dev → proyecto → Settings → `Run Next Task`, como `run
 NEXT.md, `read-boundary.mjs`, `IDEAS.md`, `orchestos.config.yaml`. No commitear.
 
 ## Entorno del ejecutor
-El sandbox de Codex no abre puertos: `ui:gate` y los tests que levantan servidor (`EADDRINUSE`) los corre el cerebro
-fuera; el baseline (`tsc`, `test:coverage`) estaba verde antes de empezar. Correr: `bunx tsc --noEmit`, el `tsc` del
+**NO correr `bun run test:coverage` ni `ui:gate`, y NO detenerse por el baseline.** El cerebro lo verificó fuera del
+sandbox el 2026-10-11 sobre `f1b174f`: `test:coverage` 1652 pass / 0 fail, `tsc` limpio. Dentro del sandbox de Codex
+esa suite da 3 fallos falsos (`csrf-origin.test.ts` por `EADDRINUSE`: no abre puertos; `adversarial-review.test.ts` ×2:
+sandbox dentro de sandbox → `infrastructure-error`). Editar directamente. Correr solo: `bunx tsc --noEmit`, el `tsc` del
 front, `bunx biome check` sobre los archivos tocados, `node --check scripts/ui-gate/flows/qa-negative.mjs` y los tests
 unitarios nuevos. Si se tocó `scripts/pre-push.sh`, decirlo en el reporte (el cerebro corre `bun run hooks:install`).
 
