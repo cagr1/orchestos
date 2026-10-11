@@ -93,6 +93,21 @@ qa_criteria_json` y `duplicate column name: qa_criteria_json`.
 4. Correr `bun test src/__tests__/migration.test.ts src/__tests__/harness-evidence.test.ts src/dashboard/handlers/runs.test.ts`
    y cualquier otro test de `src/db` que no abra puertos.
 
+### A.10 (ronda 4 — lo único pendiente; todo lo anterior ya está aplicado y verde, no rehacerlo)
+Gate en vivo del cerebro: 13/14; falla `rejected run visible`. Causa: el front solo recarga `runs` en el camino feliz.
+Cuando la tarea es rechazada, `runTask` lanza y el `catch` recarga tareas pero no runs
+(`src/dashboard/app/src/App.tsx:972-992`), así que el run rechazado no aparece en Runs hasta reseleccionar el proyecto.
+En `src/dashboard/app/src/App.tsx`, solo esto:
+1. `handleRunNextTask` (`:968-992`): quitar `setRuns(await listRuns(currentProject.id))` del `try` y ponerlo en el
+   `finally`, antes de `refreshUsage()`, como
+   `await listRuns(currentProject.id).then(setRuns).catch(() => undefined)`.
+2. `onRunTask` inline (`:1234-1250`): mismo `listRuns(...).then(setRuns).catch(() => undefined)` en su `finally` (crear
+   el `finally` si no existe, respetando lo que ya haga con `setRunningTaskId`).
+3. `handleApproveHeldTask` (`:932-963`): tras `runProjectTask` — termine bien o lance — si
+   `thread.projectId === currentProject?.id`, recargar runs igual. Usar `try/finally`; no tragar el error que hoy propaga.
+Sin tests unitarios nuevos (lo cubre el gate en vivo). Correr `bunx tsc -p src/dashboard/app/tsconfig.json --noEmit` y
+`bunx biome check src/dashboard/app/src/App.tsx`.
+
 ### C. Pre-push
 `scripts/pre-push.sh:61`: añadir `qa-negative` a `ui_flows` después de `runs-graph`.
 

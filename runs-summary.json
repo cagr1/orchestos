@@ -1,7 +1,52 @@
 {
-  "exported_at": "2026-10-11T16:50:28.465Z",
+  "exported_at": "2026-10-11T16:55:34.289Z",
   "total_runs": 20,
   "runs": [
+    {
+      "id": "dab04503-e067-4a24-8c26-8c6475b51670",
+      "task_class": "gate:r.8.3-qa-negative:doc",
+      "model": "openai/gpt-6-luna",
+      "provider": "codex",
+      "status": "done",
+      "qa_verdict": "pass",
+      "qa_reason": "README.md contains the requested line at the end.",
+      "files_blocked": [],
+      "checks_failed": 0,
+      "usd_cost": 0.00217856,
+      "elapsed_ms": 25285,
+      "tokens": 16169,
+      "created_at": "2026-10-11T16:54:42.072Z"
+    },
+    {
+      "id": "4ce207ea-bb61-4c37-8757-b60f4d39a596",
+      "task_class": "gate:r.8.3-qa-negative:implement",
+      "model": "openai/gpt-6-luna",
+      "provider": "codex",
+      "status": "failed",
+      "qa_verdict": "fail",
+      "qa_reason": "nota.txt contains ROJO, not the required AZUL line.",
+      "files_blocked": [],
+      "checks_failed": 0,
+      "usd_cost": 0.00257892,
+      "elapsed_ms": 19571,
+      "tokens": 23740,
+      "created_at": "2026-10-11T16:53:56.899Z"
+    },
+    {
+      "id": "53a1bd53-52b6-4184-94ef-6eeb08f7b0ba",
+      "task_class": "gate:r.8.3-qa-negative:implement",
+      "model": "openai/gpt-6-luna",
+      "provider": "codex",
+      "status": "done",
+      "qa_verdict": "pass",
+      "qa_reason": "ok.txt contains the required line VERDE.",
+      "files_blocked": [],
+      "checks_failed": 0,
+      "usd_cost": 0.00177828,
+      "elapsed_ms": 22041,
+      "tokens": 14842,
+      "created_at": "2026-10-11T16:53:34.906Z"
+    },
     {
       "id": "31e256e5-a4af-4a27-83c0-6c06dbcf0cef",
       "task_class": "gate:ci.17:doc",
@@ -256,58 +301,13 @@
       "elapsed_ms": 0,
       "tokens": 0,
       "created_at": "2026-10-05T20:44:56.003Z"
-    },
-    {
-      "id": "ui-chat-context-seed-1791233068989",
-      "task_class": "gate:r.8-recorrido:implement",
-      "model": "codex (cli default model) via Codex CLI",
-      "provider": "codex",
-      "status": "done",
-      "qa_verdict": "fail",
-      "qa_reason": "criterion 2 missing: README line absent",
-      "files_blocked": [],
-      "checks_failed": 0,
-      "usd_cost": 0,
-      "elapsed_ms": 0,
-      "tokens": 0,
-      "created_at": "2026-10-05T20:44:28.989Z"
-    },
-    {
-      "id": "f3a68a1e-127d-4685-a2ee-276e8748f0e2",
-      "task_class": "gate:r.8-recorrido:implement",
-      "model": "gpt-6-luna",
-      "provider": "codex",
-      "status": "done",
-      "qa_verdict": "pass",
-      "qa_reason": "El archivo contiene la línea solicitada «nota de codex».",
-      "files_blocked": [],
-      "checks_failed": 0,
-      "usd_cost": 0.00130006,
-      "elapsed_ms": 36178,
-      "tokens": 14020,
-      "created_at": "2026-10-05T20:43:42.144Z"
-    },
-    {
-      "id": "05db66a8-f8bb-47de-ae9c-32af1af086c2",
-      "task_class": "gate:r.8-recorrido:implement",
-      "model": "haiku",
-      "provider": "claude",
-      "status": "done",
-      "qa_verdict": "pass",
-      "qa_reason": "El archivo contiene una sola línea con «nota de claude», tal como se pidió.",
-      "files_blocked": [],
-      "checks_failed": 0,
-      "usd_cost": 0.046592699999999994,
-      "elapsed_ms": 28064,
-      "tokens": 5097,
-      "created_at": "2026-10-05T20:42:41.158Z"
     }
   ],
   "stats": {
-    "failed": 0,
+    "failed": 1,
     "blocked": 0,
-    "done": 20,
+    "done": 19,
     "qa_failed": 2,
-    "total_cost_usd": "0.1250"
+    "total_cost_usd": "0.0837"
   }
 }
