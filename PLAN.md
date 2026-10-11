@@ -269,6 +269,11 @@ Cerrada. Todos sus ítems están archivados en `docs/done/` (ver "Cerrados — e
   Ejecutado por: Luna (gpt-6-luna) · Spec: docs/specs/CI.17.md
 - [ ] **CI.18 — 🔍 `chat-roles` intermitente en el pre-push completo (3.ª vez, 2026-10-11).** Instrumentar el paso del
   marcador y medir la causa antes de arreglar. Spec: docs/specs/CI.18.md
+  2026-10-11: instrumento aplicado (Luna): el detalle del paso guarda `/api/chat` (texto, `autoTask`) + captura
+  `marker-failure`. Medido: 3 corridas del set completo del pre-push → 3/3 PASS; desde R.8.2.1 suma 6 de 7 (1 fallo, el
+  del pre-push de las 09:10). En las 3, Codex emitió el marcador sin que se le repitiera la instrucción → la hipótesis
+  "R.8.2.1 quitó el refuerzo" no se sostiene. Causa del fallo sin medir: queda abierto hasta el próximo fallo, que ya
+  deja evidencia. `dbTasks` siempre `[]` (las tareas no viven en la tabla `tasks` con `project_id`): campo inútil.
 - [ ] **R.8.3 — 🔍 QA negativo real.** Tarea con salida deliberadamente incorrecta que QA debe rechazar; checks
   ejecutados y criterios visibles. Hallazgo 2.
 - [ ] **R.8.4 — 🔍 Reinicio del dashboard a mitad de run.** Recuperar el resultado y el reporte de fin (gap declarado

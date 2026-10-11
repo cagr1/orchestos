@@ -78,6 +78,7 @@ export default async function chatRoles({ page, api, step, shot, visible, cleanu
   // A turn counts as sent when its POST /api/chat response arrives and the reply is
   // visible. Enter while the previous turn is busy is ignored, so retry until sent.
   let lastTurnMs = null
+  let lastTurn = null
   const sendTurn = async (text) => {
     const startedAt = Date.now()
     const previousReplyCount = await page.locator('div.prose').count()
@@ -100,6 +101,13 @@ export default async function chatRoles({ page, api, step, shot, visible, cleanu
       if (!(await request)) continue
       const postResponse = await response
       if (postResponse) {
+        const body = await postResponse.json().catch(() => null)
+        lastTurn = {
+          status: postResponse.status(),
+          text: body?.text ?? null,
+          autoTask: body?.autoTask ?? null,
+          autoTaskSkipped: body?.autoTaskSkipped,
+        }
         const reply = page.locator('div.prose').nth(previousReplyCount)
         try {
           await reply.waitFor({ state: 'visible', timeout: 180_000 })
@@ -152,11 +160,40 @@ export default async function chatRoles({ page, api, step, shot, visible, cleanu
   await page.setViewportSize({ width: viewport?.width ?? 1440, height: 560 })
   const secondTurnDone = await sendTurn(request)
   const heldTaskLabel = page.getByText('Task ready to run', { exact: true }).last()
+  const dbTasks = runJson(`
+    import { Database } from 'bun:sqlite'
+    const db = new Database(${JSON.stringify(databasePath)}, { readonly: true })
+    const columns = db.query("PRAGMA table_info(tasks)").all().map((column) => column.name)
+    const heldColumn = columns.includes('held') ? ', held' : ''
+    const rows = columns.includes('project_id')
+      ? db.query('SELECT id, status' + heldColumn + ' FROM tasks WHERE project_id = ?').all(${JSON.stringify(project.id)})
+      : []
+    console.log(JSON.stringify(rows))
+    db.close()
+  `)
+  // settleTaskIntent strips [[orchestos:task]] before returning text to the API response.
+  const apiText = lastTurn?.text ?? null
+  const hasMarkerLine =
+    apiText === null
+      ? null
+      : apiText.split(/\r?\n/).some((line) => line.startsWith('[[orchestos:task]]'))
+  const markerDetail = {
+    secondTurnDone,
+    httpStatus: lastTurn?.status ?? null,
+    apiText: apiText?.slice(-400) ?? null,
+    hasMarkerLine,
+    autoTask: lastTurn?.autoTask ?? null,
+    autoTaskSkipped: lastTurn?.autoTaskSkipped,
+    dbTasks,
+    label: await heldTaskLabel.innerText().catch(() => 'missing'),
+  }
   await step(
     'Orchestrator marker creates a held task without Auxiliary',
     secondTurnDone && (await visible(heldTaskLabel, 180_000)),
-    await heldTaskLabel.innerText().catch(() => 'No held task label visible'),
+    JSON.stringify(markerDetail),
   )
+  if (!secondTurnDone || !(await heldTaskLabel.isVisible().catch(() => false)))
+    await shot('marker-failure')
   const heldTaskAction = page.getByRole('button', { name: 'Approve & Run' }).last()
   await page.waitForTimeout(500)
   const heldTaskAtBottom = await heldTaskAction.evaluate((element) => {
