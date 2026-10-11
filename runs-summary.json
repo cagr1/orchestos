@@ -1,7 +1,37 @@
 {
-  "exported_at": "2026-10-11T17:02:08.218Z",
+  "exported_at": "2026-10-11T17:05:53.829Z",
   "total_runs": 20,
   "runs": [
+    {
+      "id": "183f2ce7-7099-4798-ba6e-10b61aeef11f",
+      "task_class": "chat",
+      "model": "gpt-6-sol",
+      "provider": "codex",
+      "status": "done",
+      "qa_verdict": null,
+      "qa_reason": null,
+      "files_blocked": [],
+      "checks_failed": 0,
+      "usd_cost": 0.026071999999999998,
+      "elapsed_ms": 18253,
+      "tokens": 4852,
+      "created_at": "2026-10-11T17:05:25.126Z"
+    },
+    {
+      "id": "04c7d664-b144-4424-9033-0ef5a1eda429",
+      "task_class": "chat",
+      "model": "gpt-6-sol",
+      "provider": "codex",
+      "status": "done",
+      "qa_verdict": null,
+      "qa_reason": null,
+      "files_blocked": [],
+      "checks_failed": 0,
+      "usd_cost": 0.01604,
+      "elapsed_ms": 15476,
+      "tokens": 1604,
+      "created_at": "2026-10-11T17:03:59.504Z"
+    },
     {
       "id": "487fb350-c0ee-460b-b842-f359588d3f79",
       "task_class": "chat",
@@ -271,36 +301,6 @@
       "elapsed_ms": 32271,
       "tokens": 16639,
       "created_at": "2026-10-07T19:41:57.708Z"
-    },
-    {
-      "id": "762ba33f-81b4-4c0e-98c5-8d1e46d19898",
-      "task_class": "gate:r.8.1.1-auto-flow:implement",
-      "model": "haiku",
-      "provider": "claude",
-      "status": "done",
-      "qa_verdict": "pass",
-      "qa_reason": "claude-nota.md contiene únicamente la línea solicitada: «nota de claude».",
-      "files_blocked": [],
-      "checks_failed": 0,
-      "usd_cost": 0.0041915400000000005,
-      "elapsed_ms": 21586,
-      "tokens": 5069,
-      "created_at": "2026-10-07T19:41:04.018Z"
-    },
-    {
-      "id": "44fe0d5a-f490-4da6-8d2e-f1afdf474204",
-      "task_class": "gate:r.8.1.1-auto-flow:implement",
-      "model": "gpt-6-luna",
-      "provider": "codex",
-      "status": "done",
-      "qa_verdict": "pass",
-      "qa_reason": "El archivo contiene la única línea solicitada: «nota de codex».",
-      "files_blocked": [],
-      "checks_failed": 0,
-      "usd_cost": 0.002928599999999999,
-      "elapsed_ms": 44989,
-      "tokens": 25871,
-      "created_at": "2026-10-07T19:39:50.095Z"
     }
   ],
   "stats": {
@@ -308,6 +308,6 @@
     "blocked": 0,
     "done": 18,
     "qa_failed": 3,
-    "total_cost_usd": "0.0292"
+    "total_cost_usd": "0.0642"
   }
 }

@@ -4,6 +4,10 @@
 cambios sin commitear de R.8.3, verificados por el cerebro: **son de este ítem, no los toques ni te detengas por
 ellos.** No leas los otros specs de R.8.3: este archivo es todo el trabajo.
 
+**Candado de escritor:** `writer-lock.js status` dirá `ocupado: claude 9c7c1af4`. Esa es la sesión cerebro que te
+delegó; `bin/delegate` te pasa su token y eres su ejecutor, no una segunda sesión. Edita: el hook no te lo niega. Solo
+detente si una edición es rechazada mecánicamente, y entonces cita el mensaje exacto.
+
 ## Defecto
 1 de 3 corridas de `bun run ui:gate qa-negative` falló en el andamiaje:
 `flow: Command failed: git -c user.name=ui-gate -c user.email=ui-gate@example.invalid commit -qm task fixture`.
