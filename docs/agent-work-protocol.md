@@ -35,7 +35,9 @@ terminado basándose solo en revisión visual del código, mocks o la afirmació
    documentado en el mismo commit. Es opt-in: sin declaración, el gate no aplica.
 6. Ejecutar baseline: `bunx tsc --noEmit` y la suite relevante. Si falla por trabajo ajeno, parar y
    reportar el archivo/error; no absorber el refactor sin autorización.
-7. Implementar solo el ítem elegido. Hallazgos adyacentes se documentan; no se corrigen en caliente.
+7. Implementar solo el ítem elegido. Un hallazgo que **daña el sistema** (regresión del propio lote, gate o CI
+   rojo, función rota, dato o seguridad en riesgo) no se deja anotado: se le abre ítem y se corrige **antes** del
+   siguiente, sin preguntar (2026-10-11, regla global § Autonomía). El resto se documenta y va en el reporte del lote.
 8. Ejecutar los gates de la matriz siguiente.
 9. Añadir en `PLAN.md` evidencia concreta y comandos/resultados. Solo entonces marcar `[x]`.
 10. Commit por ítem sin `--no-verify`. Tras 2–3 commits locales, push normal autorizado.
@@ -78,5 +80,8 @@ El agente debe parar sin declarar éxito cuando ocurra cualquiera de estas condi
 - una acción destructiva no tiene confirmación explícita;
 - la evidencia proviene únicamente del mismo agente que implementó y el ítem exige revisión 🔍.
 
-La salida correcta es describir el bloqueo y conservar el trabajo recuperable. Nunca usar
+Parar significa **no cerrar ese ítem**, no devolver el turno a Carlos (2026-10-11): un test, hook o gate rojo se
+diagnostica y se corrige en el mismo lote. Se vuelve a Carlos solo por el mismo fallo tras 2 intentos con diagnóstico
+distinto, una decisión de producto no prevista, una acción destructiva o el fin del lote. En esos casos, la salida
+correcta es describir el bloqueo y conservar el trabajo recuperable. Nunca usar
 `--no-verify`, relajar tests, inventar evidencia o marcar `[x]` para silenciar el proceso.

@@ -513,15 +513,13 @@ como default de Codex). Es esquema de trabajo para desarrollar OrchestOS, no pro
   No verificado en real: `criterio`, `qa` e `investigar` (solo `--dry-run`).
   Sin delegación: solo reglas y docs; el script lo escribió Luna en el repo del vault.
 
-- [ ] **AT.16 — 🧠 Aviso de contexto al 50 %: el hook avisa al 60 %.** (abierto 2026-10-11)
-  La regla global dice 50 % desde 2026-10-04 (`~/.agent-method/detail/context-cost.md:29`); el piso común sigue en
-  `warn: 60` (`scripts/context-budget.ts:33`) y lo fijan fixtures y tests (`codex-59-9.jsonl`, `codex-60.jsonl`,
-  `scripts/context-budget*.test.ts`, `scripts/context-adapters.test.ts:98`). El texto de H.7.3 también dice 60 %.
-  El aviso dice "Cierra este tab y abre uno nuevo" (`.claude/hooks/context-budget.js:113`); la regla de Carlos es
-  `/clear` entre tareas y tab nuevo solo si cambia modelo o settings.
-  **Decisión pendiente de Carlos:** con ventana de 1 M (Opus hoy: `context:status` dio 106 434 / 1 000 000 = 10,6 %)
-  el 50 % son 500 000 tokens; el 50 % se decidió con ventanas de 200 K. Porcentaje, o tope absoluto en tokens.
-  Gate 🔍: el de H.7.3 (cruzar el umbral en una sesión real y ver el aviso).
+- [ ] **AT.16 — ⚡ Aviso de contexto: 40 % de la ventana o 150 000 tokens, lo que ocurra primero.** (abierto 2026-10-11)
+  Decidido por Carlos el 2026-10-11 ("40 %", y "lo que funcione mejor para los agentes" sobre el tope absoluto). Hoy el
+  piso común es `warn: 60` (`scripts/context-budget.ts:33`) y el aviso dice "cierra este tab"; la regla es `/clear`.
+  Con ventana de 1 M el porcentaje no protege: `context:status` dio 145 232 / 1 000 000 = 14,5 % en una sesión que ya
+  conviene cerrar. Spec: `docs/specs/AT.16.md`. Reemplaza el "60 %" del texto de H.7.3.
+  **No lanzar mientras otra sesión edite este árbol:** el gate del ejecutor leería un árbol en movimiento.
+  Gate 🔍: sesión real por encima de 150 000 tokens muestra el aviso con `/clear`.
 
 - [ ] **AT.17 — ⚡ El mensaje de `brain-no-code` nombra roles, no modelos.** (abierto 2026-10-11)
   `.claude/hooks/brain-no-code.js:16` dice "delega a Luna. Ejecutor Sonnet: lanzar con ORCHESTOS_ROLE=executor".

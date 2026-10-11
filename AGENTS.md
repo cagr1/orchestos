@@ -215,7 +215,8 @@ SIEMPRE es `PLAN.md`. Antes de tocar código:
    Si un `⚡` te bloquea porque depende de un `🧠` sin cerrar, PARÁ y decilo, no lo hagas en caliente.
 2. **Scope-lock**: ejecutá EXACTAMENTE el ítem que agarraste — nada adyacente, ningún "ya que
    estoy, aprovecho y arreglo esto otro también". Si ves algo fuera de scope que amerita
-   arreglarse, anotalo, no lo toques en la misma pasada.
+   arreglarse, no lo mezcles en la misma pasada: abrile su ítem. Si daña el sistema (regresión, gate rojo), ese
+   ítem va **antes** del siguiente y sin preguntar; si no, se anota para el reporte del lote (2026-10-11).
 3. **Commit por ítem cerrado**, marcando `[x]` en `PLAN.md` en el mismo commit — así el otro agente
    (o Carlos) ve en `git log`/`PLAN.md` qué ya está tomado, sin necesitar coordinación en vivo.
    Excepción: si ejecutas un `docs/specs/<ID>.md` escrito por el cerebro, no commiteas; el cierre
