@@ -163,6 +163,9 @@ export default async function chatContext({
       'ui-chat-context-seed-' + Date.now(), ${JSON.stringify(project.id)}, 'criterion 2 missing: README line absent',
       JSON.stringify([{ source: 'unknown' }]), new Date().toISOString()
     )
+    db.query("INSERT INTO runs (id, project_id, prompt, task_class, model, provider, status, usd_cost, created_at) VALUES (?, ?, 'fixture', 'implement', 'gpt-6-luna via Codex CLI', 'codex', 'done', 0, ?)").run(
+      'ui-chat-context-model-seed-' + Date.now(), ${JSON.stringify(project.id)}, new Date(Date.now() - 1000).toISOString()
+    )
     db.close()
     console.log(JSON.stringify({ inserted: true }))
   `)
@@ -198,7 +201,7 @@ export default async function chatContext({
   const codexRun = runJson(`
     import { Database } from 'bun:sqlite'
     const db = new Database(${JSON.stringify(databasePath)}, { readonly: true })
-    const row = db.query("SELECT provider, context_tokens, input_tokens FROM runs WHERE project_id = ? AND task_class = 'chat' AND provider = 'codex' ORDER BY created_at DESC LIMIT 1").get(${JSON.stringify(project.id)})
+    const row = db.query("SELECT id, provider, context_tokens, input_tokens FROM runs WHERE project_id = ? AND task_class = 'chat' AND provider = 'codex' ORDER BY created_at DESC LIMIT 1").get(${JSON.stringify(project.id)})
     console.log(JSON.stringify(row ?? null))
     db.close()
   `)
@@ -219,6 +222,7 @@ export default async function chatContext({
       /Read\s*,?\s*Glob\s*,?\s*Grep/i.test(claudePrompt) &&
       /cannot edit/i.test(claudePrompt) &&
       /codex · gpt-6-luna/i.test(claudePrompt) &&
+      !claudePrompt.includes(codexRun.id) &&
       /criterion 2 missing: README line absent/i.test(claudePrompt) &&
       !claudePrompt.includes('Second line that must not reach the chat context'),
     claudePrompt,

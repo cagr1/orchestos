@@ -189,6 +189,22 @@ export function listRunsByProjectId(projectId: string, limit = 20): RunRecord[] 
     .all(projectId, safeLimit)
 }
 
+export function listContextRuns(projectId: string | null, limit = 10): RunRecord[] {
+  const safeLimit = normalizeRunLimit(limit)
+  if (projectId === null) {
+    return db
+      .query<RunRecord, number>(
+        "SELECT * FROM runs WHERE task_class IS NULL OR task_class != 'chat' ORDER BY created_at DESC LIMIT ?",
+      )
+      .all(safeLimit)
+  }
+  return db
+    .query<RunRecord, [string, number]>(
+      "SELECT * FROM runs WHERE project_id = ? AND (task_class IS NULL OR task_class != 'chat') ORDER BY created_at DESC LIMIT ?",
+    )
+    .all(projectId, safeLimit)
+}
+
 export function listRunsWithoutProjectId(limit = 20): RunRecord[] {
   const safeLimit = normalizeRunLimit(limit)
   return db

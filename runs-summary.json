@@ -1,7 +1,37 @@
 {
-  "exported_at": "2026-10-11T13:48:58.672Z",
+  "exported_at": "2026-10-11T13:52:58.369Z",
   "total_runs": 20,
   "runs": [
+    {
+      "id": "ui-chat-context-seed-1791726711274",
+      "task_class": "gate:r.8.2.1:implement",
+      "model": "codex (cli default model) via Codex CLI",
+      "provider": "codex",
+      "status": "done",
+      "qa_verdict": "fail",
+      "qa_reason": "criterion 2 missing: README line absent",
+      "files_blocked": [],
+      "checks_failed": 0,
+      "usd_cost": 0,
+      "elapsed_ms": 0,
+      "tokens": 0,
+      "created_at": "2026-10-11T13:51:51.274Z"
+    },
+    {
+      "id": "ui-chat-context-model-seed-1791726711275",
+      "task_class": "gate:r.8.2.1:implement",
+      "model": "gpt-6-luna via Codex CLI",
+      "provider": "codex",
+      "status": "done",
+      "qa_verdict": null,
+      "qa_reason": null,
+      "files_blocked": [],
+      "checks_failed": 0,
+      "usd_cost": 0,
+      "elapsed_ms": 0,
+      "tokens": 0,
+      "created_at": "2026-10-11T13:51:50.275Z"
+    },
     {
       "id": "1badc0c0-8568-4ceb-a8e8-01ab66480761",
       "task_class": "chat",
@@ -271,43 +301,13 @@
       "elapsed_ms": 37870,
       "tokens": 15576,
       "created_at": "2026-10-05T16:28:24.464Z"
-    },
-    {
-      "id": "8b89076d-a1b1-48ee-ae20-f2e55f0fb720",
-      "task_class": "implement",
-      "model": "gpt-6-luna",
-      "provider": "codex",
-      "status": "done",
-      "qa_verdict": "pass",
-      "qa_reason": "The file replaces the vacuous test with assertions covering addition, negative values, zero, and decimals.",
-      "files_blocked": [],
-      "checks_failed": 0,
-      "usd_cost": 0.00236984,
-      "elapsed_ms": 40339,
-      "tokens": 16576,
-      "created_at": "2026-10-05T16:27:46.164Z"
-    },
-    {
-      "id": "0b3b4732-3633-436a-a453-a77364c346ce",
-      "task_class": "implement",
-      "model": "gpt-6-luna",
-      "provider": "codex",
-      "status": "done",
-      "qa_verdict": "pass",
-      "qa_reason": "The file replaces the vacuous test with concrete assertions covering positive, negative, mixed-sign, and decimal inputs to sum().",
-      "files_blocked": [],
-      "checks_failed": 0,
-      "usd_cost": 0.0020728,
-      "elapsed_ms": 46562,
-      "tokens": 15854,
-      "created_at": "2026-10-05T16:27:05.392Z"
     }
   ],
   "stats": {
     "failed": 0,
     "blocked": 0,
     "done": 20,
-    "qa_failed": 1,
-    "total_cost_usd": "0.1287"
+    "qa_failed": 2,
+    "total_cost_usd": "0.1242"
   }
 }

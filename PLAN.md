@@ -249,8 +249,12 @@ Cerrada. Todos sus ítems están archivados en `docs/done/` (ver "Cerrados — e
   Hallazgo al cerrar: en el turno 2 de Codex se reenvía el system prompt entero como `<orchestos-context-update>`
   (el hash cambió entre turnos) — causa sin medir.
   Ejecutado por: Luna (gpt-6-luna) · Spec: docs/specs/R.8.2.md (+2 correcciones del gate: UUID válido, leer API y DOM)
-- [ ] **R.8.2.1 — 🔍 Los turnos del chat no entran en "Recent runs" del contexto.** Hallazgo de cierre de R.8.2: cada
-  turno cambiaba el prompt del siguiente y Codex reenviaba el system prompt entero. Spec: docs/specs/R.8.2.1.md
+- [x] **R.8.2.1 — 🔍 Los turnos del chat no entran en "Recent runs" del contexto.** (2026-10-11) Hallazgo de cierre de
+  R.8.2: cada turno cambiaba el prompt del siguiente y Codex reenviaba el system prompt entero (~1.1k tokens por turno,
+  acumulados en el thread). `listContextRuns` (`db/runs.ts`) excluye `task_class='chat'`; Runs/Usage siguen viéndolos.
+  Evidencia: `chat-continuity` 7/7 (el turno 2 de Codex ya no lleva `<orchestos-context-update>`), `chat-context` 5/5
+  (el run de chat de Codex no aparece en el contexto de Claude), `test:coverage` 1648/0, `tsc` limpio.
+  Ejecutado por: Luna (gpt-6-luna) · Spec: docs/specs/R.8.2.1.md
 - [ ] **R.8.2.2 — 🔍 El anillo de contexto de Dev mide la sesión abierta.** Carlos vio 71% en Dev con Codex: era un
   transcript de Codex CLI del 2026-10-04 (184k/258k), no la sesión (2.48%). Spec: docs/specs/R.8.2.2.md
 - [ ] **R.8.3 — 🔍 QA negativo real.** Tarea con salida deliberadamente incorrecta que QA debe rechazar; checks

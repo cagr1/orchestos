@@ -24,7 +24,7 @@ import {
   reserveTurnTask,
 } from '../../db/chat-turns.ts'
 import type { MemoryEntry } from '../../db/memory.ts'
-import { insertRun, listRuns, listRunsByProjectId } from '../../db/runs.ts'
+import { insertRun, listContextRuns } from '../../db/runs.ts'
 import { db } from '../../db/sqlite.ts'
 import {
   createToolRouter,
@@ -1202,7 +1202,7 @@ async function handleApiChat(
   let recentRuns: any[] = []
   if (hasProjectContext)
     try {
-      recentRuns = project.id ? listRunsByProjectId(project.id, 10) : listRuns(10)
+      recentRuns = listContextRuns(project.id ?? null, 10)
     } catch {}
 
   const qaReasons: Record<string, string> = {}

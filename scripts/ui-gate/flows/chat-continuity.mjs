@@ -182,7 +182,8 @@ export default async function chatContinuity({
     'Codex thread remembers sentinel without transcript duplication',
     codexAnswer.api.includes(sentinel) &&
       codexAnswer.dom.includes(sentinel) &&
-      !resumedCapture.includes(sentinel),
+      !resumedCapture.includes(sentinel) &&
+      !resumedCapture.includes('<orchestos-context-update>'),
     `${resumedCapture}\nAPI: ${codexAnswer.api}\nDOM: ${codexAnswer.dom}`,
   )
 
