@@ -11,6 +11,9 @@
    chat (decisión de Carlos: aisladas). R.8.5 cerrado 2026-10-12 (`read-boundary`, `project-isolation`,
    `qa-negative`; detalle y límites en PLAN.md). R.8.6 cerrado 2026-10-12 (sin `true` literales; `note` para
    diagnóstico; el linter de flujos lo impide). Siguiente: ERP.4.
+   ERP.4: decisiones de Carlos ya escritas en PLAN.md (inventario mínimo, repo `erp-piloto`, modelos del roster,
+   una sesión / parar a los 2 fallos). Falta todo lo demás: crear el repo, revisar Model routing y correr el piloto
+   desde el dashboard (chat), no por CLI.
    Lección: si el archivo objetivo tiene cambios sin commitear de una ronda previa, el spec debe decirlo; si no,
    `mecanico` los toma por ajenos y no edita.
    Lecciones de R.8.4: `delegate qa` exige archivo de spec, no acepta la pregunta directa; el cerebro no puede editar

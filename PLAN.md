@@ -125,6 +125,12 @@ Cerrada. Todos sus ítems están archivados en `docs/done/` (ver "Cerrados — e
   evidencia sin reconstruirlos a mano. Medir intervenciones, bloqueos, tiempo y uso disponible;
   verificar que una corrección guardada se recupera en el siguiente trabajo del mismo proyecto.
   Reutilizar R.8 para la revisión independiente; no afirmar aprendizaje por solo guardar memoria.
+  Decisiones de Carlos 2026-10-12 (GO): módulo = inventario mínimo (2 tablas: productos y movimientos; regla: el
+  stock no queda negativo; permiso: solo `admin` registra salidas; API + pantalla: listar productos con stock y
+  registrar un movimiento, sin editar ni borrar; tests de aceptación de la regla y el permiso). Repo nuevo de prueba
+  fuera de OrchestOS (`~/Projects/projects/erp-piloto`, Bun + SQLite + React). Modelos = los del roster: ejecutor
+  Codex `gpt-6-luna`, criterio Claude `sonnet`, revisor Codex `gpt-6.1-sol`; si Model routing difiere, ajustarlo
+  solo en el proyecto de prueba y decir qué cambió. Presupuesto: una sesión; parar si la misma etapa falla 2 veces.
 - [x] **CI.14 — 🔍 GitHub Actions deja de fallar por la misma clase de bug.** (abierto 2026-10-06, GO de Carlos)
   Datos 2026-09-05→10-05: CI rojo en 42/73 pushes en 3 rachas (lint 11-22 sep; `process.env`/HOME 23-24 sep; fixture git
   sin identidad 4-5 oct), todas "pasa en el Mac, falla en Linux". Mutation Shards cancelado 4 noches (10-03→10-06):
