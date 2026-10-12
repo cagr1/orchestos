@@ -292,6 +292,11 @@ Cerrada. Todos sus ítems están archivados en `docs/done/` (ver "Cerrados — e
   Aprendizaje de specs: una columna nueva en `runs` va como migración numerada, no `safeAddColumn` (la migración 10
   reconstruye la tabla con lista fija); un spec con rondas apiladas confunde al ejecutor → una ronda = un archivo.
   Ejecutado por: Luna (gpt-6-luna) · Spec: docs/specs/R.8.3.md (+ rondas 4 y 5 en archivos propios)
+- [ ] **CI.20 — 🔍 `chat-continuity` lee la respuesta equivocada del DOM tras recargar.** Visto 2026-10-11 en el pre-push
+  (2 de 2): `Claude recalls sentinel after reload` con `API: R82-…` y `DOM: OK`; la captura muestra el centinela bien
+  pintado. Causa: `sendTurn` cuenta los `div.prose` antes de que el historial se hidrate tras `reopenSession` y lee
+  por índice la respuesta anterior. Spec: `docs/specs/CI.20.md`. Mismo patrón por índice en `chat-context`,
+  `auto-flow`, `chat-roles` (candidato a causa de CI.18) y `read-boundary`: no recargan antes de enviar; sin tocar.
 - [ ] **CI.19 — 🔍 El `git commit` del fixture falla a veces en el andamiaje de los ui-gates.** Visto 1 vez en
   `qa-negative` (2026-10-11, 1 de 9): `Command failed: git … commit -qm task fixture`, sin motivo porque el helper
   `run` usa `stdio: 'ignore'`. `qa-negative` ya reporta stdout/stderr y exit; los otros 20 flows con el mismo helper no.

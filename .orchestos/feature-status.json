@@ -139,6 +139,15 @@
       "closedDate": null
     },
     {
+      "id": "CI.20",
+      "sprint": "Fase 2 — Producto mínimo para entrega",
+      "block": "H.7 — El contexto se llena en silencio y nadie avisa (ABIERTO 2026-09-02)",
+      "delegation": "🔍",
+      "title": "`chat-continuity` lee la respuesta equivocada del DOM tras recargar",
+      "status": "open",
+      "closedDate": null
+    },
+    {
       "id": "CI.19",
       "sprint": "Fase 2 — Producto mínimo para entrega",
       "block": "H.7 — El contexto se llena en silencio y nadie avisa (ABIERTO 2026-09-02)",
