@@ -1,0 +1,438 @@
+[
+  {
+    "flujo": "qa-negative",
+    "pass": true,
+    "steps": [
+      {
+        "nombre": "temporary project visible",
+        "ok": true,
+        "detalle": "project visible in sidebar"
+      },
+      {
+        "nombre": "project settings visible",
+        "ok": true,
+        "detalle": "project settings heading visible"
+      },
+      {
+        "nombre": "Run Next Task enabled",
+        "ok": true,
+        "detalle": "task is runnable"
+      },
+      {
+        "nombre": "control task passes QA",
+        "ok": true,
+        "detalle": "{\"status\":\"done\",\"qaVerdict\":\"pass\"}"
+      },
+      {
+        "nombre": "control check executed",
+        "ok": true,
+        "detalle": "[{\"cmd\":\"grep -qx VERDE ok.txt\",\"version\":\"grep (BSD grep, GNU compatible) 2.6.0-FreeBSD\",\"exitCode\":0,\"stdout\":\"\",\"stderr\":\"\",\"elapsedMs\":4,\"timedOut\":false}]"
+      },
+      {
+        "nombre": "control criterion passed with literal evidence",
+        "ok": true,
+        "detalle": "[{\"text\":\"ok.txt contains the line: VERDE\",\"pass\":true,\"evidence\":{\"file\":\"ok.txt\",\"excerpt\":\"VERDE\"}}]"
+      },
+      {
+        "nombre": "control output on disk",
+        "ok": true,
+        "detalle": "{\"exists\":true,\"content\":\"VERDE\"}"
+      },
+      {
+        "nombre": "task rollout written inside the project agent home",
+        "ok": true,
+        "detalle": "{\"agentHome\":\"/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/orchestos-ui-r83-dHYiyx/.orchestos/agent-home/codex\",\"antes\":2,\"despues\":1}"
+      },
+      {
+        "nombre": "rollout contains the OrchestOS generated instructions",
+        "ok": true,
+        "detalle": "{\"rolloutBytes\":51865,\"hostAgents\":\"checked\"}"
+      },
+      {
+        "nombre": "rollout does not contain the host AGENTS.md distinctive line",
+        "ok": true,
+        "detalle": "línea del host comprobada: \"# Reglas globales de trabajo con agentes\""
+      },
+      {
+        "nombre": "executor wrote the incorrect output",
+        "ok": true,
+        "detalle": "[{\"path\":\"nota.txt\",\"status\":\"added\",\"diff\":\"Index: nota.txt\\n===================================================================\\n--- nota.txt\\n+++ nota.txt\\n@@ -0,0 +1,1 @@\\n+ROJO\\n\"}]"
+      },
+      {
+        "nombre": "QA rejects the incorrect output",
+        "ok": true,
+        "detalle": "{\"qaVerdict\":\"fail\",\"qaReason\":\"nota.txt contains ROJO, not the required AZUL line.\",\"qaModel\":\"gpt-6-luna\",\"checks\":[{\"cmd\":\"test -f nota.txt\",\"exitCode\":0,\"stdout\":\"\",\"stderr\":\"\",\"elapsedMs\":3,\"timedOut\":false}],\"qaCriteria\":[{\"text\":\"nota.txt contains the line: AZUL\",\"pass\":false,\"evidence\":{\"file\":\"nota.txt\",\"excerpt\":\"ROJO\"}}]}"
+      },
+      {
+        "nombre": "check executed before QA",
+        "ok": true,
+        "detalle": "{\"qaVerdict\":\"fail\",\"qaReason\":\"nota.txt contains ROJO, not the required AZUL line.\",\"qaModel\":\"gpt-6-luna\",\"checks\":[{\"cmd\":\"test -f nota.txt\",\"exitCode\":0,\"stdout\":\"\",\"stderr\":\"\",\"elapsedMs\":3,\"timedOut\":false}],\"qaCriteria\":[{\"text\":\"nota.txt contains the line: AZUL\",\"pass\":false,\"evidence\":{\"file\":\"nota.txt\",\"excerpt\":\"ROJO\"}}]}"
+      },
+      {
+        "nombre": "failed criterion recorded",
+        "ok": true,
+        "detalle": "{\"qaVerdict\":\"fail\",\"qaReason\":\"nota.txt contains ROJO, not the required AZUL line.\",\"qaModel\":\"gpt-6-luna\",\"checks\":[{\"cmd\":\"test -f nota.txt\",\"exitCode\":0,\"stdout\":\"\",\"stderr\":\"\",\"elapsedMs\":3,\"timedOut\":false}],\"qaCriteria\":[{\"text\":\"nota.txt contains the line: AZUL\",\"pass\":false,\"evidence\":{\"file\":\"nota.txt\",\"excerpt\":\"ROJO\"}}]}"
+      },
+      {
+        "nombre": "task returns to pending with retry",
+        "ok": true,
+        "detalle": "{\"status\":\"pending\",\"retryCount\":1,\"qaVerdict\":\"fail\"}"
+      },
+      {
+        "nombre": "rejected output reverted",
+        "ok": true,
+        "detalle": "{\"exists\":false}"
+      },
+      {
+        "nombre": "rejected run visible",
+        "ok": true,
+        "detalle": "gate-qa-bad appears in Runs"
+      },
+      {
+        "nombre": "check visible in QA tab",
+        "ok": true,
+        "detalle": "✓ test -f nota.txt (exit 0)"
+      },
+      {
+        "nombre": "failed criterion visible in QA tab",
+        "ok": true,
+        "detalle": "✗ nota.txt contains the line: AZUL"
+      },
+      {
+        "nombre": "control run visible",
+        "ok": true,
+        "detalle": "gate-qa-ok appears in Runs"
+      },
+      {
+        "nombre": "passed criterion visible with evidence",
+        "ok": true,
+        "detalle": "✓ ok.txt contains the line: VERDE with ok.txt evidence"
+      }
+    ],
+    "errores": [],
+    "capturas": [
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-2175/qa-negative/qa-negative-rejected.png"
+    ]
+  },
+  {
+    "flujo": "auto-flow",
+    "pass": true,
+    "steps": [
+      {
+        "nombre": "temporary project visible",
+        "ok": true,
+        "detalle": "project appears in Dev sidebar"
+      },
+      {
+        "nombre": "Chat: no manual task creation door",
+        "ok": true,
+        "detalle": "task form fields=0; forbidden buttons=[]"
+      },
+      {
+        "nombre": "Dev: no manual task creation door",
+        "ok": true,
+        "detalle": "task form fields=0; forbidden buttons=[]"
+      },
+      {
+        "nombre": "Settings Tasks: no manual task creation door",
+        "ok": true,
+        "detalle": "task form fields=0; forbidden buttons=[]"
+      },
+      {
+        "nombre": "Settings Plan: no manual task creation door",
+        "ok": true,
+        "detalle": "task form fields=0; forbidden buttons=[]"
+      },
+      {
+        "nombre": "Plan action opens only Chat composer",
+        "ok": true,
+        "detalle": "composer visible=true; dialogs=0"
+      },
+      {
+        "nombre": "select Codex for new chat",
+        "ok": true,
+        "detalle": "agent option visible"
+      },
+      {
+        "nombre": "model and effort controls visible",
+        "ok": true,
+        "detalle": "composer controls visible"
+      },
+      {
+        "nombre": "select gpt-6-luna",
+        "ok": true,
+        "detalle": "model option visible"
+      },
+      {
+        "nombre": "select medium effort",
+        "ok": true,
+        "detalle": "effort option visible"
+      },
+      {
+        "nombre": "model popover closes",
+        "ok": true,
+        "detalle": "popover closed after Escape/click outside"
+      },
+      {
+        "nombre": "chat response: ¿Qué es un DAG? Responde en una frase, sin cr",
+        "ok": true,
+        "detalle": "assistant reply visible"
+      },
+      {
+        "nombre": "non-task message does not create task",
+        "ok": true,
+        "detalle": "new task ids=[]; task card=false; approve=false"
+      },
+      {
+        "nombre": "non-task message leaves project clean",
+        "ok": true,
+        "detalle": "clean"
+      },
+      {
+        "nombre": "chat response: Crea el archivo claude-nota.md con una sola l",
+        "ok": true,
+        "detalle": "assistant reply visible"
+      },
+      {
+        "nombre": "claude-nota.md: starts without approval",
+        "ok": true,
+        "detalle": "{\"taskId\":\"chat-3a369dd6-1100-4bf2-a6ac-359f96da06ec\",\"buttonVisible\":false,\"status\":\"running\",\"runId\":null,\"cardVisible\":false}"
+      },
+      {
+        "nombre": "claude-nota.md: task finished",
+        "ok": true,
+        "detalle": "{\"id\":\"chat-3a369dd6-1100-4bf2-a6ac-359f96da06ec\",\"description\":\"Crea el archivo `claude-nota.md` con una sola línea: «nota de claude».\",\"status\":\"done\",\"retryReason\":null,\"skill\":null,\"executor\":\"openrouter\",\"retryCount\":0,\"qaVerdict\":\"pass\",\"runId\":\"581b01a0-cc6b-4842-a2bd-c4e3e7d627bf\",\"engine\":\"external\",\"output\":[\"claude-nota.md\"],\"dependsOn\":[],\"acceptanceCriteria\":[],\"executorModel\":\"haiku\",\"hasSplitPlan\":false}"
+      },
+      {
+        "nombre": "claude-nota.md: exact content",
+        "ok": true,
+        "detalle": "\"nota de claude\\n\""
+      },
+      {
+        "nombre": "claude-nota.md: inline report",
+        "ok": true,
+        "detalle": "dom=true; persisted=true"
+      },
+      {
+        "nombre": "claude-nota.md: chat and run persistence",
+        "ok": true,
+        "detalle": "{\"status\":\"done\",\"provider\":\"claude\",\"model\":\"haiku\",\"resultLength\":17,\"userMessage\":true,\"assistantMessage\":true}"
+      },
+      {
+        "nombre": "chat response: Crea el archivo codex-nota.md con una sola lí",
+        "ok": true,
+        "detalle": "assistant reply visible"
+      },
+      {
+        "nombre": "codex-nota.md: held for approval",
+        "ok": true,
+        "detalle": "{\"buttonVisible\":true,\"status\":\"pending\",\"runId\":null,\"content\":\"borrador viejo\\n\"}"
+      },
+      {
+        "nombre": "codex-nota.md: remains pending before approval",
+        "ok": true,
+        "detalle": "{\"status\":\"pending\",\"runId\":null,\"content\":\"borrador viejo\\n\"}"
+      },
+      {
+        "nombre": "codex-nota.md: starts after approval",
+        "ok": true,
+        "detalle": "{\"taskId\":\"chat-7c8a1d6d-d98a-4903-a074-aad16c09c788\",\"status\":\"running\",\"runId\":null,\"buttonHidden\":true}"
+      },
+      {
+        "nombre": "codex-nota.md: task finished",
+        "ok": true,
+        "detalle": "{\"id\":\"chat-7c8a1d6d-d98a-4903-a074-aad16c09c788\",\"description\":\"Crea el archivo `codex-nota.md` con una sola línea: «nota de codex».\",\"status\":\"done\",\"retryReason\":null,\"skill\":null,\"executor\":\"openrouter\",\"retryCount\":0,\"qaVerdict\":\"pass\",\"runId\":\"9a6aa35a-af7f-4105-afa9-d726dc613e1d\",\"engine\":\"codex\",\"output\":[\"codex-nota.md\"],\"dependsOn\":[],\"acceptanceCriteria\":[],\"executorModel\":null,\"hasSplitPlan\":false}"
+      },
+      {
+        "nombre": "codex-nota.md: exact content",
+        "ok": true,
+        "detalle": "\"nota de codex\\n\""
+      },
+      {
+        "nombre": "codex-nota.md: inline report",
+        "ok": true,
+        "detalle": "dom=true; persisted=true"
+      },
+      {
+        "nombre": "codex-nota.md: chat and run persistence",
+        "ok": true,
+        "detalle": "{\"status\":\"done\",\"provider\":\"codex\",\"model\":\"gpt-6-luna\",\"resultLength\":17,\"userMessage\":true,\"assistantMessage\":true}"
+      },
+      {
+        "nombre": "DAG routes Claude and Codex to distinct recorded engines",
+        "ok": true,
+        "detalle": "{\"claude\":{\"engine\":\"external\",\"provider\":\"claude\",\"model\":\"haiku\",\"status\":\"done\",\"result\":\"1 file(s) written\",\"retry_reason\":null},\"codex\":{\"engine\":\"codex\",\"provider\":\"codex\",\"model\":\"gpt-6-luna\"}}"
+      },
+      {
+        "nombre": "reload recovers task reports",
+        "ok": true,
+        "detalle": "{\"found\":[\"chat-3a369dd6-1100-4bf2-a6ac-359f96da06ec\",\"chat-7c8a1d6d-d98a-4903-a074-aad16c09c788\"],\"missing\":[]}"
+      },
+      {
+        "nombre": "no implementation text visible",
+        "ok": true,
+        "detalle": "{\"implementationLeaks\":[],\"absoluteProjectPath\":false,\"sourcePathError\":false,\"markerInProse\":false}"
+      }
+    ],
+    "errores": [],
+    "capturas": [
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-2175/auto-flow/no-manual-door.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-2175/auto-flow/task-inline-report.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-2175/auto-flow/codex-task-inline-report.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-2175/auto-flow/after-reload.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-2175/auto-flow/final-chat.png"
+    ]
+  },
+  {
+    "flujo": "restart-mid-run",
+    "pass": true,
+    "steps": [
+      {
+        "nombre": "temporary project visible",
+        "ok": true,
+        "detalle": "project in Dev sidebar"
+      },
+      {
+        "nombre": "A: run requested from the chat session",
+        "ok": true,
+        "detalle": "HTTP 200"
+      },
+      {
+        "nombre": "A: task is running with a watched runner before the restart",
+        "ok": true,
+        "detalle": "{\"status\":\"running\",\"watch\":{\"pid\":12430,\"session_id\":\"aed4ebf4-3dec-4db5-8fa4-506ec8444491\"}}"
+      },
+      {
+        "nombre": "A: no report exists before the restart",
+        "ok": true,
+        "detalle": "[]"
+      },
+      {
+        "nombre": "A: runner was still alive while the dashboard was stopped",
+        "ok": true,
+        "detalle": "pid=12430 alive=true"
+      },
+      {
+        "nombre": "A: surviving runner ended its run by itself after the restart",
+        "ok": true,
+        "detalle": "{\"status\":\"pending\",\"retryCount\":1,\"retryReason\":\"a.txt contains an extra blank line, so it does not contain exactly one line with REINICIO.\",\"runsBefore\":0,\"runsAfter\":1}"
+      },
+      {
+        "nombre": "A: exactly one report for that taskId, matching the final status",
+        "ok": true,
+        "detalle": "[\"⟳ Task `gate-restart-a` pending · retry scheduled\\n\\n> a.txt contains an extra bla\"]"
+      },
+      {
+        "nombre": "A: watch row removed after settling",
+        "ok": true,
+        "detalle": "null"
+      },
+      {
+        "nombre": "A: chat shows the report after reloading the page",
+        "ok": true,
+        "detalle": "report visible in the session"
+      },
+      {
+        "nombre": "A: Runs lists the run of that task",
+        "ok": true,
+        "detalle": "row gate-restart-a in Runs"
+      },
+      {
+        "nombre": "B: run requested from the chat session",
+        "ok": true,
+        "detalle": "HTTP 200"
+      },
+      {
+        "nombre": "B: task is running with a watched runner before the restart",
+        "ok": true,
+        "detalle": "{\"status\":\"running\",\"watch\":{\"pid\":14003,\"session_id\":\"159c6e81-6892-4109-aeb9-e261de23f82f\"}}"
+      },
+      {
+        "nombre": "B: no report exists before the restart",
+        "ok": true,
+        "detalle": "[]"
+      },
+      {
+        "nombre": "B: runner was dead while the dashboard was stopped",
+        "ok": true,
+        "detalle": "pid=14003 alive=false"
+      },
+      {
+        "nombre": "B: task marked failed with the interruption reason",
+        "ok": true,
+        "detalle": "{\"status\":\"failed\",\"retryReason\":\"Interrupted: the task runner stopped before the task finished.\"}"
+      },
+      {
+        "nombre": "B: exactly one report for that taskId, with the interruption text",
+        "ok": true,
+        "detalle": "[\"✗ Task `gate-restart-b` failed\\n\\n> Interrupted: the task runner stopped before the task finished.\"]"
+      },
+      {
+        "nombre": "B: no second run was launched",
+        "ok": true,
+        "detalle": "{\"runsBefore\":0,\"runsAfter\":0}"
+      },
+      {
+        "nombre": "B: watch row removed after settling",
+        "ok": true,
+        "detalle": "null"
+      },
+      {
+        "nombre": "B: chat shows the interruption report after reloading the page",
+        "ok": true,
+        "detalle": "interruption report visible in the session"
+      },
+      {
+        "nombre": "C: run requested from the chat session",
+        "ok": true,
+        "detalle": "HTTP 200"
+      },
+      {
+        "nombre": "C: task is running with a watched runner before the restart",
+        "ok": true,
+        "detalle": "{\"status\":\"running\",\"watch\":{\"pid\":14814,\"session_id\":\"e5a2e292-46e8-4c28-ae3c-4ca38e119a62\"}}"
+      },
+      {
+        "nombre": "C: no report exists before the restart",
+        "ok": true,
+        "detalle": "[]"
+      },
+      {
+        "nombre": "C: runner was killed while the dashboard stayed up",
+        "ok": true,
+        "detalle": "pid=14814 alive=false"
+      },
+      {
+        "nombre": "C: task marked failed with the interruption reason",
+        "ok": true,
+        "detalle": "{\"status\":\"failed\",\"retryReason\":\"Interrupted: the task runner stopped before the task finished.\"}"
+      },
+      {
+        "nombre": "C: exactly one report for that taskId, with the interruption text",
+        "ok": true,
+        "detalle": "[\"✗ Task `gate-restart-c` failed\\n\\n> Interrupted: the task runner stopped before the task finished.\"]"
+      },
+      {
+        "nombre": "C: no second run was launched",
+        "ok": true,
+        "detalle": "{\"runsBefore\":0,\"runsAfter\":0}"
+      },
+      {
+        "nombre": "C: watch row removed after settling",
+        "ok": true,
+        "detalle": "null"
+      },
+      {
+        "nombre": "C: chat shows the interruption report after reloading the page",
+        "ok": true,
+        "detalle": "interruption report visible in the session"
+      }
+    ],
+    "errores": [],
+    "capturas": [
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-2175/restart-mid-run/restart-mid-run-a-chat.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-2175/restart-mid-run/restart-mid-run-b-chat.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-2175/restart-mid-run/restart-mid-run-c-chat.png"
+    ]
+  }
+]

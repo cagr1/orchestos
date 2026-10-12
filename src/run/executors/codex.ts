@@ -321,6 +321,7 @@ async function runCodexChatExec(
   model?: string,
   cliEffort?: string,
   onChatStep?: (event: ExecutorStepEvent) => void,
+  projectRoot?: string,
 ): Promise<CodexChatResult> {
   if (!findCodexBinary()) {
     throw new ExecutorCodexError(codexUnavailableMessage(process.env.PATH))
@@ -328,7 +329,8 @@ async function runCodexChatExec(
 
   const codexModel = orchestosModelToCodexModel(model)
   const prompt = [systemPrompt, userMessage].filter(Boolean).join('\n\n')
-  const configHome = provisionCliConfigHome(cwd, 'codex')
+  // R.8.5.1 — el home es el del proyecto aunque el cwd sea un worktree.
+  const configHome = provisionCliConfigHome(projectRoot ?? cwd, 'codex')
 
   let text = ''
   const onStep = (step: ExecutorStepEvent) => {
@@ -402,9 +404,19 @@ export async function runCodexChat(
   sessionId?: string,
   onTextDelta?: (text: string) => void,
   transcript?: string,
+  projectRoot?: string,
 ): Promise<CodexChatResult> {
   if (!sessionId)
-    return runCodexChatExec(cwd, systemPrompt, userMessage, timeoutMs, model, cliEffort, onChatStep)
+    return runCodexChatExec(
+      cwd,
+      systemPrompt,
+      userMessage,
+      timeoutMs,
+      model,
+      cliEffort,
+      onChatStep,
+      projectRoot,
+    )
   if (!findCodexBinary()) throw new ExecutorCodexError(codexUnavailableMessage(process.env.PATH))
   if (model && !orchestosModelToCodexModel(model))
     throw new ExecutorCodexError(codexCostUnmeasurableMessage(model))
@@ -413,7 +425,7 @@ export async function runCodexChat(
   const isGeneralSession = chatSession?.project_id == null
   const generalConfigHome = join(homedir(), '.orchestos', 'general-chat')
   const configHome = provisionCliConfigHome(
-    cwd,
+    projectRoot ?? cwd,
     'codex',
     homedir(),
     isGeneralSession ? generalConfigHome : undefined,
@@ -521,6 +533,8 @@ export const codexEngine: ExecutorEngine = {
     }
 
     const timeoutMs = opts.timeoutMs ?? DEFAULT_TIMEOUT_MS
+    // R.8.5.1 — home del proyecto (no del worktree), el mismo que usa el chat.
+    const configHome = provisionCliConfigHome(ctx.opts.projectRoot, 'codex')
 
     let stdout: string
     let timedOut: boolean
@@ -530,6 +544,7 @@ export const codexEngine: ExecutorEngine = {
         buildCodexArgs(prompt, codexModel, ctx.cliEffort),
         timeoutMs,
         opts.onStep,
+        buildCodexChatEnv(configHome.path),
       ))
     } catch (e: any) {
       throw new ExecutorCodexError(`failed to spawn codex: ${e.message}`)

@@ -194,7 +194,7 @@ function baseTask(overrides: Partial<Task> = {}): Task {
 
 function buildCtx(worktree: Worktree, task: Task): RunContext {
   return {
-    opts: {} as any,
+    opts: { projectRoot: worktree.projectRoot } as any,
     taskClass: 'implement',
     model: 'external/claude-code',
     providerName: 'external',
@@ -307,6 +307,10 @@ describe('B.3 — externalEngine (claude-code subprocess)', () => {
       'Edit,Write,Read,Glob,Grep',
       '--disallowedTools',
       'Agent',
+      '--restricted',
+      '--strict-mcp-config',
+      '--settings',
+      join(wt.projectRoot, '.orchestos', 'agent-home', 'claude', 'settings.json'),
     ])
     // Log con conteo de archivos
     expect(outcome.log).toHaveLength(1)
@@ -767,6 +771,37 @@ describe('B.3 — externalEngine (claude-code subprocess)', () => {
     for (const f of outcome.files) {
       expect(f.path.endsWith('/')).toBe(false)
     }
+  })
+
+  it('R.8.5.1 — la tarea lleva el mismo aislamiento que el chat (frontera + settings vacío del proyecto)', async () => {
+    const root = makeGitRepo()
+    const wt = createWorktree('r851-claude-iso', 'main', root)
+    trackWorktree(wt)
+    writeFileSync(join(wt.path, 'out.txt'), 'ok')
+    overrideBunSpawn(
+      installMockSpawn(
+        mockResultLine({
+          usage: { input_tokens: 1, output_tokens: 1 },
+          total_cost_usd: 0.0001,
+          num_turns: 1,
+        }),
+      ),
+    )
+
+    const outcome = await externalEngine.run(buildCtx(wt, baseTask()), {
+      maxTokens: 1024,
+      maxIterations: 1,
+      timeoutMs: 5000,
+    })
+
+    const settings = join(wt.projectRoot, '.orchestos', 'agent-home', 'claude', 'settings.json')
+    const spawned = spawnCalls[0]!.cmd
+    expect(spawned).toContain('--restricted')
+    expect(spawned).toContain('--strict-mcp-config')
+    expect(spawned[spawned.indexOf('--settings') + 1]).toBe(settings)
+    const display = outcome.costByIteration[0]!.args!
+    expect(display).toContain('--restricted')
+    expect(display[display.indexOf('--settings') + 1]).toBe(settings)
   })
 
   it('C.1 — args del subproceso son la única fuente de verdad: lo que se le pasa a Bun.spawn y lo que se persiste en costByIteration coinciden (estructura), salvo el system prompt completo', async () => {

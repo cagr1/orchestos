@@ -96,6 +96,38 @@ describe('role runner', () => {
     },
   )
 
+  it('R.8.5.1 — pasa la raíz del proyecto aparte del cwd al runner de Codex y al proveedor API', async () => {
+    let codexArgs: unknown[] = []
+    let apiCtx: unknown
+    const deps = {
+      codex: (async (...values: unknown[]) => {
+        codexArgs = values
+        return { text: 'x', inputTokens: 0, outputTokens: 0, model: 'm' }
+      }) as never,
+      getProvider: (() => ({
+        name: 'p',
+        chat: async (_input: unknown, ctx: unknown) => {
+          apiCtx = ctx
+          return { text: 'x', inputTokens: 0, outputTokens: 0, model: 'm' }
+        },
+      })) as never,
+    }
+    const input = { model: 'm', system: 's', messages: [{ role: 'user' as const, content: 'q' }] }
+    await clientFromAssignment(
+      'reviewer',
+      { agent: 'codex', model: 'm' },
+      { cwd: '/project/wt', projectRoot: '/project', deps },
+    ).provider.chat(input)
+    expect(codexArgs[0]).toBe('/project/wt')
+    expect(codexArgs[10]).toBe('/project')
+    await clientFromAssignment(
+      'reviewer',
+      { agent: 'api', model: 'm', provider: 'codex' },
+      { cwd: '/project/wt', projectRoot: '/project', deps },
+    ).provider.chat(input)
+    expect(apiCtx).toEqual({ projectRoot: '/project' })
+  })
+
   it('throws the exact unassigned role error', () => {
     expect(() => roleClient(cfg(), 'reviewer', { cwd: '/tmp' })).toThrow(
       "Rol 'reviewer' sin asignar: elígelo en Settings → Model routing",

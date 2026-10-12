@@ -312,3 +312,13 @@ run rechazado por QA. Ninguna línea de `maxTokens`/`contextWindow`/`maxOutputTo
 tocada (`git diff -- src/run/harness.ts | grep -iE "maxTokens|maxOutput|contextWindow"` → vacío).
 **Reversibilidad/evidencia**: commit `feat(R.8.3)`, revertible (migración 22 aditiva). `test:coverage` 1654/0 ·
 `qa-negative` 18/18 · `runs-graph` 16/16.
+
+## 2026-10-11 19:11 — claude-opus-5-5 (revisor) · ejecutor Claude sonnet
+**Contexto**: R.8.5.1 — `src/run/harness.ts` ([[feedback-context-no-max-tokens]]).
+**Clasificación**: RESPETÓ
+**Por qué**: el harness solo añade `projectRoot` a las tres llamadas que crean clientes de rol (revisor,
+orquestador, ejecutor) para que el home aislado del CLI sea el del proyecto y no el del worktree. Ninguna línea de
+`maxTokens`/`contextWindow`/`maxOutputTokensFor` tocada (`git diff -- src/run/harness.ts | grep -ciE
+"maxTokens|maxOutput|contextWindow"` → 0).
+**Reversibilidad/evidencia**: commit `feat(R.8.5.1)`, revertible (sin migración). `test:coverage` 1675/0 ·
+`qa-negative` 21/21 · `auto-flow` 31/31 · `restart-mid-run` 28/28.

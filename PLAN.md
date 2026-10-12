@@ -330,9 +330,26 @@ Cerrada. Todos sus ítems están archivados en `docs/done/` (ver "Cerrados — e
   medido: 1 de 5 corridas del caso A, Luna se negó a escribir citando "un árbol, un escritor" sin ejecutar ninguna herramienta
   (`~/.codex/sessions/2026/10/11/rollout-2026-10-11T13-20-04-01a12c31-….jsonl`, 34 tokens de salida). Decisión de
   Decisión de Carlos 2026-10-11: **aisladas**, con el mismo mecanismo del chat → R.8.5.1.
-  - [ ] **R.8.5.1 — 🧠 Las tareas corren con el home del CLI aislado, igual que el chat.** Spec:
-    `docs/specs/R.8.5.1.md`. Gate: test unitario del env del runner + paso en vivo que prueba que el rollout de una
-    tarea real de Codex vive en el home aislado y no contiene las instrucciones globales del usuario.
+  - [x] **R.8.5.1 — 🧠 Las tareas corren con el home del CLI aislado, igual que el chat.** (2026-10-11)
+    Ejecutado por: sonnet (rondas 1 y 4) · gpt-6-luna (ronda 3) · revisión `qa` gpt-6.1-sol.
+    Hecho: todo spawn de `codex` fuera de la terminal interactiva corre con `CODEX_HOME` =
+    `<proyecto>/.orchestos/agent-home/codex` (`provisionCliConfigHome` + `buildCodexChatEnv`): ejecutor de tareas
+    (`executors/codex.ts`), roles por proveedor (`providers/codex.ts`, sin proyecto → `~/.orchestos/general-chat`) y
+    revisor/orquestador (`role-runner.ts`, `harness.ts` pasan `projectRoot`: el cwd puede ser el worktree, el home es
+    el del proyecto). Tareas de Claude: mismos flags que su chat (`--restricted --strict-mcp-config --settings`).
+    `qa` encontró 3 defectos (spawn de `providers/codex.ts` sin aislar, home del revisor dentro del worktree, gate que
+    aceptaba un rollout ajeno): corregidos en la ronda 4.
+    Gate en vivo: navegador real (Playwright), `docs/done/evidence/R.8.5.1-live.json` — `qa-negative` 21/21 con 3
+    pasos nuevos sobre el rollout de la tarea real (está en el home aislado, trae las instrucciones generadas, no
+    trae la línea distintiva del `~/.codex/AGENTS.md` del host); `auto-flow` 31/31 (tarea real de Claude con los
+    flags nuevos); `restart-mid-run` 28/28; `test:coverage` 1675/0; `tsc` limpio.
+    Contraprueba: antes del cambio el rollout de la tarea vivía en `~/.codex/sessions` y contenía las reglas
+    personales (transcripción citada arriba).
+    Límites: OpenCode sin aislar (su chat tampoco aísla; no hay mecanismo que reutilizar). Para Claude no hay paso en
+    vivo que pruebe que el `CLAUDE.md` global no llega a una tarea: solo que la tarea sigue escribiendo con los flags.
+    El revisor Claude con worktree crea su `settings.json` dentro del worktree (`external.ts:418`); se regenera en
+    cada llamada. El guard `supportsRestrictedMode` del chat no se replicó en tareas: con un binario sin
+    `--restricted` la tarea falla con el error del propio CLI.
 - [ ] **R.8.6 — 🔍 Pasos que no pueden fallar.** Quitar `true` literales (`auto-flow.mjs:356,360`,
   `project-isolation.mjs:125`, `runs-graph.mjs:198`) y nombres que prometen más de lo que comprueban. Hallazgos 6-7.
 

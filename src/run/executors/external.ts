@@ -152,6 +152,7 @@ export function buildClaudeArgs(
   model?: string,
   effort?: string,
   blockSubagents = false,
+  settingsPath?: string,
 ): string[] {
   const args = [
     '-p',
@@ -168,6 +169,8 @@ export function buildClaudeArgs(
   if (cliModel) args.push('--model', cliModel)
   if (effort) args.push('--effort', effort)
   if (blockSubagents) args.push(...claudeSubagentBlockArgs())
+  // R.8.5.1 — mismo aislamiento que el chat: sin esto el CLAUDE.md global del usuario entra al prompt.
+  if (settingsPath) args.push(...CLAUDE_CHAT_BOUNDARY_FLAGS, '--settings', settingsPath)
   return args
 }
 
@@ -175,6 +178,7 @@ export function buildClaudeArgsDisplay(
   model?: string,
   effort?: string,
   blockSubagents = false,
+  settingsPath?: string,
 ): string[] {
   const args = [
     '-p',
@@ -191,6 +195,7 @@ export function buildClaudeArgsDisplay(
   if (cliModel) args.push('--model', cliModel)
   if (effort) args.push('--effort', effort)
   if (blockSubagents) args.push(...claudeSubagentBlockArgs())
+  if (settingsPath) args.push(...CLAUDE_CHAT_BOUNDARY_FLAGS, '--settings', settingsPath)
   return args
 }
 
@@ -495,6 +500,7 @@ export const externalEngine: ExecutorEngine = {
 
     const systemPrompt = buildSystemPrompt(ctx)
     const timeoutMs = opts.timeoutMs ?? DEFAULT_TIMEOUT_MS
+    const configHome = provisionCliConfigHome(ctx.opts.projectRoot, 'claude')
 
     let timedOut: boolean
     let resultLine: string | undefined
@@ -507,6 +513,7 @@ export const externalEngine: ExecutorEngine = {
           ctx.cliEffort,
           (ctx.opts.orcheConfig ?? loadOrcheConfig(ctx.effectiveRoot)).orchestration?.enabled !==
             true,
+          configHome.settingsPath,
         ),
         ctx.prompt.userContent,
         timeoutMs,
@@ -581,6 +588,7 @@ export const externalEngine: ExecutorEngine = {
             ctx.cliEffort,
             (ctx.opts.orcheConfig ?? loadOrcheConfig(ctx.effectiveRoot)).orchestration?.enabled !==
               true,
+            configHome.settingsPath,
           ),
         },
       ],

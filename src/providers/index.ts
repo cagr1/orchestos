@@ -12,9 +12,14 @@ export interface ChatOpts {
   maxTokens?: number
 }
 
+/** Raíz del proyecto de quien llama; solo la usan los proveedores que lanzan un CLI. */
+export interface ChatContext {
+  projectRoot?: string
+}
+
 export interface ProviderClient {
   name: string
-  chat(opts: ChatOpts): Promise<ChatResponse>
+  chat(opts: ChatOpts, ctx?: ChatContext): Promise<ChatResponse>
 }
 
 export function getProvider(name: string): ProviderClient {

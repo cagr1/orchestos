@@ -23,7 +23,7 @@ export interface RoleRunnerDeps {
 export function clientFromAssignment(
   role: RoleName,
   a: RoleAssignment,
-  opts: { cwd: string; timeoutMs?: number; deps?: RoleRunnerDeps },
+  opts: { cwd: string; projectRoot?: string; timeoutMs?: number; deps?: RoleRunnerDeps },
 ): RoleClient {
   const deps = opts.deps ?? {}
   const providerName = `role:${a.agent}`
@@ -31,7 +31,9 @@ export function clientFromAssignment(
     name: providerName,
     async chat(input) {
       if (a.agent === 'api')
-        return (deps.getProvider ?? getProvider)(a.provider ?? 'openrouter').chat(input)
+        return (deps.getProvider ?? getProvider)(a.provider ?? 'openrouter').chat(input, {
+          projectRoot: opts.projectRoot ?? opts.cwd,
+        })
       const userMessage = input.messages.map((m) => `## ${m.role}\n${m.content}`).join('\n\n')
       const timeout = opts.timeoutMs ?? 20 * 60_000
       const result =
@@ -52,6 +54,11 @@ export function clientFromAssignment(
                 timeout,
                 a.model,
                 a.effort,
+                undefined,
+                undefined,
+                undefined,
+                undefined,
+                opts.projectRoot,
               )
             : await (deps.opencode ?? runOpencodeChat)(
                 opts.cwd,
@@ -74,7 +81,7 @@ export function clientFromAssignment(
 export function roleClient(
   cfg: OrcheConfig,
   role: RoleName,
-  opts: { cwd: string; timeoutMs?: number; deps?: RoleRunnerDeps },
+  opts: { cwd: string; projectRoot?: string; timeoutMs?: number; deps?: RoleRunnerDeps },
 ): RoleClient {
   return clientFromAssignment(role, resolveRole(cfg, role), opts)
 }

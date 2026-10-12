@@ -11,7 +11,7 @@
  */
 
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from 'bun:test'
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'fs'
+import { existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'fs'
 import { tmpdir } from 'os'
 import { join } from 'path'
 import { _resetCatalog, ensureCatalogLoaded } from '../router/model-catalog.ts'
@@ -105,6 +105,7 @@ interface MockProc {
 interface MockSpawnCall {
   cmd: string[]
   cwd: string
+  env?: Record<string, string | undefined>
 }
 
 function makeMockProc(stdoutText: string, opts: { exitDelayMs?: number } = {}): MockProc {
@@ -149,8 +150,8 @@ afterEach(() => {
 })
 
 function overrideBunSpawn(proc: MockProc) {
-  Bun.spawn = ((cmd: string[], opts?: { cwd?: string }) => {
-    spawnCalls.push({ cmd: cmd.slice(), cwd: opts?.cwd ?? '' })
+  Bun.spawn = ((cmd: string[], opts?: { cwd?: string; env?: Record<string, string> }) => {
+    spawnCalls.push({ cmd: cmd.slice(), cwd: opts?.cwd ?? '', env: opts?.env })
     return proc as unknown as ReturnType<typeof Bun.spawn>
   }) as typeof Bun.spawn
 }
@@ -189,7 +190,7 @@ function baseTask(overrides: Partial<Task> = {}): Task {
 
 function buildCtx(worktree: Worktree, task: Task, model = 'openai/gpt-5.4'): RunContext {
   return {
-    opts: {} as any,
+    opts: { projectRoot: worktree.projectRoot } as any,
     taskClass: 'implement',
     model,
     providerName: 'openrouter',
@@ -268,6 +269,53 @@ describe('G.4.2b — codexEngine (codex subprocess)', () => {
     expect(buildCodexChatEnv('/repo/.orchestos/agent-home/codex').CODEX_HOME).toBe(
       '/repo/.orchestos/agent-home/codex',
     )
+  })
+
+  it('R.8.5.1 — la tarea corre con CODEX_HOME aislado del proyecto, no del worktree', async () => {
+    const root = makeGitRepo()
+    const wt = createWorktree('r851-codex-home', 'main', root)
+    trackWorktree(wt)
+    writeFileSync(join(wt.path, 'out.txt'), 'ok\n')
+    overrideBunSpawn(installMockSpawn(jsonl(turnCompleted(10, 2))))
+
+    await codexEngine.run(buildCtx(wt, baseTask({ engine: 'codex' })), {
+      maxTokens: 8192,
+      maxIterations: 1,
+      timeoutMs: 5000,
+    })
+
+    const home = join(wt.projectRoot, '.orchestos', 'agent-home', 'codex')
+    expect(spawnCalls).toHaveLength(1)
+    expect(spawnCalls[0]!.cwd).toBe(wt.path)
+    expect(spawnCalls[0]!.env?.CODEX_HOME).toBe(home)
+    expect(existsSync(join(home, 'AGENTS.md'))).toBe(true)
+    expect(wt.path.startsWith(home)).toBe(false)
+  })
+
+  it('R.8.5.1 — runCodexChat con cwd de worktree usa el home del proyecto cuando se pasa projectRoot', async () => {
+    const root = makeGitRepo()
+    const wt = createWorktree('r851-chat-home', 'main', root)
+    trackWorktree(wt)
+    overrideBunSpawn(installMockSpawn(jsonl(turnCompleted(10, 2))))
+
+    await runCodexChat(
+      wt.path,
+      'system',
+      'hello',
+      5000,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      wt.projectRoot,
+    )
+
+    const home = join(wt.projectRoot, '.orchestos', 'agent-home', 'codex')
+    expect(spawnCalls[0]!.cwd).toBe(wt.path)
+    expect(spawnCalls[0]!.env?.CODEX_HOME).toBe(home)
+    expect(existsSync(join(wt.path, '.orchestos', 'agent-home'))).toBe(false)
   })
 
   it('runCodexChat reports null price for a CLI default model', async () => {

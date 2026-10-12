@@ -256,6 +256,7 @@ export async function runTask(opts: HarnessOpts): Promise<TaskResult> {
     }
     const reviewer = roleClient(effectiveConfig, 'reviewer', {
       cwd: effectiveRoot,
+      projectRoot,
       timeoutMs: effectiveConfig.external?.timeoutMs,
     })
     ctx.model = modelOverride ?? route!.model
@@ -276,7 +277,7 @@ export async function runTask(opts: HarnessOpts): Promise<TaskResult> {
             ...clientFromAssignment(
               'executor',
               { agent: routeAgent, model: ctx.model, effort: route?.effort },
-              { cwd: effectiveRoot },
+              { cwd: effectiveRoot, projectRoot },
             ).provider,
             name: routeAgent,
           }
@@ -416,7 +417,10 @@ export async function runTask(opts: HarnessOpts): Promise<TaskResult> {
 
       let subTasks: SubTask[] = []
       try {
-        const orchestrator = roleClient(effectiveConfig, 'orchestrator', { cwd: effectiveRoot })
+        const orchestrator = roleClient(effectiveConfig, 'orchestrator', {
+          cwd: effectiveRoot,
+          projectRoot,
+        })
         subTasks = await generatePlan(ctx.task.description, ctx.task.id, {
           provider:
             orchestrator.agent === 'api'

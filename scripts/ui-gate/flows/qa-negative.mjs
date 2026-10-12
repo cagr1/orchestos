@@ -1,6 +1,6 @@
 import { execFileSync } from 'node:child_process'
-import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
-import { tmpdir } from 'node:os'
+import { existsSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import { homedir, tmpdir } from 'node:os'
 import { basename, join } from 'node:path'
 import { setTimeout as delay } from 'node:timers/promises'
 import { stringify as yamlStringify } from 'yaml'
@@ -15,6 +15,15 @@ function run(command, args, cwd) {
       `${command} ${args.join(' ')} failed (exit ${error.status ?? 'n/a'}): ${detail || 'sin salida'}`,
     )
   }
+}
+
+function rolloutFiles(dir) {
+  if (!existsSync(dir)) return []
+  return readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
+    const path = join(dir, entry.name)
+    if (entry.isDirectory()) return rolloutFiles(path)
+    return entry.name.startsWith('rollout-') && entry.name.endsWith('.jsonl') ? [path] : []
+  })
 }
 
 async function waitForTaskChange(api, projectId, taskId, previousRetryCount, previousRunId) {
@@ -205,6 +214,42 @@ export default async function qaNegative({ page, api, step, shot, visible, clean
     }),
   )
   if (control.task?.status !== 'done' || control.run?.qaVerdict !== 'pass') return
+
+  // R.8.5.1 — la tarea de Codex corre con el CODEX_HOME aislado del proyecto.
+  const agentHome = join(projectRoot, '.orchestos', 'agent-home', 'codex')
+  const allRollouts = rolloutFiles(join(agentHome, 'sessions'))
+  // Solo el rollout de la ejecución de gate-qa-ok: el contrato de salida de su prompt
+  // (`buildCodexPrompt`) declara ok.txt; un rollout de chat o del revisor no lo lleva.
+  const taskMarker = 'You may ONLY create or edit these files: ok.txt.'
+  const rollouts = allRollouts.filter((path) => readFileSync(path, 'utf8').includes(taskMarker))
+  await step(
+    'task rollout written inside the project agent home',
+    rollouts.length > 0,
+    JSON.stringify({ agentHome, antes: allRollouts.length, despues: rollouts.length }),
+  )
+  const rolloutText = rollouts.map((path) => readFileSync(path, 'utf8')).join('\n')
+  const hostAgents = join(homedir(), '.codex', 'AGENTS.md')
+  const hostLine = existsSync(hostAgents)
+    ? readFileSync(hostAgents, 'utf8')
+        .split('\n')
+        .map((line) => line.trim())
+        .find((line) => line.length > 20)
+    : undefined
+  await step(
+    'rollout contains the OrchestOS generated instructions',
+    rolloutText.includes('OrchestOS isolated agent home'),
+    JSON.stringify({
+      rolloutBytes: rolloutText.length,
+      hostAgents: hostLine === undefined ? 'absent' : 'checked',
+    }),
+  )
+  if (hostLine !== undefined) {
+    await step(
+      'rollout does not contain the host AGENTS.md distinctive line',
+      !rolloutText.includes(hostLine),
+      `línea del host comprobada: ${JSON.stringify(hostLine.slice(0, 60))}`,
+    )
+  }
 
   prior = await taskAndRun(api, project.id, 'gate-qa-bad')
   await runButton.click()
