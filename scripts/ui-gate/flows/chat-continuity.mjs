@@ -15,7 +15,6 @@ function runJson(source) {
 
 async function sendTurn(page, composer, message) {
   await composer.waitFor({ state: 'visible', timeout: 30_000 })
-  const previousReplyCount = await page.locator('div.prose').count()
   await composer.fill(message)
   const responsePromise = page.waitForResponse(
     (res) => res.request().method() === 'POST' && new URL(res.url()).pathname === '/api/chat',
@@ -29,7 +28,7 @@ async function sendTurn(page, composer, message) {
     )
   const apiText = (await response.json()).text
   if (typeof apiText !== 'string') throw new Error('/api/chat response text was not a string')
-  const reply = page.locator('div.prose').nth(previousReplyCount)
+  const reply = page.locator('div.prose').last()
   const deadline = Date.now() + 30_000
   let domText = ''
   while (Date.now() < deadline) {
