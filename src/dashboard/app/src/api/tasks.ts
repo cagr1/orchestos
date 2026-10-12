@@ -63,6 +63,16 @@ export async function listTasks(
   }
 }
 
+/** `running`, o `pending` cuyo intento aún no falló; un `pending` con intento fallido ya terminó. */
+export function isTaskStillRunning(task: {
+  status: TaskStatus | string
+  retryCount?: number | null
+  retryReason?: string | null
+}): boolean {
+  if (task.status === 'running') return true
+  return task.status === 'pending' && !((task.retryCount ?? 0) > 0 && Boolean(task.retryReason))
+}
+
 export function getRunnableTask(tasks: TaskItem[]): TaskItem | undefined {
   return tasks.find(
     (task) =>

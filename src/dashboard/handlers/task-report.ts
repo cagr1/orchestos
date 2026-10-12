@@ -2,6 +2,7 @@ import { appendTaskReport } from '../../db/chat-sessions.ts'
 import { listRunsByTaskId } from '../../db/runs.ts'
 import { db } from '../../db/sqlite.ts'
 import { deleteTaskRunWatch, type TaskRunWatchRow } from '../../db/task-run-watch.ts'
+import { MAX_RETRIES } from '../../run/qa.ts'
 import { loadTasks } from '../../tasks/loader.ts'
 
 export function reportTaskOutcome(
@@ -29,7 +30,9 @@ export function buildTaskReport(root: string, taskId: string, projectId?: string
     status === 'done'
       ? `✓ Task \`${taskId}\` done${providerModel}`
       : status === 'pending'
-        ? `⟳ Task \`${taskId}\` pending · retry scheduled`
+        ? task?.retry_count
+          ? `✗ Task \`${taskId}\` failed · attempt ${task.retry_count}/${MAX_RETRIES}${providerModel}`
+          : `✗ Task \`${taskId}\` pending${providerModel}`
         : `✗ Task \`${taskId}\` ${status}${providerModel}`
   const rawSummary = (status === 'done' ? run?.result : (task?.retry_reason ?? run?.result))
     ?.replace(/\s+/g, ' ')

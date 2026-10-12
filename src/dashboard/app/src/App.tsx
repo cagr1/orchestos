@@ -38,7 +38,7 @@ import {
   resolveMemoryConflict,
 } from './api/projectTabs'
 import { listRuns } from './api/runs'
-import { getRunnableTask, listTasks, runTask } from './api/tasks'
+import { getRunnableTask, isTaskStillRunning, listTasks, runTask } from './api/tasks'
 import { OrchestChatView } from './components/chat/OrchestChatView'
 import { CommandPalette } from './components/common/CommandPalette'
 import { OpenCodeTerminal } from './components/dev/OpenCodeTerminal'
@@ -316,7 +316,7 @@ export default function App() {
         const tasks = await getProjectTasks(activeThread.projectId)
         for (const taskId of awaiting) {
           const task = tasks.find((item) => item.id === taskId)
-          if (task && (task.status === 'pending' || task.status === 'running')) continue
+          if (task && isTaskStillRunning(task)) continue
           const key = `${activeThread.id}:${taskId}`
           if (disposed) return
           if (!task) {

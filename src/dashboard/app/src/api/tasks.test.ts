@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test'
-import { getRunnableTask, listTasks, runTask } from './tasks'
+import { getRunnableTask, isTaskStillRunning, listTasks, runTask } from './tasks'
 
 describe('tasks API mapping', () => {
   test('maps the real task wrapper to the Settings task contract', async () => {
@@ -135,5 +135,21 @@ describe('tasks API mapping', () => {
       globalThis.fetch = originalFetch
       globalThis.setTimeout = originalSetTimeout
     }
+  })
+})
+
+describe('isTaskStillRunning', () => {
+  test('running y pending sin intento fallido siguen en curso', () => {
+    expect(isTaskStillRunning({ status: 'running' })).toBe(true)
+    expect(isTaskStillRunning({ status: 'pending' })).toBe(true)
+    expect(isTaskStillRunning({ status: 'pending', retryCount: 1, retryReason: null })).toBe(true)
+  })
+
+  test('pending con intento fallido y motivo, done y failed ya terminaron', () => {
+    expect(
+      isTaskStillRunning({ status: 'pending', retryCount: 1, retryReason: 'missing output' }),
+    ).toBe(false)
+    expect(isTaskStillRunning({ status: 'done' })).toBe(false)
+    expect(isTaskStillRunning({ status: 'failed' })).toBe(false)
   })
 })

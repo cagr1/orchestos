@@ -13,6 +13,7 @@ import { generateSummaryPdf } from '../../generators/summary-pdf.ts'
 import { indexProject } from '../../graph/index.ts'
 import { ensureProject } from '../../projects/ensure.ts'
 import { roleClient } from '../../router/role-runner.ts'
+import { git } from '../../run/sandbox.ts'
 import { listAllSkillCandidates, renderSkillCatalog } from '../../skills/catalog.ts'
 import { scaffoldConstitutionMd } from '../../spec/constitution.ts'
 import { loadTasks } from '../../tasks/loader.ts'
@@ -194,6 +195,11 @@ export function extractMentionedPaths(input: string, root: string): string[] {
   return paths
 }
 
+/** Removes declared outputs ignored by the project's Git rules. */
+export function dropIgnoredOutputs(root: string, output: string[]): string[] {
+  return output.filter((path) => git(['check-ignore', '-q', '--', path], root).exitCode !== 0)
+}
+
 // D.7 (Mes 22) — extraído de handleApiNatural para que el auto-flow del chat
 // (handlers/chat.ts) pueda pedir el mismo draft por lenguaje natural sin pasar
 // por una Request/Response HTTP. handleApiNatural queda como wrapper delgado.
@@ -252,6 +258,10 @@ Responde SOLO con el JSON, sin texto adicional ni bloques de código.`
       .slice(0, 64) || 'nueva-tarea'
   if (!Array.isArray(draft.output)) draft.output = []
   if (draft.output.length === 0) draft.output = extractMentionedPaths(input, root)
+  draft.output = dropIgnoredOutputs(
+    root,
+    draft.output.filter((f) => typeof f === 'string'),
+  )
   if (!['openrouter', 'anthropic', 'openai'].includes(draft.executor)) draft.executor = 'openrouter'
 
   // Fail-safe: solo se aceptan ids que existen de verdad — un id inventado

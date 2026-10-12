@@ -19,13 +19,13 @@ afterAll(() => {
   for (const root of roots) rmSync(root, { recursive: true, force: true })
 })
 
-function setup(status: string, retryReason?: string) {
+function setup(status: string, retryReason?: string, retryCount = 0) {
   const root = mkdtempSync(join(tmpdir(), 'orchestos-task-report-'))
   roots.push(root)
   const taskId = `report-${randomUUID()}`
   writeFileSync(
     join(root, 'tasks.yaml'),
-    `version: 1\nproject: report-test\ntasks:\n  - id: ${taskId}\n    description: Report test\n    executor: openrouter\n    input: []\n    output: [out.txt]\n    depends_on: []\n    status: ${status}\n    retry_count: 0\n${retryReason ? `    retry_reason: ${JSON.stringify(retryReason)}\n` : ''}`,
+    `version: 1\nproject: report-test\ntasks:\n  - id: ${taskId}\n    description: Report test\n    executor: openrouter\n    input: []\n    output: [out.txt]\n    depends_on: []\n    status: ${status}\n    retry_count: ${retryCount}\n${retryReason ? `    retry_reason: ${JSON.stringify(retryReason)}\n` : ''}`,
   )
   const session = createChatSession({ agent: 'api' })
   sessions.push(session.id)
@@ -94,6 +94,15 @@ describe('reportTaskOutcome', () => {
     const missing = setup('failed')
     reportTaskOutcome(missing.root, missing.session.id, missing.taskId)
     expect(listChatMessages(missing.session.id)[0]?.content).toContain('> No run was recorded.')
+  })
+
+  it('pending con intento fallido reporta failed · attempt N/3 y el motivo', () => {
+    const { root, session, taskId } = setup('pending', 'missing declared output(s): out.txt', 2)
+    reportTaskOutcome(root, session.id, taskId)
+    const content = listChatMessages(session.id)[0]?.content ?? ''
+    expect(content).toContain(`✗ Task \`${taskId}\` failed · attempt 2/3`)
+    expect(content).toContain('> missing declared output(s): out.txt')
+    expect(content).not.toContain('retry scheduled')
   })
 
   it('usa el run disponible cuando projectId no coincide', () => {

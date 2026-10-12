@@ -151,16 +151,35 @@ Cerrada. Todos sus ítems están archivados en `docs/done/` (ver "Cerrados — e
   (crea el archivo con solo la tarea pedida; conserva las previas), `test:coverage` 1678/0, `tsc` limpio.
   En vivo (navegador real, dashboard reiniciado): el chat del piloto creó `chat-ad9e193d…` y `erp-piloto` quedó con
   el commit `ed7774c chore(tasks): add …`. Registro: `docs/done/evidence/ERP.4/piloto-2026-10-12.md`.
-- [ ] **ERP.4.2 — 🔍 El intento fallido de una tarea se ve en el chat y en Tasks.** (abierto 2026-10-12, GO de Carlos;
+- [x] **ERP.4.2 — 🔍 El intento fallido de una tarea se ve en el chat y en Tasks.** (2026-10-12, GO de Carlos;
   hallazgos 4 y 8 del piloto) El servidor ya escribe el reporte en el hilo, pero el chat no recarga mientras la tarea
   siga `pending` (`App.tsx:317`) y el reporte dice "retry scheduled" aunque nadie reintenta (el reintento es manual).
   Settings → Tasks no muestra motivo ni intento. Arreglo: el chat muestra el reporte del intento fallido, el reporte
   dice "failed · attempt N/3" con el motivo, y la tarjeta de Tasks muestra intento y motivo. Gate: tests + chat real
   del piloto.
-- [ ] **ERP.4.3 — 🔍 El borrador no declara como salida un archivo que el proyecto ignora.** (abierto 2026-10-12, GO de
+  Ejecutado por: sonnet (rol `criterio`).
+  Hecho: `buildTaskReport` escribe `✗ Task … failed · attempt N/3 · provider/model`; el polling del chat usa
+  `isTaskStillRunning` (un `pending` con intento fallido ya no cuenta como en curso); la tarjeta de Tasks muestra
+  `Attempt N/3 failed: motivo` con una clase que el archivo ya usaba. `test:coverage` 1683/0, `tsc`, lint, build y
+  `ui:fidelity:jsx` limpios. En vivo: la tarjeta del piloto mostró "Attempt 2/3 failed: missing declared output(s):
+  data/inventario.sqlite".
+  Gate en vivo: navegador real (Playwright), `docs/done/evidence/ERP.4.2-live.json` — `qa-negative` 23/23,
+  `auto-flow` 31/31.
+  Límite: el reporte de fallo apareciendo solo en el hilo sin recargar no se vio en vivo (no hubo otro fallo tras el
+  arreglo); lo cubre el test de `isTaskStillRunning`. Fuera de alcance, sigue abierto: el check verde del hilo en
+  Dev y la falta de una puerta de reintento en el chat.
+- [x] **ERP.4.3 — 🔍 El borrador no declara como salida un archivo que el proyecto ignora.** (2026-10-12, GO de
   Carlos; hallazgos 3 y 9) El borrador declaró `data/inventario.sqlite` (ignorado por `.gitignore`, generado al
   ejecutar) y el contrato falló 2 veces por ese archivo. Arreglo: `buildNaturalDraft` descarta de `output` lo que
   `git check-ignore` marca como ignorado. Gate: test con repo git temporal + etapa 1 del piloto en vivo.
+  Ejecutado por: gpt-6-luna (rol `mecanico`).
+  Hecho: `dropIgnoredOutputs` en `project.ts`, aplicado al final del cálculo de `output` del borrador; test con
+  repo git temporal y sin repo. En vivo: el mismo pedido de la etapa 1 (que menciona `data/inventario.sqlite`) creó
+  la tarea `chat-3a77cb33…` con 2 salidas y terminó `done` en 45 s. Límite: el orquestador también dijo en su
+  respuesta que excluía el `.sqlite`, así que la corrida en vivo no distingue si lo quitó el filtro o el modelo; el
+  filtro lo prueba el test.
+  Gate en vivo: navegador real (Playwright), `docs/done/evidence/ERP.4.2-live.json` — `auto-flow` 31/31 (crea
+  tareas desde el chat con el borrador ya filtrado); registro del piloto en `docs/done/evidence/ERP.4/`.
 - [x] **CI.14 — 🔍 GitHub Actions deja de fallar por la misma clase de bug.** (abierto 2026-10-06, GO de Carlos)
   Datos 2026-09-05→10-05: CI rojo en 42/73 pushes en 3 rachas (lint 11-22 sep; `process.env`/HOME 23-24 sep; fixture git
   sin identidad 4-5 oct), todas "pasa en el Mac, falla en Linux". Mutation Shards cancelado 4 noches (10-03→10-06):

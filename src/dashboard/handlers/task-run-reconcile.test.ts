@@ -36,12 +36,13 @@ const alive: RunnerProbe = () => true
 const dead: RunnerProbe = () => false
 
 function setup(status: string, opts: { withSession?: boolean; registerProject?: boolean } = {}) {
+  const retryCount = status === 'pending' ? 1 : 0
   const root = mkdtempSync(join(tmpdir(), 'orchestos-reconcile-'))
   roots.push(root)
   const taskId = `reconcile-${randomUUID()}`
   writeFileSync(
     join(root, 'tasks.yaml'),
-    `version: 1\nproject: reconcile-test\ntasks:\n  - id: ${taskId}\n    description: Reconcile test\n    executor: openrouter\n    input: []\n    output: [out.txt]\n    depends_on: []\n    status: ${status}\n    retry_count: 0\n`,
+    `version: 1\nproject: reconcile-test\ntasks:\n  - id: ${taskId}\n    description: Reconcile test\n    executor: openrouter\n    input: []\n    output: [out.txt]\n    depends_on: []\n    status: ${status}\n    retry_count: ${retryCount}\n`,
   )
   if (opts.registerProject !== false) upsertProject(root, {} as never, '')
   let sessionId: string | null = null
@@ -80,7 +81,7 @@ describe('reconcileTaskRuns', () => {
   it('pending con reintento: reporta el reintento programado', () => {
     const { root, taskId, sessionId } = setup('pending')
     reconcileTaskRuns({ probe: dead, schedule: noSchedule }).stop()
-    expect(reports(sessionId as string, taskId)[0]?.content).toContain('retry scheduled')
+    expect(reports(sessionId as string, taskId)[0]?.content).toContain('failed · attempt 1/3')
     expect(watching(root)).toHaveLength(0)
   })
 

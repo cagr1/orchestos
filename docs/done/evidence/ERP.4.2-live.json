@@ -1,0 +1,298 @@
+[
+  {
+    "flujo": "qa-negative",
+    "pass": true,
+    "steps": [
+      {
+        "nombre": "temporary project visible",
+        "ok": true,
+        "detalle": "project visible in sidebar"
+      },
+      {
+        "nombre": "project settings visible",
+        "ok": true,
+        "detalle": "project settings heading visible"
+      },
+      {
+        "nombre": "Run Next Task enabled",
+        "ok": true,
+        "detalle": "task is runnable"
+      },
+      {
+        "nombre": "control task passes QA",
+        "ok": true,
+        "detalle": "{\"status\":\"done\",\"qaVerdict\":\"pass\"}"
+      },
+      {
+        "nombre": "control check executed",
+        "ok": true,
+        "detalle": "[{\"cmd\":\"grep -qx VERDE ok.txt\",\"version\":\"grep (BSD grep, GNU compatible) 2.6.0-FreeBSD\",\"exitCode\":0,\"stdout\":\"\",\"stderr\":\"\",\"elapsedMs\":7,\"timedOut\":false}]"
+      },
+      {
+        "nombre": "control criterion passed with literal evidence",
+        "ok": true,
+        "detalle": "[{\"text\":\"ok.txt contains the line: VERDE\",\"pass\":true,\"evidence\":{\"file\":\"ok.txt\",\"excerpt\":\"VERDE\"}}]"
+      },
+      {
+        "nombre": "control output on disk",
+        "ok": true,
+        "detalle": "{\"exists\":true,\"content\":\"VERDE\"}"
+      },
+      {
+        "nombre": "task rollout written inside the project agent home",
+        "ok": true,
+        "detalle": "{\"agentHome\":\"/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/orchestos-ui-r83-uT97Uk/.orchestos/agent-home/codex\",\"antes\":2,\"despues\":1}"
+      },
+      {
+        "nombre": "rollout contains the OrchestOS generated instructions",
+        "ok": true,
+        "detalle": "{\"rolloutBytes\":51848,\"hostAgents\":\"checked\"}"
+      },
+      {
+        "nombre": "rollout does not contain the host AGENTS.md distinctive line",
+        "ok": true,
+        "detalle": "línea del host comprobada: \"# Reglas globales de trabajo con agentes\""
+      },
+      {
+        "nombre": "Claude task transcript was found",
+        "ok": true,
+        "detalle": "{\"status\":\"done\",\"qaVerdict\":\"pass\",\"transcripts\":1}"
+      },
+      {
+        "nombre": "Claude task transcript does not contain the host CLAUDE.md distinctive line",
+        "ok": true,
+        "detalle": "línea del host comprobada: \"# Reglas globales de trabajo con agentes\" · transcripciones: 1"
+      },
+      {
+        "nombre": "executor wrote the incorrect output",
+        "ok": true,
+        "detalle": "[{\"path\":\"nota.txt\",\"status\":\"added\",\"diff\":\"Index: nota.txt\\n===================================================================\\n--- nota.txt\\n+++ nota.txt\\n@@ -0,0 +1,1 @@\\n+ROJO\\n\"}]"
+      },
+      {
+        "nombre": "QA rejects the incorrect output",
+        "ok": true,
+        "detalle": "{\"qaVerdict\":\"fail\",\"qaReason\":\"nota.txt contains ROJO, not the required AZUL line.\",\"qaModel\":\"gpt-6-luna\",\"checks\":[{\"cmd\":\"test -f nota.txt\",\"exitCode\":0,\"stdout\":\"\",\"stderr\":\"\",\"elapsedMs\":5,\"timedOut\":false}],\"qaCriteria\":[{\"text\":\"nota.txt contains the line: AZUL\",\"pass\":false,\"evidence\":{\"file\":\"nota.txt\",\"excerpt\":\"ROJO\"}}]}"
+      },
+      {
+        "nombre": "check executed before QA",
+        "ok": true,
+        "detalle": "{\"qaVerdict\":\"fail\",\"qaReason\":\"nota.txt contains ROJO, not the required AZUL line.\",\"qaModel\":\"gpt-6-luna\",\"checks\":[{\"cmd\":\"test -f nota.txt\",\"exitCode\":0,\"stdout\":\"\",\"stderr\":\"\",\"elapsedMs\":5,\"timedOut\":false}],\"qaCriteria\":[{\"text\":\"nota.txt contains the line: AZUL\",\"pass\":false,\"evidence\":{\"file\":\"nota.txt\",\"excerpt\":\"ROJO\"}}]}"
+      },
+      {
+        "nombre": "failed criterion recorded",
+        "ok": true,
+        "detalle": "{\"qaVerdict\":\"fail\",\"qaReason\":\"nota.txt contains ROJO, not the required AZUL line.\",\"qaModel\":\"gpt-6-luna\",\"checks\":[{\"cmd\":\"test -f nota.txt\",\"exitCode\":0,\"stdout\":\"\",\"stderr\":\"\",\"elapsedMs\":5,\"timedOut\":false}],\"qaCriteria\":[{\"text\":\"nota.txt contains the line: AZUL\",\"pass\":false,\"evidence\":{\"file\":\"nota.txt\",\"excerpt\":\"ROJO\"}}]}"
+      },
+      {
+        "nombre": "task returns to pending with retry",
+        "ok": true,
+        "detalle": "{\"status\":\"pending\",\"retryCount\":1,\"qaVerdict\":\"fail\"}"
+      },
+      {
+        "nombre": "rejected output reverted",
+        "ok": true,
+        "detalle": "{\"exists\":false}"
+      },
+      {
+        "nombre": "rejected run visible",
+        "ok": true,
+        "detalle": "gate-qa-bad appears in Runs"
+      },
+      {
+        "nombre": "check visible in QA tab",
+        "ok": true,
+        "detalle": "✓ test -f nota.txt (exit 0)"
+      },
+      {
+        "nombre": "failed criterion visible in QA tab",
+        "ok": true,
+        "detalle": "✗ nota.txt contains the line: AZUL"
+      },
+      {
+        "nombre": "control run visible",
+        "ok": true,
+        "detalle": "gate-qa-ok appears in Runs"
+      },
+      {
+        "nombre": "passed criterion visible with evidence",
+        "ok": true,
+        "detalle": "✓ ok.txt contains the line: VERDE with ok.txt evidence"
+      }
+    ],
+    "notes": [],
+    "errores": [],
+    "capturas": [
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-59781/qa-negative/qa-negative-rejected.png"
+    ]
+  },
+  {
+    "flujo": "auto-flow",
+    "pass": true,
+    "steps": [
+      {
+        "nombre": "temporary project visible",
+        "ok": true,
+        "detalle": "project appears in Dev sidebar"
+      },
+      {
+        "nombre": "Chat: no manual task creation door",
+        "ok": true,
+        "detalle": "task form fields=0; forbidden buttons=[]"
+      },
+      {
+        "nombre": "Dev: no manual task creation door",
+        "ok": true,
+        "detalle": "task form fields=0; forbidden buttons=[]"
+      },
+      {
+        "nombre": "Settings Tasks: no manual task creation door",
+        "ok": true,
+        "detalle": "task form fields=0; forbidden buttons=[]"
+      },
+      {
+        "nombre": "Settings Plan: no manual task creation door",
+        "ok": true,
+        "detalle": "task form fields=0; forbidden buttons=[]"
+      },
+      {
+        "nombre": "Plan action opens only Chat composer",
+        "ok": true,
+        "detalle": "composer visible=true; dialogs=0"
+      },
+      {
+        "nombre": "select Codex for new chat",
+        "ok": true,
+        "detalle": "agent option visible"
+      },
+      {
+        "nombre": "model and effort controls visible",
+        "ok": true,
+        "detalle": "composer controls visible"
+      },
+      {
+        "nombre": "select gpt-6-luna",
+        "ok": true,
+        "detalle": "model option visible"
+      },
+      {
+        "nombre": "select medium effort",
+        "ok": true,
+        "detalle": "effort option visible"
+      },
+      {
+        "nombre": "model popover closes",
+        "ok": true,
+        "detalle": "popover closed after Escape/click outside"
+      },
+      {
+        "nombre": "chat response: ¿Qué es un DAG? Responde en una frase, sin cr",
+        "ok": true,
+        "detalle": "assistant reply visible"
+      },
+      {
+        "nombre": "non-task message does not create task",
+        "ok": true,
+        "detalle": "new task ids=[]; task card=false; approve=false"
+      },
+      {
+        "nombre": "non-task message leaves project clean",
+        "ok": true,
+        "detalle": "clean"
+      },
+      {
+        "nombre": "chat response: Crea el archivo claude-nota.md con una sola l",
+        "ok": true,
+        "detalle": "assistant reply visible"
+      },
+      {
+        "nombre": "claude-nota.md: starts without approval",
+        "ok": true,
+        "detalle": "{\"taskId\":\"chat-20df53e7-c37a-464d-8301-a0a08acf9c57\",\"buttonVisible\":false,\"status\":\"running\",\"runId\":null,\"cardVisible\":false}"
+      },
+      {
+        "nombre": "claude-nota.md: task finished",
+        "ok": true,
+        "detalle": "{\"id\":\"chat-20df53e7-c37a-464d-8301-a0a08acf9c57\",\"description\":\"Crea el archivo claude-nota.md con una sola línea que diga «nota de claude».\",\"status\":\"done\",\"retryReason\":null,\"skill\":null,\"executor\":\"openrouter\",\"retryCount\":0,\"qaVerdict\":\"pass\",\"runId\":\"a99bc358-3e54-436e-a241-f7567024b10e\",\"engine\":\"external\",\"output\":[\"claude-nota.md\"],\"dependsOn\":[],\"acceptanceCriteria\":[],\"executorModel\":\"haiku\",\"hasSplitPlan\":false}"
+      },
+      {
+        "nombre": "claude-nota.md: exact content",
+        "ok": true,
+        "detalle": "\"nota de claude\\n\""
+      },
+      {
+        "nombre": "claude-nota.md: inline report",
+        "ok": true,
+        "detalle": "dom=true; persisted=true"
+      },
+      {
+        "nombre": "claude-nota.md: chat and run persistence",
+        "ok": true,
+        "detalle": "{\"status\":\"done\",\"provider\":\"claude\",\"model\":\"haiku\",\"resultLength\":17,\"userMessage\":true,\"assistantMessage\":true}"
+      },
+      {
+        "nombre": "chat response: Crea el archivo codex-nota.md con una sola lí",
+        "ok": true,
+        "detalle": "assistant reply visible"
+      },
+      {
+        "nombre": "codex-nota.md: held for approval",
+        "ok": true,
+        "detalle": "{\"buttonVisible\":true,\"status\":\"pending\",\"runId\":null,\"content\":\"borrador viejo\\n\"}"
+      },
+      {
+        "nombre": "codex-nota.md: remains pending before approval",
+        "ok": true,
+        "detalle": "{\"status\":\"pending\",\"runId\":null,\"content\":\"borrador viejo\\n\"}"
+      },
+      {
+        "nombre": "codex-nota.md: starts after approval",
+        "ok": true,
+        "detalle": "{\"taskId\":\"chat-c6ea446e-3fa1-4204-a864-ccaee884232d\",\"status\":\"running\",\"runId\":null,\"buttonHidden\":true}"
+      },
+      {
+        "nombre": "codex-nota.md: task finished",
+        "ok": true,
+        "detalle": "{\"id\":\"chat-c6ea446e-3fa1-4204-a864-ccaee884232d\",\"description\":\"Crea el archivo codex-nota.md con una sola línea que diga «nota de codex».\",\"status\":\"done\",\"retryReason\":null,\"skill\":null,\"executor\":\"openrouter\",\"retryCount\":0,\"qaVerdict\":\"pass\",\"runId\":\"e3bc333d-364e-4387-8681-b0a301c138e8\",\"engine\":\"codex\",\"output\":[\"codex-nota.md\"],\"dependsOn\":[],\"acceptanceCriteria\":[],\"executorModel\":null,\"hasSplitPlan\":false}"
+      },
+      {
+        "nombre": "codex-nota.md: exact content",
+        "ok": true,
+        "detalle": "\"nota de codex\\n\""
+      },
+      {
+        "nombre": "codex-nota.md: inline report",
+        "ok": true,
+        "detalle": "dom=true; persisted=true"
+      },
+      {
+        "nombre": "codex-nota.md: chat and run persistence",
+        "ok": true,
+        "detalle": "{\"status\":\"done\",\"provider\":\"codex\",\"model\":\"gpt-6-luna\",\"resultLength\":17,\"userMessage\":true,\"assistantMessage\":true}"
+      },
+      {
+        "nombre": "DAG routes Claude and Codex to distinct recorded engines",
+        "ok": true,
+        "detalle": "{\"claude\":{\"engine\":\"external\",\"provider\":\"claude\",\"model\":\"haiku\",\"status\":\"done\",\"result\":\"1 file(s) written\",\"retry_reason\":null},\"codex\":{\"engine\":\"codex\",\"provider\":\"codex\",\"model\":\"gpt-6-luna\"}}"
+      },
+      {
+        "nombre": "reload recovers task reports",
+        "ok": true,
+        "detalle": "{\"found\":[\"chat-20df53e7-c37a-464d-8301-a0a08acf9c57\",\"chat-c6ea446e-3fa1-4204-a864-ccaee884232d\"],\"missing\":[]}"
+      },
+      {
+        "nombre": "no implementation text visible",
+        "ok": true,
+        "detalle": "{\"implementationLeaks\":[],\"absoluteProjectPath\":false,\"sourcePathError\":false,\"markerInProse\":false}"
+      }
+    ],
+    "notes": [],
+    "errores": [],
+    "capturas": [
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-59781/auto-flow/no-manual-door.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-59781/auto-flow/task-inline-report.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-59781/auto-flow/codex-task-inline-report.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-59781/auto-flow/after-reload.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-59781/auto-flow/final-chat.png"
+    ]
+  }
+]

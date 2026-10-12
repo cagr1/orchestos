@@ -145,6 +145,7 @@ export interface ProjectTaskRow {
   description: string
   status: 'pending' | 'running' | 'done' | 'failed' | 'failed_permanent' | 'blocked'
   retryReason: string | null
+  retryCount?: number
 }
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {

@@ -78,6 +78,9 @@ import { RunsEvidenceView } from '../runs/RunsEvidenceView'
 import { SkillsView } from '../skills/SkillsView'
 import { SpecsView } from '../specs/SpecsView'
 
+/** Espejo de `MAX_RETRIES` en `src/run/qa.ts`. */
+const TASK_MAX_ATTEMPTS = 3
+
 export type SettingsSection =
   | 'general'
   | 'health'
@@ -2551,6 +2554,12 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
                             <StatusBadge status={task.status} />
                           </div>
                           <p className="text-xs text-app-muted">{task.description}</p>
+                          {(task.retryCount ?? 0) > 0 && task.retryReason && (
+                            <p className="text-xs text-rose-300">
+                              Attempt {task.retryCount}/{TASK_MAX_ATTEMPTS} failed:{' '}
+                              {task.retryReason}
+                            </p>
+                          )}
                           <div className="flex flex-wrap items-center gap-2 pt-1 font-mono text-xs text-app-muted">
                             <div>
                               Agent:{' '}
