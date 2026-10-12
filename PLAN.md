@@ -131,6 +131,12 @@ Cerrada. Todos sus ítems están archivados en `docs/done/` (ver "Cerrados — e
   fuera de OrchestOS (`~/Projects/projects/erp-piloto`, Bun + SQLite + React). Modelos = los del roster: ejecutor
   Codex `gpt-6-luna`, criterio Claude `sonnet`, revisor Codex `gpt-6.1-sol`; si Model routing difiere, ajustarlo
   solo en el proyecto de prueba y decir qué cambió. Presupuesto: una sesión; parar si la misma etapa falla 2 veces.
+- [ ] **ERP.4.1 — 🔍 El chat crea la primera tarea de un proyecto sin `tasks.yaml`.** (abierto 2026-10-12, bloqueo 1
+  del piloto) En `erp-piloto` recién registrado, el primer pedido por chat respondió "⚠ Could not auto-create the
+  task: tasks.yaml not found — run: orchestos task init" (captura `03-send-e1`): manda al usuario a la terminal y no
+  hay puerta en la UI (`/api/tasks/init` existe en `server.ts:238` pero el frontend no lo llama, y además siembra 2
+  tareas de ejemplo que nadie pidió). Arreglo: `createTaskRecord` (`src/dashboard/handlers/tasks.ts:257`) crea un
+  `tasks.yaml` vacío cuando falta. Gate: test del handler + repetir el pedido en el chat real del piloto.
 - [x] **CI.14 — 🔍 GitHub Actions deja de fallar por la misma clase de bug.** (abierto 2026-10-06, GO de Carlos)
   Datos 2026-09-05→10-05: CI rojo en 42/73 pushes en 3 rachas (lint 11-22 sep; `process.env`/HOME 23-24 sep; fixture git
   sin identidad 4-5 oct), todas "pasa en el Mac, falla en Linux". Mutation Shards cancelado 4 noches (10-03→10-06):

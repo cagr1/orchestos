@@ -13,6 +13,15 @@
       "closedDate": null
     },
     {
+      "id": "ERP.4.1",
+      "sprint": "Fase 2 — Producto mínimo para entrega",
+      "block": "H.7 — El contexto se llena en silencio y nadie avisa (ABIERTO 2026-09-02)",
+      "delegation": "🔍",
+      "title": "El chat crea la primera tarea de un proyecto sin `tasks.yaml`",
+      "status": "open",
+      "closedDate": null
+    },
+    {
       "id": "CI.14",
       "sprint": "Fase 2 — Producto mínimo para entrega",
       "block": "H.7 — El contexto se llena en silencio y nadie avisa (ABIERTO 2026-09-02)",
