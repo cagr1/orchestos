@@ -151,6 +151,16 @@ Cerrada. Todos sus ítems están archivados en `docs/done/` (ver "Cerrados — e
   (crea el archivo con solo la tarea pedida; conserva las previas), `test:coverage` 1678/0, `tsc` limpio.
   En vivo (navegador real, dashboard reiniciado): el chat del piloto creó `chat-ad9e193d…` y `erp-piloto` quedó con
   el commit `ed7774c chore(tasks): add …`. Registro: `docs/done/evidence/ERP.4/piloto-2026-10-12.md`.
+- [ ] **ERP.4.2 — 🔍 El intento fallido de una tarea se ve en el chat y en Tasks.** (abierto 2026-10-12, GO de Carlos;
+  hallazgos 4 y 8 del piloto) El servidor ya escribe el reporte en el hilo, pero el chat no recarga mientras la tarea
+  siga `pending` (`App.tsx:317`) y el reporte dice "retry scheduled" aunque nadie reintenta (el reintento es manual).
+  Settings → Tasks no muestra motivo ni intento. Arreglo: el chat muestra el reporte del intento fallido, el reporte
+  dice "failed · attempt N/3" con el motivo, y la tarjeta de Tasks muestra intento y motivo. Gate: tests + chat real
+  del piloto.
+- [ ] **ERP.4.3 — 🔍 El borrador no declara como salida un archivo que el proyecto ignora.** (abierto 2026-10-12, GO de
+  Carlos; hallazgos 3 y 9) El borrador declaró `data/inventario.sqlite` (ignorado por `.gitignore`, generado al
+  ejecutar) y el contrato falló 2 veces por ese archivo. Arreglo: `buildNaturalDraft` descarta de `output` lo que
+  `git check-ignore` marca como ignorado. Gate: test con repo git temporal + etapa 1 del piloto en vivo.
 - [x] **CI.14 — 🔍 GitHub Actions deja de fallar por la misma clase de bug.** (abierto 2026-10-06, GO de Carlos)
   Datos 2026-09-05→10-05: CI rojo en 42/73 pushes en 3 rachas (lint 11-22 sep; `process.env`/HOME 23-24 sep; fixture git
   sin identidad 4-5 oct), todas "pasa en el Mac, falla en Linux". Mutation Shards cancelado 4 noches (10-03→10-06):
