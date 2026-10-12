@@ -187,7 +187,11 @@ export default async function projectIsolation({
       headers: { ...(init.headers ?? {}), 'x-orchestos-project-id': projectId },
     })
 
-  await step('fixtures created for Alfa and Beta', true, `${projectA.id}; ${projectB.id}`)
+  await step(
+    'fixtures created for Alfa and Beta',
+    Boolean(projectA.id && projectB.id && projectA.id !== projectB.id),
+    `${projectA.id}; ${projectB.id}`,
+  )
   const aRuns = await projectApi(projectA.id, '/api/runs')
   const aMemory = await projectApi(projectA.id, '/api/memory?q=Beta')
   const aSessions = await projectApi(projectA.id, '/api/chat/sessions')

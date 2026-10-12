@@ -149,7 +149,7 @@ async function waitForHealth(base) {
 }
 
 async function runFlow(name, base, port) {
-  const result = { flujo: name, pass: false, steps: [], errores: [], capturas: [] }
+  const result = { flujo: name, pass: false, steps: [], notes: [], errores: [], capturas: [] }
   const sourcePath = path.resolve('scripts/ui-gate/flows', `${name}.mjs`)
   let browser
   let cleanups = []
@@ -218,6 +218,11 @@ async function runFlow(name, base, port) {
         const ok = Boolean(condition)
         result.steps.push({ nombre: stepName, ok, detalle: detail || (ok ? 'ok' : 'failed') })
         return ok
+      },
+      // R.8.6 — diagnóstico: queda en result.json y en stdout, no cuenta en el N/N.
+      note: (noteName, detail = '') => {
+        result.notes.push({ nombre: noteName, detalle: detail })
+        stdout(`NOTE ${name}: ${noteName}: ${detail}`)
       },
       shot: async (shotName) => {
         const shotDir = path.join(runDir, name)

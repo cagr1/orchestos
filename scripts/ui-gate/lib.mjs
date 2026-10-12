@@ -22,6 +22,11 @@ export function lintFlowSource(source) {
     return 'navega por window'
   }
 
+  // R.8.6 — `step(nombre, true, …)` no puede fallar: inflaría el N/N. Diagnóstico va en `note`.
+  if (/\bstep\(\s*(?:`[^`]*`|'[^']*'|"[^"]*")\s*,\s*true\b/.test(source)) {
+    return 'step con condición literal true (usar note o una aserción real)'
+  }
+
   return null
 }
 

@@ -38,7 +38,7 @@ async function waitForTaskFinished(api, projectId, taskId, initialTask) {
   return task
 }
 
-async function recordRetry(api, projectId, task, step) {
+async function recordRetry(api, projectId, task, note) {
   const listedRuns = await api('/api/runs', {
     headers: { 'x-orchestos-project-id': projectId },
   })
@@ -56,7 +56,7 @@ async function recordRetry(api, projectId, task, step) {
     qa_model: run.qaModel ?? null,
     file_diffs: run.fileDiffs ?? [],
   }
-  await step(`failed attempt ${task.retryCount} QA detail`, true, JSON.stringify(detail))
+  note(`failed attempt ${task.retryCount} QA detail`, JSON.stringify(detail))
 }
 
 function run(command, args, cwd) {
@@ -96,6 +96,7 @@ export default async function projectTabs({
   page,
   api,
   step,
+  note,
   shot,
   visible,
   cleanup,
@@ -416,7 +417,7 @@ export default async function projectTabs({
     (finished.retryCount > recordedRetryCount ||
       ((finished.status === 'failed' || finished.status === 'failed_permanent') && finished.runId))
   ) {
-    await recordRetry(api, project.id, finished, step)
+    await recordRetry(api, project.id, finished, note)
     recordedRetryCount = finished.retryCount
     if (finished.status !== 'pending' || finished.retryCount >= 3) break
     const retryBefore = finished

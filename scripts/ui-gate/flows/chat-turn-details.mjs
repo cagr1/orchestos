@@ -61,7 +61,16 @@ async function taskStatusDetail(projectRoot, task) {
   return retryReason ? `status=${status}; retry_reason=${retryReason}` : `status=${status}`
 }
 
-export default async function chatTurnDetails({ page, api, step, shot, visible, hidden, cleanup }) {
+export default async function chatTurnDetails({
+  page,
+  api,
+  step,
+  note,
+  shot,
+  visible,
+  hidden,
+  cleanup,
+}) {
   const projectRoot = mkdtempSync(join(tmpdir(), 'orchestos-ui-13-4c-'))
   writeFileSync(join(projectRoot, 'README.md'), '# UI.13.4c\n')
   writeFileSync(join(projectRoot, '.gitignore'), '.orchestos/\n')
@@ -254,7 +263,7 @@ export default async function chatTurnDetails({ page, api, step, shot, visible, 
     if (!(await visible(reasoningText))) await reasoning.click()
     await step('reasoning text visible', await visible(reasoningText), 'reasoning expanded')
   } else {
-    await step('reasoning optional', true, 'reasoning: 0 pasos del CLI')
+    note('reasoning optional', 'reasoning: 0 pasos del CLI')
   }
   await shot('tool-and-reasoning')
 
@@ -274,9 +283,8 @@ export default async function chatTurnDetails({ page, api, step, shot, visible, 
       .catch(() => '(no visible bot response)')
     await step('held task card visible', false, `bot response: ${botResponse}`)
     return
-  } else {
-    await step('held task card visible', true, 'held task rendered')
   }
+  await step('held task card visible', await taskCard.first().isVisible(), 'held task rendered')
   const pendingTasks = await tasksFor(api, project.id)
   const heldTask = await heldTaskFor(api, project.id, pendingTasks, beforeHeldTaskIds)
   await step(
@@ -311,7 +319,11 @@ export default async function chatTurnDetails({ page, api, step, shot, visible, 
     await step('second held task card visible', false, `bot response: ${botResponse}`)
     return
   }
-  await step('second held task card visible', true, 'held task rendered again')
+  await step(
+    'second held task card visible',
+    await taskCard.first().isVisible(),
+    'held task rendered again',
+  )
   const secondTasks = await tasksFor(api, project.id)
   const secondTask = await heldTaskFor(api, project.id, secondTasks, beforeSecondHeldTaskIds)
   const cleanBeforeApprove = execFileSync('git', ['status', '--porcelain'], {

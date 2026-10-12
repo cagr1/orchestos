@@ -109,13 +109,16 @@ export default async function textSweep({ page, api, step, visible, hidden, clea
       !text.toLowerCase().includes('cli default model'),
     'chat surface sweep complete',
   )
+  const presentLiterals = []
   for (const literal of staleCopy) {
-    await hidden(page.getByText(literal, { exact: false }))
+    if (!(await hidden(page.getByText(literal, { exact: false })))) presentLiterals.push(literal)
   }
   await step(
     'all stale copy remains absent from the active screen',
-    true,
-    `${staleCopy.length} literals checked`,
+    presentLiterals.length === 0,
+    presentLiterals.length
+      ? `present: ${presentLiterals.join('; ')}`
+      : `${staleCopy.length} literals checked`,
   )
   // MR.1.d4: la burbuja en vivo aparece antes de que el turno se persista; esperar el mensaje guardado.
   let session

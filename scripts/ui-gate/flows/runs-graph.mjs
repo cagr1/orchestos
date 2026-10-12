@@ -54,7 +54,7 @@ async function waitForEnabled(locator, timeoutMs = 15_000) {
   return locator.isEnabled()
 }
 
-export default async function runsGraph({ page, api, step, shot, visible, cleanup }) {
+export default async function runsGraph({ page, api, step, note, shot, visible, cleanup }) {
   const projectRoot = mkdtempSync(join(tmpdir(), 'orchestos-ui-13-2e-'))
   writeFileSync(join(projectRoot, 'README.md'), '# UI.13.2e\n')
   writeFileSync(join(projectRoot, 'src.ts'), 'export const gate = true\n')
@@ -195,7 +195,7 @@ export default async function runsGraph({ page, api, step, shot, visible, cleanu
         qa_model: run.qaModel ?? null,
         file_diffs: run.fileDiffs ?? [],
       }
-      await step(`failed attempt ${task.retryCount} QA detail`, true, JSON.stringify(diagnostic))
+      note(`failed attempt ${task.retryCount} QA detail`, JSON.stringify(diagnostic))
     }
     if (task?.status === 'pending' && task.retryCount > retryCount && task.retryCount < 3) continue
     break
@@ -219,7 +219,7 @@ export default async function runsGraph({ page, api, step, shot, visible, cleanu
   await step('real run visible', await visible(runRow), 'task run appears in Runs')
   if (await runRow.isVisible()) await runRow.click()
   await step(
-    'contract output is real',
+    'run detail lists README.md output',
     await visible(page.getByText('README.md', { exact: true })),
     'README.md output',
   )

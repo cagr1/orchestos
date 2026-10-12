@@ -17,6 +17,18 @@ describe('ui gate pure helpers', () => {
     expect(lintFlowSource("await page.getByRole('button', { name: 'Dev' }).click()")).toBeNull()
   })
 
+  test('rejects a step whose condition is the literal true, single and multiline', () => {
+    const message = 'step con condición literal true (usar note o una aserción real)'
+    expect(lintFlowSource("await step('x', true, 'ok')")).toBe(message)
+    expect(lintFlowSource(['await step(`x`, ', 'true, detail)'].join(''))).toBe(message)
+    expect(lintFlowSource("await step(\n    'x',\n    true,\n    'ok',\n  )")).toBe(message)
+  })
+
+  test('accepts steps with a computed condition', () => {
+    expect(lintFlowSource("await step('x', ok === true, 'ok')")).toBeNull()
+    expect(lintFlowSource("await step('x', await visible(card), 'ok')")).toBeNull()
+  })
+
   test('formats a passing result exactly', () => {
     expect(
       formatResult({

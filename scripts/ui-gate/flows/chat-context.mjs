@@ -207,7 +207,7 @@ export default async function chatContext({
   `)
   await step(
     'Codex run records context and input token counts',
-    codexRun?.provider === 'codex' && codexRun.context_tokens > 0,
+    codexRun?.provider === 'codex' && codexRun.context_tokens > 0 && codexRun.input_tokens > 0,
     JSON.stringify(codexRun),
   )
 
@@ -237,7 +237,7 @@ export default async function chatContext({
   `)
   await step(
     'Claude run records context and input token counts',
-    claudeRun?.provider === 'claude' && claudeRun.context_tokens > 0,
+    claudeRun?.provider === 'claude' && claudeRun.context_tokens > 0 && claudeRun.input_tokens > 0,
     JSON.stringify(claudeRun),
   )
 }

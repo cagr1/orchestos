@@ -377,8 +377,23 @@ Cerrada. Todos sus ítems están archivados en `docs/done/` (ver "Cerrados — e
   escriben su transcripción en el `~/.claude/projects` real del host (no hay home aislado para Claude) y el gate lee
   ese directorio filtrando por el nombre del proyecto temporal. OpenCode sin aislar (parcado). Los centinelas de
   instinto y de chat Beta se comprueban ausentes sin control positivo propio: los instintos no se inyectan al chat.
-- [ ] **R.8.6 — 🔍 Pasos que no pueden fallar.** Quitar `true` literales (`auto-flow.mjs:356,360`,
+- [x] **R.8.6 — 🔍 Pasos que no pueden fallar.** (2026-10-12) Quitar `true` literales (`auto-flow.mjs:356,360`,
   `project-isolation.mjs:125`, `runs-graph.mjs:198`) y nombres que prometen más de lo que comprueban. Hallazgos 6-7.
+  Ejecutado por: sonnet (rol `criterio`).
+  Hecho: los 8 `step(nombre, true, …)` vigentes ya no existen. 4 pasan a `note` (diagnóstico: queda en
+  `result.json` y stdout, fuera del `N/N`): `reasoning optional` y los tres `failed attempt N QA detail`
+  (`tasks`, `project-tabs`, `runs-graph`). 4 son aserción real: los dos `held task card visible`
+  (`isVisible()`), `fixtures created…` (ids presentes y distintos) y `text-sweep` (0 literales presentes).
+  `lintFlowSource` rechaza un `step` con condición literal `true`, también multilínea, con test
+  (`scripts/ui-gate/run.test.ts`, 8/0). Hallazgo 7: `chat-context` exige además `input_tokens > 0`;
+  `contract output is real` se renombró a `run detail lists README.md output`.
+  Gate en vivo: navegador real (Playwright), `docs/done/evidence/R.8.6-live.json` — `chat-turn-details` 26/26
+  (1 nota), `project-isolation` 14/14, `tasks` 13/13, `project-tabs` 24/24, `runs-graph` 16/16, `text-sweep`
+  10/10, `chat-context` 5/5; `tsc` y lint limpios.
+  Límites: los tres `note` de reintento no se ejercitaron (ninguna corrida tuvo reintentos). `auto-flow` no cambió:
+  los `true` de `:356/:360` que citaba la revisión ya no existían; no se añadió la prueba de "aprobación retenida /
+  sin ejecución previa / transición tras el clic" que pedía el hallazgo 6. El paso renombrado sigue comprobando solo
+  que el nombre del archivo es visible, no su contenido.
 
 **Mantenibilidad (observación transversal):** en la revisión, cli.ts tenía 2923 líneas,
 harness.ts 1203 y chat.ts 1237. La concentración de responsabilidades merece atención, pero
