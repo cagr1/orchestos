@@ -15,11 +15,7 @@
       "qaVerdict": null,
       "runId": null,
       "engine": null,
-      "output": [
-        "src/db/migrate.ts",
-        "tests/migrate.test.ts",
-        "data/inventario.sqlite"
-      ],
+      "output": ["src/db/migrate.ts", "tests/migrate.test.ts", "data/inventario.sqlite"],
       "dependsOn": [],
       "acceptanceCriteria": [],
       "executorModel": null,
