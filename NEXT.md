@@ -12,8 +12,15 @@
    `qa-negative`; detalle y límites en PLAN.md). R.8.6 cerrado 2026-10-12 (sin `true` literales; `note` para
    diagnóstico; el linter de flujos lo impide). Siguiente: ERP.4.
    ERP.4: decisiones de Carlos ya escritas en PLAN.md (inventario mínimo, repo `erp-piloto`, modelos del roster,
-   una sesión / parar a los 2 fallos). Falta todo lo demás: crear el repo, revisar Model routing y correr el piloto
-   desde el dashboard (chat), no por CLI.
+   una sesión / parar a los 2 fallos).
+   Hecho 2026-10-12: repo `~/Projects/projects/erp-piloto` creado y registrado (`orchestos init`), 2 commits; roles
+   del piloto en su `orchestos.config.yaml` (orquestador claude-opus-5-5, ejecutor codex gpt-6-luna, revisor codex
+   gpt-6.1-sol, auxiliar codex gpt-6-luna). Único cambio frente al config de OrchestOS: el revisor (luna → sol).
+   Sin verificar: que el dashboard lea esos roles del proyecto (mirar Model routing del proyecto antes de correr).
+   Falta: levantar el dashboard real, pedir el módulo por el chat del proyecto (un pedido por etapa: datos+migración,
+   regla de stock, permiso admin, API, pantalla, tests), dejar que cree y ejecute las tareas, reiniciar el dashboard
+   una vez a mitad, guardar una corrección y comprobar que se recupera en la tarea siguiente. Registrar por etapa:
+   CLI/modelo usado, intervenciones, bloqueos, tiempo. Conducir por navegador real (Playwright), no por curl.
    Lección: si el archivo objetivo tiene cambios sin commitear de una ronda previa, el spec debe decirlo; si no,
    `mecanico` los toma por ajenos y no edita.
    Lecciones de R.8.4: `delegate qa` exige archivo de spec, no acepta la pregunta directa; el cerebro no puede editar
