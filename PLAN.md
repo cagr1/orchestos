@@ -131,6 +131,14 @@ Cerrada. Todos sus ítems están archivados en `docs/done/` (ver "Cerrados — e
   fuera de OrchestOS (`~/Projects/projects/erp-piloto`, Bun + SQLite + React). Modelos = los del roster: ejecutor
   Codex `gpt-6-luna`, criterio Claude `sonnet`, revisor Codex `gpt-6.1-sol`; si Model routing difiere, ajustarlo
   solo en el proyecto de prueba y decir qué cambió. Presupuesto: una sesión; parar si la misma etapa falla 2 veces.
+  Corrida 2026-10-12: **detenida en la etapa 1** (datos + migración) por la regla de presupuesto: 2 runs de Luna con
+  el mismo fallo, "missing declared output(s): data/inventario.sqlite" (el borrador declaró como salida un archivo
+  que el `.gitignore` del proyecto ignora; se revierten los 2 archivos correctos). Antes hubo 2 bloqueos sin run:
+  proyecto sin `tasks.yaml` (arreglado, ERP.4.1) y mensaje de seguimiento que no crea tarea (el borrador solo lee el
+  mensaje actual, `chat.ts:1111`). El fallo no aparece en el chat ni en Settings → Tasks. Model routing del proyecto
+  verificado en la UI; el run usó `codex exec -m gpt-6-luna`. 9 hallazgos, tiempos y uso en
+  `docs/done/evidence/ERP.4/piloto-2026-10-12.md`. Sin decisión de utilidad todavía: no se llegó a API, UI,
+  reinicio a mitad de run ni corrección guardada.
 - [x] **ERP.4.1 — 🔍 El chat crea la primera tarea de un proyecto sin `tasks.yaml`.** (2026-10-12, bloqueo 1
   del piloto) En `erp-piloto` recién registrado, el primer pedido por chat respondió "⚠ Could not auto-create the
   task: tasks.yaml not found — run: orchestos task init" (captura `03-send-e1`): manda al usuario a la terminal y no

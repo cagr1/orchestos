@@ -1,7 +1,22 @@
 {
-  "exported_at": "2026-10-12T21:29:28.668Z",
+  "exported_at": "2026-10-12T21:31:21.838Z",
   "total_runs": 20,
   "runs": [
+    {
+      "id": "a02c388b-7f0c-47f4-ba74-669bf724bea4",
+      "task_class": "review",
+      "model": "gpt-6-luna",
+      "provider": "codex",
+      "status": "failed",
+      "qa_verdict": "fail",
+      "qa_reason": "missing declared output(s): data/inventario.sqlite",
+      "files_blocked": [],
+      "checks_failed": 0,
+      "usd_cost": 0.0027483,
+      "elapsed_ms": 32092,
+      "tokens": 12143,
+      "created_at": "2026-10-12T21:30:23.913Z"
+    },
     {
       "id": "9738ad81-36c8-41c7-a95b-e5a1c462e3ba",
       "task_class": "review",
@@ -286,28 +301,13 @@
       "elapsed_ms": 16494,
       "tokens": 7964,
       "created_at": "2026-10-12T00:03:40.936Z"
-    },
-    {
-      "id": "17346ea5-4769-4eb4-beb0-9e20a7e45fc0",
-      "task_class": "gate:r.8.5.1-live:implement",
-      "model": "haiku",
-      "provider": "claude",
-      "status": "done",
-      "qa_verdict": "pass",
-      "qa_reason": "claude-nota.md contiene la única línea solicitada: «nota de claude».",
-      "files_blocked": [],
-      "checks_failed": 0,
-      "usd_cost": 0.00301091,
-      "elapsed_ms": 11237,
-      "tokens": 3445,
-      "created_at": "2026-10-12T00:03:00.025Z"
     }
   ],
   "stats": {
-    "failed": 4,
+    "failed": 5,
     "blocked": 0,
-    "done": 16,
-    "qa_failed": 5,
-    "total_cost_usd": "0.1237"
+    "done": 15,
+    "qa_failed": 6,
+    "total_cost_usd": "0.1234"
   }
 }

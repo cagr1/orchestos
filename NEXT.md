@@ -21,6 +21,13 @@
    regla de stock, permiso admin, API, pantalla, tests), dejar que cree y ejecute las tareas, reiniciar el dashboard
    una vez a mitad, guardar una corrección y comprobar que se recupera en la tarea siguiente. Registrar por etapa:
    CLI/modelo usado, intervenciones, bloqueos, tiempo. Conducir por navegador real (Playwright), no por curl.
+   Corrida 2026-10-12: piloto DETENIDO en la etapa 1 (misma etapa, mismo fallo, 2 veces). ERP.4.1 cerrado
+   (`b0ce9e4`: el chat crea la primera tarea sin `tasks.yaml`). Registro y 9 hallazgos:
+   `docs/done/evidence/ERP.4/piloto-2026-10-12.md`. Espera decisión de Carlos: qué hallazgos se arreglan antes de
+   reanudar (recomendado, en este orden: 4 fallo visible en el chat, 3/9 salidas declaradas que el proyecto ignora,
+   2 seguimiento que no crea tarea). Para reanudar: dashboard real + conductor Playwright de una página viva (el de
+   esta corrida estaba en `/tmp/erp4/driver.mjs`, no versionado); `erp-piloto` quedó con la tarea `chat-ad9e193d…`
+   en `pending` (reintento 2/3) y `tasks.yaml` modificado sin commitear.
    Lección: si el archivo objetivo tiene cambios sin commitear de una ronda previa, el spec debe decirlo; si no,
    `mecanico` los toma por ajenos y no edita.
    Lecciones de R.8.4: `delegate qa` exige archivo de spec, no acepta la pregunta directa; el cerebro no puede editar
