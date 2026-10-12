@@ -40,6 +40,15 @@
       "closedDate": null
     },
     {
+      "id": "ERP.4.4",
+      "sprint": "Fase 2 — Producto mínimo para entrega",
+      "block": "H.7 — El contexto se llena en silencio y nadie avisa (ABIERTO 2026-09-02)",
+      "delegation": "🔍",
+      "title": "La corrección guardada del proyecto llega al prompt de la tarea",
+      "status": "open",
+      "closedDate": null
+    },
+    {
       "id": "CI.14",
       "sprint": "Fase 2 — Producto mínimo para entrega",
       "block": "H.7 — El contexto se llena en silencio y nadie avisa (ABIERTO 2026-09-02)",
