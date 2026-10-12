@@ -1,7 +1,52 @@
 {
-  "exported_at": "2026-10-12T21:14:44.214Z",
+  "exported_at": "2026-10-12T21:29:28.668Z",
   "total_runs": 20,
   "runs": [
+    {
+      "id": "9738ad81-36c8-41c7-a95b-e5a1c462e3ba",
+      "task_class": "review",
+      "model": "gpt-6-luna",
+      "provider": "codex",
+      "status": "failed",
+      "qa_verdict": "fail",
+      "qa_reason": "missing declared output(s): data/inventario.sqlite",
+      "files_blocked": [],
+      "checks_failed": 0,
+      "usd_cost": 0.00302222,
+      "elapsed_ms": 33464,
+      "tokens": 14067,
+      "created_at": "2026-10-12T21:19:18.335Z"
+    },
+    {
+      "id": "aabda171-89ca-4413-a86a-5e4e1ecad313",
+      "task_class": "chat",
+      "model": "claude-opus-5-5",
+      "provider": "claude",
+      "status": "done",
+      "qa_verdict": null,
+      "qa_reason": null,
+      "files_blocked": [],
+      "checks_failed": 0,
+      "usd_cost": 0.0378916,
+      "elapsed_ms": 9495,
+      "tokens": 129,
+      "created_at": "2026-10-12T21:18:44.538Z"
+    },
+    {
+      "id": "78b62433-5119-4f59-8902-ad0dbb96f77d",
+      "task_class": "chat",
+      "model": "claude-opus-5-5",
+      "provider": "claude",
+      "status": "done",
+      "qa_verdict": null,
+      "qa_reason": null,
+      "files_blocked": [],
+      "checks_failed": 0,
+      "usd_cost": 0.0354836,
+      "elapsed_ms": 19051,
+      "tokens": 209,
+      "created_at": "2026-10-12T21:18:12.872Z"
+    },
     {
       "id": "c99926ad-3a34-4602-b440-a5c4e3eac7da",
       "task_class": "chat",
@@ -256,51 +301,6 @@
       "elapsed_ms": 11237,
       "tokens": 3445,
       "created_at": "2026-10-12T00:03:00.025Z"
-    },
-    {
-      "id": "97dc48ce-dcf8-4f24-91d2-803d187e7928",
-      "task_class": "gate:r.8.5.1-live:implement",
-      "model": "openai/gpt-6-luna",
-      "provider": "codex",
-      "status": "failed",
-      "qa_verdict": "fail",
-      "qa_reason": "nota.txt contains ROJO, not the required AZUL line.",
-      "files_blocked": [],
-      "checks_failed": 0,
-      "usd_cost": 0.00073538,
-      "elapsed_ms": 13131,
-      "tokens": 7519,
-      "created_at": "2026-10-12T00:02:31.038Z"
-    },
-    {
-      "id": "22041126-4fcf-42bd-9926-5c9d6b66802b",
-      "task_class": "gate:r.8.5.1-live:implement",
-      "model": "openai/gpt-6-luna",
-      "provider": "codex",
-      "status": "done",
-      "qa_verdict": "pass",
-      "qa_reason": "ok.txt contains the required line VERDE.",
-      "files_blocked": [],
-      "checks_failed": 0,
-      "usd_cost": 0.0007378799999999999,
-      "elapsed_ms": 18269,
-      "tokens": 7546,
-      "created_at": "2026-10-12T00:02:15.842Z"
-    },
-    {
-      "id": "1d1cdb62-2fca-41ff-bf09-dafbd495ab79",
-      "task_class": "gate:r.8.4-restart-mid-run-final2:implement",
-      "model": "openai/gpt-6-luna",
-      "provider": "codex",
-      "status": "done",
-      "qa_verdict": "pass",
-      "qa_reason": "a.txt contains the requested single line: REINICIO.",
-      "files_blocked": [],
-      "checks_failed": 0,
-      "usd_cost": 0.00222646,
-      "elapsed_ms": 26417,
-      "tokens": 16120,
-      "created_at": "2026-10-11T18:36:25.884Z"
     }
   ],
   "stats": {
@@ -308,6 +308,6 @@
     "blocked": 0,
     "done": 16,
     "qa_failed": 5,
-    "total_cost_usd": "0.0510"
+    "total_cost_usd": "0.1237"
   }
 }

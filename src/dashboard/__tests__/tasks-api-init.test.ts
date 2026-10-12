@@ -12,8 +12,8 @@
  *   - POST /api/tasks/init crea el archivo con 2 tareas starter y
  *     devuelve 200 + info del scaffold (project, framework, taskIds).
  *   - POST /api/tasks/init devuelve 409 si el archivo ya existe.
- *   - POST /api/tasks ya no devuelve 404 cuando no hay archivo, porque
- *     init lo crea primero — esto es el cierre real del gap.
+ *   - POST /api/tasks crea un tasks.yaml vacío al vuelo y persiste solo la
+ *     tarea solicitada, sin tareas de ejemplo.
  *   - Mismo scaffold que el CLI (mismas starter tasks para Next.js / Python /
  *     generic) — garantizado porque ambos llaman al mismo `scaffoldTasksYaml()`.
  *
@@ -221,13 +221,10 @@ describe('D.1.a — POST /api/tasks/init crea el primer tasks.yaml', () => {
   })
 })
 
-describe('D.1.a — el gap original está cerrado', () => {
-  it('POST /api/tasks ahora funciona después de init (antes devolvía 404)', async () => {
-    // Estado inicial: sin tasks.yaml
+describe('ERP.4.1 — crear la primera tarea sin init previo', () => {
+  it('crea tasks.yaml y persiste solo la tarea solicitada', async () => {
     expect(existsSync(join(tmpDir, 'tasks.yaml'))).toBe(false)
-
-    // El gap: POST /api/tasks SIN init previo fallaba con 404
-    const pre = await route(
+    const post = await route(
       req('POST', '/api/tasks', {
         id: 'first',
         description: 'first task',
@@ -235,29 +232,55 @@ describe('D.1.a — el gap original está cerrado', () => {
       }),
       PORT,
     )
-    expect(pre.status).toBe(404) // confirma que el gap existía
-
-    // Init lo cierra
-    const init = await route(req('POST', '/api/tasks/init'), PORT)
-    expect(init.status).toBe(200)
-
-    // Ahora POST /api/tasks funciona
-    const post = await route(
-      req('POST', '/api/tasks', {
-        id: 'second',
-        description: 'second task',
-        output: ['y.txt'],
-      }),
-      PORT,
-    )
     expect(post.status).toBe(200)
     const postBody = (await post.json()) as { ok: boolean; id: string }
     expect(postBody.ok).toBe(true)
-    expect(postBody.id).toBe('second')
-
-    // tasks.yaml ahora tiene 3 tasks (2 starter + 1 nueva)
+    expect(postBody.id).toBe('first')
+    expect(existsSync(join(tmpDir, 'tasks.yaml'))).toBe(true)
+    const contents = readFileSync(join(tmpDir, 'tasks.yaml'), 'utf-8')
+    expect(contents).toContain(`project: ${tmpDir.split('/').pop()}`)
+    expect(contents).toContain('id: first')
+    expect(contents).not.toMatch(/id: t[12]-/)
     const list = await route(req('GET', '/api/tasks'), PORT)
     const body = (await list.json()) as TasksListResponse
-    expect(body.tasks).toHaveLength(3)
+    expect(body.tasks.map((task) => task.id)).toEqual(['first'])
+  })
+
+  it('conserva tareas previas cuando tasks.yaml ya existe', async () => {
+    writeFileSync(
+      join(tmpDir, 'tasks.yaml'),
+      yamlStringify(
+        {
+          version: 1,
+          project: 'existing-project',
+          tasks: [
+            {
+              id: 'keep',
+              description: 'keep me',
+              executor: 'openrouter',
+              input: [],
+              output: ['keep.txt'],
+              depends_on: [],
+              status: 'pending',
+              retry_count: 0,
+            },
+          ],
+        },
+        { lineWidth: 120 },
+      ),
+      'utf-8',
+    )
+    const res = await route(
+      req('POST', '/api/tasks', {
+        id: 'added',
+        description: 'new task',
+        output: ['new.txt'],
+      }),
+      PORT,
+    )
+    expect(res.status).toBe(200)
+    const list = await route(req('GET', '/api/tasks'), PORT)
+    const body = (await list.json()) as TasksListResponse
+    expect(body.tasks.map((task) => task.id).sort()).toEqual(['added', 'keep'])
   })
 })

@@ -17,7 +17,7 @@ import { withGitLock } from '../../run/git-lock.ts'
 import { git } from '../../run/sandbox.ts'
 import { isKnownSkillId } from '../../skills/catalog.ts'
 import { loadConstitution } from '../../spec/constitution.ts'
-import { scaffoldTasksYaml } from '../../tasks/init.ts'
+import { ensureTasksYaml, scaffoldTasksYaml } from '../../tasks/init.ts'
 import { loadTasks, mutateTasks } from '../../tasks/loader.ts'
 import { errorResponse, jsonResponse, validateTaskId } from '../http.ts'
 import type { DiagnoseRow, SplitPlanResponse, TaskRow } from '../types.ts'
@@ -254,8 +254,7 @@ function createTaskRecord(
     }
   const cliEffortRaw = params.cli_effort?.trim()
   const cliEffort = cliEffortRaw || undefined
-  if (!existsSync(join(root, 'tasks.yaml')))
-    return { error: 'tasks.yaml not found — run: orchestos task init', status: 404 }
+  ensureTasksYaml(root)
   try {
     const result = mutateTasks(root, (file) => {
       let finalId = id

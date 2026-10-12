@@ -19,6 +19,21 @@ import { stringify as yamlStringify } from 'yaml'
 import { buildProfile } from '../detect/profile.ts'
 import { tasksExist, tasksPath, withTasksLock, writeTasksAtomic } from './loader.ts'
 
+/** Creates an empty tasks.yaml when absent, without scaffolding example tasks. */
+export function ensureTasksYaml(root: string): boolean {
+  let created = false
+  withTasksLock(root, () => {
+    if (tasksExist(root)) return
+    const project = root.split(/[\\/]/).filter(Boolean).at(-1) ?? root
+    writeTasksAtomic(
+      tasksPath(root),
+      yamlStringify({ version: 1, project, tasks: [] }, { lineWidth: 120 }),
+    )
+    created = true
+  })
+  return created
+}
+
 export interface ScaffoldResult {
   /** Ruta absoluta al tasks.yaml recién creado. */
   path: string
