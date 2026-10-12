@@ -1,10 +1,73 @@
 import { execFileSync } from 'node:child_process'
-import { copyFileSync, existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
+import {
+  copyFileSync,
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from 'node:fs'
 import { tmpdir } from 'node:os'
 import { basename, join } from 'node:path'
+import { writeGateRoles } from '../lib.mjs'
 
 function run(command, args, cwd) {
   execFileSync(command, args, { cwd, stdio: 'ignore' })
+}
+
+async function startChat(page, projectName, agent) {
+  await page.getByRole('button', { name: 'Dev', exact: true }).click()
+  const projectButton = page.getByRole('button', { name: projectName, exact: true })
+  await projectButton.hover()
+  await page.getByRole('button', { name: 'Launch new agent', exact: true }).click()
+  const dialog = page.getByRole('dialog')
+  const option = dialog.getByRole('button', { name: new RegExp(agent, 'i') }).first()
+  await option.waitFor({ state: 'visible', timeout: 15_000 })
+  await option.click()
+  const started = page.waitForResponse(
+    (response) =>
+      response.request().method() === 'POST' &&
+      new URL(response.url()).pathname === '/api/chat/sessions',
+  )
+  await dialog.getByRole('button', { name: 'Launch Agent', exact: true }).click()
+  const response = await started
+  if (!response.ok()) throw new Error(`Starting ${agent} chat failed: HTTP ${response.status()}`)
+  const session = await response.json()
+  if (session.agent !== agent.toLowerCase())
+    throw new Error(`Expected ${agent} session, received ${session.agent}`)
+  return session
+}
+
+async function selectClaudeHaiku(page) {
+  const modelControl = page.locator('button[title="Select model and reasoning effort"]').last()
+  await modelControl.waitFor({ state: 'visible', timeout: 15_000 })
+  await modelControl.click()
+  await page.getByRole('button', { name: /haiku/i }).first().click()
+  await page.keyboard.press('Escape')
+}
+
+async function sendTurn(page, message, timeout = 180_000) {
+  const composer = page.locator('textarea').last()
+  await composer.waitFor({ state: 'visible', timeout: 30_000 })
+  await composer.fill(message)
+  const responsePromise = page.waitForResponse(
+    (response) =>
+      response.request().method() === 'POST' && new URL(response.url()).pathname === '/api/chat',
+    { timeout },
+  )
+  await page.getByRole('button', { name: 'Send message', exact: true }).last().click()
+  const response = await responsePromise
+  if (!response.ok()) throw new Error(`/api/chat returned HTTP ${response.status()}`)
+  const reply = page.locator('div.prose').last()
+  await reply.waitFor({ state: 'visible', timeout })
+  const deadline = Date.now() + timeout
+  while (Date.now() < deadline) {
+    const text = (await reply.innerText()).trim()
+    if (text) return text
+    await page.waitForTimeout(300)
+  }
+  return ''
 }
 
 function seedDatabase({ projectA, projectB, sessionA, sessionB, databasePath }) {
@@ -47,6 +110,7 @@ export default async function projectIsolation({
   shot,
   cleanup,
   databasePath,
+  captureDir,
   expectHttpError,
 }) {
   const repoRoot = process.cwd()
@@ -265,5 +329,29 @@ export default async function projectIsolation({
       `api-contract origin: ${skillOrigin}`,
     )
     await shot(`skills-${label.toLowerCase()}`)
+  }
+
+  // R.8.5: lo que el CLI recibe de verdad, no solo lo que la API filtra.
+  writeGateRoles(rootA)
+  const beta = ['Centinela memoria Beta', 'Centinela instinto Beta', 'Centinela chat Beta']
+  for (const agent of ['Codex', 'Claude']) {
+    await page.reload({ waitUntil: 'domcontentloaded' })
+    const session = await startChat(page, basename(rootA), agent)
+    if (agent === 'Claude') await selectClaudeHaiku(page)
+    const reply = await sendTurn(page, 'Reply only OK.', agent === 'Codex' ? 300_000 : 180_000)
+    const prompt = readFileSync(join(captureDir, `chat-prompt-${session.id}.txt`), 'utf8')
+    const cliInput = readFileSync(join(captureDir, `chat-cli-input-${session.id}.txt`), 'utf8')
+    const captured = `${prompt}\n${cliInput}`
+    await step(
+      `${agent} CLI context includes the own project memory (positive control)`,
+      Boolean(reply) && captured.includes('Centinela memoria Alfa'),
+      `reply=${JSON.stringify(reply)} · prompt ${prompt.length} chars · cli input ${cliInput.length} chars`,
+    )
+    const leaked = beta.filter((sentinel) => captured.includes(sentinel))
+    await step(
+      `${agent} CLI context excludes every Beta sentinel`,
+      leaked.length === 0,
+      `fugas: ${JSON.stringify(leaked)} · Centinela memoria Global: ${captured.includes('Centinela memoria Global') ? 'aparece' : 'no aparece'}`,
+    )
   }
 }

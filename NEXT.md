@@ -8,9 +8,8 @@
    Abierto CI.19 (`git commit` del fixture falló 1 de 9 en el andamiaje; ya deja evidencia en `qa-negative`).
 3. R.8.4 cerrado 2026-10-11 (gate `restart-mid-run`; detalle en PLAN.md). Siguiente: R.8.5 → R.8.6, luego ERP.4.
    R.8.5.1 cerrado 2026-10-11: tareas y roles de Codex con `CODEX_HOME` aislado, tareas de Claude con los flags del
-   chat (decisión de Carlos: aisladas). Queda de R.8.5: `read-boundary` (condición dura + rehacer los reintentos sin
-   commitear de `read-boundary.mjs`), centinelas entre proyectos, prueba en vivo de que el `CLAUDE.md` global no llega
-   a una tarea de Claude, y OpenCode sin aislar.
+   chat (decisión de Carlos: aisladas). R.8.5 cerrado 2026-10-12 (`read-boundary`, `project-isolation`,
+   `qa-negative`; detalle y límites en PLAN.md). Siguiente: R.8.6, luego ERP.4.
    Lección: si el archivo objetivo tiene cambios sin commitear de una ronda previa, el spec debe decirlo; si no,
    `mecanico` los toma por ajenos y no edita.
    Lecciones de R.8.4: `delegate qa` exige archivo de spec, no acepta la pregunta directa; el cerebro no puede editar

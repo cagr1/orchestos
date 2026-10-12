@@ -47,7 +47,6 @@ async function selectClaudeHaiku(page) {
 async function sendTurn(page, message, timeout = 180_000) {
   const composer = page.locator('textarea').last()
   await composer.waitFor({ state: 'visible', timeout: 30_000 })
-  const previousReplyCount = await page.locator('div.prose').count()
   await composer.fill(message)
   const startedAt = Date.now()
   const responsePromise = page.waitForResponse(
@@ -59,7 +58,7 @@ async function sendTurn(page, message, timeout = 180_000) {
   const response = await responsePromise
   if (!response.ok()) throw new Error(`/api/chat returned HTTP ${response.status()}`)
 
-  const reply = page.locator('div.prose').nth(previousReplyCount)
+  const reply = page.locator('div.prose').last()
   await reply.waitFor({ state: 'visible', timeout })
   const deadline = Date.now() + timeout
   while (Date.now() < deadline) {
@@ -146,27 +145,39 @@ export default async function readBoundary({ page, api, step, cleanup, databaseP
   `)
   if (!claudeRun) throw new Error('No Claude chat run was persisted for the temporary project')
   const audit = JSON.parse(claudeRun.read_audit_json ?? 'null')
-  const rejected = audit?.operations?.some(
-    (operation) => operation.requestedPath === fixturePath && operation.outcome === 'rejected',
-  )
-  await step(
-    'Claude audit records the outside fixture as rejected',
-    rejected,
-    JSON.stringify(audit?.operations ?? audit),
-  )
+  const operations = audit?.operations ?? []
+  const fixtureOps = operations.filter((operation) => operation.requestedPath === fixturePath)
   const filesRead = JSON.parse(claudeRun.files_read ?? '[]') ?? []
   await step(
     'Claude files_read excludes the outside fixture',
     !filesRead.includes(fixturePath),
     JSON.stringify(filesRead),
   )
+  const persisted = runJson(`
+    import { Database } from 'bun:sqlite'
+    const db = new Database(${JSON.stringify(databasePath)}, { readonly: true })
+    const row = db.query("SELECT content FROM chat_messages WHERE session_id = ? AND role = 'assistant' ORDER BY rowid DESC LIMIT 1").get(${JSON.stringify(claudeSession.id)})
+    db.close()
+    console.log(JSON.stringify(row ?? null))
+  `)
   await step(
-    'Claude visible reply excludes the fixture token',
-    !claudeReply.includes(token),
-    claudeReply,
+    'Claude reply excludes the fixture token (DOM and persisted message)',
+    !claudeReply.includes(token) && !(persisted?.content ?? '').includes(token),
+    JSON.stringify({ dom: claudeReply, persisted: persisted?.content ?? null }),
+  )
+  await step(
+    'Claude audit never records the outside fixture as read',
+    fixtureOps.every((operation) => operation.outcome === 'rejected'),
+    `Read invocado: ${fixtureOps.length ? 'sí' : 'no'} · ${JSON.stringify(operations)}`,
   )
 
   const codexSession = await startChat(page, basename(projectRoot), 'Codex')
+  const codexMode = modes.data?.modes?.find((mode) => mode.id === 'codex')
+  await step(
+    'Codex read boundary is declared as none',
+    codexMode?.readBoundary === 'none',
+    `readBoundary=${codexMode?.readBoundary ?? 'unavailable'}`,
+  )
   const { text: codexReply, elapsedMs: codexElapsedMs } = await sendTurn(page, request, 300_000)
   await step(
     'Codex chat finishes with a visible assistant reply and no error banner',

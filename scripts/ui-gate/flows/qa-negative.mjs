@@ -111,6 +111,20 @@ export default async function qaNegative({ page, api, step, shot, visible, clean
             retry_count: 0,
           },
           {
+            id: 'gate-claude-home',
+            description: 'Create the file claude.txt containing exactly one line: HOME-PROBE-R85',
+            executor_model: 'anthropic/haiku',
+            engine: 'external',
+            cli_effort: 'low',
+            input: [],
+            output: ['claude.txt'],
+            checks: [{ cmd: 'grep -qx HOME-PROBE-R85 claude.txt' }],
+            acceptance_criteria: ['claude.txt contains the line: HOME-PROBE-R85'],
+            depends_on: [],
+            status: 'pending',
+            retry_count: 0,
+          },
+          {
             id: 'gate-qa-bad',
             description: 'Create the file nota.txt containing exactly one line: ROJO',
             executor_model: 'openai/gpt-6-luna',
@@ -249,6 +263,57 @@ export default async function qaNegative({ page, api, step, shot, visible, clean
       !rolloutText.includes(hostLine),
       `línea del host comprobada: ${JSON.stringify(hostLine.slice(0, 60))}`,
     )
+  }
+
+  // R.8.5 — el CLAUDE.md global del host no llega a la tarea de Claude. Señal mecánica: la transcripción
+  // de la sesión que el CLI deja en ~/.claude/projects/. Sin `--restricted` incluye el contenido de
+  // ~/.claude/CLAUDE.md; con él no (sonda manual 2026-10-12, claude 2.1.296: sin flag 1 coincidencia,
+  // con --restricted 0). Solo se emite si el archivo existe en el host.
+  const hostClaudeMd = join(homedir(), '.claude', 'CLAUDE.md')
+  if (existsSync(hostClaudeMd)) {
+    prior = await taskAndRun(api, project.id, 'gate-claude-home')
+    await runButton.click()
+    await waitForTaskChange(
+      api,
+      project.id,
+      'gate-claude-home',
+      prior.task?.retryCount ?? 0,
+      prior.task?.runId ?? null,
+    )
+    const claudeTask = await taskAndRun(api, project.id, 'gate-claude-home')
+    const hostClaudeLine = readFileSync(hostClaudeMd, 'utf8')
+      .split('\n')
+      .map((line) => line.trim())
+      .find((line) => line.length > 20)
+    const projectsDir = join(homedir(), '.claude', 'projects')
+    const slugKey = basename(projectRoot).replace(/[^a-zA-Z0-9]/g, '-')
+    const transcripts = existsSync(projectsDir)
+      ? readdirSync(projectsDir)
+          .filter((dir) => dir.includes(slugKey))
+          .flatMap((dir) =>
+            readdirSync(join(projectsDir, dir))
+              .filter((name) => name.endsWith('.jsonl'))
+              .map((name) => join(projectsDir, dir, name)),
+          )
+          .filter((path) => readFileSync(path, 'utf8').includes('HOME-PROBE-R85'))
+      : []
+    const transcriptText = transcripts.map((path) => readFileSync(path, 'utf8')).join('\n')
+    await step(
+      'Claude task transcript was found',
+      transcripts.length > 0,
+      JSON.stringify({
+        status: claudeTask.task?.status,
+        qaVerdict: claudeTask.run?.qaVerdict,
+        transcripts: transcripts.length,
+      }),
+    )
+    if (hostClaudeLine !== undefined && transcripts.length > 0) {
+      await step(
+        'Claude task transcript does not contain the host CLAUDE.md distinctive line',
+        !transcriptText.includes(hostClaudeLine),
+        `línea del host comprobada: ${JSON.stringify(hostClaudeLine.slice(0, 60))} · transcripciones: ${transcripts.length}`,
+      )
+    }
   }
 
   prior = await taskAndRun(api, project.id, 'gate-qa-bad')

@@ -1,7 +1,52 @@
 {
-  "exported_at": "2026-10-12T01:46:25.842Z",
+  "exported_at": "2026-10-12T01:56:19.897Z",
   "total_runs": 20,
   "runs": [
+    {
+      "id": "42f45c61-c7f3-4d27-98a4-8c2f5ac6e939",
+      "task_class": "gate:r.8.5:implement",
+      "model": "openai/gpt-6-luna",
+      "provider": "codex",
+      "status": "failed",
+      "qa_verdict": "fail",
+      "qa_reason": "nota.txt contains ROJO rather than the required AZUL line.",
+      "files_blocked": [],
+      "checks_failed": 0,
+      "usd_cost": 0.00100666,
+      "elapsed_ms": 25507,
+      "tokens": 10531,
+      "created_at": "2026-10-12T01:55:26.087Z"
+    },
+    {
+      "id": "5b3d9318-2b6b-49ae-9942-b73efd2e484a",
+      "task_class": "gate:r.8.5:implement",
+      "model": "anthropic/haiku",
+      "provider": "claude",
+      "status": "done",
+      "qa_verdict": "pass",
+      "qa_reason": "The file contains the required line, and the exact-line check passed.",
+      "files_blocked": [],
+      "checks_failed": 0,
+      "usd_cost": 0.0011205100000000001,
+      "elapsed_ms": 7971,
+      "tokens": 3512,
+      "created_at": "2026-10-12T01:54:58.356Z"
+    },
+    {
+      "id": "5f9cc29a-83c2-4373-9d40-4f6e91744c19",
+      "task_class": "gate:r.8.5:implement",
+      "model": "openai/gpt-6-luna",
+      "provider": "codex",
+      "status": "done",
+      "qa_verdict": "pass",
+      "qa_reason": "ok.txt contains the required line VERDE.",
+      "files_blocked": [],
+      "checks_failed": 0,
+      "usd_cost": 0.00073438,
+      "elapsed_ms": 17922,
+      "tokens": 8058,
+      "created_at": "2026-10-12T01:54:47.947Z"
+    },
     {
       "id": "4c82079d-ca20-43e5-9694-cddf7e5fa020",
       "task_class": "gate:r.8.5.1-live-final:implement",
@@ -256,58 +301,13 @@
       "elapsed_ms": 19771,
       "tokens": 15639,
       "created_at": "2026-10-11T18:14:11.671Z"
-    },
-    {
-      "id": "e11ca5c1-5d61-490d-8ba2-f8b1b0a49fc2",
-      "task_class": "chat",
-      "model": "gpt-6-sol",
-      "provider": "codex",
-      "status": "done",
-      "qa_verdict": null,
-      "qa_reason": null,
-      "files_blocked": [],
-      "checks_failed": 0,
-      "usd_cost": 0.0254784,
-      "elapsed_ms": 10339,
-      "tokens": 868,
-      "created_at": "2026-10-11T17:25:28.937Z"
-    },
-    {
-      "id": "402cb606-c15e-448e-8197-28778ae8a719",
-      "task_class": "chat",
-      "model": "gpt-6-sol",
-      "provider": "codex",
-      "status": "done",
-      "qa_verdict": null,
-      "qa_reason": null,
-      "files_blocked": [],
-      "checks_failed": 0,
-      "usd_cost": 0.021713199999999995,
-      "elapsed_ms": 4102,
-      "tokens": 555,
-      "created_at": "2026-10-11T17:21:40.102Z"
-    },
-    {
-      "id": "c776e976-329d-40d6-9abb-a141231baaab",
-      "task_class": "chat",
-      "model": "gpt-6-sol",
-      "provider": "codex",
-      "status": "done",
-      "qa_verdict": null,
-      "qa_reason": null,
-      "files_blocked": [],
-      "checks_failed": 0,
-      "usd_cost": 0.032498,
-      "elapsed_ms": 11520,
-      "tokens": 6393,
-      "created_at": "2026-10-11T17:16:13.266Z"
     }
   ],
   "stats": {
-    "failed": 4,
+    "failed": 5,
     "blocked": 0,
-    "done": 16,
-    "qa_failed": 4,
-    "total_cost_usd": "0.1078"
+    "done": 15,
+    "qa_failed": 5,
+    "total_cost_usd": "0.0309"
   }
 }

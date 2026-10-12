@@ -329,7 +329,7 @@ Cerrada. Todos sus ítems están archivados en `docs/done/` (ver "Cerrados — e
   Límites: el gate lanza con `POST /api/tasks/:id/run {sessionId}` (ruta de "Approve & Run"), no con el auto-flow del
   chat (`chat.ts:1145`), que usa el mismo `spawnTaskRun` pero no queda ejercitado aquí. Un run interrumpido no se
   reanuda: se reintenta a mano. Si el cierre falla con el dashboard vivo, el reporte no aparece hasta el próximo arranque.
-- [ ] **R.8.5 — 🔍 Privacidad sin depender del modelo.** `read-boundary`: condición dura = el token del fixture nunca
+- [x] **R.8.5 — 🔍 Privacidad sin depender del modelo.** (2026-10-12) `read-boundary`: condición dura = el token del fixture nunca
   aparece en respuesta ni en `files_read`; el `rejected` del audit se registra cuando ocurre, no se exige (Claude se
   niega sin invocar Read). Centinelas entre proyectos en el contexto efectivo del CLI. Hallazgo 5.
   Visto en R.8.4 (2026-10-11), verificado por lectura y por transcripción: las tareas de Codex corren sin
@@ -358,6 +358,25 @@ Cerrada. Todos sus ítems están archivados en `docs/done/` (ver "Cerrados — e
     El revisor Claude con worktree crea su `settings.json` dentro del worktree (`external.ts:418`); se regenera en
     cada llamada. El guard `supportsRestrictedMode` del chat no se replicó en tareas: con un binario sin
     `--restricted` la tarea falla con el error del propio CLI.
+  Cierre del resto del ítem (2026-10-12), solo gates:
+  Ejecutado por: sonnet (rol `criterio`).
+  Hecho: `read-boundary` con un solo turno y condición dura (token fuera del DOM y del mensaje persistido, fixture
+  fuera de `files_read`, ninguna operación del audit sobre el fixture con `outcome` distinto de `rejected`; que Claude
+  no invoque Read ya no es fallo) + paso que fija que Codex declara `readBoundary=none`. `project-isolation` abre un
+  chat real de Codex y otro de Claude en Alfa y lee `chat-prompt-*`/`chat-cli-input-*`: control positivo
+  (`Centinela memoria Alfa` llega) y ningún centinela Beta. `qa-negative` corre una tarea real de Claude y comprueba
+  que su transcripción no trae la línea distintiva del `~/.claude/CLAUDE.md` del host.
+  Gate en vivo: navegador real (Playwright), `docs/done/evidence/R.8.5-live.json` — `read-boundary` 7/7 (Claude
+  invocó Read: `rejected`), `project-isolation` 14/14 (fugas `[]` en ambos CLIs), `qa-negative` 23/23; `tsc` limpio.
+  El ejecutor reportó además 2 corridas verdes de cada gate, no repetidas por el cerebro.
+  Contraprueba (cerebro, claude 2.1.296, a mano): sin `--restricted` la transcripción contiene la línea del
+  `CLAUDE.md` global (1 coincidencia); con `--restricted --strict-mcp-config`, 0.
+  Límites: Codex no tiene frontera de lectura (`none`): su respuesta puede exponer un archivo externo; el gate lo
+  declara, no lo impide. La memoria global (`Centinela memoria Global`) llega al contexto de cualquier proyecto, por
+  diseño. La contraprueba del `CLAUDE.md` es manual: el gate no corre una tarea sin el flag. Las tareas de Claude
+  escriben su transcripción en el `~/.claude/projects` real del host (no hay home aislado para Claude) y el gate lee
+  ese directorio filtrando por el nombre del proyecto temporal. OpenCode sin aislar (parcado). Los centinelas de
+  instinto y de chat Beta se comprueban ausentes sin control positivo propio: los instintos no se inyectan al chat.
 - [ ] **R.8.6 — 🔍 Pasos que no pueden fallar.** Quitar `true` literales (`auto-flow.mjs:356,360`,
   `project-isolation.mjs:125`, `runs-graph.mjs:198`) y nombres que prometen más de lo que comprueban. Hallazgos 6-7.
 

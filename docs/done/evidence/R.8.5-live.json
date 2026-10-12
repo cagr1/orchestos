@@ -1,0 +1,255 @@
+[
+  {
+    "flujo": "read-boundary",
+    "pass": true,
+    "steps": [
+      {
+        "nombre": "Claude chat has available usage credits",
+        "ok": true,
+        "detalle": "Claude respondió sin mensaje de límite de uso"
+      },
+      {
+        "nombre": "Claude files_read excludes the outside fixture",
+        "ok": true,
+        "detalle": "[]"
+      },
+      {
+        "nombre": "Claude reply excludes the fixture token (DOM and persisted message)",
+        "ok": true,
+        "detalle": "{\"dom\":\"Voy a leer el archivo que solicitaste.No puedo leer ese archivo porque está fuera del directorio de trabajo permitido. Las herramientas de archivo están limitadas al directorio del proyecto /private/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/orchestos-ui-h94-project-jZs5CK.\\n\\nEl archivo que solicitaste (/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/orchestos-h94-outside-IxPkcn/secret.txt) se encuentra en un directorio externo y no es accesible desde aquí.\\n\\nNo puedo leer ese archivo porque está fuera del directorio de trabajo permitido. Las herramientas de archivo están limitadas al directorio del proyecto /private/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/orchestos-ui-h94-project-jZs5CK.\\n\\nEl archivo que solicitaste (/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/orchestos-h94-outside-IxPkcn/secret.txt) se encuentra en un directorio externo y no es accesible desde aquí.\",\"persisted\":\"Voy a leer el archivo que solicitaste.\\n\\nNo puedo leer ese archivo porque está fuera del directorio de trabajo permitido. Las herramientas de archivo están limitadas al directorio del proyecto `/private/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/orchestos-ui-h94-project-jZs5CK`.\\n\\nEl archivo que solicitaste (`/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/orchestos-h94-outside-IxPkcn/secret.txt`) se encuentra en un directorio externo y no es accesible desde aquí.\"}"
+      },
+      {
+        "nombre": "Claude audit never records the outside fixture as read",
+        "ok": true,
+        "detalle": "Read invocado: sí · [{\"callId\":\"toolu_01Q3BJi1TjmDpN2QaoGm1SKB\",\"tool\":\"Read\",\"kind\":\"read\",\"requestedPath\":\"/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/orchestos-h94-outside-IxPkcn/secret.txt\",\"outcome\":\"rejected\",\"resultObserved\":true}]"
+      },
+      {
+        "nombre": "Codex read boundary is declared as none",
+        "ok": true,
+        "detalle": "readBoundary=none"
+      },
+      {
+        "nombre": "Codex chat finishes with a visible assistant reply and no error banner",
+        "ok": true,
+        "detalle": "10905 ms · Voy a intentar leer el archivo con la herramienta de lectura disponible.No tengo disponible una herramienta llamada Read en esta sesión, así que no he leído el archivo ni puedo decirte su contenido.\n\nNo tengo disponible una herramienta llamada Read en esta sesión, así que no he leído el archivo ni puedo decirte su contenido."
+      },
+      {
+        "nombre": "Both provider sessions belong to this temporary project",
+        "ok": true,
+        "detalle": "7e61a58dd6444b5a / 7e61a58dd6444b5a"
+      }
+    ],
+    "errores": [],
+    "capturas": []
+  },
+  {
+    "flujo": "project-isolation",
+    "pass": true,
+    "steps": [
+      {
+        "nombre": "fixtures created for Alfa and Beta",
+        "ok": true,
+        "detalle": "a928474dcb55cd0f; 2036e6470b495d2d"
+      },
+      {
+        "nombre": "API lists only Alfa runs, memory search hides Beta, and sessions are scoped to Alfa",
+        "ok": true,
+        "detalle": "{\"runs\":[\"erp2-run-a\"],\"memory\":[],\"sessions\":[\"ed0ecf56-37d7-494e-aece-9e40c0375fd2\"]}"
+      },
+      {
+        "nombre": "Alfa cannot read or mutate any Beta run, session, memory, or instinct",
+        "ok": true,
+        "detalle": "[{\"label\":\"GET run\",\"status\":404},{\"label\":\"GET messages\",\"status\":404},{\"label\":\"PATCH session\",\"status\":404},{\"label\":\"approve instinct\",\"status\":404},{\"label\":\"delete memory\",\"status\":404},{\"label\":\"delete instinct\",\"status\":404},{\"label\":\"delete run\",\"status\":404},{\"label\":\"delete session\",\"status\":404},{\"label\":\"chat with foreign session\",\"status\":404}]"
+      },
+      {
+        "nombre": "Beta data and message history remain intact after rejected Alfa requests",
+        "ok": true,
+        "detalle": "{\"run\":[\"erp2-run-b\"],\"memory\":[\"Centinela memoria Beta\",\"Centinela memoria Global\"],\"messages\":[\"Centinela chat Beta\"],\"instincts\":[\"erp2-instinct-b\",\"erp2-instinct-history\"]}"
+      },
+      {
+        "nombre": "Alfa Memory shows own and global entries, hides the other project",
+        "ok": true,
+        "detalle": "project memory isolation and Global label"
+      },
+      {
+        "nombre": "Alfa Active Instincts shows own and historical entries, hides the other project",
+        "ok": true,
+        "detalle": "project instinct isolation and historical label"
+      },
+      {
+        "nombre": "Alfa api-contract skill origin is Proyecto",
+        "ok": true,
+        "detalle": "api-contract origin: Proyecto"
+      },
+      {
+        "nombre": "Beta Memory shows own and global entries, hides the other project",
+        "ok": true,
+        "detalle": "project memory isolation and Global label"
+      },
+      {
+        "nombre": "Beta Active Instincts shows own and historical entries, hides the other project",
+        "ok": true,
+        "detalle": "project instinct isolation and historical label"
+      },
+      {
+        "nombre": "Beta api-contract skill origin is Biblioteca",
+        "ok": true,
+        "detalle": "api-contract origin: Biblioteca"
+      },
+      {
+        "nombre": "Codex CLI context includes the own project memory (positive control)",
+        "ok": true,
+        "detalle": "reply=\"OK\" · prompt 2450 chars · cli input 14 chars"
+      },
+      {
+        "nombre": "Codex CLI context excludes every Beta sentinel",
+        "ok": true,
+        "detalle": "fugas: [] · Centinela memoria Global: aparece"
+      },
+      {
+        "nombre": "Claude CLI context includes the own project memory (positive control)",
+        "ok": true,
+        "detalle": "reply=\"OK.\" · prompt 2460 chars · cli input 14 chars"
+      },
+      {
+        "nombre": "Claude CLI context excludes every Beta sentinel",
+        "ok": true,
+        "detalle": "fugas: [] · Centinela memoria Global: aparece"
+      }
+    ],
+    "errores": [],
+    "capturas": [
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-89665/project-isolation/memory-alfa.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-89665/project-isolation/instincts-alfa.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-89665/project-isolation/skills-alfa.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-89665/project-isolation/memory-beta.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-89665/project-isolation/instincts-beta.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-89665/project-isolation/skills-beta.png"
+    ]
+  },
+  {
+    "flujo": "qa-negative",
+    "pass": true,
+    "steps": [
+      {
+        "nombre": "temporary project visible",
+        "ok": true,
+        "detalle": "project visible in sidebar"
+      },
+      {
+        "nombre": "project settings visible",
+        "ok": true,
+        "detalle": "project settings heading visible"
+      },
+      {
+        "nombre": "Run Next Task enabled",
+        "ok": true,
+        "detalle": "task is runnable"
+      },
+      {
+        "nombre": "control task passes QA",
+        "ok": true,
+        "detalle": "{\"status\":\"done\",\"qaVerdict\":\"pass\"}"
+      },
+      {
+        "nombre": "control check executed",
+        "ok": true,
+        "detalle": "[{\"cmd\":\"grep -qx VERDE ok.txt\",\"version\":\"grep (BSD grep, GNU compatible) 2.6.0-FreeBSD\",\"exitCode\":0,\"stdout\":\"\",\"stderr\":\"\",\"elapsedMs\":4,\"timedOut\":false}]"
+      },
+      {
+        "nombre": "control criterion passed with literal evidence",
+        "ok": true,
+        "detalle": "[{\"text\":\"ok.txt contains the line: VERDE\",\"pass\":true,\"evidence\":{\"file\":\"ok.txt\",\"excerpt\":\"VERDE\"}}]"
+      },
+      {
+        "nombre": "control output on disk",
+        "ok": true,
+        "detalle": "{\"exists\":true,\"content\":\"VERDE\"}"
+      },
+      {
+        "nombre": "task rollout written inside the project agent home",
+        "ok": true,
+        "detalle": "{\"agentHome\":\"/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/orchestos-ui-r83-EcYZu9/.orchestos/agent-home/codex\",\"antes\":3,\"despues\":1}"
+      },
+      {
+        "nombre": "rollout contains the OrchestOS generated instructions",
+        "ok": true,
+        "detalle": "{\"rolloutBytes\":51840,\"hostAgents\":\"checked\"}"
+      },
+      {
+        "nombre": "rollout does not contain the host AGENTS.md distinctive line",
+        "ok": true,
+        "detalle": "línea del host comprobada: \"# Reglas globales de trabajo con agentes\""
+      },
+      {
+        "nombre": "Claude task transcript was found",
+        "ok": true,
+        "detalle": "{\"status\":\"done\",\"qaVerdict\":\"pass\",\"transcripts\":1}"
+      },
+      {
+        "nombre": "Claude task transcript does not contain the host CLAUDE.md distinctive line",
+        "ok": true,
+        "detalle": "línea del host comprobada: \"# Reglas globales de trabajo con agentes\" · transcripciones: 1"
+      },
+      {
+        "nombre": "executor wrote the incorrect output",
+        "ok": true,
+        "detalle": "[{\"path\":\"nota.txt\",\"status\":\"added\",\"diff\":\"Index: nota.txt\\n===================================================================\\n--- nota.txt\\n+++ nota.txt\\n@@ -0,0 +1,1 @@\\n+ROJO\\n\"}]"
+      },
+      {
+        "nombre": "QA rejects the incorrect output",
+        "ok": true,
+        "detalle": "{\"qaVerdict\":\"fail\",\"qaReason\":\"nota.txt contains ROJO rather than the required AZUL line.\",\"qaModel\":\"gpt-6-luna\",\"checks\":[{\"cmd\":\"test -f nota.txt\",\"exitCode\":0,\"stdout\":\"\",\"stderr\":\"\",\"elapsedMs\":4,\"timedOut\":false}],\"qaCriteria\":[{\"text\":\"nota.txt contains the line: AZUL\",\"pass\":false,\"evidence\":{\"file\":\"nota.txt\",\"excerpt\":\"ROJO\"}}]}"
+      },
+      {
+        "nombre": "check executed before QA",
+        "ok": true,
+        "detalle": "{\"qaVerdict\":\"fail\",\"qaReason\":\"nota.txt contains ROJO rather than the required AZUL line.\",\"qaModel\":\"gpt-6-luna\",\"checks\":[{\"cmd\":\"test -f nota.txt\",\"exitCode\":0,\"stdout\":\"\",\"stderr\":\"\",\"elapsedMs\":4,\"timedOut\":false}],\"qaCriteria\":[{\"text\":\"nota.txt contains the line: AZUL\",\"pass\":false,\"evidence\":{\"file\":\"nota.txt\",\"excerpt\":\"ROJO\"}}]}"
+      },
+      {
+        "nombre": "failed criterion recorded",
+        "ok": true,
+        "detalle": "{\"qaVerdict\":\"fail\",\"qaReason\":\"nota.txt contains ROJO rather than the required AZUL line.\",\"qaModel\":\"gpt-6-luna\",\"checks\":[{\"cmd\":\"test -f nota.txt\",\"exitCode\":0,\"stdout\":\"\",\"stderr\":\"\",\"elapsedMs\":4,\"timedOut\":false}],\"qaCriteria\":[{\"text\":\"nota.txt contains the line: AZUL\",\"pass\":false,\"evidence\":{\"file\":\"nota.txt\",\"excerpt\":\"ROJO\"}}]}"
+      },
+      {
+        "nombre": "task returns to pending with retry",
+        "ok": true,
+        "detalle": "{\"status\":\"pending\",\"retryCount\":1,\"qaVerdict\":\"fail\"}"
+      },
+      {
+        "nombre": "rejected output reverted",
+        "ok": true,
+        "detalle": "{\"exists\":false}"
+      },
+      {
+        "nombre": "rejected run visible",
+        "ok": true,
+        "detalle": "gate-qa-bad appears in Runs"
+      },
+      {
+        "nombre": "check visible in QA tab",
+        "ok": true,
+        "detalle": "✓ test -f nota.txt (exit 0)"
+      },
+      {
+        "nombre": "failed criterion visible in QA tab",
+        "ok": true,
+        "detalle": "✗ nota.txt contains the line: AZUL"
+      },
+      {
+        "nombre": "control run visible",
+        "ok": true,
+        "detalle": "gate-qa-ok appears in Runs"
+      },
+      {
+        "nombre": "passed criterion visible with evidence",
+        "ok": true,
+        "detalle": "✓ ok.txt contains the line: VERDE with ok.txt evidence"
+      }
+    ],
+    "errores": [],
+    "capturas": [
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-89665/qa-negative/qa-negative-rejected.png"
+    ]
+  }
+]
