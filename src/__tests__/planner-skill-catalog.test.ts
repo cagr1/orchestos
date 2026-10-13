@@ -84,13 +84,14 @@ describe('pickAutoSkill — la ambigüedad ya no descarta todo', () => {
   test('REGRESIÓN O.2: con 2+ candidatas y ninguna frontend-design ya NO devuelve undefined', () => {
     // Antes: security-review + test-writer → undefined → tarea sin skill.
     // Ahora: security-review declara activation.mode=automatic y gana.
+    // ERP.4.5 (2026-10-13): security-review es gate de review; se filtra y gana la candidata restante.
     const picked = pickAutoSkill([{ id: 'test-writer' }, { id: 'security-review' }])
-    expect(picked).toBe('security-review')
+    expect(picked).toBe('test-writer')
   })
 
-  test('una automatic gana incluso sobre frontend-design', () => {
+  test('un gate de review no le gana a frontend-design (ERP.4.5)', () => {
     expect(pickAutoSkill([{ id: 'frontend-design' }, { id: 'qa-structured' }])).toBe(
-      'qa-structured',
+      'frontend-design',
     )
   })
 

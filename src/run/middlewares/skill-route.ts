@@ -1,3 +1,4 @@
+import { isReviewOnlyGate } from '../../skills/catalog.ts'
 import { loadSkill, resolveSkillPath } from '../../skills/registry.ts'
 import { buildSections } from '../../skills/targets/_shared.ts'
 import type { MiddlewareFn, RunContext } from '../middleware.ts'
@@ -13,7 +14,9 @@ export const skillRoute: MiddlewareFn<RunContext> = async (ctx, next) => {
   if (skillId) {
     try {
       const skill = loadSkill(resolveSkillPath(skillId))
-      ctx.skillInstructions = `\n## SKILL GUIDELINES: ${skill.name}\n${buildSections(skill).join('\n\n')}\n`
+      if (!isReviewOnlyGate(skill.activation)) {
+        ctx.skillInstructions = `\n## SKILL GUIDELINES: ${skill.name}\n${buildSections(skill).join('\n\n')}\n`
+      }
     } catch {
       // skill file not found or invalid — leave skillInstructions as empty string
     }

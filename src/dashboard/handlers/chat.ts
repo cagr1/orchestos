@@ -68,7 +68,7 @@ import {
 } from '../../run/read-audit.ts'
 import { capToolOutput } from '../../run/tool-output-cap.ts'
 import { untrustedContent } from '../../security/untrusted-content.ts'
-import { listAllSkillCandidates } from '../../skills/catalog.ts'
+import { isReviewOnlyGate, listAllSkillCandidates } from '../../skills/catalog.ts'
 import { listSpecs } from '../../spec/store.ts'
 import { loadTasks } from '../../tasks/loader.ts'
 import { readCliModelCatalogsCached } from '../chat-cli-models.ts'
@@ -780,13 +780,16 @@ const MAX_CHAT_ATTACHMENTS = 5
  *  3. Candidata única — comportamiento previo.
  *  4. Varias, ninguna `automatic` — ahí sí no hay señal segura y se deja sin
  *     asignar, igual que antes. Con el contrato O.0 poblado esto se vuelve raro.
+ * ERP.4.5 (2026-10-13): gates automáticos exclusivos de review se filtran antes
+ * del desempate; resolveGates ya los aplica en QA y no deben dirigir al ejecutor.
  */
 export function pickAutoSkill(skillOptions: { id: string }[]): string | undefined {
   const byId = new Map(listAllSkillCandidates().map((c) => [c.id, c]))
-  const automatic = skillOptions.find((s) => byId.get(s.id)?.mode === 'automatic')
+  const eligible = skillOptions.filter((s) => !isReviewOnlyGate(byId.get(s.id)))
+  const automatic = eligible.find((s) => byId.get(s.id)?.mode === 'automatic')
   if (automatic) return automatic.id
-  if (skillOptions.some((s) => s.id === 'frontend-design')) return 'frontend-design'
-  return skillOptions.length === 1 ? skillOptions[0]?.id : undefined
+  if (eligible.some((s) => s.id === 'frontend-design')) return 'frontend-design'
+  return eligible.length === 1 ? eligible[0]?.id : undefined
 }
 
 async function handleApiChat(

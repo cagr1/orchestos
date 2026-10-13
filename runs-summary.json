@@ -1,7 +1,22 @@
 {
-  "exported_at": "2026-10-13T11:01:09.585Z",
+  "exported_at": "2026-10-13T11:07:17.901Z",
   "total_runs": 20,
   "runs": [
+    {
+      "id": "c5a9c16b-b145-408f-8f14-8637a081cd6d",
+      "task_class": "fix",
+      "model": "gpt-6-luna",
+      "provider": "codex",
+      "status": "done",
+      "qa_verdict": "pass",
+      "qa_reason": "Los archivos implementan la pantalla, las llamadas API con X-Rol, el arranque con migración y datos iniciales, y las verificaciones solicitadas.",
+      "files_blocked": [],
+      "checks_failed": 0,
+      "usd_cost": 0.00540446,
+      "elapsed_ms": 101974,
+      "tokens": 30109,
+      "created_at": "2026-10-13T11:05:33.815Z"
+    },
     {
       "id": "ac5c6ee6-9f84-4c37-8729-29129dd10190",
       "task_class": "fix",
@@ -286,21 +301,6 @@
       "elapsed_ms": 19051,
       "tokens": 209,
       "created_at": "2026-10-12T21:18:12.872Z"
-    },
-    {
-      "id": "c99926ad-3a34-4602-b440-a5c4e3eac7da",
-      "task_class": "chat",
-      "model": "claude-opus-5-5",
-      "provider": "claude",
-      "status": "done",
-      "qa_verdict": null,
-      "qa_reason": null,
-      "files_blocked": [],
-      "checks_failed": 0,
-      "usd_cost": 0.032291600000000004,
-      "elapsed_ms": 9107,
-      "tokens": 165,
-      "created_at": "2026-10-12T21:13:24.892Z"
     }
   ],
   "stats": {
@@ -308,6 +308,6 @@
     "blocked": 0,
     "done": 16,
     "qa_failed": 4,
-    "total_cost_usd": "0.4273"
+    "total_cost_usd": "0.4005"
   }
 }

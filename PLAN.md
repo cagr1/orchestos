@@ -193,13 +193,25 @@ Cerrada. Todos sus ítems están archivados en `docs/done/` (ver "Cerrados — e
   del piloto aplicó la corrección registrada por la UI (`InventarioError` con `codigo` en mayúsculas en
   `erp-piloto/src/inventario/stock.ts`), que la etapa 3 había ignorado.
   Anotado sin corregir: `external.ts:514,589` leen `orchestos.config.yaml` desde el worktree como fallback.
-- [ ] **ERP.4.5 — 🔍 Una skill que es gate de revisión no se asigna ni se inyecta al ejecutor.** (abierto 2026-10-13,
+- [x] **ERP.4.5 — 🔍 Una skill que es gate de revisión no se asigna ni se inyecta al ejecutor.** (abierto 2026-10-13,
   hallazgo 14 del piloto) Etapa 5: run `ac5c6ee6` falló en 19 s con "missing declared output(s)" de los 6 archivos.
   La sesión de Codex muestra que el ejecutor recibió "SKILL GUIDELINES: Structured QA Review" y respondió con un
   veredicto JSON sin escribir nada. Causa: `pickAutoSkill` (`chat.ts:784`) elige la primera skill `mode: automatic`,
   y las dos que hay (`qa-structured`, `security-review`) son gates de fase `review`. 4 de las 5 tareas del piloto
   llevan `skill: qa-structured`; las anteriores salieron bien por suerte. Spec: `docs/specs/ERP.4.5.md`.
   Gate: tests de `pickAutoSkill`, `buildPrompt` y `skillRoute` + reintento de la etapa 5 en vivo.
+  Ejecutado por: gpt-6-luna (rol `mecanico`), 3 rondas.
+  Hecho: `isReviewOnlyGate` en `src/skills/catalog.ts`; `pickAutoSkill` filtra esos gates antes del desempate;
+  `skill-route.ts` y `prompt.ts` no los inyectan aunque la tarea ya guardada los lleve. Ronda 2: la ronda 1 llamaba
+  `next()` dentro del `try` de `skillRoute` (un fallo posterior se tragaba y la cadena corría dos veces). Ronda 3: dos
+  tests de O.2 (`planner-skill-catalog.test.ts:84-95`) afirmaban que el gate ganaba como skill principal; se
+  invierten. **Esto revierte esa parte de O.2 (2026-08-03)**: un gate de review ya no es skill del ejecutor.
+  Gates propios: `typecheck` limpio; `test:coverage` 1693/0, funciones 76.62 %, líneas 63.49 %; contraprueba con el
+  código viejo: 3 fallos en los tests nuevos. Gate en vivo (navegador real, 2026-10-13 06:03-06:05): la misma tarea
+  `chat-528621f9`, con `skill: qa-structured` aún guardado, relanzada desde la tarjeta del hilo → `done`, QA pass
+  (gpt-6.1-sol), 6 archivos, 102 s; el rollout del ejecutor ya no contiene "SKILL GUIDELINES: Structured QA".
+  Registro: `docs/done/evidence/ERP.4/piloto-2026-10-12.md` § Reanudación.
+  Anotado sin corregir: el run sigue guardando `skill_id: qa-structured` (etiqueta de la tarea, no lo inyectado).
 - [x] **CI.21 — 🔍 El orquestador a veces se niega ("solo lectura") en vez de crear la tarea.** (abierto 2026-10-12)
   `chat-turn-details` falló en el pre-push y 1 de 2 corridas a solas en el paso `held task card visible` (aserción
   real desde R.8.6): al pedido "Modifica README.md…" el CLI respondió "No puedo modificar archivos en este entorno

@@ -66,6 +66,30 @@ describe('skillRoute middleware — compiles through buildSections (N.4.5)', () 
     await skillRoute(ctx, async () => {})
     expect(ctx.skillInstructions).toBe('')
   })
+
+  test('review-only gate skill is not injected into the executor', async () => {
+    const ctx = { task: makeTask({ skill: 'qa-structured' }), skillInstructions: '' } as RunContext
+    await skillRoute(ctx, async () => {})
+    expect(ctx.skillInstructions).toBe('')
+  })
+
+  test('propagates downstream errors from a review-only gate after one next call', async () => {
+    const ctx = { task: makeTask({ skill: 'qa-structured' }), skillInstructions: '' } as RunContext
+    const next = Object.assign(
+      async () => {
+        throw new Error('boom')
+      },
+      { calls: 0 },
+    )
+
+    const countedNext = async () => {
+      next.calls += 1
+      await next()
+    }
+
+    await expect(skillRoute(ctx, countedNext)).rejects.toThrow('boom')
+    expect(next.calls).toBe(1)
+  })
 })
 
 describe('buildPrompt fallback (loadSkillGuidelines) — compiles through buildSections (N.4.5)', () => {
@@ -74,5 +98,12 @@ describe('buildPrompt fallback (loadSkillGuidelines) — compiles through buildS
     const { system } = buildPrompt(makeTask({ skill: TEST_SKILL_ID }), '# context', '/tmp')
     expect(system).toContain('## Iron law')
     expect(system).toContain('Never skip the test.')
+  })
+
+  test('review-only gate is omitted while a regular skill is included', () => {
+    const gate = buildPrompt(makeTask({ skill: 'qa-structured' }), '# context', '/tmp')
+    const regular = buildPrompt(makeTask({ skill: 'tdd-enforcer' }), '# context', '/tmp')
+    expect(gate.system).not.toContain('SKILL GUIDELINES')
+    expect(regular.system).toContain('SKILL GUIDELINES')
   })
 })

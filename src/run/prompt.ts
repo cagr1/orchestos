@@ -1,5 +1,6 @@
 import { existsSync, readFileSync } from 'fs'
 import { join } from 'path'
+import { isReviewOnlyGate } from '../skills/catalog.ts'
 import { loadSkill, resolveSkillPath } from '../skills/registry.ts'
 import { buildSections } from '../skills/targets/_shared.ts'
 import type { Task } from '../tasks/schema.ts'
@@ -67,6 +68,7 @@ function loadSkillGuidelines(skillId?: string): string {
 
   try {
     const skill = loadSkill(resolveSkillPath(skillId))
+    if (isReviewOnlyGate(skill.activation)) return ''
     return `\n## SKILL GUIDELINES: ${skill.name}\n${buildSections(skill).join('\n\n')}\n`
   } catch {
     return ''

@@ -9,6 +9,7 @@ import {
   listAllSkillCandidates,
 } from '../dashboard/handlers/project.ts'
 import { isKnownSkillId } from '../dashboard/handlers/tasks.ts'
+import { isReviewOnlyGate } from '../skills/catalog.ts'
 
 // Bloque D (Mes 18, ex-IDEAS #21) — el motor de auto-selección de skill nunca
 // confía en un id que el LLM invente; solo ids que existen de verdad en
@@ -172,6 +173,17 @@ describe('handleApiNatural — skill_candidates fail-safe', () => {
 // del chat dejaba la tarea SIN NINGÚN skill — cero guía de diseño, el origen
 // real del output "AI slop" reportado en crypto-dashboard-v2.
 describe('pickAutoSkill — desempate del auto-flow del chat (sin humano presente)', () => {
+  it('omite gates automáticos exclusivos de review', () => {
+    expect(pickAutoSkill([{ id: 'qa-structured' }])).toBeUndefined()
+    expect(pickAutoSkill([{ id: 'qa-structured' }, { id: 'tdd-enforcer' }])).toBe('tdd-enforcer')
+    expect(
+      pickAutoSkill([
+        { id: 'security-review' },
+        { id: 'qa-structured' },
+        { id: 'frontend-design' },
+      ]),
+    ).toBe('frontend-design')
+  })
   it('0 candidatos → sin asignar', () => {
     expect(pickAutoSkill([])).toBeUndefined()
   })
@@ -201,5 +213,15 @@ describe('pickAutoSkill — desempate del auto-flow del chat (sin humano present
         { id: 'ux-guidelines' },
       ]),
     ).toBe('frontend-design')
+  })
+})
+
+describe('isReviewOnlyGate', () => {
+  it('reconoce solo gates automaticos cuyas fases son exclusivamente review', () => {
+    expect(isReviewOnlyGate({ mode: 'automatic', phases: ['review'] })).toBe(true)
+    expect(isReviewOnlyGate({ mode: 'automatic', phases: ['review', 'implement'] })).toBe(false)
+    expect(isReviewOnlyGate({ mode: 'automatic' })).toBe(false)
+    expect(isReviewOnlyGate({ mode: 'suggest', phases: ['review'] })).toBe(false)
+    expect(isReviewOnlyGate(undefined)).toBe(false)
   })
 })

@@ -22,6 +22,7 @@ export interface SkillCandidateInfo {
   whenToUse: string[]
   /** Ausente = la skill no declaró `activation` (contrato O.0). */
   mode?: SkillActivationMode
+  phases?: TaskClass[]
 }
 
 /** Todas las skills instaladas — propias del proyecto y centralizadas (O.1). */
@@ -36,10 +37,22 @@ export function listAllSkillCandidates(): SkillCandidateInfo[] {
         description: s.description,
         whenToUse: s.when_to_use ?? [],
         mode: s.activation?.mode,
+        phases: s.activation?.phases,
       })
     } catch {}
   }
   return out
+}
+
+/** True when an automatic skill is reserved exclusively for the review phase. */
+export function isReviewOnlyGate(
+  activation: { mode?: SkillActivationMode; phases?: TaskClass[] } | undefined,
+): boolean {
+  return (
+    activation?.mode === 'automatic' &&
+    !!activation.phases?.length &&
+    activation.phases.every((phase) => phase === 'review')
+  )
 }
 
 /**
