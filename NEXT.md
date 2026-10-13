@@ -13,27 +13,12 @@
 6. Residuos de `erp-piloto`: limpiar si no sirven (las 3 tareas sobrantes no sirven; se limpian tras el hallazgo 5).
 7. `chat-retry-report` NO entra al pre-push.
 
-## Lote planificado (ítems por abrir en PLAN.md, en este orden; causas leídas con `delegate leer`)
-- ERP.4.10 — hallazgo 2: `buildNaturalDraft` recibe la respuesta del orquestador y los últimos turnos
-  (`chat.ts:1104-1112`).
-- ERP.4.11 — hallazgo 6: el prompt del borrador hace elegir al LLM entre `openrouter|anthropic|openai`
-  (`handlers/project.ts:220-265`) y `createTaskRecord` cae a `openrouter` (`handlers/tasks.ts:238-240`); el run usa el
-  rol Executor aparte (`router/auto-route.ts:13-42`). La etiqueta de la tarea sale del rol Executor del proyecto.
-- ERP.4.12 — hallazgo 16: `classifyTask` decide por palabras clave de la descripción (`router/classify.ts:15-31`,
-  llamado en `run/harness.ts:242`). La clase la declara el borrador.
-- ERP.4.13 — hallazgo 5: `updateTaskStatus` escribe estado en `tasks.yaml` sin commit (`cli.ts:1281-1439`); solo se
-  commitea al crear y al lanzar (`handlers/tasks.ts:287-347`).
-- ERP.4.14 — hallazgo 18 + reintento en el hilo: el chequeo de árbol limpio solo exceptúa `runs-summary.json`
-  (`run/sandbox-policy.ts:32-70`) y el CLI marca `failed` (`cli.ts:1281-1296`). El hilo no ofrece relanzar
-  (`App.tsx:209-225`); el endpoint `POST /api/tasks/:id/run` ya sirve. **Espera respuesta de Carlos (pregunta A).**
-- ERP.4.15 — hallazgo 7: `orchestrator` nace `null` y el composer no distingue "cargando" de "sin asignar"
-  (`OrchestChatView.tsx:66-94,500-507`, `AgentComposer.tsx:625-638`).
-- ERP.4.16 — hallazgo 12: fila `block-e-test-pattern` en la base real; el test candidato es
-  `src/__tests__/dashboard-parity-block-e.test.ts:97-119` (importa la `db` real), causa sin demostrar.
-- ERP.4.17 — hallazgo 11: `memory_entries` solo se escribe al cerrar una subtarea con `topic_key`
-  (`run/scheduler.ts:207-212`); una tarea normal no escribe nada y la UI no tiene puerta.
-  **Espera respuesta de Carlos (pregunta B).**
-- Luego: limpiar `erp-piloto` y cerrar ERP.4 con el veredicto.
+## Lote en curso (ítems ERP.4.10–4.16 abiertos en PLAN.md con causa y decisión; ejecutar en ese orden)
+Respuestas de Carlos 2026-10-13: árbol sucio = seguir bloqueando + `pending` + "Commit & Run" en el hilo (ERP.4.13);
+Memory = entrada mecánica por tarea terminada, sin LLM (ERP.4.16). Al terminar: limpiar las 3 tareas sobrantes de
+`erp-piloto` y cerrar ERP.4 con el veredicto. **No añadir UI a Settings en este lote:** Carlos va a revisar Settings
+pestaña por pestaña (dashboard real, Claude Desktop) y decir qué sirve y qué sobra; le parece confuso y que muestra
+de más.
 
 ## Lote cerrado 2026-10-13 (GO de Carlos: "iniciemos con los arreglos")
 - ERP.4.7 `617f8ca` — botón `Run` por tarjeta en Settings → Tasks. Gate en vivo `tasks` 19/19. Pusheado.

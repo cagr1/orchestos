@@ -94,6 +94,69 @@
       "closedDate": null
     },
     {
+      "id": "ERP.4.10",
+      "sprint": "Fase 2 — Producto mínimo para entrega",
+      "block": "H.7 — El contexto se llena en silencio y nadie avisa (ABIERTO 2026-09-02)",
+      "delegation": "🔍",
+      "title": "El borrador de tarea lee el hilo y declara la clase de la tarea",
+      "status": "open",
+      "closedDate": null
+    },
+    {
+      "id": "ERP.4.11",
+      "sprint": "Fase 2 — Producto mínimo para entrega",
+      "block": "H.7 — El contexto se llena en silencio y nadie avisa (ABIERTO 2026-09-02)",
+      "delegation": "🔍",
+      "title": "La tarea muestra el ejecutor del rol Executor, no un proveedor elegido por el LLM",
+      "status": "open",
+      "closedDate": null
+    },
+    {
+      "id": "ERP.4.12",
+      "sprint": "Fase 2 — Producto mínimo para entrega",
+      "block": "H.7 — El contexto se llena en silencio y nadie avisa (ABIERTO 2026-09-02)",
+      "delegation": "🔍",
+      "title": "El estado que el run deja en `tasks.yaml` queda commiteado",
+      "status": "open",
+      "closedDate": null
+    },
+    {
+      "id": "ERP.4.13",
+      "sprint": "Fase 2 — Producto mínimo para entrega",
+      "block": "H.7 — El contexto se llena en silencio y nadie avisa (ABIERTO 2026-09-02)",
+      "delegation": "🔍",
+      "title": "Árbol sucio: la tarea queda `pending` y el hilo ofrece \"Commit & Run\" y reintento",
+      "status": "open",
+      "closedDate": null
+    },
+    {
+      "id": "ERP.4.14",
+      "sprint": "Fase 2 — Producto mínimo para entrega",
+      "block": "H.7 — El contexto se llena en silencio y nadie avisa (ABIERTO 2026-09-02)",
+      "delegation": "🔍",
+      "title": "El composer distingue \"cargando\" de \"Orchestrator unassigned\"",
+      "status": "open",
+      "closedDate": null
+    },
+    {
+      "id": "ERP.4.15",
+      "sprint": "Fase 2 — Producto mínimo para entrega",
+      "block": "H.7 — El contexto se llena en silencio y nadie avisa (ABIERTO 2026-09-02)",
+      "delegation": "🔍",
+      "title": "Ningún test deja instincts en la base real",
+      "status": "open",
+      "closedDate": null
+    },
+    {
+      "id": "ERP.4.16",
+      "sprint": "Fase 2 — Producto mínimo para entrega",
+      "block": "H.7 — El contexto se llena en silencio y nadie avisa (ABIERTO 2026-09-02)",
+      "delegation": "🔍",
+      "title": "Cada tarea terminada deja una entrada mecánica en Memory",
+      "status": "open",
+      "closedDate": null
+    },
+    {
       "id": "CI.21",
       "sprint": "Fase 2 — Producto mínimo para entrega",
       "block": "H.7 — El contexto se llena en silencio y nadie avisa (ABIERTO 2026-09-02)",

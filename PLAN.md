@@ -298,6 +298,36 @@ Cerrada. Todos sus ítems están archivados en `docs/done/` (ver "Cerrados — e
   gate duran ~20-40 s); lo cubre el plazo de 10 min. Una tarea relanzada desde Settings no reabre la espera del hilo.
   **Fuera de scope declarado:** `PLAN.md`, `docs/done/evidence/**` y `scripts/ui-gate/flows/chat-retry-report.mjs`
   (cierre, evidencia y gate del propio ítem).
+- [ ] **ERP.4.10 — 🔍 El borrador de tarea lee el hilo y declara la clase de la tarea.** (abierto 2026-10-13, GO de
+  Carlos; hallazgos 2 y 16) `buildNaturalDraft(message, root)` solo recibe el mensaje actual (`handlers/chat.ts:1128`,
+  `handlers/project.ts:206`): un seguimiento ("crea la tarea tal como la describiste") no nombra archivos y no crea
+  tarea. Y `runs.task_class` sale de palabras sueltas de la descripción (`router/classify.ts:15-31`,
+  `run/harness.ts:242`): pedidos "Crear …" quedaron como `review` y `fix`. Spec: `docs/specs/ERP.4.10.md`.
+  Gate: tests del borrador + ui-gate con un pedido en dos mensajes que crea y corre la tarea.
+- [ ] **ERP.4.11 — 🔍 La tarea muestra el ejecutor del rol Executor, no un proveedor elegido por el LLM.** (abierto
+  2026-10-13, GO de Carlos; hallazgo 6) El prompt del borrador hace elegir entre `openrouter|anthropic|openai`
+  (`handlers/project.ts:226,265`) y `createTaskRecord` cae a `openrouter` (`handlers/tasks.ts:239,275`); el run usa el
+  rol Executor aparte (`router/auto-route.ts`). En el piloto: `executor: anthropic` con runs de `codex/gpt-6-luna`.
+  Spec: `docs/specs/ERP.4.11.md`. Gate: tests + Settings → Tasks en vivo muestra el agente/modelo del rol.
+- [ ] **ERP.4.12 — 🔍 El estado que el run deja en `tasks.yaml` queda commiteado.** (abierto 2026-10-13, GO de
+  Carlos; hallazgo 5) `updateTaskStatus` escribe `status`/`retry_count`/`qa_verdict` sin commit (`cli.ts:1281-1439`);
+  solo se commitea al crear y al lanzar (`handlers/tasks.ts:287-347`). El proyecto queda con el árbol sucio tras cada run.
+- [ ] **ERP.4.13 — 🔍 Árbol sucio: la tarea queda `pending` y el hilo ofrece "Commit & Run" y reintento.** (abierto
+  2026-10-13; hallazgo 18 y decisión 4 de Carlos) El chequeo de árbol limpio solo exceptúa `runs-summary.json`
+  (`run/sandbox-policy.ts:32-70`), el CLI marca `failed` (`cli.ts:1281-1296`) y el mensaje manda a la terminal. El
+  hilo no ofrece relanzar una tarea fallida (`App.tsx:209-225`); `POST /api/tasks/:id/run` ya sirve.
+  Decisión de Carlos 2026-10-13: se sigue bloqueando (el ejecutor trabaja sobre el último commit); la tarea queda
+  `pending` y el hilo lista los archivos con un botón "Commit & Run" que los commitea y relanza.
+- [ ] **ERP.4.14 — 🔍 El composer distingue "cargando" de "Orchestrator unassigned".** (abierto 2026-10-13; hallazgo 7)
+  `orchestrator` nace `null` y el aviso se pinta hasta que llega la config (`OrchestChatView.tsx:66-94,500-507`,
+  `AgentComposer.tsx:625-638`).
+- [ ] **ERP.4.15 — 🔍 Ningún test deja instincts en la base real.** (abierto 2026-10-13; hallazgo 12) Fila
+  `block-e-test-pattern` / "do X instead" en `~/.orchestos`; candidato `src/__tests__/dashboard-parity-block-e.test.ts:97-119`
+  (importa la `db` real), causa sin demostrar. Borrar la fila y cerrar la fuga.
+- [ ] **ERP.4.16 — 🔍 Cada tarea terminada deja una entrada mecánica en Memory.** (abierto 2026-10-13; hallazgo 11)
+  `memory_entries` solo se escribe al cerrar una subtarea con `topic_key` (`run/scheduler.ts:207-212`). Decisión de
+  Carlos 2026-10-13: entrada mecánica sin LLM (qué hizo, archivos, veredicto de QA). Sin UI nueva en Settings: Carlos
+  revisará Settings pestaña por pestaña tras este lote ("Settings es confuso; no mostrar todo").
 - [x] **CI.21 — 🔍 El orquestador a veces se niega ("solo lectura") en vez de crear la tarea.** (abierto 2026-10-12)
   `chat-turn-details` falló en el pre-push y 1 de 2 corridas a solas en el paso `held task card visible` (aserción
   real desde R.8.6): al pedido "Modifica README.md…" el CLI respondió "No puedo modificar archivos en este entorno
