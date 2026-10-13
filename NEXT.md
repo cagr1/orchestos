@@ -1,4 +1,4 @@
-# NEXT — handoff 2026-10-13 (lote de hallazgos del piloto en curso: ERP.4.10 cerrado, sigue ERP.4.11)
+# NEXT — handoff 2026-10-13 (lote de hallazgos del piloto en curso: ERP.4.10 cerrado, ERP.4.11 a medias)
 
 ## Decisiones de Carlos 2026-10-13 (respuesta a las 7 preguntas del handoff anterior)
 1. Utilidad de ERP.4: el veredicto lo pone el cerebro → "sirve, pero todavía no solo". ERP.4 se cierra al terminar
@@ -13,10 +13,25 @@
 6. Residuos de `erp-piloto`: limpiar si no sirven (las 3 tareas sobrantes no sirven; se limpian tras el hallazgo 5).
 7. `chat-retry-report` NO entra al pre-push.
 
-## ERP.4.10 cerrado 2026-10-13 — siguiente: ERP.4.11
-`chat-followup-task` 8/8, `auto-flow` 31/31, `test:coverage` 1720/0 (detalle en PLAN.md). El historial que recibe el
-borrador no trae el mensaje en curso (`chat.ts:1336`, `:1495`). Al retomar: releer `docs/specs/ERP.4.11.md` contra
-`handlers/project.ts` (el borrador cambió: `buildDraftMessages`, `fallbackDraftOutput`, clave `task_class`).
+## PRIMERO al retomar — ERP.4.11 ejecutado, SIN cerrar (Carlos pidió pausar, 2026-10-13)
+ERP.4.10 cerrado y pusheado (`e6efa62`). ERP.4.11: rondas 1 (`criterio`, sonnet) y 2 (`mecanico`, luna) aplicadas, sin
+commitear, en `src/router/auto-route.ts`, `src/dashboard/handlers/{chat,config,project,tasks}.ts`,
+`src/dashboard/types.ts`, `src/cli.ts`, `src/dashboard/app/src/api/tasks.ts`,
+`src/dashboard/app/src/components/settings/OrchestSettingsView.tsx` (solo `'claude'` → `'unassigned'`, línea 2583),
+`scripts/ui-gate/flows/tasks.mjs` y tests (`router`, `tasks-api-engine`, `natural-draft-context`). Diff de ambas
+rondas leído completo por el cerebro. Sin commitear también: `docs/specs/ERP.4.11-r2.md` y
+`docs/done/evidence/ERP.4.11-live.json`.
+Corrido por el cerebro: typecheck 0, lint 0, gate en vivo `tasks` **21/21** (evidencia ya copiada).
+**`test:coverage` 1728 pass / 1 FAIL, sin identificar** (la salida se recortó). Falta, en este orden:
+1. `bun run test:coverage 2>&1 | grep -B30 "(fail)"` → identificar el test; si lo rompió ERP.4.11, ronda 3 con spec
+   propio; si es intermitente ajeno (ver CI.12, CI.18), repetir y dejar evidencia.
+2. Re-correr `tasks` solo si la ronda 3 toca `src/`.
+3. Cerrar en PLAN.md (`[ ]`→reconcile→`[x]`→reconcile→commit), borrar `docs/specs/ERP.4.11.md` y `-r2.md`. No hay
+   cambio en `harness.ts`: sin entrada de LEDGER. Push después (queda 1 commit local de docs, `873bae6`, más este).
+Notas para el cierre: `pendingRouting[].executor` (`handlers/config.ts:62`) trae ahora el agente resuelto o
+`unassigned`; la fila de `/api/tasks` ya no tiene `executor`, tiene `assignedAgent`/`assignedModel`; el caso del
+piloto (YAML `executor: anthropic` + rol `codex/gpt-6-luna`) se prueba en `tasks-api-engine.test.ts`, sin contraprueba
+ejecutada contra HEAD.
 
 ## Lote en curso (ERP.4.10–4.16 abiertos en PLAN.md con causa y decisión; ejecutar en ese orden)
 Specs ya escritos y commiteados: `docs/specs/ERP.4.11.md` (etiqueta del ejecutor resuelta con `autoRoute`, el

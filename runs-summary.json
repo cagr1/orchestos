@@ -1,7 +1,37 @@
 {
-  "exported_at": "2026-10-13T18:28:26.989Z",
+  "exported_at": "2026-10-13T18:36:04.496Z",
   "total_runs": 20,
   "runs": [
+    {
+      "id": "04c02e33-105d-4389-b09d-05c1ab1e8ea8",
+      "task_class": "gate:erp.4.11-tasks-live:implement",
+      "model": "openai/gpt-6-luna",
+      "provider": "codex",
+      "status": "done",
+      "qa_verdict": "pass",
+      "qa_reason": "NOTES.md contains the required line.",
+      "files_blocked": [],
+      "checks_failed": 0,
+      "usd_cost": 0.00074838,
+      "elapsed_ms": 17665,
+      "tokens": 7605,
+      "created_at": "2026-10-13T18:35:35.468Z"
+    },
+    {
+      "id": "23978d86-43bf-4031-b289-8dc2ab95b135",
+      "task_class": "gate:erp.4.11-tasks-live:doc",
+      "model": "openai/gpt-6-luna",
+      "provider": "codex",
+      "status": "done",
+      "qa_verdict": "pass",
+      "qa_reason": "README.md contains the requested line.",
+      "files_blocked": [],
+      "checks_failed": 0,
+      "usd_cost": 0.00124966,
+      "elapsed_ms": 22265,
+      "tokens": 11398,
+      "created_at": "2026-10-13T18:35:15.283Z"
+    },
     {
       "id": "d16827c0-ba99-4e29-90a2-8fc1c2a28412",
       "task_class": "gate:erp.4.10-autoflow-regression:implement",
@@ -271,43 +301,13 @@
       "elapsed_ms": 11244,
       "tokens": 336,
       "created_at": "2026-10-13T11:16:12.250Z"
-    },
-    {
-      "id": "c5a9c16b-b145-408f-8f14-8637a081cd6d",
-      "task_class": "fix",
-      "model": "gpt-6-luna",
-      "provider": "codex",
-      "status": "done",
-      "qa_verdict": "pass",
-      "qa_reason": "Los archivos implementan la pantalla, las llamadas API con X-Rol, el arranque con migración y datos iniciales, y las verificaciones solicitadas.",
-      "files_blocked": [],
-      "checks_failed": 0,
-      "usd_cost": 0.00540446,
-      "elapsed_ms": 101974,
-      "tokens": 30109,
-      "created_at": "2026-10-13T11:05:33.815Z"
-    },
-    {
-      "id": "ac5c6ee6-9f84-4c37-8729-29129dd10190",
-      "task_class": "fix",
-      "model": "gpt-6-luna",
-      "provider": "codex",
-      "status": "failed",
-      "qa_verdict": "fail",
-      "qa_reason": "missing declared output(s): package.json, web/index.html, web/app.tsx, src/api/main.ts, src/api/servidor.ts, tests/pantalla.test.ts",
-      "files_blocked": [],
-      "checks_failed": 0,
-      "usd_cost": 0.0019398,
-      "elapsed_ms": 19077,
-      "tokens": 11062,
-      "created_at": "2026-10-13T10:59:02.353Z"
     }
   ],
   "stats": {
-    "failed": 5,
+    "failed": 4,
     "blocked": 0,
-    "done": 15,
-    "qa_failed": 5,
-    "total_cost_usd": "0.2538"
+    "done": 16,
+    "qa_failed": 4,
+    "total_cost_usd": "0.2485"
   }
 }
