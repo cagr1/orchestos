@@ -1,25 +1,39 @@
-# NEXT — handoff 2026-10-13 (lote ERP.4.7-4.9 cerrado; esperan decisiones de Carlos) → siguiente tab (tras /clear)
+# NEXT — handoff 2026-10-13 (decisiones de Carlos recibidas; lote de hallazgos del piloto planificado, sin abrir)
 
-## PRIMERO al retomar — decisiones que esperan a Carlos (2026-10-13)
-Lote de arreglos terminado. Mostrarle esta lista tal cual y no abrir ítems hasta que conteste.
-1. **Utilidad del piloto ERP.4.** Lectura del cerebro: sirve, pero todavía no solo (módulo correcto, sobrevive
-   reinicios, aplica la corrección guardada, centavos por run; a cambio necesitó arreglos de producto en cada sesión).
-   Con su respuesta se cierra ERP.4.
-2. **GO al hallazgo 2** (un mensaje de seguimiento no crea tarea): pasar a `buildNaturalDraft` la respuesta del
-   orquestador y los últimos turnos del hilo (`src/dashboard/handlers/chat.ts:1104-1112`), con test del borrador y
-   corrida en vivo de un pedido en dos mensajes. Cambia la auto-creación de tareas: no tocar sin su GO.
-3. **Regla de presupuesto:** la etapa 6 del piloto se reintentó una 3.ª vez tras 2 fallos de causa distinta.
-   ¿Lo cuenta como violación de "parar a los 2 fallos"?
-4. **Puerta de reintento en el hilo del chat.** Hoy una tarea `failed` no ofrece relanzarla desde el hilo (solo
-   reaparece la tarjeta de una tarea retenida que quedó `pending`); se relanza desde Settings → Tasks o Plan.
-   Recomendación: añadirla, es donde Carlos trabaja. Decisión de producto, no incluida en el lote.
-5. **Hallazgos sin arreglar** del registro `docs/done/evidence/ERP.4/piloto-2026-10-12.md`: 5 (`tasks.yaml` queda
-   modificado sin commitear), 6 (`executor: anthropic` en la tarea aunque corrió codex), 7, 11 (Memory del proyecto
-   vacío), 12 (instinct de prueba ajeno en la base real), 16 (`task_class` no corresponde al pedido). ¿Cuáles?
-6. **Residuos en `erp-piloto`:** `tasks.yaml` sin commitear y 3 tareas sobrantes (`chat-79f90f32` failed,
-   `chat-f59db027` y `chat-ad9e193d` pending). No tocados; ¿se limpian?
-7. **¿`chat-retry-report` entra al pre-push?** Hoy se corre a mano (1 turno de chat + 2 runs reales por push).
-   Recomendación: no, salvo que el fallo reaparezca.
+## Decisiones de Carlos 2026-10-13 (respuesta a las 7 preguntas del handoff anterior)
+1. Utilidad de ERP.4: el veredicto lo pone el cerebro → "sirve, pero todavía no solo". ERP.4 se cierra al terminar
+   el lote de abajo.
+2. Hallazgo 2: GO.
+3. Sin regla de presupuesto: un fallo se diagnostica y se arregla en el producto ("si aplico una regla de presupuesto
+   no mejoro, solo limito"). Causas de la etapa 6: árbol con archivo sin seguimiento (hallazgo 18, abierto) y check de
+   `tsc` (ERP.4.6, cerrado).
+4. Reintento desde el hilo del chat: GO.
+5. Se arreglan TODOS los hallazgos abiertos (5, 6, 7, 11, 12, 16, 18), no un subconjunto. El 6 es el más grave para
+   él: nada hardcodeado, la tarea dice quién la hizo según la config.
+6. Residuos de `erp-piloto`: limpiar si no sirven (las 3 tareas sobrantes no sirven; se limpian tras el hallazgo 5).
+7. `chat-retry-report` NO entra al pre-push.
+
+## Lote planificado (ítems por abrir en PLAN.md, en este orden; causas leídas con `delegate leer`)
+- ERP.4.10 — hallazgo 2: `buildNaturalDraft` recibe la respuesta del orquestador y los últimos turnos
+  (`chat.ts:1104-1112`).
+- ERP.4.11 — hallazgo 6: el prompt del borrador hace elegir al LLM entre `openrouter|anthropic|openai`
+  (`handlers/project.ts:220-265`) y `createTaskRecord` cae a `openrouter` (`handlers/tasks.ts:238-240`); el run usa el
+  rol Executor aparte (`router/auto-route.ts:13-42`). La etiqueta de la tarea sale del rol Executor del proyecto.
+- ERP.4.12 — hallazgo 16: `classifyTask` decide por palabras clave de la descripción (`router/classify.ts:15-31`,
+  llamado en `run/harness.ts:242`). La clase la declara el borrador.
+- ERP.4.13 — hallazgo 5: `updateTaskStatus` escribe estado en `tasks.yaml` sin commit (`cli.ts:1281-1439`); solo se
+  commitea al crear y al lanzar (`handlers/tasks.ts:287-347`).
+- ERP.4.14 — hallazgo 18 + reintento en el hilo: el chequeo de árbol limpio solo exceptúa `runs-summary.json`
+  (`run/sandbox-policy.ts:32-70`) y el CLI marca `failed` (`cli.ts:1281-1296`). El hilo no ofrece relanzar
+  (`App.tsx:209-225`); el endpoint `POST /api/tasks/:id/run` ya sirve. **Espera respuesta de Carlos (pregunta A).**
+- ERP.4.15 — hallazgo 7: `orchestrator` nace `null` y el composer no distingue "cargando" de "sin asignar"
+  (`OrchestChatView.tsx:66-94,500-507`, `AgentComposer.tsx:625-638`).
+- ERP.4.16 — hallazgo 12: fila `block-e-test-pattern` en la base real; el test candidato es
+  `src/__tests__/dashboard-parity-block-e.test.ts:97-119` (importa la `db` real), causa sin demostrar.
+- ERP.4.17 — hallazgo 11: `memory_entries` solo se escribe al cerrar una subtarea con `topic_key`
+  (`run/scheduler.ts:207-212`); una tarea normal no escribe nada y la UI no tiene puerta.
+  **Espera respuesta de Carlos (pregunta B).**
+- Luego: limpiar `erp-piloto` y cerrar ERP.4 con el veredicto.
 
 ## Lote cerrado 2026-10-13 (GO de Carlos: "iniciemos con los arreglos")
 - ERP.4.7 `617f8ca` — botón `Run` por tarjeta en Settings → Tasks. Gate en vivo `tasks` 19/19. Pusheado.
