@@ -365,7 +365,7 @@ Cerrada. Todos sus ítems están archivados en `docs/done/` (ver "Cerrados — e
   hilo no ofrece relanzar una tarea fallida (`App.tsx:209-225`); `POST /api/tasks/:id/run` ya sirve.
   Decisión de Carlos 2026-10-13: se sigue bloqueando (el ejecutor trabaja sobre el último commit); la tarea queda
   `pending` y el hilo lista los archivos con un botón "Commit & Run" que los commitea y relanza.
-  Ejecutado por: sonnet (rol `criterio`, ronda 1) y gpt-6-luna (rol `mecanico`, ronda 2) · Spec: docs/specs/ERP.4.13.md
+  Ejecutado por: sonnet (rol `criterio`, ronda 1) y gpt-6-luna (rol `mecanico`, rondas 2 y 3) · Spec: docs/specs/ERP.4.13.md
   Hecho (2026-10-13): `resolveSandboxMode` lanza `DirtyTreeError` con la lista completa (`listDirtyFiles`,
   `git status --porcelain -z`); el CLI deja la tarea `pending` con `retry_reason: uncommitted changes: <archivos>`
   sin gastar reintento. Todo reporte de fin de tarea lleva datos (`chat_messages.task_report`, migración 25:
@@ -387,6 +387,9 @@ Cerrada. Todos sus ítems están archivados en `docs/done/` (ver "Cerrados — e
   un archivo sensible no ignorado: el usuario ve la lista antes de pulsar. `chat-retry-report` no está en el
   pre-push. `test:coverage` dio una vez 1 fallo por timeout de 5 s en `CC.2 — chat sessions backend` dentro de la
   suite (pasa solo y en la corrida siguiente): ver CI.12.
+  Ronda 3: el primer push se abortó en el pre-push (entorno sin identidad git, como CI): el fixture del test de
+  `commit-run` no daba identidad al repo temporal y el commit de producción devolvía 409. Corregido el fixture y
+  añadido el test del 409 sin identidad (la tarea no se lanza).
   **Fuera de scope declarado:** `PLAN.md`, `NEXT.md` y `docs/done/evidence/**` (cierre y evidencia).
 - [ ] **ERP.4.14 — 🔍 El composer distingue "cargando" de "Orchestrator unassigned".** (abierto 2026-10-13; hallazgo 7)
   `orchestrator` nace `null` y el aviso se pinta hasta que llega la config (`OrchestChatView.tsx:66-94,500-507`,

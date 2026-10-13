@@ -81,6 +81,8 @@ describe('dashboard task commit-run (ERP.4.13)', () => {
       'version: 1\nproject: test\ntasks:\n  - id: task-dirty\n    description: Test\n    executor: openrouter\n    input: []\n    output: [out.txt]\n    depends_on: []\n    status: pending\n    retry_count: 0\n    retry_reason: "uncommitted changes: a.txt"\n',
     )
     git(root, 'init', '-b', 'main')
+    git(root, 'config', 'user.name', 'OrchestOS test')
+    git(root, 'config', 'user.email', 'test@invalid')
     git(root, 'add', 'tasks.yaml')
     git(root, 'commit', '-m', 'fixture')
     writeFileSync(join(root, 'a.txt'), 'a')
@@ -135,6 +137,26 @@ describe('dashboard task commit-run (ERP.4.13)', () => {
       expect(files).toBe('a.txt')
       expect(git(root, 'status', '--porcelain')).toContain('b.txt')
       expect(readFileSync(join(root, 'tasks.yaml'), 'utf8')).not.toContain('uncommitted changes')
+    } finally {
+      Bun.spawn = originalSpawn
+    }
+  })
+
+  test('sin identidad git el commit se rechaza con 409 y la tarea no se lanza', async () => {
+    const root = fixture()
+    git(root, 'config', '--unset', 'user.name')
+    git(root, 'config', '--unset', 'user.email')
+    git(root, 'config', 'user.useConfigOnly', 'true')
+    const originalSpawn = Bun.spawn
+    let spawned = 0
+    Bun.spawn = (() => {
+      spawned += 1
+      return { pid: 424244, exited: Promise.resolve(0) }
+    }) as unknown as typeof Bun.spawn
+    try {
+      const response = await call(root, { files: ['a.txt'] })
+      expect(response.status).toBe(409)
+      expect(spawned).toBe(0)
     } finally {
       Bun.spawn = originalSpawn
     }

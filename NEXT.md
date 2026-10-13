@@ -24,6 +24,10 @@ Lecciones: (1) un cambio en la forma de una respuesta de API exige grepear los f
 todos los llamadores de las funciones que escriben estado; (3) el pre-commit exige la línea `Gate en vivo:` con la
 evidencia entre backticks en el ítem cerrado; (4) `mecanico` lee NEXT.md: si el handoff no dice de qué ítem son los
 cambios sin commitear, se detiene aunque el spec lo diga — actualizar NEXT.md antes de delegar una ronda 2.
+(5) la causa real de (4) era `.orchestos/handoff.md` viejo (generado, ignorado por git): antes de delegar una ronda
+sobre cambios sin commitear, `bun run agent:handoff`; y el preflight del ejecutor rechaza un ítem ya `[x]`: reabrir
+(`[ ]` + reconcile) antes de una ronda de corrección; (6) un test que pasa por un commit de producción necesita
+identidad **local** en el repo temporal (`git config user.name/email`), no solo `-c` en los comandos del fixture.
 
 ## Lote en curso (ERP.4.10–4.16 abiertos en PLAN.md con causa y decisión; ejecutar en ese orden)
 Sin spec todavía: 4.14 a 4.16.
