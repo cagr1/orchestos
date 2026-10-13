@@ -26,14 +26,10 @@ Lote de arreglos terminado. Mostrarle esta lista tal cual y no abrir ítems hast
 - ERP.4.9 `8daed04` — el hilo muestra el fin de un reintento sin recargar. Gate `chat-retry-report` 12/12 +
   contraprueba. Pusheado.
 - ERP.4.8 `867627d` — el run fallido guarda y muestra la respuesta del ejecutor (migración 24). Gate `qa-negative`
-  25/25 y `test:coverage` 1709/0 corridos por el cerebro. **SIN PUSHEAR (`ahead 1`).** Dos pushes abortados:
-  (a) un test leía `~/.orchestos/.env` — corregido; (b) el segundo pasó cobertura (0 fail) y 13 de 15 ui-gates, y
-  cayó en 2: `qa-negative` ("premisa no cumplida: el ejecutor no escribió ROJO; []", el ejecutor no escribió nada)
-  y `chat-context` ("Claude run … input_tokens: 0"). Coincidió con el cupo de Claude al ~95 % y el de Codex alto;
-  **causa sin verificar** (cupo agotado o fallo real). Carlos pidió parar ahí.
-  **Siguiente paso:** con cupo disponible, `bun run ui:gate qa-negative chat-context`; si pasan, `git push origin
-  master`. Si `qa-negative` repite el fallo, mirar si el cambio de `parseCodexStream` (`src/run/executors/codex.ts`)
-  afecta al run (log del intento: `$TMPDIR/orchestos-pre-push.NcuxXu/`, puede haberse borrado).
+  25/25 y `test:coverage` 1709/0 corridos por el cerebro. **Pusheado 2026-10-13 (`8daed04..5e36a6b`), pre-push
+  verde.** Dos pushes abortados antes: (a) un test leía `~/.orchestos/.env` — corregido; (b) `qa-negative` y
+  `chat-context` cayeron con el cupo de Claude al ~95 %. Con cupo disponible ambos pasaron solos (25/25 y 5/5) y
+  dentro del pre-push completo: el fallo fue de cupo, no de ERP.4.8.
 Correcciones a lo reportado: Settings → Plan ya tenía `Run` por tarea (el hallazgo 19 valía solo para Tasks; el
 botón de Plan no se probó en vivo). Sin verificar a ojo: el bloque "Executor reply" de la pestaña Contract (se
 comprobó por texto visible). Sin identificar: qué borró `~/Library/Caches/ms-playwright` y un `duplicate column
