@@ -1,0 +1,120 @@
+[
+  {
+    "flujo": "chat-retry-report",
+    "pass": true,
+    "steps": [
+      {
+        "nombre": "select Codex for new chat",
+        "ok": true,
+        "detalle": "Codex option visible"
+      },
+      {
+        "nombre": "select gpt-6-luna",
+        "ok": true,
+        "detalle": "model option visible"
+      },
+      {
+        "nombre": "select medium effort",
+        "ok": true,
+        "detalle": "effort option visible"
+      },
+      {
+        "nombre": "held task card visible",
+        "ok": true,
+        "detalle": "held task rendered"
+      },
+      {
+        "nombre": "held task id obtained",
+        "ok": true,
+        "detalle": "chat-6b65c0e9-b773-41f7-8619-85d7553d5821"
+      },
+      {
+        "nombre": "first attempt fails on a check",
+        "ok": true,
+        "detalle": "status=pending retryCount=1 retryReason=check failed: bunx tsc --noEmit exit 2"
+      },
+      {
+        "nombre": "failed attempt report visible without reload",
+        "ok": true,
+        "detalle": "✗ Task chat-6b65c0e9-b773-41f7-8619-85d7553d5821 failed · attempt 1/3 · codex/gpt-6-luna"
+      },
+      {
+        "nombre": "project clean before retry",
+        "ok": true,
+        "detalle": "clean"
+      },
+      {
+        "nombre": "Retry offered on the last report without reload",
+        "ok": true,
+        "detalle": "Retry buttons=1"
+      },
+      {
+        "nombre": "second attempt done",
+        "ok": true,
+        "detalle": "done"
+      },
+      {
+        "nombre": "done report appears in the open thread without reload",
+        "ok": true,
+        "detalle": "task messages before=2; after=3; ✓ Task chat-6b65c0e9-b773-41f7-8619-85d7553d5821 done · codex/gpt-6-luna"
+      },
+      {
+        "nombre": "previous report no longer shows Retry",
+        "ok": true,
+        "detalle": "Retry buttons=0"
+      },
+      {
+        "nombre": "second held task card visible",
+        "ok": true,
+        "detalle": "held task rendered"
+      },
+      {
+        "nombre": "second task id obtained",
+        "ok": true,
+        "detalle": "chat-f9912508-07b7-4729-8fa7-665a0fdcad66"
+      },
+      {
+        "nombre": "dirty tree leaves the task pending with the uncommitted-changes reason",
+        "ok": true,
+        "detalle": "status=pending retryReason=uncommitted changes: sucio.txt"
+      },
+      {
+        "nombre": "thread lists the uncommitted file without reload",
+        "ok": true,
+        "detalle": "title=true sucio.txt=true"
+      },
+      {
+        "nombre": "dirty task held card is hidden",
+        "ok": true,
+        "detalle": "Approve & Run buttons visible=0"
+      },
+      {
+        "nombre": "Commit & Run commits the file with the dashboard message",
+        "ok": true,
+        "detalle": "chore: commit pending changes before chat-f9912508-07b7-4729-8fa7-665a0fdcad66 (dashboard)"
+      },
+      {
+        "nombre": "sucio.txt is no longer listed as uncommitted",
+        "ok": true,
+        "detalle": "M tasks.yaml"
+      },
+      {
+        "nombre": "relaunched task finishes done",
+        "ok": true,
+        "detalle": "done"
+      },
+      {
+        "nombre": "done report of the relaunched task appears without reload",
+        "ok": true,
+        "detalle": "✓ Task chat-f9912508-07b7-4729-8fa7-665a0fdcad66 done · codex/gpt-6-luna"
+      }
+    ],
+    "notes": [],
+    "errores": [],
+    "capturas": [
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-55261/chat-retry-report/retry-report.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-55261/chat-retry-report/dirty-tree-report.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-55261/chat-retry-report/commit-run-report.png"
+    ]
+  }
+]

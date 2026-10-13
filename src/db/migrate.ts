@@ -825,6 +825,28 @@ export const FUTURE_MIGRATIONS: readonly SchemaMigrationStep[] = [
         throw new Error('Migration 24 did not add runs.executor_reply')
     },
   },
+  {
+    // ERP.4.13: paso numerado y no safeAddColumn (misma razón que la 24: la 10 reconstruye tablas).
+    version: 25,
+    name: 'chat-message-task-report',
+    precondition: () => {},
+    apply: (database) => {
+      const columns = database
+        .query<{ name: string }, []>('PRAGMA table_info(chat_messages)')
+        .all()
+        .map((row) => row.name)
+      if (!columns.includes('task_report'))
+        database.exec('ALTER TABLE chat_messages ADD COLUMN task_report TEXT;')
+    },
+    postcondition: (database) => {
+      const columns = database
+        .query<{ name: string }, []>('PRAGMA table_info(chat_messages)')
+        .all()
+        .map((row) => row.name)
+      if (!columns.includes('task_report'))
+        throw new Error('Migration 25 did not add chat_messages.task_report')
+    },
+  },
 ]
 
 function appliedVersions(database: Database): Set<number> {

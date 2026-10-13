@@ -3,6 +3,7 @@ import {
   archiveSession,
   attachTurnDetails,
   type ChatMessageRow,
+  commitAndRunProjectTask,
   createSession,
   deleteProjectTask,
   deleteSession,
@@ -213,6 +214,14 @@ export default function App() {
       const row = rows.find((candidate) => String(candidate.id) === message.id)
       if (!message.taskHeld || !row?.taskId) return message
       const task = pendingTasks.get(row.taskId)
+      // Una pending con motivo ya fue lanzada (fallo o bloqueo por árbol sucio).
+      if (task?.status === 'pending' && task.retryReason?.trim())
+        return { ...message, taskHeld: false, proposedTask: undefined }
+      // ERP.4.13: ya se lanzó (hay un reporte posterior de la misma tarea): la acción vive en el último reporte
+      const launched = rows.some(
+        (later) => later.id > row.id && later.taskId === row.taskId && later.taskReport,
+      )
+      if (launched) return { ...message, taskHeld: false, proposedTask: undefined }
       if (!task) return { ...message, taskHeld: false, proposedTask: undefined }
       return {
         ...message,
@@ -951,7 +960,21 @@ export default function App() {
       })
   }
 
-  const handleApproveHeldTask = async (taskId: string) => {
+  const handleApproveHeldTask = (taskId: string) =>
+    launchThreadTask(taskId, (thread, onStarted) =>
+      runProjectTask(taskId, thread.projectId, onStarted, thread.id),
+    )
+
+  // ERP.4.13 — "Commit & Run" del reporte de árbol sucio: mismo ciclo que aprobar, otro endpoint.
+  const handleCommitRunTask = (taskId: string, files: string[]) =>
+    launchThreadTask(taskId, (thread, onStarted) =>
+      commitAndRunProjectTask(taskId, files, thread.projectId, onStarted, thread.id),
+    )
+
+  const launchThreadTask = async (
+    taskId: string,
+    launch: (thread: ChatThread, onStarted: () => void) => Promise<void>,
+  ) => {
     const thread = activeThread
     if (!thread) return
     try {
@@ -960,27 +983,22 @@ export default function App() {
         if (key.startsWith(`${runKey}:`)) reportedTaskIds.current.delete(key)
       }
       seenRunningTaskIds.current.add(runKey)
-      await runProjectTask(
-        taskId,
-        thread.projectId,
-        () => {
-          setThreads((prev) =>
-            prev.map((item) =>
-              item.id === thread.id
-                ? {
-                    ...item,
-                    messages: item.messages.map((message) =>
-                      message.proposedTask?.id === taskId
-                        ? { ...message, taskHeld: false, proposedTask: undefined }
-                        : message,
-                    ),
-                  }
-                : item,
-            ),
-          )
-        },
-        thread.id,
-      )
+      await launch(thread, () => {
+        setThreads((prev) =>
+          prev.map((item) =>
+            item.id === thread.id
+              ? {
+                  ...item,
+                  messages: item.messages.map((message) =>
+                    message.proposedTask?.id === taskId
+                      ? { ...message, taskHeld: false, proposedTask: undefined }
+                      : message,
+                  ),
+                }
+              : item,
+          ),
+        )
+      })
     } finally {
       if (thread.projectId === currentProject?.id) {
         await listRuns(thread.projectId)
@@ -1212,6 +1230,8 @@ export default function App() {
               }
               onSendMessage={handleSendMessage}
               onApproveHeldTask={handleApproveHeldTask}
+              onRetryTask={handleApproveHeldTask}
+              onCommitRunTask={handleCommitRunTask}
               onRejectHeldTask={handleRejectHeldTask}
               sessionStatus={sessionStatus}
               onSlashCommand={handleSlashCommand}

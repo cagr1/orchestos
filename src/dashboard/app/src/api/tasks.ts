@@ -64,6 +64,9 @@ export async function listTasks(
   }
 }
 
+/** Espejo de `DIRTY_TREE_REASON_PREFIX` (src/run/sandbox-policy.ts): el front no importa código del run. */
+export const DIRTY_TREE_REASON_PREFIX = 'uncommitted changes: '
+
 /** `running`, o `pending` cuyo intento aún no falló; un `pending` con intento fallido ya terminó. */
 export function isTaskStillRunning(task: {
   status: TaskStatus | string
@@ -71,6 +74,9 @@ export function isTaskStillRunning(task: {
   retryReason?: string | null
 }): boolean {
   if (task.status === 'running') return true
+  // ERP.4.13: bloqueada por árbol sucio — no hubo intento, pero ya terminó
+  if (task.status === 'pending' && task.retryReason?.startsWith(DIRTY_TREE_REASON_PREFIX))
+    return false
   return task.status === 'pending' && !((task.retryCount ?? 0) > 0 && Boolean(task.retryReason))
 }
 

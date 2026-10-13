@@ -201,6 +201,16 @@ describe('isTaskStillRunning', () => {
     expect(isTaskStillRunning({ status: 'done' })).toBe(false)
     expect(isTaskStillRunning({ status: 'failed' })).toBe(false)
   })
+
+  test('pending bloqueada por árbol sucio ya terminó aunque retryCount sea 0 (ERP.4.13)', () => {
+    expect(
+      isTaskStillRunning({
+        status: 'pending',
+        retryCount: 0,
+        retryReason: 'uncommitted changes: sucio.txt',
+      }),
+    ).toBe(false)
+  })
 })
 
 describe('isTaskRunnable', () => {

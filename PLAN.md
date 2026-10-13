@@ -359,12 +359,35 @@ Cerrada. Todos sus ítems están archivados en `docs/done/` (ver "Cerrados — e
   repo git real) y el gate. El camino `--expand` no se ejerció en vivo. El commit usa la identidad y los hooks del
   repo del usuario: si su pre-commit falla, `tasks.yaml` queda sin commitear, en silencio. Sin contraprueba contra HEAD.
   **Fuera de scope declarado:** `PLAN.md`, `NEXT.md` y `docs/done/evidence/**` (cierre y evidencia).
-- [ ] **ERP.4.13 — 🔍 Árbol sucio: la tarea queda `pending` y el hilo ofrece "Commit & Run" y reintento.** (abierto
+- [x] **ERP.4.13 — 🔍 Árbol sucio: la tarea queda `pending` y el hilo ofrece "Commit & Run" y reintento.** (cerrado 2026-10-13; abierto
   2026-10-13; hallazgo 18 y decisión 4 de Carlos) El chequeo de árbol limpio solo exceptúa `runs-summary.json`
   (`run/sandbox-policy.ts:32-70`), el CLI marca `failed` (`cli.ts:1281-1296`) y el mensaje manda a la terminal. El
   hilo no ofrece relanzar una tarea fallida (`App.tsx:209-225`); `POST /api/tasks/:id/run` ya sirve.
   Decisión de Carlos 2026-10-13: se sigue bloqueando (el ejecutor trabaja sobre el último commit); la tarea queda
   `pending` y el hilo lista los archivos con un botón "Commit & Run" que los commitea y relanza.
+  Ejecutado por: sonnet (rol `criterio`, ronda 1) y gpt-6-luna (rol `mecanico`, ronda 2) · Spec: docs/specs/ERP.4.13.md
+  Hecho (2026-10-13): `resolveSandboxMode` lanza `DirtyTreeError` con la lista completa (`listDirtyFiles`,
+  `git status --porcelain -z`); el CLI deja la tarea `pending` con `retry_reason: uncommitted changes: <archivos>`
+  sin gastar reintento. Todo reporte de fin de tarea lleva datos (`chat_messages.task_report`, migración 25:
+  `outcome` y, con árbol sucio, `dirtyFiles` leídos en vivo). `POST /api/tasks/:id/commit-run` commitea solo los
+  archivos pedidos que sigan sucios (400 si no; 409 con el stderr si git rechaza) y relanza. En el hilo, el último
+  reporte de una tarea muestra la tarjeta `Uncommitted changes` con `Commit & Run`, o `Retry` si quedó
+  `pending`/`failed`; la tarjeta "Task ready to run" ya no reaparece al recargar una tarea ya lanzada (antes era la
+  única forma de reintentar). Sin CSS ni UI de Settings nuevos.
+  Evidencia: `test:coverage` 1746/0 (funciones 77.09 %, líneas 63.81 %) · typecheck y lint exit 0.
+  Gate en vivo: navegador real (Playwright), `docs/done/evidence/ERP.4.13-live.json` — `chat-retry-report` 21/21:
+  `Retry` relanza sin recargar y desaparece del reporte anterior; con `sucio.txt` sin commitear la tarea queda
+  `pending`, el hilo lista el archivo, `Commit & Run` crea `chore: commit pending changes before <id> (dashboard)` y
+  la tarea termina `done`. Captura de la tarjeta revisada a ojo. Contraprueba: la ronda 1 falló ese mismo gate en
+  `thread lists the uncommitted file without reload` (la recarga del hilo llegaba antes que el reporte y restauraba
+  la tarjeta retenida).
+  Límites: el 409 por commit rechazado y un `Retry` que vuelve a fallar no se ejercieron en vivo (el estado de la
+  acción va por mensaje para que el error no se repita bajo el reporte nuevo: solo leído en el código). La
+  restauración de tarjetas de `App.tsx` no tiene test unitario. `Commit & Run` commitea todo lo listado, incluido
+  un archivo sensible no ignorado: el usuario ve la lista antes de pulsar. `chat-retry-report` no está en el
+  pre-push. `test:coverage` dio una vez 1 fallo por timeout de 5 s en `CC.2 — chat sessions backend` dentro de la
+  suite (pasa solo y en la corrida siguiente): ver CI.12.
+  **Fuera de scope declarado:** `PLAN.md`, `NEXT.md` y `docs/done/evidence/**` (cierre y evidencia).
 - [ ] **ERP.4.14 — 🔍 El composer distingue "cargando" de "Orchestrator unassigned".** (abierto 2026-10-13; hallazgo 7)
   `orchestrator` nace `null` y el aviso se pinta hasta que llega la config (`OrchestChatView.tsx:66-94,500-507`,
   `AgentComposer.tsx:625-638`).

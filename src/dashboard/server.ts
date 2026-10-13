@@ -120,6 +120,7 @@ import {
   handleApiTasks,
   handleApiTasksApproveSplit,
   handleApiTasksBulkDelete,
+  handleApiTasksCommitRun,
   handleApiTasksCreate,
   handleApiTasksDelete,
   handleApiTasksDiagnose,
@@ -244,6 +245,11 @@ export async function route(req: Request, port: number): Promise<Response> {
   if (method === 'POST' && url.pathname.match(/^\/api\/tasks\/[^/]+\/run$/)) {
     return withDashboardProject(req, (project) =>
       handleApiTasksRun(req, url, project.root, req.headers.get('x-orchestos-project-id')),
+    )
+  }
+  if (method === 'POST' && url.pathname.match(/^\/api\/tasks\/[^/]+\/commit-run$/)) {
+    return withDashboardProject(req, (project) =>
+      handleApiTasksCommitRun(req, url, project.root, req.headers.get('x-orchestos-project-id')),
     )
   }
   if (method === 'DELETE' && url.pathname.match(/^\/api\/tasks\/[^/]+$/)) {

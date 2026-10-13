@@ -1,4 +1,5 @@
 import type { ChatAttachment, ChatMessage, ChatThread, ToolExecution } from '../types/orchestos'
+import { DIRTY_TREE_REASON_PREFIX } from './tasks'
 
 export interface ChatSessionRow {
   id: string
@@ -25,6 +26,7 @@ export interface ChatMessageRow {
   taskHeld: boolean
   existingFiles: string[]
   turnId?: string | null
+  taskReport?: { outcome: string; dirtyFiles?: string[] }
   createdAt: string
 }
 
@@ -197,6 +199,7 @@ export function mapMessage(row: ChatMessageRow): ChatMessage {
     timestamp: toTimestamp(row.createdAt),
     model: row.model ?? undefined,
     taskHeld: row.taskHeld || undefined,
+    taskReport: row.taskReport,
     proposedTask:
       row.taskHeld && row.taskId
         ? { id: row.taskId, description: row.content, output: row.existingFiles }
@@ -460,6 +463,33 @@ export async function runProjectTask(
     },
     body: JSON.stringify(sessionId ? { sessionId } : {}),
   })
+  await waitForTaskRun(taskId, projectId, onStarted)
+}
+
+/** ERP.4.13 — commitea los archivos sucios elegidos y lanza la tarea (`POST /api/tasks/:id/commit-run`). */
+export async function commitAndRunProjectTask(
+  taskId: string,
+  files: string[],
+  projectId?: string | null,
+  onStarted?: () => void,
+  sessionId?: string,
+): Promise<void> {
+  await request(`/api/tasks/${encodeURIComponent(taskId)}/commit-run`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      ...(projectId ? { 'x-orchestos-project-id': projectId } : {}),
+    },
+    body: JSON.stringify(sessionId ? { files, sessionId } : { files }),
+  })
+  await waitForTaskRun(taskId, projectId, onStarted)
+}
+
+async function waitForTaskRun(
+  taskId: string,
+  projectId?: string | null,
+  onStarted?: () => void,
+): Promise<void> {
   onStarted?.()
   const startedAt = Date.now()
   const deadline = startedAt + 10 * 60_000
@@ -468,6 +498,9 @@ export async function runProjectTask(
     const tasks = await getProjectTasks(projectId)
     lastTask = tasks.find((task) => task.id === taskId)
     if (!lastTask) throw new Error(`Task ${taskId} disappeared after approval`)
+    // ERP.4.13: bloqueada por árbol sucio — el run terminó sin empezar; el hilo ofrece "Commit & Run"
+    if (lastTask.status === 'pending' && lastTask.retryReason?.startsWith(DIRTY_TREE_REASON_PREFIX))
+      return
     if (lastTask.status !== 'pending' && lastTask.status !== 'running') {
       if (lastTask.status === 'failed' || lastTask.status === 'failed_permanent') {
         throw new Error(lastTask.retryReason || `Task ${taskId} failed`)

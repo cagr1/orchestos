@@ -31,3 +31,25 @@ export function commitFinalTaskState(root: string, taskId: string): void {
     /* best-effort */
   }
 }
+
+/**
+ * ERP.4.13 — commitea SOLO las rutas dadas (`git add -- <files>` + `git commit -- <files>`), bajo
+ * el candado de git. Identidad y hooks: los del repo del usuario. No es best-effort: devuelve el
+ * resultado para que el llamador decida.
+ */
+export function commitPaths(
+  root: string,
+  files: string[],
+  message: string,
+): { ok: boolean; stderr: string } {
+  try {
+    return withGitLock(root, () => {
+      const add = git(['add', '--', ...files], root)
+      if (add.exitCode !== 0) return { ok: false, stderr: add.stderr }
+      const commit = git(['commit', '-m', message, '--', ...files], root)
+      return { ok: commit.exitCode === 0, stderr: commit.stderr || commit.stdout }
+    })
+  } catch (error) {
+    return { ok: false, stderr: error instanceof Error ? error.message : String(error) }
+  }
+}

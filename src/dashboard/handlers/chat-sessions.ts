@@ -76,6 +76,7 @@ function toMessageRow(row: ChatMessageRecord): ChatMessageRow {
     taskHeld: row.task_held,
     existingFiles: row.existing_files,
     turnId: row.turn_id,
+    ...(row.taskReport ? { taskReport: row.taskReport } : {}),
     createdAt: row.created_at,
   }
 }

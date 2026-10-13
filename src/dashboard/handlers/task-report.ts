@@ -1,8 +1,9 @@
-import { appendTaskReport } from '../../db/chat-sessions.ts'
+import { appendTaskReport, type TaskReportData } from '../../db/chat-sessions.ts'
 import { listRunsByTaskId } from '../../db/runs.ts'
 import { db } from '../../db/sqlite.ts'
 import { deleteTaskRunWatch, type TaskRunWatchRow } from '../../db/task-run-watch.ts'
 import { MAX_RETRIES } from '../../run/qa.ts'
+import { DIRTY_TREE_REASON_PREFIX, listDirtyFiles } from '../../run/sandbox-policy.ts'
 import { loadTasks } from '../../tasks/loader.ts'
 
 export function reportTaskOutcome(
@@ -12,15 +13,30 @@ export function reportTaskOutcome(
   projectId?: string | null,
 ): void {
   try {
-    appendTaskReport(sessionId, taskId, buildTaskReport(root, taskId, projectId))
+    const report = buildTaskReportData(root, taskId, projectId)
+    appendTaskReport(sessionId, taskId, report.content, report.data)
   } catch (error) {
     console.error('Could not report task outcome', error)
   }
 }
 
 export function buildTaskReport(root: string, taskId: string, projectId?: string | null): string {
+  return buildTaskReportData(root, taskId, projectId).content
+}
+
+export function buildTaskReportData(
+  root: string,
+  taskId: string,
+  projectId?: string | null,
+): { content: string; data: TaskReportData } {
   const task = loadTasks(root).tasks.find((item) => item.id === taskId)
   const status = task?.status ?? 'missing'
+  if (status === 'pending' && task?.retry_reason?.startsWith(DIRTY_TREE_REASON_PREFIX)) {
+    return {
+      content: `✗ Task \`${taskId}\` not started · uncommitted changes in the project`,
+      data: { outcome: status, dirtyFiles: listDirtyFiles(root) },
+    }
+  }
   const runs = listRunsByTaskId(taskId)
   const run = projectId
     ? (runs.find((item) => item.project_id === projectId) ?? runs[0] ?? null)
@@ -39,7 +55,10 @@ export function buildTaskReport(root: string, taskId: string, projectId?: string
     .trim()
   const summary =
     rawSummary && rawSummary.length > 300 ? `${rawSummary.slice(0, 299)}…` : rawSummary
-  return `${headline}\n\n> ${summary || 'No run was recorded.'}`
+  return {
+    content: `${headline}\n\n> ${summary || 'No run was recorded.'}`,
+    data: { outcome: status },
+  }
 }
 
 /** Reclama y cierra únicamente el lanzamiento representado por esta fila. */
@@ -51,11 +70,8 @@ export function settleTaskRun(
     db.transaction(() => {
       if (!deleteTaskRunWatch(row)) return
       if (row.session_id) {
-        appendReport(
-          row.session_id,
-          row.task_id,
-          buildTaskReport(row.root, row.task_id, row.project_id),
-        )
+        const report = buildTaskReportData(row.root, row.task_id, row.project_id)
+        appendReport(row.session_id, row.task_id, report.content, report.data)
       }
     }).immediate()
   } catch (error) {

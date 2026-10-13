@@ -3,7 +3,7 @@ import { appendFileSync, mkdtempSync, rmSync, writeFileSync } from 'fs'
 import { tmpdir } from 'os'
 import { join } from 'path'
 import { git } from '../run/sandbox.ts'
-import { resolveSandboxMode } from '../run/sandbox-policy.ts'
+import { DirtyTreeError, listDirtyFiles, resolveSandboxMode } from '../run/sandbox-policy.ts'
 
 // Mes 22/E.9 — sandbox-policy.ts nunca tuvo test file (gap pre-existente,
 // notado en PLAN.md E.6). Segundo bug real encontrado ahí en el mismo día
@@ -150,6 +150,65 @@ describe('resolveSandboxMode — runs-summary.json (E.1/E.9)', () => {
       const result = resolveSandboxMode(dir)
       expect(result.mode).toBe('worktree')
       expect(git(['status', '--porcelain'], dir).stdout).toBe('')
+    } finally {
+      rmSync(dir, { recursive: true, force: true })
+    }
+  })
+})
+
+// ERP.4.13 — spawn con env explícito e identidad propia: no depende del git global del host.
+function gitEnv(dir: string, args: string[]): void {
+  const proc = Bun.spawnSync(
+    ['git', '-c', 'user.name=OrchestOS test', '-c', 'user.email=test@invalid', ...args],
+    { cwd: dir, env: { PATH: process.env.PATH ?? '', HOME: dir }, stdout: 'pipe', stderr: 'pipe' },
+  )
+  expect(proc.exitCode, proc.stderr.toString()).toBe(0)
+}
+
+describe('listDirtyFiles / DirtyTreeError (ERP.4.13)', () => {
+  it('lista modificados, no seguidos y ambas rutas de un rename; exceptúa runs-summary.json', () => {
+    const dir = initRepo()
+    try {
+      writeFileSync(join(dir, 'viejo.txt'), 'contenido estable para que git detecte el rename\n')
+      writeFileSync(join(dir, 'mod.txt'), 'a\n')
+      gitEnv(dir, ['add', '-A'])
+      gitEnv(dir, ['commit', '-m', 'base'])
+      appendFileSync(join(dir, 'mod.txt'), 'b\n')
+      gitEnv(dir, ['mv', 'viejo.txt', 'nuevo.txt'])
+      writeFileSync(join(dir, 'sin-seguir.txt'), 'x')
+      appendFileSync(join(dir, 'runs-summary.json'), '\n')
+
+      const files = listDirtyFiles(dir)
+      expect(files.sort()).toEqual(['mod.txt', 'nuevo.txt', 'sin-seguir.txt', 'viejo.txt'])
+    } finally {
+      rmSync(dir, { recursive: true, force: true })
+    }
+  })
+
+  it('árbol limpio: lista vacía', () => {
+    const dir = initRepo()
+    try {
+      expect(listDirtyFiles(dir)).toEqual([])
+    } finally {
+      rmSync(dir, { recursive: true, force: true })
+    }
+  })
+
+  it('resolveSandboxMode lanza DirtyTreeError con la lista completa (sin truncar a 10)', () => {
+    const dir = initRepo()
+    try {
+      for (let i = 0; i < 12; i++) writeFileSync(join(dir, `sucio-${i}.txt`), 'x')
+      let caught: unknown
+      try {
+        resolveSandboxMode(dir)
+      } catch (error) {
+        caught = error
+      }
+      expect(caught).toBeInstanceOf(DirtyTreeError)
+      const dirty = caught as DirtyTreeError
+      expect(dirty.files).toHaveLength(12)
+      expect(dirty.message).toContain('Uncommitted changes in')
+      expect(dirty.message).toContain('... and more')
     } finally {
       rmSync(dir, { recursive: true, force: true })
     }

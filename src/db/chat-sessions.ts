@@ -29,14 +29,23 @@ interface StoredChatMessage {
   task_held: number | null
   existing_files: string | null
   turn_id: string | null
+  // ERP.4.13 — JSON del reporte de fin de tarea (`TaskReportData`); null en mensajes normales
+  task_report: string | null
   created_at: string
 }
 
+/** Datos estructurados de un reporte de fin de tarea. */
+export interface TaskReportData {
+  outcome: string
+  dirtyFiles?: string[]
+}
+
 export interface ChatMessageRecord
-  extends Omit<StoredChatMessage, 'ocr_used' | 'task_held' | 'existing_files'> {
+  extends Omit<StoredChatMessage, 'ocr_used' | 'task_held' | 'existing_files' | 'task_report'> {
   ocr_used: string[]
   task_held: boolean
   existing_files: string[]
+  taskReport?: TaskReportData
 }
 
 export interface CreateChatSessionInput {
@@ -68,12 +77,31 @@ function parseStringArray(value: string | null): string[] {
   }
 }
 
+function parseTaskReport(value: string | null): TaskReportData | undefined {
+  if (!value) return undefined
+  try {
+    const parsed: unknown = JSON.parse(value)
+    if (!parsed || typeof parsed !== 'object') return undefined
+    const { outcome, dirtyFiles } = parsed as { outcome?: unknown; dirtyFiles?: unknown }
+    if (typeof outcome !== 'string') return undefined
+    const files = Array.isArray(dirtyFiles)
+      ? dirtyFiles.filter((item): item is string => typeof item === 'string')
+      : undefined
+    return files ? { outcome, dirtyFiles: files } : { outcome }
+  } catch {
+    return undefined
+  }
+}
+
 function mapMessage(row: StoredChatMessage): ChatMessageRecord {
+  const { task_report: taskReport, ...rest } = row
+  const parsedReport = parseTaskReport(taskReport)
   return {
-    ...row,
+    ...rest,
     ocr_used: parseStringArray(row.ocr_used),
     task_held: row.task_held === 1,
     existing_files: parseStringArray(row.existing_files),
+    ...(parsedReport ? { taskReport: parsedReport } : {}),
   }
 }
 
@@ -286,14 +314,15 @@ export function appendTaskReport(
   sessionId: string,
   taskId: string,
   content: string,
+  report?: TaskReportData,
 ): ChatMessageRecord | null {
   if (!getChatSession(sessionId)) return null
   const insert = db.transaction(() => {
     const now = new Date().toISOString()
     db.run(
-      `INSERT INTO chat_messages (session_id, role, content, model, task_id, ocr_used, task_held, existing_files, turn_id, created_at)
-       VALUES (?, 'assistant', ?, NULL, ?, '[]', NULL, NULL, NULL, ?)`,
-      [sessionId, content, taskId, now],
+      `INSERT INTO chat_messages (session_id, role, content, model, task_id, ocr_used, task_held, existing_files, turn_id, task_report, created_at)
+       VALUES (?, 'assistant', ?, NULL, ?, '[]', NULL, NULL, NULL, ?, ?)`,
+      [sessionId, content, taskId, report ? JSON.stringify(report) : null, now],
     )
     db.run('UPDATE chat_sessions SET updated_at = ? WHERE id = ?', [now, sessionId])
   })

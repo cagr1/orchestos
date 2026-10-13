@@ -49,6 +49,8 @@ export default async function chatRetryReport({ page, api, step, shot, visible, 
   mkdirSync(join(projectRoot, 'node_modules'), { recursive: true })
   writeFileSync(join(projectRoot, 'node_modules', '.keep'), '')
   run('git', ['init', '-q'], projectRoot)
+  run('git', ['config', 'user.name', 'ui-gate'], projectRoot)
+  run('git', ['config', 'user.email', 'ui-gate@example.invalid'], projectRoot)
   run(
     'git',
     ['add', 'README.md', '.gitignore', 'nota.ts', 'tsconfig.json', 'broken.ts'],
@@ -190,30 +192,16 @@ export default async function chatRetryReport({ page, api, step, shot, visible, 
     .filter((line) => line && !/^\s*[?MADRCU]{1,2}\s+tasks\.yaml$/.test(line))
   await step('project clean before retry', unexpectedChanges.length === 0, cleanStatus || 'clean')
 
-  await page.reload({ waitUntil: 'domcontentloaded' })
-  await page.getByRole('button', { name: 'Dev', exact: true }).click()
-  const reloadedProjectButton = page.getByRole('button', {
-    name: basename(projectRoot),
-    exact: true,
-  })
+  // ERP.4.13 — el reintento sale del último reporte del hilo, sin recargar la página.
+  const retry = page.getByRole('button', { name: /^Retry$/ })
   await step(
-    'project visible after reload',
-    await visible(reloadedProjectButton),
-    'project in sidebar',
+    'Retry offered on the last report without reload',
+    (await visible(retry)) && (await retry.count()) === 1,
+    `Retry buttons=${await retry.count()}`,
   )
-  if (await reloadedProjectButton.isVisible()) await reloadedProjectButton.click()
-  await page.getByRole('button', { name: 'Chat', exact: true }).click()
-  const thread = page.getByText(/^Codex: Modifica nota\.ts/).first()
-  if (await visible(thread)) await thread.click()
-  const approve = page.getByRole('button', { name: /^Approve & Run$/i })
-  await step(
-    'held card offered again after reload',
-    await visible(approve),
-    'Approve & Run visible',
-  )
-  if (!(await approve.isVisible())) return
+  if (!(await retry.first().isVisible())) return
   const before = (await messagesFor(api, project.id, session.id, taskId)).length
-  await approve.click()
+  await retry.first().click()
   const secondTask = await waitForTask(
     api,
     project.id,
@@ -231,5 +219,104 @@ export default async function chatRetryReport({ page, api, step, shot, visible, 
     doneVisible,
     `task messages before=${before}; after=${after}; ${await doneReport.innerText().catch(() => 'report not visible')}`,
   )
+  await step(
+    'previous report no longer shows Retry',
+    (await retry.count()) === 0,
+    `Retry buttons=${await retry.count()}`,
+  )
   await shot('retry-report')
+
+  // Tramo 2 — árbol sucio: la tarea queda pending y el hilo ofrece "Commit & Run".
+  writeFileSync(join(projectRoot, 'sucio.txt'), 'sin commitear\n')
+  const knownIds = new Set((await tasksFor(api, project.id)).map((item) => item.id))
+  await composer.fill(
+    'Modifica nota.ts para añadir al final la línea "export const sucio = 2". La única ruta de salida es nota.ts.',
+  )
+  await composer.press('Enter')
+  const secondCard = page.getByText('Task ready to run', { exact: true }).last()
+  const secondCardVisible = await visible(secondCard, 180_000)
+  await step('second held task card visible', secondCardVisible, 'held task rendered')
+  if (!secondCardVisible) return
+  const dirtyTask = (await tasksFor(api, project.id)).find(
+    (item) => item.status === 'pending' && !knownIds.has(item.id),
+  )
+  await step('second task id obtained', Boolean(dirtyTask), dirtyTask?.id ?? 'task id unavailable')
+  if (!dirtyTask) return
+  await page.getByRole('button', { name: /^Approve & Run$/i }).click()
+  const blocked = await waitForTask(
+    api,
+    project.id,
+    dirtyTask.id,
+    (item) =>
+      item.status === 'pending' &&
+      String(item.retryReason ?? '').startsWith('uncommitted changes: '),
+    2 * 60_000,
+  )
+  await step(
+    'dirty tree leaves the task pending with the uncommitted-changes reason',
+    blocked?.status === 'pending' &&
+      String(blocked.retryReason ?? '').startsWith('uncommitted changes: '),
+    `status=${blocked?.status ?? 'missing'} retryReason=${blocked?.retryReason ?? 'missing'}`,
+  )
+  if (!blocked) return
+  const dirtyTitle = page.getByText('Uncommitted changes', { exact: true }).last()
+  const dirtyShown = await visible(dirtyTitle, 60_000)
+  const fileShown = await visible(page.getByText('sucio.txt', { exact: true }).last(), 10_000)
+  await step(
+    'thread lists the uncommitted file without reload',
+    dirtyShown && fileShown,
+    `title=${dirtyShown} sucio.txt=${fileShown}`,
+  )
+  const dirtyApprove = page.getByRole('button', { name: /^Approve & Run$/i })
+  await step(
+    'dirty task held card is hidden',
+    (await dirtyApprove.count()) === 0,
+    `Approve & Run buttons visible=${await dirtyApprove.count()}`,
+  )
+  await shot('dirty-tree-report')
+  const commitRun = page.getByRole('button', { name: /^Commit & Run$/i })
+  if (!(await visible(commitRun))) {
+    await step('Commit & Run button visible', false, 'button missing')
+    return
+  }
+  await commitRun.click()
+  const finished = await waitForTask(
+    api,
+    project.id,
+    dirtyTask.id,
+    (item) => item.status === 'done',
+    10 * 60_000,
+  )
+  const subject = execFileSync(
+    'git',
+    ['log', '--grep=chore: commit pending changes', '-1', '--format=%s'],
+    { cwd: projectRoot, encoding: 'utf8' },
+  ).trim()
+  const porcelain = execFileSync('git', ['status', '--porcelain'], {
+    cwd: projectRoot,
+    encoding: 'utf8',
+  })
+  await step(
+    'Commit & Run commits the file with the dashboard message',
+    subject.startsWith('chore: commit pending changes before '),
+    subject || 'no matching commit',
+  )
+  await step(
+    'sucio.txt is no longer listed as uncommitted',
+    !porcelain.split('\n').some((line) => line.includes('sucio.txt')),
+    porcelain.trim() || 'clean',
+  )
+  await step(
+    'relaunched task finishes done',
+    finished?.status === 'done',
+    finished?.status ?? 'missing',
+  )
+  if (finished?.status !== 'done') return
+  const secondDone = page.getByText(new RegExp(`✓ Task\\s*${dirtyTask.id}\\s*done`)).first()
+  await step(
+    'done report of the relaunched task appears without reload',
+    await visible(secondDone, 90_000),
+    (await secondDone.innerText().catch(() => 'report not visible')).trim(),
+  )
+  await shot('commit-run-report')
 }

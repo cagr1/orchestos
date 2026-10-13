@@ -42,7 +42,11 @@ import { runGraph } from './run/graph-runner.ts'
 import { runTask } from './run/harness.ts'
 import { RunLogger } from './run/logger.ts'
 import { MAX_RETRIES } from './run/qa.ts'
-import { resolveSandboxMode } from './run/sandbox-policy.ts'
+import {
+  DIRTY_TREE_REASON_PREFIX,
+  DirtyTreeError,
+  resolveSandboxMode,
+} from './run/sandbox-policy.ts'
 import { executePlan } from './run/scheduler.ts'
 import { parseCostBreakdownJson } from './run/transcript-parser.ts'
 import { compileSkill } from './skills/compile.ts'
@@ -1306,7 +1310,15 @@ task
           const message = err instanceof Error ? err.message : String(err)
           const log = new RunLogger(root, taskId)
           log.error(message)
-          updateTaskStatus(root, taskId, { status: 'failed', retry_reason: message })
+          if (err instanceof DirtyTreeError) {
+            // ERP.4.13: no hubo intento — la tarea queda pending y el hilo ofrece "Commit & Run"
+            updateTaskStatus(root, taskId, {
+              status: 'pending',
+              retry_reason: DIRTY_TREE_REASON_PREFIX + err.files.join(', '),
+            })
+          } else {
+            updateTaskStatus(root, taskId, { status: 'failed', retry_reason: message })
+          }
           console.error(`[task] ✗ ${taskId} failed — ${message}`)
           return 'failed'
         }

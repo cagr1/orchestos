@@ -5,6 +5,7 @@ import {
   listTaskRunWatch,
   type TaskRunWatchRow,
 } from '../../db/task-run-watch.ts'
+import { DIRTY_TREE_REASON_PREFIX } from '../../run/sandbox-policy.ts'
 import { loadTasks, updateTaskStatus } from '../../tasks/loader.ts'
 import { settleTaskRun } from './task-report.ts'
 
@@ -74,7 +75,9 @@ function reconcileRow(
     task.status === 'done' ||
     task.status === 'failed' ||
     task.status === 'failed_permanent' ||
-    task.status === 'blocked'
+    task.status === 'blocked' ||
+    // ERP.4.13: bloqueada por árbol sucio sin intento — ya terminó aunque siga `pending`
+    (task.status === 'pending' && Boolean(task.retry_reason?.startsWith(DIRTY_TREE_REASON_PREFIX)))
   if (terminal) {
     settleTaskRun(row)
     return 'settled'

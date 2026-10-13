@@ -12,8 +12,9 @@ import { upsertTaskRunWatch } from '../../db/task-run-watch.ts'
 import { suggestContext } from '../../graph/suggest.ts'
 import { autoRoute, describeTaskExecutor, formatRoute } from '../../router/auto-route.ts'
 import { resolveProjectAgentRule, taskFieldsFromRule } from '../../router/engine-cascade.ts'
-import { commitTasksYaml } from '../../run/commit-tasks-yaml.ts'
+import { commitPaths, commitTasksYaml } from '../../run/commit-tasks-yaml.ts'
 import { detectInstalledClis } from '../../run/executors/cli-registry.ts'
+import { DIRTY_TREE_REASON_PREFIX, listDirtyFiles } from '../../run/sandbox-policy.ts'
 import { isKnownSkillId } from '../../skills/catalog.ts'
 import { loadConstitution } from '../../spec/constitution.ts'
 import { ensureTasksYaml, scaffoldTasksYaml } from '../../tasks/init.ts'
@@ -419,6 +420,16 @@ async function handleApiTasksRun(
   } catch {
     /* body opcional */
   }
+  return launchTask(root, id, body, projectId)
+}
+
+/** Núcleo compartido de `/run` y `/commit-run`: pone la tarea `pending` y lanza el run. */
+function launchTask(
+  root: string,
+  id: string,
+  body: { model?: string; clarification?: string; sessionId?: string },
+  projectId?: string | null,
+): Response {
   const model = body.model?.trim() || undefined
   const clarification = body.clarification?.trim() || undefined
   if (!existsSync(join(root, 'tasks.yaml'))) return errorResponse('tasks.yaml not found', 404)
@@ -428,12 +439,54 @@ async function handleApiTasksRun(
     if (clarification)
       task.description = `${task.description}\n\nUser clarification: ${clarification}`
     if (task.status !== 'pending') task.status = 'pending'
+    // ERP.4.13: el motivo "árbol sucio" ya no aplica al lanzar; si quedara, un sondeo
+    // daría el run recién lanzado por terminado.
+    if (task.retry_reason?.startsWith(DIRTY_TREE_REASON_PREFIX)) task.retry_reason = undefined
     return true
   })
   if (!taskResult) return errorResponse('Task not found', 404)
   const session = typeof body.sessionId === 'string' ? getChatSession(body.sessionId) : null
   spawnTaskRun(root, id, model, projectId, session?.id)
   return jsonResponse({ ok: true, id })
+}
+
+/**
+ * ERP.4.13 — commitea los archivos sucios elegidos (solo los de `listDirtyFiles`) y relanza la
+ * tarea: el árbol deja de bloquear el sandbox sin que el usuario pase por la terminal.
+ */
+async function handleApiTasksCommitRun(
+  req: Request,
+  url: URL,
+  root: string,
+  projectId?: string | null,
+): Promise<Response> {
+  const raw = decodeURIComponent(url.pathname.split('/')[3] ?? '')
+  const id = validateTaskId(raw)
+  if (!id) return errorResponse('Missing or invalid task id', 400)
+  let body: { files?: unknown; sessionId?: string } = {}
+  try {
+    body = (await req.json()) as { files?: unknown; sessionId?: string }
+  } catch {
+    return errorResponse('Invalid JSON body', 400)
+  }
+  if (!existsSync(join(root, 'tasks.yaml'))) return errorResponse('tasks.yaml not found', 404)
+  if (!loadTasks(root).tasks.some((task) => task.id === id))
+    return errorResponse('Task not found', 404)
+  const files = body.files
+  if (!Array.isArray(files) || files.length === 0 || !files.every((f) => typeof f === 'string'))
+    return errorResponse('files must be a non-empty array of paths', 400)
+  const dirty = new Set(listDirtyFiles(root))
+  for (const file of files as string[]) {
+    const unsafe = !file || file.startsWith('/') || file.split(/[\\/]/).includes('..')
+    if (unsafe || !dirty.has(file)) return errorResponse(`Not an uncommitted file: ${file}`, 400)
+  }
+  const commit = commitPaths(
+    root,
+    files as string[],
+    `chore: commit pending changes before ${id} (dashboard)`,
+  )
+  if (!commit.ok) return errorResponse(commit.stderr || 'git commit failed', 409)
+  return launchTask(root, id, { sessionId: body.sessionId }, projectId)
 }
 
 /**
@@ -644,6 +697,7 @@ export {
   handleApiTasks,
   handleApiTasksApproveSplit,
   handleApiTasksBulkDelete,
+  handleApiTasksCommitRun,
   handleApiTasksCreate,
   handleApiTasksDelete,
   handleApiTasksDiagnose,

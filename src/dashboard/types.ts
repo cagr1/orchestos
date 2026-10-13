@@ -103,6 +103,8 @@ export interface ChatMessageRow {
   taskHeld: boolean
   existingFiles: string[]
   turnId: string | null
+  // ERP.4.13 — datos estructurados de un reporte de fin de tarea (ausente en mensajes normales)
+  taskReport?: { outcome: string; dirtyFiles?: string[] }
   createdAt: string
 }
 

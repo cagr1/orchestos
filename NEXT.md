@@ -1,4 +1,4 @@
-# NEXT — handoff 2026-10-13 (lote de hallazgos del piloto en curso: ERP.4.10 a ERP.4.12 cerrados)
+# NEXT — handoff 2026-10-13 (lote de hallazgos del piloto en curso: ERP.4.10 a ERP.4.13 cerrados)
 
 ## Decisiones de Carlos 2026-10-13 (respuesta a las 7 preguntas del handoff anterior)
 1. Utilidad de ERP.4: el veredicto lo pone el cerebro → "sirve, pero todavía no solo". ERP.4 se cierra al terminar
@@ -13,24 +13,20 @@
 6. Residuos de `erp-piloto`: limpiar si no sirven (las 3 tareas sobrantes no sirven; se limpian tras el hallazgo 5).
 7. `chat-retry-report` NO entra al pre-push.
 
-## PRIMERO al retomar — ERP.4.13
-ERP.4.10 (`e6efa62`), ERP.4.11 (`c476e68`) y ERP.4.12 cerrados 2026-10-13. Siguiente: ERP.4.13, sin spec; el diseño
-pensado está abajo. Toca chat + CLI + endpoint nuevo: escribir el spec y delegar a `criterio`.
-Para ERP.4.13: tras ERP.4.12 el CLI commitea `chore(tasks): <id> <estado>` al salir (`commitFinalTaskState`,
-`src/run/commit-tasks-yaml.ts`), también cuando el árbol sucio marca la tarea `failed`; `tasks.yaml` ya no es causa
-de árbol sucio entre runs.
-Notas de ERP.4.11: la fila de `/api/tasks` ya no tiene `executor`, tiene `assignedAgent`/`assignedModel`.
+## PRIMERO al retomar — ERP.4.14
+ERP.4.10 (`e6efa62`), ERP.4.11 (`c476e68`), ERP.4.12 (`043770c`) y ERP.4.13 cerrados 2026-10-13. Siguiente:
+ERP.4.14 (el composer distingue "cargando" de "Orchestrator unassigned"), sin spec; luego 4.15 y 4.16.
+Visto en ERP.4.13, sin ítem: `CC.2 — chat sessions backend` dio timeout de 5 s una vez dentro de `test:coverage`
+(pasa solo); si se repite, sumarlo a CI.12. `waitForTaskRun` (`app/src/api/chat.ts`) espera hasta 10 min ante un
+`pending` con intento fallido: no se midió si deja el botón pulsado ocupado todo ese tiempo.
 Lecciones: (1) un cambio en la forma de una respuesta de API exige grepear los fixtures `JSON.stringify` del front
 (`app/src/api/*.test.ts`): no están tipados, `typecheck` no los ve; (2) al envolver un punto de salida, grepear
-todos los llamadores de las funciones que escriben estado (`--expand` llamaba a `runApprovedSplitPlan` sin pasar por
-`executeTask`); (3) el pre-commit exige la línea `Gate en vivo:` con la evidencia entre backticks en el ítem cerrado.
+todos los llamadores de las funciones que escriben estado; (3) el pre-commit exige la línea `Gate en vivo:` con la
+evidencia entre backticks en el ítem cerrado; (4) `mecanico` lee NEXT.md: si el handoff no dice de qué ítem son los
+cambios sin commitear, se detiene aunque el spec lo diga — actualizar NEXT.md antes de delegar una ronda 2.
 
 ## Lote en curso (ERP.4.10–4.16 abiertos en PLAN.md con causa y decisión; ejecutar en ese orden)
-Sin spec todavía: 4.13 a 4.16. Diseño pensado para 4.13: el chequeo de árbol limpio (`run/sandbox-policy.ts:32-70`)
-deja la tarea `pending` (hoy `failed`, `cli.ts:1288-1296`); el reporte al hilo lleva los archivos en un campo
-estructurado; endpoint nuevo que commitea esos archivos y relanza ("Commit & Run"); botón de reintento en el último
-mensaje de fallo de una tarea `pending`/`failed` usando `POST /api/tasks/:id/run`; reusar el JSX y las clases de la
-tarjeta "Task ready to run" (`OrchestChatView.tsx:395-445`), sin CSS nuevo; gate: ampliar `chat-retry-report`.
+Sin spec todavía: 4.14 a 4.16.
 Respuestas de Carlos 2026-10-13: árbol sucio = seguir bloqueando + `pending` + "Commit & Run" en el hilo (ERP.4.13);
 Memory = entrada mecánica por tarea terminada, sin LLM (ERP.4.16; confirmar en el spec si las tareas siguientes leen
 `memory_entries` en su prompt). Al terminar: limpiar las 3 tareas sobrantes de `erp-piloto` y cerrar ERP.4 con el

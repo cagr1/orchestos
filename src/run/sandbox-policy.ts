@@ -10,6 +10,43 @@ export interface SandboxPolicyResult {
   branch: string | null
 }
 
+export const DIRTY_TREE_REASON_PREFIX = 'uncommitted changes: '
+
+/** El árbol tiene cambios sin commitear: `files` es la lista completa (sin truncar). */
+export class DirtyTreeError extends Error {
+  constructor(
+    message: string,
+    readonly files: string[],
+  ) {
+    super(message)
+    this.name = 'DirtyTreeError'
+  }
+}
+
+/**
+ * Rutas relativas con cambios sin commitear (incluye no seguidos), salvo `runs-summary.json`.
+ * Parseo con `-z`: un rename aporta origen y destino.
+ */
+export function listDirtyFiles(projectRoot: string): string[] {
+  // spawn directo: `git()` recorta el stdout y comería el espacio inicial de ` M ruta`
+  const proc = Bun.spawnSync(['git', 'status', '--porcelain', '-z'], { cwd: projectRoot })
+  if (proc.exitCode !== 0) return []
+  const entries = proc.stdout.toString().split('\0')
+  const files: string[] = []
+  for (let i = 0; i < entries.length; i++) {
+    const entry = entries[i]
+    if (!entry || entry.length < 4) continue
+    files.push(entry.slice(3))
+    if (entry[0] === 'R' || entry[0] === 'C' || entry[1] === 'R' || entry[1] === 'C') {
+      const origin = entries[++i]
+      if (origin) files.push(origin)
+    }
+  }
+  return files.filter(
+    (file) => file !== 'runs-summary.json' && !file.endsWith('/runs-summary.json'),
+  )
+}
+
 export function resolveSandboxMode(
   projectRoot: string,
   preferred?: SandboxMode,
@@ -52,6 +89,7 @@ export function resolveSandboxMode(
   // por cualquier motivo, seguimos con la lógica de abajo igual.
   git(['checkout', '--', 'runs-summary.json'], projectRoot)
   const status = git(['status', '--porcelain'], projectRoot)
+  const dirtyFiles = listDirtyFiles(projectRoot)
   const relevantLines = status.stdout
     .split('\n')
     .filter((l) => l.trim().length > 0 && !/\bruns-summary\.json$/.test(l))
@@ -64,9 +102,10 @@ export function resolveSandboxMode(
       })
       .join('\n')
     const suffix = relevantLines.length > 10 ? '\n  ... and more' : ''
-    throw new Error(
+    throw new DirtyTreeError(
       `Uncommitted changes in ${projectRoot}. Worktree sandbox requires a clean working tree.\n` +
         `Either commit or stash before running with sandbox:\n${fileList}${suffix}`,
+      dirtyFiles,
     )
   }
 

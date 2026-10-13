@@ -205,6 +205,8 @@ export interface ChatMessage {
     description: string
     output: string[]
   }
+  // ERP.4.13 — datos estructurados de un reporte de fin de tarea
+  taskReport?: { outcome: string; dirtyFiles?: string[] }
 }
 
 export type AppMode = 'chat' | 'dev' | 'settings'

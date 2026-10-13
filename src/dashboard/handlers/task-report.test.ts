@@ -6,6 +6,7 @@ import { join } from 'node:path'
 import { createChatSession, deleteChatSession, listChatMessages } from '../../db/chat-sessions.ts'
 import { insertRun } from '../../db/runs.ts'
 import { db } from '../../db/sqlite.ts'
+import { DIRTY_TREE_REASON_PREFIX } from '../../run/sandbox-policy.ts'
 import { reportTaskOutcome } from './task-report.ts'
 
 const roots: string[] = []
@@ -112,5 +113,34 @@ describe('reportTaskOutcome', () => {
     const content = listChatMessages(session.id)[0]?.content ?? ''
     expect(content).toContain(`\`${taskId}\` done · unit-provider/unit-model`)
     expect(content).toContain('> available run')
+  })
+
+  it('guarda el outcome estructurado en todo reporte', () => {
+    const done = setup('done')
+    reportTaskOutcome(done.root, done.session.id, done.taskId)
+    expect(listChatMessages(done.session.id)[0]?.taskReport).toEqual({ outcome: 'done' })
+
+    const failed = setup('failed', 'boom')
+    reportTaskOutcome(failed.root, failed.session.id, failed.taskId)
+    expect(listChatMessages(failed.session.id)[0]?.taskReport).toEqual({ outcome: 'failed' })
+  })
+
+  it('pending por árbol sucio: texto exacto y dirtyFiles leído en vivo', () => {
+    const { root, session, taskId } = setup('pending', `${DIRTY_TREE_REASON_PREFIX}viejo.txt`)
+    const git = (...args: string[]) =>
+      Bun.spawnSync(['git', '-c', 'user.name=t', '-c', 'user.email=t@invalid', ...args], {
+        cwd: root,
+        env: { PATH: process.env.PATH ?? '', HOME: root },
+      })
+    git('init', '-b', 'master')
+    git('add', 'tasks.yaml')
+    git('commit', '-m', 'base')
+    writeFileSync(join(root, 'sucio.txt'), 'x')
+    reportTaskOutcome(root, session.id, taskId)
+    const message = listChatMessages(session.id)[0]
+    expect(message?.content).toBe(
+      `✗ Task \`${taskId}\` not started · uncommitted changes in the project`,
+    )
+    expect(message?.taskReport).toEqual({ outcome: 'pending', dirtyFiles: ['sucio.txt'] })
   })
 })

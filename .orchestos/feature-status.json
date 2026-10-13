@@ -126,7 +126,7 @@
       "block": "H.7 — El contexto se llena en silencio y nadie avisa (ABIERTO 2026-09-02)",
       "delegation": "🔍",
       "title": "Árbol sucio: la tarea queda `pending` y el hilo ofrece \"Commit & Run\" y reintento",
-      "status": "open",
+      "status": "done",
       "closedDate": null
     },
     {

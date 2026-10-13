@@ -6,6 +6,7 @@ import {
   Copy,
   FileText,
   Loader2,
+  RotateCw,
   Sparkles,
   User,
   X,
@@ -39,6 +40,8 @@ interface OrchestChatViewProps {
   ) => unknown
   onApproveHeldTask?: (taskId: string) => void | Promise<void>
   onRejectHeldTask?: (taskId: string) => void | Promise<void>
+  onRetryTask?: (taskId: string) => void | Promise<void>
+  onCommitRunTask?: (taskId: string, files: string[]) => void | Promise<void>
   sessionStatus?: SessionStatus | null
   onSlashCommand?: (command: string, argument?: string) => void
   onOpenRouting?: () => void
@@ -50,6 +53,8 @@ export const OrchestChatView: React.FC<OrchestChatViewProps> = ({
   onSendMessage,
   onApproveHeldTask,
   onRejectHeldTask,
+  onRetryTask,
+  onCommitRunTask,
   sessionStatus,
   onSlashCommand,
   onOpenRouting,
@@ -62,6 +67,8 @@ export const OrchestChatView: React.FC<OrchestChatViewProps> = ({
   const sendLock = useRef(false)
   const [expandedReasoning, setExpandedReasoning] = useState<Record<string, boolean>>({})
   const [taskActionErrors, setTaskActionErrors] = useState<Record<string, string>>({})
+  const [reportActionErrors, setReportActionErrors] = useState<Record<string, string>>({})
+  const [busyReportActions, setBusyReportActions] = useState<Record<string, boolean>>({})
   const [sendError, setSendError] = useState<string | null>(null)
   const [orchestrator, setOrchestrator] = useState<{
     agent: string
@@ -94,6 +101,26 @@ export const OrchestChatView: React.FC<OrchestChatViewProps> = ({
   }, [thread?.projectId, projectExists])
 
   const messages = thread?.messages || []
+  // ERP.4.13 — la acción de un reporte vive solo en el último mensaje del hilo con ese taskId
+  const lastMessageIdByTask = new Map<string, string>()
+  for (const message of messages) {
+    if (message.taskId) lastMessageIdByTask.set(message.taskId, message.id)
+  }
+  const runReportAction = (messageId: string, action: () => void | Promise<void> | undefined) => {
+    setBusyReportActions((prev) => ({ ...prev, [messageId]: true }))
+    setReportActionErrors((prev) => {
+      const { [messageId]: _cleared, ...rest } = prev
+      return rest
+    })
+    void Promise.resolve(action())
+      .catch((error: unknown) =>
+        setReportActionErrors((prev) => ({
+          ...prev,
+          [messageId]: error instanceof Error ? error.message : String(error),
+        })),
+      )
+      .finally(() => setBusyReportActions((prev) => ({ ...prev, [messageId]: false })))
+  }
   const sessionId = thread?.id
   useEffect(() => {
     if (!sessionId) {
@@ -451,6 +478,79 @@ export const OrchestChatView: React.FC<OrchestChatViewProps> = ({
                           </div>
                         </div>
                       )}
+                      {msg.taskId &&
+                        msg.taskReport &&
+                        lastMessageIdByTask.get(msg.taskId) === msg.id &&
+                        (() => {
+                          const reportTaskId = msg.taskId
+                          const dirtyFiles = msg.taskReport.dirtyFiles ?? []
+                          const retryable =
+                            msg.taskReport.outcome === 'pending' ||
+                            msg.taskReport.outcome === 'failed'
+                          if (dirtyFiles.length === 0 && !retryable) return null
+                          const busy = Boolean(busyReportActions[msg.id])
+                          const actionError = reportActionErrors[msg.id]
+                          const buttons = (
+                            <div className="flex items-center gap-2 pt-1">
+                              <button
+                                type="button"
+                                disabled={busy}
+                                onClick={() =>
+                                  runReportAction(msg.id, () =>
+                                    dirtyFiles.length > 0
+                                      ? onCommitRunTask?.(reportTaskId, dirtyFiles)
+                                      : onRetryTask?.(reportTaskId),
+                                  )
+                                }
+                                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold shadow-md shadow-emerald-600/20 transition-all active:scale-95 disabled:opacity-60"
+                              >
+                                {dirtyFiles.length > 0 ? (
+                                  <Check className="w-3.5 h-3.5" />
+                                ) : (
+                                  <RotateCw className="w-3.5 h-3.5" />
+                                )}
+                                {dirtyFiles.length > 0 ? 'Commit & Run' : 'Retry'}
+                              </button>
+                            </div>
+                          )
+                          if (dirtyFiles.length === 0)
+                            return (
+                              <>
+                                {actionError && (
+                                  <div role="alert" className="text-xs text-red-300 mt-3">
+                                    {actionError}
+                                  </div>
+                                )}
+                                {buttons}
+                              </>
+                            )
+                          return (
+                            <div className="p-4 rounded-xl bg-gradient-to-br from-indigo-950/40 via-zinc-900 to-zinc-900 border border-indigo-500/40 shadow-xl space-y-3 mt-3">
+                              <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-2">
+                                  <span className="w-2 h-2 rounded-full bg-amber-400 animate-ping" />
+                                  <span className="font-bold text-xs text-white">
+                                    Uncommitted changes
+                                  </span>
+                                </div>
+                                <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
+                                  {reportTaskId}
+                                </span>
+                              </div>
+                              <div className="text-xs text-zinc-300 font-mono">
+                                {dirtyFiles.map((file) => (
+                                  <div key={file}>{file}</div>
+                                ))}
+                              </div>
+                              {actionError && (
+                                <div role="alert" className="text-xs text-red-300">
+                                  {actionError}
+                                </div>
+                              )}
+                              {buttons}
+                            </div>
+                          )
+                        })()}
                       <button
                         type="button"
                         onClick={() => void copyMessage(msg.id, msg.content)}
