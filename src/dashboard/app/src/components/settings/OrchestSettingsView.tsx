@@ -2580,7 +2580,7 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
                           <div className="flex flex-wrap items-center gap-2 pt-1 font-mono text-xs text-app-muted">
                             <div>
                               Agent:{' '}
-                              <span className="text-app">{task.assignedAgent || 'claude'}</span>
+                              <span className="text-app">{task.assignedAgent || 'unassigned'}</span>
                             </div>
                             {task.outputSlice && (
                               <div>

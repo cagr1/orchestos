@@ -1,4 +1,4 @@
-# NEXT — handoff 2026-10-13 (lote de hallazgos del piloto en curso: ERP.4.10 cerrado, ERP.4.11 a medias)
+# NEXT — handoff 2026-10-13 (lote de hallazgos del piloto en curso: ERP.4.10 y ERP.4.11 cerrados)
 
 ## Decisiones de Carlos 2026-10-13 (respuesta a las 7 preguntas del handoff anterior)
 1. Utilidad de ERP.4: el veredicto lo pone el cerebro → "sirve, pero todavía no solo". ERP.4 se cierra al terminar
@@ -13,30 +13,17 @@
 6. Residuos de `erp-piloto`: limpiar si no sirven (las 3 tareas sobrantes no sirven; se limpian tras el hallazgo 5).
 7. `chat-retry-report` NO entra al pre-push.
 
-## PRIMERO al retomar — ERP.4.11 ejecutado, SIN cerrar (Carlos pidió pausar, 2026-10-13)
-ERP.4.10 cerrado y pusheado (`e6efa62`). ERP.4.11: rondas 1 (`criterio`, sonnet) y 2 (`mecanico`, luna) aplicadas, sin
-commitear, en `src/router/auto-route.ts`, `src/dashboard/handlers/{chat,config,project,tasks}.ts`,
-`src/dashboard/types.ts`, `src/cli.ts`, `src/dashboard/app/src/api/tasks.ts`,
-`src/dashboard/app/src/components/settings/OrchestSettingsView.tsx` (solo `'claude'` → `'unassigned'`, línea 2583),
-`scripts/ui-gate/flows/tasks.mjs` y tests (`router`, `tasks-api-engine`, `natural-draft-context`). Diff de ambas
-rondas leído completo por el cerebro. Sin commitear también: `docs/specs/ERP.4.11-r2.md` y
-`docs/done/evidence/ERP.4.11-live.json`.
-Corrido por el cerebro: typecheck 0, lint 0, gate en vivo `tasks` **21/21** (evidencia ya copiada).
-**`test:coverage` 1728 pass / 1 FAIL, sin identificar** (la salida se recortó). Falta, en este orden:
-1. `bun run test:coverage 2>&1 | grep -B30 "(fail)"` → identificar el test; si lo rompió ERP.4.11, ronda 3 con spec
-   propio; si es intermitente ajeno (ver CI.12, CI.18), repetir y dejar evidencia.
-2. Re-correr `tasks` solo si la ronda 3 toca `src/`.
-3. Cerrar en PLAN.md (`[ ]`→reconcile→`[x]`→reconcile→commit), borrar `docs/specs/ERP.4.11.md` y `-r2.md`. No hay
-   cambio en `harness.ts`: sin entrada de LEDGER. Push después (queda 1 commit local de docs, `873bae6`, más este).
-Notas para el cierre: `pendingRouting[].executor` (`handlers/config.ts:62`) trae ahora el agente resuelto o
-`unassigned`; la fila de `/api/tasks` ya no tiene `executor`, tiene `assignedAgent`/`assignedModel`; el caso del
-piloto (YAML `executor: anthropic` + rol `codex/gpt-6-luna`) se prueba en `tasks-api-engine.test.ts`, sin contraprueba
-ejecutada contra HEAD.
+## PRIMERO al retomar — ERP.4.12
+ERP.4.10 (`e6efa62`) y ERP.4.11 cerrados 2026-10-13. Siguiente: ERP.4.12, spec ya escrito (`docs/specs/ERP.4.12.md`);
+releerlo contra el código antes de delegar (ERP.4.11 cambió `handlers/tasks.ts` y `cli.ts`).
+Notas de ERP.4.11: la fila de `/api/tasks` ya no tiene `executor`, tiene `assignedAgent`/`assignedModel`;
+`pendingRouting[].executor` (`handlers/config.ts`) trae el agente resuelto o `unassigned`. Lección: un cambio en la
+forma de una respuesta de API exige grepear los fixtures `JSON.stringify` del front (`app/src/api/*.test.ts`): no
+están tipados y `typecheck` no los ve; lo destapó `test:coverage`.
 
 ## Lote en curso (ERP.4.10–4.16 abiertos en PLAN.md con causa y decisión; ejecutar en ese orden)
-Specs ya escritos y commiteados: `docs/specs/ERP.4.11.md` (etiqueta del ejecutor resuelta con `autoRoute`, el
-borrador deja de elegir proveedor) y `docs/specs/ERP.4.12.md` (commit de `tasks.yaml` al terminar el run, limitado a
-esa ruta). Releer cada spec contra el código tras cerrar el ítem anterior: 4.11 toca el mismo borrador que 4.10.
+Spec ya escrito y commiteado: `docs/specs/ERP.4.12.md` (commit de `tasks.yaml` al terminar el run, limitado a
+esa ruta). Releer cada spec contra el código tras cerrar el ítem anterior.
 Sin spec todavía: 4.13 a 4.16. Diseño pensado para 4.13: el chequeo de árbol limpio (`run/sandbox-policy.ts:32-70`)
 deja la tarea `pending` (hoy `failed`, `cli.ts:1288-1296`); el reporte al hilo lleva los archivos en un campo
 estructurado; endpoint nuevo que commitea esos archivos y relanza ("Commit & Run"); botón de reintento en el último

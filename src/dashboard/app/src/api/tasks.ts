@@ -6,7 +6,8 @@ export interface TaskRowResponse {
   status: TaskStatus
   retryReason: string | null
   skill: string | null
-  executor: string
+  assignedAgent: string | null
+  assignedModel: string | null
   retryCount: number
   qaVerdict: 'pass' | 'fail' | null
   runId: string | null
@@ -31,7 +32,7 @@ function mapTask(row: TaskRowResponse): TaskItem {
     status: row.status,
     output: row.output,
     outputSlice: row.output,
-    assignedAgent: [row.engine || row.executor, row.executorModel].filter(Boolean).join(' · '),
+    assignedAgent: [row.assignedAgent, row.assignedModel].filter(Boolean).join(' · '),
     depends_on: row.dependsOn,
     acceptance_criteria: row.acceptanceCriteria,
     retryCount: row.retryCount,

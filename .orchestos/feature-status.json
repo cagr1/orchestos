@@ -108,7 +108,7 @@
       "block": "H.7 — El contexto se llena en silencio y nadie avisa (ABIERTO 2026-09-02)",
       "delegation": "🔍",
       "title": "La tarea muestra el ejecutor del rol Executor, no un proveedor elegido por el LLM",
-      "status": "open",
+      "status": "done",
       "closedDate": null
     },
     {

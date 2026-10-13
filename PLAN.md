@@ -319,11 +319,27 @@ Cerrada. Todos sus ítems están archivados en `docs/done/` (ver "Cerrados — e
   turnos anteriores (lo cubren los tests de `fallbackDraftOutput` y `buildDraftMessages`). `chat-followup-task` no
   está en el pre-push. `POST /api/tasks` acepta ahora `task_class` (no pedido, inocuo: se valida igual).
   **Fuera de scope declarado:** `PLAN.md`, `LEDGER.md`, `NEXT.md` y `docs/done/evidence/**` (cierre y evidencia).
-- [ ] **ERP.4.11 — 🔍 La tarea muestra el ejecutor del rol Executor, no un proveedor elegido por el LLM.** (abierto
+- [x] **ERP.4.11 — 🔍 La tarea muestra el ejecutor del rol Executor, no un proveedor elegido por el LLM.** (cerrado 2026-10-13; abierto
   2026-10-13, GO de Carlos; hallazgo 6) El prompt del borrador hace elegir entre `openrouter|anthropic|openai`
   (`handlers/project.ts:226,265`) y `createTaskRecord` cae a `openrouter` (`handlers/tasks.ts:239,275`); el run usa el
   rol Executor aparte (`router/auto-route.ts`). En el piloto: `executor: anthropic` con runs de `codex/gpt-6-luna`.
   Spec: `docs/specs/ERP.4.11.md`. Gate: tests + Settings → Tasks en vivo muestra el agente/modelo del rol.
+  Ejecutado por: sonnet (rol `criterio`, ronda 1) y gpt-6-luna (rol `mecanico`, rondas 2 y 3) · Spec: docs/specs/ERP.4.11.md
+  Hecho (2026-10-13): `describeTaskExecutor` (`router/auto-route.ts`) resuelve agente y modelo con el mismo
+  `autoRoute` que usa el run; la fila de `/api/tasks` trae `assignedAgent`/`assignedModel` en vez de `executor`, y
+  `pendingRouting[].executor` y el CLI (`tasks`, `task show`) muestran el agente resuelto o `unassigned`. El prompt
+  del borrador ya no pide proveedor (`buildDraftSystemPrompt`, función pura con test) y `createTaskRecord` no
+  escribe `executor: openrouter` de respaldo. La tarjeta de Settings → Tasks muestra `unassigned` en vez de `claude`
+  cuando no hay ruta.
+  Evidencia: `test:coverage` 1730/0 (funciones 76.89 %, líneas 63.73 %) · typecheck y lint exit 0.
+  Gate en vivo: navegador real (Playwright), `docs/done/evidence/ERP.4.11-live.json` — `tasks` 21/21: una tarea
+  creada sin modelo muestra `codex · gpt-6-luna` (rol Executor del fixture) y su entrada en `tasks.yaml` no lleva
+  proveedor.
+  Límites: sin contraprueba contra HEAD; el caso del piloto (YAML `executor: anthropic` + rol `codex/gpt-6-luna`)
+  solo se prueba en `tasks-api-engine.test.ts`, no en vivo. El gate `tasks` se corrió antes de la ronda 3, que solo
+  tocó `src/dashboard/app/src/api/tasks.test.ts` (fixtures con la fila vieja: 1 fallo de `test:coverage`). Las
+  tareas ya guardadas conservan su `executor` en el YAML; se ignora al mostrar.
+  **Fuera de scope declarado:** `PLAN.md`, `NEXT.md` y `docs/done/evidence/**` (cierre y evidencia).
 - [ ] **ERP.4.12 — 🔍 El estado que el run deja en `tasks.yaml` queda commiteado.** (abierto 2026-10-13, GO de
   Carlos; hallazgo 5) `updateTaskStatus` escribe `status`/`retry_count`/`qa_verdict` sin commit (`cli.ts:1281-1439`);
   solo se commitea al crear y al lanzar (`handlers/tasks.ts:287-347`). El proyecto queda con el árbol sucio tras cada run.

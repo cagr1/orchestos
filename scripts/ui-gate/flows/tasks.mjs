@@ -1,9 +1,9 @@
 import { execFileSync } from 'node:child_process'
-import { mkdtempSync, rmSync, writeFileSync } from 'node:fs'
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { basename, join } from 'node:path'
 import { setTimeout as delay } from 'node:timers/promises'
-import { stringify as yamlStringify } from 'yaml'
+import { parse as yamlParse, stringify as yamlStringify } from 'yaml'
 import { writeGateRoles } from '../lib.mjs'
 
 function run(command, args, cwd) {
@@ -161,6 +161,19 @@ export default async function tasks({ page, api, step, note, shot, visible, clea
     rmSync(projectRoot, { recursive: true, force: true, maxRetries: 10, retryDelay: 300 })
   })
 
+  const executorRole = yamlParse(readFileSync(join(projectRoot, 'orchestos.config.yaml'), 'utf8'))
+    .roles.executor
+  const created = await api('/api/tasks', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json', 'x-orchestos-project-id': project.id },
+    body: JSON.stringify({
+      id: 'gate-role-task',
+      description: 'Task created without its own model.',
+      output: ['ROLE.md'],
+    }),
+  })
+  if (!created.ok) throw new Error(`task create failed: ${created.status}`)
+
   await page.reload({ waitUntil: 'domcontentloaded' })
   await page.getByRole('button', { name: 'Dev', exact: true }).click()
   const projectButton = page.getByRole('button', { name: basename(projectRoot), exact: true })
@@ -194,6 +207,24 @@ export default async function tasks({ page, api, step, note, shot, visible, clea
     'mock task absent',
     (await page.getByText('t1_sandbox_worktree', { exact: true }).count()) === 0,
     'no initialMockTasks id rendered',
+  )
+  const roleLabel = `${executorRole.agent} · ${executorRole.model}`
+  await step(
+    'task created without model shows the Executor role agent and model',
+    await visible(
+      page
+        .locator('div.rounded-card', { has: page.getByText('gate-role-task', { exact: true }) })
+        .getByText(roleLabel, { exact: true }),
+    ),
+    `expected=${roleLabel} from fixture orchestos.config.yaml`,
+  )
+  const roleTaskYaml = readFileSync(join(projectRoot, 'tasks.yaml'), 'utf8')
+  await step(
+    'created task yaml has no hardcoded provider executor',
+    !/^\s*executor:\s*(openrouter|anthropic|openai)\b/m.test(
+      roleTaskYaml.slice(roleTaskYaml.indexOf('gate-role-task')),
+    ),
+    'tasks.yaml entry for gate-role-task has no executor: openrouter|anthropic|openai',
   )
   const failedTaskButton = page.getByRole('button', { name: 'Run gate-failed-task', exact: true })
   await step(

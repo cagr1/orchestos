@@ -249,7 +249,9 @@ export interface TaskRow {
   status: string // 'pending' | 'running' | 'done' | 'failed' | 'failed_permanent' | 'blocked'
   retryReason: string | null
   skill: string | null
-  executor: string
+  /** Resuelto desde la config (rol Executor o modelo de la tarea); `null` si no hay ruta. */
+  assignedAgent: string | null
+  assignedModel: string | null
   retryCount: number
   qaVerdict: 'pass' | 'fail' | null
   runId: string | null // link to latest run in /api/runs

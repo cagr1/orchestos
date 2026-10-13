@@ -357,3 +357,54 @@ describe('G.4 — POST /api/tasks acepta engine', () => {
     expect(rows[3]!.engine).toBeNull()
   })
 })
+
+describe('ERP.4.11 — el ejecutor visible sale de la config, no del campo guardado', () => {
+  it('createTaskRecord sin executor ni executor_model no escribe la clave executor', async () => {
+    await route(
+      req('POST', '/api/tasks', { id: 'no-exec', description: 'N', output: ['o.txt'] }),
+      PORT,
+    )
+    expect(readFileSync(join(tmpDir, 'tasks.yaml'), 'utf-8')).not.toContain('executor:')
+  })
+
+  it('con executor_model claude-x infiere executor: anthropic', async () => {
+    await route(
+      req('POST', '/api/tasks', {
+        id: 'with-model',
+        description: 'M',
+        output: ['o.txt'],
+        executor_model: 'claude-x',
+      }),
+      PORT,
+    )
+    expect(readFileSync(join(tmpDir, 'tasks.yaml'), 'utf-8')).toContain('executor: anthropic')
+  })
+
+  it('GET /api/tasks resuelve assignedAgent/assignedModel con el rol Executor aunque el YAML diga anthropic', async () => {
+    writeFileSync(
+      join(tmpDir, 'orchestos.config.yaml'),
+      'roles:\n  executor: { agent: codex, model: gpt-6-luna }\n',
+    )
+    writeTasksYaml([
+      {
+        id: 'pilot',
+        description: 'pilot task',
+        output: ['o.txt'],
+        executor: 'anthropic',
+        status: 'pending',
+        retry_count: 0,
+      },
+    ])
+    const rows = (await getTasks()) as unknown as Record<string, unknown>[]
+    expect(rows[0]).toMatchObject({ assignedAgent: 'codex', assignedModel: 'gpt-6-luna' })
+    expect(rows[0]).not.toHaveProperty('executor')
+  })
+
+  it('sin rol Executor ni modelo propio devuelve null', async () => {
+    writeTasksYaml([
+      { id: 'orphan', description: 'o', output: ['o.txt'], status: 'pending', retry_count: 0 },
+    ])
+    const rows = (await getTasks()) as unknown as Record<string, unknown>[]
+    expect(rows[0]).toMatchObject({ assignedAgent: null, assignedModel: null })
+  })
+})

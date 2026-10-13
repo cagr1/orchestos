@@ -24,7 +24,8 @@ describe('tasks API mapping', () => {
               status: 'pending',
               retryReason: null,
               skill: null,
-              executor: 'codex',
+              assignedAgent: 'codex',
+              assignedModel: 'gpt-5.6-luna',
               retryCount: 1,
               qaVerdict: null,
               runId: 'run-1',
@@ -55,6 +56,44 @@ describe('tasks API mapping', () => {
             engine: 'codex',
           },
         ],
+      })
+    } finally {
+      globalThis.fetch = originalFetch
+    }
+  })
+
+  test('una fila sin ruta deja assignedAgent vacío', async () => {
+    const originalFetch = globalThis.fetch
+    globalThis.fetch = (async () =>
+      new Response(
+        JSON.stringify({
+          exists: true,
+          tasks: [
+            {
+              id: 'build-app',
+              description: 'Build the app',
+              status: 'pending',
+              retryReason: null,
+              skill: null,
+              assignedAgent: null,
+              assignedModel: null,
+              retryCount: 1,
+              qaVerdict: null,
+              runId: 'run-1',
+              engine: 'codex',
+              output: ['dist/app.js'],
+              dependsOn: [],
+              acceptanceCriteria: ['build passes'],
+              executorModel: 'gpt-5.6-luna',
+              hasSplitPlan: false,
+            },
+          ],
+        }),
+        { status: 200 },
+      )) as unknown as typeof fetch
+    try {
+      await expect(listTasks('project-1')).resolves.toMatchObject({
+        tasks: [{ assignedAgent: '' }],
       })
     } finally {
       globalThis.fetch = originalFetch
@@ -120,7 +159,8 @@ describe('tasks API mapping', () => {
               status: 'pending',
               retryReason: retryScheduled ? 'missing declared output(s): README.md' : null,
               skill: null,
-              executor: 'codex',
+              assignedAgent: 'codex',
+              assignedModel: 'gpt-5.6-luna',
               retryCount: retryScheduled ? 1 : 0,
               qaVerdict: retryScheduled ? 'fail' : null,
               runId: retryScheduled ? 'run-2' : null,

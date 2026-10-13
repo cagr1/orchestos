@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'bun:test'
 import type { OrcheConfig } from '../config/schema.ts'
-import { autoRoute } from '../router/auto-route.ts'
+import { autoRoute, describeTaskExecutor } from '../router/auto-route.ts'
 import { classifyTask, type TaskClass } from '../router/classify.ts'
 import type { Task } from '../tasks/schema.ts'
 
@@ -109,5 +109,25 @@ describe('autoRoute', () => {
   })
   it('returns null when executor is unassigned', () => {
     expect(autoRoute(makeTask('Fix it'), { ...baseConfig, roles: {} })).toBeNull()
+  })
+})
+
+describe('describeTaskExecutor', () => {
+  it('sin engine ni executor_model resuelve el rol Executor', () => {
+    expect(describeTaskExecutor(makeTask('Add a feature'), baseConfig)).toEqual({
+      agent: 'codex',
+      model: 'gpt-6-luna',
+    })
+  })
+  it('engine external con executor_model propio resuelve claude y ese modelo', () => {
+    expect(
+      describeTaskExecutor(
+        makeTask('Fix it', { engine: 'external', executor_model: 'haiku' }),
+        baseConfig,
+      ),
+    ).toEqual({ agent: 'claude', model: 'haiku' })
+  })
+  it('sin rol Executor y sin modelo propio devuelve null', () => {
+    expect(describeTaskExecutor(makeTask('Fix it'), { ...baseConfig, roles: {} })).toBeNull()
   })
 })

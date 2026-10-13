@@ -968,7 +968,7 @@ program
 
 // ── config ────────────────────────────────────────────────────────────────────
 import { loadOrcheConfig, scaffoldConfigYaml } from './config/load.ts'
-import { autoRoute, formatRoute } from './router/auto-route.ts'
+import { autoRoute, describeTaskExecutor, formatRoute } from './router/auto-route.ts'
 import { openBudget } from './run/orchestration-budget.ts'
 
 const config = program.command('config').description('Manage model routing configuration')
@@ -1036,7 +1036,9 @@ config
     for (const t of pending) {
       const route = autoRoute(t, cfg)
       const modelStr = route ? formatRoute(route) : '(executor sin asignar)'
-      console.log(`  ${t.id.padEnd(COL_ID)} ${modelStr.padEnd(COL_MODEL)} ${t.executor}`)
+      console.log(
+        `  ${t.id.padEnd(COL_ID)} ${modelStr.padEnd(COL_MODEL)} ${describeTaskExecutor(t, cfg)?.agent ?? 'unassigned'}`,
+      )
     }
   })
 
@@ -2743,7 +2745,9 @@ async function runClarifyMode(
 
   console.log(`\n[task:clarify] ${t.id}`)
   console.log(`description: ${t.description}`)
-  console.log(`executor:    ${t.executor}`)
+  console.log(
+    `executor:    ${describeTaskExecutor(t, loadOrcheConfig(root))?.agent ?? 'unassigned'}`,
+  )
   console.log(`outputs:     ${t.output.join(', ')}`)
 
   const flagged = needsClarify(t)

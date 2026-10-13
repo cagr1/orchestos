@@ -156,7 +156,6 @@ export interface NaturalDraft {
   id: string
   description: string
   output: string[]
-  executor: string
   skillCandidates: string[]
   skillOptions: { id: string; name: string; description: string }[]
   /** Clase declarada por la intención del pedido; ausente si el LLM no dio un valor válido. */
@@ -274,6 +273,30 @@ export function dropIgnoredOutputs(root: string, output: string[]): string[] {
   return output.filter((path) => git(['check-ignore', '-q', '--', path], root).exitCode !== 0)
 }
 
+export function buildDraftSystemPrompt(parts: {
+  projectCtx: string
+  tasksSummary: string
+  skillsSummary: string
+  hasContext: boolean
+}): string {
+  const { projectCtx, tasksSummary, skillsSummary, hasContext } = parts
+  return `Eres un asistente que convierte instrucciones en lenguaje natural en definiciones de tareas para el orquestador OrchestOS.
+
+Dado lo que el usuario quiere hacer, devuelve ÚNICAMENTE un objeto JSON con exactamente estas claves:
+- "id": slug kebab-case de 3-5 palabras que describe la tarea (sin números al final, sin caracteres especiales)
+- "description": descripción clara de la tarea en 1-2 frases
+- "output": array de rutas de archivos que probablemente se crearán o modificarán (puede estar vacío si no es claro)
+- "skill_candidates": array de ids de skill de la lista de abajo que apliquen a esta tarea (puede estar vacío si ninguna aplica). Nunca inventes un id que no esté en la lista.
+- "task_class": uno de "plan", "implement", "fix", "review", "doc", según la INTENCIÓN del pedido, no por las palabras de la descripción: crear, añadir o cambiar código/archivos = "implement"; corregir un defecto existente = "fix"; solo revisar sin escribir = "review"; solo documentación = "doc"; solo planificar = "plan".
+
+${projectCtx ? `Contexto del proyecto:\n${projectCtx}\n` : ''}
+${tasksSummary ? `Tareas existentes (para evitar duplicados):\n${tasksSummary}\n` : ''}
+${skillsSummary ? `Skills instaladas disponibles:\n${skillsSummary}\n` : ''}
+
+${hasContext ? 'Si hay turnos previos, la tarea a definir es la que el orquestador acaba de anunciar en su última respuesta: completa con los turnos previos lo que el mensaje actual no repite (archivos, alcance). No inventes archivos que nadie nombró.\n' : ''}
+Responde SOLO con el JSON, sin texto adicional ni bloques de código.`
+}
+
 // D.7 (Mes 22) — extraído de handleApiNatural para que el auto-flow del chat
 // (handlers/chat.ts) pueda pedir el mismo draft por lenguaje natural sin pasar
 // por una Request/Response HTTP. handleApiNatural queda como wrapper delgado.
@@ -295,22 +318,12 @@ async function buildNaturalDraft(
   const skillCandidateInfos = listAllSkillCandidates()
   const skillsSummary = renderSkillCatalog(skillCandidateInfos)
 
-  const systemPrompt = `Eres un asistente que convierte instrucciones en lenguaje natural en definiciones de tareas para el orquestador OrchestOS.
-
-Dado lo que el usuario quiere hacer, devuelve ÚNICAMENTE un objeto JSON con exactamente estas claves:
-- "id": slug kebab-case de 3-5 palabras que describe la tarea (sin números al final, sin caracteres especiales)
-- "description": descripción clara de la tarea en 1-2 frases
-- "output": array de rutas de archivos que probablemente se crearán o modificarán (puede estar vacío si no es claro)
-- "executor": uno de "openrouter" (por defecto), "anthropic" (tareas complejas de código), "openai" (embeddings/análisis)
-- "skill_candidates": array de ids de skill de la lista de abajo que apliquen a esta tarea (puede estar vacío si ninguna aplica). Nunca inventes un id que no esté en la lista.
-- "task_class": uno de "plan", "implement", "fix", "review", "doc", según la INTENCIÓN del pedido, no por las palabras de la descripción: crear, añadir o cambiar código/archivos = "implement"; corregir un defecto existente = "fix"; solo revisar sin escribir = "review"; solo documentación = "doc"; solo planificar = "plan".
-
-${projectCtx ? `Contexto del proyecto:\n${projectCtx}\n` : ''}
-${tasksSummary ? `Tareas existentes (para evitar duplicados):\n${tasksSummary}\n` : ''}
-${skillsSummary ? `Skills instaladas disponibles:\n${skillsSummary}\n` : ''}
-
-${context ? 'Si hay turnos previos, la tarea a definir es la que el orquestador acaba de anunciar en su última respuesta: completa con los turnos previos lo que el mensaje actual no repite (archivos, alcance). No inventes archivos que nadie nombró.\n' : ''}
-Responde SOLO con el JSON, sin texto adicional ni bloques de código.`
+  const systemPrompt = buildDraftSystemPrompt({
+    projectCtx,
+    tasksSummary,
+    skillsSummary,
+    hasContext: Boolean(context),
+  })
 
   const orchestrator = roleClient(loadOrcheConfig(root), 'orchestrator', { cwd: root })
   const resp = await orchestrator.provider.chat({
@@ -326,7 +339,6 @@ Responde SOLO con el JSON, sin texto adicional ni bloques de código.`
     id: string
     description: string
     output: string[]
-    executor: string
     skill_candidates?: unknown
     task_class?: unknown
   }
@@ -343,7 +355,6 @@ Responde SOLO con el JSON, sin texto adicional ni bloques de código.`
     root,
     draft.output.filter((f) => typeof f === 'string'),
   )
-  if (!['openrouter', 'anthropic', 'openai'].includes(draft.executor)) draft.executor = 'openrouter'
 
   // Fail-safe: solo se aceptan ids que existen de verdad — un id inventado
   // por el LLM se descarta como si no hubiera dicho nada (mismo espíritu
@@ -361,7 +372,6 @@ Responde SOLO con el JSON, sin texto adicional ni bloques de código.`
     id: draft.id,
     description: draft.description,
     output: draft.output,
-    executor: draft.executor,
     skillCandidates,
     skillOptions,
     taskClass: parseDraftTaskClass(draft.task_class),

@@ -4,6 +4,7 @@ import { tmpdir } from 'os'
 import { join } from 'path'
 import {
   buildDraftMessages,
+  buildDraftSystemPrompt,
   fallbackDraftOutput,
   parseDraftTaskClass,
 } from '../dashboard/handlers/project.ts'
@@ -22,6 +23,32 @@ function fixture(): string {
   writeFileSync(join(root, 'src/a.ts'), 'export {}\n')
   return root
 }
+
+describe('buildDraftSystemPrompt', () => {
+  const emptyParts = {
+    projectCtx: '',
+    tasksSummary: '',
+    skillsSummary: '',
+  }
+
+  it('incluye el contrato de salida sin inventar proveedor ni executor', () => {
+    const prompt = buildDraftSystemPrompt({ ...emptyParts, hasContext: false })
+    expect(prompt).not.toContain('openrouter')
+    expect(prompt).not.toContain('anthropic')
+    expect(prompt).not.toContain('"executor"')
+    expect(prompt).toContain('"task_class"')
+    expect(prompt).toContain('"output"')
+  })
+
+  it('incluye la referencia al anuncio del orquestador solo con contexto', () => {
+    expect(buildDraftSystemPrompt({ ...emptyParts, hasContext: true })).toContain(
+      'la que el orquestador acaba de anunciar',
+    )
+    expect(buildDraftSystemPrompt({ ...emptyParts, hasContext: false })).not.toContain(
+      'la que el orquestador acaba de anunciar',
+    )
+  })
+})
 
 describe('buildDraftMessages', () => {
   it('sin contexto devuelve solo el mensaje actual (igual que antes)', () => {

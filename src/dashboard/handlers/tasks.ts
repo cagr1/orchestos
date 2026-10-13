@@ -10,7 +10,7 @@ import { getProject } from '../../db/projects.ts'
 import { getRunSteps } from '../../db/run-steps.ts'
 import { upsertTaskRunWatch } from '../../db/task-run-watch.ts'
 import { suggestContext } from '../../graph/suggest.ts'
-import { autoRoute, formatRoute } from '../../router/auto-route.ts'
+import { autoRoute, describeTaskExecutor, formatRoute } from '../../router/auto-route.ts'
 import { resolveProjectAgentRule, taskFieldsFromRule } from '../../router/engine-cascade.ts'
 import { detectInstalledClis } from '../../run/executors/cli-registry.ts'
 import { withGitLock } from '../../run/git-lock.ts'
@@ -73,18 +73,28 @@ async function handleApiSystemExecutorModes(root = process.cwd()): Promise<Respo
   return jsonResponse({ modes, selected: loadOrcheConfig(root).agent ?? null })
 }
 
+/** Agente y modelo resueltos desde la config (no del campo `executor` guardado); `null` sin ruta. */
+function assignedExecutor(
+  t: Parameters<typeof describeTaskExecutor>[0],
+  cfg: Parameters<typeof describeTaskExecutor>[1],
+): { assignedAgent: string | null; assignedModel: string | null } {
+  const resolved = describeTaskExecutor(t, cfg)
+  return { assignedAgent: resolved?.agent ?? null, assignedModel: resolved?.model ?? null }
+}
+
 /** Shared by /api/tasks and /api/run/graph/status — both need the live tasks.yaml view. */
 function loadTaskRows(root: string): TaskRow[] {
   if (!existsSync(join(root, 'tasks.yaml'))) return []
   try {
     const file = loadTasks(root)
+    const cfg = loadOrcheConfig(root)
     return file.tasks.map((t) => ({
       id: t.id,
       description: t.description,
       status: t.status,
       retryReason: t.retry_reason ?? null,
       skill: t.skill ?? null,
-      executor: t.executor,
+      ...assignedExecutor(t, cfg),
       retryCount: t.retry_count,
       qaVerdict: t.qa_verdict ?? null,
       runId: t.run_id ?? null,
@@ -124,13 +134,14 @@ function handleApiTasks(root: string): Response {
   }
   try {
     const file = loadTasks(root)
+    const cfg = loadOrcheConfig(root)
     const rows: TaskRow[] = file.tasks.map((t) => ({
       id: t.id,
       description: t.description,
       status: t.status,
       retryReason: t.retry_reason ?? null,
       skill: t.skill ?? null,
-      executor: t.executor,
+      ...assignedExecutor(t, cfg),
       retryCount: t.retry_count,
       qaVerdict: t.qa_verdict ?? null,
       runId: t.run_id ?? null,
@@ -238,7 +249,8 @@ function createTaskRecord(
     }
   }
   const executorModel = params.executor_model?.trim() || undefined
-  const executor = params.executor || inferExecutorFromModel(executorModel)
+  const executor =
+    params.executor || (executorModel ? inferExecutorFromModel(executorModel) : undefined)
   const engineRaw = params.engine?.trim()
   let engine: 'single-shot' | 'agentic' | 'external' | 'opencode' | 'codex' | undefined
   if (
@@ -275,10 +287,10 @@ function createTaskRecord(
         id: finalId,
         description,
         output,
-        executor: executor || 'openrouter',
         status: 'pending',
         retry_count: 0,
       }
+      if (executor) newTask.executor = executor
       if (executorModel) newTask.executor_model = executorModel
       if (engine) newTask.engine = engine
       if (cliEffort) newTask.cli_effort = cliEffort

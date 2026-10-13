@@ -12,7 +12,7 @@ import {
   type RoleName,
   type TaskAgentRule,
 } from '../../config/schema.ts'
-import { autoRoute, formatRoute } from '../../router/auto-route.ts'
+import { autoRoute, describeTaskExecutor, formatRoute } from '../../router/auto-route.ts'
 import { findClaudeBinary } from '../../run/executors/external.ts'
 import { loadTasks, tasksExist } from '../../tasks/loader.ts'
 import { errorResponse, jsonResponse } from '../http.ts'
@@ -59,7 +59,11 @@ export async function handleApiConfigGet(root = process.cwd()): Promise<Response
       pendingRouting = pending.map((t) => {
         const route = autoRoute(t, cfg)
         const modelStr = route ? formatRoute(route) : '(executor sin asignar)'
-        return { id: t.id, model: modelStr, executor: t.executor }
+        return {
+          id: t.id,
+          model: modelStr,
+          executor: describeTaskExecutor(t, cfg)?.agent ?? 'unassigned',
+        }
       })
     } catch {
       // tasks.yaml malformado — el resto del config sigue siendo válido y se

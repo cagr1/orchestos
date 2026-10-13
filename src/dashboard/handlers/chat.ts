@@ -1152,7 +1152,6 @@ async function handleApiChat(
                 id: reservedId ?? draft.id,
                 description: draft.description,
                 output,
-                executor: draft.executor,
                 task_class: draft.taskClass,
                 ...ruleFields,
                 skill,

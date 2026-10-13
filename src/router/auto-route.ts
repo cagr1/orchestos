@@ -46,3 +46,12 @@ export function autoRoute(task: Task, cfg: OrcheConfig): RouteResult | null {
 export function formatRoute(route: RouteResult): string {
   return `${route.agent}/${route.model} (${route.source})${route.effort ? ` · ${route.effort}` : ''}`
 }
+
+/** Quién ejecuta la tarea según la config y la tarea; `null` = sin rol Executor y sin modelo propio. */
+export function describeTaskExecutor(
+  task: Task,
+  cfg: OrcheConfig,
+): { agent: string; model: string } | null {
+  const route = autoRoute(task, cfg)
+  return route ? { agent: route.agent, model: route.model } : null
+}
