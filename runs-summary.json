@@ -1,7 +1,37 @@
 {
-  "exported_at": "2026-10-13T13:34:14.729Z",
+  "exported_at": "2026-10-13T13:48:44.287Z",
   "total_runs": 20,
   "runs": [
+    {
+      "id": "bc082a12-4661-4918-a063-05cd4e00b432",
+      "task_class": "gate:erp.4.7-tasks-live:implement",
+      "model": "openai/gpt-6-luna",
+      "provider": "codex",
+      "status": "done",
+      "qa_verdict": "pass",
+      "qa_reason": "NOTES.md contains the required line.",
+      "files_blocked": [],
+      "checks_failed": 0,
+      "usd_cost": 0.00073938,
+      "elapsed_ms": 14232,
+      "tokens": 7496,
+      "created_at": "2026-10-13T13:45:27.048Z"
+    },
+    {
+      "id": "300e75b4-ee41-42f4-bff1-d213e871904b",
+      "task_class": "gate:erp.4.7-tasks-live:doc",
+      "model": "openai/gpt-6-luna",
+      "provider": "codex",
+      "status": "done",
+      "qa_verdict": "pass",
+      "qa_reason": "README.md contains the requested line.",
+      "files_blocked": [],
+      "checks_failed": 0,
+      "usd_cost": 0.0015970399999999997,
+      "elapsed_ms": 27244,
+      "tokens": 14692,
+      "created_at": "2026-10-13T13:45:11.315Z"
+    },
     {
       "id": "ad780982-5744-4fad-9630-ce4e3d969880",
       "task_class": "fix",
@@ -271,36 +301,6 @@
       "elapsed_ms": 13684,
       "tokens": 3670,
       "created_at": "2026-10-12T22:14:04.580Z"
-    },
-    {
-      "id": "6c30b043-e963-4fa6-8c94-46a68c7a4502",
-      "task_class": "gate:erp.4.2-live:implement",
-      "model": "openai/gpt-6-luna",
-      "provider": "codex",
-      "status": "done",
-      "qa_verdict": "pass",
-      "qa_reason": "ok.txt contains the required line VERDE.",
-      "files_blocked": [],
-      "checks_failed": 0,
-      "usd_cost": 0.0007304799999999999,
-      "elapsed_ms": 29306,
-      "tokens": 7492,
-      "created_at": "2026-10-12T22:13:49.415Z"
-    },
-    {
-      "id": "27662fee-0108-445c-a082-683241851b98",
-      "task_class": "review",
-      "model": "gpt-6-luna",
-      "provider": "codex",
-      "status": "done",
-      "qa_verdict": "pass",
-      "qa_reason": "La migración es idempotente, crea la base y las restricciones solicitadas, y los tests verifican tablas y restricciones en una base temporal en memoria.",
-      "files_blocked": [],
-      "checks_failed": 0,
-      "usd_cost": 0.0038649,
-      "elapsed_ms": 44725,
-      "tokens": 19534,
-      "created_at": "2026-10-12T22:12:41.330Z"
     }
   ],
   "stats": {
@@ -308,6 +308,6 @@
     "blocked": 0,
     "done": 17,
     "qa_failed": 3,
-    "total_cost_usd": "0.5024"
+    "total_cost_usd": "0.5001"
   }
 }

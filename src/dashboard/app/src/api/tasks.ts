@@ -83,6 +83,16 @@ export function getRunnableTask(tasks: TaskItem[]): TaskItem | undefined {
   )
 }
 
+/** Una tarea se puede lanzar por id si está `pending` o `failed` y todas sus dependencias están `done`. */
+export function isTaskRunnable(task: TaskItem, tasks: TaskItem[]): boolean {
+  return (
+    (task.status === 'pending' || task.status === 'failed') &&
+    task.depends_on.every((dependencyId) =>
+      tasks.some((item) => item.id === dependencyId && item.status === 'done'),
+    )
+  )
+}
+
 export async function runTask(
   taskId: string,
   projectId: string,

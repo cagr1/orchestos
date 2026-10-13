@@ -57,6 +57,7 @@ import {
   saveOrchestration,
   saveSettings,
 } from '../../api/settings'
+import { isTaskRunnable } from '../../api/tasks'
 import type {
   InstinctItem,
   MemoryItem,
@@ -140,6 +141,7 @@ interface OrchestSettingsViewProps {
   graphRefreshing?: boolean
   onRunNextTask?: () => void
   canRunNextTask?: boolean
+  taskRunBusy?: boolean
   onOpenChat?: () => void
   onPurgeProjectData?: (projectId: string) => void | Promise<void>
   onResetOrchestos?: () => void
@@ -186,6 +188,7 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
   graphRefreshing = false,
   onRunNextTask,
   canRunNextTask = false,
+  taskRunBusy = false,
   onOpenChat,
   onPurgeProjectData,
   onResetOrchestos,
@@ -2551,7 +2554,21 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
                                 {task.title || task.description}
                               </span>
                             </div>
-                            <StatusBadge status={task.status} />
+                            <div className="flex items-center gap-2">
+                              {onRunTask && isTaskRunnable(task, tasks) && (
+                                <button
+                                  type="button"
+                                  onClick={() => onRunTask(task.id)}
+                                  disabled={taskRunBusy}
+                                  aria-disabled={taskRunBusy}
+                                  aria-label={`Run ${task.id}`}
+                                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-control bg-app-accent text-zinc-950 font-semibold text-xs hover:opacity-90 transition-opacity"
+                                >
+                                  <span>Run</span>
+                                </button>
+                              )}
+                              <StatusBadge status={task.status} />
+                            </div>
                           </div>
                           <p className="text-xs text-app-muted">{task.description}</p>
                           {(task.retryCount ?? 0) > 0 && task.retryReason && (

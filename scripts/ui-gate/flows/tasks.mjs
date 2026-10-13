@@ -120,6 +120,19 @@ export default async function tasks({ page, api, step, note, shot, visible, clea
             status: 'pending',
             retry_count: 0,
           },
+          {
+            id: 'gate-failed-task',
+            description: 'Create NOTES.md containing the line: Retry ran.',
+            executor_model: 'openai/gpt-6-luna',
+            engine: 'codex',
+            cli_effort: 'medium',
+            input: [],
+            output: ['NOTES.md'],
+            acceptance_criteria: ['NOTES.md contains the line: Retry ran.'],
+            depends_on: [],
+            status: 'failed',
+            retry_count: 0,
+          },
         ],
       },
       { lineWidth: 120 },
@@ -164,7 +177,7 @@ export default async function tasks({ page, api, step, note, shot, visible, clea
     'project settings heading visible',
   )
 
-  const taskIds = ['gate-first-task', 'gate-dependent-task']
+  const taskIds = ['gate-first-task', 'gate-dependent-task', 'gate-failed-task']
   for (const taskId of taskIds) {
     await step(
       `task id ${taskId} visible`,
@@ -174,13 +187,25 @@ export default async function tasks({ page, api, step, note, shot, visible, clea
   }
   await step(
     'real output visible',
-    await visible(page.getByText('[README.md]', { exact: true })),
+    await visible(page.getByText('[README.md]', { exact: true }).first()),
     'output boundary from tasks.yaml',
   )
   await step(
     'mock task absent',
     (await page.getByText('t1_sandbox_worktree', { exact: true }).count()) === 0,
     'no initialMockTasks id rendered',
+  )
+  const failedTaskButton = page.getByRole('button', { name: 'Run gate-failed-task', exact: true })
+  await step(
+    'failed task offers its own Run button',
+    (await failedTaskButton.isVisible()) && (await failedTaskButton.isEnabled()),
+    'visible=true enabled=true',
+  )
+  await step(
+    'task with unfinished dependency has no Run button',
+    (await page.getByRole('button', { name: 'Run gate-dependent-task', exact: true }).count()) ===
+      0,
+    'button count=0',
   )
 
   const runButton = page.getByRole('button', { name: 'Run Next Task', exact: true })
@@ -262,6 +287,36 @@ export default async function tasks({ page, api, step, note, shot, visible, clea
     (await tasksFor(api, project.id)).find((task) => task.id === 'gate-first-task')?.status ===
       visibleStatus,
     `status=${visibleStatus}`,
+  )
+  const failedBefore = (await tasksFor(api, project.id)).find(
+    (task) => task.id === 'gate-failed-task',
+  )
+  if (await failedTaskButton.isEnabled()) await failedTaskButton.click()
+  const failedStartDeadline = Date.now() + 20_000
+  let failedAfter = failedBefore
+  while (Date.now() <= failedStartDeadline) {
+    failedAfter = (await tasksFor(api, project.id)).find((task) => task.id === 'gate-failed-task')
+    if (failedAfter && failedAfter.status !== 'failed') break
+    await delay(500)
+  }
+  const relaunched = await waitForTaskFinished(api, project.id, 'gate-failed-task', failedBefore)
+  await step(
+    'failed task relaunched by id ran',
+    Boolean(relaunched?.runId && relaunched.runId !== failedBefore?.runId),
+    `runId=${relaunched?.runId ?? 'missing'} previous=${failedBefore?.runId ?? 'missing'}`,
+  )
+  await step(
+    'relaunched task reaches done',
+    relaunched?.status === 'done',
+    `status=${relaunched?.status ?? 'missing'}`,
+  )
+  const dependentAfterRelaunch = (await tasksFor(api, project.id)).find(
+    (task) => task.id === 'gate-dependent-task',
+  )
+  await step(
+    'relaunch did not start the dependent task',
+    dependentAfterRelaunch?.status === 'pending' && !dependentAfterRelaunch.runId,
+    `status=${dependentAfterRelaunch?.status ?? 'missing'} runId=${dependentAfterRelaunch?.runId ?? 'missing'}`,
   )
   await shot('tasks-real-data')
 }

@@ -1,5 +1,6 @@
 import { describe, expect, test } from 'bun:test'
-import { getRunnableTask, isTaskStillRunning, listTasks, runTask } from './tasks'
+import type { TaskItem } from '../types/orchestos'
+import { getRunnableTask, isTaskRunnable, isTaskStillRunning, listTasks, runTask } from './tasks'
 
 describe('tasks API mapping', () => {
   test('maps the real task wrapper to the Settings task contract', async () => {
@@ -151,5 +152,37 @@ describe('isTaskStillRunning', () => {
     ).toBe(false)
     expect(isTaskStillRunning({ status: 'done' })).toBe(false)
     expect(isTaskStillRunning({ status: 'failed' })).toBe(false)
+  })
+})
+
+describe('isTaskRunnable', () => {
+  const task = (id: string, status: TaskItem['status'], depends_on: string[] = []): TaskItem => ({
+    id,
+    description: id,
+    status,
+    output: [],
+    depends_on,
+    acceptance_criteria: [],
+    retryCount: 0,
+    engine: 'single-shot',
+  })
+
+  test('permite pending y failed sin dependencias y failed con dependencias done', () => {
+    const doneDependency = task('dependency', 'done')
+    expect(isTaskRunnable(task('pending', 'pending'), [])).toBe(true)
+    expect(isTaskRunnable(task('failed', 'failed'), [])).toBe(true)
+    expect(
+      isTaskRunnable(task('failed-with-dependency', 'failed', ['dependency']), [doneDependency]),
+    ).toBe(true)
+  })
+
+  test('requiere dependencias done y rechaza estados no relanzables', () => {
+    const unfinishedDependency = task('dependency', 'pending')
+    expect(
+      isTaskRunnable(task('pending-dependent', 'pending', ['dependency']), [unfinishedDependency]),
+    ).toBe(false)
+    for (const status of ['done', 'running', 'failed_permanent', 'blocked'] as const) {
+      expect(isTaskRunnable(task(status, status), [])).toBe(false)
+    }
   })
 })

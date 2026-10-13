@@ -72,7 +72,7 @@
       "block": "H.7 — El contexto se llena en silencio y nadie avisa (ABIERTO 2026-09-02)",
       "delegation": "🔍",
       "title": "Cada tarea `pending` o `failed` se puede lanzar desde su tarjeta en Settings → Tasks",
-      "status": "open",
+      "status": "done",
       "closedDate": null
     },
     {

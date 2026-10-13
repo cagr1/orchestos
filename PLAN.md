@@ -224,12 +224,29 @@ Cerrada. Todos sus ítems están archivados en `docs/done/` (ver "Cerrados — e
   contraprueba con el código viejo: falla el test nuevo. Gate en vivo (navegador real, 2026-10-13 06:21-06:22): etapa
   6 pedida por chat → `chat-e11d25a6` `done`, QA pass (gpt-6.1-sol), 39 s; `erp-piloto` 25 tests verdes.
   Registro: `docs/done/evidence/ERP.4/piloto-2026-10-12.md` § Etapa 6.
-- [ ] **ERP.4.7 — 🔍 Cada tarea `pending` o `failed` se puede lanzar desde su tarjeta en Settings → Tasks.** (abierto
+- [x] **ERP.4.7 — 🔍 Cada tarea `pending` o `failed` se puede lanzar desde su tarjeta en Settings → Tasks.** (abierto
   2026-10-13, GO de Carlos; hallazgos 18 y 19 del piloto) Settings → Tasks solo ofrece "Run Next Task", que toma la
   primera `pending` (en el piloto, un residuo de la primera corrida) y nunca una `failed`; relanzar la tarea que falló
   exigió repetir el pedido por chat. El endpoint por id ya existe (`POST /api/tasks/:id/run`,
   `handlers/tasks.ts:399`); falta el botón. Spec: `docs/specs/ERP.4.7.md`.
   Gate: test de `isTaskRunnable` + flujo `tasks` del ui-gate con una tarea `failed` relanzada desde su tarjeta.
+  Ejecutado por: gpt-6-luna (rol `mecanico`), 2 rondas · Spec: docs/specs/ERP.4.7.md
+  Hecho: `isTaskRunnable` (`app/src/api/tasks.ts`: `pending` o `failed` con dependencias `done`); botón `Run` por
+  tarjeta en Settings → Tasks con el `className` del "Run Next Task", deshabilitado mientras corre otra tarea; un
+  solo `handleRunTask` en `App.tsx` (ronda 2: el `onRunTask` inline que ya usaba la pestaña Plan duplicaba el
+  handler nuevo, y la tarea de fixture del gate había salido sin `engine`/`executor_model`).
+  Corrección del hallazgo 19: Settings → Plan ya tenía `Run` por tarea (`PlanBoardView.tsx:397,514`, toda tarea no
+  `done`); lo que faltaba era en la pestaña Tasks, donde se lee el motivo del fallo. El de Plan no se probó en vivo.
+  Gates propios: `typecheck`, `lint`, `build:app` y `ui:fidelity:jsx` limpios; `test:coverage` 1696/0, funciones
+  76.66 %, líneas 63.50 %.
+  Gate en vivo: navegador real (Playwright), `docs/done/evidence/ERP.4.7-live.json` — `tasks` 19/19 con
+  `gate:evidence --label ERP.4.7-tasks-live` (2 runs exportados): `gate-failed-task` (`failed`, codex gpt-6-luna)
+  lanzada desde su tarjeta → run `bc082a12` → `done`; `gate-dependent-task` sigue `pending` sin run y no ofrece `Run`.
+  Límite: una tarea `failed_permanent` no ofrece `Run` (no se comprobó si el harness la admite tras 3 intentos).
+  Entorno: `~/Library/Caches/ms-playwright` no existía al correr el gate (causa sin identificar); reinstalado con
+  `bunx playwright install chromium`.
+  **Fuera de scope declarado:** `PLAN.md` y `docs/done/evidence/**` (cierre y evidencia del propio ítem; el scope
+  lo declaró el ejecutor solo para el código).
 - [ ] **ERP.4.8 — 🔍 El run fallido guarda y muestra lo que respondió el ejecutor.** (abierto 2026-10-13, GO de
   Carlos; hallazgo 15) `runs.result` solo trae el motivo del contrato y `ExecutorOutcome`
   (`src/run/executors/types.ts:18`) no lleva el texto final del CLI; además `runs.result` no sale por la API ni se ve

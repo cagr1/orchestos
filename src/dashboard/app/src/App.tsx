@@ -972,17 +972,16 @@ export default function App() {
     await refreshUsage()
   }
 
-  const handleRunNextTask = async () => {
+  const handleRunTask = async (taskId: string) => {
     if (!currentProject || runningTaskId) return
-    const nextTask = getRunnableTask(tasks)
-    if (!nextTask) return
     setTaskRunError(null)
-    setRunningTaskId(nextTask.id)
+    setRunningTaskId(taskId)
     try {
-      await runTask(nextTask.id, currentProject.id, (loaded) => {
+      await runTask(taskId, currentProject.id, (loaded) => {
         setTasks(loaded)
         setTaskError(null)
       })
+      await reloadTabs()
     } catch (error) {
       setTaskRunError(error instanceof Error ? error.message : String(error))
       await listTasks(currentProject.id)
@@ -998,6 +997,11 @@ export default function App() {
         .catch(() => undefined)
       await refreshUsage()
     }
+  }
+
+  const handleRunNextTask = async () => {
+    const nextTask = getRunnableTask(tasks)
+    if (nextTask) await handleRunTask(nextTask.id)
   }
 
   const handleRejectHeldTask = async (taskId: string) => {
@@ -1241,29 +1245,7 @@ export default function App() {
               onApproveInstinct={handleApproveInstinct}
               onRejectInstinct={handleRejectInstinct}
               onAddInstinct={handleAddInstinct}
-              onRunTask={async (id) => {
-                if (!currentProject) return
-                setTaskRunError(null)
-                setRunningTaskId(id)
-                try {
-                  await runTask(id, currentProject.id, setTasks)
-                  await reloadTabs()
-                } catch (error) {
-                  setTaskRunError(error instanceof Error ? error.message : String(error))
-                  await listTasks(currentProject.id)
-                    .then((result) => {
-                      setTasks(result.tasks)
-                      setTaskError(result.error || null)
-                    })
-                    .catch(() => undefined)
-                } finally {
-                  setRunningTaskId(null)
-                  await listRuns(currentProject.id)
-                    .then(setRuns)
-                    .catch(() => undefined)
-                  await refreshUsage()
-                }
-              }}
+              onRunTask={(id) => void handleRunTask(id)}
               onExplainTask={handleExplainTask}
               onAddTask={handleAddTask}
               projectTabsLoading={projectTabsLoading}
@@ -1273,6 +1255,7 @@ export default function App() {
               onOpenChat={() => setMode('chat')}
               onRunNextTask={() => void handleRunNextTask()}
               canRunNextTask={Boolean(getRunnableTask(tasks)) && !runningTaskId}
+              taskRunBusy={Boolean(runningTaskId)}
             />
           )}
         </div>
