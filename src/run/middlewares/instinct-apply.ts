@@ -14,7 +14,9 @@ import type { MiddlewareFn, RunContext } from '../middleware.ts'
 export const instinctApply: MiddlewareFn<RunContext> = async (ctx, next) => {
   let projectId: string | null = null
   try {
-    projectId = getProject(realpathSync(ctx.effectiveRoot))?.id ?? null
+    // La raíz real del proyecto, no effectiveRoot: con sandbox este es un worktree
+    // (<proyecto>/.orchestos/worktrees/<id>) que no es un proyecto registrado.
+    projectId = getProject(realpathSync(ctx.opts.projectRoot))?.id ?? null
   } catch {}
   const applicable = listApplicable(projectId)
   if (applicable.length > 0) {

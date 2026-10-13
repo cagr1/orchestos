@@ -21,7 +21,18 @@
    regla de stock, permiso admin, API, pantalla, tests), dejar que cree y ejecute las tareas, reiniciar el dashboard
    una vez a mitad, guardar una corrección y comprobar que se recupera en la tarea siguiente. Registrar por etapa:
    CLI/modelo usado, intervenciones, bloqueos, tiempo. Conducir por navegador real (Playwright), no por curl.
-   Corrida 2026-10-12: piloto DETENIDO en la etapa 1 (misma etapa, mismo fallo, 2 veces). ERP.4.1 cerrado
+   **PAUSA 2026-10-12 17:30 (pedido de Carlos). Retomar aquí:** etapas 1-4 del piloto hechas (datos, stock, permiso,
+   API; 16 tests verdes en `erp-piloto`), ERP.4.1-4.4 cerrados. Dashboard y navegador ABAJO. Pasos al volver:
+   (1) levantar el dashboard real y abrir el hilo "Claude: Etapa 1 del módulo…" de `erp-piloto`: comprobar que
+   muestra el reporte "✓ Task chat-2a24dab3 … done" (el run terminó con el dashboard caído); (2) etapa 5, pantalla
+   React: listar productos con stock y registrar un movimiento; (3) etapa 6, tests de aceptación de la regla y el
+   permiso; (4) revisión independiente (R.8 / rol `qa`) y decisión de utilidad con Carlos; (5) plan corto del
+   hallazgo 2 (mensaje de seguimiento que no crea tarea) y decidir los hallazgos 5-9 y 11-13 del registro.
+   Conductor: `docs/done/evidence/ERP.4/conductor/` → copiar a `/tmp/erp4/`, `node driver.mjs` en segundo plano,
+   órdenes con `do.sh`, una etapa con `stage.sh <etiqueta> <mensaje.txt>`. Pedidos autocontenidos y con archivos
+   nombrados (hallazgo 2). Una tarea que toca archivos existentes queda retenida: aprobar con `{"op":"approve"}`.
+   Lección: el hook `brain-no-code` bloquea un heredoc de Bash que nombre rutas `src/…`; specs con la herramienta Write.
+   Corrida anterior, mismo día: piloto DETENIDO en la etapa 1 (misma etapa, mismo fallo, 2 veces). ERP.4.1 cerrado
    (`b0ce9e4`: el chat crea la primera tarea sin `tasks.yaml`). Registro y 9 hallazgos:
    `docs/done/evidence/ERP.4/piloto-2026-10-12.md`. Espera decisión de Carlos: qué hallazgos se arreglan antes de
    reanudar (recomendado, en este orden: 4 fallo visible en el chat, 3/9 salidas declaradas que el proyecto ignora,

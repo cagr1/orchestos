@@ -180,11 +180,19 @@ Cerrada. Todos sus ítems están archivados en `docs/done/` (ver "Cerrados — e
   filtro lo prueba el test.
   Gate en vivo: navegador real (Playwright), `docs/done/evidence/ERP.4.2-live.json` — `auto-flow` 31/31 (crea
   tareas desde el chat con el borrador ya filtrado); registro del piloto en `docs/done/evidence/ERP.4/`.
-- [ ] **ERP.4.4 — 🔍 La corrección guardada del proyecto llega al prompt de la tarea.** (abierto 2026-10-12, hallazgo 10
+- [x] **ERP.4.4 — 🔍 La corrección guardada del proyecto llega al prompt de la tarea.** (abierto 2026-10-12, hallazgo 10
   del piloto) Corrección registrada en Settings → Instincts (manual, verified, 100 %, proyecto `erp-piloto`); la
   tarea siguiente (etapa 3) no la aplicó y la UI dice "Injected into 0 agent prompts". Causa: `instinct-apply.ts:17`
   busca el proyecto por `ctx.effectiveRoot`, que con sandbox es la ruta del worktree (`harness.ts:231,239`) → sin
   proyecto → sin instincts. Gate: test del middleware con worktree + etapa 4 del piloto en vivo.
+  Ejecutado por: sonnet (rol `criterio`).
+  Hecho: `instinct-apply.ts` resuelve el proyecto por `ctx.opts.projectRoot`. Test nuevo
+  `src/__tests__/instinct-apply-worktree.test.ts` (falla con el código viejo, según la contraprueba del ejecutor);
+  `test:coverage` 1684/0, `tsc` y lint limpios. Sin hermanos del mismo patrón en `src/run/`.
+  Gate en vivo: navegador real (Playwright), registro en `docs/done/evidence/ERP.4/piloto-2026-10-12.md` — la etapa 4
+  del piloto aplicó la corrección registrada por la UI (`InventarioError` con `codigo` en mayúsculas en
+  `erp-piloto/src/inventario/stock.ts`), que la etapa 3 había ignorado.
+  Anotado sin corregir: `external.ts:514,589` leen `orchestos.config.yaml` desde el worktree como fallback.
 - [x] **CI.14 — 🔍 GitHub Actions deja de fallar por la misma clase de bug.** (abierto 2026-10-06, GO de Carlos)
   Datos 2026-09-05→10-05: CI rojo en 42/73 pushes en 3 rachas (lint 11-22 sep; `process.env`/HOME 23-24 sep; fixture git
   sin identidad 4-5 oct), todas "pasa en el Mac, falla en Linux". Mutation Shards cancelado 4 noches (10-03→10-06):
