@@ -1,22 +1,53 @@
-# NEXT — handoff 2026-10-13 (piloto ERP.4 completo; lote de arreglos en curso) → siguiente tab (tras /clear)
+# NEXT — handoff 2026-10-13 (lote ERP.4.7-4.9 cerrado; esperan decisiones de Carlos) → siguiente tab (tras /clear)
 
-## Lote en curso (GO de Carlos, 2026-10-13: "iniciemos con los arreglos")
-Carlos leyó el reporte `docs/done/evidence/ERP.4/reporte-2026-10-13.md` y dio GO a los arreglos recomendados, en
-este orden: hallazgos 18/19 (relanzar una tarea concreta desde la UI), 15 (el run fallido guarda la respuesta del
-ejecutor), 17 (el hilo muestra el fin del reintento sin recargar).
-Estado: **lote terminado 2026-10-13.** ERP.4.7 (`617f8ca`), ERP.4.9 (`8daed04`) y ERP.4.8 cerrados, con gate en
-vivo cada uno (`tasks` 19/19, `chat-retry-report` 12/12, `qa-negative` 25/25). Sesión cerrada por contexto (254 k).
+## PRIMERO al retomar — decisiones que esperan a Carlos (2026-10-13)
+Lote de arreglos terminado. Mostrarle esta lista tal cual y no abrir ítems hasta que conteste.
+1. **Utilidad del piloto ERP.4.** Lectura del cerebro: sirve, pero todavía no solo (módulo correcto, sobrevive
+   reinicios, aplica la corrección guardada, centavos por run; a cambio necesitó arreglos de producto en cada sesión).
+   Con su respuesta se cierra ERP.4.
+2. **GO al hallazgo 2** (un mensaje de seguimiento no crea tarea): pasar a `buildNaturalDraft` la respuesta del
+   orquestador y los últimos turnos del hilo (`src/dashboard/handlers/chat.ts:1104-1112`), con test del borrador y
+   corrida en vivo de un pedido en dos mensajes. Cambia la auto-creación de tareas: no tocar sin su GO.
+3. **Regla de presupuesto:** la etapa 6 del piloto se reintentó una 3.ª vez tras 2 fallos de causa distinta.
+   ¿Lo cuenta como violación de "parar a los 2 fallos"?
+4. **Puerta de reintento en el hilo del chat.** Hoy una tarea `failed` no ofrece relanzarla desde el hilo (solo
+   reaparece la tarjeta de una tarea retenida que quedó `pending`); se relanza desde Settings → Tasks o Plan.
+   Recomendación: añadirla, es donde Carlos trabaja. Decisión de producto, no incluida en el lote.
+5. **Hallazgos sin arreglar** del registro `docs/done/evidence/ERP.4/piloto-2026-10-12.md`: 5 (`tasks.yaml` queda
+   modificado sin commitear), 6 (`executor: anthropic` en la tarea aunque corrió codex), 7, 11 (Memory del proyecto
+   vacío), 12 (instinct de prueba ajeno en la base real), 16 (`task_class` no corresponde al pedido). ¿Cuáles?
+6. **Residuos en `erp-piloto`:** `tasks.yaml` sin commitear y 3 tareas sobrantes (`chat-79f90f32` failed,
+   `chat-f59db027` y `chat-ad9e193d` pending). No tocados; ¿se limpian?
+7. **¿`chat-retry-report` entra al pre-push?** Hoy se corre a mano (1 turno de chat + 2 runs reales por push).
+   Recomendación: no, salvo que el fallo reaparezca.
+
+## Lote cerrado 2026-10-13 (GO de Carlos: "iniciemos con los arreglos")
+- ERP.4.7 `617f8ca` — botón `Run` por tarjeta en Settings → Tasks. Gate en vivo `tasks` 19/19. Pusheado.
+- ERP.4.9 `8daed04` — el hilo muestra el fin de un reintento sin recargar. Gate `chat-retry-report` 12/12 +
+  contraprueba. Pusheado.
+- ERP.4.8 `867627d` — el run fallido guarda y muestra la respuesta del ejecutor (migración 24). Gate `qa-negative`
+  25/25 y `test:coverage` 1709/0 corridos por el cerebro. **SIN PUSHEAR (`ahead 1`).** Dos pushes abortados:
+  (a) un test leía `~/.orchestos/.env` — corregido; (b) el segundo pasó cobertura (0 fail) y 13 de 15 ui-gates, y
+  cayó en 2: `qa-negative` ("premisa no cumplida: el ejecutor no escribió ROJO; []", el ejecutor no escribió nada)
+  y `chat-context` ("Claude run … input_tokens: 0"). Coincidió con el cupo de Claude al ~95 % y el de Codex alto;
+  **causa sin verificar** (cupo agotado o fallo real). Carlos pidió parar ahí.
+  **Siguiente paso:** con cupo disponible, `bun run ui:gate qa-negative chat-context`; si pasan, `git push origin
+  master`. Si `qa-negative` repite el fallo, mirar si el cambio de `parseCodexStream` (`src/run/executors/codex.ts`)
+  afecta al run (log del intento: `$TMPDIR/orchestos-pre-push.NcuxXu/`, puede haberse borrado).
+Correcciones a lo reportado: Settings → Plan ya tenía `Run` por tarea (el hallazgo 19 valía solo para Tasks; el
+botón de Plan no se probó en vivo). Sin verificar a ojo: el bloque "Executor reply" de la pestaña Contract (se
+comprobó por texto visible). Sin identificar: qué borró `~/Library/Caches/ms-playwright` y un `duplicate column
+name` que salió una vez.
 Lecciones del lote: (1) el ejecutor de Codex para si ve `writer-lock status: ocupado: claude` — decirle en el spec
 que escribe bajo el candado del cerebro (`AGENT_WRITER_TOKEN`); (2) el scope del preflight del ejecutor debe incluir
-`PLAN.md` y `docs/**` o el cierre exige `**Fuera de scope declarado:**`; (3) formatear con biome todo JSON de
-evidencia antes de commitear (`ERP.4.7-live.json` dejó `lint` rojo un commit); (4) `~/Library/Caches/ms-playwright`
-desapareció una vez (causa sin identificar): `bunx playwright install chromium`; (5) Settings → Plan ya tenía `Run`
-por tarea: antes de afirmar "no existe en la UI", grepear el handler en todas las pestañas; (6) el check de `tsc`
-solo se añade si la tarea declara salida `.ts` (`checks.ts:79`); (8) una columna nueva de `runs` va como
-migración numerada, no `safeAddColumn`: la migración 10 reconstruye la tabla con lista fija (`migrate.ts:390`); (7) `criterio` (sonnet) corrió `prettier` y un
-`git stash` no pedidos: prohibirlos en el spec.
-Siguen SIN respuesta de Carlos: decisión de utilidad del piloto, GO al plan del hallazgo 2 (no tocar
-`buildNaturalDraft` sin ese GO) y su lectura de la regla de presupuesto (3.er intento de la etapa 6).
+`PLAN.md`, `LEDGER.md` y `docs/**` o el cierre exige `**Fuera de scope declarado:**`; (3) formatear con biome todo
+JSON de evidencia antes de commitear; (4) si falta el navegador: `bunx playwright install chromium`; (5) antes de
+afirmar "no existe en la UI", grepear el handler en todas las pestañas; (6) el check de `tsc` solo se añade si la
+tarea declara salida `.ts` (`checks.ts:79`); (7) `criterio` (sonnet) corrió `prettier` y `git stash` no pedidos:
+prohibirlos en el spec; (8) una columna nueva de `runs` va como migración numerada, no `safeAddColumn` (la migración
+10 reconstruye la tabla, `migrate.ts:390`); (9) tocar `src/run/harness.ts` exige entrada en `LEDGER.md`; (10) un
+test que llega al QA debe fijar `OPENROUTER_API_KEY` o lee `~/.orchestos/.env` del host; (11) un literal con forma
+de clave en un test lo frena `security:secrets`: construirlo con `.join('')`.
 
 ## Orden vigente
 1. R.8.2.1, R.8.2.2 y CI.17 cerrados 2026-10-11. CI.18 (`chat-roles` intermitente) instrumentado y medido 3/3 PASS;
