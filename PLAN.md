@@ -224,6 +224,23 @@ Cerrada. Todos sus ítems están archivados en `docs/done/` (ver "Cerrados — e
   contraprueba con el código viejo: falla el test nuevo. Gate en vivo (navegador real, 2026-10-13 06:21-06:22): etapa
   6 pedida por chat → `chat-e11d25a6` `done`, QA pass (gpt-6.1-sol), 39 s; `erp-piloto` 25 tests verdes.
   Registro: `docs/done/evidence/ERP.4/piloto-2026-10-12.md` § Etapa 6.
+- [ ] **ERP.4.7 — 🔍 Cada tarea `pending` o `failed` se puede lanzar desde su tarjeta en Settings → Tasks.** (abierto
+  2026-10-13, GO de Carlos; hallazgos 18 y 19 del piloto) Settings → Tasks solo ofrece "Run Next Task", que toma la
+  primera `pending` (en el piloto, un residuo de la primera corrida) y nunca una `failed`; relanzar la tarea que falló
+  exigió repetir el pedido por chat. El endpoint por id ya existe (`POST /api/tasks/:id/run`,
+  `handlers/tasks.ts:399`); falta el botón. Spec: `docs/specs/ERP.4.7.md`.
+  Gate: test de `isTaskRunnable` + flujo `tasks` del ui-gate con una tarea `failed` relanzada desde su tarjeta.
+- [ ] **ERP.4.8 — 🔍 El run fallido guarda y muestra lo que respondió el ejecutor.** (abierto 2026-10-13, GO de
+  Carlos; hallazgo 15) `runs.result` solo trae el motivo del contrato y `ExecutorOutcome`
+  (`src/run/executors/types.ts:18`) no lleva el texto final del CLI; además `runs.result` no sale por la API ni se ve
+  en Runs (`handlers/runs.ts:80`). El diagnóstico de ERP.4.5 salió del rollout de Codex, no de OrchestOS.
+  Gate: tests del ejecutor externo y del harness + run fallido visto en el dashboard real con la respuesta del ejecutor.
+- [ ] **ERP.4.9 — 🔍 El hilo abierto muestra el fin de un reintento sin recargar.** (abierto 2026-10-13, GO de
+  Carlos; hallazgo 17) Dos causas leídas en el código: `runProjectTask` espera 60 s como máximo
+  (`app/src/api/chat.ts:464`) y, si el run tarda más, su error salta la recarga del hilo
+  (`App.tsx:934-971`); y el polling del hilo solo espera tareas con exactamente un mensaje (`App.tsx:308`), así que
+  tras un intento fallido (2 mensajes) ya no vuelve a mirar esa tarea. En el piloto el reintento tardó 102 s.
+  Gate: test de la decisión de polling + ui-gate con una tarea que falla, se relanza desde el hilo y termina.
 - [x] **CI.21 — 🔍 El orquestador a veces se niega ("solo lectura") en vez de crear la tarea.** (abierto 2026-10-12)
   `chat-turn-details` falló en el pre-push y 1 de 2 corridas a solas en el paso `held task card visible` (aserción
   real desde R.8.6): al pedido "Modifica README.md…" el CLI respondió "No puedo modificar archivos en este entorno

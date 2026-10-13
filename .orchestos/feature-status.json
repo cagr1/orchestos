@@ -67,6 +67,33 @@
       "closedDate": null
     },
     {
+      "id": "ERP.4.7",
+      "sprint": "Fase 2 — Producto mínimo para entrega",
+      "block": "H.7 — El contexto se llena en silencio y nadie avisa (ABIERTO 2026-09-02)",
+      "delegation": "🔍",
+      "title": "Cada tarea `pending` o `failed` se puede lanzar desde su tarjeta en Settings → Tasks",
+      "status": "open",
+      "closedDate": null
+    },
+    {
+      "id": "ERP.4.8",
+      "sprint": "Fase 2 — Producto mínimo para entrega",
+      "block": "H.7 — El contexto se llena en silencio y nadie avisa (ABIERTO 2026-09-02)",
+      "delegation": "🔍",
+      "title": "El run fallido guarda y muestra lo que respondió el ejecutor",
+      "status": "open",
+      "closedDate": null
+    },
+    {
+      "id": "ERP.4.9",
+      "sprint": "Fase 2 — Producto mínimo para entrega",
+      "block": "H.7 — El contexto se llena en silencio y nadie avisa (ABIERTO 2026-09-02)",
+      "delegation": "🔍",
+      "title": "El hilo abierto muestra el fin de un reintento sin recargar",
+      "status": "open",
+      "closedDate": null
+    },
+    {
       "id": "CI.21",
       "sprint": "Fase 2 — Producto mínimo para entrega",
       "block": "H.7 — El contexto se llena en silencio y nadie avisa (ABIERTO 2026-09-02)",
