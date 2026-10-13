@@ -117,7 +117,7 @@
       "block": "H.7 — El contexto se llena en silencio y nadie avisa (ABIERTO 2026-09-02)",
       "delegation": "🔍",
       "title": "El estado que el run deja en `tasks.yaml` queda commiteado",
-      "status": "open",
+      "status": "done",
       "closedDate": null
     },
     {

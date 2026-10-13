@@ -10,6 +10,25 @@ function run(command, args, cwd) {
   execFileSync(command, args, { cwd, stdio: 'ignore' })
 }
 
+function gitOut(args, cwd) {
+  return execFileSync('git', args, { cwd, encoding: 'utf8' }).trim()
+}
+
+// ERP.4.12 — el commit de tasks.yaml ocurre justo después de que el CLI escribe el estado
+// final; se espera a que aparezca en vez de leer el log en el mismo instante.
+async function waitForTasksYamlCommit(cwd, taskId) {
+  const deadline = Date.now() + 15_000
+  let status = ''
+  let subject = ''
+  while (Date.now() <= deadline) {
+    status = gitOut(['status', '--porcelain'], cwd)
+    subject = gitOut(['log', '-1', '--format=%s'], cwd)
+    if (!/(^|\s)tasks\.yaml$/m.test(status) && subject.startsWith(`chore(tasks): ${taskId} `)) break
+    await delay(500)
+  }
+  return { status, subject }
+}
+
 async function tasksFor(api, projectId) {
   const response = await api('/api/tasks', {
     headers: { 'x-orchestos-project-id': projectId },
@@ -68,6 +87,9 @@ export default async function tasks({ page, api, step, note, shot, visible, clea
   writeFileSync(join(projectRoot, 'README.md'), '# UI.13.2d\n')
   writeFileSync(join(projectRoot, '.gitignore'), '.orchestos/\n')
   run('git', ['init', '-q'], projectRoot)
+  // identidad propia del repo temporal: el helper de producción no fija la suya
+  run('git', ['config', 'user.name', 'ui-gate'], projectRoot)
+  run('git', ['config', 'user.email', 'ui-gate@example.invalid'], projectRoot)
   run('git', ['add', 'README.md', '.gitignore'], projectRoot)
   run(
     'git',
@@ -319,6 +341,13 @@ export default async function tasks({ page, api, step, note, shot, visible, clea
       visibleStatus,
     `status=${visibleStatus}`,
   )
+  const firstCommit = await waitForTasksYamlCommit(projectRoot, 'gate-first-task')
+  await step(
+    'first task final state is committed in tasks.yaml',
+    !/(^|\s)tasks\.yaml$/m.test(firstCommit.status) &&
+      firstCommit.subject.startsWith('chore(tasks): gate-first-task '),
+    `porcelain=${JSON.stringify(firstCommit.status)} subject=${firstCommit.subject}`,
+  )
   const failedBefore = (await tasksFor(api, project.id)).find(
     (task) => task.id === 'gate-failed-task',
   )
@@ -340,6 +369,13 @@ export default async function tasks({ page, api, step, note, shot, visible, clea
     'relaunched task reaches done',
     relaunched?.status === 'done',
     `status=${relaunched?.status ?? 'missing'}`,
+  )
+  const relaunchedCommit = await waitForTasksYamlCommit(projectRoot, 'gate-failed-task')
+  await step(
+    'relaunched task final state is committed in tasks.yaml',
+    !/(^|\s)tasks\.yaml$/m.test(relaunchedCommit.status) &&
+      relaunchedCommit.subject.startsWith('chore(tasks): gate-failed-task '),
+    `porcelain=${JSON.stringify(relaunchedCommit.status)} subject=${relaunchedCommit.subject}`,
   )
   const dependentAfterRelaunch = (await tasksFor(api, project.id)).find(
     (task) => task.id === 'gate-dependent-task',

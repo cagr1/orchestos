@@ -1,4 +1,4 @@
-# NEXT — handoff 2026-10-13 (lote de hallazgos del piloto en curso: ERP.4.10 y ERP.4.11 cerrados)
+# NEXT — handoff 2026-10-13 (lote de hallazgos del piloto en curso: ERP.4.10 a ERP.4.12 cerrados)
 
 ## Decisiones de Carlos 2026-10-13 (respuesta a las 7 preguntas del handoff anterior)
 1. Utilidad de ERP.4: el veredicto lo pone el cerebro → "sirve, pero todavía no solo". ERP.4 se cierra al terminar
@@ -13,17 +13,19 @@
 6. Residuos de `erp-piloto`: limpiar si no sirven (las 3 tareas sobrantes no sirven; se limpian tras el hallazgo 5).
 7. `chat-retry-report` NO entra al pre-push.
 
-## PRIMERO al retomar — ERP.4.12
-ERP.4.10 (`e6efa62`) y ERP.4.11 cerrados 2026-10-13. Siguiente: ERP.4.12, spec ya escrito (`docs/specs/ERP.4.12.md`);
-releerlo contra el código antes de delegar (ERP.4.11 cambió `handlers/tasks.ts` y `cli.ts`).
-Notas de ERP.4.11: la fila de `/api/tasks` ya no tiene `executor`, tiene `assignedAgent`/`assignedModel`;
-`pendingRouting[].executor` (`handlers/config.ts`) trae el agente resuelto o `unassigned`. Lección: un cambio en la
-forma de una respuesta de API exige grepear los fixtures `JSON.stringify` del front (`app/src/api/*.test.ts`): no
-están tipados y `typecheck` no los ve; lo destapó `test:coverage`.
+## PRIMERO al retomar — ERP.4.13
+ERP.4.10 (`e6efa62`), ERP.4.11 (`c476e68`) y ERP.4.12 cerrados 2026-10-13. Siguiente: ERP.4.13, sin spec; el diseño
+pensado está abajo. Toca chat + CLI + endpoint nuevo: escribir el spec y delegar a `criterio`.
+Para ERP.4.13: tras ERP.4.12 el CLI commitea `chore(tasks): <id> <estado>` al salir (`commitFinalTaskState`,
+`src/run/commit-tasks-yaml.ts`), también cuando el árbol sucio marca la tarea `failed`; `tasks.yaml` ya no es causa
+de árbol sucio entre runs.
+Notas de ERP.4.11: la fila de `/api/tasks` ya no tiene `executor`, tiene `assignedAgent`/`assignedModel`.
+Lecciones: (1) un cambio en la forma de una respuesta de API exige grepear los fixtures `JSON.stringify` del front
+(`app/src/api/*.test.ts`): no están tipados, `typecheck` no los ve; (2) al envolver un punto de salida, grepear
+todos los llamadores de las funciones que escriben estado (`--expand` llamaba a `runApprovedSplitPlan` sin pasar por
+`executeTask`); (3) el pre-commit exige la línea `Gate en vivo:` con la evidencia entre backticks en el ítem cerrado.
 
 ## Lote en curso (ERP.4.10–4.16 abiertos en PLAN.md con causa y decisión; ejecutar en ese orden)
-Spec ya escrito y commiteado: `docs/specs/ERP.4.12.md` (commit de `tasks.yaml` al terminar el run, limitado a
-esa ruta). Releer cada spec contra el código tras cerrar el ítem anterior.
 Sin spec todavía: 4.13 a 4.16. Diseño pensado para 4.13: el chequeo de árbol limpio (`run/sandbox-policy.ts:32-70`)
 deja la tarea `pending` (hoy `failed`, `cli.ts:1288-1296`); el reporte al hilo lleva los archivos en un campo
 estructurado; endpoint nuevo que commitea esos archivos y relanza ("Commit & Run"); botón de reintento en el último

@@ -340,9 +340,25 @@ Cerrada. Todos sus ítems están archivados en `docs/done/` (ver "Cerrados — e
   tocó `src/dashboard/app/src/api/tasks.test.ts` (fixtures con la fila vieja: 1 fallo de `test:coverage`). Las
   tareas ya guardadas conservan su `executor` en el YAML; se ignora al mostrar.
   **Fuera de scope declarado:** `PLAN.md`, `NEXT.md` y `docs/done/evidence/**` (cierre y evidencia).
-- [ ] **ERP.4.12 — 🔍 El estado que el run deja en `tasks.yaml` queda commiteado.** (abierto 2026-10-13, GO de
+- [x] **ERP.4.12 — 🔍 El estado que el run deja en `tasks.yaml` queda commiteado.** (cerrado 2026-10-13; abierto 2026-10-13, GO de
   Carlos; hallazgo 5) `updateTaskStatus` escribe `status`/`retry_count`/`qa_verdict` sin commit (`cli.ts:1281-1439`);
   solo se commitea al crear y al lanzar (`handlers/tasks.ts:287-347`). El proyecto queda con el árbol sucio tras cada run.
+  Ejecutado por: sonnet (rol `criterio`, ronda 1) y gpt-6-luna (rol `mecanico`, ronda 2) · Spec: docs/specs/ERP.4.12.md
+  Hecho (2026-10-13): helper único `commitTasksYaml` (`src/run/commit-tasks-yaml.ts`) que commitea solo esa ruta
+  (`git commit -- tasks.yaml`), bajo `withGitLock`, silencioso si no es repo, no hay cambios o el archivo está
+  ignorado; lo usan los 4 commits del dashboard y el del grafo (antes hacían `git commit` sin ruta y se llevaban el
+  índice del usuario). `commitFinalTaskState` commitea `chore(tasks): <id> <estado>` al salir de `executeTask`
+  (`try/finally`, después del merge del worktree), de `task:clarify` y de `--expand` con plan ya aprobado; `running`
+  nunca se commitea.
+  Evidencia: `test:coverage` 1737/0 (funciones 76.95 %, líneas 63.71 %) · typecheck y lint exit 0.
+  Gate en vivo: navegador real (Playwright), `docs/done/evidence/ERP.4.12-live.json` — `tasks` 23/23: tras la
+  primera tarea y tras la relanzada, `git status --porcelain` no lista `tasks.yaml` y el último commit es
+  `chore(tasks): gate-first-task done` / `chore(tasks): gate-failed-task done`.
+  Límites: en el gate las dos tareas terminan `done`; el commit de un estado `failed`/`pending` sale por el mismo
+  `finally` pero no se observó en vivo. `executeTask` no tiene costura de test: lo cubren el helper (7 tests con
+  repo git real) y el gate. El camino `--expand` no se ejerció en vivo. El commit usa la identidad y los hooks del
+  repo del usuario: si su pre-commit falla, `tasks.yaml` queda sin commitear, en silencio. Sin contraprueba contra HEAD.
+  **Fuera de scope declarado:** `PLAN.md`, `NEXT.md` y `docs/done/evidence/**` (cierre y evidencia).
 - [ ] **ERP.4.13 — 🔍 Árbol sucio: la tarea queda `pending` y el hilo ofrece "Commit & Run" y reintento.** (abierto
   2026-10-13; hallazgo 18 y decisión 4 de Carlos) El chequeo de árbol limpio solo exceptúa `runs-summary.json`
   (`run/sandbox-policy.ts:32-70`), el CLI marca `failed` (`cli.ts:1281-1296`) y el mensaje manda a la terminal. El

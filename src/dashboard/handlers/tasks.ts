@@ -12,9 +12,8 @@ import { upsertTaskRunWatch } from '../../db/task-run-watch.ts'
 import { suggestContext } from '../../graph/suggest.ts'
 import { autoRoute, describeTaskExecutor, formatRoute } from '../../router/auto-route.ts'
 import { resolveProjectAgentRule, taskFieldsFromRule } from '../../router/engine-cascade.ts'
+import { commitTasksYaml } from '../../run/commit-tasks-yaml.ts'
 import { detectInstalledClis } from '../../run/executors/cli-registry.ts'
-import { withGitLock } from '../../run/git-lock.ts'
-import { git } from '../../run/sandbox.ts'
 import { isKnownSkillId } from '../../skills/catalog.ts'
 import { loadConstitution } from '../../spec/constitution.ts'
 import { ensureTasksYaml, scaffoldTasksYaml } from '../../tasks/init.ts'
@@ -196,13 +195,6 @@ function descToTaskId(desc: string): string {
       .slice(0, 5)
       .join('-') || 'task'
   )
-}
-
-function commitTasksYaml(root: string, message: string): void {
-  withGitLock(root, () => {
-    git(['add', 'tasks.yaml'], root)
-    git(['commit', '-m', message], root)
-  })
 }
 
 function inferExecutorFromModel(modelId: string | undefined): string {

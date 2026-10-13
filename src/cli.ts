@@ -33,6 +33,7 @@ import {
 } from './router/model-catalog.ts'
 import { calcCost } from './router/pricing.ts'
 import { roleClient } from './router/role-runner.ts'
+import { commitFinalTaskState } from './run/commit-tasks-yaml.ts'
 import { enforceContract, parseLLMResponse } from './run/contract.ts'
 import { codexUnavailableMessage, findCodexBinary } from './run/executors/codex.ts'
 import { claudeUnavailableMessage, findClaudeBinary } from './run/executors/external.ts'
@@ -1212,7 +1213,19 @@ task
         return
       }
 
+      // ERP.4.12 — punto único de salida: el estado final que dejó el run en tasks.yaml
+      // (después del merge del worktree) queda commiteado; `running` nunca se commitea.
       const executeTask = async (
+        taskId: string,
+      ): Promise<'done' | 'failed' | 'blocked' | 'retry'> => {
+        try {
+          return await executeTaskBody(taskId)
+        } finally {
+          commitFinalTaskState(root, taskId)
+        }
+      }
+
+      const executeTaskBody = async (
         taskId: string,
       ): Promise<'done' | 'failed' | 'blocked' | 'retry'> => {
         const file = loadTasks(root)
@@ -1615,7 +1628,11 @@ task
         // Check if auto-split already wrote the plan file
         const autoSplitPlanPath = join(root, `${opts.expand}.plan.yaml`)
         if (existsSync(autoSplitPlanPath)) {
-          await runApprovedSplitPlan(opts.expand!, autoSplitPlanPath, parentTask, root, opts)
+          try {
+            await runApprovedSplitPlan(opts.expand!, autoSplitPlanPath, parentTask, root, opts)
+          } finally {
+            commitFinalTaskState(root, opts.expand!)
+          }
           return
         }
 
@@ -2806,6 +2823,7 @@ async function runClarifyMode(
     updateTaskStatus(root, taskId, { status: 'failed', retry_reason: result.retryReason })
     console.log(`[task] ✗ ${taskId} failed · ${result.retryReason}`)
   }
+  commitFinalTaskState(root, taskId)
 }
 
 function formatList(values: string[]): string {

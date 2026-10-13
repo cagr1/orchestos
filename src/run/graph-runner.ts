@@ -30,10 +30,10 @@ import {
   updateTaskStatus as updateTaskStatusReal,
 } from '../tasks/loader.ts'
 import type { Task } from '../tasks/schema.ts'
+import { commitTasksYaml } from './commit-tasks-yaml.ts'
 import { runTask } from './harness.ts'
 import { RunLogger } from './logger.ts'
 import { MAX_RETRIES } from './qa.ts'
-import { git } from './sandbox.ts'
 import { resolveSandboxMode, type SandboxMode } from './sandbox-policy.ts'
 
 // ---------------------------------------------------------------------------
@@ -59,10 +59,7 @@ const COST_NOTICE_THRESHOLD_USD = 5
  * proyecto no es un repo git, o el commit falla por cualquier motivo, no aborta el
  * grafo — el próximo resolveSandboxMode() ya reportará el problema real si lo hay.
  */
-function commitTasksYamlReal(projectRoot: string, message: string): void {
-  git(['add', 'tasks.yaml'], projectRoot)
-  git(['commit', '-m', message], projectRoot)
-}
+const commitTasksYamlReal = commitTasksYaml
 
 // ---------------------------------------------------------------------------
 // Public types
