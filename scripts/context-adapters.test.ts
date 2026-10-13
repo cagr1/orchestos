@@ -1,4 +1,4 @@
-import { describe, expect, test } from 'bun:test'
+import { describe, expect, spyOn, test } from 'bun:test'
 import { chmodSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
@@ -197,4 +197,45 @@ process.stdin.on('data', (chunk) => {
       rmSync(directory, { recursive: true, force: true })
     }
   }, 10_000)
+
+  test('lee cuotas del app-server cuando responde después de una demora', async () => {
+    const directory = mkdtempSync(join(tmpdir(), 'orchestos-codex-rate-limits-late-'))
+    const binary = join(directory, 'fake-codex')
+    writeFileSync(
+      binary,
+      `#!/usr/bin/env bun
+process.stdin.on('data', (chunk) => {
+  if (chunk.toString().includes('"method":"initialized"')) {
+    setTimeout(() => process.stdout.write(JSON.stringify({ jsonrpc: '2.0', id: 2, result: { rateLimits: { primary: { usedPercent: 12 } } } }) + '\\n'), 100)
+  }
+})
+`,
+    )
+    chmodSync(binary, 0o755)
+    try {
+      await expect(readCodexRateLimitsLive({ binary, timeoutMs: 1_000 })).resolves.toMatchObject([
+        { id: 'primary', usedPct: 12, remainingPct: 88 },
+      ])
+    } finally {
+      rmSync(directory, { recursive: true, force: true })
+    }
+  }, 5_000)
+
+  test('devuelve [] si el app-server nunca responde dentro del tope', async () => {
+    const directory = mkdtempSync(join(tmpdir(), 'orchestos-codex-rate-limits-never-'))
+    const binary = join(directory, 'fake-codex')
+    writeFileSync(binary, '#!/usr/bin/env bun\nprocess.stdin.resume()\n')
+    chmodSync(binary, 0o755)
+    const startedAt = Date.now()
+    const errorSpy = spyOn(console, 'error').mockImplementation(() => {})
+    try {
+      await expect(readCodexRateLimitsLive({ binary, timeoutMs: 300 })).resolves.toEqual([])
+      expect(Date.now() - startedAt).toBeLessThan(2_000)
+      expect(errorSpy).toHaveBeenCalledTimes(1)
+      expect(errorSpy).toHaveBeenCalledWith(expect.stringMatching(/tras \d+ ms \(tope 300 ms\)$/))
+    } finally {
+      errorSpy.mockRestore()
+      rmSync(directory, { recursive: true, force: true })
+    }
+  }, 5_000)
 })

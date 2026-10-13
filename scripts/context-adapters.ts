@@ -198,7 +198,8 @@ export async function readCodexRateLimitsLive(
   options: { binary?: string; timeoutMs?: number } = {},
 ): Promise<RateLimitWindow[]> {
   const binary = options.binary ?? 'codex'
-  const timeoutMs = options.timeoutMs ?? 3_000
+  const timeoutMs = options.timeoutMs ?? CODEX_RATE_LIMITS_TIMEOUT_MS
+  const startedAt = Date.now()
   let processHandle: ReturnType<typeof Bun.spawn> | null = null
   try {
     processHandle = Bun.spawn([binary, 'app-server'], {
@@ -262,7 +263,7 @@ export async function readCodexRateLimitsLive(
       }
     }
   } catch {
-    return []
+    // El log único de fallo se emite después de cerrar el proceso.
   } finally {
     try {
       processHandle?.kill()
@@ -270,8 +271,13 @@ export async function readCodexRateLimitsLive(
       /* proceso ya terminado */
     }
   }
+  console.error(
+    `[rate-limits] codex app-server sin respuesta de account/rateLimits/read tras ${Date.now() - startedAt} ms (tope ${timeoutMs} ms)`,
+  )
   return []
 }
+
+export const CODEX_RATE_LIMITS_TIMEOUT_MS = 8_000
 
 /** Agregar un CLI nuevo es agregar una entrada acá, no escribir un camino nuevo. */
 export const DEFAULT_ADAPTERS: ContextAdapter[] = [claudeAdapter, codexAdapter]

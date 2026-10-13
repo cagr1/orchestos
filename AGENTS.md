@@ -200,7 +200,8 @@ Medidas en los lotes L1–L4 y los ítems de Sprint 30/ERP/I/CX; cada una costó
   el status: fin de run = status, `retryCount` o `runId` distintos.
 - **Flakiness bajo carga.** `chat-sessions.test.ts` (timeout 5 s, subprocesos) y `context-adapters` fallan por carga
   si corre otro proceso pesado: repetir en frío antes de culpar al diff. `usage-bar` falla a veces porque
-  `codex app-server` no responde `account/rateLimits/read` en 3 s (`scripts/context-adapters.ts`); los
+  `codex app-server` no responde `account/rateLimits/read` en 8 s (`scripts/context-adapters.ts`); deja una línea de log
+  al vencer. Los
   `rollout-*.jsonl` de `~/.codex/sessions` traen `rate_limits` y son candidato a fallback.
 
 ## Trabajo en equipo (Claude + Codex, en paralelo)
