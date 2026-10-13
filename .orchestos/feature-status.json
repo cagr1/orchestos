@@ -63,7 +63,7 @@
       "block": "H.7 — El contexto se llena en silencio y nadie avisa (ABIERTO 2026-09-02)",
       "delegation": "🔍",
       "title": "El check por defecto de `tsc` solo se añade si el proyecto tiene `tsconfig.json`",
-      "status": "open",
+      "status": "done",
       "closedDate": null
     },
     {

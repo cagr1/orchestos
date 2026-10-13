@@ -67,13 +67,18 @@ function testAssertionCheckFor(path: string): Check {
  * Los checks de TS/JS-test siguen gateados por la presencia de `node_modules` (un
  * worktree fresco sin deps no debe producir fails falsos por módulos no resueltos);
  * los checks de sintaxis JS NO — `node --check` solo parsea, no carga deps.
+ * ERP.4.6 (2026-10-13): `tsc --noEmit` también requiere `tsconfig.json`; sin él,
+ * TypeScript muestra la ayuda y sale con error, haciendo fallar tareas válidas.
  */
 export function defaultChecksFor(output: string[], effectiveRoot: string): Check[] {
   const checks: Check[] = []
   const hasNodeModules = existsSync(join(effectiveRoot, 'node_modules'))
 
   if (hasNodeModules) {
-    if (output.some((p) => p.endsWith('.ts') || p.endsWith('.tsx'))) {
+    if (
+      existsSync(join(effectiveRoot, 'tsconfig.json')) &&
+      output.some((p) => p.endsWith('.ts') || p.endsWith('.tsx'))
+    ) {
       checks.push({ cmd: 'bunx tsc --noEmit', timeout_ms: TSC_TIMEOUT_MS })
     }
     for (const p of output) {

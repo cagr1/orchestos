@@ -1,7 +1,37 @@
 {
-  "exported_at": "2026-10-13T11:18:46.920Z",
+  "exported_at": "2026-10-13T11:22:49.273Z",
   "total_runs": 20,
   "runs": [
+    {
+      "id": "ad780982-5744-4fad-9630-ce4e3d969880",
+      "task_class": "fix",
+      "model": "gpt-6-luna",
+      "provider": "codex",
+      "status": "done",
+      "qa_verdict": "pass",
+      "qa_reason": "El archivo implementa los siete pasos por HTTP con SQLite en memoria, servidor real, roles, comprobaciones de stock y cierre de recursos, y ambas verificaciones pasan.",
+      "files_blocked": [],
+      "checks_failed": 0,
+      "usd_cost": 0.0038793400000000002,
+      "elapsed_ms": 39121,
+      "tokens": 28604,
+      "created_at": "2026-10-13T11:21:59.842Z"
+    },
+    {
+      "id": "f5cfddfc-24e7-4e84-bdba-e07b3e2c127d",
+      "task_class": "chat",
+      "model": "claude-opus-5-5",
+      "provider": "claude",
+      "status": "done",
+      "qa_verdict": null,
+      "qa_reason": null,
+      "files_blocked": [],
+      "checks_failed": 0,
+      "usd_cost": 0.0753796,
+      "elapsed_ms": 9253,
+      "tokens": 207,
+      "created_at": "2026-10-13T11:21:20.419Z"
+    },
     {
       "id": "c29c762d-ea68-40d2-9f0c-aff802663ce1",
       "task_class": "fix",
@@ -271,43 +301,13 @@
       "elapsed_ms": 44725,
       "tokens": 19534,
       "created_at": "2026-10-12T22:12:41.330Z"
-    },
-    {
-      "id": "2e2d33a2-9558-4e1a-8b6b-e42c250c92d4",
-      "task_class": "chat",
-      "model": "claude-opus-5-5",
-      "provider": "claude",
-      "status": "done",
-      "qa_verdict": null,
-      "qa_reason": null,
-      "files_blocked": [],
-      "checks_failed": 0,
-      "usd_cost": 0.0501156,
-      "elapsed_ms": 11615,
-      "tokens": 379,
-      "created_at": "2026-10-12T22:11:56.076Z"
-    },
-    {
-      "id": "a02c388b-7f0c-47f4-ba74-669bf724bea4",
-      "task_class": "review",
-      "model": "gpt-6-luna",
-      "provider": "codex",
-      "status": "failed",
-      "qa_verdict": "fail",
-      "qa_reason": "missing declared output(s): data/inventario.sqlite",
-      "files_blocked": [],
-      "checks_failed": 0,
-      "usd_cost": 0.0027483,
-      "elapsed_ms": 32092,
-      "tokens": 12143,
-      "created_at": "2026-10-12T21:30:23.913Z"
     }
   ],
   "stats": {
-    "failed": 4,
+    "failed": 3,
     "blocked": 0,
-    "done": 16,
-    "qa_failed": 4,
-    "total_cost_usd": "0.4760"
+    "done": 17,
+    "qa_failed": 3,
+    "total_cost_usd": "0.5024"
   }
 }

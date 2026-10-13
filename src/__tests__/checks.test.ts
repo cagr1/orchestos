@@ -19,7 +19,10 @@ let tempPathsToCleanup: string[] = []
 
 function makeRoot(withNodeModules: boolean): string {
   const dir = mkdtempSync(join(tmpdir(), 'checks-test-'))
-  if (withNodeModules) mkdirSync(join(dir, 'node_modules'))
+  if (withNodeModules) {
+    mkdirSync(join(dir, 'node_modules'))
+    writeFileSync(join(dir, 'tsconfig.json'), '{}')
+  }
   tmpDirs.push(dir)
   return dir
 }
@@ -63,6 +66,14 @@ describe('defaultChecksFor', () => {
     expect(checks).toContainEqual(
       expect.objectContaining({ cmd: 'bun test src/__tests__/foo.test.ts' }),
     )
+  })
+
+  it('keeps bun test but omits tsc when node_modules exists without tsconfig.json', () => {
+    const root = makeRoot(false)
+    mkdirSync(join(root, 'node_modules'))
+    const checks = defaultChecksFor(['src/a.ts', 'tests/a.test.ts'], root)
+    expect(checks.some((c) => c.cmd === 'bunx tsc --noEmit')).toBe(false)
+    expect(checks).toContainEqual(expect.objectContaining({ cmd: 'bun test tests/a.test.ts' }))
   })
 
   it('K.3: empty test file gets an assertion check that fails', async () => {

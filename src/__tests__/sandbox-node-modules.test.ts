@@ -41,6 +41,7 @@ function initRepoWithNodeModules(): string {
   git(['config', 'user.email', 'test@test.com'], dir)
   git(['config', 'user.name', 'test'], dir)
   writeFileSync(join(dir, '.gitignore'), 'node_modules/\n')
+  writeFileSync(join(dir, 'tsconfig.json'), '{}')
   mkdirSync(join(dir, 'node_modules', '.bin'), { recursive: true })
   writeFileSync(join(dir, 'node_modules', 'pkg.json'), '{}')
   writeFileSync(join(dir, 'README.md'), '# test\n')

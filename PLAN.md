@@ -212,11 +212,18 @@ Cerrada. Todos sus ítems están archivados en `docs/done/` (ver "Cerrados — e
   (gpt-6.1-sol), 6 archivos, 102 s; el rollout del ejecutor ya no contiene "SKILL GUIDELINES: Structured QA".
   Registro: `docs/done/evidence/ERP.4/piloto-2026-10-12.md` § Reanudación.
   Anotado sin corregir: el run sigue guardando `skill_id: qa-structured` (etiqueta de la tarea, no lo inyectado).
-- [ ] **ERP.4.6 — 🔍 El check por defecto de `tsc` solo se añade si el proyecto tiene `tsconfig.json`.** (abierto
+- [x] **ERP.4.6 — 🔍 El check por defecto de `tsc` solo se añade si el proyecto tiene `tsconfig.json`.** (abierto
   2026-10-13, hallazgo 20 del piloto) Etapa 6: run de `chat-f59db027` falló con "check failed: bunx tsc --noEmit
   exit 1". `erp-piloto` no tiene `tsconfig.json`; desde que la etapa 5 trajo `node_modules`, `defaultChecksFor`
   (`src/run/checks.ts:77`) añade `tsc`, que sin config imprime la ayuda y sale con 1: el check no puede pasar.
   Spec: `docs/specs/ERP.4.6.md`. Gate: tests de `defaultChecksFor` + etapa 6 del piloto en vivo.
+  Ejecutado por: gpt-6-luna (rol `mecanico`).
+  Hecho: `defaultChecksFor` exige `tsconfig.json` para el check de `tsc`; `bun test <archivo>` sigue dependiendo solo
+  de `node_modules`. Fixtures de `checks.test.ts` y `sandbox-node-modules.test.ts` con `tsconfig.json`; test nuevo.
+  Gates propios: `typecheck` y `lint` limpios; `test:coverage` 1694/0, funciones 76.62 %, líneas 63.49 %;
+  contraprueba con el código viejo: falla el test nuevo. Gate en vivo (navegador real, 2026-10-13 06:21-06:22): etapa
+  6 pedida por chat → `chat-e11d25a6` `done`, QA pass (gpt-6.1-sol), 39 s; `erp-piloto` 25 tests verdes.
+  Registro: `docs/done/evidence/ERP.4/piloto-2026-10-12.md` § Etapa 6.
 - [x] **CI.21 — 🔍 El orquestador a veces se niega ("solo lectura") en vez de crear la tarea.** (abierto 2026-10-12)
   `chat-turn-details` falló en el pre-push y 1 de 2 corridas a solas en el paso `held task card visible` (aserción
   real desde R.8.6): al pedido "Modifica README.md…" el CLI respondió "No puedo modificar archivos en este entorno
