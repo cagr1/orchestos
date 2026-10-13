@@ -28,6 +28,18 @@
    (el borrador de tarea solo lee el mensaje actual, `chat.ts:1111`); (3) qué hallazgos se arreglan: 5-9, 11-13 y
    15-19 del registro `docs/done/evidence/ERP.4/piloto-2026-10-12.md` (recomendados: 19/18 relanzar una tarea desde
    la UI, 15 guardar la respuesta del ejecutor en el run fallido, 17 el hilo no muestra el fin del reintento).
+   Detalle de lo que espera respuesta (reportado a Carlos el 2026-10-13, sin contestar todavía):
+   - Utilidad: lectura del cerebro = sirve pero todavía no solo (módulo correcto, sobrevive reinicios, aplica la
+     corrección guardada, centavos por run; a cambio 2 arreglos de producto, 1 commit manual y 2 pedidos repetidos en
+     esta sesión).
+   - Plan del hallazgo 2 (necesita GO, cambia la auto-creación de tareas): pasar a `buildNaturalDraft` la respuesta
+     del orquestador y los últimos turnos del hilo (ya cargados en el handler, `chat.ts:1104-1112`); test del
+     borrador + corrida en vivo con un pedido en dos mensajes; sin tocar el ejecutor ni el formato de `tasks.yaml`.
+   - Regla de presupuesto: la etapa 6 falló 2 veces por causas distintas (`bun.lock` sin commitear, sin run; check de
+     `tsc`) y se reintentó una 3.ª vez. Se le preguntó a Carlos si lo cuenta como violación de "parar a los 2 fallos".
+   - ERP.4.5 invierte dos tests de O.2 (`planner-skill-catalog.test.ts:84-95`): avisado, sin objeción aún.
+   - `erp-piloto`: `tasks.yaml` modificado sin commitear y 3 tareas sobrantes (`chat-79f90f32` failed,
+     `chat-f59db027` y `chat-ad9e193d` pending). No tocadas; no limpiar sin que Carlos lo diga.
    Luego ERP.5 (revisar sobrecarga).
    Conductor: `docs/done/evidence/ERP.4/conductor/` → copiar a `/tmp/erp4/` (crear `cmd/`, `out/`, `shots/`),
    `node driver.mjs` en segundo plano, órdenes con `do.sh`, una etapa con `stage.sh <etiqueta> <mensaje.txt>`;
