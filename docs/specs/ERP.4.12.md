@@ -14,9 +14,9 @@ del usuario nunca vuelve a estar limpio y el estado final de la tarea no está e
 
 ## Causas (leídas en el código)
 1. `updateTaskStatus` (`src/tasks/loader.ts:129`) solo escribe el YAML. El comando de una tarea lo llama al marcar
-   `running` y al terminar (`src/cli.ts:1276-1439`; camino antiguo en `cli.ts:2771-2802`) y nadie commitea después.
-2. Solo se commitea al crear, lanzar y borrar desde el dashboard: `commitTasksYaml` (`src/dashboard/handlers/tasks.ts:189-194`,
-   usos en `:298`, `:335`, `:459`, `:488`), y en el grafo `commitTasksYamlReal` (`src/run/graph-runner.ts:62-65`).
+   `running` y al terminar (`src/cli.ts:1276-1440`; camino `task:clarify` en `cli.ts:2775-2806`) y nadie commitea después.
+2. Solo se commitea al crear, lanzar y borrar desde el dashboard: `commitTasksYaml` (`src/dashboard/handlers/tasks.ts:201-206`,
+   usos en `:314`, `:351`, `:475`, `:504`), y en el grafo `commitTasksYamlReal` (`src/run/graph-runner.ts:62-65`).
 3. Los dos helpers hacen `git add tasks.yaml` + `git commit -m …` **sin ruta**: se llevan cualquier otro archivo que
    el usuario tuviera en el índice.
 
@@ -30,10 +30,10 @@ del usuario nunca vuelve a estar limpio y el estado final de la tarea no está e
   worktree, se commitea `tasks.yaml` con `chore(tasks): <id> <estado final>` (`done`, `pending`, `failed`,
   `failed_permanent`, `blocked`). Un solo punto de salida: envuelve el cuerpo del comando (try/finally o función
   interna que devuelve el estado) en vez de repetir la llamada en cada rama. Aplica a los dos caminos de `cli.ts`
-  (`:1276-1439` y `:2771-2802`); si el segundo es código muerto, dilo en el reporte y no lo toques.
+  (`:1276-1440` y `task:clarify` en `:2775-2806`).
 - No se commitea el estado intermedio `running`.
 - Lee antes cómo y cuándo se hace el merge del worktree (`mergeWorktreeBack`) y bajo qué candado; el commit nuevo no
-  puede intercalarse con ese merge (comentario E.5 en `handlers/tasks.ts:292-297`).
+  puede intercalarse con ese merge (comentario E.5 en `handlers/tasks.ts:311-313`; el harness hace el merge en `run/harness.ts:1126`).
 - Si tocas `src/run/harness.ts` añade la entrada correspondiente en `LEDGER.md` (lo exige el pre-commit); lo esperado
   es que no haga falta tocarlo.
 
