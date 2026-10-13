@@ -15,19 +15,21 @@ Regla de Carlos (2026-10-13): nada hardcodeado; la tarea dice quién la hace seg
 
 ## Causas (leídas en el código)
 1. El prompt del borrador hace elegir al LLM `"executor"` entre `openrouter`, `anthropic` y `openai`
-   (`src/dashboard/handlers/project.ts:226`), con respaldo `openrouter` (`project.ts:265`), y `chat.ts:1152` lo pasa a
+   (`src/dashboard/handlers/project.ts:304`), con respaldo `openrouter` (`project.ts:346`), y `chat.ts:1155` lo pasa a
    `createTaskRecord`.
-2. `createTaskRecord` escribe siempre `executor: executor || 'openrouter'` (`src/dashboard/handlers/tasks.ts:239,275`).
+2. `createTaskRecord` escribe siempre `executor: executor || 'openrouter'` (`src/dashboard/handlers/tasks.ts:241,278`).
 3. Quién ejecuta lo decide `autoRoute(task, cfg)` (`src/router/auto-route.ts:13-45`): `engine` de la tarea, o
    `executor_model`, o el rol `cfg.roles.executor`. `task.executor` solo es el proveedor cuando hay `executor_model`
    por API (`auto-route.ts:34`) y un respaldo en `harness.ts:263`.
-4. La etiqueta visible sale del campo guardado: `loadTaskRows` (`handlers/tasks.ts:86` y el hermano de `:132`),
+4. La etiqueta visible sale del campo guardado: `loadTaskRows` (`handlers/tasks.ts:87` y el hermano de `:133`),
    `handlers/config.ts:62`, `src/cli.ts:1039` y `:2746`; el frontend arma `assignedAgent` con
    `row.engine || row.executor` (`src/dashboard/app/src/api/tasks.ts:34`).
 
 ## Comportamiento exigido
+- ERP.4.10 ya está commiteado (`e6efa62`) sobre este mismo borrador: `buildDraftMessages`, `fallbackDraftOutput`,
+  `parseDraftTaskClass` y la clave `"task_class"` del prompt se quedan tal cual. Aquí solo sale `"executor"`.
 - El borrador no elige proveedor: fuera la clave `"executor"` del prompt, del JSON parseado, de la validación de
-  `project.ts:265` y de `NaturalDraft`. `chat.ts` deja de pasarlo. Revisa consumidores de `NaturalDraft.executor` en
+  `project.ts:346` y de `NaturalDraft`. `chat.ts` deja de pasarlo. Revisa consumidores de `NaturalDraft.executor` en
   backend y frontend (`grep -rn "executor" src/dashboard/app/src` acotado al borrador/"natural") y quítalos.
 - `createTaskRecord` escribe `executor` en `tasks.yaml` **solo** si el llamador lo pasa explícito o si hay
   `executor_model` (inferido como hoy con `inferExecutorFromModel`). Sin ninguno de los dos, el campo no se escribe.
@@ -36,7 +38,7 @@ Regla de Carlos (2026-10-13): nada hardcodeado; la tarea dice quién la hace seg
 - La etiqueta visible se **resuelve**, no se lee del campo: una función pura exportada junto a `autoRoute`
   (p. ej. `describeTaskExecutor(task, cfg): { agent: string; model: string } | null`, que envuelve `autoRoute`).
   `null` = rol Executor sin asignar y tarea sin modelo propio.
-  - `loadTaskRows` y su hermano de `tasks.ts:132` devuelven `assignedAgent` y `assignedModel` resueltos (`null` si no
+  - `loadTaskRows` y su hermano de `tasks.ts:133` devuelven `assignedAgent` y `assignedModel` resueltos (`null` si no
     hay ruta). El campo `executor` de la fila se elimina si nadie más lo usa; si algo lo usa, dilo en el reporte.
   - Frontend (`app/src/api/tasks.ts:34` y el tipo de la fila): `assignedAgent` = `agent · model` de esos campos; sin
     ruta, cadena vacía (no inventar texto nuevo ni clases CSS). No toques el JSX más allá de lo que obligue el tipo.
