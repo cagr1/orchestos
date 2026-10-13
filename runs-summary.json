@@ -1,7 +1,22 @@
 {
-  "exported_at": "2026-10-13T03:12:47.755Z",
+  "exported_at": "2026-10-13T11:01:09.585Z",
   "total_runs": 20,
   "runs": [
+    {
+      "id": "ac5c6ee6-9f84-4c37-8729-29129dd10190",
+      "task_class": "fix",
+      "model": "gpt-6-luna",
+      "provider": "codex",
+      "status": "failed",
+      "qa_verdict": "fail",
+      "qa_reason": "missing declared output(s): package.json, web/index.html, web/app.tsx, src/api/main.ts, src/api/servidor.ts, tests/pantalla.test.ts",
+      "files_blocked": [],
+      "checks_failed": 0,
+      "usd_cost": 0.0019398,
+      "elapsed_ms": 19077,
+      "tokens": 11062,
+      "created_at": "2026-10-13T10:59:02.353Z"
+    },
     {
       "id": "242d0007-28e7-4c4d-83fc-f2c0357dc189",
       "task_class": "chat",
@@ -286,28 +301,13 @@
       "elapsed_ms": 9107,
       "tokens": 165,
       "created_at": "2026-10-12T21:13:24.892Z"
-    },
-    {
-      "id": "ui-chat-context-seed-1791825511992",
-      "task_class": "gate:r.8.6:implement",
-      "model": "codex (cli default model) via Codex CLI",
-      "provider": "codex",
-      "status": "done",
-      "qa_verdict": "fail",
-      "qa_reason": "criterion 2 missing: README line absent",
-      "files_blocked": [],
-      "checks_failed": 0,
-      "usd_cost": 0,
-      "elapsed_ms": 0,
-      "tokens": 0,
-      "created_at": "2026-10-12T17:18:31.992Z"
     }
   ],
   "stats": {
-    "failed": 3,
+    "failed": 4,
     "blocked": 0,
-    "done": 17,
+    "done": 16,
     "qa_failed": 4,
-    "total_cost_usd": "0.4254"
+    "total_cost_usd": "0.4273"
   }
 }

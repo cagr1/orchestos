@@ -193,6 +193,13 @@ Cerrada. Todos sus ítems están archivados en `docs/done/` (ver "Cerrados — e
   del piloto aplicó la corrección registrada por la UI (`InventarioError` con `codigo` en mayúsculas en
   `erp-piloto/src/inventario/stock.ts`), que la etapa 3 había ignorado.
   Anotado sin corregir: `external.ts:514,589` leen `orchestos.config.yaml` desde el worktree como fallback.
+- [ ] **ERP.4.5 — 🔍 Una skill que es gate de revisión no se asigna ni se inyecta al ejecutor.** (abierto 2026-10-13,
+  hallazgo 14 del piloto) Etapa 5: run `ac5c6ee6` falló en 19 s con "missing declared output(s)" de los 6 archivos.
+  La sesión de Codex muestra que el ejecutor recibió "SKILL GUIDELINES: Structured QA Review" y respondió con un
+  veredicto JSON sin escribir nada. Causa: `pickAutoSkill` (`chat.ts:784`) elige la primera skill `mode: automatic`,
+  y las dos que hay (`qa-structured`, `security-review`) son gates de fase `review`. 4 de las 5 tareas del piloto
+  llevan `skill: qa-structured`; las anteriores salieron bien por suerte. Spec: `docs/specs/ERP.4.5.md`.
+  Gate: tests de `pickAutoSkill`, `buildPrompt` y `skillRoute` + reintento de la etapa 5 en vivo.
 - [x] **CI.21 — 🔍 El orquestador a veces se niega ("solo lectura") en vez de crear la tarea.** (abierto 2026-10-12)
   `chat-turn-details` falló en el pre-push y 1 de 2 corridas a solas en el paso `held task card visible` (aserción
   real desde R.8.6): al pedido "Modifica README.md…" el CLI respondió "No puedo modificar archivos en este entorno
