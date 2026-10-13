@@ -58,6 +58,15 @@
       "closedDate": null
     },
     {
+      "id": "ERP.4.6",
+      "sprint": "Fase 2 — Producto mínimo para entrega",
+      "block": "H.7 — El contexto se llena en silencio y nadie avisa (ABIERTO 2026-09-02)",
+      "delegation": "🔍",
+      "title": "El check por defecto de `tsc` solo se añade si el proyecto tiene `tsconfig.json`",
+      "status": "open",
+      "closedDate": null
+    },
+    {
       "id": "CI.21",
       "sprint": "Fase 2 — Producto mínimo para entrega",
       "block": "H.7 — El contexto se llena en silencio y nadie avisa (ABIERTO 2026-09-02)",
