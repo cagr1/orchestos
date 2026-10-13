@@ -58,6 +58,15 @@
       "closedDate": null
     },
     {
+      "id": "CI.22",
+      "sprint": "Fase 2 — Producto mínimo para entrega",
+      "block": "H.7 — El contexto se llena en silencio y nadie avisa (ABIERTO 2026-09-02)",
+      "delegation": "🔍",
+      "title": "`usage-bar` falla en el pre-push completo: \"Codex: No quota limits reported\"",
+      "status": "open",
+      "closedDate": null
+    },
+    {
       "id": "CI.14",
       "sprint": "Fase 2 — Producto mínimo para entrega",
       "block": "H.7 — El contexto se llena en silencio y nadie avisa (ABIERTO 2026-09-02)",

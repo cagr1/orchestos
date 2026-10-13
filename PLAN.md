@@ -206,6 +206,12 @@ Cerrada. Todos sus ítems están archivados en `docs/done/` (ver "Cerrados — e
   Gate en vivo: navegador real (Playwright), `docs/done/evidence/CI.21-live.json` — `chat-turn-details` 26/26 en 5
   corridas seguidas (antes: 1 fallo en el pre-push y 1 de 2 a solas) y `chat-roles` 11/11. CI.18 sigue abierto: 5
   corridas no prueban que su intermitencia tuviera esta causa.
+- [ ] **CI.22 — 🔍 `usage-bar` falla en el pre-push completo: "Codex: No quota limits reported".** (abierto 2026-10-12)
+  Falló 2 veces seguidas dentro del pre-push (pasos `quota is visible without a project session` y `quota remains
+  visible after a real turn`) y pasó a solas entre medias. Medido en frío: `readCodexRateLimitsLive` responde en
+  0.5–0.8 s (6 lecturas); el tope es 3 s (`scripts/context-adapters.ts:201`) y al vencer devuelve `[]` sin dejar
+  rastro. Ya anotado como intermitente en `AGENTS.md:202`. Arreglo: tope de 8 s y una línea de log con el tiempo
+  cuando vence. Gate: tests del adaptador + pre-push completo verde.
 - [x] **CI.14 — 🔍 GitHub Actions deja de fallar por la misma clase de bug.** (abierto 2026-10-06, GO de Carlos)
   Datos 2026-09-05→10-05: CI rojo en 42/73 pushes en 3 rachas (lint 11-22 sep; `process.env`/HOME 23-24 sep; fixture git
   sin identidad 4-5 oct), todas "pasa en el Mac, falla en Linux". Mutation Shards cancelado 4 noches (10-03→10-06):
