@@ -24,6 +24,7 @@ import {
   codexEngine,
   ExecutorCodexError,
   orchestosModelToCodexModel,
+  parseCodexStream,
   runCodexChat,
 } from '../run/executors/codex.ts'
 import type { RunContext } from '../run/middleware.ts'
@@ -592,5 +593,23 @@ describe('G.4.2b — codexEngine (codex subprocess)', () => {
     expect(orchestosModelToCodexModel('openai/gpt-5.4')).toBe('gpt-5.4')
     expect(orchestosModelToCodexModel('anthropic/claude-sonnet-5')).toBeUndefined()
     expect(orchestosModelToCodexModel(undefined)).toBeUndefined()
+  })
+})
+
+describe('ERP.4.8 — parseCodexStream.finalText', () => {
+  const turn = JSON.stringify({
+    type: 'turn.completed',
+    usage: { input_tokens: 1, output_tokens: 1 },
+  })
+  const msg = (text: string) =>
+    JSON.stringify({ type: 'item.completed', item: { type: 'agent_message', text } })
+
+  it('devuelve el texto del último agent_message', () => {
+    const out = parseCodexStream([msg('primero'), msg('segundo'), turn].join('\n'))
+    expect(out.finalText).toBe('segundo')
+  })
+
+  it('sin agent_message → undefined', () => {
+    expect(parseCodexStream(turn).finalText).toBeUndefined()
   })
 })

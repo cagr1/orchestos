@@ -222,15 +222,17 @@ interface CodexTurnCompleted {
   }
 }
 
-function parseCodexStream(stdout: string): {
+export function parseCodexStream(stdout: string): {
   inputTokens: number
   outputTokens: number
   cacheReadTokens: number
   cacheWriteTokens: number
   threadId?: string
+  finalText?: string
 } {
   let last: CodexTurnCompleted | undefined
   let threadId: string | undefined
+  let finalText: string | undefined
   for (const line of stdout.split('\n')) {
     const trimmed = line.trim()
     if (!trimmed) continue
@@ -239,6 +241,12 @@ function parseCodexStream(stdout: string): {
       if (evt?.type === 'thread.started' && typeof evt.thread_id === 'string')
         threadId = evt.thread_id
       if (evt?.type === 'turn.completed') last = evt
+      if (
+        evt?.type === 'item.completed' &&
+        evt.item?.type === 'agent_message' &&
+        typeof evt.item.text === 'string'
+      )
+        finalText = evt.item.text
     } catch {}
   }
   if (!last) {
@@ -255,6 +263,7 @@ function parseCodexStream(stdout: string): {
     cacheReadTokens: last.usage?.cached_input_tokens ?? 0,
     cacheWriteTokens: last.usage?.cache_write_input_tokens ?? 0,
     threadId,
+    finalText,
   }
 }
 
@@ -581,6 +590,7 @@ export const codexEngine: ExecutorEngine = {
       cacheReadTokens: parsed.cacheReadTokens,
       cacheWriteTokens: parsed.cacheWriteTokens,
       outputTokens: parsed.outputTokens,
+      finalText: parsed.finalText,
       usd,
       iterations: 1, // codex exec no expone conteo de turnos internos en --json
       costByIteration: [

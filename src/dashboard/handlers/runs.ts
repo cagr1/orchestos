@@ -99,6 +99,8 @@ export function runRecordToRow(r: RunRecord): RunRow {
     status: r.status,
     qaVerdict: r.qa_verdict as 'pass' | 'fail' | null,
     qaReason: r.qa_reason,
+    result: r.result,
+    executorReply: r.executor_reply ?? null,
     qaModel: r.qa_model,
     qaCriteria: parseJsonArray<{
       text: string

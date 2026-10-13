@@ -12,6 +12,8 @@ interface RunRow {
   status: RunItem['status']
   qaVerdict: RunItem['qaVerdict']
   qaReason?: string | null
+  result?: string | null
+  executorReply?: string | null
   qaModel?: string | null
   qaCriteria?: Array<{ text: string; pass: boolean; evidence?: { file: string; excerpt: string } }>
   adversarialVerdict?: string | null
@@ -76,6 +78,8 @@ export function mapRunRow(row: RunRow): RunItem {
     taskDescription: row.prompt?.split(/\r?\n/, 1)[0] || row.taskId || '—',
     status: row.status,
     qaVerdict: row.qaVerdict,
+    ...(row.status !== 'done' && row.result ? { failureReason: row.result } : {}),
+    ...(row.executorReply ? { executorReply: row.executorReply } : {}),
     model: row.model,
     agentModel: row.model,
     provider: row.provider,

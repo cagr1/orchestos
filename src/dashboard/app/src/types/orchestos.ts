@@ -70,6 +70,8 @@ export interface RunItem {
   taskDescription: string
   status: 'done' | 'blocked' | 'failed'
   qaVerdict: QaVerdict
+  failureReason?: string
+  executorReply?: string
   model: string
   agentModel?: string
   provider: string

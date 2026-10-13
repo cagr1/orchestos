@@ -56,6 +56,41 @@ describe('runRecordToRow', () => {
     }
   })
 
+  test('expone result y executorReply', async () => {
+    await (await import('../../db/migrate.ts')).runMigrations()
+    const id = insertRun({
+      project_id: null,
+      prompt: 'test',
+      task_class: 'test',
+      model: 'model',
+      provider: 'test',
+      skill_id: null,
+      task_id: 'executor-reply-test',
+      allowed_outputs: null,
+      files_attempted: null,
+      files_authorized: null,
+      files_blocked: null,
+      snapshot_before: null,
+      snapshot_after: null,
+      qa_verdict: 'fail',
+      qa_reason: 'missing',
+      status: 'failed',
+      input_tokens: 0,
+      output_tokens: 0,
+      usd_cost: 0,
+      elapsed_ms: 0,
+      result: 'missing declared output(s): a.txt',
+      executor_reply: 'veredicto del ejecutor',
+    })
+    try {
+      const row = runRecordToRow(getRun(id)!)
+      expect(row.result).toBe('missing declared output(s): a.txt')
+      expect(row.executorReply).toBe('veredicto del ejecutor')
+    } finally {
+      db.run('DELETE FROM runs WHERE id = ?', [id])
+    }
+  })
+
   test('exposes real evidence and tolerates malformed JSON columns', () => {
     const row = runRecordToRow({
       id: 'run-1',

@@ -4,6 +4,17 @@
 Carlos leyó el reporte `docs/done/evidence/ERP.4/reporte-2026-10-13.md` y dio GO a los arreglos recomendados, en
 este orden: hallazgos 18/19 (relanzar una tarea concreta desde la UI), 15 (el run fallido guarda la respuesta del
 ejecutor), 17 (el hilo muestra el fin del reintento sin recargar).
+Estado: **lote terminado 2026-10-13.** ERP.4.7 (`617f8ca`), ERP.4.9 (`8daed04`) y ERP.4.8 cerrados, con gate en
+vivo cada uno (`tasks` 19/19, `chat-retry-report` 12/12, `qa-negative` 25/25). Sesión cerrada por contexto (254 k).
+Lecciones del lote: (1) el ejecutor de Codex para si ve `writer-lock status: ocupado: claude` — decirle en el spec
+que escribe bajo el candado del cerebro (`AGENT_WRITER_TOKEN`); (2) el scope del preflight del ejecutor debe incluir
+`PLAN.md` y `docs/**` o el cierre exige `**Fuera de scope declarado:**`; (3) formatear con biome todo JSON de
+evidencia antes de commitear (`ERP.4.7-live.json` dejó `lint` rojo un commit); (4) `~/Library/Caches/ms-playwright`
+desapareció una vez (causa sin identificar): `bunx playwright install chromium`; (5) Settings → Plan ya tenía `Run`
+por tarea: antes de afirmar "no existe en la UI", grepear el handler en todas las pestañas; (6) el check de `tsc`
+solo se añade si la tarea declara salida `.ts` (`checks.ts:79`); (8) una columna nueva de `runs` va como
+migración numerada, no `safeAddColumn`: la migración 10 reconstruye la tabla con lista fija (`migrate.ts:390`); (7) `criterio` (sonnet) corrió `prettier` y un
+`git stash` no pedidos: prohibirlos en el spec.
 Siguen SIN respuesta de Carlos: decisión de utilidad del piloto, GO al plan del hallazgo 2 (no tocar
 `buildNaturalDraft` sin ese GO) y su lectura de la regla de presupuesto (3.er intento de la etapa 6).
 

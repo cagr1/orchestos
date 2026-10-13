@@ -387,6 +387,21 @@ export default async function qaNegative({ page, api, step, shot, visible, clean
   await step('rejected run visible', await visible(runRow), 'gate-qa-bad appears in Runs')
   if (!(await runRow.isVisible())) return
   await runRow.click()
+  const executorReply = rejected.run?.executorReply ?? ''
+  await step(
+    'executor reply stored by API',
+    typeof executorReply === 'string' && executorReply.trim().length > 0,
+    JSON.stringify({ length: executorReply.length, excerpt: executorReply.slice(0, 80) }),
+  )
+  await page.getByRole('button', { name: 'Contract', exact: true }).click()
+  const replyExcerpt = executorReply.replace(/\s+/g, ' ').trim().slice(0, 30)
+  await step(
+    'executor reply visible in Contract tab',
+    (await visible(page.getByText('Executor reply', { exact: true }))) &&
+      replyExcerpt.length > 0 &&
+      (await visible(page.getByText(replyExcerpt, { exact: false }).first())),
+    JSON.stringify({ excerpt: replyExcerpt }),
+  )
   await page.getByRole('button', { name: 'QA Assertions', exact: true }).click()
   await step(
     'check visible in QA tab',

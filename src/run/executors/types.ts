@@ -22,6 +22,8 @@ export interface ExecutorOutcome {
   cacheReadTokens?: number
   cacheWriteTokens?: number
   outputTokens: number
+  /** Último mensaje de texto del agente (ERP.4.8); solo engines CLI que lo exponen. */
+  finalText?: string
   usd: number
   /** 1 para single-shot; N para engines multi-turno (agéntico, G.3) */
   iterations: number

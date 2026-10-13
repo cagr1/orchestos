@@ -247,11 +247,30 @@ Cerrada. Todos sus ítems están archivados en `docs/done/` (ver "Cerrados — e
   `bunx playwright install chromium`.
   **Fuera de scope declarado:** `PLAN.md` y `docs/done/evidence/**` (cierre y evidencia del propio ítem; el scope
   lo declaró el ejecutor solo para el código).
-- [ ] **ERP.4.8 — 🔍 El run fallido guarda y muestra lo que respondió el ejecutor.** (abierto 2026-10-13, GO de
+- [x] **ERP.4.8 — 🔍 El run fallido guarda y muestra lo que respondió el ejecutor.** (abierto 2026-10-13, GO de
   Carlos; hallazgo 15) `runs.result` solo trae el motivo del contrato y `ExecutorOutcome`
   (`src/run/executors/types.ts:18`) no lleva el texto final del CLI; además `runs.result` no sale por la API ni se ve
   en Runs (`handlers/runs.ts:80`). El diagnóstico de ERP.4.5 salió del rollout de Codex, no de OrchestOS.
   Gate: tests del ejecutor externo y del harness + run fallido visto en el dashboard real con la respuesta del ejecutor.
+  Ejecutado por: sonnet (rol `criterio`), 2 rondas · Spec: docs/specs/ERP.4.8.md
+  Hecho: `ExecutorOutcome.finalText` (Codex: último `agent_message` en `parseCodexStream`; Claude: `result` del
+  evento final); columna `runs.executor_reply` (migración numerada 24, redactada con el mismo `scrub` que `result`,
+  recortada a 4 000 caracteres), guardada solo en los 4 `insertRun` de fallo o bloqueo con outcome
+  (`harness.ts`: contrato, salidas faltantes, check, QA); la API de runs expone `result` y `executorReply`; la
+  pestaña Contract del run muestra el motivo y "Executor reply" cuando el run no terminó bien.
+  Ronda 2: con `safeAddColumn` la columna se perdía en una base nueva — la migración 10 reconstruye `runs` con lista
+  fija de columnas (`migrate.ts:390`) — y `test:coverage` dio 18 fallos ("no column named executor_reply"); pasó a
+  migración numerada. Sin identificar: un `duplicate column name` que salió una vez en esa corrida.
+  Gates propios: `typecheck`, `lint`, `build:app`, `ui:fidelity:jsx` limpios; `test:coverage` 1709/0, funciones
+  76.79 %, líneas 63.62 %.
+  Gate en vivo: navegador real (Playwright), `docs/done/evidence/ERP.4.8-live.json` — `qa-negative` 25/25 con
+  `gate:evidence --label ERP.4.8-qa-negative-live` (3 runs exportados): el run rechazado por QA de `gate-qa-bad`
+  (codex gpt-6-luna) trae `executorReply` de 185 caracteres ("Created [nota.txt](…") por `GET /api/runs/:id` y
+  la pestaña Contract lo muestra bajo "Executor reply".
+  Límites: los runs `done` y los engines `single-shot`/`agentic` no guardan respuesta; el bloque nuevo de Contract
+  se comprobó por texto visible, no mirando una captura; la rama de Claude se probó con test, no en vivo.
+  **Fuera de scope declarado:** `LEDGER.md` (entrada exigida por tocar `harness.ts`), `src/dashboard/types.ts` (tipo
+  `RunRow` que consume `runRecordToRow`) y `src/dashboard/handlers/runs.test.ts` (su test).
 - [x] **ERP.4.9 — 🔍 El hilo abierto muestra el fin de un reintento sin recargar.** (abierto 2026-10-13, GO de
   Carlos; hallazgo 17) Dos causas leídas en el código: `runProjectTask` espera 60 s como máximo
   (`app/src/api/chat.ts:464`) y, si el run tarda más, su error salta la recarga del hilo

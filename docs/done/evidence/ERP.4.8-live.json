@@ -1,0 +1,138 @@
+[
+  {
+    "flujo": "qa-negative",
+    "pass": true,
+    "steps": [
+      {
+        "nombre": "temporary project visible",
+        "ok": true,
+        "detalle": "project visible in sidebar"
+      },
+      {
+        "nombre": "project settings visible",
+        "ok": true,
+        "detalle": "project settings heading visible"
+      },
+      {
+        "nombre": "Run Next Task enabled",
+        "ok": true,
+        "detalle": "task is runnable"
+      },
+      {
+        "nombre": "control task passes QA",
+        "ok": true,
+        "detalle": "{\"status\":\"done\",\"qaVerdict\":\"pass\"}"
+      },
+      {
+        "nombre": "control check executed",
+        "ok": true,
+        "detalle": "[{\"cmd\":\"grep -qx VERDE ok.txt\",\"version\":\"grep (BSD grep, GNU compatible) 2.6.0-FreeBSD\",\"exitCode\":0,\"stdout\":\"\",\"stderr\":\"\",\"elapsedMs\":6,\"timedOut\":false}]"
+      },
+      {
+        "nombre": "control criterion passed with literal evidence",
+        "ok": true,
+        "detalle": "[{\"text\":\"ok.txt contains the line: VERDE\",\"pass\":true,\"evidence\":{\"file\":\"ok.txt\",\"excerpt\":\"VERDE\"}}]"
+      },
+      {
+        "nombre": "control output on disk",
+        "ok": true,
+        "detalle": "{\"exists\":true,\"content\":\"VERDE\"}"
+      },
+      {
+        "nombre": "task rollout written inside the project agent home",
+        "ok": true,
+        "detalle": "{\"agentHome\":\"/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/orchestos-ui-r83-r9CVwY/.orchestos/agent-home/codex\",\"antes\":2,\"despues\":1}"
+      },
+      {
+        "nombre": "rollout contains the OrchestOS generated instructions",
+        "ok": true,
+        "detalle": "{\"rolloutBytes\":55566,\"hostAgents\":\"checked\"}"
+      },
+      {
+        "nombre": "rollout does not contain the host AGENTS.md distinctive line",
+        "ok": true,
+        "detalle": "línea del host comprobada: \"# Reglas globales de trabajo con agentes\""
+      },
+      {
+        "nombre": "Claude task transcript was found",
+        "ok": true,
+        "detalle": "{\"status\":\"done\",\"qaVerdict\":\"pass\",\"transcripts\":1}"
+      },
+      {
+        "nombre": "Claude task transcript does not contain the host CLAUDE.md distinctive line",
+        "ok": true,
+        "detalle": "línea del host comprobada: \"# Reglas globales de trabajo con agentes\" · transcripciones: 1"
+      },
+      {
+        "nombre": "executor wrote the incorrect output",
+        "ok": true,
+        "detalle": "[{\"path\":\"nota.txt\",\"status\":\"added\",\"diff\":\"Index: nota.txt\\n===================================================================\\n--- nota.txt\\n+++ nota.txt\\n@@ -0,0 +1,1 @@\\n+ROJO\\n\"}]"
+      },
+      {
+        "nombre": "QA rejects the incorrect output",
+        "ok": true,
+        "detalle": "{\"qaVerdict\":\"fail\",\"qaReason\":\"nota.txt contains ROJO, not the required AZUL line.\",\"qaModel\":\"gpt-6-luna\",\"checks\":[{\"cmd\":\"test -f nota.txt\",\"exitCode\":0,\"stdout\":\"\",\"stderr\":\"\",\"elapsedMs\":6,\"timedOut\":false}],\"qaCriteria\":[{\"text\":\"nota.txt contains the line: AZUL\",\"pass\":false,\"evidence\":{\"file\":\"nota.txt\",\"excerpt\":\"ROJO\"}}]}"
+      },
+      {
+        "nombre": "check executed before QA",
+        "ok": true,
+        "detalle": "{\"qaVerdict\":\"fail\",\"qaReason\":\"nota.txt contains ROJO, not the required AZUL line.\",\"qaModel\":\"gpt-6-luna\",\"checks\":[{\"cmd\":\"test -f nota.txt\",\"exitCode\":0,\"stdout\":\"\",\"stderr\":\"\",\"elapsedMs\":6,\"timedOut\":false}],\"qaCriteria\":[{\"text\":\"nota.txt contains the line: AZUL\",\"pass\":false,\"evidence\":{\"file\":\"nota.txt\",\"excerpt\":\"ROJO\"}}]}"
+      },
+      {
+        "nombre": "failed criterion recorded",
+        "ok": true,
+        "detalle": "{\"qaVerdict\":\"fail\",\"qaReason\":\"nota.txt contains ROJO, not the required AZUL line.\",\"qaModel\":\"gpt-6-luna\",\"checks\":[{\"cmd\":\"test -f nota.txt\",\"exitCode\":0,\"stdout\":\"\",\"stderr\":\"\",\"elapsedMs\":6,\"timedOut\":false}],\"qaCriteria\":[{\"text\":\"nota.txt contains the line: AZUL\",\"pass\":false,\"evidence\":{\"file\":\"nota.txt\",\"excerpt\":\"ROJO\"}}]}"
+      },
+      {
+        "nombre": "task returns to pending with retry",
+        "ok": true,
+        "detalle": "{\"status\":\"pending\",\"retryCount\":1,\"qaVerdict\":\"fail\"}"
+      },
+      {
+        "nombre": "rejected output reverted",
+        "ok": true,
+        "detalle": "{\"exists\":false}"
+      },
+      {
+        "nombre": "rejected run visible",
+        "ok": true,
+        "detalle": "gate-qa-bad appears in Runs"
+      },
+      {
+        "nombre": "executor reply stored by API",
+        "ok": true,
+        "detalle": "{\"length\":185,\"excerpt\":\"Created [nota.txt](/private/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/orch\"}"
+      },
+      {
+        "nombre": "executor reply visible in Contract tab",
+        "ok": true,
+        "detalle": "{\"excerpt\":\"Created [nota.txt](/private/va\"}"
+      },
+      {
+        "nombre": "check visible in QA tab",
+        "ok": true,
+        "detalle": "✓ test -f nota.txt (exit 0)"
+      },
+      {
+        "nombre": "failed criterion visible in QA tab",
+        "ok": true,
+        "detalle": "✗ nota.txt contains the line: AZUL"
+      },
+      {
+        "nombre": "control run visible",
+        "ok": true,
+        "detalle": "gate-qa-ok appears in Runs"
+      },
+      {
+        "nombre": "passed criterion visible with evidence",
+        "ok": true,
+        "detalle": "✓ ok.txt contains the line: VERDE with ok.txt evidence"
+      }
+    ],
+    "notes": [],
+    "errores": [],
+    "capturas": [
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-24702/qa-negative/qa-negative-rejected.png"
+    ]
+  }
+]

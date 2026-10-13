@@ -62,6 +62,8 @@ export function claudeUnavailableMessage(pathHint?: string): string {
 
 interface ClaudeCodeJson {
   session_id?: string
+  /** Texto final del agente (evento `type: "result"`). */
+  result?: string
   usage?: {
     input_tokens?: number
     output_tokens?: number
@@ -566,6 +568,7 @@ export const externalEngine: ExecutorEngine = {
       cacheReadTokens,
       cacheWriteTokens,
       outputTokens,
+      finalText: typeof parsed.result === 'string' ? parsed.result : undefined,
       usd,
       iterations,
       // Una sola entrada agregada — Claude Code headless no expone costo por

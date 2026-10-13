@@ -45,6 +45,8 @@ export interface RunRecord {
   cache_read_tokens: number
   cache_write_tokens: number
   cli_session_id: string | null
+  /** ERP.4.8: último mensaje del ejecutor en runs fallidos/bloqueados (≤4000 chars); NULL = sin texto o run ok. */
+  executor_reply?: string | null
   output_tokens: number
   usd_cost: number
   elapsed_ms: number
@@ -92,9 +94,17 @@ type InsertRunRecord = Omit<
   refuter_verdict?: string | null
   refuter_reason?: string | null
   skill_gates_json?: string | null
+  executor_reply?: string | null
   cache_read_tokens?: number
   cache_write_tokens?: number
   cli_session_id?: string | null
+}
+
+const EXECUTOR_REPLY_MAX = 4000
+
+function clipExecutorReply(value: string | null | undefined): string | null {
+  if (value == null) return null
+  return value.length > EXECUTOR_REPLY_MAX ? `${value.slice(0, EXECUTOR_REPLY_MAX - 1)}…` : value
 }
 
 export function insertRun(r: InsertRunRecord): string {
@@ -110,8 +120,8 @@ export function insertRun(r: InsertRunRecord): string {
       snapshot_before, snapshot_after, qa_verdict, qa_reason, qa_model, checks_json,
       constitution_rules, context_source, context_tokens, embed_hits, context_warnings_json,
       cost_breakdown_json, file_diffs, adversarial_verdict, adversarial_reason, refuter_verdict, refuter_reason, skill_gates_json,
-      status, input_tokens, cache_read_tokens, cache_write_tokens, output_tokens, usd_cost, elapsed_ms, result, created_at, cli_session_id
-    ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
+      status, input_tokens, cache_read_tokens, cache_write_tokens, output_tokens, usd_cost, elapsed_ms, result, created_at, cli_session_id, executor_reply
+    ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
     [
       id,
       scrub(r.project_id),
@@ -156,6 +166,7 @@ export function insertRun(r: InsertRunRecord): string {
       scrub(r.result),
       now,
       scrub(r.cli_session_id),
+      scrub(clipExecutorReply(r.executor_reply)) ?? null,
     ],
   )
   return id

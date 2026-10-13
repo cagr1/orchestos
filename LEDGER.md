@@ -322,3 +322,13 @@ orquestador, ejecutor) para que el home aislado del CLI sea el del proyecto y no
 "maxTokens|maxOutput|contextWindow"` → 0).
 **Reversibilidad/evidencia**: commit `feat(R.8.5.1)`, revertible (sin migración). `test:coverage` 1675/0 ·
 `qa-negative` 21/21 · `auto-flow` 31/31 · `restart-mid-run` 28/28.
+
+## 2026-10-13 09:51 — claude-opus-5-5 (revisor) · ejecutor Claude sonnet
+**Contexto**: ERP.4.8 — `src/run/harness.ts` ([[feedback-context-no-max-tokens]]).
+**Clasificación**: RESPETÓ
+**Por qué**: el harness solo añade `executor_reply: outcome?.finalText ?? null` a los cuatro `insertRun` de fallo o
+bloqueo que ya tienen outcome (contrato, salidas faltantes, check, QA). Ninguna línea de
+`maxTokens`/`contextWindow`/`maxOutputTokensFor` tocada (`git diff HEAD -- src/run/harness.ts | grep -ciE
+"maxTokens|maxOutput|contextWindow"` → 0).
+**Reversibilidad/evidencia**: commit `feat(ERP.4.8)`, revertible (migración 24 aditiva). `test:coverage` 1709/0 ·
+`qa-negative` 25/25.

@@ -149,6 +149,22 @@ export const RunsEvidenceView: React.FC<RunsEvidenceViewProps> = ({
           {/* Tab 1: Contract */}
           {evidenceTab === 'contract' && (
             <div className="rounded-card border border-app bg-app-surface p-4 space-y-3 text-xs">
+              {selectedRun.status !== 'done' &&
+                (selectedRun.failureReason || selectedRun.executorReply) && (
+                  <div className="space-y-2">
+                    {selectedRun.failureReason && (
+                      <div className="text-amber-300">{selectedRun.failureReason}</div>
+                    )}
+                    {selectedRun.executorReply && (
+                      <>
+                        <div className="font-semibold text-app">Executor reply</div>
+                        <pre className="p-3 bg-app-bg font-mono text-xs text-app overflow-x-auto leading-relaxed">
+                          {selectedRun.executorReply}
+                        </pre>
+                      </>
+                    )}
+                  </div>
+                )}
               <div className="font-semibold text-app">Contract Output Slice Whitelist</div>
               <div className="font-mono text-xs bg-app-bg p-3 rounded-control border border-app text-app-accent space-y-1">
                 {(selectedRun.outputSlice || []).map((file) => (

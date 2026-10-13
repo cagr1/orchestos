@@ -1,7 +1,52 @@
 {
-  "exported_at": "2026-10-13T14:16:27.335Z",
+  "exported_at": "2026-10-13T14:54:58.700Z",
   "total_runs": 20,
   "runs": [
+    {
+      "id": "bd51dd96-3c78-4274-ae71-f8ede59db5fe",
+      "task_class": "gate:erp.4.8-qa-negative-live:implement",
+      "model": "openai/gpt-6-luna",
+      "provider": "codex",
+      "status": "failed",
+      "qa_verdict": "fail",
+      "qa_reason": "nota.txt contains ROJO, not the required AZUL line.",
+      "files_blocked": [],
+      "checks_failed": 0,
+      "usd_cost": 0.00102738,
+      "elapsed_ms": 48840,
+      "tokens": 8875,
+      "created_at": "2026-10-13T14:48:34.484Z"
+    },
+    {
+      "id": "74b79036-ea5a-44fa-872f-e37434269239",
+      "task_class": "gate:erp.4.8-qa-negative-live:implement",
+      "model": "anthropic/haiku",
+      "provider": "claude",
+      "status": "done",
+      "qa_verdict": "pass",
+      "qa_reason": "The file contains the required line, and the exact-line check succeeded.",
+      "files_blocked": [],
+      "checks_failed": 0,
+      "usd_cost": 0.00112264,
+      "elapsed_ms": 15065,
+      "tokens": 3515,
+      "created_at": "2026-10-13T14:47:44.371Z"
+    },
+    {
+      "id": "96d7594d-adf0-470d-bb2d-89f578cfb8a9",
+      "task_class": "gate:erp.4.8-qa-negative-live:implement",
+      "model": "openai/gpt-6-luna",
+      "provider": "codex",
+      "status": "done",
+      "qa_verdict": "pass",
+      "qa_reason": "ok.txt contains exactly the line VERDE.",
+      "files_blocked": [],
+      "checks_failed": 0,
+      "usd_cost": 0.00123336,
+      "elapsed_ms": 27991,
+      "tokens": 11579,
+      "created_at": "2026-10-13T14:47:26.555Z"
+    },
     {
       "id": "0503b624-148e-4f25-beb3-5cd2d3211564",
       "task_class": "gate:erp.4.9-chat-retry-live:implement",
@@ -256,58 +301,13 @@
       "elapsed_ms": 11130,
       "tokens": 277,
       "created_at": "2026-10-12T22:27:55.681Z"
-    },
-    {
-      "id": "58042cd4-b261-4292-b23a-689edc8e5d1e",
-      "task_class": "implement",
-      "model": "gpt-6-luna",
-      "provider": "codex",
-      "status": "done",
-      "qa_verdict": "pass",
-      "qa_reason": "La implementación delega correctamente y restringe las salidas a admin, con pruebas que cubren los tres casos y verifican que el rechazo no inserta movimientos ni cambia el stock.",
-      "files_blocked": [],
-      "checks_failed": 0,
-      "usd_cost": 0.00260056,
-      "elapsed_ms": 38219,
-      "tokens": 15036,
-      "created_at": "2026-10-12T22:22:58.604Z"
-    },
-    {
-      "id": "c7463208-7744-4bb1-a1a5-380ad586aa98",
-      "task_class": "chat",
-      "model": "claude-opus-5-5",
-      "provider": "claude",
-      "status": "done",
-      "qa_verdict": null,
-      "qa_reason": null,
-      "files_blocked": [],
-      "checks_failed": 0,
-      "usd_cost": 0.0587356,
-      "elapsed_ms": 10617,
-      "tokens": 238,
-      "created_at": "2026-10-12T22:22:19.876Z"
-    },
-    {
-      "id": "51b91069-65ec-491d-a278-840740bcd457",
-      "task_class": "implement",
-      "model": "gpt-6-luna",
-      "provider": "codex",
-      "status": "done",
-      "qa_verdict": "pass",
-      "qa_reason": "Los archivos implementan las operaciones y validaciones solicitadas dentro de una transacción y añaden tests que cubren los casos requeridos.",
-      "files_blocked": [],
-      "checks_failed": 0,
-      "usd_cost": 0.0033312600000000004,
-      "elapsed_ms": 39417,
-      "tokens": 17393,
-      "created_at": "2026-10-12T22:19:15.860Z"
     }
   ],
   "stats": {
-    "failed": 4,
+    "failed": 5,
     "blocked": 0,
-    "done": 16,
-    "qa_failed": 4,
-    "total_cost_usd": "0.4466"
+    "done": 15,
+    "qa_failed": 5,
+    "total_cost_usd": "0.3853"
   }
 }

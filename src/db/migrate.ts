@@ -802,6 +802,29 @@ export const FUTURE_MIGRATIONS: readonly SchemaMigrationStep[] = [
       if (found !== 1) throw new Error('Migration 23 did not create task_run_watch')
     },
   },
+  {
+    // ERP.4.8: paso numerado y no safeAddColumn porque la migración 10 reconstruye `runs` con
+    // lista fija de columnas y descartaría una columna añadida antes.
+    version: 24,
+    name: 'run-executor-reply',
+    precondition: () => {},
+    apply: (database) => {
+      const columns = database
+        .query<{ name: string }, []>('PRAGMA table_info(runs)')
+        .all()
+        .map((row) => row.name)
+      if (!columns.includes('executor_reply'))
+        database.exec('ALTER TABLE runs ADD COLUMN executor_reply TEXT;')
+    },
+    postcondition: (database) => {
+      const columns = database
+        .query<{ name: string }, []>('PRAGMA table_info(runs)')
+        .all()
+        .map((row) => row.name)
+      if (!columns.includes('executor_reply'))
+        throw new Error('Migration 24 did not add runs.executor_reply')
+    },
+  },
 ]
 
 function appliedVersions(database: Database): Set<number> {

@@ -653,6 +653,7 @@ export async function runTask(opts: HarnessOpts): Promise<TaskResult> {
       const runId = insertRun({
         project_id: runProjectId,
         cli_session_id: outcome?.cliSessionId ?? null,
+        executor_reply: outcome?.finalText ?? null,
         prompt: ctx.task.description,
         task_class: ctx.taskClass,
         model: ctx.model,
@@ -724,6 +725,7 @@ export async function runTask(opts: HarnessOpts): Promise<TaskResult> {
       const runId = insertRun({
         project_id: runProjectId,
         cli_session_id: outcome?.cliSessionId ?? null,
+        executor_reply: outcome?.finalText ?? null,
         prompt: ctx.task.description,
         task_class: ctx.taskClass,
         model: ctx.model,
@@ -833,6 +835,7 @@ export async function runTask(opts: HarnessOpts): Promise<TaskResult> {
         const runId = insertRun({
           project_id: runProjectId,
           cli_session_id: outcome?.cliSessionId ?? null,
+          executor_reply: outcome?.finalText ?? null,
           prompt: ctx.task.description,
           task_class: ctx.taskClass,
           model: ctx.model,
@@ -1037,6 +1040,7 @@ export async function runTask(opts: HarnessOpts): Promise<TaskResult> {
       const runId = insertRun({
         project_id: runProjectId,
         cli_session_id: outcome?.cliSessionId ?? null,
+        executor_reply: outcome?.finalText ?? null,
         prompt: ctx.task.description,
         task_class: ctx.taskClass,
         model: ctx.model,
