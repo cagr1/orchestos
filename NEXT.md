@@ -21,17 +21,23 @@
    regla de stock, permiso admin, API, pantalla, tests), dejar que cree y ejecute las tareas, reiniciar el dashboard
    una vez a mitad, guardar una corrección y comprobar que se recupera en la tarea siguiente. Registrar por etapa:
    CLI/modelo usado, intervenciones, bloqueos, tiempo. Conducir por navegador real (Playwright), no por curl.
-   **PAUSA 2026-10-12 17:30 (pedido de Carlos). Retomar aquí:** etapas 1-4 del piloto hechas (datos, stock, permiso,
-   API; 16 tests verdes en `erp-piloto`), ERP.4.1-4.4 cerrados. Dashboard y navegador ABAJO. Pasos al volver:
-   (1) levantar el dashboard real y abrir el hilo "Claude: Etapa 1 del módulo…" de `erp-piloto`: comprobar que
-   muestra el reporte "✓ Task chat-2a24dab3 … done" (el run terminó con el dashboard caído); (2) etapa 5, pantalla
-   React: listar productos con stock y registrar un movimiento; (3) etapa 6, tests de aceptación de la regla y el
-   permiso; (4) revisión independiente (R.8 / rol `qa`) y decisión de utilidad con Carlos; (5) plan corto del
-   hallazgo 2 (mensaje de seguimiento que no crea tarea) y decidir los hallazgos 5-9 y 11-13 del registro.
-   Conductor: `docs/done/evidence/ERP.4/conductor/` → copiar a `/tmp/erp4/`, `node driver.mjs` en segundo plano,
-   órdenes con `do.sh`, una etapa con `stage.sh <etiqueta> <mensaje.txt>`. Pedidos autocontenidos y con archivos
-   nombrados (hallazgo 2). Una tarea que toca archivos existentes queda retenida: aprobar con `{"op":"approve"}`.
-   Lección: el hook `brain-no-code` bloquea un heredoc de Bash que nombre rutas `src/…`; specs con la herramienta Write.
+   **PAUSA 2026-10-12 22:15 (pedido de Carlos). Retomar aquí:** etapas 1-4 del piloto hechas (datos, stock, permiso,
+   API; 16 tests verdes en `erp-piloto`); ERP.4.1-4.4, CI.21 y CI.22 cerrados y pusheados (`1fbb379`). Dashboard y
+   navegador ABAJO. Recuperación tras reinicio ya comprobada. Pasos al volver:
+   (1) levantar el dashboard real, abrir el hilo "Claude: Etapa 1 del módulo…" de `erp-piloto` y aprobar la tarea
+   retenida de la etapa 5 `chat-528621f9` (pantalla React, 6 salidas) con `{"op":"approve"}`; al terminar, correr
+   `bun install` y `bun test` en `erp-piloto`, arrancar `bun run start` y abrir la pantalla con Playwright (listar
+   productos, registrar entrada, salida de operador rechazada, salida mayor que el stock rechazada);
+   (2) etapa 6, tests de aceptación de la regla y el permiso; (3) revisión independiente (rol `qa`) y decisión de
+   utilidad con Carlos; (4) plan corto del hallazgo 2 (mensaje de seguimiento que no crea tarea) y decidir los
+   hallazgos 5-9 y 11-13 del registro `docs/done/evidence/ERP.4/piloto-2026-10-12.md`.
+   Conductor: `docs/done/evidence/ERP.4/conductor/` → copiar a `/tmp/erp4/` (crear `cmd/`, `out/`, `shots/`),
+   `node driver.mjs` en segundo plano, órdenes con `do.sh`, una etapa con `stage.sh <etiqueta> <mensaje.txt>` (si la
+   tarea queda retenida, `stage.sh` espera sin avisar: mirar `status: pending` sin `runId` y aprobar).
+   Pedidos autocontenidos y con archivos nombrados (hallazgo 2).
+   Lecciones: el hook `brain-no-code` bloquea un heredoc de Bash que nombre rutas `src/…` (specs con Write); antes de
+   abrir un ítem, `grep "\*\*<ID> —" PLAN.md` (CI.20 ya existía); trampa de `plan:reconcile` sigue viva: cerrar
+   siempre con `[ ]`→reconcile→`[x]`→reconcile→commit.
    Corrida anterior, mismo día: piloto DETENIDO en la etapa 1 (misma etapa, mismo fallo, 2 veces). ERP.4.1 cerrado
    (`b0ce9e4`: el chat crea la primera tarea sin `tasks.yaml`). Registro y 9 hallazgos:
    `docs/done/evidence/ERP.4/piloto-2026-10-12.md`. Espera decisión de Carlos: qué hallazgos se arreglan antes de
