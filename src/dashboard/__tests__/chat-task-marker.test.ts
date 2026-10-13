@@ -1,7 +1,29 @@
 import { describe, expect, it } from 'bun:test'
-import { hasTaskMarker, stripTaskMarker, TASK_MARKER } from '../handlers/chat.ts'
+import {
+  buildAutoTaskInstruction,
+  hasTaskMarker,
+  stripTaskMarker,
+  TASK_MARKER,
+} from '../handlers/chat.ts'
 
 describe('Orchestrator task marker', () => {
+  it('explains why project execution requests use the task marker', () => {
+    const instruction = buildAutoTaskInstruction({ hasProjectContext: true, mode: 'code' })
+
+    expect(instruction).toContain(TASK_MARKER)
+    expect(instruction).toContain('read-only on purpose')
+    expect(instruction).toContain('Never refuse')
+  })
+
+  it('does not add the task marker when there is no project or the session is in Chat mode', () => {
+    expect(buildAutoTaskInstruction({ hasProjectContext: false, mode: 'code' })).not.toContain(
+      TASK_MARKER,
+    )
+    expect(buildAutoTaskInstruction({ hasProjectContext: true, mode: 'chat' })).not.toContain(
+      TASK_MARKER,
+    )
+  })
+
   it('recognizes a marker line with surrounding whitespace', () => {
     expect(hasTaskMarker(`Reply\n  ${TASK_MARKER}  `)).toBe(true)
     expect(stripTaskMarker(`Reply\n  ${TASK_MARKER}  `)).toBe('Reply')

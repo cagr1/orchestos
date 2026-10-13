@@ -193,6 +193,19 @@ Cerrada. Todos sus ítems están archivados en `docs/done/` (ver "Cerrados — e
   del piloto aplicó la corrección registrada por la UI (`InventarioError` con `codigo` en mayúsculas en
   `erp-piloto/src/inventario/stock.ts`), que la etapa 3 había ignorado.
   Anotado sin corregir: `external.ts:514,589` leen `orchestos.config.yaml` desde el worktree como fallback.
+- [x] **CI.21 — 🔍 El orquestador a veces se niega ("solo lectura") en vez de crear la tarea.** (abierto 2026-10-12)
+  `chat-turn-details` falló en el pre-push y 1 de 2 corridas a solas en el paso `held task card visible` (aserción
+  real desde R.8.6): al pedido "Modifica README.md…" el CLI respondió "No puedo modificar archivos en este entorno
+  porque el acceso al sistema de archivos es de solo lectura" y no puso el marcador. La instrucción del chat
+  (`chat.ts:1282`) no dice que su propio sandbox de solo lectura es lo esperado. Candidato a causa de CI.18 (mismo
+  paso del marcador en `chat-roles`). Gate: `chat-turn-details` 5 corridas seguidas + `chat-roles`.
+  Ejecutado por: gpt-6-luna (rol `mecanico`).
+  Hecho: la instrucción del chat pasa a `buildAutoTaskInstruction` (`chat.ts`) y la rama con proyecto añade que el
+  chat corre en solo lectura a propósito y que nunca se niegue ni lo mencione: ese pedido es el caso del marcador.
+  Test en `chat-task-marker.test.ts` (6/0).
+  Gate en vivo: navegador real (Playwright), `docs/done/evidence/CI.21-live.json` — `chat-turn-details` 26/26 en 5
+  corridas seguidas (antes: 1 fallo en el pre-push y 1 de 2 a solas) y `chat-roles` 11/11. CI.18 sigue abierto: 5
+  corridas no prueban que su intermitencia tuviera esta causa.
 - [x] **CI.14 — 🔍 GitHub Actions deja de fallar por la misma clase de bug.** (abierto 2026-10-06, GO de Carlos)
   Datos 2026-09-05→10-05: CI rojo en 42/73 pushes en 3 rachas (lint 11-22 sep; `process.env`/HOME 23-24 sep; fixture git
   sin identidad 4-5 oct), todas "pasa en el Mac, falla en Linux". Mutation Shards cancelado 4 noches (10-03→10-06):

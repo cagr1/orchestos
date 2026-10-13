@@ -97,6 +97,20 @@ import { createTaskRecord, spawnTaskRun } from './tasks.ts'
 const VALID_EFFORTS = ['low', 'medium', 'high'] as const
 type ReasoningEffort = (typeof VALID_EFFORTS)[number]
 
+export function buildAutoTaskInstruction({
+  hasProjectContext,
+  mode,
+}: {
+  hasProjectContext: boolean
+  mode: string | null | undefined
+}): string {
+  if (!hasProjectContext)
+    return 'If the user asks you to build or modify files, say plainly that this chat has no associated project and no task can be created here.'
+  if (mode === 'chat')
+    return 'If the user asks you to build or modify files, say plainly that this Chat mode is read-only and they must switch to Code mode.'
+  return `If — and only if — the user asks OrchestOS to build, create or modify files in this project, end your reply with the line \`${TASK_MARKER}\` alone, and keep the reply to one or two sentences saying OrchestOS will create a task for it. Do not write the code yourself and do not say a task was created or started: the system appends the real result. Otherwise never write that line. You cannot edit files yourself in this chat: it runs read-only on purpose, and OrchestOS runs the task in its own sandbox. Never refuse, apologise or mention read-only access or missing permissions when asked to build, create or modify files — that request is exactly the case for the marker line.`
+}
+
 export function buildChatTranscript(history: { role: string; content: string }[]): string {
   const messages = history.filter(
     (message): message is { role: 'user' | 'assistant'; content: string } =>
@@ -1275,11 +1289,10 @@ async function handleApiChat(
         ? `${model.replace('ollama/', '')} vía Ollama (local) — modelo local, los resultados pueden variar`
         : `${model} via OpenRouter`
 
-  const autoTaskInstruction = !hasProjectContext
-    ? 'If the user asks you to build or modify files, say plainly that this chat has no associated project and no task can be created here.'
-    : session?.mode === 'chat'
-      ? 'If the user asks you to build or modify files, say plainly that this Chat mode is read-only and they must switch to Code mode.'
-      : `If — and only if — the user asks OrchestOS to build, create or modify files in this project, end your reply with the line \`${TASK_MARKER}\` alone, and keep the reply to one or two sentences saying OrchestOS will create a task for it. Do not write the code yourself and do not say a task was created or started: the system appends the real result. Otherwise never write that line.`
+  const autoTaskInstruction = buildAutoTaskInstruction({
+    hasProjectContext,
+    mode: session?.mode,
+  })
 
   const projectFiles = hasProjectContext
     ? ['AGENTS.md', 'CLAUDE.md', 'CONTEXT.md', 'PLAN.md', 'README.md'].filter((file) =>
