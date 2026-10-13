@@ -1,4 +1,4 @@
-# NEXT — handoff 2026-10-10 (tras R.8.2) → siguiente tab (tras /clear)
+# NEXT — handoff 2026-10-13 (piloto ERP.4 completo, espera decisiones) → siguiente tab (tras /clear)
 
 ## Orden vigente
 1. R.8.2.1, R.8.2.2 y CI.17 cerrados 2026-10-11. CI.18 (`chat-roles` intermitente) instrumentado y medido 3/3 PASS;
@@ -21,20 +21,21 @@
    regla de stock, permiso admin, API, pantalla, tests), dejar que cree y ejecute las tareas, reiniciar el dashboard
    una vez a mitad, guardar una corrección y comprobar que se recupera en la tarea siguiente. Registrar por etapa:
    CLI/modelo usado, intervenciones, bloqueos, tiempo. Conducir por navegador real (Playwright), no por curl.
-   **PAUSA 2026-10-12 22:15 (pedido de Carlos). Retomar aquí:** etapas 1-4 del piloto hechas (datos, stock, permiso,
-   API; 16 tests verdes en `erp-piloto`); ERP.4.1-4.4, CI.21 y CI.22 cerrados y pusheados (`1fbb379`). Dashboard y
-   navegador ABAJO. Recuperación tras reinicio ya comprobada. Pasos al volver:
-   (1) levantar el dashboard real, abrir el hilo "Claude: Etapa 1 del módulo…" de `erp-piloto` y aprobar la tarea
-   retenida de la etapa 5 `chat-528621f9` (pantalla React, 6 salidas) con `{"op":"approve"}`; al terminar, correr
-   `bun install` y `bun test` en `erp-piloto`, arrancar `bun run start` y abrir la pantalla con Playwright (listar
-   productos, registrar entrada, salida de operador rechazada, salida mayor que el stock rechazada);
-   (2) etapa 6, tests de aceptación de la regla y el permiso; (3) revisión independiente (rol `qa`) y decisión de
-   utilidad con Carlos; (4) plan corto del hallazgo 2 (mensaje de seguimiento que no crea tarea) y decidir los
-   hallazgos 5-9 y 11-13 del registro `docs/done/evidence/ERP.4/piloto-2026-10-12.md`.
+   **2026-10-13: piloto completo, etapas 1-6 hechas** (25 tests verdes en `erp-piloto`, pantalla recorrida con
+   Playwright, revisión `qa` "sin defectos"). Cerrados y pusheados ERP.4.5 (gates de review no van al ejecutor) y
+   ERP.4.6 (check de `tsc` exige `tsconfig.json`). Dashboard y navegador ABAJO.
+   **ERP.4 sigue abierto solo por decisiones de Carlos:** (1) decisión de utilidad; (2) GO al plan del hallazgo 2
+   (el borrador de tarea solo lee el mensaje actual, `chat.ts:1111`); (3) qué hallazgos se arreglan: 5-9, 11-13 y
+   15-19 del registro `docs/done/evidence/ERP.4/piloto-2026-10-12.md` (recomendados: 19/18 relanzar una tarea desde
+   la UI, 15 guardar la respuesta del ejecutor en el run fallido, 17 el hilo no muestra el fin del reintento).
+   Luego ERP.5 (revisar sobrecarga).
    Conductor: `docs/done/evidence/ERP.4/conductor/` → copiar a `/tmp/erp4/` (crear `cmd/`, `out/`, `shots/`),
-   `node driver.mjs` en segundo plano, órdenes con `do.sh`, una etapa con `stage.sh <etiqueta> <mensaje.txt>` (si la
-   tarea queda retenida, `stage.sh` espera sin avisar: mirar `status: pending` sin `runId` y aprobar).
-   Pedidos autocontenidos y con archivos nombrados (hallazgo 2).
+   `node driver.mjs` en segundo plano, órdenes con `do.sh`, una etapa con `stage.sh <etiqueta> <mensaje.txt>`;
+   `screen.mjs` recorre la pantalla de `erp-piloto` (`bun run start`, puerto 3000).
+   Lecciones 2026-10-13: un archivo propio bajo `docs/` también pasa por `bun run lint` en el pre-push (formatear con
+   biome antes de commitear); diagnosticar un run de Codex sin texto → rollout en
+   `<proyecto>/.orchestos/agent-home/codex/sessions/`; `delegate qa` responde solo "sin defectos" aunque el spec pida
+   desglose; `bunx tsc` en un repo sin typescript reescribe el lockfile (revisar `git status` después).
    Lecciones: el hook `brain-no-code` bloquea un heredoc de Bash que nombre rutas `src/…` (specs con Write); antes de
    abrir un ítem, `grep "\*\*<ID> —" PLAN.md` (CI.20 ya existía); trampa de `plan:reconcile` sigue viva: cerrar
    siempre con `[ ]`→reconcile→`[x]`→reconcile→commit.
