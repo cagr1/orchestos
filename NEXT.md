@@ -1,4 +1,4 @@
-# NEXT — handoff 2026-10-13 (decisiones de Carlos recibidas; lote de hallazgos del piloto planificado, sin abrir)
+# NEXT — handoff 2026-10-13 (lote de hallazgos del piloto en curso: ERP.4.10 cerrado, sigue ERP.4.11)
 
 ## Decisiones de Carlos 2026-10-13 (respuesta a las 7 preguntas del handoff anterior)
 1. Utilidad de ERP.4: el veredicto lo pone el cerebro → "sirve, pero todavía no solo". ERP.4 se cierra al terminar
@@ -13,23 +13,10 @@
 6. Residuos de `erp-piloto`: limpiar si no sirven (las 3 tareas sobrantes no sirven; se limpian tras el hallazgo 5).
 7. `chat-retry-report` NO entra al pre-push.
 
-## PRIMERO al retomar — ERP.4.10 ejecutado, SIN verificar ni commitear (Carlos pidió parar para /clear, 2026-10-13)
-Estado del árbol: cambios de ERP.4.10 sin commitear en `src/dashboard/handlers/{chat,project,tasks}.ts`,
-`src/run/harness.ts`, `src/tasks/schema.ts`, y nuevos `src/__tests__/natural-draft-context.test.ts` y
-`scripts/ui-gate/flows/chat-followup-task.mjs`. Ejecutó `criterio` (sonnet), 1 ronda; su reporte dice typecheck y
-lint limpios y 44/0 en sus tests: **no es evidencia**.
-Falta, en este orden:
-1. Leer el diff completo (`git diff -- src scripts`); el cerebro solo alcanzó a ver el cambio de `chat.ts`.
-2. `bun run typecheck`, `bun run lint`, `bun run test:coverage`.
-3. Gate en vivo: `bun run gate:evidence -- --label ERP.4.10-followup-live -- bun run ui:gate chat-followup-task`
-   (pedido en dos mensajes → tarea creada con `task_class: implement` → `done`) y `auto-flow` como regresión.
-4. Cerrar en PLAN.md (`[ ]`→reconcile→`[x]`→reconcile→commit), borrar `docs/specs/ERP.4.10.md` en el commit de cierre.
-Avisos del ejecutor por resolver al verificar:
-- `extractMentionedPaths` no quita backticks: una respuesta del orquestador con la ruta entre backticks no la
-  resuelve en el respaldo. Arreglarlo en ronda de corrección de este ítem (el respaldo es parte del hallazgo 2).
-- No verificado si `listChatMessages` ya trae el mensaje del turno en curso; `buildDraftMessages` evita duplicarlo.
-- `POST /api/tasks` acepta ahora `task_class` (inocuo, no pedido).
-- `classifyTask` en `evals/runner.ts:251` y `cli.ts:664` no se tocó (texto libre, no tareas de `tasks.yaml`).
+## ERP.4.10 cerrado 2026-10-13 — siguiente: ERP.4.11
+`chat-followup-task` 8/8, `auto-flow` 31/31, `test:coverage` 1720/0 (detalle en PLAN.md). El historial que recibe el
+borrador no trae el mensaje en curso (`chat.ts:1336`, `:1495`). Al retomar: releer `docs/specs/ERP.4.11.md` contra
+`handlers/project.ts` (el borrador cambió: `buildDraftMessages`, `fallbackDraftOutput`, clave `task_class`).
 
 ## Lote en curso (ERP.4.10–4.16 abiertos en PLAN.md con causa y decisión; ejecutar en ese orden)
 Specs ya escritos y commiteados: `docs/specs/ERP.4.11.md` (etiqueta del ejecutor resuelta con `autoRoute`, el
@@ -46,8 +33,6 @@ Memory = entrada mecánica por tarea terminada, sin LLM (ERP.4.16; confirmar en 
 veredicto "sirve, pero todavía no solo". **No añadir UI a Settings en este lote:** Carlos va a revisar Settings
 pestaña por pestaña (dashboard real, Claude Desktop) y decir qué sirve y qué sobra; le parece confuso y que muestra
 de más, y eso le cuesta cupo al usuario.
-Sin pushear: 4 commits de docs (`1952226`, `4136ffd`, `cf89647` y este). No pushear con ERP.4.10 a medias: el
-pre-push correría la suite sobre código sin verificar.
 Lecciones: `delegate leer` devuelve la respuesta duplicada y con el log de hooks delante (leer desde la línea
 `codex`); tras añadir ítems a PLAN.md, `bun run plan:reconcile` antes de commitear.
 

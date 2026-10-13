@@ -1,0 +1,53 @@
+[
+  {
+    "flujo": "chat-followup-task",
+    "pass": true,
+    "steps": [
+      {
+        "nombre": "temporary project visible",
+        "ok": true,
+        "detalle": "project in Dev sidebar"
+      },
+      {
+        "nombre": "select Codex for new chat",
+        "ok": true,
+        "detalle": "agent option visible"
+      },
+      {
+        "nombre": "composer visible",
+        "ok": true,
+        "detalle": "chat composer visible after Start Chat"
+      },
+      {
+        "nombre": "message 1 plans without creating the task",
+        "ok": true,
+        "detalle": "{\"reply\":\"Crearía notas/seguimiento.md con una única línea: hola.\",\"newTasks\":[]}"
+      },
+      {
+        "nombre": "message 2 creates the task from the thread",
+        "ok": true,
+        "detalle": "{\"reply\":\"OrchestOS creará una tarea para añadir notas/seguimiento.md con una sola línea: hola.\\n\\n▶ Started task chat-d74b2d60-3abd-40ad-a7ab-5e679246a5f8.\"}"
+      },
+      {
+        "nombre": "task exists in tasks.yaml",
+        "ok": true,
+        "detalle": "task chat-d74b2d60-3abd-40ad-a7ab-5e679246a5f8"
+      },
+      {
+        "nombre": "task declares the thread file and class implement",
+        "ok": true,
+        "detalle": "{\"output\":[\"notas/seguimiento.md\"],\"task_class\":\"implement\"}"
+      },
+      {
+        "nombre": "task finishes done and the file exists",
+        "ok": true,
+        "detalle": "{\"status\":\"done\",\"fileExists\":true}"
+      }
+    ],
+    "notes": [],
+    "errores": [],
+    "capturas": [
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-17032/chat-followup-task/followup-task-done.png"
+    ]
+  }
+]

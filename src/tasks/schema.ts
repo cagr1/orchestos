@@ -1,3 +1,11 @@
+import type { TaskClass } from '../router/classify.ts'
+
+export const TASK_CLASSES: readonly TaskClass[] = ['plan', 'implement', 'fix', 'review', 'doc']
+
+export function isTaskClass(value: unknown): value is TaskClass {
+  return typeof value === 'string' && (TASK_CLASSES as readonly string[]).includes(value)
+}
+
 export type TaskStatus = 'pending' | 'running' | 'done' | 'failed' | 'failed_permanent' | 'blocked'
 export type TaskExecutor = 'openrouter' | 'anthropic' | 'openai' | 'codex'
 // B.2 — 'external' es la tercera implementación de ExecutorEngine (B.1, docs/external-executor-design.md).
@@ -39,6 +47,8 @@ export interface Task {
   engine?: TaskEngine
   /** Chosen by the user and interpreted by the selected CLI. */
   cli_effort?: string
+  /** Clase declarada al crear la tarea; sin ella el harness clasifica por la descripción. */
+  task_class?: TaskClass
   input: string[] // files the LLM can read (relative to project root)
   output: string[] // files the LLM is allowed to write — REQUIRED, must be non-empty
   acceptance_criteria?: string[]
@@ -81,6 +91,7 @@ export function validateTask(t: unknown, index: number): Task {
     planner_model: typeof task.planner_model === 'string' ? task.planner_model : undefined,
     engine: validateEngine(task.engine, err),
     cli_effort: validateCliEffort(task.cli_effort, task.engine, err),
+    task_class: validateTaskClass(task.task_class, err),
     input: Array.isArray(task.input) ? (task.input as string[]) : [],
     output: task.output as string[],
     acceptance_criteria: validateStringArray(task.acceptance_criteria, 'acceptance_criteria', err),
@@ -103,6 +114,13 @@ function validateExecutor(value: unknown, err: (msg: string) => never): TaskExec
     err('codex executor disabled — set OS_ENABLE_EXEC_CODEX=1 to enable')
   }
   return value as TaskExecutor
+}
+
+function validateTaskClass(value: unknown, err: (msg: string) => never): TaskClass | undefined {
+  if (value === undefined) return undefined
+  if (!isTaskClass(value))
+    err(`unknown task_class '${String(value)}' — allowed: ${TASK_CLASSES.join(', ')}`)
+  return value as TaskClass
 }
 
 function validateEngine(value: unknown, err: (msg: string) => never): TaskEngine | undefined {

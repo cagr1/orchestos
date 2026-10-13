@@ -240,7 +240,7 @@ export async function runTask(opts: HarnessOpts): Promise<TaskResult> {
     ctx.worktree = worktree
 
     // classify-route (inline — not yet a middleware)
-    ctx.taskClass = classifyTask(t.description)
+    ctx.taskClass = t.task_class ?? classifyTask(t.description)
     const effectiveConfig = orcheConfig ?? loadOrcheConfig(projectRoot)
     const route = autoRoute(t, effectiveConfig)
     if (!route && !modelOverride) {

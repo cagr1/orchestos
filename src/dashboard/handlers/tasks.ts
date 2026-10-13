@@ -19,6 +19,7 @@ import { isKnownSkillId } from '../../skills/catalog.ts'
 import { loadConstitution } from '../../spec/constitution.ts'
 import { ensureTasksYaml, scaffoldTasksYaml } from '../../tasks/init.ts'
 import { loadTasks, mutateTasks } from '../../tasks/loader.ts'
+import { isTaskClass } from '../../tasks/schema.ts'
 import { errorResponse, jsonResponse, validateTaskId } from '../http.ts'
 import type { DiagnoseRow, SplitPlanResponse, TaskRow } from '../types.ts'
 import { settleExitedTaskRun } from './task-run-reconcile.ts'
@@ -212,6 +213,7 @@ export interface CreateTaskParams {
   executor_model?: string
   engine?: string
   cli_effort?: string
+  task_class?: string
   skill?: string
 }
 
@@ -254,6 +256,7 @@ function createTaskRecord(
     }
   const cliEffortRaw = params.cli_effort?.trim()
   const cliEffort = cliEffortRaw || undefined
+  const taskClass = isTaskClass(params.task_class) ? params.task_class : undefined
   ensureTasksYaml(root)
   try {
     const result = mutateTasks(root, (file) => {
@@ -279,6 +282,7 @@ function createTaskRecord(
       if (executorModel) newTask.executor_model = executorModel
       if (engine) newTask.engine = engine
       if (cliEffort) newTask.cli_effort = cliEffort
+      if (taskClass) newTask.task_class = taskClass
       const skill = params.skill?.trim()
       if (skill && isKnownSkillId(skill)) newTask.skill = skill
       ;(file.tasks as any[]).push(newTask)

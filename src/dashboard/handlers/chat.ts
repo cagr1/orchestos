@@ -1125,7 +1125,10 @@ async function handleApiChat(
     taskSuggestion = { isTask, reason: isTask ? 'orchestrator-marker' : '' }
     if (isTask && hasProjectContext && sessionAllowsTaskExecution(session?.mode ?? null)) {
       try {
-        const draft = await buildNaturalDraft(message, root)
+        const draft = await buildNaturalDraft(message, root, {
+          history,
+          assistantReply: text,
+        })
         const output = Array.isArray(draft.output)
           ? draft.output.map((f: string) => f.trim()).filter(Boolean)
           : []
@@ -1150,6 +1153,7 @@ async function handleApiChat(
                 description: draft.description,
                 output,
                 executor: draft.executor,
+                task_class: draft.taskClass,
                 ...ruleFields,
                 skill,
               },

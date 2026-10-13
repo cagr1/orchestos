@@ -12,11 +12,13 @@ import { generateContextJson } from '../../generators/context-json.ts'
 import { generateSummaryPdf } from '../../generators/summary-pdf.ts'
 import { indexProject } from '../../graph/index.ts'
 import { ensureProject } from '../../projects/ensure.ts'
+import type { TaskClass } from '../../router/classify.ts'
 import { roleClient } from '../../router/role-runner.ts'
 import { git } from '../../run/sandbox.ts'
 import { listAllSkillCandidates, renderSkillCatalog } from '../../skills/catalog.ts'
 import { scaffoldConstitutionMd } from '../../spec/constitution.ts'
 import { loadTasks } from '../../tasks/loader.ts'
+import { isTaskClass } from '../../tasks/schema.ts'
 import { errorResponse, jsonResponse } from '../http.ts'
 
 // v0.12 D.1.b — equivalente de `orchestos constitution init` para el dashboard.
@@ -157,6 +159,82 @@ export interface NaturalDraft {
   executor: string
   skillCandidates: string[]
   skillOptions: { id: string; name: string; description: string }[]
+  /** Clase declarada por la intención del pedido; ausente si el LLM no dio un valor válido. */
+  taskClass?: TaskClass
+}
+
+/** Contexto del chat que acompaña al mensaje actual al pedir el borrador. */
+export interface NaturalDraftContext {
+  history?: { role: string; content: string }[]
+  assistantReply?: string
+}
+
+const DRAFT_CONTEXT_TURNS = 6
+const DRAFT_TURN_CHARS = 4000
+
+/** Valor válido de `task_class` o `undefined`: nunca se guarda un valor inventado. */
+export function parseDraftTaskClass(value: unknown): TaskClass | undefined {
+  return isTaskClass(value) ? value : undefined
+}
+
+/**
+ * Mensajes que recibe el LLM del borrador. Sin contexto: solo el mensaje actual.
+ * Con contexto: los últimos turnos (acotados) y la respuesta del orquestador de este turno.
+ */
+export function buildDraftMessages(
+  input: string,
+  context?: NaturalDraftContext,
+): { role: 'user' | 'assistant'; content: string }[] {
+  const reply = context?.assistantReply?.trim()
+  const turns = (context?.history ?? []).filter(
+    (t) => t && typeof t.content === 'string' && t.content.trim(),
+  )
+  if (!context || (!reply && turns.length === 0)) return [{ role: 'user', content: input }]
+
+  const messages: { role: 'user' | 'assistant'; content: string }[] = []
+  for (const turn of turns.slice(-DRAFT_CONTEXT_TURNS)) {
+    const role = turn.role === 'assistant' ? 'assistant' : 'user'
+    const content = turn.content.slice(0, DRAFT_TURN_CHARS)
+    const last = messages[messages.length - 1]
+    if (last && last.role === role) last.content += `\n\n${content}`
+    else messages.push({ role, content })
+  }
+  // El mensaje actual ya puede venir como último turno del historial: no duplicarlo.
+  const last = messages[messages.length - 1]
+  if (last && last.role === 'user' && last.content.endsWith(input.slice(0, DRAFT_TURN_CHARS)))
+    messages.pop()
+
+  const current = reply
+    ? `${input}\n\n---\nRespuesta del orquestador a este mensaje (la tarea que acaba de anunciar):\n${reply.slice(0, DRAFT_TURN_CHARS)}`
+    : input
+  const prev = messages[messages.length - 1]
+  if (prev && prev.role === 'user') prev.content += `\n\n${current}`
+  else messages.push({ role: 'user', content: current })
+  return messages
+}
+
+/**
+ * Respaldo de rutas cuando el LLM no declaró `output`: primero el mensaje, luego la respuesta
+ * del orquestador y luego los turnos previos (del más reciente al más antiguo).
+ * Se queda con el primer texto que nombre rutas existentes.
+ */
+export function fallbackDraftOutput(
+  input: string,
+  root: string,
+  context?: NaturalDraftContext,
+): string[] {
+  const sources = [input]
+  if (context?.assistantReply) sources.push(context.assistantReply)
+  const turns = context?.history ?? []
+  for (let i = turns.length - 1; i >= 0; i--) {
+    const content = turns[i]?.content
+    if (typeof content === 'string') sources.push(content)
+  }
+  for (const text of sources) {
+    const paths = extractMentionedPaths(text, root)
+    if (paths.length) return paths
+  }
+  return []
 }
 
 /** Extracts existing, project-confined file paths explicitly mentioned by the user. */
@@ -171,11 +249,7 @@ export function extractMentionedPaths(input: string, root: string): string[] {
   const paths: string[] = []
   const seen = new Set<string>()
   for (const token of input.match(/\S+/g) ?? []) {
-    const candidate = token
-      .replace(/^["'([{<]+/, '')
-      .replace(/[.,;:!?)}>]+$/g, '')
-      .replace(/\]+$/, '')
-      .replace(/["']+$/, '')
+    const candidate = token.replace(/^["'([{<`*]+/, '').replace(/["'`*.,;:!?)}>\]]+$/, '')
     if (!candidate || (!candidate.includes('/') && !/\.[^/]+$/.test(candidate))) continue
     if (isAbsolute(candidate) || candidate.split('/').includes('..')) continue
 
@@ -203,7 +277,11 @@ export function dropIgnoredOutputs(root: string, output: string[]): string[] {
 // D.7 (Mes 22) — extraído de handleApiNatural para que el auto-flow del chat
 // (handlers/chat.ts) pueda pedir el mismo draft por lenguaje natural sin pasar
 // por una Request/Response HTTP. handleApiNatural queda como wrapper delgado.
-async function buildNaturalDraft(input: string, root = process.cwd()): Promise<NaturalDraft> {
+async function buildNaturalDraft(
+  input: string,
+  root = process.cwd(),
+  context?: NaturalDraftContext,
+): Promise<NaturalDraft> {
   const projectCtx = loadContext(root)
   let tasksSummary = ''
   try {
@@ -225,18 +303,20 @@ Dado lo que el usuario quiere hacer, devuelve ÚNICAMENTE un objeto JSON con exa
 - "output": array de rutas de archivos que probablemente se crearán o modificarán (puede estar vacío si no es claro)
 - "executor": uno de "openrouter" (por defecto), "anthropic" (tareas complejas de código), "openai" (embeddings/análisis)
 - "skill_candidates": array de ids de skill de la lista de abajo que apliquen a esta tarea (puede estar vacío si ninguna aplica). Nunca inventes un id que no esté en la lista.
+- "task_class": uno de "plan", "implement", "fix", "review", "doc", según la INTENCIÓN del pedido, no por las palabras de la descripción: crear, añadir o cambiar código/archivos = "implement"; corregir un defecto existente = "fix"; solo revisar sin escribir = "review"; solo documentación = "doc"; solo planificar = "plan".
 
 ${projectCtx ? `Contexto del proyecto:\n${projectCtx}\n` : ''}
 ${tasksSummary ? `Tareas existentes (para evitar duplicados):\n${tasksSummary}\n` : ''}
 ${skillsSummary ? `Skills instaladas disponibles:\n${skillsSummary}\n` : ''}
 
+${context ? 'Si hay turnos previos, la tarea a definir es la que el orquestador acaba de anunciar en su última respuesta: completa con los turnos previos lo que el mensaje actual no repite (archivos, alcance). No inventes archivos que nadie nombró.\n' : ''}
 Responde SOLO con el JSON, sin texto adicional ni bloques de código.`
 
   const orchestrator = roleClient(loadOrcheConfig(root), 'orchestrator', { cwd: root })
   const resp = await orchestrator.provider.chat({
     model: orchestrator.model,
     system: systemPrompt,
-    messages: [{ role: 'user', content: input }],
+    messages: buildDraftMessages(input, context),
   })
   const raw = resp.text
     .replace(/^```(?:json)?\n?/, '')
@@ -248,6 +328,7 @@ Responde SOLO con el JSON, sin texto adicional ni bloques de código.`
     output: string[]
     executor: string
     skill_candidates?: unknown
+    task_class?: unknown
   }
   draft.id =
     (draft.id || '')
@@ -257,7 +338,7 @@ Responde SOLO con el JSON, sin texto adicional ni bloques de código.`
       .replace(/^-|-$/g, '')
       .slice(0, 64) || 'nueva-tarea'
   if (!Array.isArray(draft.output)) draft.output = []
-  if (draft.output.length === 0) draft.output = extractMentionedPaths(input, root)
+  if (draft.output.length === 0) draft.output = fallbackDraftOutput(input, root, context)
   draft.output = dropIgnoredOutputs(
     root,
     draft.output.filter((f) => typeof f === 'string'),
@@ -283,6 +364,7 @@ Responde SOLO con el JSON, sin texto adicional ni bloques de código.`
     executor: draft.executor,
     skillCandidates,
     skillOptions,
+    taskClass: parseDraftTaskClass(draft.task_class),
   }
 }
 

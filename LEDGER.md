@@ -332,3 +332,13 @@ bloqueo que ya tienen outcome (contrato, salidas faltantes, check, QA). Ninguna 
 "maxTokens|maxOutput|contextWindow"` → 0).
 **Reversibilidad/evidencia**: commit `feat(ERP.4.8)`, revertible (migración 24 aditiva). `test:coverage` 1709/0 ·
 `qa-negative` 25/25.
+
+## 2026-10-13 13:17 — claude-opus-5-5 (revisor) · ejecutor Claude sonnet
+**Contexto**: ERP.4.10 — `src/run/harness.ts` ([[feedback-context-no-max-tokens]]).
+**Clasificación**: RESPETÓ
+**Por qué**: el harness solo cambia una línea: `ctx.taskClass = t.task_class ?? classifyTask(t.description)`, para
+que la clase declarada al crear la tarea gane a la heurística de la descripción. Ninguna línea de
+`maxTokens`/`contextWindow`/`maxOutputTokensFor` tocada (`git diff HEAD -- src/run/harness.ts | grep -ciE
+"maxTokens|maxOutput|contextWindow"` → 0).
+**Reversibilidad/evidencia**: commit `fix(ERP.4.10)`, revertible (campo opcional en `tasks.yaml`, sin migración).
+`test:coverage` 1720/0 · `chat-followup-task` 8/8 · `auto-flow` 31/31.

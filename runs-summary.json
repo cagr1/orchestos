@@ -1,7 +1,52 @@
 {
-  "exported_at": "2026-10-13T18:06:03.000Z",
+  "exported_at": "2026-10-13T18:18:04.025Z",
   "total_runs": 20,
   "runs": [
+    {
+      "id": "d16827c0-ba99-4e29-90a2-8fc1c2a28412",
+      "task_class": "gate:erp.4.10-autoflow-regression:implement",
+      "model": "gpt-6-luna",
+      "provider": "codex",
+      "status": "done",
+      "qa_verdict": "pass",
+      "qa_reason": "El archivo contiene la única línea solicitada: «nota de codex».",
+      "files_blocked": [],
+      "checks_failed": 0,
+      "usd_cost": 0.0007461799999999999,
+      "elapsed_ms": 13875,
+      "tokens": 7696,
+      "created_at": "2026-10-13T18:16:38.251Z"
+    },
+    {
+      "id": "3ab752a2-94f3-4530-b9bd-4244ce876f59",
+      "task_class": "gate:erp.4.10-autoflow-regression:implement",
+      "model": "haiku",
+      "provider": "claude",
+      "status": "done",
+      "qa_verdict": "pass",
+      "qa_reason": "claude-nota.md contiene únicamente la línea solicitada: «nota de claude».",
+      "files_blocked": [],
+      "checks_failed": 0,
+      "usd_cost": 0.00154355,
+      "elapsed_ms": 11244,
+      "tokens": 3401,
+      "created_at": "2026-10-13T18:16:02.533Z"
+    },
+    {
+      "id": "2099582b-5844-48dd-b502-fa72ad15495e",
+      "task_class": "gate:erp.4.10-followup-live:implement",
+      "model": "gpt-6-luna",
+      "provider": "codex",
+      "status": "done",
+      "qa_verdict": "pass",
+      "qa_reason": "El archivo contiene la única línea solicitada: «hola».",
+      "files_blocked": [],
+      "checks_failed": 0,
+      "usd_cost": 0.0007872799999999999,
+      "elapsed_ms": 23701,
+      "tokens": 7768,
+      "created_at": "2026-10-13T18:15:02.583Z"
+    },
     {
       "id": "bd51dd96-3c78-4274-ae71-f8ede59db5fe",
       "task_class": "gate:erp.4.8-qa-negative-live:implement",
@@ -256,51 +301,6 @@
       "elapsed_ms": 19077,
       "tokens": 11062,
       "created_at": "2026-10-13T10:59:02.353Z"
-    },
-    {
-      "id": "242d0007-28e7-4c4d-83fc-f2c0357dc189",
-      "task_class": "chat",
-      "model": "claude-opus-5-5",
-      "provider": "claude",
-      "status": "done",
-      "qa_verdict": null,
-      "qa_reason": null,
-      "files_blocked": [],
-      "checks_failed": 0,
-      "usd_cost": 0.0681676,
-      "elapsed_ms": 10946,
-      "tokens": 324,
-      "created_at": "2026-10-13T03:02:26.545Z"
-    },
-    {
-      "id": "26081a59-de32-4e26-b3ff-b6bd8fe02319",
-      "task_class": "fix",
-      "model": "gpt-6-luna",
-      "provider": "codex",
-      "status": "done",
-      "qa_verdict": "pass",
-      "qa_reason": "Los archivos implementan las rutas, los errores tipados y los códigos HTTP solicitados, con tests para los seis escenarios requeridos.",
-      "files_blocked": [],
-      "checks_failed": 0,
-      "usd_cost": 0.00417872,
-      "elapsed_ms": 44975,
-      "tokens": 24364,
-      "created_at": "2026-10-12T22:29:49.718Z"
-    },
-    {
-      "id": "0c02973b-93c8-4ac4-af8a-69b46438db46",
-      "task_class": "chat",
-      "model": "claude-opus-5-5",
-      "provider": "claude",
-      "status": "done",
-      "qa_verdict": null,
-      "qa_reason": null,
-      "files_blocked": [],
-      "checks_failed": 0,
-      "usd_cost": 0.0622756,
-      "elapsed_ms": 11130,
-      "tokens": 277,
-      "created_at": "2026-10-12T22:27:55.681Z"
     }
   ],
   "stats": {
@@ -308,6 +308,6 @@
     "blocked": 0,
     "done": 15,
     "qa_failed": 5,
-    "total_cost_usd": "0.3853"
+    "total_cost_usd": "0.2538"
   }
 }

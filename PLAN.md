@@ -298,12 +298,27 @@ Cerrada. Todos sus ítems están archivados en `docs/done/` (ver "Cerrados — e
   gate duran ~20-40 s); lo cubre el plazo de 10 min. Una tarea relanzada desde Settings no reabre la espera del hilo.
   **Fuera de scope declarado:** `PLAN.md`, `docs/done/evidence/**` y `scripts/ui-gate/flows/chat-retry-report.mjs`
   (cierre, evidencia y gate del propio ítem).
-- [ ] **ERP.4.10 — 🔍 El borrador de tarea lee el hilo y declara la clase de la tarea.** (abierto 2026-10-13, GO de
+- [x] **ERP.4.10 — 🔍 El borrador de tarea lee el hilo y declara la clase de la tarea.** (cerrado 2026-10-13; abierto 2026-10-13, GO de
   Carlos; hallazgos 2 y 16) `buildNaturalDraft(message, root)` solo recibe el mensaje actual (`handlers/chat.ts:1128`,
   `handlers/project.ts:206`): un seguimiento ("crea la tarea tal como la describiste") no nombra archivos y no crea
   tarea. Y `runs.task_class` sale de palabras sueltas de la descripción (`router/classify.ts:15-31`,
   `run/harness.ts:242`): pedidos "Crear …" quedaron como `review` y `fix`. Spec: `docs/specs/ERP.4.10.md`.
   Gate: tests del borrador + ui-gate con un pedido en dos mensajes que crea y corre la tarea.
+  Ejecutado por: sonnet (rol `criterio`, ronda 1) y gpt-6-luna (rol `mecanico`, ronda 2) · Spec: docs/specs/ERP.4.10.md
+  Hecho (2026-10-13): el borrador recibe los últimos 6 turnos del hilo (4 000 caracteres por turno) y la respuesta
+  del orquestador de este turno; el respaldo de rutas mira el mensaje, esa respuesta y los turnos previos, y ya quita
+  backticks y negritas de Markdown. El borrador declara `task_class` por la intención del pedido; se valida en el
+  esquema de `tasks.yaml` y el harness la prefiere a `classifyTask(description)`, que queda como respaldo de tareas
+  sin clase. Sin tocar: `classifyTask` de `evals/runner.ts:251` y `cli.ts:664` (texto libre, no tareas).
+  Evidencia: `test:coverage` 1720/0 (funciones 76.86 %, líneas 63.69 %) · typecheck y lint exit 0 ·
+  `docs/done/evidence/ERP.4.10-live.json` — `chat-followup-task` 8/8 en navegador real: el mensaje 1 no crea tarea,
+  "Crea la tarea tal como la describiste." la crea con `output: [notas/seguimiento.md]` y `task_class: implement`,
+  termina `done` y el archivo existe · `auto-flow` 31/31 como regresión.
+  Límites: sin contraprueba en vivo contra HEAD (el fallo original está registrado en el piloto, hallazgo 2); en el
+  gate la respuesta del orquestador al mensaje 2 repite la ruta, así que no prueba el caso en que solo la nombran
+  turnos anteriores (lo cubren los tests de `fallbackDraftOutput` y `buildDraftMessages`). `chat-followup-task` no
+  está en el pre-push. `POST /api/tasks` acepta ahora `task_class` (no pedido, inocuo: se valida igual).
+  **Fuera de scope declarado:** `PLAN.md`, `LEDGER.md`, `NEXT.md` y `docs/done/evidence/**` (cierre y evidencia).
 - [ ] **ERP.4.11 — 🔍 La tarea muestra el ejecutor del rol Executor, no un proveedor elegido por el LLM.** (abierto
   2026-10-13, GO de Carlos; hallazgo 6) El prompt del borrador hace elegir entre `openrouter|anthropic|openai`
   (`handlers/project.ts:226,265`) y `createTaskRecord` cae a `openrouter` (`handlers/tasks.ts:239,275`); el run usa el
