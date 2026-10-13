@@ -1,5 +1,11 @@
 # NEXT — handoff 2026-10-13 (piloto ERP.4 completo, espera decisiones) → siguiente tab (tras /clear)
 
+## PRIMERO, antes de cualquier otra cosa (pedido de Carlos, 2026-10-13)
+Al retomar, lo primero es **mostrarle a Carlos, tal cual y completo, el reporte**
+`docs/done/evidence/ERP.4/reporte-2026-10-13.md` (leerlo y pegarlo íntegro en el chat, sin resumir ni reescribir).
+No levantar el dashboard, no delegar y no abrir ítems hasta que lo lea y diga cómo seguir. Al contestar él las
+decisiones, borrar este bloque.
+
 ## Orden vigente
 1. R.8.2.1, R.8.2.2 y CI.17 cerrados 2026-10-11. CI.18 (`chat-roles` intermitente) instrumentado y medido 3/3 PASS;
    queda abierto hasta el próximo fallo: si el pre-push lo tumba, leer el detalle JSON del paso del marcador y la
