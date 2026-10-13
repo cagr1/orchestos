@@ -38,7 +38,13 @@ import {
   resolveMemoryConflict,
 } from './api/projectTabs'
 import { listRuns } from './api/runs'
-import { getRunnableTask, isTaskStillRunning, listTasks, runTask } from './api/tasks'
+import {
+  decideTaskPollAction,
+  getRunnableTask,
+  listTasks,
+  resolveTaskReportPoll,
+  runTask,
+} from './api/tasks'
 import { OrchestChatView } from './components/chat/OrchestChatView'
 import { CommandPalette } from './components/common/CommandPalette'
 import { OpenCodeTerminal } from './components/dev/OpenCodeTerminal'
@@ -137,6 +143,7 @@ export default function App() {
   const [activeThreadId, setActiveThreadId] = useState<string>('')
   const reportedTaskIds = useRef(new Set<string>())
   const completedTaskPollAttempts = useRef(new Map<string, number>())
+  const seenRunningTaskIds = useRef(new Set<string>())
   const projectHydrationControllers = useRef(new Map<string, Set<AbortController>>())
   const projectHydrationReads = useRef(new Map<string, Set<Promise<unknown>>>())
   const purgingProjectIds = useRef(new Set<string>())
@@ -299,48 +306,61 @@ export default function App() {
   const activeThread = threads.find((t) => t.id === activeThreadId)
   useEffect(() => {
     if (!activeThread) return
-    const awaiting = activeThread.messages
-      .filter(
-        (message) =>
-          message.role === 'assistant' &&
-          message.taskId &&
-          !message.taskHeld &&
-          activeThread.messages.filter((other) => other.taskId === message.taskId).length === 1,
-      )
-      .map((message) => message.taskId as string)
-      .filter((taskId) => !reportedTaskIds.current.has(`${activeThread.id}:${taskId}`))
+    const localCountOf = (thread: ChatThread, taskId: string) =>
+      thread.messages.filter((other) => other.taskId === taskId).length
+    const awaiting = [
+      ...new Set(
+        activeThread.messages
+          .filter((message) => message.role === 'assistant' && message.taskId && !message.taskHeld)
+          .map((message) => message.taskId as string),
+      ),
+    ].filter(
+      (taskId) =>
+        !reportedTaskIds.current.has(
+          `${activeThread.id}:${taskId}:${localCountOf(activeThread, taskId)}`,
+        ),
+    )
     if (!awaiting.length) return
     let disposed = false
     const poll = async () => {
       try {
         const tasks = await getProjectTasks(activeThread.projectId)
         for (const taskId of awaiting) {
-          const task = tasks.find((item) => item.id === taskId)
-          if (task && isTaskStillRunning(task)) continue
-          const key = `${activeThread.id}:${taskId}`
           if (disposed) return
-          if (!task) {
+          const task = tasks.find((item) => item.id === taskId)
+          const localCount = localCountOf(activeThread, taskId)
+          const runKey = `${activeThread.id}:${taskId}`
+          const key = `${runKey}:${localCount}`
+          const action = decideTaskPollAction({
+            task,
+            localCount,
+            seenRunning: seenRunningTaskIds.current.has(runKey),
+          })
+          if (action === 'running') {
+            seenRunningTaskIds.current.add(runKey)
+            completedTaskPollAttempts.current.delete(key)
+            continue
+          }
+          if (action === 'resolve') {
             reportedTaskIds.current.add(key)
             completedTaskPollAttempts.current.delete(key)
             continue
           }
           const messages = await loadThreadMessages(activeThread.id, activeThread.projectId)
           if (disposed) return
-          const reportCount = messages.filter((message) => message.taskId === taskId).length
-          let shouldRefreshMessages = reportCount > 1
-          if (reportCount > 1) {
+          const outcome = resolveTaskReportPoll({
+            localCount,
+            serverCount: messages.filter((message) => message.taskId === taskId).length,
+            attempts: completedTaskPollAttempts.current.get(key) ?? 0,
+          })
+          if (outcome.resolved) {
             reportedTaskIds.current.add(key)
             completedTaskPollAttempts.current.delete(key)
+            if (outcome.merge) seenRunningTaskIds.current.delete(runKey)
           } else {
-            const attempts = (completedTaskPollAttempts.current.get(key) ?? 0) + 1
-            completedTaskPollAttempts.current.set(key, attempts)
-            if (attempts >= 6) {
-              reportedTaskIds.current.add(key)
-              completedTaskPollAttempts.current.delete(key)
-              shouldRefreshMessages = false
-            }
+            completedTaskPollAttempts.current.set(key, outcome.attempts)
           }
-          if (shouldRefreshMessages) {
+          if (outcome.merge) {
             setThreads((prev) =>
               prev.map((thread) =>
                 thread.id === activeThread.id
@@ -935,6 +955,11 @@ export default function App() {
     const thread = activeThread
     if (!thread) return
     try {
+      const runKey = `${thread.id}:${taskId}`
+      for (const key of [...reportedTaskIds.current]) {
+        if (key.startsWith(`${runKey}:`)) reportedTaskIds.current.delete(key)
+      }
+      seenRunningTaskIds.current.add(runKey)
       await runProjectTask(
         taskId,
         thread.projectId,
@@ -962,14 +987,14 @@ export default function App() {
           .then(setRuns)
           .catch(() => undefined)
       }
+      const messages = await loadThreadMessages(thread.id, thread.projectId).catch(() => null)
+      if (messages) {
+        setThreads((prev) =>
+          prev.map((item) => (item.id === thread.id ? { ...item, messages } : item)),
+        )
+      }
+      await refreshUsage()
     }
-    if (thread) {
-      const messages = await loadThreadMessages(thread.id, thread.projectId)
-      setThreads((prev) =>
-        prev.map((item) => (item.id === thread.id ? { ...item, messages } : item)),
-      )
-    }
-    await refreshUsage()
   }
 
   const handleRunTask = async (taskId: string) => {

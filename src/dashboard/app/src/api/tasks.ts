@@ -73,6 +73,46 @@ export function isTaskStillRunning(task: {
   return task.status === 'pending' && !((task.retryCount ?? 0) > 0 && Boolean(task.retryReason))
 }
 
+export type TaskPollAction = 'resolve' | 'running' | 'load'
+
+/**
+ * Qué hacer con un intento cuyo reporte espera el hilo abierto. `localCount` = mensajes del hilo local
+ * con ese `taskId`; `seenRunning` = se la vio corriendo en esta sesión de página.
+ */
+export function decideTaskPollAction(input: {
+  task:
+    | {
+        status: TaskStatus | string
+        retryCount?: number | null
+        retryReason?: string | null
+      }
+    | undefined
+  localCount: number
+  seenRunning: boolean
+}): TaskPollAction {
+  if (!input.task) return 'resolve'
+  if (isTaskStillRunning(input.task)) return 'running'
+  if (input.localCount > 1 && !input.seenRunning) return 'resolve'
+  return 'load'
+}
+
+export const TASK_REPORT_MAX_ATTEMPTS = 6
+
+/** Tras cargar el hilo: fusionar si el servidor trae más mensajes de la tarea; si no, contar y rendirse al sexto. */
+export function resolveTaskReportPoll(input: {
+  localCount: number
+  serverCount: number
+  attempts: number
+}): {
+  merge: boolean
+  resolved: boolean
+  attempts: number
+} {
+  if (input.serverCount > input.localCount) return { merge: true, resolved: true, attempts: 0 }
+  const attempts = input.attempts + 1
+  return { merge: false, resolved: attempts >= TASK_REPORT_MAX_ATTEMPTS, attempts }
+}
+
 export function getRunnableTask(tasks: TaskItem[]): TaskItem | undefined {
   return tasks.find(
     (task) =>

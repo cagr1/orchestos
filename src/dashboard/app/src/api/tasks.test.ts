@@ -1,6 +1,14 @@
 import { describe, expect, test } from 'bun:test'
 import type { TaskItem } from '../types/orchestos'
-import { getRunnableTask, isTaskRunnable, isTaskStillRunning, listTasks, runTask } from './tasks'
+import {
+  decideTaskPollAction,
+  getRunnableTask,
+  isTaskRunnable,
+  isTaskStillRunning,
+  listTasks,
+  resolveTaskReportPoll,
+  runTask,
+} from './tasks'
 
 describe('tasks API mapping', () => {
   test('maps the real task wrapper to the Settings task contract', async () => {
@@ -184,5 +192,69 @@ describe('isTaskRunnable', () => {
     for (const status of ['done', 'running', 'failed_permanent', 'blocked'] as const) {
       expect(isTaskRunnable(task(status, status), [])).toBe(false)
     }
+  })
+})
+
+describe('polling del reporte por intento', () => {
+  const done = { status: 'done' }
+  const running = { status: 'running' }
+
+  test('primer intento corriendo: esperar', () => {
+    expect(
+      decideTaskPollAction({
+        task: running,
+        localCount: 1,
+        seenRunning: false,
+      }),
+    ).toBe('running')
+  })
+
+  test('primer intento terminado sin mensaje nuevo: reintentar y resolver al sexto', () => {
+    expect(decideTaskPollAction({ task: done, localCount: 1, seenRunning: false })).toBe('load')
+    let attempts = 0
+    for (let i = 1; i <= 5; i++) {
+      const out = resolveTaskReportPoll({
+        localCount: 1,
+        serverCount: 1,
+        attempts,
+      })
+      expect(out).toEqual({ merge: false, resolved: false, attempts: i })
+      attempts = out.attempts
+    }
+    expect(resolveTaskReportPoll({ localCount: 1, serverCount: 1, attempts })).toEqual({
+      merge: false,
+      resolved: true,
+      attempts: 6,
+    })
+  })
+
+  test('segundo intento (n=2) visto corriendo y terminado, servidor con 3 mensajes: fusionar y resolver', () => {
+    expect(
+      decideTaskPollAction({
+        task: running,
+        localCount: 2,
+        seenRunning: false,
+      }),
+    ).toBe('running')
+    expect(decideTaskPollAction({ task: done, localCount: 2, seenRunning: true })).toBe('load')
+    expect(resolveTaskReportPoll({ localCount: 2, serverCount: 3, attempts: 2 })).toEqual({
+      merge: true,
+      resolved: true,
+      attempts: 0,
+    })
+  })
+
+  test('n=2 terminada y nunca vista corriendo: resolver sin pedir mensajes', () => {
+    expect(decideTaskPollAction({ task: done, localCount: 2, seenRunning: false })).toBe('resolve')
+  })
+
+  test('tarea inexistente: resolver', () => {
+    expect(
+      decideTaskPollAction({
+        task: undefined,
+        localCount: 1,
+        seenRunning: false,
+      }),
+    ).toBe('resolve')
   })
 })

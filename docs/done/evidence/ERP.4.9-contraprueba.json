@@ -1,0 +1,73 @@
+[
+  {
+    "flujo": "chat-retry-report",
+    "pass": false,
+    "steps": [
+      {
+        "nombre": "select Codex for new chat",
+        "ok": true,
+        "detalle": "Codex option visible"
+      },
+      {
+        "nombre": "select gpt-6-luna",
+        "ok": true,
+        "detalle": "model option visible"
+      },
+      {
+        "nombre": "select medium effort",
+        "ok": true,
+        "detalle": "effort option visible"
+      },
+      {
+        "nombre": "held task card visible",
+        "ok": true,
+        "detalle": "held task rendered"
+      },
+      {
+        "nombre": "held task id obtained",
+        "ok": true,
+        "detalle": "chat-cb09b1bb-2ca0-434f-b2a4-ffeb60cbbcb8"
+      },
+      {
+        "nombre": "first attempt fails on a check",
+        "ok": true,
+        "detalle": "status=pending retryCount=1 retryReason=check failed: bunx tsc --noEmit exit 2"
+      },
+      {
+        "nombre": "failed attempt report visible without reload",
+        "ok": true,
+        "detalle": "✗ Task chat-cb09b1bb-2ca0-434f-b2a4-ffeb60cbbcb8 failed · attempt 1/3 · codex/gpt-6-luna"
+      },
+      {
+        "nombre": "project clean before retry",
+        "ok": true,
+        "detalle": "M tasks.yaml"
+      },
+      {
+        "nombre": "project visible after reload",
+        "ok": true,
+        "detalle": "project in sidebar"
+      },
+      {
+        "nombre": "held card offered again after reload",
+        "ok": true,
+        "detalle": "Approve & Run visible"
+      },
+      {
+        "nombre": "second attempt done",
+        "ok": true,
+        "detalle": "done"
+      },
+      {
+        "nombre": "done report appears in the open thread without reload",
+        "ok": false,
+        "detalle": "task messages before=2; after=3; report not visible"
+      }
+    ],
+    "notes": [],
+    "errores": [],
+    "capturas": [
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-65991/chat-retry-report/retry-report.png"
+    ]
+  }
+]

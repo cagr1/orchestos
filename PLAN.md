@@ -252,12 +252,33 @@ Cerrada. Todos sus ítems están archivados en `docs/done/` (ver "Cerrados — e
   (`src/run/executors/types.ts:18`) no lleva el texto final del CLI; además `runs.result` no sale por la API ni se ve
   en Runs (`handlers/runs.ts:80`). El diagnóstico de ERP.4.5 salió del rollout de Codex, no de OrchestOS.
   Gate: tests del ejecutor externo y del harness + run fallido visto en el dashboard real con la respuesta del ejecutor.
-- [ ] **ERP.4.9 — 🔍 El hilo abierto muestra el fin de un reintento sin recargar.** (abierto 2026-10-13, GO de
+- [x] **ERP.4.9 — 🔍 El hilo abierto muestra el fin de un reintento sin recargar.** (abierto 2026-10-13, GO de
   Carlos; hallazgo 17) Dos causas leídas en el código: `runProjectTask` espera 60 s como máximo
   (`app/src/api/chat.ts:464`) y, si el run tarda más, su error salta la recarga del hilo
   (`App.tsx:934-971`); y el polling del hilo solo espera tareas con exactamente un mensaje (`App.tsx:308`), así que
   tras un intento fallido (2 mensajes) ya no vuelve a mirar esa tarea. En el piloto el reintento tardó 102 s.
   Gate: test de la decisión de polling + ui-gate con una tarea que falla, se relanza desde el hilo y termina.
+  Ejecutado por: sonnet (rol `criterio`, ronda 1) y gpt-6-luna (rol `mecanico`, rondas 2-5) · Spec: docs/specs/ERP.4.9.md
+  Hecho: el polling del hilo espera el reporte de cada intento (clave `hilo:tarea:nº de mensajes`; decisión en
+  las funciones puras `decideTaskPollAction` y `resolveTaskReportPoll`, `app/src/api/tasks.ts`); `runProjectTask`
+  espera 10 min; `handleApproveHeldTask` recarga el hilo en el `finally` y, al aprobar, reabre la espera de esa tarea.
+  Rondas: 2 = quitar ruido de formato (el ejecutor corrió `prettier` por error); 3-4 = flujo nuevo
+  `scripts/ui-gate/flows/chat-retry-report.mjs` (el spec pedía fallar por `tsc` con una tarea sobre `README.md`; ese
+  check solo se añade con salida `.ts`, `checks.ts:79`); 5 = **el arreglo de la ronda 1 no bastaba**: al recargar, el
+  polling daba por resuelta la tarea (2 mensajes, sin correr) antes del "Approve & Run". Defecto del diseño del spec,
+  visto solo por el gate en vivo.
+  Gates propios: `typecheck`, `lint`, `build:app`, `ui:fidelity:jsx` limpios; `test:coverage` 1701/0, funciones
+  76.68 %, líneas 63.52 %; 5 tests nuevos (el del segundo intento falla con la lógica vieja, según el ejecutor).
+  Gate en vivo: navegador real (Playwright), `docs/done/evidence/ERP.4.9-live.json` — `chat-retry-report` 12/12 con
+  `gate:evidence --label ERP.4.9-chat-retry-live`: tarea retenida → intento 1 falla ("check failed: bunx tsc
+  --noEmit exit 2") y su reporte aparece sin recargar → recarga → "Approve & Run" → `done` → "✓ Task … done" aparece
+  en el hilo abierto (mensajes de la tarea 2 → 3). Contraprueba: la misma corrida con solo la ronda 1 falló en ese
+  último paso (`docs/done/evidence/ERP.4.9-contraprueba.json`).
+  Límites: `chat-retry-report` no está en la lista del pre-push (1 turno de chat + 2 runs reales); se corre a mano
+  con `bun run ui:gate chat-retry-report`. El caso de un run de más de 60 s no se reprodujo en vivo (los runs del
+  gate duran ~20-40 s); lo cubre el plazo de 10 min. Una tarea relanzada desde Settings no reabre la espera del hilo.
+  **Fuera de scope declarado:** `PLAN.md`, `docs/done/evidence/**` y `scripts/ui-gate/flows/chat-retry-report.mjs`
+  (cierre, evidencia y gate del propio ítem).
 - [x] **CI.21 — 🔍 El orquestador a veces se niega ("solo lectura") en vez de crear la tarea.** (abierto 2026-10-12)
   `chat-turn-details` falló en el pre-push y 1 de 2 corridas a solas en el paso `held task card visible` (aserción
   real desde R.8.6): al pedido "Modifica README.md…" el CLI respondió "No puedo modificar archivos en este entorno

@@ -461,7 +461,8 @@ export async function runProjectTask(
     body: JSON.stringify(sessionId ? { sessionId } : {}),
   })
   onStarted?.()
-  const deadline = Date.now() + 60_000
+  const startedAt = Date.now()
+  const deadline = startedAt + 10 * 60_000
   let lastTask: ProjectTaskRow | undefined
   while (Date.now() < deadline) {
     const tasks = await getProjectTasks(projectId)
@@ -473,9 +474,10 @@ export async function runProjectTask(
       }
       return
     }
-    await new Promise((resolve) => setTimeout(resolve, 250))
+    const interval = Date.now() - startedAt < 60_000 ? 250 : 2_000
+    await new Promise((resolve) => setTimeout(resolve, interval))
   }
-  throw new Error(lastTask?.retryReason || `Task ${taskId} remained pending after 60 seconds`)
+  throw new Error(lastTask?.retryReason || `Task ${taskId} remained pending after 10 minutes`)
 }
 
 export async function deleteProjectTask(taskId: string, projectId?: string | null): Promise<void> {
