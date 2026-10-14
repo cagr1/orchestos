@@ -427,6 +427,15 @@
       "closedDate": "2026-10-13"
     },
     {
+      "id": "UI.25.0",
+      "sprint": "Fase 2 — Producto mínimo para entrega",
+      "block": "UI.25 — Settings con la familia: fluido y definido (ABIERTO 2026-10-13, GO de Carlos 2026-10-13)",
+      "delegation": "🔍",
+      "title": "Specs deja la app en negro si el proyecto no tiene specs",
+      "status": "done",
+      "closedDate": null
+    },
+    {
       "id": "UI.25.2",
       "sprint": "Fase 2 — Producto mínimo para entrega",
       "block": "UI.25 — Settings con la familia: fluido y definido (ABIERTO 2026-10-13, GO de Carlos 2026-10-13)",

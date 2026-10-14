@@ -189,11 +189,6 @@ export default async function projectTabs({
   })
   seedDb(project.id, databasePath)
   const specPath = join(projectRoot, '.orchestos', 'specs', 'gate-tabs-spec.md')
-  mkdirSync(join(projectRoot, '.orchestos', 'specs'), { recursive: true })
-  writeFileSync(
-    specPath,
-    '---\nid: gate-tabs-spec\nstatus: draft\ncreatedAt: 2026-09-23T00:00:00.000Z\nclarify: none\n---\n# Gate tabs spec\n\n## Contexto\nThe project tabs gate uses a real temporary project.\n\n## Descripción\nLoad and mutate project data.\n\n## Criterios de aceptación\n- [ ] WHEN the gate opens THEN every project tab reads real data\n',
-  )
   const seededMemory = await api('/api/memory', {
     headers: { 'x-orchestos-project-id': project.id },
   })
@@ -242,6 +237,8 @@ export default async function projectTabs({
     'settings heading',
   )
   const tab = (name) => page.getByRole('button', { name, exact: true })
+  const pageErrors = []
+  page.on('pageerror', (error) => pageErrors.push(error.message))
   const mockTitles = [
     'Cross-Agent Memory Conflict Detection & Resolution',
     'Git Worktree Isolation & Cleanup Specification',
@@ -254,6 +251,22 @@ export default async function projectTabs({
       await Promise.all(mockTitles.map((title) => page.getByText(title, { exact: true }).count()))
     ).every((count) => count === 0)
 
+  await tab('Specs').click()
+  await step(
+    'specs empty state visible',
+    await visible(page.getByText('No specs yet', { exact: true })),
+    'empty project has no specs',
+  )
+  await step('specs empty no page error', pageErrors.length === 0, pageErrors.join('; ') || 'none')
+  mkdirSync(join(projectRoot, '.orchestos', 'specs'), { recursive: true })
+  writeFileSync(
+    specPath,
+    '---\nid: gate-tabs-spec\nstatus: draft\ncreatedAt: 2026-09-23T00:00:00.000Z\nclarify: none\n---\n# Gate tabs spec\n\n## Contexto\nThe project tabs gate uses a real temporary project.\n\n## Descripción\nLoad and mutate project data.\n\n## Criterios de aceptación\n- [ ] WHEN the gate opens THEN every project tab reads real data\n',
+  )
+  await page.reload({ waitUntil: 'domcontentloaded' })
+  await page.getByRole('button', { name: 'Dev', exact: true }).click()
+  await page.getByRole('button', { name: basename(projectRoot), exact: true }).click()
+  await page.getByRole('button', { name: 'Settings', exact: true }).click()
   await tab('Memory').click()
   await step(
     'real memory visible',

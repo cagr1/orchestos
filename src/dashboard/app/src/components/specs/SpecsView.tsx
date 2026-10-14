@@ -15,6 +15,7 @@ import {
 import type React from 'react'
 import { useState } from 'react'
 import type { SpecItem } from '../../types/orchestos'
+import { EmptyState } from '../common/ViewStateFeedback'
 
 interface SpecsViewProps {
   specs: SpecItem[]
@@ -29,7 +30,8 @@ export const SpecsView: React.FC<SpecsViewProps> = ({
   onDraftSpec,
   onLintSpec,
 }) => {
-  const [selectedSpec, setSelectedSpec] = useState<SpecItem>(specs[0])
+  const [selectedId, setSelectedId] = useState<string | undefined>(specs[0]?.id)
+  const selectedSpec = specs.find((s) => s.id === selectedId) ?? specs[0]
   const [searchQuery, setSearchQuery] = useState('')
 
   const filteredSpecs = specs.filter(
@@ -70,11 +72,11 @@ export const SpecsView: React.FC<SpecsViewProps> = ({
 
         <div className="flex-1 overflow-y-auto p-2 space-y-1.5">
           {filteredSpecs.map((spec) => {
-            const isSelected = spec.id === selectedSpec.id
+            const isSelected = spec.id === selectedSpec?.id
             return (
               <button
                 key={spec.id}
-                onClick={() => setSelectedSpec(spec)}
+                onClick={() => setSelectedId(spec.id)}
                 className={`w-full p-3 rounded-xl text-left transition-all border ${
                   isSelected
                     ? 'bg-zinc-900 border-blue-500/50 shadow-md shadow-blue-950/20'
@@ -117,98 +119,108 @@ export const SpecsView: React.FC<SpecsViewProps> = ({
       </div>
 
       {/* Right Content / Spec Detail */}
-      <div className="flex-1 flex flex-col overflow-hidden bg-zinc-950">
-        {/* Spec Top Header */}
-        <div className="h-14 border-b border-zinc-800/80 px-6 flex items-center justify-between bg-zinc-950/80">
-          <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-lg bg-blue-500/10 border border-blue-500/20 flex items-center justify-center text-blue-400">
-              <FileText className="w-4 h-4" />
-            </div>
-            <div>
-              <h2 className="text-sm font-semibold text-white">{selectedSpec.title}</h2>
-              <div className="text-[11px] text-zinc-400 font-mono">
-                .orchestos/specs/{selectedSpec.id}.md · Task: {selectedSpec.taskId}
-              </div>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => onLintSpec(selectedSpec.id)}
-              className="px-3 py-1.5 rounded-lg bg-zinc-900 hover:bg-zinc-800 text-zinc-200 border border-zinc-800 text-xs font-medium transition-colors"
-            >
-              Lint WHEN/THEN
-            </button>
-            {selectedSpec.status !== 'approved' && (
-              <button
-                onClick={() => onApproveSpec(selectedSpec.id)}
-                className="flex items-center gap-1 px-3.5 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold shadow-md shadow-emerald-600/20 transition-all active:scale-95"
-              >
-                <Check className="w-3.5 h-3.5" />
-                Approve Gate
-              </button>
-            )}
-          </div>
-        </div>
-
-        {/* Spec Clauses & Acceptance Criteria */}
-        <div className="flex-1 overflow-y-auto p-6 max-w-4xl space-y-6">
-          {/* Status Ribbon */}
-          <div className="p-4 rounded-xl bg-zinc-900/70 border border-zinc-800 flex items-center justify-between text-xs">
+      {selectedSpec ? (
+        <div className="flex-1 flex flex-col overflow-hidden bg-zinc-950">
+          {/* Spec Top Header */}
+          <div className="h-14 border-b border-zinc-800/80 px-6 flex items-center justify-between bg-zinc-950/80">
             <div className="flex items-center gap-3">
-              <span className="font-semibold text-zinc-300">Gate Condition:</span>
-              <span
-                className={`px-2 py-0.5 rounded text-[11px] font-mono font-bold uppercase ${
-                  selectedSpec.status === 'approved'
-                    ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/30'
-                    : 'bg-amber-500/10 text-amber-400 border border-amber-500/30'
-                }`}
-              >
-                {selectedSpec.status === 'approved' ? 'UNLOCKED' : 'LOCKED (AWAITING APPROVAL)'}
-              </span>
-            </div>
-            <div className="flex items-center gap-4 text-zinc-400 font-mono text-[11px]">
-              <span>Lint Findings: {selectedSpec.lintFindings}</span>
-              <span>Delta Header Issues: {selectedSpec.deltaIssues}</span>
-            </div>
-          </div>
-
-          {/* Criteria Cards */}
-          <div className="space-y-3">
-            <h3 className="text-xs font-bold uppercase text-zinc-400 tracking-wider">
-              WHEN / THEN Acceptance Contract Assertions
-            </h3>
-
-            {selectedSpec.criteria.map((c, i) => (
-              <div
-                key={i}
-                className="p-4 rounded-xl bg-zinc-900 border border-zinc-800 space-y-2 text-xs"
-              >
-                <div className="flex items-start gap-2">
-                  <span className="font-mono font-bold text-blue-400 uppercase text-[10px] px-1.5 py-0.5 rounded bg-blue-500/10 border border-blue-500/20 mt-0.5">
-                    WHEN
-                  </span>
-                  <p className="text-zinc-200 flex-1">{c.when}</p>
-                </div>
-
-                <div className="flex items-start gap-2 pt-1 border-t border-zinc-800/60">
-                  <span className="font-mono font-bold text-emerald-400 uppercase text-[10px] px-1.5 py-0.5 rounded bg-emerald-500/10 border border-emerald-500/20 mt-0.5">
-                    THEN
-                  </span>
-                  <p className="text-zinc-300 flex-1">{c.then}</p>
+              <div className="w-8 h-8 rounded-lg bg-blue-500/10 border border-blue-500/20 flex items-center justify-center text-blue-400">
+                <FileText className="w-4 h-4" />
+              </div>
+              <div>
+                <h2 className="text-sm font-semibold text-white">{selectedSpec.title}</h2>
+                <div className="text-[11px] text-zinc-400 font-mono">
+                  .orchestos/specs/{selectedSpec.id}.md · Task: {selectedSpec.taskId}
                 </div>
               </div>
-            ))}
+            </div>
+
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => onLintSpec(selectedSpec.id)}
+                className="px-3 py-1.5 rounded-lg bg-zinc-900 hover:bg-zinc-800 text-zinc-200 border border-zinc-800 text-xs font-medium transition-colors"
+              >
+                Lint WHEN/THEN
+              </button>
+              {selectedSpec.status !== 'approved' && (
+                <button
+                  onClick={() => onApproveSpec(selectedSpec.id)}
+                  className="flex items-center gap-1 px-3.5 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold shadow-md shadow-emerald-600/20 transition-all active:scale-95"
+                >
+                  <Check className="w-3.5 h-3.5" />
+                  Approve Gate
+                </button>
+              )}
+            </div>
           </div>
 
-          {/* Spec CLI snippet */}
-          <div className="p-3 rounded-xl bg-zinc-950 border border-zinc-800 font-mono text-[11px] text-zinc-400 space-y-1">
-            <div className="text-zinc-500"># CLI equivalents:</div>
-            <div>$ orchestos spec show {selectedSpec.taskId}</div>
-            <div>$ orchestos spec approve {selectedSpec.taskId}</div>
+          {/* Spec Clauses & Acceptance Criteria */}
+          <div className="flex-1 overflow-y-auto p-6 max-w-4xl space-y-6">
+            {/* Status Ribbon */}
+            <div className="p-4 rounded-xl bg-zinc-900/70 border border-zinc-800 flex items-center justify-between text-xs">
+              <div className="flex items-center gap-3">
+                <span className="font-semibold text-zinc-300">Gate Condition:</span>
+                <span
+                  className={`px-2 py-0.5 rounded text-[11px] font-mono font-bold uppercase ${
+                    selectedSpec.status === 'approved'
+                      ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/30'
+                      : 'bg-amber-500/10 text-amber-400 border border-amber-500/30'
+                  }`}
+                >
+                  {selectedSpec.status === 'approved' ? 'UNLOCKED' : 'LOCKED (AWAITING APPROVAL)'}
+                </span>
+              </div>
+              <div className="flex items-center gap-4 text-zinc-400 font-mono text-[11px]">
+                <span>Lint Findings: {selectedSpec.lintFindings}</span>
+                <span>Delta Header Issues: {selectedSpec.deltaIssues}</span>
+              </div>
+            </div>
+
+            {/* Criteria Cards */}
+            <div className="space-y-3">
+              <h3 className="text-xs font-bold uppercase text-zinc-400 tracking-wider">
+                WHEN / THEN Acceptance Contract Assertions
+              </h3>
+
+              {selectedSpec.criteria.map((c, i) => (
+                <div
+                  key={i}
+                  className="p-4 rounded-xl bg-zinc-900 border border-zinc-800 space-y-2 text-xs"
+                >
+                  <div className="flex items-start gap-2">
+                    <span className="font-mono font-bold text-blue-400 uppercase text-[10px] px-1.5 py-0.5 rounded bg-blue-500/10 border border-blue-500/20 mt-0.5">
+                      WHEN
+                    </span>
+                    <p className="text-zinc-200 flex-1">{c.when}</p>
+                  </div>
+
+                  <div className="flex items-start gap-2 pt-1 border-t border-zinc-800/60">
+                    <span className="font-mono font-bold text-emerald-400 uppercase text-[10px] px-1.5 py-0.5 rounded bg-emerald-500/10 border border-emerald-500/20 mt-0.5">
+                      THEN
+                    </span>
+                    <p className="text-zinc-300 flex-1">{c.then}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Spec CLI snippet */}
+            <div className="p-3 rounded-xl bg-zinc-950 border border-zinc-800 font-mono text-[11px] text-zinc-400 space-y-1">
+              <div className="text-zinc-500"># CLI equivalents:</div>
+              <div>$ orchestos spec show {selectedSpec.taskId}</div>
+              <div>$ orchestos spec approve {selectedSpec.taskId}</div>
+            </div>
           </div>
         </div>
-      </div>
+      ) : (
+        <div className="flex-1 flex items-center justify-center overflow-hidden bg-zinc-950">
+          <EmptyState
+            icon={FileText}
+            title="No specs yet"
+            description="Specs appear here when a task drafts one in .orchestos/specs/."
+          />
+        </div>
+      )}
     </div>
   )
 }

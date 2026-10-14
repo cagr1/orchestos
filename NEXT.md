@@ -14,7 +14,8 @@
 7. `chat-retry-report` NO entra al pre-push.
 
 ## PRIMERO al retomar — UI.25.2 (barra lateral de Settings), luego UI.25.3, UI.25.4 y UI.24.4
-UI.25 (Settings con la familia, GO de Carlos 2026-10-13, tema por defecto intacto): UI.25.1 cerrado. UI.25.2 sin spec.
+UI.25 (Settings con la familia, GO de Carlos 2026-10-13, tema por defecto intacto): UI.25.1 cerrado. UI.25.0 (Specs
+vacío tumba la app) cerrado. UI.25.2 sin spec.
 Al mirar una pantalla nueva de la familia: `Button` de solo icono recibe el icono como hijo; las `border-app/NN` no
 aceptan variante (usar `color-mix` arbitrario). El dashboard de otra sesión sigue ocupando el puerto 4242.
 UI.24.1 a UI.24.3 cerrados; ERP.4.14 pasa a UI.24.6.

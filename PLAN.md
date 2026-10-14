@@ -884,6 +884,16 @@ existen, ni la lógica, ni el backend, ni los `--app-*`.
   Límites: solo se miró el tema por defecto (los otros 3 no); ningún gate automático afirma el look de Settings — la
   ronda 1 lo demuestra — así que UI.25.3 suma un flujo `settings-look` (iconos presentes, color de divisor, primario
   en acento, 0 paleta a mano). "Loading live settings…" tarda varios segundos en irse: sin diagnosticar.
+- [x] **UI.25.0 — 🔍 Specs deja la app en negro si el proyecto no tiene specs.** (cerrado 2026-10-13; abierto 2026-10-13, visto por el
+  cerebro en el dashboard real) `SpecsView.tsx:32` hace `useState(specs[0])` y `:128` lee `selectedSpec.title`: con
+  `specs = []` lanza `Cannot read properties of undefined (reading 'title')` y React desmonta toda la app.
+  `project-tabs` no lo ve porque siembra un spec antes de abrir la pestaña. Spec: docs/specs/UI.25.0.md
+  Ejecutado por: gpt-6-luna (rol `mecanico`)
+  Hecho (2026-10-13): la selección guarda el id y cae al primero; sin specs, el panel derecho es `EmptyState` "No specs
+  yet". `project-tabs` abre Specs antes de sembrar el spec y afirma el estado vacío y 0 `pageerror`.
+  Evidencia: `typecheck` exit 0, corrido por el cerebro.
+  Gate en vivo: navegador real (Playwright), `docs/done/evidence/UI.25.0-live.json` — `project-tabs` 26/26.
+  Contraprueba: con `SpecsView.tsx` sin el arreglo, `project-tabs` falla en `specs empty state visible`.
 - [ ] **UI.25.2 — 🧠 Barra lateral de Settings.** Filas planas con hover fluido, iconos en un tono, activo en acento.
 - [ ] **UI.25.3 — 🧠 Resto de secciones.** Health, API & Models, Model routing (con etiquetas por desplegable), Usage,
   Danger zone, Language. Añade del registro lo que falte (`select`/`dropdown`, `switch`, `tabs`, `input-group`).
