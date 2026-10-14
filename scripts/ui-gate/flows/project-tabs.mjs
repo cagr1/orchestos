@@ -6,6 +6,32 @@ import { setTimeout as delay } from 'node:timers/promises'
 import { stringify as yamlStringify } from 'yaml'
 import { writeGateRoles } from '../lib.mjs'
 
+// UI.26.4 — misma regex de paleta que shell-look.mjs.
+const PALETTE =
+  '\\b(?:emerald|zinc|rose|sky|amber|teal|purple|indigo|blue|red|green|slate|gray|violet|pink|cyan|orange|yellow)-\\d+\\b'
+
+async function paletteHits(page, rootSelector) {
+  return page.evaluate(
+    ({ palette, rootSelector }) => {
+      const re = new RegExp(palette)
+      const root = document.querySelector(rootSelector)
+      if (!root) return ['(raíz ausente)']
+      return [root, ...root.querySelectorAll('*')]
+        .map((el) => (typeof el.className === 'string' ? el.className : ''))
+        .filter((cls) => re.test(cls))
+        .slice(0, 5)
+    },
+    { palette: PALETTE, rootSelector },
+  )
+}
+
+async function rootBackground(page, rootSelector) {
+  return page.evaluate((selector) => {
+    const root = document.querySelector(selector)
+    return root ? getComputedStyle(root).backgroundColor : '(raíz ausente)'
+  }, rootSelector)
+}
+
 async function tasksFor(api, projectId) {
   const response = await api('/api/tasks', {
     headers: { 'x-orchestos-project-id': projectId },
@@ -397,10 +423,52 @@ export default async function projectTabs({
     await visible(page.getByText('new gate trigger', { exact: true })),
     'new API row',
   )
+  const instinctsHits = await paletteHits(page, '[data-instincts-view]')
+  await step(
+    'instincts no palette',
+    instinctsHits.length === 0,
+    instinctsHits.join(' || ') || 'ninguna (con instincts sembrados)',
+  )
+  const instinctsBg = await rootBackground(page, '[data-instincts-view]')
 
   await tab('Plan').click()
   await step('mock plan absent', await noMockData(), 'no mock data')
+  const dangerTop = await page.evaluate(() => {
+    const zone = document.querySelector('[data-danger-zone]')
+    if (!zone) return null
+
+    let scroller = zone.parentElement
+    while (scroller) {
+      const overflowY = getComputedStyle(scroller).overflowY
+      if (overflowY === 'auto' || overflowY === 'scroll') break
+      scroller = scroller.parentElement
+    }
+
+    return scroller
+      ? { top: zone.getBoundingClientRect().top, bottom: scroller.getBoundingClientRect().bottom }
+      : null
+  })
+  await step(
+    'plan board fills the view',
+    dangerTop !== null && dangerTop.top >= dangerTop.bottom - 1,
+    dangerTop
+      ? `danger zone top=${dangerTop.top} scroller bottom=${dangerTop.bottom}`
+      : 'sin zona de peligro o ancestro con scroll',
+  )
+  const planBg = await rootBackground(page, '[data-plan-view]')
+  const kanbanHits = await paletteHits(page, '[data-plan-view]')
   await page.getByRole('button', { name: 'Table', exact: true }).click()
+  const tableHits = await paletteHits(page, '[data-plan-view]')
+  await step(
+    'plan no palette',
+    kanbanHits.length === 0 && tableHits.length === 0,
+    [...kanbanHits, ...tableHits].join(' || ') || 'ninguna en Kanban ni Table',
+  )
+  await step(
+    'tab roots transparent',
+    planBg === 'rgba(0, 0, 0, 0)' && instinctsBg === 'rgba(0, 0, 0, 0)',
+    `plan=${planBg}; instincts=${instinctsBg}`,
+  )
   const explainApi = await api('/api/tasks/gate-tabs-task/explain', {
     headers: { 'x-orchestos-project-id': project.id },
   })

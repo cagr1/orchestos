@@ -2260,347 +2260,350 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
 
             {/* Sub-tab view contents */}
             <div className="flex-1 flex flex-col overflow-y-auto">
-              {activeProjectTab === 'tasks' && orchestration && (
-                <section className="m-4 rounded-card border border-app bg-app-surface p-4 space-y-3">
-                  <div className="flex items-center justify-between">
-                    <h2 className="text-sm font-semibold text-app">Orquestación</h2>
-                    <label className="flex items-center gap-2 text-xs text-app-muted">
-                      <input
-                        type="checkbox"
-                        checked={orchestration.enabled}
-                        disabled={orchestrationSaving}
-                        onChange={async (event) => {
-                          const enabled = event.target.checked
-                          if (enabled) {
-                            setOrchestration({ ...orchestration, enabled: true })
-                            setOrchestrationError(null)
-                            return
-                          }
-                          if (
-                            !orchestrationProjectId ||
-                            orchestrationProjectId === purgingProjectId.current
-                          )
-                            return
-                          const previousOrchestration = orchestration
-                          setOrchestration({ ...orchestration, enabled: false })
-                          setOrchestrationSaving(true)
-                          setOrchestrationError(null)
-                          const controller = new AbortController()
-                          orchestrationSaveRequest.current = controller
-                          try {
-                            await saveOrchestration(
-                              { enabled: false },
-                              orchestrationProjectId,
-                              controller.signal,
-                            )
-                            if (!controller.signal.aborted)
-                              setOrchestration(
-                                await getOrchestration(orchestrationProjectId, controller.signal),
-                              )
-                          } catch (error) {
-                            if (!controller.signal.aborted) {
-                              setOrchestration(previousOrchestration)
-                              setOrchestrationError(
-                                error instanceof Error ? error.message : String(error),
-                              )
-                            }
-                          } finally {
-                            setOrchestrationSaving(false)
-                          }
-                        }}
-                      />
-                      {orchestration.enabled ? 'Activada' : 'Desactivada'}
-                    </label>
-                  </div>
-                  <div className="flex gap-3">
-                    {(['maxConcurrent', 'maxTotal'] as const).map((key) => (
-                      <label key={key} className="text-xs text-app-muted space-y-1">
-                        <span>
-                          {key === 'maxConcurrent'
-                            ? 'Máximo concurrente'
-                            : 'Tope total por ejecución'}
-                        </span>
+              <div className="flex min-h-full shrink-0 flex-col">
+                {activeProjectTab === 'tasks' && orchestration && (
+                  <section className="m-4 rounded-card border border-app bg-app-surface p-4 space-y-3">
+                    <div className="flex items-center justify-between">
+                      <h2 className="text-sm font-semibold text-app">Orquestación</h2>
+                      <label className="flex items-center gap-2 text-xs text-app-muted">
                         <input
-                          className="block w-32 rounded-control border border-app bg-app px-2 py-1 text-app"
-                          type="number"
-                          min="1"
-                          disabled={!orchestration.enabled}
-                          value={orchestration[key] ?? ''}
-                          onChange={(event) => {
-                            const raw = event.target.value
-                            setOrchestration({
-                              ...orchestration,
-                              [key]: raw === '' ? undefined : Number(raw),
-                            })
+                          type="checkbox"
+                          checked={orchestration.enabled}
+                          disabled={orchestrationSaving}
+                          onChange={async (event) => {
+                            const enabled = event.target.checked
+                            if (enabled) {
+                              setOrchestration({ ...orchestration, enabled: true })
+                              setOrchestrationError(null)
+                              return
+                            }
+                            if (
+                              !orchestrationProjectId ||
+                              orchestrationProjectId === purgingProjectId.current
+                            )
+                              return
+                            const previousOrchestration = orchestration
+                            setOrchestration({ ...orchestration, enabled: false })
+                            setOrchestrationSaving(true)
                             setOrchestrationError(null)
+                            const controller = new AbortController()
+                            orchestrationSaveRequest.current = controller
+                            try {
+                              await saveOrchestration(
+                                { enabled: false },
+                                orchestrationProjectId,
+                                controller.signal,
+                              )
+                              if (!controller.signal.aborted)
+                                setOrchestration(
+                                  await getOrchestration(orchestrationProjectId, controller.signal),
+                                )
+                            } catch (error) {
+                              if (!controller.signal.aborted) {
+                                setOrchestration(previousOrchestration)
+                                setOrchestrationError(
+                                  error instanceof Error ? error.message : String(error),
+                                )
+                              }
+                            } finally {
+                              setOrchestrationSaving(false)
+                            }
                           }}
                         />
+                        {orchestration.enabled ? 'Activada' : 'Desactivada'}
                       </label>
-                    ))}
-                    {orchestration.enabled && (
-                      <button
-                        type="button"
-                        className="self-end rounded-control border border-app px-3 py-1 text-xs text-app"
-                        disabled={orchestrationSaving}
-                        onClick={async () => {
-                          if (
-                            !orchestrationProjectId ||
-                            orchestrationProjectId === purgingProjectId.current
-                          )
-                            return
-                          const { maxConcurrent, maxTotal } = orchestration
-                          if (
-                            !Number.isInteger(maxConcurrent) ||
-                            (maxConcurrent ?? 0) < 1 ||
-                            !Number.isInteger(maxTotal) ||
-                            (maxTotal ?? 0) < 1
-                          ) {
-                            setOrchestrationError('Ingresa límites enteros mayores o iguales a 1.')
-                            return
-                          }
-                          setOrchestrationSaving(true)
-                          setOrchestrationError(null)
-                          const controller = new AbortController()
-                          orchestrationSaveRequest.current = controller
-                          try {
-                            await saveOrchestration(
-                              orchestration,
-                              orchestrationProjectId,
-                              controller.signal,
-                            )
-                            if (!controller.signal.aborted)
-                              setOrchestration(
-                                await getOrchestration(orchestrationProjectId, controller.signal),
-                              )
-                          } catch (error) {
-                            if (!controller.signal.aborted)
-                              setOrchestrationError(
-                                error instanceof Error ? error.message : String(error),
-                              )
-                          } finally {
-                            setOrchestrationSaving(false)
-                          }
-                        }}
-                      >
-                        {orchestrationSaving ? 'Guardando…' : 'Guardar'}
-                      </button>
-                    )}
-                    {orchestration.current && (
-                      <span className="self-end text-xs text-app-muted">
-                        Activos/total: {orchestration.current.active}/{orchestration.current.total}
-                      </span>
-                    )}
-                    <span className="self-end text-xs text-app-muted">
-                      Consumo:{' '}
-                      {orchestration.usage
-                        ? `${orchestration.usage.tokens} tokens · $${orchestration.usage.usd.toFixed(4)}`
-                        : 'desconocida'}
-                    </span>
-                  </div>
-                  {orchestrationError && (
-                    <p role="alert" className="text-xs text-app-error">
-                      {orchestrationError}
-                    </p>
-                  )}
-                  <div className="text-xs text-app-muted">
-                    <strong>Llamadas adicionales</strong>
-                    <ul className="mt-1 flex flex-wrap gap-x-4">
-                      {orchestration.extraCalls.map((call) => (
-                        <li key={call.id}>
-                          {call.label}: {call.active ? 'activa' : 'inactiva'} · {call.reason}
-                        </li>
+                    </div>
+                    <div className="flex gap-3">
+                      {(['maxConcurrent', 'maxTotal'] as const).map((key) => (
+                        <label key={key} className="text-xs text-app-muted space-y-1">
+                          <span>
+                            {key === 'maxConcurrent'
+                              ? 'Máximo concurrente'
+                              : 'Tope total por ejecución'}
+                          </span>
+                          <input
+                            className="block w-32 rounded-control border border-app bg-app px-2 py-1 text-app"
+                            type="number"
+                            min="1"
+                            disabled={!orchestration.enabled}
+                            value={orchestration[key] ?? ''}
+                            onChange={(event) => {
+                              const raw = event.target.value
+                              setOrchestration({
+                                ...orchestration,
+                                [key]: raw === '' ? undefined : Number(raw),
+                              })
+                              setOrchestrationError(null)
+                            }}
+                          />
+                        </label>
                       ))}
-                    </ul>
-                  </div>
-                  <div className="text-xs text-app-muted">
-                    {orchestration.adapters.map((adapter) => (
-                      <span className="mr-4" key={adapter.id}>
-                        {adapter.label}: {adapter.subagentBlock}
-                      </span>
-                    ))}
-                  </div>
-                </section>
-              )}
-              {(projectTabsLoading || projectTabsError) && (
-                <div
-                  className={`px-4 py-2 text-xs ${projectTabsError ? 'text-app-error' : 'text-app-muted'}`}
-                >
-                  {projectTabsError ?? 'Loading project data…'}
-                </div>
-              )}
-              {/* TAB: Tasks */}
-              {activeProjectTab === 'tasks' && (
-                <div data-tasks-tab className="p-4 space-y-3">
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs text-app-muted">{tasks.length} tasks</span>
-                    {onRunNextTask && (
-                      <SettingsPrimaryAction>
-                        <Button
-                          variant="primary"
-                          size="compact"
-                          onClick={onRunNextTask}
-                          disabled={!canRunNextTask}
-                          aria-disabled={!canRunNextTask}
+                      {orchestration.enabled && (
+                        <button
+                          type="button"
+                          className="self-end rounded-control border border-app px-3 py-1 text-xs text-app"
+                          disabled={orchestrationSaving}
+                          onClick={async () => {
+                            if (
+                              !orchestrationProjectId ||
+                              orchestrationProjectId === purgingProjectId.current
+                            )
+                              return
+                            const { maxConcurrent, maxTotal } = orchestration
+                            if (
+                              !Number.isInteger(maxConcurrent) ||
+                              (maxConcurrent ?? 0) < 1 ||
+                              !Number.isInteger(maxTotal) ||
+                              (maxTotal ?? 0) < 1
+                            ) {
+                              setOrchestrationError(
+                                'Ingresa límites enteros mayores o iguales a 1.',
+                              )
+                              return
+                            }
+                            setOrchestrationSaving(true)
+                            setOrchestrationError(null)
+                            const controller = new AbortController()
+                            orchestrationSaveRequest.current = controller
+                            try {
+                              await saveOrchestration(
+                                orchestration,
+                                orchestrationProjectId,
+                                controller.signal,
+                              )
+                              if (!controller.signal.aborted)
+                                setOrchestration(
+                                  await getOrchestration(orchestrationProjectId, controller.signal),
+                                )
+                            } catch (error) {
+                              if (!controller.signal.aborted)
+                                setOrchestrationError(
+                                  error instanceof Error ? error.message : String(error),
+                                )
+                            } finally {
+                              setOrchestrationSaving(false)
+                            }
+                          }}
                         >
-                          Run Next Task
-                        </Button>
-                      </SettingsPrimaryAction>
+                          {orchestrationSaving ? 'Guardando…' : 'Guardar'}
+                        </button>
+                      )}
+                      {orchestration.current && (
+                        <span className="self-end text-xs text-app-muted">
+                          Activos/total: {orchestration.current.active}/
+                          {orchestration.current.total}
+                        </span>
+                      )}
+                      <span className="self-end text-xs text-app-muted">
+                        Consumo:{' '}
+                        {orchestration.usage
+                          ? `${orchestration.usage.tokens} tokens · $${orchestration.usage.usd.toFixed(4)}`
+                          : 'desconocida'}
+                      </span>
+                    </div>
+                    {orchestrationError && (
+                      <p role="alert" className="text-xs text-app-error">
+                        {orchestrationError}
+                      </p>
+                    )}
+                    <div className="text-xs text-app-muted">
+                      <strong>Llamadas adicionales</strong>
+                      <ul className="mt-1 flex flex-wrap gap-x-4">
+                        {orchestration.extraCalls.map((call) => (
+                          <li key={call.id}>
+                            {call.label}: {call.active ? 'activa' : 'inactiva'} · {call.reason}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                    <div className="text-xs text-app-muted">
+                      {orchestration.adapters.map((adapter) => (
+                        <span className="mr-4" key={adapter.id}>
+                          {adapter.label}: {adapter.subagentBlock}
+                        </span>
+                      ))}
+                    </div>
+                  </section>
+                )}
+                {(projectTabsLoading || projectTabsError) && (
+                  <div
+                    className={`px-4 py-2 text-xs ${projectTabsError ? 'text-app-error' : 'text-app-muted'}`}
+                  >
+                    {projectTabsError ?? 'Loading project data…'}
+                  </div>
+                )}
+                {/* TAB: Tasks */}
+                {activeProjectTab === 'tasks' && (
+                  <div data-tasks-tab className="p-4 space-y-3">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs text-app-muted">{tasks.length} tasks</span>
+                      {onRunNextTask && (
+                        <SettingsPrimaryAction>
+                          <Button
+                            variant="primary"
+                            size="compact"
+                            onClick={onRunNextTask}
+                            disabled={!canRunNextTask}
+                            aria-disabled={!canRunNextTask}
+                          >
+                            Run Next Task
+                          </Button>
+                        </SettingsPrimaryAction>
+                      )}
+                    </div>
+
+                    {tasks.length === 0 ? (
+                      <EmptyState
+                        icon={Kanban}
+                        title={taskError ? 'Tasks unavailable' : 'No Tasks Defined'}
+                        description={
+                          taskError ||
+                          'Create a task contract in tasks.yaml or use Chat mode to draft a spec.'
+                        }
+                        actionLabel="Create First Task"
+                        onAction={onOpenChat || (() => {})}
+                      />
+                    ) : (
+                      <div>
+                        {tasks.map((task) => {
+                          const time = task.lastRunAt ? formatRunTime(task.lastRunAt) : ''
+                          return (
+                            <ListRow
+                              key={task.id}
+                              data-task-row=""
+                              data-task-id={task.id}
+                              selected={selectedTaskId === task.id}
+                              onOpen={() => setSelectedTaskId(task.id)}
+                              leading={
+                                <span
+                                  className={`h-1.5 w-1.5 shrink-0 rounded-full ${TASK_STATUS_DOT[task.status] ?? 'bg-app-muted'}`}
+                                />
+                              }
+                              id={task.id}
+                              title={taskTitle(task)}
+                              meta={[task.assignedAgent || 'unassigned', time]
+                                .filter(Boolean)
+                                .join(' · ')}
+                              trailing={
+                                <>
+                                  {onRunTask && isTaskRunnable(task, tasks) && (
+                                    <Button
+                                      variant="ghost"
+                                      size="compact"
+                                      onClick={() => onRunTask(task.id)}
+                                      disabled={taskRunBusy}
+                                      aria-disabled={taskRunBusy}
+                                      aria-label={`Run ${task.id}`}
+                                    >
+                                      Run
+                                    </Button>
+                                  )}
+                                  <span className="text-xs text-app-muted">
+                                    {statusLabel(task.status)}
+                                  </span>
+                                </>
+                              }
+                            />
+                          )
+                        })}
+                      </div>
+                    )}
+                    {selectedTaskId && tasks.some((task) => task.id === selectedTaskId) && (
+                      <TaskDetailPanel
+                        task={tasks.find((task) => task.id === selectedTaskId) as TaskItem}
+                        maxAttempts={TASK_MAX_ATTEMPTS}
+                        onClose={() => setSelectedTaskId(null)}
+                      />
                     )}
                   </div>
+                )}
 
-                  {tasks.length === 0 ? (
-                    <EmptyState
-                      icon={Kanban}
-                      title={taskError ? 'Tasks unavailable' : 'No Tasks Defined'}
-                      description={
-                        taskError ||
-                        'Create a task contract in tasks.yaml or use Chat mode to draft a spec.'
-                      }
-                      actionLabel="Create First Task"
-                      onAction={onOpenChat || (() => {})}
+                {/* TAB: Runs */}
+                {activeProjectTab === 'runs' && <RunsEvidenceView runs={runs} />}
+
+                {/* TAB: Graph */}
+                {activeProjectTab === 'graph' &&
+                  (projectContext ? (
+                    <ContextView
+                      context={projectContext}
+                      onRefreshGraph={onRefreshGraph || (() => {})}
+                      isRefreshing={graphRefreshing}
                     />
                   ) : (
-                    <div>
-                      {tasks.map((task) => {
-                        const time = task.lastRunAt ? formatRunTime(task.lastRunAt) : ''
-                        return (
-                          <ListRow
-                            key={task.id}
-                            data-task-row=""
-                            data-task-id={task.id}
-                            selected={selectedTaskId === task.id}
-                            onOpen={() => setSelectedTaskId(task.id)}
-                            leading={
-                              <span
-                                className={`h-1.5 w-1.5 shrink-0 rounded-full ${TASK_STATUS_DOT[task.status] ?? 'bg-app-muted'}`}
-                              />
-                            }
-                            id={task.id}
-                            title={taskTitle(task)}
-                            meta={[task.assignedAgent || 'unassigned', time]
-                              .filter(Boolean)
-                              .join(' · ')}
-                            trailing={
-                              <>
-                                {onRunTask && isTaskRunnable(task, tasks) && (
-                                  <Button
-                                    variant="ghost"
-                                    size="compact"
-                                    onClick={() => onRunTask(task.id)}
-                                    disabled={taskRunBusy}
-                                    aria-disabled={taskRunBusy}
-                                    aria-label={`Run ${task.id}`}
-                                  >
-                                    Run
-                                  </Button>
-                                )}
-                                <span className="text-xs text-app-muted">
-                                  {statusLabel(task.status)}
-                                </span>
-                              </>
-                            }
-                          />
-                        )
-                      })}
+                    <div className="flex-1 flex items-center justify-center text-sm text-app-muted">
+                      Loading project graph…
                     </div>
-                  )}
-                  {selectedTaskId && tasks.some((task) => task.id === selectedTaskId) && (
-                    <TaskDetailPanel
-                      task={tasks.find((task) => task.id === selectedTaskId) as TaskItem}
-                      maxAttempts={TASK_MAX_ATTEMPTS}
-                      onClose={() => setSelectedTaskId(null)}
-                    />
-                  )}
-                </div>
-              )}
+                  ))}
 
-              {/* TAB: Runs */}
-              {activeProjectTab === 'runs' && <RunsEvidenceView runs={runs} />}
-
-              {/* TAB: Graph */}
-              {activeProjectTab === 'graph' &&
-                (projectContext ? (
-                  <ContextView
-                    context={projectContext}
-                    onRefreshGraph={onRefreshGraph || (() => {})}
-                    isRefreshing={graphRefreshing}
+                {/* TAB: Memory */}
+                {activeProjectTab === 'memory' && (
+                  <MemoryView
+                    memories={memories}
+                    onResolveConflict={onResolveConflict || (() => {})}
                   />
-                ) : (
-                  <div className="flex-1 flex items-center justify-center text-sm text-app-muted">
-                    Loading project graph…
-                  </div>
-                ))}
+                )}
 
-              {/* TAB: Memory */}
-              {activeProjectTab === 'memory' && (
-                <MemoryView
-                  memories={memories}
-                  onResolveConflict={onResolveConflict || (() => {})}
-                />
-              )}
+                {/* TAB: Specs */}
+                {activeProjectTab === 'specs' && (
+                  <SpecsView
+                    specs={specs}
+                    onApproveSpec={onApproveSpec || (() => {})}
+                    onDraftSpec={onDraftSpec || (() => {})}
+                    onLintSpec={onLintSpec || (() => {})}
+                  />
+                )}
 
-              {/* TAB: Specs */}
-              {activeProjectTab === 'specs' && (
-                <SpecsView
-                  specs={specs}
-                  onApproveSpec={onApproveSpec || (() => {})}
-                  onDraftSpec={onDraftSpec || (() => {})}
-                  onLintSpec={onLintSpec || (() => {})}
-                />
-              )}
+                {/* TAB: Skills */}
+                {activeProjectTab === 'skills' && (
+                  <SkillsView
+                    skills={skills}
+                    onCompileSkill={onCompileSkill || (async () => ({ paths: [] }))}
+                  />
+                )}
 
-              {/* TAB: Skills */}
-              {activeProjectTab === 'skills' && (
-                <SkillsView
-                  skills={skills}
-                  onCompileSkill={onCompileSkill || (async () => ({ paths: [] }))}
-                />
-              )}
+                {/* TAB: Instincts */}
+                {activeProjectTab === 'instincts' && (
+                  <InstinctsView
+                    instincts={instincts}
+                    onApproveInstinct={onApproveInstinct || (() => {})}
+                    onRejectInstinct={onRejectInstinct || (() => {})}
+                    onAddInstinct={onAddInstinct || (() => {})}
+                  />
+                )}
 
-              {/* TAB: Instincts */}
-              {activeProjectTab === 'instincts' && (
-                <InstinctsView
-                  instincts={instincts}
-                  onApproveInstinct={onApproveInstinct || (() => {})}
-                  onRejectInstinct={onRejectInstinct || (() => {})}
-                  onAddInstinct={onAddInstinct || (() => {})}
-                />
-              )}
-
-              {/* TAB: Plan */}
-              {activeProjectTab === 'plan' && (
-                <PlanBoardView
-                  tasks={tasks}
-                  projectId={selectedProject?.id ?? activeProjectId}
-                  onRunTask={onRunTask || (() => {})}
-                  onExplainTask={onExplainTask || (() => {})}
-                  onAddTask={onAddTask || (() => {})}
-                />
-              )}
+                {/* TAB: Plan */}
+                {activeProjectTab === 'plan' && (
+                  <PlanBoardView
+                    tasks={tasks}
+                    projectId={selectedProject?.id ?? activeProjectId}
+                    onRunTask={onRunTask || (() => {})}
+                    onExplainTask={onExplainTask || (() => {})}
+                    onAddTask={onAddTask || (() => {})}
+                  />
+                )}
+              </div>
 
               {/* DANGER ZONE AT THE BOTTOM OF THE PROJECT SETTINGS */}
-              <div className="p-4 mt-8 border-t border-rose-900/40 bg-rose-950/10">
-                <div className="rounded-card border border-rose-800/50 bg-rose-950/20 p-4 space-y-3">
-                  <div className="flex items-center gap-2 text-rose-400 font-semibold text-xs">
-                    <ShieldAlert className="w-4 h-4" />
-                    <span>Zona de peligro (Danger Zone)</span>
-                  </div>
-                  <p className="text-xs text-app-muted leading-relaxed">
-                    Borra permanentemente los datos de este proyecto guardados en SQLite. No borra
-                    la carpeta del proyecto.
-                  </p>
-
-                  <div className="pt-1">
-                    <button
-                      type="button"
+              <div data-danger-zone className="px-6 pb-6 pt-4">
+                <SettingsGroup
+                  title={<span className="text-app-error">Zona de peligro (Danger Zone)</span>}
+                >
+                  <div className="space-y-3 p-4">
+                    <p className="text-xs leading-relaxed text-app-muted">
+                      Borra permanentemente los datos de este proyecto guardados en SQLite. No borra
+                      la carpeta del proyecto.
+                    </p>
+                    <Button
+                      variant="ghost"
+                      size="compact"
+                      leadingIcon={Trash2}
+                      className="text-app-error"
                       onClick={() => setShowPurgeConfirm(true)}
-                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-control bg-rose-600 hover:bg-rose-500 text-white font-semibold text-xs transition-colors"
                     >
-                      <Trash2 className="w-3.5 h-3.5" />
-                      <span>Borrar definitivamente los datos del proyecto</span>
-                    </button>
+                      Borrar definitivamente los datos del proyecto
+                    </Button>
                   </div>
-                </div>
+                </SettingsGroup>
               </div>
             </div>
           </div>

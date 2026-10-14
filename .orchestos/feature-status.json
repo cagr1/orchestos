@@ -319,6 +319,15 @@
       "closedDate": null
     },
     {
+      "id": "CI.23",
+      "sprint": "Fase 2 — Producto mínimo para entrega",
+      "block": "H.7 — El contexto se llena en silencio y nadie avisa (ABIERTO 2026-09-02)",
+      "delegation": "🔍",
+      "title": "`tasks`: la tarea relanzada no deja su commit `chore(tasks)` (intermitente en batería)",
+      "status": "open",
+      "closedDate": null
+    },
+    {
       "id": "R.8.4",
       "sprint": "Fase 2 — Producto mínimo para entrega",
       "block": "H.7 — El contexto se llena en silencio y nadie avisa (ABIERTO 2026-09-02)",
@@ -477,8 +486,8 @@
       "block": "UI.26 — La forma de Gr8r en toda la app (ABIERTO 2026-10-13, GO de Carlos 2026-10-13)",
       "delegation": "🧠",
       "title": "Plan (tablero) e Instincts",
-      "status": "open",
-      "closedDate": null
+      "status": "done",
+      "closedDate": "2026-10-14"
     },
     {
       "id": "UI.26.5",

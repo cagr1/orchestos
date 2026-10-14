@@ -29,9 +29,8 @@ export const EmptyState: React.FC<EmptyStateProps> = ({
       <p className="text-xs text-app-muted max-w-sm mb-4 leading-relaxed">{description}</p>
       {actionLabel && onAction && (
         <SettingsPrimaryAction>
-          <Button size="compact" onClick={onAction}>
-            <Plus className="w-3.5 h-3.5" />
-            <span>{actionLabel}</span>
+          <Button size="compact" leadingIcon={Plus} onClick={onAction}>
+            {actionLabel}
           </Button>
         </SettingsPrimaryAction>
       )}

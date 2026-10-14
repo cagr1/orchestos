@@ -603,6 +603,11 @@ Cerrada. Todos sus ítems están archivados en `docs/done/` (ver "Cerrados — e
   `qa-negative` (2026-10-11, 1 de 9): `Command failed: git … commit -qm task fixture`, sin motivo porque el helper
   `run` usa `stdio: 'ignore'`. `qa-negative` ya reporta stdout/stderr y exit; los otros 20 flows con el mismo helper no.
   Al próximo fallo, leer el motivo en el `result.json` antes de arreglar; llevar el helper a `scripts/ui-gate/lib.mjs`.
+- [ ] **CI.23 — 🔍 `tasks`: la tarea relanzada no deja su commit `chore(tasks)` (intermitente en batería).** Visto 2 de
+  6 corridas del set de UI.26.4 (2026-10-14), nunca con `tasks` solo: tras relanzar `gate-failed-task` y llegar a
+  `done`, a los 15 s de `waitForTasksYamlCommit` el último commit es el del trabajo (`orchestos(gate-failed-task): …`)
+  y `tasks.yaml` sigue modificado. No lo trajo UI.26.4 (solo presentación); el pre-push de `03b9cf3` pasó. Primero que
+  deje evidencia (estado de la tarea, `git log -3` y el log del dashboard en el detalle del paso), luego causa.
 - [x] **R.8.4 — 🔍 Reinicio del dashboard a mitad de run.** (2026-10-11) Recuperar el resultado y el reporte de fin
   (gap declarado de I.7.2). Hallazgo 4.
   Ejecutado por: sonnet (rondas 1-2) · gpt-6-luna (rondas 3-5) · revisión `qa` gpt-6.1-sol.
@@ -986,9 +991,27 @@ archivos fijados por `ui:fidelity:jsx` (`OrchestDevWorkspace`, `ShellStatusBar`,
   Incidente: el ejecutor de la ronda 1 volvió a correr `git stash` (y `pop`) pese a la regla de AGENTS.md; no se perdió
   nada. La regla escrita no basta: va a NEXT.md como propuesta de bloqueo mecánico.
   Límites: solo tema por defecto; el panel no atrapa el foco.
-- [ ] **UI.26.4 — 🧠 Plan (tablero) e Instincts.** Columnas y tarjetas sin color de decoración.
-  Incluye la Zona de peligro de la página de proyecto (hoy fija abajo, deja el tablero en ~120 px). Spec:
-  docs/specs/UI.26.4.md
+- [x] **UI.26.4 — 🧠 Plan (tablero) e Instincts.** (cerrado 2026-10-14) Columnas y tarjetas sin color de decoración;
+  incluye la Zona de peligro de la página de proyecto. Spec: docs/specs/UI.26.4.md
+  Ejecutado por: sonnet (rol `criterio`, ronda 1) y gpt-6-luna (rol `mecanico`, rondas 2-4)
+  Hecho (2026-10-14): 0 clases de paleta en `PlanBoardView.tsx` (eran 180) e `InstinctsView.tsx` (83). Kanban con
+  columnas sin caja (punto de estado + nombre + contador), tarjetas `bg-app-elevated` sin borde; Instincts con
+  rótulos neutros, insignias como texto y confianza en acento. Raíces sin fondo propio. La pestaña abierta ocupa el
+  alto visible y la Zona de peligro (`data-danger-zone`, tokens `app-error`) queda al final del scroll. Los selectores
+  Kanban | PLAN.md | Table y Active | Review siguen siendo `<button>` con las clases del segmentado (los flujos los
+  buscan por rol `button`).
+  Evidencia: `typecheck`, biome sin errores en lo tocado, `build:app`, `ui:fidelity:jsx`, corridos por el cerebro.
+  Gate en vivo: navegador real (Playwright), `docs/done/evidence/UI.26.4-live.json` — `project-tabs` 30/30 (4 pasos
+  nuevos), `project-delete` 11/11, `plan-doc` 15/15, `tasks` 28/28, `shell-look` 16/16, `smoke` 6/6, `text-sweep`
+  10/10, `project-isolation` 14/14. El cerebro miró Plan e Instincts en el dashboard real (tema por defecto).
+  Contraprueba: con `PlanBoardView.tsx` de HEAD, `project-tabs` falla en `plan no palette` (por la raíz sin
+  `data-plan-view`, no por la paleta: contraprueba débil).
+  Rondas 2-4: la aserción de "tablero ocupa la vista" comparaba con el viewport y no con el área con scroll; "Sin
+  proyecto (histórico)" quedó fundida con el `·` y `project-isolation` no la encontraba; mirando la pantalla, "Add
+  task", "Run", "Approve", "Reject" y el botón de `EmptyState` (de UI.26.2) apilaban el icono sobre el texto: el
+  `Button` de la familia recibe `leadingIcon={Icono}` y el texto como hijo; solo el botón de solo icono lo lleva de hijo.
+  Visto al cerrar: `tasks` intermitente en batería → CI.23, antes del siguiente ítem.
+  Límites: solo tema por defecto; el punto "running" usa `app-accent` (no hay token de "en curso").
 - [ ] **UI.26.5 — 🧠 Memory, Specs, Skills y Graph.** Maestro-detalle con estado vacío; Memory se llena con ERP.4.16.
 - [ ] **UI.26.6 — 🧠 Resto de Settings.** Health, API & Models, Model routing, Usage, Danger zone, Language con los
   primitivos de UI.25.1.

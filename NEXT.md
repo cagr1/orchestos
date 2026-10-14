@@ -17,13 +17,15 @@ PROPUESTA sin aplicar (decide Carlos): el ejecutor corrió `git stash` dos veces
 la regla escrita en AGENTS.md. Bloqueo mecánico: negar `git stash` en el hook writer-lock o en `bin/delegate`
 (fuente en `method/` del vault).
 
-## PRIMERO al retomar — UI.26.2 (plantilla de página), luego UI.26.3-26.6 y UI.24.4
-UI.26.1 cerrado 2026-10-13 (marco). UI.26.2 con spec (docs/specs/UI.26.2.md), delegado a `criterio` 2026-10-14; incluye la cabecera interna del chat (`OrchestChatView.tsx:255`,
-banda oscura con borde dentro del panel). Referencia viva: gr8r-taskmanagement.vercel.app — medidas en PLAN.md § UI.26.
+## PRIMERO al retomar — CI.23 (`tasks` intermitente en batería), luego UI.26.5, UI.26.6 y UI.24.4
+UI.26.1 a UI.26.4 cerrados (2026-10-13/14). Atajo de cierre: si `plan:reconcile` dice "Could not prove a closing
+commit SHA", reabrir el ítem (`[ ]`), reconciliar, volver a `[x]` y reconciliar. Referencia viva: gr8r-taskmanagement.vercel.app — medidas en PLAN.md § UI.26.
 Movimiento de referencia: Arc UI (uiarc.dev), mapeado a cada paso en PLAN.md § UI.26; los bloques Pro no se compran.
 Push de 2026-10-14 hecho (pre-push verde; el fallo F4.3 era la Mac dormida, no se repitió). UI.26.1a cerrado (el pre-push falló en `chat-streaming` por un selector `[data-ff]`). Lección: un cambio de marco se
 cierra con la batería completa del pre-push, no con una selección de flujos.
-Al mirar una pantalla nueva de la familia: `Button` de solo icono recibe el icono como hijo; las `border-app/NN` no
+Al mirar una pantalla nueva de la familia: `Button` de solo icono recibe el icono como hijo; con texto,
+`leadingIcon={Icono}` (icono hijo + texto = icono apilado encima); con texto, `leadingIcon={Icono}`
+(icono hijo + texto = icono apilado encima); las `border-app/NN` no
 aceptan variante (usar `color-mix` arbitrario).
 UI.24.1 a UI.24.3 cerrados; ERP.4.14 pasa a UI.24.6.
 ERP.4.10 (`e6efa62`), ERP.4.11 (`c476e68`), ERP.4.12 (`043770c`) y ERP.4.13 cerrados 2026-10-13. Siguiente:
