@@ -1357,6 +1357,10 @@ igual que hoy, lo que se corta es que el **producto** lo herede por accidente.
   Gate en vivo: navegador real (Playwright), `docs/done/evidence/LIMP.1-live.json` — `chat-streaming` 24/24,
   `codex-live` 14/14.
 
+- [ ] **DOC.2 — 🔍 `docs/` solo con lo relevante.** (abierto 2026-10-14, GO de Carlos) 36 archivos sueltos clasificados
+  por contenido contra HEAD: lo vigente se fusiona o comprime, lo histórico pasa a `docs/done/`, lo obsoleto se borra.
+  Spec: docs/specs/DOC.2.md
+
 ### AT.17–AT.18 — Restos del esquema de trabajo (TEMPORAL: al cerrarlos se borra esta sección entera)
 
 No son producto. El esquema de trabajo con agentes (roster, `delegate`, candado de escritor, reglas de autonomía y de

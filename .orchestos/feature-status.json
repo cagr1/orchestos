@@ -625,6 +625,15 @@
       "closedDate": null
     },
     {
+      "id": "DOC.2",
+      "sprint": "Fuera de fase",
+      "block": "DOC.1 y LIMP.1 — Documentación al día y código muerto (GO de Carlos 2026-10-14)",
+      "delegation": "🔍",
+      "title": "`docs/` solo con lo relevante",
+      "status": "open",
+      "closedDate": null
+    },
+    {
       "id": "AT.17",
       "sprint": "Fuera de fase",
       "block": "AT.17–AT.18 — Restos del esquema de trabajo (TEMPORAL: al cerrarlos se borra esta sección entera)",
