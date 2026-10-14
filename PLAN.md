@@ -894,13 +894,43 @@ existen, ni la lógica, ni el backend, ni los `--app-*`.
   Evidencia: `typecheck` exit 0, corrido por el cerebro.
   Gate en vivo: navegador real (Playwright), `docs/done/evidence/UI.25.0-live.json` — `project-tabs` 26/26.
   Contraprueba: con `SpecsView.tsx` sin el arreglo, `project-tabs` falla en `specs empty state visible`.
-- [ ] **UI.25.2 — 🧠 Barra lateral de Settings.** Filas planas con hover fluido, iconos en un tono, activo en acento.
-- [ ] **UI.25.3 — 🧠 Resto de secciones.** Health, API & Models, Model routing (con etiquetas por desplegable), Usage,
-  Danger zone, Language. Añade del registro lo que falte (`select`/`dropdown`, `switch`, `tabs`, `input-group`).
-  Flujo nuevo `settings-look` en ui-gate (ver límites de UI.25.1) y mirar los 4 temas. Verifica: `model-routing`, `smoke`.
-- [ ] **UI.25.4 — 🧠 Página de proyecto.** Tareas sin texto duplicado ni UUID partido; se coordina con UI.24.5.
+UI.25.2 a UI.25.4 pasan a UI.26 (GO de Carlos 2026-10-13).
 
 Fuera de esta pasada: tema y paleta, backend, modo Dev, shell principal (cabecera y barra lateral del chat).
+
+### UI.26 — La forma de Gr8r en toda la app (ABIERTO 2026-10-13, GO de Carlos 2026-10-13)
+
+Pedido de Carlos 2026-10-13, con gr8r-taskmanagement.vercel.app abierto: *"quiero que orchestos se vea así pero no
+por los colores, hablo del diseño y forma"*. Señaló además: letra distinta al salir de General, texto repetido en
+Tasks, Graph con otro color, Specs que no se ve (UI.25.0, cerrado), Memory vacía, colores combinados en Instincts y
+Plan. Absorbe UI.25.2–25.4. El tema y sus `--app-*` no cambian.
+
+**Medido en Gr8r por el cerebro (navegador, 2026-10-13):** una sola letra (Geist) — cuerpo 13,5 px, navegación
+12,5 px/500, título 19 px/600, rótulo de sección 11 px/600 en muted; barra lateral de 252 px más oscura que el
+contenido (#151514 contra #1d1d1c) y sin línea entre ambos; cabecera de 46 px con ruta, buscador ⌘K y "New"; filas
+planas sin caja; color solo en el punto de estado; maestro-detalle con estado vacío.
+
+**Medido en OrchestOS:** paleta de Tailwind a mano por vista (Plan 180 usos/5 familias, Instincts 83/7, Specs 74/5,
+Memory 66/5, Skills 46/4, Graph `ContextView` 46/4 en zinc, por eso "otro color"); `font-mono` en la interfaz (39 en
+Settings, 22 en Runs, 16 en Plan…); iconos de la barra de Settings en 7 colores; Tasks repite la descripción cuando
+la tarea no tiene título (`OrchestSettingsView.tsx:2474,2493`); Memory vacía porque nada la escribe (ERP.4.16).
+
+**Reglas:** las de UI.25 más: filas de 28 px sin borde ni sombra, activo = fondo `app-surface`; iconos en un tono
+(muted, activo `app`); el contenido es un panel más claro que barra y cabecera, sin líneas entre ellos; ningún color
+de paleta de Tailwind en lo migrado; `font-mono` solo en código, rutas, ids y cifras de tabla. Fuera: modo Dev y los
+archivos fijados por `ui:fidelity:jsx` (`OrchestDevWorkspace`, `ShellStatusBar`, `AgentComposer`).
+
+- [ ] **UI.26.1 — 🧠 Marco: cabecera, barras laterales y panel.** Spec: docs/specs/UI.26.1.md
+- [ ] **UI.26.2 — 🧠 Plantilla de página.** Encabezado, franja de cifras y fila de lista como primitivos de la familia.
+- [ ] **UI.26.3 — 🧠 Tasks en lista con detalle.** Nombre corto, agente y hora por fila; detalle al pulsar; fuera el
+  texto duplicado y el UUID partido.
+- [ ] **UI.26.4 — 🧠 Plan (tablero) e Instincts.** Columnas y tarjetas sin color de decoración.
+- [ ] **UI.26.5 — 🧠 Memory, Specs, Skills y Graph.** Maestro-detalle con estado vacío; Memory se llena con ERP.4.16.
+- [ ] **UI.26.6 — 🧠 Resto de Settings.** Health, API & Models, Model routing, Usage, Danger zone, Language con los
+  primitivos de UI.25.1.
+
+Cada paso: spec, delegación por rol, conteo de paleta = 0 en lo migrado, y el cerebro mira la pantalla real al lado de
+Gr8r antes de cerrar.
 
 ## Fase 3 — Correr dentro de OrchestOS igual que el CLI directo
 

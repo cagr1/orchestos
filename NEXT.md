@@ -13,11 +13,12 @@
 6. Residuos de `erp-piloto`: limpiar si no sirven (las 3 tareas sobrantes no sirven; se limpian tras el hallazgo 5).
 7. `chat-retry-report` NO entra al pre-push.
 
-## PRIMERO al retomar — UI.25.2 (barra lateral de Settings), luego UI.25.3, UI.25.4 y UI.24.4
-UI.25 (Settings con la familia, GO de Carlos 2026-10-13, tema por defecto intacto): UI.25.1 cerrado. UI.25.0 (Specs
-vacío tumba la app) cerrado. UI.25.2 sin spec.
+## PRIMERO al retomar — UI.26.1 (marco con la forma de Gr8r; GO de Carlos 2026-10-13), luego UI.26.2-26.6 y UI.24.4
+UI.25.0 y UI.25.1 cerrados; UI.25.2-25.4 absorbidos por UI.26. Spec en curso: `docs/specs/UI.26.1.md` (rol `criterio`);
+los cambios sin commitear en `src/dashboard/app/src/components/layout/`, `App.tsx`, `components/settings/`,
+`components/chat/OrchestChatView.tsx` y `scripts/ui-gate/flows/shell-look.mjs` son de UI.26.1.
 Al mirar una pantalla nueva de la familia: `Button` de solo icono recibe el icono como hijo; las `border-app/NN` no
-aceptan variante (usar `color-mix` arbitrario). El dashboard de otra sesión sigue ocupando el puerto 4242.
+aceptan variante (usar `color-mix` arbitrario).
 UI.24.1 a UI.24.3 cerrados; ERP.4.14 pasa a UI.24.6.
 ERP.4.10 (`e6efa62`), ERP.4.11 (`c476e68`), ERP.4.12 (`043770c`) y ERP.4.13 cerrados 2026-10-13. Siguiente:
 ERP.4.14 (el composer distingue "cargando" de "Orchestrator unassigned"), sin spec; luego 4.15 y 4.16.
