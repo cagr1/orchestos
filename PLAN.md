@@ -965,7 +965,8 @@ archivos fijados por `ui:fidelity:jsx` (`OrchestDevWorkspace`, `ShellStatusBar`,
   Límites: solo tema por defecto; la caja "Zona de peligro" al pie de la página de proyecto sigue con su forma vieja
   (→ UI.26.6).
 - [ ] **UI.26.3 — 🧠 Tasks en lista con detalle.** Nombre corto, agente y hora por fila; detalle al pulsar; fuera el
-  texto duplicado y el UUID partido.
+  texto duplicado y el UUID partido. La hora sale de `lastRunAt` (nuevo en `/api/tasks`, del run de la tarea); la fila
+  de lista (`ListRow`) nace aquí. Spec: docs/specs/UI.26.3.md
 - [ ] **UI.26.4 — 🧠 Plan (tablero) e Instincts.** Columnas y tarjetas sin color de decoración.
 - [ ] **UI.26.5 — 🧠 Memory, Specs, Skills y Graph.** Maestro-detalle con estado vacío; Memory se llena con ERP.4.16.
 - [ ] **UI.26.6 — 🧠 Resto de Settings.** Health, API & Models, Model routing, Usage, Danger zone, Language con los
