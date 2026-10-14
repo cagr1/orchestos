@@ -13,7 +13,7 @@
 6. Residuos de `erp-piloto`: limpiar si no sirven (las 3 tareas sobrantes no sirven; se limpian tras el hallazgo 5).
 7. `chat-retry-report` NO entra al pre-push.
 
-## PRIMERO al retomar — GO de UI.24; ERP.4.14 pasa a UI.24.6
+## PRIMERO al retomar — UI.24 en curso (GO de Carlos 2026-10-13); ERP.4.14 pasa a UI.24.6
 ERP.4.10 (`e6efa62`), ERP.4.11 (`c476e68`), ERP.4.12 (`043770c`) y ERP.4.13 cerrados 2026-10-13. Siguiente:
 ERP.4.14 (el composer distingue "cargando" de "Orchestrator unassigned"), sin spec; luego 4.15 y 4.16.
 Visto en ERP.4.13, sin ítem: `CC.2 — chat sessions backend` dio timeout de 5 s una vez dentro de `test:coverage`
@@ -29,12 +29,12 @@ sobre cambios sin commitear, `bun run agent:handoff`; y el preflight del ejecuto
 (`[ ]` + reconcile) antes de una ronda de corrección; (6) un test que pasa por un commit de producción necesita
 identidad **local** en el repo temporal (`git config user.name/email`), no solo `-c` en los comandos del fixture.
 
-## ESPERA GO de Carlos — UI.24, el hilo del chat con acabado premium (plan en PLAN.md § UI.24, 2026-10-13)
-Plan escrito con diagnóstico, referencias revisadas, dirección y 7 ítems (UI.24.1–24.7). Faltan 4 decisiones de
-Carlos, listadas ahí. Orden pedido por Carlos: UI.24 primero, ERP.4 se cierra al final (ERP.4.14 va dentro de
+## EN CURSO — UI.24, el hilo del chat con acabado premium (PLAN.md § UI.24; GO de Carlos 2026-10-13)
+Familia elegida: Fluid Functionalism (MIT) + Streamdown. UI.24.1 delegado a `criterio` con `docs/specs/UI.24.1.md`:
+los cambios sin commitear del front son de ese ítem. Orden: UI.24 primero, ERP.4 al final (ERP.4.14 va dentro de
 UI.24.6; luego 4.15, 4.16, limpiar `erp-piloto`, veredicto). Captura de MusicKind:
 `~/Projects/projects/portfolio/dist/projects/musickind-screen@1x.webp`. Vault consultado: sin insights aplicables.
-Al recibir GO: verificar que AI Elements no arrastra `ai` en runtime, luego spec de UI.24.1.
+Lección: el hook del cerebro bloquea un Bash que combine heredoc y rutas del front; editar PLAN.md con Edit.
 Defecto de herramienta, sin arreglar: `delegate investigar "<pregunta>"` (y cualquier rol `claude` con `--tools`)
 falla con "Input must be provided…": `--tools` se traga el prompt (`~/.agent-method/bin/delegate:147,167-171`).
 Esquive: `claude -p --model sonnet --effort low --tools … < pregunta.txt`. El arreglo va en `method/` del vault.

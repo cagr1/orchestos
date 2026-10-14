@@ -713,7 +713,7 @@ anteriores, con pruebas de comportamiento; no abrir un refactor masivo por conte
 2. Estados de sesión `ended` con **resume/fork** (§C.3) — PI y Codex los tienen; OrchestOS no.
 3. Si UI.8.6 entra en este bloque o sale como bloque propio con backend separado.
 
-### UI.24 — El hilo del chat con acabado premium (ABIERTO 2026-10-13, ESPERA GO de Carlos)
+### UI.24 — El hilo del chat con acabado premium (ABIERTO 2026-10-13, GO de Carlos 2026-10-13)
 
 Pedido de Carlos 2026-10-13: *"quiero de verdad algo mucho mejor que MusicKind … no una combinación grosera de
 componentes sino … profesional, limpio, intuitivo, pero sobre todo premium"*. Cómo se ve, cómo interactúa, cómo
@@ -738,26 +738,35 @@ responde, cómo piensa. Solo presentación del hilo y del composer; la función 
   paquete `ai` sea solo de tipos en esos archivos.
 - Streamdown 2.7.0: Apache-2.0 (verificado en npm); Shiki, KaTeX y Mermaid son plugins aparte.
 
-**Dirección:** una sola familia (AI Elements + Streamdown) reescrita a los tokens de OrchestOS, no una mezcla de
-bibliotecas. Fuera prompt-kit y motion-primitives. Planes no se compra. Reglas visuales: un acento (el celeste de
-marca); verde/rojo/ámbar solo como estado, nunca decoración; sin degradados ni sombras de color; la respuesta del
-asistente va sin caja; el identificador técnico se copia, no se lee; el movimiento informa (entrada, cambio de estado)
-y respeta `prefers-reduced-motion`.
+- Fluid Functionalism (fluidfunctionalism.com, referencia de Carlos con el GO): MIT, registro shadcn, 1 053 estrellas.
+  Una familia con un solo sistema de movimiento (tres velocidades de spring, salidas más rápidas, hover que sigue al
+  cursor, cambio de peso tipográfico sin mover el layout) y escalera de superficies de 8 niveles. Trae
+  `chat-message`, `input-message`, `thinking-indicator`, `thinking-steps`, `card`, `badge`, `banner`, `button`,
+  `tooltip`. Dependencias: `motion` (ya instalado), `@radix-ui/react-collapsible|slot|tooltip`, `class-variance-authority`
+  (ya instalado). Exige alias `@/`, tokens de shadcn e Inter variable (ejes `opsz` y `wght`): el repo no tiene ninguno.
 
-**Decisiones que faltan de Carlos:**
-1. El hilo deja de copiar el prototipo de AI Studio (revisa `feedback-prototipo-es-el-frontend` solo para el hilo y
-   el composer; el resto de la app no cambia). Recomendado: sí.
-2. AI Elements exige primitivos de shadcn (Radix: collapsible, hover-card) que hoy no están en el repo. Recomendado: sí.
-3. Acento único = el celeste actual. Recomendado: sí.
-4. Orden: UI.24 antes de ERP.4.14–4.16 (ERP.4.14 toca el mismo composer y se cierra dentro de UI.24.6); ERP.4 se
-   cierra al final.
+**GO de Carlos 2026-10-13:** *"busco … algo que se vea como las apps que usa Apple, incluso algo tan sencillo como
+MusicKind se ve muy bien … quedas a cargo … GO"*. Con el GO quedan tomadas las cuatro decisiones: el hilo y el
+composer dejan de copiar el prototipo de AI Studio (el resto de la app no cambia); entran primitivos de Radix; un
+acento, el celeste de marca; UI.24 va antes de ERP.4.14–4.16 y ERP.4 se cierra al final.
 
-- [ ] **UI.24.1 — 🧠 Lámina de estados del hilo.** Una ruta de desarrollo que dibuja con datos fijos todos los estados:
+**Dirección:** una sola familia, Fluid Functionalism, más Streamdown para el markdown. AI Elements queda como
+segunda opción solo para una pieza que la familia no tenga; fuera prompt-kit y motion-primitives; Planes no se
+compra. Reglas visuales: un acento; verde/rojo/ámbar solo como estado, nunca decoración; sin degradados ni sombras de
+color; la respuesta del asistente va sin caja; el identificador técnico se copia, no se lee; el movimiento informa
+(entrada, cambio de estado) y respeta `prefers-reduced-motion`. Los componentes de la familia se componen con props y
+`className`, no se editan.
+
+- [ ] **UI.24.1 — 🧠 Base de la familia y lámina de estados del hilo.** Alias `@/`, puente de tokens shadcn →
+  `--app-*`, Inter variable servida en local y los componentes de la familia instalados. Encima, una vista de
+  desarrollo (`?view=thread-states`) que dibuja con datos fijos las piezas de la familia; cada ítem siguiente le
+  añade sus estados. Spec: `docs/specs/UI.24.1.md`. Estados que la lámina acaba cubriendo:
   pensando, razonamiento, herramientas, streaming, tarea retenida / corriendo / fallida / pendiente / hecha, árbol
   sucio, adjuntos, error de envío. Usa los mismos componentes que el hilo real. Sirve para que Carlos apruebe el look
   una vez y como base de capturas del gate. Verifica: flujo `ui:gate` nuevo que captura la lámina.
 - [ ] **UI.24.2 — 🧠 Tokens y jerarquía.** Un acento; fuera degradados índigo, sombras de color y `animate-ping`; cuerpo
-  a 14 px; respuesta del asistente sin caja, mensaje del usuario en burbuja discreta. `index.css` no crece.
+  a 14 px; respuesta del asistente sin caja, mensaje del usuario en burbuja discreta. `index.css` solo crece por el
+  puente de tokens de UI.24.1.
 - [ ] **UI.24.3 — 🧠 Pensando.** Texto con shimmer que nombra la fase real (pensando, herramienta en curso) y el tiempo;
   al terminar se pliega a "Pensó 12 s" y se abre con un clic. Datos: `reasoning` de `chat.ts:234`.
 - [ ] **UI.24.4 — 🧠 Respuesta en streaming.** Streamdown en lugar de `react-markdown`: entrada por palabra, markdown

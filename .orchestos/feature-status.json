@@ -357,16 +357,16 @@
     {
       "id": "UI.24.1",
       "sprint": "Fase 2 — Producto mínimo para entrega",
-      "block": "UI.24 — El hilo del chat con acabado premium (ABIERTO 2026-10-13, ESPERA GO de Carlos)",
+      "block": "UI.24 — El hilo del chat con acabado premium (ABIERTO 2026-10-13, GO de Carlos 2026-10-13)",
       "delegation": "🧠",
-      "title": "Lámina de estados del hilo",
+      "title": "Base de la familia y lámina de estados del hilo",
       "status": "open",
       "closedDate": null
     },
     {
       "id": "UI.24.2",
       "sprint": "Fase 2 — Producto mínimo para entrega",
-      "block": "UI.24 — El hilo del chat con acabado premium (ABIERTO 2026-10-13, ESPERA GO de Carlos)",
+      "block": "UI.24 — El hilo del chat con acabado premium (ABIERTO 2026-10-13, GO de Carlos 2026-10-13)",
       "delegation": "🧠",
       "title": "Tokens y jerarquía",
       "status": "open",
@@ -375,7 +375,7 @@
     {
       "id": "UI.24.3",
       "sprint": "Fase 2 — Producto mínimo para entrega",
-      "block": "UI.24 — El hilo del chat con acabado premium (ABIERTO 2026-10-13, ESPERA GO de Carlos)",
+      "block": "UI.24 — El hilo del chat con acabado premium (ABIERTO 2026-10-13, GO de Carlos 2026-10-13)",
       "delegation": "🧠",
       "title": "Pensando",
       "status": "open",
@@ -384,7 +384,7 @@
     {
       "id": "UI.24.4",
       "sprint": "Fase 2 — Producto mínimo para entrega",
-      "block": "UI.24 — El hilo del chat con acabado premium (ABIERTO 2026-10-13, ESPERA GO de Carlos)",
+      "block": "UI.24 — El hilo del chat con acabado premium (ABIERTO 2026-10-13, GO de Carlos 2026-10-13)",
       "delegation": "🧠",
       "title": "Respuesta en streaming",
       "status": "open",
@@ -393,7 +393,7 @@
     {
       "id": "UI.24.5",
       "sprint": "Fase 2 — Producto mínimo para entrega",
-      "block": "UI.24 — El hilo del chat con acabado premium (ABIERTO 2026-10-13, ESPERA GO de Carlos)",
+      "block": "UI.24 — El hilo del chat con acabado premium (ABIERTO 2026-10-13, GO de Carlos 2026-10-13)",
       "delegation": "🧠",
       "title": "Una tarjeta por tarea",
       "status": "open",
@@ -402,7 +402,7 @@
     {
       "id": "UI.24.6",
       "sprint": "Fase 2 — Producto mínimo para entrega",
-      "block": "UI.24 — El hilo del chat con acabado premium (ABIERTO 2026-10-13, ESPERA GO de Carlos)",
+      "block": "UI.24 — El hilo del chat con acabado premium (ABIERTO 2026-10-13, GO de Carlos 2026-10-13)",
       "delegation": "🧠",
       "title": "Composer y adjuntos",
       "status": "open",
@@ -411,7 +411,7 @@
     {
       "id": "UI.24.7",
       "sprint": "Fase 2 — Producto mínimo para entrega",
-      "block": "UI.24 — El hilo del chat con acabado premium (ABIERTO 2026-10-13, ESPERA GO de Carlos)",
+      "block": "UI.24 — El hilo del chat con acabado premium (ABIERTO 2026-10-13, GO de Carlos 2026-10-13)",
       "delegation": "🧠",
       "title": "Herramientas y movimiento",
       "status": "open",
