@@ -8,9 +8,9 @@ import {
   rmSync,
   utimesSync,
   writeFileSync,
-} from 'fs'
-import { tmpdir } from 'os'
-import { join } from 'path'
+} from 'node:fs'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
 import { withFileLock } from '../run/file-lock.ts'
 import { loadTasks, mutateTasks, saveTasks, updateTaskStatus } from '../tasks/loader.ts'
 import type { Task } from '../tasks/schema.ts'
@@ -35,6 +35,7 @@ function makeRoot(): string {
 }
 
 const workerPrelude = `import { updateTaskStatus, mutateTasks } from ${JSON.stringify(join(import.meta.dir, '..', 'tasks', 'loader.ts'))}\n`
+const lockWorkerPrelude = `import { withFileLock } from ${JSON.stringify(join(import.meta.dir, '..', 'run', 'file-lock.ts'))}\n`
 
 function spawn(root: string, script: string, args: string[] = []) {
   const file = join(
@@ -164,6 +165,61 @@ describe('tasks concurrency across OS processes', () => {
 })
 
 describe('file lock recovery and ownership', () => {
+  it('publishes the lock token atomically and removes its temporary file', () => {
+    const root = mkdtempSync(join(tmpdir(), 'orchestos-file-lock-'))
+    const path = join(root, 'owned.lock')
+    try {
+      const owner = withFileLock(path, () => readFileSync(path, 'utf8'))
+      expect(owner.startsWith(`${process.pid}:`)).toBe(true)
+      expect(readdirSync(root).filter((name) => name.endsWith('.tmp'))).toEqual([])
+    } finally {
+      rmSync(root, { recursive: true, force: true })
+    }
+  })
+
+  it('removes orphaned lock temporaries but preserves those from live PIDs', () => {
+    const root = mkdtempSync(join(tmpdir(), 'orchestos-file-lock-'))
+    const path = join(root, 'tasks.lock')
+    const orphan = join(root, `tasks.lock.${process.pid + 1000000}.x.tmp`)
+    const live = join(root, `tasks.lock.${process.pid}.x.tmp`)
+    try {
+      writeFileSync(orphan, 'orphan')
+      writeFileSync(live, 'live')
+      withFileLock(path, () => undefined)
+      expect(existsSync(orphan)).toBe(false)
+      expect(existsSync(live)).toBe(true)
+    } finally {
+      rmSync(root, { recursive: true, force: true })
+    }
+  })
+
+  it('recovers after twenty SIGKILL interruptions without publishing an empty lock', async () => {
+    const root = mkdtempSync(join(tmpdir(), 'orchestos-file-lock-kill-'))
+    const path = join(root, 'tasks.lock')
+    const startWorker = () =>
+      spawn(
+        root,
+        `${lockWorkerPrelude}const lock=process.argv[2]; while(true) withFileLock(lock, () => undefined)`,
+        [path],
+      )
+    let worker = startWorker()
+    try {
+      for (let round = 0; round < 20; round++) {
+        await Bun.sleep(20 + Math.floor(Math.random() * 21))
+        worker.proc.kill('SIGKILL')
+        await worker.proc.exited
+        if (existsSync(path)) expect(readFileSync(path, 'utf8').length).toBeGreaterThan(0)
+        const start = Date.now()
+        expect(withFileLock(path, () => 1, { waitTimeoutMs: 2000 })).toBe(1)
+        expect(Date.now() - start).toBeLessThan(2000)
+        if (round < 19) worker = startWorker()
+      }
+    } finally {
+      worker.proc.kill('SIGKILL')
+      rmSync(root, { recursive: true, force: true })
+    }
+  }, 30_000)
+
   it('cleans orphaned task temporaries while preserving temporaries from live PIDs', () => {
     const root = makeRoot()
     const orphan = join(root, `.tasks.yaml.tmp-${process.pid + 1000000}-orphan`)

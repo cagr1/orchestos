@@ -1,6 +1,14 @@
-import { randomUUID } from 'crypto'
-import { closeSync, mkdirSync, openSync, readFileSync, statSync, unlinkSync, writeSync } from 'fs'
-import { dirname } from 'path'
+import { randomUUID } from 'node:crypto'
+import {
+  linkSync,
+  mkdirSync,
+  readdirSync,
+  readFileSync,
+  statSync,
+  unlinkSync,
+  writeFileSync,
+} from 'node:fs'
+import { basename, dirname, join } from 'node:path'
 
 interface FileLockOptions {
   waitTimeoutMs?: number
@@ -35,45 +43,61 @@ export function withFileLock<T>(path: string, fn: () => T, options: FileLockOpti
   const pollIntervalMs = options.pollIntervalMs ?? 50
   mkdirSync(dirname(path), { recursive: true })
   const token = `${process.pid}:${randomUUID()}`
+  const tempPrefix = `${basename(path)}.`
+  for (const name of readdirSync(dirname(path))) {
+    if (!name.startsWith(tempPrefix) || !name.endsWith('.tmp')) continue
+    const pid = Number(name.slice(tempPrefix.length).split('.', 1)[0])
+    if (isProcessAlive(pid)) continue
+    try {
+      unlinkSync(join(dirname(path), name))
+    } catch {
+      /* Another process removed the orphaned temporary. */
+    }
+  }
   const start = Date.now()
 
   while (true) {
+    const tempPath = `${path}.${process.pid}.${randomUUID()}.tmp`
+    writeFileSync(tempPath, token)
     try {
-      const fd = openSync(path, 'wx')
       try {
-        writeSync(fd, token)
-      } finally {
-        closeSync(fd)
+        linkSync(tempPath, path)
+        break
+      } catch (error) {
+        if ((error as NodeJS.ErrnoException).code !== 'EEXIST') throw error
       }
-      break
-    } catch (error) {
-      if ((error as NodeJS.ErrnoException).code !== 'EEXIST') throw error
+    } finally {
       try {
-        const age = Date.now() - statSync(path).mtimeMs
-        const owner = ownerIsAlive(path)
-        if (age > pollIntervalMs && owner === false) {
-          try {
-            unlinkSync(path)
-          } catch {
-            /* another process recovered it */
-          }
-          continue
-        }
-        if (age > staleMs && owner === null) {
-          try {
-            unlinkSync(path)
-          } catch {
-            /* another process recovered it */
-          }
-          continue
-        }
+        unlinkSync(tempPath)
       } catch {
-        /* Lock disappeared while inspecting it; retry acquisition. */
+        /* Temporary was already removed. */
       }
-      if (Date.now() - start > waitTimeoutMs)
-        throw new Error(`file-lock: timeout waiting for ${path}`)
-      Bun.sleepSync(pollIntervalMs)
     }
+    try {
+      const age = Date.now() - statSync(path).mtimeMs
+      const owner = ownerIsAlive(path)
+      if (age > pollIntervalMs && owner === false) {
+        try {
+          unlinkSync(path)
+        } catch {
+          /* another process recovered it */
+        }
+        continue
+      }
+      if (age > staleMs && owner === null) {
+        try {
+          unlinkSync(path)
+        } catch {
+          /* another process recovered it */
+        }
+        continue
+      }
+    } catch {
+      /* Lock disappeared while inspecting it; retry acquisition. */
+    }
+    if (Date.now() - start > waitTimeoutMs)
+      throw new Error(`file-lock: timeout waiting for ${path}`)
+    Bun.sleepSync(pollIntervalMs)
   }
 
   try {

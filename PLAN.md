@@ -473,11 +473,18 @@ Cerrada. Todos sus ítems están archivados en `docs/done/` (ver "Cerrados — e
   CI.16-usage-bar` 4 corridas seguidas PASS 18/18 c/u (antes 2/4 fallaban). Sin contraprueba determinista: el fallo
   dependía de que Codex tardara >3 s; queda la serie de 4 verdes como evidencia.
 
-- [ ] **CI.12 — 🔍 `tasks-concurrency` (5 SIGKILL) falla por timeout del lock dentro de la suite completa.** (abierto 2026-10-03)
+- [x] **CI.12 — 🔍 `tasks-concurrency` (5 SIGKILL) falla por timeout del lock dentro de la suite completa.** (abierto 2026-10-03, cerrado 2026-10-14)
   Visto 1 vez en el pre-push: `error: file-lock: timeout waiting for …/.orchestos/tasks.lock` → `(fail) … recovers valid
   YAML after five SIGKILL interruptions and accepts a following mutation quickly [14649.63ms]`. Solo pasa 3/3 y pasó en
   2 `test:coverage` completos del mismo día. Hipótesis sin verificar: bajo carga, un lock que dejó un proceso matado
   tarda más en declararse stale que el plazo del test. Archivo: `src/__tests__/tasks-concurrency.test.ts`.
+  **Cierre 2026-10-14:** tumbó CI en `dff365d` (run 38617847158, 30985 ms). Causa: `withFileLock` creaba el candado
+  con `openSync('wx')` y escribía `pid:uuid` después; un SIGKILL entre ambos dejaba un candado vacío que solo se
+  recupera por mtime (60 s). Arreglo: token en temporal `<lock>.<pid>.<uuid>.tmp` + `linkSync` atómico; limpieza de
+  temporales de PIDs muertos. Tests nuevos: token publicado atómico, huérfanos, 20 SIGKILL sin candado vacío.
+  Evidencia: `typecheck` y `biome` limpios; `tasks-concurrency.test.ts` 9/9 ×5; `test:coverage` 1770 pass, 1 fail ajeno
+  (409 de ERP.4.13 por identidad git global del Mac, NEXT.md:69). Sin contraprueba contra HEAD: la ventana es de µs.
+  Ejecutado por: gpt-6-luna (mecanico)
 
 - [ ] **CI.11 — 🔍 El turno 2 de Codex en `codex-live` tardó 180 s contra 22 s del turno 1.** (abierto 2026-10-03)
   Visto una vez en la corrida completa de ui-gates (`$TMPDIR/ui-gate-73235/result.json`, paso "turn 2 is faster than
