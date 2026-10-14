@@ -17,12 +17,9 @@ PROPUESTA sin aplicar (decide Carlos): el ejecutor corrió `git stash` dos veces
 la regla escrita en AGENTS.md. Bloqueo mecánico: negar `git stash` en el hook writer-lock o en `bin/delegate`
 (fuente en `method/` del vault).
 
-## PRIMERO al retomar — CI.23 (`tasks` intermitente en batería), luego UI.26.5, UI.26.6 y UI.24.4
-CI.23: spec de fase 1 commiteado (docs/specs/CI.23.md), SIN delegar. Siguiente paso: `bun run agent:handoff` y
-`~/.agent-method/bin/delegate mecanico docs/specs/CI.23.md`; luego correr el set de batería varias veces hasta ver el
-fallo con evidencia y escribir la fase 2 (causa). Hipótesis: timeout del candado de git o `git commit` con exit≠0,
-ambos tragados en silencio por `commitTasksYaml`. Gotcha: `while ps aux | grep -q "[c]affeinate…"` se detecta a sí
-mismo y no termina nunca; esperar al push con la notificación del comando en segundo plano.
+## PRIMERO al retomar — UI.26.5, UI.26.6 y UI.24.4
+CI.23 fase 1 hecha (`9a82ee8`): el fallo deja evidencia; 6/6 verde sin reproducir. Al próximo `FAIL tasks` en
+`relaunched task final state`, leer el detalle JSON del paso y escribir la fase 2 en docs/specs/CI.23.md.
 UI.26.1 a UI.26.4 cerrados (2026-10-13/14). Atajo de cierre: si `plan:reconcile` dice "Could not prove a closing
 commit SHA", reabrir el ítem (`[ ]`), reconciliar, volver a `[x]` y reconciliar. Referencia viva: gr8r-taskmanagement.vercel.app — medidas en PLAN.md § UI.26.
 Movimiento de referencia: Arc UI (uiarc.dev), mapeado a cada paso en PLAN.md § UI.26; los bloques Pro no se compran.
