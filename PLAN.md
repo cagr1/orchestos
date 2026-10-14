@@ -608,6 +608,7 @@ Cerrada. Todos sus ítems están archivados en `docs/done/` (ver "Cerrados — e
   `done`, a los 15 s de `waitForTasksYamlCommit` el último commit es el del trabajo (`orchestos(gate-failed-task): …`)
   y `tasks.yaml` sigue modificado. No lo trajo UI.26.4 (solo presentación); el pre-push de `03b9cf3` pasó. Primero que
   deje evidencia (estado de la tarea, `git log -3` y el log del dashboard en el detalle del paso), luego causa.
+  Spec fase 1 (evidencia): docs/specs/CI.23.md — `commitTasksYaml` hoy traga todo fallo (candado 30 s, commit exit≠0).
 - [x] **R.8.4 — 🔍 Reinicio del dashboard a mitad de run.** (2026-10-11) Recuperar el resultado y el reporte de fin
   (gap declarado de I.7.2). Hallazgo 4.
   Ejecutado por: sonnet (rondas 1-2) · gpt-6-luna (rondas 3-5) · revisión `qa` gpt-6.1-sol.
