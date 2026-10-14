@@ -1104,11 +1104,27 @@ archivos fijados por `ui:fidelity:jsx` (`OrchestDevWorkspace`, `ShellStatusBar`,
   Lo que Carlos señala (tema `orchestos`, 2026-10-14): la raíz de `ContextView.tsx:20`, `SpecsView.tsx:45` y
   `SkillsView.tsx:52` es `bg-zinc-950` (casi negro neutro) sobre `bg-app-surface` (#0e1320, azul marino): toda el área
   de contenido se ve con otro fondo. La raíz debe ser transparente/`app-surface` como Tasks.
-- [ ] **UI.26.6 — 🧠 Resto de Settings.** Health, API & Models, Model routing, Usage, Danger zone, Language con los
+- [x] **UI.26.6 — 🧠 Resto de Settings.** (cerrado 2026-10-14) Health, API & Models, Model routing, Usage, Danger zone, Language con los
   primitivos de UI.25.1.
   Observación de Carlos 2026-10-14: Usage y Model routing (y las demás vistas con `max-w-3xl`,
   `OrchestSettingsView.tsx:1024,1155,1349,1930,2142,2175`) no ocupan el ancho disponible; deben llenarlo.
-  Spec: docs/specs/UI.26.6.md (forma y ancho; el movimiento de Arc UI pasa a UI.26.6b, 2026-10-14).
+  Ejecutado por: sonnet (rol `criterio`, r1) y gpt-6-luna (rol `mecanico`, r2) · Spec: docs/specs/UI.26.6.md (borrado)
+  Hecho (2026-10-14): `SettingsPage` sin `mx-auto max-w-3xl` (todas las secciones a todo el ancho); 0 clases de paleta
+  en las 6 secciones; `font-mono` solo en claves, URL e ids/cifras de Usage. Fuera de los primitivos, con tokens:
+  filas de clave y URL (input + botón en dos líneas), tarjetas de rol (2 columnas desde `lg`, `data-role-card`; el
+  flujo `model-routing.mjs` pasó a ese selector), Task rules, KPI/heatmap/tabla de Usage. Save de Model routing pasó
+  a `SettingsPrimaryAction`. r2 (cerebro, mirando la captura): los inputs de clave arrancaban 12 px más adentro que
+  el de Ollama URL (el `span` enmascarado vacío + `gap-3`); ahora el `span` solo se pinta con clave y los 4 inputs
+  son `w-full max-w-sm`.
+  Evidencia: `typecheck`, `build:app`, `ui:fidelity:jsx`, corridos por el cerebro.
+  Gate en vivo: navegador real (Playwright), `docs/done/evidence/UI.26.6-live.json` — `shell-look` 27/27 (pasos
+  nuevos: `settings <sección> no palette` ×6, `settings fills width` en Usage y Model routing), `model-routing`
+  18/18, `usage-bar` 18/18, `smoke` 6/6, `project-delete` 11/11, `project-tabs` 39/39, `chat-roles` 11/11,
+  `orchestration` 7/7. El cerebro miró las capturas de Usage, Model routing y API & Models (1440×900).
+  Contraprueba (ejecutor): con `OrchestSettingsView.tsx` y `primitives.tsx` de HEAD fallan `no palette` en API, Model routing,
+  Usage y Danger zone, y los 2 `fills width` (768 px de 1184 px).
+  Límites: solo tema por defecto; el heatmap de Usage ocupa ~2/3 del ancho (celdas fijas) — se rehace en UI.26.6b
+  (`activity-heatmap`).
 - [ ] **UI.26.6b — 🧠 Movimiento de Arc UI en Settings.** `settings-command`, `api-keys` y `activity-heatmap` (ver
   "Movimiento" abajo), separados de UI.26.6 para que la forma se cierre y verifique sola.
 - [ ] **UI.26.7 — 🔍 Pendiente de revisar: inputs de "Orquestación" en Tasks no aceptan texto.** (Carlos 2026-10-14)

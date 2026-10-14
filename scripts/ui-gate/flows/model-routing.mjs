@@ -111,7 +111,7 @@ export default async function modelRouting({ page, api, step, shot, cleanup }) {
   await projectButton.click()
   await page.getByRole('button', { name: 'Settings', exact: true }).click()
   await page.getByRole('button', { name: 'Model routing', exact: true }).click()
-  const cards = page.locator('.rounded-card.border.border-app.bg-app-surface.space-y-2.relative')
+  const cards = page.locator('[data-role-card]')
   await step('4 role cards are shown', (await cards.count()) === 4)
   await step(
     'all role cards start unassigned',

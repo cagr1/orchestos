@@ -1,7 +1,37 @@
 {
-  "exported_at": "2026-10-14T22:39:14.096Z",
+  "exported_at": "2026-10-14T23:36:57.465Z",
   "total_runs": 20,
   "runs": [
+    {
+      "id": "5cf8938d-5b9f-489d-91d9-0f7e2c5ada15",
+      "task_class": "gate:ui.26.6-live:doc",
+      "model": "openai/gpt-6-luna",
+      "provider": "codex",
+      "status": "done",
+      "qa_verdict": "pass",
+      "qa_reason": "README.md contains the required line.",
+      "files_blocked": [],
+      "checks_failed": 0,
+      "usd_cost": 0.00096818,
+      "elapsed_ms": 18256,
+      "tokens": 8236,
+      "created_at": "2026-10-14T23:35:25.581Z"
+    },
+    {
+      "id": "85980c43-dd1a-4a18-8666-d4789aba486e",
+      "task_class": "gate:ui.26.6-live:doc",
+      "model": "gpt-6-luna",
+      "provider": "codex",
+      "status": "done",
+      "qa_verdict": "pass",
+      "qa_reason": "README.md contains the required line.",
+      "files_blocked": [],
+      "checks_failed": 0,
+      "usd_cost": 0.0012419599999999999,
+      "elapsed_ms": 28921,
+      "tokens": 11282,
+      "created_at": "2026-10-14T23:33:35.430Z"
+    },
     {
       "id": "6a22c546-8708-4e41-bad0-773e1703668c",
       "task_class": "gate:ui.26.5-live:doc",
@@ -271,43 +301,13 @@
       "elapsed_ms": 69702,
       "tokens": 11361,
       "created_at": "2026-10-14T15:53:25.095Z"
-    },
-    {
-      "id": "80673f17-e65f-4952-a242-d929203fa426",
-      "task_class": "gate:ui.26.3-live:doc",
-      "model": "openai/gpt-6-luna",
-      "provider": "codex",
-      "status": "done",
-      "qa_verdict": "pass",
-      "qa_reason": "README.md contains the required line.",
-      "files_blocked": [],
-      "checks_failed": 0,
-      "usd_cost": 0.0007169799999999999,
-      "elapsed_ms": 26570,
-      "tokens": 7579,
-      "created_at": "2026-10-14T15:17:03.295Z"
-    },
-    {
-      "id": "ab196ea3-cbbf-4cfc-896e-98429d442b2f",
-      "task_class": "gate:ui.26.3-live:implement",
-      "model": "openai/gpt-6-luna",
-      "provider": "codex",
-      "status": "failed",
-      "qa_verdict": "fail",
-      "qa_reason": "nota.txt contains ROJO, but the criterion requires AZUL.",
-      "files_blocked": [],
-      "checks_failed": 0,
-      "usd_cost": 0.00077398,
-      "elapsed_ms": 42055,
-      "tokens": 7668,
-      "created_at": "2026-10-14T15:16:29.063Z"
     }
   ],
   "stats": {
-    "failed": 1,
+    "failed": 0,
     "blocked": 0,
-    "done": 19,
-    "qa_failed": 1,
-    "total_cost_usd": "0.2216"
+    "done": 20,
+    "qa_failed": 0,
+    "total_cost_usd": "0.2223"
   }
 }

@@ -1,0 +1,789 @@
+[
+  {
+    "flujo": "shell-look",
+    "pass": true,
+    "steps": [
+      {
+        "nombre": "chat: sidebar present",
+        "ok": true,
+        "detalle": "1 aside"
+      },
+      {
+        "nombre": "chat: sidebar rows flat",
+        "ok": true,
+        "detalle": "sin borde ni sombra"
+      },
+      {
+        "nombre": "chat: nav icons one tone",
+        "ok": true,
+        "detalle": "rgb(148, 163, 184)"
+      },
+      {
+        "nombre": "chat: no line between sidebar and panel",
+        "ok": true,
+        "detalle": "aside border-right=0 header border-bottom=0"
+      },
+      {
+        "nombre": "chat: panel lighter than chrome",
+        "ok": true,
+        "detalle": "panel=rgb(14, 19, 32) sidebar=rgb(8, 12, 20)"
+      },
+      {
+        "nombre": "chat: no palette classes in chrome",
+        "ok": true,
+        "detalle": "ninguna"
+      },
+      {
+        "nombre": "settings: sidebar present",
+        "ok": true,
+        "detalle": "1 aside"
+      },
+      {
+        "nombre": "settings: sidebar rows flat",
+        "ok": true,
+        "detalle": "sin borde ni sombra"
+      },
+      {
+        "nombre": "settings: nav icons one tone",
+        "ok": true,
+        "detalle": "rgb(148, 163, 184)"
+      },
+      {
+        "nombre": "settings: no line between sidebar and panel",
+        "ok": true,
+        "detalle": "aside border-right=0 header border-bottom=0"
+      },
+      {
+        "nombre": "settings: panel lighter than chrome",
+        "ok": true,
+        "detalle": "panel=rgb(14, 19, 32) sidebar=rgb(8, 12, 20)"
+      },
+      {
+        "nombre": "settings: no palette classes in chrome",
+        "ok": true,
+        "detalle": "ninguna"
+      },
+      {
+        "nombre": "settings health no palette",
+        "ok": true,
+        "detalle": "ninguna"
+      },
+      {
+        "nombre": "settings api no palette",
+        "ok": true,
+        "detalle": "ninguna"
+      },
+      {
+        "nombre": "settings model routing no palette",
+        "ok": true,
+        "detalle": "ninguna"
+      },
+      {
+        "nombre": "settings fills width",
+        "ok": true,
+        "detalle": "model routing: contenido 1136 px de 1184 px"
+      },
+      {
+        "nombre": "settings usage no palette",
+        "ok": true,
+        "detalle": "ninguna"
+      },
+      {
+        "nombre": "settings fills width",
+        "ok": true,
+        "detalle": "usage: contenido 1136 px de 1184 px"
+      },
+      {
+        "nombre": "settings danger zone no palette",
+        "ok": true,
+        "detalle": "ninguna"
+      },
+      {
+        "nombre": "settings language no palette",
+        "ok": true,
+        "detalle": "ninguna"
+      },
+      {
+        "nombre": "project header flat",
+        "ok": true,
+        "detalle": "{\"border\":0,\"bg\":\"rgba(0, 0, 0, 0)\"}"
+      },
+      {
+        "nombre": "project tabs flat",
+        "ok": true,
+        "detalle": "8 pestañas, 28 px"
+      },
+      {
+        "nombre": "runs stat strip",
+        "ok": true,
+        "detalle": "4 celdas; paleta: ninguna"
+      },
+      {
+        "nombre": "chat header no band",
+        "ok": true,
+        "detalle": "{\"border\":0,\"bg\":\"rgba(0, 0, 0, 0)\"}"
+      },
+      {
+        "nombre": "composer no top line (Dev)",
+        "ok": true,
+        "detalle": "0px"
+      },
+      {
+        "nombre": "inspector line aligned",
+        "ok": true,
+        "detalle": "{\"inspectorBottom\":84,\"devHeaderBottom\":84}"
+      },
+      {
+        "nombre": "composer no top line (Chat)",
+        "ok": true,
+        "detalle": "0px"
+      }
+    ],
+    "notes": [],
+    "errores": [],
+    "capturas": [
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-80659/shell-look/shell-chat.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-80659/shell-look/shell-settings.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-80659/shell-look/shell-project.png"
+    ]
+  },
+  {
+    "flujo": "model-routing",
+    "pass": true,
+    "steps": [
+      {
+        "nombre": "4 role cards are shown",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "all role cards start unassigned",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "legacy QA judge and model are absent",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "orchestrator does not offer OpenCode",
+        "ok": true,
+        "detalle": "{\"orchestratorOpenCodeCount\":0,\"orchestratorCodexCount\":1}"
+      },
+      {
+        "nombre": "executor still offers OpenCode",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "reviewer still offers OpenCode",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "auxiliary still offers OpenCode",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "OpenCode reviewer model menu stays under 60 percent of viewport and scrolls internally",
+        "ok": true,
+        "detalle": "{\"height\":550,\"viewportHeight\":1000,\"scrolls\":true}"
+      },
+      {
+        "nombre": "model search shows the empty state",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "model search reduces results and keeps the requested model",
+        "ok": true,
+        "detalle": "{\"initialModelCount\":391,\"matchingModelCount\":1,\"model\":\"opencode/cat-jam-free\",\"matchingModelVisible\":1}"
+      },
+      {
+        "nombre": "keyboard selection opens effort for a variant model",
+        "ok": true,
+        "detalle": "{\"model\":\"opencode/cat-jam-free\",\"efforts\":[\"low\",\"medium\",\"high\",\"xhigh\",\"max\"]}"
+      },
+      {
+        "nombre": "effort menu contains only this model variants",
+        "ok": true,
+        "detalle": "[\"low\",\"medium\",\"high\",\"xhigh\",\"max\"]"
+      },
+      {
+        "nombre": "model without variants hides effort control",
+        "ok": true,
+        "detalle": "{\"model\":\"opencode/big-pickle\",\"efforts\":[]}"
+      },
+      {
+        "nombre": "role assignments persist and reviewer warning appears",
+        "ok": true,
+        "detalle": "{\"roleAssignments\":{\"orchestrator\":{\"agent\":\"codex\",\"model\":\"gpt-6-luna\",\"effort\":\"medium\"},\"executor\":{\"agent\":\"codex\",\"model\":\"gpt-6-luna\",\"effort\":\"medium\"},\"reviewer\":{\"agent\":\"codex\",\"model\":\"gpt-6-luna\",\"effort\":\"medium\"},\"auxiliary\":{\"agent\":\"codex\",\"model\":\"gpt-6-luna\",\"effort\":\"medium\"}},\"roleWarnings\":[\"reviewer-same-as-executor\"],\"ui\":[\"Orchestrator\\nChat, drafts and task splitting\\nCodex\\nGPT-6-Luna\\nmedium\",\"Executor\\nRuns tasks\\nCodex\\nGPT-6-Luna\\nmedium\",\"Reviewer\\nQA, adversarial and refuter (read-only)\\nCodex\\nGPT-6-Luna\\nmedium\\nSame agent and model as Executor: errors may correlate.\",\"Auxiliary\\nDiagnose and memory judge (read-only)\\nCodex\\nGPT-6-Luna\\nmedium\"],\"source\":[\"Source: orchestos.config.yaml\"]}"
+      },
+      {
+        "nombre": "task rule persists after reload",
+        "ok": true,
+        "detalle": "{\"rules\":[{\"match\":{\"output\":[\"docs/**\"]},\"agent\":\"codex\",\"model\":\"gpt-6.1-sol\"}],\"model\":\"gpt-6.1-sol\",\"ruleModelButtonText\":\"GPT-6.1-Sol\",\"ui\":[\"Task rules (1)\"],\"output\":\"docs/**\"}"
+      },
+      {
+        "nombre": "deleting the rule persists an empty list",
+        "ok": true,
+        "detalle": "[]"
+      },
+      {
+        "nombre": "project config remains selected before running task",
+        "ok": true,
+        "detalle": "{\"roleAssignments\":{\"orchestrator\":{\"agent\":\"codex\",\"model\":\"gpt-6-luna\",\"effort\":\"medium\"},\"executor\":{\"agent\":\"codex\",\"model\":\"gpt-6-luna\",\"effort\":\"medium\"},\"reviewer\":{\"agent\":\"codex\",\"model\":\"gpt-6-luna\",\"effort\":\"medium\"},\"auxiliary\":{\"agent\":\"codex\",\"model\":\"gpt-6-luna\",\"effort\":\"medium\"}}}"
+      },
+      {
+        "nombre": "run record stores the executor and QA models chosen in the UI",
+        "ok": true,
+        "detalle": "{\"id\":\"85980c43-dd1a-4a18-8666-d4789aba486e\",\"model\":\"gpt-6-luna\",\"qa_model\":\"gpt-6-luna\"}"
+      }
+    ],
+    "notes": [],
+    "errores": [],
+    "capturas": [
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-80659/model-routing/roles-unassigned.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-80659/model-routing/roles-assigned.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-80659/model-routing/task-rules.png"
+    ]
+  },
+  {
+    "flujo": "usage-bar",
+    "pass": true,
+    "steps": [
+      {
+        "nombre": "temporary project is visible",
+        "ok": true,
+        "detalle": "project in sidebar"
+      },
+      {
+        "nombre": "one status request carries project id",
+        "ok": true,
+        "detalle": "requests=1, header=47b9e7edc7e810b0, expected=47b9e7edc7e810b0"
+      },
+      {
+        "nombre": "Claude quota uses newest session reading",
+        "ok": true,
+        "detalle": "61% remaining in status bar"
+      },
+      {
+        "nombre": "app shell and bundle disable browser caching",
+        "ok": true,
+        "detalle": "shell=no-cache, bundle=no-cache"
+      },
+      {
+        "nombre": "manual usage refresh keeps the newest Claude quota",
+        "ok": true,
+        "detalle": "response=true, saw61=true, saw67=false"
+      },
+      {
+        "nombre": "Claude footer quota color for 50% used",
+        "ok": true,
+        "detalle": "clicks=1, response=true, bar=normal, number=normal, class=h-full bg-app-accent rounded-pill transition-all"
+      },
+      {
+        "nombre": "Claude footer quota color for 70% used",
+        "ok": true,
+        "detalle": "clicks=1, response=true, bar=warning, number=warning, class=h-full bg-app-warning rounded-pill transition-all"
+      },
+      {
+        "nombre": "Claude footer quota color for 90% used",
+        "ok": true,
+        "detalle": "clicks=1, response=true, bar=error, number=error, class=h-full bg-app-error rounded-pill transition-all"
+      },
+      {
+        "nombre": "Claude 5-hour popover quota shows error tone at 90% used",
+        "ok": true,
+        "detalle": "number=error, bar=error, class=h-full bg-app-error rounded-pill"
+      },
+      {
+        "nombre": "Claude footer quota color for 39% used",
+        "ok": true,
+        "detalle": "clicks=1, response=true, bar=normal, number=normal, class=h-full bg-app-accent rounded-pill transition-all"
+      },
+      {
+        "nombre": "Codex account quota is visible without a project session",
+        "ok": true,
+        "detalle": "Codex: 96% 5-hour quota remaining"
+      },
+      {
+        "nombre": "Codex chat option visible",
+        "ok": true,
+        "detalle": "Codex option"
+      },
+      {
+        "nombre": "Luna model visible",
+        "ok": true,
+        "detalle": "gpt-6-luna"
+      },
+      {
+        "nombre": "medium effort visible",
+        "ok": true,
+        "detalle": "medium"
+      },
+      {
+        "nombre": "usage refreshes after a real turn",
+        "ok": true,
+        "detalle": "chatResponse=true, usage-bar-ok=true, refresh=true, requests before=6, after=8, requestTimes=1792020817181,1792020820321,1792020833257,1792020845025,1792020856474,1792020868105,1792020877184,1792020880275, responseAt=1792020880271"
+      },
+      {
+        "nombre": "Codex account quota remains visible after a real turn",
+        "ok": true,
+        "detalle": "Codex: 96% 5-hour quota remaining"
+      },
+      {
+        "nombre": "an expired Claude window is shown as fully available",
+        "ok": true,
+        "detalle": "Claude Code: 100% 5-hour quota remaining"
+      },
+      {
+        "nombre": "no temporary UI projects remain after cleanup",
+        "ok": true,
+        "detalle": "temporary projects are cleaned after the flow"
+      }
+    ],
+    "notes": [],
+    "errores": [],
+    "capturas": []
+  },
+  {
+    "flujo": "smoke",
+    "pass": true,
+    "steps": [
+      {
+        "nombre": "home",
+        "ok": true,
+        "detalle": "Chat visible"
+      },
+      {
+        "nombre": "home-dev",
+        "ok": true,
+        "detalle": "Dev visible"
+      },
+      {
+        "nombre": "dev-view",
+        "ok": true,
+        "detalle": "OrchestOS Dev visible"
+      },
+      {
+        "nombre": "chat-composer",
+        "ok": true,
+        "detalle": "chat composer visible"
+      },
+      {
+        "nombre": "settings-view",
+        "ok": true,
+        "detalle": "Appearance visible"
+      },
+      {
+        "nombre": "settings-general",
+        "ok": true,
+        "detalle": "Appearance visible"
+      }
+    ],
+    "notes": [],
+    "errores": [],
+    "capturas": [
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-80659/smoke/chat.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-80659/smoke/dev.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-80659/smoke/chat-returned.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-80659/smoke/settings.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-80659/smoke/settings-general.png"
+    ]
+  },
+  {
+    "flujo": "project-delete",
+    "pass": true,
+    "steps": [
+      {
+        "nombre": "temporary project visible",
+        "ok": true,
+        "detalle": "project row"
+      },
+      {
+        "nombre": "project actions visible on hover",
+        "ok": true,
+        "detalle": "ellipsis action"
+      },
+      {
+        "nombre": "menu has exactly settings and delete",
+        "ok": true,
+        "detalle": "two project actions"
+      },
+      {
+        "nombre": "soft delete removes project from sidebar",
+        "ok": true,
+        "detalle": "row hidden"
+      },
+      {
+        "nombre": "soft delete preserves chat and run rows",
+        "ok": true,
+        "detalle": "{\"counts\":{\"context_chunks\":0,\"memory_entries\":0,\"instincts\":0,\"chat_sessions\":1,\"chat_turns\":0,\"runs\":1,\"files\":0,\"code_edges\":0,\"orchestration_runs\":0,\"task_run_watch\":0},\"chats\":1,\"runs\":1,\"project\":1}"
+      },
+      {
+        "nombre": "re-adding the same path restores the project row",
+        "ok": true,
+        "detalle": "restored project"
+      },
+      {
+        "nombre": "restored project keeps its chat",
+        "ok": true,
+        "detalle": "chat survives soft delete and re-add"
+      },
+      {
+        "nombre": "project settings opens from project menu",
+        "ok": true,
+        "detalle": "project settings heading"
+      },
+      {
+        "nombre": "purge exits project settings",
+        "ok": true,
+        "detalle": "settings closed"
+      },
+      {
+        "nombre": "purge removes project and every project-scoped row",
+        "ok": true,
+        "detalle": "{\"purged\":{\"counts\":{\"context_chunks\":0,\"memory_entries\":0,\"instincts\":0,\"chat_sessions\":0,\"chat_turns\":0,\"runs\":0,\"files\":0,\"code_edges\":0,\"orchestration_runs\":0,\"task_run_watch\":0},\"chats\":0,\"runs\":0,\"project\":0},\"projectList\":[]}"
+      },
+      {
+        "nombre": "0 console errors",
+        "ok": true,
+        "detalle": "none"
+      }
+    ],
+    "notes": [],
+    "errores": [],
+    "capturas": []
+  },
+  {
+    "flujo": "project-tabs",
+    "pass": true,
+    "steps": [
+      {
+        "nombre": "add project opens folder picker without modal",
+        "ok": true,
+        "detalle": "POST /api/projects/choose calls=1; dialog visible=false"
+      },
+      {
+        "nombre": "temporary project visible",
+        "ok": true,
+        "detalle": "project visible in sidebar"
+      },
+      {
+        "nombre": "project settings visible",
+        "ok": true,
+        "detalle": "settings heading"
+      },
+      {
+        "nombre": "specs empty state visible",
+        "ok": true,
+        "detalle": "empty project has no specs"
+      },
+      {
+        "nombre": "specs empty no page error",
+        "ok": true,
+        "detalle": "none"
+      },
+      {
+        "nombre": "real memory visible",
+        "ok": true,
+        "detalle": "seeded DB memory"
+      },
+      {
+        "nombre": "mock memory absent",
+        "ok": true,
+        "detalle": "no mock data"
+      },
+      {
+        "nombre": "memory conflict resolved",
+        "ok": true,
+        "detalle": "open conflicts: 0"
+      },
+      {
+        "nombre": "authoritative memory persisted and visible",
+        "ok": true,
+        "detalle": "content of entry A matches the resolved API value"
+      },
+      {
+        "nombre": "memory no palette",
+        "ok": true,
+        "detalle": "ninguna (con memoria sembrada)"
+      },
+      {
+        "nombre": "memory content aligned with header",
+        "ok": true,
+        "detalle": "left offset=0px"
+      },
+      {
+        "nombre": "real spec visible",
+        "ok": true,
+        "detalle": "seeded markdown spec"
+      },
+      {
+        "nombre": "mock specs absent",
+        "ok": true,
+        "detalle": "no mock data"
+      },
+      {
+        "nombre": "spec approved",
+        "ok": true,
+        "detalle": "API status approved"
+      },
+      {
+        "nombre": "spec lint updates API and row",
+        "ok": true,
+        "detalle": "Lint: pass (0); response findings=0; before=pass/0"
+      },
+      {
+        "nombre": "specs no palette",
+        "ok": true,
+        "detalle": "ninguna (con spec sembrado)"
+      },
+      {
+        "nombre": "specs content aligned with header",
+        "ok": true,
+        "detalle": "left offset=0px"
+      },
+      {
+        "nombre": "real skills listed",
+        "ok": true,
+        "detalle": "API skills=17"
+      },
+      {
+        "nombre": "compile response visible",
+        "ok": true,
+        "detalle": "success response rendered in the skill row"
+      },
+      {
+        "nombre": "mock skills absent",
+        "ok": true,
+        "detalle": "no mock data"
+      },
+      {
+        "nombre": "skills no palette",
+        "ok": true,
+        "detalle": "ninguna (con skills sembradas)"
+      },
+      {
+        "nombre": "skills content aligned with header",
+        "ok": true,
+        "detalle": "left offset=0px"
+      },
+      {
+        "nombre": "graph no palette",
+        "ok": true,
+        "detalle": "ninguna en CONSTITUTION, CONTEXT ni Code Graph"
+      },
+      {
+        "nombre": "graph content aligned with header",
+        "ok": true,
+        "detalle": "left offset=0px"
+      },
+      {
+        "nombre": "tab roots transparent (memory/specs/skills/graph)",
+        "ok": true,
+        "detalle": "memory=rgba(0, 0, 0, 0); specs=rgba(0, 0, 0, 0); skills=rgba(0, 0, 0, 0); graph=rgba(0, 0, 0, 0)"
+      },
+      {
+        "nombre": "mock instincts absent",
+        "ok": true,
+        "detalle": "no mock data"
+      },
+      {
+        "nombre": "instinct review visible",
+        "ok": true,
+        "detalle": "unverified instinct"
+      },
+      {
+        "nombre": "instinct approved",
+        "ok": true,
+        "detalle": "API verified"
+      },
+      {
+        "nombre": "manual instinct added",
+        "ok": true,
+        "detalle": "new API row"
+      },
+      {
+        "nombre": "instincts no palette",
+        "ok": true,
+        "detalle": "ninguna (con instincts sembrados)"
+      },
+      {
+        "nombre": "mock plan absent",
+        "ok": true,
+        "detalle": "no mock data"
+      },
+      {
+        "nombre": "plan board fills the view",
+        "ok": true,
+        "detalle": "danger zone top=972 scroller bottom=972"
+      },
+      {
+        "nombre": "plan no palette",
+        "ok": true,
+        "detalle": "ninguna en Kanban ni Table"
+      },
+      {
+        "nombre": "tab roots transparent",
+        "ok": true,
+        "detalle": "plan=rgba(0, 0, 0, 0); instincts=rgba(0, 0, 0, 0)"
+      },
+      {
+        "nombre": "explain fields visible as readable UI",
+        "ok": true,
+        "detalle": "GET /explain fields rendered inside the template block"
+      },
+      {
+        "nombre": "explain has no [object Object]",
+        "ok": true,
+        "detalle": "opened Explain modal contains no stringified object values"
+      },
+      {
+        "nombre": "task run finishes and badge changes without reload",
+        "ok": true,
+        "detalle": "status=done; retryCount/runId changed or terminal status observed"
+      },
+      {
+        "nombre": "Add task opens Chat",
+        "ok": true,
+        "detalle": "Chat composer visible, Plan view inactive, task count unchanged"
+      },
+      {
+        "nombre": "0 console errors",
+        "ok": true,
+        "detalle": "none"
+      }
+    ],
+    "notes": [],
+    "errores": [],
+    "capturas": [
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-80659/project-tabs/memory.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-80659/project-tabs/specs.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-80659/project-tabs/skills.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-80659/project-tabs/graph.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-80659/project-tabs/project-tabs-real-data.png"
+    ]
+  },
+  {
+    "flujo": "chat-roles",
+    "pass": true,
+    "steps": [
+      {
+        "nombre": "temporary project visible",
+        "ok": true,
+        "detalle": "orchestos-ui-mr-1-d1-R8onq8"
+      },
+      {
+        "nombre": "Orchestrator Codex selected by default",
+        "ok": true,
+        "detalle": "Codex option visible: Codex"
+      },
+      {
+        "nombre": "question turn receives a response",
+        "ok": true,
+        "detalle": "README.md has 1 line."
+      },
+      {
+        "nombre": "first normal turn latency (ms)",
+        "ok": true,
+        "detalle": "8065 ms from send to visible reply"
+      },
+      {
+        "nombre": "Orchestrator provider and model are recorded",
+        "ok": true,
+        "detalle": "{\"provider\":\"codex\",\"model\":\"gpt-6-luna\"}"
+      },
+      {
+        "nombre": "Orchestrator marker creates a held task without Auxiliary",
+        "ok": true,
+        "detalle": "{\"secondTurnDone\":true,\"httpStatus\":200,\"apiText\":\"OrchestOS will create a task to add “Orchestrator marker gate” to README.md.\\n\\n⏸ Created task `chat-a6d02b9b-4167-457b-a785-872237fa9a82`, waiting for your confirmation before it runs.\",\"hasMarkerLine\":false,\"autoTask\":{\"id\":\"chat-a6d02b9b-4167-457b-a785-872237fa9a82\",\"held\":true,\"existingFiles\":[\"README.md\"]},\"autoTaskSkipped\":false,\"dbTasks\":[],\"label\":\"Task ready to run\"}"
+      },
+      {
+        "nombre": "held task card visible at the bottom",
+        "ok": true,
+        "detalle": "{\"overflows\":true,\"atBottom\":true,\"contained\":true}"
+      },
+      {
+        "nombre": "chat follows content that grows after render",
+        "ok": true,
+        "detalle": "{\"grew\":true,\"atBottom\":true}"
+      },
+      {
+        "nombre": "task marker is stripped from the chat",
+        "ok": true,
+        "detalle": "Visible marker count: 0"
+      },
+      {
+        "nombre": "task delegates execution without fixed model or engine",
+        "ok": true,
+        "detalle": "{\"id\":\"chat-a6d02b9b-4167-457b-a785-872237fa9a82\",\"description\":\"Add the line “Orchestrator marker gate” to README.md.\",\"output\":[\"README.md\"],\"status\":\"pending\",\"retry_count\":0,\"task_class\":\"implement\"}"
+      },
+      {
+        "nombre": "Executor settings no longer contain Default agent chips",
+        "ok": true,
+        "detalle": "Default agent headings: 0; chips: 0"
+      }
+    ],
+    "notes": [],
+    "errores": [],
+    "capturas": [
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-80659/chat-roles/temporary-project-visible.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-80659/chat-roles/orchestrator-preselected.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-80659/chat-roles/orchestrator-question-response.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-80659/chat-roles/orchestrator-turn-recorded.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-80659/chat-roles/task-held-without-auxiliary.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-80659/chat-roles/task-yaml-delegates-to-role.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-80659/chat-roles/executor-settings-without-default-agent.png"
+    ]
+  },
+  {
+    "flujo": "orchestration",
+    "pass": true,
+    "steps": [
+      {
+        "nombre": "orquestación solo aparece en Tasks del proyecto",
+        "ok": true,
+        "detalle": "hidden on Plan: true; visible on Tasks: true"
+      },
+      {
+        "nombre": "activar solo habilita límites sin guardar defaults",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "guardar ON por la UI persiste los dos límites",
+        "ok": true,
+        "detalle": "{\"enabled\":true,\"maxConcurrent\":2,\"maxTotal\":7,\"current\":null,\"usage\":null,\"extraCalls\":[{\"id\":\"planner\",\"label\":\"Planner (auto-split)\",\"active\":true,\"reason\":\"solo al superar el umbral de salida\"},{\"id\":\"qa\",\"label\":\"QA\",\"active\":true,\"reason\":\"validación de tareas\"},{\"id\":\"adversarialQA\",\"label\":\"QA adversarial\",\"active\":false,\"reason\":\"segundo juez opcional\"},{\"id\":\"refuterQA\",\"label\":\"QA refuter\",\"active\":false,\"reason\":\"revisión opcional tras QA fallido\"},{\"id\":\"retries\",\"label\":\"Retries\",\"active\":true,\"reason\":\"máximo por tarea: 3\"}],\"adapters\":[{\"id\":\"claude\",\"label\":\"Claude Code\",\"subagentBlock\":\"garantizado\"},{\"id\":\"codex\",\"label\":\"Codex\",\"subagentBlock\":\"no garantizado\"},{\"id\":\"opencode\",\"label\":\"opencode\",\"subagentBlock\":\"no garantizado\"}]}"
+      },
+      {
+        "nombre": "límites 2 y 7 se muestran tras recargar",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "guardar con un límite vacío muestra error y conserva 2/7 en GET",
+        "ok": true,
+        "detalle": "{\"enabled\":true,\"maxConcurrent\":2,\"maxTotal\":7,\"current\":null,\"usage\":null,\"extraCalls\":[{\"id\":\"planner\",\"label\":\"Planner (auto-split)\",\"active\":true,\"reason\":\"solo al superar el umbral de salida\"},{\"id\":\"qa\",\"label\":\"QA\",\"active\":true,\"reason\":\"validación de tareas\"},{\"id\":\"adversarialQA\",\"label\":\"QA adversarial\",\"active\":false,\"reason\":\"segundo juez opcional\"},{\"id\":\"refuterQA\",\"label\":\"QA refuter\",\"active\":false,\"reason\":\"revisión opcional tras QA fallido\"},{\"id\":\"retries\",\"label\":\"Retries\",\"active\":true,\"reason\":\"máximo por tarea: 3\"}],\"adapters\":[{\"id\":\"claude\",\"label\":\"Claude Code\",\"subagentBlock\":\"garantizado\"},{\"id\":\"codex\",\"label\":\"Codex\",\"subagentBlock\":\"no garantizado\"},{\"id\":\"opencode\",\"label\":\"opencode\",\"subagentBlock\":\"no garantizado\"}]}"
+      },
+      {
+        "nombre": "la UI declara codex y opencode no garantizados",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "apagar desde la UI persiste OFF tras recargar",
+        "ok": true,
+        "detalle": "{\"enabled\":false,\"current\":null,\"usage\":null,\"extraCalls\":[{\"id\":\"planner\",\"label\":\"Planner (auto-split)\",\"active\":false,\"reason\":\"auto-split omitido con OFF\"},{\"id\":\"qa\",\"label\":\"QA\",\"active\":true,\"reason\":\"validación de tareas\"},{\"id\":\"adversarialQA\",\"label\":\"QA adversarial\",\"active\":false,\"reason\":\"segundo juez opcional\"},{\"id\":\"refuterQA\",\"label\":\"QA refuter\",\"active\":false,\"reason\":\"revisión opcional tras QA fallido\"},{\"id\":\"retries\",\"label\":\"Retries\",\"active\":true,\"reason\":\"máximo por tarea: 3\"}],\"adapters\":[{\"id\":\"claude\",\"label\":\"Claude Code\",\"subagentBlock\":\"garantizado\"},{\"id\":\"codex\",\"label\":\"Codex\",\"subagentBlock\":\"no garantizado\"},{\"id\":\"opencode\",\"label\":\"opencode\",\"subagentBlock\":\"no garantizado\"}]}"
+      }
+    ],
+    "notes": [],
+    "errores": [],
+    "capturas": [
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-80659/orchestration/orchestration-settings.png"
+    ]
+  }
+]

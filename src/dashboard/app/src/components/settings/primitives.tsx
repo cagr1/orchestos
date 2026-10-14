@@ -26,7 +26,7 @@ export function SettingsPage({
         initial={reduce ? false : { opacity: 0, y: 4 }}
         animate={{ opacity: 1, y: 0 }}
         transition={reduce ? { duration: 0 } : { duration: 0.15, ease: 'easeOut' }}
-        className="mx-auto flex w-full max-w-3xl flex-col gap-6"
+        className="flex w-full flex-col gap-6"
       >
         <PageHeader title={title} description={description} actions={status} />
         {children}

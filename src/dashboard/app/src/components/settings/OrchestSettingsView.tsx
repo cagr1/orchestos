@@ -1021,26 +1021,21 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
 
         {/* SECTION: HEALTH */}
         {activeSection === 'health' && (
-          <div className="flex-1 overflow-y-auto p-6 space-y-6 max-w-3xl">
-            <div>
-              <h1 className="text-xl font-bold text-app tracking-tight">Project Health</h1>
-              <p className="text-xs text-app-muted mt-1">
-                Runtime readiness, blocked task contracts, and review queues.
-              </p>
-            </div>
-
-            <div className="space-y-3">
-              {/* Row 1: System prerequisites */}
-              <div className="rounded-card border border-app bg-app-surface p-4 flex items-center justify-between text-xs">
-                <div>
-                  <div className="font-semibold text-app flex items-center gap-2">
+          <SettingsPage
+            title="Project Health"
+            description="Runtime readiness, blocked task contracts, and review queues."
+          >
+            <SettingsGroup>
+              <SettingsRow
+                label={
+                  <span className="flex items-center gap-2">
                     {health ? (
                       <CheckCircle2
-                        className={`w-4 h-4 ${health.system.ready ? 'text-emerald-400' : 'text-amber-400'}`}
+                        className={`h-4 w-4 ${health.system.ready ? 'text-app-success' : 'text-app-warning'}`}
                       />
                     ) : (
                       <span
-                        className="w-4 h-4 rounded-full border border-app-muted border-t-app-accent animate-spin"
+                        className="h-4 w-4 animate-spin rounded-full border border-app-muted border-t-app-accent"
                         aria-hidden="true"
                       />
                     )}
@@ -1051,144 +1046,119 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
                           : 'Setup needs attention'
                         : 'Checking prerequisites…'}
                     </span>
-                  </div>
-                  <div className="text-xs text-app-muted mt-0.5">
-                    {health
-                      ? `${health.system.items.filter((item) => item.ok).length}/${health.system.items.length} system checks passing in ${setup?.cwd || health.system.cwd}.`
-                      : settingsError || 'Checking system checks…'}
-                  </div>
-                </div>
-                <button
-                  type="button"
+                  </span>
+                }
+                description={
+                  health
+                    ? `${health.system.items.filter((item) => item.ok).length}/${health.system.items.length} system checks passing in ${setup?.cwd || health.system.cwd}.`
+                    : settingsError || 'Checking system checks…'
+                }
+              >
+                <Button
+                  variant="secondary"
+                  size="compact"
                   onClick={() => showSaveSuccess('Health Diagnostics')}
-                  className="px-3 py-1.5 rounded-control bg-app-elevated border border-app text-app hover:border-app-accent text-xs font-semibold"
                 >
                   View
-                </button>
-              </div>
-
-              {/* Row 2: Blocked tasks */}
-              <div className="rounded-card border border-app bg-app-surface p-4 flex items-center justify-between text-xs">
-                <div>
-                  <div className="font-semibold text-app">Blocked tasks</div>
-                  <div className="text-xs text-app-muted mt-0.5">
-                    {health?.blockedTasks.length ?? 0} contract violations currently halting
-                    worktrees.
-                  </div>
-                </div>
-                <button
-                  type="button"
+                </Button>
+              </SettingsRow>
+              <SettingsRow
+                label="Blocked tasks"
+                description={`${health?.blockedTasks.length ?? 0} contract violations currently halting worktrees.`}
+              >
+                <Button
+                  variant="secondary"
+                  size="compact"
                   onClick={() => {
                     if (projects[0]) handleNavToProject(projects[0].id)
                     setActiveProjectTab('tasks')
                   }}
-                  className="px-3 py-1.5 rounded-control bg-app-elevated border border-app text-app hover:border-app-accent text-xs font-semibold"
                 >
                   View
-                </button>
-              </div>
-
-              {/* Row 3: Pending review */}
-              <div className="rounded-card border border-app bg-app-surface p-4 flex items-center justify-between text-xs">
-                <div>
-                  <div className="font-semibold text-app">Pending review</div>
-                  <div className="text-xs text-app-muted mt-0.5">
-                    {health
-                      ? `${health.pendingApproval.draftSpecs} draft specs and ${health.pendingApproval.unverifiedInstincts} instincts awaiting approval.`
-                      : 'Loading approval queue...'}
-                  </div>
-                </div>
-                <button
-                  type="button"
+                </Button>
+              </SettingsRow>
+              <SettingsRow
+                label="Pending review"
+                description={
+                  health
+                    ? `${health.pendingApproval.draftSpecs} draft specs and ${health.pendingApproval.unverifiedInstincts} instincts awaiting approval.`
+                    : 'Loading approval queue...'
+                }
+              >
+                <Button
+                  variant="secondary"
+                  size="compact"
                   onClick={() => {
                     if (projects[0]) handleNavToProject(projects[0].id)
                     setActiveProjectTab('specs')
                   }}
-                  className="px-3 py-1.5 rounded-control bg-app-elevated border border-app text-app hover:border-app-accent text-xs font-semibold"
                 >
                   View
-                </button>
-              </div>
-
-              {/* Row 4: 7 days cost */}
-              <div className="rounded-card border border-app bg-app-surface p-4 flex items-center justify-between text-xs">
-                <div>
-                  <div className="font-semibold text-app">Last 7 days cost</div>
-                  <div className="text-xs text-app-muted mt-0.5">
-                    ${health?.costLast7d.toFixed(2) ?? '0.00'} spent across the last 7 days.
-                  </div>
-                </div>
-                <button
-                  type="button"
+                </Button>
+              </SettingsRow>
+              <SettingsRow
+                label="Last 7 days cost"
+                description={`$${health?.costLast7d.toFixed(2) ?? '0.00'} spent across the last 7 days.`}
+              >
+                <Button
+                  variant="secondary"
+                  size="compact"
                   onClick={() => setActiveSection('usage')}
-                  className="px-3 py-1.5 rounded-control bg-app-elevated border border-app text-app hover:border-app-accent text-xs font-semibold"
                 >
                   View
-                </button>
-              </div>
-
-              {/* Row 5: Recent learnings */}
-              <div className="rounded-card border border-app bg-app-surface p-4 flex items-center justify-between text-xs">
-                <div>
-                  <div className="font-semibold text-app">Recent learnings</div>
-                  <div className="text-xs text-app-muted mt-0.5">
-                    {health?.recentLearnings.length ?? 0} recent verified learnings.
-                  </div>
-                </div>
-                <button
-                  type="button"
+                </Button>
+              </SettingsRow>
+              <SettingsRow
+                label="Recent learnings"
+                description={`${health?.recentLearnings.length ?? 0} recent verified learnings.`}
+              >
+                <Button
+                  variant="secondary"
+                  size="compact"
                   onClick={() => {
                     if (projects[0]) handleNavToProject(projects[0].id)
                     setActiveProjectTab('instincts')
                   }}
-                  className="px-3 py-1.5 rounded-control bg-app-elevated border border-app text-app hover:border-app-accent text-xs font-semibold"
                 >
                   View
-                </button>
-              </div>
-            </div>
-          </div>
+                </Button>
+              </SettingsRow>
+            </SettingsGroup>
+          </SettingsPage>
         )}
 
         {/* SECTION: API & MODELS */}
         {activeSection === 'api_models' && (
-          <div className="flex-1 overflow-y-auto p-6 space-y-6 max-w-3xl">
-            <div>
-              <h1 className="text-xl font-bold text-app tracking-tight">API Keys & Models</h1>
-              <p className="text-xs text-app-muted mt-1">
-                Configure gateway credentials and local inference endpoints.
-              </p>
-            </div>
-
-            <div className="space-y-3">
-              {/* OpenRouter Row */}
-              <div className="rounded-card border border-app bg-app-surface p-4 space-y-2 text-xs">
+          <SettingsPage
+            title="API Keys & Models"
+            description="Configure gateway credentials and local inference endpoints."
+          >
+            <SettingsGroup>
+              <div className="space-y-2 px-4 py-3">
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <div className="flex items-center gap-2">
-                    <ProviderLogo id="gemini" className="w-4 h-4 text-app-accent" />
-                    <span className="font-semibold text-app">OpenRouter API</span>
+                    <ProviderLogo id="gemini" className="h-4 w-4 text-app-accent" />
+                    <span className="text-[13px] font-medium text-app">OpenRouter API</span>
                     <span
-                      className={`text-[10px] font-mono px-2 py-0.5 rounded-pill border ${
-                        apiKeys.openrouter.set
-                          ? 'bg-emerald-950/40 text-emerald-400 border-emerald-800/40'
-                          : 'bg-zinc-800 text-zinc-400 border-zinc-700'
-                      }`}
+                      className={`text-[10px] ${apiKeys.openrouter.set ? 'text-app-success' : 'text-app-muted'}`}
                     >
                       {apiKeys.openrouter.set ? 'Set' : 'Not set'}
                     </span>
                   </div>
-                  <button
-                    type="button"
+                  <Button
+                    variant="secondary"
+                    size="compact"
                     onClick={() => setKeyAssistantModal('openrouter')}
-                    className="px-3 py-1 rounded-control bg-app-elevated border border-app text-xs text-app font-medium hover:border-app-accent"
                   >
                     Save key
-                  </button>
+                  </Button>
                 </div>
                 <div className="flex items-center gap-3">
-                  <span className="font-mono text-xs text-app-muted">
-                    {apiKeys.openrouter.masked}
-                  </span>
+                  {apiKeys.openrouter.masked && (
+                    <span className="font-mono text-xs text-app-muted">
+                      {apiKeys.openrouter.masked}
+                    </span>
+                  )}
                   <input
                     type="password"
                     placeholder="Replace with new key..."
@@ -1199,39 +1169,35 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
                         openrouter: { ...prev.openrouter, newKey: e.target.value },
                       }))
                     }
-                    className="flex-1 max-w-xs px-2.5 py-1 bg-app-bg border border-app rounded-control font-mono text-xs text-app"
+                    className="w-full max-w-sm rounded-control border border-[color:color-mix(in_srgb,var(--app-border)_50%,transparent)] bg-app-bg px-2.5 py-1 font-mono text-xs text-app"
                   />
                 </div>
               </div>
-
-              {/* Anthropic Row */}
-              <div className="rounded-card border border-app bg-app-surface p-4 space-y-2 text-xs">
+              <div className="space-y-2 px-4 py-3">
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <div className="flex items-center gap-2">
-                    <ProviderLogo id="claude" className="w-4 h-4" />
-                    <span className="font-semibold text-app">Anthropic API</span>
+                    <ProviderLogo id="claude" className="h-4 w-4" />
+                    <span className="text-[13px] font-medium text-app">Anthropic API</span>
                     <span
-                      className={`text-[10px] font-mono px-2 py-0.5 rounded-pill border ${
-                        apiKeys.anthropic.set
-                          ? 'bg-emerald-950/40 text-emerald-400 border-emerald-800/40'
-                          : 'bg-zinc-800 text-zinc-400 border-zinc-700'
-                      }`}
+                      className={`text-[10px] ${apiKeys.anthropic.set ? 'text-app-success' : 'text-app-muted'}`}
                     >
                       {apiKeys.anthropic.set ? 'Set' : 'Not set'}
                     </span>
                   </div>
-                  <button
-                    type="button"
+                  <Button
+                    variant="secondary"
+                    size="compact"
                     onClick={() => setKeyAssistantModal('anthropic')}
-                    className="px-3 py-1 rounded-control bg-app-elevated border border-app text-xs text-app font-medium hover:border-app-accent"
                   >
                     Save key
-                  </button>
+                  </Button>
                 </div>
                 <div className="flex items-center gap-3">
-                  <span className="font-mono text-xs text-app-muted">
-                    {apiKeys.anthropic.masked}
-                  </span>
+                  {apiKeys.anthropic.masked && (
+                    <span className="font-mono text-xs text-app-muted">
+                      {apiKeys.anthropic.masked}
+                    </span>
+                  )}
                   <input
                     type="password"
                     placeholder="Replace with new key..."
@@ -1242,37 +1208,33 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
                         anthropic: { ...prev.anthropic, newKey: e.target.value },
                       }))
                     }
-                    className="flex-1 max-w-xs px-2.5 py-1 bg-app-bg border border-app rounded-control font-mono text-xs text-app"
+                    className="w-full max-w-sm rounded-control border border-[color:color-mix(in_srgb,var(--app-border)_50%,transparent)] bg-app-bg px-2.5 py-1 font-mono text-xs text-app"
                   />
                 </div>
               </div>
-
-              {/* OpenAI Row */}
-              <div className="rounded-card border border-app bg-app-surface p-4 space-y-2 text-xs">
+              <div className="space-y-2 px-4 py-3">
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <div className="flex items-center gap-2">
-                    <ProviderLogo id="codex" className="w-4 h-4" />
-                    <span className="font-semibold text-app">OpenAI API</span>
+                    <ProviderLogo id="codex" className="h-4 w-4" />
+                    <span className="text-[13px] font-medium text-app">OpenAI API</span>
                     <span
-                      className={`text-[10px] font-mono px-2 py-0.5 rounded-pill border ${
-                        apiKeys.openai.set
-                          ? 'bg-emerald-950/40 text-emerald-400 border-emerald-800/40'
-                          : 'bg-zinc-800 text-zinc-400 border-zinc-700'
-                      }`}
+                      className={`text-[10px] ${apiKeys.openai.set ? 'text-app-success' : 'text-app-muted'}`}
                     >
                       {apiKeys.openai.set ? 'Set' : 'Not set'}
                     </span>
                   </div>
-                  <button
-                    type="button"
+                  <Button
+                    variant="secondary"
+                    size="compact"
                     onClick={() => setKeyAssistantModal('openai')}
-                    className="px-3 py-1 rounded-control bg-app-elevated border border-app text-xs text-app font-medium hover:border-app-accent"
                   >
                     Save key
-                  </button>
+                  </Button>
                 </div>
                 <div className="flex items-center gap-3">
-                  <span className="font-mono text-xs text-app-muted">{apiKeys.openai.masked}</span>
+                  {apiKeys.openai.masked && (
+                    <span className="font-mono text-xs text-app-muted">{apiKeys.openai.masked}</span>
+                  )}
                   <input
                     type="password"
                     placeholder="Replace with new key..."
@@ -1283,85 +1245,81 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
                         openai: { ...prev.openai, newKey: e.target.value },
                       }))
                     }
-                    className="flex-1 max-w-xs px-2.5 py-1 bg-app-bg border border-app rounded-control font-mono text-xs text-app"
+                    className="w-full max-w-sm rounded-control border border-[color:color-mix(in_srgb,var(--app-border)_50%,transparent)] bg-app-bg px-2.5 py-1 font-mono text-xs text-app"
                   />
                 </div>
               </div>
-
-              {/* Local provider status */}
-              <div className="rounded-card border border-app bg-app-surface p-4 space-y-2 text-xs">
-                <div className="flex flex-wrap items-center justify-between gap-2">
-                  <div className="flex items-center gap-2">
-                    <Server className="w-4 h-4 text-emerald-400" />
-                    <span className="font-semibold text-app">Ollama Local</span>
+              <SettingsRow
+                label={
+                  <span className="flex items-center gap-2">
+                    <Server className="h-4 w-4 text-app-muted" />
+                    <span>Ollama Local</span>
                     <span
-                      className={`text-[10px] font-mono px-2 py-0.5 rounded-pill border ${localProvider?.available ? 'bg-emerald-950/40 text-emerald-400 border-emerald-800/40' : 'bg-zinc-800 text-zinc-400 border-zinc-700'}`}
+                      className={`text-[10px] ${localProvider?.available ? 'text-app-success' : 'text-app-muted'}`}
                     >
                       {localProvider?.available ? 'Available' : 'Unavailable'}
                     </span>
-                  </div>
-                  <div className="text-xs text-app-muted">
-                    {localProvider?.models.length
-                      ? `${localProvider.models.length} local model${localProvider.models.length === 1 ? '' : 's'} detected.`
-                      : 'Ollama is not responding.'}
-                  </div>
-                </div>
-              </div>
-
-              <div className="rounded-card border border-app bg-app-surface p-4 space-y-2 text-xs">
+                  </span>
+                }
+                description={
+                  localProvider?.models.length
+                    ? `${localProvider.models.length} local model${localProvider.models.length === 1 ? '' : 's'} detected.`
+                    : 'Ollama is not responding.'
+                }
+              />
+              <div className="space-y-2 px-4 py-3">
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <div className="flex items-center gap-2">
-                    <Server className="w-4 h-4 text-emerald-400" />
-                    <span className="font-semibold text-app">Ollama URL</span>
+                    <Server className="h-4 w-4 text-app-muted" />
+                    <span className="text-[13px] font-medium text-app">Ollama URL</span>
                   </div>
-                  <button
-                    type="button"
+                  <Button
+                    variant="secondary"
+                    size="compact"
                     onClick={() => void handleSaveOllama()}
-                    className="px-3 py-1 rounded-control bg-app-elevated border border-app text-xs text-app font-medium hover:border-app-accent"
                   >
                     Save URL
-                  </button>
+                  </Button>
                 </div>
                 <input
                   type="url"
                   value={ollamaHost}
                   placeholder="http://localhost:11434"
                   onChange={(e) => setOllamaHost(e.target.value)}
-                  className="w-full max-w-sm px-2.5 py-1 bg-app-bg border border-app rounded-control font-mono text-xs text-app"
+                  className="w-full max-w-sm rounded-control border border-[color:color-mix(in_srgb,var(--app-border)_50%,transparent)] bg-app-bg px-2.5 py-1 font-mono text-xs text-app"
                 />
               </div>
-
-              {/* Footnote + Save */}
-              <div className="pt-2 flex flex-wrap items-center justify-between gap-3 text-xs text-app-muted">
-                <p className="font-mono text-xs">
-                  Leave a field blank to keep its current value. Stored in ~/.orchestos/.env
-                </p>
-                <span className="text-[10px] text-app-muted">
-                  Keys are validated and saved per provider.
-                </span>
-              </div>
+            </SettingsGroup>
+            <div className="flex flex-wrap items-center justify-between gap-3 px-1 text-xs text-app-muted">
+              <p className="max-w-prose text-xs">
+                Leave a field blank to keep its current value. Stored in ~/.orchestos/.env
+              </p>
+              <span className="text-[10px] text-app-muted">
+                Keys are validated and saved per provider.
+              </span>
             </div>
-          </div>
+          </SettingsPage>
         )}
 
         {/* SECTION: MODEL ROUTING */}
         {activeSection === 'model_routing' && (
-          <div className="flex-1 overflow-y-auto p-6 space-y-6 max-w-3xl">
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <div>
-                <h1 className="text-xl font-bold text-app tracking-tight">Model routing config</h1>
-                <p className="text-xs text-app-muted mt-1">
-                  Assign specialist models to system orchestration roles.
-                </p>
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="text-xs text-app-muted font-mono">
-                  Source: {config?.source ? 'orchestos.config.yaml' : 'defaults'}
-                </span>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+          <SettingsPage
+            title="Model routing config"
+            description="Assign specialist models to system orchestration roles."
+            status={
+              <span className="text-xs text-app-muted">
+                Source: {config?.source ? 'orchestos.config.yaml' : 'defaults'}
+              </span>
+            }
+            actions={
+              <SettingsPrimaryAction>
+                <Button variant="primary" onClick={() => void handleSaveRouting()}>
+                  Save
+                </Button>
+              </SettingsPrimaryAction>
+            }
+          >
+            <div className="grid grid-cols-1 gap-3 text-xs lg:grid-cols-2">
               {(
                 [
                   ['orchestrator', 'Orchestrator', 'Chat, drafts and task splitting'],
@@ -1391,10 +1349,11 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
                 return (
                   <div
                     key={key}
-                    className="p-3.5 rounded-card border border-app bg-app-surface space-y-2 relative"
+                    data-role-card
+                    className="relative space-y-2 rounded-card border border-[color:color-mix(in_srgb,var(--app-border)_50%,transparent)] bg-app-surface p-3.5"
                   >
                     <div>
-                      <div className="font-semibold text-app">{label}</div>
+                      <div className="text-[13px] font-medium text-app">{label}</div>
                       <div className="text-xs text-app-muted">{desc}</div>
                     </div>
                     <div className="relative">
@@ -1407,7 +1366,7 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
                             activeComboboxRole === `${key}-agent` ? null : `${key}-agent`,
                           )
                         }
-                        className="w-full flex items-center justify-between px-2.5 py-1.5 rounded-control bg-app-bg border border-app text-xs text-app font-mono text-left"
+                        className="w-full flex items-center justify-between px-2.5 py-1.5 rounded-control bg-app-bg border border-app text-xs text-app text-left"
                       >
                         <span>
                           {assignment?.agent
@@ -1553,7 +1512,7 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
                               activeComboboxRole === `${key}-effort` ? null : `${key}-effort`,
                             )
                           }
-                          className="w-full flex items-center justify-between px-2.5 py-1.5 rounded-control bg-app-bg border border-app text-xs text-app font-mono text-left"
+                          className="w-full flex items-center justify-between px-2.5 py-1.5 rounded-control bg-app-bg border border-app text-xs text-app text-left"
                         >
                           <span>{assignment?.effort ?? 'Default effort'}</span>
                           <ChevronDown className="w-3.5 h-3.5 text-app-muted" />
@@ -1595,7 +1554,7 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
                 )
               })}
             </div>
-            <div className="rounded-card border border-app bg-app-surface text-xs overflow-hidden">
+            <div className="overflow-hidden rounded-card border border-[color:color-mix(in_srgb,var(--app-border)_50%,transparent)] bg-app-surface text-xs">
               <button
                 type="button"
                 onClick={() => setIsTaskModelTableOpen(!isTaskModelTableOpen)}
@@ -1607,7 +1566,7 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
                 />
               </button>
               {isTaskModelTableOpen && (
-                <div className="p-3 border-t border-app space-y-2">
+                <div className="space-y-2 border-t border-[color:color-mix(in_srgb,var(--app-border)_50%,transparent)] p-3">
                   <p className="text-app-muted">The first matching rule wins.</p>
                   {taskAgentRules.map((rule, index) => (
                     <div key={index} className="grid grid-cols-1 sm:grid-cols-5 gap-2 items-center">
@@ -1668,7 +1627,7 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
                                 : `rule-agent-${index}`,
                             )
                           }
-                          className="w-full flex items-center justify-between px-2.5 py-1.5 rounded-control bg-app-bg border border-app text-xs text-app font-mono text-left"
+                          className="w-full flex items-center justify-between px-2.5 py-1.5 rounded-control bg-app-bg border border-app text-xs text-app text-left"
                         >
                           <span>
                             {AGENTS_LIST.find((entry) => entry.id.toLowerCase() === rule.agent)
@@ -1726,7 +1685,7 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
                                 : `rule-model-${index}`,
                             )
                           }
-                          className="w-full min-w-0 flex items-center justify-between px-2.5 py-1.5 rounded-control bg-app-bg border border-app text-xs text-app font-mono text-left"
+                          className="w-full min-w-0 flex items-center justify-between px-2.5 py-1.5 rounded-control bg-app-bg border border-app text-xs text-app text-left"
                         >
                           <span className="truncate">
                             {rule.model
@@ -1787,7 +1746,7 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
                                   : `rule-effort-${index}`,
                               )
                             }
-                            className="w-full min-w-0 flex items-center justify-between px-2.5 py-1.5 rounded-control bg-app-bg border border-app text-xs text-app font-mono text-left"
+                            className="w-full min-w-0 flex items-center justify-between px-2.5 py-1.5 rounded-control bg-app-bg border border-app text-xs text-app text-left"
                           >
                             <span className="truncate">{rule.cli_effort ?? 'Default effort'}</span>
                             <ChevronDown className="w-3.5 h-3.5 text-app-muted" />
@@ -1851,17 +1810,7 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
                 </div>
               )}
             </div>
-
-            <div className="flex justify-end pt-2">
-              <button
-                type="button"
-                onClick={() => void handleSaveRouting()}
-                className="px-4 py-1.5 rounded-control bg-app-accent text-zinc-950 font-bold text-xs hover:opacity-90 transition-opacity"
-              >
-                Save
-              </button>
-            </div>
-          </div>
+          </SettingsPage>
         )}
 
         {/* SECTION: EXECUTOR */}
@@ -1927,40 +1876,40 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
 
         {/* SECTION: USAGE */}
         {activeSection === 'usage' && (
-          <div className="flex-1 overflow-y-auto p-6 space-y-6 max-w-3xl">
-            <div>
-              <h1 className="text-xl font-bold text-app tracking-tight">Usage & Spend</h1>
-              <p className="text-xs text-app-muted mt-1">
-                Telemetry quotas, token costs, and daily executor activity.
-              </p>
-            </div>
-
+          <SettingsPage
+            title="Usage & Spend"
+            description="Telemetry quotas, token costs, and daily executor activity."
+          >
             {/* 3 KPI cards at the top (exact same numbers computed from table data) */}
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-              <div className="p-3.5 rounded-card border border-app bg-app-surface space-y-1">
-                <div className="text-xs font-mono text-app-muted uppercase">Total Spend</div>
-                <div className="text-xl font-bold text-app font-mono">
+              <div className="space-y-1 rounded-card border border-[color:color-mix(in_srgb,var(--app-border)_50%,transparent)] bg-app-surface p-3.5">
+                <div className="text-xs uppercase text-app-muted">Total Spend</div>
+                <div className="text-xl font-bold tabular-nums text-app font-mono">
                   ${totalSpendUsage.toFixed(2)}
                 </div>
-                <div className="text-[10px] text-emerald-400">
+                <div className="text-[10px] text-app-success">
                   {usage
                     ? `OrchestOS $${(usage.totals?.orchestos.usd ?? totalSpendUsage).toFixed(2)} · CLI tabs $${(usage.totals?.cli.usd ?? 0).toFixed(2)}`
                     : 'Loading telemetry'}
                 </div>
               </div>
 
-              <div className="p-3.5 rounded-card border border-app bg-app-surface space-y-1">
-                <div className="text-xs font-mono text-app-muted uppercase">Total Runs</div>
-                <div className="text-xl font-bold text-app font-mono">{totalRunsUsage}</div>
-                <div className="text-[10px] text-sky-400">
+              <div className="space-y-1 rounded-card border border-[color:color-mix(in_srgb,var(--app-border)_50%,transparent)] bg-app-surface p-3.5">
+                <div className="text-xs uppercase text-app-muted">Total Runs</div>
+                <div className="text-xl font-bold tabular-nums text-app font-mono">
+                  {totalRunsUsage}
+                </div>
+                <div className="text-[10px] text-app-muted">
                   {modelUsageRows.length} models observed
                 </div>
               </div>
 
-              <div className="p-3.5 rounded-card border border-app bg-app-surface space-y-1">
-                <div className="text-xs font-mono text-app-muted uppercase">Avg. Cost / Run</div>
-                <div className="text-xl font-bold text-app font-mono">${avgCostUsage}</div>
-                <div className="text-[10px] text-zinc-400">
+              <div className="space-y-1 rounded-card border border-[color:color-mix(in_srgb,var(--app-border)_50%,transparent)] bg-app-surface p-3.5">
+                <div className="text-xs uppercase text-app-muted">Avg. Cost / Run</div>
+                <div className="text-xl font-bold tabular-nums text-app font-mono">
+                  ${avgCostUsage}
+                </div>
+                <div className="text-[10px] text-app-muted">
                   {modelUsageRows[0]?.model
                     ? `Top model: ${modelUsageRows[0].model}`
                     : 'No model activity yet'}
@@ -1969,12 +1918,12 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
             </div>
 
             {/* Daily Activity Heatmap */}
-            <div className="p-4 rounded-card border border-app bg-app-surface space-y-3">
+            <div className="space-y-3 rounded-card border border-[color:color-mix(in_srgb,var(--app-border)_50%,transparent)] bg-app-surface p-4">
               <div className="flex items-center justify-between text-xs">
                 <div className="flex items-center gap-2">
                   <span className="font-semibold text-app">Daily activity</span>
                   {hoveredActivityDay && (
-                    <span className="text-[11px] font-mono text-emerald-400">
+                    <span className="text-[11px] tabular-nums text-app-success">
                       {hoveredActivityDay.runs === 0
                         ? language === 'es'
                           ? `Sin actividad · ${hoveredActivityDay.dateStr}`
@@ -1983,23 +1932,13 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
                     </span>
                   )}
                 </div>
-                <div className="flex items-center gap-1.5 text-[10px] font-mono text-app-muted">
+                <div className="flex items-center gap-1.5 text-[10px] text-app-muted">
                   <span>less</span>
-                  <span
-                    className={`w-2.5 h-2.5 rounded-xs ${currentTheme === 'light' ? 'bg-zinc-200' : 'bg-zinc-800/40'}`}
-                  />
-                  <span
-                    className={`w-2.5 h-2.5 rounded-xs ${currentTheme === 'light' ? 'bg-emerald-200' : 'bg-emerald-950/90'}`}
-                  />
-                  <span
-                    className={`w-2.5 h-2.5 rounded-xs ${currentTheme === 'light' ? 'bg-emerald-400' : 'bg-emerald-800'}`}
-                  />
-                  <span
-                    className={`w-2.5 h-2.5 rounded-xs ${currentTheme === 'light' ? 'bg-emerald-600' : 'bg-emerald-600'}`}
-                  />
-                  <span
-                    className={`w-2.5 h-2.5 rounded-xs ${currentTheme === 'light' ? 'bg-emerald-800' : 'bg-emerald-400'}`}
-                  />
+                  <span className="h-2.5 w-2.5 rounded-xs bg-app-elevated" />
+                  <span className="h-2.5 w-2.5 rounded-xs bg-app-success/20" />
+                  <span className="h-2.5 w-2.5 rounded-xs bg-app-success/45" />
+                  <span className="h-2.5 w-2.5 rounded-xs bg-app-success/70" />
+                  <span className="h-2.5 w-2.5 rounded-xs bg-app-success" />
                   <span>more</span>
                 </div>
               </div>
@@ -2027,27 +1966,16 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
                   {Array.from({ length: 53 }, (_, week) => (
                     <div key={`week-${week}`} className="flex w-[11px] shrink-0 flex-col gap-[3px]">
                       {dailyActivityCells.slice(week * 7, week * 7 + 7).map((cell) => {
-                        const isLight = currentTheme === 'light'
                         const bgClass =
                           cell.intensity === 0
-                            ? isLight
-                              ? 'bg-zinc-200 hover:bg-zinc-300'
-                              : 'bg-zinc-800/40 hover:bg-zinc-700/60'
+                            ? 'bg-app-elevated hover:bg-app-elevated/70'
                             : cell.intensity === 1
-                              ? isLight
-                                ? 'bg-emerald-200 hover:bg-emerald-300'
-                                : 'bg-emerald-950/90 hover:bg-emerald-900'
+                              ? 'bg-app-success/20 hover:bg-app-success/30'
                               : cell.intensity === 2
-                                ? isLight
-                                  ? 'bg-emerald-400 hover:bg-emerald-500'
-                                  : 'bg-emerald-800 hover:bg-emerald-700'
+                                ? 'bg-app-success/45 hover:bg-app-success/55'
                                 : cell.intensity === 3
-                                  ? isLight
-                                    ? 'bg-emerald-600 hover:bg-emerald-700'
-                                    : 'bg-emerald-600 hover:bg-emerald-500'
-                                  : isLight
-                                    ? 'bg-emerald-800 hover:bg-emerald-900'
-                                    : 'bg-emerald-400 hover:bg-emerald-300'
+                                  ? 'bg-app-success/70 hover:bg-app-success/80'
+                                  : 'bg-app-success hover:bg-app-success/90'
 
                         return (
                           <div
@@ -2068,16 +1996,16 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
             </div>
 
             {/* Spend by Model Table */}
-            <div className="rounded-card border border-app bg-app-surface overflow-hidden text-xs">
-              <div className="p-3 border-b border-app font-semibold text-app flex items-center justify-between">
+            <div className="overflow-hidden rounded-card border border-[color:color-mix(in_srgb,var(--app-border)_50%,transparent)] bg-app-surface text-xs">
+              <div className="flex items-center justify-between border-b border-[color:color-mix(in_srgb,var(--app-border)_50%,transparent)] p-3 font-semibold text-app">
                 <span>Spend by model</span>
-                <span className="text-[11px] font-mono text-app-muted">
+                <span className="text-[11px] tabular-nums text-app-muted">
                   {totalRunsUsage} total runs · ${totalSpendUsage.toFixed(2)}
                 </span>
               </div>
 
-              <table className="w-full text-left font-mono">
-                <thead className="bg-app-elevated/60 text-app-muted border-b border-app text-xs">
+              <table className="w-full text-left">
+                <thead className="text-app-muted border-b border-[color:color-mix(in_srgb,var(--app-border)_50%,transparent)] text-xs">
                   <tr>
                     <th className="p-2.5 font-medium">Model</th>
                     <th className="p-2.5 font-medium">Runs</th>
@@ -2085,10 +2013,10 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
                     <th className="p-2.5 font-medium">Spend</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-app">
+                <tbody className="divide-y divide-[color:color-mix(in_srgb,var(--app-border)_50%,transparent)]">
                   {usageGroups.map((group) => (
                     <React.Fragment key={group.id}>
-                      <tr className="bg-app-elevated/30">
+                      <tr>
                         <th
                           colSpan={4}
                           className="p-2 text-left text-[10px] uppercase tracking-wider text-app-muted"
@@ -2113,17 +2041,17 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
                         return (
                           <tr
                             key={`${group.id}-${row.model}`}
-                            className="hover:bg-app-elevated/20 transition-colors"
+                            className="transition-colors hover:bg-app-elevated"
                           >
-                            <td className="p-2.5 text-app">
+                            <td className="p-2.5 font-mono text-app">
                               <span className="inline-flex items-center gap-2">
                                 <ProviderLogo id={logo} size={14} />
                                 <span>{displayModel}</span>
                               </span>
                             </td>
-                            <td className="p-2.5 text-app-muted">{row.runs}</td>
-                            <td className="p-2.5 text-app-muted">{row.tokens}</td>
-                            <td className="p-2.5 text-app font-semibold">
+                            <td className="p-2.5 tabular-nums text-app-muted">{row.runs}</td>
+                            <td className="p-2.5 tabular-nums text-app-muted">{row.tokens}</td>
+                            <td className="p-2.5 font-mono font-semibold tabular-nums text-app">
                               {row.spend === null ? '—' : `$${row.spend.toFixed(2)}`}
                             </td>
                           </tr>
@@ -2134,77 +2062,74 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
                 </tbody>
               </table>
             </div>
-          </div>
+          </SettingsPage>
         )}
 
         {/* SECTION: DANGER ZONE (GLOBAL RESET) */}
         {activeSection === 'danger_zone' && (
-          <div className="flex-1 overflow-y-auto p-6 space-y-6 max-w-3xl">
-            <div>
-              <h1 className="text-xl font-bold text-app tracking-tight">Danger Zone</h1>
-              <p className="text-xs text-app-muted mt-1">
-                Destructive operations and system reset triggers.
-              </p>
-            </div>
-
-            <div className="p-5 rounded-card border border-rose-800 bg-rose-950/20 space-y-3 text-xs">
-              <div className="flex items-center gap-2 text-rose-400 font-bold text-sm">
-                <ShieldAlert className="w-5 h-5" />
-                <span>Reset OrchestOS</span>
-              </div>
-              <p className="text-app-muted leading-relaxed">
-                Deletes all runs and unverified instincts, and resets every task in tasks.yaml back
-                to pending. Does NOT touch config, skills, CONSTITUTION.md/CONTEXT.md, or memory.
-              </p>
-
-              <div className="pt-2">
-                <button
-                  type="button"
+          <SettingsPage
+            title="Danger Zone"
+            description="Destructive operations and system reset triggers."
+          >
+            <SettingsGroup
+              title={
+                <span className="inline-flex items-center gap-2 text-app-error">
+                  <ShieldAlert className="h-4 w-4" />
+                  <span>Reset OrchestOS</span>
+                </span>
+              }
+            >
+              <div className="space-y-3 p-4">
+                <p className="max-w-prose text-xs leading-relaxed text-app-muted">
+                  Deletes all runs and unverified instincts, and resets every task in tasks.yaml
+                  back to pending. Does NOT touch config, skills, CONSTITUTION.md/CONTEXT.md, or
+                  memory.
+                </p>
+                <Button
+                  variant="ghost"
+                  size="compact"
+                  className="text-app-error"
                   onClick={() => setShowResetConfirm(true)}
-                  className="px-4 py-2 rounded-control bg-rose-600 hover:bg-rose-500 text-white font-bold text-xs transition-colors"
                 >
                   Reset OrchestOS
-                </button>
+                </Button>
               </div>
-            </div>
-          </div>
+            </SettingsGroup>
+          </SettingsPage>
         )}
 
         {/* SECTION: LANGUAGE */}
         {activeSection === 'language' && (
-          <div className="flex-1 overflow-y-auto p-6 space-y-6 max-w-3xl">
-            <div>
-              <h1 className="text-xl font-bold text-app tracking-tight">Language / Idioma</h1>
-              <p className="text-xs text-app-muted mt-1">
-                {language === 'es'
-                  ? 'Cambia toda la interfaz al instante.'
-                  : 'Change application interface language instantly.'}
-              </p>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+          <SettingsPage
+            title="Language / Idioma"
+            description={
+              language === 'es'
+                ? 'Cambia toda la interfaz al instante.'
+                : 'Change application interface language instantly.'
+            }
+          >
+            <SettingsGroup>
               {(['en', 'es'] as const).map((option) => (
                 <button
                   key={option}
                   type="button"
                   onClick={() => onSelectLanguage(option)}
-                  className={`p-4 rounded-card border text-left transition-all ${language === option ? 'bg-app-elevated border-app-accent text-app shadow-xs' : 'bg-app-surface border-app text-app-muted hover:text-app'}`}
+                  className="block w-full text-left transition-colors hover:bg-app-elevated"
                 >
-                  <div className="flex items-center justify-between mb-1">
-                    <span className="font-semibold text-sm text-app">
-                      {option === 'en' ? 'English' : 'Español'}
-                    </span>
-                    {language === option && <Check className="w-4 h-4 text-app-accent" />}
-                  </div>
-                  <p className="text-xs text-app-muted">
-                    {option === 'en'
-                      ? 'English language interface'
-                      : 'Interfaz completa en idioma español'}
-                  </p>
+                  <SettingsRow
+                    label={option === 'en' ? 'English' : 'Español'}
+                    description={
+                      option === 'en'
+                        ? 'English language interface'
+                        : 'Interfaz completa en idioma español'
+                    }
+                  >
+                    {language === option && <Check className="h-4 w-4 text-app-accent" />}
+                  </SettingsRow>
                 </button>
               ))}
-            </div>
-          </div>
+            </SettingsGroup>
+          </SettingsPage>
         )}
 
         {/* SECTION: SPECIFIC PROJECT PAGE */}

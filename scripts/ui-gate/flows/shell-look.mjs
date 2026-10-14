@@ -112,6 +112,49 @@ export default async function shellLook({ page, api, step, shot, visible, cleanu
       facts.paletteHits.join(' || ') || 'ninguna',
     )
   }
+  // UI.26.6 — resto de Settings con los primitivos y a todo el ancho.
+  for (const [name, key] of [
+    ['Health', 'health'],
+    ['API & Models', 'api'],
+    ['Model routing', 'model routing'],
+    ['Usage', 'usage'],
+    ['Danger zone', 'danger zone'],
+    [/^Language/, 'language'],
+  ]) {
+    await page
+      .getByRole('button', typeof name === 'string' ? { name, exact: true } : { name })
+      .click()
+    await page.waitForTimeout(200)
+    const section = await page.evaluate((palette) => {
+      const re = new RegExp(palette)
+      const main = document.querySelector('main')
+      const root =
+        document.querySelector('[data-settings-page]') ?? main?.querySelector('div.overflow-y-auto')
+      const content = root?.hasAttribute('data-settings-page') ? root.firstElementChild : root
+      return {
+        hits: root
+          ? [root, ...root.querySelectorAll('*')]
+              .map((el) => el.getAttribute('class') || '')
+              .filter((cls) => re.test(cls))
+              .slice(0, 3)
+          : ['sin contenedor de sección'],
+        content: content ? content.getBoundingClientRect().width : 0,
+        main: main ? main.getBoundingClientRect().width : 0,
+      }
+    }, PALETTE)
+    await step(
+      `settings ${key} no palette`,
+      section.hits.length === 0,
+      section.hits.join(' || ') || 'ninguna',
+    )
+    if (key === 'usage' || key === 'model routing') {
+      await step(
+        'settings fills width',
+        section.main > 0 && section.content >= section.main * 0.9 - 48,
+        `${key}: contenido ${Math.round(section.content)} px de ${Math.round(section.main)} px`,
+      )
+    }
+  }
   // UI.26.2 — plantilla de página: cabecera de proyecto, pestañas, franja de cifras, cabecera del chat.
   const run = (command, args, cwd) => execFileSync(command, args, { cwd, stdio: 'ignore' })
   const projectRoot = mkdtempSync(join(tmpdir(), 'orchestos-ui-26-2-'))
