@@ -571,6 +571,33 @@
       "closedDate": null
     },
     {
+      "id": "AT.20",
+      "sprint": "Fase 3 — Correr dentro de OrchestOS igual que el CLI directo",
+      "block": null,
+      "delegation": "🔍",
+      "title": "El chat crea tareas con una herramienta (`create_task`), no con un marcador",
+      "status": "open",
+      "closedDate": null
+    },
+    {
+      "id": "AT.21",
+      "sprint": "Fase 3 — Correr dentro de OrchestOS igual que el CLI directo",
+      "block": null,
+      "delegation": "🔍",
+      "title": "Shell de solo lectura para todo CLI de chat",
+      "status": "open",
+      "closedDate": null
+    },
+    {
+      "id": "CX.6",
+      "sprint": "Fase 3 — Correr dentro de OrchestOS igual que el CLI directo",
+      "block": null,
+      "delegation": "🔍",
+      "title": "El anillo de contexto muestra el contexto real, en Chat y en Dev",
+      "status": "open",
+      "closedDate": null
+    },
+    {
       "id": "ERP.5",
       "sprint": "Fase 3 — Correr dentro de OrchestOS igual que el CLI directo",
       "block": null,

@@ -45,11 +45,12 @@ de delegación y ui-gate". Orden y rumbo: `PLAN.md` § Rumbo. Arranque: `bun run
   (`~/Projects/projects/portfolio/dist/projects/musickind-screen@1x.webp`).
 - 2026-10-14: DOC.1 y LIMP.1 (GO).
 
-## Esperan decisión de Carlos (AT.19, observaciones de Claude dentro del chat, 2026-10-14)
-- (a) Marcador `[[orchestos:task]]` → tool `create_task(title, description, paths)`: cambia la auto-creación de
-  tareas (comportamiento central); plan corto antes de tocar.
-- (b) Bash de solo lectura para Claude en el chat (hoy `--tools Read,Glob,Grep`, `external.ts:337,356`), como el
-  sandbox read-only de Codex. Toca la frontera de seguridad del chat.
+## Decisiones de Carlos 2026-10-14 (respuesta a AT.19 y `readBoundaryWarning`)
+- (a) `create_task` en lugar del marcador: GO, implementar sin presentar plan → AT.20.
+- (b) Shell de solo lectura: sí, para todos los LLM, nunca solo para uno → AT.21 (mismo servidor MCP que AT.20).
+- Le interesa ver la ventana de contexto real en Chat y en Dev → CX.6. `readBoundaryWarning` (aviso de privacidad,
+  no un número) sigue sin mostrarse; la frontera de lectura está verificada por el gate `read-boundary`.
+- Orden: AT.20 → AT.21 → CX.6, antes de seguir con UI.26.5.
 
 ## Pendientes sin ítem (una sola lista; abrir ítem solo si Carlos lo pide)
 Verificados el 2026-10-14 contra el código salvo "(sin re-verificar)".
