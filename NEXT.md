@@ -37,7 +37,7 @@ UI.24.1 a UI.24.3 cerrados; ERP.4.14 pasa a UI.24.6.
 ERP.4.10 (`e6efa62`), ERP.4.11 (`c476e68`), ERP.4.12 (`043770c`) y ERP.4.13 cerrados 2026-10-13. Siguiente:
 ERP.4.14 (el composer distingue "cargando" de "Orchestrator unassigned"), sin spec; luego 4.15 y 4.16.
 Visto en ERP.4.13, sin ítem: `CC.2 — chat sessions backend` dio timeout de 5 s una vez dentro de `test:coverage`
-(pasa solo); si se repite, sumarlo a CI.12. `waitForTaskRun` (`app/src/api/chat.ts`) espera hasta 10 min ante un
+(pasa solo); si se repite, abrir ítem propio (CI.12 cerrado `844f3b3`: era el candado vacío tras SIGKILL). `waitForTaskRun` (`app/src/api/chat.ts`) espera hasta 10 min ante un
 `pending` con intento fallido: no se midió si deja el botón pulsado ocupado todo ese tiempo.
 Lecciones: (1) un cambio en la forma de una respuesta de API exige grepear los fixtures `JSON.stringify` del front
 (`app/src/api/*.test.ts`): no están tipados, `typecheck` no los ve; (2) al envolver un punto de salida, grepear

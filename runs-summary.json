@@ -1,7 +1,37 @@
 {
-  "exported_at": "2026-10-14T19:12:39.653Z",
+  "exported_at": "2026-10-14T19:21:18.166Z",
   "total_runs": 20,
   "runs": [
+    {
+      "id": "4e91fc63-6ab7-4335-8969-b714e2cf70f3",
+      "task_class": "chat",
+      "model": "claude-opus-5-5",
+      "provider": "claude",
+      "status": "done",
+      "qa_verdict": null,
+      "qa_reason": null,
+      "files_blocked": [],
+      "checks_failed": 0,
+      "usd_cost": 0.1585228,
+      "elapsed_ms": 48158,
+      "tokens": 4146,
+      "created_at": "2026-10-14T19:17:06.591Z"
+    },
+    {
+      "id": "f144aa6f-ed04-4e0e-b082-46fe0e3e3b03",
+      "task_class": "chat",
+      "model": "claude-opus-5-5",
+      "provider": "claude",
+      "status": "done",
+      "qa_verdict": null,
+      "qa_reason": null,
+      "files_blocked": [],
+      "checks_failed": 0,
+      "usd_cost": 0.0449904,
+      "elapsed_ms": 13360,
+      "tokens": 942,
+      "created_at": "2026-10-14T19:14:37.049Z"
+    },
     {
       "id": "f1015b13-49fe-4148-8250-2908b3ad21b5",
       "task_class": "gate:ui.26.4a-live:doc",
@@ -271,36 +301,6 @@
       "elapsed_ms": 10533,
       "tokens": 157103,
       "created_at": "2026-10-14T15:13:48.223Z"
-    },
-    {
-      "id": "be776cee-075b-4872-a4bd-c91114ce1a84",
-      "task_class": "gate:ui.26.3-live:implement",
-      "model": "openai/gpt-6-luna",
-      "provider": "codex",
-      "status": "done",
-      "qa_verdict": "pass",
-      "qa_reason": "NOTES.md contains the required line.",
-      "files_blocked": [],
-      "checks_failed": 0,
-      "usd_cost": 0.0007449799999999999,
-      "elapsed_ms": 68743,
-      "tokens": 7575,
-      "created_at": "2026-10-14T15:13:41.004Z"
-    },
-    {
-      "id": "7a242f19-1a88-4b3a-88f8-bfc77453cd5b",
-      "task_class": "gate:ui.26.3-live:doc",
-      "model": "openai/gpt-6-luna",
-      "provider": "codex",
-      "status": "done",
-      "qa_verdict": "pass",
-      "qa_reason": "README.md contains the requested line.",
-      "files_blocked": [],
-      "checks_failed": 0,
-      "usd_cost": 0.00096998,
-      "elapsed_ms": 50903,
-      "tokens": 8307,
-      "created_at": "2026-10-14T15:12:29.979Z"
     }
   ],
   "stats": {
@@ -308,6 +308,6 @@
     "blocked": 0,
     "done": 19,
     "qa_failed": 1,
-    "total_cost_usd": "0.3345"
+    "total_cost_usd": "0.5363"
   }
 }
