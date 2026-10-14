@@ -96,3 +96,18 @@ del log y seguir con los demás; no es de este ítem.
 
 Reportar: archivos tocados, qué selectores usan `SettingsSegmented` y cuáles conservan `<button>` (y qué flujo lo
 exige), conteo final de paleta y `font-mono` por archivo, y cualquier regla que no se pudo cumplir tal cual.
+
+## Corrección r2 (cerebro, tras mirar las capturas del gate 2026-10-14)
+
+La cabecera de cada vista (título, buscador, acciones) va a todo el ancho desde el borde izquierdo del panel, pero el
+contenido va centrado en un contenedor `mx-auto max-w-4xl` (o similar): en Memory, Skills y Graph la lista/tarjeta
+empieza ~120 px más a la derecha que la cabecera y termina antes. Gr8r alinea todo al mismo borde izquierdo.
+1. En las 4 vistas, quitar los contenedores `mx-auto max-w-*` del contenido: el contenido usa el mismo padding
+   horizontal que la cabecera (`px-6`) y llega al borde derecho. Textos largos (descripción de skill, párrafo del
+   conflicto de memoria) con `max-w-prose` en el propio párrafo, no en el contenedor.
+2. En Specs, la lista y el detalle ocupan todo el alto y ancho del panel (lista de ancho fijo, detalle `flex-1`).
+3. Gate: en `project-tabs.mjs`, paso `content aligned with header` por vista (memory, specs, skills, graph): el
+   `left` del primer hijo del contenido (fila, tarjeta o lista) difiere ≤ 4 px del `left` del título de la cabecera
+   de esa vista; y un `shot` por vista (`memory`, `specs`, `skills`, `graph`) para que el cerebro las mire.
+   Contraprueba: con el `MemoryView.tsx` actual (copia antes de editar), el paso de memory falla.
+4. Verificación: la misma de arriba.
