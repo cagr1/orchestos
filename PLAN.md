@@ -945,6 +945,21 @@ archivos fijados por `ui:fidelity:jsx` (`OrchestDevWorkspace`, `ShellStatusBar`,
 Cada paso: spec, delegación por rol, conteo de paleta = 0 en lo migrado, y el cerebro mira la pantalla real al lado de
 Gr8r antes de cerrar.
 
+**Movimiento — referencias de Arc UI (uiarc.dev), dadas por Carlos 2026-10-13, miradas en navegador:** *"estas
+animaciones o estilos visuales es lo que quiero adaptar; no tomes en cuenta el color"*. Tres son bloques **Pro** de
+pago (agent-run, settings-command, api-keys): sin código; se reconstruyen con la familia y `motion`, no se compran.
+`activity-heatmap` es gratis en registro shadcn (`@uiarc/activity-heatmap`, licencia sin verificar).
+- `settings-command` → UI.26.6 y UI.26.2: el buscador crece hasta paleta (posición, tamaño y radio en un spring) y al
+  elegir lleva a la fila, que se ilumina; el resaltado de la sección activa se desliza; la barra de cambios sin
+  guardar nace de una píldora, cuenta y se convierte en "Settings saved".
+- `api-keys` → API & Models en UI.26.6: "Create key" se despliega en su formulario; la clave nueva entra deslizando;
+  el secreto se muestra una vez.
+- `activity-heatmap` → Usage en UI.26.6: celdas que entran en ola, tooltip que se desliza entre celdas, total que
+  cuenta hasta el valor nuevo.
+- `agent-run` → UI.24.5/UI.24.7: pasos que entran con altura por spring, título del paso activo con shimmer,
+  detalle que se abre en su sitio, contador de tokens que rueda, diff que espera aprobación dentro del paso.
+En todos: `prefers-reduced-motion` = cambios instantáneos o fundidos cortos.
+
 ## Fase 3 — Correr dentro de OrchestOS igual que el CLI directo
 
 - [ ] **AT.13 — 🧠 El contexto que el chat inyecta al CLI dice la verdad.** (abierto 2026-09-22, pendiente)

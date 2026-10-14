@@ -16,7 +16,8 @@
 ## PRIMERO al retomar — UI.26.2 (plantilla de página), luego UI.26.3-26.6 y UI.24.4
 UI.26.1 cerrado 2026-10-13 (marco). UI.26.2 sin spec: incluir la cabecera interna del chat (`OrchestChatView.tsx:255`,
 banda oscura con borde dentro del panel). Referencia viva: gr8r-taskmanagement.vercel.app — medidas en PLAN.md § UI.26.
-Dos chats de prueba de la sesión 2026-10-13 en la base (sin proyecto y en `orchestos`): Carlos no ha dicho si se borran.
+Movimiento de referencia: Arc UI (uiarc.dev), mapeado a cada paso en PLAN.md § UI.26; los bloques Pro no se compran.
+Push pendiente: 4+ commits locales; el pre-push corre 15 ui-gates (~10 min).
 Al mirar una pantalla nueva de la familia: `Button` de solo icono recibe el icono como hijo; las `border-app/NN` no
 aceptan variante (usar `color-mix` arbitrario).
 UI.24.1 a UI.24.3 cerrados; ERP.4.14 pasa a UI.24.6.
