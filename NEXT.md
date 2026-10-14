@@ -17,7 +17,9 @@ PROPUESTA sin aplicar (decide Carlos): el ejecutor corrió `git stash` dos veces
 la regla escrita en AGENTS.md. Bloqueo mecánico: negar `git stash` en el hook writer-lock o en `bin/delegate`
 (fuente en `method/` del vault).
 
-## PRIMERO al retomar — UI.26.5, UI.26.6 y UI.24.4
+## PRIMERO al retomar — UI.26.5, UI.26.6, UI.26.7 y UI.24.4
+UI.26.4a cerrado (`a9d5736`). UI.26.5 empieza por la raíz `bg-zinc-950` de Graph/Specs/Skills (lo que Carlos señaló),
+UI.26.6 incluye el ancho de Usage/Model routing, UI.26.7 = inputs de Orquestación deshabilitados (solo revisar).
 CI.23 fase 1 hecha (`9a82ee8`): el fallo deja evidencia; 6/6 verde sin reproducir. Al próximo `FAIL tasks` en
 `relaunched task final state`, leer el detalle JSON del paso y escribir la fase 2 en docs/specs/CI.23.md.
 UI.26.1 a UI.26.4 cerrados (2026-10-13/14). Atajo de cierre: si `plan:reconcile` dice "Could not prove a closing
