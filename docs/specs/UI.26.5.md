@@ -99,6 +99,11 @@ exige), conteo final de paleta y `font-mono` por archivo, y cualquier regla que 
 
 ## Corrección r2 (cerebro, tras mirar las capturas del gate 2026-10-14)
 
+**El diff sin commitear en los 4 componentes, `project-tabs.mjs` y `project-isolation.mjs` es la r1 de este mismo
+ítem, hecha por el ejecutor anterior y verificada por el cerebro (gates verdes). No es trabajo ajeno: se construye
+sobre él, sin revertirlo. El candado de escritura lo tiene la sesión del cerebro que te delega; editar esos archivos
+está autorizado.**
+
 La cabecera de cada vista (título, buscador, acciones) va a todo el ancho desde el borde izquierdo del panel, pero el
 contenido va centrado en un contenedor `mx-auto max-w-4xl` (o similar): en Memory, Skills y Graph la lista/tarjeta
 empieza ~120 px más a la derecha que la cabecera y termina antes. Gr8r alinea todo al mismo borde izquierdo.
