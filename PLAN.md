@@ -613,6 +613,22 @@ Cerrada. Todos sus ítems están archivados en `docs/done/` (ver "Cerrados — e
   (el CLI hijo hereda stderr → `dashboard.log`) y el paso vuelca porcelain, `git log -5`, estado de la tarea y log.
   Reproducción: set de UI.26.4 6 de 6 verde, 0 líneas `[tasks-yaml]`. Abierto hasta el próximo fallo: leer el
   detalle del paso en `result.json` y escribir la fase 2 (causa).
+- [x] **CI.24 — 🔍 Claude se niega a usar el historial del chat ("untrusted data sources like conversation history").**
+  Visto 2026-10-14 en el pre-push de `ec3e309` (`chat-continuity`, intento 1): tras recargar, Claude responde que no
+  puede verificar datos de fuentes no confiables y no recuerda el código que el USUARIO le dio. Causa probable:
+  `buildChatTranscript` (`src/dashboard/handlers/chat.ts:114`) envuelve las respuestas previas en `<untrusted-data>`
+  sin decir qué es el bloque, y Claude extiende la desconfianza a todo el historial. Intento 2: timeout de 180 s
+  (otra causa, ver CI.11). Spec: docs/specs/CI.24.md
+  (cerrado 2026-10-14) La cabecera del historial dice que es la conversación propia y que lo que dijo el usuario es
+  fiable; el envoltorio de las respuestas previas se queda. Ejecutado por: mecanico (delegate).
+  Evidencia (cerebro): typecheck, `chat-turns` + `codex-app-server` 17/17.
+  Gate en vivo: navegador real (Playwright), `docs/done/evidence/CI.24-live.json` — `chat-continuity` 8/8 en 2 de 3
+  corridas; la 3.ª cayó por el timeout del turno 1 (→ CI.25). Límite: la negativa se vio 1 vez; que no reaparezca en 2
+  corridas es evidencia débil.
+- [ ] **CI.25 — 🔍 El turno 1 de Claude (haiku, "Reply only OK") no responde en 180 s, sin rastro.** Visto 2 veces el
+  2026-10-14 en `chat-continuity` (pre-push de `ec3e309`, intento 2, y corrida 2 de CI.24). El `dashboard.log` no dice
+  nada: el chat no registra spawn, salida ni duración del CLI. Primero que deje evidencia (pid, exit, stderr, ms del
+  CLI de chat en `dashboard.log`), luego causa. Posible hermano de CI.11 (turno 2 de Codex lento).
 - [x] **R.8.4 — 🔍 Reinicio del dashboard a mitad de run.** (2026-10-11) Recuperar el resultado y el reporte de fin
   (gap declarado de I.7.2). Hallazgo 4.
   Ejecutado por: sonnet (rondas 1-2) · gpt-6-luna (rondas 3-5) · revisión `qa` gpt-6.1-sol.

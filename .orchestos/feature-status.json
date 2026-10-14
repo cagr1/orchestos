@@ -328,6 +328,24 @@
       "closedDate": null
     },
     {
+      "id": "CI.24",
+      "sprint": "Fase 2 — Producto mínimo para entrega",
+      "block": "H.7 — El contexto se llena en silencio y nadie avisa (ABIERTO 2026-09-02)",
+      "delegation": "🔍",
+      "title": "Claude se niega a usar el historial del chat (\"untrusted data sources like conversation history\")",
+      "status": "done",
+      "closedDate": null
+    },
+    {
+      "id": "CI.25",
+      "sprint": "Fase 2 — Producto mínimo para entrega",
+      "block": "H.7 — El contexto se llena en silencio y nadie avisa (ABIERTO 2026-09-02)",
+      "delegation": "🔍",
+      "title": "El turno 1 de Claude (haiku, \"Reply only OK\") no responde en 180 s, sin rastro",
+      "status": "open",
+      "closedDate": null
+    },
+    {
       "id": "R.8.4",
       "sprint": "Fase 2 — Producto mínimo para entrega",
       "block": "H.7 — El contexto se llena en silencio y nadie avisa (ABIERTO 2026-09-02)",
