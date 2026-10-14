@@ -13,7 +13,7 @@
 6. Residuos de `erp-piloto`: limpiar si no sirven (las 3 tareas sobrantes no sirven; se limpian tras el hallazgo 5).
 7. `chat-retry-report` NO entra al pre-push.
 
-## PRIMERO al retomar — UI.24.3 (UI.24.1 `6c17cce` y UI.24.2 cerrados); ERP.4.14 pasa a UI.24.6
+## PRIMERO al retomar — UI.24.4 (UI.24.1 a UI.24.3 cerrados); ERP.4.14 pasa a UI.24.6
 ERP.4.10 (`e6efa62`), ERP.4.11 (`c476e68`), ERP.4.12 (`043770c`) y ERP.4.13 cerrados 2026-10-13. Siguiente:
 ERP.4.14 (el composer distingue "cargando" de "Orchestrator unassigned"), sin spec; luego 4.15 y 4.16.
 Visto en ERP.4.13, sin ítem: `CC.2 — chat sessions backend` dio timeout de 5 s una vez dentro de `test:coverage`
@@ -33,7 +33,10 @@ identidad **local** en el repo temporal (`git config user.name/email`), no solo 
 Familia elegida: Fluid Functionalism (MIT) + Streamdown. **UI.24.1 cerrado y pusheado (`6c17cce`)**: la familia
 está instalada, la lámina vive en `?view=thread-states` (gate `thread-states`) y el hilo real todavía no la usa.
 **UI.24.2 cerrado 2026-10-13**: el hilo real usa `ChatMessage`, un acento, Inter en toda la app (`--font-sans`
-del `@theme`). **Siguiente: UI.24.3**, ronda 1 aplicada sin commitear (`api/chat.ts`, `types/orchestos.ts`, `OrchestChatView.tsx`, `components/thread/*`, 3 flujos de ui-gate), rondas 2 y 3 en `docs/specs/UI.24.3-r2.md` y `-r3.md` ( UI.24.2 pusheado `2627ac9`). Pendiente dentro de UI.24: entrada/`layout` de `ChatMessage`
+del `@theme`). **UI.24.3 cerrado 2026-10-13** (`ThreadThinking`, fila `[data-thread-working]`). **Siguiente: UI.24.4**
+(Streamdown), sin spec; incluye el hallazgo de los saltos simples y decidir si la fila de fase va encima o debajo
+del texto en vivo (hoy debajo). Sin ver en turno real: `Thought for N s` y `Running <tool>`. Lección: un paso de
+gate que comprueba "ya no está" justo al cerrar el turno por API debe sondear, no contar una vez. Pendiente dentro de UI.24: entrada/`layout` de `ChatMessage`
 apagados hasta UI.24.7; la tarjeta "Task ready to run" y el tema claro no se miraron en captura; respuesta "uno por
 línea" sale en un solo párrafo (UI.24.4). Los gates leen además `div.max-w-2xl` (burbuja del usuario) y
 `div.max-w-3xl` (lista del hilo). Lección: `delegate mecanico` no formatea — correr `bunx biome format --write` sobre

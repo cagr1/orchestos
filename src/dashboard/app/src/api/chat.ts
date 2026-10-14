@@ -1,3 +1,4 @@
+import { thoughtMs } from '../components/thread/thinking'
 import type { ChatAttachment, ChatMessage, ChatThread, ToolExecution } from '../types/orchestos'
 import { DIRTY_TREE_REASON_PREFIX } from './tasks'
 
@@ -251,6 +252,7 @@ export function attachTurnDetails(
     return {
       ...message,
       ...(reasoning.length ? { reasoning } : {}),
+      ...(reasoning.length && thoughtMs(turn) !== undefined ? { thoughtMs: thoughtMs(turn) } : {}),
       ...(toolCalls.length ? { toolCalls } : {}),
     }
   })

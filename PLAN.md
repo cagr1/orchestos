@@ -801,8 +801,28 @@ color; la respuesta del asistente va sin caja; el identificador técnico se copi
   mirar en el hilo real; razonamiento y herramientas solo cambiaron de color (UI.24.3 y UI.24.7).
   Hallazgo para UI.24.4: una respuesta pedida "uno por línea" se dibuja como un solo párrafo (markdown junta los
   saltos simples); ya estaba así antes de este ítem.
-- [ ] **UI.24.3 — 🧠 Pensando.** Texto con shimmer que nombra la fase real (pensando, herramienta en curso) y el tiempo;
+- [x] **UI.24.3 — 🧠 Pensando.** (cerrado 2026-10-13) Texto con shimmer que nombra la fase real (pensando, herramienta en curso) y el tiempo;
   al terminar se pliega a "Pensó 12 s" y se abre con un clic. Datos: `reasoning` de `chat.ts:234`.
+  Ejecutado por: sonnet (rol `criterio`, ronda 1) y gpt-6-luna (rol `mecanico`, rondas 2 y 3) · Spec: docs/specs/UI.24.3.md
+  Hecho (2026-10-13): `components/thread/ThreadThinking.tsx` compone `ThinkingSteps` de la familia; funciones puras
+  en `thread/thinking.ts` con test (`livePhase`, `formatElapsed`, `thoughtMs`, `parseDbTime`). Turno en curso: fila
+  sin caja con shimmer que dice `Thinking`, `Running <tool>` o `Writing` y el tiempo (reloj local, 1 tick/s), con los
+  pasos de razonamiento plegados si ya los hay. Turno terminado: `Thought for N s` plegado, se abre con un clic;
+  pasos en color apagado. Fuera `Loader2`, `Sparkles`, el estado `expandedReasoning` y `ui/thinking-indicator.tsx`
+  (rotaba palabras inventadas). `thoughtMs` va en el mensaje del asistente (`api/chat.ts`).
+  Evidencia: `tsc` raíz y del front, `lint`, `ui:fidelity:jsx` exit 0 y `bun test` de `thinking.test.ts` +
+  `api/chat.test.ts` 30/0, corridos por el cerebro.
+  Gate en vivo: navegador real (Playwright), `docs/done/evidence/UI.24.3-live.json` — `thread-states` 87/87 (por
+  tema: el plegado se abre con clic, sin palabras inventadas, fase alineada a 0 px con el texto de la respuesta,
+  pasos en `muted` y peso 400), `chat-streaming` 24/24 (la fila vista en turno real dice `Thinking 0 s` y desaparece
+  258 ms tras terminar), `codex-live` 14/14, `chat-turn-details` 26/26, `smoke` 6/6, `text-sweep` 10/10.
+  Contraprueba: la ronda 2 falló `thinking-aligned` (4 px) y `working-indicator-gone` (contaba en el mismo instante
+  en que la API cerraba el turno; ahora sondea 5 s). `codex-live` contaba `.animate-spin` para probar que el
+  indicador se iba: habría pasado en vacío; ahora cuenta `[data-thread-working]`.
+  Límites: la fila va debajo del texto en vivo, no encima (queda junto al composer cuando la respuesta es larga);
+  ningún gate produjo un turno real con razonamiento, así que `Thought for N s` solo se vio en la lámina; el tiempo
+  se cuenta desde que la vista empieza a esperar, se reinicia si se recarga a mitad de turno; `Running <tool>` no se
+  vio en un turno real.
 - [ ] **UI.24.4 — 🧠 Respuesta en streaming.** Streamdown en lugar de `react-markdown`: entrada por palabra, markdown
   incompleto sin parpadeo, altura suave, scroll pegado al final, bloque de código con copiar. Verifica: `chat-streaming`.
 - [ ] **UI.24.5 — 🧠 Una tarjeta por tarea.** La tarea es una sola tarjeta que cambia de estado en su sitio; nombre corto

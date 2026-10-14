@@ -28,6 +28,62 @@ export default async function threadStates({ page, base, step, shot, visible, co
       )
     }
 
+    const doneState = page.getByTestId('state-thinking-steps-done')
+    await doneState.locator('button').first().click()
+    await page.waitForTimeout(600)
+    await step(
+      `${themeName}-thinking-steps-open`,
+      await visible(doneState.getByText('Write the fix')),
+      `${themeName}: a step becomes visible after clicking the header`,
+    )
+    const alignment = await page.evaluate(() => {
+      const states = [
+        ['state-thinking', 'Thinking'],
+        ['state-thinking-steps-running', 'Running Bash'],
+        ['state-thinking-steps-done', 'Thought for 8 s'],
+      ]
+      const assistantText = document.querySelector('[data-testid="state-message-assistant"] p')
+      const assistantLeft = assistantText?.getBoundingClientRect().left ?? Number.NaN
+      const phaseLefts = states.map(([id, label]) => {
+        const state = document.querySelector(`[data-testid="${id}"]`)
+        const phase = [...(state?.querySelectorAll('span') ?? [])].find(
+          (span) => span.textContent?.trim() === label,
+        )
+        return phase?.getBoundingClientRect().left ?? Number.NaN
+      })
+      return {
+        assistantLeft,
+        phaseLefts,
+        differences: phaseLefts.map((left) => Math.abs(left - assistantLeft)),
+      }
+    })
+    await step(
+      `${themeName}-thinking-aligned`,
+      alignment.differences.every((difference) => difference <= 1),
+      `phase lefts ${alignment.phaseLefts.map((left) => left.toFixed(2)).join(', ')} px; assistant p left ${alignment.assistantLeft.toFixed(2)} px; differences ${alignment.differences.map((difference) => difference.toFixed(2)).join(', ')} px`,
+    )
+    const mutedStyle = await doneState.getByText('Write the fix').evaluate((el) => {
+      const mutedReference = document.querySelector(
+        '[data-testid="thread-states-sheet"] .text-muted-foreground',
+      )
+      return {
+        color: getComputedStyle(el).color,
+        referenceColor: mutedReference ? getComputedStyle(mutedReference).color : '',
+        fontWeight: getComputedStyle(el).fontWeight,
+      }
+    })
+    await step(
+      `${themeName}-thinking-steps-muted`,
+      mutedStyle.color === mutedStyle.referenceColor && mutedStyle.fontWeight === '400',
+      `step color ${mutedStyle.color}; muted reference ${mutedStyle.referenceColor}; font-weight ${mutedStyle.fontWeight}`,
+    )
+    const sheetText = await sheet.innerText()
+    await step(
+      `${themeName}-no-invented-words`,
+      !/Moonwalking|Refining|Planning/.test(sheetText),
+      `${themeName}: no invented thinking words in the sheet`,
+    )
+
     const family = await sheet.evaluate((el) => getComputedStyle(el).fontFamily)
     await step(`${themeName}-font-inter`, /Inter/.test(family), `font-family: ${family}`)
     await page.evaluate(() => document.fonts.ready)

@@ -169,7 +169,14 @@ export default async function chatStreaming({ page, api, step, shot, visible, cl
   let tookScreenshot = false
   let liveBubbleAtBottom = true
   let liveBubbleMeasurements = 0
+  let workingText = null
   const completion = await waitFor(async () => {
+    if (workingText === null) {
+      const indicator = page.locator('[data-thread-working]').first()
+      if (await indicator.isVisible().catch(() => false)) {
+        workingText = (await indicator.innerText().catch(() => '')) || null
+      }
+    }
     const text = await visibleText()
     const timeline = await api(`/api/chat/sessions/${encodeURIComponent(session.id)}/timeline`, {
       headers: { 'x-orchestos-project-id': project.id },
@@ -222,6 +229,27 @@ export default async function chatStreaming({ page, api, step, shot, visible, cl
     `${liveBubbleMeasurements} growth measurements; remained at bottom: ${liveBubbleAtBottom}`,
   )
   await step('captured screenshot during active turn', tookScreenshot, 'chat-text-visible-mid-turn')
+  await step(
+    'working-indicator-names-phase',
+    workingText !== null &&
+      /(Thinking|Writing|Running .+)/.test(workingText) &&
+      /\d+ s/.test(workingText),
+    `indicator text: ${JSON.stringify(workingText)}`,
+  )
+  const workingGoneStartedAt = Date.now()
+  let workingIndicators = await page.locator('[data-thread-working]').count()
+  while (workingIndicators > 0 && Date.now() - workingGoneStartedAt < 5_000) {
+    await page.waitForTimeout(250)
+    workingIndicators = await page.locator('[data-thread-working]').count()
+  }
+  const workingGoneMs = Date.now() - workingGoneStartedAt
+  await step(
+    'working-indicator-gone',
+    workingIndicators === 0,
+    workingIndicators === 0
+      ? `indicator removed after ${workingGoneMs} ms`
+      : `${workingIndicators} working indicators remain after ${workingGoneMs} ms`,
+  )
   const visibleFinal = await visibleText()
   const assistantMessages =
     completion?.timeline.messages.filter((message) => message.role === 'assistant') ?? []

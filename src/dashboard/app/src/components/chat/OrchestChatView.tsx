@@ -1,14 +1,4 @@
-import {
-  Check,
-  ChevronDown,
-  ChevronUp,
-  Copy,
-  FileText,
-  Loader2,
-  RotateCw,
-  Sparkles,
-  X,
-} from 'lucide-react'
+import { Check, ChevronDown, ChevronUp, Copy, FileText, RotateCw, X } from 'lucide-react'
 import type React from 'react'
 import { useEffect, useRef, useState } from 'react'
 import Markdown from 'react-markdown'
@@ -26,6 +16,8 @@ import type { ChatAttachment, ChatThread, SessionStatus } from '../../types/orch
 import { AgentComposer, type CliId } from '../common/AgentComposer'
 import { ContextRing } from '../common/ContextRing'
 import { ProviderLogo } from '../common/ProviderLogos'
+import { ThreadThinking } from '../thread/ThreadThinking'
+import { formatElapsed, livePhase } from '../thread/thinking'
 
 interface OrchestChatViewProps {
   thread?: ChatThread
@@ -64,7 +56,6 @@ export const OrchestChatView: React.FC<OrchestChatViewProps> = ({
   const [copiedMessageId, setCopiedMessageId] = useState<string | null>(null)
   const [isWorking, setIsWorking] = useState(false)
   const sendLock = useRef(false)
-  const [expandedReasoning, setExpandedReasoning] = useState<Record<string, boolean>>({})
   const [taskActionErrors, setTaskActionErrors] = useState<Record<string, string>>({})
   const [reportActionErrors, setReportActionErrors] = useState<Record<string, string>>({})
   const [busyReportActions, setBusyReportActions] = useState<Record<string, boolean>>({})
@@ -169,6 +160,26 @@ export const OrchestChatView: React.FC<OrchestChatViewProps> = ({
     }
   }, [isWorking, sessionId, thread?.projectId])
   const liveText = liveTimeline?.live?.text ?? ''
+  const liveTurnId = liveTimeline?.live?.turnId
+  const liveTurn = liveTimeline
+    ? liveTurnId
+      ? liveTimeline.turns.find((turn) => turn.id === liveTurnId)
+      : [...liveTimeline.turns].reverse().find((turn) => turn.status === 'pending')
+    : undefined
+  const liveReasoning = (liveTurn?.steps ?? [])
+    .filter((step) => step.type === 'reasoning' && step.detail)
+    .sort((a, b) => a.seq - b.seq)
+    .map((step) => (step.detail as string).replace(/^\*\*(.*?)\*\*$/s, '$1'))
+  const [workStartedAt, setWorkStartedAt] = useState(0)
+  const [nowMs, setNowMs] = useState(0)
+  useEffect(() => {
+    if (!isWorking) return
+    const start = Date.now()
+    setWorkStartedAt(start)
+    setNowMs(start)
+    const timer = window.setInterval(() => setNowMs(Date.now()), 1000)
+    return () => window.clearInterval(timer)
+  }, [isWorking])
   const cliId = (
     thread?.agent === 'claude' || thread?.agent === 'codex' || thread?.agent === 'api'
       ? thread.agent
@@ -349,37 +360,16 @@ export const OrchestChatView: React.FC<OrchestChatViewProps> = ({
                     }
                   >
                     {msg.reasoning && msg.reasoning.length > 0 && (
-                      <div className="rounded-card border border-app bg-app-surface overflow-hidden text-xs mb-3 whitespace-normal">
-                        <button
-                          type="button"
-                          onClick={() =>
-                            setExpandedReasoning((prev) => ({
-                              ...prev,
-                              [msg.id]: !(prev[msg.id] ?? true),
-                            }))
+                      <div className="mb-3 whitespace-normal">
+                        <ThreadThinking
+                          active={false}
+                          label={
+                            msg.thoughtMs === undefined
+                              ? 'Thought'
+                              : `Thought for ${formatElapsed(msg.thoughtMs)}`
                           }
-                          className="w-full px-3 py-2 flex items-center justify-between text-app-muted hover:text-app font-medium transition-colors border-b border-app"
-                        >
-                          <span className="flex items-center gap-1.5">
-                            <Sparkles className="w-3.5 h-3.5 text-app-muted" />
-                            Reasoning ({msg.reasoning.length} steps)
-                          </span>
-                          {(expandedReasoning[msg.id] ?? true) ? (
-                            <ChevronUp className="w-3.5 h-3.5" />
-                          ) : (
-                            <ChevronDown className="w-3.5 h-3.5" />
-                          )}
-                        </button>
-                        {(expandedReasoning[msg.id] ?? true) && (
-                          <div className="p-3 space-y-1.5 font-mono text-[11px] text-app-muted whitespace-normal">
-                            {msg.reasoning.map((step, idx) => (
-                              <div key={idx} className="flex items-start gap-2">
-                                <span className="text-app-muted select-none">›</span>
-                                <span className="text-app-muted">{step}</span>
-                              </div>
-                            ))}
-                          </div>
-                        )}
+                          steps={msg.reasoning}
+                        />
                       </div>
                     )}
                     {msg.toolCalls && msg.toolCalls.length > 0 && (
@@ -580,11 +570,13 @@ export const OrchestChatView: React.FC<OrchestChatViewProps> = ({
                   </div>
                 </ChatMessage>
               )}
-              {isWorking && !liveText && (
-                <div className="flex items-center gap-2 text-xs text-app-muted" aria-live="polite">
-                  <Loader2 className="w-3.5 h-3.5 text-app-accent animate-spin" />
-                  <span className="animate-pulse">…</span>
-                </div>
+              {isWorking && (
+                <ThreadThinking
+                  active
+                  label={livePhase(liveTurn, Boolean(liveText))}
+                  elapsed={formatElapsed(nowMs - workStartedAt)}
+                  steps={liveReasoning}
+                />
               )}
             </div>
           )}

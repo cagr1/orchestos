@@ -19,15 +19,8 @@ import {
 } from '@/components/ui/card'
 import { ChatMessage } from '@/components/ui/chat-message'
 import { InputMessage } from '@/components/ui/input-message'
-import { ThinkingIndicator } from '@/components/ui/thinking-indicator'
-import {
-  ThinkingStep,
-  ThinkingStepDetails,
-  ThinkingSteps,
-  ThinkingStepsContent,
-  ThinkingStepsHeader,
-} from '@/components/ui/thinking-steps'
 import { TooltipProvider } from '@/components/ui/tooltip'
+import { ThreadThinking } from './ThreadThinking'
 
 function makeImage(name: string, hue: number): Promise<File> {
   const canvas = document.createElement('canvas')
@@ -144,34 +137,28 @@ export default function ThreadStatesSheet() {
           </State>
 
           <State id="thinking" label="Thinking">
-            <ThinkingIndicator />
+            <ThreadThinking active label="Thinking" elapsed="4 s" steps={[]} />
           </State>
 
           <State id="thinking-steps-running" label="Steps in progress">
-            <ThinkingSteps defaultOpen>
-              <ThinkingStepsHeader>Thinking</ThinkingStepsHeader>
-              <ThinkingStepsContent>
-                <ThinkingStep label="Read the project plan" status="complete" />
-                <ThinkingStep label="Find the failed check" status="complete">
-                  <ThinkingStepDetails
-                    summary="2 files reviewed"
-                    details={['src/run/checks.ts', 'scripts/pre-commit.sh']}
-                  />
-                </ThinkingStep>
-                <ThinkingStep label="Write the fix" status="active" isLast />
-              </ThinkingStepsContent>
-            </ThinkingSteps>
+            <ThreadThinking
+              active
+              label="Running Bash"
+              elapsed="9 s"
+              steps={['Read the project plan', 'Find the failed check']}
+            />
           </State>
 
           <State id="thinking-steps-done" label="Completed steps">
-            <ThinkingSteps defaultOpen={false}>
-              <ThinkingStepsHeader>Thought for 8 s</ThinkingStepsHeader>
-              <ThinkingStepsContent>
-                <ThinkingStep label="Read the project plan" status="complete" />
-                <ThinkingStep label="Find the failed check" status="complete" />
-                <ThinkingStep label="Write the fix" status="complete" isLast />
-              </ThinkingStepsContent>
-            </ThinkingSteps>
+            <ThreadThinking
+              active={false}
+              label="Thought for 8 s"
+              steps={[
+                'Read the project plan',
+                'Find the failed check:\nthe pre-commit hook skipped security:secrets\nbecause the installed copy was out of date',
+                'Write the fix',
+              ]}
+            />
           </State>
 
           <State id="composer-empty" label="Empty composer">

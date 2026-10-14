@@ -184,6 +184,7 @@ export interface ChatMessage {
   content: string
   timestamp: string
   reasoning?: string[]
+  thoughtMs?: number
   toolCalls?: ToolExecution[]
   attachments?: ChatAttachment[]
   model?: string

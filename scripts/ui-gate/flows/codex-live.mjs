@@ -170,9 +170,9 @@ export default async function codexLive({ page, api, step, shot, visible, cleanu
   await shot('codex-live-turn-one')
   await new Promise((resolve) => setTimeout(resolve, 3000))
   await step(
-    'turn 1 timeline loader stops after completion',
-    (await timelineView.locator('.animate-spin').count()) === 0,
-    `${await timelineView.locator('.animate-spin').count()} spinning loaders remain`,
+    'turn 1 working indicator stops after completion',
+    (await timelineView.locator('[data-thread-working]').count()) === 0,
+    `${await timelineView.locator('[data-thread-working]').count()} working indicators remain`,
   )
 
   const secondStart = await sendTurn(
@@ -231,9 +231,9 @@ export default async function codexLive({ page, api, step, shot, visible, cleanu
   )
   await new Promise((resolve) => setTimeout(resolve, 3000))
   await step(
-    'turn 2 timeline loader stops after completion',
-    (await timelineView.locator('.animate-spin').count()) === 0,
-    `${await timelineView.locator('.animate-spin').count()} spinning loaders remain`,
+    'turn 2 working indicator stops after completion',
+    (await timelineView.locator('[data-thread-working]').count()) === 0,
+    `${await timelineView.locator('[data-thread-working]').count()} working indicators remain`,
   )
   const timelineBubbles = page.locator('main').last().locator('div.max-w-2xl')
   const bubbleTexts = await timelineBubbles.allInnerTexts()
