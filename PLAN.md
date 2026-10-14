@@ -646,6 +646,11 @@ Cerrada. Todos sus ítems están archivados en `docs/done/` (ver "Cerrados — e
   Gate en vivo: navegador real (Playwright), `docs/done/evidence/CI.24-live.json` — `chat-continuity` 8/8 en 2 de 3
   corridas; la 3.ª cayó por el timeout del turno 1 (→ CI.25). Límite: la negativa se vio 1 vez; que no reaparezca en 2
   corridas es evidencia débil.
+- [ ] **CI.26 — 🔍 `CC.2 — chat sessions backend` llega al timeout de 5 s en `test:coverage` (intermitente).** Visto 2
+  veces: 2026-10-13 y pre-push de `8701044` (2026-10-14). El subproceso de `runIsolated` se cuelga tras
+  `[chat-turn] received` de la sesión `codex` (`chat-sessions.test.ts:323-326`, espera 502) y muere con 143. A solas
+  tarda <1 s, también con el entorno del pre-push y `--coverage`.
+  Spec: docs/specs/CI.26.md
 - [x] **CI.25 — 🔍 El turno 1 de Claude (haiku, "Reply only OK") no responde en 180 s, sin rastro.** Visto 2 veces el
   2026-10-14 en `chat-continuity` (pre-push de `ec3e309`, intento 2, y corrida 2 de CI.24). El `dashboard.log` no dice
   nada: el chat no registra spawn, salida ni duración del CLI. Primero que deje evidencia (pid, exit, stderr, ms del

@@ -337,6 +337,15 @@
       "closedDate": null
     },
     {
+      "id": "CI.26",
+      "sprint": "Fase 2 — Producto mínimo para entrega",
+      "block": "H.7 — El contexto se llena en silencio y nadie avisa (ABIERTO 2026-09-02)",
+      "delegation": "🔍",
+      "title": "`CC.2 — chat sessions backend` llega al timeout de 5 s en `test:coverage` (intermitente)",
+      "status": "open",
+      "closedDate": null
+    },
+    {
       "id": "CI.25",
       "sprint": "Fase 2 — Producto mínimo para entrega",
       "block": "H.7 — El contexto se llena en silencio y nadie avisa (ABIERTO 2026-09-02)",
