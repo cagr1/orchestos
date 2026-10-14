@@ -987,6 +987,8 @@ archivos fijados por `ui:fidelity:jsx` (`OrchestDevWorkspace`, `ShellStatusBar`,
   nada. La regla escrita no basta: va a NEXT.md como propuesta de bloqueo mecánico.
   Límites: solo tema por defecto; el panel no atrapa el foco.
 - [ ] **UI.26.4 — 🧠 Plan (tablero) e Instincts.** Columnas y tarjetas sin color de decoración.
+  Incluye la Zona de peligro de la página de proyecto (hoy fija abajo, deja el tablero en ~120 px). Spec:
+  docs/specs/UI.26.4.md
 - [ ] **UI.26.5 — 🧠 Memory, Specs, Skills y Graph.** Maestro-detalle con estado vacío; Memory se llena con ERP.4.16.
 - [ ] **UI.26.6 — 🧠 Resto de Settings.** Health, API & Models, Model routing, Usage, Danger zone, Language con los
   primitivos de UI.25.1.
