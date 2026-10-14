@@ -589,6 +589,24 @@
       "closedDate": null
     },
     {
+      "id": "DOC.1",
+      "sprint": "Fuera de fase",
+      "block": "DOC.1 y LIMP.1 — Documentación al día y código muerto (GO de Carlos 2026-10-14)",
+      "delegation": "🔍",
+      "title": "La documentación dice lo que de verdad está hecho",
+      "status": "open",
+      "closedDate": null
+    },
+    {
+      "id": "LIMP.1",
+      "sprint": "Fuera de fase",
+      "block": "DOC.1 y LIMP.1 — Documentación al día y código muerto (GO de Carlos 2026-10-14)",
+      "delegation": "🔍",
+      "title": "Fuera el código muerto",
+      "status": "open",
+      "closedDate": null
+    },
+    {
       "id": "AT.17",
       "sprint": "Fuera de fase",
       "block": "AT.17–AT.18 — Restos del esquema de trabajo (TEMPORAL: al cerrarlos se borra esta sección entera)",

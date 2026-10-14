@@ -1281,6 +1281,14 @@ frontera de red/SSRF (`src/dashboard/ssrf.ts` ya existe y no se toca); y cualqui
 vault o a `~/.claude`/`~/.codex` de Carlos — el vault sigue alimentando el trabajo de desarrollo
 igual que hoy, lo que se corta es que el **producto** lo herede por accidente.
 
+### DOC.1 y LIMP.1 — Documentación al día y código muerto (GO de Carlos 2026-10-14)
+
+- [ ] **DOC.1 — 🔍 La documentación dice lo que de verdad está hecho.** (abierto 2026-10-14) Rumbo, estados de
+  padres, NEXT.md con un solo presente y CONTEXT.md contrastados contra `git log`. Spec: docs/specs/DOC.1.md
+- [ ] **LIMP.1 — 🔍 Fuera el código muerto.** (abierto 2026-10-14) Exports, archivos y funciones sin consumidor y
+  comentarios que describen código que ya no existe; cada borrado con su evidencia (grep + gates). Decisiones de la
+  limpieza general del 2026-10-13: el nombre propio y los marcadores del plan van en ítems propios, no aquí.
+
 ### AT.17–AT.18 — Restos del esquema de trabajo (TEMPORAL: al cerrarlos se borra esta sección entera)
 
 No son producto. El esquema de trabajo con agentes (roster, `delegate`, candado de escritor, reglas de autonomía y de
