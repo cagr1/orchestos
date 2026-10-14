@@ -172,6 +172,10 @@ Mecánica del commit de cierre (medido en I.7.1, 2026-10-03; costó 6 intentos):
 
 Medidas en los lotes L1–L4 y los ítems de Sprint 30/ERP/I/CX; cada una costó al menos una ronda perdida.
 
+- **Formato antes de commitear (UI.26.6, 2026-10-14).** El pre-commit no corre `lint`; el pre-push sí. Un
+  `result.json` copiado a `docs/done/evidence/` o un `.tsx` retocado tras el `biome check` del ejecutor bloquean el
+  push. Antes del commit de cierre: `bunx biome format --write <archivos del commit>`.
+
 - **CSS del front (UI.24.1, 2026-10-13).** El build (`bun-plugin-tailwind`) rebaja `color-mix()` dentro de una
   propiedad personalizada a su valor de respaldo: `--x: color-mix(...)` llega al navegador como el primer color.
   Los tokens derivados se escriben como literales por tema; verificar en `dist/main.css`, no en `index.css`.

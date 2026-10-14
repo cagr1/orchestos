@@ -1233,7 +1233,9 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
                 </div>
                 <div className="flex items-center gap-3">
                   {apiKeys.openai.masked && (
-                    <span className="font-mono text-xs text-app-muted">{apiKeys.openai.masked}</span>
+                    <span className="font-mono text-xs text-app-muted">
+                      {apiKeys.openai.masked}
+                    </span>
                   )}
                   <input
                     type="password"

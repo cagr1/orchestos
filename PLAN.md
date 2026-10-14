@@ -1137,9 +1137,12 @@ archivos fijados por `ui:fidelity:jsx` (`OrchestDevWorkspace`, `ShellStatusBar`,
   Usage y Danger zone, y los 2 `fills width` (768 px de 1184 px).
   Límites: solo tema por defecto; el heatmap de Usage ocupa ~2/3 del ancho (celdas fijas) — se rehace en UI.26.6b
   (`activity-heatmap`).
-- [ ] **UI.26.6.1 — 🧠 Formato de UI.26.6.** `biome format` de `OrchestSettingsView.tsx` y de las evidencias
+- [x] **UI.26.6.1 — 🧠 Formato de UI.26.6.** (cerrado 2026-10-14) `biome format` de `OrchestSettingsView.tsx` y de las evidencias
   `UI.26.5-live.json`/`UI.26.6-live.json`: `12eae7f` llegó a remoto sin formatear porque el lint del pre-push lee el
-  árbol, no el commit.
+  árbol, no el commit. Lección en `AGENTS.md` § "Lecciones operativas".
+  Sin delegación: formato mecánico (`bunx biome format --write`), solo espacios; `bun run lint` sin errores.
+  Gate en vivo: navegador real (Playwright), la misma de UI.26.6 (`docs/done/evidence/UI.26.6-live.json`); el
+  formato no cambia comportamiento.
 - [ ] **UI.26.6b — 🧠 Movimiento de Arc UI en Settings.** `settings-command`, `api-keys` y `activity-heatmap` (ver
   "Movimiento" abajo), separados de UI.26.6 para que la forma se cierre y verifique sola.
 - [ ] **UI.26.7 — 🔍 Pendiente de revisar: inputs de "Orquestación" en Tasks no aceptan texto.** (Carlos 2026-10-14)
