@@ -14,6 +14,9 @@
 7. `chat-retry-report` NO entra al pre-push.
 
 ## PRIMERO al retomar — UI.24.2 (UI.24.1 cerrado `6c17cce`); ERP.4.14 pasa a UI.24.6
+**UI.24.2 en ejecución 2026-10-13:** ronda 1 aplicada sin commitear (`main.tsx`, `index.css`, `OrchestChatView.tsx`,
+`package.json`, `bun.lock`, `.impeccable/config.json`, `chat-streaming.mjs` son de UI.24.2); ronda 2 en
+`docs/specs/UI.24.2-r2.md` (`font-sans` de Tailwind tapaba a Inter en `body`).
 ERP.4.10 (`e6efa62`), ERP.4.11 (`c476e68`), ERP.4.12 (`043770c`) y ERP.4.13 cerrados 2026-10-13. Siguiente:
 ERP.4.14 (el composer distingue "cargando" de "Orchestrator unassigned"), sin spec; luego 4.15 y 4.16.
 Visto en ERP.4.13, sin ítem: `CC.2 — chat sessions backend` dio timeout de 5 s una vez dentro de `test:coverage`
