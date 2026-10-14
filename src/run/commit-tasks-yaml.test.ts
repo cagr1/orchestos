@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, spyOn } from 'bun:test'
-import { mkdtempSync, rmSync, writeFileSync } from 'node:fs'
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { commitTasksYaml } from './commit-tasks-yaml.ts'
@@ -40,6 +40,8 @@ describe('commitTasksYaml diagnostics', () => {
   it('logs when the git commit fails', () => {
     const dir = fixture()
     writeFileSync(join(dir, 'tasks.yaml'), 'tasks:\n  - id: changed\n')
+    // Without git templates, git init does not create .git/hooks.
+    mkdirSync(join(dir, '.git/hooks'), { recursive: true })
     writeFileSync(join(dir, '.git/hooks/pre-commit'), '#!/bin/sh\necho blocked >&2\nexit 1\n')
     git(['config', 'core.hooksPath', '.git/hooks'], dir)
     Bun.spawnSync(['chmod', '+x', join(dir, '.git/hooks/pre-commit')])
