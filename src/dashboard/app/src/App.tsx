@@ -1217,105 +1217,112 @@ export default function App() {
           />
         )}
 
-        {/* Center Canvas / Views */}
-        <div className="flex-1 flex overflow-hidden">
-          {/* VIEW 1: CHAT */}
-          {mode === 'chat' && (
-            <OrchestChatView
-              thread={activeThread}
-              projectExists={
-                !activeThread?.projectId ||
-                (!deletingProjectIds.has(activeThread.projectId) &&
-                  projects.some((project) => project.id === activeThread.projectId))
-              }
-              onSendMessage={handleSendMessage}
-              onApproveHeldTask={handleApproveHeldTask}
-              onRetryTask={handleApproveHeldTask}
-              onCommitRunTask={handleCommitRunTask}
-              onRejectHeldTask={handleRejectHeldTask}
-              sessionStatus={sessionStatus}
-              onSlashCommand={handleSlashCommand}
-              onOpenRouting={() => handleOpenSettings('model_routing')}
-            />
-          )}
-
-          {/* VIEW 2: DEV WORKSPACE */}
-          {mode === 'dev' &&
-            (activeAgent?.agent === 'opencode' && currentProject ? (
-              <OpenCodeTerminal
-                key={activeAgent.id}
-                projectId={currentProject.id}
-                sessionTitle={activeAgent.name}
-                onClose={() => void handleCloseAgent(activeAgent.id)}
-              />
-            ) : (
-              <OrchestDevWorkspace
-                activeProject={currentProject}
-                activeAgent={activeAgent}
-                onCloseAgent={handleCloseAgent}
+        {/* Panel: everything right of the sidebar, a lighter surface under the header */}
+        <div
+          className={`flex-1 flex overflow-hidden ${
+            mode === 'settings' ? '' : 'bg-app-surface rounded-tl-[10px]'
+          }`}
+        >
+          {/* Center Canvas / Views */}
+          <div className="flex-1 flex overflow-hidden">
+            {/* VIEW 1: CHAT */}
+            {mode === 'chat' && (
+              <OrchestChatView
+                thread={activeThread}
+                projectExists={
+                  !activeThread?.projectId ||
+                  (!deletingProjectIds.has(activeThread.projectId) &&
+                    projects.some((project) => project.id === activeThread.projectId))
+                }
                 onSendMessage={handleSendMessage}
+                onApproveHeldTask={handleApproveHeldTask}
+                onRetryTask={handleApproveHeldTask}
+                onCommitRunTask={handleCommitRunTask}
+                onRejectHeldTask={handleRejectHeldTask}
                 sessionStatus={sessionStatus}
                 onSlashCommand={handleSlashCommand}
+                onOpenRouting={() => handleOpenSettings('model_routing')}
               />
-            ))}
+            )}
 
-          {/* VIEW 3: SETTINGS (Full screen mode without sidebar, hosts project tasks, runs, specs, etc.) */}
-          {mode === 'settings' && (
-            <OrchestSettingsView
-              onBackToApp={() => setMode(previousMode || 'dev')}
+            {/* VIEW 2: DEV WORKSPACE */}
+            {mode === 'dev' &&
+              (activeAgent?.agent === 'opencode' && currentProject ? (
+                <OpenCodeTerminal
+                  key={activeAgent.id}
+                  projectId={currentProject.id}
+                  sessionTitle={activeAgent.name}
+                  onClose={() => void handleCloseAgent(activeAgent.id)}
+                />
+              ) : (
+                <OrchestDevWorkspace
+                  activeProject={currentProject}
+                  activeAgent={activeAgent}
+                  onCloseAgent={handleCloseAgent}
+                  onSendMessage={handleSendMessage}
+                  sessionStatus={sessionStatus}
+                  onSlashCommand={handleSlashCommand}
+                />
+              ))}
+
+            {/* VIEW 3: SETTINGS (Full screen mode without sidebar, hosts project tasks, runs, specs, etc.) */}
+            {mode === 'settings' && (
+              <OrchestSettingsView
+                onBackToApp={() => setMode(previousMode || 'dev')}
+                projects={projects}
+                activeProjectId={activeProjectId}
+                onSelectProject={handleSelectProject}
+                currentTheme={theme}
+                onSelectTheme={setTheme}
+                language={language}
+                onSelectLanguage={setLanguage}
+                initialSection={settingsSection}
+                initialProjectTab={settingsProjectTab}
+                tasks={tasks}
+                taskError={taskError || taskRunError}
+                runs={runs}
+                projectContext={projectContext}
+                onRefreshGraph={() => void refreshGraph()}
+                graphRefreshing={refreshingGraph}
+                specs={specs}
+                memories={memories}
+                skills={skills}
+                instincts={instincts}
+                onApproveSpec={handleApproveSpec}
+                onDraftSpec={handleDraftSpec}
+                onLintSpec={handleLintSpec}
+                onResolveConflict={handleResolveConflict}
+                onCompileSkill={handleCompileSkill}
+                onApproveInstinct={handleApproveInstinct}
+                onRejectInstinct={handleRejectInstinct}
+                onAddInstinct={handleAddInstinct}
+                onRunTask={(id) => void handleRunTask(id)}
+                onExplainTask={handleExplainTask}
+                onAddTask={handleAddTask}
+                projectTabsLoading={projectTabsLoading}
+                projectTabsError={projectTabsError}
+                onPurgeProjectData={handlePurgeProjectData}
+                onResetOrchestos={handleResetOrchestos}
+                onOpenChat={() => setMode('chat')}
+                onRunNextTask={() => void handleRunNextTask()}
+                canRunNextTask={Boolean(getRunnableTask(tasks)) && !runningTaskId}
+                taskRunBusy={Boolean(runningTaskId)}
+              />
+            )}
+          </div>
+
+          {/* Right Inspector: ONLY available in Dev mode, toggleable via top header button */}
+          {mode === 'dev' && isRightInspectorOpen && currentProject && (
+            <OrcaRightInspector
+              currentProject={currentProject}
               projects={projects}
-              activeProjectId={activeProjectId}
-              onSelectProject={handleSelectProject}
-              currentTheme={theme}
-              onSelectTheme={setTheme}
-              language={language}
-              onSelectLanguage={setLanguage}
-              initialSection={settingsSection}
-              initialProjectTab={settingsProjectTab}
-              tasks={tasks}
-              taskError={taskError || taskRunError}
-              runs={runs}
-              projectContext={projectContext}
-              onRefreshGraph={() => void refreshGraph()}
-              graphRefreshing={refreshingGraph}
-              specs={specs}
-              memories={memories}
-              skills={skills}
-              instincts={instincts}
-              onApproveSpec={handleApproveSpec}
-              onDraftSpec={handleDraftSpec}
-              onLintSpec={handleLintSpec}
-              onResolveConflict={handleResolveConflict}
-              onCompileSkill={handleCompileSkill}
-              onApproveInstinct={handleApproveInstinct}
-              onRejectInstinct={handleRejectInstinct}
-              onAddInstinct={handleAddInstinct}
-              onRunTask={(id) => void handleRunTask(id)}
-              onExplainTask={handleExplainTask}
-              onAddTask={handleAddTask}
-              projectTabsLoading={projectTabsLoading}
-              projectTabsError={projectTabsError}
-              onPurgeProjectData={handlePurgeProjectData}
-              onResetOrchestos={handleResetOrchestos}
-              onOpenChat={() => setMode('chat')}
-              onRunNextTask={() => void handleRunNextTask()}
-              canRunNextTask={Boolean(getRunnableTask(tasks)) && !runningTaskId}
-              taskRunBusy={Boolean(runningTaskId)}
+              recentRuns={runs}
+              historySessions={historySessions}
+              onRestoreAgentToSidebar={handleRestoreAgent}
+              onDeleteHistorySession={handleDeleteHistorySession}
             />
           )}
         </div>
-
-        {/* Right Inspector: ONLY available in Dev mode, toggleable via top header button */}
-        {mode === 'dev' && isRightInspectorOpen && currentProject && (
-          <OrcaRightInspector
-            currentProject={currentProject}
-            projects={projects}
-            recentRuns={runs}
-            historySessions={historySessions}
-            onRestoreAgentToSidebar={handleRestoreAgent}
-            onDeleteHistorySession={handleDeleteHistorySession}
-          />
-        )}
       </div>
       <ShellStatusBar
         status={sessionStatus}

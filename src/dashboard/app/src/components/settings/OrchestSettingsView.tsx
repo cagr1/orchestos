@@ -716,176 +716,173 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
   }
 
   return (
-    <div className="flex-1 flex h-full bg-app-bg text-app overflow-hidden select-none">
+    <div className="flex-1 flex h-full text-app overflow-hidden select-none">
       {/* Settings Navigation Sidebar */}
-      <aside className="w-64 flex-shrink-0 border-r border-app bg-app-surface/50 flex flex-col justify-between overflow-y-auto">
+      <aside
+        data-ff
+        className="w-64 flex-shrink-0 bg-app-bg flex flex-col justify-between overflow-y-auto"
+      >
         <div className="p-3.5 space-y-4">
           {/* Back to App button */}
           <button
             type="button"
             onClick={onBackToApp}
-            className="flex items-center gap-2 text-xs font-semibold text-app-muted hover:text-app transition-colors group"
+            className="flex h-7 items-center gap-2 rounded-control px-2 text-[12.5px] font-medium text-app-muted transition-colors hover:bg-app-surface hover:text-app"
           >
-            <ArrowLeft className="w-4 h-4 text-app-accent group-hover:-translate-x-0.5 transition-transform" />
+            <ArrowLeft className="w-4 h-4 text-app-muted" />
             <span>{language === 'es' ? 'Volver a la app' : 'Back to app'}</span>
           </button>
 
           {/* Search settings input */}
           <div className="relative">
-            <Search className="w-3.5 h-3.5 text-app-muted absolute left-2.5 top-2" />
+            <Search className="w-4 h-4 text-app-muted absolute left-2 top-1.5" />
             <input
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder={language === 'es' ? 'Buscar configuración...' : 'Search settings...'}
-              className="w-full pl-8 pr-2.5 py-1 text-xs bg-app-surface border border-app rounded-control focus:border-app-accent focus:outline-hidden text-app placeholder:text-app-muted font-mono"
+              className="h-7 w-full rounded-control bg-app-surface pl-8 pr-2.5 text-[12.5px] text-app outline-none placeholder:text-app-muted"
             />
           </div>
 
           {/* Settings Groups matching the real application structure */}
-          <div className="space-y-4 pt-1 text-xs">
+          <div className="space-y-4 pt-1 text-[12.5px]">
             {/* GROUP 1: WORKSPACE */}
             <div className="space-y-0.5">
-              <div className="text-[10px] font-bold text-app-muted tracking-wider uppercase px-2 mb-1">
-                WORKSPACE
-              </div>
+              <div className="text-[11px] font-semibold text-app-muted px-2 mb-1">Workspace</div>
 
               <button
                 type="button"
                 onClick={() => setActiveSection('general')}
-                className={`w-full flex items-center gap-2 px-2.5 py-1.5 rounded-control text-left transition-colors ${
+                className={`w-full flex h-7 items-center gap-2 px-2 rounded-control text-left text-[12.5px] font-medium transition-colors ${
                   activeSection === 'general'
-                    ? 'bg-app-elevated text-app font-semibold border border-app shadow-xs'
+                    ? 'bg-app-surface text-app [&_svg]:text-app'
                     : 'text-app-muted hover:text-app hover:bg-app-surface'
                 }`}
               >
-                <Palette className="w-3.5 h-3.5 text-sky-400" />
+                <Palette className="w-4 h-4 text-app-muted" />
                 <span>General</span>
               </button>
 
               <button
                 type="button"
                 onClick={() => setActiveSection('health')}
-                className={`w-full flex items-center justify-between px-2.5 py-1.5 rounded-control text-left transition-colors ${
+                className={`w-full flex h-7 items-center justify-between px-2 gap-2 rounded-control text-left text-[12.5px] font-medium transition-colors ${
                   activeSection === 'health'
-                    ? 'bg-app-elevated text-app font-semibold border border-app shadow-xs'
+                    ? 'bg-app-surface text-app [&_svg]:text-app'
                     : 'text-app-muted hover:text-app hover:bg-app-surface'
                 }`}
               >
                 <div className="flex items-center gap-2">
-                  <Activity className="w-3.5 h-3.5 text-emerald-400" />
+                  <Activity className="w-4 h-4 text-app-muted" />
                   <span>Health</span>
                 </div>
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+                <span className="w-1.5 h-1.5 rounded-full bg-app-success" />
               </button>
             </div>
 
             {/* GROUP 2: CONFIGURE */}
             <div className="space-y-0.5">
-              <div className="text-[10px] font-bold text-app-muted tracking-wider uppercase px-2 mb-1">
-                CONFIGURE
-              </div>
+              <div className="text-[11px] font-semibold text-app-muted px-2 mb-1">Configure</div>
 
               <button
                 type="button"
                 onClick={() => setActiveSection('api_models')}
-                className={`w-full flex items-center gap-2 px-2.5 py-1.5 rounded-control text-left transition-colors ${
+                className={`w-full flex h-7 items-center gap-2 px-2 rounded-control text-left text-[12.5px] font-medium transition-colors ${
                   activeSection === 'api_models'
-                    ? 'bg-app-elevated text-app font-semibold border border-app shadow-xs'
+                    ? 'bg-app-surface text-app [&_svg]:text-app'
                     : 'text-app-muted hover:text-app hover:bg-app-surface'
                 }`}
               >
-                <Key className="w-3.5 h-3.5 text-amber-400" />
+                <Key className="w-4 h-4 text-app-muted" />
                 <span>API & Models</span>
               </button>
 
               <button
                 type="button"
                 onClick={() => setActiveSection('model_routing')}
-                className={`w-full flex items-center gap-2 px-2.5 py-1.5 rounded-control text-left transition-colors ${
+                className={`w-full flex h-7 items-center gap-2 px-2 rounded-control text-left text-[12.5px] font-medium transition-colors ${
                   activeSection === 'model_routing'
-                    ? 'bg-app-elevated text-app font-semibold border border-app shadow-xs'
+                    ? 'bg-app-surface text-app [&_svg]:text-app'
                     : 'text-app-muted hover:text-app hover:bg-app-surface'
                 }`}
               >
-                <Cpu className="w-3.5 h-3.5 text-indigo-400" />
+                <Cpu className="w-4 h-4 text-app-muted" />
                 <span>Model routing</span>
               </button>
 
               <button
                 type="button"
                 onClick={() => setActiveSection('executor')}
-                className={`w-full flex items-center gap-2 px-2.5 py-1.5 rounded-control text-left transition-colors ${
+                className={`w-full flex h-7 items-center gap-2 px-2 rounded-control text-left text-[12.5px] font-medium transition-colors ${
                   activeSection === 'executor'
-                    ? 'bg-app-elevated text-app font-semibold border border-app shadow-xs'
+                    ? 'bg-app-surface text-app [&_svg]:text-app'
                     : 'text-app-muted hover:text-app hover:bg-app-surface'
                 }`}
               >
-                <Server className="w-3.5 h-3.5 text-teal-400" />
+                <Server className="w-4 h-4 text-app-muted" />
                 <span>Executor</span>
               </button>
             </div>
 
             {/* GROUP 3: OBSERVE */}
             <div className="space-y-0.5">
-              <div className="text-[10px] font-bold text-app-muted tracking-wider uppercase px-2 mb-1">
-                OBSERVE
-              </div>
+              <div className="text-[11px] font-semibold text-app-muted px-2 mb-1">Observe</div>
 
               <button
                 type="button"
                 onClick={() => setActiveSection('usage')}
-                className={`w-full flex items-center gap-2 px-2.5 py-1.5 rounded-control text-left transition-colors ${
+                className={`w-full flex h-7 items-center gap-2 px-2 rounded-control text-left text-[12.5px] font-medium transition-colors ${
                   activeSection === 'usage'
-                    ? 'bg-app-elevated text-app font-semibold border border-app shadow-xs'
+                    ? 'bg-app-surface text-app [&_svg]:text-app'
                     : 'text-app-muted hover:text-app hover:bg-app-surface'
                 }`}
               >
-                <DollarSign className="w-3.5 h-3.5 text-emerald-400" />
+                <DollarSign className="w-4 h-4 text-app-muted" />
                 <span>Usage</span>
               </button>
             </div>
 
             {/* GROUP 4: PROTECT */}
             <div className="space-y-0.5">
-              <div className="text-[10px] font-bold text-app-muted tracking-wider uppercase px-2 mb-1">
-                PROTECT
-              </div>
+              <div className="text-[11px] font-semibold text-app-muted px-2 mb-1">Protect</div>
 
               <button
                 type="button"
                 onClick={() => setActiveSection('danger_zone')}
-                className={`w-full flex items-center gap-2 px-2.5 py-1.5 rounded-control text-left transition-colors ${
+                className={`w-full flex h-7 items-center gap-2 px-2 rounded-control text-left text-[12.5px] font-medium transition-colors ${
                   activeSection === 'danger_zone'
-                    ? 'bg-app-elevated text-app font-semibold border border-app shadow-xs'
+                    ? 'bg-app-surface text-app [&_svg]:text-app'
                     : 'text-app-muted hover:text-app hover:bg-app-surface'
                 }`}
               >
-                <ShieldAlert className="w-3.5 h-3.5 text-rose-400" />
+                <ShieldAlert className="w-4 h-4 text-app-muted" />
                 <span>Danger zone</span>
               </button>
 
               <button
                 type="button"
                 onClick={() => setActiveSection('language')}
-                className={`w-full flex items-center justify-between px-2.5 py-1.5 rounded-control text-left transition-colors ${
+                className={`w-full flex h-7 items-center justify-between px-2 gap-2 rounded-control text-left text-[12.5px] font-medium transition-colors ${
                   activeSection === 'language'
-                    ? 'bg-app-elevated text-app font-semibold border border-app shadow-xs'
+                    ? 'bg-app-surface text-app [&_svg]:text-app'
                     : 'text-app-muted hover:text-app hover:bg-app-surface'
                 }`}
               >
                 <div className="flex items-center gap-2">
-                  <Globe className="w-3.5 h-3.5 text-sky-400" />
+                  <Globe className="w-4 h-4 text-app-muted" />
                   <span>Language</span>
                 </div>
-                <span className="text-[10px] font-mono text-app-muted uppercase">{language}</span>
+                <span className="text-[11px] tabular-nums text-app-muted uppercase">
+                  {language}
+                </span>
               </button>
             </div>
 
             {/* GROUP 5: PROJECTS (Individual item per project) */}
             <div className="space-y-0.5 pt-1">
-              <div className="text-[10px] font-bold text-app-muted tracking-wider uppercase px-2 mb-1 flex items-center justify-between">
-                <span>PROJECTS</span>
+              <div className="text-[11px] font-semibold text-app-muted px-2 mb-1 flex items-center justify-between">
+                <span>Projects</span>
                 {onAddProject && (
                   <button
                     type="button"
@@ -899,9 +896,7 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
               </div>
 
               {projects.length === 0 ? (
-                <div className="px-2.5 py-2 text-xs text-app-muted font-mono">
-                  No projects registered
-                </div>
+                <div className="px-2 py-2 text-[12.5px] text-app-muted">No projects registered</div>
               ) : (
                 projects.map((p) => {
                   const isCurrent = activeSection === `project_${p.id}`
@@ -910,13 +905,13 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
                       key={p.id}
                       type="button"
                       onClick={() => handleNavToProject(p.id)}
-                      className={`w-full flex items-center gap-2 px-2.5 py-1.5 rounded-control text-left transition-colors truncate ${
+                      className={`w-full flex h-7 items-center gap-2 px-2 rounded-control text-left text-[12.5px] font-medium transition-colors truncate ${
                         isCurrent
-                          ? 'bg-app-elevated text-app font-semibold border border-app shadow-xs'
+                          ? 'bg-app-surface text-app [&_svg]:text-app'
                           : 'text-app-muted hover:text-app hover:bg-app-surface'
                       }`}
                     >
-                      <FolderClosed className="w-3.5 h-3.5 text-app-accent flex-shrink-0" />
+                      <FolderClosed className="w-4 h-4 text-app-muted flex-shrink-0" />
                       <span className="truncate">{p.name}</span>
                     </button>
                   )
@@ -928,7 +923,7 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
       </aside>
 
       {/* Main Settings Content Area */}
-      <main className="relative flex-1 flex flex-col overflow-hidden bg-app-bg text-app">
+      <main className="relative flex-1 flex flex-col overflow-hidden rounded-tl-[10px] bg-app-surface text-app">
         {/* Save confirmation banner */}
         {savedBanner && (
           <div className="bg-emerald-950/60 border-b border-emerald-800/60 px-4 py-2 flex items-center gap-2 text-xs text-emerald-300 font-mono">

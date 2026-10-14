@@ -83,33 +83,32 @@ export const ShellSidebar: React.FC<ShellSidebarProps> = ({
   )
 
   return (
-    <aside className="w-64 flex-shrink-0 bg-app-bg border-r border-app flex flex-col justify-between select-none text-app flex-shrink-0 z-10">
+    <aside
+      data-ff
+      className="w-64 flex-shrink-0 bg-app-bg flex flex-col justify-between select-none text-app z-10"
+    >
       {/* Top Segmented Controls: [ Chat ] vs [ </> Dev ] */}
-      <div className="p-3 border-b border-app">
-        <div className="grid grid-cols-2 gap-1.5 p-1 bg-app-surface rounded-control border border-app">
+      <div className="p-3">
+        <div className="grid grid-cols-2 gap-0.5 rounded-control bg-app-surface p-0.5">
           <button
             type="button"
             onClick={() => onChangeMode('chat')}
-            className={`flex items-center justify-center gap-2 py-1.5 px-3 rounded-control text-xs font-medium transition-all ${
-              mode === 'chat'
-                ? 'bg-app-elevated text-app shadow-xs border border-app font-semibold'
-                : 'text-app-muted hover:text-app hover:bg-app-surface/60'
+            className={`flex items-center justify-center gap-2 rounded-control px-3 py-1 text-xs font-medium outline-none transition-colors ${
+              mode === 'chat' ? 'bg-app-elevated text-app' : 'text-app-muted hover:text-app'
             }`}
           >
-            <MessageSquare className="w-3.5 h-3.5 text-app-accent" />
+            <MessageSquare className="w-4 h-4 text-app-muted" />
             <span>Chat</span>
           </button>
 
           <button
             type="button"
             onClick={() => onChangeMode('dev')}
-            className={`flex items-center justify-center gap-2 py-1.5 px-3 rounded-control text-xs font-medium transition-all ${
-              mode === 'dev'
-                ? 'bg-app-elevated text-app shadow-xs border border-app font-semibold'
-                : 'text-app-muted hover:text-app hover:bg-app-surface/60'
+            className={`flex items-center justify-center gap-2 rounded-control px-3 py-1 text-xs font-medium outline-none transition-colors ${
+              mode === 'dev' ? 'bg-app-elevated text-app' : 'text-app-muted hover:text-app'
             }`}
           >
-            <Code2 className="w-3.5 h-3.5 text-app-accent" />
+            <Code2 className="w-4 h-4 text-app-muted" />
             <span>Dev</span>
           </button>
         </div>
@@ -123,24 +122,24 @@ export const ShellSidebar: React.FC<ShellSidebarProps> = ({
             <button
               type="button"
               onClick={() => setIsNewChatAgentModalOpen(true)}
-              className="w-full flex items-center gap-2 px-3 py-2 text-xs font-medium rounded-control text-app hover:bg-app-surface border border-app transition-all shadow-xs"
+              className="w-full flex h-7 items-center gap-2 px-2 rounded-control text-[12.5px] font-medium text-app-muted hover:bg-app-surface hover:text-app transition-colors"
             >
-              <Plus className="w-4 h-4 text-app-accent" />
+              <Plus className="w-4 h-4 text-app-muted" />
               <span>New chat</span>
             </button>
           </div>
 
           {/* CHATS Header + Search Input */}
           <div className="px-3 pt-2 pb-1.5">
-            <div className="text-xs font-bold text-app-muted tracking-wider mb-2">CHATS</div>
+            <div className="px-2 text-[11px] font-semibold text-app-muted mb-2">Chats</div>
             <div className="relative">
-              <Search className="w-3.5 h-3.5 text-app-muted absolute left-2.5 top-2" />
+              <Search className="w-4 h-4 text-app-muted absolute left-2 top-1.5" />
               <input
                 type="text"
                 value={chatSearch}
                 onChange={(e) => setChatSearch(e.target.value)}
                 placeholder="Search chats"
-                className="w-full pl-8 pr-2.5 py-1 text-xs bg-app-surface border border-app rounded-control focus:border-app-accent focus:outline-hidden text-app placeholder:text-app-muted"
+                className="h-7 w-full rounded-control bg-app-surface pl-8 pr-2.5 text-[12.5px] text-app outline-none placeholder:text-app-muted"
               />
             </div>
           </div>
@@ -166,16 +165,16 @@ export const ShellSidebar: React.FC<ShellSidebarProps> = ({
                         onSelectThread(thread.id)
                       }
                     }}
-                    className={`w-full group relative flex items-center justify-between px-3 py-2 rounded-control text-xs text-left cursor-pointer transition-colors ${
+                    className={`w-full group relative flex h-7 items-center justify-between gap-2 px-2 rounded-control text-[12.5px] font-medium text-left cursor-pointer transition-colors ${
                       isActive
-                        ? 'bg-app-surface text-app font-medium border border-app shadow-xs'
-                        : 'text-app-muted hover:text-app hover:bg-app-surface/50'
+                        ? 'bg-app-surface text-app'
+                        : 'text-app-muted hover:text-app hover:bg-app-surface'
                     }`}
                   >
                     <div className="flex items-center gap-2 min-w-0 pr-2">
                       <MessageSquare
-                        className={`w-3.5 h-3.5 flex-shrink-0 ${
-                          isActive ? 'text-app-accent' : 'text-app-muted'
+                        className={`w-4 h-4 flex-shrink-0 ${
+                          isActive ? 'text-app' : 'text-app-muted'
                         }`}
                       />
                       <span className="truncate" title={thread.title}>
@@ -190,7 +189,7 @@ export const ShellSidebar: React.FC<ShellSidebarProps> = ({
                           e.stopPropagation()
                           onDeleteChat(thread.id)
                         }}
-                        className="opacity-0 group-hover:opacity-100 text-app-muted hover:text-rose-400 p-0.5 transition-opacity"
+                        className="opacity-0 group-hover:opacity-100 text-app-muted hover:text-app-error p-0.5 transition-opacity"
                         title="Delete chat"
                         aria-label="Delete chat"
                       >
@@ -209,7 +208,7 @@ export const ShellSidebar: React.FC<ShellSidebarProps> = ({
       {mode === 'dev' && (
         <div className="flex-1 flex flex-col overflow-hidden">
           <div className="px-3 pt-3 pb-2 flex items-center justify-between">
-            <span className="text-xs font-bold text-app-muted tracking-wider">PROJECTS</span>
+            <span className="px-2 text-[11px] font-semibold text-app-muted">Projects</span>
             <button
               type="button"
               onClick={() => onNewProject?.()}
@@ -217,7 +216,7 @@ export const ShellSidebar: React.FC<ShellSidebarProps> = ({
               title="Add or Upload Project"
               aria-label="Add or Upload Project"
             >
-              <Plus className="w-3.5 h-3.5" />
+              <Plus className="w-4 h-4" />
             </button>
           </div>
 
@@ -229,7 +228,7 @@ export const ShellSidebar: React.FC<ShellSidebarProps> = ({
               return (
                 <div key={proj.id} className="space-y-0.5 relative">
                   {/* Project Row Button: Click only toggles expand/collapse */}
-                  <div className="group relative flex items-center justify-between px-2.5 py-1.5 rounded-control text-xs text-app transition-colors hover:bg-app-surface/60 border border-transparent hover:border-app">
+                  <div className="group relative flex h-7 items-center justify-between px-2 rounded-control text-[12.5px] font-medium text-app-muted transition-colors hover:bg-app-surface hover:text-app">
                     <button
                       type="button"
                       onClick={() => {
@@ -239,8 +238,8 @@ export const ShellSidebar: React.FC<ShellSidebarProps> = ({
                       className="flex items-center gap-2 min-w-0 flex-1 text-left"
                       title={`Toggle ${proj.name} agents`}
                     >
-                      <FolderClosed className="w-4 h-4 flex-shrink-0 text-app-accent" />
-                      <span className="truncate font-medium text-app" title={proj.name}>
+                      <FolderClosed className="w-4 h-4 flex-shrink-0 text-app-muted" />
+                      <span className="truncate" title={proj.name}>
                         {proj.name}
                       </span>
                     </button>
@@ -248,7 +247,7 @@ export const ShellSidebar: React.FC<ShellSidebarProps> = ({
                     {/* Right side: Chip on normal, Action icons on hover */}
                     <div className="flex items-center relative ml-2">
                       {/* Chip with agent count (visible without hover) */}
-                      <span className="px-1.5 py-0.5 rounded-pill bg-app-surface border border-app text-xs font-mono text-app-muted flex items-center justify-center group-hover:hidden transition-all">
+                      <span className="text-[11px] tabular-nums text-app-muted flex items-center justify-center group-hover:hidden">
                         {proj.agents.length}
                       </span>
 
@@ -293,7 +292,7 @@ export const ShellSidebar: React.FC<ShellSidebarProps> = ({
                             e.stopPropagation()
                             setProjectForNewAgent(proj)
                           }}
-                          className="p-1 rounded-control text-app-muted hover:text-app-accent hover:bg-app-elevated transition-colors"
+                          className="p-1 rounded-control text-app-muted hover:text-app hover:bg-app-elevated transition-colors"
                           title="Launch new agent"
                           aria-label="Launch new agent"
                         >
@@ -310,7 +309,7 @@ export const ShellSidebar: React.FC<ShellSidebarProps> = ({
                         className="fixed inset-0 z-30"
                         onClick={() => setActiveMenuProjectId(null)}
                       />
-                      <div className="absolute right-2 top-8 z-40 w-44 rounded-card bg-app-surface border border-app shadow-xl p-1 text-xs space-y-0.5">
+                      <div className="absolute right-2 top-8 z-40 w-44 rounded-card bg-app-elevated shadow-xl p-1 text-xs space-y-0.5">
                         <button
                           type="button"
                           onClick={() => {
@@ -321,7 +320,7 @@ export const ShellSidebar: React.FC<ShellSidebarProps> = ({
                           }}
                           className="w-full text-left px-2.5 py-1.5 rounded-control text-app hover:bg-app-elevated flex items-center gap-2"
                         >
-                          <Settings className="w-3.5 h-3.5 text-app-muted" />
+                          <Settings className="w-4 h-4 text-app-muted" />
                           <span>Project settings</span>
                         </button>
 
@@ -331,9 +330,9 @@ export const ShellSidebar: React.FC<ShellSidebarProps> = ({
                             setActiveMenuProjectId(null)
                             setProjectToDelete(proj)
                           }}
-                          className="w-full text-left px-2.5 py-1.5 rounded-control text-rose-400 hover:bg-rose-950/40 flex items-center gap-2"
+                          className="w-full text-left px-2.5 py-1.5 rounded-control text-app-error hover:bg-app-surface flex items-center gap-2"
                         >
-                          <Trash2 className="w-3.5 h-3.5 text-rose-400" />
+                          <Trash2 className="w-4 h-4 text-app-error" />
                           <span>Delete project</span>
                         </button>
                       </div>
@@ -342,7 +341,7 @@ export const ShellSidebar: React.FC<ShellSidebarProps> = ({
 
                   {/* Sub-agents if expanded: nested list with vertical line on the left */}
                   {isExpanded && proj.agents.length > 0 && (
-                    <div className="ml-3 pl-3 border-l border-app/80 py-0.5 space-y-0.5">
+                    <div className="ml-3 pl-3 py-0.5 space-y-0.5">
                       {proj.agents.map((ag) => {
                         const isAgentActive = activeAgentId === ag.id
                         const isWorking = ag.status === 'active'
@@ -350,10 +349,10 @@ export const ShellSidebar: React.FC<ShellSidebarProps> = ({
                         return (
                           <div
                             key={ag.id}
-                            className={`group relative flex items-center justify-between py-1 px-2 rounded-control text-xs cursor-pointer transition-colors ${
+                            className={`group relative flex h-7 items-center justify-between gap-2 px-2 rounded-control text-[12.5px] font-medium cursor-pointer transition-colors ${
                               isAgentActive
-                                ? 'bg-app-surface text-app font-medium border border-app'
-                                : 'text-app-muted hover:text-app hover:bg-app-surface/40'
+                                ? 'bg-app-surface text-app'
+                                : 'text-app-muted hover:text-app hover:bg-app-surface'
                             }`}
                           >
                             <button
@@ -363,18 +362,18 @@ export const ShellSidebar: React.FC<ShellSidebarProps> = ({
                                   onSelectAgent(ag.id, proj.id)
                                 }
                               }}
-                              className="flex items-center gap-1.5 min-w-0 flex-1 text-left"
+                              className="flex items-center gap-2 min-w-0 flex-1 text-left"
                               title={ag.name}
                             >
                               {/* Left icon: Loader while working, green check when done, or CLI brand icon */}
                               {isWorking ? (
-                                <Loader2 className="w-3 h-3 text-amber-400 animate-spin flex-shrink-0" />
+                                <Loader2 className="w-4 h-4 text-app-muted animate-spin flex-shrink-0" />
                               ) : ag.status === 'completed' ? (
-                                <Check className="w-3 h-3 text-emerald-400 flex-shrink-0" />
+                                <Check className="w-4 h-4 text-app-muted flex-shrink-0" />
                               ) : (
                                 <ProviderLogo
                                   id={ag.model || 'claude'}
-                                  className="w-3 h-3 flex-shrink-0"
+                                  className="w-4 h-4 flex-shrink-0"
                                 />
                               )}
 
@@ -383,7 +382,7 @@ export const ShellSidebar: React.FC<ShellSidebarProps> = ({
 
                             {/* Relative time & Close button */}
                             <div className="flex items-center gap-1 ml-1 flex-shrink-0">
-                              <span className="font-mono text-app-muted group-hover:hidden">
+                              <span className="text-[11px] tabular-nums text-app-muted group-hover:hidden">
                                 {ag.duration}
                               </span>
 
@@ -416,12 +415,12 @@ export const ShellSidebar: React.FC<ShellSidebarProps> = ({
       )}
 
       {/* Bottom Footer: Just Settings */}
-      <div className="p-3 border-t border-app bg-app-surface/40 flex-shrink-0">
+      <div className="p-3 flex-shrink-0">
         {/* Settings button */}
         <button
           type="button"
           onClick={onOpenSettings}
-          className="flex items-center gap-2 text-xs text-app-muted hover:text-app transition-colors w-full"
+          className="flex h-7 w-full items-center gap-2 px-2 rounded-control text-[12.5px] font-medium text-app-muted hover:bg-app-surface hover:text-app transition-colors"
         >
           <Settings className="w-4 h-4 text-app-muted" />
           <span>Settings</span>

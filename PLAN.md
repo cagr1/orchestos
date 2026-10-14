@@ -920,7 +920,20 @@ la tarea no tiene título (`OrchestSettingsView.tsx:2474,2493`); Memory vacía p
 de paleta de Tailwind en lo migrado; `font-mono` solo en código, rutas, ids y cifras de tabla. Fuera: modo Dev y los
 archivos fijados por `ui:fidelity:jsx` (`OrchestDevWorkspace`, `ShellStatusBar`, `AgentComposer`).
 
-- [ ] **UI.26.1 — 🧠 Marco: cabecera, barras laterales y panel.** Spec: docs/specs/UI.26.1.md
+- [x] **UI.26.1 — 🧠 Marco: cabecera, barras laterales y panel.** (cerrado 2026-10-13) Spec: docs/specs/UI.26.1.md
+  Ejecutado por: sonnet (rol `criterio`)
+  Hecho (2026-10-13): columna principal como panel `bg-app-surface` con esquina redondeada; barra y cabecera en
+  `bg-app-bg` sin líneas; filas de 28 px sin borde ni sombra, activo por fondo; iconos de navegación en un tono (solo
+  el punto de Health en `app-success`); rótulos "Chats", "Projects", "Workspace"… sin mayúsculas forzadas; ruta de la
+  cabecera en sans. 0 clases de paleta en cabecera y barras. Flujo nuevo `shell-look`.
+  Evidencia: `typecheck`, `ui:fidelity:jsx` exit 0, corridos por el cerebro.
+  Gate en vivo: navegador real (Playwright), `docs/done/evidence/UI.26.1-live.json` — `shell-look` 12/12, `smoke` 6/6,
+  `project-isolation` 14/14, `project-tabs` 26/26, `model-routing` 18/18, `chat-roles` 11/11, `thread-states` 87/87,
+  `text-sweep` 10/10. El cerebro miró Chat/Dev y Settings en el dashboard real (tema por defecto).
+  Contraprueba: con `ShellSidebar.tsx` sin el cambio, `shell-look` falla en `sidebar rows flat`.
+  Límites: la cabecera interna del chat (`OrchestChatView.tsx:255`) sigue con `bg-app-bg` y `border-b` (banda oscura
+  dentro del panel) → UI.26.2; el switch Chat|Dev copia las clases de `SettingsSegmented` sin reutilizarlo (los flujos
+  lo buscan por rol `button`); solo tema por defecto mirado.
 - [ ] **UI.26.2 — 🧠 Plantilla de página.** Encabezado, franja de cifras y fila de lista como primitivos de la familia.
 - [ ] **UI.26.3 — 🧠 Tasks en lista con detalle.** Nombre corto, agente y hora por fila; detalle al pulsar; fuera el
   texto duplicado y el UUID partido.

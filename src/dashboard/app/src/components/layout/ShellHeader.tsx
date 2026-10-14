@@ -19,12 +19,12 @@ export const ShellHeader: React.FC<ShellHeaderProps> = ({
   activeBranch = 'master',
 }) => {
   return (
-    <header className="h-11 border-b border-app bg-app-bg px-3.5 flex items-center justify-between select-none text-app flex-shrink-0 z-20">
+    <header className="h-11 bg-app-bg px-3.5 flex items-center justify-between select-none text-app flex-shrink-0 z-20">
       {/* Left: Brand + Search + Sidebar Toggle */}
       <div className="flex items-center gap-3">
-        <div className="flex items-center gap-1 font-semibold tracking-tight text-app cursor-pointer select-none">
-          <span className="text-sm font-extrabold text-app">Orchest</span>
-          <span className="text-sm font-extrabold text-app-accent">OS</span>
+        <div className="flex items-center gap-1 text-[13px] font-semibold tracking-tight text-app cursor-pointer select-none">
+          <span className="text-app">Orchest</span>
+          <span className="text-app-accent">OS</span>
         </div>
 
         <div className="flex items-center gap-1 ml-1">
@@ -55,7 +55,7 @@ export const ShellHeader: React.FC<ShellHeaderProps> = ({
       </div>
 
       {/* Middle: Subtle project breadcrumb (kept exactly as requested) */}
-      <div className="hidden sm:flex items-center gap-2 text-xs text-app-muted font-mono">
+      <div className="hidden sm:flex items-center gap-2 text-[12.5px] text-app-muted">
         <FolderGit2 className="w-3.5 h-3.5 text-app-muted" />
         <span className="text-app font-medium">{activeProjectName}</span>
         <span className="text-app-muted/60">/</span>
@@ -70,7 +70,7 @@ export const ShellHeader: React.FC<ShellHeaderProps> = ({
             onClick={onToggleRightInspector}
             className={`p-1.5 rounded-control transition-colors ${
               isRightInspectorOpen
-                ? 'text-app-accent bg-app-elevated border border-app shadow-xs'
+                ? 'text-app bg-app-surface'
                 : 'text-app-muted hover:text-app hover:bg-app-surface'
             }`}
             title="Toggle Right Workspace Panel"

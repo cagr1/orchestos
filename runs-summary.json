@@ -1,7 +1,37 @@
 {
-  "exported_at": "2026-10-14T03:32:48.778Z",
+  "exported_at": "2026-10-14T03:40:05.186Z",
   "total_runs": 20,
   "runs": [
+    {
+      "id": "bdcbd168-4554-4760-9ed6-93025d940937",
+      "task_class": "gate:ui.26.1-live:doc",
+      "model": "gpt-6-luna",
+      "provider": "codex",
+      "status": "done",
+      "qa_verdict": "pass",
+      "qa_reason": "README.md contains the required line.",
+      "files_blocked": [],
+      "checks_failed": 0,
+      "usd_cost": 0.0012438599999999998,
+      "elapsed_ms": 16891,
+      "tokens": 11336,
+      "created_at": "2026-10-14T03:38:33.334Z"
+    },
+    {
+      "id": "7565d8e3-5d96-4b10-9067-2ab4a4a73853",
+      "task_class": "gate:ui.26.1-live:doc",
+      "model": "openai/gpt-6-luna",
+      "provider": "codex",
+      "status": "done",
+      "qa_verdict": "pass",
+      "qa_reason": "README.md contains the required line.",
+      "files_blocked": [],
+      "checks_failed": 0,
+      "usd_cost": 0.00096938,
+      "elapsed_ms": 16216,
+      "tokens": 8263,
+      "created_at": "2026-10-14T03:38:05.887Z"
+    },
     {
       "id": "a3ea3631-c480-4332-a47a-d047000133b9",
       "task_class": "gate:ui.25.0-live:doc",
@@ -271,43 +301,13 @@
       "elapsed_ms": 16748,
       "tokens": 9208,
       "created_at": "2026-10-13T21:10:54.099Z"
-    },
-    {
-      "id": "0f4a983a-5540-4942-a9af-120a00cf0f28",
-      "task_class": "gate:erp.4.13-live:implement",
-      "model": "gpt-6-luna",
-      "provider": "codex",
-      "status": "failed",
-      "qa_verdict": "fail",
-      "qa_reason": "check failed: bunx tsc --noEmit exit 2",
-      "files_blocked": [],
-      "checks_failed": 1,
-      "usd_cost": 0.00133576,
-      "elapsed_ms": 12291,
-      "tokens": 8816,
-      "created_at": "2026-10-13T21:10:33.563Z"
-    },
-    {
-      "id": "c8951144-dbc1-4584-93ef-aceeb316d8c2",
-      "task_class": "gate:erp.4.13-live:implement",
-      "model": "gpt-6-luna",
-      "provider": "codex",
-      "status": "done",
-      "qa_verdict": "pass",
-      "qa_reason": "nota.ts contiene la línea solicitada al final.",
-      "files_blocked": [],
-      "checks_failed": 0,
-      "usd_cost": 0.00201486,
-      "elapsed_ms": 29254,
-      "tokens": 14840,
-      "created_at": "2026-10-13T21:03:16.484Z"
     }
   ],
   "stats": {
-    "failed": 2,
+    "failed": 1,
     "blocked": 0,
-    "done": 18,
-    "qa_failed": 2,
-    "total_cost_usd": "1.0597"
+    "done": 19,
+    "qa_failed": 1,
+    "total_cost_usd": "1.0586"
   }
 }

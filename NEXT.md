@@ -13,10 +13,10 @@
 6. Residuos de `erp-piloto`: limpiar si no sirven (las 3 tareas sobrantes no sirven; se limpian tras el hallazgo 5).
 7. `chat-retry-report` NO entra al pre-push.
 
-## PRIMERO al retomar — UI.26.1 (marco con la forma de Gr8r; GO de Carlos 2026-10-13), luego UI.26.2-26.6 y UI.24.4
-UI.25.0 y UI.25.1 cerrados; UI.25.2-25.4 absorbidos por UI.26. Spec en curso: `docs/specs/UI.26.1.md` (rol `criterio`);
-los cambios sin commitear en `src/dashboard/app/src/components/layout/`, `App.tsx`, `components/settings/`,
-`components/chat/OrchestChatView.tsx` y `scripts/ui-gate/flows/shell-look.mjs` son de UI.26.1.
+## PRIMERO al retomar — UI.26.2 (plantilla de página), luego UI.26.3-26.6 y UI.24.4
+UI.26.1 cerrado 2026-10-13 (marco). UI.26.2 sin spec: incluir la cabecera interna del chat (`OrchestChatView.tsx:255`,
+banda oscura con borde dentro del panel). Referencia viva: gr8r-taskmanagement.vercel.app — medidas en PLAN.md § UI.26.
+Dos chats de prueba de la sesión 2026-10-13 en la base (sin proyecto y en `orchestos`): Carlos no ha dicho si se borran.
 Al mirar una pantalla nueva de la familia: `Button` de solo icono recibe el icono como hijo; las `border-app/NN` no
 aceptan variante (usar `color-mix` arbitrario).
 UI.24.1 a UI.24.3 cerrados; ERP.4.14 pasa a UI.24.6.

@@ -250,7 +250,7 @@ export const OrchestChatView: React.FC<OrchestChatViewProps> = ({
   }
 
   return (
-    <div className="flex-1 flex flex-col h-full bg-app-bg text-app overflow-hidden relative select-none">
+    <div className="flex-1 flex flex-col h-full text-app overflow-hidden relative select-none">
       {/* 40px Session Header (Shared format with Dev) */}
       <header className="h-10 border-b border-app bg-app-bg px-3.5 flex items-center justify-between flex-shrink-0 z-20">
         {/* Left: CLI Product Logo (tooltip = name) + Title */}
