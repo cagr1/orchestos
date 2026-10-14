@@ -1,0 +1,655 @@
+[
+  {
+    "flujo": "chat-streaming",
+    "pass": true,
+    "steps": [
+      {
+        "nombre": "temporary project visible",
+        "ok": true,
+        "detalle": "orchestos-ui-mr-1-d4-Whihoc"
+      },
+      {
+        "nombre": "Claude option available",
+        "ok": true,
+        "detalle": "Start New Chat with Agent\nConversation Topic or Title (Optional)\nProject\nNo projectorchestos-ui-mr-1-d4-Whihoc\nSelect Agent / Engine\nClaude Code\nCodex\nOpenRouter API\nCancel\nStart Chat"
+      },
+      {
+        "nombre": "first assistant text appears before completion",
+        "ok": true,
+        "detalle": "t_first=4322 ms; t_done=6080 ms"
+      },
+      {
+        "nombre": "visible text grows at least twice before completion",
+        "ok": true,
+        "detalle": "3 growth updates"
+      },
+      {
+        "nombre": "live bubble stays at the bottom",
+        "ok": true,
+        "detalle": "4 growth measurements; remained at bottom: true"
+      },
+      {
+        "nombre": "captured screenshot during active turn",
+        "ok": true,
+        "detalle": "chat-text-visible-mid-turn"
+      },
+      {
+        "nombre": "working-indicator-names-phase",
+        "ok": true,
+        "detalle": "indicator text: \"Thinking 0 s\""
+      },
+      {
+        "nombre": "working-indicator-gone",
+        "ok": true,
+        "detalle": "indicator removed after 8 ms"
+      },
+      {
+        "nombre": "one assistant bubble matches persisted response",
+        "ok": true,
+        "detalle": "bubbles=1; persisted=1; visible=uno dos tres cuatro cinco seis siete ocho nueve diez once doce trece catorce qui"
+      },
+      {
+        "nombre": "context ring reflects thread",
+        "ok": true,
+        "detalle": "used=7762, window=200000, pct=3.881"
+      },
+      {
+        "nombre": "context ring recalculates on model change",
+        "ok": true,
+        "detalle": "model=claude-sonnet-5, expected pct=0.7762, ring=Context window usage: 0.7762%"
+      },
+      {
+        "nombre": "task marker is not visible",
+        "ok": true,
+        "detalle": "no task marker in the DOM"
+      },
+      {
+        "nombre": "Chat composer empty during sampled turn",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "Chat DOM order during sampled turn is previous assistant, user, live assistant",
+        "ok": true,
+        "detalle": "{\"liveCount\":1,\"order\":[\"Escribe los números del 1 al 40 en palabras, uno p\",\"uno dos tres cuatro cinco seis siete ocho nueve di\",\"Escribe los números del 41 al 80 en palabras, uno \",\"cuarenta y uno cuarenta y dos cuarenta y tres cuar\"]}"
+      },
+      {
+        "nombre": "Chat turn 2 was sampled while pending",
+        "ok": true,
+        "detalle": "1 long turn(s) sent; pending composer and live DOM order sampled"
+      },
+      {
+        "nombre": "Chat bubbles alternate for every sent turn",
+        "ok": true,
+        "detalle": "[\"Escribe los números del 1 al 40 en palabras, uno p\",\"uno dos tres cuatro cinco seis siete ocho nueve di\",\"Escribe los números del 41 al 80 en palabras, uno \",\"cuarenta y uno cuarenta y dos cuarenta y tres cuar\"]"
+      },
+      {
+        "nombre": "Chat user bubbles contain no agent text or step markup",
+        "ok": true,
+        "detalle": "user bubbles=2"
+      },
+      {
+        "nombre": "Chat exchange order remains correct after reload",
+        "ok": true,
+        "detalle": "messages=4"
+      },
+      {
+        "nombre": "thread-font-inter",
+        "ok": true,
+        "detalle": "font-family=\"Inter Variable\", system-ui, -apple-system, \"system-ui\", \"Segoe UI\", Roboto, \"Noto Sans\", Ubuntu, Cantarell, \"Helvetica Neue\", sans-serif"
+      },
+      {
+        "nombre": "thread-body-14px",
+        "ok": true,
+        "detalle": "font-size=14px"
+      },
+      {
+        "nombre": "thread-assistant-unboxed",
+        "ok": true,
+        "detalle": "ancestors=[{\"backgroundColor\":\"rgba(0, 0, 0, 0)\",\"borderTopWidth\":\"0px\",\"boxShadow\":\"none\"},{\"backgroundColor\":\"rgba(0, 0, 0, 0)\",\"borderTopWidth\":\"0px\",\"boxShadow\":\"none\"},{\"backgroundColor\":\"rgba(0, 0, 0, 0)\",\"borderTopWidth\":\"0px\",\"boxShadow\":\"none\"}]"
+      },
+      {
+        "nombre": "thread-user-bubble-visible",
+        "ok": true,
+        "detalle": "bubble={\"found\":true,\"backgroundColor\":\"oklab(0.249498 -0.00229985 -0.0147313)\",\"opaque\":true,\"userBubbleL\":20.537404286089497,\"backgroundL\":12.733002212579532,\"difference\":7.804402073509966}"
+      },
+      {
+        "nombre": "thread-no-decoration",
+        "ok": true,
+        "detalle": "animate-ping=0, gradients=0, bot-icons=0, user-icons=0"
+      },
+      {
+        "nombre": "Dev renders text during generation before completion",
+        "ok": true,
+        "detalle": "t_first=2171 ms; t_done=3169 ms; visible=Uno, dos, tres, cuatro y cinco."
+      }
+    ],
+    "notes": [],
+    "errores": [],
+    "capturas": [
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-14514/chat-streaming/chat-text-visible-mid-turn.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-14514/chat-streaming/thread-hierarchy.png"
+    ]
+  },
+  {
+    "flujo": "thread-states",
+    "pass": true,
+    "steps": [
+      {
+        "nombre": "sheet-visible-orchestos",
+        "ok": true,
+        "detalle": "orchestos sheet visible"
+      },
+      {
+        "nombre": "orchestos-state-message-user",
+        "ok": true,
+        "detalle": "orchestos: state-message-user visible"
+      },
+      {
+        "nombre": "orchestos-state-message-assistant",
+        "ok": true,
+        "detalle": "orchestos: state-message-assistant visible"
+      },
+      {
+        "nombre": "orchestos-state-message-attachments",
+        "ok": true,
+        "detalle": "orchestos: state-message-attachments visible"
+      },
+      {
+        "nombre": "orchestos-state-message-pdf",
+        "ok": true,
+        "detalle": "orchestos: state-message-pdf visible"
+      },
+      {
+        "nombre": "orchestos-state-thinking",
+        "ok": true,
+        "detalle": "orchestos: state-thinking visible"
+      },
+      {
+        "nombre": "orchestos-state-thinking-steps-running",
+        "ok": true,
+        "detalle": "orchestos: state-thinking-steps-running visible"
+      },
+      {
+        "nombre": "orchestos-state-thinking-steps-done",
+        "ok": true,
+        "detalle": "orchestos: state-thinking-steps-done visible"
+      },
+      {
+        "nombre": "orchestos-state-composer-empty",
+        "ok": true,
+        "detalle": "orchestos: state-composer-empty visible"
+      },
+      {
+        "nombre": "orchestos-state-composer-with-files",
+        "ok": true,
+        "detalle": "orchestos: state-composer-with-files visible"
+      },
+      {
+        "nombre": "orchestos-state-card",
+        "ok": true,
+        "detalle": "orchestos: state-card visible"
+      },
+      {
+        "nombre": "orchestos-state-badges",
+        "ok": true,
+        "detalle": "orchestos: state-badges visible"
+      },
+      {
+        "nombre": "orchestos-state-banner",
+        "ok": true,
+        "detalle": "orchestos: state-banner visible"
+      },
+      {
+        "nombre": "orchestos-thinking-steps-open",
+        "ok": true,
+        "detalle": "orchestos: a step becomes visible after clicking the header"
+      },
+      {
+        "nombre": "orchestos-thinking-aligned",
+        "ok": true,
+        "detalle": "phase lefts 336.00, 336.00, 336.00 px; assistant p left 336.00 px; differences 0.00, 0.00, 0.00 px"
+      },
+      {
+        "nombre": "orchestos-thinking-steps-muted",
+        "ok": true,
+        "detalle": "step color rgb(148, 163, 184); muted reference rgb(148, 163, 184); font-weight 400"
+      },
+      {
+        "nombre": "orchestos-no-invented-words",
+        "ok": true,
+        "detalle": "orchestos: no invented thinking words in the sheet"
+      },
+      {
+        "nombre": "orchestos-font-inter",
+        "ok": true,
+        "detalle": "font-family: \"Inter Variable\", system-ui, -apple-system, \"system-ui\", \"Segoe UI\", Roboto, \"Noto Sans\", Ubuntu, Cantarell, \"Helvetica Neue\", sans-serif"
+      },
+      {
+        "nombre": "orchestos-font-inter-loaded",
+        "ok": true,
+        "detalle": "document.fonts.check('Inter Variable')"
+      },
+      {
+        "nombre": "orchestos-surface-ladder",
+        "ok": true,
+        "detalle": "L*: 3.30 → 6.27 → 10.29 → 14.21 → 18.01 → 22.00 → 25.69 → 29.22; strictly increasing"
+      },
+      {
+        "nombre": "orchestos-user-bubble-clarity",
+        "ok": true,
+        "detalle": "L* bubble 13.02, background 3.30, difference 9.72; minimum 6"
+      },
+      {
+        "nombre": "sheet-visible-graphite",
+        "ok": true,
+        "detalle": "graphite sheet visible"
+      },
+      {
+        "nombre": "graphite-state-message-user",
+        "ok": true,
+        "detalle": "graphite: state-message-user visible"
+      },
+      {
+        "nombre": "graphite-state-message-assistant",
+        "ok": true,
+        "detalle": "graphite: state-message-assistant visible"
+      },
+      {
+        "nombre": "graphite-state-message-attachments",
+        "ok": true,
+        "detalle": "graphite: state-message-attachments visible"
+      },
+      {
+        "nombre": "graphite-state-message-pdf",
+        "ok": true,
+        "detalle": "graphite: state-message-pdf visible"
+      },
+      {
+        "nombre": "graphite-state-thinking",
+        "ok": true,
+        "detalle": "graphite: state-thinking visible"
+      },
+      {
+        "nombre": "graphite-state-thinking-steps-running",
+        "ok": true,
+        "detalle": "graphite: state-thinking-steps-running visible"
+      },
+      {
+        "nombre": "graphite-state-thinking-steps-done",
+        "ok": true,
+        "detalle": "graphite: state-thinking-steps-done visible"
+      },
+      {
+        "nombre": "graphite-state-composer-empty",
+        "ok": true,
+        "detalle": "graphite: state-composer-empty visible"
+      },
+      {
+        "nombre": "graphite-state-composer-with-files",
+        "ok": true,
+        "detalle": "graphite: state-composer-with-files visible"
+      },
+      {
+        "nombre": "graphite-state-card",
+        "ok": true,
+        "detalle": "graphite: state-card visible"
+      },
+      {
+        "nombre": "graphite-state-badges",
+        "ok": true,
+        "detalle": "graphite: state-badges visible"
+      },
+      {
+        "nombre": "graphite-state-banner",
+        "ok": true,
+        "detalle": "graphite: state-banner visible"
+      },
+      {
+        "nombre": "graphite-thinking-steps-open",
+        "ok": true,
+        "detalle": "graphite: a step becomes visible after clicking the header"
+      },
+      {
+        "nombre": "graphite-thinking-aligned",
+        "ok": true,
+        "detalle": "phase lefts 336.00, 336.00, 336.00 px; assistant p left 336.00 px; differences 0.00, 0.00, 0.00 px"
+      },
+      {
+        "nombre": "graphite-thinking-steps-muted",
+        "ok": true,
+        "detalle": "step color rgb(156, 163, 175); muted reference rgb(156, 163, 175); font-weight 400"
+      },
+      {
+        "nombre": "graphite-no-invented-words",
+        "ok": true,
+        "detalle": "graphite: no invented thinking words in the sheet"
+      },
+      {
+        "nombre": "graphite-font-inter",
+        "ok": true,
+        "detalle": "font-family: \"Inter Variable\", system-ui, -apple-system, \"system-ui\", \"Segoe UI\", Roboto, \"Noto Sans\", Ubuntu, Cantarell, \"Helvetica Neue\", sans-serif"
+      },
+      {
+        "nombre": "graphite-font-inter-loaded",
+        "ok": true,
+        "detalle": "document.fonts.check('Inter Variable')"
+      },
+      {
+        "nombre": "graphite-surface-ladder",
+        "ok": true,
+        "detalle": "L*: 5.03 → 8.71 → 12.69 → 16.54 → 20.24 → 23.88 → 27.45 → 30.94; strictly increasing"
+      },
+      {
+        "nombre": "graphite-user-bubble-clarity",
+        "ok": true,
+        "detalle": "L* bubble 15.11, background 5.03, difference 10.08; minimum 6"
+      },
+      {
+        "nombre": "sheet-visible-carbon",
+        "ok": true,
+        "detalle": "carbon sheet visible"
+      },
+      {
+        "nombre": "carbon-state-message-user",
+        "ok": true,
+        "detalle": "carbon: state-message-user visible"
+      },
+      {
+        "nombre": "carbon-state-message-assistant",
+        "ok": true,
+        "detalle": "carbon: state-message-assistant visible"
+      },
+      {
+        "nombre": "carbon-state-message-attachments",
+        "ok": true,
+        "detalle": "carbon: state-message-attachments visible"
+      },
+      {
+        "nombre": "carbon-state-message-pdf",
+        "ok": true,
+        "detalle": "carbon: state-message-pdf visible"
+      },
+      {
+        "nombre": "carbon-state-thinking",
+        "ok": true,
+        "detalle": "carbon: state-thinking visible"
+      },
+      {
+        "nombre": "carbon-state-thinking-steps-running",
+        "ok": true,
+        "detalle": "carbon: state-thinking-steps-running visible"
+      },
+      {
+        "nombre": "carbon-state-thinking-steps-done",
+        "ok": true,
+        "detalle": "carbon: state-thinking-steps-done visible"
+      },
+      {
+        "nombre": "carbon-state-composer-empty",
+        "ok": true,
+        "detalle": "carbon: state-composer-empty visible"
+      },
+      {
+        "nombre": "carbon-state-composer-with-files",
+        "ok": true,
+        "detalle": "carbon: state-composer-with-files visible"
+      },
+      {
+        "nombre": "carbon-state-card",
+        "ok": true,
+        "detalle": "carbon: state-card visible"
+      },
+      {
+        "nombre": "carbon-state-badges",
+        "ok": true,
+        "detalle": "carbon: state-badges visible"
+      },
+      {
+        "nombre": "carbon-state-banner",
+        "ok": true,
+        "detalle": "carbon: state-banner visible"
+      },
+      {
+        "nombre": "carbon-thinking-steps-open",
+        "ok": true,
+        "detalle": "carbon: a step becomes visible after clicking the header"
+      },
+      {
+        "nombre": "carbon-thinking-aligned",
+        "ok": true,
+        "detalle": "phase lefts 336.00, 336.00, 336.00 px; assistant p left 336.00 px; differences 0.00, 0.00, 0.00 px"
+      },
+      {
+        "nombre": "carbon-thinking-steps-muted",
+        "ok": true,
+        "detalle": "step color rgb(161, 161, 170); muted reference rgb(161, 161, 170); font-weight 400"
+      },
+      {
+        "nombre": "carbon-no-invented-words",
+        "ok": true,
+        "detalle": "carbon: no invented thinking words in the sheet"
+      },
+      {
+        "nombre": "carbon-font-inter",
+        "ok": true,
+        "detalle": "font-family: \"Inter Variable\", system-ui, -apple-system, \"system-ui\", \"Segoe UI\", Roboto, \"Noto Sans\", Ubuntu, Cantarell, \"Helvetica Neue\", sans-serif"
+      },
+      {
+        "nombre": "carbon-font-inter-loaded",
+        "ok": true,
+        "detalle": "document.fonts.check('Inter Variable')"
+      },
+      {
+        "nombre": "carbon-surface-ladder",
+        "ok": true,
+        "detalle": "L*: 2.51 → 5.12 → 9.34 → 13.30 → 17.57 → 21.31 → 25.35 → 28.92; strictly increasing"
+      },
+      {
+        "nombre": "carbon-user-bubble-clarity",
+        "ok": true,
+        "detalle": "L* bubble 11.83, background 2.51, difference 9.32; minimum 6"
+      },
+      {
+        "nombre": "sheet-visible-light",
+        "ok": true,
+        "detalle": "light sheet visible"
+      },
+      {
+        "nombre": "light-state-message-user",
+        "ok": true,
+        "detalle": "light: state-message-user visible"
+      },
+      {
+        "nombre": "light-state-message-assistant",
+        "ok": true,
+        "detalle": "light: state-message-assistant visible"
+      },
+      {
+        "nombre": "light-state-message-attachments",
+        "ok": true,
+        "detalle": "light: state-message-attachments visible"
+      },
+      {
+        "nombre": "light-state-message-pdf",
+        "ok": true,
+        "detalle": "light: state-message-pdf visible"
+      },
+      {
+        "nombre": "light-state-thinking",
+        "ok": true,
+        "detalle": "light: state-thinking visible"
+      },
+      {
+        "nombre": "light-state-thinking-steps-running",
+        "ok": true,
+        "detalle": "light: state-thinking-steps-running visible"
+      },
+      {
+        "nombre": "light-state-thinking-steps-done",
+        "ok": true,
+        "detalle": "light: state-thinking-steps-done visible"
+      },
+      {
+        "nombre": "light-state-composer-empty",
+        "ok": true,
+        "detalle": "light: state-composer-empty visible"
+      },
+      {
+        "nombre": "light-state-composer-with-files",
+        "ok": true,
+        "detalle": "light: state-composer-with-files visible"
+      },
+      {
+        "nombre": "light-state-card",
+        "ok": true,
+        "detalle": "light: state-card visible"
+      },
+      {
+        "nombre": "light-state-badges",
+        "ok": true,
+        "detalle": "light: state-badges visible"
+      },
+      {
+        "nombre": "light-state-banner",
+        "ok": true,
+        "detalle": "light: state-banner visible"
+      },
+      {
+        "nombre": "light-thinking-steps-open",
+        "ok": true,
+        "detalle": "light: a step becomes visible after clicking the header"
+      },
+      {
+        "nombre": "light-thinking-aligned",
+        "ok": true,
+        "detalle": "phase lefts 336.00, 336.00, 336.00 px; assistant p left 336.00 px; differences 0.00, 0.00, 0.00 px"
+      },
+      {
+        "nombre": "light-thinking-steps-muted",
+        "ok": true,
+        "detalle": "step color rgb(100, 116, 139); muted reference rgb(100, 116, 139); font-weight 400"
+      },
+      {
+        "nombre": "light-no-invented-words",
+        "ok": true,
+        "detalle": "light: no invented thinking words in the sheet"
+      },
+      {
+        "nombre": "light-font-inter",
+        "ok": true,
+        "detalle": "font-family: \"Inter Variable\", system-ui, -apple-system, \"system-ui\", \"Segoe UI\", Roboto, \"Noto Sans\", Ubuntu, Cantarell, \"Helvetica Neue\", sans-serif"
+      },
+      {
+        "nombre": "light-font-inter-loaded",
+        "ok": true,
+        "detalle": "document.fonts.check('Inter Variable')"
+      },
+      {
+        "nombre": "light-surface-ladder",
+        "ok": true,
+        "detalle": "L*: 98.18 → 96.12 → 94.28 → 92.28 → 90.19 → 88.35 → 86.22 → 84.10; strictly decreasing"
+      },
+      {
+        "nombre": "light-user-bubble-clarity",
+        "ok": true,
+        "detalle": "L* bubble 91.57, background 98.18, difference 6.60; minimum 6"
+      },
+      {
+        "nombre": "no-pdf-worker-request",
+        "ok": true,
+        "detalle": "no PDF worker network request"
+      },
+      {
+        "nombre": "no-console-errors",
+        "ok": true,
+        "detalle": "errors: 0"
+      },
+      {
+        "nombre": "home-chat",
+        "ok": true,
+        "detalle": "default route loads the chat"
+      }
+    ],
+    "notes": [],
+    "errores": [],
+    "capturas": [
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-14514/thread-states/thread-states-orchestos.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-14514/thread-states/thread-states-graphite.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-14514/thread-states/thread-states-carbon.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-14514/thread-states/thread-states-light.png"
+    ]
+  },
+  {
+    "flujo": "shell-look",
+    "pass": true,
+    "steps": [
+      {
+        "nombre": "chat: sidebar present",
+        "ok": true,
+        "detalle": "1 aside"
+      },
+      {
+        "nombre": "chat: sidebar rows flat",
+        "ok": true,
+        "detalle": "sin borde ni sombra"
+      },
+      {
+        "nombre": "chat: nav icons one tone",
+        "ok": true,
+        "detalle": "rgb(148, 163, 184)"
+      },
+      {
+        "nombre": "chat: no line between sidebar and panel",
+        "ok": true,
+        "detalle": "aside border-right=0 header border-bottom=0"
+      },
+      {
+        "nombre": "chat: panel lighter than chrome",
+        "ok": true,
+        "detalle": "panel=rgb(14, 19, 32) sidebar=rgb(8, 12, 20)"
+      },
+      {
+        "nombre": "chat: no palette classes in chrome",
+        "ok": true,
+        "detalle": "ninguna"
+      },
+      {
+        "nombre": "settings: sidebar present",
+        "ok": true,
+        "detalle": "1 aside"
+      },
+      {
+        "nombre": "settings: sidebar rows flat",
+        "ok": true,
+        "detalle": "sin borde ni sombra"
+      },
+      {
+        "nombre": "settings: nav icons one tone",
+        "ok": true,
+        "detalle": "rgb(148, 163, 184)"
+      },
+      {
+        "nombre": "settings: no line between sidebar and panel",
+        "ok": true,
+        "detalle": "aside border-right=0 header border-bottom=0"
+      },
+      {
+        "nombre": "settings: panel lighter than chrome",
+        "ok": true,
+        "detalle": "panel=rgb(14, 19, 32) sidebar=rgb(8, 12, 20)"
+      },
+      {
+        "nombre": "settings: no palette classes in chrome",
+        "ok": true,
+        "detalle": "ninguna"
+      }
+    ],
+    "notes": [],
+    "errores": [],
+    "capturas": [
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-14514/shell-look/shell-chat.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-14514/shell-look/shell-settings.png"
+    ]
+  }
+]

@@ -498,7 +498,7 @@ export default async function chatStreaming({ page, api, step, shot, visible, cl
 
   await shot('thread-hierarchy')
   const threadHierarchy = await page.evaluate(() => {
-    const root = document.querySelector('[data-ff]')
+    const root = document.querySelector('[data-thread-root]')
     const prose = [...(root?.querySelectorAll('div.prose') ?? [])].at(-1)
     const user = root?.querySelector('div.max-w-2xl')
     const bubble = user?.querySelector('div.whitespace-pre-wrap')

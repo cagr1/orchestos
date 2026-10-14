@@ -286,7 +286,11 @@ export const OrchestChatView: React.FC<OrchestChatViewProps> = ({
               </p>
             </div>
           ) : (
-            <div data-ff className="max-w-3xl lg:max-w-4xl mx-auto flex flex-col gap-2">
+            <div
+              data-ff
+              data-thread-root
+              className="max-w-3xl lg:max-w-4xl mx-auto flex flex-col gap-2"
+            >
               {messages.map((msg) => {
                 const isUser = msg.role === 'user'
 

@@ -934,6 +934,18 @@ archivos fijados por `ui:fidelity:jsx` (`OrchestDevWorkspace`, `ShellStatusBar`,
   Límites: la cabecera interna del chat (`OrchestChatView.tsx:255`) sigue con `bg-app-bg` y `border-b` (banda oscura
   dentro del panel) → UI.26.2; el switch Chat|Dev copia las clases de `SettingsSegmented` sin reutilizarlo (los flujos
   lo buscan por rol `button`); solo tema por defecto mirado.
+- [x] **UI.26.1a — 🔍 `chat-streaming` falla tras UI.26.1 (pre-push rojo).** (cerrado 2026-10-13; abierto 2026-10-13) El flujo toma
+  `document.querySelector('[data-ff]')` como raíz del hilo (`chat-streaming.mjs:501`); UI.26.1 puso `data-ff` en la
+  barra lateral, que va antes en el DOM, y `thread-body-14px` da `font-size=null`. UI.26.1 no corrió `chat-streaming`.
+  Spec: docs/specs/UI.26.1a.md
+  Ejecutado por: gpt-6-luna (rol `mecanico`)
+  Hecho (2026-10-13): el hilo lleva `data-thread-root` y el flujo lo usa como raíz; no hay otros selectores `[data-ff]`
+  en `scripts/ui-gate/`.
+  Gate en vivo: navegador real (Playwright), `docs/done/evidence/UI.26.1a-live.json` — `chat-streaming` 24/24,
+  `thread-states` 87/87, `shell-look` 12/12.
+  Lección: un cambio de marco toca todas las pantallas; antes de cerrarlo correr la batería completa del pre-push, no
+  una selección de flujos.
+  El pre-push también lo frenó `lint` (formato del JSX): la verificación de un spec incluye `bun run lint`.
 - [ ] **UI.26.2 — 🧠 Plantilla de página.** Encabezado, franja de cifras y fila de lista como primitivos de la familia.
 - [ ] **UI.26.3 — 🧠 Tasks en lista con detalle.** Nombre corto, agente y hora por fila; detalle al pulsar; fuera el
   texto duplicado y el UUID partido.
