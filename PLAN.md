@@ -650,6 +650,8 @@ Cerrada. Todos sus ítems están archivados en `docs/done/` (ver "Cerrados — e
   2026-10-14 en `chat-continuity` (pre-push de `ec3e309`, intento 2, y corrida 2 de CI.24). El `dashboard.log` no dice
   nada: el chat no registra spawn, salida ni duración del CLI. Primero que deje evidencia (pid, exit, stderr, ms del
   CLI de chat en `dashboard.log`), luego causa. Posible hermano de CI.11 (turno 2 de Codex lento).
+  2026-10-14 tarde: se reproduce siempre (pre-push de `5d67f56` ×2 + a solas ×1) tras actualizarse Claude Code a
+  2.1.300; bloquea el push. Spec: docs/specs/CI.25.md
 - [x] **R.8.4 — 🔍 Reinicio del dashboard a mitad de run.** (2026-10-11) Recuperar el resultado y el reporte de fin
   (gap declarado de I.7.2). Hallazgo 4.
   Ejecutado por: sonnet (rondas 1-2) · gpt-6-luna (rondas 3-5) · revisión `qa` gpt-6.1-sol.
