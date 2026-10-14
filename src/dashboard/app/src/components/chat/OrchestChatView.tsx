@@ -596,7 +596,7 @@ export const OrchestChatView: React.FC<OrchestChatViewProps> = ({
       </div>
 
       {/* Shared Composer (Nothing under composer: no status line) */}
-      <div className="p-3 border-t border-app bg-app-bg flex-shrink-0">
+      <div data-composer-region className="p-3 bg-app-bg flex-shrink-0">
         <div className="max-w-3xl lg:max-w-4xl mx-auto">
           <AgentComposer
             onSendMessage={handleSendFromComposer}

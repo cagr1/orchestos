@@ -109,26 +109,78 @@ export function ListRow({
       {leading}
       {id ? (
         <span
+          data-col="id"
           title={id}
           className="w-[7rem] shrink-0 truncate font-mono text-[11px] text-app-muted"
         >
           {id}
         </span>
       ) : null}
-      <span title={title} className="min-w-0 flex-1 truncate text-[13px] text-app">
+      <span data-col="title" title={title} className="min-w-0 flex-1 truncate text-[13px] text-app">
         {title}
       </span>
-      {meta ? <span className="whitespace-nowrap text-xs text-app-muted">{meta}</span> : null}
-      {trailing ? (
+      <span
+        data-col="meta"
+        className="w-[13rem] shrink-0 truncate whitespace-nowrap text-xs text-app-muted"
+      >
+        {meta}
+      </span>
+      {
         // biome-ignore lint/a11y/noStaticElementInteractions: contiene los controles de la fila; solo detiene la propagación
         <div
-          className="flex shrink-0 items-center gap-2 whitespace-nowrap"
+          data-col="status"
+          className="flex w-[7.5rem] shrink-0 items-center justify-end gap-2 whitespace-nowrap"
           onClick={(event) => event.stopPropagation()}
           onKeyDown={(event) => event.stopPropagation()}
         >
           {trailing}
         </div>
-      ) : null}
+      }
+    </div>
+  )
+}
+
+export function ListHeader({
+  columns,
+}: {
+  columns: { id?: string; title: string; meta?: string; status?: string }
+}) {
+  return (
+    <div
+      data-list-header
+      className="flex h-8 items-center gap-3 whitespace-nowrap border-b border-[color:color-mix(in_srgb,var(--app-border)_50%,transparent)] px-3"
+    >
+      <span className="w-1.5 shrink-0" />
+      {columns.id !== undefined && (
+        <span
+          data-col="id"
+          className="w-[7rem] shrink-0 truncate text-[11px] font-medium text-app-muted"
+        >
+          {columns.id}
+        </span>
+      )}
+      <span
+        data-col="title"
+        className="min-w-0 flex-1 truncate text-[11px] font-medium text-app-muted"
+      >
+        {columns.title}
+      </span>
+      {columns.meta !== undefined && (
+        <span
+          data-col="meta"
+          className="w-[13rem] shrink-0 truncate text-[11px] font-medium text-app-muted"
+        >
+          {columns.meta}
+        </span>
+      )}
+      {columns.status !== undefined && (
+        <span
+          data-col="status"
+          className="w-[7.5rem] shrink-0 truncate text-right text-[11px] font-medium text-app-muted"
+        >
+          {columns.status}
+        </span>
+      )}
     </div>
   )
 }

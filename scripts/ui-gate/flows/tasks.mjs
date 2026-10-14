@@ -435,6 +435,35 @@ export default async function tasks({ page, api, step, note, shot, visible, clea
       ),
     JSON.stringify(rowHeights),
   )
+  const listHeader = page.locator('[data-tasks-tab] [data-list-header]')
+  const headerFacts = await listHeader.evaluate((header) => {
+    const row = document.querySelector('[data-tasks-tab] [data-task-row]')
+    const columns = ['id', 'title', 'meta', 'status']
+    const headerCells = Object.fromEntries(
+      columns.map((column) => {
+        const rect = header.querySelector(`[data-col="${column}"]`)?.getBoundingClientRect()
+        return [column, rect ? { left: rect.left, right: rect.right } : null]
+      }),
+    )
+    const rowCells = Object.fromEntries(
+      columns.map((column) => {
+        const rect = row?.querySelector(`[data-col="${column}"]`)?.getBoundingClientRect()
+        return [column, rect ? { left: rect.left, right: rect.right } : null]
+      }),
+    )
+    return { text: header.textContent?.replace(/\s+/g, ' ').trim(), headerCells, rowCells }
+  })
+  const headerAligned =
+    ['ID', 'Task', 'Agent', 'Status'].every((label) => headerFacts.text?.includes(label)) &&
+    ['id', 'title', 'meta'].every((column) => {
+      const head = headerFacts.headerCells[column]
+      const row = headerFacts.rowCells[column]
+      return head && row && Math.abs(head.left - row.left) <= 1
+    }) &&
+    headerFacts.headerCells.status &&
+    headerFacts.rowCells.status &&
+    Math.abs(headerFacts.headerCells.status.right - headerFacts.rowCells.status.right) <= 1
+  await step('task list header aligned', Boolean(headerAligned), JSON.stringify(headerFacts))
   const paletteHits = await page.locator('[data-tasks-tab]').evaluate((root, palette) => {
     const re = new RegExp(palette)
     return [root, ...root.querySelectorAll('*')]

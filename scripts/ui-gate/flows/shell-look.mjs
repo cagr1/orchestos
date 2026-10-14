@@ -214,4 +214,45 @@ export default async function shellLook({ page, api, step, shot, visible, cleanu
     chatHeader.border === 0 && chatHeader.bg === 'rgba(0, 0, 0, 0)',
     JSON.stringify(chatHeader),
   )
+
+  await page.getByRole('button', { name: 'Dev', exact: true }).click()
+  await page.getByRole('button', { name: basename(projectRoot), exact: true }).click()
+  await page.getByRole('button', { name: 'Launch new agent', exact: true }).click()
+  const launchDialog = page.getByRole('dialog')
+  await launchDialog.getByRole('button', { name: /Codex/ }).first().click()
+  const sessionResponse = page.waitForResponse(
+    (response) =>
+      response.request().method() === 'POST' &&
+      new URL(response.url()).pathname === '/api/chat/sessions',
+  )
+  await launchDialog.getByRole('button', { name: 'Launch Agent', exact: true }).click()
+  await sessionResponse
+  await page.locator('[data-composer-region]').waitFor({ state: 'visible' })
+  const devComposerBorder = await page
+    .locator('[data-composer-region]')
+    .evaluate((el) => getComputedStyle(el).borderTopWidth)
+  await step('composer no top line (Dev)', devComposerBorder === '0px', devComposerBorder)
+  const toggleInspector = page.getByRole('button', { name: 'Toggle Right Workspace Panel' })
+  if (!(await visible(page.locator('[data-inspector-tabs]')))) await toggleInspector.click()
+  const inspectorAlignment = await page.evaluate(() => {
+    const inspector = document.querySelector('[data-inspector-tabs]')
+    const devHeader = document.querySelector('[data-dev-header]')
+    if (!inspector || !devHeader) return null
+    return {
+      inspectorBottom: inspector.getBoundingClientRect().bottom,
+      devHeaderBottom: devHeader.getBoundingClientRect().bottom,
+    }
+  })
+  await step(
+    'inspector line aligned',
+    inspectorAlignment !== null &&
+      Math.abs(inspectorAlignment.inspectorBottom - inspectorAlignment.devHeaderBottom) <= 1,
+    JSON.stringify(inspectorAlignment),
+  )
+  await page.getByRole('button', { name: 'Chat', exact: true }).click()
+  await page.locator('[data-composer-region]').waitFor({ state: 'visible' })
+  const chatComposerBorder = await page
+    .locator('[data-composer-region]')
+    .evaluate((el) => getComputedStyle(el).borderTopWidth)
+  await step('composer no top line (Chat)', chatComposerBorder === '0px', chatComposerBorder)
 }

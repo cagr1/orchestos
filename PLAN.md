@@ -1017,9 +1017,28 @@ archivos fijados por `ui:fidelity:jsx` (`OrchestDevWorkspace`, `ShellStatusBar`,
   `Button` de la familia recibe `leadingIcon={Icono}` y el texto como hijo; solo el botón de solo icono lo lleva de hijo.
   Visto al cerrar: `tasks` intermitente en batería → CI.23, antes del siguiente ítem.
   Límites: solo tema por defecto; el punto "running" usa `app-accent` (no hay token de "en curso").
+- [x] **UI.26.4a — 🔍 Líneas del marco y cabecera de Tasks (observación de Carlos 2026-10-14).** (cerrado 2026-10-14) Sin línea sobre el
+  composer (Dev y Chat); la línea bajo las pestañas del aside derecho a la altura de la del header de Dev (h-11 vs
+  h-10); la lista de Tasks con nombres de columna alineados a las celdas. Spec: docs/specs/UI.26.4a.md
+  Ejecutado por: mecanico (delegate). Evidencia (cerebro): typecheck, biome 0 errores.
+  Gate en vivo: navegador real (Playwright), `docs/done/evidence/UI.26.4a-live.json` — `tasks` 29/29 (paso nuevo `task list header aligned`), `shell-look` 19/19 (`composer no top line`, `inspector line
+  aligned`), `smoke` 6/6, `chat-streaming` 24/24, `project-tabs` 30/30. En vivo (dashboard 4242): header de Dev y
+  pestañas del aside con `bottom` = 84 px ambos, composer `border-top` 0; cabecera ID/Task/Agent/Status alineada en
+  `erp-piloto`. Contraprueba débil: con `page.tsx` de HEAD el build falla (falta `ListHeader`), no llega al paso.
 - [ ] **UI.26.5 — 🧠 Memory, Specs, Skills y Graph.** Maestro-detalle con estado vacío; Memory se llena con ERP.4.16.
+  Verificado en vivo 2026-10-14 (tema `light` real): la tarjeta de Graph sigue `bg-zinc-900/60` + `border-zinc-800`
+  en los 4 temas; la paleta fija también está en `MemoryView` (27), `SpecsView` (26), `ContextView` (26) y
+  `SkillsView` (17 clases). Pasan a tokens `app-*`.
+  Lo que Carlos señala (tema `orchestos`, 2026-10-14): la raíz de `ContextView.tsx:20`, `SpecsView.tsx:45` y
+  `SkillsView.tsx:52` es `bg-zinc-950` (casi negro neutro) sobre `bg-app-surface` (#0e1320, azul marino): toda el área
+  de contenido se ve con otro fondo. La raíz debe ser transparente/`app-surface` como Tasks.
 - [ ] **UI.26.6 — 🧠 Resto de Settings.** Health, API & Models, Model routing, Usage, Danger zone, Language con los
   primitivos de UI.25.1.
+  Observación de Carlos 2026-10-14: Usage y Model routing (y las demás vistas con `max-w-3xl`,
+  `OrchestSettingsView.tsx:1024,1155,1349,1930,2142,2175`) no ocupan el ancho disponible; deben llenarlo.
+- [ ] **UI.26.7 — 🔍 Pendiente de revisar: inputs de "Orquestación" en Tasks no aceptan texto.** (Carlos 2026-10-14)
+  "Máximo concurrente" y "Tope total por ejecución" (`OrchestSettingsView.tsx:~2321`) se renderizan `disabled`
+  (visto en `erp-piloto`): no se puede escribir. Revisar por qué están deshabilitados y si la sección aporta.
 
 Cada paso: spec, delegación por rol, conteo de paleta = 0 en lo migrado, y el cerebro mira la pantalla real al lado de
 Gr8r antes de cerrar.

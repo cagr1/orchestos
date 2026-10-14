@@ -214,7 +214,10 @@ export const OrcaRightInspector: React.FC<OrcaRightInspectorProps> = ({
   return (
     <aside className="w-96 flex-shrink-0 border-l border-app bg-app-bg flex flex-col h-full overflow-hidden text-app select-none z-10">
       {/* Top Header with Tab Switcher (No redundant X button - only single toggle in ShellHeader) */}
-      <div className="h-11 border-b border-app px-2 flex items-center justify-between bg-app-surface/40 flex-shrink-0">
+      <div
+        data-inspector-tabs
+        className="h-10 border-b border-app px-2 flex items-center justify-between bg-app-surface/40 flex-shrink-0"
+      >
         <div className="flex items-center gap-1 w-full justify-between">
           <button
             type="button"

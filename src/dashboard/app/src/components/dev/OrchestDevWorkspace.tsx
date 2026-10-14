@@ -946,7 +946,10 @@ export const OrchestDevWorkspace: React.FC<OrchestDevWorkspaceProps> = ({
     <main className="flex-1 flex flex-col h-full bg-app-bg text-app overflow-hidden relative select-none">
       {/* 1. SESSION HEADER (40px) */}
       {/* title; CLI product logo before it (tooltip = name); small status dot next to title (tooltip = state); Archive and Stop as icon buttons; context ring on right. No path pill, no CLI name text, no status text. */}
-      <header className="h-10 border-b border-app bg-app-bg px-3.5 flex items-center justify-between flex-shrink-0 z-20">
+      <header
+        data-dev-header
+        className="h-10 border-b border-app bg-app-bg px-3.5 flex items-center justify-between flex-shrink-0 z-20"
+      >
         {/* Left: Product logo + Title + Status dot */}
         <div className="flex items-center gap-2.5 min-w-0">
           <div title={cliName} className="flex-shrink-0 cursor-default">
@@ -1028,7 +1031,7 @@ export const OrchestDevWorkspace: React.FC<OrchestDevWorkspaceProps> = ({
       </div>
 
       {/* 3. COMPOSER (Chat and Dev share it) */}
-      <div className="p-3 border-t border-app bg-app-bg flex-shrink-0">
+      <div data-composer-region className="p-3 bg-app-bg flex-shrink-0">
         <div className="max-w-3xl lg:max-w-4xl mx-auto">
           <AgentComposer
             onSendMessage={handleSendMessage}

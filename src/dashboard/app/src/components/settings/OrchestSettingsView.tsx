@@ -82,7 +82,7 @@ import { statusLabel } from '../common/StatusBadge'
 import { EmptyState } from '../common/ViewStateFeedback'
 import { ContextView } from '../context/ContextView'
 import { InstinctsView } from '../instincts/InstinctsView'
-import { ListRow } from '../layout/page'
+import { ListHeader, ListRow } from '../layout/page'
 import { MemoryView } from '../memory/MemoryView'
 import { PlanBoardView } from '../plan/PlanBoardView'
 import { RunsEvidenceView } from '../runs/RunsEvidenceView'
@@ -2465,6 +2465,9 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
                       />
                     ) : (
                       <div>
+                        <ListHeader
+                          columns={{ id: 'ID', title: 'Task', meta: 'Agent', status: 'Status' }}
+                        />
                         {tasks.map((task) => {
                           const time = task.lastRunAt ? formatRunTime(task.lastRunAt) : ''
                           return (
