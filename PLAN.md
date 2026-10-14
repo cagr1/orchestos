@@ -836,6 +836,45 @@ color; la respuesta del asistente va sin caja; el identificador técnico se copi
 
 Fuera de esta pasada: Settings, modo Dev, barra lateral, backend, Chat Orb.
 
+### UI.25 — Settings con la familia: fluido y definido (ABIERTO 2026-10-13, GO de Carlos 2026-10-13)
+
+Pedido de Carlos 2026-10-13: *"no busco tanto el color sino su comportamiento, su look … OrchestOS no tiene una UI
+amigable o bien definida, hay colores dispersos, mira Settings, arregla que quede como dije, fluido y premium"*. El
+tema por defecto **no cambia** (decisión de Carlos en el mismo mensaje). Con el GO, Settings deja de quedar "fuera de
+esta pasada" de UI.24 y entra a la familia Fluid Functionalism; UI.25 va antes de UI.24.4.
+
+**Diagnóstico** (dashboard real mirado por el cerebro en el navegador, 2026-10-13, y `OrchestSettingsView.tsx`):
+- 2 838 líneas en un componente, 0 imports de `components/ui`: la familia instalada en UI.24.1 solo la usa el hilo.
+- 9 familias de color de Tailwind escritas a mano (emerald 49, zinc 31, rose 28, sky 4, amber 3, teal, purple, indigo,
+  blue); cada icono de la barra lateral tiene un color distinto sin significado.
+- Tres botones distintos para guardar; `font-mono` 43 veces (etiquetas, campos, desplegables, badges).
+- Cada fila es una tarjeta con borde; columna de ~720 px pegada a la izquierda; proyecto a ancho completo.
+- Model routing: 3 desplegables apilados por rol sin etiqueta. Sin hover ni transiciones de la familia.
+- "Loading live settings…" se dibuja encima del título (`:924-926`); en proyecto, cada tarea repite su texto y parte
+  el UUID en 5 líneas.
+
+**Referencias miradas en navegador 2026-10-13** (antes solo se leyeron como texto): fluidfunctionalism.com,
+elements.ai-sdk.dev, onorca.dev y los tokens de MusicKind (`web/src/index.css`). Patrón común: separación por nivel
+de superficie y no por línea, un acento escaso, color solo como estado, monoespaciada solo para lo técnico, filas
+planas con hover. Planes y Obsidian UI no siguen el patrón y no guían.
+
+**Reglas de UI.25:** una columna centrada de ancho único para todas las secciones; grupo = una superficie con filas
+separadas por línea fina (etiqueta a la izquierda, control a la derecha); un botón primario por sección; verde, rojo y
+ámbar solo como estado, por token `--app-*`, nunca por paleta de Tailwind; `font-mono` solo en rutas, claves, ids de
+modelo y cifras; el movimiento es el de la familia y respeta `prefers-reduced-motion`. No cambia qué opciones
+existen, ni la lógica, ni el backend, ni los `--app-*`.
+
+- [ ] **UI.25.1 — 🧠 Primitivos de Settings + piloto (General y Executor).** `components/settings/primitives.tsx`
+  compuesto con la familia; General y Executor migradas. Verifica: `smoke`, `chat-roles`, conteo de colores a mano = 0
+  en lo migrado, y el cerebro mira ambas pantallas en los 4 temas. Spec: docs/specs/UI.25.1.md
+- [ ] **UI.25.2 — 🧠 Barra lateral de Settings.** Filas planas con hover fluido, iconos en un tono, activo en acento.
+- [ ] **UI.25.3 — 🧠 Resto de secciones.** Health, API & Models, Model routing (con etiquetas por desplegable), Usage,
+  Danger zone, Language. Añade del registro lo que falte (`select`/`dropdown`, `switch`, `tabs`, `input-group`).
+  Verifica: `model-routing`, `smoke`.
+- [ ] **UI.25.4 — 🧠 Página de proyecto.** Tareas sin texto duplicado ni UUID partido; se coordina con UI.24.5.
+
+Fuera de esta pasada: tema y paleta, backend, modo Dev, shell principal (cabecera y barra lateral del chat).
+
 ## Fase 3 — Correr dentro de OrchestOS igual que el CLI directo
 
 - [ ] **AT.13 — 🧠 El contexto que el chat inyecta al CLI dice la verdad.** (abierto 2026-09-22, pendiente)

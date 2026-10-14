@@ -418,6 +418,42 @@
       "closedDate": null
     },
     {
+      "id": "UI.25.1",
+      "sprint": "Fase 2 — Producto mínimo para entrega",
+      "block": "UI.25 — Settings con la familia: fluido y definido (ABIERTO 2026-10-13, GO de Carlos 2026-10-13)",
+      "delegation": "🧠",
+      "title": "Primitivos de Settings + piloto (General y Executor)",
+      "status": "open",
+      "closedDate": null
+    },
+    {
+      "id": "UI.25.2",
+      "sprint": "Fase 2 — Producto mínimo para entrega",
+      "block": "UI.25 — Settings con la familia: fluido y definido (ABIERTO 2026-10-13, GO de Carlos 2026-10-13)",
+      "delegation": "🧠",
+      "title": "Barra lateral de Settings",
+      "status": "open",
+      "closedDate": null
+    },
+    {
+      "id": "UI.25.3",
+      "sprint": "Fase 2 — Producto mínimo para entrega",
+      "block": "UI.25 — Settings con la familia: fluido y definido (ABIERTO 2026-10-13, GO de Carlos 2026-10-13)",
+      "delegation": "🧠",
+      "title": "Resto de secciones",
+      "status": "open",
+      "closedDate": null
+    },
+    {
+      "id": "UI.25.4",
+      "sprint": "Fase 2 — Producto mínimo para entrega",
+      "block": "UI.25 — Settings con la familia: fluido y definido (ABIERTO 2026-10-13, GO de Carlos 2026-10-13)",
+      "delegation": "🧠",
+      "title": "Página de proyecto",
+      "status": "open",
+      "closedDate": null
+    },
+    {
       "id": "AT.13",
       "sprint": "Fase 3 — Correr dentro de OrchestOS igual que el CLI directo",
       "block": null,

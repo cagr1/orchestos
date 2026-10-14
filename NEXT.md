@@ -13,7 +13,10 @@
 6. Residuos de `erp-piloto`: limpiar si no sirven (las 3 tareas sobrantes no sirven; se limpian tras el hallazgo 5).
 7. `chat-retry-report` NO entra al pre-push.
 
-## PRIMERO al retomar — UI.24.4 (UI.24.1 a UI.24.3 cerrados); ERP.4.14 pasa a UI.24.6
+## PRIMERO al retomar — UI.25.1 (Settings con la familia; GO de Carlos 2026-10-13), luego UI.25.2-25.4 y UI.24.4
+UI.25 abierto 2026-10-13: Carlos pidió Settings "fluido y premium", tema por defecto intacto. Spec del paso 1 en
+`docs/specs/UI.25.1.md` (rol `criterio`). Los cambios sin commitear en `PLAN.md`, `NEXT.md` y `docs/specs/UI.25.1.md`
+son de UI.25.1. UI.24.1 a UI.24.3 cerrados; ERP.4.14 pasa a UI.24.6.
 ERP.4.10 (`e6efa62`), ERP.4.11 (`c476e68`), ERP.4.12 (`043770c`) y ERP.4.13 cerrados 2026-10-13. Siguiente:
 ERP.4.14 (el composer distingue "cargando" de "Orchestrator unassigned"), sin spec; luego 4.15 y 4.16.
 Visto en ERP.4.13, sin ítem: `CC.2 — chat sessions backend` dio timeout de 5 s una vez dentro de `test:coverage`
