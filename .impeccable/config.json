@@ -11,12 +11,6 @@
         "reason": "Markdown blockquotes intentionally use a semantic left border; this is not a side-tab component."
       },
       {
-        "rule": "overused-font",
-        "value": "plus jakarta sans",
-        "createdAt": "2026-09-21T22:45:41.072Z",
-        "reason": "UI.12.1 exige Plus Jakarta Sans local porque es la fuente del prototipo aprobado."
-      },
-      {
         "rule": "gray-on-color",
         "value": "*",
         "files": ["src/dashboard/app/src/components/memory/MemoryView.tsx"],

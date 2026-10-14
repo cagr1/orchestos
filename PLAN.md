@@ -780,9 +780,27 @@ color; la respuesta del asistente va sin caja; el identificador técnico se copi
   Hallazgo: el build rebaja `color-mix()` dentro de propiedades personalizadas a su valor de respaldo (la escalera
   llegó plana al navegador); y un contraste WCAG ≥ 1.15 sobre fondo casi negro pasa con una diferencia invisible.
   Ambos a `AGENTS.md` § Lecciones.
-- [ ] **UI.24.2 — 🧠 Tokens y jerarquía.** Un acento; fuera degradados índigo, sombras de color y `animate-ping`; cuerpo
+- [x] **UI.24.2 — 🧠 Tokens y jerarquía.** (cerrado 2026-10-13) Un acento; fuera degradados índigo, sombras de color y `animate-ping`; cuerpo
   a 14 px; respuesta del asistente sin caja, mensaje del usuario en burbuja discreta. `index.css` solo crece por el
   puente de tokens de UI.24.1.
+  Ejecutado por: gpt-6-luna (rol `mecanico`, rondas 1 a 3) · Spec: docs/specs/UI.24.2.md
+  Hecho (2026-10-13): el hilo real usa `ChatMessage` de la familia (usuario en burbuja, asistente sin caja, 14 px,
+  copiar y hora en la fila meta); fuera `Bot`/`User`, índigo, esmeralda, ámbar, zinc, degradados, sombras de color
+  y `animate-ping` de `OrchestChatView.tsx`; tarjetas de tarea planas con tokens `--app-*`, botón principal en el
+  acento. Inter es la fuente de toda la app vía `--font-sans` del `@theme`; fuera Plus Jakarta Sans (dependencia,
+  `@font-face` y excepción de `.impeccable`). `index.css` neto −4 líneas. `main.js` 1 587 960 B.
+  Evidencia: `tsc` raíz y del front, `lint`, `build:app` y `ui:fidelity:jsx` exit 0, corridos por el cerebro.
+  Gate en vivo: navegador real (Playwright), `docs/done/evidence/UI.24.2-live.json` — `chat-streaming` 22/22 (5
+  pasos nuevos sobre el hilo recargado: Inter computada en `body`, cuerpo 14 px, respuesta sin fondo/borde/sombra,
+  burbuja del usuario a ΔL* 12.98 del fondo, 0 degradados/`animate-ping`/iconos), `codex-live` 14/14, `auto-flow`
+  31/31, `chat-retry-report` 21/21, `thread-states` 71/71, `smoke` 6/6, `text-sweep` 10/10, `composer-picker` 5/5.
+  Contraprueba: la ronda 1 falló `thread-font-inter` (la utilidad `font-sans` tapaba a `body { font-family }`; la
+  app nunca dibujó Plus Jakarta Sans). Capturas miradas: `thread-hierarchy`, `task-inline-report`, `dirty-tree-report`.
+  Límites: entrada y `layout` de `ChatMessage` apagados (`initial={false}`, `layout={false}`) hasta UI.24.7; la
+  tarjeta "Task ready to run" (Approve/Reject) no salió en ninguna captura, solo la de árbol sucio; tema claro sin
+  mirar en el hilo real; razonamiento y herramientas solo cambiaron de color (UI.24.3 y UI.24.7).
+  Hallazgo para UI.24.4: una respuesta pedida "uno por línea" se dibuja como un solo párrafo (markdown junta los
+  saltos simples); ya estaba así antes de este ítem.
 - [ ] **UI.24.3 — 🧠 Pensando.** Texto con shimmer que nombra la fase real (pensando, herramienta en curso) y el tiempo;
   al terminar se pliega a "Pensó 12 s" y se abre con un clic. Datos: `reasoning` de `chat.ts:234`.
 - [ ] **UI.24.4 — 🧠 Respuesta en streaming.** Streamdown en lugar de `react-markdown`: entrada por palabra, markdown

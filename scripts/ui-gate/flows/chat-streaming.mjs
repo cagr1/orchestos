@@ -468,6 +468,110 @@ export default async function chatStreaming({ page, api, step, shot, visible, cl
     `messages=${restoredTexts.length}`,
   )
 
+  await shot('thread-hierarchy')
+  const threadHierarchy = await page.evaluate(() => {
+    const root = document.querySelector('[data-ff]')
+    const prose = [...(root?.querySelectorAll('div.prose') ?? [])].at(-1)
+    const user = root?.querySelector('div.max-w-2xl')
+    const bubble = user?.querySelector('div.whitespace-pre-wrap')
+    const canvas = document.createElement('canvas')
+    canvas.width = 1
+    canvas.height = 1
+    const context = canvas.getContext('2d', { willReadFrequently: true })
+    const labLightness = (color) => {
+      context.clearRect(0, 0, 1, 1)
+      context.fillStyle = color
+      context.fillRect(0, 0, 1, 1)
+      const [red, green, blue] = context.getImageData(0, 0, 1, 1).data
+      const linearize = (channel) => {
+        const value = channel / 255
+        return value <= 0.04045 ? value / 12.92 : ((value + 0.055) / 1.055) ** 2
+      }
+      const r = linearize(red)
+      const g = linearize(green)
+      const b = linearize(blue)
+      const y = (0.2126729 * r + 0.7151522 * g + 0.072175 * b) / 1.0000001
+      const delta = 6 / 29
+      const f = y > delta ** 3 ? Math.cbrt(y) : y / (3 * delta ** 2) + 4 / 29
+      return 116 * f - 16
+    }
+    const opaque = (element) =>
+      Number.parseFloat(
+        getComputedStyle(element).backgroundColor.match(/rgba?\([^)]*[,/]\s*([\d.]+)\s*\)$/)?.[1] ??
+          '1',
+      ) > 0
+    let background = bubble?.parentElement
+    while (background && !opaque(background)) background = background.parentElement
+    const bubbleColor = bubble ? getComputedStyle(bubble).backgroundColor : ''
+    const backgroundColor = background ? getComputedStyle(background).backgroundColor : ''
+    const userBubbleL = bubbleColor ? labLightness(bubbleColor) : null
+    const backgroundL = backgroundColor ? labLightness(backgroundColor) : null
+    const assistantAncestors = []
+    for (let node = prose; node && node !== root; node = node.parentElement) {
+      const style = getComputedStyle(node)
+      assistantAncestors.push({
+        backgroundColor: style.backgroundColor,
+        borderTopWidth: style.borderTopWidth,
+        boxShadow: style.boxShadow,
+      })
+    }
+    const decorations = [...(root?.querySelectorAll('*') ?? [])]
+    return {
+      fontFamily: getComputedStyle(document.body).fontFamily,
+      proseFontSize: prose ? getComputedStyle(prose).fontSize : null,
+      assistantAncestors,
+      userBubble: {
+        found: Boolean(bubble),
+        backgroundColor: bubbleColor,
+        opaque: bubble ? opaque(bubble) : false,
+        userBubbleL,
+        backgroundL,
+        difference:
+          userBubbleL == null || backgroundL == null ? null : Math.abs(userBubbleL - backgroundL),
+      },
+      decorations: {
+        animatePing: root?.querySelectorAll('.animate-ping').length ?? 0,
+        gradients: decorations.filter((element) =>
+          getComputedStyle(element).backgroundImage.includes('gradient'),
+        ).length,
+        botIcons: root?.querySelectorAll('svg.lucide-bot').length ?? 0,
+        userIcons: root?.querySelectorAll('svg.lucide-user').length ?? 0,
+      },
+    }
+  })
+  await step(
+    'thread-font-inter',
+    threadHierarchy.fontFamily.includes('Inter'),
+    `font-family=${threadHierarchy.fontFamily}`,
+  )
+  await step(
+    'thread-body-14px',
+    threadHierarchy.proseFontSize === '14px',
+    `font-size=${threadHierarchy.proseFontSize}`,
+  )
+  const assistantUnboxed = threadHierarchy.assistantAncestors.every((style) => {
+    const alpha = Number.parseFloat(
+      style.backgroundColor.match(/rgba?\([^)]*[,/]\s*([\d.]+)\s*\)$/)?.[1] ?? '1',
+    )
+    return alpha === 0 && style.borderTopWidth === '0px' && style.boxShadow === 'none'
+  })
+  await step(
+    'thread-assistant-unboxed',
+    assistantUnboxed,
+    `ancestors=${JSON.stringify(threadHierarchy.assistantAncestors)}`,
+  )
+  await step(
+    'thread-user-bubble-visible',
+    threadHierarchy.userBubble.opaque && threadHierarchy.userBubble.difference >= 5,
+    `bubble=${JSON.stringify(threadHierarchy.userBubble)}`,
+  )
+  const { animatePing, gradients, botIcons, userIcons } = threadHierarchy.decorations
+  await step(
+    'thread-no-decoration',
+    animatePing === 0 && gradients === 0 && botIcons === 0 && userIcons === 0,
+    `animate-ping=${animatePing}, gradients=${gradients}, bot-icons=${botIcons}, user-icons=${userIcons}`,
+  )
+
   // The Dev workspace uses the same session timeline renderer and shares its composer.
   await page.getByRole('button', { name: 'Dev', exact: true }).click()
   const projectRow = page.getByRole('button', { name: basename(projectRoot), exact: true })

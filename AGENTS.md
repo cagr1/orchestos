@@ -175,6 +175,9 @@ Medidas en los lotes L1–L4 y los ítems de Sprint 30/ERP/I/CX; cada una costó
 - **CSS del front (UI.24.1, 2026-10-13).** El build (`bun-plugin-tailwind`) rebaja `color-mix()` dentro de una
   propiedad personalizada a su valor de respaldo: `--x: color-mix(...)` llega al navegador como el primer color.
   Los tokens derivados se escriben como literales por tema; verificar en `dist/main.css`, no en `index.css`.
+- **Fuente de la app (UI.24.2, 2026-10-13).** `body` y la raíz de `App.tsx` llevan `font-sans`: la fuente se cambia
+  en `--font-sans` del `@theme` de `index.css`, no en `body { font-family }` (la utilidad gana). Plus Jakarta Sans
+  estuvo cargada meses sin dibujarse nunca. Un gate de tipografía lee el `font-family` computado, no el CSS fuente.
 - **Gates de color.** Un contraste de luminancia WCAG sobre fondo casi negro pasa con diferencias invisibles: medir
   diferencia de claridad `L*` (CIELAB) contra el fondo efectivo del ancestro, no contra `body`, y acompañar con una
   contraprueba que falle. Una captura mirada por el cerebro sigue siendo obligatoria: el gate pasó 71/71 con la

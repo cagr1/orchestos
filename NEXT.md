@@ -13,10 +13,7 @@
 6. Residuos de `erp-piloto`: limpiar si no sirven (las 3 tareas sobrantes no sirven; se limpian tras el hallazgo 5).
 7. `chat-retry-report` NO entra al pre-push.
 
-## PRIMERO al retomar — UI.24.2 (UI.24.1 cerrado `6c17cce`); ERP.4.14 pasa a UI.24.6
-**UI.24.2 en ejecución 2026-10-13:** ronda 1 aplicada sin commitear (`main.tsx`, `index.css`, `OrchestChatView.tsx`,
-`package.json`, `bun.lock`, `.impeccable/config.json`, `chat-streaming.mjs` son de UI.24.2); rondas 2 y 3 en
-`docs/specs/UI.24.2-r2.md` y `-r3.md` (`font-sans` de Tailwind tapaba a Inter; separación entre mensajes).
+## PRIMERO al retomar — UI.24.3 (UI.24.1 `6c17cce` y UI.24.2 cerrados); ERP.4.14 pasa a UI.24.6
 ERP.4.10 (`e6efa62`), ERP.4.11 (`c476e68`), ERP.4.12 (`043770c`) y ERP.4.13 cerrados 2026-10-13. Siguiente:
 ERP.4.14 (el composer distingue "cargando" de "Orchestrator unassigned"), sin spec; luego 4.15 y 4.16.
 Visto en ERP.4.13, sin ítem: `CC.2 — chat sessions backend` dio timeout de 5 s una vez dentro de `test:coverage`
@@ -35,10 +32,12 @@ identidad **local** en el repo temporal (`git config user.name/email`), no solo 
 ## EN CURSO — UI.24, el hilo del chat con acabado premium (PLAN.md § UI.24; GO de Carlos 2026-10-13)
 Familia elegida: Fluid Functionalism (MIT) + Streamdown. **UI.24.1 cerrado y pusheado (`6c17cce`)**: la familia
 está instalada, la lámina vive en `?view=thread-states` (gate `thread-states`) y el hilo real todavía no la usa.
-**Siguiente: UI.24.2**, sin spec. Decisiones ya tomadas para ese spec: Inter pasa a ser la fuente de toda la app
-(hoy solo bajo `[data-ff]`; quitar Plus Jakarta Sans de `main.tsx` y de `body`); en el hilo real, mensaje del
-usuario y del asistente con `ChatMessage` de la familia (asistente sin caja, 14 px); fuera `Bot`/`User` de lucide
-junto a cada mensaje, degradados índigo y `animate-ping` (`OrchestChatView.tsx:423,426,528,531`). Los gates de chat
+**UI.24.2 cerrado 2026-10-13**: el hilo real usa `ChatMessage`, un acento, Inter en toda la app (`--font-sans`
+del `@theme`). **Siguiente: UI.24.3**, sin spec. Pendiente dentro de UI.24: entrada/`layout` de `ChatMessage`
+apagados hasta UI.24.7; la tarjeta "Task ready to run" y el tema claro no se miraron en captura; respuesta "uno por
+línea" sale en un solo párrafo (UI.24.4). Los gates leen además `div.max-w-2xl` (burbuja del usuario) y
+`div.max-w-3xl` (lista del hilo). Lección: `delegate mecanico` no formatea — correr `bunx biome format --write` sobre
+lo tocado antes del lint. Los gates de chat
 leen `div.prose`, `textarea`, `aria-label="Send message"`, `title="Select model and reasoning effort"` y los textos
 "Approve & Run", "Commit & Run", "Retry": conservarlos o cambiar flujo y componente en el mismo ítem.
 `AgentComposer.tsx` está bajo `ui:fidelity:jsx` contra el prototipo: al rediseñarlo en UI.24.6 hay que sacarlo de
