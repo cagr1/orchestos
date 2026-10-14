@@ -1,7 +1,37 @@
 {
-  "exported_at": "2026-10-14T01:26:33.318Z",
+  "exported_at": "2026-10-14T01:35:49.412Z",
   "total_runs": 20,
   "runs": [
+    {
+      "id": "85e3a8e0-9cce-4a71-bcab-2cb27afc2a4b",
+      "task_class": "chat",
+      "model": "gpt-6-sol",
+      "provider": "codex",
+      "status": "done",
+      "qa_verdict": null,
+      "qa_reason": null,
+      "files_blocked": [],
+      "checks_failed": 0,
+      "usd_cost": 0.038172,
+      "elapsed_ms": 17526,
+      "tokens": 3078,
+      "created_at": "2026-10-14T01:35:46.224Z"
+    },
+    {
+      "id": "2406a806-7a87-42c8-a506-82a4d7e01920",
+      "task_class": "chat",
+      "model": "gpt-6-sol",
+      "provider": "codex",
+      "status": "done",
+      "qa_verdict": null,
+      "qa_reason": null,
+      "files_blocked": [],
+      "checks_failed": 0,
+      "usd_cost": 0.0417288,
+      "elapsed_ms": 5150,
+      "tokens": 7582,
+      "created_at": "2026-10-14T01:34:55.459Z"
+    },
     {
       "id": "ae71ed1e-c95d-4902-95b6-53f323024c78",
       "task_class": "gate:ui.24.2-retry-live:implement",
@@ -271,36 +301,6 @@
       "elapsed_ms": 22265,
       "tokens": 11398,
       "created_at": "2026-10-13T18:35:15.283Z"
-    },
-    {
-      "id": "d16827c0-ba99-4e29-90a2-8fc1c2a28412",
-      "task_class": "gate:erp.4.10-autoflow-regression:implement",
-      "model": "gpt-6-luna",
-      "provider": "codex",
-      "status": "done",
-      "qa_verdict": "pass",
-      "qa_reason": "El archivo contiene la única línea solicitada: «nota de codex».",
-      "files_blocked": [],
-      "checks_failed": 0,
-      "usd_cost": 0.0007461799999999999,
-      "elapsed_ms": 13875,
-      "tokens": 7696,
-      "created_at": "2026-10-13T18:16:38.251Z"
-    },
-    {
-      "id": "3ab752a2-94f3-4530-b9bd-4244ce876f59",
-      "task_class": "gate:erp.4.10-autoflow-regression:implement",
-      "model": "haiku",
-      "provider": "claude",
-      "status": "done",
-      "qa_verdict": "pass",
-      "qa_reason": "claude-nota.md contiene únicamente la línea solicitada: «nota de claude».",
-      "files_blocked": [],
-      "checks_failed": 0,
-      "usd_cost": 0.00154355,
-      "elapsed_ms": 11244,
-      "tokens": 3401,
-      "created_at": "2026-10-13T18:16:02.533Z"
     }
   ],
   "stats": {
@@ -308,6 +308,6 @@
     "blocked": 0,
     "done": 17,
     "qa_failed": 3,
-    "total_cost_usd": "0.3233"
+    "total_cost_usd": "0.4009"
   }
 }

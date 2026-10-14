@@ -33,7 +33,7 @@ identidad **local** en el repo temporal (`git config user.name/email`), no solo 
 Familia elegida: Fluid Functionalism (MIT) + Streamdown. **UI.24.1 cerrado y pusheado (`6c17cce`)**: la familia
 está instalada, la lámina vive en `?view=thread-states` (gate `thread-states`) y el hilo real todavía no la usa.
 **UI.24.2 cerrado 2026-10-13**: el hilo real usa `ChatMessage`, un acento, Inter en toda la app (`--font-sans`
-del `@theme`). **Siguiente: UI.24.3**, sin spec. Pendiente dentro de UI.24: entrada/`layout` de `ChatMessage`
+del `@theme`). **Siguiente: UI.24.3**, en ejecución (spec `docs/specs/UI.24.3.md`, rol `criterio`; UI.24.2 pusheado `2627ac9`). Pendiente dentro de UI.24: entrada/`layout` de `ChatMessage`
 apagados hasta UI.24.7; la tarjeta "Task ready to run" y el tema claro no se miraron en captura; respuesta "uno por
 línea" sale en un solo párrafo (UI.24.4). Los gates leen además `div.max-w-2xl` (burbuja del usuario) y
 `div.max-w-3xl` (lista del hilo). Lección: `delegate mecanico` no formatea — correr `bunx biome format --write` sobre
