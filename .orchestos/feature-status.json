@@ -207,7 +207,7 @@
       "block": "H.7 — El contexto se llena en silencio y nadie avisa (ABIERTO 2026-09-02)",
       "delegation": "🔍",
       "title": "`tasks-concurrency` (5 SIGKILL) falla por timeout del lock dentro de la suite completa",
-      "status": "open",
+      "status": "done",
       "closedDate": null
     },
     {
