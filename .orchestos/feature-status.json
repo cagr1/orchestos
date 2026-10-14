@@ -342,7 +342,7 @@
       "block": "H.7 — El contexto se llena en silencio y nadie avisa (ABIERTO 2026-09-02)",
       "delegation": "🔍",
       "title": "El turno 1 de Claude (haiku, \"Reply only OK\") no responde en 180 s, sin rastro",
-      "status": "open",
+      "status": "done",
       "closedDate": null
     },
     {

@@ -90,6 +90,7 @@ export const AgentComposer: React.FC<AgentComposerProps> = ({
 }) => {
   const [availableClis, setAvailableClis] = useState<CliConfig[]>([])
   const [isLoadingModels, setIsLoadingModels] = useState(true)
+  const sendWhenReadyRef = useRef(false)
   const [activeCli, setActiveCli] = useState<CliId>(lockedCli ?? defaultCli)
   const fallbackCli = CLIS.find((cli) => cli.id === (lockedCli ?? defaultCli)) ?? CLIS[0]
   const initialModel = defaultModel ?? ''
@@ -246,7 +247,14 @@ export const AgentComposer: React.FC<AgentComposerProps> = ({
 
   const handleSend = async () => {
     if (busy || (!inputText.trim() && attachments.length === 0)) return
-    if (!isShellMode && (isLoadingModels || currentCliConfig.models.length === 0)) return
+    if (!isShellMode && isLoadingModels) {
+      // CI.25 — antes el Enter se descartaba sin rastro mientras cargaban los modelos (p. ej.
+      // justo tras recargar): el texto quedaba en la caja y nada se enviaba. Se recuerda y se
+      // envía en cuanto el catálogo termina de cargar.
+      sendWhenReadyRef.current = true
+      return
+    }
+    if (!isShellMode && currentCliConfig.models.length === 0) return
     const content = inputText.trim()
     if (content.startsWith('/')) {
       const [command, ...argument] = content.split(/\s+/)
@@ -327,6 +335,12 @@ export const AgentComposer: React.FC<AgentComposerProps> = ({
       : []
   const filteredModels = currentCliConfig.models
   const modelsReady = !isLoadingModels && currentCliConfig.models.length > 0
+
+  useEffect(() => {
+    if (isLoadingModels || !sendWhenReadyRef.current) return
+    sendWhenReadyRef.current = false
+    void handleSend()
+  })
 
   useEffect(() => {
     onSelectionChange?.(activeCli, effectiveSelectedModel)

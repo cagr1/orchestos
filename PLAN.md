@@ -646,12 +646,23 @@ Cerrada. Todos sus ítems están archivados en `docs/done/` (ver "Cerrados — e
   Gate en vivo: navegador real (Playwright), `docs/done/evidence/CI.24-live.json` — `chat-continuity` 8/8 en 2 de 3
   corridas; la 3.ª cayó por el timeout del turno 1 (→ CI.25). Límite: la negativa se vio 1 vez; que no reaparezca en 2
   corridas es evidencia débil.
-- [ ] **CI.25 — 🔍 El turno 1 de Claude (haiku, "Reply only OK") no responde en 180 s, sin rastro.** Visto 2 veces el
+- [x] **CI.25 — 🔍 El turno 1 de Claude (haiku, "Reply only OK") no responde en 180 s, sin rastro.** Visto 2 veces el
   2026-10-14 en `chat-continuity` (pre-push de `ec3e309`, intento 2, y corrida 2 de CI.24). El `dashboard.log` no dice
   nada: el chat no registra spawn, salida ni duración del CLI. Primero que deje evidencia (pid, exit, stderr, ms del
   CLI de chat en `dashboard.log`), luego causa. Posible hermano de CI.11 (turno 2 de Codex lento).
   2026-10-14 tarde: se reproduce siempre (pre-push de `5d67f56` ×2 + a solas ×1) tras actualizarse Claude Code a
-  2.1.300; bloquea el push. Spec: docs/specs/CI.25.md
+  2.1.300; bloquea el push.
+  Ejecutado por: criterio (delegate) · Spec: docs/specs/CI.25.md
+  (cerrado 2026-10-14) Rastro nuevo: `[cli-spawn]` (agente, pid, entorno, primer byte, ms, exit, stderr) para Claude y
+  Codex (`src/run/executors/spawn-trace.ts`) y `[chat-turn] received` al llegar el POST. Con él, en la falla el
+  segundo turno (tras recargar) nunca llegó al servidor: `AgentComposer.handleSend` descartaba en silencio el Enter
+  mientras cargaban los modelos (el mismo "Loading models…" de R.8.1.1). Ahora el envío se recuerda y sale al
+  terminar la carga. Además un `result` con `is_error` del CLI (p. ej. "Not logged in") es error visible del turno.
+  **Causa inferida, no demostrada** (sin contraprueba con el arreglo revertido). Visto una vez en la depuración:
+  `claude not found in PATH` durante el auto-update de Claude Code (ya sale como 502 visible).
+  Evidencia (cerebro): diff leído; typecheck y lint verdes; `chat-continuity` 3/3 seguidas (8/8 cada una).
+  Gate en vivo: navegador real (Playwright), `docs/done/evidence/CI.25-live.json` — `chat-streaming` 24/24,
+  `codex-live` 14/14, `chat-continuity` 8/8, `composer-picker` 5/5.
 - [x] **R.8.4 — 🔍 Reinicio del dashboard a mitad de run.** (2026-10-11) Recuperar el resultado y el reporte de fin
   (gap declarado de I.7.2). Hallazgo 4.
   Ejecutado por: sonnet (rondas 1-2) · gpt-6-luna (rondas 3-5) · revisión `qa` gpt-6.1-sol.

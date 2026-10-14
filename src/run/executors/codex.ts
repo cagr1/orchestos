@@ -40,6 +40,7 @@ import { knownCostWithCache } from '../../router/pricing.ts'
 import { safeChildEnv } from '../path-policy.ts'
 import { provisionCliConfigHome } from './cli-registry.ts'
 import { type CodexAppServerThreadStore, getCodexAppServer } from './codex-app-server.ts'
+import { startSpawnTrace } from './spawn-trace.ts'
 import { codexEventToStep, type ExecutorStepEvent } from './step-event.ts'
 import type { ExecutorEngine, ExecutorOutcome } from './types.ts'
 import { readWorktreeDiff } from './worktree-diff.ts'
@@ -169,6 +170,14 @@ async function runCodex(
     stdout: 'pipe',
     stderr: 'pipe',
   })
+  const trace = startSpawnTrace('codex', proc.pid, args, cwd, env)
+  let stderrText = ''
+  const stderrDone = new Response(proc.stderr)
+    .text()
+    .then((t) => {
+      stderrText = t
+    })
+    .catch(() => {})
 
   let timedOut = false
   const timer = setTimeout(() => {
@@ -184,6 +193,7 @@ async function runCodex(
     while (true) {
       const { done, value } = await reader.read()
       if (done) break
+      trace.firstByte()
       const chunk = decoder.decode(value, { stream: true })
       stdout += chunk
       lineBuffer += chunk
@@ -204,8 +214,10 @@ async function runCodex(
     reader.releaseLock()
   }
 
-  await proc.exited
+  const exitCode = await proc.exited
   clearTimeout(timer)
+  await stderrDone
+  trace.end(exitCode, stderrText, timedOut)
 
   return { stdout, timedOut }
 }

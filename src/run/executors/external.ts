@@ -22,6 +22,7 @@ import { loadOrcheConfig } from '../../config/load.ts'
 import { safeChildEnv } from '../path-policy.ts'
 import { ClaudeReadAudit, type ReadAudit, successfulReadPaths } from '../read-audit.ts'
 import { KNOWN_CLIS, provisionCliConfigHome, supportsRestrictedMode } from './cli-registry.ts'
+import { startSpawnTrace } from './spawn-trace.ts'
 import { claudeEventToStep, claudeEventToTextDelta, type ExecutorStepEvent } from './step-event.ts'
 import type { ExecutorEngine, ExecutorOutcome } from './types.ts'
 import { readWorktreeDiff } from './worktree-diff.ts'
@@ -64,6 +65,8 @@ interface ClaudeCodeJson {
   session_id?: string
   /** Texto final del agente (evento `type: "result"`). */
   result?: string
+  /** `true` cuando el CLI terminó con error (p. ej. "Not logged in"): `result` trae el motivo. */
+  is_error?: boolean
   usage?: {
     input_tokens?: number
     output_tokens?: number
@@ -230,6 +233,15 @@ async function runClaudeCode(
     stdout: 'pipe',
     stderr: 'pipe',
   })
+  const env = safeChildEnv()
+  const trace = startSpawnTrace('claude', proc.pid, args, cwd, env)
+  let stderrText = ''
+  const stderrDone = new Response(proc.stderr)
+    .text()
+    .then((t) => {
+      stderrText = t
+    })
+    .catch(() => {})
   proc.stdin.write(userPrompt)
   proc.stdin.end()
 
@@ -261,6 +273,7 @@ async function runClaudeCode(
     while (true) {
       const { done, value } = await reader.read()
       if (done) break
+      trace.firstByte()
       const chunk = decoder.decode(value, { stream: true })
       stdout += chunk
       lineBuffer += chunk
@@ -273,6 +286,8 @@ async function runClaudeCode(
     }
     consumeLine(lineBuffer + decoder.decode())
     const exitCode = await proc.exited
+    await stderrDone
+    trace.end(exitCode, stderrText, timedOut)
     if (exitCode !== 0) audit.issue('process-nonzero-exit')
     if (timedOut) audit.issue('timeout')
   } catch (error) {
@@ -452,6 +467,14 @@ export async function runClaudeChat(
     parsed = JSON.parse(resultLine)
   } catch {
     throw new ExecutorExternalError('claude code result event was not valid JSON')
+  }
+  // CI.25 — un `is_error` no es una respuesta vacía: se muestra como error del turno.
+  if (parsed.is_error === true) {
+    const error = new ExecutorExternalError(
+      `claude code reported an error: ${parsed.result?.trim() || 'no message'}`,
+    )
+    error.readAudit = audit.finish()
+    throw error
   }
 
   return {

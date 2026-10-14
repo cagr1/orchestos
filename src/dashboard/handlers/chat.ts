@@ -822,6 +822,10 @@ async function handleApiChat(
   }
   const message = body.message?.trim()
   if (!message) return errorResponse('message is required', 400)
+  // CI.25 — rastro de recepción: separa "el POST nunca llegó" de "llegó y no respondió".
+  console.error(
+    `[chat-turn] ${JSON.stringify({ event: 'received', sessionId: body.sessionId ?? null, agent: body.agent ?? null, model: body.model ?? null, messageChars: message.length })}`,
+  )
 
   // CC.1b (2026-08-16) — hallazgo real de Carlos el mismo día del gate de CC.1:
   // el selector de esfuerzo (3 niveles, pensado para el `reasoning` de OpenRouter)
@@ -1559,7 +1563,7 @@ async function handleApiChat(
       } catch (e: any) {
         if (e.readAudit) {
           finishTurnFailure({
-            error: 'Claude stream failed; read evidence incomplete',
+            error: `Claude stream failed: ${e.message}`,
             model,
             readAudit: e.readAudit,
             provider: 'claude',

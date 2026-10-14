@@ -119,6 +119,16 @@ describe('runClaudeChat (CC.1)', () => {
     expect(checked).toBe(realpathSync(process.execPath))
     expect(spawnCalls[0]!.cmd[0]).toBe(checked)
   })
+  it('CI.25: un result con is_error lanza el motivo del CLI en vez de devolver texto vacío', async () => {
+    overrideBunSpawn(
+      makeMockProc(
+        streamOf(resultEvent({ is_error: true, result: 'Not logged in · Please run /login' })),
+      ),
+    )
+    await expect(runClaudeChat('/tmp/p', 'sys', 'msg', 5000)).rejects.toThrow(
+      'Not logged in · Please run /login',
+    )
+  })
   it('construye --settings apuntando al archivo aislado del proyecto', () => {
     const args = buildClaudeChatArgs(
       'system',
