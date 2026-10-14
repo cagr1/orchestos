@@ -713,6 +713,66 @@ anteriores, con pruebas de comportamiento; no abrir un refactor masivo por conte
 2. Estados de sesión `ended` con **resume/fork** (§C.3) — PI y Codex los tienen; OrchestOS no.
 3. Si UI.8.6 entra en este bloque o sale como bloque propio con backend separado.
 
+### UI.24 — El hilo del chat con acabado premium (ABIERTO 2026-10-13, ESPERA GO de Carlos)
+
+Pedido de Carlos 2026-10-13: *"quiero de verdad algo mucho mejor que MusicKind … no una combinación grosera de
+componentes sino … profesional, limpio, intuitivo, pero sobre todo premium"*. Cómo se ve, cómo interactúa, cómo
+responde, cómo piensa. Solo presentación del hilo y del composer; la función no cambia.
+
+**Diagnóstico** (captura `chat-retry-report/dirty-tree-report.png` del gate de ERP.4.13 y `OrchestChatView.tsx`):
+- Cuatro acentos compitiendo: celeste (marca), índigo en degradado (`:423,528`), esmeralda (botones), ámbar con
+  `animate-ping`. MusicKind usa uno solo sobre superficies planas con borde fino.
+- Todo va en caja y con el mismo peso: respuesta, aviso de tarea, fallo y éxito son la misma burbuja.
+- Una tarea ocupa 3 burbujas y repite su UUID completo 2-3 veces.
+- "Pensando" es `Loader2` + `…` (`:581-586`); el streaming entra sin transición (`:571-580`); cuerpo a 12 px.
+- `reasoning` y `toolCalls` ya llegan del backend (`app/src/api/chat.ts:234-254`): falta dibujarlos bien, no pedirlos.
+
+**Referencias revisadas 2026-10-13** (texto de las páginas; la animación no se pudo ver con la herramienta):
+- Planes `chat-orb` (useplanes.com): lanzador flotante de soporte, Pro, $99 pago único. No aplica: OrchestOS es chat
+  a pantalla completa. Su familia de IA (Thinking Loader, Reasoning Trace, Tool Call Card, Agent Plan, Approval Card)
+  sirve como referencia de comportamiento. Licencia de uso sin verificar.
+- Obsidian UI (obsidianui.dev): 12 componentes, ninguno de chat. Solo referencia de lenguaje visual. Licencia sin verificar.
+- AI Elements (elements.ai-sdk.dev): Apache-2.0, registro shadcn, el código se copia al repo. Tiene las piezas que
+  faltan: `attachments`, `reasoning`, `shimmer`, `tool`, `task`, `confirmation`, `conversation`, `message`. Corrige
+  el descarte del handoff ("muchas dependencias"): las dependencias son por componente. Sin verificar: que el
+  paquete `ai` sea solo de tipos en esos archivos.
+- Streamdown 2.7.0: Apache-2.0 (verificado en npm); Shiki, KaTeX y Mermaid son plugins aparte.
+
+**Dirección:** una sola familia (AI Elements + Streamdown) reescrita a los tokens de OrchestOS, no una mezcla de
+bibliotecas. Fuera prompt-kit y motion-primitives. Planes no se compra. Reglas visuales: un acento (el celeste de
+marca); verde/rojo/ámbar solo como estado, nunca decoración; sin degradados ni sombras de color; la respuesta del
+asistente va sin caja; el identificador técnico se copia, no se lee; el movimiento informa (entrada, cambio de estado)
+y respeta `prefers-reduced-motion`.
+
+**Decisiones que faltan de Carlos:**
+1. El hilo deja de copiar el prototipo de AI Studio (revisa `feedback-prototipo-es-el-frontend` solo para el hilo y
+   el composer; el resto de la app no cambia). Recomendado: sí.
+2. AI Elements exige primitivos de shadcn (Radix: collapsible, hover-card) que hoy no están en el repo. Recomendado: sí.
+3. Acento único = el celeste actual. Recomendado: sí.
+4. Orden: UI.24 antes de ERP.4.14–4.16 (ERP.4.14 toca el mismo composer y se cierra dentro de UI.24.6); ERP.4 se
+   cierra al final.
+
+- [ ] **UI.24.1 — 🧠 Lámina de estados del hilo.** Una ruta de desarrollo que dibuja con datos fijos todos los estados:
+  pensando, razonamiento, herramientas, streaming, tarea retenida / corriendo / fallida / pendiente / hecha, árbol
+  sucio, adjuntos, error de envío. Usa los mismos componentes que el hilo real. Sirve para que Carlos apruebe el look
+  una vez y como base de capturas del gate. Verifica: flujo `ui:gate` nuevo que captura la lámina.
+- [ ] **UI.24.2 — 🧠 Tokens y jerarquía.** Un acento; fuera degradados índigo, sombras de color y `animate-ping`; cuerpo
+  a 14 px; respuesta del asistente sin caja, mensaje del usuario en burbuja discreta. `index.css` no crece.
+- [ ] **UI.24.3 — 🧠 Pensando.** Texto con shimmer que nombra la fase real (pensando, herramienta en curso) y el tiempo;
+  al terminar se pliega a "Pensó 12 s" y se abre con un clic. Datos: `reasoning` de `chat.ts:234`.
+- [ ] **UI.24.4 — 🧠 Respuesta en streaming.** Streamdown en lugar de `react-markdown`: entrada por palabra, markdown
+  incompleto sin parpadeo, altura suave, scroll pegado al final, bloque de código con copiar. Verifica: `chat-streaming`.
+- [ ] **UI.24.5 — 🧠 Una tarjeta por tarea.** La tarea es una sola tarjeta que cambia de estado en su sitio; nombre corto
+  en vez de UUID (el UUID se copia); intento, modelo y acciones (Approve, Reject, Commit & Run, Retry) dentro de la
+  tarjeta; intentos anteriores plegados. Verifica: `chat-retry-report`, `chat-turn-details`, `auto-flow`.
+- [ ] **UI.24.6 — 🧠 Composer y adjuntos.** Adjuntos como fichas con vista previa y quitar; miniaturas en el mensaje
+  enviado. Incluye ERP.4.14. Verifica: `composer-picker`.
+- [ ] **UI.24.7 — 🧠 Herramientas y movimiento.** Llamadas a herramientas en una fila plegable ("3 herramientas · 2,1 s");
+  entrada de mensajes y transición entre estados; estado vacío. Revisión final por `qa` sobre capturas contra esta
+  dirección.
+
+Fuera de esta pasada: Settings, modo Dev, barra lateral, backend, Chat Orb.
+
 ## Fase 3 — Correr dentro de OrchestOS igual que el CLI directo
 
 - [ ] **AT.13 — 🧠 El contexto que el chat inyecta al CLI dice la verdad.** (abierto 2026-09-22, pendiente)

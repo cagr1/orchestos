@@ -355,6 +355,69 @@
       "closedDate": null
     },
     {
+      "id": "UI.24.1",
+      "sprint": "Fase 2 — Producto mínimo para entrega",
+      "block": "UI.24 — El hilo del chat con acabado premium (ABIERTO 2026-10-13, ESPERA GO de Carlos)",
+      "delegation": "🧠",
+      "title": "Lámina de estados del hilo",
+      "status": "open",
+      "closedDate": null
+    },
+    {
+      "id": "UI.24.2",
+      "sprint": "Fase 2 — Producto mínimo para entrega",
+      "block": "UI.24 — El hilo del chat con acabado premium (ABIERTO 2026-10-13, ESPERA GO de Carlos)",
+      "delegation": "🧠",
+      "title": "Tokens y jerarquía",
+      "status": "open",
+      "closedDate": null
+    },
+    {
+      "id": "UI.24.3",
+      "sprint": "Fase 2 — Producto mínimo para entrega",
+      "block": "UI.24 — El hilo del chat con acabado premium (ABIERTO 2026-10-13, ESPERA GO de Carlos)",
+      "delegation": "🧠",
+      "title": "Pensando",
+      "status": "open",
+      "closedDate": null
+    },
+    {
+      "id": "UI.24.4",
+      "sprint": "Fase 2 — Producto mínimo para entrega",
+      "block": "UI.24 — El hilo del chat con acabado premium (ABIERTO 2026-10-13, ESPERA GO de Carlos)",
+      "delegation": "🧠",
+      "title": "Respuesta en streaming",
+      "status": "open",
+      "closedDate": null
+    },
+    {
+      "id": "UI.24.5",
+      "sprint": "Fase 2 — Producto mínimo para entrega",
+      "block": "UI.24 — El hilo del chat con acabado premium (ABIERTO 2026-10-13, ESPERA GO de Carlos)",
+      "delegation": "🧠",
+      "title": "Una tarjeta por tarea",
+      "status": "open",
+      "closedDate": null
+    },
+    {
+      "id": "UI.24.6",
+      "sprint": "Fase 2 — Producto mínimo para entrega",
+      "block": "UI.24 — El hilo del chat con acabado premium (ABIERTO 2026-10-13, ESPERA GO de Carlos)",
+      "delegation": "🧠",
+      "title": "Composer y adjuntos",
+      "status": "open",
+      "closedDate": null
+    },
+    {
+      "id": "UI.24.7",
+      "sprint": "Fase 2 — Producto mínimo para entrega",
+      "block": "UI.24 — El hilo del chat con acabado premium (ABIERTO 2026-10-13, ESPERA GO de Carlos)",
+      "delegation": "🧠",
+      "title": "Herramientas y movimiento",
+      "status": "open",
+      "closedDate": null
+    },
+    {
       "id": "AT.13",
       "sprint": "Fase 3 — Correr dentro de OrchestOS igual que el CLI directo",
       "block": null,
