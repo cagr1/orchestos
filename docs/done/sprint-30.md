@@ -773,7 +773,7 @@ queda escrita porque va a volver a pasar en cuanto otro ítem se delegue en vari
 > **Motivo medido (auditoría en vivo 2026-09-15):** la lista de sesiones aparece dos veces
 > (sidebar `Sidebar.tsx:111-179` rotulada "N agents" + aside del chat `screens-core.js:474-529`);
 > las "agents" del sidebar son `chat_sessions`; el rail colapsado amontona "Projects" y
-> "0 agents". Referencias: Dev = `~/Documents/screens/Orca1_main.png` (`docs/ui-reference-patterns.md`
+> "0 agents". Referencias: Dev = `~/Documents/screens/Orca1_main.png` (`docs/done/ui/ui-reference-patterns.md`
 > A.1–A.7); Chat = captura de Claude Desktop de Carlos (2026-09-15).
 >
 > **Decisiones de Carlos (2026-09-15):** (1) cada modo muestra lo suyo — Chat lista sesiones
@@ -972,7 +972,7 @@ queda escrita porque va a volver a pasar en cuanto otro ítem se delegue en vari
 >    Carlos: "CRM moderno".
 > 9. **Referencia nueva:** Circle (https://circle.lndev.me/lndev-ui/team/DESIGN/overview, repo
 >    `ln-dev7/circle`, Next.js + shadcn/ui, estilo Linear). La guía principal sigue siendo
->    `docs/ui-reference-patterns.md` + capturas en `~/Documents/screens/`.
+>    `docs/done/ui/ui-reference-patterns.md` + capturas en `~/Documents/screens/`.
 > **Segunda ronda, mismo día:**
 > - **Panel derecho = historial de agentes**, captura nueva `~/Documents/screens/rightside_agents.png`
 >   (Orca): tabs de iconos arriba (archivos, agentes, source control, tasks) + toggle del panel;
@@ -1021,7 +1021,7 @@ queda escrita porque va a volver a pasar en cuanto otro ítem se delegue en vari
   aplicarlo al pie de la letra sino ordenado a como ya lo tenemos aquí"*. Si una pantalla del
   prototipo contradice una decisión ya tomada, gana la decisión; si no queda claro, se pregunta.
   Pestaña "Props" del panel derecho: **se elimina** (vino de la captura de Orca). Ronda 2 del
-  prototipo verificada en vivo; ronda 2 del prompt en `docs/ui-aistudio-prompt.md`.
+  prototipo verificada en vivo; ronda 2 del prompt en `docs/done/ui/ui-aistudio-prompt.md`.
   **2026-09-21, cierre del prototipo:** Carlos da por terminado el prototipo (3 rondas de prompt) y
   pide implementar. `UI.11` queda **reemplazado por `UI.12`**; el diff parcial de Luna (medidas de
   Circle) se guardó en `git stash` ("UI.11 parcial de Luna…"), sin commitear.
@@ -1310,7 +1310,7 @@ queda escrita porque va a volver a pasar en cuanto otro ítem se delegue en vari
   lado a lado con la plantilla.
   Pedido de Carlos 2026-09-22: la vista Dev se ve como un chat, pero el agente trabaja como un CLI en la
   carpeta del proyecto. Cambia la decisión de UI.13.4b (consola reemplaza al chat en Dev). Diseño primero en
-  Google AI Studio con `docs/specs/UI.14-aistudio-prompt.md`; luego se copia tal cual (regla UI.13) y se cablea.
+  Google AI Studio con `docs/done/ui/UI.14-aistudio-prompt.md`; luego se copia tal cual (regla UI.13) y se cablea.
   **2026-09-22 (noche):** AI Studio entregó la plantilla (`~/Documents/screens/orchestos-ai-agent-dashboard`,
   nuevos `AgentComposer`, `ContextRing`, `ShellStatusBar`, Dev reescrito). Carlos: *"mejoró bastante; conservar
   los tooltips para que se sepa qué es cada icono, sobre todo donde se archiva la sesión"* — todo icono sin
@@ -1542,7 +1542,7 @@ queda escrita porque va a volver a pasar en cuanto otro ítem se delegue en vari
   **explorer** (el repo en sí). O sea: reabrir un proyecto borrado del espacio de trabajo lo
   restituye con su contenido, porque nunca se destruyó nada. Ese es el criterio de aceptación real
   del ítem, más que el botón.
-  Al diseñarlo, volver a mirar las capturas de Orca (`docs/ui-reference-patterns.md` A.1-A.3).
+  Al diseñarlo, volver a mirar las capturas de Orca (`docs/done/ui/ui-reference-patterns.md` A.1-A.3).
   Gate: navegador real — borrar un proyecto del espacio de trabajo, **volver a agregarlo con
   "+ Add project"** y confirmar que sus chats/tasks/runs siguen ahí; y confirmar en SQLite que el
   borrado suave NO tocó esas tablas.
@@ -1657,7 +1657,7 @@ queda escrita porque va a volver a pasar en cuanto otro ítem se delegue en vari
 >    Carlos: "CRM moderno".
 > 9. **Referencia nueva:** Circle (https://circle.lndev.me/lndev-ui/team/DESIGN/overview, repo
 >    `ln-dev7/circle`, Next.js + shadcn/ui, estilo Linear). La guía principal sigue siendo
->    `docs/ui-reference-patterns.md` + capturas en `~/Documents/screens/`.
+>    `docs/done/ui/ui-reference-patterns.md` + capturas en `~/Documents/screens/`.
 > **Segunda ronda, mismo día:**
 > - **Panel derecho = historial de agentes**, captura nueva `~/Documents/screens/rightside_agents.png`
 >   (Orca): tabs de iconos arriba (archivos, agentes, source control, tasks) + toggle del panel;

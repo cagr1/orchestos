@@ -270,7 +270,7 @@ decidió (pregunta explícita, 2026-08-06) arreglar la raíz primero, Ruby despu
 
 **Origen**: gate D.1 (Sprint 17). `defaultChecksFor()` gatea `tsc --noEmit`/`bun test` en
 `existsSync(node_modules)`, y `git worktree add` (que `engine: external` exige sin excepción,
-§5 de `docs/external-executor-design.md`) nunca trae `node_modules` — está siempre gitignored. Una
+§5 de `docs/done/design/external-executor-design.md`) nunca trae `node_modules` — está siempre gitignored. Una
 tarea `engine: external` **sin** `checks:` explícitos quedaba con el juez de QA-LLM como única red
 — el mismo que D.1 mostró que puede dar falso negativo.
 

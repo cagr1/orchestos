@@ -1,7 +1,7 @@
 /**
  * L.2 (Mes 23) — modelo de despliegue local-only + protección CSRF por origen.
  *
- * Decisión confirmada en docs/security-threat-model.md §6: el dashboard solo
+ * Decisión confirmada en docs/done/security/security-threat-model.md §6: el dashboard solo
  * sirve en 127.0.0.1, un usuario, sin autenticación multiusuario. Estos tests
  * verifican dos invariantes de ese modelo, no un sistema de auth nuevo:
  *   1. `startServer()` sigue haciendo bind exclusivamente a loopback — una

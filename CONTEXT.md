@@ -134,7 +134,7 @@ Legacy sin sesión y reenvíos del usuario con una clave nueva conservan sus lí
 
 - L.0–L.6.1 están cerrados: threat model, secretos, CSRF/origen, filesystem/subprocesses, SSRF,
   SQLite/privacidad y gate reproducible.
-- L.6.2 sigue abierto. La evidencia está en `docs/security-manual-review.md`; la revisión visual
+- L.6.2 sigue abierto. La evidencia está en `docs/done/security/security-manual-review.md`; la revisión visual
   y los flujos manuales de ejecución/worktree/diagnóstico/exportación todavía requieren una sesión
   con navegador.
 - Límites permanentes: dashboard solo en `127.0.0.1`, usuario único, sin autenticación multiusuario;

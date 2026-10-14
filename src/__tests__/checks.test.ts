@@ -1,6 +1,6 @@
 /**
  * D3 follow-up (Mes 14, 2026-06-25) — defaultChecksFor(): fills in tsc/bun test for
- * code-output tasks that don't declare their own `checks:`. See docs/E2E.md for the
+ * code-output tasks that don't declare their own `checks:`. See docs/done/design/E2E.md for the
  * real bug this closes (LLM QA approved a generated test file that didn't compile).
  *
  * A.5 (Mes 22 / IDEAS #36) — gap análogo para JS embebido en `.html`/`.js` (bug real

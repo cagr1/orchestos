@@ -13,7 +13,7 @@ import { isReviewOnlyGate } from '../skills/catalog.ts'
 
 // Bloque D (Mes 18, ex-IDEAS #21) — el motor de auto-selección de skill nunca
 // confía en un id que el LLM invente; solo ids que existen de verdad en
-// skills/ o skills/pro/ sobreviven al filtro. Ver docs/semantic-skill-selection-design.md.
+// skills/ o skills/pro/ sobreviven al filtro. Ver docs/done/design/semantic-skill-selection-design.md.
 
 const originalFetch = globalThis.fetch
 const originalKey = process.env.OPENROUTER_API_KEY

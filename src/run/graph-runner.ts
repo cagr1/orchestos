@@ -10,7 +10,7 @@
  * Any limit crossed → stop immediately, leave remaining tasks `pending`
  * for a future `--graph` invocation.
  *
- * Design: docs/graph-runner-design.md
+ * Design: docs/done/design/graph-runner-design.md
  * Pattern source: scheduler.ts executePlan() (Mes 5) — ported from SubTask[] to Task[]
  *
  * Reglas del plan.md:

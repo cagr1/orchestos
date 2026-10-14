@@ -2,7 +2,7 @@ import { describe, expect, it } from 'bun:test'
 import type { FileChange } from '../run/contract.ts'
 import { type ContentSnapshot, computeFileDiffs } from '../run/qa.ts'
 
-// v0.12/C.2 — visor de diff por run (docs/diff-review-design.md).
+// v0.12/C.2 — visor de diff por run (docs/done/design/diff-review-design.md).
 describe('computeFileDiffs', () => {
   it('marks a file as "added" when it did not exist before', () => {
     const before: ContentSnapshot = { 'new.ts': { existed: false, content: '' } }

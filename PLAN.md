@@ -1357,9 +1357,19 @@ igual que hoy, lo que se corta es que el **producto** lo herede por accidente.
   Gate en vivo: navegador real (Playwright), `docs/done/evidence/LIMP.1-live.json` — `chat-streaming` 24/24,
   `codex-live` 14/14.
 
-- [ ] **DOC.2 — 🔍 `docs/` solo con lo relevante.** (abierto 2026-10-14, GO de Carlos) 36 archivos sueltos clasificados
+- [x] **DOC.2 — 🔍 `docs/` solo con lo relevante.** (abierto 2026-10-14, GO de Carlos) 36 archivos sueltos clasificados
   por contenido contra HEAD: lo vigente se fusiona o comprime, lo histórico pasa a `docs/done/`, lo obsoleto se borra.
-  Spec: docs/specs/DOC.2.md
+  Ejecutado por: criterio (delegate) · clasificación: leer · Spec: docs/specs/DOC.2.md
+  (cerrado 2026-10-14) Raíz de `docs/` de 43 archivos / 5 325 líneas a 4 + `specs/` activos / 676 líneas:
+  `agent-work-protocol.md` comprimido (87→67, lo que repite `AGENTS.md` apunta allí), `security.md` fusiona 5 políticas
+  vigentes (verificadas contra el código), `SPEC.md` y `sources-registry.yaml` se quedan. A `docs/done/`: 9 diseños
+  (`design/`), 4 revisiones de seguridad (`security/`), 4 de UI (`ui/`), la poda de memoria y la revisión del bloque S.
+  Borrados: la propuesta de flujo por lote (ya regla), `sub-agents-flow.md` (duplicado y viejo), 4 capturas sin
+  referencia y 7 specs de ítems cerrados. Referencias actualizadas (21 comentarios de `src/`, `AGENTS.md`,
+  `CONTEXT.md`, enlaces en `docs/done/`).
+  Evidencia (cerebro): diff de `src/` = solo rutas en comentarios; `git grep` de rutas viejas fuera de `docs/done/` e
+  `IDEAS.md` = 0; preflight lee el protocolo; typecheck y lint verdes; `plan:reconcile` 73 ítems.
+  Gate en vivo: navegador real (Playwright), `docs/done/evidence/DOC.2-live.json` — `chat-streaming` 24/24.
 
 ### AT.17–AT.18 — Restos del esquema de trabajo (TEMPORAL: al cerrarlos se borra esta sección entera)
 

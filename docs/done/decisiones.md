@@ -68,8 +68,8 @@ el selector. AT.8 es un hook de desarrollo del repo, no el switch del producto s
 - Subagentes **apagados por defecto**, con habilitación explícita y límites efectivos. Abrir
   varios chats manualmente no habilita delegación automática. El consumo de suscripción no se
   puede inferir de dólares API ni del porcentaje de contexto.
-- Referencias existentes: `docs/ui-reference-patterns.md` y
-  `docs/dashboard-experience-direction.md`; capturas identificadas en el primer documento.
+- Referencias existentes: `docs/done/ui/ui-reference-patterns.md` y
+  `docs/done/ui/dashboard-experience-direction.md`; capturas identificadas en el primer documento.
   La primera entrega visual debe cambiar navegación, jerarquía y Settings de forma observable.
 
 **Orden y estimación inicial** (jornadas efectivas de implementación + verificación, un ejecutor

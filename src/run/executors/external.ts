@@ -3,7 +3,7 @@
  *
  * Tercera implementación de ExecutorEngine: delega la tarea completa a
  * Claude Code headless (`claude -p`) corriendo dentro del worktree del
- * sandbox. Diseño completo y las 4 decisiones: docs/external-executor-design.md.
+ * sandbox. Diseño completo y las 4 decisiones: docs/done/design/external-executor-design.md.
  *
  * A diferencia de single-shot/agentic (que devuelven un buffer en memoria y
  * dejan que enforceContract() haga el ÚNICO write real a disco), el proceso

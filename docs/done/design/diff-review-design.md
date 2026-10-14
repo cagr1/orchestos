@@ -2,7 +2,7 @@
 
 **Estado:** borrador para revisión (C.1) — no tocar código hasta aprobación, mismo protocolo
 que `auto-split-design.md` (Sprint 20/A.1).
-**Contexto completo:** [PLAN.md — v0.12 Bloque C](../PLAN.md)
+**Contexto completo:** [PLAN.md — v0.12 Bloque C](../../../PLAN.md)
 **Alcance de este documento:** solo **C.1** (diseño). C.2 (implementación) y C.3 (verificación
 en vivo) son bloques separados, posteriores a la aprobación de este doc.
 

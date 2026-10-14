@@ -1031,7 +1031,7 @@ export function runMigrations(): void {
   safeAddColumn('runs', 'context_warnings_json', 'TEXT') // S27.4: JSON array of ContextWarning[] fired during this run
   safeAddColumn('runs', 'cost_breakdown_json', 'TEXT') // S35.3: JSON array of CostBreakdownEntry[]
   safeAddColumn('runs', 'qa_model', 'TEXT') // F2.5: judge model resolved by resolveQAJudge(), distinct from executor `model` column
-  safeAddColumn('runs', 'file_diffs', 'TEXT') // v0.12/C: JSON array of FileDiffEntry[] (docs/diff-review-design.md) — NULL para runs previos a este cambio, sin backfill
+  safeAddColumn('runs', 'file_diffs', 'TEXT') // v0.12/C: JSON array of FileDiffEntry[] (docs/done/design/diff-review-design.md) — NULL para runs previos a este cambio, sin backfill
   safeAddColumn('runs', 'adversarial_verdict', 'TEXT') // K.4b: 'VERIFIED' | 'CAVEATS' | 'REFUTED' | NULL (opt-in, NULL si adversarialQA no está activado)
   safeAddColumn('runs', 'adversarial_reason', 'TEXT') // K.4b: razón del segundo juez adversarial
   safeAddColumn('runs', 'refuter_verdict', 'TEXT') // X.2 (IDEAS #33): 'CONFIRMED' | 'REFUTED' | NULL (opt-in, NULL si refuterQA no está activado)
@@ -1090,7 +1090,7 @@ export function runMigrations(): void {
   // B.1 (Mes 18) — instrumentación de chat-create-task-bar: registra, por mensaje
   // enviado, si la barra de 3+ mensajes se mostró y si el usuario terminó
   // usándola. Gate de evidencia antes de escribir el clasificador semántico
-  // (ver docs/chat-task-detection-design.md) — sin esto no hay forma de saber
+  // (ver docs/done/design/chat-task-detection-design.md) — sin esto no hay forma de saber
   // si la heurística de conteo genera falsos negativos reales o es solo una
   // sospecha.
   db.exec(`

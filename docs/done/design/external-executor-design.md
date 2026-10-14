@@ -30,7 +30,7 @@ headless) que corre dentro del worktree del sandbox. La capa de verificación
 - `maxOutputTokensFor` / `calcCost` (`src/router/pricing.ts`) — catálogo de
   pricing existente; si el modelo no está en catálogo, el patrón ya establecido
   (F0.8) es reportar costo desconocido, nunca `$0` silencioso.
-- Baseline de comparación (G.5, [historial del Sprint 16](done/sprint-16.md)): tarea real — agregar una
+- Baseline de comparación (G.5, [historial del Sprint 16](../sprint-16.md)): tarea real — agregar una
   línea de JSDoc a `src/dashboard/handlers/skills.ts` (419 líneas), mismo
   modelo en los 3 engines. single-shot: $0.0032, perfecto. Agéntico (post-fix):
   `tsc` limpio, sin truncar. D.1 corre la misma tarea con el ejecutor externo.
@@ -139,7 +139,7 @@ adaptador futuro, documentado acá para que no se repita la discusión.
 
 Mismo rol que `maxIterations` en el agéntico: **garantía de terminación,
 NO un tope de gasto** (decisión Carlos 2026-07-02, ver
-`docs/executor-engine-design.md` §3 y el comentario en `agentic.ts:16-18`) —
+`docs/done/design/executor-engine-design.md` §3 y el comentario en `agentic.ts:16-18`) —
 OrchestOS no pone techos de dinero.
 
 `ExecutorEngine.run(ctx, opts)` no cambia de forma pública para no romper

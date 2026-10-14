@@ -450,7 +450,7 @@ pasa a ser entrada *del* sistema.
 independiente del Bloque S ya cerrado (S.1–S.6a). El resultado, `bunx tsc --noEmit` y los tests
 en verde no incluidos, encontró tres defectos reales de comportamiento en la lógica de
 procedencia y estado de cierre — documentados en
-`docs/audits/2026-09-10-block-s-review.md`. Ninguno tenía ítem abierto; se abren acá como S.7a–c,
+`docs/done/2026-09-10-block-s-review.md`. Ninguno tenía ítem abierto; se abren acá como S.7a–c,
 cada uno con spec propio en `docs/specs/`, sin implementación todavía.
 
 

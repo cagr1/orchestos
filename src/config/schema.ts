@@ -92,7 +92,7 @@ export interface OrcheConfig {
    * cambio de comportamiento para lo existente.
    */
   apiMode?: 'single-shot' | 'agentic'
-  /** Agentic engine tuning — absence means default (maxIterations: 15). No cost cap by design (see docs/executor-engine-design.md §3). */
+  /** Agentic engine tuning — absence means default (maxIterations: 15). No cost cap by design (see docs/done/design/executor-engine-design.md §3). */
   agentic?: { maxIterations?: number }
   /** B.2 — External engine tuning. timeoutMs = wall-clock guarantee of termination (no cost cap by design, same as maxIterations). Absence = default in external.ts (20min, see docs §4). */
   external?: { timeoutMs?: number }

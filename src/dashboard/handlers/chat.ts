@@ -683,7 +683,7 @@ export function createAuditedProjectReader(root: string, audit: ReadAuditCollect
 
 // B.1 (Mes 18) — gate de evidencia: un evento por mensaje enviado (para saber si
 // la barra se mostró) y uno por click en "Create task" (para saber si el
-// usuario la usó). Ver docs/chat-task-detection-design.md.
+// usuario la usó). Ver docs/done/design/chat-task-detection-design.md.
 function logChatTaskBarEvent(row: {
   kind: 'message' | 'click'
   message?: string
@@ -717,7 +717,7 @@ interface ChatTaskBarEventRow {
 }
 
 // B.1 (Mes 18) — vista de solo lectura para que Carlos vea la evidencia sin
-// pedirme que corra un query. Ver docs/chat-task-detection-design.md.
+// pedirme que corra un query. Ver docs/done/design/chat-task-detection-design.md.
 export async function handleApiChatTaskBarEvents(): Promise<Response> {
   const events = db
     .query<ChatTaskBarEventRow, []>(

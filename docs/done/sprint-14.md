@@ -22,7 +22,7 @@ Origen: candidato directo anotado en DONE.md § SPRINT 12 y § SPRINT 13 (IDEAS.
 - 0.2 (🔍) Decisión: comando nuevo `run --graph`, sin tocar `--all` (consumidores existentes — hook post-completion S30, dogfooding en E2E.md — asumen halt-on-fail) — 2026-06-23
 
 **BLOQUE A — El conductor (motor)**
-- A1 (🧠) Diseño en `docs/graph-runner-design.md`: `'blocked'` reusado sin cambios de schema, mapa `FailurePattern`→estrategia (solo `rate_limit` autoriza requeue único en memoria), el algoritmo nunca hace `break` global (único punto de parada total es el circuit breaker A4), `blockedAncestors` porta el patrón `failedIds` de `scheduler.ts` a `Task[]` — 2026-06-23
+- A1 (🧠) Diseño en `docs/done/design/graph-runner-design.md`: `'blocked'` reusado sin cambios de schema, mapa `FailurePattern`→estrategia (solo `rate_limit` autoriza requeue único en memoria), el algoritmo nunca hace `break` global (único punto de parada total es el circuit breaker A4), `blockedAncestors` porta el patrón `failedIds` de `scheduler.ts` a `Task[]` — 2026-06-23
 - A2 (⚡) `src/run/graph-runner.ts`: traversal topológico completo del DAG; una rama agotada bloquea sus dependientes con razón explícita y las ramas independientes continúan — 2026-06-23
 - A3 (🧠/⚡) `diagnoseTask()` integrado en `executeSingleTask()`: al llegar a `failed_permanent` aplica la estrategia de A1 automáticamente, sin pedir permiso por decisión individual — 2026-06-23
 - A4 (⚡) Circuit breaker en `runGraph()`: tope de costo acumulado, tope de wall-clock, tope de iteraciones (200 hard cap), `cost_notice` a $5 — 2026-06-23

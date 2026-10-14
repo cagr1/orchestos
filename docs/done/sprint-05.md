@@ -9,7 +9,7 @@
 - S19.6 flag `--keep-worktree` + `--sandbox` en `orchestos task run` — 2026-05-27
 - S19.7 examples/e2e/ con tarea mínima hello.txt — 2026-05-27
 - S19.8 e2e-smoke.ts + `bun run e2e:smoke` — 2026-05-27
-- S19.9 docs/E2E.md — guía API key, smoke, logs, worktree debugging — 2026-05-27
+- S19.9 docs/done/design/E2E.md — guía API key, smoke, logs, worktree debugging — 2026-05-27
 - S19.10 Smoke real con OpenRouter — PASS · 8762ms · QA pass — 2026-05-27
 - S19.11 8 tests unitarios sandbox.ts con repo git temporal — 2026-05-27
 - S19.12 Validación: 86/86 tests verdes + smoke verde — 2026-05-27
@@ -70,11 +70,11 @@
 - Sub-agentes solo si S19 cierra limpio — worktrees son prerequisito no negociable.
 - Memoria de sub-agentes solo en `memory_entries` — nunca archivos .md — evita race conditions.
 - Tool policy es verificación dura en harness, no sugerencia al modelo.
-- Dogfooding: 5 tareas reales ejecutadas durante el mes (bitácora en `docs/E2E.md`).
+- Dogfooding: 5 tareas reales ejecutadas durante el mes (bitácora en `docs/done/design/E2E.md`).
 
 **Métrica Sprint 5 — SÍ (2026-05-28)**
 Sub-agentes con context isolation + memoria persistente + tool policy funcionando.
-5 ejecuciones reales registradas en `docs/E2E.md` (hello-world × 2, bun test suite, smoke-greeting, smoke-response).
+5 ejecuciones reales registradas en `docs/done/design/E2E.md` (hello-world × 2, bun test suite, smoke-greeting, smoke-response).
 
 ---
 

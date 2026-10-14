@@ -4,7 +4,7 @@ import { db } from '../db/sqlite.ts'
 
 // B.1 (Mes 18): gate de evidencia antes del clasificador semántico — registra,
 // por click en "Create task", un evento en chat_task_bar_events. Ver
-// docs/chat-task-detection-design.md.
+// docs/done/design/chat-task-detection-design.md.
 describe('chat_task_bar_events instrumentation', () => {
   afterAll(() => {
     db.run(`DELETE FROM chat_task_bar_events WHERE kind = 'click'`, [])

@@ -351,3 +351,10 @@ consumidor fuera del archivo). `knownMaxOutputTokensFor()` y la derivación de `
 (`git diff --cached -- src/router/model-catalog.ts` = 1 línea).
 **Reversibilidad/evidencia**: commit `refactor(LIMP.1)`, revertible. typecheck verde · `test:coverage` 1770/1 (el 1
 es el test del 409 dependiente del host).
+
+## 2026-10-14 16:05 America/Guayaquil — claude-opus-5-5 (revisor) · ejecutor Claude sonnet
+**Contexto**: DOC.2 — `src/run/harness.ts` ([[feedback-context-no-max-tokens]]).
+**Clasificación**: RESPETÓ
+**Por qué**: solo cambia la ruta de un comentario (`docs/diff-review-design.md` → `docs/done/design/diff-review-design.md`).
+Ninguna línea de código; `maxTokens`/`contextWindow` intactos (`git diff --cached -U0 -- src/run/harness.ts` = 2 líneas, ambas comentario).
+**Reversibilidad/evidencia**: commit `docs(DOC.2)`, revertible. typecheck y lint verdes.

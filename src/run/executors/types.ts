@@ -3,7 +3,7 @@
  *
  * Interface que desacopla la generación de archivos (el "ejecutor") de la
  * capa de verificación (contrato, checks, QA, evidencia) que vive en
- * harness.ts. Diseño completo: docs/executor-engine-design.md (G.1).
+ * harness.ts. Diseño completo: docs/done/design/executor-engine-design.md (G.1).
  *
  * Un engine SOLO genera — nunca escribe a disco, nunca llama insertRun,
  * nunca corre checks ni QA. Esas cuatro cosas son universales a cualquier
@@ -40,7 +40,7 @@ export interface ExecutorEngine {
       maxIterations: number
       /**
        * Wall-clock timeout en ms — solo lo usa el ejecutor externo (B.1,
-       * docs/external-executor-design.md §4). Campo opcional y aditivo:
+       * docs/done/design/external-executor-design.md §4). Campo opcional y aditivo:
        * single-shot/agentic lo ignoran, cero ripple. Garantía de
        * terminación, NO un tope de gasto (mismo principio que
        * maxIterations en agentic.ts).

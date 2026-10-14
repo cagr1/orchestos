@@ -163,7 +163,7 @@ export interface SessionStatusResponse {
   }>
 }
 
-// v0.12/C — visor de diff por run (docs/diff-review-design.md). Solo presente en runs
+// v0.12/C — visor de diff por run (docs/done/design/diff-review-design.md). Solo presente en runs
 // 'done' (los caminos de fallo revierten el contenido, no hay nada que revisar).
 export interface FileDiffEntry {
   path: string

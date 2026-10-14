@@ -110,7 +110,7 @@ function handleApiProjectContextRegenerate(root: string): Response {
 // Bloque D (Mes 18, ex-IDEAS #21) — lista de skills instaladas (main + pro) con
 // su `when_to_use`/`description`, usada tanto para el prompt del clasificador
 // como para validar los candidatos que devuelva el LLM (nunca confiar en un id
-// inventado). Ver docs/semantic-skill-selection-design.md.
+// inventado). Ver docs/done/design/semantic-skill-selection-design.md.
 // O.2 — la implementación vive en skills/catalog.ts (la necesita también el
 // planner, capa agents). Acá se re-exporta para no romper la API ni los tests.
 

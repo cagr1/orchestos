@@ -179,7 +179,7 @@ Superados por UI.13 (el prototipo es el frontend) o por UI.14. Carlos decide si 
   chats, proyectos, tareas y runs — nunca se duplican ni se migran entre dos productos. Cuando
   una conversación genera trabajo persistente, `Ver espacio de trabajo` abre el proyecto, agente
   y ejecución de origen. La fuente completa de investigación, reglas de componentes, seguridad y
-  criterios de aceptación es `docs/dashboard-experience-direction.md`.
+  criterios de aceptación es `docs/done/ui/dashboard-experience-direction.md`.
   **Fuera de scope declarado:** `.orchestos/feature-status.json` se regenera automáticamente desde
   `PLAN.md` por el pre-commit; no es una edición manual ni un cambio de producto adicional.
 - [ ] **UI.7 — 🧠 Navegación progresiva: muere "modo avanzado".**
@@ -240,7 +240,7 @@ Superados por UI.13 (el prototipo es el frontend) o por UI.14. Carlos decide si 
 > no el anterior"*. **Gana el inspector condicional; la decisión del 2026-07-13 queda revertida**
 > — se conserva escrita, no se borra (memoria evolutiva).
 >
-> **Anatomía concreta: `docs/ui-reference-patterns.md`** (nuevo, 2026-09-02). Extraída de las
+> **Anatomía concreta: `docs/done/ui/ui-reference-patterns.md`** (nuevo, 2026-09-02). Extraída de las
 > capturas que Carlos tomó de Orca y Lightdash (`~/Documents/screens/`, fuera del repo por peso) y
 > del README de `pi-agent-dashboard`. Ningún ítem de abajo se diseña por intuición: la anatomía ya
 > está escrita ahí y se cita por sección.
@@ -322,7 +322,7 @@ Superados por UI.13 (el prototipo es el frontend) o por UI.14. Carlos decide si 
 > **Motivo medido (auditoría en vivo 2026-09-15):** la lista de sesiones aparece dos veces
 > (sidebar `Sidebar.tsx:111-179` rotulada "N agents" + aside del chat `screens-core.js:474-529`);
 > las "agents" del sidebar son `chat_sessions`; el rail colapsado amontona "Projects" y
-> "0 agents". Referencias: Dev = `~/Documents/screens/Orca1_main.png` (`docs/ui-reference-patterns.md`
+> "0 agents". Referencias: Dev = `~/Documents/screens/Orca1_main.png` (`docs/done/ui/ui-reference-patterns.md`
 > A.1–A.7); Chat = captura de Claude Desktop de Carlos (2026-09-15).
 >
 > **Decisiones de Carlos (2026-09-15):** (1) cada modo muestra lo suyo — Chat lista sesiones
@@ -357,7 +357,7 @@ Superados por UI.13 (el prototipo es el frontend) o por UI.14. Carlos decide si 
   aplicarlo al pie de la letra sino ordenado a como ya lo tenemos aquí"*. Si una pantalla del
   prototipo contradice una decisión ya tomada, gana la decisión; si no queda claro, se pregunta.
   Pestaña "Props" del panel derecho: **se elimina** (vino de la captura de Orca). Ronda 2 del
-  prototipo verificada en vivo; ronda 2 del prompt en `docs/ui-aistudio-prompt.md`.
+  prototipo verificada en vivo; ronda 2 del prompt en `docs/done/ui/ui-aistudio-prompt.md`.
   **2026-09-21, cierre del prototipo:** Carlos da por terminado el prototipo (3 rondas de prompt) y
   pide implementar. `UI.11` queda **reemplazado por `UI.12`**; el diff parcial de Luna (medidas de
   Circle) se guardó en `git stash` ("UI.11 parcial de Luna…"), sin commitear.

@@ -1132,7 +1132,7 @@ export async function runTask(opts: HarnessOpts): Promise<TaskResult> {
       log.info(`sandbox: merged ${mergedBranch} into ${sandboxBranch ?? ''}`)
     }
 
-    // v0.12/C.2 — visor de diff (docs/diff-review-design.md): solo en el camino de éxito,
+    // v0.12/C.2 — visor de diff (docs/done/design/diff-review-design.md): solo en el camino de éxito,
     // los caminos de fallo revierten el contenido (restoreContents) así que "lo que cambió"
     // no sobrevive y no tiene valor de revisión.
     const fileDiffs = computeFileDiffs(beforeContent, contractResult.written)

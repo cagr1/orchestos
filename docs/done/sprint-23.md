@@ -35,7 +35,7 @@ debe abrir un bloque separado de seguridad de producción; no ampliar estos cont
   (bind `127.0.0.1` + `isSameOrigin()` sin auth real en `server.ts`, traversal check en estáticos,
   `enforceContract()` como único punto de escritura, 8 sitios de `Bun.spawn` confirmados con arrays
   de argumentos — sin interpolación de shell, `ssrf.ts` con resolución DNS real, `sandbox-policy.ts`
-  exigiendo working tree limpio). Entregable: [docs/security-threat-model.md](../../docs/security-threat-model.md).
+  exigiendo working tree limpio). Entregable: [docs/done/security/security-threat-model.md](../../docs/done/security/security-threat-model.md).
   6 gaps reales documentados para L.1-L.6 (sin auth, API keys sin cifrar, contenido externo
   como dato solo por convención de prompt, sin matriz de path traversal, sin `bun audit`, sin
   retención/backup de la DB), y alcance explícitamente fuera de esta baseline (exposición no-local,
@@ -45,7 +45,7 @@ debe abrir un bloque separado de seguridad de producción; no ampliar estos cont
 
 - [x] **L.1 — Inventario y secretos (2026-07-29).** Se documentó el inventario de dashboard, CLI,
   tools, subprocesses, filesystem, configuración y persistencia en
-  [docs/security-secrets-audit.md](../../docs/security-secrets-audit.md). Se confirmó que las keys de
+  [docs/done/security/security-secrets-audit.md](../../docs/done/security/security-secrets-audit.md). Se confirmó que las keys de
   proveedores viven en `~/.orchestos/.env` en texto plano y que los datos históricos no se migran
   automáticamente.
 - [x] Se añadió `src/security/secrets.ts` y `scripts/check-secrets.ts` con detección de claves
@@ -64,7 +64,7 @@ debe abrir un bloque separado de seguridad de producción; no ampliar estos cont
 ### L.2 — 🧠 Autenticación, exposición de red y CSRF
 
 - [x] **L.2 — 🧠 (2026-07-29)** Modelo de despliegue confirmado como el documentado en
-  [docs/security-threat-model.md](../../docs/security-threat-model.md) §6: **solo localhost, usuario
+  [docs/done/security/security-threat-model.md](../../docs/done/security/security-threat-model.md) §6: **solo localhost, usuario
   único, sin autenticación multiusuario**; no se implementó auth/CSRF-token/rate-limit para
   exposición no-local porque esa exposición no existe hoy y construirla sería diseñar
   especulativamente para una amenaza que no aplica — queda explícitamente gated a que Carlos decida
@@ -104,7 +104,7 @@ debe revisar `src/security/secrets.ts` — no es parte del alcance de L.2.
 
 - [x] **L.3 — Filesystem y subprocesses (2026-07-29).** Se creó la política común en
   [src/run/path-policy.ts](../../src/run/path-policy.ts) y la matriz documentada en
-  [docs/security-filesystem-policy.md](../../docs/security-filesystem-policy.md): paths relativos,
+  [docs/security.md](../../docs/security.md): paths relativos,
   absolutos, `../`, traversal con una y dos capas de encoding, symlinks externos e internos,
   `cwd` fuera del root y archivos no regulares. `enforceContract`, tools, checks y diff de
   worktree usan ahora la misma resolución real del root; un path LLM no puede ampliar
@@ -129,7 +129,7 @@ debe revisar `src/security/secrets.ts` — no es parte del alcance de L.2.
   rechaza redirects, respuestas no-2xx, aplica timeout de 10s y lectura incremental de 256 KB;
   skill import remoto aplica la misma política con timeout de 15s y límite de 256 KB. Se añadió
   segunda resolución DNS posterior al fetch para detectar rebinding observable. El límite honesto
-  de pinning de socket queda documentado en [docs/security-ssrf-policy.md](../../docs/security-ssrf-policy.md):
+  de pinning de socket queda documentado en [docs/security.md](../../docs/security.md):
   el fetch global no permite coordinar IP resuelta con SNI/Host; no se declara una garantía que no
   existe.
 - [x] Web, OCR, adjuntos, memoria y `read_file` ahora se marcan con
@@ -216,7 +216,7 @@ debe revisar `src/security/secrets.ts` — no es parte del alcance de L.2.
     Después de ambos fallos de contrato, una migración válida v2 continúa y registra una sola evidencia.
     El rollback es transaccional; no borra/recrea ni restaura automáticamente la DB activa.
   - [x] **L.5.7.7 — Procedimiento operativo (2026-07-29).** Se documentó en
-    [docs/security-migration-recovery.md](../../docs/security-migration-recovery.md) el flujo backup
+    [docs/security.md](../../docs/security.md) el flujo backup
     consistente/validado → detener procesos → migrar → `integrity_check` → reabrir. En fallo se
     conserva la DB original, se valida el backup y se restaura solo a un destino nuevo; el reemplazo
     de la DB activa queda como acción manual revisada, nunca automática.
@@ -229,13 +229,13 @@ debe revisar `src/security/secrets.ts` — no es parte del alcance de L.2.
   `0 fail`, `38 expect()` calls en límites, integridad, concurrencia, migraciones y backup; `bunx
   tsc --noEmit` limpio.
 - [x] Evidencia y límites de corrupción/concurrencia quedan documentados en
-  [docs/security-db-query-audit.md](../../docs/security-db-query-audit.md), junto con los controles ya
+  [docs/done/security/security-db-query-audit.md](../../docs/done/security/security-db-query-audit.md), junto con los controles ya
   implementados por L.5.0–L.5.3a: aislamiento `ORCHESTOS_HOME`, `busy_timeout`, `BEGIN IMMEDIATE`,
   backup consistente, restore no destructivo e `integrity_check`. No se mezclaron cambios concurrentes
   de SQLite; recuperación de la DB viva y rollback/versionado de migraciones siguen abiertos como
   gaps separados, no se declaran cubiertos por esta auditoría.
 - [x] **L.5.6 — Clasificación, retención y privacidad (2026-07-29).** Política documentada en
-  [docs/security-data-retention.md](../../docs/security-data-retention.md): credenciales restringidas,
+  [docs/security.md](../../docs/security.md): credenciales restringidas,
   contenido de trabajo sensible, metadatos internos y derivados separados; runs/memoria no se borran
   automáticamente, mientras `run_steps` y `chat_task_bar_events` tienen purga explícita por defecto
   a 30 días. Se agregó preview + purga transaccional en [src/db/retention.ts](../../src/db/retention.ts),
@@ -248,7 +248,7 @@ debe revisar `src/security/secrets.ts` — no es parte del alcance de L.2.
 ### L.6 — 🔍 Gate de seguridad y operación
 
 - [x] **L.6.1 — Gate reproducible de seguridad (2026-07-29).** Se implementaron `bun run security:gate` y
-  [docs/security-gate.md](../../docs/security-gate.md): typecheck, DB temporal migrada, matriz completa
+  [docs/security.md](../../docs/security.md): typecheck, DB temporal migrada, matriz completa
   serial/aislada con coverage y `bun audit --audit-level=high`; cualquier salida distinta de cero
   detiene el gate. La matriz final pasó `983 pass`, `0 fail`, `2184 expect()` en `95` archivos y la
   auditoría quedó limpia tras fijar `brace-expansion` en `5.0.8` mediante override. Durante el gate
@@ -264,7 +264,7 @@ debe revisar `src/security/secrets.ts` — no es parte del alcance de L.2.
   específica; esta baseline no cubre ese cambio de amenaza.
 
 **L.6.2 — avance inicial (2026-07-29):** evidencia y hallazgos detallados en
-[docs/security-manual-review.md](../../docs/security-manual-review.md). CLI y superficie HTTP local
+[docs/done/security/security-manual-review.md](../../docs/done/security/security-manual-review.md). CLI y superficie HTTP local
 verificadas sin gasto ni escrituras sensibles: dry-runs del runner/DAG, ayuda de comandos,
 status/list/config, dashboard HTML y GET, CSRF por origen/puerto, SSRF de import, validación de
 paths e ids. Hallazgos abiertos: `L62-001` (migración concurrente no serializada) y `L62-002`

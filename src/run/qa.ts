@@ -65,7 +65,7 @@ export function restoreContents(root: string, snap: ContentSnapshot): void {
   }
 }
 
-// v0.12 Bloque C — visor de diff por run (docs/diff-review-design.md, Decisión 1/3/4).
+// v0.12 Bloque C — visor de diff por run (docs/done/design/diff-review-design.md, Decisión 1/3/4).
 // Calculado por CONTENIDO (before/after ya en memoria), no por `git diff` — cubre los 3
 // engines uniformemente y no depende de que el worktree sobreviva al run. Solo
 // 'added'/'modified': el contrato del LLM (enforceContract) nunca borra archivos.

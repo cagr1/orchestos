@@ -8,7 +8,7 @@ export function isTaskClass(value: unknown): value is TaskClass {
 
 export type TaskStatus = 'pending' | 'running' | 'done' | 'failed' | 'failed_permanent' | 'blocked'
 export type TaskExecutor = 'openrouter' | 'anthropic' | 'openai' | 'codex'
-// B.2 — 'external' es la tercera implementación de ExecutorEngine (B.1, docs/external-executor-design.md).
+// B.2 — 'external' es la tercera implementación de ExecutorEngine (B.1, docs/done/design/external-executor-design.md).
 // Lanza el subproceso `claude -p` dentro del worktree; el harness aplica enforceContract post-hoc
 // igual que con single-shot/agentic. Opt-in por tarea o por config de proyecto.
 export type TaskEngine = 'single-shot' | 'agentic' | 'external' | 'opencode' | 'codex'

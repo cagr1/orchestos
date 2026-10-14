@@ -3,7 +3,7 @@
  * versionado; `node_modules` (siempre gitignored) nunca llegaba al worktree
  * nuevo. `defaultChecksFor()` (checks.ts) gatea `tsc --noEmit`/`bun test` en
  * `existsSync(node_modules)` — sin él, una tarea `engine: external` (que
- * EXIGE worktree, docs/external-executor-design.md §5) sin `checks:`
+ * EXIGE worktree, docs/done/design/external-executor-design.md §5) sin `checks:`
  * explícitos perdía su única red determinista, dejando solo el juez de
  * QA-LLM (el mismo que el gate D.1, Mes 17, mostró que puede dar falso
  * negativo).

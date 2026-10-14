@@ -11,7 +11,7 @@ Origen: graduado de IDEAS.md #13/#24 en el cierre del Sprint 18. Durante el dogf
 | H.1 | Cierre formal del mes | ✅ SÍ (este registro, 2026-07-14) |
 
 **Bloque A — Repo real leído antes de decidir**
-`baidu/Unlimited-OCR` resultó ser un modelo visión-lenguaje que exige GPU propia (self-hosted vía `transformers`/vLLM) — corrige la premisa original de IDEAS #13/#24 de que era una librería liviana. Su única vía sin GPU (Baidu Cloud API) fue rechazada por Carlos (panel en chino, fricción de registro). Motor elegido: `tesseract.js` (Apache-2.0, 38.1K★, WASM, corre en el mismo proceso Bun sin GPU/Python/cuenta externa). Diseño en `docs/ocr-chat-design.md`.
+`baidu/Unlimited-OCR` resultó ser un modelo visión-lenguaje que exige GPU propia (self-hosted vía `transformers`/vLLM) — corrige la premisa original de IDEAS #13/#24 de que era una librería liviana. Su única vía sin GPU (Baidu Cloud API) fue rechazada por Carlos (panel en chino, fricción de registro). Motor elegido: `tesseract.js` (Apache-2.0, 38.1K★, WASM, corre en el mismo proceso Bun sin GPU/Python/cuenta externa). Diseño en `docs/done/design/ocr-chat-design.md`.
 
 **Bloque B — Múltiples adjuntos**
 Estado del chat migrado de `chatFileId` singular a `st.chatFiles[]`. `handleApiChat` acepta `fileIds: string[]` (antes uno), límite de 5 con 400 explícito (nunca trunca en silencio). Verificado en vivo con dinero real: 2 archivos subidos, el modelo leyó y repitió el contenido de ambos correctamente. UI: `.chat-attach-chips` con botón "×" individual por chip.

@@ -4,7 +4,7 @@ Origen: IDEAS.md #12, decisión de Carlos (2026-07-02) tras el cierre de Sprint 
 
 | Bloque | Contenido | Estado |
 |---|---|---|
-| A | Diseño de guardrails (`docs/chat-task-detection-design.md`) + revisión con Carlos | ✅ SÍ |
+| A | Diseño de guardrails (`docs/done/design/chat-task-detection-design.md`) + revisión con Carlos | ✅ SÍ |
 | B.2/B.2.1 | Tools de lectura `read_plan`/`read_tasks`/`read_ideas` + fix de clamp de output tokens | ✅ SÍ |
 | B.1.a/B.1.b-ui | Instrumentación de `chat-create-task-bar` (`chat_task_bar_events`) + tab "Chat evidence" | ✅ SÍ |
 | B.1.b / C.1 | Clasificador semántico de intención de tarea, activado con evidencia real | ✅ SÍ (Bloque J) |

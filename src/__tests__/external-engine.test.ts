@@ -13,7 +13,7 @@
  *     con files correctos, usd parseado, costByIteration con 1 entrada honesta,
  *     log con el conteo de archivos.
  *  2. Contrato sobre el diff: el engine reporta el diff COMPLETO sin filtrar
- *     (decisión d de docs/external-executor-design.md). El filtrado real contra
+ *     (decisión d de docs/done/design/external-executor-design.md). El filtrado real contra
  *     task.output[] lo hace enforceContract() en el harness; acá verificamos
  *     que el engine no aplica ningún filtro propio (pasa archivos dentro Y
  *     fuera de output[]), y que se propaga a harness via outcome.files sin

@@ -1,7 +1,7 @@
 # Patrones extraídos de las referencias visuales — OrchestOS
 
 **Estado:** insumo de implementación, 2026-09-02. Complementa
-`docs/dashboard-experience-direction.md` (que fija la decisión de producto); este archivo fija
+`docs/done/ui/dashboard-experience-direction.md` (que fija la decisión de producto); este archivo fija
 **la anatomía concreta** que se va a construir, para que ninguna pantalla se diseñe por intuición
 durante la implementación.
 

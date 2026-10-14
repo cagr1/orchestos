@@ -3,7 +3,7 @@
  *
  * Ejecutor agéntico: reusa runToolLoop()/callWithTools() (Mes 13,
  * src/providers/tool-call.ts) tal cual, sin reimplementar el loop de
- * tool-calling. Diseño completo: docs/executor-engine-design.md (G.1).
+ * tool-calling. Diseño completo: docs/done/design/executor-engine-design.md (G.1).
  *
  * 4 tools (read_file, write_file, list_dir, run_check). El gate del
  * contrato vive DENTRO de write_file — devuelve un string de error al
@@ -15,7 +15,7 @@
  *
  * Terminación del loop: maxIterations es una garantía de terminación
  * (anti-loop-infinito), NO un tope de gasto — OrchestOS no pone techos de
- * dinero (decisión Carlos 2026-07-02, ver docs/executor-engine-design.md §3).
+ * dinero (decisión Carlos 2026-07-02, ver docs/done/design/executor-engine-design.md §3).
  */
 
 import { existsSync, readdirSync, readFileSync, statSync } from 'fs'

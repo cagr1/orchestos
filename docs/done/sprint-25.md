@@ -39,7 +39,7 @@ hasta 2026-08-01 14:01; verde desde 2026-08-01 14:03, 6 pushes seguidos. El hook
   - **`L62-001` (migración concurrente) → ACEPTADO** por Carlos: local, un usuario, sin exfiltración. Documentado como limitación conocida. Si algún día se corrige, el patrón ya existe (`src/run/git-lock.ts`, [[reference-git-lock-worktree-pattern]]) — no hay que diseñarlo.
   - **`L62-002` (key persistida antes de validar) → MITIGADO** en el mismo turno: [setup.ts](../../src/dashboard/handlers/setup.ts) ahora **valida primero y persiste solo en el camino válido**; ningún camino de fallo escribe (antes, timeout/red/500 dejaban la key sin validar en texto plano y solo el 401 revertía).
   - **Hallazgo colateral corregido:** `settings-store.ts` era el **único** módulo que no honraba `ORCHESTOS_HOME` — apuntaba al `~/.orchestos/.env` REAL, lo que hacía intestable el camino de escritura sin arriesgar las keys de Carlos ([[reference-test-fixtures-leak-into-real-db]]). Alineado con `db/sqlite.ts`/`model-catalog.ts`/`opencode-catalog.ts`, resolviendo la ruta por llamada (no en un `const` de módulo, gotcha ya documentado en `model-catalog.ts:96-99`). `ENV_FILE` → `envFilePath()`.
-  - 6 tests de regresión nuevos contra `ORCHESTOS_HOME` temporal; verificado que el `.env` real quedó **byte-idéntico** tras la suite. 1066 tests · 0 fail · `tsc --noEmit` limpio · `bun run test:coverage` verde. Evidencia completa en [docs/security-manual-review.md](../../docs/security-manual-review.md).
+  - 6 tests de regresión nuevos contra `ORCHESTOS_HOME` temporal; verificado que el `.env` real quedó **byte-idéntico** tras la suite. 1066 tests · 0 fail · `tsc --noEmit` limpio · `bun run test:coverage` verde. Evidencia completa en [docs/done/security/security-manual-review.md](../../docs/done/security/security-manual-review.md).
 - [x] **M — Provisioning de roadmaps para proyectos nuevos (cerrado 2026-07-30, decisión Carlos: centralizado, no copiado).** Carlos decidió que `docs/roadmaps/{engineering-baseline,disciplines,languages}` NO viaja copiado a cada proyecto — es conocimiento de OrchestOS, centralizado, y cualquier proyecto que gestione lo lee desde ahí. `project-profile.md` es la única excepción (describe el repo detectado, sigue siendo por proyecto, nunca cae al fallback). Implementado: `src/detect/roadmap-profile.ts` (`findLanguageDoc`/`docExists` ahora prueban `root` primero y caen a `ROADMAP_DOCS_ROOT`, la instalación de OrchestOS vía `import.meta.dir`) y `src/roadmaps/context.ts` (mismo fallback en `readBounded()` para el contenido, nunca para `profilePath`). Verificado en vivo con un proyecto Rust real sin `docs/roadmaps/` propio: `Lenguaje: Rust` pasa a `known`/`selected` con contenido real; `project-profile.md` correctamente ausente. Tests actualizados (2 nuevos, 2 reescritos con C# como caso "verdaderamente missing" ya que Rust/Go/TS ahora resuelven por fallback). 1013 tests · 0 fail · `tsc --noEmit` limpio.
 - [x] **M — Presupuesto de contexto de roadmaps (cerrado 2026-07-30).** Verificado en vivo antes de tocar código: `loadRoadmapContext()` corrido contra este mismo repo confirmó que el presupuesto de 12.000 chars SÍ se agotaba en producción (11.781/12.000, omitiendo `architecture`, `ai-agents` y el lenguaje TypeScript — el principal de OrchestOS). El total real necesario sin truncar es ~22.800 chars; los archivos individuales más grandes (`backend.md` 3.407, `typescript-bun.md` 3.711) ya excedían el tope por-documento de 3.000. Subidos `MAX_TOTAL_CHARS` 12.000→26.000 y `MAX_DOC_CHARS` 3.000→4.000 en [src/roadmaps/context.ts](../../src/roadmaps/context.ts). Reverificado en vivo: 22.962 chars, cero truncado, las 6 disciplinas + TypeScript + Rust entran completos.
 
@@ -361,7 +361,7 @@ que decide cómo se reparte el trabajo es ciego al arsenal.
 **Por eso este bloque REEMPLAZA la propuesta N-AUTO.1–5** (contrato de activación / descubrimiento /
 activación por fases / evidencia / gate): mezclaba conceptos nuevos con mecanismos que ya existen.
 Descartado explícitamente por sobreingeniería: embeddings (24 skills, un clasificador barato contra
-lista cerrada alcanza — ver [docs/semantic-skill-selection-design.md](../../docs/semantic-skill-selection-design.md));
+lista cerrada alcanza — ver [docs/done/design/semantic-skill-selection-design.md](../../docs/done/design/semantic-skill-selection-design.md));
 una máquina de fases nueva (`TaskClass = plan|implement|fix|review|doc` ya existe en
 [classify.ts:7](../../src/router/classify.ts) y ya se persiste en `runs.task_class`); y migrar
 `Task.skill` a `{primary, gates}` (el DAG ya da la multiplicidad; los gates son transversales, no
@@ -669,7 +669,7 @@ proyecto grande):
   Carlos en el mismo turno que P.1/P.2. Resultado y hallazgos anotados en el commit y en
   `SOURCES_DRIFT.md`.
 - [x] **P.4 — ⚡ (2026-08-06) CERRADO.** Mejora futura, no bloqueante: paso de resumen vía LLM (reusar
-  el patrón de `classifyAgainstOptions` de `docs/semantic-skill-selection-design.md` si aplica) que
+  el patrón de `classifyAgainstOptions` de `docs/done/design/semantic-skill-selection-design.md` si aplica) que
   lea el diff real entre `last_synced_sha` y el HEAD actual del path y redacte la propuesta en
   `SOURCES_DRIFT.md`, en vez de solo listar "cambió, revisar a mano".
 

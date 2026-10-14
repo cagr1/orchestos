@@ -2,7 +2,7 @@
  * src/chat/ocr.ts
  *
  * Mes 19, Bloque C — OCR de imágenes del chat cuando el modelo elegido no
- * soporta visión (ver docs/ocr-chat-design.md). Motor: tesseract.js
+ * soporta visión (ver docs/done/design/ocr-chat-design.md). Motor: tesseract.js
  * (Apache-2.0, wrapper WASM de Tesseract) — corre en el mismo proceso Bun,
  * sin GPU/Python/cuenta externa (decisión A.2, Baidu Cloud descartado por
  * Carlos por fricción de registro).
