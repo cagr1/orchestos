@@ -1062,6 +1062,9 @@ archivos fijados por `ui:fidelity:jsx` (`OrchestDevWorkspace`, `ShellStatusBar`,
   aligned`), `smoke` 6/6, `chat-streaming` 24/24, `project-tabs` 30/30. En vivo (dashboard 4242): header de Dev y
   pestañas del aside con `bottom` = 84 px ambos, composer `border-top` 0; cabecera ID/Task/Agent/Status alineada en
   `erp-piloto`. Contraprueba débil: con `page.tsx` de HEAD el build falla (falta `ListHeader`), no llega al paso.
+- [ ] **UI.26.4b — 🔍 `ui:fidelity:jsx` rojo desde UI.26.4a.** (abierto 2026-10-14) `a9d5736` quitó a propósito la
+  línea sobre el composer (`border-t border-app`, `OrchestDevWorkspace.tsx`) sin registrar la excepción: el comparador
+  da 2 faltantes (plantilla 187 y 392). Visto al verificar LIMP.1. Spec: docs/specs/UI.26.4b.md
 - [ ] **UI.26.5 — 🧠 Memory, Specs, Skills y Graph.** Maestro-detalle con estado vacío; Memory se llena con ERP.4.16.
   Verificado en vivo 2026-10-14 (tema `light` real): la tarjeta de Graph sigue `bg-zinc-900/60` + `border-zinc-800`
   en los 4 temas; la paleta fija también está en `MemoryView` (27), `SpecsView` (26), `ContextView` (26) y

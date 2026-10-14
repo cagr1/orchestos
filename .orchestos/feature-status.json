@@ -517,6 +517,15 @@
       "closedDate": "2026-10-14"
     },
     {
+      "id": "UI.26.4b",
+      "sprint": "Fase 2 — Producto mínimo para entrega",
+      "block": "UI.26 — La forma de Gr8r en toda la app (ABIERTO 2026-10-13, GO de Carlos 2026-10-13)",
+      "delegation": "🔍",
+      "title": "`ui:fidelity:jsx` rojo desde UI.26.4a",
+      "status": "open",
+      "closedDate": null
+    },
+    {
       "id": "UI.26.5",
       "sprint": "Fase 2 — Producto mínimo para entrega",
       "block": "UI.26 — La forma de Gr8r en toda la app (ABIERTO 2026-10-13, GO de Carlos 2026-10-13)",
