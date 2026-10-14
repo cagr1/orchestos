@@ -1,19 +1,8 @@
-import {
-  AlertCircle,
-  Check,
-  CheckCircle2,
-  Clock,
-  FileCheck,
-  FileCode,
-  FileText,
-  Plus,
-  Search,
-  Shield,
-  Sparkles,
-  X,
-} from 'lucide-react'
+import { FileText, Search } from 'lucide-react'
 import type React from 'react'
 import { useState } from 'react'
+import { SettingsPrimaryAction } from '@/components/settings/primitives'
+import { Button } from '@/components/ui/button'
 import type { SpecItem } from '../../types/orchestos'
 import { EmptyState } from '../common/ViewStateFeedback'
 
@@ -23,6 +12,11 @@ interface SpecsViewProps {
   onDraftSpec: (taskId: string) => void
   onLintSpec: (specId: string) => void
 }
+
+const LINE = 'border-[color:color-mix(in_srgb,var(--app-border)_50%,transparent)]'
+
+const statusDot = (status: SpecItem['status']) =>
+  status === 'approved' ? 'bg-app-success' : status === 'draft' ? 'bg-app-warning' : 'bg-app-muted'
 
 export const SpecsView: React.FC<SpecsViewProps> = ({
   specs,
@@ -42,72 +36,53 @@ export const SpecsView: React.FC<SpecsViewProps> = ({
   )
 
   return (
-    <div className="flex-1 flex overflow-hidden bg-zinc-950 select-none">
+    <div data-view="specs" className="flex min-h-full flex-1 overflow-hidden select-none">
       {/* Left List */}
-      <div className="w-80 border-r border-zinc-800/80 bg-zinc-950/70 flex flex-col flex-shrink-0">
-        <div className="p-3.5 border-b border-zinc-800/80 space-y-2.5">
+      <div className={`flex w-80 shrink-0 flex-col border-r ${LINE}`}>
+        <div className="space-y-2.5 p-3.5">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <FileCheck className="w-4 h-4 text-blue-400" />
-              <span className="font-semibold text-xs text-zinc-100 tracking-wide uppercase">
-                Spec-Driven Gates
-              </span>
-            </div>
-            <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-blue-500/10 text-blue-400 border border-blue-500/20">
-              requireSpec: true
-            </span>
+            <span className="text-[13px] font-semibold text-app">Spec-Driven Gates</span>
+            <span className="font-mono text-[11px] text-app-muted">requireSpec: true</span>
           </div>
 
           <div className="relative">
-            <Search className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-zinc-500" />
+            <Search className="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-app-muted" />
             <input
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Search specs or tasks..."
-              className="w-full pl-8 pr-3 py-1 bg-zinc-900 border border-zinc-800 rounded-lg text-xs text-zinc-200 placeholder-zinc-500 focus:outline-none"
+              className="h-7 w-full rounded-control bg-app-elevated pl-8 pr-3 text-xs text-app placeholder:text-app-muted focus:outline-none"
             />
           </div>
         </div>
 
-        <div className="flex-1 overflow-y-auto p-2 space-y-1.5">
+        <div className="flex-1 overflow-y-auto">
           {filteredSpecs.map((spec) => {
             const isSelected = spec.id === selectedSpec?.id
             return (
               <button
+                type="button"
                 key={spec.id}
                 onClick={() => setSelectedId(spec.id)}
-                className={`w-full p-3 rounded-xl text-left transition-all border ${
-                  isSelected
-                    ? 'bg-zinc-900 border-blue-500/50 shadow-md shadow-blue-950/20'
-                    : 'bg-zinc-900/40 hover:bg-zinc-900/70 border-zinc-800/80'
+                className={`block w-full border-b px-3.5 py-2.5 text-left transition-colors hover:bg-app-elevated ${LINE} ${
+                  isSelected ? 'bg-app-elevated' : ''
                 }`}
               >
-                <div className="flex items-center justify-between mb-1">
-                  <span className="font-mono text-[11px] font-semibold text-blue-400">
-                    {spec.id}
-                  </span>
+                <div className="flex items-center gap-2">
                   <span
-                    className={`text-[10px] font-mono font-bold uppercase px-1.5 py-0.5 rounded ${
-                      spec.status === 'approved'
-                        ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/30'
-                        : spec.status === 'draft'
-                          ? 'bg-amber-500/10 text-amber-400 border border-amber-500/30'
-                          : 'bg-zinc-800 text-zinc-400'
-                    }`}
-                  >
-                    {spec.status}
-                  </span>
+                    className={`h-1.5 w-1.5 shrink-0 rounded-full ${statusDot(spec.status)}`}
+                    title={spec.status}
+                  />
+                  <span className="font-mono text-[11px] text-app-muted">{spec.id}</span>
                 </div>
 
-                <div className="text-xs font-medium text-zinc-200 line-clamp-1 mb-1.5">
-                  {spec.title}
-                </div>
+                <div className="mt-0.5 line-clamp-1 text-[13px] text-app">{spec.title}</div>
 
-                <div className="flex items-center justify-between text-[10px] text-zinc-500 font-mono">
+                <div className="mt-0.5 flex items-center justify-between text-[11px] text-app-muted">
                   <span>Task: {spec.taskId}</span>
                   <span
-                    className={spec.lintStatus === 'pass' ? 'text-emerald-400' : 'text-rose-400'}
+                    className={`tabular-nums ${spec.lintStatus === 'pass' ? '' : 'text-app-error'}`}
                   >
                     Lint: {spec.lintStatus} ({spec.lintFindings})
                   </span>
@@ -120,100 +95,79 @@ export const SpecsView: React.FC<SpecsViewProps> = ({
 
       {/* Right Content / Spec Detail */}
       {selectedSpec ? (
-        <div className="flex-1 flex flex-col overflow-hidden bg-zinc-950">
-          {/* Spec Top Header */}
-          <div className="h-14 border-b border-zinc-800/80 px-6 flex items-center justify-between bg-zinc-950/80">
-            <div className="flex items-center gap-3">
-              <div className="w-8 h-8 rounded-lg bg-blue-500/10 border border-blue-500/20 flex items-center justify-center text-blue-400">
-                <FileText className="w-4 h-4" />
-              </div>
-              <div>
-                <h2 className="text-sm font-semibold text-white">{selectedSpec.title}</h2>
-                <div className="text-[11px] text-zinc-400 font-mono">
-                  .orchestos/specs/{selectedSpec.id}.md · Task: {selectedSpec.taskId}
-                </div>
+        <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
+          <div data-view-header="specs" className="flex h-14 items-center justify-between px-6">
+            <div className="min-w-0">
+              <h2 className="truncate text-sm font-semibold text-app">{selectedSpec.title}</h2>
+              <div className="font-mono text-[11px] text-app-muted">
+                .orchestos/specs/{selectedSpec.id}.md · Task: {selectedSpec.taskId}
               </div>
             </div>
 
             <div className="flex items-center gap-2">
-              <button
-                onClick={() => onLintSpec(selectedSpec.id)}
-                className="px-3 py-1.5 rounded-lg bg-zinc-900 hover:bg-zinc-800 text-zinc-200 border border-zinc-800 text-xs font-medium transition-colors"
-              >
+              <Button variant="ghost" size="compact" onClick={() => onLintSpec(selectedSpec.id)}>
                 Lint WHEN/THEN
-              </button>
+              </Button>
               {selectedSpec.status !== 'approved' && (
-                <button
-                  onClick={() => onApproveSpec(selectedSpec.id)}
-                  className="flex items-center gap-1 px-3.5 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold shadow-md shadow-emerald-600/20 transition-all active:scale-95"
-                >
-                  <Check className="w-3.5 h-3.5" />
-                  Approve Gate
-                </button>
+                <SettingsPrimaryAction>
+                  <Button size="compact" onClick={() => onApproveSpec(selectedSpec.id)}>
+                    Approve Gate
+                  </Button>
+                </SettingsPrimaryAction>
               )}
             </div>
           </div>
 
-          {/* Spec Clauses & Acceptance Criteria */}
-          <div className="flex-1 overflow-y-auto p-6 max-w-4xl space-y-6">
-            {/* Status Ribbon */}
-            <div className="p-4 rounded-xl bg-zinc-900/70 border border-zinc-800 flex items-center justify-between text-xs">
-              <div className="flex items-center gap-3">
-                <span className="font-semibold text-zinc-300">Gate Condition:</span>
+          <div data-view-content="specs" className="flex-1 space-y-6 overflow-y-auto px-6 pb-6">
+            {/* Status */}
+            <div className={`flex items-center justify-between border-b pb-3 text-xs ${LINE}`}>
+              <div className="flex items-center gap-2">
+                <span className="text-app-muted">Gate Condition:</span>
                 <span
-                  className={`px-2 py-0.5 rounded text-[11px] font-mono font-bold uppercase ${
-                    selectedSpec.status === 'approved'
-                      ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/30'
-                      : 'bg-amber-500/10 text-amber-400 border border-amber-500/30'
+                  className={`h-1.5 w-1.5 shrink-0 rounded-full ${
+                    selectedSpec.status === 'approved' ? 'bg-app-success' : 'bg-app-warning'
                   }`}
-                >
+                />
+                <span className="font-medium text-app">
                   {selectedSpec.status === 'approved' ? 'UNLOCKED' : 'LOCKED (AWAITING APPROVAL)'}
                 </span>
               </div>
-              <div className="flex items-center gap-4 text-zinc-400 font-mono text-[11px]">
+              <div className="flex items-center gap-4 tabular-nums text-app-muted">
                 <span>Lint Findings: {selectedSpec.lintFindings}</span>
                 <span>Delta Header Issues: {selectedSpec.deltaIssues}</span>
               </div>
             </div>
 
-            {/* Criteria Cards */}
-            <div className="space-y-3">
-              <h3 className="text-xs font-bold uppercase text-zinc-400 tracking-wider">
+            {/* Criteria */}
+            <div className="space-y-2">
+              <h3 className="text-[11px] font-semibold text-app-muted">
                 WHEN / THEN Acceptance Contract Assertions
               </h3>
 
               {selectedSpec.criteria.map((c, i) => (
-                <div
-                  key={i}
-                  className="p-4 rounded-xl bg-zinc-900 border border-zinc-800 space-y-2 text-xs"
-                >
-                  <div className="flex items-start gap-2">
-                    <span className="font-mono font-bold text-blue-400 uppercase text-[10px] px-1.5 py-0.5 rounded bg-blue-500/10 border border-blue-500/20 mt-0.5">
-                      WHEN
-                    </span>
-                    <p className="text-zinc-200 flex-1">{c.when}</p>
+                <div key={i} className={`space-y-2 border-b pb-3 text-xs ${LINE}`}>
+                  <div className="flex items-start gap-3">
+                    <span className="w-10 shrink-0 font-mono text-[10px] text-app-muted">WHEN</span>
+                    <p className="flex-1 text-app">{c.when}</p>
                   </div>
-
-                  <div className="flex items-start gap-2 pt-1 border-t border-zinc-800/60">
-                    <span className="font-mono font-bold text-emerald-400 uppercase text-[10px] px-1.5 py-0.5 rounded bg-emerald-500/10 border border-emerald-500/20 mt-0.5">
-                      THEN
-                    </span>
-                    <p className="text-zinc-300 flex-1">{c.then}</p>
+                  <div className="flex items-start gap-3">
+                    <span className="w-10 shrink-0 font-mono text-[10px] text-app-muted">THEN</span>
+                    <p className="flex-1 text-app">{c.then}</p>
                   </div>
                 </div>
               ))}
             </div>
 
-            {/* Spec CLI snippet */}
-            <div className="p-3 rounded-xl bg-zinc-950 border border-zinc-800 font-mono text-[11px] text-zinc-400 space-y-1">
-              <div className="text-zinc-500"># CLI equivalents:</div>
+            {/* CLI snippet */}
+            <div className="space-y-1 rounded-card bg-app-elevated p-3 font-mono text-[11px] text-app-muted">
+              <div># CLI equivalents:</div>
               <div>$ orchestos spec show {selectedSpec.taskId}</div>
               <div>$ orchestos spec approve {selectedSpec.taskId}</div>
             </div>
           </div>
         </div>
       ) : (
-        <div className="flex-1 flex items-center justify-center overflow-hidden bg-zinc-950">
+        <div className="flex flex-1 items-center justify-center overflow-hidden">
           <EmptyState
             icon={FileText}
             title="No specs yet"

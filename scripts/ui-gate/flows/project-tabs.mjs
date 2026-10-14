@@ -32,6 +32,19 @@ async function rootBackground(page, rootSelector) {
   }, rootSelector)
 }
 
+async function contentHeaderOffset(page, view) {
+  return page.evaluate((name) => {
+    const header = document.querySelector(`[data-view-header="${name}"]`)
+    const content = document.querySelector(`[data-view-content="${name}"]`)
+    const headerTitle = header?.firstElementChild
+    const firstContent = content?.firstElementChild
+    if (!headerTitle || !firstContent) return null
+    return Math.abs(
+      headerTitle.getBoundingClientRect().left - firstContent.getBoundingClientRect().left,
+    )
+  }, view)
+}
+
 async function tasksFor(api, projectId) {
   const response = await api('/api/tasks', {
     headers: { 'x-orchestos-project-id': projectId },
@@ -318,6 +331,20 @@ export default async function projectTabs({
     ) && (await visible(page.getByText('Authoritative gate memory', { exact: true }))),
     'content of entry A matches the resolved API value',
   )
+  const memoryHits = await paletteHits(page, '[data-view="memory"]')
+  await step(
+    'memory no palette',
+    memoryHits.length === 0,
+    memoryHits.join(' || ') || 'ninguna (con memoria sembrada)',
+  )
+  const memoryBg = await rootBackground(page, '[data-view="memory"]')
+  const memoryOffset = await contentHeaderOffset(page, 'memory')
+  await step(
+    'memory content aligned with header',
+    memoryOffset !== null && memoryOffset <= 4,
+    `left offset=${memoryOffset}px`,
+  )
+  await shot('memory')
 
   await tab('Specs').click()
   await step(
@@ -356,6 +383,20 @@ export default async function projectTabs({
       (await visible(page.getByText(lintLabel, { exact: true }))),
     `${lintLabel}; response findings=${lintResult.findings?.length ?? 0}; before=${lintBefore?.lintStatus}/${lintBefore?.lintFindings}`,
   )
+  const specsHits = await paletteHits(page, '[data-view="specs"]')
+  await step(
+    'specs no palette',
+    specsHits.length === 0,
+    specsHits.join(' || ') || 'ninguna (con spec sembrado)',
+  )
+  const specsBg = await rootBackground(page, '[data-view="specs"]')
+  const specsOffset = await contentHeaderOffset(page, 'specs')
+  await step(
+    'specs content aligned with header',
+    specsOffset !== null && specsOffset <= 4,
+    `left offset=${specsOffset}px`,
+  )
+  await shot('specs')
 
   await tab('Skills').click()
   const skillsBefore =
@@ -384,6 +425,48 @@ export default async function projectTabs({
     )
   }
   await step('mock skills absent', await noMockData(), 'no mock data')
+  const skillsHits = await paletteHits(page, '[data-view="skills"]')
+  await step(
+    'skills no palette',
+    skillsHits.length === 0,
+    skillsHits.join(' || ') || 'ninguna (con skills sembradas)',
+  )
+  const skillsBg = await rootBackground(page, '[data-view="skills"]')
+  const skillsOffset = await contentHeaderOffset(page, 'skills')
+  await step(
+    'skills content aligned with header',
+    skillsOffset !== null && skillsOffset <= 4,
+    `left offset=${skillsOffset}px`,
+  )
+  await shot('skills')
+  await page.getByRole('button', { name: 'Graph', exact: true }).click()
+  const graphHits = []
+  for (const name of [/^CONSTITUTION\.md$/, /^CONTEXT\.md$/, /^Code Graph/]) {
+    await page.getByRole('button', { name }).click()
+    const hits = await paletteHits(page, '[data-view="graph"]')
+    if (hits.length) {
+      graphHits.push(`${name}: ${hits.join(' || ')}`)
+      break
+    }
+  }
+  await step(
+    'graph no palette',
+    graphHits.length === 0,
+    graphHits.join(' || ') || 'ninguna en CONSTITUTION, CONTEXT ni Code Graph',
+  )
+  const graphBg = await rootBackground(page, '[data-view="graph"]')
+  const graphOffset = await contentHeaderOffset(page, 'graph')
+  await step(
+    'graph content aligned with header',
+    graphOffset !== null && graphOffset <= 4,
+    `left offset=${graphOffset}px`,
+  )
+  await shot('graph')
+  await step(
+    'tab roots transparent (memory/specs/skills/graph)',
+    [memoryBg, specsBg, skillsBg, graphBg].every((bg) => bg === 'rgba(0, 0, 0, 0)'),
+    `memory=${memoryBg}; specs=${specsBg}; skills=${skillsBg}; graph=${graphBg}`,
+  )
 
   await tab('Instincts').click()
   await step('mock instincts absent', await noMockData(), 'no mock data')

@@ -325,7 +325,7 @@ export default async function projectIsolation({
     await shot(`instincts-${label.toLowerCase()}`)
 
     await tab('Skills').click()
-    const skillRow = page.locator('div.rounded-2xl').filter({ hasText: 'API Contract Design' })
+    const skillRow = page.locator('[data-skill-row]').filter({ hasText: 'API Contract Design' })
     await step(
       `${label} api-contract skill origin is ${skillOrigin}`,
       (await visible(skillRow)) &&

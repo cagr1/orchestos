@@ -1,7 +1,37 @@
 {
-  "exported_at": "2026-10-14T22:30:03.078Z",
+  "exported_at": "2026-10-14T22:39:07.284Z",
   "total_runs": 20,
   "runs": [
+    {
+      "id": "6a22c546-8708-4e41-bad0-773e1703668c",
+      "task_class": "gate:ui.26.5-live:doc",
+      "model": "openai/gpt-6-luna",
+      "provider": "codex",
+      "status": "done",
+      "qa_verdict": "pass",
+      "qa_reason": "README.md contains the requested line.",
+      "files_blocked": [],
+      "checks_failed": 0,
+      "usd_cost": 0.00094448,
+      "elapsed_ms": 22314,
+      "tokens": 8204,
+      "created_at": "2026-10-14T22:36:25.982Z"
+    },
+    {
+      "id": "e8ef930f-8ed6-42e0-984f-2b3129a87027",
+      "task_class": "gate:ui.26.5-live:doc",
+      "model": "openai/gpt-6-luna",
+      "provider": "codex",
+      "status": "done",
+      "qa_verdict": "pass",
+      "qa_reason": "README.md contains the required line.",
+      "files_blocked": [],
+      "checks_failed": 0,
+      "usd_cost": 0.00096788,
+      "elapsed_ms": 22443,
+      "tokens": 8240,
+      "created_at": "2026-10-14T22:35:59.721Z"
+    },
     {
       "id": "46b4698c-2107-4491-9cdd-c94079a5a736",
       "task_class": "gate:ui.26.5-live:doc",
@@ -271,36 +301,6 @@
       "elapsed_ms": 42055,
       "tokens": 7668,
       "created_at": "2026-10-14T15:16:29.063Z"
-    },
-    {
-      "id": "001c4914-2a1c-403b-9bc7-7a40c6db5e51",
-      "task_class": "gate:ui.26.3-live:implement",
-      "model": "anthropic/haiku",
-      "provider": "claude",
-      "status": "done",
-      "qa_verdict": "pass",
-      "qa_reason": "claude.txt contains the required line, and the exact-line check succeeded.",
-      "files_blocked": [],
-      "checks_failed": 0,
-      "usd_cost": 0.00120682,
-      "elapsed_ms": 22362,
-      "tokens": 3663,
-      "created_at": "2026-10-14T15:15:45.091Z"
-    },
-    {
-      "id": "19590b79-4935-4f16-bb9b-7a62a215bba9",
-      "task_class": "gate:ui.26.3-live:implement",
-      "model": "openai/gpt-6-luna",
-      "provider": "codex",
-      "status": "done",
-      "qa_verdict": "pass",
-      "qa_reason": "ok.txt contains the required line VERDE.",
-      "files_blocked": [],
-      "checks_failed": 0,
-      "usd_cost": 0.00076978,
-      "elapsed_ms": 39902,
-      "tokens": 7637,
-      "created_at": "2026-10-14T15:15:19.625Z"
     }
   ],
   "stats": {
@@ -308,6 +308,6 @@
     "blocked": 0,
     "done": 19,
     "qa_failed": 1,
-    "total_cost_usd": "0.2217"
+    "total_cost_usd": "0.2216"
   }
 }

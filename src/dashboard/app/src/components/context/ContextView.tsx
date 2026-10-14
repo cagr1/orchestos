@@ -9,58 +9,42 @@ interface ContextViewProps {
   isRefreshing?: boolean
 }
 
+type ContextTab = 'constitution' | 'context' | 'graph'
+
+const SEGMENT_BASE = 'relative rounded-control px-3 py-1 text-xs font-medium transition-colors'
+
 export const ContextView: React.FC<ContextViewProps> = ({
   context,
   onRefreshGraph,
   isRefreshing = false,
 }) => {
-  const [activeTab, setActiveTab] = useState<'constitution' | 'context' | 'graph'>('constitution')
+  const [activeTab, setActiveTab] = useState<ContextTab>('constitution')
+
+  const segment = (tab: ContextTab, label: string) => (
+    <button
+      type="button"
+      onClick={() => setActiveTab(tab)}
+      className={`${SEGMENT_BASE} ${
+        activeTab === tab ? 'bg-app-elevated text-app' : 'text-app-muted hover:text-app'
+      }`}
+    >
+      {label}
+    </button>
+  )
 
   return (
-    <div className="flex-1 flex flex-col overflow-hidden bg-zinc-950 select-none">
+    <div data-view="graph" className="flex min-h-full flex-1 flex-col overflow-hidden select-none">
       {/* Top Bar */}
-      <div className="p-4 border-b border-zinc-800/80 bg-zinc-950/80 flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div className="flex items-center gap-1.5 p-0.5 bg-zinc-900 rounded-lg border border-zinc-800 text-xs">
-            <button
-              type="button"
-              onClick={() => setActiveTab('constitution')}
-              className={`px-3 py-1 rounded-md transition-all ${
-                activeTab === 'constitution'
-                  ? 'bg-zinc-800 text-white font-semibold'
-                  : 'text-zinc-400 hover:text-zinc-200'
-              }`}
-            >
-              CONSTITUTION.md
-            </button>
-            <button
-              type="button"
-              onClick={() => setActiveTab('context')}
-              className={`px-3 py-1 rounded-md transition-all ${
-                activeTab === 'context'
-                  ? 'bg-zinc-800 text-white font-semibold'
-                  : 'text-zinc-400 hover:text-zinc-200'
-              }`}
-            >
-              CONTEXT.md
-            </button>
-            <button
-              type="button"
-              onClick={() => setActiveTab('graph')}
-              className={`px-3 py-1 rounded-md transition-all ${
-                activeTab === 'graph'
-                  ? 'bg-zinc-800 text-white font-semibold'
-                  : 'text-zinc-400 hover:text-zinc-200'
-              }`}
-            >
-              Code Graph ({context.codeGraphNodes} files)
-            </button>
-          </div>
+      <div data-view-header="graph" className="flex items-center justify-between px-6 py-3">
+        <div className="inline-flex items-center gap-0.5 rounded-control bg-app-bg p-0.5">
+          {segment('constitution', 'CONSTITUTION.md')}
+          {segment('context', 'CONTEXT.md')}
+          {segment('graph', `Code Graph (${context.codeGraphNodes} files)`)}
         </div>
 
         <div className="flex items-center gap-3">
-          <span className="flex items-center gap-1.5 text-xs text-emerald-400 font-mono">
-            <ShieldCheck className="w-3.5 h-3.5" />
+          <span className="flex items-center gap-1.5 text-xs text-app-muted tabular-nums">
+            <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-app-success" />
             {context.staleFiles.length} stale references detected
           </span>
           <button
@@ -68,69 +52,80 @@ export const ContextView: React.FC<ContextViewProps> = ({
             onClick={onRefreshGraph}
             disabled={isRefreshing}
             aria-busy={isRefreshing}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-zinc-900 hover:bg-zinc-800 text-zinc-300 text-xs font-medium border border-zinc-800 transition-colors"
+            className="flex h-7 items-center gap-1.5 rounded-control bg-app-elevated px-3 text-xs font-medium text-app transition-colors hover:text-app-muted disabled:opacity-60"
           >
-            <RefreshCw className="w-3 h-3" />
+            <RefreshCw className="h-3 w-3" />
             {isRefreshing ? 'Rebuilding…' : 'Rebuild Code Graph'}
           </button>
         </div>
       </div>
 
       {/* Content Area */}
-      <div className="flex-1 overflow-y-auto p-6">
-        <div className="max-w-4xl mx-auto space-y-4">
+      <div data-view-content="graph" className="flex-1 overflow-y-auto px-6 pb-6">
+        <div className="space-y-4">
           {activeTab === 'constitution' && (
-            <div className="rounded-2xl border border-zinc-800 bg-zinc-900/60 p-6 space-y-4">
-              <div className="flex items-center justify-between border-b border-zinc-800 pb-3">
+            <div className="space-y-4 rounded-card bg-app-elevated p-6">
+              <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <ShieldCheck className="w-5 h-5 text-indigo-400" />
-                  <h3 className="font-bold text-sm text-white">
+                  <ShieldCheck className="h-4 w-4 text-app-muted" />
+                  <h3 className="text-[13px] font-semibold text-app">
                     Agent Constitution (Immutable Rules)
                   </h3>
                 </div>
-                <span className="text-[10px] font-mono text-zinc-500">Last verified: Today</span>
+                <span className="text-[11px] text-app-muted">Last verified: Today</span>
               </div>
-              <pre className="text-xs font-mono text-zinc-300 leading-relaxed whitespace-pre-wrap">
+              <pre className="whitespace-pre-wrap font-mono text-xs leading-relaxed text-app">
                 {context.constitution}
               </pre>
             </div>
           )}
 
           {activeTab === 'context' && (
-            <div className="rounded-2xl border border-zinc-800 bg-zinc-900/60 p-6 space-y-4">
-              <div className="flex items-center justify-between border-b border-zinc-800 pb-3">
+            <div className="space-y-4 rounded-card bg-app-elevated p-6">
+              <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <FileText className="w-5 h-5 text-blue-400" />
-                  <h3 className="font-bold text-sm text-white">Project Architecture Context</h3>
+                  <FileText className="h-4 w-4 text-app-muted" />
+                  <h3 className="text-[13px] font-semibold text-app">
+                    Project Architecture Context
+                  </h3>
                 </div>
-                <span className="text-[10px] font-mono text-zinc-500">
+                <span className="text-[11px] text-app-muted">
                   Branch: {context.gitBranch || 'Not a git repository'}
                 </span>
               </div>
-              <pre className="text-xs font-mono text-zinc-300 leading-relaxed whitespace-pre-wrap">
+              <pre className="whitespace-pre-wrap font-mono text-xs leading-relaxed text-app">
                 {context.contextDoc}
               </pre>
             </div>
           )}
 
           {activeTab === 'graph' && (
-            <div className="rounded-2xl border border-zinc-800 bg-zinc-900/60 p-6 space-y-4">
-              <div className="flex items-center justify-between border-b border-zinc-800 pb-3">
+            <div className="space-y-4 rounded-card bg-app-elevated p-6">
+              <div className="flex items-center justify-between">
                 <div>
-                  <h3 className="font-bold text-sm text-white">Dependency Topology & Code Graph</h3>
-                  <div className="text-xs text-zinc-400 mt-0.5">
+                  <h3 className="text-[13px] font-semibold text-app">
+                    Dependency Topology & Code Graph
+                  </h3>
+                  <div className="mt-0.5 text-xs text-app-muted tabular-nums">
                     {context.edges} dependency edges indexed locally.
                   </div>
                 </div>
-                <span className="px-2.5 py-1 rounded-full text-xs font-mono bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">
+                <span className="text-xs text-app-muted tabular-nums">
                   {context.codeGraphNodes} source units
                 </span>
               </div>
 
-              <div className="grid grid-cols-2 gap-3 text-xs">
-                <div className="p-3 rounded-xl bg-zinc-950 border border-zinc-800 space-y-1">
-                  <div className="font-semibold text-zinc-300">Git Cleanliness</div>
-                  <div className="text-emerald-400 font-mono">
+              <div className="grid grid-cols-2 gap-6 text-xs">
+                <div className="space-y-1">
+                  <div className="text-[11px] font-semibold text-app-muted">Git Cleanliness</div>
+                  <div className="flex items-center gap-1.5 text-app">
+                    {context.isCleanWorktree !== null && (
+                      <span
+                        className={`h-1.5 w-1.5 shrink-0 rounded-full ${
+                          context.isCleanWorktree ? 'bg-app-success' : 'bg-app-warning'
+                        }`}
+                      />
+                    )}
                     {context.isCleanWorktree === null
                       ? 'Not a git repository'
                       : context.isCleanWorktree
@@ -139,9 +134,11 @@ export const ContextView: React.FC<ContextViewProps> = ({
                   </div>
                 </div>
 
-                <div className="p-3 rounded-xl bg-zinc-950 border border-zinc-800 space-y-1">
-                  <div className="font-semibold text-zinc-300">Language Distribution</div>
-                  <div className="text-zinc-400 font-mono">
+                <div className="space-y-1">
+                  <div className="text-[11px] font-semibold text-app-muted">
+                    Language Distribution
+                  </div>
+                  <div className="text-app tabular-nums">
                     {context.languages.length === 0
                       ? 'No indexed source files'
                       : context.languages

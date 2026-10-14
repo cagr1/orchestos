@@ -1081,7 +1081,23 @@ archivos fijados por `ui:fidelity:jsx` (`OrchestDevWorkspace`, `ShellStatusBar`,
   Ejecutado por: mecanico (delegate) · Spec: docs/specs/UI.26.4b.md
   (cerrado 2026-10-14) Dos excepciones en `scripts/ui-fidelity/jsx-allow.json` con motivo UI.26.4a; ningún `.tsx`
   tocado. Evidencia (cerebro): `ui:fidelity:jsx` exit 0, lint verde.
-- [ ] **UI.26.5 — 🧠 Memory, Specs, Skills y Graph.** Maestro-detalle con estado vacío; Memory se llena con ERP.4.16.
+- [x] **UI.26.5 — 🧠 Memory, Specs, Skills y Graph.** (cerrado 2026-10-14) Maestro-detalle con estado vacío; Memory se llena con ERP.4.16.
+  Ejecutado por: sonnet (rol `criterio`, r1) y gpt-6-luna (rol `mecanico`, r2) · Spec: docs/specs/UI.26.5.md
+  Hecho (2026-10-14): 0 clases de paleta en `ContextView.tsx` (eran 46), `MemoryView.tsx` (66), `SpecsView.tsx` (74) y
+  `SkillsView.tsx` (46); `font-mono` 2/6/6/2 (eran 8/7/10/6), solo en ids, rutas y comandos. Raíces sin fondo propio
+  (`data-view`). Memory y Skills en filas planas con `EmptyState` ("No memory yet", "No skills yet"); Skills conserva
+  "Recompile" por fila (`data-skill-row`, `project-isolation.mjs:328` lo usa). Specs: lista + detalle a todo el alto.
+  Graph: selector `<button>` con las clases de `SettingsSegmented` (`runs-graph.mjs:241` lo busca por rol `button`).
+  r2 (cerebro, mirando las capturas): el contenido iba centrado en `mx-auto max-w-4xl` y no alineaba con la cabecera;
+  ahora todo arranca en el mismo borde (paso `content aligned with header`).
+  Evidencia: `typecheck`, `ui:fidelity:jsx`, corridos por el cerebro.
+  Gate en vivo: navegador real (Playwright), `docs/done/evidence/UI.26.5-live.json` — `project-tabs` 39/39 (pasos
+  nuevos: `<vista> no palette`, `tab roots transparent`, `content aligned with header`), `runs-graph` 16/16,
+  `project-isolation` 14/14, `shell-look` 19/19, `smoke` 6/6, `text-sweep` 10/10. El cerebro miró las capturas de las
+  cuatro vistas (tema por defecto).
+  Contraprueba: con `SpecsView.tsx` de HEAD falla `specs no palette` por la raíz sin `data-view` (débil, como en
+  UI.26.4); con `MemoryView.tsx` de r1 falla `memory content aligned with header`.
+  Límites: solo tema por defecto.
   Verificado en vivo 2026-10-14 (tema `light` real): la tarjeta de Graph sigue `bg-zinc-900/60` + `border-zinc-800`
   en los 4 temas; la paleta fija también está en `MemoryView` (27), `SpecsView` (26), `ContextView` (26) y
   `SkillsView` (17 clases). Pasan a tokens `app-*`.
@@ -1092,6 +1108,9 @@ archivos fijados por `ui:fidelity:jsx` (`OrchestDevWorkspace`, `ShellStatusBar`,
   primitivos de UI.25.1.
   Observación de Carlos 2026-10-14: Usage y Model routing (y las demás vistas con `max-w-3xl`,
   `OrchestSettingsView.tsx:1024,1155,1349,1930,2142,2175`) no ocupan el ancho disponible; deben llenarlo.
+  Spec: docs/specs/UI.26.6.md (forma y ancho; el movimiento de Arc UI pasa a UI.26.6b, 2026-10-14).
+- [ ] **UI.26.6b — 🧠 Movimiento de Arc UI en Settings.** `settings-command`, `api-keys` y `activity-heatmap` (ver
+  "Movimiento" abajo), separados de UI.26.6 para que la forma se cierre y verifique sola.
 - [ ] **UI.26.7 — 🔍 Pendiente de revisar: inputs de "Orquestación" en Tasks no aceptan texto.** (Carlos 2026-10-14)
   "Máximo concurrente" y "Tope total por ejecución" (`OrchestSettingsView.tsx:~2321`) se renderizan `disabled`
   (visto en `erp-piloto`): no se puede escribir. Revisar por qué están deshabilitados y si la sección aporta.

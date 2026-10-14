@@ -1,0 +1,601 @@
+[
+  {
+    "flujo": "project-tabs",
+    "pass": true,
+    "steps": [
+      {
+        "nombre": "add project opens folder picker without modal",
+        "ok": true,
+        "detalle": "POST /api/projects/choose calls=1; dialog visible=false"
+      },
+      {
+        "nombre": "temporary project visible",
+        "ok": true,
+        "detalle": "project visible in sidebar"
+      },
+      {
+        "nombre": "project settings visible",
+        "ok": true,
+        "detalle": "settings heading"
+      },
+      {
+        "nombre": "specs empty state visible",
+        "ok": true,
+        "detalle": "empty project has no specs"
+      },
+      {
+        "nombre": "specs empty no page error",
+        "ok": true,
+        "detalle": "none"
+      },
+      {
+        "nombre": "real memory visible",
+        "ok": true,
+        "detalle": "seeded DB memory"
+      },
+      {
+        "nombre": "mock memory absent",
+        "ok": true,
+        "detalle": "no mock data"
+      },
+      {
+        "nombre": "memory conflict resolved",
+        "ok": true,
+        "detalle": "open conflicts: 0"
+      },
+      {
+        "nombre": "authoritative memory persisted and visible",
+        "ok": true,
+        "detalle": "content of entry A matches the resolved API value"
+      },
+      {
+        "nombre": "memory no palette",
+        "ok": true,
+        "detalle": "ninguna (con memoria sembrada)"
+      },
+      {
+        "nombre": "memory content aligned with header",
+        "ok": true,
+        "detalle": "left offset=0px"
+      },
+      {
+        "nombre": "real spec visible",
+        "ok": true,
+        "detalle": "seeded markdown spec"
+      },
+      {
+        "nombre": "mock specs absent",
+        "ok": true,
+        "detalle": "no mock data"
+      },
+      {
+        "nombre": "spec approved",
+        "ok": true,
+        "detalle": "API status approved"
+      },
+      {
+        "nombre": "spec lint updates API and row",
+        "ok": true,
+        "detalle": "Lint: pass (0); response findings=0; before=pass/0"
+      },
+      {
+        "nombre": "specs no palette",
+        "ok": true,
+        "detalle": "ninguna (con spec sembrado)"
+      },
+      {
+        "nombre": "specs content aligned with header",
+        "ok": true,
+        "detalle": "left offset=0px"
+      },
+      {
+        "nombre": "real skills listed",
+        "ok": true,
+        "detalle": "API skills=17"
+      },
+      {
+        "nombre": "compile response visible",
+        "ok": true,
+        "detalle": "success response rendered in the skill row"
+      },
+      {
+        "nombre": "mock skills absent",
+        "ok": true,
+        "detalle": "no mock data"
+      },
+      {
+        "nombre": "skills no palette",
+        "ok": true,
+        "detalle": "ninguna (con skills sembradas)"
+      },
+      {
+        "nombre": "skills content aligned with header",
+        "ok": true,
+        "detalle": "left offset=0px"
+      },
+      {
+        "nombre": "graph no palette",
+        "ok": true,
+        "detalle": "ninguna en CONSTITUTION, CONTEXT ni Code Graph"
+      },
+      {
+        "nombre": "graph content aligned with header",
+        "ok": true,
+        "detalle": "left offset=0px"
+      },
+      {
+        "nombre": "tab roots transparent (memory/specs/skills/graph)",
+        "ok": true,
+        "detalle": "memory=rgba(0, 0, 0, 0); specs=rgba(0, 0, 0, 0); skills=rgba(0, 0, 0, 0); graph=rgba(0, 0, 0, 0)"
+      },
+      {
+        "nombre": "mock instincts absent",
+        "ok": true,
+        "detalle": "no mock data"
+      },
+      {
+        "nombre": "instinct review visible",
+        "ok": true,
+        "detalle": "unverified instinct"
+      },
+      {
+        "nombre": "instinct approved",
+        "ok": true,
+        "detalle": "API verified"
+      },
+      {
+        "nombre": "manual instinct added",
+        "ok": true,
+        "detalle": "new API row"
+      },
+      {
+        "nombre": "instincts no palette",
+        "ok": true,
+        "detalle": "ninguna (con instincts sembrados)"
+      },
+      {
+        "nombre": "mock plan absent",
+        "ok": true,
+        "detalle": "no mock data"
+      },
+      {
+        "nombre": "plan board fills the view",
+        "ok": true,
+        "detalle": "danger zone top=972 scroller bottom=972"
+      },
+      {
+        "nombre": "plan no palette",
+        "ok": true,
+        "detalle": "ninguna en Kanban ni Table"
+      },
+      {
+        "nombre": "tab roots transparent",
+        "ok": true,
+        "detalle": "plan=rgba(0, 0, 0, 0); instincts=rgba(0, 0, 0, 0)"
+      },
+      {
+        "nombre": "explain fields visible as readable UI",
+        "ok": true,
+        "detalle": "GET /explain fields rendered inside the template block"
+      },
+      {
+        "nombre": "explain has no [object Object]",
+        "ok": true,
+        "detalle": "opened Explain modal contains no stringified object values"
+      },
+      {
+        "nombre": "task run finishes and badge changes without reload",
+        "ok": true,
+        "detalle": "status=done; retryCount/runId changed or terminal status observed"
+      },
+      {
+        "nombre": "Add task opens Chat",
+        "ok": true,
+        "detalle": "Chat composer visible, Plan view inactive, task count unchanged"
+      },
+      {
+        "nombre": "0 console errors",
+        "ok": true,
+        "detalle": "none"
+      }
+    ],
+    "notes": [],
+    "errores": [],
+    "capturas": [
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-44200/project-tabs/memory.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-44200/project-tabs/specs.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-44200/project-tabs/skills.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-44200/project-tabs/graph.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-44200/project-tabs/project-tabs-real-data.png"
+    ]
+  },
+  {
+    "flujo": "runs-graph",
+    "pass": true,
+    "steps": [
+      {
+        "nombre": "temporary project visible",
+        "ok": true,
+        "detalle": "project visible in sidebar"
+      },
+      {
+        "nombre": "project settings visible",
+        "ok": true,
+        "detalle": "project settings heading visible"
+      },
+      {
+        "nombre": "graph count from API",
+        "ok": true,
+        "detalle": "files=1"
+      },
+      {
+        "nombre": "Run Next Task enabled",
+        "ok": true,
+        "detalle": "task is runnable"
+      },
+      {
+        "nombre": "task finished",
+        "ok": true,
+        "detalle": "status=done"
+      },
+      {
+        "nombre": "project run exists",
+        "ok": true,
+        "detalle": "run linked to task"
+      },
+      {
+        "nombre": "project runs are scoped",
+        "ok": true,
+        "detalle": "runs=1"
+      },
+      {
+        "nombre": "real run visible",
+        "ok": true,
+        "detalle": "task run appears in Runs"
+      },
+      {
+        "nombre": "run detail lists README.md output",
+        "ok": true,
+        "detalle": "README.md output"
+      },
+      {
+        "nombre": "mock QA copy absent",
+        "ok": true,
+        "detalle": "no hardcoded QA assertion"
+      },
+      {
+        "nombre": "real run status visible",
+        "ok": true,
+        "detalle": "status from run"
+      },
+      {
+        "nombre": "graph view visible",
+        "ok": true,
+        "detalle": "graph heading"
+      },
+      {
+        "nombre": "mock graph copy absent",
+        "ok": true,
+        "detalle": "no hardcoded language split"
+      },
+      {
+        "nombre": "graph count is real before rebuild",
+        "ok": true,
+        "detalle": "files=1, not the sample 48"
+      },
+      {
+        "nombre": "graph rebuild completes",
+        "ok": true,
+        "detalle": "indexed source count changed"
+      },
+      {
+        "nombre": "no duplicate project",
+        "ok": true,
+        "detalle": "basename=orchestos-ui-13-2e-ThY7cx, matches=1"
+      }
+    ],
+    "notes": [],
+    "errores": [],
+    "capturas": [
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-44200/runs-graph/runs-graph-real-data.png"
+    ]
+  },
+  {
+    "flujo": "project-isolation",
+    "pass": true,
+    "steps": [
+      {
+        "nombre": "fixtures created for Alfa and Beta",
+        "ok": true,
+        "detalle": "04c86c74f1653ccf; 6161dac2be4cdd18"
+      },
+      {
+        "nombre": "API lists only Alfa runs, memory search hides Beta, and sessions are scoped to Alfa",
+        "ok": true,
+        "detalle": "{\"runs\":[\"erp2-run-a\"],\"memory\":[],\"sessions\":[\"dfa57e74-f17f-48e5-aa1b-61f732293178\"]}"
+      },
+      {
+        "nombre": "Alfa cannot read or mutate any Beta run, session, memory, or instinct",
+        "ok": true,
+        "detalle": "[{\"label\":\"GET run\",\"status\":404},{\"label\":\"GET messages\",\"status\":404},{\"label\":\"PATCH session\",\"status\":404},{\"label\":\"approve instinct\",\"status\":404},{\"label\":\"delete memory\",\"status\":404},{\"label\":\"delete instinct\",\"status\":404},{\"label\":\"delete run\",\"status\":404},{\"label\":\"delete session\",\"status\":404},{\"label\":\"chat with foreign session\",\"status\":404}]"
+      },
+      {
+        "nombre": "Beta data and message history remain intact after rejected Alfa requests",
+        "ok": true,
+        "detalle": "{\"run\":[\"erp2-run-b\"],\"memory\":[\"Centinela memoria Beta\",\"Centinela memoria Global\"],\"messages\":[\"Centinela chat Beta\"],\"instincts\":[\"erp2-instinct-b\",\"erp2-instinct-history\"]}"
+      },
+      {
+        "nombre": "Alfa Memory shows own and global entries, hides the other project",
+        "ok": true,
+        "detalle": "project memory isolation and Global label"
+      },
+      {
+        "nombre": "Alfa Active Instincts shows own and historical entries, hides the other project",
+        "ok": true,
+        "detalle": "project instinct isolation and historical label"
+      },
+      {
+        "nombre": "Alfa api-contract skill origin is Proyecto",
+        "ok": true,
+        "detalle": "api-contract origin: Proyecto"
+      },
+      {
+        "nombre": "Beta Memory shows own and global entries, hides the other project",
+        "ok": true,
+        "detalle": "project memory isolation and Global label"
+      },
+      {
+        "nombre": "Beta Active Instincts shows own and historical entries, hides the other project",
+        "ok": true,
+        "detalle": "project instinct isolation and historical label"
+      },
+      {
+        "nombre": "Beta api-contract skill origin is Biblioteca",
+        "ok": true,
+        "detalle": "api-contract origin: Biblioteca"
+      },
+      {
+        "nombre": "Codex CLI context includes the own project memory (positive control)",
+        "ok": true,
+        "detalle": "reply=\"OK\" · prompt 2748 chars · cli input 14 chars"
+      },
+      {
+        "nombre": "Codex CLI context excludes every Beta sentinel",
+        "ok": true,
+        "detalle": "fugas: [] · Centinela memoria Global: aparece"
+      },
+      {
+        "nombre": "Claude CLI context includes the own project memory (positive control)",
+        "ok": true,
+        "detalle": "reply=\"OK\" · prompt 2758 chars · cli input 14 chars"
+      },
+      {
+        "nombre": "Claude CLI context excludes every Beta sentinel",
+        "ok": true,
+        "detalle": "fugas: [] · Centinela memoria Global: aparece"
+      }
+    ],
+    "notes": [],
+    "errores": [],
+    "capturas": [
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-44200/project-isolation/memory-alfa.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-44200/project-isolation/instincts-alfa.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-44200/project-isolation/skills-alfa.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-44200/project-isolation/memory-beta.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-44200/project-isolation/instincts-beta.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-44200/project-isolation/skills-beta.png"
+    ]
+  },
+  {
+    "flujo": "shell-look",
+    "pass": true,
+    "steps": [
+      {
+        "nombre": "chat: sidebar present",
+        "ok": true,
+        "detalle": "1 aside"
+      },
+      {
+        "nombre": "chat: sidebar rows flat",
+        "ok": true,
+        "detalle": "sin borde ni sombra"
+      },
+      {
+        "nombre": "chat: nav icons one tone",
+        "ok": true,
+        "detalle": "rgb(148, 163, 184)"
+      },
+      {
+        "nombre": "chat: no line between sidebar and panel",
+        "ok": true,
+        "detalle": "aside border-right=0 header border-bottom=0"
+      },
+      {
+        "nombre": "chat: panel lighter than chrome",
+        "ok": true,
+        "detalle": "panel=rgb(14, 19, 32) sidebar=rgb(8, 12, 20)"
+      },
+      {
+        "nombre": "chat: no palette classes in chrome",
+        "ok": true,
+        "detalle": "ninguna"
+      },
+      {
+        "nombre": "settings: sidebar present",
+        "ok": true,
+        "detalle": "1 aside"
+      },
+      {
+        "nombre": "settings: sidebar rows flat",
+        "ok": true,
+        "detalle": "sin borde ni sombra"
+      },
+      {
+        "nombre": "settings: nav icons one tone",
+        "ok": true,
+        "detalle": "rgb(148, 163, 184)"
+      },
+      {
+        "nombre": "settings: no line between sidebar and panel",
+        "ok": true,
+        "detalle": "aside border-right=0 header border-bottom=0"
+      },
+      {
+        "nombre": "settings: panel lighter than chrome",
+        "ok": true,
+        "detalle": "panel=rgb(14, 19, 32) sidebar=rgb(8, 12, 20)"
+      },
+      {
+        "nombre": "settings: no palette classes in chrome",
+        "ok": true,
+        "detalle": "ninguna"
+      },
+      {
+        "nombre": "project header flat",
+        "ok": true,
+        "detalle": "{\"border\":0,\"bg\":\"rgba(0, 0, 0, 0)\"}"
+      },
+      {
+        "nombre": "project tabs flat",
+        "ok": true,
+        "detalle": "8 pestañas, 28 px"
+      },
+      {
+        "nombre": "runs stat strip",
+        "ok": true,
+        "detalle": "4 celdas; paleta: ninguna"
+      },
+      {
+        "nombre": "chat header no band",
+        "ok": true,
+        "detalle": "{\"border\":0,\"bg\":\"rgba(0, 0, 0, 0)\"}"
+      },
+      {
+        "nombre": "composer no top line (Dev)",
+        "ok": true,
+        "detalle": "0px"
+      },
+      {
+        "nombre": "inspector line aligned",
+        "ok": true,
+        "detalle": "{\"inspectorBottom\":84,\"devHeaderBottom\":84}"
+      },
+      {
+        "nombre": "composer no top line (Chat)",
+        "ok": true,
+        "detalle": "0px"
+      }
+    ],
+    "notes": [],
+    "errores": [],
+    "capturas": [
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-44200/shell-look/shell-chat.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-44200/shell-look/shell-settings.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-44200/shell-look/shell-project.png"
+    ]
+  },
+  {
+    "flujo": "smoke",
+    "pass": true,
+    "steps": [
+      {
+        "nombre": "home",
+        "ok": true,
+        "detalle": "Chat visible"
+      },
+      {
+        "nombre": "home-dev",
+        "ok": true,
+        "detalle": "Dev visible"
+      },
+      {
+        "nombre": "dev-view",
+        "ok": true,
+        "detalle": "OrchestOS Dev visible"
+      },
+      {
+        "nombre": "chat-composer",
+        "ok": true,
+        "detalle": "chat composer visible"
+      },
+      {
+        "nombre": "settings-view",
+        "ok": true,
+        "detalle": "Appearance visible"
+      },
+      {
+        "nombre": "settings-general",
+        "ok": true,
+        "detalle": "Appearance visible"
+      }
+    ],
+    "notes": [],
+    "errores": [],
+    "capturas": [
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-44200/smoke/chat.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-44200/smoke/dev.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-44200/smoke/chat-returned.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-44200/smoke/settings.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-44200/smoke/settings-general.png"
+    ]
+  },
+  {
+    "flujo": "text-sweep",
+    "pass": true,
+    "steps": [
+      {
+        "nombre": "temporary project visible",
+        "ok": true,
+        "detalle": "project visible in sidebar"
+      },
+      {
+        "nombre": "Codex selector visible",
+        "ok": true,
+        "detalle": "Codex option visible"
+      },
+      {
+        "nombre": "model selector visible",
+        "ok": true,
+        "detalle": "composer model selector"
+      },
+      {
+        "nombre": "gpt-6-luna visible",
+        "ok": true,
+        "detalle": "Codex cache model"
+      },
+      {
+        "nombre": "medium visible",
+        "ok": true,
+        "detalle": "reasoning effort"
+      },
+      {
+        "nombre": "real Codex response visible",
+        "ok": true,
+        "detalle": "assistant response"
+      },
+      {
+        "nombre": "removed text absent after real turn",
+        "ok": true,
+        "detalle": "chat surface sweep complete"
+      },
+      {
+        "nombre": "all stale copy remains absent from the active screen",
+        "ok": true,
+        "detalle": "14 literals checked"
+      },
+      {
+        "nombre": "turn records selected model and effort",
+        "ok": true,
+        "detalle": "model=gpt-6-luna via Codex CLI (effort: medium), effort=medium"
+      },
+      {
+        "nombre": "no CLI default fallback in recorded surface",
+        "ok": true,
+        "detalle": "record uses selected model"
+      }
+    ],
+    "notes": [],
+    "errores": [],
+    "capturas": []
+  }
+]
