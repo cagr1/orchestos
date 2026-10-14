@@ -946,7 +946,9 @@ archivos fijados por `ui:fidelity:jsx` (`OrchestDevWorkspace`, `ShellStatusBar`,
   Lección: un cambio de marco toca todas las pantallas; antes de cerrarlo correr la batería completa del pre-push, no
   una selección de flujos.
   El pre-push también lo frenó `lint` (formato del JSX): la verificación de un spec incluye `bun run lint`.
-- [ ] **UI.26.2 — 🧠 Plantilla de página.** Encabezado, franja de cifras y fila de lista como primitivos de la familia.
+- [ ] **UI.26.2 — 🧠 Plantilla de página.** Encabezado, franja de cifras y estado vacío como primitivos de la familia;
+  consumidores: cabecera y pestañas de proyecto, Runs y cabecera interna del chat. La fila de lista pasa a UI.26.3 con
+  su primer consumidor. Spec: docs/specs/UI.26.2.md
 - [ ] **UI.26.3 — 🧠 Tasks en lista con detalle.** Nombre corto, agente y hora por fila; detalle al pulsar; fuera el
   texto duplicado y el UUID partido.
 - [ ] **UI.26.4 — 🧠 Plan (tablero) e Instincts.** Columnas y tarjetas sin color de decoración.

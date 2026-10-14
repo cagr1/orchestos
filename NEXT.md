@@ -14,13 +14,10 @@
 7. `chat-retry-report` NO entra al pre-push.
 
 ## PRIMERO al retomar — UI.26.2 (plantilla de página), luego UI.26.3-26.6 y UI.24.4
-UI.26.1 cerrado 2026-10-13 (marco). UI.26.2 sin spec: incluir la cabecera interna del chat (`OrchestChatView.tsx:255`,
+UI.26.1 cerrado 2026-10-13 (marco). UI.26.2 con spec (docs/specs/UI.26.2.md), delegado a `criterio` 2026-10-14; incluye la cabecera interna del chat (`OrchestChatView.tsx:255`,
 banda oscura con borde dentro del panel). Referencia viva: gr8r-taskmanagement.vercel.app — medidas en PLAN.md § UI.26.
 Movimiento de referencia: Arc UI (uiarc.dev), mapeado a cada paso en PLAN.md § UI.26; los bloques Pro no se compran.
-PUSH PENDIENTE: 6 commits locales sin subir. Último intento (2026-10-14) rojo en `test:coverage`:
-`harness-evidence.test.ts` F4.3 marcó 2 947 493 ms (la Mac se durmió a mitad) y luego leyó "OPENROUTER_API_KEY not found"
-en vez de "missing declared output(s)". No es de UI; reintentar `git push` con la máquina despierta y, si se repite,
-abrir ítem. UI.26.1a cerrado (el pre-push falló en `chat-streaming` por un selector `[data-ff]`). Lección: un cambio de marco se
+Push de 2026-10-14 hecho (pre-push verde; el fallo F4.3 era la Mac dormida, no se repitió). UI.26.1a cerrado (el pre-push falló en `chat-streaming` por un selector `[data-ff]`). Lección: un cambio de marco se
 cierra con la batería completa del pre-push, no con una selección de flujos.
 Al mirar una pantalla nueva de la familia: `Button` de solo icono recibe el icono como hijo; las `border-app/NN` no
 aceptan variante (usar `color-mix` arbitrario).
