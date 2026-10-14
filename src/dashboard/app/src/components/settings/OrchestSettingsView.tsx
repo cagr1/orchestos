@@ -78,15 +78,17 @@ import type {
   TaskItem,
 } from '../../types/orchestos'
 import { ProviderLogo } from '../common/ProviderLogos'
-import { StatusBadge } from '../common/StatusBadge'
+import { statusLabel } from '../common/StatusBadge'
 import { EmptyState } from '../common/ViewStateFeedback'
 import { ContextView } from '../context/ContextView'
 import { InstinctsView } from '../instincts/InstinctsView'
+import { ListRow } from '../layout/page'
 import { MemoryView } from '../memory/MemoryView'
 import { PlanBoardView } from '../plan/PlanBoardView'
 import { RunsEvidenceView } from '../runs/RunsEvidenceView'
 import { SkillsView } from '../skills/SkillsView'
 import { SpecsView } from '../specs/SpecsView'
+import { TASK_STATUS_DOT, TaskDetailPanel, taskTitle } from '../tasks/TaskDetailPanel'
 import {
   SettingsGroup,
   SettingsPage,
@@ -98,6 +100,18 @@ import {
 
 /** Espejo de `MAX_RETRIES` en `src/run/qa.ts`. */
 const TASK_MAX_ATTEMPTS = 3
+
+/** Hora del último run: hoy `HH:MM`, otro día `MMM D`. */
+function formatRunTime(iso: string): string {
+  const date = new Date(iso)
+  if (Number.isNaN(date.getTime())) return ''
+  const sameDay = date.toDateString() === new Date().toDateString()
+  return sameDay
+    ? new Intl.DateTimeFormat('en', { hour: '2-digit', minute: '2-digit', hour12: false }).format(
+        date,
+      )
+    : new Intl.DateTimeFormat('en', { month: 'short', day: 'numeric' }).format(date)
+}
 
 export type SettingsSection =
   | 'general'
@@ -219,6 +233,7 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
     activeProjectId || projects[0]?.id || 'orchestos',
   )
   const [searchQuery, setSearchQuery] = useState('')
+  const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null)
 
   // Confirmation Modals
   const [showPurgeConfirm, setShowPurgeConfirm] = useState(false)
@@ -2383,7 +2398,7 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
                     </span>
                   </div>
                   {orchestrationError && (
-                    <p role="alert" className="text-xs text-rose-300">
+                    <p role="alert" className="text-xs text-app-error">
                       {orchestrationError}
                     </p>
                   )}
@@ -2408,31 +2423,28 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
               )}
               {(projectTabsLoading || projectTabsError) && (
                 <div
-                  className={`px-4 py-2 text-xs ${projectTabsError ? 'text-rose-300 bg-rose-950/20' : 'text-app-muted'}`}
+                  className={`px-4 py-2 text-xs ${projectTabsError ? 'text-app-error' : 'text-app-muted'}`}
                 >
                   {projectTabsError ?? 'Loading project data…'}
                 </div>
               )}
               {/* TAB: Tasks */}
               {activeProjectTab === 'tasks' && (
-                <div className="p-4 space-y-4">
+                <div data-tasks-tab className="p-4 space-y-3">
                   <div className="flex items-center justify-between">
-                    <div>
-                      <h2 className="text-sm font-semibold text-app">Project Task Contracts</h2>
-                      <p className="text-xs text-app-muted">
-                        Declared DAG tasks in <code>tasks.yaml</code> with output file boundaries.
-                      </p>
-                    </div>
+                    <span className="text-xs text-app-muted">{tasks.length} tasks</span>
                     {onRunNextTask && (
-                      <button
-                        type="button"
-                        onClick={onRunNextTask}
-                        disabled={!canRunNextTask}
-                        aria-disabled={!canRunNextTask}
-                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-control bg-app-accent text-zinc-950 font-semibold text-xs hover:opacity-90 transition-opacity"
-                      >
-                        <span>Run Next Task</span>
-                      </button>
+                      <SettingsPrimaryAction>
+                        <Button
+                          variant="primary"
+                          size="compact"
+                          onClick={onRunNextTask}
+                          disabled={!canRunNextTask}
+                          aria-disabled={!canRunNextTask}
+                        >
+                          Run Next Task
+                        </Button>
+                      </SettingsPrimaryAction>
                     )}
                   </div>
 
@@ -2448,60 +2460,56 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
                       onAction={onOpenChat || (() => {})}
                     />
                   ) : (
-                    <div className="space-y-2">
-                      {tasks.map((task) => (
-                        <div
-                          key={task.id}
-                          className="rounded-card border border-app bg-app-surface p-3 text-xs space-y-2"
-                        >
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-2">
-                              <span className="font-mono font-semibold text-app">{task.id}</span>
-                              <span className="text-app-muted">·</span>
-                              <span className="text-app font-medium">
-                                {task.title || task.description}
-                              </span>
-                            </div>
-                            <div className="flex items-center gap-2">
-                              {onRunTask && isTaskRunnable(task, tasks) && (
-                                <button
-                                  type="button"
-                                  onClick={() => onRunTask(task.id)}
-                                  disabled={taskRunBusy}
-                                  aria-disabled={taskRunBusy}
-                                  aria-label={`Run ${task.id}`}
-                                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-control bg-app-accent text-zinc-950 font-semibold text-xs hover:opacity-90 transition-opacity"
-                                >
-                                  <span>Run</span>
-                                </button>
-                              )}
-                              <StatusBadge status={task.status} />
-                            </div>
-                          </div>
-                          <p className="text-xs text-app-muted">{task.description}</p>
-                          {(task.retryCount ?? 0) > 0 && task.retryReason && (
-                            <p className="text-xs text-rose-300">
-                              Attempt {task.retryCount}/{TASK_MAX_ATTEMPTS} failed:{' '}
-                              {task.retryReason}
-                            </p>
-                          )}
-                          <div className="flex flex-wrap items-center gap-2 pt-1 font-mono text-xs text-app-muted">
-                            <div>
-                              Agent:{' '}
-                              <span className="text-app">{task.assignedAgent || 'unassigned'}</span>
-                            </div>
-                            {task.outputSlice && (
-                              <div>
-                                Outputs:{' '}
-                                <span className="text-app-accent">
-                                  [{task.outputSlice.join(', ')}]
+                    <div>
+                      {tasks.map((task) => {
+                        const time = task.lastRunAt ? formatRunTime(task.lastRunAt) : ''
+                        return (
+                          <ListRow
+                            key={task.id}
+                            data-task-row=""
+                            data-task-id={task.id}
+                            selected={selectedTaskId === task.id}
+                            onOpen={() => setSelectedTaskId(task.id)}
+                            leading={
+                              <span
+                                className={`h-1.5 w-1.5 shrink-0 rounded-full ${TASK_STATUS_DOT[task.status] ?? 'bg-app-muted'}`}
+                              />
+                            }
+                            id={task.id}
+                            title={taskTitle(task)}
+                            meta={[task.assignedAgent || 'unassigned', time]
+                              .filter(Boolean)
+                              .join(' · ')}
+                            trailing={
+                              <>
+                                {onRunTask && isTaskRunnable(task, tasks) && (
+                                  <Button
+                                    variant="ghost"
+                                    size="compact"
+                                    onClick={() => onRunTask(task.id)}
+                                    disabled={taskRunBusy}
+                                    aria-disabled={taskRunBusy}
+                                    aria-label={`Run ${task.id}`}
+                                  >
+                                    Run
+                                  </Button>
+                                )}
+                                <span className="text-xs text-app-muted">
+                                  {statusLabel(task.status)}
                                 </span>
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      ))}
+                              </>
+                            }
+                          />
+                        )
+                      })}
                     </div>
+                  )}
+                  {selectedTaskId && tasks.some((task) => task.id === selectedTaskId) && (
+                    <TaskDetailPanel
+                      task={tasks.find((task) => task.id === selectedTaskId) as TaskItem}
+                      maxAttempts={TASK_MAX_ATTEMPTS}
+                      onClose={() => setSelectedTaskId(null)}
+                    />
                   )}
                 </div>
               )}

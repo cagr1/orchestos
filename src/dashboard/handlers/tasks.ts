@@ -8,6 +8,7 @@ import type { AgentChoice } from '../../config/schema.ts'
 import { getChatSession } from '../../db/chat-sessions.ts'
 import { getProject } from '../../db/projects.ts'
 import { getRunSteps } from '../../db/run-steps.ts'
+import { db } from '../../db/sqlite.ts'
 import { upsertTaskRunWatch } from '../../db/task-run-watch.ts'
 import { suggestContext } from '../../graph/suggest.ts'
 import { autoRoute, describeTaskExecutor, formatRoute } from '../../router/auto-route.ts'
@@ -82,29 +83,48 @@ function assignedExecutor(
   return { assignedAgent: resolved?.agent ?? null, assignedModel: resolved?.model ?? null }
 }
 
+/** `created_at` del run enlazado a la tarea; `null` sin `run_id` o sin fila en `runs`. */
+function lastRunAt(runId: string | null | undefined): string | null {
+  if (!runId) return null
+  const row = db
+    .query<{ created_at: string }, [string]>('SELECT created_at FROM runs WHERE id = ?')
+    .get(runId)
+  return row?.created_at ?? null
+}
+
+/** Fila de /api/tasks; la comparten `loadTaskRows` y `handleApiTasks`. */
+function buildTaskRow(
+  t: ReturnType<typeof loadTasks>['tasks'][number],
+  cfg: Parameters<typeof describeTaskExecutor>[1],
+  root: string,
+): TaskRow {
+  return {
+    id: t.id,
+    description: t.description,
+    status: t.status,
+    retryReason: t.retry_reason ?? null,
+    skill: t.skill ?? null,
+    ...assignedExecutor(t, cfg),
+    retryCount: t.retry_count,
+    qaVerdict: t.qa_verdict ?? null,
+    runId: t.run_id ?? null,
+    lastRunAt: lastRunAt(t.run_id),
+    engine: t.engine ?? null,
+    output: t.output,
+    dependsOn: t.depends_on,
+    acceptanceCriteria: t.acceptance_criteria ?? [],
+    executorModel: t.executor_model ?? null,
+    hasSplitPlan: existsSync(join(root, `${t.id}.plan.yaml`)),
+  }
+}
+
 /** Shared by /api/tasks and /api/run/graph/status — both need the live tasks.yaml view. */
 function loadTaskRows(root: string): TaskRow[] {
   if (!existsSync(join(root, 'tasks.yaml'))) return []
   try {
     const file = loadTasks(root)
     const cfg = loadOrcheConfig(root)
-    return file.tasks.map((t) => ({
-      id: t.id,
-      description: t.description,
-      status: t.status,
-      retryReason: t.retry_reason ?? null,
-      skill: t.skill ?? null,
-      ...assignedExecutor(t, cfg),
-      retryCount: t.retry_count,
-      qaVerdict: t.qa_verdict ?? null,
-      runId: t.run_id ?? null,
-      engine: t.engine ?? null,
-      output: t.output,
-      dependsOn: t.depends_on,
-      acceptanceCriteria: t.acceptance_criteria ?? [],
-      executorModel: t.executor_model ?? null,
-      hasSplitPlan: existsSync(join(root, `${t.id}.plan.yaml`)),
-    }))
+    return file.tasks.map((t) => buildTaskRow(t, cfg, root))
   } catch {
     return []
   }
@@ -135,23 +155,7 @@ function handleApiTasks(root: string): Response {
   try {
     const file = loadTasks(root)
     const cfg = loadOrcheConfig(root)
-    const rows: TaskRow[] = file.tasks.map((t) => ({
-      id: t.id,
-      description: t.description,
-      status: t.status,
-      retryReason: t.retry_reason ?? null,
-      skill: t.skill ?? null,
-      ...assignedExecutor(t, cfg),
-      retryCount: t.retry_count,
-      qaVerdict: t.qa_verdict ?? null,
-      runId: t.run_id ?? null,
-      engine: t.engine ?? null,
-      output: t.output,
-      dependsOn: t.depends_on,
-      acceptanceCriteria: t.acceptance_criteria ?? [],
-      executorModel: t.executor_model ?? null,
-      hasSplitPlan: existsSync(join(root, `${t.id}.plan.yaml`)),
-    }))
+    const rows: TaskRow[] = file.tasks.map((t) => buildTaskRow(t, cfg, root))
     return jsonResponse({ exists: true, tasks: rows })
   } catch (e: any) {
     return jsonResponse({ exists: true, tasks: [], error: e.message })

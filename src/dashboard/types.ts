@@ -257,6 +257,8 @@ export interface TaskRow {
   retryCount: number
   qaVerdict: 'pass' | 'fail' | null
   runId: string | null // link to latest run in /api/runs
+  /** `created_at` del run `runId`; `null` sin run o sin fila en `runs`. */
+  lastRunAt: string | null
   /** G.4 / B.2 — 'single-shot' | 'agentic' | 'external' | 'opencode' | 'codex' | null (undefined → inherit from orchestos.config.yaml, default 'single-shot') */
   engine: 'single-shot' | 'agentic' | 'external' | 'opencode' | 'codex' | null
   output: string[]

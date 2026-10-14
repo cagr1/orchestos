@@ -1,4 +1,4 @@
-import type { CSSProperties, ReactNode } from 'react'
+import type { CSSProperties, KeyboardEvent, ReactNode } from 'react'
 import { cn } from '@/lib/utils'
 
 export function PageHeader({
@@ -64,6 +64,71 @@ export function StatStrip({ items }: { items: StatStripItem[] }) {
           ) : null}
         </div>
       ))}
+    </div>
+  )
+}
+
+export function ListRow({
+  leading,
+  id,
+  title,
+  meta,
+  trailing,
+  onOpen,
+  selected,
+  ...rest
+}: {
+  leading?: ReactNode
+  id?: string
+  title: string
+  meta?: ReactNode
+  trailing?: ReactNode
+  onOpen: () => void
+  selected?: boolean
+} & Record<`data-${string}`, string | undefined>) {
+  const onKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
+    if (event.target !== event.currentTarget) return
+    if (event.key === 'Enter' || event.key === ' ') {
+      event.preventDefault()
+      onOpen()
+    }
+  }
+  return (
+    <div
+      {...rest}
+      data-list-row
+      role="button"
+      tabIndex={0}
+      onClick={onOpen}
+      onKeyDown={onKeyDown}
+      className={cn(
+        'flex h-10 cursor-pointer items-center gap-3 whitespace-nowrap border-b border-[color:color-mix(in_srgb,var(--app-border)_50%,transparent)] px-3 hover:bg-app-elevated',
+        selected && 'bg-app-elevated',
+      )}
+    >
+      {leading}
+      {id ? (
+        <span
+          title={id}
+          className="w-[7rem] shrink-0 truncate font-mono text-[11px] text-app-muted"
+        >
+          {id}
+        </span>
+      ) : null}
+      <span title={title} className="min-w-0 flex-1 truncate text-[13px] text-app">
+        {title}
+      </span>
+      {meta ? <span className="whitespace-nowrap text-xs text-app-muted">{meta}</span> : null}
+      {trailing ? (
+        // biome-ignore lint/a11y/noStaticElementInteractions: contiene los controles de la fila; solo detiene la propagación
+        <div
+          className="flex shrink-0 items-center gap-2 whitespace-nowrap"
+          onClick={(event) => event.stopPropagation()}
+          onKeyDown={(event) => event.stopPropagation()}
+        >
+          {trailing}
+        </div>
+      ) : null}
     </div>
   )
 }

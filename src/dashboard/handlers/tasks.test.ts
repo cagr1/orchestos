@@ -2,7 +2,14 @@ import { afterAll, describe, expect, test } from 'bun:test'
 import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { handleApiTasksCommitRun, handleApiTasksRun, resolveTaskRunProjectId } from './tasks.ts'
+import { db } from '../../db/sqlite.ts'
+import {
+  handleApiTasks,
+  handleApiTasksCommitRun,
+  handleApiTasksRun,
+  loadTaskRows,
+  resolveTaskRunProjectId,
+} from './tasks.ts'
 
 const roots: string[] = []
 afterAll(() => roots.forEach((root) => rmSync(root, { recursive: true, force: true })))
@@ -160,5 +167,44 @@ describe('dashboard task commit-run (ERP.4.13)', () => {
     } finally {
       Bun.spawn = originalSpawn
     }
+  })
+})
+
+describe('dashboard task rows lastRunAt (UI.26.3)', () => {
+  function fixture(runId: string | null) {
+    const root = mkdtempSync(join(tmpdir(), 'orchestos-task-lastrun-'))
+    roots.push(root)
+    const runLine = runId ? `    run_id: ${runId}\n` : ''
+    writeFileSync(
+      join(root, 'tasks.yaml'),
+      `version: 1\nproject: test\ntasks:\n  - id: task-a\n    description: A\n    executor: openrouter\n    input: []\n    output: [out.txt]\n    depends_on: []\n    status: done\n    retry_count: 0\n${runLine}`,
+    )
+    return root
+  }
+
+  test('lastRunAt es el created_at del run enlazado', async () => {
+    const runId = `run-lastrun-${crypto.randomUUID()}`
+    const createdAt = '2026-10-14T09:30:00.000Z'
+    db.run(
+      `INSERT INTO runs (id, prompt, task_class, model, provider, status, created_at)
+       VALUES (?, 'p', 'code', 'm', 'x', 'done', ?)`,
+      [runId, createdAt],
+    )
+    try {
+      const root = fixture(runId)
+      expect(loadTaskRows(root)[0]?.lastRunAt).toBe(createdAt)
+      const body = (await handleApiTasks(root).json()) as { tasks: { lastRunAt: string | null }[] }
+      expect(body.tasks[0]?.lastRunAt).toBe(createdAt)
+    } finally {
+      db.run('DELETE FROM runs WHERE id = ?', [runId])
+    }
+  })
+
+  test('sin run_id, o con un run inexistente, lastRunAt es null', async () => {
+    const noRun = fixture(null)
+    expect(loadTaskRows(noRun)[0]?.lastRunAt).toBeNull()
+    const body = (await handleApiTasks(noRun).json()) as { tasks: { lastRunAt: string | null }[] }
+    expect(body.tasks[0]?.lastRunAt).toBeNull()
+    expect(loadTaskRows(fixture('run-que-no-existe'))[0]?.lastRunAt).toBeNull()
   })
 })

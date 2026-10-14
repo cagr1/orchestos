@@ -220,11 +220,13 @@ export default async function tasks({ page, api, step, note, shot, visible, clea
       'real tasks.yaml id',
     )
   }
+  await page.locator('[data-task-row][data-task-id="gate-first-task"]').click()
   await step(
     'real output visible',
-    await visible(page.getByText('[README.md]', { exact: true }).first()),
-    'output boundary from tasks.yaml',
+    await visible(page.locator('[data-task-detail]').getByText('[README.md]', { exact: true })),
+    'output boundary from tasks.yaml, in the task detail',
   )
+  await page.keyboard.press('Escape')
   await step(
     'mock task absent',
     (await page.getByText('t1_sandbox_worktree', { exact: true }).count()) === 0,
@@ -235,7 +237,7 @@ export default async function tasks({ page, api, step, note, shot, visible, clea
     'task created without model shows the Executor role agent and model',
     await visible(
       page
-        .locator('div.rounded-card', { has: page.getByText('gate-role-task', { exact: true }) })
+        .locator('[data-task-row]', { has: page.getByText('gate-role-task', { exact: true }) })
         .getByText(roleLabel, { exact: true }),
     ),
     `expected=${roleLabel} from fixture orchestos.config.yaml`,
@@ -318,17 +320,21 @@ export default async function tasks({ page, api, step, note, shot, visible, clea
     'final status badge is visible without reload',
     await visible(
       page
-        .locator('div.rounded-card', { has: page.getByText('gate-first-task', { exact: true }) })
+        .locator('[data-task-row]', { has: page.getByText('gate-first-task', { exact: true }) })
         .getByText(statusLabel, { exact: true }),
     ),
     `StatusBadge text=${statusLabel}`,
   )
   if (visibleStatus === 'pending' && finished?.retryReason) {
+    await page.locator('[data-task-row][data-task-id="gate-first-task"]').click()
     await step(
       'retry reason is visible in the task tab',
-      await visible(page.getByText(finished.retryReason, { exact: false })),
+      await visible(
+        page.locator('[data-task-detail]').getByText(finished.retryReason, { exact: false }),
+      ),
       `retryReason=${finished.retryReason}`,
     )
+    await page.keyboard.press('Escape')
   }
   await step(
     'badge leaves Pending without page reload',
@@ -384,6 +390,64 @@ export default async function tasks({ page, api, step, note, shot, visible, clea
     'relaunch did not start the dependent task',
     dependentAfterRelaunch?.status === 'pending' && !dependentAfterRelaunch.runId,
     `status=${dependentAfterRelaunch?.status ?? 'missing'} runId=${dependentAfterRelaunch?.runId ?? 'missing'}`,
+  )
+  const rowHeights = await page.locator('[data-task-row]').evaluateAll((rows) =>
+    rows.map((row) => {
+      const style = getComputedStyle(row)
+      return {
+        height: row.getBoundingClientRect().height,
+        borderTop: style.borderTopWidth,
+        shadow: style.boxShadow,
+      }
+    }),
+  )
+  await step(
+    'task rows flat',
+    rowHeights.length > 0 &&
+      rowHeights.every(
+        (row) => Math.abs(row.height - 40) <= 1 && row.borderTop === '0px' && row.shadow === 'none',
+      ),
+    JSON.stringify(rowHeights),
+  )
+  const paletteHits = await page.locator('[data-tasks-tab]').evaluate((root, palette) => {
+    const re = new RegExp(palette)
+    return [root, ...root.querySelectorAll('*')]
+      .flatMap((el) => String(el.getAttribute('class') ?? '').split(/\s+/))
+      .filter((cls) => re.test(cls))
+      .slice(0, 5)
+  }, '\\b(?:emerald|zinc|rose|sky|amber|teal|purple|indigo|blue|red|green|slate|gray|violet|pink|cyan|orange|yellow)-\\d+\\b')
+  await step(
+    'no palette in tasks tab',
+    paletteHits.length === 0,
+    paletteHits.join(' || ') || 'ninguna',
+  )
+  const lastRow = page.locator('[data-task-row][data-task-id="gate-dependent-task"]')
+  await lastRow.click()
+  await step(
+    'task detail opens',
+    await visible(
+      page.locator('[data-task-detail]').getByText('gate-dependent-task', { exact: true }),
+    ),
+    'detail shows the task id',
+  )
+  await page.keyboard.press('Escape')
+  await step(
+    'task detail closes with Esc',
+    (await page.locator('[data-task-detail]').count()) === 0,
+    'detail count=0',
+  )
+  const dependentDescription = (await tasksFor(api, project.id)).find(
+    (task) => task.id === 'gate-dependent-task',
+  )?.description
+  const firstLine =
+    String(dependentDescription ?? '')
+      .split('\n')[0]
+      ?.slice(0, 80) ?? ''
+  const rowText = await lastRow.innerText()
+  await step(
+    'no duplicated description',
+    firstLine.length > 0 && rowText.split(firstLine).length - 1 === 1,
+    `occurrences=${rowText.split(firstLine).length - 1} line=${JSON.stringify(firstLine)}`,
   )
   await shot('tasks-real-data')
 }

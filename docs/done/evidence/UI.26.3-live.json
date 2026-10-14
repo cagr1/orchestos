@@ -1,0 +1,718 @@
+[
+  {
+    "flujo": "tasks",
+    "pass": true,
+    "steps": [
+      {
+        "nombre": "temporary project visible",
+        "ok": true,
+        "detalle": "project visible in sidebar"
+      },
+      {
+        "nombre": "project settings visible",
+        "ok": true,
+        "detalle": "project settings heading visible"
+      },
+      {
+        "nombre": "task id gate-first-task visible",
+        "ok": true,
+        "detalle": "real tasks.yaml id"
+      },
+      {
+        "nombre": "task id gate-dependent-task visible",
+        "ok": true,
+        "detalle": "real tasks.yaml id"
+      },
+      {
+        "nombre": "task id gate-failed-task visible",
+        "ok": true,
+        "detalle": "real tasks.yaml id"
+      },
+      {
+        "nombre": "real output visible",
+        "ok": true,
+        "detalle": "output boundary from tasks.yaml, in the task detail"
+      },
+      {
+        "nombre": "mock task absent",
+        "ok": true,
+        "detalle": "no initialMockTasks id rendered"
+      },
+      {
+        "nombre": "task created without model shows the Executor role agent and model",
+        "ok": true,
+        "detalle": "expected=codex · gpt-6-luna from fixture orchestos.config.yaml"
+      },
+      {
+        "nombre": "created task yaml has no hardcoded provider executor",
+        "ok": true,
+        "detalle": "tasks.yaml entry for gate-role-task has no executor: openrouter|anthropic|openai"
+      },
+      {
+        "nombre": "failed task offers its own Run button",
+        "ok": true,
+        "detalle": "visible=true enabled=true"
+      },
+      {
+        "nombre": "task with unfinished dependency has no Run button",
+        "ok": true,
+        "detalle": "button count=0"
+      },
+      {
+        "nombre": "Run Next Task enabled",
+        "ok": true,
+        "detalle": "first task has no unfinished dependency"
+      },
+      {
+        "nombre": "Run Next Task disabled while running",
+        "ok": true,
+        "detalle": "running task prevents a second run"
+      },
+      {
+        "nombre": "first task was posted",
+        "ok": true,
+        "detalle": "status=pending"
+      },
+      {
+        "nombre": "dependent task remains pending before first finishes",
+        "ok": true,
+        "detalle": "dependency prevents the second task from running"
+      },
+      {
+        "nombre": "final status badge is visible without reload",
+        "ok": true,
+        "detalle": "StatusBadge text=DONE"
+      },
+      {
+        "nombre": "badge leaves Pending without page reload",
+        "ok": true,
+        "detalle": "status=done"
+      },
+      {
+        "nombre": "UI and API agree on final task state",
+        "ok": true,
+        "detalle": "status=done"
+      },
+      {
+        "nombre": "first task final state is committed in tasks.yaml",
+        "ok": true,
+        "detalle": "porcelain=\"\" subject=chore(tasks): gate-first-task done"
+      },
+      {
+        "nombre": "failed task relaunched by id ran",
+        "ok": true,
+        "detalle": "runId=be776cee-075b-4872-a4bd-c91114ce1a84 previous=missing"
+      },
+      {
+        "nombre": "relaunched task reaches done",
+        "ok": true,
+        "detalle": "status=done"
+      },
+      {
+        "nombre": "relaunched task final state is committed in tasks.yaml",
+        "ok": true,
+        "detalle": "porcelain=\"\" subject=chore(tasks): gate-failed-task done"
+      },
+      {
+        "nombre": "relaunch did not start the dependent task",
+        "ok": true,
+        "detalle": "status=pending runId=missing"
+      },
+      {
+        "nombre": "task rows flat",
+        "ok": true,
+        "detalle": "[{\"height\":40,\"borderTop\":\"0px\",\"shadow\":\"none\"},{\"height\":40,\"borderTop\":\"0px\",\"shadow\":\"none\"},{\"height\":40,\"borderTop\":\"0px\",\"shadow\":\"none\"},{\"height\":40,\"borderTop\":\"0px\",\"shadow\":\"none\"}]"
+      },
+      {
+        "nombre": "no palette in tasks tab",
+        "ok": true,
+        "detalle": "ninguna"
+      },
+      {
+        "nombre": "task detail opens",
+        "ok": true,
+        "detalle": "detail shows the task id"
+      },
+      {
+        "nombre": "task detail closes with Esc",
+        "ok": true,
+        "detalle": "detail count=0"
+      },
+      {
+        "nombre": "no duplicated description",
+        "ok": true,
+        "detalle": "occurrences=1 line=\"Inspect the first task result.\""
+      }
+    ],
+    "notes": [],
+    "errores": [],
+    "capturas": [
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-99252/tasks/tasks-real-data.png"
+    ]
+  },
+  {
+    "flujo": "project-tabs",
+    "pass": true,
+    "steps": [
+      {
+        "nombre": "add project opens folder picker without modal",
+        "ok": true,
+        "detalle": "POST /api/projects/choose calls=1; dialog visible=false"
+      },
+      {
+        "nombre": "temporary project visible",
+        "ok": true,
+        "detalle": "project visible in sidebar"
+      },
+      {
+        "nombre": "project settings visible",
+        "ok": true,
+        "detalle": "settings heading"
+      },
+      {
+        "nombre": "specs empty state visible",
+        "ok": true,
+        "detalle": "empty project has no specs"
+      },
+      {
+        "nombre": "specs empty no page error",
+        "ok": true,
+        "detalle": "none"
+      },
+      {
+        "nombre": "real memory visible",
+        "ok": true,
+        "detalle": "seeded DB memory"
+      },
+      {
+        "nombre": "mock memory absent",
+        "ok": true,
+        "detalle": "no mock data"
+      },
+      {
+        "nombre": "memory conflict resolved",
+        "ok": true,
+        "detalle": "open conflicts: 0"
+      },
+      {
+        "nombre": "authoritative memory persisted and visible",
+        "ok": true,
+        "detalle": "content of entry A matches the resolved API value"
+      },
+      {
+        "nombre": "real spec visible",
+        "ok": true,
+        "detalle": "seeded markdown spec"
+      },
+      {
+        "nombre": "mock specs absent",
+        "ok": true,
+        "detalle": "no mock data"
+      },
+      {
+        "nombre": "spec approved",
+        "ok": true,
+        "detalle": "API status approved"
+      },
+      {
+        "nombre": "spec lint updates API and row",
+        "ok": true,
+        "detalle": "Lint: pass (0); response findings=0; before=pass/0"
+      },
+      {
+        "nombre": "real skills listed",
+        "ok": true,
+        "detalle": "API skills=17"
+      },
+      {
+        "nombre": "compile response visible",
+        "ok": true,
+        "detalle": "success response rendered in the skill row"
+      },
+      {
+        "nombre": "mock skills absent",
+        "ok": true,
+        "detalle": "no mock data"
+      },
+      {
+        "nombre": "mock instincts absent",
+        "ok": true,
+        "detalle": "no mock data"
+      },
+      {
+        "nombre": "instinct review visible",
+        "ok": true,
+        "detalle": "unverified instinct"
+      },
+      {
+        "nombre": "instinct approved",
+        "ok": true,
+        "detalle": "API verified"
+      },
+      {
+        "nombre": "manual instinct added",
+        "ok": true,
+        "detalle": "new API row"
+      },
+      {
+        "nombre": "mock plan absent",
+        "ok": true,
+        "detalle": "no mock data"
+      },
+      {
+        "nombre": "explain fields visible as readable UI",
+        "ok": true,
+        "detalle": "GET /explain fields rendered inside the template block"
+      },
+      {
+        "nombre": "explain has no [object Object]",
+        "ok": true,
+        "detalle": "opened Explain modal contains no stringified object values"
+      },
+      {
+        "nombre": "task run finishes and badge changes without reload",
+        "ok": true,
+        "detalle": "status=done; retryCount/runId changed or terminal status observed"
+      },
+      {
+        "nombre": "Add task opens Chat",
+        "ok": true,
+        "detalle": "Chat composer visible, Plan view inactive, task count unchanged"
+      },
+      {
+        "nombre": "0 console errors",
+        "ok": true,
+        "detalle": "none"
+      }
+    ],
+    "notes": [],
+    "errores": [],
+    "capturas": [
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-99252/project-tabs/project-tabs-real-data.png"
+    ]
+  },
+  {
+    "flujo": "qa-negative",
+    "pass": true,
+    "steps": [
+      {
+        "nombre": "temporary project visible",
+        "ok": true,
+        "detalle": "project visible in sidebar"
+      },
+      {
+        "nombre": "project settings visible",
+        "ok": true,
+        "detalle": "project settings heading visible"
+      },
+      {
+        "nombre": "Run Next Task enabled",
+        "ok": true,
+        "detalle": "task is runnable"
+      },
+      {
+        "nombre": "control task passes QA",
+        "ok": true,
+        "detalle": "{\"status\":\"done\",\"qaVerdict\":\"pass\"}"
+      },
+      {
+        "nombre": "control check executed",
+        "ok": true,
+        "detalle": "[{\"cmd\":\"grep -qx VERDE ok.txt\",\"version\":\"grep (BSD grep, GNU compatible) 2.6.0-FreeBSD\",\"exitCode\":0,\"stdout\":\"\",\"stderr\":\"\",\"elapsedMs\":6,\"timedOut\":false}]"
+      },
+      {
+        "nombre": "control criterion passed with literal evidence",
+        "ok": true,
+        "detalle": "[{\"text\":\"ok.txt contains the line: VERDE\",\"pass\":true,\"evidence\":{\"file\":\"ok.txt\",\"excerpt\":\"VERDE\"}}]"
+      },
+      {
+        "nombre": "control output on disk",
+        "ok": true,
+        "detalle": "{\"exists\":true,\"content\":\"VERDE\"}"
+      },
+      {
+        "nombre": "task rollout written inside the project agent home",
+        "ok": true,
+        "detalle": "{\"agentHome\":\"/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/orchestos-ui-r83-ssYQXM/.orchestos/agent-home/codex\",\"antes\":3,\"despues\":1}"
+      },
+      {
+        "nombre": "rollout contains the OrchestOS generated instructions",
+        "ok": true,
+        "detalle": "{\"rolloutBytes\":52024,\"hostAgents\":\"checked\"}"
+      },
+      {
+        "nombre": "rollout does not contain the host AGENTS.md distinctive line",
+        "ok": true,
+        "detalle": "línea del host comprobada: \"# Reglas globales de trabajo con agentes\""
+      },
+      {
+        "nombre": "Claude task transcript was found",
+        "ok": true,
+        "detalle": "{\"status\":\"done\",\"qaVerdict\":\"pass\",\"transcripts\":1}"
+      },
+      {
+        "nombre": "Claude task transcript does not contain the host CLAUDE.md distinctive line",
+        "ok": true,
+        "detalle": "línea del host comprobada: \"# Reglas globales de trabajo con agentes\" · transcripciones: 1"
+      },
+      {
+        "nombre": "executor wrote the incorrect output",
+        "ok": true,
+        "detalle": "[{\"path\":\"nota.txt\",\"status\":\"added\",\"diff\":\"Index: nota.txt\\n===================================================================\\n--- nota.txt\\n+++ nota.txt\\n@@ -0,0 +1,1 @@\\n+ROJO\\n\"}]"
+      },
+      {
+        "nombre": "QA rejects the incorrect output",
+        "ok": true,
+        "detalle": "{\"qaVerdict\":\"fail\",\"qaReason\":\"nota.txt contains ROJO, but the criterion requires AZUL.\",\"qaModel\":\"gpt-6-luna\",\"checks\":[{\"cmd\":\"test -f nota.txt\",\"exitCode\":0,\"stdout\":\"\",\"stderr\":\"\",\"elapsedMs\":6,\"timedOut\":false}],\"qaCriteria\":[{\"text\":\"nota.txt contains the line: AZUL\",\"pass\":false,\"evidence\":{\"file\":\"nota.txt\",\"excerpt\":\"ROJO\"}}]}"
+      },
+      {
+        "nombre": "check executed before QA",
+        "ok": true,
+        "detalle": "{\"qaVerdict\":\"fail\",\"qaReason\":\"nota.txt contains ROJO, but the criterion requires AZUL.\",\"qaModel\":\"gpt-6-luna\",\"checks\":[{\"cmd\":\"test -f nota.txt\",\"exitCode\":0,\"stdout\":\"\",\"stderr\":\"\",\"elapsedMs\":6,\"timedOut\":false}],\"qaCriteria\":[{\"text\":\"nota.txt contains the line: AZUL\",\"pass\":false,\"evidence\":{\"file\":\"nota.txt\",\"excerpt\":\"ROJO\"}}]}"
+      },
+      {
+        "nombre": "failed criterion recorded",
+        "ok": true,
+        "detalle": "{\"qaVerdict\":\"fail\",\"qaReason\":\"nota.txt contains ROJO, but the criterion requires AZUL.\",\"qaModel\":\"gpt-6-luna\",\"checks\":[{\"cmd\":\"test -f nota.txt\",\"exitCode\":0,\"stdout\":\"\",\"stderr\":\"\",\"elapsedMs\":6,\"timedOut\":false}],\"qaCriteria\":[{\"text\":\"nota.txt contains the line: AZUL\",\"pass\":false,\"evidence\":{\"file\":\"nota.txt\",\"excerpt\":\"ROJO\"}}]}"
+      },
+      {
+        "nombre": "task returns to pending with retry",
+        "ok": true,
+        "detalle": "{\"status\":\"pending\",\"retryCount\":1,\"qaVerdict\":\"fail\"}"
+      },
+      {
+        "nombre": "rejected output reverted",
+        "ok": true,
+        "detalle": "{\"exists\":false}"
+      },
+      {
+        "nombre": "rejected run visible",
+        "ok": true,
+        "detalle": "gate-qa-bad appears in Runs"
+      },
+      {
+        "nombre": "executor reply stored by API",
+        "ok": true,
+        "detalle": "{\"length\":185,\"excerpt\":\"Created [nota.txt](/private/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/orch\"}"
+      },
+      {
+        "nombre": "executor reply visible in Contract tab",
+        "ok": true,
+        "detalle": "{\"excerpt\":\"Created [nota.txt](/private/va\"}"
+      },
+      {
+        "nombre": "check visible in QA tab",
+        "ok": true,
+        "detalle": "✓ test -f nota.txt (exit 0)"
+      },
+      {
+        "nombre": "failed criterion visible in QA tab",
+        "ok": true,
+        "detalle": "✗ nota.txt contains the line: AZUL"
+      },
+      {
+        "nombre": "control run visible",
+        "ok": true,
+        "detalle": "gate-qa-ok appears in Runs"
+      },
+      {
+        "nombre": "passed criterion visible with evidence",
+        "ok": true,
+        "detalle": "✓ ok.txt contains the line: VERDE with ok.txt evidence"
+      }
+    ],
+    "notes": [],
+    "errores": [],
+    "capturas": [
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-99252/qa-negative/qa-negative-rejected.png"
+    ]
+  },
+  {
+    "flujo": "shell-look",
+    "pass": true,
+    "steps": [
+      {
+        "nombre": "chat: sidebar present",
+        "ok": true,
+        "detalle": "1 aside"
+      },
+      {
+        "nombre": "chat: sidebar rows flat",
+        "ok": true,
+        "detalle": "sin borde ni sombra"
+      },
+      {
+        "nombre": "chat: nav icons one tone",
+        "ok": true,
+        "detalle": "rgb(148, 163, 184)"
+      },
+      {
+        "nombre": "chat: no line between sidebar and panel",
+        "ok": true,
+        "detalle": "aside border-right=0 header border-bottom=0"
+      },
+      {
+        "nombre": "chat: panel lighter than chrome",
+        "ok": true,
+        "detalle": "panel=rgb(14, 19, 32) sidebar=rgb(8, 12, 20)"
+      },
+      {
+        "nombre": "chat: no palette classes in chrome",
+        "ok": true,
+        "detalle": "ninguna"
+      },
+      {
+        "nombre": "settings: sidebar present",
+        "ok": true,
+        "detalle": "1 aside"
+      },
+      {
+        "nombre": "settings: sidebar rows flat",
+        "ok": true,
+        "detalle": "sin borde ni sombra"
+      },
+      {
+        "nombre": "settings: nav icons one tone",
+        "ok": true,
+        "detalle": "rgb(148, 163, 184)"
+      },
+      {
+        "nombre": "settings: no line between sidebar and panel",
+        "ok": true,
+        "detalle": "aside border-right=0 header border-bottom=0"
+      },
+      {
+        "nombre": "settings: panel lighter than chrome",
+        "ok": true,
+        "detalle": "panel=rgb(14, 19, 32) sidebar=rgb(8, 12, 20)"
+      },
+      {
+        "nombre": "settings: no palette classes in chrome",
+        "ok": true,
+        "detalle": "ninguna"
+      },
+      {
+        "nombre": "project header flat",
+        "ok": true,
+        "detalle": "{\"border\":0,\"bg\":\"rgba(0, 0, 0, 0)\"}"
+      },
+      {
+        "nombre": "project tabs flat",
+        "ok": true,
+        "detalle": "8 pestañas, 28 px"
+      },
+      {
+        "nombre": "runs stat strip",
+        "ok": true,
+        "detalle": "4 celdas; paleta: ninguna"
+      },
+      {
+        "nombre": "chat header no band",
+        "ok": true,
+        "detalle": "{\"border\":0,\"bg\":\"rgba(0, 0, 0, 0)\"}"
+      }
+    ],
+    "notes": [],
+    "errores": [],
+    "capturas": [
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-99252/shell-look/shell-chat.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-99252/shell-look/shell-settings.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-99252/shell-look/shell-project.png"
+    ]
+  },
+  {
+    "flujo": "smoke",
+    "pass": true,
+    "steps": [
+      {
+        "nombre": "home",
+        "ok": true,
+        "detalle": "Chat visible"
+      },
+      {
+        "nombre": "home-dev",
+        "ok": true,
+        "detalle": "Dev visible"
+      },
+      {
+        "nombre": "dev-view",
+        "ok": true,
+        "detalle": "OrchestOS Dev visible"
+      },
+      {
+        "nombre": "chat-composer",
+        "ok": true,
+        "detalle": "chat composer visible"
+      },
+      {
+        "nombre": "settings-view",
+        "ok": true,
+        "detalle": "Appearance visible"
+      },
+      {
+        "nombre": "settings-general",
+        "ok": true,
+        "detalle": "Appearance visible"
+      }
+    ],
+    "notes": [],
+    "errores": [],
+    "capturas": [
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-99252/smoke/chat.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-99252/smoke/dev.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-99252/smoke/chat-returned.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-99252/smoke/settings.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-99252/smoke/settings-general.png"
+    ]
+  },
+  {
+    "flujo": "runs-graph",
+    "pass": true,
+    "steps": [
+      {
+        "nombre": "temporary project visible",
+        "ok": true,
+        "detalle": "project visible in sidebar"
+      },
+      {
+        "nombre": "project settings visible",
+        "ok": true,
+        "detalle": "project settings heading visible"
+      },
+      {
+        "nombre": "graph count from API",
+        "ok": true,
+        "detalle": "files=1"
+      },
+      {
+        "nombre": "Run Next Task enabled",
+        "ok": true,
+        "detalle": "task is runnable"
+      },
+      {
+        "nombre": "task finished",
+        "ok": true,
+        "detalle": "status=done"
+      },
+      {
+        "nombre": "project run exists",
+        "ok": true,
+        "detalle": "run linked to task"
+      },
+      {
+        "nombre": "project runs are scoped",
+        "ok": true,
+        "detalle": "runs=1"
+      },
+      {
+        "nombre": "real run visible",
+        "ok": true,
+        "detalle": "task run appears in Runs"
+      },
+      {
+        "nombre": "run detail lists README.md output",
+        "ok": true,
+        "detalle": "README.md output"
+      },
+      {
+        "nombre": "mock QA copy absent",
+        "ok": true,
+        "detalle": "no hardcoded QA assertion"
+      },
+      {
+        "nombre": "real run status visible",
+        "ok": true,
+        "detalle": "status from run"
+      },
+      {
+        "nombre": "graph view visible",
+        "ok": true,
+        "detalle": "graph heading"
+      },
+      {
+        "nombre": "mock graph copy absent",
+        "ok": true,
+        "detalle": "no hardcoded language split"
+      },
+      {
+        "nombre": "graph count is real before rebuild",
+        "ok": true,
+        "detalle": "files=1, not the sample 48"
+      },
+      {
+        "nombre": "graph rebuild completes",
+        "ok": true,
+        "detalle": "indexed source count changed"
+      },
+      {
+        "nombre": "no duplicate project",
+        "ok": true,
+        "detalle": "basename=orchestos-ui-13-2e-r9skuD, matches=1"
+      }
+    ],
+    "notes": [],
+    "errores": [],
+    "capturas": [
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-99252/runs-graph/runs-graph-real-data.png"
+    ]
+  },
+  {
+    "flujo": "text-sweep",
+    "pass": true,
+    "steps": [
+      {
+        "nombre": "temporary project visible",
+        "ok": true,
+        "detalle": "project visible in sidebar"
+      },
+      {
+        "nombre": "Codex selector visible",
+        "ok": true,
+        "detalle": "Codex option visible"
+      },
+      {
+        "nombre": "model selector visible",
+        "ok": true,
+        "detalle": "composer model selector"
+      },
+      {
+        "nombre": "gpt-6-luna visible",
+        "ok": true,
+        "detalle": "Codex cache model"
+      },
+      {
+        "nombre": "medium visible",
+        "ok": true,
+        "detalle": "reasoning effort"
+      },
+      {
+        "nombre": "real Codex response visible",
+        "ok": true,
+        "detalle": "assistant response"
+      },
+      {
+        "nombre": "removed text absent after real turn",
+        "ok": true,
+        "detalle": "chat surface sweep complete"
+      },
+      {
+        "nombre": "all stale copy remains absent from the active screen",
+        "ok": true,
+        "detalle": "14 literals checked"
+      },
+      {
+        "nombre": "turn records selected model and effort",
+        "ok": true,
+        "detalle": "model=gpt-6-luna via Codex CLI (effort: medium), effort=medium"
+      },
+      {
+        "nombre": "no CLI default fallback in recorded surface",
+        "ok": true,
+        "detalle": "record uses selected model"
+      }
+    ],
+    "notes": [],
+    "errores": [],
+    "capturas": []
+  }
+]

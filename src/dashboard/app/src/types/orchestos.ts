@@ -18,6 +18,8 @@ export interface TaskItem {
   retryReason?: string | null
   qaVerdict?: QaVerdict
   runId?: string | null
+  lastRunAt?: string | null
+  skill?: string | null
   engine: ExecutionEngine
   costUsd?: number | null
   specId?: string

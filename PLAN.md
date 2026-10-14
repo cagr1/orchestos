@@ -964,9 +964,28 @@ archivos fijados por `ui:fidelity:jsx` (`OrchestDevWorkspace`, `ShellStatusBar`,
   montaban; ningún gate lo veía. Celdas `whitespace-nowrap`, Run ID truncado con `title`.
   Límites: solo tema por defecto; la caja "Zona de peligro" al pie de la página de proyecto sigue con su forma vieja
   (→ UI.26.6).
-- [ ] **UI.26.3 — 🧠 Tasks en lista con detalle.** Nombre corto, agente y hora por fila; detalle al pulsar; fuera el
-  texto duplicado y el UUID partido. La hora sale de `lastRunAt` (nuevo en `/api/tasks`, del run de la tarea); la fila
-  de lista (`ListRow`) nace aquí. Spec: docs/specs/UI.26.3.md
+- [x] **UI.26.3 — 🧠 Tasks en lista con detalle.** (cerrado 2026-10-14) Nombre corto, agente y hora por fila; detalle
+  al pulsar; fuera el texto duplicado y el UUID partido. Spec: docs/specs/UI.26.3.md
+  Ejecutado por: sonnet (rol `criterio`, ronda 1) y gpt-6-luna (rol `mecanico`, ronda 2)
+  Hecho (2026-10-14): `/api/tasks` gana `lastRunAt` (`created_at` del run de la tarea; una sola función de fila para
+  `loadTaskRows` y `handleApiTasks`). `ListRow` en `layout/page.tsx`; cada tarea es una fila de 40 px con punto de
+  estado (único color), id en mono de ancho fijo, título (o primera línea de la descripción), "agente · modelo · hora"
+  y Run + etiqueta de estado sin píldora. `TaskDetailPanel`: panel fijo a la derecha como Gr8r (Esc o X cierran),
+  propiedades, motivo del reintento, descripción solo si difiere del título, criterios. `statusLabel()` exportado de
+  `StatusBadge`. Fuera la paleta en la pestaña (Orquestación y "Loading project data…").
+  Evidencia: `typecheck`, biome sin errores en lo tocado, `build:app`, `ui:fidelity:jsx`, `tasks.test.ts` 7/7 con la
+  identidad git del pre-push (1 fallo solo con la identidad global del Mac, el caso ERP.4.13 sin identidad), corridos
+  por el cerebro.
+  Gate en vivo: navegador real (Playwright), `docs/done/evidence/UI.26.3-live.json` — `tasks` 28/28 (4 pasos nuevos:
+  filas planas, sin paleta, detalle abre y cierra, descripción sin duplicar), `project-tabs` 26/26, `qa-negative`
+  25/25, `shell-look` 16/16, `smoke` 6/6, `runs-graph` 16/16, `text-sweep` 10/10. El cerebro miró lista y detalle en el
+  dashboard real (tema por defecto).
+  Contraprueba: con `OrchestSettingsView.tsx` de HEAD, `tasks` falla esperando `[data-task-row]` (hecha por el ejecutor
+  con copia en /tmp y `cmp`).
+  Ronda 2: mirando la pantalla, la columna del id medía 93 o 112 px y los títulos no alineaban; ningún gate lo veía.
+  Incidente: el ejecutor de la ronda 1 volvió a correr `git stash` (y `pop`) pese a la regla de AGENTS.md; no se perdió
+  nada. La regla escrita no basta: va a NEXT.md como propuesta de bloqueo mecánico.
+  Límites: solo tema por defecto; el panel no atrapa el foco.
 - [ ] **UI.26.4 — 🧠 Plan (tablero) e Instincts.** Columnas y tarjetas sin color de decoración.
 - [ ] **UI.26.5 — 🧠 Memory, Specs, Skills y Graph.** Maestro-detalle con estado vacío; Memory se llena con ERP.4.16.
 - [ ] **UI.26.6 — 🧠 Resto de Settings.** Health, API & Models, Model routing, Usage, Danger zone, Language con los

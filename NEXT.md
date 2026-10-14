@@ -13,6 +13,10 @@
 6. Residuos de `erp-piloto`: limpiar si no sirven (las 3 tareas sobrantes no sirven; se limpian tras el hallazgo 5).
 7. `chat-retry-report` NO entra al pre-push.
 
+PROPUESTA sin aplicar (decide Carlos): el ejecutor corrió `git stash` dos veces seguidas (UI.26.2 y UI.26.3) pese a
+la regla escrita en AGENTS.md. Bloqueo mecánico: negar `git stash` en el hook writer-lock o en `bin/delegate`
+(fuente en `method/` del vault).
+
 ## PRIMERO al retomar — UI.26.2 (plantilla de página), luego UI.26.3-26.6 y UI.24.4
 UI.26.1 cerrado 2026-10-13 (marco). UI.26.2 con spec (docs/specs/UI.26.2.md), delegado a `criterio` 2026-10-14; incluye la cabecera interna del chat (`OrchestChatView.tsx:255`,
 banda oscura con borde dentro del panel). Referencia viva: gr8r-taskmanagement.vercel.app — medidas en PLAN.md § UI.26.
