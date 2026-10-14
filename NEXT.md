@@ -6,9 +6,9 @@ de delegación y ui-gate". Orden y rumbo: `PLAN.md` § Rumbo. Arranque: `bun run
 
 ## Estado actual
 - Cerrados y pusheados: UI.24.1–24.3, UI.25 (UI.25.0, UI.25.1), UI.26.1–26.4a, ERP.4.1–ERP.4.13, CI.12, CI.21, CI.22,
-  CI.24; R.8.1–R.8.6 (`PLAN.md`; evidencia en `docs/done/`).
+  CI.24, DOC.1 (`331ddf5`), LIMP.1 (`c906eb2`), UI.26.4b; R.8.1–R.8.6 (`PLAN.md`; evidencia en `docs/done/`).
 - Abiertos: UI.26.5–26.7, UI.24.4–24.7, ERP.4 (4.14 va dentro de UI.24.6; 4.15, 4.16), R.8 (cierra con ERP.4), UI.8.6,
-  AT.13 (puntos 8 y `manifest.ts`), AT.19, CI.11, CI.18, CI.19, CI.23, CI.25, DOC.1, LIMP.1. Lista viva: `bun run next`.
+  AT.13 (puntos 8 y `manifest.ts`), AT.19, CI.11, CI.18, CI.19, CI.23, CI.25. Lista viva: `bun run next`.
 - Trampa de `plan:reconcile`: si dice "Could not prove a closing commit SHA", reabrir el ítem (`[ ]`), reconciliar,
   volver a `[x]`, reconciliar, commitear. Ítem delegado: commitear el spec antes (`docs(<ID>): spec`).
 - Sin commitear y ajenos (no tocar sin Carlos): `IDEAS.md`, `orchestos.config.yaml`, `runs-summary.json`,
@@ -61,7 +61,7 @@ Verificados el 2026-10-14 contra el código salvo "(sin re-verificar)".
   `~/.claude/plugins/synced/` (`.claude/hooks/startup-guard.js` sin lectura de esas rutas); Claude Docs cargó pese a
   `disabledMcpServers` (2026-10-10). Candidato a CTX-GUARD.2.
 - `readBoundaryWarning` sin consumidor (`src/dashboard/types.ts:90`, `app/src/api/chat.ts:14,77`; decisión de Carlos:
-  sin aviso) → entra en LIMP.1. Cuando el CLI se queda sin cupo ("out of usage credits") el chat lo muestra como
+  sin aviso) → LIMP.1 comprobó que sí tiene consumidores (`chat.ts`, `chat-sessions.ts`, `api/chat.ts`): quitarlo cambia lógica, decide Carlos. Cuando el CLI se queda sin cupo ("out of usage credits") el chat lo muestra como
   respuesta normal, no como error (sin re-verificar).
 - Intermitentes vistos una vez, sin ítem (si se repiten, abrir): `CC.2 — chat sessions backend` con timeout de 5 s
   dentro de `test:coverage` (2026-10-13; pasa solo); `restart-mid-run` caso A, reporte "failed · attempt 1/3" con
@@ -103,3 +103,9 @@ Verificados el 2026-10-14 contra el código salvo "(sin re-verificar)".
 - Piloto ERP.4: repo `~/Projects/projects/erp-piloto`; conductor Playwright en `docs/done/evidence/ERP.4/conductor/`
   (copiar a `/tmp/erp4/`, crear `cmd/`, `out/`, `shots/`; `node driver.mjs` en segundo plano, `do.sh`, `stage.sh`,
   `screen.mjs`); registro de hallazgos en `docs/done/evidence/ERP.4/piloto-2026-10-12.md`.
+
+## Lección LIMP.1 (2026-10-14)
+Inventario de código muerto: `bunx knip@5 --config /tmp/limp1/knip.json` (config fuera del repo; entradas `src/cli.ts`,
+`scripts/**`, `app/src/main.tsx`, `.claude/hooks/*.js`). Falsos positivos vistos: fixtures, `assets.d.ts`, `tailwindcss`
+(lo usa el CSS), archivos que un test lee por ruta (`db/backup.ts`, `orcaProjectData.ts`). Un símbolo borrado puede dejar
+falso el comentario que lo explicaba: revisar comentarios reescritos.
