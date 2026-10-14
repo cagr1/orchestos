@@ -29,6 +29,33 @@ sobre cambios sin commitear, `bun run agent:handoff`; y el preflight del ejecuto
 (`[ ]` + reconcile) antes de una ronda de corrección; (6) un test que pasa por un commit de producción necesita
 identidad **local** en el repo temporal (`git config user.name/email`), no solo `-c` en los comandos del fixture.
 
+## ESPERA GO de Carlos — pasada de UI del hilo del chat (pedido 2026-10-13, sin ítem en PLAN.md todavía)
+Carlos quiere mejorar la **interfaz, no la función**: cómo se anima "pensando", cómo se dibuja la respuesta; dice que
+MusicKind (captura en `~/Projects/projects/portfolio/dist/projects/musickind-screen@1x.webp`) se ve mejor que
+OrchestOS. Referencia que trajo: bloque de pago Arc UI `ai-chat` (https://uiarc.dev/components/blocks/ai-chat):
+React + Motion, sin tarjetas de tarea; recomendación dada: no comprarlo.
+Estado hoy (`OrchestChatView.tsx:571-586`): "pensando" = `Loader2` + `…`; streaming = `react-markdown` sin
+transición; `motion` ^12.23 instalado y sin usar en ese archivo. En las capturas del gate: UUID completo de la tarea
+2-3 veces por hilo, tres burbujas por tarea, todo con el mismo peso visual.
+Piezas gratuitas encontradas (búsqueda web 2026-10-13; resultado completo no versionado):
+- Streamdown (github.com/vercel/streamdown): reemplaza `react-markdown`; `animated` + `isAnimating`, entrada por
+  palabra (`fadeIn`/`blurIn`/`slideUp`), markdown incompleto sin parpadeo, código con Shiki. No exige AI SDK.
+  **Licencia sin confirmar; trae `streamdown/styles.css`.**
+- prompt-kit (github.com/ibelick/prompt-kit, MIT, `npx shadcn@latest add prompt-kit/<componente>`): `reasoning`,
+  `text-shimmer`, `steps`, `tool`, `thinking-bar`, `chat-container`, `message`. Docs dieron 403: dependencias sin verificar.
+- motion-primitives (github.com/ibelick/motion-primitives, MIT, beta): Text Shimmer, Text Effect, Animated Group.
+- Descartadas: assistant-ui (runtime propio), AI Elements (muchas dependencias), Magic UI y Kibo UI (genéricas).
+Plan propuesto, solo presentación del hilo: (1) streaming con Streamdown y altura suave; (2) "pensando" con shimmer
+y pasos animados; (3) entrada de mensajes y transición de estado de tarjetas; (4) jerarquía: nombre corto en vez de
+UUID y una burbuja por tarea que cambia de estado. Fuera: Settings, modo Dev, backend.
+Decisiones que faltan de Carlos (preguntadas, sin respuesta): (a) aceptar el CSS propio de Streamdown, que roza
+"no sumar CSS" y "el prototipo manda" (recomendado: sí, solo para el markdown de la respuesta, verificando antes la
+licencia); (b) orden (recomendado: cerrar ERP.4.14–4.16 primero; 4.14 toca el mismo composer).
+Antes de pasar a plan: recuperar del vault los insights de diseño aplicables (no consultado) y abrir el ítem en PLAN.md.
+Defecto de herramienta, sin arreglar: `delegate investigar "<pregunta>"` (y cualquier rol `claude` con `--tools`)
+falla con "Input must be provided…": `--tools` se traga el prompt (`~/.agent-method/bin/delegate:147,167-171`).
+Esquive: `claude -p --model sonnet --effort low --tools … < pregunta.txt`. El arreglo va en `method/` del vault.
+
 ## Lote en curso (ERP.4.10–4.16 abiertos en PLAN.md con causa y decisión; ejecutar en ese orden)
 Sin spec todavía: 4.14 a 4.16.
 Respuestas de Carlos 2026-10-13: árbol sucio = seguir bloqueando + `pending` + "Commit & Run" en el hilo (ERP.4.13);
