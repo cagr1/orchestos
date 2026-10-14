@@ -237,6 +237,16 @@
   {
     "archivo": "OrchestDevWorkspace.tsx",
     "valor": "border-app",
+    "motivo": "UI.26.4a (Carlos 2026-10-14): sin línea sobre el composer."
+  },
+  {
+    "archivo": "OrchestDevWorkspace.tsx",
+    "valor": "border-t",
+    "motivo": "UI.26.4a (Carlos 2026-10-14): sin línea sobre el composer."
+  },
+  {
+    "archivo": "OrchestDevWorkspace.tsx",
+    "valor": "border-app",
     "motivo": "UI.20: rutas leídas se muestran en la fila Read del agente, no en la burbuja del usuario."
   },
   {
