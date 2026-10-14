@@ -65,7 +65,7 @@ const commitTasksYamlReal = commitTasksYaml
 // Public types
 // ---------------------------------------------------------------------------
 
-export type GraphOutcome =
+type GraphOutcome =
   | 'completed'
   | 'failed_permanent'
   | 'blocked'

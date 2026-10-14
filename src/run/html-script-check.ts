@@ -20,7 +20,7 @@ import { tmpdir } from 'os'
 import { basename, extname, join } from 'path'
 import type { Check } from '../tasks/schema.ts'
 
-export interface ExtractedScript {
+interface ExtractedScript {
   /** JS code exactly as it appears between the `<script>` and `</script>` tags */
   code: string
   /** 1-indexed start line in the original HTML — útil para que el mensaje de error sea trazable */

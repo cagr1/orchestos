@@ -1,6 +1,6 @@
 import { db } from './sqlite.ts'
 
-export interface ChatTurnStepRecord {
+interface ChatTurnStepRecord {
   id: number
   session_id: string
   turn_id: string
@@ -18,7 +18,7 @@ export interface ChatTurnStepRecord {
   created_at: string
 }
 
-export interface InsertChatTurnStepInput {
+interface InsertChatTurnStepInput {
   sessionId: string
   turnId: string
   seq: number

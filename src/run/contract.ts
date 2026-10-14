@@ -8,7 +8,7 @@ export interface FileChange {
   content: string
 }
 
-export interface ContractResult {
+interface ContractResult {
   filesAttempted: string[]
   filesAuthorized: string[]
   filesBlocked: string[]

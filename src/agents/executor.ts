@@ -27,7 +27,7 @@ import type { SubagentResult, SubTask } from './sub-agent.ts'
 // Options
 // ---------------------------------------------------------------------------
 
-export interface ExecutorOpts {
+interface ExecutorOpts {
   /** SQLite project id for memory_entries queries (S22.3, S22.5a). */
   projectId: string
   /** Fallback executor when SubTask has no executor override. */

@@ -224,16 +224,6 @@ export type NavigationTab =
   | 'skills'
   | 'context'
 
-export type DevSubTab =
-  | 'tasks'
-  | 'runs'
-  | 'graph'
-  | 'memory'
-  | 'specs'
-  | 'skills'
-  | 'instincts'
-  | 'settings'
-
 export interface ChatAttachment {
   id: string
   name: string
@@ -289,16 +279,6 @@ export interface ChatThread {
   costUsd: number
   messages: ChatMessage[]
   projectId?: string | null
-}
-
-export interface ProviderCliStatus {
-  id: 'claude' | 'codex' | 'opencode' | 'deepseek' | 'gemini' | 'kimi'
-  label: string
-  binary: string
-  available: boolean
-  contextUsed: number
-  contextWindow: number
-  rateLimitPct: number
 }
 
 export interface SessionCliStatus {

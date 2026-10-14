@@ -340,10 +340,6 @@ export async function getSessionMessages(
   )
 }
 
-export async function loadThread(session: ChatSessionRow): Promise<ChatThread> {
-  return mapSessionToThread(session, await getSessionMessages(session.id, session.projectId))
-}
-
 export async function createSession(params: {
   agent: string
   projectId?: string | null
@@ -534,24 +530,6 @@ export async function execCommand(
       headers: { ...sessionScope(projectId).headers, 'Content-Type': 'application/json' },
     },
   )
-}
-
-export async function uploadChatFile(file: File): Promise<ChatAttachment> {
-  const body = new FormData()
-  body.append('file', file)
-  const uploaded = await request<{ fileId: string; filename: string; type: 'image' | 'text' }>(
-    '/api/chat/upload',
-    {
-      method: 'POST',
-      body,
-    },
-  )
-  return {
-    id: uploaded.fileId,
-    name: uploaded.filename,
-    size: `${(file.size / 1024).toFixed(1)} KB`,
-    type: uploaded.type === 'image' ? 'image' : file.name.endsWith('.pdf') ? 'pdf' : 'file',
-  }
 }
 
 export async function sendMessage(options: ChatSendOptions): Promise<ChatSendResponse> {

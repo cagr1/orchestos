@@ -1,5 +1,3 @@
-import { existsSync } from 'fs'
-import { join } from 'path'
 import { SUPPORTED_LANGUAGES } from '../detect/languages.ts'
 
 interface LangProfile {
@@ -206,29 +204,6 @@ ${antiPatterns.map((a) => `      - ${yamlItem(a)}`).join('\n')}
       - skip tests to save time
       - ignore error handling
 `
-}
-
-export function getSkillsDir(projectRoot?: string): string {
-  if (projectRoot) return join(projectRoot, 'skills')
-  return join(process.cwd(), 'skills')
-}
-
-export function languageHasSkillCoverage(language: string, skillsDir: string): boolean {
-  if (!existsSync(skillsDir)) return false
-  const { readdirSync, readFileSync } = require('fs')
-  try {
-    const files = readdirSync(skillsDir).filter(
-      (f: string) => f.endsWith('.yaml') || f.endsWith('.yml'),
-    )
-    const langKey = language.toLowerCase().replace(/[^a-z0-9]/g, '')
-    for (const file of files) {
-      const content = readFileSync(join(skillsDir, file), 'utf-8')
-      if (content.includes(`language_targets:`) && content.includes(`${langKey}:`)) return true
-    }
-    return false
-  } catch {
-    return false
-  }
 }
 
 export { SUPPORTED_LANGUAGES }

@@ -1,4 +1,4 @@
-export interface ChatPromptInput {
+interface ChatPromptInput {
   tasks?: Array<{
     id: string
     status: string

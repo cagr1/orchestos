@@ -71,7 +71,7 @@ export function orchestosModelToCodexModel(model: string | undefined): string | 
 }
 
 /** Pricing is published under OpenRouter ids; Codex catalogs expose native ids. */
-export function codexPricingId(model: string): string {
+function codexPricingId(model: string): string {
   return model.includes('/') ? model : `openai/${model}`
 }
 
@@ -96,7 +96,7 @@ export function codexPricingId(model: string): string {
  * cobrados a precio de `deepseek-v4-flash`. Mismo criterio que F0.8 y que
  * opencode/external: costo desconocido se declara, no se fabrica.
  */
-export function codexCostUnmeasurableMessage(orchestosModel: string | undefined): string {
+function codexCostUnmeasurableMessage(orchestosModel: string | undefined): string {
   return [
     `codex would run with its own default model because OrchestOS model "${orchestosModel ?? '(none)'}" is not an "openai/*" id, so -m was omitted.`,
     `The real model is unknowable (codex does not report it in --json), so its cost cannot be measured and OrchestOS refuses to fabricate one.`,
@@ -278,7 +278,7 @@ export function parseCodexStream(stdout: string): {
 // criterio que `runClaudeChat` en external.ts: `--sandbox read-only` es la
 // frontera real (el binario no puede escribir aunque corra contra el
 // proyecto real), no un texto en el prompt pidiéndoselo por favor.
-export interface CodexChatResult {
+interface CodexChatResult {
   threadId?: string
   text: string
   inputTokens: number

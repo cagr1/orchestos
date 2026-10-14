@@ -98,7 +98,7 @@ function requireKey(envVar: string, provider: string): string {
 // Anthropic tool-calling
 // ---------------------------------------------------------------------------
 
-export async function anthropicCallWithTools(opts: {
+async function anthropicCallWithTools(opts: {
   model: string
   system: string
   userMessage: string
@@ -158,7 +158,7 @@ export async function anthropicCallWithTools(opts: {
 // OpenAI / OpenRouter tool-calling (OpenAI-compatible API)
 // ---------------------------------------------------------------------------
 
-export async function openaiCallWithTools(opts: {
+async function openaiCallWithTools(opts: {
   model: string
   system: string
   userMessage: string
@@ -303,7 +303,7 @@ export async function callWithTools(
 
 export type ToolExecutor = (toolName: string, input: unknown, callId?: string) => Promise<string>
 
-export interface ToolLoopResult {
+interface ToolLoopResult {
   text: string
   toolCallsExecuted: Array<{ name: string; input: unknown }>
   inputTokens: number

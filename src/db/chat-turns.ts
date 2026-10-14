@@ -3,9 +3,9 @@ import { appendChatExchange } from './chat-sessions.ts'
 import { insertRun } from './runs.ts'
 import { db } from './sqlite.ts'
 
-export type ChatTurnStatus = 'pending' | 'completed' | 'failed' | 'interrupted'
+type ChatTurnStatus = 'pending' | 'completed' | 'failed' | 'interrupted'
 
-export interface ChatTurnRecord {
+interface ChatTurnRecord {
   id: string
   session_id: string
   project_id: string | null
@@ -24,7 +24,7 @@ export interface ChatTurnRecord {
   updated_at: string
 }
 
-export interface BeginTurnInput {
+interface BeginTurnInput {
   sessionId: string
   projectId: string | null
   requestKey: string
@@ -34,7 +34,7 @@ export interface BeginTurnInput {
   leaseMs?: number
 }
 
-export type BeginTurnResult =
+type BeginTurnResult =
   | { kind: 'claimed'; turn: ChatTurnRecord }
   | { kind: 'duplicate-result'; turn: ChatTurnRecord }
   | { kind: 'duplicate-pending'; turn: ChatTurnRecord }
@@ -124,7 +124,7 @@ export function beginTurn(input: BeginTurnInput): BeginTurnResult {
   return claim.immediate()
 }
 
-export interface CommitTurnSuccessInput {
+interface CommitTurnSuccessInput {
   turnId: string
   owner: string
   run: Parameters<typeof import('./runs.ts').insertRun>[0]
@@ -172,7 +172,7 @@ export function commitTurnSuccess(input: CommitTurnSuccessInput): { runId: strin
   return commit.immediate()
 }
 
-export interface CommitTurnFailureInput {
+interface CommitTurnFailureInput {
   turnId: string
   owner: string
   error: string

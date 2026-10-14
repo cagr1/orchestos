@@ -342,3 +342,12 @@ que la clase declarada al crear la tarea gane a la heurística de la descripció
 "maxTokens|maxOutput|contextWindow"` → 0).
 **Reversibilidad/evidencia**: commit `fix(ERP.4.10)`, revertible (campo opcional en `tasks.yaml`, sin migración).
 `test:coverage` 1720/0 · `chat-followup-task` 8/8 · `auto-flow` 31/31.
+
+## 2026-10-14 15:10 America/Guayaquil — claude-opus-5-5 (revisor) · ejecutor Claude sonnet + Codex luna
+**Contexto**: LIMP.1 — `src/router/model-catalog.ts` ([[feedback-context-no-max-tokens]]).
+**Clasificación**: RESPETÓ
+**Por qué**: el único cambio en el archivo es `export interface ModelInfo` → `interface ModelInfo` (tipo sin
+consumidor fuera del archivo). `knownMaxOutputTokensFor()` y la derivación de `max_tokens` no se tocan
+(`git diff --cached -- src/router/model-catalog.ts` = 1 línea).
+**Reversibilidad/evidencia**: commit `refactor(LIMP.1)`, revertible. typecheck verde · `test:coverage` 1770/1 (el 1
+es el test del 409 dependiente del host).

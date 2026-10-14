@@ -6,15 +6,11 @@
  *   1. Timeout — each sub-task has a wall-clock deadline (default 5 min).
  *      `withSubTaskTimeout()` races the execution promise against a timer.
  *
- *   2. Tool-call delegation rule — if a sub-agent makes more than MAX_TOOL_CALLS
- *      attempts without completing, cancel with `timed_out`.
- *      `ToolCallCounter` is injected into the executor; each LLM call increments it.
- *
- *   3. Worktree collision → retry with exponential backoff.
+ *   2. Worktree collision → retry with exponential backoff.
  *      `createWorktreeWithRetry()` catches branch-already-exists errors and retries
  *      with a fresh timestamp. Up to WORKTREE_MAX_RETRIES attempts.
  *
- *   4. Rate-limit retry — provider 429 / rate-limit errors retried with exponential
+ *   3. Rate-limit retry — provider 429 / rate-limit errors retried with exponential
  *      backoff up to RATE_LIMIT_MAX_RETRIES times before propagating.
  *
  * Pattern: gentle-ai delegation rules
@@ -30,30 +26,23 @@ import { createWorktree } from '../run/sandbox.ts'
 /** Default wall-clock limit per sub-task (5 min). Matches Mes 5 decision. */
 export const DEFAULT_SUB_TASK_TIMEOUT_MS = 300_000
 
-/**
- * Maximum LLM call attempts (tool calls) per sub-task before forcing `timed_out`.
- * Delegation rule from gentle-ai: an agent that keeps looping without finishing
- * is cancelled rather than allowed to burn tokens indefinitely.
- */
-export const MAX_TOOL_CALLS = 20
-
 /** How many times to retry worktree creation on collision. */
-export const WORKTREE_MAX_RETRIES = 3
+const WORKTREE_MAX_RETRIES = 3
 
 /** Initial backoff for worktree retry (doubles each attempt). */
-export const WORKTREE_INITIAL_BACKOFF_MS = 300
+const WORKTREE_INITIAL_BACKOFF_MS = 300
 
 /** How many times to retry on rate-limit (429) errors. */
-export const RATE_LIMIT_MAX_RETRIES = 3
+const RATE_LIMIT_MAX_RETRIES = 3
 
 /** Initial backoff for rate-limit retry (doubles each attempt). */
-export const RATE_LIMIT_INITIAL_BACKOFF_MS = 2_000
+const RATE_LIMIT_INITIAL_BACKOFF_MS = 2_000
 
 // ---------------------------------------------------------------------------
 // Error types
 // ---------------------------------------------------------------------------
 
-export class TimeoutError extends Error {
+class TimeoutError extends Error {
   constructor(
     public readonly taskId: string,
     public readonly timeoutMs: number,
@@ -63,17 +52,7 @@ export class TimeoutError extends Error {
   }
 }
 
-export class ToolCallLimitError extends Error {
-  constructor(
-    public readonly count: number,
-    public readonly limit: number,
-  ) {
-    super(`tool-call limit exceeded: ${count} calls > limit of ${limit}`)
-    this.name = 'ToolCallLimitError'
-  }
-}
-
-export class WorktreeCollisionError extends Error {
+class WorktreeCollisionError extends Error {
   constructor(message: string) {
     super(message)
     this.name = 'WorktreeCollisionError'
@@ -122,47 +101,11 @@ export async function withSubTaskTimeout<T>(
 // 2. Tool-call counter (delegation rule)
 // ---------------------------------------------------------------------------
 
-/**
- * Tracks how many LLM/tool calls a sub-agent has made.
- * The executor calls `counter.increment()` before each LLM invocation.
- * When the limit is exceeded, `ToolCallLimitError` is thrown — the scheduler
- * maps this to `timed_out` status.
- *
- * Usage:
- *   const counter = new ToolCallCounter()
- *   counter.increment()   // throws ToolCallLimitError if count > MAX_TOOL_CALLS
- *   counter.current       // read current count without incrementing
- */
-export class ToolCallCounter {
-  private _count = 0
-  readonly limit: number
-
-  constructor(limit = MAX_TOOL_CALLS) {
-    this.limit = limit
-  }
-
-  /** Increments and checks. Throws ToolCallLimitError if limit exceeded. */
-  increment(): void {
-    this._count++
-    if (this._count > this.limit) {
-      throw new ToolCallLimitError(this._count, this.limit)
-    }
-  }
-
-  get current(): number {
-    return this._count
-  }
-
-  get exhausted(): boolean {
-    return this._count >= this.limit
-  }
-}
-
 // ---------------------------------------------------------------------------
 // 3. Worktree creation with retry + backoff
 // ---------------------------------------------------------------------------
 
-export interface WorktreeRetryOpts {
+interface WorktreeRetryOpts {
   maxRetries?: number
   initialBackoffMs?: number
 }
@@ -211,7 +154,7 @@ export async function createWorktreeWithRetry(
 // 4. Rate-limit retry
 // ---------------------------------------------------------------------------
 
-export interface RateLimitRetryOpts {
+interface RateLimitRetryOpts {
   maxRetries?: number
   initialBackoffMs?: number
 }
@@ -255,7 +198,7 @@ export async function withRateLimitRetry<T>(
  * Detects rate-limit errors by HTTP status code or message content.
  * Covers Anthropic, OpenAI, and OpenRouter response shapes.
  */
-export function isRateLimitError(e: unknown): boolean {
+function isRateLimitError(e: unknown): boolean {
   if (typeof e !== 'object' || e === null) return false
   const err = e as Record<string, unknown>
 

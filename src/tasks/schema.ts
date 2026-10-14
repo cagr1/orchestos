@@ -1,6 +1,6 @@
 import type { TaskClass } from '../router/classify.ts'
 
-export const TASK_CLASSES: readonly TaskClass[] = ['plan', 'implement', 'fix', 'review', 'doc']
+const TASK_CLASSES: readonly TaskClass[] = ['plan', 'implement', 'fix', 'review', 'doc']
 
 export function isTaskClass(value: unknown): value is TaskClass {
   return typeof value === 'string' && (TASK_CLASSES as readonly string[]).includes(value)

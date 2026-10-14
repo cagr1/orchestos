@@ -21,7 +21,7 @@ export interface PlanItem {
   position: number
 }
 
-export interface UpsertPlanItemInput {
+interface UpsertPlanItemInput {
   id: string
   sprint: string
   block?: string | null
@@ -34,12 +34,12 @@ export interface UpsertPlanItemInput {
   position: number
 }
 
-export interface PlanItemFilter {
+interface PlanItemFilter {
   status?: PlanItemStatus
   sprint?: string
 }
 
-export interface PlanItemWithDeps {
+interface PlanItemWithDeps {
   id: string
   sprint: string
   block: string | null
@@ -54,11 +54,11 @@ export interface PlanItemWithDeps {
   ready: boolean
 }
 
-export interface PlanItemWithCommitStatus extends PlanItemWithDeps {
+interface PlanItemWithCommitStatus extends PlanItemWithDeps {
   commitPending: boolean
 }
 
-export interface PreparePlanCloseOptions {
+interface PreparePlanCloseOptions {
   id: string
   root: string
   provisionalSha: string
@@ -104,7 +104,7 @@ export function getPlanItem(id: string, database: Database = db): PlanItem | nul
   return database.query<PlanItem, string>('SELECT * FROM plan_items WHERE id = ?').get(id) ?? null
 }
 
-export function listPlanItems(filter: PlanItemFilter = {}, database: Database = db): PlanItem[] {
+function listPlanItems(filter: PlanItemFilter = {}, database: Database = db): PlanItem[] {
   const conditions: string[] = []
   const params: string[] = []
   if (filter.status) {
@@ -184,27 +184,7 @@ function git(root: string, args: string[]): { exitCode: number; stdout: string }
   return { exitCode: result.exitCode, stdout: new TextDecoder().decode(result.stdout).trim() }
 }
 
-function itemStatusAtCommit(root: string, commit: string, id: string): PlanItemStatus | null {
-  const document = git(root, ['show', `${commit}:PLAN.md`])
-  if (document.exitCode !== 0) return null
-  return parsePlanFeatureStatus(document.stdout).find((item) => item.id === id)?.status ?? null
-}
-
-/** A close SHA is trustworthy only when that commit itself flips the item's status. */
-export function isConfirmedPlanCloseCommit(root: string, id: string, sha: string): boolean {
-  if (!FULL_COMMIT_SHA.test(sha)) return false
-  if (git(root, ['rev-parse', '--verify', `${sha}^{commit}`]).exitCode !== 0) return false
-  if (git(root, ['merge-base', '--is-ancestor', sha, 'HEAD']).exitCode !== 0) return false
-  if (itemStatusAtCommit(root, sha, id) !== 'done') return false
-  const parent = git(root, ['rev-parse', '--verify', `${sha}^`])
-  if (parent.exitCode !== 0) {
-    // A root commit transitions from an empty document.
-    return true
-  }
-  return itemStatusAtCommit(root, parent.stdout, id) !== 'done'
-}
-
-export interface PlanTransitionCommits {
+interface PlanTransitionCommits {
   closeCommits: Map<string, string>
   reopenCommits: Map<string, string>
   reopenedAfterLatestClose: Set<string>
@@ -247,23 +227,6 @@ export function findAllPlanTransitionCommits(root: string): PlanTransitionCommit
       reopenedAfterLatestClose.add(id)
   }
   return { closeCommits, reopenCommits, reopenedAfterLatestClose }
-}
-
-/**
- * Finds the real transition commit for every item in one pass over PLAN.md's history,
- * instead of re-walking the whole history once per item. `plan-import.ts`'s reconcile closes
- * dozens of items at a time; calling `findPlanCloseCommit` per item was O(items × history) git
- * subprocess spawns — on this repo's ~440 PLAN.md-touching commits that took minutes and could
- * hang. Reopen-then-reclose resolves to the most recent closing transition.
- */
-export function findAllPlanCloseCommits(root: string): Map<string, string> {
-  return findAllPlanTransitionCommits(root).closeCommits
-}
-
-/** Finds the real transition commit for a single item; callers must abort rather than
- * inventing HEAD. Prefer `findAllPlanCloseCommits` when resolving more than one id. */
-export function findPlanCloseCommit(root: string, id: string): string | null {
-  return findAllPlanCloseCommits(root).get(id) ?? null
 }
 
 /**
@@ -450,7 +413,7 @@ export function preparePlanItemClose(options: PreparePlanCloseOptions): PlanItem
   }
 }
 
-export function closePlanItem(
+function closePlanItem(
   id: string,
   commitSha: string,
   closedAt: string,

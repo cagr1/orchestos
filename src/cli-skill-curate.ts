@@ -4,7 +4,7 @@ import type { MutationResult, SkillCurateResponse, SkillImportResponse } from '.
 
 export const DASHBOARD_URL = process.env.ORCHESTOS_API_URL || 'http://localhost:4242'
 
-export async function callDashboardApi(path: string, body: unknown): Promise<Response> {
+async function callDashboardApi(path: string, body: unknown): Promise<Response> {
   const resp = await fetch(`${DASHBOARD_URL}${path}`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },

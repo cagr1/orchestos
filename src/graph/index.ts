@@ -30,11 +30,11 @@ registerResolver(javaResolver)
 registerResolver(rubyResolver)
 const RESOLVE_EXTENSIONS = ['.ts', '.tsx', '.js', '.jsx', '.py', '/index.ts', '/index.js']
 
-export interface IndexOpts {
+interface IndexOpts {
   noEmbed?: boolean
 }
 
-export interface IndexResult {
+interface IndexResult {
   files: number
   edges: number
   changed: number

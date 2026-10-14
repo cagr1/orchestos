@@ -20,11 +20,7 @@ export function reportTaskOutcome(
   }
 }
 
-export function buildTaskReport(root: string, taskId: string, projectId?: string | null): string {
-  return buildTaskReportData(root, taskId, projectId).content
-}
-
-export function buildTaskReportData(
+function buildTaskReportData(
   root: string,
   taskId: string,
   projectId?: string | null,

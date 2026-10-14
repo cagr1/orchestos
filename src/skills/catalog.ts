@@ -15,7 +15,7 @@ import { listProSkillFiles, listSkillFiles, loadSkill } from './registry.ts'
  * La decisión vive en el consumidor (planner, `pickAutoSkill`, gates de O.3).
  */
 
-export interface SkillCandidateInfo {
+interface SkillCandidateInfo {
   id: string
   name: string
   description: string
@@ -82,7 +82,7 @@ export function renderSkillCatalog(candidates?: SkillCandidateInfo[]): string {
     .join('\n')
 }
 
-export interface GateEvaluation {
+interface GateEvaluation {
   skill: SkillDef
   /** Coincide fase + `mode: automatic` — era elegible, sin importar `triggers`. */
   candidate: boolean

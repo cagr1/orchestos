@@ -7,7 +7,7 @@ type TerminalOptions = {
   onExit: (code: number) => void
 }
 
-export type TerminalSession = {
+type TerminalSession = {
   readonly pid: number
   write(data: string): void
   resize(cols: number, rows: number): void

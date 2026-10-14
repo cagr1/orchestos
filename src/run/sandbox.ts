@@ -10,7 +10,7 @@ export interface Worktree {
   cleanup: () => void
 }
 
-export type MergeStrategy = 'commit' | 'squash' | 'discard'
+type MergeStrategy = 'commit' | 'squash' | 'discard'
 
 export function git(
   args: string[],

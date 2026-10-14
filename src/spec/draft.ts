@@ -44,7 +44,7 @@ removed: []
 Si no hay modificaciones o eliminaciones, deja los arrays vacíos.`
 }
 
-export interface DraftResult {
+interface DraftResult {
   body: string
   capabilities?: CapabilitiesContract
 }

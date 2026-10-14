@@ -19,13 +19,13 @@ export interface MemoryEntry {
  * S26.1 — A memory entry that scored above CONFLICT_THRESHOLD in BM25 search.
  * bm25Score is the raw FTS5 value (negative; lower = more similar).
  */
-export interface ConflictCandidate {
+interface ConflictCandidate {
   entryId: string
   topicKey: string
   bm25Score: number
 }
 
-export interface UpsertResult {
+interface UpsertResult {
   id: string
   /** Entries whose content is semantically similar to the new/updated entry. */
   candidates: ConflictCandidate[]

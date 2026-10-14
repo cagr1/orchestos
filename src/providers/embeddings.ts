@@ -23,7 +23,7 @@ import { join } from 'path'
 // Public types
 // ---------------------------------------------------------------------------
 
-export interface EmbedResponse {
+interface EmbedResponse {
   /** One embedding vector per input text, in the same order as the input. */
   embeddings: number[][]
   /** Token count charged for this request (0 for local providers). */

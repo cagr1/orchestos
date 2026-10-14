@@ -311,7 +311,6 @@ async function runClaudeCode(
 // de esfuerzo (`low, medium, high, xhigh, max`) — el selector de 3 niveles del
 // chat (pensado para el `reasoning` de OpenRouter) le queda chico a este CLI.
 export const CLAUDE_CLI_EFFORTS = ['low', 'medium', 'high', 'xhigh', 'max'] as const
-export type ClaudeCliEffort = (typeof CLAUDE_CLI_EFFORTS)[number]
 
 /**
  * H.9.2 (reabierto 2026-09-06) — flags que CONSTITUYEN la frontera de lectura.
@@ -366,7 +365,7 @@ export function buildClaudeChatArgs(
   return args
 }
 
-export interface ClaudeChatResult {
+interface ClaudeChatResult {
   sessionId?: string
   text: string
   inputTokens: number

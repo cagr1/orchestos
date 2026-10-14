@@ -9,7 +9,19 @@
  * porque su lógica de error y revert es una máquina de estados, no pasos
  * independientes.
  *
- * Orden canónico → ENRICHMENT_MIDDLEWARE_ORDER.
+ * Orden canónico de la cadena de enrichment (harness.ts la construye en este orden
+ * con las implementaciones de src/run/middlewares/*.ts, S31.2–S31.5):
+ *
+ *  spec-gate         — lanza si requireSpec y el spec no está aprobado
+ *  sandbox-setup     — crea el worktree, fija effectiveRoot
+ *  classify-route    — resuelve taskClass, model y provider
+ *  memory-fetch      — suggestContext + embeddings → enriquece task.input
+ *  skill-route       — carga skill YAML → skillInstructions
+ *  constitution-load — carga CONSTITUTION.md → constitutionBlock
+ *  context-source    — elige CONTEXT.md vs AGENTS.md → effectiveContext
+ *  instinct-apply    — (S33) inyecta instincts verificados → instinctBlock
+ *  prompt-build      — ensambla system + userContent desde todos los campos ctx
+ *
  * Cada middleware llama next() para continuar o retorna sin llamarlo para
  * cortocircuitar (patrón: spec-gate lanza, sandbox-setup en dry-run salta).
  */
@@ -26,7 +38,7 @@ import type { Worktree } from './sandbox.ts'
 
 export type MiddlewareFn<TCtx> = (ctx: TCtx, next: () => Promise<void>) => Promise<void>
 
-export interface MiddlewareChain<TCtx> {
+interface MiddlewareChain<TCtx> {
   use(fn: MiddlewareFn<TCtx>): MiddlewareChain<TCtx>
   run(ctx: TCtx): Promise<void>
 }
@@ -111,37 +123,6 @@ export interface RunContext {
   // --- acumulado durante la ejecución (lo escribe context-monitor, lo lee harness) ---
   contextWarnings: ContextWarning[]
 }
-
-// -- canonical middleware order ------------------------------------------------
-
-/**
- * Orden canónico de la cadena de enrichment.
- * harness.ts construye el chain en este orden usando las implementaciones de
- * src/run/middlewares/*.ts (S31.2–S31.5).
- *
- *  spec-gate        — lanza si requireSpec y el spec no está aprobado
- *  sandbox-setup    — crea el worktree, fija effectiveRoot
- *  classify-route   — resuelve taskClass, model y provider
- *  memory-fetch     — suggestContext + embeddings → enriquece task.input
- *  skill-route      — carga skill YAML → skillInstructions
- *  constitution-load— carga CONSTITUTION.md → constitutionBlock
- *  context-source   — elige CONTEXT.md vs AGENTS.md → effectiveContext
- *  instinct-apply   — (S33) inyecta instincts verificados → instinctBlock
- *  prompt-build     — ensambla system + userContent desde todos los campos ctx
- */
-export const ENRICHMENT_MIDDLEWARE_ORDER = [
-  'spec-gate',
-  'sandbox-setup',
-  'classify-route',
-  'memory-fetch',
-  'skill-route',
-  'constitution-load',
-  'context-source',
-  'instinct-apply',
-  'prompt-build',
-] as const
-
-export type EnrichmentMiddlewareName = (typeof ENRICHMENT_MIDDLEWARE_ORDER)[number]
 
 // -- context factory -----------------------------------------------------------
 

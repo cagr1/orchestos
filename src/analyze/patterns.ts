@@ -25,7 +25,7 @@ export interface PatternSuggestion {
   confidence: 'high' | 'medium' | 'low'
 }
 
-export interface RunOutcomeGroups {
+interface RunOutcomeGroups {
   qaPass: number
   qaFail: number
   blocked: number

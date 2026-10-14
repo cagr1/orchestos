@@ -48,14 +48,14 @@ export interface ChatMessageRecord
   taskReport?: TaskReportData
 }
 
-export interface CreateChatSessionInput {
+interface CreateChatSessionInput {
   projectId?: string | null
   agent: AgentChoice
   mode?: ChatSessionMode
   title?: string
 }
 
-export interface AppendChatExchangeInput {
+interface AppendChatExchangeInput {
   sessionId: string
   userContent: string
   assistantContent: string
@@ -133,7 +133,7 @@ export function createChatSession(input: CreateChatSessionInput): ChatSessionRec
  * (screens-core.js) SIEMPRE filtra: mezclar chats de proyectos distintos en
  * una sola lista no tiene sentido una vez que hay más de un proyecto.
  */
-export type ChatSessionArchiveFilter = 'active' | 'archived' | 'all'
+type ChatSessionArchiveFilter = 'active' | 'archived' | 'all'
 
 export function listChatSessions(
   projectId?: string | null,
@@ -230,10 +230,6 @@ export function updateChatSession(
 
 export function deleteChatSession(id: string): boolean {
   return db.run('DELETE FROM chat_sessions WHERE id = ?', [id]).changes > 0
-}
-
-export function deleteChatSessionsForProject(projectId: string): number {
-  return db.run('DELETE FROM chat_sessions WHERE project_id = ?', [projectId]).changes
 }
 
 export function listChatMessages(sessionId: string): ChatMessageRecord[] {

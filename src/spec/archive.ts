@@ -15,7 +15,7 @@ import { loadSpec, specPath } from './store.ts'
 const SPECS_DIR = '.orchestos/specs'
 const ARCHIVE_DIR = `${SPECS_DIR}/archive`
 
-export interface ArchiveResult {
+interface ArchiveResult {
   archivedPath: string
   archivedAt: string
 }
@@ -73,7 +73,7 @@ export function deleteArchivedSpec(root: string, taskId: string): boolean {
 import { stringify as yamlStringify } from 'yaml'
 import type { Spec } from './store.ts'
 
-export const _internals = {
+const _internals = {
   serializeSpecRaw(spec: Spec): string {
     const fm: Record<string, unknown> = {
       id: spec.frontmatter.id,

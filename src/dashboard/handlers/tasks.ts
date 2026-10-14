@@ -213,7 +213,7 @@ function inferExecutorFromModel(modelId: string | undefined): string {
 // O.2 — la implementación vive en skills/catalog.ts (la necesita también el
 // camino de sub-tareas del planner). Acá se re-exporta, misma API.
 
-export interface CreateTaskParams {
+interface CreateTaskParams {
   id?: string
   description: string
   output?: string[]

@@ -37,10 +37,6 @@ export function registerResolver(resolver: Resolver): void {
   registry.set(resolver.language, resolver)
 }
 
-export function getResolver(language: string): Resolver | undefined {
-  return registry.get(language)
-}
-
 export function resolveWithRegistry(
   language: string,
   importStr: string,
@@ -50,8 +46,4 @@ export function resolveWithRegistry(
   const resolver = registry.get(language)
   if (!resolver) return null
   return resolver.resolve(importStr, fromFile, repo)
-}
-
-export function listResolvers(): string[] {
-  return Array.from(registry.keys())
 }

@@ -12,7 +12,7 @@ import type { ExecutorStepEvent } from '../run/executors/step-event.ts'
 import { redactSensitive } from '../security/secrets.ts'
 import { db } from './sqlite.ts'
 
-export interface RunStepRecord {
+interface RunStepRecord {
   id: number
   task_id: string
   seq: number

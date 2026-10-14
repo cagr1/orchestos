@@ -5,7 +5,7 @@ import { runCodexChat } from '../run/executors/codex.ts'
 import { runClaudeChat } from '../run/executors/external.ts'
 import { runOpencodeChat } from '../run/executors/opencode.ts'
 
-export interface RoleClient {
+interface RoleClient {
   role: RoleName
   agent: RoleAgent
   model: string
@@ -13,7 +13,7 @@ export interface RoleClient {
   provider: ProviderClient
 }
 
-export interface RoleRunnerDeps {
+interface RoleRunnerDeps {
   claude?: typeof runClaudeChat
   codex?: typeof runCodexChat
   opencode?: typeof runOpencodeChat

@@ -1,6 +1,6 @@
 import { dashboardProjectFromId, resolveDashboardProject } from './project-context.ts'
 
-export type ProjectScope = { kind: 'project'; id: string; root: string } | { kind: 'none' }
+type ProjectScope = { kind: 'project'; id: string; root: string } | { kind: 'none' }
 
 export function requestScope(req: Request): ProjectScope {
   const url = new URL(req.url)

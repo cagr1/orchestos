@@ -1,10 +1,10 @@
 import type { Database } from 'bun:sqlite'
 import { db } from './sqlite.ts'
 
-export const CURRENT_SCHEMA_VERSION = 1
+const CURRENT_SCHEMA_VERSION = 1
 const BASELINE_NAME = 'baseline-current-schema'
 
-export interface SchemaMigrationStep {
+interface SchemaMigrationStep {
   version: number
   name: string
   precondition: (database: Database) => void

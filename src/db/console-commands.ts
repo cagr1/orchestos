@@ -1,6 +1,6 @@
 import { db } from './sqlite.ts'
 
-export interface ConsoleCommandRecord {
+interface ConsoleCommandRecord {
   id: number
   session_id: string
   cmd: string
@@ -12,7 +12,7 @@ export interface ConsoleCommandRecord {
   created_at: string
 }
 
-export interface InsertConsoleCommandInput {
+interface InsertConsoleCommandInput {
   sessionId: string
   cmd: string
   exitCode: number

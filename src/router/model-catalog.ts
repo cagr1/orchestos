@@ -29,7 +29,7 @@ import { tryLoadApiKey } from '../providers/openrouter.ts'
 // Types & constants
 // ---------------------------------------------------------------------------
 
-export interface ModelInfo {
+interface ModelInfo {
   /** Ventana de contexto real en tokens, según OpenRouter. */
   contextLength: number
   /** Precio de prompt en USD por 1M tokens (para reuso futuro en routing por costo). */

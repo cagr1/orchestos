@@ -1,4 +1,4 @@
-export type SecretKind =
+type SecretKind =
   | 'private-key'
   | 'provider-key'
   | 'github-token'
@@ -6,7 +6,7 @@ export type SecretKind =
   | 'bearer-token'
   | 'credential-assignment'
 
-export interface SecretFinding {
+interface SecretFinding {
   kind: SecretKind
 }
 

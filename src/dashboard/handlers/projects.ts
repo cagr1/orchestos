@@ -64,7 +64,7 @@ function publicProjectRow(project: {
  * The native selector is the trust boundary: Bun.spawn receives fixed argv and
  * never shell mode or any path supplied by the browser.
  */
-export async function nativeChooseProjectFolder(): Promise<string | null> {
+async function nativeChooseProjectFolder(): Promise<string | null> {
   const proc = Bun.spawn(
     [
       'osascript',

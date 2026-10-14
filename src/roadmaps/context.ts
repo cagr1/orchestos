@@ -20,7 +20,7 @@ const MAX_TOTAL_CHARS = 26_000
  */
 const ROADMAP_DOCS_ROOT = join(import.meta.dir, '..', '..')
 
-export interface RoadmapContext {
+interface RoadmapContext {
   profile: RoadmapProfile
   markdown: string
   selected: string[]

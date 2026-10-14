@@ -133,7 +133,7 @@ export interface ContextWarningEntry {
   message: string
 }
 
-export interface SessionRateLimitWindow {
+interface SessionRateLimitWindow {
   id: string
   usedPct: number
   remainingPct?: number
@@ -443,8 +443,6 @@ export interface HealthResponse {
 
 // ── /api/setup/api-key ───────────────────────────────────────────────────────
 
-export type ApiKeyProvider = 'openrouter' | 'anthropic' | 'openai'
-
 export interface ApiKeyValidationResponse {
   valid: boolean
   error?: string // human-readable, shown directly in the wizard UI
@@ -512,17 +510,6 @@ export interface RegistrySkillEntry {
   fileCount: number
   bundleHash: string
   reviewStatus: 'approved' | 'pending' | 'rejected'
-}
-
-export interface RegistrySkillDetail {
-  id: string
-  name: string
-  description: string
-  source: string
-  skillPath: string
-  files: string[]
-  sha256: Record<string, string>
-  bundleHash: string
 }
 
 export interface RegistryListResponse {

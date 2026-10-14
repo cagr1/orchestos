@@ -9,7 +9,7 @@
  *   pending ──► running ──► completed
  *                    │
  *                    ├──► failed      (QA fail, retriable)
- *                    ├──► timed_out   (exceeded timeout_ms or 20 tool-call limit)
+ *                    ├──► timed_out   (exceeded timeout_ms)
  *                    └──► cancelled   (parent task cancelled by user)
  *
  *   pending ──► skipped  (a depends_on sub-task reached failed/timed_out — S22.5)
@@ -27,8 +27,8 @@ export type SubTaskStatus =
   | 'pending' // waiting for depends_on to complete (initial state)
   | 'running' // harness is actively executing this sub-task
   | 'completed' // QA passed; topic_key written to memory_entries if applicable
-  | 'failed' // QA failed or execution error — retriable up to MAX_SUB_RETRIES
-  | 'timed_out' // exceeded timeout_ms OR 20 tool-call limit (S22.8 delegation rule)
+  | 'failed' // QA failed or execution error — retriable
+  | 'timed_out' // exceeded timeout_ms
   | 'cancelled' // parent task was cancelled before this sub-task ran
   | 'skipped' // a depends_on predecessor failed/timed_out — never executed (S22.5)
 
@@ -40,9 +40,6 @@ export const TERMINAL_STATUSES = new Set<SubTaskStatus>([
   'cancelled',
   'skipped',
 ])
-
-/** Maximum retries per sub-task before promoting to permanent failure. */
-export const MAX_SUB_RETRIES = 2
 
 // ---------------------------------------------------------------------------
 // Runtime sub-task (definition + mutable state)
@@ -160,48 +157,10 @@ export function isPending(st: SubTask): boolean {
   return st.status === 'pending'
 }
 
-/** Returns true if no further execution will happen for this sub-task. */
-export function isTerminal(st: SubTask): boolean {
-  return TERMINAL_STATUSES.has(st.status)
-}
-
-/**
- * Returns true if this sub-task can be retried.
- * A sub-task is retriable only if status is 'failed' and retries < MAX_SUB_RETRIES.
- */
-export function isRetriable(st: SubTask): boolean {
-  return st.status === 'failed' && st.retry_count < MAX_SUB_RETRIES
-}
-
 /**
  * Returns true if this sub-task should be skipped due to an upstream failure.
  * Called by S22.5 cascade QA after any predecessor reaches a terminal failure state.
  */
 export function shouldSkip(st: SubTask, failedIds: ReadonlySet<string>): boolean {
   return st.status === 'pending' && st.depends_on.some((dep) => failedIds.has(dep))
-}
-
-/**
- * Applies a SubagentResult to a SubTask, returning an updated copy.
- * The orchestrator calls this after each execution attempt.
- */
-export function applyResult(st: SubTask, result: SubagentResult): SubTask {
-  const now = new Date().toISOString()
-  const updated: SubTask = {
-    ...st,
-    status: result.status,
-    run_id: st.run_id ?? undefined,
-    completed_at: now,
-  }
-
-  if (result.status === 'failed') {
-    updated.retry_count = st.retry_count + 1
-    updated.retry_reason = result.error
-    // Reset to pending for scheduler retry if still retriable
-    if (updated.retry_count < MAX_SUB_RETRIES) {
-      updated.status = 'failed'
-    }
-  }
-
-  return updated
 }

@@ -27,12 +27,12 @@
 
 import type { Spec } from './store.ts'
 
-export interface LintFinding {
+interface LintFinding {
   criterion: string
   suggestion: string
 }
 
-export interface LintResult {
+interface LintResult {
   findings: LintFinding[]
   structuredCount: number
   freeFormCount: number

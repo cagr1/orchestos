@@ -2,7 +2,7 @@ import type { Database } from 'bun:sqlite'
 import { parsePlanItemSources } from '../../scripts/plan-status.ts'
 import { db } from './sqlite.ts'
 
-export interface RenderedPlanSegment {
+interface RenderedPlanSegment {
   position: number
   kind: string
   text: string | null
@@ -24,10 +24,7 @@ interface StoredPlanItem {
  * same projection as plan_items.  Refusing a divergent projection is safer than
  * returning a PLAN.md that merely looks synchronized.
  */
-export function validatePlanDocumentIntegrity(
-  segments: RenderedPlanSegment[],
-  database: Database,
-): void {
+function validatePlanDocumentIntegrity(segments: RenderedPlanSegment[], database: Database): void {
   const text = segments.map((segment) => segment.text ?? '').join('')
   const parsed = parsePlanItemSources(text)
   const rows = database

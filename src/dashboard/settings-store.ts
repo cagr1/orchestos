@@ -68,4 +68,4 @@ function writeEnv(data: Record<string, string>): void {
   writeFileSync(envFilePath(), content, 'utf-8')
 }
 
-export { envFilePath, maskKey, parseEnvFile, readEnv, SETTINGS_KEYS, writeEnv }
+export { envFilePath, maskKey, readEnv, SETTINGS_KEYS, writeEnv }

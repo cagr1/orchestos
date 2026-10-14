@@ -14,8 +14,7 @@ type JsonRpcMessage = {
 }
 type Child = ChildProcessWithoutNullStreams
 
-export class CodexProtocolError extends Error {}
-export class CodexAppServerError extends Error {
+class CodexAppServerError extends Error {
   constructor(
     message: string,
     readonly protocol = false,
@@ -29,7 +28,7 @@ export interface CodexAppServerThreadStore {
   set(sessionId: string, threadId: string, contextHash: string): void
 }
 
-export interface CodexAppServerOptions {
+interface CodexAppServerOptions {
   binary: string
   env: Record<string, string>
   store: CodexAppServerThreadStore
@@ -455,7 +454,4 @@ export function getCodexAppServer(
 export function stopCodexAppServers(): void {
   for (const server of servers.values()) server.kill()
   servers.clear()
-}
-export function clearCodexAppServersForTests(): void {
-  stopCodexAppServers()
 }

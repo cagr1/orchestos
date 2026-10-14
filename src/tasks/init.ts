@@ -34,7 +34,7 @@ export function ensureTasksYaml(root: string): boolean {
   return created
 }
 
-export interface ScaffoldResult {
+interface ScaffoldResult {
   /** Ruta absoluta al tasks.yaml recién creado. */
   path: string
   /** Nombre del proyecto detectado por buildProfile (puede ser genérico si no se detectó). */

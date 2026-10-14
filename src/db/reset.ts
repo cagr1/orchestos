@@ -1,7 +1,7 @@
 import { mutateTasks, tasksExist } from '../tasks/loader.ts'
 import { db } from './sqlite.ts'
 
-export interface ResetSummary {
+interface ResetSummary {
   runsDeleted: number
   instinctsDeleted: number
   tasksReset: number

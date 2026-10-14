@@ -81,7 +81,7 @@ const STOP_WORDS = new Set([
 
 // ── public interface ─────────────────────────────────────────────────────────
 
-export interface SuggestOpts {
+interface SuggestOpts {
   /** Max files to return (default 10) */
   topN?: number
   /** Include 1-hop neighbors (default true) */
@@ -94,7 +94,7 @@ export interface SuggestOpts {
   taskEmbedding?: number[]
 }
 
-export interface SuggestResult {
+interface SuggestResult {
   path: string
   score: number
   /**

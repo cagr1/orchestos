@@ -4,7 +4,7 @@ import { git } from './sandbox.ts'
 
 export type SandboxMode = 'worktree' | 'cwd'
 
-export interface SandboxPolicyResult {
+interface SandboxPolicyResult {
   mode: SandboxMode
   warnings: string[]
   branch: string | null

@@ -14,7 +14,7 @@ export const INTERRUPTED_REASON = 'Interrupted: the task runner stopped before t
 /** "Vivo" = el PID existe Y su línea de comando es `task run … --id <taskId>`. */
 export type RunnerProbe = (pid: number, taskId: string) => boolean
 
-export const psRunnerProbe: RunnerProbe = (pid, taskId) => {
+const psRunnerProbe: RunnerProbe = (pid, taskId) => {
   try {
     process.kill(pid, 0)
   } catch {
@@ -38,7 +38,7 @@ export function commandIsRunnerOf(command: string, taskId: string): boolean {
   return next === undefined || /\s/.test(next)
 }
 
-export interface ReconcileOptions {
+interface ReconcileOptions {
   probe?: RunnerProbe
   pollMs?: number
   /** Inyectable para tests: por defecto un `setInterval` con `unref`. */

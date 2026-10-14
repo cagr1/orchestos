@@ -2,7 +2,7 @@ import { getProject } from '../db/projects.ts'
 import { listRuns } from '../db/runs.ts'
 import { db } from '../db/sqlite.ts'
 
-export interface ContextMdResult {
+interface ContextMdResult {
   content: string
   tokenEstimate: number
   agentsMdTokens: number

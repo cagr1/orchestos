@@ -96,7 +96,7 @@ export interface ConfigResponse {
 
 const CONFIG_ROLE_KEYS = ['planner', 'executor_heavy', 'executor_light', 'default', 'qa'] as const
 
-export function stripOpenrouterPrefix(value: string): string {
+function stripOpenrouterPrefix(value: string): string {
   return value.replace(/^openrouter\//, '')
 }
 
@@ -201,10 +201,6 @@ export async function getConfig(projectId?: string, signal?: AbortSignal): Promi
     }),
   )
 }
-export async function getModels(): Promise<ChatModelOption[]> {
-  return request('/api/chat/models')
-}
-
 export async function saveSettings(values: Record<string, string>): Promise<void> {
   await request('/api/settings', jsonInit('POST', values))
 }

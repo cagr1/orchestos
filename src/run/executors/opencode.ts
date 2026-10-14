@@ -238,7 +238,7 @@ async function runOpencode(
 // prompt. `--agent plan` en vez de `--auto` (que el comentario de arriba ya
 // marca como "dangerous": auto-aprueba TODO lo no denegado explícitamente,
 // lo opuesto de lo que quiere el chat).
-export interface OpencodeChatResult {
+interface OpencodeChatResult {
   text: string
   inputTokens: number
   outputTokens: number

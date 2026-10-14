@@ -31,7 +31,6 @@ function fakeProcess(onRequest: (request: any, stdout: PassThrough) => void) {
       pending = pending.slice(end + 1)
       if (!line) continue
       const request = JSON.parse(line)
-      // console.debug('fake codex request', request.method)
       if (request.id !== undefined) onRequest(request, stdout)
     }
   })

@@ -393,7 +393,7 @@ function cleanContextModel(model: string): string {
     .trim()
 }
 
-export type ChatTurnStatusRow =
+type ChatTurnStatusRow =
   | { kind: 'none' }
   | { kind: 'pending'; turnId: string; requestKey: string }
   | { kind: 'failed'; error: string | null }

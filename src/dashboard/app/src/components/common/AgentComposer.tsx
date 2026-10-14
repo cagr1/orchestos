@@ -16,7 +16,7 @@ export interface CliConfig {
   error?: string
 }
 
-export const CLIS: CliConfig[] = [
+const CLIS: CliConfig[] = [
   { id: 'api', name: 'ChatGPT', defaultModel: '', models: [], efforts: [] },
   { id: 'claude', name: 'Claude', defaultModel: '', models: [], efforts: [] },
   { id: 'codex', name: 'Codex', defaultModel: '', models: [], efforts: [] },

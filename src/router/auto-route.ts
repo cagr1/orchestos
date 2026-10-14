@@ -1,7 +1,7 @@
 import type { OrcheConfig, RoleAgent } from '../config/schema.ts'
 import type { Task } from '../tasks/schema.ts'
 
-export interface RouteResult {
+interface RouteResult {
   agent: RoleAgent
   provider: string
   model: string

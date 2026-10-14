@@ -106,7 +106,7 @@ export function decideTaskPollAction(input: {
   return 'load'
 }
 
-export const TASK_REPORT_MAX_ATTEMPTS = 6
+const TASK_REPORT_MAX_ATTEMPTS = 6
 
 /** Tras cargar el hilo: fusionar si el servidor trae más mensajes de la tarea; si no, contar y rendirse al sexto. */
 export function resolveTaskReportPoll(input: {

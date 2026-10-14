@@ -152,7 +152,7 @@ async function handleApiProjectIndex(root: string, projectId?: string | null): P
   })
 }
 
-export interface NaturalDraft {
+interface NaturalDraft {
   id: string
   description: string
   output: string[]
@@ -163,7 +163,7 @@ export interface NaturalDraft {
 }
 
 /** Contexto del chat que acompaña al mensaje actual al pedir el borrador. */
-export interface NaturalDraftContext {
+interface NaturalDraftContext {
   history?: { role: string; content: string }[]
   assistantReply?: string
 }

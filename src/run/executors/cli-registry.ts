@@ -53,7 +53,7 @@ export interface CliDefinition {
   }
 }
 
-export interface ProvisionedCliConfigHome {
+interface ProvisionedCliConfigHome {
   path: string
   settingsPath?: string
   envVar?: 'CODEX_HOME'
@@ -217,7 +217,7 @@ export function provisionCliConfigHome(
  */
 export type CliCapabilityProbe = (binary: string, args: string[]) => string | null
 
-export const spawnCliCapabilityProbe: CliCapabilityProbe = (binary, args) => {
+const spawnCliCapabilityProbe: CliCapabilityProbe = (binary, args) => {
   const startedAt = performance.now()
   let exitCode: number | null = null
   let signalCode: string | null = null

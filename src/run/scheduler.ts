@@ -2,7 +2,6 @@ import { commitTopicKey } from '../agents/context-isolation.ts'
 import {
   createWorktreeWithRetry,
   DEFAULT_SUB_TASK_TIMEOUT_MS,
-  ToolCallLimitError,
   withSubTaskTimeout,
 } from '../agents/hardening.ts'
 import type { SubagentResult, SubTask } from '../agents/sub-agent.ts'
@@ -21,7 +20,7 @@ import { mergeWorktreeBack } from './sandbox.ts'
 // Scheduler result
 // ---------------------------------------------------------------------------
 
-export interface SubTaskLog {
+interface SubTaskLog {
   id: string
   status: SubTask['status']
   result?: string
@@ -35,7 +34,7 @@ export interface SubTaskLog {
   worktree?: string
 }
 
-export interface SchedulerResult {
+interface SchedulerResult {
   parent_task_id: string
   sub_tasks: SubTaskLog[]
   aggregated_cost: number
@@ -66,7 +65,7 @@ export interface SchedulerOpts {
 // ---------------------------------------------------------------------------
 // S22.4 — Schedule + execute sub-tasks sequentially
 // S22.5 — Cascade QA: failure propagates → downstream sub-tasks become 'skipped'
-// S22.8 — Hardening: timeout, worktree-collision retry, tool-call limit
+// S22.8 — Hardening: timeout, worktree-collision retry
 // ---------------------------------------------------------------------------
 
 /**
@@ -79,7 +78,6 @@ export interface SchedulerOpts {
  * Hardening (S22.8):
  *   - Worktree creation retried with exponential backoff on collision.
  *   - executeOne is raced against st.timeout_ms (default 300s).
- *   - ToolCallLimitError from executeOne maps to 'timed_out'.
  */
 export async function executePlan(
   subTasks: SubTask[],
@@ -189,12 +187,7 @@ export async function executePlan(
           result = raced.result
         }
       } catch (e) {
-        // S22.8 — tool-call limit exceeded → timed_out (delegation rule)
-        if (e instanceof ToolCallLimitError) {
-          result = timedOutResult(st.id, timeoutMs, e.message)
-        } else {
-          result = failedResult(st.id, (e as Error).message)
-        }
+        result = failedResult(st.id, (e as Error).message)
       }
 
       st.status = result.status
@@ -258,11 +251,11 @@ export async function executePlan(
 // Result builders for error paths
 // ---------------------------------------------------------------------------
 
-function timedOutResult(taskId: string, timeoutMs: number, msg?: string): SubagentResult {
+function timedOutResult(taskId: string, timeoutMs: number): SubagentResult {
   return {
     sub_task_id: taskId,
     status: 'timed_out',
-    error: msg ?? `timed out after ${timeoutMs}ms`,
+    error: `timed out after ${timeoutMs}ms`,
     usd_cost: 0,
     tokens: { input: 0, output: 0 },
     elapsed_ms: timeoutMs,

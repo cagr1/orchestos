@@ -3,7 +3,7 @@ import { readCliModelCatalogsCached } from '../chat-cli-models.ts'
 import { jsonResponse } from '../http.ts'
 import { type ChatModelsFetch, readOpenRouterChatModels } from './chat.ts'
 
-export interface CatalogAgent {
+interface CatalogAgent {
   id: RoleAgent
   installed: boolean
   models: { id: string; name: string; efforts?: string[] }[]

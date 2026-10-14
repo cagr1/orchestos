@@ -4,7 +4,7 @@ import { homedir } from 'node:os'
 import { join, resolve, sep } from 'node:path'
 import { globSync } from 'glob'
 
-export interface CliTranscriptUsage {
+interface CliTranscriptUsage {
   date: string
   provider: 'claude' | 'codex'
   model: string

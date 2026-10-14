@@ -1333,9 +1333,23 @@ igual que hoy, lo que se corta es que el **producto** lo herede por accidente.
   corrigió el encabezado de UI.25 (decía ABIERTO) y añadió AT.19.
   Evidencia (cerebro): diff leído completo; SHAs citados comprobados (`3b8c9b2`); `plan:reconcile` 71 ítems; `bun run
   next` sin ítems perdidos.
-- [ ] **LIMP.1 — 🔍 Fuera el código muerto.** (abierto 2026-10-14) Exports, archivos y funciones sin consumidor y
+- [x] **LIMP.1 — 🔍 Fuera el código muerto.** (abierto 2026-10-14) Exports, archivos y funciones sin consumidor y
   comentarios que describen código que ya no existe; cada borrado con su evidencia (grep + gates). Decisiones de la
   limpieza general del 2026-10-13: el nombre propio y los marcadores del plan van en ítems propios, no aquí.
+  Ejecutado por: criterio (rondas 1-2) + mecanico (ronda 3) · revisión qa · Spec: docs/specs/LIMP.1.md
+  (cerrado 2026-10-14) 77 archivos de `src/`, −1048/+154: `ThreadsView.tsx` y `lib/elevated.tsx` borrados; 26
+  funciones/constantes sin ninguna referencia borradas (incl. `ToolCallCounter`/`ToolCallLimitError`, regla que
+  nunca se activaba, y su rama en `scheduler.ts`); ~130 `export` sin consumidor quitados; comentarios que nombraban
+  lo borrado corregidos. Conservados con evidencia: `db/backup.ts` (import dinámico en test), `orcaProjectData.ts`
+  (señal de backend de `roadmap-profile.test.ts:238`), `readBoundaryWarning` (tiene consumidores),
+  `r6-runs-browser.png` (citado en evidencia), familia vendorizada. Inventario: knip 5. La revisión de `qa` encontró
+  9 restos sin borrar → ronda 3; ningún defecto de comportamiento.
+  Evidencia (cerebro): grep de cada símbolo borrado = 0 referencias; typecheck, lint, build:app verdes;
+  `test:coverage` 1770/1 — el único fallo es el test del 409 (`tasks.test.ts:158`, identidad git global del Mac,
+  anotado en NEXT.md), que pasa 7/7 con `GIT_CONFIG_GLOBAL` aislado. `ui:fidelity:jsx` ya estaba rojo desde
+  `a9d5736` (UI.26.4a), sin relación.
+  Gate en vivo: navegador real (Playwright), `docs/done/evidence/LIMP.1-live.json` — `chat-streaming` 24/24,
+  `codex-live` 14/14.
 
 ### AT.17–AT.18 — Restos del esquema de trabajo (TEMPORAL: al cerrarlos se borra esta sección entera)
 

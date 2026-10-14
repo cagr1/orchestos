@@ -16,7 +16,7 @@ export interface PlanDocSection {
   text: string
 }
 
-export interface PlanDoc {
+interface PlanDoc {
   exists: boolean
   sections: PlanDocSection[]
 }

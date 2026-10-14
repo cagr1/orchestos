@@ -18,7 +18,6 @@
  *         Transparent to the caller.
  */
 
-import { readFileSync } from 'fs'
 import { parse } from 'yaml'
 import { estimateTokens } from '../context/compress.ts'
 import type { ProviderClient } from '../providers/index.ts'
@@ -80,19 +79,6 @@ export function createPlan(yamlText: string): SubTask[] {
   const plan = parsePlan(yamlText)
   const sorted = topoSort(plan.sub_tasks)
   return dropUnknownSkills(sorted.map((def) => createSubTask(def)))
-}
-
-/**
- * Reads a YAML file and returns a ready-to-execute plan.
- */
-export function parsePlanFromFile(filePath: string): SubTask[] {
-  let content: string
-  try {
-    content = readFileSync(filePath, 'utf-8')
-  } catch (e) {
-    throw new PlanParseError(`cannot read file "${filePath}": ${(e as Error).message}`)
-  }
-  return createPlan(content)
 }
 
 // ---------------------------------------------------------------------------
@@ -237,7 +223,7 @@ function dropUnknownSkills(subTasks: SubTask[]): SubTask[] {
 // S23.1 — Function-calling path
 // ---------------------------------------------------------------------------
 
-export interface PlannerCallOverride {
+interface PlannerCallOverride {
   callWithTools: typeof callWithTools
 }
 

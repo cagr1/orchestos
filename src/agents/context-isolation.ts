@@ -33,16 +33,16 @@ import type { SubTask } from './sub-agent.ts'
 // ---------------------------------------------------------------------------
 
 /** Max chars in the rendered context passed to a sub-agent LLM call. */
-export const MAX_CONTEXT_CHARS = 8_000
+const MAX_CONTEXT_CHARS = 8_000
 
 /** Max memory entries included in one sub-agent context. */
-export const MAX_MEMORY_ENTRIES = 10
+const MAX_MEMORY_ENTRIES = 10
 
 // ---------------------------------------------------------------------------
 // Public types
 // ---------------------------------------------------------------------------
 
-export interface IsolatedContext {
+interface IsolatedContext {
   /** Slice of CONTEXT.md relevant to this sub-task (never full file). */
   contextSlice: string
   /** Session memory entries selected as relevant to this sub-task (excluding priorTopicKeyEntry). */
@@ -128,7 +128,7 @@ export function buildIsolatedContext(
  *
  * The preamble (text before the first heading) is always included.
  */
-export function sliceContext(text: string, keywords: string[], maxChars: number): string {
+function sliceContext(text: string, keywords: string[], maxChars: number): string {
   if (!text.trim()) return ''
   if (keywords.length === 0) {
     // No keywords — include preamble and first section only
@@ -173,7 +173,7 @@ export function sliceContext(text: string, keywords: string[], maxChars: number)
 // (b) Memory selection
 // ---------------------------------------------------------------------------
 
-export interface SelectedMemories {
+interface SelectedMemories {
   /** Prior entry for the sub-task's own topic_key — rendered with MERGE instruction (S22.5a). */
   prior?: MemoryEntry
   /** Other relevant session entries (skill prefix + depends_on predecessors). */
@@ -189,7 +189,7 @@ export interface SelectedMemories {
  * `others` contains entries matched by skill prefix or depends_on predecessor topic_keys,
  * capped at MAX_MEMORY_ENTRIES, sorted by priority then updated_at desc.
  */
-export function selectMemories(
+function selectMemories(
   subTask: SubTask,
   allSession: MemoryEntry[],
   allSubTasks?: SubTask[],
@@ -369,7 +369,7 @@ const STOP_WORDS = new Set([
 ])
 
 /** Extracts unique lowercase keywords (≥3 chars) from the sub-task description and acceptance. */
-export function extractKeywords(subTask: SubTask): string[] {
+function extractKeywords(subTask: SubTask): string[] {
   const text = [
     subTask.description,
     ...subTask.acceptance,

@@ -57,7 +57,7 @@ export interface RoadmapProfile {
   toolchain: { name: string; version: string }[]
 }
 
-export interface RoadmapOverrides {
+interface RoadmapOverrides {
   disciplines?: { include?: string[]; exclude?: string[] }
   languages?: { include?: string[]; exclude?: string[] }
 }
@@ -76,7 +76,7 @@ function validList(value: unknown, allowed: Set<string>): string[] {
   return value.filter((v): v is string => typeof v === 'string' && allowed.has(v))
 }
 
-export function readRoadmapOverrides(root: string): RoadmapOverrides {
+function readRoadmapOverrides(root: string): RoadmapOverrides {
   const path = join(root, 'docs', 'roadmaps', 'project-overrides.yaml')
   if (!existsSync(path)) return {}
   try {
@@ -407,7 +407,7 @@ function detectInstructionFiles(root: string): Record<string, StageState> {
  */
 export type ToolchainProbe = (name: string, args: string[]) => string | null
 
-export const spawnToolchainProbe: ToolchainProbe = (name, args) => {
+const spawnToolchainProbe: ToolchainProbe = (name, args) => {
   try {
     const proc = Bun.spawnSync([name, ...args])
     return proc.exitCode === 0 ? proc.stdout.toString().trim() : null

@@ -7,12 +7,12 @@ import { buildSections } from '../skills/targets/_shared.ts'
 import type { CheckResult } from './checks.ts'
 import type { FileChange } from './contract.ts'
 
-export interface QAEvidence {
+interface QAEvidence {
   file: string
   excerpt: string
 }
 
-export interface QACriterionResult {
+interface QACriterionResult {
   text: string
   pass: boolean
   evidence?: QAEvidence
@@ -28,7 +28,7 @@ export function normalizeCriterionText(text: string): string {
     .trim()
 }
 
-export interface QAVerdict {
+interface QAVerdict {
   verdict: 'pass' | 'fail'
   reason: string
   criteria?: QACriterionResult[]
@@ -290,7 +290,7 @@ export const MAX_RETRIES = 3
 // "K.4a limitation") es que evidencia LITERAL puede venir de contexto
 // equivocado, código muerto, o ser contradictoria — K.1/K.4a solo garantizan
 // que el string existe, no que el criterio se cumple de verdad.
-export interface AdversarialVerdict {
+interface AdversarialVerdict {
   verdict: 'VERIFIED' | 'CAVEATS' | 'REFUTED'
   reason: string
   inputTokens: number
@@ -393,7 +393,7 @@ function parseAdversarialVerdict(raw: string): {
 // un downgrade dudoso a costa de saltarse el retry) — ambos "fail-safe" significan "sostener el
 // veredicto más conservador", pero apuntan a extremos opuestos porque protegen contra riesgos
 // opuestos.
-export interface RefuterVerdict {
+interface RefuterVerdict {
   verdict: 'CONFIRMED' | 'REFUTED'
   reason: string
   inputTokens: number

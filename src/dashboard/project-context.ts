@@ -2,7 +2,7 @@ import { existsSync, realpathSync, statSync } from 'fs'
 import { resolve } from 'path'
 import { getProject, getProjectById } from '../db/projects.ts'
 
-export const PROJECT_ID_HEADER = 'x-orchestos-project-id'
+const PROJECT_ID_HEADER = 'x-orchestos-project-id'
 
 export interface DashboardProjectContext {
   id: string | null

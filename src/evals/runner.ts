@@ -22,14 +22,14 @@ import type { CliEffort, TaskEngine } from '../tasks/schema.ts'
 import { calculateEvalMetrics, type EvalMetrics } from './metrics.ts'
 import { type EvalTask, loadEvalTask } from './schema.ts'
 
-export interface EvalRunOverrides {
+interface EvalRunOverrides {
   model?: string
   engine?: TaskEngine
   skill?: string | null
   cliEffort?: CliEffort
 }
 
-export interface EvalTrialReport {
+interface EvalTrialReport {
   trialIndex: number
   runId: string
   passed: boolean
@@ -37,7 +37,7 @@ export interface EvalTrialReport {
   checks: CheckResult[]
 }
 
-export interface EvalBatchReport {
+interface EvalBatchReport {
   batchId: string
   evalTaskId: string
   config: EvalTrialConfig
@@ -46,7 +46,7 @@ export interface EvalBatchReport {
   history: EvalBatchRecord[]
 }
 
-export interface RunEvalBatchOptions {
+interface RunEvalBatchOptions {
   evalsRoot: string
   configRoot?: string
   taskId: string
@@ -55,7 +55,7 @@ export interface RunEvalBatchOptions {
   overrides?: EvalRunOverrides
 }
 
-export function resolveEvalConfiguration(
+function resolveEvalConfiguration(
   task: EvalTask,
   config: OrcheConfig,
   _configFound: boolean,

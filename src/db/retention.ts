@@ -1,22 +1,22 @@
 import { db } from './sqlite.ts'
 
-export interface RetentionPolicy {
+interface RetentionPolicy {
   runStepsDays: number
   chatTaskBarEventsDays: number
 }
 
-export const DEFAULT_RETENTION_POLICY: RetentionPolicy = {
+const DEFAULT_RETENTION_POLICY: RetentionPolicy = {
   runStepsDays: 30,
   chatTaskBarEventsDays: 30,
 }
 
-export interface RetentionPreview {
+interface RetentionPreview {
   runSteps: number
   chatTaskBarEvents: number
   before: string
 }
 
-export interface RetentionPurgeResult extends RetentionPreview {}
+interface RetentionPurgeResult extends RetentionPreview {}
 
 function cutoff(now: Date, days: number): string {
   if (!Number.isInteger(days) || days < 0)

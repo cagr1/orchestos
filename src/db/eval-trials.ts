@@ -7,17 +7,6 @@ export interface EvalTrialConfig {
   cli_effort: string | null
 }
 
-export interface EvalTrialRecord {
-  id: number
-  run_id: string
-  eval_task_id: string
-  trial_index: number
-  batch_id: string
-  config_json: string
-  passed: number
-  created_at: string
-}
-
 export interface EvalBatchRecord {
   batch_id: string
   config_json: string
@@ -26,7 +15,7 @@ export interface EvalBatchRecord {
   created_at: string
 }
 
-export function serializeEvalConfig(config: EvalTrialConfig): string {
+function serializeEvalConfig(config: EvalTrialConfig): string {
   return JSON.stringify(config)
 }
 

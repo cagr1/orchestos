@@ -166,7 +166,7 @@ export interface SubTaskPlan {
 // Validators
 // ---------------------------------------------------------------------------
 
-export class SubTaskValidationError extends Error {
+class SubTaskValidationError extends Error {
   constructor(
     public readonly path: string,
     message: string,
