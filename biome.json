@@ -6,7 +6,17 @@
     "useIgnoreFile": true
   },
   "files": {
-    "includes": ["**", "!!**/dist", "!**/*.css", "!evals/**/project", "!runs-summary.json"]
+    "includes": [
+      "**",
+      "!!**/dist",
+      "!**/*.css",
+      "!evals/**/project",
+      "!runs-summary.json",
+      "!src/dashboard/app/src/components/ui",
+      "!src/dashboard/app/src/lib",
+      "!src/dashboard/app/src/hooks/use-fluid-hover.ts",
+      "!src/dashboard/app/src/hooks/use-touch-primary.tsx"
+    ]
   },
   "formatter": {
     "enabled": true,

@@ -224,11 +224,11 @@ async function runFlow(name, base, port) {
         result.notes.push({ nombre: noteName, detalle: detail })
         stdout(`NOTE ${name}: ${noteName}: ${detail}`)
       },
-      shot: async (shotName) => {
+      shot: async (shotName, options = {}) => {
         const shotDir = path.join(runDir, name)
         await fsp.mkdir(shotDir, { recursive: true })
         const shotPath = path.join(shotDir, `${shotName}.png`)
-        await page.screenshot({ path: shotPath })
+        await page.screenshot({ path: shotPath, ...options })
         result.capturas.push(shotPath)
       },
       cleanup: (fn) => {

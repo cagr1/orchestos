@@ -172,6 +172,14 @@ Mecánica del commit de cierre (medido en I.7.1, 2026-10-03; costó 6 intentos):
 
 Medidas en los lotes L1–L4 y los ítems de Sprint 30/ERP/I/CX; cada una costó al menos una ronda perdida.
 
+- **CSS del front (UI.24.1, 2026-10-13).** El build (`bun-plugin-tailwind`) rebaja `color-mix()` dentro de una
+  propiedad personalizada a su valor de respaldo: `--x: color-mix(...)` llega al navegador como el primer color.
+  Los tokens derivados se escriben como literales por tema; verificar en `dist/main.css`, no en `index.css`.
+- **Gates de color.** Un contraste de luminancia WCAG sobre fondo casi negro pasa con diferencias invisibles: medir
+  diferencia de claridad `L*` (CIELAB) contra el fondo efectivo del ancestro, no contra `body`, y acompañar con una
+  contraprueba que falle. Una captura mirada por el cerebro sigue siendo obligatoria: el gate pasó 71/71 con la
+  burbuja invisible.
+
 - **Preflight.** Solo reconoce ítems de **primer nivel** (`^- [ ] **ID`, `findOpenPlanItem`,
   `scripts/agent-governance.ts`): un sub-ítem con sangría lo bloquea; usar el padre (`--item MR.1`) o abrir el
   sub-ítem como línea propia antes de lanzar al ejecutor. `--scope` necesita globs (`src/dashboard/**`; un directorio

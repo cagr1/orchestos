@@ -757,13 +757,29 @@ color; la respuesta del asistente va sin caja; el identificador técnico se copi
 (entrada, cambio de estado) y respeta `prefers-reduced-motion`. Los componentes de la familia se componen con props y
 `className`, no se editan.
 
-- [ ] **UI.24.1 — 🧠 Base de la familia y lámina de estados del hilo.** Alias `@/`, puente de tokens shadcn →
+- [x] **UI.24.1 — 🧠 Base de la familia y lámina de estados del hilo.** (cerrado 2026-10-13; abierto 2026-10-13, GO de Carlos) Alias `@/`, puente de tokens shadcn →
   `--app-*`, Inter variable servida en local y los componentes de la familia instalados. Encima, una vista de
   desarrollo (`?view=thread-states`) que dibuja con datos fijos las piezas de la familia; cada ítem siguiente le
-  añade sus estados. Spec: `docs/specs/UI.24.1.md`. Estados que la lámina acaba cubriendo:
-  pensando, razonamiento, herramientas, streaming, tarea retenida / corriendo / fallida / pendiente / hecha, árbol
-  sucio, adjuntos, error de envío. Usa los mismos componentes que el hilo real. Sirve para que Carlos apruebe el look
-  una vez y como base de capturas del gate. Verifica: flujo `ui:gate` nuevo que captura la lámina.
+  añade sus estados (pensando, razonamiento, herramientas, streaming, estados de tarea, árbol sucio, adjuntos, error
+  de envío) con los mismos componentes que el hilo real.
+  Ejecutado por: sonnet (rol `criterio`, ronda 1) y gpt-6-luna (rol `mecanico`, rondas 2 a 4) · Spec: docs/specs/UI.24.1.md
+  Hecho (2026-10-13): familia Fluid Functionalism (MIT, atribución en `THIRD_PARTY_NOTICES.md`) materializada desde
+  su registro en `src/dashboard/app/src/components/ui`, `lib` y 2 hooks, excluida del lint (`biome.json`) porque no
+  se edita; ediciones a terceros: rutas de import, `next/link` → `a` en `card.tsx`, y `file-thumbnail.tsx` sin
+  `pdfjs` (un archivo que no es imagen es una ficha con icono). Alias `@/*` en el tsconfig del front. Puente de
+  tokens al final de `index.css` (los `--app-*` no cambian). Inter variable con eje `opsz` cargada en `main.tsx`,
+  aplicada solo bajo `[data-ff]`. Lámina en `components/thread/ThreadStatesSheet.tsx`, sin API, con `?theme=`.
+  Dependencias nuevas: `@radix-ui/react-collapsible|slot|tooltip`, `@fontsource-variable/inter`. `main.js` 1 590 184 B.
+  Evidencia: `tsc` raíz y del front, `lint`, `build:app` y `ui:fidelity:jsx` exit 0, corridos por el cerebro.
+  Gate en vivo: navegador real (Playwright), `docs/done/evidence/UI.24.1-live.json` — `thread-states` 71/71 (los
+  12 estados visibles en 4 temas, Inter cargada, escalera de superficies monótona, burbuja del usuario a ΔL* 9.72 /
+  10.08 / 9.32 / 6.60 del fondo, sin errores de consola), `smoke` 6/6, `text-sweep` 10/10, `composer-picker` 5/5.
+  Contraprueba: con `--accent` en `--surface-2` el paso de la burbuja falla (ΔL* 1.35).
+  Límites: la lámina prueba que las piezas se dibujan, no su interacción; el hilo real no usa todavía la familia; la
+  `Card` no se distingue del fondo (se diseña en UI.24.5). `scripts/ui-gate/run.mjs`: `shot()` acepta opciones.
+  Hallazgo: el build rebaja `color-mix()` dentro de propiedades personalizadas a su valor de respaldo (la escalera
+  llegó plana al navegador); y un contraste WCAG ≥ 1.15 sobre fondo casi negro pasa con una diferencia invisible.
+  Ambos a `AGENTS.md` § Lecciones.
 - [ ] **UI.24.2 — 🧠 Tokens y jerarquía.** Un acento; fuera degradados índigo, sombras de color y `animate-ping`; cuerpo
   a 14 px; respuesta del asistente sin caja, mensaje del usuario en burbuja discreta. `index.css` solo crece por el
   puente de tokens de UI.24.1.

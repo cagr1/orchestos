@@ -4,6 +4,8 @@ import firaLatin600 from '@fontsource/fira-code/files/fira-code-latin-600-normal
 import firaLatinExt400 from '@fontsource/fira-code/files/fira-code-latin-ext-400-normal.woff2'
 import firaLatinExt500 from '@fontsource/fira-code/files/fira-code-latin-ext-500-normal.woff2'
 import firaLatinExt600 from '@fontsource/fira-code/files/fira-code-latin-ext-600-normal.woff2'
+import interLatinExt from '@fontsource-variable/inter/files/inter-latin-ext-opsz-normal.woff2'
+import interLatin from '@fontsource-variable/inter/files/inter-latin-opsz-normal.woff2'
 import jakartaLatinExt from '@fontsource-variable/plus-jakarta-sans/files/plus-jakarta-sans-latin-ext-wght-normal.woff2'
 import jakartaLatin from '@fontsource-variable/plus-jakarta-sans/files/plus-jakarta-sans-latin-wght-normal.woff2'
 import { StrictMode } from 'react'
@@ -14,6 +16,8 @@ import './index.css'
 const fontFaceStyles = `
 @font-face { font-family: 'Plus Jakarta Sans'; font-style: normal; font-display: swap; font-weight: 200 800; src: url('${jakartaLatinExt}') format('woff2-variations'); unicode-range: U+0100-02BA,U+02BD-02C5,U+02C7-02CC,U+02CE-02D7,U+02DD-02FF,U+0304,U+0308,U+0329,U+1D00-1DBF,U+1E00-1E9F,U+1EF2-1EFF,U+2020,U+20A0-20AB,U+20AD-20C0,U+2113,U+2C60-2C7F,U+A720-A7FF; }
 @font-face { font-family: 'Plus Jakarta Sans'; font-style: normal; font-display: swap; font-weight: 200 800; src: url('${jakartaLatin}') format('woff2-variations'); unicode-range: U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD; }
+@font-face { font-family: 'Inter Variable'; font-style: normal; font-display: swap; font-weight: 100 900; src: url('${interLatinExt}') format('woff2-variations'); unicode-range: U+0100-02BA,U+02BD-02C5,U+02C7-02CC,U+02CE-02D7,U+02DD-02FF,U+0304,U+0308,U+0329,U+1D00-1DBF,U+1E00-1E9F,U+1EF2-1EFF,U+2020,U+20A0-20AB,U+20AD-20C0,U+2113,U+2C60-2C7F,U+A720-A7FF; }
+@font-face { font-family: 'Inter Variable'; font-style: normal; font-display: swap; font-weight: 100 900; src: url('${interLatin}') format('woff2-variations'); unicode-range: U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD; }
 @font-face { font-family: 'Fira Code'; font-style: normal; font-display: swap; font-weight: 400; src: url('${firaLatinExt400}') format('woff2'); }
 @font-face { font-family: 'Fira Code'; font-style: normal; font-display: swap; font-weight: 400; src: url('${firaLatin400}') format('woff2'); }
 @font-face { font-family: 'Fira Code'; font-style: normal; font-display: swap; font-weight: 500; src: url('${firaLatinExt500}') format('woff2'); }
@@ -26,8 +30,28 @@ document.head.appendChild(
   Object.assign(document.createElement('style'), { textContent: fontFaceStyles }),
 )
 
-createRoot(document.getElementById('root')!).render(
-  <StrictMode>
-    <App />
-  </StrictMode>,
-)
+const params = new URLSearchParams(window.location.search)
+const themes = ['orchestos', 'graphite', 'carbon', 'light']
+const threadStates = params.get('view') === 'thread-states'
+
+if (threadStates) {
+  const theme = params.get('theme') ?? 'orchestos'
+  document.documentElement.setAttribute('data-theme', themes.includes(theme) ? theme : 'orchestos')
+}
+
+const root = createRoot(document.getElementById('root') as HTMLElement)
+
+if (threadStates) {
+  const { default: ThreadStatesSheet } = await import('./components/thread/ThreadStatesSheet.tsx')
+  root.render(
+    <StrictMode>
+      <ThreadStatesSheet />
+    </StrictMode>,
+  )
+} else {
+  root.render(
+    <StrictMode>
+      <App />
+    </StrictMode>,
+  )
+}

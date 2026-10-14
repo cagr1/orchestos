@@ -1,0 +1,516 @@
+[
+  {
+    "flujo": "thread-states",
+    "pass": true,
+    "steps": [
+      {
+        "nombre": "sheet-visible-orchestos",
+        "ok": true,
+        "detalle": "orchestos sheet visible"
+      },
+      {
+        "nombre": "orchestos-state-message-user",
+        "ok": true,
+        "detalle": "orchestos: state-message-user visible"
+      },
+      {
+        "nombre": "orchestos-state-message-assistant",
+        "ok": true,
+        "detalle": "orchestos: state-message-assistant visible"
+      },
+      {
+        "nombre": "orchestos-state-message-attachments",
+        "ok": true,
+        "detalle": "orchestos: state-message-attachments visible"
+      },
+      {
+        "nombre": "orchestos-state-message-pdf",
+        "ok": true,
+        "detalle": "orchestos: state-message-pdf visible"
+      },
+      {
+        "nombre": "orchestos-state-thinking",
+        "ok": true,
+        "detalle": "orchestos: state-thinking visible"
+      },
+      {
+        "nombre": "orchestos-state-thinking-steps-running",
+        "ok": true,
+        "detalle": "orchestos: state-thinking-steps-running visible"
+      },
+      {
+        "nombre": "orchestos-state-thinking-steps-done",
+        "ok": true,
+        "detalle": "orchestos: state-thinking-steps-done visible"
+      },
+      {
+        "nombre": "orchestos-state-composer-empty",
+        "ok": true,
+        "detalle": "orchestos: state-composer-empty visible"
+      },
+      {
+        "nombre": "orchestos-state-composer-with-files",
+        "ok": true,
+        "detalle": "orchestos: state-composer-with-files visible"
+      },
+      {
+        "nombre": "orchestos-state-card",
+        "ok": true,
+        "detalle": "orchestos: state-card visible"
+      },
+      {
+        "nombre": "orchestos-state-badges",
+        "ok": true,
+        "detalle": "orchestos: state-badges visible"
+      },
+      {
+        "nombre": "orchestos-state-banner",
+        "ok": true,
+        "detalle": "orchestos: state-banner visible"
+      },
+      {
+        "nombre": "orchestos-font-inter",
+        "ok": true,
+        "detalle": "font-family: \"Inter Variable\", system-ui, -apple-system, \"system-ui\", \"Segoe UI\", Roboto, \"Noto Sans\", Ubuntu, Cantarell, \"Helvetica Neue\", sans-serif"
+      },
+      {
+        "nombre": "orchestos-font-inter-loaded",
+        "ok": true,
+        "detalle": "document.fonts.check('Inter Variable')"
+      },
+      {
+        "nombre": "orchestos-surface-ladder",
+        "ok": true,
+        "detalle": "L*: 3.30 → 6.27 → 10.29 → 14.21 → 18.01 → 22.00 → 25.69 → 29.22; strictly increasing"
+      },
+      {
+        "nombre": "orchestos-user-bubble-clarity",
+        "ok": true,
+        "detalle": "L* bubble 13.02, background 3.30, difference 9.72; minimum 6"
+      },
+      {
+        "nombre": "sheet-visible-graphite",
+        "ok": true,
+        "detalle": "graphite sheet visible"
+      },
+      {
+        "nombre": "graphite-state-message-user",
+        "ok": true,
+        "detalle": "graphite: state-message-user visible"
+      },
+      {
+        "nombre": "graphite-state-message-assistant",
+        "ok": true,
+        "detalle": "graphite: state-message-assistant visible"
+      },
+      {
+        "nombre": "graphite-state-message-attachments",
+        "ok": true,
+        "detalle": "graphite: state-message-attachments visible"
+      },
+      {
+        "nombre": "graphite-state-message-pdf",
+        "ok": true,
+        "detalle": "graphite: state-message-pdf visible"
+      },
+      {
+        "nombre": "graphite-state-thinking",
+        "ok": true,
+        "detalle": "graphite: state-thinking visible"
+      },
+      {
+        "nombre": "graphite-state-thinking-steps-running",
+        "ok": true,
+        "detalle": "graphite: state-thinking-steps-running visible"
+      },
+      {
+        "nombre": "graphite-state-thinking-steps-done",
+        "ok": true,
+        "detalle": "graphite: state-thinking-steps-done visible"
+      },
+      {
+        "nombre": "graphite-state-composer-empty",
+        "ok": true,
+        "detalle": "graphite: state-composer-empty visible"
+      },
+      {
+        "nombre": "graphite-state-composer-with-files",
+        "ok": true,
+        "detalle": "graphite: state-composer-with-files visible"
+      },
+      {
+        "nombre": "graphite-state-card",
+        "ok": true,
+        "detalle": "graphite: state-card visible"
+      },
+      {
+        "nombre": "graphite-state-badges",
+        "ok": true,
+        "detalle": "graphite: state-badges visible"
+      },
+      {
+        "nombre": "graphite-state-banner",
+        "ok": true,
+        "detalle": "graphite: state-banner visible"
+      },
+      {
+        "nombre": "graphite-font-inter",
+        "ok": true,
+        "detalle": "font-family: \"Inter Variable\", system-ui, -apple-system, \"system-ui\", \"Segoe UI\", Roboto, \"Noto Sans\", Ubuntu, Cantarell, \"Helvetica Neue\", sans-serif"
+      },
+      {
+        "nombre": "graphite-font-inter-loaded",
+        "ok": true,
+        "detalle": "document.fonts.check('Inter Variable')"
+      },
+      {
+        "nombre": "graphite-surface-ladder",
+        "ok": true,
+        "detalle": "L*: 5.03 → 8.71 → 12.69 → 16.54 → 20.24 → 23.88 → 27.45 → 30.94; strictly increasing"
+      },
+      {
+        "nombre": "graphite-user-bubble-clarity",
+        "ok": true,
+        "detalle": "L* bubble 15.11, background 5.03, difference 10.08; minimum 6"
+      },
+      {
+        "nombre": "sheet-visible-carbon",
+        "ok": true,
+        "detalle": "carbon sheet visible"
+      },
+      {
+        "nombre": "carbon-state-message-user",
+        "ok": true,
+        "detalle": "carbon: state-message-user visible"
+      },
+      {
+        "nombre": "carbon-state-message-assistant",
+        "ok": true,
+        "detalle": "carbon: state-message-assistant visible"
+      },
+      {
+        "nombre": "carbon-state-message-attachments",
+        "ok": true,
+        "detalle": "carbon: state-message-attachments visible"
+      },
+      {
+        "nombre": "carbon-state-message-pdf",
+        "ok": true,
+        "detalle": "carbon: state-message-pdf visible"
+      },
+      {
+        "nombre": "carbon-state-thinking",
+        "ok": true,
+        "detalle": "carbon: state-thinking visible"
+      },
+      {
+        "nombre": "carbon-state-thinking-steps-running",
+        "ok": true,
+        "detalle": "carbon: state-thinking-steps-running visible"
+      },
+      {
+        "nombre": "carbon-state-thinking-steps-done",
+        "ok": true,
+        "detalle": "carbon: state-thinking-steps-done visible"
+      },
+      {
+        "nombre": "carbon-state-composer-empty",
+        "ok": true,
+        "detalle": "carbon: state-composer-empty visible"
+      },
+      {
+        "nombre": "carbon-state-composer-with-files",
+        "ok": true,
+        "detalle": "carbon: state-composer-with-files visible"
+      },
+      {
+        "nombre": "carbon-state-card",
+        "ok": true,
+        "detalle": "carbon: state-card visible"
+      },
+      {
+        "nombre": "carbon-state-badges",
+        "ok": true,
+        "detalle": "carbon: state-badges visible"
+      },
+      {
+        "nombre": "carbon-state-banner",
+        "ok": true,
+        "detalle": "carbon: state-banner visible"
+      },
+      {
+        "nombre": "carbon-font-inter",
+        "ok": true,
+        "detalle": "font-family: \"Inter Variable\", system-ui, -apple-system, \"system-ui\", \"Segoe UI\", Roboto, \"Noto Sans\", Ubuntu, Cantarell, \"Helvetica Neue\", sans-serif"
+      },
+      {
+        "nombre": "carbon-font-inter-loaded",
+        "ok": true,
+        "detalle": "document.fonts.check('Inter Variable')"
+      },
+      {
+        "nombre": "carbon-surface-ladder",
+        "ok": true,
+        "detalle": "L*: 2.51 → 5.12 → 9.34 → 13.30 → 17.57 → 21.31 → 25.35 → 28.92; strictly increasing"
+      },
+      {
+        "nombre": "carbon-user-bubble-clarity",
+        "ok": true,
+        "detalle": "L* bubble 11.83, background 2.51, difference 9.32; minimum 6"
+      },
+      {
+        "nombre": "sheet-visible-light",
+        "ok": true,
+        "detalle": "light sheet visible"
+      },
+      {
+        "nombre": "light-state-message-user",
+        "ok": true,
+        "detalle": "light: state-message-user visible"
+      },
+      {
+        "nombre": "light-state-message-assistant",
+        "ok": true,
+        "detalle": "light: state-message-assistant visible"
+      },
+      {
+        "nombre": "light-state-message-attachments",
+        "ok": true,
+        "detalle": "light: state-message-attachments visible"
+      },
+      {
+        "nombre": "light-state-message-pdf",
+        "ok": true,
+        "detalle": "light: state-message-pdf visible"
+      },
+      {
+        "nombre": "light-state-thinking",
+        "ok": true,
+        "detalle": "light: state-thinking visible"
+      },
+      {
+        "nombre": "light-state-thinking-steps-running",
+        "ok": true,
+        "detalle": "light: state-thinking-steps-running visible"
+      },
+      {
+        "nombre": "light-state-thinking-steps-done",
+        "ok": true,
+        "detalle": "light: state-thinking-steps-done visible"
+      },
+      {
+        "nombre": "light-state-composer-empty",
+        "ok": true,
+        "detalle": "light: state-composer-empty visible"
+      },
+      {
+        "nombre": "light-state-composer-with-files",
+        "ok": true,
+        "detalle": "light: state-composer-with-files visible"
+      },
+      {
+        "nombre": "light-state-card",
+        "ok": true,
+        "detalle": "light: state-card visible"
+      },
+      {
+        "nombre": "light-state-badges",
+        "ok": true,
+        "detalle": "light: state-badges visible"
+      },
+      {
+        "nombre": "light-state-banner",
+        "ok": true,
+        "detalle": "light: state-banner visible"
+      },
+      {
+        "nombre": "light-font-inter",
+        "ok": true,
+        "detalle": "font-family: \"Inter Variable\", system-ui, -apple-system, \"system-ui\", \"Segoe UI\", Roboto, \"Noto Sans\", Ubuntu, Cantarell, \"Helvetica Neue\", sans-serif"
+      },
+      {
+        "nombre": "light-font-inter-loaded",
+        "ok": true,
+        "detalle": "document.fonts.check('Inter Variable')"
+      },
+      {
+        "nombre": "light-surface-ladder",
+        "ok": true,
+        "detalle": "L*: 98.18 → 96.12 → 94.28 → 92.28 → 90.19 → 88.35 → 86.22 → 84.10; strictly decreasing"
+      },
+      {
+        "nombre": "light-user-bubble-clarity",
+        "ok": true,
+        "detalle": "L* bubble 91.57, background 98.18, difference 6.60; minimum 6"
+      },
+      {
+        "nombre": "no-pdf-worker-request",
+        "ok": true,
+        "detalle": "no PDF worker network request"
+      },
+      {
+        "nombre": "no-console-errors",
+        "ok": true,
+        "detalle": "errors: 0"
+      },
+      {
+        "nombre": "home-chat",
+        "ok": true,
+        "detalle": "default route loads the chat"
+      }
+    ],
+    "notes": [],
+    "errores": [],
+    "capturas": [
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-50311/thread-states/thread-states-orchestos.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-50311/thread-states/thread-states-graphite.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-50311/thread-states/thread-states-carbon.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-50311/thread-states/thread-states-light.png"
+    ]
+  },
+  {
+    "flujo": "smoke",
+    "pass": true,
+    "steps": [
+      {
+        "nombre": "home",
+        "ok": true,
+        "detalle": "Chat visible"
+      },
+      {
+        "nombre": "home-dev",
+        "ok": true,
+        "detalle": "Dev visible"
+      },
+      {
+        "nombre": "dev-view",
+        "ok": true,
+        "detalle": "OrchestOS Dev visible"
+      },
+      {
+        "nombre": "chat-composer",
+        "ok": true,
+        "detalle": "chat composer visible"
+      },
+      {
+        "nombre": "settings-view",
+        "ok": true,
+        "detalle": "Appearance visible"
+      },
+      {
+        "nombre": "settings-general",
+        "ok": true,
+        "detalle": "Appearance visible"
+      }
+    ],
+    "notes": [],
+    "errores": [],
+    "capturas": [
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-50311/smoke/chat.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-50311/smoke/dev.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-50311/smoke/chat-returned.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-50311/smoke/settings.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-50311/smoke/settings-general.png"
+    ]
+  },
+  {
+    "flujo": "text-sweep",
+    "pass": true,
+    "steps": [
+      {
+        "nombre": "temporary project visible",
+        "ok": true,
+        "detalle": "project visible in sidebar"
+      },
+      {
+        "nombre": "Codex selector visible",
+        "ok": true,
+        "detalle": "Codex option visible"
+      },
+      {
+        "nombre": "model selector visible",
+        "ok": true,
+        "detalle": "composer model selector"
+      },
+      {
+        "nombre": "gpt-6-luna visible",
+        "ok": true,
+        "detalle": "Codex cache model"
+      },
+      {
+        "nombre": "medium visible",
+        "ok": true,
+        "detalle": "reasoning effort"
+      },
+      {
+        "nombre": "real Codex response visible",
+        "ok": true,
+        "detalle": "assistant response"
+      },
+      {
+        "nombre": "removed text absent after real turn",
+        "ok": true,
+        "detalle": "chat surface sweep complete"
+      },
+      {
+        "nombre": "all stale copy remains absent from the active screen",
+        "ok": true,
+        "detalle": "14 literals checked"
+      },
+      {
+        "nombre": "turn records selected model and effort",
+        "ok": true,
+        "detalle": "model=gpt-6-luna via Codex CLI (effort: medium), effort=medium"
+      },
+      {
+        "nombre": "no CLI default fallback in recorded surface",
+        "ok": true,
+        "detalle": "record uses selected model"
+      }
+    ],
+    "notes": [],
+    "errores": [],
+    "capturas": []
+  },
+  {
+    "flujo": "composer-picker",
+    "pass": true,
+    "steps": [
+      {
+        "nombre": "temporary project visible in Dev",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "OpenCode not offered for new chat",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "Codex available for new chat",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "Codex model selector has no search input",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "Codex effort levels remain available",
+        "ok": true,
+        "detalle": "{\"model\":\"gpt-6.1-sol\",\"efforts\":[\"low\",\"medium\",\"high\",\"xhigh\",\"max\",\"ultra\"]}"
+      }
+    ],
+    "notes": [],
+    "errores": [],
+    "capturas": [
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-50311/composer-picker/project-registered.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-50311/composer-picker/dev-mode.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-50311/composer-picker/temporary-project-selected.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-50311/composer-picker/chat-mode.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-50311/composer-picker/new-chat-agent-selector.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-50311/composer-picker/codex-efforts-preserved.png"
+    ]
+  }
+]
