@@ -252,13 +252,16 @@ export const OrchestChatView: React.FC<OrchestChatViewProps> = ({
   return (
     <div className="flex-1 flex flex-col h-full text-app overflow-hidden relative select-none">
       {/* 40px Session Header (Shared format with Dev) */}
-      <header className="h-10 border-b border-app bg-app-bg px-3.5 flex items-center justify-between flex-shrink-0 z-20">
+      <header
+        data-chat-header
+        className="h-10 px-3.5 flex items-center justify-between flex-shrink-0 z-20"
+      >
         {/* Left: CLI Product Logo (tooltip = name) + Title */}
         <div className="flex items-center gap-2.5 min-w-0">
           <div title={cliName} className="flex-shrink-0 cursor-default">
             <ProviderLogo id={cliId} size={16} className="w-4 h-4" />
           </div>
-          <span className="font-semibold text-xs text-app truncate max-w-sm">
+          <span className="font-semibold text-[13px] text-app truncate max-w-sm">
             {thread?.title || 'Interactive Session'}
           </span>
         </div>

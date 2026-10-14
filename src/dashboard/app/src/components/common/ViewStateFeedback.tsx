@@ -1,5 +1,7 @@
 import { AlertCircle, type LucideIcon, Plus, RefreshCw } from 'lucide-react'
 import type React from 'react'
+import { SettingsPrimaryAction } from '@/components/settings/primitives'
+import { Button } from '@/components/ui/button'
 
 interface EmptyStateProps {
   icon: LucideIcon
@@ -20,21 +22,18 @@ export const EmptyState: React.FC<EmptyStateProps> = ({
 }) => {
   return (
     <div
-      className={`flex flex-col items-center justify-center p-8 text-center rounded-card border border-app bg-app-surface/50 max-w-md mx-auto my-8 ${className}`}
+      className={`flex flex-col items-center justify-center p-8 text-center max-w-md mx-auto my-8 ${className}`}
     >
-      <div className="w-10 h-10 rounded-pill bg-app-elevated border border-app flex items-center justify-center text-app-accent mb-3">
-        <Icon className="w-5 h-5" />
-      </div>
-      <h3 className="text-sm font-semibold text-app mb-1">{title}</h3>
+      <Icon className="w-5 h-5 text-app-muted mb-3" />
+      <h3 className="text-[13px] font-semibold text-app mb-1">{title}</h3>
       <p className="text-xs text-app-muted max-w-sm mb-4 leading-relaxed">{description}</p>
       {actionLabel && onAction && (
-        <button
-          onClick={onAction}
-          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-control bg-app-accent text-zinc-950 font-semibold text-xs hover:opacity-90 transition-opacity"
-        >
-          <Plus className="w-3.5 h-3.5" />
-          <span>{actionLabel}</span>
-        </button>
+        <SettingsPrimaryAction>
+          <Button size="compact" onClick={onAction}>
+            <Plus className="w-3.5 h-3.5" />
+            <span>{actionLabel}</span>
+          </Button>
+        </SettingsPrimaryAction>
       )}
     </div>
   )

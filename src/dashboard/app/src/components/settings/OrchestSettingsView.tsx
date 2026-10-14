@@ -30,6 +30,7 @@ import {
   Zap,
 } from 'lucide-react'
 import React, { useEffect, useRef, useState } from 'react'
+import { PageHeader } from '@/components/layout/page'
 import { Button } from '@/components/ui/button'
 import {
   Card,
@@ -2195,30 +2196,19 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
         {isProjectSection && selectedProject && (
           <div className="flex-1 flex flex-col overflow-hidden">
             {/* Top Project Header (Removed project switcher on the right as requested) */}
-            <div className="p-4 border-b border-app bg-app-surface/40 flex-shrink-0 space-y-3">
-              <div className="flex items-center gap-3">
-                <div className="w-9 h-9 rounded-control bg-app-elevated border border-app flex items-center justify-center text-app-accent flex-shrink-0">
-                  <FolderClosed className="w-5 h-5" />
-                </div>
-                <div>
-                  <div className="flex items-center gap-2">
-                    <h1 className="text-xl font-bold text-app tracking-tight">
-                      {selectedProject.name}
-                    </h1>
-                    {selectedProject.branch && (
-                      <span className="font-mono text-xs px-2 py-0.5 rounded-pill bg-app-surface border border-app text-app-muted">
-                        {selectedProject.branch}
-                      </span>
-                    )}
-                  </div>
-                  <div className="text-xs font-mono text-app-muted mt-0.5">
-                    {selectedProject.path}
-                  </div>
-                </div>
-              </div>
+            <div className="px-6 pt-7 pb-3 flex-shrink-0 space-y-3" data-project-header>
+              <PageHeader
+                title={selectedProject.name}
+                meta={
+                  selectedProject.branch ? (
+                    <span className="font-mono">{selectedProject.branch}</span>
+                  ) : undefined
+                }
+                description={<span className="font-mono">{selectedProject.path}</span>}
+              />
 
               {/* Sub-tabs: Tasks | Runs | Graph | Memory | Specs | Skills | Instincts | Plan */}
-              <div className="flex items-center gap-1 overflow-x-auto pt-1">
+              <div className="flex items-center gap-1 overflow-x-auto">
                 {(
                   [
                     { id: 'tasks', label: 'Tasks', icon: Kanban },
@@ -2237,9 +2227,12 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
                     <button
                       key={tab.id}
                       type="button"
+                      data-project-tab
                       onClick={() => setActiveProjectTab(tab.id)}
-                      className={`app-tab-btn ${
-                        isActive ? 'app-tab-btn-active' : 'app-tab-btn-inactive'
+                      className={`inline-flex h-7 shrink-0 items-center gap-2 rounded-control px-2 text-[12.5px] font-medium transition-colors ${
+                        isActive
+                          ? 'bg-app-elevated text-app'
+                          : 'text-app-muted hover:bg-app-elevated hover:text-app'
                       }`}
                     >
                       <Icon className="w-3.5 h-3.5" />

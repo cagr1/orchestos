@@ -4,6 +4,8 @@ import { useState } from 'react'
 import type { RunItem } from '../../types/orchestos'
 import { StatusBadge } from '../common/StatusBadge'
 import { EmptyState, ErrorState, SkeletonView } from '../common/ViewStateFeedback'
+import { StatStrip } from '../layout/page'
+import { SettingsSegmented } from '../settings/primitives'
 
 interface RunsEvidenceViewProps {
   runs: RunItem[]
@@ -32,6 +34,7 @@ export const RunsEvidenceView: React.FC<RunsEvidenceViewProps> = ({
   const passedRuns = evaluatedRuns.filter((r) => r.qaVerdict === 'pass').length
   const passRate =
     evaluatedRuns.length > 0 ? `${((passedRuns / evaluatedRuns.length) * 100).toFixed(1)}%` : '—'
+  const passRatio = evaluatedRuns.length > 0 ? passedRuns / evaluatedRuns.length : 0
   const totalCost = runs.reduce((acc, r) => acc + (r.costUsd || 0), 0).toFixed(4)
   const totalTokens = runs.reduce((acc, r) => acc + (r.tokensUsed || 0), 0).toLocaleString()
 
@@ -286,78 +289,56 @@ export const RunsEvidenceView: React.FC<RunsEvidenceViewProps> = ({
 
   // Normal List View
   return (
-    <div className="flex-1 flex flex-col overflow-hidden bg-app-bg text-app select-none">
-      {/* Responsive KPI Metrics Cards - never clipped */}
-      <div className="p-3 border-b border-app bg-app-surface/40 flex-shrink-0">
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-2.5">
-          <div className="p-2.5 rounded-card bg-app-surface border border-app">
-            <div className="text-xs text-app-muted">Total Runs</div>
-            <div className="text-sm font-bold text-app font-mono mt-0.5">{totalRuns}</div>
-          </div>
-
-          <div className="p-2.5 rounded-card bg-app-surface border border-app">
-            <div className="text-xs text-app-muted">QA Pass Rate</div>
-            <div className="text-sm font-bold text-emerald-400 font-mono mt-0.5">{passRate}</div>
-          </div>
-
-          <div className="p-2.5 rounded-card bg-app-surface border border-app">
-            <div className="text-xs text-app-muted">Total Cost</div>
-            <div
-              className="text-sm font-bold text-app-accent font-mono mt-0.5 truncate"
-              title={`$${totalCost}`}
-            >
-              ${totalCost}
-            </div>
-          </div>
-
-          <div className="p-2.5 rounded-card bg-app-surface border border-app">
-            <div className="text-xs text-app-muted">Token Volume</div>
-            <div
-              className="text-sm font-bold text-app font-mono mt-0.5 truncate"
-              title={totalTokens}
-            >
-              {totalTokens}
-            </div>
-          </div>
-        </div>
+    <div className="flex-1 flex flex-col overflow-hidden text-app select-none px-6">
+      <div className="flex-shrink-0 pt-4">
+        <StatStrip
+          items={[
+            { label: 'Total Runs', value: totalRuns },
+            {
+              label: 'QA Pass Rate',
+              value: passRate,
+              hint:
+                evaluatedRuns.length > 0
+                  ? `${passedRuns}/${evaluatedRuns.length} evaluated`
+                  : undefined,
+              tone:
+                evaluatedRuns.length === 0
+                  ? undefined
+                  : passRatio >= 0.8
+                    ? 'success'
+                    : passRatio < 0.5
+                      ? 'error'
+                      : undefined,
+            },
+            { label: 'Total Cost', value: `$${totalCost}` },
+            { label: 'Token Volume', value: totalTokens },
+          ]}
+        />
       </div>
 
       {/* Filter / Search Bar */}
-      <div className="p-3 border-b border-app flex flex-wrap items-center justify-between gap-2 flex-shrink-0">
+      <div className="py-3 flex flex-wrap items-center justify-between gap-2 flex-shrink-0">
         <div className="relative flex-1 min-w-[180px] max-w-sm">
-          <Search className="w-3.5 h-3.5 text-app-muted absolute left-2.5 top-2" />
+          <Search className="w-3.5 h-3.5 text-app-muted absolute left-2.5 top-[7px]" />
           <input
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Search runs by ID, task or description..."
-            className="w-full pl-8 pr-2.5 py-1 text-xs bg-app-surface border border-app rounded-control focus:border-app-accent focus:outline-hidden text-app placeholder:text-app-muted font-mono"
+            className="w-full h-7 pl-8 pr-2.5 text-xs bg-app-elevated rounded-control focus:outline-hidden text-app placeholder:text-app-muted"
           />
         </div>
 
-        <div className="flex items-center gap-1 text-xs">
-          <button
-            type="button"
-            onClick={() => setStatusFilter('all')}
-            className={`app-tab-btn ${statusFilter === 'all' ? 'app-tab-btn-active' : 'app-tab-btn-inactive'}`}
-          >
-            All
-          </button>
-          <button
-            type="button"
-            onClick={() => setStatusFilter('passed')}
-            className={`app-tab-btn ${statusFilter === 'passed' ? 'app-tab-btn-active' : 'app-tab-btn-inactive'}`}
-          >
-            Passed
-          </button>
-          <button
-            type="button"
-            onClick={() => setStatusFilter('failed')}
-            className={`app-tab-btn ${statusFilter === 'failed' ? 'app-tab-btn-active' : 'app-tab-btn-inactive'}`}
-          >
-            Failed
-          </button>
-        </div>
+        <SettingsSegmented<'all' | 'passed' | 'failed'>
+          ariaLabel="Run status filter"
+          value={statusFilter}
+          onChange={setStatusFilter}
+          options={[
+            { value: 'all', label: 'All' },
+            { value: 'passed', label: 'Passed' },
+            { value: 'failed', label: 'Failed' },
+          ]}
+        />
       </div>
 
       {/* Runs Table with accessible markup */}
@@ -369,19 +350,19 @@ export const RunsEvidenceView: React.FC<RunsEvidenceViewProps> = ({
             description="Execute tasks through agent sessions to record telemetry runs, cost metrics, and QA verdicts in SQLite."
           />
         ) : (
-          <table className="w-full text-left text-xs border-collapse">
+          <table className="w-full text-left text-[13px] border-collapse">
             <thead>
-              <tr className="border-b border-app bg-app-surface/60 text-app-muted font-medium text-xs">
-                <th className="py-2 px-3">Run ID</th>
-                <th className="py-2 px-3">Task</th>
-                <th className="py-2 px-3">Model</th>
-                <th className="py-2 px-3">Duration</th>
-                <th className="py-2 px-3">Cost ($)</th>
-                <th className="py-2 px-3">QA Verdict</th>
-                <th className="py-2 px-3 text-right">Action</th>
+              <tr className="text-app-muted font-medium text-xs">
+                <th className="h-10 px-3 font-medium whitespace-nowrap">Run ID</th>
+                <th className="h-10 px-3 font-medium whitespace-nowrap">Task</th>
+                <th className="h-10 px-3 font-medium whitespace-nowrap">Model</th>
+                <th className="h-10 px-3 font-medium whitespace-nowrap">Duration</th>
+                <th className="h-10 px-3 font-medium whitespace-nowrap">Cost ($)</th>
+                <th className="h-10 px-3 font-medium whitespace-nowrap">QA Verdict</th>
+                <th className="h-10 px-3 font-medium text-right whitespace-nowrap">Action</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-app">
+            <tbody>
               {filteredRuns.map((run) => (
                 <tr
                   key={run.id}
@@ -389,19 +370,31 @@ export const RunsEvidenceView: React.FC<RunsEvidenceViewProps> = ({
                     setSelectedRun(run)
                     if (onInspectRun) onInspectRun(run.id)
                   }}
-                  className="hover:bg-app-surface/50 cursor-pointer transition-colors"
+                  className="group h-10 border-b border-[color:color-mix(in_srgb,var(--app-border)_50%,transparent)] hover:bg-app-elevated cursor-pointer transition-colors"
                 >
-                  <td className="py-2.5 px-3 font-mono text-app font-medium">{run.id}</td>
-                  <td className="py-2.5 px-3 max-w-xs truncate" title={run.taskDescription}>
+                  <td
+                    className="px-3 max-w-[10rem] truncate whitespace-nowrap font-mono text-app font-medium"
+                    title={run.id}
+                  >
+                    {run.id}
+                  </td>
+                  <td
+                    className="px-3 max-w-xs truncate whitespace-nowrap"
+                    title={run.taskDescription}
+                  >
                     <span className="font-mono text-app-muted mr-1.5">{run.taskId}</span>
                     <span>{run.taskDescription}</span>
                   </td>
-                  <td className="py-2.5 px-3 font-mono text-app-muted">{run.agentModel}</td>
-                  <td className="py-2.5 px-3 font-mono text-app-muted">{run.duration}</td>
-                  <td className="py-2.5 px-3 font-mono text-app-accent">
+                  <td className="px-3 font-mono text-app-muted whitespace-nowrap">
+                    {run.agentModel}
+                  </td>
+                  <td className="px-3 tabular-nums text-app-muted whitespace-nowrap">
+                    {run.duration}
+                  </td>
+                  <td className="px-3 tabular-nums text-app-muted whitespace-nowrap">
                     ${run.costUsd?.toFixed(4)}
                   </td>
-                  <td className="py-2.5 px-3">
+                  <td className="px-3 whitespace-nowrap">
                     <StatusBadge
                       status={
                         run.qaVerdict === null
@@ -413,8 +406,8 @@ export const RunsEvidenceView: React.FC<RunsEvidenceViewProps> = ({
                       label={run.qaVerdict === null ? '—' : undefined}
                     />
                   </td>
-                  <td className="py-2.5 px-3 text-right">
-                    <span className="text-app-accent hover:underline text-xs inline-flex items-center gap-1 font-medium">
+                  <td className="px-3 text-right whitespace-nowrap">
+                    <span className="text-app-muted group-hover:text-app text-xs inline-flex items-center gap-1 font-medium">
                       Inspect
                       <ChevronRight className="w-3 h-3" />
                     </span>

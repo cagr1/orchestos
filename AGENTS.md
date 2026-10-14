@@ -182,6 +182,11 @@ Medidas en los lotes L1–L4 y los ítems de Sprint 30/ERP/I/CX; cada una costó
   diferencia de claridad `L*` (CIELAB) contra el fondo efectivo del ancestro, no contra `body`, y acompañar con una
   contraprueba que falle. Una captura mirada por el cerebro sigue siendo obligatoria: el gate pasó 71/71 con la
   burbuja invisible.
+- **Contraprueba sin `git stash` (UI.26.2, 2026-10-14).** Para revertir un archivo: copiarlo a `/tmp`,
+  `git show HEAD:<ruta> > <ruta>`, correr el gate y restaurar la copia con `trap ... EXIT`; `cmp` confirma la
+  restauración. En este árbol hay stashes viejos: un `git stash push` que falla sin avisar hace que el `pop` saque
+  otro ajeno (sacó "UI.12.2b de Luna", 5 archivos en conflicto, typecheck rojo y commit bloqueado). Un spec no
+  indica `git stash` al ejecutor.
 
 - **Preflight.** Solo reconoce ítems de **primer nivel** (`^- [ ] **ID`, `findOpenPlanItem`,
   `scripts/agent-governance.ts`): un sub-ítem con sangría lo bloquea; usar el padre (`--item MR.1`) o abrir el

@@ -1,6 +1,7 @@
 import { Minus, Plus } from 'lucide-react'
 import { motion, useReducedMotion } from 'motion/react'
 import { type ReactNode, useId } from 'react'
+import { PageHeader } from '@/components/layout/page'
 import { Button } from '@/components/ui/button'
 import { spring } from '@/lib/springs'
 import { cn } from '@/lib/utils'
@@ -27,13 +28,7 @@ export function SettingsPage({
         transition={reduce ? { duration: 0 } : { duration: 0.15, ease: 'easeOut' }}
         className="mx-auto flex w-full max-w-3xl flex-col gap-6"
       >
-        <header className="flex flex-col gap-1">
-          <div className="flex items-center justify-between gap-4">
-            <h1 className="text-xl font-semibold tracking-tight text-app">{title}</h1>
-            {status ? <div className="text-xs text-app-muted">{status}</div> : null}
-          </div>
-          {description ? <p className="text-xs text-app-muted">{description}</p> : null}
-        </header>
+        <PageHeader title={title} description={description} actions={status} />
         {children}
         {actions ? <div className="flex justify-end">{actions}</div> : null}
       </motion.div>

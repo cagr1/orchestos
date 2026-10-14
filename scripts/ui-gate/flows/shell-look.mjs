@@ -1,3 +1,9 @@
+import { execFileSync } from 'node:child_process'
+import { mkdtempSync, rmSync, writeFileSync } from 'node:fs'
+import { tmpdir } from 'node:os'
+import { basename, join } from 'node:path'
+import { writeGateRoles } from '../lib.mjs'
+
 // UI.26.1 — forma del marco: filas planas, iconos de un tono, sin líneas entre barra y panel.
 const PALETTE =
   '\\b(?:emerald|zinc|rose|sky|amber|teal|purple|indigo|blue|red|green|slate|gray|violet|pink|cyan|orange|yellow)-\\d+\\b'
@@ -63,7 +69,7 @@ async function inspect(page, panelSelector) {
   )
 }
 
-export default async function shellLook({ page, step, shot, visible }) {
+export default async function shellLook({ page, api, step, shot, visible, cleanup }) {
   await visible(page.getByRole('button', { name: 'Settings', exact: true }))
 
   for (const [view, panelSelector] of [
@@ -106,4 +112,106 @@ export default async function shellLook({ page, step, shot, visible }) {
       facts.paletteHits.join(' || ') || 'ninguna',
     )
   }
+  // UI.26.2 — plantilla de página: cabecera de proyecto, pestañas, franja de cifras, cabecera del chat.
+  const run = (command, args, cwd) => execFileSync(command, args, { cwd, stdio: 'ignore' })
+  const projectRoot = mkdtempSync(join(tmpdir(), 'orchestos-ui-26-2-'))
+  writeFileSync(join(projectRoot, 'README.md'), '# UI.26.2\n')
+  writeFileSync(join(projectRoot, '.gitignore'), '.orchestos/\n')
+  run('git', ['init', '-q'], projectRoot)
+  run('git', ['add', '-A'], projectRoot)
+  run(
+    'git',
+    [
+      '-c',
+      'user.name=ui-gate',
+      '-c',
+      'user.email=ui-gate@example.invalid',
+      'commit',
+      '-qm',
+      'fixture',
+    ],
+    projectRoot,
+  )
+  const repoRoot = process.cwd()
+  run('bun', ['run', join(repoRoot, 'src/cli.ts'), 'init', projectRoot], repoRoot)
+  writeGateRoles(projectRoot)
+  const projects = await api('/api/projects')
+  const project = (projects.data ?? []).find((item) => item.path === projectRoot)
+  if (!project) throw new Error(`temporary project was not registered: ${projectRoot}`)
+  cleanup(async () => {
+    await api(`/api/projects/${encodeURIComponent(project.id)}/purge`, { method: 'POST' })
+    rmSync(projectRoot, { recursive: true, force: true, maxRetries: 10, retryDelay: 300 })
+  })
+  await page.reload({ waitUntil: 'domcontentloaded' })
+  await page.getByRole('button', { name: 'Dev', exact: true }).click()
+  await page.getByRole('button', { name: basename(projectRoot), exact: true }).click()
+  await page.getByRole('button', { name: 'Settings', exact: true }).click()
+  await visible(page.getByRole('heading', { name: basename(projectRoot), exact: true }))
+  await shot('shell-project')
+  const header = await page.evaluate(() => {
+    const el = document.querySelector('[data-project-header]')
+    if (!el) return null
+    const cs = getComputedStyle(el)
+    return { border: Number.parseFloat(cs.borderBottomWidth) || 0, bg: cs.backgroundColor }
+  })
+  await step(
+    'project header flat',
+    header !== null && header.border === 0 && header.bg === 'rgba(0, 0, 0, 0)',
+    JSON.stringify(header),
+  )
+  const tabs = await page.evaluate(() =>
+    [...document.querySelectorAll('[data-project-tab]')].map((el) => {
+      const cs = getComputedStyle(el)
+      return {
+        label: el.textContent,
+        border: ['Top', 'Right', 'Bottom', 'Left'].map(
+          (side) => Number.parseFloat(cs[`border${side}Width`]) || 0,
+        ),
+        shadow: cs.boxShadow,
+        height: el.getBoundingClientRect().height,
+      }
+    }),
+  )
+  const tabViolations = tabs.filter(
+    (t) => t.border.some((w) => w !== 0) || t.shadow !== 'none' || Math.round(t.height) !== 28,
+  )
+  await step(
+    'project tabs flat',
+    tabs.length > 0 && tabViolations.length === 0,
+    tabViolations.length === 0
+      ? `${tabs.length} pestañas, 28 px`
+      : JSON.stringify(tabViolations.slice(0, 3)),
+  )
+  await page.getByRole('button', { name: 'Runs', exact: true }).click()
+  await page.locator('[data-stat-strip]').first().waitFor({ state: 'visible' })
+  const strip = await page.evaluate((palette) => {
+    const re = new RegExp(palette)
+    const el = document.querySelector('[data-stat-strip]')
+    const root = el?.parentElement?.parentElement
+    const hits = root
+      ? [root, ...root.querySelectorAll('*')]
+          .map((n) => n.getAttribute('class') || '')
+          .filter((cls) => re.test(cls))
+      : []
+    return {
+      cells: el ? el.querySelectorAll('[data-stat-cell]').length : 0,
+      hits: hits.slice(0, 5),
+    }
+  }, PALETTE)
+  await step(
+    'runs stat strip',
+    strip.cells === 4 && strip.hits.length === 0,
+    `${strip.cells} celdas; paleta: ${strip.hits.join(' || ') || 'ninguna'}`,
+  )
+  await page.reload({ waitUntil: 'domcontentloaded' })
+  await page.locator('[data-chat-header]').first().waitFor({ state: 'visible' })
+  const chatHeader = await page.evaluate(() => {
+    const cs = getComputedStyle(document.querySelector('[data-chat-header]'))
+    return { border: Number.parseFloat(cs.borderBottomWidth) || 0, bg: cs.backgroundColor }
+  })
+  await step(
+    'chat header no band',
+    chatHeader.border === 0 && chatHeader.bg === 'rgba(0, 0, 0, 0)',
+    JSON.stringify(chatHeader),
+  )
 }

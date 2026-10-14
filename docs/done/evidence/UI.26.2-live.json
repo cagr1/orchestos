@@ -1,0 +1,1224 @@
+[
+  {
+    "flujo": "shell-look",
+    "pass": true,
+    "steps": [
+      {
+        "nombre": "chat: sidebar present",
+        "ok": true,
+        "detalle": "1 aside"
+      },
+      {
+        "nombre": "chat: sidebar rows flat",
+        "ok": true,
+        "detalle": "sin borde ni sombra"
+      },
+      {
+        "nombre": "chat: nav icons one tone",
+        "ok": true,
+        "detalle": "rgb(148, 163, 184)"
+      },
+      {
+        "nombre": "chat: no line between sidebar and panel",
+        "ok": true,
+        "detalle": "aside border-right=0 header border-bottom=0"
+      },
+      {
+        "nombre": "chat: panel lighter than chrome",
+        "ok": true,
+        "detalle": "panel=rgb(14, 19, 32) sidebar=rgb(8, 12, 20)"
+      },
+      {
+        "nombre": "chat: no palette classes in chrome",
+        "ok": true,
+        "detalle": "ninguna"
+      },
+      {
+        "nombre": "settings: sidebar present",
+        "ok": true,
+        "detalle": "1 aside"
+      },
+      {
+        "nombre": "settings: sidebar rows flat",
+        "ok": true,
+        "detalle": "sin borde ni sombra"
+      },
+      {
+        "nombre": "settings: nav icons one tone",
+        "ok": true,
+        "detalle": "rgb(148, 163, 184)"
+      },
+      {
+        "nombre": "settings: no line between sidebar and panel",
+        "ok": true,
+        "detalle": "aside border-right=0 header border-bottom=0"
+      },
+      {
+        "nombre": "settings: panel lighter than chrome",
+        "ok": true,
+        "detalle": "panel=rgb(14, 19, 32) sidebar=rgb(8, 12, 20)"
+      },
+      {
+        "nombre": "settings: no palette classes in chrome",
+        "ok": true,
+        "detalle": "ninguna"
+      },
+      {
+        "nombre": "project header flat",
+        "ok": true,
+        "detalle": "{\"border\":0,\"bg\":\"rgba(0, 0, 0, 0)\"}"
+      },
+      {
+        "nombre": "project tabs flat",
+        "ok": true,
+        "detalle": "8 pestañas, 28 px"
+      },
+      {
+        "nombre": "runs stat strip",
+        "ok": true,
+        "detalle": "4 celdas; paleta: ninguna"
+      },
+      {
+        "nombre": "chat header no band",
+        "ok": true,
+        "detalle": "{\"border\":0,\"bg\":\"rgba(0, 0, 0, 0)\"}"
+      }
+    ],
+    "notes": [],
+    "errores": [],
+    "capturas": [
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-61136/shell-look/shell-chat.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-61136/shell-look/shell-settings.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-61136/shell-look/shell-project.png"
+    ]
+  },
+  {
+    "flujo": "smoke",
+    "pass": true,
+    "steps": [
+      {
+        "nombre": "home",
+        "ok": true,
+        "detalle": "Chat visible"
+      },
+      {
+        "nombre": "home-dev",
+        "ok": true,
+        "detalle": "Dev visible"
+      },
+      {
+        "nombre": "dev-view",
+        "ok": true,
+        "detalle": "OrchestOS Dev visible"
+      },
+      {
+        "nombre": "chat-composer",
+        "ok": true,
+        "detalle": "chat composer visible"
+      },
+      {
+        "nombre": "settings-view",
+        "ok": true,
+        "detalle": "Appearance visible"
+      },
+      {
+        "nombre": "settings-general",
+        "ok": true,
+        "detalle": "Appearance visible"
+      }
+    ],
+    "notes": [],
+    "errores": [],
+    "capturas": [
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-46339/smoke/chat.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-46339/smoke/dev.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-46339/smoke/chat-returned.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-46339/smoke/settings.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-46339/smoke/settings-general.png"
+    ]
+  },
+  {
+    "flujo": "project-tabs",
+    "pass": true,
+    "steps": [
+      {
+        "nombre": "add project opens folder picker without modal",
+        "ok": true,
+        "detalle": "POST /api/projects/choose calls=1; dialog visible=false"
+      },
+      {
+        "nombre": "temporary project visible",
+        "ok": true,
+        "detalle": "project visible in sidebar"
+      },
+      {
+        "nombre": "project settings visible",
+        "ok": true,
+        "detalle": "settings heading"
+      },
+      {
+        "nombre": "specs empty state visible",
+        "ok": true,
+        "detalle": "empty project has no specs"
+      },
+      {
+        "nombre": "specs empty no page error",
+        "ok": true,
+        "detalle": "none"
+      },
+      {
+        "nombre": "real memory visible",
+        "ok": true,
+        "detalle": "seeded DB memory"
+      },
+      {
+        "nombre": "mock memory absent",
+        "ok": true,
+        "detalle": "no mock data"
+      },
+      {
+        "nombre": "memory conflict resolved",
+        "ok": true,
+        "detalle": "open conflicts: 0"
+      },
+      {
+        "nombre": "authoritative memory persisted and visible",
+        "ok": true,
+        "detalle": "content of entry A matches the resolved API value"
+      },
+      {
+        "nombre": "real spec visible",
+        "ok": true,
+        "detalle": "seeded markdown spec"
+      },
+      {
+        "nombre": "mock specs absent",
+        "ok": true,
+        "detalle": "no mock data"
+      },
+      {
+        "nombre": "spec approved",
+        "ok": true,
+        "detalle": "API status approved"
+      },
+      {
+        "nombre": "spec lint updates API and row",
+        "ok": true,
+        "detalle": "Lint: pass (0); response findings=0; before=pass/0"
+      },
+      {
+        "nombre": "real skills listed",
+        "ok": true,
+        "detalle": "API skills=17"
+      },
+      {
+        "nombre": "compile response visible",
+        "ok": true,
+        "detalle": "success response rendered in the skill row"
+      },
+      {
+        "nombre": "mock skills absent",
+        "ok": true,
+        "detalle": "no mock data"
+      },
+      {
+        "nombre": "mock instincts absent",
+        "ok": true,
+        "detalle": "no mock data"
+      },
+      {
+        "nombre": "instinct review visible",
+        "ok": true,
+        "detalle": "unverified instinct"
+      },
+      {
+        "nombre": "instinct approved",
+        "ok": true,
+        "detalle": "API verified"
+      },
+      {
+        "nombre": "manual instinct added",
+        "ok": true,
+        "detalle": "new API row"
+      },
+      {
+        "nombre": "mock plan absent",
+        "ok": true,
+        "detalle": "no mock data"
+      },
+      {
+        "nombre": "explain fields visible as readable UI",
+        "ok": true,
+        "detalle": "GET /explain fields rendered inside the template block"
+      },
+      {
+        "nombre": "explain has no [object Object]",
+        "ok": true,
+        "detalle": "opened Explain modal contains no stringified object values"
+      },
+      {
+        "nombre": "task run finishes and badge changes without reload",
+        "ok": true,
+        "detalle": "status=done; retryCount/runId changed or terminal status observed"
+      },
+      {
+        "nombre": "Add task opens Chat",
+        "ok": true,
+        "detalle": "Chat composer visible, Plan view inactive, task count unchanged"
+      },
+      {
+        "nombre": "0 console errors",
+        "ok": true,
+        "detalle": "none"
+      }
+    ],
+    "notes": [],
+    "errores": [],
+    "capturas": [
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-46339/project-tabs/project-tabs-real-data.png"
+    ]
+  },
+  {
+    "flujo": "project-isolation",
+    "pass": true,
+    "steps": [
+      {
+        "nombre": "fixtures created for Alfa and Beta",
+        "ok": true,
+        "detalle": "3e5c494ae1612196; 88de4f83a33a04ed"
+      },
+      {
+        "nombre": "API lists only Alfa runs, memory search hides Beta, and sessions are scoped to Alfa",
+        "ok": true,
+        "detalle": "{\"runs\":[\"erp2-run-a\"],\"memory\":[],\"sessions\":[\"7801f0d2-d86f-461a-85c7-556125869d1d\"]}"
+      },
+      {
+        "nombre": "Alfa cannot read or mutate any Beta run, session, memory, or instinct",
+        "ok": true,
+        "detalle": "[{\"label\":\"GET run\",\"status\":404},{\"label\":\"GET messages\",\"status\":404},{\"label\":\"PATCH session\",\"status\":404},{\"label\":\"approve instinct\",\"status\":404},{\"label\":\"delete memory\",\"status\":404},{\"label\":\"delete instinct\",\"status\":404},{\"label\":\"delete run\",\"status\":404},{\"label\":\"delete session\",\"status\":404},{\"label\":\"chat with foreign session\",\"status\":404}]"
+      },
+      {
+        "nombre": "Beta data and message history remain intact after rejected Alfa requests",
+        "ok": true,
+        "detalle": "{\"run\":[\"erp2-run-b\"],\"memory\":[\"Centinela memoria Beta\",\"Centinela memoria Global\"],\"messages\":[\"Centinela chat Beta\"],\"instincts\":[\"erp2-instinct-b\",\"erp2-instinct-history\"]}"
+      },
+      {
+        "nombre": "Alfa Memory shows own and global entries, hides the other project",
+        "ok": true,
+        "detalle": "project memory isolation and Global label"
+      },
+      {
+        "nombre": "Alfa Active Instincts shows own and historical entries, hides the other project",
+        "ok": true,
+        "detalle": "project instinct isolation and historical label"
+      },
+      {
+        "nombre": "Alfa api-contract skill origin is Proyecto",
+        "ok": true,
+        "detalle": "api-contract origin: Proyecto"
+      },
+      {
+        "nombre": "Beta Memory shows own and global entries, hides the other project",
+        "ok": true,
+        "detalle": "project memory isolation and Global label"
+      },
+      {
+        "nombre": "Beta Active Instincts shows own and historical entries, hides the other project",
+        "ok": true,
+        "detalle": "project instinct isolation and historical label"
+      },
+      {
+        "nombre": "Beta api-contract skill origin is Biblioteca",
+        "ok": true,
+        "detalle": "api-contract origin: Biblioteca"
+      },
+      {
+        "nombre": "Codex CLI context includes the own project memory (positive control)",
+        "ok": true,
+        "detalle": "reply=\"OK\" · prompt 2748 chars · cli input 14 chars"
+      },
+      {
+        "nombre": "Codex CLI context excludes every Beta sentinel",
+        "ok": true,
+        "detalle": "fugas: [] · Centinela memoria Global: aparece"
+      },
+      {
+        "nombre": "Claude CLI context includes the own project memory (positive control)",
+        "ok": true,
+        "detalle": "reply=\"OK\" · prompt 2758 chars · cli input 14 chars"
+      },
+      {
+        "nombre": "Claude CLI context excludes every Beta sentinel",
+        "ok": true,
+        "detalle": "fugas: [] · Centinela memoria Global: aparece"
+      }
+    ],
+    "notes": [],
+    "errores": [],
+    "capturas": [
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-46339/project-isolation/memory-alfa.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-46339/project-isolation/instincts-alfa.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-46339/project-isolation/skills-alfa.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-46339/project-isolation/memory-beta.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-46339/project-isolation/instincts-beta.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-46339/project-isolation/skills-beta.png"
+    ]
+  },
+  {
+    "flujo": "runs-graph",
+    "pass": true,
+    "steps": [
+      {
+        "nombre": "temporary project visible",
+        "ok": true,
+        "detalle": "project visible in sidebar"
+      },
+      {
+        "nombre": "project settings visible",
+        "ok": true,
+        "detalle": "project settings heading visible"
+      },
+      {
+        "nombre": "graph count from API",
+        "ok": true,
+        "detalle": "files=1"
+      },
+      {
+        "nombre": "Run Next Task enabled",
+        "ok": true,
+        "detalle": "task is runnable"
+      },
+      {
+        "nombre": "task finished",
+        "ok": true,
+        "detalle": "status=done"
+      },
+      {
+        "nombre": "project run exists",
+        "ok": true,
+        "detalle": "run linked to task"
+      },
+      {
+        "nombre": "project runs are scoped",
+        "ok": true,
+        "detalle": "runs=1"
+      },
+      {
+        "nombre": "real run visible",
+        "ok": true,
+        "detalle": "task run appears in Runs"
+      },
+      {
+        "nombre": "run detail lists README.md output",
+        "ok": true,
+        "detalle": "README.md output"
+      },
+      {
+        "nombre": "mock QA copy absent",
+        "ok": true,
+        "detalle": "no hardcoded QA assertion"
+      },
+      {
+        "nombre": "real run status visible",
+        "ok": true,
+        "detalle": "status from run"
+      },
+      {
+        "nombre": "graph view visible",
+        "ok": true,
+        "detalle": "graph heading"
+      },
+      {
+        "nombre": "mock graph copy absent",
+        "ok": true,
+        "detalle": "no hardcoded language split"
+      },
+      {
+        "nombre": "graph count is real before rebuild",
+        "ok": true,
+        "detalle": "files=1, not the sample 48"
+      },
+      {
+        "nombre": "graph rebuild completes",
+        "ok": true,
+        "detalle": "indexed source count changed"
+      },
+      {
+        "nombre": "no duplicate project",
+        "ok": true,
+        "detalle": "basename=orchestos-ui-13-2e-W5eVCN, matches=1"
+      }
+    ],
+    "notes": [],
+    "errores": [],
+    "capturas": [
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-61136/runs-graph/runs-graph-real-data.png"
+    ]
+  },
+  {
+    "flujo": "tasks",
+    "pass": true,
+    "steps": [
+      {
+        "nombre": "temporary project visible",
+        "ok": true,
+        "detalle": "project visible in sidebar"
+      },
+      {
+        "nombre": "project settings visible",
+        "ok": true,
+        "detalle": "project settings heading visible"
+      },
+      {
+        "nombre": "task id gate-first-task visible",
+        "ok": true,
+        "detalle": "real tasks.yaml id"
+      },
+      {
+        "nombre": "task id gate-dependent-task visible",
+        "ok": true,
+        "detalle": "real tasks.yaml id"
+      },
+      {
+        "nombre": "task id gate-failed-task visible",
+        "ok": true,
+        "detalle": "real tasks.yaml id"
+      },
+      {
+        "nombre": "real output visible",
+        "ok": true,
+        "detalle": "output boundary from tasks.yaml"
+      },
+      {
+        "nombre": "mock task absent",
+        "ok": true,
+        "detalle": "no initialMockTasks id rendered"
+      },
+      {
+        "nombre": "task created without model shows the Executor role agent and model",
+        "ok": true,
+        "detalle": "expected=codex · gpt-6-luna from fixture orchestos.config.yaml"
+      },
+      {
+        "nombre": "created task yaml has no hardcoded provider executor",
+        "ok": true,
+        "detalle": "tasks.yaml entry for gate-role-task has no executor: openrouter|anthropic|openai"
+      },
+      {
+        "nombre": "failed task offers its own Run button",
+        "ok": true,
+        "detalle": "visible=true enabled=true"
+      },
+      {
+        "nombre": "task with unfinished dependency has no Run button",
+        "ok": true,
+        "detalle": "button count=0"
+      },
+      {
+        "nombre": "Run Next Task enabled",
+        "ok": true,
+        "detalle": "first task has no unfinished dependency"
+      },
+      {
+        "nombre": "Run Next Task disabled while running",
+        "ok": true,
+        "detalle": "running task prevents a second run"
+      },
+      {
+        "nombre": "first task was posted",
+        "ok": true,
+        "detalle": "status=pending"
+      },
+      {
+        "nombre": "dependent task remains pending before first finishes",
+        "ok": true,
+        "detalle": "dependency prevents the second task from running"
+      },
+      {
+        "nombre": "final status badge is visible without reload",
+        "ok": true,
+        "detalle": "StatusBadge text=DONE"
+      },
+      {
+        "nombre": "badge leaves Pending without page reload",
+        "ok": true,
+        "detalle": "status=done"
+      },
+      {
+        "nombre": "UI and API agree on final task state",
+        "ok": true,
+        "detalle": "status=done"
+      },
+      {
+        "nombre": "first task final state is committed in tasks.yaml",
+        "ok": true,
+        "detalle": "porcelain=\"\" subject=chore(tasks): gate-first-task done"
+      },
+      {
+        "nombre": "failed task relaunched by id ran",
+        "ok": true,
+        "detalle": "runId=64261513-609b-4d8f-ad46-29f5de1d1cb4 previous=missing"
+      },
+      {
+        "nombre": "relaunched task reaches done",
+        "ok": true,
+        "detalle": "status=done"
+      },
+      {
+        "nombre": "relaunched task final state is committed in tasks.yaml",
+        "ok": true,
+        "detalle": "porcelain=\"\" subject=chore(tasks): gate-failed-task done"
+      },
+      {
+        "nombre": "relaunch did not start the dependent task",
+        "ok": true,
+        "detalle": "status=pending runId=missing"
+      }
+    ],
+    "notes": [],
+    "errores": [],
+    "capturas": [
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-46339/tasks/tasks-real-data.png"
+    ]
+  },
+  {
+    "flujo": "chat-streaming",
+    "pass": true,
+    "steps": [
+      {
+        "nombre": "temporary project visible",
+        "ok": true,
+        "detalle": "orchestos-ui-mr-1-d4-dEg7ei"
+      },
+      {
+        "nombre": "Claude option available",
+        "ok": true,
+        "detalle": "Start New Chat with Agent\nConversation Topic or Title (Optional)\nProject\nNo projectorchestos-ui-mr-1-d4-dEg7ei\nSelect Agent / Engine\nClaude Code\nCodex\nOpenRouter API\nCancel\nStart Chat"
+      },
+      {
+        "nombre": "first assistant text appears before completion",
+        "ok": true,
+        "detalle": "t_first=3664 ms; t_done=5652 ms"
+      },
+      {
+        "nombre": "visible text grows at least twice before completion",
+        "ok": true,
+        "detalle": "3 growth updates"
+      },
+      {
+        "nombre": "live bubble stays at the bottom",
+        "ok": true,
+        "detalle": "4 growth measurements; remained at bottom: true"
+      },
+      {
+        "nombre": "captured screenshot during active turn",
+        "ok": true,
+        "detalle": "chat-text-visible-mid-turn"
+      },
+      {
+        "nombre": "working-indicator-names-phase",
+        "ok": true,
+        "detalle": "indicator text: \"Thinking 0 s\""
+      },
+      {
+        "nombre": "working-indicator-gone",
+        "ok": true,
+        "detalle": "indicator removed after 8 ms"
+      },
+      {
+        "nombre": "one assistant bubble matches persisted response",
+        "ok": true,
+        "detalle": "bubbles=1; persisted=1; visible=Uno Dos Tres Cuatro Cinco Seis Siete Ocho Nueve Diez Once Doce Trece Catorce Qui"
+      },
+      {
+        "nombre": "context ring reflects thread",
+        "ok": true,
+        "detalle": "used=7797, window=200000, pct=3.8985"
+      },
+      {
+        "nombre": "context ring recalculates on model change",
+        "ok": true,
+        "detalle": "model=claude-sonnet-5, expected pct=0.7797000000000001, ring=Context window usage: 0.7797000000000001%"
+      },
+      {
+        "nombre": "task marker is not visible",
+        "ok": true,
+        "detalle": "no task marker in the DOM"
+      },
+      {
+        "nombre": "Chat composer empty during sampled turn",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "Chat DOM order during sampled turn is previous assistant, user, live assistant",
+        "ok": true,
+        "detalle": "{\"liveCount\":1,\"order\":[\"Escribe los números del 1 al 40 en palabras, uno p\",\"Uno Dos Tres Cuatro Cinco Seis Siete Ocho Nueve Di\",\"Escribe los números del 41 al 80 en palabras, uno \",\"Cuarenta y uno Cuarenta y dos Cuarenta y tres Cuar\"]}"
+      },
+      {
+        "nombre": "Chat turn 2 was sampled while pending",
+        "ok": true,
+        "detalle": "1 long turn(s) sent; pending composer and live DOM order sampled"
+      },
+      {
+        "nombre": "Chat bubbles alternate for every sent turn",
+        "ok": true,
+        "detalle": "[\"Escribe los números del 1 al 40 en palabras, uno p\",\"Uno Dos Tres Cuatro Cinco Seis Siete Ocho Nueve Di\",\"Escribe los números del 41 al 80 en palabras, uno \",\"Cuarenta y uno Cuarenta y dos Cuarenta y tres Cuar\"]"
+      },
+      {
+        "nombre": "Chat user bubbles contain no agent text or step markup",
+        "ok": true,
+        "detalle": "user bubbles=2"
+      },
+      {
+        "nombre": "Chat exchange order remains correct after reload",
+        "ok": true,
+        "detalle": "messages=4"
+      },
+      {
+        "nombre": "thread-font-inter",
+        "ok": true,
+        "detalle": "font-family=\"Inter Variable\", system-ui, -apple-system, \"system-ui\", \"Segoe UI\", Roboto, \"Noto Sans\", Ubuntu, Cantarell, \"Helvetica Neue\", sans-serif"
+      },
+      {
+        "nombre": "thread-body-14px",
+        "ok": true,
+        "detalle": "font-size=14px"
+      },
+      {
+        "nombre": "thread-assistant-unboxed",
+        "ok": true,
+        "detalle": "ancestors=[{\"backgroundColor\":\"rgba(0, 0, 0, 0)\",\"borderTopWidth\":\"0px\",\"boxShadow\":\"none\"},{\"backgroundColor\":\"rgba(0, 0, 0, 0)\",\"borderTopWidth\":\"0px\",\"boxShadow\":\"none\"},{\"backgroundColor\":\"rgba(0, 0, 0, 0)\",\"borderTopWidth\":\"0px\",\"boxShadow\":\"none\"}]"
+      },
+      {
+        "nombre": "thread-user-bubble-visible",
+        "ok": true,
+        "detalle": "bubble={\"found\":true,\"backgroundColor\":\"oklab(0.249498 -0.00229985 -0.0147313)\",\"opaque\":true,\"userBubbleL\":20.537404286089497,\"backgroundL\":12.733002212579532,\"difference\":7.804402073509966}"
+      },
+      {
+        "nombre": "thread-no-decoration",
+        "ok": true,
+        "detalle": "animate-ping=0, gradients=0, bot-icons=0, user-icons=0"
+      },
+      {
+        "nombre": "Dev renders text during generation before completion",
+        "ok": true,
+        "detalle": "t_first=3727 ms; t_done=4603 ms; visible=Uno, dos, tres, cuatro y cinco."
+      }
+    ],
+    "notes": [],
+    "errores": [],
+    "capturas": [
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-46339/chat-streaming/chat-text-visible-mid-turn.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-46339/chat-streaming/thread-hierarchy.png"
+    ]
+  },
+  {
+    "flujo": "thread-states",
+    "pass": true,
+    "steps": [
+      {
+        "nombre": "sheet-visible-orchestos",
+        "ok": true,
+        "detalle": "orchestos sheet visible"
+      },
+      {
+        "nombre": "orchestos-state-message-user",
+        "ok": true,
+        "detalle": "orchestos: state-message-user visible"
+      },
+      {
+        "nombre": "orchestos-state-message-assistant",
+        "ok": true,
+        "detalle": "orchestos: state-message-assistant visible"
+      },
+      {
+        "nombre": "orchestos-state-message-attachments",
+        "ok": true,
+        "detalle": "orchestos: state-message-attachments visible"
+      },
+      {
+        "nombre": "orchestos-state-message-pdf",
+        "ok": true,
+        "detalle": "orchestos: state-message-pdf visible"
+      },
+      {
+        "nombre": "orchestos-state-thinking",
+        "ok": true,
+        "detalle": "orchestos: state-thinking visible"
+      },
+      {
+        "nombre": "orchestos-state-thinking-steps-running",
+        "ok": true,
+        "detalle": "orchestos: state-thinking-steps-running visible"
+      },
+      {
+        "nombre": "orchestos-state-thinking-steps-done",
+        "ok": true,
+        "detalle": "orchestos: state-thinking-steps-done visible"
+      },
+      {
+        "nombre": "orchestos-state-composer-empty",
+        "ok": true,
+        "detalle": "orchestos: state-composer-empty visible"
+      },
+      {
+        "nombre": "orchestos-state-composer-with-files",
+        "ok": true,
+        "detalle": "orchestos: state-composer-with-files visible"
+      },
+      {
+        "nombre": "orchestos-state-card",
+        "ok": true,
+        "detalle": "orchestos: state-card visible"
+      },
+      {
+        "nombre": "orchestos-state-badges",
+        "ok": true,
+        "detalle": "orchestos: state-badges visible"
+      },
+      {
+        "nombre": "orchestos-state-banner",
+        "ok": true,
+        "detalle": "orchestos: state-banner visible"
+      },
+      {
+        "nombre": "orchestos-thinking-steps-open",
+        "ok": true,
+        "detalle": "orchestos: a step becomes visible after clicking the header"
+      },
+      {
+        "nombre": "orchestos-thinking-aligned",
+        "ok": true,
+        "detalle": "phase lefts 336.00, 336.00, 336.00 px; assistant p left 336.00 px; differences 0.00, 0.00, 0.00 px"
+      },
+      {
+        "nombre": "orchestos-thinking-steps-muted",
+        "ok": true,
+        "detalle": "step color rgb(148, 163, 184); muted reference rgb(148, 163, 184); font-weight 400"
+      },
+      {
+        "nombre": "orchestos-no-invented-words",
+        "ok": true,
+        "detalle": "orchestos: no invented thinking words in the sheet"
+      },
+      {
+        "nombre": "orchestos-font-inter",
+        "ok": true,
+        "detalle": "font-family: \"Inter Variable\", system-ui, -apple-system, \"system-ui\", \"Segoe UI\", Roboto, \"Noto Sans\", Ubuntu, Cantarell, \"Helvetica Neue\", sans-serif"
+      },
+      {
+        "nombre": "orchestos-font-inter-loaded",
+        "ok": true,
+        "detalle": "document.fonts.check('Inter Variable')"
+      },
+      {
+        "nombre": "orchestos-surface-ladder",
+        "ok": true,
+        "detalle": "L*: 3.30 → 6.27 → 10.29 → 14.21 → 18.01 → 22.00 → 25.69 → 29.22; strictly increasing"
+      },
+      {
+        "nombre": "orchestos-user-bubble-clarity",
+        "ok": true,
+        "detalle": "L* bubble 13.02, background 3.30, difference 9.72; minimum 6"
+      },
+      {
+        "nombre": "sheet-visible-graphite",
+        "ok": true,
+        "detalle": "graphite sheet visible"
+      },
+      {
+        "nombre": "graphite-state-message-user",
+        "ok": true,
+        "detalle": "graphite: state-message-user visible"
+      },
+      {
+        "nombre": "graphite-state-message-assistant",
+        "ok": true,
+        "detalle": "graphite: state-message-assistant visible"
+      },
+      {
+        "nombre": "graphite-state-message-attachments",
+        "ok": true,
+        "detalle": "graphite: state-message-attachments visible"
+      },
+      {
+        "nombre": "graphite-state-message-pdf",
+        "ok": true,
+        "detalle": "graphite: state-message-pdf visible"
+      },
+      {
+        "nombre": "graphite-state-thinking",
+        "ok": true,
+        "detalle": "graphite: state-thinking visible"
+      },
+      {
+        "nombre": "graphite-state-thinking-steps-running",
+        "ok": true,
+        "detalle": "graphite: state-thinking-steps-running visible"
+      },
+      {
+        "nombre": "graphite-state-thinking-steps-done",
+        "ok": true,
+        "detalle": "graphite: state-thinking-steps-done visible"
+      },
+      {
+        "nombre": "graphite-state-composer-empty",
+        "ok": true,
+        "detalle": "graphite: state-composer-empty visible"
+      },
+      {
+        "nombre": "graphite-state-composer-with-files",
+        "ok": true,
+        "detalle": "graphite: state-composer-with-files visible"
+      },
+      {
+        "nombre": "graphite-state-card",
+        "ok": true,
+        "detalle": "graphite: state-card visible"
+      },
+      {
+        "nombre": "graphite-state-badges",
+        "ok": true,
+        "detalle": "graphite: state-badges visible"
+      },
+      {
+        "nombre": "graphite-state-banner",
+        "ok": true,
+        "detalle": "graphite: state-banner visible"
+      },
+      {
+        "nombre": "graphite-thinking-steps-open",
+        "ok": true,
+        "detalle": "graphite: a step becomes visible after clicking the header"
+      },
+      {
+        "nombre": "graphite-thinking-aligned",
+        "ok": true,
+        "detalle": "phase lefts 336.00, 336.00, 336.00 px; assistant p left 336.00 px; differences 0.00, 0.00, 0.00 px"
+      },
+      {
+        "nombre": "graphite-thinking-steps-muted",
+        "ok": true,
+        "detalle": "step color rgb(156, 163, 175); muted reference rgb(156, 163, 175); font-weight 400"
+      },
+      {
+        "nombre": "graphite-no-invented-words",
+        "ok": true,
+        "detalle": "graphite: no invented thinking words in the sheet"
+      },
+      {
+        "nombre": "graphite-font-inter",
+        "ok": true,
+        "detalle": "font-family: \"Inter Variable\", system-ui, -apple-system, \"system-ui\", \"Segoe UI\", Roboto, \"Noto Sans\", Ubuntu, Cantarell, \"Helvetica Neue\", sans-serif"
+      },
+      {
+        "nombre": "graphite-font-inter-loaded",
+        "ok": true,
+        "detalle": "document.fonts.check('Inter Variable')"
+      },
+      {
+        "nombre": "graphite-surface-ladder",
+        "ok": true,
+        "detalle": "L*: 5.03 → 8.71 → 12.69 → 16.54 → 20.24 → 23.88 → 27.45 → 30.94; strictly increasing"
+      },
+      {
+        "nombre": "graphite-user-bubble-clarity",
+        "ok": true,
+        "detalle": "L* bubble 15.11, background 5.03, difference 10.08; minimum 6"
+      },
+      {
+        "nombre": "sheet-visible-carbon",
+        "ok": true,
+        "detalle": "carbon sheet visible"
+      },
+      {
+        "nombre": "carbon-state-message-user",
+        "ok": true,
+        "detalle": "carbon: state-message-user visible"
+      },
+      {
+        "nombre": "carbon-state-message-assistant",
+        "ok": true,
+        "detalle": "carbon: state-message-assistant visible"
+      },
+      {
+        "nombre": "carbon-state-message-attachments",
+        "ok": true,
+        "detalle": "carbon: state-message-attachments visible"
+      },
+      {
+        "nombre": "carbon-state-message-pdf",
+        "ok": true,
+        "detalle": "carbon: state-message-pdf visible"
+      },
+      {
+        "nombre": "carbon-state-thinking",
+        "ok": true,
+        "detalle": "carbon: state-thinking visible"
+      },
+      {
+        "nombre": "carbon-state-thinking-steps-running",
+        "ok": true,
+        "detalle": "carbon: state-thinking-steps-running visible"
+      },
+      {
+        "nombre": "carbon-state-thinking-steps-done",
+        "ok": true,
+        "detalle": "carbon: state-thinking-steps-done visible"
+      },
+      {
+        "nombre": "carbon-state-composer-empty",
+        "ok": true,
+        "detalle": "carbon: state-composer-empty visible"
+      },
+      {
+        "nombre": "carbon-state-composer-with-files",
+        "ok": true,
+        "detalle": "carbon: state-composer-with-files visible"
+      },
+      {
+        "nombre": "carbon-state-card",
+        "ok": true,
+        "detalle": "carbon: state-card visible"
+      },
+      {
+        "nombre": "carbon-state-badges",
+        "ok": true,
+        "detalle": "carbon: state-badges visible"
+      },
+      {
+        "nombre": "carbon-state-banner",
+        "ok": true,
+        "detalle": "carbon: state-banner visible"
+      },
+      {
+        "nombre": "carbon-thinking-steps-open",
+        "ok": true,
+        "detalle": "carbon: a step becomes visible after clicking the header"
+      },
+      {
+        "nombre": "carbon-thinking-aligned",
+        "ok": true,
+        "detalle": "phase lefts 336.00, 336.00, 336.00 px; assistant p left 336.00 px; differences 0.00, 0.00, 0.00 px"
+      },
+      {
+        "nombre": "carbon-thinking-steps-muted",
+        "ok": true,
+        "detalle": "step color rgb(161, 161, 170); muted reference rgb(161, 161, 170); font-weight 400"
+      },
+      {
+        "nombre": "carbon-no-invented-words",
+        "ok": true,
+        "detalle": "carbon: no invented thinking words in the sheet"
+      },
+      {
+        "nombre": "carbon-font-inter",
+        "ok": true,
+        "detalle": "font-family: \"Inter Variable\", system-ui, -apple-system, \"system-ui\", \"Segoe UI\", Roboto, \"Noto Sans\", Ubuntu, Cantarell, \"Helvetica Neue\", sans-serif"
+      },
+      {
+        "nombre": "carbon-font-inter-loaded",
+        "ok": true,
+        "detalle": "document.fonts.check('Inter Variable')"
+      },
+      {
+        "nombre": "carbon-surface-ladder",
+        "ok": true,
+        "detalle": "L*: 2.51 → 5.12 → 9.34 → 13.30 → 17.57 → 21.31 → 25.35 → 28.92; strictly increasing"
+      },
+      {
+        "nombre": "carbon-user-bubble-clarity",
+        "ok": true,
+        "detalle": "L* bubble 11.83, background 2.51, difference 9.32; minimum 6"
+      },
+      {
+        "nombre": "sheet-visible-light",
+        "ok": true,
+        "detalle": "light sheet visible"
+      },
+      {
+        "nombre": "light-state-message-user",
+        "ok": true,
+        "detalle": "light: state-message-user visible"
+      },
+      {
+        "nombre": "light-state-message-assistant",
+        "ok": true,
+        "detalle": "light: state-message-assistant visible"
+      },
+      {
+        "nombre": "light-state-message-attachments",
+        "ok": true,
+        "detalle": "light: state-message-attachments visible"
+      },
+      {
+        "nombre": "light-state-message-pdf",
+        "ok": true,
+        "detalle": "light: state-message-pdf visible"
+      },
+      {
+        "nombre": "light-state-thinking",
+        "ok": true,
+        "detalle": "light: state-thinking visible"
+      },
+      {
+        "nombre": "light-state-thinking-steps-running",
+        "ok": true,
+        "detalle": "light: state-thinking-steps-running visible"
+      },
+      {
+        "nombre": "light-state-thinking-steps-done",
+        "ok": true,
+        "detalle": "light: state-thinking-steps-done visible"
+      },
+      {
+        "nombre": "light-state-composer-empty",
+        "ok": true,
+        "detalle": "light: state-composer-empty visible"
+      },
+      {
+        "nombre": "light-state-composer-with-files",
+        "ok": true,
+        "detalle": "light: state-composer-with-files visible"
+      },
+      {
+        "nombre": "light-state-card",
+        "ok": true,
+        "detalle": "light: state-card visible"
+      },
+      {
+        "nombre": "light-state-badges",
+        "ok": true,
+        "detalle": "light: state-badges visible"
+      },
+      {
+        "nombre": "light-state-banner",
+        "ok": true,
+        "detalle": "light: state-banner visible"
+      },
+      {
+        "nombre": "light-thinking-steps-open",
+        "ok": true,
+        "detalle": "light: a step becomes visible after clicking the header"
+      },
+      {
+        "nombre": "light-thinking-aligned",
+        "ok": true,
+        "detalle": "phase lefts 336.00, 336.00, 336.00 px; assistant p left 336.00 px; differences 0.00, 0.00, 0.00 px"
+      },
+      {
+        "nombre": "light-thinking-steps-muted",
+        "ok": true,
+        "detalle": "step color rgb(100, 116, 139); muted reference rgb(100, 116, 139); font-weight 400"
+      },
+      {
+        "nombre": "light-no-invented-words",
+        "ok": true,
+        "detalle": "light: no invented thinking words in the sheet"
+      },
+      {
+        "nombre": "light-font-inter",
+        "ok": true,
+        "detalle": "font-family: \"Inter Variable\", system-ui, -apple-system, \"system-ui\", \"Segoe UI\", Roboto, \"Noto Sans\", Ubuntu, Cantarell, \"Helvetica Neue\", sans-serif"
+      },
+      {
+        "nombre": "light-font-inter-loaded",
+        "ok": true,
+        "detalle": "document.fonts.check('Inter Variable')"
+      },
+      {
+        "nombre": "light-surface-ladder",
+        "ok": true,
+        "detalle": "L*: 98.18 → 96.12 → 94.28 → 92.28 → 90.19 → 88.35 → 86.22 → 84.10; strictly decreasing"
+      },
+      {
+        "nombre": "light-user-bubble-clarity",
+        "ok": true,
+        "detalle": "L* bubble 91.57, background 98.18, difference 6.60; minimum 6"
+      },
+      {
+        "nombre": "no-pdf-worker-request",
+        "ok": true,
+        "detalle": "no PDF worker network request"
+      },
+      {
+        "nombre": "no-console-errors",
+        "ok": true,
+        "detalle": "errors: 0"
+      },
+      {
+        "nombre": "home-chat",
+        "ok": true,
+        "detalle": "default route loads the chat"
+      }
+    ],
+    "notes": [],
+    "errores": [],
+    "capturas": [
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-46339/thread-states/thread-states-orchestos.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-46339/thread-states/thread-states-graphite.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-46339/thread-states/thread-states-carbon.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-46339/thread-states/thread-states-light.png"
+    ]
+  },
+  {
+    "flujo": "text-sweep",
+    "pass": true,
+    "steps": [
+      {
+        "nombre": "temporary project visible",
+        "ok": true,
+        "detalle": "project visible in sidebar"
+      },
+      {
+        "nombre": "Codex selector visible",
+        "ok": true,
+        "detalle": "Codex option visible"
+      },
+      {
+        "nombre": "model selector visible",
+        "ok": true,
+        "detalle": "composer model selector"
+      },
+      {
+        "nombre": "gpt-6-luna visible",
+        "ok": true,
+        "detalle": "Codex cache model"
+      },
+      {
+        "nombre": "medium visible",
+        "ok": true,
+        "detalle": "reasoning effort"
+      },
+      {
+        "nombre": "real Codex response visible",
+        "ok": true,
+        "detalle": "assistant response"
+      },
+      {
+        "nombre": "removed text absent after real turn",
+        "ok": true,
+        "detalle": "chat surface sweep complete"
+      },
+      {
+        "nombre": "all stale copy remains absent from the active screen",
+        "ok": true,
+        "detalle": "14 literals checked"
+      },
+      {
+        "nombre": "turn records selected model and effort",
+        "ok": true,
+        "detalle": "model=gpt-6-luna via Codex CLI (effort: medium), effort=medium"
+      },
+      {
+        "nombre": "no CLI default fallback in recorded surface",
+        "ok": true,
+        "detalle": "record uses selected model"
+      }
+    ],
+    "notes": [],
+    "errores": [],
+    "capturas": []
+  }
+]

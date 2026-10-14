@@ -946,9 +946,24 @@ archivos fijados por `ui:fidelity:jsx` (`OrchestDevWorkspace`, `ShellStatusBar`,
   Lección: un cambio de marco toca todas las pantallas; antes de cerrarlo correr la batería completa del pre-push, no
   una selección de flujos.
   El pre-push también lo frenó `lint` (formato del JSX): la verificación de un spec incluye `bun run lint`.
-- [ ] **UI.26.2 — 🧠 Plantilla de página.** Encabezado, franja de cifras y estado vacío como primitivos de la familia;
-  consumidores: cabecera y pestañas de proyecto, Runs y cabecera interna del chat. La fila de lista pasa a UI.26.3 con
-  su primer consumidor. Spec: docs/specs/UI.26.2.md
+- [x] **UI.26.2 — 🧠 Plantilla de página.** (cerrado 2026-10-14) Encabezado, franja de cifras y estado vacío como
+  primitivos de la familia; consumidores: cabecera y pestañas de proyecto, Runs y cabecera interna del chat. La fila de
+  lista pasa a UI.26.3 con su primer consumidor. Spec: docs/specs/UI.26.2.md
+  Ejecutado por: sonnet (rol `criterio`, ronda 1) y gpt-6-luna (rol `mecanico`, rondas 2 y 3)
+  Hecho (2026-10-14): `components/layout/page.tsx` con `PageHeader` y `StatStrip`; `SettingsPage` usa `PageHeader`;
+  `EmptyState` sin caja, icono muted y primario de la familia (fuera `text-zinc-950`). Cabecera de proyecto plana con
+  pestañas de 28 px sin borde; Runs con franja de cifras (pista "N/M evaluated" con tono solo si es estado), filtros
+  con `SettingsSegmented`, filas de 40 px sin `font-mono` salvo ids y modelo; cabecera del chat sin banda.
+  Evidencia: `lint` sin errores en lo tocado, `build:app`, `ui:fidelity:jsx` exit 0, corridos por el cerebro.
+  Gate en vivo: navegador real (Playwright), `docs/done/evidence/UI.26.2-live.json` — `shell-look` 16/16, `smoke` 6/6,
+  `project-tabs` 26/26, `project-isolation` 14/14, `runs-graph` 16/16, `tasks` 23/23, `chat-streaming` 24/24,
+  `thread-states` 87/87, `text-sweep` 10/10. El cerebro miró Runs y el chat en el dashboard real (tema por defecto).
+  Contraprueba (repetida por el cerebro sin `git stash`, árbol limpio): con `RunsEvidenceView.tsx` de HEAD,
+  `shell-look` falla esperando `[data-stat-strip]`; restaurado, 16/16.
+  Ronda 3: mirando la pantalla, el UUID de Run ID se partía en 4 líneas dentro de la fila de 40 px y las filas se
+  montaban; ningún gate lo veía. Celdas `whitespace-nowrap`, Run ID truncado con `title`.
+  Límites: solo tema por defecto; la caja "Zona de peligro" al pie de la página de proyecto sigue con su forma vieja
+  (→ UI.26.6).
 - [ ] **UI.26.3 — 🧠 Tasks en lista con detalle.** Nombre corto, agente y hora por fila; detalle al pulsar; fuera el
   texto duplicado y el UUID partido.
 - [ ] **UI.26.4 — 🧠 Plan (tablero) e Instincts.** Columnas y tarjetas sin color de decoración.
