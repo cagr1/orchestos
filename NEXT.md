@@ -4,6 +4,18 @@ Un solo presente. El handoff anterior (2026-10-13/14, con lotes y lecciones por 
 histórico, en `docs/done/sprint-30.md` § "Apéndice 2"; las lecciones durables, en `AGENTS.md` § "Lecciones operativas
 de delegación y ui-gate". Orden y rumbo: `PLAN.md` § Rumbo. Arranque: `bun run agent:preflight -- --item <ID> --agent claude`.
 
+
+## PRIMERO al retomar (2026-10-14, 17:00) — push bloqueado por Codex
+- Local sin pushear (5 commits): DOC.2 `5d67f56`, specs AT.20/AT.21/CX.6, spec y cierre de CI.25 `ecbd07a`.
+- El pre-push de `ecbd07a` falló en 11 flujos, todos con Codex: `Codex CLI: workspace routing discovery failed`
+  (HTTP 502 en `/api/chat` y `/api/chat/models`). El texto no está en `src/`: lo devuelve el CLI (codex-cli 0.162.1).
+  `codex exec "Reply only OK"` con la config del usuario respondía bien en el mismo momento. Hipótesis: fallo
+  transitorio del servicio, o algo del `CODEX_HOME` aislado del gate. Paso 1: `git push origin master` de nuevo; si
+  vuelve a fallar, leer el rastro `[cli-spawn]` de Codex (nuevo en CI.25: entorno, exit, stderr) en el
+  `dashboard.log` del gate y abrir ítem CI con la causa. Log del intento: `/tmp/doc1/push4.log`.
+- Después, en orden y sin preguntar (GO de Carlos): AT.20 → AT.21 → CX.6 (specs en `docs/specs/`), con
+  `delegate criterio`. Luego el orden del Rumbo (UI.26.5…).
+
 ## Estado actual
 - Cerrados y pusheados: UI.24.1–24.3, UI.25 (UI.25.0, UI.25.1), UI.26.1–26.4a, ERP.4.1–ERP.4.13, CI.12, CI.21, CI.22,
   CI.24, DOC.1 (`331ddf5`), LIMP.1 (`c906eb2`), UI.26.4b; R.8.1–R.8.6 (`PLAN.md`; evidencia en `docs/done/`).
