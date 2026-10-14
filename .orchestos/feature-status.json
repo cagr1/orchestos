@@ -447,7 +447,7 @@
     {
       "id": "UI.25.1",
       "sprint": "Fase 2 — Producto mínimo para entrega",
-      "block": "UI.25 — Settings con la familia: fluido y definido (ABIERTO 2026-10-13, GO de Carlos 2026-10-13)",
+      "block": "UI.25 — Settings con la familia: fluido y definido (CERRADO 2026-10-13: UI.25.0 y UI.25.1; UI.25.2–25.4 pasan a UI.26)",
       "delegation": "🧠",
       "title": "Primitivos de Settings + piloto (General y Executor)",
       "status": "done",
@@ -456,7 +456,7 @@
     {
       "id": "UI.25.0",
       "sprint": "Fase 2 — Producto mínimo para entrega",
-      "block": "UI.25 — Settings con la familia: fluido y definido (ABIERTO 2026-10-13, GO de Carlos 2026-10-13)",
+      "block": "UI.25 — Settings con la familia: fluido y definido (CERRADO 2026-10-13: UI.25.0 y UI.25.1; UI.25.2–25.4 pasan a UI.26)",
       "delegation": "🔍",
       "title": "Specs deja la app en negro si el proyecto no tiene specs",
       "status": "done",
@@ -553,6 +553,15 @@
       "closedDate": null
     },
     {
+      "id": "AT.19",
+      "sprint": "Fase 3 — Correr dentro de OrchestOS igual que el CLI directo",
+      "block": null,
+      "delegation": "🔍",
+      "title": "Lo que Claude notó corriendo dentro del chat de OrchestOS (2026-10-14)",
+      "status": "open",
+      "closedDate": null
+    },
+    {
       "id": "ERP.5",
       "sprint": "Fase 3 — Correr dentro de OrchestOS igual que el CLI directo",
       "block": null,
@@ -594,7 +603,7 @@
       "block": "DOC.1 y LIMP.1 — Documentación al día y código muerto (GO de Carlos 2026-10-14)",
       "delegation": "🔍",
       "title": "La documentación dice lo que de verdad está hecho",
-      "status": "open",
+      "status": "done",
       "closedDate": null
     },
     {

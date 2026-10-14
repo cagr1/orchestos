@@ -14,6 +14,36 @@ Ver `AGENTS.md` § "Invariantes de arquitectura permanentes" — QA, roadmap, co
 Movidos ahí el 2026-08-17 porque `orchestos context update` sobreescribe este archivo por completo
 y no debe ser la fuente de nada permanente.
 
+### Estado vigente (2026-10-14, DOC.1)
+
+Fuente de lo activo: `PLAN.md` (§ Rumbo) y `NEXT.md`. Lo cerrado, con evidencia, en `docs/done/`. Este resumen
+registra el estado del producto al 2026-10-14; las notas "Estado estable" de abajo conservan su fecha y donde una
+frase quedó superada lo dice la línea "Superado:".
+
+- **Recorrido útil (R.8).** R.8.1–R.8.6 cerrados 2026-10-05/12: auto-flow estricto, continuidad historial→CLI
+  (`b9decaa`), QA negativo, reinicio a mitad de run, privacidad sin depender del modelo (`read-boundary`), pasos que
+  no pueden fallar. R.8 sigue abierto solo por la contrastación con una tarea real de Carlos, que cubre ERP.4.
+- **Piloto ERP.4 (repo `~/Projects/projects/erp-piloto`).** Corrió completo el 2026-10-13 (etapas 1-6, 25 tests en
+  verde, revisión `qa` sin defectos). Veredicto de Carlos: "sirve, pero todavía no solo". Hallazgos arreglados:
+  ERP.4.1–ERP.4.13 (p. ej. `b0ce9e4` primera tarea sin `tasks.yaml`, `867627d` respuesta del ejecutor en el run
+  fallido, `e6efa62` borrador lee el hilo, `c476e68` ejecutor según el rol, `043770c` estado de `tasks.yaml`
+  commiteado, `8ca4801` árbol sucio → `pending` + "Commit & Run"). Abiertos: ERP.4.14 (dentro de UI.24.6), 4.15, 4.16.
+- **Interfaz.** UI.24 (hilo premium, familia Fluid Functionalism): 24.1–24.3 cerrados (`6c17cce`, `2627ac9`,
+  `c4dfd5f`); faltan 24.4–24.7. UI.25 (Settings con la familia): cerrado, UI.25.2–25.4 absorbidos por UI.26
+  (`f3648db`, `a4ccf9d`). UI.26 (la forma de Gr8r): 26.1–26.4a cerrados (`2474c20`, `dd9cbce`, `03b9cf3`, `e85f527`,
+  `a9d5736`); faltan 26.5–26.7. El tema por defecto no cambia.
+- **Fiabilidad de CI.** CI.12 cerrado (`844f3b3`: el candado de `tasks.yaml` se publica atómico con su token) y CI.24
+  (`dff365d`: el historial del chat se presenta como la conversación propia). Abiertos: CI.11, CI.18, CI.19, CI.23
+  (fase 1 hecha, `9a82ee8`), CI.25. Estado real de CI: `gh run list --workflow CI`.
+- **Chat y transporte.** El chat usa el CLI del rol Orquestador (Claude, Codex por app-server, OpenCode en terminal
+  de Dev); el contexto que se inyecta lo arma `buildChatSystemPrompt` (`src/chat/chat-context.ts`, MR.1.d2
+  `3b8c9b2`). Roles: Orquestador, Ejecutor, Revisor y Auxiliar con {agente, modelo, esfuerzo} por proyecto (MR.1).
+  El selector de proyecto y las sesiones tienen UI en React (UI.13).
+- **Superado:** "Codex/OpenCode … el transporte de chat responde 422" (nota CC.2) y "No existe UI de sesiones en
+  vanilla" / "selector … pertenece a UI.6" (notas CC.2/CC.3): el chat de Codex y Claude funciona por sus CLI y la UI
+  es la plantilla React; la regla "nunca degradar silenciosamente a API" sigue vigente.
+- **Abierto de seguridad:** L.6.2, `L62-001`, `L62-002` (ver "Estado de seguridad" al final).
+
 ### Estado estable — sesiones de chat CC.2 (2026-08-18)
 
 - SQLite schema v2 añade `chat_sessions` y `chat_messages`; `agent` pertenece a la sesión y es

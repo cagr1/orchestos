@@ -187,6 +187,41 @@ Medidas en los lotes L1–L4 y los ítems de Sprint 30/ERP/I/CX; cada una costó
   restauración. En este árbol hay stashes viejos: un `git stash push` que falla sin avisar hace que el `pop` saque
   otro ajeno (sacó "UI.12.2b de Luna", 5 archivos en conflicto, typecheck rojo y commit bloqueado). Un spec no
   indica `git stash` al ejecutor.
+- **Specs y ejecutor (migradas de NEXT.md, DOC.1 2026-10-14).** (1) El ejecutor de Codex para si ve `writer-lock
+  status: ocupado: claude`: el spec dice que escribe bajo el candado del cerebro (`AGENT_WRITER_TOKEN`). (2) Prohibir en
+  el spec `prettier` y `git stash`; formatear con `bunx biome format --write` sobre lo tocado antes del lint (`delegate
+  mecanico` no formatea), también todo JSON de evidencia y los archivos propios bajo `docs/`. (3) Si hay cambios sin
+  commitear de una ronda previa, el spec los nombra y se corre `bun run agent:handoff` antes (un `.orchestos/handoff.md`
+  viejo hace que `mecanico` se detenga); el preflight rechaza un ítem `[x]`: reabrir (`[ ]` + reconcile) antes de una
+  ronda de corrección. (4) Una ronda de corrección = un spec en archivo propio. (5) El scope del preflight incluye
+  `PLAN.md`, `LEDGER.md` y `docs/**` o el cierre exige `**Fuera de scope declarado:**`. (6) macOS no tiene `timeout`:
+  `perl -e 'alarm N; exec @ARGV' …`; y una corrida de Luna se colgó >12 h: vigilar con un Monitor de 20 min.
+  (7) El spec dice "NO correr `test:coverage` ni detenerse por el baseline": en el sandbox de Codex dan fallos falsos
+  (`csrf-origin` por puertos, `adversarial-review` por sandbox anidado, `EADDRINUSE`). (8) El hook `brain-no-code` bloquea
+  un heredoc de Bash que nombre rutas `src/…` (specs con Write) y el cerebro no edita `scripts/` ni una palabra; un
+  subagente Sonnet del Agent tool hereda ese hook y no edita `src/`. (9) `delegate qa` exige archivo de spec y responde
+  solo "sin defectos" aunque se pida desglose; `delegate leer` devuelve la respuesta duplicada y con el log de hooks
+  delante (leer desde la línea `codex`); `delegate investigar` y todo rol `claude` con `--tools` fallan ("Input must
+  be provided…", `--tools` se traga el prompt; esquive: `claude -p … --tools … < pregunta.txt`; arreglo pendiente en
+  `method/` del vault).
+- **Código y gates (migradas de NEXT.md, DOC.1 2026-10-14).** (1) Un cambio en la forma de una respuesta de API
+  exige grepear los fixtures `JSON.stringify` del front (`app/src/api/*.test.ts`): no están tipados y `typecheck` no
+  los ve; al envolver un punto de salida, grepear todos los llamadores de las funciones que escriben estado.
+  (2) Un test que pasa por un commit de producción necesita identidad **local** en el repo temporal (`git config
+  user.name/email`), no solo `-c`. (3) Una columna nueva de `runs` va como migración numerada, no `safeAddColumn` (la
+  migración 10 reconstruye la tabla, `migrate.ts:390`). (4) Tocar `src/run/harness.ts` exige entrada en `LEDGER.md`.
+  (5) Un test que llega al QA fija `OPENROUTER_API_KEY` o lee `~/.orchestos/.env` del host; un literal con forma de
+  clave frena `security:secrets`: construirlo con `.join('')`. (6) El check de `tsc` solo se añade si la tarea
+  declara salida `.ts` (`checks.ts:79`); `bunx tsc` en un repo sin typescript reescribe el lockfile (revisar
+  `git status`). (7) Un paso de gate que comprueba "ya no está" justo al cerrar el turno por API sondea, no cuenta una
+  vez; gates de chat leen el texto final de `POST /api/chat`, no solo el DOM. (8) Un cambio de marco se cierra con la
+  batería completa del pre-push, no con una selección de flujos; el pre-commit exige la línea `Gate en vivo:` con
+  la evidencia entre backticks. (9) Primitivos de la familia: `Button` de solo icono recibe el icono como hijo; con
+  texto, `leadingIcon={Icono}` (icono hijo + texto = icono apilado); las `border-app/NN` no aceptan variante (usar
+  `color-mix` arbitrario). (10) Antes de afirmar "no existe en la UI", grepear el handler en todas las pestañas; si
+  falta el navegador: `bunx playwright install chromium`; diagnosticar un run de Codex sin texto → rollout en
+  `<proyecto>/.orchestos/agent-home/codex/sessions/`. (11) Antes de abrir un ítem, `grep "\*\*<ID> —" PLAN.md` (CI.20
+  ya existía).
 
 - **Preflight.** Solo reconoce ítems de **primer nivel** (`^- [ ] **ID`, `findOpenPlanItem`,
   `scripts/agent-governance.ts`): un sub-ítem con sangría lo bloquea; usar el padre (`--item MR.1`) o abrir el
