@@ -423,8 +423,8 @@
       "block": "UI.25 — Settings con la familia: fluido y definido (ABIERTO 2026-10-13, GO de Carlos 2026-10-13)",
       "delegation": "🧠",
       "title": "Primitivos de Settings + piloto (General y Executor)",
-      "status": "open",
-      "closedDate": null
+      "status": "done",
+      "closedDate": "2026-10-13"
     },
     {
       "id": "UI.25.2",

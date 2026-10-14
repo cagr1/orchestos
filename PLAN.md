@@ -864,13 +864,30 @@ separadas por línea fina (etiqueta a la izquierda, control a la derecha); un bo
 modelo y cifras; el movimiento es el de la familia y respeta `prefers-reduced-motion`. No cambia qué opciones
 existen, ni la lógica, ni el backend, ni los `--app-*`.
 
-- [ ] **UI.25.1 — 🧠 Primitivos de Settings + piloto (General y Executor).** `components/settings/primitives.tsx`
-  compuesto con la familia; General y Executor migradas. Verifica: `smoke`, `chat-roles`, conteo de colores a mano = 0
-  en lo migrado, y el cerebro mira ambas pantallas en los 4 temas. Spec: docs/specs/UI.25.1.md
+- [x] **UI.25.1 — 🧠 Primitivos de Settings + piloto (General y Executor).** (cerrado 2026-10-13) `components/settings/primitives.tsx`
+  compuesto con la familia; General y Executor migradas.
+  Ejecutado por: sonnet (rol `criterio`, ronda 1) y gpt-6-luna (rol `mecanico`, ronda 2) · Spec: docs/specs/UI.25.1.md
+  Hecho (2026-10-13): `SettingsPage` (columna centrada `max-w-3xl`, `data-ff`, entrada con fundido de 150 ms),
+  `SettingsGroup` (una superficie, filas con línea fina), `SettingsRow`, `SettingsSegmented` (radiogroup con indicador
+  que se desliza), `SettingsStepper` y `SettingsPrimaryAction` (redefine `--foreground` a `--app-accent` para que el
+  `Button` primario de la familia salga celeste sin editarlo). General: temas como `Card` con `selected`. Executor: un
+  grupo con Timeout, Mode y Max iterations (fila condicional en modo agentic). "Loading live settings…" pasa a la
+  esquina superior derecha y deja de tapar el título.
+  Evidencia: `typecheck`, `lint` (0 errores), `build:app`, `ui:fidelity:jsx` exit 0 y 0 clases de paleta de Tailwind ni
+  `font-mono` nuevas salvo el hex del tema, corridos por el cerebro.
+  Gate en vivo: navegador real (Playwright), `docs/done/evidence/UI.25.1-live.json` — `smoke` 6/6, `chat-roles`
+  11/11, `model-routing` 18/18. Además el cerebro miró Executor y General en el dashboard real (tema por defecto) y
+  probó los controles: + sube el timeout 20→25, Agentic revela la fila Max iterations.
+  Contraprueba: la ronda 1 pasó los tres gates con tres defectos visibles que solo se vieron mirando la pantalla:
+  botones − / + sin icono (`Button` de solo icono dibuja `children`, no `leadingIcon`), línea entre filas del color
+  del texto (`[&>*+*]:border-app/40` no genera color) y primario blanco.
+  Límites: solo se miró el tema por defecto (los otros 3 no); ningún gate automático afirma el look de Settings — la
+  ronda 1 lo demuestra — así que UI.25.3 suma un flujo `settings-look` (iconos presentes, color de divisor, primario
+  en acento, 0 paleta a mano). "Loading live settings…" tarda varios segundos en irse: sin diagnosticar.
 - [ ] **UI.25.2 — 🧠 Barra lateral de Settings.** Filas planas con hover fluido, iconos en un tono, activo en acento.
 - [ ] **UI.25.3 — 🧠 Resto de secciones.** Health, API & Models, Model routing (con etiquetas por desplegable), Usage,
   Danger zone, Language. Añade del registro lo que falte (`select`/`dropdown`, `switch`, `tabs`, `input-group`).
-  Verifica: `model-routing`, `smoke`.
+  Flujo nuevo `settings-look` en ui-gate (ver límites de UI.25.1) y mirar los 4 temas. Verifica: `model-routing`, `smoke`.
 - [ ] **UI.25.4 — 🧠 Página de proyecto.** Tareas sin texto duplicado ni UUID partido; se coordina con UI.24.5.
 
 Fuera de esta pasada: tema y paleta, backend, modo Dev, shell principal (cabecera y barra lateral del chat).
