@@ -22,6 +22,14 @@ async function runIsolated(
 ): Promise<Record<string, unknown>> {
   const home = mkdtempSync(join(tmpdir(), 'orchestos-chat-sessions-'))
   try {
+    // CI.26 — sin cache de catálogo fresco, `ensureCatalogLoaded` pega a OpenRouter (hasta 10 s) y el
+    // subproceso no sale hasta que el fetch termina: con red lenta el test revienta su timeout de 5 s.
+    // Cada test que necesita un catálogo propio lo escribe encima.
+    mkdirSync(join(home, '.orchestos', 'cache'), { recursive: true })
+    writeFileSync(
+      join(home, '.orchestos', 'cache', 'models.json'),
+      JSON.stringify({ schemaVersion: 2, fetchedAt: Date.now(), models: {} }),
+    )
     const env: NodeJS.ProcessEnv = {
       ...process.env,
       HOME: home,

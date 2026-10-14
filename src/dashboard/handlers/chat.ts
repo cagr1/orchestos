@@ -1280,7 +1280,8 @@ async function handleApiChat(
   // BACK.3: el efecto se descarta en silencio si el modelo no lo soporta — el
   // cliente (frontend) ya debería ocultar el control, pero esto evita mandarle
   // un `reasoning` ignorado o, peor, un error a un modelo que no lo entiende.
-  await ensureCatalogLoaded()
+  // CI.26: solo el camino API usa el catálogo de OpenRouter para `reasoning` y costo; un turno CLI no espera el fetch.
+  if (!useClaudeCli && !useCodexCli) await ensureCatalogLoaded()
   // CC.1b — el effort del camino CLI (5 niveles posibles, ya validado arriba
   // contra CLAUDE_CLI_EFFORTS) es un tipo distinto del `ReasoningEffort` de 3
   // niveles que espera el `reasoning` param de OpenRouter — separados para que

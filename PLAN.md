@@ -646,11 +646,18 @@ Cerrada. Todos sus ítems están archivados en `docs/done/` (ver "Cerrados — e
   Gate en vivo: navegador real (Playwright), `docs/done/evidence/CI.24-live.json` — `chat-continuity` 8/8 en 2 de 3
   corridas; la 3.ª cayó por el timeout del turno 1 (→ CI.25). Límite: la negativa se vio 1 vez; que no reaparezca en 2
   corridas es evidencia débil.
-- [ ] **CI.26 — 🔍 `CC.2 — chat sessions backend` llega al timeout de 5 s en `test:coverage` (intermitente).** Visto 2
+- [x] **CI.26 — 🔍 `CC.2 — chat sessions backend` llega al timeout de 5 s en `test:coverage` (intermitente).** Visto 2
   veces: 2026-10-13 y pre-push de `8701044` (2026-10-14). El subproceso de `runIsolated` se cuelga tras
   `[chat-turn] received` de la sesión `codex` (`chat-sessions.test.ts:323-326`, espera 502) y muere con 143. A solas
   tarda <1 s, también con el entorno del pre-push y `--coverage`.
-  Spec: docs/specs/CI.26.md
+  Ejecutado por: sonnet (rol `criterio`, r1) y gpt-6-luna (rol `mecanico`, r2) · Spec: docs/specs/CI.26.md (borrado)
+  (cerrado 2026-10-14) **Causa demostrada:** `handleApiChat` hacía `await ensureCatalogLoaded()` en todo turno; sin
+  caché fresco eso es un fetch a OpenRouter de hasta 10 s (`router/model-catalog.ts`), también en turnos CLI que no
+  usan el catálogo. Con red lenta el turno (y el test, 5 s) quedaba esperando. Arreglo de producto: solo el camino API
+  lo espera (`chat.ts:~1284`); el test además siembra un `models.json` fresco en su HOME. r2 (cerebro): la r1 acotaba
+  la espera a 1.5 s con `Promise.race`, que en un turno API con red lenta quitaba `reasoning` sin avisar.
+  Contraprueba (cerebro, `HTTPS_PROXY` a IP no ruteable): con HEAD fallan 2 tests a ~5001 ms; con solo el arreglo de
+  producto 24/24. Evidencia: `typecheck`, `chat-sessions.test.ts` 24/24 con y sin el proxy.
 - [x] **CI.25 — 🔍 El turno 1 de Claude (haiku, "Reply only OK") no responde en 180 s, sin rastro.** Visto 2 veces el
   2026-10-14 en `chat-continuity` (pre-push de `ec3e309`, intento 2, y corrida 2 de CI.24). El `dashboard.log` no dice
   nada: el chat no registra spawn, salida ni duración del CLI. Primero que deje evidencia (pid, exit, stderr, ms del
