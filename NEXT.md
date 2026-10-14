@@ -13,7 +13,7 @@
 6. Residuos de `erp-piloto`: limpiar si no sirven (las 3 tareas sobrantes no sirven; se limpian tras el hallazgo 5).
 7. `chat-retry-report` NO entra al pre-push.
 
-## PRIMERO al retomar — UI.24 en curso (GO de Carlos 2026-10-13); ERP.4.14 pasa a UI.24.6
+## PRIMERO al retomar — UI.24.2 (UI.24.1 cerrado `6c17cce`); ERP.4.14 pasa a UI.24.6
 ERP.4.10 (`e6efa62`), ERP.4.11 (`c476e68`), ERP.4.12 (`043770c`) y ERP.4.13 cerrados 2026-10-13. Siguiente:
 ERP.4.14 (el composer distingue "cargando" de "Orchestrator unassigned"), sin spec; luego 4.15 y 4.16.
 Visto en ERP.4.13, sin ítem: `CC.2 — chat sessions backend` dio timeout de 5 s una vez dentro de `test:coverage`
@@ -30,9 +30,24 @@ sobre cambios sin commitear, `bun run agent:handoff`; y el preflight del ejecuto
 identidad **local** en el repo temporal (`git config user.name/email`), no solo `-c` en los comandos del fixture.
 
 ## EN CURSO — UI.24, el hilo del chat con acabado premium (PLAN.md § UI.24; GO de Carlos 2026-10-13)
-Familia elegida: Fluid Functionalism (MIT) + Streamdown. UI.24.1 delegado a `criterio` con `docs/specs/UI.24.1.md`:
-los cambios sin commitear del front son de ese ítem. Orden: UI.24 primero, ERP.4 al final (ERP.4.14 va dentro de
-UI.24.6; luego 4.15, 4.16, limpiar `erp-piloto`, veredicto). Captura de MusicKind:
+Familia elegida: Fluid Functionalism (MIT) + Streamdown. **UI.24.1 cerrado y pusheado (`6c17cce`)**: la familia
+está instalada, la lámina vive en `?view=thread-states` (gate `thread-states`) y el hilo real todavía no la usa.
+**Siguiente: UI.24.2**, sin spec. Decisiones ya tomadas para ese spec: Inter pasa a ser la fuente de toda la app
+(hoy solo bajo `[data-ff]`; quitar Plus Jakarta Sans de `main.tsx` y de `body`); en el hilo real, mensaje del
+usuario y del asistente con `ChatMessage` de la familia (asistente sin caja, 14 px); fuera `Bot`/`User` de lucide
+junto a cada mensaje, degradados índigo y `animate-ping` (`OrchestChatView.tsx:423,426,528,531`). Los gates de chat
+leen `div.prose`, `textarea`, `aria-label="Send message"`, `title="Select model and reasoning effort"` y los textos
+"Approve & Run", "Commit & Run", "Retry": conservarlos o cambiar flujo y componente en el mismo ítem.
+`AgentComposer.tsx` está bajo `ui:fidelity:jsx` contra el prototipo: al rediseñarlo en UI.24.6 hay que sacarlo de
+ese comparador (`package.json:28`). Mirar siempre la captura: el gate pasó 71/71 con la burbuja invisible.
+Orden: UI.24 primero, ERP.4 al final (ERP.4.14 va dentro de UI.24.6; luego 4.15, 4.16, limpiar `erp-piloto`,
+veredicto). Antes de cerrar ERP.4: el test del 409 de ERP.4.13 (`src/dashboard/handlers/tasks.test.ts:158`) falla
+con `bun test` a secas porque hereda la identidad git global del Mac (pasa con `GIT_CONFIG_GLOBAL` sin identidad y
+en el pre-push); debe fijar su propio entorno.
+Visto 1 vez en el pre-push del 2026-10-13, sin ítem: `restart-mid-run` caso A falló porque Luna escribió `a.txt`
+con una línea en blanco de más, QA lo rechazó y la tarea quedó `pending` con reintento; el reporte dijo "failed ·
+attempt 1/3" y el gate exige que coincida con el estado final. A solas pasó 28/28 y el segundo push pasó. Si se
+repite: decidir si el reporte de un intento fallido con reintento pendiente debe decir "failed". Captura de MusicKind:
 `~/Projects/projects/portfolio/dist/projects/musickind-screen@1x.webp`. Vault consultado: sin insights aplicables.
 Lección: el hook del cerebro bloquea un Bash que combine heredoc y rutas del front; editar PLAN.md con Edit.
 Defecto de herramienta, sin arreglar: `delegate investigar "<pregunta>"` (y cualquier rol `claude` con `--tools`)
