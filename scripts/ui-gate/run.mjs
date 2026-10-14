@@ -178,6 +178,7 @@ async function runFlow(name, base, port) {
     const ctx = {
       page,
       base,
+      runDir,
       databasePath,
       restartDashboard: (whileStopped) => restartDashboard(base, port, whileStopped),
       captureDir,

@@ -13,11 +13,28 @@ export function commitTasksYaml(root: string, message: string): void {
     if (git(['check-ignore', '-q', '--', 'tasks.yaml'], root).exitCode === 0) return
     withGitLock(root, () => {
       if (git(['status', '--porcelain', '--', 'tasks.yaml'], root).stdout === '') return
-      if (git(['add', '--', 'tasks.yaml'], root).exitCode !== 0) return
-      git(['commit', '-m', message, '--', 'tasks.yaml'], root)
+      const add = git(['add', '--', 'tasks.yaml'], root)
+      if (add.exitCode !== 0) {
+        console.error(
+          `[tasks-yaml] commit skipped: ${message} · add exit=${add.exitCode} ${add.stderr}`.slice(
+            0,
+            300,
+          ),
+        )
+        return
+      }
+      const commit = git(['commit', '-m', message, '--', 'tasks.yaml'], root)
+      if (commit.exitCode !== 0)
+        console.error(
+          `[tasks-yaml] commit skipped: ${message} · commit exit=${commit.exitCode} ${commit.stderr || commit.stdout}`.slice(
+            0,
+            300,
+          ),
+        )
     })
-  } catch {
-    /* best-effort */
+  } catch (error) {
+    const detail = error instanceof Error ? error.message : String(error)
+    console.error(`[tasks-yaml] commit skipped: ${message} · error ${detail}`.slice(0, 300))
   }
 }
 
@@ -25,10 +42,17 @@ export function commitTasksYaml(root: string, message: string): void {
 export function commitFinalTaskState(root: string, taskId: string): void {
   try {
     const task = loadTasks(root).tasks.find((candidate) => candidate.id === taskId)
-    if (!task || task.status === 'running') return
+    if (!task) return
+    if (task.status === 'running') {
+      console.error(`[tasks-yaml] final state still running: ${taskId}`)
+      return
+    }
     commitTasksYaml(root, `chore(tasks): ${taskId} ${task.status}`)
-  } catch {
-    /* best-effort */
+  } catch (error) {
+    const detail = error instanceof Error ? error.message : String(error)
+    console.error(
+      `[tasks-yaml] commit skipped: chore(tasks): ${taskId} · error ${detail}`.slice(0, 300),
+    )
   }
 }
 

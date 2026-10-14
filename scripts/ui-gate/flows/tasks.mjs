@@ -82,7 +82,7 @@ async function recordRetry(api, projectId, task, note) {
   note(`failed attempt ${task.retryCount} QA detail`, JSON.stringify(detail))
 }
 
-export default async function tasks({ page, api, step, note, shot, visible, cleanup }) {
+export default async function tasks({ page, api, step, note, shot, visible, cleanup, runDir }) {
   const projectRoot = mkdtempSync(join(tmpdir(), 'orchestos-ui-13-2d-'))
   writeFileSync(join(projectRoot, 'README.md'), '# UI.13.2d\n')
   writeFileSync(join(projectRoot, '.gitignore'), '.orchestos/\n')
@@ -377,11 +377,37 @@ export default async function tasks({ page, api, step, note, shot, visible, clea
     `status=${relaunched?.status ?? 'missing'}`,
   )
   const relaunchedCommit = await waitForTasksYamlCommit(projectRoot, 'gate-failed-task')
+  const relaunchedCommitOk =
+    !/(^|\s)tasks\.yaml$/m.test(relaunchedCommit.status) &&
+    relaunchedCommit.subject.startsWith('chore(tasks): gate-failed-task ')
+  let relaunchedCommitDetail = `porcelain=${JSON.stringify(relaunchedCommit.status)} subject=${relaunchedCommit.subject}`
+  if (!relaunchedCommitOk) {
+    const taskStatus = (await tasksFor(api, project.id)).find(
+      (task) => task.id === 'gate-failed-task',
+    )
+    const logLines = readFileSync(join(runDir, 'dashboard.log'), 'utf8')
+      .split(/\r?\n/)
+      .filter(
+        (line) =>
+          line.includes('[tasks-yaml]') ||
+          line.includes('[task]') ||
+          line.includes('gate-failed-task'),
+      )
+      .slice(-40)
+    relaunchedCommitDetail = JSON.stringify({
+      porcelain: gitOut(['status', '--porcelain'], projectRoot),
+      subject: gitOut(['log', '-1', '--format=%s'], projectRoot),
+      log: gitOut(['log', '-5', '--format=%h %s'], projectRoot),
+      taskStatus: taskStatus
+        ? { status: taskStatus.status, retryCount: taskStatus.retryCount }
+        : null,
+      dashboardLog: logLines,
+    })
+  }
   await step(
     'relaunched task final state is committed in tasks.yaml',
-    !/(^|\s)tasks\.yaml$/m.test(relaunchedCommit.status) &&
-      relaunchedCommit.subject.startsWith('chore(tasks): gate-failed-task '),
-    `porcelain=${JSON.stringify(relaunchedCommit.status)} subject=${relaunchedCommit.subject}`,
+    relaunchedCommitOk,
+    relaunchedCommitDetail,
   )
   const dependentAfterRelaunch = (await tasksFor(api, project.id)).find(
     (task) => task.id === 'gate-dependent-task',
