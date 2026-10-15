@@ -9,7 +9,13 @@ de delegación y ui-gate". Orden y rumbo: `PLAN.md` § Rumbo. Arranque: `bun run
 - Orden del lote (Carlos 2026-10-14, prevalece sobre AT.20→CX.6): UI.24.5–24.7 → ERP.4.15, 4.16 (cierran ERP.4 y
   R.8) → UI.8.6 → Fase 3. AT.20/AT.21/CX.6 quedan detrás.
 - Cerrados hoy: UI.26.6 (`8701044`), CI.26 (`12eae7f`, timeout de CC.2: el turno CLI ya no espera el catálogo de
-  OpenRouter), UI.26.6.1 (formato), UI.26.7 (`9e89d09`), UI.24.4 (`c239117`, Streamdown); todo pusheado. UI.24.5 cerrado 2026-10-15 (una tarjeta por tarea). Siguiente: UI.24.6, escribir su spec.
+  OpenRouter), UI.26.6.1 (formato), UI.26.7 (`9e89d09`), UI.24.4 (`c239117`, Streamdown); todo pusheado. 2026-10-15: UI.24.5 (`78f561b`), UI.24.5.1 (`b0e5f70`, gates que leían el texto viejo), UI.24.6a
+  (`4f00d12`, imágenes nativas al CLI). Siguiente: **UI.24.6b** (GO de Carlos 2026-10-15, opción 1 "que funcione"),
+  escribir su spec desde `PLAN.md` § UI.24.6: el composer nunca llamaba a `POST /api/chat/upload` (ids `att_…` locales,
+  `AgentComposer.tsx:307-317`); subir al elegir/pegar/arrastrar, fichas con `file-thumbnail.tsx`, ERP.4.14, gate
+  `chat-attachments` con Codex real (txt con token + PNG con palabra; contraprueba con el composer de HEAD).
+  Al cambiar texto/selector del hilo: `rg` en todo `scripts/ui-gate/` (lección en `AGENTS.md`).
+  Preflight de sub-ítem indentado falla (`scripts/agent-governance.ts:37`): usar el ID del padre o arreglar el regex.
 - UI.24.4 subió `main.js` +22 % (1.58 → 1.92 MB), medido por paquete con el sourcemap: ~164 KB `rehype-raw` (parse5 y
   familia, HTML crudo; Streamdown lo importa estático en `dist/chunk-D32TOXHM.js`), ~85 KB streamdown, ~47 KB marked,
   ~17 KB remend, ~9 KB sanitize/harden, app +2 KB. Opciones dadas a Carlos: dejarlo (recomendado, app local), alias de
