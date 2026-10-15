@@ -895,8 +895,29 @@ color; la respuesta del asistente va sin caja; el identificador técnico se copi
   ningún gate produjo un turno real con razonamiento, así que `Thought for N s` solo se vio en la lámina; el tiempo
   se cuenta desde que la vista empieza a esperar, se reinicia si se recarga a mitad de turno; `Running <tool>` no se
   vio en un turno real.
-- [ ] **UI.24.4 — 🧠 Respuesta en streaming.** Streamdown en lugar de `react-markdown`: entrada por palabra, markdown
+- [x] **UI.24.4 — 🧠 Respuesta en streaming.** Streamdown en lugar de `react-markdown`: entrada por palabra, markdown
   incompleto sin parpadeo, altura suave, scroll pegado al final, bloque de código con copiar. Verifica: `chat-streaming`.
+  Ejecutado por: sonnet (rol `criterio`, r1) y gpt-6-luna (rol `mecanico`, r2–r6) · Spec: docs/specs/UI.24.4.md (borrado)
+  (cerrado 2026-10-14) `streamdown@2.7.0` + `remark-breaks` en `components/thread/ThreadMarkdown.tsx` (`animated`,
+  `isAnimating`, `mode="streaming"`, `parseIncompleteMarkdown`, `controls.code.copy`, `lineNumbers={false}`; sin
+  animación con `prefers-reduced-motion`), usado en el mensaje persistido y en el texto en vivo de
+  `OrchestChatView.tsx`. La fila de fase sigue debajo del texto en vivo. `index.css` suma solo la línea `@source` de
+  Streamdown (la pide su README para que Tailwind genere sus clases); los estilos del bloque van como variantes en
+  `CLASS_NAME`. Excepción a `components/ui/*`: `chat-message.tsx` añade `w-full` al texto del asistente (sin eso el
+  bloque de código se encogía al contenido, también en el chat real). `OrchestDevWorkspace.tsx` sigue con
+  `react-markdown`. r2–r6 (cerebro, mirando capturas): bloque de código con 3 marcos anidados → 1; CSS a mano con
+  `!important` en `index.css` → variantes en `CLASS_NAME`; bloque encogido (causa en `ChatMessage`, y el gate medía
+  contra el `div` encogido); etiqueta "ts" desalineada con el código y con el botón de copiar.
+  Coste: `main.js` 1 578 045 → 1 922 927 bytes (+22 %).
+  Evidencia: `typecheck`, `ui:fidelity:jsx`, `bun test components/thread` (17/17), corridos por el cerebro.
+  Gate en vivo: navegador real (Playwright), `docs/done/evidence/UI.24.4-live.json` — `thread-states` 123/123 (pasos
+  nuevos por tema: `single-line-breaks`, `incomplete-markdown-clean`, `code-block-copy`, `code-block-copied`,
+  `code-block-single-frame`, `code-header-aligned`, `no-palette-in-thread-markdown`), `chat-streaming` 24/24,
+  `codex-live` 14/14, `chat-turn-details` 26/26, `text-sweep` 10/10, `smoke` 6/6. El cerebro miró las capturas de
+  la lámina y del turno real (`thread-hierarchy`).
+  Contraprueba (ejecutor): sin `remark-breaks` falla `single-line-breaks` ("paragraph 1 lines, 0 <br>"); con el
+  estilo de r1, 3 marcos; con `chat-message.tsx` de HEAD, el bloque ocupa 22.5 %; con r4, delta vertical 8 px.
+  Límites: no se probó con texto de un turno real que traiga bloque de código (solo en la lámina).
 - [ ] **UI.24.5 — 🧠 Una tarjeta por tarea.** La tarea es una sola tarjeta que cambia de estado en su sitio; nombre corto
   en vez de UUID (el UUID se copia); intento, modelo y acciones (Approve, Reject, Commit & Run, Retry) dentro de la
   tarjeta; intentos anteriores plegados. Verifica: `chat-retry-report`, `chat-turn-details`, `auto-flow`.

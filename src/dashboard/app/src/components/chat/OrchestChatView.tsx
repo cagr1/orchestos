@@ -1,8 +1,6 @@
 import { Check, ChevronDown, ChevronUp, Copy, FileText, RotateCw, X } from 'lucide-react'
 import type React from 'react'
 import { useEffect, useRef, useState } from 'react'
-import Markdown from 'react-markdown'
-import remarkGfm from 'remark-gfm'
 import { ChatMessage } from '@/components/ui/chat-message'
 import {
   getSessionContext,
@@ -16,6 +14,7 @@ import type { ChatAttachment, ChatThread, SessionStatus } from '../../types/orch
 import { AgentComposer, type CliId } from '../common/AgentComposer'
 import { ContextRing } from '../common/ContextRing'
 import { ProviderLogo } from '../common/ProviderLogos'
+import { ThreadMarkdown } from '../thread/ThreadMarkdown'
 import { ThreadThinking } from '../thread/ThreadThinking'
 import { formatElapsed, livePhase } from '../thread/thinking'
 
@@ -412,25 +411,7 @@ export const OrchestChatView: React.FC<OrchestChatViewProps> = ({
                         </div>
                       </div>
                     )}
-                    <div className="prose prose-invert max-w-none whitespace-normal [&>p]:mb-2 [&>ul]:list-disc [&>ul]:pl-4 [&>ol]:list-decimal [&>ol]:pl-4 [&>pre]:bg-app-bg [&>pre]:p-2.5 [&>pre]:rounded-control [&>pre]:border [&>pre]:border-app [&>pre]:font-mono [&>code]:bg-app-bg [&>code]:px-1 [&>code]:py-0.5 [&>code]:rounded-control [&>code]:border [&>code]:border-app [&>code]:font-mono [&>strong]:font-bold [&>strong]:text-app">
-                      <Markdown
-                        remarkPlugins={[remarkGfm]}
-                        components={{
-                          input: ({ checked, type }) => {
-                            if (type === 'checkbox') {
-                              return (
-                                <span className="inline-flex items-center justify-center w-3.5 h-3.5 mr-1.5 align-middle rounded-[3px] border border-app bg-app-elevated text-app-accent">
-                                  {checked ? <Check className="w-2.5 h-2.5 stroke-[3]" /> : null}
-                                </span>
-                              )
-                            }
-                            return <input type={type} defaultChecked={checked} readOnly />
-                          },
-                        }}
-                      >
-                        {msg.content}
-                      </Markdown>
-                    </div>
+                    <ThreadMarkdown text={msg.content} streaming={false} />
                     {msg.taskHeld && msg.proposedTask && (
                       <div className="p-4 rounded-card bg-app-surface border border-app space-y-3 mt-3 whitespace-normal">
                         <div className="flex items-center justify-between">
@@ -572,9 +553,7 @@ export const OrchestChatView: React.FC<OrchestChatViewProps> = ({
                   aria-live="polite"
                   className="max-w-full w-full select-text"
                 >
-                  <div className="prose prose-invert max-w-none whitespace-normal [&>p]:mb-2 [&>ul]:list-disc [&>ul]:pl-4 [&>ol]:list-decimal [&>ol]:pl-4 [&>pre]:bg-app-bg [&>pre]:p-2.5 [&>pre]:rounded-control [&>pre]:border [&>pre]:border-app [&>pre]:font-mono [&>code]:bg-app-bg [&>code]:px-1 [&>code]:py-0.5 [&>code]:rounded-control [&>code]:border [&>code]:border-app [&>code]:font-mono [&>strong]:font-bold [&>strong]:text-app">
-                    <Markdown remarkPlugins={[remarkGfm]}>{liveText}</Markdown>
-                  </div>
+                  <ThreadMarkdown text={liveText} streaming />
                 </ChatMessage>
               )}
               {isWorking && (

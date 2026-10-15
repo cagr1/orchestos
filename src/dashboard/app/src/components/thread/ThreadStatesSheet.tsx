@@ -20,6 +20,7 @@ import {
 import { ChatMessage } from '@/components/ui/chat-message'
 import { InputMessage } from '@/components/ui/input-message'
 import { TooltipProvider } from '@/components/ui/tooltip'
+import { ThreadMarkdown } from './ThreadMarkdown'
 import { ThreadThinking } from './ThreadThinking'
 
 function makeImage(name: string, hue: number): Promise<File> {
@@ -118,6 +119,26 @@ export default function ThreadStatesSheet() {
             <ChatMessage from="assistant" actions={copyAction}>
               <p>Done: I created the “Migrate login to OAuth” task and left it pending.</p>
               <p>The type check passed; integration tests still need to run before closing it.</p>
+            </ChatMessage>
+          </State>
+
+          <State id="markdown-response" label="Markdown response">
+            <ChatMessage from="assistant" className="max-w-full w-full">
+              <ThreadMarkdown
+                streaming={false}
+                text={
+                  'Three files changed:\nsrc/a.ts\nsrc/b.ts\nsrc/c.ts\n\n**Result:** all checks passed.\n\n```ts\nconst answer = 42\n```'
+                }
+              />
+            </ChatMessage>
+          </State>
+
+          <State id="markdown-incomplete" label="Incomplete markdown">
+            <ChatMessage from="assistant" className="max-w-full w-full">
+              <ThreadMarkdown streaming text={'Working on it: **bold never closed'} />
+            </ChatMessage>
+            <ChatMessage from="assistant" className="max-w-full w-full">
+              <ThreadMarkdown streaming text={'Here is the code:\n\n```ts\nconst partial ='} />
             </ChatMessage>
           </State>
 

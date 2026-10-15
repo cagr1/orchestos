@@ -1,0 +1,1099 @@
+[
+  {
+    "flujo": "thread-states",
+    "pass": true,
+    "steps": [
+      {
+        "nombre": "sheet-visible-orchestos",
+        "ok": true,
+        "detalle": "orchestos sheet visible"
+      },
+      {
+        "nombre": "orchestos-state-message-user",
+        "ok": true,
+        "detalle": "orchestos: state-message-user visible"
+      },
+      {
+        "nombre": "orchestos-state-message-assistant",
+        "ok": true,
+        "detalle": "orchestos: state-message-assistant visible"
+      },
+      {
+        "nombre": "orchestos-state-message-attachments",
+        "ok": true,
+        "detalle": "orchestos: state-message-attachments visible"
+      },
+      {
+        "nombre": "orchestos-state-markdown-response",
+        "ok": true,
+        "detalle": "orchestos: state-markdown-response visible"
+      },
+      {
+        "nombre": "orchestos-state-markdown-incomplete",
+        "ok": true,
+        "detalle": "orchestos: state-markdown-incomplete visible"
+      },
+      {
+        "nombre": "orchestos-state-message-pdf",
+        "ok": true,
+        "detalle": "orchestos: state-message-pdf visible"
+      },
+      {
+        "nombre": "orchestos-state-thinking",
+        "ok": true,
+        "detalle": "orchestos: state-thinking visible"
+      },
+      {
+        "nombre": "orchestos-state-thinking-steps-running",
+        "ok": true,
+        "detalle": "orchestos: state-thinking-steps-running visible"
+      },
+      {
+        "nombre": "orchestos-state-thinking-steps-done",
+        "ok": true,
+        "detalle": "orchestos: state-thinking-steps-done visible"
+      },
+      {
+        "nombre": "orchestos-state-composer-empty",
+        "ok": true,
+        "detalle": "orchestos: state-composer-empty visible"
+      },
+      {
+        "nombre": "orchestos-state-composer-with-files",
+        "ok": true,
+        "detalle": "orchestos: state-composer-with-files visible"
+      },
+      {
+        "nombre": "orchestos-state-card",
+        "ok": true,
+        "detalle": "orchestos: state-card visible"
+      },
+      {
+        "nombre": "orchestos-state-badges",
+        "ok": true,
+        "detalle": "orchestos: state-badges visible"
+      },
+      {
+        "nombre": "orchestos-state-banner",
+        "ok": true,
+        "detalle": "orchestos: state-banner visible"
+      },
+      {
+        "nombre": "orchestos-single-line-breaks",
+        "ok": true,
+        "detalle": "orchestos: paragraph 4 lines, 3 <br>"
+      },
+      {
+        "nombre": "orchestos-incomplete-markdown-clean",
+        "ok": true,
+        "detalle": "orchestos: visible text \"Incomplete markdown\\n\\nWorking on it: bold never closed\\n\\nHere is the code:\\n\\nts\\ncon\""
+      },
+      {
+        "nombre": "orchestos-code-block-copy",
+        "ok": true,
+        "detalle": "orchestos: code block copy button visible"
+      },
+      {
+        "nombre": "orchestos-code-block-copied",
+        "ok": true,
+        "detalle": "orchestos: clipboard \"const answer = 42\\n\""
+      },
+      {
+        "nombre": "orchestos-code-block-single-frame",
+        "ok": true,
+        "detalle": "orchestos: 1 bordered elements (div[code-block] relative my-4 flex w-full flex-col gap-2 rounded-xl border border-border bg-sidebar p-2 (1px)), 100.0% ChatMessage width"
+      },
+      {
+        "nombre": "orchestos-code-header-aligned",
+        "ok": true,
+        "detalle": "orchestos: language label/code left delta 0.0 px; label center 500.0 px, copy center 500.0 px, vertical delta 0.0 px"
+      },
+      {
+        "nombre": "orchestos-no-palette-in-thread-markdown",
+        "ok": true,
+        "detalle": "orchestos: 0 palette classes "
+      },
+      {
+        "nombre": "orchestos-thinking-steps-open",
+        "ok": true,
+        "detalle": "orchestos: a step becomes visible after clicking the header"
+      },
+      {
+        "nombre": "orchestos-thinking-aligned",
+        "ok": true,
+        "detalle": "phase lefts 336.00, 336.00, 336.00 px; assistant p left 336.00 px; differences 0.00, 0.00, 0.00 px"
+      },
+      {
+        "nombre": "orchestos-thinking-steps-muted",
+        "ok": true,
+        "detalle": "step color rgb(148, 163, 184); muted reference rgb(148, 163, 184); font-weight 400"
+      },
+      {
+        "nombre": "orchestos-no-invented-words",
+        "ok": true,
+        "detalle": "orchestos: no invented thinking words in the sheet"
+      },
+      {
+        "nombre": "orchestos-font-inter",
+        "ok": true,
+        "detalle": "font-family: \"Inter Variable\", system-ui, -apple-system, \"system-ui\", \"Segoe UI\", Roboto, \"Noto Sans\", Ubuntu, Cantarell, \"Helvetica Neue\", sans-serif"
+      },
+      {
+        "nombre": "orchestos-font-inter-loaded",
+        "ok": true,
+        "detalle": "document.fonts.check('Inter Variable')"
+      },
+      {
+        "nombre": "orchestos-surface-ladder",
+        "ok": true,
+        "detalle": "L*: 3.30 → 6.27 → 10.29 → 14.21 → 18.01 → 22.00 → 25.69 → 29.22; strictly increasing"
+      },
+      {
+        "nombre": "orchestos-user-bubble-clarity",
+        "ok": true,
+        "detalle": "L* bubble 13.02, background 3.30, difference 9.72; minimum 6"
+      },
+      {
+        "nombre": "sheet-visible-graphite",
+        "ok": true,
+        "detalle": "graphite sheet visible"
+      },
+      {
+        "nombre": "graphite-state-message-user",
+        "ok": true,
+        "detalle": "graphite: state-message-user visible"
+      },
+      {
+        "nombre": "graphite-state-message-assistant",
+        "ok": true,
+        "detalle": "graphite: state-message-assistant visible"
+      },
+      {
+        "nombre": "graphite-state-message-attachments",
+        "ok": true,
+        "detalle": "graphite: state-message-attachments visible"
+      },
+      {
+        "nombre": "graphite-state-markdown-response",
+        "ok": true,
+        "detalle": "graphite: state-markdown-response visible"
+      },
+      {
+        "nombre": "graphite-state-markdown-incomplete",
+        "ok": true,
+        "detalle": "graphite: state-markdown-incomplete visible"
+      },
+      {
+        "nombre": "graphite-state-message-pdf",
+        "ok": true,
+        "detalle": "graphite: state-message-pdf visible"
+      },
+      {
+        "nombre": "graphite-state-thinking",
+        "ok": true,
+        "detalle": "graphite: state-thinking visible"
+      },
+      {
+        "nombre": "graphite-state-thinking-steps-running",
+        "ok": true,
+        "detalle": "graphite: state-thinking-steps-running visible"
+      },
+      {
+        "nombre": "graphite-state-thinking-steps-done",
+        "ok": true,
+        "detalle": "graphite: state-thinking-steps-done visible"
+      },
+      {
+        "nombre": "graphite-state-composer-empty",
+        "ok": true,
+        "detalle": "graphite: state-composer-empty visible"
+      },
+      {
+        "nombre": "graphite-state-composer-with-files",
+        "ok": true,
+        "detalle": "graphite: state-composer-with-files visible"
+      },
+      {
+        "nombre": "graphite-state-card",
+        "ok": true,
+        "detalle": "graphite: state-card visible"
+      },
+      {
+        "nombre": "graphite-state-badges",
+        "ok": true,
+        "detalle": "graphite: state-badges visible"
+      },
+      {
+        "nombre": "graphite-state-banner",
+        "ok": true,
+        "detalle": "graphite: state-banner visible"
+      },
+      {
+        "nombre": "graphite-single-line-breaks",
+        "ok": true,
+        "detalle": "graphite: paragraph 4 lines, 3 <br>"
+      },
+      {
+        "nombre": "graphite-incomplete-markdown-clean",
+        "ok": true,
+        "detalle": "graphite: visible text \"Incomplete markdown\\n\\nWorking on it: bold never closed\\n\\nHere is the code:\\n\\nts\\ncon\""
+      },
+      {
+        "nombre": "graphite-code-block-copy",
+        "ok": true,
+        "detalle": "graphite: code block copy button visible"
+      },
+      {
+        "nombre": "graphite-code-block-copied",
+        "ok": true,
+        "detalle": "graphite: clipboard \"const answer = 42\\n\""
+      },
+      {
+        "nombre": "graphite-code-block-single-frame",
+        "ok": true,
+        "detalle": "graphite: 1 bordered elements (div[code-block] relative my-4 flex w-full flex-col gap-2 rounded-xl border border-border bg-sidebar p-2 (1px)), 100.0% ChatMessage width"
+      },
+      {
+        "nombre": "graphite-code-header-aligned",
+        "ok": true,
+        "detalle": "graphite: language label/code left delta 0.0 px; label center 12.0 px, copy center 12.0 px, vertical delta 0.0 px"
+      },
+      {
+        "nombre": "graphite-no-palette-in-thread-markdown",
+        "ok": true,
+        "detalle": "graphite: 0 palette classes "
+      },
+      {
+        "nombre": "graphite-thinking-steps-open",
+        "ok": true,
+        "detalle": "graphite: a step becomes visible after clicking the header"
+      },
+      {
+        "nombre": "graphite-thinking-aligned",
+        "ok": true,
+        "detalle": "phase lefts 336.00, 336.00, 336.00 px; assistant p left 336.00 px; differences 0.00, 0.00, 0.00 px"
+      },
+      {
+        "nombre": "graphite-thinking-steps-muted",
+        "ok": true,
+        "detalle": "step color rgb(156, 163, 175); muted reference rgb(156, 163, 175); font-weight 400"
+      },
+      {
+        "nombre": "graphite-no-invented-words",
+        "ok": true,
+        "detalle": "graphite: no invented thinking words in the sheet"
+      },
+      {
+        "nombre": "graphite-font-inter",
+        "ok": true,
+        "detalle": "font-family: \"Inter Variable\", system-ui, -apple-system, \"system-ui\", \"Segoe UI\", Roboto, \"Noto Sans\", Ubuntu, Cantarell, \"Helvetica Neue\", sans-serif"
+      },
+      {
+        "nombre": "graphite-font-inter-loaded",
+        "ok": true,
+        "detalle": "document.fonts.check('Inter Variable')"
+      },
+      {
+        "nombre": "graphite-surface-ladder",
+        "ok": true,
+        "detalle": "L*: 5.03 → 8.71 → 12.69 → 16.54 → 20.24 → 23.88 → 27.45 → 30.94; strictly increasing"
+      },
+      {
+        "nombre": "graphite-user-bubble-clarity",
+        "ok": true,
+        "detalle": "L* bubble 15.11, background 5.03, difference 10.08; minimum 6"
+      },
+      {
+        "nombre": "sheet-visible-carbon",
+        "ok": true,
+        "detalle": "carbon sheet visible"
+      },
+      {
+        "nombre": "carbon-state-message-user",
+        "ok": true,
+        "detalle": "carbon: state-message-user visible"
+      },
+      {
+        "nombre": "carbon-state-message-assistant",
+        "ok": true,
+        "detalle": "carbon: state-message-assistant visible"
+      },
+      {
+        "nombre": "carbon-state-message-attachments",
+        "ok": true,
+        "detalle": "carbon: state-message-attachments visible"
+      },
+      {
+        "nombre": "carbon-state-markdown-response",
+        "ok": true,
+        "detalle": "carbon: state-markdown-response visible"
+      },
+      {
+        "nombre": "carbon-state-markdown-incomplete",
+        "ok": true,
+        "detalle": "carbon: state-markdown-incomplete visible"
+      },
+      {
+        "nombre": "carbon-state-message-pdf",
+        "ok": true,
+        "detalle": "carbon: state-message-pdf visible"
+      },
+      {
+        "nombre": "carbon-state-thinking",
+        "ok": true,
+        "detalle": "carbon: state-thinking visible"
+      },
+      {
+        "nombre": "carbon-state-thinking-steps-running",
+        "ok": true,
+        "detalle": "carbon: state-thinking-steps-running visible"
+      },
+      {
+        "nombre": "carbon-state-thinking-steps-done",
+        "ok": true,
+        "detalle": "carbon: state-thinking-steps-done visible"
+      },
+      {
+        "nombre": "carbon-state-composer-empty",
+        "ok": true,
+        "detalle": "carbon: state-composer-empty visible"
+      },
+      {
+        "nombre": "carbon-state-composer-with-files",
+        "ok": true,
+        "detalle": "carbon: state-composer-with-files visible"
+      },
+      {
+        "nombre": "carbon-state-card",
+        "ok": true,
+        "detalle": "carbon: state-card visible"
+      },
+      {
+        "nombre": "carbon-state-badges",
+        "ok": true,
+        "detalle": "carbon: state-badges visible"
+      },
+      {
+        "nombre": "carbon-state-banner",
+        "ok": true,
+        "detalle": "carbon: state-banner visible"
+      },
+      {
+        "nombre": "carbon-single-line-breaks",
+        "ok": true,
+        "detalle": "carbon: paragraph 4 lines, 3 <br>"
+      },
+      {
+        "nombre": "carbon-incomplete-markdown-clean",
+        "ok": true,
+        "detalle": "carbon: visible text \"Incomplete markdown\\n\\nWorking on it: bold never closed\\n\\nHere is the code:\\n\\nts\\ncon\""
+      },
+      {
+        "nombre": "carbon-code-block-copy",
+        "ok": true,
+        "detalle": "carbon: code block copy button visible"
+      },
+      {
+        "nombre": "carbon-code-block-copied",
+        "ok": true,
+        "detalle": "carbon: clipboard \"const answer = 42\\n\""
+      },
+      {
+        "nombre": "carbon-code-block-single-frame",
+        "ok": true,
+        "detalle": "carbon: 1 bordered elements (div[code-block] relative my-4 flex w-full flex-col gap-2 rounded-xl border border-border bg-sidebar p-2 (1px)), 100.0% ChatMessage width"
+      },
+      {
+        "nombre": "carbon-code-header-aligned",
+        "ok": true,
+        "detalle": "carbon: language label/code left delta 0.0 px; label center 12.0 px, copy center 12.0 px, vertical delta 0.0 px"
+      },
+      {
+        "nombre": "carbon-no-palette-in-thread-markdown",
+        "ok": true,
+        "detalle": "carbon: 0 palette classes "
+      },
+      {
+        "nombre": "carbon-thinking-steps-open",
+        "ok": true,
+        "detalle": "carbon: a step becomes visible after clicking the header"
+      },
+      {
+        "nombre": "carbon-thinking-aligned",
+        "ok": true,
+        "detalle": "phase lefts 336.00, 336.00, 336.00 px; assistant p left 336.00 px; differences 0.00, 0.00, 0.00 px"
+      },
+      {
+        "nombre": "carbon-thinking-steps-muted",
+        "ok": true,
+        "detalle": "step color rgb(161, 161, 170); muted reference rgb(161, 161, 170); font-weight 400"
+      },
+      {
+        "nombre": "carbon-no-invented-words",
+        "ok": true,
+        "detalle": "carbon: no invented thinking words in the sheet"
+      },
+      {
+        "nombre": "carbon-font-inter",
+        "ok": true,
+        "detalle": "font-family: \"Inter Variable\", system-ui, -apple-system, \"system-ui\", \"Segoe UI\", Roboto, \"Noto Sans\", Ubuntu, Cantarell, \"Helvetica Neue\", sans-serif"
+      },
+      {
+        "nombre": "carbon-font-inter-loaded",
+        "ok": true,
+        "detalle": "document.fonts.check('Inter Variable')"
+      },
+      {
+        "nombre": "carbon-surface-ladder",
+        "ok": true,
+        "detalle": "L*: 2.51 → 5.12 → 9.34 → 13.30 → 17.57 → 21.31 → 25.35 → 28.92; strictly increasing"
+      },
+      {
+        "nombre": "carbon-user-bubble-clarity",
+        "ok": true,
+        "detalle": "L* bubble 11.83, background 2.51, difference 9.32; minimum 6"
+      },
+      {
+        "nombre": "sheet-visible-light",
+        "ok": true,
+        "detalle": "light sheet visible"
+      },
+      {
+        "nombre": "light-state-message-user",
+        "ok": true,
+        "detalle": "light: state-message-user visible"
+      },
+      {
+        "nombre": "light-state-message-assistant",
+        "ok": true,
+        "detalle": "light: state-message-assistant visible"
+      },
+      {
+        "nombre": "light-state-message-attachments",
+        "ok": true,
+        "detalle": "light: state-message-attachments visible"
+      },
+      {
+        "nombre": "light-state-markdown-response",
+        "ok": true,
+        "detalle": "light: state-markdown-response visible"
+      },
+      {
+        "nombre": "light-state-markdown-incomplete",
+        "ok": true,
+        "detalle": "light: state-markdown-incomplete visible"
+      },
+      {
+        "nombre": "light-state-message-pdf",
+        "ok": true,
+        "detalle": "light: state-message-pdf visible"
+      },
+      {
+        "nombre": "light-state-thinking",
+        "ok": true,
+        "detalle": "light: state-thinking visible"
+      },
+      {
+        "nombre": "light-state-thinking-steps-running",
+        "ok": true,
+        "detalle": "light: state-thinking-steps-running visible"
+      },
+      {
+        "nombre": "light-state-thinking-steps-done",
+        "ok": true,
+        "detalle": "light: state-thinking-steps-done visible"
+      },
+      {
+        "nombre": "light-state-composer-empty",
+        "ok": true,
+        "detalle": "light: state-composer-empty visible"
+      },
+      {
+        "nombre": "light-state-composer-with-files",
+        "ok": true,
+        "detalle": "light: state-composer-with-files visible"
+      },
+      {
+        "nombre": "light-state-card",
+        "ok": true,
+        "detalle": "light: state-card visible"
+      },
+      {
+        "nombre": "light-state-badges",
+        "ok": true,
+        "detalle": "light: state-badges visible"
+      },
+      {
+        "nombre": "light-state-banner",
+        "ok": true,
+        "detalle": "light: state-banner visible"
+      },
+      {
+        "nombre": "light-single-line-breaks",
+        "ok": true,
+        "detalle": "light: paragraph 4 lines, 3 <br>"
+      },
+      {
+        "nombre": "light-incomplete-markdown-clean",
+        "ok": true,
+        "detalle": "light: visible text \"Incomplete markdown\\n\\nWorking on it: bold never closed\\n\\nHere is the code:\\n\\nts\\ncon\""
+      },
+      {
+        "nombre": "light-code-block-copy",
+        "ok": true,
+        "detalle": "light: code block copy button visible"
+      },
+      {
+        "nombre": "light-code-block-copied",
+        "ok": true,
+        "detalle": "light: clipboard \"const answer = 42\\n\""
+      },
+      {
+        "nombre": "light-code-block-single-frame",
+        "ok": true,
+        "detalle": "light: 1 bordered elements (div[code-block] relative my-4 flex w-full flex-col gap-2 rounded-xl border border-border bg-sidebar p-2 (1px)), 100.0% ChatMessage width"
+      },
+      {
+        "nombre": "light-code-header-aligned",
+        "ok": true,
+        "detalle": "light: language label/code left delta 0.0 px; label center 12.0 px, copy center 12.0 px, vertical delta 0.0 px"
+      },
+      {
+        "nombre": "light-no-palette-in-thread-markdown",
+        "ok": true,
+        "detalle": "light: 0 palette classes "
+      },
+      {
+        "nombre": "light-thinking-steps-open",
+        "ok": true,
+        "detalle": "light: a step becomes visible after clicking the header"
+      },
+      {
+        "nombre": "light-thinking-aligned",
+        "ok": true,
+        "detalle": "phase lefts 336.00, 336.00, 336.00 px; assistant p left 336.00 px; differences 0.00, 0.00, 0.00 px"
+      },
+      {
+        "nombre": "light-thinking-steps-muted",
+        "ok": true,
+        "detalle": "step color rgb(100, 116, 139); muted reference rgb(100, 116, 139); font-weight 400"
+      },
+      {
+        "nombre": "light-no-invented-words",
+        "ok": true,
+        "detalle": "light: no invented thinking words in the sheet"
+      },
+      {
+        "nombre": "light-font-inter",
+        "ok": true,
+        "detalle": "font-family: \"Inter Variable\", system-ui, -apple-system, \"system-ui\", \"Segoe UI\", Roboto, \"Noto Sans\", Ubuntu, Cantarell, \"Helvetica Neue\", sans-serif"
+      },
+      {
+        "nombre": "light-font-inter-loaded",
+        "ok": true,
+        "detalle": "document.fonts.check('Inter Variable')"
+      },
+      {
+        "nombre": "light-surface-ladder",
+        "ok": true,
+        "detalle": "L*: 98.18 → 96.12 → 94.28 → 92.28 → 90.19 → 88.35 → 86.22 → 84.10; strictly decreasing"
+      },
+      {
+        "nombre": "light-user-bubble-clarity",
+        "ok": true,
+        "detalle": "L* bubble 91.57, background 98.18, difference 6.60; minimum 6"
+      },
+      {
+        "nombre": "no-pdf-worker-request",
+        "ok": true,
+        "detalle": "no PDF worker network request"
+      },
+      {
+        "nombre": "no-console-errors",
+        "ok": true,
+        "detalle": "errors: 0"
+      },
+      {
+        "nombre": "home-chat",
+        "ok": true,
+        "detalle": "default route loads the chat"
+      }
+    ],
+    "notes": [],
+    "errores": [],
+    "capturas": [
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-33415/thread-states/thread-states-orchestos.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-33415/thread-states/thread-states-graphite.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-33415/thread-states/thread-states-carbon.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-33415/thread-states/thread-states-light.png"
+    ]
+  },
+  {
+    "flujo": "chat-streaming",
+    "pass": true,
+    "steps": [
+      {
+        "nombre": "temporary project visible",
+        "ok": true,
+        "detalle": "orchestos-ui-mr-1-d4-UZnuJq"
+      },
+      {
+        "nombre": "Claude option available",
+        "ok": true,
+        "detalle": "Start New Chat with Agent\nConversation Topic or Title (Optional)\nProject\nNo projectorchestos-ui-mr-1-d4-UZnuJq\nSelect Agent / Engine\nClaude Code\nCodex\nOpenRouter API\nCancel\nStart Chat"
+      },
+      {
+        "nombre": "first assistant text appears before completion",
+        "ok": true,
+        "detalle": "t_first=4867 ms; t_done=6412 ms"
+      },
+      {
+        "nombre": "visible text grows at least twice before completion",
+        "ok": true,
+        "detalle": "3 growth updates"
+      },
+      {
+        "nombre": "live bubble stays at the bottom",
+        "ok": true,
+        "detalle": "4 growth measurements; remained at bottom: true"
+      },
+      {
+        "nombre": "captured screenshot during active turn",
+        "ok": true,
+        "detalle": "chat-text-visible-mid-turn"
+      },
+      {
+        "nombre": "working-indicator-names-phase",
+        "ok": true,
+        "detalle": "indicator text: \"Thinking 0 s\""
+      },
+      {
+        "nombre": "working-indicator-gone",
+        "ok": true,
+        "detalle": "indicator removed after 9 ms"
+      },
+      {
+        "nombre": "one assistant bubble matches persisted response",
+        "ok": true,
+        "detalle": "bubbles=1; persisted=1; visible=Uno Dos Tres Cuatro Cinco Seis Siete Ocho Nueve Diez Once Doce Trece Catorce Qui"
+      },
+      {
+        "nombre": "context ring reflects thread",
+        "ok": true,
+        "detalle": "used=7913, window=200000, pct=3.9565"
+      },
+      {
+        "nombre": "context ring recalculates on model change",
+        "ok": true,
+        "detalle": "model=claude-sonnet-5, expected pct=0.7913, ring=Context window usage: 0.7913%"
+      },
+      {
+        "nombre": "task marker is not visible",
+        "ok": true,
+        "detalle": "no task marker in the DOM"
+      },
+      {
+        "nombre": "Chat composer empty during sampled turn",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "Chat DOM order during sampled turn is previous assistant, user, live assistant",
+        "ok": true,
+        "detalle": "{\"liveCount\":1,\"order\":[\"Escribe los números del 1 al 40 en palabras, uno p\",\"Uno Dos Tres Cuatro Cinco Seis Siete Ocho Nueve Di\",\"Escribe los números del 41 al 80 en palabras, uno \",\"Cuarenta y uno Cuarenta y dos Cuarenta y tres Cuar\"]}"
+      },
+      {
+        "nombre": "Chat turn 2 was sampled while pending",
+        "ok": true,
+        "detalle": "1 long turn(s) sent; pending composer and live DOM order sampled"
+      },
+      {
+        "nombre": "Chat bubbles alternate for every sent turn",
+        "ok": true,
+        "detalle": "[\"Escribe los números del 1 al 40 en palabras, uno p\",\"Uno Dos Tres Cuatro Cinco Seis Siete Ocho Nueve Di\",\"Escribe los números del 41 al 80 en palabras, uno \",\"Cuarenta y uno Cuarenta y dos Cuarenta y tres Cuar\"]"
+      },
+      {
+        "nombre": "Chat user bubbles contain no agent text or step markup",
+        "ok": true,
+        "detalle": "user bubbles=2"
+      },
+      {
+        "nombre": "Chat exchange order remains correct after reload",
+        "ok": true,
+        "detalle": "messages=4"
+      },
+      {
+        "nombre": "thread-font-inter",
+        "ok": true,
+        "detalle": "font-family=\"Inter Variable\", system-ui, -apple-system, \"system-ui\", \"Segoe UI\", Roboto, \"Noto Sans\", Ubuntu, Cantarell, \"Helvetica Neue\", sans-serif"
+      },
+      {
+        "nombre": "thread-body-14px",
+        "ok": true,
+        "detalle": "font-size=14px"
+      },
+      {
+        "nombre": "thread-assistant-unboxed",
+        "ok": true,
+        "detalle": "ancestors=[{\"backgroundColor\":\"rgba(0, 0, 0, 0)\",\"borderTopWidth\":\"0px\",\"boxShadow\":\"none\"},{\"backgroundColor\":\"rgba(0, 0, 0, 0)\",\"borderTopWidth\":\"0px\",\"boxShadow\":\"none\"},{\"backgroundColor\":\"rgba(0, 0, 0, 0)\",\"borderTopWidth\":\"0px\",\"boxShadow\":\"none\"}]"
+      },
+      {
+        "nombre": "thread-user-bubble-visible",
+        "ok": true,
+        "detalle": "bubble={\"found\":true,\"backgroundColor\":\"oklab(0.249498 -0.00229985 -0.0147313)\",\"opaque\":true,\"userBubbleL\":20.537404286089497,\"backgroundL\":12.733002212579532,\"difference\":7.804402073509966}"
+      },
+      {
+        "nombre": "thread-no-decoration",
+        "ok": true,
+        "detalle": "animate-ping=0, gradients=0, bot-icons=0, user-icons=0"
+      },
+      {
+        "nombre": "Dev renders text during generation before completion",
+        "ok": true,
+        "detalle": "t_first=3130 ms; t_done=4232 ms; visible=Uno\nDos\nTres\nCuatro\nCinco"
+      }
+    ],
+    "notes": [],
+    "errores": [],
+    "capturas": [
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-33415/chat-streaming/chat-text-visible-mid-turn.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-33415/chat-streaming/thread-hierarchy.png"
+    ]
+  },
+  {
+    "flujo": "codex-live",
+    "pass": true,
+    "steps": [
+      {
+        "nombre": "temporary project visible",
+        "ok": true,
+        "detalle": "orchestos-ui-codex-live-LrCk4K"
+      },
+      {
+        "nombre": "Codex agent available",
+        "ok": true,
+        "detalle": "Codex option"
+      },
+      {
+        "nombre": "turn 1 user message appears before completion",
+        "ok": true,
+        "detalle": "23 ms after send"
+      },
+      {
+        "nombre": "turn 1 streams multiple visible text updates",
+        "ok": true,
+        "detalle": "11 distinct non-empty samples before completion"
+      },
+      {
+        "nombre": "turn 1 working indicator stops after completion",
+        "ok": true,
+        "detalle": "0 working indicators remain"
+      },
+      {
+        "nombre": "turn 2 DOM order is assistant 1, user 2, live assistant 2 while generating",
+        "ok": true,
+        "detalle": "[\"08:09 PM\\nRemember the word MANGO-DQJ3P04I. Reply i\",\"I’ll remember MANGO-DQJ3P04I in this conversation.\",\"08:09 PM\\nWhat word did I ask you to remember? Star\",\"MANGO-DQJ3P04I. Mangoes are tropical fruits with j\"]; first answer=I'll remember MANGO-DQJ3P04I in this conversation. Mangoes are sweet tropical fr"
+      },
+      {
+        "nombre": "turn 2 remembers the word from turn 1",
+        "ok": true,
+        "detalle": "MANGO-DQJ3P04I. Mangoes are tropical fruits with juicy flesh and a sweet, fragrant flavor.\n\nThey grow on trees and contain a large, flat pit. Depending on the variety, their skin can be green, yellow, orange, or red.\n\nEnjoy mangoes fresh, in smoothies, or in salads. Unripe mangoes have a tart flavor that works well in pickles and chutneys."
+      },
+      {
+        "nombre": "turn 2 working indicator stops after completion",
+        "ok": true,
+        "detalle": "0 working indicators remain"
+      },
+      {
+        "nombre": "both exchanges remain visible in order after turn 2",
+        "ok": true,
+        "detalle": "user bubbles=2; assistant bubbles=2; first answer=I'll remember MANGO-DQJ3P04I in this conversation. Mangoes are sweet tropical fr"
+      },
+      {
+        "nombre": "timeline DOM alternates user 1, assistant 1, user 2, assistant 2",
+        "ok": true,
+        "detalle": "[\"08:09 PM\\nRemember the word MANGO-DQJ3P04I. Reply i\",\"I’ll remember MANGO-DQJ3P04I in this conversation.\",\"08:09 PM\\nWhat word did I ask you to remember? Star\",\"MANGO-DQJ3P04I. Mangoes are tropical fruits with j\"]; first answer=I'll remember MANGO-DQJ3P04I in this conversation. Mangoes are sweet tropical fr"
+      },
+      {
+        "nombre": "user bubbles contain no agent markup or response text",
+        "ok": true,
+        "detalle": "2 user bubbles checked; first answer=I'll remember MANGO-DQJ3P04I in this conversation. Mangoes are sweet tropical fr"
+      },
+      {
+        "nombre": "timeline DOM alternates user 1, assistant 1, user 2, assistant 2 after reload",
+        "ok": true,
+        "detalle": "user bubbles=2; assistant bubbles=2; first answer=I'll remember MANGO-DQJ3P04I in this conversation. Mangoes are sweet tropical fr"
+      },
+      {
+        "nombre": "turn 2 is faster than turn 1",
+        "ok": true,
+        "detalle": "turn 1=21862 ms; turn 2=5063 ms"
+      },
+      {
+        "nombre": "project chat runs are recorded with provider=codex",
+        "ok": true,
+        "detalle": "[{\"provider\":\"codex\",\"model\":\"gpt-6.1-sol\"},{\"provider\":\"codex\",\"model\":\"gpt-6.1-sol\"}]"
+      }
+    ],
+    "notes": [],
+    "errores": [],
+    "capturas": [
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-33415/codex-live/codex-live-turn-one.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-33415/codex-live/codex-live-turn-two.png"
+    ]
+  },
+  {
+    "flujo": "chat-turn-details",
+    "pass": true,
+    "steps": [
+      {
+        "nombre": "temporary project clean before README task",
+        "ok": true,
+        "detalle": "clean"
+      },
+      {
+        "nombre": "select temporary project",
+        "ok": true,
+        "detalle": "project visible in sidebar"
+      },
+      {
+        "nombre": "select Codex for new chat",
+        "ok": true,
+        "detalle": "visible agent selector"
+      },
+      {
+        "nombre": "model and effort controls visible",
+        "ok": true,
+        "detalle": "composer controls visible"
+      },
+      {
+        "nombre": "select gpt-6-luna",
+        "ok": true,
+        "detalle": "model option visible"
+      },
+      {
+        "nombre": "select medium effort",
+        "ok": true,
+        "detalle": "effort option visible"
+      },
+      {
+        "nombre": "model popover closes",
+        "ok": true,
+        "detalle": "popover closed after Escape/click outside"
+      },
+      {
+        "nombre": "model used a tool within three attempts",
+        "ok": true,
+        "detalle": "1 backend tool step(s) observed"
+      },
+      {
+        "nombre": "tool block with command success",
+        "ok": true,
+        "detalle": "tool trace rendered"
+      },
+      {
+        "nombre": "command success row",
+        "ok": true,
+        "detalle": "success visible"
+      },
+      {
+        "nombre": "new chat is linked to temporary project",
+        "ok": true,
+        "detalle": "projectId=448b0a474d01b937, mode=code"
+      },
+      {
+        "nombre": "held task card visible",
+        "ok": true,
+        "detalle": "held task rendered"
+      },
+      {
+        "nombre": "held task id visible",
+        "ok": true,
+        "detalle": "chat-54993ba8-8788-401d-ab1e-4766e682f108"
+      },
+      {
+        "nombre": "Reject removes card",
+        "ok": true,
+        "detalle": "card removed"
+      },
+      {
+        "nombre": "Reject removes task from API",
+        "ok": true,
+        "detalle": "task absent"
+      },
+      {
+        "nombre": "second held task card visible",
+        "ok": true,
+        "detalle": "held task rendered again"
+      },
+      {
+        "nombre": "temporary project clean before Approve",
+        "ok": true,
+        "detalle": "clean"
+      },
+      {
+        "nombre": "Approve & Run starts task",
+        "ok": true,
+        "detalle": "chat-05a8bef4-8c1a-42ca-b5de-90ca0617f276"
+      },
+      {
+        "nombre": "Approve & Run removes card",
+        "ok": true,
+        "detalle": "card removed"
+      },
+      {
+        "nombre": "approved task leaves pending",
+        "ok": true,
+        "detalle": "status=running"
+      },
+      {
+        "nombre": "reload: approved card remains hidden",
+        "ok": true,
+        "detalle": "card remains hidden"
+      },
+      {
+        "nombre": "reload: temporary project visible",
+        "ok": true,
+        "detalle": "project visible after reload"
+      },
+      {
+        "nombre": "reload API message keeps turnId",
+        "ok": true,
+        "detalle": "580fe8f8-6e0a-4322-8984-961fb0abcd06"
+      },
+      {
+        "nombre": "reload API timeline brings turn steps",
+        "ok": true,
+        "detalle": "8 pasos en 3 turnos"
+      },
+      {
+        "nombre": "reload: project chat reachable from Chat list",
+        "ok": true,
+        "detalle": "chat title visible; sidebar=\"Chat\\nDev\\nNew chat\\nChats\\nCodex: Ejecuta el comando ls en la raíz del pro\\nSettings\""
+      },
+      {
+        "nombre": "reload: tool block visible in selected chat",
+        "ok": true,
+        "detalle": "tool trace rendered after selecting chat"
+      }
+    ],
+    "notes": [
+      {
+        "nombre": "reasoning optional",
+        "detalle": "reasoning: 0 pasos del CLI"
+      }
+    ],
+    "errores": [],
+    "capturas": [
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-33415/chat-turn-details/tool-and-reasoning.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-33415/chat-turn-details/held-task.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-33415/chat-turn-details/after-reject.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-33415/chat-turn-details/approved-task.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-33415/chat-turn-details/after-final-reload.png"
+    ]
+  },
+  {
+    "flujo": "text-sweep",
+    "pass": true,
+    "steps": [
+      {
+        "nombre": "temporary project visible",
+        "ok": true,
+        "detalle": "project visible in sidebar"
+      },
+      {
+        "nombre": "Codex selector visible",
+        "ok": true,
+        "detalle": "Codex option visible"
+      },
+      {
+        "nombre": "model selector visible",
+        "ok": true,
+        "detalle": "composer model selector"
+      },
+      {
+        "nombre": "gpt-6-luna visible",
+        "ok": true,
+        "detalle": "Codex cache model"
+      },
+      {
+        "nombre": "medium visible",
+        "ok": true,
+        "detalle": "reasoning effort"
+      },
+      {
+        "nombre": "real Codex response visible",
+        "ok": true,
+        "detalle": "assistant response"
+      },
+      {
+        "nombre": "removed text absent after real turn",
+        "ok": true,
+        "detalle": "chat surface sweep complete"
+      },
+      {
+        "nombre": "all stale copy remains absent from the active screen",
+        "ok": true,
+        "detalle": "14 literals checked"
+      },
+      {
+        "nombre": "turn records selected model and effort",
+        "ok": true,
+        "detalle": "model=gpt-6-luna via Codex CLI (effort: medium), effort=medium"
+      },
+      {
+        "nombre": "no CLI default fallback in recorded surface",
+        "ok": true,
+        "detalle": "record uses selected model"
+      }
+    ],
+    "notes": [],
+    "errores": [],
+    "capturas": []
+  },
+  {
+    "flujo": "smoke",
+    "pass": true,
+    "steps": [
+      {
+        "nombre": "home",
+        "ok": true,
+        "detalle": "Chat visible"
+      },
+      {
+        "nombre": "home-dev",
+        "ok": true,
+        "detalle": "Dev visible"
+      },
+      {
+        "nombre": "dev-view",
+        "ok": true,
+        "detalle": "OrchestOS Dev visible"
+      },
+      {
+        "nombre": "chat-composer",
+        "ok": true,
+        "detalle": "chat composer visible"
+      },
+      {
+        "nombre": "settings-view",
+        "ok": true,
+        "detalle": "Appearance visible"
+      },
+      {
+        "nombre": "settings-general",
+        "ok": true,
+        "detalle": "Appearance visible"
+      }
+    ],
+    "notes": [],
+    "errores": [],
+    "capturas": [
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-33415/smoke/chat.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-33415/smoke/dev.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-33415/smoke/chat-returned.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-33415/smoke/settings.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-33415/smoke/settings-general.png"
+    ]
+  }
+]

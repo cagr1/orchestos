@@ -101,7 +101,7 @@ const ChatMessage = forwardRef<HTMLDivElement, ChatMessageProps>(
                     // stays put as the text grows.
                     "text-pretty bg-[color-mix(in_oklab,var(--accent),var(--background)_45%)] text-foreground"
                   )
-                : "text-foreground"
+                : "w-full text-foreground"
             )}
           >
             {children}
