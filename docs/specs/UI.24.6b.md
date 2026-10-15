@@ -76,3 +76,17 @@ No commitear. No `git stash`.
 - `rg` en `scripts/ui-gate/` por cada texto/selector del composer o del hilo que cambie.
 
 El cerebro además corre la contraprueba: `chat-attachments` contra el composer de HEAD debe fallar.
+
+## Ronda 2 — correcciones del cerebro (tras leer el diff y las capturas)
+1. **Orden de la fusión** (`App.tsx` `loadThreadMessages` + `mergeAttachments.ts`): con dos envíos del mismo texto,
+   la primera entrada marca el último mensaje y la segunda lo encuentra ocupado y se pierde → el último mensaje muestra
+   los adjuntos viejos. Corregir: `mergeOptimisticAttachments` salta los `user` que ya tienen adjuntos y sigue hacia
+   atrás, y `loadThreadMessages` aplica las entradas de la más nueva a la más vieja. Test con ese caso.
+2. **Envío vacío** (`AgentComposer.tsx` `handleSend` y `disabled` de Send): sin texto y con todas las fichas en
+   `error`, hoy se envía un mensaje vacío. Contar solo las fichas no-`error` para "hay algo que enviar".
+3. **El gate solo cubre Dev** (las capturas muestran `OrchestDevWorkspace`): `OrchestChatView` y la fusión de
+   `App.tsx` no se ejercitan en vivo. Agregar a `chat-attachments` una segunda pasada en modo **Chat** (mismo proyecto,
+   cambiar con el switch Chat|Dev) con las mismas afirmaciones: fichas listas, `fileIds` sin `att_`, respuesta con
+   token y palabras, miniatura `<img>` cargada en el mensaje enviado y que sigue tras terminar el turno. Captura de esa
+   pasada. Si en Chat el orquestador crea tarea en vez de responder, ajustar el prompt (no el producto) y decirlo.
+Verifica: lo mismo de arriba; pegar la salida de `bun run ui:gate chat-attachments` y los tests nuevos.
