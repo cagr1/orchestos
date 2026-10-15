@@ -272,7 +272,7 @@ export default async function chatTurnDetails({
   const beforeHeldTaskIds = new Set((await tasksFor(api, project.id)).map((task) => task.id))
   await composer.fill(heldPrompt)
   await composer.press('Enter')
-  const taskCard = page.getByText('Task ready to run', { exact: true })
+  const taskCard = page.locator('[data-task-state="held"]')
   const heldCardVisible = await visible(taskCard, 180_000)
   if (!heldCardVisible) {
     await shot('held-task-missing')
@@ -287,10 +287,20 @@ export default async function chatTurnDetails({
   await step('held task card visible', await taskCard.first().isVisible(), 'held task rendered')
   const pendingTasks = await tasksFor(api, project.id)
   const heldTask = await heldTaskFor(api, project.id, pendingTasks, beforeHeldTaskIds)
+  const heldCard = heldTask ? page.locator(`[data-task-id="${heldTask.id}"]`) : null
   await step(
-    'held task id visible',
-    Boolean(heldTask && (await visible(page.getByText(heldTask.id, { exact: true })))),
+    'held task card carries the id (copy button, no text)',
+    Boolean(
+      heldCard &&
+        (await visible(heldCard.getByRole('button', { name: 'Copy task id' }))) &&
+        !(await heldCard.innerText()).includes(heldTask.id),
+    ),
     heldTask?.id ?? 'no pending task',
+  )
+  await step(
+    'no uuid text',
+    Boolean(heldCard && !(await heldCard.innerText()).includes(heldTask.id)),
+    'held card innerText has no task id',
   )
   await shot('held-task')
 
@@ -338,7 +348,14 @@ export default async function chatTurnDetails({
   await page.getByRole('button', { name: /^Approve & Run$/i }).click()
   await step(
     'Approve & Run starts task',
-    Boolean(secondTask && (await visible(page.getByText(secondTask.id, { exact: true })))),
+    Boolean(
+      secondTask &&
+        (await visible(
+          page
+            .locator(`[data-task-id="${secondTask.id}"]`)
+            .getByRole('button', { name: 'Copy task id' }),
+        )),
+    ),
     secondTask?.id ?? 'no pending task',
   )
   const approvedCardHidden = await hidden(taskCard)
@@ -410,6 +427,29 @@ export default async function chatTurnDetails({
       'reload: tool block visible in selected chat',
       await visible(page.getByText(/Tool executions/i).first()),
       'tool trace rendered after selecting chat',
+    )
+    await step(
+      'rejected task has no card after reload',
+      Boolean(heldTask) && (await page.locator(`[data-task-id="${heldTask.id}"]`).count()) === 0,
+      heldTask?.id ?? 'no rejected task',
+    )
+    const reloadedCard = secondTask
+      ? page.locator(`[data-task-id="${secondTask.id}"]`).first()
+      : null
+    const reloadedName = reloadedCard
+      ? ((await reloadedCard
+          .locator('[data-task-name]')
+          .first()
+          .textContent()
+          .catch(() => '')) ?? '')
+      : ''
+    await step(
+      'launched task keeps its name after reload',
+      Boolean(reloadedCard) &&
+        (await visible(reloadedCard)) &&
+        reloadedName.trim() !== '' &&
+        reloadedName.trim() !== 'Task',
+      JSON.stringify(reloadedName),
     )
   }
 }

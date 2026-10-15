@@ -5,21 +5,22 @@ histórico, en `docs/done/sprint-30.md` § "Apéndice 2"; las lecciones durables
 de delegación y ui-gate". Orden y rumbo: `PLAN.md` § Rumbo. Arranque: `bun run agent:preflight -- --item <ID> --agent claude`.
 
 
-## PRIMERO al retomar (2026-10-14, 17:00) — push bloqueado por Codex
-- Local sin pushear (5 commits): DOC.2 `5d67f56`, specs AT.20/AT.21/CX.6, spec y cierre de CI.25 `ecbd07a`.
-- El pre-push de `ecbd07a` falló en 11 flujos, todos con Codex: `Codex CLI: workspace routing discovery failed`
-  (HTTP 502 en `/api/chat` y `/api/chat/models`). El texto no está en `src/`: lo devuelve el CLI (codex-cli 0.162.1).
-  `codex exec "Reply only OK"` con la config del usuario respondía bien en el mismo momento. Hipótesis: fallo
-  transitorio del servicio, o algo del `CODEX_HOME` aislado del gate. Paso 1: `git push origin master` de nuevo; si
-  vuelve a fallar, leer el rastro `[cli-spawn]` de Codex (nuevo en CI.25: entorno, exit, stderr) en el
-  `dashboard.log` del gate y abrir ítem CI con la causa. Log del intento: `/tmp/doc1/push4.log`.
-- Después, en orden y sin preguntar (GO de Carlos): AT.20 → AT.21 → CX.6 (specs en `docs/specs/`), con
-  `delegate criterio`. Luego el orden del Rumbo (UI.26.5…).
+## PRIMERO al retomar (2026-10-14 noche)
+- Orden del lote (Carlos 2026-10-14, prevalece sobre AT.20→CX.6): UI.24.5–24.7 → ERP.4.15, 4.16 (cierran ERP.4 y
+  R.8) → UI.8.6 → Fase 3. AT.20/AT.21/CX.6 quedan detrás.
+- Cerrados hoy: UI.26.6 (`8701044`), CI.26 (`12eae7f`, timeout de CC.2: el turno CLI ya no espera el catálogo de
+  OpenRouter), UI.26.6.1 (formato), UI.26.7 (`9e89d09`), UI.24.4 (`c239117`, Streamdown); todo pusheado. UI.24.5 cerrado 2026-10-15 (una tarjeta por tarea). Siguiente: UI.24.6, escribir su spec.
+- UI.24.4 subió `main.js` +22 % (1.58 → 1.92 MB), medido por paquete con el sourcemap: ~164 KB `rehype-raw` (parse5 y
+  familia, HTML crudo; Streamdown lo importa estático en `dist/chunk-D32TOXHM.js`), ~85 KB streamdown, ~47 KB marked,
+  ~17 KB remend, ~9 KB sanitize/harden, app +2 KB. Opciones dadas a Carlos: dejarlo (recomendado, app local), alias de
+  `rehype-raw` a módulo vacío (−164 KB) o lazy-load de Streamdown. Sin decisión: no actuar hasta que la tome.
+- Visto una vez, sin ítem: `chat-turn-details` "second held task card visible" (el orquestador real respondió en texto
+  sin crear la tarea; pasó al repetir).
 
 ## Estado actual
 - Cerrados y pusheados: UI.24.1–24.3, UI.25 (UI.25.0, UI.25.1), UI.26.1–26.4a, ERP.4.1–ERP.4.13, CI.12, CI.21, CI.22,
   CI.24, DOC.1 (`331ddf5`), LIMP.1 (`c906eb2`), UI.26.4b; R.8.1–R.8.6 (`PLAN.md`; evidencia en `docs/done/`).
-- Abiertos: UI.26.5–26.7, UI.24.4–24.7, ERP.4 (4.14 va dentro de UI.24.6; 4.15, 4.16), R.8 (cierra con ERP.4), UI.8.6,
+- Abiertos: UI.26.6b, UI.24.5–24.7, ERP.4 (4.14 va dentro de UI.24.6; 4.15, 4.16), R.8 (cierra con ERP.4), UI.8.6,
   AT.13 (puntos 8 y `manifest.ts`), AT.19, CI.11, CI.18, CI.19, CI.23, CI.25. Lista viva: `bun run next`.
 - Trampa de `plan:reconcile`: si dice "Could not prove a closing commit SHA", reabrir el ítem (`[ ]`), reconciliar,
   volver a `[x]`, reconciliar, commitear. Ítem delegado: commitear el spec antes (`docs(<ID>): spec`).
@@ -27,10 +28,7 @@ de delegación y ui-gate". Orden y rumbo: `PLAN.md` § Rumbo. Arranque: `bun run
   `.orchestos/feature-status.json`.
 
 ## Orden de lo que sigue
-1. UI.26.5 (empieza por la raíz `bg-zinc-950` de `ContextView.tsx:20`, `SpecsView.tsx:45`, `SkillsView.tsx:52`) →
-   UI.26.6 (incluye el ancho de Usage y Model routing) → UI.26.7 (solo revisar los inputs de Orquestación).
-2. UI.24.4 (Streamdown; incluye saltos simples y decidir si la fila de fase va encima o debajo del texto en vivo) →
-   UI.24.5 → UI.24.6 (con ERP.4.14; sacar `AgentComposer.tsx` de `ui:fidelity:jsx`, `package.json:28`) → UI.24.7.
+1. UI.24.6 (con ERP.4.14; sacar `AgentComposer.tsx` de `ui:fidelity:jsx`, `package.json:28`) → UI.24.7.
    Los gates de chat leen `div.prose`, `textarea`, `aria-label="Send message"`, `title="Select model and reasoning
    effort"` y los textos "Approve & Run", "Commit & Run", "Retry", además de `div.max-w-2xl` y `div.max-w-3xl`:
    conservarlos o cambiar flujo y componente en el mismo ítem. Mirar siempre la captura, no solo el gate.
@@ -76,8 +74,8 @@ Verificados el 2026-10-14 contra el código salvo "(sin re-verificar)".
 - `readBoundaryWarning` sin consumidor (`src/dashboard/types.ts:90`, `app/src/api/chat.ts:14,77`; decisión de Carlos:
   sin aviso) → LIMP.1 comprobó que sí tiene consumidores (`chat.ts`, `chat-sessions.ts`, `api/chat.ts`): quitarlo cambia lógica, decide Carlos. Cuando el CLI se queda sin cupo ("out of usage credits") el chat lo muestra como
   respuesta normal, no como error (sin re-verificar).
-- Intermitentes vistos una vez, sin ítem (si se repiten, abrir): `CC.2 — chat sessions backend` con timeout de 5 s
-  dentro de `test:coverage` (2026-10-13; pasa solo); `restart-mid-run` caso A, reporte "failed · attempt 1/3" con
+- Intermitentes vistos una vez, sin ítem (si se repiten, abrir):
+  `restart-mid-run` caso A, reporte "failed · attempt 1/3" con
   reintento pendiente cuando el gate exige coincidir con el estado final (2026-10-13; decidir si un intento fallido con
   reintento pendiente debe decir "failed"); `chat-context`, diálogo de nuevo chat sin Claude (sonda de CI.10 en
   negativo bajo carga, 2026-10-05).

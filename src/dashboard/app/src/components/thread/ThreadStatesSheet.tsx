@@ -20,8 +20,10 @@ import {
 import { ChatMessage } from '@/components/ui/chat-message'
 import { InputMessage } from '@/components/ui/input-message'
 import { TooltipProvider } from '@/components/ui/tooltip'
+import { TaskCard } from './TaskCard'
 import { ThreadMarkdown } from './ThreadMarkdown'
 import { ThreadThinking } from './ThreadThinking'
+import type { TaskCardData, TaskCardReport } from './taskCards'
 
 function makeImage(name: string, hue: number): Promise<File> {
   const canvas = document.createElement('canvas')
@@ -54,6 +56,96 @@ function useSampleImages(): File[] {
   }, [])
   return files
 }
+
+const SAMPLE_DESCRIPTION =
+  'Migrate login to OAuth\nReplace the password form with the OAuth flow and keep the existing session cookie.'
+
+function sampleReport(over: Partial<TaskCardReport>): TaskCardReport {
+  return {
+    messageId: 'r',
+    state: 'failed',
+    content: '',
+    dirtyFiles: [],
+    attempt: 1,
+    maxAttempts: 3,
+    model: 'codex/gpt-6-luna',
+    summary: 'The lint check failed with 3 errors.',
+    ...over,
+  }
+}
+
+function sampleCard(taskId: string, over: Partial<TaskCardData>): TaskCardData {
+  return {
+    taskId,
+    anchorId: 'a',
+    description: SAMPLE_DESCRIPTION,
+    reports: [],
+    state: 'held',
+    actionKey: 'a',
+    anchorText: '',
+    showAnchorText: false,
+    ...over,
+  }
+}
+
+const TASK_CARDS: { id: string; label: string; card: TaskCardData }[] = [
+  {
+    id: 'task-held',
+    label: 'Task card · ready to run',
+    card: sampleCard('11111111-aaaa-4bbb-8ccc-000000000001', { state: 'held' }),
+  },
+  {
+    id: 'task-running',
+    label: 'Task card · running',
+    card: sampleCard('11111111-aaaa-4bbb-8ccc-000000000002', { state: 'running' }),
+  },
+  {
+    id: 'task-failed',
+    label: 'Task card · failed, one earlier attempt',
+    card: sampleCard('11111111-aaaa-4bbb-8ccc-000000000003', {
+      state: 'failed',
+      reports: [
+        sampleReport({ messageId: 'r1', attempt: 1, summary: 'Missing declared output out.txt.' }),
+        sampleReport({ messageId: 'r2', attempt: 2 }),
+      ],
+    }),
+  },
+  {
+    id: 'task-blocked',
+    label: 'Task card · uncommitted changes',
+    card: sampleCard('11111111-aaaa-4bbb-8ccc-000000000004', {
+      state: 'blocked',
+      reports: [
+        sampleReport({
+          state: 'blocked',
+          attempt: undefined,
+          maxAttempts: undefined,
+          model: undefined,
+          summary: 'Not started: uncommitted changes in the project.',
+          dirtyFiles: ['src/auth/login.ts', 'README.md'],
+        }),
+      ],
+    }),
+  },
+  {
+    id: 'task-done',
+    label: 'Task card · done, two earlier attempts',
+    card: sampleCard('11111111-aaaa-4bbb-8ccc-000000000005', {
+      state: 'done',
+      reports: [
+        sampleReport({ messageId: 'r1', attempt: 1, summary: 'Type check failed.' }),
+        sampleReport({ messageId: 'r2', attempt: 2, summary: 'Lint check failed.' }),
+        sampleReport({
+          messageId: 'r3',
+          state: 'done',
+          attempt: undefined,
+          maxAttempts: undefined,
+          summary: 'Login now uses OAuth; tests pass.',
+        }),
+      ],
+    }),
+  },
+]
 
 function State({ id, label, children }: { id: string; label: string; children: ReactNode }) {
   return (
@@ -200,6 +292,14 @@ export default function ThreadStatesSheet() {
               leftSlot={composerLeft}
             />
           </State>
+
+          {TASK_CARDS.map(({ id, label, card }) => (
+            <State key={id} id={id} label={label}>
+              <ChatMessage from="assistant" className="max-w-full w-full">
+                <TaskCard card={card} />
+              </ChatMessage>
+            </State>
+          ))}
 
           <State id="card" label="Card">
             <Card>

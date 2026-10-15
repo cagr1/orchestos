@@ -312,7 +312,7 @@ export default async function autoFlow({ page, api, step, shot, visible, cleanup
   })
   const afterQuestionTasks = new Set((await tasksFor(api, projectId)).map((task) => task.id))
   const taskDelta = [...afterQuestionTasks].filter((id) => !beforeQuestionTasks.has(id))
-  const taskReady = page.getByText('Task ready to run', { exact: true })
+  const taskReady = page.locator('[data-task-state="held"]')
   const approve = page.getByRole('button', { name: 'Approve & Run', exact: true })
   const questionTree = execFileSync('git', ['status', '--porcelain'], {
     cwd: projectRoot,
@@ -364,7 +364,7 @@ export default async function autoFlow({ page, api, step, shot, visible, cleanup
       return null
     }
     taskIds.push(task.id)
-    const taskCard = page.getByText('Task ready to run', { exact: true }).last()
+    const taskCard = page.locator(`[data-task-id="${task.id}"]`)
     const approveButton = page.getByRole('button', { name: 'Approve & Run', exact: true }).last()
     if (expectHeld) {
       const buttonVisible = await visible(approveButton, 30_000)
@@ -382,6 +382,12 @@ export default async function autoFlow({ page, api, step, shot, visible, cleanup
           runId: heldState?.runId ?? null,
           content: oldContent,
         }),
+      )
+      const cardText = await taskCard.innerText().catch(() => '')
+      await step(
+        `${filename}: no uuid text`,
+        cardText !== '' && !cardText.includes(task.id),
+        `card innerText has no task id (${cardText.length} chars)`,
       )
       if (
         !buttonVisible ||
@@ -471,22 +477,11 @@ export default async function autoFlow({ page, api, step, shot, visible, cleanup
       outputContent === null ? 'missing' : JSON.stringify(outputContent),
     )
     const reportDeadline = Date.now() + 30_000
+    // UI.24.5 — el reporte vive en la tarjeta de la tarea (estado done), no en una burbuja con el id.
+    const doneCard = page.locator(`[data-task-id="${task.id}"][data-task-state="done"]`)
     let dom = false
     while (Date.now() < reportDeadline && !dom) {
-      const prose = page.locator('div.prose')
-      const count = await prose.count().catch(() => 0)
-      for (let index = 0; index < count; index += 1) {
-        const content = (
-          await prose
-            .nth(index)
-            .innerText()
-            .catch(() => '')
-        ).toLowerCase()
-        if (content.includes(task.id.toLowerCase()) && content.includes('done')) {
-          dom = true
-          break
-        }
-      }
+      dom = await doneCard.isVisible().catch(() => false)
       if (!dom) await new Promise((resolve) => setTimeout(resolve, 1_000))
     }
     const snapshot = databaseSnapshot(databasePath, questionSession.id, task.id)
@@ -576,21 +571,19 @@ export default async function autoFlow({ page, api, step, shot, visible, cleanup
   if (taskIds.length === 0) {
     await step('reload recovers task reports', false, 'no tasks to recover')
   } else {
-    const prose = page.locator('div.prose').first()
-    await prose.waitFor({ state: 'visible', timeout: 30_000 }).catch(() => undefined)
+    // UI.24.5 — tras recargar, cada tarea se recupera como una tarjeta en estado done.
+    await page
+      .locator('[data-task-id]')
+      .first()
+      .waitFor({ state: 'visible', timeout: 30_000 })
+      .catch(() => undefined)
     const reloadDeadline = Date.now() + 30_000
     while (Date.now() < reloadDeadline) {
-      const proseTexts = await page
-        .locator('div.prose')
-        .allInnerTexts()
+      const doneIds = await page
+        .locator('[data-task-id][data-task-state="done"]')
+        .evaluateAll((cards) => cards.map((card) => card.getAttribute('data-task-id') ?? ''))
         .catch(() => [])
-      recoveredTaskIds = taskIds.filter((taskId) =>
-        proseTexts.some(
-          (text) =>
-            text.toLowerCase().includes(taskId.toLowerCase()) &&
-            text.toLowerCase().includes('done'),
-        ),
-      )
+      recoveredTaskIds = taskIds.filter((taskId) => doneIds.includes(taskId))
       if (recoveredTaskIds.length === taskIds.length) break
       await delay(1_000)
     }

@@ -27,7 +27,15 @@ export interface ChatMessageRow {
   taskHeld: boolean
   existingFiles: string[]
   turnId?: string | null
-  taskReport?: { outcome: string; dirtyFiles?: string[] }
+  taskReport?: {
+    outcome: string
+    dirtyFiles?: string[]
+    attempt?: number
+    maxAttempts?: number
+    provider?: string
+    model?: string
+    summary?: string
+  }
   createdAt: string
 }
 

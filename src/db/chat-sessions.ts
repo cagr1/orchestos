@@ -38,6 +38,11 @@ interface StoredChatMessage {
 export interface TaskReportData {
   outcome: string
   dirtyFiles?: string[]
+  attempt?: number
+  maxAttempts?: number
+  provider?: string
+  model?: string
+  summary?: string
 }
 
 export interface ChatMessageRecord
@@ -82,12 +87,25 @@ function parseTaskReport(value: string | null): TaskReportData | undefined {
   try {
     const parsed: unknown = JSON.parse(value)
     if (!parsed || typeof parsed !== 'object') return undefined
-    const { outcome, dirtyFiles } = parsed as { outcome?: unknown; dirtyFiles?: unknown }
+    const raw = parsed as Record<string, unknown>
+    const { outcome, dirtyFiles } = raw
     if (typeof outcome !== 'string') return undefined
     const files = Array.isArray(dirtyFiles)
       ? dirtyFiles.filter((item): item is string => typeof item === 'string')
       : undefined
-    return files ? { outcome, dirtyFiles: files } : { outcome }
+    const text = (value: unknown) => (typeof value === 'string' ? value : undefined)
+    const count = (value: unknown) => (typeof value === 'number' ? value : undefined)
+    const optional: Partial<TaskReportData> = {
+      attempt: count(raw.attempt),
+      maxAttempts: count(raw.maxAttempts),
+      provider: text(raw.provider),
+      model: text(raw.model),
+      summary: text(raw.summary),
+    }
+    const extras = Object.fromEntries(
+      Object.entries(optional).filter(([, value]) => value !== undefined),
+    )
+    return { outcome, ...(files ? { dirtyFiles: files } : {}), ...extras }
   } catch {
     return undefined
   }

@@ -104,7 +104,15 @@ export interface ChatMessageRow {
   existingFiles: string[]
   turnId: string | null
   // ERP.4.13 — datos estructurados de un reporte de fin de tarea (ausente en mensajes normales)
-  taskReport?: { outcome: string; dirtyFiles?: string[] }
+  taskReport?: {
+    outcome: string
+    dirtyFiles?: string[]
+    attempt?: number
+    maxAttempts?: number
+    provider?: string
+    model?: string
+    summary?: string
+  }
   createdAt: string
 }
 

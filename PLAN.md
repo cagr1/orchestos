@@ -918,9 +918,29 @@ color; la respuesta del asistente va sin caja; el identificador técnico se copi
   Contraprueba (ejecutor): sin `remark-breaks` falla `single-line-breaks` ("paragraph 1 lines, 0 <br>"); con el
   estilo de r1, 3 marcos; con `chat-message.tsx` de HEAD, el bloque ocupa 22.5 %; con r4, delta vertical 8 px.
   Límites: no se probó con texto de un turno real que traiga bloque de código (solo en la lámina).
-- [ ] **UI.24.5 — 🧠 Una tarjeta por tarea.** La tarea es una sola tarjeta que cambia de estado en su sitio; nombre corto
+- [x] **UI.24.5 — 🧠 Una tarjeta por tarea.** La tarea es una sola tarjeta que cambia de estado en su sitio; nombre corto
   en vez de UUID (el UUID se copia); intento, modelo y acciones (Approve, Reject, Commit & Run, Retry) dentro de la
   tarjeta; intentos anteriores plegados. Verifica: `chat-retry-report`, `chat-turn-details`, `auto-flow`.
+  Ejecutado por: sonnet (rol `criterio`, r1–r2) y gpt-6-luna (rol `mecanico`, r3) · Spec: docs/specs/UI.24.5.md (borrado)
+  (cerrado 2026-10-15) `components/thread/taskCards.ts` agrupa por `taskId` (ancla = primer mensaje; reportes
+  posteriores ocultos; estado `held|running|failed|blocked|pending|done`) y `TaskCard.tsx` la dibuja: nombre de la
+  primera línea, detalle sin repetirla, UUID solo en botón "Copy task id" y `data-task-id`, intento y modelo del último
+  reporte, acciones con los mismos textos, intentos anteriores plegados con `ThinkingSteps`. `TaskReportData` suma
+  campos opcionales `attempt`, `maxAttempts`, `provider`, `model`, `summary` (el `content` del reporte no cambia;
+  mensajes viejos caen al texto). `App.tsx` da `taskDescription` a todo mensaje de tarea y marca `taskDeleted` si la
+  tarea ya no existe y nunca reportó (r2: tras recargar, una rechazada salía "Running" y una lanzada perdía el nombre).
+  Botón primario con el color de la familia (`--foreground`), igual que Settings. Gates actualizados a
+  `[data-task-id][data-task-state]` en `chat-retry-report`, `chat-turn-details`, `auto-flow`.
+  Evidencia: `typecheck`, `biome check` (0 errores), `build:app`, `ui:fidelity:jsx`, `bun test` thread + task-report
+  (36/36), corridos por el cerebro.
+  Gate en vivo: navegador real (Playwright), `docs/done/evidence/UI.24.5-live.json` — `thread-states` 259/259,
+  `chat-retry-report` 24/24 (una tarjeta tras Retry, `done`, "1 earlier attempt"; la tarjeta sucia pasa a `done` en su
+  sitio tras Commit & Run), `chat-turn-details` 29/29 (`rejected task has no card after reload`, `launched task keeps
+  its name after reload`), `auto-flow` 32/32, `chat-streaming` 24/24, `smoke` 6/6; r3: `UI.24.5-r3-live.json`
+  `thread-states` 259/259. El cerebro miró las capturas de `chat-retry-report` y la lámina.
+  Contraprueba (ejecutor, r1): con `OrchestChatView.tsx` de HEAD, `chat-retry-report` falla en `held task card visible`.
+  Límites: la captura `dirty-tree-report` sale a media opacidad (se toma dentro del fundido de 150 ms; en la lámina
+  la misma tarjeta se ve entera). Sin estado de tarea fuera del hilo si `/api/tasks` falla al hidratar.
 - [ ] **UI.24.6 — 🧠 Composer y adjuntos.** Adjuntos como fichas con vista previa y quitar; miniaturas en el mensaje
   enviado. Incluye ERP.4.14. Verifica: `composer-picker`.
 - [ ] **UI.24.7 — 🧠 Herramientas y movimiento.** Llamadas a herramientas en una fila plegable ("3 herramientas · 2,1 s");

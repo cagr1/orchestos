@@ -104,6 +104,12 @@ describe('reportTaskOutcome', () => {
     expect(content).toContain(`✗ Task \`${taskId}\` failed · attempt 2/3`)
     expect(content).toContain('> missing declared output(s): out.txt')
     expect(content).not.toContain('retry scheduled')
+    expect(listChatMessages(session.id)[0]?.taskReport).toEqual({
+      outcome: 'pending',
+      attempt: 2,
+      maxAttempts: 3,
+      summary: 'missing declared output(s): out.txt',
+    })
   })
 
   it('usa el run disponible cuando projectId no coincide', () => {
@@ -113,16 +119,28 @@ describe('reportTaskOutcome', () => {
     const content = listChatMessages(session.id)[0]?.content ?? ''
     expect(content).toContain(`\`${taskId}\` done · unit-provider/unit-model`)
     expect(content).toContain('> available run')
+    expect(listChatMessages(session.id)[0]?.taskReport).toEqual({
+      outcome: 'done',
+      provider: 'unit-provider',
+      model: 'unit-model',
+      summary: 'available run',
+    })
   })
 
   it('guarda el outcome estructurado en todo reporte', () => {
     const done = setup('done')
     reportTaskOutcome(done.root, done.session.id, done.taskId)
-    expect(listChatMessages(done.session.id)[0]?.taskReport).toEqual({ outcome: 'done' })
+    expect(listChatMessages(done.session.id)[0]?.taskReport).toEqual({
+      outcome: 'done',
+      summary: 'No run was recorded.',
+    })
 
     const failed = setup('failed', 'boom')
     reportTaskOutcome(failed.root, failed.session.id, failed.taskId)
-    expect(listChatMessages(failed.session.id)[0]?.taskReport).toEqual({ outcome: 'failed' })
+    expect(listChatMessages(failed.session.id)[0]?.taskReport).toEqual({
+      outcome: 'failed',
+      summary: 'boom',
+    })
   })
 
   it('pending por árbol sucio: texto exacto y dirtyFiles leído en vivo', () => {

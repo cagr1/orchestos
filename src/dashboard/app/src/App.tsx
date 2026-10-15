@@ -210,8 +210,21 @@ export default function App() {
     const pendingTasks = new Map(
       tasksResult.value.filter((task) => task.status === 'pending').map((task) => [task.id, task]),
     )
-    return detailed.map((message) => {
-      const row = rows.find((candidate) => String(candidate.id) === message.id)
+    const taskById = new Map(tasksResult.value.map((task) => [task.id, task]))
+    return detailed.map((named) => {
+      const row = rows.find((candidate) => String(candidate.id) === named.id)
+      let message = named
+      if (row?.taskId) {
+        const known = taskById.get(row.taskId)
+        const hasLaterReport = rows.some(
+          (other) => other.taskId === row.taskId && other.taskReport && other.id > row.id,
+        )
+        message = {
+          ...named,
+          taskDescription: known?.description,
+          ...(!known && !hasLaterReport && !named.taskReport ? { taskDeleted: true } : {}),
+        }
+      }
       if (!message.taskHeld || !row?.taskId) return message
       const task = pendingTasks.get(row.taskId)
       // Una pending con motivo ya fue lanzada (fallo o bloqueo por árbol sucio).
@@ -1060,7 +1073,7 @@ export default function App() {
               ...item,
               messages: item.messages.map((message) =>
                 message.proposedTask?.id === taskId
-                  ? { ...message, taskHeld: false, proposedTask: undefined }
+                  ? { ...message, taskHeld: false, proposedTask: undefined, taskDeleted: true }
                   : message,
               ),
             }

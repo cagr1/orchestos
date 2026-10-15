@@ -197,6 +197,10 @@ export interface ChatMessage {
     blockedFiles?: string[]
   }
   taskHeld?: boolean
+  /** Descripción de la tarea (de la lista de tareas), para nombrar la tarjeta tras recargar. */
+  taskDescription?: string
+  /** La tarea ya no existe (rechazada/borrada) y no dejó reportes. */
+  taskDeleted?: boolean
   heldTask?: {
     taskId: string
     taskDescription: string
@@ -209,7 +213,15 @@ export interface ChatMessage {
     output: string[]
   }
   // ERP.4.13 — datos estructurados de un reporte de fin de tarea
-  taskReport?: { outcome: string; dirtyFiles?: string[] }
+  taskReport?: {
+    outcome: string
+    dirtyFiles?: string[]
+    attempt?: number
+    maxAttempts?: number
+    provider?: string
+    model?: string
+    summary?: string
+  }
 }
 
 export type AppMode = 'chat' | 'dev' | 'settings'

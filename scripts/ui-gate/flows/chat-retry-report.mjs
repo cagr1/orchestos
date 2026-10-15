@@ -133,7 +133,7 @@ export default async function chatRetryReport({ page, api, step, shot, visible, 
   const beforeIds = new Set((await tasksFor(api, project.id)).map((task) => task.id))
   await composer.fill(heldPrompt)
   await composer.press('Enter')
-  const taskCard = page.getByText('Task ready to run', { exact: true })
+  const taskCard = page.locator('[data-task-state="held"]').first()
   const heldCardVisible = await visible(taskCard, 180_000)
   await step('held task card visible', heldCardVisible, 'held task rendered')
   if (!heldCardVisible) return
@@ -159,14 +159,19 @@ export default async function chatRetryReport({ page, api, step, shot, visible, 
       /check failed/i.test(retryReason),
     `status=${firstAttempt?.status ?? 'missing'} retryCount=${firstAttempt?.retryCount ?? 'missing'} retryReason=${retryReason}`,
   )
-  const failedReport = page
-    .getByText(new RegExp(`✗ Task\\s*${taskId}\\s*failed · attempt 1/3`))
-    .first()
+  const taskCardOf = (id) => page.locator(`[data-task-id="${id}"]`)
+  const failedReport = page.locator(`[data-task-id="${taskId}"][data-task-state="failed"]`)
   const reportVisible = await visible(failedReport, 60_000)
+  const failedText = (await failedReport.innerText().catch(() => 'report not visible')).trim()
   await step(
     'failed attempt report visible without reload',
-    reportVisible,
-    (await failedReport.innerText().catch(() => 'report not visible')).trim(),
+    reportVisible && /Attempt 1\/3/.test(failedText),
+    failedText,
+  )
+  await step(
+    'no uuid text',
+    reportVisible && !failedText.includes(taskId),
+    `card innerText contains id=${failedText.includes(taskId)}`,
   )
 
   run('git', ['rm', '-q', 'broken.ts', 'tsconfig.json'], projectRoot)
@@ -211,7 +216,7 @@ export default async function chatRetryReport({ page, api, step, shot, visible, 
   )
   await step('second attempt done', secondTask?.status === 'done', secondTask?.status ?? 'missing')
   if (secondTask?.status !== 'done') return
-  const doneReport = page.getByText(new RegExp(`✓ Task\\s*${taskId}\\s*done`)).first()
+  const doneReport = page.locator(`[data-task-id="${taskId}"][data-task-state="done"]`)
   const doneVisible = await visible(doneReport, 90_000)
   const after = (await messagesFor(api, project.id, session.id, taskId)).length
   await step(
@@ -224,6 +229,20 @@ export default async function chatRetryReport({ page, api, step, shot, visible, 
     (await retry.count()) === 0,
     `Retry buttons=${await retry.count()}`,
   )
+  const doneCards = await taskCardOf(taskId).count()
+  const earlier = doneReport.locator('button[aria-expanded]').filter({ hasText: 'earlier' })
+  const earlierText = (await earlier.innerText().catch(() => '')).trim()
+  const earlierState = await earlier.getAttribute('aria-expanded').catch(() => null)
+  await step(
+    'one card per task after Retry, done, earlier attempts collapsed',
+    doneCards === 1 && /^1 earlier attempt/.test(earlierText) && earlierState === 'false',
+    `cards=${doneCards} header=${JSON.stringify(earlierText)} aria-expanded=${earlierState}`,
+  )
+  await step(
+    'no uuid text after Retry',
+    !(await doneReport.innerText()).includes(taskId),
+    'done card innerText has no task id',
+  )
   await shot('retry-report')
 
   // Tramo 2 — árbol sucio: la tarea queda pending y el hilo ofrece "Commit & Run".
@@ -233,7 +252,7 @@ export default async function chatRetryReport({ page, api, step, shot, visible, 
     'Modifica nota.ts para añadir al final la línea "export const sucio = 2". La única ruta de salida es nota.ts.',
   )
   await composer.press('Enter')
-  const secondCard = page.getByText('Task ready to run', { exact: true }).last()
+  const secondCard = page.locator('[data-task-state="held"]').last()
   const secondCardVisible = await visible(secondCard, 180_000)
   await step('second held task card visible', secondCardVisible, 'held task rendered')
   if (!secondCardVisible) return
@@ -259,9 +278,9 @@ export default async function chatRetryReport({ page, api, step, shot, visible, 
     `status=${blocked?.status ?? 'missing'} retryReason=${blocked?.retryReason ?? 'missing'}`,
   )
   if (!blocked) return
-  const dirtyTitle = page.getByText('Uncommitted changes', { exact: true }).last()
-  const dirtyShown = await visible(dirtyTitle, 60_000)
-  const fileShown = await visible(page.getByText('sucio.txt', { exact: true }).last(), 10_000)
+  const dirtyCard = page.locator(`[data-task-id="${dirtyTask.id}"][data-task-state="blocked"]`)
+  const dirtyShown = await visible(dirtyCard, 60_000)
+  const fileShown = await visible(dirtyCard.getByText('sucio.txt', { exact: true }), 10_000)
   await step(
     'thread lists the uncommitted file without reload',
     dirtyShown && fileShown,
@@ -312,7 +331,7 @@ export default async function chatRetryReport({ page, api, step, shot, visible, 
     finished?.status ?? 'missing',
   )
   if (finished?.status !== 'done') return
-  const secondDone = page.getByText(new RegExp(`✓ Task\\s*${dirtyTask.id}\\s*done`)).first()
+  const secondDone = page.locator(`[data-task-id="${dirtyTask.id}"][data-task-state="done"]`)
   await step(
     'done report of the relaunched task appears without reload',
     await visible(secondDone, 90_000),

@@ -13,6 +13,11 @@ const STATES = [
   'card',
   'badges',
   'banner',
+  'task-held',
+  'task-running',
+  'task-failed',
+  'task-blocked',
+  'task-done',
 ]
 
 export default async function threadStates({ page, base, step, shot, visible, consoleErrors }) {
@@ -141,6 +146,94 @@ export default async function threadStates({ page, base, step, shot, visible, co
       `${themeName}-no-palette-in-thread-markdown`,
       palette.length === 0,
       `${themeName}: ${palette.length} palette classes ${palette.slice(0, 2).join(' | ')}`,
+    )
+
+    const TASK_STATES = {
+      'task-held': {
+        state: 'held',
+        label: 'Ready to run',
+        actions: ['Approve & Run', 'Reject'],
+        earlier: 0,
+      },
+      'task-running': { state: 'running', label: 'Running', actions: [], earlier: 0 },
+      'task-failed': { state: 'failed', label: 'Failed', actions: ['Retry'], earlier: 1 },
+      'task-blocked': {
+        state: 'blocked',
+        label: 'Uncommitted changes',
+        actions: ['Commit & Run'],
+        earlier: 0,
+      },
+      'task-done': { state: 'done', label: 'Done', actions: [], earlier: 2 },
+    }
+    for (const [id, expected] of Object.entries(TASK_STATES)) {
+      const section = page.getByTestId(`state-${id}`)
+      const cards = section.locator('[data-task-id]')
+      const count = await cards.count()
+      await step(
+        `${themeName}-${id}-one-card`,
+        count === 1,
+        `${themeName}: ${id} one card per task (${count})`,
+      )
+      const card = cards.first()
+      const state = await card.getAttribute('data-task-state')
+      const labelText = await card.locator('[data-task-state-label]').innerText()
+      await step(
+        `${themeName}-${id}-state-label`,
+        state === expected.state && labelText.trim() === expected.label,
+        `${themeName}: ${id} state ${state}, label ${JSON.stringify(labelText)}`,
+      )
+      const taskId = await card.getAttribute('data-task-id')
+      const cardText = await card.innerText()
+      await step(
+        `${themeName}-${id}-no-uuid-text`,
+        Boolean(taskId) && !cardText.includes(taskId),
+        `${themeName}: ${id} innerText has no task id`,
+      )
+      const copy = card.getByRole('button', { name: 'Copy task id' })
+      await step(
+        `${themeName}-${id}-copy-id`,
+        (await copy.getAttribute('title')) === taskId,
+        `${themeName}: ${id} copy button title is the id`,
+      )
+      for (const action of expected.actions) {
+        const inside = await card.getByRole('button', { name: action, exact: true }).count()
+        const total = await section.getByRole('button', { name: action, exact: true }).count()
+        await step(
+          `${themeName}-${id}-action-${action}`,
+          inside === 1 && total === 1,
+          `${themeName}: ${id} "${action}" inside card (${inside}/${total})`,
+        )
+      }
+      if (expected.earlier > 0) {
+        const header = card.locator('button[aria-expanded]').filter({ hasText: 'earlier' })
+        const headerText = (await header.innerText()).trim()
+        const before = await header.getAttribute('aria-expanded')
+        await step(
+          `${themeName}-${id}-earlier-collapsed`,
+          before === 'false' && headerText.startsWith(String(expected.earlier)),
+          `${themeName}: ${id} "${headerText}" aria-expanded=${before}`,
+        )
+        await header.click()
+        await page.waitForTimeout(600)
+        const after = await header.getAttribute('aria-expanded')
+        const open = await visible(card.getByText('Attempt 1/3', { exact: false }).last())
+        await step(
+          `${themeName}-${id}-earlier-open`,
+          after === 'true' && open,
+          `${themeName}: ${id} aria-expanded=${after}, attempts visible=${open}`,
+        )
+      }
+    }
+    const taskPalette = await page.evaluate((source) => {
+      const re = new RegExp(source)
+      return [...document.querySelectorAll('[data-task-id], [data-task-id] *')]
+        .map((el) => el.getAttribute('class') ?? '')
+        .filter((c) => re.test(c))
+    }, PALETTE)
+    await step(
+      `${themeName}-no-palette-in-task-card`,
+      taskPalette.length === 0,
+      `${themeName}: ${taskPalette.length} palette classes ${taskPalette.slice(0, 2).join(' | ')}`,
     )
 
     const doneState = page.getByTestId('state-thinking-steps-done')

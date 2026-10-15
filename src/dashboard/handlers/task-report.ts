@@ -51,9 +51,18 @@ function buildTaskReportData(
     .trim()
   const summary =
     rawSummary && rawSummary.length > 300 ? `${rawSummary.slice(0, 299)}…` : rawSummary
+  const attempt =
+    status === 'pending' && task?.retry_count
+      ? { attempt: task.retry_count, maxAttempts: MAX_RETRIES }
+      : {}
   return {
     content: `${headline}\n\n> ${summary || 'No run was recorded.'}`,
-    data: { outcome: status },
+    data: {
+      outcome: status,
+      ...attempt,
+      ...(run ? { provider: run.provider, model: run.model } : {}),
+      summary: summary || 'No run was recorded.',
+    },
   }
 }
 

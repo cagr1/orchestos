@@ -1,4 +1,4 @@
-import { Check, ChevronDown, ChevronUp, Copy, FileText, RotateCw, X } from 'lucide-react'
+import { Check, ChevronDown, ChevronUp, Copy, FileText } from 'lucide-react'
 import type React from 'react'
 import { useEffect, useRef, useState } from 'react'
 import { ChatMessage } from '@/components/ui/chat-message'
@@ -14,8 +14,10 @@ import type { ChatAttachment, ChatThread, SessionStatus } from '../../types/orch
 import { AgentComposer, type CliId } from '../common/AgentComposer'
 import { ContextRing } from '../common/ContextRing'
 import { ProviderLogo } from '../common/ProviderLogos'
+import { TaskCard } from '../thread/TaskCard'
 import { ThreadMarkdown } from '../thread/ThreadMarkdown'
 import { ThreadThinking } from '../thread/ThreadThinking'
+import { buildTaskCards } from '../thread/taskCards'
 import { formatElapsed, livePhase } from '../thread/thinking'
 
 interface OrchestChatViewProps {
@@ -90,11 +92,8 @@ export const OrchestChatView: React.FC<OrchestChatViewProps> = ({
   }, [thread?.projectId, projectExists])
 
   const messages = thread?.messages || []
-  // ERP.4.13 — la acción de un reporte vive solo en el último mensaje del hilo con ese taskId
-  const lastMessageIdByTask = new Map<string, string>()
-  for (const message of messages) {
-    if (message.taskId) lastMessageIdByTask.set(message.taskId, message.id)
-  }
+  // UI.24.5 — una tarjeta por tarea; los reportes posteriores la alimentan y no son burbujas
+  const taskCards = buildTaskCards(messages, busyReportActions)
   const runReportAction = (messageId: string, action: () => void | Promise<void> | undefined) => {
     setBusyReportActions((prev) => ({ ...prev, [messageId]: true }))
     setReportActionErrors((prev) => {
@@ -293,18 +292,66 @@ export const OrchestChatView: React.FC<OrchestChatViewProps> = ({
               data-thread-root
               className="max-w-3xl lg:max-w-4xl mx-auto flex flex-col gap-2"
             >
-              {messages.map((msg) => {
-                const isUser = msg.role === 'user'
+              {messages
+                .filter((msg) => !taskCards.hidden.has(msg.id))
+                .map((msg) => {
+                  const isUser = msg.role === 'user'
 
-                if (isUser) {
+                  if (isUser) {
+                    return (
+                      <ChatMessage
+                        key={msg.id}
+                        from="user"
+                        time={msg.timestamp}
+                        initial={false}
+                        layout={false}
+                        className="max-w-2xl select-text"
+                        actions={
+                          <button
+                            type="button"
+                            onClick={() => void copyMessage(msg.id, msg.content)}
+                            className="p-1 rounded-control text-app-muted hover:text-app transition-colors"
+                            title="Copy"
+                            aria-label="Copy"
+                          >
+                            {copiedMessageId === msg.id ? (
+                              <Check className="w-3 h-3" />
+                            ) : (
+                              <Copy className="w-3 h-3" />
+                            )}
+                          </button>
+                        }
+                      >
+                        {/* Attachments if any */}
+                        {msg.attachments && msg.attachments.length > 0 && (
+                          <div className="flex flex-wrap gap-1.5 mb-2">
+                            {msg.attachments.map((att) => (
+                              <div
+                                key={att.id}
+                                className="flex items-center gap-1.5 px-2 py-0.5 rounded-control bg-app-bg border border-app text-[11px] text-app font-mono"
+                              >
+                                <FileText className="w-3 h-3 text-app-accent" />
+                                <span>{att.name}</span>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+
+                        {msg.content}
+                      </ChatMessage>
+                    )
+                  }
+
+                  // Assistant message
+                  const card = taskCards.byTask.get(msg.taskId ?? '')
+                  const showCard = card?.anchorId === msg.id ? card : undefined
                   return (
                     <ChatMessage
                       key={msg.id}
-                      from="user"
-                      time={msg.timestamp}
+                      from="assistant"
                       initial={false}
                       layout={false}
-                      className="max-w-2xl select-text"
+                      className="max-w-full w-full select-text"
                       actions={
                         <button
                           type="button"
@@ -321,230 +368,103 @@ export const OrchestChatView: React.FC<OrchestChatViewProps> = ({
                         </button>
                       }
                     >
-                      {/* Attachments if any */}
-                      {msg.attachments && msg.attachments.length > 0 && (
-                        <div className="flex flex-wrap gap-1.5 mb-2">
-                          {msg.attachments.map((att) => (
-                            <div
-                              key={att.id}
-                              className="flex items-center gap-1.5 px-2 py-0.5 rounded-control bg-app-bg border border-app text-[11px] text-app font-mono"
-                            >
-                              <FileText className="w-3 h-3 text-app-accent" />
-                              <span>{att.name}</span>
-                            </div>
-                          ))}
+                      {msg.reasoning && msg.reasoning.length > 0 && (
+                        <div className="mb-3 whitespace-normal">
+                          <ThreadThinking
+                            active={false}
+                            label={
+                              msg.thoughtMs === undefined
+                                ? 'Thought'
+                                : `Thought for ${formatElapsed(msg.thoughtMs)}`
+                            }
+                            steps={msg.reasoning}
+                          />
                         </div>
                       )}
-
-                      {msg.content}
+                      {msg.toolCalls && msg.toolCalls.length > 0 && (
+                        <div className="space-y-1.5 mb-3 whitespace-normal">
+                          <div className="text-[10px] font-bold text-app-muted uppercase tracking-wider px-1">
+                            Tool executions
+                          </div>
+                          <div className="space-y-1">
+                            {msg.toolCalls.map((tool, idx) => (
+                              <div
+                                key={idx}
+                                className="p-2.5 rounded-control bg-app-surface border border-app flex items-center justify-between text-xs"
+                              >
+                                <div className="flex items-center gap-2 overflow-hidden">
+                                  <div className="w-2 h-2 rounded-full bg-app-success" />
+                                  <span className="font-mono text-app font-medium">
+                                    {tool.name}
+                                  </span>
+                                  <span className="text-app-muted text-[11px] truncate max-w-md">
+                                    {JSON.stringify(tool.args)}
+                                  </span>
+                                </div>
+                                <div className="flex items-center gap-2 flex-shrink-0">
+                                  {tool.durationMs && (
+                                    <span className="font-mono text-[10px] text-app-muted">
+                                      {tool.durationMs}ms
+                                    </span>
+                                  )}
+                                  <span className="px-1.5 py-0.5 rounded-control text-[10px] font-mono bg-app-bg text-app-muted border border-app">
+                                    {tool.status}
+                                  </span>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                      {(!showCard || showCard.showAnchorText) && (
+                        <ThreadMarkdown
+                          text={showCard ? showCard.anchorText : msg.content}
+                          streaming={false}
+                        />
+                      )}
+                      {showCard && (
+                        <TaskCard
+                          card={showCard}
+                          error={
+                            taskActionErrors[showCard.taskId] ??
+                            reportActionErrors[showCard.actionKey]
+                          }
+                          busy={Boolean(busyReportActions[showCard.actionKey])}
+                          onApprove={() =>
+                            void Promise.resolve(onApproveHeldTask?.(showCard.taskId)).catch(
+                              (error: unknown) =>
+                                setTaskActionErrors((prev) => ({
+                                  ...prev,
+                                  [showCard.taskId]:
+                                    error instanceof Error ? error.message : String(error),
+                                })),
+                            )
+                          }
+                          onReject={() =>
+                            void Promise.resolve(onRejectHeldTask?.(showCard.taskId)).catch(
+                              (error: unknown) =>
+                                setTaskActionErrors((prev) => ({
+                                  ...prev,
+                                  [showCard.taskId]:
+                                    error instanceof Error ? error.message : String(error),
+                                })),
+                            )
+                          }
+                          onRetry={() =>
+                            runReportAction(showCard.actionKey, () =>
+                              onRetryTask?.(showCard.taskId),
+                            )
+                          }
+                          onCommit={(files) =>
+                            runReportAction(showCard.actionKey, () =>
+                              onCommitRunTask?.(showCard.taskId, files),
+                            )
+                          }
+                        />
+                      )}
                     </ChatMessage>
                   )
-                }
-
-                // Assistant message
-                return (
-                  <ChatMessage
-                    key={msg.id}
-                    from="assistant"
-                    initial={false}
-                    layout={false}
-                    className="max-w-full w-full select-text"
-                    actions={
-                      <button
-                        type="button"
-                        onClick={() => void copyMessage(msg.id, msg.content)}
-                        className="p-1 rounded-control text-app-muted hover:text-app transition-colors"
-                        title="Copy"
-                        aria-label="Copy"
-                      >
-                        {copiedMessageId === msg.id ? (
-                          <Check className="w-3 h-3" />
-                        ) : (
-                          <Copy className="w-3 h-3" />
-                        )}
-                      </button>
-                    }
-                  >
-                    {msg.reasoning && msg.reasoning.length > 0 && (
-                      <div className="mb-3 whitespace-normal">
-                        <ThreadThinking
-                          active={false}
-                          label={
-                            msg.thoughtMs === undefined
-                              ? 'Thought'
-                              : `Thought for ${formatElapsed(msg.thoughtMs)}`
-                          }
-                          steps={msg.reasoning}
-                        />
-                      </div>
-                    )}
-                    {msg.toolCalls && msg.toolCalls.length > 0 && (
-                      <div className="space-y-1.5 mb-3 whitespace-normal">
-                        <div className="text-[10px] font-bold text-app-muted uppercase tracking-wider px-1">
-                          Tool executions
-                        </div>
-                        <div className="space-y-1">
-                          {msg.toolCalls.map((tool, idx) => (
-                            <div
-                              key={idx}
-                              className="p-2.5 rounded-control bg-app-surface border border-app flex items-center justify-between text-xs"
-                            >
-                              <div className="flex items-center gap-2 overflow-hidden">
-                                <div className="w-2 h-2 rounded-full bg-app-success" />
-                                <span className="font-mono text-app font-medium">{tool.name}</span>
-                                <span className="text-app-muted text-[11px] truncate max-w-md">
-                                  {JSON.stringify(tool.args)}
-                                </span>
-                              </div>
-                              <div className="flex items-center gap-2 flex-shrink-0">
-                                {tool.durationMs && (
-                                  <span className="font-mono text-[10px] text-app-muted">
-                                    {tool.durationMs}ms
-                                  </span>
-                                )}
-                                <span className="px-1.5 py-0.5 rounded-control text-[10px] font-mono bg-app-bg text-app-muted border border-app">
-                                  {tool.status}
-                                </span>
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-                    <ThreadMarkdown text={msg.content} streaming={false} />
-                    {msg.taskHeld && msg.proposedTask && (
-                      <div className="p-4 rounded-card bg-app-surface border border-app space-y-3 mt-3 whitespace-normal">
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-2">
-                            <span className="w-2 h-2 rounded-full bg-app-warning" />
-                            <span className="font-semibold text-xs text-app">
-                              Task ready to run
-                            </span>
-                          </div>
-                          <span className="text-[10px] font-mono px-2 py-0.5 rounded-control bg-app-bg text-app-muted border border-app">
-                            {msg.proposedTask.id}
-                          </span>
-                        </div>
-                        <p className="text-xs text-app-muted">{msg.proposedTask.description}</p>
-                        {taskActionErrors[msg.proposedTask.id] && (
-                          <div role="alert" className="text-xs text-app-error">
-                            {taskActionErrors[msg.proposedTask.id]}
-                          </div>
-                        )}
-                        <div className="flex items-center gap-2 pt-1">
-                          <button
-                            type="button"
-                            onClick={() => {
-                              void Promise.resolve(onApproveHeldTask?.(msg.proposedTask!.id)).catch(
-                                (error: unknown) =>
-                                  setTaskActionErrors((prev) => ({
-                                    ...prev,
-                                    [msg.proposedTask!.id]:
-                                      error instanceof Error ? error.message : String(error),
-                                  })),
-                              )
-                            }}
-                            className="flex items-center gap-1.5 px-3 py-1.5 rounded-control bg-app-accent hover:bg-app-accent-hover text-white text-xs font-semibold transition-colors"
-                          >
-                            <Check className="w-3.5 h-3.5" />
-                            Approve & Run
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => {
-                              void Promise.resolve(onRejectHeldTask?.(msg.proposedTask!.id)).catch(
-                                (error: unknown) =>
-                                  setTaskActionErrors((prev) => ({
-                                    ...prev,
-                                    [msg.proposedTask!.id]:
-                                      error instanceof Error ? error.message : String(error),
-                                  })),
-                              )
-                            }}
-                            className="flex items-center gap-1.5 px-3 py-1.5 rounded-control bg-app-surface hover:bg-app-elevated text-app text-xs font-medium border border-app transition-colors"
-                          >
-                            <X className="w-3.5 h-3.5" />
-                            Reject
-                          </button>
-                        </div>
-                      </div>
-                    )}
-                    {msg.taskId &&
-                      msg.taskReport &&
-                      lastMessageIdByTask.get(msg.taskId) === msg.id &&
-                      (() => {
-                        const reportTaskId = msg.taskId
-                        const dirtyFiles = msg.taskReport.dirtyFiles ?? []
-                        const retryable =
-                          msg.taskReport.outcome === 'pending' ||
-                          msg.taskReport.outcome === 'failed'
-                        if (dirtyFiles.length === 0 && !retryable) return null
-                        const busy = Boolean(busyReportActions[msg.id])
-                        const actionError = reportActionErrors[msg.id]
-                        const buttons = (
-                          <div className="flex items-center gap-2 pt-1">
-                            <button
-                              type="button"
-                              disabled={busy}
-                              onClick={() =>
-                                runReportAction(msg.id, () =>
-                                  dirtyFiles.length > 0
-                                    ? onCommitRunTask?.(reportTaskId, dirtyFiles)
-                                    : onRetryTask?.(reportTaskId),
-                                )
-                              }
-                              className="flex items-center gap-1.5 px-3 py-1.5 rounded-control bg-app-accent hover:bg-app-accent-hover text-white text-xs font-semibold transition-colors disabled:opacity-60"
-                            >
-                              {dirtyFiles.length > 0 ? (
-                                <Check className="w-3.5 h-3.5" />
-                              ) : (
-                                <RotateCw className="w-3.5 h-3.5" />
-                              )}
-                              {dirtyFiles.length > 0 ? 'Commit & Run' : 'Retry'}
-                            </button>
-                          </div>
-                        )
-                        if (dirtyFiles.length === 0)
-                          return (
-                            <>
-                              {actionError && (
-                                <div role="alert" className="text-xs text-app-error mt-3">
-                                  {actionError}
-                                </div>
-                              )}
-                              {buttons}
-                            </>
-                          )
-                        return (
-                          <div className="p-4 rounded-card bg-app-surface border border-app space-y-3 mt-3 whitespace-normal">
-                            <div className="flex items-center justify-between">
-                              <div className="flex items-center gap-2">
-                                <span className="w-2 h-2 rounded-full bg-app-warning" />
-                                <span className="font-semibold text-xs text-app">
-                                  Uncommitted changes
-                                </span>
-                              </div>
-                              <span className="text-[10px] font-mono px-2 py-0.5 rounded-control bg-app-bg text-app-muted border border-app">
-                                {reportTaskId}
-                              </span>
-                            </div>
-                            <div className="text-xs text-app-muted font-mono">
-                              {dirtyFiles.map((file) => (
-                                <div key={file}>{file}</div>
-                              ))}
-                            </div>
-                            {actionError && (
-                              <div role="alert" className="text-xs text-app-error">
-                                {actionError}
-                              </div>
-                            )}
-                            {buttons}
-                          </div>
-                        )
-                      })()}
-                  </ChatMessage>
-                )
-              })}
+                })}
               {isWorking && liveText && (
                 <ChatMessage
                   from="assistant"
