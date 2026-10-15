@@ -164,6 +164,43 @@ describe('Codex app-server', () => {
     server.kill()
   })
 
+  test('UI.24.6a — imagePaths entran al turn/start como ítems localImage', async () => {
+    const calls: any[] = []
+    const server = new CodexAppServer({
+      binary: 'codex',
+      env: {},
+      store: store().api,
+      spawnProcess: () =>
+        fakeProcess((request, stdout) => {
+          calls.push(request)
+          if (request.method === 'initialize') reply(stdout, request, {})
+          if (request.method === 'thread/start') reply(stdout, request, { thread: { id: 't' } })
+          if (request.method === 'turn/start') {
+            reply(stdout, request, { turn: { id: 'u' } })
+            queueMicrotask(() =>
+              stdout.write(
+                `${JSON.stringify({ method: 'turn/completed', params: { threadId: 't', turn: { id: 'u', status: 'completed' } } })}\n`,
+              ),
+            )
+          }
+        }),
+    })
+    await server.turn({
+      sessionId: 's',
+      cwd: '/p',
+      systemPrompt: 'rules',
+      message: 'look',
+      imagePaths: ['/tmp/a.png', '/tmp/b.jpg'],
+      timeoutMs: 1000,
+    })
+    expect(calls.find((x) => x.method === 'turn/start').params.input).toEqual([
+      { type: 'text', text: 'look' },
+      { type: 'localImage', path: '/tmp/a.png' },
+      { type: 'localImage', path: '/tmp/b.jpg' },
+    ])
+    server.kill()
+  })
+
   test('relaunch resumes persisted thread and changed context is sent as an update block', async () => {
     const saved = store()
     const requests: any[] = []

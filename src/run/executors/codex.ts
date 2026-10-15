@@ -301,7 +301,12 @@ interface CodexChatResult {
   model: string
 }
 
-export function buildCodexChatArgs(prompt: string, model?: string, cliEffort?: string): string[] {
+export function buildCodexChatArgs(
+  prompt: string,
+  model?: string,
+  cliEffort?: string,
+  imagePaths: string[] = [],
+): string[] {
   const args = [
     'exec',
     prompt,
@@ -317,6 +322,8 @@ export function buildCodexChatArgs(prompt: string, model?: string, cliEffort?: s
   ]
   if (model) args.push('-m', model)
   if (cliEffort) args.push('-c', `model_reasoning_effort=${cliEffort}`)
+  // UI.24.6a — `codex exec -i, --image <FILE>...`; va tras el prompt, un flag por imagen.
+  for (const path of imagePaths) args.push('--image', path)
   return args
 }
 
@@ -343,6 +350,7 @@ async function runCodexChatExec(
   cliEffort?: string,
   onChatStep?: (event: ExecutorStepEvent) => void,
   projectRoot?: string,
+  imagePaths: string[] = [],
 ): Promise<CodexChatResult> {
   if (!findCodexBinary()) {
     throw new ExecutorCodexError(codexUnavailableMessage(process.env.PATH))
@@ -364,7 +372,7 @@ async function runCodexChatExec(
   try {
     ;({ stdout, timedOut } = await runCodex(
       cwd,
-      buildCodexChatArgs(prompt, codexModel, cliEffort),
+      buildCodexChatArgs(prompt, codexModel, cliEffort, imagePaths),
       timeoutMs,
       onStep,
       buildCodexChatEnv(configHome.path),
@@ -426,6 +434,7 @@ export async function runCodexChat(
   onTextDelta?: (text: string) => void,
   transcript?: string,
   projectRoot?: string,
+  imagePaths: string[] = [],
 ): Promise<CodexChatResult> {
   if (!sessionId)
     return runCodexChatExec(
@@ -437,6 +446,7 @@ export async function runCodexChat(
       cliEffort,
       onChatStep,
       projectRoot,
+      imagePaths,
     )
   if (!findCodexBinary()) throw new ExecutorCodexError(codexUnavailableMessage(process.env.PATH))
   if (model && !orchestosModelToCodexModel(model))
@@ -468,6 +478,7 @@ export async function runCodexChat(
       cwd,
       systemPrompt,
       message: userMessage,
+      imagePaths,
       transcript,
       model: orchestosModelToCodexModel(model),
       effort: cliEffort,
@@ -516,6 +527,8 @@ export async function runCodexChat(
         model,
         cliEffort,
         onChatStep,
+        undefined,
+        imagePaths,
       )
     }
     throw error

@@ -143,6 +143,23 @@ describe('runClaudeChat (CC.1)', () => {
     expect(args[addDir + 1]).toBe(process.cwd())
   })
 
+  it('UI.24.6a — el directorio de adjuntos se suma con --add-dir; sin él los args no cambian', () => {
+    const base = buildClaudeChatArgs('system', undefined, undefined, '/s.json', '/proj')
+    expect(
+      buildClaudeChatArgs('system', undefined, undefined, '/s.json', '/proj', undefined),
+    ).toEqual(base)
+    const withAtt = buildClaudeChatArgs(
+      'system',
+      undefined,
+      undefined,
+      '/s.json',
+      '/proj',
+      '/tmp/att',
+    )
+    expect(withAtt.slice(base.length)).toEqual(['--add-dir', '/tmp/att'])
+    expect(withAtt.slice(0, base.length)).toEqual(base)
+  })
+
   it('nunca pide permisos de escritura — --tools es solo lectura', async () => {
     const stdout = streamOf(
       assistantText('hola'),

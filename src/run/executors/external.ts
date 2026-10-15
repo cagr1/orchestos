@@ -357,6 +357,7 @@ export function buildClaudeChatArgs(
   effort?: string,
   settingsPath = '<settings>',
   projectRoot = process.cwd(),
+  attachmentsDir?: string,
 ): string[] {
   const args = [
     '-p',
@@ -374,6 +375,8 @@ export function buildClaudeChatArgs(
     '--add-dir',
     projectRoot,
   ]
+  // UI.24.6a — directorio temporal de imágenes adjuntas del turno: lectura solamente.
+  if (attachmentsDir) args.push('--add-dir', attachmentsDir)
   const cliModel = orchestosModelToCliModel(model)
   if (cliModel) args.push('--model', cliModel)
   if (effort) args.push('--effort', effort)
@@ -411,6 +414,7 @@ export async function runClaudeChat(
   effort?: string,
   onChatStep?: (event: ExecutorStepEvent) => void,
   onChatTextDelta?: (text: string) => void,
+  attachmentsDir?: string,
 ): Promise<ClaudeChatResult> {
   const found = findClaudeBinary()
   if (!found) {
@@ -439,7 +443,14 @@ export async function runClaudeChat(
   try {
     ;({ timedOut, resultLine } = await runClaudeCode(
       cwd,
-      buildClaudeChatArgs(systemPrompt, model, effort, configHome.settingsPath!, cwd),
+      buildClaudeChatArgs(
+        systemPrompt,
+        model,
+        effort,
+        configHome.settingsPath!,
+        cwd,
+        attachmentsDir,
+      ),
       userMessage,
       timeoutMs,
       onStep,

@@ -263,6 +263,13 @@ describe('G.4.2b — codexEngine (codex subprocess)', () => {
     expect(buildCodexArgsDisplay()).toContain('model_reasoning_summary=auto')
     expect(buildCodexChatArgs('hello')).toContain('model_reasoning_summary=auto')
   })
+  it('UI.24.6a — una imagen = un --image <ruta>; sin imágenes los args no cambian', () => {
+    const base = buildCodexChatArgs('p', 'gpt-5.4', 'high')
+    expect(buildCodexChatArgs('p', 'gpt-5.4', 'high', [])).toEqual(base)
+    expect(base).not.toContain('--image')
+    const withImages = buildCodexChatArgs('p', 'gpt-5.4', 'high', ['/t/a.png', '/t/b.jpg'])
+    expect(withImages.slice(base.length)).toEqual(['--image', '/t/a.png', '--image', '/t/b.jpg'])
+  })
   it('construye el flag de aislamiento y CODEX_HOME dentro del repo', () => {
     const args = buildCodexChatArgs('prompt')
     expect(args).toContain('--ignore-user-config')

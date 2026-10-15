@@ -262,6 +262,8 @@ export class CodexAppServer {
     cwd: string
     systemPrompt: string
     message: string
+    /** UI.24.6a — rutas absolutas de imágenes; entran como ítems `localImage` (UserInput del protocolo). */
+    imagePaths?: string[]
     transcript?: string
     model?: string
     effort?: string
@@ -371,7 +373,10 @@ export class CodexAppServer {
       }
       turnStart = await this.request('turn/start', {
         threadId,
-        input: [{ type: 'text', text: message }],
+        input: [
+          { type: 'text', text: message },
+          ...(input.imagePaths ?? []).map((path) => ({ type: 'localImage', path })),
+        ],
         cwd: input.cwd,
         model: input.model,
         effort: input.effort,

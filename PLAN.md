@@ -956,9 +956,24 @@ color; la respuesta del asistente va sin caja; el identificador técnico se copi
   llamaba a `POST /api/chat/upload` y mandaba ids locales `att_…` que el backend descartaba. El turno CLI ya mete en el
   prompt texto/PDF y OCR de imágenes (`handlers/chat.ts:1356-1381`); las imágenes no llegan nativas (`codex exec`
   acepta `-i/--image`, sin usar). Fuera: ruta API, OpenCode, persistir el archivo más allá del TTL de 30 min, carpetas.
-  - [ ] **UI.24.6a — 🧠 Imágenes nativas al CLI.** Imagen → archivo en tmp del turno fuera del proyecto (se borra al
+  - [x] **UI.24.6a — 🧠 Imágenes nativas al CLI.** Imagen → archivo en tmp del turno fuera del proyecto (se borra al
     terminar); Codex `--image <ruta>`, Claude `--add-dir <tmp>` + ruta en el prompt (Read lee imágenes); si falla,
     OCR como hoy. Tests del armado de argumentos.
+    Ejecutado por: sonnet (rol `criterio`) · Spec: docs/specs/UI.24.6a.md (borrado)
+    (cerrado 2026-10-15) Antes, con modelo con visión la imagen se perdía en silencio en el CLI (iba a `imageParts`,
+    que el CLI no recibe). `src/chat/attachment-files.ts` (`decodeImageDataUrl`, `writeChatImages` en
+    `tmpdir()/orchestos-chat-att-*`, `cleanup()` en el `finally` de cada rama CLI y en el 422). Codex `exec`:
+    `--image <ruta>` (`buildCodexChatArgs`); app-server: ítem `{type:'localImage', path}` en `turn/start` (esquema
+    `UserInput` de `codex app-server generate-ts`). Claude: `--add-dir <tmp>` + `Attached image: <ruta>` al final
+    del prompt. Si la escritura falla, OCR/422 como antes. Ruta API sin cambios.
+    Evidencia: `typecheck`, `lint`, tests de `src/chat` + `claude-chat`/`codex-app-server`/`codex-engine` (53/53),
+    corridos por el cerebro. Gate en vivo: `docs/done/evidence/UI.24.6a-live.json` — `chat-streaming` 24/24,
+    `codex-live` 14/14, `read-boundary` 7/7.
+    Límites: la lectura real de una imagen ("ZEBRA-4417" → Codex y Claude respondieron la palabra, sin OCR) la corrió
+    solo el ejecutor con un flujo desechable; la prueba durable es el gate `chat-attachments` de UI.24.6b. El tmp se
+    crea en todo turno CLI aunque no haya imágenes (vacío, se borra); una excepción no capturada entre la escritura
+    y el `try` del CLI lo dejaría en `/tmp`. Preflight de un sub-ítem indentado falla
+    (`scripts/agent-governance.ts:37` exige `- [ ]` en columna 0).
   - [ ] **UI.24.6b — 🧠 Composer que sube de verdad + fichas.** Subida al elegir/pegar/arrastrar; ficha con miniatura
     (`file-thumbnail.tsx`) y estado subiendo/listo/error (reintentar, quitar); Send deshabilitado mientras sube;
     miniaturas en el mensaje enviado; ERP.4.14; sacar `AgentComposer.tsx` de `ui:fidelity:jsx`. Gate nuevo

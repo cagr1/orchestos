@@ -2,6 +2,7 @@ import { createHash, randomUUID } from 'crypto'
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'fs'
 import { tmpdir } from 'os'
 import { join, relative } from 'path'
+import { writeChatImages } from '../../chat/attachment-files.ts'
 import { buildChatSystemPrompt } from '../../chat/chat-context.ts'
 import { extractTextFromImage } from '../../chat/ocr.ts'
 import { loadOrcheConfig } from '../../config/load.ts'
@@ -1353,11 +1354,27 @@ async function handleApiChat(
   const imageParts: { type: 'image_url'; image_url: { url: string } }[] = []
   const textBlocks: string[] = []
   const ocrUsed: string[] = []
+  // UI.24.6a — en el turno por CLI la imagen llega como archivo (Codex `--image`/
+  // `localImage`, Claude `--add-dir` + ruta en el prompt), fuera del proyecto;
+  // si no se pudo escribir, cae a OCR como siempre.
+  const cliImages =
+    useClaudeCli || useCodexCli
+      ? writeChatImages(attachedFiles.filter((f) => f.type === 'image').map((f) => f.content))
+      : null
+  const cliImagePaths: string[] = []
+  let cliImageIndex = 0
   for (const f of attachedFiles) {
     if (f.type !== 'image') {
       const label = f.filename.toLowerCase().endsWith('.pdf') ? 'PDF' : 'File'
       textBlocks.push(untrustedContent(`${label}:${f.filename}`, f.content) + '\n\n')
       continue
+    }
+    if (cliImages) {
+      const written = cliImages.paths[cliImageIndex++]
+      if (written) {
+        cliImagePaths.push(written)
+        continue
+      }
     }
     if (isOllama || supportsVisionInput(model)) {
       imageParts.push({ type: 'image_url', image_url: { url: f.content } })
@@ -1374,6 +1391,7 @@ async function handleApiChat(
       ocrUsed.push(f.filename)
     } catch {
       const ocrError = `The model "${model}" does not support image input, and OCR could not read "${f.filename}". Choose a vision-capable model (e.g. a Claude, GPT-4o, or Gemini model), or remove the image and continue with text only.`
+      cliImages?.cleanup()
       finishTurnFailure({ error: ocrError, model })
       return errorResponse(ocrError, 422)
     }
@@ -1511,14 +1529,14 @@ async function handleApiChat(
     // hacía, corría siempre con el default del binario — hallazgo real de
     // Carlos el mismo día). `runClaudeChat` ignora el modelo si no es de
     // Anthropic (`orchestosModelToCliModel`), nunca lo fuerza. Limitación
-    // conocida y documentada (PLAN.md § CC.1): imágenes adjuntas se ignoran acá
-    // (imageParts no se envía a runClaudeChat todavía) — combinedText sí incluye
-    // el texto de PDFs/archivos adjuntos vía untrustedContent.
+    // UI.24.6a: las imágenes adjuntas llegan al CLI como archivo (cliImagePaths);
+    // combinedText incluye el texto de PDFs/archivos vía untrustedContent.
     const CLAUDE_CHAT_TIMEOUT_MS = 120_000
     if (useClaudeCli) {
       const { runClaudeChat } = await import('../../run/executors/external.ts')
       const isolatedCwd = hasProjectContext ? null : mkdtempSync(join(tmpdir(), 'orchestos-chat-'))
-      const cliInput = `${transcript}${combinedText}`
+      const imageNote = cliImagePaths.map((p) => `\nAttached image: ${p}`).join('')
+      const cliInput = `${transcript}${combinedText}${imageNote}`
       if (session) captureChatCliInput(session.id, cliInput)
       try {
         const result = await runClaudeChat(
@@ -1532,6 +1550,7 @@ async function handleApiChat(
           (text) => {
             if (activeTurnId && session) appendLiveText(session.id, activeTurnId, text)
           },
+          cliImages && cliImagePaths.length > 0 ? cliImages.dir : undefined,
         )
         const resultLabel = `${result.model} via Claude Code CLI${result.effort ? ` (effort: ${result.effort})` : ''}`
         const { text: responseText } = await settleTaskIntent(result.text)
@@ -1573,6 +1592,7 @@ async function handleApiChat(
         return errorResponse(`Claude Code CLI: ${e.message}`, 502)
       } finally {
         if (isolatedCwd) rmSync(isolatedCwd, { recursive: true, force: true })
+        cliImages?.cleanup()
       }
     }
 
@@ -1596,6 +1616,8 @@ async function handleApiChat(
             if (activeTurnId && session) appendLiveText(session.id, activeTurnId, text)
           },
           transcript,
+          undefined,
+          cliImagePaths,
         )
         const resultLabel = `${result.model} via Codex CLI${cliEffort ? ` (effort: ${cliEffort})` : ''}`
         const { text: responseText } = await settleTaskIntent(result.text)
@@ -1636,6 +1658,7 @@ async function handleApiChat(
         return errorResponse(`Codex CLI: ${e.message}`, 502)
       } finally {
         if (isolatedCwd) rmSync(isolatedCwd, { recursive: true, force: true })
+        cliImages?.cleanup()
       }
     }
 
