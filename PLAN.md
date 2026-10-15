@@ -952,6 +952,18 @@ color; la respuesta del asistente va sin caja; el identificador técnico se copi
   Gate en vivo (cerebro): `docs/done/evidence/UI.24.5.1-live.json` — `restart-mid-run` 28/28, `chat-roles` 11/11.
 - [ ] **UI.24.6 — 🧠 Composer y adjuntos.** Adjuntos como fichas con vista previa y quitar; miniaturas en el mensaje
   enviado. Incluye ERP.4.14. Verifica: `composer-picker`.
+  **Hallazgo y GO de Carlos 2026-10-15 (opción 1, "que funcione"):** el clip no adjuntaba nada: el composer nunca
+  llamaba a `POST /api/chat/upload` y mandaba ids locales `att_…` que el backend descartaba. El turno CLI ya mete en el
+  prompt texto/PDF y OCR de imágenes (`handlers/chat.ts:1356-1381`); las imágenes no llegan nativas (`codex exec`
+  acepta `-i/--image`, sin usar). Fuera: ruta API, OpenCode, persistir el archivo más allá del TTL de 30 min, carpetas.
+  - [ ] **UI.24.6a — 🧠 Imágenes nativas al CLI.** Imagen → archivo en tmp del turno fuera del proyecto (se borra al
+    terminar); Codex `--image <ruta>`, Claude `--add-dir <tmp>` + ruta en el prompt (Read lee imágenes); si falla,
+    OCR como hoy. Tests del armado de argumentos.
+  - [ ] **UI.24.6b — 🧠 Composer que sube de verdad + fichas.** Subida al elegir/pegar/arrastrar; ficha con miniatura
+    (`file-thumbnail.tsx`) y estado subiendo/listo/error (reintentar, quitar); Send deshabilitado mientras sube;
+    miniaturas en el mensaje enviado; ERP.4.14; sacar `AgentComposer.tsx` de `ui:fidelity:jsx`. Gate nuevo
+    `chat-attachments` (Codex real: `.txt` con token aleatorio + imagen con texto → la respuesta trae ambos;
+    contraprueba con el composer de HEAD) + `composer-picker` + gates de chat.
 - [ ] **UI.24.7 — 🧠 Herramientas y movimiento.** Llamadas a herramientas en una fila plegable ("3 herramientas · 2,1 s");
   entrada de mensajes y transición entre estados; estado vacío. Revisión final por `qa` sobre capturas contra esta
   dirección.
