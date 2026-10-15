@@ -90,3 +90,17 @@ El cerebro además corre la contraprueba: `chat-attachments` contra el composer 
    token y palabras, miniatura `<img>` cargada en el mensaje enviado y que sigue tras terminar el turno. Captura de esa
    pasada. Si en Chat el orquestador crea tarea en vez de responder, ajustar el prompt (no el producto) y decirlo.
 Verifica: lo mismo de arriba; pegar la salida de `bun run ui:gate chat-attachments` y los tests nuevos.
+
+## Ronda 3 — corrida del cerebro (`ui-gate-35462`), 2 fallos
+1. **Gate, Dev**: `FAIL Dev: answer contains the token and the image word … answer=att-d53c166c`, pero la captura
+   final muestra `ATT-D53C166C GLACIER FALCON`. Con `session`, el flujo espera al timeline del backend y lee
+   `div.prose` en el acto, antes de que la UI pinte la respuesta completa. Corregir: tras el timeline, esperar en la
+   UI a que la última respuesta contenga lo esperado o quede estable (la espera "muerta" del `else` es justo eso:
+   aplicarla a ambas pasadas y borrar la rama).
+2. **Producto, Chat**: en `chat-attachments-thread-Chat.png`, con el turno terminado, la miniatura de `word.png` del
+   mensaje enviado queda en **spinner para siempre** (la de Dev se ve bien). Diagnosticar la causa con evidencia (¿el
+   mensaje se re-monta y `useObjectUrl`/`objectUrls` revoca la URL y la nueva suscripción no notifica? ¿`File` distinto
+   tras la fusión? ¿el `ChatMessage` de `ui/` pinta otra cosa?) y arreglarla en el producto. Además, la afirmación
+   `imageLoaded` del gate no lo detectó (selector `div.max-w-2xl` que en Chat no corresponde, u otro motivo):
+   corregirla para que falle con el composer actual y pase con el arreglo. Reportar la causa encontrada.
+Verifica: `bun run ui:gate chat-attachments` dos veces seguidas en verde + mirar las 4 capturas; tests del front.
