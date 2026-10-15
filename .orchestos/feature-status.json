@@ -436,6 +436,15 @@
       "closedDate": null
     },
     {
+      "id": "UI.24.5.1",
+      "sprint": "Fase 2 — Producto mínimo para entrega",
+      "block": "UI.24 — El hilo del chat con acabado premium (ABIERTO 2026-10-13, GO de Carlos 2026-10-13)",
+      "delegation": "🧠",
+      "title": "Gates que aún leían el texto viejo de la tarea",
+      "status": "open",
+      "closedDate": null
+    },
+    {
       "id": "UI.24.6",
       "sprint": "Fase 2 — Producto mínimo para entrega",
       "block": "UI.24 — El hilo del chat con acabado premium (ABIERTO 2026-10-13, GO de Carlos 2026-10-13)",

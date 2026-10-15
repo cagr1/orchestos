@@ -941,6 +941,10 @@ color; la respuesta del asistente va sin caja; el identificador técnico se copi
   Contraprueba (ejecutor, r1): con `OrchestChatView.tsx` de HEAD, `chat-retry-report` falla en `held task card visible`.
   Límites: la captura `dirty-tree-report` sale a media opacidad (se toma dentro del fundido de 150 ms; en la lámina
   la misma tarjeta se ve entera). Sin estado de tarea fuera del hilo si `/api/tasks` falla al hidratar.
+- [ ] **UI.24.5.1 — 🧠 Gates que aún leían el texto viejo de la tarea.** (abierto 2026-10-15) El pre-push de UI.24.5
+  falló en `restart-mid-run` (A: "chat shows the report after reloading the page") y `chat-roles` ("Orchestrator
+  marker creates a held task"): leen "Task ready to run" y "✓ Task … done" en `div.prose`, que la tarjeta quitó.
+  Pasan a leer `[data-task-id]`/`[data-task-state]`. Verifica: `restart-mid-run`, `chat-roles`.
 - [ ] **UI.24.6 — 🧠 Composer y adjuntos.** Adjuntos como fichas con vista previa y quitar; miniaturas en el mensaje
   enviado. Incluye ERP.4.14. Verifica: `composer-picker`.
 - [ ] **UI.24.7 — 🧠 Herramientas y movimiento.** Llamadas a herramientas en una fila plegable ("3 herramientas · 2,1 s");
