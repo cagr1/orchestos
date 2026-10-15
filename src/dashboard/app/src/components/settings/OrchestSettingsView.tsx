@@ -2189,7 +2189,7 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
             <div className="flex-1 flex flex-col overflow-y-auto">
               <div className="flex min-h-full shrink-0 flex-col">
                 {activeProjectTab === 'tasks' && orchestration && (
-                  <section className="m-4 rounded-card border border-app bg-app-surface p-4 space-y-3">
+                  <section className="mx-6 my-4 rounded-card bg-app-elevated p-4 space-y-3">
                     <div className="flex items-center justify-between">
                       <h2 className="text-sm font-semibold text-app">Orquestación</h2>
                       <label className="flex items-center gap-2 text-xs text-app-muted">
@@ -2240,88 +2240,97 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
                         {orchestration.enabled ? 'Activada' : 'Desactivada'}
                       </label>
                     </div>
-                    <div className="flex gap-3">
-                      {(['maxConcurrent', 'maxTotal'] as const).map((key) => (
-                        <label key={key} className="text-xs text-app-muted space-y-1">
-                          <span>
-                            {key === 'maxConcurrent'
-                              ? 'Máximo concurrente'
-                              : 'Tope total por ejecución'}
-                          </span>
-                          <input
-                            className="block w-32 rounded-control border border-app bg-app px-2 py-1 text-app"
-                            type="number"
-                            min="1"
-                            disabled={!orchestration.enabled}
-                            value={orchestration[key] ?? ''}
-                            onChange={(event) => {
-                              const raw = event.target.value
-                              setOrchestration({
-                                ...orchestration,
-                                [key]: raw === '' ? undefined : Number(raw),
-                              })
-                              setOrchestrationError(null)
-                            }}
-                          />
-                        </label>
-                      ))}
+                    <p className="text-xs text-app-muted">
+                      Limita las subtareas en paralelo y en total al orquestar un plan.
+                    </p>
+                    <div className="flex flex-wrap items-end gap-3">
+                      {orchestration.enabled &&
+                        (['maxConcurrent', 'maxTotal'] as const).map((key) => (
+                          <label key={key} className="text-xs text-app-muted space-y-1">
+                            <span>
+                              {key === 'maxConcurrent'
+                                ? 'Máximo concurrente'
+                                : 'Tope total por ejecución'}
+                            </span>
+                            <input
+                              className="mt-1 block h-7 w-32 rounded-control bg-app-bg px-2 text-[13px] tabular-nums text-app"
+                              type="number"
+                              min="1"
+                              value={orchestration[key] ?? ''}
+                              onChange={(event) => {
+                                const raw = event.target.value
+                                setOrchestration({
+                                  ...orchestration,
+                                  [key]: raw === '' ? undefined : Number(raw),
+                                })
+                                setOrchestrationError(null)
+                              }}
+                            />
+                          </label>
+                        ))}
                       {orchestration.enabled && (
-                        <button
-                          type="button"
-                          className="self-end rounded-control border border-app px-3 py-1 text-xs text-app"
-                          disabled={orchestrationSaving}
-                          onClick={async () => {
-                            if (
-                              !orchestrationProjectId ||
-                              orchestrationProjectId === purgingProjectId.current
-                            )
-                              return
-                            const { maxConcurrent, maxTotal } = orchestration
-                            if (
-                              !Number.isInteger(maxConcurrent) ||
-                              (maxConcurrent ?? 0) < 1 ||
-                              !Number.isInteger(maxTotal) ||
-                              (maxTotal ?? 0) < 1
-                            ) {
-                              setOrchestrationError(
-                                'Ingresa límites enteros mayores o iguales a 1.',
+                        <SettingsPrimaryAction>
+                          <Button
+                            size="sm"
+                            disabled={orchestrationSaving}
+                            onClick={async () => {
+                              if (
+                                !orchestrationProjectId ||
+                                orchestrationProjectId === purgingProjectId.current
                               )
-                              return
-                            }
-                            setOrchestrationSaving(true)
-                            setOrchestrationError(null)
-                            const controller = new AbortController()
-                            orchestrationSaveRequest.current = controller
-                            try {
-                              await saveOrchestration(
-                                orchestration,
-                                orchestrationProjectId,
-                                controller.signal,
-                              )
-                              if (!controller.signal.aborted)
-                                setOrchestration(
-                                  await getOrchestration(orchestrationProjectId, controller.signal),
-                                )
-                            } catch (error) {
-                              if (!controller.signal.aborted)
+                                return
+                              const { maxConcurrent, maxTotal } = orchestration
+                              if (
+                                !Number.isInteger(maxConcurrent) ||
+                                (maxConcurrent ?? 0) < 1 ||
+                                !Number.isInteger(maxTotal) ||
+                                (maxTotal ?? 0) < 1
+                              ) {
                                 setOrchestrationError(
-                                  error instanceof Error ? error.message : String(error),
+                                  'Ingresa límites enteros mayores o iguales a 1.',
                                 )
-                            } finally {
-                              setOrchestrationSaving(false)
-                            }
-                          }}
-                        >
-                          {orchestrationSaving ? 'Guardando…' : 'Guardar'}
-                        </button>
+                                return
+                              }
+                              setOrchestrationSaving(true)
+                              setOrchestrationError(null)
+                              const controller = new AbortController()
+                              orchestrationSaveRequest.current = controller
+                              try {
+                                await saveOrchestration(
+                                  orchestration,
+                                  orchestrationProjectId,
+                                  controller.signal,
+                                )
+                                if (!controller.signal.aborted)
+                                  setOrchestration(
+                                    await getOrchestration(
+                                      orchestrationProjectId,
+                                      controller.signal,
+                                    ),
+                                  )
+                              } catch (error) {
+                                if (!controller.signal.aborted)
+                                  setOrchestrationError(
+                                    error instanceof Error ? error.message : String(error),
+                                  )
+                              } finally {
+                                setOrchestrationSaving(false)
+                              }
+                            }}
+                          >
+                            {orchestrationSaving ? 'Guardando…' : 'Guardar'}
+                          </Button>
+                        </SettingsPrimaryAction>
                       )}
+                    </div>
+                    <div className="flex gap-3 text-xs text-app-muted">
                       {orchestration.current && (
-                        <span className="self-end text-xs text-app-muted">
+                        <span>
                           Activos/total: {orchestration.current.active}/
                           {orchestration.current.total}
                         </span>
                       )}
-                      <span className="self-end text-xs text-app-muted">
+                      <span>
                         Consumo:{' '}
                         {orchestration.usage
                           ? `${orchestration.usage.tokens} tokens · $${orchestration.usage.usd.toFixed(4)}`
@@ -2361,7 +2370,7 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
                 )}
                 {/* TAB: Tasks */}
                 {activeProjectTab === 'tasks' && (
-                  <div data-tasks-tab className="p-4 space-y-3">
+                  <div data-tasks-tab className="px-6 py-4 space-y-3">
                     <div className="flex items-center justify-between">
                       <span className="text-xs text-app-muted">{tasks.length} tasks</span>
                       {onRunNextTask && (

@@ -71,7 +71,55 @@ export default async function orchestration({ page, api, step, shot, cleanup }) 
     `hidden on Plan: ${hiddenOnPlan}; visible on Tasks: ${visibleOnTasks}`,
   )
 
+  const projectHeaderLeft = await page.locator('[data-project-header] > *').first().boundingBox()
+  const orchestrationLeft = await settings().boundingBox()
+  const tasksContentLeft = await page.locator('[data-tasks-tab] > *').first().boundingBox()
+  const headerToOrchestration =
+    projectHeaderLeft && orchestrationLeft
+      ? Math.abs(projectHeaderLeft.x - orchestrationLeft.x)
+      : Number.POSITIVE_INFINITY
+  const headerToTasks =
+    projectHeaderLeft && tasksContentLeft
+      ? Math.abs(projectHeaderLeft.x - tasksContentLeft.x)
+      : Number.POSITIVE_INFINITY
+  await step(
+    'tasks content aligned with header',
+    headerToOrchestration <= 4 && headerToTasks <= 4,
+    `header: ${projectHeaderLeft?.x ?? 'missing'}; orchestration: ${orchestrationLeft?.x ?? 'missing'} (${headerToOrchestration}px); tasks: ${tasksContentLeft?.x ?? 'missing'} (${headerToTasks}px)`,
+  )
+
+  await step(
+    'límites ocultos con la orquestación desactivada',
+    !(await enabledSwitch().isChecked()) && (await inputs().count()) === 0,
+    `checked: ${await enabledSwitch().isChecked()}; inputs: ${await inputs().count()}`,
+  )
+
   await enabledSwitch().check()
+  await step(
+    'dos límites visibles con la orquestación activada',
+    (await enabledSwitch().isChecked()) && (await inputs().count()) === 2,
+    `checked: ${await enabledSwitch().isChecked()}; inputs: ${await inputs().count()}`,
+  )
+  const labelPositions = await Promise.all(
+    (await inputs().all()).map(async (input) => {
+      const inputBox = await input.boundingBox()
+      const labelBox = await input.locator('xpath=ancestor::label[1]').locator('span').boundingBox()
+      return {
+        inputTop: inputBox?.y ?? null,
+        labelBottom: labelBox ? labelBox.y + labelBox.height : null,
+      }
+    }),
+  )
+  await step(
+    'límites con la etiqueta encima',
+    labelPositions.length === 2 &&
+      labelPositions.every(
+        ({ inputTop, labelBottom }) =>
+          inputTop !== null && labelBottom !== null && inputTop >= labelBottom - 1,
+      ),
+    JSON.stringify(labelPositions),
+  )
+  await shot('orchestration-on')
   await step(
     'activar solo habilita límites sin guardar defaults',
     (await enabledSwitch().isChecked()) &&

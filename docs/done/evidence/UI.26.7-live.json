@@ -1,0 +1,324 @@
+[
+  {
+    "flujo": "orchestration",
+    "pass": true,
+    "steps": [
+      {
+        "nombre": "orquestación solo aparece en Tasks del proyecto",
+        "ok": true,
+        "detalle": "hidden on Plan: true; visible on Tasks: true"
+      },
+      {
+        "nombre": "tasks content aligned with header",
+        "ok": true,
+        "detalle": "header: 280; orchestration: 280 (0px); tasks: 280 (0px)"
+      },
+      {
+        "nombre": "límites ocultos con la orquestación desactivada",
+        "ok": true,
+        "detalle": "checked: false; inputs: 0"
+      },
+      {
+        "nombre": "dos límites visibles con la orquestación activada",
+        "ok": true,
+        "detalle": "checked: true; inputs: 2"
+      },
+      {
+        "nombre": "límites con la etiqueta encima",
+        "ok": true,
+        "detalle": "[{\"inputTop\":282.28125,\"labelBottom\":276.890625},{\"inputTop\":282.28125,\"labelBottom\":276.890625}]"
+      },
+      {
+        "nombre": "activar solo habilita límites sin guardar defaults",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "guardar ON por la UI persiste los dos límites",
+        "ok": true,
+        "detalle": "{\"enabled\":true,\"maxConcurrent\":2,\"maxTotal\":7,\"current\":null,\"usage\":null,\"extraCalls\":[{\"id\":\"planner\",\"label\":\"Planner (auto-split)\",\"active\":true,\"reason\":\"solo al superar el umbral de salida\"},{\"id\":\"qa\",\"label\":\"QA\",\"active\":true,\"reason\":\"validación de tareas\"},{\"id\":\"adversarialQA\",\"label\":\"QA adversarial\",\"active\":false,\"reason\":\"segundo juez opcional\"},{\"id\":\"refuterQA\",\"label\":\"QA refuter\",\"active\":false,\"reason\":\"revisión opcional tras QA fallido\"},{\"id\":\"retries\",\"label\":\"Retries\",\"active\":true,\"reason\":\"máximo por tarea: 3\"}],\"adapters\":[{\"id\":\"claude\",\"label\":\"Claude Code\",\"subagentBlock\":\"garantizado\"},{\"id\":\"codex\",\"label\":\"Codex\",\"subagentBlock\":\"no garantizado\"},{\"id\":\"opencode\",\"label\":\"opencode\",\"subagentBlock\":\"no garantizado\"}]}"
+      },
+      {
+        "nombre": "límites 2 y 7 se muestran tras recargar",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "guardar con un límite vacío muestra error y conserva 2/7 en GET",
+        "ok": true,
+        "detalle": "{\"enabled\":true,\"maxConcurrent\":2,\"maxTotal\":7,\"current\":null,\"usage\":null,\"extraCalls\":[{\"id\":\"planner\",\"label\":\"Planner (auto-split)\",\"active\":true,\"reason\":\"solo al superar el umbral de salida\"},{\"id\":\"qa\",\"label\":\"QA\",\"active\":true,\"reason\":\"validación de tareas\"},{\"id\":\"adversarialQA\",\"label\":\"QA adversarial\",\"active\":false,\"reason\":\"segundo juez opcional\"},{\"id\":\"refuterQA\",\"label\":\"QA refuter\",\"active\":false,\"reason\":\"revisión opcional tras QA fallido\"},{\"id\":\"retries\",\"label\":\"Retries\",\"active\":true,\"reason\":\"máximo por tarea: 3\"}],\"adapters\":[{\"id\":\"claude\",\"label\":\"Claude Code\",\"subagentBlock\":\"garantizado\"},{\"id\":\"codex\",\"label\":\"Codex\",\"subagentBlock\":\"no garantizado\"},{\"id\":\"opencode\",\"label\":\"opencode\",\"subagentBlock\":\"no garantizado\"}]}"
+      },
+      {
+        "nombre": "la UI declara codex y opencode no garantizados",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "apagar desde la UI persiste OFF tras recargar",
+        "ok": true,
+        "detalle": "{\"enabled\":false,\"current\":null,\"usage\":null,\"extraCalls\":[{\"id\":\"planner\",\"label\":\"Planner (auto-split)\",\"active\":false,\"reason\":\"auto-split omitido con OFF\"},{\"id\":\"qa\",\"label\":\"QA\",\"active\":true,\"reason\":\"validación de tareas\"},{\"id\":\"adversarialQA\",\"label\":\"QA adversarial\",\"active\":false,\"reason\":\"segundo juez opcional\"},{\"id\":\"refuterQA\",\"label\":\"QA refuter\",\"active\":false,\"reason\":\"revisión opcional tras QA fallido\"},{\"id\":\"retries\",\"label\":\"Retries\",\"active\":true,\"reason\":\"máximo por tarea: 3\"}],\"adapters\":[{\"id\":\"claude\",\"label\":\"Claude Code\",\"subagentBlock\":\"garantizado\"},{\"id\":\"codex\",\"label\":\"Codex\",\"subagentBlock\":\"no garantizado\"},{\"id\":\"opencode\",\"label\":\"opencode\",\"subagentBlock\":\"no garantizado\"}]}"
+      }
+    ],
+    "notes": [],
+    "errores": [],
+    "capturas": [
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-63875/orchestration/orchestration-on.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-63875/orchestration/orchestration-settings.png"
+    ]
+  },
+  {
+    "flujo": "project-tabs",
+    "pass": true,
+    "steps": [
+      {
+        "nombre": "add project opens folder picker without modal",
+        "ok": true,
+        "detalle": "POST /api/projects/choose calls=1; dialog visible=false"
+      },
+      {
+        "nombre": "temporary project visible",
+        "ok": true,
+        "detalle": "project visible in sidebar"
+      },
+      {
+        "nombre": "project settings visible",
+        "ok": true,
+        "detalle": "settings heading"
+      },
+      {
+        "nombre": "specs empty state visible",
+        "ok": true,
+        "detalle": "empty project has no specs"
+      },
+      {
+        "nombre": "specs empty no page error",
+        "ok": true,
+        "detalle": "none"
+      },
+      {
+        "nombre": "real memory visible",
+        "ok": true,
+        "detalle": "seeded DB memory"
+      },
+      {
+        "nombre": "mock memory absent",
+        "ok": true,
+        "detalle": "no mock data"
+      },
+      {
+        "nombre": "memory conflict resolved",
+        "ok": true,
+        "detalle": "open conflicts: 0"
+      },
+      {
+        "nombre": "authoritative memory persisted and visible",
+        "ok": true,
+        "detalle": "content of entry A matches the resolved API value"
+      },
+      {
+        "nombre": "memory no palette",
+        "ok": true,
+        "detalle": "ninguna (con memoria sembrada)"
+      },
+      {
+        "nombre": "memory content aligned with header",
+        "ok": true,
+        "detalle": "left offset=0px"
+      },
+      {
+        "nombre": "real spec visible",
+        "ok": true,
+        "detalle": "seeded markdown spec"
+      },
+      {
+        "nombre": "mock specs absent",
+        "ok": true,
+        "detalle": "no mock data"
+      },
+      {
+        "nombre": "spec approved",
+        "ok": true,
+        "detalle": "API status approved"
+      },
+      {
+        "nombre": "spec lint updates API and row",
+        "ok": true,
+        "detalle": "Lint: pass (0); response findings=0; before=pass/0"
+      },
+      {
+        "nombre": "specs no palette",
+        "ok": true,
+        "detalle": "ninguna (con spec sembrado)"
+      },
+      {
+        "nombre": "specs content aligned with header",
+        "ok": true,
+        "detalle": "left offset=0px"
+      },
+      {
+        "nombre": "real skills listed",
+        "ok": true,
+        "detalle": "API skills=17"
+      },
+      {
+        "nombre": "compile response visible",
+        "ok": true,
+        "detalle": "success response rendered in the skill row"
+      },
+      {
+        "nombre": "mock skills absent",
+        "ok": true,
+        "detalle": "no mock data"
+      },
+      {
+        "nombre": "skills no palette",
+        "ok": true,
+        "detalle": "ninguna (con skills sembradas)"
+      },
+      {
+        "nombre": "skills content aligned with header",
+        "ok": true,
+        "detalle": "left offset=0px"
+      },
+      {
+        "nombre": "graph no palette",
+        "ok": true,
+        "detalle": "ninguna en CONSTITUTION, CONTEXT ni Code Graph"
+      },
+      {
+        "nombre": "graph content aligned with header",
+        "ok": true,
+        "detalle": "left offset=0px"
+      },
+      {
+        "nombre": "tab roots transparent (memory/specs/skills/graph)",
+        "ok": true,
+        "detalle": "memory=rgba(0, 0, 0, 0); specs=rgba(0, 0, 0, 0); skills=rgba(0, 0, 0, 0); graph=rgba(0, 0, 0, 0)"
+      },
+      {
+        "nombre": "mock instincts absent",
+        "ok": true,
+        "detalle": "no mock data"
+      },
+      {
+        "nombre": "instinct review visible",
+        "ok": true,
+        "detalle": "unverified instinct"
+      },
+      {
+        "nombre": "instinct approved",
+        "ok": true,
+        "detalle": "API verified"
+      },
+      {
+        "nombre": "manual instinct added",
+        "ok": true,
+        "detalle": "new API row"
+      },
+      {
+        "nombre": "instincts no palette",
+        "ok": true,
+        "detalle": "ninguna (con instincts sembrados)"
+      },
+      {
+        "nombre": "mock plan absent",
+        "ok": true,
+        "detalle": "no mock data"
+      },
+      {
+        "nombre": "plan board fills the view",
+        "ok": true,
+        "detalle": "danger zone top=972 scroller bottom=972"
+      },
+      {
+        "nombre": "plan no palette",
+        "ok": true,
+        "detalle": "ninguna en Kanban ni Table"
+      },
+      {
+        "nombre": "tab roots transparent",
+        "ok": true,
+        "detalle": "plan=rgba(0, 0, 0, 0); instincts=rgba(0, 0, 0, 0)"
+      },
+      {
+        "nombre": "explain fields visible as readable UI",
+        "ok": true,
+        "detalle": "GET /explain fields rendered inside the template block"
+      },
+      {
+        "nombre": "explain has no [object Object]",
+        "ok": true,
+        "detalle": "opened Explain modal contains no stringified object values"
+      },
+      {
+        "nombre": "task run finishes and badge changes without reload",
+        "ok": true,
+        "detalle": "status=done; retryCount/runId changed or terminal status observed"
+      },
+      {
+        "nombre": "Add task opens Chat",
+        "ok": true,
+        "detalle": "Chat composer visible, Plan view inactive, task count unchanged"
+      },
+      {
+        "nombre": "0 console errors",
+        "ok": true,
+        "detalle": "none"
+      }
+    ],
+    "notes": [],
+    "errores": [],
+    "capturas": [
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-63875/project-tabs/memory.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-63875/project-tabs/specs.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-63875/project-tabs/skills.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-63875/project-tabs/graph.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-63875/project-tabs/project-tabs-real-data.png"
+    ]
+  },
+  {
+    "flujo": "smoke",
+    "pass": true,
+    "steps": [
+      {
+        "nombre": "home",
+        "ok": true,
+        "detalle": "Chat visible"
+      },
+      {
+        "nombre": "home-dev",
+        "ok": true,
+        "detalle": "Dev visible"
+      },
+      {
+        "nombre": "dev-view",
+        "ok": true,
+        "detalle": "OrchestOS Dev visible"
+      },
+      {
+        "nombre": "chat-composer",
+        "ok": true,
+        "detalle": "chat composer visible"
+      },
+      {
+        "nombre": "settings-view",
+        "ok": true,
+        "detalle": "Appearance visible"
+      },
+      {
+        "nombre": "settings-general",
+        "ok": true,
+        "detalle": "Appearance visible"
+      }
+    ],
+    "notes": [],
+    "errores": [],
+    "capturas": [
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-63875/smoke/chat.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-63875/smoke/dev.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-63875/smoke/chat-returned.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-63875/smoke/settings.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-63875/smoke/settings-general.png"
+    ]
+  }
+]

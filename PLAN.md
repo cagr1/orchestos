@@ -1145,9 +1145,24 @@ archivos fijados por `ui:fidelity:jsx` (`OrchestDevWorkspace`, `ShellStatusBar`,
   formato no cambia comportamiento.
 - [ ] **UI.26.6b — 🧠 Movimiento de Arc UI en Settings.** `settings-command`, `api-keys` y `activity-heatmap` (ver
   "Movimiento" abajo), separados de UI.26.6 para que la forma se cierre y verifique sola.
-- [ ] **UI.26.7 — 🔍 Pendiente de revisar: inputs de "Orquestación" en Tasks no aceptan texto.** (Carlos 2026-10-14)
+- [x] **UI.26.7 — 🔍 Pendiente de revisar: inputs de "Orquestación" en Tasks no aceptan texto.** (Carlos 2026-10-14)
   "Máximo concurrente" y "Tope total por ejecución" (`OrchestSettingsView.tsx:~2321`) se renderizan `disabled`
   (visto en `erp-piloto`): no se puede escribir. Revisar por qué están deshabilitados y si la sección aporta.
+  Ejecutado por: gpt-6-luna (rol `mecanico`, r1–r3) · Spec: docs/specs/UI.26.7.md (borrado)
+  (cerrado 2026-10-14) No era un fallo: los límites se habilitan con la casilla "Activada" y el scheduler los usa
+  (`src/run/scheduler.ts:121`, `orchestration-budget.ts`). Ahora con la orquestación apagada los campos no se
+  pintan, una línea dice qué limitan, y el bloque usa tokens (`bg-app-elevated`, `Button` en
+  `SettingsPrimaryAction`). r2 (cerebro, captura): el contenido de Tasks arrancaba 8 px a la izquierda de la
+  cabecera (`m-4`/`p-4` contra `px-6`). r3 (cerebro, captura `orchestration-on`): los inputs quedaban en línea con
+  su etiqueta y "Consumo" flotaba junto a Guardar.
+  Evidencia: `typecheck`, `ui:fidelity:jsx`, corridos por el cerebro.
+  Gate en vivo: navegador real (Playwright), `docs/done/evidence/UI.26.7-live.json` — `orchestration` 11/11 (pasos
+  nuevos: `límites ocultos con la orquestación desactivada`, `dos límites visibles…`, `tasks content aligned with
+  header`, `límites con la etiqueta encima`), `project-tabs` 39/39, `smoke` 6/6. El cerebro miró las capturas
+  apagada y activada.
+  Contraprueba (ejecutor): HEAD → falla `límites ocultos…` (inputs: 2); r1 → falla la alineación (272 vs 280);
+  r2 → falla `etiqueta encima`.
+  Límites: solo tema por defecto.
 
 Cada paso: spec, delegación por rol, conteo de paleta = 0 en lo migrado, y el cerebro mira la pantalla real al lado de
 Gr8r antes de cerrar.
