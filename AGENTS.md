@@ -258,6 +258,10 @@ Medidas en los lotes L1–L4 y los ítems de Sprint 30/ERP/I/CX; cada una costó
   `codex app-server` no responde `account/rateLimits/read` en 8 s (`scripts/context-adapters.ts`); deja una línea de log
   al vencer. Los
   `rollout-*.jsonl` de `~/.codex/sessions` traen `rate_limits` y son candidato a fallback.
+- **Cambiar un texto o selector del hilo = grepear todos los flujos** (2026-10-15). `rg "<texto viejo>"
+  scripts/ui-gate/` antes de cerrar, no solo los flujos que nombra el ítem: UI.24.5 actualizó 3 y el pre-push cayó en
+  otros 2 (`restart-mid-run`, `chat-roles`; UI.24.5.1). Copias de evidencia a `docs/done/evidence/` van formateadas
+  (`biome format --write`): el `lint` del pre-push las revisa.
 
 ## Trabajo en equipo (Claude + Codex, en paralelo)
 

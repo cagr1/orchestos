@@ -159,7 +159,7 @@ export default async function chatRoles({ page, api, step, shot, visible, cleanu
   const viewport = page.viewportSize()
   await page.setViewportSize({ width: viewport?.width ?? 1440, height: 560 })
   const secondTurnDone = await sendTurn(request)
-  const heldTaskLabel = page.getByText('Task ready to run', { exact: true }).last()
+  const heldTaskLabel = page.locator('[data-task-state="held"]').last()
   const dbTasks = runJson(`
     import { Database } from 'bun:sqlite'
     const db = new Database(${JSON.stringify(databasePath)}, { readonly: true })

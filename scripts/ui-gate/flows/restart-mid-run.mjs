@@ -138,16 +138,13 @@ export default async function restartMidRun({
     if (await visible(sessionButton, 15_000)) await sessionButton.click()
     const found = await until(
       async () => {
-        const prose = page.locator('div.prose')
-        const count = await prose.count().catch(() => 0)
-        for (let index = 0; index < count; index += 1) {
-          const text = await prose
-            .nth(index)
-            .innerText()
-            .catch(() => '')
-          if (text.includes(taskId) && expected.test(text)) return true
-        }
-        return false
+        const taskCard = page.locator(`[data-task-id="${taskId}"]`)
+        if ((await taskCard.count().catch(() => 0)) === 0) return false
+        const text = await taskCard
+          .first()
+          .innerText()
+          .catch(() => '')
+        return expected.test(text)
       },
       30_000,
       1_000,

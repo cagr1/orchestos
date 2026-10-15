@@ -941,10 +941,15 @@ color; la respuesta del asistente va sin caja; el identificador técnico se copi
   Contraprueba (ejecutor, r1): con `OrchestChatView.tsx` de HEAD, `chat-retry-report` falla en `held task card visible`.
   Límites: la captura `dirty-tree-report` sale a media opacidad (se toma dentro del fundido de 150 ms; en la lámina
   la misma tarjeta se ve entera). Sin estado de tarea fuera del hilo si `/api/tasks` falla al hidratar.
-- [ ] **UI.24.5.1 — 🧠 Gates que aún leían el texto viejo de la tarea.** (abierto 2026-10-15) El pre-push de UI.24.5
+- [x] **UI.24.5.1 — 🧠 Gates que aún leían el texto viejo de la tarea.** (cerrado 2026-10-15; abierto 2026-10-15) El pre-push de UI.24.5
   falló en `restart-mid-run` (A: "chat shows the report after reloading the page") y `chat-roles` ("Orchestrator
   marker creates a held task"): leen "Task ready to run" y "✓ Task … done" en `div.prose`, que la tarjeta quitó.
   Pasan a leer `[data-task-id]`/`[data-task-state]`. Verifica: `restart-mid-run`, `chat-roles`.
+  Ejecutado por: gpt-6-luna (rol `mecanico`) · Spec: docs/specs/UI.24.5.1.md (borrado)
+  `restart-mid-run.mjs` `showChat` lee el `innerText` de `[data-task-id="<id>"]`; `chat-roles.mjs:162`
+  `heldTaskLabel` = `[data-task-state="held"]`. Lección: al cambiar un texto o selector del hilo, grepear **todos**
+  los flujos de `scripts/ui-gate/flows/`, no solo los que nombra el ítem (UI.24.5 actualizó 3 y dejó 2).
+  Gate en vivo (cerebro): `docs/done/evidence/UI.24.5.1-live.json` — `restart-mid-run` 28/28, `chat-roles` 11/11.
 - [ ] **UI.24.6 — 🧠 Composer y adjuntos.** Adjuntos como fichas con vista previa y quitar; miniaturas en el mensaje
   enviado. Incluye ERP.4.14. Verifica: `composer-picker`.
 - [ ] **UI.24.7 — 🧠 Herramientas y movimiento.** Llamadas a herramientas en una fila plegable ("3 herramientas · 2,1 s");

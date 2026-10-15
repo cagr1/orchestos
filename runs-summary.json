@@ -1,7 +1,22 @@
 {
-  "exported_at": "2026-10-15T14:58:03.820Z",
+  "exported_at": "2026-10-15T15:02:57.951Z",
   "total_runs": 20,
   "runs": [
+    {
+      "id": "f3a006cf-c5ef-49a2-8bf1-feb76fa1dbfc",
+      "task_class": "gate:ui.24.5.1-live:implement",
+      "model": "openai/gpt-6-luna",
+      "provider": "codex",
+      "status": "done",
+      "qa_verdict": "pass",
+      "qa_reason": "a.txt contains the requested single line, REINICIO.",
+      "files_blocked": [],
+      "checks_failed": 0,
+      "usd_cost": 0.00100656,
+      "elapsed_ms": 22811,
+      "tokens": 10358,
+      "created_at": "2026-10-15T15:01:06.608Z"
+    },
     {
       "id": "3cee6d67-0efc-4609-8a1f-bdece6415e1e",
       "task_class": "gate:ui.24.5-live:implement",
@@ -286,21 +301,6 @@
       "elapsed_ms": 18652,
       "tokens": 8292,
       "created_at": "2026-10-14T18:11:03.970Z"
-    },
-    {
-      "id": "e971b92d-6b34-446c-b3cf-defb6371f8e5",
-      "task_class": "gate:ui.26.4-live:implement",
-      "model": "openai/gpt-6-luna",
-      "provider": "codex",
-      "status": "done",
-      "qa_verdict": "pass",
-      "qa_reason": "NOTES.md contains the required line.",
-      "files_blocked": [],
-      "checks_failed": 0,
-      "usd_cost": 0.0007759799999999999,
-      "elapsed_ms": 76283,
-      "tokens": 7197,
-      "created_at": "2026-10-14T16:25:40.581Z"
     }
   ],
   "stats": {
@@ -308,6 +308,6 @@
     "blocked": 0,
     "done": 19,
     "qa_failed": 1,
-    "total_cost_usd": "0.2226"
+    "total_cost_usd": "0.2228"
   }
 }

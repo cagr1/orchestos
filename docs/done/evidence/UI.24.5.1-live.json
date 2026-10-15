@@ -1,0 +1,227 @@
+[
+  {
+    "flujo": "restart-mid-run",
+    "pass": true,
+    "steps": [
+      {
+        "nombre": "temporary project visible",
+        "ok": true,
+        "detalle": "project in Dev sidebar"
+      },
+      {
+        "nombre": "A: run requested from the chat session",
+        "ok": true,
+        "detalle": "HTTP 200"
+      },
+      {
+        "nombre": "A: task is running with a watched runner before the restart",
+        "ok": true,
+        "detalle": "{\"status\":\"running\",\"watch\":{\"pid\":40389,\"session_id\":\"0797a8ac-a183-4433-8f51-c7f0333319d2\"}}"
+      },
+      {
+        "nombre": "A: no report exists before the restart",
+        "ok": true,
+        "detalle": "[]"
+      },
+      {
+        "nombre": "A: runner was still alive while the dashboard was stopped",
+        "ok": true,
+        "detalle": "pid=40389 alive=true"
+      },
+      {
+        "nombre": "A: surviving runner ended its run by itself after the restart",
+        "ok": true,
+        "detalle": "{\"status\":\"done\",\"retryCount\":0,\"retryReason\":null,\"runsBefore\":0,\"runsAfter\":1}"
+      },
+      {
+        "nombre": "A: exactly one report for that taskId, matching the final status",
+        "ok": true,
+        "detalle": "[\"✓ Task `gate-restart-a` done · codex/openai/gpt-6-luna\\n\\n> 1 file(s) written\"]"
+      },
+      {
+        "nombre": "A: watch row removed after settling",
+        "ok": true,
+        "detalle": "null"
+      },
+      {
+        "nombre": "A: chat shows the report after reloading the page",
+        "ok": true,
+        "detalle": "report visible in the session"
+      },
+      {
+        "nombre": "A: Runs lists the run of that task",
+        "ok": true,
+        "detalle": "row gate-restart-a in Runs"
+      },
+      {
+        "nombre": "B: run requested from the chat session",
+        "ok": true,
+        "detalle": "HTTP 200"
+      },
+      {
+        "nombre": "B: task is running with a watched runner before the restart",
+        "ok": true,
+        "detalle": "{\"status\":\"running\",\"watch\":{\"pid\":42024,\"session_id\":\"65ad828e-a04b-4cf8-93d2-68591d1fe12c\"}}"
+      },
+      {
+        "nombre": "B: no report exists before the restart",
+        "ok": true,
+        "detalle": "[]"
+      },
+      {
+        "nombre": "B: runner was dead while the dashboard was stopped",
+        "ok": true,
+        "detalle": "pid=42024 alive=false"
+      },
+      {
+        "nombre": "B: task marked failed with the interruption reason",
+        "ok": true,
+        "detalle": "{\"status\":\"failed\",\"retryReason\":\"Interrupted: the task runner stopped before the task finished.\"}"
+      },
+      {
+        "nombre": "B: exactly one report for that taskId, with the interruption text",
+        "ok": true,
+        "detalle": "[\"✗ Task `gate-restart-b` failed\\n\\n> Interrupted: the task runner stopped before the task finished.\"]"
+      },
+      {
+        "nombre": "B: no second run was launched",
+        "ok": true,
+        "detalle": "{\"runsBefore\":0,\"runsAfter\":0}"
+      },
+      {
+        "nombre": "B: watch row removed after settling",
+        "ok": true,
+        "detalle": "null"
+      },
+      {
+        "nombre": "B: chat shows the interruption report after reloading the page",
+        "ok": true,
+        "detalle": "interruption report visible in the session"
+      },
+      {
+        "nombre": "C: run requested from the chat session",
+        "ok": true,
+        "detalle": "HTTP 200"
+      },
+      {
+        "nombre": "C: task is running with a watched runner before the restart",
+        "ok": true,
+        "detalle": "{\"status\":\"running\",\"watch\":{\"pid\":42822,\"session_id\":\"49268623-379c-45a9-b399-ec1f8ef8eb07\"}}"
+      },
+      {
+        "nombre": "C: no report exists before the restart",
+        "ok": true,
+        "detalle": "[]"
+      },
+      {
+        "nombre": "C: runner was killed while the dashboard stayed up",
+        "ok": true,
+        "detalle": "pid=42822 alive=false"
+      },
+      {
+        "nombre": "C: task marked failed with the interruption reason",
+        "ok": true,
+        "detalle": "{\"status\":\"failed\",\"retryReason\":\"Interrupted: the task runner stopped before the task finished.\"}"
+      },
+      {
+        "nombre": "C: exactly one report for that taskId, with the interruption text",
+        "ok": true,
+        "detalle": "[\"✗ Task `gate-restart-c` failed\\n\\n> Interrupted: the task runner stopped before the task finished.\"]"
+      },
+      {
+        "nombre": "C: no second run was launched",
+        "ok": true,
+        "detalle": "{\"runsBefore\":0,\"runsAfter\":0}"
+      },
+      {
+        "nombre": "C: watch row removed after settling",
+        "ok": true,
+        "detalle": "null"
+      },
+      {
+        "nombre": "C: chat shows the interruption report after reloading the page",
+        "ok": true,
+        "detalle": "interruption report visible in the session"
+      }
+    ],
+    "notes": [],
+    "errores": [],
+    "capturas": [
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-40167/restart-mid-run/restart-mid-run-a-chat.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-40167/restart-mid-run/restart-mid-run-b-chat.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-40167/restart-mid-run/restart-mid-run-c-chat.png"
+    ]
+  },
+  {
+    "flujo": "chat-roles",
+    "pass": true,
+    "steps": [
+      {
+        "nombre": "temporary project visible",
+        "ok": true,
+        "detalle": "orchestos-ui-mr-1-d1-Beo25J"
+      },
+      {
+        "nombre": "Orchestrator Codex selected by default",
+        "ok": true,
+        "detalle": "Codex option visible: Codex"
+      },
+      {
+        "nombre": "question turn receives a response",
+        "ok": true,
+        "detalle": "README.md has 1 line."
+      },
+      {
+        "nombre": "first normal turn latency (ms)",
+        "ok": true,
+        "detalle": "12229 ms from send to visible reply"
+      },
+      {
+        "nombre": "Orchestrator provider and model are recorded",
+        "ok": true,
+        "detalle": "{\"provider\":\"codex\",\"model\":\"gpt-6-luna\"}"
+      },
+      {
+        "nombre": "Orchestrator marker creates a held task without Auxiliary",
+        "ok": true,
+        "detalle": "{\"secondTurnDone\":true,\"httpStatus\":200,\"apiText\":\"OrchestOS will create a task to add “Orchestrator marker gate” to README.md.\\n\\n⏸ Created task `chat-1af8e8e3-52e5-4441-87b6-dcd624ee1fa5`, waiting for your confirmation before it runs.\",\"hasMarkerLine\":false,\"autoTask\":{\"id\":\"chat-1af8e8e3-52e5-4441-87b6-dcd624ee1fa5\",\"held\":true,\"existingFiles\":[\"README.md\"]},\"autoTaskSkipped\":false,\"dbTasks\":[],\"label\":\"Añadir la línea «Orchestrator marker gate» a README.md.\\nReady to run\\nApprove & Run\\nReject\"}"
+      },
+      {
+        "nombre": "held task card visible at the bottom",
+        "ok": true,
+        "detalle": "{\"overflows\":true,\"atBottom\":true,\"contained\":true}"
+      },
+      {
+        "nombre": "chat follows content that grows after render",
+        "ok": true,
+        "detalle": "{\"grew\":true,\"atBottom\":true}"
+      },
+      {
+        "nombre": "task marker is stripped from the chat",
+        "ok": true,
+        "detalle": "Visible marker count: 0"
+      },
+      {
+        "nombre": "task delegates execution without fixed model or engine",
+        "ok": true,
+        "detalle": "{\"id\":\"chat-1af8e8e3-52e5-4441-87b6-dcd624ee1fa5\",\"description\":\"Añadir la línea «Orchestrator marker gate» a README.md.\",\"output\":[\"README.md\"],\"status\":\"pending\",\"retry_count\":0,\"task_class\":\"implement\"}"
+      },
+      {
+        "nombre": "Executor settings no longer contain Default agent chips",
+        "ok": true,
+        "detalle": "Default agent headings: 0; chips: 0"
+      }
+    ],
+    "notes": [],
+    "errores": [],
+    "capturas": [
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-40167/chat-roles/temporary-project-visible.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-40167/chat-roles/orchestrator-preselected.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-40167/chat-roles/orchestrator-question-response.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-40167/chat-roles/orchestrator-turn-recorded.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-40167/chat-roles/task-held-without-auxiliary.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-40167/chat-roles/task-yaml-delegates-to-role.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-40167/chat-roles/executor-settings-without-default-agent.png"
+    ]
+  }
+]
