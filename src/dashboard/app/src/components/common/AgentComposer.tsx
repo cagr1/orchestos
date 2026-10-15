@@ -1,8 +1,19 @@
-import { ArrowUp, Check, ChevronDown, Paperclip, Terminal, X } from 'lucide-react'
+import {
+  AlertCircle,
+  ArrowUp,
+  Check,
+  ChevronDown,
+  Loader2,
+  Paperclip,
+  RotateCw,
+  Terminal,
+  X,
+} from 'lucide-react'
 import type React from 'react'
 import { Fragment, useEffect, useRef, useState } from 'react'
-import { type CliModelOption, getChatModels, getCliModels } from '../../api/chat'
+import { type CliModelOption, getChatModels, getCliModels, uploadChatFile } from '../../api/chat'
 import type { ChatAttachment } from '../../types/orchestos'
+import { FileThumbnail } from '../ui/file-thumbnail'
 import { ProviderLogo } from './ProviderLogos'
 
 export type CliId = 'api' | 'claude' | 'codex' | 'opencode' | 'deepseek' | 'gemini'
@@ -25,6 +36,24 @@ const CLIS: CliConfig[] = [
 ]
 
 export type EffortLevel = string
+
+/** Tope de adjuntos por mensaje (`MAX_CHAT_ATTACHMENTS`, src/dashboard/handlers/chat.ts). */
+export const MAX_CHAT_ATTACHMENTS = 5
+
+function attachmentFromFile(file: File): ChatAttachment {
+  return {
+    id: `att_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
+    name: file.name,
+    size: `${(file.size / 1024).toFixed(1)} KB`,
+    type: file.type.startsWith('image/')
+      ? 'image'
+      : file.name.toLowerCase().endsWith('.pdf')
+        ? 'pdf'
+        : 'file',
+    file,
+    status: 'uploading',
+  }
+}
 
 export function selectionFromDefaults(
   defaultCli: CliId,
@@ -68,6 +97,8 @@ export interface AgentComposerProps {
   defaultEffort?: EffortLevel
   lockedCli?: CliId
   orchestratorAssigned?: boolean
+  /** ERP.4.14: la config de roles aún se lee; ni aviso ni envío hasta saberlo. */
+  orchestratorLoading?: boolean
   busy?: boolean
   onOpenRouting?: () => void
   onSlashCommand?: (command: string, argument?: string) => void
@@ -82,6 +113,7 @@ export const AgentComposer: React.FC<AgentComposerProps> = ({
   defaultEffort = 'high',
   lockedCli,
   orchestratorAssigned = true,
+  orchestratorLoading = false,
   busy = false,
   onOpenRouting,
   onSlashCommand,
@@ -121,6 +153,9 @@ export const AgentComposer: React.FC<AgentComposerProps> = ({
   const [showDropdown, setShowDropdown] = useState(false)
   const [activeModelIndex, setActiveModelIndex] = useState(0)
   const [attachments, setAttachments] = useState<ChatAttachment[]>([])
+  const [attachError, setAttachError] = useState<string | null>(null)
+  const [dragging, setDragging] = useState(false)
+  const uploadControllers = useRef(new Map<string, AbortController>())
 
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -245,8 +280,11 @@ export const AgentComposer: React.FC<AgentComposerProps> = ({
     }
   }
 
+  const hasSendableAttachments = attachments.some((att) => att.status !== 'error')
+
   const handleSend = async () => {
-    if (busy || (!inputText.trim() && attachments.length === 0)) return
+    if (busy || orchestratorLoading || (!inputText.trim() && !hasSendableAttachments)) return
+    if (attachments.some((att) => att.status === 'uploading')) return
     if (!isShellMode && isLoadingModels) {
       // CI.25 — antes el Enter se descartaba sin rastro mientras cargaban los modelos (p. ej.
       // justo tras recargar): el texto quedaba en la caja y nada se enviaba. Se recuerda y se
@@ -270,9 +308,10 @@ export const AgentComposer: React.FC<AgentComposerProps> = ({
       }
     }
 
-    const previousAttachments = attachments
+    const previousAttachments = attachments.filter((att) => att.status !== 'error')
     setInputText('')
     setAttachments([])
+    setAttachError(null)
     setShowSlashMenu(false)
     setIsShellMode(false)
 
@@ -304,20 +343,65 @@ export const AgentComposer: React.FC<AgentComposerProps> = ({
     textareaRef.current?.focus()
   }
 
+  const patchAttachment = (id: string, patch: Partial<ChatAttachment>) =>
+    setAttachments((prev) => prev.map((att) => (att.id === id ? { ...att, ...patch } : att)))
+
+  const startUpload = (att: ChatAttachment) => {
+    if (!att.file) return
+    const controller = new AbortController()
+    uploadControllers.current.set(att.id, controller)
+    patchAttachment(att.id, { status: 'uploading', error: undefined })
+    uploadChatFile(att.file, controller.signal)
+      .then((uploaded) => patchAttachment(att.id, { status: 'ready', fileId: uploaded.fileId }))
+      .catch((error: unknown) => {
+        if (controller.signal.aborted) return
+        patchAttachment(att.id, {
+          status: 'error',
+          error: error instanceof Error ? error.message : 'Upload failed',
+        })
+      })
+      .finally(() => {
+        if (uploadControllers.current.get(att.id) === controller)
+          uploadControllers.current.delete(att.id)
+      })
+  }
+
+  const addFiles = (files: File[]) => {
+    if (files.length === 0) return
+    const room = Math.max(0, MAX_CHAT_ATTACHMENTS - attachments.length)
+    const accepted = files.slice(0, room)
+    setAttachError(
+      files.length > accepted.length
+        ? `Up to ${MAX_CHAT_ATTACHMENTS} attachments per message; ${files.length - accepted.length} not added.`
+        : null,
+    )
+    const entries = accepted.map(attachmentFromFile)
+    setAttachments((prev) => [...prev, ...entries])
+    for (const entry of entries) startUpload(entry)
+  }
+
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (!e.target.files) return
-    const files = Array.from(e.target.files)
-    const newAttachments: ChatAttachment[] = files.map((f) => ({
-      id: `att_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
-      name: f.name,
-      size: `${(f.size / 1024).toFixed(1)} KB`,
-      type: f.name.endsWith('.pdf') ? 'pdf' : 'file',
-    }))
-    setAttachments((prev) => [...prev, ...newAttachments])
+    const files = e.target.files ? Array.from(e.target.files) : []
+    e.target.value = ''
+    addFiles(files)
+  }
+
+  const handlePaste = (e: React.ClipboardEvent<HTMLTextAreaElement>) => {
+    const files = Array.from(e.clipboardData.files)
+    if (files.length === 0) return
+    e.preventDefault()
+    addFiles(files)
   }
 
   const removeAttachment = (id: string) => {
+    uploadControllers.current.get(id)?.abort()
+    uploadControllers.current.delete(id)
     setAttachments((prev) => prev.filter((a) => a.id !== id))
+  }
+
+  const retryAttachment = (id: string) => {
+    const att = attachments.find((item) => item.id === id)
+    if (att) startUpload(att)
   }
 
   // Find short model label
@@ -489,16 +573,70 @@ export const AgentComposer: React.FC<AgentComposerProps> = ({
       )}
 
       {/* Main Composer Box */}
-      <div className="rounded-card border border-app bg-app-surface focus-within:border-app-accent/80 transition-all flex flex-col p-2.5 shadow-xs">
+      <div
+        className={`rounded-card border bg-app-surface focus-within:border-app-accent/80 transition-all flex flex-col p-2.5 shadow-xs ${
+          dragging ? 'border-app-accent border-dashed' : 'border-app'
+        }`}
+        onDragOver={(e) => {
+          if (!e.dataTransfer.types.includes('Files')) return
+          e.preventDefault()
+          setDragging(true)
+        }}
+        onDragLeave={(e) => {
+          if (!e.currentTarget.contains(e.relatedTarget as Node | null)) setDragging(false)
+        }}
+        onDrop={(e) => {
+          if (e.dataTransfer.files.length === 0) return
+          e.preventDefault()
+          setDragging(false)
+          addFiles(Array.from(e.dataTransfer.files))
+        }}
+      >
+        {dragging && (
+          <div className="pb-2 text-[11px] font-mono text-app-accent" role="status">
+            Drop files to attach
+          </div>
+        )}
         {/* Attachments list */}
         {attachments.length > 0 && (
-          <div className="flex flex-wrap gap-1.5 pb-2">
+          <div className="flex flex-wrap gap-2 pb-2">
             {attachments.map((att) => (
               <div
                 key={att.id}
-                className="flex items-center gap-1.5 px-2 py-0.5 rounded-control bg-app-bg border border-app text-xs font-mono"
+                data-attachment-name={att.name}
+                data-attachment-status={att.status}
+                className="relative flex items-center gap-2 max-w-[200px]"
+                title={att.error ?? att.name}
               >
-                <span className="text-app truncate max-w-[140px]">{att.name}</span>
+                <div className="relative shrink-0">
+                  {att.file ? <FileThumbnail file={att.file} size={48} /> : null}
+                  {att.status === 'uploading' && (
+                    <div className="absolute inset-0 flex items-center justify-center rounded-control bg-app-bg/60">
+                      <Loader2 className="w-4 h-4 animate-spin text-app" />
+                    </div>
+                  )}
+                  {att.status === 'error' && (
+                    <div className="absolute inset-0 flex items-center justify-center rounded-control bg-app-bg/70">
+                      <AlertCircle className="w-4 h-4 text-app-error" />
+                    </div>
+                  )}
+                </div>
+                <div className="min-w-0 flex flex-col text-[11px] font-mono">
+                  <span className="text-app truncate">{att.name}</span>
+                  {att.status === 'error' && (
+                    <span className="text-app-error truncate">{att.error}</span>
+                  )}
+                </div>
+                {att.status === 'error' && (
+                  <button
+                    type="button"
+                    onClick={() => retryAttachment(att.id)}
+                    className="text-app-muted hover:text-app"
+                    aria-label="Retry upload"
+                  >
+                    <RotateCw className="w-3 h-3" />
+                  </button>
+                )}
                 <button
                   type="button"
                   onClick={() => removeAttachment(att.id)}
@@ -509,6 +647,11 @@ export const AgentComposer: React.FC<AgentComposerProps> = ({
                 </button>
               </div>
             ))}
+          </div>
+        )}
+        {attachError && (
+          <div className="pb-2 text-[11px] text-app-error" role="alert">
+            {attachError}
           </div>
         )}
 
@@ -526,6 +669,7 @@ export const AgentComposer: React.FC<AgentComposerProps> = ({
             value={inputText}
             onChange={handleInputChange}
             onKeyDown={handleKeyDown}
+            onPaste={handlePaste}
             placeholder={
               isShellMode
                 ? 'Enter bash command to execute in sandbox…'
@@ -620,13 +764,15 @@ export const AgentComposer: React.FC<AgentComposerProps> = ({
             type="button"
             onClick={handleSend}
             disabled={
-              (!inputText.trim() && attachments.length === 0) ||
+              (!inputText.trim() && !hasSendableAttachments) ||
               (!isShellMode && !modelsReady) ||
+              orchestratorLoading ||
+              attachments.some((att) => att.status === 'uploading') ||
               !orchestratorAssigned ||
               busy
             }
             className={`p-1.5 rounded-control flex items-center justify-center transition-all ${
-              inputText.trim() || attachments.length > 0
+              inputText.trim() || hasSendableAttachments
                 ? 'bg-app-accent text-white hover:opacity-90 shadow-2xs'
                 : 'text-app-muted/40 cursor-not-allowed'
             }`}
@@ -636,7 +782,7 @@ export const AgentComposer: React.FC<AgentComposerProps> = ({
             <ArrowUp className="w-3.5 h-3.5 stroke-[2.5]" />
           </button>
         </div>
-        {!orchestratorAssigned && (
+        {!orchestratorLoading && !orchestratorAssigned && (
           <div
             className="flex items-center justify-between gap-3 pt-2 text-xs text-app-muted"
             role="status"

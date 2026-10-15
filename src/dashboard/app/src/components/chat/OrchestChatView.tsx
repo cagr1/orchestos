@@ -2,6 +2,7 @@ import { Check, ChevronDown, ChevronUp, Copy, FileText } from 'lucide-react'
 import type React from 'react'
 import { useEffect, useRef, useState } from 'react'
 import { ChatMessage } from '@/components/ui/chat-message'
+import { FileThumbnail } from '@/components/ui/file-thumbnail'
 import {
   getSessionContext,
   getTimeline,
@@ -61,11 +62,16 @@ export const OrchestChatView: React.FC<OrchestChatViewProps> = ({
   const [reportActionErrors, setReportActionErrors] = useState<Record<string, string>>({})
   const [busyReportActions, setBusyReportActions] = useState<Record<string, boolean>>({})
   const [sendError, setSendError] = useState<string | null>(null)
-  const [orchestrator, setOrchestrator] = useState<{
-    agent: string
-    model: string
-    effort?: string
-  } | null>(null)
+  // ERP.4.14: `undefined` = la config aún se lee; `null` = leída y sin orquestador.
+  const [orchestrator, setOrchestrator] = useState<
+    | {
+        agent: string
+        model: string
+        effort?: string
+      }
+    | null
+    | undefined
+  >(undefined)
   const [liveTimeline, setLiveTimeline] = useState<TimelineResponse | null>(null)
   const [composerModel, setComposerModel] = useState('')
   const [sessionContext, setSessionContext] = useState<SessionContextResponse | null>(null)
@@ -73,6 +79,7 @@ export const OrchestChatView: React.FC<OrchestChatViewProps> = ({
   useEffect(() => {
     let disposed = false
     const projectId = thread?.projectId
+    setOrchestrator(undefined)
     if (projectId && !projectExists) {
       setOrchestrator(null)
       return
@@ -325,15 +332,22 @@ export const OrchestChatView: React.FC<OrchestChatViewProps> = ({
                         {/* Attachments if any */}
                         {msg.attachments && msg.attachments.length > 0 && (
                           <div className="flex flex-wrap gap-1.5 mb-2">
-                            {msg.attachments.map((att) => (
-                              <div
-                                key={att.id}
-                                className="flex items-center gap-1.5 px-2 py-0.5 rounded-control bg-app-bg border border-app text-[11px] text-app font-mono"
-                              >
-                                <FileText className="w-3 h-3 text-app-accent" />
-                                <span>{att.name}</span>
-                              </div>
-                            ))}
+                            {msg.attachments.map((att) =>
+                              att.file ? (
+                                <div key={att.id} data-attachment-name={att.name} title={att.name}>
+                                  <FileThumbnail file={att.file} size={64} />
+                                </div>
+                              ) : (
+                                <div
+                                  key={att.id}
+                                  data-attachment-name={att.name}
+                                  className="flex items-center gap-1.5 px-2 py-0.5 rounded-control bg-app-bg border border-app text-[11px] text-app font-mono"
+                                >
+                                  <FileText className="w-3 h-3 text-app-accent" />
+                                  <span>{att.name}</span>
+                                </div>
+                              ),
+                            )}
                           </div>
                         )}
 
@@ -503,6 +517,7 @@ export const OrchestChatView: React.FC<OrchestChatViewProps> = ({
             defaultEffort={initialEffort}
             defaultCli={cliId}
             orchestratorAssigned={!!orchestrator}
+            orchestratorLoading={orchestrator === undefined}
             busy={isWorking}
             onOpenRouting={onOpenRouting}
             onSlashCommand={onSlashCommand}

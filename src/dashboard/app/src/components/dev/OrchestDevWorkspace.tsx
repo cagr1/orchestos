@@ -19,6 +19,7 @@ import type React from 'react'
 import { useEffect, useRef, useState } from 'react'
 import Markdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
+import { FileThumbnail } from '@/components/ui/file-thumbnail'
 import type { ChatMessageRow, TimelineStep, TimelineTurn } from '../../api/chat'
 import {
   getSessionContext,
@@ -372,6 +373,8 @@ export const OrchestDevWorkspace: React.FC<OrchestDevWorkspaceProps> = ({
     )
   }
 
+  const sentAttachments = useRef(new Map<string, ChatAttachment[]>())
+
   const handleSendMessage = async (
     content: string,
     attachments?: ChatAttachment[],
@@ -382,6 +385,8 @@ export const OrchestDevWorkspace: React.FC<OrchestDevWorkspaceProps> = ({
   ) => {
     if (!isShellCmd) {
       const sentAt = Date.now()
+      // El servidor no persiste adjuntos: el hilo los recuerda por contenido del mensaje.
+      if (attachments?.length) sentAttachments.current.set(content, attachments)
       setPendingUserMessage({ content, sentAt })
       setSessionStatus('working')
       try {
@@ -512,6 +517,25 @@ export const OrchestDevWorkspace: React.FC<OrchestDevWorkspaceProps> = ({
                     })
                   : ''}
               </span>
+              {sentAttachments.current.get(visibleUserMessage.content)?.length ? (
+                <div className="flex flex-wrap gap-1.5 mb-2">
+                  {sentAttachments.current.get(visibleUserMessage.content)?.map((att) =>
+                    att.file ? (
+                      <div key={att.id} data-attachment-name={att.name} title={att.name}>
+                        <FileThumbnail file={att.file} size={64} />
+                      </div>
+                    ) : (
+                      <div
+                        key={att.id}
+                        data-attachment-name={att.name}
+                        className="flex items-center gap-1.5 px-2 py-0.5 rounded-control bg-app-bg border border-app text-[11px] text-app font-mono"
+                      >
+                        <span>{att.name}</span>
+                      </div>
+                    ),
+                  )}
+                </div>
+              ) : null}
               {visibleUserMessage.content}
               {latestUserMessage && visibleUserMessage === latestUserMessage && (
                 <button

@@ -12,6 +12,7 @@ import {
   sendMessage,
   sessionListQueries,
   toTimestamp,
+  uploadChatFile,
 } from './chat'
 
 describe('chat API mapping', () => {
@@ -156,7 +157,10 @@ describe('chat API mapping', () => {
         agent: 'api',
         model: 'provider/model',
         effort: 'High',
-        attachments: [{ id: 'file-1', name: 'notes.txt', size: '1 KB', type: 'file' }],
+        attachments: [
+          { id: 'att_local', fileId: 'file-1', name: 'notes.txt', size: '1 KB', type: 'file' },
+          { id: 'att_pending', name: 'late.txt', size: '1 KB', type: 'file' },
+        ],
       })
     } finally {
       globalThis.fetch = originalFetch
@@ -170,7 +174,36 @@ describe('chat API mapping', () => {
       effort: 'high',
       fileIds: ['file-1'],
     })
+    expect(body.fileIds).not.toContain('att_local')
     expect(typeof body.requestKey).toBe('string')
+  })
+
+  test('uploads a file as multipart and surfaces the server error message', async () => {
+    const originalFetch = globalThis.fetch
+    const calls: RequestInit[] = []
+    let fail = false
+    globalThis.fetch = (async (_input, init) => {
+      calls.push(init as RequestInit)
+      return fail
+        ? new Response(JSON.stringify({ error: 'File exceeds 10 MB limit' }), { status: 413 })
+        : new Response(
+            JSON.stringify({ fileId: 'srv-1', type: 'text', preview: 'hi', filename: 'a.txt' }),
+            { status: 200 },
+          )
+    }) as typeof fetch
+    try {
+      const uploaded = await uploadChatFile(new File(['hi'], 'a.txt', { type: 'text/plain' }))
+      expect(uploaded.fileId).toBe('srv-1')
+      const form = calls[0].body as FormData
+      expect(form).toBeInstanceOf(FormData)
+      expect((form.get('file') as File).name).toBe('a.txt')
+      fail = true
+      await expect(uploadChatFile(new File(['x'], 'b.txt'))).rejects.toThrow(
+        'File exceeds 10 MB limit',
+      )
+    } finally {
+      globalThis.fetch = originalFetch
+    }
   })
 
   test('maps held tasks without inventing a response body', () => {

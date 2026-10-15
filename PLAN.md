@@ -400,8 +400,11 @@ Cerrada. Todos sus ítems están archivados en `docs/done/` (ver "Cerrados — e
   `commit-run` no daba identidad al repo temporal y el commit de producción devolvía 409. Corregido el fixture y
   añadido el test del 409 sin identidad (la tarea no se lanza).
   **Fuera de scope declarado:** `PLAN.md`, `NEXT.md` y `docs/done/evidence/**` (cierre y evidencia).
-- [ ] **ERP.4.14 — 🔍 El composer distingue "cargando" de "Orchestrator unassigned".** (abierto 2026-10-13; hallazgo 7)
+- [x] **ERP.4.14 — 🔍 El composer distingue "cargando" de "Orchestrator unassigned".** (abierto 2026-10-13; hallazgo 7)
   **Pasa a UI.24.6** (composer y adjuntos; `NEXT.md`): se ejecuta ahí, no por separado, y cierra con él.
+  (cerrado 2026-10-15 en UI.24.6b) `orchestrator` nace `undefined` (cargando): sin aviso y Send deshabilitado hasta
+  leer la config; el aviso solo con `null`. Prop `orchestratorLoading` en `AgentComposer`.
+  Sin delegación: se ejecutó dentro de UI.24.6b (spec y evidencia ahí).
   `orchestrator` nace `null` y el aviso se pinta hasta que llega la config (`OrchestChatView.tsx:66-94,500-507`,
   `AgentComposer.tsx:625-638`).
 - [ ] **ERP.4.15 — 🔍 Ningún test deja instincts en la base real.** (abierto 2026-10-13; hallazgo 12) Fila
@@ -950,8 +953,9 @@ color; la respuesta del asistente va sin caja; el identificador técnico se copi
   `heldTaskLabel` = `[data-task-state="held"]`. Lección: al cambiar un texto o selector del hilo, grepear **todos**
   los flujos de `scripts/ui-gate/flows/`, no solo los que nombra el ítem (UI.24.5 actualizó 3 y dejó 2).
   Gate en vivo (cerebro): `docs/done/evidence/UI.24.5.1-live.json` — `restart-mid-run` 28/28, `chat-roles` 11/11.
-- [ ] **UI.24.6 — 🧠 Composer y adjuntos.** Adjuntos como fichas con vista previa y quitar; miniaturas en el mensaje
+- [x] **UI.24.6 — 🧠 Composer y adjuntos.** Adjuntos como fichas con vista previa y quitar; miniaturas en el mensaje
   enviado. Incluye ERP.4.14. Verifica: `composer-picker`.
+  Sin delegación: ítem padre; cierra con UI.24.6a y UI.24.6b (2026-10-15).
   **Hallazgo y GO de Carlos 2026-10-15 (opción 1, "que funcione"):** el clip no adjuntaba nada: el composer nunca
   llamaba a `POST /api/chat/upload` y mandaba ids locales `att_…` que el backend descartaba. El turno CLI ya mete en el
   prompt texto/PDF y OCR de imágenes (`handlers/chat.ts:1356-1381`); las imágenes no llegan nativas (`codex exec`
@@ -974,11 +978,28 @@ color; la respuesta del asistente va sin caja; el identificador técnico se copi
     crea en todo turno CLI aunque no haya imágenes (vacío, se borra); una excepción no capturada entre la escritura
     y el `try` del CLI lo dejaría en `/tmp`. Preflight de un sub-ítem indentado falla
     (`scripts/agent-governance.ts:37` exige `- [ ]` en columna 0).
-  - [ ] **UI.24.6b — 🧠 Composer que sube de verdad + fichas.** Subida al elegir/pegar/arrastrar; ficha con miniatura
+  - [x] **UI.24.6b — 🧠 Composer que sube de verdad + fichas.** Subida al elegir/pegar/arrastrar; ficha con miniatura
     (`file-thumbnail.tsx`) y estado subiendo/listo/error (reintentar, quitar); Send deshabilitado mientras sube;
     miniaturas en el mensaje enviado; ERP.4.14; sacar `AgentComposer.tsx` de `ui:fidelity:jsx`. Gate nuevo
     `chat-attachments` (Codex real: `.txt` con token aleatorio + imagen con texto → la respuesta trae ambos;
     contraprueba con el composer de HEAD) + `composer-picker` + gates de chat.
+    Ejecutado por: sonnet (rol `criterio`), 3 rondas · Spec: docs/specs/UI.24.6b.md (borrado)
+    (cerrado 2026-10-15) `uploadChatFile` (`api/chat.ts`); `sendMessage` manda solo `fileId` del servidor. Composer:
+    `addFiles` único para clip/pegar/soltar, subida inmediata, tope 5, ficha `FileThumbnail` con subiendo/error/
+    "Retry upload"/quitar (aborta), Send deshabilitado si sube algo o solo hay fichas en error. Mensaje enviado con
+    miniaturas en Chat y Dev; `mergeAttachments.ts` + ref por sesión en `App.tsx` los devuelve tras cada recarga de
+    mensajes (no se persisten: tras recargar la página no se ven). `file-thumbnail.tsx`: la revocación del blob se
+    difiere 3 s; causa vista con traza: el hilo de Chat re-monta la miniatura ~16 veces por turno y cada ciclo revocaba
+    la URL (spinner eterno en la captura de la ronda 2; el spinner permanente con el código viejo no se reprodujo de
+    nuevo). Ronda 2 y 3 del cerebro: fusión en orden inverso, envío vacío con fichas en error, gate sin pasada Chat,
+    gate que leía la respuesta a medio pintar.
+    Evidencia (cerebro): `typecheck`, `lint` 0 errores, `bun test src/dashboard/app` 91/91, `build:app`,
+    `ui:fidelity:jsx`. Gate en vivo: navegador real (Playwright), `docs/done/evidence/UI.24.6b-live.json` — `chat-attachments` 14/14 (Dev y Chat;
+    Codex respondió `ATT-637E5833 — COMPASS GLACIER`), `composer-picker` 5/5, `chat-streaming` 24/24, `codex-live`
+    14/14, `chat-continuity` 8/8. Capturas Dev/Chat miradas. Contraprueba: `chat-attachments` contra el composer de
+    HEAD (worktree temporal, borrado) → `FAIL Dev: both attachments reach ready: []`.
+    Límites: `chat-attachments` no entra al pre-push; prompt del gate dice "reference code" (Codex rehusó una vez
+    "secret token").
 - [ ] **UI.24.7 — 🧠 Herramientas y movimiento.** Llamadas a herramientas en una fila plegable ("3 herramientas · 2,1 s");
   entrada de mensajes y transición entre estados; estado vacío. Revisión final por `qa` sobre capturas contra esta
   dirección.

@@ -6,25 +6,38 @@ import { cn } from "@/lib/utils";
 import { useShape } from "@/lib/shape-context";
 
 // ─── Object URLs ──────────────────────────────────────────────────────────
-// One blob URL per File while any thumbnail shows it: subscribing creates it,
-// the last unsubscribe revokes it. Created at subscription rather than in a
-// memo, so StrictMode's simulated unmount/remount revokes the URL and then
-// mints a fresh one, instead of leaving a revoked `blob:` URL on screen.
-const objectUrls = new Map<File, { url: string; users: number }>();
+// One blob URL per File while any thumbnail shows it. The last unsubscribe does
+// not revoke at once: the revoke is deferred so a thumbnail that unmounts and
+// remounts right away (list re-render, StrictMode's simulated remount, the
+// composer chip handing the file over to the sent message) reuses the same URL
+// instead of racing a revoked one. A late resubscribe cancels the pending revoke.
+const OBJECT_URL_GRACE_MS = 3000;
+const objectUrls = new Map<
+  File,
+  { url: string; users: number; timer: ReturnType<typeof setTimeout> | null }
+>();
 
 function subscribeObjectUrl(file: File) {
   let entry = objectUrls.get(file);
   if (!entry) {
-    entry = { url: URL.createObjectURL(file), users: 0 };
+    entry = { url: URL.createObjectURL(file), users: 0, timer: null };
     objectUrls.set(file, entry);
+  }
+  if (entry.timer) {
+    clearTimeout(entry.timer);
+    entry.timer = null;
   }
   entry.users += 1;
   const held = entry;
   return () => {
     held.users -= 1;
     if (held.users === 0) {
-      URL.revokeObjectURL(held.url);
-      objectUrls.delete(file);
+      held.timer = setTimeout(() => {
+        if (held.users === 0 && objectUrls.get(file) === held) {
+          URL.revokeObjectURL(held.url);
+          objectUrls.delete(file);
+        }
+      }, OBJECT_URL_GRACE_MS);
     }
   };
 }

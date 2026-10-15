@@ -46,6 +46,7 @@ import {
   resolveTaskReportPoll,
   runTask,
 } from './api/tasks'
+import { mergeOptimisticAttachments } from './components/chat/mergeAttachments'
 import { OrchestChatView } from './components/chat/OrchestChatView'
 import { CommandPalette } from './components/common/CommandPalette'
 import { OpenCodeTerminal } from './components/dev/OpenCodeTerminal'
@@ -159,7 +160,19 @@ export default function App() {
     projectHydrationReads.current.delete(projectId)
   }
 
+  // El servidor no persiste adjuntos: se recuerdan por sesión para devolverlos al mensaje al recargar.
+  const sentAttachments = useRef(
+    new Map<string, Array<{ content: string; attachments: ChatAttachment[] }>>(),
+  )
+
   const loadThreadMessages = async (sessionId: string, projectId?: string | null) => {
+    const messages = await loadThreadMessagesRaw(sessionId, projectId)
+    return [...(sentAttachments.current.get(sessionId) ?? [])]
+      .reverse()
+      .reduce((merged, entry) => mergeOptimisticAttachments(merged, entry), messages)
+  }
+
+  const loadThreadMessagesRaw = async (sessionId: string, projectId?: string | null) => {
     if (projectId && purgingProjectIds.current.has(projectId)) return []
     const controller = new AbortController()
     if (projectId) {
@@ -915,6 +928,10 @@ export default function App() {
       model: activeModel,
       effort,
     }
+    if (attachments?.length) {
+      const sent = sentAttachments.current.get(threadId) ?? []
+      sentAttachments.current.set(threadId, [...sent, { content, attachments }])
+    }
     setThreads((prev) =>
       prev.map((thread) =>
         thread.id === threadId ? { ...thread, messages: [...thread.messages, optimistic] } : thread,
@@ -958,6 +975,14 @@ export default function App() {
         return true
       })
       .catch((error) => {
+        if (attachments?.length) {
+          sentAttachments.current.set(
+            threadId,
+            (sentAttachments.current.get(threadId) ?? []).filter(
+              (entry) => entry.attachments !== attachments,
+            ),
+          )
+        }
         setThreads((prev) =>
           prev.map((item) =>
             item.id === threadId

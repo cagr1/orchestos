@@ -241,6 +241,12 @@ export interface ChatAttachment {
   name: string
   size: string
   type: 'file' | 'pdf' | 'folder' | 'image'
+  /** Archivo original: da la miniatura en el composer y en el mensaje enviado. */
+  file?: File
+  /** Id del servidor tras `POST /api/chat/upload`; es lo que viaja en `fileIds`. */
+  fileId?: string
+  status?: 'uploading' | 'ready' | 'error'
+  error?: string
 }
 
 export interface AgentSession {

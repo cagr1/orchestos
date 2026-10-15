@@ -540,6 +540,23 @@ export async function execCommand(
   )
 }
 
+/** Espejo de `ChatUploadResponse` (src/dashboard/types.ts). */
+export interface ChatUploadResponse {
+  fileId: string
+  type: 'image' | 'text'
+  preview: string
+  filename: string
+}
+
+export async function uploadChatFile(
+  file: File,
+  signal?: AbortSignal,
+): Promise<ChatUploadResponse> {
+  const form = new FormData()
+  form.append('file', file)
+  return request<ChatUploadResponse>('/api/chat/upload', { method: 'POST', body: form, signal })
+}
+
 export async function sendMessage(options: ChatSendOptions): Promise<ChatSendResponse> {
   const body: Record<string, unknown> = {
     sessionId: options.sessionId,
@@ -549,8 +566,10 @@ export async function sendMessage(options: ChatSendOptions): Promise<ChatSendRes
   }
   if (options.agent) body.agent = options.agent
   if (options.model) body.model = options.model
-  if (options.attachments?.length)
-    body.fileIds = options.attachments.map((attachment) => attachment.id)
+  const fileIds = (options.attachments ?? []).flatMap((attachment) =>
+    attachment.fileId ? [attachment.fileId] : [],
+  )
+  if (fileIds.length) body.fileIds = fileIds
   if (options.effort) body.effort = options.effort.toLowerCase()
   return request<ChatSendResponse>(scopedSessionPath('/api/chat', options.projectId), {
     ...jsonInit('POST', body),

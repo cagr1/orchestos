@@ -135,7 +135,7 @@
       "block": "H.7 — El contexto se llena en silencio y nadie avisa (ABIERTO 2026-09-02)",
       "delegation": "🔍",
       "title": "El composer distingue \"cargando\" de \"Orchestrator unassigned\"",
-      "status": "open",
+      "status": "done",
       "closedDate": null
     },
     {
@@ -450,7 +450,7 @@
       "block": "UI.24 — El hilo del chat con acabado premium (ABIERTO 2026-10-13, GO de Carlos 2026-10-13)",
       "delegation": "🧠",
       "title": "Composer y adjuntos",
-      "status": "open",
+      "status": "done",
       "closedDate": null
     },
     {
