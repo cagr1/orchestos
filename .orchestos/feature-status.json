@@ -355,6 +355,15 @@
       "closedDate": null
     },
     {
+      "id": "CI.28",
+      "sprint": "Fase 2 — Producto mínimo para entrega",
+      "block": "H.7 — El contexto se llena en silencio y nadie avisa (ABIERTO 2026-09-02)",
+      "delegation": "🔍",
+      "title": "El test de `statusLine` de `session-status` lanza el `codex` real del host",
+      "status": "open",
+      "closedDate": null
+    },
+    {
       "id": "CI.27",
       "sprint": "Fase 2 — Producto mínimo para entrega",
       "block": "H.7 — El contexto se llena en silencio y nadie avisa (ABIERTO 2026-09-02)",
