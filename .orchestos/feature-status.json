@@ -422,8 +422,8 @@
       "sprint": "Fase 2 — Producto mínimo para entrega",
       "block": "H.7 — El contexto se llena en silencio y nadie avisa (ABIERTO 2026-09-02)",
       "delegation": "🔍",
-      "title": "El hilo sigue pegado al fondo cuando cambia el alto del compositor",
-      "status": "open",
+      "title": "El hilo sigue pegado al fondo cuando el contenido crece",
+      "status": "done",
       "closedDate": null
     },
     {

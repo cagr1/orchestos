@@ -860,10 +860,21 @@ anteriores, con pruebas de comportamiento; no abrir un refactor masivo por conte
   OrchestOS: latencia externa, misma familia que CI.11. `chat-permissions` no entra al pre-push (CLI real).
   Ejecutado por: claude sonnet (criterio).
 
-- [ ] **UI.8.6.1 — 🔍 El hilo sigue pegado al fondo cuando cambia el alto del compositor.** (abierto 2026-10-16)
+- [x] **UI.8.6.1 — 🔍 El hilo sigue pegado al fondo cuando el contenido crece.** (abierto y cerrado 2026-10-16)
   `chat-roles` falló en el pre-push tras UI.8.6: `chat follows content that grows after render` (`atBottom:false`),
-  primera vez. Hipótesis: la tira monta tarde y achica el hilo; `useStickToBottom` no observa el contenedor.
-  Spec: `docs/specs/UI.8.6.1.md`.
+  primera vez, y 3/3 ese día. La hipótesis de la tira (monta tarde y achica el hilo) NO se sostuvo: con el contenedor
+  observado y la tira con alto reservado falló igual. Medido con el paso instrumentado: `distanceBefore:0`,
+  `distanceAfter:562` → el hook estaba despegado estando en el fondo. Causa: los eventos `scroll` se despachan antes
+  que los callbacks de `ResizeObserver`; un scroll propio pendiente + contenido que crece en el mismo frame despegaba
+  el hilo (con Codex lento el turno sigue creciendo durante el paso). Arreglo en `useStickToBottom.ts`: solo despega
+  si el usuario sube (`scrollTop < lastTop`); también observa el contenedor; la tira reserva su alto mientras carga.
+  El paso de `chat-roles` deja ahora distancias y medidas en su detalle.
+  Evidencia (cerebro): tsc app, lint, `test:coverage` 1821/0.
+  Gate en vivo: Playwright en navegador, `scripts/ui-gate/flows/chat-roles.mjs` + `chat-permissions` vía
+  `gate:evidence --label UI.8.6.1-chat-roles` → `PASS chat-roles 11/11`, `PASS chat-permissions 9/9`.
+  Ejecutado por: codex gpt-6-luna (mecanico, 3 rondas).
+  Fuera de scope declarado: `useStickToBottom.ts` y `OrchestChatView.tsx` (la ronda 2 declaró solo `scripts/ui-gate/flows/**`;
+  la ronda 3 es el arreglo de la causa medida).
 
 **Decisiones pendientes de Carlos dentro de UI.8** (no las toma ningún LLM):
 1. `agents` como tabla propia o proyección derivada (UI.8.2).

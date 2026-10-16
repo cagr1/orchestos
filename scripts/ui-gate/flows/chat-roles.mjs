@@ -231,13 +231,21 @@ export default async function chatRoles({ page, api, step, shot, visible, cleanu
     const content = container?.firstElementChild
     if (!container || !content) return { atBottom: false, grew: false }
     const before = container.scrollHeight
+    const distanceBefore = container.scrollHeight - container.scrollTop - container.clientHeight
     const filler = document.createElement('div')
     filler.style.height = '600px'
     content.appendChild(filler)
     await new Promise((resolve) => setTimeout(resolve, 400))
+    // UI.8.6.1 — evidencia si falla
     const result = {
       grew: container.scrollHeight > before + 500,
       atBottom: container.scrollHeight - container.scrollTop - container.clientHeight <= 2,
+      distanceBefore,
+      distanceAfter: container.scrollHeight - container.scrollTop - container.clientHeight,
+      scrollTop: container.scrollTop,
+      scrollHeight: container.scrollHeight,
+      clientHeight: container.clientHeight,
+      contentChildren: content.childElementCount,
     }
     filler.remove()
     return result

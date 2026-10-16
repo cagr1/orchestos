@@ -551,18 +551,23 @@ export const OrchestChatView: React.FC<OrchestChatViewProps> = ({
         {/* Shared Composer (Nothing under composer: no status line) */}
         <div data-composer-region className="p-3 bg-app-bg flex-shrink-0">
           <div className="max-w-3xl lg:max-w-4xl mx-auto">
-            {permissions && thread?.projectId && (
-              <div
-                data-permissions-strip
-                data-permission-mode={permissions.mode}
-                className="mb-1.5 px-1 text-xs text-app-muted"
-              >
-                Chat: {permissions.chat} · Tasks: {permissions.tasks} ·{' '}
-                <span className={permissions.mode === 'manual' ? 'text-app-accent' : undefined}>
-                  {permissions.mode === 'manual' ? 'Manual approval' : 'Auto-run'}
-                </span>
-              </div>
-            )}
+            {thread?.projectId &&
+              (permissions ? (
+                <div
+                  data-permissions-strip
+                  data-permission-mode={permissions.mode}
+                  className="mb-1.5 px-1 text-xs text-app-muted"
+                >
+                  Chat: {permissions.chat} · Tasks: {permissions.tasks} ·{' '}
+                  <span className={permissions.mode === 'manual' ? 'text-app-accent' : undefined}>
+                    {permissions.mode === 'manual' ? 'Manual approval' : 'Auto-run'}
+                  </span>
+                </div>
+              ) : (
+                <div className="mb-1.5 px-1 text-xs text-app-muted" aria-hidden="true">
+                  {'\u00a0'}
+                </div>
+              ))}
             <AgentComposer
               onSendMessage={handleSendFromComposer}
               defaultModel={initialModel}

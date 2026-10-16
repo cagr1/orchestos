@@ -5,11 +5,15 @@ export function useStickToBottom(
   contentRef: RefObject<HTMLElement | null>,
 ) {
   const stuck = useRef(true)
+  const lastTop = useRef(0)
 
   const stickToBottom = useCallback(() => {
     stuck.current = true
     const container = containerRef.current
-    if (container) container.scrollTop = container.scrollHeight
+    if (container) {
+      container.scrollTop = container.scrollHeight
+      lastTop.current = container.scrollTop
+    }
   }, [containerRef])
 
   useEffect(() => {
@@ -17,14 +21,24 @@ export function useStickToBottom(
     const content = contentRef.current
     if (!container || !content) return
 
+    lastTop.current = container.scrollTop
     const onScroll = () => {
-      stuck.current = container.scrollHeight - container.scrollTop - container.clientHeight <= 80
+      const distance = container.scrollHeight - container.scrollTop - container.clientHeight
+      if (distance <= 80) stuck.current = true
+      else if (container.scrollTop < lastTop.current) stuck.current = false
+      lastTop.current = container.scrollTop
     }
     container.addEventListener('scroll', onScroll)
     const observer = new ResizeObserver(() => {
-      if (stuck.current) container.scrollTop = container.scrollHeight
+      // Scroll events fire before ResizeObserver callbacks.
+      // A pending self-scroll must not detach the thread.
+      if (stuck.current) {
+        container.scrollTop = container.scrollHeight
+        lastTop.current = container.scrollTop
+      }
     })
     observer.observe(content)
+    observer.observe(container)
 
     return () => {
       container.removeEventListener('scroll', onScroll)
