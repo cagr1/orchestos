@@ -39,3 +39,8 @@ Ningún otro paso, timeouts, ni la lógica de commit (fase 2, cuando haya eviden
     bunx biome check src/run/commit-tasks-yaml.ts src/run/commit-tasks-yaml.test.ts scripts/ui-gate/run.mjs scripts/ui-gate/flows/tasks.mjs
     bun test src/run/commit-tasks-yaml.test.ts
     bun run ui:gate tasks        # 28/28
+
+## Evidencia de campo descartada (cerebro, 2026-10-15)
+En `erp-piloto`, `chat-e11d25a6` quedó `done` con `tasks.yaml` sin commitear (2026-10-13 06:21:59). **No es CI.23:**
+es anterior al arreglo de ERP.4.12 (`043770c`, 2026-10-13 15:45), es su síntoma original. Lo absorbió el commit de
+limpieza `6380641` del proyecto.

@@ -30,8 +30,7 @@ ERP.4. El piloto de ERP.4 corrió completo el 2026-10-13 (etapas 1-6; ERP.4.1–
 **Orden vigente** (GO de Carlos 2026-10-13 a UI.24, UI.25 y UI.26; "UI.24 primero, ERP.4 al final", `NEXT.md`):
 1. UI.26.5 → UI.26.6 → UI.26.7 (UI.26 absorbió UI.25.2–25.4; UI.25 y UI.26.1–26.4a cerrados 2026-10-13/14).
 2. UI.24.4 → UI.24.5 → UI.24.6 (incluye ERP.4.14) → UI.24.7 (UI.24.1–24.3 cerrados 2026-10-13).
-3. ERP.4.15 → ERP.4.16 → limpiar `erp-piloto` → veredicto de ERP.4 ("sirve, pero todavía no solo", Carlos
-   2026-10-13) → cierre de R.8.
+3. ~~ERP.4.15 → ERP.4.16 → limpiar `erp-piloto` → veredicto de ERP.4 → cierre de R.8~~ (cerrado 2026-10-15).
 4. UI.8.6 (permisos visibles: aprobar en el chat lo que el CLI va a hacer).
 
 Fiabilidad abierta, sin orden fijo (se atiende cuando el pre-push la tumba): CI.11, CI.18, CI.19, CI.23, CI.25.
@@ -123,7 +122,7 @@ Cerrada. Todos sus ítems están archivados en `docs/done/` (ver "Cerrados — e
 >   "guardar a cada momento también me consumiría tokens".
 > - El umbral es un **porcentaje**, y la ventana se **deriva del modelo del turno** — no un
 >   número fijo de tokens. Modelos distintos, ventanas distintas.
-- [ ] **ERP.4 — 🔍 Piloto de módulo ERP y decisión de utilidad.**
+- [x] **ERP.4 — 🔍 Piloto de módulo ERP y decisión de utilidad.** (cerrado 2026-10-15)
   Entrada: entregas 1–4 anteriores verificadas para el recorrido real. Elegir con Carlos módulo,
   repo, stack, criterios funcionales, CLI/modelos y presupuesto antes de corridas que consuman uso.
   No asumir que conversar con un CLI demuestra que planificar/ejecutar/QA usan el mismo transporte:
@@ -148,6 +147,15 @@ Cerrada. Todos sus ítems están archivados en `docs/done/` (ver "Cerrados — e
   verificado en la UI; el run usó `codex exec -m gpt-6-luna`. 9 hallazgos, tiempos y uso en
   `docs/done/evidence/ERP.4/piloto-2026-10-12.md`. Sin decisión de utilidad todavía: no se llegó a API, UI,
   reinicio a mitad de run ni corrección guardada.
+  **Cierre 2026-10-15.** Veredicto de Carlos (2026-10-13): *sirve, pero todavía no solo*. El módulo de inventario
+  está completo en `erp-piloto` (migración, regla de stock, permiso, API y pantalla, `bun test` 25/25 verificado hoy),
+  con 6 tareas `done`. Las 3 tareas sobrantes se borraron por la API del dashboard (commit `6380641` del proyecto):
+  ahora el árbol está limpio. Sub-ítems ERP.4.1–4.17 `[x]`. "No solo" quiere decir esto: llegar al resultado
+  necesitó 17 arreglos de producto y la intervención del cerebro en cada etapa.
+  Límites restantes: la concurrencia de dos salidas simultáneas no se comprobó. La pantalla no tiene estilos. El rol
+  `qa` dio veredicto sin desglose por criterio. Las 6 tareas del piloto son anteriores a ERP.4.16 y no tienen entrada
+  en Memory: la primera tarea nueva la dejará. Detalle: `docs/done/evidence/ERP.4/`.
+  Sin delegación: ítem padre.
 - [x] **ERP.4.1 — 🔍 El chat crea la primera tarea de un proyecto sin `tasks.yaml`.** (2026-10-12, bloqueo 1
   del piloto) En `erp-piloto` recién registrado, el primer pedido por chat respondió "⚠ Could not auto-create the
   task: tasks.yaml not found — run: orchestos task init" (captura `03-send-e1`): manda al usuario a la terminal y no
@@ -534,7 +542,7 @@ Cerrada. Todos sus ítems están archivados en `docs/done/` (ver "Cerrados — e
   retomar el thread. Señalado por la QA de Sol: sacar el flujo del pre-push no puede silenciar este detector.
   Siguiente paso: reproducir con `gate:evidence` y leer el log del app-server de Codex en ese turno.
 
-- [ ] **R.8 — 🔍 Validación independiente del recorrido útil y corrección de evidencia de cierre.**
+- [x] **R.8 — 🔍 Validación independiente del recorrido útil y corrección de evidencia de cierre.** (cerrado 2026-10-15)
   Depende de R.1–R.7 y H.9.4. Revisar el recorrido completo: proyecto conectado → conversación →
   tarea/confirmación → ejecución → checks/QA → resultado → recarga y evidencia recuperada;
   incluir continuidad del historial hacia CLI, no solo su presencia en la pantalla. Repetir sobre
@@ -552,6 +560,15 @@ Cerrada. Todos sus ítems están archivados en `docs/done/` (ver "Cerrados — e
   reinicio a mitad de run, privacidad sin depender del modelo, pasos que no pueden fallar). Lo que falta es la
   contrastación con una tarea real de Carlos (resultado utilizado, intervención, bloqueos), que cubre ERP.4:
   **R.8 cierra con ERP.4**, con el informe de límites restantes.
+  **Cierre 2026-10-15.** Se contrastó con una tarea real de Carlos (ERP.4, cerrado hoy con "sirve, pero todavía no
+  solo"). Resultado: un módulo completo con 25 tests. Intervención: 17 arreglos de producto. Bloqueos: los registra
+  `docs/done/evidence/ERP.4/`.
+  Informe de límites restantes:
+  - los del cierre de ERP.4;
+  - fiabilidad abierta en gates en vivo: CI.11, CI.18, CI.19, CI.23 y CI.25 (intermitentes, se atienden cuando el
+    pre-push los tumba);
+  - la nota de I.4 sigue como histórica.
+  Sin delegación: ítem padre.
 
 - [x] **R.8.1 — 🔍 auto-flow estricto.** (abierto 2026-10-05, GO de Carlos) Exigir `done` (no cualquier estado
   terminal, `auto-flow.mjs:367`), contenido exacto de los archivos producidos, aprobación real (no "sin botón 5 s",

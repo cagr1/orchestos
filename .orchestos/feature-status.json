@@ -9,8 +9,8 @@
       "block": "H.7 — El contexto se llena en silencio y nadie avisa (ABIERTO 2026-09-02)",
       "delegation": "🔍",
       "title": "Piloto de módulo ERP y decisión de utilidad",
-      "status": "open",
-      "closedDate": null
+      "status": "done",
+      "closedDate": "2026-10-15"
     },
     {
       "id": "ERP.4.1",
@@ -234,8 +234,8 @@
       "block": "H.7 — El contexto se llena en silencio y nadie avisa (ABIERTO 2026-09-02)",
       "delegation": "🔍",
       "title": "Validación independiente del recorrido útil y corrección de evidencia de cierre",
-      "status": "open",
-      "closedDate": null
+      "status": "done",
+      "closedDate": "2026-10-15"
     },
     {
       "id": "R.8.1",
