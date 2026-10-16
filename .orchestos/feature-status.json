@@ -157,6 +157,15 @@
       "closedDate": null
     },
     {
+      "id": "ERP.4.17",
+      "sprint": "Fase 2 — Producto mínimo para entrega",
+      "block": "H.7 — El contexto se llena en silencio y nadie avisa (ABIERTO 2026-09-02)",
+      "delegation": "🔍",
+      "title": "El test del 409 de ERP.4.13 no depende de la identidad git del host",
+      "status": "open",
+      "closedDate": null
+    },
+    {
       "id": "CI.21",
       "sprint": "Fase 2 — Producto mínimo para entrega",
       "block": "H.7 — El contexto se llena en silencio y nadie avisa (ABIERTO 2026-09-02)",
