@@ -1,7 +1,37 @@
 {
-  "exported_at": "2026-10-16T16:29:01.311Z",
+  "exported_at": "2026-10-16T17:31:35.840Z",
   "total_runs": 20,
   "runs": [
+    {
+      "id": "ui-chat-context-seed-1792171783384",
+      "task_class": "gate:at.13-before:implement",
+      "model": "codex (cli default model) via Codex CLI",
+      "provider": "codex",
+      "status": "done",
+      "qa_verdict": "fail",
+      "qa_reason": "criterion 2 missing: README line absent",
+      "files_blocked": [],
+      "checks_failed": 0,
+      "usd_cost": 0,
+      "elapsed_ms": 0,
+      "tokens": 0,
+      "created_at": "2026-10-16T17:29:43.384Z"
+    },
+    {
+      "id": "ui-chat-context-model-seed-1792171783384",
+      "task_class": "gate:at.13-before:implement",
+      "model": "gpt-6-luna via Codex CLI",
+      "provider": "codex",
+      "status": "done",
+      "qa_verdict": null,
+      "qa_reason": null,
+      "files_blocked": [],
+      "checks_failed": 0,
+      "usd_cost": 0,
+      "elapsed_ms": 0,
+      "tokens": 0,
+      "created_at": "2026-10-16T17:29:42.384Z"
+    },
     {
       "id": "90a201cf-75ce-4778-a809-8bda6c41ffca",
       "task_class": "gate:erp.4.16-live:implement",
@@ -271,43 +301,13 @@
       "elapsed_ms": 9791,
       "tokens": 8492,
       "created_at": "2026-10-16T01:17:59.434Z"
-    },
-    {
-      "id": "f3a006cf-c5ef-49a2-8bf1-feb76fa1dbfc",
-      "task_class": "gate:ui.24.5.1-live:implement",
-      "model": "openai/gpt-6-luna",
-      "provider": "codex",
-      "status": "done",
-      "qa_verdict": "pass",
-      "qa_reason": "a.txt contains the requested single line, REINICIO.",
-      "files_blocked": [],
-      "checks_failed": 0,
-      "usd_cost": 0.00100656,
-      "elapsed_ms": 22811,
-      "tokens": 10358,
-      "created_at": "2026-10-15T15:01:06.608Z"
-    },
-    {
-      "id": "3cee6d67-0efc-4609-8a1f-bdece6415e1e",
-      "task_class": "gate:ui.24.5-live:implement",
-      "model": "gpt-6-luna",
-      "provider": "codex",
-      "status": "done",
-      "qa_verdict": "pass",
-      "qa_reason": "El archivo contiene la línea solicitada: «nota de codex».",
-      "files_blocked": [],
-      "checks_failed": 0,
-      "usd_cost": 0.0007491799999999999,
-      "elapsed_ms": 17500,
-      "tokens": 7679,
-      "created_at": "2026-10-15T14:32:09.311Z"
     }
   ],
   "stats": {
     "failed": 3,
     "blocked": 0,
     "done": 17,
-    "qa_failed": 3,
-    "total_cost_usd": "0.0257"
+    "qa_failed": 4,
+    "total_cost_usd": "0.0240"
   }
 }

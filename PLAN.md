@@ -1410,6 +1410,12 @@ En todos: `prefers-reduced-motion` = cambios instantáneos o fundidos cortos.
   se reemplaza aparte, decisión de Carlos en MR.1.d2: esa pasada solo midió, ~96 % del input de Codex en el fixture),
   `detect/manifest.ts` (solo lee el `package.json` raíz, `manifest.ts:16`) y el "antes/después" medido del objetivo.
   Los textos de abajo son el registro original; no son lista de pendientes.
+  **Decisión de Carlos 2026-10-16 (GO):** el prompt base del CLI NO se reemplaza (Fase 3 = igual que el CLI directo;
+  ese ~96 % lo paga también el CLI directo). Se cierra midiendo y quitando lo falso/ruido que agrega OrchestOS.
+  Hallazgo medido: `loadContext` sirve `agents_md` de DB sin refrescar (este repo: registro del 2026-08-17 que dice
+  "Node.js / none / No scripts"; `buildProfile` da Bun / React / 5 scripts en ~20 ms) y en el gate el bloque llega todo
+  en `unknown` + "Notes for AI agents". `manifest.ts` raíz: React ya es dependencia raíz → detectado sin cambio.
+  Línea base `chat-context`: `context_tokens` 740, Codex `input_tokens` 2930. Spec: `docs/specs/AT.13.md`.
   Origen: autoevaluación de Claude corriendo como CLI dentro de OrchestOS, contrastada contra el
   código por el cerebro. Es backend de `handlers/chat.ts`, independiente del cambio de interfaz de
   esta semana. Confirmado por lectura, sin corrida en vivo:
