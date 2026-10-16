@@ -21,7 +21,7 @@
 import { existsSync } from 'fs'
 import { join } from 'path'
 import { loadOrcheConfig as realLoadOrcheConfig } from '../../config/load.ts'
-import { loadContext as realLoadContext } from '../../context/load.ts'
+import { refreshProjectContext } from '../../context/load.ts'
 import { getProject as realGetProject } from '../../db/projects.ts'
 import type { GraphRunOpts, GraphRunResult } from '../../run/graph-runner.ts'
 import { runGraph as realRunGraph } from '../../run/graph-runner.ts'
@@ -55,7 +55,7 @@ let runGraphImpl: (opts: GraphRunOpts) => Promise<GraphRunResult> = realRunGraph
 // developer's machine — none of that should leak into or depend on machine state in tests).
 let deps = {
   tasksExist: realTasksExist,
-  loadContext: realLoadContext,
+  loadContext: async (root: string) => (await refreshProjectContext(root))?.agentsMd ?? '',
   getProject: realGetProject,
   loadOrcheConfig: realLoadOrcheConfig,
   loadTaskRows: realLoadTaskRows,
@@ -79,7 +79,7 @@ async function handleApiRunGraph(req: Request, root: string): Promise<Response> 
   const maxCost = typeof body.maxCost === 'number' ? body.maxCost : undefined
   const maxMinutes = typeof body.maxMinutes === 'number' ? body.maxMinutes : undefined
 
-  const projectContext = deps.loadContext(root)
+  const projectContext = await deps.loadContext(root)
   const project = deps.getProject(root)
   const orcheConfigFound = existsSync(join(root, 'orchestos.config.yaml'))
   const orcheConfig = deps.loadOrcheConfig(root)
@@ -161,7 +161,7 @@ function __setDepsForTests(overrides: Partial<typeof deps>): void {
 function __resetDepsForTests(): void {
   deps = {
     tasksExist: realTasksExist,
-    loadContext: realLoadContext,
+    loadContext: async (root: string) => (await refreshProjectContext(root))?.agentsMd ?? '',
     getProject: realGetProject,
     loadOrcheConfig: realLoadOrcheConfig,
     loadTaskRows: realLoadTaskRows,

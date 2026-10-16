@@ -1454,9 +1454,12 @@ En todos: `prefers-reduced-motion` = cambios instantáneos o fundidos cortos.
   (8) prompt base del CLI y prompt de OrchestOS apilados (ruido y contradicciones). Objetivo medible: el mismo
   pedido, directo al CLI y por OrchestOS, da una respuesta equivalente, con tokens de contexto inyectado medidos
   antes/después.
-- [ ] **AT.13.1 — run-graph usa el contexto fresco (hermano omitido en AT.13).** (abierto 2026-10-16) `run-graph.ts:82`
-  lee el registro sin refrescar con el handler ya async; el ejecutor lo dejó con un motivo falso y el cerebro no lo
-  verificó. Spec: `docs/specs/AT.13.1.md`.
+- [x] **AT.13.1 — ⚡ run-graph usa el contexto fresco (hermano omitido en AT.13).** (abierto 2026-10-16, cerrado 2026-10-16)
+  `run-graph.ts:82` leía el registro sin refrescar con el handler ya async; el ejecutor lo dejó con un motivo falso y el
+  cerebro no lo verificó. Ahora `await deps.loadContext(root)` sobre `refreshProjectContext`.
+  Ejecutado por: Codex · `gpt-6-luna` (mecanico) · Spec: docs/specs/AT.13.1.md (borrado al cerrar)
+  Evidencia: tsc limpio; `test:coverage` 1826/0 (78.10 %/64.26 %). Sin gate en vivo: ningún flujo de `scripts/ui-gate/`
+  lanza `/api/run/graph`; la lectura fresca la cubre `src/context/load.test.ts`.
 - [ ] **AT.19 — 🔍 Lo que Claude notó corriendo dentro del chat de OrchestOS (2026-10-14).** (abierto 2026-10-14)
   Origen: autoevaluación de Claude en el chat Dev, verificada contra HEAD por `leer` (veredictos con `archivo:línea`).
   Ya cubierto en otro ítem: prompts apilados (`--append-system-prompt`, `external.ts:347`) → AT.13 punto 8; tareas en

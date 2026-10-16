@@ -634,6 +634,15 @@
       "closedDate": null
     },
     {
+      "id": "AT.13.1",
+      "sprint": "Fase 3 — Correr dentro de OrchestOS igual que el CLI directo",
+      "block": null,
+      "delegation": "⚡",
+      "title": "run-graph usa el contexto fresco (hermano omitido en AT.13)",
+      "status": "done",
+      "closedDate": null
+    },
+    {
       "id": "AT.19",
       "sprint": "Fase 3 — Correr dentro de OrchestOS igual que el CLI directo",
       "block": null,

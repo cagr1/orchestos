@@ -113,7 +113,7 @@ beforeEach(() => {
     return runGraphImpl(opts)
   })
   __setDepsForTests({
-    loadContext: () => '',
+    loadContext: async () => '',
     getProject: () => ({ id: 'p1' }) as any,
     loadOrcheConfig: () => undefined as any,
   })
@@ -160,7 +160,7 @@ describe('POST /api/run/graph', () => {
     __setDepsForTests({
       tasksExist: () => true,
       loadTaskRows: () => [],
-      loadContext: () => '',
+      loadContext: async () => '',
       getProject: (root) => ({ id: root.endsWith('alpha') ? 'alpha' : 'beta' }) as any,
       loadOrcheConfig: () => undefined as any,
     })
