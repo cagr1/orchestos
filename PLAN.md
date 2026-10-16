@@ -643,6 +643,11 @@ Cerrada. Todos sus ítems están archivados en `docs/done/` (ver "Cerrados — e
   del pre-push de las 09:10). En las 3, Codex emitió el marcador sin que se le repitiera la instrucción → la hipótesis
   "R.8.2.1 quitó el refuerzo" no se sostiene. Causa del fallo sin medir: queda abierto hasta el próximo fallo, que ya
   deja evidencia. `dbTasks` siempre `[]` (las tareas no viven en la tabla `tasks` con `project_id`): campo inútil.
+  2026-10-16 (4.ª vez, pre-push de UI.8.6): falló otro paso, `question turn receives a response: No response text`;
+  la captura `orchestrator-question-response` muestra `Codex CLI: Codex timed out after 120000ms` con la cuota de
+  Codex al 90 %. Ese día Codex tardaba 30–65 s en responder "ok" fuera de OrchestOS y tumbó 2 corridas de
+  `chat-permissions` igual. Causa de esta vez: latencia externa de Codex contra el timeout de 120 s del turno
+  (familia CI.11). Pendiente de decidir: si el turno de chat necesita más margen o un aviso honesto, no reintentos ciegos.
 - [x] **R.8.3 — 🔍 QA negativo real.** (2026-10-11) Tarea con salida deliberadamente incorrecta que QA debe rechazar; checks
   ejecutados y criterios visibles. Hallazgo 2.
   Gate nuevo `qa-negative` (en el pre-push): tarea de control que QA aprueba con evidencia literal + tarea cuya
