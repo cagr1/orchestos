@@ -835,11 +835,13 @@ anteriores, con pruebas de comportamiento; no abrir un refactor masivo por conte
   Modelo tomado de Orca (§A.6, §A.11): tira permanente de una línea sobre el compositor
   declarando el estado real, más un segmented control honesto `Yolo | Manual` en Settings del
   agente. No un modal que se acepta una vez y se olvida.
+  **GO de Carlos 2026-10-16:** aprobación a nivel de tarea en este bloque (la de cada herramienta, bloque propio
+  aparte); default `Yolo`; modo por proyecto. Spec: `docs/specs/UI.8.6.md`.
 
 **Decisiones pendientes de Carlos dentro de UI.8** (no las toma ningún LLM):
 1. `agents` como tabla propia o proyección derivada (UI.8.2).
 2. Estados de sesión `ended` con **resume/fork** (§C.3) — PI y Codex los tienen; OrchestOS no.
-3. Si UI.8.6 entra en este bloque o sale como bloque propio con backend separado.
+3. Si UI.8.6 entra en este bloque o sale como bloque propio con backend separado. — Decidido 2026-10-16: entra la aprobación por tarea; la de cada herramienta sale como bloque propio.
 
 ### UI.24 — El hilo del chat con acabado premium (CERRADO 2026-10-15: UI.24.1–24.7; abierto 2026-10-13, GO de Carlos)
 
