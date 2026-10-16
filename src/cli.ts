@@ -9,7 +9,7 @@ import { resolveDashboardPaths } from './cli-dashboard-paths.ts'
 import { registerSkillCurateImportCommands } from './cli-skill-curate.ts'
 import { registerSkillFetchCommands } from './cli-skill-fetch.ts'
 import { buildContextMd, estimateTokens } from './context/compress.ts'
-import { loadContext } from './context/load.ts'
+import { refreshProjectContext } from './context/load.ts'
 import { listConflicts, resolveConflict } from './db/memory.ts'
 import { runMigrations } from './db/migrate.ts'
 import { getProject, listProjects, upsertProject } from './db/projects.ts'
@@ -165,9 +165,9 @@ const ctx = program.command('context').description('Manage saved project context
 ctx
   .command('show [path]')
   .description('Print saved AGENTS.md from DB')
-  .action((targetPath?: string) => {
+  .action(async (targetPath?: string) => {
     const root = resolve(targetPath ?? '.')
-    const content = loadContext(root)
+    const content = (await refreshProjectContext(root))?.agentsMd ?? ''
     if (!content) {
       console.error(`[context] No saved context for ${root}. Run: orchestos init`)
       process.exit(1)
@@ -544,7 +544,7 @@ program
           console.error(`[run --graph] No tasks.yaml found in ${root}. Run: orchestos task init`)
           process.exit(1)
         }
-        const projectContext = loadContext(root)
+        const projectContext = (await refreshProjectContext(root))?.agentsMd ?? ''
         const project = getProject(root)
         const orcheConfigPath = join(root, 'orchestos.config.yaml')
         const orcheConfigFound = existsSync(orcheConfigPath)
@@ -672,7 +672,7 @@ program
       const model = runClient.model
 
       // 2. Build system prompt
-      const projectContext = loadContext(root)
+      const projectContext = (await refreshProjectContext(root))?.agentsMd ?? ''
       let skillGuidelines = ''
       if (opts.skill) {
         try {
@@ -1198,7 +1198,7 @@ task
       },
     ) => {
       const root = resolve(targetPath ?? '.')
-      const projectContext = loadContext(root)
+      const projectContext = (await refreshProjectContext(root))?.agentsMd ?? ''
       const project = opts?.projectId
         ? { id: opts.projectId }
         : process.env.ORCHESTOS_PROJECT_ID
@@ -2835,7 +2835,7 @@ async function runClarifyMode(
     ? { ...t, description: `${t.description}\n\nUser clarification: ${clarification}` }
     : t
 
-  const projectContext = loadContext(root)
+  const projectContext = (await refreshProjectContext(root))?.agentsMd ?? ''
   const project = projectId ? { id: projectId } : getProject(root)
   const log = new RunLogger(root, taskId)
 

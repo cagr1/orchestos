@@ -127,6 +127,15 @@ export default async function chatContext({
   const repoRoot = process.cwd()
   run('bun', ['run', join(repoRoot, 'src/cli.ts'), 'init', projectRoot], repoRoot)
   writeFileSync(
+    join(projectRoot, 'package.json'),
+    JSON.stringify({
+      name: 'ctx-fixture',
+      scripts: { test: 'bun test' },
+      dependencies: { react: '^19.0.0' },
+    }),
+  )
+  writeFileSync(join(projectRoot, 'bun.lock'), '')
+  writeFileSync(
     join(projectRoot, 'tasks.yaml'),
     yamlStringify({
       version: 1,
@@ -193,6 +202,10 @@ export default async function chatContext({
       /partial/i.test(codexPrompt) &&
       /criterion 2 missing: README line absent/i.test(codexPrompt) &&
       /codex · codex default/i.test(codexPrompt) &&
+      /Stack: Bun · React/i.test(codexPrompt) &&
+      /bun run test/i.test(codexPrompt) &&
+      !/Notes for AI agents/i.test(codexPrompt) &&
+      !/unknown/i.test(codexPrompt) &&
       /Now:.*UTC[+-]\d{2}:\d{2}/i.test(codexPrompt) &&
       !codexPrompt.includes('Second line that must not reach the chat context'),
     codexPrompt,

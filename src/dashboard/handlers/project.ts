@@ -2,7 +2,7 @@ import { existsSync, readFileSync, realpathSync, unlinkSync, writeFileSync } fro
 import { tmpdir } from 'os'
 import { isAbsolute, join, relative } from 'path'
 import { loadOrcheConfig } from '../../config/load.ts'
-import { loadContext } from '../../context/load.ts'
+import { refreshProjectContext } from '../../context/load.ts'
 import { getProjectById, upsertProject } from '../../db/projects.ts'
 import { listRuns } from '../../db/runs.ts'
 import { db } from '../../db/sqlite.ts'
@@ -305,7 +305,7 @@ async function buildNaturalDraft(
   root = process.cwd(),
   context?: NaturalDraftContext,
 ): Promise<NaturalDraft> {
-  const projectCtx = loadContext(root)
+  const projectCtx = (await refreshProjectContext(root))?.agentsMd ?? ''
   let tasksSummary = ''
   try {
     const file = loadTasks(root)

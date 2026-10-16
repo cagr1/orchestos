@@ -1401,7 +1401,7 @@ En todos: `prefers-reduced-motion` = cambios instantáneos o fundidos cortos.
 
 ## Fase 3 — Correr dentro de OrchestOS igual que el CLI directo
 
-- [ ] **AT.13 — 🧠 El contexto que el chat inyecta al CLI dice la verdad.** (abierto 2026-09-22, pendiente)
+- [x] **AT.13 — 🧠 El contexto que el chat inyecta al CLI dice la verdad.** (abierto 2026-09-22, cerrado 2026-10-16)
   **Absorbido por MR.1.d (Carlos 2026-09-24):** se ejecuta dentro de MR.1, no por separado.
   **Estado 2026-10-14 (DOC.1) — una sola verdad:** MR.1.d2 (`3b8c9b2`, cerrado 2026-09-27; detalle en
   `docs/done/bloque-MR.md`, "MR.1.d2") resolvió los puntos 1-7 (`buildChatSystemPrompt`, `src/chat/chat-context.ts`: herramientas reales por agente, `n/a`
@@ -1415,7 +1415,20 @@ En todos: `prefers-reduced-motion` = cambios instantáneos o fundidos cortos.
   Hallazgo medido: `loadContext` sirve `agents_md` de DB sin refrescar (este repo: registro del 2026-08-17 que dice
   "Node.js / none / No scripts"; `buildProfile` da Bun / React / 5 scripts en ~20 ms) y en el gate el bloque llega todo
   en `unknown` + "Notes for AI agents". `manifest.ts` raíz: React ya es dependencia raíz → detectado sin cambio.
-  Línea base `chat-context`: `context_tokens` 740, Codex `input_tokens` 2930. Spec: `docs/specs/AT.13.md`.
+  Línea base `chat-context`: `context_tokens` 740, Codex `input_tokens` 2930.
+  **Cierre 2026-10-16.** `refreshProjectContext` (`src/context/load.ts`) recalcula el perfil (~20 ms) y reescribe el
+  registro solo si cambió; lo usan el chat, `buildNaturalDraft` y los 5 consumidores async de `cli.ts`.
+  `chatProjectContext` (`src/chat/chat-context.ts`) inyecta solo lo detectado (`Stack:`, `Commands:`, `Conventions:`),
+  sin "Notes for AI agents"; si no hay nada, no hay bloque. Queda síncrono `deps.loadContext` de `run-graph.ts` (lee el
+  registro que el chat y cada `task run` ya refrescan).
+  Ejecutado por: Codex · `gpt-6-luna` (mecanico, 1 ronda) · Spec: docs/specs/AT.13.md (borrado al cerrar)
+  Gate en vivo: `gate:evidence --label AT.13-after -- ui:gate chat-context` 5/5 (turno real Codex gpt-6-luna + Claude
+  haiku; el fixture cambia `package.json` después de `init` y el prompt dice `Stack: Bun · React`, `bun run test`, sin
+  `unknown` ni "Notes for AI agents"). Antes/después: `context_tokens` 740→633 (−14 %), Codex `input_tokens`
+  2930→2836. CLI directo, mismo tipo de pedido (`codex exec`, gpt-6-luna): `input_tokens` 61,330 (43,392 en caché) con
+  una lectura de archivos; el bloque propio de OrchestOS es ~1 % de eso. No es la misma unidad (home aislado en
+  OrchestOS, sin `~/.codex/AGENTS.md`), así que no se afirma equivalencia exacta. `test:coverage` 1826/0
+  (78.17 %/64.26 %); tsc limpio.
   Origen: autoevaluación de Claude corriendo como CLI dentro de OrchestOS, contrastada contra el
   código por el cerebro. Es backend de `handlers/chat.ts`, independiente del cambio de interfaz de
   esta semana. Confirmado por lectura, sin corrida en vivo:

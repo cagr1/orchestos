@@ -8,7 +8,7 @@ import { extractTextFromImage } from '../../chat/ocr.ts'
 import { loadOrcheConfig } from '../../config/load.ts'
 import type { RoleAgent } from '../../config/schema.ts'
 import { estimateTokens } from '../../context/compress.ts'
-import { loadContext } from '../../context/load.ts'
+import { refreshProjectContext } from '../../context/load.ts'
 import {
   getChatSession,
   listChatMessages,
@@ -1258,7 +1258,7 @@ async function handleApiChat(
       specRows = specs.map((s) => ({ id: s.frontmatter.id, status: s.frontmatter.status }))
     } catch {}
 
-  const projectCtx = hasProjectContext ? loadContext(root) : ''
+  const projectContext = hasProjectContext ? await refreshProjectContext(root) : null
   // The CLI owns its default model. Passing the API default here would make
   // Codex receive a misleading non-openai model.
   const requestedModel = body.model?.trim()
@@ -1322,7 +1322,7 @@ async function handleApiChat(
     memory: memoryRows,
     specs: specRows,
     projectFiles,
-    projectContext: projectCtx,
+    projectProfile: projectContext?.profile,
     agent: chatAgent,
     modelLabel,
     autoTaskInstruction,
