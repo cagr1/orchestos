@@ -1,10 +1,11 @@
 # orchestos — contract-first LLM coding runner
 
-A CLI that runs LLM-powered coding tasks inside a declared file contract.
-Each task specifies exactly which files it can write. Anything outside that list is blocked.
-Every run produces evidence in SQLite. A QA LLM validates the output before marking it done.
+A local dashboard and CLI that orchestrate the coding CLIs you already use (Claude Code, Codex, OpenCode, …).
+You ask in a chat; the orchestrator turns the request into a task with a declared file contract, an executor
+writes only those files inside a git worktree, deterministic checks and a QA reviewer validate the result, and
+the outcome comes back to the same chat thread. Every run produces evidence in SQLite.
 
-1342 tests · 0 failures · Month 30 active · Reliability and UI blocks in progress
+1816 tests · 0 failures · coverage gate in CI
 
 ---
 
@@ -33,7 +34,15 @@ Add to your shell (optional):
 alias orchestos="bun /path/to/orchestos/src/cli.ts"
 ```
 
-Set your API keys (OpenRouter covers Claude, GPT-4o, Gemini, DeepSeek, etc.):
+Check prerequisites (Bun, git, detected CLIs, config):
+
+```bash
+orchestos setup
+```
+
+No API key is needed if every role uses a CLI agent: OrchestOS calls the CLIs you are already logged into
+(`claude`, `codex`, `opencode`, …) with your own plan. API keys are optional, only for roles set to `agent: api`
+(OpenRouter by default) and for embeddings:
 
 ```bash
 mkdir -p ~/.orchestos
@@ -46,7 +55,24 @@ EOF
 
 ---
 
-## Quickstart (5 commands)
+## Quickstart — dashboard
+
+```bash
+orchestos dashboard              # http://localhost:4242 (use --port to change it)
+```
+
+1. Add a project from the sidebar (any local git repo).
+2. **Settings → Model routing**: pick agent, model and effort for each role (see below).
+3. **Chat** mode: talk to the orchestrator about the project (read-only).
+   **Dev** mode: ask for a change. The orchestrator drafts a task with its `output[]` contract and shows a task card
+   in the thread:
+   - **Approve & Run** when the task touches existing files (held until you confirm); new files run directly.
+   - **Commit & Run** when the working tree is dirty (choose which files to commit first).
+   - **Retry** after a failed attempt; earlier attempts stay folded inside the card.
+4. The card updates in place: running → done/failed, with the executor's model, attempt and summary.
+   Settings → (project) **Tasks / Runs / Memory** keep the full evidence.
+
+## Quickstart — CLI (5 commands)
 
 ```bash
 # 1. Detect stack and save to DB + index code graph
@@ -156,6 +182,7 @@ orchestos instinct set-confidence <id> <0-1>
 
 ```bash
 orchestos memory conflicts [--project <path>]     # show detected memory conflicts
+orchestos memory resolve <id>                     # mark a conflict as resolved
 ```
 
 ### Project context
@@ -169,6 +196,9 @@ orchestos context suggest "fix auth login"        # see which files the graph su
 orchestos index   ./my-project                    # re-index code graph after large changes
 orchestos constitution init/show  ./my-project    # scaffold / parse CONSTITUTION.md rules
 orchestos config  init/show       ./my-project    # scaffold / inspect orchestos.config.yaml
+orchestos summary ./my-project                    # PDF summary of a project
+orchestos setup                                   # check prerequisites
+orchestos reset --yes                             # delete test-session runs/instincts, reset tasks.yaml
 ```
 
 ---
@@ -250,26 +280,21 @@ orchestos task run ./my-project --keep-worktree  # debug: keep worktree on failu
   output: [src/routes/auth.ts]
 ```
 
-### 5. Model routing — `orchestos.config.yaml`
+### 5. Model routing — four roles in `orchestos.config.yaml`
 
 ```yaml
-models:
-  planner:
-    provider: anthropic
-    model: claude-opus-4-8
-  executor_heavy:
-    provider: openrouter
-    model: deepseek/deepseek-v4-flash
-  executor_light:
-    provider: openrouter
-    model: deepseek/deepseek-chat
-  default:
-    provider: openrouter
-    model: deepseek/deepseek-v4-flash
+config_version: 1
+roles:
+  orchestrator: { agent: claude, model: claude-opus-5-5, effort: medium }  # chat + task drafts
+  executor:     { agent: codex,  model: gpt-6-luna,      effort: medium }  # writes the files
+  reviewer:     { agent: codex,  model: gpt-6-luna,      effort: medium }  # QA verdict
+  auxiliary:    { agent: codex,  model: gpt-5.6-luna }                     # small helper calls
 ```
 
-`plan` → planner · `fix/refactor` → executor_heavy · `generate/edit/doc` → executor_light · no match → default.
-Per-task `executor` always wins over config.
+`agent` is `claude`, `codex`, `opencode` or `api` (`provider` optional, OpenRouter by default). Nothing is
+hardcoded: each role uses exactly what is configured, editable from **Settings → Model routing**. The legacy
+`models.planner / executor_heavy / executor_light / default` keys are still parsed and migrated to roles.
+Per-task `executor` and per-task rules still win over the role.
 
 ### 6. Auto-suggested context — code graph
 
@@ -401,16 +426,14 @@ orchestos dashboard             # starts on http://localhost:4242
 orchestos dashboard --port 3000
 ```
 
-Four views served from SQLite:
+React + Tailwind app (Fluid Functionalism components, Streamdown for markdown), built by `bun run build:app`.
 
-| View | Shows |
-|------|-------|
-| `/runs` | Cost breakdown per sub-agent, context monitor warnings |
-| `/tasks` | Status, retry count, QA verdict |
-| `/instincts` | Approve / reject auto-proposals from the UI |
-| `/specs` | Lint badge (structured / free-form criteria), archived specs |
-
-Vanilla JS, no bundler, no external dependencies.
+- **Chat | Dev** switch. Chat is a read-only conversation with the orchestrator; Dev creates and runs tasks.
+- The thread shows live thinking, collapsible tool calls, one card per task, attachments (images go natively to the
+  CLI; text/PDF are inlined).
+- **Settings (global):** General, Health, API & Models, Model routing, Executor, Usage, Danger zone, Language.
+- **Settings (per project):** Tasks, Runs, Graph, Memory, Specs, Skills, Instincts, Plan.
+- Every finished task leaves a plain-text entry in **Memory** (`task/<id>`: files, QA verdict, model), no LLM.
 
 ---
 
@@ -481,4 +504,6 @@ Supported languages (36): TypeScript, JavaScript, Python, C#, Rust, Go, Java, Ko
 
 See [LIMITATIONS.md](LIMITATIONS.md) for a full list.
 
-The short version: this is a sequential, local, single-model CLI. It is not autonomous. It does not replace git. It has no sandbox other than git worktrees. It costs real money per run. The `clarify` heuristic is keyword-based (v0), not semantic.
+The short version: tasks run sequentially, locally, one task at a time. It is not autonomous: you approve tasks that
+touch existing files. It does not replace git. Its only sandbox is a git worktree. With CLI agents a run uses your
+plan's quota; `agent: api` roles cost money per run. The `clarify` heuristic is keyword-based (v0), not semantic.
