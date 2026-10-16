@@ -707,11 +707,13 @@ Cerrada. Todos sus ítems están archivados en `docs/done/` (ver "Cerrados — e
   la espera a 1.5 s con `Promise.race`, que en un turno API con red lenta quitaba `reasoning` sin avisar.
   Contraprueba (cerebro, `HTTPS_PROXY` a IP no ruteable): con HEAD fallan 2 tests a ~5001 ms; con solo el arreglo de
   producto 24/24. Evidencia: `typecheck`, `chat-sessions.test.ts` 24/24 con y sin el proxy.
-- [ ] **CI.28 — 🔍 El test de `statusLine` de `session-status` lanza el `codex` real del host.** (abierto 2026-10-16)
+- [x] **CI.28 — 🔍 El test de `statusLine` de `session-status` lanza el `codex` real del host.** (abierto y cerrado 2026-10-16)
   Visto 1 vez en `test:coverage` (timeout 5 s, pasó al repetir). Causa leída en el código: el test borra
   `ORCHESTOS_SESSION_TRANSCRIPT` y `readActiveSessionStatuses` (`scripts/session-status.ts:199`) llama
   `readCodexRateLimitsLive` con el `codex` instalado en el Mac; en CI no existe y nunca falla. Arreglo: inyectar
-  `detectClis` y `readCodexRateLimits` en el test. Spec: `docs/specs/CI.28.md`.
+  `detectClis` y `readCodexRateLimits` en el test; afirma 1 lectura falsa de cuota Codex.
+  Evidencia (cerebro): `session-status.test.ts` 6/6; `bun run test:coverage` 1821 pass / 0 fail.
+  Ejecutado por: codex gpt-6-luna (mecanico).
 - [ ] **CI.27 — 🔍 Un flujo que revienta no dice qué locator falló ni deja captura.** (abierto 2026-10-15)
   El pre-push de `e1d3b12` falló una vez con `FAIL chat-context: flow: locator.click: Timeout 30000ms exceeded.`, al
   pasar de Codex a Claude (`chat-context.mjs`, `startChat`/`selectClaudeHaiku`: 6 clics posibles). A solas pasó

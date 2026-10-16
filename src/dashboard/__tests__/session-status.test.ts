@@ -3,6 +3,7 @@ import { mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { readActiveSessionStatuses, type SessionStatus } from '../../../scripts/session-status.ts'
+import type { CliDetectionResult } from '../../../src/run/executors/cli-registry.ts'
 import { withFreshClaudeQuota } from '../handlers/session-status.ts'
 import { route } from '../server.ts'
 
@@ -148,11 +149,41 @@ describe('H.7.5 — GET /api/session/status', () => {
       }),
     )
 
-    const statuses = await readActiveSessionStatuses({ projectRoot: root, agentHome: root })
+    const detections: CliDetectionResult[] = [
+      {
+        id: 'claude',
+        label: 'Claude Code',
+        binary: 'claude',
+        icon: 'claude',
+        readBoundary: { kind: 'none', reason: 'fixture' },
+        installed: true,
+        path: '/fixture/claude',
+      },
+      {
+        id: 'codex',
+        label: 'Codex',
+        binary: 'codex',
+        icon: 'codex',
+        readBoundary: { kind: 'none', reason: 'fixture' },
+        installed: true,
+        path: '/fixture/codex',
+      },
+    ]
+    let codexRateLimitReads = 0
+    const statuses = await readActiveSessionStatuses({
+      projectRoot: root,
+      agentHome: root,
+      detectClis: () => detections,
+      readCodexRateLimits: async () => {
+        codexRateLimitReads += 1
+        return []
+      },
+    })
     const claude = statuses.find((status) => status.id === 'claude')
     expect(claude?.rateLimits).toMatchObject({
       source: 'claude',
       windows: [{ id: 'seven_day', usedPct: 18, windowMinutes: 10080 }],
     })
+    expect(codexRateLimitReads).toBe(1)
   })
 })
