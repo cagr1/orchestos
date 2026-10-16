@@ -20,3 +20,12 @@ de alto, el hilo queda despegado del fondo. Mismo caso cuando el textarea del co
 
 ## Verificación
 `bunx tsc -p src/dashboard/app/tsconfig.json --noEmit`, `bun run lint`. El cerebro corre `chat-roles` en vivo.
+
+## Ronda 2 (2026-10-16) — la hipótesis no se sostuvo: con 1 y 2 aplicados, `chat-roles` falla igual (2/2 hoy)
+Antes de otro arreglo, que el paso deje evidencia. En `scripts/ui-gate/flows/chat-roles.mjs:227-248`, dentro del
+`evaluate`, agregar al objeto `result` (sin cambiar la condición del `step`):
+- `distanceBefore`: `scrollHeight - scrollTop - clientHeight` medido justo antes de añadir el filler.
+- `distanceAfter`: lo mismo tras los 400 ms.
+- `scrollTop`, `scrollHeight`, `clientHeight` del contenedor y `contentChildren: content.childElementCount`.
+Comentario de una línea: `// UI.8.6.1 — evidencia si falla`. Nada más; no tocar el resto del flujo.
+Verificación: `bun test scripts/ui-gate/run.test.ts` (lint de flujos).
