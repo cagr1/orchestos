@@ -1,7 +1,22 @@
 {
-  "exported_at": "2026-10-16T02:12:05.283Z",
+  "exported_at": "2026-10-16T02:20:28.680Z",
   "total_runs": 20,
   "runs": [
+    {
+      "id": "f433b0a7-3a1f-43d7-ae8d-50d4b6854398",
+      "task_class": "gate:erp.4.16-live:doc",
+      "model": "openai/gpt-6-luna",
+      "provider": "codex",
+      "status": "done",
+      "qa_verdict": "pass",
+      "qa_reason": "README.md contains the requested line.",
+      "files_blocked": [],
+      "checks_failed": 0,
+      "usd_cost": 0.00093968,
+      "elapsed_ms": 24470,
+      "tokens": 7445,
+      "created_at": "2026-10-16T02:19:24.934Z"
+    },
     {
       "id": "1724126c-7b0b-4b76-b990-5cbba1631ab8",
       "task_class": "gate:ui.24.7-r3-live:implement",
@@ -286,21 +301,6 @@
       "elapsed_ms": 19151,
       "tokens": 11748,
       "created_at": "2026-10-15T14:29:39.127Z"
-    },
-    {
-      "id": "f62bf670-7494-4f22-919a-555c054b4443",
-      "task_class": "gate:ui.24.5-live:implement",
-      "model": "gpt-6-luna",
-      "provider": "codex",
-      "status": "done",
-      "qa_verdict": "pass",
-      "qa_reason": "`nota.ts` ends with the requested `export const gate = 1` line.",
-      "files_blocked": [],
-      "checks_failed": 0,
-      "usd_cost": 0.00107478,
-      "elapsed_ms": 18609,
-      "tokens": 8865,
-      "created_at": "2026-10-15T14:28:52.823Z"
     }
   ],
   "stats": {
@@ -308,6 +308,6 @@
     "blocked": 0,
     "done": 17,
     "qa_failed": 3,
-    "total_cost_usd": "0.0261"
+    "total_cost_usd": "0.0260"
   }
 }
