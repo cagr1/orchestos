@@ -89,3 +89,18 @@ No `git stash`.
    Test en `codex-app-server` con dos ítems. Revisar si `codex.ts` (exec) tiene el mismo defecto y arreglarlo igual.
    Verifica: test + `codex-live`.
 Gates: los de la ronda 1 + `codex-live`; capturas de la lámina (herramientas) y de `chat-turn-details/tool-and-reasoning`.
+
+## Ronda 3 (revisión `qa`, verificada con llamadas directas al registro)
+Los tres fallos están en `components/thread/entrance.ts`. Cada uno lleva su test en `entrance.test.ts`, y ese test
+debe fallar con el código de la ronda 2.
+1. **Volver a una sesión anima el historial (`:64`).** Pasos: abrir A, cambiar a B, llega una respuesta en A, volver a
+   A. Hoy `baselined` sigue en `true` y el mensaje nuevo anima. Corrección: al entrar en una sesión (cuando cambia
+   `decidedSession` en `OrchestChatView`), la primera lista cargada cuenta como historial (`static`).
+2. **Un hilo abierto vacío no anima su primer mensaje (`:83`).** `markEntered(s, [])` sale antes de tiempo y no
+   registra que el hilo ya estaba abierto, así que el primer reporte que llega queda `static`. Corrección: separar
+   "cargando" de "cargado y vacío". Buscar si `ChatThread`/`App.tsx` ya saben cuándo terminaron de cargar los
+   mensajes de la sesión; si no lo saben, decir qué señal se usó. Un hilo vacío ya cargado queda con línea base.
+3. **Reenviar el mismo texto tras un error no anima (`:85`).** `seen` guarda el máximo histórico, así que el
+   optimista retirado sigue contando. Corrección: `seen` refleja las ocurrencias de la última lista no vacía, no un
+   máximo. El reemplazo optimista → servidor ocurre en la misma actualización y sigue `static`.
+Gates: los de la ronda 1, más `bun test src/dashboard/app`.
