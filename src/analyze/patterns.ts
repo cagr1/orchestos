@@ -6,7 +6,7 @@
  *
  * Two layers:
  *   groupRunsByOutcome(runs)       — pure aggregation, no LLM (testable)
- *   analyzeRunPatterns(groups, …)  — LLM call (Haiku) to generate PatternSuggestion[]
+ *   analyzeRunPatterns(groups, …)  — LLM call (Auxiliary role) to generate PatternSuggestion[]
  *
  * PatternSuggestion is intentionally advisory — it never modifies anything.
  */

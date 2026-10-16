@@ -47,7 +47,7 @@ No API key is needed if every role uses a CLI agent: OrchestOS calls the CLIs yo
 ```bash
 mkdir -p ~/.orchestos
 cat > ~/.orchestos/.env <<EOF
-OPENROUTER_API_KEY=sk-or-...
+OPENROUTER_API_KEY=sk-or-...   # optional, for roles with agent: api
 ANTHROPIC_API_KEY=sk-ant-...    # optional, for direct Anthropic calls
 OPENAI_API_KEY=sk-...           # optional, for embeddings (text-embedding-3-small)
 EOF
@@ -138,7 +138,7 @@ orchestos runs                      # last 10 runs
 orchestos runs --limit 50           # last 50
 orchestos runs --detail <run-id>    # full evidence: provider, checks, criteria, cost breakdown, context warnings
 orchestos runs --export             # dump all runs to runs-export.json
-orchestos runs --analyze [--last N] # pattern analysis via Haiku — suggests improvements
+orchestos runs --analyze [--last N] # pattern analysis via the Auxiliary role — suggests improvements
 orchestos dashboard [--port 4242]   # local web dashboard: runs, tasks, instincts, specs
 ```
 
@@ -163,8 +163,8 @@ orchestos skill build                             # compile to dist/skills/ (cla
 orchestos skill build     --project <path>        # compile with language-aware sections
 orchestos skill scaffold  --language <lang>       # scaffold with language-specific verifiers
 orchestos skill languages                         # list all 36 supported languages
-orchestos skill fetch     --language <lang>       # fetch curated skill from remote registry
-orchestos skill fetch     --list                  # list available remote skills
+orchestos skill fetch     --list                  # list skills in the community registry (needs the dashboard running)
+orchestos skill fetch     --name <id>             # import one skill by id (needs the dashboard running)
 ```
 
 ### Instincts (learned behaviors)
@@ -211,7 +211,6 @@ project: my-project
 tasks:
   - id: add-button
     description: "Create a reusable Button component with hover and disabled states"
-    executor: anthropic            # openrouter (default) | anthropic | openai | codex
     skill: implement               # optional: injects skill guidelines into the prompt
     input:                         # files the LLM may read (omit to use graph suggestion)
       - src/styles/tokens.css
@@ -269,16 +268,23 @@ orchestos task run ./my-project --keep-worktree  # debug: keep worktree on failu
 
 ### 4. Executor routing — choose which LLM runs each task
 
+By default every task runs on the **Executor** role (§5). To pin one task, set `engine` and `executor_model`:
+
 ```yaml
 - id: design-api-interface
-  executor: anthropic              # Claude — architectural decisions
+  engine: external                 # Claude Code CLI (external | codex | opencode)
+  executor_model: claude-opus-5-5
   output: [docs/api-auth.md]
 
 - id: scaffold-endpoints
-  executor: openrouter             # DeepSeek via OpenRouter — mechanical, cheaper
+  executor: openrouter             # API provider — only read together with executor_model
+  executor_model: deepseek-v4-flash
   depends_on: [design-api-interface]
   output: [src/routes/auth.ts]
 ```
+
+With a CLI `engine` and no `executor_model`, the task uses the Executor's model only if the Executor is that
+same CLI; otherwise it fails before running. `executor` on its own changes nothing.
 
 ### 5. Model routing — four roles in `orchestos.config.yaml`
 
@@ -294,7 +300,7 @@ roles:
 `agent` is `claude`, `codex`, `opencode` or `api` (`provider` optional, OpenRouter by default). Nothing is
 hardcoded: each role uses exactly what is configured, editable from **Settings → Model routing**. The legacy
 `models.planner / executor_heavy / executor_light / default` keys are still parsed and migrated to roles.
-Per-task `executor` and per-task rules still win over the role.
+A task pinned with `engine` / `executor_model` (§4) wins over the role.
 
 ### 6. Auto-suggested context — code graph
 
@@ -363,7 +369,7 @@ orchestos task run . --expand <plan-task-id>
 
 ### Memory conflict detection
 
-When a sub-agent writes to `memory_entries`, BM25 (SQLite FTS5) finds candidate conflicts. A Haiku call classifies the relation (`conflict_with | supersedes | compatible | scoped | related | not_conflict`). Results are stored in `memory_conflicts` and visible via `orchestos memory conflicts`.
+When a sub-agent writes to `memory_entries`, BM25 (SQLite FTS5) finds candidate conflicts. A call to the Auxiliary role classifies the relation (`conflict_with | supersedes | compatible | scoped | related | not_conflict`). Results are stored in `memory_conflicts` and visible via `orchestos memory conflicts`.
 
 ---
 
@@ -408,7 +414,7 @@ When a task reaches `failed_permanent` (3 QA failures), the diagnosis agent auto
 orchestos task diagnose <task-id>   # also auto-triggers on task run --all
 ```
 
-It reads the last 3 runs, calls Haiku to classify the failure pattern, and returns a structured suggestion:
+It reads the last 3 runs, asks the Auxiliary role to classify the failure pattern, and returns a structured suggestion:
 
 | Pattern | Example suggestion |
 |---------|-------------------|
@@ -457,9 +463,9 @@ orchestos task run . --id add-button # now runs
 ```yaml
 - id: add-button                     # unique identifier (kebab-case)
   description: "..."                 # task brief sent to the LLM
-  executor: openrouter               # openrouter | anthropic | openai | codex
-  planner_model: claude-opus-4-8     # optional per-task model override
-  executor_model: deepseek-v4-flash  # optional per-task model override
+  engine: codex                      # optional: external (Claude) | codex | opencode | single-shot | agentic
+  executor_model: gpt-6-luna         # optional: pins the model; without it the Executor role decides
+  executor: openrouter               # API provider (openrouter | anthropic | openai), only read with executor_model
   skill: implement                   # optional: inject skill guidelines into prompt
   input:                             # files LLM may read (omit to use graph suggestion)
     - src/styles/tokens.css

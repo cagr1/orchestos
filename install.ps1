@@ -98,12 +98,16 @@ if (-not (Test-Path $orchestosDir)) {
 
 if (-not (Test-Path $envPath)) {
     $envContent = @"
-# OrchestOS — API Keys
+# OrchestOS — API Keys (todas opcionales)
 # ==============================================
-# Obtén tu clave en https://openrouter.ai (REQUERIDA)
+# Si todos los roles usan un CLI (claude, codex, opencode) no hace falta ninguna:
+# OrchestOS usa la sesión del CLI con tu propio plan.
+
+# Opcional — para roles con agent: api (OpenRouter es el proveedor por defecto)
+# Obtén tu clave en https://openrouter.ai
 OPENROUTER_API_KEY=
 
-# Opcional — necesaria para executor: anthropic
+# Opcional — para roles con agent: api y provider: anthropic
 # Obtén tu clave en https://console.anthropic.com
 ANTHROPIC_API_KEY=
 
@@ -113,15 +117,8 @@ OPENAI_API_KEY=
 "@
     [System.IO.File]::WriteAllText($envPath, $envContent, [System.Text.Encoding]::UTF8)
     Write-Host "  $OK  Creado: $envPath"
-    Write-Host "     ${YELLOW}${BOLD}Importante:${RESET} abre ese archivo y añade tu OPENROUTER_API_KEY antes de continuar."
-    Write-Host ""
+    Write-Host "     ${DIM}Las API keys son opcionales: solo hacen falta para roles con agent: api.${RESET}"
     Write-Host "     ${DIM}Ruta: $envPath${RESET}"
-    Write-Host ""
-    $resp = Read-Host "  ¿Ya añadiste tu API key? (s para continuar, cualquier otra tecla para salir)"
-    if ($resp.ToLower() -ne 's') {
-        Write-Host "  Abre $envPath, añade la key y vuelve a ejecutar install.bat"
-        exit 0
-    }
 } else {
     Write-Host "  $OK  $envPath ya existe — no se sobreescribió."
 }

@@ -74,12 +74,16 @@ mkdir -p "$ORCHESTOS_DIR"
 
 if [ ! -f "$ENV_PATH" ]; then
     cat > "$ENV_PATH" << 'EOF'
-# OrchestOS — API Keys
+# OrchestOS — API Keys (todas opcionales)
 # ==============================================
-# Obtén tu clave en https://openrouter.ai (REQUERIDA)
+# Si todos los roles usan un CLI (claude, codex, opencode) no hace falta ninguna:
+# OrchestOS usa la sesión del CLI con tu propio plan.
+
+# Opcional — para roles con agent: api (OpenRouter es el proveedor por defecto)
+# Obtén tu clave en https://openrouter.ai
 OPENROUTER_API_KEY=
 
-# Opcional — necesaria para executor: anthropic
+# Opcional — para roles con agent: api y provider: anthropic
 # Obtén tu clave en https://console.anthropic.com
 ANTHROPIC_API_KEY=
 
@@ -89,14 +93,8 @@ OPENAI_API_KEY=
 EOF
     echo -e "  $OK  Creado: $ENV_PATH"
     echo ""
-    echo -e "  ${YELLOW}${BOLD}Importante:${RESET} abre ese archivo y añade tu OPENROUTER_API_KEY antes de continuar."
+    echo -e "  ${DIM}Las API keys son opcionales: solo hacen falta para roles con agent: api.${RESET}"
     echo -e "     ${DIM}Ruta: $ENV_PATH${RESET}"
-    echo ""
-    read -rp "  ¿Ya añadiste tu API key? (s para continuar, Enter para salir): " resp
-    if [[ "${resp,,}" != "s" ]]; then
-        echo "  Abre $ENV_PATH, añade la key y vuelve a ejecutar: bash install.sh"
-        exit 0
-    fi
 else
     echo -e "  $OK  $ENV_PATH ya existe — no se sobreescribió."
 fi

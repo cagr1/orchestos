@@ -3,7 +3,7 @@
  *
  * S26.2 — LLM judge for memory conflict detection.
  * Given two memory entries (the newly upserted one and a BM25 candidate),
- * asks Haiku to classify their relationship.
+ * asks the Auxiliary role to classify their relationship.
  *
  * NOT called inside upsertMemory — the caller determines when to judge.
  */
@@ -101,7 +101,7 @@ function parseJudgment(text: string): ConflictJudgment {
 }
 
 /**
- * Given two memory entries, asks Haiku (via OpenRouter) to classify their
+ * Given two memory entries, asks the Auxiliary role to classify their
  * relationship. Returns the judgment even if the LLM response is malformed
  * (falls back to `not_conflict` / `low` confidence).
  *

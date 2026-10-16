@@ -2,7 +2,7 @@
  * src/agents/diagnose.ts
  *
  * S25.1 — Agente de diagnóstico de fallos.
- * Lee los últimos 3 runs de un task fallido, consulta a Haiku (barato) para
+ * Lee los últimos 3 runs de un task fallido, consulta al rol Auxiliary (barato) para
  * detectar el patrón de fallo, y devuelve una sugerencia estructurada.
  * NO ejecuta nada — solo sugiere. El usuario aplica la sugerencia.
  *
@@ -119,7 +119,7 @@ function parseJson<T>(raw: string | null | undefined, fallback: T): T {
  * Diagnose why a task failed permanently by analyzing its last 3 runs.
  * @param taskId The task ID from tasks.yaml
  * @param root Project root directory
- * @param modelOverride Optional model override (default: haiku via openrouter)
+ * @param modelOverride Optional model override — API model via OpenRouter (default: the Auxiliary role)
  */
 export async function diagnoseTask(
   taskId: string,
@@ -142,7 +142,7 @@ export async function diagnoseTask(
     // hacía throw() → 404 → el front descartaba el error en silencio y el
     // panel de diagnosis nunca se abría (ver PLAN.md Bloque F.4). Con
     // retry_reason presente (tasks.yaml sí lo tiene siempre) se sintetiza un
-    // diagnóstico sin gastar una llamada a Haiku — el motivo real YA está
+    // diagnóstico sin gastar una llamada al rol Auxiliary — el motivo real YA está
     // en el mensaje de error del harness.
     if (task.retry_reason) {
       return {

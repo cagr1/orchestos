@@ -1138,7 +1138,7 @@ task
   .description(
     'Diagnose why a task failed — analyze last 3 runs and suggest a fix (does NOT execute anything)',
   )
-  .option('--model <model>', 'Model override (default: anthropic/claude-3-haiku via openrouter)')
+  .option('--model <model>', 'API model override via OpenRouter (default: the Auxiliary role)')
   .action(async (taskId: string, opts: { model?: string }) => {
     const root = resolve('.')
     console.log(`\n[diagnose] Analyzing task "${taskId}"...`)

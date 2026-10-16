@@ -301,12 +301,16 @@ proyecto real (propio o de usuario externo) golpee el límite concreto.
 
 ### 25. Mintlify — agente de docs automático
 
-**Origen**: sesión 2026-07-07. Mintlify está conectado al repo de docs (auto-deploy en push). Los `.mdx` viven en un repo separado (pendiente confirmar cuál).
+**Origen**: sesión 2026-07-07. Mintlify está conectado al repo de docs (auto-deploy en push). Los `.mdx` viven en github.com/cagr1/docs; sitio: https://carlosglabs-5a45717f.mintlify.site/.
+
+**2026-10-15:** la doc se reescribió contra el código actual (cagr1/docs `d2ea823`): dashboard Chat|Dev, 4 roles
+{agent, model, effort}, CLIs sin API key. Lo que esa auditoría encontró falso dentro de este repo se corrigió en
+PLAN.md § DOC.3. Los gaps de 2026-07-07 de abajo son históricos.
 
 **Gaps ya identificados (2026-07-07)** — en CLI pero NO documentados:
 - `detect`, `summary`, `index`, `context compress`, `skill run`, `instinct propose`, `instinct setup`, `reset`
 
-**Documentado pero NO existe**: `skill fetch` — eliminar de la doc.
+**Documentado pero NO existe** (2026-07-07; ya no vale: hoy existe `skill fetch --list | --name <id>`, vía dashboard): `skill fetch` — eliminar de la doc.
 
 **Qué hacer:**
 1. Confirmar repo de docs con Carlos

@@ -1637,6 +1637,19 @@ igual que hoy, lo que se corta es que el **producto** lo herede por accidente.
   `IDEAS.md` = 0; preflight lee el protocolo; typecheck y lint verdes; `plan:reconcile` 73 ítems.
   Gate en vivo: navegador real (Playwright), `docs/done/evidence/DOC.2-live.json` — `chat-streaming` 24/24.
 
+- [x] **DOC.3 — 🔍 README e instaladores coinciden con el código.** (abierto 2026-10-16) Lo que la auditoría de la doc
+  de Mintlify (cagr1/docs `d2ea823`) encontró falso en el repo: `skill fetch --language`, el pin de executor sin
+  `executor_model`, `planner_model` sin efecto, "via Haiku" (hoy rol Auxiliary) y `OPENROUTER_API_KEY` "requerida" en
+  `install.sh`/`install.ps1`; IDEAS.md #25 registra el repo y el sitio de docs.
+  (cerrado 2026-10-16) README: `skill fetch --list | --name <id>` (vía dashboard); §4 fija una tarea con `engine` +
+  `executor_model` (`executor` solo no cambia nada, `auto-route.ts:12-44`); `planner_model` fuera de la referencia
+  (se parsea y nadie lo lee); `runs --analyze`, `task diagnose` y el juez de memoria = rol Auxiliary. Comentarios de
+  `diagnose.ts`, `patterns.ts`, `judge.ts`, `graph-runner.ts` y el `--model` de `cli.ts` al día. Instaladores: las
+  keys son opcionales y ya no cortan la instalación si se dejan vacías.
+  Sin delegación: documentación.
+  Evidencia (cerebro): cada afirmación contrastada con `cli-skill-fetch.ts`, `auto-route.ts`, `tasks/schema.ts`,
+  `patterns.ts:144`, `diagnose.ts:167`; `bash -n install.sh`; pre-commit y pre-push verdes.
+
 ### AT.17–AT.18 — Restos del esquema de trabajo (TEMPORAL: al cerrarlos se borra esta sección entera)
 
 No son producto. El esquema de trabajo con agentes (roster, `delegate`, candado de escritor, reglas de autonomía y de

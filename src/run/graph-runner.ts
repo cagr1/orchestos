@@ -580,7 +580,7 @@ async function executeSingleTask(
     }
 
     // ── Diagnose and apply strategy (design.md §2) ──────────────────────
-    // AR.3: diagnoseTask hace una llamada LLM real (Haiku) — su costo cuenta
+    // AR.3: diagnoseTask hace una llamada LLM real (rol Auxiliary) — su costo cuenta
     // para el circuit breaker igual que cualquier otra llamada del grafo.
     let diag: { pattern: FailurePattern; suggestion: string; details: string }
     try {
