@@ -75,3 +75,17 @@ backend quedan fuera.
 `components/ui/*` (familia, se compone con props), `OrchestDevWorkspace.tsx`, Settings, backend, `api/chat.ts`
 (salvo que falte un dato, y entonces decirlo), `index.css` (no crece). No commitear ni tocar `PLAN.md`/`NEXT.md`.
 No `git stash`.
+
+## Ronda 2 (cerebro, sobre capturas de la ronda 1)
+1. `ThreadTools.tsx`: un paso `running` muestra check (`icon='check'` siempre). En curso → sin `icon` (el punto por
+   defecto de la familia) y el título con shimmer como `ThreadThinking`; `success` = check, `failed` = x.
+2. Turno real de Codex (`ls`): cabecera "1 tool · 0ms". `durationMs` 0 → `<1 ms`; nunca `0ms`.
+3. Un solo formato de duración en el hilo: el de `formatElapsed` ("Thought for 8 s", con espacio). `formatDuration`
+   sigue el mismo estilo: `850 ms`, `2.1 s`, `1 m 04 s`. Actualizar tests y el gate `thread-states` si lo lee.
+4. **UI.24.7.1 (ítem aparte, mismo lote):** `src/run/executors/codex-app-server.ts:185-187` concatena los deltas de
+   todos los `agentMessage` del turno sin separador: un turno con dos mensajes sale "…por `ls`.Hay 8 entradas…". Cuando
+   el delta pertenece a un ítem distinto del anterior (`params.itemId`; si no viene, usar `item/started` de tipo
+   `agentMessage`) y ya hay texto, insertar `\n\n` antes (también en `onDelta`, para que el streaming coincida).
+   Test en `codex-app-server` con dos ítems. Revisar si `codex.ts` (exec) tiene el mismo defecto y arreglarlo igual.
+   Verifica: test + `codex-live`.
+Gates: los de la ronda 1 + `codex-live`; capturas de la lámina (herramientas) y de `chat-turn-details/tool-and-reasoning`.
