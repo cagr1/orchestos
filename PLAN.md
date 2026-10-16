@@ -407,9 +407,16 @@ Cerrada. Todos sus ítems están archivados en `docs/done/` (ver "Cerrados — e
   Sin delegación: se ejecutó dentro de UI.24.6b (spec y evidencia ahí).
   `orchestrator` nace `null` y el aviso se pinta hasta que llega la config (`OrchestChatView.tsx:66-94,500-507`,
   `AgentComposer.tsx:625-638`).
-- [ ] **ERP.4.15 — 🔍 Ningún test deja instincts en la base real.** (abierto 2026-10-13; hallazgo 12) Fila
+- [x] **ERP.4.15 — 🔍 Ningún test deja instincts en la base real.** (cerrado 2026-10-15; abierto 2026-10-13; hallazgo 12) Fila
   `block-e-test-pattern` / "do X instead" en `~/.orchestos`; candidato `src/__tests__/dashboard-parity-block-e.test.ts:97-119`
   (importa la `db` real), causa sin demostrar. Borrar la fila y cerrar la fuga.
+  Sin delegación: diagnóstico y una fila borrada, sin código.
+  Causa demostrada: la fila (`instincts` id `9ae4479a`, `created_at` 2026-07-16) es anterior al aislamiento de la
+  suite (`63caed35`, 2026-08-31: `bunfig.toml` precarga `scripts/test-preload.ts`, que define `ORCHESTOS_HOME`
+  temporal); `scripts/db-isolation.test.ts` pone CI en rojo si el preload falta. La fuga ya estaba cerrada; quedaba el
+  residuo. Fila borrada de `~/.orchestos/db.sqlite` (respaldo en `~/.orchestos/backups/db.sqlite.pre-ERP.4.15-20261015`);
+  las otras 2 filas de `instincts` son reales (2026-10-12/13).
+  Evidencia: `db-isolation.test.ts` 3/3; `dashboard-parity-block-e.test.ts` 7/7 y después 0 filas `block-e` en la base real.
 - [ ] **ERP.4.16 — 🔍 Cada tarea terminada deja una entrada mecánica en Memory.** (abierto 2026-10-13; hallazgo 11)
   `memory_entries` solo se escribe al cerrar una subtarea con `topic_key` (`run/scheduler.ts:207-212`). Decisión de
   Carlos 2026-10-13: entrada mecánica sin LLM (qué hizo, archivos, veredicto de QA). Sin UI nueva en Settings: Carlos

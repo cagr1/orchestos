@@ -11,7 +11,7 @@ de delegación y ui-gate". Orden y rumbo: `PLAN.md` § Rumbo. Arranque: `bun run
 - Cerrados hoy: UI.26.6 (`8701044`), CI.26 (`12eae7f`, timeout de CC.2: el turno CLI ya no espera el catálogo de
   OpenRouter), UI.26.6.1 (formato), UI.26.7 (`9e89d09`), UI.24.4 (`c239117`, Streamdown); todo pusheado. 2026-10-15: UI.24.5 (`78f561b`), UI.24.5.1 (`b0e5f70`, gates que leían el texto viejo), UI.24.6a
   (`4f00d12`, imágenes nativas al CLI). UI.24.6b + ERP.4.14 (cierran UI.24.6;
-  evidencia en `PLAN.md`). UI.24.7 + UI.24.7.1 cerrados (cierran UI.24.1–24.7). Siguiente: **ERP.4.15**.
+  evidencia en `PLAN.md`). UI.24.7 + UI.24.7.1 cerrados (cierran UI.24.1–24.7). ERP.4.15 cerrado (residuo de julio, fuga ya cerrada). Siguiente: **ERP.4.16**.
   Al cambiar texto/selector del hilo: `rg` en todo `scripts/ui-gate/` (lección en `AGENTS.md`).
   Preflight de sub-ítem indentado falla (`scripts/agent-governance.ts:37`): usar el ID del padre o arreglar el regex.
 - UI.24.4 subió `main.js` +22 % (1.58 → 1.92 MB), medido por paquete con el sourcemap: ~164 KB `rehype-raw` (parse5 y
