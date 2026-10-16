@@ -151,8 +151,9 @@ describe('dashboard task commit-run (ERP.4.13)', () => {
 
   test('sin identidad git el commit se rechaza con 409 y la tarea no se lanza', async () => {
     const root = fixture()
-    git(root, 'config', '--unset', 'user.name')
-    git(root, 'config', '--unset', 'user.email')
+    // Una identidad local vacía tapa la identidad global del host.
+    git(root, 'config', 'user.name', '')
+    git(root, 'config', 'user.email', '')
     git(root, 'config', 'user.useConfigOnly', 'true')
     const originalSpawn = Bun.spawn
     let spawned = 0

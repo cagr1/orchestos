@@ -162,7 +162,7 @@
       "block": "H.7 — El contexto se llena en silencio y nadie avisa (ABIERTO 2026-09-02)",
       "delegation": "🔍",
       "title": "El test del 409 de ERP.4.13 no depende de la identidad git del host",
-      "status": "open",
+      "status": "done",
       "closedDate": null
     },
     {

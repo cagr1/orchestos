@@ -434,11 +434,15 @@ Cerrada. Todos sus ítems están archivados en `docs/done/` (ver "Cerrados — e
   Límites: la contraprueba con `cli.ts` de HEAD no se corrió, porque el hook del cerebro bloquea escribir en `src/`.
   El problema estaba verificado antes: Memory vacía en `erp-piloto`. La rama `failed_permanent` solo tiene
   prueba unitaria.
-- [ ] **ERP.4.17 — 🔍 El test del 409 de ERP.4.13 no depende de la identidad git del host.** (abierto 2026-10-15)
+- [x] **ERP.4.17 — 🔍 El test del 409 de ERP.4.13 no depende de la identidad git del host.** (abierto 2026-10-15)
   `src/dashboard/handlers/tasks.test.ts:153-155` quita la identidad local y pone `useConfigOnly`. En el Mac, git cae
   en la identidad global, el commit pasa y el test recibe 200 en vez de 409: `bun test` a secas y `test:coverage`
   fallan. En el pre-push y en CI pasa porque no hay identidad global. Verificado: una identidad local vacía
   (`user.name ""`) hace que git rechace el commit ("empty ident name") aunque exista la global.
+  Ejecutado por: gpt-6-luna (rol `mecanico`) · Spec: docs/specs/ERP.4.17.md (borrado)
+  (cerrado 2026-10-15) `user.name ""` y `user.email ""` locales en lugar de `--unset`.
+  Evidencia (cerebro, en el Mac con identidad global): `tasks.test.ts` 7/7; `test:coverage` exit 0, 1816 pass / 0 fail
+  (antes, 1 fallo en este test).
 - [x] **CI.21 — 🔍 El orquestador a veces se niega ("solo lectura") en vez de crear la tarea.** (abierto 2026-10-12)
   `chat-turn-details` falló en el pre-push y 1 de 2 corridas a solas en el paso `held task card visible` (aserción
   real desde R.8.6): al pedido "Modifica README.md…" el CLI respondió "No puedo modificar archivos en este entorno
