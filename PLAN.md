@@ -1454,6 +1454,9 @@ En todos: `prefers-reduced-motion` = cambios instantáneos o fundidos cortos.
   (8) prompt base del CLI y prompt de OrchestOS apilados (ruido y contradicciones). Objetivo medible: el mismo
   pedido, directo al CLI y por OrchestOS, da una respuesta equivalente, con tokens de contexto inyectado medidos
   antes/después.
+  - [ ] **AT.13.1 — run-graph usa el contexto fresco (hermano omitido en AT.13).** (abierto 2026-10-16) `run-graph.ts:82`
+    lee el registro sin refrescar con el handler ya async; el ejecutor lo dejó con un motivo falso y el cerebro no lo
+    verificó. Spec: `docs/specs/AT.13.1.md`.
 - [ ] **AT.19 — 🔍 Lo que Claude notó corriendo dentro del chat de OrchestOS (2026-10-14).** (abierto 2026-10-14)
   Origen: autoevaluación de Claude en el chat Dev, verificada contra HEAD por `leer` (veredictos con `archivo:línea`).
   Ya cubierto en otro ítem: prompts apilados (`--append-system-prompt`, `external.ts:347`) → AT.13 punto 8; tareas en
