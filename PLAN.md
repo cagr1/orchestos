@@ -707,6 +707,13 @@ Cerrada. Todos sus ítems están archivados en `docs/done/` (ver "Cerrados — e
   la espera a 1.5 s con `Promise.race`, que en un turno API con red lenta quitaba `reasoning` sin avisar.
   Contraprueba (cerebro, `HTTPS_PROXY` a IP no ruteable): con HEAD fallan 2 tests a ~5001 ms; con solo el arreglo de
   producto 24/24. Evidencia: `typecheck`, `chat-sessions.test.ts` 24/24 con y sin el proxy.
+- [ ] **CI.27 — 🔍 Un flujo que revienta no dice qué locator falló ni deja captura.** (abierto 2026-10-15)
+  El pre-push de `e1d3b12` falló una vez con `FAIL chat-context: flow: locator.click: Timeout 30000ms exceeded.`, al
+  pasar de Codex a Claude (`chat-context.mjs`, `startChat`/`selectClaudeHaiku`: 6 clics posibles). A solas pasó
+  5/5, y el reintento del push pasó entero. Ni `result.json` ni el log dicen qué locator era, y no quedó captura del
+  momento (`ui-gate-28520/chat-context/` solo tiene la de Codex). Primero, evidencia genérica en
+  `scripts/ui-gate/run.mjs`: ante la excepción de un flujo, guardar el mensaje completo de Playwright (incluye
+  `waiting for <locator>`) y una captura `failure.png`. Sirve también para CI.18, CI.19 y CI.23. Después, la causa.
 - [x] **CI.25 — 🔍 El turno 1 de Claude (haiku, "Reply only OK") no responde en 180 s, sin rastro.** Visto 2 veces el
   2026-10-14 en `chat-continuity` (pre-push de `ec3e309`, intento 2, y corrida 2 de CI.24). El `dashboard.log` no dice
   nada: el chat no registra spawn, salida ni duración del CLI. Primero que deje evidencia (pid, exit, stderr, ms del
