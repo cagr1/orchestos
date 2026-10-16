@@ -10,7 +10,7 @@ import {
   type SessionContextResponse,
   type TimelineResponse,
 } from '../../api/chat'
-import { getConfig } from '../../api/settings'
+import { type ConfigResponse, getConfig } from '../../api/settings'
 import { useStickToBottom } from '../../hooks/useStickToBottom'
 import type { ChatAttachment, ChatThread, SessionStatus } from '../../types/orchestos'
 import { AgentComposer, type CliId } from '../common/AgentComposer'
@@ -90,6 +90,9 @@ export const OrchestChatView: React.FC<OrchestChatViewProps> = ({
     | null
     | undefined
   >(undefined)
+  const [permissions, setPermissions] = useState<NonNullable<ConfigResponse['permissions']> | null>(
+    null,
+  )
   const [liveTimeline, setLiveTimeline] = useState<TimelineResponse | null>(null)
   const [composerModel, setComposerModel] = useState('')
   const [sessionContext, setSessionContext] = useState<SessionContextResponse | null>(null)
@@ -98,6 +101,7 @@ export const OrchestChatView: React.FC<OrchestChatViewProps> = ({
     let disposed = false
     const projectId = thread?.projectId
     setOrchestrator(undefined)
+    setPermissions(null)
     if (projectId && !projectExists) {
       setOrchestrator(null)
       return
@@ -105,7 +109,9 @@ export const OrchestChatView: React.FC<OrchestChatViewProps> = ({
     const controller = new AbortController()
     void getConfig(projectId ?? undefined, controller.signal)
       .then((config) => {
-        if (!disposed) setOrchestrator(config.roleAssignments?.orchestrator ?? null)
+        if (disposed) return
+        setOrchestrator(config.roleAssignments?.orchestrator ?? null)
+        setPermissions(config.permissions ?? null)
       })
       .catch(() => {
         if (!disposed) setOrchestrator(null)
@@ -545,6 +551,18 @@ export const OrchestChatView: React.FC<OrchestChatViewProps> = ({
         {/* Shared Composer (Nothing under composer: no status line) */}
         <div data-composer-region className="p-3 bg-app-bg flex-shrink-0">
           <div className="max-w-3xl lg:max-w-4xl mx-auto">
+            {permissions && thread?.projectId && (
+              <div
+                data-permissions-strip
+                data-permission-mode={permissions.mode}
+                className="mb-1.5 px-1 text-xs text-app-muted"
+              >
+                Chat: {permissions.chat} · Tasks: {permissions.tasks} ·{' '}
+                <span className={permissions.mode === 'manual' ? 'text-app-accent' : undefined}>
+                  {permissions.mode === 'manual' ? 'Manual approval' : 'Auto-run'}
+                </span>
+              </div>
+            )}
             <AgentComposer
               onSendMessage={handleSendFromComposer}
               defaultModel={initialModel}

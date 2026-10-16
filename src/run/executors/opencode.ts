@@ -35,6 +35,9 @@ import { type ExecutorStepEvent, opencodeEventToStep } from './step-event.ts'
 import type { ExecutorEngine, ExecutorOutcome } from './types.ts'
 import { readWorktreeDiff } from './worktree-diff.ts'
 
+/** UI.8.6 — flag que auto-aprueba toda herramienta en una tarea de opencode; `describePermissions` lo lee de acá. */
+export const OPENCODE_TASK_AUTO_FLAG = '--auto'
+
 export class ExecutorOpencodeError extends Error {}
 
 const DEFAULT_TIMEOUT_MS = 20 * 60 * 1000 // mismo default que external.ts
@@ -78,7 +81,7 @@ function buildOpencodePrompt(ctx: Parameters<ExecutorEngine['run']>[0]): string 
 }
 
 function buildOpencodeArgs(prompt: string, model?: string, variant?: string): string[] {
-  const args = ['run', prompt, '--format', 'json', '--auto']
+  const args = ['run', prompt, '--format', 'json', OPENCODE_TASK_AUTO_FLAG]
   if (model) args.push('--model', model)
   if (variant) args.push('--variant', variant)
   return args
@@ -87,7 +90,7 @@ function buildOpencodeArgs(prompt: string, model?: string, variant?: string): st
 /** Mismo motivo que buildClaudeArgsDisplay en external.ts — placeholder en vez
  * del prompt real completo (puede tener miles de chars) para "info de proceso". */
 function buildOpencodeArgsDisplay(model?: string, variant?: string): string[] {
-  const args = ['run', '<contract>', '--format', 'json', '--auto']
+  const args = ['run', '<contract>', '--format', 'json', OPENCODE_TASK_AUTO_FLAG]
   if (model) args.push('--model', model)
   if (variant) args.push('--variant', variant)
   return args

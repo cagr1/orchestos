@@ -91,6 +91,8 @@ export interface ConfigResponse {
   agenticMaxIterations: number
   externalTimeoutMinutes: number
   claudeCliDetected: boolean
+  permissionMode?: 'yolo' | 'manual'
+  permissions?: { mode: 'yolo' | 'manual'; chat: string; tasks: string }
   roleAssignments?: Record<string, { agent: string; model: string; effort?: string } | null>
 }
 

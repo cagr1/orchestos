@@ -414,8 +414,8 @@
       "block": "H.7 — El contexto se llena en silencio y nadie avisa (ABIERTO 2026-09-02)",
       "delegation": "🧠",
       "title": "Permisos visibles (`INS-2026-014`)",
-      "status": "open",
-      "closedDate": null
+      "status": "done",
+      "closedDate": "2026-10-16"
     },
     {
       "id": "UI.24.1",

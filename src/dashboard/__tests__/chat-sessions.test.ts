@@ -906,6 +906,45 @@ describe('CC.2 — chat sessions backend', () => {
     expect(String((result.payload as { text: string }).text)).toContain('⏸ Created task')
   })
 
+  it('Manual permissions hold a chat task even when its output file does not exist yet (UI.8.6)', async () => {
+    const result = await runIsolated(`
+      const { mkdirSync, writeFileSync, readFileSync, existsSync } = await import('node:fs')
+      const { join } = await import('node:path')
+      const home = process.env.ORCHESTOS_HOME
+      const root = join(home, 'chat-manual-task-project')
+      mkdirSync(join(home, '.orchestos', 'cache'), { recursive: true })
+      mkdirSync(root, { recursive: true })
+            writeFileSync(join(root, 'tasks.yaml'), 'version: 1\\nproject: chat-manual-task-project\\ntasks: []\\n')
+      writeFileSync(join(root, 'orchestos.config.yaml'), 'permissionMode: manual\\nroles:\\n  orchestrator: { agent: api, model: deepseek/deepseek-v4-flash, provider: openrouter }\\n  executor: { agent: codex, model: gpt-6-luna }\\n  auxiliary: { agent: api, model: deepseek/auxiliary, provider: openrouter }\\n')
+      writeFileSync(join(home, '.orchestos', 'cache', 'models.json'), JSON.stringify({ schemaVersion: 2, fetchedAt: Date.now(), models: { 'deepseek/deepseek-v4-flash': { contextLength: 64000, priceIn: 0, priceOut: 0, supportsReasoning: false, supportsTools: false, maxOutputTokens: 8192, supportsVision: false } } }))
+      const { runMigrations } = await import('./src/db/migrate.ts')
+      const { db } = await import('./src/db/sqlite.ts')
+      const { createChatSession } = await import('./src/db/chat-sessions.ts')
+      const { handleApiChat } = await import('./src/dashboard/handlers/chat.ts')
+      runMigrations()
+      db.run('INSERT INTO projects (id, path, stack_profile, agents_md, last_updated) VALUES (?, ?, ?, ?, ?)', ['chat-manual-task-project', root, '{}', '', new Date().toISOString()])
+      const session = createChatSession({ projectId: 'chat-manual-task-project', agent: 'api', mode: 'code' })
+      const requests = []
+      globalThis.fetch = async (_url, init) => {
+        const body = JSON.parse(String(init.body))
+        requests.push(body)
+        const system = String(body.messages?.[0]?.content ?? '')
+        const content = system.includes('convierte instrucciones en lenguaje natural')
+            ? JSON.stringify({ id: 'new-file-manual-task', description: 'Edit README', output: ['NEW.md'], executor: 'openrouter', skill_candidates: [] })
+            : 'Task created and held.\\n[[orchestos:task]]'
+        return new Response(JSON.stringify({ choices: [{ message: { content } }], usage: { prompt_tokens: 10, completion_tokens: 5 }, model: body.model }), { status: 200 })
+      }
+      const response = await handleApiChat(new Request('http://localhost/api/chat', { method: 'POST', body: JSON.stringify({ sessionId: session.id, message: 'Build README.md' }) }))
+      const payload = await response.json()
+      const tasksYaml = existsSync(join(root, 'tasks.yaml')) ? readFileSync(join(root, 'tasks.yaml'), 'utf8') : null
+      process.stdout.write(JSON.stringify({ status: response.status, payload, tasksYaml, models: requests.map((request) => request.model) }))
+      db.close()
+    `)
+    expect(result.status).toBe(200)
+    expect(result.payload).toMatchObject({ autoTask: { held: true, existingFiles: [] } })
+    expect(String((result.payload as { text: string }).text)).toContain('Manual permissions')
+  })
+
   it('accepts three sequential Codex chat posts while Auxiliary routing is assigned between turns', async () => {
     const result = await runIsolated(
       `

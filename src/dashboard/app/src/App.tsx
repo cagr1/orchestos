@@ -254,7 +254,7 @@ export default function App() {
         proposedTask: {
           id: task.id,
           description: task.description,
-          output: row.existingFiles,
+          output: row.existingFiles.length ? row.existingFiles : (task.output ?? []),
         },
       }
     })

@@ -45,6 +45,9 @@ import { codexEventToStep, type ExecutorStepEvent } from './step-event.ts'
 import type { ExecutorEngine, ExecutorOutcome } from './types.ts'
 import { readWorktreeDiff } from './worktree-diff.ts'
 
+/** UI.8.6 — sandbox de una tarea en Codex; `describePermissions` lo lee de acá. */
+export const CODEX_TASK_SANDBOX = 'workspace-write'
+
 export class ExecutorCodexError extends Error {}
 
 const DEFAULT_TIMEOUT_MS = 20 * 60 * 1000 // mismo default que external.ts/opencode.ts
@@ -126,7 +129,7 @@ export function buildCodexArgs(prompt: string, model?: string, cliEffort?: strin
     prompt,
     '--json',
     '--sandbox',
-    'workspace-write',
+    CODEX_TASK_SANDBOX,
     '--color',
     'never',
     '-c',
@@ -143,7 +146,7 @@ export function buildCodexArgsDisplay(model?: string, cliEffort?: string): strin
     '<contract>',
     '--json',
     '--sandbox',
-    'workspace-write',
+    CODEX_TASK_SANDBOX,
     '--color',
     'never',
     '-c',

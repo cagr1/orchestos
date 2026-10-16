@@ -103,6 +103,7 @@ function mergeWithDefaults(raw: Record<string, unknown>): OrcheConfig {
     external: parseExternalConfig(raw.external),
     // K.4b — opt-in explícito: cualquier valor que no sea `true` literal se ignora (queda undefined/desactivado).
     adversarialQA: raw.adversarialQA === true ? true : undefined,
+    permissionMode: raw.permissionMode === 'manual' ? 'manual' : undefined,
     // X.2 (IDEAS #33) — mismo criterio que adversarialQA. Hallazgo real al escribir CC.D1:
     // este campo existía en schema.ts desde Bloque X pero NUNCA se leía acá — `refuterQA: true`
     // en el YAML se ignoraba en silencio desde que se creó. Bug de la misma clase que BB.2/CC.1c.

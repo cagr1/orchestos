@@ -834,7 +834,7 @@ harness.ts 1203 y chat.ts 1237. La concentración de responsabilidades merece at
 el tamaño no demuestra un bug. Extraer únicamente responsabilidades necesarias para los ítems
 anteriores, con pruebas de comportamiento; no abrir un refactor masivo por conteo de líneas.
 
-- [ ] **UI.8.6 — 🧠 Permisos visibles (`INS-2026-014`).**
+- [x] **UI.8.6 — 🧠 Permisos visibles (`INS-2026-014`).** (cerrado 2026-10-16)
   Hoy **no existe** mecanismo de aprobación en el chat: el harness invoca los CLIs en modo no
   interactivo por diseño (`codex exec --sandbox workspace-write` en `src/run/executors/codex.ts`,
   equivalente en `external.ts`). El documento de dirección lo exige y sin este ítem queda como
@@ -843,7 +843,17 @@ anteriores, con pruebas de comportamiento; no abrir un refactor masivo por conte
   declarando el estado real, más un segmented control honesto `Yolo | Manual` en Settings del
   agente. No un modal que se acepta una vez y se olvida.
   **GO de Carlos 2026-10-16:** aprobación a nivel de tarea en este bloque (la de cada herramienta, bloque propio
-  aparte); default `Yolo`; modo por proyecto. Spec: `docs/specs/UI.8.6.md`.
+  aparte); default `Yolo`; modo por proyecto.
+  Hecho: `permissionMode` por proyecto (`OrcheConfig`, GET/PUT `/api/config`); `src/run/permissions.ts` describe el
+  alcance desde las mismas constantes que usan los builders (`CLAUDE_TASK_ALLOWED_TOOLS`, `CODEX_TASK_SANDBOX`,
+  `OPENCODE_TASK_AUTO_FLAG`); Manual retiene toda tarea del chat (`chat.ts`, mismo camino `held` → Approve & Run);
+  tira de una línea sobre el compositor; `Yolo | Manual` en Settings → Model routing.
+  Evidencia (cerebro): tsc raíz+app; `test:coverage` 1821/0.
+  Gate en vivo: Playwright en navegador, dashboard real, `scripts/ui-gate/flows/chat-permissions.mjs` vía
+  `gate:evidence --label UI.8.6-chat-permissions` → `PASS chat-permissions 9/9` (capturas 1-yolo, 2-manual, 3-held revisadas). Las 2 corridas previas fallaron en el
+  turno de Codex (timeout 120 s; lease 150 s vencido) con Codex a 30–65 s por un "ok" trivial medido fuera de
+  OrchestOS: latencia externa, misma familia que CI.11. `chat-permissions` no entra al pre-push (CLI real).
+  Ejecutado por: claude sonnet (criterio).
 
 **Decisiones pendientes de Carlos dentro de UI.8** (no las toma ningún LLM):
 1. `agents` como tabla propia o proyección derivada (UI.8.2).

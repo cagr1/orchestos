@@ -1164,7 +1164,8 @@ async function handleApiChat(
               { reservedId: reservedId !== null },
             )
             if ('error' in created) autoTask = { error: created.error }
-            else if (existingFiles.length) autoTask = { id: created.id, held: true, existingFiles }
+            else if (existingFiles.length || cfg.permissionMode === 'manual')
+              autoTask = { id: created.id, held: true, existingFiles }
             else {
               if (activeTurnId) requireTurnOwner(activeTurnId, CHAT_TURN_OWNER)
               spawnTaskRun(root, created.id, undefined, undefined, session?.id)
@@ -1178,13 +1179,15 @@ async function handleApiChat(
     }
     const note = autoTaskSkipped
       ? '\n\n⚠ No task created: the draft named no output files.'
-      : autoTask && 'held' in autoTask
-        ? `\n\n⏸ Created task \`${autoTask.id}\`, waiting for your confirmation before it runs.`
-        : autoTask && 'id' in autoTask
-          ? `\n\n▶ Started task \`${autoTask.id}\`.`
-          : autoTask && 'error' in autoTask
-            ? `\n\n⚠ Could not auto-create the task: ${autoTask.error}`
-            : ''
+      : autoTask && 'held' in autoTask && autoTask.existingFiles.length === 0
+        ? `\n\n⏸ Created task \`${autoTask.id}\`, waiting for your approval before it runs (Manual permissions).`
+        : autoTask && 'held' in autoTask
+          ? `\n\n⏸ Created task \`${autoTask.id}\`, waiting for your confirmation before it runs.`
+          : autoTask && 'id' in autoTask
+            ? `\n\n▶ Started task \`${autoTask.id}\`.`
+            : autoTask && 'error' in autoTask
+              ? `\n\n⚠ Could not auto-create the task: ${autoTask.error}`
+              : ''
     logChatTaskBarEvent({
       kind: 'message',
       message,

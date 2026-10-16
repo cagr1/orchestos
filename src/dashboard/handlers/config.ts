@@ -14,6 +14,7 @@ import {
 } from '../../config/schema.ts'
 import { autoRoute, describeTaskExecutor, formatRoute } from '../../router/auto-route.ts'
 import { findClaudeBinary } from '../../run/executors/external.ts'
+import { describePermissions } from '../../run/permissions.ts'
 import { loadTasks, tasksExist } from '../../tasks/loader.ts'
 import { errorResponse, jsonResponse } from '../http.ts'
 
@@ -77,6 +78,8 @@ export async function handleApiConfigGet(root = process.cwd()): Promise<Response
     roles,
     roleAssignments: Object.fromEntries(ROLE_NAMES.map((name) => [name, cfg.roles[name] ?? null])),
     taskAgentRules: cfg.taskAgentRules ?? [],
+    permissionMode: cfg.permissionMode ?? 'yolo',
+    permissions: describePermissions(cfg),
     roleWarnings:
       cfg.roles.reviewer &&
       cfg.roles.executor &&
@@ -135,6 +138,7 @@ export async function handleApiConfigSet(req: Request, root = process.cwd()): Pr
     agent?: AgentChoice | null
     roleAssignments?: Partial<Record<RoleName, RoleAssignment | null>>
     taskAgentRules?: TaskAgentRule[]
+    permissionMode?: string
   }
   try {
     body = (await req.json()) as typeof body
@@ -176,6 +180,12 @@ export async function handleApiConfigSet(req: Request, root = process.cwd()): Pr
         return errorResponse(`invalid provider for role '${name}'`, 400)
     }
   }
+  if (
+    body.permissionMode !== undefined &&
+    body.permissionMode !== 'yolo' &&
+    body.permissionMode !== 'manual'
+  )
+    return errorResponse('permissionMode must be one of: yolo, manual', 400)
   if (body.taskAgentRules !== undefined) {
     if (!Array.isArray(body.taskAgentRules))
       return errorResponse('taskAgentRules must be an array', 400)
@@ -220,7 +230,8 @@ export async function handleApiConfigSet(req: Request, root = process.cwd()): Pr
     body.agenticMaxIterations === undefined &&
     body.externalTimeoutMinutes === undefined &&
     body.agent === undefined &&
-    body.taskAgentRules === undefined
+    body.taskAgentRules === undefined &&
+    body.permissionMode === undefined
   ) {
     return errorResponse('nothing to save', 400)
   }
@@ -261,6 +272,8 @@ export async function handleApiConfigSet(req: Request, root = process.cwd()): Pr
   }
   const newConfig: OrcheConfig = { ...current, models, roles: nextRoleAssignments }
   if (body.taskAgentRules !== undefined) newConfig.taskAgentRules = body.taskAgentRules
+  if (body.permissionMode === 'manual') newConfig.permissionMode = 'manual'
+  else if (body.permissionMode === 'yolo') delete newConfig.permissionMode
   for (const [name, assignment] of Object.entries(body.roleAssignments ?? {})) {
     if (assignment === null) (newConfig.roles as Record<string, unknown>)[name] = null
   }
@@ -303,6 +316,8 @@ export async function handleApiConfigSet(req: Request, root = process.cwd()): Pr
           if (body.taskAgentRules.length) document.set('taskAgentRules', body.taskAgentRules)
           else document.delete('taskAgentRules')
         }
+        if (body.permissionMode === 'manual') document.set('permissionMode', 'manual')
+        else if (body.permissionMode === 'yolo') document.delete('permissionMode')
         for (const [name, assignment] of Object.entries(body.roleAssignments ?? {}) as [
           RoleName,
           RoleAssignment | null,

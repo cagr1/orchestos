@@ -531,6 +531,16 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
     }
   }
 
+  const handleSavePermissionMode = async (permissionMode: 'yolo' | 'manual') => {
+    try {
+      await saveConfig({ permissionMode }, activeProjectId)
+      setConfig((await getConfig(configProjectId)) as ConfigResponse)
+      showToast(permissionMode === 'manual' ? 'Permissions: Manual' : 'Permissions: Yolo')
+    } catch (error) {
+      showToast(error instanceof Error ? error.message : 'Could not save permissions')
+    }
+  }
+
   const handleSaveExecutor = async () => {
     try {
       await saveConfig(
@@ -1812,6 +1822,24 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
                 </div>
               )}
             </div>
+            <SettingsGroup>
+              <SettingsRow
+                label="Agent permissions"
+                description="Yolo runs tasks the chat creates right away. Manual waits for your approval in the chat before each task runs."
+              >
+                <div data-permission-mode-control>
+                  <SettingsSegmented
+                    ariaLabel="Agent permissions"
+                    value={config?.permissionMode ?? 'yolo'}
+                    options={[
+                      { value: 'yolo', label: 'Yolo' },
+                      { value: 'manual', label: 'Manual' },
+                    ]}
+                    onChange={(permissionMode) => void handleSavePermissionMode(permissionMode)}
+                  />
+                </div>
+              </SettingsRow>
+            </SettingsGroup>
           </SettingsPage>
         )}
 

@@ -27,6 +27,9 @@ import { claudeEventToStep, claudeEventToTextDelta, type ExecutorStepEvent } fro
 import type { ExecutorEngine, ExecutorOutcome } from './types.ts'
 import { readWorktreeDiff } from './worktree-diff.ts'
 
+/** UI.8.6 — herramientas de una tarea en Claude; `describePermissions` lo lee de acá. */
+export const CLAUDE_TASK_ALLOWED_TOOLS = 'Edit,Write,Read,Glob,Grep'
+
 function claudeSubagentBlockArgs(): string[] {
   const capability = KNOWN_CLIS.find((cli) => cli.id === 'claude')?.subagentBlock
   return capability && capability !== 'not-guaranteed' ? capability.args : []
@@ -168,7 +171,7 @@ export function buildClaudeArgs(
     '--append-system-prompt',
     systemPrompt,
     '--allowedTools',
-    'Edit,Write,Read,Glob,Grep',
+    CLAUDE_TASK_ALLOWED_TOOLS,
   ]
   const cliModel = orchestosModelToCliModel(model)
   if (cliModel) args.push('--model', cliModel)
@@ -194,7 +197,7 @@ export function buildClaudeArgsDisplay(
     '--append-system-prompt',
     '<contract>',
     '--allowedTools',
-    'Edit,Write,Read,Glob,Grep',
+    CLAUDE_TASK_ALLOWED_TOOLS,
   ]
   const cliModel = orchestosModelToCliModel(model)
   if (cliModel) args.push('--model', cliModel)

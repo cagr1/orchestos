@@ -103,6 +103,8 @@ export interface OrcheConfig {
    * (comportamiento actual, sin cambios). Ver PLAN.md § K.4b.
    */
   adversarialQA?: boolean
+  /** UI.8.6 — aprobación de tareas creadas por el chat, por proyecto. Ausente = `yolo`. */
+  permissionMode?: 'yolo' | 'manual'
   /**
    * X.2 (IDEAS #33) — refuter barato DESPUÉS de que el QA normal dé fail, ANTES de consumir un
    * retry. Mirror asimétrico de adversarialQA: ese ataca falsos-positivos en el lado `pass`, este
