@@ -61,6 +61,8 @@ export class CodexAppServer {
     {
       turnId: string | null
       text: string
+      messageItemId?: string
+      messageBoundary?: boolean
       usage: any
       onDelta?: (delta: string) => void
       onStep?: (event: ExecutorStepEvent) => void
@@ -183,8 +185,13 @@ export class CodexAppServer {
       )
         return
       if (method === 'item/agentMessage/delta') {
-        state.text += params.delta
-        state.onDelta?.(params.delta)
+        const itemId = typeof params.itemId === 'string' ? params.itemId : undefined
+        const newItem = !!itemId && !!state.messageItemId && itemId !== state.messageItemId
+        const separator = state.text && (newItem || state.messageBoundary) ? '\n\n' : ''
+        state.messageBoundary = false
+        if (itemId) state.messageItemId = itemId
+        state.text += separator + params.delta
+        state.onDelta?.(separator + params.delta)
       } else if (params.delta.trim())
         state.onStep?.({ type: 'reasoning', label: 'reasoning', detail: params.delta })
       return
@@ -193,6 +200,12 @@ export class CodexAppServer {
       const state = this.turns.get(params.threadId)
       if (state && (!state.turnId || params.turnId === state.turnId))
         state.usage = params.tokenUsage?.last
+      return
+    }
+    if (method === 'item/started' && params.item?.type === 'agentMessage') {
+      const state = this.turns.get(params.threadId)
+      if (state && (!state.turnId || params.turnId === state.turnId) && state.text)
+        state.messageBoundary = true
       return
     }
     if (method === 'item/completed') {

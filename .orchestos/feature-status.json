@@ -393,7 +393,7 @@
     {
       "id": "UI.24.1",
       "sprint": "Fase 2 — Producto mínimo para entrega",
-      "block": "UI.24 — El hilo del chat con acabado premium (ABIERTO 2026-10-13, GO de Carlos 2026-10-13)",
+      "block": "UI.24 — El hilo del chat con acabado premium (CERRADO 2026-10-15: UI.24.1–24.7; abierto 2026-10-13, GO de Carlos)",
       "delegation": "🧠",
       "title": "Base de la familia y lámina de estados del hilo",
       "status": "done",
@@ -402,7 +402,7 @@
     {
       "id": "UI.24.2",
       "sprint": "Fase 2 — Producto mínimo para entrega",
-      "block": "UI.24 — El hilo del chat con acabado premium (ABIERTO 2026-10-13, GO de Carlos 2026-10-13)",
+      "block": "UI.24 — El hilo del chat con acabado premium (CERRADO 2026-10-15: UI.24.1–24.7; abierto 2026-10-13, GO de Carlos)",
       "delegation": "🧠",
       "title": "Tokens y jerarquía",
       "status": "done",
@@ -411,7 +411,7 @@
     {
       "id": "UI.24.3",
       "sprint": "Fase 2 — Producto mínimo para entrega",
-      "block": "UI.24 — El hilo del chat con acabado premium (ABIERTO 2026-10-13, GO de Carlos 2026-10-13)",
+      "block": "UI.24 — El hilo del chat con acabado premium (CERRADO 2026-10-15: UI.24.1–24.7; abierto 2026-10-13, GO de Carlos)",
       "delegation": "🧠",
       "title": "Pensando",
       "status": "done",
@@ -420,7 +420,7 @@
     {
       "id": "UI.24.4",
       "sprint": "Fase 2 — Producto mínimo para entrega",
-      "block": "UI.24 — El hilo del chat con acabado premium (ABIERTO 2026-10-13, GO de Carlos 2026-10-13)",
+      "block": "UI.24 — El hilo del chat con acabado premium (CERRADO 2026-10-15: UI.24.1–24.7; abierto 2026-10-13, GO de Carlos)",
       "delegation": "🧠",
       "title": "Respuesta en streaming",
       "status": "done",
@@ -429,7 +429,7 @@
     {
       "id": "UI.24.5",
       "sprint": "Fase 2 — Producto mínimo para entrega",
-      "block": "UI.24 — El hilo del chat con acabado premium (ABIERTO 2026-10-13, GO de Carlos 2026-10-13)",
+      "block": "UI.24 — El hilo del chat con acabado premium (CERRADO 2026-10-15: UI.24.1–24.7; abierto 2026-10-13, GO de Carlos)",
       "delegation": "🧠",
       "title": "Una tarjeta por tarea",
       "status": "done",
@@ -438,7 +438,7 @@
     {
       "id": "UI.24.5.1",
       "sprint": "Fase 2 — Producto mínimo para entrega",
-      "block": "UI.24 — El hilo del chat con acabado premium (ABIERTO 2026-10-13, GO de Carlos 2026-10-13)",
+      "block": "UI.24 — El hilo del chat con acabado premium (CERRADO 2026-10-15: UI.24.1–24.7; abierto 2026-10-13, GO de Carlos)",
       "delegation": "🧠",
       "title": "Gates que aún leían el texto viejo de la tarea",
       "status": "done",
@@ -447,7 +447,7 @@
     {
       "id": "UI.24.6",
       "sprint": "Fase 2 — Producto mínimo para entrega",
-      "block": "UI.24 — El hilo del chat con acabado premium (ABIERTO 2026-10-13, GO de Carlos 2026-10-13)",
+      "block": "UI.24 — El hilo del chat con acabado premium (CERRADO 2026-10-15: UI.24.1–24.7; abierto 2026-10-13, GO de Carlos)",
       "delegation": "🧠",
       "title": "Composer y adjuntos",
       "status": "done",
@@ -456,11 +456,11 @@
     {
       "id": "UI.24.7",
       "sprint": "Fase 2 — Producto mínimo para entrega",
-      "block": "UI.24 — El hilo del chat con acabado premium (ABIERTO 2026-10-13, GO de Carlos 2026-10-13)",
+      "block": "UI.24 — El hilo del chat con acabado premium (CERRADO 2026-10-15: UI.24.1–24.7; abierto 2026-10-13, GO de Carlos)",
       "delegation": "🧠",
       "title": "Herramientas y movimiento",
-      "status": "open",
-      "closedDate": null
+      "status": "done",
+      "closedDate": "2026-10-15"
     },
     {
       "id": "UI.25.1",

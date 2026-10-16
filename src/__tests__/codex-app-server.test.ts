@@ -164,6 +164,47 @@ describe('Codex app-server', () => {
     server.kill()
   })
 
+  test('UI.24.7.1 — dos agentMessage del mismo turno se separan con una línea en blanco', async () => {
+    const server = new CodexAppServer({
+      binary: 'codex',
+      env: {},
+      store: store().api,
+      spawnProcess: () =>
+        fakeProcess((request, stdout) => {
+          if (request.method === 'initialize') reply(stdout, request, {})
+          if (request.method === 'thread/start')
+            reply(stdout, request, { thread: { id: 'thread-1', model: 'm' }, model: 'm' })
+          if (request.method === 'turn/start') {
+            reply(stdout, request, { turn: { id: 'turn-1' } })
+            queueMicrotask(() => {
+              const send = (method: string, params: unknown) =>
+                stdout.write(`${JSON.stringify({ method, params })}\n`)
+              const base = { threadId: 'thread-1', turnId: 'turn-1' }
+              send('item/agentMessage/delta', { ...base, itemId: 'a', delta: 'Voy a correr `ls`.' })
+              send('item/agentMessage/delta', { ...base, itemId: 'b', delta: 'Hay 8 entradas.' })
+              send('item/agentMessage/delta', { ...base, itemId: 'b', delta: ' Fin.' })
+              send('turn/completed', {
+                threadId: 'thread-1',
+                turn: { id: 'turn-1', status: 'completed' },
+              })
+            })
+          }
+        }),
+    })
+    const deltas: string[] = []
+    const result = await server.turn({
+      sessionId: 's',
+      cwd: '/p',
+      systemPrompt: 'rules',
+      message: 'm',
+      timeoutMs: 1000,
+      onDelta: (x) => deltas.push(x),
+    })
+    expect(result.text).toBe('Voy a correr `ls`.\n\nHay 8 entradas. Fin.')
+    expect(deltas.join('')).toBe(result.text)
+    server.kill()
+  })
+
   test('UI.24.6a — imagePaths entran al turn/start como ítems localImage', async () => {
     const calls: any[] = []
     const server = new CodexAppServer({
