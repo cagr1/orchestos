@@ -172,6 +172,13 @@ Mecánica del commit de cierre (medido en I.7.1, 2026-10-03; costó 6 intentos):
 
 Medidas en los lotes L1–L4 y los ítems de Sprint 30/ERP/I/CX; cada una costó al menos una ronda perdida.
 
+- **(2026-10-15)** (1) El spec que va a `mecanico` (Codex) dice qué hacer cuando falta un dato (p. ej. "sin fila de
+  run, omitir la línea"): ante un hueco, Codex se detiene sin editar, dos veces en ERP.4.16. (2) La contraprueba que
+  cambia un archivo de `src/` por el de HEAD la corre el ejecutor dentro de su ronda: el hook del cerebro bloquea toda
+  escritura del cerebro en `src/`, aunque sea temporal. (3) El preflight del ejecutor puede dejar
+  `.orchestos/active-item.json` con un scope estrecho, y el commit del cierre falla en `scope:check`: borrarlo al
+  cerrar el ítem. (4) Un caso de campo se fecha contra el commit del arreglo antes de usarlo como evidencia
+  (CI.23: el `tasks.yaml` sin commitear era anterior a ERP.4.12).
 - **Formato antes de commitear (UI.26.6, 2026-10-14).** El pre-commit no corre `lint`; el pre-push sí. Un
   `result.json` copiado a `docs/done/evidence/` o un `.tsx` retocado tras el `biome check` del ejecutor bloquean el
   push. Antes del commit de cierre: `bunx biome format --write <archivos del commit>`.
