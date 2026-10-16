@@ -296,6 +296,8 @@ export interface ChatThread {
   tokenCount: number
   costUsd: number
   messages: ChatMessage[]
+  /** `false` mientras los mensajes de la sesión aún se leen (UI.24.7). */
+  messagesLoaded?: boolean
   projectId?: string | null
 }
 

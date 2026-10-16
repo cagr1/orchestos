@@ -1,4 +1,5 @@
 import { Check, ChevronDown, ChevronUp, Copy, FileText } from 'lucide-react'
+import { AnimatePresence, MotionConfig, motion } from 'motion/react'
 import type React from 'react'
 import { useEffect, useRef, useState } from 'react'
 import { ChatMessage } from '@/components/ui/chat-message'
@@ -15,15 +16,27 @@ import type { ChatAttachment, ChatThread, SessionStatus } from '../../types/orch
 import { AgentComposer, type CliId } from '../common/AgentComposer'
 import { ContextRing } from '../common/ContextRing'
 import { ProviderLogo } from '../common/ProviderLogos'
+import {
+  type EntranceMode,
+  enterSession,
+  entranceModes,
+  hasStreamed,
+  markEntered,
+  noteLocalSend,
+  noteStreamed,
+} from '../thread/entrance'
 import { TaskCard } from '../thread/TaskCard'
+import { ThreadEmpty } from '../thread/ThreadEmpty'
 import { ThreadMarkdown } from '../thread/ThreadMarkdown'
 import { ThreadThinking } from '../thread/ThreadThinking'
+import { ThreadTools } from '../thread/ThreadTools'
 import { buildTaskCards } from '../thread/taskCards'
 import { formatElapsed, livePhase } from '../thread/thinking'
 
 interface OrchestChatViewProps {
   thread?: ChatThread
   projectExists?: boolean
+  projectName?: string
   onSendMessage: (
     content: string,
     attachments?: ChatAttachment[],
@@ -40,9 +53,14 @@ interface OrchestChatViewProps {
   onOpenRouting?: () => void
 }
 
+// Se lee en cada render: el hook de motion no reacciona a un cambio de la preferencia en caliente.
+const prefersReducedMotion = () =>
+  typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
+
 export const OrchestChatView: React.FC<OrchestChatViewProps> = ({
   thread,
   projectExists = true,
+  projectName,
   onSendMessage,
   onApproveHeldTask,
   onRejectHeldTask,
@@ -117,6 +135,28 @@ export const OrchestChatView: React.FC<OrchestChatViewProps> = ({
       .finally(() => setBusyReportActions((prev) => ({ ...prev, [messageId]: false })))
   }
   const sessionId = thread?.id
+  const messagesLoaded = thread?.messagesLoaded !== false
+  // UI.24.7 — la entrada se decide una vez por instancia (la ref) con un registro de módulo
+  // que sobrevive a los re-montajes; `markEntered` corre tras el commit.
+  const decidedEntrance = useRef(new Map<string, EntranceMode>())
+  const decidedSession = useRef<string | undefined>(undefined)
+  if (decidedSession.current !== sessionId) {
+    decidedSession.current = sessionId
+    if (sessionId) enterSession(sessionId)
+    decidedEntrance.current = new Map()
+  }
+  const entrances = sessionId ? entranceModes(sessionId, messages) : new Map<string, EntranceMode>()
+  for (const message of messages) {
+    if (!decidedEntrance.current.has(message.id)) {
+      decidedEntrance.current.set(message.id, entrances.get(message.id) ?? 'static')
+    }
+  }
+  const entranceOf = (id: string): EntranceMode => decidedEntrance.current.get(id) ?? 'static'
+  const motionProps = (mode: EntranceMode) =>
+    mode === 'animate' && !prefersReducedMotion() ? {} : { initial: false as const }
+  useEffect(() => {
+    if (sessionId) markEntered(sessionId, messages, messagesLoaded)
+  }, [sessionId, messages, messagesLoaded])
   useEffect(() => {
     if (!sessionId) {
       setSessionContext(null)
@@ -165,6 +205,13 @@ export const OrchestChatView: React.FC<OrchestChatViewProps> = ({
     }
   }, [isWorking, sessionId, thread?.projectId])
   const liveText = liveTimeline?.live?.text ?? ''
+  const liveMode = useRef<EntranceMode | null>(null)
+  if (!liveText) liveMode.current = null
+  else if (liveMode.current === null)
+    liveMode.current = sessionId && hasStreamed(sessionId) ? 'static' : 'animate'
+  useEffect(() => {
+    if (sessionId && liveText) noteStreamed(sessionId)
+  }, [sessionId, liveText])
   const liveTurnId = liveTimeline?.live?.turnId
   const liveTurn = liveTimeline
     ? liveTurnId
@@ -240,6 +287,7 @@ export const OrchestChatView: React.FC<OrchestChatViewProps> = ({
     if (sendLock.current) return false
     sendLock.current = true
     setSendError(null)
+    if (sessionId) noteLocalSend(sessionId)
     setIsWorking(true)
     stickToBottom()
     try {
@@ -255,64 +303,121 @@ export const OrchestChatView: React.FC<OrchestChatViewProps> = ({
   }
 
   return (
-    <div className="flex-1 flex flex-col h-full text-app overflow-hidden relative select-none">
-      {/* 40px Session Header (Shared format with Dev) */}
-      <header
-        data-chat-header
-        className="h-10 px-3.5 flex items-center justify-between flex-shrink-0 z-20"
-      >
-        {/* Left: CLI Product Logo (tooltip = name) + Title */}
-        <div className="flex items-center gap-2.5 min-w-0">
-          <div title={cliName} className="flex-shrink-0 cursor-default">
-            <ProviderLogo id={cliId} size={16} className="w-4 h-4" />
-          </div>
-          <span className="font-semibold text-[13px] text-app truncate max-w-sm">
-            {thread?.title || 'Interactive Session'}
-          </span>
-        </div>
-
-        {/* Context is rendered only when the selected session has real token telemetry. */}
-        <div className="flex items-center flex-shrink-0">
-          <ContextRing
-            percent={sessionContext?.pct ?? undefined}
-            model={sessionContext?.model ?? undefined}
-            usedTokens={sessionContext?.used == null ? undefined : `${sessionContext.used}`}
-            maxTokens={sessionContext?.window == null ? undefined : `${sessionContext.window}`}
-          />
-        </div>
-      </header>
-
-      {/* Scrollable messages container */}
-      <div ref={scrollContainerRef} className="flex-1 overflow-y-auto p-4 md:p-6 space-y-6">
-        <div ref={contentRef}>
-          {messages.length === 0 ? (
-            <div className="max-w-3xl mx-auto pt-16 text-left space-y-2">
-              <h1 className="text-lg font-bold text-app tracking-tight">Chat</h1>
-              <p className="text-sm text-app-muted">
-                Interactive session with {cliName}. Ask questions, run commands, or review
-                architecture.
-              </p>
+    <MotionConfig reducedMotion="user">
+      <div className="flex-1 flex flex-col h-full text-app overflow-hidden relative select-none">
+        {/* 40px Session Header (Shared format with Dev) */}
+        <header
+          data-chat-header
+          className="h-10 px-3.5 flex items-center justify-between flex-shrink-0 z-20"
+        >
+          {/* Left: CLI Product Logo (tooltip = name) + Title */}
+          <div className="flex items-center gap-2.5 min-w-0">
+            <div title={cliName} className="flex-shrink-0 cursor-default">
+              <ProviderLogo id={cliId} size={16} className="w-4 h-4" />
             </div>
-          ) : (
-            <div
-              data-ff
-              data-thread-root
-              className="max-w-3xl lg:max-w-4xl mx-auto flex flex-col gap-2"
-            >
-              {messages
-                .filter((msg) => !taskCards.hidden.has(msg.id))
-                .map((msg) => {
-                  const isUser = msg.role === 'user'
+            <span className="font-semibold text-[13px] text-app truncate max-w-sm">
+              {thread?.title || 'Interactive Session'}
+            </span>
+          </div>
 
-                  if (isUser) {
+          {/* Context is rendered only when the selected session has real token telemetry. */}
+          <div className="flex items-center flex-shrink-0">
+            <ContextRing
+              percent={sessionContext?.pct ?? undefined}
+              model={sessionContext?.model ?? undefined}
+              usedTokens={sessionContext?.used == null ? undefined : `${sessionContext.used}`}
+              maxTokens={sessionContext?.window == null ? undefined : `${sessionContext.window}`}
+            />
+          </div>
+        </header>
+
+        {/* Scrollable messages container */}
+        <div ref={scrollContainerRef} className="flex-1 overflow-y-auto p-4 md:p-6 space-y-6">
+          <div ref={contentRef}>
+            {messages.length === 0 ? (
+              <ThreadEmpty
+                title={projectName || 'Chat'}
+                subtitle={[cliName, composerModel || initialModel].filter(Boolean).join(' · ')}
+              />
+            ) : (
+              <div
+                data-ff
+                data-thread-root
+                className="max-w-3xl lg:max-w-4xl mx-auto flex flex-col gap-2"
+              >
+                {messages
+                  .filter((msg) => !taskCards.hidden.has(msg.id))
+                  .map((msg) => {
+                    const isUser = msg.role === 'user'
+
+                    if (isUser) {
+                      return (
+                        <ChatMessage
+                          key={msg.id}
+                          from="user"
+                          time={msg.timestamp}
+                          {...motionProps(entranceOf(msg.id))}
+                          data-entered={entranceOf(msg.id)}
+                          layout={false}
+                          className="max-w-2xl select-text"
+                          actions={
+                            <button
+                              type="button"
+                              onClick={() => void copyMessage(msg.id, msg.content)}
+                              className="p-1 rounded-control text-app-muted hover:text-app transition-colors"
+                              title="Copy"
+                              aria-label="Copy"
+                            >
+                              {copiedMessageId === msg.id ? (
+                                <Check className="w-3 h-3" />
+                              ) : (
+                                <Copy className="w-3 h-3" />
+                              )}
+                            </button>
+                          }
+                        >
+                          {/* Attachments if any */}
+                          {msg.attachments && msg.attachments.length > 0 && (
+                            <div className="flex flex-wrap gap-1.5 mb-2">
+                              {msg.attachments.map((att) =>
+                                att.file ? (
+                                  <div
+                                    key={att.id}
+                                    data-attachment-name={att.name}
+                                    title={att.name}
+                                  >
+                                    <FileThumbnail file={att.file} size={64} />
+                                  </div>
+                                ) : (
+                                  <div
+                                    key={att.id}
+                                    data-attachment-name={att.name}
+                                    className="flex items-center gap-1.5 px-2 py-0.5 rounded-control bg-app-bg border border-app text-[11px] text-app font-mono"
+                                  >
+                                    <FileText className="w-3 h-3 text-app-accent" />
+                                    <span>{att.name}</span>
+                                  </div>
+                                ),
+                              )}
+                            </div>
+                          )}
+
+                          {msg.content}
+                        </ChatMessage>
+                      )
+                    }
+
+                    // Assistant message
+                    const card = taskCards.byTask.get(msg.taskId ?? '')
+                    const showCard = card?.anchorId === msg.id ? card : undefined
                     return (
                       <ChatMessage
                         key={msg.id}
-                        from="user"
-                        time={msg.timestamp}
-                        initial={false}
+                        from="assistant"
+                        {...motionProps(entranceOf(msg.id))}
+                        data-entered={entranceOf(msg.id)}
                         layout={false}
-                        className="max-w-2xl select-text"
+                        className="max-w-full w-full select-text"
                         actions={
                           <button
                             type="button"
@@ -329,202 +434,132 @@ export const OrchestChatView: React.FC<OrchestChatViewProps> = ({
                           </button>
                         }
                       >
-                        {/* Attachments if any */}
-                        {msg.attachments && msg.attachments.length > 0 && (
-                          <div className="flex flex-wrap gap-1.5 mb-2">
-                            {msg.attachments.map((att) =>
-                              att.file ? (
-                                <div key={att.id} data-attachment-name={att.name} title={att.name}>
-                                  <FileThumbnail file={att.file} size={64} />
-                                </div>
-                              ) : (
-                                <div
-                                  key={att.id}
-                                  data-attachment-name={att.name}
-                                  className="flex items-center gap-1.5 px-2 py-0.5 rounded-control bg-app-bg border border-app text-[11px] text-app font-mono"
-                                >
-                                  <FileText className="w-3 h-3 text-app-accent" />
-                                  <span>{att.name}</span>
-                                </div>
-                              ),
-                            )}
+                        {msg.reasoning && msg.reasoning.length > 0 && (
+                          <div className="mb-3 whitespace-normal">
+                            <ThreadThinking
+                              active={false}
+                              label={
+                                msg.thoughtMs === undefined
+                                  ? 'Thought'
+                                  : `Thought for ${formatElapsed(msg.thoughtMs)}`
+                              }
+                              steps={msg.reasoning}
+                            />
                           </div>
                         )}
-
-                        {msg.content}
+                        {msg.toolCalls && msg.toolCalls.length > 0 && (
+                          <div className="mb-3 whitespace-normal">
+                            <ThreadTools tools={msg.toolCalls} />
+                          </div>
+                        )}
+                        {(!showCard || showCard.showAnchorText) && (
+                          <ThreadMarkdown
+                            text={showCard ? showCard.anchorText : msg.content}
+                            streaming={false}
+                          />
+                        )}
+                        {showCard && (
+                          <TaskCard
+                            card={showCard}
+                            error={
+                              taskActionErrors[showCard.taskId] ??
+                              reportActionErrors[showCard.actionKey]
+                            }
+                            busy={Boolean(busyReportActions[showCard.actionKey])}
+                            onApprove={() =>
+                              void Promise.resolve(onApproveHeldTask?.(showCard.taskId)).catch(
+                                (error: unknown) =>
+                                  setTaskActionErrors((prev) => ({
+                                    ...prev,
+                                    [showCard.taskId]:
+                                      error instanceof Error ? error.message : String(error),
+                                  })),
+                              )
+                            }
+                            onReject={() =>
+                              void Promise.resolve(onRejectHeldTask?.(showCard.taskId)).catch(
+                                (error: unknown) =>
+                                  setTaskActionErrors((prev) => ({
+                                    ...prev,
+                                    [showCard.taskId]:
+                                      error instanceof Error ? error.message : String(error),
+                                  })),
+                              )
+                            }
+                            onRetry={() =>
+                              runReportAction(showCard.actionKey, () =>
+                                onRetryTask?.(showCard.taskId),
+                              )
+                            }
+                            onCommit={(files) =>
+                              runReportAction(showCard.actionKey, () =>
+                                onCommitRunTask?.(showCard.taskId, files),
+                              )
+                            }
+                          />
+                        )}
                       </ChatMessage>
                     )
-                  }
-
-                  // Assistant message
-                  const card = taskCards.byTask.get(msg.taskId ?? '')
-                  const showCard = card?.anchorId === msg.id ? card : undefined
-                  return (
-                    <ChatMessage
-                      key={msg.id}
-                      from="assistant"
-                      initial={false}
-                      layout={false}
-                      className="max-w-full w-full select-text"
-                      actions={
-                        <button
-                          type="button"
-                          onClick={() => void copyMessage(msg.id, msg.content)}
-                          className="p-1 rounded-control text-app-muted hover:text-app transition-colors"
-                          title="Copy"
-                          aria-label="Copy"
-                        >
-                          {copiedMessageId === msg.id ? (
-                            <Check className="w-3 h-3" />
-                          ) : (
-                            <Copy className="w-3 h-3" />
-                          )}
-                        </button>
-                      }
+                  })}
+                {isWorking && liveText && (
+                  <ChatMessage
+                    key="live"
+                    from="assistant"
+                    {...motionProps(liveMode.current ?? 'static')}
+                    data-entered={liveMode.current ?? 'static'}
+                    layout={false}
+                    aria-live="polite"
+                    className="max-w-full w-full select-text"
+                  >
+                    <ThreadMarkdown text={liveText} streaming />
+                  </ChatMessage>
+                )}
+                <AnimatePresence initial={false}>
+                  {isWorking && (
+                    <motion.div
+                      key="thinking"
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      exit={{ opacity: 0 }}
+                      transition={{ duration: 0.15 }}
                     >
-                      {msg.reasoning && msg.reasoning.length > 0 && (
-                        <div className="mb-3 whitespace-normal">
-                          <ThreadThinking
-                            active={false}
-                            label={
-                              msg.thoughtMs === undefined
-                                ? 'Thought'
-                                : `Thought for ${formatElapsed(msg.thoughtMs)}`
-                            }
-                            steps={msg.reasoning}
-                          />
-                        </div>
-                      )}
-                      {msg.toolCalls && msg.toolCalls.length > 0 && (
-                        <div className="space-y-1.5 mb-3 whitespace-normal">
-                          <div className="text-[10px] font-bold text-app-muted uppercase tracking-wider px-1">
-                            Tool executions
-                          </div>
-                          <div className="space-y-1">
-                            {msg.toolCalls.map((tool, idx) => (
-                              <div
-                                key={idx}
-                                className="p-2.5 rounded-control bg-app-surface border border-app flex items-center justify-between text-xs"
-                              >
-                                <div className="flex items-center gap-2 overflow-hidden">
-                                  <div className="w-2 h-2 rounded-full bg-app-success" />
-                                  <span className="font-mono text-app font-medium">
-                                    {tool.name}
-                                  </span>
-                                  <span className="text-app-muted text-[11px] truncate max-w-md">
-                                    {JSON.stringify(tool.args)}
-                                  </span>
-                                </div>
-                                <div className="flex items-center gap-2 flex-shrink-0">
-                                  {tool.durationMs && (
-                                    <span className="font-mono text-[10px] text-app-muted">
-                                      {tool.durationMs}ms
-                                    </span>
-                                  )}
-                                  <span className="px-1.5 py-0.5 rounded-control text-[10px] font-mono bg-app-bg text-app-muted border border-app">
-                                    {tool.status}
-                                  </span>
-                                </div>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-                      {(!showCard || showCard.showAnchorText) && (
-                        <ThreadMarkdown
-                          text={showCard ? showCard.anchorText : msg.content}
-                          streaming={false}
-                        />
-                      )}
-                      {showCard && (
-                        <TaskCard
-                          card={showCard}
-                          error={
-                            taskActionErrors[showCard.taskId] ??
-                            reportActionErrors[showCard.actionKey]
-                          }
-                          busy={Boolean(busyReportActions[showCard.actionKey])}
-                          onApprove={() =>
-                            void Promise.resolve(onApproveHeldTask?.(showCard.taskId)).catch(
-                              (error: unknown) =>
-                                setTaskActionErrors((prev) => ({
-                                  ...prev,
-                                  [showCard.taskId]:
-                                    error instanceof Error ? error.message : String(error),
-                                })),
-                            )
-                          }
-                          onReject={() =>
-                            void Promise.resolve(onRejectHeldTask?.(showCard.taskId)).catch(
-                              (error: unknown) =>
-                                setTaskActionErrors((prev) => ({
-                                  ...prev,
-                                  [showCard.taskId]:
-                                    error instanceof Error ? error.message : String(error),
-                                })),
-                            )
-                          }
-                          onRetry={() =>
-                            runReportAction(showCard.actionKey, () =>
-                              onRetryTask?.(showCard.taskId),
-                            )
-                          }
-                          onCommit={(files) =>
-                            runReportAction(showCard.actionKey, () =>
-                              onCommitRunTask?.(showCard.taskId, files),
-                            )
-                          }
-                        />
-                      )}
-                    </ChatMessage>
-                  )
-                })}
-              {isWorking && liveText && (
-                <ChatMessage
-                  from="assistant"
-                  initial={false}
-                  layout={false}
-                  aria-live="polite"
-                  className="max-w-full w-full select-text"
-                >
-                  <ThreadMarkdown text={liveText} streaming />
-                </ChatMessage>
-              )}
-              {isWorking && (
-                <ThreadThinking
-                  active
-                  label={livePhase(liveTurn, Boolean(liveText))}
-                  elapsed={formatElapsed(nowMs - workStartedAt)}
-                  steps={liveReasoning}
-                />
-              )}
+                      <ThreadThinking
+                        active
+                        label={livePhase(liveTurn, Boolean(liveText))}
+                        elapsed={formatElapsed(nowMs - workStartedAt)}
+                        steps={liveReasoning}
+                      />
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+            )}
+          </div>
+          {sendError && (
+            <div className="mx-auto max-w-3xl text-sm text-app-error" role="alert">
+              {sendError}
             </div>
           )}
         </div>
-        {sendError && (
-          <div className="mx-auto max-w-3xl text-sm text-app-error" role="alert">
-            {sendError}
-          </div>
-        )}
-      </div>
 
-      {/* Shared Composer (Nothing under composer: no status line) */}
-      <div data-composer-region className="p-3 bg-app-bg flex-shrink-0">
-        <div className="max-w-3xl lg:max-w-4xl mx-auto">
-          <AgentComposer
-            onSendMessage={handleSendFromComposer}
-            defaultModel={initialModel}
-            defaultEffort={initialEffort}
-            defaultCli={cliId}
-            orchestratorAssigned={!!orchestrator}
-            orchestratorLoading={orchestrator === undefined}
-            busy={isWorking}
-            onOpenRouting={onOpenRouting}
-            onSlashCommand={onSlashCommand}
-            onSelectionChange={(_cli, model) => setComposerModel(model)}
-          />
+        {/* Shared Composer (Nothing under composer: no status line) */}
+        <div data-composer-region className="p-3 bg-app-bg flex-shrink-0">
+          <div className="max-w-3xl lg:max-w-4xl mx-auto">
+            <AgentComposer
+              onSendMessage={handleSendFromComposer}
+              defaultModel={initialModel}
+              defaultEffort={initialEffort}
+              defaultCli={cliId}
+              orchestratorAssigned={!!orchestrator}
+              orchestratorLoading={orchestrator === undefined}
+              busy={isWorking}
+              onOpenRouting={onOpenRouting}
+              onSlashCommand={onSlashCommand}
+              onSelectionChange={(_cli, model) => setComposerModel(model)}
+            />
+          </div>
         </div>
       </div>
-    </div>
+    </MotionConfig>
   )
 }

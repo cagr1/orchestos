@@ -8,6 +8,11 @@ const STATES = [
   'thinking',
   'thinking-steps-running',
   'thinking-steps-done',
+  'tools-collapsed',
+  'tools-open',
+  'tools-running',
+  'tools-failed',
+  'thread-empty',
   'composer-empty',
   'composer-with-files',
   'card',
@@ -146,6 +151,71 @@ export default async function threadStates({ page, base, step, shot, visible, co
       `${themeName}-no-palette-in-thread-markdown`,
       palette.length === 0,
       `${themeName}: ${palette.length} palette classes ${palette.slice(0, 2).join(' | ')}`,
+    )
+
+    // UI.24.7 — fila de herramientas y estado vacío.
+    const collapsed = page.getByTestId('state-tools-collapsed').locator('[data-thread-tools]')
+    const collapsedHeader = (await collapsed.innerText()).trim()
+    await step(
+      `${themeName}-tools-collapsed-by-default`,
+      (await collapsed.locator('[data-tool-step]').count()) === 0 ||
+        !(await collapsed.locator('[data-tool-step]').first().isVisible()),
+      `${themeName}: collapsed row shows no step`,
+    )
+    await step(
+      `${themeName}-tools-header-count-and-duration`,
+      (await collapsed.getAttribute('data-tool-count')) === '3' &&
+        /^3 tools · \d+(\.\d)? (ms|s)\b/.test(collapsedHeader),
+      `${themeName}: header ${JSON.stringify(collapsedHeader)}`,
+    )
+    await step(
+      `${themeName}-tools-no-uppercase`,
+      !/[A-Z]{4,}/.test(collapsedHeader) &&
+        (await collapsed.evaluate((el) => getComputedStyle(el).textTransform)) !== 'uppercase',
+      `${themeName}: header text ${JSON.stringify(collapsedHeader)}`,
+    )
+    const toolSteps = page.getByTestId('state-tools-open').locator('[data-tool-step]')
+    const stepTexts = await toolSteps.allInnerTexts()
+    await step(
+      `${themeName}-tools-open-steps`,
+      stepTexts.length === 3 && stepTexts.every((text) => !/[{}]|JSON/.test(text)),
+      `${themeName}: ${JSON.stringify(stepTexts)}`,
+    )
+    const colourOf = (locator) => locator.evaluate((el) => getComputedStyle(el).color)
+    const okRow = page.getByTestId('state-tools-open').locator('[data-thread-tools]')
+    const failedRow = page.getByTestId('state-tools-failed').locator('[data-thread-tools]')
+    const failedHeader = (await failedRow.innerText()).split('\n')[0]
+    const failedMark = failedRow.locator('[data-tool-status="failed"] .text-destructive').first()
+    await step(
+      `${themeName}-tools-failed-is-the-only-colour`,
+      /1 failed/.test(failedHeader) &&
+        (await failedRow.getAttribute('data-tool-failed')) === '1' &&
+        (await okRow.getAttribute('data-tool-failed')) === '0' &&
+        (await okRow.locator('.text-destructive').count()) === 0 &&
+        (await failedMark.isVisible()),
+      `${themeName}: failed header ${JSON.stringify(failedHeader)}; destructive colour ${await colourOf(failedMark).catch(() => 'missing')}`,
+    )
+    const failedResult = await failedRow.locator('[data-tool-status="failed"]').innerText()
+    await step(
+      `${themeName}-tools-failed-shows-result`,
+      /3 errors found/.test(failedResult),
+      `${themeName}: failed step text ${JSON.stringify(failedResult.slice(0, 80))}`,
+    )
+    const runningStatus = await page
+      .getByTestId('state-tools-running')
+      .locator('[data-tool-status]')
+      .evaluateAll((nodes) => nodes.map((node) => node.getAttribute('data-tool-status')))
+    await step(
+      `${themeName}-tools-running-step`,
+      runningStatus.includes('running') && runningStatus.includes('success'),
+      `${themeName}: statuses ${JSON.stringify(runningStatus)}`,
+    )
+    const emptyText = await page.getByTestId('state-thread-empty').innerText()
+    await step(
+      `${themeName}-thread-empty-no-filler`,
+      !/Interactive session|Ask questions|review architecture/i.test(emptyText) &&
+        (await page.getByTestId('state-thread-empty').locator('[data-thread-empty]').count()) === 1,
+      `${themeName}: ${JSON.stringify(emptyText)}`,
     )
 
     const TASK_STATES = {

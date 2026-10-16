@@ -11,6 +11,15 @@ export function formatElapsed(ms: number): string {
   return `${Math.floor(total / 60)} m ${String(total % 60).padStart(2, '0')} s`
 }
 
+export function formatDuration(ms: number): string {
+  const value = Math.max(0, Number.isFinite(ms) ? ms : 0)
+  if (value < 1) return '<1 ms'
+  if (value < 1000) return `${Math.round(value)} ms`
+  if (value < 60_000) return `${(value / 1000).toFixed(1)} s`
+  const total = Math.floor(value / 1000)
+  return `${Math.floor(total / 60)} m ${String(total % 60).padStart(2, '0')} s`
+}
+
 export function livePhase(turn: TimelineTurn | undefined, hasLiveText: boolean): string {
   const steps = turn ? [...turn.steps].sort((a, b) => a.seq - b.seq) : []
   const last = steps[steps.length - 1]

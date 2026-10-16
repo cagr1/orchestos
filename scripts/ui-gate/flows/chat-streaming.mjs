@@ -58,6 +58,54 @@ async function sendTurn(page, composer, message) {
   return startedAt
 }
 
+// UI.24.7 — registra cada entrada animada: un mensaje (por elemento y por posición) anima una vez.
+async function installEntranceObserver(page) {
+  await page.evaluate(() => {
+    window.__entrances?.observer?.disconnect()
+    const state = { events: [], ids: new WeakMap(), next: 1, reduced: [] }
+    const kindOf = (el) => (el.classList.contains('max-w-2xl') ? 'user' : 'assistant')
+    const note = (el) => {
+      if (el.getAttribute('data-entered') !== 'animate') return
+      if (!state.ids.has(el)) state.ids.set(el, state.next++)
+      const all = [...document.querySelectorAll('[data-entered]')]
+      state.events.push({ id: state.ids.get(el), position: all.indexOf(el), kind: kindOf(el) })
+      setTimeout(() => {
+        const style = getComputedStyle(el)
+        state.reduced.push({
+          kind: kindOf(el),
+          opacity: style.opacity,
+          transform: style.transform,
+        })
+      }, 100)
+    }
+    const observer = new MutationObserver((records) => {
+      for (const record of records) {
+        if (record.type === 'attributes') note(record.target)
+        for (const node of record.addedNodes) {
+          if (!(node instanceof Element)) continue
+          if (node.hasAttribute('data-entered')) note(node)
+          for (const inner of node.querySelectorAll('[data-entered]')) note(inner)
+        }
+      }
+    })
+    observer.observe(document.body, {
+      subtree: true,
+      childList: true,
+      attributes: true,
+      attributeFilter: ['data-entered'],
+    })
+    state.observer = observer
+    window.__entrances = state
+  })
+}
+
+async function readEntrances(page) {
+  return page.evaluate(() => {
+    const { events, reduced } = window.__entrances
+    return { events, reduced }
+  })
+}
+
 // `fable` (default del catálogo de Claude) puede quedar sin crédito y responder de una pieza:
 // el flujo fija `haiku` en el composer para medir streaming real (2026-09-27).
 const squash = (text) => text.replace(/\s+/g, ' ').trim()
@@ -155,6 +203,7 @@ export default async function chatStreaming({ page, api, step, shot, visible, cl
     throw new Error(`Expected Claude session, received ${session.agent}`)
   await selectHaiku(page, visible)
   const composer = page.locator('textarea').last()
+  await installEntranceObserver(page)
   const startedAt = await sendTurn(
     page,
     composer,
@@ -259,6 +308,26 @@ export default async function chatStreaming({ page, api, step, shot, visible, cl
     assistantMessages.length === 1 &&
       squash(visibleFinal) === squash(assistantMessages[0]?.content ?? ''),
     `bubbles=${await page.locator('div.prose').count()}; persisted=${assistantMessages.length}; visible=${squash(visibleFinal).slice(0, 80)}`,
+  )
+  const entrances = await readEntrances(page)
+  const perId = new Map()
+  const perPosition = new Map()
+  for (const event of entrances.events) {
+    perId.set(event.id, (perId.get(event.id) ?? 0) + 1)
+    perPosition.set(event.position, (perPosition.get(event.position) ?? 0) + 1)
+  }
+  const kinds = new Set(entrances.events.map((event) => event.kind))
+  await step(
+    'new messages enter with data-entered=animate',
+    kinds.has('user') && kinds.has('assistant'),
+    `animated kinds=${[...kinds].join(',')}; events=${JSON.stringify(entrances.events)}`,
+  )
+  await step(
+    'no message animates its entrance twice',
+    entrances.events.length > 0 &&
+      [...perId.values()].every((count) => count === 1) &&
+      [...perPosition.values()].every((count) => count === 1),
+    `events=${JSON.stringify(entrances.events)}`,
   )
   const contextUrl = `/api/chat/sessions/${encodeURIComponent(session.id)}/context`
   const contextHeaders = { headers: { 'x-orchestos-project-id': project.id } }
@@ -598,6 +667,45 @@ export default async function chatStreaming({ page, api, step, shot, visible, cl
     'thread-no-decoration',
     animatePing === 0 && gradients === 0 && botIcons === 0 && userIcons === 0,
     `animate-ping=${animatePing}, gradients=${gradients}, bot-icons=${botIcons}, user-icons=${userIcons}`,
+  )
+
+  // UI.24.7 — recargar: el historial entra sin animar.
+  await page.reload({ waitUntil: 'domcontentloaded' })
+  const reloadedChat = page
+    .locator('aside')
+    .getByText(/^Escribe los números del 1 al 40/)
+    .first()
+  if (await visible(reloadedChat, 30_000)) await reloadedChat.click()
+  const reloadedMessages = page.locator('[data-entered]')
+  await waitFor(async () => ((await reloadedMessages.count()) >= 2 ? true : null), 30_000)
+  const reloadedModes = await reloadedMessages.evaluateAll((nodes) =>
+    nodes.map((node) => node.getAttribute('data-entered')),
+  )
+  await step(
+    'after reload every message is static',
+    reloadedModes.length >= 2 && reloadedModes.every((mode) => mode === 'static'),
+    `modes=${JSON.stringify(reloadedModes)}`,
+  )
+
+  // UI.24.7 — con prefers-reduced-motion la respuesta llega con opacidad 1 y sin transformación.
+  await page.emulateMedia({ reducedMotion: 'reduce' })
+  await selectHaiku(page, visible)
+  await installEntranceObserver(page)
+  const reducedComposer = page.locator('textarea').last()
+  await sendTurn(page, reducedComposer, 'Responde solo con la palabra: listo.')
+  const reducedDone = await waitFor(async () => {
+    const state = await readEntrances(page)
+    return state.reduced.some((item) => item.kind === 'assistant') ? state : null
+  }, 180_000)
+  await page.emulateMedia({ reducedMotion: null })
+  const flat = (item) =>
+    item.opacity === '1' &&
+    (item.transform === 'none' || /^matrix\(1, 0, 0, 1, 0, 0\)$/.test(item.transform))
+  const reducedAssistant = reducedDone?.reduced.find((item) => item.kind === 'assistant')
+  await step(
+    'reduced motion: response arrives with opacity 1 and no transform within 100 ms',
+    Boolean(reducedAssistant && flat(reducedAssistant)),
+    `samples=${JSON.stringify(reducedDone?.reduced ?? null)}`,
   )
 
   // The Dev workspace uses the same session timeline renderer and shares its composer.

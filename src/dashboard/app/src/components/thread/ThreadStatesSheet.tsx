@@ -20,9 +20,12 @@ import {
 import { ChatMessage } from '@/components/ui/chat-message'
 import { InputMessage } from '@/components/ui/input-message'
 import { TooltipProvider } from '@/components/ui/tooltip'
+import type { ToolExecution } from '../../types/orchestos'
 import { TaskCard } from './TaskCard'
+import { ThreadEmpty } from './ThreadEmpty'
 import { ThreadMarkdown } from './ThreadMarkdown'
 import { ThreadThinking } from './ThreadThinking'
+import { ThreadTools } from './ThreadTools'
 import type { TaskCardData, TaskCardReport } from './taskCards'
 
 function makeImage(name: string, hue: number): Promise<File> {
@@ -56,6 +59,29 @@ function useSampleImages(): File[] {
   }, [])
   return files
 }
+
+const TOOLS_DONE: ToolExecution[] = [
+  { name: 'Read', args: { target: 'src/auth/login.ts' }, status: 'success', durationMs: 120 },
+  { name: 'Bash', args: { command: 'bun run lint' }, status: 'success', durationMs: 2100 },
+  { name: 'Edit', args: { target: 'src/auth/session.ts' }, status: 'success', durationMs: 850 },
+]
+
+const TOOLS_RUNNING: ToolExecution[] = [
+  { name: 'Read', args: { target: 'PLAN.md' }, status: 'success', durationMs: 90 },
+  { name: 'Bash', args: { command: 'bun test src/auth' }, status: 'running' },
+]
+
+const TOOLS_FAILED: ToolExecution[] = [
+  { name: 'Read', args: { target: 'src/auth/login.ts' }, status: 'success', durationMs: 120 },
+  {
+    name: 'Bash',
+    args: { command: 'bun run lint' },
+    status: 'failed',
+    durationMs: 64_000,
+    result:
+      'src/auth/login.ts:12:5 lint/style\nsrc/auth/session.ts:40:1 lint/correctness\n3 errors found.',
+  },
+]
 
 const SAMPLE_DESCRIPTION =
   'Migrate login to OAuth\nReplace the password form with the OAuth flow and keep the existing session cookie.'
@@ -272,6 +298,26 @@ export default function ThreadStatesSheet() {
                 'Write the fix',
               ]}
             />
+          </State>
+
+          <State id="tools-collapsed" label="Tools · collapsed">
+            <ThreadTools tools={TOOLS_DONE} />
+          </State>
+
+          <State id="tools-open" label="Tools · open">
+            <ThreadTools tools={TOOLS_DONE} defaultOpen />
+          </State>
+
+          <State id="tools-running" label="Tools · one running">
+            <ThreadTools tools={TOOLS_RUNNING} defaultOpen />
+          </State>
+
+          <State id="tools-failed" label="Tools · one failed, with result">
+            <ThreadTools tools={TOOLS_FAILED} defaultOpen />
+          </State>
+
+          <State id="thread-empty" label="Empty state">
+            <ThreadEmpty title="OrchestOS" subtitle="Claude · claude-sonnet-5-5" />
           </State>
 
           <State id="composer-empty" label="Empty composer">

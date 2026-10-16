@@ -266,12 +266,13 @@ export default function App() {
     void listSessions(visibleProjectId)
       .then(async (loaded) => {
         if (disposed) return
-        setThreads(loaded)
+        setThreads(loaded.map((thread) => ({ ...thread, messagesLoaded: false })))
         setActiveThreadId(loaded[0]?.id || '')
         const hydrated = await Promise.all(
           loaded.map(async (thread) => ({
             ...thread,
             messages: await loadThreadMessages(thread.id, thread.projectId).catch(() => []),
+            messagesLoaded: true,
           })),
         )
         if (!disposed) setThreads(hydrated)
@@ -1267,6 +1268,9 @@ export default function App() {
             {mode === 'chat' && (
               <OrchestChatView
                 thread={activeThread}
+                projectName={
+                  projects.find((project) => project.id === activeThread?.projectId)?.name
+                }
                 projectExists={
                   !activeThread?.projectId ||
                   (!deletingProjectIds.has(activeThread.projectId) &&

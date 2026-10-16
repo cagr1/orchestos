@@ -171,7 +171,7 @@ export default async function chatTurnDetails({
   )
 
   const composer = page.locator('textarea').last()
-  const tools = page.getByText(/Tool executions/i).first()
+  const tools = page.locator('[data-thread-tools]').first()
   const sessions = await api(`/api/chat/sessions?project=${encodeURIComponent(project.id)}`)
   const session = (Array.isArray(sessions.data) ? sessions.data : [])[0]
   if (!session) throw new Error('temporary chat session was not found')
@@ -237,10 +237,18 @@ export default async function chatTurnDetails({
     Boolean(toolExecution) && (await visible(tools, 180_000)),
     toolExecution ? 'tool trace rendered' : 'sin ejecución de herramienta observada en el backend',
   )
+  if (toolExecution && (await tools.isVisible())) {
+    const toolSteps = page.locator('[data-tool-step]')
+    if ((await toolSteps.count()) === 0) await tools.getByRole('button').first().click()
+    await visible(toolSteps.first(), 10_000)
+  }
+  const toolStepCount = await page.locator('[data-tool-step]').count()
   await step(
     'command success row',
-    Boolean(toolExecution) && (await visible(page.getByText(/^success$/i).first())),
-    toolExecution ? 'success visible' : 'sin ejecución de herramienta observada en el backend',
+    Boolean(toolExecution) && toolStepCount >= 1,
+    toolExecution
+      ? `${toolStepCount} tool step(s) after opening the row`
+      : 'sin ejecución de herramienta observada en el backend',
   )
   await step(
     'new chat is linked to temporary project',
@@ -425,7 +433,7 @@ export default async function chatTurnDetails({
     await reloadedThread.click()
     await step(
       'reload: tool block visible in selected chat',
-      await visible(page.getByText(/Tool executions/i).first()),
+      await visible(page.locator('[data-thread-tools]').first()),
       'tool trace rendered after selecting chat',
     )
     await step(

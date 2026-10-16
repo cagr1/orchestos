@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test'
 import type { TimelineStep, TimelineTurn } from '../../api/chat'
-import { formatElapsed, livePhase, parseDbTime, thoughtMs } from './thinking'
+import { formatDuration, formatElapsed, livePhase, parseDbTime, thoughtMs } from './thinking'
 
 function step(seq: number, over: Partial<TimelineStep> = {}): TimelineStep {
   return {
@@ -53,6 +53,21 @@ describe('formatElapsed', () => {
   })
   test('mínimo 0 s', () => {
     expect(formatElapsed(-5)).toBe('0 s')
+  })
+})
+
+describe('formatDuration', () => {
+  test('cero es <1 ms', () => {
+    expect(formatDuration(0)).toBe('<1 ms')
+  })
+  test('milisegundos', () => {
+    expect(formatDuration(850)).toBe('850 ms')
+  })
+  test('segundos', () => {
+    expect(formatDuration(2100)).toBe('2.1 s')
+  })
+  test('minutos', () => {
+    expect(formatDuration(64_000)).toBe('1 m 04 s')
   })
 })
 

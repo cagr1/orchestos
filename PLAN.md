@@ -788,7 +788,7 @@ anteriores, con pruebas de comportamiento; no abrir un refactor masivo por conte
 2. Estados de sesión `ended` con **resume/fork** (§C.3) — PI y Codex los tienen; OrchestOS no.
 3. Si UI.8.6 entra en este bloque o sale como bloque propio con backend separado.
 
-### UI.24 — El hilo del chat con acabado premium (ABIERTO 2026-10-13, GO de Carlos 2026-10-13)
+### UI.24 — El hilo del chat con acabado premium (CERRADO 2026-10-15: UI.24.1–24.7; abierto 2026-10-13, GO de Carlos)
 
 Pedido de Carlos 2026-10-13: *"quiero de verdad algo mucho mejor que MusicKind … no una combinación grosera de
 componentes sino … profesional, limpio, intuitivo, pero sobre todo premium"*. Cómo se ve, cómo interactúa, cómo
@@ -1000,9 +1000,35 @@ color; la respuesta del asistente va sin caja; el identificador técnico se copi
     HEAD (worktree temporal, borrado) → `FAIL Dev: both attachments reach ready: []`.
     Límites: `chat-attachments` no entra al pre-push; prompt del gate dice "reference code" (Codex rehusó una vez
     "secret token").
-- [ ] **UI.24.7 — 🧠 Herramientas y movimiento.** Llamadas a herramientas en una fila plegable ("3 herramientas · 2,1 s");
+- [x] **UI.24.7 — 🧠 Herramientas y movimiento.** (cerrado 2026-10-15) Llamadas a herramientas en una fila plegable ("3 herramientas · 2,1 s");
   entrada de mensajes y transición entre estados; estado vacío. Revisión final por `qa` sobre capturas contra esta
   dirección.
+  Ejecutado por: sonnet (rol `criterio`, 3 rondas) · Spec: docs/specs/UI.24.7.md (borrado) · Revisión: `qa` (codex)
+  Hecho: `ThreadTools.tsx` (fila plegada "3 tools · 3.1 s", color solo si falla, objetivo legible en vez de
+  `JSON.stringify`, `result` a 4 líneas, `data-thread-tools`/`data-tool-step`); `entrance.ts` decide la entrada: un
+  mensaje anima una vez al aparecer en un hilo abierto; historial, re-montaje, reemplazo optimista→servidor y final
+  tras streaming quedan `static` (`data-entered`); registro de módulo por sesión, `enterSession` al volver, señal
+  `ChatThread.messagesLoaded` para distinguir "cargando" de "vacío". `MotionConfig reducedMotion="user"`, "pensando"
+  sale con fundido; `ThreadEmpty` (proyecto + `CLI · modelo`, fuera el párrafo). Duraciones con un solo formato
+  (`<1 ms`, `2.1 s`, `1 m 04 s`).
+  Evidencia (cerebro): `tsc` raíz y front, biome 0 errores, `bun test` app + codex-app-server 111/111, `build:app`,
+  `ui:fidelity:jsx`. Gate en vivo: navegador real (Playwright), `docs/done/evidence/UI.24.7-live.json` —
+  `thread-states` 311/311, `chat-streaming` 28/28 (entrada `animate` una sola vez, `static` tras recargar, reduced
+  motion), `chat-turn-details` 29/29, `codex-live` 14/14, `smoke` 6/6, `chat-retry-report` 24/24, `auto-flow` 32/32,
+  `chat-continuity` 8/8. Capturas miradas: lámina (herramientas) y turno real de Codex.
+  Contraprueba (ejecutor): `chat-streaming` contra el `OrchestChatView.tsx` de HEAD → `FAIL new messages enter with
+  data-entered=animate`; `thread-states` contra la lámina de HEAD → `FAIL state-tools-collapsed`.
+  Revisión `qa` (otro proveedor): 3 fallos de `entrance.ts` (volver a sesión animaba, hilo vacío no animaba, reenvío
+  tras error no animaba), corregidos en la ronda 3 con un test cada uno. La ronda 2 corrigió lo que vio el cerebro
+  en las capturas: herramienta en curso con check y "0ms".
+  Límites: `layout` de `ChatMessage` sigue apagado; la entrada no se probó con un reporte de tarea que llega solo
+  en vivo (solo en el test unitario).
+  - [x] **UI.24.7.1 — 🧠 Mensajes de Codex pegados.** (abierto 2026-10-15; visto en la captura `tool-and-reasoning`
+    de UI.24.7) `codex-app-server.ts:185-187` concatena los deltas de todos los `agentMessage` del turno sin separador
+    ("…por `ls`.Hay 8 entradas…"). Separar ítems con `\n\n`. Verifica: test + `codex-live`.
+    Ejecutado por: sonnet (rol `criterio`) · (cerrado 2026-10-15) Separador `\n\n` cuando el delta cambia de `itemId` o
+    tras `item/started` de `agentMessage`, igual en `onDelta`; `codex.ts` (exec) ya unía con `\n\n` (`:366`).
+    Evidencia: `codex-app-server.test.ts` 7/7 (test nuevo con dos ítems), `codex-live` 14/14.
 
 Fuera de esta pasada: Settings, modo Dev, barra lateral, backend, Chat Orb.
 

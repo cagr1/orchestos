@@ -11,7 +11,7 @@ de delegación y ui-gate". Orden y rumbo: `PLAN.md` § Rumbo. Arranque: `bun run
 - Cerrados hoy: UI.26.6 (`8701044`), CI.26 (`12eae7f`, timeout de CC.2: el turno CLI ya no espera el catálogo de
   OpenRouter), UI.26.6.1 (formato), UI.26.7 (`9e89d09`), UI.24.4 (`c239117`, Streamdown); todo pusheado. 2026-10-15: UI.24.5 (`78f561b`), UI.24.5.1 (`b0e5f70`, gates que leían el texto viejo), UI.24.6a
   (`4f00d12`, imágenes nativas al CLI). UI.24.6b + ERP.4.14 (cierran UI.24.6;
-  evidencia en `PLAN.md`). Siguiente: **UI.24.7** (herramientas y movimiento; revisión final `qa` sobre capturas).
+  evidencia en `PLAN.md`). UI.24.7 + UI.24.7.1 cerrados (cierran UI.24.1–24.7). Siguiente: **ERP.4.15**.
   Al cambiar texto/selector del hilo: `rg` en todo `scripts/ui-gate/` (lección en `AGENTS.md`).
   Preflight de sub-ítem indentado falla (`scripts/agent-governance.ts:37`): usar el ID del padre o arreglar el regex.
 - UI.24.4 subió `main.js` +22 % (1.58 → 1.92 MB), medido por paquete con el sourcemap: ~164 KB `rehype-raw` (parse5 y
@@ -32,10 +32,7 @@ de delegación y ui-gate". Orden y rumbo: `PLAN.md` § Rumbo. Arranque: `bun run
   `.orchestos/feature-status.json`.
 
 ## Orden de lo que sigue
-1. UI.24.7.
-   Los gates de chat leen `div.prose`, `textarea`, `aria-label="Send message"`, `title="Select model and reasoning
-   effort"` y los textos "Approve & Run", "Commit & Run", "Retry", además de `div.max-w-2xl` y `div.max-w-3xl`:
-   conservarlos o cambiar flujo y componente en el mismo ítem. Mirar siempre la captura, no solo el gate.
+1. UI.24 cerrado (2026-10-15).
 3. ERP.4.15 → ERP.4.16 → limpiar las 3 tareas sobrantes de `erp-piloto` (`chat-79f90f32` failed, `chat-f59db027` y
    `chat-ad9e193d` pending; tras ERP.4.16) → veredicto de ERP.4 → cerrar R.8.
    Antes de cerrar ERP.4: el test del 409 de ERP.4.13 (`src/dashboard/handlers/tasks.test.ts:158`) falla con
