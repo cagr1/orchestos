@@ -11,7 +11,7 @@ de delegación y ui-gate". Orden y rumbo: `PLAN.md` § Rumbo. Arranque: `bun run
 - Cerrados hoy: UI.26.6 (`8701044`), CI.26 (`12eae7f`, timeout de CC.2: el turno CLI ya no espera el catálogo de
   OpenRouter), UI.26.6.1 (formato), UI.26.7 (`9e89d09`), UI.24.4 (`c239117`, Streamdown); todo pusheado. 2026-10-15: UI.24.5 (`78f561b`), UI.24.5.1 (`b0e5f70`, gates que leían el texto viejo), UI.24.6a
   (`4f00d12`, imágenes nativas al CLI). UI.24.6b + ERP.4.14 (cierran UI.24.6;
-  evidencia en `PLAN.md`). UI.24.7 + UI.24.7.1 cerrados (cierran UI.24.1–24.7). ERP.4.15 cerrado (residuo de julio, fuga ya cerrada). ERP.4.16 cerrado. ERP.4.17 cerrado (test del 409); `erp-piloto` limpio (`6380641`); **ERP.4 y R.8 cerrados**. README y LIMITATIONS.md al día (2026-10-15, verificados contra el código). Siguiente: **UI.8.6**. Visto 1 vez, sin causa: `chat-context` intermitente en el pre-push → CI.27 (primero que deje evidencia).
+  evidencia en `PLAN.md`). UI.24.7 + UI.24.7.1 cerrados (cierran UI.24.1–24.7). ERP.4.15 cerrado (residuo de julio, fuga ya cerrada). ERP.4.16 cerrado. ERP.4.17 cerrado (test del 409); `erp-piloto` limpio (`6380641`); **ERP.4 y R.8 cerrados**. README y LIMITATIONS.md al día (2026-10-15, verificados contra el código). UI.8.6 cerrado 2026-10-16 (`12fd576`; aprobación por tarea, Yolo|Manual por proyecto; la aprobación de cada herramienta queda como bloque propio sin abrir). CI.28 cerrado (`2513a7d`). Siguiente: **Fase 3** (`PLAN.md` § Fase 3: AT.13 primero). Codex lento el 2026-10-16 (30–65 s por un "ok" trivial): tumbó 2 corridas de `chat-permissions` por timeout de turno; si se repite en el pre-push, va a CI.11. Visto 1 vez, sin causa: `chat-context` intermitente en el pre-push → CI.27 (primero que deje evidencia).
   Al cambiar texto/selector del hilo: `rg` en todo `scripts/ui-gate/` (lección en `AGENTS.md`).
   Preflight de sub-ítem indentado falla (`scripts/agent-governance.ts:37`): usar el ID del padre o arreglar el regex.
 - UI.24.4 subió `main.js` +22 % (1.58 → 1.92 MB), medido por paquete con el sourcemap: ~164 KB `rehype-raw` (parse5 y
@@ -24,7 +24,7 @@ de delegación y ui-gate". Orden y rumbo: `PLAN.md` § Rumbo. Arranque: `bun run
 ## Estado actual
 - Cerrados y pusheados: UI.24.1–24.3, UI.25 (UI.25.0, UI.25.1), UI.26.1–26.4a, ERP.4.1–ERP.4.13, CI.12, CI.21, CI.22,
   CI.24, DOC.1 (`331ddf5`), LIMP.1 (`c906eb2`), UI.26.4b; R.8.1–R.8.6 (`PLAN.md`; evidencia en `docs/done/`).
-- Abiertos: UI.26.6b, UI.8.6,
+- Abiertos: UI.26.6b,
   AT.13 (puntos 8 y `manifest.ts`), AT.19, CI.11, CI.18, CI.19, CI.23, CI.25. Lista viva: `bun run next`.
 - Trampa de `plan:reconcile`: si dice "Could not prove a closing commit SHA", reabrir el ítem (`[ ]`), reconciliar,
   volver a `[x]`, reconciliar, commitear. Ítem delegado: commitear el spec antes (`docs(<ID>): spec`).
@@ -33,7 +33,7 @@ de delegación y ui-gate". Orden y rumbo: `PLAN.md` § Rumbo. Arranque: `bun run
 
 ## Orden de lo que sigue
 1. UI.24 cerrado (2026-10-15).
-4. UI.8.6.
+4. ~~UI.8.6~~ (cerrado 2026-10-16). Sigue Fase 3.
 5. Fiabilidad, cuando el pre-push la tumba: CI.25 (hacer que deje evidencia antes de UI.26.5 si vuelve), CI.23 (al
    próximo `FAIL tasks` en `relaunched task final state`, leer el detalle JSON y escribir la fase 2 en
    `docs/specs/CI.23.md`), CI.18 (leer el detalle del paso del marcador y la captura `marker-failure`), CI.19, CI.11.
