@@ -32,7 +32,9 @@ para siempre (rama `failed_permanent`, `:1461-1465`). Por eso la pestaña Memory
      Intentos: `t.retry_count + 1`.
    - Rama `failed_permanent`. Archivos: `[]`. QA: `fail` con `result.retryReason`. Intentos: `t.retry_count + 1`.
    - `projectId`: el que ya resuelve ese bloque. Si no lo resuelve, `getProject(root)?.id`.
-   - `provider`/`model`: del `result`, si los trae. Si no, de la última fila de `listRunsByTaskId(taskId)`.
+   - `provider`/`model`: `TaskResult` no los trae; tomarlos de la fila más reciente de `listRunsByTaskId(taskId)`
+     (`src/db/runs.ts`). Sin fila: la última línea queda `Attempts <n>` (sin `Model:`); nunca inventar un valor.
+   - Ante cualquier otro dato que falte: omitir esa línea o ese segmento y seguir; no detenerse por eso.
 3. **Tests** en `src/__tests__/task-memory.test.ts`, con la DB aislada del preload:
    - una tarea `done` con 2 archivos genera exactamente una entrada `task/<id>` con el texto de arriba;
    - correr de nuevo la misma tarea actualiza esa entrada (sigue habiendo una sola);
