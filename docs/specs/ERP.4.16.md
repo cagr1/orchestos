@@ -1,6 +1,9 @@
 # ERP.4.16 — Cada tarea terminada deja una entrada mecánica en Memory
 
-Rol: `mecanico`. Fuente: `PLAN.md` § ERP.4.16. Decisión de Carlos (2026-10-13): la entrada es mecánica, sin LLM.
+Rol: `mecanico`. **Escribe bajo el candado del cerebro** (`AGENT_WRITER_TOKEN`, lo pasa `delegate`): si
+`writer-lock status` dice `ocupado: claude`, es lo esperado; seguir. Los cambios sin commitear del árbol (`IDEAS.md`,
+`orchestos.config.yaml`, `runs-summary.json`, `.orchestos/feature-status.json`) son ajenos: no tocarlos. Formatear lo
+tocado con `bunx biome format --write` (nunca `prettier`). Fuente: `PLAN.md` § ERP.4.16. Decisión de Carlos (2026-10-13): la entrada es mecánica, sin LLM.
 Lleva qué hizo la tarea, sus archivos y el veredicto de QA. No se agrega UI nueva en Settings.
 
 ## Problema (verificado en HEAD)
