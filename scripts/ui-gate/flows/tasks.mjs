@@ -347,6 +347,31 @@ export default async function tasks({ page, api, step, note, shot, visible, clea
       visibleStatus,
     `status=${visibleStatus}`,
   )
+  if (visibleStatus === 'done') {
+    const memoriesResponse = await api(`/api/memory?project=${encodeURIComponent(project.id)}`, {
+      headers: { 'x-orchestos-project-id': project.id },
+    })
+    const taskMemory = (memoriesResponse.data ?? []).find(
+      (entry) => entry.topicKey === 'task/gate-first-task',
+    )
+    await step(
+      'completed task memory is returned by the project API',
+      Boolean(taskMemory?.content.includes('QA: pass')),
+      `topicKey=${taskMemory?.topicKey ?? 'missing'} content=${taskMemory?.content ?? 'missing'}`,
+    )
+    await page.getByRole('button', { name: 'Memory', exact: true }).click()
+    const memoryView = page.locator('[data-view="memory"]')
+    await step(
+      'completed task memory is visible in project Settings Memory',
+      (await visible(memoryView.getByText('task/gate-first-task', { exact: true }))) &&
+        (await visible(memoryView.getByText('QA: pass', { exact: false }))),
+      'Memory view contains task/gate-first-task and QA: pass',
+    )
+    await page.getByRole('button', { name: 'Tasks', exact: true }).click()
+    await page.locator('[data-task-row][data-task-id="gate-failed-task"]').waitFor({
+      state: 'visible',
+    })
+  }
   const firstCommit = await waitForTasksYamlCommit(projectRoot, 'gate-first-task')
   await step(
     'first task final state is committed in tasks.yaml',

@@ -1,0 +1,168 @@
+[
+  {
+    "flujo": "tasks",
+    "pass": true,
+    "steps": [
+      {
+        "nombre": "temporary project visible",
+        "ok": true,
+        "detalle": "project visible in sidebar"
+      },
+      {
+        "nombre": "project settings visible",
+        "ok": true,
+        "detalle": "project settings heading visible"
+      },
+      {
+        "nombre": "task id gate-first-task visible",
+        "ok": true,
+        "detalle": "real tasks.yaml id"
+      },
+      {
+        "nombre": "task id gate-dependent-task visible",
+        "ok": true,
+        "detalle": "real tasks.yaml id"
+      },
+      {
+        "nombre": "task id gate-failed-task visible",
+        "ok": true,
+        "detalle": "real tasks.yaml id"
+      },
+      {
+        "nombre": "real output visible",
+        "ok": true,
+        "detalle": "output boundary from tasks.yaml, in the task detail"
+      },
+      {
+        "nombre": "mock task absent",
+        "ok": true,
+        "detalle": "no initialMockTasks id rendered"
+      },
+      {
+        "nombre": "task created without model shows the Executor role agent and model",
+        "ok": true,
+        "detalle": "expected=codex · gpt-6-luna from fixture orchestos.config.yaml"
+      },
+      {
+        "nombre": "created task yaml has no hardcoded provider executor",
+        "ok": true,
+        "detalle": "tasks.yaml entry for gate-role-task has no executor: openrouter|anthropic|openai"
+      },
+      {
+        "nombre": "failed task offers its own Run button",
+        "ok": true,
+        "detalle": "visible=true enabled=true"
+      },
+      {
+        "nombre": "task with unfinished dependency has no Run button",
+        "ok": true,
+        "detalle": "button count=0"
+      },
+      {
+        "nombre": "Run Next Task enabled",
+        "ok": true,
+        "detalle": "first task has no unfinished dependency"
+      },
+      {
+        "nombre": "Run Next Task disabled while running",
+        "ok": true,
+        "detalle": "running task prevents a second run"
+      },
+      {
+        "nombre": "first task was posted",
+        "ok": true,
+        "detalle": "status=pending"
+      },
+      {
+        "nombre": "dependent task remains pending before first finishes",
+        "ok": true,
+        "detalle": "dependency prevents the second task from running"
+      },
+      {
+        "nombre": "final status badge is visible without reload",
+        "ok": true,
+        "detalle": "StatusBadge text=DONE"
+      },
+      {
+        "nombre": "badge leaves Pending without page reload",
+        "ok": true,
+        "detalle": "status=done"
+      },
+      {
+        "nombre": "UI and API agree on final task state",
+        "ok": true,
+        "detalle": "status=done"
+      },
+      {
+        "nombre": "completed task memory is returned by the project API",
+        "ok": true,
+        "detalle": "topicKey=task/gate-first-task content=Task gate-first-task — done\nAppend the line \"Gate ran.\" at the end of README.md\nFiles: README.md\nQA: pass — README.md contains the requested line.\nModel: codex/openai/gpt-6-luna · attempts 1"
+      },
+      {
+        "nombre": "completed task memory is visible in project Settings Memory",
+        "ok": true,
+        "detalle": "Memory view contains task/gate-first-task and QA: pass"
+      },
+      {
+        "nombre": "first task final state is committed in tasks.yaml",
+        "ok": true,
+        "detalle": "porcelain=\"\" subject=chore(tasks): gate-first-task done"
+      },
+      {
+        "nombre": "failed task relaunched by id ran",
+        "ok": true,
+        "detalle": "runId=90a201cf-75ce-4778-a809-8bda6c41ffca previous=missing"
+      },
+      {
+        "nombre": "relaunched task reaches done",
+        "ok": true,
+        "detalle": "status=done"
+      },
+      {
+        "nombre": "relaunched task final state is committed in tasks.yaml",
+        "ok": true,
+        "detalle": "porcelain=\"\" subject=chore(tasks): gate-failed-task done"
+      },
+      {
+        "nombre": "relaunch did not start the dependent task",
+        "ok": true,
+        "detalle": "status=pending runId=missing"
+      },
+      {
+        "nombre": "task rows flat",
+        "ok": true,
+        "detalle": "[{\"height\":40,\"borderTop\":\"0px\",\"shadow\":\"none\"},{\"height\":40,\"borderTop\":\"0px\",\"shadow\":\"none\"},{\"height\":40,\"borderTop\":\"0px\",\"shadow\":\"none\"},{\"height\":40,\"borderTop\":\"0px\",\"shadow\":\"none\"}]"
+      },
+      {
+        "nombre": "task list header aligned",
+        "ok": true,
+        "detalle": "{\"text\":\"IDTaskAgentStatus\",\"headerCells\":{\"id\":{\"left\":310,\"right\":422},\"title\":{\"left\":434,\"right\":1052},\"meta\":{\"left\":1064,\"right\":1272},\"status\":{\"left\":1284,\"right\":1404}},\"rowCells\":{\"id\":{\"left\":310,\"right\":422},\"title\":{\"left\":434,\"right\":1052},\"meta\":{\"left\":1064,\"right\":1272},\"status\":{\"left\":1284,\"right\":1404}}}"
+      },
+      {
+        "nombre": "no palette in tasks tab",
+        "ok": true,
+        "detalle": "ninguna"
+      },
+      {
+        "nombre": "task detail opens",
+        "ok": true,
+        "detalle": "detail shows the task id"
+      },
+      {
+        "nombre": "task detail closes with Esc",
+        "ok": true,
+        "detalle": "detail count=0"
+      },
+      {
+        "nombre": "no duplicated description",
+        "ok": true,
+        "detalle": "occurrences=1 line=\"Inspect the first task result.\""
+      }
+    ],
+    "notes": [],
+    "errores": [],
+    "capturas": [
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-84618/tasks/tasks-real-data.png"
+    ]
+  }
+]

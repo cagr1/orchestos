@@ -417,10 +417,23 @@ Cerrada. Todos sus ítems están archivados en `docs/done/` (ver "Cerrados — e
   residuo. Fila borrada de `~/.orchestos/db.sqlite` (respaldo en `~/.orchestos/backups/db.sqlite.pre-ERP.4.15-20261015`);
   las otras 2 filas de `instincts` son reales (2026-10-12/13).
   Evidencia: `db-isolation.test.ts` 3/3; `dashboard-parity-block-e.test.ts` 7/7 y después 0 filas `block-e` en la base real.
-- [ ] **ERP.4.16 — 🔍 Cada tarea terminada deja una entrada mecánica en Memory.** (abierto 2026-10-13; hallazgo 11)
+- [x] **ERP.4.16 — 🔍 Cada tarea terminada deja una entrada mecánica en Memory.** (abierto 2026-10-13; hallazgo 11)
   `memory_entries` solo se escribe al cerrar una subtarea con `topic_key` (`run/scheduler.ts:207-212`). Decisión de
   Carlos 2026-10-13: entrada mecánica sin LLM (qué hizo, archivos, veredicto de QA). Sin UI nueva en Settings: Carlos
   revisará Settings pestaña por pestaña tras este lote ("Settings es confuso; no mostrar todo").
+  Ejecutado por: gpt-6-luna (rol `mecanico`, 2 rondas; 2 arranques frenados por huecos del spec: candado y fila de
+  run ausente) · Spec: docs/specs/ERP.4.16.md (borrado)
+  (cerrado 2026-10-15) `src/db/task-memory.ts` `recordTaskMemory`: `upsertMemory(project, task/<id>, …, 'project')`
+  con texto plano (resultado, primera línea de la descripción, archivos, QA y motivo, `provider/model` del último run
+  o solo `Attempts n`); sin proyecto no escribe; un error no cambia el resultado de la tarea. Lo llama `cli.ts` en las
+  ramas `done` y `failed_permanent`.
+  Evidencia (cerebro): `tsc`, biome, `task-memory.test.ts` 5/5, `test:coverage` 1815/1 (el único fallo es el test
+  del 409 de ERP.4.13, ya anotado en `NEXT.md`). Gate en vivo: navegador real (Playwright),
+  `docs/done/evidence/ERP.4.16-live.json` — `tasks` 31/31, con 2 pasos nuevos: la API devuelve `task/gate-first-task`
+  con "QA: pass" y la pestaña Memory de Settings la muestra.
+  Límites: la contraprueba con `cli.ts` de HEAD no se corrió, porque el hook del cerebro bloquea escribir en `src/`.
+  El problema estaba verificado antes: Memory vacía en `erp-piloto`. La rama `failed_permanent` solo tiene
+  prueba unitaria.
 - [x] **CI.21 — 🔍 El orquestador a veces se niega ("solo lectura") en vez de crear la tarea.** (abierto 2026-10-12)
   `chat-turn-details` falló en el pre-push y 1 de 2 corridas a solas en el paso `held task card visible` (aserción
   real desde R.8.6): al pedido "Modifica README.md…" el CLI respondió "No puedo modificar archivos en este entorno

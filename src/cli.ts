@@ -14,7 +14,8 @@ import { listConflicts, resolveConflict } from './db/memory.ts'
 import { runMigrations } from './db/migrate.ts'
 import { getProject, listProjects, upsertProject } from './db/projects.ts'
 import { resetTestData } from './db/reset.ts'
-import { insertRun } from './db/runs.ts'
+import { insertRun, listRunsByTaskId } from './db/runs.ts'
+import { recordTaskMemory } from './db/task-memory.ts'
 import { detectPrimaryLanguage } from './detect/languages.ts'
 import { buildProfile } from './detect/profile.ts'
 import { buildRoadmapProfile, renderProjectProfileMarkdown } from './detect/roadmap-profile.ts'
@@ -1352,6 +1353,25 @@ task
             qa_verdict: 'pass',
             retry_reason: undefined,
           })
+          const taskProjectId = project?.id ?? getProject(root)?.id
+          let latestRun: ReturnType<typeof listRunsByTaskId>[number] | undefined
+          try {
+            latestRun = listRunsByTaskId(taskId)[0]
+          } catch (error) {
+            console.error(`[task-memory] Could not read latest run for ${taskId}:`, error)
+          }
+          recordTaskMemory({
+            projectId: taskProjectId,
+            taskId,
+            description: t.description,
+            outcome: 'done',
+            files: result.filesWritten,
+            qaVerdict: 'pass',
+            qaReason: result.qaReason,
+            provider: latestRun?.provider,
+            model: latestRun?.model,
+            attempts: t.retry_count + 1,
+          })
           console.log(`[task] ✓ ${taskId} done · QA pass — ${result.qaReason}`)
           for (const f of result.filesWritten) console.log(`  → ${f}`)
           console.log(
@@ -1465,6 +1485,25 @@ task
           retry_reason: result.retryReason,
         })
         if (isPermanent) {
+          const taskProjectId = project?.id ?? getProject(root)?.id
+          let latestRun: ReturnType<typeof listRunsByTaskId>[number] | undefined
+          try {
+            latestRun = listRunsByTaskId(taskId)[0]
+          } catch (error) {
+            console.error(`[task-memory] Could not read latest run for ${taskId}:`, error)
+          }
+          recordTaskMemory({
+            projectId: taskProjectId,
+            taskId,
+            description: t.description,
+            outcome: 'failed_permanent',
+            files: [],
+            qaVerdict: 'fail',
+            qaReason: result.retryReason,
+            provider: latestRun?.provider,
+            model: latestRun?.model,
+            attempts: t.retry_count + 1,
+          })
           try {
             const diag = await diagnoseTask(taskId, root)
             console.error(`\n[diagnose] ✗✗ FAILURE DIAGNOSIS for "${taskId}":`)
