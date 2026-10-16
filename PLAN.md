@@ -860,6 +860,11 @@ anteriores, con pruebas de comportamiento; no abrir un refactor masivo por conte
   OrchestOS: latencia externa, misma familia que CI.11. `chat-permissions` no entra al pre-push (CLI real).
   Ejecutado por: claude sonnet (criterio).
 
+- [ ] **UI.8.6.1 — 🔍 El hilo sigue pegado al fondo cuando cambia el alto del compositor.** (abierto 2026-10-16)
+  `chat-roles` falló en el pre-push tras UI.8.6: `chat follows content that grows after render` (`atBottom:false`),
+  primera vez. Hipótesis: la tira monta tarde y achica el hilo; `useStickToBottom` no observa el contenedor.
+  Spec: `docs/specs/UI.8.6.1.md`.
+
 **Decisiones pendientes de Carlos dentro de UI.8** (no las toma ningún LLM):
 1. `agents` como tabla propia o proyección derivada (UI.8.2).
 2. Estados de sesión `ended` con **resume/fork** (§C.3) — PI y Codex los tienen; OrchestOS no.

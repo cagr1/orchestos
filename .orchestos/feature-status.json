@@ -418,6 +418,15 @@
       "closedDate": "2026-10-16"
     },
     {
+      "id": "UI.8.6.1",
+      "sprint": "Fase 2 — Producto mínimo para entrega",
+      "block": "H.7 — El contexto se llena en silencio y nadie avisa (ABIERTO 2026-09-02)",
+      "delegation": "🔍",
+      "title": "El hilo sigue pegado al fondo cuando cambia el alto del compositor",
+      "status": "open",
+      "closedDate": null
+    },
+    {
       "id": "UI.24.1",
       "sprint": "Fase 2 — Producto mínimo para entrega",
       "block": "UI.24 — El hilo del chat con acabado premium (CERRADO 2026-10-15: UI.24.1–24.7; abierto 2026-10-13, GO de Carlos)",
