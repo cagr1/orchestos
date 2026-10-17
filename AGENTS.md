@@ -179,6 +179,13 @@ Medidas en los lotes L1–L4 y los ítems de Sprint 30/ERP/I/CX; cada una costó
   `.orchestos/active-item.json` con un scope estrecho, y el commit del cierre falla en `scope:check`: borrarlo al
   cerrar el ítem. (4) Un caso de campo se fecha contra el commit del arreglo antes de usarlo como evidencia
   (CI.23: el `tasks.yaml` sin commitear era anterior a ERP.4.12).
+- **Fronteras de seguridad: revisión `qa` antes de cerrar (AT.21, 2026-10-17).** Con la suite verde y el gate en vivo
+  pasando, `run_readonly` tenía 9 agujeros reales (ejecución de código por `git grep -O`, config hostil del repo,
+  submódulos, `core.worktree`, config truncada, timeout sin matar hijos). Los encontraron el cerebro probando el binario
+  real y 3 rondas de `delegate qa` con reproducciones. Todo ítem que toca una frontera (sandbox, permisos, rutas,
+  ejecución) se cierra solo tras una revisión `qa` sin hallazgos altos. Preferir defensas estructurales (fallar cerrado,
+  comprobar el estado real) a listas de prohibidos: cada lista nueva dejó otro hueco. Dos ejecutores en paralelo: el
+  `mecanico` tocó tests fuera de su alcance mientras `criterio` editaba el mismo módulo; acotar archivos en el spec.
 - **Formato antes de commitear (UI.26.6, 2026-10-14).** El pre-commit no corre `lint`; el pre-push sí. Un
   `result.json` copiado a `docs/done/evidence/` o un `.tsx` retocado tras el `biome check` del ejecutor bloquean el
   push. Antes del commit de cierre: `bunx biome format --write <archivos del commit>`.
