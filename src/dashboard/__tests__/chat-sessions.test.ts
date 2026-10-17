@@ -137,7 +137,17 @@ describe('CC.2 — chat sessions backend', () => {
       db.run('UPDATE chat_turns SET run_id = ? WHERE id = ?', ['measured-run', measuredTurn.turn.id])
       const measured = await (await handleApiChatSessionContext(new URL('http://localhost/api/chat/sessions/' + measuredSession.id + '/context'))).json()
       const measuredOtherModel = await (await handleApiChatSessionContext(new URL('http://localhost/api/chat/sessions/' + measuredSession.id + '/context?model=catalog%2Ftest-model'))).json()
-      process.stdout.write(JSON.stringify({ known, unknown, cleanedRunModel, empty, missing: missing.status, measured, measuredOtherModel }))
+      const nullWindowSession = sessions.createChatSession({ projectId: null, agent: 'codex' })
+      const nullWindowTurn = turns.beginTurn({ sessionId: nullWindowSession.id, projectId: null, requestKey: 'null-window', inputFingerprint: 'null-window', owner: 'test' })
+      db.run('INSERT INTO runs (id, prompt, task_class, model, provider, status, input_tokens, cache_read_tokens, cache_write_tokens, output_tokens, context_used_tokens, context_window_tokens, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', ['null-window-run', 'test', 'chat', 'gpt-6-luna via Codex CLI', 'codex', 'done', 4, 31089, 13837, 362, 32569, null, new Date().toISOString()])
+      db.run('UPDATE chat_turns SET run_id = ? WHERE id = ?', ['null-window-run', nullWindowTurn.turn.id])
+      const nullWindow = await (await handleApiChatSessionContext(new URL('http://localhost/api/chat/sessions/' + nullWindowSession.id + '/context'))).json()
+      const differentModelSession = sessions.createChatSession({ projectId: null, agent: 'codex' })
+      const differentModelTurn = turns.beginTurn({ sessionId: differentModelSession.id, projectId: null, requestKey: 'different-model', inputFingerprint: 'different-model', owner: 'test' })
+      db.run('INSERT INTO runs (id, prompt, task_class, model, provider, status, input_tokens, cache_read_tokens, cache_write_tokens, output_tokens, context_used_tokens, context_window_tokens, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', ['different-model-run', 'test', 'chat', 'gpt-6-luna via Codex CLI', 'codex', 'done', 4, 31089, 13837, 362, 32569, 258400, new Date().toISOString()])
+      db.run('UPDATE chat_turns SET run_id = ? WHERE id = ?', ['different-model-run', differentModelTurn.turn.id])
+      const differentModel = await (await handleApiChatSessionContext(new URL('http://localhost/api/chat/sessions/' + differentModelSession.id + '/context?model=catalog%2Ftest-model'))).json()
+      process.stdout.write(JSON.stringify({ known, unknown, cleanedRunModel, empty, missing: missing.status, measured, measuredOtherModel, nullWindow, differentModel }))
       db.close()
     `)
     expect(result.known).toEqual({
@@ -173,6 +183,16 @@ describe('CC.2 — chat sessions backend', () => {
       engine: 'claude',
     })
     expect(result.measuredOtherModel).toMatchObject({
+      source: 'estimated',
+      model: 'catalog/test-model',
+    })
+    expect(result.nullWindow).toMatchObject({
+      used: 32569,
+      source: 'estimated',
+    })
+    expect(result.differentModel).toMatchObject({
+      used: 32569,
+      window: 20000,
       source: 'estimated',
       model: 'catalog/test-model',
     })

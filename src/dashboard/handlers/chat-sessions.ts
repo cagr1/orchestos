@@ -400,6 +400,19 @@ export async function handleApiChatSessionContext(url: URL): Promise<Response> {
       engine,
     })
   }
+  // CX.6.1 — lo medido se conserva; la ventana se estima si el CLI no la dio o el modelo pedido es otro.
+  if (run.context_used_tokens != null) {
+    const used = run.context_used_tokens
+    const window = await contextWindowFor(model)
+    return jsonResponse({
+      used,
+      window,
+      pct: window ? (used / window) * 100 : null,
+      model,
+      source: 'estimated',
+      engine,
+    })
+  }
   const used = run.input_tokens + run.cache_read_tokens + run.cache_write_tokens + run.output_tokens
   const window = await contextWindowFor(model)
   return jsonResponse({

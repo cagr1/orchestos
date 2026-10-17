@@ -1,7 +1,22 @@
 {
-  "exported_at": "2026-10-17T22:28:41.748Z",
+  "exported_at": "2026-10-17T22:37:14.493Z",
   "total_runs": 20,
   "runs": [
+    {
+      "id": "b640df78-281e-401c-9e67-6059743c8408",
+      "task_class": "chat",
+      "model": "gpt-6.1-sol",
+      "provider": "codex",
+      "status": "done",
+      "qa_verdict": null,
+      "qa_reason": null,
+      "files_blocked": [],
+      "checks_failed": 0,
+      "usd_cost": 0,
+      "elapsed_ms": 10267,
+      "tokens": 22518,
+      "created_at": "2026-10-17T22:35:19.562Z"
+    },
     {
       "id": "063216e3-4ba5-450d-aaac-5c8e12c68e67",
       "task_class": "chat",
@@ -286,21 +301,6 @@
       "elapsed_ms": 0,
       "tokens": 0,
       "created_at": "2026-10-16T17:29:42.384Z"
-    },
-    {
-      "id": "90a201cf-75ce-4778-a809-8bda6c41ffca",
-      "task_class": "gate:erp.4.16-live:implement",
-      "model": "openai/gpt-6-luna",
-      "provider": "codex",
-      "status": "done",
-      "qa_verdict": "pass",
-      "qa_reason": "NOTES.md contains the requested line.",
-      "files_blocked": [],
-      "checks_failed": 0,
-      "usd_cost": 0.00101276,
-      "elapsed_ms": 11495,
-      "tokens": 10522,
-      "created_at": "2026-10-16T02:21:44.796Z"
     }
   ],
   "stats": {
@@ -308,6 +308,6 @@
     "blocked": 0,
     "done": 20,
     "qa_failed": 7,
-    "total_cost_usd": "0.0656"
+    "total_cost_usd": "0.0646"
   }
 }

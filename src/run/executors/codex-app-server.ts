@@ -73,6 +73,9 @@ export class CodexAppServer {
       messageItemId?: string
       messageBoundary?: boolean
       usage: any
+      /** CX.6.1 — `last` del último evento y ventana del modelo (contexto del propio evento). */
+      lastUsage?: any
+      contextWindow?: number | null
       onDelta?: (delta: string) => void
       onStep?: (event: ExecutorStepEvent) => void
       finish: (error?: Error) => void
@@ -207,8 +210,24 @@ export class CodexAppServer {
     }
     if (method === 'thread/tokenUsage/updated') {
       const state = this.turns.get(params.threadId)
-      if (state && (!state.turnId || params.turnId === state.turnId))
-        state.usage = params.tokenUsage?.last
+      if (state && (!state.turnId || params.turnId === state.turnId)) {
+        // Un evento por llamada al modelo: el costo del turno es la suma de cada `last`.
+        const last = params.tokenUsage?.last
+        if (last) {
+          const sum = state.usage ?? {}
+          for (const key of [
+            'inputTokens',
+            'cachedInputTokens',
+            'cacheWriteInputTokens',
+            'outputTokens',
+          ])
+            sum[key] = (sum[key] ?? 0) + (Number(last[key]) || 0)
+          state.usage = sum
+          state.lastUsage = last
+        }
+        if (params.tokenUsage && 'modelContextWindow' in params.tokenUsage)
+          state.contextWindow = params.tokenUsage.modelContextWindow ?? null
+      }
       return
     }
     if (method === 'item/started' && params.item?.type === 'agentMessage') {
@@ -313,6 +332,8 @@ export class CodexAppServer {
     cacheReadTokens: number
     cacheWriteTokens: number
     outputTokens: number
+    contextUsed: number | null
+    contextWindow: number | null
     model?: string
   }> {
     await this.ensureReady()
@@ -409,6 +430,8 @@ export class CodexAppServer {
       turnId: null as string | null,
       text: '',
       usage: null as any,
+      lastUsage: undefined as any,
+      contextWindow: undefined as number | null | undefined,
       onDelta: input.onDelta,
       onStep: input.onStep,
       finish: (_error?: Error) => {},
@@ -479,6 +502,8 @@ export class CodexAppServer {
       cacheReadTokens: state.usage?.cachedInputTokens ?? 0,
       cacheWriteTokens: state.usage?.cacheWriteInputTokens ?? 0,
       outputTokens: state.usage?.outputTokens ?? 0,
+      contextUsed: state.lastUsage ? Number(state.lastUsage.totalTokens) || null : null,
+      contextWindow: state.contextWindow ?? null,
       model: observedModel,
     }
   }

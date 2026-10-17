@@ -459,6 +459,30 @@ describe('runClaudeChat (CC.1)', () => {
     expect(result.cacheReadTokens).toBe(31089)
   })
 
+  it('CX.6.1 — un assistant de subagente (parent_tool_use_id) no cuenta como último contexto', async () => {
+    const call = (cr: number, parent: string | null) => ({
+      type: 'assistant',
+      parent_tool_use_id: parent,
+      message: {
+        model: 'claude-haiku-5-5',
+        content: [{ type: 'text', text: 'x' }],
+        usage: { input_tokens: 2, cache_read_input_tokens: cr, cache_creation_input_tokens: 0 },
+      },
+    })
+    const stdout = streamOf(
+      call(1000, null),
+      call(300, 'toolu_sub'),
+      resultEvent({
+        total_cost_usd: 0,
+        usage: {},
+        modelUsage: { 'claude-haiku-5-5': { contextWindow: 1000000, maxOutputTokens: 128000 } },
+      }),
+    )
+    overrideBunSpawn(makeMockProc(stdout))
+    const result = await runClaudeChat('/tmp/p', 'sys', 'msg', 5000)
+    expect(result.contextUsed).toBe(1002)
+  })
+
   it('CX.6 — sin mensajes assistant con usage o sin ventana: null, no inventa', async () => {
     overrideBunSpawn(
       makeMockProc(streamOf(assistantText('x'), resultEvent({ total_cost_usd: 0, usage: {} }))),

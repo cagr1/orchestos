@@ -165,6 +165,56 @@ describe('Codex app-server', () => {
     server.kill()
   })
 
+  test('CX.6.1 — el costo suma cada llamada del turno; el contexto es el del último evento', async () => {
+    const usageEvent = (
+      id: string,
+      input: number,
+      cached: number,
+      total: number,
+      window: number | null,
+    ) =>
+      `${JSON.stringify({ method: 'thread/tokenUsage/updated', params: { threadId: 'thread-1', turnId: id, tokenUsage: { last: { totalTokens: total, inputTokens: input, cachedInputTokens: cached, cacheWriteInputTokens: 0, outputTokens: 0 }, modelContextWindow: window } } })}\n`
+    const run = async (window: number | null) => {
+      const server = new CodexAppServer({
+        binary: 'codex',
+        env: {},
+        store: store().api,
+        spawnProcess: () =>
+          fakeProcess((request, stdout) => {
+            if (request.method === 'initialize') reply(stdout, request, {})
+            if (request.method === 'thread/start')
+              reply(stdout, request, { thread: { id: 'thread-1', model: 'm' }, model: 'm' })
+            if (request.method === 'turn/start') {
+              reply(stdout, request, { turn: { id: 'turn-1' } })
+              queueMicrotask(() => {
+                stdout.write(usageEvent('turn-1', 23567, 0, 23623, window))
+                stdout.write(usageEvent('turn-1', 23833, 0, 23919, window))
+                stdout.write(usageEvent('turn-1', 32529, 11648, 32569, window))
+                stdout.write(
+                  `${JSON.stringify({ method: 'turn/completed', params: { threadId: 'thread-1', turn: { id: 'turn-1', status: 'completed' } } })}\n`,
+                )
+              })
+            }
+          }),
+      })
+      const result = await server.turn({
+        sessionId: 's',
+        cwd: '/p',
+        systemPrompt: 'rules',
+        message: 'm',
+        timeoutMs: 1000,
+      })
+      server.kill()
+      return result
+    }
+    const measured = await run(258400)
+    expect(measured.inputTokens + measured.cacheReadTokens).toBe(79929)
+    expect(measured.cacheReadTokens).toBe(11648)
+    expect(measured.contextUsed).toBe(32569)
+    expect(measured.contextWindow).toBe(258400)
+    expect((await run(null)).contextWindow).toBeNull()
+  })
+
   test('AT.20 — threadConfig va en thread/start y la llamada MCP real (codex-cli 0.163.0) llega como paso create_task', async () => {
     const calls: any[] = []
     const fixture = await Bun.file(

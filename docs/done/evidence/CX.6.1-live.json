@@ -1,0 +1,28 @@
+{
+  "item": "CX.6.1",
+  "date": "2026-10-17",
+  "dashboard": "http://localhost:4343, reiniciado tras el cambio",
+  "codex_sol_app_server": {
+    "thread": "01a14c01-37b8-79b0-ae45-5ed01fac95e7",
+    "rollout_token_count": [
+      { "last_input": 24260, "last_total": 24311, "total_input": 24260, "total_cached": 12288 },
+      { "last_input": 24521, "last_total": 24579, "total_input": 48781, "total_cached": 36480 },
+      {
+        "last_input": 34506,
+        "last_total": 34556,
+        "total_input": 83287,
+        "total_cached": 60928,
+        "window": 475000
+      }
+    ],
+    "run": {
+      "input_tokens": 22359,
+      "cache_read_tokens": 60928,
+      "output_tokens": 159,
+      "context_used_tokens": 34556,
+      "context_window_tokens": 475000
+    },
+    "check": "22359 + 60928 = 83287 = total_input del turno; antes solo la última llamada"
+  },
+  "playwright": { "chat_ring_tooltip": "34556 de 475000 tokens · codex (medido)" }
+}

@@ -1549,10 +1549,16 @@ En todos: `prefers-reduced-motion` = cambios instantáneos o fundidos cortos.
   Codex `gpt-6-luna` → 32569/258400 = último `token_count` del rollout; Codex `gpt-6.1-sol` → tooltip en Chat y en Dev
   "39152 de 475000 tokens · codex (medido)" = rollout (el catálogo decía 1050000).
   Gate en vivo: navegador real (Playwright), `docs/done/evidence/CX.6-live.json`: hover sobre el anillo en Chat y en Dev.
-- [ ] **CX.6.1 — 🧠 Chat Codex (app-server): costo del turno entero y contexto del propio evento; Claude ignora
-  subagentes.** (abierto 2026-10-17, hallado al verificar CX.6) `codex-app-server.ts:211` guarda solo la última
-  llamada como uso del turno: el costo del chat Codex con herramientas se subcuenta (32529 de 79929 en vivo).
-  Spec: docs/specs/CX.6.1.md
+- [x] **CX.6.1 — 🧠 Chat Codex: costo del turno entero y contexto del propio evento.** (abierto y cerrado
+  2026-10-17, hallado al verificar CX.6) `codex-app-server.ts` guardaba solo la
+  última llamada como uso del turno: el costo del chat Codex con herramientas se subcontaba (32529 de 79929 en vivo).
+  Ahora suma cada `tokenUsage.last`; contexto = `last.totalTokens` y ventana = `modelContextWindow` del evento (el
+  rollout queda solo para `codex exec`). Claude ignora `assistant` de subagentes. El endpoint conserva el `used`
+  medido si la ventana es nula o el modelo pedido es otro (ventana estimada).
+  Ejecutado por: criterio (Sonnet) + mecanico (ajuste del endpoint) · Spec: docs/specs/CX.6.1.md (borrado al cerrar)
+  Evidencia: typecheck y lint (0 errores); `test:coverage` 1937/0 (2 skip). En vivo: turno Codex `gpt-6.1-sol` con
+  2 herramientas → run 22359 + 60928 en caché = 83287 = `total_token_usage` del rollout; contexto 34556/475000.
+  Gate en vivo: navegador real (Playwright), `docs/done/evidence/CX.6.1-live.json`: anillo "34556 de 475000 tokens · codex (medido)".
 - [ ] **ERP.5 — 🔍 Revisar sobrecarga: qué quitar manteniendo fiabilidad y control humano.**
   Pedido de Carlos (2026-09-15). Hacer después de iniciar ERP.4, con evidencia del trabajo real;
   no bloquear AT.10 ni el piloto con otra auditoría extensa. Alcance: reglas/documentos cargados,

@@ -706,6 +706,15 @@
       "closedDate": null
     },
     {
+      "id": "CX.6.1",
+      "sprint": "Fase 3 — Correr dentro de OrchestOS igual que el CLI directo",
+      "block": null,
+      "delegation": "🧠",
+      "title": "Chat Codex: costo del turno entero y contexto del propio evento",
+      "status": "done",
+      "closedDate": null
+    },
+    {
       "id": "ERP.5",
       "sprint": "Fase 3 — Correr dentro de OrchestOS igual que el CLI directo",
       "block": null,

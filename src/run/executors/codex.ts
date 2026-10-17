@@ -566,7 +566,8 @@ export async function runCodexChat(
       outputTokens: result.outputTokens,
       usd,
       model: result.model ?? model ?? 'codex (cli default model)',
-      ...(await readCodexRolloutContext(configHome.path, result.threadId)),
+      contextUsed: result.contextUsed,
+      contextWindow: result.contextWindow,
     }
   } catch (error) {
     if (

@@ -301,7 +301,7 @@ async function runClaudeCode(
     try {
       const evt = JSON.parse(line)
       if (evt?.type === 'result') resultLine = line
-      if (evt?.type === 'assistant' && evt.message?.usage) {
+      if (evt?.type === 'assistant' && evt.message?.usage && evt.parent_tool_use_id == null) {
         const u = evt.message.usage
         lastAssistant = {
           used:
