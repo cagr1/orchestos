@@ -3,7 +3,7 @@ import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync
 import { tmpdir } from 'os'
 import { join, relative } from 'path'
 import { writeChatImages } from '../../chat/attachment-files.ts'
-import { buildChatSystemPrompt } from '../../chat/chat-context.ts'
+import { buildChatSystemPrompt, rejectedSessionTasks } from '../../chat/chat-context.ts'
 import { decideClaudeResume } from '../../chat/claude-resume.ts'
 import { extractTextFromImage } from '../../chat/ocr.ts'
 import { loadOrcheConfig } from '../../config/load.ts'
@@ -1326,8 +1326,16 @@ async function handleApiChat(
         existsSync(join(root, file)),
       )
     : []
+  const rejectedTasks =
+    hasProjectContext && session
+      ? rejectedSessionTasks(
+          listChatMessages(session.id),
+          taskRows.map((t) => t.id),
+        )
+      : undefined
   const systemPrompt = buildChatSystemPrompt({
     tasks: hasProjectContext ? taskRows : undefined,
+    rejectedTasks,
     taskCounts,
     runs: recentRuns,
     qaReasons,

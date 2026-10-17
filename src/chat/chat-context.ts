@@ -32,6 +32,30 @@ interface ChatPromptInput {
   now?: Date
   timeZone?: string
   readTools?: string
+  rejectedTasks?: Array<{ id: string; description: string }>
+}
+
+/**
+ * Tareas propuestas en la sesión que el usuario rechazó (se borran): mensaje con `task_id`, ese id ya no
+ * está en tasks.yaml y no hay un reporte posterior de la misma tarea (misma regla que App.tsx `taskDeleted`).
+ */
+export function rejectedSessionTasks(
+  messages: Array<{ id: number; task_id: string | null; content: string; taskReport?: unknown }>,
+  existingTaskIds: Iterable<string>,
+): Array<{ id: string; description: string }> {
+  const existing = new Set(existingTaskIds)
+  const out = new Map<string, string>()
+  for (const row of messages) {
+    if (!row.task_id || row.taskReport || existing.has(row.task_id)) continue
+    const taskId = row.task_id
+    const hasLaterReport = messages.some(
+      (other) => other.task_id === taskId && other.taskReport && other.id > row.id,
+    )
+    if (hasLaterReport) continue
+    out.delete(taskId)
+    out.set(taskId, row.content)
+  }
+  return [...out].map(([id, description]) => ({ id, description }))
 }
 
 export function chatProjectContext(profile: StackProfile): string {
@@ -143,6 +167,14 @@ export function buildChatSystemPrompt(input: ChatPromptInput): string {
       )
     }
     lines.push('Read tasks.yaml for full task descriptions.')
+  }
+  if (input.rejectedTasks?.length) {
+    lines.push('\nRejected by the user (deleted, nothing was run):')
+    for (const t of input.rejectedTasks.slice(-5)) {
+      const desc = (t.description.split(/\r?\n/, 1)[0] ?? '').trim()
+      lines.push(`  - ${t.id}: ${desc.length > 80 ? `${desc.slice(0, 79).trimEnd()}…` : desc}`)
+    }
+    lines.push('If the user asks for it again, call create_task again.')
   }
   if (input.runs?.length) {
     const unknown = input.runs.filter(
