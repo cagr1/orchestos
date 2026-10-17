@@ -156,8 +156,8 @@ export default async function chatContinuity({
   )
   await step('Claude second prompt excludes sentinel', !question.includes(sentinel), question)
   await step(
-    'Claude CLI receives prior sentinel from transcript',
-    claudeCapture.includes(sentinel),
+    'Claude resumed turn sends no transcript (AT.19.1)',
+    !claudeCapture.includes('Conversation so far') && !claudeCapture.includes(sentinel),
     claudeCapture,
   )
   await step('Claude first reply is non-empty', !!firstClaude.api.trim(), firstClaude.api)

@@ -4,6 +4,7 @@ import { tmpdir } from 'os'
 import { join, relative } from 'path'
 import { writeChatImages } from '../../chat/attachment-files.ts'
 import { buildChatSystemPrompt } from '../../chat/chat-context.ts'
+import { decideClaudeResume } from '../../chat/claude-resume.ts'
 import { extractTextFromImage } from '../../chat/ocr.ts'
 import { loadOrcheConfig } from '../../config/load.ts'
 import type { RoleAgent } from '../../config/schema.ts'
@@ -11,8 +12,10 @@ import { estimateTokens } from '../../context/compress.ts'
 import { refreshProjectContext } from '../../context/load.ts'
 import {
   getChatSession,
+  getClaudeChatSession,
   listChatMessages,
   sessionAllowsTaskExecution,
+  setClaudeChatSession,
 } from '../../db/chat-sessions.ts'
 import { insertChatTurnStep } from '../../db/chat-turn-steps.ts'
 import {
@@ -1536,25 +1539,58 @@ async function handleApiChat(
     // combinedText incluye el texto de PDFs/archivos vía untrustedContent.
     const CLAUDE_CHAT_TIMEOUT_MS = 120_000
     if (useClaudeCli) {
-      const { runClaudeChat } = await import('../../run/executors/external.ts')
+      const { runClaudeChat, ClaudeSessionNotFoundError } = await import(
+        '../../run/executors/external.ts'
+      )
+      const { chatContextHash } = await import('../../run/executors/codex-app-server.ts')
       const isolatedCwd = hasProjectContext ? null : mkdtempSync(join(tmpdir(), 'orchestos-chat-'))
       const imageNote = cliImagePaths.map((p) => `\nAttached image: ${p}`).join('')
-      const cliInput = `${transcript}${combinedText}${imageNote}`
+      const claudeContextHash = chatContextHash(systemPrompt)
+      const resumeDecision = decideClaudeResume({
+        hasSession: !!session,
+        hasProjectContext,
+        stored: session
+          ? getClaudeChatSession(session.id)
+          : { sessionId: null, contextHash: null, messageCount: null },
+        historyLength: rawHistory.length,
+        contextHash: claudeContextHash,
+      })
+      const contextUpdate = resumeDecision.contextUpdate
+        ? `<orchestos-context-update>\n${systemPrompt}\n</orchestos-context-update>\n\n`
+        : ''
+      const cliInput = resumeDecision.resume
+        ? `${contextUpdate}${combinedText}${imageNote}`
+        : `${transcript}${combinedText}${imageNote}`
       if (session) captureChatCliInput(session.id, cliInput)
       try {
-        const result = await runClaudeChat(
-          isolatedCwd ?? root,
-          systemPrompt,
-          cliInput,
-          CLAUDE_CHAT_TIMEOUT_MS,
-          model,
-          cliEffort,
-          persistChatStep,
-          (text) => {
-            if (activeTurnId && session) appendLiveText(session.id, activeTurnId, text)
-          },
-          cliImages && cliImagePaths.length > 0 ? cliImages.dir : undefined,
-        )
+        const runTurn = (input: string, resumeSessionId?: string) =>
+          runClaudeChat(
+            isolatedCwd ?? root,
+            systemPrompt,
+            input,
+            CLAUDE_CHAT_TIMEOUT_MS,
+            model,
+            cliEffort,
+            persistChatStep,
+            (text) => {
+              if (activeTurnId && session) appendLiveText(session.id, activeTurnId, text)
+            },
+            cliImages && cliImagePaths.length > 0 ? cliImages.dir : undefined,
+            resumeSessionId,
+          )
+        let result: Awaited<ReturnType<typeof runTurn>>
+        try {
+          result = await runTurn(cliInput, resumeDecision.resume ?? undefined)
+        } catch (resumeError) {
+          if (!(resumeError instanceof ClaudeSessionNotFoundError)) throw resumeError
+          persistChatStep({
+            type: 'reasoning',
+            label: 'Claude session expired — started a new one (earlier turns were resent)',
+          })
+          const retryInput = `${transcript}${combinedText}${imageNote}`
+          if (session) captureChatCliInput(session.id, retryInput)
+          result = await runTurn(retryInput)
+        }
         const resultLabel = `${result.model} via Claude Code CLI${result.effort ? ` (effort: ${result.effort})` : ''}`
         const { text: responseText } = await settleTaskIntent(result.text)
         finishTurnSuccess({
@@ -1571,6 +1607,14 @@ async function handleApiChat(
           reportedUsd: result.usd,
           cliSessionId: result.sessionId,
         })
+        // +2: el mensaje del usuario y la respuesta que `appendChatExchange` acaba de guardar.
+        if (session && hasProjectContext && result.sessionId)
+          setClaudeChatSession(
+            session.id,
+            result.sessionId,
+            claudeContextHash,
+            rawHistory.length + 2,
+          )
         return jsonResponse({
           text: responseText,
           model: resultLabel,

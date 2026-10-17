@@ -46,6 +46,9 @@ export function codexContextHash(prompt: string): string {
   return createHash('sha256').update(normalizedPrompt(prompt)).digest('hex')
 }
 
+/** Mismo hash, nombre neutro: lo usan también los chats de otros CLI (AT.19.1). */
+export const chatContextHash = codexContextHash
+
 export class CodexAppServer {
   private child: Child | null = null
   private reader: ReturnType<typeof createInterface> | null = null

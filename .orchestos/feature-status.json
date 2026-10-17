@@ -648,7 +648,7 @@
       "block": null,
       "delegation": "🔍",
       "title": "Lo que Claude notó corriendo dentro del chat de OrchestOS (2026-10-14)",
-      "status": "open",
+      "status": "done",
       "closedDate": null
     },
     {
@@ -657,7 +657,7 @@
       "block": null,
       "delegation": "🔍",
       "title": "Turnos reales para Claude en el chat (`--resume`), punto 1 de AT.19",
-      "status": "open",
+      "status": "done",
       "closedDate": null
     },
     {

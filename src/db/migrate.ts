@@ -847,6 +847,44 @@ export const FUTURE_MIGRATIONS: readonly SchemaMigrationStep[] = [
         throw new Error('Migration 25 did not add chat_messages.task_report')
     },
   },
+  {
+    // AT.19.1: sesión del CLI de Claude por chat (`--resume`), como el hilo de Codex (migración 16).
+    version: 26,
+    name: 'claude-chat-session',
+    precondition: () => {},
+    apply: (database) => {
+      const table = database
+        .query<{ name: string }, []>(
+          "SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'chat_sessions'",
+        )
+        .get()
+      if (!table) return
+      const columns = database
+        .query<{ name: string }, []>('PRAGMA table_info(chat_sessions)')
+        .all()
+        .map((row) => row.name)
+      if (!columns.includes('claude_session_id'))
+        database.exec('ALTER TABLE chat_sessions ADD COLUMN claude_session_id TEXT NULL')
+      if (!columns.includes('claude_context_hash'))
+        database.exec('ALTER TABLE chat_sessions ADD COLUMN claude_context_hash TEXT NULL')
+      if (!columns.includes('claude_message_count'))
+        database.exec('ALTER TABLE chat_sessions ADD COLUMN claude_message_count INTEGER NULL')
+    },
+    postcondition: (database) => {
+      const columns = database
+        .query<{ name: string }, []>('PRAGMA table_info(chat_sessions)')
+        .all()
+        .map((row) => row.name)
+      if (
+        columns.length > 0 &&
+        (!columns.includes('claude_session_id') ||
+          !columns.includes('claude_context_hash') ||
+          !columns.includes('claude_message_count'))
+      ) {
+        throw new Error('Migration 26 did not add Claude chat session columns')
+      }
+    },
+  },
 ]
 
 function appliedVersions(database: Database): Set<number> {

@@ -143,6 +143,21 @@ describe('runClaudeChat (CC.1)', () => {
     expect(args[addDir + 1]).toBe(process.cwd())
   })
 
+  it('AT.19.1 — --resume solo aparece con resumeSessionId', () => {
+    const base = buildClaudeChatArgs('system', undefined, undefined, '/s.json', '/proj')
+    expect(base).not.toContain('--resume')
+    const resumed = buildClaudeChatArgs(
+      'system',
+      undefined,
+      undefined,
+      '/s.json',
+      '/proj',
+      undefined,
+      'abc-123',
+    )
+    expect(resumed[resumed.indexOf('--resume') + 1]).toBe('abc-123')
+  })
+
   it('UI.24.6a — el directorio de adjuntos se suma con --add-dir; sin él los args no cambian', () => {
     const base = buildClaudeChatArgs('system', undefined, undefined, '/s.json', '/proj')
     expect(

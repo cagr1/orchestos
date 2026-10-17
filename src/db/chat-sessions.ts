@@ -230,6 +230,42 @@ export function setCodexChatThread(sessionId: string, threadId: string, contextH
   ])
 }
 
+export function getClaudeChatSession(sessionId: string): {
+  sessionId: string | null
+  contextHash: string | null
+  messageCount: number | null
+} {
+  const row = db
+    .query<
+      {
+        claude_session_id: string | null
+        claude_context_hash: string | null
+        claude_message_count: number | null
+      },
+      string
+    >(
+      'SELECT claude_session_id, claude_context_hash, claude_message_count FROM chat_sessions WHERE id = ?',
+    )
+    .get(sessionId)
+  return {
+    sessionId: row?.claude_session_id ?? null,
+    contextHash: row?.claude_context_hash ?? null,
+    messageCount: row?.claude_message_count ?? null,
+  }
+}
+
+export function setClaudeChatSession(
+  sessionId: string,
+  claudeSessionId: string,
+  contextHash: string,
+  messageCount: number,
+): void {
+  db.run(
+    'UPDATE chat_sessions SET claude_session_id = ?, claude_context_hash = ?, claude_message_count = ? WHERE id = ?',
+    [claudeSessionId, contextHash, messageCount, sessionId],
+  )
+}
+
 export function updateChatSession(
   id: string,
   patch: { mode?: ChatSessionMode; title?: string },

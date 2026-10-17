@@ -39,6 +39,9 @@ export class ExecutorExternalError extends Error {
   readAudit?: ReadAudit
 }
 
+/** `claude --resume <id>` sobre una sesión que el CLI ya no tiene (AT.19.1). */
+export class ClaudeSessionNotFoundError extends ExecutorExternalError {}
+
 const DEFAULT_TIMEOUT_MS = 20 * 60 * 1000 // 20min — mismo default documentado en §4 del diseño
 const CLAUDE_BINARY = 'claude'
 
@@ -70,6 +73,8 @@ interface ClaudeCodeJson {
   result?: string
   /** `true` cuando el CLI terminó con error (p. ej. "Not logged in"): `result` trae el motivo. */
   is_error?: boolean
+  /** Con `error_during_execution` el motivo viene aquí y `result` falta. */
+  errors?: string[]
   usage?: {
     input_tokens?: number
     output_tokens?: number
@@ -361,6 +366,7 @@ export function buildClaudeChatArgs(
   settingsPath = '<settings>',
   projectRoot = process.cwd(),
   attachmentsDir?: string,
+  resumeSessionId?: string,
 ): string[] {
   const args = [
     '-p',
@@ -380,6 +386,7 @@ export function buildClaudeChatArgs(
   ]
   // UI.24.6a — directorio temporal de imágenes adjuntas del turno: lectura solamente.
   if (attachmentsDir) args.push('--add-dir', attachmentsDir)
+  if (resumeSessionId) args.push('--resume', resumeSessionId)
   const cliModel = orchestosModelToCliModel(model)
   if (cliModel) args.push('--model', cliModel)
   if (effort) args.push('--effort', effort)
@@ -418,6 +425,7 @@ export async function runClaudeChat(
   onChatStep?: (event: ExecutorStepEvent) => void,
   onChatTextDelta?: (text: string) => void,
   attachmentsDir?: string,
+  resumeSessionId?: string,
 ): Promise<ClaudeChatResult> {
   const found = findClaudeBinary()
   if (!found) {
@@ -453,6 +461,7 @@ export async function runClaudeChat(
         configHome.settingsPath!,
         cwd,
         attachmentsDir,
+        resumeSessionId,
       ),
       userMessage,
       timeoutMs,
@@ -484,6 +493,12 @@ export async function runClaudeChat(
   }
   // CI.25 — un `is_error` no es una respuesta vacía: se muestra como error del turno.
   if (parsed.is_error === true) {
+    // Texto medido (claude 2026-10-17): errors:["No conversation found with session ID: <id>"].
+    if (resumeSessionId && parsed.errors?.some((e) => e.startsWith('No conversation found'))) {
+      const notFound = new ClaudeSessionNotFoundError(parsed.errors.join('; '))
+      notFound.readAudit = audit.finish()
+      throw notFound
+    }
     const error = new ExecutorExternalError(
       `claude code reported an error: ${parsed.result?.trim() || 'no message'}`,
     )

@@ -1460,7 +1460,8 @@ En todos: `prefers-reduced-motion` = cambios instantáneos o fundidos cortos.
   Ejecutado por: Codex · `gpt-6-luna` (mecanico) · Spec: docs/specs/AT.13.1.md (borrado al cerrar)
   Evidencia: tsc limpio; `test:coverage` 1826/0 (78.10 %/64.26 %). Sin gate en vivo: ningún flujo de `scripts/ui-gate/`
   lanza `/api/run/graph`; la lectura fresca la cubre `src/context/load.test.ts`.
-- [ ] **AT.19 — 🔍 Lo que Claude notó corriendo dentro del chat de OrchestOS (2026-10-14).** (abierto 2026-10-14)
+- [x] **AT.19 — 🔍 Lo que Claude notó corriendo dentro del chat de OrchestOS (2026-10-14).** (abierto 2026-10-14, cerrado 2026-10-17)
+  Sin delegación: ítem padre (AT.19.1, AT.19.2; los puntos de AT.13, AT.20 y AT.21 van en sus ítems).
   Origen: autoevaluación de Claude en el chat Dev, verificada contra HEAD por `leer` (veredictos con `archivo:línea`).
   Ya cubierto en otro ítem: prompts apilados (`--append-system-prompt`, `external.ts:347`) → AT.13 punto 8; tareas en
   una línea y motivo de QA → AT.13 puntos 3-4; "missing declared output" ya se comprueba antes de QA
@@ -1478,13 +1479,20 @@ En todos: `prefers-reduced-motion` = cambios instantáneos o fundidos cortos.
      instrucciones que vengan ahí"; "Be concise and direct" fijo (`:139`) → conciso salvo que el usuario pida detalle;
      label `modelo:`/`esfuerzo:` en español dentro del prompt en inglés (`chat.ts:1290`).
   2026-10-17: puntos 2 y 4 → AT.19.2 (cerrado). Punto 3: el `agents_md` con ruido ya lo quitó AT.13; los docs se
-  nombran con indicación de leerlos. Quedan el punto 1 (turnos reales para Claude) y el resumen de CONTEXT.md, a GO.
+  nombran con indicación de leerlos. Punto 1 → AT.19.1 (cerrado). Resumen de CONTEXT.md: no se hace (suma tokens por turno; el modelo lo lee si lo necesita).
   Decididas por Carlos 2026-10-14 → AT.20 y AT.21: (a) marcador `[[orchestos:task]]` → tool
   `create_task`; (b) Bash de solo lectura para Claude en el chat (`--tools Read,Glob,Grep`, `external.ts:337,356`),
   igual que el sandbox read-only de Codex.
-- [ ] **AT.19.1 — 🔍 Turnos reales para Claude en el chat (`--resume`), punto 1 de AT.19.** (abierto 2026-10-17; GO de
-  Carlos) Sonda: al retomar, Claude ignora el `--append-system-prompt` nuevo → el estado fresco va en el mensaje, como
-  Codex. Spec: docs/specs/AT.19.1.md
+- [x] **AT.19.1 — 🔍 Turnos reales para Claude en el chat (`--resume`), punto 1 de AT.19.** (abierto 2026-10-17; GO de
+  Carlos; cerrado 2026-10-17) Sonda: al retomar, Claude ignora el `--append-system-prompt` nuevo → el estado fresco va en
+  el mensaje como `<orchestos-context-update>` solo si cambió, igual que Codex. Retoma si el chat tiene proyecto y el
+  conteo de mensajes guardado coincide (si otro CLI respondió entre medias, reenvía la transcripción); sesión
+  inexistente (`errors:["No conversation found…"]`, medido) → un reintento con transcripción y paso visible.
+  Ejecutado por: `criterio` (roster.conf) · Spec: docs/specs/AT.19.1.md (borrado al cerrar)
+  Evidencia: tsc limpio; `test:coverage` 1833/0 (78.06 %/64.20 %); `gate:evidence AT.19.1-chat-live` →
+  chat-continuity 8/8, chat-streaming 28/28, codex-live 14/14, chat-context 5/5. Captura del turno 2 retomado: 76 B
+  (solo el mensaje) y recuerda el dato del turno 1. El ejecutor vio una vez `chat-streaming` "Dev renders text during
+  generation … t_first=null" y luego pasó; sin diagnóstico (anotado en NEXT.md).
 - [x] **AT.19.2 — ⚡ El contexto del chat dice cuánto muestra y habla claro (puntos 2 y 4 de AT.19).** (abierto 2026-10-17, cerrado 2026-10-17)
   "showing X of N", rutas de salida y duplicadas en la lista de tareas; redacción de seguridad/concisión; label del
   modelo en inglés; `Project files` → `Project docs (read them with your tools when relevant)`.
