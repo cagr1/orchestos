@@ -1480,6 +1480,9 @@ En todos: `prefers-reduced-motion` = cambios instantáneos o fundidos cortos.
   Decididas por Carlos 2026-10-14 → AT.20 y AT.21: (a) marcador `[[orchestos:task]]` → tool
   `create_task`; (b) Bash de solo lectura para Claude en el chat (`--tools Read,Glob,Grep`, `external.ts:337,356`),
   igual que el sandbox read-only de Codex.
+- [ ] **AT.19.2 — ⚡ El contexto del chat dice cuánto muestra y habla claro (puntos 2 y 4 de AT.19).** (abierto 2026-10-17)
+  "showing X of N", rutas de salida y duplicadas en la lista de tareas; redacción de seguridad/concisión; label del
+  modelo en inglés. Spec: docs/specs/AT.19.2.md
 - [ ] **AT.20 — 🔍 El chat crea tareas con una herramienta (`create_task`), no con un marcador.** (abierto 2026-10-14;
   GO de Carlos: "haz el cambio y ya no presentes el plan") Servidor MCP propio de OrchestOS + adaptador por CLI en el
   registro: lo mismo para todo LLM. Spec: docs/specs/AT.20.md

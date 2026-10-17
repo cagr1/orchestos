@@ -652,6 +652,15 @@
       "closedDate": null
     },
     {
+      "id": "AT.19.2",
+      "sprint": "Fase 3 — Correr dentro de OrchestOS igual que el CLI directo",
+      "block": null,
+      "delegation": "⚡",
+      "title": "El contexto del chat dice cuánto muestra y habla claro (puntos 2 y 4 de AT.19)",
+      "status": "open",
+      "closedDate": null
+    },
+    {
       "id": "AT.20",
       "sprint": "Fase 3 — Correr dentro de OrchestOS igual que el CLI directo",
       "block": null,
