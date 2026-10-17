@@ -1297,9 +1297,9 @@ async function handleApiChat(
       ? (selectedEffort as ReasoningEffort)
       : undefined
   const modelLabel = useClaudeCli
-    ? `Claude Code CLI — modelo: ${model || '(default del CLI)'}${cliEffort ? `, esfuerzo: ${cliEffort}` : ''}`
+    ? `Claude Code CLI — model: ${model || '(CLI default)'}${cliEffort ? `, effort: ${cliEffort}` : ''}`
     : useCodexCli
-      ? `Codex CLI — modelo: ${model || '(default del CLI)'}${cliEffort ? `, esfuerzo: ${cliEffort}` : ''}`
+      ? `Codex CLI — model: ${model || '(CLI default)'}${cliEffort ? `, effort: ${cliEffort}` : ''}`
       : isOllama
         ? `${model.replace('ollama/', '')} vía Ollama (local) — modelo local, los resultados pueden variar`
         : `${model} via OpenRouter`
