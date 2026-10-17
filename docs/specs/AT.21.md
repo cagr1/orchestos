@@ -58,3 +58,28 @@ Prohibido: `git stash`, `git commit`, `git checkout`/`restore`, `prettier`. Escr
    "¿cuál es el último commit?" con Claude y con Codex y afirme: paso visible con `run_readonly`/`git log`, y SHA real
    (`git rev-parse --short HEAD` del fixture) en la respuesta. Si es flujo nuevo y usa CLIs reales, decir si entra al
    pre-push (los de chat entran por ruta, ver `scripts/pre-push.sh`).
+
+## Ronda 2 (cerebro, 2026-10-17) — dos agujeros de ejecución de código, medidos con git 2.50.1
+La revisión del cerebro ejecutó código de proyecto a través de `planReadonly` (las 5 entradas dieron "PASA"):
+- `["git","grep","-iOsh","PWNED"]` → git agrupa opciones cortas en los subcomandos con parse-options (grep, blame,
+  status, ls-files, branch, rev-parse); `-O` con valor pegado `sh` ejecutó `sh a.sh` (archivo creado en `/tmp`).
+- `["git","grep","--open-files=sh","x"]`, `--open=sh` → git acepta **abreviaturas** de opciones largas en esos
+  subcomandos; `matchesFlag` solo compara el nombre exacto. Ejecutó `sh a.sh`. `git log --outp=…` y
+  `git status --porc` también pasan el plan (diff/log rechazan la abreviatura en el binario, pero no hay que depender
+  de eso).
+
+Corregir:
+1. **Abreviaturas**: añadir `GIT_TEST_DISALLOW_ABBREVIATED_OPTIONS=1` al env de git (medido: `fatal: disallowed
+   abbreviated or ambiguous option 'open-files'`, sin ejecutar nada). Además, en el plan, rechazar todo nombre largo
+   que sea prefijo estricto de un flag denegado (defensa propia, no solo del binario).
+2. **Opciones cortas agrupadas**: en todo token de un solo guion de git, examinar cada letra como hace parse-options:
+   rechazar si contiene `O` (en cualquier subcomando) o `o` en diff/log/show; y si contiene una letra de flag con ruta
+   (`f` en grep, `X` en ls-files, `S` en blame) con el valor pegado, validar ese valor como ruta. Lo más simple y
+   seguro: rechazar en git todo token corto agrupado (más de una letra tras `-`) que contenga una de esas letras.
+3. **Tests**, uno por caso, con las 5 entradas exactas de arriba más `-Osh`, `-iO`, `--open-files-in-pager=sh`, y uno
+   de integración que ejecute `runReadonly` con `git grep -iOsh` en un repo temporal y compruebe que el archivo
+   centinela NO se crea.
+4. Revisar con la misma lógica `rg` (sin abreviaturas en ripgrep 14: confirmarlo con el binario embebido que ya usaste)
+   y `ls` (BSD `ls` no ejecuta nada; confirmar).
+
+Verificación: typecheck, `bun run lint` (0 errores), `test:coverage`, `bun run ui:gate chat-readonly-shell`.
