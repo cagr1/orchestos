@@ -194,7 +194,7 @@ describe('Codex app-server', () => {
           }
         }),
     })
-    const threadConfig = codexMcpThreadConfig()
+    const threadConfig = codexMcpThreadConfig({ tools: ['create_task'], root: '/p' })
     await server.turn({
       sessionId: 's',
       cwd: '/p',
@@ -248,22 +248,26 @@ describe('Codex app-server', () => {
       ...base,
       message: 'two',
       transcript: 'earlier turns\n',
-      threadConfig: codexMcpThreadConfig(),
+      threadConfig: codexMcpThreadConfig({ tools: ['create_task'], root: '/p' }),
       onStep: (step) => steps.push(step),
     })
     const starts = calls.filter((x) => x.method === 'thread/start')
     expect(starts).toHaveLength(2)
     expect(starts[0].params.config).toBeUndefined()
-    expect(starts[1].params.config).toEqual(codexMcpThreadConfig())
+    expect(starts[1].params.config).toEqual(
+      codexMcpThreadConfig({ tools: ['create_task'], root: '/p' }),
+    )
     expect(calls.filter((x) => x.method === 'thread/resume')).toHaveLength(0)
     const secondTurn = calls.filter((x) => x.method === 'turn/start')[1]
     expect(secondTurn.params.threadId).toBe('thread-2')
     expect(secondTurn.params.input[0].text).toContain('earlier turns')
-    expect(steps.some((s) => String(s.label).includes('restarted to enable task creation'))).toBe(
-      true,
-    )
+    expect(steps.some((s) => String(s.label).includes('restarted to change its tools'))).toBe(true)
     // Mismo estado de herramienta en el turno siguiente: sin reabrir.
-    await server.turn({ ...base, message: 'three', threadConfig: codexMcpThreadConfig() })
+    await server.turn({
+      ...base,
+      message: 'three',
+      threadConfig: codexMcpThreadConfig({ tools: ['create_task'], root: '/p' }),
+    })
     expect(calls.filter((x) => x.method === 'thread/start')).toHaveLength(2)
     server.kill()
   })

@@ -19,7 +19,7 @@
 
 import { realpathSync } from 'node:fs'
 import { loadOrcheConfig } from '../../config/load.ts'
-import { claudeMcpArgs } from '../../mcp/adapters.ts'
+import { claudeMcpArgs, type McpOffer } from '../../mcp/adapters.ts'
 import { safeChildEnv } from '../path-policy.ts'
 import { ClaudeReadAudit, type ReadAudit, successfulReadPaths } from '../read-audit.ts'
 import { KNOWN_CLIS, provisionCliConfigHome, supportsRestrictedMode } from './cli-registry.ts'
@@ -368,7 +368,7 @@ export function buildClaudeChatArgs(
   projectRoot = process.cwd(),
   attachmentsDir?: string,
   resumeSessionId?: string,
-  offerTaskTool = false,
+  mcpOffer?: McpOffer,
 ): string[] {
   const args = [
     '-p',
@@ -389,8 +389,8 @@ export function buildClaudeChatArgs(
   // UI.24.6a — directorio temporal de imágenes adjuntas del turno: lectura solamente.
   if (attachmentsDir) args.push('--add-dir', attachmentsDir)
   if (resumeSessionId) args.push('--resume', resumeSessionId)
-  // AT.20 — va en cada invocación, también al retomar con --resume.
-  if (offerTaskTool) args.push(...claudeMcpArgs())
+  // AT.20/AT.21 — va en cada invocación, también al retomar con --resume.
+  if (mcpOffer?.tools.length) args.push(...claudeMcpArgs(mcpOffer))
   const cliModel = orchestosModelToCliModel(model)
   if (cliModel) args.push('--model', cliModel)
   if (effort) args.push('--effort', effort)
@@ -430,7 +430,7 @@ export async function runClaudeChat(
   onChatTextDelta?: (text: string) => void,
   attachmentsDir?: string,
   resumeSessionId?: string,
-  offerTaskTool = false,
+  mcpOffer?: McpOffer,
 ): Promise<ClaudeChatResult> {
   const found = findClaudeBinary()
   if (!found) {
@@ -467,7 +467,7 @@ export async function runClaudeChat(
         cwd,
         attachmentsDir,
         resumeSessionId,
-        offerTaskTool,
+        mcpOffer,
       ),
       userMessage,
       timeoutMs,

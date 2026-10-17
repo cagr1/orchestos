@@ -101,6 +101,15 @@ interface ClaudeResultEvent {
   usage?: { input_tokens?: number; output_tokens?: number }
 }
 
+/** AT.21 — la fila de una llamada `run_readonly` muestra el comando (`git log -1`), no el JSON de argumentos. */
+export function readonlyCommandTarget(label: string, args: unknown): string | undefined {
+  if (!label.endsWith('__run_readonly')) return undefined
+  const argv = (args as { argv?: unknown } | null | undefined)?.argv
+  return Array.isArray(argv) && argv.every((a) => typeof a === 'string')
+    ? argv.join(' ')
+    : undefined
+}
+
 export function claudeEventToStep(raw: unknown): ExecutorStepEvent[] {
   const evt = raw as ClaudeAssistantEvent & ClaudeResultEvent
   if (!evt || typeof evt !== 'object') return []
@@ -120,7 +129,7 @@ export function claudeEventToStep(raw: unknown): ExecutorStepEvent[] {
             ? input.file_path
             : typeof input?.path === 'string'
               ? input.path
-              : undefined
+              : readonlyCommandTarget(block.name, input)
         const oldText = typeof input?.old_string === 'string' ? input.old_string : undefined
         const newText = typeof input?.new_string === 'string' ? input.new_string : undefined
         const content = typeof input?.content === 'string' ? input.content : undefined
@@ -324,12 +333,18 @@ export function codexEventToStep(raw: unknown): ExecutorStepEvent[] {
     }
     // AT.20 — llamada MCP en `codex exec`; mismo paso que emite el app-server.
     if (item.type === 'mcp_tool_call') {
+      const mcpTarget = (it: any) =>
+        readonlyCommandTarget(
+          it.server && it.tool ? `mcp__${it.server}__${it.tool}` : '',
+          it.arguments,
+        )
       return [
         {
           type: 'tool_use',
           label:
             item.server && item.tool ? `mcp__${item.server}__${item.tool}` : (item.tool ?? 'mcp'),
           detail: item.arguments === undefined ? item.server : JSON.stringify(item.arguments),
+          ...(mcpTarget(item) === undefined ? {} : { target: mcpTarget(item) }),
           ok: item.status === 'failed' ? false : item.status === 'completed' ? true : undefined,
         },
       ]

@@ -35,7 +35,12 @@
 import { homedir } from 'node:os'
 import { join } from 'node:path'
 import { getChatSession, getCodexChatThread, setCodexChatThread } from '../../db/chat-sessions.ts'
-import { codexExecMcpArgs, codexMcpThreadConfig } from '../../mcp/adapters.ts'
+import {
+  codexExecMcpArgs,
+  codexMcpThreadConfig,
+  type McpOffer,
+  mcpOfferKey,
+} from '../../mcp/adapters.ts'
 import { getCatalog } from '../../router/model-catalog.ts'
 import { knownCostWithCache } from '../../router/pricing.ts'
 import { safeChildEnv } from '../path-policy.ts'
@@ -310,7 +315,7 @@ export function buildCodexChatArgs(
   model?: string,
   cliEffort?: string,
   imagePaths: string[] = [],
-  offerTaskTool = false,
+  mcpOffer?: McpOffer,
 ): string[] {
   const args = [
     'exec',
@@ -330,7 +335,7 @@ export function buildCodexChatArgs(
   // UI.24.6a — `codex exec -i, --image <FILE>...`; va tras el prompt, un flag por imagen.
   for (const path of imagePaths) args.push('--image', path)
   // AT.20 — respaldo sin app-server: el servidor MCP va por `-c` y se aprueba su herramienta sin preguntar.
-  if (offerTaskTool) args.push(...codexExecMcpArgs())
+  if (mcpOffer?.tools.length) args.push(...codexExecMcpArgs(mcpOffer))
   return args
 }
 
@@ -358,7 +363,7 @@ async function runCodexChatExec(
   onChatStep?: (event: ExecutorStepEvent) => void,
   projectRoot?: string,
   imagePaths: string[] = [],
-  offerTaskTool = false,
+  mcpOffer?: McpOffer,
 ): Promise<CodexChatResult> {
   if (!findCodexBinary()) {
     throw new ExecutorCodexError(codexUnavailableMessage(process.env.PATH))
@@ -380,7 +385,7 @@ async function runCodexChatExec(
   try {
     ;({ stdout, timedOut } = await runCodex(
       cwd,
-      buildCodexChatArgs(prompt, codexModel, cliEffort, imagePaths, offerTaskTool),
+      buildCodexChatArgs(prompt, codexModel, cliEffort, imagePaths, mcpOffer),
       timeoutMs,
       onStep,
       buildCodexChatEnv(configHome.path),
@@ -443,7 +448,7 @@ export async function runCodexChat(
   transcript?: string,
   projectRoot?: string,
   imagePaths: string[] = [],
-  offerTaskTool = false,
+  mcpOffer?: McpOffer,
 ): Promise<CodexChatResult> {
   if (!sessionId)
     return runCodexChatExec(
@@ -456,7 +461,7 @@ export async function runCodexChat(
       onChatStep,
       projectRoot,
       imagePaths,
-      offerTaskTool,
+      mcpOffer,
     )
   if (!findCodexBinary()) throw new ExecutorCodexError(codexUnavailableMessage(process.env.PATH))
   if (model && !orchestosModelToCodexModel(model))
@@ -492,7 +497,8 @@ export async function runCodexChat(
       transcript,
       model: orchestosModelToCodexModel(model),
       effort: cliEffort,
-      threadConfig: offerTaskTool ? codexMcpThreadConfig() : undefined,
+      threadConfig: mcpOffer?.tools.length ? codexMcpThreadConfig(mcpOffer) : undefined,
+      offerKey: mcpOfferKey(mcpOffer),
       timeoutMs,
       onDelta: onTextDelta,
       onStep: notifyStep,
@@ -540,7 +546,7 @@ export async function runCodexChat(
         onChatStep,
         undefined,
         imagePaths,
-        offerTaskTool,
+        mcpOffer,
       )
     }
     throw error

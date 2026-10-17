@@ -2,7 +2,11 @@ import { describe, expect, test } from 'bun:test'
 import { join } from 'node:path'
 import { runToolLoop } from '../providers/tool-call.ts'
 import { buildCodexChatArgs } from '../run/executors/codex.ts'
-import { claudeEventToStep, codexEventToStep } from '../run/executors/step-event.ts'
+import {
+  claudeEventToStep,
+  codexEventToStep,
+  readonlyCommandTarget,
+} from '../run/executors/step-event.ts'
 import {
   claudeMcpArgs,
   codexExecMcpArgs,
@@ -73,9 +77,53 @@ describe('servidor MCP de OrchestOS (stdio real)', () => {
     expect(replies[4].error.code).toBe(-32601)
   })
 
-  test('con --no-tasks create_task responde error', async () => {
+  test('tools/list solo lista las herramientas pedidas; la no ofrecida es desconocida', async () => {
+    const [list, call] = await talk(
+      ['--tools', 'run_readonly', '--root', process.cwd()],
+      [
+        { jsonrpc: '2.0', id: 1, method: 'tools/list' },
+        {
+          jsonrpc: '2.0',
+          id: 2,
+          method: 'tools/call',
+          params: { name: 'create_task', arguments: validArgs },
+        },
+      ],
+    )
+    expect(list.result.tools.map((t: any) => t.name)).toEqual(['run_readonly'])
+    expect(call.error.code).toBe(-32602)
+  })
+
+  test('run_readonly por stdio real: git log -1 responde con el SHA del repo', async () => {
+    const sha = (await Bun.$`git rev-parse --short HEAD`.cwd(process.cwd()).text()).trim()
+    const [reply, denied] = await talk(
+      ['--tools', 'create_task,run_readonly', '--root', process.cwd()],
+      [
+        {
+          jsonrpc: '2.0',
+          id: 1,
+          method: 'tools/call',
+          params: {
+            name: 'run_readonly',
+            arguments: { argv: ['git', 'log', '-1', '--format=%h'] },
+          },
+        },
+        {
+          jsonrpc: '2.0',
+          id: 2,
+          method: 'tools/call',
+          params: { name: 'run_readonly', arguments: { argv: ['sh', '-c', 'id'] } },
+        },
+      ],
+    )
+    expect(reply.result.isError).toBe(false)
+    expect(reply.result.content[0].text.trim().split('\n')[0]).toBe(sha)
+    expect(denied.result.isError).toBe(true)
+  })
+
+  test('sin --tools solo create_task', async () => {
     const [reply] = await talk(
-      ['--no-tasks'],
+      [],
       [
         {
           jsonrpc: '2.0',
@@ -85,7 +133,7 @@ describe('servidor MCP de OrchestOS (stdio real)', () => {
         },
       ],
     )
-    expect(reply.result.isError).toBe(true)
+    expect(reply.result.isError).toBe(false)
   })
 })
 
@@ -141,11 +189,22 @@ describe('adaptadores MCP — líneas de stream reales', () => {
   })
 
   test('claude y codex reciben el servidor por su mecanismo', () => {
-    const args = claudeMcpArgs()
+    const offer = { tools: ['create_task', 'run_readonly'], root: '/proj' }
+    const args = claudeMcpArgs(offer)
     expect(args[0]).toBe('--mcp-config')
-    expect(JSON.parse(args[1]!).mcpServers.orchestos.args[0]).toBe(SERVER)
-    expect(args.slice(2)).toEqual(['--allowedTools', 'mcp__orchestos__create_task'])
-    expect((codexMcpThreadConfig() as any).mcp_servers.orchestos.args[0]).toBe(SERVER)
+    expect(JSON.parse(args[1]!).mcpServers.orchestos.args).toEqual([
+      SERVER,
+      '--tools',
+      'create_task,run_readonly',
+      '--root',
+      '/proj',
+    ])
+    expect(args.slice(2)).toEqual([
+      '--allowedTools',
+      'mcp__orchestos__create_task',
+      'mcp__orchestos__run_readonly',
+    ])
+    expect((codexMcpThreadConfig(offer) as any).mcp_servers.orchestos.args[0]).toBe(SERVER)
   })
 })
 
@@ -172,12 +231,15 @@ describe('AT.20 ronda 2', () => {
   })
 
   test('codex exec: el servidor va por -c solo si se ofrece la herramienta', () => {
-    const mcp = codexExecMcpArgs()
+    const offer = { tools: ['create_task'], root: '/proj' }
+    const mcp = codexExecMcpArgs(offer)
     expect(mcp.filter((a) => a === '-c')).toHaveLength(3)
     expect(mcp[1]).toBe(`mcp_servers.orchestos.command=${JSON.stringify(process.execPath)}`)
-    expect(mcp[3]).toBe(`mcp_servers.orchestos.args=${JSON.stringify([SERVER])}`)
+    expect(mcp[3]).toBe(
+      `mcp_servers.orchestos.args=${JSON.stringify([SERVER, '--tools', 'create_task', '--root', '/proj'])}`,
+    )
     expect(mcp[5]).toBe('mcp_servers.orchestos.default_tools_approval_mode="approve"')
-    expect(buildCodexChatArgs('p', undefined, undefined, [], true).join(' ')).toContain(
+    expect(buildCodexChatArgs('p', undefined, undefined, [], offer).join(' ')).toContain(
       'mcp_servers.orchestos.command',
     )
     expect(buildCodexChatArgs('p').join(' ')).not.toContain('mcp_servers')
@@ -239,5 +301,26 @@ describe('AT.20 ronda 2', () => {
       if (prevKey === undefined) delete process.env.OPENROUTER_API_KEY
       else process.env.OPENROUTER_API_KEY = prevKey
     }
+  })
+})
+
+describe('AT.21 fila del hilo', () => {
+  test('run_readonly muestra el comando como target, en claude y en el helper', () => {
+    const steps = claudeEventToStep({
+      type: 'assistant',
+      message: {
+        content: [
+          {
+            type: 'tool_use',
+            id: 't1',
+            name: 'mcp__orchestos__run_readonly',
+            input: { argv: ['git', 'log', '-1'] },
+          },
+        ],
+      },
+    })
+    expect(steps[0]?.target).toBe('git log -1')
+    expect(readonlyCommandTarget('mcp__orchestos__create_task', { argv: ['x'] })).toBeUndefined()
+    expect(readonlyCommandTarget('mcp__orchestos__run_readonly', { argv: [1] })).toBeUndefined()
   })
 })

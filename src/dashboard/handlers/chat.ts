@@ -30,7 +30,15 @@ import {
 import type { MemoryEntry } from '../../db/memory.ts'
 import { insertRun, listContextRuns } from '../../db/runs.ts'
 import { db } from '../../db/sqlite.ts'
-import { createTaskApiTool, type TaskProposal, taskProposalFromStep } from '../../mcp/adapters.ts'
+import {
+  createTaskApiTool,
+  type McpOffer,
+  runReadonlyApiTool,
+  type TaskProposal,
+  taskProposalFromStep,
+} from '../../mcp/adapters.ts'
+import { RUN_READONLY_TOOL } from '../../mcp/readonly.ts'
+import { CREATE_TASK_TOOL } from '../../mcp/server.ts'
 import {
   createToolRouter,
   FETCH_URL_TOOL,
@@ -1315,6 +1323,16 @@ async function handleApiChat(
     (useClaudeCli ||
       (useCodexCli && !!session) ||
       (!useCodexCli && !isOllama && supportsToolCalling('openrouter', model)))
+  // AT.21 — `run_readonly` se ofrece con cualquier proyecto (también en modo chat); `create_task` con su condición.
+  const readonlyOffered =
+    hasProjectContext &&
+    (useClaudeCli || useCodexCli || (!isOllama && supportsToolCalling('openrouter', model)))
+  const offeredTools = [
+    ...(taskToolOffered ? [CREATE_TASK_TOOL] : []),
+    ...(readonlyOffered ? [RUN_READONLY_TOOL] : []),
+  ]
+  const mcpOffer: McpOffer | undefined =
+    (useClaudeCli || useCodexCli) && offeredTools.length ? { tools: offeredTools, root } : undefined
   const autoTaskInstruction = buildAutoTaskInstruction({
     hasProjectContext,
     mode: session?.mode,
@@ -1349,6 +1367,7 @@ async function handleApiChat(
     now: new Date(),
     timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
     readTools: CLAUDE_CHAT_TOOLS,
+    offeredTools,
   })
   // Solo lo activa scripts/ui-gate/run.mjs.
   if (process.env.ORCHESTOS_GATE_CAPTURE_DIR && session)
@@ -1594,7 +1613,7 @@ async function handleApiChat(
             },
             cliImages && cliImagePaths.length > 0 ? cliImages.dir : undefined,
             resumeSessionId,
-            taskToolOffered,
+            mcpOffer,
           )
         let result: Awaited<ReturnType<typeof runTurn>>
         try {
@@ -1683,7 +1702,7 @@ async function handleApiChat(
           transcript,
           undefined,
           cliImagePaths,
-          taskToolOffered,
+          mcpOffer,
         )
         const resultLabel = `${result.model} via Codex CLI${cliEffort ? ` (effort: ${cliEffort})` : ''}`
         const { text: responseText } = await settleTaskIntent(result.text)
@@ -1808,6 +1827,7 @@ async function handleApiChat(
     if (hasProjectContext && supportsToolCalling('openrouter', model)) {
       const readCollector = new ReadAuditCollector('openrouter-local-tools')
       const auditedReader = createAuditedProjectReader(root, readCollector)
+      const readonlyTool = runReadonlyApiTool(root)
       const createTaskTool = taskToolOffered
         ? createTaskApiTool((proposal) => {
             taskProposal = proposal
@@ -1824,9 +1844,11 @@ async function handleApiChat(
           READ_IDEAS_TOOL,
           READ_FILE_TOOL,
           ...(createTaskTool ? [createTaskTool.tool] : []),
+          readonlyTool.tool,
         ],
         executeTool: createToolRouter({
           ...(createTaskTool ? { [createTaskTool.tool.name]: createTaskTool.execute } : {}),
+          [readonlyTool.tool.name]: readonlyTool.execute,
           fetch_url: (name, input) => executeFetchUrl(name, input),
           search_memory: (name, input) => executeSearchMemory(name, input, project.id),
           read_plan: auditedReader,

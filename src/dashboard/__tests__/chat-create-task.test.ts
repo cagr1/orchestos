@@ -22,8 +22,8 @@ describe('create_task en el chat', () => {
 
   it('claude recibe --mcp-config en cada invocación, también con --resume, y solo si se ofrece', () => {
     const base = ['prompt', undefined, undefined, '<settings>', '/p', undefined] as const
-    const first = buildClaudeChatArgs(...base, undefined, true)
-    const resumed = buildClaudeChatArgs(...base, 'sess-1', true)
+    const first = buildClaudeChatArgs(...base, undefined, { tools: ['create_task'], root: '/p' })
+    const resumed = buildClaudeChatArgs(...base, 'sess-1', { tools: ['create_task'], root: '/p' })
     expect(first).toContain('--mcp-config')
     expect(resumed).toContain('--mcp-config')
     expect(resumed).toContain('--resume')

@@ -1522,9 +1522,22 @@ En todos: `prefers-reduced-motion` = cambios instantáneos o fundidos cortos.
   Ejecutado por: `criterio` (roster.conf) · Spec: docs/specs/CI.29.md (borrado al cerrar)
   Evidencia: typecheck y lint (0 errores) limpios; `test:coverage` 1844/0; `gate:evidence CI.29-chat-turn-details` ×3 →
   `PASS chat-turn-details 29/29` las 3 veces; el pre-push completo la vuelve a correr.
-- [ ] **AT.21 — 🔍 Shell de solo lectura para todo CLI de chat.** (abierto 2026-10-14; Carlos: "no solo a Claude, debe
-  ser algo para todos los LLM") Herramienta `run_readonly` del mismo servidor, frontera hecha cumplir por OrchestOS.
-  Spec: docs/specs/AT.21.md
+- [x] **AT.21 — 🔍 Shell de solo lectura para todo CLI de chat.** (abierto 2026-10-14; Carlos: "no solo a Claude, debe
+  ser algo para todos los LLM"; cerrado 2026-10-17) Herramienta `run_readonly` del mismo servidor, frontera hecha cumplir por OrchestOS.
+  `src/mcp/readonly.ts`, común al servidor MCP (Claude, Codex app-server, `codex exec`) y al chat por API; se ofrece en
+  todo chat con proyecto. git (9 subcomandos), `ls`, `rg`, sin shell. Endurecida en 6 rondas, 3 de ellas tras revisión
+  adversarial `qa` de otro proveedor con reproducciones reales: `git grep -O` agrupado/abreviado ejecutaba código
+  (`GIT_TEST_DISALLOW_ABBREVIATED_OPTIONS=1` + flags cortos agrupados), config hostil del repo (filtros, gpg,
+  `include.path`; se lista la config efectiva y se neutraliza o se falla cerrado), submódulos, `core.worktree` fuera
+  (`rev-parse --show-toplevel` = raíz), listado de config truncado (tope 1 MB, si no, rechazo), plazo único con muerte
+  de grupo, `--ignore-revs-file`/`mailmap`. Gate: Codex puede verificar con su shell nativo en sandbox read-only
+  (decisión del cerebro; Claude exige `run_readonly`).
+  Ejecutado por: `criterio` (roster.conf) rondas 1-3, 5-6; `mecanico` ronda 4 (gate; también tocó 2 tests fuera de
+  alcance, cambio menor aceptado) · Spec: docs/specs/AT.21.md (borrado al cerrar)
+  Evidencia: typecheck y lint (0 errores); `test:coverage` 1932/0 (2 skip); `gate:evidence AT.21-chat-live` →
+  chat-readonly-shell 5/5 (Claude y Codex citan el SHA real), chat-context 5/5, chat-roles 10/10, chat-continuity 8/8,
+  chat-streaming 27/27, codex-live 14/14; contraprueba del cerebro con los fixtures de qa: centinela no creado.
+  Abierto, bajo: `core.excludesFile` de la config global del usuario se lee con `ls-files --exclude-standard`.
 - [ ] **CX.6 — 🔍 El anillo de contexto muestra el contexto real, en Chat y en Dev.** (abierto 2026-10-14; pedido de
   Carlos) Hoy `used` suma el run entero y `window` sale de catálogo (`chat-sessions.ts:378-382`). Spec: docs/specs/CX.6.md
 - [ ] **ERP.5 — 🔍 Revisar sobrecarga: qué quitar manteniendo fiabilidad y control humano.**

@@ -3,7 +3,7 @@ import { createHash } from 'node:crypto'
 import { mkdirSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { createInterface } from 'node:readline'
-import type { ExecutorStepEvent } from './step-event.ts'
+import { type ExecutorStepEvent, readonlyCommandTarget } from './step-event.ts'
 
 type JsonRpcMessage = {
   id?: string | number
@@ -35,7 +35,7 @@ interface CodexAppServerOptions {
   spawnProcess?: (binary: string, env: Record<string, string>) => Child
 }
 
-/** Override de config que se pasa al hilo (AT.20: servidor MCP con `create_task`). */
+/** Override de config que se pasa al hilo (AT.20/AT.21: servidor MCP con `create_task` y/o `run_readonly`). */
 type ThreadConfig = Record<string, unknown>
 
 function normalizedPrompt(prompt: string): string {
@@ -63,7 +63,8 @@ export class CodexAppServer {
   private ready: Promise<void> | null = null
   private resumed = new Set<string>()
   /** AT.20 — si el hilo se abrió/reanudó con la herramienta `create_task` (solo en este proceso). */
-  private toolOffered = new Map<string, boolean>()
+  /** Clave de las herramientas MCP (conjunto + raíz) con que se abrió cada hilo; '' = ninguna. */
+  private toolOffered = new Map<string, string>()
   private turns = new Map<
     string,
     {
@@ -244,14 +245,18 @@ export class CodexAppServer {
           detail: paths || JSON.stringify(item.changes ?? []),
           target: paths || undefined,
         })
-      } else if (item?.type === 'mcpToolCall')
+      } else if (item?.type === 'mcpToolCall') {
+        const label =
+          item.server && item.tool ? `mcp__${item.server}__${item.tool}` : (item.tool ?? 'mcp')
+        const target = readonlyCommandTarget(label, item.arguments)
         state.onStep?.({
           type: 'tool_use',
-          label:
-            item.server && item.tool ? `mcp__${item.server}__${item.tool}` : (item.tool ?? 'mcp'),
+          label,
+          ...(target === undefined ? {} : { target }),
           detail: item.arguments === undefined ? item.server : JSON.stringify(item.arguments),
           ok: item.status === 'failed' ? false : item.status === 'completed' ? true : undefined,
         })
+      }
       return
     }
     if (method === 'turn/completed') {
@@ -294,8 +299,10 @@ export class CodexAppServer {
     transcript?: string
     model?: string
     effort?: string
-    /** AT.20 — `config` de `thread/start`/`thread/resume`; solo si el hilo puede proponer tareas. */
+    /** AT.20/AT.21 — `config` de `thread/start`/`thread/resume`; solo si el turno ofrece herramientas MCP. */
     threadConfig?: ThreadConfig
+    /** Clave de las herramientas ofrecidas (`mcpOfferKey`); ausente = la del propio config. */
+    offerKey?: string
     timeoutMs: number
     onDelta?: (delta: string) => void
     onStep?: (event: ExecutorStepEvent) => void
@@ -311,6 +318,7 @@ export class CodexAppServer {
     await this.ensureReady()
     const stored = this.options.store.get(input.sessionId)
     const hash = codexContextHash(input.systemPrompt)
+    const offerKey = input.threadConfig ? (input.offerKey ?? 'tools') : ''
     let threadId = stored.threadId
     let observedModel: string | undefined
     let threadRecreated = false
@@ -329,7 +337,7 @@ export class CodexAppServer {
       observedModel = result?.model ?? result?.thread?.model ?? undefined
       this.options.store.set(input.sessionId, threadId, hash)
       this.resumed.add(threadId)
-      this.toolOffered.set(threadId, !!input.threadConfig)
+      this.toolOffered.set(threadId, offerKey)
     } else {
       const startReplacement = async (stepLabel: string) => {
         const started = await this.request('thread/start', {
@@ -348,21 +356,23 @@ export class CodexAppServer {
         observedModel = started?.model ?? started?.thread?.model ?? undefined
         this.options.store.set(input.sessionId, threadId, hash)
         this.resumed.add(threadId)
-        this.toolOffered.set(threadId, !!input.threadConfig)
+        this.toolOffered.set(threadId, offerKey)
         input.onStep?.({ type: 'reasoning', label: stepLabel })
       }
-      // AT.20 — medido con codex-cli 0.163.0: un `thread/resume` repetido sobre un hilo ya reanudado en este
-      // proceso NO aplica `config`. Si el turno necesita la herramienta y el hilo se abrió sin ella
-      // (p. ej. modo `chat` → `code`), se abre un hilo nuevo con la transcripción.
+      // AT.20/AT.21 — medido con codex-cli 0.163.0: un `thread/resume` repetido sobre un hilo ya reanudado en este
+      // proceso NO aplica `config`. Si el turno necesita un conjunto de herramientas (o una raíz) distinto del
+      // del hilo (p. ej. modo `chat` → `code`), se abre un hilo nuevo con la transcripción.
+      const openedWith = this.toolOffered.get(threadId)
       if (
         this.resumed.has(threadId) &&
         input.threadConfig &&
-        this.toolOffered.get(threadId) === false
+        openedWith !== undefined &&
+        openedWith !== offerKey
       ) {
         await startReplacement(
           input.transcript
-            ? 'Codex thread restarted to enable task creation (earlier turns were resent)'
-            : "Codex thread restarted to enable task creation (earlier turns are not in Codex's memory)",
+            ? 'Codex thread restarted to change its tools (earlier turns were resent)'
+            : "Codex thread restarted to change its tools (earlier turns are not in Codex's memory)",
         )
       } else if (!this.resumed.has(threadId)) {
         try {
@@ -377,7 +387,7 @@ export class CodexAppServer {
           })
           observedModel = resumed?.thread?.model ?? undefined
           this.resumed.add(threadId)
-          this.toolOffered.set(threadId, !!input.threadConfig)
+          this.toolOffered.set(threadId, offerKey)
         } catch (error) {
           if (!(error instanceof CodexAppServerError) || !isExpiredThreadError(error.message))
             throw error
