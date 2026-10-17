@@ -108,3 +108,14 @@ Modelo de amenaza: el chat no escribe, pero un ejecutor de tareas (workspace-wri
    reales (lista corta de excepciones: `--text`), con test.
 
 Verificación: typecheck, `bun run lint` (0 errores), `test:coverage`, `bun run ui:gate chat-readonly-shell`.
+
+## Ronda 4 (cerebro, 2026-10-17) — gate: Codex puede verificar con su shell nativo (decisión del cerebro)
+`chat-readonly-shell` falló en Codex: respondió el SHA real pero la fila fue `tool_use:command` (su shell nativo, que
+corre en el sandbox `read-only` del app-server, frontera técnica que este spec mantiene). Decisión: para Codex la
+aserción acepta la fila `run_readonly` **o** la fila nativa `command`, en ambos casos con el comando visible que empiece
+por `git log` (o contenga `git log`, si el nativo lo envuelve en `bash -lc`); Claude sigue exigiendo `run_readonly`.
+Cambiar SOLO `scripts/ui-gate/flows/chat-readonly-shell.mjs` (`askLatestCommit`, ~`:84-92`): parámetro
+`allowNative` para Codex; el detalle del paso dice cuál de las dos filas se usó. Comprobar en el timeline real de
+Codex qué campo trae el comando de la fila nativa (`target` o `detail`) antes de escribir la aserción.
+Verificación: `bun run lint` (0 errores) y `bun run ui:gate chat-readonly-shell` PASS dos veces seguidas; pegar el
+detalle de los pasos de Codex de ambas corridas.
