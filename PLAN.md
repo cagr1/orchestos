@@ -37,7 +37,7 @@ Fiabilidad abierta, sin orden fijo (se atiende cuando el pre-push la tumba): CI.
 Documentación y código muerto: DOC.1 y LIMP.1 (GO de Carlos 2026-10-14).
 
 ### Fase 3 — Correr dentro de OrchestOS igual que el CLI directo
-AT.13 (el contexto inyectado dice la verdad y no pesa) → AT.19 (lo que Claude notó dentro del chat) → AT.20 → AT.21 → CX.6 → ERP.5 (qué quitar) → H.7.2c → H.7.3 (aviso de contexto)
+AT.13 (el contexto inyectado dice la verdad y no pesa) → AT.19 (lo que Claude notó dentro del chat; AT.19.1, AT.19.2) → AT.20 → AT.21 → CX.6 → ERP.6 (demostrar que no pesa) → ERP.5 (qué quitar) → ERP.7 (T3 Code) → H.7.2c → H.7.3 (aviso de contexto)
 → AT.11 (adaptadores genéricos).
 
 ### Fuera de las tres fases (no se abren sin GO)
@@ -1482,6 +1482,9 @@ En todos: `prefers-reduced-motion` = cambios instantáneos o fundidos cortos.
   Decididas por Carlos 2026-10-14 → AT.20 y AT.21: (a) marcador `[[orchestos:task]]` → tool
   `create_task`; (b) Bash de solo lectura para Claude en el chat (`--tools Read,Glob,Grep`, `external.ts:337,356`),
   igual que el sandbox read-only de Codex.
+- [ ] **AT.19.1 — 🔍 Turnos reales para Claude en el chat (`--resume`), punto 1 de AT.19.** (abierto 2026-10-17; GO de
+  Carlos) Sonda: al retomar, Claude ignora el `--append-system-prompt` nuevo → el estado fresco va en el mensaje, como
+  Codex. Spec: docs/specs/AT.19.1.md
 - [x] **AT.19.2 — ⚡ El contexto del chat dice cuánto muestra y habla claro (puntos 2 y 4 de AT.19).** (abierto 2026-10-17, cerrado 2026-10-17)
   "showing X of N", rutas de salida y duplicadas en la lista de tareas; redacción de seguridad/concisión; label del
   modelo en inglés; `Project files` → `Project docs (read them with your tools when relevant)`.
@@ -1524,6 +1527,15 @@ puede entregarse después, pero el piloto debe mostrar permisos reales y los lí
 La corrida sobre carlosgallardo.dev citada en AT queda como smoke opcional, no criterio de éxito.
 Revisión documental de esta ruta: preflight AT.10 válido; verificación por lectura, sin corrida
 ERP ni prueba visual nueva. Los ítems permanecen abiertos hasta sus gates reales.
+- [ ] **ERP.6 — 🔍 Demostrar que OrchestOS no se siente más pesado que el CLI directo.** (abierto 2026-10-17; pedido de
+  Carlos: "tenemos que demostrar que usar OrchestOS no se siente más pesado para el modelo, tiene reglas claras y no es
+  costoso en tokens o uso") Mismo pedido directo al CLI y por OrchestOS (chat y tarea): tokens de contexto inyectado,
+  tokens totales, cuota, latencia y calidad de respuesta, medidos y publicados; cada diferencia se explica o se corta.
+  Va después de AT.19.1, AT.20, AT.21 y CX.6 (miden lo que se inyecta) y alimenta ERP.5.
+- [ ] **ERP.7 — 🔍 Revisar T3 Code: dónde fallamos y cómo cubrir nuestras debilidades.** (abierto 2026-10-17; pedido de
+  Carlos tras leer buenas críticas y un tier list que lo pone arriba, con Orca en C) No es "adaptemos": comparar lado a
+  lado (instalarlo y usarlo, no leerlo como texto) peso por turno, reglas, UX del chat y control humano, y abrir ítems
+  por cada debilidad propia con evidencia. Después de ERP.6.
 - [ ] **H.7.2c — ⚡ Registro de adaptadores: falta OpenCode.** Hallazgo por código
   (2026-09-08, Claude, verificando el hook H.7.3 a pedido de Carlos — "verifica que esto se
   cumpla para cualquier modelo"). `DEFAULT_ADAPTERS` en `scripts/context-adapters.ts:267` solo

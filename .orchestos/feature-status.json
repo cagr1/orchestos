@@ -652,6 +652,15 @@
       "closedDate": null
     },
     {
+      "id": "AT.19.1",
+      "sprint": "Fase 3 — Correr dentro de OrchestOS igual que el CLI directo",
+      "block": null,
+      "delegation": "🔍",
+      "title": "Turnos reales para Claude en el chat (`--resume`), punto 1 de AT.19",
+      "status": "open",
+      "closedDate": null
+    },
+    {
       "id": "AT.19.2",
       "sprint": "Fase 3 — Correr dentro de OrchestOS igual que el CLI directo",
       "block": null,
@@ -693,6 +702,24 @@
       "block": null,
       "delegation": "🔍",
       "title": "Revisar sobrecarga: qué quitar manteniendo fiabilidad y control humano",
+      "status": "open",
+      "closedDate": null
+    },
+    {
+      "id": "ERP.6",
+      "sprint": "Fase 3 — Correr dentro de OrchestOS igual que el CLI directo",
+      "block": null,
+      "delegation": "🔍",
+      "title": "Demostrar que OrchestOS no se siente más pesado que el CLI directo",
+      "status": "open",
+      "closedDate": null
+    },
+    {
+      "id": "ERP.7",
+      "sprint": "Fase 3 — Correr dentro de OrchestOS igual que el CLI directo",
+      "block": null,
+      "delegation": "🔍",
+      "title": "Revisar T3 Code: dónde fallamos y cómo cubrir nuestras debilidades",
       "status": "open",
       "closedDate": null
     },
