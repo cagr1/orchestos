@@ -605,11 +605,9 @@ export default async function autoFlow({ page, api, step, shot, visible, cleanup
     .allInnerTexts()
     .catch(() => [])
   const nonModelText = proseTexts.reduce((text, prose) => text.replace(prose, ''), chatText)
-  const implementationLeaks = [
-    'tasks.yaml',
-    'engine:',
-    'executor_model',
-  ].filter((needle) => nonModelText.includes(needle))
+  const implementationLeaks = ['tasks.yaml', 'engine:', 'executor_model'].filter((needle) =>
+    nonModelText.includes(needle),
+  )
   const absoluteProjectPath = nonModelText.includes(projectRoot)
   const sourcePathError = /Error:\s*[^\n]*src\//.test(nonModelText)
   await step(

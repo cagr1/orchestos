@@ -182,6 +182,9 @@ Medidas en los lotes L1–L4 y los ítems de Sprint 30/ERP/I/CX; cada una costó
 - **Formato antes de commitear (UI.26.6, 2026-10-14).** El pre-commit no corre `lint`; el pre-push sí. Un
   `result.json` copiado a `docs/done/evidence/` o un `.tsx` retocado tras el `biome check` del ejecutor bloquean el
   push. Antes del commit de cierre: `bunx biome format --write <archivos del commit>`.
+  (AT.20, 2026-10-17) Biome **sí** revisa los `.mjs` de `scripts/ui-gate/` (el ejecutor afirmó lo contrario) y
+  `bun run lint` del repo entero da 0 errores (solo warnings/infos): el spec pide `bun run lint` con exit 0, no
+  "biome de lo tocado".
 
 - **CSS del front (UI.24.1, 2026-10-13).** El build (`bun-plugin-tailwind`) rebaja `color-mix()` dentro de una
   propiedad personalizada a su valor de respaldo: `--x: color-mix(...)` llega al navegador como el primer color.
