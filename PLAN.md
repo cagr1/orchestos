@@ -1513,6 +1513,9 @@ En todos: `prefers-reduced-motion` = cambios instantáneos o fundidos cortos.
   pasos del marcador salieron de chat-roles y chat-streaming); tarjeta "Approve & Run" en vivo con Claude y Codex desde la
   llamada a `create_task` (captura `chat-turn-details/held-task.png`). Sin probar en vivo: modo code→chat con el hilo
   Codex que conserva la herramienta (`settleTaskIntent` descarta la propuesta).
+- [ ] **CI.29 — 🔍 El modelo del chat no se entera de que el usuario rechazó una tarea.** (abierto 2026-10-17) El
+  pre-push de AT.20 cayó en `chat-turn-details` "second held task card visible": tras Reject (borra la tarea) y repetir
+  el pedido, el modelo dice "sigue pendiente" y no llama a `create_task`. 2.ª vez visto. Spec: docs/specs/CI.29.md
 - [ ] **AT.21 — 🔍 Shell de solo lectura para todo CLI de chat.** (abierto 2026-10-14; Carlos: "no solo a Claude, debe
   ser algo para todos los LLM") Herramienta `run_readonly` del mismo servidor, frontera hecha cumplir por OrchestOS.
   Spec: docs/specs/AT.21.md

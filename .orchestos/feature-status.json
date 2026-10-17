@@ -679,6 +679,15 @@
       "closedDate": null
     },
     {
+      "id": "CI.29",
+      "sprint": "Fase 3 — Correr dentro de OrchestOS igual que el CLI directo",
+      "block": null,
+      "delegation": "🔍",
+      "title": "El modelo del chat no se entera de que el usuario rechazó una tarea",
+      "status": "open",
+      "closedDate": null
+    },
+    {
       "id": "AT.21",
       "sprint": "Fase 3 — Correr dentro de OrchestOS igual que el CLI directo",
       "block": null,
