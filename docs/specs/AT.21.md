@@ -83,3 +83,28 @@ Corregir:
    y `ls` (BSD `ls` no ejecuta nada; confirmar).
 
 Verificación: typecheck, `bun run lint` (0 errores), `test:coverage`, `bun run ui:gate chat-readonly-shell`.
+
+## Ronda 3 (cerebro, 2026-10-17) — hallazgos de la revisión adversarial `qa` (reproducidos con salida cruda)
+Modelo de amenaza: el chat no escribe, pero un ejecutor de tareas (workspace-write) o el usuario pueden dejar
+`.git/config`/`.gitattributes` hostiles; `run_readonly` no debe ejecutar nada de ahí.
+1. **Config del repo que ejecuta programas.** `filter.<x>.clean` (vía `.gitattributes`) se ejecutó con `git diff` y
+   `git blame a.txt`; `log.showSignature=true` + `gpg.program=<script>` se ejecutó con `git log -1` y `git show`.
+   Corregir así (genérico, no por nombre fijo): antes de cada llamada, listar la config efectiva con
+   `git config --list --includes --name-only` (mismo env endurecido; solo lee) y, por cada clave cuyo nombre sea de
+   ejecución, pasar un `-c <clave>=` de neutralización: `filter.*.clean|smudge|process` → vacío (y
+   `filter.*.required=false`), `diff.*.textconv|command` → vacío, `gpg.program`, `gpg.*.program` → `false`
+   (binario que no hace nada) , `core.pager`, `pager.*` → `cat`, `core.fsmonitor=false`, `core.sshCommand`,
+   `credential.helper` → vacío, `core.hooksPath=/dev/null`. Además siempre: `-c log.showSignature=false`,
+   `--no-show-signature` en log/show, `GIT_CONFIG_GLOBAL=/dev/null` NO (rompe la identidad de lectura; no hace falta).
+   Si alguna clave no admite valor vacío, usar la variante que la desactiva; medir cada una con git 2.50.1.
+   Tests de integración (repo temporal, centinela que NO debe crearse) para: filtro clean en diff y blame;
+   gpg verifier con `log -1` y `show --no-patch HEAD`; `diff.<x>.textconv` con `--textconv` ya prohibido y sin él;
+   `core.pager` hostil; `include.path` que trae un `filter.*.clean`.
+2. **Timeout que no corta hijos.** `runReadonly(["git","diff"], root, 100)` tardó 2106 ms. Al vencer: matar el
+   proceso y su grupo si Bun lo permite (`detached`/`process.kill(-pid)`), y en todo caso cancelar los lectores de
+   stdout/stderr y resolver de inmediato con `[timed out after Ns]`. Test: un hijo que duerme 5 s con streams
+   abiertos → la llamada vuelve en < 1 s con timeout de 100 ms.
+3. Menor: `git log --text` se rechaza por ser prefijo de `--textconv`; permitir nombres exactos que sean opciones
+   reales (lista corta de excepciones: `--text`), con test.
+
+Verificación: typecheck, `bun run lint` (0 errores), `test:coverage`, `bun run ui:gate chat-readonly-shell`.
