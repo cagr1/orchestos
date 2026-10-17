@@ -1499,9 +1499,20 @@ En todos: `prefers-reduced-motion` = cambios instantáneos o fundidos cortos.
   Ejecutado por: Codex · `gpt-6-luna` (mecanico) · Spec: docs/specs/AT.19.2.md (borrado al cerrar)
   Evidencia: tsc limpio; `test:coverage` 1828/0; `gate:evidence AT.19.2-chat-context` → `PASS chat-context 5/5`, el
   prompt capturado del turno real contiene los textos nuevos.
-- [ ] **AT.20 — 🔍 El chat crea tareas con una herramienta (`create_task`), no con un marcador.** (abierto 2026-10-14;
-  GO de Carlos: "haz el cambio y ya no presentes el plan") Servidor MCP propio de OrchestOS + adaptador por CLI en el
-  registro: lo mismo para todo LLM. Spec: docs/specs/AT.20.md
+- [x] **AT.20 — 🔍 El chat crea tareas con una herramienta (`create_task`), no con un marcador.** (abierto 2026-10-14;
+  GO de Carlos: "haz el cambio y ya no presentes el plan"; cerrado 2026-10-17) Servidor MCP propio de OrchestOS + adaptador por CLI en el
+  registro: lo mismo para todo LLM. `src/mcp/server.ts` (JSON-RPC a mano, sin SDK) + `src/mcp/adapters.ts`: Claude
+  `--mcp-config` en cada invocación (también con `--resume`); Codex app-server `config.mcp_servers` por hilo (si el
+  hilo se abrió sin la herramienta, hilo nuevo con transcripción: medido que un resume repetido no aplica `config`);
+  `codex exec` por `-c`; API (OpenRouter) como herramienta nativa con la misma validación. Ollama sin herramientas: no
+  crea tareas y su prompt lo dice. Salidas y descripción de la tarea = argumentos de la herramienta; argumentos
+  inválidos = error visible. Marcador `[[orchestos:task]]` borrado (0 en `src/`, `scripts/`).
+  Ejecutado por: `criterio` (roster.conf), 2 rondas (la 2.ª: API, `exec` y cambio de modo) · Spec: docs/specs/AT.20.md (borrado al cerrar)
+  Evidencia: typecheck limpio; `test:coverage` 1839/0 (78.08 %/63.96 %); `gate:evidence AT.20-chat-live` → auto-flow
+  33/33, chat-roles 10/10, chat-turn-details 29/29, chat-continuity 8/8, chat-streaming 27/27, codex-live 14/14 (los
+  pasos del marcador salieron de chat-roles y chat-streaming); tarjeta "Approve & Run" en vivo con Claude y Codex desde la
+  llamada a `create_task` (captura `chat-turn-details/held-task.png`). Sin probar en vivo: modo code→chat con el hilo
+  Codex que conserva la herramienta (`settleTaskIntent` descarta la propuesta).
 - [ ] **AT.21 — 🔍 Shell de solo lectura para todo CLI de chat.** (abierto 2026-10-14; Carlos: "no solo a Claude, debe
   ser algo para todos los LLM") Herramienta `run_readonly` del mismo servidor, frontera hecha cumplir por OrchestOS.
   Spec: docs/specs/AT.21.md

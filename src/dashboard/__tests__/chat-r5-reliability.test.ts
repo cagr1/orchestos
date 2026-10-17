@@ -1,11 +1,24 @@
 import { expect, it } from 'bun:test'
-import { mkdtempSync, rmSync } from 'node:fs'
+import { chmodSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 
 async function isolated(body: string): Promise<any> {
   const home = mkdtempSync(join(tmpdir(), 'orchestos-r5-test-'))
   try {
+    // AT.20 — claude falso: la propuesta de tarea llega como la llamada MCP real a `create_task`
+    // (forma de src/mcp/__fixtures__/claude-create-task-assistant.json); sin proposal.json solo responde texto.
+    mkdirSync(join(home, 'bin'))
+    const fakeClaude = `#!/bin/sh
+if [ "$1" = --help ]; then printf '  --restricted  fake\\n'; exit 0; fi
+cat >/dev/null
+if [ -f "${home}/proposal.json" ]; then
+  printf '{"type":"assistant","message":{"content":[{"type":"text","text":"Task proposed."},{"type":"tool_use","id":"toolu_fake","name":"mcp__orchestos__create_task","input":%s}]}}\\n' "$(cat "${home}/proposal.json")"
+fi
+printf '{"type":"result","subtype":"success","is_error":false,"result":"Task proposed.","session_id":"fake-session","usage":{"input_tokens":1,"output_tokens":1},"total_cost_usd":0,"num_turns":1}\\n'
+`
+    writeFileSync(join(home, 'bin', 'claude'), fakeClaude)
+    chmodSync(join(home, 'bin', 'claude'), 0o755)
     const child = Bun.spawn(
       [
         process.execPath,
@@ -33,7 +46,12 @@ async function isolated(body: string): Promise<any> {
       db.run('INSERT INTO projects (id,path,stack_profile,agents_md,last_updated) VALUES (?,?,?,?,?)', ['fixture', root, '{}', '', new Date().toISOString()])
       process.chdir(root)
       let calls = 0
-      let isTask = false
+      let viaClaude = false
+      const useTaskTool = (input) => {
+        writeFileSync(join(home, 'proposal.json'), JSON.stringify(input))
+        db.run('UPDATE chat_sessions SET agent = ? WHERE id = ?', ['claude', session.id])
+        viaClaude = true
+      }
       let draftOutput = ['existing.txt']
       let beforeResponse = () => {}
       globalThis.fetch = async (url, init) => {
@@ -43,18 +61,23 @@ async function isolated(body: string): Promise<any> {
         calls++
         const content = system.includes('skill_candidates')
           ? JSON.stringify({ id: 'draft-id', description: 'Modify existing fixture', output: draftOutput, executor: 'openrouter', skill_candidates: [] })
-          : 'fixture response' + (isTask ? '\\n[[orchestos:task]]' : '')
+          : 'fixture response'
         if (!system.includes('skill_candidates')) await beforeResponse()
         return new Response(JSON.stringify({ choices: [{ message: { content } }], usage: { prompt_tokens: 1, completion_tokens: 1 } }))
       }
       const session = createChatSession({ projectId: 'fixture', agent: 'api', mode: 'code' })
-      const request = key => handleApiChat(new Request('http://localhost/api/chat', { method: 'POST', body: JSON.stringify({ sessionId: session.id, message: 'fixture request', requestKey: key }) }))
+      const request = key => handleApiChat(new Request('http://localhost/api/chat', { method: 'POST', body: JSON.stringify({ sessionId: session.id, message: 'fixture request', requestKey: key, ...(viaClaude ? { model: 'claude-sonnet-5' } : {}) }) }))
       ${body}
       db.close()
     `,
       ],
       {
-        env: { ...process.env, ORCHESTOS_HOME: home, OPENROUTER_API_KEY: 'test-key' },
+        env: {
+          ...process.env,
+          ORCHESTOS_HOME: home,
+          OPENROUTER_API_KEY: 'test-key',
+          PATH: `${join(home, 'bin')}:${process.env.PATH}`,
+        },
         stdout: 'pipe',
         stderr: 'pipe',
       },
@@ -107,7 +130,7 @@ it('returns an HTTP error and rolls back run/messages when the final write fails
 
 it('reserves before YAML creation and never renames a colliding reservation', async () => {
   const result = await isolated(`
-    isTask = true
+    useTaskTool({ title: 'Modify fixture', description: 'Modify existing fixture', outputs: ['existing.txt'] })
     const before = readFileSync(join(root, 'tasks.yaml'), 'utf8')
     db.exec("CREATE TRIGGER fail_reservation BEFORE UPDATE OF task_id ON chat_turns BEGIN SELECT RAISE(ABORT, 'injected reservation failure'); END")
     const response = await request('reserve-fails')
@@ -133,28 +156,27 @@ it('reserves before YAML creation and never renames a colliding reservation', as
   expect(result.noCalls).toBe(true)
 })
 
-it('skips an auto-task draft without output files and leaves tasks and runs untouched', async () => {
+it('shows invalid create_task arguments as an error and leaves tasks and runs untouched', async () => {
   const result = await isolated(`
-    isTask = true
-    draftOutput = []
+    useTaskTool({ title: 'No files', description: 'Modify existing fixture', outputs: [] })
     const before = readFileSync(join(root, 'tasks.yaml'), 'utf8')
     const response = await request('empty-output')
     const payload = await response.json()
     console.log(JSON.stringify({
       status: response.status,
       autoTask: payload.autoTask,
+      text: payload.text,
       sameYaml: before === readFileSync(join(root, 'tasks.yaml'), 'utf8'),
       tasks: JSON.parse(JSON.stringify((await import('./src/tasks/loader.ts')).loadTasks(root).tasks)),
       taskRuns: db.query('SELECT COUNT(*) AS n FROM runs WHERE task_id IS NOT NULL').get().n,
-      noErrorNote: !String(payload.text).includes('Could not auto-create the task'),
     }))
   `)
   expect(result.status).toBe(200)
-  expect(result.autoTask).toBeNull()
+  expect(result.autoTask).toEqual({ error: 'create_task: `outputs` must name at least one file' })
+  expect(result.text).toContain('Could not auto-create the task')
   expect(result.sameYaml).toBe(true)
   expect(result.tasks).toEqual([])
   expect(result.taskRuns).toBe(0)
-  expect(result.noErrorNote).toBe(true)
 })
 
 it('rejects createTaskRecord without touching tasks.yaml when output is empty', async () => {

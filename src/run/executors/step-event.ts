@@ -272,6 +272,10 @@ interface CodexItem {
   changes?: { path?: string; kind?: string }[]
   exit_code?: number
   aggregated_output?: string
+  server?: string
+  tool?: string
+  arguments?: unknown
+  status?: string
 }
 
 interface CodexEvent {
@@ -315,6 +319,18 @@ export function codexEventToStep(raw: unknown): ExecutorStepEvent[] {
           type: 'tool_use',
           label: 'file_change',
           ...(paths ? { detail: paths, target: paths } : {}),
+        },
+      ]
+    }
+    // AT.20 — llamada MCP en `codex exec`; mismo paso que emite el app-server.
+    if (item.type === 'mcp_tool_call') {
+      return [
+        {
+          type: 'tool_use',
+          label:
+            item.server && item.tool ? `mcp__${item.server}__${item.tool}` : (item.tool ?? 'mcp'),
+          detail: item.arguments === undefined ? item.server : JSON.stringify(item.arguments),
+          ok: item.status === 'failed' ? false : item.status === 'completed' ? true : undefined,
         },
       ]
     }

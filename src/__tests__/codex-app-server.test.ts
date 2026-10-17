@@ -4,6 +4,7 @@ import { mkdtempSync, readFileSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { PassThrough } from 'node:stream'
+import { codexMcpThreadConfig, taskProposalFromStep } from '../mcp/adapters.ts'
 import {
   CodexAppServer,
   type CodexAppServerThreadStore,
@@ -161,6 +162,109 @@ describe('Codex app-server', () => {
     expect(calls.filter((x) => x.method === 'turn/start')[1].params.input).toEqual([
       { type: 'text', text: 'second' },
     ])
+    server.kill()
+  })
+
+  test('AT.20 — threadConfig va en thread/start y la llamada MCP real (codex-cli 0.163.0) llega como paso create_task', async () => {
+    const calls: any[] = []
+    const fixture = await Bun.file(
+      join(import.meta.dir, '..', 'mcp', '__fixtures__', 'codex-create-task-completed.json'),
+    ).json()
+    const steps: any[] = []
+    const server = new CodexAppServer({
+      binary: 'codex',
+      env: {},
+      store: store().api,
+      spawnProcess: () =>
+        fakeProcess((request, stdout) => {
+          calls.push(request)
+          if (request.method === 'initialize') reply(stdout, request, {})
+          if (request.method === 'thread/start')
+            reply(stdout, request, { thread: { id: 'thread-1' } })
+          if (request.method === 'turn/start') {
+            reply(stdout, request, { turn: { id: 'turn-1' } })
+            queueMicrotask(() => {
+              fixture.params.threadId = 'thread-1'
+              fixture.params.turnId = 'turn-1'
+              stdout.write(`${JSON.stringify(fixture)}\n`)
+              stdout.write(
+                `${JSON.stringify({ method: 'turn/completed', params: { threadId: 'thread-1', turn: { id: 'turn-1', status: 'completed' } } })}\n`,
+              )
+            })
+          }
+        }),
+    })
+    const threadConfig = codexMcpThreadConfig()
+    await server.turn({
+      sessionId: 's',
+      cwd: '/p',
+      systemPrompt: 'rules',
+      message: 'm',
+      threadConfig,
+      timeoutMs: 1000,
+      onStep: (step) => steps.push(step),
+    })
+    expect(calls.find((x) => x.method === 'thread/start').params.config).toEqual(threadConfig)
+    expect(steps.map(taskProposalFromStep).filter(Boolean)).toEqual([
+      {
+        ok: true,
+        args: {
+          title: 'Create hello.txt',
+          description: 'Create hello.txt in the project root containing exactly hi.',
+          outputs: ['hello.txt'],
+        },
+      },
+    ])
+  })
+
+  test('AT.20 — cambio de modo: hilo ya reanudado sin herramienta se reabre con ella y transcripción', async () => {
+    const calls: any[] = []
+    const steps: any[] = []
+    let started = 0
+    const server = new CodexAppServer({
+      binary: 'codex',
+      env: {},
+      store: store().api,
+      spawnProcess: () =>
+        fakeProcess((request, stdout) => {
+          calls.push(request)
+          if (request.method === 'initialize') reply(stdout, request, {})
+          if (request.method === 'thread/start')
+            reply(stdout, request, { thread: { id: `thread-${++started}` } })
+          if (request.method === 'turn/start') {
+            const threadId = request.params.threadId
+            reply(stdout, request, { turn: { id: 'turn-1' } })
+            queueMicrotask(() =>
+              stdout.write(
+                `${JSON.stringify({ method: 'turn/completed', params: { threadId, turn: { id: 'turn-1', status: 'completed' } } })}\n`,
+              ),
+            )
+          }
+        }),
+    })
+    const base = { sessionId: 's', cwd: '/p', systemPrompt: 'rules', timeoutMs: 1000 }
+    await server.turn({ ...base, message: 'one' })
+    await server.turn({
+      ...base,
+      message: 'two',
+      transcript: 'earlier turns\n',
+      threadConfig: codexMcpThreadConfig(),
+      onStep: (step) => steps.push(step),
+    })
+    const starts = calls.filter((x) => x.method === 'thread/start')
+    expect(starts).toHaveLength(2)
+    expect(starts[0].params.config).toBeUndefined()
+    expect(starts[1].params.config).toEqual(codexMcpThreadConfig())
+    expect(calls.filter((x) => x.method === 'thread/resume')).toHaveLength(0)
+    const secondTurn = calls.filter((x) => x.method === 'turn/start')[1]
+    expect(secondTurn.params.threadId).toBe('thread-2')
+    expect(secondTurn.params.input[0].text).toContain('earlier turns')
+    expect(steps.some((s) => String(s.label).includes('restarted to enable task creation'))).toBe(
+      true,
+    )
+    // Mismo estado de herramienta en el turno siguiente: sin reabrir.
+    await server.turn({ ...base, message: 'three', threadConfig: codexMcpThreadConfig() })
+    expect(calls.filter((x) => x.method === 'thread/start')).toHaveLength(2)
     server.kill()
   })
 

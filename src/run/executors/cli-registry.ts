@@ -38,6 +38,12 @@ export type CliReadBoundary =
   // sondas de PLAN.md § R.2-bis mostraron que no existía en ninguna dirección.
   { kind: 'project-root'; mechanism: 'restricted-flag' } | { kind: 'none'; reason: string }
 
+/** AT.20 — cómo se le ofrece a este CLI el servidor MCP de OrchestOS (`create_task`) en el chat. */
+export type CliMcpAdapter =
+  | { kind: 'claude-mcp-config' }
+  | { kind: 'codex-thread-config' }
+  | { kind: 'none'; reason: string }
+
 export interface CliDefinition {
   id: 'claude' | 'codex' | 'opencode' | 'deepseek' | 'gemini' | 'kimi' | 'glm'
   binary: string
@@ -45,6 +51,7 @@ export interface CliDefinition {
   icon: string
   readBoundary: CliReadBoundary
   subagentBlock: { args: string[] } | 'not-guaranteed'
+  mcp: CliMcpAdapter
   configHome: {
     directory: string
     instructionFile: string
@@ -77,6 +84,7 @@ export const KNOWN_CLIS: CliDefinition[] = [
     icon: 'claude',
     readBoundary: { kind: 'project-root', mechanism: 'restricted-flag' },
     subagentBlock: { args: ['--disallowedTools', 'Agent'] },
+    mcp: { kind: 'claude-mcp-config' },
     configHome: {
       directory: 'claude',
       instructionFile: 'CLAUDE.md',
@@ -93,6 +101,7 @@ export const KNOWN_CLIS: CliDefinition[] = [
       reason: 'Codex no limita la lectura a este proyecto',
     },
     subagentBlock: 'not-guaranteed',
+    mcp: { kind: 'codex-thread-config' },
     configHome: { directory: 'codex', instructionFile: 'AGENTS.md', envVar: 'CODEX_HOME' },
   },
   {
@@ -105,6 +114,7 @@ export const KNOWN_CLIS: CliDefinition[] = [
       reason: 'No hay un contrato verificado de frontera de lectura para este CLI.',
     },
     subagentBlock: 'not-guaranteed',
+    mcp: { kind: 'none', reason: 'OpenCode no participa en el chat (sin MCP en chat).' },
     configHome: { directory: 'opencode', instructionFile: 'AGENTS.md' },
   },
   {
@@ -117,6 +127,7 @@ export const KNOWN_CLIS: CliDefinition[] = [
       reason: 'No hay un contrato verificado de frontera de lectura para este CLI.',
     },
     configHome: { directory: 'deepseek', instructionFile: 'AGENTS.md' },
+    mcp: { kind: 'none', reason: 'Sin adaptador MCP verificado para el chat.' },
     subagentBlock: 'not-guaranteed',
   },
   {
@@ -129,6 +140,7 @@ export const KNOWN_CLIS: CliDefinition[] = [
       reason: 'No hay un contrato verificado de frontera de lectura para este CLI.',
     },
     configHome: { directory: 'gemini', instructionFile: 'AGENTS.md' },
+    mcp: { kind: 'none', reason: 'Sin adaptador MCP verificado para el chat.' },
     subagentBlock: 'not-guaranteed',
   },
   {
@@ -141,6 +153,7 @@ export const KNOWN_CLIS: CliDefinition[] = [
       reason: 'No hay un contrato verificado de frontera de lectura para este CLI.',
     },
     configHome: { directory: 'kimi', instructionFile: 'AGENTS.md' },
+    mcp: { kind: 'none', reason: 'Sin adaptador MCP verificado para el chat.' },
     subagentBlock: 'not-guaranteed',
   },
   {
@@ -153,6 +166,7 @@ export const KNOWN_CLIS: CliDefinition[] = [
       reason: 'No hay un contrato verificado de frontera de lectura para este CLI.',
     },
     configHome: { directory: 'glm', instructionFile: 'AGENTS.md' },
+    mcp: { kind: 'none', reason: 'Sin adaptador MCP verificado para el chat.' },
     subagentBlock: 'not-guaranteed',
   },
 ]

@@ -609,19 +609,16 @@ export default async function autoFlow({ page, api, step, shot, visible, cleanup
     'tasks.yaml',
     'engine:',
     'executor_model',
-    '[[orchestos:task]]',
   ].filter((needle) => nonModelText.includes(needle))
   const absoluteProjectPath = nonModelText.includes(projectRoot)
   const sourcePathError = /Error:\s*[^\n]*src\//.test(nonModelText)
-  const markerInProse = proseTexts.some((text) => text.includes('[[orchestos:task]]'))
   await step(
     'no implementation text visible',
     chatText.trim().length > 0 &&
       implementationLeaks.length === 0 &&
       !absoluteProjectPath &&
-      !sourcePathError &&
-      !markerInProse,
-    JSON.stringify({ implementationLeaks, absoluteProjectPath, sourcePathError, markerInProse }),
+      !sourcePathError,
+    JSON.stringify({ implementationLeaks, absoluteProjectPath, sourcePathError }),
   )
   await shot('final-chat')
 }

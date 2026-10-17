@@ -58,7 +58,7 @@ describe('chat system context', () => {
       const prompt = buildChatSystemPrompt({ ...base, agent })
       expect(prompt).toContain(phrase)
       expect(prompt).toContain(
-        'Answer in this chat whatever can be answered with text (writing text, code or lists in your reply is not a file change); only requests to change files in the project go through the task line below.',
+        'Answer in this chat whatever can be answered with text (writing text, code or lists in your reply is not a file change); only requests to change files in the project go through `create_task`, described below.',
       )
       expect(prompt).not.toContain('memory, specs')
       expect(prompt).not.toContain('search_memory')

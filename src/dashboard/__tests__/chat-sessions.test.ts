@@ -43,12 +43,51 @@ async function runIsolated(
       mkdirSync(bin, { recursive: true })
       const fakeCodex = `#!/bin/sh
 if [ "$1" = app-server ]; then exit 1; fi
-printf '%s\\n' '{"type":"item.completed","item":{"type":"agent_message","text":"Codex reply\\n[[orchestos:task]]"}}' '{"type":"turn.completed","usage":{"input_tokens":10,"output_tokens":5}}'
+printf '%s\\n' '{"type":"item.completed","item":{"type":"agent_message","text":"Codex reply"}}' '{"type":"turn.completed","usage":{"input_tokens":10,"output_tokens":5}}'
 `
       writeFileSync(join(bin, 'codex'), Buffer.from(fakeCodex))
       chmodSync(join(bin, 'codex'), 0o755)
       env.PATH = `${bin}:${NO_CLI_PATH}`
       delete env.FAKE_CODEX
+    }
+    if (env.FAKE_CLAUDE) {
+      // AT.20 — claude falso: `--help` declara --restricted y el stream trae la llamada MCP real
+      // (misma forma que src/mcp/__fixtures__/claude-create-task-assistant.json).
+      const bin = join(home, 'bin')
+      mkdirSync(bin, { recursive: true })
+      const assistant = JSON.stringify({
+        type: 'assistant',
+        message: {
+          content: [
+            { type: 'text', text: 'Task proposed.' },
+            {
+              type: 'tool_use',
+              id: 'toolu_fake',
+              name: 'mcp__orchestos__create_task',
+              input: JSON.parse(env.FAKE_CLAUDE),
+            },
+          ],
+        },
+      })
+      const result = JSON.stringify({
+        type: 'result',
+        subtype: 'success',
+        is_error: false,
+        result: 'Task proposed.',
+        session_id: 'fake-session',
+        usage: { input_tokens: 10, output_tokens: 5 },
+        total_cost_usd: 0,
+        num_turns: 2,
+      })
+      const fakeClaude = `#!/bin/sh
+if [ "$1" = --help ]; then printf '  --restricted  fake\\n'; exit 0; fi
+cat >/dev/null
+printf '%s\\n' '${assistant}' '${result}'
+`
+      writeFileSync(join(bin, 'claude'), Buffer.from(fakeClaude))
+      chmodSync(join(bin, 'claude'), 0o755)
+      env.PATH = `${bin}:${env.PATH}`
+      delete env.FAKE_CLAUDE
     }
     const proc = Bun.spawn(['bun', '-e', body], {
       cwd: process.cwd(),
@@ -535,7 +574,7 @@ describe('CC.2 — chat sessions backend', () => {
       globalThis.fetch = async (_url, init) => {
         requests.push(JSON.parse(String(init.body)))
         call += 1
-        const content = 'No inicié cambios porque esta sesión está en modo Chat.\\n[[orchestos:task]]'
+        const content = 'No inicié cambios porque esta sesión está en modo Chat.'
         return new Response(JSON.stringify({ choices: [{ message: { content } }], usage: { prompt_tokens: 10, completion_tokens: 5 }, model: 'deepseek/deepseek-v4-flash' }), { status: 200 })
       }
 
@@ -565,7 +604,7 @@ describe('CC.2 — chat sessions backend', () => {
     expect(result.status).toBe(200)
     expect(result.payload).toMatchObject({
       autoTask: null,
-      taskSuggestion: { isTask: true, reason: 'orchestrator-marker' },
+      taskSuggestion: { isTask: false, reason: '' },
     })
     expect(result.messages).toEqual([
       expect.objectContaining({ role: 'user', content: 'modifica un archivo' }),
@@ -722,7 +761,7 @@ describe('CC.2 — chat sessions backend', () => {
         const system = String(requestBody.messages?.[0]?.content ?? '')
         const content = system.includes('convierte instrucciones en lenguaje natural')
           ? JSON.stringify({ id: 'python-hello-world-script', description: 'Create hello.py', output: ['hello.py'], executor: 'openrouter', skill_candidates: [] })
-          : 'No se creó una tarea real porque esta sesión general no tiene un proyecto asociado.\\n[[orchestos:task]]'
+          : 'No se creó una tarea real porque esta sesión general no tiene un proyecto asociado.'
         return new Response(JSON.stringify({ choices: [{ message: { content } }], usage: { prompt_tokens: 10, completion_tokens: 5 }, model: 'deepseek/deepseek-v4-flash' }), { status: 200 })
       }
 
@@ -748,7 +787,7 @@ describe('CC.2 — chat sessions backend', () => {
     expect(result.status).toBe(200)
     expect(result.payload).toMatchObject({
       autoTask: null,
-      taskSuggestion: { isTask: true, reason: 'orchestrator-marker' },
+      taskSuggestion: { isTask: false, reason: '' },
     })
     expect(String((result.payload as { text?: unknown }).text)).toContain(
       'no tiene un proyecto asociado',
@@ -863,7 +902,8 @@ describe('CC.2 — chat sessions backend', () => {
   })
 
   it('auto-created chat tasks defer model choice to the Executor role when no rule matches', async () => {
-    const result = await runIsolated(`
+    const result = await runIsolated(
+      `
       const { mkdirSync, writeFileSync, readFileSync, existsSync } = await import('node:fs')
       const { join } = await import('node:path')
       const home = process.env.ORCHESTOS_HOME
@@ -880,7 +920,7 @@ describe('CC.2 — chat sessions backend', () => {
       const { handleApiChat } = await import('./src/dashboard/handlers/chat.ts')
       runMigrations()
       db.run('INSERT INTO projects (id, path, stack_profile, agents_md, last_updated) VALUES (?, ?, ?, ?, ?)', ['chat-role-task-project', root, '{}', '', new Date().toISOString()])
-      const session = createChatSession({ projectId: 'chat-role-task-project', agent: 'api', mode: 'code' })
+      const session = createChatSession({ projectId: 'chat-role-task-project', agent: 'claude', mode: 'code' })
       const requests = []
       globalThis.fetch = async (_url, init) => {
         const body = JSON.parse(String(init.body))
@@ -888,26 +928,35 @@ describe('CC.2 — chat sessions backend', () => {
         const system = String(body.messages?.[0]?.content ?? '')
         const content = system.includes('convierte instrucciones en lenguaje natural')
             ? JSON.stringify({ id: 'readme-role-task', description: 'Edit README', output: ['README.md'], executor: 'openrouter', skill_candidates: [] })
-            : 'Task created and held.\\n[[orchestos:task]]'
+            : 'unexpected chat call'
         return new Response(JSON.stringify({ choices: [{ message: { content } }], usage: { prompt_tokens: 10, completion_tokens: 5 }, model: body.model }), { status: 200 })
       }
-      const response = await handleApiChat(new Request('http://localhost/api/chat', { method: 'POST', body: JSON.stringify({ sessionId: session.id, message: 'Build README.md' }) }))
+      const response = await handleApiChat(new Request('http://localhost/api/chat', { method: 'POST', body: JSON.stringify({ sessionId: session.id, message: 'Build README.md', model: 'claude-sonnet-5' }) }))
       const payload = await response.json()
       const tasksYaml = existsSync(join(root, 'tasks.yaml')) ? readFileSync(join(root, 'tasks.yaml'), 'utf8') : null
       process.stdout.write(JSON.stringify({ status: response.status, payload, tasksYaml, models: requests.map((request) => request.model) }))
       db.close()
-    `)
-    expect(result.status).toBe(200)
+    `,
+      {
+        FAKE_CLAUDE: JSON.stringify({
+          title: 'Edit README',
+          description: 'Edit README',
+          outputs: ['README.md'],
+        }),
+      },
+    )
+    expect(result.status, JSON.stringify(result.payload)).toBe(200)
     expect(result.payload).toMatchObject({ autoTask: { held: true, existingFiles: ['README.md'] } })
     expect(result.tasksYaml).not.toContain('executor_model:')
     expect(result.tasksYaml).not.toContain('engine:')
-    expect(result.models).toEqual(['deepseek/deepseek-v4-flash', 'deepseek/deepseek-v4-flash'])
-    expect(String((result.payload as { text: string }).text)).not.toContain('[[orchestos:task]]')
+    // Solo el borrador (id, skills); el chat lo contesta el CLI y las salidas son las de create_task.
+    expect(result.models).toEqual(['deepseek/deepseek-v4-flash'])
     expect(String((result.payload as { text: string }).text)).toContain('⏸ Created task')
   })
 
   it('Manual permissions hold a chat task even when its output file does not exist yet (UI.8.6)', async () => {
-    const result = await runIsolated(`
+    const result = await runIsolated(
+      `
       const { mkdirSync, writeFileSync, readFileSync, existsSync } = await import('node:fs')
       const { join } = await import('node:path')
       const home = process.env.ORCHESTOS_HOME
@@ -923,24 +972,32 @@ describe('CC.2 — chat sessions backend', () => {
       const { handleApiChat } = await import('./src/dashboard/handlers/chat.ts')
       runMigrations()
       db.run('INSERT INTO projects (id, path, stack_profile, agents_md, last_updated) VALUES (?, ?, ?, ?, ?)', ['chat-manual-task-project', root, '{}', '', new Date().toISOString()])
-      const session = createChatSession({ projectId: 'chat-manual-task-project', agent: 'api', mode: 'code' })
+      const session = createChatSession({ projectId: 'chat-manual-task-project', agent: 'claude', mode: 'code' })
       const requests = []
       globalThis.fetch = async (_url, init) => {
         const body = JSON.parse(String(init.body))
         requests.push(body)
         const system = String(body.messages?.[0]?.content ?? '')
         const content = system.includes('convierte instrucciones en lenguaje natural')
-            ? JSON.stringify({ id: 'new-file-manual-task', description: 'Edit README', output: ['NEW.md'], executor: 'openrouter', skill_candidates: [] })
-            : 'Task created and held.\\n[[orchestos:task]]'
+            ? JSON.stringify({ id: 'new-file-manual-task', description: 'Edit README', output: ['IGNORED.md'], executor: 'openrouter', skill_candidates: [] })
+            : 'unexpected chat call'
         return new Response(JSON.stringify({ choices: [{ message: { content } }], usage: { prompt_tokens: 10, completion_tokens: 5 }, model: body.model }), { status: 200 })
       }
-      const response = await handleApiChat(new Request('http://localhost/api/chat', { method: 'POST', body: JSON.stringify({ sessionId: session.id, message: 'Build README.md' }) }))
+      const response = await handleApiChat(new Request('http://localhost/api/chat', { method: 'POST', body: JSON.stringify({ sessionId: session.id, message: 'Build README.md', model: 'claude-sonnet-5' }) }))
       const payload = await response.json()
       const tasksYaml = existsSync(join(root, 'tasks.yaml')) ? readFileSync(join(root, 'tasks.yaml'), 'utf8') : null
       process.stdout.write(JSON.stringify({ status: response.status, payload, tasksYaml, models: requests.map((request) => request.model) }))
       db.close()
-    `)
-    expect(result.status).toBe(200)
+    `,
+      {
+        FAKE_CLAUDE: JSON.stringify({
+          title: 'New file',
+          description: 'Create NEW.md',
+          outputs: ['NEW.md'],
+        }),
+      },
+    )
+    expect(result.status, JSON.stringify(result.payload)).toBe(200)
     expect(result.payload).toMatchObject({ autoTask: { held: true, existingFiles: [] } })
     expect(String((result.payload as { text: string }).text)).toContain('Manual permissions')
   })
@@ -967,7 +1024,7 @@ describe('CC.2 — chat sessions backend', () => {
         const system = String(body.messages?.[0]?.content ?? '')
         const content = system.includes('convierte instrucciones en lenguaje natural')
             ? JSON.stringify({ id: 'held-readme-task', description: 'Edit README', output: ['README.md'], executor: 'codex', skill_candidates: [] })
-            : 'Codex reply\\n[[orchestos:task]]'
+            : 'unexpected chat call'
         return new Response(JSON.stringify({ choices: [{ message: { content } }], usage: { prompt_tokens: 10, completion_tokens: 5 }, model: body.model }), { status: 200 })
       }
       const session = createChatSession({ projectId: 'sequential-codex-chat', agent: 'codex', mode: 'code' })
@@ -992,9 +1049,9 @@ describe('CC.2 — chat sessions backend', () => {
         }),
       ]),
     )
-    expect(result.thirdBody).toMatchObject({ autoTask: { held: true } })
-    expect(result.tasksYaml).toContain('status: pending')
-    expect(result.tasksYaml).toContain('README.md')
+    // Sin app-server no hay herramienta MCP (exec de respaldo): ninguna respuesta crea tareas.
+    expect(result.thirdBody).toMatchObject({ autoTask: null, taskSuggestion: { isTask: false } })
+    expect(result.tasksYaml).not.toContain('README.md')
   })
 
   it('returns a clear 400 without calling a provider when Orchestrator is unassigned', async () => {

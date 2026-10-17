@@ -189,7 +189,7 @@ export function buildChatSystemPrompt(input: ChatPromptInput): string {
         ? 'You can read files and run read-only shell commands; writes are blocked by the sandbox.'
         : 'You cannot modify files or run code directly from this chat. OrchestOS can improve itself through Tasks → agent runs → code changes.'
   const responseGuidance =
-    'Answer in this chat whatever can be answered with text (writing text, code or lists in your reply is not a file change); only requests to change files in the project go through the task line below.'
+    'Answer in this chat whatever can be answered with text (writing text, code or lists in your reply is not a file change); only requests to change files in the project go through `create_task`, described below.'
   const role = `You are the assistant of OrchestOS, an AI agent orchestrator. Answer questions about the project state, tasks, runs,${input.memory?.length ? ' memory,' : ''}${input.specs?.length ? ' specs,' : ''} and the system. Be concise unless the user asks for detail. If the user writes in Spanish, respond in Spanish.`
   const model = input.modelLabel ? `\n\nYou are running as model: ${input.modelLabel}.` : ''
   const projectContext = input.projectProfile ? chatProjectContext(input.projectProfile) : ''

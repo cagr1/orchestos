@@ -171,29 +171,23 @@ export default async function chatRoles({ page, api, step, shot, visible, cleanu
     console.log(JSON.stringify(rows))
     db.close()
   `)
-  // settleTaskIntent strips [[orchestos:task]] before returning text to the API response.
   const apiText = lastTurn?.text ?? null
-  const hasMarkerLine =
-    apiText === null
-      ? null
-      : apiText.split(/\r?\n/).some((line) => line.startsWith('[[orchestos:task]]'))
   const markerDetail = {
     secondTurnDone,
     httpStatus: lastTurn?.status ?? null,
     apiText: apiText?.slice(-400) ?? null,
-    hasMarkerLine,
     autoTask: lastTurn?.autoTask ?? null,
     autoTaskSkipped: lastTurn?.autoTaskSkipped,
     dbTasks,
     label: await heldTaskLabel.innerText().catch(() => 'missing'),
   }
   await step(
-    'Orchestrator marker creates a held task without Auxiliary',
+    'Orchestrator create_task call creates a held task without Auxiliary',
     secondTurnDone && (await visible(heldTaskLabel, 180_000)),
     JSON.stringify(markerDetail),
   )
   if (!secondTurnDone || !(await heldTaskLabel.isVisible().catch(() => false)))
-    await shot('marker-failure')
+    await shot('create-task-failure')
   const heldTaskAction = page.getByRole('button', { name: 'Approve & Run' }).last()
   await page.waitForTimeout(500)
   const heldTaskAtBottom = await heldTaskAction.evaluate((element) => {
@@ -256,11 +250,7 @@ export default async function chatRoles({ page, api, step, shot, visible, cleanu
     JSON.stringify(afterGrowth),
   )
   if (viewport) await page.setViewportSize(viewport)
-  await step(
-    'task marker is stripped from the chat',
-    (await page.getByText('[[orchestos:task]]', { exact: true }).count()) === 0,
-    `Visible marker count: ${await page.getByText('[[orchestos:task]]', { exact: true }).count()}`,
-  )
+
   const tasksAfterAuxiliary = await api('/api/tasks', {
     headers: { 'x-orchestos-project-id': project.id },
   })

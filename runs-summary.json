@@ -1,7 +1,37 @@
 {
-  "exported_at": "2026-10-17T18:12:14.822Z",
+  "exported_at": "2026-10-17T18:24:13.286Z",
   "total_runs": 20,
   "runs": [
+    {
+      "id": "97a1f20a-0e3f-4dd4-886c-1bb6756dfd8a",
+      "task_class": "gate:at.20-chat-live:implement",
+      "model": "gpt-6-luna",
+      "provider": "codex",
+      "status": "done",
+      "qa_verdict": "pass",
+      "qa_reason": "codex-nota.md contains the exact requested single line.",
+      "files_blocked": [],
+      "checks_failed": 0,
+      "usd_cost": 0.0008696999999999999,
+      "elapsed_ms": 11976,
+      "tokens": 6319,
+      "created_at": "2026-10-17T18:20:36.078Z"
+    },
+    {
+      "id": "bc5cc67f-0a66-4f36-aa05-5e129b134ac7",
+      "task_class": "gate:at.20-chat-live:implement",
+      "model": "haiku",
+      "provider": "claude",
+      "status": "done",
+      "qa_verdict": "pass",
+      "qa_reason": "claude-nota.md contiene la línea exacta solicitada: «nota de claude».",
+      "files_blocked": [],
+      "checks_failed": 0,
+      "usd_cost": 0.0030555200000000004,
+      "elapsed_ms": 9803,
+      "tokens": 2813,
+      "created_at": "2026-10-17T18:20:07.852Z"
+    },
     {
       "id": "ui-chat-context-seed-1792251197151",
       "task_class": "gate:at.19.1-chat-live:implement",
@@ -271,43 +301,13 @@
       "elapsed_ms": 12937,
       "tokens": 11226,
       "created_at": "2026-10-16T01:53:57.472Z"
-    },
-    {
-      "id": "558a6576-36d1-44a0-b519-73dd9ddf8d96",
-      "task_class": "gate:ui.24.7-r3-live:implement",
-      "model": "gpt-6-luna",
-      "provider": "codex",
-      "status": "done",
-      "qa_verdict": "pass",
-      "qa_reason": "`nota.ts` contiene la línea solicitada `export const gate = 1` al final.",
-      "files_blocked": [],
-      "checks_failed": 0,
-      "usd_cost": 0.0022823799999999997,
-      "elapsed_ms": 16907,
-      "tokens": 22412,
-      "created_at": "2026-10-16T01:53:15.967Z"
-    },
-    {
-      "id": "1fe74649-7b77-421c-9891-c0aebd5895ca",
-      "task_class": "gate:ui.24.7-r3-live:implement",
-      "model": "gpt-6-luna",
-      "provider": "codex",
-      "status": "failed",
-      "qa_verdict": "fail",
-      "qa_reason": "check failed: bunx tsc --noEmit exit 2",
-      "files_blocked": [],
-      "checks_failed": 1,
-      "usd_cost": 0.0008322,
-      "elapsed_ms": 8311,
-      "tokens": 3706,
-      "created_at": "2026-10-16T01:52:56.322Z"
     }
   ],
   "stats": {
-    "failed": 1,
+    "failed": 0,
     "blocked": 0,
-    "done": 19,
-    "qa_failed": 7,
-    "total_cost_usd": "0.0103"
+    "done": 20,
+    "qa_failed": 6,
+    "total_cost_usd": "0.0111"
   }
 }

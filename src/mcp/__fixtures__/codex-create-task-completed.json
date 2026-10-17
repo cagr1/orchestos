@@ -1,0 +1,34 @@
+{
+  "method": "item/completed",
+  "params": {
+    "item": {
+      "type": "mcpToolCall",
+      "id": "exec-3e69b746-e784-4252-9ae0-6ef31a7c8687",
+      "server": "orchestos",
+      "tool": "create_task",
+      "status": "completed",
+      "arguments": {
+        "description": "Create hello.txt in the project root containing exactly hi.",
+        "outputs": ["hello.txt"],
+        "title": "Create hello.txt"
+      },
+      "appContext": null,
+      "mcpAppUi": null,
+      "pluginId": null,
+      "readOnlyHint": null,
+      "result": {
+        "content": [
+          { "type": "text", "text": "Task proposal sent; the user will see it and approve it." }
+        ],
+        "structuredContent": null,
+        "_meta": null
+      },
+      "error": null,
+      "durationMs": 3
+    },
+    "threadId": "01a14b08-415f-7000-80eb-6e9e8c7c5c93",
+    "turnId": "01a14b08-43a1-7eb0-a5c1-c3d3f0ebc4d3",
+    "completedAtMs": 1792260203331
+  },
+  "emittedAtMs": 1792260203332
+}

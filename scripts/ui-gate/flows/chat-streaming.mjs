@@ -432,12 +432,6 @@ export default async function chatStreaming({ page, api, step, shot, visible, cl
       `no visible model option has a known window producing a percentage distinct from ${firstContext?.pct ?? 'the current value'}`,
     )
   }
-  await step(
-    'task marker is not visible',
-    !(await page.getByText(/\[\[orchestos:/).count()),
-    'no task marker in the DOM',
-  )
-
   const extraChatPrompts = [
     'Escribe los números del 41 al 80 en palabras, uno por línea.',
     'Escribe los números del 81 al 120 en palabras, uno por línea.',

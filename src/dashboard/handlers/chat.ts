@@ -30,6 +30,7 @@ import {
 import type { MemoryEntry } from '../../db/memory.ts'
 import { insertRun, listContextRuns } from '../../db/runs.ts'
 import { db } from '../../db/sqlite.ts'
+import { createTaskApiTool, type TaskProposal, taskProposalFromStep } from '../../mcp/adapters.ts'
 import {
   createToolRouter,
   FETCH_URL_TOOL,
@@ -76,14 +77,7 @@ import { isReviewOnlyGate, listAllSkillCandidates } from '../../skills/catalog.t
 import { listSpecs } from '../../spec/store.ts'
 import { loadTasks } from '../../tasks/loader.ts'
 import { readCliModelCatalogsCached } from '../chat-cli-models.ts'
-import {
-  appendLiveText,
-  clearLiveText,
-  hasTaskMarker,
-  replaceLiveText,
-  stripTaskMarker,
-  TASK_MARKER,
-} from '../chat-live.ts'
+import { appendLiveText, clearLiveText, replaceLiveText } from '../chat-live.ts'
 import { errorResponse, jsonResponse } from '../http.ts'
 import { ollamaChat } from '../llm/clients.ts'
 import {
@@ -95,7 +89,7 @@ import {
 import { readEnv } from '../settings-store.ts'
 import { checkSsrSafe } from '../ssrf.ts'
 import type { ChatFileType, ChatUploadResponse } from '../types.ts'
-import { buildNaturalDraft } from './project.ts'
+import { buildNaturalDraft, dropIgnoredOutputs } from './project.ts'
 import { createTaskRecord, spawnTaskRun } from './tasks.ts'
 
 const VALID_EFFORTS = ['low', 'medium', 'high'] as const
@@ -104,15 +98,20 @@ type ReasoningEffort = (typeof VALID_EFFORTS)[number]
 export function buildAutoTaskInstruction({
   hasProjectContext,
   mode,
+  taskToolOffered = true,
 }: {
   hasProjectContext: boolean
   mode: string | null | undefined
+  /** AT.20 — el CLI de este turno recibió la herramienta `create_task`. */
+  taskToolOffered?: boolean
 }): string {
   if (!hasProjectContext)
     return 'If the user asks you to build or modify files, say plainly that this chat has no associated project and no task can be created here.'
   if (mode === 'chat')
     return 'If the user asks you to build or modify files, say plainly that this Chat mode is read-only and they must switch to Code mode.'
-  return `If — and only if — the user asks OrchestOS to build, create or modify files in this project, end your reply with the line \`${TASK_MARKER}\` alone, and keep the reply to one or two sentences saying OrchestOS will create a task for it. Do not write the code yourself and do not say a task was created or started: the system appends the real result. Otherwise never write that line. You cannot edit files yourself in this chat: it runs read-only on purpose, and OrchestOS runs the task in its own sandbox. Never refuse, apologise or mention read-only access or missing permissions when asked to build, create or modify files — that request is exactly the case for the marker line.`
+  if (!taskToolOffered)
+    return 'If the user asks you to build or modify files, say plainly that tasks can only be created from a Claude Code, Codex or tool-calling API chat.'
+  return 'If files must be created or modified, call `create_task`; answer everything else yourself.'
 }
 
 export function buildChatTranscript(history: { role: string; content: string }[]): string {
@@ -156,8 +155,6 @@ const CHAT_TURN_OWNER = randomUUID()
 
 const MAX_FILE_BYTES = 10 * 1024 * 1024
 const FILE_TTL_MS = 30 * 60 * 1000
-
-export { hasTaskMarker, stripTaskMarker, TASK_MARKER }
 
 /**
  * H.9.2 (reabierto 2026-09-06) — antes leía `cli.readBoundary` DECLARADO, así que
@@ -998,15 +995,18 @@ async function handleApiChat(
   }
 
   let chatStepSeq = 0
+  // AT.20 — la fuente de verdad de "crear tarea" es la llamada a `create_task` en el stream del CLI.
+  let taskProposal: TaskProposal | null = null
   const activeToolMeta = new Map<string, { tool: string; target?: string }>()
   const persistChatStep = (step: ExecutorStepEvent): void => {
+    taskProposal ??= taskProposalFromStep(step)
     if (!activeTurnId || !session) return
     const related = step.toolUseId ? activeToolMeta.get(step.toolUseId) : undefined
     if (step.type === 'tool_use' && step.toolUseId && step.label !== 'tool_result') {
       activeToolMeta.set(step.toolUseId, { tool: step.label, target: step.target })
       return
     }
-    const detail = step.type === 'text' ? stripTaskMarker(step.detail ?? '') : step.detail
+    const detail = step.detail
     if (step.type === 'text' && !detail?.trim()) return
     if (step.type === 'text' && detail) replaceLiveText(session.id, activeTurnId, detail)
     insertChatTurnStep({
@@ -1128,18 +1128,20 @@ async function handleApiChat(
     | null = null
   let autoTaskSkipped = false
   const settleTaskIntent = async (rawText: string) => {
-    const isTask = hasTaskMarker(rawText)
-    const text = stripTaskMarker(rawText)
-    taskSuggestion = { isTask, reason: isTask ? 'orchestrator-marker' : '' }
-    if (isTask && hasProjectContext && sessionAllowsTaskExecution(session?.mode ?? null)) {
+    const proposal = taskProposal as TaskProposal | null
+    const isTask = proposal !== null
+    const text = rawText.trimEnd()
+    taskSuggestion = { isTask, reason: isTask ? 'create_task' : '' }
+    if (proposal && !proposal.ok) autoTask = { error: `create_task: ${proposal.error}` }
+    else if (proposal && hasProjectContext && sessionAllowsTaskExecution(session?.mode ?? null)) {
       try {
         const draft = await buildNaturalDraft(message, root, {
           history,
           assistantReply: text,
         })
-        const output = Array.isArray(draft.output)
-          ? draft.output.map((f: string) => f.trim()).filter(Boolean)
-          : []
+        // Salidas y descripción son las que el modelo pasó a la herramienta, no las que adivina el borrador.
+        draft.description = proposal.args.description
+        const output = dropIgnoredOutputs(root, proposal.args.outputs)
         if (output.length === 0) autoTaskSkipped = true
         else {
           const skill = pickAutoSkill(draft.skillOptions)
@@ -1181,7 +1183,7 @@ async function handleApiChat(
       }
     }
     const note = autoTaskSkipped
-      ? '\n\n⚠ No task created: the draft named no output files.'
+      ? '\n\n⚠ No task created: every output file is ignored by Git.'
       : autoTask && 'held' in autoTask && autoTask.existingFiles.length === 0
         ? `\n\n⏸ Created task \`${autoTask.id}\`, waiting for your approval before it runs (Manual permissions).`
         : autoTask && 'held' in autoTask
@@ -1307,9 +1309,16 @@ async function handleApiChat(
         ? `${model.replace('ollama/', '')} vía Ollama (local) — modelo local, los resultados pueden variar`
         : `${model} via OpenRouter`
 
+  const taskToolOffered =
+    hasProjectContext &&
+    sessionAllowsTaskExecution(session?.mode ?? null) &&
+    (useClaudeCli ||
+      (useCodexCli && !!session) ||
+      (!useCodexCli && !isOllama && supportsToolCalling('openrouter', model)))
   const autoTaskInstruction = buildAutoTaskInstruction({
     hasProjectContext,
     mode: session?.mode,
+    taskToolOffered,
   })
 
   const projectFiles = hasProjectContext
@@ -1577,6 +1586,7 @@ async function handleApiChat(
             },
             cliImages && cliImagePaths.length > 0 ? cliImages.dir : undefined,
             resumeSessionId,
+            taskToolOffered,
           )
         let result: Awaited<ReturnType<typeof runTurn>>
         try {
@@ -1665,6 +1675,7 @@ async function handleApiChat(
           transcript,
           undefined,
           cliImagePaths,
+          taskToolOffered,
         )
         const resultLabel = `${result.model} via Codex CLI${cliEffort ? ` (effort: ${cliEffort})` : ''}`
         const { text: responseText } = await settleTaskIntent(result.text)
@@ -1789,6 +1800,11 @@ async function handleApiChat(
     if (hasProjectContext && supportsToolCalling('openrouter', model)) {
       const readCollector = new ReadAuditCollector('openrouter-local-tools')
       const auditedReader = createAuditedProjectReader(root, readCollector)
+      const createTaskTool = taskToolOffered
+        ? createTaskApiTool((proposal) => {
+            taskProposal = proposal
+          })
+        : null
       const result = await runToolLoop('openrouter', model, {
         system: systemPrompt,
         messages,
@@ -1799,8 +1815,10 @@ async function handleApiChat(
           READ_TASKS_TOOL,
           READ_IDEAS_TOOL,
           READ_FILE_TOOL,
+          ...(createTaskTool ? [createTaskTool.tool] : []),
         ],
         executeTool: createToolRouter({
+          ...(createTaskTool ? { [createTaskTool.tool.name]: createTaskTool.execute } : {}),
           fetch_url: (name, input) => executeFetchUrl(name, input),
           search_memory: (name, input) => executeSearchMemory(name, input, project.id),
           read_plan: auditedReader,
