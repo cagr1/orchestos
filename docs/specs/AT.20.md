@@ -48,3 +48,29 @@ Prohibido: `git stash`, `git commit`, `git checkout`/`restore`, `prettier`. Escr
   adaptador reconoce la llamada con una línea de stream real capturada (fixture copiado de la corrida real).
 - En vivo (el cerebro lo vuelve a correr): `bun run gate:evidence -- --label AT.20-chat-live -- bun run ui:gate auto-flow chat-roles chat-turn-details chat-continuity chat-streaming codex-live` con Claude y
   Codex reales; un pedido de crear un archivo produce la tarjeta con las salidas que el modelo pasó a la herramienta.
+
+## Ronda 2 (cerebro, 2026-10-17) — tras revisar el diff de la ronda 1
+
+Lo de la ronda 1 se queda (servidor, adaptadores, Claude, Codex app-server, marcador fuera). Se corrigen tres
+regresiones que contradicen "nada solo para un LLM" y una que deja la herramienta muda:
+
+1. **Chat por API (OpenRouter) vuelve a crear tareas.** Ya tiene herramientas (`runToolLoop`, `chat.ts:~1801`):
+   añadir `create_task` como herramienta nativa más, con el mismo `CREATE_TASK_SCHEMA` y la misma validación
+   `parseCreateTaskArgs` de `src/mcp/server.ts` (capa común; no duplicar). El ejecutor de la herramienta responde
+   `CREATE_TASK_RESPONSE` y entrega la propuesta a `settleTaskIntent` por el mismo camino que la llamada MCP.
+   Solo se ofrece con las mismas condiciones (proyecto + modo que permite tareas). Test unitario con el tool loop.
+   Ollama (sin herramientas): queda sin crear tareas y su prompt lo dice; anotarlo en el reporte.
+2. **Codex `exec` (respaldo sin `sessionId`) también ofrece la herramienta**: pasar el servidor con
+   `-c mcp_servers.orchestos.command=…`/`args=[…]` (más la aprobación automática equivalente) cuando
+   `offerTaskTool`; reconocer en su stream JSON el item de llamada MCP (comprobar con el binario real, fixture
+   copiado) y convertirlo al mismo paso `mcp__orchestos__create_task`. Si `exec` no puede, decirlo con la salida real.
+3. **Hilo de Codex con disponibilidad de la herramienta distinta a la actual** (p. ej. modo `chat` → `code` con el
+   hilo ya reanudado en el proceso): la herramienta debe estar disponible en ese mismo turno. Opción preferida:
+   guardar junto al hilo si se abrió con herramienta (incluir `offerTaskTool` en el hash que ya se guarda, o un campo
+   propio) y, si cambió, volver a `thread/resume` con el `config` nuevo aunque el hilo esté en `this.resumed`; si el
+   app-server no aplica `config` en un resume repetido (medirlo), abrir hilo nuevo con transcripción y el paso
+   visible que ya existe para hilo caducado. Test unitario del cambio de modo.
+4. Mismo criterio para Claude: ya va por invocación (sin estado), no requiere cambio; confirmarlo en el reporte.
+
+Verificación: la misma de arriba (typecheck, biome de lo tocado, `test:coverage`). No correr `ui:gate` (lo corre el
+cerebro). Mismas prohibiciones.
