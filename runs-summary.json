@@ -1,7 +1,37 @@
 {
-  "exported_at": "2026-10-17T19:27:08.975Z",
+  "exported_at": "2026-10-17T19:36:54.434Z",
   "total_runs": 20,
   "runs": [
+    {
+      "id": "ui-chat-context-seed-1792265643561",
+      "task_class": "gate:at.21-chat-live:implement",
+      "model": "codex (cli default model) via Codex CLI",
+      "provider": "codex",
+      "status": "done",
+      "qa_verdict": "fail",
+      "qa_reason": "criterion 2 missing: README line absent",
+      "files_blocked": [],
+      "checks_failed": 0,
+      "usd_cost": 0,
+      "elapsed_ms": 0,
+      "tokens": 0,
+      "created_at": "2026-10-17T19:34:03.561Z"
+    },
+    {
+      "id": "ui-chat-context-model-seed-1792265643562",
+      "task_class": "gate:at.21-chat-live:implement",
+      "model": "gpt-6-luna via Codex CLI",
+      "provider": "codex",
+      "status": "done",
+      "qa_verdict": null,
+      "qa_reason": null,
+      "files_blocked": [],
+      "checks_failed": 0,
+      "usd_cost": 0,
+      "elapsed_ms": 0,
+      "tokens": 0,
+      "created_at": "2026-10-17T19:34:02.562Z"
+    },
     {
       "id": "97a1f20a-0e3f-4dd4-886c-1bb6756dfd8a",
       "task_class": "gate:at.20-chat-live:implement",
@@ -271,43 +301,13 @@
       "elapsed_ms": 20268,
       "tokens": 12545,
       "created_at": "2026-10-16T01:55:21.976Z"
-    },
-    {
-      "id": "ae1e736d-faaf-4980-8d0c-e9cff3d58b81",
-      "task_class": "gate:ui.24.7-r3-live:implement",
-      "model": "haiku",
-      "provider": "claude",
-      "status": "done",
-      "qa_verdict": "pass",
-      "qa_reason": "El archivo contiene la única línea solicitada: «nota de claude».",
-      "files_blocked": [],
-      "checks_failed": 0,
-      "usd_cost": 0.0011442499999999999,
-      "elapsed_ms": 10073,
-      "tokens": 3386,
-      "created_at": "2026-10-16T01:54:40.760Z"
-    },
-    {
-      "id": "a4754869-e8cd-4cc9-9bfe-c45ee3b5ac01",
-      "task_class": "gate:ui.24.7-r3-live:implement",
-      "model": "gpt-6-luna",
-      "provider": "codex",
-      "status": "done",
-      "qa_verdict": "pass",
-      "qa_reason": "nota.ts incluye al final la línea solicitada `export const sucio = 2`.",
-      "files_blocked": [],
-      "checks_failed": 0,
-      "usd_cost": 0.00131666,
-      "elapsed_ms": 12937,
-      "tokens": 11226,
-      "created_at": "2026-10-16T01:53:57.472Z"
     }
   ],
   "stats": {
     "failed": 0,
     "blocked": 0,
     "done": 20,
-    "qa_failed": 6,
-    "total_cost_usd": "0.0111"
+    "qa_failed": 7,
+    "total_cost_usd": "0.0087"
   }
 }

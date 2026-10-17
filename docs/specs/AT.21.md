@@ -144,3 +144,16 @@ Corregir con defensas estructurales (todas, cada una con su test de integración
 5. Reportar lo medido: qué subcomandos aceptan `--ignore-submodules`, salida del `rev-parse` en un worktree enlazado.
 Verificación: typecheck, `bun run lint` (0 errores), `test:coverage`. No tocar `scripts/ui-gate/flows/` (otro
 ejecutor está en ese archivo).
+
+## Ronda 6 (cerebro, 2026-10-17) — 3.ª revisión `qa` (todo lo anterior cerrado; quedan 3)
+Fixtures en `/private/tmp/at21-qa3-PJ0W1s/` y `/private/tmp/at21-qa3-extra-y44toG/` (reconstruir en tests).
+1. **Alta — listado de config truncado.** 10 000 claves `safe.fillerN` antes de `filter.pw.clean`: el listado se
+   corta en 64 KB (`readonly.ts:~372` ignora `listing.truncated` y el código de salida) y `["git","diff"]` ejecutó el
+   filtro. Corregir: el listado de config tiene su propio tope (p. ej. 1 MB) y si se trunca, o sale con código ≠ 0,
+   **rechazar** ("git config too large to verify" / el error). Test con las 10 000 claves y centinela.
+2. **Media — `blame --ignore-revs-file=<ruta>`** (forma con `=`) no se valida: `fatal: invalid object name:
+   SECRET_OUTSIDE_PROJECT`. Añadir `--ignore-revs-file` a las flags con ruta (ambas formas) y siempre
+   `-c blame.ignoreRevsFile=` (la config también lo reproducía). Revisar en `git help blame/log/grep/ls-files/diff`
+   del binario toda otra opción que tome una ruta de archivo a leer y cubrirla; listar en el reporte.
+3. **Baja — `mailmap.file` de la config global** lee fuera de la raíz: siempre `-c mailmap.file= -c mailmap.blob=`.
+Verificación: typecheck, `bun run lint` (0 errores), `test:coverage`. No tocar `scripts/ui-gate/flows/`.
