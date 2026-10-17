@@ -25,6 +25,7 @@ import {
   ExecutorCodexError,
   orchestosModelToCodexModel,
   parseCodexStream,
+  readCodexRolloutContext,
   runCodexChat,
 } from '../run/executors/codex.ts'
 import type { RunContext } from '../run/middleware.ts'
@@ -334,6 +335,45 @@ describe('G.4.2b — codexEngine (codex subprocess)', () => {
       expect(result.usd).toBeNull()
     } finally {
       rmSync(root, { recursive: true, force: true })
+    }
+  })
+
+  // CX.6 — línea real del rollout (2026-10-17): contexto = last_token_usage.total_tokens, no el acumulado.
+  it('CX.6 — readCodexRolloutContext lee el último token_count del rollout por thread_id', async () => {
+    const home = mkdtempSync(join(tmpdir(), 'orchestos-codex-rollout-'))
+    try {
+      const dir = join(home, 'sessions', '2026', '10', '17')
+      mkdirSync(dir, { recursive: true })
+      const tc = (last: number) =>
+        JSON.stringify({
+          payload: {
+            type: 'token_count',
+            info: {
+              last_token_usage: { input_tokens: last - 5, total_tokens: last },
+              total_token_usage: { input_tokens: 41364 },
+              model_context_window: 258400,
+            },
+          },
+        })
+      writeFileSync(
+        join(dir, 'rollout-2026-10-17T10-00-00-thread-1.jsonl'),
+        `${tc(11000)}\n${tc(20790)}\n`,
+      )
+      writeFileSync(join(dir, 'rollout-2026-10-17T10-00-00-thread-2.jsonl'), `${tc(999)}\n`)
+      expect(await readCodexRolloutContext(home, 'thread-1')).toEqual({
+        contextUsed: 20790,
+        contextWindow: 258400,
+      })
+      expect(await readCodexRolloutContext(home, 'missing')).toEqual({
+        contextUsed: null,
+        contextWindow: null,
+      })
+      expect(await readCodexRolloutContext(home, undefined)).toEqual({
+        contextUsed: null,
+        contextWindow: null,
+      })
+    } finally {
+      rmSync(home, { recursive: true, force: true })
     }
   })
 

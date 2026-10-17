@@ -591,6 +591,8 @@ function logChatRun(
   cacheWriteTokens = 0,
   elapsedMs = 0,
   cliSessionId?: string,
+  contextUsed?: number | null,
+  contextWindow?: number | null,
 ): void {
   try {
     const cost = chatCost(model, inputTokens, outputTokens, reportedUsd)
@@ -622,6 +624,8 @@ function logChatRun(
       cache_write_tokens: cacheWriteTokens,
       output_tokens: outputTokens,
       context_tokens: contextTokens,
+      context_used_tokens: contextUsed ?? null,
+      context_window_tokens: contextWindow ?? null,
       usd_cost: cost.usd,
       cost_breakdown_json: JSON.stringify([
         { label: 'chat', model, inputTokens, outputTokens, costUsd: cost.usd, source: cost.source },
@@ -1460,6 +1464,8 @@ async function handleApiChat(
     canonicalModel?: string
     reportedUsd?: number | null
     cliSessionId?: string
+    contextUsed?: number | null
+    contextWindow?: number | null
   }): void => {
     if (activeTurnId && session) clearLiveText(session.id, activeTurnId)
     const { responseText, resultLabel, inputTokens, outputTokens, provider = 'openrouter' } = params
@@ -1496,6 +1502,8 @@ async function handleApiChat(
       cache_write_tokens: params.cacheWriteTokens ?? 0,
       output_tokens: outputTokens,
       context_tokens: contextTokens,
+      context_used_tokens: params.contextUsed ?? null,
+      context_window_tokens: params.contextWindow ?? null,
       usd_cost: cost.usd,
       cost_breakdown_json: JSON.stringify([
         {
@@ -1552,6 +1560,8 @@ async function handleApiChat(
         params.cacheWriteTokens ?? 0,
         Date.now() - turnStartedAt,
         params.cliSessionId,
+        params.contextUsed,
+        params.contextWindow,
       )
     }
   }
@@ -1643,6 +1653,8 @@ async function handleApiChat(
           canonicalModel: result.model,
           reportedUsd: result.usd,
           cliSessionId: result.sessionId,
+          contextUsed: result.contextUsed,
+          contextWindow: result.contextWindow,
         })
         // +2: el mensaje del usuario y la respuesta que `appendChatExchange` acaba de guardar.
         if (session && hasProjectContext && result.sessionId)
@@ -1719,6 +1731,8 @@ async function handleApiChat(
           canonicalModel: result.model,
           reportedUsd: result.usd,
           cliSessionId: result.threadId,
+          contextUsed: result.contextUsed,
+          contextWindow: result.contextWindow,
         })
         return jsonResponse({
           text: responseText,

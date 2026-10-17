@@ -422,6 +422,10 @@ export interface SessionContextResponse {
   window: number | null
   pct: number | null
   model: string | null
+  /** CX.6: 'measured' = último token_count/assistant del CLI; 'estimated' = cálculo del run. */
+  source: 'measured' | 'estimated' | null
+  /** CLI que corrió el run (claude, codex…). */
+  engine: string | null
 }
 
 export async function getSessionContext(

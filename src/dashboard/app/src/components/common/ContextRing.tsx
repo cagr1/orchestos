@@ -6,6 +6,8 @@ export interface ContextRingProps {
   model?: string
   usedTokens?: string // e.g. "128k"
   maxTokens?: string // e.g. "200k"
+  source?: 'measured' | 'estimated' | null
+  engine?: string | null // CLI que corrió el run
   className?: string
 }
 
@@ -14,6 +16,8 @@ export const ContextRing: React.FC<ContextRingProps> = ({
   model,
   usedTokens,
   maxTokens,
+  source,
+  engine,
   className = '',
 }) => {
   const [showPopover, setShowPopover] = useState(false)
@@ -99,7 +103,11 @@ export const ContextRing: React.FC<ContextRingProps> = ({
           </div>
 
           <div className="text-[11px] font-mono text-app-muted leading-relaxed">
-            {usedTokens && maxTokens ? `${usedTokens} / ${maxTokens} tokens` : 'Context usage'}
+            {usedTokens && maxTokens
+              ? `${usedTokens} de ${maxTokens} tokens${engine ? ` · ${engine}` : ''}${
+                  source ? ` (${source === 'measured' ? 'medido' : 'estimado'})` : ''
+                }`
+              : 'Context usage'}
           </div>
 
           {clamped >= 80 && (

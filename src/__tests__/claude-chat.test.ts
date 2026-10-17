@@ -422,6 +422,52 @@ describe('runClaudeChat (CC.1)', () => {
     expect(result.model).toBe('claude-sonnet-5')
   })
 
+  // CX.6 — corrida real 2026-10-17 (haiku, 2 herramientas): el contexto es el de la ÚLTIMA llamada
+  // (2+22222+482), no el acumulado del `result` (44930).
+  it('CX.6 — contexto real = última llamada assistant; ventana = modelUsage del CLI', async () => {
+    const call = (cr: number, cw: number, o: number) => ({
+      type: 'assistant',
+      message: {
+        model: 'claude-haiku-5-5',
+        content: [{ type: 'text', text: 'x' }],
+        usage: {
+          input_tokens: 2,
+          cache_read_input_tokens: cr,
+          cache_creation_input_tokens: cw,
+          output_tokens: o,
+        },
+      },
+    })
+    const stdout = streamOf(
+      call(8867, 13355, 5),
+      call(22222, 482, 4),
+      resultEvent({
+        total_cost_usd: 0.01,
+        usage: {
+          input_tokens: 4,
+          cache_read_input_tokens: 31089,
+          cache_creation_input_tokens: 13837,
+          output_tokens: 362,
+        },
+        modelUsage: { 'claude-haiku-5-5': { contextWindow: 1000000, maxOutputTokens: 128000 } },
+      }),
+    )
+    overrideBunSpawn(makeMockProc(stdout))
+    const result = await runClaudeChat('/tmp/p', 'sys', 'msg', 5000)
+    expect(result.contextUsed).toBe(22706)
+    expect(result.contextWindow).toBe(1000000)
+    expect(result.cacheReadTokens).toBe(31089)
+  })
+
+  it('CX.6 — sin mensajes assistant con usage o sin ventana: null, no inventa', async () => {
+    overrideBunSpawn(
+      makeMockProc(streamOf(assistantText('x'), resultEvent({ total_cost_usd: 0, usage: {} }))),
+    )
+    const result = await runClaudeChat('/tmp/p', 'sys', 'msg', 5000)
+    expect(result.contextUsed).toBeNull()
+    expect(result.contextWindow).toBeNull()
+  })
+
   // CC.1b (2026-08-16) — hallazgo real de Carlos el mismo día del gate de CC.1:
   // la primera versión no pasaba effort al binario, ni lo devolvía en el label —
   // "muy genérico" (sic). Claude CLI acepta 5 niveles reales (claude --help),

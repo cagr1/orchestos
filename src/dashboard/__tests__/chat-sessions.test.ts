@@ -131,7 +131,13 @@ describe('CC.2 — chat sessions backend', () => {
       const emptySession = sessions.createChatSession({ projectId: null, agent: 'codex' })
       const empty = await (await handleApiChatSessionContext(new URL('http://localhost/api/chat/sessions/' + emptySession.id + '/context'))).json()
       const missing = await handleApiChatSessionContext(new URL('http://localhost/api/chat/sessions/missing/context'))
-      process.stdout.write(JSON.stringify({ known, unknown, cleanedRunModel, empty, missing: missing.status }))
+      const measuredSession = sessions.createChatSession({ projectId: null, agent: 'claude' })
+      const measuredTurn = turns.beginTurn({ sessionId: measuredSession.id, projectId: null, requestKey: 'measured', inputFingerprint: 'measured', owner: 'test' })
+      db.run('INSERT INTO runs (id, prompt, task_class, model, provider, status, input_tokens, cache_read_tokens, cache_write_tokens, output_tokens, context_used_tokens, context_window_tokens, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', ['measured-run', 'test', 'chat', 'claude-haiku-5-5 via Claude Code CLI', 'claude', 'done', 4, 31089, 13837, 362, 22706, 1000000, new Date().toISOString()])
+      db.run('UPDATE chat_turns SET run_id = ? WHERE id = ?', ['measured-run', measuredTurn.turn.id])
+      const measured = await (await handleApiChatSessionContext(new URL('http://localhost/api/chat/sessions/' + measuredSession.id + '/context'))).json()
+      const measuredOtherModel = await (await handleApiChatSessionContext(new URL('http://localhost/api/chat/sessions/' + measuredSession.id + '/context?model=catalog%2Ftest-model'))).json()
+      process.stdout.write(JSON.stringify({ known, unknown, cleanedRunModel, empty, missing: missing.status, measured, measuredOtherModel }))
       db.close()
     `)
     expect(result.known).toEqual({
@@ -139,15 +145,45 @@ describe('CC.2 — chat sessions backend', () => {
       window: 20000,
       pct: 50,
       model: 'catalog/test-model',
+      source: 'estimated',
+      engine: 'test',
     })
-    expect(result.unknown).toEqual({ used: 10000, window: null, pct: null, model: 'unknown/model' })
+    expect(result.unknown).toEqual({
+      used: 10000,
+      window: null,
+      pct: null,
+      model: 'unknown/model',
+      source: 'estimated',
+      engine: 'test',
+    })
     expect(result.cleanedRunModel).toEqual({
       used: 10000,
       window: 256000,
       pct: (10000 / 256000) * 100,
       model: 'gpt-6-luna',
+      source: 'estimated',
+      engine: 'test',
     })
-    expect(result.empty).toEqual({ used: null, window: null, pct: null, model: null })
+    expect(result.measured).toEqual({
+      used: 22706,
+      window: 1000000,
+      pct: (22706 / 1000000) * 100,
+      model: 'claude-haiku-5-5',
+      source: 'measured',
+      engine: 'claude',
+    })
+    expect(result.measuredOtherModel).toMatchObject({
+      source: 'estimated',
+      model: 'catalog/test-model',
+    })
+    expect(result.empty).toEqual({
+      used: null,
+      window: null,
+      pct: null,
+      model: null,
+      source: null,
+      engine: null,
+    })
     expect(result.missing).toBe(404)
   })
 

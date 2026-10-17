@@ -885,6 +885,40 @@ export const FUTURE_MIGRATIONS: readonly SchemaMigrationStep[] = [
       }
     },
   },
+  {
+    // CX.6: contexto real del run (última llamada al modelo) y ventana que reporta el CLI.
+    version: 27,
+    name: 'runs-context-measured',
+    precondition: () => {},
+    apply: (database) => {
+      const table = database
+        .query<{ name: string }, []>(
+          "SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'runs'",
+        )
+        .get()
+      if (!table) return
+      const columns = database
+        .query<{ name: string }, []>('PRAGMA table_info(runs)')
+        .all()
+        .map((row) => row.name)
+      if (!columns.includes('context_used_tokens'))
+        database.exec('ALTER TABLE runs ADD COLUMN context_used_tokens INTEGER NULL')
+      if (!columns.includes('context_window_tokens'))
+        database.exec('ALTER TABLE runs ADD COLUMN context_window_tokens INTEGER NULL')
+    },
+    postcondition: (database) => {
+      const columns = database
+        .query<{ name: string }, []>('PRAGMA table_info(runs)')
+        .all()
+        .map((row) => row.name)
+      if (
+        columns.length > 0 &&
+        (!columns.includes('context_used_tokens') || !columns.includes('context_window_tokens'))
+      ) {
+        throw new Error('Migration 27 did not add runs context columns')
+      }
+    },
+  },
 ]
 
 function appliedVersions(database: Database): Set<number> {

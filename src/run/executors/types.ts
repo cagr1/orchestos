@@ -22,6 +22,9 @@ export interface ExecutorOutcome {
   cacheReadTokens?: number
   cacheWriteTokens?: number
   outputTokens: number
+  /** CX.6 — contexto real de la última llamada y ventana que reporta el CLI; ausente = no medido. */
+  contextUsed?: number | null
+  contextWindow?: number | null
   /** Último mensaje de texto del agente (ERP.4.8); solo engines CLI que lo exponen. */
   finalText?: string
   usd: number

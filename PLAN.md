@@ -1538,8 +1538,21 @@ En todos: `prefers-reduced-motion` = cambios instantáneos o fundidos cortos.
   chat-readonly-shell 5/5 (Claude y Codex citan el SHA real), chat-context 5/5, chat-roles 10/10, chat-continuity 8/8,
   chat-streaming 27/27, codex-live 14/14; contraprueba del cerebro con los fixtures de qa: centinela no creado.
   Abierto, bajo: `core.excludesFile` de la config global del usuario se lee con `ls-files --exclude-standard`.
-- [ ] **CX.6 — 🔍 El anillo de contexto muestra el contexto real, en Chat y en Dev.** (abierto 2026-10-14; pedido de
-  Carlos) Hoy `used` suma el run entero y `window` sale de catálogo (`chat-sessions.ts:378-382`). Spec: docs/specs/CX.6.md
+- [x] **CX.6 — 🔍 El anillo de contexto muestra el contexto real, en Chat y en Dev.** (abierto 2026-10-14; pedido de
+  Carlos; cerrado 2026-10-17) Antes `used` sumaba el run entero y `window` salía de catálogo. Ahora: Claude = último
+  `assistant` + `modelUsage[].contextWindow`; Codex = último `token_count` del rollout; migración 27
+  (`runs.context_used_tokens`, `context_window_tokens`); endpoint con `source` medido|estimado y `engine`; tooltip
+  "N de M tokens · <CLI> (medido|estimado)".
+  Ejecutado por: criterio (Sonnet) · Spec: docs/specs/CX.6.md (borrado al cerrar)
+  Evidencia: typecheck y lint (0 errores); `test:coverage` 1935/0 (2 skip). En vivo (dashboard real, :4343): Claude
+  `claude-sonnet-5` con 2 herramientas → 12663/1000000 medido = transcript (2+10894+1767; acumulado del run 23559);
+  Codex `gpt-6-luna` → 32569/258400 = último `token_count` del rollout; Codex `gpt-6.1-sol` → tooltip en Chat y en Dev
+  "39152 de 475000 tokens · codex (medido)" = rollout (el catálogo decía 1050000).
+  Gate en vivo: navegador real (Playwright), `docs/done/evidence/CX.6-live.json`: hover sobre el anillo en Chat y en Dev.
+- [ ] **CX.6.1 — 🧠 Chat Codex (app-server): costo del turno entero y contexto del propio evento; Claude ignora
+  subagentes.** (abierto 2026-10-17, hallado al verificar CX.6) `codex-app-server.ts:211` guarda solo la última
+  llamada como uso del turno: el costo del chat Codex con herramientas se subcuenta (32529 de 79929 en vivo).
+  Spec: docs/specs/CX.6.1.md
 - [ ] **ERP.5 — 🔍 Revisar sobrecarga: qué quitar manteniendo fiabilidad y control humano.**
   Pedido de Carlos (2026-09-15). Hacer después de iniciar ERP.4, con evidencia del trabajo real;
   no bloquear AT.10 ni el piloto con otra auditoría extensa. Alcance: reglas/documentos cargados,

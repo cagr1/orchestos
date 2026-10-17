@@ -1,7 +1,52 @@
 {
-  "exported_at": "2026-10-17T22:09:05.063Z",
+  "exported_at": "2026-10-17T22:28:41.748Z",
   "total_runs": 20,
   "runs": [
+    {
+      "id": "063216e3-4ba5-450d-aaac-5c8e12c68e67",
+      "task_class": "chat",
+      "model": "gpt-6.1-sol",
+      "provider": "codex",
+      "status": "done",
+      "qa_verdict": null,
+      "qa_reason": null,
+      "files_blocked": [],
+      "checks_failed": 0,
+      "usd_cost": 0.0045792,
+      "elapsed_ms": 7205,
+      "tokens": 240,
+      "created_at": "2026-10-17T22:22:14.668Z"
+    },
+    {
+      "id": "02ca2c0d-1e79-409c-bd37-98018a6f07a8",
+      "task_class": "chat",
+      "model": "gpt-6-luna",
+      "provider": "codex",
+      "status": "done",
+      "qa_verdict": null,
+      "qa_reason": null,
+      "files_blocked": [],
+      "checks_failed": 0,
+      "usd_cost": 0,
+      "elapsed_ms": 7983,
+      "tokens": 20921,
+      "created_at": "2026-10-17T22:19:02.665Z"
+    },
+    {
+      "id": "df2c51bb-1eb8-4070-8b1e-ea76209e5817",
+      "task_class": "chat",
+      "model": "claude-sonnet-5",
+      "provider": "claude",
+      "status": "done",
+      "qa_verdict": null,
+      "qa_reason": null,
+      "files_blocked": [],
+      "checks_failed": 0,
+      "usd_cost": 0.0560508,
+      "elapsed_ms": 6731,
+      "tokens": 326,
+      "created_at": "2026-10-17T22:18:33.220Z"
+    },
     {
       "id": "ui-chat-context-seed-1792265643561",
       "task_class": "gate:at.21-chat-live:implement",
@@ -256,51 +301,6 @@
       "elapsed_ms": 11495,
       "tokens": 10522,
       "created_at": "2026-10-16T02:21:44.796Z"
-    },
-    {
-      "id": "cfa710ba-cf09-404a-b7c7-ed991205c7c2",
-      "task_class": "gate:erp.4.16-live:doc",
-      "model": "openai/gpt-6-luna",
-      "provider": "codex",
-      "status": "done",
-      "qa_verdict": "pass",
-      "qa_reason": "README.md contains the requested line.",
-      "files_blocked": [],
-      "checks_failed": 0,
-      "usd_cost": 0.00121386,
-      "elapsed_ms": 14987,
-      "tokens": 11226,
-      "created_at": "2026-10-16T02:21:31.491Z"
-    },
-    {
-      "id": "f433b0a7-3a1f-43d7-ae8d-50d4b6854398",
-      "task_class": "gate:erp.4.16-live:doc",
-      "model": "openai/gpt-6-luna",
-      "provider": "codex",
-      "status": "done",
-      "qa_verdict": "pass",
-      "qa_reason": "README.md contains the requested line.",
-      "files_blocked": [],
-      "checks_failed": 0,
-      "usd_cost": 0.00093968,
-      "elapsed_ms": 24470,
-      "tokens": 7445,
-      "created_at": "2026-10-16T02:19:24.934Z"
-    },
-    {
-      "id": "1724126c-7b0b-4b76-b990-5cbba1631ab8",
-      "task_class": "gate:ui.24.7-r3-live:implement",
-      "model": "gpt-6-luna",
-      "provider": "codex",
-      "status": "done",
-      "qa_verdict": "pass",
-      "qa_reason": "El archivo contiene la única línea solicitada: «nota de codex».",
-      "files_blocked": [],
-      "checks_failed": 0,
-      "usd_cost": 0.0015716,
-      "elapsed_ms": 20268,
-      "tokens": 12545,
-      "created_at": "2026-10-16T01:55:21.976Z"
     }
   ],
   "stats": {
@@ -308,6 +308,6 @@
     "blocked": 0,
     "done": 20,
     "qa_failed": 7,
-    "total_cost_usd": "0.0087"
+    "total_cost_usd": "0.0656"
   }
 }

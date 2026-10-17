@@ -45,6 +45,9 @@ export interface RunRecord {
   cache_read_tokens: number
   cache_write_tokens: number
   cli_session_id: string | null
+  /** CX.6: contexto real (última llamada) y ventana medida por el CLI; NULL = no medido. */
+  context_used_tokens?: number | null
+  context_window_tokens?: number | null
   /** ERP.4.8: último mensaje del ejecutor en runs fallidos/bloqueados (≤4000 chars); NULL = sin texto o run ok. */
   executor_reply?: string | null
   output_tokens: number
@@ -98,6 +101,8 @@ type InsertRunRecord = Omit<
   cache_read_tokens?: number
   cache_write_tokens?: number
   cli_session_id?: string | null
+  context_used_tokens?: number | null
+  context_window_tokens?: number | null
 }
 
 const EXECUTOR_REPLY_MAX = 4000
@@ -120,8 +125,8 @@ export function insertRun(r: InsertRunRecord): string {
       snapshot_before, snapshot_after, qa_verdict, qa_reason, qa_model, checks_json,
       constitution_rules, context_source, context_tokens, embed_hits, context_warnings_json,
       cost_breakdown_json, file_diffs, adversarial_verdict, adversarial_reason, refuter_verdict, refuter_reason, skill_gates_json,
-      status, input_tokens, cache_read_tokens, cache_write_tokens, output_tokens, usd_cost, elapsed_ms, result, created_at, cli_session_id, executor_reply
-    ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
+      status, input_tokens, cache_read_tokens, cache_write_tokens, output_tokens, usd_cost, elapsed_ms, result, created_at, cli_session_id, executor_reply, context_used_tokens, context_window_tokens
+    ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
     [
       id,
       scrub(r.project_id),
@@ -167,6 +172,8 @@ export function insertRun(r: InsertRunRecord): string {
       now,
       scrub(r.cli_session_id),
       scrub(clipExecutorReply(r.executor_reply)) ?? null,
+      r.context_used_tokens ?? null,
+      r.context_window_tokens ?? null,
     ],
   )
   return id

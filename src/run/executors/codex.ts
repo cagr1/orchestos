@@ -32,8 +32,10 @@
  *     no se puede tarifar contra un default que OrchestOS no controla.
  */
 
+import { existsSync, readdirSync } from 'node:fs'
 import { homedir } from 'node:os'
 import { join } from 'node:path'
+import { codexAdapter } from '../../../scripts/context-adapters.ts'
 import { getChatSession, getCodexChatThread, setCodexChatThread } from '../../db/chat-sessions.ts'
 import {
   codexExecMcpArgs,
@@ -308,6 +310,46 @@ interface CodexChatResult {
   outputTokens: number
   usd: number | null
   model: string
+  /** CX.6 — contexto real del último `token_count` del rollout; null si no apareció. */
+  contextUsed: number | null
+  contextWindow: number | null
+}
+
+/** CX.6 — rollout `sessions/YYYY/MM/DD/rollout-*-<threadId>.jsonl` bajo el CODEX_HOME del spawn. */
+function findCodexRollout(dir: string, threadId: string): string | null {
+  let entries: import('node:fs').Dirent[]
+  try {
+    entries = readdirSync(dir, { withFileTypes: true })
+  } catch {
+    return null
+  }
+  for (const entry of entries) {
+    const full = join(dir, entry.name)
+    if (entry.isDirectory()) {
+      const found = findCodexRollout(full, threadId)
+      if (found) return found
+    } else if (entry.name.startsWith('rollout-') && entry.name.endsWith(`-${threadId}.jsonl`)) {
+      return full
+    }
+  }
+  return null
+}
+
+export async function readCodexRolloutContext(
+  codexHome: string,
+  threadId: string | undefined,
+): Promise<{ contextUsed: number | null; contextWindow: number | null }> {
+  const none = { contextUsed: null, contextWindow: null }
+  if (!threadId) return none
+  const sessions = join(codexHome, 'sessions')
+  if (!existsSync(sessions)) return none
+  try {
+    const path = findCodexRollout(sessions, threadId)
+    const reading = path ? await codexAdapter.read(path) : null
+    return reading ? { contextUsed: reading.used, contextWindow: reading.window } : none
+  } catch {
+    return none
+  }
 }
 
 export function buildCodexChatArgs(
@@ -432,6 +474,7 @@ async function runCodexChatExec(
     outputTokens: parsed.outputTokens,
     usd,
     model: model ?? 'codex (cli default model)',
+    ...(await readCodexRolloutContext(configHome.path, parsed.threadId)),
   }
 }
 
@@ -523,6 +566,7 @@ export async function runCodexChat(
       outputTokens: result.outputTokens,
       usd,
       model: result.model ?? model ?? 'codex (cli default model)',
+      ...(await readCodexRolloutContext(configHome.path, result.threadId)),
     }
   } catch (error) {
     if (

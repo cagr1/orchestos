@@ -1042,6 +1042,8 @@ export const OrchestDevWorkspace: React.FC<OrchestDevWorkspaceProps> = ({
             model={sessionContext?.model ?? undefined}
             usedTokens={sessionContext?.used == null ? undefined : `${sessionContext.used}`}
             maxTokens={sessionContext?.window == null ? undefined : `${sessionContext.window}`}
+            source={sessionContext?.source}
+            engine={sessionContext?.engine}
             className="ml-1"
           />
         </div>

@@ -333,6 +333,8 @@ export const OrchestChatView: React.FC<OrchestChatViewProps> = ({
               model={sessionContext?.model ?? undefined}
               usedTokens={sessionContext?.used == null ? undefined : `${sessionContext.used}`}
               maxTokens={sessionContext?.window == null ? undefined : `${sessionContext.window}`}
+              source={sessionContext?.source}
+              engine={sessionContext?.engine}
             />
           </div>
         </header>

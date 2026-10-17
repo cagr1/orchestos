@@ -87,7 +87,30 @@ interface ClaudeCodeJson {
   /** Hallazgo real de Carlos (2026-08-17): pedir `--model sonnet` (alias) muestra
    *  "Sonnet" en la UI sin decir a qué versión concreta resolvió — el CLI SÍ lo
    *  reporta acá, keyed por el nombre canónico real (ej. "claude-sonnet-5"). */
-  modelUsage?: Record<string, { canonicalModel?: string }>
+  modelUsage?: Record<string, { canonicalModel?: string; contextWindow?: number }>
+}
+
+/** CX.6 — uso de la ÚLTIMA llamada al modelo del turno (mensaje `assistant`), no el acumulado de `result`. */
+interface LastAssistantUsage {
+  used: number
+  model?: string
+}
+
+/** CX.6 — contexto real = input + cache_read + cache_creation de la última llamada; ventana = la que reporta el CLI. */
+export function claudeContextMeasure(
+  last: LastAssistantUsage | undefined,
+  modelUsage: ClaudeCodeJson['modelUsage'],
+): { contextUsed: number | null; contextWindow: number | null } {
+  if (!last) return { contextUsed: null, contextWindow: null }
+  const windows = Object.entries(modelUsage ?? {}).flatMap(([key, value]) =>
+    typeof value?.contextWindow === 'number' && value.contextWindow > 0
+      ? [{ key, window: value.contextWindow }]
+      : [],
+  )
+  const match = windows.find((w) => w.key === last.model)
+  const window =
+    match?.window ?? (windows.length ? Math.max(...windows.map((w) => w.window)) : null)
+  return { contextUsed: window === null ? null : last.used, contextWindow: window }
 }
 
 /** Nombre canónico real que el CLI resolvió (ej. "claude-sonnet-5"), leído de
@@ -234,7 +257,13 @@ async function runClaudeCode(
   binary = CLAUDE_BINARY,
   audit = new ClaudeReadAudit(),
   onTextDelta?: (text: string) => void,
-): Promise<{ stdout: string; timedOut: boolean; resultLine?: string; readAudit: ReadAudit }> {
+): Promise<{
+  stdout: string
+  timedOut: boolean
+  resultLine?: string
+  lastAssistant?: LastAssistantUsage
+  readAudit: ReadAudit
+}> {
   const proc = Bun.spawn([binary, ...args], {
     cwd,
     env: safeChildEnv(),
@@ -265,12 +294,23 @@ async function runClaudeCode(
   let stdout = ''
   let lineBuffer = ''
   let resultLine: string | undefined
+  let lastAssistant: LastAssistantUsage | undefined
   const consumeLine = (line: string) => {
     if (!line.trim()) return
     audit.line(line)
     try {
       const evt = JSON.parse(line)
       if (evt?.type === 'result') resultLine = line
+      if (evt?.type === 'assistant' && evt.message?.usage) {
+        const u = evt.message.usage
+        lastAssistant = {
+          used:
+            (Number(u.input_tokens) || 0) +
+            (Number(u.cache_read_input_tokens) || 0) +
+            (Number(u.cache_creation_input_tokens) || 0),
+          model: typeof evt.message.model === 'string' ? evt.message.model : undefined,
+        }
+      }
       const delta = claudeEventToTextDelta(evt)
       if (delta !== null) onTextDelta?.(delta)
       if (onStep) for (const step of claudeEventToStep(evt)) onStep(step)
@@ -307,7 +347,7 @@ async function runClaudeCode(
     reader.releaseLock()
     clearTimeout(timer)
   }
-  return { stdout, timedOut, resultLine, readAudit: audit.finish() }
+  return { stdout, timedOut, resultLine, lastAssistant, readAudit: audit.finish() }
 }
 
 // -- chat (CC.1, Mes 29) ----------------------------------------------------------
@@ -412,6 +452,9 @@ interface ClaudeChatResult {
   effort?: string
   filesRead: string[] | null
   readAudit: ReadAudit
+  /** CX.6 — contexto real de la última llamada y ventana que reporta el CLI; null si no vinieron. */
+  contextUsed: number | null
+  contextWindow: number | null
 }
 
 /**
@@ -450,6 +493,7 @@ export async function runClaudeChat(
 
   let timedOut: boolean
   let resultLine: string | undefined
+  let lastAssistant: LastAssistantUsage | undefined
   const audit = new ClaudeReadAudit()
   const configHome = provisionCliConfigHome(cwd, 'claude')
   const cliModel = orchestosModelToCliModel(model)
@@ -457,7 +501,7 @@ export async function runClaudeChat(
     throw new ExecutorExternalError(`Claude Code no reconoce el modelo solicitado: ${model}`)
   }
   try {
-    ;({ timedOut, resultLine } = await runClaudeCode(
+    ;({ timedOut, resultLine, lastAssistant } = await runClaudeCode(
       cwd,
       buildClaudeChatArgs(
         systemPrompt,
@@ -529,6 +573,7 @@ export async function runClaudeChat(
     effort,
     filesRead: successfulReadPaths(audit.finish()),
     readAudit: audit.finish(),
+    ...claudeContextMeasure(lastAssistant, parsed.modelUsage),
   }
 }
 
@@ -563,8 +608,9 @@ export const externalEngine: ExecutorEngine = {
 
     let timedOut: boolean
     let resultLine: string | undefined
+    let lastAssistant: LastAssistantUsage | undefined
     try {
-      ;({ timedOut, resultLine } = await runClaudeCode(
+      ;({ timedOut, resultLine, lastAssistant } = await runClaudeCode(
         ctx.effectiveRoot,
         buildClaudeArgs(
           systemPrompt,
@@ -625,6 +671,7 @@ export const externalEngine: ExecutorEngine = {
       cacheReadTokens,
       cacheWriteTokens,
       outputTokens,
+      ...claudeContextMeasure(lastAssistant, parsed.modelUsage),
       finalText: typeof parsed.result === 'string' ? parsed.result : undefined,
       usd,
       iterations,

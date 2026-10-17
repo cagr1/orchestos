@@ -374,16 +374,42 @@ export async function handleApiChatSessionContext(url: URL): Promise<Response> {
   const id = sessionIdFromUrl(url)
   if (!id) return errorResponse('Invalid session id', 400)
   if (!getChatSession(id)) return errorResponse('Chat session not found', 404)
-  const empty = { used: null, window: null, pct: null, model: null }
+  const empty = { used: null, window: null, pct: null, model: null, source: null, engine: null }
   const turn = [...listChatTurns(id)].reverse().find((candidate) => candidate.run_id)
   if (!turn?.run_id) return jsonResponse(empty)
   const run = getRun(turn.run_id)
   if (!run) return jsonResponse(empty)
   const requestedModel = cleanContextModel(url.searchParams.get('model')?.trim() ?? '')
-  const model = requestedModel || cleanContextModel(run.model)
+  const runModel = cleanContextModel(run.model)
+  const model = requestedModel || runModel
+  const engine = run.provider || null
+  // CX.6 — medido por el CLI (última llamada) solo si el modelo pedido es el que corrió el run.
+  if (
+    run.context_used_tokens != null &&
+    run.context_window_tokens != null &&
+    run.context_window_tokens > 0 &&
+    (!requestedModel || requestedModel === runModel)
+  ) {
+    const { context_used_tokens: used, context_window_tokens: window } = run
+    return jsonResponse({
+      used,
+      window,
+      pct: (used / window) * 100,
+      model: runModel,
+      source: 'measured',
+      engine,
+    })
+  }
   const used = run.input_tokens + run.cache_read_tokens + run.cache_write_tokens + run.output_tokens
   const window = await contextWindowFor(model)
-  return jsonResponse({ used, window, pct: window ? (used / window) * 100 : null, model })
+  return jsonResponse({
+    used,
+    window,
+    pct: window ? (used / window) * 100 : null,
+    model,
+    source: 'estimated',
+    engine,
+  })
 }
 
 function cleanContextModel(model: string): string {

@@ -1,0 +1,30 @@
+{
+  "item": "CX.6",
+  "date": "2026-10-17",
+  "dashboard": "http://localhost:4343 (bun run src/cli.ts dashboard, HOME real)",
+  "claude": {
+    "session": "42510d6f-b4de-4d78-a736-067425f3d437",
+    "model": "claude-sonnet-5",
+    "endpoint": {"used": 12663, "window": 1000000, "source": "measured", "engine": "claude"},
+    "run_cumulative": {"input": 4, "cache_read": 10894, "cache_write": 12661, "output": 322},
+    "transcript_assistant_usage": [{"i": 2, "cr": 0, "cw": 10894}, {"i": 2, "cr": 10894, "cw": 1767}]
+  },
+  "codex_luna": {
+    "session": "see runs.cli_session_id 01a14bf2-53ea-7e90-8157-10d4bd88ccd0",
+    "model": "gpt-6-luna",
+    "endpoint": {"used": 32569, "window": 258400, "source": "measured", "engine": "codex"},
+    "rollout_token_count_last_total": [23623, 23919, 32569],
+    "rollout_model_context_window": 258400,
+    "finding": "run.input+cache_read = 32529 = only last call; turn total input 79929 -> CX.6.1"
+  },
+  "codex_sol": {
+    "model": "gpt-6.1-sol",
+    "endpoint": {"used": 39152, "window": 475000, "source": "measured", "engine": "codex"},
+    "rollout_last": {"total_tokens": 39152, "model_context_window": 475000},
+    "catalog_window_before": 1050000
+  },
+  "playwright": {
+    "chat_ring_tooltip": "39152 de 475000 tokens · codex (medido)",
+    "dev_ring_tooltip": "39152 de 475000 tokens · codex (medido)"
+  }
+}
