@@ -119,3 +119,28 @@ Cambiar SOLO `scripts/ui-gate/flows/chat-readonly-shell.mjs` (`askLatestCommit`,
 Codex qué campo trae el comando de la fila nativa (`target` o `detail`) antes de escribir la aserción.
 Verificación: `bun run lint` (0 errores) y `bun run ui:gate chat-readonly-shell` PASS dos veces seguidas; pegar el
 detalle de los pasos de Codex de ambas corridas.
+
+## Ronda 5 (cerebro, 2026-10-17) — 2.ª revisión `qa`: cerrar por estructura, no por lista
+La ronda 3 cerró sus 3 reproducciones (qa: 72 pruebas, 0 fallos), pero qa encontró 3 más; los fixtures siguen en
+`/private/tmp/at21-qa2-S0VQtf/repo` y `/private/tmp/at21-qa2-more-0b4H4A` (copiarlos a tests, no depender de /tmp):
+- P1: submódulo con `filter.pw.clean` en SU config → `["git","diff","--submodule=diff"]` ejecutó el script.
+- P1: `core.worktree` apuntando fuera → `["git","diff","--","a"]` devolvió `SECRET_OUTSIDE_PROJECT`.
+- P2: `include.path` → FIFO: el listado de config bloquea sin timeout (2115 ms con timeout de 100 ms; sin escritor,
+  infinito).
+Corregir con defensas estructurales (todas, cada una con su test de integración y centinela):
+1. **Submódulos fuera**: rechazar `--submodule*`, `--recurse-submodules*` (y sus abreviaturas, ya cubiertas por el
+   env), y siempre `-c submodule.recurse=false -c diff.submodule=short -c status.submoduleSummary=false` +
+   `--ignore-submodules=all` en diff/status/log/show donde el subcomando lo admita (medirlo).
+2. **Raíz real de git = raíz del proyecto**: antes de ejecutar, `git rev-parse --show-toplevel` (mismo env y `-c`
+   endurecidos) debe dar `realpath(root)`; si no (o si `core.worktree`/`core.bare` aparecen en la config efectiva),
+   rechazar con "git work tree is outside the project". Un worktree enlazado (`.git` archivo) sigue valiendo: lo que se
+   compara es el work tree, no el gitdir.
+3. **Fallar cerrado ante config de ejecución**: además de neutralizar, si la config efectiva tiene una clave cuyo
+   último segmento (minúsculas) esté en {command, program, driver, clean, smudge, process, textconv, helper,
+   sshcommand, askpass, editor, pager, fsmonitor, hookspath, worktree, alternaterefscommand, packobjectshook,
+   uploadpack, receivepack} y la neutralización no la cubra con certeza, rechazar la llamada nombrando la clave.
+4. **Un solo plazo para todo**: el timeout cubre el listado de config, el `rev-parse` y el comando (deadline común;
+   cada spawn con el tiempo restante y la misma muerte de grupo). Test con el FIFO.
+5. Reportar lo medido: qué subcomandos aceptan `--ignore-submodules`, salida del `rev-parse` en un worktree enlazado.
+Verificación: typecheck, `bun run lint` (0 errores), `test:coverage`. No tocar `scripts/ui-gate/flows/` (otro
+ejecutor está en ese archivo).
