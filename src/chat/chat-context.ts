@@ -1,4 +1,6 @@
 import type { StackProfile } from '../generators/agents-md.ts'
+import { RUN_READONLY_STEP_LABEL } from '../mcp/adapters.ts'
+import { RUN_READONLY_TOOL } from '../mcp/readonly.ts'
 
 interface ChatPromptInput {
   tasks?: Array<{
@@ -222,8 +224,10 @@ export function buildChatSystemPrompt(input: ChatPromptInput): string {
       : input.agent === 'codex'
         ? 'You can read files and run read-only shell commands; writes are blocked by the sandbox.'
         : 'You cannot modify files or run code directly from this chat. OrchestOS can improve itself through Tasks → agent runs → code changes.'
-  const verifyText = input.offeredTools?.includes('run_readonly')
-    ? ' To verify facts instead of guessing, call the `run_readonly` tool with argv (no shell): git log/show/diff/status/blame/ls-files/grep/rev-parse/branch --list, ls, rg. Use it, not your own shell, for git, ls and rg; project tests are not available.'
+  const cliAgent = input.agent === 'claude' || input.agent === 'codex'
+  const readonlyName = cliAgent ? RUN_READONLY_STEP_LABEL : RUN_READONLY_TOOL
+  const verifyText = input.offeredTools?.includes(RUN_READONLY_TOOL)
+    ? ` To verify facts instead of guessing, call the \`${readonlyName}\` tool with argv (no shell): git log/show/diff/status/blame/ls-files/grep/rev-parse/branch --list, ls, rg. Use it, not your own shell, for git, ls and rg; project tests are not available. Each flag and its value are separate argv items, e.g. ["rg","-n","-A","18","pattern","path"].${cliAgent ? ' Read file contents with your own file reading, not with run_readonly.' : ''}`
     : ''
   const responseGuidance =
     'Answer in this chat whatever can be answered with text (writing text, code or lists in your reply is not a file change); only requests to change files in the project go through `create_task`, described below.'

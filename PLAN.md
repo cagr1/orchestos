@@ -1600,10 +1600,15 @@ ERP ni prueba visual nueva. Los ítems permanecen abiertos hasta sus gates reale
   costoso en tokens o uso") Mismo pedido directo al CLI y por OrchestOS (chat y tarea): tokens de contexto inyectado,
   tokens totales, cuota, latencia y calidad de respuesta, medidos y publicados; cada diferencia se explica o se corta.
   Va después de AT.19.1, AT.20, AT.21 y CX.6 (miden lo que se inyecta) y alimenta ERP.5.
-- [ ] **ERP.6.1 — 🧠 Codex en el chat no gasta llamadas descubriendo y reintentando run_readonly.** (abierto 2026-10-18,
-  hallado en ERP.6) Con herramientas, Codex por OrchestOS hace 4,3 llamadas contra 2,7 directo (109 k contra 82 k
-  de entrada): descubre la herramienta en `ALL_TOOLS`, prueba `sed` (no permitido) y pasa `"-A 18"` como un solo
-  argumento. Spec: docs/specs/ERP.6.1.md
+- [x] **ERP.6.1 — 🧠 Codex en el chat no gasta llamadas descubriendo y reintentando run_readonly.** (abierto y cerrado
+  2026-10-18, hallado en ERP.6) Con herramientas, Codex por OrchestOS hacía 4,3 llamadas contra 2,7 directo (109 k
+  contra 82 k de entrada): descubría la herramienta en `ALL_TOOLS`, probaba `sed` (no permitido) y pasaba `"-A 18"`
+  como un solo argumento. El prompt ahora cita el nombre invocable (`mcp__orchestos__run_readonly`), la regla de argv
+  y que el contenido de archivos se lee con la lectura propia del CLI. Lista permitida de AT.21 sin cambios.
+  Ejecutado por: criterio (Sonnet) · Spec: docs/specs/ERP.6.1.md (borrado al cerrar)
+  Evidencia: typecheck y lint (0 errores); `test:coverage` 1938/0. Medición repetida (3 rep., `gpt-6-luna` medium):
+  Codex por OrchestOS con herramientas 2,7 llamadas, 75 820 de entrada, 6,7 s (antes 4,3 / 109 241 / 14,3 s; Codex
+  directo 3 / 90 627 / 11,5 s). Crudo: `docs/done/evidence/ERP.6-chat-before.json`, `docs/done/evidence/ERP.6-chat-after.json`.
 - [ ] **ERP.7 — 🔍 Revisar T3 Code: dónde fallamos y cómo cubrir nuestras debilidades.** (abierto 2026-10-17; pedido de
   Carlos tras leer buenas críticas y un tier list que lo pone arriba, con Orca en C) No es "adaptemos": comparar lado a
   lado (instalarlo y usarlo, no leerlo como texto) peso por turno, reglas, UX del chat y control humano, y abrir ítems

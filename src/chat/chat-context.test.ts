@@ -49,6 +49,23 @@ describe('chat system context', () => {
     expect(prompt).not.toContain('unknown')
     expect(prompt).not.toContain('Notes for AI agents')
   })
+  it('names run_readonly as the turn sees it and explains argv and file reading', () => {
+    const argvRule = 'Each flag and its value are separate argv items, e.g. ["rg","-n","-A","18"'
+    for (const agent of ['claude', 'codex'] as const) {
+      const prompt = buildChatSystemPrompt({ ...base, agent, offeredTools: ['run_readonly'] })
+      expect(prompt).toContain('call the `mcp__orchestos__run_readonly` tool')
+      expect(prompt).toContain(argvRule)
+      expect(prompt).toContain('Read file contents with your own file reading')
+    }
+    const api = buildChatSystemPrompt({ ...base, agent: 'api', offeredTools: ['run_readonly'] })
+    expect(api).toContain('call the `run_readonly` tool')
+    expect(api).not.toContain('mcp__orchestos__run_readonly')
+    expect(api).toContain(argvRule)
+    expect(api).not.toContain('Read file contents with your own file reading')
+    const none = buildChatSystemPrompt({ ...base, agent: 'codex', offeredTools: ['create_task'] })
+    expect(none).not.toContain('run_readonly')
+    expect(none).not.toContain('argv')
+  })
   it('describes tools enabled by each agent and omits empty memory/specs', () => {
     for (const [agent, phrase] of [
       ['claude', 'Read, Glob, Grep'],
