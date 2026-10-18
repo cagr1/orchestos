@@ -1595,11 +1595,19 @@ puede entregarse después, pero el piloto debe mostrar permisos reales y los lí
 La corrida sobre carlosgallardo.dev citada en AT queda como smoke opcional, no criterio de éxito.
 Revisión documental de esta ruta: preflight AT.10 válido; verificación por lectura, sin corrida
 ERP ni prueba visual nueva. Los ítems permanecen abiertos hasta sus gates reales.
-- [ ] **ERP.6 — 🔍 Demostrar que OrchestOS no se siente más pesado que el CLI directo.** (abierto 2026-10-17; pedido de
+- [x] **ERP.6 — 🔍 Demostrar que OrchestOS no se siente más pesado que el CLI directo.** (abierto 2026-10-17, cerrado 2026-10-18; pedido de
   Carlos: "tenemos que demostrar que usar OrchestOS no se siente más pesado para el modelo, tiene reglas claras y no es
   costoso en tokens o uso") Mismo pedido directo al CLI y por OrchestOS (chat y tarea): tokens de contexto inyectado,
   tokens totales, cuota, latencia y calidad de respuesta, medidos y publicados; cada diferencia se explica o se corta.
   Va después de AT.19.1, AT.20, AT.21 y CX.6 (miden lo que se inyecta) y alimenta ERP.5.
+  Veredicto: no pesa más. Chat: contexto inicial Claude 10,7 k contra 42,5 k directo, Codex 23,9 k contra 28,9 k;
+  con herramientas, entrada total Claude 34 k contra 158 k, Codex 76 k contra 91 k (tras ERP.6.1). Tarea: el ejecutor
+  usa 91 k contra 158 k directo; el sobrecosto es el turno del Orquestador (27,6 k, $0,117) y ~5,5 s de worktree y QA.
+  Informe y método: → [evidencia](docs/done/ERP.6.md)
+  Sin delegación: medición del cerebro (arnés `docs/done/evidence/ERP.6-bench.ts`).
+- [ ] **ERP.6.2 — 🔍 El desglose de costo de una tarea muestra al revisor.** (abierto 2026-10-18, hallado en ERP.6)
+  `cost_breakdown_json` se arma antes de QA (`src/run/harness.ts:643`): solo trae la fila del ejecutor, aunque los
+  totales del run sí suman al revisor (`harness.ts:1021-1027`). La caché del revisor no entra en `cache_read_tokens`.
 - [x] **ERP.6.1 — 🧠 Codex en el chat no gasta llamadas descubriendo y reintentando run_readonly.** (abierto y cerrado
   2026-10-18, hallado en ERP.6) Con herramientas, Codex por OrchestOS hacía 4,3 llamadas contra 2,7 directo (109 k
   contra 82 k de entrada): descubría la herramienta en `ALL_TOOLS`, probaba `sed` (no permitido) y pasaba `"-A 18"`

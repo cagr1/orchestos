@@ -738,6 +738,15 @@
       "block": null,
       "delegation": "🔍",
       "title": "Demostrar que OrchestOS no se siente más pesado que el CLI directo",
+      "status": "done",
+      "closedDate": null
+    },
+    {
+      "id": "ERP.6.2",
+      "sprint": "Fase 3 — Correr dentro de OrchestOS igual que el CLI directo",
+      "block": null,
+      "delegation": "🔍",
+      "title": "El desglose de costo de una tarea muestra al revisor",
       "status": "open",
       "closedDate": null
     },
