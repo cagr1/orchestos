@@ -742,6 +742,15 @@
       "closedDate": null
     },
     {
+      "id": "ERP.6.1",
+      "sprint": "Fase 3 — Correr dentro de OrchestOS igual que el CLI directo",
+      "block": null,
+      "delegation": "🧠",
+      "title": "Codex en el chat no gasta llamadas descubriendo y reintentando run_readonly",
+      "status": "open",
+      "closedDate": null
+    },
+    {
       "id": "ERP.7",
       "sprint": "Fase 3 — Correr dentro de OrchestOS igual que el CLI directo",
       "block": null,
