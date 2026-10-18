@@ -13,12 +13,43 @@ set -euo pipefail
 #
 # Instalación:  cp scripts/pre-push.sh .git/hooks/pre-push && chmod +x .git/hooks/pre-push
 # Emergencia:   git push --no-verify  (dejar el CI rojo es una decisión, no un accidente)
+# 2026-10-17 (CI.30): suite y lint se verifican en el commit empujado, no en el árbol.
 
 cd "$(git rev-parse --show-toplevel)"
 
-echo "🧪 pre-push: corriendo la suite + trinquete de cobertura (lo mismo que CI)..."
+# Leer las refs antes de ejecutar gates: stdin del hook solo puede consumirse una vez.
+push_refs=()
+while IFS= read -r ref_line || [[ -n "$ref_line" ]]; do
+  push_refs+=("$ref_line")
+done
+
 log_dir="$(mktemp -d "${TMPDIR:-/tmp}/orchestos-pre-push.XXXXXX")"
 log_file="$log_dir/coverage.log"
+tree="$log_dir/tree"
+cleanup() {
+  git worktree remove --force "$tree" >/dev/null 2>&1 || true
+  git worktree prune >/dev/null 2>&1 || true
+}
+trap cleanup EXIT
+
+push_sha=""
+last_sha=""
+for ref_line in "${push_refs[@]}"; do
+  read -r local_ref local_sha remote_ref remote_sha <<<"$ref_line"
+  if [[ -n "$local_sha" && ! "$local_sha" =~ ^0+$ ]]; then
+    last_sha="$local_sha"
+    if [[ "$local_ref" == "refs/heads/master" ]]; then push_sha="$local_sha"; fi
+  fi
+done
+[[ -n "$push_sha" ]] || push_sha="$last_sha"
+if [[ -z "$push_sha" ]]; then
+  echo "⏭️ pre-push: push de borrado sin commits; suite y lint omitidos."
+  exit 0
+fi
+short_sha="${push_sha:0:7}"
+echo "🧪 pre-push: corriendo la suite + trinquete de cobertura (lo mismo que CI)..."
+echo "🔎 pre-push: verificando $short_sha (commit empujado, no el árbol)."
+
 ci_home="$log_dir/home"
 ci_bin="$log_dir/bin"
 mkdir -p "$ci_home" "$ci_bin"
@@ -31,7 +62,18 @@ fi
 # A clean HOME and minimal PATH reproduce CI; useConfigOnly prevents Mac Git from inferring
 # an identity the Linux runner lacks, after three Mac-green/CI-red streaks.
 printf '[user]\n\tuseConfigOnly = true\n' > "$ci_home/.gitconfig"
-if ! env HOME="$ci_home" GIT_CONFIG_GLOBAL="$ci_home/.gitconfig" GIT_CONFIG_NOSYSTEM=1 PATH="$ci_bin:/usr/bin:/bin:/usr/sbin:/sbin" bun run test:coverage >"$log_file" 2>&1; then
+if ! git worktree add --detach "$tree" "$push_sha"; then
+  echo "❌ pre-push: no se pudo preparar el worktree para $short_sha. Push abortado."
+  exit 1
+fi
+repo_root="$(git rev-parse --show-toplevel)"
+while IFS= read -r dependency_dir; do
+  relative_dir="${dependency_dir#"$repo_root"/}"
+  mkdir -p "$tree/$(dirname "$relative_dir")"
+  ln -s "$dependency_dir" "$tree/$relative_dir"
+done < <(find "$repo_root" -type d -name node_modules -prune -print)
+
+if ! (cd "$tree" && env HOME="$ci_home" GIT_CONFIG_GLOBAL="$ci_home/.gitconfig" GIT_CONFIG_NOSYSTEM=1 PATH="$ci_bin:/usr/bin:/bin:/usr/sbin:/sbin" bun run test:coverage) >"$log_file" 2>&1; then
   echo ""
   echo "❌ pre-push: esto mismo va a fallar en CI. Push abortado."
   echo "   Últimas 80 líneas:"
@@ -45,7 +87,7 @@ tail -n 6 "$log_file"
 
 # 2026-09-22: CI estuvo rojo por lint entre el 15 y el 22 de septiembre, pero pre-push no lo ejecutaba.
 lint_log="$log_dir/lint.log"
-if ! bun run lint >"$lint_log" 2>&1; then
+if ! (cd "$tree" && bun run lint) >"$lint_log" 2>&1; then
   echo ""
   echo "❌ pre-push: bun run lint falla (mismo paso de CI). Push abortado."
   echo "   Primeras 60 líneas de diagnósticos:"
@@ -63,7 +105,8 @@ ui_paths='^(src/dashboard/|scripts/ui-gate/|src/run/)'
 ui_required=0
 chat_required=0
 chat_paths='^(src/dashboard/handlers/chat|src/dashboard/chat-cli-models\.ts|src/dashboard/app/src/App\.tsx|src/dashboard/app/src/components/chat/|src/dashboard/app/src/api/chat|src/dashboard/app/src/components/common/AgentComposer|src/run/executors/|scripts/ui-gate/flows/(chat-streaming|codex-live|chat-continuity)\.mjs)'
-while read -r local_ref local_sha remote_ref remote_sha; do
+for ref_line in "${push_refs[@]}"; do
+  read -r local_ref local_sha remote_ref remote_sha <<<"$ref_line"
   [[ -n "$local_sha" ]] || continue
   if [[ "$remote_sha" =~ ^0+$ ]]; then
     base_sha="$(git merge-base "$local_sha" origin/master 2>/dev/null || true)"

@@ -684,7 +684,7 @@
       "block": null,
       "delegation": "⚡",
       "title": "El pre-push verifica el commit que se empuja, no el árbol de trabajo",
-      "status": "open",
+      "status": "done",
       "closedDate": null
     },
     {
