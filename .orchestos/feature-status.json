@@ -828,6 +828,24 @@
       "block": null,
       "delegation": "🔍",
       "title": "Revisar T3 Code: dónde fallamos y cómo cubrir nuestras debilidades",
+      "status": "done",
+      "closedDate": null
+    },
+    {
+      "id": "ERP.7.1",
+      "sprint": "Fase 3 — Correr dentro de OrchestOS igual que el CLI directo",
+      "block": null,
+      "delegation": "🧠",
+      "title": "El chat deja elegir el modo de permiso y aprobar o rechazar cada comando o edición del agente",
+      "status": "open",
+      "closedDate": null
+    },
+    {
+      "id": "ERP.7.2",
+      "sprint": "Fase 3 — Correr dentro de OrchestOS igual que el CLI directo",
+      "block": null,
+      "delegation": "🧠",
+      "title": "Cada turno del chat muestra su diff y se puede deshacer",
       "status": "open",
       "closedDate": null
     },

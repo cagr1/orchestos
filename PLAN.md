@@ -1672,10 +1672,26 @@ ERP ni prueba visual nueva. Los ítems permanecen abiertos hasta sus gates reale
   Evidencia: typecheck y lint (0 errores); `test:coverage` 1938/0. Medición repetida (3 rep., `gpt-6-luna` medium):
   Codex por OrchestOS con herramientas 2,7 llamadas, 75 820 de entrada, 6,7 s (antes 4,3 / 109 241 / 14,3 s; Codex
   directo 3 / 90 627 / 11,5 s). Crudo: `docs/done/evidence/ERP.6-chat-before.json`, `docs/done/evidence/ERP.6-chat-after.json`.
-- [ ] **ERP.7 — 🔍 Revisar T3 Code: dónde fallamos y cómo cubrir nuestras debilidades.** (abierto 2026-10-17; pedido de
-  Carlos tras leer buenas críticas y un tier list que lo pone arriba, con Orca en C) No es "adaptemos": comparar lado a
-  lado (instalarlo y usarlo, no leerlo como texto) peso por turno, reglas, UX del chat y control humano, y abrir ítems
-  por cada debilidad propia con evidencia. Después de ERP.6.
+- [x] **ERP.7 — 🔍 Revisar T3 Code: dónde fallamos y cómo cubrir nuestras debilidades.** (abierto 2026-10-17, cerrado
+  2026-10-19; pedido de Carlos tras leer buenas críticas y un tier list que lo pone arriba, con Orca en C) No es
+  "adaptemos": comparar lado a lado (instalarlo y usarlo, no leerlo como texto) peso por turno, reglas, UX del chat y
+  control humano, y abrir ítems por cada debilidad propia con evidencia. Después de ERP.6.
+  Veredicto: en peso ganamos (T3 suma +1 055 tokens por llamada de Codex con sus herramientas MCP; OrchestOS resta
+  5 001 contra el CLI directo). Perdemos en control por acción del chat (ERP.7.1) y en diff/deshacer por turno
+  (ERP.7.2); proveedores por adaptador ya son AT.11 y H.7.2c. La tier list no apareció (sin URL no se da por real).
+  Informe: → [evidencia](docs/done/ERP.7.md)
+  Sin delegación: uso en vivo del cerebro (t3@0.1.0 en navegador real con Playwright); web por `investigar` (sonnet),
+  código por `leer` (gpt-6-luna).
+- [ ] **ERP.7.1 — 🧠 El chat deja elegir el modo de permiso y aprobar o rechazar cada comando o edición del agente.**
+  (abierto 2026-10-19, hallado en ERP.7) Hoy el composer solo muestra el modo y la aprobación inline es de tareas
+  retenidas (`OrchestChatView.tsx:557`, `AgentComposer.tsx:684`). T3 trae 4 modos en el composer y Approve/Decline
+  por acción, con aviso "Approval" en la barra lateral (`docs/done/evidence/ERP.7/permisos.png`). Lección en contra:
+  Supervised pidió aprobación hasta para `cat` (6 aprobaciones en un arreglo de una línea); lo de solo lectura no se
+  pregunta. Toca el chat central: plan corto y GO de Carlos antes de codear.
+- [ ] **ERP.7.2 — 🧠 Cada turno del chat muestra su diff y se puede deshacer.** (abierto 2026-10-19, hallado en ERP.7)
+  El chat no tiene diff por turno ni revert; el revert vive solo en el harness de tareas (`src/run/harness.ts:13`). T3
+  cierra cada turno con "N changed files · Open diff" y guarda checkpoints en refs ocultas de git, sin ensuciar la
+  rama (`docs/done/evidence/ERP.7/turno-con-diff.png`). Plan corto y GO de Carlos antes de codear.
 - [ ] **H.7.2c — ⚡ Registro de adaptadores: falta OpenCode.** Hallazgo por código
   (2026-09-08, Claude, verificando el hook H.7.3 a pedido de Carlos — "verifica que esto se
   cumpla para cualquier modelo"). `DEFAULT_ADAPTERS` en `scripts/context-adapters.ts:267` solo
