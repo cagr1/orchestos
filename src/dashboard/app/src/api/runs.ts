@@ -25,6 +25,9 @@ interface RunRow {
   engine: RunItem['engine'] | null
   iterations: number | null
   fileDiffs: FileDiffEntry[]
+  commitSha?: string | null
+  revertedSha?: string | null
+  revertedAt?: string | null
   costBreakdown: RunItem['costBreakdown']
   contextWarnings: RunItem['contextWarnings']
   createdAt: string
@@ -85,6 +88,9 @@ export function mapRunRow(row: RunRow): RunItem {
     filesAuthorized: row.filesAuthorized || [],
     filesBlocked: row.filesBlocked || [],
     fileDiffs: row.fileDiffs,
+    commitSha: row.commitSha,
+    revertedSha: row.revertedSha,
+    revertedAt: row.revertedAt,
     outputSlice: row.allowedOutputs || [],
     costBreakdown: row.costBreakdown,
     contextWarnings: row.contextWarnings,
@@ -94,4 +100,44 @@ export function mapRunRow(row: RunRow): RunItem {
 
 export async function listRuns(projectId: string): Promise<RunItem[]> {
   return (await listRunRows(projectId)).map(mapRunRow)
+}
+
+export async function getRun(runId: string, projectId: string): Promise<RunItem> {
+  const response = await fetch(`/api/runs/${encodeURIComponent(runId)}`, {
+    headers: { 'x-orchestos-project-id': projectId },
+  })
+  const body = (await response.json().catch(() => null)) as (RunRow & { error?: string }) | null
+  if (!response.ok) throw new Error(body?.error || `Request failed (${response.status})`)
+  if (!body) throw new Error('Run response was empty')
+  return mapRunRow(body)
+}
+
+export async function revertRun(
+  runId: string,
+  projectId: string,
+): Promise<{ ok: true; revertedSha: string }> {
+  const response = await fetch(`/api/runs/${encodeURIComponent(runId)}/revert`, {
+    method: 'POST',
+    headers: { 'x-orchestos-project-id': projectId },
+  })
+  const body = (await response.json().catch(() => null)) as {
+    ok?: true
+    revertedSha?: string
+    error?: string
+    dirtyFiles?: string[]
+    conflictFiles?: string[]
+  } | null
+  if (!response.ok) {
+    const error = new Error(body?.error || `Request failed (${response.status})`) as Error & {
+      status?: number
+      dirtyFiles?: string[]
+      conflictFiles?: string[]
+    }
+    error.status = response.status
+    error.dirtyFiles = body?.dirtyFiles
+    error.conflictFiles = body?.conflictFiles
+    throw error
+  }
+  if (!body?.revertedSha) throw new Error('Revert response did not include revertedSha')
+  return { ok: true, revertedSha: body.revertedSha }
 }

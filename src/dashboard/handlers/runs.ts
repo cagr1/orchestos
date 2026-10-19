@@ -32,7 +32,17 @@ function parseContextWarnings(raw: string | null | undefined): ContextWarningEnt
 function parseFileDiffs(raw: string | null | undefined): FileDiffEntry[] {
   if (!raw) return []
   try {
-    return JSON.parse(raw) as FileDiffEntry[]
+    const entries = JSON.parse(raw) as Array<Omit<FileDiffEntry, 'additions' | 'deletions'>>
+    return entries.map((entry) => {
+      let additions = 0
+      let deletions = 0
+      for (const line of entry.diff.split('\n')) {
+        if (line.startsWith('+++') || line.startsWith('---')) continue
+        if (line.startsWith('+')) additions++
+        else if (line.startsWith('-')) deletions++
+      }
+      return { ...entry, additions, deletions }
+    })
   } catch {
     return []
   }

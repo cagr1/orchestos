@@ -846,7 +846,7 @@
       "block": null,
       "delegation": "🧠",
       "title": "Cada turno del chat muestra su diff y se puede deshacer",
-      "status": "open",
+      "status": "done",
       "closedDate": null
     },
     {
@@ -864,7 +864,7 @@
       "block": null,
       "delegation": "⚡",
       "title": "La tarjeta de tarea muestra su diff y deshace con un clic, verificado en vivo",
-      "status": "open",
+      "status": "done",
       "closedDate": null
     },
     {

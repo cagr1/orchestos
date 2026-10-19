@@ -48,7 +48,13 @@ function applyTask(root: string, taskId: string, file: string, content: string):
   return mergeWorktreeBack(wt, 'commit', `orchestos(${taskId}): cambio`)
 }
 
-function addRun(projectId: string | null, taskId: string, sha: string | null, status = 'done') {
+function addRun(
+  projectId: string | null,
+  taskId: string,
+  sha: string | null,
+  status = 'done',
+  fileDiffs?: string,
+) {
   const id = insertRun({
     project_id: projectId,
     prompt: 'test',
@@ -72,6 +78,7 @@ function addRun(projectId: string | null, taskId: string, sha: string | null, st
     elapsed_ms: 0,
     result: null,
     commit_sha: sha,
+    file_diffs: fileDiffs ?? null,
   })
   runIds.push(id)
   return id
@@ -109,6 +116,44 @@ describe('commit_sha al aplicar una tarea (ERP.7.2a)', () => {
     const root = makeRepo()
     const wt = createWorktree('t-null', 'master', root)
     expect(mergeWorktreeBack(wt, 'commit', 'orchestos(t-null): nada')).toBeNull()
+  })
+})
+
+describe('conteos de líneas del diff (ERP.7.2b)', () => {
+  test('cuenta altas y bajas ignorando encabezados unified', () => {
+    const addedId = addRun(
+      P,
+      't-diff-added',
+      null,
+      'done',
+      JSON.stringify([
+        {
+          path: 'nuevo.txt',
+          status: 'added',
+          diff: '--- /dev/null\n+++ b/nuevo.txt\n@@ -0,0 +1 @@\n+hola\n',
+        },
+      ]),
+    )
+    const changedId = addRun(
+      P,
+      't-diff-changed',
+      null,
+      'done',
+      JSON.stringify([
+        {
+          path: 'cambio.txt',
+          status: 'modified',
+          diff: '--- a/cambio.txt\n+++ b/cambio.txt\n@@ -1 +1 @@\n-viejo\n+nuevo\n',
+        },
+      ]),
+    )
+
+    expect(runRecordToRow(getRun(addedId)!).fileDiffs).toEqual([
+      expect.objectContaining({ path: 'nuevo.txt', additions: 1, deletions: 0 }),
+    ])
+    expect(runRecordToRow(getRun(changedId)!).fileDiffs).toEqual([
+      expect.objectContaining({ path: 'cambio.txt', additions: 1, deletions: 1 }),
+    ])
   })
 })
 

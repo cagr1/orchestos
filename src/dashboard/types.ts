@@ -175,6 +175,8 @@ export interface FileDiffEntry {
   path: string
   status: 'added' | 'modified'
   diff: string
+  additions: number
+  deletions: number
 }
 
 export interface RunRow {

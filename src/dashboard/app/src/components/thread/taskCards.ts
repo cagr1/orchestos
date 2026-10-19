@@ -11,6 +11,7 @@ export interface TaskCardReport {
   summary?: string
   content: string
   dirtyFiles: string[]
+  runId?: string | null
 }
 
 export interface TaskCardData {
@@ -78,6 +79,7 @@ export function buildTaskCards(
       summary: message.taskReport.summary,
       content: message.content,
       dirtyFiles: message.taskReport.dirtyFiles ?? [],
+      runId: message.taskReport.runId,
     })
     reports.set(message.taskId, list)
     if (anchors.get(message.taskId)?.id !== message.id) hidden.add(message.id)

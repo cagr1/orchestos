@@ -91,6 +91,9 @@ export interface RunItem {
   filesAuthorized: string[]
   filesBlocked: string[]
   fileDiffs: FileDiffEntry[]
+  commitSha?: string | null
+  revertedSha?: string | null
+  revertedAt?: string | null
   outputSlice?: string[]
   costBreakdown: CostBreakdownEntry[]
   contextWarnings: ContextWarningEntry[]
@@ -209,6 +212,7 @@ export interface ChatMessage {
   // ERP.4.13 — datos estructurados de un reporte de fin de tarea
   taskReport?: {
     outcome: string
+    runId?: string | null
     dirtyFiles?: string[]
     attempt?: number
     maxAttempts?: number

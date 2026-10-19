@@ -57,6 +57,14 @@ describe('buildTaskCards', () => {
     expect(cards.byTask.get('t')?.reports[0]?.dirtyFiles).toEqual(['a.ts'])
   })
 
+  test('el reporte terminado conserva runId para cargar la evidencia', () => {
+    const card = buildTaskCards([
+      held('1', 't'),
+      report('2', 't', { outcome: 'done', runId: 'run-123' }),
+    ]).byTask.get('t')
+    expect(card?.reports.at(-1)?.runId).toBe('run-123')
+  })
+
   test('mensaje viejo sin campos nuevos deriva del outcome y del content', () => {
     const failed = buildTaskCards([
       held('1', 't'),

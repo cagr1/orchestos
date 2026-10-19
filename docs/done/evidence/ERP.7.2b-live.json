@@ -1,0 +1,96 @@
+[
+  {
+    "flujo": "chat-task-undo",
+    "pass": true,
+    "steps": [
+      {
+        "nombre": "temporary project visible",
+        "ok": true,
+        "detalle": "project in Dev sidebar"
+      },
+      {
+        "nombre": "select Codex for new chat",
+        "ok": true,
+        "detalle": "agent option visible"
+      },
+      {
+        "nombre": "composer visible",
+        "ok": true,
+        "detalle": "chat composer visible after Start Chat"
+      },
+      {
+        "nombre": "message 1 plans without creating the task",
+        "ok": true,
+        "detalle": "{\"reply\":\"Crearía una tarea para crear notas/undo-check.md con el contenido exacto hola en una sola línea. No la crearé todavía.\",\"newTasks\":[]}"
+      },
+      {
+        "nombre": "message 2 creates the task from the thread",
+        "ok": true,
+        "detalle": "{\"reply\":\"Voy a revisar cómo están definidas las tareas del proyecto y luego crearé una con esa ruta y contenido.\\n\\nEnvié la tarea para crear notas/undo-check.md con una sola línea: hola. La propuesta quedó pendiente de aprobación.\\n\\n▶ Started task .\"}"
+      },
+      {
+        "nombre": "task exists in tasks.yaml",
+        "ok": true,
+        "detalle": "task chat-fa248ab0-cf27-472c-a44d-a1f00d9e774e"
+      },
+      {
+        "nombre": "task declares the thread file and class implement",
+        "ok": true,
+        "detalle": "{\"output\":[\"notas/undo-check.md\"],\"task_class\":\"implement\"}"
+      },
+      {
+        "nombre": "task finishes done and the file exists",
+        "ok": true,
+        "detalle": "{\"status\":\"done\",\"fileExists\":true}"
+      },
+      {
+        "nombre": "task card exposes diff summary",
+        "ok": true,
+        "detalle": "diff summary visible"
+      },
+      {
+        "nombre": "diff summary counts the added line",
+        "ok": true,
+        "detalle": "1 file +1 −0 · View diff"
+      },
+      {
+        "nombre": "diff shows created file",
+        "ok": true,
+        "detalle": "notas/undo-check.md"
+      },
+      {
+        "nombre": "undo button visible",
+        "ok": true,
+        "detalle": "committed run can be reverted"
+      },
+      {
+        "nombre": "undo completes and shows reverted sha",
+        "ok": true,
+        "detalle": "Undone · 8cf91ab"
+      },
+      {
+        "nombre": "file returned to prior state",
+        "ok": true,
+        "detalle": "{\"fileExistsAfterUndo\":false}"
+      },
+      {
+        "nombre": "revert commit subject is correct",
+        "ok": true,
+        "detalle": "orchestos(chat-fa248ab0-cf27-472c-a44d-a1f00d9e774e): deshacer"
+      },
+      {
+        "nombre": "REVERT_HEAD does not remain",
+        "ok": true,
+        "detalle": "{\"revertHeadExists\":false}"
+      }
+    ],
+    "notes": [],
+    "errores": [],
+    "capturas": [
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-12180/chat-task-undo/task-diff-closed.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-12180/chat-task-undo/task-diff-open.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-12180/chat-task-undo/undo-confirmation.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-12180/chat-task-undo/task-undone.png"
+    ]
+  }
+]

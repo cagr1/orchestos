@@ -1,6 +1,7 @@
-import { Check, Copy, RotateCw, X } from 'lucide-react'
+import { Check, Copy, RotateCw, Undo2, X } from 'lucide-react'
 import { motion, useReducedMotion } from 'motion/react'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
+import { getRun, revertRun } from '@/api/runs'
 import { Button } from '@/components/ui/button'
 import {
   ThinkingStep,
@@ -9,6 +10,7 @@ import {
   ThinkingStepsHeader,
 } from '@/components/ui/thinking-steps'
 import { cn } from '@/lib/utils'
+import type { RunItem } from '@/types/orchestos'
 import { ThreadMarkdown } from './ThreadMarkdown'
 import {
   type TaskCardData,
@@ -83,6 +85,7 @@ interface TaskCardProps {
   onReject?: () => void
   onRetry?: () => void
   onCommit?: (files: string[]) => void
+  projectId?: string | null
 }
 
 export function TaskCard({
@@ -93,6 +96,7 @@ export function TaskCard({
   onReject,
   onRetry,
   onCommit,
+  projectId,
 }: TaskCardProps) {
   const [copied, setCopied] = useState(false)
   const reduced = useReducedMotion()
@@ -102,6 +106,49 @@ export function TaskCard({
   const detail = taskDetail(card.description)
   const attempt = attemptLine(last)
   const dirtyFiles = card.state === 'blocked' ? (last?.dirtyFiles ?? []) : []
+  const [run, setRun] = useState<RunItem | null>(null)
+  const [undoConfirm, setUndoConfirm] = useState(false)
+  const [undoBusy, setUndoBusy] = useState(false)
+  const [undoError, setUndoError] = useState('')
+  const [undoFiles, setUndoFiles] = useState<string[]>([])
+  const runId = card.state === 'done' ? last?.runId : null
+
+  useEffect(() => {
+    if (!runId || !projectId) return
+    let current = true
+    void getRun(runId, projectId)
+      .then((result) => {
+        if (current) setRun(result)
+      })
+      .catch((cause: unknown) => {
+        if (current) setUndoError(cause instanceof Error ? cause.message : String(cause))
+      })
+    return () => {
+      current = false
+    }
+  }, [runId, projectId])
+
+  const undo = async () => {
+    if (!runId || !projectId) return
+    setUndoBusy(true)
+    setUndoError('')
+    setUndoFiles([])
+    try {
+      const result = await revertRun(runId, projectId)
+      setRun((current) => (current ? { ...current, revertedSha: result.revertedSha } : current))
+      setUndoConfirm(false)
+    } catch (cause) {
+      const error = cause as Error & {
+        status?: number
+        dirtyFiles?: string[]
+        conflictFiles?: string[]
+      }
+      setUndoError(error.message)
+      if (error.status === 409) setUndoFiles(error.dirtyFiles ?? error.conflictFiles ?? [])
+    } finally {
+      setUndoBusy(false)
+    }
+  }
 
   const copyId = async () => {
     await navigator.clipboard.writeText(card.taskId)
@@ -170,6 +217,72 @@ export function TaskCard({
         {error && (
           <div role="alert" className="text-xs text-app-error">
             {error}
+          </div>
+        )}
+        {runId && run && run.fileDiffs.length > 0 && (
+          <details data-task-diff>
+            <summary className="cursor-pointer text-xs text-app-muted">
+              {run.fileDiffs.length} {run.fileDiffs.length === 1 ? 'file' : 'files'} +
+              {run.fileDiffs.reduce((sum, diff) => sum + (diff.additions ?? 0), 0)} −
+              {run.fileDiffs.reduce((sum, diff) => sum + (diff.deletions ?? 0), 0)} · View diff
+            </summary>
+            <div className="mt-2 space-y-3">
+              {run.fileDiffs.map((diff) => (
+                <div
+                  key={diff.filePath || diff.path}
+                  className="rounded-card border border-app bg-app-surface overflow-hidden text-xs"
+                >
+                  <div className="px-3 py-2 bg-app-elevated border-b border-app flex items-center justify-between font-mono">
+                    <span className="text-app font-medium">{diff.filePath || diff.path}</span>
+                    <span className="text-emerald-400">
+                      +{diff.additions ?? 0} -{diff.deletions ?? 0}
+                    </span>
+                  </div>
+                  <pre className="p-3 bg-app-bg font-mono text-xs text-app overflow-x-auto leading-relaxed">
+                    {diff.patch || diff.diff}
+                  </pre>
+                </div>
+              ))}
+            </div>
+          </details>
+        )}
+        {run?.revertedSha ? (
+          <span data-task-undone className="text-xs text-app-muted">
+            Undone · {run.revertedSha.slice(0, 7)}
+          </span>
+        ) : run?.commitSha ? (
+          <div data-task-undo className="flex items-center gap-2 pt-1">
+            {undoConfirm ? (
+              <>
+                <Button
+                  variant="secondary"
+                  leadingIcon={Undo2}
+                  disabled={undoBusy}
+                  onClick={() => void undo()}
+                >
+                  {undoBusy ? 'Undoing…' : 'Confirm undo'}
+                </Button>
+                <Button variant="ghost" disabled={undoBusy} onClick={() => setUndoConfirm(false)}>
+                  Cancel
+                </Button>
+              </>
+            ) : (
+              <Button variant="secondary" leadingIcon={Undo2} onClick={() => setUndoConfirm(true)}>
+                Undo
+              </Button>
+            )}
+          </div>
+        ) : null}
+        {undoError && (
+          <div role="alert" className="text-xs text-app-error">
+            {undoError}
+          </div>
+        )}
+        {undoFiles.length > 0 && (
+          <div className="font-mono text-xs text-app-muted">
+            {undoFiles.map((file) => (
+              <div key={file}>{file}</div>
+            ))}
           </div>
         )}
         {card.state === 'held' && (

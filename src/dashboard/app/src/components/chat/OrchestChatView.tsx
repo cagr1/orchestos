@@ -469,6 +469,7 @@ export const OrchestChatView: React.FC<OrchestChatViewProps> = ({
                         {showCard && (
                           <TaskCard
                             card={showCard}
+                            projectId={thread?.projectId}
                             error={
                               taskActionErrors[showCard.taskId] ??
                               reportActionErrors[showCard.actionKey]
