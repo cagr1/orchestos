@@ -1567,7 +1567,7 @@ En todos: `prefers-reduced-motion` = cambios instantáneos o fundidos cortos.
   Evidencia: typecheck y lint (0 errores); `test:coverage` 1937/0 (2 skip). En vivo: turno Codex `gpt-6.1-sol` con
   2 herramientas → run 22359 + 60928 en caché = 83287 = `total_token_usage` del rollout; contexto 34556/475000.
   Gate en vivo: navegador real (Playwright), `docs/done/evidence/CX.6.1-live.json`: anillo "34556 de 475000 tokens · codex (medido)".
-- [ ] **ERP.5 — 🔍 Revisar sobrecarga: qué quitar manteniendo fiabilidad y control humano.**
+- [x] **ERP.5 — 🔍 Revisar sobrecarga: qué quitar manteniendo fiabilidad y control humano.** (cerrado 2026-10-19)
   Pedido de Carlos (2026-09-15). Hacer después de iniciar ERP.4, con evidencia del trabajo real;
   no bloquear AT.10 ni el piloto con otra auditoría extensa. Alcance: reglas/documentos cargados,
   contexto repetido, delegación, planner/QA/retries/dreaming y pasos de planificación/revisión.
@@ -1587,6 +1587,12 @@ En todos: `prefers-reduced-motion` = cambios instantáneos o fundidos cortos.
   autoriza ejecutarlas antes. Conservar controles de pérdida de datos, aislamiento y QA honesto.
   Gate: informe corto con evidencia y simplificaciones propuestas; Carlos revisa utilidad y
   tradeoffs antes de adoptarlas. No añadir reglas, hooks o agentes como salida automática del estudio.
+  Veredicto: el peso por turno ya está bien (ERP.6); lo que sobra es código sin uso y ceremonia de proceso. En 573 runs,
+  adversarial/refutador, embeddings/grafo, flotas y constitution tienen 0 uso; el revisor LLM de QA dio 0 fallos en
+  82 revisiones reales y los 19 fallos reales los hallaron checks mecánicos y salidas declaradas; 60 % de los commits
+  desde 2026-09-19 son solo documentos de proceso. 3 decisiones pendientes de Carlos, sin adoptar nada.
+  Informe: → [evidencia](docs/done/ERP.5.md)
+  Sin delegación: medición del cerebro; mapa de código por `leer` (gpt-6-luna).
 
 **Después de iniciar:** AT.11 (registro extensible completo), migración visual de pantallas
 secundarias, resume/fork avanzado, orquestación de flotas y mejoras de aprendizaje nocturno.
