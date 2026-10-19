@@ -58,6 +58,7 @@ Bajo-medio en curso, Sprint 27)_
 8. `#47` Auto-split por tamaño estimado.
 9. `#55-B` models.dev como fallback del catálogo (fuera de OpenRouter).
 10. `#70` Changes en vivo estilo VS Code (Source Control + color en Files).
+11. `#72` Instinto propuesto desde un par fallo→pass de la misma tarea.
 
 _(`#6` graduó a Bloque AA el 2026-08-15. `#31`, `#35` y `#50` fueron ABSORBIDAS por PLAN.md § Sprint 29
 (orquestador real) el 2026-08-16 — eran partes de un mismo eje estructural, no ideas sueltas.)_
@@ -1681,3 +1682,15 @@ diff, y Files debe colorear esos archivos (y sus carpetas) igual que VS Code (M/
 pestaña solo muestra `fileDiffs` persistidos de runs (`OrcaRightInspector.tsx:402-427`, "No
 persisted file diffs for this project."), así que un cambio a mano o de un CLI externo no aparece.
 Depende de `#69` para el coloreo dentro de carpetas.
+
+### `#72` — Instinto desde un par fallo→pass de la misma tarea (2026-10-19, revisión de harness2)
+
+**Medio.** Origen: `google-research/harness2` (arXiv 2610.14224). Su "Propose–Probe–Compose" deriva
+lecciones del contraste entre ejecuciones de la misma tarea; lo central se descarta (multiplica
+ejecuciones por tarea y mejora sin verdad de referencia, contra `INS-2026-009`). Lo aprovechable sale
+gratis de lo que ya corre: cuando una tarea falla y luego pasa en un reintento, el par fallo→pass es
+un contraste con verdad de referencia (`checks[]` + QA). Hoy el reintento solo recibe el motivo previo
+(`previousFailureForTask`, `src/run/prompt.ts:14`) y un instinto solo se propone si un patrón se repite
+en 3 corridas (`PATTERN_FREQUENCY_THRESHOLD`, `src/analyze/propose.ts:27`). Idea: al pasar tras ≥1
+fallo, el rol Auxiliary compara ambos intentos y propone un instinto `source: auto, verified: false`
+citando los dos run ids; entra solo con aprobación humana, igual que hoy. Cero ejecuciones extra.
