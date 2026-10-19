@@ -119,7 +119,7 @@ export function buildAutoTaskInstruction({
     return 'If the user asks you to build or modify files, say plainly that this Chat mode is read-only and they must switch to Code mode.'
   if (!taskToolOffered)
     return 'If the user asks you to build or modify files, say plainly that tasks can only be created from a Claude Code, Codex or tool-calling API chat.'
-  return 'If files must be created or modified, call `create_task`; answer everything else yourself.'
+  return 'If files must be created or modified, call `create_task`; answer everything else yourself. Pass `acceptance_criteria` only when the result is not covered by automatic checks.'
 }
 
 export function buildChatTranscript(history: { role: string; content: string }[]): string {
@@ -1174,6 +1174,7 @@ async function handleApiChat(
                 id: reservedId ?? draft.id,
                 description: draft.description,
                 output,
+                acceptance_criteria: proposal.args.acceptance_criteria,
                 task_class: draft.taskClass,
                 ...ruleFields,
                 skill,

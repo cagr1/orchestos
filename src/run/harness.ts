@@ -914,27 +914,43 @@ export async function runTask(opts: HarnessOpts): Promise<TaskResult> {
     const appliedGateSkills = gateEvaluations.filter((g) => g.applied).map((g) => g.skill)
 
     const qaJudge = { provider: reviewer.provider, model: reviewer.model }
-    if (route?.agent === reviewer.agent && ctx.model === reviewer.model)
-      log.info('qa judge equals executor model — correlated errors risk')
-    let qa: Awaited<ReturnType<typeof runQA>>
-    try {
-      qa = await runQA({
-        description: ctx.task.description,
-        output: ctx.task.output,
-        written: contractResult.written,
-        model: qaJudge.model,
-        acceptance_criteria: ctx.task.acceptance_criteria,
-        checksResults,
-        provider: qaJudge.provider,
-        gateSkills: appliedGateSkills,
-      })
-    } catch (e: any) {
+    // ERP.5.1 — el revisor LLM corre solo si hay algo concreto que revisar: criterios de aceptación
+    // declarados o un gate de revisión aplicado. Si no, checks y salidas declaradas ya dieron el veredicto.
+    const runsReviewer =
+      (ctx.task.acceptance_criteria?.length ?? 0) > 0 ||
+      appliedGateSkills.filter((s) => s.id !== 'qa-structured').length > 0
+    let qa: Omit<Awaited<ReturnType<typeof runQA>>, 'model'> & { model: string | null }
+    if (!runsReviewer) {
       qa = {
-        verdict: 'fail' as const,
-        reason: `QA call error: ${e.message}`,
+        verdict: 'pass' as const,
+        reason:
+          'QA LLM omitido: la tarea no declara criterios de aceptación; checks y salidas declaradas en verde',
         inputTokens: 0,
         outputTokens: 0,
-        model: qaJudge.model,
+        model: null,
+      }
+    } else {
+      if (route?.agent === reviewer.agent && ctx.model === reviewer.model)
+        log.info('qa judge equals executor model — correlated errors risk')
+      try {
+        qa = await runQA({
+          description: ctx.task.description,
+          output: ctx.task.output,
+          written: contractResult.written,
+          model: qaJudge.model,
+          acceptance_criteria: ctx.task.acceptance_criteria,
+          checksResults,
+          provider: qaJudge.provider,
+          gateSkills: appliedGateSkills,
+        })
+      } catch (e: any) {
+        qa = {
+          verdict: 'fail' as const,
+          reason: `QA call error: ${e.message}`,
+          inputTokens: 0,
+          outputTokens: 0,
+          model: qaJudge.model,
+        }
       }
     }
 
@@ -1018,7 +1034,7 @@ export async function runTask(opts: HarnessOpts): Promise<TaskResult> {
       }
     }
 
-    const qaCost = calcCost(qa.model, qa.inputTokens, qa.outputTokens)
+    const qaCost = calcCost(qa.model ?? qaJudge.model, qa.inputTokens, qa.outputTokens)
     const totalCost = cost + qaCost
     const totalElapsed = Math.round(performance.now() - t0)
     const totalTokens = {

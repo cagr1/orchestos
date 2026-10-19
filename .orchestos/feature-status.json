@@ -733,6 +733,51 @@
       "closedDate": "2026-10-19"
     },
     {
+      "id": "ERP.5.1",
+      "sprint": "Fase 3 — Correr dentro de OrchestOS igual que el CLI directo",
+      "block": null,
+      "delegation": "🧠",
+      "title": "El revisor LLM de QA corre solo si la tarea trae criterios de aceptación o un gate de revisión",
+      "status": "done",
+      "closedDate": "2026-10-19"
+    },
+    {
+      "id": "ERP.5.2",
+      "sprint": "Fase 3 — Correr dentro de OrchestOS igual que el CLI directo",
+      "block": null,
+      "delegation": "🧠",
+      "title": "Quitar revisión adversarial y refutador",
+      "status": "open",
+      "closedDate": null
+    },
+    {
+      "id": "ERP.5.3",
+      "sprint": "Fase 3 — Correr dentro de OrchestOS igual que el CLI directo",
+      "block": null,
+      "delegation": "🧠",
+      "title": "Quitar embeddings y grafo de código del camino de la tarea",
+      "status": "open",
+      "closedDate": null
+    },
+    {
+      "id": "ERP.5.4",
+      "sprint": "Fase 3 — Correr dentro de OrchestOS igual que el CLI directo",
+      "block": null,
+      "delegation": "🧠",
+      "title": "Quitar la orquestación de flotas sin uso",
+      "status": "open",
+      "closedDate": null
+    },
+    {
+      "id": "ERP.5.5",
+      "sprint": "Fase 3 — Correr dentro de OrchestOS igual que el CLI directo",
+      "block": null,
+      "delegation": "🧠",
+      "title": "Quitar `constitution_rules`",
+      "status": "open",
+      "closedDate": null
+    },
+    {
       "id": "ERP.6",
       "sprint": "Fase 3 — Correr dentro de OrchestOS igual que el CLI directo",
       "block": null,

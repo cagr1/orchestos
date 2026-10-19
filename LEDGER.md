@@ -358,3 +358,11 @@ es el test del 409 dependiente del host).
 **Por qué**: solo cambia la ruta de un comentario (`docs/diff-review-design.md` → `docs/done/design/diff-review-design.md`).
 Ninguna línea de código; `maxTokens`/`contextWindow` intactos (`git diff --cached -U0 -- src/run/harness.ts` = 2 líneas, ambas comentario).
 **Reversibilidad/evidencia**: commit `docs(DOC.2)`, revertible. typecheck y lint verdes.
+
+## 2026-10-19 12:25 America/Guayaquil — claude-opus-5-5 (revisor) · ejecutor Claude sonnet
+**Contexto**: ERP.5.1 — `src/run/harness.ts` ([[feedback-context-no-max-tokens]]).
+**Clasificación**: RESPETÓ
+**Por qué**: el cambio solo envuelve la llamada a `runQA` en una condición (criterios o gate de revisión) y usa
+`qa.model ?? qaJudge.model` para el costo. `maxTokens`/`contextWindow` intactos.
+**Reversibilidad/evidencia**: commit `feat(ERP.5.1)`, revertible. typecheck verde · `test:coverage` 1943/0 ·
+`ui:gate tasks` 31/31.

@@ -23,7 +23,7 @@ encontraron todos los fallos reales: se conservan.
 | Adversarial y refutador (`harness.ts:948,989`, `config/schema.ts:105,115`) | **0 de 573** runs; apagados por defecto | código + 2 tests + UI en Orchestration | ninguno | quitar |
 | Embeddings y grafo de código (`src/graph/` ~750 líneas, `memory-fetch.ts`) | `context_chunks`, `code_edges` y `files` en **0 filas**; `embed_hits` 0 | el middleware corre en cada tarea (`harness.ts:287`) aunque no encuentre nada | ninguno | quitar, o al menos sacar el middleware del camino de cada tarea |
 | Orquestación de flotas (`orchestration_runs`, `leases`) | 0 filas | tablas + split en `harness.ts:412-472` | ninguno | quitar las tablas; el split, solo si Carlos no piensa usarlo |
-| `constitution_rules` (`harness.ts:305-317`) | 0 runs en octubre | lectura de `CONSTITUTION.md` por tarea | ninguno | quitar |
+| `constitution_rules` (`harness.ts:305-317`) | 0 runs en octubre. Corrección 2026-10-19: sí carga (10 reglas en este repo), pero ningún proyecto real de Carlos tiene `CONSTITUTION.md`; los CLI ya leen `AGENTS.md`/`CLAUDE.md` | lectura por tarea + API, vista y flow `project-tabs` | ninguno medido | quitar, con GO aparte por el alcance (ERP.5.5) |
 | Instincts (`src/instincts/` ~440 líneas, `instinct-apply.ts`) | 2 filas | middleware por tarea; UI propia | no medido | conservar en pausa: IDEAS #72 (hoy) propone alimentarlo; decidir junto con eso |
 | Memoria (`src/db/memory.ts`, `chat.ts:1254`) | 1 entrada (mecánica desde ERP.4.16) | filas al contexto del chat | aún sin datos | conservar; volver a medir en un mes |
 | Evals (`src/evals/`) | 21 trials, fuera del camino de tarea y chat | 0 por turno | herramienta de medición | conservar |

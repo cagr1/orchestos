@@ -217,6 +217,7 @@ interface CreateTaskParams {
   id?: string
   description: string
   output?: string[]
+  acceptance_criteria?: string[]
   executor?: string
   executor_model?: string
   engine?: string
@@ -245,6 +246,9 @@ function createTaskRecord(
       status: 400,
     }
   }
+  const criteria = Array.isArray(params.acceptance_criteria)
+    ? params.acceptance_criteria.map((c) => c.trim()).filter(Boolean)
+    : []
   const executorModel = params.executor_model?.trim() || undefined
   const executor =
     params.executor || (executorModel ? inferExecutorFromModel(executorModel) : undefined)
@@ -287,6 +291,7 @@ function createTaskRecord(
         status: 'pending',
         retry_count: 0,
       }
+      if (criteria.length) newTask.acceptance_criteria = criteria
       if (executor) newTask.executor = executor
       if (executorModel) newTask.executor_model = executorModel
       if (engine) newTask.engine = engine

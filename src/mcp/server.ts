@@ -26,6 +26,7 @@ export interface CreateTaskArgs {
   title: string
   description: string
   outputs: string[]
+  acceptance_criteria?: string[]
 }
 
 export const CREATE_TASK_SCHEMA = {
@@ -41,6 +42,12 @@ export const CREATE_TASK_SCHEMA = {
       items: { type: 'string' },
       description: 'Paths, relative to the project, of the files the task creates or modifies.',
     },
+    acceptance_criteria: {
+      type: 'array',
+      items: { type: 'string' },
+      description:
+        'Criterios verificables; si los das, un revisor LLM independiente los comprueba. Úsalos cuando la tarea tenga un resultado que los checks automáticos no cubren.',
+    },
   },
   required: ['title', 'description', 'outputs'],
   additionalProperties: false,
@@ -52,7 +59,7 @@ export function parseCreateTaskArgs(
 ): { ok: true; args: CreateTaskArgs } | { ok: false; error: string } {
   if (!input || typeof input !== 'object' || Array.isArray(input))
     return { ok: false, error: 'arguments must be an object' }
-  const { title, description, outputs } = input as Record<string, unknown>
+  const { title, description, outputs, acceptance_criteria } = input as Record<string, unknown>
   if (typeof title !== 'string' || !title.trim())
     return { ok: false, error: '`title` must be a non-empty string' }
   if (typeof description !== 'string' || !description.trim())
@@ -65,9 +72,23 @@ export function parseCreateTaskArgs(
     if (path.startsWith('/') || path.split(/[\\/]/).includes('..'))
       return { ok: false, error: `\`outputs\` path must be relative to the project: ${path}` }
   }
+  let criteria: string[] | undefined
+  if (acceptance_criteria !== undefined) {
+    if (
+      !Array.isArray(acceptance_criteria) ||
+      acceptance_criteria.some((c) => typeof c !== 'string' || !c.trim())
+    )
+      return { ok: false, error: '`acceptance_criteria` must be an array of non-empty strings' }
+    if (acceptance_criteria.length > 0) criteria = acceptance_criteria.map((c: string) => c.trim())
+  }
   return {
     ok: true,
-    args: { title: title.trim(), description: description.trim(), outputs: clean },
+    args: {
+      title: title.trim(),
+      description: description.trim(),
+      outputs: clean,
+      ...(criteria ? { acceptance_criteria: criteria } : {}),
+    },
   }
 }
 

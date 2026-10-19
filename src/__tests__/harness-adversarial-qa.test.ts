@@ -64,6 +64,22 @@ function installMockFetch(handlers: FetchHandler[]) {
   return calls
 }
 
+const QA_CRITERION = 'out.txt contiene hello'
+
+function qaJson(verdict: 'pass' | 'fail', reason: string): string {
+  return JSON.stringify({
+    verdict,
+    reason,
+    criteria: [
+      {
+        text: QA_CRITERION,
+        pass: verdict === 'pass',
+        evidence: { file: 'out.txt', excerpt: 'hello' },
+      },
+    ],
+  })
+}
+
 function baseTask(overrides: Partial<Task> = {}): Task {
   return {
     id: 'k4b-adversarial',
@@ -74,6 +90,7 @@ function baseTask(overrides: Partial<Task> = {}): Task {
     depends_on: [],
     status: 'pending',
     retry_count: 0,
+    acceptance_criteria: [QA_CRITERION],
     ...overrides,
   }
 }
@@ -104,7 +121,7 @@ describe('K.4b — adversarial second opinion (opt-in)', () => {
     process.env.OPENROUTER_API_KEY = 'sk-test-or-key'
     const calls = installMockFetch([
       () => openRouterResponse('<<<FILE:out.txt>>>\nhello\n<<<ENDFILE>>>'),
-      () => openRouterResponse('{"verdict":"pass","reason":"looks fine"}'),
+      () => openRouterResponse(qaJson('pass', 'looks fine')),
     ])
 
     const dir = tmpDir()
@@ -125,7 +142,7 @@ describe('K.4b — adversarial second opinion (opt-in)', () => {
     process.env.OPENROUTER_API_KEY = 'sk-test-or-key'
     installMockFetch([
       () => openRouterResponse('<<<FILE:out.txt>>>\nhello\n<<<ENDFILE>>>'),
-      () => openRouterResponse('{"verdict":"pass","reason":"looks fine"}'),
+      () => openRouterResponse(qaJson('pass', 'looks fine')),
       () =>
         openRouterResponse(
           '{"verdict":"REFUTED","reason":"the excerpt is dead code, never executed"}',
@@ -152,7 +169,7 @@ describe('K.4b — adversarial second opinion (opt-in)', () => {
     process.env.OPENROUTER_API_KEY = 'sk-test-or-key'
     installMockFetch([
       () => openRouterResponse('<<<FILE:out.txt>>>\nhello\n<<<ENDFILE>>>'),
-      () => openRouterResponse('{"verdict":"pass","reason":"looks fine"}'),
+      () => openRouterResponse(qaJson('pass', 'looks fine')),
       () => openRouterResponse('{"verdict":"CAVEATS","reason":"plausible but evidence is thin"}'),
     ])
 
@@ -176,7 +193,7 @@ describe('K.4b — adversarial second opinion (opt-in)', () => {
     process.env.OPENROUTER_API_KEY = 'sk-test-or-key'
     installMockFetch([
       () => openRouterResponse('<<<FILE:out.txt>>>\nhello\n<<<ENDFILE>>>'),
-      () => openRouterResponse('{"verdict":"pass","reason":"looks fine"}'),
+      () => openRouterResponse(qaJson('pass', 'looks fine')),
       () => openRouterResponse('{"verdict":"VERIFIED","reason":"independently confirmed"}'),
     ])
 
@@ -197,7 +214,7 @@ describe('K.4b — adversarial second opinion (opt-in)', () => {
     process.env.OPENROUTER_API_KEY = 'sk-test-or-key'
     const calls = installMockFetch([
       () => openRouterResponse('<<<FILE:out.txt>>>\nhello\n<<<ENDFILE>>>'),
-      () => openRouterResponse('{"verdict":"fail","reason":"qa fail test reason"}'),
+      () => openRouterResponse(qaJson('fail', 'qa fail test reason')),
     ])
 
     const dir = tmpDir()

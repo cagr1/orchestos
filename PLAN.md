@@ -1593,6 +1593,17 @@ En todos: `prefers-reduced-motion` = cambios instantáneos o fundidos cortos.
   desde 2026-09-19 son solo documentos de proceso. 3 decisiones pendientes de Carlos, sin adoptar nada.
   Informe: → [evidencia](docs/done/ERP.5.md)
   Sin delegación: medición del cerebro; mapa de código por `leer` (gpt-6-luna).
+  Decisiones de Carlos 2026-10-19: (1) revisor LLM solo con criterios de aceptación; (2) limpieza sí, un ítem por
+  pieza; (3) un commit por ítem y `NEXT.md` por lote (regla en `AGENTS.md` § Reglas generales).
+- [x] **ERP.5.1 — 🧠 El revisor LLM de QA corre solo si la tarea trae criterios de aceptación o un gate de revisión.** (cerrado 2026-10-19) Sin criterios, QA = checks + salidas declaradas, 0 tokens de revisor, `qa_model` NULL y motivo "QA LLM omitido" en el run. `create_task` acepta `acceptance_criteria` opcional (hoy 0 de 101 tareas reales los traen). `qa-structured` no cuenta como gate de revisión (se aplica a toda tarea; hallado por el ejecutor en la ronda 1).
+  Ejecutado por: criterio (Sonnet), 2 rondas · Spec: docs/specs/ERP.5.1.md (borrado al cerrar)
+  Evidencia: tsc y lint sin errores; `test:coverage` 1943/0 (funciones 78,35 %, líneas 64,82 %). En vivo:
+  `gate:evidence --label ERP.5.1-tasks -- ui:gate tasks` 31/31, el revisor corre con criterios (`qa_model` gpt-6-luna).
+  La ruta sin criterios solo tiene tests unitarios (`harness-evidence.test.ts`): ningún flow crea una tarea sin criterios.
+- [ ] **ERP.5.2 — 🧠 Quitar revisión adversarial y refutador.** 0 de 573 runs; apagados por defecto.
+- [ ] **ERP.5.3 — 🧠 Quitar embeddings y grafo de código del camino de la tarea.** `context_chunks`, `code_edges`, `files` en 0 filas; el middleware corre en cada tarea.
+- [ ] **ERP.5.4 — 🧠 Quitar la orquestación de flotas sin uso.** `orchestration_runs` y `orchestration_leases` en 0 filas: el auto-split y `--expand` nunca corrieron. Es una feature entera (interruptor en Settings, CLI, presupuesto): decisión de Carlos antes de ejecutar.
+- [ ] **ERP.5.5 — 🧠 Quitar `constitution_rules`.** Corrección al informe: sí carga (10 reglas en este repo), pero ningún proyecto real de Carlos tiene `CONSTITUTION.md` (erp-piloto no) y los CLI ya leen `AGENTS.md`/`CLAUDE.md`. Tiene API, vista en Settings/Context y flow `project-tabs`: alcance mayor, decisión de Carlos antes de ejecutar.
 
 **Después de iniciar:** AT.11 (registro extensible completo), migración visual de pantallas
 secundarias, resume/fork avanzado, orquestación de flotas y mejoras de aprendizaje nocturno.

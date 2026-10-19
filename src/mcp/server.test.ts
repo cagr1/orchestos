@@ -154,6 +154,15 @@ describe('parseCreateTaskArgs', () => {
     ])
       expect(parseCreateTaskArgs(bad).ok).toBe(false)
   })
+
+  test('acceptance_criteria opcional: válido pasa, inválido falla', () => {
+    expect(
+      parseCreateTaskArgs({ ...validArgs, acceptance_criteria: [' el botón existe '] }),
+    ).toEqual({ ok: true, args: { ...validArgs, acceptance_criteria: ['el botón existe'] } })
+    expect(parseCreateTaskArgs(validArgs)).toEqual({ ok: true, args: validArgs })
+    for (const bad of ['x', [''], ['  '], [3]])
+      expect(parseCreateTaskArgs({ ...validArgs, acceptance_criteria: bad }).ok).toBe(false)
+  })
 })
 
 describe('adaptadores MCP — líneas de stream reales', () => {

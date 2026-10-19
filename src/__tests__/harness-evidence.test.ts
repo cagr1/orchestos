@@ -79,6 +79,22 @@ function installMockFetch(handlers: FetchHandler[]) {
   return calls
 }
 
+const QA_CRITERION = 'out.txt contiene hello'
+
+function qaJson(verdict: 'pass' | 'fail', reason: string): string {
+  return JSON.stringify({
+    verdict,
+    reason,
+    criteria: [
+      {
+        text: QA_CRITERION,
+        pass: verdict === 'pass',
+        evidence: { file: 'out.txt', excerpt: 'hello' },
+      },
+    ],
+  })
+}
+
 function baseTask(overrides: Partial<Task> = {}): Task {
   return {
     id: 'f3-3-evidence',
@@ -210,12 +226,15 @@ describe('F3.3 — every failure path leaves a row in runs and a non-empty runId
     process.env.OPENROUTER_API_KEY = 'sk-test-or-key'
     installMockFetch([
       () => openRouterResponse('<<<FILE:out.txt>>>\nhello\n<<<ENDFILE>>>'),
-      () => openRouterResponse('{"verdict":"fail","reason":"qa fail test reason"}'),
+      () => openRouterResponse(qaJson('fail', 'qa fail test reason')),
     ])
 
     const dir = tmpDir()
     try {
-      const task = baseTask({ output: ['out.txt'] })
+      const task = baseTask({
+        output: ['out.txt'],
+        acceptance_criteria: [QA_CRITERION],
+      })
       const result = await callRunTask(task, dir)
       expect(result.status).toMatch(/^(failed|retry)$/)
       await assertRowForFailure(task, result, 'QA fail')
@@ -252,6 +271,61 @@ describe('F3.3 — every failure path leaves a row in runs and a non-empty runId
       expect(authorized).toContain('out-a.txt')
       expect(authorized).not.toContain('./out-a.txt')
       expect(blocked).not.toContain('out-a.txt')
+    } finally {
+      rmSync(dir, { recursive: true, force: true })
+    }
+  })
+})
+
+describe('ERP.5.1 — el revisor LLM corre solo con criterios o un gate de revisión', () => {
+  const EXEC = () => openRouterResponse('<<<FILE:out.txt>>>\nhello\n<<<ENDFILE>>>')
+
+  it('sin criterios ni gates reales: runQA no se llama, pass, qa_model null y motivo', async () => {
+    process.env.OPENROUTER_API_KEY = 'sk-test-or-key'
+    const calls = installMockFetch([EXEC])
+    const dir = tmpDir()
+    try {
+      const result = await callRunTask(baseTask({ output: ['out.txt'] }), dir)
+      expect(result.status).toBe('done')
+      expect(calls.length).toBe(1)
+      const { getRun } = await import('../db/runs.ts')
+      const row = getRun(result.runId)!
+      expect(row.qa_verdict).toBe('pass')
+      expect(row.qa_model).toBeNull()
+      expect(row.qa_reason).toContain('QA LLM omitido')
+    } finally {
+      rmSync(dir, { recursive: true, force: true })
+    }
+  })
+
+  it('con criterios de aceptación: runQA se llama', async () => {
+    process.env.OPENROUTER_API_KEY = 'sk-test-or-key'
+    const calls = installMockFetch([EXEC, () => openRouterResponse(qaJson('pass', 'ok'))])
+    const dir = tmpDir()
+    try {
+      const task = baseTask({ output: ['out.txt'], acceptance_criteria: [QA_CRITERION] })
+      const result = await callRunTask(task, dir)
+      expect(result.status).toBe('done')
+      expect(calls.length).toBe(2)
+      const { getRun } = await import('../db/runs.ts')
+      expect(getRun(result.runId)!.qa_model).not.toBeNull()
+    } finally {
+      rmSync(dir, { recursive: true, force: true })
+    }
+  })
+
+  it('con un gate real aplicado (security-review por la descripción): runQA se llama', async () => {
+    process.env.OPENROUTER_API_KEY = 'sk-test-or-key'
+    const calls = installMockFetch([EXEC, () => openRouterResponse(qaJson('pass', 'ok'))])
+    const dir = tmpDir()
+    try {
+      const task = baseTask({
+        output: ['out.txt'],
+        description: 'add a new authentication endpoint',
+      })
+      const result = await callRunTask(task, dir)
+      expect(result.status).toBe('done')
+      expect(calls.length).toBe(2)
     } finally {
       rmSync(dir, { recursive: true, force: true })
     }

@@ -358,6 +358,22 @@ describe('G.4 — POST /api/tasks acepta engine', () => {
   })
 })
 
+describe('ERP.5.1 — chat→tarea conserva los criterios de aceptación', () => {
+  it('createTaskRecord con acceptance_criteria los persiste en la tarea', async () => {
+    const { createTaskRecord } = await import('../handlers/tasks.ts')
+    const created = createTaskRecord(tmpDir, {
+      id: 'with-criteria',
+      description: 'C',
+      output: ['o.txt'],
+      acceptance_criteria: [' el archivo existe ', ''],
+    })
+    expect('error' in created).toBe(false)
+    const yaml = readFileSync(join(tmpDir, 'tasks.yaml'), 'utf-8')
+    expect(yaml).toContain('acceptance_criteria:')
+    expect(yaml).toContain('- el archivo existe')
+  })
+})
+
 describe('ERP.4.11 — el ejecutor visible sale de la config, no del campo guardado', () => {
   it('createTaskRecord sin executor ni executor_model no escribe la clave executor', async () => {
     await route(

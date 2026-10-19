@@ -124,6 +124,22 @@ function installMockFetch(handlers: Array<() => Response>) {
   }) as unknown as typeof fetch
 }
 
+const QA_CRITERION = 'out.txt contiene hello'
+
+function qaJson(verdict: 'pass' | 'fail', reason: string): string {
+  return JSON.stringify({
+    verdict,
+    reason,
+    criteria: [
+      {
+        text: QA_CRITERION,
+        pass: verdict === 'pass',
+        evidence: { file: 'out.txt', excerpt: 'hello' },
+      },
+    ],
+  })
+}
+
 function baseTask(overrides: Partial<Task> = {}): Task {
   return {
     id: 'g4-persist-test',
@@ -186,12 +202,16 @@ describe('G.4 — cost_breakdown_json persistido en cada insertRun (gap de G.3)'
     process.env.OPENROUTER_API_KEY = 'sk-test-or-key'
     installMockFetch([
       () => openRouterResponse('<<<FILE:out.txt>>>\nhello\n<<<ENDFILE>>>', 7, 4),
-      () => openRouterResponse('{"verdict":"pass","reason":"ok"}', 3, 2),
+      () => openRouterResponse(qaJson('pass', 'ok'), 3, 2),
     ])
 
     const dir = tmpDir()
     try {
-      const result = await callRunTask(baseTask(), dir, 'single-shot')
+      const result = await callRunTask(
+        baseTask({ acceptance_criteria: [QA_CRITERION] }),
+        dir,
+        'single-shot',
+      )
       expect(result.status).toBe('done')
       const breakdown = await rowBreakdownFor(result.runId)
       expect(breakdown).toHaveLength(1)
@@ -217,7 +237,7 @@ describe('G.4 — cost_breakdown_json persistido en cada insertRun (gap de G.3)'
           { name: 'write_file', args: { path: 'out.txt', content: 'agentic hi' } },
         ]),
       () => openRouterResponse('Done — wrote out.txt', 5, 3),
-      () => openRouterResponse('{"verdict":"pass","reason":"ok"}', 2, 1),
+      () => openRouterResponse(qaJson('pass', 'ok'), 2, 1),
     ])
 
     const dir = tmpDir()
@@ -275,12 +295,16 @@ describe('G.4 — cost_breakdown_json persistido en cada insertRun (gap de G.3)'
     process.env.OPENROUTER_API_KEY = 'sk-test-or-key'
     installMockFetch([
       () => openRouterResponse('<<<FILE:out.txt>>>\nhello\n<<<ENDFILE>>>', 5, 3),
-      () => openRouterResponse('{"verdict":"fail","reason":"no good"}', 3, 2),
+      () => openRouterResponse(qaJson('fail', 'no good'), 3, 2),
     ])
 
     const dir = tmpDir()
     try {
-      const result = await callRunTask(baseTask(), dir, 'single-shot')
+      const result = await callRunTask(
+        baseTask({ acceptance_criteria: [QA_CRITERION] }),
+        dir,
+        'single-shot',
+      )
       expect(['failed', 'retry']).toContain(result.status)
       const breakdown = await rowBreakdownFor(result.runId)
       expect(breakdown[0]!.label).toBe('single-shot')

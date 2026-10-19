@@ -36,6 +36,11 @@ Si necesitas saber el email activo, usa `git config user.email` (solo lectura).
 - No hagas `git push --force` salvo instrucción explícita.
 - No crees ni borres ramas remotas sin confirmación del usuario.
 - Al cerrar un ítem, su evidencia va al archivo de docs/done/ del bloque en el MISMO turno, y en PLAN.md queda solo la línea del ítem con el enlace. No acumular evidencia en PLAN.md hasta el cierre del bloque: esa es la causa mecánica de que el plan crezca sin techo (S.2).
+- **Un commit por ítem, `NEXT.md` por lote (Carlos, ERP.5, 2026-10-19).** Spec, código, evidencia, marca en `PLAN.md`
+  y borrado del spec van en UN commit; el spec no se commitea aparte (reemplaza "commitear el spec al lanzar al
+  ejecutor"). `NEXT.md` se toca solo al cerrar o cortar un lote, y guarda orden y trampas vivas, no historia de
+  cerrados (eso vive en `PLAN.md` y git). Motivo medido: 266 de 447 commits desde 2026-09-19 solo tocaban
+  documentos de proceso (`docs/done/ERP.5.md`).
 - **Memoria evolutiva obligatoria:** toda mejora de proceso, hallazgo, decisión técnica o regla
   transversal descubierta durante el trabajo debe persistirse en el mismo turno. Usa `PLAN.md` para
   cadenas activas y evidencia de ejecución, `AGENTS.md`/`CLAUDE.md` para reglas que deben obedecer los
@@ -250,7 +255,8 @@ Medidas en los lotes L1–L4 y los ítems de Sprint 30/ERP/I/CX; cada una costó
   pelado no cubre sus archivos) e incluir `NEXT.md` y `.orchestos/feature-status.json`. No se puede re-correr sobre un
   ítem ya `[x]`: si el scope quedó corto, añadir la línea `**Fuera de scope declarado:**` en el ítem.
 - **Línea de procedencia.** `Ejecutado por: … · Spec: docs/specs/<ID>.md` debe terminar en la ruta (sin texto
-  después) o el plan gate exige borrar el spec. Commitear el spec al lanzar al ejecutor, no al cerrar.
+  después) o el plan gate exige borrar el spec. ~~Commitear el spec al lanzar al ejecutor, no al cerrar.~~ Reemplazado
+  2026-10-19: un commit por ítem (§ Reglas generales).
 - **Prompt de Luna.** Añadir "No invoques `codex exec` ni delegues a otro agente" (se anidó sola) y lanzarla siempre
   con `< /dev/null` (sin eso queda colgada en "Reading additional input from stdin…"). Matar procesos por PID, nunca
   `pkill -f "<patrón>"` si una tarea en segundo plano lleva ese texto en su línea de comandos.

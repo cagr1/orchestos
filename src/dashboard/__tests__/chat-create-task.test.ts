@@ -7,7 +7,7 @@ describe('create_task en el chat', () => {
   it('la regla es una línea que nombra la herramienta', () => {
     const instruction = buildAutoTaskInstruction({ hasProjectContext: true, mode: 'code' })
     expect(instruction).toBe(
-      'If files must be created or modified, call `create_task`; answer everything else yourself.',
+      'If files must be created or modified, call `create_task`; answer everything else yourself. Pass `acceptance_criteria` only when the result is not covered by automatic checks.',
     )
   })
 

@@ -1,7 +1,37 @@
 {
-  "exported_at": "2026-10-19T16:25:13.419Z",
+  "exported_at": "2026-10-19T17:20:11.245Z",
   "total_runs": 20,
   "runs": [
+    {
+      "id": "65733967-9433-444c-b7f2-a2f5b0eb061c",
+      "task_class": "gate:erp.5.1-tasks:implement",
+      "model": "openai/gpt-6-luna",
+      "provider": "codex",
+      "status": "done",
+      "qa_verdict": "pass",
+      "qa_reason": "NOTES.md contains the required line.",
+      "files_blocked": [],
+      "checks_failed": 0,
+      "usd_cost": 0.00065794,
+      "elapsed_ms": 14837,
+      "tokens": 6456,
+      "created_at": "2026-10-19T17:19:11.411Z"
+    },
+    {
+      "id": "03940810-5f73-4a61-b554-44270ff603b4",
+      "task_class": "gate:erp.5.1-tasks:doc",
+      "model": "openai/gpt-6-luna",
+      "provider": "codex",
+      "status": "done",
+      "qa_verdict": "pass",
+      "qa_reason": "README.md contains the requested line.",
+      "files_blocked": [],
+      "checks_failed": 0,
+      "usd_cost": 0.0013116399999999998,
+      "elapsed_ms": 20489,
+      "tokens": 12237,
+      "created_at": "2026-10-19T17:18:54.343Z"
+    },
     {
       "id": "523a96cd-ec64-4ead-8ed4-7b5eb963aa41",
       "task_class": "chat",
@@ -271,36 +301,6 @@
       "elapsed_ms": 9954,
       "tokens": 538,
       "created_at": "2026-10-18T17:08:03.980Z"
-    },
-    {
-      "id": "43e6b03e-899e-4ced-b255-9a874f0f861f",
-      "task_class": "chat",
-      "model": "gpt-6-luna",
-      "provider": "codex",
-      "status": "done",
-      "qa_verdict": null,
-      "qa_reason": null,
-      "files_blocked": [],
-      "checks_failed": 0,
-      "usd_cost": 0,
-      "elapsed_ms": 10065,
-      "tokens": 16122,
-      "created_at": "2026-10-18T17:07:39.985Z"
-    },
-    {
-      "id": "fb4cb2e8-c07b-4222-abcb-6a1f35b15c46",
-      "task_class": "chat",
-      "model": "claude-sonnet-5",
-      "provider": "claude",
-      "status": "done",
-      "qa_verdict": null,
-      "qa_reason": null,
-      "files_blocked": [],
-      "checks_failed": 0,
-      "usd_cost": 0.0361698,
-      "elapsed_ms": 11262,
-      "tokens": 497,
-      "created_at": "2026-10-18T17:07:20.590Z"
     }
   ],
   "stats": {
@@ -308,6 +308,6 @@
     "blocked": 0,
     "done": 20,
     "qa_failed": 0,
-    "total_cost_usd": "0.3571"
+    "total_cost_usd": "0.3229"
   }
 }
