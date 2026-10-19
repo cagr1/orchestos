@@ -12,13 +12,8 @@ describe('getProjectContext', () => {
         return new Response(JSON.stringify({ content: '', exists: false }))
       return new Response(
         JSON.stringify({
-          files: 4,
-          edges: 3,
-          languages: [{ language: 'ts', files: 4 }],
-          staleFiles: ['src/removed.ts'],
           gitBranch: 'main',
           isCleanWorktree: true,
-          indexedAt: '2026-09-23T00:00:00Z',
         }),
       )
     }) as typeof fetch
@@ -26,13 +21,8 @@ describe('getProjectContext', () => {
       await expect(getProjectContext('project-1')).resolves.toEqual({
         constitution: 'CONSTITUTION.md does not exist in this project.',
         contextDoc: 'CONTEXT.md does not exist in this project.',
-        codeGraphNodes: 4,
-        edges: 3,
-        languages: [{ language: 'ts', files: 4 }],
-        staleFiles: ['src/removed.ts'],
         gitBranch: 'main',
         isCleanWorktree: true,
-        indexedAt: '2026-09-23T00:00:00Z',
       })
     } finally {
       globalThis.fetch = originalFetch

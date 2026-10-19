@@ -170,13 +170,8 @@ export interface ToolExecution {
 export interface ProjectContext {
   constitution: string
   contextDoc: string
-  codeGraphNodes: number
-  edges: number
-  languages: Array<{ language: string; files: number }>
-  staleFiles: string[]
   isCleanWorktree: boolean | null
   gitBranch: string | null
-  indexedAt: string | null
 }
 
 export interface ChatMessage {

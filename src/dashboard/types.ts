@@ -368,7 +368,7 @@ export interface SetupItem {
   label: string
   ok: boolean
   critical: boolean
-  kind: 'runtime' | 'dependency' | 'credential' | 'project' | 'database' | 'index'
+  kind: 'runtime' | 'dependency' | 'credential' | 'project' | 'database'
   hint: string
   actionLabel?: string
   action?: 'save-settings' | 'copy-command' | 'open-wizard'

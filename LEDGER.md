@@ -373,3 +373,9 @@ Ninguna línea de código; `maxTokens`/`contextWindow` intactos (`git diff --cac
 **Por qué**: se quitan las ramas adversarial/refutador, sus imports y 4 campos del insert. `maxTokens`/`contextWindow` intactos.
 **Reversibilidad/evidencia**: commit `refactor(ERP.5.2)`, revertible. typecheck verde · `test:coverage` 1917/0 ·
 ui-gates tasks, qa-negative, model-routing, orchestration en verde.
+
+## 2026-10-19 15:40 America/Guayaquil — claude-opus-5-5 (revisor) · ejecutor Claude sonnet + Codex luna
+**Contexto**: ERP.5.3 — `src/run/harness.ts` ([[feedback-context-no-max-tokens]]).
+**Clasificación**: RESPETÓ
+**Por qué**: se quita `memoryFetch` de la cadena de middlewares y la escritura de `embed_hits`. `maxTokens`/`contextWindow` intactos.
+**Reversibilidad/evidencia**: commit `refactor(ERP.5.3)`, revertible. typecheck verde · `test:coverage` 1852/0 · ui-gates runs-graph, project-tabs, smoke, tasks en verde.

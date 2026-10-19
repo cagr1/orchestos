@@ -158,7 +158,6 @@ function buildCtx(worktree: Worktree, task: Task): RunContext {
     provider: null as any,
     cliEffort: task.cli_effort,
     task,
-    embedHits: 0,
     skillInstructions: '',
     constitutionBlock: '',
     constitutionRules: null,

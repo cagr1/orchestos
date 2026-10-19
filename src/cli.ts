@@ -22,10 +22,6 @@ import { buildRoadmapProfile, renderProjectProfileMarkdown } from './detect/road
 import { generateAgentsMd, type StackProfile } from './generators/agents-md.ts'
 import { generateContextJson } from './generators/context-json.ts'
 import { generateSummaryPdf } from './generators/summary-pdf.ts'
-import { indexProject } from './graph/index.ts'
-import { suggestContext } from './graph/suggest.ts'
-import { ensureProject } from './projects/ensure.ts'
-import { inferEmbeddingProvider } from './providers/embeddings.ts'
 import { classifyTask } from './router/classify.ts'
 import {
   contextWindowFor,
@@ -107,15 +103,11 @@ program
     writeFileSync(join(root, 'AGENTS.md'), agentsMd, 'utf-8')
     writeFileSync(join(root, 'context.json'), JSON.stringify(contextJson, null, 2), 'utf-8')
     upsertProject(root, profile, agentsMd)
-    const project = getProject(root)
-    const indexResult = project ? await indexProject(root, project.id) : null
     const elapsed = Math.round(performance.now() - t0)
     console.log(`[init] ${profile.manifest.name} saved in ${elapsed}ms`)
     console.log(`  → AGENTS.md`)
     console.log(`  → context.json`)
     console.log(`  → ~/.orchestos/db.sqlite`)
-    if (indexResult)
-      console.log(`  -> code graph: ${indexResult.files} files, ${indexResult.edges} edges`)
     if (opts?.pdf) {
       const { listRuns: lr } = require('./db/runs.ts')
       const pdfPath = join(root, `${profile.manifest.name}-summary.pdf`)
@@ -143,23 +135,6 @@ program
   })
 
 // ── context ───────────────────────────────────────────────────────────────────
-program
-  .command('index [path]')
-  .description('Index project imports into the local code graph')
-  .option('--project <name>', 'Saved project name or path')
-  .option('--no-embed', 'Skip embedding generation for projects without API key')
-  .action(async (targetPath?: string, opts?: { project?: string; noEmbed?: boolean }) => {
-    const root = resolveIndexRoot(targetPath, opts?.project)
-    const project = await ensureProject(root)
-    const t0 = performance.now()
-    const result = await indexProject(root, project.id, { noEmbed: opts?.noEmbed })
-    const elapsed = Math.round(performance.now() - t0)
-    const embedInfo = result.embeddings > 0 ? `, ${result.embeddings} embeddings` : ''
-    console.log(
-      `[index] indexed ${result.files} files, ${result.edges} edges${embedInfo} in ${elapsed}ms`,
-    )
-  })
-
 const ctx = program.command('context').description('Manage saved project context')
 
 ctx
@@ -218,48 +193,6 @@ ctx
         `  ${p.manifest.name.padEnd(24)} ${p.manifest.runtime}/${p.manifest.framework.padEnd(12)} ${row.path}`,
       )
     }
-  })
-
-ctx
-  .command('suggest <task>')
-  .description('Suggest relevant files for a task using the code graph')
-  .option('--project <name>', 'Saved project name or path')
-  .option('--top <n>', 'Max results (default 10)', '10')
-  .option('--no-expand', 'Disable 1-hop neighbor expansion')
-  .action(async (taskText: string, opts: { project?: string; top: string; expand: boolean }) => {
-    const root = resolveIndexRoot(undefined, opts.project)
-    const project = getProject(root)
-    if (!project) {
-      console.error(`[suggest] No indexed project at ${root}. Run: orchestos init`)
-      process.exit(1)
-    }
-    const topN = Math.max(1, parseInt(opts.top, 10) || 10)
-
-    let taskEmbedding: number[] | undefined
-    try {
-      const ep = inferEmbeddingProvider('openai')
-      const { embeddings } = await ep.embed([taskText])
-      taskEmbedding = embeddings[0]
-    } catch {
-      // no embedding provider available — keyword-only path
-    }
-
-    const results = suggestContext(project.id, taskText, {
-      topN,
-      expand: opts.expand,
-      taskEmbedding,
-    })
-    if (results.length === 0) {
-      console.log('[suggest] No matching files found for that task description.')
-      return
-    }
-    console.log(`[suggest] Top ${results.length} files for: "${taskText}"`)
-    for (const r of results) {
-      const tag = r.reason === 'direct' ? '●' : r.reason === 'embedding' ? '◆' : '○'
-      const scoreStr = taskEmbedding ? r.score.toFixed(3) : String(r.score)
-      console.log(`  ${tag} ${r.path.padEnd(60)} score=${scoreStr}`)
-    }
-    console.log('\n  ● = direct token match   ◆ = semantic match   ○ = 1-hop neighbor')
   })
 
 ctx
@@ -1209,7 +1142,7 @@ task
       const orcheConfig = loadOrcheConfig(root)
 
       if (opts?.explain) {
-        explainTaskRun(root, opts.explain, project?.id)
+        explainTaskRun(root, opts.explain)
         return
       }
 
@@ -2558,7 +2491,7 @@ program
       items.push({ label: 'OPENAI_API_KEY  (opcional)', ok: true })
     } else {
       items.push({
-        label: 'OPENAI_API_KEY no configurada  (opcional — necesaria para embeddings OpenAI)',
+        label: 'OPENAI_API_KEY no configurada  (opcional)',
         ok: true,
         warn: true,
         hint: `Añade en ${envPath}:\n      OPENAI_API_KEY=sk-...`,
@@ -2584,26 +2517,6 @@ program
         label: 'db.sqlite no inicializada',
         ok: false,
         hint: 'Se crea automáticamente al ejecutar cualquier comando orchestos',
-      })
-    }
-
-    // 6. Índice de código (proyecto en DB)
-    let indexed = false
-    try {
-      const { getProject } = require('./db/projects.ts') as typeof import('./db/projects.ts')
-      const proj = getProject(root)
-      indexed = !!proj
-    } catch {
-      /* DB may not exist yet */
-    }
-    if (indexed) {
-      items.push({ label: 'Proyecto indexado en el code graph', ok: true })
-    } else {
-      items.push({
-        label: 'Proyecto no indexado',
-        ok: false,
-        warn: true,
-        hint: `Indexa con:  orchestos index ${root}`,
       })
     }
 
@@ -2716,17 +2629,7 @@ if (import.meta.main) {
 // ── helpers ───────────────────────────────────────────────────────────────────
 import { printGraphSummary } from './run/graph-summary.ts'
 
-function resolveIndexRoot(targetPath?: string, projectName?: string): string {
-  if (!projectName) return resolve(targetPath ?? '.')
-  const rows = listProjects()
-  for (const row of rows) {
-    const profile = JSON.parse(row.stack_profile) as StackProfile
-    if (profile.manifest.name === projectName || row.path === projectName) return row.path
-  }
-  return resolve(projectName)
-}
-
-function explainTaskRun(root: string, taskId: string, projectId?: string) {
+function explainTaskRun(root: string, taskId: string) {
   const file = loadTasks(root)
   const t = file.tasks.find((x) => x.id === taskId)
   if (!t) {
@@ -2738,9 +2641,7 @@ function explainTaskRun(root: string, taskId: string, projectId?: string) {
   const route = autoRoute(t, cfg)
   const modelDisplay = route ? formatRoute(route) : '(executor sin asignar)'
   const providerName = route?.provider ?? '(sin asignar)'
-  const suggestions = projectId ? suggestContext(projectId, t.description, { topN: 5 }) : []
-  const implicitInput = t.input.length === 0 ? suggestions.map((s) => s.path) : []
-  const inputSource = t.input.length > 0 ? 'explicit' : implicitInput.length > 0 ? 'graph' : 'none'
+  const inputSource = t.input.length > 0 ? 'explicit' : 'none'
 
   console.log(`\n[task:explain] ${t.id}`)
   console.log(`description: ${t.description}`)
@@ -2750,17 +2651,7 @@ function explainTaskRun(root: string, taskId: string, projectId?: string) {
   console.log(`outputs:     ${t.output.join(', ')}`)
 
   console.log(`\n## Files`)
-  console.log(
-    `input used (${inputSource}): ${formatList(t.input.length > 0 ? t.input : implicitInput)}`,
-  )
-  if (!projectId) {
-    console.log(`graph suggestions: (none - run "orchestos init" or "orchestos index" first)`)
-  } else {
-    console.log(
-      `graph suggestions: ${formatList(suggestions.map((s) => `${s.path} score=${s.score}`))}`,
-    )
-  }
-
+  console.log(`input used (${inputSource}): ${formatList(t.input)}`)
   console.log(`\n## Checks`)
   if (t.checks && t.checks.length > 0) {
     for (const c of t.checks) {

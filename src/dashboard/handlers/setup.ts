@@ -126,9 +126,7 @@ function handleApiSetup(root: string): Response {
     ok: !!openai,
     critical: false,
     kind: 'credential',
-    hint: openai
-      ? 'OpenAI embeddings are available.'
-      : 'Optional. Add it if you want OpenAI embeddings.',
+    hint: openai ? 'OpenAI key is available.' : 'Optional. Add it if you want to use OpenAI.',
     action: openai ? undefined : 'save-settings',
     actionLabel: openai ? undefined : 'Add optional key',
   })
@@ -158,24 +156,6 @@ function handleApiSetup(root: string): Response {
     hint: hasDb
       ? 'Local persistence is available.'
       : 'It is created automatically when OrchestOS runs.',
-  })
-
-  let indexed = false
-  try {
-    indexed = !!getProject(root)
-  } catch {}
-  items.push({
-    id: 'code-graph',
-    label: indexed ? 'Project indexed in code graph' : 'Project not indexed',
-    ok: indexed,
-    critical: false,
-    kind: 'index',
-    hint: indexed
-      ? 'Context suggestions can use the code graph.'
-      : 'Index the project for better context suggestions.',
-    action: indexed ? undefined : 'copy-command',
-    actionLabel: indexed ? undefined : 'Copy command',
-    command: indexed ? undefined : `orchestos index "${root}"`,
   })
 
   const criticalMissing = items.some((i) => i.critical && !i.ok)

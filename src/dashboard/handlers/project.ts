@@ -3,15 +3,12 @@ import { tmpdir } from 'os'
 import { isAbsolute, join, relative } from 'path'
 import { loadOrcheConfig } from '../../config/load.ts'
 import { refreshProjectContext } from '../../context/load.ts'
-import { getProjectById, upsertProject } from '../../db/projects.ts'
+import { upsertProject } from '../../db/projects.ts'
 import { listRuns } from '../../db/runs.ts'
-import { db } from '../../db/sqlite.ts'
 import { buildProfile } from '../../detect/profile.ts'
 import { generateAgentsMd } from '../../generators/agents-md.ts'
 import { generateContextJson } from '../../generators/context-json.ts'
 import { generateSummaryPdf } from '../../generators/summary-pdf.ts'
-import { indexProject } from '../../graph/index.ts'
-import { ensureProject } from '../../projects/ensure.ts'
 import type { TaskClass } from '../../router/classify.ts'
 import { roleClient } from '../../router/role-runner.ts'
 import { git } from '../../run/sandbox.ts'
@@ -53,48 +50,19 @@ function handleApiProjectContextGet(root: string): Response {
   return jsonResponse({ content, exists })
 }
 
-function gitValue(root: string, args: string[]): string | null {
+function gitValue(root: string, args: string[], emptyAsNull = true): string | null {
   const result = Bun.spawnSync(['git', ...args], { cwd: root, stdout: 'pipe', stderr: 'ignore' })
   if (result.exitCode !== 0) return null
   const value = result.stdout.toString().trim()
-  return value || null
+  return value || (emptyAsNull ? null : '')
 }
 
-async function handleApiProjectGraph(root: string): Promise<Response> {
-  const project = await ensureProject(root)
-  const files = db
-    .query<{ path: string; language: string; indexedAt: string }, string>(
-      'SELECT path, language, indexed_at AS indexedAt FROM files WHERE project_id = ? ORDER BY path',
-    )
-    .all(project.id)
-  const edges =
-    db
-      .query<{ count: number }, string>(
-        'SELECT COUNT(*) AS count FROM code_edges WHERE project_id = ?',
-      )
-      .get(project.id)?.count ?? 0
-  const languages = [
-    ...files.reduce((counts, file) => {
-      counts.set(file.language, (counts.get(file.language) ?? 0) + 1)
-      return counts
-    }, new Map<string, number>()),
-  ].map(([language, count]) => ({ language, files: count }))
-  const staleFiles = files
-    .filter((file) => !existsSync(join(root, file.path)))
-    .map((file) => file.path)
+function handleApiProjectGit(root: string): Response {
   const gitBranch = gitValue(root, ['rev-parse', '--abbrev-ref', 'HEAD'])
-  const gitStatus = gitValue(root, ['status', '--porcelain'])
+  const gitStatus = gitValue(root, ['status', '--porcelain'], false)
   return jsonResponse({
-    files: files.length,
-    edges,
-    languages,
-    staleFiles,
     gitBranch,
     isCleanWorktree: gitStatus === null ? null : gitStatus === '',
-    indexedAt: files.reduce<string | null>(
-      (latest, file) => (!latest || file.indexedAt > latest ? file.indexedAt : latest),
-      null,
-    ),
   })
 }
 
@@ -129,25 +97,6 @@ async function handleApiProjectDetect(root: string): Promise<Response> {
     name: profile.manifest.name,
     runtime: profile.manifest.runtime,
     framework: profile.manifest.framework,
-    elapsedMs,
-  })
-}
-
-// E.8 — equivalente de `orchestos index [path]`: indexa el proyecto actual en el
-// code graph (S21). Crea el registro de proyecto en DB si aún no existe (mismo
-// fallback que `ensureProject()` en cli.ts).
-async function handleApiProjectIndex(root: string, projectId?: string | null): Promise<Response> {
-  const project = projectId
-    ? (getProjectById(projectId) ?? (await ensureProject(root)))
-    : await ensureProject(root)
-  const t0 = performance.now()
-  const result = await indexProject(root, project.id)
-  const elapsedMs = Math.round(performance.now() - t0)
-  return jsonResponse({
-    ok: true,
-    files: result.files,
-    edges: result.edges,
-    embeddings: result.embeddings,
     elapsedMs,
   })
 }
@@ -449,8 +398,7 @@ export {
   handleApiProjectContextGet,
   handleApiProjectContextRegenerate,
   handleApiProjectDetect,
-  handleApiProjectGraph,
-  handleApiProjectIndex,
+  handleApiProjectGit,
   handleApiProjectSummary,
   listAllSkillCandidates,
 }

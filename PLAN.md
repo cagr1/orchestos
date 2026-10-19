@@ -1611,7 +1611,10 @@ En todos: `prefers-reduced-motion` = cambios instantáneos o fundidos cortos.
   Ejecutado por: mecanico (gpt-6-luna) · Spec: docs/specs/ERP.5.6.md
   Evidencia: tsc y lint sin errores; `bun test scripts/plan-gate.test.ts` 15/0 (2 casos nuevos: nunca commiteado y
   ausente pasa; nunca commiteado y presente falla).
-- [ ] **ERP.5.3 — 🧠 Quitar embeddings y grafo de código del camino de la tarea.** `context_chunks`, `code_edges`, `files` en 0 filas; el middleware corre en cada tarea.
+- [x] **ERP.5.3 — 🧠 Quitar embeddings y grafo de código del camino de la tarea.** (cerrado 2026-10-19) `context_chunks`, `code_edges`, `files` en 0 filas; el middleware corre en cada tarea. Fuera `src/graph/`, `memory-fetch`, `providers/embeddings.ts`, `context-suggest`, CLI `index` y `context suggest`, la pestaña Code Graph y su botón, "Hot files" de `context compress` y el ítem de setup que recomendaba `orchestos index`. `/api/project/graph` → `/api/project/git` (rama y árbol limpio, datos reales). Destapó un bug previo: `isCleanWorktree` nunca era `true` (`gitValue` colapsaba la salida vacía a `null`); corregido con test.
+  Ejecutado por: criterio (Sonnet, 3 rondas; la 2.ª cortada por límite de sesión) + mecanico (gpt-6-luna, setup y `isCleanWorktree`) · Spec: docs/specs/ERP.5.3.md
+  Evidencia: tsc y lint sin errores; `test:coverage` 1852/0 (funciones 78,34 %, líneas 64,47 %).
+  Gate en vivo: navegador real (Playwright), `docs/done/evidence/ERP.5.3-live.json`: runs-graph 14/14 (captura: "Branch: main · Clean tree", sin pestaña Code Graph), project-tabs 39/39, smoke 6/6, tasks 31/31.
 - [ ] **ERP.5.4 — 🧠 Quitar la orquestación de flotas sin uso.** `orchestration_runs` y `orchestration_leases` en 0 filas: el auto-split y `--expand` nunca corrieron. Es una feature entera (interruptor en Settings, CLI, presupuesto): decisión de Carlos antes de ejecutar.
 - [ ] **ERP.5.5 — 🧠 Quitar `constitution_rules`.** Corrección al informe: sí carga (10 reglas en este repo), pero ningún proyecto real de Carlos tiene `CONSTITUTION.md` (erp-piloto no) y los CLI ya leen `AGENTS.md`/`CLAUDE.md`. Tiene API, vista en Settings/Context y flow `project-tabs`: alcance mayor, decisión de Carlos antes de ejecutar.
 

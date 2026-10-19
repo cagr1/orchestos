@@ -3,7 +3,7 @@
  *
  * Middleware chain para la fase de enrichment del harness.
  *
- * Scope: pasos de preparación previos al LLM call (classify → memory → skill →
+ * Scope: pasos de preparación previos al LLM call (classify → skill →
  * constitution → context → prompt). La fase de ejecución (LLM call, parse,
  * contract, checks, QA, revert, insertRun) permanece orquestada por harness.ts
  * porque su lógica de error y revert es una máquina de estados, no pasos
@@ -15,7 +15,6 @@
  *  spec-gate         — lanza si requireSpec y el spec no está aprobado
  *  sandbox-setup     — crea el worktree, fija effectiveRoot
  *  classify-route    — resuelve taskClass, model y provider
- *  memory-fetch      — suggestContext + embeddings → enriquece task.input
  *  skill-route       — carga skill YAML → skillInstructions
  *  constitution-load — carga CONSTITUTION.md → constitutionBlock
  *  context-source    — elige CONTEXT.md vs AGENTS.md → effectiveContext
@@ -83,10 +82,8 @@ export interface RunContext {
   provider: ProviderClient
   cliEffort?: string
 
-  // --- memory-fetch ---
-  /** Copia enriquecida de la tarea con input sugerido por embeddings/BM25 */
+  /** Copia de la tarea que los middlewares pueden enriquecer */
   task: Task
-  embedHits: number
 
   // --- skill-route ---
   /** Instrucciones compiladas de la skill activa; '' si no hay skill */
@@ -138,7 +135,6 @@ export function createRunContext(opts: HarnessOpts): RunContext {
     providerName: '',
     provider: null as unknown as ProviderClient,
     task: opts.task,
-    embedHits: 0,
     skillInstructions: '',
     roadmapInstructions: '',
     roadmapBlockReason: null,

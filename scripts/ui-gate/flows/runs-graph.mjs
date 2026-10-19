@@ -147,13 +147,14 @@ export default async function runsGraph({ page, api, step, note, shot, visible, 
     'project settings heading visible',
   )
 
-  const graphBefore = await api('/api/project/graph', {
+  const gitState = await api('/api/project/git', {
     headers: { 'x-orchestos-project-id': project.id },
   })
   await step(
-    'graph count from API',
-    Number.isInteger(graphBefore.data?.files),
-    `files=${graphBefore.data?.files}`,
+    'git state from API',
+    typeof gitState.data?.gitBranch === 'string' &&
+      typeof gitState.data?.isCleanWorktree === 'boolean',
+    `gitBranch=${gitState.data?.gitBranch}, isCleanWorktree=${gitState.data?.isCleanWorktree}`,
   )
 
   const runButton = page.getByRole('button', { name: 'Run Next Task', exact: true })
@@ -238,30 +239,22 @@ export default async function runsGraph({ page, api, step, note, shot, visible, 
 
   await page.getByRole('button', { name: 'Back to Runs', exact: true }).click()
   await page.getByRole('button', { name: 'Graph', exact: true }).click()
-  await page.getByRole('button', { name: /^Code Graph/ }).click()
+  await page.getByRole('button', { name: /^CONTEXT\.md$/ }).click()
   await step(
-    'graph view visible',
-    await visible(page.getByText('Dependency Topology & Code Graph', { exact: true })),
-    'graph heading',
+    'project context shows real git state',
+    await visible(
+      page.getByText(
+        `Branch: ${gitState.data.gitBranch} · ${gitState.data.isCleanWorktree ? 'Clean tree' : 'Dirty worktree'}`,
+        { exact: true },
+      ),
+    ),
+    `branch=${gitState.data?.gitBranch}`,
   )
   await step(
-    'mock graph copy absent',
-    (await page.getByText('TypeScript (82%)', { exact: false }).count()) === 0,
-    'no hardcoded language split',
-  )
-  await step(
-    'graph count is real before rebuild',
-    (await visible(page.getByText(`${graphBefore.data.files} source units`, { exact: true }))) &&
-      (await page.getByText('48 source units', { exact: true }).count()) === 0,
-    `files=${graphBefore.data?.files}, not the sample 48`,
-  )
-  writeFileSync(join(projectRoot, 'extra.ts'), 'export const extra = 1\n')
-  const rebuild = page.getByRole('button', { name: 'Rebuild Code Graph', exact: true })
-  if (await rebuild.isVisible()) await rebuild.click()
-  await step(
-    'graph rebuild completes',
-    await visible(page.getByText(`${graphBefore.data.files + 1} source units`, { exact: true })),
-    'indexed source count changed',
+    'removed code graph UI absent',
+    (await page.getByRole('button', { name: /^Code Graph/ }).count()) === 0 &&
+      (await page.getByRole('button', { name: 'Rebuild Code Graph', exact: true }).count()) === 0,
+    'no Code Graph tab, no rebuild button',
   )
   await shot('runs-graph-real-data')
   const projectsAfter = await api('/api/projects')

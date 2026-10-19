@@ -1,6 +1,5 @@
 import { getProject } from '../db/projects.ts'
 import { listRuns } from '../db/runs.ts'
-import { db } from '../db/sqlite.ts'
 
 interface ContextMdResult {
   content: string
@@ -38,27 +37,6 @@ export function buildContextMd(projectPath: string): ContextMdResult | null {
     lines.push('### Stack')
     for (const s of stackMatches.slice(0, 5)) {
       lines.push(s)
-    }
-    lines.push('')
-  }
-
-  // -- hot files from code graph (top 20 by edge count) --
-  const hotFiles = db
-    .query<{ path: string; edge_count: number }, string>(
-      `SELECT f.path, COUNT(e.id) AS edge_count
-     FROM files f
-     LEFT JOIN code_edges e ON e.from_file_id = f.id OR e.to_file_id = f.id
-     WHERE f.project_id = ?
-     GROUP BY f.id
-     ORDER BY edge_count DESC
-     LIMIT 20`,
-    )
-    .all(project.id)
-
-  if (hotFiles.length > 0) {
-    lines.push('### Hot files')
-    for (const f of hotFiles) {
-      lines.push(`- ${f.path} (${f.edge_count} edges)`)
     }
     lines.push('')
   }

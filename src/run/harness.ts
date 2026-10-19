@@ -60,13 +60,7 @@ import type { ExecutorEngine, ExecutorOutcome } from './executors/types.ts'
 import { withGitLock } from './git-lock.ts'
 import type { RunLogger } from './logger.ts'
 import { createChain, createRunContext, type RunContext } from './middleware.ts'
-import {
-  contextInject,
-  instinctApply,
-  memoryFetch,
-  roadmapContext,
-  skillRoute,
-} from './middlewares/index.ts'
+import { contextInject, instinctApply, roadmapContext, skillRoute } from './middlewares/index.ts'
 import { buildPrompt, previousFailureForTask } from './prompt.ts'
 import { computeFileDiffs, MAX_RETRIES, restoreContents, runQA, snapshotContents } from './qa.ts'
 import type { Worktree } from './sandbox.ts'
@@ -276,7 +270,7 @@ export async function runTask(opts: HarnessOpts): Promise<TaskResult> {
     ctx.cliEffort = ctx.task.cli_effort ?? route?.effort
 
     const chain = createChain<RunContext>()
-    chain.use(memoryFetch).use(skillRoute).use(roadmapContext).use(contextInject).use(instinctApply)
+    chain.use(skillRoute).use(roadmapContext).use(contextInject).use(instinctApply)
 
     await chain.run(ctx)
 
@@ -562,7 +556,6 @@ export async function runTask(opts: HarnessOpts): Promise<TaskResult> {
           constitution_rules: ctx.constitutionRules,
           context_source: ctx.contextSource,
           context_tokens: ctx.contextTokens,
-          embed_hits: ctx.embedHits,
           context_warnings_json: ctx.contextWarnings.length
             ? JSON.stringify(ctx.contextWarnings)
             : null,
@@ -610,7 +603,6 @@ export async function runTask(opts: HarnessOpts): Promise<TaskResult> {
         constitution_rules: ctx.constitutionRules,
         context_source: ctx.contextSource,
         context_tokens: ctx.contextTokens,
-        embed_hits: ctx.embedHits,
         context_warnings_json: ctx.contextWarnings.length
           ? JSON.stringify(ctx.contextWarnings)
           : null,
@@ -663,7 +655,6 @@ export async function runTask(opts: HarnessOpts): Promise<TaskResult> {
         constitution_rules: ctx.constitutionRules,
         context_source: ctx.contextSource,
         context_tokens: ctx.contextTokens,
-        embed_hits: ctx.embedHits,
         context_warnings_json: ctx.contextWarnings.length
           ? JSON.stringify(ctx.contextWarnings)
           : null,
@@ -735,7 +726,6 @@ export async function runTask(opts: HarnessOpts): Promise<TaskResult> {
         constitution_rules: ctx.constitutionRules,
         context_source: ctx.contextSource,
         context_tokens: ctx.contextTokens,
-        embed_hits: ctx.embedHits,
         context_warnings_json: ctx.contextWarnings.length
           ? JSON.stringify(ctx.contextWarnings)
           : null,
@@ -846,7 +836,6 @@ export async function runTask(opts: HarnessOpts): Promise<TaskResult> {
           constitution_rules: ctx.constitutionRules,
           context_source: ctx.contextSource,
           context_tokens: ctx.contextTokens,
-          embed_hits: ctx.embedHits,
           context_warnings_json: ctx.contextWarnings.length
             ? JSON.stringify(ctx.contextWarnings)
             : null,
@@ -991,7 +980,6 @@ export async function runTask(opts: HarnessOpts): Promise<TaskResult> {
         constitution_rules: ctx.constitutionRules,
         context_source: ctx.contextSource,
         context_tokens: ctx.contextTokens,
-        embed_hits: ctx.embedHits,
         context_warnings_json: ctx.contextWarnings.length
           ? JSON.stringify(ctx.contextWarnings)
           : null,
@@ -1085,7 +1073,6 @@ export async function runTask(opts: HarnessOpts): Promise<TaskResult> {
       constitution_rules: ctx.constitutionRules,
       context_source: ctx.contextSource,
       context_tokens: ctx.contextTokens,
-      embed_hits: ctx.embedHits,
       context_warnings_json: ctx.contextWarnings.length
         ? JSON.stringify(ctx.contextWarnings)
         : null,

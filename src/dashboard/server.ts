@@ -24,7 +24,6 @@ import {
   handleApiChatSessionTurnStatus,
 } from './handlers/chat-sessions.ts'
 import { handleApiConfigGet, handleApiConfigInit, handleApiConfigSet } from './handlers/config.ts'
-import { handleApiContextSuggest } from './handlers/context-suggest.ts'
 import { handleApiExplorerFile, handleApiExplorerTree } from './handlers/explorer.ts'
 import {
   handleApiInstincts,
@@ -58,8 +57,7 @@ import {
   handleApiProjectContextGet,
   handleApiProjectContextRegenerate,
   handleApiProjectDetect,
-  handleApiProjectGraph,
-  handleApiProjectIndex,
+  handleApiProjectGit,
   handleApiProjectSummary,
 } from './handlers/project.ts'
 import {
@@ -375,17 +373,14 @@ export async function route(req: Request, port: number): Promise<Response> {
   if (method === 'GET' && url.pathname === '/api/project/context') {
     return withDashboardProject(req, (project) => handleApiProjectContextGet(project.root))
   }
-  if (method === 'GET' && url.pathname === '/api/project/graph') {
-    return withDashboardProject(req, (project) => handleApiProjectGraph(project.root))
+  if (method === 'GET' && url.pathname === '/api/project/git') {
+    return withDashboardProject(req, (project) => handleApiProjectGit(project.root))
   }
   if (method === 'POST' && url.pathname === '/api/project/context/regenerate') {
     return withDashboardProject(req, (project) => handleApiProjectContextRegenerate(project.root))
   }
   if (method === 'POST' && url.pathname === '/api/project/detect') {
     return withDashboardProject(req, (project) => handleApiProjectDetect(project.root))
-  }
-  if (method === 'POST' && url.pathname === '/api/project/index') {
-    return withDashboardProject(req, (project) => handleApiProjectIndex(project.root, project.id))
   }
   // v0.12 D.1.c — ruta literal DEBE ir antes del catch-all GET→serveStatic
   // de abajo (sirve un PDF binario, no HTML estático).
@@ -543,9 +538,6 @@ export async function route(req: Request, port: number): Promise<Response> {
   }
   if (url.pathname === '/api/orchestration' && method === 'PUT') {
     return withDashboardProject(req, (project) => handleApiOrchestrationSet(req, project.root))
-  }
-  if (method === 'GET' && url.pathname === '/api/context/suggest') {
-    return withDashboardProject(req, (project) => handleApiContextSuggest(url, project.root))
   }
   if (method === 'GET' && url.pathname === '/api/explorer/tree') {
     return withDashboardProject(req, (project) => handleApiExplorerTree(url, project.root))

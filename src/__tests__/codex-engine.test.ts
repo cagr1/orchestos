@@ -199,7 +199,6 @@ function buildCtx(worktree: Worktree, task: Task, model = 'openai/gpt-5.4'): Run
     provider: null as any,
     cliEffort: task.cli_effort,
     task,
-    embedHits: 0,
     skillInstructions: '',
     constitutionBlock: '',
     constitutionRules: null,

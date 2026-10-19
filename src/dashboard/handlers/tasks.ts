@@ -10,7 +10,6 @@ import { getProject } from '../../db/projects.ts'
 import { getRunSteps } from '../../db/run-steps.ts'
 import { db } from '../../db/sqlite.ts'
 import { upsertTaskRunWatch } from '../../db/task-run-watch.ts'
-import { suggestContext } from '../../graph/suggest.ts'
 import { autoRoute, describeTaskExecutor, formatRoute } from '../../router/auto-route.ts'
 import { resolveProjectAgentRule, taskFieldsFromRule } from '../../router/engine-cascade.ts'
 import { commitPaths, commitTasksYaml } from '../../run/commit-tasks-yaml.ts'
@@ -577,11 +576,7 @@ function handleApiTasksExplain(url: URL, root: string): Response {
   const providerName = route?.provider ?? '(sin asignar)'
   const modelDisplay = route ? formatRoute(route) : '(executor sin asignar)'
 
-  const project = getProject(root)
-  const suggestions = project ? suggestContext(project.id, task.description, { topN: 5 }) : []
-  const implicitInput = task.input.length === 0 ? suggestions.map((s: any) => s.path) : []
-  const inputSource =
-    task.input.length > 0 ? 'explicit' : implicitInput.length > 0 ? 'graph' : 'none'
+  const inputSource = task.input.length > 0 ? 'explicit' : 'none'
 
   const cst = loadConstitution(root)
 
@@ -593,8 +588,7 @@ function handleApiTasksExplain(url: URL, root: string): Response {
     model: modelDisplay,
     outputs: task.output,
     inputSource,
-    inputFiles: task.input.length > 0 ? task.input : implicitInput,
-    graphSuggestions: suggestions.map((s: any) => ({ path: s.path, score: s.score })),
+    inputFiles: task.input,
     checks: task.checks ?? [],
     acceptanceCriteria: task.acceptance_criteria ?? [],
     constitution: cst

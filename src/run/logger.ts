@@ -37,9 +37,6 @@ export class RunLogger {
   contractViolation(paths: string[]) {
     this.write(`CONTRACT_VIOLATION  ${paths.join(', ')}`)
   }
-  inputAutoSuggested(paths: string[]) {
-    this.write(`INPUT:auto-suggested ${paths.join(', ')}`)
-  }
   error(msg: string) {
     this.write(`ERROR  ${msg}`)
   }

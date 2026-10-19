@@ -38,17 +38,6 @@ function formatExplainValue(value: unknown, key?: string): string {
   if (value === null || value === undefined) return '—'
   if (Array.isArray(value)) {
     if (value.length === 0) return '—'
-    if (key === 'graphSuggestions') {
-      return value
-        .map((suggestion) => {
-          if (suggestion && typeof suggestion === 'object' && !Array.isArray(suggestion)) {
-            const item = suggestion as { path?: unknown; score?: unknown }
-            return `${formatExplainValue(item.path)} (${formatExplainValue(item.score)})`
-          }
-          return formatExplainValue(suggestion)
-        })
-        .join(', ')
-    }
     return value.map((item) => formatExplainValue(item)).join(', ')
   }
   if (typeof value === 'object') {

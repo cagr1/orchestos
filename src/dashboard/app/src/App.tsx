@@ -134,7 +134,6 @@ export default function App() {
   const [runningTaskId, setRunningTaskId] = useState<string | null>(null)
   const [runs, setRuns] = useState<RunItem[]>([])
   const [projectContext, setProjectContext] = useState<ProjectContext | null>(null)
-  const [refreshingGraph, setRefreshingGraph] = useState(false)
   const [specs, setSpecs] = useState<SpecItem[]>([])
   const [instincts, setInstincts] = useState<InstinctItem[]>([])
   const [memories, setMemories] = useState<MemoryItem[]>([])
@@ -513,21 +512,6 @@ export default function App() {
       disposed = true
     }
   }, [currentProject?.id])
-
-  const refreshGraph = async () => {
-    if (!currentProject || refreshingGraph) return
-    setRefreshingGraph(true)
-    try {
-      const response = await fetch('/api/project/index', {
-        method: 'POST',
-        headers: { 'x-orchestos-project-id': currentProject.id },
-      })
-      if (!response.ok) throw new Error(`Request failed (${response.status})`)
-      setProjectContext(await getProjectContext(currentProject.id))
-    } finally {
-      setRefreshingGraph(false)
-    }
-  }
 
   useEffect(() => {
     if (!currentProject) {
@@ -1324,8 +1308,6 @@ export default function App() {
                 taskError={taskError || taskRunError}
                 runs={runs}
                 projectContext={projectContext}
-                onRefreshGraph={() => void refreshGraph()}
-                graphRefreshing={refreshingGraph}
                 specs={specs}
                 memories={memories}
                 skills={skills}

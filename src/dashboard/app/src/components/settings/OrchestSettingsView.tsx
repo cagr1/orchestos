@@ -168,8 +168,6 @@ interface OrchestSettingsViewProps {
   onRunTask?: (taskId: string) => void
   onExplainTask?: (taskId: string) => void | Promise<Record<string, unknown> | void>
   onAddTask?: () => void
-  onRefreshGraph?: () => void
-  graphRefreshing?: boolean
   onRunNextTask?: () => void
   canRunNextTask?: boolean
   taskRunBusy?: boolean
@@ -215,8 +213,6 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
   onRunTask,
   onExplainTask,
   onAddTask,
-  onRefreshGraph,
-  graphRefreshing = false,
   onRunNextTask,
   canRunNextTask = false,
   taskRunBusy = false,
@@ -2491,11 +2487,7 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
                 {/* TAB: Graph */}
                 {activeProjectTab === 'graph' &&
                   (projectContext ? (
-                    <ContextView
-                      context={projectContext}
-                      onRefreshGraph={onRefreshGraph || (() => {})}
-                      isRefreshing={graphRefreshing}
-                    />
+                    <ContextView context={projectContext} />
                   ) : (
                     <div className="flex-1 flex items-center justify-center text-sm text-app-muted">
                       Loading project graph…
