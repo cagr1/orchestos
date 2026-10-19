@@ -5,8 +5,9 @@ Un solo presente: orden y trampas vivas. Lo cerrado vive en `PLAN.md` y git (reg
 `bun run agent:preflight -- --item <ID> --agent claude`. Lista viva: `bun run next`.
 
 ## Orden
-1. Lote ERP.5 cerrado (5.1–5.7). Decide Carlos: el commit del vault de ERP.5.7 (`556de3a`) quedó en la rama
-   activa `content/plan-videos-2-semanas`, no en `main` (`~/.agent-method` ya lo usa desde el árbol).
+1. Lote ERP.5 cerrado (5.1–5.7). ERP.5.7 vive en el vault `main` (`f72e9df`); el vault quedó en `main`, publicado.
+   La rama `content/plan-videos-2-semanas` del vault (plan de videos de Carlos, ajena a OrchestOS) está publicada aparte.
+   Antes de commitear en el vault: `git -C ~/Projects/MemoriesMD branch --show-current` (ERP.5.7 cayó en esa rama).
 2. ERP.7 (T3 Code) → H.7.2c → H.7.3. ERP.6.2 (fila del revisor en el desglose) cuando toque costo.
 3. Fiabilidad, cuando el pre-push la tumba: CI.23, CI.18, CI.19, CI.11, CI.27 (primero que deje evidencia).
 - Decisiones pendientes de Carlos sin ítem: turno de chat con CLI lento (más de 120 s o aviso honesto, en CI.18);
