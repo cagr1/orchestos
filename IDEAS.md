@@ -60,6 +60,7 @@ Bajo-medio en curso, Sprint 27)_
 10. `#70` Changes en vivo estilo VS Code (Source Control + color en Files).
 11. `#71` Vista de evals: pass@k por corrida y comparación entre corridas.
 12. `#72` Instinto propuesto desde un par fallo→pass de la misma tarea.
+13. `#73` Abrir el dashboard desde el móvil u otra máquina (pairing por token).
 
 _(`#6` graduó a Bloque AA el 2026-08-15. `#31`, `#35` y `#50` fueron ABSORBIDAS por PLAN.md § Sprint 29
 (orquestador real) el 2026-08-16 — eran partes de un mismo eje estructural, no ideas sueltas.)_
@@ -1712,3 +1713,10 @@ un contraste con verdad de referencia (`checks[]` + QA). Hoy el reintento solo r
 en 3 corridas (`PATTERN_FREQUENCY_THRESHOLD`, `src/analyze/propose.ts:27`). Idea: al pasar tras ≥1
 fallo, el rol Auxiliary compara ambos intentos y propone un instinto `source: auto, verified: false`
 citando los dos run ids; entra solo con aprobación humana, igual que hoy. Cero ejecuciones extra.
+
+### `#73` — Dashboard desde el móvil u otra máquina (2026-10-19, hallado en ERP.7)
+
+**Medio.** T3 Code se abre desde otra máquina con un enlace de emparejamiento por token, por LAN o por Tailscale, y
+tiene apps móviles. OrchestOS solo escucha en `127.0.0.1` y no tiene emparejamiento (`src/dashboard/server.ts:534`).
+Sirve para seguir y aprobar tareas largas lejos del Mac. Exponerlo exige auth real antes de tocar el bind. Prioridad
+de Carlos: después de que el núcleo funcione como debe. Evidencia: `docs/done/ERP.7.md` § Lo que T3 hace.
