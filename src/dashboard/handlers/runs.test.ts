@@ -33,10 +33,6 @@ describe('runRecordToRow', () => {
       context_warnings_json: null,
       cost_breakdown_json: null,
       file_diffs: null,
-      adversarial_verdict: null,
-      adversarial_reason: null,
-      refuter_verdict: null,
-      refuter_reason: null,
       skill_gates_json: null,
       status: 'failed',
       input_tokens: 0,
@@ -118,10 +114,6 @@ describe('runRecordToRow', () => {
       context_warnings_json: null,
       cost_breakdown_json: null,
       file_diffs: null,
-      adversarial_verdict: 'PASS',
-      adversarial_reason: 'No issue',
-      refuter_verdict: null,
-      refuter_reason: null,
       skill_gates_json: null,
       status: 'done',
       input_tokens: 10,
@@ -140,6 +132,5 @@ describe('runRecordToRow', () => {
     expect(row.filesAttempted).toEqual([])
     expect(row.checks).toEqual([{ cmd: 'bun test', exitCode: 0, elapsedMs: 12 }])
     expect(row.qaReason).toBe('All criteria met')
-    expect(row.adversarialVerdict).toBe('PASS')
   })
 })

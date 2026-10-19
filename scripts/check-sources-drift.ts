@@ -219,7 +219,7 @@ async function main() {
 
   const findings = computeDrift(entries, latestShas)
 
-  // P.4 — opt-in a propósito (mismo patrón que orcheConfig.adversarialQA): el
+  // P.4 — opt-in a propósito: el
   // camino mecánico de P.1-P.3 sigue siendo el default, sin costo ni llamada
   // a un LLM. Un fallo de red/LLM al resumir degrada a la línea "pendiente"
   // de siempre, nunca rompe el reporte entero.

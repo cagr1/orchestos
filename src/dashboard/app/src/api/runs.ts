@@ -16,10 +16,6 @@ interface RunRow {
   executorReply?: string | null
   qaModel?: string | null
   qaCriteria?: Array<{ text: string; pass: boolean; evidence?: { file: string; excerpt: string } }>
-  adversarialVerdict?: string | null
-  adversarialReason?: string | null
-  refuterVerdict?: string | null
-  refuterReason?: string | null
   model: string
   provider: string
   inputTokens: number
@@ -57,20 +53,6 @@ export function mapRunRow(row: RunRow): RunItem {
         ? `${c.evidence.file}: ${c.evidence.excerpt}`
         : 'no evidence in written files',
     })),
-    row.adversarialVerdict
-      ? {
-          criterion: `Adversarial verdict: ${row.adversarialVerdict}`,
-          passed: row.adversarialVerdict.toUpperCase() === 'PASS',
-          rationale: row.adversarialReason || 'No reason recorded',
-        }
-      : null,
-    row.refuterVerdict
-      ? {
-          criterion: `Refuter verdict: ${row.refuterVerdict}`,
-          passed: row.refuterVerdict.toUpperCase() === 'CONFIRMED',
-          rationale: row.refuterReason || 'No reason recorded',
-        }
-      : null,
   ].filter((item): item is NonNullable<typeof item> => item !== null)
   return {
     id: row.id,

@@ -30,18 +30,6 @@ export function handleApiOrchestrationGet(root: string, projectId?: string | nul
       reason: config.enabled ? 'solo al superar el umbral de salida' : 'auto-split omitido con OFF',
     },
     { id: 'qa', label: 'QA', active: true, reason: 'validación de tareas' },
-    {
-      id: 'adversarialQA',
-      label: 'QA adversarial',
-      active: loadOrcheConfig(root).adversarialQA === true,
-      reason: 'segundo juez opcional',
-    },
-    {
-      id: 'refuterQA',
-      label: 'QA refuter',
-      active: loadOrcheConfig(root).refuterQA === true,
-      reason: 'revisión opcional tras QA fallido',
-    },
     { id: 'retries', label: 'Retries', active: true, reason: 'máximo por tarea: 3' },
   ]
   let usage: { tokens: number; usd: number } | null = null

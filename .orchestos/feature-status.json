@@ -747,8 +747,17 @@
       "block": null,
       "delegation": "🧠",
       "title": "Quitar revisión adversarial y refutador",
-      "status": "open",
-      "closedDate": null
+      "status": "done",
+      "closedDate": "2026-10-19"
+    },
+    {
+      "id": "ERP.5.6",
+      "sprint": "Fase 3 — Correr dentro de OrchestOS igual que el CLI directo",
+      "block": null,
+      "delegation": "⚡",
+      "title": "El plan gate acepta un spec que nunca se commiteó",
+      "status": "done",
+      "closedDate": "2026-10-19"
     },
     {
       "id": "ERP.5.3",

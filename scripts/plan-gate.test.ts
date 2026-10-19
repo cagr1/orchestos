@@ -232,3 +232,28 @@ it('rejects a shared spec that still exists at HEAD', async () => {
   )
   expect(JSON.parse(out).threw).toMatch(/must delete docs\/specs\/F\.1\.md/)
 })
+
+it('accepts its own spec when it was never committed and is absent from disk', async () => {
+  const { out } = await runScenario(
+    scenarioScript(`
+      git(['rm', 'docs/specs/F.1.md'])
+      git(['commit', '-m', 'remove fixture spec before close'])
+      write('PLAN.md', '## Sprint fixture\\n### Block fixture\\n- [x] **F.1 — ⚡ Item fixture.**\\n  Ejecutado por: luna · Spec: docs/specs/F.1.md\\n')
+      git(['add', 'PLAN.md'])
+    `),
+  )
+  expect(JSON.parse(out).threw).toBeNull()
+})
+
+it('rejects its own spec when it was never committed but is still present on disk', async () => {
+  const { out } = await runScenario(
+    scenarioScript(`
+      git(['rm', 'docs/specs/F.1.md'])
+      git(['commit', '-m', 'remove fixture spec before close'])
+      write('docs/specs/F.1.md', '# uncommitted spec\\n')
+      write('PLAN.md', '## Sprint fixture\\n### Block fixture\\n- [x] **F.1 — ⚡ Item fixture.**\\n  Ejecutado por: luna · Spec: docs/specs/F.1.md\\n')
+      git(['add', 'PLAN.md'])
+    `),
+  )
+  expect(JSON.parse(out).threw).toMatch(/must be deleted from disk if it was never committed/)
+})

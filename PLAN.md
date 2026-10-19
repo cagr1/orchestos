@@ -1600,7 +1600,17 @@ En todos: `prefers-reduced-motion` = cambios instantáneos o fundidos cortos.
   Evidencia: tsc y lint sin errores; `test:coverage` 1943/0 (funciones 78,35 %, líneas 64,82 %). En vivo:
   `gate:evidence --label ERP.5.1-tasks -- ui:gate tasks` 31/31, el revisor corre con criterios (`qa_model` gpt-6-luna).
   La ruta sin criterios solo tiene tests unitarios (`harness-evidence.test.ts`): ningún flow crea una tarea sin criterios.
-- [ ] **ERP.5.2 — 🧠 Quitar revisión adversarial y refutador.** 0 de 573 runs; apagados por defecto.
+- [x] **ERP.5.2 — 🧠 Quitar revisión adversarial y refutador.** (cerrado 2026-10-19) 0 de 573 runs; apagados por defecto. −1120 líneas; un YAML viejo con `adversarialQA`/`refuterQA` carga y las ignora; columnas de `runs` quedan como historia.
+  Ejecutado por: criterio (Sonnet) · Spec: docs/specs/ERP.5.2.md
+  Evidencia: tsc y lint sin errores; `test:coverage` 1917/0 (funciones 78,24 %, líneas 64,63 %). En vivo:
+  `gate:evidence --label ERP.5.2-live` → tasks 31/31, qa-negative 25/25, model-routing 18/18, orchestration 11/11.
+  Gate en vivo: navegador real (Playwright), `docs/done/evidence/ERP.5.2-live.json` (4 flows en verde).
+  Incidente: el ejecutor corrió `git stash` (prohibido en el spec), lo revirtió y lo reportó; árbol verificado intacto.
+- [x] **ERP.5.6 — ⚡ El plan gate acepta un spec que nunca se commiteó.** (cerrado 2026-10-19) Con la decisión 3 (un commit por ítem) el spec no entra a git; `checkProvenance` (`scripts/plan-gate.ts:157`) exige borrar un spec commiteado y bloquea todo cierre delegado.
+  Ahora acepta `Spec: docs/specs/<id>.md` si ese archivo no está en HEAD, ni en el índice, ni en disco.
+  Ejecutado por: mecanico (gpt-6-luna) · Spec: docs/specs/ERP.5.6.md
+  Evidencia: tsc y lint sin errores; `bun test scripts/plan-gate.test.ts` 15/0 (2 casos nuevos: nunca commiteado y
+  ausente pasa; nunca commiteado y presente falla).
 - [ ] **ERP.5.3 — 🧠 Quitar embeddings y grafo de código del camino de la tarea.** `context_chunks`, `code_edges`, `files` en 0 filas; el middleware corre en cada tarea.
 - [ ] **ERP.5.4 — 🧠 Quitar la orquestación de flotas sin uso.** `orchestration_runs` y `orchestration_leases` en 0 filas: el auto-split y `--expand` nunca corrieron. Es una feature entera (interruptor en Settings, CLI, presupuesto): decisión de Carlos antes de ejecutar.
 - [ ] **ERP.5.5 — 🧠 Quitar `constitution_rules`.** Corrección al informe: sí carga (10 reglas en este repo), pero ningún proyecto real de Carlos tiene `CONSTITUTION.md` (erp-piloto no) y los CLI ya leen `AGENTS.md`/`CLAUDE.md`. Tiene API, vista en Settings/Context y flow `project-tabs`: alcance mayor, decisión de Carlos antes de ejecutar.

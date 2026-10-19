@@ -1336,7 +1336,7 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
                 [
                   ['orchestrator', 'Orchestrator', 'Chat, drafts and task splitting'],
                   ['executor', 'Executor', 'Runs tasks'],
-                  ['reviewer', 'Reviewer', 'QA, adversarial and refuter (read-only)'],
+                  ['reviewer', 'Reviewer', 'QA (read-only)'],
                   ['auxiliary', 'Auxiliary', 'Diagnose and memory judge (read-only)'],
                 ] as const
               ).map(([key, label, desc]) => {

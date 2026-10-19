@@ -101,13 +101,7 @@ function mergeWithDefaults(raw: Record<string, unknown>): OrcheConfig {
     apiMode: resolveApiMode(raw),
     agentic: parseAgenticConfig(raw.agentic),
     external: parseExternalConfig(raw.external),
-    // K.4b — opt-in explícito: cualquier valor que no sea `true` literal se ignora (queda undefined/desactivado).
-    adversarialQA: raw.adversarialQA === true ? true : undefined,
     permissionMode: raw.permissionMode === 'manual' ? 'manual' : undefined,
-    // X.2 (IDEAS #33) — mismo criterio que adversarialQA. Hallazgo real al escribir CC.D1:
-    // este campo existía en schema.ts desde Bloque X pero NUNCA se leía acá — `refuterQA: true`
-    // en el YAML se ignoraba en silencio desde que se creó. Bug de la misma clase que BB.2/CC.1c.
-    refuterQA: raw.refuterQA === true ? true : undefined,
     orchestration,
   }
 }
@@ -339,10 +333,6 @@ models:
   # qa:
   #   provider: anthropic
   #   model: claude-haiku-4-5
-
-# Optional: K.4b — segundo juez adversarial después de que el QA normal pase
-# (VERIFIED/CAVEATS/REFUTED). Dobla el costo de QA por tarea que pasa — opt-in.
-# adversarialQA: true
 
 # Model routing por rol (MR.1); sin asignaciones por defecto.
 # roles:

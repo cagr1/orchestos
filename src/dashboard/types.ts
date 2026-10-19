@@ -199,10 +199,6 @@ export interface RunRow {
   executorReply: string | null
   qaModel: string | null
   qaCriteria: Array<{ text: string; pass: boolean; evidence?: { file: string; excerpt: string } }>
-  adversarialVerdict: string | null
-  adversarialReason: string | null
-  refuterVerdict: string | null
-  refuterReason: string | null
   model: string
   provider: string
   skillId: string | null

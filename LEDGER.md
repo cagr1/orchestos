@@ -366,3 +366,10 @@ Ninguna línea de código; `maxTokens`/`contextWindow` intactos (`git diff --cac
 `qa.model ?? qaJudge.model` para el costo. `maxTokens`/`contextWindow` intactos.
 **Reversibilidad/evidencia**: commit `feat(ERP.5.1)`, revertible. typecheck verde · `test:coverage` 1943/0 ·
 `ui:gate tasks` 31/31.
+
+## 2026-10-19 12:50 America/Guayaquil — claude-opus-5-5 (revisor) · ejecutor Claude sonnet
+**Contexto**: ERP.5.2 — `src/run/harness.ts` ([[feedback-context-no-max-tokens]]).
+**Clasificación**: RESPETÓ
+**Por qué**: se quitan las ramas adversarial/refutador, sus imports y 4 campos del insert. `maxTokens`/`contextWindow` intactos.
+**Reversibilidad/evidencia**: commit `refactor(ERP.5.2)`, revertible. typecheck verde · `test:coverage` 1917/0 ·
+ui-gates tasks, qa-negative, model-routing, orchestration en verde.

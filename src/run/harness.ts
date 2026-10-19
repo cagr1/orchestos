@@ -68,15 +68,7 @@ import {
   skillRoute,
 } from './middlewares/index.ts'
 import { buildPrompt, previousFailureForTask } from './prompt.ts'
-import {
-  computeFileDiffs,
-  MAX_RETRIES,
-  restoreContents,
-  runAdversarialQA,
-  runQA,
-  runRefuter,
-  snapshotContents,
-} from './qa.ts'
+import { computeFileDiffs, MAX_RETRIES, restoreContents, runQA, snapshotContents } from './qa.ts'
 import type { Worktree } from './sandbox.ts'
 import { createWorktree, mergeWorktreeBack } from './sandbox.ts'
 import { resolveSandboxMode, type SandboxMode } from './sandbox-policy.ts'
@@ -954,86 +946,6 @@ export async function runTask(opts: HarnessOpts): Promise<TaskResult> {
       }
     }
 
-    // -- K.4b: adversarial second opinion (opt-in via orcheConfig.adversarialQA) -
-    // Corre SOLO si el QA normal ya dio pass — no tiene sentido refutar un fail.
-    // REFUTED downgradea qa.verdict a 'fail' ANTES del chequeo de abajo, así
-    // reutiliza EXACTAMENTE el mismo path de revert/retry/exhaución — sin
-    // contador de retry paralelo (decisión (c), PLAN.md § K.4b).
-    let adversarialVerdict: string | null = null
-    let adversarialReason: string | null = null
-    if (qa.verdict === 'pass' && effectiveConfig.adversarialQA) {
-      let adversarial: Awaited<ReturnType<typeof runAdversarialQA>>
-      try {
-        adversarial = await runAdversarialQA({
-          description: ctx.task.description,
-          output: ctx.task.output,
-          written: contractResult.written,
-          model: qaJudge.model,
-          acceptance_criteria: ctx.task.acceptance_criteria,
-          checksResults,
-          provider: qaJudge.provider,
-        })
-      } catch (e: any) {
-        adversarial = {
-          verdict: 'REFUTED' as const,
-          reason: `adversarial QA call error: ${e.message}`,
-          inputTokens: 0,
-          outputTokens: 0,
-          model: qaJudge.model,
-        }
-      }
-      qa.inputTokens += adversarial.inputTokens
-      qa.outputTokens += adversarial.outputTokens
-      adversarialVerdict = adversarial.verdict
-      adversarialReason = adversarial.reason
-      // CAVEATS no bloquea ni consume retry — solo se persiste/marca (decisión (b):
-      // bloquear reintroduciría la clase de bug que D3 ya arregló, retries
-      // agotándose sin necesidad real). REFUTED sí bloquea, vía el downgrade de abajo.
-      if (adversarial.verdict === 'REFUTED') {
-        qa.verdict = 'fail'
-        qa.reason = `adversarial re-review REFUTED: ${adversarial.reason}`
-      }
-    }
-
-    // -- X.2 (IDEAS #33): refuter opt-in (orcheConfig.refuterQA) — corre SOLO si el QA (normal
-    // o downgradeado por K.4b arriba) dio fail, ANTES de consumir un retry. REFUTED sube
-    // qa.verdict a 'pass' de vuelta, reutilizando el mismo path de éxito de abajo (merge +
-    // insertRun con status:'done') — mismo criterio de "un solo path, sin contador paralelo"
-    // que K.4b usa en la dirección opuesta.
-    let refuterVerdict: string | null = null
-    let refuterReason: string | null = null
-    if (qa.verdict === 'fail' && effectiveConfig.refuterQA) {
-      let refuter: Awaited<ReturnType<typeof runRefuter>>
-      try {
-        refuter = await runRefuter({
-          description: ctx.task.description,
-          output: ctx.task.output,
-          written: contractResult.written,
-          model: qaJudge.model,
-          acceptance_criteria: ctx.task.acceptance_criteria,
-          checksResults,
-          qaVerdictReason: qa.reason,
-          provider: qaJudge.provider,
-        })
-      } catch (e: any) {
-        refuter = {
-          verdict: 'CONFIRMED' as const,
-          reason: `refuter call error: ${e.message}`,
-          inputTokens: 0,
-          outputTokens: 0,
-          model: qaJudge.model,
-        }
-      }
-      qa.inputTokens += refuter.inputTokens
-      qa.outputTokens += refuter.outputTokens
-      refuterVerdict = refuter.verdict
-      refuterReason = refuter.reason
-      if (refuter.verdict === 'REFUTED') {
-        qa.verdict = 'pass'
-        qa.reason = `refuter REFUTED the original fail: ${refuter.reason}`
-      }
-    }
-
     const qaCost = calcCost(qa.model ?? qaJudge.model, qa.inputTokens, qa.outputTokens)
     const totalCost = cost + qaCost
     const totalElapsed = Math.round(performance.now() - t0)
@@ -1084,10 +996,6 @@ export async function runTask(opts: HarnessOpts): Promise<TaskResult> {
           ? JSON.stringify(ctx.contextWarnings)
           : null,
         cost_breakdown_json: breakdownJson,
-        adversarial_verdict: adversarialVerdict,
-        adversarial_reason: adversarialReason,
-        refuter_verdict: refuterVerdict,
-        refuter_reason: refuterReason,
         status: 'failed',
         input_tokens: totalTokens.inputTokens,
         cache_read_tokens: llmResponse.cacheReadTokens,
@@ -1183,10 +1091,6 @@ export async function runTask(opts: HarnessOpts): Promise<TaskResult> {
         : null,
       cost_breakdown_json: breakdownJson,
       file_diffs: fileDiffs.length ? JSON.stringify(fileDiffs) : null,
-      adversarial_verdict: adversarialVerdict,
-      adversarial_reason: adversarialReason,
-      refuter_verdict: refuterVerdict,
-      refuter_reason: refuterReason,
       status: 'done',
       input_tokens: totalTokens.inputTokens,
       cache_read_tokens: llmResponse.cacheReadTokens,

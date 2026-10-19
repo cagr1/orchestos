@@ -1,4 +1,5 @@
 import { execFileSync } from 'node:child_process'
+import { existsSync } from 'node:fs'
 import { posix } from 'node:path'
 import { runMigrations } from '../src/db/migrate.ts'
 import { db } from '../src/db/sqlite.ts'
@@ -66,6 +67,15 @@ function sectionAtHead(path: string, anchor: string, cwd?: string): string {
 function specExistsAtHead(path: string, cwd?: string): boolean {
   try {
     git(['cat-file', '-e', `HEAD:${path}`], cwd)
+    return true
+  } catch {
+    return false
+  }
+}
+
+function specExistsInIndex(path: string, cwd?: string): boolean {
+  try {
+    git(['ls-files', '--error-unmatch', '--', path], cwd)
     return true
   } catch {
     return false
@@ -156,10 +166,17 @@ export function checkProvenance(): void {
     const declaration = segment.text.match(/^\s+Ejecutado por: .+ · Spec: (docs\/specs\/\S+\.md)$/m)
     const referencedSpec = declaration?.[1]
     const ownSpecDeleted = deletedSpecs.has(`docs/specs/${id}.md`)
-    const sharedSpec = referencedSpec && isValidSpecReference(referencedSpec, id)
-    if (!ownSpecDeleted && !sharedSpec)
+    const ownSpec = `docs/specs/${id}.md`
+    const sharedSpec =
+      referencedSpec && referencedSpec !== ownSpec && isValidSpecReference(referencedSpec, id)
+    const neverCommittedSpec =
+      referencedSpec === ownSpec &&
+      !specExistsAtHead(ownSpec) &&
+      !specExistsInIndex(ownSpec) &&
+      !existsSync(ownSpec)
+    if (!ownSpecDeleted && !sharedSpec && !neverCommittedSpec)
       throw new Error(
-        `Procedencia ${id}: commit must delete docs/specs/${id}.md (or use Sin delegación: <motivo>)`,
+        `Procedencia ${id}: commit must delete docs/specs/${id}.md, or the spec must be deleted from disk if it was never committed (or use Sin delegación: <motivo>)`,
       )
     const source = sources.get(id)
     if (source?.evidenceHref) {

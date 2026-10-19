@@ -107,10 +107,6 @@ export function runRecordToRow(r: RunRecord): RunRow {
       pass: boolean
       evidence?: { file: string; excerpt: string }
     }>(r.qa_criteria_json),
-    adversarialVerdict: r.adversarial_verdict,
-    adversarialReason: r.adversarial_reason,
-    refuterVerdict: r.refuter_verdict,
-    refuterReason: r.refuter_reason,
     model: r.model,
     provider: r.provider,
     readAudit: parseReadAudit(r.read_audit_json),

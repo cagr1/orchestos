@@ -30,6 +30,21 @@ describe('model roles config', () => {
       rmSync(root, { recursive: true, force: true })
     }
   })
+  it('ignores the removed adversarialQA and refuterQA keys of an old config (ERP.5.2)', () => {
+    const root = temp()
+    try {
+      writeFileSync(
+        join(root, 'orchestos.config.yaml'),
+        'adversarialQA: true\nrefuterQA: true\npermissionMode: manual\n',
+      )
+      const cfg = loadOrcheConfig(root) as unknown as Record<string, unknown>
+      expect(cfg.permissionMode).toBe('manual')
+      expect('adversarialQA' in cfg).toBe(false)
+      expect('refuterQA' in cfg).toBe(false)
+    } finally {
+      rmSync(root, { recursive: true, force: true })
+    }
+  })
   it('has no role defaults and gives the exact unassigned error', () => {
     const root = temp()
     try {
