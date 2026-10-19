@@ -53,7 +53,6 @@ function addRun(taskId: string, result: string) {
     qa_verdict: null,
     qa_reason: null,
     checks_json: null,
-    constitution_rules: null,
     context_source: null,
     context_tokens: null,
     embed_hits: null,

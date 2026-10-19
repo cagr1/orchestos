@@ -68,7 +68,6 @@ export function orchestosModelToOpencodeModel(model: string | undefined): string
 function buildOpencodePrompt(ctx: Parameters<ExecutorEngine['run']>[0]): string {
   return [
     ctx.effectiveContext,
-    ctx.constitutionBlock,
     ctx.skillInstructions,
     ctx.instinctBlock,
     `## OUTPUT CONTRACT`,

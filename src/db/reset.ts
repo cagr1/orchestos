@@ -10,7 +10,7 @@ interface ResetSummary {
 /**
  * Wipes test-session data so a fresh dogfooding run starts clean.
  * Does NOT touch memory_entries/memory_fts (real accumulated knowledge),
- * project config, skills, or CONSTITUTION.md/CONTEXT.md.
+ * project config, skills, or CONTEXT.md.
  */
 export function resetTestData(root: string): ResetSummary {
   const runsDeleted = db.query('DELETE FROM runs').run().changes

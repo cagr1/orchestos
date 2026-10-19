@@ -127,7 +127,6 @@ function resolvedCliModel(parsed: ClaudeCodeJson): string | undefined {
 function buildSystemPrompt(ctx: Parameters<ExecutorEngine['run']>[0]): string {
   return [
     ctx.effectiveContext,
-    ctx.constitutionBlock,
     ctx.skillInstructions,
     ctx.instinctBlock,
     `## OUTPUT CONTRACT`,

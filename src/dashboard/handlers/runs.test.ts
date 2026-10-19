@@ -26,7 +26,6 @@ describe('runRecordToRow', () => {
       qa_reason: 'missing line',
       qa_criteria_json: JSON.stringify([{ text: 'target line exists', pass: false }]),
       checks_json: null,
-      constitution_rules: null,
       context_source: null,
       context_tokens: null,
       embed_hits: null,

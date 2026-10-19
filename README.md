@@ -193,7 +193,6 @@ orchestos init    ./my-project --pdf              # also generate a PDF summary
 orchestos context show/update/list/compress       # manage context; compress → CONTEXT.md (~500 tokens)
 orchestos context suggest "fix auth login"        # see which files the graph suggests
 orchestos index   ./my-project                    # re-index code graph after large changes
-orchestos constitution init/show  ./my-project    # scaffold / parse CONSTITUTION.md rules
 orchestos config  init/show       ./my-project    # scaffold / inspect orchestos.config.yaml
 orchestos summary ./my-project                    # PDF summary of a project
 orchestos setup                                   # check prerequisites
@@ -318,24 +317,7 @@ When OpenAI or Ollama credentials are present, `orchestos index` embeds each fil
 
 `embed_hits` is tracked in every run so you can measure the value in production.
 
-### 8. Constitution — constrain what the agent can do
-
-```markdown
-# CONSTITUTION.md
-## ALLOWED
-- Modify files under src/
-
-## FORBIDDEN
-- Modify .env files
-- Delete files
-
-## REQUIRE_CONFIRMATION
-- Any change to src/db/schema.ts
-```
-
-Automatically injected into every task prompt. No config needed — just create the file.
-
-### 9. Context compression
+### 8. Context compression
 
 ```bash
 orchestos context compress ./my-project    # generates CONTEXT.md (~500 tokens vs ~2000 for AGENTS.md)
@@ -360,7 +342,7 @@ memory-fetch → skill-route → roadmap-context → context-inject → instinct
 ```
 
 Each middleware mutates a shared `RunContext` and calls `next()`. Spec gating, sandbox setup,
-model routing, constitution loading, and prompt assembly remain explicit stages in the harness,
+model routing and prompt assembly remain explicit stages in the harness,
 as does the execution phase (LLM → contract → checks → QA → revert → insertRun).
 
 ---

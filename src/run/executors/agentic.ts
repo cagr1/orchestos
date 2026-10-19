@@ -221,7 +221,6 @@ export const agenticEngine: ExecutorEngine = {
 
     const system = [
       ctx.effectiveContext,
-      ctx.constitutionBlock,
       ctx.skillInstructions,
       ctx.instinctBlock,
       toolInstructions,

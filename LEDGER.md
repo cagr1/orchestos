@@ -387,3 +387,11 @@ ui-gates tasks, qa-negative, model-routing, orchestration en verde.
 (`blockSubagents` queda en `true`, el valor que ya tenía). solo se borran lecturas de `maxTokens` dentro del split; su cálculo y `contextWindow` intactos.
 **Reversibilidad/evidencia**: commit `refactor(ERP.5.4)`, revertible. typecheck verde · `test:coverage` 1784/0 ·
 ui-gates tasks, model-routing, qa-negative, smoke, project-tabs en verde.
+
+## 2026-10-19 17:30 America/Guayaquil — claude-opus-5-5 (revisor) · ejecutor Claude sonnet + gpt-6-luna
+**Contexto**: ERP.5.5 — `src/run/harness.ts`, `src/run/executors/*` ([[feedback-context-no-max-tokens]]).
+**Clasificación**: RESPETÓ
+**Por qué**: se quita la carga de `CONSTITUTION.md` y el parámetro del prompt; ninguna línea de `maxTokens`/`contextWindow`
+cambia (`git diff` sin coincidencias).
+**Reversibilidad/evidencia**: commit `refactor(ERP.5.5)`, revertible. typecheck verde · `test:coverage` 1774/0 ·
+ui-gates project-tabs, tasks, smoke en verde.

@@ -20,7 +20,7 @@
  *   - Sin tasks.yaml: igual funciona (el summary no depende de tasks — la
  *     sección de Recent Runs queda vacía pero el PDF se genera).
  *
- * Patrón (heredado de constitution-api.test.ts — F0.1): tmp dir real con
+ * Patrón (F0.1): tmp dir real con
  * chdir, sin mock.module(). El fallback legacy de contexto se ata al cwd del
  * test, así que el repo real del orchestos no aparece en este test.
  */

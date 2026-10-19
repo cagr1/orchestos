@@ -19,7 +19,6 @@ export function buildPrompt(
   task: Task,
   contextText: string,
   projectRoot: string,
-  constitutionBlock?: string,
   skillGuidelines?: string,
   instinctBlock?: string,
   previousFailure?: string,
@@ -29,7 +28,6 @@ export function buildPrompt(
 
   const system = [
     contextText || '# Project context\nNo AGENTS.md found.',
-    constitutionBlock ?? '',
     guidelines,
     roadmapInstructions ?? '',
     instinctBlock ?? '',

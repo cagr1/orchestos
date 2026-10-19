@@ -117,11 +117,6 @@ export async function draftSpec(
   const design = opts.design ?? false
   const contextParts: string[] = []
 
-  const constitutionPath = join(root, 'CONSTITUTION.md')
-  if (existsSync(constitutionPath)) {
-    contextParts.push(`## CONSTITUTION.md\n${readFileSync(constitutionPath, 'utf-8')}`)
-  }
-
   const contextMdPath = join(root, 'CONTEXT.md')
   const agentsMdPath = join(root, 'AGENTS.md')
   if (existsSync(contextMdPath)) {

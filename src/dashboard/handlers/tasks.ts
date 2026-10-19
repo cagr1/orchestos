@@ -15,7 +15,6 @@ import { commitPaths, commitTasksYaml } from '../../run/commit-tasks-yaml.ts'
 import { detectInstalledClis } from '../../run/executors/cli-registry.ts'
 import { DIRTY_TREE_REASON_PREFIX, listDirtyFiles } from '../../run/sandbox-policy.ts'
 import { isKnownSkillId } from '../../skills/catalog.ts'
-import { loadConstitution } from '../../spec/constitution.ts'
 import { ensureTasksYaml, scaffoldTasksYaml } from '../../tasks/init.ts'
 import { loadTasks, mutateTasks } from '../../tasks/loader.ts'
 import { isTaskClass } from '../../tasks/schema.ts'
@@ -575,8 +574,6 @@ function handleApiTasksExplain(url: URL, root: string): Response {
 
   const inputSource = task.input.length > 0 ? 'explicit' : 'none'
 
-  const cst = loadConstitution(root)
-
   return jsonResponse({
     id: task.id,
     description: task.description,
@@ -588,14 +585,6 @@ function handleApiTasksExplain(url: URL, root: string): Response {
     inputFiles: task.input,
     checks: task.checks ?? [],
     acceptanceCriteria: task.acceptance_criteria ?? [],
-    constitution: cst
-      ? {
-          ruleCount: cst.ruleCount,
-          forbidden: cst.forbidden.length,
-          requireConfirmation: cst.require_confirmation.length,
-          allowed: cst.allowed.length,
-        }
-      : null,
   })
 }
 

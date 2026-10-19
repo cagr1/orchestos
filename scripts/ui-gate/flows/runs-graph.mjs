@@ -239,7 +239,6 @@ export default async function runsGraph({ page, api, step, note, shot, visible, 
 
   await page.getByRole('button', { name: 'Back to Runs', exact: true }).click()
   await page.getByRole('button', { name: 'Graph', exact: true }).click()
-  await page.getByRole('button', { name: /^CONTEXT\.md$/ }).click()
   await step(
     'project context shows real git state',
     await visible(

@@ -4,7 +4,7 @@
  * Middleware chain para la fase de enrichment del harness.
  *
  * Scope: pasos de preparación previos al LLM call (classify → skill →
- * constitution → context → prompt). La fase de ejecución (LLM call, parse,
+ * context → prompt). La fase de ejecución (LLM call, parse,
  * contract, checks, QA, revert, insertRun) permanece orquestada por harness.ts
  * porque su lógica de error y revert es una máquina de estados, no pasos
  * independientes.
@@ -16,7 +16,6 @@
  *  sandbox-setup     — crea el worktree, fija effectiveRoot
  *  classify-route    — resuelve taskClass, model y provider
  *  skill-route       — carga skill YAML → skillInstructions
- *  constitution-load — carga CONSTITUTION.md → constitutionBlock
  *  context-source    — elige CONTEXT.md vs AGENTS.md → effectiveContext
  *  instinct-apply    — (S33) inyecta instincts verificados → instinctBlock
  *  prompt-build      — ensambla system + userContent desde todos los campos ctx
@@ -94,10 +93,6 @@ export interface RunContext {
   /** Check obligatorio ausente que impide declarar pass por omisión. */
   roadmapBlockReason?: string | null
 
-  // --- constitution-load ---
-  constitutionBlock: string
-  constitutionRules: number | null
-
   // --- context-source ---
   /** Contenido de CONTEXT.md (si existe) o AGENTS.md */
   effectiveContext: string
@@ -138,8 +133,6 @@ export function createRunContext(opts: HarnessOpts): RunContext {
     skillInstructions: '',
     roadmapInstructions: '',
     roadmapBlockReason: null,
-    constitutionBlock: '',
-    constitutionRules: null,
     effectiveContext: opts.contextText,
     contextSource: 'AGENTS.md',
     contextTokens: Math.round(opts.contextText.length / 4),

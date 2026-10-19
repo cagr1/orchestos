@@ -202,8 +202,6 @@ function buildCtx(worktree: Worktree, task: Task): RunContext {
     cliEffort: task.cli_effort,
     task,
     skillInstructions: '',
-    constitutionBlock: '',
-    constitutionRules: null,
     effectiveContext: '',
     contextSource: 'AGENTS.md',
     contextTokens: 0,
@@ -605,8 +603,6 @@ describe('B.3 — externalEngine (claude-code subprocess)', () => {
       provider: null as any,
       task: baseTask(),
       skillInstructions: '',
-      constitutionBlock: '',
-      constitutionRules: null,
       effectiveContext: '',
       contextSource: 'AGENTS.md',
       contextTokens: 0,
@@ -878,7 +874,7 @@ describe('B.3 — externalEngine (claude-code subprocess)', () => {
     overrideBunSpawn(proc)
 
     // effectiveContext lo arma buildCtx como '' y el engine construye el
-    // prompt via buildSystemPrompt() que junta effectiveContext + constitutionBlock
+    // prompt via buildSystemPrompt() que junta effectiveContext
     // + skillInstructions + instinctBlock + "## OUTPUT CONTRACT" + "You may ONLY..."
     // Aca al menos verificamos que la copia persistida no se filtra al spawn.
     const ctx = buildCtx(wt, baseTask())

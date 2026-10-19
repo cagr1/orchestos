@@ -1,6 +1,6 @@
 /**
  * AA (IDEAS #6) — design.md condicional. Gate real end-to-end vía POST /api/specs/*,
- * mismo patrón que constitution-api.test.ts (tmp dir + chdir + route(), sin
+ * mismo patrón que otros tests de la API (tmp dir + chdir + route(), sin
  * mock.module() — el request sin selector usa el fallback legacy, así que el cwd del test ES
  * el root seleccionado).
  */

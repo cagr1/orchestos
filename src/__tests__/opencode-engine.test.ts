@@ -159,8 +159,6 @@ function buildCtx(worktree: Worktree, task: Task): RunContext {
     cliEffort: task.cli_effort,
     task,
     skillInstructions: '',
-    constitutionBlock: '',
-    constitutionRules: null,
     effectiveContext: '',
     contextSource: 'AGENTS.md',
     contextTokens: 0,

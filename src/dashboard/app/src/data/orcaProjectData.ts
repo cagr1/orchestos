@@ -81,18 +81,6 @@ export const ORCHESTOS_FILE_TREE: FileNode[] = [
     isDir: true,
     children: [
       {
-        name: 'CONSTITUTION.md',
-        path: 'context/CONSTITUTION.md',
-        isDir: false,
-        size: '1.2 KB',
-        content: `# CONSTITUTION.md - Immutable Rules for OrchestOS Sub-Agents
-1. NEVER modify files outside the declared tasks.yaml output[] slice.
-2. ALWAYS execute tests within the ephemeral git worktree branch.
-3. NEVER emit placeholder comments ("// TODO: implement this"). Write production code.
-4. If tsc or test verifiers fail, automatically revert the worktree.
-5. Record every token and sub-agent invocation in the SQLite evidence log.`,
-      },
-      {
         name: 'CONTEXT.md',
         path: 'context/CONTEXT.md',
         isDir: false,

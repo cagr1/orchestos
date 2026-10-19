@@ -36,7 +36,6 @@ import {
 import { calcCost } from '../router/pricing.ts'
 import { clientFromAssignment, roleClient } from '../router/role-runner.ts'
 import { resolveGates } from '../skills/catalog.ts'
-import { buildConstitutionBlock, loadConstitution } from '../spec/constitution.ts'
 import { loadSpec } from '../spec/store.ts'
 import type { Task } from '../tasks/schema.ts'
 import { type CheckResult, defaultChecksFor, roadmapChecksFor, runChecks } from './checks.ts'
@@ -84,8 +83,6 @@ export interface HarnessOpts {
   orcheConfig?: OrcheConfig
   /** True if an orchestos.config.yaml file was actually found (vs defaults) */
   orcheConfigFound?: boolean
-  /** If true, the caller already asked for clarification and got user input appended to the task */
-  constitutionRules?: number | null
   /** Sandbox mode resolved by sandbox-policy */
   sandboxMode?: SandboxMode
   /** Base branch to use when creating worktree */
@@ -254,19 +251,12 @@ export async function runTask(opts: HarnessOpts): Promise<TaskResult> {
       }
     }
 
-    // constitution-load (inline — not yet a middleware)
-    const constitution = loadConstitution(projectRoot)
-    ctx.constitutionBlock = buildConstitutionBlock(constitution)
-    ctx.constitutionRules = constitution?.ruleCount ?? null
-    if (constitution) log.info(`constitution: loaded (${constitution.ruleCount} rules)`)
-
     // build prompt
     const previousFailure = previousFailureForTask(ctx.task)
     const { system, userContent } = buildPrompt(
       ctx.task,
       ctx.effectiveContext,
       projectRoot,
-      ctx.constitutionBlock,
       ctx.skillInstructions,
       ctx.instinctBlock,
       previousFailure,
@@ -450,7 +440,6 @@ export async function runTask(opts: HarnessOpts): Promise<TaskResult> {
           snapshot_after: null,
           qa_verdict: null,
           qa_reason: null,
-          constitution_rules: ctx.constitutionRules,
           context_source: ctx.contextSource,
           context_tokens: ctx.contextTokens,
           context_warnings_json: ctx.contextWarnings.length
@@ -497,7 +486,6 @@ export async function runTask(opts: HarnessOpts): Promise<TaskResult> {
         snapshot_after: null,
         qa_verdict: null,
         qa_reason: null,
-        constitution_rules: ctx.constitutionRules,
         context_source: ctx.contextSource,
         context_tokens: ctx.contextTokens,
         context_warnings_json: ctx.contextWarnings.length
@@ -549,7 +537,6 @@ export async function runTask(opts: HarnessOpts): Promise<TaskResult> {
         snapshot_after: null,
         qa_verdict: null,
         qa_reason: null,
-        constitution_rules: ctx.constitutionRules,
         context_source: ctx.contextSource,
         context_tokens: ctx.contextTokens,
         context_warnings_json: ctx.contextWarnings.length
@@ -620,7 +607,6 @@ export async function runTask(opts: HarnessOpts): Promise<TaskResult> {
         snapshot_after: JSON.stringify(after),
         qa_verdict: 'fail',
         qa_reason: reason,
-        constitution_rules: ctx.constitutionRules,
         context_source: ctx.contextSource,
         context_tokens: ctx.contextTokens,
         context_warnings_json: ctx.contextWarnings.length
@@ -730,7 +716,6 @@ export async function runTask(opts: HarnessOpts): Promise<TaskResult> {
           qa_verdict: 'fail',
           qa_reason: reason,
           checks_json: JSON.stringify(checksResults),
-          constitution_rules: ctx.constitutionRules,
           context_source: ctx.contextSource,
           context_tokens: ctx.contextTokens,
           context_warnings_json: ctx.contextWarnings.length
@@ -874,7 +859,6 @@ export async function runTask(opts: HarnessOpts): Promise<TaskResult> {
         skill_gates_json: gatesJson,
         checks_json: checksResults.length ? JSON.stringify(checksResults) : null,
         file_diffs: rejectedDiffs.length ? JSON.stringify(rejectedDiffs) : null,
-        constitution_rules: ctx.constitutionRules,
         context_source: ctx.contextSource,
         context_tokens: ctx.contextTokens,
         context_warnings_json: ctx.contextWarnings.length
@@ -967,7 +951,6 @@ export async function runTask(opts: HarnessOpts): Promise<TaskResult> {
       qa_criteria_json: qa.criteria?.length ? JSON.stringify(qa.criteria) : null,
       skill_gates_json: gatesJson,
       checks_json: checksResults.length ? JSON.stringify(checksResults) : null,
-      constitution_rules: ctx.constitutionRules,
       context_source: ctx.contextSource,
       context_tokens: ctx.contextTokens,
       context_warnings_json: ctx.contextWarnings.length

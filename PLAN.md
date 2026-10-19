@@ -1633,7 +1633,15 @@ En todos: `prefers-reduced-motion` = cambios instantáneos o fundidos cortos.
   README con `--expand` (corregido).
   Gate en vivo: navegador real (Playwright), `docs/done/evidence/ERP.5.4-live.json` — tasks 31/31, model-routing 18/18,
   qa-negative 25/25, smoke 6/6, project-tabs 39/39.
-- [ ] **ERP.5.5 — 🧠 Quitar `constitution_rules`.** Corrección al informe: sí carga (10 reglas en este repo), pero ningún proyecto real de Carlos tiene `CONSTITUTION.md` (erp-piloto no) y los CLI ya leen `AGENTS.md`/`CLAUDE.md`. Tiene API, vista en Settings/Context y flow `project-tabs`. GO de Carlos 2026-10-19: quitar.
+- [x] **ERP.5.5 — 🧠 Quitar `constitution_rules`.** (cerrado 2026-10-19) Corrección al informe: sí carga (10 reglas en este repo), pero ningún proyecto real de Carlos tiene `CONSTITUTION.md` (erp-piloto no) y los CLI ya leen `AGENTS.md`/`CLAUDE.md`. Tiene API, vista en Settings/Context y flow `project-tabs`. GO de Carlos 2026-10-19: quitar.
+  Ejecutado por: criterio (Sonnet, ronda 1) + mecanico (ronda 2) · revisión qa · Spec: docs/specs/ERP.5.5.md
+  Quitado: `CONSTITUTION.md`, `src/spec/constitution.ts`, carga/bloque en harness, middleware, prompt y 4 ejecutores,
+  `orchestos constitution init/show`, API `/api/project/constitution`, pestaña de Context (queda `CONTEXT.md` como
+  etiqueta fija), inyección en el borrador de spec. Se queda la columna `constitution_rules` (historia).
+  Evidencia: tsc OK, lint 0 errores, `test:coverage` 1774/0 (funciones 79,02 %, líneas 65,53 %). QA: la cabecera de
+  Context se había ido con el selector (`project-tabs` 38/39 en vivo); restaurada.
+  Gate en vivo: navegador real (Playwright), `docs/done/evidence/ERP.5.5-live.json` — project-tabs 39/39, tasks 31/31,
+  smoke 6/6; `runs-graph` 14/14 tras quitar su clic en el botón `CONTEXT.md` (lo tumbó el pre-push).
 
 **Después de iniciar:** AT.11 (registro extensible completo), migración visual de pantallas
 secundarias, resume/fork avanzado, orquestación de flotas y mejoras de aprendizaje nocturno.

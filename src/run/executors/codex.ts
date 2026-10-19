@@ -119,7 +119,6 @@ function codexCostUnmeasurableMessage(orchestosModel: string | undefined): strin
 function buildCodexPrompt(ctx: Parameters<ExecutorEngine['run']>[0]): string {
   return [
     ctx.effectiveContext,
-    ctx.constitutionBlock,
     ctx.skillInstructions,
     ctx.instinctBlock,
     `## OUTPUT CONTRACT`,

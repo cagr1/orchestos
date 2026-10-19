@@ -440,19 +440,11 @@ export default async function projectTabs({
   )
   await shot('skills')
   await page.getByRole('button', { name: 'Graph', exact: true }).click()
-  const graphHits = []
-  for (const name of [/^CONSTITUTION\.md$/, /^CONTEXT\.md$/]) {
-    await page.getByRole('button', { name }).click()
-    const hits = await paletteHits(page, '[data-view="graph"]')
-    if (hits.length) {
-      graphHits.push(`${name}: ${hits.join(' || ')}`)
-      break
-    }
-  }
+  const graphHits = await paletteHits(page, '[data-view="graph"]')
   await step(
     'graph no palette',
     graphHits.length === 0,
-    graphHits.join(' || ') || 'ninguna en CONSTITUTION ni CONTEXT',
+    graphHits.join(' || ') || 'ninguna en CONTEXT',
   )
   const graphBg = await rootBackground(page, '[data-view="graph"]')
   const graphOffset = await contentHeaderOffset(page, 'graph')

@@ -1723,53 +1723,6 @@ spec
   })
 
 import { clarifyReason, needsClarify } from './spec/clarify.ts'
-// ── constitution ──────────────────────────────────────────────────────────────
-import { loadConstitution, scaffoldConstitutionMd } from './spec/constitution.ts'
-
-const constitution = program
-  .command('constitution')
-  .description('Manage project constitution (agent constraints)')
-
-constitution
-  .command('init [path]')
-  .description('Create CONSTITUTION.md scaffold in the project directory')
-  .action((targetPath?: string) => {
-    const root = resolve(targetPath ?? '.')
-    const constPath = join(root, 'CONSTITUTION.md')
-    if (existsSync(constPath)) {
-      console.error(`[constitution] CONSTITUTION.md already exists at ${constPath}`)
-      process.exit(1)
-    }
-    writeFileSync(constPath, scaffoldConstitutionMd(), 'utf8')
-    console.log(`[constitution] created ${constPath}`)
-    console.log(`  Edit ALLOWED / FORBIDDEN / REQUIRE_CONFIRMATION sections.`)
-    console.log(`  It will be injected into every task prompt automatically.`)
-  })
-
-constitution
-  .command('show [path]')
-  .description('Show parsed rules from CONSTITUTION.md')
-  .action((targetPath?: string) => {
-    const root = resolve(targetPath ?? '.')
-    const c = loadConstitution(root)
-    if (!c) {
-      console.log(`[constitution] No CONSTITUTION.md in ${root}. Run: orchestos constitution init`)
-      return
-    }
-    console.log(`\n[constitution] ${c.ruleCount} rules loaded`)
-    if (c.forbidden.length > 0) {
-      console.log(`\nFORBIDDEN (${c.forbidden.length}):`)
-      c.forbidden.forEach((r) => console.log(`  - ${r}`))
-    }
-    if (c.require_confirmation.length > 0) {
-      console.log(`\nREQUIRE_CONFIRMATION (${c.require_confirmation.length}):`)
-      c.require_confirmation.forEach((r) => console.log(`  - ${r}`))
-    }
-    if (c.allowed.length > 0) {
-      console.log(`\nALLOWED (${c.allowed.length}):`)
-      c.allowed.forEach((r) => console.log(`  - ${r}`))
-    }
-  })
 
 // ── memory ────────────────────────────────────────────────────────────────────
 const memory = program
@@ -2160,7 +2113,7 @@ program
 program
   .command('reset')
   .description(
-    'Delete test-session data: all runs, unverified instincts, reset tasks.yaml to pending. Does NOT touch config, skills, CONSTITUTION.md/CONTEXT.md, or memory_entries.',
+    'Delete test-session data: all runs, unverified instincts, reset tasks.yaml to pending. Does NOT touch config, skills, CONTEXT.md, or memory_entries.',
   )
   .option('--yes', 'Confirm the destructive action (required)')
   .action((opts: { yes?: boolean }) => {
@@ -2271,17 +2224,6 @@ function explainTaskRun(root: string, taskId: string) {
     for (const c of t.acceptance_criteria) console.log(`- ${c}`)
   } else {
     console.log('(none)')
-  }
-
-  // Constitution
-  const cst = loadConstitution(root)
-  console.log(`\n## Constitution`)
-  if (cst) {
-    console.log(
-      `loaded: ${cst.ruleCount} rules (${cst.forbidden.length} forbidden, ${cst.require_confirmation.length} require confirmation, ${cst.allowed.length} allowed)`,
-    )
-  } else {
-    console.log(`(none — create with: orchestos constitution init)`)
   }
 
   console.log(
@@ -2396,11 +2338,6 @@ export function printRunDetail(r: import('./db/runs.ts').RunRecord) {
     `run: ${r.id}   task: ${r.task_id ?? '-'}   status: ${r.status}   date: ${r.created_at}`,
   )
   console.log(`prompt: ${r.prompt}`)
-  const constitutionInfo =
-    (r as any).constitution_rules != null
-      ? `constitution: loaded (${(r as any).constitution_rules} rules)`
-      : `constitution: none`
-  console.log(constitutionInfo)
   const contextInfo = (r as any).context_source
     ? `context: ${(r as any).context_source} (${(r as any).context_tokens ?? '?'} tokens)`
     : `context: AGENTS.md`

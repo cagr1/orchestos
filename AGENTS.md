@@ -327,9 +327,9 @@ conservan en `PLAN.md`, pero no describen trabajo disponible actualmente.
 
 Dos advertencias sobre ese bloque:
 
-1. **`H.1.2` puede escalar a 🧠.** Si `src/spec/constitution.ts` no alcanza como fuente para
-   redactar `CONSTITUTION.md`, PARAR y reportarlo en vez de inventar principios. Un archivo de
-   gobierno con contenido improvisado es peor que uno vacío.
+1. **`H.1.2` (histórico).** La constitución (`CONSTITUTION.md`, `src/spec/constitution.ts`) se quitó
+   en ERP.5.5 (2026-10-19): los CLI ya leen `AGENTS.md`/`CLAUDE.md`. El principio sigue: un archivo
+   de gobierno con contenido improvisado es peor que uno vacío.
 2. **`H.1.4` exige verificar antes de borrar.** Los artefactos (`demo/`, `runs/*.log`,
    `test-project/`) pueden estar referenciados por un test o por `tasks.yaml`. Comprobarlo
    primero; se sacan del índice de git, **no del disco**.

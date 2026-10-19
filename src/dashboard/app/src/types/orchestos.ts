@@ -168,7 +168,6 @@ export interface ToolExecution {
 }
 
 export interface ProjectContext {
-  constitution: string
   contextDoc: string
   isCleanWorktree: boolean | null
   gitBranch: string | null

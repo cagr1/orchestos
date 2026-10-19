@@ -7,8 +7,7 @@ async function getJson<T>(path: string, projectId: string): Promise<T> {
 }
 
 export async function getProjectContext(projectId: string): Promise<ProjectContext> {
-  const [constitution, context, git] = await Promise.all([
-    getJson<{ content: string; exists: boolean }>('/api/project/constitution', projectId),
+  const [context, git] = await Promise.all([
     getJson<{ content: string; exists: boolean }>('/api/project/context', projectId),
     getJson<{
       gitBranch: string | null
@@ -16,9 +15,6 @@ export async function getProjectContext(projectId: string): Promise<ProjectConte
     }>('/api/project/git', projectId),
   ])
   return {
-    constitution: constitution.exists
-      ? constitution.content
-      : 'CONSTITUTION.md does not exist in this project.',
     contextDoc: context.exists ? context.content : 'CONTEXT.md does not exist in this project.',
     gitBranch: git.gitBranch,
     isCleanWorktree: git.isCleanWorktree,

@@ -51,8 +51,6 @@ import {
 import { handleApiPlanDoc } from './handlers/plan-doc.ts'
 import {
   handleApiNatural,
-  handleApiProjectConstitutionGet,
-  handleApiProjectConstitutionPut,
   handleApiProjectContextGet,
   handleApiProjectContextRegenerate,
   handleApiProjectDetect,
@@ -352,14 +350,6 @@ export async function route(req: Request, port: number): Promise<Response> {
   }
   if (method === 'POST' && url.pathname === '/api/projects/choose') {
     return handleApiProjectChoose()
-  }
-  if (method === 'GET' && url.pathname === '/api/project/constitution') {
-    return withDashboardProject(req, (project) => handleApiProjectConstitutionGet(project.root))
-  }
-  if (method === 'PUT' && url.pathname === '/api/project/constitution') {
-    return withDashboardProject(req, (project) =>
-      handleApiProjectConstitutionPut(req, project.root),
-    )
   }
   if (method === 'GET' && url.pathname === '/api/project/context') {
     return withDashboardProject(req, (project) => handleApiProjectContextGet(project.root))

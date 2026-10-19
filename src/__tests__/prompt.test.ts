@@ -34,7 +34,6 @@ describe('buildPrompt — F1.1 retry feedback', () => {
       '/tmp',
       undefined,
       undefined,
-      undefined,
       'spec_violation: missing output foo.txt',
     )
 
@@ -48,15 +47,7 @@ describe('buildPrompt — F1.1 retry feedback', () => {
 
   it('truncates a previousFailure longer than 2000 chars to exactly 2000 in the block', () => {
     const long = 'X'.repeat(5000)
-    const { userContent } = buildPrompt(
-      makeTask(),
-      '# context',
-      '/tmp',
-      undefined,
-      undefined,
-      undefined,
-      long,
-    )
+    const { userContent } = buildPrompt(makeTask(), '# context', '/tmp', undefined, undefined, long)
 
     const marker = 'failed for this reason:\n'
     const idx = userContent.indexOf(marker)
@@ -75,7 +66,6 @@ describe('buildPrompt — F1.1 retry feedback', () => {
       '/tmp',
       undefined,
       undefined,
-      undefined,
       reason,
     )
     expect(userContent).toContain(
@@ -88,7 +78,6 @@ describe('buildPrompt — F1.1 retry feedback', () => {
       makeTask({ description: 'MY-TASK-DESC' }),
       '# context',
       '/tmp',
-      undefined,
       undefined,
       undefined,
       'last fail',

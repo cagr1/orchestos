@@ -13,35 +13,9 @@ import type { TaskClass } from '../../router/classify.ts'
 import { roleClient } from '../../router/role-runner.ts'
 import { git } from '../../run/sandbox.ts'
 import { listAllSkillCandidates, renderSkillCatalog } from '../../skills/catalog.ts'
-import { scaffoldConstitutionMd } from '../../spec/constitution.ts'
 import { loadTasks } from '../../tasks/loader.ts'
 import { isTaskClass } from '../../tasks/schema.ts'
 import { errorResponse, jsonResponse } from '../http.ts'
-
-// v0.12 D.1.b — equivalente de `orchestos constitution init` para el dashboard.
-// Si CONSTITUTION.md NO existe en disco, devolvemos el scaffold ALLOWED/FORBIDDEN/
-// REQUIRE_CONFIRMATION (mismo contenido que `scaffoldConstitutionMd()` en CLI) con
-// `exists:false` para que la UI muestre un banner "Preview — not saved yet" y sepa
-// que el primer PUT (autosave al editar) es el que materializa el archivo. Cierra
-// el gap "editor arranca vacío → no-dev escribe cualquier cosa y rompe el formato".
-function handleApiProjectConstitutionGet(root: string): Response {
-  const path = join(root, 'CONSTITUTION.md')
-  const exists = existsSync(path)
-  const content = exists ? readFileSync(path, 'utf-8') : scaffoldConstitutionMd()
-  return jsonResponse({ content, exists })
-}
-
-async function handleApiProjectConstitutionPut(req: Request, root: string): Promise<Response> {
-  let body: { content: string }
-  try {
-    body = (await req.json()) as { content: string }
-  } catch {
-    return errorResponse('Invalid JSON', 400)
-  }
-  if (typeof body.content !== 'string') return errorResponse('content must be a string', 400)
-  writeFileSync(join(root, 'CONSTITUTION.md'), body.content, 'utf-8')
-  return jsonResponse({ ok: true })
-}
 
 function handleApiProjectContextGet(root: string): Response {
   const path = join(root, 'CONTEXT.md')
@@ -393,8 +367,6 @@ async function handleApiProjectSummary(root: string): Promise<Response> {
 export {
   buildNaturalDraft,
   handleApiNatural,
-  handleApiProjectConstitutionGet,
-  handleApiProjectConstitutionPut,
   handleApiProjectContextGet,
   handleApiProjectContextRegenerate,
   handleApiProjectDetect,

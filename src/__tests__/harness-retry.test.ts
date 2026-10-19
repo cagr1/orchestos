@@ -29,7 +29,6 @@ describe('runTask — F1.3 retry prompt', () => {
       '/tmp',
       undefined,
       undefined,
-      undefined,
       previousFailure,
     )
 
@@ -42,15 +41,7 @@ describe('runTask — F1.3 retry prompt', () => {
   it('omits the previous failure block when retry_count is 0', () => {
     const task = makeTask({ retry_count: 0 })
     const previousFailure = previousFailureForTask(task)
-    const { userContent } = buildPrompt(
-      task,
-      '',
-      '/tmp',
-      undefined,
-      undefined,
-      undefined,
-      previousFailure,
-    )
+    const { userContent } = buildPrompt(task, '', '/tmp', undefined, undefined, previousFailure)
 
     expect(userContent).not.toContain('PREVIOUS ATTEMPT FAILED')
   })

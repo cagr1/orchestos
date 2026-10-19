@@ -14,7 +14,7 @@
  * nombres de los tests conservan "executor_mode" porque documentan el bug
  * original; las aserciones usan el nombre de campo real, `agent`.
  *
- * Mismo patrón que constitution-api.test.ts / specs-design-gate.test.ts: tmp
+ * Mismo patrón que specs-design-gate.test.ts: tmp
  * dir + chdir + route() real, sin mock.module().
  */
 import { afterAll, describe, expect, it } from 'bun:test'

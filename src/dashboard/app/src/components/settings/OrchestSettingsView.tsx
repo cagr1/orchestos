@@ -2068,8 +2068,7 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
               <div className="space-y-3 p-4">
                 <p className="max-w-prose text-xs leading-relaxed text-app-muted">
                   Deletes all runs and unverified instincts, and resets every task in tasks.yaml
-                  back to pending. Does NOT touch config, skills, CONSTITUTION.md/CONTEXT.md, or
-                  memory.
+                  back to pending. Does NOT touch config, skills, CONTEXT.md, or memory.
                 </p>
                 <Button
                   variant="ghost"
@@ -2413,7 +2412,7 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
             </div>
             <p className="text-app-muted leading-relaxed">
               Deletes all runs and unverified instincts, and resets every task in tasks.yaml back to
-              pending. Does NOT touch config, skills, CONSTITUTION.md/CONTEXT.md, or memory.
+              pending. Does NOT touch config, skills, CONTEXT.md, or memory.
             </p>
             <div className="flex justify-end gap-2 pt-2 border-t border-app">
               <button
