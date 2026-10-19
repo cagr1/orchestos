@@ -69,6 +69,7 @@ import {
   handleApiRunsAnalyze,
   handleApiRunsBulkDelete,
   handleApiRunsDelete,
+  handleApiRunsRevert,
 } from './handlers/runs.ts'
 import { handleApiSessionStatus } from './handlers/session-status.ts'
 import {
@@ -220,6 +221,9 @@ export async function route(req: Request, port: number): Promise<Response> {
   }
   if (method === 'DELETE' && url.pathname.match(/^\/api\/runs\/[^/]+$/)) {
     return withDashboardProject(req, (project) => handleApiRunsDelete(url, project.id))
+  }
+  if (method === 'POST' && /^\/api\/runs\/[^/]+\/revert$/.test(url.pathname)) {
+    return withDashboardProject(req, (project) => handleApiRunsRevert(url, project))
   }
   if (method === 'POST' && url.pathname === '/api/runs/bulk-delete') {
     return withDashboardProject(req, (project) => handleApiRunsBulkDelete(req, project.id))

@@ -116,18 +116,20 @@ export function mergeWorktreeBack(
   worktree: Worktree,
   strategy: MergeStrategy,
   message?: string,
-): void {
-  withGitLock(worktree.projectRoot, () => mergeWorktreeBackLocked(worktree, strategy, message))
+): string | null {
+  return withGitLock(worktree.projectRoot, () =>
+    mergeWorktreeBackLocked(worktree, strategy, message),
+  )
 }
 
 function mergeWorktreeBackLocked(
   worktree: Worktree,
   strategy: MergeStrategy,
   message?: string,
-): void {
+): string | null {
   if (strategy === 'discard') {
     worktree.cleanup()
-    return
+    return null
   }
 
   // T (Mes 26, IDEAS #19, 2026-08-06) — mismo motivo que worktree-diff.ts: sin
@@ -166,6 +168,8 @@ function mergeWorktreeBackLocked(
   const checkout = git(['checkout', worktree.baseBranch], worktree.projectRoot)
   if (checkout.exitCode !== 0)
     throw new Error(`git checkout ${worktree.baseBranch} failed: ${checkout.stderr}`)
+
+  const headBefore = git(['rev-parse', 'HEAD'], worktree.projectRoot).stdout
 
   if (strategy === 'commit') {
     const merge = git(['merge', '--ff-only', worktree.branch], worktree.projectRoot)
@@ -226,5 +230,8 @@ function mergeWorktreeBackLocked(
     }
   }
 
+  // ERP.7.2a — el SHA se toma después del ff/rebase/squash: el rebase cambia el commit original.
+  const headAfter = git(['rev-parse', 'HEAD'], worktree.projectRoot).stdout
   worktree.cleanup()
+  return headAfter && headAfter !== headBefore ? headAfter : null
 }

@@ -395,3 +395,10 @@ ui-gates tasks, model-routing, qa-negative, smoke, project-tabs en verde.
 cambia (`git diff` sin coincidencias).
 **Reversibilidad/evidencia**: commit `refactor(ERP.5.5)`, revertible. typecheck verde · `test:coverage` 1774/0 ·
 ui-gates project-tabs, tasks, smoke en verde.
+
+## 2026-10-19 18:38 America/Guayaquil — claude-opus-5-5 (revisor) · ejecutor Claude sonnet
+**Contexto**: ERP.7.2a — `src/run/harness.ts` ([[feedback-context-no-max-tokens]]).
+**Clasificación**: RESPETÓ
+**Por qué**: el harness solo guarda el SHA que devuelve `mergeWorktreeBack` en `insertRun`; ninguna línea de
+`maxTokens`/`contextWindow` cambia (`git diff` sin coincidencias).
+**Reversibilidad/evidencia**: commit `feat(ERP.7.2a)`, revertible. typecheck y lint verdes · `test:coverage` 1783/0.

@@ -213,6 +213,10 @@ export interface RunRow {
   iterations: number | null
   /** v0.12/C — parsed from file_diffs. [] si el run no lo produjo (fail/blocked, o previo al cambio). */
   fileDiffs: FileDiffEntry[]
+  /** ERP.7.2a: commit de la tarea en la rama base, y el commit que la deshizo. */
+  commitSha: string | null
+  revertedSha: string | null
+  revertedAt: string | null
   /** O.3 — parsed from skill_gates_json. null si el run nunca llegó al stage de QA (distinto de [] "ninguna gate aplicaba"). */
   skillGates: SkillGateEntry[] | null
   createdAt: string

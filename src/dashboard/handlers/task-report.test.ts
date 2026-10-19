@@ -68,6 +68,7 @@ function addRun(taskId: string, result: string) {
     result,
   })
   runs.push(id)
+  return id
 }
 
 describe('reportTaskOutcome', () => {
@@ -109,7 +110,7 @@ describe('reportTaskOutcome', () => {
 
   it('usa el run disponible cuando projectId no coincide', () => {
     const { root, session, taskId } = setup('done')
-    addRun(taskId, 'available run')
+    const runId = addRun(taskId, 'available run')
     reportTaskOutcome(root, session.id, taskId, 'different-project')
     const content = listChatMessages(session.id)[0]?.content ?? ''
     expect(content).toContain(`\`${taskId}\` done · unit-provider/unit-model`)
@@ -118,6 +119,7 @@ describe('reportTaskOutcome', () => {
       outcome: 'done',
       provider: 'unit-provider',
       model: 'unit-model',
+      runId,
       summary: 'available run',
     })
   })

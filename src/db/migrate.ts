@@ -919,6 +919,33 @@ export const FUTURE_MIGRATIONS: readonly SchemaMigrationStep[] = [
       }
     },
   },
+  {
+    // ERP.7.2a: paso numerado y no safeAddColumn (misma razón que la 24: la 10 reconstruye `runs`
+    // con lista fija y, en una BD nueva, descarta la columna). Sin backfill: NULL = run previo.
+    version: 28,
+    name: 'run-commit-revert',
+    precondition: () => {},
+    apply: (database) => {
+      const columns = database
+        .query<{ name: string }, []>('PRAGMA table_info(runs)')
+        .all()
+        .map((row) => row.name)
+      if (columns.length === 0) return
+      for (const column of ['commit_sha', 'reverted_sha', 'reverted_at'])
+        if (!columns.includes(column)) database.exec(`ALTER TABLE runs ADD COLUMN ${column} TEXT`)
+    },
+    postcondition: (database) => {
+      const columns = database
+        .query<{ name: string }, []>('PRAGMA table_info(runs)')
+        .all()
+        .map((row) => row.name)
+      if (
+        columns.length > 0 &&
+        !['commit_sha', 'reverted_sha', 'reverted_at'].every((column) => columns.includes(column))
+      )
+        throw new Error('Migration 28 did not add runs commit/revert columns')
+    },
+  },
 ]
 
 function appliedVersions(database: Database): Set<number> {

@@ -3,9 +3,13 @@ import {
   getRun,
   listRunsByProjectId,
   listRunsWithoutProjectId,
+  markRunReverted,
   type RunRecord,
 } from '../../db/runs.ts'
+import { withGitLock } from '../../run/git-lock.ts'
 import { parseReadAudit } from '../../run/read-audit.ts'
+import { git } from '../../run/sandbox.ts'
+import { listDirtyFiles } from '../../run/sandbox-policy.ts'
 import { type CostBreakdownEntry, parseCostBreakdownJson } from '../../run/transcript-parser.ts'
 import { errorResponse, jsonResponse } from '../http.ts'
 import type {
@@ -120,6 +124,9 @@ export function runRecordToRow(r: RunRecord): RunRow {
     engine,
     iterations,
     fileDiffs: parseFileDiffs(r.file_diffs),
+    commitSha: r.commit_sha ?? null,
+    revertedSha: r.reverted_sha ?? null,
+    revertedAt: r.reverted_at ?? null,
     skillGates: parseSkillGates(r.skill_gates_json),
     elapsedMs: r.elapsed_ms,
     createdAt: r.created_at,
@@ -209,4 +216,50 @@ async function handleApiRunsBulkDelete(req: Request, projectId: string | null): 
   return jsonResponse({ ok: true, deleted })
 }
 
-export { handleApiRuns, handleApiRunsAnalyze, handleApiRunsBulkDelete, handleApiRunsDelete }
+// ERP.7.2a — deshace una tarea aplicada con un commit nuevo (`git revert`), nunca reescribe historia.
+function handleApiRunsRevert(url: URL, project: { id: string | null; root: string }): Response {
+  const id = url.pathname.slice('/api/runs/'.length, -'/revert'.length)
+  const run = id ? getRun(id) : null
+  if (!run || run.project_id !== project.id) return errorResponse('Run not found', 404)
+  if (run.status !== 'done') return errorResponse('Run did not succeed; nothing to undo', 409)
+  if (!run.commit_sha) return errorResponse('Run has no recorded commit', 409)
+  if (run.reverted_sha) return errorResponse('Run was already undone', 409)
+  const sha = run.commit_sha
+  const root = project.root
+
+  return withGitLock(root, () => {
+    if (git(['merge-base', '--is-ancestor', sha, 'HEAD'], root).exitCode !== 0)
+      return errorResponse('Run commit is not in the current branch history', 409)
+    const dirtyFiles = listDirtyFiles(root)
+    if (dirtyFiles.length > 0) {
+      return jsonResponse({ error: 'Uncommitted changes in the project', dirtyFiles }, 409)
+    }
+    const revert = git(['revert', '--no-commit', sha], root)
+    if (revert.exitCode !== 0) {
+      const conflictFiles = git(['diff', '--name-only', '--diff-filter=U'], root)
+        .stdout.split('\n')
+        .filter(Boolean)
+      git(['revert', '--abort'], root)
+      return jsonResponse(
+        { error: 'Undo conflicts with later changes', conflictFiles, detail: revert.stderr },
+        409,
+      )
+    }
+    const commit = git(['commit', '-m', `orchestos(${run.task_id ?? id}): deshacer`], root)
+    if (commit.exitCode !== 0) {
+      git(['revert', '--abort'], root)
+      return errorResponse(`Could not commit the undo: ${commit.stderr}`, 500)
+    }
+    const revertedSha = git(['rev-parse', 'HEAD'], root).stdout
+    markRunReverted(run.id, revertedSha)
+    return jsonResponse({ ok: true, revertedSha })
+  })
+}
+
+export {
+  handleApiRuns,
+  handleApiRunsAnalyze,
+  handleApiRunsBulkDelete,
+  handleApiRunsDelete,
+  handleApiRunsRevert,
+}

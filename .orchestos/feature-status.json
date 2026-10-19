@@ -850,6 +850,24 @@
       "closedDate": null
     },
     {
+      "id": "ERP.7.2a",
+      "sprint": "Fase 3 — Correr dentro de OrchestOS igual que el CLI directo",
+      "block": null,
+      "delegation": "🧠",
+      "title": "Backend: SHA del commit de la tarea, `runId` en el reporte y `POST /api/runs/:id/revert`",
+      "status": "done",
+      "closedDate": null
+    },
+    {
+      "id": "ERP.7.2b",
+      "sprint": "Fase 3 — Correr dentro de OrchestOS igual que el CLI directo",
+      "block": null,
+      "delegation": "⚡",
+      "title": "La tarjeta de tarea muestra su diff y deshace con un clic, verificado en vivo",
+      "status": "open",
+      "closedDate": null
+    },
+    {
       "id": "H.7.2c",
       "sprint": "Fase 3 — Correr dentro de OrchestOS igual que el CLI directo",
       "block": null,

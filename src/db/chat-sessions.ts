@@ -42,6 +42,8 @@ export interface TaskReportData {
   maxAttempts?: number
   provider?: string
   model?: string
+  /** ERP.7.2a: run que cerró la tarea; permite deshacerla. */
+  runId?: string
   summary?: string
 }
 
@@ -100,6 +102,7 @@ function parseTaskReport(value: string | null): TaskReportData | undefined {
       maxAttempts: count(raw.maxAttempts),
       provider: text(raw.provider),
       model: text(raw.model),
+      runId: text(raw.runId),
       summary: text(raw.summary),
     }
     const extras = Object.fromEntries(

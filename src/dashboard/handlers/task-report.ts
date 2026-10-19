@@ -60,7 +60,7 @@ function buildTaskReportData(
     data: {
       outcome: status,
       ...attempt,
-      ...(run ? { provider: run.provider, model: run.model } : {}),
+      ...(run ? { provider: run.provider, model: run.model, runId: run.id } : {}),
       summary: summary || 'No run was recorded.',
     },
   }

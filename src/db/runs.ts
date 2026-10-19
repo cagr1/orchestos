@@ -33,6 +33,10 @@ export interface RunRecord {
   context_warnings_json: string | null
   cost_breakdown_json: string | null
   file_diffs: string | null
+  /** ERP.7.2a: SHA del commit de la tarea en la rama base; NULL = sin commit o run previo. */
+  commit_sha?: string | null
+  reverted_sha?: string | null
+  reverted_at?: string | null
   /** O.3: JSON [{id, candidate, applied, reason}] — NULL si el run nunca llegó al stage de QA. */
   skill_gates_json: string | null
   status: 'done' | 'blocked' | 'failed'
@@ -71,6 +75,9 @@ type InsertRunRecord = Omit<
   | 'cost_breakdown_json'
   | 'file_diffs'
   | 'skill_gates_json'
+  | 'commit_sha'
+  | 'reverted_sha'
+  | 'reverted_at'
 > & {
   files_read?: string | null
   qa_model?: string | null
@@ -83,6 +90,7 @@ type InsertRunRecord = Omit<
   context_warnings_json?: string | null
   cost_breakdown_json?: string | null
   file_diffs?: string | null
+  commit_sha?: string | null
   skill_gates_json?: string | null
   executor_reply?: string | null
   cache_read_tokens?: number
@@ -112,8 +120,8 @@ export function insertRun(r: InsertRunRecord): string {
       snapshot_before, snapshot_after, qa_verdict, qa_reason, qa_model, checks_json,
       constitution_rules, context_source, context_tokens, embed_hits, context_warnings_json,
       cost_breakdown_json, file_diffs, skill_gates_json,
-      status, input_tokens, cache_read_tokens, cache_write_tokens, output_tokens, usd_cost, elapsed_ms, result, created_at, cli_session_id, executor_reply, context_used_tokens, context_window_tokens
-    ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
+      status, input_tokens, cache_read_tokens, cache_write_tokens, output_tokens, usd_cost, elapsed_ms, result, created_at, cli_session_id, executor_reply, context_used_tokens, context_window_tokens, commit_sha
+    ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
     [
       id,
       scrub(r.project_id),
@@ -157,9 +165,19 @@ export function insertRun(r: InsertRunRecord): string {
       scrub(clipExecutorReply(r.executor_reply)) ?? null,
       r.context_used_tokens ?? null,
       r.context_window_tokens ?? null,
+      r.commit_sha ?? null,
     ],
   )
   return id
+}
+
+/** ERP.7.2a — registra que la tarea fue deshecha por `revertedSha`. */
+export function markRunReverted(id: string, revertedSha: string): void {
+  db.run('UPDATE runs SET reverted_sha = ?, reverted_at = ? WHERE id = ?', [
+    revertedSha,
+    new Date().toISOString(),
+    id,
+  ])
 }
 
 export function normalizeRunLimit(limit: number, fallback = 20, max = 1000): number {

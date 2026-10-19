@@ -1692,6 +1692,20 @@ ERP ni prueba visual nueva. Los ítems permanecen abiertos hasta sus gates reale
   El chat no tiene diff por turno ni revert; el revert vive solo en el harness de tareas (`src/run/harness.ts:13`). T3
   cierra cada turno con "N changed files · Open diff" y guarda checkpoints en refs ocultas de git, sin ensuciar la
   rama (`docs/done/evidence/ERP.7/turno-con-diff.png`). Plan corto y GO de Carlos antes de codear.
+  Reencuadre (2026-10-19): el chat no edita archivos por diseño (`chat.ts:117`); todo cambio es una tarea que entra
+  como commit `orchestos(<id>): …` (`harness.ts:916`). "Por turno" = por tarea, en su tarjeta del hilo. GO de Carlos
+  2026-10-19 al plan: ERP.7.2a (back) → ERP.7.2b (front + gate en vivo); confirmación de un clic en la tarjeta, sin
+  modal. Fuera: modo `cwd`, deshacer en cadena, push automático, ERP.7.1.
+- [x] **ERP.7.2a — 🧠 Backend: SHA del commit de la tarea, `runId` en el reporte y `POST /api/runs/:id/revert`.**
+  (abierto y cerrado 2026-10-19, parte de ERP.7.2) `runs.commit_sha/reverted_sha/reverted_at` en la migración 28
+  (`safeAddColumn` no sirve: la 10 reconstruye `runs` y las descarta en BD nueva); `mergeWorktreeBack` devuelve el
+  SHA tras ff/rebase; el revert es `git revert --no-commit` + `orchestos(<id>): deshacer` bajo `withGitLock`, con 409
+  por árbol sucio, conflicto (abortado, sin `REVERT_HEAD`), ya deshecho o no ancestro.
+  Ejecutado por: criterio (Sonnet), 1 ronda · Spec: docs/specs/ERP.7.2a.md
+  Evidencia: tsc y lint sin errores; `run-revert.test.ts` 9 casos; `test:coverage` 1783/0 (funciones 79,03 %, líneas
+  65,65 %). El `graph-runner` lento que vio el ejecutor pasa fuera de su sandbox (21/0).
+- [ ] **ERP.7.2b — ⚡ La tarjeta de tarea muestra su diff y deshace con un clic, verificado en vivo.** (abierto
+  2026-10-19, parte de ERP.7.2; después de ERP.7.2a)
 - [ ] **H.7.2c — ⚡ Registro de adaptadores: falta OpenCode.** Hallazgo por código
   (2026-09-08, Claude, verificando el hook H.7.3 a pedido de Carlos — "verifica que esto se
   cumpla para cualquier modelo"). `DEFAULT_ADAPTERS` en `scripts/context-adapters.ts:267` solo
