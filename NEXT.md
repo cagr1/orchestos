@@ -1,43 +1,28 @@
-# NEXT — handoff 2026-10-14 (DOC.1: documentación saneada)
+# NEXT — handoff 2026-10-19 (lote ERP.5)
 
-Un solo presente. El handoff anterior (2026-10-13/14, con lotes y lecciones por ítem) quedó completo, marcado como
-histórico, en `docs/done/sprint-30.md` § "Apéndice 2"; las lecciones durables, en `AGENTS.md` § "Lecciones operativas
-de delegación y ui-gate". Orden y rumbo: `PLAN.md` § Rumbo. Arranque: `bun run agent:preflight -- --item <ID> --agent claude`.
+Un solo presente: orden y trampas vivas. Lo cerrado vive en `PLAN.md` y git (regla `AGENTS.md` § Reglas generales,
+2026-10-19: `NEXT.md` se toca solo al cerrar o cortar un lote). Arranque:
+`bun run agent:preflight -- --item <ID> --agent claude`. Lista viva: `bun run next`.
 
+## Orden
+1. ERP.5.4 (flotas) y ERP.5.5 (constitución): esperan GO de Carlos; son features enteras con UI.
+2. ERP.7 (T3 Code) → H.7.2c → H.7.3. ERP.6.2 (fila del revisor en el desglose) cuando toque costo.
+3. Fiabilidad, cuando el pre-push la tumba: CI.23, CI.18, CI.19, CI.11, CI.27 (primero que deje evidencia).
+- Decisiones pendientes de Carlos sin ítem: turno de chat con CLI lento (más de 120 s o aviso honesto, en CI.18);
+  peso de `main.js` tras UI.24.4 (dejarlo, alias de `rehype-raw` o lazy-load de Streamdown).
 
-## PRIMERO al retomar (2026-10-14 noche)
-- Orden del lote (Carlos 2026-10-14, prevalece sobre AT.20→CX.6): UI.24.5–24.7 → ERP.4.15, 4.16 (cierran ERP.4 y
-  R.8) → UI.8.6 → Fase 3. AT.20/AT.21/CX.6 quedan detrás.
-- Cerrados hoy: UI.26.6 (`8701044`), CI.26 (`12eae7f`, timeout de CC.2: el turno CLI ya no espera el catálogo de
-  OpenRouter), UI.26.6.1 (formato), UI.26.7 (`9e89d09`), UI.24.4 (`c239117`, Streamdown); todo pusheado. 2026-10-15: UI.24.5 (`78f561b`), UI.24.5.1 (`b0e5f70`, gates que leían el texto viejo), UI.24.6a
-  (`4f00d12`, imágenes nativas al CLI). UI.24.6b + ERP.4.14 (cierran UI.24.6;
-  evidencia en `PLAN.md`). UI.24.7 + UI.24.7.1 cerrados (cierran UI.24.1–24.7). ERP.4.15 cerrado (residuo de julio, fuga ya cerrada). ERP.4.16 cerrado. ERP.4.17 cerrado (test del 409); `erp-piloto` limpio (`6380641`); **ERP.4 y R.8 cerrados**. README y LIMITATIONS.md al día (2026-10-15, verificados contra el código). UI.8.6 cerrado 2026-10-16 (`12fd576`; aprobación por tarea, Yolo|Manual por proyecto; la aprobación de cada herramienta queda como bloque propio sin abrir). CI.28 cerrado (`2513a7d`). UI.8.6.1 cerrado (`2e0bcc3`): el hilo se despegaba del fondo si un scroll propio y el crecimiento caían en el mismo frame; causa medida, no la tira. AT.13 cerrado 2026-10-16 (`5d1ba70`; prompt base del CLI NO se reemplaza, decisión de Carlos; contexto de proyecto fresco, 740→633 tokens). AT.13.1 cerrado (`b2b1386`, run-graph con contexto fresco). AT.19.2 cerrado 2026-10-17 (`c7788ee`, puntos 2 y 4 de AT.19). AT.19.1 cerrado 2026-10-17 (Claude retoma su sesión con `--resume`) → AT.19 cerrado. AT.20 cerrado 2026-10-17 (`create_task` por MCP/herramienta nativa, marcador fuera). CI.29 cerrado (el chat se entera del rechazo de una tarea; 2.ª vez del fallo de `chat-turn-details`). AT.21 cerrado 2026-10-17 (`run_readonly`, 3 revisiones qa). CX.6 cerrado 2026-10-17 (`74afe6d`; anillo medido por el CLI en Chat y Dev) y CX.6.1 (`1777856`; el costo del chat Codex por app-server contaba solo la última llamada del turno). CI.30 cerrado (`0691e53`; el pre-push verifica el commit empujado). ERP.6 cerrado 2026-10-18 (`d7da8b4`; no pesa más que el CLI directo, informe `docs/done/ERP.6.md`, arnés reutilizable para ERP.5) y ERP.6.1 (`4eadd7c`). ERP.5 cerrado 2026-10-19 (informe `docs/done/ERP.5.md`, 3 decisiones de Carlos pendientes). Siguiente: ERP.7 (T3 Code); ERP.6.2 (fila del revisor en el desglose) cuando toque costo. CI verde en `2e0bcc3`. Decisión pendiente de Carlos (anotada en CI.18): turno de chat con CLI lento → más margen que 120 s o aviso honesto. La trampa de `plan:reconcile` (reabrir/cerrar) salió en los 2 cierres del día. Codex lento el 2026-10-16 (30–65 s por un "ok" trivial): tumbó 2 corridas de `chat-permissions` por timeout de turno; si se repite en el pre-push, va a CI.11. Visto 1 vez, sin causa: `chat-context` intermitente en el pre-push → CI.27 (primero que deje evidencia).
-  Al cambiar texto/selector del hilo: `rg` en todo `scripts/ui-gate/` (lección en `AGENTS.md`).
-  Preflight de sub-ítem indentado falla (`scripts/agent-governance.ts:37`): usar el ID del padre o arreglar el regex.
-  Un ítem nuevo sin emoji de delegación tras `— ` (`🧠`/`⚡`/`🔍`) no lo parsea `parsePlanFeatureStatus`: el plan gate
-  falla con "Closed item X is missing from staged PLAN.md" (visto en AT.13.1, 2026-10-16).
-  Lo mismo si el título en negrita (`**ID — … .**`) se parte en dos líneas: dejarlo en una (CX.6.1, 2026-10-17).
-- UI.24.4 subió `main.js` +22 % (1.58 → 1.92 MB), medido por paquete con el sourcemap: ~164 KB `rehype-raw` (parse5 y
-  familia, HTML crudo; Streamdown lo importa estático en `dist/chunk-D32TOXHM.js`), ~85 KB streamdown, ~47 KB marked,
-  ~17 KB remend, ~9 KB sanitize/harden, app +2 KB. Opciones dadas a Carlos: dejarlo (recomendado, app local), alias de
-  `rehype-raw` a módulo vacío (−164 KB) o lazy-load de Streamdown. Sin decisión: no actuar hasta que la tome.
-
-## Estado actual
-- Cerrados y pusheados: UI.24.1–24.3, UI.25 (UI.25.0, UI.25.1), UI.26.1–26.4a, ERP.4.1–ERP.4.13, CI.12, CI.21, CI.22,
-  CI.24, DOC.1 (`331ddf5`), LIMP.1 (`c906eb2`), UI.26.4b; R.8.1–R.8.6 (`PLAN.md`; evidencia en `docs/done/`).
-- Abiertos: UI.26.6b,
-  AT.13 (puntos 8 y `manifest.ts`), AT.19, CI.11, CI.18, CI.19, CI.23, CI.25. Lista viva: `bun run next`.
-- Trampa de `plan:reconcile`: si dice "Could not prove a closing commit SHA", reabrir el ítem (`[ ]`), reconciliar,
-  volver a `[x]`, reconciliar, commitear. Ítem delegado: commitear el spec antes (`docs(<ID>): spec`).
-- Sin commitear y ajenos (no tocar sin Carlos): `IDEAS.md`, `orchestos.config.yaml`, `runs-summary.json`,
-  `.orchestos/feature-status.json`.
-
-## Orden de lo que sigue
-1. UI.24 cerrado (2026-10-15).
-4. ~~UI.8.6~~ (cerrado 2026-10-16). Sigue Fase 3.
-5. Fiabilidad, cuando el pre-push la tumba: CI.25 (hacer que deje evidencia antes de UI.26.5 si vuelve), CI.23 (al
-   próximo `FAIL tasks` en `relaunched task final state`, leer el detalle JSON y escribir la fase 2 en
-   `docs/specs/CI.23.md`), CI.18 (leer el detalle del paso del marcador y la captura `marker-failure`), CI.19, CI.11.
+## Trampas vivas
+- `plan:reconcile` "Could not prove a closing commit SHA": reabrir (`[ ]`), reconciliar, `[x]`, reconciliar, commitear.
+  Salió en cada cierre de ERP.5.2; candidato a arreglo en el gate.
+- El spec ya no se commitea (ERP.5.6): la línea `Ejecutado por: … · Spec: docs/specs/<ID>.md` termina en la ruta y el
+  spec se borra del disco antes del commit.
+- Cambio de dashboard/config: el ítem cerrado necesita `Gate en vivo: navegador real (Playwright), `docs/done/evidence/<ID>-live.json``
+  con el `result.json` del ui-gate copiado ahí (lo exige `agent:live-gate`).
+- Ítem nuevo: emoji de delegación tras `— ` y título en negrita en una sola línea, o el plan gate no lo parsea.
+- Preflight de sub-ítem indentado falla (`scripts/agent-governance.ts:37`): ítems de primer nivel.
+- Spec para Codex (`mecanico`/`leer`): decir "no te detengas por el baseline; `csrf-origin.test.ts` da `EADDRINUSE`
+  falso en tu sandbox" y "`git stash` prohibido incluso para diagnosticar".
+- Al cambiar texto/selector del hilo: `rg` en todo `scripts/ui-gate/`.
 
 ## Decisiones de Carlos vigentes
 - 2026-10-13: veredicto de utilidad de ERP.4 = "sirve, pero todavía no solo"; ERP.4 se cierra al terminar su lote.
@@ -58,12 +43,11 @@ de delegación y ui-gate". Orden y rumbo: `PLAN.md` § Rumbo. Arranque: `bun run
 - (b) Shell de solo lectura: sí, para todos los LLM, nunca solo para uno → AT.21 (mismo servidor MCP que AT.20).
 - Le interesa ver la ventana de contexto real en Chat y en Dev → CX.6. `readBoundaryWarning` (aviso de privacidad,
   no un número) sigue sin mostrarse; la frontera de lectura está verificada por el gate `read-boundary`.
-- Orden: AT.20 → AT.21 → CX.6, antes de seguir con UI.26.5.
 
 ## Pendientes sin ítem (una sola lista; abrir ítem solo si Carlos lo pide)
 Verificados el 2026-10-14 contra el código salvo "(sin re-verificar)".
 - Propuesta sin aplicar, decide Carlos: negar `git stash` en el hook writer-lock o en `bin/delegate` (fuente en
-  `method/` del vault); el ejecutor lo corrió dos veces seguidas (UI.26.2 y UI.26.3) pese a `AGENTS.md`.
+  `method/` del vault); el ejecutor lo corrió 3 veces (UI.26.2, UI.26.3, ERP.5.2) pese a `AGENTS.md` y al spec.
 - Herramienta: `delegate investigar` y todo rol `claude` con `--tools` fallan (`~/.agent-method/bin/delegate:147,167-171`);
   esquive en `AGENTS.md`; el arreglo va en `method/` del vault.
 - startup-guard ciego a lo que de verdad carga: no mira `~/.claude/skills/*`, `~/.claude/skills/synced/` ni
