@@ -98,7 +98,6 @@ export interface OrcheConfig {
   external?: { timeoutMs?: number }
   /** UI.8.6 — aprobación de tareas creadas por el chat, por proyecto. Ausente = `yolo`. */
   permissionMode?: 'yolo' | 'manual'
-  orchestration?: { enabled: boolean; maxConcurrent?: number; maxTotal?: number }
 }
 
 // Defaults — used when no config file is found or a role is missing

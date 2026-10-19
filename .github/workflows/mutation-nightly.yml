@@ -18,8 +18,6 @@ jobs:
       max-parallel: 2
       matrix:
         include:
-          - shard: orchestration
-            command: mutation:run:orchestration
           - shard: executors
             command: mutation:run:executors
           - shard: runtime-boundaries

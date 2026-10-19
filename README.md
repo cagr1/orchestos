@@ -110,7 +110,7 @@ tasks.yaml  →  middleware chain  →  LLM call  →  contract check  →  chec
 5. **Deterministic checks** run shell commands (typecheck, tests) before the QA LLM. First failure reverts files immediately — no QA tokens spent.
 6. **QA call** is a second LLM call that evaluates each `acceptance_criteria` item. If any fails, files are reverted and the task goes back to `pending`.
 7. After 3 QA failures the task becomes `failed_permanent`. A diagnosis agent automatically analyzes the run history and suggests a fix.
-8. **Evidence** — every run writes to SQLite: tokens, cost breakdown per sub-agent, `snapshot_before/after`, files attempted/authorized/blocked, QA verdict, context monitor warnings.
+8. **Evidence** — every run writes to SQLite: tokens, cost breakdown per role, `snapshot_before/after`, files attempted/authorized/blocked, QA verdict, context monitor warnings.
 
 ---
 
@@ -125,7 +125,6 @@ orchestos task run    ./my-project              # run next pending task
 orchestos task run    ./my-project --id t1      # run specific task
 orchestos task run    ./my-project --explain t1 # dry-run: show plan, no LLM call
 orchestos task run    ./my-project --all        # run all in dependency order
-orchestos task run    ./my-project --expand <plan-task-id>  # expand to sub-agents
 orchestos task run    ./my-project --clarify t1 # ask for clarification before running
 orchestos task status ./my-project              # id | status | retry | qa | cost
 orchestos task diagnose <task-id>               # analyze failure patterns in last 3 runs
@@ -346,30 +345,9 @@ The harness uses `CONTEXT.md` automatically when present. Token savings are visi
 
 ---
 
-## Sub-agents
+## Memory conflict detection
 
-Sub-agents decompose a "plan" task into sequential sub-tasks, each with isolated context and its own worktree.
-
-```bash
-orchestos task run . --expand <plan-task-id>
-```
-
-**Flow**: parent task generates a `.plan.yaml` via LLM → Planner (`src/agents/planner.ts`) parses and validates (unique IDs, DAG cycle check, `allowed_tools` policy) → Scheduler executes in topological order → each sub-task in its own worktree → cascade QA: if one sub-task fails, dependents are marked `skipped`.
-
-### Sub-agent contracts
-
-| File | Role |
-|------|------|
-| `src/agents/planner.ts` | `createPlan()` — function calling + YAML fallback |
-| `src/run/scheduler.ts` | `executePlan()` — sequential, topological, cascade QA |
-| `src/db/memory.ts` | `upsertMemory()` / `getMemory()` — persistent memory by `topic_key` |
-| `src/agents/sub-agent.ts` | `SubTask`, `SubagentResult`, states `pending→running→completed\|failed\|skipped` |
-| `src/agents/sub-task-schema.ts` | YAML schema + `validateSubTaskPlan` + `topoSort` + cycle detection |
-| `src/agents/context-isolation.ts` | `buildIsolatedContext` — slices CONTEXT.md + filters memories by deps |
-
-### Memory conflict detection
-
-When a sub-agent writes to `memory_entries`, BM25 (SQLite FTS5) finds candidate conflicts. A call to the Auxiliary role classifies the relation (`conflict_with | supersedes | compatible | scoped | related | not_conflict`). Results are stored in `memory_conflicts` and visible via `orchestos memory conflicts`.
+When a run writes to `memory_entries`, BM25 (SQLite FTS5) finds candidate conflicts. A call to the Auxiliary role classifies the relation (`conflict_with | supersedes | compatible | scoped | related | not_conflict`). Results are stored in `memory_conflicts` and visible via `orchestos memory conflicts`.
 
 ---
 

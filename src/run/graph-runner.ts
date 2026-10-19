@@ -11,10 +11,9 @@
  * for a future `--graph` invocation.
  *
  * Design: docs/done/design/graph-runner-design.md
- * Pattern source: scheduler.ts executePlan() (Mes 5) — ported from SubTask[] to Task[]
  *
  * Reglas del plan.md:
- *   - Nunca hace break global ante un failed (como executePlan, no como --all)
+ *   - Nunca hace break global ante un failed (como no hace --all)
  *   - Una rama que agota retries marca dependientes como blocked con razón explícita
  *   - Las ramas independientes continúan sin tocarse
  *   - Reusa 'blocked' status existente en TaskStatus (src/tasks/schema.ts)

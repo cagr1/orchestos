@@ -379,3 +379,11 @@ ui-gates tasks, qa-negative, model-routing, orchestration en verde.
 **Clasificación**: RESPETÓ
 **Por qué**: se quita `memoryFetch` de la cadena de middlewares y la escritura de `embed_hits`. `maxTokens`/`contextWindow` intactos.
 **Reversibilidad/evidencia**: commit `refactor(ERP.5.3)`, revertible. typecheck verde · `test:coverage` 1852/0 · ui-gates runs-graph, project-tabs, smoke, tasks en verde.
+
+## 2026-10-19 16:30 America/Guayaquil — claude-opus-5-5 (revisor) · ejecutor Claude sonnet + gpt-6-luna
+**Contexto**: ERP.5.4 — `src/run/harness.ts`, `src/run/executors/external.ts` ([[feedback-context-no-max-tokens]]).
+**Clasificación**: RESPETÓ
+**Por qué**: se quita el gate de auto-split de `harness.ts` y la lectura de `orchestration.enabled` en `external.ts`
+(`blockSubagents` queda en `true`, el valor que ya tenía). solo se borran lecturas de `maxTokens` dentro del split; su cálculo y `contextWindow` intactos.
+**Reversibilidad/evidencia**: commit `refactor(ERP.5.4)`, revertible. typecheck verde · `test:coverage` 1784/0 ·
+ui-gates tasks, model-routing, qa-negative, smoke, project-tabs en verde.

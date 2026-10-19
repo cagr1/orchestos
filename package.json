@@ -31,7 +31,6 @@
     "check": "tsc --noEmit",
     "db:migrate": "bun run scripts/migrate-db.ts",
     "e2e:smoke": "bun run src/run/e2e-smoke.ts",
-    "e2e:smoke-agents": "bun run src/run/e2e-smoke-agents.ts",
     "gate:evidence": "bun run scripts/run-evidence-gate.ts",
     "dreaming:export": "bun run scripts/export-runs-summary.ts",
     "review:nightly": "bun run scripts/adversarial-review.ts",
@@ -51,7 +50,6 @@
     "mutation:sandbox-policy": "stryker run stryker.sandbox-policy.config.mjs",
     "mutation:graph-runner": "stryker run stryker.graph-runner.config.mjs",
     "mutation:run": "stryker run stryker.run.config.mjs",
-    "mutation:run:orchestration": "stryker run stryker.run-orchestration.config.mjs",
     "mutation:run:executors": "stryker run stryker.run-executors.config.mjs",
     "mutation:run:runtime-boundaries": "stryker run stryker.run-runtime-boundaries.config.mjs",
     "mutation:run:context-routing": "stryker run stryker.run-context-routing.config.mjs"

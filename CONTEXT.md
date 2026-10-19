@@ -107,7 +107,6 @@ Legacy sin sesión y reenvíos del usuario con una clave nueva conservan sus lí
 - src/dashboard/handlers/chat.ts (18 edges)
 - src/run/middleware.ts (16 edges)
 - src/dashboard/handlers/tasks.ts (14 edges)
-- src/agents/planner.ts (13 edges)
 - src/dashboard/handlers/project.ts (13 edges)
 - src/dashboard/server.ts (13 edges)
 - src/dashboard/handlers/run-graph.ts (12 edges)

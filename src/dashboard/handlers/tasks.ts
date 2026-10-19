@@ -1,8 +1,7 @@
-import { existsSync, readFileSync } from 'fs'
+import { existsSync } from 'fs'
 import { join } from 'path'
 import { fileURLToPath } from 'url'
 import { diagnoseTask } from '../../agents/diagnose.ts'
-import { parsePlan } from '../../agents/planner.ts'
 import { loadOrcheConfig } from '../../config/load.ts'
 import type { AgentChoice } from '../../config/schema.ts'
 import { getChatSession } from '../../db/chat-sessions.ts'
@@ -21,7 +20,7 @@ import { ensureTasksYaml, scaffoldTasksYaml } from '../../tasks/init.ts'
 import { loadTasks, mutateTasks } from '../../tasks/loader.ts'
 import { isTaskClass } from '../../tasks/schema.ts'
 import { errorResponse, jsonResponse, validateTaskId } from '../http.ts'
-import type { DiagnoseRow, SplitPlanResponse, TaskRow } from '../types.ts'
+import type { DiagnoseRow, TaskRow } from '../types.ts'
 import { settleExitedTaskRun } from './task-run-reconcile.ts'
 
 async function handleApiSystemExecutorModes(root = process.cwd()): Promise<Response> {
@@ -95,7 +94,6 @@ function lastRunAt(runId: string | null | undefined): string | null {
 function buildTaskRow(
   t: ReturnType<typeof loadTasks>['tasks'][number],
   cfg: Parameters<typeof describeTaskExecutor>[1],
-  root: string,
 ): TaskRow {
   return {
     id: t.id,
@@ -113,7 +111,6 @@ function buildTaskRow(
     dependsOn: t.depends_on,
     acceptanceCriteria: t.acceptance_criteria ?? [],
     executorModel: t.executor_model ?? null,
-    hasSplitPlan: existsSync(join(root, `${t.id}.plan.yaml`)),
   }
 }
 
@@ -123,7 +120,7 @@ function loadTaskRows(root: string): TaskRow[] {
   try {
     const file = loadTasks(root)
     const cfg = loadOrcheConfig(root)
-    return file.tasks.map((t) => buildTaskRow(t, cfg, root))
+    return file.tasks.map((t) => buildTaskRow(t, cfg))
   } catch {
     return []
   }
@@ -154,7 +151,7 @@ function handleApiTasks(root: string): Response {
   try {
     const file = loadTasks(root)
     const cfg = loadOrcheConfig(root)
-    const rows: TaskRow[] = file.tasks.map((t) => buildTaskRow(t, cfg, root))
+    const rows: TaskRow[] = file.tasks.map((t) => buildTaskRow(t, cfg))
     return jsonResponse({ exists: true, tasks: rows })
   } catch (e: any) {
     return jsonResponse({ exists: true, tasks: [], error: e.message })
@@ -331,7 +328,7 @@ function createTaskRecord(
 // Fix: resolver la instalación de OrchestOS desde la ubicación real de este
 // archivo (`import.meta.url`), independiente de qué proyecto se está
 // orquestando, y pasar `root` como el `[path]` posicional que `task run`
-// y `task run --expand` ya aceptan (cli.ts:966) en vez de cwd implícito.
+// ya acepta (cli.ts) en vez de cwd implícito.
 const ORCHESTOS_CLI_PATH = join(fileURLToPath(new URL('../../cli.ts', import.meta.url)))
 
 // D.7 — mismo motivo de extracción: reusable por el auto-flow del chat.
@@ -623,82 +620,10 @@ async function handleApiTasksDiagnose(url: URL, root: string): Promise<Response>
   }
 }
 
-// Mes 20 B.3 — GET /api/tasks/:id/split-plan
-function handleApiTasksSplitPlan(url: URL, root: string): Response {
-  const raw = decodeURIComponent(url.pathname.split('/')[3] ?? '')
-  const id = validateTaskId(raw)
-  if (!id) return errorResponse('Missing or invalid task id', 400)
-  const planPath = join(root, `${id}.plan.yaml`)
-  if (!existsSync(planPath)) return errorResponse('No split plan found for this task', 404)
-
-  let yaml: string
-  try {
-    yaml = readFileSync(planPath, 'utf-8')
-  } catch {
-    return errorResponse('Cannot read plan file', 500)
-  }
-
-  let plan: ReturnType<typeof parsePlan>
-  try {
-    plan = parsePlan(yaml)
-  } catch (e: any) {
-    return errorResponse(`Invalid plan YAML: ${e.message}`, 422)
-  }
-
-  const resp: SplitPlanResponse = {
-    parentTaskId: id,
-    planYamlPath: planPath,
-    subTasks: plan.sub_tasks.map((st) => ({
-      id: st.id,
-      description: st.description,
-      acceptance: st.acceptance,
-      depends_on: st.depends_on,
-      allowed_tools: st.allowed_tools,
-      ...(st.output ? { output: st.output } : {}),
-      ...(st.topic_key ? { topic_key: st.topic_key } : {}),
-    })),
-  }
-  return jsonResponse(resp)
-}
-
-// Mes 20 B.3 — POST /api/tasks/:id/approve-split
-function handleApiTasksApproveSplit(url: URL, root: string): Response {
-  if (loadOrcheConfig(root).orchestration?.enabled !== true)
-    return errorResponse('Orquestación desactivada en este proyecto — actívala en Settings', 409)
-  const raw = decodeURIComponent(url.pathname.split('/')[3] ?? '')
-  const id = validateTaskId(raw)
-  if (!id) return errorResponse('Missing or invalid task id', 400)
-  if (!existsSync(join(root, 'tasks.yaml'))) return errorResponse('tasks.yaml not found', 404)
-  const planPath = join(root, `${id}.plan.yaml`)
-  if (!existsSync(planPath))
-    return errorResponse('No split plan found — run the task first to generate a plan', 404)
-
-  // Reset task to pending so the CLI doesn't skip it
-  const found = mutateTasks(root, (file) => {
-    const task = file.tasks.find((t: any) => t.id === id)
-    if (!task) return false
-    task.status = 'pending'
-    return true
-  })
-  if (!found) return errorResponse('Task not found', 404)
-
-  // Spawn CLI with --expand — it detects the existing .plan.yaml and runs it directly.
-  // CC.5 — mismo fix que spawnTaskRun: ORCHESTOS_CLI_PATH en vez de join(root, ...).
-  const args = [process.execPath, 'run', ORCHESTOS_CLI_PATH, 'task', 'run', root, '--expand', id]
-  Bun.spawn(args, { cwd: root, stdout: 'inherit', stderr: 'inherit' })
-
-  return jsonResponse({
-    ok: true,
-    id,
-    message: `Split plan for "${id}" approved — executing ${planPath}`,
-  })
-}
-
 export {
   createTaskRecord,
   handleApiSystemExecutorModes,
   handleApiTasks,
-  handleApiTasksApproveSplit,
   handleApiTasksBulkDelete,
   handleApiTasksCommitRun,
   handleApiTasksCreate,
@@ -707,7 +632,6 @@ export {
   handleApiTasksExplain,
   handleApiTasksInit,
   handleApiTasksRun,
-  handleApiTasksSplitPlan,
   handleApiTasksSteps,
   isKnownSkillId,
   loadTaskRows,

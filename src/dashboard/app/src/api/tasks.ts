@@ -17,7 +17,6 @@ export interface TaskRowResponse {
   dependsOn: string[]
   acceptanceCriteria: string[]
   executorModel: string | null
-  hasSplitPlan: boolean
 }
 
 export interface TasksResponse {

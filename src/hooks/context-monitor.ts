@@ -141,7 +141,7 @@ export function checkContextHealth(state: RunState): ContextWarning[] {
 }
 
 // ---------------------------------------------------------------------------
-// Debounce helper for multi-call callers (sub-agent executor, scheduler)
+// Debounce helper for multi-call callers (sub-agent executor)
 // ---------------------------------------------------------------------------
 
 /**

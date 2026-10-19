@@ -1622,7 +1622,17 @@ En todos: `prefers-reduced-motion` = cambios instantáneos o fundidos cortos.
   guard y bloquean `git -c alias.s='stash list' s`. QA halló y se corrigió: alias a stash, PATH reordenado por el shell de
   login, alias homónimo de comando nativo; el cerebro halló `<<<` que rompía todo git en el sandbox de claude y el
   respaldo de `delegate` pasando por el guard.
-- [ ] **ERP.5.4 — 🧠 Quitar la orquestación de flotas sin uso.** `orchestration_runs` y `orchestration_leases` en 0 filas: el auto-split y `--expand` nunca corrieron. Es una feature entera (interruptor en Settings, CLI, presupuesto). GO de Carlos 2026-10-19: quitar.
+- [x] **ERP.5.4 — 🧠 Quitar la orquestación de flotas sin uso.** (cerrado 2026-10-19) `orchestration_runs` y `orchestration_leases` en 0 filas: el auto-split y `--expand` nunca corrieron. Es una feature entera (interruptor en Settings, CLI, presupuesto). GO de Carlos 2026-10-19: quitar.
+  Ejecutado por: criterio (Sonnet, rondas 1-3) + mecanico (ronda 4) · revisión qa · Spec: docs/specs/ERP.5.4.md
+  Alcance real (ampliado por el cerebro al ver las dependencias): todo el camino de sub-tareas — split, `--expand`,
+  presupuesto, `scheduler.ts`, `agents/{planner,executor,sub-agent,context-isolation,sub-task-schema}.ts`,
+  `approve-split`/`split-plan`/`hasSplitPlan`, interruptor de Settings, flow `orchestration`, shard de mutación. −4947 líneas.
+  Se queda: rol Orquestador del routing; `blockSubagents` fijo en `true` (comportamiento previo); tablas en `migrate.ts`.
+  Un YAML con `orchestration:` carga y se ignora (`config-legacy-orchestration.test.ts`).
+  Evidencia: tsc OK, lint 0 errores, `test:coverage` 1784/0 (funciones 79,04 %, líneas 65,51 %), `build:app` OK. QA: solo
+  README con `--expand` (corregido).
+  Gate en vivo: navegador real (Playwright), `docs/done/evidence/ERP.5.4-live.json` — tasks 31/31, model-routing 18/18,
+  qa-negative 25/25, smoke 6/6, project-tabs 39/39.
 - [ ] **ERP.5.5 — 🧠 Quitar `constitution_rules`.** Corrección al informe: sí carga (10 reglas en este repo), pero ningún proyecto real de Carlos tiene `CONSTITUTION.md` (erp-piloto no) y los CLI ya leen `AGENTS.md`/`CLAUDE.md`. Tiene API, vista en Settings/Context y flow `project-tabs`. GO de Carlos 2026-10-19: quitar.
 
 **Después de iniciar:** AT.11 (registro extensible completo), migración visual de pantallas

@@ -45,7 +45,6 @@ import type {
   ExecutorModesResponse,
   HealthResponse,
   LocalProviderResponse,
-  OrchestrationResponse,
   SetupResponse,
   UsageResponse,
 } from '../../api/settings'
@@ -54,7 +53,6 @@ import {
   getExecutorModes,
   getHealth,
   getLocalProvider,
-  getOrchestration,
   getSettings,
   getSetup,
   getUsage,
@@ -63,7 +61,6 @@ import {
   resetSystem,
   saveApiKey,
   saveConfig,
-  saveOrchestration,
   saveSettings,
 } from '../../api/settings'
 import { isTaskRunnable } from '../../api/tasks'
@@ -291,9 +288,6 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
   >({})
   const [taskAgentRules, setTaskAgentRules] = useState<RoutingRule[]>([])
   const [config, setConfig] = useState<ConfigResponse | null>(null)
-  const [orchestration, setOrchestration] = useState<OrchestrationResponse | null>(null)
-  const [orchestrationError, setOrchestrationError] = useState<string | null>(null)
-  const [orchestrationSaving, setOrchestrationSaving] = useState(false)
   const [settingsLoading, setSettingsLoading] = useState(true)
   const [settingsError, setSettingsError] = useState<string | null>(null)
   const [ollamaHost, setOllamaHost] = useState('')
@@ -382,8 +376,6 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
   // purge: the effect's in-flight request is aborted on confirm and the id is excluded.
   const purgingProjectId = React.useRef<string | null>(null)
   const configRequest = React.useRef<AbortController | null>(null)
-  const orchestrationRequest = React.useRef<AbortController | null>(null)
-  const orchestrationSaveRequest = React.useRef<AbortController | null>(null)
   const configProjectId =
     activeProjectId !== purgingProjectId.current &&
     projects.some((project) => project.id === activeProjectId)
@@ -698,38 +690,6 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
   ]
 
   const isProjectSection = activeSection.startsWith('project_')
-  const orchestrationProjectId =
-    isProjectSection &&
-    activeProjectId !== purgingProjectId.current &&
-    projects.some((project) => project.id === activeProjectId)
-      ? activeProjectId
-      : undefined
-
-  useEffect(() => {
-    if (!orchestrationProjectId) {
-      setOrchestration(null)
-      setOrchestrationError(null)
-      return
-    }
-    let live = true
-    const controller = new AbortController()
-    orchestrationRequest.current = controller
-    getOrchestration(orchestrationProjectId, controller.signal)
-      .then((value) => {
-        if (live) {
-          setOrchestration(value)
-          setOrchestrationError(null)
-        }
-      })
-      .catch(() => {
-        if (live) setOrchestration(null)
-      })
-    return () => {
-      live = false
-      controller.abort()
-    }
-  }, [orchestrationProjectId])
-
   // Handle clicking a specific project navigation item
   const handleNavToProject = (projId: string) => {
     setSelectedProjectId(projId)
@@ -2212,179 +2172,6 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
             {/* Sub-tab view contents */}
             <div className="flex-1 flex flex-col overflow-y-auto">
               <div className="flex min-h-full shrink-0 flex-col">
-                {activeProjectTab === 'tasks' && orchestration && (
-                  <section className="mx-6 my-4 rounded-card bg-app-elevated p-4 space-y-3">
-                    <div className="flex items-center justify-between">
-                      <h2 className="text-sm font-semibold text-app">Orquestación</h2>
-                      <label className="flex items-center gap-2 text-xs text-app-muted">
-                        <input
-                          type="checkbox"
-                          checked={orchestration.enabled}
-                          disabled={orchestrationSaving}
-                          onChange={async (event) => {
-                            const enabled = event.target.checked
-                            if (enabled) {
-                              setOrchestration({ ...orchestration, enabled: true })
-                              setOrchestrationError(null)
-                              return
-                            }
-                            if (
-                              !orchestrationProjectId ||
-                              orchestrationProjectId === purgingProjectId.current
-                            )
-                              return
-                            const previousOrchestration = orchestration
-                            setOrchestration({ ...orchestration, enabled: false })
-                            setOrchestrationSaving(true)
-                            setOrchestrationError(null)
-                            const controller = new AbortController()
-                            orchestrationSaveRequest.current = controller
-                            try {
-                              await saveOrchestration(
-                                { enabled: false },
-                                orchestrationProjectId,
-                                controller.signal,
-                              )
-                              if (!controller.signal.aborted)
-                                setOrchestration(
-                                  await getOrchestration(orchestrationProjectId, controller.signal),
-                                )
-                            } catch (error) {
-                              if (!controller.signal.aborted) {
-                                setOrchestration(previousOrchestration)
-                                setOrchestrationError(
-                                  error instanceof Error ? error.message : String(error),
-                                )
-                              }
-                            } finally {
-                              setOrchestrationSaving(false)
-                            }
-                          }}
-                        />
-                        {orchestration.enabled ? 'Activada' : 'Desactivada'}
-                      </label>
-                    </div>
-                    <p className="text-xs text-app-muted">
-                      Limita las subtareas en paralelo y en total al orquestar un plan.
-                    </p>
-                    <div className="flex flex-wrap items-end gap-3">
-                      {orchestration.enabled &&
-                        (['maxConcurrent', 'maxTotal'] as const).map((key) => (
-                          <label key={key} className="text-xs text-app-muted space-y-1">
-                            <span>
-                              {key === 'maxConcurrent'
-                                ? 'Máximo concurrente'
-                                : 'Tope total por ejecución'}
-                            </span>
-                            <input
-                              className="mt-1 block h-7 w-32 rounded-control bg-app-bg px-2 text-[13px] tabular-nums text-app"
-                              type="number"
-                              min="1"
-                              value={orchestration[key] ?? ''}
-                              onChange={(event) => {
-                                const raw = event.target.value
-                                setOrchestration({
-                                  ...orchestration,
-                                  [key]: raw === '' ? undefined : Number(raw),
-                                })
-                                setOrchestrationError(null)
-                              }}
-                            />
-                          </label>
-                        ))}
-                      {orchestration.enabled && (
-                        <SettingsPrimaryAction>
-                          <Button
-                            size="sm"
-                            disabled={orchestrationSaving}
-                            onClick={async () => {
-                              if (
-                                !orchestrationProjectId ||
-                                orchestrationProjectId === purgingProjectId.current
-                              )
-                                return
-                              const { maxConcurrent, maxTotal } = orchestration
-                              if (
-                                !Number.isInteger(maxConcurrent) ||
-                                (maxConcurrent ?? 0) < 1 ||
-                                !Number.isInteger(maxTotal) ||
-                                (maxTotal ?? 0) < 1
-                              ) {
-                                setOrchestrationError(
-                                  'Ingresa límites enteros mayores o iguales a 1.',
-                                )
-                                return
-                              }
-                              setOrchestrationSaving(true)
-                              setOrchestrationError(null)
-                              const controller = new AbortController()
-                              orchestrationSaveRequest.current = controller
-                              try {
-                                await saveOrchestration(
-                                  orchestration,
-                                  orchestrationProjectId,
-                                  controller.signal,
-                                )
-                                if (!controller.signal.aborted)
-                                  setOrchestration(
-                                    await getOrchestration(
-                                      orchestrationProjectId,
-                                      controller.signal,
-                                    ),
-                                  )
-                              } catch (error) {
-                                if (!controller.signal.aborted)
-                                  setOrchestrationError(
-                                    error instanceof Error ? error.message : String(error),
-                                  )
-                              } finally {
-                                setOrchestrationSaving(false)
-                              }
-                            }}
-                          >
-                            {orchestrationSaving ? 'Guardando…' : 'Guardar'}
-                          </Button>
-                        </SettingsPrimaryAction>
-                      )}
-                    </div>
-                    <div className="flex gap-3 text-xs text-app-muted">
-                      {orchestration.current && (
-                        <span>
-                          Activos/total: {orchestration.current.active}/
-                          {orchestration.current.total}
-                        </span>
-                      )}
-                      <span>
-                        Consumo:{' '}
-                        {orchestration.usage
-                          ? `${orchestration.usage.tokens} tokens · $${orchestration.usage.usd.toFixed(4)}`
-                          : 'desconocida'}
-                      </span>
-                    </div>
-                    {orchestrationError && (
-                      <p role="alert" className="text-xs text-app-error">
-                        {orchestrationError}
-                      </p>
-                    )}
-                    <div className="text-xs text-app-muted">
-                      <strong>Llamadas adicionales</strong>
-                      <ul className="mt-1 flex flex-wrap gap-x-4">
-                        {orchestration.extraCalls.map((call) => (
-                          <li key={call.id}>
-                            {call.label}: {call.active ? 'activa' : 'inactiva'} · {call.reason}
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                    <div className="text-xs text-app-muted">
-                      {orchestration.adapters.map((adapter) => (
-                        <span className="mr-4" key={adapter.id}>
-                          {adapter.label}: {adapter.subagentBlock}
-                        </span>
-                      ))}
-                    </div>
-                  </section>
-                )}
                 {(projectTabsLoading || projectTabsError) && (
                   <div
                     className={`px-4 py-2 text-xs ${projectTabsError ? 'text-app-error' : 'text-app-muted'}`}
@@ -2598,8 +2385,6 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
                   const purgedId = selectedProject.id
                   purgingProjectId.current = purgedId
                   configRequest.current?.abort()
-                  orchestrationRequest.current?.abort()
-                  orchestrationSaveRequest.current?.abort()
                   void Promise.resolve(onPurgeProjectData?.(purgedId)).finally(() => {
                     if (purgingProjectId.current === purgedId) purgingProjectId.current = null
                   })

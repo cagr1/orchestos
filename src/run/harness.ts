@@ -16,11 +16,6 @@
  * 'running', abrir el logger, llamar runTask y mapear TaskResult a updateTaskStatus.
  */
 
-import { writeFileSync } from 'fs'
-import { join } from 'path'
-import { stringify as yamlStringify } from 'yaml'
-import { generatePlan } from '../agents/planner.ts'
-import type { SubTask } from '../agents/sub-agent.ts'
 import { loadOrcheConfig, RoleUnassignedError } from '../config/load.ts'
 import type { OrcheConfig } from '../config/schema.ts'
 import { estimateTokens } from '../context/compress.ts'
@@ -100,14 +95,14 @@ export interface HarnessOpts {
   /**
    * Monotonically increasing call count across the caller's session — used by
    * the context-monitor debounce (S23.0.2).  0 or undefined → always check.
-   * In sub-agent executor, pass the sub-task index so health is checked every
+   * Pass a call index so health is checked every
    * 5th invocation instead of every single one.
    */
   monitorCallCount?: number
 }
 
 export interface TaskResult {
-  status: 'done' | 'retry' | 'failed' | 'blocked' | 'pending' | 'split_proposed'
+  status: 'done' | 'retry' | 'failed' | 'blocked' | 'pending'
   /** ID del run insertado en SQLite (vacio si dryRun o fallo antes de insertar) */
   runId: string
   qaVerdict?: 'pass' | 'fail'
@@ -120,35 +115,6 @@ export interface TaskResult {
   elapsedMs: number
   /** S27.4 — context-monitor warnings fired during this run */
   contextWarnings: ContextWarning[]
-  /** Mes 20 B.2 — auto-split: plan propuesto cuando shouldSplit=true */
-  planYamlPath?: string
-  plan?: SubTask[]
-}
-
-// -- Mes 20 B.1 — estimador de tamaño (función pura, testeable sin LLM) ------
-
-/** Tokens promedio estimados por archivo de output (conservador: ~150 líneas TS). */
-export const SPLIT_AVG_TOKENS_PER_FILE = 2048
-/**
- * Si el output estimado supera esta fracción del presupuesto real por llamada,
- * la tarea se divide en sub-tareas antes de correr.
- */
-export const SPLIT_THRESHOLD = 0.7
-
-/**
- * Decide si una tarea excede el presupuesto de output de una sola llamada LLM.
- * Usa el `maxTokens` ya clampeado por `providerMaxOutput` (no `availableForOutput`
- * crudo) para evitar falsos negativos con modelos de tope bajo (ej. gpt-4o-mini).
- *
- * Exclusiones:
- *  - engine 'external'/'opencode'/'codex': el executor es `claude -p`/`opencode run`/`codex exec`, no la API directa.
- *  - sin archivos de output (tareas topic_key-only): no hay nada que estimar.
- */
-export function shouldSplit(task: Task, maxTokens: number): boolean {
-  if (!task.output || task.output.length === 0) return false
-  if (task.engine === 'external' || task.engine === 'opencode' || task.engine === 'codex')
-    return false
-  return task.output.length * SPLIT_AVG_TOKENS_PER_FILE > maxTokens * SPLIT_THRESHOLD
 }
 
 // -- main ----------------------------------------------------------------------
@@ -388,75 +354,6 @@ export async function runTask(opts: HarnessOpts): Promise<TaskResult> {
     const providerRealCap = knownMaxOutputTokensFor(ctx.model)
     const maxTokens =
       providerRealCap > 0 ? Math.min(availableForOutput, providerRealCap) : availableForOutput
-
-    // -- Mes 20 B.2 — auto-split gate ------------------------------------------
-    // Si el output estimado supera el 70% del presupuesto real, el LLM se va a
-    // cortar a mitad. En vez de intentarlo y fallar, generamos un plan de
-    // sub-tareas (reutilizando el generador de function-calling existente) y
-    // devolvemos 'split_proposed' para que el caller (CLI o dashboard) pida
-    // aprobación antes de gastar.
-    if (shouldSplit(ctx.task, maxTokens) && effectiveConfig.orchestration?.enabled === true) {
-      const estimated = ctx.task.output.length * SPLIT_AVG_TOKENS_PER_FILE
-      log.info(
-        `auto-split: output estimado ~${estimated} tokens supera ${Math.round(SPLIT_THRESHOLD * 100)}% de maxTokens=${maxTokens} — generando plan de sub-tareas`,
-      )
-
-      let subTasks: SubTask[] = []
-      try {
-        const orchestrator = roleClient(effectiveConfig, 'orchestrator', {
-          cwd: effectiveRoot,
-          projectRoot,
-        })
-        subTasks = await generatePlan(ctx.task.description, ctx.task.id, {
-          provider:
-            orchestrator.agent === 'api'
-              ? (effectiveConfig.roles.orchestrator?.provider ?? 'openrouter')
-              : orchestrator.agent,
-          model: orchestrator.model,
-          client: orchestrator.agent === 'api' ? undefined : orchestrator.provider,
-        })
-      } catch (e: any) {
-        log.info(`auto-split: generatePlan falló (${e.message}) — continuando como single-shot`)
-        // fallback: dejar que engine.run() intente la tarea directamente
-      }
-
-      if (subTasks.length > 0) {
-        // Serializar el plan al formato YAML que createPlan() ya puede consumir
-        const planObj = {
-          version: 1,
-          parent_task_id: ctx.task.id,
-          sub_tasks: subTasks.map((st) => ({
-            id: st.id,
-            description: st.description,
-            acceptance: st.acceptance,
-            depends_on: st.depends_on,
-            allowed_tools: st.allowed_tools,
-            ...(st.output ? { output: st.output } : {}),
-            ...(st.topic_key ? { topic_key: st.topic_key } : {}),
-            ...(st.input ? { input: st.input } : {}),
-          })),
-        }
-        const planYaml = yamlStringify(planObj)
-        const planYamlPath = join(projectRoot, `${ctx.task.id}.plan.yaml`)
-        writeFileSync(planYamlPath, planYaml, 'utf-8')
-        log.info(`auto-split: plan escrito en ${planYamlPath} (${subTasks.length} sub-tareas)`)
-
-        return {
-          status: 'split_proposed',
-          runId: '',
-          planYamlPath,
-          plan: subTasks,
-          filesWritten: [],
-          filesBlocked: [],
-          cost: { inputTokens: 0, outputTokens: 0, usd: 0 },
-          elapsedMs: Math.round(performance.now() - t0),
-          contextWarnings: ctx.contextWarnings,
-        }
-      }
-      // si generatePlan falló → seguir con el engine normal (ya logueado arriba)
-    }
-    if (shouldSplit(ctx.task, maxTokens) && effectiveConfig.orchestration?.enabled !== true)
-      log.info('auto-split omitido: orquestación OFF')
 
     // MR.1.b: an explicit task engine wins. Otherwise the executor role selects
     // the CLI engine; API assignments use apiMode. The top-level agent field no

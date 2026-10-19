@@ -6,13 +6,13 @@ import { listProSkillFiles, listSkillFiles, loadSkill } from './registry.ts'
  * O.2 (Bloque O, 2026-08-03) — catálogo de skills compartido.
  *
  * `listAllSkillCandidates()` e `isKnownSkillId()` vivían dentro de la capa
- * dashboard (`handlers/project.ts` y `handlers/tasks.ts`), pero el planner
- * (`agents/planner.ts`) necesita las dos: importar dashboard desde agents sería
+ * dashboard (`handlers/project.ts` y `handlers/tasks.ts`), pero el chat
+ * (capa agents) necesita las dos: importar dashboard desde agents sería
  * invertir las capas. Se extraen acá; los handlers las re-exportan para no
  * romper su API pública ni los tests que las importan de la ubicación vieja.
  *
  * Este módulo NO decide qué skill aplica — solo describe qué hay disponible.
- * La decisión vive en el consumidor (planner, `pickAutoSkill`, gates de O.3).
+ * La decisión vive en el consumidor (`pickAutoSkill`, gates de O.3).
  */
 
 interface SkillCandidateInfo {

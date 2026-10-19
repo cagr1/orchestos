@@ -43,7 +43,6 @@ import {
   handleApiMemoryDelete,
 } from './handlers/memory.ts'
 import { handleApiModelCatalog } from './handlers/model-catalog.ts'
-import { handleApiOrchestrationGet, handleApiOrchestrationSet } from './handlers/orchestration.ts'
 import {
   handleApiPlan,
   handleApiPlanDependencies,
@@ -116,7 +115,6 @@ import { reconcileTaskRuns } from './handlers/task-run-reconcile.ts'
 import {
   handleApiSystemExecutorModes,
   handleApiTasks,
-  handleApiTasksApproveSplit,
   handleApiTasksBulkDelete,
   handleApiTasksCommitRun,
   handleApiTasksCreate,
@@ -125,7 +123,6 @@ import {
   handleApiTasksExplain,
   handleApiTasksInit,
   handleApiTasksRun,
-  handleApiTasksSplitPlan,
   handleApiTasksSteps,
 } from './handlers/tasks.ts'
 import { handleApiUsage } from './handlers/usage.ts'
@@ -261,12 +258,6 @@ export async function route(req: Request, port: number): Promise<Response> {
   }
   if (method === 'GET' && url.pathname.match(/^\/api\/tasks\/[^/]+\/explain$/)) {
     return withDashboardProject(req, (project) => handleApiTasksExplain(url, project.root))
-  }
-  if (method === 'GET' && url.pathname.match(/^\/api\/tasks\/[^/]+\/split-plan$/)) {
-    return withDashboardProject(req, (project) => handleApiTasksSplitPlan(url, project.root))
-  }
-  if (method === 'POST' && url.pathname.match(/^\/api\/tasks\/[^/]+\/approve-split$/)) {
-    return withDashboardProject(req, (project) => handleApiTasksApproveSplit(url, project.root))
   }
   if (method === 'GET' && url.pathname.match(/^\/api\/tasks\/[^/]+\/steps$/)) {
     return withDashboardProject(req, (project) =>
@@ -530,14 +521,6 @@ export async function route(req: Request, port: number): Promise<Response> {
   }
   if (method === 'PUT' && url.pathname === '/api/config') {
     return withDashboardProject(req, (project) => handleApiConfigSet(req, project.root))
-  }
-  if (url.pathname === '/api/orchestration' && method === 'GET') {
-    return withDashboardProject(req, (project) =>
-      handleApiOrchestrationGet(project.root, project.id),
-    )
-  }
-  if (url.pathname === '/api/orchestration' && method === 'PUT') {
-    return withDashboardProject(req, (project) => handleApiOrchestrationSet(req, project.root))
   }
   if (method === 'GET' && url.pathname === '/api/explorer/tree') {
     return withDashboardProject(req, (project) => handleApiExplorerTree(url, project.root))

@@ -5,7 +5,6 @@ export default {
   },
   mutate: [
     'src/run/e2e-smoke.ts',
-    'src/run/e2e-smoke-agents.ts',
     'src/run/logger.ts',
     'src/run/prompt.ts',
     'src/run/qa.ts',

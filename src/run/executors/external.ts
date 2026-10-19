@@ -18,7 +18,6 @@
  */
 
 import { realpathSync } from 'node:fs'
-import { loadOrcheConfig } from '../../config/load.ts'
 import { claudeMcpArgs, type McpOffer } from '../../mcp/adapters.ts'
 import { safeChildEnv } from '../path-policy.ts'
 import { ClaudeReadAudit, type ReadAudit, successfulReadPaths } from '../read-audit.ts'
@@ -612,14 +611,7 @@ export const externalEngine: ExecutorEngine = {
     try {
       ;({ timedOut, resultLine, lastAssistant } = await runClaudeCode(
         ctx.effectiveRoot,
-        buildClaudeArgs(
-          systemPrompt,
-          ctx.model,
-          ctx.cliEffort,
-          (ctx.opts.orcheConfig ?? loadOrcheConfig(ctx.effectiveRoot)).orchestration?.enabled !==
-            true,
-          configHome.settingsPath,
-        ),
+        buildClaudeArgs(systemPrompt, ctx.model, ctx.cliEffort, true, configHome.settingsPath),
         ctx.prompt.userContent,
         timeoutMs,
         opts.onStep,
@@ -690,13 +682,7 @@ export const externalEngine: ExecutorEngine = {
           // para no inflar la DB. La UI muestra la línea de comandos reconstruida
           // a partir de estos campos — ver screens-ops.js detail().
           binary: CLAUDE_BINARY,
-          args: buildClaudeArgsDisplay(
-            ctx.model,
-            ctx.cliEffort,
-            (ctx.opts.orcheConfig ?? loadOrcheConfig(ctx.effectiveRoot)).orchestration?.enabled !==
-              true,
-            configHome.settingsPath,
-          ),
+          args: buildClaudeArgsDisplay(ctx.model, ctx.cliEffort, true, configHome.settingsPath),
         },
       ],
       log: [

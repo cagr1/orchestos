@@ -107,7 +107,7 @@ function saveDiskCache(cache: DiskCache): void {
   // Bug real encontrado en vivo (Mes 19, Bloque C.3, 2026-07-09): `bun test`
   // corre ~58 archivos en el mismo proceso; varios tests mutan
   // `process.env.ORCHESTOS_HOME` (beforeEach/afterEach) mientras OTROS tests
-  // (`chat-effort.test.ts`, `planner-fc.test.ts`) invocan `ensureCatalogLoaded()`
+  // (`chat-effort.test.ts`) invocan `ensureCatalogLoaded()`
   // real SIN override, confiando en `~/.orchestos` real. `cacheFilePath()` relee
   // `process.env.ORCHESTOS_HOME` en cada llamada (no lo captura una sola vez),
   // así que una carrera entre ambos deja escribir el catálogo FAKE de un test
