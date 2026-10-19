@@ -774,8 +774,8 @@
       "block": null,
       "delegation": "🧠",
       "title": "`git stash` bloqueado a todo ejecutor y QA inmediato ante el intento",
-      "status": "open",
-      "closedDate": null
+      "status": "done",
+      "closedDate": "2026-10-19"
     },
     {
       "id": "ERP.5.4",
