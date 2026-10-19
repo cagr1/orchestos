@@ -1,19 +1,14 @@
-# NEXT — handoff 2026-10-19 (lote ERP.5)
+# NEXT — handoff 2026-10-19 (lote ERP.5 cerrado)
 
 Un solo presente: orden y trampas vivas. Lo cerrado vive en `PLAN.md` y git (regla `AGENTS.md` § Reglas generales,
 2026-10-19: `NEXT.md` se toca solo al cerrar o cortar un lote). Arranque:
 `bun run agent:preflight -- --item <ID> --agent claude`. Lista viva: `bun run next`.
 
 ## Orden
-1. **En curso al cortar (2026-10-19):** ERP.5.7 ronda 1 lanzada a `criterio` en el vault (`--repo ~/Projects/MemoriesMD`,
-   spec `docs/specs/ERP.5.7.md`, log `/tmp/erp5.7.log`). Al retomar: leer el log desde `delegate: rol`, revisar el diff
-   en el vault (solo `method/bin/delegate`, `method/bin/guard/git` y el test; el vault tiene cambios ajenos), y lanzar
-   la ronda 2 con el umbral de Carlos: QA tras 3 intentos bloqueados en la corrida, o enseguida si `git stash list`
-   cambió (está en el ítem de `PLAN.md`). Commit en el vault solo de esos archivos.
-2. Después, con GO de Carlos ya dado y specs escritos sin commitear (`docs/specs/ERP.5.4.md`, `docs/specs/ERP.5.5.md`):
-   ERP.5.4 (quitar flotas) → ERP.5.5 (quitar constitución), con `criterio`, serial.
-3. ERP.7 (T3 Code) → H.7.2c → H.7.3. ERP.6.2 (fila del revisor en el desglose) cuando toque costo.
-4. Fiabilidad, cuando el pre-push la tumba: CI.23, CI.18, CI.19, CI.11, CI.27 (primero que deje evidencia).
+1. Lote ERP.5 cerrado (5.1–5.7). Decide Carlos: el commit del vault de ERP.5.7 (`556de3a`) quedó en la rama
+   activa `content/plan-videos-2-semanas`, no en `main` (`~/.agent-method` ya lo usa desde el árbol).
+2. ERP.7 (T3 Code) → H.7.2c → H.7.3. ERP.6.2 (fila del revisor en el desglose) cuando toque costo.
+3. Fiabilidad, cuando el pre-push la tumba: CI.23, CI.18, CI.19, CI.11, CI.27 (primero que deje evidencia).
 - Decisiones pendientes de Carlos sin ítem: turno de chat con CLI lento (más de 120 s o aviso honesto, en CI.18);
   peso de `main.js` tras UI.24.4 (dejarlo, alias de `rehype-raw` o lazy-load de Streamdown).
 
@@ -28,7 +23,15 @@ Un solo presente: orden y trampas vivas. Lo cerrado vive en `PLAN.md` y git (reg
 - Preflight de sub-ítem indentado falla (`scripts/agent-governance.ts:37`): ítems de primer nivel.
 - Spec para Codex (`mecanico`/`leer`): decir "no te detengas por el baseline; `csrf-origin.test.ts` da `EADDRINUSE`
   falso en tu sandbox" y "`git stash` prohibido incluso para diagnosticar".
-- Al cambiar texto/selector del hilo: `rg` en todo `scripts/ui-gate/`.
+- Al cambiar texto/selector del hilo: `rg` en todo `scripts/ui-gate/` (vale para cualquier vista: ERP.5.5 dejó
+  `runs-graph` haciendo clic en un botón borrado y solo lo vio el pre-push).
+- Evidencia `docs/done/evidence/*.json` copiada del ui-gate: `bunx biome format --write` antes del commit (sin salto
+  final, el lint del pre-push la rechaza).
+- Spec para ejecutor: nombrar el ítem (`Ítem: **<ID>**`) y decir que los cambios en vuelo del mismo ítem no son ajenos;
+  si no, el ejecutor deduce el ID del nombre del archivo y para. Corrección de un ítem ya `[x]`: reabrirlo antes.
+- `delegate` ya bloquea `git stash` (ERP.5.7): 1-2 intentos = aviso, 3 = QA. Spec en `/tmp` no lo puede leer un rol
+  `claude` (permiso denegado): dejarlo en `docs/specs/`. En el vault, `claude -p` no puede correr Bash (gates los corre
+  el cerebro).
 
 ## Decisiones de Carlos vigentes
 - 2026-10-13: veredicto de utilidad de ERP.4 = "sirve, pero todavía no solo"; ERP.4 se cierra al terminar su lote.
@@ -52,8 +55,6 @@ Un solo presente: orden y trampas vivas. Lo cerrado vive en `PLAN.md` y git (reg
 
 ## Pendientes sin ítem (una sola lista; abrir ítem solo si Carlos lo pide)
 Verificados el 2026-10-14 contra el código salvo "(sin re-verificar)".
-- Propuesta sin aplicar, decide Carlos: negar `git stash` en el hook writer-lock o en `bin/delegate` (fuente en
-  `method/` del vault); el ejecutor lo corrió 3 veces (UI.26.2, UI.26.3, ERP.5.2) pese a `AGENTS.md` y al spec.
 - Herramienta: `delegate investigar` y todo rol `claude` con `--tools` fallan (`~/.agent-method/bin/delegate:147,167-171`);
   esquive en `AGENTS.md`; el arreglo va en `method/` del vault.
 - startup-guard ciego a lo que de verdad carga: no mira `~/.claude/skills/*`, `~/.claude/skills/synced/` ni
