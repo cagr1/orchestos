@@ -5,9 +5,15 @@ Un solo presente: orden y trampas vivas. Lo cerrado vive en `PLAN.md` y git (reg
 `bun run agent:preflight -- --item <ID> --agent claude`. Lista viva: `bun run next`.
 
 ## Orden
-1. ERP.5.4 (flotas) y ERP.5.5 (constitución): esperan GO de Carlos; son features enteras con UI.
-2. ERP.7 (T3 Code) → H.7.2c → H.7.3. ERP.6.2 (fila del revisor en el desglose) cuando toque costo.
-3. Fiabilidad, cuando el pre-push la tumba: CI.23, CI.18, CI.19, CI.11, CI.27 (primero que deje evidencia).
+1. **En curso al cortar (2026-10-19):** ERP.5.7 ronda 1 lanzada a `criterio` en el vault (`--repo ~/Projects/MemoriesMD`,
+   spec `docs/specs/ERP.5.7.md`, log `/tmp/erp5.7.log`). Al retomar: leer el log desde `delegate: rol`, revisar el diff
+   en el vault (solo `method/bin/delegate`, `method/bin/guard/git` y el test; el vault tiene cambios ajenos), y lanzar
+   la ronda 2 con el umbral de Carlos: QA tras 3 intentos bloqueados en la corrida, o enseguida si `git stash list`
+   cambió (está en el ítem de `PLAN.md`). Commit en el vault solo de esos archivos.
+2. Después, con GO de Carlos ya dado y specs escritos sin commitear (`docs/specs/ERP.5.4.md`, `docs/specs/ERP.5.5.md`):
+   ERP.5.4 (quitar flotas) → ERP.5.5 (quitar constitución), con `criterio`, serial.
+3. ERP.7 (T3 Code) → H.7.2c → H.7.3. ERP.6.2 (fila del revisor en el desglose) cuando toque costo.
+4. Fiabilidad, cuando el pre-push la tumba: CI.23, CI.18, CI.19, CI.11, CI.27 (primero que deje evidencia).
 - Decisiones pendientes de Carlos sin ítem: turno de chat con CLI lento (más de 120 s o aviso honesto, en CI.18);
   peso de `main.js` tras UI.24.4 (dejarlo, alias de `rehype-raw` o lazy-load de Streamdown).
 
