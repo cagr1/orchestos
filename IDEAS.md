@@ -58,7 +58,8 @@ Bajo-medio en curso, Sprint 27)_
 8. `#47` Auto-split por tamaño estimado.
 9. `#55-B` models.dev como fallback del catálogo (fuera de OpenRouter).
 10. `#70` Changes en vivo estilo VS Code (Source Control + color en Files).
-11. `#72` Instinto propuesto desde un par fallo→pass de la misma tarea.
+11. `#71` Vista de evals: pass@k por corrida y comparación entre corridas.
+12. `#72` Instinto propuesto desde un par fallo→pass de la misma tarea.
 
 _(`#6` graduó a Bloque AA el 2026-08-15. `#31`, `#35` y `#50` fueron ABSORBIDAS por PLAN.md § Sprint 29
 (orquestador real) el 2026-08-16 — eran partes de un mismo eje estructural, no ideas sueltas.)_
@@ -879,6 +880,14 @@ backfill) y por los tres lectores de estado ajeno con degradación honesta.
 **Movida de Medio a Medio-alto el 2026-08-18** por la regla permanente de este archivo ("si cambia
 su estimación, pasa al final de la nueva categoría y conserva su historial").
 
+**Referencia de UI y parser (2026-09-28, Carlos):** la pantalla "Usage Analytics" de Orca
+(github.com/stablyai/orca, MIT, TS) es el modelo visual: tokens totales, costo, días activos, cache
+share, heatmap diario, token mix (input/output/cache/reasoning) y tarjeta por proveedor. Lee los logs
+del CLI (`~/.claude/projects/*.jsonl`, `~/.codex/sessions`), por eso ve todo el historial del agente
+y no solo lo que lanzó la app. Hoy `/api/usage` (`src/dashboard/handlers/usage.ts:16`) solo agrega la
+tabla `runs` propia. Parser de referencia alternativo: `ryoppippi/ccusage`. **Prioridad de Carlos: solo
+después de que OrchestOS funcione como debe; se copia la idea de UI, no la herramienta.**
+
 ### 47. Auto-split por tamaño estimado, no por número de archivos
 
 **Origen**: destapado corriendo C.1 en vivo (2026-07-16, ver PLAN.md Bloque E). El gate de
@@ -1682,6 +1691,15 @@ diff, y Files debe colorear esos archivos (y sus carpetas) igual que VS Code (M/
 pestaña solo muestra `fileDiffs` persistidos de runs (`OrcaRightInspector.tsx:402-427`, "No
 persisted file diffs for this project."), así que un cambio a mano o de un CLI externo no aparece.
 Depende de `#69` para el coloreo dentro de carpetas.
+
+### `#71` — Vista de evals estilo Braintrust (2026-09-28, observación de Carlos)
+
+**Medio.** `src/evals/` calcula pass@k / pass^k y guarda `eval_trials`, pero ninguna pantalla lo
+muestra, y `/api/usage` excluye esos trials a propósito (`usage.ts:22`). Idea: una vista sobre
+`eval_trials` con el resultado por corrida, una matriz para comparar corridas (eval × corrida, al
+estilo de Braintrust/Promptfoo) y el detalle de cada trial. **Se copia la idea de UI; no se adopta
+ninguna plataforma** (Langfuse/Opik/Phoenix/Helicone requieren ClickHouse o Docker, desproporcionado
+para 3 evals). Prioridad de Carlos: después de que el núcleo de OrchestOS funcione como debe.
 
 ### `#72` — Instinto desde un par fallo→pass de la misma tarea (2026-10-19, revisión de harness2)
 
