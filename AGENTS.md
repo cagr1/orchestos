@@ -286,6 +286,21 @@ Medidas en los lotes L1–L4 y los ítems de Sprint 30/ERP/I/CX; cada una costó
   otros 2 (`restart-mid-run`, `chat-roles`; UI.24.5.1). Copias de evidencia a `docs/done/evidence/` van formateadas
   (`biome format --write`): el `lint` del pre-push las revisa.
 
+## Un árbol, un escritor (AT.18, 2026-10-20)
+
+En un mismo árbol de git escribe una sola sesión. Incidente 2026-10-11: dos sesiones de Claude en el mismo árbol y el
+commit de AT.15 arrastró del índice compartido el spec y la línea de `PLAN.md` de CI.17. Dos dientes mecánicos, ambos
+de `~/.agent-method/hooks/writer-lock.js` (fuente en `method/` del vault):
+- Claude Code: hook `PreToolUse` en `~/.claude/settings.json`; la primera sesión que edita toma el candado y a las
+  demás se les niegan ediciones y comandos git de escritura.
+- Cualquier escritor (Codex interactivo, humano, otra herramienta): `scripts/pre-commit.sh` corre
+  `writer-lock.js check` y rechaza el commit si el candado es de otro. Codex interactivo reclama antes de editar con
+  `node ~/.agent-method/hooks/writer-lock.js claim codex`. Un ejecutor de `delegate` hereda el candado de quien lo lanzó.
+- Sin el método instalado (CI, otra máquina) el pre-commit no lo comprueba. Candado de una sesión ya cerrada:
+  `node ~/.agent-method/hooks/writer-lock.js release`. Vence solo tras 45 min sin escrituras.
+- El dashboard también es un escritor: su "deshacer" (`src/dashboard/handlers/runs.ts:264`) sobre este mismo repo
+  falla con 500 y el motivo del candado mientras otra sesión lo tiene; `git revert --abort` deja el árbol limpio.
+
 ## Trabajo en equipo (Claude + Codex, en paralelo)
 
 Carlos trabaja este repo con Claude y Codex a la vez, cada uno en su propia sesión (posiblemente

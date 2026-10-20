@@ -2069,7 +2069,7 @@ y `PLAN.md` queda sin ítems de método** (decisión de Carlos, 2026-10-11).
   Evidencia (cerebro): diff leído; `tests/hooks/` 32/32; tsc y biome verdes; QA (Sol) sin bloqueantes.
   Ejecutado por: codex gpt-6-luna (mecanico) · Spec: docs/specs/AT.17.md
 
-- [ ] **AT.18 — 🔍 Un solo escritor por árbol, hecho cumplir por un candado.** (abierto 2026-10-11)
+- [x] **AT.18 — 🔍 Un solo escritor por árbol, hecho cumplir por un candado.** (abierto 2026-10-11)
   Incidente 2026-10-11: dos sesiones de Claude en el mismo árbol; el commit de AT.15 arrastró del índice compartido el
   spec y la línea de `PLAN.md` de CI.17. Resuelto fuera del repo, portable a todo proyecto:
   `~/.agent-method/hooks/writer-lock.js` (commit `feat(method): candado…` de `memories-vault`), registrado en
@@ -2078,6 +2078,16 @@ y `PLAN.md` queda sin ítems de método** (decisión de Carlos, 2026-10-11).
   Falta para cerrar: (1) gate 🔍 con dos sesiones reales nuevas en este repo — el hook solo carga al abrir sesión — y
   ver el rechazo en la segunda; (2) decidir si el pre-commit llama a `writer-lock.js` para cubrir a Codex interactivo,
   que hoy solo lo reclama por regla (`claim codex`).
+  (cerrado 2026-10-20) (1) Gate en vivo: con esta sesión dueña del candado, una segunda sesión real
+  (`claude -p --model haiku`, sin token) intentó `Write docs/at18-probe.txt` y recibió `deny` "Un árbol, un escritor";
+  el archivo no se creó. (2) Decisión de Carlos: sí. `writer-lock.js check` (vault) + llamada en
+  `scripts/pre-commit.sh` tras `hooks:check`; identidad = `AGENT_WRITER_TOKEN` | `CLAUDE_CODE_SESSION_ID` |
+  `AGENT_WRITER_NAME`; sin identidad pasa solo si el candado lo tomó `claim`. Hook real instalado: rechaza con
+  `CLAUDE_CODE_SESSION_ID=otra-sesion` y sin identidad; el commit de este ítem (dueño) pasa. Regla y límites en
+  `AGENTS.md` § "Un árbol, un escritor". QA (Sol): el deshacer del dashboard sobre este repo queda rechazado con 500
+  mientras otra sesión tiene el candado; verificado que `revert --abort` deja el árbol limpio → límite declarado.
+  Evidencia (cerebro): diffs leídos; vault `writer-lock.test.mjs` 24/24; `bash -n` del pre-commit.
+  Ejecutado por: codex gpt-6-luna (mecanico) · Spec: docs/specs/AT.18.md
 
 ### H.10 — El gate de evidencia acepta prosa, no el hecho (ABIERTO 2026-09-08, GO de Carlos)
 
