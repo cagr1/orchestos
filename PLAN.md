@@ -2060,9 +2060,14 @@ contexto) vive en el vault, `~/Projects/MemoriesMD/method/` (instalado en `~/.ag
 Aquí quedan solo los dos pendientes que tocan archivos de este repo; **cuando ambos cierren, esta sección se elimina
 y `PLAN.md` queda sin ítems de método** (decisión de Carlos, 2026-10-11).
 
-- [ ] **AT.17 — ⚡ El mensaje de `brain-no-code` nombra roles, no modelos.** (abierto 2026-10-11)
+- [x] **AT.17 — ⚡ El mensaje de `brain-no-code` nombra roles, no modelos.** (abierto 2026-10-11)
   `.claude/hooks/brain-no-code.js:16` dice "delega a Luna. Ejecutor Sonnet: lanzar con ORCHESTOS_ROLE=executor".
   Debe decir `~/.agent-method/bin/delegate <rol> docs/specs/<ID>.md`. Revisar el test que afirme el texto.
+  (cerrado 2026-10-20) Ningún test afirmaba el texto; test nuevo afirma `delegate <rol>` y ausencia de nombres de modelo.
+  Hermanos que encontró QA (Sol), arreglados en el mismo ítem: `.claude/hooks/subagent-budget.js:155` ("usa Luna") y
+  `AGENTS.md:97` ("ejecución para Luna"). `rg 'Luna|Sonnet' .claude/hooks/*.js` vacío.
+  Evidencia (cerebro): diff leído; `tests/hooks/` 32/32; tsc y biome verdes; QA (Sol) sin bloqueantes.
+  Ejecutado por: codex gpt-6-luna (mecanico) · Spec: docs/specs/AT.17.md
 
 - [ ] **AT.18 — 🔍 Un solo escritor por árbol, hecho cumplir por un candado.** (abierto 2026-10-11)
   Incidente 2026-10-11: dos sesiones de Claude en el mismo árbol; el commit de AT.15 arrastró del índice compartido el

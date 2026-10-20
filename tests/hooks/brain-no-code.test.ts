@@ -42,6 +42,16 @@ describe('brain-no-code hook', () => {
     expectDenied(tool('Edit', { file_path: join(root, 'src/a.ts') }), root)
   })
 
+  it('names the delegate role without naming models', () => {
+    const root = mkdtempSync(join(tmpdir(), 'brain-guard-root-'))
+    const result = runHook(tool('Edit', { file_path: join(root, 'src/a.ts') }), root)
+    expect(result.status).toBe(0)
+    expect(result.stdout).toContain('~/.agent-method/bin/delegate <rol>')
+    expect(result.stdout).not.toContain('Luna')
+    expect(result.stdout).not.toContain('Sonnet')
+    expect(result.stdout).not.toContain('ORCHESTOS_ROLE=executor')
+  })
+
   it('deny Write a tests/', () => {
     const root = mkdtempSync(join(tmpdir(), 'brain-guard-root-'))
     expectDenied(tool('Write', { file_path: join(root, 'tests/x.test.ts') }), root)

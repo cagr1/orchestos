@@ -13,7 +13,7 @@ const ROOT =
   process.env.BRAIN_GUARD_ROOT || resolve(dirname(fileURLToPath(import.meta.url)), '../..')
 const CODE_PREFIXES = ['src/', 'tests/', 'scripts/', '.claude/hooks/']
 const MESSAGE_PREFIX =
-  'Cerebro no escribe código (AGENTS.md § Protocolo de delegación): escribe el spec en docs/specs/<ID>.md y delega a Luna. Ejecutor Sonnet: lanzar con ORCHESTOS_ROLE=executor. Ruta:'
+  'Cerebro no escribe código (AGENTS.md § Protocolo de delegación): escribe el spec en docs/specs/<ID>.md y delega con ~/.agent-method/bin/delegate <rol> docs/specs/<ID>.md (el modelo de cada rol vive en ~/.agent-method/roster.conf). Ruta:'
 
 function relativePath(filePath) {
   if (typeof filePath !== 'string' || filePath.length === 0) return null

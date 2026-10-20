@@ -152,7 +152,9 @@ function handlePreToolUse(input) {
     return
   }
   if (result.value === false)
-    deny('Máximo 2 subagentes activos. Espera a que termine uno; usa Luna y contexto mínimo.')
+    deny(
+      'Máximo 2 subagentes activos. Espera a que termine uno; delega con ~/.agent-method/bin/delegate <rol> y contexto mínimo.',
+    )
 }
 
 function handleStart(input) {

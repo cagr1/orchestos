@@ -94,7 +94,7 @@ raíz. Antes de delegar, consultar los agentes activos; no abrir un tercero hast
 En Codex, usar el modelo del rol `mecanico` por defecto y `fork_turns: "none"` o el menor entero positivo que
 alcance: `fork_turns: "all"` queda reservado para una necesidad explícita y documentada. Si el
 cupo de 5 h ya está en 70% o más, no abrir subagentes salvo pedido explícito de Carlos; hacer la
-lectura local directamente y dejar la ejecución para Luna después del reset. Esto es enforcement
+lectura local directamente y dejar la ejecución para el rol `mecanico` después del reset. Esto es enforcement
 narrativo en Codex porque el repo no puede interceptar la herramienta `spawn_agent` del host; el
 ítem AT.8 agrega el diente mecánico equivalente donde Claude Code sí expone hooks de subagentes.
 

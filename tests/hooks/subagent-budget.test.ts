@@ -51,7 +51,7 @@ describe('subagent budget hook', () => {
       expect(decision(pre(root))).toMatchObject({
         permissionDecision: 'deny',
         permissionDecisionReason:
-          'Máximo 2 subagentes activos. Espera a que termine uno; usa Luna y contexto mínimo.',
+          'Máximo 2 subagentes activos. Espera a que termine uno; delega con ~/.agent-method/bin/delegate <rol> y contexto mínimo.',
       })
     } finally {
       rmSync(root, { recursive: true, force: true })
