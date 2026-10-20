@@ -1748,7 +1748,16 @@ ERP ni prueba visual nueva. Los ítems permanecen abiertos hasta sus gates reale
   corrigió (prueba con toast simulado: 1 toast). `tsc` verde, 34 tests en verde.
   Hallado: `opencode.json` apunta a `opencode/deepseek-v4-flash-free`, que OpenCode ya no reconoce (lo decide Carlos).
   Ejecutado por: mecanico (rondas 1 y 3) + criterio-alt (ronda 2) · revisión qa · Spec: docs/specs/H.7.2c.md
-- [ ] **H.7.3 — ⚡ El hook: avisar al 60% y volcar el handoff una sola vez.**
+- [x] **H.7.3 — ⚡ El hook: avisar al 60% y volcar el handoff una sola vez.**
+  **Cerrado 2026-10-20 — gate 🔍 en vivo pasado.** Sesión real de Claude Code (`claude -p --model haiku`, retomada con
+  `--resume`, hooks del proyecto cargados): con 265 543 tokens (26,6 % de 1 000 000, `warn` por el tope absoluto de
+  250 000) el `UserPromptSubmit` del turno siguiente inyectó "Contexto alto: 265,543 tokens… Handoff actualizado." y el
+  modelo lo citó textual; `.orchestos/context-budget.json` quedó con esa sesión (`firedAt 15:03:43Z`) y el `mtime` de
+  `.orchestos/handoff.md` es 15:03:43Z, después del cruce (medido 15:03:40Z). En el turno siguiente la respuesta fue
+  "sin aviso", el estado y el handoff no cambiaron, y el transcript tiene un solo `hook_success` con el aviso: `warn`
+  avisa una sola vez por sesión. El mismo hook ya se había disparado en vivo desde OpenCode (H.7.2c). Costo del gate:
+  USD 1,43 de Haiku. Estado y handoff restaurados; la sesión de prueba se borró.
+  Sin delegación: gate corrido por el cerebro.
   (2026-10-11, commit `91687e4`: `warn` es ahora 40 % o 250 000 tokens y `critical` 65 % o 400 000; los "60%" de abajo son
   históricos. El gate 🔍 se cumple cruzando el umbral nuevo.)
   Depende de H.7.1, H.7.2 y **H.7.2b** (la fuente del número se rehizo como registro de
