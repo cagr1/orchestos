@@ -246,6 +246,7 @@ it('action approval is a declared CLI capability; unsupported task engines use f
   expect(KNOWN_CLIS.filter((cli) => cli.supportsActionApproval).map((cli) => cli.id)).toEqual([
     'claude',
     'codex',
+    'opencode',
   ])
   for (const mode of ['supervised', 'auto-edit', 'full'] as const) {
     expect(actionApprovalPolicy('codex', mode)).toMatchObject({
@@ -258,7 +259,12 @@ it('action approval is a declared CLI capability; unsupported task engines use f
       requestedApprovalMode: mode,
       approvalCli: 'Claude Code',
     })
-    for (const engine of ['opencode', 'single-shot', 'agentic']) {
+    expect(actionApprovalPolicy('opencode', mode)).toMatchObject({
+      approvalMode: mode,
+      requestedApprovalMode: mode,
+      approvalCli: 'opencode',
+    })
+    for (const engine of ['single-shot', 'agentic']) {
       expect(actionApprovalPolicy(engine, mode)).toMatchObject({
         approvalMode: 'full',
         requestedApprovalMode: mode,

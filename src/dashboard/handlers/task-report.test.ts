@@ -164,7 +164,7 @@ it('task reports persist requested and effective approval modes with registry CL
   for (const [provider, effective, label] of [
     ['claude', 'auto-edit', 'Claude Code'],
     ['codex', 'auto-edit', 'Codex'],
-    ['opencode', 'full', 'opencode'],
+    ['opencode', 'auto-edit', 'opencode'],
   ]) {
     const { root, session, taskId } = setup('done')
     const path = join(root, 'tasks.yaml')

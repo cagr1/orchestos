@@ -37,6 +37,7 @@ afterEach(() => {
 // -- fixtures (mismo patrón que external-engine.test.ts) ------------------------
 
 const originalSpawn = Bun.spawn
+const originalFetch = globalThis.fetch
 
 interface MockProc {
   stdout: ReadableStream<Uint8Array>
@@ -88,6 +89,7 @@ function installMockSpawn(stdout: string, opts: { exitDelayMs?: number } = {}): 
 
 afterEach(() => {
   Bun.spawn = originalSpawn
+  globalThis.fetch = originalFetch
   spawnCalls.length = 0
 })
 
@@ -196,6 +198,61 @@ const stepFinish = (cost: number, input: number, output: number) => ({
 // -- tests ---------------------------------------------------------------------
 
 describe('G.5 — opencodeEngine (opencode subprocess)', () => {
+  it('auto-edit uses serve and the existing parser sums stored session parts', async () => {
+    const root = makeGitRepo()
+    const wt = createWorktree('approval-server', 'main', root)
+    trackWorktree(wt)
+    writeFileSync(join(wt.path, 'out.txt'), 'approved edit\n')
+    let exit!: (code: number) => void
+    let killed = false
+    const proc = makeMockProc('opencode server listening on http://127.0.0.1:1234\n')
+    proc.exited = new Promise((resolve) => {
+      exit = resolve
+    })
+    proc.kill = () => {
+      killed = true
+      exit(0)
+    }
+    overrideBunSpawn(proc)
+    globalThis.fetch = (async (url: string) => {
+      const path = new URL(url).pathname
+      if (path === '/session') return Response.json({ id: 'ses_task' })
+      if (path.endsWith('/prompt_async')) return new Response(null, { status: 204 })
+      if (path === '/permission') return Response.json([])
+      if (path === '/session/status') return Response.json({})
+      return Response.json([
+        {
+          info: { role: 'assistant', time: { completed: 1 } },
+          parts: [
+            stepFinish(0.002, 100, 10).part,
+            { type: 'text', text: 'done' },
+            stepFinish(0.0005, 20, 2).part,
+          ],
+        },
+      ])
+    }) as typeof fetch
+    const outcome = await opencodeEngine.run(buildCtx(wt, baseTask()), {
+      maxTokens: 8192,
+      maxIterations: 1,
+      timeoutMs: 5000,
+      approvals: { runId: 'task', mode: 'auto-edit', requestApproval: async () => 'reject' },
+    })
+    expect(spawnCalls[0]?.cmd).toEqual([
+      'opencode',
+      'serve',
+      '--port',
+      '0',
+      '--hostname',
+      '127.0.0.1',
+    ])
+    expect(outcome.inputTokens).toBe(120)
+    expect(outcome.outputTokens).toBe(12)
+    expect(outcome.usd).toBeCloseTo(0.0025, 6)
+    expect(outcome.iterations).toBe(2)
+    expect(outcome.files).toEqual([{ path: 'out.txt', content: 'approved edit\n' }])
+    expect(killed).toBe(true)
+  })
+
   it('happy path: NDJSON con 2 step_finish → outcome suma costo/tokens de ambos', async () => {
     const root = makeGitRepo()
     const wt = createWorktree('g5-happy', 'main', root)

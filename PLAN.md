@@ -1746,8 +1746,10 @@ ERP ni prueba visual nueva. Los ítems permanecen abiertos hasta sus gates reale
   tarea Codex pide aprobación de la edición en la tarjeta; 13/13. Cerebro: `tsc`, lint y `build:app` verdes,
   `test:coverage` 1851/0.
   Ejecutado por: criterio-alt (ronda 1) + mecanico (rondas 2-4) · revisión qa · Spec: docs/specs/ERP.7.1c.md
-- [ ] **ERP.7.1d — 🧠 Adaptadores Claude (`--permission-prompt-tool`/`PreToolUse`) y OpenCode (`opencode serve` + API de permisos).**
+- [x] **ERP.7.1d — 🧠 Adaptadores Claude (`--permission-prompt-tool`/`PreToolUse`) y OpenCode (`opencode serve` + API de permisos).**
   Uno por sub-ítem al abrirlo, con su gate en vivo; mismo contrato de ERP.7.1a, sin ramas por marca.
+  **Cerrado 2026-10-20** con ERP.7.1d1 (Claude) y ERP.7.1d2 (OpenCode).
+  Sin delegación: ítem padre.
 - [x] **ERP.7.1d1 — 🧠 Adaptador de aprobación de Claude Code en tareas (`--permission-prompt-tool` vía el MCP de OrchestOS).**
   (abierto 2026-10-20) Hoy la tarea Claude corre con `--allowedTools` que preaprueba todo y sin MCP (`external.ts:185-203`).
   Con modo ≠ `full`: solo lectura preaprobada; el resto va a una herramienta MCP `approve_action` que crea la solicitud en
@@ -1766,8 +1768,21 @@ ERP ni prueba visual nueva. Los ítems permanecen abiertos hasta sus gates reale
   `claude-opus-5-5`) en `auto-edit`; la edición se aprobó sola y `mkdir -p command-marker` pidió aprobación en la tarjeta;
   approve lo creó, reject no. Cerebro: `tsc`, lint verdes, `test:coverage` 1861/0.
   Ejecutado por: criterio-alt (rondas 1-3) + mecanico (rondas 4-6) · revisión qa · Spec: docs/specs/ERP.7.1d1.md
-- [ ] **ERP.7.1d2 — 🧠 Adaptador de aprobación de OpenCode en tareas (`opencode serve` + API de permisos).**
+- [x] **ERP.7.1d2 — 🧠 Adaptador de aprobación de OpenCode en tareas (`opencode serve` + API de permisos).**
   (abierto 2026-10-20) Hoy `opencode run … --auto` (`opencode.ts:82`). Mismo contrato y gate en vivo que ERP.7.1d1.
+  **Cerrado 2026-10-20.** Contrato verificado por el cerebro contra OpenCode 1.19.0: `opencode run` sin `--auto` rechaza
+  solo cada permiso (también con `--attach`), así que con modo ≠ `full` la tarea va por `opencode serve`
+  (`opencode-server.ts`): sesión con `*`→`ask` y lectura→`allow`, `prompt_async`, sondeo de `GET /permission` y respuesta
+  `POST /permission/{id}/reply`. El `always` de OpenCode es por patrón (`mkdir *`, `*` en edición): nunca se envía; el
+  `approve-always` vive en OrchestOS y a OpenCode se le responde `once`. `full` = `run … --auto` de antes. OpenCode
+  `supportsActionApproval: true`; solo los motores API quedan sin aprobación por acción. QA (Sol) halló dos bloqueantes:
+  servidor sin contraseña (otro proceso local podía responder permisos; ahora contraseña aleatoria por servidor y Basic
+  `opencode:<p>`, verificado: sin credenciales 401) y fin de turno con historial anterior (ahora se confirma `idle` antes de
+  leer los mensajes); y un menor (pasos solo al final; ahora en vivo).
+  Gate en vivo: navegador real (Playwright), `docs/done/evidence/ERP.7.1d2-live.json`: tarea OpenCode real
+  (`deepseek-v4.1-flash-free`) en `auto-edit`; edición aprobada sola, `mkdir -p command-marker` preguntado en la tarjeta;
+  approve lo creó, reject no; ningún `opencode serve` vivo al terminar. Cerebro: `tsc`, lint verdes, `test:coverage` 1877/0.
+  Ejecutado por: criterio-alt (rondas 1-2) + mecanico (ronda 3) · revisión qa · Spec: docs/specs/ERP.7.1d2.md
 - [x] **ERP.7.2 — 🧠 Cada turno del chat muestra su diff y se puede deshacer.** (abierto 2026-10-19, hallado en ERP.7)
   El chat no tiene diff por turno ni revert; el revert vive solo en el harness de tareas (`src/run/harness.ts:13`). T3
   cierra cada turno con "N changed files · Open diff" y guarda checkpoints en refs ocultas de git, sin ensuciar la

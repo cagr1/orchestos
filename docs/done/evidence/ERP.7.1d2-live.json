@@ -1,0 +1,166 @@
+{
+  "cases": [
+    {
+      "decision": "approve",
+      "pass": true,
+      "model": "opencode/deepseek-v4.1-flash-free",
+      "pending": {
+        "pending": [
+          {
+            "runId": "569a781f-a00d-44b8-8604-aedd3d04c0a2",
+            "approvalId": "62c699f9-3cc3-429a-8e4d-2b1f677805e1",
+            "kind": "command",
+            "detail": {
+              "command": "mkdir -p command-marker",
+              "cwd": "/private/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/erp71d2-live-I3xfHr/.orchestos/worktrees/approval-approve-1792528845254"
+            },
+            "commandKey": "mkdir -p command-marker",
+            "readOnly": false
+          }
+        ],
+        "events": [
+          {
+            "type": "approval_resolved",
+            "runId": "569a781f-a00d-44b8-8604-aedd3d04c0a2",
+            "approvalId": "47b49a5e-e182-4592-a2fb-9c0335c631a4",
+            "decision": "auto"
+          },
+          {
+            "type": "approval_requested",
+            "runId": "569a781f-a00d-44b8-8604-aedd3d04c0a2",
+            "approvalId": "62c699f9-3cc3-429a-8e4d-2b1f677805e1",
+            "kind": "command",
+            "detail": {
+              "command": "mkdir -p command-marker",
+              "cwd": "/private/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/erp71d2-live-I3xfHr/.orchestos/worktrees/approval-approve-1792528845254"
+            }
+          }
+        ]
+      },
+      "result": {
+        "status": "done",
+        "runId": "569a781f-a00d-44b8-8604-aedd3d04c0a2",
+        "qaVerdict": "pass",
+        "qaReason": "QA LLM omitido: la tarea no declara criterios de aceptación; checks y salidas declaradas en verde",
+        "filesWritten": ["edit.txt"],
+        "filesBlocked": [],
+        "cost": {
+          "inputTokens": 11684,
+          "outputTokens": 183,
+          "usd": 0
+        },
+        "elapsedMs": 18392,
+        "contextWarnings": []
+      },
+      "markerObserved": true,
+      "serverPids": [66151],
+      "serversRemaining": [],
+      "events": [
+        {
+          "type": "approval_resolved",
+          "runId": "569a781f-a00d-44b8-8604-aedd3d04c0a2",
+          "approvalId": "47b49a5e-e182-4592-a2fb-9c0335c631a4",
+          "decision": "auto"
+        },
+        {
+          "type": "approval_requested",
+          "runId": "569a781f-a00d-44b8-8604-aedd3d04c0a2",
+          "approvalId": "62c699f9-3cc3-429a-8e4d-2b1f677805e1",
+          "kind": "command",
+          "detail": {
+            "command": "mkdir -p command-marker",
+            "cwd": "/private/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/erp71d2-live-I3xfHr/.orchestos/worktrees/approval-approve-1792528845254"
+          }
+        },
+        {
+          "type": "approval_resolved",
+          "runId": "569a781f-a00d-44b8-8604-aedd3d04c0a2",
+          "approvalId": "62c699f9-3cc3-429a-8e4d-2b1f677805e1",
+          "decision": "approve"
+        }
+      ],
+      "status": "passed"
+    },
+    {
+      "decision": "reject",
+      "pass": true,
+      "model": "opencode/deepseek-v4.1-flash-free",
+      "pending": {
+        "pending": [
+          {
+            "runId": "19db78e2-97ee-455b-89a4-59e36222dc00",
+            "approvalId": "6ed746b7-0d88-4050-ad95-0f37efa5dd18",
+            "kind": "command",
+            "detail": {
+              "command": "mkdir -p command-marker",
+              "cwd": "/private/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/erp71d2-live-BnYgsM/.orchestos/worktrees/approval-reject-1792528864255"
+            },
+            "commandKey": "mkdir -p command-marker",
+            "readOnly": false
+          }
+        ],
+        "events": [
+          {
+            "type": "approval_resolved",
+            "runId": "19db78e2-97ee-455b-89a4-59e36222dc00",
+            "approvalId": "b2729586-8999-4af9-a4f1-dcc8a0585c5e",
+            "decision": "auto"
+          },
+          {
+            "type": "approval_requested",
+            "runId": "19db78e2-97ee-455b-89a4-59e36222dc00",
+            "approvalId": "6ed746b7-0d88-4050-ad95-0f37efa5dd18",
+            "kind": "command",
+            "detail": {
+              "command": "mkdir -p command-marker",
+              "cwd": "/private/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/erp71d2-live-BnYgsM/.orchestos/worktrees/approval-reject-1792528864255"
+            }
+          }
+        ]
+      },
+      "result": {
+        "status": "done",
+        "runId": "19db78e2-97ee-455b-89a4-59e36222dc00",
+        "qaVerdict": "pass",
+        "qaReason": "QA LLM omitido: la tarea no declara criterios de aceptación; checks y salidas declaradas en verde",
+        "filesWritten": ["edit.txt"],
+        "filesBlocked": [],
+        "cost": {
+          "inputTokens": 25047,
+          "outputTokens": 362,
+          "usd": 0
+        },
+        "elapsedMs": 9618,
+        "contextWarnings": []
+      },
+      "markerObserved": false,
+      "serverPids": [66330],
+      "serversRemaining": [],
+      "events": [
+        {
+          "type": "approval_resolved",
+          "runId": "19db78e2-97ee-455b-89a4-59e36222dc00",
+          "approvalId": "b2729586-8999-4af9-a4f1-dcc8a0585c5e",
+          "decision": "auto"
+        },
+        {
+          "type": "approval_requested",
+          "runId": "19db78e2-97ee-455b-89a4-59e36222dc00",
+          "approvalId": "6ed746b7-0d88-4050-ad95-0f37efa5dd18",
+          "kind": "command",
+          "detail": {
+            "command": "mkdir -p command-marker",
+            "cwd": "/private/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/erp71d2-live-BnYgsM/.orchestos/worktrees/approval-reject-1792528864255"
+          }
+        },
+        {
+          "type": "approval_resolved",
+          "runId": "19db78e2-97ee-455b-89a4-59e36222dc00",
+          "approvalId": "6ed746b7-0d88-4050-ad95-0f37efa5dd18",
+          "decision": "reject"
+        }
+      ],
+      "status": "passed"
+    }
+  ]
+}

@@ -31,6 +31,7 @@
 
 import { getOpencodeCatalog, hasNativeOpencodeModel } from '../../router/opencode-catalog.ts'
 import { safeChildEnv } from '../path-policy.ts'
+import { runOpencodeServer } from './opencode-server.ts'
 import { type ExecutorStepEvent, opencodeEventToStep } from './step-event.ts'
 import type { ExecutorEngine, ExecutorOutcome } from './types.ts'
 import { readWorktreeDiff } from './worktree-diff.ts'
@@ -339,12 +340,24 @@ export const opencodeEngine: ExecutorEngine = {
     let stdout: string
     let timedOut: boolean
     try {
-      ;({ stdout, timedOut } = await runOpencode(
-        ctx.effectiveRoot,
-        buildOpencodeArgs(prompt, model, variant),
-        timeoutMs,
-        opts.onStep,
-      ))
+      ;({ stdout, timedOut } =
+        opts.approvals && opts.approvals.mode !== 'full'
+          ? await runOpencodeServer({
+              binary: OPENCODE_BINARY,
+              cwd: ctx.effectiveRoot,
+              prompt,
+              model,
+              variant,
+              timeoutMs,
+              approvals: opts.approvals,
+              onStep: opts.onStep,
+            })
+          : await runOpencode(
+              ctx.effectiveRoot,
+              buildOpencodeArgs(prompt, model, variant),
+              timeoutMs,
+              opts.onStep,
+            ))
     } catch (e: any) {
       throw new ExecutorOpencodeError(`failed to spawn opencode: ${e.message}`)
     }
@@ -376,7 +389,10 @@ export const opencodeEngine: ExecutorEngine = {
           outputTokens: parsed.outputTokens,
           costUsd: parsed.usd,
           binary: OPENCODE_BINARY,
-          args: buildOpencodeArgsDisplay(model, variant),
+          args:
+            opts.approvals && opts.approvals.mode !== 'full'
+              ? ['serve', '--port', '0', '--hostname', '127.0.0.1']
+              : buildOpencodeArgsDisplay(model, variant),
         },
       ],
       log: [

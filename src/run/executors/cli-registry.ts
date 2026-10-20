@@ -112,7 +112,7 @@ export const KNOWN_CLIS: CliDefinition[] = [
   },
   {
     id: 'opencode',
-    supportsActionApproval: false,
+    supportsActionApproval: true,
     taskEngine: 'opencode',
     binary: 'opencode',
     label: 'opencode',

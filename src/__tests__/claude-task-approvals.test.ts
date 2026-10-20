@@ -247,7 +247,7 @@ test('full arguments are unchanged exactly; manual modes offer only approval MCP
     ).toEqual(args.map((value) => (value === 'prompt' ? '<contract>' : value)))
   }
   expect(KNOWN_CLIS.find((cli) => cli.id === 'claude')?.supportsActionApproval).toBe(true)
-  expect(KNOWN_CLIS.find((cli) => cli.id === 'opencode')?.supportsActionApproval).toBe(false)
+  expect(KNOWN_CLIS.find((cli) => cli.id === 'opencode')?.supportsActionApproval).toBe(true)
 })
 
 test('MCP stdio child uses the existing harness run and shared DB; resolution from the parent releases the call', async () => {
