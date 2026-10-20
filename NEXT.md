@@ -4,8 +4,8 @@ Un solo presente: orden y trampas vivas. Lo cerrado vive en `PLAN.md` y git (reg
 2026-10-19: `NEXT.md` se toca solo al cerrar o cortar un lote). Arranque:
 `bun run agent:preflight -- --item <ID> --agent claude`. Lista viva: `bun run next`.
 
-## Asignación de Carlos, vale solo 2026-10-20 (ahorrar cupo semanal de Claude: 75 % usado, reinicia en ~1 d 17 h)
-Prevalece sobre el roster y sobre `~/.claude/CLAUDE.md` § Selección de modelos. Vence al terminar el día.
+## Asignación de Carlos, vale 2026-10-20 y 2026-10-21 (extendida por Carlos el 20: "hoy y mañana vas a tener el rol de supervisor") (ahorrar cupo semanal de Claude: 75 % usado, reinicia en ~1 d 17 h)
+Prevalece sobre el roster y sobre `~/.claude/CLAUDE.md` § Selección de modelos. Vence al terminar el 2026-10-21. También el push: lo prepara un agente delegado, Opus verifica.
 - Opus (cerebro) solo crea (plan, spec, docs) y verifica (lee el diff, corre gates con comandos propios, commitea).
   No lee a fondo ni teclea código: todo lo demás va a agentes GPT.
 - Código: `mecanico` (Luna) para ⚡; lo que exige criterio va a `criterio-alt` (Sol), no a `criterio` (Sonnet).
@@ -20,8 +20,7 @@ Prevalece sobre el roster y sobre `~/.claude/CLAUDE.md` § Selección de modelos
 2. H.7.2c y H.7.3 cerrados (aviso de contexto en vivo en Claude Code y OpenCode). Sigue: ERP.7.1 (modo de permiso y aprobar por acción) espera plan corto + GO de Carlos; base: aprobar =
    aprobar el diff que ya muestra la tarjeta. ERP.6.2 cuando toque costo. Acceso remoto = IDEAS `#73`, después.
 3. Fiabilidad, cuando el pre-push la tumba: CI.23, CI.18, CI.19, CI.11, CI.27 (primero que deje evidencia).
-- Decisiones pendientes de Carlos sin ítem: `opencode.json` apunta a `opencode/deepseek-v4-flash-free`, que OpenCode
-  ya no reconoce (OpenCode sugiere `deepseek-v4.1-flash-free`); turno de chat con CLI lento (más de 120 s o aviso honesto, en CI.18);
+- Decisiones pendientes de Carlos sin ítem: turno de chat con CLI lento (más de 120 s o aviso honesto, en CI.18);
   peso de `main.js` tras UI.24.4 (dejarlo, alias de `rehype-raw` o lazy-load de Streamdown).
 
 ## Trampas vivas

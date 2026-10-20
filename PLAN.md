@@ -1748,6 +1748,14 @@ ERP ni prueba visual nueva. Los ítems permanecen abiertos hasta sus gates reale
   corrigió (prueba con toast simulado: 1 toast). `tsc` verde, 34 tests en verde.
   Hallado: `opencode.json` apunta a `opencode/deepseek-v4-flash-free`, que OpenCode ya no reconoce (lo decide Carlos).
   Ejecutado por: mecanico (rondas 1 y 3) + criterio-alt (ronda 2) · revisión qa · Spec: docs/specs/H.7.2c.md
+- [x] **OC.1 — ⚡ El modelo por defecto de OpenCode es `opencode/deepseek-v4.1-flash-free`.**
+  (2026-10-20, Carlos: "4.1-flash-free o algún LLM free por default, de preferencia DeepSeek".) `opencode.json` apuntaba a
+  `opencode/deepseek-v4-flash-free`, retirado (`ProviderModelNotFoundError`, hallado en H.7.2c): OpenCode no arrancaba con
+  la config del repo. Gate: `opencode run` sin `-m` en este repo responde con `deepseek-v4.1-flash-free`.
+  **Cerrado 2026-10-20.** `opencode.json`: `model` y la clave de `provider.opencode.models` pasan a
+  `deepseek-v4.1-flash-free` y `reasoningEffort` baja de `high` a `medium` (Carlos, 2026-10-20: "el reasoning siempre en medium por default" para DeepSeek). Catálogo: costo 0, ventana 200 000. Gate del cerebro:
+  `opencode run "Responde solo: ok"` sin `-m` → `build · deepseek-v4.1-flash-free`, `ok`; sesión de prueba borrada.
+  Ejecutado por: mecanico · Spec: docs/specs/OC.1.md
 - [x] **H.7.3 — ⚡ El hook: avisar al 60% y volcar el handoff una sola vez.**
   **Cerrado 2026-10-20 — gate 🔍 en vivo pasado.** Sesión real de Claude Code (`claude -p --model haiku`, retomada con
   `--resume`, hooks del proyecto cargados): con 265 543 tokens (26,6 % de 1 000 000, `warn` por el tope absoluto de

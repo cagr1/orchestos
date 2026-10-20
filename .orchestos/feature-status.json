@@ -877,6 +877,15 @@
       "closedDate": null
     },
     {
+      "id": "OC.1",
+      "sprint": "Fase 3 — Correr dentro de OrchestOS igual que el CLI directo",
+      "block": null,
+      "delegation": "⚡",
+      "title": "El modelo por defecto de OpenCode es `opencode/deepseek-v4.1-flash-free`",
+      "status": "done",
+      "closedDate": null
+    },
+    {
       "id": "H.7.3",
       "sprint": "Fase 3 — Correr dentro de OrchestOS igual que el CLI directo",
       "block": null,
