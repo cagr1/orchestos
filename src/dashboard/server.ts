@@ -65,6 +65,7 @@ import {
 } from './handlers/projects.ts'
 import { handleApiRunGraph, handleApiRunGraphStatus } from './handlers/run-graph.ts'
 import {
+  handleApiRunApproval,
   handleApiRuns,
   handleApiRunsAnalyze,
   handleApiRunsBulkDelete,
@@ -182,6 +183,12 @@ export async function route(req: Request, port: number): Promise<Response> {
       return errorResponse('Chat session not found', 404)
     }
   }
+
+  if (
+    (method === 'GET' || method === 'POST') &&
+    /^\/api\/runs\/[^/]+\/approval$/.test(url.pathname)
+  )
+    return withDashboardProject(req, (project) => handleApiRunApproval(req, url, project.id))
 
   if (method === 'POST' && url.pathname === '/api/runs/analyze') {
     return withDashboardProject(req, (project) => handleApiRunsAnalyze(req, project.id))

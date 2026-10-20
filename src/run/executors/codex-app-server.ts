@@ -3,6 +3,8 @@ import { createHash } from 'node:crypto'
 import { mkdirSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { createInterface } from 'node:readline'
+import type { ApprovalAdapter } from '../approvals.ts'
+import { codexApprovalRequest } from './codex-approval.ts'
 import { type ExecutorStepEvent, readonlyCommandTarget } from './step-event.ts'
 
 type JsonRpcMessage = {
@@ -81,6 +83,10 @@ export class CodexAppServer {
       finish: (error?: Error) => void
     }
   >()
+  private taskApprovals = new Map<
+    string,
+    { adapter: ApprovalAdapter; cwd: string; items: Map<string, any> }
+  >()
   private readonly spawnProcess: NonNullable<CodexAppServerOptions['spawnProcess']>
 
   constructor(private readonly options: CodexAppServerOptions) {
@@ -132,6 +138,32 @@ export class CodexAppServer {
       message = JSON.parse(line)
     } catch {
       this.failAll(new CodexAppServerError('invalid JSON-RPC response', true))
+      return
+    }
+    if (message.id !== undefined && message.method) {
+      const state = this.taskApprovals.get(message.params?.threadId)
+      const supported =
+        message.method === 'item/fileChange/requestApproval' ||
+        message.method === 'item/commandExecution/requestApproval'
+      const reply = (decision: 'accept' | 'decline') => {
+        this.child?.stdin.write(`${JSON.stringify({ id: message.id, result: { decision } })}\n`)
+      }
+      if (!state) return
+      const turn = this.turns.get(message.params?.threadId)
+      if (!supported || (turn?.turnId && message.params?.turnId !== turn.turnId)) {
+        reply('decline')
+        return
+      }
+      const request = codexApprovalRequest(
+        message.method,
+        message.params,
+        state.items.get(message.params.itemId),
+        state.cwd,
+      )
+      void state.adapter.requestApproval(request).then(
+        (decision) => reply(decision === 'approve' ? 'accept' : 'decline'),
+        () => reply('decline'),
+      )
       return
     }
     if (message.id !== undefined) {
@@ -188,6 +220,8 @@ export class CodexAppServer {
   }
 
   private notification(method: string, params: any): void {
+    if (method === 'item/started' && params.item?.type === 'fileChange')
+      this.taskApprovals.get(params.threadId)?.items.set(params.item.id, params.item)
     if (method === 'item/agentMessage/delta' || method === 'item/reasoning/summaryTextDelta') {
       const state = this.turns.get(params.threadId)
       if (
@@ -505,6 +539,87 @@ export class CodexAppServer {
       contextUsed: state.lastUsage ? Number(state.lastUsage.totalTokens) || null : null,
       contextWindow: state.contextWindow ?? null,
       model: observedModel,
+    }
+  }
+
+  /** Fresh task thread; chat turn() keeps its read-only/never contract unchanged. */
+  async taskTurn(input: {
+    cwd: string
+    prompt: string
+    model: string
+    effort?: string
+    timeoutMs: number
+    approvals: ApprovalAdapter
+    onStep?: (event: ExecutorStepEvent) => void
+  }) {
+    await this.ensureReady()
+    this.child?.stderr.resume()
+    const started = await this.request('thread/start', {
+      cwd: input.cwd,
+      sandbox: 'workspace-write',
+      approvalPolicy: 'untrusted',
+      approvalsReviewer: 'user',
+      model: input.model,
+      ephemeral: true,
+    })
+    const threadId = started?.thread?.id
+    if (typeof threadId !== 'string') throw new CodexAppServerError('Missing task thread.id', true)
+    const state = {
+      turnId: null as string | null,
+      text: '',
+      usage: null as any,
+      lastUsage: undefined as any,
+      contextWindow: undefined as number | null | undefined,
+      onStep: input.onStep,
+      finish: (_error?: Error) => {},
+    }
+    let settled = false
+    const completion = new Promise<void>((resolve, reject) => {
+      state.finish = (error) => {
+        if (settled) return
+        settled = true
+        this.turns.delete(threadId)
+        error ? reject(error) : resolve()
+      }
+    })
+    // Register a rejection handler before turn/start: the CLI can exit before its response.
+    void completion.catch(() => {})
+    this.turns.set(threadId, state)
+    this.taskApprovals.set(threadId, { adapter: input.approvals, cwd: input.cwd, items: new Map() })
+    const timer = setTimeout(() => {
+      state.finish(new CodexAppServerError(`Codex task timed out after ${input.timeoutMs}ms`))
+      this.kill()
+    }, input.timeoutMs)
+    try {
+      const turn = await this.request('turn/start', {
+        threadId,
+        input: [{ type: 'text', text: input.prompt }],
+        cwd: input.cwd,
+        model: input.model,
+        effort: input.effort,
+        approvalPolicy: 'untrusted',
+        approvalsReviewer: 'user',
+        sandboxPolicy: { type: 'workspaceWrite', writableRoots: [input.cwd], networkAccess: false },
+      })
+      state.turnId = turn?.turn?.id ?? null
+      await completion
+      if (!state.usage) throw new CodexAppServerError('Codex task returned no usage; cost unknown')
+      return {
+        threadId,
+        finalText: state.text,
+        inputTokens: Math.max(
+          0,
+          (state.usage.inputTokens ?? 0) - (state.usage.cachedInputTokens ?? 0),
+        ),
+        outputTokens: state.usage.outputTokens ?? 0,
+        cacheReadTokens: state.usage.cachedInputTokens ?? 0,
+        cacheWriteTokens: state.usage.cacheWriteInputTokens ?? 0,
+      }
+    } finally {
+      clearTimeout(timer)
+      this.taskApprovals.delete(threadId)
+      this.turns.delete(threadId)
+      this.kill()
     }
   }
 

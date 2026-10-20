@@ -1,0 +1,71 @@
+bun test v1.3.14 (0d9b296a)
+
+src/__tests__/codex-engine.test.ts:
+Migration 10: nulled 0 orphan runs.project_id
+Migration 11: nulled 0 orphan files and 0 orphan edges
+[cli-spawn] {"event":"start","agent":"codex","cwd":"/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/orchestos-g42b-codex-my0tUo/.orchestos/worktrees/r851-codex-home-1792511195123","args":["exec","<210 chars>","--json","--sandbox","workspace-write","--color","never","-c","model_reasoning_summary=auto","-m","gpt-5.4"],"env":{"HOME":"/Users/carlosgallardo","CLAUDE_CONFIG_DIR":null,"CODEX_HOME":"/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/orchestos-g42b-codex-my0tUo/.orchestos/agent-home/codex","ORCHESTOS_HOME":"/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/orchestos-g42b-cat-6p7lry","PATH":"/Users/carlosgallardo/Library/Application Support/orca/codex-accounts/a47c316c-a000-4105-93f2-bb797424b2bf/home/packages/standalone/releases/0.163.0-aarch64-apple-darwin/codex-path:/Users/carlosgallardo/Library/Application Support/orca/codex-accounts/a47c316c-a000-4105-93f2-bb797424b2bf/home/tmp/arg0-macos/codex-arg0va45wF:/Users/carlosgallardo/Projects/MemoriesMD/method/bin/guard:/Users/carlosgallardo/.local/bin"}}
+[cli-spawn] {"event":"end","agent":"codex","firstByteMs":1,"totalMs":2,"exitCode":0,"timedOut":false,"stderrTail":""}
+[cli-spawn] {"event":"start","agent":"codex","cwd":"/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/orchestos-g42b-codex-G9fpL2/.orchestos/worktrees/r851-chat-home-1792511195827","args":["exec","system\n\nhello","--json","--sandbox","read-only","--color","never","--ignore-user-config","--skip-git-repo-check","-c","model_reasoning_summary=auto"],"env":{"HOME":"/Users/carlosgallardo","CLAUDE_CONFIG_DIR":null,"CODEX_HOME":"/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/orchestos-g42b-codex-G9fpL2/.orchestos/agent-home/codex","ORCHESTOS_HOME":"/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/orchestos-g42b-cat-6p7lry","PATH":"/Users/carlosgallardo/Library/Application Support/orca/codex-accounts/a47c316c-a000-4105-93f2-bb797424b2bf/home/packages/standalone/releases/0.163.0-aarch64-apple-darwin/codex-path:/Users/carlosgallardo/Library/Application Support/orca/codex-accounts/a47c316c-a000-4105-93f2-bb797424b2bf/home/tmp/arg0-macos/codex-arg0va45wF:/Users/carlosgallardo/Projects/MemoriesMD/method/bin/guard:/Users/carlosgallardo/.local/bin"}}
+[cli-spawn] {"event":"end","agent":"codex","firstByteMs":0,"totalMs":1,"exitCode":0,"timedOut":false,"stderrTail":""}
+[cli-spawn] {"event":"start","agent":"codex","cwd":"/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/orchestos-codex-chat-cost-RNZLoX","args":["exec","system\n\nhello","--json","--sandbox","read-only","--color","never","--ignore-user-config","--skip-git-repo-check","-c","model_reasoning_summary=auto"],"env":{"HOME":"/Users/carlosgallardo","CLAUDE_CONFIG_DIR":null,"CODEX_HOME":"/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/orchestos-codex-chat-cost-RNZLoX/.orchestos/agent-home/codex","ORCHESTOS_HOME":"/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/orchestos-g42b-cat-6p7lry","PATH":"/Users/carlosgallardo/Library/Application Support/orca/codex-accounts/a47c316c-a000-4105-93f2-bb797424b2bf/home/packages/standalone/releases/0.163.0-aarch64-apple-darwin/codex-path:/Users/carlosgallardo/Library/Application Support/orca/codex-accounts/a47c316c-a000-4105-93f2-bb797424b2bf/home/tmp/arg0-macos/codex-arg0va45wF:/Users/carlosgallardo/Projects/MemoriesMD/method/bin/guard:/Users/carlosgallardo/.local/bin"}}
+[cli-spawn] {"event":"end","agent":"codex","firstByteMs":0,"totalMs":1,"exitCode":0,"timedOut":false,"stderrTail":""}
+[cli-spawn] {"event":"start","agent":"codex","cwd":"/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/orchestos-codex-chat-cache-8AeEL3","args":["exec","system\n\nhello","--json","--sandbox","read-only","--color","never","--ignore-user-config","--skip-git-repo-check","-c","model_reasoning_summary=auto"],"env":{"HOME":"/Users/carlosgallardo","CLAUDE_CONFIG_DIR":null,"CODEX_HOME":"/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/orchestos-codex-chat-cache-8AeEL3/.orchestos/agent-home/codex","ORCHESTOS_HOME":"/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/orchestos-g42b-cat-6p7lry","PATH":"/Users/carlosgallardo/Library/Application Support/orca/codex-accounts/a47c316c-a000-4105-93f2-bb797424b2bf/home/packages/standalone/releases/0.163.0-aarch64-apple-darwin/codex-path:/Users/carlosgallardo/Library/Application Support/orca/codex-accounts/a47c316c-a000-4105-93f2-bb797424b2bf/home/tmp/arg0-macos/codex-arg0va45wF:/Users/carlosgallardo/Projects/MemoriesMD/method/bin/guard:/Users/carlosgallardo/.local/bin"}}
+[cli-spawn] {"event":"end","agent":"codex","firstByteMs":0,"totalMs":0,"exitCode":0,"timedOut":false,"stderrTail":""}
+[cli-spawn] {"event":"start","agent":"codex","cwd":"/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/orchestos-g42b-codex-PV3key/.orchestos/worktrees/g42b-happy-1792511196560","args":["exec","<210 chars>","--json","--sandbox","workspace-write","--color","never","-c","model_reasoning_summary=auto","-m","gpt-5.4","-c","model_reasoning_effort=medium"],"env":{"HOME":"/Users/carlosgallardo","CLAUDE_CONFIG_DIR":null,"CODEX_HOME":"/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/orchestos-g42b-codex-PV3key/.orchestos/agent-home/codex","ORCHESTOS_HOME":"/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/orchestos-g42b-cat-6p7lry","PATH":"/Users/carlosgallardo/Library/Application Support/orca/codex-accounts/a47c316c-a000-4105-93f2-bb797424b2bf/home/packages/standalone/releases/0.163.0-aarch64-apple-darwin/codex-path:/Users/carlosgallardo/Library/Application Support/orca/codex-accounts/a47c316c-a000-4105-93f2-bb797424b2bf/home/tmp/arg0-macos/codex-arg0va45wF:/Users/carlosgallardo/Projects/MemoriesMD/method/bin/guard:/Users/carlosgallardo/.local/bin"}}
+[cli-spawn] {"event":"end","agent":"codex","firstByteMs":1,"totalMs":1,"exitCode":0,"timedOut":false,"stderrTail":""}
+[cli-spawn] {"event":"start","agent":"codex","cwd":"/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/orchestos-g42b-codex-NlrOxL/.orchestos/worktrees/g42b-native-id-1792511197238","args":["exec","<210 chars>","--json","--sandbox","workspace-write","--color","never","-c","model_reasoning_summary=auto","-m","gpt-6-luna"],"env":{"HOME":"/Users/carlosgallardo","CLAUDE_CONFIG_DIR":null,"CODEX_HOME":"/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/orchestos-g42b-codex-NlrOxL/.orchestos/agent-home/codex","ORCHESTOS_HOME":"/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/orchestos-g42b-cat-6p7lry","PATH":"/Users/carlosgallardo/Library/Application Support/orca/codex-accounts/a47c316c-a000-4105-93f2-bb797424b2bf/home/packages/standalone/releases/0.163.0-aarch64-apple-darwin/codex-path:/Users/carlosgallardo/Library/Application Support/orca/codex-accounts/a47c316c-a000-4105-93f2-bb797424b2bf/home/tmp/arg0-macos/codex-arg0va45wF:/Users/carlosgallardo/Projects/MemoriesMD/method/bin/guard:/Users/carlosgallardo/.local/bin"}}
+[cli-spawn] {"event":"end","agent":"codex","firstByteMs":0,"totalMs":0,"exitCode":0,"timedOut":false,"stderrTail":""}
+[cli-spawn] {"event":"start","agent":"codex","cwd":"/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/orchestos-g42b-codex-kLfrye/.orchestos/worktrees/g42b-timeout-1792511199631","args":["exec","<210 chars>","--json","--sandbox","workspace-write","--color","never","-c","model_reasoning_summary=auto","-m","gpt-5.4"],"env":{"HOME":"/Users/carlosgallardo","CLAUDE_CONFIG_DIR":null,"CODEX_HOME":"/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/orchestos-g42b-codex-kLfrye/.orchestos/agent-home/codex","ORCHESTOS_HOME":"/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/orchestos-g42b-cat-6p7lry","PATH":"/Users/carlosgallardo/Library/Application Support/orca/codex-accounts/a47c316c-a000-4105-93f2-bb797424b2bf/home/packages/standalone/releases/0.163.0-aarch64-apple-darwin/codex-path:/Users/carlosgallardo/Library/Application Support/orca/codex-accounts/a47c316c-a000-4105-93f2-bb797424b2bf/home/tmp/arg0-macos/codex-arg0va45wF:/Users/carlosgallardo/Projects/MemoriesMD/method/bin/guard:/Users/carlosgallardo/.local/bin"}}
+[cli-spawn] {"event":"end","agent":"codex","firstByteMs":1,"totalMs":1,"exitCode":0,"timedOut":false,"stderrTail":""}
+584 |       await codexEngine.run(ctx, { maxTokens: 1024, maxIterations: 1, timeoutMs: 1 })
+585 |     } catch (e: any) {
+586 |       caught = e
+587 |     }
+588 |     expect(caught).toBeInstanceOf(ExecutorCodexError)
+589 |     expect(caught!.message).toContain('timed out')
+                                  ^
+error: expect(received).toContain(expected)
+
+Expected to contain: "timed out"
+Received: "codex produced no turn.completed event — cost unknown, not reported as $0"
+
+      at <anonymous> (/Users/carlosgallardo/Projects/projects/orchestos/src/__tests__/codex-engine.test.ts:589:29)
+(fail) G.4.2b — codexEngine (codex subprocess) > timeout: proceso termina tarde y sin stdout parseable → error menciona "timed out" [624.28ms]
+[cli-spawn] {"event":"start","agent":"codex","cwd":"/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/orchestos-g42b-codex-uV0phx/.orchestos/worktrees/g42b-no-cost-1792511200256","args":["exec","<210 chars>","--json","--sandbox","workspace-write","--color","never","-c","model_reasoning_summary=auto","-m","gpt-5.4"],"env":{"HOME":"/Users/carlosgallardo","CLAUDE_CONFIG_DIR":null,"CODEX_HOME":"/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/orchestos-g42b-codex-uV0phx/.orchestos/agent-home/codex","ORCHESTOS_HOME":"/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/orchestos-g42b-cat-6p7lry","PATH":"/Users/carlosgallardo/Library/Application Support/orca/codex-accounts/a47c316c-a000-4105-93f2-bb797424b2bf/home/packages/standalone/releases/0.163.0-aarch64-apple-darwin/codex-path:/Users/carlosgallardo/Library/Application Support/orca/codex-accounts/a47c316c-a000-4105-93f2-bb797424b2bf/home/tmp/arg0-macos/codex-arg0va45wF:/Users/carlosgallardo/Projects/MemoriesMD/method/bin/guard:/Users/carlosgallardo/.local/bin"}}
+[cli-spawn] {"event":"end","agent":"codex","firstByteMs":1,"totalMs":1,"exitCode":0,"timedOut":false,"stderrTail":""}
+[cli-spawn] {"event":"start","agent":"codex","cwd":"/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/orchestos-g42b-codex-TLjpaz/.orchestos/worktrees/g42b-partial-1792511200888","args":["exec","<210 chars>","--json","--sandbox","workspace-write","--color","never","-c","model_reasoning_summary=auto","-m","gpt-5.4"],"env":{"HOME":"/Users/carlosgallardo","CLAUDE_CONFIG_DIR":null,"CODEX_HOME":"/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/orchestos-g42b-codex-TLjpaz/.orchestos/agent-home/codex","ORCHESTOS_HOME":"/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/orchestos-g42b-cat-6p7lry","PATH":"/Users/carlosgallardo/Library/Application Support/orca/codex-accounts/a47c316c-a000-4105-93f2-bb797424b2bf/home/packages/standalone/releases/0.163.0-aarch64-apple-darwin/codex-path:/Users/carlosgallardo/Library/Application Support/orca/codex-accounts/a47c316c-a000-4105-93f2-bb797424b2bf/home/tmp/arg0-macos/codex-arg0va45wF:/Users/carlosgallardo/Projects/MemoriesMD/method/bin/guard:/Users/carlosgallardo/.local/bin"}}
+[cli-spawn] {"event":"end","agent":"codex","firstByteMs":1,"totalMs":1,"exitCode":0,"timedOut":false,"stderrTail":""}
+---------------------------------------|---------|---------|-------------------
+File                                   | % Funcs | % Lines | Uncovered Line #s
+---------------------------------------|---------|---------|-------------------
+All files                              |   35.73 |   46.57 |
+ scripts/context-adapters.ts           |   35.71 |   23.13 | 113-120,146,158-188,200-258,265,269,294-373,387-390,398-425,445-447
+ scripts/context-budget.ts             |    0.00 |   10.00 | 44-67,75-76,86-108,112-113,117-158,162-165,169-171,175,179,184-189,191,194-210
+ scripts/test-preload.ts               |    0.00 |   76.92 | 61-63
+ src/db/chat-sessions.ts               |    0.00 |    7.39 | 77-82,87-112,117-125,129-145,159-187,191-197,201-206,210-211,216-224,228-232,236-256,260-268,272-284,288,292-297,306-308,312-362,366-382
+ src/db/migrate.ts                     |  100.00 |   97.15 | 67,111,144,194-195,228,277,344,347,356,475,522,537,607,639-640,883-884,917-918,969
+ src/db/sqlite.ts                      |  100.00 |   93.75 | 
+ src/hooks/context-monitor.ts          |    0.00 |   14.29 | 74-80,88-139
+ src/mcp/adapters.ts                   |    0.00 |   17.11 | 46,50-53,58-64,69-74,79-88,95-102,107-122,127-137
+ src/mcp/readonly.ts                   |    0.00 |   25.34 | 155-160,166-170,174,178-183,187-312,316-323,328-345,377-435,439-453,457-520,525-542,547-570,577-580,594-653,658-685
+ src/mcp/server.ts                     |    0.00 |   19.63 | 57-91,112-170,175-204,209-214
+ src/providers/openrouter.ts           |    0.00 |    6.10 | 22-30,34-40,59-60,66-124
+ src/router/model-catalog.ts           |   43.75 |   32.32 | 101-102,106-126,136-194,218,220-230,240-242,257-259,264-265,274,285-286,299,310-312,332-333
+ src/router/pricing.ts                 |   33.33 |   62.26 | 20-33,60-64
+ src/run/executors/cli-registry.ts     |   28.57 |   58.95 | 202,234-249,259,263-305,314-326,340-359
+ src/run/executors/codex-app-server.ts |    0.00 |    5.63 | 18-21,41-44,48,86-124,129-151,155-158,163-182,186,190-298,302-507,511-519,524-526,531-541,544-545
+ src/run/executors/codex.ts            |   80.00 |   79.08 | 193-194,322,349,410,434,441-445,454,459-463,508-510,512-595
+ src/run/executors/spawn-trace.ts      |  100.00 |  100.00 | 
+ src/run/executors/step-event.ts       |   11.11 |    7.96 | 41-52,80-94,105-109,113-176,180,208-266,301-333,335-338,340-352,365
+ src/run/executors/worktree-diff.ts    |   83.33 |   96.00 | 90
+ src/run/file-lock.ts                  |    0.00 |    4.71 | 19-24,29-35,40-107
+ src/run/git-exclude.ts                |  100.00 |  100.00 | 
+ src/run/git-lock.ts                   |    0.00 |   66.67 | 
+ src/run/path-policy.ts                |   81.82 |   85.53 | 12-14,67,70-71,74,86-89
+ src/run/sandbox.ts                    |   60.00 |   27.72 | 39,45-47,55,62-63,82-85,93,95,101,103,115-121,125-235
+---------------------------------------|---------|---------|-------------------
+
+ 20 pass
+ 1 fail
+ 78 expect() calls
+Ran 21 tests across 1 file. [6.49s]

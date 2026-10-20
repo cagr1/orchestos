@@ -402,3 +402,13 @@ ui-gates project-tabs, tasks, smoke en verde.
 **Por qué**: el harness solo guarda el SHA que devuelve `mergeWorktreeBack` en `insertRun`; ninguna línea de
 `maxTokens`/`contextWindow` cambia (`git diff` sin coincidencias).
 **Reversibilidad/evidencia**: commit `feat(ERP.7.2a)`, revertible. typecheck y lint verdes · `test:coverage` 1783/0.
+
+## 2026-10-20 — Codex · ERP.7.1a
+
+**Regla tocada**: `src/run/harness.ts`, ciclo de ejecución y evidencia por tarea.
+**Clasificación**: RESPETÓ.
+**Por qué**: capa de aprobación opcional para `supervised`/`auto-edit`, consumida por el adaptador Codex;
+reserva el ID antes del executor y lo conserva en la fila final. Limpia solicitudes en `finally`.
+No cambia límites de tokens, QA, contrato de salidas ni la ruta sin `approvalMode`/`full`.
+**Ejecutado por**: Codex (ejecutor asignado, sin delegación).
+**Evidencia**: `docs/done/ERP.7.1a.md` y salidas crudas en `docs/done/evidence/ERP.7.1a/`.

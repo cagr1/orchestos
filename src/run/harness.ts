@@ -16,6 +16,7 @@
  * 'running', abrir el logger, llamar runTask y mapear TaskResult a updateTaskStatus.
  */
 
+import { randomUUID } from 'node:crypto'
 import { loadOrcheConfig, RoleUnassignedError } from '../config/load.ts'
 import type { OrcheConfig } from '../config/schema.ts'
 import { estimateTokens } from '../context/compress.ts'
@@ -38,6 +39,7 @@ import { clientFromAssignment, roleClient } from '../router/role-runner.ts'
 import { resolveGates } from '../skills/catalog.ts'
 import { loadSpec } from '../spec/store.ts'
 import type { Task } from '../tasks/schema.ts'
+import { createApprovalRun, finishApprovalRun } from './approvals.ts'
 import { type CheckResult, defaultChecksFor, roadmapChecksFor, runChecks } from './checks.ts'
 import {
   enforceContract,
@@ -130,6 +132,8 @@ export async function runTask(opts: HarnessOpts): Promise<TaskResult> {
     keepWorktree,
     monitorCallCount,
   } = opts
+  const approvalRunId = randomUUID()
+  let approvalRunStarted = false
   const t0 = performance.now()
   const runProjectId = _projectId ?? getProject(projectRoot)?.id ?? null
 
@@ -403,7 +407,13 @@ export async function runTask(opts: HarnessOpts): Promise<TaskResult> {
       // y persiste cada evento en vivo vía onStep. Solo external/opencode lo
       // usan (ver comentario de tipos.ts) — single-shot/agentic lo ignoran.
       clearRunSteps(ctx.task.id)
+      const approvals =
+        t.approvalMode && t.approvalMode !== 'full'
+          ? createApprovalRun(approvalRunId, t.id, runProjectId, t.approvalMode)
+          : undefined
+      approvalRunStarted = !!approvals
       const runOutcome: ExecutorOutcome = await engine.run(ctx, {
+        approvals,
         maxTokens,
         maxIterations,
         timeoutMs: externalTimeoutMs,
@@ -424,6 +434,7 @@ export async function runTask(opts: HarnessOpts): Promise<TaskResult> {
         elapsed = Math.round(performance.now() - t0)
         log.error(`parse error: ${e.message}`)
         const runId = insertRun({
+          ...(approvalRunStarted ? { id: approvalRunId } : {}),
           project_id: runProjectId,
           cli_session_id: outcome?.cliSessionId ?? null,
           prompt: ctx.task.description,
@@ -470,6 +481,7 @@ export async function runTask(opts: HarnessOpts): Promise<TaskResult> {
       const elapsedLLM = Math.round(performance.now() - t0)
       log.error(`LLM call failed: ${e.message}`)
       const runId = insertRun({
+        ...(approvalRunStarted ? { id: approvalRunId } : {}),
         project_id: runProjectId,
         cli_session_id: outcome?.cliSessionId ?? null,
         prompt: ctx.task.description,
@@ -520,6 +532,7 @@ export async function runTask(opts: HarnessOpts): Promise<TaskResult> {
       const blocked = attempted.filter((p) => !ctx.task.output.includes(p))
       log.contractViolation(blocked)
       const runId = insertRun({
+        ...(approvalRunStarted ? { id: approvalRunId } : {}),
         project_id: runProjectId,
         cli_session_id: outcome?.cliSessionId ?? null,
         executor_reply: outcome?.finalText ?? null,
@@ -590,6 +603,7 @@ export async function runTask(opts: HarnessOpts): Promise<TaskResult> {
       const reason = `missing declared output(s): ${missingOutputs.join(', ')}`
       const elapsedMissing = Math.round(performance.now() - t0)
       const runId = insertRun({
+        ...(approvalRunStarted ? { id: approvalRunId } : {}),
         project_id: runProjectId,
         cli_session_id: outcome?.cliSessionId ?? null,
         executor_reply: outcome?.finalText ?? null,
@@ -698,6 +712,7 @@ export async function runTask(opts: HarnessOpts): Promise<TaskResult> {
           : `check failed: ${firstFail.cmd} exit ${firstFail.exitCode}`
         const elapsedCheck = Math.round(performance.now() - t0)
         const runId = insertRun({
+          ...(approvalRunStarted ? { id: approvalRunId } : {}),
           project_id: runProjectId,
           cli_session_id: outcome?.cliSessionId ?? null,
           executor_reply: outcome?.finalText ?? null,
@@ -837,6 +852,7 @@ export async function runTask(opts: HarnessOpts): Promise<TaskResult> {
       const rejectedDiffs = computeFileDiffs(beforeContent, contractResult.written)
 
       const runId = insertRun({
+        ...(approvalRunStarted ? { id: approvalRunId } : {}),
         project_id: runProjectId,
         cli_session_id: outcome?.cliSessionId ?? null,
         executor_reply: outcome?.finalText ?? null,
@@ -932,6 +948,7 @@ export async function runTask(opts: HarnessOpts): Promise<TaskResult> {
     const fileDiffs = computeFileDiffs(beforeContent, contractResult.written)
 
     const runId = insertRun({
+      ...(approvalRunStarted ? { id: approvalRunId } : {}),
       project_id: runProjectId,
       cli_session_id: outcome?.cliSessionId ?? null,
       prompt: ctx.task.description,
@@ -1003,6 +1020,7 @@ export async function runTask(opts: HarnessOpts): Promise<TaskResult> {
       contextWarnings: [],
     }
   } finally {
+    if (approvalRunStarted) finishApprovalRun(approvalRunId)
     // cleanup worktree if still alive (not merged, not discarded)
     if (worktree && !keepWorktree) {
       try {

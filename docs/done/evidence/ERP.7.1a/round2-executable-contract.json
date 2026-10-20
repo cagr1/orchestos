@@ -1,0 +1,54 @@
+{
+  "source": "codex-cli 0.163.0; esquema y corrida de la ronda anterior, no se ejecutó otro probe en ronda 2",
+  "request": {
+    "method": "item/commandExecution/requestApproval",
+    "id": 1,
+    "params": {
+      "kind": "command",
+      "threadId": "01a159fe-d964-76e2-8db8-029f3b7da120",
+      "turnId": "01a159fe-d9c0-7f62-b47e-e0ad3a91fa04",
+      "itemId": "exec-a18c8c78-0d23-4f49-9578-5c3d2a1e8fb9",
+      "startedAtMs": 1792511250510,
+      "environmentId": "local",
+      "command": "/bin/zsh -lc 'mkdir command-marker'",
+      "cwd": "/tmp/ERP.7.1a-fixture-OLZsQ0",
+      "commandActions": [
+        {
+          "type": "unknown",
+          "command": "mkdir command-marker"
+        }
+      ],
+      "proposedExecpolicyAmendment": ["mkdir", "command-marker"],
+      "availableDecisions": [
+        "accept",
+        {
+          "acceptWithExecpolicyAmendment": {
+            "execpolicy_amendment": ["mkdir", "command-marker"]
+          }
+        },
+        "cancel"
+      ]
+    }
+  },
+  "schemaRequired": ["itemId", "startedAtMs", "threadId", "turnId"],
+  "schemaProperties": {
+    "command": {
+      "description": "The command to be executed.",
+      "type": ["string", "null"]
+    },
+    "commandActions": {
+      "description": "Best-effort parsed command actions for friendly display.",
+      "items": {
+        "$ref": "#/definitions/CommandAction"
+      },
+      "type": ["array", "null"]
+    },
+    "proposedExecpolicyAmendment": {
+      "description": "Optional proposed execpolicy amendment to allow similar commands without prompting.",
+      "items": {
+        "type": "string"
+      },
+      "type": ["array", "null"]
+    }
+  }
+}

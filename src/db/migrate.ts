@@ -946,6 +946,34 @@ export const FUTURE_MIGRATIONS: readonly SchemaMigrationStep[] = [
         throw new Error('Migration 28 did not add runs commit/revert columns')
     },
   },
+  {
+    version: 29,
+    name: 'task-action-approvals',
+    precondition: () => {},
+    apply: (database) => {
+      database.exec(`
+        CREATE TABLE approval_runs (
+          id TEXT PRIMARY KEY, project_id TEXT, task_id TEXT NOT NULL,
+          owner_pid INTEGER NOT NULL, active INTEGER NOT NULL, grants TEXT NOT NULL
+        );
+        CREATE TABLE action_approvals (
+          id TEXT PRIMARY KEY, run_id TEXT NOT NULL REFERENCES approval_runs(id) ON DELETE CASCADE,
+          request_json TEXT NOT NULL, decision TEXT
+        );
+        CREATE INDEX action_approvals_run ON action_approvals(run_id);
+        CREATE TABLE approval_events (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          run_id TEXT NOT NULL REFERENCES approval_runs(id) ON DELETE CASCADE,
+          type TEXT NOT NULL, payload_json TEXT NOT NULL
+        );
+      `)
+    },
+    postcondition: (database) => {
+      database.query('SELECT id FROM approval_runs LIMIT 1').all()
+      database.query('SELECT id FROM action_approvals LIMIT 1').all()
+      database.query('SELECT id FROM approval_events LIMIT 1').all()
+    },
+  },
 ]
 
 function appliedVersions(database: Database): Set<number> {

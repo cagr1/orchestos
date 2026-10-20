@@ -1,0 +1,304 @@
+src/dashboard/handlers/tasks.ts:1:28 lint/style/useNodejsImportProtocol  FIXABLE  ━━━━━━━━━━━━━━━━━━
+
+  i A Node.js builtin module should be imported with the node: protocol.
+  
+  > 1 │ import { existsSync } from 'fs'
+      │                            ^^^^
+    2 │ import { join } from 'path'
+    3 │ import { fileURLToPath } from 'url'
+  
+  i Using the node: protocol is more explicit and signals that the imported module belongs to Node.js.
+  
+  i Unsafe fix: Add the node: protocol.
+  
+      1     │ - import·{·existsSync·}·from·'fs'
+          1 │ + import·{·existsSync·}·from·'node:fs'
+      2   2 │   import { join } from 'path'
+      3   3 │   import { fileURLToPath } from 'url'
+  
+
+src/dashboard/handlers/tasks.ts:2:22 lint/style/useNodejsImportProtocol  FIXABLE  ━━━━━━━━━━━━━━━━━━
+
+  i A Node.js builtin module should be imported with the node: protocol.
+  
+    1 │ import { existsSync } from 'fs'
+  > 2 │ import { join } from 'path'
+      │                      ^^^^^^
+    3 │ import { fileURLToPath } from 'url'
+    4 │ import { diagnoseTask } from '../../agents/diagnose.ts'
+  
+  i Using the node: protocol is more explicit and signals that the imported module belongs to Node.js.
+  
+  i Unsafe fix: Add the node: protocol.
+  
+      1   1 │   import { existsSync } from 'fs'
+      2     │ - import·{·join·}·from·'path'
+          2 │ + import·{·join·}·from·'node:path'
+      3   3 │   import { fileURLToPath } from 'url'
+      4   4 │   import { diagnoseTask } from '../../agents/diagnose.ts'
+  
+
+src/dashboard/handlers/tasks.ts:3:31 lint/style/useNodejsImportProtocol  FIXABLE  ━━━━━━━━━━━━━━━━━━
+
+  i A Node.js builtin module should be imported with the node: protocol.
+  
+    1 │ import { existsSync } from 'fs'
+    2 │ import { join } from 'path'
+  > 3 │ import { fileURLToPath } from 'url'
+      │                               ^^^^^
+    4 │ import { diagnoseTask } from '../../agents/diagnose.ts'
+    5 │ import { loadOrcheConfig } from '../../config/load.ts'
+  
+  i Using the node: protocol is more explicit and signals that the imported module belongs to Node.js.
+  
+  i Unsafe fix: Add the node: protocol.
+  
+      1   1 │   import { existsSync } from 'fs'
+      2   2 │   import { join } from 'path'
+      3     │ - import·{·fileURLToPath·}·from·'url'
+          3 │ + import·{·fileURLToPath·}·from·'node:url'
+      4   4 │   import { diagnoseTask } from '../../agents/diagnose.ts'
+      5   5 │   import { loadOrcheConfig } from '../../config/load.ts'
+  
+
+docs/done/evidence/ERP.7.1a/live.ts:83:31 lint/suspicious/noExplicitAny ━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  ! Unexpected any. Specify a different type.
+  
+    81 │     git(root, 'add', '.')
+    82 │     git(root, 'commit', '-m', 'fixture')
+  > 83 │     upsertProject(root, {} as any, '')
+       │                               ^^^
+    84 │     const project = getProject(root)!
+    85 │     const log = new RunLogger(root, task.id)
+  
+  i any disables many type checking rules. Its use should be avoided.
+  
+
+docs/done/evidence/ERP.7.1a/live.ts:84:21 lint/style/noNonNullAssertion ━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  ! Forbidden non-null assertion.
+  
+    82 │     git(root, 'commit', '-m', 'fixture')
+    83 │     upsertProject(root, {} as any, '')
+  > 84 │     const project = getProject(root)!
+       │                     ^^^^^^^^^^^^^^^^^
+    85 │     const log = new RunLogger(root, task.id)
+    86 │     const resultPromise = runTask({
+  
+
+docs/done/evidence/ERP.7.1a/live.ts:102:19 lint/suspicious/noExplicitAny ━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  ! Unexpected any. Specify a different type.
+  
+    100 │     })
+    101 │     let runId: string | undefined
+  > 102 │     let response: any
+        │                   ^^^
+    103 │     const request = async (path: string, body?: unknown) =>
+    104 │       page.evaluate(
+  
+  i any disables many type checking rules. Its use should be avoided.
+  
+
+docs/done/evidence/ERP.7.1a/live.ts:118:30 lint/suspicious/noExplicitAny ━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  ! Unexpected any. Specify a different type.
+  
+    116 │     while (Date.now() < deadline && !settled) {
+    117 │       const tasks = await request('/api/tasks')
+  > 118 │       runId = (tasks.body as any).tasks?.[0]?.runId ?? undefined
+        │                              ^^^
+    119 │       if (runId) {
+    120 │         response = await request(`/api/runs/${runId}/approval`)
+  
+  i any disables many type checking rules. Its use should be avoided.
+  
+
+docs/done/evidence/ERP.7.1a/live.ts:133:17 lint/suspicious/noExplicitAny ━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  ! Unexpected any. Specify a different type.
+  
+    131 │     check(
+    132 │       response.body.events.some(
+  > 133 │         (event: any) => event.type === 'approval_resolved' && event.decision === 'auto',
+        │                 ^^^
+    134 │       ),
+    135 │       'Patch must have an automatic resolution',
+  
+  i any disables many type checking rules. Its use should be avoided.
+  
+
+docs/done/evidence/ERP.7.1a/live.ts:178:5 lint/style/noNonNullAssertion ━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  ! Forbidden non-null assertion.
+  
+    176 │     )
+    177 │     const file = loadTasks(root)
+  > 178 │     file.tasks[0]!.status = 'done'
+        │     ^^^^^^^^^^^^^^
+    179 │     file.tasks[0]!.run_id = result.runId
+    180 │     saveTasks(root, file)
+  
+
+docs/done/evidence/ERP.7.1a/live.ts:179:5 lint/style/noNonNullAssertion ━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  ! Forbidden non-null assertion.
+  
+    177 │     const file = loadTasks(root)
+    178 │     file.tasks[0]!.status = 'done'
+  > 179 │     file.tasks[0]!.run_id = result.runId
+        │     ^^^^^^^^^^^^^^
+    180 │     saveTasks(root, file)
+    181 │     console.log('GET_FINAL', JSON.stringify(await request(`/api/runs/${runId}/approval`)))
+  
+
+src/dashboard/handlers/runs.ts:88:59 lint/style/noNonNullAssertion ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  ! Forbidden non-null assertion.
+  
+    86 │   if (label === 'single-shot') return { engine: 'single-shot', iterations: 1 }
+    87 │   const m = label.match(/^agentic \((\d+) rounds?\)$/)
+  > 88 │   if (m) return { engine: 'agentic', iterations: parseInt(m[1]!, 10) }
+       │                                                           ^^^^^
+    89 │   // B.2 — external.ts escribe "external (claude-code, N turn[s])" (1 o N turnos, según num_turns de Claude Code).
+    90 │   const e = label.match(/^external \(claude-code, (\d+) turns?\)$/)
+  
+
+src/dashboard/handlers/runs.ts:91:60 lint/style/noNonNullAssertion ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  ! Forbidden non-null assertion.
+  
+    89 │   // B.2 — external.ts escribe "external (claude-code, N turn[s])" (1 o N turnos, según num_turns de Claude Code).
+    90 │   const e = label.match(/^external \(claude-code, (\d+) turns?\)$/)
+  > 91 │   if (e) return { engine: 'external', iterations: parseInt(e[1]!, 10) }
+       │                                                            ^^^^^
+    92 │   // G.5 — opencode.ts escribe "opencode (N step[s])".
+    93 │   const o = label.match(/^opencode \((\d+) steps?\)$/)
+  
+
+src/dashboard/handlers/runs.ts:94:60 lint/style/noNonNullAssertion ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  ! Forbidden non-null assertion.
+  
+    92 │   // G.5 — opencode.ts escribe "opencode (N step[s])".
+    93 │   const o = label.match(/^opencode \((\d+) steps?\)$/)
+  > 94 │   if (o) return { engine: 'opencode', iterations: parseInt(o[1]!, 10) }
+       │                                                            ^^^^^
+    95 │   // G.4.2b — codex.ts escribe "codex (exec)" (label fijo, sin N — codex exec no expone conteo de turnos).
+    96 │   if (label === 'codex (exec)') return { engine: 'codex', iterations: 1 }
+  
+
+src/dashboard/handlers/runs.ts:187:15 lint/suspicious/noExplicitAny ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  ! Unexpected any. Specify a different type.
+  
+    185 │       suggestions.length > 0 ? proposeInstinctsFromPatterns(suggestions, projectId) : []
+    186 │     return jsonResponse({ suggestions, proposals })
+  > 187 │   } catch (e: any) {
+        │               ^^^
+    188 │     return errorResponse(`Analysis failed: ${e.message}`, 502)
+    189 │   }
+  
+  i any disables many type checking rules. Its use should be avoided.
+  
+
+src/dashboard/handlers/runs.ts:295:13 lint/suspicious/noExplicitAny ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  ! Unexpected any. Specify a different type.
+  
+    293 │   if (req.method === 'GET')
+    294 │     return jsonResponse({ pending: pendingApprovals(id), events: approvalEvents(id) })
+  > 295 │   let body: any
+        │             ^^^
+    296 │   try {
+    297 │     body = await req.json()
+  
+  i any disables many type checking rules. Its use should be avoided.
+  
+
+src/run/executors/codex-approval.ts:13:23 lint/style/noNonNullAssertion  FIXABLE  ━━━━━━━━━━━━━━━━━━
+
+  ! Forbidden non-null assertion.
+  
+    11 │     command,
+    12 │   )
+  > 13 │   if (wrapper) return wrapper[1]!.replaceAll("'\\''", "'").trim() || undefined
+       │                       ^^^^^^^^^^^
+    14 │   // A structured command is usable only when it accounts for the complete command.
+    15 │   if (
+  
+  i Unsafe fix: Replace with optional chain operator ?. This operator includes runtime checks, so it is safer than the compile-only non-null assertion operator
+  
+    11 11 │       command,
+    12 12 │     )
+    13    │ - ··if·(wrapper)·return·wrapper[1]!.replaceAll("'\\''",·"'").trim()·||·undefined
+       13 │ + ··if·(wrapper)·return·wrapper[1]?.replaceAll("'\\''",·"'").trim()·||·undefined
+    14 14 │     // A structured command is usable only when it accounts for the complete command.
+    15 15 │     if (
+  
+
+src/run/executors/codex-approval.ts:27:11 lint/suspicious/noExplicitAny ━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  ! Unexpected any. Specify a different type.
+  
+    25 │ export function codexApprovalRequest(
+    26 │   method: string,
+  > 27 │   params: any,
+       │           ^^^
+    28 │   item: any,
+    29 │   projectRoot: string,
+  
+  i any disables many type checking rules. Its use should be avoided.
+  
+
+src/run/executors/codex-approval.ts:28:9 lint/suspicious/noExplicitAny ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  ! Unexpected any. Specify a different type.
+  
+    26 │   method: string,
+    27 │   params: any,
+  > 28 │   item: any,
+       │         ^^^
+    29 │   projectRoot: string,
+    30 │ ): ApprovalRequest {
+  
+  i any disables many type checking rules. Its use should be avoided.
+  
+
+src/run/executors/codex-approval.ts:32:20 lint/suspicious/noExplicitAny ━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  ! Unexpected any. Specify a different type.
+  
+    30 │ ): ApprovalRequest {
+    31 │   if (method === 'item/fileChange/requestApproval') {
+  > 32 │     const changes: any[] = Array.isArray(item?.changes) ? item.changes : []
+       │                    ^^^
+    33 │     const files = changes.flatMap((change) =>
+    34 │       [change.path, change.kind?.move_path].filter((p) => typeof p === 'string'),
+  
+  i any disables many type checking rules. Its use should be avoided.
+  
+
+src/run/executors/codex-approval.ts:55:30 lint/suspicious/noExplicitAny ━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  ! Unexpected any. Specify a different type.
+  
+    53 │       Array.isArray(actions) &&
+    54 │       actions.length > 0 &&
+  > 55 │       actions.every((action: any) => ['read', 'search', 'listFiles'].includes(action.type)),
+       │                              ^^^
+    56 │   }
+    57 │ }
+  
+  i any disables many type checking rules. Its use should be avoided.
+  
+
+Skipped 10 suggested fixes.
+If you wish to apply the suggested (unsafe) fixes, use the command biome check --write --unsafe
+
+The number of diagnostics exceeds the limit allowed. Use --max-diagnostics to increase it.
+Diagnostics not shown: 38.
+Checked 7 files in 36ms. Fixed 6 files.
+Found 54 warnings.
+Found 4 infos.

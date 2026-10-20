@@ -1688,6 +1688,37 @@ ERP ni prueba visual nueva. Los ítems permanecen abiertos hasta sus gates reale
   por acción, con aviso "Approval" en la barra lateral (`docs/done/evidence/ERP.7/permisos.png`). Lección en contra:
   Supervised pidió aprobación hasta para `cat` (6 aprobaciones en un arreglo de una línea); lo de solo lectura no se
   pregunta. Toca el chat central: plan corto y GO de Carlos antes de codear.
+  **Plan con GO de Carlos (2026-10-20).** El chat ya es solo lectura en los 3 CLI; lo que edita y ejecuta son las
+  **tareas**, que hoy corren sin preguntar (`codex exec --sandbox workspace-write`, `opencode run --auto`). ERP.7.1 =
+  aprobar cada acción de una tarea mientras corre, desde su tarjeta en el hilo. Decisiones cerradas: **3 modos**, los
+  niveles nativos de cada CLI con un nombre común — Supervisado (Claude `manual` / Codex `untrusted`), **Auto-edición
+  por defecto** (`acceptEdits` / `workspace-write` + `on-request`: edita sin preguntar, pregunta los comandos que no son
+  de lectura) y Total (`bypassPermissions` / `never`, lo de hoy). Lectura, búsqueda y listado no preguntan, según el tipo
+  de acción que reporta el CLI. "Aprobar siempre en esta tarea" entra desde el primer corte. "Manual" (retener la tarea
+  entera) queda aparte. Fuera: API/Ollama, recordar aprobaciones entre tareas, acceso remoto (IDEAS #73).
+- [x] **ERP.7.1a — 🧠 Capa común de aprobación por acción y adaptador Codex (app-server) para tareas.**
+  El run emite `approval_requested {runId, id, tipo: comando|edición, detalle}` y espera `POST /api/runs/:id/approval`
+  (`aprobar | rechazar | aprobar-siempre`); la tarea Codex corre por `codex app-server` con la política del modo. Gate en
+  vivo: tarea real en Auto-edición que pide un comando no de lectura, se aprueba por la API y la tarea termina.
+  **Cerrado 2026-10-20.** Codex 0.163 no tiene política nativa para Auto-edición (`on-request` corrió `mkdir` sin
+  preguntar; `untrusted` pregunta también el patch): el modo vive en OrchestOS. La tarea Codex corre por app-server en
+  `untrusted` y `decideApproval()` (`src/run/approvals.ts`) aprueba sola las ediciones dentro del proyecto y la lectura;
+  lo demás emite `approval_requested` y espera `POST /api/runs/:id/approval`. `approve-always` = mismo comando completo
+  exacto. Default sigue `full` hasta ERP.7.1c. Gate en vivo: navegador real (Playwright), `docs/done/evidence/ERP.7.1a/round3-live-verified.log`:
+  tarea real en `auto-edit`, el patch se aprobó solo, solo preguntó `mkdir`; `approve` lo ejecutó, `reject` lo impidió.
+  QA adversarial halló un bloqueante (`approve-always` de `bun test` cubría `bun test; rm -rf x`), corregido con test.
+  Cerebro: `tsc` verde, `test:coverage` 1824/0. Informe: `docs/done/ERP.7.1a.md`.
+  Ejecutado por: criterio-alt (rondas 1-3) + mecanico (ronda 4) · revisión qa · Spec: docs/specs/ERP.7.1a.md
+- [ ] **SEC.1 — ⚡ `bun audit` en rojo: 4 vulnerabilidades altas en dependencias transitivas.**
+  (2026-10-20, hallado al correr `security:gate` en ERP.7.1a.) `brace-expansion` (>=4.0.0 <5.0.11, GHSA-qhr7-859c-m2p7,
+  GHSA-6j4f-fj2g-mc7p) y `fast-uri` (<3.1.7, GHSA-qw65-cvwx-89v3, GHSA-58mr-gqgx-xq4g). Gate: `bun run security:gate` exit 0
+  y `bun run test:coverage` verde.
+- [ ] **ERP.7.1b — ⚡ La tarjeta de tarea muestra la solicitud y la responde; aviso "Approval" en la barra lateral.**
+  Comando o diff propuesto + Aprobar / Rechazar / Aprobar siempre; gate en vivo en el dashboard real (Playwright).
+- [ ] **ERP.7.1c — ⚡ Selector de modo en el composer (Supervisado / Auto-edición / Total), por defecto Auto-edición.**
+  Reemplaza la etiqueta de `AgentComposer.tsx:684`; el valor viaja con la tarea creada desde el chat.
+- [ ] **ERP.7.1d — 🧠 Adaptadores Claude (`--permission-prompt-tool`/`PreToolUse`) y OpenCode (`opencode serve` + API de permisos).**
+  Uno por sub-ítem al abrirlo, con su gate en vivo; mismo contrato de ERP.7.1a, sin ramas por marca.
 - [x] **ERP.7.2 — 🧠 Cada turno del chat muestra su diff y se puede deshacer.** (abierto 2026-10-19, hallado en ERP.7)
   El chat no tiene diff por turno ni revert; el revert vive solo en el harness de tareas (`src/run/harness.ts:13`). T3
   cierra cada turno con "N changed files · Open diff" y guarda checkpoints en refs ocultas de git, sin ensuciar la

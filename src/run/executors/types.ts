@@ -10,6 +10,7 @@
  * engine y quedan en el harness.
  */
 
+import type { ApprovalAdapter } from '../approvals.ts'
 import type { FileChange } from '../contract.ts'
 import type { RunContext } from '../middleware.ts'
 import type { CostBreakdownEntry } from '../transcript-parser.ts'
@@ -39,6 +40,7 @@ export interface ExecutorEngine {
   run(
     ctx: RunContext,
     opts: {
+      approvals?: ApprovalAdapter
       maxTokens: number
       maxIterations: number
       /**

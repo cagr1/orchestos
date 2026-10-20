@@ -11,6 +11,7 @@ import { db } from '../../db/sqlite.ts'
 import { upsertTaskRunWatch } from '../../db/task-run-watch.ts'
 import { autoRoute, describeTaskExecutor, formatRoute } from '../../router/auto-route.ts'
 import { resolveProjectAgentRule, taskFieldsFromRule } from '../../router/engine-cascade.ts'
+import { activeApprovalRun } from '../../run/approvals.ts'
 import { commitPaths, commitTasksYaml } from '../../run/commit-tasks-yaml.ts'
 import { detectInstalledClis } from '../../run/executors/cli-registry.ts'
 import { DIRTY_TREE_REASON_PREFIX, listDirtyFiles } from '../../run/sandbox-policy.ts'
@@ -93,6 +94,7 @@ function lastRunAt(runId: string | null | undefined): string | null {
 function buildTaskRow(
   t: ReturnType<typeof loadTasks>['tasks'][number],
   cfg: Parameters<typeof describeTaskExecutor>[1],
+  projectId: string | null,
 ): TaskRow {
   return {
     id: t.id,
@@ -103,7 +105,7 @@ function buildTaskRow(
     ...assignedExecutor(t, cfg),
     retryCount: t.retry_count,
     qaVerdict: t.qa_verdict ?? null,
-    runId: t.run_id ?? null,
+    runId: (t.status === 'running' ? activeApprovalRun(t.id, projectId) : null) ?? t.run_id ?? null,
     lastRunAt: lastRunAt(t.run_id),
     engine: t.engine ?? null,
     output: t.output,
@@ -119,7 +121,7 @@ function loadTaskRows(root: string): TaskRow[] {
   try {
     const file = loadTasks(root)
     const cfg = loadOrcheConfig(root)
-    return file.tasks.map((t) => buildTaskRow(t, cfg))
+    return file.tasks.map((t) => buildTaskRow(t, cfg, getProject(root)?.id ?? null))
   } catch {
     return []
   }
@@ -150,7 +152,9 @@ function handleApiTasks(root: string): Response {
   try {
     const file = loadTasks(root)
     const cfg = loadOrcheConfig(root)
-    const rows: TaskRow[] = file.tasks.map((t) => buildTaskRow(t, cfg))
+    const rows: TaskRow[] = file.tasks.map((t) =>
+      buildTaskRow(t, cfg, getProject(root)?.id ?? null),
+    )
     return jsonResponse({ exists: true, tasks: rows })
   } catch (e: any) {
     return jsonResponse({ exists: true, tasks: [], error: e.message })
@@ -217,6 +221,7 @@ interface CreateTaskParams {
   executor_model?: string
   engine?: string
   cli_effort?: string
+  approvalMode?: string
   task_class?: string
   skill?: string
 }
@@ -230,6 +235,11 @@ function createTaskRecord(
   options: { reservedId?: boolean } = {},
 ): { id: string } | { error: string; status: number } {
   if (!params.description?.trim()) return { error: 'description is required', status: 400 }
+  if (
+    params.approvalMode !== undefined &&
+    !['full', 'auto-edit', 'supervised'].includes(params.approvalMode)
+  )
+    return { error: 'unknown approvalMode', status: 400 }
   const description = params.description.trim()
   const id = params.id?.trim() || descToTaskId(description)
   const output = Array.isArray(params.output)
@@ -291,6 +301,7 @@ function createTaskRecord(
       if (executorModel) newTask.executor_model = executorModel
       if (engine) newTask.engine = engine
       if (cliEffort) newTask.cli_effort = cliEffort
+      if (params.approvalMode) newTask.approvalMode = params.approvalMode
       if (taskClass) newTask.task_class = taskClass
       const skill = params.skill?.trim()
       if (skill && isKnownSkillId(skill)) newTask.skill = skill

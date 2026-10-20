@@ -1,0 +1,12 @@
+$ bun run scripts/agent-preflight.ts --item "ERP.7.1a" --agent codex
+✓ Preflight ERP.7.1a · agente: codex
+Reglas leídas requeridas: AGENTS.md · CLAUDE.md · docs/agent-work-protocol.md · PLAN.md
+Estado actual (cambios existentes se consideran ajenos hasta verificarlo):
+## master...origin/master
+MM .orchestos/feature-status.json
+ M PLAN.md
+MM runs-summary.json
+?? docs/done/ERP.7.1a-blocked.md
+?? docs/done/evidence/ERP.7.1a/
+?? docs/specs/ERP.7.1a.md
+Siguiente gate: bunx tsc --noEmit + suite relevante antes de editar

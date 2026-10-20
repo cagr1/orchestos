@@ -1,0 +1,62 @@
+{
+  "decision": "reject",
+  "pending": {
+    "status": 200,
+    "body": {
+      "pending": [
+        {
+          "runId": "54c24526-b377-458f-a9a1-d646b4c6d887",
+          "approvalId": "aa739791-f077-46a2-97ad-1c965e510f07",
+          "kind": "command",
+          "detail": {
+            "command": "/bin/zsh -c 'mkdir command-marker'",
+            "cwd": "/private/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/erp71a-live-POhJ2k/.orchestos/worktrees/approval-reject-1792512203212"
+          },
+          "commandKey": "mkdir command-marker",
+          "readOnly": false
+        }
+      ],
+      "events": [
+        {
+          "type": "approval_resolved",
+          "runId": "54c24526-b377-458f-a9a1-d646b4c6d887",
+          "approvalId": "bbd399a7-1b44-4d85-b934-9ecb729c0a16",
+          "decision": "auto"
+        },
+        {
+          "type": "approval_requested",
+          "runId": "54c24526-b377-458f-a9a1-d646b4c6d887",
+          "approvalId": "aa739791-f077-46a2-97ad-1c965e510f07",
+          "kind": "command",
+          "detail": {
+            "command": "/bin/zsh -c 'mkdir command-marker'",
+            "cwd": "/private/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/erp71a-live-POhJ2k/.orchestos/worktrees/approval-reject-1792512203212"
+          }
+        }
+      ]
+    }
+  },
+  "resolution": {
+    "status": 200,
+    "body": {
+      "ok": true,
+      "scope": "once"
+    }
+  },
+  "result": {
+    "status": "done",
+    "runId": "54c24526-b377-458f-a9a1-d646b4c6d887",
+    "qaVerdict": "pass",
+    "qaReason": "QA LLM omitido: la tarea no declara criterios de aceptación; checks y salidas declaradas en verde",
+    "filesWritten": ["edit.txt"],
+    "filesBlocked": [],
+    "cost": {
+      "inputTokens": 6033,
+      "outputTokens": 215,
+      "usd": 0.00108584
+    },
+    "elapsedMs": 12615,
+    "contextWarnings": []
+  },
+  "markerObserved": false
+}

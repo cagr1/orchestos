@@ -1,4 +1,5 @@
 import type { TaskClass } from '../router/classify.ts'
+import type { ApprovalMode } from '../run/approvals.ts'
 
 const TASK_CLASSES: readonly TaskClass[] = ['plan', 'implement', 'fix', 'review', 'doc']
 
@@ -45,6 +46,8 @@ export interface Task {
   planner_model?: string
   /** Which ExecutorEngine runs this task — undefined resolves via orchestos.config.yaml, default 'single-shot' (G.3) */
   engine?: TaskEngine
+  /** Optional action approval policy; absent keeps full until ERP.7.1c. */
+  approvalMode?: ApprovalMode
   /** Chosen by the user and interpreted by the selected CLI. */
   cli_effort?: string
   /** Clase declarada al crear la tarea; sin ella el harness clasifica por la descripción. */
@@ -90,6 +93,7 @@ export function validateTask(t: unknown, index: number): Task {
     executor_model: typeof task.executor_model === 'string' ? task.executor_model : undefined,
     planner_model: typeof task.planner_model === 'string' ? task.planner_model : undefined,
     engine: validateEngine(task.engine, err),
+    approvalMode: validateApprovalMode(task.approvalMode, err),
     cli_effort: validateCliEffort(task.cli_effort, task.engine, err),
     task_class: validateTaskClass(task.task_class, err),
     input: Array.isArray(task.input) ? (task.input as string[]) : [],
@@ -220,4 +224,14 @@ export function validateTasksFile(raw: unknown): TasksFile {
   if (dupes.length > 0) throw new Error(`tasks.yaml: duplicate task ids: ${dupes.join(', ')}`)
 
   return { version: 1, project: f.project as string, tasks }
+}
+
+function validateApprovalMode(
+  value: unknown,
+  err: (msg: string) => never,
+): ApprovalMode | undefined {
+  if (value === undefined) return undefined
+  if (value !== 'full' && value !== 'supervised' && value !== 'auto-edit')
+    err('unknown approvalMode')
+  return value as ApprovalMode
 }

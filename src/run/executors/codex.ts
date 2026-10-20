@@ -47,7 +47,11 @@ import { getCatalog } from '../../router/model-catalog.ts'
 import { knownCostWithCache } from '../../router/pricing.ts'
 import { safeChildEnv } from '../path-policy.ts'
 import { provisionCliConfigHome } from './cli-registry.ts'
-import { type CodexAppServerThreadStore, getCodexAppServer } from './codex-app-server.ts'
+import {
+  CodexAppServer,
+  type CodexAppServerThreadStore,
+  getCodexAppServer,
+} from './codex-app-server.ts'
 import { startSpawnTrace } from './spawn-trace.ts'
 import { codexEventToStep, type ExecutorStepEvent } from './step-event.ts'
 import type { ExecutorEngine, ExecutorOutcome } from './types.ts'
@@ -632,29 +636,52 @@ export const codexEngine: ExecutorEngine = {
     // R.8.5.1 — home del proyecto (no del worktree), el mismo que usa el chat.
     const configHome = provisionCliConfigHome(ctx.opts.projectRoot, 'codex')
 
-    let stdout: string
-    let timedOut: boolean
-    try {
-      ;({ stdout, timedOut } = await runCodex(
-        ctx.effectiveRoot,
-        buildCodexArgs(prompt, codexModel, ctx.cliEffort),
-        timeoutMs,
-        opts.onStep,
-        buildCodexChatEnv(configHome.path),
-      ))
-    } catch (e: any) {
-      throw new ExecutorCodexError(`failed to spawn codex: ${e.message}`)
-    }
-
     let parsed: ReturnType<typeof parseCodexStream>
-    try {
-      parsed = parseCodexStream(stdout)
-    } catch (e: any) {
-      throw new ExecutorCodexError(
-        timedOut
-          ? `codex timed out after ${timeoutMs}ms with no parseable output — cost unknown, not reported as $0`
-          : e.message,
-      )
+    let timedOut = false
+    const approvalMode = ctx.task.approvalMode ?? 'full'
+    if (approvalMode !== 'full') {
+      if (!opts.approvals) throw new ExecutorCodexError('Task approval adapter is required')
+      const server = new CodexAppServer({
+        binary: CODEX_BINARY,
+        env: buildCodexChatEnv(configHome.path),
+        store: { get: () => ({ threadId: null, contextHash: null }), set: () => {} },
+      })
+      try {
+        parsed = await server.taskTurn({
+          cwd: ctx.effectiveRoot,
+          prompt,
+          model: codexModel,
+          effort: ctx.cliEffort,
+          timeoutMs,
+          approvals: opts.approvals,
+          onStep: opts.onStep,
+        })
+      } finally {
+        server.kill()
+      }
+    } else {
+      let stdout: string
+      try {
+        ;({ stdout, timedOut } = await runCodex(
+          ctx.effectiveRoot,
+          buildCodexArgs(prompt, codexModel, ctx.cliEffort),
+          timeoutMs,
+          opts.onStep,
+          buildCodexChatEnv(configHome.path),
+        ))
+      } catch (e: any) {
+        throw new ExecutorCodexError(`failed to spawn codex: ${e.message}`)
+      }
+
+      try {
+        parsed = parseCodexStream(stdout)
+      } catch (e: any) {
+        throw new ExecutorCodexError(
+          timedOut
+            ? `codex timed out after ${timeoutMs}ms with no parseable output — cost unknown, not reported as $0`
+            : e.message,
+        )
+      }
     }
 
     // F0.8 — costo desconocido explícito, nunca $0 silencioso: codex no
@@ -688,7 +715,10 @@ export const codexEngine: ExecutorEngine = {
           outputTokens: parsed.outputTokens,
           costUsd: usd,
           binary: CODEX_BINARY,
-          args: buildCodexArgsDisplay(codexModel, ctx.cliEffort),
+          args:
+            approvalMode === 'full'
+              ? buildCodexArgsDisplay(codexModel, ctx.cliEffort)
+              : ['app-server'],
         },
       ],
       log: [

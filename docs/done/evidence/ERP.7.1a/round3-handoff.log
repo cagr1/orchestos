@@ -1,0 +1,2 @@
+$ bun run scripts/agent-handoff.ts
+✓ .orchestos/handoff.md generado

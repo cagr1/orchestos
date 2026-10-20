@@ -6,6 +6,12 @@ import {
   markRunReverted,
   type RunRecord,
 } from '../../db/runs.ts'
+import {
+  approvalEvents,
+  getApprovalRun,
+  pendingApprovals,
+  resolveApproval,
+} from '../../run/approvals.ts'
 import { withGitLock } from '../../run/git-lock.ts'
 import { parseReadAudit } from '../../run/read-audit.ts'
 import { git } from '../../run/sandbox.ts'
@@ -272,4 +278,38 @@ export {
   handleApiRunsBulkDelete,
   handleApiRunsDelete,
   handleApiRunsRevert,
+}
+
+export async function handleApiRunApproval(
+  req: Request,
+  url: URL,
+  projectId: string | null,
+): Promise<Response> {
+  const id = url.pathname.slice('/api/runs/'.length, -'/approval'.length)
+  const session = getApprovalRun(id)
+  const run = getRun(id)
+  if (
+    (!session?.active || session.project_id !== projectId) &&
+    (!run || run.project_id !== projectId)
+  )
+    return errorResponse('Run not found', 404)
+  if (req.method === 'GET')
+    return jsonResponse({ pending: pendingApprovals(id), events: approvalEvents(id) })
+  let body: any
+  try {
+    body = await req.json()
+  } catch {
+    return errorResponse('Invalid JSON', 400)
+  }
+  if (
+    !body ||
+    typeof body.approvalId !== 'string' ||
+    !body.approvalId ||
+    !['approve', 'reject', 'approve-always'].includes(body.decision)
+  )
+    return errorResponse('Invalid approvalId or decision', 400)
+  const result = resolveApproval(id, body.approvalId, body.decision)
+  return result
+    ? jsonResponse({ ok: true, ...result })
+    : errorResponse('Approval is resolved or belongs to another run', 409)
 }

@@ -1,0 +1,24 @@
+$ bun run scripts/run-evidence-gate.ts --label "erp.7.1a" -- bun run "docs/done/evidence/ERP.7.1a/live.ts"
+[gate:evidence] isolated home: /var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/orchestos-evidence-erp.7.1a-51UxfO
+[gate:evidence] durable home: /Users/carlosgallardo
+Migration 10: nulled 0 orphan runs.project_id
+Migration 11: nulled 0 orphan files and 0 orphan edges
+[dashboard] Server running at http://localhost:62585
+DASHBOARD http://localhost:62585 browser title: OrchestOS AI Agent Dashboard
+GET_PENDING approve {"status":200,"body":{"pending":[{"runId":"a7c3ca3a-db46-4d19-954c-1b242340e54c","approvalId":"6d2f7f0c-e6c2-4228-9462-9b1df4df48db","kind":"command","detail":{"command":"/bin/zsh -lc 'mkdir command-marker'","cwd":"/private/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/erp71a-live-zGPrmw/.orchestos/worktrees/approval-approve-1792512057817"},"commandKey":"mkdir command-marker","readOnly":false}],"events":[{"type":"approval_resolved","runId":"a7c3ca3a-db46-4d19-954c-1b242340e54c","approvalId":"d19343b6-9f75-44e1-8df4-d719aed33159","decision":"auto"},{"type":"approval_resolved","runId":"a7c3ca3a-db46-4d19-954c-1b242340e54c","approvalId":"c26aaf65-c628-44dd-9bbb-3c49bb13759a","decision":"auto"},{"type":"approval_requested","runId":"a7c3ca3a-db46-4d19-954c-1b242340e54c","approvalId":"6d2f7f0c-e6c2-4228-9462-9b1df4df48db","kind":"command","detail":{"command":"/bin/zsh -lc 'mkdir command-marker'","cwd":"/private/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/erp71a-live-zGPrmw/.orchestos/worktrees/approval-approve-1792512057817"}}]}}
+FIXTURE_REMOVED /private/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/erp71a-live-zGPrmw true
+Temporary runs exported and home cleaned by gate:evidence after this process exits
+16 | const evidence = import.meta.dir
+17 | const roots: string[] = []
+18 | let dashboard: ReturnType<typeof startServer> | undefined
+19 | let browser: Awaited<ReturnType<typeof chromium.launch>> | undefined
+20 | function check(value: unknown, message: string): asserts value {
+21 |   if (!value) throw new Error(message)
+                             ^
+error: Expected body validation for same-origin request
+      at check (/Users/carlosgallardo/Projects/projects/orchestos/docs/done/evidence/ERP.7.1a/live.ts:21:25)
+      at /Users/carlosgallardo/Projects/projects/orchestos/docs/done/evidence/ERP.7.1a/live.ts:155:5
+
+Bun v1.4.0 (macOS arm64)
+[gate:evidence] evidence: 0 exported, 0 duplicate(s)
+error: script "gate:evidence" exited with code 1

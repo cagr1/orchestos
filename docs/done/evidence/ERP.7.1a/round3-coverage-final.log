@@ -1,0 +1,975 @@
+$ bun run scripts/check-coverage.ts
+bun test v1.4.0 (34cbb9a40)
+✓ Gate en vivo documentado para dashboard/config
+✓ Gate en vivo documentado para dashboard/config
+[gate:evidence] isolated home: /var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/orchestos-evidence-capture-home-5crGRT
+[gate:evidence] durable home: /var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/orchestos-evidence-env-8u5uY6
+[gate:evidence] evidence: 0 exported, 0 duplicate(s)
+[gate:evidence] isolated home: /var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/orchestos-evidence-failed-gate-xYNB86
+[gate:evidence] durable home: /var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/orchestos-evidence-home-z2GBhK
+[gate:evidence] evidence: 1 exported, 0 duplicate(s)
+[gate:evidence] isolated home: /var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/orchestos-evidence-preserve-5OLeva
+[gate:evidence] durable home: /var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/orchestos-evidence-invalid-parent-e4gwoS/not-a-directory
+[adversarial-review] abortado: codex terminó con exit 1 — el SHA no avanza
+[adversarial-review] abortado: codex no devolvió un agent_message — el SHA no avanza
+[adversarial-review] abortado: hallazgos con JSON inválido o elementos malformados — el SHA no avanza
+[adversarial-review] abortado: hallazgos con JSON inválido o elementos malformados — el SHA no avanza
+[harness] dry-run - provider: openrouter, model: mock/model [api/mock/model (executor)], reviewer: api/mock/reviewer, system: 682 chars
+[harness] dry-run - provider: openrouter, model: mock/model [api/mock/model (executor)], reviewer: api/mock/reviewer, system: 682 chars
+
+scripts/plan-import.test.ts:
+Migration 10: nulled 0 orphan runs.project_id
+Migration 11: nulled 0 orphan files and 0 orphan edges
+
+scripts/check-live-gate.test.ts:
+✗ Cambio de dashboard/config sin cierre y evidencia en PLAN.md.
+  El mismo commit debe añadir [x] y una línea "Gate en vivo:" que cite navegador, browser o
+  Playwright, Y citar entre backticks un archivo de evidencia (`ruta.ts`/`.json`/`.log`)
+  que exista como blob staged dentro del MISMO ítem cerrado — no basta con la frase (H.10.1).
+  Si la evidencia vive en docs/done/ (enlace → [evidencia](...)), esa sección debe traer
+  la misma frase y cita, resuelta desde el índice, no desde el disco.
+✗ Cambio de dashboard/config sin cierre y evidencia en PLAN.md.
+  El mismo commit debe añadir [x] y una línea "Gate en vivo:" que cite navegador, browser o
+  Playwright, Y citar entre backticks un archivo de evidencia (`ruta.ts`/`.json`/`.log`)
+  que exista como blob staged dentro del MISMO ítem cerrado — no basta con la frase (H.10.1).
+  Si la evidencia vive en docs/done/ (enlace → [evidencia](...)), esa sección debe traer
+  la misma frase y cita, resuelta desde el índice, no desde el disco.
+✗ Cambio de dashboard/config sin cierre y evidencia en PLAN.md.
+  El mismo commit debe añadir [x] y una línea "Gate en vivo:" que cite navegador, browser o
+  Playwright, Y citar entre backticks un archivo de evidencia (`ruta.ts`/`.json`/`.log`)
+  que exista como blob staged dentro del MISMO ítem cerrado — no basta con la frase (H.10.1).
+  Si la evidencia vive en docs/done/ (enlace → [evidencia](...)), esa sección debe traer
+  la misma frase y cita, resuelta desde el índice, no desde el disco.
+
+scripts/session-status.test.ts:
+[rate-limits] codex app-server sin respuesta de account/rateLimits/read tras 156 ms (tope 8000 ms)
+
+scripts/run-evidence-gate.test.ts:
+Migration 10: nulled 0 orphan runs.project_id
+Migration 11: nulled 0 orphan files and 0 orphan edges
+Migration 10: nulled 0 orphan runs.project_id
+Migration 11: nulled 0 orphan files and 0 orphan edges
+[gate:evidence] export failed; evidence preserved at /var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/orchestos-evidence-preserve-5OLeva
+durable DB migration failed: $ bun run scripts/migrate-db.ts
+10 | // Exportado para que un test pueda afirmar contra qué DB corre la suite; ver
+11 | // `scripts/db-isolation.test.ts`. Congelado en el primer import, a propósito.
+12 | export const DB_PATH = join(DB_DIR, 'db.sqlite')
+13 | 
+14 | if (!existsSync(DB_DIR)) {
+15 |   mkdirSync(DB_DIR, { recursive: true })
+       ^
+ENOTDIR: not a directory, mkdir '/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/orchestos-evidence-invalid-parent-e4gwoS/not-a-directory/.orchestos'
+    path: "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/orchestos-evidence-invalid-parent-e4gwoS/not-a-directory/.orchestos",
+ syscall: "mkdir",
+   errno: -20,
+    code: "ENOTDIR"
+
+      at /Users/carlosgallardo/Projects/projects/orchestos/src/db/sqlite.ts:15:3
+
+Bun v1.4.0 (macOS arm64)
+error: script "db:migrate" exited with code 1
+
+scripts/adversarial-review.test.ts:
+281 |           "import { expect, test } from 'bun:test'",
+282 |           "import { bump } from '../src/counter.ts'",
+283 |           "test('bump devuelve 1', () => { expect(bump()).toBe(1) })",
+284 |         ].join('\n'),
+285 |       })
+286 |       expect(result.reason).toBe('assertion-failed')
+                                  ^
+error: expect(received).toBe(expected)
+
+Expected: "assertion-failed"
+Received: "infrastructure-error"
+
+      at <anonymous> (/Users/carlosgallardo/Projects/projects/orchestos/scripts/adversarial-review.test.ts:286:29)
+(fail) adversarial review — hallazgos y REVIEW.md > un hallazgo legítimo sobrevive: la aserción corre de verdad y falla [10.93ms]
+302 |     'el sandbox bloquea de verdad escritura externa, red y credenciales',
+303 |     async () => {
+304 |       const root = temp('orchestos-adversarial-sandbox-root-')
+305 |       const credential = join(process.env.HOME ?? '', '.ssh', 'h10-sandbox-probe')
+306 |       mkdirSync(join(process.env.HOME ?? '', '.ssh'), { recursive: true })
+307 |       writeFileSync(credential, 'no debe leerse')
+            ^
+EPERM: operation not permitted, open '/Users/carlosgallardo/.ssh/h10-sandbox-probe'
+    path: "/Users/carlosgallardo/.ssh/h10-sandbox-probe",
+ syscall: "open",
+   errno: -1,
+    code: "EPERM"
+
+      at <anonymous> (/Users/carlosgallardo/Projects/projects/orchestos/scripts/adversarial-review.test.ts:307:7)
+(fail) adversarial review — hallazgos y REVIEW.md > el sandbox bloquea de verdad escritura externa, red y credenciales [0.50ms]
+
+src/mcp/readonly.test.ts:
+549 |     const h = hostileRepo()
+550 |     const wt = join(h.dir, 'linked')
+551 |     h.run('worktree', 'add', '-q', wt)
+552 |     const res = await readonly(wt, 'git', 'rev-parse', '--show-toplevel')
+553 |     expect(res.isError).toBe(false)
+554 |     expect(res.text.trim()).toBe(realpathSync(wt))
+                                  ^
+error: expect(received).toBe(expected)
+
+- "/private/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/at21-host-kDHI6J/linked"
++ "/private/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/at21-host-kDHI6J/linked
++ git: warning: confstr() failed with code 5: couldn't get path of DARWIN_USER_TEMP_DIR; using /tmp instead"
+
+- Expected  - 1
++ Received  + 2
+
+      at <anonymous> (/Users/carlosgallardo/Projects/projects/orchestos/src/mcp/readonly.test.ts:554:29)
+(fail) run_readonly — config hostil del repo (ronda 3) > un worktree enlazado (.git es archivo) sigue valiendo [412.05ms]
+
+src/__tests__/harness-executor-reply.test.ts:
+[cli-spawn] {"event":"start","agent":"claude","cwd":"/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/orchestos-erp48-fD2z3W/.orchestos/worktrees/erp48-executor-reply-1792512280778","args":["-p","--output-format","stream-json","--include-partial-messages","--verbose","--append-system-prompt","<178 chars>","--allowedTools","Edit,Write,Read,Glob,Grep","--model","claude-haiku-4-5","--disallowedTools","Agent","--restricted","--strict-mcp-config","--settings","/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/orchestos-erp48-fD2z3W/.orchestos/agent-home/claude/settings.json"],"env":{"HOME":"/Users/carlosgallardo","CLAUDE_CONFIG_DIR":null,"CODEX_HOME":null,"ORCHESTOS_HOME":"/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/orchestos-erp48-home-sCDApF","PATH":"/Users/carlosgallardo/Projects/projects/orchestos/node_modules/.bin:/Users/carlosgallardo/Projects/projects/orchestos/node_modules/.bin:/Users/carlosgallardo/Projects/projects/node_modules/.bin:/Users/carlosgallardo/Projects/node_modules/.bin"}}
+[cli-spawn] {"event":"end","agent":"claude","firstByteMs":0,"totalMs":1,"exitCode":0,"timedOut":false,"stderrTail":""}
+[cli-spawn] {"event":"start","agent":"claude","cwd":"/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/orchestos-erp48-WW6vot/.orchestos/worktrees/erp48-executor-reply-1792512281569","args":["-p","--output-format","stream-json","--include-partial-messages","--verbose","--append-system-prompt","<178 chars>","--allowedTools","Edit,Write,Read,Glob,Grep","--model","claude-haiku-4-5","--disallowedTools","Agent","--restricted","--strict-mcp-config","--settings","/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/orchestos-erp48-WW6vot/.orchestos/agent-home/claude/settings.json"],"env":{"HOME":"/Users/carlosgallardo","CLAUDE_CONFIG_DIR":null,"CODEX_HOME":null,"ORCHESTOS_HOME":"/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/orchestos-erp48-home-sCDApF","PATH":"/Users/carlosgallardo/Projects/projects/orchestos/node_modules/.bin:/Users/carlosgallardo/Projects/projects/orchestos/node_modules/.bin:/Users/carlosgallardo/Projects/projects/node_modules/.bin:/Users/carlosgallardo/Projects/node_modules/.bin"}}
+[cli-spawn] {"event":"end","agent":"claude","firstByteMs":0,"totalMs":0,"exitCode":0,"timedOut":false,"stderrTail":""}
+
+src/__tests__/graph-runner.test.ts:
+  → a attempt 1
+[graph] ✓ a done
+  → b attempt 1
+[graph] ✓ b done
+  → c attempt 1
+[graph] ✓ c done
+  → a attempt 1
+[graph] ✓ a done
+  → b attempt 1
+[graph] ✓ b done
+  → c attempt 1
+[graph] ✓ c done
+  → a attempt 1
+[graph] ✓ a done
+  → a attempt 1
+  → a attempt 2
+  → a attempt 3
+  [diagnose] unknown (low) — review the task manually
+[graph] ✗ a failed permanently — branch blocked
+  → c attempt 1
+[graph] ✓ c done
+  → d attempt 1
+[graph] ✓ d done
+  → a attempt 1
+  → a attempt 2
+  → a attempt 3
+  [diagnose] unknown (low) — 
+[graph] ✗ a failed permanently — branch blocked
+  → a attempt 1
+[graph] ✓ a done
+  → b attempt 1
+[graph] ✓ b done
+
+[graph] ⏹ Circuit break: cost limit reached ($0.1500)
+
+[graph] ⏹ Circuit break: cost limit reached ($0.0000)
+
+[graph] ⏹ Circuit break: wall-clock limit reached (0 min)
+  → a attempt 1
+[graph] ✓ a done
+  → b attempt 1
+[graph] ✓ b done
+  → chain-0 attempt 1
+[graph] ✓ chain-0 done
+  → chain-1 attempt 1
+[graph] ✓ chain-1 done
+  → chain-2 attempt 1
+[graph] ✓ chain-2 done
+  → chain-3 attempt 1
+[graph] ✓ chain-3 done
+  → chain-4 attempt 1
+[graph] ✓ chain-4 done
+  → chain-5 attempt 1
+[graph] ✓ chain-5 done
+  → chain-6 attempt 1
+[graph] ✓ chain-6 done
+  → chain-7 attempt 1
+[graph] ✓ chain-7 done
+  → chain-8 attempt 1
+[graph] ✓ chain-8 done
+  → chain-9 attempt 1
+[graph] ✓ chain-9 done
+  → chain-10 attempt 1
+[graph] ✓ chain-10 done
+  → chain-11 attempt 1
+[graph] ✓ chain-11 done
+  → chain-12 attempt 1
+[graph] ✓ chain-12 done
+  → chain-13 attempt 1
+[graph] ✓ chain-13 done
+  → chain-14 attempt 1
+[graph] ✓ chain-14 done
+  → chain-15 attempt 1
+[graph] ✓ chain-15 done
+  → chain-16 attempt 1
+[graph] ✓ chain-16 done
+  → chain-17 attempt 1
+[graph] ✓ chain-17 done
+  → chain-18 attempt 1
+[graph] ✓ chain-18 done
+  → chain-19 attempt 1
+[graph] ✓ chain-19 done
+  → chain-20 attempt 1
+[graph] ✓ chain-20 done
+  → chain-21 attempt 1
+[graph] ✓ chain-21 done
+  → chain-22 attempt 1
+[graph] ✓ chain-22 done
+  → chain-23 attempt 1
+[graph] ✓ chain-23 done
+  → chain-24 attempt 1
+[graph] ✓ chain-24 done
+  → chain-25 attempt 1
+[graph] ✓ chain-25 done
+  → chain-26 attempt 1
+[graph] ✓ chain-26 done
+  → chain-27 attempt 1
+[graph] ✓ chain-27 done
+  → chain-28 attempt 1
+[graph] ✓ chain-28 done
+  → chain-29 attempt 1
+[graph] ✓ chain-29 done
+  → chain-30 attempt 1
+[graph] ✓ chain-30 done
+  → chain-31 attempt 1
+[graph] ✓ chain-31 done
+  → chain-32 attempt 1
+[graph] ✓ chain-32 done
+  → chain-33 attempt 1
+[graph] ✓ chain-33 done
+  → chain-34 attempt 1
+[graph] ✓ chain-34 done
+  → chain-35 attempt 1
+[graph] ✓ chain-35 done
+  → chain-36 attempt 1
+[graph] ✓ chain-36 done
+  → chain-37 attempt 1
+[graph] ✓ chain-37 done
+  → chain-38 attempt 1
+[graph] ✓ chain-38 done
+  → chain-39 attempt 1
+[graph] ✓ chain-39 done
+  → chain-40 attempt 1
+[graph] ✓ chain-40 done
+  → chain-41 attempt 1
+[graph] ✓ chain-41 done
+  → chain-42 attempt 1
+[graph] ✓ chain-42 done
+  → chain-43 attempt 1
+[graph] ✓ chain-43 done
+  → chain-44 attempt 1
+[graph] ✓ chain-44 done
+  → chain-45 attempt 1
+[graph] ✓ chain-45 done
+  → chain-46 attempt 1
+[graph] ✓ chain-46 done
+  → chain-47 attempt 1
+[graph] ✓ chain-47 done
+  → chain-48 attempt 1
+[graph] ✓ chain-48 done
+  → chain-49 attempt 1
+[graph] ✓ chain-49 done
+  → chain-50 attempt 1
+[graph] ✓ chain-50 done
+  → chain-51 attempt 1
+[graph] ✓ chain-51 done
+  → chain-52 attempt 1
+[graph] ✓ chain-52 done
+  → chain-53 attempt 1
+[graph] ✓ chain-53 done
+  → chain-54 attempt 1
+[graph] ✓ chain-54 done
+  → chain-55 attempt 1
+[graph] ✓ chain-55 done
+  → chain-56 attempt 1
+[graph] ✓ chain-56 done
+  → chain-57 attempt 1
+[graph] ✓ chain-57 done
+  → chain-58 attempt 1
+[graph] ✓ chain-58 done
+  → chain-59 attempt 1
+[graph] ✓ chain-59 done
+  → chain-60 attempt 1
+[graph] ✓ chain-60 done
+  → chain-61 attempt 1
+[graph] ✓ chain-61 done
+  → chain-62 attempt 1
+[graph] ✓ chain-62 done
+  → chain-63 attempt 1
+[graph] ✓ chain-63 done
+  → chain-64 attempt 1
+[graph] ✓ chain-64 done
+  → chain-65 attempt 1
+[graph] ✓ chain-65 done
+  → chain-66 attempt 1
+[graph] ✓ chain-66 done
+  → chain-67 attempt 1
+[graph] ✓ chain-67 done
+  → chain-68 attempt 1
+[graph] ✓ chain-68 done
+  → chain-69 attempt 1
+[graph] ✓ chain-69 done
+  → chain-70 attempt 1
+[graph] ✓ chain-70 done
+  → chain-71 attempt 1
+[graph] ✓ chain-71 done
+  → chain-72 attempt 1
+[graph] ✓ chain-72 done
+  → chain-73 attempt 1
+[graph] ✓ chain-73 done
+  → chain-74 attempt 1
+[graph] ✓ chain-74 done
+  → chain-75 attempt 1
+[graph] ✓ chain-75 done
+  → chain-76 attempt 1
+[graph] ✓ chain-76 done
+  → chain-77 attempt 1
+[graph] ✓ chain-77 done
+  → chain-78 attempt 1
+[graph] ✓ chain-78 done
+  → chain-79 attempt 1
+[graph] ✓ chain-79 done
+  → chain-80 attempt 1
+[graph] ✓ chain-80 done
+  → chain-81 attempt 1
+[graph] ✓ chain-81 done
+  → chain-82 attempt 1
+[graph] ✓ chain-82 done
+  → chain-83 attempt 1
+[graph] ✓ chain-83 done
+  → chain-84 attempt 1
+[graph] ✓ chain-84 done
+  → chain-85 attempt 1
+[graph] ✓ chain-85 done
+  → chain-86 attempt 1
+[graph] ✓ chain-86 done
+  → chain-87 attempt 1
+[graph] ✓ chain-87 done
+  → chain-88 attempt 1
+[graph] ✓ chain-88 done
+  → chain-89 attempt 1
+[graph] ✓ chain-89 done
+  → chain-90 attempt 1
+[graph] ✓ chain-90 done
+  → chain-91 attempt 1
+[graph] ✓ chain-91 done
+  → chain-92 attempt 1
+[graph] ✓ chain-92 done
+  → chain-93 attempt 1
+[graph] ✓ chain-93 done
+killed 1 dangling process
+  → chain-94 attempt 1
+[graph] ✓ chain-94 done
+killed 1 dangling process
+  → chain-95 attempt 1
+[graph] ✓ chain-95 done
+killed 1 dangling process
+  → chain-96 attempt 1
+[graph] ✓ chain-96 done
+killed 1 dangling process
+  → chain-97 attempt 1
+[graph] ✓ chain-97 done
+killed 1 dangling process
+  → chain-98 attempt 1
+[graph] ✓ chain-98 done
+killed 1 dangling process
+  → chain-99 attempt 1
+[graph] ✓ chain-99 done
+killed 1 dangling process
+  → chain-100 attempt 1
+[graph] ✓ chain-100 done
+[graph] notice: costo acumulado $5.05 supera $5.00
+killed 1 dangling process
+  → chain-101 attempt 1
+[graph] ✓ chain-101 done
+[graph] notice: costo acumulado $5.10 supera $5.00
+killed 1 dangling process
+  → chain-102 attempt 1
+[graph] ✓ chain-102 done
+[graph] notice: costo acumulado $5.15 supera $5.00
+killed 1 dangling process
+  → chain-103 attempt 1
+[graph] ✓ chain-103 done
+[graph] notice: costo acumulado $5.20 supera $5.00
+killed 1 dangling process
+  → chain-104 attempt 1
+[graph] ✓ chain-104 done
+[graph] notice: costo acumulado $5.25 supera $5.00
+killed 1 dangling process
+  → chain-105 attempt 1
+[graph] ✓ chain-105 done
+[graph] notice: costo acumulado $5.30 supera $5.00
+killed 1 dangling process
+  → chain-106 attempt 1
+[graph] ✓ chain-106 done
+[graph] notice: costo acumulado $5.35 supera $5.00
+killed 1 dangling process
+  → chain-107 attempt 1
+[graph] ✓ chain-107 done
+[graph] notice: costo acumulado $5.40 supera $5.00
+killed 1 dangling process
+  → chain-108 attempt 1
+[graph] ✓ chain-108 done
+[graph] notice: costo acumulado $5.45 supera $5.00
+killed 1 dangling process
+  → chain-109 attempt 1
+[graph] ✓ chain-109 done
+[graph] notice: costo acumulado $5.50 supera $5.00
+killed 1 dangling process
+  → chain-110 attempt 1
+[graph] ✓ chain-110 done
+[graph] notice: costo acumulado $5.55 supera $5.00
+killed 1 dangling process
+  → chain-111 attempt 1
+[graph] ✓ chain-111 done
+[graph] notice: costo acumulado $5.60 supera $5.00
+killed 1 dangling process
+  → chain-112 attempt 1
+[graph] ✓ chain-112 done
+[graph] notice: costo acumulado $5.65 supera $5.00
+killed 1 dangling process
+  → chain-113 attempt 1
+[graph] ✓ chain-113 done
+[graph] notice: costo acumulado $5.70 supera $5.00
+killed 1 dangling process
+  → chain-114 attempt 1
+[graph] ✓ chain-114 done
+[graph] notice: costo acumulado $5.75 supera $5.00
+killed 1 dangling process
+  → chain-115 attempt 1
+[graph] ✓ chain-115 done
+[graph] notice: costo acumulado $5.80 supera $5.00
+killed 1 dangling process
+  → chain-116 attempt 1
+[graph] ✓ chain-116 done
+[graph] notice: costo acumulado $5.85 supera $5.00
+killed 1 dangling process
+  → chain-117 attempt 1
+[graph] ✓ chain-117 done
+[graph] notice: costo acumulado $5.90 supera $5.00
+killed 1 dangling process
+  → chain-118 attempt 1
+[graph] ✓ chain-118 done
+[graph] notice: costo acumulado $5.95 supera $5.00
+killed 1 dangling process
+  → chain-119 attempt 1
+[graph] ✓ chain-119 done
+[graph] notice: costo acumulado $6.00 supera $5.00
+killed 1 dangling process
+  → chain-120 attempt 1
+[graph] ✓ chain-120 done
+[graph] notice: costo acumulado $6.05 supera $5.00
+killed 1 dangling process
+  → chain-121 attempt 1
+[graph] ✓ chain-121 done
+[graph] notice: costo acumulado $6.10 supera $5.00
+killed 1 dangling process
+  → chain-122 attempt 1
+[graph] ✓ chain-122 done
+[graph] notice: costo acumulado $6.15 supera $5.00
+killed 1 dangling process
+  → chain-123 attempt 1
+[graph] ✓ chain-123 done
+[graph] notice: costo acumulado $6.20 supera $5.00
+killed 1 dangling process
+  → chain-124 attempt 1
+[graph] ✓ chain-124 done
+[graph] notice: costo acumulado $6.25 supera $5.00
+killed 1 dangling process
+  → chain-125 attempt 1
+[graph] ✓ chain-125 done
+[graph] notice: costo acumulado $6.30 supera $5.00
+killed 1 dangling process
+  → chain-126 attempt 1
+[graph] ✓ chain-126 done
+[graph] notice: costo acumulado $6.35 supera $5.00
+killed 1 dangling process
+  → chain-127 attempt 1
+[graph] ✓ chain-127 done
+[graph] notice: costo acumulado $6.40 supera $5.00
+killed 1 dangling process
+  → chain-128 attempt 1
+[graph] ✓ chain-128 done
+[graph] notice: costo acumulado $6.45 supera $5.00
+killed 1 dangling process
+  → chain-129 attempt 1
+[graph] ✓ chain-129 done
+[graph] notice: costo acumulado $6.50 supera $5.00
+killed 1 dangling process
+  → chain-130 attempt 1
+[graph] ✓ chain-130 done
+[graph] notice: costo acumulado $6.55 supera $5.00
+killed 1 dangling process
+  → chain-131 attempt 1
+[graph] ✓ chain-131 done
+[graph] notice: costo acumulado $6.60 supera $5.00
+killed 1 dangling process
+  → chain-132 attempt 1
+[graph] ✓ chain-132 done
+[graph] notice: costo acumulado $6.65 supera $5.00
+killed 1 dangling process
+  → chain-133 attempt 1
+[graph] ✓ chain-133 done
+[graph] notice: costo acumulado $6.70 supera $5.00
+killed 1 dangling process
+  → chain-134 attempt 1
+[graph] ✓ chain-134 done
+[graph] notice: costo acumulado $6.75 supera $5.00
+killed 1 dangling process
+  → chain-135 attempt 1
+[graph] ✓ chain-135 done
+[graph] notice: costo acumulado $6.80 supera $5.00
+killed 1 dangling process
+  → chain-136 attempt 1
+[graph] ✓ chain-136 done
+[graph] notice: costo acumulado $6.85 supera $5.00
+killed 1 dangling process
+  → chain-137 attempt 1
+[graph] ✓ chain-137 done
+[graph] notice: costo acumulado $6.90 supera $5.00
+killed 1 dangling process
+  → chain-138 attempt 1
+[graph] ✓ chain-138 done
+[graph] notice: costo acumulado $6.95 supera $5.00
+killed 1 dangling process
+  → chain-139 attempt 1
+[graph] ✓ chain-139 done
+[graph] notice: costo acumulado $7.00 supera $5.00
+killed 1 dangling process
+  → chain-140 attempt 1
+[graph] ✓ chain-140 done
+[graph] notice: costo acumulado $7.05 supera $5.00
+killed 1 dangling process
+  → chain-141 attempt 1
+[graph] ✓ chain-141 done
+[graph] notice: costo acumulado $7.10 supera $5.00
+killed 1 dangling process
+  → chain-142 attempt 1
+[graph] ✓ chain-142 done
+[graph] notice: costo acumulado $7.15 supera $5.00
+killed 1 dangling process
+  → chain-143 attempt 1
+[graph] ✓ chain-143 done
+[graph] notice: costo acumulado $7.20 supera $5.00
+killed 1 dangling process
+  → chain-144 attempt 1
+[graph] ✓ chain-144 done
+[graph] notice: costo acumulado $7.25 supera $5.00
+killed 1 dangling process
+  → chain-145 attempt 1
+[graph] ✓ chain-145 done
+[graph] notice: costo acumulado $7.30 supera $5.00
+killed 1 dangling process
+  → chain-146 attempt 1
+[graph] ✓ chain-146 done
+[graph] notice: costo acumulado $7.35 supera $5.00
+killed 1 dangling process
+  → chain-147 attempt 1
+[graph] ✓ chain-147 done
+[graph] notice: costo acumulado $7.40 supera $5.00
+killed 1 dangling process
+  → chain-148 attempt 1
+[graph] ✓ chain-148 done
+[graph] notice: costo acumulado $7.45 supera $5.00
+killed 1 dangling process
+  → chain-149 attempt 1
+[graph] ✓ chain-149 done
+[graph] notice: costo acumulado $7.50 supera $5.00
+killed 1 dangling process
+  → chain-150 attempt 1
+[graph] ✓ chain-150 done
+[graph] notice: costo acumulado $7.55 supera $5.00
+killed 1 dangling process
+  → chain-151 attempt 1
+[graph] ✓ chain-151 done
+[graph] notice: costo acumulado $7.60 supera $5.00
+killed 1 dangling process
+  → chain-152 attempt 1
+[graph] ✓ chain-152 done
+[graph] notice: costo acumulado $7.65 supera $5.00
+killed 1 dangling process
+  → chain-153 attempt 1
+[graph] ✓ chain-153 done
+[graph] notice: costo acumulado $7.70 supera $5.00
+killed 1 dangling process
+  → chain-154 attempt 1
+[graph] ✓ chain-154 done
+[graph] notice: costo acumulado $7.75 supera $5.00
+killed 1 dangling process
+  → chain-155 attempt 1
+[graph] ✓ chain-155 done
+[graph] notice: costo acumulado $7.80 supera $5.00
+killed 1 dangling process
+  → chain-156 attempt 1
+[graph] ✓ chain-156 done
+[graph] notice: costo acumulado $7.85 supera $5.00
+killed 1 dangling process
+  → chain-157 attempt 1
+[graph] ✓ chain-157 done
+[graph] notice: costo acumulado $7.90 supera $5.00
+killed 1 dangling process
+  → chain-158 attempt 1
+[graph] ✓ chain-158 done
+[graph] notice: costo acumulado $7.95 supera $5.00
+killed 1 dangling process
+  → chain-159 attempt 1
+[graph] ✓ chain-159 done
+[graph] notice: costo acumulado $8.00 supera $5.00
+killed 1 dangling process
+  → chain-160 attempt 1
+[graph] ✓ chain-160 done
+[graph] notice: costo acumulado $8.05 supera $5.00
+killed 1 dangling process
+  → chain-161 attempt 1
+[graph] ✓ chain-161 done
+[graph] notice: costo acumulado $8.10 supera $5.00
+killed 1 dangling process
+  → chain-162 attempt 1
+[graph] ✓ chain-162 done
+[graph] notice: costo acumulado $8.15 supera $5.00
+killed 1 dangling process
+  → chain-163 attempt 1
+[graph] ✓ chain-163 done
+[graph] notice: costo acumulado $8.20 supera $5.00
+killed 1 dangling process
+  → chain-164 attempt 1
+[graph] ✓ chain-164 done
+[graph] notice: costo acumulado $8.25 supera $5.00
+killed 1 dangling process
+  → chain-165 attempt 1
+[graph] ✓ chain-165 done
+[graph] notice: costo acumulado $8.30 supera $5.00
+killed 1 dangling process
+  → chain-166 attempt 1
+[graph] ✓ chain-166 done
+[graph] notice: costo acumulado $8.35 supera $5.00
+killed 1 dangling process
+  → chain-167 attempt 1
+[graph] ✓ chain-167 done
+[graph] notice: costo acumulado $8.40 supera $5.00
+killed 1 dangling process
+  → chain-168 attempt 1
+[graph] ✓ chain-168 done
+[graph] notice: costo acumulado $8.45 supera $5.00
+killed 1 dangling process
+  → chain-169 attempt 1
+[graph] ✓ chain-169 done
+[graph] notice: costo acumulado $8.50 supera $5.00
+killed 1 dangling process
+  → chain-170 attempt 1
+[graph] ✓ chain-170 done
+[graph] notice: costo acumulado $8.55 supera $5.00
+killed 1 dangling process
+  → chain-171 attempt 1
+[graph] ✓ chain-171 done
+[graph] notice: costo acumulado $8.60 supera $5.00
+killed 1 dangling process
+  → chain-172 attempt 1
+[graph] ✓ chain-172 done
+[graph] notice: costo acumulado $8.65 supera $5.00
+killed 1 dangling process
+  → chain-173 attempt 1
+[graph] ✓ chain-173 done
+[graph] notice: costo acumulado $8.70 supera $5.00
+killed 1 dangling process
+  → chain-174 attempt 1
+[graph] ✓ chain-174 done
+[graph] notice: costo acumulado $8.75 supera $5.00
+killed 1 dangling process
+  → chain-175 attempt 1
+[graph] ✓ chain-175 done
+[graph] notice: costo acumulado $8.80 supera $5.00
+killed 1 dangling process
+  → chain-176 attempt 1
+[graph] ✓ chain-176 done
+[graph] notice: costo acumulado $8.85 supera $5.00
+killed 1 dangling process
+  → chain-177 attempt 1
+[graph] ✓ chain-177 done
+[graph] notice: costo acumulado $8.90 supera $5.00
+killed 1 dangling process
+  → chain-178 attempt 1
+[graph] ✓ chain-178 done
+[graph] notice: costo acumulado $8.95 supera $5.00
+killed 1 dangling process
+  → chain-179 attempt 1
+[graph] ✓ chain-179 done
+[graph] notice: costo acumulado $9.00 supera $5.00
+killed 1 dangling process
+  → chain-180 attempt 1
+[graph] ✓ chain-180 done
+[graph] notice: costo acumulado $9.05 supera $5.00
+killed 1 dangling process
+  → chain-181 attempt 1
+[graph] ✓ chain-181 done
+[graph] notice: costo acumulado $9.10 supera $5.00
+killed 1 dangling process
+  → chain-182 attempt 1
+[graph] ✓ chain-182 done
+[graph] notice: costo acumulado $9.15 supera $5.00
+killed 1 dangling process
+  → chain-183 attempt 1
+[graph] ✓ chain-183 done
+[graph] notice: costo acumulado $9.20 supera $5.00
+killed 1 dangling process
+  → chain-184 attempt 1
+[graph] ✓ chain-184 done
+[graph] notice: costo acumulado $9.25 supera $5.00
+killed 1 dangling process
+  → chain-185 attempt 1
+[graph] ✓ chain-185 done
+[graph] notice: costo acumulado $9.30 supera $5.00
+killed 1 dangling process
+  → chain-186 attempt 1
+[graph] ✓ chain-186 done
+[graph] notice: costo acumulado $9.35 supera $5.00
+killed 1 dangling process
+  → chain-187 attempt 1
+[graph] ✓ chain-187 done
+[graph] notice: costo acumulado $9.40 supera $5.00
+killed 1 dangling process
+  → chain-188 attempt 1
+[graph] ✓ chain-188 done
+[graph] notice: costo acumulado $9.45 supera $5.00
+killed 1 dangling process
+  → chain-189 attempt 1
+[graph] ✓ chain-189 done
+[graph] notice: costo acumulado $9.50 supera $5.00
+killed 1 dangling process
+  → chain-190 attempt 1
+[graph] ✓ chain-190 done
+[graph] notice: costo acumulado $9.55 supera $5.00
+killed 1 dangling process
+  → chain-191 attempt 1
+[graph] ✓ chain-191 done
+[graph] notice: costo acumulado $9.60 supera $5.00
+killed 1 dangling process
+  → chain-192 attempt 1
+[graph] ✓ chain-192 done
+[graph] notice: costo acumulado $9.65 supera $5.00
+killed 1 dangling process
+  → chain-193 attempt 1
+[graph] ✓ chain-193 done
+[graph] notice: costo acumulado $9.70 supera $5.00
+killed 1 dangling process
+  → chain-194 attempt 1
+[graph] ✓ chain-194 done
+[graph] notice: costo acumulado $9.75 supera $5.00
+killed 1 dangling process
+  → chain-195 attempt 1
+[graph] ✓ chain-195 done
+[graph] notice: costo acumulado $9.80 supera $5.00
+killed 1 dangling process
+  → chain-196 attempt 1
+[graph] ✓ chain-196 done
+[graph] notice: costo acumulado $9.85 supera $5.00
+killed 1 dangling process
+  → chain-197 attempt 1
+[graph] ✓ chain-197 done
+[graph] notice: costo acumulado $9.90 supera $5.00
+killed 1 dangling process
+  → chain-198 attempt 1
+[graph] ✓ chain-198 done
+[graph] notice: costo acumulado $9.95 supera $5.00
+killed 1 dangling process
+  → chain-199 attempt 1
+[graph] ✓ chain-199 done
+[graph] notice: costo acumulado $10.00 supera $5.00
+(fail) runGraph (D1) > stops at the maximum graph iterations and reports remaining tasks as skipped [5055.00ms]
+  ^ this test timed out after 5000ms.
+
+[graph] ⏹ Stalled — no executable tasks — stuck: blocked (waiting on: missing)
+
+[graph] ⏹ Circuit break: no executable tasks — stuck: blocked (waiting on: missing)
+  → a attempt 1
+[graph] ⊘ a blocked
+  → a attempt 1
+  ↻ a retry 1/3
+  → a attempt 2
+[graph] ✓ a done
+[graph] ✗ vanishing failed permanently — branch blocked
+[graph] ✓ already-done done
+  → rate-limited attempt 1
+  → rate-limited attempt 2
+  → rate-limited attempt 3
+  [diagnose] rate_limit (high) — wait and retry
+  ⏳ rate_limit → requeue after 10000ms
+  → rate-limited attempt 4
+  → rate-limited attempt 5
+  → rate-limited attempt 6
+  [diagnose] rate_limit (high) — wait and retry
+[graph] ✗ rate-limited failed permanently — branch blocked
+  → a attempt 1
+  → a attempt 2
+  → a attempt 3
+  [diagnose] unavailable
+[graph] ✗ a failed permanently — branch blocked
+  → a attempt 1
+  → a attempt 2
+  → a attempt 3
+  [diagnose] rate_limit (high) — wait 10s and retry
+  ⏳ rate_limit → requeue after 10000ms
+  → a attempt 4
+[graph] ✓ a done (after rate-limit requeue)
+  → a attempt 1
+  → a attempt 2
+  → a attempt 3
+  [diagnose] unknown (low) — investigate manually
+[graph] ✗ a failed permanently — branch blocked
+
+src/__tests__/commit-tasks-yaml.test.ts:
+[tasks-yaml] final state still running: task-1
+[tasks-yaml] commit skipped: chore(tasks): missing · error tasks.yaml: missing "project"
+
+src/__tests__/model-roles-config.test.ts:
+[config] ignorando roles.reviewer: '[object Object]' no es un valor válido — se usará el default. Valores permitidos: { agent, model }.
+
+src/__tests__/external-engine.test.ts:
+[cli-spawn] {"event":"start","agent":"claude","cwd":"/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/orchestos-b3-ext-W51F33/.orchestos/worktrees/b3-happy-1792512301611","args":["-p","--output-format","stream-json","--include-partial-messages","--verbose","--append-system-prompt","<178 chars>","--allowedTools","Edit,Write,Read,Glob,Grep","--disallowedTools","Agent","--restricted","--strict-mcp-config","--settings","/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/orchestos-b3-ext-W51F33/.orchestos/agent-home/claude/settings.json"],"env":{"HOME":"/Users/carlosgallardo","CLAUDE_CONFIG_DIR":null,"CODEX_HOME":null,"ORCHESTOS_HOME":"/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/orchestos-test-home-60057-HQPIzI","PATH":"/Users/carlosgallardo/Projects/projects/orchestos/node_modules/.bin:/Users/carlosgallardo/Projects/projects/orchestos/node_modules/.bin:/Users/carlosgallardo/Projects/projects/node_modules/.bin:/Users/carlosgallardo/Projects/node_modules/.bin"}}
+[cli-spawn] {"event":"end","agent":"claude","firstByteMs":0,"totalMs":0,"exitCode":0,"timedOut":false,"stderrTail":""}
+[cli-spawn] {"event":"start","agent":"claude","cwd":"/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/orchestos-b3-ext-Ukq0E3/.orchestos/worktrees/b3-tracked-mod-1792512302401","args":["-p","--output-format","stream-json","--include-partial-messages","--verbose","--append-system-prompt","<178 chars>","--allowedTools","Edit,Write,Read,Glob,Grep","--disallowedTools","Agent","--restricted","--strict-mcp-config","--settings","/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/orchestos-b3-ext-Ukq0E3/.orchestos/agent-home/claude/settings.json"],"env":{"HOME":"/Users/carlosgallardo","CLAUDE_CONFIG_DIR":null,"CODEX_HOME":null,"ORCHESTOS_HOME":"/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/orchestos-test-home-60057-HQPIzI","PATH":"/Users/carlosgallardo/Projects/projects/orchestos/node_modules/.bin:/Users/carlosgallardo/Projects/projects/orchestos/node_modules/.bin:/Users/carlosgallardo/Projects/projects/node_modules/.bin:/Users/carlosgallardo/Projects/node_modules/.bin"}}
+[cli-spawn] {"event":"end","agent":"claude","firstByteMs":0,"totalMs":0,"exitCode":0,"timedOut":false,"stderrTail":""}
+[cli-spawn] {"event":"start","agent":"claude","cwd":"/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/orchestos-b3-ext-Dx0yyl/.orchestos/worktrees/b3-contract-1792512303103","args":["-p","--output-format","stream-json","--include-partial-messages","--verbose","--append-system-prompt","<178 chars>","--allowedTools","Edit,Write,Read,Glob,Grep","--disallowedTools","Agent","--restricted","--strict-mcp-config","--settings","/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/orchestos-b3-ext-Dx0yyl/.orchestos/agent-home/claude/settings.json"],"env":{"HOME":"/Users/carlosgallardo","CLAUDE_CONFIG_DIR":null,"CODEX_HOME":null,"ORCHESTOS_HOME":"/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/orchestos-test-home-60057-HQPIzI","PATH":"/Users/carlosgallardo/Projects/projects/orchestos/node_modules/.bin:/Users/carlosgallardo/Projects/projects/orchestos/node_modules/.bin:/Users/carlosgallardo/Projects/projects/node_modules/.bin:/Users/carlosgallardo/Projects/node_modules/.bin"}}
+[cli-spawn] {"event":"end","agent":"claude","firstByteMs":1,"totalMs":1,"exitCode":0,"timedOut":false,"stderrTail":""}
+[cli-spawn] {"event":"start","agent":"claude","cwd":"/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/orchestos-b3-ext-EvuZr9/.orchestos/worktrees/b3-rename-1792512303831","args":["-p","--output-format","stream-json","--include-partial-messages","--verbose","--append-system-prompt","<178 chars>","--allowedTools","Edit,Write,Read,Glob,Grep","--disallowedTools","Agent","--restricted","--strict-mcp-config","--settings","/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/orchestos-b3-ext-EvuZr9/.orchestos/agent-home/claude/settings.json"],"env":{"HOME":"/Users/carlosgallardo","CLAUDE_CONFIG_DIR":null,"CODEX_HOME":null,"ORCHESTOS_HOME":"/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/orchestos-test-home-60057-HQPIzI","PATH":"/Users/carlosgallardo/Projects/projects/orchestos/node_modules/.bin:/Users/carlosgallardo/Projects/projects/orchestos/node_modules/.bin:/Users/carlosgallardo/Projects/projects/node_modules/.bin:/Users/carlosgallardo/Projects/node_modules/.bin"}}
+[cli-spawn] {"event":"end","agent":"claude","firstByteMs":0,"totalMs":0,"exitCode":0,"timedOut":false,"stderrTail":""}
+[cli-spawn] {"event":"start","agent":"claude","cwd":"/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/orchestos-b3-ext-3m1SF7/.orchestos/worktrees/b3-timeout-1792512304629","args":["-p","--output-format","stream-json","--include-partial-messages","--verbose","--append-system-prompt","<178 chars>","--allowedTools","Edit,Write,Read,Glob,Grep","--disallowedTools","Agent","--restricted","--strict-mcp-config","--settings","/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/orchestos-b3-ext-3m1SF7/.orchestos/agent-home/claude/settings.json"],"env":{"HOME":"/Users/carlosgallardo","CLAUDE_CONFIG_DIR":null,"CODEX_HOME":null,"ORCHESTOS_HOME":"/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/orchestos-test-home-60057-HQPIzI","PATH":"/Users/carlosgallardo/Projects/projects/orchestos/node_modules/.bin:/Users/carlosgallardo/Projects/projects/orchestos/node_modules/.bin:/Users/carlosgallardo/Projects/projects/node_modules/.bin:/Users/carlosgallardo/Projects/node_modules/.bin"}}
+[cli-spawn] {"event":"end","agent":"claude","firstByteMs":0,"totalMs":51,"exitCode":0,"timedOut":true,"stderrTail":""}
+[cli-spawn] {"event":"start","agent":"claude","cwd":"/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/orchestos-b3-ext-3m1SF7/.orchestos/worktrees/b3-timeout-1792512304629","args":["-p","--output-format","stream-json","--include-partial-messages","--verbose","--append-system-prompt","<178 chars>","--allowedTools","Edit,Write,Read,Glob,Grep","--disallowedTools","Agent","--restricted","--strict-mcp-config","--settings","/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/orchestos-b3-ext-3m1SF7/.orchestos/agent-home/claude/settings.json"],"env":{"HOME":"/Users/carlosgallardo","CLAUDE_CONFIG_DIR":null,"CODEX_HOME":null,"ORCHESTOS_HOME":"/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/orchestos-test-home-60057-HQPIzI","PATH":"/Users/carlosgallardo/Projects/projects/orchestos/node_modules/.bin:/Users/carlosgallardo/Projects/projects/orchestos/node_modules/.bin:/Users/carlosgallardo/Projects/projects/node_modules/.bin:/Users/carlosgallardo/Projects/node_modules/.bin"}}
+[cli-spawn] {"event":"end","agent":"claude","firstByteMs":0,"totalMs":32,"exitCode":0,"timedOut":true,"stderrTail":""}
+[cli-spawn] {"event":"start","agent":"claude","cwd":"/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/orchestos-b3-ext-FxctFC/.orchestos/worktrees/b3-badjson-1792512305467","args":["-p","--output-format","stream-json","--include-partial-messages","--verbose","--append-system-prompt","<178 chars>","--allowedTools","Edit,Write,Read,Glob,Grep","--disallowedTools","Agent","--restricted","--strict-mcp-config","--settings","/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/orchestos-b3-ext-FxctFC/.orchestos/agent-home/claude/settings.json"],"env":{"HOME":"/Users/carlosgallardo","CLAUDE_CONFIG_DIR":null,"CODEX_HOME":null,"ORCHESTOS_HOME":"/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/orchestos-test-home-60057-HQPIzI","PATH":"/Users/carlosgallardo/Projects/projects/orchestos/node_modules/.bin:/Users/carlosgallardo/Projects/projects/orchestos/node_modules/.bin:/Users/carlosgallardo/Projects/projects/node_modules/.bin:/Users/carlosgallardo/Projects/node_modules/.bin"}}
+[cli-spawn] {"event":"end","agent":"claude","firstByteMs":0,"totalMs":0,"exitCode":0,"timedOut":false,"stderrTail":""}
+[cli-spawn] {"event":"start","agent":"claude","cwd":"/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/orchestos-b3-ext-49bPfz/.orchestos/worktrees/b3-missing-cost-1792512306163","args":["-p","--output-format","stream-json","--include-partial-messages","--verbose","--append-system-prompt","<178 chars>","--allowedTools","Edit,Write,Read,Glob,Grep","--disallowedTools","Agent","--restricted","--strict-mcp-config","--settings","/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/orchestos-b3-ext-49bPfz/.orchestos/agent-home/claude/settings.json"],"env":{"HOME":"/Users/carlosgallardo","CLAUDE_CONFIG_DIR":null,"CODEX_HOME":null,"ORCHESTOS_HOME":"/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/orchestos-test-home-60057-HQPIzI","PATH":"/Users/carlosgallardo/Projects/projects/orchestos/node_modules/.bin:/Users/carlosgallardo/Projects/projects/orchestos/node_modules/.bin:/Users/carlosgallardo/Projects/projects/node_modules/.bin:/Users/carlosgallardo/Projects/node_modules/.bin"}}
+[cli-spawn] {"event":"end","agent":"claude","firstByteMs":0,"totalMs":0,"exitCode":0,"timedOut":false,"stderrTail":""}
+[cli-spawn] {"event":"start","agent":"claude","cwd":"/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/orchestos-b3-ext-RgV4Q7/.orchestos/worktrees/b3-partial-usage-1792512306825","args":["-p","--output-format","stream-json","--include-partial-messages","--verbose","--append-system-prompt","<178 chars>","--allowedTools","Edit,Write,Read,Glob,Grep","--disallowedTools","Agent","--restricted","--strict-mcp-config","--settings","/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/orchestos-b3-ext-RgV4Q7/.orchestos/agent-home/claude/settings.json"],"env":{"HOME":"/Users/carlosgallardo","CLAUDE_CONFIG_DIR":null,"CODEX_HOME":null,"ORCHESTOS_HOME":"/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/orchestos-test-home-60057-HQPIzI","PATH":"/Users/carlosgallardo/Projects/projects/orchestos/node_modules/.bin:/Users/carlosgallardo/Projects/projects/orchestos/node_modules/.bin:/Users/carlosgallardo/Projects/projects/node_modules/.bin:/Users/carlosgallardo/Projects/node_modules/.bin"}}
+[cli-spawn] {"event":"end","agent":"claude","firstByteMs":0,"totalMs":0,"exitCode":0,"timedOut":false,"stderrTail":""}
+[cli-spawn] {"event":"start","agent":"claude","cwd":"/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/orchestos-b3-ext-q7Js6y/.orchestos/worktrees/b3-no-turns-1792512307570","args":["-p","--output-format","stream-json","--include-partial-messages","--verbose","--append-system-prompt","<178 chars>","--allowedTools","Edit,Write,Read,Glob,Grep","--disallowedTools","Agent","--restricted","--strict-mcp-config","--settings","/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/orchestos-b3-ext-q7Js6y/.orchestos/agent-home/claude/settings.json"],"env":{"HOME":"/Users/carlosgallardo","CLAUDE_CONFIG_DIR":null,"CODEX_HOME":null,"ORCHESTOS_HOME":"/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/orchestos-test-home-60057-HQPIzI","PATH":"/Users/carlosgallardo/Projects/projects/orchestos/node_modules/.bin:/Users/carlosgallardo/Projects/projects/orchestos/node_modules/.bin:/Users/carlosgallardo/Projects/projects/node_modules/.bin:/Users/carlosgallardo/Projects/node_modules/.bin"}}
+[cli-spawn] {"event":"end","agent":"claude","firstByteMs":0,"totalMs":1,"exitCode":0,"timedOut":false,"stderrTail":""}
+[cli-spawn] {"event":"start","agent":"claude","cwd":"/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/orchestos-b3-ext-zZy5yC/.orchestos/worktrees/b3-noop-1792512308304","args":["-p","--output-format","stream-json","--include-partial-messages","--verbose","--append-system-prompt","<178 chars>","--allowedTools","Edit,Write,Read,Glob,Grep","--disallowedTools","Agent","--restricted","--strict-mcp-config","--settings","/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/orchestos-b3-ext-zZy5yC/.orchestos/agent-home/claude/settings.json"],"env":{"HOME":"/Users/carlosgallardo","CLAUDE_CONFIG_DIR":null,"CODEX_HOME":null,"ORCHESTOS_HOME":"/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/orchestos-test-home-60057-HQPIzI","PATH":"/Users/carlosgallardo/Projects/projects/orchestos/node_modules/.bin:/Users/carlosgallardo/Projects/projects/orchestos/node_modules/.bin:/Users/carlosgallardo/Projects/projects/node_modules/.bin:/Users/carlosgallardo/Projects/node_modules/.bin"}}
+[cli-spawn] {"event":"end","agent":"claude","firstByteMs":0,"totalMs":0,"exitCode":0,"timedOut":false,"stderrTail":""}
+[cli-spawn] {"event":"start","agent":"claude","cwd":"/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/orchestos-b3-ext-hWpC4m/.orchestos/worktrees/b3-normpath-1792512309038","args":["-p","--output-format","stream-json","--include-partial-messages","--verbose","--append-system-prompt","<178 chars>","--allowedTools","Edit,Write,Read,Glob,Grep","--disallowedTools","Agent","--restricted","--strict-mcp-config","--settings","/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/orchestos-b3-ext-hWpC4m/.orchestos/agent-home/claude/settings.json"],"env":{"HOME":"/Users/carlosgallardo","CLAUDE_CONFIG_DIR":null,"CODEX_HOME":null,"ORCHESTOS_HOME":"/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/orchestos-test-home-60057-HQPIzI","PATH":"/Users/carlosgallardo/Projects/projects/orchestos/node_modules/.bin:/Users/carlosgallardo/Projects/projects/orchestos/node_modules/.bin:/Users/carlosgallardo/Projects/projects/node_modules/.bin:/Users/carlosgallardo/Projects/node_modules/.bin"}}
+[cli-spawn] {"event":"end","agent":"claude","firstByteMs":1,"totalMs":1,"exitCode":0,"timedOut":false,"stderrTail":""}
+[cli-spawn] {"event":"start","agent":"claude","cwd":"/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/orchestos-b3-ext-Te08ip/.orchestos/worktrees/b4-empty-dir-1792512309774","args":["-p","--output-format","stream-json","--include-partial-messages","--verbose","--append-system-prompt","<178 chars>","--allowedTools","Edit,Write,Read,Glob,Grep","--disallowedTools","Agent","--restricted","--strict-mcp-config","--settings","/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/orchestos-b3-ext-Te08ip/.orchestos/agent-home/claude/settings.json"],"env":{"HOME":"/Users/carlosgallardo","CLAUDE_CONFIG_DIR":null,"CODEX_HOME":null,"ORCHESTOS_HOME":"/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/orchestos-test-home-60057-HQPIzI","PATH":"/Users/carlosgallardo/Projects/projects/orchestos/node_modules/.bin:/Users/carlosgallardo/Projects/projects/orchestos/node_modules/.bin:/Users/carlosgallardo/Projects/projects/node_modules/.bin:/Users/carlosgallardo/Projects/node_modules/.bin"}}
+[cli-spawn] {"event":"end","agent":"claude","firstByteMs":1,"totalMs":1,"exitCode":0,"timedOut":false,"stderrTail":""}
+[cli-spawn] {"event":"start","agent":"claude","cwd":"/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/orchestos-b3-ext-YZ6poH/.orchestos/worktrees/b4-dir-with-file-1792512310512","args":["-p","--output-format","stream-json","--include-partial-messages","--verbose","--append-system-prompt","<178 chars>","--allowedTools","Edit,Write,Read,Glob,Grep","--disallowedTools","Agent","--restricted","--strict-mcp-config","--settings","/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/orchestos-b3-ext-YZ6poH/.orchestos/agent-home/claude/settings.json"],"env":{"HOME":"/Users/carlosgallardo","CLAUDE_CONFIG_DIR":null,"CODEX_HOME":null,"ORCHESTOS_HOME":"/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/orchestos-test-home-60057-HQPIzI","PATH":"/Users/carlosgallardo/Projects/projects/orchestos/node_modules/.bin:/Users/carlosgallardo/Projects/projects/orchestos/node_modules/.bin:/Users/carlosgallardo/Projects/projects/node_modules/.bin:/Users/carlosgallardo/Projects/node_modules/.bin"}}
+[cli-spawn] {"event":"end","agent":"claude","firstByteMs":1,"totalMs":1,"exitCode":0,"timedOut":false,"stderrTail":""}
+[cli-spawn] {"event":"start","agent":"claude","cwd":"/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/orchestos-b3-ext-qCMXLL/.orchestos/worktrees/r851-claude-iso-1792512311252","args":["-p","--output-format","stream-json","--include-partial-messages","--verbose","--append-system-prompt","<178 chars>","--allowedTools","Edit,Write,Read,Glob,Grep","--disallowedTools","Agent","--restricted","--strict-mcp-config","--settings","/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/orchestos-b3-ext-qCMXLL/.orchestos/agent-home/claude/settings.json"],"env":{"HOME":"/Users/carlosgallardo","CLAUDE_CONFIG_DIR":null,"CODEX_HOME":null,"ORCHESTOS_HOME":"/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/orchestos-test-home-60057-HQPIzI","PATH":"/Users/carlosgallardo/Projects/projects/orchestos/node_modules/.bin:/Users/carlosgallardo/Projects/projects/orchestos/node_modules/.bin:/Users/carlosgallardo/Projects/projects/node_modules/.bin:/Users/carlosgallardo/Projects/node_modules/.bin"}}
+[cli-spawn] {"event":"end","agent":"claude","firstByteMs":0,"totalMs":0,"exitCode":0,"timedOut":false,"stderrTail":""}
+[cli-spawn] {"event":"start","agent":"claude","cwd":"/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/orchestos-b3-ext-ljtZm3/.orchestos/worktrees/c1-ssot-1792512311992","args":["-p","--output-format","stream-json","--include-partial-messages","--verbose","--append-system-prompt","<178 chars>","--allowedTools","Edit,Write,Read,Glob,Grep","--disallowedTools","Agent","--restricted","--strict-mcp-config","--settings","/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/orchestos-b3-ext-ljtZm3/.orchestos/agent-home/claude/settings.json"],"env":{"HOME":"/Users/carlosgallardo","CLAUDE_CONFIG_DIR":null,"CODEX_HOME":null,"ORCHESTOS_HOME":"/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/orchestos-test-home-60057-HQPIzI","PATH":"/Users/carlosgallardo/Projects/projects/orchestos/node_modules/.bin:/Users/carlosgallardo/Projects/projects/orchestos/node_modules/.bin:/Users/carlosgallardo/Projects/projects/node_modules/.bin:/Users/carlosgallardo/Projects/node_modules/.bin"}}
+[cli-spawn] {"event":"end","agent":"claude","firstByteMs":0,"totalMs":0,"exitCode":0,"timedOut":false,"stderrTail":""}
+[cli-spawn] {"event":"start","agent":"claude","cwd":"/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/orchestos-b3-ext-cnrBbo/.orchestos/worktrees/c1-realprompt-1792512312723","args":["-p","--output-format","stream-json","--include-partial-messages","--verbose","--append-system-prompt","<178 chars>","--allowedTools","Edit,Write,Read,Glob,Grep","--disallowedTools","Agent","--restricted","--strict-mcp-config","--settings","/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/orchestos-b3-ext-cnrBbo/.orchestos/agent-home/claude/settings.json"],"env":{"HOME":"/Users/carlosgallardo","CLAUDE_CONFIG_DIR":null,"CODEX_HOME":null,"ORCHESTOS_HOME":"/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/orchestos-test-home-60057-HQPIzI","PATH":"/Users/carlosgallardo/Projects/projects/orchestos/node_modules/.bin:/Users/carlosgallardo/Projects/projects/orchestos/node_modules/.bin:/Users/carlosgallardo/Projects/projects/node_modules/.bin:/Users/carlosgallardo/Projects/node_modules/.bin"}}
+[cli-spawn] {"event":"end","agent":"claude","firstByteMs":0,"totalMs":0,"exitCode":0,"timedOut":false,"stderrTail":""}
+[cli-spawn] {"event":"start","agent":"claude","cwd":"/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/orchestos-b3-ext-NRtkJQ/.orchestos/worktrees/c2-binary-ok-1792512314070","args":["-p","--output-format","stream-json","--include-partial-messages","--verbose","--append-system-prompt","<178 chars>","--allowedTools","Edit,Write,Read,Glob,Grep","--disallowedTools","Agent","--restricted","--strict-mcp-config","--settings","/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/orchestos-b3-ext-NRtkJQ/.orchestos/agent-home/claude/settings.json"],"env":{"HOME":"/Users/carlosgallardo","CLAUDE_CONFIG_DIR":null,"CODEX_HOME":null,"ORCHESTOS_HOME":"/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/orchestos-test-home-60057-HQPIzI","PATH":"/Users/carlosgallardo/Projects/projects/orchestos/node_modules/.bin:/Users/carlosgallardo/Projects/projects/orchestos/node_modules/.bin:/Users/carlosgallardo/Projects/projects/node_modules/.bin:/Users/carlosgallardo/Projects/node_modules/.bin"}}
+[cli-spawn] {"event":"end","agent":"claude","firstByteMs":1,"totalMs":1,"exitCode":0,"timedOut":false,"stderrTail":""}
+[cli-spawn] {"event":"start","agent":"claude","cwd":"/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/orchestos-b3-ext-e2L3tM/.orchestos/worktrees/e15-model-effort-1792512314805","args":["-p","--output-format","stream-json","--include-partial-messages","--verbose","--append-system-prompt","<178 chars>","--allowedTools","Edit,Write,Read,Glob,Grep","--model","claude-sonnet-5","--effort","xhigh","--disallowedTools","Agent","--restricted","--strict-mcp-config","--settings","/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/orchestos-b3-ext-e2L3tM/.orchestos/agent-home/claude/settings.json"],"env":{"HOME":"/Users/carlosgallardo","CLAUDE_CONFIG_DIR":null,"CODEX_HOME":null,"ORCHESTOS_HOME":"/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/orchestos-test-home-60057-HQPIzI","PATH":"/Users/carlosgallardo/Projects/projects/orchestos/node_modules/.bin:/Users/carlosgallardo/Projects/projects/orchestos/node_modules/.bin:/Users/carlosgallardo/Projects/projects/node_modules/.bin:/Users/carlosgallardo/Projects/node_modules/.bin"}}
+[cli-spawn] {"event":"end","agent":"claude","firstByteMs":0,"totalMs":0,"exitCode":0,"timedOut":false,"stderrTail":""}
+[cli-spawn] {"event":"start","agent":"claude","cwd":"/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/orchestos-b3-ext-WjrpYV/.orchestos/worktrees/e15-non-anthropic-1792512315539","args":["-p","--output-format","stream-json","--include-partial-messages","--verbose","--append-system-prompt","<178 chars>","--allowedTools","Edit,Write,Read,Glob,Grep","--disallowedTools","Agent","--restricted","--strict-mcp-config","--settings","/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/orchestos-b3-ext-WjrpYV/.orchestos/agent-home/claude/settings.json"],"env":{"HOME":"/Users/carlosgallardo","CLAUDE_CONFIG_DIR":null,"CODEX_HOME":null,"ORCHESTOS_HOME":"/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/orchestos-test-home-60057-HQPIzI","PATH":"/Users/carlosgallardo/Projects/projects/orchestos/node_modules/.bin:/Users/carlosgallardo/Projects/projects/orchestos/node_modules/.bin:/Users/carlosgallardo/Projects/projects/node_modules/.bin:/Users/carlosgallardo/Projects/node_modules/.bin"}}
+[cli-spawn] {"event":"end","agent":"claude","firstByteMs":0,"totalMs":0,"exitCode":0,"timedOut":false,"stderrTail":""}
+
+src/__tests__/codex-engine.test.ts:
+[cli-spawn] {"event":"start","agent":"codex","cwd":"/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/orchestos-g42b-codex-KPHxd2/.orchestos/worktrees/r851-codex-home-1792512319803","args":["exec","<210 chars>","--json","--sandbox","workspace-write","--color","never","-c","model_reasoning_summary=auto","-m","gpt-5.4"],"env":{"HOME":"/Users/carlosgallardo","CLAUDE_CONFIG_DIR":null,"CODEX_HOME":"/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/orchestos-g42b-codex-KPHxd2/.orchestos/agent-home/codex","ORCHESTOS_HOME":"/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/orchestos-g42b-cat-xoWRQW","PATH":"/Users/carlosgallardo/Projects/projects/orchestos/node_modules/.bin:/Users/carlosgallardo/Projects/projects/orchestos/node_modules/.bin:/Users/carlosgallardo/Projects/projects/node_modules/.bin:/Users/carlosgallardo/Projects/node_modules/.bin"}}
+[cli-spawn] {"event":"end","agent":"codex","firstByteMs":1,"totalMs":1,"exitCode":0,"timedOut":false,"stderrTail":""}
+[cli-spawn] {"event":"start","agent":"codex","cwd":"/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/orchestos-g42b-codex-9Sbo0i/.orchestos/worktrees/r851-chat-home-1792512320534","args":["exec","system\n\nhello","--json","--sandbox","read-only","--color","never","--ignore-user-config","--skip-git-repo-check","-c","model_reasoning_summary=auto"],"env":{"HOME":"/Users/carlosgallardo","CLAUDE_CONFIG_DIR":null,"CODEX_HOME":"/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/orchestos-g42b-codex-9Sbo0i/.orchestos/agent-home/codex","ORCHESTOS_HOME":"/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/orchestos-g42b-cat-xoWRQW","PATH":"/Users/carlosgallardo/Projects/projects/orchestos/node_modules/.bin:/Users/carlosgallardo/Projects/projects/orchestos/node_modules/.bin:/Users/carlosgallardo/Projects/projects/node_modules/.bin:/Users/carlosgallardo/Projects/node_modules/.bin"}}
+[cli-spawn] {"event":"end","agent":"codex","firstByteMs":0,"totalMs":0,"exitCode":0,"timedOut":false,"stderrTail":""}
+[cli-spawn] {"event":"start","agent":"codex","cwd":"/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/orchestos-codex-chat-cost-4lo9L1","args":["exec","system\n\nhello","--json","--sandbox","read-only","--color","never","--ignore-user-config","--skip-git-repo-check","-c","model_reasoning_summary=auto"],"env":{"HOME":"/Users/carlosgallardo","CLAUDE_CONFIG_DIR":null,"CODEX_HOME":"/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/orchestos-codex-chat-cost-4lo9L1/.orchestos/agent-home/codex","ORCHESTOS_HOME":"/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/orchestos-g42b-cat-xoWRQW","PATH":"/Users/carlosgallardo/Projects/projects/orchestos/node_modules/.bin:/Users/carlosgallardo/Projects/projects/orchestos/node_modules/.bin:/Users/carlosgallardo/Projects/projects/node_modules/.bin:/Users/carlosgallardo/Projects/node_modules/.bin"}}
+[cli-spawn] {"event":"end","agent":"codex","firstByteMs":1,"totalMs":1,"exitCode":0,"timedOut":false,"stderrTail":""}
+[cli-spawn] {"event":"start","agent":"codex","cwd":"/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/orchestos-codex-chat-cache-cJMnhM","args":["exec","system\n\nhello","--json","--sandbox","read-only","--color","never","--ignore-user-config","--skip-git-repo-check","-c","model_reasoning_summary=auto"],"env":{"HOME":"/Users/carlosgallardo","CLAUDE_CONFIG_DIR":null,"CODEX_HOME":"/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/orchestos-codex-chat-cache-cJMnhM/.orchestos/agent-home/codex","ORCHESTOS_HOME":"/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/orchestos-g42b-cat-xoWRQW","PATH":"/Users/carlosgallardo/Projects/projects/orchestos/node_modules/.bin:/Users/carlosgallardo/Projects/projects/orchestos/node_modules/.bin:/Users/carlosgallardo/Projects/projects/node_modules/.bin:/Users/carlosgallardo/Projects/node_modules/.bin"}}
+[cli-spawn] {"event":"end","agent":"codex","firstByteMs":0,"totalMs":0,"exitCode":0,"timedOut":false,"stderrTail":""}
+[cli-spawn] {"event":"start","agent":"codex","cwd":"/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/orchestos-g42b-codex-LVo37y/.orchestos/worktrees/g42b-happy-1792512321327","args":["exec","<210 chars>","--json","--sandbox","workspace-write","--color","never","-c","model_reasoning_summary=auto","-m","gpt-5.4","-c","model_reasoning_effort=medium"],"env":{"HOME":"/Users/carlosgallardo","CLAUDE_CONFIG_DIR":null,"CODEX_HOME":"/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/orchestos-g42b-codex-LVo37y/.orchestos/agent-home/codex","ORCHESTOS_HOME":"/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/orchestos-g42b-cat-xoWRQW","PATH":"/Users/carlosgallardo/Projects/projects/orchestos/node_modules/.bin:/Users/carlosgallardo/Projects/projects/orchestos/node_modules/.bin:/Users/carlosgallardo/Projects/projects/node_modules/.bin:/Users/carlosgallardo/Projects/node_modules/.bin"}}
+[cli-spawn] {"event":"end","agent":"codex","firstByteMs":0,"totalMs":0,"exitCode":0,"timedOut":false,"stderrTail":""}
+[cli-spawn] {"event":"start","agent":"codex","cwd":"/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/orchestos-g42b-codex-L43GBi/.orchestos/worktrees/g42b-native-id-1792512322060","args":["exec","<210 chars>","--json","--sandbox","workspace-write","--color","never","-c","model_reasoning_summary=auto","-m","gpt-6-luna"],"env":{"HOME":"/Users/carlosgallardo","CLAUDE_CONFIG_DIR":null,"CODEX_HOME":"/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/orchestos-g42b-codex-L43GBi/.orchestos/agent-home/codex","ORCHESTOS_HOME":"/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/orchestos-g42b-cat-xoWRQW","PATH":"/Users/carlosgallardo/Projects/projects/orchestos/node_modules/.bin:/Users/carlosgallardo/Projects/projects/orchestos/node_modules/.bin:/Users/carlosgallardo/Projects/projects/node_modules/.bin:/Users/carlosgallardo/Projects/node_modules/.bin"}}
+[cli-spawn] {"event":"end","agent":"codex","firstByteMs":0,"totalMs":1,"exitCode":0,"timedOut":false,"stderrTail":""}
+[cli-spawn] {"event":"start","agent":"codex","cwd":"/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/orchestos-g42b-codex-y36y10/.orchestos/worktrees/g42b-timeout-1792512324645","args":["exec","<210 chars>","--json","--sandbox","workspace-write","--color","never","-c","model_reasoning_summary=auto","-m","gpt-5.4"],"env":{"HOME":"/Users/carlosgallardo","CLAUDE_CONFIG_DIR":null,"CODEX_HOME":"/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/orchestos-g42b-codex-y36y10/.orchestos/agent-home/codex","ORCHESTOS_HOME":"/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/orchestos-g42b-cat-xoWRQW","PATH":"/Users/carlosgallardo/Projects/projects/orchestos/node_modules/.bin:/Users/carlosgallardo/Projects/projects/orchestos/node_modules/.bin:/Users/carlosgallardo/Projects/projects/node_modules/.bin:/Users/carlosgallardo/Projects/node_modules/.bin"}}
+[cli-spawn] {"event":"end","agent":"codex","firstByteMs":0,"totalMs":2,"exitCode":0,"timedOut":false,"stderrTail":""}
+584 |       await codexEngine.run(ctx, { maxTokens: 1024, maxIterations: 1, timeoutMs: 1 })
+585 |     } catch (e: any) {
+586 |       caught = e
+587 |     }
+588 |     expect(caught).toBeInstanceOf(ExecutorCodexError)
+589 |     expect(caught!.message).toContain('timed out')
+                                  ^
+error: expect(received).toContain(expected)
+
+Expected to contain: "timed out"
+Received: "codex produced no turn.completed event — cost unknown, not reported as $0"
+
+      at <anonymous> (/Users/carlosgallardo/Projects/projects/orchestos/src/__tests__/codex-engine.test.ts:589:29)
+(fail) G.4.2b — codexEngine (codex subprocess) > timeout: proceso termina tarde y sin stdout parseable → error menciona "timed out" [674.94ms]
+[cli-spawn] {"event":"start","agent":"codex","cwd":"/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/orchestos-g42b-codex-mAHGwU/.orchestos/worktrees/g42b-no-cost-1792512325318","args":["exec","<210 chars>","--json","--sandbox","workspace-write","--color","never","-c","model_reasoning_summary=auto","-m","gpt-5.4"],"env":{"HOME":"/Users/carlosgallardo","CLAUDE_CONFIG_DIR":null,"CODEX_HOME":"/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/orchestos-g42b-codex-mAHGwU/.orchestos/agent-home/codex","ORCHESTOS_HOME":"/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/orchestos-g42b-cat-xoWRQW","PATH":"/Users/carlosgallardo/Projects/projects/orchestos/node_modules/.bin:/Users/carlosgallardo/Projects/projects/orchestos/node_modules/.bin:/Users/carlosgallardo/Projects/projects/node_modules/.bin:/Users/carlosgallardo/Projects/node_modules/.bin"}}
+[cli-spawn] {"event":"end","agent":"codex","firstByteMs":1,"totalMs":1,"exitCode":0,"timedOut":false,"stderrTail":""}
+[cli-spawn] {"event":"start","agent":"codex","cwd":"/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/orchestos-g42b-codex-O3TwXk/.orchestos/worktrees/g42b-partial-1792512325992","args":["exec","<210 chars>","--json","--sandbox","workspace-write","--color","never","-c","model_reasoning_summary=auto","-m","gpt-5.4"],"env":{"HOME":"/Users/carlosgallardo","CLAUDE_CONFIG_DIR":null,"CODEX_HOME":"/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/orchestos-g42b-codex-O3TwXk/.orchestos/agent-home/codex","ORCHESTOS_HOME":"/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/orchestos-g42b-cat-xoWRQW","PATH":"/Users/carlosgallardo/Projects/projects/orchestos/node_modules/.bin:/Users/carlosgallardo/Projects/projects/orchestos/node_modules/.bin:/Users/carlosgallardo/Projects/projects/node_modules/.bin:/Users/carlosgallardo/Projects/node_modules/.bin"}}
+[cli-spawn] {"event":"end","agent":"codex","firstByteMs":0,"totalMs":0,"exitCode":0,"timedOut":false,"stderrTail":""}
+
+src/__tests__/claude-chat.test.ts:
+[cli-spawn] {"event":"start","agent":"claude","cwd":"/tmp/p","args":["-p","--output-format","stream-json","--include-partial-messages","--verbose","--append-system-prompt","sys","--restricted","--strict-mcp-config","--tools","Read,Glob,Grep","--settings","/tmp/p/.orchestos/agent-home/claude/settings.json","--add-dir","/tmp/p"],"env":{"HOME":"/Users/carlosgallardo","CLAUDE_CONFIG_DIR":null,"CODEX_HOME":null,"ORCHESTOS_HOME":"/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/orchestos-test-home-60057-HQPIzI","PATH":"/Users/carlosgallardo/Projects/projects/orchestos/node_modules/.bin:/Users/carlosgallardo/Projects/projects/orchestos/node_modules/.bin:/Users/carlosgallardo/Projects/projects/node_modules/.bin:/Users/carlosgallardo/Projects/node_modules/.bin"}}
+[cli-spawn] {"event":"end","agent":"claude","firstByteMs":0,"totalMs":0,"exitCode":0,"timedOut":false,"stderrTail":""}
+[cli-spawn] {"event":"start","agent":"claude","cwd":"/tmp/p","args":["-p","--output-format","stream-json","--include-partial-messages","--verbose","--append-system-prompt","sys","--restricted","--strict-mcp-config","--tools","Read,Glob,Grep","--settings","/tmp/p/.orchestos/agent-home/claude/settings.json","--add-dir","/tmp/p"],"env":{"HOME":"/Users/carlosgallardo","CLAUDE_CONFIG_DIR":null,"CODEX_HOME":null,"ORCHESTOS_HOME":"/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/orchestos-test-home-60057-HQPIzI","PATH":"/Users/carlosgallardo/Projects/projects/orchestos/node_modules/.bin:/Users/carlosgallardo/Projects/projects/orchestos/node_modules/.bin:/Users/carlosgallardo/Projects/projects/node_modules/.bin:/Users/carlosgallardo/Projects/node_modules/.bin"}}
+[cli-spawn] {"event":"end","agent":"claude","firstByteMs":0,"totalMs":0,"exitCode":0,"timedOut":false,"stderrTail":""}
+[cli-spawn] {"event":"start","agent":"claude","cwd":"/tmp/some-project","args":["-p","--output-format","stream-json","--include-partial-messages","--verbose","--append-system-prompt","system prompt","--restricted","--strict-mcp-config","--tools","Read,Glob,Grep","--settings","/tmp/some-project/.orchestos/agent-home/claude/settings.json","--add-dir","/tmp/some-project"],"env":{"HOME":"/Users/carlosgallardo","CLAUDE_CONFIG_DIR":null,"CODEX_HOME":null,"ORCHESTOS_HOME":"/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/orchestos-test-home-60057-HQPIzI","PATH":"/Users/carlosgallardo/Projects/projects/orchestos/node_modules/.bin:/Users/carlosgallardo/Projects/projects/orchestos/node_modules/.bin:/Users/carlosgallardo/Projects/projects/node_modules/.bin:/Users/carlosgallardo/Projects/node_modules/.bin"}}
+[cli-spawn] {"event":"end","agent":"claude","firstByteMs":0,"totalMs":0,"exitCode":0,"timedOut":false,"stderrTail":""}
+[cli-spawn] {"event":"start","agent":"claude","cwd":"/tmp/some-project","args":["-p","--output-format","stream-json","--include-partial-messages","--verbose","--append-system-prompt","system prompt","--restricted","--strict-mcp-config","--tools","Read,Glob,Grep","--settings","/tmp/some-project/.orchestos/agent-home/claude/settings.json","--add-dir","/tmp/some-project"],"env":{"HOME":"/Users/carlosgallardo","CLAUDE_CONFIG_DIR":null,"CODEX_HOME":null,"ORCHESTOS_HOME":"/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/orchestos-test-home-60057-HQPIzI","PATH":"/Users/carlosgallardo/Projects/projects/orchestos/node_modules/.bin:/Users/carlosgallardo/Projects/projects/orchestos/node_modules/.bin:/Users/carlosgallardo/Projects/projects/node_modules/.bin:/Users/carlosgallardo/Projects/node_modules/.bin"}}
+[cli-spawn] {"event":"end","agent":"claude","firstByteMs":0,"totalMs":0,"exitCode":0,"timedOut":false,"stderrTail":""}
+[cli-spawn] {"event":"start","agent":"claude","cwd":"/tmp/some-project","args":["-p","--output-format","stream-json","--include-partial-messages","--verbose","--append-system-prompt","system prompt","--restricted","--strict-mcp-config","--tools","Read,Glob,Grep","--settings","/tmp/some-project/.orchestos/agent-home/claude/settings.json","--add-dir","/tmp/some-project"],"env":{"HOME":"/Users/carlosgallardo","CLAUDE_CONFIG_DIR":null,"CODEX_HOME":null,"ORCHESTOS_HOME":"/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/orchestos-test-home-60057-HQPIzI","PATH":"/Users/carlosgallardo/Projects/projects/orchestos/node_modules/.bin:/Users/carlosgallardo/Projects/projects/orchestos/node_modules/.bin:/Users/carlosgallardo/Projects/projects/node_modules/.bin:/Users/carlosgallardo/Projects/node_modules/.bin"}}
+[cli-spawn] {"event":"end","agent":"claude","firstByteMs":0,"totalMs":0,"exitCode":0,"timedOut":false,"stderrTail":""}
+[cli-spawn] {"event":"start","agent":"claude","cwd":"/tmp/real-project-root","args":["-p","--output-format","stream-json","--include-partial-messages","--verbose","--append-system-prompt","sys","--restricted","--strict-mcp-config","--tools","Read,Glob,Grep","--settings","/tmp/real-project-root/.orchestos/agent-home/claude/settings.json","--add-dir","/tmp/real-project-root"],"env":{"HOME":"/Users/carlosgallardo","CLAUDE_CONFIG_DIR":null,"CODEX_HOME":null,"ORCHESTOS_HOME":"/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/orchestos-test-home-60057-HQPIzI","PATH":"/Users/carlosgallardo/Projects/projects/orchestos/node_modules/.bin:/Users/carlosgallardo/Projects/projects/orchestos/node_modules/.bin:/Users/carlosgallardo/Projects/projects/node_modules/.bin:/Users/carlosgallardo/Projects/node_modules/.bin"}}
+[cli-spawn] {"event":"end","agent":"claude","firstByteMs":0,"totalMs":0,"exitCode":0,"timedOut":false,"stderrTail":""}
+[cli-spawn] {"event":"start","agent":"claude","cwd":"/tmp/p","args":["-p","--output-format","stream-json","--include-partial-messages","--verbose","--append-system-prompt","sys","--restricted","--strict-mcp-config","--tools","Read,Glob,Grep","--settings","/tmp/p/.orchestos/agent-home/claude/settings.json","--add-dir","/tmp/p"],"env":{"HOME":"/Users/carlosgallardo","CLAUDE_CONFIG_DIR":null,"CODEX_HOME":null,"ORCHESTOS_HOME":"/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/orchestos-test-home-60057-HQPIzI","PATH":"/Users/carlosgallardo/Projects/projects/orchestos/node_modules/.bin:/Users/carlosgallardo/Projects/projects/orchestos/node_modules/.bin:/Users/carlosgallardo/Projects/projects/node_modules/.bin:/Users/carlosgallardo/Projects/node_modules/.bin"}}
+[cli-spawn] {"event":"end","agent":"claude","firstByteMs":0,"totalMs":0,"exitCode":0,"timedOut":false,"stderrTail":""}
+[cli-spawn] {"event":"start","agent":"claude","cwd":"/tmp/project","args":["-p","--output-format","stream-json","--include-partial-messages","--verbose","--append-system-prompt","sys","--restricted","--strict-mcp-config","--tools","Read,Glob,Grep","--settings","/tmp/project/.orchestos/agent-home/claude/settings.json","--add-dir","/tmp/project"],"env":{"HOME":"/Users/carlosgallardo","CLAUDE_CONFIG_DIR":null,"CODEX_HOME":null,"ORCHESTOS_HOME":"/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/orchestos-test-home-60057-HQPIzI","PATH":"/Users/carlosgallardo/Projects/projects/orchestos/node_modules/.bin:/Users/carlosgallardo/Projects/projects/orchestos/node_modules/.bin:/Users/carlosgallardo/Projects/projects/node_modules/.bin:/Users/carlosgallardo/Projects/node_modules/.bin"}}
+[cli-spawn] {"event":"end","agent":"claude","firstByteMs":0,"totalMs":0,"exitCode":0,"timedOut":false,"stderrTail":""}
+[cli-spawn] {"event":"start","agent":"claude","cwd":"/tmp/project","args":["-p","--output-format","stream-json","--include-partial-messages","--verbose","--append-system-prompt","sys","--restricted","--strict-mcp-config","--tools","Read,Glob,Grep","--settings","/tmp/project/.orchestos/agent-home/claude/settings.json","--add-dir","/tmp/project"],"env":{"HOME":"/Users/carlosgallardo","CLAUDE_CONFIG_DIR":null,"CODEX_HOME":null,"ORCHESTOS_HOME":"/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/orchestos-test-home-60057-HQPIzI","PATH":"/Users/carlosgallardo/Projects/projects/orchestos/node_modules/.bin:/Users/carlosgallardo/Projects/projects/orchestos/node_modules/.bin:/Users/carlosgallardo/Projects/projects/node_modules/.bin:/Users/carlosgallardo/Projects/node_modules/.bin"}}
+[cli-spawn] {"event":"end","agent":"claude","firstByteMs":0,"totalMs":0,"exitCode":0,"timedOut":false,"stderrTail":""}
+[cli-spawn] {"event":"start","agent":"claude","cwd":"/tmp/project","args":["-p","--output-format","stream-json","--include-partial-messages","--verbose","--append-system-prompt","sys","--restricted","--strict-mcp-config","--tools","Read,Glob,Grep","--settings","/tmp/project/.orchestos/agent-home/claude/settings.json","--add-dir","/tmp/project"],"env":{"HOME":"/Users/carlosgallardo","CLAUDE_CONFIG_DIR":null,"CODEX_HOME":null,"ORCHESTOS_HOME":"/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/orchestos-test-home-60057-HQPIzI","PATH":"/Users/carlosgallardo/Projects/projects/orchestos/node_modules/.bin:/Users/carlosgallardo/Projects/projects/orchestos/node_modules/.bin:/Users/carlosgallardo/Projects/projects/node_modules/.bin:/Users/carlosgallardo/Projects/node_modules/.bin"}}
+[cli-spawn] {"event":"end","agent":"claude","firstByteMs":0,"totalMs":0,"exitCode":0,"timedOut":false,"stderrTail":""}
+[cli-spawn] {"event":"start","agent":"claude","cwd":"/tmp/project","args":["-p","--output-format","stream-json","--include-partial-messages","--verbose","--append-system-prompt","sys","--restricted","--strict-mcp-config","--tools","Read,Glob,Grep","--settings","/tmp/project/.orchestos/agent-home/claude/settings.json","--add-dir","/tmp/project"],"env":{"HOME":"/Users/carlosgallardo","CLAUDE_CONFIG_DIR":null,"CODEX_HOME":null,"ORCHESTOS_HOME":"/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/orchestos-test-home-60057-HQPIzI","PATH":"/Users/carlosgallardo/Projects/projects/orchestos/node_modules/.bin:/Users/carlosgallardo/Projects/projects/orchestos/node_modules/.bin:/Users/carlosgallardo/Projects/projects/node_modules/.bin:/Users/carlosgallardo/Projects/node_modules/.bin"}}
+[cli-spawn] {"event":"end","agent":"claude","firstByteMs":0,"totalMs":0,"exitCode":0,"timedOut":false,"stderrTail":""}
+[cli-spawn] {"event":"start","agent":"claude","cwd":"/tmp/project","args":["-p","--output-format","stream-json","--include-partial-messages","--verbose","--append-system-prompt","sys","--restricted","--strict-mcp-config","--tools","Read,Glob,Grep","--settings","/tmp/project/.orchestos/agent-home/claude/settings.json","--add-dir","/tmp/project"],"env":{"HOME":"/Users/carlosgallardo","CLAUDE_CONFIG_DIR":null,"CODEX_HOME":null,"ORCHESTOS_HOME":"/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/orchestos-test-home-60057-HQPIzI","PATH":"/Users/carlosgallardo/Projects/projects/orchestos/node_modules/.bin:/Users/carlosgallardo/Projects/projects/orchestos/node_modules/.bin:/Users/carlosgallardo/Projects/projects/node_modules/.bin:/Users/carlosgallardo/Projects/node_modules/.bin"}}
+[cli-spawn] {"event":"end","agent":"claude","firstByteMs":0,"totalMs":0,"exitCode":0,"timedOut":false,"stderrTail":""}
+[cli-spawn] {"event":"start","agent":"claude","cwd":"/tmp/project","args":["-p","--output-format","stream-json","--include-partial-messages","--verbose","--append-system-prompt","sys","--restricted","--strict-mcp-config","--tools","Read,Glob,Grep","--settings","/tmp/project/.orchestos/agent-home/claude/settings.json","--add-dir","/tmp/project"],"env":{"HOME":"/Users/carlosgallardo","CLAUDE_CONFIG_DIR":null,"CODEX_HOME":null,"ORCHESTOS_HOME":"/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/orchestos-test-home-60057-HQPIzI","PATH":"/Users/carlosgallardo/Projects/projects/orchestos/node_modules/.bin:/Users/carlosgallardo/Projects/projects/orchestos/node_modules/.bin:/Users/carlosgallardo/Projects/projects/node_modules/.bin:/Users/carlosgallardo/Projects/node_modules/.bin"}}
+[cli-spawn] {"event":"end","agent":"claude","firstByteMs":0,"totalMs":0,"exitCode":0,"timedOut":false,"stderrTail":""}
+[cli-spawn] {"event":"start","agent":"claude","cwd":"/tmp/p","args":["-p","--output-format","stream-json","--include-partial-messages","--verbose","--append-system-prompt","sys","--restricted","--strict-mcp-config","--tools","Read,Glob,Grep","--settings","/tmp/p/.orchestos/agent-home/claude/settings.json","--add-dir","/tmp/p"],"env":{"HOME":"/Users/carlosgallardo","CLAUDE_CONFIG_DIR":null,"CODEX_HOME":null,"ORCHESTOS_HOME":"/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/orchestos-test-home-60057-HQPIzI","PATH":"/Users/carlosgallardo/Projects/projects/orchestos/node_modules/.bin:/Users/carlosgallardo/Projects/projects/orchestos/node_modules/.bin:/Users/carlosgallardo/Projects/projects/node_modules/.bin:/Users/carlosgallardo/Projects/node_modules/.bin"}}
+[cli-spawn] {"event":"end","agent":"claude","firstByteMs":0,"totalMs":0,"exitCode":0,"timedOut":false,"stderrTail":""}
+[cli-spawn] {"event":"start","agent":"claude","cwd":"/tmp/p","args":["-p","--output-format","stream-json","--include-partial-messages","--verbose","--append-system-prompt","sys","--restricted","--strict-mcp-config","--tools","Read,Glob,Grep","--settings","/tmp/p/.orchestos/agent-home/claude/settings.json","--add-dir","/tmp/p","--model","claude-sonnet-5"],"env":{"HOME":"/Users/carlosgallardo","CLAUDE_CONFIG_DIR":null,"CODEX_HOME":null,"ORCHESTOS_HOME":"/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/orchestos-test-home-60057-HQPIzI","PATH":"/Users/carlosgallardo/Projects/projects/orchestos/node_modules/.bin:/Users/carlosgallardo/Projects/projects/orchestos/node_modules/.bin:/Users/carlosgallardo/Projects/projects/node_modules/.bin:/Users/carlosgallardo/Projects/node_modules/.bin"}}
+[cli-spawn] {"event":"end","agent":"claude","firstByteMs":0,"totalMs":0,"exitCode":0,"timedOut":false,"stderrTail":""}
+[cli-spawn] {"event":"start","agent":"claude","cwd":"/tmp/p","args":["-p","--output-format","stream-json","--include-partial-messages","--verbose","--append-system-prompt","sys","--restricted","--strict-mcp-config","--tools","Read,Glob,Grep","--settings","/tmp/p/.orchestos/agent-home/claude/settings.json","--add-dir","/tmp/p","--model","sonnet"],"env":{"HOME":"/Users/carlosgallardo","CLAUDE_CONFIG_DIR":null,"CODEX_HOME":null,"ORCHESTOS_HOME":"/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/orchestos-test-home-60057-HQPIzI","PATH":"/Users/carlosgallardo/Projects/projects/orchestos/node_modules/.bin:/Users/carlosgallardo/Projects/projects/orchestos/node_modules/.bin:/Users/carlosgallardo/Projects/projects/node_modules/.bin:/Users/carlosgallardo/Projects/node_modules/.bin"}}
+[cli-spawn] {"event":"end","agent":"claude","firstByteMs":0,"totalMs":0,"exitCode":0,"timedOut":false,"stderrTail":""}
+[cli-spawn] {"event":"start","agent":"claude","cwd":"/tmp/p","args":["-p","--output-format","stream-json","--include-partial-messages","--verbose","--append-system-prompt","sys","--restricted","--strict-mcp-config","--tools","Read,Glob,Grep","--settings","/tmp/p/.orchestos/agent-home/claude/settings.json","--add-dir","/tmp/p"],"env":{"HOME":"/Users/carlosgallardo","CLAUDE_CONFIG_DIR":null,"CODEX_HOME":null,"ORCHESTOS_HOME":"/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/orchestos-test-home-60057-HQPIzI","PATH":"/Users/carlosgallardo/Projects/projects/orchestos/node_modules/.bin:/Users/carlosgallardo/Projects/projects/orchestos/node_modules/.bin:/Users/carlosgallardo/Projects/projects/node_modules/.bin:/Users/carlosgallardo/Projects/node_modules/.bin"}}
+[cli-spawn] {"event":"end","agent":"claude","firstByteMs":0,"totalMs":0,"exitCode":0,"timedOut":false,"stderrTail":""}
+[cli-spawn] {"event":"start","agent":"claude","cwd":"/tmp/p","args":["-p","--output-format","stream-json","--include-partial-messages","--verbose","--append-system-prompt","sys","--restricted","--strict-mcp-config","--tools","Read,Glob,Grep","--settings","/tmp/p/.orchestos/agent-home/claude/settings.json","--add-dir","/tmp/p"],"env":{"HOME":"/Users/carlosgallardo","CLAUDE_CONFIG_DIR":null,"CODEX_HOME":null,"ORCHESTOS_HOME":"/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/orchestos-test-home-60057-HQPIzI","PATH":"/Users/carlosgallardo/Projects/projects/orchestos/node_modules/.bin:/Users/carlosgallardo/Projects/projects/orchestos/node_modules/.bin:/Users/carlosgallardo/Projects/projects/node_modules/.bin:/Users/carlosgallardo/Projects/node_modules/.bin"}}
+[cli-spawn] {"event":"end","agent":"claude","firstByteMs":0,"totalMs":0,"exitCode":0,"timedOut":false,"stderrTail":""}
+[cli-spawn] {"event":"start","agent":"claude","cwd":"/tmp/p","args":["-p","--output-format","stream-json","--include-partial-messages","--verbose","--append-system-prompt","sys","--restricted","--strict-mcp-config","--tools","Read,Glob,Grep","--settings","/tmp/p/.orchestos/agent-home/claude/settings.json","--add-dir","/tmp/p"],"env":{"HOME":"/Users/carlosgallardo","CLAUDE_CONFIG_DIR":null,"CODEX_HOME":null,"ORCHESTOS_HOME":"/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/orchestos-test-home-60057-HQPIzI","PATH":"/Users/carlosgallardo/Projects/projects/orchestos/node_modules/.bin:/Users/carlosgallardo/Projects/projects/orchestos/node_modules/.bin:/Users/carlosgallardo/Projects/projects/node_modules/.bin:/Users/carlosgallardo/Projects/node_modules/.bin"}}
+[cli-spawn] {"event":"end","agent":"claude","firstByteMs":0,"totalMs":0,"exitCode":0,"timedOut":false,"stderrTail":""}
+[cli-spawn] {"event":"start","agent":"claude","cwd":"/tmp/p","args":["-p","--output-format","stream-json","--include-partial-messages","--verbose","--append-system-prompt","sys","--restricted","--strict-mcp-config","--tools","Read,Glob,Grep","--settings","/tmp/p/.orchestos/agent-home/claude/settings.json","--add-dir","/tmp/p","--effort","xhigh"],"env":{"HOME":"/Users/carlosgallardo","CLAUDE_CONFIG_DIR":null,"CODEX_HOME":null,"ORCHESTOS_HOME":"/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/orchestos-test-home-60057-HQPIzI","PATH":"/Users/carlosgallardo/Projects/projects/orchestos/node_modules/.bin:/Users/carlosgallardo/Projects/projects/orchestos/node_modules/.bin:/Users/carlosgallardo/Projects/projects/node_modules/.bin:/Users/carlosgallardo/Projects/node_modules/.bin"}}
+[cli-spawn] {"event":"end","agent":"claude","firstByteMs":0,"totalMs":0,"exitCode":0,"timedOut":false,"stderrTail":""}
+[cli-spawn] {"event":"start","agent":"claude","cwd":"/tmp/p","args":["-p","--output-format","stream-json","--include-partial-messages","--verbose","--append-system-prompt","sys","--restricted","--strict-mcp-config","--tools","Read,Glob,Grep","--settings","/tmp/p/.orchestos/agent-home/claude/settings.json","--add-dir","/tmp/p"],"env":{"HOME":"/Users/carlosgallardo","CLAUDE_CONFIG_DIR":null,"CODEX_HOME":null,"ORCHESTOS_HOME":"/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/orchestos-test-home-60057-HQPIzI","PATH":"/Users/carlosgallardo/Projects/projects/orchestos/node_modules/.bin:/Users/carlosgallardo/Projects/projects/orchestos/node_modules/.bin:/Users/carlosgallardo/Projects/projects/node_modules/.bin:/Users/carlosgallardo/Projects/node_modules/.bin"}}
+[cli-spawn] {"event":"end","agent":"claude","firstByteMs":0,"totalMs":0,"exitCode":0,"timedOut":false,"stderrTail":""}
+
+src/__tests__/task-agent-rules-config.test.ts:
+[config] ignorando taskAgentRules[].agent: 'not-a-real-agent' no es un valor válido — se usará el default. Valores permitidos: local, claude, opencode, codex, api.
+[config] ignorando taskAgentRules[].match: '[object Object]' no es un valor válido — se usará el default. Valores permitidos: { output: string[] }, { skill: string }.
+
+src/__tests__/spec.test.ts:
+
+src/dashboard/__tests__/csrf-origin.test.ts:
+540 | export function startServer(
+541 |   port = DEFAULT_PORT,
+542 |   terminalCommand?: string[],
+543 | ): { server: any; url: string } {
+544 |   const terminalSessions = new WeakMap<object, ReturnType<typeof createTerminalSession>>()
+545 |   const server = Bun.serve<{ cwd: string; cols: number; rows: number }>({
+                           ^
+error: Failed to start server. Is port 0 in use?
+ syscall: "listen",
+   errno: 0,
+    code: "EADDRINUSE"
+
+      at startServer (/Users/carlosgallardo/Projects/projects/orchestos/src/dashboard/server.ts:545:22)
+      at <anonymous> (/Users/carlosgallardo/Projects/projects/orchestos/src/dashboard/__tests__/csrf-origin.test.ts:29:24)
+(fail) L.2 — bind a loopback (no exposición accidental) > startServer() nunca escucha fuera de 127.0.0.1, sin importar el puerto pedido [1.79ms]
+
+ 1817 pass
+ 2 skip
+ 6 fail
+ 4714 expect() calls
+Ran 1825 tests across 205 files. [164.50s]
+error: script "test:coverage" exited with code 1

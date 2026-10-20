@@ -79,6 +79,7 @@ type InsertRunRecord = Omit<
   | 'reverted_sha'
   | 'reverted_at'
 > & {
+  id?: string
   files_read?: string | null
   qa_model?: string | null
   qa_criteria_json?: string | null
@@ -110,7 +111,7 @@ function clipExecutorReply(value: string | null | undefined): string | null {
 export function insertRun(r: InsertRunRecord): string {
   const scrub = (value: string | null | undefined): string | null =>
     value == null ? null : redactSensitive(value)
-  const id = randomUUID()
+  const id = r.id ?? randomUUID()
   const now = new Date().toISOString()
   db.run(
     `INSERT INTO runs (

@@ -841,6 +841,51 @@
       "closedDate": null
     },
     {
+      "id": "ERP.7.1a",
+      "sprint": "Fase 3 — Correr dentro de OrchestOS igual que el CLI directo",
+      "block": null,
+      "delegation": "🧠",
+      "title": "Capa común de aprobación por acción y adaptador Codex (app-server) para tareas",
+      "status": "done",
+      "closedDate": null
+    },
+    {
+      "id": "SEC.1",
+      "sprint": "Fase 3 — Correr dentro de OrchestOS igual que el CLI directo",
+      "block": null,
+      "delegation": "⚡",
+      "title": "`bun audit` en rojo: 4 vulnerabilidades altas en dependencias transitivas",
+      "status": "open",
+      "closedDate": null
+    },
+    {
+      "id": "ERP.7.1b",
+      "sprint": "Fase 3 — Correr dentro de OrchestOS igual que el CLI directo",
+      "block": null,
+      "delegation": "⚡",
+      "title": "La tarjeta de tarea muestra la solicitud y la responde; aviso \"Approval\" en la barra lateral",
+      "status": "open",
+      "closedDate": null
+    },
+    {
+      "id": "ERP.7.1c",
+      "sprint": "Fase 3 — Correr dentro de OrchestOS igual que el CLI directo",
+      "block": null,
+      "delegation": "⚡",
+      "title": "Selector de modo en el composer (Supervisado / Auto-edición / Total), por defecto Auto-edición",
+      "status": "open",
+      "closedDate": null
+    },
+    {
+      "id": "ERP.7.1d",
+      "sprint": "Fase 3 — Correr dentro de OrchestOS igual que el CLI directo",
+      "block": null,
+      "delegation": "🧠",
+      "title": "Adaptadores Claude (`--permission-prompt-tool`/`PreToolUse`) y OpenCode (`opencode serve` + API de permisos)",
+      "status": "open",
+      "closedDate": null
+    },
+    {
       "id": "ERP.7.2",
       "sprint": "Fase 3 — Correr dentro de OrchestOS igual que el CLI directo",
       "block": null,
