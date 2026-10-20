@@ -1,8 +1,18 @@
-# NEXT — handoff 2026-10-19 (lote ERP.7 cerrado)
+# NEXT — handoff 2026-10-20 (sigue H.7.2c → H.7.3; asignación de modelos del día abajo)
 
 Un solo presente: orden y trampas vivas. Lo cerrado vive en `PLAN.md` y git (regla `AGENTS.md` § Reglas generales,
 2026-10-19: `NEXT.md` se toca solo al cerrar o cortar un lote). Arranque:
 `bun run agent:preflight -- --item <ID> --agent claude`. Lista viva: `bun run next`.
+
+## Asignación de Carlos, vale solo 2026-10-20 (ahorrar cupo semanal de Claude: 75 % usado, reinicia en ~1 d 17 h)
+Prevalece sobre el roster y sobre `~/.claude/CLAUDE.md` § Selección de modelos. Vence al terminar el día.
+- Opus (cerebro) solo crea (plan, spec, docs) y verifica (lee el diff, corre gates con comandos propios, commitea).
+  No lee a fondo ni teclea código: todo lo demás va a agentes GPT.
+- Código: `mecanico` (Luna) para ⚡; lo que exige criterio va a `criterio-alt` (Sol), no a `criterio` (Sonnet).
+- QA: `qa` (Sol), más que de costumbre: después de cada ítem delegado, también los ⚡, antes del commit.
+- Lectura: `leer` (Luna). `investigar` (Sonnet) solo si hace falta internet; no hay rol GPT con web en el roster.
+- Astra: no (tampoco hoy). Sin subagentes de Claude (`Agent`/`Explore`).
+- No se edita `roster.conf`: el cambio es temporal y se aplica eligiendo el rol al delegar.
 
 ## Orden
 1. Lote ERP.7 cerrado: ERP.7 (informe `docs/done/ERP.7.md`) y ERP.7.2 (diff + deshacer por tarea en el hilo).
