@@ -1,6 +1,6 @@
 import { afterAll, beforeAll, describe, expect, it } from 'bun:test'
 import { randomUUID } from 'node:crypto'
-import { mkdtempSync, rmSync, writeFileSync } from 'node:fs'
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { createChatSession, deleteChatSession, listChatMessages } from '../../db/chat-sessions.ts'
@@ -33,13 +33,13 @@ function setup(status: string, retryReason?: string, retryCount = 0) {
   return { root, session, taskId }
 }
 
-function addRun(taskId: string, result: string) {
+function addRun(taskId: string, result: string, provider = 'unit-provider') {
   const id = insertRun({
     project_id: null,
     prompt: 'test',
     task_class: 'test',
     model: 'unit-model',
-    provider: 'unit-provider',
+    provider,
     skill_id: null,
     task_id: taskId,
     allowed_outputs: null,
@@ -158,4 +158,23 @@ describe('reportTaskOutcome', () => {
     )
     expect(message?.taskReport).toEqual({ outcome: 'pending', dirtyFiles: ['sucio.txt'] })
   })
+})
+
+it('task reports persist requested and effective approval modes with registry CLI names', () => {
+  for (const [provider, effective, label] of [
+    ['claude', 'full', 'Claude Code'],
+    ['codex', 'auto-edit', 'Codex'],
+    ['opencode', 'full', 'opencode'],
+  ]) {
+    const { root, session, taskId } = setup('done')
+    const path = join(root, 'tasks.yaml')
+    writeFileSync(path, readFileSync(path, 'utf8') + '    approvalMode: auto-edit\n')
+    addRun(taskId, 'done', provider)
+    reportTaskOutcome(root, session.id, taskId)
+    expect(listChatMessages(session.id)[0]?.taskReport).toMatchObject({
+      approvalMode: effective,
+      requestedApprovalMode: 'auto-edit',
+      approvalCli: label,
+    })
+  }
 })

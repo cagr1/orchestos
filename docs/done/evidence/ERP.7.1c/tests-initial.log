@@ -1,0 +1,114 @@
+bun test v1.3.14 (0d9b296a)
+
+src/__tests__/harness-engine-persistence.test.ts:
+Migration 10: nulled 0 orphan runs.project_id
+Migration 11: nulled 0 orphan files and 0 orphan edges
+
+src/dashboard/handlers/task-report.test.ts:
+115 |     const content = listChatMessages(session.id)[0]?.content ?? ''
+116 |     expect(content).toContain(`\`${taskId}\` done · unit-provider/unit-model`)
+117 |     expect(content).toContain('> available run')
+118 |     expect(listChatMessages(session.id)[0]?.taskReport).toEqual({
+119 |       outcome: 'done',
+120 |       provider,
+            ^
+ReferenceError: provider is not defined
+      at <anonymous> (/Users/carlosgallardo/Projects/projects/orchestos/src/dashboard/handlers/task-report.test.ts:120:7)
+(fail) reportTaskOutcome > usa el run disponible cuando projectId no coincide [1.19ms]
+-----------------------------------------------------------|---------|---------|-------------------
+File                                                       | % Funcs | % Lines | Uncovered Line #s
+-----------------------------------------------------------|---------|---------|-------------------
+All files                                                  |   41.80 |   43.71 |
+ scripts/context-adapters.ts                               |    7.14 |   13.57 | 113-120,138-188,200-258,265,269,294-373,387-390,398-425,429-432,436-437,441,445-447
+ scripts/context-budget.ts                                 |    0.00 |   10.00 | 44-67,75-76,86-108,112-113,117-158,162-165,169-171,175,179,184-189,191,194-210
+ scripts/test-preload.ts                                   |    0.00 |   76.92 | 61-63
+ src/config/load.ts                                        |    8.33 |   14.57 | 36-50,54-90,94-143,148-149,161-164,185-199,206-239,243-248,252-254,260-262
+ src/config/schema.ts                                      |    0.00 |   25.93 | 116-135
+ src/context/compress.ts                                   |   50.00 |    8.00 | 14-59
+ src/dashboard/app/src/api/chat.ts                         |   71.43 |   73.95 | 299-311,329-330,334-337,341-344,378-388,392-398,402,416-426,441-453,491-505,533,537-540
+ src/dashboard/app/src/api/tasks.ts                        |    0.00 |    6.47 | 30-48,52-69,77-85,95-108,115-125,129-135,140-144,149-195
+ src/dashboard/app/src/components/common/AgentComposer.tsx |   75.00 |    7.00 | 70-81,138-896
+ src/dashboard/app/src/components/common/ProviderLogos.tsx |    0.00 |    4.00 | 28-243
+ src/dashboard/app/src/components/thread/taskCards.ts      |  100.00 |  100.00 | 
+ src/dashboard/app/src/components/thread/thinking.ts       |   62.50 |   51.72 | 8-10,14-19,23-26
+ src/dashboard/app/src/components/ui/file-thumbnail.tsx    |    0.00 |    9.78 | 20-40,45-53,73-125
+ src/dashboard/app/src/lib/shape-context.tsx               |    0.00 |   35.42 | 43-47,95-97,101-103,107-157
+ src/dashboard/app/src/lib/utils.ts                        |    0.00 |   95.65 | 
+ src/dashboard/handlers/task-report.ts                     |   83.33 |   82.93 | 19,77-89
+ src/db/chat-sessions.ts                                   |   52.00 |   40.60 | 85-86,124-125,171-199,203-209,213-218,228-236,240-244,248-268,272-280,284-296,318-320,324-374
+ src/db/migrate.ts                                         |  100.00 |   97.20 | 67,111,144,194-195,228,277,344,347,356,475,522,537,607,639-640,883-884,917-918,997
+ src/db/projects.ts                                        |   36.36 |   24.74 | 16,24,27,33,38-41,45-69,78,90-94,99-112,116-135
+ src/db/run-steps.ts                                       |   33.33 |   13.33 | 27-60,66-70
+ src/db/runs.ts                                            |   38.46 |   57.81 | 176-180,184-186,190-198,202-212,216-228,232-237,246-247,257-261
+ src/db/sqlite.ts                                          |  100.00 |   93.75 | 
+ src/db/task-run-watch.ts                                  |    0.00 |   17.39 | 13-19,23,27-32,37-41
+ src/detect/conventions.ts                                 |   66.67 |   64.44 | 18-19,43-44,56-67
+ src/detect/languages.ts                                   |   50.00 |   93.00 | 105-106,112-114,118-119
+ src/detect/manifest.ts                                    |  100.00 |   28.26 | 18-30,32-41,43-46,48-49,57-65,68,75-86,89,99-102,108-116
+ src/detect/roadmap-profile.ts                             |   50.00 |   61.50 | 74-75,82-104,115-119,122-126,132-136,139-143,190-194,198,222-225,247-250,274-277,280-283,293-298,308-311,321-325,336-339,352-353,360-369,380-383,414,432-433,472,490-537
+ src/hooks/context-monitor.ts                              |   50.00 |   41.94 | 74-80,95-99,101-105,110-114,120-128,133-137
+ src/instincts/schema.ts                                   |    0.00 |   19.78 | 63-64,74-115,123-148,180,188-189
+ src/instincts/store.ts                                    |   10.00 |    9.29 | 25-44,51-52,59-92,101-110,118-153,161-166,173-174,184-188,195,212-222
+ src/mcp/adapters.ts                                       |    0.00 |   17.11 | 46,50-53,58-64,69-74,79-88,95-102,107-122,127-137
+ src/mcp/readonly.ts                                       |    0.00 |   25.34 | 155-160,166-170,174,178-183,187-312,316-323,328-345,377-435,439-453,457-520,525-542,547-570,577-580,594-653,658-685
+ src/mcp/server.ts                                         |    0.00 |   19.63 | 57-91,112-170,175-204,209-214
+ src/providers/anthropic.ts                                |    0.00 |    7.14 | 8-16,20-61
+ src/providers/codex.ts                                    |    0.00 |    5.97 | 7-47,51-72
+ src/providers/index.ts                                    |  100.00 |   53.33 | 29-34
+ src/providers/openai.ts                                   |    0.00 |    7.69 | 6-14,18-55
+ src/providers/openrouter.ts                               |   80.00 |   65.57 | 24-31,37-38,59-60,99,103-110
+ src/providers/tool-call.ts                                |   72.22 |   44.51 | 81-88,91-93,101-153,161-225,248-250,256,270-296,412-471,495-496,535,541-548,638,671-674,683,699-717,719-725
+ src/roadmaps/context.ts                                   |   66.67 |   74.51 | 39,42-44,65,74-92,106-107
+ src/router/auto-route.ts                                  |   33.33 |   53.85 | 23-31,40-42,46,51-55
+ src/router/classify.ts                                    |  100.00 |  100.00 | 
+ src/router/model-catalog.ts                               |   62.50 |   35.98 | 101-102,106-126,136-194,218,220-230,240-242,264-265,274,285-286,310-312
+ src/router/opencode-catalog.ts                            |    0.00 |   18.18 | 22-23,31,35-47,52-57,63-72,77-100,104,109-110,114,119-121
+ src/router/pricing.ts                                     |   66.67 |   52.54 | 37-64
+ src/router/role-runner.ts                                 |   80.00 |   42.42 | 37-74
+ src/run/approvals.ts                                      |    9.09 |   12.10 | 26-36,41-53,71-75,78-83,86-97,100-105,116-122,125-162,166-205
+ src/run/checks.ts                                         |   22.22 |   21.40 | 15-18,32-33,39-40,45-50,78-88,98-99,110-113,116-121,143-159,163-228,233-234,239-243,247-249,253-262,267,271-276,280,284-296,300-307
+ src/run/contract.ts                                       |  100.00 |  100.00 | 
+ src/run/executors/agentic.ts                              |   41.67 |   68.16 | 110-133,141,151-173,177-189,246-248
+ src/run/executors/cli-registry.ts                         |  100.00 |   97.90 | 255,259-261
+ src/run/executors/codex-app-server.ts                     |    0.00 |    4.73 | 20-23,43-46,50,92-130,135-183,187-190,195-214,218,222-332,336-621,626-634,639-641,646-656,659-660
+ src/run/executors/codex-approval.ts                       |    0.00 |    6.25 | 8-13,17-18,22-58
+ src/run/executors/codex.ts                                |    0.00 |    6.77 | 68,72-76,80-85,90,115-119,123-133,137-150,154-167,173-235,251-292,322-337,341-353,358-383,397,401-480,484-599,606-728
+ src/run/executors/external.ts                             |    0.00 |    6.77 | 33-34,57,62-66,99-111,117-118,127-136,167-171,185-208,212-233,249-347,401-434,463-574,580-691
+ src/run/executors/opencode.ts                             |    0.00 |    5.80 | 47,51-55,60-64,68-78,82-85,91-94,98-116,133-165,180-229,251-254,258-313,319-386
+ src/run/executors/single-shot.ts                          |   75.00 |  100.00 | 
+ src/run/executors/spawn-trace.ts                          |    0.00 |    4.08 | 6-12,21-60
+ src/run/executors/step-event.ts                           |    0.00 |    2.16 | 41-52,80-94,105-109,113-176,180,208-266,296-366
+ src/run/executors/worktree-diff.ts                        |    0.00 |   16.67 | 15-28,46-58,88-90,94-123
+ src/run/file-lock.ts                                      |   33.33 |   45.83 | 19-24,29-35,48-53,66,76-82,85-90,93-95,98-100
+ src/run/git-exclude.ts                                    |   50.00 |   50.00 | 18-21,23-26,28-32
+ src/run/git-lock.ts                                       |  100.00 |  100.00 | 
+ src/run/harness.ts                                        |   76.47 |   62.15 | 153-158,184-186,188,201-204,206-209,221-228,230-236,246-256,274-286,325-336,373-376,481,484-524,600-659,676-677,700-703,705-752,759-776,827-833,848-849,898-914,938-945,1011,1013-1023,1029-1031
+ src/run/html-script-check.ts                              |    0.00 |   25.74 | 53-56,66-92,97-101,106-111,121-125,135-155,161-162,167-171
+ src/run/logger.ts                                         |   80.00 |   94.12 | 31
+ src/run/middleware.ts                                     |  100.00 |  100.00 | 
+ src/run/middlewares/context-inject.ts                     |  100.00 |   57.14 | 10-15
+ src/run/middlewares/index.ts                              |  100.00 |  100.00 | 
+ src/run/middlewares/instinct-apply.ts                     |   66.67 |   92.31 | 
+ src/run/middlewares/roadmap-context.ts                    |  100.00 |  100.00 | 
+ src/run/middlewares/skill-route.ts                        |  100.00 |   57.14 | 15-20
+ src/run/path-policy.ts                                    |   81.82 |   77.63 | 12-14,66-69,74,77-81,86-89
+ src/run/prompt.ts                                         |   75.00 |   72.00 | 45-48,52-53,64-71
+ src/run/qa.ts                                             |   88.89 |   81.72 | 49,61,114,133-140,182-183,194,198,210-215,219-223,235-240,249-250
+ src/run/read-audit.ts                                     |    0.00 |   11.59 | 22-31,36-77,82-95,114-116,119,123-147,151-161,165-184,189-191,201,205-208,213-283
+ src/run/sandbox-policy.ts                                 |   50.00 |   20.62 | 17-21,50-121
+ src/run/sandbox.ts                                        |    0.00 |    2.35 | 15-23,27-107,115-121,125-235
+ src/run/tool-output-cap.ts                                |   50.00 |    0.00 | 12-31
+ src/run/transcript-parser.ts                              |   20.00 |   19.35 | 21-32,36,40-46,54-58
+ src/security/secrets.ts                                   |   20.00 |   63.08 | 47-48,52,56-70,78-83
+ src/skills/catalog.ts                                     |   33.33 |   51.95 | 29-43,48-53,62,74-81,117,139-144
+ src/skills/registry.ts                                    |   60.00 |   78.99 | 98-104,128,166,190-192,196,205,209,229-235,240,258,263-267
+ src/skills/targets/_shared.ts                             |    0.00 |    0.00 | 3-70
+ src/spec/store.ts                                         |    0.00 |    6.31 | 43,48-52,57-61,69-100,106-142,146-167,171-172
+ src/tasks/loader.ts                                       |   22.22 |   20.19 | 24,36-57,61-80,85-105,109-121,125,129-133
+ src/tasks/schema.ts                                       |   75.00 |   56.94 | 6,74,115,118,125-127,132-143,152-153,162-169,174,176-198,200,203-210
+-----------------------------------------------------------|---------|---------|-------------------
+
+ 79 pass
+ 1 fail
+ 284 expect() calls
+Ran 80 tests across 7 files. [8.26s]

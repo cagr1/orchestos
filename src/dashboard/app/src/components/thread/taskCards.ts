@@ -13,6 +13,9 @@ export interface TaskCardReport {
   content: string
   dirtyFiles: string[]
   runId?: string | null
+  approvalMode?: 'supervised' | 'auto-edit' | 'full'
+  requestedApprovalMode?: 'supervised' | 'auto-edit' | 'full'
+  approvalCli?: string
 }
 
 export interface TaskCardData {
@@ -78,6 +81,9 @@ export function buildTaskCards(
           ? `${message.taskReport.provider}/${message.taskReport.model}`
           : undefined,
       summary: message.taskReport.summary,
+      approvalMode: message.taskReport.approvalMode,
+      requestedApprovalMode: message.taskReport.requestedApprovalMode,
+      approvalCli: message.taskReport.approvalCli,
       content: message.content,
       dirtyFiles: message.taskReport.dirtyFiles ?? [],
       runId: message.taskReport.runId,
@@ -151,6 +157,11 @@ export function taskDetail(description: string, max = 60): string {
   return description.slice(description.indexOf(firstLine) + firstLine.length).trim()
 }
 
+/** Remove an OrchestOS worktree root from a path when the path is inside one. */
+export function taskWorktreeRelativePath(path: string): string {
+  return path.replace(/^.*\/\.orchestos\/worktrees\/[^/]+\//, '')
+}
+
 /** Preserve the server's request order and full command/diff text. */
 export function approvalBlocks(pending: PendingApproval[]) {
   return pending.map((request) => ({
@@ -202,4 +213,15 @@ export function threadsWithApprovals(
     )
     return waiting ? { ...thread, status: 'waiting_approval' } : thread
   })
+}
+
+export function approvalModeNotice(
+  report?: Pick<TaskCardReport, 'approvalMode' | 'requestedApprovalMode' | 'approvalCli'>,
+): string | null {
+  return report?.approvalMode === 'full' &&
+    report.requestedApprovalMode &&
+    report.requestedApprovalMode !== report.approvalMode &&
+    report.approvalCli
+    ? `Full access: ${report.approvalCli} can't ask per action yet`
+    : null
 }

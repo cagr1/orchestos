@@ -2,10 +2,12 @@ import { describe, expect, test } from 'bun:test'
 import type { ChatMessage, ChatThread, ProjectItem, TaskItem } from '../../types/orchestos'
 import {
   approvalBlocks,
+  approvalModeNotice,
   buildTaskCards,
   projectsWithApprovals,
   taskDetail,
   taskName,
+  taskWorktreeRelativePath,
   threadsWithApprovals,
 } from './taskCards'
 
@@ -127,6 +129,15 @@ describe('taskDetail', () => {
   test('conserva la descripción completa cuando el nombre se trunca', () => {
     const description = `${'a'.repeat(61)}\nmore details`
     expect(taskDetail(description)).toBe(description)
+  })
+})
+
+describe('taskWorktreeRelativePath', () => {
+  test('removes the worktree root and leaves other paths unchanged', () => {
+    expect(taskWorktreeRelativePath('/repo/.orchestos/worktrees/erp-7/src/task.ts')).toBe(
+      'src/task.ts',
+    )
+    expect(taskWorktreeRelativePath('src/task.ts')).toBe('src/task.ts')
   })
 })
 
@@ -273,4 +284,36 @@ describe('action approvals (ERP.7.1b)', () => {
       ).toBe('active')
     }
   })
+})
+
+test('unsupported action approval names the recorded CLI only for a degraded mode', () => {
+  expect(
+    approvalModeNotice({
+      approvalMode: 'full',
+      requestedApprovalMode: 'supervised',
+      approvalCli: 'Claude Code',
+    }),
+  ).toBe("Full access: Claude Code can't ask per action yet")
+  expect(
+    approvalModeNotice({
+      approvalMode: 'full',
+      requestedApprovalMode: 'auto-edit',
+      approvalCli: 'opencode',
+    }),
+  ).toBe("Full access: opencode can't ask per action yet")
+  expect(
+    approvalModeNotice({
+      approvalMode: 'full',
+      requestedApprovalMode: 'full',
+      approvalCli: 'Claude Code',
+    }),
+  ).toBeNull()
+  expect(
+    approvalModeNotice({
+      approvalMode: 'auto-edit',
+      requestedApprovalMode: 'auto-edit',
+      approvalCli: 'Codex',
+    }),
+  ).toBeNull()
+  expect(approvalModeNotice()).toBeNull()
 })

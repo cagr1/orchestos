@@ -1,0 +1,2 @@
+$ bun run scripts/build-app.ts
+✓ build:app → src/dashboard/app/dist/ (main.js, main.css, main.js.map, fira-code-latin-400-normal.woff2, fira-code-latin-500-normal.woff2, fira-code-latin-600-normal.woff2, fira-code-latin-ext-400-normal.woff2, fira-code-latin-ext-500-normal.woff2, fira-code-latin-ext-600-normal.woff2, inter-latin-ext-opsz-normal.woff2, inter-latin-opsz-normal.woff2, chatgpt.svg, claude.svg, deepseek.svg, gemini.svg, grok.svg, kimi.svg, ollama-icon.svg, opencode.svg) en 489ms

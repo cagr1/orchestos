@@ -1,0 +1,23 @@
+$ bun run scripts/run-evidence-gate.ts --label "erp.7.1c" -- bun run "docs/done/evidence/ERP.7.1c/live.ts"
+[gate:evidence] isolated home: /var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/orchestos-evidence-erp.7.1c-Z5egfF
+[gate:evidence] durable home: /Users/carlosgallardo
+Migration 10: nulled 0 orphan runs.project_id
+Migration 11: nulled 0 orphan files and 0 orphan edges
+540 | export function startServer(
+541 |   port = DEFAULT_PORT,
+542 |   terminalCommand?: string[],
+543 | ): { server: any; url: string } {
+544 |   const terminalSessions = new WeakMap<object, ReturnType<typeof createTerminalSession>>()
+545 |   const server = Bun.serve<{ cwd: string; cols: number; rows: number }>({
+                           ^
+error: Failed to start server. Is port 62473 in use?
+ syscall: "listen",
+   errno: 0,
+    code: "EADDRINUSE"
+
+      at startServer (/Users/carlosgallardo/Projects/projects/orchestos/src/dashboard/server.ts:545:22)
+      at /Users/carlosgallardo/Projects/projects/orchestos/docs/done/evidence/ERP.7.1c/live.ts:47:15
+
+Temporary runs are exported by gate:evidence; failed exports preserve the temporary home.
+[gate:evidence] evidence: 0 exported, 0 duplicate(s)
+error: script "gate:evidence" exited with code 1

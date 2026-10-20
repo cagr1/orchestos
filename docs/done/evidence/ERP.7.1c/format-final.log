@@ -1,0 +1,416 @@
+src/__tests__/harness-engine-persistence.test.ts:13:63 lint/style/useNodejsImportProtocol  FIXABLE  ━━━━━━━━━━
+
+  i A Node.js builtin module should be imported with the node: protocol.
+  
+    11 │  */
+    12 │ import { afterAll, afterEach, beforeAll, describe, expect, it, spyOn } from 'bun:test'
+  > 13 │ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'fs'
+       │                                                               ^^^^
+    14 │ import { tmpdir } from 'os'
+    15 │ import { join } from 'path'
+  
+  i Using the node: protocol is more explicit and signals that the imported module belongs to Node.js.
+  
+  i Unsafe fix: Add the node: protocol.
+  
+     11  11 │    */
+     12  12 │   import { afterAll, afterEach, beforeAll, describe, expect, it, spyOn } from 'bun:test'
+     13     │ - import·{·mkdirSync,·mkdtempSync,·rmSync,·writeFileSync·}·from·'fs'
+         13 │ + import·{·mkdirSync,·mkdtempSync,·rmSync,·writeFileSync·}·from·'node:fs'
+     14  14 │   import { tmpdir } from 'os'
+     15  15 │   import { join } from 'path'
+  
+
+src/__tests__/harness-engine-persistence.test.ts:14:24 lint/style/useNodejsImportProtocol  FIXABLE  ━━━━━━━━━━
+
+  i A Node.js builtin module should be imported with the node: protocol.
+  
+    12 │ import { afterAll, afterEach, beforeAll, describe, expect, it, spyOn } from 'bun:test'
+    13 │ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'fs'
+  > 14 │ import { tmpdir } from 'os'
+       │                        ^^^^
+    15 │ import { join } from 'path'
+    16 │ import { DEFAULT_CONFIG } from '../config/schema.ts'
+  
+  i Using the node: protocol is more explicit and signals that the imported module belongs to Node.js.
+  
+  i Unsafe fix: Add the node: protocol.
+  
+     12  12 │   import { afterAll, afterEach, beforeAll, describe, expect, it, spyOn } from 'bun:test'
+     13  13 │   import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'fs'
+     14     │ - import·{·tmpdir·}·from·'os'
+         14 │ + import·{·tmpdir·}·from·'node:os'
+     15  15 │   import { join } from 'path'
+     16  16 │   import { DEFAULT_CONFIG } from '../config/schema.ts'
+  
+
+src/__tests__/harness-engine-persistence.test.ts:15:22 lint/style/useNodejsImportProtocol  FIXABLE  ━━━━━━━━━━
+
+  i A Node.js builtin module should be imported with the node: protocol.
+  
+    13 │ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'fs'
+    14 │ import { tmpdir } from 'os'
+  > 15 │ import { join } from 'path'
+       │                      ^^^^^^
+    16 │ import { DEFAULT_CONFIG } from '../config/schema.ts'
+    17 │ import { db } from '../db/sqlite.ts'
+  
+  i Using the node: protocol is more explicit and signals that the imported module belongs to Node.js.
+  
+  i Unsafe fix: Add the node: protocol.
+  
+     13  13 │   import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'fs'
+     14  14 │   import { tmpdir } from 'os'
+     15     │ - import·{·join·}·from·'path'
+         15 │ + import·{·join·}·from·'node:path'
+     16  16 │   import { DEFAULT_CONFIG } from '../config/schema.ts'
+     17  17 │   import { db } from '../db/sqlite.ts'
+  
+
+src/dashboard/handlers/task-report.test.ts:171:25 lint/style/useTemplate  FIXABLE  ━━━━━━━━━━━━━━━━━
+
+  i Template literals are preferred over string concatenation.
+  
+    169 │     const { root, session, taskId } = setup('done')
+    170 │     const path = join(root, 'tasks.yaml')
+  > 171 │     writeFileSync(path, readFileSync(path, 'utf8') + '    approvalMode: auto-edit\n')
+        │                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    172 │     addRun(taskId, 'done', provider)
+    173 │     reportTaskOutcome(root, session.id, taskId)
+  
+  i Unsafe fix: Use a template literal.
+  
+    169 169 │       const { root, session, taskId } = setup('done')
+    170 170 │       const path = join(root, 'tasks.yaml')
+    171     │ - ····writeFileSync(path,·readFileSync(path,·'utf8')·+·'····approvalMode:·auto-edit\n')
+        171 │ + ····writeFileSync(path,·`${readFileSync(path,·'utf8')}····approvalMode:·auto-edit\n`)
+    172 172 │       addRun(taskId, 'done', provider)
+    173 173 │       reportTaskOutcome(root, session.id, taskId)
+  
+
+docs/done/evidence/ERP.7.1c/live.ts:61:15 lint/style/noNonNullAssertion  FIXABLE  ━━━━━━━━━━━━━━━━━━
+
+  ! Forbidden non-null assertion.
+  
+    59 │   git(root, 'commit', '-m', 'fixture')
+    60 │   upsertProject(root, {} as never, '')
+  > 61 │   projectId = getProject(root)!.id
+       │               ^^^^^^^^^^^^^^^^^
+    62 │   const config = loadOrcheConfig(root)
+    63 │   check(!!config.roles.orchestrator, 'Use configured orchestrator without substituting its model')
+  
+  i Unsafe fix: Replace with optional chain operator ?. This operator includes runtime checks, so it is safer than the compile-only non-null assertion operator
+  
+     59  59 │     git(root, 'commit', '-m', 'fixture')
+     60  60 │     upsertProject(root, {} as never, '')
+     61     │ - ··projectId·=·getProject(root)!.id
+         61 │ + ··projectId·=·getProject(root)?.id
+     62  62 │     const config = loadOrcheConfig(root)
+     63  63 │     check(!!config.roles.orchestrator, 'Use configured orchestrator without substituting its model')
+  
+
+docs/done/evidence/ERP.7.1c/live.ts:66:12 lint/style/noNonNullAssertion  FIXABLE  ━━━━━━━━━━━━━━━━━━
+
+  ! Forbidden non-null assertion.
+  
+    64 │   const session = createChatSession({
+    65 │     projectId,
+  > 66 │     agent: config.roles.orchestrator!.agent,
+       │            ^^^^^^^^^^^^^^^^^^^^^^^^^^
+    67 │     mode: 'code',
+    68 │     title: 'Composer permissions',
+  
+  i Unsafe fix: Replace with optional chain operator ?. This operator includes runtime checks, so it is safer than the compile-only non-null assertion operator
+  
+     64  64 │     const session = createChatSession({
+     65  65 │       projectId,
+     66     │ - ····agent:·config.roles.orchestrator!.agent,
+         66 │ + ····agent:·config.roles.orchestrator?.agent,
+     67  67 │       mode: 'code',
+     68  68 │       title: 'Composer permissions',
+  
+
+src/__tests__/harness-engine-persistence.test.ts:196:10 lint/style/noNonNullAssertion  FIXABLE  ━━━━━━━━━━
+
+  ! Forbidden non-null assertion.
+  
+    194 │   const row = getRun(runId)
+    195 │   expect(row).not.toBeNull()
+  > 196 │   expect(row!.cost_breakdown_json).not.toBeNull()
+        │          ^^^^
+    197 │   return JSON.parse(row!.cost_breakdown_json!)
+    198 │ }
+  
+  i Unsafe fix: Replace with optional chain operator ?. This operator includes runtime checks, so it is safer than the compile-only non-null assertion operator
+  
+    194 194 │     const row = getRun(runId)
+    195 195 │     expect(row).not.toBeNull()
+    196     │ - ··expect(row!.cost_breakdown_json).not.toBeNull()
+        196 │ + ··expect(row?.cost_breakdown_json).not.toBeNull()
+    197 197 │     return JSON.parse(row!.cost_breakdown_json!)
+    198 198 │   }
+  
+
+src/__tests__/harness-engine-persistence.test.ts:197:21 lint/style/noNonNullAssertion  FIXABLE  ━━━━━━━━━━
+
+  ! Forbidden non-null assertion.
+  
+    195 │   expect(row).not.toBeNull()
+    196 │   expect(row!.cost_breakdown_json).not.toBeNull()
+  > 197 │   return JSON.parse(row!.cost_breakdown_json!)
+        │                     ^^^^
+    198 │ }
+    199 │ 
+  
+  i Unsafe fix: Replace with optional chain operator ?. This operator includes runtime checks, so it is safer than the compile-only non-null assertion operator
+  
+    195 195 │     expect(row).not.toBeNull()
+    196 196 │     expect(row!.cost_breakdown_json).not.toBeNull()
+    197     │ - ··return·JSON.parse(row!.cost_breakdown_json!)
+        197 │ + ··return·JSON.parse(row?.cost_breakdown_json!)
+    198 198 │   }
+    199 199 │   
+  
+
+src/__tests__/harness-engine-persistence.test.ts:197:21 lint/style/noNonNullAssertion ━━━━━━━━━━━━━━
+
+  ! Forbidden non-null assertion.
+  
+    195 │   expect(row).not.toBeNull()
+    196 │   expect(row!.cost_breakdown_json).not.toBeNull()
+  > 197 │   return JSON.parse(row!.cost_breakdown_json!)
+        │                     ^^^^^^^^^^^^^^^^^^^^^^^^^
+    198 │ }
+    199 │ 
+  
+
+src/__tests__/harness-engine-persistence.test.ts:218:14 lint/style/noNonNullAssertion  FIXABLE  ━━━━━━━━━━
+
+  ! Forbidden non-null assertion.
+  
+    216 │       const breakdown = await rowBreakdownFor(result.runId)
+    217 │       expect(breakdown).toHaveLength(1)
+  > 218 │       expect(breakdown[0]!.label).toBe('single-shot')
+        │              ^^^^^^^^^^^^^
+    219 │       // El modelo lo resuelve el router (con modelOverride='anthropic/claude-haiku-4-5'
+    220 │       // en callRunTask), no el del response body. La costByIteration registra el modelo
+  
+  i Unsafe fix: Replace with optional chain operator ?. This operator includes runtime checks, so it is safer than the compile-only non-null assertion operator
+  
+    216 216 │         const breakdown = await rowBreakdownFor(result.runId)
+    217 217 │         expect(breakdown).toHaveLength(1)
+    218     │ - ······expect(breakdown[0]!.label).toBe('single-shot')
+        218 │ + ······expect(breakdown[0]?.label).toBe('single-shot')
+    219 219 │         // El modelo lo resuelve el router (con modelOverride='anthropic/claude-haiku-4-5'
+    220 220 │         // en callRunTask), no el del response body. La costByIteration registra el modelo
+  
+
+src/__tests__/harness-engine-persistence.test.ts:222:14 lint/style/noNonNullAssertion  FIXABLE  ━━━━━━━━━━
+
+  ! Forbidden non-null assertion.
+  
+    220 │       // en callRunTask), no el del response body. La costByIteration registra el modelo
+    221 │       // que single-shot.ts vio en ctx.model, que es el override.
+  > 222 │       expect(breakdown[0]!.model).toBe('anthropic/claude-haiku-4-5')
+        │              ^^^^^^^^^^^^^
+    223 │       expect(breakdown[0]!.inputTokens).toBe(7)
+    224 │       expect(breakdown[0]!.outputTokens).toBe(4)
+  
+  i Unsafe fix: Replace with optional chain operator ?. This operator includes runtime checks, so it is safer than the compile-only non-null assertion operator
+  
+    220 220 │         // en callRunTask), no el del response body. La costByIteration registra el modelo
+    221 221 │         // que single-shot.ts vio en ctx.model, que es el override.
+    222     │ - ······expect(breakdown[0]!.model).toBe('anthropic/claude-haiku-4-5')
+        222 │ + ······expect(breakdown[0]?.model).toBe('anthropic/claude-haiku-4-5')
+    223 223 │         expect(breakdown[0]!.inputTokens).toBe(7)
+    224 224 │         expect(breakdown[0]!.outputTokens).toBe(4)
+  
+
+src/__tests__/harness-engine-persistence.test.ts:223:14 lint/style/noNonNullAssertion  FIXABLE  ━━━━━━━━━━
+
+  ! Forbidden non-null assertion.
+  
+    221 │       // que single-shot.ts vio en ctx.model, que es el override.
+    222 │       expect(breakdown[0]!.model).toBe('anthropic/claude-haiku-4-5')
+  > 223 │       expect(breakdown[0]!.inputTokens).toBe(7)
+        │              ^^^^^^^^^^^^^
+    224 │       expect(breakdown[0]!.outputTokens).toBe(4)
+    225 │       expect(breakdown[0]!.costUsd).toBeGreaterThan(0)
+  
+  i Unsafe fix: Replace with optional chain operator ?. This operator includes runtime checks, so it is safer than the compile-only non-null assertion operator
+  
+    221 221 │         // que single-shot.ts vio en ctx.model, que es el override.
+    222 222 │         expect(breakdown[0]!.model).toBe('anthropic/claude-haiku-4-5')
+    223     │ - ······expect(breakdown[0]!.inputTokens).toBe(7)
+        223 │ + ······expect(breakdown[0]?.inputTokens).toBe(7)
+    224 224 │         expect(breakdown[0]!.outputTokens).toBe(4)
+    225 225 │         expect(breakdown[0]!.costUsd).toBeGreaterThan(0)
+  
+
+src/__tests__/harness-engine-persistence.test.ts:224:14 lint/style/noNonNullAssertion  FIXABLE  ━━━━━━━━━━
+
+  ! Forbidden non-null assertion.
+  
+    222 │       expect(breakdown[0]!.model).toBe('anthropic/claude-haiku-4-5')
+    223 │       expect(breakdown[0]!.inputTokens).toBe(7)
+  > 224 │       expect(breakdown[0]!.outputTokens).toBe(4)
+        │              ^^^^^^^^^^^^^
+    225 │       expect(breakdown[0]!.costUsd).toBeGreaterThan(0)
+    226 │     } finally {
+  
+  i Unsafe fix: Replace with optional chain operator ?. This operator includes runtime checks, so it is safer than the compile-only non-null assertion operator
+  
+    222 222 │         expect(breakdown[0]!.model).toBe('anthropic/claude-haiku-4-5')
+    223 223 │         expect(breakdown[0]!.inputTokens).toBe(7)
+    224     │ - ······expect(breakdown[0]!.outputTokens).toBe(4)
+        224 │ + ······expect(breakdown[0]?.outputTokens).toBe(4)
+    225 225 │         expect(breakdown[0]!.costUsd).toBeGreaterThan(0)
+    226 226 │       } finally {
+  
+
+src/__tests__/harness-engine-persistence.test.ts:225:14 lint/style/noNonNullAssertion  FIXABLE  ━━━━━━━━━━
+
+  ! Forbidden non-null assertion.
+  
+    223 │       expect(breakdown[0]!.inputTokens).toBe(7)
+    224 │       expect(breakdown[0]!.outputTokens).toBe(4)
+  > 225 │       expect(breakdown[0]!.costUsd).toBeGreaterThan(0)
+        │              ^^^^^^^^^^^^^
+    226 │     } finally {
+    227 │       rmSync(dir, { recursive: true, force: true })
+  
+  i Unsafe fix: Replace with optional chain operator ?. This operator includes runtime checks, so it is safer than the compile-only non-null assertion operator
+  
+    223 223 │         expect(breakdown[0]!.inputTokens).toBe(7)
+    224 224 │         expect(breakdown[0]!.outputTokens).toBe(4)
+    225     │ - ······expect(breakdown[0]!.costUsd).toBeGreaterThan(0)
+        225 │ + ······expect(breakdown[0]?.costUsd).toBeGreaterThan(0)
+    226 226 │       } finally {
+    227 227 │         rmSync(dir, { recursive: true, force: true })
+  
+
+src/__tests__/harness-engine-persistence.test.ts:252:14 lint/style/noNonNullAssertion  FIXABLE  ━━━━━━━━━━
+
+  ! Forbidden non-null assertion.
+  
+    250 │       // expone desglose por ronda — la etiqueta dice "agentic (N rounds)" con N
+    251 │       // total del loop, no N entradas individuales.
+  > 252 │       expect(breakdown[0]!.label).toMatch(/^agentic \(\d+ rounds?\)$/)
+        │              ^^^^^^^^^^^^^
+    253 │       expect(breakdown[0]!.label).toBe('agentic (2 rounds)')
+    254 │       expect(breakdown[0]!.model).toBe('anthropic/claude-haiku-4-5')
+  
+  i Unsafe fix: Replace with optional chain operator ?. This operator includes runtime checks, so it is safer than the compile-only non-null assertion operator
+  
+    250 250 │         // expone desglose por ronda — la etiqueta dice "agentic (N rounds)" con N
+    251 251 │         // total del loop, no N entradas individuales.
+    252     │ - ······expect(breakdown[0]!.label).toMatch(/^agentic·\(\d+·rounds?\)$/)
+        252 │ + ······expect(breakdown[0]?.label).toMatch(/^agentic·\(\d+·rounds?\)$/)
+    253 253 │         expect(breakdown[0]!.label).toBe('agentic (2 rounds)')
+    254 254 │         expect(breakdown[0]!.model).toBe('anthropic/claude-haiku-4-5')
+  
+
+src/__tests__/harness-engine-persistence.test.ts:253:14 lint/style/noNonNullAssertion  FIXABLE  ━━━━━━━━━━
+
+  ! Forbidden non-null assertion.
+  
+    251 │       // total del loop, no N entradas individuales.
+    252 │       expect(breakdown[0]!.label).toMatch(/^agentic \(\d+ rounds?\)$/)
+  > 253 │       expect(breakdown[0]!.label).toBe('agentic (2 rounds)')
+        │              ^^^^^^^^^^^^^
+    254 │       expect(breakdown[0]!.model).toBe('anthropic/claude-haiku-4-5')
+    255 │       expect(breakdown[0]!.inputTokens).toBeGreaterThan(0)
+  
+  i Unsafe fix: Replace with optional chain operator ?. This operator includes runtime checks, so it is safer than the compile-only non-null assertion operator
+  
+    251 251 │         // total del loop, no N entradas individuales.
+    252 252 │         expect(breakdown[0]!.label).toMatch(/^agentic \(\d+ rounds?\)$/)
+    253     │ - ······expect(breakdown[0]!.label).toBe('agentic·(2·rounds)')
+        253 │ + ······expect(breakdown[0]?.label).toBe('agentic·(2·rounds)')
+    254 254 │         expect(breakdown[0]!.model).toBe('anthropic/claude-haiku-4-5')
+    255 255 │         expect(breakdown[0]!.inputTokens).toBeGreaterThan(0)
+  
+
+src/__tests__/harness-engine-persistence.test.ts:254:14 lint/style/noNonNullAssertion  FIXABLE  ━━━━━━━━━━
+
+  ! Forbidden non-null assertion.
+  
+    252 │       expect(breakdown[0]!.label).toMatch(/^agentic \(\d+ rounds?\)$/)
+    253 │       expect(breakdown[0]!.label).toBe('agentic (2 rounds)')
+  > 254 │       expect(breakdown[0]!.model).toBe('anthropic/claude-haiku-4-5')
+        │              ^^^^^^^^^^^^^
+    255 │       expect(breakdown[0]!.inputTokens).toBeGreaterThan(0)
+    256 │       expect(breakdown[0]!.outputTokens).toBeGreaterThan(0)
+  
+  i Unsafe fix: Replace with optional chain operator ?. This operator includes runtime checks, so it is safer than the compile-only non-null assertion operator
+  
+    252 252 │         expect(breakdown[0]!.label).toMatch(/^agentic \(\d+ rounds?\)$/)
+    253 253 │         expect(breakdown[0]!.label).toBe('agentic (2 rounds)')
+    254     │ - ······expect(breakdown[0]!.model).toBe('anthropic/claude-haiku-4-5')
+        254 │ + ······expect(breakdown[0]?.model).toBe('anthropic/claude-haiku-4-5')
+    255 255 │         expect(breakdown[0]!.inputTokens).toBeGreaterThan(0)
+    256 256 │         expect(breakdown[0]!.outputTokens).toBeGreaterThan(0)
+  
+
+src/__tests__/harness-engine-persistence.test.ts:255:14 lint/style/noNonNullAssertion  FIXABLE  ━━━━━━━━━━
+
+  ! Forbidden non-null assertion.
+  
+    253 │       expect(breakdown[0]!.label).toBe('agentic (2 rounds)')
+    254 │       expect(breakdown[0]!.model).toBe('anthropic/claude-haiku-4-5')
+  > 255 │       expect(breakdown[0]!.inputTokens).toBeGreaterThan(0)
+        │              ^^^^^^^^^^^^^
+    256 │       expect(breakdown[0]!.outputTokens).toBeGreaterThan(0)
+    257 │     } finally {
+  
+  i Unsafe fix: Replace with optional chain operator ?. This operator includes runtime checks, so it is safer than the compile-only non-null assertion operator
+  
+    253 253 │         expect(breakdown[0]!.label).toBe('agentic (2 rounds)')
+    254 254 │         expect(breakdown[0]!.model).toBe('anthropic/claude-haiku-4-5')
+    255     │ - ······expect(breakdown[0]!.inputTokens).toBeGreaterThan(0)
+        255 │ + ······expect(breakdown[0]?.inputTokens).toBeGreaterThan(0)
+    256 256 │         expect(breakdown[0]!.outputTokens).toBeGreaterThan(0)
+    257 257 │       } finally {
+  
+
+src/__tests__/harness-engine-persistence.test.ts:256:14 lint/style/noNonNullAssertion  FIXABLE  ━━━━━━━━━━
+
+  ! Forbidden non-null assertion.
+  
+    254 │       expect(breakdown[0]!.model).toBe('anthropic/claude-haiku-4-5')
+    255 │       expect(breakdown[0]!.inputTokens).toBeGreaterThan(0)
+  > 256 │       expect(breakdown[0]!.outputTokens).toBeGreaterThan(0)
+        │              ^^^^^^^^^^^^^
+    257 │     } finally {
+    258 │       rmSync(dir, { recursive: true, force: true })
+  
+  i Unsafe fix: Replace with optional chain operator ?. This operator includes runtime checks, so it is safer than the compile-only non-null assertion operator
+  
+    254 254 │         expect(breakdown[0]!.model).toBe('anthropic/claude-haiku-4-5')
+    255 255 │         expect(breakdown[0]!.inputTokens).toBeGreaterThan(0)
+    256     │ - ······expect(breakdown[0]!.outputTokens).toBeGreaterThan(0)
+        256 │ + ······expect(breakdown[0]?.outputTokens).toBeGreaterThan(0)
+    257 257 │       } finally {
+    258 258 │         rmSync(dir, { recursive: true, force: true })
+  
+
+src/__tests__/harness-engine-persistence.test.ts:271:19 lint/style/noNonNullAssertion ━━━━━━━━━━━━━━
+
+  ! Forbidden non-null assertion.
+  
+    269 │       expect(result.status).toBe('failed')
+    270 │       const { getRun } = await import('../db/runs.ts')
+  > 271 │       const row = getRun(result.runId)!
+        │                   ^^^^^^^^^^^^^^^^^^^^^
+    272 │       expect(row.status).toBe('failed')
+    273 │       expect(row.cost_breakdown_json).toBeNull()
+  
+
+Skipped 20 suggested fixes.
+If you wish to apply the suggested (unsafe) fixes, use the command biome check --write --unsafe
+
+The number of diagnostics exceeds the limit allowed. Use --max-diagnostics to increase it.
+Diagnostics not shown: 2.
+Checked 5 files in 10ms. Fixed 3 files.
+Found 18 warnings.
+Found 4 infos.

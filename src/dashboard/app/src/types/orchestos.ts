@@ -1,3 +1,5 @@
+export type ApprovalMode = 'supervised' | 'auto-edit' | 'full'
+
 export type TaskStatus = 'pending' | 'running' | 'done' | 'failed' | 'failed_permanent' | 'blocked'
 
 export type QaVerdict = 'pass' | 'fail' | null
@@ -214,6 +216,9 @@ export interface ChatMessage {
   // ERP.4.13 — datos estructurados de un reporte de fin de tarea
   taskReport?: {
     outcome: string
+    approvalMode?: 'supervised' | 'auto-edit' | 'full'
+    requestedApprovalMode?: 'supervised' | 'auto-edit' | 'full'
+    approvalCli?: string
     runId?: string | null
     dirtyFiles?: string[]
     attempt?: number

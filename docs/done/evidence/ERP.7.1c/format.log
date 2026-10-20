@@ -1,0 +1,353 @@
+src/__tests__/cli-registry.test.ts:15:8 lint/style/useNodejsImportProtocol  FIXABLE  ━━━━━━━━━━━━━━━
+
+  i A Node.js builtin module should be imported with the node: protocol.
+  
+    13 │   rmSync,
+    14 │   writeFileSync,
+  > 15 │ } from 'fs'
+       │        ^^^^
+    16 │ import { tmpdir } from 'os'
+    17 │ import { join } from 'path'
+  
+  i Using the node: protocol is more explicit and signals that the imported module belongs to Node.js.
+  
+  i Unsafe fix: Add the node: protocol.
+  
+     13  13 │     rmSync,
+     14  14 │     writeFileSync,
+     15     │ - }·from·'fs'
+         15 │ + }·from·'node:fs'
+     16  16 │   import { tmpdir } from 'os'
+     17  17 │   import { join } from 'path'
+  
+
+src/__tests__/cli-registry.test.ts:16:24 lint/style/useNodejsImportProtocol  FIXABLE  ━━━━━━━━━━━━━━
+
+  i A Node.js builtin module should be imported with the node: protocol.
+  
+    14 │   writeFileSync,
+    15 │ } from 'fs'
+  > 16 │ import { tmpdir } from 'os'
+       │                        ^^^^
+    17 │ import { join } from 'path'
+    18 │ import {
+  
+  i Using the node: protocol is more explicit and signals that the imported module belongs to Node.js.
+  
+  i Unsafe fix: Add the node: protocol.
+  
+     14  14 │     writeFileSync,
+     15  15 │   } from 'fs'
+     16     │ - import·{·tmpdir·}·from·'os'
+         16 │ + import·{·tmpdir·}·from·'node:os'
+     17  17 │   import { join } from 'path'
+     18  18 │   import {
+  
+
+src/__tests__/cli-registry.test.ts:17:22 lint/style/useNodejsImportProtocol  FIXABLE  ━━━━━━━━━━━━━━
+
+  i A Node.js builtin module should be imported with the node: protocol.
+  
+    15 │ } from 'fs'
+    16 │ import { tmpdir } from 'os'
+  > 17 │ import { join } from 'path'
+       │                      ^^^^^^
+    18 │ import {
+    19 │   _resetCliCapabilityCache,
+  
+  i Using the node: protocol is more explicit and signals that the imported module belongs to Node.js.
+  
+  i Unsafe fix: Add the node: protocol.
+  
+     15  15 │   } from 'fs'
+     16  16 │   import { tmpdir } from 'os'
+     17     │ - import·{·join·}·from·'path'
+         17 │ + import·{·join·}·from·'node:path'
+     18  18 │   import {
+     19  19 │     _resetCliCapabilityCache,
+  
+
+src/dashboard/handlers/task-report.test.ts:172:25 lint/style/useTemplate  FIXABLE  ━━━━━━━━━━━━━━━━━
+
+  i Template literals are preferred over string concatenation.
+  
+    170 │     const path = join(root, 'tasks.yaml')
+    171 │     const { readFileSync } = require('node:fs')
+  > 172 │     writeFileSync(path, readFileSync(path, 'utf8') + '    approvalMode: auto-edit\n')
+        │                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    173 │     addRun(taskId, 'done', provider)
+    174 │     reportTaskOutcome(root, session.id, taskId)
+  
+  i Unsafe fix: Use a template literal.
+  
+    170 170 │       const path = join(root, 'tasks.yaml')
+    171 171 │       const { readFileSync } = require('node:fs')
+    172     │ - ····writeFileSync(path,·readFileSync(path,·'utf8')·+·'····approvalMode:·auto-edit\n')
+        172 │ + ····writeFileSync(path,·`${readFileSync(path,·'utf8')}····approvalMode:·auto-edit\n`)
+    173 173 │       addRun(taskId, 'done', provider)
+    174 174 │       reportTaskOutcome(root, session.id, taskId)
+  
+
+docs/done/evidence/ERP.7.1c/live.ts:61:15 lint/style/noNonNullAssertion  FIXABLE  ━━━━━━━━━━━━━━━━━━
+
+  ! Forbidden non-null assertion.
+  
+    59 │   git(root, 'commit', '-m', 'fixture')
+    60 │   upsertProject(root, {} as never, '')
+  > 61 │   projectId = getProject(root)!.id
+       │               ^^^^^^^^^^^^^^^^^
+    62 │   const config = loadOrcheConfig(root)
+    63 │   check(!!config.roles.orchestrator, 'Use configured orchestrator without substituting its model')
+  
+  i Unsafe fix: Replace with optional chain operator ?. This operator includes runtime checks, so it is safer than the compile-only non-null assertion operator
+  
+     59  59 │     git(root, 'commit', '-m', 'fixture')
+     60  60 │     upsertProject(root, {} as never, '')
+     61     │ - ··projectId·=·getProject(root)!.id
+         61 │ + ··projectId·=·getProject(root)?.id
+     62  62 │     const config = loadOrcheConfig(root)
+     63  63 │     check(!!config.roles.orchestrator, 'Use configured orchestrator without substituting its model')
+  
+
+docs/done/evidence/ERP.7.1c/live.ts:66:12 lint/style/noNonNullAssertion  FIXABLE  ━━━━━━━━━━━━━━━━━━
+
+  ! Forbidden non-null assertion.
+  
+    64 │   const session = createChatSession({
+    65 │     projectId,
+  > 66 │     agent: config.roles.orchestrator!.agent,
+       │            ^^^^^^^^^^^^^^^^^^^^^^^^^^
+    67 │     mode: 'code',
+    68 │     title: 'Composer permissions',
+  
+  i Unsafe fix: Replace with optional chain operator ?. This operator includes runtime checks, so it is safer than the compile-only non-null assertion operator
+  
+     64  64 │     const session = createChatSession({
+     65  65 │       projectId,
+     66     │ - ····agent:·config.roles.orchestrator!.agent,
+         66 │ + ····agent:·config.roles.orchestrator?.agent,
+     67  67 │       mode: 'code',
+     68  68 │       title: 'Composer permissions',
+  
+
+src/__tests__/cli-registry.test.ts:35:14 lint/suspicious/noExplicitAny ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  ! Unexpected any. Specify a different type.
+  
+    33 │ describe('detectInstalledClis()', () => {
+    34 │   it('devuelve una entrada por cada CLI del registro, en el mismo orden', () => {
+  > 35 │     ;(Bun as any).which = (_bin: string) => null
+       │              ^^^
+    36 │     const results = detectInstalledClis()
+    37 │     expect(results).toHaveLength(KNOWN_CLIS.length)
+  
+  i any disables many type checking rules. Its use should be avoided.
+  
+
+src/__tests__/cli-registry.test.ts:42:14 lint/suspicious/noExplicitAny ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  ! Unexpected any. Specify a different type.
+  
+    41 │   it('binario presente → installed:true con el path real de Bun.which', () => {
+  > 42 │     ;(Bun as any).which = (bin: string) => (bin === 'claude' ? '/usr/local/bin/claude' : null)
+       │              ^^^
+    43 │     const results = detectInstalledClis()
+    44 │     const claude = results.find((r) => r.id === 'claude')!
+  
+  i any disables many type checking rules. Its use should be avoided.
+  
+
+src/__tests__/cli-registry.test.ts:44:20 lint/style/noNonNullAssertion ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  ! Forbidden non-null assertion.
+  
+    42 │     ;(Bun as any).which = (bin: string) => (bin === 'claude' ? '/usr/local/bin/claude' : null)
+    43 │     const results = detectInstalledClis()
+  > 44 │     const claude = results.find((r) => r.id === 'claude')!
+       │                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    45 │     expect(claude.installed).toBe(true)
+    46 │     expect(claude.path).toBe('/usr/local/bin/claude')
+  
+
+src/__tests__/cli-registry.test.ts:50:14 lint/suspicious/noExplicitAny ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  ! Unexpected any. Specify a different type.
+  
+    49 │   it('binario ausente → installed:false, path:null (nunca inventa una ruta)', () => {
+  > 50 │     ;(Bun as any).which = (_bin: string) => null
+       │              ^^^
+    51 │     const results = detectInstalledClis()
+    52 │     for (const r of results) {
+  
+  i any disables many type checking rules. Its use should be avoided.
+  
+
+src/__tests__/cli-registry.test.ts:59:14 lint/suspicious/noExplicitAny ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  ! Unexpected any. Specify a different type.
+  
+    58 │   it('detecta múltiples CLIs presentes a la vez, independientes entre sí', () => {
+  > 59 │     ;(Bun as any).which = (bin: string) =>
+       │              ^^^
+    60 │       bin === 'claude' || bin === 'opencode' ? `/fake/${bin}` : null
+    61 │     const results = detectInstalledClis()
+  
+  i any disables many type checking rules. Its use should be avoided.
+  
+
+src/__tests__/cli-registry.test.ts:62:12 lint/style/noNonNullAssertion  FIXABLE  ━━━━━━━━━━━━━━━━━━━
+
+  ! Forbidden non-null assertion.
+  
+    60 │       bin === 'claude' || bin === 'opencode' ? `/fake/${bin}` : null
+    61 │     const results = detectInstalledClis()
+  > 62 │     expect(results.find((r) => r.id === 'claude')!.installed).toBe(true)
+       │            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    63 │     expect(results.find((r) => r.id === 'opencode')!.installed).toBe(true)
+    64 │     expect(results.find((r) => r.id === 'codex')!.installed).toBe(false)
+  
+  i Unsafe fix: Replace with optional chain operator ?. This operator includes runtime checks, so it is safer than the compile-only non-null assertion operator
+  
+     60  60 │         bin === 'claude' || bin === 'opencode' ? `/fake/${bin}` : null
+     61  61 │       const results = detectInstalledClis()
+     62     │ - ····expect(results.find((r)·=>·r.id·===·'claude')!.installed).toBe(true)
+         62 │ + ····expect(results.find((r)·=>·r.id·===·'claude')?.installed).toBe(true)
+     63  63 │       expect(results.find((r) => r.id === 'opencode')!.installed).toBe(true)
+     64  64 │       expect(results.find((r) => r.id === 'codex')!.installed).toBe(false)
+  
+
+src/__tests__/cli-registry.test.ts:63:12 lint/style/noNonNullAssertion  FIXABLE  ━━━━━━━━━━━━━━━━━━━
+
+  ! Forbidden non-null assertion.
+  
+    61 │     const results = detectInstalledClis()
+    62 │     expect(results.find((r) => r.id === 'claude')!.installed).toBe(true)
+  > 63 │     expect(results.find((r) => r.id === 'opencode')!.installed).toBe(true)
+       │            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    64 │     expect(results.find((r) => r.id === 'codex')!.installed).toBe(false)
+    65 │     expect(results.find((r) => r.id === 'kimi')!.installed).toBe(false)
+  
+  i Unsafe fix: Replace with optional chain operator ?. This operator includes runtime checks, so it is safer than the compile-only non-null assertion operator
+  
+     61  61 │       const results = detectInstalledClis()
+     62  62 │       expect(results.find((r) => r.id === 'claude')!.installed).toBe(true)
+     63     │ - ····expect(results.find((r)·=>·r.id·===·'opencode')!.installed).toBe(true)
+         63 │ + ····expect(results.find((r)·=>·r.id·===·'opencode')?.installed).toBe(true)
+     64  64 │       expect(results.find((r) => r.id === 'codex')!.installed).toBe(false)
+     65  65 │       expect(results.find((r) => r.id === 'kimi')!.installed).toBe(false)
+  
+
+src/__tests__/cli-registry.test.ts:64:12 lint/style/noNonNullAssertion  FIXABLE  ━━━━━━━━━━━━━━━━━━━
+
+  ! Forbidden non-null assertion.
+  
+    62 │     expect(results.find((r) => r.id === 'claude')!.installed).toBe(true)
+    63 │     expect(results.find((r) => r.id === 'opencode')!.installed).toBe(true)
+  > 64 │     expect(results.find((r) => r.id === 'codex')!.installed).toBe(false)
+       │            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    65 │     expect(results.find((r) => r.id === 'kimi')!.installed).toBe(false)
+    66 │   })
+  
+  i Unsafe fix: Replace with optional chain operator ?. This operator includes runtime checks, so it is safer than the compile-only non-null assertion operator
+  
+     62  62 │       expect(results.find((r) => r.id === 'claude')!.installed).toBe(true)
+     63  63 │       expect(results.find((r) => r.id === 'opencode')!.installed).toBe(true)
+     64     │ - ····expect(results.find((r)·=>·r.id·===·'codex')!.installed).toBe(false)
+         64 │ + ····expect(results.find((r)·=>·r.id·===·'codex')?.installed).toBe(false)
+     65  65 │       expect(results.find((r) => r.id === 'kimi')!.installed).toBe(false)
+     66  66 │     })
+  
+
+src/__tests__/cli-registry.test.ts:65:12 lint/style/noNonNullAssertion  FIXABLE  ━━━━━━━━━━━━━━━━━━━
+
+  ! Forbidden non-null assertion.
+  
+    63 │     expect(results.find((r) => r.id === 'opencode')!.installed).toBe(true)
+    64 │     expect(results.find((r) => r.id === 'codex')!.installed).toBe(false)
+  > 65 │     expect(results.find((r) => r.id === 'kimi')!.installed).toBe(false)
+       │            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    66 │   })
+    67 │ 
+  
+  i Unsafe fix: Replace with optional chain operator ?. This operator includes runtime checks, so it is safer than the compile-only non-null assertion operator
+  
+     63  63 │       expect(results.find((r) => r.id === 'opencode')!.installed).toBe(true)
+     64  64 │       expect(results.find((r) => r.id === 'codex')!.installed).toBe(false)
+     65     │ - ····expect(results.find((r)·=>·r.id·===·'kimi')!.installed).toBe(false)
+         65 │ + ····expect(results.find((r)·=>·r.id·===·'kimi')?.installed).toBe(false)
+     66  66 │     })
+     67  67 │   
+  
+
+src/__tests__/cli-registry.test.ts:86:36 lint/style/noNonNullAssertion ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  ! Forbidden non-null assertion.
+  
+    84 │     // no que la frontera FUNCIONARA — por eso el ítem se cerró roto. La frontera
+    85 │     // real vive en los flags del spawn (external.ts); este settings queda vacío.
+  > 86 │     expect(JSON.parse(readFileSync(home.settingsPath!, 'utf8'))).toEqual({})
+       │                                    ^^^^^^^^^^^^^^^^^^
+    87 │   })
+    88 │ 
+  
+
+src/__tests__/cli-registry.test.ts:142:16 lint/suspicious/noExplicitAny ━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  ! Unexpected any. Specify a different type.
+  
+    140 │     try {
+    141 │       writeFileSync(binary, 'new')
+  > 142 │       ;(Bun as any).which = () => binary
+        │                ^^^
+    143 │       ;(Bun as any).spawnSync = (args: string[]) => {
+    144 │         calls++
+  
+  i any disables many type checking rules. Its use should be avoided.
+  
+
+src/__tests__/cli-registry.test.ts:143:16 lint/suspicious/noExplicitAny ━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  ! Unexpected any. Specify a different type.
+  
+    141 │       writeFileSync(binary, 'new')
+    142 │       ;(Bun as any).which = () => binary
+  > 143 │       ;(Bun as any).spawnSync = (args: string[]) => {
+        │                ^^^
+    144 │         calls++
+    145 │         return {
+  
+  i any disables many type checking rules. Its use should be avoided.
+  
+
+src/__tests__/cli-registry.test.ts:148:26 lint/style/noNonNullAssertion ━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  ! Forbidden non-null assertion.
+  
+    146 │           exitCode: 0,
+    147 │           stdout: Buffer.from(
+  > 148 │             readFileSync(args[0]!, 'utf8') === 'new' ? '  --restricted  mode' : '  --settings',
+        │                          ^^^^^^^^
+    149 │           ),
+    150 │         }
+  
+
+src/__tests__/cli-registry.test.ts:163:18 lint/style/noNonNullAssertion ━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  ! Forbidden non-null assertion.
+  
+    161 │     }
+    162 │   })
+  > 163 │   const claude = KNOWN_CLIS.find((c) => c.id === 'claude')!
+        │                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    164 │   // Fragmento textual del `--help` real de Claude Code 2.1.263.
+    165 │   const helpNuevo = `  --replay-user-messages   Re-emit user messages
+  
+
+Skipped 27 suggested fixes.
+If you wish to apply the suggested (unsafe) fixes, use the command biome check --write --unsafe
+
+The number of diagnostics exceeds the limit allowed. Use --max-diagnostics to increase it.
+Diagnostics not shown: 20.
+Checked 5 files in 27ms. Fixed 3 files.
+Found 33 warnings.
+Found 7 infos.

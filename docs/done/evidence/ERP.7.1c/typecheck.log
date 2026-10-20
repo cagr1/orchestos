@@ -1,0 +1,1 @@
+$ tsc --noEmit && tsc -p src/dashboard/app/tsconfig.json --noEmit

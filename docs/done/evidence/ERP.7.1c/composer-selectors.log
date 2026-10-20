@@ -1,0 +1,130 @@
+scripts/ui-gate/flows/chat-attachments.mjs:103:  const pass = async (label, composer, session) => {
+scripts/ui-gate/flows/chat-attachments.mjs:104:    await composer.waitFor({ state: 'visible', timeout: 30_000 })
+scripts/ui-gate/flows/chat-attachments.mjs:131:      .locator('[data-composer-region] input[type=file]')
+scripts/ui-gate/flows/chat-attachments.mjs:140:    await composer.focus()
+scripts/ui-gate/flows/chat-attachments.mjs:186:    await composer.fill(
+scripts/ui-gate/flows/chat-attachments.mjs:196:    await shot(`chat-attachments-composer-${label}`)
+scripts/ui-gate/flows/chat-attachments.mjs:208:      await composer.press('Enter')
+scripts/ui-gate/flows/shell-look.mjs:273:  await page.locator('[data-composer-region]').waitFor({ state: 'visible' })
+scripts/ui-gate/flows/shell-look.mjs:275:    .locator('[data-composer-region]')
+scripts/ui-gate/flows/shell-look.mjs:277:  await step('composer no top line (Dev)', devComposerBorder === '0px', devComposerBorder)
+scripts/ui-gate/flows/shell-look.mjs:296:  await page.locator('[data-composer-region]').waitFor({ state: 'visible' })
+scripts/ui-gate/flows/shell-look.mjs:298:    .locator('[data-composer-region]')
+scripts/ui-gate/flows/shell-look.mjs:300:  await step('composer no top line (Chat)', chatComposerBorder === '0px', chatComposerBorder)
+scripts/ui-gate/flows/codex-live.mjs:39:async function sendTurn(page, composer, message) {
+scripts/ui-gate/flows/codex-live.mjs:40:  await composer.waitFor({ state: 'visible', timeout: 30_000 })
+scripts/ui-gate/flows/codex-live.mjs:41:  await composer.fill(message)
+scripts/ui-gate/flows/codex-live.mjs:57:    await composer.press('Enter')
+scripts/ui-gate/flows/codex-live.mjs:123:  const composer = page.locator('textarea').last()
+scripts/ui-gate/flows/codex-live.mjs:126:  const firstStart = await sendTurn(page, composer, sentMessage)
+scripts/ui-gate/flows/codex-live.mjs:180:    composer,
+scripts/ui-gate/flows/chat-permissions.mjs:60:    'strip visible in yolo with Auto-run',
+scripts/ui-gate/flows/chat-permissions.mjs:61:    (await strip.getAttribute('data-permission-mode')) === 'yolo' && /Auto-run/.test(yoloText),
+scripts/ui-gate/flows/chat-permissions.mjs:91:    'strip shows manual with Manual approval',
+scripts/ui-gate/flows/chat-permissions.mjs:93:      /Manual approval/.test(manualText),
+scripts/ui-gate/flows/chat-permissions.mjs:100:  const composer = page.locator('textarea').last()
+scripts/ui-gate/flows/chat-permissions.mjs:101:  await composer.fill(
+scripts/ui-gate/flows/chat-permissions.mjs:104:  await composer.press('Enter')
+scripts/ui-gate/flows/chat-streaming.mjs:25:async function sendTurn(page, composer, message) {
+scripts/ui-gate/flows/chat-streaming.mjs:27:  await composer.waitFor({ state: 'visible', timeout: 30_000 })
+scripts/ui-gate/flows/chat-streaming.mjs:28:  await composer.fill(message)
+scripts/ui-gate/flows/chat-streaming.mjs:54:    await composer.press('Enter')
+scripts/ui-gate/flows/chat-streaming.mjs:110:// el flujo fija `haiku` en el composer para medir streaming real (2026-09-27).
+scripts/ui-gate/flows/chat-streaming.mjs:114:  const modelControl = page.locator('button[title="Select model and reasoning effort"]').last()
+scripts/ui-gate/flows/chat-streaming.mjs:115:  if (!(await visible(modelControl, 15_000))) throw new Error('composer model control not visible')
+scripts/ui-gate/flows/chat-streaming.mjs:205:  const composer = page.locator('textarea').last()
+scripts/ui-gate/flows/chat-streaming.mjs:209:    composer,
+scripts/ui-gate/flows/chat-streaming.mjs:353:  const modelControl = page.locator('button[title="Select model and reasoning effort"]').last()
+scripts/ui-gate/flows/chat-streaming.mjs:361:    if (!model || model === 'Select model and reasoning effort' || model === currentModel) continue
+scripts/ui-gate/flows/chat-streaming.mjs:445:    await sendTurn(page, composer, prompt)
+scripts/ui-gate/flows/chat-streaming.mjs:453:        const composerValue = await composer.inputValue()
+scripts/ui-gate/flows/chat-streaming.mjs:454:        await step('Chat composer empty during sampled turn', composerValue === '', composerValue)
+scripts/ui-gate/flows/chat-streaming.mjs:489:    `${sampledChatPrompts.length} long turn(s) sent; pending composer and live DOM order sampled`,
+scripts/ui-gate/flows/chat-streaming.mjs:705:  // The Dev workspace uses the same session timeline renderer and shares its composer.
+scripts/ui-gate/flows/chat-turn-details.mjs:144:  const modelControl = page.locator('button[title="Select model and reasoning effort"]')
+scripts/ui-gate/flows/chat-turn-details.mjs:148:    'composer controls visible',
+scripts/ui-gate/flows/chat-turn-details.mjs:173:  const composer = page.locator('textarea').last()
+scripts/ui-gate/flows/chat-turn-details.mjs:193:    await composer.fill(message)
+scripts/ui-gate/flows/chat-turn-details.mjs:194:    await composer.press('Enter')
+scripts/ui-gate/flows/chat-turn-details.mjs:281:  await composer.fill(heldPrompt)
+scripts/ui-gate/flows/chat-turn-details.mjs:282:  await composer.press('Enter')
+scripts/ui-gate/flows/chat-turn-details.mjs:327:  await composer.fill(heldPrompt)
+scripts/ui-gate/flows/chat-turn-details.mjs:328:  await composer.press('Enter')
+scripts/ui-gate/flows/thread-states.mjs:16:  'composer-empty',
+scripts/ui-gate/flows/thread-states.mjs:17:  'composer-with-files',
+scripts/ui-gate/flows/project-tabs.mjs:607:    'Chat composer visible, Plan view inactive, task count unchanged',
+scripts/ui-gate/flows/read-boundary.mjs:40:  const modelControl = page.locator('button[title="Select model and reasoning effort"]').last()
+scripts/ui-gate/flows/read-boundary.mjs:48:  const composer = page.locator('textarea').last()
+scripts/ui-gate/flows/read-boundary.mjs:49:  await composer.waitFor({ state: 'visible', timeout: 30_000 })
+scripts/ui-gate/flows/read-boundary.mjs:50:  await composer.fill(message)
+scripts/ui-gate/flows/project-isolation.mjs:43:  const modelControl = page.locator('button[title="Select model and reasoning effort"]').last()
+scripts/ui-gate/flows/project-isolation.mjs:51:  const composer = page.locator('textarea').last()
+scripts/ui-gate/flows/project-isolation.mjs:52:  await composer.waitFor({ state: 'visible', timeout: 30_000 })
+scripts/ui-gate/flows/project-isolation.mjs:53:  await composer.fill(message)
+scripts/ui-gate/flows/chat-retry-report.mjs:114:  const modelControl = page.locator('button[title="Select model and reasoning effort"]')
+scripts/ui-gate/flows/chat-retry-report.mjs:130:  const composer = page.locator('textarea').last()
+scripts/ui-gate/flows/chat-retry-report.mjs:134:  await composer.fill(heldPrompt)
+scripts/ui-gate/flows/chat-retry-report.mjs:135:  await composer.press('Enter')
+scripts/ui-gate/flows/chat-retry-report.mjs:251:  await composer.fill(
+scripts/ui-gate/flows/chat-retry-report.mjs:254:  await composer.press('Enter')
+scripts/ui-gate/flows/composer-picker.mjs:11:export default async function composerPicker({ page, api, step, shot, visible, cleanup }) {
+scripts/ui-gate/flows/composer-picker.mjs:19:  writeFileSync(join(projectRoot, 'README.md'), '# UI.21 composer picker\n')
+scripts/ui-gate/flows/composer-picker.mjs:74:  const codexControl = page.locator('button[title="Select model and reasoning effort"]').last()
+scripts/ui-gate/flows/chat-continuity.mjs:16:async function sendTurn(page, composer, message) {
+scripts/ui-gate/flows/chat-continuity.mjs:17:  await composer.waitFor({ state: 'visible', timeout: 30_000 })
+scripts/ui-gate/flows/chat-continuity.mjs:18:  await composer.fill(message)
+scripts/ui-gate/flows/chat-continuity.mjs:23:  await composer.press('Enter')
+scripts/ui-gate/flows/chat-continuity.mjs:67:  const modelControl = page.locator('button[title="Select model and reasoning effort"]').last()
+scripts/ui-gate/flows/chat-followup-task.mjs:20:async function sendMessage({ page, composer, text, step, shot }) {
+scripts/ui-gate/flows/chat-followup-task.mjs:27:  await composer.fill(text)
+scripts/ui-gate/flows/chat-followup-task.mjs:28:  await composer.press('Enter')
+scripts/ui-gate/flows/chat-followup-task.mjs:54:  const composer = page.locator('textarea').last()
+scripts/ui-gate/flows/chat-followup-task.mjs:55:  await step('composer visible', await visible(composer), 'chat composer visible after Start Chat')
+scripts/ui-gate/flows/chat-followup-task.mjs:56:  return composer
+scripts/ui-gate/flows/chat-followup-task.mjs:116:  const composer = await startChat(page, 'Codex', step, visible)
+scripts/ui-gate/flows/chat-followup-task.mjs:117:  if (!composer) return
+scripts/ui-gate/flows/chat-followup-task.mjs:122:    composer,
+scripts/ui-gate/flows/chat-followup-task.mjs:138:    composer,
+scripts/ui-gate/flows/chat-context.mjs:16:async function sendTurn(page, composer, message) {
+scripts/ui-gate/flows/chat-context.mjs:17:  await composer.waitFor({ state: 'visible', timeout: 30_000 })
+scripts/ui-gate/flows/chat-context.mjs:19:  await composer.fill(message)
+scripts/ui-gate/flows/chat-context.mjs:39:    await composer.press('Enter')
+scripts/ui-gate/flows/chat-context.mjs:88:  const modelControl = page.locator('button[title="Select model and reasoning effort"]').last()
+scripts/ui-gate/flows/chat-context.mjs:194:  const composer = page.locator('textarea').last()
+scripts/ui-gate/flows/chat-context.mjs:195:  const codexReply = await sendTurn(page, composer, prompt)
+scripts/ui-gate/flows/chat-readonly-shell.mjs:16:async function sendTurn(page, composer, message) {
+scripts/ui-gate/flows/chat-readonly-shell.mjs:17:  await composer.waitFor({ state: 'visible', timeout: 30_000 })
+scripts/ui-gate/flows/chat-readonly-shell.mjs:18:  await composer.fill(message)
+scripts/ui-gate/flows/chat-readonly-shell.mjs:23:  await composer.press('Enter')
+scripts/ui-gate/flows/chat-readonly-shell.mjs:67:  const modelControl = page.locator('button[title="Select model and reasoning effort"]').last()
+scripts/ui-gate/flows/chat-task-undo.mjs:20:async function sendMessage({ page, composer, text, step, shot }) {
+scripts/ui-gate/flows/chat-task-undo.mjs:27:  await composer.fill(text)
+scripts/ui-gate/flows/chat-task-undo.mjs:28:  await composer.press('Enter')
+scripts/ui-gate/flows/chat-task-undo.mjs:54:  const composer = page.locator('textarea').last()
+scripts/ui-gate/flows/chat-task-undo.mjs:55:  await step('composer visible', await visible(composer), 'chat composer visible after Start Chat')
+scripts/ui-gate/flows/chat-task-undo.mjs:56:  return composer
+scripts/ui-gate/flows/chat-task-undo.mjs:116:  const composer = await startChat(page, 'Codex', step, visible)
+scripts/ui-gate/flows/chat-task-undo.mjs:117:  if (!composer) return
+scripts/ui-gate/flows/chat-task-undo.mjs:122:    composer,
+scripts/ui-gate/flows/chat-task-undo.mjs:138:    composer,
+scripts/ui-gate/flows/text-sweep.mjs:88:  const modelControl = page.locator('button[title="Select model and reasoning effort"]')
+scripts/ui-gate/flows/text-sweep.mjs:89:  await step('model selector visible', await visible(modelControl), 'composer model selector')
+scripts/ui-gate/flows/usage-bar.mjs:248:  const modelControl = page.locator('button[title="Select model and reasoning effort"]')
+scripts/ui-gate/flows/smoke.mjs:32:  await step('chat-composer', await visible(page.locator('textarea')), 'chat composer visible')
+scripts/ui-gate/flows/auto-flow.mjs:43:async function sendMessage({ page, composer, text, step, shot }) {
+scripts/ui-gate/flows/auto-flow.mjs:50:  await composer.fill(text)
+scripts/ui-gate/flows/auto-flow.mjs:51:  await composer.press('Enter')
+scripts/ui-gate/flows/auto-flow.mjs:60:      await composer.inputValue().catch(() => 'composer text unavailable'),
+scripts/ui-gate/flows/auto-flow.mjs:87:  const modelControl = page.locator('button[title="Select model and reasoning effort"]')
+scripts/ui-gate/flows/auto-flow.mjs:91:    'composer controls visible',
+scripts/ui-gate/flows/auto-flow.mjs:191:      const composer = page.locator('textarea').last()
+scripts/ui-gate/flows/auto-flow.mjs:192:      const composerVisible = await visible(composer)
+scripts/ui-gate/flows/auto-flow.mjs:195:        `${tabName} action opens only Chat composer`,
+scripts/ui-gate/flows/auto-flow.mjs:196:        composerVisible && dialogCount === 0,
+scripts/ui-gate/flows/auto-flow.mjs:197:        `composer visible=${composerVisible}; dialogs=${dialogCount}`,
+scripts/ui-gate/flows/auto-flow.mjs:305:  const composer = page.locator('textarea').last()
+scripts/ui-gate/flows/auto-flow.mjs:308:    composer,
+scripts/ui-gate/flows/auto-flow.mjs:337:      composer,
+scripts/ui-gate/flows/chat-roles.mjs:77:  const composer = page.locator('textarea').last()
+scripts/ui-gate/flows/chat-roles.mjs:85:    await composer.fill(text)
+scripts/ui-gate/flows/chat-roles.mjs:100:      await composer.press('Enter')

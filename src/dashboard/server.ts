@@ -553,7 +553,7 @@ export function startServer(
     idleTimeout: 60,
     fetch: async (req, server) => {
       const url = new URL(req.url)
-      if (url.pathname !== '/api/terminal') return route(req, port)
+      if (url.pathname !== '/api/terminal') return route(req, server.port ?? port)
       if (req.method !== 'GET') return errorResponse('Method not allowed', 405)
       const origin = req.headers.get('origin')
       if (!origin || !isSameOrigin(req, server.port ?? port)) return errorResponse('Forbidden', 403)

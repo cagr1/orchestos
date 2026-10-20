@@ -21,11 +21,13 @@ import { createApprovalAnswers } from './approvalAnswers'
 import { ThreadMarkdown } from './ThreadMarkdown'
 import {
   approvalBlocks,
+  approvalModeNotice,
   type TaskCardData,
   type TaskCardReport,
   type TaskCardState,
   taskDetail,
   taskName,
+  taskWorktreeRelativePath,
 } from './taskCards'
 
 const LABEL: Record<TaskCardState, string> = {
@@ -90,9 +92,11 @@ function TaskDiff({ diff }: { diff: FileDiffEntry }) {
     <div className="rounded-card border border-app bg-app-surface overflow-hidden text-xs">
       <div className="px-3 py-2 bg-app-elevated border-b border-app flex items-center justify-between font-mono">
         <span className="text-app font-medium">{diff.filePath || diff.path}</span>
-        <span className="text-emerald-400">
-          +{diff.additions ?? 0} -{diff.deletions ?? 0}
-        </span>
+        {diff.additions !== undefined || diff.deletions !== undefined ? (
+          <span className="text-emerald-400">
+            +{diff.additions ?? 0} -{diff.deletions ?? 0}
+          </span>
+        ) : null}
       </div>
       <pre className="p-3 bg-app-bg font-mono text-xs text-app overflow-x-auto leading-relaxed">
         {diff.patch || diff.diff}
@@ -228,6 +232,9 @@ export function TaskCard({
           {null}
         </Button>
       </div>
+      {approvalModeNotice(last) && (
+        <p className="text-xs text-app-muted">{approvalModeNotice(last)}</p>
+      )}
       {detail && <p className="line-clamp-3 text-xs text-app-muted">{detail}</p>}
       <div className="flex items-center gap-2 text-xs">
         <span className={cn('h-2 w-2 flex-shrink-0 rounded-full', DOT[card.state])} />
@@ -339,16 +346,22 @@ export function TaskCard({
                 </>
               ) : (
                 <>
-                  <div className="font-mono text-xs text-app-muted">
-                    {request.files.map((file) => (
-                      <div key={file}>{file}</div>
-                    ))}
-                  </div>
+                  {request.files.length > 0 &&
+                    (!request.detail.diff || request.files.length > 1) && (
+                      <div className="font-mono text-xs text-app-muted">
+                        {request.files.map((file) => (
+                          <div key={file}>{taskWorktreeRelativePath(file)}</div>
+                        ))}
+                      </div>
+                    )}
                   {request.detail.diff && (
                     <TaskDiff
                       diff={{
                         status: 'modified',
-                        filePath: request.files.join(', '),
+                        filePath:
+                          request.files.length > 1
+                            ? `${request.files.length} files`
+                            : taskWorktreeRelativePath(request.files[0] ?? ''),
                         patch: request.detail.diff,
                       }}
                     />

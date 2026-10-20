@@ -825,6 +825,7 @@ async function handleApiChat(
     fileIds?: string[]
     model?: string
     effort?: string
+    approvalMode?: unknown
     agent?: string
     sessionId?: string
     // R.5 — el frontend todavía no la persiste ni reenvía (Fase 2, fuera de
@@ -833,6 +834,13 @@ async function handleApiChat(
     // hasta que el cliente la sostenga entre reintentos de la misma petición.
     requestKey?: string
   }
+  if (
+    body.approvalMode !== undefined &&
+    !['full', 'auto-edit', 'supervised'].includes(body.approvalMode as string)
+  ) {
+    return errorResponse('unknown approvalMode', 400)
+  }
+  const approvalMode = (body.approvalMode ?? 'auto-edit') as 'full' | 'auto-edit' | 'supervised'
   const message = body.message?.trim()
   if (!message) return errorResponse('message is required', 400)
   // CI.25 — rastro de recepción: separa "el POST nunca llegó" de "llegó y no respondió".
@@ -1175,6 +1183,7 @@ async function handleApiChat(
                 description: draft.description,
                 output,
                 acceptance_criteria: proposal.args.acceptance_criteria,
+                approvalMode,
                 task_class: draft.taskClass,
                 ...ruleFields,
                 skill,

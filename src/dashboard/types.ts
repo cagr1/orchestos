@@ -104,6 +104,9 @@ export interface ChatMessageRow {
   // ERP.4.13 — datos estructurados de un reporte de fin de tarea (ausente en mensajes normales)
   taskReport?: {
     outcome: string
+    approvalMode?: 'supervised' | 'auto-edit' | 'full'
+    requestedApprovalMode?: 'supervised' | 'auto-edit' | 'full'
+    approvalCli?: string
     dirtyFiles?: string[]
     attempt?: number
     maxAttempts?: number

@@ -2,6 +2,7 @@ import { appendTaskReport, type TaskReportData } from '../../db/chat-sessions.ts
 import { listRunsByTaskId } from '../../db/runs.ts'
 import { db } from '../../db/sqlite.ts'
 import { deleteTaskRunWatch, type TaskRunWatchRow } from '../../db/task-run-watch.ts'
+import { actionApprovalPolicy, KNOWN_CLIS } from '../../run/executors/cli-registry.ts'
 import { MAX_RETRIES } from '../../run/qa.ts'
 import { DIRTY_TREE_REASON_PREFIX, listDirtyFiles } from '../../run/sandbox-policy.ts'
 import { loadTasks } from '../../tasks/loader.ts'
@@ -59,6 +60,14 @@ function buildTaskReportData(
     content: `${headline}\n\n> ${summary || 'No run was recorded.'}`,
     data: {
       outcome: status,
+      ...(run && task?.approvalMode
+        ? actionApprovalPolicy(
+            task.engine ??
+              KNOWN_CLIS.find((cli) => cli.id === run.provider)?.taskEngine ??
+              'single-shot',
+            task.approvalMode,
+          )
+        : {}),
       ...attempt,
       ...(run ? { provider: run.provider, model: run.model, runId: run.id } : {}),
       summary: summary || 'No run was recorded.',

@@ -1,0 +1,40 @@
+{
+  "item": "ERP.7.1c",
+  "gates": [
+    {
+      "command": "bunx tsc --noEmit",
+      "exitCode": 0,
+      "rawOutput": "tsc.log"
+    },
+    {
+      "command": "bun run typecheck",
+      "exitCode": 0,
+      "rawOutput": "typecheck.log"
+    },
+    {
+      "command": "bun test src/__tests__/cli-registry.test.ts src/__tests__/harness-engine-persistence.test.ts src/dashboard/__tests__/chat-r5-reliability.test.ts src/dashboard/handlers/task-report.test.ts src/dashboard/app/src/components/common/AgentComposer.test.ts src/dashboard/app/src/components/thread/taskCards.test.ts src/dashboard/app/src/api/chat.test.ts src/dashboard/__tests__/chat-sessions.test.ts",
+      "exitCode": 0,
+      "rawOutput": "tests.log"
+    },
+    {
+      "command": "bun run lint",
+      "exitCode": 0,
+      "rawOutput": "lint.log"
+    },
+    {
+      "command": "bun run build:app",
+      "exitCode": 0,
+      "rawOutput": "build-app.log"
+    },
+    {
+      "command": "bun run gate:evidence -- --label erp.7.1c -- bun run docs/done/evidence/ERP.7.1c/live.ts",
+      "exitCode": 1,
+      "rawOutput": "live.log"
+    },
+    {
+      "command": "bun run security:gate",
+      "exitCode": 1,
+      "rawOutput": "security-gate.log"
+    }
+  ]
+}

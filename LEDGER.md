@@ -412,3 +412,11 @@ reserva el ID antes del executor y lo conserva en la fila final. Limpia solicitu
 No cambia límites de tokens, QA, contrato de salidas ni la ruta sin `approvalMode`/`full`.
 **Ejecutado por**: Codex (ejecutor asignado, sin delegación).
 **Evidencia**: `docs/done/ERP.7.1a.md` y salidas crudas en `docs/done/evidence/ERP.7.1a/`.
+
+## 2026-10-20 — Codex, ejecutor ERP.7.1c
+
+**Regla tocada**: `src/run/harness.ts`, selección del modo de aprobación por capacidad del ejecutor.
+**Clasificación**: RESPETÓ.
+**Por qué**: solo se crea la corrida de aprobación cuando el registro declara soporte; los demás ejecutores reciben
+`approvalMode: full`. No cambia el cálculo de contexto/maxTokens ni el default de tareas fuera del chat en Codex.
+**Evidencia**: gates crudos en `docs/done/evidence/ERP.7.1c/`; sin commit ni edición del plan por el ejecutor.

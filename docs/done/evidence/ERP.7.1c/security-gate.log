@@ -1,0 +1,1166 @@
+$ bun run scripts/security-gate.ts
+
+[security-gate] typecheck
+$ tsc --noEmit && tsc -p src/dashboard/app/tsconfig.json --noEmit
+
+[security-gate] initialize isolated database
+$ bun run scripts/migrate-db.ts
+Migration 10: nulled 0 orphan runs.project_id
+Migration 11: nulled 0 orphan files and 0 orphan edges
+DB migrated.
+
+[security-gate] full test matrix with coverage
+bun test v1.4.0 (34cbb9a40) 1x PARALLEL
+........................
+
+scripts/check-live-gate.test.ts:
+✓ Gate en vivo documentado para dashboard/config
+.
+✗ Cambio de dashboard/config sin cierre y evidencia en PLAN.md.
+  El mismo commit debe añadir [x] y una línea "Gate en vivo:" que cite navegador, browser o
+  Playwright, Y citar entre backticks un archivo de evidencia (`ruta.ts`/`.json`/`.log`)
+  que exista como blob staged dentro del MISMO ítem cerrado — no basta con la frase (H.10.1).
+  Si la evidencia vive en docs/done/ (enlace → [evidencia](...)), esa sección debe traer
+  la misma frase y cita, resuelta desde el índice, no desde el disco.
+.
+✓ Gate en vivo documentado para dashboard/config
+.
+✗ Cambio de dashboard/config sin cierre y evidencia en PLAN.md.
+  El mismo commit debe añadir [x] y una línea "Gate en vivo:" que cite navegador, browser o
+  Playwright, Y citar entre backticks un archivo de evidencia (`ruta.ts`/`.json`/`.log`)
+  que exista como blob staged dentro del MISMO ítem cerrado — no basta con la frase (H.10.1).
+  Si la evidencia vive en docs/done/ (enlace → [evidencia](...)), esa sección debe traer
+  la misma frase y cita, resuelta desde el índice, no desde el disco.
+.
+✗ Cambio de dashboard/config sin cierre y evidencia en PLAN.md.
+  El mismo commit debe añadir [x] y una línea "Gate en vivo:" que cite navegador, browser o
+  Playwright, Y citar entre backticks un archivo de evidencia (`ruta.ts`/`.json`/`.log`)
+  que exista como blob staged dentro del MISMO ítem cerrado — no basta con la frase (H.10.1).
+  Si la evidencia vive en docs/done/ (enlace → [evidencia](...)), esa sección debe traer
+  la misma frase y cita, resuelta desde el índice, no desde el disco.
+.........................................
+
+scripts/session-status.test.ts:
+[rate-limits] codex app-server sin respuesta de account/rateLimits/read tras 129 ms (tope 8000 ms)
+...........
+
+scripts/run-evidence-gate.test.ts:
+[gate:evidence] isolated home: /var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/orchestos-evidence-capture-home-h6tVVI
+[gate:evidence] durable home: /var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/orchestos-evidence-env-l5gHTn
+[gate:evidence] evidence: 0 exported, 0 duplicate(s)
+.
+[gate:evidence] isolated home: /var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/orchestos-evidence-failed-gate-3brZG7
+[gate:evidence] durable home: /var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/orchestos-evidence-home-9pKf88
+Migration 10: nulled 0 orphan runs.project_id
+Migration 11: nulled 0 orphan files and 0 orphan edges
+[gate:evidence] evidence: 1 exported, 0 duplicate(s)
+.
+[gate:evidence] isolated home: /var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/orchestos-evidence-preserve-Ti4A6I
+[gate:evidence] durable home: /var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/orchestos-evidence-invalid-parent-aE7CkN/not-a-directory
+Migration 10: nulled 0 orphan runs.project_id
+Migration 11: nulled 0 orphan files and 0 orphan edges
+[gate:evidence] export failed; evidence preserved at /var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/orchestos-evidence-preserve-Ti4A6I
+durable DB migration failed: $ bun run scripts/migrate-db.ts
+10 | // Exportado para que un test pueda afirmar contra qué DB corre la suite; ver
+11 | // `scripts/db-isolation.test.ts`. Congelado en el primer import, a propósito.
+12 | export const DB_PATH = join(DB_DIR, 'db.sqlite')
+13 | 
+14 | if (!existsSync(DB_DIR)) {
+15 |   mkdirSync(DB_DIR, { recursive: true })
+       ^
+ENOTDIR: not a directory, mkdir '/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/orchestos-evidence-invalid-parent-aE7CkN/not-a-directory/.orchestos'
+    path: "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/orchestos-evidence-invalid-parent-aE7CkN/not-a-directory/.orchestos",
+ syscall: "mkdir",
+   errno: -20,
+    code: "ENOTDIR"
+
+      at /Users/carlosgallardo/Projects/projects/orchestos/src/db/sqlite.ts:15:3
+
+Bun v1.4.0 (macOS arm64)
+error: script "db:migrate" exited with code 1
+..............................
+
+scripts/adversarial-review.test.ts:
+281 |           "import { expect, test } from 'bun:test'",
+282 |           "import { bump } from '../src/counter.ts'",
+283 |           "test('bump devuelve 1', () => { expect(bump()).toBe(1) })",
+284 |         ].join('\n'),
+285 |       })
+286 |       expect(result.reason).toBe('assertion-failed')
+                                  ^
+error: expect(received).toBe(expected)
+
+Expected: "assertion-failed"
+Received: "infrastructure-error"
+
+      at <anonymous> (/Users/carlosgallardo/Projects/projects/orchestos/scripts/adversarial-review.test.ts:286:29)
+(fail) adversarial review — hallazgos y REVIEW.md > un hallazgo legítimo sobrevive: la aserción corre de verdad y falla [6.61ms]
+302 |     'el sandbox bloquea de verdad escritura externa, red y credenciales',
+303 |     async () => {
+304 |       const root = temp('orchestos-adversarial-sandbox-root-')
+305 |       const credential = join(process.env.HOME ?? '', '.ssh', 'h10-sandbox-probe')
+306 |       mkdirSync(join(process.env.HOME ?? '', '.ssh'), { recursive: true })
+307 |       writeFileSync(credential, 'no debe leerse')
+            ^
+EPERM: operation not permitted, open '/Users/carlosgallardo/.ssh/h10-sandbox-probe'
+    path: "/Users/carlosgallardo/.ssh/h10-sandbox-probe",
+ syscall: "open",
+   errno: -1,
+    code: "EPERM"
+
+      at <anonymous> (/Users/carlosgallardo/Projects/projects/orchestos/scripts/adversarial-review.test.ts:307:7)
+(fail) adversarial review — hallazgos y REVIEW.md > el sandbox bloquea de verdad escritura externa, red y credenciales [0.24ms]
+..
+[adversarial-review] abortado: codex terminó con exit 1 — el SHA no avanza
+[adversarial-review] abortado: codex no devolvió un agent_message — el SHA no avanza
+[adversarial-review] abortado: hallazgos con JSON inválido o elementos malformados — el SHA no avanza
+[adversarial-review] abortado: hallazgos con JSON inválido o elementos malformados — el SHA no avanza
+........................................................................................................................................................................................................
+
+src/mcp/readonly.test.ts:
+549 |     const h = hostileRepo()
+550 |     const wt = join(h.dir, 'linked')
+551 |     h.run('worktree', 'add', '-q', wt)
+552 |     const res = await readonly(wt, 'git', 'rev-parse', '--show-toplevel')
+553 |     expect(res.isError).toBe(false)
+554 |     expect(res.text.trim()).toBe(realpathSync(wt))
+                                  ^
+error: expect(received).toBe(expected)
+
+- "/private/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/at21-host-pmk3M9/linked"
++ "/private/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/at21-host-pmk3M9/linked
++ git: warning: confstr() failed with code 5: couldn't get path of DARWIN_USER_TEMP_DIR; using /tmp instead"
+
+- Expected  - 1
++ Received  + 2
+
+      at <anonymous> (/Users/carlosgallardo/Projects/projects/orchestos/src/mcp/readonly.test.ts:554:29)
+(fail) run_readonly — config hostil del repo (ronda 3) > un worktree enlazado (.git es archivo) sigue valiendo [217.81ms]
+........................................
+
+src/__tests__/harness-executor-reply.test.ts:
+[cli-spawn] {"event":"start","agent":"claude","cwd":"/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/orchestos-erp48-MaE9vV/.orchestos/worktrees/erp48-executor-reply-1792525830793","args":["-p","--output-format","stream-json","--include-partial-messages","--verbose","--append-system-prompt","<178 chars>","--allowedTools","Edit,Write,Read,Glob,Grep","--model","claude-haiku-4-5","--disallowedTools","Agent","--restricted","--strict-mcp-config","--settings","/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/orchestos-erp48-MaE9vV/.orchestos/agent-home/claude/settings.json"],"env":{"HOME":"/Users/carlosgallardo","CLAUDE_CONFIG_DIR":null,"CODEX_HOME":null,"ORCHESTOS_HOME":"/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/orchestos-erp48-home-sEk7GN","PATH":"/Users/carlosgallardo/Projects/projects/orchestos/node_modules/.bin:/Users/carlosgallardo/Projects/projects/orchestos/node_modules/.bin:/Users/carlosgallardo/Projects/projects/node_modules/.bin:/Users/carlosgallardo/Projects/node_modules/.bin"}}
+[cli-spawn] {"event":"end","agent":"claude","firstByteMs":0,"totalMs":0,"exitCode":0,"timedOut":false,"stderrTail":""}
+.
+[cli-spawn] {"event":"start","agent":"claude","cwd":"/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/orchestos-erp48-tm9Yqm/.orchestos/worktrees/erp48-executor-reply-1792525831229","args":["-p","--output-format","stream-json","--include-partial-messages","--verbose","--append-system-prompt","<178 chars>","--allowedTools","Edit,Write,Read,Glob,Grep","--model","claude-haiku-4-5","--disallowedTools","Agent","--restricted","--strict-mcp-config","--settings","/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/orchestos-erp48-tm9Yqm/.orchestos/agent-home/claude/settings.json"],"env":{"HOME":"/Users/carlosgallardo","CLAUDE_CONFIG_DIR":null,"CODEX_HOME":null,"ORCHESTOS_HOME":"/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/orchestos-erp48-home-sEk7GN","PATH":"/Users/carlosgallardo/Projects/projects/orchestos/node_modules/.bin:/Users/carlosgallardo/Projects/projects/orchestos/node_modules/.bin:/Users/carlosgallardo/Projects/projects/node_modules/.bin:/Users/carlosgallardo/Projects/node_modules/.bin"}}
+[cli-spawn] {"event":"end","agent":"claude","firstByteMs":0,"totalMs":0,"exitCode":0,"timedOut":false,"stderrTail":""}
+...............................................................
+
+src/__tests__/graph-runner.test.ts:
+  → a attempt 1
+[graph] ✓ a done
+  → b attempt 1
+[graph] ✓ b done
+  → c attempt 1
+[graph] ✓ c done
+.
+  → a attempt 1
+[graph] ✓ a done
+  → b attempt 1
+[graph] ✓ b done
+  → c attempt 1
+[graph] ✓ c done
+.
+  → a attempt 1
+[graph] ✓ a done
+.
+  → a attempt 1
+  → a attempt 2
+  → a attempt 3
+  [diagnose] unknown (low) — review the task manually
+[graph] ✗ a failed permanently — branch blocked
+  → c attempt 1
+[graph] ✓ c done
+  → d attempt 1
+[graph] ✓ d done
+.
+  → a attempt 1
+  → a attempt 2
+  → a attempt 3
+  [diagnose] unknown (low) — 
+[graph] ✗ a failed permanently — branch blocked
+.
+  → a attempt 1
+[graph] ✓ a done
+  → b attempt 1
+[graph] ✓ b done
+
+[graph] ⏹ Circuit break: cost limit reached ($0.1500)
+.
+
+[graph] ⏹ Circuit break: cost limit reached ($0.0000)
+.
+
+[graph] ⏹ Circuit break: wall-clock limit reached (0 min)
+.
+  → a attempt 1
+[graph] ✓ a done
+  → b attempt 1
+[graph] ✓ b done
+.
+  → chain-0 attempt 1
+[graph] ✓ chain-0 done
+  → chain-1 attempt 1
+[graph] ✓ chain-1 done
+  → chain-2 attempt 1
+[graph] ✓ chain-2 done
+  → chain-3 attempt 1
+[graph] ✓ chain-3 done
+  → chain-4 attempt 1
+[graph] ✓ chain-4 done
+  → chain-5 attempt 1
+[graph] ✓ chain-5 done
+  → chain-6 attempt 1
+[graph] ✓ chain-6 done
+  → chain-7 attempt 1
+[graph] ✓ chain-7 done
+  → chain-8 attempt 1
+[graph] ✓ chain-8 done
+  → chain-9 attempt 1
+[graph] ✓ chain-9 done
+  → chain-10 attempt 1
+[graph] ✓ chain-10 done
+  → chain-11 attempt 1
+[graph] ✓ chain-11 done
+  → chain-12 attempt 1
+[graph] ✓ chain-12 done
+  → chain-13 attempt 1
+[graph] ✓ chain-13 done
+  → chain-14 attempt 1
+[graph] ✓ chain-14 done
+  → chain-15 attempt 1
+[graph] ✓ chain-15 done
+  → chain-16 attempt 1
+[graph] ✓ chain-16 done
+  → chain-17 attempt 1
+[graph] ✓ chain-17 done
+  → chain-18 attempt 1
+[graph] ✓ chain-18 done
+  → chain-19 attempt 1
+[graph] ✓ chain-19 done
+  → chain-20 attempt 1
+[graph] ✓ chain-20 done
+  → chain-21 attempt 1
+[graph] ✓ chain-21 done
+  → chain-22 attempt 1
+[graph] ✓ chain-22 done
+  → chain-23 attempt 1
+[graph] ✓ chain-23 done
+  → chain-24 attempt 1
+[graph] ✓ chain-24 done
+  → chain-25 attempt 1
+[graph] ✓ chain-25 done
+  → chain-26 attempt 1
+[graph] ✓ chain-26 done
+  → chain-27 attempt 1
+[graph] ✓ chain-27 done
+  → chain-28 attempt 1
+[graph] ✓ chain-28 done
+  → chain-29 attempt 1
+[graph] ✓ chain-29 done
+  → chain-30 attempt 1
+[graph] ✓ chain-30 done
+  → chain-31 attempt 1
+[graph] ✓ chain-31 done
+  → chain-32 attempt 1
+[graph] ✓ chain-32 done
+  → chain-33 attempt 1
+[graph] ✓ chain-33 done
+  → chain-34 attempt 1
+[graph] ✓ chain-34 done
+  → chain-35 attempt 1
+[graph] ✓ chain-35 done
+  → chain-36 attempt 1
+[graph] ✓ chain-36 done
+  → chain-37 attempt 1
+[graph] ✓ chain-37 done
+  → chain-38 attempt 1
+[graph] ✓ chain-38 done
+  → chain-39 attempt 1
+[graph] ✓ chain-39 done
+  → chain-40 attempt 1
+[graph] ✓ chain-40 done
+  → chain-41 attempt 1
+[graph] ✓ chain-41 done
+  → chain-42 attempt 1
+[graph] ✓ chain-42 done
+  → chain-43 attempt 1
+[graph] ✓ chain-43 done
+  → chain-44 attempt 1
+[graph] ✓ chain-44 done
+  → chain-45 attempt 1
+[graph] ✓ chain-45 done
+  → chain-46 attempt 1
+[graph] ✓ chain-46 done
+  → chain-47 attempt 1
+[graph] ✓ chain-47 done
+  → chain-48 attempt 1
+[graph] ✓ chain-48 done
+  → chain-49 attempt 1
+[graph] ✓ chain-49 done
+  → chain-50 attempt 1
+[graph] ✓ chain-50 done
+  → chain-51 attempt 1
+[graph] ✓ chain-51 done
+  → chain-52 attempt 1
+[graph] ✓ chain-52 done
+  → chain-53 attempt 1
+[graph] ✓ chain-53 done
+  → chain-54 attempt 1
+[graph] ✓ chain-54 done
+  → chain-55 attempt 1
+[graph] ✓ chain-55 done
+  → chain-56 attempt 1
+[graph] ✓ chain-56 done
+  → chain-57 attempt 1
+[graph] ✓ chain-57 done
+  → chain-58 attempt 1
+[graph] ✓ chain-58 done
+  → chain-59 attempt 1
+[graph] ✓ chain-59 done
+  → chain-60 attempt 1
+[graph] ✓ chain-60 done
+  → chain-61 attempt 1
+[graph] ✓ chain-61 done
+  → chain-62 attempt 1
+[graph] ✓ chain-62 done
+  → chain-63 attempt 1
+[graph] ✓ chain-63 done
+  → chain-64 attempt 1
+[graph] ✓ chain-64 done
+  → chain-65 attempt 1
+[graph] ✓ chain-65 done
+  → chain-66 attempt 1
+[graph] ✓ chain-66 done
+  → chain-67 attempt 1
+[graph] ✓ chain-67 done
+  → chain-68 attempt 1
+[graph] ✓ chain-68 done
+  → chain-69 attempt 1
+[graph] ✓ chain-69 done
+  → chain-70 attempt 1
+[graph] ✓ chain-70 done
+  → chain-71 attempt 1
+[graph] ✓ chain-71 done
+  → chain-72 attempt 1
+[graph] ✓ chain-72 done
+  → chain-73 attempt 1
+[graph] ✓ chain-73 done
+  → chain-74 attempt 1
+[graph] ✓ chain-74 done
+  → chain-75 attempt 1
+[graph] ✓ chain-75 done
+  → chain-76 attempt 1
+[graph] ✓ chain-76 done
+  → chain-77 attempt 1
+[graph] ✓ chain-77 done
+  → chain-78 attempt 1
+[graph] ✓ chain-78 done
+  → chain-79 attempt 1
+[graph] ✓ chain-79 done
+  → chain-80 attempt 1
+[graph] ✓ chain-80 done
+  → chain-81 attempt 1
+[graph] ✓ chain-81 done
+  → chain-82 attempt 1
+[graph] ✓ chain-82 done
+  → chain-83 attempt 1
+[graph] ✓ chain-83 done
+  → chain-84 attempt 1
+[graph] ✓ chain-84 done
+  → chain-85 attempt 1
+[graph] ✓ chain-85 done
+  → chain-86 attempt 1
+[graph] ✓ chain-86 done
+  → chain-87 attempt 1
+[graph] ✓ chain-87 done
+  → chain-88 attempt 1
+[graph] ✓ chain-88 done
+  → chain-89 attempt 1
+[graph] ✓ chain-89 done
+  → chain-90 attempt 1
+[graph] ✓ chain-90 done
+  → chain-91 attempt 1
+[graph] ✓ chain-91 done
+  → chain-92 attempt 1
+[graph] ✓ chain-92 done
+  → chain-93 attempt 1
+[graph] ✓ chain-93 done
+  → chain-94 attempt 1
+[graph] ✓ chain-94 done
+  → chain-95 attempt 1
+[graph] ✓ chain-95 done
+  → chain-96 attempt 1
+[graph] ✓ chain-96 done
+  → chain-97 attempt 1
+[graph] ✓ chain-97 done
+  → chain-98 attempt 1
+[graph] ✓ chain-98 done
+  → chain-99 attempt 1
+[graph] ✓ chain-99 done
+  → chain-100 attempt 1
+[graph] ✓ chain-100 done
+[graph] notice: costo acumulado $5.05 supera $5.00
+  → chain-101 attempt 1
+[graph] ✓ chain-101 done
+[graph] notice: costo acumulado $5.10 supera $5.00
+  → chain-102 attempt 1
+[graph] ✓ chain-102 done
+[graph] notice: costo acumulado $5.15 supera $5.00
+  → chain-103 attempt 1
+[graph] ✓ chain-103 done
+[graph] notice: costo acumulado $5.20 supera $5.00
+  → chain-104 attempt 1
+[graph] ✓ chain-104 done
+[graph] notice: costo acumulado $5.25 supera $5.00
+  → chain-105 attempt 1
+[graph] ✓ chain-105 done
+[graph] notice: costo acumulado $5.30 supera $5.00
+  → chain-106 attempt 1
+[graph] ✓ chain-106 done
+[graph] notice: costo acumulado $5.35 supera $5.00
+  → chain-107 attempt 1
+[graph] ✓ chain-107 done
+[graph] notice: costo acumulado $5.40 supera $5.00
+  → chain-108 attempt 1
+[graph] ✓ chain-108 done
+[graph] notice: costo acumulado $5.45 supera $5.00
+  → chain-109 attempt 1
+[graph] ✓ chain-109 done
+[graph] notice: costo acumulado $5.50 supera $5.00
+  → chain-110 attempt 1
+[graph] ✓ chain-110 done
+[graph] notice: costo acumulado $5.55 supera $5.00
+  → chain-111 attempt 1
+[graph] ✓ chain-111 done
+[graph] notice: costo acumulado $5.60 supera $5.00
+  → chain-112 attempt 1
+[graph] ✓ chain-112 done
+[graph] notice: costo acumulado $5.65 supera $5.00
+  → chain-113 attempt 1
+[graph] ✓ chain-113 done
+[graph] notice: costo acumulado $5.70 supera $5.00
+  → chain-114 attempt 1
+[graph] ✓ chain-114 done
+[graph] notice: costo acumulado $5.75 supera $5.00
+  → chain-115 attempt 1
+[graph] ✓ chain-115 done
+[graph] notice: costo acumulado $5.80 supera $5.00
+  → chain-116 attempt 1
+[graph] ✓ chain-116 done
+[graph] notice: costo acumulado $5.85 supera $5.00
+  → chain-117 attempt 1
+[graph] ✓ chain-117 done
+[graph] notice: costo acumulado $5.90 supera $5.00
+  → chain-118 attempt 1
+[graph] ✓ chain-118 done
+[graph] notice: costo acumulado $5.95 supera $5.00
+  → chain-119 attempt 1
+[graph] ✓ chain-119 done
+[graph] notice: costo acumulado $6.00 supera $5.00
+  → chain-120 attempt 1
+[graph] ✓ chain-120 done
+[graph] notice: costo acumulado $6.05 supera $5.00
+  → chain-121 attempt 1
+[graph] ✓ chain-121 done
+[graph] notice: costo acumulado $6.10 supera $5.00
+  → chain-122 attempt 1
+[graph] ✓ chain-122 done
+[graph] notice: costo acumulado $6.15 supera $5.00
+  → chain-123 attempt 1
+[graph] ✓ chain-123 done
+[graph] notice: costo acumulado $6.20 supera $5.00
+  → chain-124 attempt 1
+[graph] ✓ chain-124 done
+[graph] notice: costo acumulado $6.25 supera $5.00
+  → chain-125 attempt 1
+[graph] ✓ chain-125 done
+[graph] notice: costo acumulado $6.30 supera $5.00
+  → chain-126 attempt 1
+[graph] ✓ chain-126 done
+[graph] notice: costo acumulado $6.35 supera $5.00
+  → chain-127 attempt 1
+[graph] ✓ chain-127 done
+[graph] notice: costo acumulado $6.40 supera $5.00
+  → chain-128 attempt 1
+[graph] ✓ chain-128 done
+[graph] notice: costo acumulado $6.45 supera $5.00
+  → chain-129 attempt 1
+[graph] ✓ chain-129 done
+[graph] notice: costo acumulado $6.50 supera $5.00
+  → chain-130 attempt 1
+[graph] ✓ chain-130 done
+[graph] notice: costo acumulado $6.55 supera $5.00
+  → chain-131 attempt 1
+[graph] ✓ chain-131 done
+[graph] notice: costo acumulado $6.60 supera $5.00
+  → chain-132 attempt 1
+[graph] ✓ chain-132 done
+[graph] notice: costo acumulado $6.65 supera $5.00
+  → chain-133 attempt 1
+[graph] ✓ chain-133 done
+[graph] notice: costo acumulado $6.70 supera $5.00
+  → chain-134 attempt 1
+[graph] ✓ chain-134 done
+[graph] notice: costo acumulado $6.75 supera $5.00
+  → chain-135 attempt 1
+[graph] ✓ chain-135 done
+[graph] notice: costo acumulado $6.80 supera $5.00
+  → chain-136 attempt 1
+[graph] ✓ chain-136 done
+[graph] notice: costo acumulado $6.85 supera $5.00
+  → chain-137 attempt 1
+[graph] ✓ chain-137 done
+[graph] notice: costo acumulado $6.90 supera $5.00
+  → chain-138 attempt 1
+[graph] ✓ chain-138 done
+[graph] notice: costo acumulado $6.95 supera $5.00
+  → chain-139 attempt 1
+[graph] ✓ chain-139 done
+[graph] notice: costo acumulado $7.00 supera $5.00
+  → chain-140 attempt 1
+[graph] ✓ chain-140 done
+[graph] notice: costo acumulado $7.05 supera $5.00
+  → chain-141 attempt 1
+[graph] ✓ chain-141 done
+[graph] notice: costo acumulado $7.10 supera $5.00
+  → chain-142 attempt 1
+[graph] ✓ chain-142 done
+[graph] notice: costo acumulado $7.15 supera $5.00
+  → chain-143 attempt 1
+[graph] ✓ chain-143 done
+[graph] notice: costo acumulado $7.20 supera $5.00
+  → chain-144 attempt 1
+[graph] ✓ chain-144 done
+[graph] notice: costo acumulado $7.25 supera $5.00
+  → chain-145 attempt 1
+[graph] ✓ chain-145 done
+[graph] notice: costo acumulado $7.30 supera $5.00
+  → chain-146 attempt 1
+[graph] ✓ chain-146 done
+[graph] notice: costo acumulado $7.35 supera $5.00
+  → chain-147 attempt 1
+[graph] ✓ chain-147 done
+[graph] notice: costo acumulado $7.40 supera $5.00
+  → chain-148 attempt 1
+[graph] ✓ chain-148 done
+[graph] notice: costo acumulado $7.45 supera $5.00
+  → chain-149 attempt 1
+[graph] ✓ chain-149 done
+[graph] notice: costo acumulado $7.50 supera $5.00
+  → chain-150 attempt 1
+[graph] ✓ chain-150 done
+[graph] notice: costo acumulado $7.55 supera $5.00
+  → chain-151 attempt 1
+[graph] ✓ chain-151 done
+[graph] notice: costo acumulado $7.60 supera $5.00
+  → chain-152 attempt 1
+[graph] ✓ chain-152 done
+[graph] notice: costo acumulado $7.65 supera $5.00
+  → chain-153 attempt 1
+[graph] ✓ chain-153 done
+[graph] notice: costo acumulado $7.70 supera $5.00
+  → chain-154 attempt 1
+[graph] ✓ chain-154 done
+[graph] notice: costo acumulado $7.75 supera $5.00
+  → chain-155 attempt 1
+[graph] ✓ chain-155 done
+[graph] notice: costo acumulado $7.80 supera $5.00
+  → chain-156 attempt 1
+[graph] ✓ chain-156 done
+[graph] notice: costo acumulado $7.85 supera $5.00
+  → chain-157 attempt 1
+[graph] ✓ chain-157 done
+[graph] notice: costo acumulado $7.90 supera $5.00
+  → chain-158 attempt 1
+[graph] ✓ chain-158 done
+[graph] notice: costo acumulado $7.95 supera $5.00
+  → chain-159 attempt 1
+[graph] ✓ chain-159 done
+[graph] notice: costo acumulado $8.00 supera $5.00
+  → chain-160 attempt 1
+[graph] ✓ chain-160 done
+[graph] notice: costo acumulado $8.05 supera $5.00
+  → chain-161 attempt 1
+[graph] ✓ chain-161 done
+[graph] notice: costo acumulado $8.10 supera $5.00
+  → chain-162 attempt 1
+[graph] ✓ chain-162 done
+[graph] notice: costo acumulado $8.15 supera $5.00
+  → chain-163 attempt 1
+[graph] ✓ chain-163 done
+[graph] notice: costo acumulado $8.20 supera $5.00
+  → chain-164 attempt 1
+[graph] ✓ chain-164 done
+[graph] notice: costo acumulado $8.25 supera $5.00
+  → chain-165 attempt 1
+[graph] ✓ chain-165 done
+[graph] notice: costo acumulado $8.30 supera $5.00
+  → chain-166 attempt 1
+[graph] ✓ chain-166 done
+[graph] notice: costo acumulado $8.35 supera $5.00
+  → chain-167 attempt 1
+[graph] ✓ chain-167 done
+[graph] notice: costo acumulado $8.40 supera $5.00
+  → chain-168 attempt 1
+[graph] ✓ chain-168 done
+[graph] notice: costo acumulado $8.45 supera $5.00
+  → chain-169 attempt 1
+[graph] ✓ chain-169 done
+[graph] notice: costo acumulado $8.50 supera $5.00
+  → chain-170 attempt 1
+[graph] ✓ chain-170 done
+[graph] notice: costo acumulado $8.55 supera $5.00
+  → chain-171 attempt 1
+[graph] ✓ chain-171 done
+[graph] notice: costo acumulado $8.60 supera $5.00
+  → chain-172 attempt 1
+[graph] ✓ chain-172 done
+[graph] notice: costo acumulado $8.65 supera $5.00
+  → chain-173 attempt 1
+[graph] ✓ chain-173 done
+[graph] notice: costo acumulado $8.70 supera $5.00
+  → chain-174 attempt 1
+[graph] ✓ chain-174 done
+[graph] notice: costo acumulado $8.75 supera $5.00
+  → chain-175 attempt 1
+[graph] ✓ chain-175 done
+[graph] notice: costo acumulado $8.80 supera $5.00
+  → chain-176 attempt 1
+[graph] ✓ chain-176 done
+[graph] notice: costo acumulado $8.85 supera $5.00
+  → chain-177 attempt 1
+[graph] ✓ chain-177 done
+[graph] notice: costo acumulado $8.90 supera $5.00
+  → chain-178 attempt 1
+[graph] ✓ chain-178 done
+[graph] notice: costo acumulado $8.95 supera $5.00
+  → chain-179 attempt 1
+[graph] ✓ chain-179 done
+[graph] notice: costo acumulado $9.00 supera $5.00
+  → chain-180 attempt 1
+[graph] ✓ chain-180 done
+[graph] notice: costo acumulado $9.05 supera $5.00
+  → chain-181 attempt 1
+[graph] ✓ chain-181 done
+[graph] notice: costo acumulado $9.10 supera $5.00
+  → chain-182 attempt 1
+[graph] ✓ chain-182 done
+[graph] notice: costo acumulado $9.15 supera $5.00
+  → chain-183 attempt 1
+[graph] ✓ chain-183 done
+[graph] notice: costo acumulado $9.20 supera $5.00
+  → chain-184 attempt 1
+[graph] ✓ chain-184 done
+[graph] notice: costo acumulado $9.25 supera $5.00
+  → chain-185 attempt 1
+[graph] ✓ chain-185 done
+[graph] notice: costo acumulado $9.30 supera $5.00
+  → chain-186 attempt 1
+[graph] ✓ chain-186 done
+[graph] notice: costo acumulado $9.35 supera $5.00
+  → chain-187 attempt 1
+[graph] ✓ chain-187 done
+[graph] notice: costo acumulado $9.40 supera $5.00
+  → chain-188 attempt 1
+[graph] ✓ chain-188 done
+[graph] notice: costo acumulado $9.45 supera $5.00
+  → chain-189 attempt 1
+[graph] ✓ chain-189 done
+[graph] notice: costo acumulado $9.50 supera $5.00
+  → chain-190 attempt 1
+[graph] ✓ chain-190 done
+[graph] notice: costo acumulado $9.55 supera $5.00
+  → chain-191 attempt 1
+[graph] ✓ chain-191 done
+[graph] notice: costo acumulado $9.60 supera $5.00
+  → chain-192 attempt 1
+[graph] ✓ chain-192 done
+[graph] notice: costo acumulado $9.65 supera $5.00
+  → chain-193 attempt 1
+[graph] ✓ chain-193 done
+[graph] notice: costo acumulado $9.70 supera $5.00
+  → chain-194 attempt 1
+[graph] ✓ chain-194 done
+[graph] notice: costo acumulado $9.75 supera $5.00
+  → chain-195 attempt 1
+[graph] ✓ chain-195 done
+[graph] notice: costo acumulado $9.80 supera $5.00
+  → chain-196 attempt 1
+[graph] ✓ chain-196 done
+[graph] notice: costo acumulado $9.85 supera $5.00
+  → chain-197 attempt 1
+[graph] ✓ chain-197 done
+[graph] notice: costo acumulado $9.90 supera $5.00
+  → chain-198 attempt 1
+[graph] ✓ chain-198 done
+[graph] notice: costo acumulado $9.95 supera $5.00
+  → chain-199 attempt 1
+[graph] ✓ chain-199 done
+[graph] notice: costo acumulado $10.00 supera $5.00
+.
+
+[graph] ⏹ Stalled — no executable tasks — stuck: blocked (waiting on: missing)
+
+[graph] ⏹ Circuit break: no executable tasks — stuck: blocked (waiting on: missing)
+.
+  → a attempt 1
+[graph] ⊘ a blocked
+.
+  → a attempt 1
+  ↻ a retry 1/3
+  → a attempt 2
+[graph] ✓ a done
+.
+[graph] ✗ vanishing failed permanently — branch blocked
+.
+[graph] ✓ already-done done
+.
+  → rate-limited attempt 1
+  → rate-limited attempt 2
+  → rate-limited attempt 3
+  [diagnose] rate_limit (high) — wait and retry
+  ⏳ rate_limit → requeue after 10000ms
+  → rate-limited attempt 4
+  → rate-limited attempt 5
+  → rate-limited attempt 6
+  [diagnose] rate_limit (high) — wait and retry
+[graph] ✗ rate-limited failed permanently — branch blocked
+.
+  → a attempt 1
+  → a attempt 2
+  → a attempt 3
+  [diagnose] unavailable
+[graph] ✗ a failed permanently — branch blocked
+.
+  → a attempt 1
+  → a attempt 2
+  → a attempt 3
+  [diagnose] rate_limit (high) — wait 10s and retry
+  ⏳ rate_limit → requeue after 10000ms
+  → a attempt 4
+[graph] ✓ a done (after rate-limit requeue)
+.
+  → a attempt 1
+  → a attempt 2
+  → a attempt 3
+  [diagnose] unknown (low) — investigate manually
+[graph] ✗ a failed permanently — branch blocked
+...................................................
+
+src/__tests__/commit-tasks-yaml.test.ts:
+[tasks-yaml] final state still running: task-1
+.
+[tasks-yaml] commit skipped: chore(tasks): missing · error tasks.yaml: missing "project"
+.......................................................................................................................................................
+
+src/__tests__/model-roles-config.test.ts:
+[config] ignorando roles.reviewer: '[object Object]' no es un valor válido — se usará el default. Valores permitidos: { agent, model }.
+.....
+
+src/__tests__/external-engine.test.ts:
+[cli-spawn] {"event":"start","agent":"claude","cwd":"/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/orchestos-b3-ext-jiZQcj/.orchestos/worktrees/b3-happy-1792525844769","args":["-p","--output-format","stream-json","--include-partial-messages","--verbose","--append-system-prompt","<178 chars>","--allowedTools","Edit,Write,Read,Glob,Grep","--disallowedTools","Agent","--restricted","--strict-mcp-config","--settings","/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/orchestos-b3-ext-jiZQcj/.orchestos/agent-home/claude/settings.json"],"env":{"HOME":"/Users/carlosgallardo","CLAUDE_CONFIG_DIR":null,"CODEX_HOME":null,"ORCHESTOS_HOME":"/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/orchestos-security-gate-dSf9DT","PATH":"/Users/carlosgallardo/Projects/projects/orchestos/node_modules/.bin:/Users/carlosgallardo/Projects/projects/orchestos/node_modules/.bin:/Users/carlosgallardo/Projects/projects/node_modules/.bin:/Users/carlosgallardo/Projects/node_modules/.bin"}}
+[cli-spawn] {"event":"end","agent":"claude","firstByteMs":0,"totalMs":0,"exitCode":0,"timedOut":false,"stderrTail":""}
+.
+[cli-spawn] {"event":"start","agent":"claude","cwd":"/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/orchestos-b3-ext-AtxUVD/.orchestos/worktrees/b3-tracked-mod-1792525845189","args":["-p","--output-format","stream-json","--include-partial-messages","--verbose","--append-system-prompt","<178 chars>","--allowedTools","Edit,Write,Read,Glob,Grep","--disallowedTools","Agent","--restricted","--strict-mcp-config","--settings","/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/orchestos-b3-ext-AtxUVD/.orchestos/agent-home/claude/settings.json"],"env":{"HOME":"/Users/carlosgallardo","CLAUDE_CONFIG_DIR":null,"CODEX_HOME":null,"ORCHESTOS_HOME":"/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/orchestos-security-gate-dSf9DT","PATH":"/Users/carlosgallardo/Projects/projects/orchestos/node_modules/.bin:/Users/carlosgallardo/Projects/projects/orchestos/node_modules/.bin:/Users/carlosgallardo/Projects/projects/node_modules/.bin:/Users/carlosgallardo/Projects/node_modules/.bin"}}
+[cli-spawn] {"event":"end","agent":"claude","firstByteMs":0,"totalMs":0,"exitCode":0,"timedOut":false,"stderrTail":""}
+.
+[cli-spawn] {"event":"start","agent":"claude","cwd":"/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/orchestos-b3-ext-eCoCon/.orchestos/worktrees/b3-contract-1792525845545","args":["-p","--output-format","stream-json","--include-partial-messages","--verbose","--append-system-prompt","<178 chars>","--allowedTools","Edit,Write,Read,Glob,Grep","--disallowedTools","Agent","--restricted","--strict-mcp-config","--settings","/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/orchestos-b3-ext-eCoCon/.orchestos/agent-home/claude/settings.json"],"env":{"HOME":"/Users/carlosgallardo","CLAUDE_CONFIG_DIR":null,"CODEX_HOME":null,"ORCHESTOS_HOME":"/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/orchestos-security-gate-dSf9DT","PATH":"/Users/carlosgallardo/Projects/projects/orchestos/node_modules/.bin:/Users/carlosgallardo/Projects/projects/orchestos/node_modules/.bin:/Users/carlosgallardo/Projects/projects/node_modules/.bin:/Users/carlosgallardo/Projects/node_modules/.bin"}}
+[cli-spawn] {"event":"end","agent":"claude","firstByteMs":0,"totalMs":0,"exitCode":0,"timedOut":false,"stderrTail":""}
+.
+[cli-spawn] {"event":"start","agent":"claude","cwd":"/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/orchestos-b3-ext-CdAWT4/.orchestos/worktrees/b3-rename-1792525845904","args":["-p","--output-format","stream-json","--include-partial-messages","--verbose","--append-system-prompt","<178 chars>","--allowedTools","Edit,Write,Read,Glob,Grep","--disallowedTools","Agent","--restricted","--strict-mcp-config","--settings","/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/orchestos-b3-ext-CdAWT4/.orchestos/agent-home/claude/settings.json"],"env":{"HOME":"/Users/carlosgallardo","CLAUDE_CONFIG_DIR":null,"CODEX_HOME":null,"ORCHESTOS_HOME":"/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/orchestos-security-gate-dSf9DT","PATH":"/Users/carlosgallardo/Projects/projects/orchestos/node_modules/.bin:/Users/carlosgallardo/Projects/projects/orchestos/node_modules/.bin:/Users/carlosgallardo/Projects/projects/node_modules/.bin:/Users/carlosgallardo/Projects/node_modules/.bin"}}
+[cli-spawn] {"event":"end","agent":"claude","firstByteMs":0,"totalMs":0,"exitCode":0,"timedOut":false,"stderrTail":""}
+.
+[cli-spawn] {"event":"start","agent":"claude","cwd":"/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/orchestos-b3-ext-2xvlsW/.orchestos/worktrees/b3-timeout-1792525846282","args":["-p","--output-format","stream-json","--include-partial-messages","--verbose","--append-system-prompt","<178 chars>","--allowedTools","Edit,Write,Read,Glob,Grep","--disallowedTools","Agent","--restricted","--strict-mcp-config","--settings","/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/orchestos-b3-ext-2xvlsW/.orchestos/agent-home/claude/settings.json"],"env":{"HOME":"/Users/carlosgallardo","CLAUDE_CONFIG_DIR":null,"CODEX_HOME":null,"ORCHESTOS_HOME":"/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/orchestos-security-gate-dSf9DT","PATH":"/Users/carlosgallardo/Projects/projects/orchestos/node_modules/.bin:/Users/carlosgallardo/Projects/projects/orchestos/node_modules/.bin:/Users/carlosgallardo/Projects/projects/node_modules/.bin:/Users/carlosgallardo/Projects/node_modules/.bin"}}
+[cli-spawn] {"event":"end","agent":"claude","firstByteMs":0,"totalMs":52,"exitCode":0,"timedOut":true,"stderrTail":""}
+[cli-spawn] {"event":"start","agent":"claude","cwd":"/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/orchestos-b3-ext-2xvlsW/.orchestos/worktrees/b3-timeout-1792525846282","args":["-p","--output-format","stream-json","--include-partial-messages","--verbose","--append-system-prompt","<178 chars>","--allowedTools","Edit,Write,Read,Glob,Grep","--disallowedTools","Agent","--restricted","--strict-mcp-config","--settings","/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/orchestos-b3-ext-2xvlsW/.orchestos/agent-home/claude/settings.json"],"env":{"HOME":"/Users/carlosgallardo","CLAUDE_CONFIG_DIR":null,"CODEX_HOME":null,"ORCHESTOS_HOME":"/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/orchestos-security-gate-dSf9DT","PATH":"/Users/carlosgallardo/Projects/projects/orchestos/node_modules/.bin:/Users/carlosgallardo/Projects/projects/orchestos/node_modules/.bin:/Users/carlosgallardo/Projects/projects/node_modules/.bin:/Users/carlosgallardo/Projects/node_modules/.bin"}}
+[cli-spawn] {"event":"end","agent":"claude","firstByteMs":0,"totalMs":30,"exitCode":0,"timedOut":true,"stderrTail":""}
+.
+[cli-spawn] {"event":"start","agent":"claude","cwd":"/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/orchestos-b3-ext-GxSuHf/.orchestos/worktrees/b3-badjson-1792525846720","args":["-p","--output-format","stream-json","--include-partial-messages","--verbose","--append-system-prompt","<178 chars>","--allowedTools","Edit,Write,Read,Glob,Grep","--disallowedTools","Agent","--restricted","--strict-mcp-config","--settings","/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/orchestos-b3-ext-GxSuHf/.orchestos/agent-home/claude/settings.json"],"env":{"HOME":"/Users/carlosgallardo","CLAUDE_CONFIG_DIR":null,"CODEX_HOME":null,"ORCHESTOS_HOME":"/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/orchestos-security-gate-dSf9DT","PATH":"/Users/carlosgallardo/Projects/projects/orchestos/node_modules/.bin:/Users/carlosgallardo/Projects/projects/orchestos/node_modules/.bin:/Users/carlosgallardo/Projects/projects/node_modules/.bin:/Users/carlosgallardo/Projects/node_modules/.bin"}}
+[cli-spawn] {"event":"end","agent":"claude","firstByteMs":0,"totalMs":0,"exitCode":0,"timedOut":false,"stderrTail":""}
+.
+[cli-spawn] {"event":"start","agent":"claude","cwd":"/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/orchestos-b3-ext-T59zoD/.orchestos/worktrees/b3-missing-cost-1792525847047","args":["-p","--output-format","stream-json","--include-partial-messages","--verbose","--append-system-prompt","<178 chars>","--allowedTools","Edit,Write,Read,Glob,Grep","--disallowedTools","Agent","--restricted","--strict-mcp-config","--settings","/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/orchestos-b3-ext-T59zoD/.orchestos/agent-home/claude/settings.json"],"env":{"HOME":"/Users/carlosgallardo","CLAUDE_CONFIG_DIR":null,"CODEX_HOME":null,"ORCHESTOS_HOME":"/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/orchestos-security-gate-dSf9DT","PATH":"/Users/carlosgallardo/Projects/projects/orchestos/node_modules/.bin:/Users/carlosgallardo/Projects/projects/orchestos/node_modules/.bin:/Users/carlosgallardo/Projects/projects/node_modules/.bin:/Users/carlosgallardo/Projects/node_modules/.bin"}}
+[cli-spawn] {"event":"end","agent":"claude","firstByteMs":0,"totalMs":0,"exitCode":0,"timedOut":false,"stderrTail":""}
+.
+[cli-spawn] {"event":"start","agent":"claude","cwd":"/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/orchestos-b3-ext-tm60Lo/.orchestos/worktrees/b3-partial-usage-1792525847371","args":["-p","--output-format","stream-json","--include-partial-messages","--verbose","--append-system-prompt","<178 chars>","--allowedTools","Edit,Write,Read,Glob,Grep","--disallowedTools","Agent","--restricted","--strict-mcp-config","--settings","/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/orchestos-b3-ext-tm60Lo/.orchestos/agent-home/claude/settings.json"],"env":{"HOME":"/Users/carlosgallardo","CLAUDE_CONFIG_DIR":null,"CODEX_HOME":null,"ORCHESTOS_HOME":"/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/orchestos-security-gate-dSf9DT","PATH":"/Users/carlosgallardo/Projects/projects/orchestos/node_modules/.bin:/Users/carlosgallardo/Projects/projects/orchestos/node_modules/.bin:/Users/carlosgallardo/Projects/projects/node_modules/.bin:/Users/carlosgallardo/Projects/node_modules/.bin"}}
+[cli-spawn] {"event":"end","agent":"claude","firstByteMs":0,"totalMs":0,"exitCode":0,"timedOut":false,"stderrTail":""}
+.
+[cli-spawn] {"event":"start","agent":"claude","cwd":"/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/orchestos-b3-ext-MbExS7/.orchestos/worktrees/b3-no-turns-1792525847725","args":["-p","--output-format","stream-json","--include-partial-messages","--verbose","--append-system-prompt","<178 chars>","--allowedTools","Edit,Write,Read,Glob,Grep","--disallowedTools","Agent","--restricted","--strict-mcp-config","--settings","/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/orchestos-b3-ext-MbExS7/.orchestos/agent-home/claude/settings.json"],"env":{"HOME":"/Users/carlosgallardo","CLAUDE_CONFIG_DIR":null,"CODEX_HOME":null,"ORCHESTOS_HOME":"/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/orchestos-security-gate-dSf9DT","PATH":"/Users/carlosgallardo/Projects/projects/orchestos/node_modules/.bin:/Users/carlosgallardo/Projects/projects/orchestos/node_modules/.bin:/Users/carlosgallardo/Projects/projects/node_modules/.bin:/Users/carlosgallardo/Projects/node_modules/.bin"}}
+[cli-spawn] {"event":"end","agent":"claude","firstByteMs":0,"totalMs":0,"exitCode":0,"timedOut":false,"stderrTail":""}
+..
+[cli-spawn] {"event":"start","agent":"claude","cwd":"/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/orchestos-b3-ext-hyTb0n/.orchestos/worktrees/b3-noop-1792525848077","args":["-p","--output-format","stream-json","--include-partial-messages","--verbose","--append-system-prompt","<178 chars>","--allowedTools","Edit,Write,Read,Glob,Grep","--disallowedTools","Agent","--restricted","--strict-mcp-config","--settings","/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/orchestos-b3-ext-hyTb0n/.orchestos/agent-home/claude/settings.json"],"env":{"HOME":"/Users/carlosgallardo","CLAUDE_CONFIG_DIR":null,"CODEX_HOME":null,"ORCHESTOS_HOME":"/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/orchestos-security-gate-dSf9DT","PATH":"/Users/carlosgallardo/Projects/projects/orchestos/node_modules/.bin:/Users/carlosgallardo/Projects/projects/orchestos/node_modules/.bin:/Users/carlosgallardo/Projects/projects/node_modules/.bin:/Users/carlosgallardo/Projects/node_modules/.bin"}}
+[cli-spawn] {"event":"end","agent":"claude","firstByteMs":0,"totalMs":0,"exitCode":0,"timedOut":false,"stderrTail":""}
+.
+[cli-spawn] {"event":"start","agent":"claude","cwd":"/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/orchestos-b3-ext-sB3wDA/.orchestos/worktrees/b3-normpath-1792525848432","args":["-p","--output-format","stream-json","--include-partial-messages","--verbose","--append-system-prompt","<178 chars>","--allowedTools","Edit,Write,Read,Glob,Grep","--disallowedTools","Agent","--restricted","--strict-mcp-config","--settings","/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/orchestos-b3-ext-sB3wDA/.orchestos/agent-home/claude/settings.json"],"env":{"HOME":"/Users/carlosgallardo","CLAUDE_CONFIG_DIR":null,"CODEX_HOME":null,"ORCHESTOS_HOME":"/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/orchestos-security-gate-dSf9DT","PATH":"/Users/carlosgallardo/Projects/projects/orchestos/node_modules/.bin:/Users/carlosgallardo/Projects/projects/orchestos/node_modules/.bin:/Users/carlosgallardo/Projects/projects/node_modules/.bin:/Users/carlosgallardo/Projects/node_modules/.bin"}}
+[cli-spawn] {"event":"end","agent":"claude","firstByteMs":0,"totalMs":0,"exitCode":0,"timedOut":false,"stderrTail":""}
+.
+[cli-spawn] {"event":"start","agent":"claude","cwd":"/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/orchestos-b3-ext-35zMUe/.orchestos/worktrees/b4-empty-dir-1792525848784","args":["-p","--output-format","stream-json","--include-partial-messages","--verbose","--append-system-prompt","<178 chars>","--allowedTools","Edit,Write,Read,Glob,Grep","--disallowedTools","Agent","--restricted","--strict-mcp-config","--settings","/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/orchestos-b3-ext-35zMUe/.orchestos/agent-home/claude/settings.json"],"env":{"HOME":"/Users/carlosgallardo","CLAUDE_CONFIG_DIR":null,"CODEX_HOME":null,"ORCHESTOS_HOME":"/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/orchestos-security-gate-dSf9DT","PATH":"/Users/carlosgallardo/Projects/projects/orchestos/node_modules/.bin:/Users/carlosgallardo/Projects/projects/orchestos/node_modules/.bin:/Users/carlosgallardo/Projects/projects/node_modules/.bin:/Users/carlosgallardo/Projects/node_modules/.bin"}}
+[cli-spawn] {"event":"end","agent":"claude","firstByteMs":0,"totalMs":0,"exitCode":0,"timedOut":false,"stderrTail":""}
+.
+[cli-spawn] {"event":"start","agent":"claude","cwd":"/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/orchestos-b3-ext-IZc8Vn/.orchestos/worktrees/b4-dir-with-file-1792525849136","args":["-p","--output-format","stream-json","--include-partial-messages","--verbose","--append-system-prompt","<178 chars>","--allowedTools","Edit,Write,Read,Glob,Grep","--disallowedTools","Agent","--restricted","--strict-mcp-config","--settings","/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/orchestos-b3-ext-IZc8Vn/.orchestos/agent-home/claude/settings.json"],"env":{"HOME":"/Users/carlosgallardo","CLAUDE_CONFIG_DIR":null,"CODEX_HOME":null,"ORCHESTOS_HOME":"/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/orchestos-security-gate-dSf9DT","PATH":"/Users/carlosgallardo/Projects/projects/orchestos/node_modules/.bin:/Users/carlosgallardo/Projects/projects/orchestos/node_modules/.bin:/Users/carlosgallardo/Projects/projects/node_modules/.bin:/Users/carlosgallardo/Projects/node_modules/.bin"}}
+[cli-spawn] {"event":"end","agent":"claude","firstByteMs":0,"totalMs":0,"exitCode":0,"timedOut":false,"stderrTail":""}
+.
+[cli-spawn] {"event":"start","agent":"claude","cwd":"/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/orchestos-b3-ext-GF8fZO/.orchestos/worktrees/r851-claude-iso-1792525849493","args":["-p","--output-format","stream-json","--include-partial-messages","--verbose","--append-system-prompt","<178 chars>","--allowedTools","Edit,Write,Read,Glob,Grep","--disallowedTools","Agent","--restricted","--strict-mcp-config","--settings","/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/orchestos-b3-ext-GF8fZO/.orchestos/agent-home/claude/settings.json"],"env":{"HOME":"/Users/carlosgallardo","CLAUDE_CONFIG_DIR":null,"CODEX_HOME":null,"ORCHESTOS_HOME":"/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/orchestos-security-gate-dSf9DT","PATH":"/Users/carlosgallardo/Projects/projects/orchestos/node_modules/.bin:/Users/carlosgallardo/Projects/projects/orchestos/node_modules/.bin:/Users/carlosgallardo/Projects/projects/node_modules/.bin:/Users/carlosgallardo/Projects/node_modules/.bin"}}
+[cli-spawn] {"event":"end","agent":"claude","firstByteMs":0,"totalMs":0,"exitCode":0,"timedOut":false,"stderrTail":""}
+.
+[cli-spawn] {"event":"start","agent":"claude","cwd":"/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/orchestos-b3-ext-JrLpgM/.orchestos/worktrees/c1-ssot-1792525849846","args":["-p","--output-format","stream-json","--include-partial-messages","--verbose","--append-system-prompt","<178 chars>","--allowedTools","Edit,Write,Read,Glob,Grep","--disallowedTools","Agent","--restricted","--strict-mcp-config","--settings","/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/orchestos-b3-ext-JrLpgM/.orchestos/agent-home/claude/settings.json"],"env":{"HOME":"/Users/carlosgallardo","CLAUDE_CONFIG_DIR":null,"CODEX_HOME":null,"ORCHESTOS_HOME":"/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/orchestos-security-gate-dSf9DT","PATH":"/Users/carlosgallardo/Projects/projects/orchestos/node_modules/.bin:/Users/carlosgallardo/Projects/projects/orchestos/node_modules/.bin:/Users/carlosgallardo/Projects/projects/node_modules/.bin:/Users/carlosgallardo/Projects/node_modules/.bin"}}
+[cli-spawn] {"event":"end","agent":"claude","firstByteMs":0,"totalMs":0,"exitCode":0,"timedOut":false,"stderrTail":""}
+.
+[cli-spawn] {"event":"start","agent":"claude","cwd":"/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/orchestos-b3-ext-kj2pJu/.orchestos/worktrees/c1-realprompt-1792525850198","args":["-p","--output-format","stream-json","--include-partial-messages","--verbose","--append-system-prompt","<178 chars>","--allowedTools","Edit,Write,Read,Glob,Grep","--disallowedTools","Agent","--restricted","--strict-mcp-config","--settings","/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/orchestos-b3-ext-kj2pJu/.orchestos/agent-home/claude/settings.json"],"env":{"HOME":"/Users/carlosgallardo","CLAUDE_CONFIG_DIR":null,"CODEX_HOME":null,"ORCHESTOS_HOME":"/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/orchestos-security-gate-dSf9DT","PATH":"/Users/carlosgallardo/Projects/projects/orchestos/node_modules/.bin:/Users/carlosgallardo/Projects/projects/orchestos/node_modules/.bin:/Users/carlosgallardo/Projects/projects/node_modules/.bin:/Users/carlosgallardo/Projects/node_modules/.bin"}}
+[cli-spawn] {"event":"end","agent":"claude","firstByteMs":0,"totalMs":0,"exitCode":0,"timedOut":false,"stderrTail":""}
+...
+[cli-spawn] {"event":"start","agent":"claude","cwd":"/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/orchestos-b3-ext-WBnote/.orchestos/worktrees/c2-binary-ok-1792525850849","args":["-p","--output-format","stream-json","--include-partial-messages","--verbose","--append-system-prompt","<178 chars>","--allowedTools","Edit,Write,Read,Glob,Grep","--disallowedTools","Agent","--restricted","--strict-mcp-config","--settings","/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/orchestos-b3-ext-WBnote/.orchestos/agent-home/claude/settings.json"],"env":{"HOME":"/Users/carlosgallardo","CLAUDE_CONFIG_DIR":null,"CODEX_HOME":null,"ORCHESTOS_HOME":"/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/orchestos-security-gate-dSf9DT","PATH":"/Users/carlosgallardo/Projects/projects/orchestos/node_modules/.bin:/Users/carlosgallardo/Projects/projects/orchestos/node_modules/.bin:/Users/carlosgallardo/Projects/projects/node_modules/.bin:/Users/carlosgallardo/Projects/node_modules/.bin"}}
+[cli-spawn] {"event":"end","agent":"claude","firstByteMs":0,"totalMs":0,"exitCode":0,"timedOut":false,"stderrTail":""}
+.
+[cli-spawn] {"event":"start","agent":"claude","cwd":"/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/orchestos-b3-ext-ga7eKj/.orchestos/worktrees/e15-model-effort-1792525851203","args":["-p","--output-format","stream-json","--include-partial-messages","--verbose","--append-system-prompt","<178 chars>","--allowedTools","Edit,Write,Read,Glob,Grep","--model","claude-sonnet-5","--effort","xhigh","--disallowedTools","Agent","--restricted","--strict-mcp-config","--settings","/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/orchestos-b3-ext-ga7eKj/.orchestos/agent-home/claude/settings.json"],"env":{"HOME":"/Users/carlosgallardo","CLAUDE_CONFIG_DIR":null,"CODEX_HOME":null,"ORCHESTOS_HOME":"/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/orchestos-security-gate-dSf9DT","PATH":"/Users/carlosgallardo/Projects/projects/orchestos/node_modules/.bin:/Users/carlosgallardo/Projects/projects/orchestos/node_modules/.bin:/Users/carlosgallardo/Projects/projects/node_modules/.bin:/Users/carlosgallardo/Projects/node_modules/.bin"}}
+[cli-spawn] {"event":"end","agent":"claude","firstByteMs":0,"totalMs":0,"exitCode":0,"timedOut":false,"stderrTail":""}
+.
+[cli-spawn] {"event":"start","agent":"claude","cwd":"/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/orchestos-b3-ext-uWqWvn/.orchestos/worktrees/e15-non-anthropic-1792525851554","args":["-p","--output-format","stream-json","--include-partial-messages","--verbose","--append-system-prompt","<178 chars>","--allowedTools","Edit,Write,Read,Glob,Grep","--disallowedTools","Agent","--restricted","--strict-mcp-config","--settings","/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/orchestos-b3-ext-uWqWvn/.orchestos/agent-home/claude/settings.json"],"env":{"HOME":"/Users/carlosgallardo","CLAUDE_CONFIG_DIR":null,"CODEX_HOME":null,"ORCHESTOS_HOME":"/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/orchestos-security-gate-dSf9DT","PATH":"/Users/carlosgallardo/Projects/projects/orchestos/node_modules/.bin:/Users/carlosgallardo/Projects/projects/orchestos/node_modules/.bin:/Users/carlosgallardo/Projects/projects/node_modules/.bin:/Users/carlosgallardo/Projects/node_modules/.bin"}}
+[cli-spawn] {"event":"end","agent":"claude","firstByteMs":0,"totalMs":0,"exitCode":0,"timedOut":false,"stderrTail":""}
+..............................................................................................................................................................................................................................................................................................................................................
+
+src/__tests__/codex-engine.test.ts:
+[cli-spawn] {"event":"start","agent":"codex","cwd":"/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/orchestos-g42b-codex-a4uJAc/.orchestos/worktrees/r851-codex-home-1792525853956","args":["exec","<210 chars>","--json","--sandbox","workspace-write","--color","never","-c","model_reasoning_summary=auto","-m","gpt-5.4"],"env":{"HOME":"/Users/carlosgallardo","CLAUDE_CONFIG_DIR":null,"CODEX_HOME":"/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/orchestos-g42b-codex-a4uJAc/.orchestos/agent-home/codex","ORCHESTOS_HOME":"/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/orchestos-g42b-cat-iLiJTW","PATH":"/Users/carlosgallardo/Projects/projects/orchestos/node_modules/.bin:/Users/carlosgallardo/Projects/projects/orchestos/node_modules/.bin:/Users/carlosgallardo/Projects/projects/node_modules/.bin:/Users/carlosgallardo/Projects/node_modules/.bin"}}
+[cli-spawn] {"event":"end","agent":"codex","firstByteMs":1,"totalMs":1,"exitCode":0,"timedOut":false,"stderrTail":""}
+.
+[cli-spawn] {"event":"start","agent":"codex","cwd":"/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/orchestos-g42b-codex-zHmc5D/.orchestos/worktrees/r851-chat-home-1792525854311","args":["exec","system\n\nhello","--json","--sandbox","read-only","--color","never","--ignore-user-config","--skip-git-repo-check","-c","model_reasoning_summary=auto"],"env":{"HOME":"/Users/carlosgallardo","CLAUDE_CONFIG_DIR":null,"CODEX_HOME":"/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/orchestos-g42b-codex-zHmc5D/.orchestos/agent-home/codex","ORCHESTOS_HOME":"/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/orchestos-g42b-cat-iLiJTW","PATH":"/Users/carlosgallardo/Projects/projects/orchestos/node_modules/.bin:/Users/carlosgallardo/Projects/projects/orchestos/node_modules/.bin:/Users/carlosgallardo/Projects/projects/node_modules/.bin:/Users/carlosgallardo/Projects/node_modules/.bin"}}
+[cli-spawn] {"event":"end","agent":"codex","firstByteMs":0,"totalMs":0,"exitCode":0,"timedOut":false,"stderrTail":""}
+.
+[cli-spawn] {"event":"start","agent":"codex","cwd":"/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/orchestos-codex-chat-cost-ZMPsFj","args":["exec","system\n\nhello","--json","--sandbox","read-only","--color","never","--ignore-user-config","--skip-git-repo-check","-c","model_reasoning_summary=auto"],"env":{"HOME":"/Users/carlosgallardo","CLAUDE_CONFIG_DIR":null,"CODEX_HOME":"/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/orchestos-codex-chat-cost-ZMPsFj/.orchestos/agent-home/codex","ORCHESTOS_HOME":"/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/orchestos-g42b-cat-iLiJTW","PATH":"/Users/carlosgallardo/Projects/projects/orchestos/node_modules/.bin:/Users/carlosgallardo/Projects/projects/orchestos/node_modules/.bin:/Users/carlosgallardo/Projects/projects/node_modules/.bin:/Users/carlosgallardo/Projects/node_modules/.bin"}}
+[cli-spawn] {"event":"end","agent":"codex","firstByteMs":0,"totalMs":0,"exitCode":0,"timedOut":false,"stderrTail":""}
+..
+[cli-spawn] {"event":"start","agent":"codex","cwd":"/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/orchestos-codex-chat-cache-kjN89d","args":["exec","system\n\nhello","--json","--sandbox","read-only","--color","never","--ignore-user-config","--skip-git-repo-check","-c","model_reasoning_summary=auto"],"env":{"HOME":"/Users/carlosgallardo","CLAUDE_CONFIG_DIR":null,"CODEX_HOME":"/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/orchestos-codex-chat-cache-kjN89d/.orchestos/agent-home/codex","ORCHESTOS_HOME":"/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/orchestos-g42b-cat-iLiJTW","PATH":"/Users/carlosgallardo/Projects/projects/orchestos/node_modules/.bin:/Users/carlosgallardo/Projects/projects/orchestos/node_modules/.bin:/Users/carlosgallardo/Projects/projects/node_modules/.bin:/Users/carlosgallardo/Projects/node_modules/.bin"}}
+[cli-spawn] {"event":"end","agent":"codex","firstByteMs":0,"totalMs":0,"exitCode":0,"timedOut":false,"stderrTail":""}
+.
+[cli-spawn] {"event":"start","agent":"codex","cwd":"/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/orchestos-g42b-codex-nQDbgJ/.orchestos/worktrees/g42b-happy-1792525854693","args":["exec","<210 chars>","--json","--sandbox","workspace-write","--color","never","-c","model_reasoning_summary=auto","-m","gpt-5.4","-c","model_reasoning_effort=medium"],"env":{"HOME":"/Users/carlosgallardo","CLAUDE_CONFIG_DIR":null,"CODEX_HOME":"/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/orchestos-g42b-codex-nQDbgJ/.orchestos/agent-home/codex","ORCHESTOS_HOME":"/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/orchestos-g42b-cat-iLiJTW","PATH":"/Users/carlosgallardo/Projects/projects/orchestos/node_modules/.bin:/Users/carlosgallardo/Projects/projects/orchestos/node_modules/.bin:/Users/carlosgallardo/Projects/projects/node_modules/.bin:/Users/carlosgallardo/Projects/node_modules/.bin"}}
+[cli-spawn] {"event":"end","agent":"codex","firstByteMs":0,"totalMs":0,"exitCode":0,"timedOut":false,"stderrTail":""}
+.
+[cli-spawn] {"event":"start","agent":"codex","cwd":"/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/orchestos-g42b-codex-rVwAim/.orchestos/worktrees/g42b-native-id-1792525855048","args":["exec","<210 chars>","--json","--sandbox","workspace-write","--color","never","-c","model_reasoning_summary=auto","-m","gpt-6-luna"],"env":{"HOME":"/Users/carlosgallardo","CLAUDE_CONFIG_DIR":null,"CODEX_HOME":"/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/orchestos-g42b-codex-rVwAim/.orchestos/agent-home/codex","ORCHESTOS_HOME":"/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/orchestos-g42b-cat-iLiJTW","PATH":"/Users/carlosgallardo/Projects/projects/orchestos/node_modules/.bin:/Users/carlosgallardo/Projects/projects/orchestos/node_modules/.bin:/Users/carlosgallardo/Projects/projects/node_modules/.bin:/Users/carlosgallardo/Projects/node_modules/.bin"}}
+[cli-spawn] {"event":"end","agent":"codex","firstByteMs":0,"totalMs":0,"exitCode":0,"timedOut":false,"stderrTail":""}
+.....
+[cli-spawn] {"event":"start","agent":"codex","cwd":"/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/orchestos-g42b-codex-lx7LUA/.orchestos/worktrees/g42b-timeout-1792525856291","args":["exec","<210 chars>","--json","--sandbox","workspace-write","--color","never","-c","model_reasoning_summary=auto","-m","gpt-5.4"],"env":{"HOME":"/Users/carlosgallardo","CLAUDE_CONFIG_DIR":null,"CODEX_HOME":"/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/orchestos-g42b-codex-lx7LUA/.orchestos/agent-home/codex","ORCHESTOS_HOME":"/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/orchestos-g42b-cat-iLiJTW","PATH":"/Users/carlosgallardo/Projects/projects/orchestos/node_modules/.bin:/Users/carlosgallardo/Projects/projects/orchestos/node_modules/.bin:/Users/carlosgallardo/Projects/projects/node_modules/.bin:/Users/carlosgallardo/Projects/node_modules/.bin"}}
+[cli-spawn] {"event":"end","agent":"codex","firstByteMs":0,"totalMs":25,"exitCode":0,"timedOut":true,"stderrTail":""}
+.
+[cli-spawn] {"event":"start","agent":"codex","cwd":"/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/orchestos-g42b-codex-0HB9C8/.orchestos/worktrees/g42b-no-cost-1792525856642","args":["exec","<210 chars>","--json","--sandbox","workspace-write","--color","never","-c","model_reasoning_summary=auto","-m","gpt-5.4"],"env":{"HOME":"/Users/carlosgallardo","CLAUDE_CONFIG_DIR":null,"CODEX_HOME":"/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/orchestos-g42b-codex-0HB9C8/.orchestos/agent-home/codex","ORCHESTOS_HOME":"/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/orchestos-g42b-cat-iLiJTW","PATH":"/Users/carlosgallardo/Projects/projects/orchestos/node_modules/.bin:/Users/carlosgallardo/Projects/projects/orchestos/node_modules/.bin:/Users/carlosgallardo/Projects/projects/node_modules/.bin:/Users/carlosgallardo/Projects/node_modules/.bin"}}
+[cli-spawn] {"event":"end","agent":"codex","firstByteMs":0,"totalMs":0,"exitCode":0,"timedOut":false,"stderrTail":""}
+.
+[cli-spawn] {"event":"start","agent":"codex","cwd":"/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/orchestos-g42b-codex-poq2mE/.orchestos/worktrees/g42b-partial-1792525856968","args":["exec","<210 chars>","--json","--sandbox","workspace-write","--color","never","-c","model_reasoning_summary=auto","-m","gpt-5.4"],"env":{"HOME":"/Users/carlosgallardo","CLAUDE_CONFIG_DIR":null,"CODEX_HOME":"/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/orchestos-g42b-codex-poq2mE/.orchestos/agent-home/codex","ORCHESTOS_HOME":"/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/orchestos-g42b-cat-iLiJTW","PATH":"/Users/carlosgallardo/Projects/projects/orchestos/node_modules/.bin:/Users/carlosgallardo/Projects/projects/orchestos/node_modules/.bin:/Users/carlosgallardo/Projects/projects/node_modules/.bin:/Users/carlosgallardo/Projects/node_modules/.bin"}}
+[cli-spawn] {"event":"end","agent":"codex","firstByteMs":0,"totalMs":0,"exitCode":0,"timedOut":false,"stderrTail":""}
+........................................................................................
+
+src/__tests__/claude-chat.test.ts:
+[cli-spawn] {"event":"start","agent":"claude","cwd":"/tmp/p","args":["-p","--output-format","stream-json","--include-partial-messages","--verbose","--append-system-prompt","sys","--restricted","--strict-mcp-config","--tools","Read,Glob,Grep","--settings","/tmp/p/.orchestos/agent-home/claude/settings.json","--add-dir","/tmp/p"],"env":{"HOME":"/Users/carlosgallardo","CLAUDE_CONFIG_DIR":null,"CODEX_HOME":null,"ORCHESTOS_HOME":"/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/orchestos-security-gate-dSf9DT","PATH":"/Users/carlosgallardo/Projects/projects/orchestos/node_modules/.bin:/Users/carlosgallardo/Projects/projects/orchestos/node_modules/.bin:/Users/carlosgallardo/Projects/projects/node_modules/.bin:/Users/carlosgallardo/Projects/node_modules/.bin"}}
+[cli-spawn] {"event":"end","agent":"claude","firstByteMs":0,"totalMs":0,"exitCode":0,"timedOut":false,"stderrTail":""}
+.
+[cli-spawn] {"event":"start","agent":"claude","cwd":"/tmp/p","args":["-p","--output-format","stream-json","--include-partial-messages","--verbose","--append-system-prompt","sys","--restricted","--strict-mcp-config","--tools","Read,Glob,Grep","--settings","/tmp/p/.orchestos/agent-home/claude/settings.json","--add-dir","/tmp/p"],"env":{"HOME":"/Users/carlosgallardo","CLAUDE_CONFIG_DIR":null,"CODEX_HOME":null,"ORCHESTOS_HOME":"/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/orchestos-security-gate-dSf9DT","PATH":"/Users/carlosgallardo/Projects/projects/orchestos/node_modules/.bin:/Users/carlosgallardo/Projects/projects/orchestos/node_modules/.bin:/Users/carlosgallardo/Projects/projects/node_modules/.bin:/Users/carlosgallardo/Projects/node_modules/.bin"}}
+[cli-spawn] {"event":"end","agent":"claude","firstByteMs":0,"totalMs":0,"exitCode":0,"timedOut":false,"stderrTail":""}
+....
+[cli-spawn] {"event":"start","agent":"claude","cwd":"/tmp/some-project","args":["-p","--output-format","stream-json","--include-partial-messages","--verbose","--append-system-prompt","system prompt","--restricted","--strict-mcp-config","--tools","Read,Glob,Grep","--settings","/tmp/some-project/.orchestos/agent-home/claude/settings.json","--add-dir","/tmp/some-project"],"env":{"HOME":"/Users/carlosgallardo","CLAUDE_CONFIG_DIR":null,"CODEX_HOME":null,"ORCHESTOS_HOME":"/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/orchestos-security-gate-dSf9DT","PATH":"/Users/carlosgallardo/Projects/projects/orchestos/node_modules/.bin:/Users/carlosgallardo/Projects/projects/orchestos/node_modules/.bin:/Users/carlosgallardo/Projects/projects/node_modules/.bin:/Users/carlosgallardo/Projects/node_modules/.bin"}}
+[cli-spawn] {"event":"end","agent":"claude","firstByteMs":0,"totalMs":0,"exitCode":0,"timedOut":false,"stderrTail":""}
+.
+[cli-spawn] {"event":"start","agent":"claude","cwd":"/tmp/some-project","args":["-p","--output-format","stream-json","--include-partial-messages","--verbose","--append-system-prompt","system prompt","--restricted","--strict-mcp-config","--tools","Read,Glob,Grep","--settings","/tmp/some-project/.orchestos/agent-home/claude/settings.json","--add-dir","/tmp/some-project"],"env":{"HOME":"/Users/carlosgallardo","CLAUDE_CONFIG_DIR":null,"CODEX_HOME":null,"ORCHESTOS_HOME":"/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/orchestos-security-gate-dSf9DT","PATH":"/Users/carlosgallardo/Projects/projects/orchestos/node_modules/.bin:/Users/carlosgallardo/Projects/projects/orchestos/node_modules/.bin:/Users/carlosgallardo/Projects/projects/node_modules/.bin:/Users/carlosgallardo/Projects/node_modules/.bin"}}
+[cli-spawn] {"event":"end","agent":"claude","firstByteMs":0,"totalMs":0,"exitCode":0,"timedOut":false,"stderrTail":""}
+.
+[cli-spawn] {"event":"start","agent":"claude","cwd":"/tmp/some-project","args":["-p","--output-format","stream-json","--include-partial-messages","--verbose","--append-system-prompt","system prompt","--restricted","--strict-mcp-config","--tools","Read,Glob,Grep","--settings","/tmp/some-project/.orchestos/agent-home/claude/settings.json","--add-dir","/tmp/some-project"],"env":{"HOME":"/Users/carlosgallardo","CLAUDE_CONFIG_DIR":null,"CODEX_HOME":null,"ORCHESTOS_HOME":"/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/orchestos-security-gate-dSf9DT","PATH":"/Users/carlosgallardo/Projects/projects/orchestos/node_modules/.bin:/Users/carlosgallardo/Projects/projects/orchestos/node_modules/.bin:/Users/carlosgallardo/Projects/projects/node_modules/.bin:/Users/carlosgallardo/Projects/node_modules/.bin"}}
+[cli-spawn] {"event":"end","agent":"claude","firstByteMs":0,"totalMs":0,"exitCode":0,"timedOut":false,"stderrTail":""}
+.
+[cli-spawn] {"event":"start","agent":"claude","cwd":"/tmp/real-project-root","args":["-p","--output-format","stream-json","--include-partial-messages","--verbose","--append-system-prompt","sys","--restricted","--strict-mcp-config","--tools","Read,Glob,Grep","--settings","/tmp/real-project-root/.orchestos/agent-home/claude/settings.json","--add-dir","/tmp/real-project-root"],"env":{"HOME":"/Users/carlosgallardo","CLAUDE_CONFIG_DIR":null,"CODEX_HOME":null,"ORCHESTOS_HOME":"/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/orchestos-security-gate-dSf9DT","PATH":"/Users/carlosgallardo/Projects/projects/orchestos/node_modules/.bin:/Users/carlosgallardo/Projects/projects/orchestos/node_modules/.bin:/Users/carlosgallardo/Projects/projects/node_modules/.bin:/Users/carlosgallardo/Projects/node_modules/.bin"}}
+[cli-spawn] {"event":"end","agent":"claude","firstByteMs":0,"totalMs":0,"exitCode":0,"timedOut":false,"stderrTail":""}
+.
+[cli-spawn] {"event":"start","agent":"claude","cwd":"/tmp/p","args":["-p","--output-format","stream-json","--include-partial-messages","--verbose","--append-system-prompt","sys","--restricted","--strict-mcp-config","--tools","Read,Glob,Grep","--settings","/tmp/p/.orchestos/agent-home/claude/settings.json","--add-dir","/tmp/p"],"env":{"HOME":"/Users/carlosgallardo","CLAUDE_CONFIG_DIR":null,"CODEX_HOME":null,"ORCHESTOS_HOME":"/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/orchestos-security-gate-dSf9DT","PATH":"/Users/carlosgallardo/Projects/projects/orchestos/node_modules/.bin:/Users/carlosgallardo/Projects/projects/orchestos/node_modules/.bin:/Users/carlosgallardo/Projects/projects/node_modules/.bin:/Users/carlosgallardo/Projects/node_modules/.bin"}}
+[cli-spawn] {"event":"end","agent":"claude","firstByteMs":0,"totalMs":0,"exitCode":0,"timedOut":false,"stderrTail":""}
+.
+[cli-spawn] {"event":"start","agent":"claude","cwd":"/tmp/project","args":["-p","--output-format","stream-json","--include-partial-messages","--verbose","--append-system-prompt","sys","--restricted","--strict-mcp-config","--tools","Read,Glob,Grep","--settings","/tmp/project/.orchestos/agent-home/claude/settings.json","--add-dir","/tmp/project"],"env":{"HOME":"/Users/carlosgallardo","CLAUDE_CONFIG_DIR":null,"CODEX_HOME":null,"ORCHESTOS_HOME":"/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/orchestos-security-gate-dSf9DT","PATH":"/Users/carlosgallardo/Projects/projects/orchestos/node_modules/.bin:/Users/carlosgallardo/Projects/projects/orchestos/node_modules/.bin:/Users/carlosgallardo/Projects/projects/node_modules/.bin:/Users/carlosgallardo/Projects/node_modules/.bin"}}
+[cli-spawn] {"event":"end","agent":"claude","firstByteMs":0,"totalMs":0,"exitCode":0,"timedOut":false,"stderrTail":""}
+.
+[cli-spawn] {"event":"start","agent":"claude","cwd":"/tmp/project","args":["-p","--output-format","stream-json","--include-partial-messages","--verbose","--append-system-prompt","sys","--restricted","--strict-mcp-config","--tools","Read,Glob,Grep","--settings","/tmp/project/.orchestos/agent-home/claude/settings.json","--add-dir","/tmp/project"],"env":{"HOME":"/Users/carlosgallardo","CLAUDE_CONFIG_DIR":null,"CODEX_HOME":null,"ORCHESTOS_HOME":"/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/orchestos-security-gate-dSf9DT","PATH":"/Users/carlosgallardo/Projects/projects/orchestos/node_modules/.bin:/Users/carlosgallardo/Projects/projects/orchestos/node_modules/.bin:/Users/carlosgallardo/Projects/projects/node_modules/.bin:/Users/carlosgallardo/Projects/node_modules/.bin"}}
+[cli-spawn] {"event":"end","agent":"claude","firstByteMs":0,"totalMs":0,"exitCode":0,"timedOut":false,"stderrTail":""}
+[cli-spawn] {"event":"start","agent":"claude","cwd":"/tmp/project","args":["-p","--output-format","stream-json","--include-partial-messages","--verbose","--append-system-prompt","sys","--restricted","--strict-mcp-config","--tools","Read,Glob,Grep","--settings","/tmp/project/.orchestos/agent-home/claude/settings.json","--add-dir","/tmp/project"],"env":{"HOME":"/Users/carlosgallardo","CLAUDE_CONFIG_DIR":null,"CODEX_HOME":null,"ORCHESTOS_HOME":"/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/orchestos-security-gate-dSf9DT","PATH":"/Users/carlosgallardo/Projects/projects/orchestos/node_modules/.bin:/Users/carlosgallardo/Projects/projects/orchestos/node_modules/.bin:/Users/carlosgallardo/Projects/projects/node_modules/.bin:/Users/carlosgallardo/Projects/node_modules/.bin"}}
+[cli-spawn] {"event":"end","agent":"claude","firstByteMs":0,"totalMs":0,"exitCode":0,"timedOut":false,"stderrTail":""}
+.
+[cli-spawn] {"event":"start","agent":"claude","cwd":"/tmp/project","args":["-p","--output-format","stream-json","--include-partial-messages","--verbose","--append-system-prompt","sys","--restricted","--strict-mcp-config","--tools","Read,Glob,Grep","--settings","/tmp/project/.orchestos/agent-home/claude/settings.json","--add-dir","/tmp/project"],"env":{"HOME":"/Users/carlosgallardo","CLAUDE_CONFIG_DIR":null,"CODEX_HOME":null,"ORCHESTOS_HOME":"/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/orchestos-security-gate-dSf9DT","PATH":"/Users/carlosgallardo/Projects/projects/orchestos/node_modules/.bin:/Users/carlosgallardo/Projects/projects/orchestos/node_modules/.bin:/Users/carlosgallardo/Projects/projects/node_modules/.bin:/Users/carlosgallardo/Projects/node_modules/.bin"}}
+[cli-spawn] {"event":"end","agent":"claude","firstByteMs":0,"totalMs":0,"exitCode":0,"timedOut":false,"stderrTail":""}
+[cli-spawn] {"event":"start","agent":"claude","cwd":"/tmp/project","args":["-p","--output-format","stream-json","--include-partial-messages","--verbose","--append-system-prompt","sys","--restricted","--strict-mcp-config","--tools","Read,Glob,Grep","--settings","/tmp/project/.orchestos/agent-home/claude/settings.json","--add-dir","/tmp/project"],"env":{"HOME":"/Users/carlosgallardo","CLAUDE_CONFIG_DIR":null,"CODEX_HOME":null,"ORCHESTOS_HOME":"/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/orchestos-security-gate-dSf9DT","PATH":"/Users/carlosgallardo/Projects/projects/orchestos/node_modules/.bin:/Users/carlosgallardo/Projects/projects/orchestos/node_modules/.bin:/Users/carlosgallardo/Projects/projects/node_modules/.bin:/Users/carlosgallardo/Projects/node_modules/.bin"}}
+[cli-spawn] {"event":"end","agent":"claude","firstByteMs":0,"totalMs":0,"exitCode":0,"timedOut":false,"stderrTail":""}
+.
+[cli-spawn] {"event":"start","agent":"claude","cwd":"/tmp/project","args":["-p","--output-format","stream-json","--include-partial-messages","--verbose","--append-system-prompt","sys","--restricted","--strict-mcp-config","--tools","Read,Glob,Grep","--settings","/tmp/project/.orchestos/agent-home/claude/settings.json","--add-dir","/tmp/project"],"env":{"HOME":"/Users/carlosgallardo","CLAUDE_CONFIG_DIR":null,"CODEX_HOME":null,"ORCHESTOS_HOME":"/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/orchestos-security-gate-dSf9DT","PATH":"/Users/carlosgallardo/Projects/projects/orchestos/node_modules/.bin:/Users/carlosgallardo/Projects/projects/orchestos/node_modules/.bin:/Users/carlosgallardo/Projects/projects/node_modules/.bin:/Users/carlosgallardo/Projects/node_modules/.bin"}}
+[cli-spawn] {"event":"end","agent":"claude","firstByteMs":0,"totalMs":0,"exitCode":0,"timedOut":false,"stderrTail":""}
+..
+[cli-spawn] {"event":"start","agent":"claude","cwd":"/tmp/p","args":["-p","--output-format","stream-json","--include-partial-messages","--verbose","--append-system-prompt","sys","--restricted","--strict-mcp-config","--tools","Read,Glob,Grep","--settings","/tmp/p/.orchestos/agent-home/claude/settings.json","--add-dir","/tmp/p"],"env":{"HOME":"/Users/carlosgallardo","CLAUDE_CONFIG_DIR":null,"CODEX_HOME":null,"ORCHESTOS_HOME":"/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/orchestos-security-gate-dSf9DT","PATH":"/Users/carlosgallardo/Projects/projects/orchestos/node_modules/.bin:/Users/carlosgallardo/Projects/projects/orchestos/node_modules/.bin:/Users/carlosgallardo/Projects/projects/node_modules/.bin:/Users/carlosgallardo/Projects/node_modules/.bin"}}
+[cli-spawn] {"event":"end","agent":"claude","firstByteMs":0,"totalMs":0,"exitCode":0,"timedOut":false,"stderrTail":""}
+.
+[cli-spawn] {"event":"start","agent":"claude","cwd":"/tmp/p","args":["-p","--output-format","stream-json","--include-partial-messages","--verbose","--append-system-prompt","sys","--restricted","--strict-mcp-config","--tools","Read,Glob,Grep","--settings","/tmp/p/.orchestos/agent-home/claude/settings.json","--add-dir","/tmp/p","--model","claude-sonnet-5"],"env":{"HOME":"/Users/carlosgallardo","CLAUDE_CONFIG_DIR":null,"CODEX_HOME":null,"ORCHESTOS_HOME":"/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/orchestos-security-gate-dSf9DT","PATH":"/Users/carlosgallardo/Projects/projects/orchestos/node_modules/.bin:/Users/carlosgallardo/Projects/projects/orchestos/node_modules/.bin:/Users/carlosgallardo/Projects/projects/node_modules/.bin:/Users/carlosgallardo/Projects/node_modules/.bin"}}
+[cli-spawn] {"event":"end","agent":"claude","firstByteMs":0,"totalMs":0,"exitCode":0,"timedOut":false,"stderrTail":""}
+.
+[cli-spawn] {"event":"start","agent":"claude","cwd":"/tmp/p","args":["-p","--output-format","stream-json","--include-partial-messages","--verbose","--append-system-prompt","sys","--restricted","--strict-mcp-config","--tools","Read,Glob,Grep","--settings","/tmp/p/.orchestos/agent-home/claude/settings.json","--add-dir","/tmp/p","--model","sonnet"],"env":{"HOME":"/Users/carlosgallardo","CLAUDE_CONFIG_DIR":null,"CODEX_HOME":null,"ORCHESTOS_HOME":"/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/orchestos-security-gate-dSf9DT","PATH":"/Users/carlosgallardo/Projects/projects/orchestos/node_modules/.bin:/Users/carlosgallardo/Projects/projects/orchestos/node_modules/.bin:/Users/carlosgallardo/Projects/projects/node_modules/.bin:/Users/carlosgallardo/Projects/node_modules/.bin"}}
+[cli-spawn] {"event":"end","agent":"claude","firstByteMs":0,"totalMs":0,"exitCode":0,"timedOut":false,"stderrTail":""}
+.
+[cli-spawn] {"event":"start","agent":"claude","cwd":"/tmp/p","args":["-p","--output-format","stream-json","--include-partial-messages","--verbose","--append-system-prompt","sys","--restricted","--strict-mcp-config","--tools","Read,Glob,Grep","--settings","/tmp/p/.orchestos/agent-home/claude/settings.json","--add-dir","/tmp/p"],"env":{"HOME":"/Users/carlosgallardo","CLAUDE_CONFIG_DIR":null,"CODEX_HOME":null,"ORCHESTOS_HOME":"/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/orchestos-security-gate-dSf9DT","PATH":"/Users/carlosgallardo/Projects/projects/orchestos/node_modules/.bin:/Users/carlosgallardo/Projects/projects/orchestos/node_modules/.bin:/Users/carlosgallardo/Projects/projects/node_modules/.bin:/Users/carlosgallardo/Projects/node_modules/.bin"}}
+[cli-spawn] {"event":"end","agent":"claude","firstByteMs":0,"totalMs":0,"exitCode":0,"timedOut":false,"stderrTail":""}
+.
+[cli-spawn] {"event":"start","agent":"claude","cwd":"/tmp/p","args":["-p","--output-format","stream-json","--include-partial-messages","--verbose","--append-system-prompt","sys","--restricted","--strict-mcp-config","--tools","Read,Glob,Grep","--settings","/tmp/p/.orchestos/agent-home/claude/settings.json","--add-dir","/tmp/p"],"env":{"HOME":"/Users/carlosgallardo","CLAUDE_CONFIG_DIR":null,"CODEX_HOME":null,"ORCHESTOS_HOME":"/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/orchestos-security-gate-dSf9DT","PATH":"/Users/carlosgallardo/Projects/projects/orchestos/node_modules/.bin:/Users/carlosgallardo/Projects/projects/orchestos/node_modules/.bin:/Users/carlosgallardo/Projects/projects/node_modules/.bin:/Users/carlosgallardo/Projects/node_modules/.bin"}}
+[cli-spawn] {"event":"end","agent":"claude","firstByteMs":0,"totalMs":0,"exitCode":0,"timedOut":false,"stderrTail":""}
+.
+[cli-spawn] {"event":"start","agent":"claude","cwd":"/tmp/p","args":["-p","--output-format","stream-json","--include-partial-messages","--verbose","--append-system-prompt","sys","--restricted","--strict-mcp-config","--tools","Read,Glob,Grep","--settings","/tmp/p/.orchestos/agent-home/claude/settings.json","--add-dir","/tmp/p"],"env":{"HOME":"/Users/carlosgallardo","CLAUDE_CONFIG_DIR":null,"CODEX_HOME":null,"ORCHESTOS_HOME":"/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/orchestos-security-gate-dSf9DT","PATH":"/Users/carlosgallardo/Projects/projects/orchestos/node_modules/.bin:/Users/carlosgallardo/Projects/projects/orchestos/node_modules/.bin:/Users/carlosgallardo/Projects/projects/node_modules/.bin:/Users/carlosgallardo/Projects/node_modules/.bin"}}
+[cli-spawn] {"event":"end","agent":"claude","firstByteMs":0,"totalMs":0,"exitCode":0,"timedOut":false,"stderrTail":""}
+.
+[cli-spawn] {"event":"start","agent":"claude","cwd":"/tmp/p","args":["-p","--output-format","stream-json","--include-partial-messages","--verbose","--append-system-prompt","sys","--restricted","--strict-mcp-config","--tools","Read,Glob,Grep","--settings","/tmp/p/.orchestos/agent-home/claude/settings.json","--add-dir","/tmp/p","--effort","xhigh"],"env":{"HOME":"/Users/carlosgallardo","CLAUDE_CONFIG_DIR":null,"CODEX_HOME":null,"ORCHESTOS_HOME":"/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/orchestos-security-gate-dSf9DT","PATH":"/Users/carlosgallardo/Projects/projects/orchestos/node_modules/.bin:/Users/carlosgallardo/Projects/projects/orchestos/node_modules/.bin:/Users/carlosgallardo/Projects/projects/node_modules/.bin:/Users/carlosgallardo/Projects/node_modules/.bin"}}
+[cli-spawn] {"event":"end","agent":"claude","firstByteMs":0,"totalMs":0,"exitCode":0,"timedOut":false,"stderrTail":""}
+.
+[cli-spawn] {"event":"start","agent":"claude","cwd":"/tmp/p","args":["-p","--output-format","stream-json","--include-partial-messages","--verbose","--append-system-prompt","sys","--restricted","--strict-mcp-config","--tools","Read,Glob,Grep","--settings","/tmp/p/.orchestos/agent-home/claude/settings.json","--add-dir","/tmp/p"],"env":{"HOME":"/Users/carlosgallardo","CLAUDE_CONFIG_DIR":null,"CODEX_HOME":null,"ORCHESTOS_HOME":"/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/orchestos-security-gate-dSf9DT","PATH":"/Users/carlosgallardo/Projects/projects/orchestos/node_modules/.bin:/Users/carlosgallardo/Projects/projects/orchestos/node_modules/.bin:/Users/carlosgallardo/Projects/projects/node_modules/.bin:/Users/carlosgallardo/Projects/node_modules/.bin"}}
+[cli-spawn] {"event":"end","agent":"claude","firstByteMs":0,"totalMs":0,"exitCode":0,"timedOut":false,"stderrTail":""}
+...................................................................................................................................................................................................................................................................
+
+src/__tests__/task-agent-rules-config.test.ts:
+[config] ignorando taskAgentRules[].agent: 'not-a-real-agent' no es un valor válido — se usará el default. Valores permitidos: local, claude, opencode, codex, api.
+..
+[config] ignorando taskAgentRules[].match: '[object Object]' no es un valor válido — se usará el default. Valores permitidos: { output: string[] }, { skill: string }.
+.................................................
+
+src/__tests__/spec.test.ts:
+[harness] dry-run - provider: openrouter, model: mock/model [api/mock/model (executor)], reviewer: api/mock/reviewer, system: 682 chars
+.
+[harness] dry-run - provider: openrouter, model: mock/model [api/mock/model (executor)], reviewer: api/mock/reviewer, system: 682 chars
+..............................................................................................................
+
+src/dashboard/__tests__/csrf-origin.test.ts:
+540 | export function startServer(
+541 |   port = DEFAULT_PORT,
+542 |   terminalCommand?: string[],
+543 | ): { server: any; url: string } {
+544 |   const terminalSessions = new WeakMap<object, ReturnType<typeof createTerminalSession>>()
+545 |   const server = Bun.serve<{ cwd: string; cols: number; rows: number }>({
+                           ^
+error: Failed to start server. Is port 0 in use?
+ syscall: "listen",
+   errno: 0,
+    code: "EADDRINUSE"
+
+      at startServer (/Users/carlosgallardo/Projects/projects/orchestos/src/dashboard/server.ts:545:22)
+      at <anonymous> (/Users/carlosgallardo/Projects/projects/orchestos/src/dashboard/__tests__/csrf-origin.test.ts:29:24)
+(fail) L.2 — bind a loopback (no exposición accidental) > startServer() nunca escucha fuera de 127.0.0.1, sin importar el puerto pedido [0.34ms]
+................................................................................................................................................................................................................................................................................................................-------------------------------------------------------------|---------|---------|-------------------
+File                                                         | % Funcs | % Lines | Uncovered Line #s
+-------------------------------------------------------------|---------|---------|-------------------
+All files                                                    |   78.65 |   77.53 |
+ .claude/hooks/startup-guard.js                              |   11.11 |   20.83 | 53-57,62-66,71-86,90-96,100-112,116-125,129-184,188-205,210-212
+ scripts/adversarial-review.ts                               |   88.24 |   80.74 | 46-51,151,351,383-388,423-424,442-448,547-564,588-589,595-596,602-605,609-611,622-625,638-643,656-661,663-679,681-683
+ scripts/agent-governance.ts                                 |   88.24 |   78.95 | 41-43,47-63
+ scripts/check-coverage.ts                                   |   66.67 |   45.45 | 67-102
+ scripts/check-live-gate.ts                                  |  100.00 |   91.25 | 38,54-55,62-63,68-69
+ scripts/check-sources-drift.ts                              |   76.92 |   59.22 | 79-97,176-181,196-204,209-247
+ scripts/context-adapters.ts                                 |  100.00 |   96.96 | 117,120,167,226,248,256,339
+ scripts/context-budget.ts                                   |   60.00 |   74.42 | 75-76,106-109,131-132,136,184-189,191,194-210
+ scripts/export-runs-summary.ts                              |   25.00 |   29.09 | 39-41,59,66-68,70-95,97-102
+ scripts/generate-feature-status.ts                          |  100.00 |   61.11 | 22-28
+ scripts/handoff.ts                                          |  100.00 |   97.96 | 62-63
+ scripts/ledger-report.ts                                    |   66.67 |   56.14 | 51-69,74-79
+ scripts/mutation-test-shard.ts                              |   88.89 |   72.15 | 28-29,69-88
+ scripts/next.ts                                             |  100.00 |   84.62 | 18-19
+ scripts/plan-gate.ts                                        |   46.15 |   31.36 | 59-62,67-71,76-80,85-89,93-99,104-124,145-206,211-217
+ scripts/plan-render.ts                                      |    0.00 |   23.33 | 8-14,18-27,32-37
+ scripts/plan-status.ts                                      |  100.00 |  100.00 | 
+ scripts/run-evidence-gate.ts                                |   92.31 |   86.90 | 78,176-188,193-197
+ scripts/scope-lock.ts                                       |  100.00 |  100.00 | 
+ scripts/session-status.ts                                   |   96.67 |   93.12 | 214-216,318,329-330,342-352
+ scripts/test-preload.ts                                     |    0.00 |   53.85 | 59-63
+ scripts/ui-gate/lib.mjs                                     |  100.00 |   96.55 | 
+ src/agents/diagnose.ts                                      |  100.00 |   83.82 | 113,148-157,216-226
+ src/analyze/patterns.ts                                     |   50.00 |   58.56 | 109-130,136-159
+ src/analyze/propose.ts                                      |  100.00 |  100.00 | 
+ src/chat/attachment-files.ts                                |  100.00 |   91.30 | 36-37
+ src/chat/chat-context.ts                                    |  100.00 |   97.28 | 213-215,218-219
+ src/chat/claude-resume.ts                                   |  100.00 |  100.00 | 
+ src/chat/ocr.ts                                             |    0.00 |   37.50 | 24-25,35-37
+ src/cli-dashboard-paths.ts                                  |  100.00 |  100.00 | 
+ src/cli-skill-curate.ts                                     |   77.78 |   90.12 | 38-39,44-45,73-74,92
+ src/cli-skill-fetch.ts                                      |   25.00 |   15.00 | 5-6,10-11,21-67
+ src/cli.ts                                                  |    8.16 |   18.93 | 73-85,94-112,121-130,140-146,154-174,181-191,198-210,223-229,236-268,279-305,312-324,334-374,386-405,414-424,456-807,822-900,914-922,930-976,986-1001,1008-1028,1035-1061,1071-1085,1113-1451,1471-1493,1501-1523,1531-1552,1560-1589,1599-1618,1632-1666,1680-1705,1714-1720,1736-1756,1763-1769,1798-1826,1835-1860,1867-1872,1879-1884,1891-1903,1914-1926,1936-1948,1956-2108,2119-2130,2139-2173,2181,2187-2230,2234-2311,2371-2374,2380-2384,2390,2412-2421,2433-2434
+ src/config/load.ts                                          |  100.00 |   96.30 | 46,188-189,211-212,221-222
+ src/config/schema.ts                                        |  100.00 |   70.83 | 120-121,123-125,134
+ src/context/compress.ts                                     |   50.00 |    8.00 | 14-59
+ src/context/load.ts                                         |   66.67 |   81.25 | 5-7
+ src/dashboard/app/src/api/chat.ts                           |   71.43 |   73.95 | 299-311,329-330,334-337,341-344,378-388,392-398,402,416-426,441-453,491-505,533,537-540
+ src/dashboard/app/src/api/explorer.ts                       |    0.00 |    7.14 | 20-22,26-35,39-41,45-54
+ src/dashboard/app/src/api/project.ts                        |  100.00 |  100.00 | 
+ src/dashboard/app/src/api/projectTabs.ts                    |   27.78 |   17.83 | 10-11,16-55,59-67,71-85,89,92,95-103,111,115-123,126,129,132-140,144-151
+ src/dashboard/app/src/api/projects.ts                       |   40.00 |   55.06 | 27-34,92-99,103-112,116-119,123-127,131-135
+ src/dashboard/app/src/api/runs.ts                           |   57.14 |   64.23 | 36-38,79-84,101,105-111,115-141
+ src/dashboard/app/src/api/settings.ts                       |   58.33 |   79.57 | 124-126,180,183,186,189,192,195,206,210-217
+ src/dashboard/app/src/api/taskPolling.ts                    |  100.00 |  100.00 | 
+ src/dashboard/app/src/api/tasks.ts                          |   85.00 |   92.04 | 188-196
+ src/dashboard/app/src/components/chat/mergeAttachments.ts   |  100.00 |  100.00 | 
+ src/dashboard/app/src/components/common/AgentComposer.tsx   |   75.00 |    7.00 | 70-81,138-896
+ src/dashboard/app/src/components/common/ProviderLogos.tsx   |    0.00 |    4.00 | 28-243
+ src/dashboard/app/src/components/dev/OrcaRightInspector.tsx |   80.00 |    2.49 | 66-653
+ src/dashboard/app/src/components/layout/ShellStatusBar.tsx  |   88.89 |   18.75 | 64-232
+ src/dashboard/app/src/components/thread/approvalAnswers.ts  |  100.00 |  100.00 | 
+ src/dashboard/app/src/components/thread/entrance.ts         |   90.91 |   98.21 | 
+ src/dashboard/app/src/components/thread/taskCards.ts        |  100.00 |  100.00 | 
+ src/dashboard/app/src/components/thread/thinking.ts         |  100.00 |  100.00 | 
+ src/dashboard/app/src/components/ui/file-thumbnail.tsx      |    0.00 |    9.78 | 20-40,45-53,73-125
+ src/dashboard/app/src/lib/shape-context.tsx                 |    0.00 |   35.42 | 43-47,95-97,101-103,107-157
+ src/dashboard/app/src/lib/utils.ts                          |    0.00 |   95.65 | 
+ src/dashboard/chat-cli-models.ts                            |   89.47 |   85.32 | 58,98,103-123,191-193,200-204
+ src/dashboard/chat-live.ts                                  |  100.00 |  100.00 | 
+ src/dashboard/handlers/chat-sessions.ts                     |    0.00 |    6.16 | 44-63,67-80,84-92,103,107-150,155-187,191-192,200-218,222-299,304-307,311-369,373-424,428-431,447-468,472-505,509-518,522-527
+ src/dashboard/handlers/chat.ts                              |   52.00 |   21.39 | 140-147,197-200,204,208-236,240-287,309,356,371,406-407,422-423,432-475,507-508,564-574,578-635,650-651,690-691,734-748,816,820,840-841,847-849,858-865,871-879,881,885-941,946-951,959-1007,1010-1015,1017,1019-1049,1059-1123,1126-1130,1134-1140,1142-1144,1148-1224,1227-1231,1233-1234,1236-1246,1248-1252,1254-1279,1281-1286,1288,1291-1302,1315,1320-1332,1334-1339,1341-1354,1356-1357,1359-1385,1387-1395,1397-1399,1410-1412,1416-1440,1444-1452,1454-1455,1464-1575,1579-1583,1585,1596-1635,1637-1649,1651-1668,1670-1701,1703,1708-1715,1717-1722,1724-1758,1761-1770,1772,1774-1777,1780-1797,1806-1809,1818-1819,1835-1837,1840-1842,1847-1849,1851-1856,1858-1891,1893-1915,1917-1949
+ src/dashboard/handlers/config.ts                            |  100.00 |   91.90 | 116,145,214-216,250-254,288-289,295-296,339-343,362-363,369-370
+ src/dashboard/handlers/explorer.ts                          |   83.33 |   49.15 | 33,50-78
+ src/dashboard/handlers/instincts.ts                         |    0.00 |    4.96 | 13-28,32-38,42-48,52-73,78-99,104-122,130-135,140-155
+ src/dashboard/handlers/memory.ts                            |   37.50 |   28.57 | 7-62,78-81,101-103,111-116,118,135-159
+ src/dashboard/handlers/model-catalog.ts                     |   83.33 |   87.88 | 22,39-41
+ src/dashboard/handlers/plan-doc.ts                          |    0.00 |   66.67 | 
+ src/dashboard/handlers/plan.ts                              |    0.00 |    8.33 | 16-27,31-37,42,46-48,52-93,97-103,107-133
+ src/dashboard/handlers/project.ts                           |   84.00 |   87.92 | 20-23,43-48,61-74,167,308,315-316
+ src/dashboard/handlers/projects.ts                          |   14.29 |   20.99 | 16,21-28,32-35,39-41,48-59,67-86,90-105
+ src/dashboard/handlers/run-graph.ts                         |   84.62 |  100.00 | 
+ src/dashboard/handlers/runs.ts                              |   87.50 |   76.11 | 31-34,52-53,59-62,86-88,90-91,93-94,96,180-188,192-203,220-231,266-267
+ src/dashboard/handlers/session-status.ts                    |   72.73 |   73.02 | 63-69,72-79,81-82
+ src/dashboard/handlers/setup.ts                             |   38.89 |   48.45 | 21-49,53-168,172-191,257-261,336-339,350-352,367,374,384,426-443,448-449
+ src/dashboard/handlers/skills.ts                            |   81.82 |   48.43 | 87-88,101-102,121-122,130,148-149,170,180-181,200-203,211,220-221,236-238,241-242,263-264,285-286,290-349,354-423,427-450,455-533
+ src/dashboard/handlers/specs.ts                             |   40.00 |   39.74 | 9-37,41-69,141-147,151-158,166-171,177-191
+ src/dashboard/handlers/system.ts                            |   50.00 |   63.16 | 5-11
+ src/dashboard/handlers/task-report.ts                       |  100.00 |   98.80 | 
+ src/dashboard/handlers/task-run-reconcile.ts                |   83.33 |   82.00 | 17-28,48-50,67,128
+ src/dashboard/handlers/tasks.ts                             |   86.96 |   80.57 | 129-130,190-191,195-203,212-213,253-256,287-294,328,392,488,516-524,541-542,554,571-572,576-602,606-622
+ src/dashboard/handlers/usage.ts                             |  100.00 |   92.45 | 65-70,128-129
+ src/dashboard/http.ts                                       |  100.00 |   86.08 | 25-26,35,38,44,48,59,67,74,76
+ src/dashboard/llm/clients.ts                                |    0.00 |    6.90 | 1-27
+ src/dashboard/ownership.ts                                  |   50.00 |   92.86 | 
+ src/dashboard/project-context.ts                            |   75.00 |   83.87 | 14-18
+ src/dashboard/prompts/curator.ts                            |  100.00 |  100.00 | 
+ src/dashboard/server.ts                                     |   33.33 |   61.90 | 150-151,170-173,176-183,194,197,200,206-208,210,213,216-218,220,223-225,227,230,233,236,250,252,255,257,260,266,269,272-274,276,285,288,291,294,297,300,303,306,308,315,318,320,347,354,357,360,363,366,369,372,375,383,386,389,392,395,400-401,404,407,410,413,416,419,422,425,428,431,434,437,440,443,446,452,465,468,471,474,477,479,482,485,488,491,494,497,500,503,506,509,515,521,527,530,534,554-568,573-593,597-620,623-624,634-635,637-648,650-654,659-660
+ src/dashboard/settings-store.ts                             |   71.43 |   64.29 | 33-44,48-50
+ src/dashboard/ssrf.ts                                       |   90.91 |   95.74 | 4-7
+ src/dashboard/terminal.ts                                   |  100.00 |   95.38 | 24,69-70
+ src/dashboard/types.ts                                      |  100.00 |  100.00 | 
+ src/db/chat-sessions.ts                                     |   52.00 |   40.60 | 85-86,124-125,171-199,203-209,213-218,228-236,240-244,248-268,272-280,284-296,318-320,324-374
+ src/db/chat-turn-steps.ts                                   |  100.00 |  100.00 | 
+ src/db/chat-turns.ts                                        |   29.41 |   38.76 | 85-88,91-92,118,120,146-171,182-193,197-206,211-224,228,251-258,263,274-279,284-288,292-298,302-307,315-319
+ src/db/console-commands.ts                                  |    0.00 |    8.00 | 25-42,46-50
+ src/db/memory.ts                                            |   92.31 |   88.19 | 73,132-136,198-201,205-209
+ src/db/migrate.ts                                           |    7.61 |   30.20 | 22-28,31-56,59-67,74-80,83-96,99-111,123-129,132-135,138-144,154-160,163-181,184-195,210-216,219,222-228,235-241,244-266,269-277,284-290,293-309,312-318,329-335,338-347,350-356,363-377,380-392,395-401,408-415,418-433,436-446,456-466,469-475,486-505,508-522,529-537,540-567,570-582,589-595,598,601-607,615-628,631-640,648-675,684-694,703,725-730,738,743-748,757-762,771-776,784,796-801,811-816,819-824,833-838,841-846,855-870,873-884,893-906,909-918,928-934,937-945,953-968,971-973,997,1006-1017,1019-1022,1024,1032,1133,1303-1307
+ src/db/plan-doc.ts                                          |  100.00 |  100.00 | 
+ src/db/plan-items.ts                                        |   96.00 |   85.07 | 111-112,115-116,199-228,261-262,276-277,284-285,405-407
+ src/db/projects.ts                                          |  100.00 |  100.00 | 
+ src/db/reset.ts                                             |    0.00 |   10.00 | 15-32
+ src/db/retention.ts                                         |  100.00 |  100.00 | 
+ src/db/run-steps.ts                                         |  100.00 |   89.74 | 55-58
+ src/db/runs.ts                                              |   76.92 |   76.19 | 192,202-212,216-228,257-261
+ src/db/sqlite.ts                                            |  100.00 |   87.50 | 15
+ src/db/task-memory.ts                                       |  100.00 |   96.67 | 
+ src/db/task-run-watch.ts                                    |  100.00 |  100.00 | 
+ src/detect/conventions.ts                                   |   66.67 |   91.11 | 18-19,43-44
+ src/detect/languages.ts                                     |  100.00 |  100.00 | 
+ src/detect/manifest.ts                                      |  100.00 |   58.70 | 49,57-65,68,75-86,89,99-102,108-116
+ src/detect/profile.ts                                       |  100.00 |  100.00 | 
+ src/detect/roadmap-profile.ts                               |   88.89 |   94.10 | 103-104,132-136,139-143,250-251,336-339,352-353,383-384,414
+ src/evals/metrics.ts                                        |  100.00 |  100.00 | 
+ src/evals/schema.ts                                         |   75.00 |   94.64 | 17,65-66
+ src/generators/agents-md.ts                                 |   75.00 |   90.91 | 17-19
+ src/generators/context-json.ts                              |    0.00 |    0.00 | 3-17
+ src/generators/summary-pdf.ts                               |   54.55 |   59.48 | 58-69,75-79,95-123,160-170,174-178
+ src/hooks/context-monitor.ts                                |  100.00 |  100.00 | 
+ src/instincts/schema.ts                                     |  100.00 |   98.72 | 
+ src/instincts/store.ts                                      |  100.00 |   90.55 | 126-127,141-143,146-147,184-188
+ src/mcp/adapters.ts                                         |   80.00 |   81.94 | 46,100,127-137
+ src/mcp/readonly.ts                                         |   93.94 |   97.12 | 443-444,473-474,499-502,570-571,611-617
+ src/mcp/server.ts                                           |   62.50 |   40.74 | 112-170,175-204,209-214
+ src/memory/judge.ts                                         |  100.00 |   91.53 | 94-98
+ src/plan/read-plan-doc.ts                                   |  100.00 |  100.00 | 
+ src/projects/ensure.ts                                      |    0.00 |   23.08 | 10-19
+ src/providers/anthropic.ts                                  |  100.00 |   80.43 | 10-16,47-48
+ src/providers/codex.ts                                      |  100.00 |   89.09 | 40,65-66,68,71
+ src/providers/index.ts                                      |  100.00 |   53.33 | 29-34
+ src/providers/openai.ts                                     |  100.00 |   78.57 | 8-14,41-42
+ src/providers/openrouter.ts                                 |  100.00 |   77.05 | 29-31,37-38,99,103-110
+ src/providers/tool-call.ts                                  |   93.55 |   91.25 | 81-88,94,137-138,203-204,217-219,248-250,256,280,292,294-295,449-450,495-496,535,541-548
+ src/roadmaps/context.ts                                     |  100.00 |   94.17 | 75-76,80-81,87-88
+ src/router/auto-route.ts                                    |   66.67 |   97.50 | 
+ src/router/classify.ts                                      |  100.00 |  100.00 | 
+ src/router/engine-cascade.ts                                |  100.00 |   94.29 | 16-17
+ src/router/model-catalog.ts                                 |  100.00 |   98.48 | 101-102
+ src/router/opencode-catalog.ts                              |  100.00 |   97.26 | 47-48
+ src/router/pricing.ts                                       |  100.00 |   90.38 | 60-64
+ src/router/role-runner.ts                                   |  100.00 |  100.00 | 
+ src/run/approvals.ts                                        |  100.00 |   99.36 | 
+ src/run/checks.ts                                           |   95.24 |   93.46 | 15-18,32-33,39-40,173-174,228-229,307-308
+ src/run/commit-tasks-yaml.ts                                |  100.00 |   81.36 | 18-24,35-36,76-77
+ src/run/contract.ts                                         |  100.00 |  100.00 | 
+ src/run/executors/agentic.ts                                |  100.00 |   97.40 | 121,128,159,163
+ src/run/executors/cli-registry.ts                           |  100.00 |   97.90 | 255,259-261
+ src/run/executors/codex-app-server.ts                       |   76.09 |   96.50 | 104,200-201,589-590,646-656,659-660
+ src/run/executors/codex-approval.ts                         |  100.00 |  100.00 | 
+ src/run/executors/codex.ts                                  |   78.12 |   77.00 | 326,353,414,438,445-449,458,463-467,512-514,516-599,643-660
+ src/run/executors/external.ts                               |   85.19 |  100.00 | 
+ src/run/executors/opencode.ts                               |   88.89 |   75.77 | 113,215-218,258-313,334
+ src/run/executors/single-shot.ts                            |   75.00 |  100.00 | 
+ src/run/executors/spawn-trace.ts                            |  100.00 |  100.00 | 
+ src/run/executors/step-event.ts                             |  100.00 |  100.00 | 
+ src/run/executors/worktree-diff.ts                          |  100.00 |   98.00 | 
+ src/run/file-lock.ts                                        |  100.00 |   98.63 | 
+ src/run/git-exclude.ts                                      |  100.00 |  100.00 | 
+ src/run/git-lock.ts                                         |  100.00 |  100.00 | 
+ src/run/graph-runner.ts                                     |  100.00 |   85.89 | 406-418,432-439,442-448,453-460,474-484,626,629-636
+ src/run/graph-summary.ts                                    |  100.00 |  100.00 | 
+ src/run/harness.ts                                          |   94.44 |   91.06 | 188,201-204,206-209,222-225,246-256,325-336,676-677,708-709,776,827-833,848-849,898-914,1029-1031
+ src/run/html-script-check.ts                                |  100.00 |   98.02 | 171-172
+ src/run/logger.ts                                           |   80.00 |   94.12 | 31
+ src/run/middleware.ts                                       |  100.00 |  100.00 | 
+ src/run/middlewares/context-inject.ts                       |  100.00 |  100.00 | 
+ src/run/middlewares/index.ts                                |  100.00 |  100.00 | 
+ src/run/middlewares/instinct-apply.ts                       |   66.67 |   92.31 | 
+ src/run/middlewares/roadmap-context.ts                      |  100.00 |  100.00 | 
+ src/run/middlewares/skill-route.ts                          |  100.00 |  100.00 | 
+ src/run/path-policy.ts                                      |   90.91 |   98.68 | 
+ src/run/permissions.ts                                      |  100.00 |  100.00 | 
+ src/run/prompt.ts                                           |  100.00 |   88.00 | 45-48,71-72
+ src/run/qa.ts                                               |  100.00 |  100.00 | 
+ src/run/read-audit.ts                                       |  100.00 |  100.00 | 
+ src/run/sandbox-policy.ts                                   |  100.00 |  100.00 | 
+ src/run/sandbox.ts                                          |  100.00 |   79.05 | 55,62-63,84,93,95,101,103,151-153,183-184,192-194,196,198-202,204,206-207,209,212-216
+ src/run/tool-output-cap.ts                                  |  100.00 |  100.00 | 
+ src/run/transcript-parser.ts                                |  100.00 |  100.00 | 
+ src/security/secrets.ts                                     |   85.71 |  100.00 | 
+ src/security/untrusted-content.ts                           |  100.00 |  100.00 | 
+ src/skills/catalog.ts                                       |  100.00 |   98.70 | 
+ src/skills/compile.ts                                       |  100.00 |   94.44 | 32-33
+ src/skills/fetch.ts                                         |    0.00 |    2.53 | 3-47,55-78,87-94
+ src/skills/registry.ts                                      |  100.00 |  100.00 | 
+ src/skills/scaffold.ts                                      |  100.00 |  100.00 | 
+ src/skills/targets/_shared.ts                               |   77.78 |   79.31 | 57-68
+ src/skills/targets/claude.ts                                |  100.00 |  100.00 | 
+ src/skills/targets/cursor.ts                                |  100.00 |  100.00 | 
+ src/skills/targets/openai.ts                                |  100.00 |  100.00 | 
+ src/spec/archive.ts                                         |  100.00 |  100.00 | 
+ src/spec/clarify.ts                                         |  100.00 |  100.00 | 
+ src/spec/draft.ts                                           |   85.71 |   69.44 | 58-62,64-65,76-77,79-82,84-98,100-102,123
+ src/spec/lint.ts                                            |  100.00 |  100.00 | 
+ src/spec/store.ts                                           |   90.00 |   86.02 | 135-140,160-164,171-172
+ src/spec/validate.ts                                        |  100.00 |  100.00 | 
+ src/tasks/init.ts                                           |  100.00 |   58.42 | 67-87,90-110
+ src/tasks/loader.ts                                         |  100.00 |   93.68 | 55,74-78
+ src/tasks/schema.ts                                         |  100.00 |   92.41 | 115,118,166,179,182,186,189,192,207-209
+ src/usage/cli-transcripts.ts                                |  100.00 |   90.55 | 62-63,89,162-163,179-187,235-239
+-------------------------------------------------------------|---------|---------|-------------------
+
+
+1845 pass
+2 skip
+4 fail
+4851 expect() calls
+Ran 1851 tests across 208 files. [101.50s]
+15 |     env: { ...process.env, ...command.env },
+16 |     stdout: 'inherit',
+17 |     stderr: 'inherit',
+18 |   })
+19 |   if (result.exitCode !== 0) {
+20 |     throw new Error(`${command.label} failed with exit code ${result.exitCode}`)
+                   ^
+error: full test matrix with coverage failed with exit code 1
+      at run (/Users/carlosgallardo/Projects/projects/orchestos/scripts/security-gate.ts:20:15)
+      at /Users/carlosgallardo/Projects/projects/orchestos/scripts/security-gate.ts:34:3
+
+Bun v1.4.0 (macOS arm64)
+error: script "security:gate" exited with code 1

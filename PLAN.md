@@ -1731,8 +1731,21 @@ ERP ni prueba visual nueva. Los ítems permanecen abiertos hasta sus gates reale
   directorio, reject lo impide, approve-always no vuelve a preguntar el mismo comando; capturas en
   `docs/done/evidence/ERP.7.1b/`. Cerebro: `tsc`, lint y `build:app` verdes, `test:coverage` 1838/0.
   Ejecutado por: criterio-alt (3 rondas; la 2.ª cortada por caída de DNS) · revisión qa · Spec: docs/specs/ERP.7.1b.md
-- [ ] **ERP.7.1c — ⚡ Selector de modo en el composer (Supervisado / Auto-edición / Total), por defecto Auto-edición.**
+- [x] **ERP.7.1c — ⚡ Selector de modo en el composer (Supervisado / Auto-edición / Total), por defecto Auto-edición.**
   Reemplaza la etiqueta de `AgentComposer.tsx:684`; el valor viaja con la tarea creada desde el chat.
+  **Cerrado 2026-10-20.** Selector `Supervised` / `Auto-edit` / `Full access` en la barra del composer (solo con
+  proyecto; persiste en `localStorage`), default `Auto-edit`; el chat manda `approvalMode` y `create_task` lo guarda en la
+  tarea (ausente → `auto-edit`; inválido → 400). La franja "Auto-run/Manual approval" se queda: es la retención de la tarea
+  entera, otro concepto. Capacidad `supportsActionApproval` en `cli-registry.ts` (solo Codex): el harness corre `full` los
+  motores sin ella y la tarjeta lo dice (`Full access: Claude Code can't ask per action yet`; motores API = `API`).
+  Hallazgos: QA (Sol) vio el aviso ausente para motores API y que `startServer(0)` pasaba el puerto `0` al control de
+  origen (todo POST daba 403; arreglado en `server.ts`, con test); el cerebro vio en la captura la ruta absoluta del
+  worktree 3 veces y `+0 -0` en la solicitud de edición (rutas relativas, sin contador inventado).
+  Gate en vivo: navegador real (Playwright), `docs/done/evidence/ERP.7.1c-live.json`: default `Auto-edit`, `Supervised`
+  sobrevive a recargar, turno real de chat (Claude) crea la tarea con `approvalMode: supervised` en `tasks.yaml` y la
+  tarea Codex pide aprobación de la edición en la tarjeta; 13/13. Cerebro: `tsc`, lint y `build:app` verdes,
+  `test:coverage` 1851/0.
+  Ejecutado por: criterio-alt (ronda 1) + mecanico (rondas 2-4) · revisión qa · Spec: docs/specs/ERP.7.1c.md
 - [ ] **ERP.7.1d — 🧠 Adaptadores Claude (`--permission-prompt-tool`/`PreToolUse`) y OpenCode (`opencode serve` + API de permisos).**
   Uno por sub-ítem al abrirlo, con su gate en vivo; mismo contrato de ERP.7.1a, sin ramas por marca.
 - [x] **ERP.7.2 — 🧠 Cada turno del chat muestra su diff y se puede deshacer.** (abierto 2026-10-19, hallado en ERP.7)

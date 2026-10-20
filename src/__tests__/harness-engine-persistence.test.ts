@@ -9,7 +9,7 @@
  * el runId retornado por runTask(), consultar getRun() para inspeccionar la fila
  * persistida. No mockeamos módulos.
  */
-import { afterAll, afterEach, beforeAll, describe, expect, it } from 'bun:test'
+import { afterAll, afterEach, beforeAll, describe, expect, it, spyOn } from 'bun:test'
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'fs'
 import { tmpdir } from 'os'
 import { join } from 'path'
@@ -312,4 +312,35 @@ describe('G.4 — cost_breakdown_json persistido en cada insertRun (gap de G.3)'
       rmSync(dir, { recursive: true, force: true })
     }
   })
+})
+
+it('a task engine without action approval runs full without creating an approval run', async () => {
+  process.env.OPENROUTER_API_KEY = ['test', 'key'].join('-')
+  const { activeApprovalRun } = await import('../run/approvals.ts')
+  const { singleShotEngine } = await import('../run/executors/single-shot.ts')
+  const engineCall = spyOn(singleShotEngine, 'run')
+  let checked = false
+  installMockFetch([
+    () => {
+      checked = true
+      expect(activeApprovalRun('g4-persist-test', null)).toBeNull()
+      expect(
+        db
+          .query('SELECT COUNT(*) AS n FROM approval_runs WHERE task_id = ?')
+          .get('g4-persist-test'),
+      ).toEqual({ n: 0 })
+      return openRouterResponse('<<<FILE:out.txt>>>\nhello\n<<<ENDFILE>>>')
+    },
+  ])
+  const dir = tmpDir()
+  try {
+    const result = await callRunTask(baseTask({ approvalMode: 'supervised' }), dir)
+    expect(checked).toBe(true)
+    expect(result.status).toBe('done')
+    expect(engineCall.mock.calls[0]?.[0].task.approvalMode).toBe('full')
+    expect(engineCall.mock.calls[0]?.[1].approvals).toBeUndefined()
+  } finally {
+    engineCall.mockRestore()
+    rmSync(dir, { recursive: true, force: true })
+  }
 })

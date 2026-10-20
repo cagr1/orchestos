@@ -66,7 +66,7 @@ printf '{"type":"result","subtype":"success","is_error":false,"result":"Task pro
         return new Response(JSON.stringify({ choices: [{ message: { content } }], usage: { prompt_tokens: 1, completion_tokens: 1 } }))
       }
       const session = createChatSession({ projectId: 'fixture', agent: 'api', mode: 'code' })
-      const request = key => handleApiChat(new Request('http://localhost/api/chat', { method: 'POST', body: JSON.stringify({ sessionId: session.id, message: 'fixture request', requestKey: key, ...(viaClaude ? { model: 'claude-sonnet-5' } : {}) }) }))
+      const request = (key, extra = {}) => handleApiChat(new Request('http://localhost/api/chat', { method: 'POST', body: JSON.stringify({ sessionId: session.id, message: 'fixture request', requestKey: key, ...extra, ...(viaClaude ? { model: 'claude-sonnet-5' } : {}) }) }))
       ${body}
       db.close()
     `,
@@ -190,4 +190,31 @@ it('rejects createTaskRecord without touching tasks.yaml when output is empty', 
     status: 400,
   })
   expect(result.sameYaml).toBe(true)
+})
+
+for (const mode of ['supervised', 'auto-edit', 'full', undefined]) {
+  it(`chat persists approvalMode ${mode ?? 'auto-edit by default'} on the created task`, async () => {
+    const result = await isolated(`
+      useTaskTool({ title: 'Modify fixture', description: 'Modify existing fixture', outputs: ['existing.txt'] })
+      const response = await request('approval-mode', ${JSON.stringify(mode === undefined ? {} : { approvalMode: mode })})
+      const payload = await response.json()
+      const { loadTasks } = await import('./src/tasks/loader.ts')
+      console.log(JSON.stringify({ status: response.status, payload, mode: loadTasks(root).tasks[0]?.approvalMode }))
+    `)
+    expect(result.status).toBe(200)
+    expect(result.payload.autoTask.held).toBe(true)
+    expect(result.mode).toBe(mode ?? 'auto-edit')
+  })
+}
+it('chat rejects invalid approvalMode before calling providers or creating tasks', async () => {
+  const result = await isolated(`
+    const statuses = []
+    for (const approvalMode of ['invalid', null, 7, {}, ['full']]) {
+      const response = await request('invalid-mode', { approvalMode })
+      statuses.push(response.status)
+    }
+    const { loadTasks } = await import('./src/tasks/loader.ts')
+    console.log(JSON.stringify({ statuses, calls, tasks: loadTasks(root).tasks.length }))
+  `)
+  expect(result).toEqual({ statuses: [400, 400, 400, 400, 400], calls: 0, tasks: 0 })
 })

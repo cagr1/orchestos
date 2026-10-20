@@ -46,6 +46,7 @@ interface OrchestChatViewProps {
     agent?: string,
     model?: string,
     effort?: string,
+    approvalMode?: import('../../types/orchestos').ApprovalMode,
   ) => unknown
   onApproveHeldTask?: (taskId: string) => void | Promise<void>
   onRejectHeldTask?: (taskId: string) => void | Promise<void>
@@ -294,6 +295,8 @@ export const OrchestChatView: React.FC<OrchestChatViewProps> = ({
     cli?: string,
     model?: string,
     effort?: string,
+    _isShellCmd?: boolean,
+    approvalMode?: import('../../types/orchestos').ApprovalMode,
   ) => {
     if (sendLock.current) return false
     sendLock.current = true
@@ -302,7 +305,7 @@ export const OrchestChatView: React.FC<OrchestChatViewProps> = ({
     setIsWorking(true)
     stickToBottom()
     try {
-      const accepted = await onSendMessage(text, attachments, cli, model, effort)
+      const accepted = await onSendMessage(text, attachments, cli, model, effort, approvalMode)
       return accepted !== false
     } catch (error) {
       setSendError(error instanceof Error ? error.message : String(error))
@@ -590,6 +593,7 @@ export const OrchestChatView: React.FC<OrchestChatViewProps> = ({
               ))}
             <AgentComposer
               onSendMessage={handleSendFromComposer}
+              hasProject={!!thread?.projectId}
               defaultModel={initialModel}
               defaultEffort={initialEffort}
               defaultCli={cliId}

@@ -33,6 +33,20 @@ describe('L.2 — bind a loopback (no exposición accidental)', () => {
       server.stop(true)
     }
   })
+
+  it('startServer(0) autoriza POST del puerto dinámico asignado', async () => {
+    const { server, url } = startServer(0)
+    try {
+      const response = await fetch(`${url}/api/__origin-port-probe`, {
+        method: 'POST',
+        headers: { Origin: url, 'Content-Type': 'application/json' },
+        body: '{}',
+      })
+      expect(response.status).not.toBe(403)
+    } finally {
+      server.stop(true)
+    }
+  })
 })
 
 describe('L.2 — isSameOrigin rechaza CSRF entre apps locales de distinto puerto', () => {

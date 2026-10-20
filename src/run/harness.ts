@@ -48,6 +48,7 @@ import {
   snapshotHashes,
 } from './contract.ts'
 import { agenticEngine } from './executors/agentic.ts'
+import { actionApprovalPolicy } from './executors/cli-registry.ts'
 import { codexEngine } from './executors/codex.ts'
 import { externalEngine } from './executors/external.ts'
 import { opencodeEngine } from './executors/opencode.ts'
@@ -407,9 +408,11 @@ export async function runTask(opts: HarnessOpts): Promise<TaskResult> {
       // y persiste cada evento en vivo vía onStep. Solo external/opencode lo
       // usan (ver comentario de tipos.ts) — single-shot/agentic lo ignoran.
       clearRunSteps(ctx.task.id)
+      const policy = actionApprovalPolicy(requestedEngine, t.approvalMode)
+      ctx.task = { ...ctx.task, approvalMode: policy.approvalMode }
       const approvals =
-        t.approvalMode && t.approvalMode !== 'full'
-          ? createApprovalRun(approvalRunId, t.id, runProjectId, t.approvalMode)
+        policy.approvalMode !== 'full'
+          ? createApprovalRun(approvalRunId, t.id, runProjectId, policy.approvalMode)
           : undefined
       approvalRunStarted = !!approvals
       const runOutcome: ExecutorOutcome = await engine.run(ctx, {

@@ -52,6 +52,8 @@ export interface CliDefinition {
   readBoundary: CliReadBoundary
   subagentBlock: { args: string[] } | 'not-guaranteed'
   mcp: CliMcpAdapter
+  supportsActionApproval: boolean
+  taskEngine?: 'external' | 'codex' | 'opencode'
   configHome: {
     directory: string
     instructionFile: string
@@ -79,6 +81,8 @@ Do not load or reference user-level configuration, personal instructions, or pri
 export const KNOWN_CLIS: CliDefinition[] = [
   {
     id: 'claude',
+    supportsActionApproval: false,
+    taskEngine: 'external',
     binary: 'claude',
     label: 'Claude Code',
     icon: 'claude',
@@ -93,6 +97,8 @@ export const KNOWN_CLIS: CliDefinition[] = [
   },
   {
     id: 'codex',
+    supportsActionApproval: true,
+    taskEngine: 'codex',
     binary: 'codex',
     label: 'Codex',
     icon: 'openai',
@@ -106,6 +112,8 @@ export const KNOWN_CLIS: CliDefinition[] = [
   },
   {
     id: 'opencode',
+    supportsActionApproval: false,
+    taskEngine: 'opencode',
     binary: 'opencode',
     label: 'opencode',
     icon: 'opencode',
@@ -119,6 +127,7 @@ export const KNOWN_CLIS: CliDefinition[] = [
   },
   {
     id: 'deepseek',
+    supportsActionApproval: false,
     binary: 'deepseek',
     label: 'DeepSeek',
     icon: 'deepseek',
@@ -132,6 +141,7 @@ export const KNOWN_CLIS: CliDefinition[] = [
   },
   {
     id: 'gemini',
+    supportsActionApproval: false,
     binary: 'gemini',
     label: 'Gemini',
     icon: 'gemini',
@@ -145,6 +155,7 @@ export const KNOWN_CLIS: CliDefinition[] = [
   },
   {
     id: 'kimi',
+    supportsActionApproval: false,
     binary: 'kimi',
     label: 'Kimi',
     icon: 'kimi',
@@ -158,6 +169,7 @@ export const KNOWN_CLIS: CliDefinition[] = [
   },
   {
     id: 'glm',
+    supportsActionApproval: false,
     binary: 'glm',
     label: 'GLM',
     icon: 'glm',
@@ -358,4 +370,17 @@ export function detectInstalledClis(
       path,
     }
   })
+}
+
+/** Task engines without action approval execute with full access. */
+export function actionApprovalPolicy(
+  engine: string,
+  requested: 'supervised' | 'auto-edit' | 'full' = 'full',
+) {
+  const cli = KNOWN_CLIS.find((entry) => entry.taskEngine === engine)
+  return {
+    requestedApprovalMode: requested,
+    approvalMode: cli?.supportsActionApproval ? requested : ('full' as const),
+    approvalCli: cli?.label ?? 'API',
+  }
 }

@@ -240,3 +240,27 @@ describe('H.9.2 — capability de frontera verificada contra el binario', () => 
     expect(readBoundaryFor(codex, () => helpNuevo).kind).toBe('none')
   })
 })
+
+it('action approval is a declared CLI capability; unsupported task engines use full', async () => {
+  const { actionApprovalPolicy, KNOWN_CLIS } = await import('../run/executors/cli-registry.ts')
+  expect(KNOWN_CLIS.filter((cli) => cli.supportsActionApproval).map((cli) => cli.id)).toEqual([
+    'codex',
+  ])
+  for (const mode of ['supervised', 'auto-edit', 'full'] as const) {
+    expect(actionApprovalPolicy('codex', mode)).toMatchObject({
+      approvalMode: mode,
+      requestedApprovalMode: mode,
+      approvalCli: 'Codex',
+    })
+    for (const engine of ['external', 'opencode', 'single-shot', 'agentic']) {
+      expect(actionApprovalPolicy(engine, mode)).toMatchObject({
+        approvalMode: 'full',
+        requestedApprovalMode: mode,
+        approvalCli: ['external', 'opencode'].includes(engine)
+          ? KNOWN_CLIS.find((cli) => cli.taskEngine === engine)!.label
+          : 'API',
+      })
+    }
+  }
+  expect(actionApprovalPolicy('codex').approvalMode).toBe('full')
+})

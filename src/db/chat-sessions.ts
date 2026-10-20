@@ -37,6 +37,9 @@ interface StoredChatMessage {
 /** Datos estructurados de un reporte de fin de tarea. */
 export interface TaskReportData {
   outcome: string
+  approvalMode?: 'supervised' | 'auto-edit' | 'full'
+  requestedApprovalMode?: 'supervised' | 'auto-edit' | 'full'
+  approvalCli?: string
   dirtyFiles?: string[]
   attempt?: number
   maxAttempts?: number
@@ -104,6 +107,17 @@ function parseTaskReport(value: string | null): TaskReportData | undefined {
       model: text(raw.model),
       runId: text(raw.runId),
       summary: text(raw.summary),
+      approvalMode:
+        typeof raw.approvalMode === 'string' &&
+        ['supervised', 'auto-edit', 'full'].includes(raw.approvalMode)
+          ? (raw.approvalMode as TaskReportData['approvalMode'])
+          : undefined,
+      requestedApprovalMode:
+        typeof raw.requestedApprovalMode === 'string' &&
+        ['supervised', 'auto-edit', 'full'].includes(raw.requestedApprovalMode)
+          ? (raw.requestedApprovalMode as TaskReportData['requestedApprovalMode'])
+          : undefined,
+      approvalCli: text(raw.approvalCli),
     }
     const extras = Object.fromEntries(
       Object.entries(optional).filter(([, value]) => value !== undefined),

@@ -1,7 +1,52 @@
 {
-  "exported_at": "2026-10-20T19:45:12.128Z",
+  "exported_at": "2026-10-20T20:03:02.112Z",
   "total_runs": 20,
   "runs": [
+    {
+      "id": "c9f47b57-37d3-4f43-96fe-257e66223902",
+      "task_class": "gate:erp.7.1c:implement",
+      "model": "gpt-6-luna",
+      "provider": "codex",
+      "status": "done",
+      "qa_verdict": "pass",
+      "qa_reason": "QA LLM omitido: la tarea no declara criterios de aceptación; checks y salidas declaradas en verde",
+      "files_blocked": [],
+      "checks_failed": 0,
+      "usd_cost": 0.00107488,
+      "elapsed_ms": 9493,
+      "tokens": 6412,
+      "created_at": "2026-10-20T20:01:23.792Z"
+    },
+    {
+      "id": "add20783-ebae-407c-9273-68778e03b4de",
+      "task_class": "gate:erp.7.1c:implement",
+      "model": "gpt-6-luna",
+      "provider": "codex",
+      "status": "done",
+      "qa_verdict": "pass",
+      "qa_reason": "QA LLM omitido: la tarea no declara criterios de aceptación; checks y salidas declaradas en verde",
+      "files_blocked": [],
+      "checks_failed": 0,
+      "usd_cost": 0.00141194,
+      "elapsed_ms": 11849,
+      "tokens": 9669,
+      "created_at": "2026-10-20T19:58:25.286Z"
+    },
+    {
+      "id": "a77aa643-80e4-440b-a36c-bd74fc44d735",
+      "task_class": "gate:erp.7.1c:implement",
+      "model": "gpt-6-luna",
+      "provider": "codex",
+      "status": "done",
+      "qa_verdict": "pass",
+      "qa_reason": "QA LLM omitido: la tarea no declara criterios de aceptación; checks y salidas declaradas en verde",
+      "files_blocked": [],
+      "checks_failed": 0,
+      "usd_cost": 0.0011687,
+      "elapsed_ms": 11053,
+      "tokens": 6915,
+      "created_at": "2026-10-20T19:56:04.500Z"
+    },
     {
       "id": "86c2e740-5170-41d2-a4ec-6d9de8ec9ec8",
       "task_class": "gate:erp.7.1b:fix",
@@ -256,58 +301,13 @@
       "elapsed_ms": 36215,
       "tokens": 9568,
       "created_at": "2026-10-19T20:47:53.185Z"
-    },
-    {
-      "id": "a87f0fcd-fb76-49b8-ab57-5b32ebead130",
-      "task_class": "gate:erp.5.4-live:doc",
-      "model": "openai/gpt-6-luna",
-      "provider": "codex",
-      "status": "done",
-      "qa_verdict": "pass",
-      "qa_reason": "README.md contains the required line.",
-      "files_blocked": [],
-      "checks_failed": 0,
-      "usd_cost": 0.0008408599999999999,
-      "elapsed_ms": 11790,
-      "tokens": 6254,
-      "created_at": "2026-10-19T20:21:31.700Z"
-    },
-    {
-      "id": "fcba4f07-e046-45f1-877b-d43d83385bc2",
-      "task_class": "gate:erp.5.4-live:implement",
-      "model": "openai/gpt-6-luna",
-      "provider": "codex",
-      "status": "failed",
-      "qa_verdict": "fail",
-      "qa_reason": "nota.txt contains ROJO, not the required AZUL line.",
-      "files_blocked": [],
-      "checks_failed": 0,
-      "usd_cost": 0.00099066,
-      "elapsed_ms": 11173,
-      "tokens": 7992,
-      "created_at": "2026-10-19T20:21:10.534Z"
-    },
-    {
-      "id": "e12fc663-a512-4151-b82b-649657ac3386",
-      "task_class": "gate:erp.5.4-live:implement",
-      "model": "anthropic/haiku",
-      "provider": "claude",
-      "status": "done",
-      "qa_verdict": "pass",
-      "qa_reason": "claude.txt contains the required line, and the exact-line check passed.",
-      "files_blocked": [],
-      "checks_failed": 0,
-      "usd_cost": 0.0030268599999999997,
-      "elapsed_ms": 9043,
-      "tokens": 2867,
-      "created_at": "2026-10-19T20:20:58.334Z"
     }
   ],
   "stats": {
-    "failed": 2,
+    "failed": 1,
     "blocked": 0,
-    "done": 18,
-    "qa_failed": 2,
-    "total_cost_usd": "0.0209"
+    "done": 19,
+    "qa_failed": 1,
+    "total_cost_usd": "0.0197"
   }
 }

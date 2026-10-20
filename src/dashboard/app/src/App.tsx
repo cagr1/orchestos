@@ -932,6 +932,7 @@ export default function App() {
     agent?: string,
     model?: string,
     effort?: string,
+    approvalMode?: import('./types/orchestos').ApprovalMode,
   ): Promise<boolean> => {
     let threadId = activeThreadId
     let thread = threads.find((item) => item.id === threadId)
@@ -972,6 +973,7 @@ export default function App() {
       model,
       effort,
       attachments,
+      approvalMode,
     })
       .then(async () => {
         const messages = await loadThreadMessages(threadId, thread?.projectId)

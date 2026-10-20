@@ -407,3 +407,23 @@ describe('chat API mapping', () => {
     expect(JSON.parse(String(calls[1]?.init?.body))).toEqual({ cmd: 'ls' })
   })
 })
+
+test('sendMessage forwards the selected task approval mode', async () => {
+  const originalFetch = globalThis.fetch
+  let body: Record<string, unknown> = {}
+  globalThis.fetch = (async (_input, init) => {
+    body = JSON.parse(String(init?.body))
+    return new Response(JSON.stringify({ text: 'ok' }), { status: 200 })
+  }) as typeof fetch
+  try {
+    await sendMessage({
+      sessionId: 's',
+      projectId: 'p',
+      message: 'edit',
+      approvalMode: 'supervised',
+    })
+    expect(body.approvalMode).toBe('supervised')
+  } finally {
+    globalThis.fetch = originalFetch
+  }
+})

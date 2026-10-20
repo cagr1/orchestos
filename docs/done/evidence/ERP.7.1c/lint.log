@@ -1,0 +1,324 @@
+$ biome check .
+tests/run/sandbox.test.ts:2:64 lint/style/useNodejsImportProtocol  FIXABLE  ━━━━━━━━━━━━━━━━━━━━━━━━
+
+  i A Node.js builtin module should be imported with the node: protocol.
+  
+    1 │ import { afterEach, describe, expect, it } from 'bun:test'
+  > 2 │ import { existsSync, mkdtempSync, rmSync, writeFileSync } from 'fs'
+      │                                                                ^^^^
+    3 │ import { tmpdir } from 'os'
+    4 │ import { join } from 'path'
+  
+  i Using the node: protocol is more explicit and signals that the imported module belongs to Node.js.
+  
+  i Unsafe fix: Add the node: protocol.
+  
+      1   1 │   import { afterEach, describe, expect, it } from 'bun:test'
+      2     │ - import·{·existsSync,·mkdtempSync,·rmSync,·writeFileSync·}·from·'fs'
+          2 │ + import·{·existsSync,·mkdtempSync,·rmSync,·writeFileSync·}·from·'node:fs'
+      3   3 │   import { tmpdir } from 'os'
+      4   4 │   import { join } from 'path'
+  
+
+tests/run/sandbox.test.ts:3:24 lint/style/useNodejsImportProtocol  FIXABLE  ━━━━━━━━━━━━━━━━━━━━━━━━
+
+  i A Node.js builtin module should be imported with the node: protocol.
+  
+    1 │ import { afterEach, describe, expect, it } from 'bun:test'
+    2 │ import { existsSync, mkdtempSync, rmSync, writeFileSync } from 'fs'
+  > 3 │ import { tmpdir } from 'os'
+      │                        ^^^^
+    4 │ import { join } from 'path'
+    5 │ import { createWorktree, git, mergeWorktreeBack } from '../../src/run/sandbox.ts'
+  
+  i Using the node: protocol is more explicit and signals that the imported module belongs to Node.js.
+  
+  i Unsafe fix: Add the node: protocol.
+  
+      1   1 │   import { afterEach, describe, expect, it } from 'bun:test'
+      2   2 │   import { existsSync, mkdtempSync, rmSync, writeFileSync } from 'fs'
+      3     │ - import·{·tmpdir·}·from·'os'
+          3 │ + import·{·tmpdir·}·from·'node:os'
+      4   4 │   import { join } from 'path'
+      5   5 │   import { createWorktree, git, mergeWorktreeBack } from '../../src/run/sandbox.ts'
+  
+
+tests/run/sandbox.test.ts:4:22 lint/style/useNodejsImportProtocol  FIXABLE  ━━━━━━━━━━━━━━━━━━━━━━━━
+
+  i A Node.js builtin module should be imported with the node: protocol.
+  
+    2 │ import { existsSync, mkdtempSync, rmSync, writeFileSync } from 'fs'
+    3 │ import { tmpdir } from 'os'
+  > 4 │ import { join } from 'path'
+      │                      ^^^^^^
+    5 │ import { createWorktree, git, mergeWorktreeBack } from '../../src/run/sandbox.ts'
+    6 │ 
+  
+  i Using the node: protocol is more explicit and signals that the imported module belongs to Node.js.
+  
+  i Unsafe fix: Add the node: protocol.
+  
+      2   2 │   import { existsSync, mkdtempSync, rmSync, writeFileSync } from 'fs'
+      3   3 │   import { tmpdir } from 'os'
+      4     │ - import·{·join·}·from·'path'
+          4 │ + import·{·join·}·from·'node:path'
+      5   5 │   import { createWorktree, git, mergeWorktreeBack } from '../../src/run/sandbox.ts'
+      6   6 │   
+  
+
+tests/run/skill-middlewares.test.ts:2:63 lint/style/useNodejsImportProtocol  FIXABLE  ━━━━━━━━━━━━━━
+
+  i A Node.js builtin module should be imported with the node: protocol.
+  
+    1 │ import { afterAll, beforeAll, describe, expect, it } from 'bun:test'
+  > 2 │ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'fs'
+      │                                                               ^^^^
+    3 │ import { tmpdir } from 'os'
+    4 │ import { join } from 'path'
+  
+  i Using the node: protocol is more explicit and signals that the imported module belongs to Node.js.
+  
+  i Unsafe fix: Add the node: protocol.
+  
+      1   1 │   import { afterAll, beforeAll, describe, expect, it } from 'bun:test'
+      2     │ - import·{·mkdirSync,·mkdtempSync,·rmSync,·writeFileSync·}·from·'fs'
+          2 │ + import·{·mkdirSync,·mkdtempSync,·rmSync,·writeFileSync·}·from·'node:fs'
+      3   3 │   import { tmpdir } from 'os'
+      4   4 │   import { join } from 'path'
+  
+
+tests/run/skill-middlewares.test.ts:3:24 lint/style/useNodejsImportProtocol  FIXABLE  ━━━━━━━━━━━━━━
+
+  i A Node.js builtin module should be imported with the node: protocol.
+  
+    1 │ import { afterAll, beforeAll, describe, expect, it } from 'bun:test'
+    2 │ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'fs'
+  > 3 │ import { tmpdir } from 'os'
+      │                        ^^^^
+    4 │ import { join } from 'path'
+    5 │ import type { HarnessOpts } from '../../src/run/harness.ts'
+  
+  i Using the node: protocol is more explicit and signals that the imported module belongs to Node.js.
+  
+  i Unsafe fix: Add the node: protocol.
+  
+      1   1 │   import { afterAll, beforeAll, describe, expect, it } from 'bun:test'
+      2   2 │   import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'fs'
+      3     │ - import·{·tmpdir·}·from·'os'
+          3 │ + import·{·tmpdir·}·from·'node:os'
+      4   4 │   import { join } from 'path'
+      5   5 │   import type { HarnessOpts } from '../../src/run/harness.ts'
+  
+
+tests/run/skill-middlewares.test.ts:4:22 lint/style/useNodejsImportProtocol  FIXABLE  ━━━━━━━━━━━━━━
+
+  i A Node.js builtin module should be imported with the node: protocol.
+  
+    2 │ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'fs'
+    3 │ import { tmpdir } from 'os'
+  > 4 │ import { join } from 'path'
+      │                      ^^^^^^
+    5 │ import type { HarnessOpts } from '../../src/run/harness.ts'
+    6 │ import { RunLogger } from '../../src/run/logger.ts'
+  
+  i Using the node: protocol is more explicit and signals that the imported module belongs to Node.js.
+  
+  i Unsafe fix: Add the node: protocol.
+  
+      2   2 │   import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'fs'
+      3   3 │   import { tmpdir } from 'os'
+      4     │ - import·{·join·}·from·'path'
+          4 │ + import·{·join·}·from·'node:path'
+      5   5 │   import type { HarnessOpts } from '../../src/run/harness.ts'
+      6   6 │   import { RunLogger } from '../../src/run/logger.ts'
+  
+
+docs/done/evidence/ERP.6-bench.ts:40:28 lint/suspicious/noExplicitAny ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  ! Unexpected any. Specify a different type.
+  
+    38 │   return null
+    39 │ }
+  > 40 │ function claudeCalls(evts: any[]) {
+       │                            ^^^
+    41 │   const seen = new Map<string, number>()
+    42 │   for (const e of evts)
+  
+  i any disables many type checking rules. Its use should be avoided.
+  
+
+docs/done/evidence/ERP.6-bench.ts:140:41 lint/style/noNonNullAssertion ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  ! Forbidden non-null assertion.
+  
+    138 │       ?.text ?? ''
+    139 │   const rollout = findFile(
+  > 140 │     join(process.env.CODEX_HOME ?? join(process.env.HOME!, '.codex'), 'sessions'),
+        │                                         ^^^^^^^^^^^^^^^^^
+    141 │     (n) => n.endsWith(`${thread}.jsonl`),
+    142 │   )
+  
+
+docs/done/evidence/ERP.6-bench.ts:167:14 lint/suspicious/noExplicitAny ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  ! Unexpected any. Specify a different type.
+  
+    165 │   ).id
+    166 │   const t = Date.now()
+  > 167 │   const res: any = await (
+        │              ^^^
+    168 │     await fetch(`http://localhost:${PORT}/api/chat`, {
+    169 │       method: 'POST',
+  
+  i any disables many type checking rules. Its use should be avoided.
+  
+
+docs/done/evidence/ERP.6-bench.ts:184:10 lint/style/noNonNullAssertion ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  ! Forbidden non-null assertion.
+  
+    182 │   const ms = Date.now() - t
+    183 │   const db = new (await import('bun:sqlite')).Database(
+  > 184 │     join(process.env.HOME!, '.orchestos/db.sqlite'),
+        │          ^^^^^^^^^^^^^^^^^
+    185 │     { readonly: true },
+    186 │   )
+  
+
+docs/done/evidence/ERP.6-bench.ts:187:14 lint/suspicious/noExplicitAny ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  ! Unexpected any. Specify a different type.
+  
+    185 │     { readonly: true },
+    186 │   )
+  > 187 │   const run: any = db
+        │              ^^^
+    188 │     .query(
+    189 │       'SELECT r.* FROM chat_turns t JOIN runs r ON r.id = t.run_id WHERE t.session_id = ? ORDER BY t.created_at DESC LIMIT 1',
+  
+  i any disables many type checking rules. Its use should be avoided.
+  
+
+docs/done/evidence/ERP.6-bench.ts:196:12 lint/style/noNonNullAssertion ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  ! Forbidden non-null assertion.
+  
+    194 │   if (agent === 'claude') {
+    195 │     const f = findFile(
+  > 196 │       join(process.env.HOME!, '.claude/projects'),
+        │            ^^^^^^^^^^^^^^^^^
+    197 │       (n) => n === `${run?.cli_session_id}.jsonl`,
+    198 │     )
+  
+
+docs/done/evidence/ERP.6-bench.ts:219:12 lint/suspicious/noExplicitAny ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  ! Unexpected any. Specify a different type.
+  
+    217 │   }
+    218 │ }
+  > 219 │ const out: any[] = []
+        │            ^^^
+    220 │ for (const [name, prompt] of Object.entries(PROMPTS))
+    221 │   for (let i = 0; i < REPS; i++) {
+  
+  i any disables many type checking rules. Its use should be avoided.
+  
+
+docs/done/evidence/ERP.7.1a/live.ts:89:31 lint/suspicious/noExplicitAny ━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  ! Unexpected any. Specify a different type.
+  
+    87 │     git(root, 'add', '.')
+    88 │     git(root, 'commit', '-m', 'fixture')
+  > 89 │     upsertProject(root, {} as any, '')
+       │                               ^^^
+    90 │     const project = getProject(root)!
+    91 │     const log = new RunLogger(root, task.id)
+  
+  i any disables many type checking rules. Its use should be avoided.
+  
+
+docs/done/evidence/ERP.7.1a/live.ts:90:21 lint/style/noNonNullAssertion ━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  ! Forbidden non-null assertion.
+  
+    88 │     git(root, 'commit', '-m', 'fixture')
+    89 │     upsertProject(root, {} as any, '')
+  > 90 │     const project = getProject(root)!
+       │                     ^^^^^^^^^^^^^^^^^
+    91 │     const log = new RunLogger(root, task.id)
+    92 │     const resultPromise = runTask({
+  
+
+docs/done/evidence/ERP.7.1a/live.ts:109:19 lint/suspicious/noExplicitAny ━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  ! Unexpected any. Specify a different type.
+  
+    107 │     })
+    108 │     let runId: string | undefined
+  > 109 │     let response: any
+        │                   ^^^
+    110 │     const request = async (path: string, body?: unknown) =>
+    111 │       page.evaluate(
+  
+  i any disables many type checking rules. Its use should be avoided.
+  
+
+docs/done/evidence/ERP.7.1a/live.ts:125:30 lint/suspicious/noExplicitAny ━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  ! Unexpected any. Specify a different type.
+  
+    123 │     while (Date.now() < deadline && !settled) {
+    124 │       const tasks = await request('/api/tasks')
+  > 125 │       runId = (tasks.body as any).tasks?.[0]?.runId ?? undefined
+        │                              ^^^
+    126 │       if (runId) {
+    127 │         response = await request(`/api/runs/${runId}/approval`)
+  
+  i any disables many type checking rules. Its use should be avoided.
+  
+
+docs/done/evidence/ERP.7.1a/live.ts:141:17 lint/suspicious/noExplicitAny ━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  ! Unexpected any. Specify a different type.
+  
+    139 │     check(
+    140 │       response.body.events.some(
+  > 141 │         (event: any) => event.type === 'approval_resolved' && event.decision === 'auto',
+        │                 ^^^
+    142 │       ),
+    143 │       'Patch must have an automatic resolution',
+  
+  i any disables many type checking rules. Its use should be avoided.
+  
+
+docs/done/evidence/ERP.7.1a/live.ts:186:5 lint/style/noNonNullAssertion ━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  ! Forbidden non-null assertion.
+  
+    184 │     )
+    185 │     const file = loadTasks(root)
+  > 186 │     file.tasks[0]!.status = 'done'
+        │     ^^^^^^^^^^^^^^
+    187 │     file.tasks[0]!.run_id = result.runId
+    188 │     saveTasks(root, file)
+  
+
+docs/done/evidence/ERP.7.1a/live.ts:187:5 lint/style/noNonNullAssertion ━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  ! Forbidden non-null assertion.
+  
+    185 │     const file = loadTasks(root)
+    186 │     file.tasks[0]!.status = 'done'
+  > 187 │     file.tasks[0]!.run_id = result.runId
+        │     ^^^^^^^^^^^^^^
+    188 │     saveTasks(root, file)
+    189 │     console.log('GET_FINAL', JSON.stringify(await request(`/api/runs/${runId}/approval`)))
+  
+
+The number of diagnostics exceeds the limit allowed. Use --max-diagnostics to increase it.
+Diagnostics not shown: 1310.
+Checked 686 files in 298ms. No fixes applied.
+Found 952 warnings.
+Found 378 infos.

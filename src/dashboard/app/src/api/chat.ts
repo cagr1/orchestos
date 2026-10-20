@@ -1,5 +1,11 @@
 import { thoughtMs } from '../components/thread/thinking'
-import type { ChatAttachment, ChatMessage, ChatThread, ToolExecution } from '../types/orchestos'
+import type {
+  ApprovalMode,
+  ChatAttachment,
+  ChatMessage,
+  ChatThread,
+  ToolExecution,
+} from '../types/orchestos'
 import { DIRTY_TREE_REASON_PREFIX } from './tasks'
 
 export interface ChatSessionRow {
@@ -29,6 +35,9 @@ export interface ChatMessageRow {
   turnId?: string | null
   taskReport?: {
     outcome: string
+    approvalMode?: 'supervised' | 'auto-edit' | 'full'
+    requestedApprovalMode?: 'supervised' | 'auto-edit' | 'full'
+    approvalCli?: string
     dirtyFiles?: string[]
     attempt?: number
     maxAttempts?: number
@@ -54,6 +63,7 @@ export interface ChatSendOptions {
   agent?: string
   model?: string
   effort?: string
+  approvalMode?: ApprovalMode
   attachments?: ChatAttachment[]
 }
 
@@ -569,6 +579,7 @@ export async function sendMessage(options: ChatSendOptions): Promise<ChatSendRes
     message: options.message,
     requestKey: crypto.randomUUID(),
   }
+  if (options.approvalMode) body.approvalMode = options.approvalMode
   if (options.agent) body.agent = options.agent
   if (options.model) body.model = options.model
   const fileIds = (options.attachments ?? []).flatMap((attachment) =>

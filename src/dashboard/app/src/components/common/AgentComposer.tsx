@@ -12,7 +12,7 @@ import {
 import type React from 'react'
 import { Fragment, useEffect, useRef, useState } from 'react'
 import { type CliModelOption, getChatModels, getCliModels, uploadChatFile } from '../../api/chat'
-import type { ChatAttachment } from '../../types/orchestos'
+import type { ApprovalMode, ChatAttachment } from '../../types/orchestos'
 import { FileThumbnail } from '../ui/file-thumbnail'
 import { ProviderLogo } from './ProviderLogos'
 
@@ -34,6 +34,33 @@ const CLIS: CliConfig[] = [
   { id: 'deepseek', name: 'DeepSeek', defaultModel: '', models: [], efforts: [] },
   { id: 'gemini', name: 'Gemini', defaultModel: '', models: [], efforts: [] },
 ]
+
+export const APPROVAL_MODES: { value: ApprovalMode; label: string; description: string }[] = [
+  { value: 'supervised', label: 'Supervised', description: 'Asks before every edit and command' },
+  {
+    value: 'auto-edit',
+    label: 'Auto-edit',
+    description: 'Edits files freely, asks before commands',
+  },
+  { value: 'full', label: 'Full access', description: 'Runs without asking' },
+]
+export function readApprovalMode(storage?: Pick<Storage, 'getItem'>): ApprovalMode {
+  try {
+    const value = (storage ?? localStorage).getItem('orchestos.approvalMode')
+    return APPROVAL_MODES.some((option) => option.value === value)
+      ? (value as ApprovalMode)
+      : 'auto-edit'
+  } catch {
+    return 'auto-edit'
+  }
+}
+export function persistApprovalMode(mode: ApprovalMode, storage?: Pick<Storage, 'setItem'>): void {
+  try {
+    ;(storage ?? localStorage).setItem('orchestos.approvalMode', mode)
+  } catch {
+    /* Storage may be unavailable. */
+  }
+}
 
 export type EffortLevel = string
 
@@ -91,7 +118,9 @@ export interface AgentComposerProps {
     model?: string,
     effort?: string,
     isShellCmd?: boolean,
+    approvalMode?: ApprovalMode,
   ) => unknown
+  hasProject?: boolean
   defaultCli?: CliId
   defaultModel?: string
   defaultEffort?: EffortLevel
@@ -108,6 +137,7 @@ export interface AgentComposerProps {
 
 export const AgentComposer: React.FC<AgentComposerProps> = ({
   onSendMessage,
+  hasProject = false,
   defaultCli = 'claude',
   defaultModel,
   defaultEffort = 'high',
@@ -151,6 +181,17 @@ export const AgentComposer: React.FC<AgentComposerProps> = ({
   const [isShellMode, setIsShellMode] = useState(false)
   const [showSlashMenu, setShowSlashMenu] = useState(false)
   const [showDropdown, setShowDropdown] = useState(false)
+  const [approvalMode, setApprovalMode] = useState<ApprovalMode>(() => readApprovalMode())
+  const [showApprovalMenu, setShowApprovalMenu] = useState(false)
+  const approvalMenuRef = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    if (!showApprovalMenu) return
+    const close = (event: MouseEvent) => {
+      if (!approvalMenuRef.current?.contains(event.target as Node)) setShowApprovalMenu(false)
+    }
+    document.addEventListener('mousedown', close)
+    return () => document.removeEventListener('mousedown', close)
+  }, [showApprovalMenu])
   const [activeModelIndex, setActiveModelIndex] = useState(0)
   const [attachments, setAttachments] = useState<ChatAttachment[]>([])
   const [attachError, setAttachError] = useState<string | null>(null)
@@ -323,6 +364,7 @@ export const AgentComposer: React.FC<AgentComposerProps> = ({
         effectiveSelectedModel,
         effortSteps.includes(selectedEffort) ? selectedEffort : undefined,
         isShellMode,
+        hasProject ? approvalMode : undefined,
       ),
     )
     if (!accepted) {
@@ -757,6 +799,60 @@ export const AgentComposer: React.FC<AgentComposerProps> = ({
                 </div>
               )}
             </div>
+            {hasProject && (
+              <div
+                ref={approvalMenuRef}
+                className="relative"
+                onKeyDown={(event) => {
+                  if (event.key === 'Escape') setShowApprovalMenu(false)
+                }}
+              >
+                <button
+                  type="button"
+                  aria-label="Task approval mode"
+                  aria-haspopup="menu"
+                  aria-expanded={showApprovalMenu}
+                  onClick={() => {
+                    setShowApprovalMenu(!showApprovalMenu)
+                    setShowDropdown(false)
+                  }}
+                  className="flex items-center gap-1 px-2 py-1 rounded-control bg-app-bg border border-app/60 hover:border-app text-app text-[11px] font-mono transition-colors"
+                >
+                  {APPROVAL_MODES.find((option) => option.value === approvalMode)?.label}
+                  <ChevronDown className="w-3 h-3 text-app-muted" />
+                </button>
+                {showApprovalMenu && (
+                  <div
+                    role="menu"
+                    aria-label="Task approval modes"
+                    className="absolute left-0 bottom-full mb-2 w-80 rounded-card bg-app-surface border border-app shadow-2xl p-3 z-50 text-xs text-app"
+                  >
+                    {APPROVAL_MODES.map((option) => (
+                      <button
+                        key={option.value}
+                        type="button"
+                        role="menuitemradio"
+                        aria-checked={approvalMode === option.value}
+                        onClick={() => {
+                          setApprovalMode(option.value)
+                          persistApprovalMode(option.value)
+                          setShowApprovalMenu(false)
+                        }}
+                        className="w-full flex items-center justify-between px-2 py-1.5 rounded-control text-left text-app-muted hover:text-app hover:bg-app-elevated/40"
+                      >
+                        <span>
+                          <span className="block text-app">{option.label}</span>
+                          <span className="block">{option.description}</span>
+                        </span>
+                        {approvalMode === option.value && (
+                          <Check className="w-3.5 h-3.5 text-app-accent" />
+                        )}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
           </div>
 
           {/* Right: Send Button */}

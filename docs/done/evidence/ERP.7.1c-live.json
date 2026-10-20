@@ -1,0 +1,113 @@
+{
+  "pass": true,
+  "checks": [
+    {
+      "name": "Use configured orchestrator without substituting its model",
+      "pass": true
+    },
+    {
+      "name": "Composer defaults to Auto-edit",
+      "pass": true
+    },
+    {
+      "name": "Menu exposes ordered choices and descriptions",
+      "pass": true
+    },
+    {
+      "name": "Supervised survives reload",
+      "pass": true
+    },
+    {
+      "name": "Real chat turn succeeds",
+      "pass": true,
+      "detail": {
+        "text": "I've sent the task proposal to OrchestOS, and it will run only after you approve it. Nothing was done in this chat.\n\n- **Output:** `permission.txt`, which should contain `approved` followed by a newline.\n- **Steps:** The task first creates the file with `apply_patch`, without running commands or inspecting files beforehand. Next it runs `mkdir -p command-marker`. If that command is denied, it stops without retrying.\n- **Acceptance criteria:** none, as you asked.\n\n▶ Started task `chat-7afd60d9-0deb-451b-848b-85fe6ea69547`.",
+        "model": "claude-opus-5-5 via Claude Code CLI (effort: medium)",
+        "readAudit": {
+          "version": 1,
+          "source": "claude-stream",
+          "coverage": "explicit-tools-only",
+          "completeness": "incomplete",
+          "tools": ["Read", "Grep", "Glob"],
+          "limitations": ["implicit-reads-not-observed", "search-file-set-not-observed"],
+          "issues": ["unobserved-tool", "malformed-tool-result", "orphan-result"],
+          "operations": []
+        },
+        "taskSuggestion": {
+          "isTask": true,
+          "reason": "create_task"
+        },
+        "autoTask": {
+          "id": "chat-7afd60d9-0deb-451b-848b-85fe6ea69547"
+        },
+        "autoTaskSkipped": false
+      }
+    },
+    {
+      "name": "Chat request sends selected mode",
+      "pass": true
+    },
+    {
+      "name": "Chat uses the fixture session",
+      "pass": true
+    },
+    {
+      "name": "Real chat creates a task",
+      "pass": true,
+      "detail": {
+        "text": "I've sent the task proposal to OrchestOS, and it will run only after you approve it. Nothing was done in this chat.\n\n- **Output:** `permission.txt`, which should contain `approved` followed by a newline.\n- **Steps:** The task first creates the file with `apply_patch`, without running commands or inspecting files beforehand. Next it runs `mkdir -p command-marker`. If that command is denied, it stops without retrying.\n- **Acceptance criteria:** none, as you asked.\n\n▶ Started task `chat-7afd60d9-0deb-451b-848b-85fe6ea69547`.",
+        "model": "claude-opus-5-5 via Claude Code CLI (effort: medium)",
+        "readAudit": {
+          "version": 1,
+          "source": "claude-stream",
+          "coverage": "explicit-tools-only",
+          "completeness": "incomplete",
+          "tools": ["Read", "Grep", "Glob"],
+          "limitations": ["implicit-reads-not-observed", "search-file-set-not-observed"],
+          "issues": ["unobserved-tool", "malformed-tool-result", "orphan-result"],
+          "operations": []
+        },
+        "taskSuggestion": {
+          "isTask": true,
+          "reason": "create_task"
+        },
+        "autoTask": {
+          "id": "chat-7afd60d9-0deb-451b-848b-85fe6ea69547"
+        },
+        "autoTaskSkipped": false
+      }
+    },
+    {
+      "name": "tasks.yaml persists selected mode",
+      "pass": true,
+      "detail": {
+        "id": "chat-7afd60d9-0deb-451b-848b-85fe6ea69547",
+        "description": "First use apply_patch to create permission.txt containing exactly approved followed by a newline. Do not run commands before the patch. Do not inspect files. After the patch run exactly mkdir -p command-marker. If denied, stop immediately without retrying.",
+        "executor": "openrouter",
+        "approvalMode": "supervised",
+        "task_class": "implement",
+        "input": [],
+        "output": ["permission.txt"],
+        "depends_on": [],
+        "status": "pending",
+        "retry_count": 0
+      }
+    },
+    {
+      "name": "Codex task shows per-action approval",
+      "pass": true
+    },
+    {
+      "name": "Task worker finishes before cleanup",
+      "pass": true
+    },
+    {
+      "name": "No approval run remains active",
+      "pass": true
+    },
+    {
+      "name": "Fixture removed",
+      "pass": true
+    }
+  ]
+}
