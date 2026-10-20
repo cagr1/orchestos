@@ -1,3 +1,4 @@
+import { Database } from 'bun:sqlite'
 import { describe, expect, spyOn, test } from 'bun:test'
 import { chmodSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
@@ -6,6 +7,8 @@ import {
   type ContextAdapter,
   claudeAdapter,
   codexAdapter,
+  createOpencodeAdapter,
+  DEFAULT_ADAPTERS,
   readCodexRateLimitsLive,
   readContextBudget,
   readSessionMetrics,
@@ -15,6 +18,93 @@ const fixtures = join(import.meta.dir, 'fixtures', 'context-adapters')
 const fixture = (name: string) => join(fixtures, name)
 
 describe('context adapters', () => {
+  test('opencodeAdapter reads the latest assistant usage and catalog window from SQLite', async () => {
+    const directory = mkdtempSync(join(tmpdir(), 'orchestos-opencode-context-'))
+    const dbPath = join(directory, 'opencode.db')
+    const catalogPath = join(directory, 'models.json')
+    const db = new Database(dbPath)
+    db.exec(
+      'CREATE TABLE session (id TEXT PRIMARY KEY, directory TEXT); CREATE TABLE message (id TEXT PRIMARY KEY, session_id TEXT, data TEXT)',
+    )
+    db.query('INSERT INTO session (id, directory) VALUES (?, ?)').run('ses_test', directory)
+    const insert = db.query('INSERT INTO message (id, session_id, data) VALUES (?, ?, ?)')
+    const message = (created: number, input: number) =>
+      JSON.stringify({
+        role: 'assistant',
+        providerID: 'opencode',
+        modelID: 'deepseek-v4-flash-free',
+        time: { created },
+        tokens: { input, output: 500, reasoning: 50, cache: { read: 2_000, write: 3_000 } },
+      })
+    insert.run('m_old', 'ses_test', message(1, 90_000))
+    insert.run('m_latest', 'ses_test', message(2, 79_000))
+    db.close()
+    writeFileSync(
+      catalogPath,
+      JSON.stringify({
+        opencode: { models: { 'deepseek-v4-flash-free': { limit: { context: 100_000 } } } },
+      }),
+    )
+    const adapter = createOpencodeAdapter({ dbPath, catalogPath })
+    try {
+      expect(DEFAULT_ADAPTERS.map(({ id }) => id)).toEqual(['claude', 'codex', 'opencode'])
+      await expect(adapter.read('not-an-opencode-session')).resolves.toBeNull()
+      await expect(adapter.read('opencode-session:missing')).resolves.toBeNull()
+      await expect(adapter.read('opencode-session:ses_test')).resolves.toEqual({
+        used: 84_000,
+        window: 100_000,
+        model: 'opencode/deepseek-v4-flash-free',
+      })
+      await expect(
+        readContextBudget('opencode-session:ses_test', [adapter]),
+      ).resolves.toMatchObject({
+        source: 'opencode',
+        level: 'critical',
+        pct: 84,
+      })
+    } finally {
+      rmSync(directory, { recursive: true, force: true })
+    }
+  })
+
+  test('opencodeAdapter returns null without assistant tokens or a catalog model', async () => {
+    const directory = mkdtempSync(join(tmpdir(), 'orchestos-opencode-empty-'))
+    const dbPath = join(directory, 'opencode.db')
+    const catalogPath = join(directory, 'models.json')
+    const db = new Database(dbPath)
+    db.exec(
+      'CREATE TABLE session (id TEXT PRIMARY KEY, directory TEXT); CREATE TABLE message (id TEXT PRIMARY KEY, session_id TEXT, data TEXT)',
+    )
+    db.query('INSERT INTO session (id, directory) VALUES (?, ?)').run('ses_empty', directory)
+    db.query('INSERT INTO session (id, directory) VALUES (?, ?)').run(
+      'ses_unknown_model',
+      directory,
+    )
+    db.query('INSERT INTO message (id, session_id, data) VALUES (?, ?, ?)').run(
+      'm_user',
+      'ses_empty',
+      JSON.stringify({ role: 'user', tokens: { input: 100 } }),
+    )
+    db.query('INSERT INTO message (id, session_id, data) VALUES (?, ?, ?)').run(
+      'm_unknown',
+      'ses_unknown_model',
+      JSON.stringify({
+        role: 'assistant',
+        providerID: 'opencode',
+        modelID: 'missing',
+        tokens: { input: 100, cache: { read: 0, write: 0 } },
+      }),
+    )
+    db.close()
+    writeFileSync(catalogPath, JSON.stringify({ opencode: { models: {} } }))
+    const adapter = createOpencodeAdapter({ dbPath, catalogPath })
+    try {
+      await expect(adapter.read('opencode-session:ses_empty')).resolves.toBeNull()
+      await expect(adapter.read('opencode-session:ses_unknown_model')).resolves.toBeNull()
+    } finally {
+      rmSync(directory, { recursive: true, force: true })
+    }
+  })
   test('codexAdapter lee el uso y la ventana publicados por Codex CLI', async () => {
     expect(await codexAdapter.read(fixture('codex.jsonl'))).toEqual({
       used: 158_198,

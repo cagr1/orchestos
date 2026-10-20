@@ -24,7 +24,10 @@
  *   - `codex`:  lee `payload.info.last_token_usage.total_tokens` y la ventana
  *     publicada en `payload.info.model_context_window`, del propio transcript.
  */
-import { readFileSync } from 'node:fs'
+import { Database } from 'bun:sqlite'
+import { existsSync, readFileSync } from 'node:fs'
+import { homedir } from 'node:os'
+import { join } from 'node:path'
 import {
   type BudgetThresholds,
   budgetStatus,
@@ -187,6 +190,100 @@ export const codexAdapter: ContextAdapter = {
   },
 }
 
+/** OpenCode — el uso de la conversación se guarda en su base de datos SQLite local. */
+export function createOpencodeAdapter(options: {
+  dbPath: string
+  catalogPath: string
+}): ContextAdapter {
+  return {
+    id: 'opencode',
+    thresholds: DEFAULT_THRESHOLDS,
+    async read(transcriptPath) {
+      const prefix = 'opencode-session:'
+      if (!transcriptPath.startsWith(prefix)) return null
+      const sessionId = transcriptPath.slice(prefix.length)
+      if (!sessionId || !existsSync(options.dbPath) || !existsSync(options.catalogPath)) return null
+
+      let db: Database | null = null
+      try {
+        db = new Database(options.dbPath, { readonly: true })
+        const row = db
+          .query(
+            `SELECT message.data AS data
+             FROM message
+             JOIN session ON session.id = message.session_id
+             WHERE session.id = ? AND json_extract(message.data, '$.role') = 'assistant'
+             ORDER BY COALESCE(json_extract(message.data, '$.time.created'), message.rowid) DESC`,
+          )
+          .all(sessionId) as { data: string }[]
+
+        let latest: Record<string, unknown> | null = null
+        let latestUsed = 0
+        for (const candidate of row) {
+          let data: unknown
+          try {
+            data = JSON.parse(candidate.data)
+          } catch {
+            continue
+          }
+          if (!isRecord(data) || !isRecord(data.tokens)) continue
+          const tokens = data.tokens
+          const input = nonNegativeNumber(tokens.input)
+          const cache = isRecord(tokens.cache) ? tokens.cache : {}
+          const cacheRead = nonNegativeNumber(cache.read)
+          const cacheWrite = nonNegativeNumber(cache.write)
+          if (input === null || cacheRead === null || cacheWrite === null) continue
+          const used = input + cacheRead + cacheWrite
+          if (used <= 0) continue
+          latest = data
+          latestUsed = used
+          break
+        }
+        if (!latest || typeof latest.providerID !== 'string') return null
+        const modelID = latest.modelID
+        if (typeof modelID !== 'string') return null
+        let catalog: unknown
+        try {
+          catalog = JSON.parse(readFileSync(options.catalogPath, 'utf8'))
+        } catch {
+          return null
+        }
+        const model = objectAt(objectAt(catalog, latest.providerID)?.models ?? null, modelID)
+        const limit = objectAt(model, 'limit')
+        const window = positiveNumber(limit?.context)
+        if (!window) return null
+        return { used: latestUsed, window, model: `${latest.providerID}/${modelID}` }
+      } catch {
+        return null
+      } finally {
+        db?.close()
+      }
+    },
+  }
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value)
+}
+
+function nonNegativeNumber(value: unknown): number | null {
+  return typeof value === 'number' && Number.isFinite(value) && value >= 0 ? value : null
+}
+
+const opencodeHome = homedir()
+export const opencodeAdapter = createOpencodeAdapter({
+  dbPath: join(
+    process.env.XDG_DATA_HOME ?? join(opencodeHome, '.local', 'share'),
+    'opencode',
+    'opencode.db',
+  ),
+  catalogPath: join(
+    process.env.XDG_CACHE_HOME ?? join(opencodeHome, '.cache'),
+    'opencode',
+    'models.json',
+  ),
+})
+
 /**
  * Lee los cupos actuales del app-server oficial de Codex.
  *
@@ -280,7 +377,7 @@ export async function readCodexRateLimitsLive(
 export const CODEX_RATE_LIMITS_TIMEOUT_MS = 8_000
 
 /** Agregar un CLI nuevo es agregar una entrada acá, no escribir un camino nuevo. */
-export const DEFAULT_ADAPTERS: ContextAdapter[] = [claudeAdapter, codexAdapter]
+export const DEFAULT_ADAPTERS: ContextAdapter[] = [claudeAdapter, codexAdapter, opencodeAdapter]
 
 /**
  * Primer adaptador que reconoce el transcript gana. `null` si ninguno lo

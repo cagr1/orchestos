@@ -1716,7 +1716,7 @@ ERP ni prueba visual nueva. Los ítems permanecen abiertos hasta sus gates reale
   Evidencia: tsc y lint sin errores; `test:coverage` 1785/0 (funciones 78,96 %, líneas 65,60 %).
   Gate en vivo: navegador real (Playwright), `docs/done/evidence/ERP.7.2b-live.json` — `chat-task-undo` 16/16: tarea
   por chat con Codex, diff `+1 −0`, Undo, archivo borrado, commit `orchestos(<id>): deshacer`, sin `REVERT_HEAD`.
-- [ ] **H.7.2c — ⚡ Registro de adaptadores: falta OpenCode.** Hallazgo por código
+- [x] **H.7.2c — ⚡ Registro de adaptadores: falta OpenCode.** Hallazgo por código
   (2026-09-08, Claude, verificando el hook H.7.3 a pedido de Carlos — "verifica que esto se
   cumpla para cualquier modelo"). `DEFAULT_ADAPTERS` en `scripts/context-adapters.ts:267` solo
   trae `[claudeAdapter, codexAdapter]`. El diseño del registro sí es genérico por modelo dentro
@@ -1736,6 +1736,18 @@ ERP ni prueba visual nueva. Los ítems permanecen abiertos hasta sus gates reale
   por catálogo igual que hace `claudeAdapter`, no inventar un fallback por familia.
   **Gate:** sesión real con OpenCode como agente activo, cruzar el 60%, ver el aviso en vivo —
   mismo criterio que el gate 🔍 de H.7.3, no un test que mockee el adaptador.
+  **Cerrado 2026-10-20.** OpenCode 1.19 no escribe JSONL: `opencodeAdapter` lee `~/.local/share/opencode/opencode.db`
+  en solo lectura (último mensaje assistant con tokens: `input + cache.read + cache.write`) y la ventana del catálogo
+  `~/.cache/opencode/models.json` (`limit.context`). El "transcript" es la pseudo-ruta `opencode-session:<id>`, que el hook
+  acepta. Como ningún hook de Claude corre en una sesión de OpenCode, se agregó el disparador:
+  `.opencode/plugin/context-budget.ts` llama al hook al final de cada turno (`session.idle` o `session.status` idle, uno
+  solo por turno, sin bloquear el event loop) y muestra el aviso como toast.
+  Gate en vivo: turno real de `opencode run -m opencode/deepseek-v4.1-flash-free` en este repo → `110241/200000`, 55 %,
+  `warn`; el plugin escribió `.orchestos/context-budget.json` con esa sesión 0,4 s después del fin del turno y regeneró el
+  handoff. Contra la DB real, `ses_051b929…` da `critical` (77 %). QA: sin bloqueantes; el aviso duplicado que halló se
+  corrigió (prueba con toast simulado: 1 toast). `tsc` verde, 34 tests en verde.
+  Hallado: `opencode.json` apunta a `opencode/deepseek-v4-flash-free`, que OpenCode ya no reconoce (lo decide Carlos).
+  Ejecutado por: mecanico (rondas 1 y 3) + criterio-alt (ronda 2) · revisión qa · Spec: docs/specs/H.7.2c.md
 - [ ] **H.7.3 — ⚡ El hook: avisar al 60% y volcar el handoff una sola vez.**
   (2026-10-11, commit `91687e4`: `warn` es ahora 40 % o 250 000 tokens y `critical` 65 % o 400 000; los "60%" de abajo son
   históricos. El gate 🔍 se cumple cruzando el umbral nuevo.)

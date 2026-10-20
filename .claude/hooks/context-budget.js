@@ -12,7 +12,12 @@ function main(inputText) {
   const input = parseJson(inputText)
   const transcriptPath = typeof input?.transcript_path === 'string' ? input.transcript_path : null
   const sessionId = typeof input?.session_id === 'string' ? input.session_id : null
-  if (!transcriptPath || !sessionId || !existsSync(transcriptPath)) return
+  if (
+    !transcriptPath ||
+    !sessionId ||
+    (!transcriptPath.startsWith('opencode-session:') && !existsSync(transcriptPath))
+  )
+    return
 
   const budget = runBudget(transcriptPath)
   if (!budget) return
