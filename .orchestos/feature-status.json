@@ -855,7 +855,7 @@
       "block": null,
       "delegation": "⚡",
       "title": "`bun audit` en rojo: 4 vulnerabilidades altas en dependencias transitivas",
-      "status": "open",
+      "status": "done",
       "closedDate": null
     },
     {
