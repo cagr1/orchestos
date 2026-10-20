@@ -1,4 +1,4 @@
-# NEXT — handoff 2026-10-20 (sigue H.7.2c → H.7.3; asignación de modelos del día abajo)
+# NEXT — handoff 2026-10-20 (lote H.7.2c → H.7.3 cerrado; asignación de modelos del día abajo)
 
 Un solo presente: orden y trampas vivas. Lo cerrado vive en `PLAN.md` y git (regla `AGENTS.md` § Reglas generales,
 2026-10-19: `NEXT.md` se toca solo al cerrar o cortar un lote). Arranque:
@@ -17,10 +17,11 @@ Prevalece sobre el roster y sobre `~/.claude/CLAUDE.md` § Selección de modelos
 ## Orden
 1. Lote ERP.7 cerrado: ERP.7 (informe `docs/done/ERP.7.md`) y ERP.7.2 (diff + deshacer por tarea en el hilo).
    Antes de commitear en el vault: `git -C ~/Projects/MemoriesMD branch --show-current`.
-2. H.7.2c → H.7.3. ERP.7.1 (modo de permiso y aprobar por acción) espera plan corto + GO de Carlos; base: aprobar =
+2. H.7.2c y H.7.3 cerrados (aviso de contexto en vivo en Claude Code y OpenCode). Sigue: ERP.7.1 (modo de permiso y aprobar por acción) espera plan corto + GO de Carlos; base: aprobar =
    aprobar el diff que ya muestra la tarjeta. ERP.6.2 cuando toque costo. Acceso remoto = IDEAS `#73`, después.
 3. Fiabilidad, cuando el pre-push la tumba: CI.23, CI.18, CI.19, CI.11, CI.27 (primero que deje evidencia).
-- Decisiones pendientes de Carlos sin ítem: turno de chat con CLI lento (más de 120 s o aviso honesto, en CI.18);
+- Decisiones pendientes de Carlos sin ítem: `opencode.json` apunta a `opencode/deepseek-v4-flash-free`, que OpenCode
+  ya no reconoce (OpenCode sugiere `deepseek-v4.1-flash-free`); turno de chat con CLI lento (más de 120 s o aviso honesto, en CI.18);
   peso de `main.js` tras UI.24.4 (dejarlo, alias de `rehype-raw` o lazy-load de Streamdown).
 
 ## Trampas vivas
