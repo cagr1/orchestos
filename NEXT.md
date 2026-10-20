@@ -1,4 +1,4 @@
-# NEXT — handoff 2026-10-20 (sigue ERP.7.1b → ERP.7.1c → ERP.7.1d; asignación de modelos abajo)
+# NEXT — handoff 2026-10-20 (lote ERP.7.1 cerrado; sigue fiabilidad o lo que Carlos elija; asignación de modelos abajo)
 
 Un solo presente: orden y trampas vivas. Lo cerrado vive en `PLAN.md` y git (regla `AGENTS.md` § Reglas generales,
 2026-10-19: `NEXT.md` se toca solo al cerrar o cortar un lote). Arranque:
@@ -17,11 +17,9 @@ Prevalece sobre el roster y sobre `~/.claude/CLAUDE.md` § Selección de modelos
 ## Orden
 1. Lote ERP.7 cerrado: ERP.7 (informe `docs/done/ERP.7.md`) y ERP.7.2 (diff + deshacer por tarea en el hilo).
    Antes de commitear en el vault: `git -C ~/Projects/MemoriesMD branch --show-current`.
-2. ERP.7.1 con GO (plan en PLAN.md § ERP.7.1). ERP.7.1a cerrado (`97640323`): capa común + Codex. Sigue ERP.7.1b
-   (tarjeta con Aprobar/Rechazar/Aprobar siempre + aviso en la barra lateral; contrato `GET/POST /api/runs/:id/approval`,
-   eventos `approval_requested`/`approval_resolved` en `src/run/approvals.ts`), luego ERP.7.1c (selector del composer;
-   ahí el default pasa de `full` a `auto-edit`, no antes), luego ERP.7.1d (Claude, OpenCode). ERP.6.2 cuando toque
-   costo. Acceso remoto = IDEAS `#73`, después.
+2. ERP.7.1 cerrado (a `97640323`, b `a66f5513`, c `6a0ac2f2`, d1 `22737ac9`, d2 `1ea4ef9e`). Solo los motores API quedan
+   sin aprobación por acción. Tareas creadas fuera del chat sin `approvalMode` siguen `full`. ERP.6.2 cuando toque costo.
+   Acceso remoto = IDEAS `#73`, después.
 3. Fiabilidad, cuando el pre-push la tumba: CI.23, CI.18, CI.19, CI.11, CI.27 (primero que deje evidencia).
 - Decisiones pendientes de Carlos sin ítem: turno de chat con CLI lento (más de 120 s o aviso honesto, en CI.18);
   peso de `main.js` tras UI.24.4 (dejarlo, alias de `rehype-raw` o lazy-load de Streamdown).
@@ -30,6 +28,14 @@ Prevalece sobre el roster y sobre `~/.claude/CLAUDE.md` § Selección de modelos
 - `delegate` (rol de escritura) inyecta "No hagas commit ni edites el plan": commit y push los hace el cerebro (Carlos
   eligió eso el 2026-10-20). El sandbox de los ejecutores GPT no tiene red (`bun install`/`bun audit` los corre el cerebro)
   y a veces lee el candado del cerebro como ajeno: el spec dice "el candado es del cerebro que te lanzó; escribe".
+- `delegate` inyecta "No invoques codex exec ni claude": un spec que exija probar un contrato de CLI en vivo para al ejecutor.
+  El cerebro prueba el contrato (como en ERP.7.1d1/d2) y lo pega en el spec como "verificado; no invoques".
+- Ronda de corrección = spec propio (`docs/specs/<ID>-rN.md`), no un anexo: con anexo, `mecanico` re-aplicó el spec entero
+  y pisó la evidencia en vivo con un fallo de su sandbox (ERP.7.1c r4).
+- Contratos de permisos verificados 2026-10-20: Claude 2.1.304 `--permission-prompt-tool` (ojo `--restricted` quita Bash y
+  el `defaultMode: auto` del usuario aprueba sin preguntar si no hay `--settings` propio); OpenCode 1.19.0 `opencode serve`
+  (`run` sin `--auto` rechaza solo; `always` es por patrón; Basic `opencode:<OPENCODE_SERVER_PASSWORD>`). Detalle en PLAN.md
+  § ERP.7.1d1/d2.
 - Codex 0.163: `commandActions` es aproximado; nunca derivar de ahí una identidad o una clasificación sin mirar el comando
   completo (bloqueante de QA en ERP.7.1a).
 - `plan:reconcile` "Could not prove a closing commit SHA": reabrir (`[ ]`), reconciliar, `[x]`, reconciliar, commitear.

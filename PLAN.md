@@ -1682,7 +1682,7 @@ ERP ni prueba visual nueva. Los ítems permanecen abiertos hasta sus gates reale
   Informe: → [evidencia](docs/done/ERP.7.md)
   Sin delegación: uso en vivo del cerebro (t3@0.1.0 en navegador real con Playwright); web por `investigar` (sonnet),
   código por `leer` (gpt-6-luna).
-- [ ] **ERP.7.1 — 🧠 El chat deja elegir el modo de permiso y aprobar o rechazar cada comando o edición del agente.**
+- [x] **ERP.7.1 — 🧠 El chat deja elegir el modo de permiso y aprobar o rechazar cada comando o edición del agente.**
   (abierto 2026-10-19, hallado en ERP.7) Hoy el composer solo muestra el modo y la aprobación inline es de tareas
   retenidas (`OrchestChatView.tsx:557`, `AgentComposer.tsx:684`). T3 trae 4 modos en el composer y Approve/Decline
   por acción, con aviso "Approval" en la barra lateral (`docs/done/evidence/ERP.7/permisos.png`). Lección en contra:
@@ -1696,6 +1696,9 @@ ERP ni prueba visual nueva. Los ítems permanecen abiertos hasta sus gates reale
   de lectura) y Total (`bypassPermissions` / `never`, lo de hoy). Lectura, búsqueda y listado no preguntan, según el tipo
   de acción que reporta el CLI. "Aprobar siempre en esta tarea" entra desde el primer corte. "Manual" (retener la tarea
   entera) queda aparte. Fuera: API/Ollama, recordar aprobaciones entre tareas, acceso remoto (IDEAS #73).
+  **Cerrado 2026-10-20** con ERP.7.1a-d: aprobación por acción en tareas Codex, Claude y OpenCode, tarjeta con
+  Approve/Reject/Always approve y aviso Approval, selector de modo en el composer (Auto-edit por defecto en tareas del chat).
+  Sin delegación: ítem padre.
 - [x] **ERP.7.1a — 🧠 Capa común de aprobación por acción y adaptador Codex (app-server) para tareas.**
   El run emite `approval_requested {runId, id, tipo: comando|edición, detalle}` y espera `POST /api/runs/:id/approval`
   (`aprobar | rechazar | aprobar-siempre`); la tarea Codex corre por `codex app-server` con la política del modo. Gate en
