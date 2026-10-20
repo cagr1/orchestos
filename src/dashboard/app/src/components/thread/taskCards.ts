@@ -1,4 +1,5 @@
-import type { ChatMessage } from '../../types/orchestos'
+import type { PendingApproval } from '../../api/runs'
+import type { ChatMessage, ChatThread, ProjectItem, TaskItem } from '../../types/orchestos'
 
 export type TaskCardState = 'held' | 'running' | 'failed' | 'blocked' | 'pending' | 'done'
 
@@ -148,4 +149,57 @@ export function taskDetail(description: string, max = 60): string {
   if (!plain) return description.trim()
   if (plain.length > max) return description.trim()
   return description.slice(description.indexOf(firstLine) + firstLine.length).trim()
+}
+
+/** Preserve the server's request order and full command/diff text. */
+export function approvalBlocks(pending: PendingApproval[]) {
+  return pending.map((request) => ({
+    ...request,
+    label: request.kind === 'command' ? 'Command' : 'Edit',
+    files: request.kind === 'edit' ? (request.detail.files ?? []) : [],
+  }))
+}
+
+/** Only the selected project's session ids participate; never mutate the stored agent status. */
+export function projectsWithApprovals(
+  projects: ProjectItem[],
+  projectId: string | undefined,
+  tasks: TaskItem[],
+): ProjectItem[] {
+  const waiting = new Set(
+    tasks
+      .filter((task) => task.status === 'running' && (task.pendingApprovals ?? 0) > 0)
+      .map((task) => task.sessionId)
+      .filter(Boolean),
+  )
+  return projects.map((project) =>
+    project.id !== projectId
+      ? project
+      : {
+          ...project,
+          agents: project.agents.map((agent) =>
+            waiting.has(agent.id) ? { ...agent, status: 'waiting_approval' as const } : agent,
+          ),
+        },
+  )
+}
+
+/** Session ids come from task_run_watch, scoped to each polled project. */
+export function threadsWithApprovals(
+  threads: ChatThread[],
+  sources: { projectId: string | null | undefined; tasks: TaskItem[] }[],
+): ChatThread[] {
+  return threads.map((thread) => {
+    const waiting = sources.some(
+      (source) =>
+        source.projectId === thread.projectId &&
+        source.tasks.some(
+          (task) =>
+            task.sessionId === thread.id &&
+            task.status === 'running' &&
+            (task.pendingApprovals ?? 0) > 0,
+        ),
+    )
+    return waiting ? { ...thread, status: 'waiting_approval' } : thread
+  })
 }

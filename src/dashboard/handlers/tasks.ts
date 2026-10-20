@@ -8,10 +8,10 @@ import { getChatSession } from '../../db/chat-sessions.ts'
 import { getProject } from '../../db/projects.ts'
 import { getRunSteps } from '../../db/run-steps.ts'
 import { db } from '../../db/sqlite.ts'
-import { upsertTaskRunWatch } from '../../db/task-run-watch.ts'
+import { getTaskRunWatch, upsertTaskRunWatch } from '../../db/task-run-watch.ts'
 import { autoRoute, describeTaskExecutor, formatRoute } from '../../router/auto-route.ts'
 import { resolveProjectAgentRule, taskFieldsFromRule } from '../../router/engine-cascade.ts'
-import { activeApprovalRun } from '../../run/approvals.ts'
+import { activeApprovalRun, pendingApprovals } from '../../run/approvals.ts'
 import { commitPaths, commitTasksYaml } from '../../run/commit-tasks-yaml.ts'
 import { detectInstalledClis } from '../../run/executors/cli-registry.ts'
 import { DIRTY_TREE_REASON_PREFIX, listDirtyFiles } from '../../run/sandbox-policy.ts'
@@ -95,7 +95,9 @@ function buildTaskRow(
   t: ReturnType<typeof loadTasks>['tasks'][number],
   cfg: Parameters<typeof describeTaskExecutor>[1],
   projectId: string | null,
+  root: string,
 ): TaskRow {
+  const approvalRunId = t.status === 'running' ? activeApprovalRun(t.id, projectId) : null
   return {
     id: t.id,
     description: t.description,
@@ -105,7 +107,9 @@ function buildTaskRow(
     ...assignedExecutor(t, cfg),
     retryCount: t.retry_count,
     qaVerdict: t.qa_verdict ?? null,
-    runId: (t.status === 'running' ? activeApprovalRun(t.id, projectId) : null) ?? t.run_id ?? null,
+    runId: approvalRunId ?? t.run_id ?? null,
+    pendingApprovals: approvalRunId ? pendingApprovals(approvalRunId).length : 0,
+    sessionId: t.status === 'running' ? (getTaskRunWatch(root, t.id)?.session_id ?? null) : null,
     lastRunAt: lastRunAt(t.run_id),
     engine: t.engine ?? null,
     output: t.output,
@@ -121,7 +125,7 @@ function loadTaskRows(root: string): TaskRow[] {
   try {
     const file = loadTasks(root)
     const cfg = loadOrcheConfig(root)
-    return file.tasks.map((t) => buildTaskRow(t, cfg, getProject(root)?.id ?? null))
+    return file.tasks.map((t) => buildTaskRow(t, cfg, getProject(root)?.id ?? null, root))
   } catch {
     return []
   }
@@ -153,7 +157,7 @@ function handleApiTasks(root: string): Response {
     const file = loadTasks(root)
     const cfg = loadOrcheConfig(root)
     const rows: TaskRow[] = file.tasks.map((t) =>
-      buildTaskRow(t, cfg, getProject(root)?.id ?? null),
+      buildTaskRow(t, cfg, getProject(root)?.id ?? null, root),
     )
     return jsonResponse({ exists: true, tasks: rows })
   } catch (e: any) {

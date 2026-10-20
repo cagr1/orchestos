@@ -10,9 +10,10 @@ import {
   type SessionContextResponse,
   type TimelineResponse,
 } from '../../api/chat'
+import type { PendingApproval } from '../../api/runs'
 import { type ConfigResponse, getConfig } from '../../api/settings'
 import { useStickToBottom } from '../../hooks/useStickToBottom'
-import type { ChatAttachment, ChatThread, SessionStatus } from '../../types/orchestos'
+import type { ChatAttachment, ChatThread, SessionStatus, TaskItem } from '../../types/orchestos'
 import { AgentComposer, type CliId } from '../common/AgentComposer'
 import { ContextRing } from '../common/ContextRing'
 import { ProviderLogo } from '../common/ProviderLogos'
@@ -34,6 +35,8 @@ import { buildTaskCards } from '../thread/taskCards'
 import { formatElapsed, livePhase } from '../thread/thinking'
 
 interface OrchestChatViewProps {
+  tasks?: TaskItem[]
+  approvals?: Record<string, PendingApproval[]>
   thread?: ChatThread
   projectExists?: boolean
   projectName?: string
@@ -59,6 +62,8 @@ const prefersReducedMotion = () =>
 
 export const OrchestChatView: React.FC<OrchestChatViewProps> = ({
   thread,
+  tasks = [],
+  approvals = {},
   projectExists = true,
   projectName,
   onSendMessage,
@@ -468,7 +473,19 @@ export const OrchestChatView: React.FC<OrchestChatViewProps> = ({
                         )}
                         {showCard && (
                           <TaskCard
-                            card={showCard}
+                            card={
+                              tasks.some(
+                                (task) => task.id === showCard.taskId && task.status === 'running',
+                              )
+                                ? { ...showCard, state: 'running' }
+                                : showCard
+                            }
+                            activeRunId={tasks.find((task) => task.id === showCard.taskId)?.runId}
+                            approvals={
+                              approvals[
+                                tasks.find((task) => task.id === showCard.taskId)?.runId ?? ''
+                              ] ?? []
+                            }
                             projectId={thread?.projectId}
                             error={
                               taskActionErrors[showCard.taskId] ??

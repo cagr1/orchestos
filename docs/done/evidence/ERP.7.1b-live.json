@@ -1,0 +1,244 @@
+{
+  "cases": [
+    {
+      "decision": "approve",
+      "pass": true,
+      "pending": {
+        "pending": [
+          {
+            "runId": "fa63749b-f925-40b7-934a-0116a931baf4",
+            "approvalId": "fd93cbce-4fe2-4018-aa63-988401f38ed6",
+            "kind": "command",
+            "detail": {
+              "command": "/bin/zsh -lc 'mkdir -p command-marker'",
+              "cwd": "/private/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/erp71b-live-sNurp2/.orchestos/worktrees/approval-approve-1792525324061"
+            },
+            "commandKey": "mkdir -p command-marker",
+            "readOnly": false
+          }
+        ],
+        "events": [
+          {
+            "type": "approval_resolved",
+            "runId": "fa63749b-f925-40b7-934a-0116a931baf4",
+            "approvalId": "05dee156-4ce5-4021-94d5-e02a7dcbb95d",
+            "decision": "auto"
+          },
+          {
+            "type": "approval_requested",
+            "runId": "fa63749b-f925-40b7-934a-0116a931baf4",
+            "approvalId": "fd93cbce-4fe2-4018-aa63-988401f38ed6",
+            "kind": "command",
+            "detail": {
+              "command": "/bin/zsh -lc 'mkdir -p command-marker'",
+              "cwd": "/private/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/erp71b-live-sNurp2/.orchestos/worktrees/approval-approve-1792525324061"
+            }
+          }
+        ]
+      },
+      "result": {
+        "status": "done",
+        "runId": "fa63749b-f925-40b7-934a-0116a931baf4",
+        "qaVerdict": "pass",
+        "qaReason": "QA LLM omitido: la tarea no declara criterios de aceptación; checks y salidas declaradas en verde",
+        "filesWritten": ["edit.txt"],
+        "filesBlocked": [],
+        "cost": {
+          "inputTokens": 3409,
+          "outputTokens": 225,
+          "usd": 0.0008553199999999999
+        },
+        "elapsedMs": 11620,
+        "contextWarnings": []
+      },
+      "markerObserved": true,
+      "events": [
+        {
+          "type": "approval_resolved",
+          "runId": "fa63749b-f925-40b7-934a-0116a931baf4",
+          "approvalId": "05dee156-4ce5-4021-94d5-e02a7dcbb95d",
+          "decision": "auto"
+        },
+        {
+          "type": "approval_requested",
+          "runId": "fa63749b-f925-40b7-934a-0116a931baf4",
+          "approvalId": "fd93cbce-4fe2-4018-aa63-988401f38ed6",
+          "kind": "command",
+          "detail": {
+            "command": "/bin/zsh -lc 'mkdir -p command-marker'",
+            "cwd": "/private/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/erp71b-live-sNurp2/.orchestos/worktrees/approval-approve-1792525324061"
+          }
+        },
+        {
+          "type": "approval_resolved",
+          "runId": "fa63749b-f925-40b7-934a-0116a931baf4",
+          "approvalId": "fd93cbce-4fe2-4018-aa63-988401f38ed6",
+          "decision": "approve"
+        }
+      ],
+      "status": "passed"
+    },
+    {
+      "decision": "reject",
+      "pass": true,
+      "pending": {
+        "pending": [
+          {
+            "runId": "2c039d8a-c4a7-4d1c-bb60-bf97e289a9a5",
+            "approvalId": "04d3f0b3-fcbe-4dee-a05c-9ef05d5d055d",
+            "kind": "command",
+            "detail": {
+              "command": "/bin/zsh -lc 'mkdir -p command-marker'",
+              "cwd": "/private/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/erp71b-live-q971uh/.orchestos/worktrees/approval-reject-1792525336270"
+            },
+            "commandKey": "mkdir -p command-marker",
+            "readOnly": false
+          }
+        ],
+        "events": [
+          {
+            "type": "approval_resolved",
+            "runId": "2c039d8a-c4a7-4d1c-bb60-bf97e289a9a5",
+            "approvalId": "5b5ab267-2b9f-488f-bed1-6bc080f4080a",
+            "decision": "auto"
+          },
+          {
+            "type": "approval_requested",
+            "runId": "2c039d8a-c4a7-4d1c-bb60-bf97e289a9a5",
+            "approvalId": "04d3f0b3-fcbe-4dee-a05c-9ef05d5d055d",
+            "kind": "command",
+            "detail": {
+              "command": "/bin/zsh -lc 'mkdir -p command-marker'",
+              "cwd": "/private/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/erp71b-live-q971uh/.orchestos/worktrees/approval-reject-1792525336270"
+            }
+          }
+        ]
+      },
+      "result": {
+        "status": "done",
+        "runId": "2c039d8a-c4a7-4d1c-bb60-bf97e289a9a5",
+        "qaVerdict": "pass",
+        "qaReason": "QA LLM omitido: la tarea no declara criterios de aceptación; checks y salidas declaradas en verde",
+        "filesWritten": ["edit.txt"],
+        "filesBlocked": [],
+        "cost": {
+          "inputTokens": 6046,
+          "outputTokens": 208,
+          "usd": 0.00108364
+        },
+        "elapsedMs": 8990,
+        "contextWarnings": []
+      },
+      "markerObserved": false,
+      "events": [
+        {
+          "type": "approval_resolved",
+          "runId": "2c039d8a-c4a7-4d1c-bb60-bf97e289a9a5",
+          "approvalId": "5b5ab267-2b9f-488f-bed1-6bc080f4080a",
+          "decision": "auto"
+        },
+        {
+          "type": "approval_requested",
+          "runId": "2c039d8a-c4a7-4d1c-bb60-bf97e289a9a5",
+          "approvalId": "04d3f0b3-fcbe-4dee-a05c-9ef05d5d055d",
+          "kind": "command",
+          "detail": {
+            "command": "/bin/zsh -lc 'mkdir -p command-marker'",
+            "cwd": "/private/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/erp71b-live-q971uh/.orchestos/worktrees/approval-reject-1792525336270"
+          }
+        },
+        {
+          "type": "approval_resolved",
+          "runId": "2c039d8a-c4a7-4d1c-bb60-bf97e289a9a5",
+          "approvalId": "04d3f0b3-fcbe-4dee-a05c-9ef05d5d055d",
+          "decision": "reject"
+        }
+      ],
+      "status": "passed"
+    },
+    {
+      "decision": "approve-always",
+      "pass": true,
+      "pending": {
+        "pending": [
+          {
+            "runId": "86c2e740-5170-41d2-a4ec-6d9de8ec9ec8",
+            "approvalId": "c753240e-8a36-44dc-bf06-f26ec455054c",
+            "kind": "command",
+            "detail": {
+              "command": "/bin/zsh -lc 'mkdir -p command-marker'",
+              "cwd": "/private/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/erp71b-live-WVR7Ob/.orchestos/worktrees/approval-approve-always-1792525345862"
+            },
+            "commandKey": "mkdir -p command-marker",
+            "readOnly": false
+          }
+        ],
+        "events": [
+          {
+            "type": "approval_resolved",
+            "runId": "86c2e740-5170-41d2-a4ec-6d9de8ec9ec8",
+            "approvalId": "5f344b3c-e597-463a-b6e0-f0843a2be594",
+            "decision": "auto"
+          },
+          {
+            "type": "approval_requested",
+            "runId": "86c2e740-5170-41d2-a4ec-6d9de8ec9ec8",
+            "approvalId": "c753240e-8a36-44dc-bf06-f26ec455054c",
+            "kind": "command",
+            "detail": {
+              "command": "/bin/zsh -lc 'mkdir -p command-marker'",
+              "cwd": "/private/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/erp71b-live-WVR7Ob/.orchestos/worktrees/approval-approve-always-1792525345862"
+            }
+          }
+        ]
+      },
+      "result": {
+        "status": "done",
+        "runId": "86c2e740-5170-41d2-a4ec-6d9de8ec9ec8",
+        "qaVerdict": "pass",
+        "qaReason": "QA LLM omitido: la tarea no declara criterios de aceptación; checks y salidas declaradas en verde",
+        "filesWritten": ["edit.txt"],
+        "filesBlocked": [],
+        "cost": {
+          "inputTokens": 6156,
+          "outputTokens": 177,
+          "usd": 0.00122506
+        },
+        "elapsedMs": 8516,
+        "contextWarnings": []
+      },
+      "markerObserved": true,
+      "events": [
+        {
+          "type": "approval_resolved",
+          "runId": "86c2e740-5170-41d2-a4ec-6d9de8ec9ec8",
+          "approvalId": "5f344b3c-e597-463a-b6e0-f0843a2be594",
+          "decision": "auto"
+        },
+        {
+          "type": "approval_requested",
+          "runId": "86c2e740-5170-41d2-a4ec-6d9de8ec9ec8",
+          "approvalId": "c753240e-8a36-44dc-bf06-f26ec455054c",
+          "kind": "command",
+          "detail": {
+            "command": "/bin/zsh -lc 'mkdir -p command-marker'",
+            "cwd": "/private/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/erp71b-live-WVR7Ob/.orchestos/worktrees/approval-approve-always-1792525345862"
+          }
+        },
+        {
+          "type": "approval_resolved",
+          "runId": "86c2e740-5170-41d2-a4ec-6d9de8ec9ec8",
+          "approvalId": "c753240e-8a36-44dc-bf06-f26ec455054c",
+          "decision": "approve-always"
+        },
+        {
+          "type": "approval_resolved",
+          "runId": "86c2e740-5170-41d2-a4ec-6d9de8ec9ec8",
+          "approvalId": "11bb623b-ea4e-4faf-985a-98a33dc62b0f",
+          "decision": "auto"
+        }
+      ],
+      "status": "passed"
+    }
+  ]
+}

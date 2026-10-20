@@ -1719,8 +1719,18 @@ ERP ni prueba visual nueva. Los ítems permanecen abiertos hasta sus gates reale
   --audit-level=high"), matriz 1825/0; pre-push verde. Quedan 4 avisos moderados (`qs` ×2, `fast-uri`, `brace-expansion`),
   fuera del umbral del gate. Commit `3d1a3a31`.
   Ejecutado por: mecanico (overrides) + cerebro (`bun install` y gates: el sandbox no tiene red) · Spec: docs/specs/SEC.1.md
-- [ ] **ERP.7.1b — ⚡ La tarjeta de tarea muestra la solicitud y la responde; aviso "Approval" en la barra lateral.**
+- [x] **ERP.7.1b — ⚡ La tarjeta de tarea muestra la solicitud y la responde; aviso "Approval" en la barra lateral.**
   Comando o diff propuesto + Aprobar / Rechazar / Aprobar siempre; gate en vivo en el dashboard real (Playwright).
+  **Cerrado 2026-10-20.** La lista de tareas trae `pendingApprovals` y `sessionId` (de `task_run_watch`,
+  `handlers/tasks.ts:108`); el chat sondea cada 1 s las tareas del proyecto **del hilo** mientras alguna corre y pasa las
+  solicitudes a `TaskCard` (comando + cwd o archivos + diff; `Approve` / `Reject` / `Always approve in this task`; una
+  solicitud respondida queda deshabilitada hasta salir). `Approval` en la fila del hilo en Chat y en Dev (solo proyecto
+  actual). QA adversarial (Sol) halló un bloqueante (chat de otro proyecto perdía reporte y aprobaciones) y dos menores
+  (sin aviso en la lista de Chats, doble POST con error pegado), corregidos con test.
+  Gate en vivo: navegador real (Playwright), `docs/done/evidence/ERP.7.1b-live.json`: Codex real en `auto-edit`, clic en cada botón; approve crea el
+  directorio, reject lo impide, approve-always no vuelve a preguntar el mismo comando; capturas en
+  `docs/done/evidence/ERP.7.1b/`. Cerebro: `tsc`, lint y `build:app` verdes, `test:coverage` 1838/0.
+  Ejecutado por: criterio-alt (3 rondas; la 2.ª cortada por caída de DNS) · revisión qa · Spec: docs/specs/ERP.7.1b.md
 - [ ] **ERP.7.1c — ⚡ Selector de modo en el composer (Supervisado / Auto-edición / Total), por defecto Auto-edición.**
   Reemplaza la etiqueta de `AgentComposer.tsx:684`; el valor viaja con la tarea creada desde el chat.
 - [ ] **ERP.7.1d — 🧠 Adaptadores Claude (`--permission-prompt-tool`/`PreToolUse`) y OpenCode (`opencode serve` + API de permisos).**

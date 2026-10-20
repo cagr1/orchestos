@@ -38,7 +38,8 @@ import {
   rejectInstinct,
   resolveMemoryConflict,
 } from './api/projectTabs'
-import { listRuns } from './api/runs'
+import { getRunApprovals, listRuns, type PendingApproval } from './api/runs'
+import { pollProjectAndThreadTasks } from './api/taskPolling'
 import {
   decideTaskPollAction,
   getRunnableTask,
@@ -60,6 +61,7 @@ import {
   type ProjectSubTab,
   type SettingsSection,
 } from './components/settings/OrchestSettingsView'
+import { projectsWithApprovals, threadsWithApprovals } from './components/thread/taskCards'
 import type {
   AppMode,
   ChatAttachment,
@@ -129,6 +131,14 @@ export default function App() {
 
   // Core OrchestOS entities state
   const [tasks, setTasks] = useState<TaskItem[]>([])
+  const [threadTasks, setThreadTasks] = useState<{
+    projectId: string | null | undefined
+    tasks: TaskItem[]
+  } | null>(null)
+  const [approvals, setApprovals] = useState<{
+    projectId: string | null | undefined
+    byRun: Record<string, PendingApproval[]>
+  } | null>(null)
   const [taskError, setTaskError] = useState<string | null>(null)
   const [taskRunError, setTaskRunError] = useState<string | null>(null)
   const [runningTaskId, setRunningTaskId] = useState<string | null>(null)
@@ -339,29 +349,52 @@ export default function App() {
 
   const currentProject = projects.find((p) => p.id === activeProjectId) || projects[0]
   const activeThread = threads.find((t) => t.id === activeThreadId)
+  const hasRunningTasks = tasks.some((task) => task.status === 'running')
+  const activeThreadTasks =
+    threadTasks?.projectId === activeThread?.projectId ? (threadTasks?.tasks ?? []) : []
+  const hasRunningThreadTasks = activeThreadTasks.some((task) => task.status === 'running')
   useEffect(() => {
-    if (!activeThread) return
+    if (!currentProject) return
     const localCountOf = (thread: ChatThread, taskId: string) =>
       thread.messages.filter((other) => other.taskId === taskId).length
     const awaiting = [
       ...new Set(
-        activeThread.messages
+        (activeThread?.messages ?? [])
           .filter((message) => message.role === 'assistant' && message.taskId && !message.taskHeld)
           .map((message) => message.taskId as string),
       ),
     ].filter(
       (taskId) =>
         !reportedTaskIds.current.has(
-          `${activeThread.id}:${taskId}:${localCountOf(activeThread, taskId)}`,
+          `${activeThread?.id}:${taskId}:${activeThread ? localCountOf(activeThread, taskId) : 0}`,
         ),
     )
-    if (!awaiting.length) return
+    if (!awaiting.length && !hasRunningTasks && !hasRunningThreadTasks) return
     let disposed = false
+    let polling = false
     const poll = async () => {
+      if (polling) return
+      polling = true
       try {
-        const tasks = await getProjectTasks(activeThread.projectId)
+        const result = await pollProjectAndThreadTasks(currentProject.id, activeThread?.projectId)
+        if (disposed) return
+        const tasks = result.threadTasks
+        setTasks(result.projectTasks)
+        setThreadTasks({ projectId: activeThread?.projectId, tasks })
+        const byRun: Record<string, PendingApproval[]> = {}
+        await Promise.all(
+          tasks
+            .filter(
+              (task) => task.status === 'running' && task.runId && (task.pendingApprovals ?? 0) > 0,
+            )
+            .map(async (task) => {
+              byRun[task.runId!] = await getRunApprovals(task.runId!, activeThread?.projectId)
+            }),
+        )
+        if (disposed) return
+        setApprovals({ projectId: activeThread?.projectId, byRun })
         for (const taskId of awaiting) {
-          if (disposed) return
+          if (disposed || !activeThread) return
           const task = tasks.find((item) => item.id === taskId)
           const localCount = localCountOf(activeThread, taskId)
           const runKey = `${activeThread.id}:${taskId}`
@@ -416,15 +449,24 @@ export default function App() {
         }
       } catch {
         // A transient polling failure should not hide a report forever.
+      } finally {
+        polling = false
       }
     }
-    const timer = window.setInterval(() => void poll(), 5_000)
+    const timer = window.setInterval(() => void poll(), 1_000)
     void poll()
     return () => {
       disposed = true
       window.clearInterval(timer)
     }
-  }, [activeThread?.id, activeThread?.projectId, activeThread?.messages])
+  }, [
+    activeThread?.id,
+    activeThread?.projectId,
+    activeThread?.messages,
+    currentProject?.id,
+    hasRunningTasks,
+    hasRunningThreadTasks,
+  ])
   const activeAgent = currentProject?.agents.find((a) => a.id === activeAgentId) || null
   const projectForSession = (id: string) => {
     const thread = threads.find((item) => item.id === id)
@@ -1219,12 +1261,15 @@ export default function App() {
           <ShellSidebar
             mode={mode}
             onChangeMode={handleModeChange}
-            threads={threads}
+            threads={threadsWithApprovals(threads, [
+              { projectId: currentProject?.id, tasks },
+              { projectId: activeThread?.projectId, tasks: activeThreadTasks },
+            ])}
             activeThreadId={activeThreadId}
             onSelectThread={setActiveThreadId}
             onNewChat={handleNewChat}
             onDeleteChat={handleDeleteChat}
-            projects={projects}
+            projects={projectsWithApprovals(projects, currentProject?.id, tasks)}
             activeProjectId={activeProjectId}
             onSelectProject={handleSelectProject}
             onNewProject={() => {
@@ -1252,6 +1297,10 @@ export default function App() {
             {mode === 'chat' && (
               <OrchestChatView
                 thread={activeThread}
+                tasks={activeThreadTasks}
+                approvals={
+                  approvals?.projectId === activeThread?.projectId ? approvals?.byRun : undefined
+                }
                 projectName={
                   projects.find((project) => project.id === activeThread?.projectId)?.name
                 }

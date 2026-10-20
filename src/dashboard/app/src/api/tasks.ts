@@ -11,6 +11,8 @@ export interface TaskRowResponse {
   retryCount: number
   qaVerdict: 'pass' | 'fail' | null
   runId: string | null
+  pendingApprovals: number
+  sessionId: string | null
   lastRunAt?: string | null
   engine: TaskItem['engine'] | null
   output: string[]
@@ -39,6 +41,8 @@ function mapTask(row: TaskRowResponse): TaskItem {
     retryReason: row.retryReason,
     qaVerdict: row.qaVerdict,
     runId: row.runId,
+    pendingApprovals: row.pendingApprovals ?? 0,
+    sessionId: row.sessionId ?? null,
     lastRunAt: row.lastRunAt ?? null,
     skill: row.skill,
     engine: row.engine || 'single-shot',

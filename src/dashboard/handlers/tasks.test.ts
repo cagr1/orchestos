@@ -3,6 +3,13 @@ import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { db } from '../../db/sqlite.ts'
+import { deleteTaskRunWatch, getTaskRunWatch, upsertTaskRunWatch } from '../../db/task-run-watch.ts'
+import {
+  createApprovalRun,
+  finishApprovalRun,
+  pendingApprovals,
+  resolveApproval,
+} from '../../run/approvals.ts'
 import {
   handleApiTasks,
   handleApiTasksCommitRun,
@@ -207,5 +214,52 @@ describe('dashboard task rows lastRunAt (UI.26.3)', () => {
     const body = (await handleApiTasks(noRun).json()) as { tasks: { lastRunAt: string | null }[] }
     expect(body.tasks[0]?.lastRunAt).toBeNull()
     expect(loadTaskRows(fixture('run-que-no-existe'))[0]?.lastRunAt).toBeNull()
+  })
+})
+
+describe('task approval rows (ERP.7.1b)', () => {
+  test('counts live requests, binds the watch session and clears both outside running', async () => {
+    const root = mkdtempSync(join(tmpdir(), 'task-approval-'))
+    roots.push(root)
+    const path = join(root, 'tasks.yaml')
+    const yaml =
+      'version: 1\nproject: test\ntasks:\n  - id: approval-task\n    description: Approval\n    executor: openrouter\n    output: [out.txt]\n    status: running\n'
+    writeFileSync(path, yaml)
+    const runId = crypto.randomUUID()
+    const adapter = createApprovalRun(runId, 'approval-task', null, 'supervised')
+    upsertTaskRunWatch({
+      root,
+      task_id: 'approval-task',
+      project_id: null,
+      session_id: 'chat-session',
+      pid: process.pid,
+    })
+    const requests = [
+      adapter.requestApproval({ kind: 'command', detail: { command: 'mkdir a' } }),
+      adapter.requestApproval({ kind: 'edit', detail: { files: ['out.txt'], diff: '+hello' } }),
+    ]
+    try {
+      expect(loadTaskRows(root)[0]).toMatchObject({
+        runId,
+        pendingApprovals: 2,
+        sessionId: 'chat-session',
+      })
+      expect((await handleApiTasks(root).json()).tasks[0].pendingApprovals).toBe(2)
+      const first = pendingApprovals(runId)[0]!
+      resolveApproval(runId, first.approvalId, 'approve')
+      expect(loadTaskRows(root)[0]?.pendingApprovals).toBe(1)
+      finishApprovalRun(runId)
+      expect(loadTaskRows(root)[0]?.pendingApprovals).toBe(0)
+      writeFileSync(path, yaml.replace('status: running', 'status: done'))
+      expect(loadTaskRows(root)[0]).toMatchObject({ pendingApprovals: 0, sessionId: null })
+    } finally {
+      finishApprovalRun(runId)
+      await Promise.all(requests)
+      const watch = getTaskRunWatch(root, 'approval-task')
+      if (watch) deleteTaskRunWatch(watch)
+      db.run('DELETE FROM approval_events WHERE run_id = ?', [runId])
+      db.run('DELETE FROM action_approvals WHERE run_id = ?', [runId])
+      db.run('DELETE FROM approval_runs WHERE id = ?', [runId])
+    }
   })
 })

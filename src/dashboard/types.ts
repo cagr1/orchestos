@@ -264,6 +264,8 @@ export interface TaskRow {
   assignedModel: string | null
   retryCount: number
   qaVerdict: 'pass' | 'fail' | null
+  pendingApprovals: number
+  sessionId: string | null
   runId: string | null // link to latest run in /api/runs
   /** `created_at` del run `runId`; `null` sin run o sin fila en `runs`. */
   lastRunAt: string | null

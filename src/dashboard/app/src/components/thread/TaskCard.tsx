@@ -1,7 +1,13 @@
 import { Check, Copy, RotateCw, Undo2, X } from 'lucide-react'
 import { motion, useReducedMotion } from 'motion/react'
-import { useEffect, useState } from 'react'
-import { getRun, revertRun } from '@/api/runs'
+import { useEffect, useMemo, useState } from 'react'
+import {
+  type ApprovalDecision,
+  getRun,
+  type PendingApproval,
+  resolveRunApproval,
+  revertRun,
+} from '@/api/runs'
 import { Button } from '@/components/ui/button'
 import {
   ThinkingStep,
@@ -10,9 +16,11 @@ import {
   ThinkingStepsHeader,
 } from '@/components/ui/thinking-steps'
 import { cn } from '@/lib/utils'
-import type { RunItem } from '@/types/orchestos'
+import type { FileDiffEntry, RunItem } from '@/types/orchestos'
+import { createApprovalAnswers } from './approvalAnswers'
 import { ThreadMarkdown } from './ThreadMarkdown'
 import {
+  approvalBlocks,
   type TaskCardData,
   type TaskCardReport,
   type TaskCardState,
@@ -77,7 +85,25 @@ function reportText(report: TaskCardReport, taskId: string): string {
   )
 }
 
+function TaskDiff({ diff }: { diff: FileDiffEntry }) {
+  return (
+    <div className="rounded-card border border-app bg-app-surface overflow-hidden text-xs">
+      <div className="px-3 py-2 bg-app-elevated border-b border-app flex items-center justify-between font-mono">
+        <span className="text-app font-medium">{diff.filePath || diff.path}</span>
+        <span className="text-emerald-400">
+          +{diff.additions ?? 0} -{diff.deletions ?? 0}
+        </span>
+      </div>
+      <pre className="p-3 bg-app-bg font-mono text-xs text-app overflow-x-auto leading-relaxed">
+        {diff.patch || diff.diff}
+      </pre>
+    </div>
+  )
+}
+
 interface TaskCardProps {
+  activeRunId?: string | null
+  approvals?: PendingApproval[]
   card: TaskCardData
   error?: string
   busy?: boolean
@@ -90,6 +116,8 @@ interface TaskCardProps {
 
 export function TaskCard({
   card,
+  activeRunId,
+  approvals = [],
   error,
   busy,
   onApprove,
@@ -98,6 +126,24 @@ export function TaskCard({
   onCommit,
   projectId,
 }: TaskCardProps) {
+  const [, refreshApprovalAnswers] = useState(0)
+  const approvalAnswers = useMemo(
+    () =>
+      createApprovalAnswers(
+        async (id, decision) => {
+          if (!activeRunId || !projectId) throw new Error('Missing approval run or project')
+          await resolveRunApproval(activeRunId, projectId, id, decision)
+        },
+        () => refreshApprovalAnswers((version) => version + 1),
+      ),
+    [activeRunId, projectId],
+  )
+  const approvalIds = JSON.stringify(
+    card.state === 'running' ? approvals.map((request) => request.approvalId).sort() : [],
+  )
+  useEffect(() => {
+    approvalAnswers.sync(JSON.parse(approvalIds) as string[])
+  }, [approvalAnswers, approvalIds])
   const [copied, setCopied] = useState(false)
   const reduced = useReducedMotion()
   const last = card.reports.at(-1)
@@ -127,6 +173,11 @@ export function TaskCard({
       current = false
     }
   }, [runId, projectId])
+
+  const answerApproval = async (approvalId: string, decision: ApprovalDecision) => {
+    if (!activeRunId || !projectId) return
+    await approvalAnswers.submit(approvalId, decision)
+  }
 
   const undo = async () => {
     if (!runId || !projectId) return
@@ -228,20 +279,7 @@ export function TaskCard({
             </summary>
             <div className="mt-2 space-y-3">
               {run.fileDiffs.map((diff) => (
-                <div
-                  key={diff.filePath || diff.path}
-                  className="rounded-card border border-app bg-app-surface overflow-hidden text-xs"
-                >
-                  <div className="px-3 py-2 bg-app-elevated border-b border-app flex items-center justify-between font-mono">
-                    <span className="text-app font-medium">{diff.filePath || diff.path}</span>
-                    <span className="text-emerald-400">
-                      +{diff.additions ?? 0} -{diff.deletions ?? 0}
-                    </span>
-                  </div>
-                  <pre className="p-3 bg-app-bg font-mono text-xs text-app overflow-x-auto leading-relaxed">
-                    {diff.patch || diff.diff}
-                  </pre>
-                </div>
+                <TaskDiff key={diff.filePath || diff.path} diff={diff} />
               ))}
             </div>
           </details>
@@ -283,6 +321,70 @@ export function TaskCard({
             {undoFiles.map((file) => (
               <div key={file}>{file}</div>
             ))}
+          </div>
+        )}
+        {card.state === 'running' &&
+          activeRunId &&
+          approvalBlocks(approvals).map((request) => (
+            <div key={request.approvalId} data-task-approval className="flex flex-col gap-2">
+              <span className="text-xs font-medium text-app">{request.label}</span>
+              {request.kind === 'command' ? (
+                <>
+                  <pre className="p-3 bg-app-bg font-mono text-xs text-app overflow-x-auto leading-relaxed">
+                    {request.detail.command}
+                  </pre>
+                  {request.detail.cwd && (
+                    <div className="font-mono text-xs text-app-muted">{request.detail.cwd}</div>
+                  )}
+                </>
+              ) : (
+                <>
+                  <div className="font-mono text-xs text-app-muted">
+                    {request.files.map((file) => (
+                      <div key={file}>{file}</div>
+                    ))}
+                  </div>
+                  {request.detail.diff && (
+                    <TaskDiff
+                      diff={{
+                        status: 'modified',
+                        filePath: request.files.join(', '),
+                        patch: request.detail.diff,
+                      }}
+                    />
+                  )}
+                </>
+              )}
+              <div className="flex items-center gap-2 pt-1">
+                <Button
+                  variant="primary"
+                  leadingIcon={Check}
+                  disabled={approvalAnswers.disabled(request.approvalId)}
+                  onClick={() => void answerApproval(request.approvalId, 'approve')}
+                >
+                  Approve
+                </Button>
+                <Button
+                  variant="secondary"
+                  leadingIcon={X}
+                  disabled={approvalAnswers.disabled(request.approvalId)}
+                  onClick={() => void answerApproval(request.approvalId, 'reject')}
+                >
+                  Reject
+                </Button>
+                <Button
+                  variant="secondary"
+                  disabled={approvalAnswers.disabled(request.approvalId)}
+                  onClick={() => void answerApproval(request.approvalId, 'approve-always')}
+                >
+                  Always approve in this task
+                </Button>
+              </div>
+            </div>
+          ))}
+        {approvalAnswers.error && (
+          <div role="alert" className="text-xs text-app-error">
+            {approvalAnswers.error}
           </div>
         )}
         {card.state === 'held' && (

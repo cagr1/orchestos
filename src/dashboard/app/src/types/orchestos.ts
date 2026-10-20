@@ -18,6 +18,8 @@ export interface TaskItem {
   retryReason?: string | null
   qaVerdict?: QaVerdict
   runId?: string | null
+  pendingApprovals?: number
+  sessionId?: string | null
   lastRunAt?: string | null
   skill?: string | null
   engine: ExecutionEngine
@@ -255,7 +257,7 @@ export interface AgentSession {
   model: string
   effort?: string
   duration: string
-  status: 'active' | 'completed' | 'idle'
+  status: 'active' | 'completed' | 'idle' | 'waiting_approval'
   shellCommandsCount: number
   filesCount: number
   lastLog?: string

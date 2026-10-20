@@ -1,6 +1,13 @@
 import { describe, expect, test } from 'bun:test'
-import type { ChatMessage } from '../../types/orchestos'
-import { buildTaskCards, taskDetail, taskName } from './taskCards'
+import type { ChatMessage, ChatThread, ProjectItem, TaskItem } from '../../types/orchestos'
+import {
+  approvalBlocks,
+  buildTaskCards,
+  projectsWithApprovals,
+  taskDetail,
+  taskName,
+  threadsWithApprovals,
+} from './taskCards'
 
 function msg(id: string, over: Partial<ChatMessage> = {}): ChatMessage {
   return { id, role: 'assistant', content: '', timestamp: '', ...over }
@@ -156,5 +163,114 @@ describe('buildTaskCards sin proposedTask (lanzada)', () => {
     ])
     expect(cards.byTask.get('u-9')?.state).toBe('failed')
     expect(cards.hidden.has('2')).toBe(true)
+  })
+})
+
+describe('action approvals (ERP.7.1b)', () => {
+  test('Chat approval badges combine selected and thread project tasks using sessionId', () => {
+    const threads = [
+      { id: 'a-chat', projectId: 'a', status: 'active' },
+      { id: 'b-chat', projectId: 'b', status: 'active' },
+      { id: 'untouched', projectId: 'c', status: 'completed' },
+    ] as ChatThread[]
+    const task = (sessionId: string, changes: Partial<TaskItem> = {}) =>
+      ({ id: 'task', status: 'running', pendingApprovals: 1, sessionId, ...changes }) as TaskItem
+    const result = threadsWithApprovals(threads, [
+      { projectId: 'a', tasks: [task('a-chat'), task('untouched')] },
+      { projectId: 'b', tasks: [task('b-chat')] },
+    ])
+    expect(result.map((thread) => thread.status)).toEqual([
+      'waiting_approval',
+      'waiting_approval',
+      'completed',
+    ])
+    expect(threads[0]?.status).toBe('active')
+    expect(result[2]).toBe(threads[2])
+    for (const changes of [
+      { status: 'done' as const },
+      { pendingApprovals: 0 },
+      { sessionId: null },
+    ]) {
+      expect(
+        threadsWithApprovals(threads, [{ projectId: 'b', tasks: [task('b-chat', changes)] }])[1]
+          ?.status,
+      ).toBe('active')
+    }
+    expect(threadsWithApprovals(threads, [])[0]?.status).toBe('active')
+  })
+  test('keeps request order and full command/cwd/diff, including multiline input', () => {
+    const requests = [
+      {
+        runId: 'r',
+        approvalId: 'c',
+        kind: 'command' as const,
+        detail: { command: 'mkdir a\necho done', cwd: '/project' },
+      },
+      {
+        runId: 'r',
+        approvalId: 'e',
+        kind: 'edit' as const,
+        detail: { files: ['a', 'b'], diff: '-before\n+after' },
+      },
+    ]
+    const blocks = approvalBlocks(requests)
+    expect(blocks.map((block) => [block.approvalId, block.label])).toEqual([
+      ['c', 'Command'],
+      ['e', 'Edit'],
+    ])
+    expect(blocks[0]?.detail).toEqual(requests[0]!.detail)
+    expect(blocks[1]?.detail.diff).toBe('-before\n+after')
+    expect(blocks[1]?.files).toEqual(['a', 'b'])
+    expect(approvalBlocks([])).toEqual([])
+    expect(
+      approvalBlocks([{ runId: 'r', approvalId: 'e', kind: 'edit', detail: {} }])[0]?.files,
+    ).toEqual([])
+  })
+  test('marks only matching running sessions in the current project and restores their original status', () => {
+    const projects: ProjectItem[] = ['current', 'other'].map((id) => ({
+      id,
+      name: id,
+      filesCount: 0,
+      agents: [
+        {
+          id: 'session',
+          name: 'Agent',
+          status: 'active',
+          duration: '',
+          model: 'codex',
+          shellCommandsCount: 0,
+          filesCount: 0,
+        },
+        {
+          id: 'idle',
+          name: 'Idle',
+          status: 'idle',
+          duration: '',
+          model: 'codex',
+          shellCommandsCount: 0,
+          filesCount: 0,
+        },
+      ],
+    }))
+    const task = {
+      id: 't',
+      status: 'running',
+      sessionId: 'session',
+      pendingApprovals: 2,
+    } as TaskItem
+    const waiting = projectsWithApprovals(projects, 'current', [task])
+    expect(waiting[0]?.agents[0]?.status).toBe('waiting_approval')
+    expect(waiting[0]?.agents[1]?.status).toBe('idle')
+    expect(waiting[1]).toBe(projects[1])
+    expect(projects[0]?.agents[0]?.status).toBe('active')
+    for (const change of [
+      { pendingApprovals: 0 },
+      { status: 'done' as const },
+      { sessionId: null },
+    ]) {
+      expect(
+        projectsWithApprovals(projects, 'current', [{ ...task, ...change }])[0]?.agents[0]?.status,
+      ).toBe('active')
+    }
   })
 })

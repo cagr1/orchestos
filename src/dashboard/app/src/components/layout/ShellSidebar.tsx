@@ -182,6 +182,11 @@ export const ShellSidebar: React.FC<ShellSidebarProps> = ({
                       </span>
                     </div>
 
+                    {thread.status === 'waiting_approval' && (
+                      <span className="text-xs text-app-warning" title="Waiting for your approval">
+                        Approval
+                      </span>
+                    )}
                     {onDeleteChat && (
                       <button
                         type="button"
@@ -366,7 +371,14 @@ export const ShellSidebar: React.FC<ShellSidebarProps> = ({
                               title={ag.name}
                             >
                               {/* Left icon: Loader while working, green check when done, or CLI brand icon */}
-                              {isWorking ? (
+                              {ag.status === 'waiting_approval' ? (
+                                <span
+                                  className="text-xs text-app-warning"
+                                  title="Waiting for your approval"
+                                >
+                                  Approval
+                                </span>
+                              ) : isWorking ? (
                                 <Loader2 className="w-4 h-4 text-app-muted animate-spin flex-shrink-0" />
                               ) : ag.status === 'completed' ? (
                                 <Check className="w-4 h-4 text-app-muted flex-shrink-0" />

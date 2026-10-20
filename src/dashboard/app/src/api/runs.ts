@@ -141,3 +141,42 @@ export async function revertRun(
   if (!body?.revertedSha) throw new Error('Revert response did not include revertedSha')
   return { ok: true, revertedSha: body.revertedSha }
 }
+
+export interface PendingApproval {
+  runId: string
+  approvalId: string
+  kind: 'command' | 'edit'
+  detail: { command?: string; cwd?: string; diff?: string; files?: string[] }
+}
+export type ApprovalDecision = 'approve' | 'reject' | 'approve-always'
+
+export async function getRunApprovals(
+  runId: string,
+  projectId: string,
+): Promise<PendingApproval[]> {
+  const response = await fetch(`/api/runs/${encodeURIComponent(runId)}/approval`, {
+    headers: { 'x-orchestos-project-id': projectId },
+  })
+  const body = (await response.json().catch(() => null)) as {
+    pending?: PendingApproval[]
+    error?: string
+  } | null
+  if (!response.ok) throw new Error(body?.error || `Request failed (${response.status})`)
+  if (!body?.pending) throw new Error('Approval response was empty')
+  return body.pending
+}
+
+export async function resolveRunApproval(
+  runId: string,
+  projectId: string,
+  approvalId: string,
+  decision: ApprovalDecision,
+): Promise<void> {
+  const response = await fetch(`/api/runs/${encodeURIComponent(runId)}/approval`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'x-orchestos-project-id': projectId },
+    body: JSON.stringify({ approvalId, decision }),
+  })
+  const body = (await response.json().catch(() => null)) as { error?: string } | null
+  if (!response.ok) throw new Error(body?.error || `Request failed (${response.status})`)
+}
