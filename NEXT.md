@@ -20,7 +20,8 @@ Prevalece sobre el roster y sobre `~/.claude/CLAUDE.md` § Selección de modelos
 2. ERP.7.1 cerrado (a `97640323`, b `a66f5513`, c `6a0ac2f2`, d1 `22737ac9`, d2 `1ea4ef9e`). Solo los motores API quedan
    sin aprobación por acción. Tareas creadas fuera del chat sin `approvalMode` siguen `full`. ERP.6.2 cuando toque costo.
    Acceso remoto = IDEAS `#73`, después.
-3. Fiabilidad, cuando el pre-push la tumba: CI.23, CI.18, CI.19, CI.11, CI.27 (primero que deje evidencia).
+3. Fiabilidad, cuando el pre-push la tumba: CI.23, CI.18, CI.19, CI.11. CI.27 cerrado: un flujo que revienta ya dice el
+   locator y deja `<flujo>/failure.png`.
 - Decisiones pendientes de Carlos sin ítem: turno de chat con CLI lento (más de 120 s o aviso honesto, en CI.18);
   peso de `main.js` tras UI.24.4 (dejarlo, alias de `rehype-raw` o lazy-load de Streamdown).
 
@@ -94,7 +95,8 @@ Verificados el 2026-10-14 contra el código salvo "(sin re-verificar)".
   `chat-streaming` "Dev renders text during generation … t_first=null" (ejecutor de AT.19.1, 2026-10-17);
   `restart-mid-run` caso A, reporte "failed · attempt 1/3" con
   reintento pendiente cuando el gate exige coincidir con el estado final (2026-10-13; decidir si un intento fallido con
-  reintento pendiente debe decir "failed"); `chat-context`, diálogo de nuevo chat sin Claude (sonda de CI.10 en
+  reintento pendiente debe decir "failed"); `chat-context` `locator.click` timeout al pasar de Codex a Claude (pre-push de `e1d3b12`; desde CI.27 deja locator y `failure.png`);
+  `chat-context`, diálogo de nuevo chat sin Claude (sonda de CI.10 en
   negativo bajo carga, 2026-10-05).
 - `waitForTaskRun` (`app/src/api/chat.ts`) espera hasta 10 min ante un `pending` con intento fallido: no se midió si
   deja el botón pulsado ocupado todo ese tiempo.

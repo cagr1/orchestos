@@ -1,7 +1,37 @@
 {
-  "exported_at": "2026-10-20T20:45:15.985Z",
+  "exported_at": "2026-10-20T21:33:43.882Z",
   "total_runs": 20,
   "runs": [
+    {
+      "id": "ui-chat-context-seed-1792531977589",
+      "task_class": "gate:ci.27:implement",
+      "model": "codex (cli default model) via Codex CLI",
+      "provider": "codex",
+      "status": "done",
+      "qa_verdict": "fail",
+      "qa_reason": "criterion 2 missing: README line absent",
+      "files_blocked": [],
+      "checks_failed": 0,
+      "usd_cost": 0,
+      "elapsed_ms": 0,
+      "tokens": 0,
+      "created_at": "2026-10-20T21:32:57.589Z"
+    },
+    {
+      "id": "ui-chat-context-model-seed-1792531977590",
+      "task_class": "gate:ci.27:implement",
+      "model": "gpt-6-luna via Codex CLI",
+      "provider": "codex",
+      "status": "done",
+      "qa_verdict": null,
+      "qa_reason": null,
+      "files_blocked": [],
+      "checks_failed": 0,
+      "usd_cost": 0,
+      "elapsed_ms": 0,
+      "tokens": 0,
+      "created_at": "2026-10-20T21:32:56.590Z"
+    },
     {
       "id": "19db78e2-97ee-455b-89a4-59e36222dc00",
       "task_class": "gate:erp.7.1d2:fix",
@@ -271,43 +301,13 @@
       "elapsed_ms": 12615,
       "tokens": 6248,
       "created_at": "2026-10-20T16:03:36.404Z"
-    },
-    {
-      "id": "c808b4ce-3acd-43d9-92ab-ef6d086a7f75",
-      "task_class": "gate:erp.7.1a:fix",
-      "model": "gpt-6-luna",
-      "provider": "codex",
-      "status": "done",
-      "qa_verdict": "pass",
-      "qa_reason": "QA LLM omitido: la tarea no declara criterios de aceptación; checks y salidas declaradas en verde",
-      "files_blocked": [],
-      "checks_failed": 0,
-      "usd_cost": 0.0007962199999999999,
-      "elapsed_ms": 21259,
-      "tokens": 3391,
-      "created_at": "2026-10-20T16:03:22.935Z"
-    },
-    {
-      "id": "926091a6-ea70-46e5-922c-2ec64f251a1d",
-      "task_class": "gate:erp.7.1a:fix",
-      "model": "gpt-6-luna",
-      "provider": "codex",
-      "status": "failed",
-      "qa_verdict": "fail",
-      "qa_reason": "missing declared output(s): edit.txt",
-      "files_blocked": [],
-      "checks_failed": 0,
-      "usd_cost": 0.00086972,
-      "elapsed_ms": 30980,
-      "tokens": 3558,
-      "created_at": "2026-10-20T16:02:27.812Z"
     }
   ],
   "stats": {
-    "failed": 1,
+    "failed": 0,
     "blocked": 0,
-    "done": 19,
+    "done": 20,
     "qa_failed": 1,
-    "total_cost_usd": "0.1391"
+    "total_cost_usd": "0.1375"
   }
 }

@@ -4,9 +4,25 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { parse as yamlParse, stringify as yamlStringify } from 'yaml'
 
-const { formatResult, lintFlowSource, writeGateRoles } = await import('./lib.mjs')
+const { describeFlowError, formatResult, lintFlowSource, writeGateRoles } = await import(
+  './lib.mjs'
+)
 
 describe('ui gate pure helpers', () => {
+  test('describes Playwright locator timeouts in one line', () => {
+    const error = new Error(
+      "locator.click: Timeout 1000ms exceeded.\nCall log:\n\u001b[2m  - waiting for getByRole('button', { name: 'Nope' })\u001b[22m\n",
+    )
+    expect(describeFlowError(error)).toBe(
+      "locator.click: Timeout 1000ms exceeded. [waiting for getByRole('button', { name: 'Nope' })]",
+    )
+  })
+
+  test('uses the first nonempty line without a call log and accepts non-Error values', () => {
+    expect(describeFlowError(new Error('boom\nsecond'))).toBe('boom')
+    expect(describeFlowError('plain')).toBe('plain')
+  })
+
   test('rejects flows that navigate through window.state', () => {
     expect(lintFlowSource('await page.click("button"); window.state.mode = "dev"')).toBe(
       'navega por window',
@@ -54,6 +70,20 @@ describe('ui gate pure helpers', () => {
         capturas: [],
       }),
     ).toBe('FAIL smoke: dev: not visible')
+  })
+
+  test('formats a flow error with its waiting locator', () => {
+    expect(
+      formatResult({
+        flujo: 'smoke',
+        pass: false,
+        steps: [],
+        errores: [
+          "locator.click: Timeout 1000ms exceeded. [waiting for getByRole('button', { name: 'Nope' })]",
+        ],
+        capturas: [],
+      }),
+    ).toContain('[waiting for getByRole(')
   })
 
   test('writes four gate roles when the project has no config', () => {

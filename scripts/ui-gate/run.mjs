@@ -9,7 +9,7 @@ import path from 'node:path'
 import { setTimeout as delay } from 'node:timers/promises'
 import { pathToFileURL } from 'node:url'
 import { chromium } from 'playwright'
-import { formatResult, lintFlowSource } from './lib.mjs'
+import { describeFlowError, formatResult, lintFlowSource, stripAnsi } from './lib.mjs'
 
 const flows = process.argv.slice(2)
 const runDir = path.join(os.tmpdir(), `ui-gate-${process.pid}`)
@@ -152,6 +152,7 @@ async function runFlow(name, base, port) {
   const result = { flujo: name, pass: false, steps: [], notes: [], errores: [], capturas: [] }
   const sourcePath = path.resolve('scripts/ui-gate/flows', `${name}.mjs`)
   let browser
+  let page
   let cleanups = []
   try {
     const source = await fsp.readFile(sourcePath, 'utf8')
@@ -163,7 +164,7 @@ async function runFlow(name, base, port) {
 
     const flow = await import(`${pathToFileURL(sourcePath).href}?run=${process.pid}-${Date.now()}`)
     browser = await chromium.launch()
-    const page = await browser.newPage({ viewport: { width: 1440, height: 1000 } })
+    page = await browser.newPage({ viewport: { width: 1440, height: 1000 } })
     const expectedHttpErrors = []
     const unexpectedErrors = []
     cleanups = []
@@ -246,8 +247,24 @@ async function runFlow(name, base, port) {
     result.errores.push(...unexpectedErrors)
     result.pass = result.steps.every((step) => step.ok) && result.errores.length === 0
   } catch (error) {
-    result.errores.push(error instanceof Error ? error.message : String(error))
+    const errorMessage = stripAnsi(error instanceof Error ? error.message : String(error))
+    result.errores.push(describeFlowError(error))
+    result.errorDetalle = errorMessage
     result.pass = false
+    if (page) {
+      try {
+        const shotDir = path.join(runDir, name)
+        await fsp.mkdir(shotDir, { recursive: true })
+        const shotPath = path.join(shotDir, 'failure.png')
+        await page.screenshot({ path: shotPath, fullPage: true, timeout: 5000 })
+        result.capturas.push(shotPath)
+      } catch (shotError) {
+        result.notes.push({
+          nombre: 'failure-shot',
+          detalle: shotError instanceof Error ? shotError.message : String(shotError),
+        })
+      }
+    }
   } finally {
     if (process.env.ORCHESTOS_GATE_EVIDENCE_HOME) {
       try {

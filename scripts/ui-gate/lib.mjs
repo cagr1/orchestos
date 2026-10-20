@@ -4,6 +4,21 @@ import { parse as yamlParse, stringify as yamlStringify } from 'yaml'
 
 const GATE_ROLES = ['orchestrator', 'executor', 'reviewer', 'auxiliary']
 
+export function stripAnsi(text) {
+  return text.replace(/\u001b\[[0-9;]*m/g, '')
+}
+
+export function describeFlowError(error) {
+  const message = stripAnsi(error instanceof Error ? error.message : String(error))
+  const lines = message.split(/\r?\n/)
+  const firstLine = lines.find((line) => line.trim()) ?? ''
+  const waitingLines = lines
+    .map((line) => line.trim().replace(/^-\s*/, ''))
+    .filter((line) => line.startsWith('waiting for '))
+  const lastWaiting = waitingLines.at(-1)
+  return lastWaiting ? `${firstLine} [${lastWaiting}]` : firstLine
+}
+
 export function writeGateRoles(projectRoot) {
   const configPath = join(projectRoot, 'orchestos.config.yaml')
   const config = existsSync(configPath) ? (yamlParse(readFileSync(configPath, 'utf8')) ?? {}) : {}

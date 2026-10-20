@@ -369,7 +369,7 @@
       "block": "H.7 — El contexto se llena en silencio y nadie avisa (ABIERTO 2026-09-02)",
       "delegation": "🔍",
       "title": "Un flujo que revienta no dice qué locator falló ni deja captura",
-      "status": "open",
+      "status": "done",
       "closedDate": null
     },
     {
