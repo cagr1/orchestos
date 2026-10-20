@@ -1,0 +1,164 @@
+{
+  "cases": [
+    {
+      "decision": "approve",
+      "pass": true,
+      "role": "orchestrator",
+      "model": "claude-opus-5-5",
+      "pending": {
+        "pending": [
+          {
+            "runId": "2ed666ab-0e05-4aff-b1c2-cc2c518da381",
+            "approvalId": "54c78bbb-4a9d-4c49-b601-9871cffa8409",
+            "kind": "command",
+            "detail": {
+              "command": "mkdir -p command-marker",
+              "cwd": "/private/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/erp71d1-live-PTrOIA/.orchestos/worktrees/approval-approve-1792528118831"
+            },
+            "commandKey": "mkdir -p command-marker",
+            "readOnly": false
+          }
+        ],
+        "events": [
+          {
+            "type": "approval_resolved",
+            "runId": "2ed666ab-0e05-4aff-b1c2-cc2c518da381",
+            "approvalId": "ecbca4a3-fbdb-46f9-8ef9-2f8b61803240",
+            "decision": "auto"
+          },
+          {
+            "type": "approval_requested",
+            "runId": "2ed666ab-0e05-4aff-b1c2-cc2c518da381",
+            "approvalId": "54c78bbb-4a9d-4c49-b601-9871cffa8409",
+            "kind": "command",
+            "detail": {
+              "command": "mkdir -p command-marker",
+              "cwd": "/private/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/erp71d1-live-PTrOIA/.orchestos/worktrees/approval-approve-1792528118831"
+            }
+          }
+        ]
+      },
+      "result": {
+        "status": "done",
+        "runId": "2ed666ab-0e05-4aff-b1c2-cc2c518da381",
+        "qaVerdict": "pass",
+        "qaReason": "QA LLM omitido: la tarea no declara criterios de aceptación; checks y salidas declaradas en verde",
+        "filesWritten": ["edit.txt"],
+        "filesBlocked": [],
+        "cost": {
+          "inputTokens": 6,
+          "outputTokens": 560,
+          "usd": 0.0316366
+        },
+        "elapsedMs": 12177,
+        "contextWarnings": []
+      },
+      "markerObserved": true,
+      "events": [
+        {
+          "type": "approval_resolved",
+          "runId": "2ed666ab-0e05-4aff-b1c2-cc2c518da381",
+          "approvalId": "ecbca4a3-fbdb-46f9-8ef9-2f8b61803240",
+          "decision": "auto"
+        },
+        {
+          "type": "approval_requested",
+          "runId": "2ed666ab-0e05-4aff-b1c2-cc2c518da381",
+          "approvalId": "54c78bbb-4a9d-4c49-b601-9871cffa8409",
+          "kind": "command",
+          "detail": {
+            "command": "mkdir -p command-marker",
+            "cwd": "/private/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/erp71d1-live-PTrOIA/.orchestos/worktrees/approval-approve-1792528118831"
+          }
+        },
+        {
+          "type": "approval_resolved",
+          "runId": "2ed666ab-0e05-4aff-b1c2-cc2c518da381",
+          "approvalId": "54c78bbb-4a9d-4c49-b601-9871cffa8409",
+          "decision": "approve"
+        }
+      ],
+      "status": "passed"
+    },
+    {
+      "decision": "reject",
+      "pass": true,
+      "role": "orchestrator",
+      "model": "claude-opus-5-5",
+      "pending": {
+        "pending": [
+          {
+            "runId": "f88d92d5-f6d6-44d6-b0bf-21c91b8f72b4",
+            "approvalId": "c98471d8-d1fc-4a85-8392-e7bd1bdea68d",
+            "kind": "command",
+            "detail": {
+              "command": "mkdir -p command-marker",
+              "cwd": "/private/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/erp71d1-live-FXjuzd/.orchestos/worktrees/approval-reject-1792528131588"
+            },
+            "commandKey": "mkdir -p command-marker",
+            "readOnly": false
+          }
+        ],
+        "events": [
+          {
+            "type": "approval_resolved",
+            "runId": "f88d92d5-f6d6-44d6-b0bf-21c91b8f72b4",
+            "approvalId": "fa30f64a-d362-491f-ac0d-263e0c7c5bac",
+            "decision": "auto"
+          },
+          {
+            "type": "approval_requested",
+            "runId": "f88d92d5-f6d6-44d6-b0bf-21c91b8f72b4",
+            "approvalId": "c98471d8-d1fc-4a85-8392-e7bd1bdea68d",
+            "kind": "command",
+            "detail": {
+              "command": "mkdir -p command-marker",
+              "cwd": "/private/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/erp71d1-live-FXjuzd/.orchestos/worktrees/approval-reject-1792528131588"
+            }
+          }
+        ]
+      },
+      "result": {
+        "status": "done",
+        "runId": "f88d92d5-f6d6-44d6-b0bf-21c91b8f72b4",
+        "qaVerdict": "pass",
+        "qaReason": "QA LLM omitido: la tarea no declara criterios de aceptación; checks y salidas declaradas en verde",
+        "filesWritten": ["edit.txt"],
+        "filesBlocked": [],
+        "cost": {
+          "inputTokens": 6,
+          "outputTokens": 492,
+          "usd": 0.0295208
+        },
+        "elapsedMs": 11404,
+        "contextWarnings": []
+      },
+      "markerObserved": false,
+      "events": [
+        {
+          "type": "approval_resolved",
+          "runId": "f88d92d5-f6d6-44d6-b0bf-21c91b8f72b4",
+          "approvalId": "fa30f64a-d362-491f-ac0d-263e0c7c5bac",
+          "decision": "auto"
+        },
+        {
+          "type": "approval_requested",
+          "runId": "f88d92d5-f6d6-44d6-b0bf-21c91b8f72b4",
+          "approvalId": "c98471d8-d1fc-4a85-8392-e7bd1bdea68d",
+          "kind": "command",
+          "detail": {
+            "command": "mkdir -p command-marker",
+            "cwd": "/private/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/erp71d1-live-FXjuzd/.orchestos/worktrees/approval-reject-1792528131588"
+          }
+        },
+        {
+          "type": "approval_resolved",
+          "runId": "f88d92d5-f6d6-44d6-b0bf-21c91b8f72b4",
+          "approvalId": "c98471d8-d1fc-4a85-8392-e7bd1bdea68d",
+          "decision": "reject"
+        }
+      ],
+      "status": "passed"
+    }
+  ]
+}

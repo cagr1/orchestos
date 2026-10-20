@@ -94,6 +94,29 @@ describe('servidor MCP de OrchestOS (stdio real)', () => {
     expect(call.error.code).toBe(-32602)
   })
 
+  test('create_task puede listar herramientas sin acceder a SQLite', async () => {
+    const proc = Bun.spawn(
+      [process.execPath, SERVER, '--tools', 'create_task', '--root', process.cwd()],
+      {
+        stdin: 'pipe',
+        stdout: 'pipe',
+        stderr: 'pipe',
+        env: { ...process.env, ORCHESTOS_HOME: '/dev/null' },
+      },
+    )
+    proc.stdin.write(`${JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'tools/list' })}\n`)
+    proc.stdin.end()
+    const [out, err, exitCode] = await Promise.all([
+      new Response(proc.stdout).text(),
+      new Response(proc.stderr).text(),
+      proc.exited,
+    ])
+    expect(exitCode, err).toBe(0)
+    expect(JSON.parse(out).result.tools.map((tool: { name: string }) => tool.name)).toEqual([
+      'create_task',
+    ])
+  })
+
   test('run_readonly por stdio real: git log -1 responde con el SHA del repo', async () => {
     const sha = (await Bun.$`git rev-parse --short HEAD`.cwd(process.cwd()).text()).trim()
     const [reply, denied] = await talk(

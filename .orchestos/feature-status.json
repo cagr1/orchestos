@@ -886,6 +886,24 @@
       "closedDate": null
     },
     {
+      "id": "ERP.7.1d1",
+      "sprint": "Fase 3 — Correr dentro de OrchestOS igual que el CLI directo",
+      "block": null,
+      "delegation": "🧠",
+      "title": "Adaptador de aprobación de Claude Code en tareas (`--permission-prompt-tool` vía el MCP de OrchestOS)",
+      "status": "done",
+      "closedDate": null
+    },
+    {
+      "id": "ERP.7.1d2",
+      "sprint": "Fase 3 — Correr dentro de OrchestOS igual que el CLI directo",
+      "block": null,
+      "delegation": "🧠",
+      "title": "Adaptador de aprobación de OpenCode en tareas (`opencode serve` + API de permisos)",
+      "status": "open",
+      "closedDate": null
+    },
+    {
       "id": "ERP.7.2",
       "sprint": "Fase 3 — Correr dentro de OrchestOS igual que el CLI directo",
       "block": null,

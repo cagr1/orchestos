@@ -81,7 +81,7 @@ Do not load or reference user-level configuration, personal instructions, or pri
 export const KNOWN_CLIS: CliDefinition[] = [
   {
     id: 'claude',
-    supportsActionApproval: false,
+    supportsActionApproval: true,
     taskEngine: 'external',
     binary: 'claude',
     label: 'Claude Code',

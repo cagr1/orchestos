@@ -162,7 +162,7 @@ describe('reportTaskOutcome', () => {
 
 it('task reports persist requested and effective approval modes with registry CLI names', () => {
   for (const [provider, effective, label] of [
-    ['claude', 'full', 'Claude Code'],
+    ['claude', 'auto-edit', 'Claude Code'],
     ['codex', 'auto-edit', 'Codex'],
     ['opencode', 'full', 'opencode'],
   ]) {

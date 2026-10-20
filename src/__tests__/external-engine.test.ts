@@ -70,6 +70,7 @@ interface MockSpawnCall {
   cmd: string[]
   cwd: string
   stdinText: string
+  env?: Record<string, string>
 }
 
 function makeMockProc(
@@ -153,9 +154,15 @@ afterEach(() => {
 function overrideBunSpawn(proc: MockProc) {
   Bun.spawn = ((
     cmd: string[],
-    opts?: { cwd?: string; stdin?: unknown; stdout?: unknown; stderr?: unknown },
+    opts?: {
+      cwd?: string
+      stdin?: unknown
+      stdout?: unknown
+      stderr?: unknown
+      env?: Record<string, string>
+    },
   ) => {
-    spawnCalls.push({ cmd: cmd.slice(), cwd: opts?.cwd ?? '', stdinText: '' })
+    spawnCalls.push({ cmd: cmd.slice(), cwd: opts?.cwd ?? '', stdinText: '', env: opts?.env })
     return proc as unknown as ReturnType<typeof Bun.spawn>
   }) as typeof Bun.spawn
 }
@@ -1048,4 +1055,32 @@ describe('B.3 — externalEngine (claude-code subprocess)', () => {
     expect(spawnCalls[0]!.cmd).not.toContain('--model')
     expect(spawnCalls[0]!.cmd).not.toContain('--effort')
   })
+})
+
+it('ERP.7.1d1 — task approvals require the harness adapter; spawn and displayed args share the approval run and timeout', async () => {
+  const root = makeGitRepo()
+  const wt = createWorktree('claude-approvals', 'main', root)
+  trackWorktree(wt)
+  const ctx = buildCtx(wt, baseTask({ approvalMode: 'auto-edit' }))
+  await expect(externalEngine.run(ctx, { maxTokens: 100, maxIterations: 1 })).rejects.toThrow(
+    'harness approval adapter',
+  )
+  expect(spawnCalls).toHaveLength(0)
+  const proc = installMockSpawn(mockResultLine({ total_cost_usd: 0.01 }))
+  overrideBunSpawn(proc)
+  const outcome = await externalEngine.run(ctx, {
+    maxTokens: 100,
+    maxIterations: 1,
+    approvals: { runId: 'harness-run', mode: 'auto-edit', requestApproval: async () => 'approve' },
+  })
+  const call = spawnCalls[0]!
+  expect(call.env?.MCP_TOOL_TIMEOUT).toBe('1800000')
+  expect(call.cmd[call.cmd.indexOf('--permission-mode') + 1]).toBe('manual')
+  const config = JSON.parse(call.cmd[call.cmd.indexOf('--mcp-config') + 1]!)
+  expect(config.mcpServers.orchestos.args).toContain('harness-run')
+  expect(config.mcpServers.orchestos.args.at(-1)).toBe(wt.path)
+  const displayed = outcome.costByIteration[0]!.args!
+  expect(call.cmd.slice(1).map((value, index) => (index === 6 ? '<contract>' : value))).toEqual(
+    displayed,
+  )
 })

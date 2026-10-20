@@ -11,6 +11,7 @@
  * Uso: `bun src/mcp/server.ts --tools create_task,run_readonly --root <abs>`.
  */
 
+import type { ApprovalMode } from '../run/approvals.ts'
 import {
   RUN_READONLY_DESCRIPTION,
   RUN_READONLY_SCHEMA,
@@ -19,6 +20,16 @@ import {
 } from './readonly.ts'
 
 export const MCP_SERVER_NAME = 'orchestos'
+export const APPROVE_ACTION_TOOL = 'approve_action'
+export const APPROVE_ACTION_SCHEMA = {
+  type: 'object',
+  properties: {
+    tool_name: { type: 'string' },
+    input: { type: 'object' },
+    tool_use_id: { type: 'string' },
+  },
+  required: ['tool_name', 'input'],
+} as const
 export const CREATE_TASK_TOOL = 'create_task'
 export const CREATE_TASK_RESPONSE = 'Task proposal sent; the user will see it and approve it.'
 
@@ -97,6 +108,8 @@ export interface McpServerOptions {
   tools: string[]
   /** Raíz absoluta del proyecto (cwd y frontera de `run_readonly`). */
   root: string
+  approvalRun?: string
+  approvalMode?: ApprovalMode
 }
 
 type JsonRpcId = string | number | null
@@ -133,6 +146,15 @@ export async function handleMcpMessage(
     case 'tools/list':
       return result({
         tools: [
+          ...(options.tools.includes(APPROVE_ACTION_TOOL)
+            ? [
+                {
+                  name: APPROVE_ACTION_TOOL,
+                  description: 'Request approval in OrchestOS.',
+                  inputSchema: APPROVE_ACTION_SCHEMA,
+                },
+              ]
+            : []),
           ...(options.tools.includes(CREATE_TASK_TOOL)
             ? [
                 {
@@ -160,6 +182,35 @@ export async function handleMcpMessage(
         result({ content: [{ type: 'text', text: value }], isError })
       if (typeof name !== 'string' || !options.tools.includes(name))
         return failure(-32602, `Unknown tool: ${name}`)
+      if (name === APPROVE_ACTION_TOOL) {
+        const args = message.params?.arguments
+        if (
+          !options.approvalRun ||
+          !options.approvalMode ||
+          !args ||
+          typeof args.tool_name !== 'string' ||
+          !args.input ||
+          typeof args.input !== 'object' ||
+          Array.isArray(args.input)
+        )
+          return text(JSON.stringify({ behavior: 'deny', message: 'Rejected in OrchestOS' }), false)
+        const [{ approvalAdapterFor }, { claudeApprovalRequest }] = await Promise.all([
+          import('../run/approvals.ts'),
+          import('../run/executors/claude-approval.ts'),
+        ])
+        const decision = await approvalAdapterFor(
+          options.approvalRun,
+          options.approvalMode,
+        ).requestApproval(claudeApprovalRequest(args, options.root))
+        return text(
+          JSON.stringify(
+            decision === 'approve'
+              ? { behavior: 'allow', updatedInput: args.input }
+              : { behavior: 'deny', message: 'Rejected in OrchestOS' },
+          ),
+          false,
+        )
+      }
       if (name === RUN_READONLY_TOOL) {
         const out = await runReadonly(message.params?.arguments, options.root)
         return text(out.text, out.isError)
@@ -212,7 +263,14 @@ export function parseServerArgs(argv: string[]): McpServerOptions {
     return at >= 0 ? argv[at + 1] : undefined
   }
   const tools = (value('--tools') ?? CREATE_TASK_TOOL).split(',').filter(Boolean)
-  return { tools, root: value('--root') ?? process.cwd() }
+  const mode = value('--approval-mode')
+  return {
+    tools,
+    root: value('--root') ?? process.cwd(),
+    approvalRun: value('--approval-run'),
+    approvalMode:
+      mode === 'full' || mode === 'auto-edit' || mode === 'supervised' ? mode : undefined,
+  }
 }
 
 if (import.meta.main) {

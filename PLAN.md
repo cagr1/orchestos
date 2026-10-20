@@ -1748,6 +1748,26 @@ ERP ni prueba visual nueva. Los ítems permanecen abiertos hasta sus gates reale
   Ejecutado por: criterio-alt (ronda 1) + mecanico (rondas 2-4) · revisión qa · Spec: docs/specs/ERP.7.1c.md
 - [ ] **ERP.7.1d — 🧠 Adaptadores Claude (`--permission-prompt-tool`/`PreToolUse`) y OpenCode (`opencode serve` + API de permisos).**
   Uno por sub-ítem al abrirlo, con su gate en vivo; mismo contrato de ERP.7.1a, sin ramas por marca.
+- [x] **ERP.7.1d1 — 🧠 Adaptador de aprobación de Claude Code en tareas (`--permission-prompt-tool` vía el MCP de OrchestOS).**
+  (abierto 2026-10-20) Hoy la tarea Claude corre con `--allowedTools` que preaprueba todo y sin MCP (`external.ts:185-203`).
+  Con modo ≠ `full`: solo lectura preaprobada; el resto va a una herramienta MCP `approve_action` que crea la solicitud en
+  SQLite (`approvals.ts`) y espera la decisión; `decideApproval()` aplica el modo igual que en Codex. Gate en vivo: tarea
+  Claude real en `auto-edit`, la edición pasa sola, `mkdir` pide aprobación en la tarjeta; approve/reject.
+  **Cerrado 2026-10-20.** Contrato verificado por el cerebro contra Claude Code 2.1.304: `--permission-prompt-tool
+  mcp__orchestos__approve_action` recibe `{tool_name, input, tool_use_id}` y acepta `{"behavior":"allow","updatedInput"}` /
+  `{"behavior":"deny","message"}`. Trampas halladas: `--restricted` quita Bash salvo que `--tools` lo nombre, y sin
+  `--settings` propio + `--permission-mode manual` el `defaultMode: auto` del usuario aprueba `mkdir` sin preguntar. Con modo
+  ≠ `full`: `--permission-mode manual --tools Bash,Read,Glob,Grep,Edit,Write,MultiEdit --allowedTools Read,Glob,Grep`, MCP
+  propio con `--approval-run/--approval-mode` y `MCP_TOOL_TIMEOUT` 30 min; `full` = argumentos de antes. Capa común:
+  `approvalAdapterFor(runId, mode)` reconecta el proceso MCP a la corrida del harness (`approvals.ts`); mapeo puro en
+  `claude-approval.ts`. Claude `supportsActionApproval: true`. QA (Sol): el MCP del chat abría SQLite al arrancar (import
+  diferido de `approvals.ts`, con test).
+  Gate en vivo: navegador real (Playwright), `docs/done/evidence/ERP.7.1d1-live.json`: tarea Claude real (rol orchestrator,
+  `claude-opus-5-5`) en `auto-edit`; la edición se aprobó sola y `mkdir -p command-marker` pidió aprobación en la tarjeta;
+  approve lo creó, reject no. Cerebro: `tsc`, lint verdes, `test:coverage` 1861/0.
+  Ejecutado por: criterio-alt (rondas 1-3) + mecanico (rondas 4-6) · revisión qa · Spec: docs/specs/ERP.7.1d1.md
+- [ ] **ERP.7.1d2 — 🧠 Adaptador de aprobación de OpenCode en tareas (`opencode serve` + API de permisos).**
+  (abierto 2026-10-20) Hoy `opencode run … --auto` (`opencode.ts:82`). Mismo contrato y gate en vivo que ERP.7.1d1.
 - [x] **ERP.7.2 — 🧠 Cada turno del chat muestra su diff y se puede deshacer.** (abierto 2026-10-19, hallado en ERP.7)
   El chat no tiene diff por turno ni revert; el revert vive solo en el harness de tareas (`src/run/harness.ts:13`). T3
   cierra cada turno con "N changed files · Open diff" y guarda checkpoints en refs ocultas de git, sin ensuciar la

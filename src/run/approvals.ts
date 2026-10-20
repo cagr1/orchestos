@@ -15,6 +15,8 @@ export interface ApprovalRequest {
   withinProject?: boolean
 }
 export interface ApprovalAdapter {
+  readonly runId: string
+  readonly mode: ApprovalMode
   requestApproval(request: ApprovalRequest): Promise<'approve' | 'reject'>
 }
 export interface PendingApproval extends ApprovalRequest {
@@ -173,7 +175,14 @@ export function createApprovalRun(
     'INSERT INTO approval_runs (id, task_id, project_id, owner_pid, active, grants) VALUES (?, ?, ?, ?, 1, ?)',
     [runId, taskId, projectId, process.pid, '[]'],
   )
+  return approvalAdapterFor(runId, mode)
+}
+
+/** Reconnect an MCP process to the run owned by the harness, preserving its grants and lifetime. */
+export function approvalAdapterFor(runId: string, mode: ApprovalMode): ApprovalAdapter {
   return {
+    runId,
+    mode,
     async requestApproval(request) {
       const session = getApprovalRun(runId)
       if (!session?.active) return 'reject'

@@ -18,7 +18,9 @@
  */
 
 import { realpathSync } from 'node:fs'
+import { join } from 'node:path'
 import { claudeMcpArgs, type McpOffer } from '../../mcp/adapters.ts'
+import type { ApprovalAdapter } from '../approvals.ts'
 import { safeChildEnv } from '../path-policy.ts'
 import { ClaudeReadAudit, type ReadAudit, successfulReadPaths } from '../read-audit.ts'
 import { KNOWN_CLIS, provisionCliConfigHome, supportsRestrictedMode } from './cli-registry.ts'
@@ -188,6 +190,8 @@ export function buildClaudeArgs(
   effort?: string,
   blockSubagents = false,
   settingsPath?: string,
+  approvals?: Pick<ApprovalAdapter, 'runId' | 'mode'>,
+  projectRoot = process.cwd(),
 ): string[] {
   const args = [
     '-p',
@@ -198,7 +202,7 @@ export function buildClaudeArgs(
     '--append-system-prompt',
     systemPrompt,
     '--allowedTools',
-    CLAUDE_TASK_ALLOWED_TOOLS,
+    approvals && approvals.mode !== 'full' ? CLAUDE_CHAT_TOOLS : CLAUDE_TASK_ALLOWED_TOOLS,
   ]
   const cliModel = orchestosModelToCliModel(model)
   if (cliModel) args.push('--model', cliModel)
@@ -206,6 +210,37 @@ export function buildClaudeArgs(
   if (blockSubagents) args.push(...claudeSubagentBlockArgs())
   // R.8.5.1 — mismo aislamiento que el chat: sin esto el CLAUDE.md global del usuario entra al prompt.
   if (settingsPath) args.push(...CLAUDE_CHAT_BOUNDARY_FLAGS, '--settings', settingsPath)
+  if (approvals && approvals.mode !== 'full') {
+    if (!settingsPath)
+      throw new ExecutorExternalError('Claude action approvals require task settings')
+    args.push(
+      '--permission-mode',
+      'manual',
+      '--tools',
+      'Bash,Read,Glob,Grep,Edit,Write,MultiEdit',
+      '--permission-prompt-tool',
+      'mcp__orchestos__approve_action',
+      '--mcp-config',
+      JSON.stringify({
+        mcpServers: {
+          orchestos: {
+            command: process.execPath,
+            args: [
+              join(import.meta.dir, '../../mcp/server.ts'),
+              '--tools',
+              'approve_action',
+              '--approval-run',
+              approvals.runId,
+              '--approval-mode',
+              approvals.mode,
+              '--root',
+              projectRoot,
+            ],
+          },
+        },
+      }),
+    )
+  }
   return args
 }
 
@@ -214,24 +249,18 @@ export function buildClaudeArgsDisplay(
   effort?: string,
   blockSubagents = false,
   settingsPath?: string,
+  approvals?: Pick<ApprovalAdapter, 'runId' | 'mode'>,
+  projectRoot = process.cwd(),
 ): string[] {
-  const args = [
-    '-p',
-    '--output-format',
-    'stream-json',
-    '--include-partial-messages',
-    '--verbose',
-    '--append-system-prompt',
+  return buildClaudeArgs(
     '<contract>',
-    '--allowedTools',
-    CLAUDE_TASK_ALLOWED_TOOLS,
-  ]
-  const cliModel = orchestosModelToCliModel(model)
-  if (cliModel) args.push('--model', cliModel)
-  if (effort) args.push('--effort', effort)
-  if (blockSubagents) args.push(...claudeSubagentBlockArgs())
-  if (settingsPath) args.push(...CLAUDE_CHAT_BOUNDARY_FLAGS, '--settings', settingsPath)
-  return args
+    model,
+    effort,
+    blockSubagents,
+    settingsPath,
+    approvals,
+    projectRoot,
+  )
 }
 
 /**
@@ -255,6 +284,7 @@ async function runClaudeCode(
   binary = CLAUDE_BINARY,
   audit = new ClaudeReadAudit(),
   onTextDelta?: (text: string) => void,
+  approvalTimeout = false,
 ): Promise<{
   stdout: string
   timedOut: boolean
@@ -262,14 +292,15 @@ async function runClaudeCode(
   lastAssistant?: LastAssistantUsage
   readAudit: ReadAudit
 }> {
+  const env = safeChildEnv()
+  if (approvalTimeout) env.MCP_TOOL_TIMEOUT = String(30 * 60 * 1000)
   const proc = Bun.spawn([binary, ...args], {
     cwd,
-    env: safeChildEnv(),
+    env,
     stdin: 'pipe',
     stdout: 'pipe',
     stderr: 'pipe',
   })
-  const env = safeChildEnv()
   const trace = startSpawnTrace('claude', proc.pid, args, cwd, env)
   let stderrText = ''
   const stderrDone = new Response(proc.stderr)
@@ -600,6 +631,13 @@ export const externalEngine: ExecutorEngine = {
       )
     }
 
+    const approvalMode = ctx.task.approvalMode ?? 'full'
+    if (approvalMode !== 'full' && (!opts.approvals || opts.approvals.mode !== approvalMode)) {
+      throw new ExecutorExternalError(
+        'Claude action approvals require the harness approval adapter',
+      )
+    }
+    const approvals = approvalMode !== 'full' ? opts.approvals : undefined
     const systemPrompt = buildSystemPrompt(ctx)
     const timeoutMs = opts.timeoutMs ?? DEFAULT_TIMEOUT_MS
     const configHome = provisionCliConfigHome(ctx.opts.projectRoot, 'claude')
@@ -610,10 +648,22 @@ export const externalEngine: ExecutorEngine = {
     try {
       ;({ timedOut, resultLine, lastAssistant } = await runClaudeCode(
         ctx.effectiveRoot,
-        buildClaudeArgs(systemPrompt, ctx.model, ctx.cliEffort, true, configHome.settingsPath),
+        buildClaudeArgs(
+          systemPrompt,
+          ctx.model,
+          ctx.cliEffort,
+          true,
+          configHome.settingsPath,
+          approvals,
+          ctx.effectiveRoot,
+        ),
         ctx.prompt.userContent,
         timeoutMs,
         opts.onStep,
+        CLAUDE_BINARY,
+        new ClaudeReadAudit(),
+        undefined,
+        approvalMode !== 'full',
       ))
     } catch (e: any) {
       throw new ExecutorExternalError(`failed to spawn claude code: ${e.message}`)
@@ -681,7 +731,14 @@ export const externalEngine: ExecutorEngine = {
           // para no inflar la DB. La UI muestra la línea de comandos reconstruida
           // a partir de estos campos — ver screens-ops.js detail().
           binary: CLAUDE_BINARY,
-          args: buildClaudeArgsDisplay(ctx.model, ctx.cliEffort, true, configHome.settingsPath),
+          args: buildClaudeArgsDisplay(
+            ctx.model,
+            ctx.cliEffort,
+            true,
+            configHome.settingsPath,
+            approvals,
+            ctx.effectiveRoot,
+          ),
         },
       ],
       log: [

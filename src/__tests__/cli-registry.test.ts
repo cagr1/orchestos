@@ -244,6 +244,7 @@ describe('H.9.2 — capability de frontera verificada contra el binario', () => 
 it('action approval is a declared CLI capability; unsupported task engines use full', async () => {
   const { actionApprovalPolicy, KNOWN_CLIS } = await import('../run/executors/cli-registry.ts')
   expect(KNOWN_CLIS.filter((cli) => cli.supportsActionApproval).map((cli) => cli.id)).toEqual([
+    'claude',
     'codex',
   ])
   for (const mode of ['supervised', 'auto-edit', 'full'] as const) {
@@ -252,7 +253,12 @@ it('action approval is a declared CLI capability; unsupported task engines use f
       requestedApprovalMode: mode,
       approvalCli: 'Codex',
     })
-    for (const engine of ['external', 'opencode', 'single-shot', 'agentic']) {
+    expect(actionApprovalPolicy('external', mode)).toMatchObject({
+      approvalMode: mode,
+      requestedApprovalMode: mode,
+      approvalCli: 'Claude Code',
+    })
+    for (const engine of ['opencode', 'single-shot', 'agentic']) {
       expect(actionApprovalPolicy(engine, mode)).toMatchObject({
         approvalMode: 'full',
         requestedApprovalMode: mode,
