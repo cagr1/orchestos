@@ -188,6 +188,7 @@ async function rowBreakdownFor(runId: string): Promise<
     inputTokens: number
     outputTokens: number
     costUsd: number
+    source?: 'reported' | 'estimated' | 'unknown'
   }>
 > {
   const { getRun } = await import('../db/runs.ts')
@@ -214,7 +215,7 @@ describe('G.4 — cost_breakdown_json persistido en cada insertRun (gap de G.3)'
       )
       expect(result.status).toBe('done')
       const breakdown = await rowBreakdownFor(result.runId)
-      expect(breakdown).toHaveLength(1)
+      expect(breakdown).toHaveLength(2)
       expect(breakdown[0]!.label).toBe('single-shot')
       // El modelo lo resuelve el router (con modelOverride='anthropic/claude-haiku-4-5'
       // en callRunTask), no el del response body. La costByIteration registra el modelo
@@ -223,6 +224,14 @@ describe('G.4 — cost_breakdown_json persistido en cada insertRun (gap de G.3)'
       expect(breakdown[0]!.inputTokens).toBe(7)
       expect(breakdown[0]!.outputTokens).toBe(4)
       expect(breakdown[0]!.costUsd).toBeGreaterThan(0)
+      expect(breakdown[1]).toEqual({
+        label: 'reviewer',
+        model: 'mock/model',
+        inputTokens: 3,
+        outputTokens: 2,
+        costUsd: 0,
+        source: 'unknown',
+      })
     } finally {
       rmSync(dir, { recursive: true, force: true })
     }

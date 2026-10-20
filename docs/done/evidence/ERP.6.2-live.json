@@ -1,0 +1,89 @@
+[
+  {
+    "flujo": "runs-graph",
+    "pass": true,
+    "steps": [
+      {
+        "nombre": "temporary project visible",
+        "ok": true,
+        "detalle": "project visible in sidebar"
+      },
+      {
+        "nombre": "project settings visible",
+        "ok": true,
+        "detalle": "project settings heading visible"
+      },
+      {
+        "nombre": "git state from API",
+        "ok": true,
+        "detalle": "gitBranch=main, isCleanWorktree=true"
+      },
+      {
+        "nombre": "Run Next Task enabled",
+        "ok": true,
+        "detalle": "task is runnable"
+      },
+      {
+        "nombre": "task finished",
+        "ok": true,
+        "detalle": "status=done"
+      },
+      {
+        "nombre": "project run exists",
+        "ok": true,
+        "detalle": "run linked to task"
+      },
+      {
+        "nombre": "project runs are scoped",
+        "ok": true,
+        "detalle": "runs=1"
+      },
+      {
+        "nombre": "real run visible",
+        "ok": true,
+        "detalle": "task run appears in Runs"
+      },
+      {
+        "nombre": "run detail lists README.md output",
+        "ok": true,
+        "detalle": "README.md output"
+      },
+      {
+        "nombre": "mock QA copy absent",
+        "ok": true,
+        "detalle": "no hardcoded QA assertion"
+      },
+      {
+        "nombre": "cost breakdown lists executor and reviewer",
+        "ok": true,
+        "detalle": "rows=2, costTabActive=true"
+      },
+      {
+        "nombre": "real run status visible",
+        "ok": true,
+        "detalle": "status from run"
+      },
+      {
+        "nombre": "project context shows real git state",
+        "ok": true,
+        "detalle": "branch=main"
+      },
+      {
+        "nombre": "removed code graph UI absent",
+        "ok": true,
+        "detalle": "no Code Graph tab, no rebuild button"
+      },
+      {
+        "nombre": "no duplicate project",
+        "ok": true,
+        "detalle": "basename=orchestos-ui-13-2e-EGrHKK, matches=1"
+      }
+    ],
+    "notes": [],
+    "errores": [],
+    "capturas": [
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-3142/runs-graph/cost-breakdown.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-3142/runs-graph/runs-graph-real-data.png"
+    ]
+  }
+]

@@ -1670,9 +1670,20 @@ ERP ni prueba visual nueva. Los ítems permanecen abiertos hasta sus gates reale
   usa 91 k contra 158 k directo; el sobrecosto es el turno del Orquestador (27,6 k, $0,117) y ~5,5 s de worktree y QA.
   Informe y método: → [evidencia](docs/done/ERP.6.md)
   Sin delegación: medición del cerebro (arnés `docs/done/evidence/ERP.6-bench.ts`).
-- [ ] **ERP.6.2 — 🔍 El desglose de costo de una tarea muestra al revisor.** (abierto 2026-10-18, hallado en ERP.6)
+- [x] **ERP.6.2 — 🔍 El desglose de costo de una tarea muestra al revisor.** (abierto 2026-10-18, hallado en ERP.6)
   `cost_breakdown_json` se arma antes de QA (`src/run/harness.ts:643`): solo trae la fila del ejecutor, aunque los
   totales del run sí suman al revisor (`harness.ts:1021-1027`). La caché del revisor no entra en `cache_read_tokens`.
+  (cerrado 2026-10-20) Tras QA, el desglose agrega la fila `reviewer` al final (`breakdown[0]` sigue siendo el
+  ejecutor) y suma igual a `usd_cost`, en éxito y en QA fail. El costo del revisor lo pone su adaptador:
+  `ChatResponse.usd` (null = desconocido) pasa por `role-runner` y `runQA`; sin `usd`, `knownCost`. Antes el revisor
+  Codex salía gratis (`gpt-6-luna` sin el prefijo `openai/` no tenía precio). Sin precio: `source: 'unknown'` y `—`.
+  Back sin front: la pestaña Cost de Runs (`RunsEvidenceView.tsx`) no pintaba el desglose; ahora lista una fila por
+  entrada. Caché del revisor fuera de alcance: `ChatResponse` no la trae. El resaltado de "Contract" en la primera
+  captura era la transición de 150 ms (el gate ahora afirma la clase activa de Cost).
+  Evidencia (cerebro): diffs leídos; tsc y lint verdes; `test:coverage` 1885/0.
+  Gate en vivo: navegador real (Playwright), `docs/done/evidence/ERP.6.2-live.json` — `runs-graph` 15/15, tarea real
+  Codex: ejecutor $0.0009 + revisor $0.0005, `costTabActive=true`.
+  Ejecutado por: codex gpt-6-sol (criterio-alt) r1-r2, r4-r5; codex gpt-6-luna (mecanico) r3 · Spec: docs/specs/ERP.6.2.md
 - [x] **ERP.6.1 — 🧠 Codex en el chat no gasta llamadas descubriendo y reintentando run_readonly.** (abierto y cerrado
   2026-10-18, hallado en ERP.6) Con herramientas, Codex por OrchestOS hacía 4,3 llamadas contra 2,7 directo (109 k
   contra 82 k de entrada): descubría la herramienta en `ALL_TOOLS`, probaba `sed` (no permitido) y pasaba `"-A 18"`

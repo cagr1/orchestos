@@ -231,6 +231,20 @@ export default async function runsGraph({ page, api, step, note, shot, visible, 
     'no hardcoded QA assertion',
   )
   await page.getByRole('button', { name: 'Cost ($)', exact: true }).click()
+  const breakdownRows = page.getByTestId('cost-breakdown-row')
+  const costTabActive =
+    (
+      await page.getByRole('button', { name: 'Cost ($)', exact: true }).getAttribute('class')
+    )?.includes('app-tab-btn-active') === true
+  await step(
+    'cost breakdown lists executor and reviewer',
+    costTabActive &&
+      (await visible(breakdownRows.filter({ hasText: 'Reviewer' }))) &&
+      (await breakdownRows.count()) >= 2,
+    `rows=${await breakdownRows.count()}, costTabActive=${costTabActive}`,
+  )
+  await page.waitForTimeout(300)
+  await shot('cost-breakdown')
   await step(
     'real run status visible',
     await visible(page.getByText('done', { exact: true })),

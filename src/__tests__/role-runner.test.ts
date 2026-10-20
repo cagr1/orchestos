@@ -62,7 +62,7 @@ describe('role runner', () => {
       let args: unknown[] = []
       const runner = (async (...values: unknown[]) => {
         args = values
-        return { text: 'done', inputTokens: 2, outputTokens: 3, model: 'actual-model' }
+        return { text: 'done', inputTokens: 2, outputTokens: 3, model: 'actual-model', usd: 0.0123 }
       }) as never
       const deps =
         agent === 'claude'
@@ -93,6 +93,7 @@ describe('role runner', () => {
       if (agent !== 'opencode') expect(args[5]).toBe('high')
       else expect(args).toHaveLength(5)
       expect(response.model).toBe('actual-model')
+      expect(response.usd).toBe(0.0123)
     },
   )
 

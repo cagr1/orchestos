@@ -251,6 +251,30 @@ export const RunsEvidenceView: React.FC<RunsEvidenceViewProps> = ({
                   </div>
                 </div>
               </div>
+              {selectedRun.costBreakdown?.length > 0 && (
+                <div className="space-y-2">
+                  {selectedRun.costBreakdown.map((entry, index) => (
+                    <div
+                      key={`${entry.label}-${index}`}
+                      data-testid="cost-breakdown-row"
+                      className="p-3 rounded-control bg-app-bg border border-app flex flex-wrap items-center gap-3 font-mono"
+                    >
+                      <span className="text-app">
+                        {entry.label === 'reviewer' ? 'Reviewer' : entry.label}
+                      </span>
+                      <span className="text-app-muted">{entry.model}</span>
+                      <span className="text-app-muted">
+                        {(entry.inputTokens + entry.outputTokens).toLocaleString()}
+                      </span>
+                      <span className="text-app">
+                        {entry.label === 'reviewer' && entry.source === 'unknown'
+                          ? '—'
+                          : `$${entry.costUsd.toFixed(4)}`}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           )}
 

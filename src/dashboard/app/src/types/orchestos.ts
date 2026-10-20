@@ -47,6 +47,7 @@ export interface CostBreakdownEntry {
   inputTokens: number
   outputTokens: number
   costUsd: number
+  source?: 'reported' | 'estimated' | 'unknown'
 }
 
 export interface ContextWarningEntry {

@@ -420,3 +420,37 @@ No cambia límites de tokens, QA, contrato de salidas ni la ruta sin `approvalMo
 **Por qué**: solo se crea la corrida de aprobación cuando el registro declara soporte; los demás ejecutores reciben
 `approvalMode: full`. No cambia el cálculo de contexto/maxTokens ni el default de tareas fuera del chat en Codex.
 **Evidencia**: gates crudos en `docs/done/evidence/ERP.7.1c/`; sin commit ni edición del plan por el ejecutor.
+
+## 2026-10-20 — Codex, ejecutor ERP.6.2 r2
+
+**Regla tocada**: `src/run/harness.ts`, persistencia del desglose de costo después de QA.
+**Clasificación**: RESPETÓ.
+**Por qué**: agrega la fila `reviewer` al final del desglose en éxito y fallo de QA; conserva los totales,
+la caché del ejecutor y los límites de contexto/maxTokens. `updateRunCost` (`src/db/runs.ts:257`) no tiene
+llamadores en el repositorio; no hay sobrescritura posterior a QA por esa función. `ChatResponse`
+(`src/providers/openrouter.ts:10`) no declara caché del revisor.
+**Evidencia**: tests de suma del desglose con costo no nulo en éxito/fallo y ausencia de revisor omitido;
+salidas crudas de gates en `/tmp/ERP.6.2-r2-gates/`. Gate del dashboard real a cargo del cerebro según el spec.
+TypeScript, typecheck completo y lint: exit 0; tests tocados: 18/0. `test:coverage`: 1877 pass, 2 skip,
+6 fail (adversarial-review ×2, warning de Git en readonly, timeout de runGraph y csrf-origin ×2).
+
+## 2026-10-20 — Codex, ejecutor ERP.6.2 r4
+
+**Regla tocada**: `src/run/harness.ts`, costo y procedencia del revisor.
+**Clasificación**: RESPETÓ.
+**Por qué**: reutiliza `codexPricingId` del ejecutor cuando el proveedor del revisor es Codex;
+`knownCost` calcula una vez el valor compartido por el total y la fila. Sin precio, la fila lleva
+`source: 'unknown'` y Runs muestra `—` solo para el revisor. No aparecieron otros
+`calcCost(qa.model` ni `calcCost(qaJudge` en `src/`.
+**Diagnóstico de pestañas**: una sola instancia en `OrchestSettingsView.tsx:2271`; botón y contenido
+usan el mismo estado local. Un remonte también restablecería el contenido a Contract. La captura
+es compatible con un fotograma durante `transition: all 150ms` (`index.css:190`); `runs-graph.mjs`
+captura tras comprobar filas visibles sin esperar la transición y `shot` llama a `page.screenshot`
+sin opciones de animación. Es una hipótesis de artefacto de captura, no una causa confirmada en
+navegador; no se modifica el comportamiento de pestañas. Gate en vivo reservado al cerebro por el spec.
+**Evidencia**: TypeScript raíz, typecheck completo y lint: exit 0; tests tocados: 20/0, 138 asserts.
+Salidas crudas, incluidos los dos errores de tipos de fixtures corregidos de la primera pasada,
+en `/tmp/ERP.6.2-r4-*.log`. Sin commit ni edición del plan.
+`test:coverage`: exit 1, 1879 pass / 2 skip / 6 fail (adversarial-review ×2 por sandbox,
+warning de Git en readonly, timeout de runGraph y csrf-origin ×2 por EADDRINUSE), mismos
+nombres de fallos que el reporte de r2; no se corrigen fuera del spec. `runs-graph` no ejecutado.

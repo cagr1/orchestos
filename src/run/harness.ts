@@ -34,7 +34,7 @@ import {
   ensureCatalogLoaded,
   knownMaxOutputTokensFor,
 } from '../router/model-catalog.ts'
-import { calcCost } from '../router/pricing.ts'
+import { knownCost } from '../router/pricing.ts'
 import { clientFromAssignment, roleClient } from '../router/role-runner.ts'
 import { resolveGates } from '../skills/catalog.ts'
 import { loadSpec } from '../spec/store.ts'
@@ -835,7 +835,23 @@ export async function runTask(opts: HarnessOpts): Promise<TaskResult> {
       }
     }
 
-    const qaCost = calcCost(qa.model ?? qaJudge.model, qa.inputTokens, qa.outputTokens)
+    const qaModel = qa.model ?? qaJudge.model
+    const qaKnownCost =
+      qa.usd !== undefined ? qa.usd : knownCost(qaModel, qa.inputTokens, qa.outputTokens)
+    const qaCost = qaKnownCost ?? 0
+    const finalBreakdownJson = runsReviewer
+      ? costBreakdownToJson([
+          ...(outcome?.costByIteration ?? []),
+          {
+            label: 'reviewer',
+            model: qaModel,
+            inputTokens: qa.inputTokens,
+            outputTokens: qa.outputTokens,
+            costUsd: qaCost,
+            ...(qaKnownCost === null ? { source: 'unknown' as const } : {}),
+          },
+        ])
+      : breakdownJson
     const totalCost = cost + qaCost
     const totalElapsed = Math.round(performance.now() - t0)
     const totalTokens = {
@@ -883,7 +899,7 @@ export async function runTask(opts: HarnessOpts): Promise<TaskResult> {
         context_warnings_json: ctx.contextWarnings.length
           ? JSON.stringify(ctx.contextWarnings)
           : null,
-        cost_breakdown_json: breakdownJson,
+        cost_breakdown_json: finalBreakdownJson,
         status: 'failed',
         input_tokens: totalTokens.inputTokens,
         cache_read_tokens: llmResponse.cacheReadTokens,
@@ -977,7 +993,7 @@ export async function runTask(opts: HarnessOpts): Promise<TaskResult> {
       context_warnings_json: ctx.contextWarnings.length
         ? JSON.stringify(ctx.contextWarnings)
         : null,
-      cost_breakdown_json: breakdownJson,
+      cost_breakdown_json: finalBreakdownJson,
       file_diffs: fileDiffs.length ? JSON.stringify(fileDiffs) : null,
       commit_sha: commitSha,
       status: 'done',

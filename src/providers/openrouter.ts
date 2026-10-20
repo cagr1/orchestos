@@ -12,6 +12,8 @@ export interface ChatResponse {
   inputTokens: number
   outputTokens: number
   model: string
+  /** Adapter-reported or estimated cost; null means unknown, absent means caller-calculated. */
+  usd?: number | null
 }
 
 /**

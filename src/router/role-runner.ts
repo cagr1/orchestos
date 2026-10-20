@@ -72,6 +72,7 @@ export function clientFromAssignment(
         inputTokens: result.inputTokens,
         outputTokens: result.outputTokens,
         model: result.model,
+        usd: result.usd,
       }
     },
   }

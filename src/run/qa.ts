@@ -35,6 +35,7 @@ interface QAVerdict {
   inputTokens: number
   outputTokens: number
   model: string
+  usd?: number | null
 }
 
 // Capture full contents of files before writing — used to revert on QA fail.
@@ -170,6 +171,7 @@ export async function runQA(opts: {
     inputTokens: resp.inputTokens,
     outputTokens: resp.outputTokens,
     model: resp.model,
+    ...(resp.usd !== undefined ? { usd: resp.usd } : {}),
   }
 }
 

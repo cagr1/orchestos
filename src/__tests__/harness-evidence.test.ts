@@ -1,9 +1,12 @@
-import { afterAll, afterEach, beforeAll, describe, expect, it } from 'bun:test'
+import { afterAll, afterEach, beforeAll, describe, expect, it, spyOn } from 'bun:test'
 import { mkdtempSync, rmSync } from 'fs'
 import { tmpdir } from 'os'
 import { join } from 'path'
 import { DEFAULT_CONFIG } from '../config/schema.ts'
 import { db } from '../db/sqlite.ts'
+import { calcCost } from '../router/pricing.ts'
+import * as roleRunner from '../router/role-runner.ts'
+import { parseCostBreakdownJson } from '../run/transcript-parser.ts'
 import type { Task } from '../tasks/schema.ts'
 
 // F3.3 — every failure path of runTask leaves a row in `runs` AND returns
@@ -48,12 +51,17 @@ function tmpDir(): string {
   return mkdtempSync(join(tmpdir(), 'orchestos-f3-3-'))
 }
 
-function openRouterResponse(content: string, promptTokens = 1, completionTokens = 1) {
+function openRouterResponse(
+  content: string,
+  promptTokens = 1,
+  completionTokens = 1,
+  model = 'mock/model',
+) {
   return new Response(
     JSON.stringify({
       choices: [{ message: { content } }],
       usage: { prompt_tokens: promptTokens, completion_tokens: completionTokens },
-      model: 'mock/model',
+      model,
     }),
     { status: 200, headers: { 'Content-Type': 'application/json' } },
   )
@@ -109,7 +117,7 @@ function baseTask(overrides: Partial<Task> = {}): Task {
   }
 }
 
-async function callRunTask(task: ReturnType<typeof baseTask>, dir: string) {
+async function callRunTask(task: ReturnType<typeof baseTask>, dir: string, modelOverride?: string) {
   const { runTask } = await import('../run/harness.ts')
   const { RunLogger } = await import('../run/logger.ts')
   const log = new RunLogger(dir, task.id)
@@ -117,6 +125,7 @@ async function callRunTask(task: ReturnType<typeof baseTask>, dir: string) {
     projectRoot: dir,
     contextText: '',
     task,
+    modelOverride,
     logger: log,
     sandboxMode: 'cwd',
     orcheConfig: {
@@ -293,6 +302,9 @@ describe('ERP.5.1 — el revisor LLM corre solo con criterios o un gate de revis
       expect(row.qa_verdict).toBe('pass')
       expect(row.qa_model).toBeNull()
       expect(row.qa_reason).toContain('QA LLM omitido')
+      const breakdown = parseCostBreakdownJson(row.cost_breakdown_json)
+      expect(breakdown).toHaveLength(1)
+      expect(breakdown.some((entry) => entry.label === 'reviewer')).toBe(false)
     } finally {
       rmSync(dir, { recursive: true, force: true })
     }
@@ -330,4 +342,117 @@ describe('ERP.5.1 — el revisor LLM corre solo con criterios o un gate de revis
       rmSync(dir, { recursive: true, force: true })
     }
   })
+})
+
+describe('ERP.6.2 — el desglose incluye el costo del revisor después del ejecutor', () => {
+  for (const usd of [0.0123, null]) {
+    it(`revisor con usd=${usd}: conserva el costo del adaptador o lo declara desconocido`, async () => {
+      const model = 'gpt-4o-mini'
+      process.env.OPENROUTER_API_KEY = 'sk-test-or-key'
+      installMockFetch([
+        () => openRouterResponse('<<<FILE:out.txt>>>\nhello\n<<<ENDFILE>>>', 1000, 200),
+      ])
+      const originalRoleClient = roleRunner.roleClient
+      // Exercise the real role adapter without invoking a CLI.
+      const roleSpy = spyOn(roleRunner, 'roleClient').mockImplementation((cfg, role, opts) =>
+        role === 'reviewer'
+          ? roleRunner.clientFromAssignment(
+              role,
+              { agent: 'codex', model },
+              {
+                ...opts,
+                deps: {
+                  codex: async () => ({
+                    text: qaJson('pass', 'reviewed'),
+                    model,
+                    inputTokens: 300,
+                    outputTokens: 50,
+                    cacheReadTokens: 0,
+                    cacheWriteTokens: 0,
+                    usd,
+                    contextUsed: 350,
+                    contextWindow: null,
+                  }),
+                },
+              },
+            )
+          : originalRoleClient(cfg, role, opts),
+      )
+      const dir = tmpDir()
+      try {
+        const result = await callRunTask(
+          baseTask({ acceptance_criteria: [QA_CRITERION] }),
+          dir,
+          'openai/gpt-4o',
+        )
+        expect(result.status).toBe('done')
+        const { getRun } = await import('../db/runs.ts')
+        const row = getRun(result.runId)!
+        const breakdown = parseCostBreakdownJson(row.cost_breakdown_json)
+        expect(breakdown).toHaveLength(2)
+        const reviewer = breakdown[1]!
+        expect(reviewer.model).toBe(model)
+        expect(reviewer.label).toBe('reviewer')
+        expect(reviewer.inputTokens).toBe(300)
+        expect(reviewer.outputTokens).toBe(50)
+        if (usd !== null) {
+          expect(reviewer.costUsd).toBe(usd)
+          expect(reviewer.source).not.toBe('unknown')
+        } else {
+          expect(reviewer.source).toBe('unknown')
+          expect(reviewer.costUsd).toBe(0)
+        }
+        expect(
+          Math.abs(breakdown.reduce((sum, entry) => sum + entry.costUsd, 0) - row.usd_cost),
+        ).toBeLessThan(1e-9)
+      } finally {
+        roleSpy.mockRestore()
+        rmSync(dir, { recursive: true, force: true })
+      }
+    })
+  }
+
+  for (const verdict of ['pass', 'fail'] as const) {
+    it(`QA ${verdict}: persiste los tokens y costo del revisor y la suma coincide con el total`, async () => {
+      process.env.OPENROUTER_API_KEY = 'sk-test-or-key'
+      installMockFetch([
+        () =>
+          openRouterResponse(
+            '<<<FILE:out.txt>>>\nhello\n<<<ENDFILE>>>',
+            1000,
+            200,
+            'openai/gpt-4o',
+          ),
+        () => openRouterResponse(qaJson(verdict, 'reviewed'), 300, 50, 'openai/gpt-4o-mini'),
+      ])
+      const dir = tmpDir()
+      try {
+        const task = baseTask({ acceptance_criteria: [QA_CRITERION] })
+        const result = await callRunTask(task, dir, 'openai/gpt-4o')
+        expect(result.status).toBe(verdict === 'pass' ? 'done' : 'retry')
+        const { getRun } = await import('../db/runs.ts')
+        const row = getRun(result.runId)!
+        expect(row.qa_verdict).toBe(verdict)
+        const breakdown = parseCostBreakdownJson(row.cost_breakdown_json)
+        expect(breakdown).toHaveLength(2)
+        expect(breakdown[0]?.label).not.toBe('reviewer')
+        expect(breakdown[0]?.model).toBe('openai/gpt-4o')
+        const reviewerCost = calcCost('openai/gpt-4o-mini', 300, 50)
+        expect(reviewerCost).toBeGreaterThan(0)
+        expect(breakdown[1]).toEqual({
+          label: 'reviewer',
+          model: 'openai/gpt-4o-mini',
+          inputTokens: 300,
+          outputTokens: 50,
+          costUsd: reviewerCost,
+        })
+        expect(row.usd_cost).toBeGreaterThan(reviewerCost)
+        expect(
+          Math.abs(breakdown.reduce((sum, entry) => sum + entry.costUsd, 0) - row.usd_cost),
+        ).toBeLessThan(1e-9)
+      } finally {
+        rmSync(dir, { recursive: true, force: true })
+      }
+    })
+  }
 })

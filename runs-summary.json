@@ -1,7 +1,37 @@
 {
-  "exported_at": "2026-10-20T22:15:50.574Z",
+  "exported_at": "2026-10-20T23:13:27.396Z",
   "total_runs": 20,
   "runs": [
+    {
+      "id": "033a270a-9695-4c77-afaf-dce578c225be",
+      "task_class": "gate:erp.6.2:doc",
+      "model": "openai/gpt-6-luna",
+      "provider": "codex",
+      "status": "done",
+      "qa_verdict": "pass",
+      "qa_reason": "README.md ends with the requested line.",
+      "files_blocked": [],
+      "checks_failed": 0,
+      "usd_cost": 0.0013195,
+      "elapsed_ms": 19300,
+      "tokens": 6943,
+      "created_at": "2026-10-20T23:12:50.318Z"
+    },
+    {
+      "id": "58b9ccc5-2964-42e9-ad97-560fb4e99ca9",
+      "task_class": "gate:erp.6.2:doc",
+      "model": "openai/gpt-6-luna",
+      "provider": "codex",
+      "status": "done",
+      "qa_verdict": "pass",
+      "qa_reason": "README.md contains the requested line.",
+      "files_blocked": [],
+      "checks_failed": 0,
+      "usd_cost": 0.0008553,
+      "elapsed_ms": 17684,
+      "tokens": 6457,
+      "created_at": "2026-10-20T23:03:43.422Z"
+    },
     {
       "id": "ui-chat-context-seed-1792531977589",
       "task_class": "gate:ci.27:implement",
@@ -271,36 +301,6 @@
       "elapsed_ms": 8821,
       "tokens": 3614,
       "created_at": "2026-10-20T19:36:06.208Z"
-    },
-    {
-      "id": "4abe94f2-0a6e-4d30-b224-86cdd8a74e76",
-      "task_class": "gate:erp.7.1b:fix",
-      "model": "gpt-6-luna",
-      "provider": "codex",
-      "status": "done",
-      "qa_verdict": "pass",
-      "qa_reason": "QA LLM omitido: la tarea no declara criterios de aceptación; checks y salidas declaradas en verde",
-      "files_blocked": [],
-      "checks_failed": 0,
-      "usd_cost": 0.00108884,
-      "elapsed_ms": 11177,
-      "tokens": 6326,
-      "created_at": "2026-10-20T19:35:56.813Z"
-    },
-    {
-      "id": "54c24526-b377-458f-a9a1-d646b4c6d887",
-      "task_class": "gate:erp.7.1a:fix",
-      "model": "gpt-6-luna",
-      "provider": "codex",
-      "status": "done",
-      "qa_verdict": "pass",
-      "qa_reason": "QA LLM omitido: la tarea no declara criterios de aceptación; checks y salidas declaradas en verde",
-      "files_blocked": [],
-      "checks_failed": 0,
-      "usd_cost": 0.00108584,
-      "elapsed_ms": 12615,
-      "tokens": 6248,
-      "created_at": "2026-10-20T16:03:36.404Z"
     }
   ],
   "stats": {
