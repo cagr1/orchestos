@@ -1,21 +1,23 @@
-# NEXT — handoff 2026-10-19 (lote ERP.5 cerrado)
+# NEXT — handoff 2026-10-19 (lote ERP.7 cerrado)
 
 Un solo presente: orden y trampas vivas. Lo cerrado vive en `PLAN.md` y git (regla `AGENTS.md` § Reglas generales,
 2026-10-19: `NEXT.md` se toca solo al cerrar o cortar un lote). Arranque:
 `bun run agent:preflight -- --item <ID> --agent claude`. Lista viva: `bun run next`.
 
 ## Orden
-1. Lote ERP.5 cerrado (5.1–5.7). ERP.5.7 vive en el vault `main` (`f72e9df`); el vault quedó en `main`, publicado.
-   La rama `content/plan-videos-2-semanas` del vault (plan de videos de Carlos, ajena a OrchestOS) está publicada aparte.
-   Antes de commitear en el vault: `git -C ~/Projects/MemoriesMD branch --show-current` (ERP.5.7 cayó en esa rama).
-2. ERP.7 (T3 Code) → H.7.2c → H.7.3. ERP.6.2 (fila del revisor en el desglose) cuando toque costo.
+1. Lote ERP.7 cerrado: ERP.7 (informe `docs/done/ERP.7.md`) y ERP.7.2 (diff + deshacer por tarea en el hilo).
+   Antes de commitear en el vault: `git -C ~/Projects/MemoriesMD branch --show-current`.
+2. H.7.2c → H.7.3. ERP.7.1 (modo de permiso y aprobar por acción) espera plan corto + GO de Carlos; base: aprobar =
+   aprobar el diff que ya muestra la tarjeta. ERP.6.2 cuando toque costo. Acceso remoto = IDEAS `#73`, después.
 3. Fiabilidad, cuando el pre-push la tumba: CI.23, CI.18, CI.19, CI.11, CI.27 (primero que deje evidencia).
 - Decisiones pendientes de Carlos sin ítem: turno de chat con CLI lento (más de 120 s o aviso honesto, en CI.18);
   peso de `main.js` tras UI.24.4 (dejarlo, alias de `rehype-raw` o lazy-load de Streamdown).
 
 ## Trampas vivas
 - `plan:reconcile` "Could not prove a closing commit SHA": reabrir (`[ ]`), reconciliar, `[x]`, reconciliar, commitear.
-  Salió en cada cierre de ERP.5.2; candidato a arreglo en el gate.
+  Salió en cada cierre de ERP.5.2 y en el padre ERP.7.2; candidato a arreglo en el gate.
+- `delegate` con rol `claude` en `leer`/`investigar` fallaba (`--tools` variádico se comía el prompt); arreglado en
+  el vault `12c683b`. Si vuelve "Input must be provided", mirar el orden de argumentos.
 - El spec ya no se commitea (ERP.5.6): la línea `Ejecutado por: … · Spec: docs/specs/<ID>.md` termina en la ruta y el
   spec se borra del disco antes del commit.
 - Cambio de dashboard/config: el ítem cerrado necesita `Gate en vivo: navegador real (Playwright), `docs/done/evidence/<ID>-live.json``
