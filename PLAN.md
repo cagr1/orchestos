@@ -2000,7 +2000,7 @@ ERP ni prueba visual nueva. Los ítems permanecen abiertos hasta sus gates reale
   esa misma sesión: hook contra el transcript real dio `pct: 10.66%, level: ok` — correcto para
   esa sesión, el hook no debía avisar. Si esto se repite, **no es un bug del hook**: pedir el
   número que muestra el propio indicador, no asumir que es contexto.
-- [ ] **AT.11 — 🧠 Chat CLI extensible: cualquier adaptador registrado, no ramas hardcodeadas por marca.**
+- [x] **AT.11 — 🧠 Chat CLI extensible: cualquier adaptador registrado, no ramas hardcodeadas por marca.**
   Depende de AT.10. Extraer las ramas `claude`/`codex`/`opencode` de `handlers/chat.ts` a un contrato
   de adaptador que declare detección, comando, stdin/args, env/home de autenticación, parser de
   stream, modelo observado, esfuerzo y capabilities de lectura/escritura. El picker se deriva de
@@ -2008,6 +2008,22 @@ ERP ni prueba visual nueva. Los ítems permanecen abiertos hasta sus gates reale
   y otra allowlist manual en frontend. Gate de arquitectura: registrar un adaptador fixture y un
   tercer CLI real disponible, ejecutar sesión→turno→persistencia sin tocar el router del chat;
   los registros sin adaptador deben decir `chat no soportado`, nunca caer a API/OpenRouter.
+  GO de Carlos 2026-10-21 con alcance: contrato en el registro, despacho genérico en `chat.ts` y `role-runner.ts`,
+  picker derivado del endpoint. El "tercer CLI real" del gate se cubre con un adaptador fixture + Claude y Codex
+  migrados (solo OpenCode está instalado y es terminal en Dev, no chat); un CLI real nuevo se prueba al instalarlo.
+  (cerrado 2026-10-21) Contrato `CliChatAdapter` en `src/run/executors/chat-adapters.ts` (`registerCliChatAdapter`,
+  `cliChatAdapterFor`): `chat`, `efforts`, `validateModel`, `runTurn`, `runRole`, `failure`. `chat.ts`,
+  `role-runner.ts` y `chat-sessions.ts` despachan por el registro; agente sin adaptador de chat → 400 `chat no
+  soportado`. El picker y el hilo salen de `/api/chat/cli-models` (`chat`, `installed`, `label`). r2: la BD también
+  tenía la lista (`CHECK(agent IN …)` de `chat_sessions`): migración 30 la reconstruye sin ella. r3: el CLI del hilo
+  se decide sin esperar el fetch.
+  Evidencia (cerebro): diff leído; typecheck; lint 0 errores; `test:coverage` 1889 pass / 0 fail; migración 30 sobre
+  copia de `~/.orchestos/db.sqlite` (v29→v30, 30 sesiones/136 mensajes/63 turnos intactos, `foreign_key_check` vacío);
+  Gate en vivo: navegador real (Playwright), `docs/done/evidence/AT.11-live.json` —
+  `AT.11-chat-live` (chat-streaming 27/27, codex-live 14/14, composer-picker 5/5) y `AT.11-chat-claude`
+  (chat-context 5/5, chat-continuity 8/8). Quedan por marca, fuera de alcance: columnas `codex_*`/`claude_*` de
+  `chat_sessions` y las claves de inyección de tests en `CliRoleDeps`.
+  Ejecutado por: codex gpt-6.1-sol (criterio-alt, r1-r2) y gpt-6-luna (mecanico, r3), revisó el cerebro · Spec: docs/specs/AT.11.md
 
 ## Fuera de fase
 

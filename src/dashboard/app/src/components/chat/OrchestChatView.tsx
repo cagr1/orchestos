@@ -5,6 +5,8 @@ import { useEffect, useRef, useState } from 'react'
 import { ChatMessage } from '@/components/ui/chat-message'
 import { FileThumbnail } from '@/components/ui/file-thumbnail'
 import {
+  type CliModelCatalog,
+  getCliModels,
   getSessionContext,
   getTimeline,
   type SessionContextResponse,
@@ -14,7 +16,7 @@ import type { PendingApproval } from '../../api/runs'
 import { type ConfigResponse, getConfig } from '../../api/settings'
 import { useStickToBottom } from '../../hooks/useStickToBottom'
 import type { ChatAttachment, ChatThread, SessionStatus, TaskItem } from '../../types/orchestos'
-import { AgentComposer, type CliId } from '../common/AgentComposer'
+import { AgentComposer, type CliId, cliDisplayName } from '../common/AgentComposer'
 import { ContextRing } from '../common/ContextRing'
 import { ProviderLogo } from '../common/ProviderLogos'
 import {
@@ -244,21 +246,21 @@ export const OrchestChatView: React.FC<OrchestChatViewProps> = ({
     const timer = window.setInterval(() => setNowMs(Date.now()), 1000)
     return () => window.clearInterval(timer)
   }, [isWorking])
-  const cliId = (
-    thread?.agent === 'claude' || thread?.agent === 'codex' || thread?.agent === 'api'
-      ? thread.agent
-      : 'api'
-  ) as CliId
-  const cliName =
-    cliId === 'api'
-      ? 'ChatGPT'
-      : cliId === 'claude'
-        ? 'Claude'
-        : cliId === 'codex'
-          ? 'Codex'
-          : cliId === 'deepseek'
-            ? 'DeepSeek'
-            : 'Gemini'
+  const [chatClis, setChatClis] = useState<CliModelCatalog[]>([])
+  useEffect(() => {
+    let disposed = false
+    void getCliModels()
+      .then((catalogs) => {
+        if (!disposed) setChatClis(catalogs.filter((cli) => cli.chat && cli.installed))
+      })
+      .catch(() => {})
+    return () => {
+      disposed = true
+    }
+  }, [])
+  const selectedCli = chatClis.find((cli) => cli.id === thread?.agent)
+  const cliId: CliId = thread?.agent && thread.agent !== 'local' ? thread.agent : 'api'
+  const cliName = cliDisplayName(cliId, selectedCli?.label)
   const lastAssistant = [...messages].reverse().find((message) => message.role === 'assistant')
   const lastModel = lastAssistant?.model
     ?.replace(/\s+via\s+.+$/i, '')

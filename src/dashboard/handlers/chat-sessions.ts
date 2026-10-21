@@ -1,5 +1,5 @@
 import { contextWindowFor } from '../../../scripts/context-budget.ts'
-import { AGENT_CHOICES, loadOrcheConfig } from '../../config/load.ts'
+import { loadOrcheConfig } from '../../config/load.ts'
 import type { AgentChoice } from '../../config/schema.ts'
 import {
   archiveChatSession,
@@ -26,6 +26,7 @@ import { insertConsoleCommand, listConsoleCommands } from '../../db/console-comm
 import { getRunSteps } from '../../db/run-steps.ts'
 import { getRun } from '../../db/runs.ts'
 import { runOneCheck } from '../../run/checks.ts'
+import { cliChatAdapterFor } from '../../run/executors/chat-adapters.ts'
 import { KNOWN_CLIS } from '../../run/executors/cli-registry.ts'
 import { getLiveText } from '../chat-live.ts'
 import { errorResponse, jsonResponse } from '../http.ts'
@@ -38,7 +39,6 @@ import {
 import type { ChatMessageRow, ChatSessionRow } from '../types.ts'
 
 const MODES = new Set<ChatSessionMode>(['chat', 'code'])
-const AGENTS = new Set<AgentChoice>(AGENT_CHOICES)
 const TITLE_MAX_LENGTH = 160
 
 function toSessionRow(row: ChatSessionRecord): ChatSessionRow {
@@ -263,8 +263,11 @@ export async function handleApiChatSessionsCreate(
   }
   const defaultAgent = projectId === null ? 'api' : (loadOrcheConfig(configRoot!).agent ?? 'api')
   const agent = body.agent ?? defaultAgent
-  if (typeof agent !== 'string' || !AGENTS.has(agent as AgentChoice)) {
-    return errorResponse('Invalid agent', 400)
+  if (
+    typeof agent !== 'string' ||
+    (agent !== 'local' && agent !== 'api' && !cliChatAdapterFor(agent)?.chat)
+  ) {
+    return errorResponse('chat no soportado', 400)
   }
   const definition = projectId !== null ? KNOWN_CLIS.find((cli) => cli.id === agent) : undefined
   const readBoundaryWarning =

@@ -69,6 +69,71 @@ function tempHome(): string {
 }
 
 describe('SQLite migrations', () => {
+  it('migrates v29 chat sessions without losing children or restricting adapter ids', async () => {
+    const home = tempHome()
+    try {
+      const result = (await runMigrationProcess(
+        home,
+        `
+        const { runMigrations, applyMigrationSteps, FUTURE_MIGRATIONS } = await import('./src/db/migrate.ts')
+        const { db } = await import('./src/db/sqlite.ts')
+        runMigrations()
+        // Restore the v29 agent CHECK and ledger before seeding the upgrade fixture.
+        const legacy = db
+        const sessionsSql = db.query("SELECT sql FROM sqlite_master WHERE type = 'table' AND name = 'chat_sessions'").get().sql
+        db.exec('PRAGMA foreign_keys = OFF')
+        db.exec('DROP TABLE chat_sessions')
+        db.exec(sessionsSql.replace('agent TEXT NOT NULL', "agent TEXT NOT NULL CHECK(agent IN ('local', 'claude', 'opencode', 'codex', 'api'))"))
+        db.exec('CREATE INDEX idx_chat_sessions_project_updated ON chat_sessions(project_id, updated_at DESC); CREATE INDEX idx_chat_sessions_archived_project_updated ON chat_sessions(archived_at, project_id, updated_at DESC)')
+        db.exec('DELETE FROM schema_migrations WHERE version = 30')
+        db.exec('PRAGMA foreign_keys = ON')
+        legacy.exec("INSERT INTO chat_sessions VALUES ('session', NULL, 'codex', 'chat', 'preserved', 'created', 'updated', 'archived', 'thread', 'codex-hash', 'claude-session', 'claude-hash', 3)")
+        legacy.exec("INSERT INTO chat_messages (session_id, role, content, created_at) VALUES ('session', 'user', 'preserved message', 'created')")
+        legacy.exec("INSERT INTO chat_turns (id, session_id, request_key, input_fingerprint, status, created_at, updated_at) VALUES ('turn', 'session', 'request', 'fingerprint', 'completed', 'created', 'updated')")
+        legacy.exec("INSERT INTO chat_turn_steps (session_id, turn_id, seq, type, detail, created_at) VALUES ('session', 'turn', 1, 'text', 'preserved step', 'created')")
+        legacy.exec("INSERT INTO console_commands (session_id, cmd, exit_code, stdout, stderr, elapsed_ms, timed_out, created_at) VALUES ('session', 'echo test', 0, 'test', '', 1, 0, 'created')")
+        const before = legacy.query('SELECT * FROM chat_sessions').all()
+        const tables = ['chat_messages', 'chat_turns', 'chat_turn_steps', 'console_commands']
+        const childrenBefore = tables.map(table => legacy.query('SELECT * FROM ' + table).all())
+        applyMigrationSteps(FUTURE_MIGRATIONS, legacy)
+        const after = legacy.query('SELECT * FROM chat_sessions').all()
+        const childrenAfter = tables.map(table => legacy.query('SELECT * FROM ' + table).all())
+        legacy.exec("INSERT INTO chat_sessions (id, agent, mode, title, created_at, updated_at) VALUES ('fixture', 'fixture-chat', 'chat', 'fixture', 'created', 'updated')")
+        const fixture = legacy.query("SELECT agent FROM chat_sessions WHERE id = 'fixture'").get()
+        let invalidModeRejected = false
+        try { legacy.exec("INSERT INTO chat_sessions (id, agent, mode, title, created_at, updated_at) VALUES ('invalid', 'fixture-chat', 'invalid', 'fixture', 'created', 'updated')") } catch { invalidModeRejected = true }
+        const indexes = legacy.query("SELECT name FROM sqlite_master WHERE type = 'index' AND name LIKE 'idx_chat_sessions_%' ORDER BY name").all().map(row => row.name)
+        process.stdout.write(JSON.stringify({ before, after, childrenBefore, childrenAfter, fixture, invalidModeRejected, indexes,
+          foreignKeyCheck: legacy.query('PRAGMA foreign_key_check').all(), foreignKeys: legacy.query('PRAGMA foreign_keys').get().foreign_keys }))
+        db.close()
+      `,
+      )) as ChildResult & {
+        before: unknown[]
+        after: unknown[]
+        childrenBefore: unknown[][]
+        childrenAfter: unknown[][]
+        fixture: { agent: string }
+        invalidModeRejected: boolean
+        indexes: string[]
+        foreignKeyCheck: unknown[]
+      }
+      expect(result.before).toHaveLength(1)
+      expect(result.after).toEqual(result.before)
+      expect(result.childrenBefore.map((rows) => rows.length)).toEqual([1, 1, 1, 1])
+      expect(result.childrenAfter).toEqual(result.childrenBefore)
+      expect(result.fixture.agent).toBe('fixture-chat')
+      expect(result.invalidModeRejected).toBe(true)
+      expect(result.indexes).toEqual([
+        'idx_chat_sessions_archived_project_updated',
+        'idx_chat_sessions_project_updated',
+      ])
+      expect(result.foreignKeyCheck).toEqual([])
+      expect(result.foreignKeys).toBe(1)
+    } finally {
+      rmSync(home, { recursive: true, force: true })
+    }
+  })
+
   it('creates the complete schema from an empty database', async () => {
     const home = tempHome()
     try {
@@ -174,6 +239,7 @@ describe('SQLite migrations', () => {
         { version: 27, name: 'runs-context-measured' },
         { version: 28, name: 'run-commit-revert' },
         { version: 29, name: 'task-action-approvals' },
+        { version: 30, name: 'chat-sessions-agent-sin-lista' },
       ])
       expect(result.runsColumns).toEqual(
         expect.arrayContaining([
@@ -313,6 +379,7 @@ describe('SQLite migrations', () => {
         { version: 27, name: 'runs-context-measured' },
         { version: 28, name: 'run-commit-revert' },
         { version: 29, name: 'task-action-approvals' },
+        { version: 30, name: 'chat-sessions-agent-sin-lista' },
       ])
       expect(result.legacyTaskIdDefault).toBeNull()
     } finally {
@@ -386,7 +453,7 @@ describe('SQLite migrations', () => {
       expect(first.afterFirst.message).toBe('preserve this message')
       expect(first.afterFirst.v4).toBe('run-files-read')
       expect(first.afterFirst.v9Count).toBe(1)
-      expect(first.afterSecond).toEqual({ v9Count: 1, schemaCount: 29 })
+      expect(first.afterSecond).toEqual({ v9Count: 1, schemaCount: 30 })
     } finally {
       rmSync(home, { recursive: true, force: true })
     }
@@ -463,7 +530,7 @@ describe('SQLite migrations', () => {
 
       expect(result.runCount).toBe(1)
       expect(result.ftsTriggers).toBe(3)
-      expect(result.schemaCount).toBe(29)
+      expect(result.schemaCount).toBe(30)
     } finally {
       rmSync(home, { recursive: true, force: true })
     }
@@ -479,7 +546,7 @@ describe('SQLite migrations', () => {
         const { db } = await import('./src/db/sqlite.ts')
         runMigrations()
         const step = {
-          version: 30,
+          version: 31,
           name: 'migration-test-probe',
           precondition(database) {
             if (database.query("SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'runs'").get() === null) {
@@ -504,8 +571,8 @@ describe('SQLite migrations', () => {
       `,
       )
 
-      expect(result.evidence).toHaveLength(30)
-      expect(result.evidence?.[29]).toMatchObject({ version: 30, name: 'migration-test-probe' })
+      expect(result.evidence).toHaveLength(31)
+      expect(result.evidence?.[30]).toMatchObject({ version: 31, name: 'migration-test-probe' })
       expect(result.evidence?.[9]?.applied_at).toEqual(expect.any(String))
       expect(result.probeCount).toBe(1)
     } finally {
@@ -524,7 +591,7 @@ describe('SQLite migrations', () => {
         const { db } = await import('./src/db/sqlite.ts')
         runMigrations()
         const failedStep = {
-          version: 30,
+          version: 31,
           name: 'migration-test-failure',
           precondition() {},
           apply(database) {
@@ -539,7 +606,7 @@ describe('SQLite migrations', () => {
         db.close()
         const reopened = new Database(process.env.ORCHESTOS_HOME + '/.orchestos/db.sqlite')
         const failedTableCount = reopened.query("SELECT COUNT(*) AS count FROM sqlite_master WHERE type = 'table' AND name = 'migration_partial'").get().count
-        const failedVersionCount = reopened.query('SELECT COUNT(*) AS count FROM schema_migrations WHERE version = 30').get().count
+        const failedVersionCount = reopened.query('SELECT COUNT(*) AS count FROM schema_migrations WHERE version = 31').get().count
         process.stdout.write(JSON.stringify({ failedTableCount, failedVersionCount }))
         reopened.close()
       `,
@@ -562,7 +629,7 @@ describe('SQLite migrations', () => {
         const { db } = await import('./src/db/sqlite.ts')
         runMigrations()
         const preconditionFailure = {
-          version: 30,
+          version: 31,
           name: 'migration-test-precondition-failure',
           precondition() { throw new Error('injected precondition failure') },
           apply(database) { database.exec('CREATE TABLE migration_precondition_partial (id INTEGER PRIMARY KEY)') },
@@ -572,7 +639,7 @@ describe('SQLite migrations', () => {
         const preconditionTableCount = db.query("SELECT COUNT(*) AS count FROM sqlite_master WHERE type = 'table' AND name = 'migration_precondition_partial'").get().count
 
         const postconditionFailure = {
-          version: 30,
+          version: 31,
           name: 'migration-test-postcondition-failure',
           precondition() {},
           apply(database) { database.exec('CREATE TABLE migration_postcondition_partial (id INTEGER PRIMARY KEY)') },
@@ -582,7 +649,7 @@ describe('SQLite migrations', () => {
         const postconditionTableCount = db.query("SELECT COUNT(*) AS count FROM sqlite_master WHERE type = 'table' AND name = 'migration_postcondition_partial'").get().count
 
         const recoveryStep = {
-          version: 30,
+          version: 31,
           name: 'migration-test-recovery',
           precondition() {},
           apply(database) { database.exec('CREATE TABLE migration_recovery (id INTEGER PRIMARY KEY)') },
@@ -592,7 +659,7 @@ describe('SQLite migrations', () => {
         }
         applyMigrationSteps([...FUTURE_MIGRATIONS, recoveryStep])
         const recoveryCount = db.query("SELECT COUNT(*) AS count FROM sqlite_master WHERE type = 'table' AND name = 'migration_recovery'").get().count
-        const recoveryVersionCount = db.query('SELECT COUNT(*) AS count FROM schema_migrations WHERE version = 30').get().count
+        const recoveryVersionCount = db.query('SELECT COUNT(*) AS count FROM schema_migrations WHERE version = 31').get().count
         process.stdout.write(JSON.stringify({ preconditionTableCount, postconditionTableCount, recoveryCount, recoveryVersionCount }))
         db.close()
       `,

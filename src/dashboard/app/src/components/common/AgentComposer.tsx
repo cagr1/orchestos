@@ -16,7 +16,7 @@ import type { ApprovalMode, ChatAttachment } from '../../types/orchestos'
 import { FileThumbnail } from '../ui/file-thumbnail'
 import { ProviderLogo } from './ProviderLogos'
 
-export type CliId = 'api' | 'claude' | 'codex' | 'opencode' | 'deepseek' | 'gemini'
+export type CliId = string
 
 export interface CliConfig {
   id: CliId
@@ -34,6 +34,10 @@ const CLIS: CliConfig[] = [
   { id: 'deepseek', name: 'DeepSeek', defaultModel: '', models: [], efforts: [] },
   { id: 'gemini', name: 'Gemini', defaultModel: '', models: [], efforts: [] },
 ]
+
+export function cliDisplayName(id: string, label?: string): string {
+  return CLIS.find((cli) => cli.id === id)?.name ?? label ?? id
+}
 
 export const APPROVAL_MODES: { value: ApprovalMode; label: string; description: string }[] = [
   { value: 'supervised', label: 'Supervised', description: 'Asks before every edit and command' },
@@ -207,14 +211,16 @@ export const AgentComposer: React.FC<AgentComposerProps> = ({
     void Promise.all([getChatModels().catch(() => []), getCliModels().catch(() => [])]).then(
       ([models, cliCatalogs]) => {
         if (disposed) return
-        const detected = CLIS.filter((cli) => cliCatalogs.some((item) => item.id === cli.id)).map(
-          (cli) => {
-            const catalog = cliCatalogs.find((item) => item.id === cli.id)
-            return catalog
-              ? { ...cli, models: catalog.models, efforts: catalog.efforts, error: catalog.error }
-              : cli
-          },
-        )
+        const detected: CliConfig[] = cliCatalogs
+          .filter((catalog) => catalog.chat && catalog.installed)
+          .map((catalog) => ({
+            id: catalog.id,
+            name: cliDisplayName(catalog.id, catalog.label),
+            defaultModel: '',
+            models: catalog.models,
+            efforts: catalog.efforts,
+            error: catalog.error,
+          }))
         const apiModels = models.map((model) => ({
           id: model.id,
           name: model.id,

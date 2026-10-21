@@ -81,6 +81,9 @@ export interface CliModelCatalog {
   models: CliModelOption[]
   efforts: string[]
   error?: string
+  chat?: boolean
+  installed?: boolean
+  label?: string
 }
 
 export interface ChatSendResponse {

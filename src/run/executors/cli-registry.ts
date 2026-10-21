@@ -45,7 +45,7 @@ export type CliMcpAdapter =
   | { kind: 'none'; reason: string }
 
 export interface CliDefinition {
-  id: 'claude' | 'codex' | 'opencode' | 'deepseek' | 'gemini' | 'kimi' | 'glm'
+  id: string
   binary: string
   label: string
   icon: string

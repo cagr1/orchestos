@@ -3,6 +3,7 @@ import { db } from './sqlite.ts'
 
 const CURRENT_SCHEMA_VERSION = 1
 const BASELINE_NAME = 'baseline-current-schema'
+const migration30SessionCounts = new WeakMap<Database, number>()
 
 interface SchemaMigrationStep {
   version: number
@@ -974,6 +975,62 @@ export const FUTURE_MIGRATIONS: readonly SchemaMigrationStep[] = [
       database.query('SELECT id FROM approval_events LIMIT 1').all()
     },
   },
+  {
+    version: 30,
+    name: 'chat-sessions-agent-sin-lista',
+    precondition: (database) => {
+      const table = database
+        .query("SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'chat_sessions'")
+        .get()
+      if (!table) return
+      migration30SessionCounts.set(
+        database,
+        database.query<{ count: number }, []>('SELECT COUNT(*) AS count FROM chat_sessions').get()
+          ?.count ?? 0,
+      )
+    },
+    apply: (database) => {
+      if (!migration30SessionCounts.has(database)) return
+      database.exec(`
+        CREATE TABLE chat_sessions_new (
+          id TEXT PRIMARY KEY,
+          project_id TEXT REFERENCES projects(id) ON DELETE SET NULL,
+          agent TEXT NOT NULL,
+          mode TEXT NOT NULL CHECK(mode IN ('chat', 'code')),
+          title TEXT NOT NULL,
+          created_at TEXT NOT NULL,
+          updated_at TEXT NOT NULL,
+          archived_at TEXT NULL,
+          codex_thread_id TEXT NULL,
+          codex_context_hash TEXT NULL,
+          claude_session_id TEXT NULL,
+          claude_context_hash TEXT NULL,
+          claude_message_count INTEGER NULL
+        );
+        INSERT INTO chat_sessions_new
+          (id, project_id, agent, mode, title, created_at, updated_at, archived_at,
+           codex_thread_id, codex_context_hash, claude_session_id, claude_context_hash, claude_message_count)
+          SELECT id, project_id, agent, mode, title, created_at, updated_at, archived_at,
+           codex_thread_id, codex_context_hash, claude_session_id, claude_context_hash, claude_message_count
+          FROM chat_sessions;
+        DROP TABLE chat_sessions;
+        ALTER TABLE chat_sessions_new RENAME TO chat_sessions;
+        CREATE INDEX idx_chat_sessions_project_updated ON chat_sessions(project_id, updated_at DESC);
+        CREATE INDEX idx_chat_sessions_archived_project_updated ON chat_sessions(archived_at, project_id, updated_at DESC);
+      `)
+    },
+    postcondition: (database) => {
+      const before = migration30SessionCounts.get(database)
+      if (before === undefined) return
+      const after = database
+        .query<{ count: number }, []>('SELECT COUNT(*) AS count FROM chat_sessions')
+        .get()?.count
+      if (before !== after) throw new Error('Migration 30 lost chat sessions')
+      if (database.query('PRAGMA foreign_key_check').all().length > 0)
+        throw new Error('Migration 30 violated foreign keys')
+      migration30SessionCounts.delete(database)
+    },
+  },
 ]
 
 function appliedVersions(database: Database): Set<number> {
@@ -1004,7 +1061,7 @@ export function applyMigrationSteps(
     // The schema change and its evidence must commit together. Bun rolls the
     // transaction back if any contract check or the evidence insert throws.
     const rebuildsForeignKeyParents =
-      step.version === 10 || step.version === 11 || step.version === 14
+      step.version === 10 || step.version === 11 || step.version === 14 || step.version === 30
     if (rebuildsForeignKeyParents) database.exec('PRAGMA foreign_keys = OFF')
     try {
       const applyStep = database.transaction(() => {

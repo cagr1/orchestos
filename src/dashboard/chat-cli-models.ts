@@ -1,6 +1,7 @@
 import { existsSync, readFileSync } from 'node:fs'
 import { homedir } from 'node:os'
 import { registerNativeOpencodeModels } from '../router/opencode-catalog.ts'
+import { cliChatAdapterFor } from '../run/executors/chat-adapters.ts'
 import { detectInstalledClis } from '../run/executors/cli-registry.ts'
 
 export interface CliModelOption {
@@ -17,6 +18,9 @@ export interface CliModelCatalog {
   models: CliModelOption[]
   efforts: string[]
   error?: string
+  chat?: boolean
+  installed?: boolean
+  label?: string
 }
 
 type CommandRunner = (
@@ -222,10 +226,18 @@ export async function readCliModelCatalogs(
   const catalogs = await Promise.all(
     installed.map(async (cli): Promise<CliModelCatalog> => {
       try {
-        return await readCliCatalog(cli.id, cli.binary, runner)
+        return {
+          ...(await readCliCatalog(cli.id, cli.binary, runner)),
+          chat: cliChatAdapterFor(cli.id)?.chat ?? false,
+          installed: cli.installed,
+          label: cli.label,
+        }
       } catch (error) {
         return {
           id: cli.id,
+          chat: cliChatAdapterFor(cli.id)?.chat ?? false,
+          installed: cli.installed,
+          label: cli.label,
           models: [],
           efforts: [],
           error: error instanceof Error ? error.message : String(error),

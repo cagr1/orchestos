@@ -224,9 +224,20 @@ describe('UI.14 round 5 CLI model catalogs', () => {
     )
 
     expect(catalogs).toEqual([
-      { id: 'claude', models: [], efforts: [], error: 'ENOEXEC: spawn failed' },
+      {
+        id: 'claude',
+        models: [],
+        efforts: [],
+        error: 'ENOEXEC: spawn failed',
+        chat: true,
+        installed: true,
+        label: 'Claude',
+      },
       {
         id: 'opencode',
+        chat: false,
+        installed: true,
+        label: 'OpenCode',
         models: [
           { id: 'openai/gpt-5', name: 'gpt-5', short: 'gpt-5', efforts: [], group: 'openai' },
         ],

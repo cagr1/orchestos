@@ -1,9 +1,7 @@
 import { resolveRole } from '../config/load.ts'
 import type { OrcheConfig, RoleAgent, RoleAssignment, RoleName } from '../config/schema.ts'
 import { getProvider, type ProviderClient } from '../providers/index.ts'
-import { runCodexChat } from '../run/executors/codex.ts'
-import { runClaudeChat } from '../run/executors/external.ts'
-import { runOpencodeChat } from '../run/executors/opencode.ts'
+import { type CliRoleDeps, cliChatAdapterFor } from '../run/executors/chat-adapters.ts'
 
 interface RoleClient {
   role: RoleName
@@ -13,10 +11,7 @@ interface RoleClient {
   provider: ProviderClient
 }
 
-interface RoleRunnerDeps {
-  claude?: typeof runClaudeChat
-  codex?: typeof runCodexChat
-  opencode?: typeof runOpencodeChat
+interface RoleRunnerDeps extends CliRoleDeps {
   getProvider?: typeof getProvider
 }
 
@@ -36,37 +31,18 @@ export function clientFromAssignment(
         })
       const userMessage = input.messages.map((m) => `## ${m.role}\n${m.content}`).join('\n\n')
       const timeout = opts.timeoutMs ?? 20 * 60_000
-      const result =
-        a.agent === 'claude'
-          ? await (deps.claude ?? runClaudeChat)(
-              opts.cwd,
-              input.system,
-              userMessage,
-              timeout,
-              a.model,
-              a.effort,
-            )
-          : a.agent === 'codex'
-            ? await (deps.codex ?? runCodexChat)(
-                opts.cwd,
-                input.system,
-                userMessage,
-                timeout,
-                a.model,
-                a.effort,
-                undefined,
-                undefined,
-                undefined,
-                undefined,
-                opts.projectRoot,
-              )
-            : await (deps.opencode ?? runOpencodeChat)(
-                opts.cwd,
-                input.system,
-                userMessage,
-                timeout,
-                a.model,
-              )
+      const adapter = cliChatAdapterFor(a.agent)
+      if (!adapter) throw new Error(`chat no soportado: ${a.agent}`)
+      const result = await adapter.runRole({
+        cwd: opts.cwd,
+        projectRoot: opts.projectRoot,
+        system: input.system,
+        message: userMessage,
+        timeout,
+        model: a.model,
+        effort: a.effort,
+        deps,
+      })
       return {
         text: result.text,
         inputTokens: result.inputTokens,
