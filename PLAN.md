@@ -1382,6 +1382,15 @@ archivos fijados por `ui:fidelity:jsx` (`OrchestDevWorkspace`, `ShellStatusBar`,
   formato no cambia comportamiento.
 - [ ] **UI.26.6b — 🧠 Movimiento de Arc UI en Settings.** `settings-command`, `api-keys` y `activity-heatmap` (ver
   "Movimiento" abajo), separados de UI.26.6 para que la forma se cierre y verifique sola.
+  GO de Carlos 2026-10-21, en este orden, un sub-ítem cada uno; solo movimiento con `motion` (sin color ni estructura
+  nueva); `prefers-reduced-motion` = instantáneo; cada uno con gate en vivo (Playwright + captura).
+- [ ] **UI.26.6b.1 — 🧠 Heatmap de Usage con movimiento y a todo el ancho.** Celdas que entran en ola, tooltip que se
+  desliza entre celdas, total que cuenta hasta el valor nuevo; el heatmap ocupa todo el ancho (hoy ~2/3, celdas fijas).
+- [ ] **UI.26.6b.2 — 🧠 API keys con movimiento.** "Create key" se despliega en su formulario; la clave nueva entra
+  deslizando; el secreto se muestra una sola vez.
+- [ ] **UI.26.6b.3 — 🧠 Buscador de Settings que crece a paleta.** Buscador → paleta (posición, tamaño y radio en un
+  spring), al elegir lleva a la fila y la ilumina; resaltado de sección activa que se desliza; barra de cambios sin
+  guardar que nace de una píldora, cuenta y pasa a "Settings saved".
 - [x] **UI.26.7 — 🔍 Pendiente de revisar: inputs de "Orquestación" en Tasks no aceptan texto.** (Carlos 2026-10-14)
   "Máximo concurrente" y "Tope total por ejecución" (`OrchestSettingsView.tsx:~2321`) se renderizan `disabled`
   (visto en `erp-piloto`): no se puede escribir. Revisar por qué están deshabilitados y si la sección aporta.
@@ -2032,6 +2041,12 @@ verificado); el sandbox de **escritura** de las tareas (worktrees ya lo cubren, 
 frontera de red/SSRF (`src/dashboard/ssrf.ts` ya existe y no se toca); y cualquier cambio al
 vault o a `~/.claude`/`~/.codex` de Carlos — el vault sigue alimentando el trabajo de desarrollo
 igual que hoy, lo que se corta es que el **producto** lo herede por accidente.
+- [ ] **AT.11.1 — 🧠 Dos huecos del registro de adaptadores que encontró el revisor nocturno.** (abierto 2026-10-21,
+  hallazgos de H.10.2 sobre `14490f85..c337db57`, cada uno con su prueba que falla hoy en `review-evidence/`)
+  1. `src/run/executors/chat-adapters.ts:83`: registrar un id ya existente (`codex`, `claude`) lo reemplaza en
+     silencio, incluida su frontera de solo lectura; debe rechazarse.
+  2. `src/config/schema.ts:17`: `ROLE_AGENTS` sigue siendo una allowlist cerrada, así que un adaptador registrado no
+     se puede asignar a un rol: contradice AT.11 ("cualquier adaptador registrado").
 
 ### DOC.1 y LIMP.1 — Documentación al día y código muerto (GO de Carlos 2026-10-14)
 
@@ -2136,7 +2151,7 @@ y `PLAN.md` queda sin ítems de método** (decisión de Carlos, 2026-10-11).
 > verdad. No ocurrió. Lo encontró Astra (GPT, revisión independiente) horas después, junto con 4
 > bugs reales de concurrencia/ownership que 1335 tests en verde no habían tocado — el mismo día,
 > mismo ítem.
-- [ ] **H.10.2 — 🧠 Revisor adversarial nocturno, de un modelo distinto al que implementó.**
+- [x] **H.10.2 — 🧠 Revisor adversarial nocturno, de un modelo distinto al que implementó.**
   Reabierto 2026-09-08 por Carlos: corregir exclusivamente cinco fallos de H.10.1/H.10.2 antes de
   volver a declararlo cerrado: aislamiento efectivo (filesystem, credenciales, red y timeout) de
   tests generados; `test_path` canónico dentro de `review-evidence` sin traversal, absolutos,
@@ -2217,6 +2232,19 @@ y `PLAN.md` queda sin ítems de método** (decisión de Carlos, 2026-10-11).
   reclama:** `security:gate`/`test:coverage` completos no terminaron antes del límite de 30 s del
   runner de esta sesión; revisión independiente sigue pendiente y estos tests propios no la
   reemplazan. No se activó el LaunchAgent ni se cambió modelo, prompt o `package.json`.
+  **(cerrado 2026-10-21) El revisor llevaba muerto desde el 2026-09-29 y nadie lo vio.** Log: ~20 noches de timeout y
+  16 de `E2BIG`: fail-closed no avanza el SHA, el diff crece cada noche (5,2 MB, 338 commits) y el prompt iba como
+  argumento. Arreglo (r1–r3): prompt por stdin; presupuesto `MAX_DIFF_BYTES` = 150 KB con `selectReviewWindow` (el
+  tramo más largo de commits recientes que cabe); lo que no cabe se anota en `REVIEW.md` como "no revisado" y el SHA
+  avanza (decisión de Carlos 2026-10-21: el atraso se salta y se anota). r3 por `qa`: r1 elegía el tramo más corto (un
+  commit por noche) y perdía la anotación si el tramo nuevo tenía diff vacío. El rollout se busca bajo `CODEX_HOME`
+  (Orca lo define; sin eso abortaba con "rollout no encontrado"). Specs: docs/specs/H.10.2-r1.md, -r2, -r3 (borrados).
+  Ejecutado por: gpt-6-luna (rol `mecanico`, r1–r3) · QA: gpt-6-sol (rol `qa`) · Spec: docs/specs/H.10.2.md
+  Evidencia (cerebro): typecheck; `adversarial-review.test.ts` 26/26; corrida real 6 min 11 s con `gpt-5.6-sol`
+  verificado contra el rollout: anotó `d45e4f13..14490f85` (338 commits) como no revisado, revisó
+  `14490f85..c337db57` y confirmó 2 hallazgos con su test (→ AT.11.1); SHA avanzó a `c337db57`. `REVIEW.md` queda
+  local como `review-evidence/` (las pruebas que cita no se versionan). Límite: la corrida por launchd se verifica con
+  `launchctl kickstart` tras el commit.
 
   **H.10.2-bis — revisión independiente (Claude, 2026-09-08): dos bugs bloqueantes que se
   anulaban entre sí y hacían que el revisor NO pudiera confirmar ningún hallazgo jamás.**

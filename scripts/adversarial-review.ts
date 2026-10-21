@@ -26,13 +26,14 @@ import {
   rmSync,
   writeFileSync,
 } from 'node:fs'
-import { tmpdir } from 'node:os'
+import { homedir, tmpdir } from 'node:os'
 import { dirname, isAbsolute, join, relative, resolve } from 'node:path'
 
 export const REVIEWER_MODEL = 'gpt-5.6-sol'
 export const STATE_PATH = '.orchestos/adversarial-review-state.json'
 export const REVIEW_MD = 'REVIEW.md'
 export const EVIDENCE_DIR = 'review-evidence'
+export const MAX_DIFF_BYTES = 150_000
 const CODEX_TIMEOUT_MS = 20 * 60 * 1000
 export const FINDING_TEST_TIMEOUT_MS = 30_000
 
@@ -521,10 +522,10 @@ export function buildReviewPrompt(diff: string, promptTemplate: string): string 
   return promptTemplate.replace('{{DIFF}}', diff)
 }
 
-export function buildCodexArgs(prompt: string, model: string): string[] {
+export function buildCodexArgs(model: string): string[] {
   return [
     'exec',
-    prompt,
+    '-',
     '--json',
     '--sandbox',
     'read-only',
@@ -541,13 +542,21 @@ export function buildCodexArgs(prompt: string, model: string): string[] {
 export type CodexRunner = (
   cwd: string,
   args: string[],
+  prompt: string,
   timeoutMs: number,
+  bin?: string,
 ) => Promise<{ stdout: string; stderr: string; exitCode: number; timedOut: boolean }>
 
-export const runCodexStreaming: CodexRunner = async (cwd, args, timeoutMs) => {
-  const proc = Bun.spawn(['codex', ...args], {
+export const runCodexStreaming: CodexRunner = async (
+  cwd,
+  args,
+  prompt,
+  timeoutMs,
+  bin = 'codex',
+) => {
+  const proc = Bun.spawn([bin, ...args], {
     cwd,
-    stdin: 'ignore',
+    stdin: new Blob([prompt]),
     stdout: 'pipe',
     stderr: 'pipe',
   })
@@ -565,6 +574,71 @@ export const runCodexStreaming: CodexRunner = async (cwd, args, timeoutMs) => {
   return { stdout, stderr, exitCode, timedOut }
 }
 
+export function selectReviewWindow(
+  range: { from: string; to: string },
+  run: RunCommand,
+  root: string,
+  maxBytes: number,
+): {
+  review: { from: string; to: string } | null
+  skipped: { from: string; to: string } | null
+} {
+  const diff = (from: string, to: string) => {
+    const result = run(['git', 'diff', `${from}..${to}`, '--unified=6'], root)
+    if (result.exitCode !== 0) throw new Error(result.stderr.trim() || 'git diff failed')
+    return result.stdout
+  }
+  const fullDiff = diff(range.from, range.to)
+  if (Buffer.byteLength(fullDiff, 'utf8') <= maxBytes) return { review: range, skipped: null }
+
+  const commitsResult = run(
+    ['git', 'rev-list', '--first-parent', `${range.from}..${range.to}`],
+    root,
+  )
+  if (commitsResult.exitCode !== 0)
+    throw new Error(commitsResult.stderr.trim() || 'git rev-list failed')
+  const commits = commitsResult.stdout.trim().split(/\s+/).filter(Boolean)
+  let selected: { from: string; to: string } | null = null
+  for (const commit of commits) {
+    const parent = run(['git', 'rev-parse', `${commit}^`], root)
+    if (parent.exitCode !== 0) continue
+    const from = parent.stdout.trim()
+    if (Buffer.byteLength(diff(from, range.to), 'utf8') <= maxBytes)
+      selected = { from, to: range.to }
+    else break
+  }
+  if (selected) {
+    if (selected.from === range.from) return { review: selected, skipped: null }
+    return { review: selected, skipped: { from: range.from, to: selected.from } }
+  }
+  return { review: null, skipped: range }
+}
+
+export function formatSkippedEntry(
+  skipped: { from: string; to: string },
+  commitCount: number,
+  bytes: number,
+  reason: string,
+): string {
+  const date = new Date().toISOString().slice(0, 10)
+  return [
+    `## ${date} — no revisado — ${skipped.from}..${skipped.to}`,
+    '',
+    `**Commits:** ${commitCount} · **Diff:** ${bytes} bytes · **Motivo:** ${reason}`,
+    '',
+    '---',
+    '',
+  ].join('\n')
+}
+
+export function reviewEntriesToWrite(entries: string[], skippedEntry: string): string[] {
+  return [...entries, skippedEntry].filter(Boolean)
+}
+
+export function defaultSessionsRoot(env: Record<string, string | undefined>): string {
+  return join(env.CODEX_HOME || join(env.HOME ?? homedir(), '.codex'), 'sessions')
+}
+
 // -- orquestación ----------------------------------------------------------------
 
 function log(message: string): void {
@@ -574,7 +648,7 @@ function log(message: string): void {
 export async function main(
   root = process.cwd(),
   run: RunCommand = runCommand,
-  sessionsRoot = join(process.env.HOME ?? '', '.codex', 'sessions'),
+  sessionsRoot = defaultSessionsRoot(process.env),
   // Solo para el gate H.10.2 ("verificar el chequeo de modelo real con un
   // valor deliberadamente distinto"): codex sigue corriendo con REVIEWER_MODEL
   // de verdad; esto únicamente hace que la verificación posterior compare
@@ -596,9 +670,36 @@ export async function main(
     return 0
   }
 
+  let window: ReturnType<typeof selectReviewWindow>
   let diff: string
+  let skippedEntry = ''
   try {
-    diff = getDiff(range, run, root)
+    window = selectReviewWindow(range, run, root, MAX_DIFF_BYTES)
+    if (window.skipped) {
+      const skippedDiff = getDiff(window.skipped, run, root)
+      const count = run(
+        ['git', 'rev-list', '--first-parent', `${window.skipped.from}..${window.skipped.to}`],
+        root,
+      )
+      const commitCount =
+        count.exitCode === 0 ? count.stdout.trim().split(/\s+/).filter(Boolean).length : 0
+      skippedEntry = formatSkippedEntry(
+        window.skipped,
+        commitCount,
+        Buffer.byteLength(skippedDiff, 'utf8'),
+        `supera el presupuesto de ${MAX_DIFF_BYTES / 1000} KB por noche`,
+      )
+      if (!window.review) {
+        appendToReviewMd(root, [skippedEntry])
+        log(
+          `no revisado ${window.skipped.from}..${window.skipped.to}: diff supera ${MAX_DIFF_BYTES / 1000} KB`,
+        )
+        saveState(root, { lastReviewedSha: headSha })
+        return 0
+      }
+    }
+    if (!window.review) return 0
+    diff = getDiff(window.review, run, root)
   } catch (error) {
     log(
       `abortado: no se pudo obtener el diff — ${error instanceof Error ? error.message : String(error)}`,
@@ -606,6 +707,10 @@ export async function main(
     return 1
   }
   if (!diff.trim()) {
+    if (skippedEntry) {
+      appendToReviewMd(root, reviewEntriesToWrite([], skippedEntry))
+      log(`se registró el tramo omitido: diff supera ${MAX_DIFF_BYTES / 1000} KB`)
+    }
     log(`diff vacío en ${range.from}..${range.to} — nada que revisar`)
     saveState(root, { lastReviewedSha: headSha })
     return 0
@@ -615,10 +720,10 @@ export async function main(
   const promptTemplate = readFileSync(promptTemplatePath, 'utf8')
   const prompt = buildReviewPrompt(diff, promptTemplate)
 
-  const args = buildCodexArgs(prompt, REVIEWER_MODEL)
+  const args = buildCodexArgs(REVIEWER_MODEL)
   let execution: { stdout: string; stderr: string; exitCode: number; timedOut: boolean }
   try {
-    execution = await codexRunner(root, args, CODEX_TIMEOUT_MS)
+    execution = await codexRunner(root, args, prompt, CODEX_TIMEOUT_MS)
   } catch (error) {
     log(
       `abortado: codex no pudo iniciar — ${error instanceof Error ? error.message : String(error)}`,
@@ -655,7 +760,11 @@ export async function main(
     return 1
   }
   if (findings.length === 0) {
-    log('sin hallazgos declarados por el modelo — REVIEW.md no cambia')
+    log('sin hallazgos declarados por el modelo')
+    if (skippedEntry) {
+      appendToReviewMd(root, [skippedEntry])
+      log(`se registró el tramo omitido: diff supera ${MAX_DIFF_BYTES / 1000} KB`)
+    }
     saveState(root, { lastReviewedSha: headSha })
     return 0
   }
@@ -672,13 +781,18 @@ export async function main(
       formatReviewEntry(
         finding,
         result.evidencePath,
-        range,
+        window.review,
         verification.actualModel ?? REVIEWER_MODEL,
       ),
     )
   }
 
-  appendToReviewMd(root, entries)
+  if (skippedEntry && window.skipped) {
+    log(
+      `no revisado ${window.skipped.from}..${window.skipped.to}: diff supera ${MAX_DIFF_BYTES / 1000} KB`,
+    )
+  }
+  appendToReviewMd(root, reviewEntriesToWrite(entries, skippedEntry))
   saveState(root, { lastReviewedSha: headSha })
   log(`listo — ${entries.length}/${findings.length} hallazgo(s) sobrevivieron a su propio test`)
   return 0

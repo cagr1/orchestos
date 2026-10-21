@@ -625,6 +625,33 @@
       "closedDate": null
     },
     {
+      "id": "UI.26.6b.1",
+      "sprint": "Fase 2 — Producto mínimo para entrega",
+      "block": "UI.26 — La forma de Gr8r en toda la app (ABIERTO 2026-10-13, GO de Carlos 2026-10-13)",
+      "delegation": "🧠",
+      "title": "Heatmap de Usage con movimiento y a todo el ancho",
+      "status": "open",
+      "closedDate": null
+    },
+    {
+      "id": "UI.26.6b.2",
+      "sprint": "Fase 2 — Producto mínimo para entrega",
+      "block": "UI.26 — La forma de Gr8r en toda la app (ABIERTO 2026-10-13, GO de Carlos 2026-10-13)",
+      "delegation": "🧠",
+      "title": "API keys con movimiento",
+      "status": "open",
+      "closedDate": null
+    },
+    {
+      "id": "UI.26.6b.3",
+      "sprint": "Fase 2 — Producto mínimo para entrega",
+      "block": "UI.26 — La forma de Gr8r en toda la app (ABIERTO 2026-10-13, GO de Carlos 2026-10-13)",
+      "delegation": "🧠",
+      "title": "Buscador de Settings que crece a paleta",
+      "status": "open",
+      "closedDate": null
+    },
+    {
       "id": "UI.26.7",
       "sprint": "Fase 2 — Producto mínimo para entrega",
       "block": "UI.26 — La forma de Gr8r en toda la app (ABIERTO 2026-10-13, GO de Carlos 2026-10-13)",
@@ -976,6 +1003,15 @@
       "closedDate": null
     },
     {
+      "id": "AT.11.1",
+      "sprint": "Fuera de fase",
+      "block": null,
+      "delegation": "🧠",
+      "title": "Dos huecos del registro de adaptadores que encontró el revisor nocturno",
+      "status": "open",
+      "closedDate": null
+    },
+    {
       "id": "DOC.1",
       "sprint": "Fuera de fase",
       "block": "DOC.1 y LIMP.1 — Documentación al día y código muerto (GO de Carlos 2026-10-14)",
@@ -1035,7 +1071,7 @@
       "block": "H.10 — El gate de evidencia acepta prosa, no el hecho (ABIERTO 2026-09-08, GO de Carlos)",
       "delegation": "🧠",
       "title": "Revisor adversarial nocturno, de un modelo distinto al que implementó",
-      "status": "open",
+      "status": "done",
       "closedDate": null
     }
   ]

@@ -13,26 +13,33 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import {
   appendToReviewMd,
+  buildCodexArgs,
   type CodexRunner,
   classifyFindingFailure,
+  defaultSessionsRoot,
   extractAgentMessage,
   extractModelFromRollout,
   extractThreadId,
   type Finding,
   findRolloutPath,
   formatReviewEntry,
+  formatSkippedEntry,
   loadState,
+  MAX_DIFF_BYTES,
   main,
   parseFindings,
   REVIEW_MD,
   type RunCommand,
   resolveDiffRange,
   resolveEvidencePath,
+  reviewEntriesToWrite,
+  runCodexStreaming,
   runFindingTest,
   STATE_PATH,
   sandboxAvailable,
   sandboxProfile,
   saveState,
+  selectReviewWindow,
   verifyModelUsed,
 } from './adversarial-review.ts'
 
@@ -59,6 +66,93 @@ const finding: Finding = {
 }
 
 describe('adversarial review — estado y rango', () => {
+  test('selecciona la ventana reciente que cabe en presupuesto y reporta el tramo omitido', () => {
+    const calls: string[][] = []
+    const run: RunCommand = (args) => {
+      calls.push(args)
+      if (args[1] === 'diff') {
+        const range = args[2]
+        const content =
+          range === 'a..d'
+            ? 'x'.repeat(20)
+            : range === 'b..d'
+              ? 'x'.repeat(5)
+              : range === 'c..d'
+                ? 'x'.repeat(2)
+                : 'too large'
+        return { exitCode: 0, stdout: content, stderr: '' }
+      }
+      if (args[1] === 'rev-list') return { exitCode: 0, stdout: 'd\nc\nb\n', stderr: '' }
+      if (args[1] === 'rev-parse') {
+        const parents: Record<string, string> = { 'd^': 'c', 'c^': 'b', 'b^': 'a' }
+        return { exitCode: 0, stdout: `${parents[args[2] ?? ''] ?? ''}\n`, stderr: '' }
+      }
+      return { exitCode: 0, stdout: '', stderr: '' }
+    }
+    expect(selectReviewWindow({ from: 'a', to: 'd' }, run, '/tmp', 10)).toEqual({
+      review: { from: 'b', to: 'd' },
+      skipped: { from: 'a', to: 'b' },
+    })
+    expect(
+      selectReviewWindow(
+        { from: 'a', to: 'd' },
+        () => ({ exitCode: 0, stdout: 'ok', stderr: '' }),
+        '/tmp',
+        10,
+      ),
+    ).toEqual({
+      review: { from: 'a', to: 'd' },
+      skipped: null,
+    })
+    expect(MAX_DIFF_BYTES).toBe(150_000)
+    expect(formatSkippedEntry({ from: 'a', to: 'c' }, 2, 20, 'supera el presupuesto')).toContain(
+      'no revisado',
+    )
+  })
+
+  test('devuelve null de review si ni un commit entra en el presupuesto', () => {
+    const run: RunCommand = (args) => {
+      if (args[1] === 'diff') return { exitCode: 0, stdout: 'too large', stderr: '' }
+      if (args[1] === 'rev-list') return { exitCode: 0, stdout: 'd\n', stderr: '' }
+      if (args[1] === 'rev-parse') return { exitCode: 0, stdout: 'c\n', stderr: '' }
+      return { exitCode: 0, stdout: '', stderr: '' }
+    }
+    expect(selectReviewWindow({ from: 'a', to: 'd' }, run, '/tmp', 1)).toEqual({
+      review: null,
+      skipped: { from: 'a', to: 'd' },
+    })
+  })
+
+  test('defaultSessionsRoot respeta CODEX_HOME y usa HOME cuando no está definido', () => {
+    expect(defaultSessionsRoot({ CODEX_HOME: '/tmp/codex', HOME: '/Users/test' })).toBe(
+      '/tmp/codex/sessions',
+    )
+    expect(defaultSessionsRoot({ HOME: '/Users/test' })).toBe('/Users/test/.codex/sessions')
+  })
+
+  test('buildCodexArgs envía el prompt por stdin, no por argv', () => {
+    const args = buildCodexArgs('model')
+    expect(args).toContain('-')
+    expect(args).not.toContain('prompt gigante')
+  })
+
+  test('runCodexStreaming envía por stdin un prompt de 3 MB y cierra el stream', async () => {
+    const root = temp('orchestos-adversarial-stdin-')
+    const binDir = join(root, 'bin')
+    mkdirSync(binDir)
+    const output = join(root, 'out')
+    const fakeCodex = join(binDir, 'codex')
+    writeFileSync(fakeCodex, `#!/bin/sh\ncat > ${JSON.stringify(output)}\n`)
+    const chmod = Bun.spawnSync(['chmod', '+x', fakeCodex])
+    expect(chmod.exitCode).toBe(0)
+    const prompt = 'p'.repeat(3_000_000)
+    const result = await runCodexStreaming(root, ['exec', '-'], prompt, 5000, fakeCodex)
+    expect(result).toEqual({ stdout: '', stderr: '', exitCode: 0, timedOut: false })
+    expect(readFileSync(output, 'utf8')).toHaveLength(prompt.length)
+  })
+})
+
+describe('adversarial review — estado y rango legacy', () => {
   test('sandboxProfile canonicalizes HOME y sandboxRoot cuando son symlinks', () => {
     const root = temp('orchestos-adversarial-profile-')
     const home = join(root, 'home')
@@ -199,6 +293,12 @@ describe('adversarial review — streams y rollouts', () => {
 })
 
 describe('adversarial review — hallazgos y REVIEW.md', () => {
+  test('no escribe entradas vacías de review', () => {
+    expect(reviewEntriesToWrite([], '')).toEqual([])
+    expect(reviewEntriesToWrite(['hallazgo'], '')).toEqual(['hallazgo'])
+    expect(reviewEntriesToWrite([], 'tramo omitido')).toEqual(['tramo omitido'])
+  })
+
   test('declara sandbox-exec disponible solo en macOS cuando la sonda lo encuentra', () => {
     const present = (path: string) => path === '/usr/bin/sandbox-exec'
     expect(sandboxAvailable('darwin', present)).toBe(true)
@@ -366,6 +466,116 @@ describe('adversarial review — hallazgos y REVIEW.md', () => {
 })
 
 describe('adversarial review — fail closed', () => {
+  test('main registra el tramo omitido solo tras runner exitoso y envía solo el diff reciente', async () => {
+    const root = temp('orchestos-adversarial-window-main-')
+    mkdirSync(join(root, 'scripts'), { recursive: true })
+    writeFileSync(join(root, 'scripts', 'adversarial-review-prompt.md'), 'REVIEW {{DIFF}}')
+    const sessions = join(root, 'sessions')
+    mkdirSync(sessions)
+    writeFileSync(
+      join(sessions, 'rollout-thread.jsonl'),
+      '{"type":"turn_context","payload":{"model":"gpt-5.6-sol"}}\n',
+    )
+    const run: RunCommand = (args) => {
+      if (args[1] === 'rev-parse' && args[2] === 'HEAD')
+        return { exitCode: 0, stdout: 'head\n', stderr: '' }
+      if (args[1] === 'diff') {
+        const range = args[2]
+        return {
+          exitCode: 0,
+          stdout:
+            range === 'HEAD~1..head' || range === 'old..head'
+              ? 'x'.repeat(MAX_DIFF_BYTES + 1)
+              : 'recent diff',
+          stderr: '',
+        }
+      }
+      if (args[1] === 'rev-list') return { exitCode: 0, stdout: 'head\nrecent\nold\n', stderr: '' }
+      if (args[1] === 'rev-parse' && args[2] === 'head^')
+        return { exitCode: 0, stdout: 'recent\n', stderr: '' }
+      if (args[1] === 'rev-parse' && args[2] === 'recent^')
+        return { exitCode: 0, stdout: 'old\n', stderr: '' }
+      if (args[1] === 'rev-parse' && args[2] === 'old^')
+        return { exitCode: 0, stdout: 'older\n', stderr: '' }
+      return { exitCode: 0, stdout: '', stderr: '' }
+    }
+    let receivedPrompt = ''
+    const runner: CodexRunner = async (_cwd, args, prompt) => {
+      expect(args).toContain('-')
+      receivedPrompt = prompt
+      return {
+        exitCode: 0,
+        timedOut: false,
+        stderr: '',
+        stdout:
+          '{"type":"thread.started","thread_id":"thread"}\n{"type":"item.completed","item":{"type":"agent_message","text":"[]"}}',
+      }
+    }
+    expect(await main(root, run, sessions, 'gpt-5.6-sol', runner)).toBe(0)
+    expect(receivedPrompt).toBe('REVIEW recent diff')
+    const review = readFileSync(join(root, REVIEW_MD), 'utf8')
+    expect(review).toContain('no revisado — HEAD~1..recent')
+    expect(loadState(root)).toEqual({ lastReviewedSha: 'head' })
+  })
+
+  test('main registra tramo omitido si el diff reciente está vacío y avanza SHA', async () => {
+    const root = temp('orchestos-adversarial-window-empty-')
+    const run: RunCommand = (args) => {
+      if (args[1] === 'rev-parse' && args[2] === 'HEAD')
+        return { exitCode: 0, stdout: 'head\n', stderr: '' }
+      if (args[1] === 'diff') {
+        return {
+          exitCode: 0,
+          stdout:
+            args[2] === 'HEAD~1..head' || args[2] === 'old..head'
+              ? 'x'.repeat(MAX_DIFF_BYTES + 1)
+              : '',
+          stderr: '',
+        }
+      }
+      if (args[1] === 'rev-list') return { exitCode: 0, stdout: 'head\nrecent\nold\n', stderr: '' }
+      if (args[1] === 'rev-parse' && args[2] === 'head^')
+        return { exitCode: 0, stdout: 'recent\n', stderr: '' }
+      if (args[1] === 'rev-parse' && args[2] === 'recent^')
+        return { exitCode: 0, stdout: 'old\n', stderr: '' }
+      if (args[1] === 'rev-parse' && args[2] === 'old^')
+        return { exitCode: 0, stdout: 'older\n', stderr: '' }
+      return { exitCode: 0, stdout: '', stderr: '' }
+    }
+    expect(await main(root, run, join(root, 'sessions'))).toBe(0)
+    expect(readFileSync(join(root, REVIEW_MD), 'utf8')).toContain('no revisado — HEAD~1..recent')
+    expect(loadState(root)).toEqual({ lastReviewedSha: 'head' })
+  })
+
+  test('main no avanza SHA ni escribe REVIEW.md si el runner falla tras seleccionar ventana', async () => {
+    const root = temp('orchestos-adversarial-window-fail-')
+    mkdirSync(join(root, 'scripts'), { recursive: true })
+    writeFileSync(join(root, 'scripts', 'adversarial-review-prompt.md'), '{{DIFF}}')
+    const run: RunCommand = (args) => {
+      if (args[1] === 'rev-parse' && args[2] === 'HEAD')
+        return { exitCode: 0, stdout: 'head\n', stderr: '' }
+      if (args[1] === 'diff')
+        return {
+          exitCode: 0,
+          stdout: args[2] === 'HEAD~1..head' ? 'x'.repeat(MAX_DIFF_BYTES + 1) : 'recent',
+          stderr: '',
+        }
+      if (args[1] === 'rev-list') return { exitCode: 0, stdout: 'head\n', stderr: '' }
+      if (args[1] === 'rev-parse' && args[2] === 'head^')
+        return { exitCode: 0, stdout: 'old\n', stderr: '' }
+      return { exitCode: 0, stdout: '', stderr: '' }
+    }
+    const runner: CodexRunner = async () => ({
+      exitCode: 1,
+      timedOut: true,
+      stdout: '',
+      stderr: '',
+    })
+    expect(await main(root, run, join(root, 'sessions'), 'gpt-5.6-sol', runner)).toBe(1)
+    expect(existsSync(join(root, STATE_PATH))).toBe(false)
+    expect(existsSync(join(root, REVIEW_MD))).toBe(false)
+  })
+
   test('no avanza lastReviewedSha si Codex falla, no responde o entrega JSON malformado', async () => {
     const root = temp('orchestos-adversarial-fail-closed-')
     mkdirSync(join(root, 'scripts'), { recursive: true })

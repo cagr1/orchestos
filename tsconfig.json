@@ -27,5 +27,5 @@
     "noUnusedParameters": true,
     "noPropertyAccessFromIndexSignature": false
   },
-  "exclude": ["src/dashboard/app"]
+  "exclude": ["src/dashboard/app", "review-evidence"]
 }
