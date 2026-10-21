@@ -1,4 +1,4 @@
-# NEXT — handoff 2026-10-21 (CI.31 y AT.11 cerrados; siguen H.10.2 / UI.26.6b con plan previo)
+# NEXT — handoff 2026-10-21 (H.10.2, UI.26.6b.1 y UI.26.6b.2 cerrados; sigue UI.26.6b.3)
 
 Un solo presente: orden y trampas vivas. Lo cerrado vive en `PLAN.md` y git (regla `AGENTS.md` § Reglas generales,
 2026-10-19: `NEXT.md` se toca solo al cerrar o cortar un lote). Arranque:
@@ -20,13 +20,28 @@ Prevalece sobre el roster y sobre `~/.claude/CLAUDE.md` § Selección de modelos
 2. Cerrados 2026-10-21 (subidos, pre-push verde): CI.31 `a95fbde4` (shard `executors` partido en dos: confirmar en
    la corrida nocturna de Mutation Shards que ninguno pasa de 3 h), AT.11 `c6014ede` (registro `chat-adapters.ts`;
    migración 30). Restos por marca anotados en AT.11: columnas `codex_*`/`claude_*` de `chat_sessions`.
-3. Siguiente: H.10.2 y UI.26.6b (🧠, features nuevas, plan corto y GO antes de codear). Acceso remoto = IDEAS `#73`.
-4. Fiabilidad, cuando el pre-push la tumba: CI.23, CI.18, CI.19, CI.11. Desde CI.27 un flujo que revienta dice el
+3. Cerrados 2026-10-21 (2.º lote): H.10.2 `98aca200` (revisor nocturno muerto desde 09-29 por E2BIG/timeouts; ahora stdin
+   + presupuesto 150 KB, el atraso anotado como "no revisado" en `REVIEW.md`; verificado a mano y por `launchctl
+   kickstart`), UI.26.6b.1 `0436994c` (heatmap), UI.26.6b.2 `dc20280f` (API keys).
+4. Siguiente: UI.26.6b.3 (buscador de Settings → paleta; GO de Carlos 2026-10-21, sin spec todavía), luego AT.11.1
+   (2 hallazgos del revisor nocturno sobre el registro de adaptadores, con prueba en `review-evidence/`).
+   Acceso remoto = IDEAS `#73`.
+- Anotado, sin ítem: el revisor elige su ventana cortando en el primer tramo que no cabe (un revert posterior podría
+  dejar caber uno más largo; nada se pierde, el salto queda anotado). El toast de error de Settings usa el punto
+  verde de éxito (`OrchestSettingsView.tsx`, bloque "Dynamic Toast Feedback").
+5. Fiabilidad, cuando el pre-push la tumba: CI.23, CI.18, CI.19, CI.11. Desde CI.27 un flujo que revienta dice el
    locator (`[waiting for …]`) y deja `<flujo>/failure.png`: usarlo antes de diagnosticar.
 - Decisiones pendientes de Carlos sin ítem: turno de chat con CLI lento (más de 120 s o aviso honesto, en CI.18);
   peso de `main.js` tras UI.24.4 (dejarlo, alias de `rehype-raw` o lazy-load de Streamdown).
 
 ## Trampas vivas
+- El plan gate parte el segmento de un ítem en su primera línea en blanco: `Ejecutado por: … · Spec:` va **antes** de
+  ella o el gate dice "Procedencia … must delete docs/specs/<ID>.md" (pasó en H.10.2, ítem largo con párrafos).
+- `qa` vía `delegate` solo acepta un archivo de spec, no la pregunta directa ("spec no existe").
+- En los ui-gates, `visible(locator)` espera 15 s si el elemento no existe: para afirmar ausencia usar `count() === 0`,
+  o la captura sale tarde y esconde fallos (UI.26.6b.2).
+- Claves de prueba en flujos: sin prefijo `sk-` (`security:secrets`, `src/security/secrets.ts:31`, bloquea el commit).
+- En esta terminal `CODEX_HOME` apunta a la cuenta de Orca: los rollouts de `codex exec` van ahí, no a `~/.codex`.
 - Pre-commit con candado (AT.18): rechaza el commit si otra sesión tiene el candado del árbol. El "deshacer" del
   dashboard sobre este repo falla con 500 mientras tanto (límite declarado en `AGENTS.md` § Un árbol, un escritor).
 - El cerebro no puede crear flujos de prueba en `scripts/` (hook `brain-no-code`): un gate de fallo forzado se delega.
