@@ -1380,10 +1380,13 @@ archivos fijados por `ui:fidelity:jsx` (`OrchestDevWorkspace`, `ShellStatusBar`,
   Sin delegación: formato mecánico (`bunx biome format --write`), solo espacios; `bun run lint` sin errores.
   Gate en vivo: navegador real (Playwright), la misma de UI.26.6 (`docs/done/evidence/UI.26.6-live.json`); el
   formato no cambia comportamiento.
-- [ ] **UI.26.6b — 🧠 Movimiento de Arc UI en Settings.** `settings-command`, `api-keys` y `activity-heatmap` (ver
+- [x] **UI.26.6b — 🧠 Movimiento de Arc UI en Settings.** `settings-command`, `api-keys` y `activity-heatmap` (ver
   "Movimiento" abajo), separados de UI.26.6 para que la forma se cierre y verifique sola.
   GO de Carlos 2026-10-21, en este orden, un sub-ítem cada uno; solo movimiento con `motion` (sin color ni estructura
   nueva); `prefers-reduced-motion` = instantáneo; cada uno con gate en vivo (Playwright + captura).
+  (cerrado 2026-10-21) Sus tres sub-ítems cerrados.
+  Sin delegación: padre; el trabajo y su evidencia están en UI.26.6b.1–3.
+  Gate en vivo: navegador real (Playwright), `docs/done/evidence/UI.26.6b.3-live.json` (`shell-look` 47/47, cubre los tres).
 - [x] **UI.26.6b.1 — 🧠 Heatmap de Usage con movimiento y a todo el ancho.** Celdas que entran en ola, tooltip que se
   desliza entre celdas, total que cuenta hasta el valor nuevo; el heatmap ocupa todo el ancho (hoy ~2/3, celdas fijas).
   (cerrado 2026-10-21) Rejilla de 53 columnas `minmax(8px,1fr)`; un solo tooltip `motion` que se mueve entre celdas
@@ -1409,9 +1412,23 @@ archivos fijados por `ui:fidelity:jsx` (`OrchestDevWorkspace`, `ShellStatusBar`,
   `api key form unfolds`, `api key rejected` con rechazo real del proveedor y la clave conservada 6 s después,
   `api key cancel`).
   Límite: el guardado con éxito (clave real) no se puede ejercitar en el gate: el servidor valida contra el proveedor.
-- [ ] **UI.26.6b.3 — 🧠 Buscador de Settings que crece a paleta.** Buscador → paleta (posición, tamaño y radio en un
+- [x] **UI.26.6b.3 — 🧠 Buscador de Settings que crece a paleta.** Buscador → paleta (posición, tamaño y radio en un
   spring), al elegir lleva a la fila y la ilumina; resaltado de sección activa que se desliza; barra de cambios sin
   guardar que nace de una píldora, cuenta y pasa a "Settings saved".
+  (cerrado 2026-10-21) El buscador del sidebar no filtraba nada (`searchQuery` sin uso): ahora un índice de filas por
+  sección alimenta la paleta (⌘K, ↑/↓, Enter, Escape) y al elegir se navega a la fila `data-settings-anchor`, que se
+  ilumina. Fondo de sección activa con `layoutId` y `aria-current="page"`. Barra de cambios sin guardar para Model
+  routing y Executor (cuenta contra una línea base, Discard/Save, píldora "Settings saved"), que reemplaza sus botones
+  Save. Fuera: el banner verde `savedBanner` (repetía el toast), el botón "View" de Health (solo decía "Saved"), los
+  toasts de "aplicado" de Executor (contradecían la barra); los toasts de error ya no usan el punto verde. Rondas del
+  cerebro: r2 `aria-current` para el chequeo de iconos; r3 el morph estiraba el texto y la paleta era translúcida (solo
+  la superficie hace el morph; gate con muestras a 60/120/200 ms); r4 toasts.
+  Ejecutado por: gpt-6-sol (rol `criterio-alt`, A, r3, B), gpt-6-luna (rol `mecanico`, r2, r4) · Spec: docs/specs/UI.26.6b.3.md
+  Evidencia (cerebro): typecheck app, lint, build; capturas `settings-palette`, `settings-highlight`, `unsaved-bar` y
+  `unsaved-saved` miradas.
+  Gate en vivo: navegador real (Playwright), `docs/done/evidence/UI.26.6b.3-live.json` (`shell-look` 47/47) y
+  `docs/done/evidence/UI.26.6b.3-model-routing-live.json` (`model-routing` 18/18, guarda con la barra).
+  Anotado: `components/common/CommandPalette.tsx` nunca se abre (`setIsCommandPaletteOpen` sin llamador); va a limpieza.
 - [x] **UI.26.7 — 🔍 Pendiente de revisar: inputs de "Orquestación" en Tasks no aceptan texto.** (Carlos 2026-10-14)
   "Máximo concurrente" y "Tope total por ejecución" (`OrchestSettingsView.tsx:~2321`) se renderizan `disabled`
   (visto en `erp-piloto`): no se puede escribir. Revisar por qué están deshabilitados y si la sección aporta.

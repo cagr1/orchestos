@@ -30,7 +30,8 @@ import {
   Zap,
 } from 'lucide-react'
 import { AnimatePresence, animate, motion } from 'motion/react'
-import React, { useCallback, useEffect, useRef, useState } from 'react'
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { PageHeader } from '@/components/layout/page'
 import { Button } from '@/components/ui/button'
 import {
@@ -123,6 +124,184 @@ export type SettingsSection =
   | 'danger_zone'
   | 'language'
   | string // For individual project IDs like "project_<id>"
+
+type SettingsSearchEntry = {
+  id: string
+  section: SettingsSection
+  label: { en: string; es: string }
+  keywords: string[]
+}
+
+const SETTINGS_SEARCH_INDEX: SettingsSearchEntry[] = [
+  {
+    id: 'theme-orchestos',
+    section: 'general',
+    label: { en: 'OrchestOS theme', es: 'Tema OrchestOS' },
+    keywords: ['general', 'appearance', 'theme', 'tema', 'apariencia'],
+  },
+  {
+    id: 'theme-graphite',
+    section: 'general',
+    label: { en: 'Graphite theme', es: 'Tema Graphite' },
+    keywords: ['general', 'appearance', 'theme', 'tema', 'apariencia'],
+  },
+  {
+    id: 'theme-carbon',
+    section: 'general',
+    label: { en: 'Carbon theme', es: 'Tema Carbon' },
+    keywords: ['general', 'appearance', 'theme', 'tema', 'apariencia'],
+  },
+  {
+    id: 'theme-light',
+    section: 'general',
+    label: { en: 'Light theme', es: 'Tema Light' },
+    keywords: ['general', 'appearance', 'theme', 'tema', 'apariencia'],
+  },
+  {
+    id: 'health',
+    section: 'health',
+    label: { en: 'Project health', es: 'Salud del proyecto' },
+    keywords: ['system', 'readiness', 'diagnostics'],
+  },
+  {
+    id: 'api-openrouter',
+    section: 'api_models',
+    label: { en: 'OpenRouter API', es: 'OpenRouter API' },
+    keywords: ['api', 'models', 'keys', 'claves', 'proveedor'],
+  },
+  {
+    id: 'api-anthropic',
+    section: 'api_models',
+    label: { en: 'Anthropic API', es: 'Anthropic API' },
+    keywords: ['api', 'models', 'keys', 'claves', 'proveedor'],
+  },
+  {
+    id: 'api-openai',
+    section: 'api_models',
+    label: { en: 'OpenAI API', es: 'OpenAI API' },
+    keywords: ['api', 'models', 'keys', 'claves', 'proveedor'],
+  },
+  {
+    id: 'api-ollama',
+    section: 'api_models',
+    label: { en: 'Ollama Local', es: 'Ollama Local' },
+    keywords: ['api', 'models', 'keys', 'claves', 'proveedor'],
+  },
+  {
+    id: 'api-ollama-url',
+    section: 'api_models',
+    label: { en: 'Ollama URL', es: 'Ollama URL' },
+    keywords: ['api', 'models', 'keys', 'claves', 'proveedor'],
+  },
+  {
+    id: 'routing-orchestrator',
+    section: 'model_routing',
+    label: { en: 'Orchestrator', es: 'Orquestador' },
+    keywords: ['model', 'routing', 'roles', 'modelos'],
+  },
+  {
+    id: 'routing-executor',
+    section: 'model_routing',
+    label: { en: 'Executor role', es: 'Rol de ejecución' },
+    keywords: ['model', 'routing', 'roles', 'modelos'],
+  },
+  {
+    id: 'routing-reviewer',
+    section: 'model_routing',
+    label: { en: 'Reviewer', es: 'Revisor' },
+    keywords: ['model', 'routing', 'roles', 'modelos'],
+  },
+  {
+    id: 'routing-auxiliary',
+    section: 'model_routing',
+    label: { en: 'Auxiliary', es: 'Auxiliar' },
+    keywords: ['model', 'routing', 'roles', 'modelos'],
+  },
+  {
+    id: 'routing-rules',
+    section: 'model_routing',
+    label: { en: 'Task routing rules', es: 'Reglas por tarea' },
+    keywords: ['model', 'routing', 'output', 'skill'],
+  },
+  {
+    id: 'permissions',
+    section: 'model_routing',
+    label: { en: 'Agent permissions', es: 'Permisos de agentes' },
+    keywords: ['manual', 'yolo', 'approval'],
+  },
+  {
+    id: 'executor-timeout',
+    section: 'executor',
+    label: { en: 'CLI timeout', es: 'Tiempo límite CLI' },
+    keywords: ['executor', 'execution', 'ejecutor'],
+  },
+  {
+    id: 'executor-mode',
+    section: 'executor',
+    label: { en: 'Execution mode', es: 'Modo de ejecución' },
+    keywords: ['executor', 'execution', 'ejecutor'],
+  },
+  {
+    id: 'executor-iterations',
+    section: 'executor',
+    label: { en: 'Max iterations', es: 'Máximo de iteraciones' },
+    keywords: ['executor', 'execution', 'ejecutor'],
+  },
+  {
+    id: 'usage-spend',
+    section: 'usage',
+    label: { en: 'Total spend', es: 'Gasto total' },
+    keywords: ['usage', 'spend', 'telemetry', 'consumo', 'costo'],
+  },
+  {
+    id: 'usage-runs',
+    section: 'usage',
+    label: { en: 'Total runs', es: 'Ejecuciones totales' },
+    keywords: ['usage', 'spend', 'telemetry', 'consumo', 'costo'],
+  },
+  {
+    id: 'usage-average',
+    section: 'usage',
+    label: { en: 'Average cost per run', es: 'Coste medio por ejecución' },
+    keywords: ['usage', 'spend', 'telemetry', 'consumo', 'costo'],
+  },
+  {
+    id: 'usage-activity',
+    section: 'usage',
+    label: { en: 'Daily activity', es: 'Actividad diaria' },
+    keywords: ['usage', 'spend', 'telemetry', 'consumo', 'costo'],
+  },
+  {
+    id: 'usage-models',
+    section: 'usage',
+    label: { en: 'Spend by model', es: 'Gasto por modelo' },
+    keywords: ['usage', 'spend', 'telemetry', 'consumo', 'costo'],
+  },
+  {
+    id: 'reset',
+    section: 'danger_zone',
+    label: { en: 'Reset OrchestOS', es: 'Restablecer OrchestOS' },
+    keywords: ['danger', 'zone', 'delete', 'peligro', 'borrar'],
+  },
+  {
+    id: 'language-en',
+    section: 'language',
+    label: { en: 'English language', es: 'Idioma inglés' },
+    keywords: ['language', 'idioma'],
+  },
+  {
+    id: 'language-es',
+    section: 'language',
+    label: { en: 'Spanish language', es: 'Idioma español' },
+    keywords: ['language', 'idioma'],
+  },
+]
+
+const normalizeSettingsSearch = (text: string) =>
+  text
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
 
 export type ProjectSubTab =
   | 'tasks'
@@ -229,6 +408,16 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
     activeProjectId || projects[0]?.id || 'orchestos',
   )
   const [searchQuery, setSearchQuery] = useState('')
+  const [paletteOpen, setPaletteOpen] = useState(false)
+  const [searchIndex, setSearchIndex] = useState(0)
+  const [searchDestination, setSearchDestination] = useState<SettingsSearchEntry | null>(null)
+  const [highlightTarget, setHighlightTarget] = useState<HTMLElement | null>(null)
+  const [highlightFading, setHighlightFading] = useState(false)
+  const sidebarSearchRef = useRef<HTMLInputElement>(null)
+  const paletteInputRef = useRef<HTMLInputElement>(null)
+  const paletteRef = useRef<HTMLDivElement>(null)
+  const restoringSearchFocus = useRef(false)
+  const settingsRootRef = useRef<HTMLDivElement>(null)
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null)
 
   // Confirmation Modals
@@ -241,12 +430,14 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
   const focusKeyInput = useCallback((input: HTMLInputElement | null) => input?.focus(), [])
 
   // Feedback notifications
-  const [savedBanner, setSavedBanner] = useState<string | null>(null)
-  const [toastMessage, setToastMessage] = useState<string | null>(null)
+  const [toastMessage, setToastMessage] = useState<{
+    message: string
+    tone: 'success' | 'error'
+  } | null>(null)
   const toastTimeoutRef = React.useRef<ReturnType<typeof setTimeout> | null>(null)
 
-  const showToast = (message: string) => {
-    setToastMessage(message)
+  const showToast = (message: string, tone: 'success' | 'error' = 'success') => {
+    setToastMessage({ message, tone })
     if (toastTimeoutRef.current) {
       clearTimeout(toastTimeoutRef.current)
     }
@@ -256,9 +447,7 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
   }
 
   const showSaveSuccess = (sectionName: string) => {
-    setSavedBanner(sectionName)
     showToast(language === 'es' ? `Guardado: ${sectionName}` : `Saved ${sectionName}`)
-    setTimeout(() => setSavedBanner(null), 2500)
   }
 
   // API Keys state
@@ -319,7 +508,162 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
   const [maxIterations, setMaxIterations] = useState<number>(15)
   const [timeoutMinutes, setTimeoutMinutes] = useState<number>(20)
 
+  type SettingsBaseline = {
+    routingRoles: typeof routingRoles
+    taskAgentRules: RoutingRule[]
+    apiMode: typeof apiMode
+    maxIterations: number
+    timeoutMinutes: number
+  }
+  const [baseline, setBaseline] = useState<SettingsBaseline | null>(null)
+  const [unsavedExpanded, setUnsavedExpanded] = useState(false)
+  const [unsavedSaved, setUnsavedSaved] = useState(false)
+  const [savingChanges, setSavingChanges] = useState(false)
+  const changes = useMemo(() => {
+    if (!baseline) return { routing: 0, executor: 0, total: 0 }
+    const roles = new Set([...Object.keys(baseline.routingRoles), ...Object.keys(routingRoles)])
+    const serializeRules = (rules: RoutingRule[]) =>
+      JSON.stringify(
+        rules.map((rule) => [
+          rule.match.output,
+          rule.match.skill,
+          rule.agent,
+          rule.model,
+          rule.cli_effort,
+        ]),
+      )
+    const routing =
+      [...roles].filter((role) => {
+        const before = baseline.routingRoles[role]
+        const after = routingRoles[role]
+        return (
+          before?.agent !== after?.agent ||
+          before?.model !== after?.model ||
+          before?.effort !== after?.effort
+        )
+      }).length + Number(serializeRules(baseline.taskAgentRules) !== serializeRules(taskAgentRules))
+    const executor =
+      Number(apiMode !== baseline.apiMode) +
+      Number(maxIterations !== baseline.maxIterations) +
+      Number(timeoutMinutes !== baseline.timeoutMinutes)
+    return { routing, executor, total: routing + executor }
+  }, [baseline, routingRoles, taskAgentRules, apiMode, maxIterations, timeoutMinutes])
+  const dirtyCount = changes.total
+  const hasUnsavedChanges = dirtyCount > 0
+
   const reduceActivityMotion = usePrefersReducedMotion()
+  useEffect(() => {
+    if (!hasUnsavedChanges) {
+      setUnsavedExpanded(false)
+      return
+    }
+    setUnsavedSaved(false)
+    const timer = setTimeout(
+      () => setUnsavedExpanded(true),
+      reduceActivityMotion ? 0 : spring.slow.duration * 1000,
+    )
+    return () => clearTimeout(timer)
+  }, [hasUnsavedChanges, reduceActivityMotion])
+  useEffect(() => {
+    if (!unsavedSaved) return
+    const timer = setTimeout(() => setUnsavedSaved(false), 1500)
+    return () => clearTimeout(timer)
+  }, [unsavedSaved])
+
+  const searchResults = [
+    ...SETTINGS_SEARCH_INDEX,
+    ...projects.map((project) => ({
+      id: `project_${project.id}`,
+      section: `project_${project.id}`,
+      label: { en: project.name, es: project.name },
+      keywords: ['project', 'proyecto'],
+    })),
+  ]
+    .filter((entry) => entry.id !== 'executor-iterations' || apiMode === 'agentic')
+    .filter((entry) =>
+      normalizeSettingsSearch(`${entry.label[language]} ${entry.keywords.join(' ')}`).includes(
+        normalizeSettingsSearch(searchQuery),
+      ),
+    )
+    .sort(
+      (a, b) =>
+        Number(b.section === normalizeSettingsSearch(searchQuery)) -
+        Number(a.section === normalizeSettingsSearch(searchQuery)),
+    )
+
+  const openSettingsSearch = useCallback(() => {
+    setSearchQuery('')
+    setSearchIndex(0)
+    setPaletteOpen(true)
+  }, [])
+  const closeSettingsSearch = useCallback(() => {
+    setPaletteOpen(false)
+    restoringSearchFocus.current = true
+  }, [])
+
+  useEffect(() => {
+    const shortcut = (event: KeyboardEvent) => {
+      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'k') {
+        event.preventDefault()
+        openSettingsSearch()
+      }
+    }
+    window.addEventListener('keydown', shortcut)
+    return () => window.removeEventListener('keydown', shortcut)
+  }, [openSettingsSearch])
+
+  useEffect(() => {
+    if (paletteOpen) paletteInputRef.current?.focus()
+    else if (restoringSearchFocus.current) {
+      sidebarSearchRef.current?.focus()
+      restoringSearchFocus.current = false
+    }
+  }, [paletteOpen])
+
+  useEffect(() => {
+    paletteRef.current
+      ?.querySelector(`[data-settings-result-index="${searchIndex}"]`)
+      ?.scrollIntoView({ block: 'nearest' })
+  }, [searchIndex])
+
+  useEffect(() => {
+    if (!searchDestination) return
+    const target = settingsRootRef.current?.querySelector<HTMLElement>(
+      `[data-settings-anchor="${searchDestination.id}"]`,
+    )
+    if (!target) return
+    target.scrollIntoView({
+      behavior: reduceActivityMotion ? 'instant' : 'smooth',
+      block: 'center',
+    })
+    const previousPosition = target.style.position
+    if (getComputedStyle(target).position === 'static') target.style.position = 'relative'
+    setHighlightTarget(target)
+    setHighlightFading(false)
+    const fadeTimer = window.setTimeout(() => setHighlightFading(true), spring.slow.duration * 2000)
+    const timer = window.setTimeout(() => {
+      setHighlightTarget(null)
+      setSearchDestination(null)
+    }, spring.slow.duration * 4000)
+    return () => {
+      window.clearTimeout(timer)
+      window.clearTimeout(fadeTimer)
+      target.style.position = previousPosition
+    }
+  }, [searchDestination, reduceActivityMotion])
+
+  const chooseSettingsResult = (entry: SettingsSearchEntry) => {
+    setHighlightTarget(null)
+    if (entry.section.startsWith('project_')) {
+      const id = entry.section.slice('project_'.length)
+      setSelectedProjectId(id)
+      onSelectProject(id)
+    }
+    setActiveSection(entry.section)
+    setSearchDestination({ ...entry })
+    closeSettingsSearch()
+  }
+
   const activityTooltipRef = useRef<HTMLDivElement>(null)
   const activityTotalRef = useRef(0)
   const [activityTotal, setActivityTotal] = useState(0)
@@ -441,6 +785,14 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
             >
             taskAgentRules?: RoutingRule[]
           }
+          setBaseline({
+            routingRoles: routed.roleAssignments ?? {},
+            taskAgentRules: routed.taskAgentRules ?? [],
+            apiMode: nextConfig.apiMode,
+            maxIterations: nextConfig.agenticMaxIterations,
+            timeoutMinutes: nextConfig.externalTimeoutMinutes,
+          })
+          setUnsavedSaved(false)
           setRoutingRoles(routed.roleAssignments ?? {})
           setTaskAgentRules(routed.taskAgentRules ?? [])
           setApiMode(nextConfig.apiMode)
@@ -485,7 +837,7 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
       setEditingKeyProvider((current) => (current === provider ? null : current))
       showSaveSuccess('API keys')
     } catch (error) {
-      showToast(error instanceof Error ? error.message : 'Could not save API key')
+      showToast(error instanceof Error ? error.message : 'Could not save API key', 'error')
     }
   }
 
@@ -501,7 +853,7 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
       setLocalProvider(await getLocalProvider())
       showSaveSuccess(language === 'es' ? 'configuración de Ollama' : 'Ollama settings')
     } catch (error) {
-      showToast(error instanceof Error ? error.message : 'Could not save Ollama settings')
+      showToast(error instanceof Error ? error.message : 'Could not save Ollama settings', 'error')
     }
   }
 
@@ -516,9 +868,18 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
       setConfig(updated)
       setRoutingRoles(updated.roleAssignments ?? {})
       setTaskAgentRules(updated.taskAgentRules ?? [])
-      showSaveSuccess('Model routing')
+      setBaseline(
+        (current) =>
+          current && {
+            ...current,
+            routingRoles: updated.roleAssignments ?? {},
+            taskAgentRules: updated.taskAgentRules ?? [],
+          },
+      )
+      return true
     } catch (error) {
-      showToast(error instanceof Error ? error.message : 'Could not save model routing')
+      showToast(error instanceof Error ? error.message : 'Could not save model routing', 'error')
+      return false
     }
   }
 
@@ -528,7 +889,7 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
       setConfig((await getConfig(configProjectId)) as ConfigResponse)
       showToast(permissionMode === 'manual' ? 'Permissions: Manual' : 'Permissions: Yolo')
     } catch (error) {
-      showToast(error instanceof Error ? error.message : 'Could not save permissions')
+      showToast(error instanceof Error ? error.message : 'Could not save permissions', 'error')
     }
   }
 
@@ -542,9 +903,35 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
         },
         activeProjectId,
       )
-      showSaveSuccess('Executor')
+      setBaseline((current) => current && { ...current, apiMode, maxIterations, timeoutMinutes })
+      return true
     } catch (error) {
-      showToast(error instanceof Error ? error.message : 'Could not save executor settings')
+      showToast(
+        error instanceof Error ? error.message : 'Could not save executor settings',
+        'error',
+      )
+      return false
+    }
+  }
+
+  const discardChanges = () => {
+    if (!baseline) return
+    setRoutingRoles(baseline.routingRoles)
+    setTaskAgentRules(baseline.taskAgentRules)
+    setApiMode(baseline.apiMode)
+    setMaxIterations(baseline.maxIterations)
+    setTimeoutMinutes(baseline.timeoutMinutes)
+  }
+
+  const saveChanges = async () => {
+    if (savingChanges) return
+    setSavingChanges(true)
+    try {
+      const routingSaved = !changes.routing || (await handleSaveRouting())
+      const executorSaved = !changes.executor || (await handleSaveExecutor())
+      if (routingSaved && executorSaved) setUnsavedSaved(true)
+    } finally {
+      setSavingChanges(false)
     }
   }
 
@@ -721,8 +1108,157 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
     setActiveSection(`project_${projId}`)
   }
 
+  const navHighlight = (
+    <motion.span
+      data-settings-nav-active
+      aria-hidden
+      layoutId="settings-nav-active"
+      transition={reduceActivityMotion ? { duration: 0 } : spring.moderate}
+      className="pointer-events-none absolute inset-0 -z-10 rounded-control bg-app-surface"
+    />
+  )
+
   return (
-    <div className="flex-1 flex h-full text-app overflow-hidden select-none">
+    <div ref={settingsRootRef} className="flex-1 flex h-full text-app overflow-hidden select-none">
+      <AnimatePresence>
+        {paletteOpen && (
+          <motion.div
+            data-settings-search-backdrop
+            className="fixed inset-0 z-50 flex items-center justify-center bg-app-bg/60 p-6"
+            initial={reduceActivityMotion ? false : { opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={reduceActivityMotion ? { duration: 0 } : spring.slow}
+            onClick={(event) => {
+              if (event.target === event.currentTarget) closeSettingsSearch()
+            }}
+          >
+            <div
+              ref={paletteRef}
+              role="dialog"
+              aria-modal="true"
+              aria-label={language === 'es' ? 'Buscar configuración' : 'Search settings'}
+              className="relative isolate w-full max-w-xl"
+              onKeyDown={(event) => {
+                if (event.key === 'Escape') {
+                  event.preventDefault()
+                  closeSettingsSearch()
+                }
+                if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+                  event.preventDefault()
+                  setSearchIndex((current) =>
+                    searchResults.length
+                      ? (current + (event.key === 'ArrowDown' ? 1 : -1) + searchResults.length) %
+                        searchResults.length
+                      : 0,
+                  )
+                }
+                if (event.key === 'Enter' && searchResults[searchIndex]) {
+                  event.preventDefault()
+                  chooseSettingsResult(searchResults[searchIndex])
+                }
+                if (event.key === 'Tab') {
+                  event.preventDefault()
+                  paletteInputRef.current?.focus()
+                }
+              }}
+            >
+              <motion.div
+                aria-hidden
+                data-settings-search-surface
+                layoutId={reduceActivityMotion ? undefined : 'settings-search-surface'}
+                transition={reduceActivityMotion ? { duration: 0 } : spring.slow}
+                style={{ borderRadius: 16 }}
+                className="pointer-events-none absolute inset-0 -z-10 border border-app bg-app-surface shadow-2xl"
+              />
+              <motion.div
+                initial={reduceActivityMotion ? false : { opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0, transition: spring.fast.exit }}
+                transition={
+                  reduceActivityMotion
+                    ? { duration: 0 }
+                    : { ...spring.fast, delay: spring.slow.duration }
+                }
+              >
+                <div className="flex items-center gap-3 px-4 py-3">
+                  <Search aria-hidden className="h-4 w-4 text-app-muted" />
+                  <input
+                    ref={paletteInputRef}
+                    type="text"
+                    role="combobox"
+                    aria-label={language === 'es' ? 'Buscar configuración' : 'Search settings'}
+                    aria-expanded="true"
+                    aria-controls="settings-search-results"
+                    aria-autocomplete="list"
+                    aria-activedescendant={
+                      searchResults[searchIndex] ? `settings-result-${searchIndex}` : undefined
+                    }
+                    placeholder={
+                      language === 'es' ? 'Buscar configuración...' : 'Search settings...'
+                    }
+                    value={searchQuery}
+                    onChange={(event) => {
+                      setSearchQuery(event.target.value)
+                      setSearchIndex(0)
+                    }}
+                    className="min-w-0 flex-1 bg-transparent text-sm text-app outline-none placeholder:text-app-muted"
+                  />
+                </div>
+                <div
+                  id="settings-search-results"
+                  role="listbox"
+                  aria-label={language === 'es' ? 'Resultados' : 'Results'}
+                  className="max-h-[50vh] overflow-y-auto p-2"
+                >
+                  {searchResults.map((entry, index) => (
+                    <div
+                      key={entry.id}
+                      id={`settings-result-${index}`}
+                      role="option"
+                      aria-selected={searchIndex === index}
+                      data-settings-result={entry.id}
+                      data-settings-result-index={index}
+                      className="relative isolate cursor-pointer rounded-control px-3 py-2 text-sm text-app"
+                      onMouseEnter={() => setSearchIndex(index)}
+                      onClick={() => chooseSettingsResult(entry)}
+                    >
+                      {searchIndex === index && (
+                        <motion.span
+                          aria-hidden
+                          layoutId="settings-search-selected"
+                          transition={reduceActivityMotion ? { duration: 0 } : spring.moderate}
+                          className="pointer-events-none absolute inset-0 -z-10 rounded-control bg-app-elevated"
+                        />
+                      )}
+                      {entry.label[language]}
+                    </div>
+                  ))}
+                  {searchResults.length === 0 && (
+                    <p className="px-3 py-2 text-sm text-app-muted">
+                      {language === 'es' ? 'Sin resultados' : 'No results'}
+                    </p>
+                  )}
+                </div>
+              </motion.div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+      {highlightTarget &&
+        createPortal(
+          <motion.span
+            key={searchDestination?.id}
+            aria-hidden
+            data-settings-highlight
+            initial={reduceActivityMotion ? false : { opacity: 0 }}
+            animate={{ opacity: reduceActivityMotion || !highlightFading ? 1 : 0 }}
+            transition={reduceActivityMotion ? { duration: 0 } : spring.slow}
+            className="pointer-events-none absolute inset-0 z-10 rounded-control bg-app-accent/10"
+          />,
+          highlightTarget,
+        )}
+
       {/* Settings Navigation Sidebar */}
       <aside
         data-ff
@@ -739,16 +1275,45 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
             <span>{language === 'es' ? 'Volver a la app' : 'Back to app'}</span>
           </button>
 
-          {/* Search settings input */}
-          <div className="relative">
-            <Search className="w-4 h-4 text-app-muted absolute left-2 top-1.5" />
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder={language === 'es' ? 'Buscar configuración...' : 'Search settings...'}
-              className="h-7 w-full rounded-control bg-app-surface pl-8 pr-2.5 text-[12.5px] text-app outline-none placeholder:text-app-muted"
-            />
+          {/* Shared surface grows from this input into the command palette. */}
+          <div className="h-7">
+            {!paletteOpen && (
+              <div className="relative isolate">
+                <motion.div
+                  aria-hidden
+                  layoutId={reduceActivityMotion ? undefined : 'settings-search-surface'}
+                  transition={reduceActivityMotion ? { duration: 0 } : spring.slow}
+                  style={{ borderRadius: 6 }}
+                  className="pointer-events-none absolute inset-0 -z-10 bg-app-surface"
+                />
+                <motion.div
+                  initial={reduceActivityMotion ? false : { opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={
+                    reduceActivityMotion
+                      ? { duration: 0 }
+                      : { ...spring.fast, delay: spring.slow.duration }
+                  }
+                >
+                  <Search className="pointer-events-none w-4 h-4 text-app-muted absolute left-2 top-1.5" />
+                  <input
+                    ref={sidebarSearchRef}
+                    type="text"
+                    readOnly
+                    value=""
+                    onFocus={() => {
+                      if (!restoringSearchFocus.current) openSettingsSearch()
+                    }}
+                    onClick={openSettingsSearch}
+                    placeholder={
+                      language === 'es' ? 'Buscar configuración...' : 'Search settings...'
+                    }
+                    aria-label={language === 'es' ? 'Buscar configuración' : 'Search settings'}
+                    className="h-7 w-full rounded-control bg-transparent pl-8 pr-2.5 text-[12.5px] text-app outline-none placeholder:text-app-muted"
+                  />
+                </motion.div>
+              </div>
+            )}
           </div>
 
           {/* Settings Groups matching the real application structure */}
@@ -760,12 +1325,14 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
               <button
                 type="button"
                 onClick={() => setActiveSection('general')}
-                className={`w-full flex h-7 items-center gap-2 px-2 rounded-control text-left text-[12.5px] font-medium transition-colors ${
+                aria-current={activeSection === 'general' ? 'page' : undefined}
+                className={`relative isolate w-full flex h-7 items-center gap-2 px-2 rounded-control text-left text-[12.5px] font-medium transition-colors ${
                   activeSection === 'general'
-                    ? 'bg-app-surface text-app [&_svg]:text-app'
+                    ? 'text-app [&_svg]:text-app'
                     : 'text-app-muted hover:text-app hover:bg-app-surface'
                 }`}
               >
+                {activeSection === 'general' && navHighlight}
                 <Palette className="w-4 h-4 text-app-muted" />
                 <span>General</span>
               </button>
@@ -773,12 +1340,14 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
               <button
                 type="button"
                 onClick={() => setActiveSection('health')}
-                className={`w-full flex h-7 items-center justify-between px-2 gap-2 rounded-control text-left text-[12.5px] font-medium transition-colors ${
+                aria-current={activeSection === 'health' ? 'page' : undefined}
+                className={`relative isolate w-full flex h-7 items-center justify-between px-2 gap-2 rounded-control text-left text-[12.5px] font-medium transition-colors ${
                   activeSection === 'health'
-                    ? 'bg-app-surface text-app [&_svg]:text-app'
+                    ? 'text-app [&_svg]:text-app'
                     : 'text-app-muted hover:text-app hover:bg-app-surface'
                 }`}
               >
+                {activeSection === 'health' && navHighlight}
                 <div className="flex items-center gap-2">
                   <Activity className="w-4 h-4 text-app-muted" />
                   <span>Health</span>
@@ -794,12 +1363,14 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
               <button
                 type="button"
                 onClick={() => setActiveSection('api_models')}
-                className={`w-full flex h-7 items-center gap-2 px-2 rounded-control text-left text-[12.5px] font-medium transition-colors ${
+                aria-current={activeSection === 'api_models' ? 'page' : undefined}
+                className={`relative isolate w-full flex h-7 items-center gap-2 px-2 rounded-control text-left text-[12.5px] font-medium transition-colors ${
                   activeSection === 'api_models'
-                    ? 'bg-app-surface text-app [&_svg]:text-app'
+                    ? 'text-app [&_svg]:text-app'
                     : 'text-app-muted hover:text-app hover:bg-app-surface'
                 }`}
               >
+                {activeSection === 'api_models' && navHighlight}
                 <Key className="w-4 h-4 text-app-muted" />
                 <span>API & Models</span>
               </button>
@@ -807,12 +1378,14 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
               <button
                 type="button"
                 onClick={() => setActiveSection('model_routing')}
-                className={`w-full flex h-7 items-center gap-2 px-2 rounded-control text-left text-[12.5px] font-medium transition-colors ${
+                aria-current={activeSection === 'model_routing' ? 'page' : undefined}
+                className={`relative isolate w-full flex h-7 items-center gap-2 px-2 rounded-control text-left text-[12.5px] font-medium transition-colors ${
                   activeSection === 'model_routing'
-                    ? 'bg-app-surface text-app [&_svg]:text-app'
+                    ? 'text-app [&_svg]:text-app'
                     : 'text-app-muted hover:text-app hover:bg-app-surface'
                 }`}
               >
+                {activeSection === 'model_routing' && navHighlight}
                 <Cpu className="w-4 h-4 text-app-muted" />
                 <span>Model routing</span>
               </button>
@@ -820,12 +1393,14 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
               <button
                 type="button"
                 onClick={() => setActiveSection('executor')}
-                className={`w-full flex h-7 items-center gap-2 px-2 rounded-control text-left text-[12.5px] font-medium transition-colors ${
+                aria-current={activeSection === 'executor' ? 'page' : undefined}
+                className={`relative isolate w-full flex h-7 items-center gap-2 px-2 rounded-control text-left text-[12.5px] font-medium transition-colors ${
                   activeSection === 'executor'
-                    ? 'bg-app-surface text-app [&_svg]:text-app'
+                    ? 'text-app [&_svg]:text-app'
                     : 'text-app-muted hover:text-app hover:bg-app-surface'
                 }`}
               >
+                {activeSection === 'executor' && navHighlight}
                 <Server className="w-4 h-4 text-app-muted" />
                 <span>Executor</span>
               </button>
@@ -838,12 +1413,14 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
               <button
                 type="button"
                 onClick={() => setActiveSection('usage')}
-                className={`w-full flex h-7 items-center gap-2 px-2 rounded-control text-left text-[12.5px] font-medium transition-colors ${
+                aria-current={activeSection === 'usage' ? 'page' : undefined}
+                className={`relative isolate w-full flex h-7 items-center gap-2 px-2 rounded-control text-left text-[12.5px] font-medium transition-colors ${
                   activeSection === 'usage'
-                    ? 'bg-app-surface text-app [&_svg]:text-app'
+                    ? 'text-app [&_svg]:text-app'
                     : 'text-app-muted hover:text-app hover:bg-app-surface'
                 }`}
               >
+                {activeSection === 'usage' && navHighlight}
                 <DollarSign className="w-4 h-4 text-app-muted" />
                 <span>Usage</span>
               </button>
@@ -856,12 +1433,14 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
               <button
                 type="button"
                 onClick={() => setActiveSection('danger_zone')}
-                className={`w-full flex h-7 items-center gap-2 px-2 rounded-control text-left text-[12.5px] font-medium transition-colors ${
+                aria-current={activeSection === 'danger_zone' ? 'page' : undefined}
+                className={`relative isolate w-full flex h-7 items-center gap-2 px-2 rounded-control text-left text-[12.5px] font-medium transition-colors ${
                   activeSection === 'danger_zone'
-                    ? 'bg-app-surface text-app [&_svg]:text-app'
+                    ? 'text-app [&_svg]:text-app'
                     : 'text-app-muted hover:text-app hover:bg-app-surface'
                 }`}
               >
+                {activeSection === 'danger_zone' && navHighlight}
                 <ShieldAlert className="w-4 h-4 text-app-muted" />
                 <span>Danger zone</span>
               </button>
@@ -869,12 +1448,14 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
               <button
                 type="button"
                 onClick={() => setActiveSection('language')}
-                className={`w-full flex h-7 items-center justify-between px-2 gap-2 rounded-control text-left text-[12.5px] font-medium transition-colors ${
+                aria-current={activeSection === 'language' ? 'page' : undefined}
+                className={`relative isolate w-full flex h-7 items-center justify-between px-2 gap-2 rounded-control text-left text-[12.5px] font-medium transition-colors ${
                   activeSection === 'language'
-                    ? 'bg-app-surface text-app [&_svg]:text-app'
+                    ? 'text-app [&_svg]:text-app'
                     : 'text-app-muted hover:text-app hover:bg-app-surface'
                 }`}
               >
+                {activeSection === 'language' && navHighlight}
                 <div className="flex items-center gap-2">
                   <Globe className="w-4 h-4 text-app-muted" />
                   <span>Language</span>
@@ -911,12 +1492,14 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
                       key={p.id}
                       type="button"
                       onClick={() => handleNavToProject(p.id)}
-                      className={`w-full flex h-7 items-center gap-2 px-2 rounded-control text-left text-[12.5px] font-medium transition-colors truncate ${
+                      aria-current={isCurrent ? 'page' : undefined}
+                      className={`relative isolate w-full flex h-7 items-center gap-2 px-2 rounded-control text-left text-[12.5px] font-medium transition-colors truncate ${
                         isCurrent
-                          ? 'bg-app-surface text-app [&_svg]:text-app'
+                          ? 'text-app [&_svg]:text-app'
                           : 'text-app-muted hover:text-app hover:bg-app-surface'
                       }`}
                     >
+                      {isCurrent && navHighlight}
                       <FolderClosed className="w-4 h-4 text-app-muted flex-shrink-0" />
                       <span className="truncate">{p.name}</span>
                     </button>
@@ -930,13 +1513,6 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
 
       {/* Main Settings Content Area */}
       <main className="relative flex-1 flex flex-col overflow-hidden rounded-tl-[10px] bg-app-surface text-app">
-        {/* Save confirmation banner */}
-        {savedBanner && (
-          <div className="bg-emerald-950/60 border-b border-emerald-800/60 px-4 py-2 flex items-center gap-2 text-xs text-emerald-300 font-mono">
-            <CheckCircle2 className="w-3.5 h-3.5" />
-            <span>Saved {savedBanner} configuration successfully.</span>
-          </div>
-        )}
         {settingsLoading && !settingsError && (
           <div className="pointer-events-none absolute right-4 top-3 z-10 text-xs text-app-muted">
             Loading live settings…
@@ -965,6 +1541,7 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
                 return (
                   <Card
                     key={th.id}
+                    data-settings-anchor={`theme-${th.id}`}
                     label={th.name}
                     selected={isSelected}
                     onClick={() => onSelectTheme(th.id)}
@@ -1017,6 +1594,7 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
           >
             <SettingsGroup>
               <SettingsRow
+                data-settings-anchor="health"
                 label={
                   <span className="flex items-center gap-2">
                     {health ? (
@@ -1043,15 +1621,7 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
                     ? `${health.system.items.filter((item) => item.ok).length}/${health.system.items.length} system checks passing in ${setup?.cwd || health.system.cwd}.`
                     : settingsError || 'Checking system checks…'
                 }
-              >
-                <Button
-                  variant="secondary"
-                  size="compact"
-                  onClick={() => showSaveSuccess('Health Diagnostics')}
-                >
-                  View
-                </Button>
-              </SettingsRow>
+              ></SettingsRow>
               <SettingsRow
                 label="Blocked tasks"
                 description={`${health?.blockedTasks.length ?? 0} contract violations currently halting worktrees.`}
@@ -1133,7 +1703,12 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
                   openai: 'OpenAI API',
                 }[provider]
                 return (
-                  <div key={provider} data-api-key-row={provider} className="space-y-2 px-4 py-3">
+                  <div
+                    key={provider}
+                    data-api-key-row={provider}
+                    data-settings-anchor={`api-${provider}`}
+                    className="space-y-2 px-4 py-3"
+                  >
                     <div className="flex flex-wrap items-center justify-between gap-2">
                       <div className="flex items-center gap-2">
                         <ProviderLogo
@@ -1240,6 +1815,7 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
                 )
               })}
               <SettingsRow
+                data-settings-anchor="api-ollama"
                 label={
                   <span className="flex items-center gap-2">
                     <Server className="h-4 w-4 text-app-muted" />
@@ -1257,7 +1833,7 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
                     : 'Ollama is not responding.'
                 }
               />
-              <div className="space-y-2 px-4 py-3">
+              <div data-settings-anchor="api-ollama-url" className="space-y-2 px-4 py-3">
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <div className="flex items-center gap-2">
                     <Server className="h-4 w-4 text-app-muted" />
@@ -1301,13 +1877,6 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
                 Source: {config?.source ? 'orchestos.config.yaml' : 'defaults'}
               </span>
             }
-            actions={
-              <SettingsPrimaryAction>
-                <Button variant="primary" onClick={() => void handleSaveRouting()}>
-                  Save
-                </Button>
-              </SettingsPrimaryAction>
-            }
           >
             <div className="grid grid-cols-1 gap-3 text-xs lg:grid-cols-2">
               {(
@@ -1340,6 +1909,7 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
                   <div
                     key={key}
                     data-role-card
+                    data-settings-anchor={`routing-${key}`}
                     className="relative space-y-2 rounded-card border border-[color:color-mix(in_srgb,var(--app-border)_50%,transparent)] bg-app-surface p-3.5"
                   >
                     <div>
@@ -1544,7 +2114,10 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
                 )
               })}
             </div>
-            <div className="overflow-hidden rounded-card border border-[color:color-mix(in_srgb,var(--app-border)_50%,transparent)] bg-app-surface text-xs">
+            <div
+              data-settings-anchor="routing-rules"
+              className="overflow-hidden rounded-card border border-[color:color-mix(in_srgb,var(--app-border)_50%,transparent)] bg-app-surface text-xs"
+            >
               <button
                 type="button"
                 onClick={() => setIsTaskModelTableOpen(!isTaskModelTableOpen)}
@@ -1802,6 +2375,7 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
             </div>
             <SettingsGroup>
               <SettingsRow
+                data-settings-anchor="permissions"
                 label="Agent permissions"
                 description="Yolo runs tasks the chat creates right away. Manual waits for your approval in the chat before each task runs."
               >
@@ -1826,16 +2400,13 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
           <SettingsPage
             title="Executor"
             description="Tune API execution and CLI timeouts. The Executor role in Model routing chooses which agent runs tasks."
-            actions={
-              <SettingsPrimaryAction>
-                <Button variant="primary" onClick={() => void handleSaveExecutor()}>
-                  Save executor
-                </Button>
-              </SettingsPrimaryAction>
-            }
           >
             <SettingsGroup>
-              <SettingsRow label="Timeout" description="Stop the CLI if it runs longer than this">
+              <SettingsRow
+                data-settings-anchor="executor-timeout"
+                label="Timeout"
+                description="Stop the CLI if it runs longer than this"
+              >
                 <SettingsStepper
                   ariaLabel="timeout"
                   value={timeoutMinutes}
@@ -1844,11 +2415,14 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
                   unit="min"
                   onChange={(nextVal) => {
                     setTimeoutMinutes(nextVal)
-                    showToast(`Timeout: ${nextVal} min`)
                   }}
                 />
               </SettingsRow>
-              <SettingsRow label="Mode" description="Choose single-shot execution or agentic loop">
+              <SettingsRow
+                data-settings-anchor="executor-mode"
+                label="Mode"
+                description="Choose single-shot execution or agentic loop"
+              >
                 <SettingsSegmented
                   ariaLabel="Mode"
                   value={apiMode}
@@ -1858,12 +2432,12 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
                   ]}
                   onChange={(mode) => {
                     setApiMode(mode)
-                    showToast(mode === 'agentic' ? 'Mode: Agentic' : 'Mode: Single-shot')
                   }}
                 />
               </SettingsRow>
               {apiMode === 'agentic' && (
                 <SettingsRow
+                  data-settings-anchor="executor-iterations"
                   label="Max iterations"
                   description="Stop recursive tool calls after this threshold"
                 >
@@ -1873,7 +2447,6 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
                     min={1}
                     onChange={(nextVal) => {
                       setMaxIterations(nextVal)
-                      showToast(`Max iterations: ${nextVal}`)
                     }}
                   />
                 </SettingsRow>
@@ -1890,7 +2463,10 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
           >
             {/* 3 KPI cards at the top (exact same numbers computed from table data) */}
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-              <div className="space-y-1 rounded-card border border-[color:color-mix(in_srgb,var(--app-border)_50%,transparent)] bg-app-surface p-3.5">
+              <div
+                data-settings-anchor="usage-spend"
+                className="space-y-1 rounded-card border border-[color:color-mix(in_srgb,var(--app-border)_50%,transparent)] bg-app-surface p-3.5"
+              >
                 <div className="text-xs uppercase text-app-muted">Total Spend</div>
                 <div className="text-xl font-bold tabular-nums text-app font-mono">
                   ${totalSpendUsage.toFixed(2)}
@@ -1902,7 +2478,10 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
                 </div>
               </div>
 
-              <div className="space-y-1 rounded-card border border-[color:color-mix(in_srgb,var(--app-border)_50%,transparent)] bg-app-surface p-3.5">
+              <div
+                data-settings-anchor="usage-runs"
+                className="space-y-1 rounded-card border border-[color:color-mix(in_srgb,var(--app-border)_50%,transparent)] bg-app-surface p-3.5"
+              >
                 <div className="text-xs uppercase text-app-muted">Total Runs</div>
                 <div className="text-xl font-bold tabular-nums text-app font-mono">
                   {totalRunsUsage}
@@ -1912,7 +2491,10 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
                 </div>
               </div>
 
-              <div className="space-y-1 rounded-card border border-[color:color-mix(in_srgb,var(--app-border)_50%,transparent)] bg-app-surface p-3.5">
+              <div
+                data-settings-anchor="usage-average"
+                className="space-y-1 rounded-card border border-[color:color-mix(in_srgb,var(--app-border)_50%,transparent)] bg-app-surface p-3.5"
+              >
                 <div className="text-xs uppercase text-app-muted">Avg. Cost / Run</div>
                 <div className="text-xl font-bold tabular-nums text-app font-mono">
                   ${avgCostUsage}
@@ -1926,7 +2508,10 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
             </div>
 
             {/* Daily Activity Heatmap */}
-            <div className="space-y-3 rounded-card border border-[color:color-mix(in_srgb,var(--app-border)_50%,transparent)] bg-app-surface p-4">
+            <div
+              data-settings-anchor="usage-activity"
+              className="space-y-3 rounded-card border border-[color:color-mix(in_srgb,var(--app-border)_50%,transparent)] bg-app-surface p-4"
+            >
               <div className="flex items-center justify-between text-xs">
                 <div className="flex items-center gap-2">
                   <span className="font-semibold text-app">Daily activity</span>
@@ -2066,7 +2651,10 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
             </div>
 
             {/* Spend by Model Table */}
-            <div className="overflow-hidden rounded-card border border-[color:color-mix(in_srgb,var(--app-border)_50%,transparent)] bg-app-surface text-xs">
+            <div
+              data-settings-anchor="usage-models"
+              className="overflow-hidden rounded-card border border-[color:color-mix(in_srgb,var(--app-border)_50%,transparent)] bg-app-surface text-xs"
+            >
               <div className="flex items-center justify-between border-b border-[color:color-mix(in_srgb,var(--app-border)_50%,transparent)] p-3 font-semibold text-app">
                 <span>Spend by model</span>
                 <span className="text-[11px] tabular-nums text-app-muted">
@@ -2149,7 +2737,7 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
                 </span>
               }
             >
-              <div className="space-y-3 p-4">
+              <div data-settings-anchor="reset" className="space-y-3 p-4">
                 <p className="max-w-prose text-xs leading-relaxed text-app-muted">
                   Deletes all runs and unverified instincts, and resets every task in tasks.yaml
                   back to pending. Does NOT touch config, skills, CONTEXT.md, or memory.
@@ -2181,6 +2769,7 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
               {(['en', 'es'] as const).map((option) => (
                 <button
                   key={option}
+                  data-settings-anchor={`language-${option}`}
                   type="button"
                   onClick={() => onSelectLanguage(option)}
                   className="block w-full text-left transition-colors hover:bg-app-elevated"
@@ -2205,7 +2794,11 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
         {isProjectSection && selectedProject && (
           <div className="flex-1 flex flex-col overflow-hidden">
             {/* Top Project Header (Removed project switcher on the right as requested) */}
-            <div className="px-6 pt-7 pb-3 flex-shrink-0 space-y-3" data-project-header>
+            <div
+              className="px-6 pt-7 pb-3 flex-shrink-0 space-y-3"
+              data-project-header
+              data-settings-anchor={`project_${selectedProject.id}`}
+            >
               <PageHeader
                 title={selectedProject.name}
                 meta={
@@ -2437,6 +3030,101 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
             </div>
           </div>
         )}
+        <AnimatePresence>
+          {(dirtyCount > 0 || unsavedSaved) && (
+            <motion.div
+              data-unsaved-bar
+              className="absolute bottom-6 inset-x-0 z-30 flex justify-center pointer-events-none"
+              initial={{ opacity: 0, y: reduceActivityMotion ? 0 : 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: reduceActivityMotion ? 0 : 8 }}
+              transition={reduceActivityMotion ? { duration: 0 } : spring.slow}
+            >
+              <motion.div
+                layout
+                className="relative isolate rounded-full px-4 py-2 pointer-events-auto"
+                transition={reduceActivityMotion ? { duration: 0 } : spring.slow}
+              >
+                <motion.div
+                  layout
+                  className="absolute inset-0 -z-10 rounded-full bg-app-elevated border border-app shadow-lg"
+                  transition={reduceActivityMotion ? { duration: 0 } : spring.slow}
+                />
+                <motion.div
+                  layout="position"
+                  className="flex items-center gap-3 text-sm whitespace-nowrap"
+                  transition={reduceActivityMotion ? { duration: 0 } : spring.slow}
+                >
+                  {unsavedSaved && dirtyCount === 0 ? (
+                    <motion.span
+                      data-unsaved-saved
+                      className="flex items-center gap-2"
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      transition={reduceActivityMotion ? { duration: 0 } : spring.moderate}
+                    >
+                      <Check className="size-4" />
+                      {language === 'es' ? 'Configuración guardada' : 'Settings saved'}
+                    </motion.span>
+                  ) : (
+                    <>
+                      <span className="flex items-center gap-1.5">
+                        <span className="inline-flex overflow-hidden tabular-nums">
+                          <AnimatePresence mode="popLayout" initial={false}>
+                            <motion.span
+                              key={dirtyCount}
+                              data-unsaved-count
+                              initial={{ opacity: 0, y: reduceActivityMotion ? 0 : 12 }}
+                              animate={{ opacity: 1, y: 0 }}
+                              exit={{ opacity: 0, y: reduceActivityMotion ? 0 : -12 }}
+                              transition={reduceActivityMotion ? { duration: 0 } : spring.moderate}
+                            >
+                              {dirtyCount}
+                            </motion.span>
+                          </AnimatePresence>
+                        </span>
+                        {unsavedExpanded && (
+                          <motion.span
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            transition={reduceActivityMotion ? { duration: 0 } : spring.moderate}
+                          >
+                            {language === 'es' ? 'cambios sin guardar' : 'unsaved changes'}
+                          </motion.span>
+                        )}
+                      </span>
+                      {unsavedExpanded && (
+                        <motion.div
+                          className="flex items-center gap-2"
+                          initial={{ opacity: 0 }}
+                          animate={{ opacity: 1 }}
+                          transition={reduceActivityMotion ? { duration: 0 } : spring.moderate}
+                        >
+                          <Button
+                            variant="ghost"
+                            size="compact"
+                            disabled={savingChanges}
+                            onClick={discardChanges}
+                          >
+                            {language === 'es' ? 'Descartar' : 'Discard'}
+                          </Button>
+                          <Button
+                            variant="primary"
+                            size="compact"
+                            disabled={savingChanges}
+                            onClick={() => void saveChanges()}
+                          >
+                            {language === 'es' ? 'Guardar' : 'Save'}
+                          </Button>
+                        </motion.div>
+                      )}
+                    </>
+                  )}
+                </motion.div>
+              </motion.div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </main>
 
       {/* Confirmation Dialog for Purging Project Data */}
@@ -2516,7 +3204,7 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
                       showSaveSuccess('OrchestOS reset completed')
                     })
                     .catch((error: unknown) =>
-                      showToast(error instanceof Error ? error.message : 'Reset failed'),
+                      showToast(error instanceof Error ? error.message : 'Reset failed', 'error'),
                     )
                 }}
                 className="px-3 py-1.5 rounded-control bg-rose-600 hover:bg-rose-500 text-white font-bold"
@@ -2532,8 +3220,10 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
       {toastMessage && (
         <div className="fixed bottom-5 right-5 z-50 animate-in fade-in slide-in-from-bottom-2 duration-200 pointer-events-none">
           <div className="flex items-center gap-2.5 px-3.5 py-2 rounded-control bg-zinc-900/95 border border-zinc-700/80 text-zinc-100 shadow-2xl font-mono text-xs">
-            <div className="w-2 h-2 rounded-full bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.8)]" />
-            <span className="font-semibold">{toastMessage}</span>
+            <div
+              className={`w-2 h-2 rounded-full ${toastMessage.tone === 'error' ? 'bg-app-error' : 'bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.8)]'}`}
+            />
+            <span className="font-semibold">{toastMessage.message}</span>
           </div>
         </div>
       )}

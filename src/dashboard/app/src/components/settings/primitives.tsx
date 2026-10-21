@@ -54,7 +54,9 @@ export function SettingsRow({
   label,
   description,
   children,
+  'data-settings-anchor': settingsAnchor,
 }: {
+  'data-settings-anchor'?: string
   label: ReactNode
   description?: ReactNode
   children?: ReactNode
@@ -62,6 +64,7 @@ export function SettingsRow({
   return (
     <div
       data-settings-row
+      data-settings-anchor={settingsAnchor}
       className="flex min-h-[52px] items-center justify-between gap-4 px-4 py-2"
     >
       <div className="min-w-0">

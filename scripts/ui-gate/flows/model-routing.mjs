@@ -86,7 +86,7 @@ export default async function modelRouting({ page, api, step, shot, cleanup }) {
       page.waitForResponse(
         (res) => res.url().endsWith('/api/config') && res.request().method() === 'PUT',
       ),
-      page.getByRole('button', { name: 'Save', exact: true }).click(),
+      page.locator('[data-unsaved-bar]').getByRole('button', { name: 'Save', exact: true }).click(),
     ])
     const body = await response.text()
     if (!response.ok()) {

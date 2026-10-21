@@ -23,7 +23,9 @@ async function inspect(page, panelSelector) {
       const isActive = (row) => {
         const c = row.classList
         return (
-          c.contains('text-app') && (c.contains('bg-app-surface') || c.contains('bg-app-elevated'))
+          row.getAttribute('aria-current') === 'page' ||
+          (c.contains('text-app') &&
+            (c.contains('bg-app-surface') || c.contains('bg-app-elevated')))
         )
       }
       const rows = sidebars.flatMap((aside) =>
@@ -70,6 +72,7 @@ async function inspect(page, panelSelector) {
 }
 
 export default async function shellLook({ page, api, step, shot, visible, hidden, cleanup }) {
+  const settle = () => page.waitForTimeout(700)
   await visible(page.getByRole('button', { name: 'Settings', exact: true }))
 
   for (const [view, panelSelector] of [
@@ -112,6 +115,180 @@ export default async function shellLook({ page, api, step, shot, visible, hidden
       facts.paletteHits.join(' || ') || 'ninguna',
     )
   }
+  // UI.26.6b.3 — search grows into a palette and takes the user to a setting row.
+  const search = page.getByRole('textbox', { name: 'Search settings', exact: true })
+  const searchBox = await search.boundingBox()
+  const sidebarNavigation = await search
+    .locator('xpath=ancestor::aside')
+    .getByRole('button')
+    .count()
+  const palette = page.getByRole('dialog', { name: 'Search settings', exact: true })
+  // Sample in the browser from the opening focus event, without locator polling delays.
+  await search.evaluate((input) => {
+    window.__settingsPaletteHeights = []
+    input.addEventListener(
+      'focus',
+      () => {
+        for (const ms of [60, 120, 200]) {
+          setTimeout(() => {
+            const dialog = document.querySelector('[role="dialog"][aria-label="Search settings"]')
+            window.__settingsPaletteHeights.push({
+              ms,
+              input: dialog?.querySelector('input')?.getBoundingClientRect().height ?? 0,
+              option: dialog?.querySelector('[role="option"]')?.getBoundingClientRect().height ?? 0,
+            })
+          }, ms)
+        }
+      },
+      { once: true },
+    )
+  })
+  await search.click()
+  await visible(palette)
+  const paletteInput = palette.getByRole('combobox')
+  await page.waitForFunction(() => {
+    const dialog = document.querySelector('[role="dialog"]')
+    return (
+      dialog?.querySelector('input') === document.activeElement &&
+      dialog.getBoundingClientRect().width > 300
+    )
+  })
+  await settle()
+  const textHeights = await palette.evaluate((dialog) => {
+    const settled = {
+      input: dialog.querySelector('input').getBoundingClientRect().height,
+      option: dialog.querySelector('[role="option"]').getBoundingClientRect().height,
+    }
+    const samples = window.__settingsPaletteHeights
+    delete window.__settingsPaletteHeights
+    return { settled, samples }
+  })
+  await step(
+    'settings palette text not stretched',
+    textHeights.samples.length === 3 &&
+      ['input', 'option'].every(
+        (key) =>
+          textHeights.settled[key] > 0 &&
+          textHeights.samples.every(
+            (sample) =>
+              Math.abs(sample[key] - textHeights.settled[key]) <= textHeights.settled[key] * 0.15,
+          ),
+      ),
+    JSON.stringify(textHeights),
+  )
+  const surfaceColor = await palette
+    .locator('[data-settings-search-surface]')
+    .evaluate((surface) => getComputedStyle(surface).backgroundColor)
+  const surfaceAlpha = await palette
+    .locator('[data-settings-search-surface]')
+    .evaluate((surface) => {
+      const canvas = document.createElement('canvas')
+      canvas.width = canvas.height = 1
+      const context = canvas.getContext('2d')
+      context.fillStyle = getComputedStyle(surface).backgroundColor
+      context.fillRect(0, 0, 1, 1)
+      return context.getImageData(0, 0, 1, 1).data[3] / 255
+    })
+  await step(
+    'settings palette opaque',
+    surfaceAlpha === 1,
+    `${surfaceColor}; alpha=${surfaceAlpha}`,
+  )
+  const paletteBox = await palette.boundingBox()
+  await step(
+    'settings palette opens',
+    Boolean(searchBox && paletteBox && paletteBox.width > searchBox.width) &&
+      (await paletteInput.evaluate((input) => input === document.activeElement)),
+    JSON.stringify({ searchBox, paletteBox }),
+  )
+  await paletteInput.fill('ollama')
+  const results = palette.locator('[data-settings-result]')
+  await visible(results.first())
+  const ollamaText = await results.first().innerText()
+  await settle()
+  await shot('settings-palette')
+  await paletteInput.fill('zzzz')
+  await step(
+    'settings palette finds',
+    /ollama/i.test(ollamaText) &&
+      (await palette.getByText('No results', { exact: true }).isVisible()) &&
+      (await results.count()) === 0,
+    `first=${ollamaText}; no results for zzzz`,
+  )
+  await paletteInput.fill('executor')
+  await paletteInput.press('Enter')
+  const highlight = page.locator(
+    '[data-settings-anchor="executor-timeout"] [data-settings-highlight]',
+  )
+  await visible(highlight)
+  await settle()
+  await shot('settings-highlight')
+  const restoredBox = await search.boundingBox()
+  const navigationVisibility = await search
+    .locator('xpath=ancestor::aside')
+    .getByRole('button')
+    .evaluateAll((buttons) =>
+      buttons.map((button) => {
+        const box = button.getBoundingClientRect()
+        const style = getComputedStyle(button)
+        return (
+          box.width > 0 &&
+          box.height > 0 &&
+          style.visibility === 'visible' &&
+          Number(style.opacity) > 0
+        )
+      }),
+    )
+  const remainingDialogs = await palette.count()
+  const remainingBackdrops = await page.locator('[data-settings-search-backdrop]').count()
+  await step(
+    'settings palette closes clean',
+    (await search.isVisible()) &&
+      searchBox !== null &&
+      restoredBox !== null &&
+      ['x', 'y', 'width', 'height'].every(
+        (key) => Math.abs(searchBox[key] - restoredBox[key]) <= 2,
+      ) &&
+      remainingDialogs === 0 &&
+      remainingBackdrops === 0 &&
+      navigationVisibility.length === sidebarNavigation &&
+      sidebarNavigation > 0 &&
+      navigationVisibility.every(Boolean),
+    JSON.stringify({
+      searchBox,
+      restoredBox,
+      remainingDialogs,
+      remainingBackdrops,
+      sidebarNavigation,
+      navigationVisibility,
+    }),
+  )
+  const row = await highlight.locator('..').boundingBox()
+  await step(
+    'settings palette navigates',
+    (await hidden(palette)) &&
+      (await page.getByRole('heading', { name: 'Executor', exact: true }).isVisible()) &&
+      row !== null &&
+      row.y >= 0 &&
+      row.y + row.height <= page.viewportSize().height,
+    JSON.stringify({ row, viewport: page.viewportSize() }),
+  )
+  const shortcut = process.platform === 'darwin' ? 'Meta+k' : 'Control+k'
+  await page.keyboard.press(shortcut)
+  const shortcutOpens = await visible(palette)
+  await paletteInput.press('Escape')
+  await step('settings palette shortcut', shortcutOpens && (await hidden(palette)), shortcut)
+  await page.getByRole('button', { name: 'General', exact: true }).click()
+  await step(
+    'settings nav slides',
+    (await page.locator('[data-settings-nav-active]').count()) === 1 &&
+      (await page
+        .getByRole('button', { name: 'General', exact: true })
+        .locator('[data-settings-nav-active]')
+        .count()) === 1,
+    'one shared highlight inside General after switching from Executor',
+  )
+
   // UI.26.6 — resto de Settings con los primitivos y a todo el ancho.
   for (const [name, key] of [
     ['Health', 'health'],
@@ -175,6 +352,7 @@ export default async function shellLook({ page, api, step, shot, visible, hidden
         'api key rejected',
         toastText.length > 0 &&
           toastText !== 'Saved API keys' &&
+          (await page.locator('.fixed.bottom-5.right-5 .bg-app-error').count()) === 1 &&
           (await visible(form)) &&
           inputValue === testKey &&
           notSet &&
@@ -355,6 +533,60 @@ export default async function shellLook({ page, api, step, shot, visible, hidden
   await page.getByRole('button', { name: 'Dev', exact: true }).click()
   await page.getByRole('button', { name: basename(projectRoot), exact: true }).click()
   await page.getByRole('button', { name: 'Settings', exact: true }).click()
+  // UI.26.6b.3 B — use the disposable project's config for persistence checks.
+  const configHeaders = { 'x-orchestos-project-id': project.id }
+  const beforeExecutor = (await api('/api/config', { headers: configHeaders })).data
+  await page.getByRole('button', { name: 'Executor', exact: true }).click()
+  await hidden(page.getByText('Loading live settings…', { exact: true }))
+  const timeoutControl = page.getByRole('group', { name: 'timeout', exact: true })
+  const timeoutBefore = await timeoutControl.innerText()
+  const bar = page.locator('[data-unsaved-bar]')
+  await timeoutControl.getByRole('button', { name: 'Increase timeout', exact: true }).click()
+  await visible(bar)
+  const oneChange = await bar.locator('[data-unsaved-count]').innerText()
+  const timeoutToastCount = await page.locator('.fixed.bottom-5.right-5').count()
+  await page
+    .getByRole('radio', {
+      name: beforeExecutor.apiMode === 'agentic' ? 'Single-shot' : 'Agentic',
+      exact: true,
+    })
+    .click()
+  await settle()
+  const modeToastCount = await page.locator('.fixed.bottom-5.right-5').count()
+  await step(
+    'unsaved bar appears',
+    oneChange === '1' &&
+      (await bar.locator('[data-unsaved-count]').innerText()) === '2' &&
+      timeoutToastCount === 0 &&
+      modeToastCount === 0,
+    `first=${oneChange}, current=${await bar.locator('[data-unsaved-count]').innerText()}, toasts=${timeoutToastCount}/${modeToastCount}`,
+  )
+  await shot('unsaved-bar')
+  await bar.getByRole('button', { name: 'Discard', exact: true }).click()
+  await step(
+    'unsaved discard',
+    (await hidden(bar)) && (await timeoutControl.innerText()) === timeoutBefore,
+    await timeoutControl.innerText(),
+  )
+  await timeoutControl.getByRole('button', { name: 'Increase timeout', exact: true }).click()
+  await bar.getByRole('button', { name: 'Save', exact: true }).click()
+  const savedPill = page.locator('[data-unsaved-saved]')
+  const savedVisible = await visible(savedPill)
+  await shot('unsaved-saved')
+  const disappeared = await hidden(bar)
+  const afterExecutor = (await api('/api/config', { headers: configHeaders })).data
+  await step(
+    'unsaved save persists',
+    savedVisible &&
+      disappeared &&
+      afterExecutor.externalTimeoutMinutes === beforeExecutor.externalTimeoutMinutes + 5,
+    JSON.stringify({
+      before: beforeExecutor.externalTimeoutMinutes,
+      after: afterExecutor.externalTimeoutMinutes,
+    }),
+  )
+  await step('no saved banner', (await page.getByText(/configuration successfully/i).count()) === 0)
+  await page.getByRole('button', { name: basename(projectRoot), exact: true }).click()
   await visible(page.getByRole('heading', { name: basename(projectRoot), exact: true }))
   await shot('shell-project')
   const header = await page.evaluate(() => {
