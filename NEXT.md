@@ -1,4 +1,4 @@
-# NEXT — handoff 2026-10-21 (H.10.2, UI.26.6b.1 y UI.26.6b.2 cerrados; sigue UI.26.6b.3)
+# NEXT — handoff 2026-10-21 (lote cerrado: H.10.2, UI.26.6b completo, AT.11.1)
 
 Un solo presente: orden y trampas vivas. Lo cerrado vive en `PLAN.md` y git (regla `AGENTS.md` § Reglas generales,
 2026-10-19: `NEXT.md` se toca solo al cerrar o cortar un lote). Arranque:
@@ -23,18 +23,21 @@ Prevalece sobre el roster y sobre `~/.claude/CLAUDE.md` § Selección de modelos
 3. Cerrados 2026-10-21 (2.º lote): H.10.2 `98aca200` (revisor nocturno muerto desde 09-29 por E2BIG/timeouts; ahora stdin
    + presupuesto 150 KB, el atraso anotado como "no revisado" en `REVIEW.md`; verificado a mano y por `launchctl
    kickstart`), UI.26.6b.1 `0436994c` (heatmap), UI.26.6b.2 `dc20280f` (API keys).
-4. Siguiente: UI.26.6b.3 (buscador de Settings → paleta; GO de Carlos 2026-10-21, sin spec todavía), luego AT.11.1
-   (2 hallazgos del revisor nocturno sobre el registro de adaptadores, con prueba en `review-evidence/`).
-   Acceso remoto = IDEAS `#73`.
+4. Cerrados 2026-10-21 (3.er lote): UI.26.6b.3 `496621d6` (paleta de Settings + barra de cambios sin guardar; cierra
+   UI.26.6b), AT.11.1 `214937b5` + `ef716dcc` (registro rechaza duplicados; roles = `roleAgentIds()`).
+   Siguiente: sin ítem listo de producto; fiabilidad (punto 5) o lo que Carlos elija. Acceso remoto = IDEAS `#73`.
+- Anotado para limpieza, sin ítem: `components/common/CommandPalette.tsx` nunca se abre (`setIsCommandPaletteOpen`
+  sin llamador); `AgentChoice` cerrado en `createChatSession` y listas por marca en Usage (restos de AT.11).
 - Anotado, sin ítem: el revisor elige su ventana cortando en el primer tramo que no cabe (un revert posterior podría
-  dejar caber uno más largo; nada se pierde, el salto queda anotado). El toast de error de Settings usa el punto
-  verde de éxito (`OrchestSettingsView.tsx`, bloque "Dynamic Toast Feedback").
+  dejar caber uno más largo; nada se pierde, el salto queda anotado).
 5. Fiabilidad, cuando el pre-push la tumba: CI.23, CI.18, CI.19, CI.11. Desde CI.27 un flujo que revienta dice el
    locator (`[waiting for …]`) y deja `<flujo>/failure.png`: usarlo antes de diagnosticar.
 - Decisiones pendientes de Carlos sin ítem: turno de chat con CLI lento (más de 120 s o aviso honesto, en CI.18);
   peso de `main.js` tras UI.24.4 (dejarlo, alias de `rehype-raw` o lazy-load de Streamdown).
 
 ## Trampas vivas
+- Push en segundo plano + seguir con el ítem siguiente = push fallido: el pre-push lintea el **árbol**, no el commit, y
+  se come los cambios en vuelo (le pasó a `496621d6`). Esperar el push antes de tocar archivos, o no lanzarlo en fondo.
 - El plan gate parte el segmento de un ítem en su primera línea en blanco: `Ejecutado por: … · Spec:` va **antes** de
   ella o el gate dice "Procedencia … must delete docs/specs/<ID>.md" (pasó en H.10.2, ítem largo con párrafos).
 - `qa` vía `delegate` solo acepta un archivo de spec, no la pregunta directa ("spec no existe").
