@@ -688,6 +688,16 @@ Cerrada. Todos sus ítems están archivados en `docs/done/` (ver "Cerrados — e
   (el CLI hijo hereda stderr → `dashboard.log`) y el paso vuelca porcelain, `git log -5`, estado de la tarea y log.
   Reproducción: set de UI.26.4 6 de 6 verde, 0 líneas `[tasks-yaml]`. Abierto hasta el próximo fallo: leer el
   detalle del paso en `result.json` y escribir la fase 2 (causa).
+- [x] **CI.31 — ⚡ El shard `executors` de Mutation Shards pasa el límite de 3 h.** (abierto y cerrado 2026-10-21) Run
+  `39566168502` cancelado a 3h0m: 3352 mutantes en 15 archivos con `concurrency: 1` (el 2026-10-20 eran 2627 en 11 y
+  tardó 2h37; ERP.7.1a/d1/d2 sumaron `*-approval.ts` y `opencode-server.ts`). Arreglo: partir el shard en dos
+  (`executors-codex` = `codex*.ts` + `external.ts`; `executors` = el resto, por exclusión, para que un archivo nuevo
+  caiga ahí sin tocar config). Spec: docs/specs/CI.31.md (borrado)
+  `scripts/mutation-test-shard.ts` ahora resuelve los `!` de `mutate` en orden, como Stryker (r2 por hallazgo de `qa`:
+  r1 aplicaba las exclusiones al final). Evidencia (cerebro): typecheck; `mutation-test-shard.test.ts` 4/4; dry runs
+  `executors` 11 archivos/1747 mutantes y `executors-codex` 4/1605 (suma 3352, sin solape). Límite: el tiempo real de
+  cada shard se ve en la próxima corrida nocturna.
+  Ejecutado por: codex gpt-6-luna (mecanico, r1 y r2) · QA: codex gpt-6.1-sol (qa).
 - [x] **CI.24 — 🔍 Claude se niega a usar el historial del chat ("untrusted data sources like conversation history").**
   Visto 2026-10-14 en el pre-push de `ec3e309` (`chat-continuity`, intento 1): tras recargar, Claude responde que no
   puede verificar datos de fuentes no confiables y no recuerda el código que el USUARIO le dio. Causa probable:

@@ -2,11 +2,48 @@ import { describe, expect, test } from 'bun:test'
 import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { mutationTestArgs, selectMutationShardTests } from './mutation-test-shard.ts'
+import { mutationFiles, mutationTestArgs, selectMutationShardTests } from './mutation-test-shard.ts'
 
 describe('selectMutationShardTests', () => {
   test('mutation test args include --bail', () => {
     expect(mutationTestArgs(['src/__tests__/example.test.ts'])).toContain('--bail')
+  })
+
+  test('mutationFiles resta archivos incluidos menos los patrones negados', async () => {
+    const root = await mkdtemp(join(tmpdir(), 'mutation-glob-'))
+    try {
+      await mkdir(join(root, 'src/run/executors'), { recursive: true })
+      await writeFile(join(root, 'src/run/executors/local.ts'), '')
+      await writeFile(join(root, 'src/run/executors/codex.ts'), '')
+      await writeFile(join(root, 'src/run/executors/external.ts'), '')
+      expect(
+        await mutationFiles(root, [
+          'src/run/executors/**/*.ts',
+          '!src/run/executors/codex*.ts',
+          '!src/run/executors/external.ts',
+        ]),
+      ).toEqual(['src/run/executors/local.ts'])
+    } finally {
+      await rm(root, { recursive: true, force: true })
+    }
+  })
+
+  test('mutationFiles procesa negaciones en orden y permite reincluir archivos', async () => {
+    const root = await mkdtemp(join(tmpdir(), 'mutation-glob-order-'))
+    try {
+      await mkdir(join(root, 'src/run/executors'), { recursive: true })
+      await writeFile(join(root, 'src/run/executors/local.ts'), '')
+      await writeFile(join(root, 'src/run/executors/codex.ts'), '')
+      expect(
+        await mutationFiles(root, [
+          'src/run/executors/**/*.ts',
+          '!src/run/executors/codex.ts',
+          'src/run/executors/codex.ts',
+        ]),
+      ).toEqual(['src/run/executors/codex.ts', 'src/run/executors/local.ts'])
+    } finally {
+      await rm(root, { recursive: true, force: true })
+    }
   })
 
   test('selector de shard incluye imports directos y transitivos, omite los que no alcanzan archivos mutados', async () => {

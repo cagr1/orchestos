@@ -11,6 +11,18 @@ async function files(root: string, pattern: string): Promise<string[]> {
   return result.sort()
 }
 
+export async function mutationFiles(root: string, patterns: string[]): Promise<string[]> {
+  const result = new Set<string>()
+  for (const pattern of patterns) {
+    if (pattern.startsWith('!')) {
+      for (const path of await files(root, pattern.slice(1))) result.delete(path)
+    } else {
+      for (const path of await files(root, pattern)) result.add(path)
+    }
+  }
+  return [...result].sort()
+}
+
 async function resolveImport(
   root: string,
   from: string,
@@ -71,8 +83,7 @@ async function main() {
   if (!configPath) throw new Error('Uso: bun run scripts/mutation-test-shard.ts <stryker-config>')
   const root = process.cwd()
   const config = (await import(resolve(root, configPath))).default
-  const mutated: string[] = []
-  for (const pattern of config.mutate ?? []) mutated.push(...(await files(root, pattern)))
+  const mutated = await mutationFiles(root, config.mutate ?? [])
   const selected = await selectMutationShardTests(root, mutated)
   const total = (await files(root, 'src/__tests__/**/*.test.ts')).length
   if (selected.length === 0) {

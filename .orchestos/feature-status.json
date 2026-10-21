@@ -337,6 +337,15 @@
       "closedDate": null
     },
     {
+      "id": "CI.31",
+      "sprint": "Fase 2 — Producto mínimo para entrega",
+      "block": "H.7 — El contexto se llena en silencio y nadie avisa (ABIERTO 2026-09-02)",
+      "delegation": "⚡",
+      "title": "El shard `executors` de Mutation Shards pasa el límite de 3 h",
+      "status": "done",
+      "closedDate": null
+    },
+    {
       "id": "CI.24",
       "sprint": "Fase 2 — Producto mínimo para entrega",
       "block": "H.7 — El contexto se llena en silencio y nadie avisa (ABIERTO 2026-09-02)",

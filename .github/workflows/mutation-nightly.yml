@@ -20,6 +20,8 @@ jobs:
         include:
           - shard: executors
             command: mutation:run:executors
+          - shard: executors-codex
+            command: mutation:run:executors-codex
           - shard: runtime-boundaries
             command: mutation:run:runtime-boundaries
           - shard: context-routing
