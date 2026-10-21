@@ -80,6 +80,8 @@ export class CodexAppServer {
       contextWindow?: number | null
       onDelta?: (delta: string) => void
       onStep?: (event: ExecutorStepEvent) => void
+      logPhase?: (event: string) => void
+      firstDelta?: boolean
       finish: (error?: Error) => void
     }
   >()
@@ -192,7 +194,12 @@ export class CodexAppServer {
     )
   }
 
-  private request(method: string, params: unknown, timeoutMs = 15_000): Promise<any> {
+  private request(
+    method: string,
+    params: unknown,
+    timeoutMs = 15_000,
+    onResolved?: () => void,
+  ): Promise<any> {
     if (!this.child)
       return Promise.reject(new CodexAppServerError('app-server is not running', true))
     const id = this.nextId++
@@ -201,7 +208,14 @@ export class CodexAppServer {
         this.pending.delete(id)
         reject(new CodexAppServerError(`${method} timed out`, method === 'initialize'))
       }, timeoutMs)
-      this.pending.set(id, { resolve, reject, timer })
+      this.pending.set(id, {
+        resolve: (value) => {
+          onResolved?.()
+          resolve(value)
+        },
+        reject,
+        timer,
+      })
       this.child?.stdin.write(
         `${JSON.stringify({ jsonrpc: '2.0', id, method, params })}\n`,
         (error) => {
@@ -219,6 +233,30 @@ export class CodexAppServer {
     this.child?.stdin.write(`${JSON.stringify({ jsonrpc: '2.0', method, params })}\n`)
   }
 
+  private logTurn(
+    event: string,
+    threadId: string | null,
+    startedAt: number,
+    error?: unknown,
+  ): void {
+    let errorDetails: { kind: string; method?: string; name?: string } | undefined
+    if (error !== undefined) {
+      const message = error instanceof Error ? error.message : String(error)
+      const timeoutMethod = message.match(/^([\w/]+) timed out$/)?.[1]
+      errorDetails = timeoutMethod
+        ? { kind: 'timeout', method: timeoutMethod }
+        : { kind: 'error', name: error instanceof Error ? error.name : typeof error }
+    }
+    console.error(
+      `[codex-turn] ${JSON.stringify({
+        event,
+        threadId,
+        ms: Date.now() - startedAt,
+        ...errorDetails,
+      })}`,
+    )
+  }
+
   private notification(method: string, params: any): void {
     if (method === 'item/started' && params.item?.type === 'fileChange')
       this.taskApprovals.get(params.threadId)?.items.set(params.item.id, params.item)
@@ -231,6 +269,10 @@ export class CodexAppServer {
       )
         return
       if (method === 'item/agentMessage/delta') {
+        if (!state.firstDelta) {
+          state.firstDelta = true
+          state.logPhase?.('first-delta')
+        }
         const itemId = typeof params.itemId === 'string' ? params.itemId : undefined
         const newItem = !!itemId && !!state.messageItemId && itemId !== state.messageItemId
         const separator = state.text && (newItem || state.messageBoundary) ? '\n\n' : ''
@@ -315,6 +357,7 @@ export class CodexAppServer {
     if (method === 'turn/completed') {
       const state = this.turns.get(params.threadId)
       if (state && (!state.turnId || state.turnId === params.turn?.id)) {
+        state.logPhase?.('turn-completed')
         if (params.turn?.status === 'failed')
           state.finish(new CodexAppServerError(params.turn.error?.message ?? 'Codex turn failed'))
         else {
@@ -370,32 +413,18 @@ export class CodexAppServer {
     contextWindow: number | null
     model?: string
   }> {
-    await this.ensureReady()
-    const stored = this.options.store.get(input.sessionId)
-    const hash = codexContextHash(input.systemPrompt)
-    const offerKey = input.threadConfig ? (input.offerKey ?? 'tools') : ''
-    let threadId = stored.threadId
-    let observedModel: string | undefined
-    let threadRecreated = false
-    if (!threadId) {
-      const result = await this.request('thread/start', {
-        cwd: input.cwd,
-        sandbox: 'read-only',
-        approvalPolicy: 'never',
-        model: input.model,
-        developerInstructions: input.systemPrompt,
-        ...(input.threadConfig ? { config: input.threadConfig } : {}),
-      })
-      threadId = result?.thread?.id
-      if (typeof threadId !== 'string')
-        throw new CodexAppServerError('thread/start response missing thread.id', true)
-      observedModel = result?.model ?? result?.thread?.model ?? undefined
-      this.options.store.set(input.sessionId, threadId, hash)
-      this.resumed.add(threadId)
-      this.toolOffered.set(threadId, offerKey)
-    } else {
-      const startReplacement = async (stepLabel: string) => {
-        const started = await this.request('thread/start', {
+    const startedAt = Date.now()
+    let threadId: string | null = null
+    try {
+      await this.ensureReady()
+      const stored = this.options.store.get(input.sessionId)
+      const hash = codexContextHash(input.systemPrompt)
+      const offerKey = input.threadConfig ? (input.offerKey ?? 'tools') : ''
+      threadId = stored.threadId
+      let observedModel: string | undefined
+      let threadRecreated = false
+      if (!threadId) {
+        const result = await this.request('thread/start', {
           cwd: input.cwd,
           sandbox: 'read-only',
           approvalPolicy: 'never',
@@ -403,142 +432,172 @@ export class CodexAppServer {
           developerInstructions: input.systemPrompt,
           ...(input.threadConfig ? { config: input.threadConfig } : {}),
         })
-        const replacementId = started?.thread?.id
-        if (typeof replacementId !== 'string')
+        threadId = result?.thread?.id
+        this.logTurn('thread-start', threadId, startedAt)
+        if (typeof threadId !== 'string')
           throw new CodexAppServerError('thread/start response missing thread.id', true)
-        threadId = replacementId
-        threadRecreated = true
-        observedModel = started?.model ?? started?.thread?.model ?? undefined
+        observedModel = result?.model ?? result?.thread?.model ?? undefined
         this.options.store.set(input.sessionId, threadId, hash)
         this.resumed.add(threadId)
         this.toolOffered.set(threadId, offerKey)
-        input.onStep?.({ type: 'reasoning', label: stepLabel })
-      }
-      // AT.20/AT.21 — medido con codex-cli 0.163.0: un `thread/resume` repetido sobre un hilo ya reanudado en este
-      // proceso NO aplica `config`. Si el turno necesita un conjunto de herramientas (o una raíz) distinto del
-      // del hilo (p. ej. modo `chat` → `code`), se abre un hilo nuevo con la transcripción.
-      const openedWith = this.toolOffered.get(threadId)
-      if (
-        this.resumed.has(threadId) &&
-        input.threadConfig &&
-        openedWith !== undefined &&
-        openedWith !== offerKey
-      ) {
-        await startReplacement(
-          input.transcript
-            ? 'Codex thread restarted to change its tools (earlier turns were resent)'
-            : "Codex thread restarted to change its tools (earlier turns are not in Codex's memory)",
-        )
-      } else if (!this.resumed.has(threadId)) {
-        try {
-          const resumed = await this.request('thread/resume', {
-            threadId,
+      } else {
+        const startReplacement = async (stepLabel: string) => {
+          const started = await this.request('thread/start', {
             cwd: input.cwd,
-            excludeTurns: true,
             sandbox: 'read-only',
             approvalPolicy: 'never',
             model: input.model,
+            developerInstructions: input.systemPrompt,
             ...(input.threadConfig ? { config: input.threadConfig } : {}),
           })
-          observedModel = resumed?.thread?.model ?? undefined
+          const replacementId = started?.thread?.id
+          if (typeof replacementId !== 'string')
+            throw new CodexAppServerError('thread/start response missing thread.id', true)
+          threadId = replacementId
+          this.logTurn('thread-start', threadId, startedAt)
+          threadRecreated = true
+          observedModel = started?.model ?? started?.thread?.model ?? undefined
+          this.options.store.set(input.sessionId, threadId, hash)
           this.resumed.add(threadId)
           this.toolOffered.set(threadId, offerKey)
-        } catch (error) {
-          if (!(error instanceof CodexAppServerError) || !isExpiredThreadError(error.message))
-            throw error
+          input.onStep?.({ type: 'reasoning', label: stepLabel })
+        }
+        // AT.20/AT.21 — medido con codex-cli 0.163.0: un `thread/resume` repetido sobre un hilo ya reanudado en este
+        // proceso NO aplica `config`. Si el turno necesita un conjunto de herramientas (o una raíz) distinto del
+        // del hilo (p. ej. modo `chat` → `code`), se abre un hilo nuevo con la transcripción.
+        const openedWith = this.toolOffered.get(threadId)
+        if (
+          this.resumed.has(threadId) &&
+          input.threadConfig &&
+          openedWith !== undefined &&
+          openedWith !== offerKey
+        ) {
           await startReplacement(
             input.transcript
-              ? 'Codex thread expired — started a new one (earlier turns were resent)'
-              : "Codex thread expired — started a new one (earlier turns are not in Codex's memory)",
+              ? 'Codex thread restarted to change its tools (earlier turns were resent)'
+              : "Codex thread restarted to change its tools (earlier turns are not in Codex's memory)",
           )
+        } else if (!this.resumed.has(threadId)) {
+          try {
+            const resumed = await this.request('thread/resume', {
+              threadId,
+              cwd: input.cwd,
+              excludeTurns: true,
+              sandbox: 'read-only',
+              approvalPolicy: 'never',
+              model: input.model,
+              ...(input.threadConfig ? { config: input.threadConfig } : {}),
+            })
+            this.logTurn('thread-resume', threadId, startedAt)
+            observedModel = resumed?.thread?.model ?? undefined
+            this.resumed.add(threadId)
+            this.toolOffered.set(threadId, offerKey)
+          } catch (error) {
+            if (!(error instanceof CodexAppServerError) || !isExpiredThreadError(error.message))
+              throw error
+            await startReplacement(
+              input.transcript
+                ? 'Codex thread expired — started a new one (earlier turns were resent)'
+                : "Codex thread expired — started a new one (earlier turns are not in Codex's memory)",
+            )
+          }
         }
       }
-    }
-    const changed = !threadRecreated && !!stored.threadId && stored.contextHash !== hash
-    const dateIgnoredSystemPrompt = changed
-      ? `<orchestos-context-update>\n${input.systemPrompt}\n</orchestos-context-update>\n\n`
-      : ''
-    const includeTranscript = !stored.threadId || threadRecreated
-    const message = `${dateIgnoredSystemPrompt}${includeTranscript ? (input.transcript ?? '') : ''}${input.message}`
-    const state = {
-      turnId: null as string | null,
-      text: '',
-      usage: null as any,
-      lastUsage: undefined as any,
-      contextWindow: undefined as number | null | undefined,
-      onDelta: input.onDelta,
-      onStep: input.onStep,
-      finish: (_error?: Error) => {},
-    }
-    const completion = new Promise<void>((resolve, reject) => {
-      state.finish = (error) => {
-        this.turns.delete(threadId!)
-        error ? reject(error) : resolve()
+      const changed = !threadRecreated && !!stored.threadId && stored.contextHash !== hash
+      const dateIgnoredSystemPrompt = changed
+        ? `<orchestos-context-update>\n${input.systemPrompt}\n</orchestos-context-update>\n\n`
+        : ''
+      const includeTranscript = !stored.threadId || threadRecreated
+      const message = `${dateIgnoredSystemPrompt}${includeTranscript ? (input.transcript ?? '') : ''}${input.message}`
+      const state = {
+        turnId: null as string | null,
+        text: '',
+        usage: null as any,
+        lastUsage: undefined as any,
+        contextWindow: undefined as number | null | undefined,
+        onDelta: input.onDelta,
+        onStep: input.onStep,
+        logPhase: (event: string) => this.logTurn(event, threadId, startedAt),
+        finish: (_error?: Error) => {},
       }
-    })
-    this.turns.set(threadId, state)
-    let turnStart: any
-    try {
-      if (process.env.ORCHESTOS_GATE_CAPTURE_DIR) {
-        try {
-          mkdirSync(process.env.ORCHESTOS_GATE_CAPTURE_DIR, { recursive: true })
-          writeFileSync(
-            join(process.env.ORCHESTOS_GATE_CAPTURE_DIR, `chat-cli-input-${input.sessionId}.txt`),
-            message,
-          )
-        } catch {}
-      }
-      turnStart = await this.request('turn/start', {
-        threadId,
-        input: [
-          { type: 'text', text: message },
-          ...(input.imagePaths ?? []).map((path) => ({ type: 'localImage', path })),
-        ],
-        cwd: input.cwd,
-        model: input.model,
-        effort: input.effort,
-        approvalPolicy: 'never',
-        sandboxPolicy: { type: 'readOnly', networkAccess: false },
+      const completion = new Promise<void>((resolve, reject) => {
+        state.finish = (error) => {
+          this.turns.delete(threadId!)
+          error ? reject(error) : resolve()
+        }
       })
-    } catch (error) {
-      this.turns.delete(threadId)
-      throw error
-    }
-    state.turnId = turnStart?.turn?.id ?? null
-    this.options.store.set(input.sessionId, threadId, hash)
-    let timer: ReturnType<typeof setTimeout> | undefined
-    const timeout = new Promise<never>((_, reject) => {
-      timer = setTimeout(
-        () => reject(new CodexAppServerError(`Codex timed out after ${input.timeoutMs}ms`)),
-        input.timeoutMs,
-      )
-    })
-    try {
-      await Promise.race([completion, timeout])
-    } catch (error) {
-      if (state.turnId) {
-        try {
-          await this.request('turn/interrupt', { threadId, turnId: state.turnId }, 2_000)
-        } catch {}
+      this.turns.set(threadId, state)
+      let turnStart: any
+      try {
+        if (process.env.ORCHESTOS_GATE_CAPTURE_DIR) {
+          try {
+            mkdirSync(process.env.ORCHESTOS_GATE_CAPTURE_DIR, { recursive: true })
+            writeFileSync(
+              join(process.env.ORCHESTOS_GATE_CAPTURE_DIR, `chat-cli-input-${input.sessionId}.txt`),
+              message,
+            )
+          } catch {}
+        }
+        turnStart = await this.request(
+          'turn/start',
+          {
+            threadId,
+            input: [
+              { type: 'text', text: message },
+              ...(input.imagePaths ?? []).map((path) => ({ type: 'localImage', path })),
+            ],
+            cwd: input.cwd,
+            model: input.model,
+            effort: input.effort,
+            approvalPolicy: 'never',
+            sandboxPolicy: { type: 'readOnly', networkAccess: false },
+          },
+          15_000,
+          () => this.logTurn('turn-start', threadId, startedAt),
+        )
+      } catch (error) {
+        this.turns.delete(threadId)
+        throw error
       }
-      state.finish(error as Error)
+      state.turnId = turnStart?.turn?.id ?? null
+      this.options.store.set(input.sessionId, threadId, hash)
+      let timer: ReturnType<typeof setTimeout> | undefined
+      const timeout = new Promise<never>((_, reject) => {
+        timer = setTimeout(
+          () => reject(new CodexAppServerError(`Codex timed out after ${input.timeoutMs}ms`)),
+          input.timeoutMs,
+        )
+      })
+      try {
+        await Promise.race([completion, timeout])
+      } catch (error) {
+        if (state.turnId) {
+          try {
+            await this.request('turn/interrupt', { threadId, turnId: state.turnId }, 2_000)
+          } catch {}
+        }
+        state.finish(error as Error)
+        throw error
+      } finally {
+        if (timer) clearTimeout(timer)
+      }
+      return {
+        threadId,
+        text: state.text,
+        inputTokens: Math.max(
+          0,
+          (state.usage?.inputTokens ?? 0) - (state.usage?.cachedInputTokens ?? 0),
+        ),
+        cacheReadTokens: state.usage?.cachedInputTokens ?? 0,
+        cacheWriteTokens: state.usage?.cacheWriteInputTokens ?? 0,
+        outputTokens: state.usage?.outputTokens ?? 0,
+        contextUsed: state.lastUsage ? Number(state.lastUsage.totalTokens) || null : null,
+        contextWindow: state.contextWindow ?? null,
+        model: observedModel,
+      }
+    } catch (error) {
+      this.logTurn('turn-error', threadId, startedAt, error)
       throw error
-    } finally {
-      if (timer) clearTimeout(timer)
-    }
-    return {
-      threadId,
-      text: state.text,
-      inputTokens: Math.max(
-        0,
-        (state.usage?.inputTokens ?? 0) - (state.usage?.cachedInputTokens ?? 0),
-      ),
-      cacheReadTokens: state.usage?.cachedInputTokens ?? 0,
-      cacheWriteTokens: state.usage?.cacheWriteInputTokens ?? 0,
-      outputTokens: state.usage?.outputTokens ?? 0,
-      contextUsed: state.lastUsage ? Number(state.lastUsage.totalTokens) || null : null,
-      contextWindow: state.contextWindow ?? null,
-      model: observedModel,
     }
   }
 

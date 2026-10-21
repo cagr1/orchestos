@@ -541,6 +541,12 @@ Cerrada. Todos sus ítems están archivados en `docs/done/` (ver "Cerrados — e
   turn 1": 22141 ms vs 180113 ms, el timeout del flujo). Sin verificar si es latencia del modelo o un cuelgue al
   retomar el thread. Señalado por la QA de Sol: sacar el flujo del pre-push no puede silenciar este detector.
   Siguiente paso: reproducir con `gate:evidence` y leer el log del app-server de Codex en ese turno.
+  Fase 1 (evidencia, 2026-10-21, spec `docs/specs/CI.11.md`): solo no se reproduce (4 de 4 verde, turno 1 ≈10 s,
+  turno 2 ≈3–5 s) y `dashboard.log` no guardaba nada del app-server. Ahora `CodexAppServer.turn()` escribe
+  `[codex-turn] {event, threadId, ms}` por fase (`thread-start`/`thread-resume`, `turn-start`, `first-delta`,
+  `turn-completed`, `turn-error` con solo `kind`/`method`/`name`, sin texto del error: QA de Sol mostró que un error
+  remoto puede repetir el chat) y el paso `turn 2 is faster than turn 1` vuelca esas líneas si falla. Abierto hasta el
+  próximo fallo: leer en qué fase se fue el tiempo. Ejecutado por: GPT (criterio-alt + mecanico), QA: GPT (qa).
 
 - [x] **R.8 — 🔍 Validación independiente del recorrido útil y corrección de evidencia de cierre.** (cerrado 2026-10-15)
   Depende de R.1–R.7 y H.9.4. Revisar el recorrido completo: proyecto conectado → conversación →

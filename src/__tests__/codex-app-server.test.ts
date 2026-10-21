@@ -1,4 +1,4 @@
-import { describe, expect, test } from 'bun:test'
+import { describe, expect, spyOn, test } from 'bun:test'
 import { EventEmitter } from 'node:events'
 import { mkdtempSync, readFileSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
@@ -130,39 +130,148 @@ describe('Codex app-server', () => {
           }
         }),
     })
-    const deltas: string[] = []
-    const first = await server.turn({
-      sessionId: 's',
-      cwd: '/p',
-      systemPrompt: 'rules',
-      message: 'first',
-      transcript: 'Conversation so far\nUser: prior\nCurrent message:\n',
-      timeoutMs: 1000,
-      onDelta: (x) => deltas.push(x),
+    const log = spyOn(console, 'error').mockImplementation(() => {})
+    try {
+      const phases = () =>
+        log.mock.calls.map(([line]) => JSON.parse(String(line).replace('[codex-turn] ', '')))
+      const deltas: string[] = []
+      const first = await server.turn({
+        sessionId: 's',
+        cwd: '/p',
+        systemPrompt: 'rules',
+        message: 'first',
+        transcript: 'Conversation so far\nUser: prior\nCurrent message:\n',
+        timeoutMs: 1000,
+        onDelta: (x) => deltas.push(x),
+      })
+      expect(phases().map((phase) => phase.event)).toEqual([
+        'thread-start',
+        'turn-start',
+        'first-delta',
+        'turn-completed',
+      ])
+      const firstPhases = phases()
+      expect(
+        firstPhases.every(
+          (phase) => phase.threadId === 'thread-1' && Number.isFinite(phase.ms) && phase.ms >= 0,
+        ),
+      ).toBe(true)
+      expect(firstPhases.map((phase) => phase.ms)).toEqual(
+        firstPhases.map((phase) => phase.ms).sort((a, b) => a - b),
+      )
+      expect(
+        firstPhases.every((phase) => Object.keys(phase).sort().join(',') === 'event,ms,threadId'),
+      ).toBe(true)
+      log.mockClear()
+      const second = await server.turn({
+        sessionId: 's',
+        cwd: '/p',
+        systemPrompt: 'rules',
+        message: 'second',
+        transcript: 'must not duplicate',
+        timeoutMs: 1000,
+      })
+      expect(phases().map((phase) => phase.event)).toEqual([
+        'turn-start',
+        'first-delta',
+        'turn-completed',
+      ])
+      expect(deltas).toEqual(['uno ', 'dos ', 'tres'])
+      expect(first.text).toBe('uno dos tres')
+      expect(first.inputTokens).toBe(3)
+      expect(first.cacheReadTokens).toBe(2)
+      expect(first.cacheWriteTokens).toBe(1)
+      expect(second.text).toBe('uno dos tres')
+      expect(calls.filter((x) => x.method === 'thread/resume')).toHaveLength(0)
+      expect(calls.filter((x) => x.method === 'thread/start')).toHaveLength(1)
+      expect(calls.filter((x) => x.method === 'turn/start')[0].params.input[0].text).toBe(
+        'Conversation so far\nUser: prior\nCurrent message:\nfirst',
+      )
+      expect(calls.filter((x) => x.method === 'turn/start')[1].params.input).toEqual([
+        { type: 'text', text: 'second' },
+      ])
+    } finally {
+      log.mockRestore()
+      server.kill()
+    }
+  })
+
+  test('turn-error omits private remote error messages', async () => {
+    const server = new CodexAppServer({
+      binary: 'codex',
+      env: {},
+      store: store().api,
+      spawnProcess: () =>
+        fakeProcess((request, stdout) => {
+          if (request.method === 'initialize') reply(stdout, request, {})
+          if (request.method === 'thread/start')
+            reply(stdout, request, { thread: { id: 'thread-private' } })
+          if (request.method === 'turn/start')
+            stdout.write(
+              `${JSON.stringify({ jsonrpc: '2.0', id: request.id, error: { code: -1, message: 'PRIVATE_CHAT_123' } })}\n`,
+            )
+        }),
     })
-    const second = await server.turn({
-      sessionId: 's',
-      cwd: '/p',
-      systemPrompt: 'rules',
-      message: 'second',
-      transcript: 'must not duplicate',
-      timeoutMs: 1000,
+    const log = spyOn(console, 'error').mockImplementation(() => {})
+    try {
+      await expect(
+        server.turn({
+          sessionId: 's',
+          cwd: '/p',
+          systemPrompt: 'rules',
+          message: 'private message',
+          timeoutMs: 1000,
+        }),
+      ).rejects.toThrow('PRIVATE_CHAT_123')
+      const codexLines = log.mock.calls
+        .map(([line]) => String(line))
+        .filter((line) => line.startsWith('[codex-turn] '))
+      expect(codexLines.some((line) => line.includes('PRIVATE_CHAT_123'))).toBe(false)
+      expect(codexLines.some((line) => line.includes('"event":"turn-error"'))).toBe(true)
+    } finally {
+      log.mockRestore()
+      server.kill()
+    }
+  })
+
+  test('remote error ending in timed out is not reported as a local timeout', async () => {
+    const server = new CodexAppServer({
+      binary: 'codex',
+      env: {},
+      store: store().api,
+      spawnProcess: () =>
+        fakeProcess((request, stdout) => {
+          if (request.method === 'initialize') reply(stdout, request, {})
+          if (request.method === 'thread/start')
+            reply(stdout, request, { thread: { id: 'thread-private' } })
+          if (request.method === 'turn/start')
+            stdout.write(
+              `${JSON.stringify({ jsonrpc: '2.0', id: request.id, error: { code: -1, message: 'secret words timed out' } })}\n`,
+            )
+        }),
     })
-    expect(deltas).toEqual(['uno ', 'dos ', 'tres'])
-    expect(first.text).toBe('uno dos tres')
-    expect(first.inputTokens).toBe(3)
-    expect(first.cacheReadTokens).toBe(2)
-    expect(first.cacheWriteTokens).toBe(1)
-    expect(second.text).toBe('uno dos tres')
-    expect(calls.filter((x) => x.method === 'thread/resume')).toHaveLength(0)
-    expect(calls.filter((x) => x.method === 'thread/start')).toHaveLength(1)
-    expect(calls.filter((x) => x.method === 'turn/start')[0].params.input[0].text).toBe(
-      'Conversation so far\nUser: prior\nCurrent message:\nfirst',
-    )
-    expect(calls.filter((x) => x.method === 'turn/start')[1].params.input).toEqual([
-      { type: 'text', text: 'second' },
-    ])
-    server.kill()
+    const log = spyOn(console, 'error').mockImplementation(() => {})
+    try {
+      await expect(
+        server.turn({
+          sessionId: 's',
+          cwd: '/p',
+          systemPrompt: 'rules',
+          message: 'private message',
+          timeoutMs: 1000,
+        }),
+      ).rejects.toThrow('secret words timed out')
+      const codexLines = log.mock.calls
+        .map(([line]) => String(line))
+        .filter((line) => line.startsWith('[codex-turn] '))
+      expect(codexLines.some((line) => line.includes('secret'))).toBe(false)
+      expect(codexLines.some((line) => line.includes('"event":"turn-error"'))).toBe(true)
+      expect(codexLines.some((line) => line.includes('"kind":"error"'))).toBe(true)
+      expect(codexLines.some((line) => line.includes('"method"'))).toBe(false)
+    } finally {
+      log.mockRestore()
+      server.kill()
+    }
   })
 
   test('CX.6.1 — el costo suma cada llamada del turno; el contexto es el del último evento', async () => {

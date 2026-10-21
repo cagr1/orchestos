@@ -61,7 +61,16 @@ async function sendTurn(page, composer, message) {
   return startedAt
 }
 
-export default async function codexLive({ page, api, step, shot, visible, cleanup, databasePath }) {
+export default async function codexLive({
+  page,
+  api,
+  step,
+  shot,
+  visible,
+  cleanup,
+  databasePath,
+  runDir,
+}) {
   const projectRoot = mkdtempSync(join(tmpdir(), 'orchestos-ui-codex-live-'))
   writeFileSync(join(projectRoot, 'README.md'), '# Codex live chat\n')
   writeFileSync(join(projectRoot, '.gitignore'), '.orchestos/\n')
@@ -325,7 +334,22 @@ export default async function codexLive({ page, api, step, shot, visible, cleanu
   await step(
     'turn 2 is faster than turn 1',
     Number.isFinite(secondDone) && secondDone < firstDone,
-    `turn 1=${firstDone} ms; turn 2=${secondDone ?? 'timeout'} ms`,
+    Number.isFinite(secondDone) && secondDone < firstDone
+      ? `turn 1=${firstDone} ms; turn 2=${secondDone ?? 'timeout'} ms`
+      : JSON.stringify({
+          turn1: firstDone,
+          turn2: secondDone,
+          codexTurn: (() => {
+            try {
+              return readFileSync(join(runDir, 'dashboard.log'), 'utf8')
+                .split('\n')
+                .filter((line) => line.includes('[codex-turn]') || line.includes('[chat-turn]'))
+                .slice(-40)
+            } catch (error) {
+              return [`dashboard.log unreadable: ${error?.code || error?.message}`]
+            }
+          })(),
+        }),
   )
 
   const records = runJson(`
