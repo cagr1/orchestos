@@ -1,4 +1,4 @@
-# NEXT — handoff 2026-10-20 (lote ERP.7.1 cerrado; sigue fiabilidad o lo que Carlos elija; asignación de modelos abajo)
+# NEXT — handoff 2026-10-21 (lote CI.27 · AT.17 · AT.18 · ERP.6.2 cerrado; sigue AT.11 con plan previo; asignación abajo)
 
 Un solo presente: orden y trampas vivas. Lo cerrado vive en `PLAN.md` y git (regla `AGENTS.md` § Reglas generales,
 2026-10-19: `NEXT.md` se toca solo al cerrar o cortar un lote). Arranque:
@@ -15,17 +15,24 @@ Prevalece sobre el roster y sobre `~/.claude/CLAUDE.md` § Selección de modelos
 - No se edita `roster.conf`: el cambio es temporal y se aplica eligiendo el rol al delegar.
 
 ## Orden
-1. Lote ERP.7 cerrado: ERP.7 (informe `docs/done/ERP.7.md`) y ERP.7.2 (diff + deshacer por tarea en el hilo).
-   Antes de commitear en el vault: `git -C ~/Projects/MemoriesMD branch --show-current`.
-2. ERP.7.1 cerrado (a `97640323`, b `a66f5513`, c `6a0ac2f2`, d1 `22737ac9`, d2 `1ea4ef9e`). Solo los motores API quedan
-   sin aprobación por acción. Tareas creadas fuera del chat sin `approvalMode` siguen `full`. ERP.6.2 cuando toque costo.
-   Acceso remoto = IDEAS `#73`, después.
-3. Fiabilidad, cuando el pre-push la tumba: CI.23, CI.18, CI.19, CI.11. CI.27 cerrado: un flujo que revienta ya dice el
-   locator y deja `<flujo>/failure.png`.
+1. Cerrados 2026-10-20 (subidos, CI verde en `b5337022`): CI.27 `7fb8396a`, AT.17 `38550b9e`, AT.18 `14490f85`
+   (+ vault `49b3c5b`, sin push: no autorizado; el vault tiene cambios ajenos en `wiki/`/`targets/`), ERP.6.2 `b5337022`.
+2. Siguiente: **AT.11** (chat CLI extensible: cualquier adaptador registrado, sin ramas por marca). Toca varios
+   módulos → plan corto a Carlos y GO antes de codear (`CLAUDE.md` § Planificar). Ojo: `src/router/role-runner.ts:39-68`
+   es otra rama por marca (claude/codex/opencode) del mismo tipo.
+3. Después: H.10.2 y UI.26.6b (🧠, features nuevas). Acceso remoto = IDEAS `#73`.
+4. Fiabilidad, cuando el pre-push la tumba: CI.23, CI.18, CI.19, CI.11. Desde CI.27 un flujo que revienta dice el
+   locator (`[waiting for …]`) y deja `<flujo>/failure.png`: usarlo antes de diagnosticar.
 - Decisiones pendientes de Carlos sin ítem: turno de chat con CLI lento (más de 120 s o aviso honesto, en CI.18);
   peso de `main.js` tras UI.24.4 (dejarlo, alias de `rehype-raw` o lazy-load de Streamdown).
 
 ## Trampas vivas
+- Pre-commit con candado (AT.18): rechaza el commit si otra sesión tiene el candado del árbol. El "deshacer" del
+  dashboard sobre este repo falla con 500 mientras tanto (límite declarado en `AGENTS.md` § Un árbol, un escritor).
+- El cerebro no puede crear flujos de prueba en `scripts/` (hook `brain-no-code`): un gate de fallo forzado se delega.
+- Trabajo de `criterio-alt` (Sol) lo revisa el cerebro, no `qa` (también Sol: mismo proveedor).
+- Costo del revisor: lo reporta el adaptador en `ChatResponse.usd` (null = sin precio → `—`); nunca resolver precios
+  con ramas por marca en `harness.ts` (r4 de ERP.6.2 lo hizo y se revirtió).
 - `delegate` (rol de escritura) inyecta "No hagas commit ni edites el plan": commit y push los hace el cerebro (Carlos
   eligió eso el 2026-10-20). El sandbox de los ejecutores GPT no tiene red (`bun install`/`bun audit` los corre el cerebro)
   y a veces lee el candado del cerebro como ajeno: el spec dice "el candado es del cerebro que te lanzó; escribe".
