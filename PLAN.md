@@ -703,6 +703,8 @@ Cerrada. Todos sus ítems están archivados en `docs/done/` (ver "Cerrados — e
   r1 aplicaba las exclusiones al final). Evidencia (cerebro): typecheck; `mutation-test-shard.test.ts` 4/4; dry runs
   `executors` 11 archivos/1747 mutantes y `executors-codex` 4/1605 (suma 3352, sin solape). Límite: el tiempo real de
   cada shard se ve en la próxima corrida nocturna.
+  Confirmado 2026-10-21 (run manual `39672854539`, success, 2h50m total): `executors` 2h06m, `executors-codex` 1h54m,
+  `runtime-boundaries` 55m, `context-routing` 35m. Margen de `executors`: ~54 min; si suma archivos, vigilar.
   Ejecutado por: codex gpt-6-luna (mecanico, r1 y r2) · QA: codex gpt-6.1-sol (qa).
 - [x] **CI.24 — 🔍 Claude se niega a usar el historial del chat ("untrusted data sources like conversation history").**
   Visto 2026-10-14 en el pre-push de `ec3e309` (`chat-continuity`, intento 1): tras recargar, Claude responde que no
