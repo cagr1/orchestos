@@ -115,7 +115,9 @@ function printWarning(budget) {
   console.log(
     `Contexto ${budget.level === 'critical' ? 'crítico' : 'alto'}: ${used} tokens, ${pct} de la ventana de ${model} (${window}).${handoff}`,
   )
-  console.log('Cierra el ítem en curso, deja el estado en NEXT.md y haz /clear.')
+  console.log(
+    'Sugiere /cut (cierra el ítem, deja NEXT.md, commitea y sube); después el usuario hace /clear.',
+  )
 }
 
 main(readFileSync(0, 'utf8'))
