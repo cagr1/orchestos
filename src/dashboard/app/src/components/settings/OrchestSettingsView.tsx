@@ -29,8 +29,8 @@ import {
   Trash2,
   Zap,
 } from 'lucide-react'
-import { animate, motion } from 'motion/react'
-import React, { useEffect, useRef, useState } from 'react'
+import { AnimatePresence, animate, motion } from 'motion/react'
+import React, { useCallback, useEffect, useRef, useState } from 'react'
 import { PageHeader } from '@/components/layout/page'
 import { Button } from '@/components/ui/button'
 import {
@@ -234,10 +234,11 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
   // Confirmation Modals
   const [showPurgeConfirm, setShowPurgeConfirm] = useState(false)
   const [showResetConfirm, setShowResetConfirm] = useState(false)
-  const [keyAssistantModal, setKeyAssistantModal] = useState<
+  const [editingKeyProvider, setEditingKeyProvider] = useState<
     'openrouter' | 'anthropic' | 'openai' | null
   >(null)
-  const [assistantKeyInput, setAssistantKeyInput] = useState('')
+
+  const focusKeyInput = useCallback((input: HTMLInputElement | null) => input?.focus(), [])
 
   // Feedback notifications
   const [savedBanner, setSavedBanner] = useState<string | null>(null)
@@ -419,12 +420,12 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
         ]) => {
           if (disposed) return
           const keys = mapSettingsKeys(settings)
-          setApiKeys({
-            openrouter: { ...keys.openrouter, newKey: '' },
-            anthropic: { ...keys.anthropic, newKey: '' },
-            openai: { ...keys.openai, newKey: '' },
+          setApiKeys((current) => ({
+            openrouter: { ...keys.openrouter, newKey: current.openrouter.newKey },
+            anthropic: { ...keys.anthropic, newKey: current.anthropic.newKey },
+            openai: { ...keys.openai, newKey: current.openai.newKey },
             ollama: keys.ollama,
-          })
+          }))
           setOllamaHost(keys.ollama.masked)
           setSetup(nextSetup)
           setHealth(nextHealth)
@@ -481,23 +482,16 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
       await saveApiKey(provider, key)
       await refreshSettings()
       setApiKeys((current) => ({ ...current, [provider]: { ...current[provider], newKey: '' } }))
+      setEditingKeyProvider((current) => (current === provider ? null : current))
       showSaveSuccess('API keys')
     } catch (error) {
       showToast(error instanceof Error ? error.message : 'Could not save API key')
     }
   }
 
-  const handleSaveAssistantKey = async () => {
-    if (!keyAssistantModal || !assistantKeyInput.trim()) return
-    try {
-      await saveApiKey(keyAssistantModal, assistantKeyInput.trim())
-      await refreshSettings()
-      setKeyAssistantModal(null)
-      setAssistantKeyInput('')
-      showSaveSuccess(language === 'es' ? 'clave API' : 'API key')
-    } catch (error) {
-      showToast(error instanceof Error ? error.message : 'Could not save API key')
-    }
+  const cancelKeyEdit = (provider: 'openrouter' | 'anthropic' | 'openai') => {
+    setApiKeys((current) => ({ ...current, [provider]: { ...current[provider], newKey: '' } }))
+    setEditingKeyProvider(null)
   }
 
   const handleSaveOllama = async () => {
@@ -1130,123 +1124,121 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
             description="Configure gateway credentials and local inference endpoints."
           >
             <SettingsGroup>
-              <div className="space-y-2 px-4 py-3">
-                <div className="flex flex-wrap items-center justify-between gap-2">
-                  <div className="flex items-center gap-2">
-                    <ProviderLogo id="gemini" className="h-4 w-4 text-app-accent" />
-                    <span className="text-[13px] font-medium text-app">OpenRouter API</span>
-                    <span
-                      className={`text-[10px] ${apiKeys.openrouter.set ? 'text-app-success' : 'text-app-muted'}`}
-                    >
-                      {apiKeys.openrouter.set ? 'Set' : 'Not set'}
-                    </span>
+              {(['openrouter', 'anthropic', 'openai'] as const).map((provider) => {
+                const key = apiKeys[provider]
+                const editing = editingKeyProvider === provider
+                const label = {
+                  openrouter: 'OpenRouter API',
+                  anthropic: 'Anthropic API',
+                  openai: 'OpenAI API',
+                }[provider]
+                return (
+                  <div key={provider} data-api-key-row={provider} className="space-y-2 px-4 py-3">
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <div className="flex items-center gap-2">
+                        <ProviderLogo
+                          id={
+                            { openrouter: 'gemini', anthropic: 'claude', openai: 'codex' }[provider]
+                          }
+                          className={`h-4 w-4 ${provider === 'openrouter' ? 'text-app-accent' : ''}`}
+                        />
+                        <span className="text-[13px] font-medium text-app">{label}</span>
+                        <span
+                          className={`min-w-10 text-[10px] ${key.set ? 'text-app-success' : 'text-app-muted'}`}
+                        >
+                          {key.set ? 'Set' : 'Not set'}
+                        </span>
+                      </div>
+                      <AnimatePresence initial={false} mode="wait">
+                        <motion.div
+                          key={editing ? 'form' : 'button'}
+                          initial={reduceActivityMotion ? false : { height: 0, opacity: 0 }}
+                          animate={{ height: 'auto', opacity: 1 }}
+                          exit={reduceActivityMotion ? undefined : { height: 0, opacity: 0 }}
+                          transition={reduceActivityMotion ? { duration: 0 } : spring.moderate}
+                          className="overflow-hidden"
+                        >
+                          {editing ? (
+                            <form
+                              data-api-key-form
+                              className="flex flex-wrap items-center gap-2"
+                              onSubmit={(event) => {
+                                event.preventDefault()
+                                void handleSaveKey(provider)
+                              }}
+                              onKeyDown={(event) => {
+                                if (event.key === 'Escape') {
+                                  event.preventDefault()
+                                  cancelKeyEdit(provider)
+                                }
+                              }}
+                            >
+                              <input
+                                ref={focusKeyInput}
+                                type="password"
+                                aria-label={`${label} key`}
+                                autoComplete="off"
+                                placeholder="Paste secret key..."
+                                value={key.newKey}
+                                onChange={(event) =>
+                                  setApiKeys((current) => ({
+                                    ...current,
+                                    [provider]: {
+                                      ...current[provider],
+                                      newKey: event.target.value,
+                                    },
+                                  }))
+                                }
+                                className="min-w-0 flex-1 rounded-control border border-[color:color-mix(in_srgb,var(--app-border)_50%,transparent)] bg-app-bg px-2.5 py-1 font-mono text-xs text-app"
+                              />
+                              <Button
+                                type="submit"
+                                variant="secondary"
+                                size="compact"
+                                disabled={!key.newKey.trim()}
+                              >
+                                Save
+                              </Button>
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="compact"
+                                onClick={() => cancelKeyEdit(provider)}
+                              >
+                                Cancel
+                              </Button>
+                            </form>
+                          ) : (
+                            <Button
+                              type="button"
+                              variant="secondary"
+                              size="compact"
+                              onClick={() => {
+                                if (editingKeyProvider) cancelKeyEdit(editingKeyProvider)
+                                setEditingKeyProvider(provider)
+                              }}
+                            >
+                              {key.set ? 'Replace key' : 'Save key'}
+                            </Button>
+                          )}
+                        </motion.div>
+                      </AnimatePresence>
+                    </div>
+                    {key.masked && (
+                      <motion.span
+                        key={key.masked}
+                        data-api-key-masked
+                        initial={reduceActivityMotion ? false : { opacity: 0, x: -8 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={reduceActivityMotion ? { duration: 0 } : spring.moderate}
+                        className="block font-mono text-xs text-app-muted"
+                      >
+                        {key.masked}
+                      </motion.span>
+                    )}
                   </div>
-                  <Button
-                    variant="secondary"
-                    size="compact"
-                    onClick={() => setKeyAssistantModal('openrouter')}
-                  >
-                    Save key
-                  </Button>
-                </div>
-                <div className="flex items-center gap-3">
-                  {apiKeys.openrouter.masked && (
-                    <span className="font-mono text-xs text-app-muted">
-                      {apiKeys.openrouter.masked}
-                    </span>
-                  )}
-                  <input
-                    type="password"
-                    placeholder="Replace with new key..."
-                    value={apiKeys.openrouter.newKey}
-                    onChange={(e) =>
-                      setApiKeys((prev) => ({
-                        ...prev,
-                        openrouter: { ...prev.openrouter, newKey: e.target.value },
-                      }))
-                    }
-                    className="w-full max-w-sm rounded-control border border-[color:color-mix(in_srgb,var(--app-border)_50%,transparent)] bg-app-bg px-2.5 py-1 font-mono text-xs text-app"
-                  />
-                </div>
-              </div>
-              <div className="space-y-2 px-4 py-3">
-                <div className="flex flex-wrap items-center justify-between gap-2">
-                  <div className="flex items-center gap-2">
-                    <ProviderLogo id="claude" className="h-4 w-4" />
-                    <span className="text-[13px] font-medium text-app">Anthropic API</span>
-                    <span
-                      className={`text-[10px] ${apiKeys.anthropic.set ? 'text-app-success' : 'text-app-muted'}`}
-                    >
-                      {apiKeys.anthropic.set ? 'Set' : 'Not set'}
-                    </span>
-                  </div>
-                  <Button
-                    variant="secondary"
-                    size="compact"
-                    onClick={() => setKeyAssistantModal('anthropic')}
-                  >
-                    Save key
-                  </Button>
-                </div>
-                <div className="flex items-center gap-3">
-                  {apiKeys.anthropic.masked && (
-                    <span className="font-mono text-xs text-app-muted">
-                      {apiKeys.anthropic.masked}
-                    </span>
-                  )}
-                  <input
-                    type="password"
-                    placeholder="Replace with new key..."
-                    value={apiKeys.anthropic.newKey}
-                    onChange={(e) =>
-                      setApiKeys((prev) => ({
-                        ...prev,
-                        anthropic: { ...prev.anthropic, newKey: e.target.value },
-                      }))
-                    }
-                    className="w-full max-w-sm rounded-control border border-[color:color-mix(in_srgb,var(--app-border)_50%,transparent)] bg-app-bg px-2.5 py-1 font-mono text-xs text-app"
-                  />
-                </div>
-              </div>
-              <div className="space-y-2 px-4 py-3">
-                <div className="flex flex-wrap items-center justify-between gap-2">
-                  <div className="flex items-center gap-2">
-                    <ProviderLogo id="codex" className="h-4 w-4" />
-                    <span className="text-[13px] font-medium text-app">OpenAI API</span>
-                    <span
-                      className={`text-[10px] ${apiKeys.openai.set ? 'text-app-success' : 'text-app-muted'}`}
-                    >
-                      {apiKeys.openai.set ? 'Set' : 'Not set'}
-                    </span>
-                  </div>
-                  <Button
-                    variant="secondary"
-                    size="compact"
-                    onClick={() => setKeyAssistantModal('openai')}
-                  >
-                    Save key
-                  </Button>
-                </div>
-                <div className="flex items-center gap-3">
-                  {apiKeys.openai.masked && (
-                    <span className="font-mono text-xs text-app-muted">
-                      {apiKeys.openai.masked}
-                    </span>
-                  )}
-                  <input
-                    type="password"
-                    placeholder="Replace with new key..."
-                    value={apiKeys.openai.newKey}
-                    onChange={(e) =>
-                      setApiKeys((prev) => ({
-                        ...prev,
-                        openai: { ...prev.openai, newKey: e.target.value },
-                      }))
-                    }
-                    className="w-full max-w-sm rounded-control border border-[color:color-mix(in_srgb,var(--app-border)_50%,transparent)] bg-app-bg px-2.5 py-1 font-mono text-xs text-app"
-                  />
-                </div>
-              </div>
+                )
+              })}
               <SettingsRow
                 label={
                   <span className="flex items-center gap-2">
@@ -2530,48 +2522,6 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
                 className="px-3 py-1.5 rounded-control bg-rose-600 hover:bg-rose-500 text-white font-bold"
               >
                 Confirm Reset
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {keyAssistantModal && (
-        <div
-          role="dialog"
-          aria-modal="true"
-          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-xs"
-        >
-          <div className="w-full max-w-md rounded-card bg-app-surface border border-app p-5 shadow-2xl space-y-4 text-xs">
-            <h3 className="text-sm font-bold text-app">Configure {keyAssistantModal} key</h3>
-            <p className="text-app-muted text-xs leading-relaxed">
-              Enter your secret token. It is stored in your local OrchestOS environment.
-            </p>
-            <input
-              type="password"
-              value={assistantKeyInput}
-              onChange={(e) => setAssistantKeyInput(e.target.value)}
-              placeholder={`Paste ${keyAssistantModal} secret key...`}
-              className="w-full p-2 rounded-control bg-app-bg border border-app text-app font-mono text-xs focus:border-app-accent focus:outline-hidden"
-              autoFocus
-            />
-            <div className="flex justify-end gap-2 pt-2 border-t border-app">
-              <button
-                type="button"
-                onClick={() => {
-                  setKeyAssistantModal(null)
-                  setAssistantKeyInput('')
-                }}
-                className="px-3 py-1.5 rounded-control text-app-muted hover:text-app"
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                onClick={() => void handleSaveAssistantKey()}
-                className="px-4 py-1.5 rounded-control bg-app-accent text-zinc-950 font-bold"
-              >
-                Save key
               </button>
             </div>
           </div>

@@ -69,7 +69,7 @@ async function inspect(page, panelSelector) {
   )
 }
 
-export default async function shellLook({ page, api, step, shot, visible, cleanup }) {
+export default async function shellLook({ page, api, step, shot, visible, hidden, cleanup }) {
   await visible(page.getByRole('button', { name: 'Settings', exact: true }))
 
   for (const [view, panelSelector] of [
@@ -147,6 +147,59 @@ export default async function shellLook({ page, api, step, shot, visible, cleanu
       section.hits.length === 0,
       section.hits.join(' || ') || 'ninguna',
     )
+    if (key === 'api') {
+      const openrouter = page.locator('[data-api-key-row="openrouter"]')
+      const form = openrouter.locator('[data-api-key-form]')
+      await openrouter.getByRole('button', { name: /^(Save|Replace) key$/ }).click()
+      const unfolded = await visible(form)
+      await step(
+        'api key form unfolds',
+        unfolded &&
+          (await form.locator('input').evaluate((input) => input === document.activeElement)) &&
+          (await page.getByRole('dialog').count()) === 0,
+        'inline password input focused; no dialog',
+      )
+      // run.mjs starts the dashboard with an isolated, temporary ORCHESTOS_HOME.
+      const testKey = 'ui-gate-not-a-real-key'
+      await form.locator('input').fill(testKey)
+      await form.locator('input').press('Enter')
+      const toast = page.locator('.fixed.bottom-5.right-5 span.font-semibold')
+      await toast.waitFor({ state: 'visible', timeout: 15_000 })
+      await shot('api-keys')
+      const toastText = await toast.innerText()
+      const inputValue = await form.locator('input').inputValue()
+      const masked = openrouter.locator('[data-api-key-masked]')
+      const maskedVisible = (await masked.count()) > 0
+      const notSet = await openrouter.getByText('Not set', { exact: true }).isVisible()
+      await step(
+        'api key rejected',
+        toastText.length > 0 &&
+          toastText !== 'Saved API keys' &&
+          (await visible(form)) &&
+          inputValue === testKey &&
+          notSet &&
+          !maskedVisible,
+        `toast=${toastText}; form visible=${await visible(form)}; input preserved=${inputValue === testKey}; not set=${notSet}; masked=${maskedVisible}`,
+      )
+      await page.waitForTimeout(6000)
+      const inputPreservedAfterLoad = (await form.locator('input').inputValue()) === testKey
+      await step(
+        'api key survives initial settings load',
+        inputPreservedAfterLoad,
+        `input preserved after 6s=${inputPreservedAfterLoad}`,
+      )
+      const anthropic = page.locator('[data-api-key-row="anthropic"]')
+      const anthropicForm = anthropic.locator('[data-api-key-form]')
+      await anthropic.getByRole('button', { name: 'Save key', exact: true }).click()
+      await visible(anthropicForm)
+      await anthropicForm.locator('input').press('Escape')
+      await step(
+        'api key cancel',
+        (await hidden(anthropicForm)) &&
+          (await anthropic.getByText('Not set', { exact: true }).isVisible()),
+        'Escape closes the form without setting a key',
+      )
+    }
     if (key === 'usage' || key === 'model routing') {
       await step(
         'settings fills width',

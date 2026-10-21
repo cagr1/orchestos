@@ -1396,8 +1396,19 @@ archivos fijados por `ui:fidelity:jsx` (`OrchestDevWorkspace`, `ShellStatusBar`,
   Gate en vivo: navegador real (Playwright), `docs/done/evidence/UI.26.6b.1-live.json` (`shell-look` 31/31:
   `heatmap fills width` 1102/1102 px, `heatmap tooltip slides` mismo nodo, `heatmap total`, `heatmap reduced motion`).
   Límite: los datos del gate tienen 0 ejecuciones; las celdas con color no se ejercitaron en vivo.
-- [ ] **UI.26.6b.2 — 🧠 API keys con movimiento.** "Create key" se despliega en su formulario; la clave nueva entra
+- [x] **UI.26.6b.2 — 🧠 API keys con movimiento.** "Create key" se despliega en su formulario; la clave nueva entra
   deslizando; el secreto se muestra una sola vez.
+  (cerrado 2026-10-21) Por proveedor, el botón ("Save key"/"Replace key") se despliega en su sitio en un formulario
+  (Enter guarda, Escape cancela); la clave enmascarada entra deslizando. Fuera: el `<input>` suelto de cada fila, que no
+  guardaba nada (`handleSaveKey` no tenía llamador), y el modal. "El secreto una vez" no aplica: las claves las pega el
+  usuario. r3 (gate del cerebro): la carga inicial de Settings borraba la clave que se estaba escribiendo (`newKey: ''`
+  al resolver chequeos lentos) → conserva `newKey` como `refreshSettings`.
+  Ejecutado por: gpt-6-sol (rol `criterio-alt`, r1), gpt-6-luna (rol `mecanico`, r2–r3) · Spec: docs/specs/UI.26.6b.2.md
+  Evidencia (cerebro): build y typecheck; captura `api-keys` mirada (clave conservada, toast de rechazo visible).
+  Gate en vivo: navegador real (Playwright), `docs/done/evidence/UI.26.6b.2-live.json` (`shell-look` 35/35:
+  `api key form unfolds`, `api key rejected` con rechazo real del proveedor y la clave conservada 6 s después,
+  `api key cancel`).
+  Límite: el guardado con éxito (clave real) no se puede ejercitar en el gate: el servidor valida contra el proveedor.
 - [ ] **UI.26.6b.3 — 🧠 Buscador de Settings que crece a paleta.** Buscador → paleta (posición, tamaño y radio en un
   spring), al elegir lleva a la fila y la ilumina; resaltado de sección activa que se desliza; barra de cambios sin
   guardar que nace de una píldora, cuenta y pasa a "Settings saved".
