@@ -1,4 +1,4 @@
-# NEXT — handoff 2026-10-21 (lote CI.27 · AT.17 · AT.18 · ERP.6.2 cerrado; sigue AT.11 con plan previo; asignación abajo)
+# NEXT — handoff 2026-10-21 (CI.31 y AT.11 cerrados; siguen H.10.2 / UI.26.6b con plan previo)
 
 Un solo presente: orden y trampas vivas. Lo cerrado vive en `PLAN.md` y git (regla `AGENTS.md` § Reglas generales,
 2026-10-19: `NEXT.md` se toca solo al cerrar o cortar un lote). Arranque:
@@ -17,10 +17,10 @@ Prevalece sobre el roster y sobre `~/.claude/CLAUDE.md` § Selección de modelos
 ## Orden
 1. Cerrados 2026-10-20 (subidos, CI verde en `b5337022`): CI.27 `7fb8396a`, AT.17 `38550b9e`, AT.18 `14490f85`
    (+ vault `49b3c5b`, sin push: no autorizado; el vault tiene cambios ajenos en `wiki/`/`targets/`), ERP.6.2 `b5337022`.
-2. Siguiente: **AT.11** (chat CLI extensible: cualquier adaptador registrado, sin ramas por marca). Toca varios
-   módulos → plan corto a Carlos y GO antes de codear (`CLAUDE.md` § Planificar). Ojo: `src/router/role-runner.ts:39-68`
-   es otra rama por marca (claude/codex/opencode) del mismo tipo.
-3. Después: H.10.2 y UI.26.6b (🧠, features nuevas). Acceso remoto = IDEAS `#73`.
+2. Cerrados 2026-10-21 (subidos, pre-push verde): CI.31 `a95fbde4` (shard `executors` partido en dos: confirmar en
+   la corrida nocturna de Mutation Shards que ninguno pasa de 3 h), AT.11 `c6014ede` (registro `chat-adapters.ts`;
+   migración 30). Restos por marca anotados en AT.11: columnas `codex_*`/`claude_*` de `chat_sessions`.
+3. Siguiente: H.10.2 y UI.26.6b (🧠, features nuevas, plan corto y GO antes de codear). Acceso remoto = IDEAS `#73`.
 4. Fiabilidad, cuando el pre-push la tumba: CI.23, CI.18, CI.19, CI.11. Desde CI.27 un flujo que revienta dice el
    locator (`[waiting for …]`) y deja `<flujo>/failure.png`: usarlo antes de diagnosticar.
 - Decisiones pendientes de Carlos sin ítem: turno de chat con CLI lento (más de 120 s o aviso honesto, en CI.18);
