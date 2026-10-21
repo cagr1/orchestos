@@ -2079,12 +2079,21 @@ verificado); el sandbox de **escritura** de las tareas (worktrees ya lo cubren, 
 frontera de red/SSRF (`src/dashboard/ssrf.ts` ya existe y no se toca); y cualquier cambio al
 vault o a `~/.claude`/`~/.codex` de Carlos — el vault sigue alimentando el trabajo de desarrollo
 igual que hoy, lo que se corta es que el **producto** lo herede por accidente.
-- [ ] **AT.11.1 — 🧠 Dos huecos del registro de adaptadores que encontró el revisor nocturno.** (abierto 2026-10-21,
+- [x] **AT.11.1 — 🧠 Dos huecos del registro de adaptadores que encontró el revisor nocturno.** (abierto 2026-10-21,
   hallazgos de H.10.2 sobre `14490f85..c337db57`, cada uno con su prueba que falla hoy en `review-evidence/`)
   1. `src/run/executors/chat-adapters.ts:83`: registrar un id ya existente (`codex`, `claude`) lo reemplaza en
      silencio, incluida su frontera de solo lectura; debe rechazarse.
   2. `src/config/schema.ts:17`: `ROLE_AGENTS` sigue siendo una allowlist cerrada, así que un adaptador registrado no
      se puede asignar a un rol: contradice AT.11 ("cualquier adaptador registrado").
+  (cerrado 2026-10-21, GO de Carlos al plan) `registerCliChatAdapter` rechaza un id ya registrado. `ROLE_AGENTS` se
+  quita: `roleAgentIds()` (adaptadores registrados + `api`) valida en el handler de config y arma el catálogo;
+  `config/load.ts` solo valida la forma (no importa de `run/executors`); un agente sin adaptador falla con
+  "chat no soportado". `RoleAgent` = `string`. Fuera (anotado): la regla orquestador ≠ `opencode`, las ramas por
+  `task.engine` de `auto-route.ts`, `AgentChoice` cerrado en `createChatSession` y las listas por marca de Usage.
+  Ejecutado por: gpt-6-luna (rol `mecanico`, r1–r2) · QA: gpt-6-sol (rol `qa`, sin defectos, con prueba en vivo) · Spec: docs/specs/AT.11.1.md
+  Evidencia (cerebro): typecheck; `test:coverage` 1899 pass / 0 fail; las dos pruebas del revisor en
+  `review-evidence/` pasan (la de roles adaptada a `roleAgentIds()`).
+  Gate en vivo: navegador real (Playwright), `docs/done/evidence/AT.11.1-live.json` (`model-routing` 18/18).
 
 ### DOC.1 y LIMP.1 — Documentación al día y código muerto (GO de Carlos 2026-10-14)
 

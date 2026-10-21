@@ -14,8 +14,7 @@ export interface ModelRoleConfig {
 
 export const ROLE_NAMES = ['orchestrator', 'executor', 'reviewer', 'auxiliary'] as const
 export type RoleName = (typeof ROLE_NAMES)[number]
-export const ROLE_AGENTS = ['claude', 'codex', 'opencode', 'api'] as const
-export type RoleAgent = (typeof ROLE_AGENTS)[number]
+export type RoleAgent = string
 export interface RoleAssignment {
   agent: RoleAgent
   model: string

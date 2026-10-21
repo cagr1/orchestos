@@ -14,7 +14,7 @@ test('AT.11 — public CLI registration drives session → turn → persistence 
       const { runMigrations } = await import('./src/db/migrate.ts')
       const { db } = await import('./src/db/sqlite.ts')
       const { KNOWN_CLIS } = await import('./src/run/executors/cli-registry.ts')
-      const { registerCliChatAdapter } = await import('./src/run/executors/chat-adapters.ts')
+      const { cliChatAdapterFor, registerCliChatAdapter } = await import('./src/run/executors/chat-adapters.ts')
       const { uninstrumentedReadAudit } = await import('./src/run/read-audit.ts')
       const { readCliModelCatalogs, readCliModelCatalogsCached } = await import('./src/dashboard/chat-cli-models.ts')
       const { handleApiChat, handleApiChatCliModels, chatEffortLevelsForAgent } = await import('./src/dashboard/handlers/chat.ts')
@@ -41,6 +41,10 @@ test('AT.11 — public CLI registration drives session → turn → persistence 
         async runRole() { throw new Error('role runner must not be used by chat') },
         failure: e => ({ message: e.message }),
       })
+      const registeredFixture = cliChatAdapterFor('fixture-chat')
+      let duplicateRegistrationRejected = false
+      try { registerCliChatAdapter('fixture-chat', { ...registeredFixture, label: 'replacement' }) }
+      catch (error) { duplicateRegistrationRejected = error.message === 'CLI chat adapter already registered: fixture-chat' }
       const fixture = { ...definition('fixture-chat'), installed: true, path: '/fixture' }
       const unsupported = { ...definition('fixture-no-chat'), installed: true, path: '/fixture' }
       const catalogs = await readCliModelCatalogs(async () => { throw new Error('no real binary allowed') }, [fixture, unsupported])
@@ -67,7 +71,7 @@ test('AT.11 — public CLI registration drives session → turn → persistence 
       const opencodeResponse = await handleApiChat(post('', { agent: 'opencode', model: 'fixture-model', message: 'hello' }), root)
       const opencodeReply = await opencodeResponse.json()
       process.stdout.write(JSON.stringify({ createStatus: createResponse.status, status: response.status, reply, endpoint, messages, timeline, run, turnInput, turns,
-        efforts: chatEffortLevelsForAgent('fixture-chat'), rejectedStatus: rejectedResponse.status, rejected, unsupportedStatus: unsupportedResponse.status, unsupportedReply,
+        efforts: chatEffortLevelsForAgent('fixture-chat'), duplicateRegistrationRejected, duplicateKeptOriginal: cliChatAdapterFor('fixture-chat') === registeredFixture, rejectedStatus: rejectedResponse.status, rejected, unsupportedStatus: unsupportedResponse.status, unsupportedReply,
         noChatCreateStatus: noChatCreate.status, noChatCreateReply, unknownStatus: unknownResponse.status, unknownReply, opencodeStatus: opencodeResponse.status, opencodeReply, apiCalls }))
       db.close()
     `,
@@ -105,6 +109,8 @@ test('AT.11 — public CLI registration drives session → turn → persistence 
     })
     expect(result.turnInput.sessionId).toBeString()
     expect(result.efforts).toEqual(['fixture-effort'])
+    expect(result.duplicateRegistrationRejected).toBe(true)
+    expect(result.duplicateKeptOriginal).toBe(true)
     expect(result.turns).toBe(1)
     expect(
       result.messages.map((m: { role: string; content: string }) => [m.role, m.content]),

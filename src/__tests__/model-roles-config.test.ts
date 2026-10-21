@@ -62,7 +62,7 @@ describe('model roles config', () => {
       rmSync(root, { recursive: true, force: true })
     }
   })
-  it('explicit role wins; invalid explicit role does not fall back to legacy', () => {
+  it('explicit role wins and accepts any non-empty agent id', () => {
     const root = temp()
     try {
       writeFileSync(
@@ -71,7 +71,7 @@ describe('model roles config', () => {
       )
       const roles = loadOrcheConfig(root).roles
       expect(roles.executor).toEqual({ agent: 'codex', model: 'gpt-6-luna', effort: 'medium' })
-      expect(roles.reviewer).toBeUndefined()
+      expect(roles.reviewer).toEqual({ agent: 'foo', model: 'bad' })
     } finally {
       rmSync(root, { recursive: true, force: true })
     }

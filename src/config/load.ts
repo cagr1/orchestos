@@ -18,7 +18,6 @@ import {
   DEFAULT_CONFIG,
   type OrcheConfig,
   parseRoleValue,
-  ROLE_AGENTS,
   ROLE_NAMES,
   type RoleAssignment,
   type RoleName,
@@ -115,7 +114,8 @@ function resolveRoles(raw: Record<string, unknown>): Partial<Record<RoleName, Ro
           ? (value as Record<string, unknown>)
           : {}
       if (
-        !ROLE_AGENTS.includes(obj.agent as (typeof ROLE_AGENTS)[number]) ||
+        typeof obj.agent !== 'string' ||
+        !obj.agent.trim() ||
         typeof obj.model !== 'string' ||
         !obj.model.trim()
       ) {

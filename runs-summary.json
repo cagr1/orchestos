@@ -1,7 +1,22 @@
 {
-  "exported_at": "2026-10-21T19:20:47.252Z",
+  "exported_at": "2026-10-21T19:34:39.063Z",
   "total_runs": 20,
   "runs": [
+    {
+      "id": "552305b4-e292-4ece-8abb-ee62f47e7a8d",
+      "task_class": "gate:at.11.1-model-routing:doc",
+      "model": "gpt-6-luna",
+      "provider": "codex",
+      "status": "done",
+      "qa_verdict": "pass",
+      "qa_reason": "README.md contains the requested line.",
+      "files_blocked": [],
+      "checks_failed": 0,
+      "usd_cost": 0.00151496,
+      "elapsed_ms": 13987,
+      "tokens": 9280,
+      "created_at": "2026-10-21T19:31:43.242Z"
+    },
     {
       "id": "b4bc8746-d897-425e-9c5b-70a5b31ad888",
       "task_class": "gate:ui.26.6b.3-model-routing:doc",
@@ -286,21 +301,6 @@
       "elapsed_ms": 8516,
       "tokens": 6333,
       "created_at": "2026-10-20T19:42:34.496Z"
-    },
-    {
-      "id": "2c039d8a-c4a7-4d1c-bb60-bf97e289a9a5",
-      "task_class": "gate:erp.7.1b:fix",
-      "model": "gpt-6-luna",
-      "provider": "codex",
-      "status": "done",
-      "qa_verdict": "pass",
-      "qa_reason": "QA LLM omitido: la tarea no declara criterios de aceptación; checks y salidas declaradas en verde",
-      "files_blocked": [],
-      "checks_failed": 0,
-      "usd_cost": 0.00108364,
-      "elapsed_ms": 8990,
-      "tokens": 6254,
-      "created_at": "2026-10-20T19:42:25.374Z"
     }
   ],
   "stats": {
@@ -308,6 +308,6 @@
     "blocked": 0,
     "done": 20,
     "qa_failed": 2,
-    "total_cost_usd": "0.1357"
+    "total_cost_usd": "0.1362"
   }
 }

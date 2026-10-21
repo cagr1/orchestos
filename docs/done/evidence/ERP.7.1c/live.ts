@@ -4,6 +4,7 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { setTimeout as delay } from 'node:timers/promises'
 import { chromium } from 'playwright'
+import type { AgentChoice } from '../../../../src/config/schema.ts'
 import { loadOrcheConfig } from '../../../../src/config/load.ts'
 import { startServer } from '../../../../src/dashboard/server.ts'
 import { createChatSession } from '../../../../src/db/chat-sessions.ts'
@@ -63,7 +64,7 @@ try {
   check(!!config.roles.orchestrator, 'Use configured orchestrator without substituting its model')
   const session = createChatSession({
     projectId,
-    agent: config.roles.orchestrator!.agent,
+    agent: config.roles.orchestrator!.agent as AgentChoice,
     mode: 'code',
     title: 'Composer permissions',
   })

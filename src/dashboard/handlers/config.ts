@@ -5,14 +5,13 @@ import { AGENT_CHOICES, loadOrcheConfig, scaffoldConfigYaml } from '../../config
 import {
   type AgentChoice,
   type OrcheConfig,
-  ROLE_AGENTS,
   ROLE_NAMES,
-  type RoleAgent,
   type RoleAssignment,
   type RoleName,
   type TaskAgentRule,
 } from '../../config/schema.ts'
 import { autoRoute, describeTaskExecutor, formatRoute } from '../../router/auto-route.ts'
+import { roleAgentIds } from '../../run/executors/chat-adapters.ts'
 import { findClaudeBinary } from '../../run/executors/external.ts'
 import { describePermissions } from '../../run/permissions.ts'
 import { loadTasks, tasksExist } from '../../tasks/loader.ts'
@@ -164,7 +163,8 @@ export async function handleApiConfigSet(req: Request, root = process.cwd()): Pr
       if (
         !assignment ||
         typeof assignment !== 'object' ||
-        !ROLE_AGENTS.includes(assignment.agent as RoleAgent) ||
+        typeof assignment.agent !== 'string' ||
+        !roleAgentIds().includes(assignment.agent) ||
         typeof assignment.model !== 'string' ||
         !assignment.model.trim()
       )

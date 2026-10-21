@@ -80,7 +80,13 @@ const adapters = new Map<string, CliChatAdapter>()
 /** Public registration used by built-in and additional CLI adapters alike. */
 export function registerCliChatAdapter(agent: string, adapter: CliChatAdapter): void {
   if (!KNOWN_CLIS.some((cli) => cli.id === agent)) throw new Error(`Unknown CLI: ${agent}`)
+  if (adapters.has(agent)) throw new Error(`CLI chat adapter already registered: ${agent}`)
   adapters.set(agent, adapter)
+}
+
+/** Agent ids accepted for chat roles, in registration order, with API last. */
+export function roleAgentIds(): string[] {
+  return [...adapters.keys(), 'api']
 }
 
 export function cliChatAdapterFor(agent: string | undefined): CliChatAdapter | undefined {

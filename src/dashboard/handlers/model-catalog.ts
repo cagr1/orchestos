@@ -1,4 +1,5 @@
-import { ROLE_AGENTS, type RoleAgent } from '../../config/schema.ts'
+import type { RoleAgent } from '../../config/schema.ts'
+import { roleAgentIds } from '../../run/executors/chat-adapters.ts'
 import { readCliModelCatalogsCached } from '../chat-cli-models.ts'
 import { jsonResponse } from '../http.ts'
 import { type ChatModelsFetch, readOpenRouterChatModels } from './chat.ts'
@@ -22,7 +23,7 @@ export async function handleApiModelCatalog(deps?: {
   } catch {
     cli = []
   }
-  const agents: CatalogAgent[] = ROLE_AGENTS.map((id) => {
+  const agents: CatalogAgent[] = roleAgentIds().map((id) => {
     if (id === 'api') return { id, installed: true, models: [], efforts: [] }
     const entry = cli.find((catalog) => catalog.id === id)
     return {
@@ -36,12 +37,15 @@ export async function handleApiModelCatalog(deps?: {
   })
   try {
     const models = await readOpenRouterChatModels(deps?.fetchFn)
-    agents[3]!.models = (models as { id: string; name: string }[]).map(({ id, name }) => ({
-      id,
-      name,
-    }))
+    const apiAgent = agents.find((agent) => agent.id === 'api')
+    if (apiAgent)
+      apiAgent.models = (models as { id: string; name: string }[]).map(({ id, name }) => ({
+        id,
+        name,
+      }))
   } catch (error) {
-    agents[3]!.error = error instanceof Error ? error.message : String(error)
+    const apiAgent = agents.find((agent) => agent.id === 'api')
+    if (apiAgent) apiAgent.error = error instanceof Error ? error.message : String(error)
   }
   return jsonResponse({ agents })
 }
