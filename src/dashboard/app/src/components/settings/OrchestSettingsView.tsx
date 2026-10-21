@@ -29,6 +29,7 @@ import {
   Trash2,
   Zap,
 } from 'lucide-react'
+import { animate, motion } from 'motion/react'
 import React, { useEffect, useRef, useState } from 'react'
 import { PageHeader } from '@/components/layout/page'
 import { Button } from '@/components/ui/button'
@@ -40,6 +41,8 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card'
+import { usePrefersReducedMotion } from '@/hooks/use-prefers-reduced-motion'
+import { spring } from '@/lib/springs'
 import type {
   ConfigResponse,
   ExecutorModesResponse,
@@ -315,10 +318,16 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
   const [maxIterations, setMaxIterations] = useState<number>(15)
   const [timeoutMinutes, setTimeoutMinutes] = useState<number>(20)
 
-  // Daily activity hover inspector
+  const reduceActivityMotion = usePrefersReducedMotion()
+  const activityTooltipRef = useRef<HTMLDivElement>(null)
+  const activityTotalRef = useRef(0)
+  const [activityTotal, setActivityTotal] = useState(0)
+  // One tooltip persists while moving between cells.
   const [hoveredActivityDay, setHoveredActivityDay] = useState<{
-    dateStr: string
-    runs: number
+    tooltip: string
+    visible: boolean
+    x: number
+    y: number
   } | null>(null)
   const activityScrollRef = React.useRef<HTMLDivElement>(null)
 
@@ -549,6 +558,7 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
   const dailyActivityCells = React.useMemo(() => {
     const cells: Array<{
       id: number
+      dateKey: string
       dateStr: string
       runs: number
       intensity: 0 | 1 | 2 | 3 | 4
@@ -580,6 +590,7 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
 
       cells.push({
         id: i,
+        dateKey,
         dateStr,
         runs,
         intensity,
@@ -594,6 +605,25 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
     const element = activityScrollRef.current
     if (element) element.scrollLeft = element.scrollWidth
   }, [activeSection, dailyActivityCells.length])
+
+  const dailyActivityTotal = dailyActivityCells.reduce((total, cell) => total + cell.runs, 0)
+
+  React.useEffect(() => {
+    if (activeSection !== 'usage') return
+    if (reduceActivityMotion) {
+      activityTotalRef.current = dailyActivityTotal
+      setActivityTotal(dailyActivityTotal)
+      return
+    }
+    const controls = animate(activityTotalRef.current, dailyActivityTotal, {
+      ...spring.slow,
+      onUpdate: (value) => {
+        activityTotalRef.current = value
+        setActivityTotal(Math.round(value))
+      },
+    })
+    return () => controls.stop()
+  }, [activeSection, dailyActivityTotal, reduceActivityMotion])
 
   const AGENTS_LIST = [
     {
@@ -1908,15 +1938,10 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
               <div className="flex items-center justify-between text-xs">
                 <div className="flex items-center gap-2">
                   <span className="font-semibold text-app">Daily activity</span>
-                  {hoveredActivityDay && (
-                    <span className="text-[11px] tabular-nums text-app-success">
-                      {hoveredActivityDay.runs === 0
-                        ? language === 'es'
-                          ? `Sin actividad · ${hoveredActivityDay.dateStr}`
-                          : `No activity · ${hoveredActivityDay.dateStr}`
-                        : `${hoveredActivityDay.runs} ${hoveredActivityDay.runs === 1 ? 'run' : 'runs'} · ${hoveredActivityDay.dateStr}`}
-                    </span>
-                  )}
+                  <span data-heatmap-total className="text-[11px] tabular-nums text-app-success">
+                    {reduceActivityMotion ? dailyActivityTotal : activityTotal}{' '}
+                    {language === 'es' ? 'ejecuciones' : 'runs'}
+                  </span>
                 </div>
                 <div className="flex items-center gap-1.5 text-[10px] text-app-muted">
                   <span>less</span>
@@ -1930,53 +1955,120 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
               </div>
 
               {/* Heatmap grid */}
-              <div ref={activityScrollRef} className="overflow-x-auto pb-1">
-                <div className="flex gap-[3px] min-w-max mb-1 text-[10px] text-app-muted">
-                  {Array.from({ length: 53 }, (_, week) => {
-                    const first = dailyActivityCells[week * 7]
-                    const previous = dailyActivityCells[(week - 1) * 7]
-                    const month = first ? new Date(first.dateStr) : null
-                    const previousMonth = previous ? new Date(previous.dateStr).getMonth() : -1
-                    return (
-                      <span key={`month-${week}`} className="w-[11px] shrink-0">
-                        {month && month.getMonth() !== previousMonth
-                          ? month.toLocaleDateString(language === 'es' ? 'es-ES' : 'en-US', {
-                              month: 'short',
-                            })
-                          : ''}
-                      </span>
+              <div ref={activityTooltipRef} className="relative">
+                <motion.div
+                  data-heatmap-tooltip
+                  role="tooltip"
+                  initial={false}
+                  animate={{
+                    opacity: hoveredActivityDay?.visible ? 1 : 0,
+                    x: hoveredActivityDay?.x ?? 0,
+                    y: hoveredActivityDay?.y ?? 0,
+                  }}
+                  transition={
+                    reduceActivityMotion
+                      ? { duration: 0 }
+                      : {
+                          x: spring.moderate,
+                          y: spring.moderate,
+                          opacity: hoveredActivityDay?.visible ? spring.fast : spring.fast.exit,
+                        }
+                  }
+                  className="pointer-events-none absolute left-0 top-0 z-10 -translate-y-full whitespace-nowrap rounded-card border border-app bg-app-elevated px-2 py-1 text-[11px] text-app shadow-sm"
+                >
+                  {hoveredActivityDay?.tooltip}
+                </motion.div>
+                <div
+                  ref={activityScrollRef}
+                  className="overflow-x-auto pb-1"
+                  onScroll={() =>
+                    setHoveredActivityDay((previous) =>
+                      previous ? { ...previous, visible: false } : null,
                     )
-                  })}
-                </div>
-                <div className="flex gap-[3px] min-w-max">
-                  {Array.from({ length: 53 }, (_, week) => (
-                    <div key={`week-${week}`} className="flex w-[11px] shrink-0 flex-col gap-[3px]">
-                      {dailyActivityCells.slice(week * 7, week * 7 + 7).map((cell) => {
-                        const bgClass =
-                          cell.intensity === 0
-                            ? 'bg-app-elevated hover:bg-app-elevated/70'
-                            : cell.intensity === 1
-                              ? 'bg-app-success/20 hover:bg-app-success/30'
-                              : cell.intensity === 2
-                                ? 'bg-app-success/45 hover:bg-app-success/55'
-                                : cell.intensity === 3
-                                  ? 'bg-app-success/70 hover:bg-app-success/80'
-                                  : 'bg-app-success hover:bg-app-success/90'
+                  }
+                >
+                  <div className="grid grid-cols-[repeat(53,minmax(8px,1fr))] gap-[3px] mb-1 text-[10px] text-app-muted">
+                    {Array.from({ length: 53 }, (_, week) => {
+                      const first = dailyActivityCells[week * 7]
+                      const previous = dailyActivityCells[(week - 1) * 7]
+                      const [year, monthNumber, day] = (first?.dateKey ?? '').split('-').map(Number)
+                      const month = first ? new Date(year, monthNumber - 1, day) : null
+                      const previousMonth = previous ? Number(previous.dateKey.slice(5, 7)) - 1 : -1
+                      return (
+                        <span key={`month-${week}`} className="min-w-0">
+                          {month && month.getMonth() !== previousMonth
+                            ? month.toLocaleDateString(language === 'es' ? 'es-ES' : 'en-US', {
+                                month: 'short',
+                              })
+                            : ''}
+                        </span>
+                      )
+                    })}
+                  </div>
+                  <div
+                    key={`${dailyActivityTotal}-${dailyActivityCells.at(-1)?.dateKey}`}
+                    data-heatmap-grid
+                    className="grid grid-cols-[repeat(53,minmax(8px,1fr))] gap-[3px]"
+                    onMouseLeave={() =>
+                      setHoveredActivityDay((previous) =>
+                        previous ? { ...previous, visible: false } : null,
+                      )
+                    }
+                  >
+                    {Array.from({ length: 53 }, (_, week) => (
+                      <div key={`week-${week}`} className="flex min-w-0 flex-col gap-[3px]">
+                        {dailyActivityCells.slice(week * 7, week * 7 + 7).map((cell) => {
+                          const bgClass =
+                            cell.intensity === 0
+                              ? 'bg-app-elevated hover:bg-app-elevated/70'
+                              : cell.intensity === 1
+                                ? 'bg-app-success/20 hover:bg-app-success/30'
+                                : cell.intensity === 2
+                                  ? 'bg-app-success/45 hover:bg-app-success/55'
+                                  : cell.intensity === 3
+                                    ? 'bg-app-success/70 hover:bg-app-success/80'
+                                    : 'bg-app-success hover:bg-app-success/90'
 
-                        return (
-                          <div
-                            key={cell.id}
-                            className={`w-[11px] h-[11px] rounded-[2px] transition-colors cursor-pointer ${bgClass}`}
-                            title={cell.tooltip}
-                            onMouseEnter={() =>
-                              setHoveredActivityDay({ dateStr: cell.dateStr, runs: cell.runs })
-                            }
-                            onMouseLeave={() => setHoveredActivityDay(null)}
-                          />
-                        )
-                      })}
-                    </div>
-                  ))}
+                          return (
+                            <motion.div
+                              key={cell.id}
+                              data-heatmap-cell
+                              data-date={cell.dateKey}
+                              initial={reduceActivityMotion ? false : { opacity: 0, scale: 0.6 }}
+                              animate={{ opacity: 1, scale: 1 }}
+                              transition={
+                                reduceActivityMotion
+                                  ? { duration: 0 }
+                                  : {
+                                      ...spring.fast,
+                                      delay: (week / 52) * spring.slow.duration * 2,
+                                    }
+                              }
+                              className={`aspect-square w-full rounded-[2px] transition-colors cursor-pointer ${bgClass}`}
+                              onMouseEnter={(event) => {
+                                const root = activityTooltipRef.current?.getBoundingClientRect()
+                                if (!root) return
+                                const rect = event.currentTarget.getBoundingClientRect()
+                                const tooltipWidth =
+                                  activityTooltipRef.current
+                                    ?.querySelector('[data-heatmap-tooltip]')
+                                    ?.getBoundingClientRect().width ?? 0
+                                setHoveredActivityDay({
+                                  tooltip: cell.tooltip,
+                                  visible: true,
+                                  x: Math.max(
+                                    0,
+                                    Math.min(rect.left - root.left, root.width - tooltipWidth),
+                                  ),
+                                  y: rect.top - root.top - 4,
+                                })
+                              }}
+                            />
+                          )
+                        })}
+                      </div>
+                    ))}
+                  </div>
                 </div>
               </div>
             </div>

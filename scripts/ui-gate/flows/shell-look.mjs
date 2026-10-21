@@ -154,6 +154,119 @@ export default async function shellLook({ page, api, step, shot, visible, cleanu
         `${key}: contenido ${Math.round(section.content)} px de ${Math.round(section.main)} px`,
       )
     }
+    if (key === 'usage') {
+      const viewport = page.viewportSize()
+      await page.setViewportSize({ width: 1440, height: 900 })
+      try {
+        const grid = page.locator('[data-heatmap-grid]')
+        await visible(grid)
+        const widths = await grid.evaluate((element) => {
+          const card = element.parentElement.parentElement.parentElement
+          const cs = getComputedStyle(card)
+          return {
+            grid: element.getBoundingClientRect().width,
+            inner:
+              card.clientWidth -
+              Number.parseFloat(cs.paddingLeft) -
+              Number.parseFloat(cs.paddingRight),
+          }
+        })
+        await step(
+          'heatmap fills width',
+          widths.inner > 0 && widths.grid >= widths.inner * 0.95,
+          JSON.stringify(widths),
+        )
+        // Let the entry wave settle before measuring pointer targets.
+        await page.waitForTimeout(600)
+        const cells = grid.locator('[data-heatmap-cell]')
+        const first = cells.nth(21)
+        const second = cells.nth(350)
+        const tooltip = page.locator('[data-heatmap-tooltip]')
+        const dateMatches = async (cell) => {
+          const iso = await cell.getAttribute('data-date')
+          const text = await tooltip.textContent()
+          return ['en-US', 'es-ES'].some((locale) =>
+            text.includes(
+              new Date(`${iso}T12:00:00`).toLocaleDateString(locale, {
+                month: 'short',
+                day: 'numeric',
+                year: 'numeric',
+              }),
+            ),
+          )
+        }
+        await first.hover()
+        await visible(tooltip)
+        await page.waitForTimeout(200)
+        const firstText = await tooltip.textContent()
+        const firstDateMatches = await dateMatches(first)
+        const handle = await tooltip.elementHandle()
+        const firstBox = await tooltip.boundingBox()
+        await second.hover()
+        await page.waitForTimeout(200)
+        const secondBox = await tooltip.boundingBox()
+        const sameNode = await tooltip.evaluate((node, original) => node === original, handle)
+        const secondText = await tooltip.textContent()
+        await step(
+          'heatmap tooltip slides',
+          sameNode &&
+            firstDateMatches &&
+            (await dateMatches(second)) &&
+            firstText !== secondText &&
+            firstBox !== null &&
+            secondBox !== null &&
+            (Math.abs(firstBox.x - secondBox.x) > 1 || Math.abs(firstBox.y - secondBox.y) > 1),
+          JSON.stringify({ sameNode, firstText, secondText, firstBox, secondBox }),
+        )
+        await handle.dispose()
+        const usage = await api('/api/usage')
+        const dates = new Set(
+          await cells.evaluateAll((nodes) => nodes.map((node) => node.dataset.date)),
+        )
+        const total = (usage.byDayModel ?? [])
+          .filter((row) => dates.has(row.date))
+          .reduce((sum, row) => sum + row.runs, 0)
+        const totalSettled = await page
+          .waitForFunction(
+            (expected) => {
+              const text = document.querySelector('[data-heatmap-total]')?.textContent?.trim() ?? ''
+              return (
+                /^(\d+) (runs|ejecuciones)$/.test(text) && Number.parseInt(text, 10) === expected
+              )
+            },
+            total,
+            { timeout: 5000 },
+          )
+          .then(
+            () => true,
+            () => false,
+          )
+        await step(
+          'heatmap total',
+          totalSettled && (await cells.count()) === 371,
+          `expected=${total}, actual=${await page.locator('[data-heatmap-total]').textContent()}, cells=${await cells.count()}`,
+        )
+        await shot('heatmap-usage')
+        await page.emulateMedia({ reducedMotion: 'reduce' })
+        try {
+          await page.getByRole('button', { name: 'General', exact: true }).click()
+          await page.getByRole('button', { name: 'Usage', exact: true }).click()
+          const opacities = await page
+            .locator('[data-heatmap-cell]')
+            .evaluateAll((nodes) => nodes.map((node) => getComputedStyle(node).opacity))
+          await step(
+            'heatmap reduced motion',
+            opacities.length === 371 && opacities.every((value) => value === '1'),
+            `cells=${opacities.length}, opacities=${[...new Set(opacities)].join(',')}`,
+          )
+          await shot('heatmap-reduced-motion')
+        } finally {
+          await page.emulateMedia({ reducedMotion: 'no-preference' })
+        }
+      } finally {
+        if (viewport) await page.setViewportSize(viewport)
+      }
+    }
   }
   // UI.26.2 — plantilla de página: cabecera de proyecto, pestañas, franja de cifras, cabecera del chat.
   const run = (command, args, cwd) => execFileSync(command, args, { cwd, stdio: 'ignore' })

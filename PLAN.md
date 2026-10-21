@@ -1384,8 +1384,18 @@ archivos fijados por `ui:fidelity:jsx` (`OrchestDevWorkspace`, `ShellStatusBar`,
   "Movimiento" abajo), separados de UI.26.6 para que la forma se cierre y verifique sola.
   GO de Carlos 2026-10-21, en este orden, un sub-ítem cada uno; solo movimiento con `motion` (sin color ni estructura
   nueva); `prefers-reduced-motion` = instantáneo; cada uno con gate en vivo (Playwright + captura).
-- [ ] **UI.26.6b.1 — 🧠 Heatmap de Usage con movimiento y a todo el ancho.** Celdas que entran en ola, tooltip que se
+- [x] **UI.26.6b.1 — 🧠 Heatmap de Usage con movimiento y a todo el ancho.** Celdas que entran en ola, tooltip que se
   desliza entre celdas, total que cuenta hasta el valor nuevo; el heatmap ocupa todo el ancho (hoy ~2/3, celdas fijas).
+  (cerrado 2026-10-21) Rejilla de 53 columnas `minmax(8px,1fr)`; un solo tooltip `motion` que se mueve entre celdas
+  (sin `title`); total con `animate()`. r2 (gate del cerebro): con reduced motion el heatmap quedaba vacío
+  (`useAnimationControls` → celdas declarativas) y las etiquetas de mes se desplazaban por parsear `YYYY-MM-DD` en UTC.
+  r3: `useReducedMotion` de `motion` no ve el cambio de la media query en vivo → `hooks/use-prefers-reduced-motion.ts`
+  (extraído de `ThreadMarkdown.tsx`, que ahora lo importa).
+  Ejecutado por: gpt-6-sol (rol `criterio-alt`, r1–r2), gpt-6-luna (rol `mecanico`, r3) · Spec: docs/specs/UI.26.6b.1.md
+  Evidencia (cerebro): typecheck raíz y app, lint, build; capturas `heatmap-usage` y `heatmap-reduced-motion` miradas.
+  Gate en vivo: navegador real (Playwright), `docs/done/evidence/UI.26.6b.1-live.json` (`shell-look` 31/31:
+  `heatmap fills width` 1102/1102 px, `heatmap tooltip slides` mismo nodo, `heatmap total`, `heatmap reduced motion`).
+  Límite: los datos del gate tienen 0 ejecuciones; las celdas con color no se ejercitaron en vivo.
 - [ ] **UI.26.6b.2 — 🧠 API keys con movimiento.** "Create key" se despliega en su formulario; la clave nueva entra
   deslizando; el secreto se muestra una sola vez.
 - [ ] **UI.26.6b.3 — 🧠 Buscador de Settings que crece a paleta.** Buscador → paleta (posición, tamaño y radio en un

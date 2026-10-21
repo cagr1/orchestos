@@ -1,0 +1,172 @@
+[
+  {
+    "flujo": "shell-look",
+    "pass": true,
+    "steps": [
+      {
+        "nombre": "chat: sidebar present",
+        "ok": true,
+        "detalle": "1 aside"
+      },
+      {
+        "nombre": "chat: sidebar rows flat",
+        "ok": true,
+        "detalle": "sin borde ni sombra"
+      },
+      {
+        "nombre": "chat: nav icons one tone",
+        "ok": true,
+        "detalle": "rgb(148, 163, 184)"
+      },
+      {
+        "nombre": "chat: no line between sidebar and panel",
+        "ok": true,
+        "detalle": "aside border-right=0 header border-bottom=0"
+      },
+      {
+        "nombre": "chat: panel lighter than chrome",
+        "ok": true,
+        "detalle": "panel=rgb(14, 19, 32) sidebar=rgb(8, 12, 20)"
+      },
+      {
+        "nombre": "chat: no palette classes in chrome",
+        "ok": true,
+        "detalle": "ninguna"
+      },
+      {
+        "nombre": "settings: sidebar present",
+        "ok": true,
+        "detalle": "1 aside"
+      },
+      {
+        "nombre": "settings: sidebar rows flat",
+        "ok": true,
+        "detalle": "sin borde ni sombra"
+      },
+      {
+        "nombre": "settings: nav icons one tone",
+        "ok": true,
+        "detalle": "rgb(148, 163, 184)"
+      },
+      {
+        "nombre": "settings: no line between sidebar and panel",
+        "ok": true,
+        "detalle": "aside border-right=0 header border-bottom=0"
+      },
+      {
+        "nombre": "settings: panel lighter than chrome",
+        "ok": true,
+        "detalle": "panel=rgb(14, 19, 32) sidebar=rgb(8, 12, 20)"
+      },
+      {
+        "nombre": "settings: no palette classes in chrome",
+        "ok": true,
+        "detalle": "ninguna"
+      },
+      {
+        "nombre": "settings health no palette",
+        "ok": true,
+        "detalle": "ninguna"
+      },
+      {
+        "nombre": "settings api no palette",
+        "ok": true,
+        "detalle": "ninguna"
+      },
+      {
+        "nombre": "settings model routing no palette",
+        "ok": true,
+        "detalle": "ninguna"
+      },
+      {
+        "nombre": "settings fills width",
+        "ok": true,
+        "detalle": "model routing: contenido 1136 px de 1184 px"
+      },
+      {
+        "nombre": "settings usage no palette",
+        "ok": true,
+        "detalle": "ninguna"
+      },
+      {
+        "nombre": "settings fills width",
+        "ok": true,
+        "detalle": "usage: contenido 1136 px de 1184 px"
+      },
+      {
+        "nombre": "heatmap fills width",
+        "ok": true,
+        "detalle": "{\"grid\":1102,\"inner\":1102}"
+      },
+      {
+        "nombre": "heatmap tooltip slides",
+        "ok": true,
+        "detalle": "{\"sameNode\":true,\"firstText\":\"No activity on Nov 6, 2025\",\"secondText\":\"No activity on Oct 1, 2026\",\"firstBox\":{\"x\":359.546875,\"y\":302.671875,\"width\":156.375,\"height\":25.390625},\"secondBox\":{\"x\":1242.625,\"y\":302.671875,\"width\":152.140625,\"height\":25.390625}}"
+      },
+      {
+        "nombre": "heatmap total",
+        "ok": true,
+        "detalle": "expected=0, actual=0 runs, cells=371"
+      },
+      {
+        "nombre": "heatmap reduced motion",
+        "ok": true,
+        "detalle": "cells=371, opacities=1"
+      },
+      {
+        "nombre": "settings danger zone no palette",
+        "ok": true,
+        "detalle": "ninguna"
+      },
+      {
+        "nombre": "settings language no palette",
+        "ok": true,
+        "detalle": "ninguna"
+      },
+      {
+        "nombre": "project header flat",
+        "ok": true,
+        "detalle": "{\"border\":0,\"bg\":\"rgba(0, 0, 0, 0)\"}"
+      },
+      {
+        "nombre": "project tabs flat",
+        "ok": true,
+        "detalle": "8 pestañas, 28 px"
+      },
+      {
+        "nombre": "runs stat strip",
+        "ok": true,
+        "detalle": "4 celdas; paleta: ninguna"
+      },
+      {
+        "nombre": "chat header no band",
+        "ok": true,
+        "detalle": "{\"border\":0,\"bg\":\"rgba(0, 0, 0, 0)\"}"
+      },
+      {
+        "nombre": "composer no top line (Dev)",
+        "ok": true,
+        "detalle": "0px"
+      },
+      {
+        "nombre": "inspector line aligned",
+        "ok": true,
+        "detalle": "{\"inspectorBottom\":84,\"devHeaderBottom\":84}"
+      },
+      {
+        "nombre": "composer no top line (Chat)",
+        "ok": true,
+        "detalle": "0px"
+      }
+    ],
+    "notes": [],
+    "errores": [],
+    "capturas": [
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-2768/shell-look/shell-chat.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-2768/shell-look/shell-settings.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-2768/shell-look/heatmap-usage.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-2768/shell-look/heatmap-reduced-motion.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-2768/shell-look/shell-project.png"
+    ]
+  }
+]
