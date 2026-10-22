@@ -9,7 +9,7 @@ import { execFile, execFileSync } from 'node:child_process'
  * nada — un aviso que siempre aparece es el mismo mal que este hook cura.
  * Nunca bloquea la sesión: sale 0 siempre, silencio ante cualquier error.
  */
-import { existsSync, readFileSync, readdirSync } from 'node:fs'
+import { existsSync, readdirSync, readFileSync } from 'node:fs'
 import { homedir } from 'node:os'
 import { basename, dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -174,7 +174,12 @@ function checkStartupWeight(findings) {
     const parts = breakdown.map(([label, tokens]) => `${label}=${Math.round(tokens)}`).join(', ')
     findings.push(`arranque pesado: ${Math.round(total)} tokens est. (${parts})`)
     if (skills.length > 0) {
-      findings.push(`skills de cuenta: ${skills.slice(0, 15).map((skill) => skill.name).join(', ')}`)
+      findings.push(
+        `skills de cuenta: ${skills
+          .slice(0, 15)
+          .map((skill) => skill.name)
+          .join(', ')}`,
+      )
     }
   }
 }
