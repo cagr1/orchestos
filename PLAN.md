@@ -1448,6 +1448,14 @@ archivos fijados por `ui:fidelity:jsx` (`OrchestDevWorkspace`, `ShellStatusBar`,
   Fuera de Usage siguen con día UTC, sin tocar:
   `spec-archive.test.ts`, `check-sources-drift.ts`, `adversarial-review.ts`. Spec: docs/specs/UI.26.6b.4.md (borrado)
   Ejecutado por: GPT (criterio-alt) · QA: GPT (qa), sin hallazgos en este ítem.
+- [x] **UI.27.2 — 🔍 Anillo de contexto solo con la ventana, legible; header sin logo; OpenRouter sin logo ajeno.**
+  (abierto 2026-10-21, Carlos: "solo debe darme el window context", "¿por qué sale 100K?") El popover decía
+  `14661 de 1000000 tokens · claude (medido)`: número crudo que se lee como 100K y texto que el usuario ya sabe.
+  `api` resolvía a `chatgpt.svg`. OpenCode fuera del chat: decisión vigente (2026-09-15/28), no se toca.
+  (cerrado 2026-10-21) Ejecutado por: gpt-6.1-sol (rol `criterio-alt`) · Spec: docs/specs/UI.27.2.md (borrado).
+  Revisión: Opus (diff + navegador en vivo: popover `15K / 1M · 1%`, sin `title`; OpenRouter con icono genérico).
+  Gate en vivo: navegador real (Playwright), `docs/done/evidence/UI.27.2-live.json` — `shell-look` 58/58,
+  `chat-streaming` 27/27.
 - [x] **UI.27.1 — 🔍 Modelos `gpt-*` muestran el logo real de ChatGPT.** (abierto 2026-10-21, Carlos: "eso no es el
   icono de codex") La fila de Dev pasa el modelo (`gpt-6.1-sol`) y `ProviderLogos.tsx:36-43` solo elige `chatgpt.svg`
   con `codex|chatgpt|openai|api`: cae al SVG dibujado a mano. (cerrado 2026-10-21) `gpt` resuelve a `chatgpt.svg`;

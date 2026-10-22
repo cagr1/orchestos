@@ -661,6 +661,15 @@
       "closedDate": null
     },
     {
+      "id": "UI.27.2",
+      "sprint": "Fase 2 — Producto mínimo para entrega",
+      "block": "UI.26 — La forma de Gr8r en toda la app (ABIERTO 2026-10-13, GO de Carlos 2026-10-13)",
+      "delegation": "🔍",
+      "title": "Anillo de contexto solo con la ventana, legible; header sin logo; OpenRouter sin logo ajeno",
+      "status": "done",
+      "closedDate": null
+    },
+    {
       "id": "UI.27.1",
       "sprint": "Fase 2 — Producto mínimo para entrega",
       "block": "UI.26 — La forma de Gr8r en toda la app (ABIERTO 2026-10-13, GO de Carlos 2026-10-13)",

@@ -18,7 +18,6 @@ import { useStickToBottom } from '../../hooks/useStickToBottom'
 import type { ChatAttachment, ChatThread, SessionStatus, TaskItem } from '../../types/orchestos'
 import { AgentComposer, type CliId, cliDisplayName } from '../common/AgentComposer'
 import { ContextRing } from '../common/ContextRing'
-import { ProviderLogo } from '../common/ProviderLogos'
 import {
   type EntranceMode,
   enterSession,
@@ -321,30 +320,16 @@ export const OrchestChatView: React.FC<OrchestChatViewProps> = ({
   return (
     <MotionConfig reducedMotion="user">
       <div className="flex-1 flex flex-col h-full text-app overflow-hidden relative select-none">
-        {/* Compact session identity and context */}
-        <header
-          data-chat-header
-          className="h-8 px-3.5 flex items-center justify-between flex-shrink-0 z-20"
-        >
-          {/* CLI product logo (tooltip = name) */}
-          <div className="flex items-center gap-2.5 min-w-0">
-            <div title={cliName} className="flex-shrink-0 cursor-default">
-              <ProviderLogo id={cliId} size={16} className="w-4 h-4" />
-            </div>
-          </div>
-
-          {/* Context is rendered only when the selected session has real token telemetry. */}
-          <div className="flex items-center flex-shrink-0">
+        {/* Context telemetry floats above the thread without reserving header space. */}
+        {sessionContext?.pct != null && !Number.isNaN(sessionContext.pct) && (
+          <header data-chat-header className="absolute right-3.5 top-1.5 flex items-center z-20">
             <ContextRing
-              percent={sessionContext?.pct ?? undefined}
-              model={sessionContext?.model ?? undefined}
-              usedTokens={sessionContext?.used == null ? undefined : `${sessionContext.used}`}
-              maxTokens={sessionContext?.window == null ? undefined : `${sessionContext.window}`}
-              source={sessionContext?.source}
-              engine={sessionContext?.engine}
+              percent={sessionContext.pct}
+              usedTokens={sessionContext.used ?? undefined}
+              maxTokens={sessionContext.window ?? undefined}
             />
-          </div>
-        </header>
+          </header>
+        )}
 
         {/* Scrollable messages container */}
         <div ref={scrollContainerRef} className="flex-1 overflow-y-auto p-4 md:p-6 space-y-6">

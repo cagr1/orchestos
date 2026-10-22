@@ -665,15 +665,12 @@ export default async function shellLook({
     `${strip.cells} celdas; paleta: ${strip.hits.join(' || ') || 'ninguna'}`,
   )
   await page.reload({ waitUntil: 'domcontentloaded' })
-  await page.locator('[data-chat-header]').first().waitFor({ state: 'visible' })
-  const chatHeader = await page.evaluate(() => {
-    const cs = getComputedStyle(document.querySelector('[data-chat-header]'))
-    return { border: Number.parseFloat(cs.borderBottomWidth) || 0, bg: cs.backgroundColor }
-  })
+  await page.locator('[data-composer-region]').waitFor({ state: 'visible' })
+  await settle()
   await step(
-    'chat header no band',
-    chatHeader.border === 0 && chatHeader.bg === 'rgba(0, 0, 0, 0)',
-    JSON.stringify(chatHeader),
+    'chat without telemetry reserves no header space',
+    (await page.locator('[data-chat-header]').count()) === 0,
+    'no header when context is unavailable',
   )
 
   await page.getByRole('button', { name: 'Dev', exact: true }).click()
@@ -814,16 +811,6 @@ export default async function shellLook({
     chatRows.length > 0 && chatRows.every((row) => row.logo && row.messageSquare === 0),
     JSON.stringify(chatRows),
   )
-  const headerTitle = await page.locator('[data-chat-header]').evaluate((header) => ({
-    title: header.querySelector('.truncate')?.textContent ?? null,
-    height: header.getBoundingClientRect().height,
-    logo: header.querySelector('[title] [aria-hidden="true"]') !== null,
-  }))
-  await step(
-    'Chat header has logo without thread title',
-    headerTitle.title === null && headerTitle.logo && headerTitle.height <= 32,
-    JSON.stringify(headerTitle),
-  )
   await step(
     'Chat permissions strip removed',
     (await page.locator('[data-permissions-strip]').count()) === 0 &&
@@ -831,6 +818,85 @@ export default async function shellLook({
     'no permissions text or strip below the thread',
   )
   await shot('chat-unified-body')
+
+  await page.getByRole('button', { name: 'New chat', exact: true }).click()
+  const chatDialog = page.getByRole('dialog')
+  const openRouterOption = chatDialog.getByRole('button', { name: 'OpenRouter API', exact: true })
+  await openRouterOption.waitFor({ state: 'visible' })
+  const openRouterLogo = await openRouterOption.evaluate((button) => ({
+    generic: button.querySelector('svg rect') !== null,
+    chatgpt: [...button.querySelectorAll('*')].some((el) =>
+      /chatgpt[^/]*\.svg/.test(`${el.getAttribute('src') ?? ''} ${getComputedStyle(el).maskImage}`),
+    ),
+  }))
+  await step(
+    'OpenRouter option uses generic logo without ChatGPT asset',
+    openRouterLogo.generic && !openRouterLogo.chatgpt,
+    JSON.stringify(openRouterLogo),
+  )
+  await chatDialog.getByRole('button', { name: basename(projectRoot), exact: true }).click()
+  await chatDialog.getByRole('button', { name: /Codex/ }).first().click()
+  const contextSessionResponse = page.waitForResponse(
+    (response) =>
+      response.request().method() === 'POST' &&
+      new URL(response.url()).pathname === '/api/chat/sessions',
+  )
+  await chatDialog.getByRole('button', { name: 'Start Chat', exact: true }).click()
+  const contextSession = await (await contextSessionResponse).json()
+  execFileSync(
+    'bun',
+    [
+      '-e',
+      `import { Database } from 'bun:sqlite'
+       const db = new Database(process.argv[1])
+       try {
+         const now = new Date().toISOString()
+         const runId = crypto.randomUUID()
+         db.run('INSERT INTO runs (id, project_id, prompt, task_class, model, provider, status, context_used_tokens, context_window_tokens, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+           [runId, process.argv[3], 'UI.27.2 context fixture', 'chat', 'gpt-6-luna', 'codex', 'done', 14661, 1000000, now])
+         db.run('INSERT INTO chat_turns (id, session_id, project_id, request_key, input_fingerprint, status, run_id, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
+           [crypto.randomUUID(), process.argv[2], process.argv[3], runId, runId, 'completed', runId, now, now])
+       } finally { db.close() }`,
+      databasePath,
+      contextSession.id,
+      project.id,
+    ],
+    { stdio: 'pipe' },
+  )
+  const context = await api(`/api/chat/sessions/${contextSession.id}/context`, {
+    headers: configHeaders,
+  })
+  await page.reload({ waitUntil: 'domcontentloaded' })
+  await page.locator('[data-dev-header]').waitFor({ state: 'visible' })
+  await page.getByRole('button', { name: 'Chat', exact: true }).click()
+  await page.locator('aside [role="button"]').filter({ hasText: 'Chat with Codex' }).click()
+  const ring = page.locator('[data-chat-header] [aria-label^="Context window usage:"]')
+  await ring.waitFor({ state: 'visible' })
+  await ring.focus()
+  const tooltip = page.locator('[data-chat-header] [role="tooltip"]')
+  await tooltip.waitFor({ state: 'visible' })
+  const tooltipText = await tooltip.innerText()
+  await step(
+    'context popover shows only compact window and percent',
+    context.data?.used === 14661 &&
+      context.data?.window === 1000000 &&
+      tooltipText.replace(/\s+/g, ' ').trim() === '15K / 1M 1%' &&
+      !/gpt|claude|codex|medido|estimado/i.test(tooltipText) &&
+      (await ring.getAttribute('title')) === null,
+    JSON.stringify({ context: context.data, tooltipText }),
+  )
+  const chatHeader = await page.locator('[data-chat-header]').evaluate((header) => ({
+    position: getComputedStyle(header).position,
+    images: header.querySelectorAll('img, [style*="mask-image"], svg rect').length,
+    gauges: header.querySelectorAll('svg circle').length,
+  }))
+  await step(
+    'Chat header contains only the context ring without provider logo',
+    chatHeader.position === 'absolute' && chatHeader.images === 0 && chatHeader.gauges === 2,
+    JSON.stringify(chatHeader),
+  )
+  await shot('chat-context-window')
+  await page.keyboard.press('Tab')
 
   const commandPalette = page.getByRole('textbox', {
     name: 'Type a command, search screen, or execute task...',

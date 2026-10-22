@@ -3,21 +3,26 @@ import { useState } from 'react'
 
 export interface ContextRingProps {
   percent?: number | null // e.g. 64 or 23; null/undefined means no data -> no ring
+  // Legacy metadata accepted for the fidelity-locked Dev caller; never displayed.
   model?: string
-  usedTokens?: string // e.g. "128k"
-  maxTokens?: string // e.g. "200k"
+  usedTokens?: number | string // raw token count; Dev passes integer strings
+  maxTokens?: number | string // raw context window size
   source?: 'measured' | 'estimated' | null
   engine?: string | null // CLI que corrió el run
   className?: string
 }
 
+function compactTokens(value: number | string): string {
+  const tokens = Number(value)
+  if (tokens < 1000) return `${tokens}`
+  if (tokens < 1_000_000) return `${Math.round(tokens / 1000)}K`
+  return `${Number((tokens / 1_000_000).toFixed(1))}M`
+}
+
 export const ContextRing: React.FC<ContextRingProps> = ({
   percent,
-  model,
   usedTokens,
   maxTokens,
-  source,
-  engine,
   className = '',
 }) => {
   const [showPopover, setShowPopover] = useState(false)
@@ -51,7 +56,6 @@ export const ContextRing: React.FC<ContextRingProps> = ({
       onBlur={() => setShowPopover(false)}
       tabIndex={0}
       aria-label={`Context window usage: ${clamped}%`}
-      title={`${model ?? 'Context window'} · ${Math.round(clamped)}%`}
     >
       {/* 18px circular gauge */}
       <svg
@@ -95,19 +99,13 @@ export const ContextRing: React.FC<ContextRingProps> = ({
       {showPopover && (
         <div
           role="tooltip"
-          className="absolute right-0 top-full mt-2 w-56 p-2.5 rounded-control bg-app-surface border border-app shadow-xl text-app z-50 animate-in fade-in zoom-in-95 duration-100"
+          className="absolute right-0 top-full mt-2 w-max max-w-56 p-2.5 rounded-control bg-app-surface border border-app shadow-xl text-app z-50 animate-in fade-in zoom-in-95 duration-100"
         >
-          <div className="flex items-center justify-between text-xs font-semibold mb-1">
-            <span className="truncate">{model}</span>
-            <span className="font-mono text-[11px]">{Math.round(clamped)}%</span>
-          </div>
-
-          <div className="text-[11px] font-mono text-app-muted leading-relaxed">
-            {usedTokens && maxTokens
-              ? `${usedTokens} de ${maxTokens} tokens${engine ? ` · ${engine}` : ''}${
-                  source ? ` (${source === 'measured' ? 'medido' : 'estimado'})` : ''
-                }`
-              : 'Context usage'}
+          <div className="flex items-center justify-between gap-3 text-xs font-mono">
+            {usedTokens != null && maxTokens != null && (
+              <span>{`${compactTokens(usedTokens)} / ${compactTokens(maxTokens)}`}</span>
+            )}
+            <span>{Math.round(clamped)}%</span>
           </div>
 
           {clamped >= 80 && (

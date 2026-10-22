@@ -39,8 +39,7 @@ export const ProviderLogo: React.FC<ProviderLogoProps> = ({
       : norm.includes('codex') ||
           norm.includes('chatgpt') ||
           norm.includes('openai') ||
-          norm.includes('gpt') ||
-          norm === 'api'
+          norm.includes('gpt')
         ? chatgptAsset
         : norm.includes('deepseek')
           ? deepseekAsset
