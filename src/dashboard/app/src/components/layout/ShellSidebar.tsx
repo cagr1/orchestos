@@ -2,6 +2,7 @@ import {
   Check,
   ChevronDown,
   ChevronRight,
+  CircleAlert,
   Code2,
   Ellipsis,
   FolderClosed,
@@ -85,7 +86,7 @@ export const ShellSidebar: React.FC<ShellSidebarProps> = ({
   return (
     <aside
       data-ff
-      className="w-64 flex-shrink-0 bg-app-bg flex flex-col justify-between select-none text-app z-10"
+      className="w-64 flex-shrink-0 border-r border-app bg-app-bg flex flex-col justify-between select-none text-app z-10"
     >
       {/* Top Segmented Controls: [ Chat ] vs [ </> Dev ] */}
       <div className="p-3">
@@ -172,11 +173,7 @@ export const ShellSidebar: React.FC<ShellSidebarProps> = ({
                     }`}
                   >
                     <div className="flex items-center gap-2 min-w-0 pr-2">
-                      <MessageSquare
-                        className={`w-4 h-4 flex-shrink-0 ${
-                          isActive ? 'text-app' : 'text-app-muted'
-                        }`}
-                      />
+                      <ProviderLogo id={thread.agent} className="w-4 h-4 flex-shrink-0" />
                       <span className="truncate" title={thread.title}>
                         {thread.title}
                       </span>
@@ -370,30 +367,29 @@ export const ShellSidebar: React.FC<ShellSidebarProps> = ({
                               className="flex items-center gap-2 min-w-0 flex-1 text-left"
                               title={ag.name}
                             >
-                              {/* Left icon: Loader while working, green check when done, or CLI brand icon */}
-                              {ag.status === 'waiting_approval' ? (
-                                <span
-                                  className="text-xs text-app-warning"
-                                  title="Waiting for your approval"
-                                >
-                                  Approval
-                                </span>
-                              ) : isWorking ? (
-                                <Loader2 className="w-4 h-4 text-app-muted animate-spin flex-shrink-0" />
-                              ) : ag.status === 'completed' ? (
-                                <Check className="w-4 h-4 text-app-muted flex-shrink-0" />
-                              ) : (
-                                <ProviderLogo
-                                  id={ag.model || 'claude'}
-                                  className="w-4 h-4 flex-shrink-0"
-                                />
-                              )}
+                              <ProviderLogo
+                                id={ag.model || 'claude'}
+                                className="w-4 h-4 flex-shrink-0"
+                              />
 
                               <span className="truncate">{ag.name}</span>
                             </button>
 
                             {/* Relative time & Close button */}
                             <div className="flex items-center gap-1 ml-1 flex-shrink-0">
+                              {ag.status === 'waiting_approval' ? (
+                                <CircleAlert
+                                  className="w-3 h-3 text-app-warning"
+                                  aria-label="Waiting for your approval"
+                                />
+                              ) : isWorking ? (
+                                <Loader2
+                                  className="w-3 h-3 text-app-muted animate-spin"
+                                  aria-label="Working"
+                                />
+                              ) : ag.status === 'completed' ? (
+                                <Check className="w-3 h-3 text-app-muted" aria-label="Completed" />
+                              ) : null}
                               <span className="text-[11px] tabular-nums text-app-muted group-hover:hidden">
                                 {ag.duration}
                               </span>

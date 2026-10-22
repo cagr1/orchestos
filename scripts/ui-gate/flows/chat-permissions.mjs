@@ -54,12 +54,16 @@ export default async function chatPermissions({ page, api, step, shot, visible, 
   await page.getByRole('button', { name: 'Start Chat', exact: true }).click()
 
   // 1 — Yolo por defecto
-  const strip = page.locator('[data-permissions-strip]')
-  const yoloText = (await visible(strip, 30_000)) ? ((await strip.innerText()) ?? '') : ''
+  const composerRegion = page.locator('[data-composer-region]')
+  await visible(composerRegion, 30_000)
+  await page.waitForFunction(
+    () => document.querySelector('[data-composer-region]')?.dataset.permissionMode === 'yolo',
+  )
+  const yoloMode = await composerRegion.getAttribute('data-permission-mode')
   await step(
-    'strip visible in yolo with Auto-run',
-    (await strip.getAttribute('data-permission-mode')) === 'yolo' && /Auto-run/.test(yoloText),
-    yoloText,
+    'composer reports yolo without permissions strip',
+    yoloMode === 'yolo' && (await page.locator('[data-permissions-strip]').count()) === 0,
+    `mode=${yoloMode}`,
   )
   await shot('1-yolo')
 
@@ -86,12 +90,15 @@ export default async function chatPermissions({ page, api, step, shot, visible, 
   )
   await page.getByRole('button', { name: /Back to app/ }).click()
   await page.getByRole('button', { name: 'Chat', exact: true }).click()
-  const manualText = (await visible(strip, 30_000)) ? ((await strip.innerText()) ?? '') : ''
+  await visible(composerRegion, 30_000)
+  await page.waitForFunction(
+    () => document.querySelector('[data-composer-region]')?.dataset.permissionMode === 'manual',
+  )
+  const manualMode = await composerRegion.getAttribute('data-permission-mode')
   await step(
-    'strip shows manual with Manual approval',
-    (await strip.getAttribute('data-permission-mode')) === 'manual' &&
-      /Manual approval/.test(manualText),
-    manualText,
+    'composer reports manual without permissions strip',
+    manualMode === 'manual' && (await page.locator('[data-permissions-strip]').count()) === 0,
+    `mode=${manualMode}`,
   )
   await shot('2-manual')
 
