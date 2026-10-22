@@ -14,6 +14,22 @@ Prevalece sobre el roster y sobre `~/.claude/CLAUDE.md` § Selección de modelos
 - Astra: no (tampoco hoy). Sin subagentes de Claude (`Agent`/`Explore`).
 - No se edita `roster.conf`: el cambio es temporal y se aplica eligiendo el rol al delegar.
 
+## Cierre 2026-10-21 noche (Carlos se fue a dormir; leer primero)
+- Subido `263b3bdf` con `--no-verify` (pedido de Carlos: Codex y Sol sin cupo). Corrido a mano en el árbol fusionado:
+  typecheck, lint, `test:coverage` 1925/0, `shell-look` 58/58, `composer-picker` 5/5; CI verde. **Sin correr**: los
+  gates en vivo de chat con Codex (`chat-*`, `codex-live`, `tasks`…) y el paso "usage refreshes after a real turn" de
+  `usage-bar` (falla por cupo de Codex). Primer push de mañana con pre-push completo = esa verificación.
+- Cerrados hoy (3.er y 4.º lote): CI.11 fase 1, LIMP.2, LIMP.3, UI.26.6b.4, WT.1, CUOTA.1, MOD.1; merge de UI.27/.1/.2.
+- `orchestos-ui27` (sesión Desktop `8b65b9f2`) tiene UI.27.3/UI.27.3b staged SIN commitear y copias sin commitear de
+  `scripts/plan-*.ts` + `plan-worktree-home.ts`: compararlas con WT.1 de master antes de commitear allí; si son la misma
+  idea, quedarse con master. Su rama ya está en master: hacer `git rebase origin/master` antes de seguir.
+- `~/.claude/settings.json` `statusLine` restaurado a mano (tee → Orca), respaldo `.bak.20261021-statusline`. Si Orca
+  lo vuelve a pisar, ahora lo avisan la barra y el startup-guard (CUOTA.1).
+- Trampas nuevas: el sandbox de `delegate` no tiene red (el push lo hace el cerebro); `plan:reconcile` no re-cierra un
+  ítem ya `[x]` editado antes de commitear (reabrir `[ ]`, reconcile, `[x]`, reconcile); `agent:live-gate` solo cuenta
+  la línea "Gate en vivo: navegador real (Playwright), `docs/done/evidence/…`" si cambia en el mismo commit, y la
+  procedencia exige `Ejecutado por: … · Spec: docs/specs/<ID>.md` al final de línea.
+
 ## Orden
 1. Cerrados 2026-10-20 (subidos, CI verde en `b5337022`): CI.27 `7fb8396a`, AT.17 `38550b9e`, AT.18 `14490f85`
    (+ vault `49b3c5b`, sin push: no autorizado; el vault tiene cambios ajenos en `wiki/`/`targets/`), ERP.6.2 `b5337022`.
