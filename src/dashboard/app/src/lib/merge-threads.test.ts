@@ -31,6 +31,19 @@ describe('mergeLoadedThreads', () => {
     expect(merged[0]).toBe(local)
   })
 
+  test('una lectura iniciada antes del envío no pisa el hilo local con el turno ya recargado', () => {
+    const sent = { ...thread('a', ['1', '2']), messagesLoaded: true }
+    sent.messages[0] = { ...sent.messages[0], attachments: [{ id: 'f', name: 'token.txt' }] } as never
+    const stale = { ...thread('a'), messagesLoaded: true }
+    expect(mergeLoadedThreads([sent], [stale], null)[0]).toBe(sent)
+  })
+
+  test('una lectura con más mensajes que el local sí lo reemplaza', () => {
+    const local = thread('a', ['1'])
+    const fresh = thread('a', ['1', '2'])
+    expect(mergeLoadedThreads([local], [fresh], null)[0]).toBe(fresh)
+  })
+
   test('un hilo local de otro proyecto no pasa a la lista del proyecto leído', () => {
     const fromA = { ...thread('a-chat'), projectId: 'A' }
     const createdInB = { ...thread('b-new'), projectId: 'B' }

@@ -4,6 +4,8 @@ import type { ChatThread } from '../types/orchestos'
  * Una lectura de sesiones puede resolver después de que el usuario creó o eligió un hilo
  * (Dev → Chat → New chat). Lo cargado no pisa lo creado mientras tanto: los hilos locales
  * ausentes de la lectura y del mismo proyecto se conservan y el hilo local con mensajes pendientes gana.
+ * También gana el local que ya tiene mensajes que la lectura no trae (la lectura empezó antes del envío
+ * y resuelve después del turno: pisarlo borraría el mensaje enviado y sus adjuntos).
  */
 export function mergeLoadedThreads(
   current: ChatThread[],
@@ -17,7 +19,12 @@ export function mergeLoadedThreads(
   )
   const merged = loaded.map((thread) => {
     const local = currentById.get(thread.id)
-    return local?.messages.some((message) => message.id.startsWith('pending_')) ? local : thread
+    if (!local) return thread
+    const loadedMessageIds = new Set(thread.messages.map((message) => message.id))
+    const newerLocally = local.messages.some(
+      (message) => message.id.startsWith('pending_') || !loadedMessageIds.has(message.id),
+    )
+    return newerLocally ? local : thread
   })
   return [...localOnly, ...merged]
 }

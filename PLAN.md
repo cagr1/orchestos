@@ -749,6 +749,23 @@ Cerrada. Todos sus ítems están archivados en `docs/done/` (ver "Cerrados — e
   grafo real, ~25 ms frente a minutos de LLM): límite del test a 20 s con la medición en un comentario; producto sin
   tocar. Evidencia: test aislado 3/3 (4,97–5,03 s); `test:coverage` 2/2 verde (1926/0).
   Ejecutado por: claude sonnet (criterio) · Spec: docs/specs/CI.33.md
+- [x] **CI.34 — 🔍 `chat-attachments` intermitente tras CI.32.b.** (abierto y cerrado 2026-10-22) Pasó 14/14 en la batería de
+  la mañana; tras `ec92a168` falló 2 de 3 (`sent message keeps 2 attachments … after the turn: {"names":[]}` y
+  `answer contains the token … answer=` vacío). Sospecha: la fusión de hilos de CI.32.b (`lib/merge-threads.ts`)
+  reemplaza el mensaje local con adjuntos tras el turno. Primero el experimento HEAD vs `App.tsx` de `143fbce2`.
+  Spec: `docs/specs/CI.34.md`. Mismo día, sin ítem propio: `chat-streaming` falló 3 de 4 corridas en `one assistant
+  bubble matches persisted response` (pre-push de `143fbce2`, batería `CI.32-close-ui-gate-full`, `CI.34-rerun-2`);
+  pasa al reintento. Ya fallaba antes de CI.32.b (pre-push de `143fbce2`): no lo trajo este lote.
+  Experimento: HEAD 3 FAIL de 7, `App.tsx` de `143fbce2` 5 PASS de 5. Causa (inferida, no reproducida con
+  instrumentación en 12 corridas): `mergeLoadedThreads` solo conservaba el hilo local con mensajes `pending_`; una
+  lectura de sesiones iniciada antes del envío resolvía después del turno y reemplazaba el hilo por su versión vieja,
+  sin el mensaje enviado ni sus adjuntos. CI.32.b adelantó el envío y agrandó esa ventana. Arreglo: el hilo local gana
+  también si tiene mensajes que la lectura no trae (`merge-threads.ts:22-26`). Evidencia: `chat-attachments` 6/6
+  seguidas; `merge-threads.test.ts` 8/0 (el caso nuevo falla con el código anterior); `test:coverage` 1940/0; lint
+  sin errores. `chat-streaming` falló 1 vez en la batería y pasó 3/3 solo (el intermitente de arriba).
+  Gate en vivo: navegador real (Playwright), `docs/done/evidence/CI.34-live.json` (`chat-attachments`,
+  `chat-followup-task`, `chat-task-undo`, `project-tabs`, `project-isolation`).
+  Ejecutado por: claude sonnet (criterio) · Spec: docs/specs/CI.34.md
 - [x] **CI.31 — ⚡ El shard `executors` de Mutation Shards pasa el límite de 3 h.** (abierto y cerrado 2026-10-21) Run
   `39566168502` cancelado a 3h0m: 3352 mutantes en 15 archivos con `concurrency: 1` (el 2026-10-20 eran 2627 en 11 y
   tardó 2h37; ERP.7.1a/d1/d2 sumaron `*-approval.ts` y `opencode-server.ts`). Arreglo: partir el shard en dos

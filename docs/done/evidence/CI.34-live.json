@@ -1,0 +1,669 @@
+[
+  {
+    "flujo": "chat-attachments",
+    "pass": true,
+    "steps": [
+      {
+        "nombre": "temporary project visible",
+        "ok": true,
+        "detalle": "orchestos-ui-chat-attachments-t3q2Fo"
+      },
+      {
+        "nombre": "Codex agent available",
+        "ok": true,
+        "detalle": "Codex option"
+      },
+      {
+        "nombre": "Dev: both attachments reach ready",
+        "ok": true,
+        "detalle": "[\"ready\",\"ready\"]"
+      },
+      {
+        "nombre": "Dev: Send is enabled with ready attachments",
+        "ok": true,
+        "detalle": "enabled"
+      },
+      {
+        "nombre": "Dev: 2 uploads observed",
+        "ok": true,
+        "detalle": "2 POST /api/chat/upload"
+      },
+      {
+        "nombre": "Dev: POST /api/chat carries 2 server fileIds",
+        "ok": true,
+        "detalle": "[\"ac0b1191-a741-4a0f-afc5-717da0c33799\",\"58641cb2-3e57-4748-abda-e2a97cfe450c\"]"
+      },
+      {
+        "nombre": "Dev: answer contains the token and the image word",
+        "ok": true,
+        "detalle": "token=ATT-64E4BA8A word=TURBINE COMPASS; answer=att-64e4ba8a — turbine compass"
+      },
+      {
+        "nombre": "Dev: sent message keeps 2 attachments, image thumbnail loaded, after the turn",
+        "ok": true,
+        "detalle": "{\"names\":[\"token.txt\",\"word.png\"],\"imageLoaded\":true}"
+      },
+      {
+        "nombre": "Chat: both attachments reach ready",
+        "ok": true,
+        "detalle": "[\"ready\",\"ready\"]"
+      },
+      {
+        "nombre": "Chat: Send is enabled with ready attachments",
+        "ok": true,
+        "detalle": "enabled"
+      },
+      {
+        "nombre": "Chat: 2 uploads observed",
+        "ok": true,
+        "detalle": "2 POST /api/chat/upload"
+      },
+      {
+        "nombre": "Chat: POST /api/chat carries 2 server fileIds",
+        "ok": true,
+        "detalle": "[\"5410c32c-32dc-4fc5-82e4-591d5d51068b\",\"c615e30a-83a6-4017-980c-edda71807eb9\"]"
+      },
+      {
+        "nombre": "Chat: answer contains the token and the image word",
+        "ok": true,
+        "detalle": "token=ATT-B7F1C5DF word=COMPASS MARBLE; answer=att-b7f1c5df — compass marble"
+      },
+      {
+        "nombre": "Chat: sent message keeps 2 attachments, image thumbnail loaded, after the turn",
+        "ok": true,
+        "detalle": "{\"names\":[\"token.txt\",\"word.png\"],\"imageLoaded\":true}"
+      }
+    ],
+    "notes": [],
+    "errores": [],
+    "capturas": [
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-73784/chat-attachments/chat-attachments-composer-Dev.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-73784/chat-attachments/chat-attachments-thread-Dev.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-73784/chat-attachments/chat-attachments-composer-Chat.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-73784/chat-attachments/chat-attachments-thread-Chat.png"
+    ]
+  },
+  {
+    "flujo": "chat-followup-task",
+    "pass": true,
+    "steps": [
+      {
+        "nombre": "temporary project visible",
+        "ok": true,
+        "detalle": "project in Dev sidebar"
+      },
+      {
+        "nombre": "select Codex for new chat",
+        "ok": true,
+        "detalle": "agent option visible"
+      },
+      {
+        "nombre": "composer visible",
+        "ok": true,
+        "detalle": "chat composer visible after Start Chat"
+      },
+      {
+        "nombre": "message 1 plans without creating the task",
+        "ok": true,
+        "detalle": "{\"reply\":\"Crearía notas/seguimiento.md con una sola línea: hola. No crearé la tarea ahora.\",\"newTasks\":[]}"
+      },
+      {
+        "nombre": "message 2 creates the task from the thread",
+        "ok": true,
+        "detalle": "{\"reply\":\"Voy a crear una tarea para añadir notas/seguimiento.md con el contenido exacto hola.\\n\\nLa tarea para crear notas/seguimiento.md con una sola línea (hola) fue enviada para aprobación.\\n\\n▶ Started task .\"}"
+      },
+      {
+        "nombre": "task exists in tasks.yaml",
+        "ok": true,
+        "detalle": "task chat-bbade8ad-cd29-452f-97d3-0996e42c6d7f"
+      },
+      {
+        "nombre": "task declares the thread file and class implement",
+        "ok": true,
+        "detalle": "{\"output\":[\"notas/seguimiento.md\"],\"task_class\":\"implement\"}"
+      },
+      {
+        "nombre": "task finishes done and the file exists",
+        "ok": true,
+        "detalle": "{\"status\":\"done\",\"fileExists\":true}"
+      }
+    ],
+    "notes": [],
+    "errores": [],
+    "capturas": [
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-73784/chat-followup-task/followup-task-done.png"
+    ]
+  },
+  {
+    "flujo": "chat-task-undo",
+    "pass": true,
+    "steps": [
+      {
+        "nombre": "temporary project visible",
+        "ok": true,
+        "detalle": "project in Dev sidebar"
+      },
+      {
+        "nombre": "select Codex for new chat",
+        "ok": true,
+        "detalle": "agent option visible"
+      },
+      {
+        "nombre": "composer visible",
+        "ok": true,
+        "detalle": "chat composer visible after Start Chat"
+      },
+      {
+        "nombre": "message 1 plans without creating the task",
+        "ok": true,
+        "detalle": "{\"reply\":\"Cre\",\"newTasks\":[]}"
+      },
+      {
+        "nombre": "message 2 creates the task from the thread",
+        "ok": true,
+        "detalle": "{\"reply\":\"Voy a crear una tarea para añadir notas/undo-check.md con el contenido exacto hola en una sola línea.\\n\\nLa tarea fue propuesta para aprobación: crear notas/undo-check.md con una sola línea, hola.\\n\\n▶ Started task .\"}"
+      },
+      {
+        "nombre": "task exists in tasks.yaml",
+        "ok": true,
+        "detalle": "task chat-960e1ca1-739b-4ff2-a8f9-3cc5c5436f06"
+      },
+      {
+        "nombre": "task declares the thread file and class implement",
+        "ok": true,
+        "detalle": "{\"output\":[\"notas/undo-check.md\"],\"task_class\":\"implement\"}"
+      },
+      {
+        "nombre": "task finishes done and the file exists",
+        "ok": true,
+        "detalle": "{\"status\":\"done\",\"fileExists\":true}"
+      },
+      {
+        "nombre": "task card exposes diff summary",
+        "ok": true,
+        "detalle": "diff summary visible"
+      },
+      {
+        "nombre": "diff summary counts the added line",
+        "ok": true,
+        "detalle": "1 file +1 −0 · View diff"
+      },
+      {
+        "nombre": "diff shows created file",
+        "ok": true,
+        "detalle": "notas/undo-check.md"
+      },
+      {
+        "nombre": "undo button visible",
+        "ok": true,
+        "detalle": "committed run can be reverted"
+      },
+      {
+        "nombre": "undo completes and shows reverted sha",
+        "ok": true,
+        "detalle": "Undone · 09ecd1d"
+      },
+      {
+        "nombre": "file returned to prior state",
+        "ok": true,
+        "detalle": "{\"fileExistsAfterUndo\":false}"
+      },
+      {
+        "nombre": "revert commit subject is correct",
+        "ok": true,
+        "detalle": "orchestos(chat-960e1ca1-739b-4ff2-a8f9-3cc5c5436f06): deshacer"
+      },
+      {
+        "nombre": "REVERT_HEAD does not remain",
+        "ok": true,
+        "detalle": "{\"revertHeadExists\":false}"
+      }
+    ],
+    "notes": [],
+    "errores": [],
+    "capturas": [
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-73784/chat-task-undo/task-diff-closed.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-73784/chat-task-undo/task-diff-open.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-73784/chat-task-undo/undo-confirmation.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-73784/chat-task-undo/task-undone.png"
+    ]
+  },
+  {
+    "flujo": "project-tabs",
+    "pass": true,
+    "steps": [
+      {
+        "nombre": "add project opens folder picker without modal",
+        "ok": true,
+        "detalle": "POST /api/projects/choose calls=1; dialog visible=false"
+      },
+      {
+        "nombre": "temporary project visible",
+        "ok": true,
+        "detalle": "project visible in sidebar"
+      },
+      {
+        "nombre": "project settings visible",
+        "ok": true,
+        "detalle": "settings heading"
+      },
+      {
+        "nombre": "specs empty state visible",
+        "ok": true,
+        "detalle": "empty project has no specs"
+      },
+      {
+        "nombre": "specs empty no page error",
+        "ok": true,
+        "detalle": "none"
+      },
+      {
+        "nombre": "real memory visible",
+        "ok": true,
+        "detalle": "seeded DB memory"
+      },
+      {
+        "nombre": "mock memory absent",
+        "ok": true,
+        "detalle": "no mock data"
+      },
+      {
+        "nombre": "memory conflict resolved",
+        "ok": true,
+        "detalle": "open conflicts: 0"
+      },
+      {
+        "nombre": "authoritative memory persisted and visible",
+        "ok": true,
+        "detalle": "content of entry A matches the resolved API value"
+      },
+      {
+        "nombre": "memory no palette",
+        "ok": true,
+        "detalle": "ninguna (con memoria sembrada)"
+      },
+      {
+        "nombre": "memory content aligned with header",
+        "ok": true,
+        "detalle": "left offset=0px"
+      },
+      {
+        "nombre": "real spec visible",
+        "ok": true,
+        "detalle": "seeded markdown spec"
+      },
+      {
+        "nombre": "mock specs absent",
+        "ok": true,
+        "detalle": "no mock data"
+      },
+      {
+        "nombre": "spec approved",
+        "ok": true,
+        "detalle": "API status approved"
+      },
+      {
+        "nombre": "spec lint updates API and row",
+        "ok": true,
+        "detalle": "Lint: pass (0); response findings=0; before=pass/0"
+      },
+      {
+        "nombre": "specs no palette",
+        "ok": true,
+        "detalle": "ninguna (con spec sembrado)"
+      },
+      {
+        "nombre": "specs content aligned with header",
+        "ok": true,
+        "detalle": "left offset=0px"
+      },
+      {
+        "nombre": "real skills listed",
+        "ok": true,
+        "detalle": "API skills=17"
+      },
+      {
+        "nombre": "compile response visible",
+        "ok": true,
+        "detalle": "success response rendered in the skill row"
+      },
+      {
+        "nombre": "mock skills absent",
+        "ok": true,
+        "detalle": "no mock data"
+      },
+      {
+        "nombre": "skills no palette",
+        "ok": true,
+        "detalle": "ninguna (con skills sembradas)"
+      },
+      {
+        "nombre": "skills content aligned with header",
+        "ok": true,
+        "detalle": "left offset=0px"
+      },
+      {
+        "nombre": "graph no palette",
+        "ok": true,
+        "detalle": "ninguna en CONTEXT"
+      },
+      {
+        "nombre": "graph content aligned with header",
+        "ok": true,
+        "detalle": "left offset=0px"
+      },
+      {
+        "nombre": "tab roots transparent (memory/specs/skills/graph)",
+        "ok": true,
+        "detalle": "memory=rgba(0, 0, 0, 0); specs=rgba(0, 0, 0, 0); skills=rgba(0, 0, 0, 0); graph=rgba(0, 0, 0, 0)"
+      },
+      {
+        "nombre": "mock instincts absent",
+        "ok": true,
+        "detalle": "no mock data"
+      },
+      {
+        "nombre": "instinct review visible",
+        "ok": true,
+        "detalle": "unverified instinct"
+      },
+      {
+        "nombre": "instinct approved",
+        "ok": true,
+        "detalle": "API verified"
+      },
+      {
+        "nombre": "manual instinct added",
+        "ok": true,
+        "detalle": "new API row"
+      },
+      {
+        "nombre": "instincts no palette",
+        "ok": true,
+        "detalle": "ninguna (con instincts sembrados)"
+      },
+      {
+        "nombre": "mock plan absent",
+        "ok": true,
+        "detalle": "no mock data"
+      },
+      {
+        "nombre": "plan board fills the view",
+        "ok": true,
+        "detalle": "danger zone top=972 scroller bottom=972"
+      },
+      {
+        "nombre": "plan no palette",
+        "ok": true,
+        "detalle": "ninguna en Kanban ni Table"
+      },
+      {
+        "nombre": "tab roots transparent",
+        "ok": true,
+        "detalle": "plan=rgba(0, 0, 0, 0); instincts=rgba(0, 0, 0, 0)"
+      },
+      {
+        "nombre": "explain fields visible as readable UI",
+        "ok": true,
+        "detalle": "GET /explain fields rendered inside the template block"
+      },
+      {
+        "nombre": "explain has no [object Object]",
+        "ok": true,
+        "detalle": "opened Explain modal contains no stringified object values"
+      },
+      {
+        "nombre": "task run finishes and badge changes without reload",
+        "ok": true,
+        "detalle": "status=done; retryCount/runId changed or terminal status observed"
+      },
+      {
+        "nombre": "Add task opens Chat",
+        "ok": true,
+        "detalle": "Chat composer visible, Plan view inactive, task count unchanged"
+      },
+      {
+        "nombre": "0 console errors",
+        "ok": true,
+        "detalle": "none"
+      }
+    ],
+    "notes": [],
+    "errores": [],
+    "capturas": [
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-73784/project-tabs/memory.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-73784/project-tabs/specs.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-73784/project-tabs/skills.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-73784/project-tabs/graph.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-73784/project-tabs/project-tabs-real-data.png"
+    ]
+  },
+  {
+    "flujo": "project-isolation",
+    "pass": true,
+    "steps": [
+      {
+        "nombre": "fixtures created for Alfa and Beta",
+        "ok": true,
+        "detalle": "7ba1051a79bf8fee; 3d0da071c4cb6a23"
+      },
+      {
+        "nombre": "API lists only Alfa runs, memory search hides Beta, and sessions are scoped to Alfa",
+        "ok": true,
+        "detalle": "{\"runs\":[\"erp2-run-a\"],\"memory\":[],\"sessions\":[\"7b880364-76cb-4b8b-a1cd-c79d540df3c6\"]}"
+      },
+      {
+        "nombre": "Alfa cannot read or mutate any Beta run, session, memory, or instinct",
+        "ok": true,
+        "detalle": "[{\"label\":\"GET run\",\"status\":404},{\"label\":\"GET messages\",\"status\":404},{\"label\":\"PATCH session\",\"status\":404},{\"label\":\"approve instinct\",\"status\":404},{\"label\":\"delete memory\",\"status\":404},{\"label\":\"delete instinct\",\"status\":404},{\"label\":\"delete run\",\"status\":404},{\"label\":\"delete session\",\"status\":404},{\"label\":\"chat with foreign session\",\"status\":404}]"
+      },
+      {
+        "nombre": "Beta data and message history remain intact after rejected Alfa requests",
+        "ok": true,
+        "detalle": "{\"run\":[\"erp2-run-b\"],\"memory\":[\"Centinela memoria Beta\",\"Centinela memoria Global\"],\"messages\":[\"Centinela chat Beta\"],\"instincts\":[\"erp2-instinct-b\",\"erp2-instinct-history\"]}"
+      },
+      {
+        "nombre": "Alfa Memory shows own and global entries, hides the other project",
+        "ok": true,
+        "detalle": "project memory isolation and Global label"
+      },
+      {
+        "nombre": "Alfa Active Instincts shows own and historical entries, hides the other project",
+        "ok": true,
+        "detalle": "project instinct isolation and historical label"
+      },
+      {
+        "nombre": "Alfa api-contract skill origin is Proyecto",
+        "ok": true,
+        "detalle": "api-contract origin: Proyecto"
+      },
+      {
+        "nombre": "Beta Memory shows own and global entries, hides the other project",
+        "ok": true,
+        "detalle": "project memory isolation and Global label"
+      },
+      {
+        "nombre": "Beta Active Instincts shows own and historical entries, hides the other project",
+        "ok": true,
+        "detalle": "project instinct isolation and historical label"
+      },
+      {
+        "nombre": "Beta api-contract skill origin is Biblioteca",
+        "ok": true,
+        "detalle": "api-contract origin: Biblioteca"
+      },
+      {
+        "nombre": "Codex CLI context includes the own project memory (positive control)",
+        "ok": true,
+        "detalle": "reply=\"OK\" · prompt 2312 chars · cli input 14 chars"
+      },
+      {
+        "nombre": "Codex CLI context excludes every Beta sentinel",
+        "ok": true,
+        "detalle": "fugas: [] · Centinela memoria Global: aparece"
+      },
+      {
+        "nombre": "Claude CLI context includes the own project memory (positive control)",
+        "ok": true,
+        "detalle": "reply=\"OK\" · prompt 2313 chars · cli input 14 chars"
+      },
+      {
+        "nombre": "Claude CLI context excludes every Beta sentinel",
+        "ok": true,
+        "detalle": "fugas: [] · Centinela memoria Global: aparece"
+      }
+    ],
+    "notes": [],
+    "errores": [],
+    "capturas": [
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-73784/project-isolation/memory-alfa.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-73784/project-isolation/instincts-alfa.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-73784/project-isolation/skills-alfa.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-73784/project-isolation/memory-beta.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-73784/project-isolation/instincts-beta.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-73784/project-isolation/skills-beta.png"
+    ]
+  },
+  {
+    "flujo": "chat-streaming",
+    "pass": false,
+    "steps": [
+      {
+        "nombre": "temporary project visible",
+        "ok": true,
+        "detalle": "orchestos-ui-mr-1-d4-hCcEUE"
+      },
+      {
+        "nombre": "Claude option available",
+        "ok": true,
+        "detalle": "Start New Chat with Agent\nConversation Topic or Title (Optional)\nProject\nNo projectorchestos-ui-mr-1-d4-hCcEUE\nSelect Agent / Engine\nClaude Code\nCodex\nOpenRouter API\nCancel\nStart Chat"
+      },
+      {
+        "nombre": "first assistant text appears before completion",
+        "ok": true,
+        "detalle": "t_first=2759 ms; t_done=4109 ms"
+      },
+      {
+        "nombre": "visible text grows at least twice before completion",
+        "ok": true,
+        "detalle": "3 growth updates"
+      },
+      {
+        "nombre": "live bubble stays at the bottom",
+        "ok": true,
+        "detalle": "4 growth measurements; remained at bottom: true"
+      },
+      {
+        "nombre": "captured screenshot during active turn",
+        "ok": true,
+        "detalle": "chat-text-visible-mid-turn"
+      },
+      {
+        "nombre": "working-indicator-names-phase",
+        "ok": true,
+        "detalle": "indicator text: \"Thinking 0 s\""
+      },
+      {
+        "nombre": "working-indicator-gone",
+        "ok": true,
+        "detalle": "indicator removed after 272 ms"
+      },
+      {
+        "nombre": "one assistant bubble matches persisted response",
+        "ok": false,
+        "detalle": "bubbles=1; persisted=1; visible=uno dos tres cuatro cinco seis siete ocho nueve diez once doce trece catorce qui"
+      },
+      {
+        "nombre": "new messages enter with data-entered=animate",
+        "ok": true,
+        "detalle": "animated kinds=user,assistant; events=[{\"id\":1,\"position\":0,\"kind\":\"user\"},{\"id\":2,\"position\":1,\"kind\":\"assistant\"}]"
+      },
+      {
+        "nombre": "no message animates its entrance twice",
+        "ok": true,
+        "detalle": "events=[{\"id\":1,\"position\":0,\"kind\":\"user\"},{\"id\":2,\"position\":1,\"kind\":\"assistant\"}]"
+      },
+      {
+        "nombre": "context ring reflects thread",
+        "ok": true,
+        "detalle": "used=7016, window=1000000, pct=0.7016"
+      },
+      {
+        "nombre": "context ring recalculates on model change",
+        "ok": true,
+        "detalle": "model=claude-haiku-4-5-20251001, expected pct=3.508, ring=Context window usage: 3.508%"
+      },
+      {
+        "nombre": "Chat composer empty during sampled turn",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "Chat turn 2 was sampled while pending",
+        "ok": false,
+        "detalle": "3 long turn(s) sent; pending composer and live DOM order sampled"
+      },
+      {
+        "nombre": "Chat bubbles alternate for every sent turn",
+        "ok": false,
+        "detalle": "[\"Escribe los números del 1 al 40 en palabras, uno p\",\"uno dos tres cuatro cinco seis siete ocho nueve di\",\"Escribe los números del 41 al 80 en palabras, uno \",\"cuarenta y uno cuarenta y dos cuarenta y tres cuar\",\"Escribe los números del 81 al 120 en palabras, uno\",\"ochenta y uno ochenta y dos ochenta y tres ochenta\",\"Escribe los números del 121 al 160 en palabras, un\",\"ciento veintiuno ciento veintidós ciento veintitré\"]"
+      },
+      {
+        "nombre": "Chat user bubbles contain no agent text or step markup",
+        "ok": true,
+        "detalle": "user bubbles=4"
+      },
+      {
+        "nombre": "Chat exchange order remains correct after reload",
+        "ok": false,
+        "detalle": "messages=8"
+      },
+      {
+        "nombre": "thread-font-inter",
+        "ok": true,
+        "detalle": "font-family=\"Inter Variable\", system-ui, -apple-system, \"system-ui\", \"Segoe UI\", Roboto, \"Noto Sans\", Ubuntu, Cantarell, \"Helvetica Neue\", sans-serif"
+      },
+      {
+        "nombre": "thread-body-14px",
+        "ok": true,
+        "detalle": "font-size=14px"
+      },
+      {
+        "nombre": "thread-assistant-unboxed",
+        "ok": true,
+        "detalle": "ancestors=[{\"backgroundColor\":\"rgba(0, 0, 0, 0)\",\"borderTopWidth\":\"0px\",\"boxShadow\":\"none\"},{\"backgroundColor\":\"rgba(0, 0, 0, 0)\",\"borderTopWidth\":\"0px\",\"boxShadow\":\"none\"},{\"backgroundColor\":\"rgba(0, 0, 0, 0)\",\"borderTopWidth\":\"0px\",\"boxShadow\":\"none\"}]"
+      },
+      {
+        "nombre": "thread-user-bubble-visible",
+        "ok": true,
+        "detalle": "bubble={\"found\":true,\"backgroundColor\":\"oklab(0.249498 -0.00229985 -0.0147313)\",\"opaque\":true,\"userBubbleL\":20.537404286089497,\"backgroundL\":12.733002212579532,\"difference\":7.804402073509966}"
+      },
+      {
+        "nombre": "thread-no-decoration",
+        "ok": true,
+        "detalle": "animate-ping=0, gradients=0, bot-icons=0, user-icons=0"
+      },
+      {
+        "nombre": "after reload every message is static",
+        "ok": true,
+        "detalle": "modes=[\"static\",\"static\",\"static\",\"static\",\"static\",\"static\",\"static\",\"static\"]"
+      },
+      {
+        "nombre": "reduced motion: response arrives with opacity 1 and no transform within 100 ms",
+        "ok": true,
+        "detalle": "samples=[{\"kind\":\"user\",\"opacity\":\"1\",\"transform\":\"none\"},{\"kind\":\"assistant\",\"opacity\":\"1\",\"transform\":\"none\"}]"
+      },
+      {
+        "nombre": "Dev renders text during generation before completion",
+        "ok": true,
+        "detalle": "t_first=2206 ms; t_done=3061 ms; visible=Uno, dos, tres, cuatro y cinco."
+      }
+    ],
+    "notes": [],
+    "errores": [],
+    "capturas": [
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-73784/chat-streaming/chat-text-visible-mid-turn.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-73784/chat-streaming/thread-hierarchy.png"
+    ]
+  }
+]
