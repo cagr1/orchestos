@@ -2143,13 +2143,13 @@ igual que hoy, lo que se corta es que el **producto** lo herede por accidente.
   Gate en vivo: navegador real (Playwright), `docs/done/evidence/LIMP.1-live.json` — `chat-streaming` 24/24,
   `codex-live` 14/14.
 
-- [x] **LIMP.2 — ⚡ ⌘K abre la paleta general.** (abierto y cerrado 2026-10-21, GO de Carlos) `CommandPalette.tsx:43` deja el
+- [x] **LIMP.2 — ⚡ ⌘K abre la paleta general fuera de Settings.** (abierto y cerrado 2026-10-21, GO de Carlos) `CommandPalette.tsx:43` deja el
   "abrir" vacío: ⌘K solo cierra, aunque el botón 🔍 del header y su tooltip prometen el atajo. Decisión: en Settings ⌘K
   sigue abriendo el buscador de Settings (`OrchestSettingsView.tsx:606`); fuera de Settings abre la paleta general.
   La nota previa "nunca se abre" era falsa: el botón 🔍 del header (`ShellHeader.tsx:34`) sí la abría. Arreglo: prop
-  `onOpen` en `CommandPalette`, `App.tsx` la pasa solo fuera de Settings. Gate:
-  Gate en vivo: navegador real (Playwright), `docs/done/evidence/LIMP.2-live.json` (`shell-look` 49/49) con dos pasos nuevos
-  (⌘K abre y Escape cierra en Chat; en Settings la general no abre, medido antes de Escape por hallazgo P2 de `qa`).
+  `onOpen` en `CommandPalette`, `App.tsx` la pasa solo fuera de Settings.
+  Gate en vivo: navegador real (Playwright), `docs/done/evidence/LIMP.2-live.json` (`shell-look` 49/49, dos pasos nuevos:
+  ⌘K abre y Escape cierra en Chat; en Settings la general no abre, medido antes de Escape por hallazgo P2 de `qa`).
   Spec: docs/specs/LIMP.2.md (borrado) · Ejecutado por: GPT (mecanico) · QA: GPT (qa).
 - [ ] **LIMP.3 — 🔍 `AgentChoice` deja de ser una lista cerrada de 5 marcas.** (abierto 2026-10-21, GO de Carlos)
   Resto de AT.11: el registro de adaptadores ya es abierto, pero `schema.ts:39` y sus 7 consumidores (config, DB,

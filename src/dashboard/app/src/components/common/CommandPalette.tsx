@@ -20,6 +20,7 @@ import type { NavigationTab } from '../../types/orchestos'
 interface CommandPaletteProps {
   isOpen: boolean
   onClose: () => void
+  onOpen?: () => void
   onSelectTab: (tab: NavigationTab) => void
   onRunNextTask: () => void
   onSelectModel: (model: string) => void
@@ -28,6 +29,7 @@ interface CommandPaletteProps {
 export const CommandPalette: React.FC<CommandPaletteProps> = ({
   isOpen,
   onClose,
+  onOpen,
   onSelectTab,
   onRunNextTask,
   onSelectModel,
@@ -41,7 +43,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
         if (isOpen) {
           onClose()
         } else {
-          // Open
+          onOpen?.()
         }
       }
       if (e.key === 'Escape' && isOpen) {
@@ -50,7 +52,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
     }
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [isOpen, onClose])
+  }, [isOpen, onClose, onOpen])
 
   if (!isOpen) return null
 

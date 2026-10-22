@@ -1408,6 +1408,7 @@ export default function App() {
       <CommandPalette
         isOpen={isCommandPaletteOpen}
         onClose={() => setIsCommandPaletteOpen(false)}
+        onOpen={mode !== 'settings' ? () => setIsCommandPaletteOpen(true) : undefined}
         onSelectTab={handleCommandPaletteSelectTab}
         onSelectModel={handleCommandPaletteSelectModel}
         onRunNextTask={() => {

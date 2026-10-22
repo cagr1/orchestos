@@ -276,8 +276,18 @@ export default async function shellLook({ page, api, step, shot, visible, hidden
   const shortcut = process.platform === 'darwin' ? 'Meta+k' : 'Control+k'
   await page.keyboard.press(shortcut)
   const shortcutOpens = await visible(palette)
+  const generalCommandPalette = page.getByRole('textbox', {
+    name: 'Type a command, search screen, or execute task...',
+    exact: true,
+  })
+  const generalCountWhileOpen = await generalCommandPalette.count()
   await paletteInput.press('Escape')
   await step('settings palette shortcut', shortcutOpens && (await hidden(palette)), shortcut)
+  await step(
+    'settings shortcut does not open the general command palette',
+    generalCountWhileOpen === 0,
+    `general palette count while settings shortcut is open=${generalCountWhileOpen}`,
+  )
   await page.getByRole('button', { name: 'General', exact: true }).click()
   await step(
     'settings nav slides',
@@ -696,4 +706,19 @@ export default async function shellLook({ page, api, step, shot, visible, hidden
     .locator('[data-composer-region]')
     .evaluate((el) => getComputedStyle(el).borderTopWidth)
   await step('composer no top line (Chat)', chatComposerBorder === '0px', chatComposerBorder)
+
+  const commandPalette = page.getByRole('textbox', {
+    name: 'Type a command, search screen, or execute task...',
+    exact: true,
+  })
+  const commandPaletteShortcut = process.platform === 'darwin' ? 'Meta+k' : 'Control+k'
+  await page.keyboard.press(commandPaletteShortcut)
+  const commandPaletteOpens = await visible(commandPalette)
+  await page.keyboard.press('Escape')
+  const commandPaletteCloses = await hidden(commandPalette)
+  await step(
+    'command palette shortcut opens and Escape closes in Chat',
+    commandPaletteOpens && commandPaletteCloses,
+    `${commandPaletteShortcut}; opened=${commandPaletteOpens}; closed=${commandPaletteCloses}`,
+  )
 }
