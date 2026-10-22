@@ -1,32 +1,29 @@
-# NEXT — handoff 2026-10-22 (corte tras el lote nocturno del 2026-10-21)
+# NEXT — handoff 2026-10-22 (corte tras el lote CI.32–CI.34)
 
 Un solo presente: orden y trampas vivas. Lo cerrado vive en `PLAN.md` y git (regla `AGENTS.md` § Reglas generales,
 2026-10-19: `NEXT.md` se toca solo al cerrar o cortar un lote). Arranque:
-`bun run agent:preflight -- --item <ID> --agent claude`. Lista viva: `bun run next`.
-La asignación temporal de modelos de Carlos (Opus supervisor, código a GPT) venció el 2026-10-21: vuelve el roster.
-Cupos al cortar: Codex/Sol agotados (Codex reinicia 21:56 del 21), Claude semanal al 90 % usado.
+`bun run agent:preflight -- --item <ID> --agent claude`. Lista viva: `bun run next`. Roster normal (`roster.conf`).
 
-## Primero, antes de cualquier ítem
-1. Verificar lo subido sin pre-push: `263b3bdf` y `d9d71e53` salieron con `--no-verify` (pedido de Carlos, sin cupo de
-   Codex). Corridos a mano: typecheck, lint, `test:coverage` 1925/0, `shell-look` 58/58, `composer-picker` 5/5; CI
-   verde. **Sin correr**: gates en vivo de chat con Codex (`chat-*`, `codex-live`, `tasks`, `runs-graph`, `qa-negative`,
-   `restart-mid-run`, `model-routing`, `text-sweep`) y `usage-bar` "usage refreshes after a real turn". Correr
-   `bun run ui:gate` completo con cupo de Codex; un fallo ahí se corrige antes de seguir.
-2. `orchestos-ui27` (sesión Desktop `8b65b9f2`, candado propio): tiene UI.27.3/UI.27.3b staged SIN commitear y copias sin
-   commitear de `scripts/plan-{import,render,gate}.ts`, `scripts/next.ts`, `scripts/plan-worktree-home.ts`. Su rama ya
-   está en master (merge `263b3bdf`): allí `git rebase origin/master`, comparar esas copias con WT.1 (`7927bb07`) y
-   quedarse con master si son la misma idea. No escribir en ese árbol desde otra sesión.
-
-## Cerrado 2026-10-21 (todo en `origin/master`)
-CI.11 fase 1 `04a8b061` (abierto hasta el próximo fallo: leer `[codex-turn]` en `dashboard.log`), CI.31 confirmado
-`949f2992` (Mutation `executors` 2h06m, margen ~54 min), UI.26.6b.4 `04770619`, LIMP.2 `0f48d64e`, LIMP.3 `908127a8`,
-WT.1 `7927bb07`, CUOTA.1 `a33a060b`, MOD.1 `74095cb6`, merge UI.27/.1/.2 `263b3bdf`. Antes ese día: CI.31, AT.11,
-H.10.2, UI.26.6b.1–.3, AT.11.1.
+## Cerrado 2026-10-22 (todo en `origin/master`, pre-push verde)
+`ui:gate` completo sobre lo subido sin pre-push el 21: 5 flujos rotos de forma determinista → CI.32. CI.32.a
+`dfd1c6a3`+`853810d3` (OpenCode abre su sesión de terminal: `CliChatAdapter.terminal`), CI.32.c `e571a5ac`+`143fbce2`
+(`[codex-approval]` en `dashboard.log`; **decisión de Carlos**: en auto-edit, Codex con su sandbox nativo,
+`approvalPolicy: on-request`; supervised sigue `untrusted`), CI.32.d (misma causa), CI.32.b `ec92a168` (carrera New
+chat → envío caía en sesión general `?project=none` → 404), CI.33 `2008db91` (test de `runGraph` a 20 s, costo medido),
+CI.34 `375bdadd` (regresión de CI.32.b: lectura de sesiones vieja borraba el mensaje enviado y sus adjuntos).
+Batería de cierre: 29/31; los 2 rojos pasan al relanzar (ver Orden 2).
 
 ## Orden
-1. Lo de "Primero".
-2. Sin ítem listo de producto: lo que Carlos elija. Acceso remoto = IDEAS `#73`.
-3. Fiabilidad, cuando el pre-push la tumba: CI.23, CI.18, CI.19, CI.11 (ya deja evidencia por fase). Desde CI.27 un
+1. `orchestos-ui27` (worktree de la sesión Desktop `8b65b9f2`, rama `ui/UI.27`): UI.27.3/UI.27.3b staged sin commitear
+   (14 archivos, `ResizableAside.tsx` nuevo). Las copias de `scripts/plan-*.ts`/`next.ts`/`plan-worktree-home.ts` son
+   idénticas a master: descartarlas. Carlos tiene las instrucciones para esa sesión: commitear, `rebase origin/master`
+   (conflicto probable en `chat-sessions.ts` por CI.32.a y en `App.tsx` por CI.32.b/CI.34), gates, merge, borrar el
+   worktree. No escribir en ese árbol desde esta sesión. Master ya está libre para ese merge.
+2. `chat-streaming` intermitente: 4 fallos el 2026-10-22, siempre `one assistant bubble matches persisted response`
+   (visible ≠ persistido), pasa al reintento; existía antes del lote (pre-push de `143fbce2`). Cuesta ~2 min por push.
+   Abrir ítem y que deje evidencia (texto visible vs persistido completos) antes de diagnosticar.
+3. Sin ítem listo de producto: lo que Carlos elija. Acceso remoto = IDEAS `#73`.
+4. Fiabilidad, cuando el pre-push la tumba: CI.23 (visto otra vez el 22, ver PLAN), CI.18, CI.19, CI.11. Desde CI.27 un
    flujo que revienta dice el locator (`[waiting for …]`) y deja `<flujo>/failure.png`: usarlo antes de diagnosticar.
 - Anotado, sin ítem: ejecutar **tareas** con adaptadores CLI nuevos (hoy solo claude/codex/opencode en
   `engine-cascade.ts`; el chat ya acepta cualquiera registrado, LIMP.3). Agrupación por marca en Usage
@@ -34,7 +31,8 @@ H.10.2, UI.26.6b.1–.3, AT.11.1.
 - Anotado, sin ítem: el revisor elige su ventana cortando en el primer tramo que no cabe (un revert posterior podría
   dejar caber uno más largo; nada se pierde, el salto queda anotado).
 - Decisiones pendientes de Carlos sin ítem: turno de chat con CLI lento (más de 120 s o aviso honesto, en CI.18);
-  peso de `main.js` tras UI.24.4 (dejarlo, alias de `rehype-raw` o lazy-load de Streamdown).
+  peso de `main.js` tras UI.24.4 (dejarlo, alias de `rehype-raw` o lazy-load de Streamdown); arreglar en `method/` del
+  vault que `delegate` → Codex no vea `AGENT_WRITER_TOKEN` (ver Trampas).
 
 ## Trampas vivas
 - `~/.claude/settings.json` `statusLine` = tee de OrchestOS → script de Orca (restaurado a mano 2026-10-21, respaldo
@@ -48,8 +46,18 @@ H.10.2, UI.26.6b.1–.3, AT.11.1.
   evidencia JSON copiada de `result.json` necesita `biome format --write` (salto de línea final) o el lint del pre-push
   la tumba.
 - Los gates en vivo de chat usan Codex: sin cupo de Codex el pre-push falla en ~10 flujos sin defecto de código.
-- Push en segundo plano + seguir con el ítem siguiente = push fallido: el pre-push lintea el **árbol**, no el commit, y
-  se come los cambios en vuelo (le pasó a `496621d6`). Esperar el push antes de tocar archivos, o no lanzarlo en fondo.
+- Desde CI.30 el pre-push verifica el commit empujado en un árbol aparte: push en fondo + seguir delegando funcionó el
+  2026-10-22 (3 pushes). Con cambios en `src/dashboard` o `src/run` tarda ~13 min (15 ui-gates + chat-gate).
+- El pre-commit NO corre lint; el pre-push sí. Correr `bun run lint` antes de commitear (el push de `2008db91` se
+  rechazó por formato).
+- Codex filtra de su shell las variables con `TOKEN` en el nombre: no ve `AGENT_WRITER_TOKEN` aunque `delegate` la
+  exporte (`delegate:186`) y se niega a escribir. Esquive: el spec dice "tienes permiso de escritura; el hook sí recibe
+  el token". Arreglo real en `method/` del vault.
+- El hook `brain-no-code` toma una redirección a una ruta de código dentro del texto de un heredoc como escritura del
+  cerebro (bloqueó un spec y este mismo `NEXT.md`): escribir specs y docs con Write/Edit, no con `cat <<EOF`.
+- Preflight del ejecutor: el ítem tiene que estar **abierto** en `PLAN.md` (no un sub-ítem, no un padre ya `[x]`).
+- `src/run/logger.ts` ENOENT al limpiar el fixture de un flujo que agotó su espera: consecuencia, no causa (visto otra
+  vez el 22 en `auto-flow`).
 - El plan gate parte el segmento de un ítem en su primera línea en blanco: `Ejecutado por: … · Spec:` va **antes** de
   ella o el gate dice "Procedencia … must delete docs/specs/<ID>.md" (pasó en H.10.2, ítem largo con párrafos).
 - `qa` vía `delegate` solo acepta un archivo de spec, no la pregunta directa ("spec no existe").
