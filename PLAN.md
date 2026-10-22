@@ -749,6 +749,20 @@ Cerrada. Todos sus ítems están archivados en `docs/done/` (ver "Cerrados — e
   grafo real, ~25 ms frente a minutos de LLM): límite del test a 20 s con la medición en un comentario; producto sin
   tocar. Evidencia: test aislado 3/3 (4,97–5,03 s); `test:coverage` 2/2 verde (1926/0).
   Ejecutado por: claude sonnet (criterio) · Spec: docs/specs/CI.33.md
+- [x] **CI.35 — 🔍 `chat-streaming` intermitente en `one assistant bubble matches persisted response`.** (abierto y
+  cerrado 2026-10-22) 4 fallos el 2026-10-22, pasaba al reintento; existía antes de CI.32.b. Fase 1 (evidencia): en rojo
+  el paso vuelca visible y persistido completos, `firstDiff` y relectura a 2 s. Causa (6 corridas, 3 rojas; fallo del
+  gate, no del producto): (1) Haiku a veces responde en lista numerada o en bloque ```` ``` ````; el DOM renderizado no
+  trae marcadores (`::marker`) ni cercas, y el gate comparaba contra el Markdown crudo (visible 389 vs persistido 540,
+  `firstDiff=0`, igual a los 2 s); (2) el front sondea `/timeline` cada 300 ms (`OrchestChatView.tsx:196-220`) y Haiku
+  escribía "del 1 al 40" en 1,1-1,6 s → 1 crecimiento visible. Arreglo (`chat-streaming.mjs`): `words()` normaliza ambos
+  lados (sin cercas ni marcadores de lista, letras y dígitos, minúsculas) en toda comparación DOM↔mensaje (6 sitios);
+  `findBubble` prueba coincidencia exacta antes que `includes`; crecimiento medido con `requestAnimationFrame` en la
+  página (coincide siempre con el sondeo: el DOM cambia solo al ritmo de los 300 ms); turno 1 "del 1 al 120" (ventana
+  ~3 s, 7-9 crecimientos). Rondas r3/r4 rompieron por spec (solapamiento 1-120/41-80 con `includes`; `words` sin dígitos
+  igualaba los prompts): corregidas en r4/r5. Evidencia: r5 6/6 verde (`CI.35-r5-1..6`); lint y `tsc` sin errores.
+  Gate en vivo: navegador real (Playwright), `docs/done/evidence/CI.35-live.json` (`chat-streaming`).
+  Ejecutado por: codex gpt-6-luna (mecanico) · Spec: docs/specs/CI.35.md
 - [x] **CI.34 — 🔍 `chat-attachments` intermitente tras CI.32.b.** (abierto y cerrado 2026-10-22) Pasó 14/14 en la batería de
   la mañana; tras `ec92a168` falló 2 de 3 (`sent message keeps 2 attachments … after the turn: {"names":[]}` y
   `answer contains the token … answer=` vacío). Sospecha: la fusión de hilos de CI.32.b (`lib/merge-threads.ts`)

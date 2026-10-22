@@ -19,9 +19,8 @@ Batería de cierre: 29/31; los 2 rojos pasan al relanzar (ver Orden 2).
    idénticas a master: descartarlas. Carlos tiene las instrucciones para esa sesión: commitear, `rebase origin/master`
    (conflicto probable en `chat-sessions.ts` por CI.32.a y en `App.tsx` por CI.32.b/CI.34), gates, merge, borrar el
    worktree. No escribir en ese árbol desde esta sesión. Master ya está libre para ese merge.
-2. `chat-streaming` intermitente: 4 fallos el 2026-10-22, siempre `one assistant bubble matches persisted response`
-   (visible ≠ persistido), pasa al reintento; existía antes del lote (pre-push de `143fbce2`). Cuesta ~2 min por push.
-   Abrir ítem y que deje evidencia (texto visible vs persistido completos) antes de diagnosticar.
+2. `chat-streaming` intermitente: cerrado en CI.35 (fallo del gate: Markdown crudo vs DOM renderizado y turno
+   demasiado corto para el sondeo de 300 ms). Si vuelve, el detalle del paso trae visible y persistido completos.
 3. Sin ítem listo de producto: lo que Carlos elija. Acceso remoto = IDEAS `#73`.
 4. Fiabilidad, cuando el pre-push la tumba: CI.23 (visto otra vez el 22, ver PLAN), CI.18, CI.19, CI.11. Desde CI.27 un
    flujo que revienta dice el locator (`[waiting for …]`) y deja `<flujo>/failure.png`: usarlo antes de diagnosticar.

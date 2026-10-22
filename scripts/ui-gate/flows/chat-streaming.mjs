@@ -109,6 +109,21 @@ async function readEntrances(page) {
 // `fable` (default del catálogo de Claude) puede quedar sin crédito y responder de una pieza:
 // el flujo fija `haiku` en el composer para medir streaming real (2026-09-27).
 const squash = (text) => text.replace(/\s+/g, ' ').trim()
+const words = (text) =>
+  (
+    text
+      .replace(/^\s*```.*$/gm, '')
+      .replace(/^\s*(?:\d+[.)]|[-*+])\s+/gm, '')
+      .match(/[\p{L}\p{N}]+/gu) ?? []
+  )
+    .join(' ')
+    .toLowerCase()
+
+const findBubble = (entries, text) => {
+  const target = words(text)
+  const exact = entries.findIndex((entry) => words(entry) === target)
+  return exact >= 0 ? exact : entries.findIndex((entry) => words(entry).includes(target))
+}
 
 async function selectHaiku(page, visible) {
   const modelControl = page.locator('button[title="Select model and reasoning effort"]').last()
@@ -204,10 +219,26 @@ export default async function chatStreaming({ page, api, step, shot, visible, cl
   await selectHaiku(page, visible)
   const composer = page.locator('textarea').last()
   await installEntranceObserver(page)
+  await page.evaluate(() => {
+    window.__ciGrowth = []
+    window.__ciGrowthStop = false
+    let lastLength = 0
+    const sample = () => {
+      if (window.__ciGrowthStop) return
+      const text = [...document.querySelectorAll('div.prose')].at(-1)?.innerText.trim() ?? ''
+      const length = text.length
+      if (length > 0 && length > lastLength) {
+        window.__ciGrowth.push(length)
+        lastLength = length
+      }
+      window.requestAnimationFrame(sample)
+    }
+    window.requestAnimationFrame(sample)
+  })
   const startedAt = await sendTurn(
     page,
     composer,
-    'Escribe los números del 1 al 40 en palabras, uno por línea.',
+    'Escribe los números del 1 al 120 en palabras, uno por línea.',
   )
 
   const visibleText = async () =>
@@ -262,6 +293,12 @@ export default async function chatStreaming({ page, api, step, shot, visible, cl
       ? { timeline: timeline.data, doneAt: Date.now() - startedAt }
       : null
   })
+  const growthLengths = await page.evaluate(() => {
+    window.__ciGrowthStop = true
+    return window.__ciGrowth ?? []
+  })
+  const pollGrowthCount = growthCount
+  growthCount = Math.max(0, growthLengths.length - 1)
   await step(
     'first assistant text appears before completion',
     Boolean(completion && firstAt < completion.doneAt),
@@ -270,7 +307,7 @@ export default async function chatStreaming({ page, api, step, shot, visible, cl
   await step(
     'visible text grows at least twice before completion',
     Boolean(completion && growthCount >= 2),
-    `${growthCount} growth updates`,
+    `${growthCount} growth updates (rAF); poll saw ${pollGrowthCount}`,
   )
   await step(
     'live bubble stays at the bottom',
@@ -302,12 +339,56 @@ export default async function chatStreaming({ page, api, step, shot, visible, cl
   const visibleFinal = await visibleText()
   const assistantMessages =
     completion?.timeline.messages.filter((message) => message.role === 'assistant') ?? []
+  const persisted = assistantMessages[0]?.content ?? ''
+  const visibleSquashed = words(visibleFinal)
+  const persistedSquashed = words(persisted)
+  let firstDiff = -1
+  for (
+    let index = 0;
+    index < Math.min(visibleSquashed.length, persistedSquashed.length);
+    index += 1
+  ) {
+    if (visibleSquashed[index] !== persistedSquashed[index]) {
+      firstDiff = index
+      break
+    }
+  }
+  if (firstDiff === -1 && visibleSquashed.length !== persistedSquashed.length) {
+    firstDiff = Math.min(visibleSquashed.length, persistedSquashed.length)
+  }
+  const bubbleCount = await page.locator('div.prose').count()
+  const assistantBubbleMatches =
+    assistantMessages.length === 1 && visibleSquashed === persistedSquashed
+  let visibleAfter2sMatches = null
+  let assistantBubbleDetail = `bubbles=${bubbleCount}; persisted=${assistantMessages.length}; visible=${visibleSquashed.slice(0, 80)}`
+  if (!assistantBubbleMatches) {
+    await page.waitForTimeout(2_000)
+    const visibleAfter2s = await visibleText()
+    visibleAfter2sMatches = words(visibleAfter2s) === persistedSquashed
+    const aroundStart = Math.max(0, firstDiff - 60)
+    const aroundEnd = firstDiff < 0 ? 60 : firstDiff + 60
+    assistantBubbleDetail = JSON.stringify({
+      bubbles: bubbleCount,
+      persistedCount: assistantMessages.length,
+      visibleLength: visibleSquashed.length,
+      persistedLength: persistedSquashed.length,
+      firstDiff,
+      visibleAround: visibleSquashed.slice(aroundStart, aroundEnd),
+      persistedAround: persistedSquashed.slice(aroundStart, aroundEnd),
+      visibleAfter2sMatches,
+      visible: visibleSquashed,
+      persisted: persistedSquashed,
+      persistedMessages: assistantMessages.map((message) => ({
+        id: message.id,
+        length: (message.content ?? '').length,
+      })),
+    })
+  }
   await step(
     'one assistant bubble matches persisted response',
     // Markdown convierte los saltos simples en espacios: se compara con espacios normalizados.
-    assistantMessages.length === 1 &&
-      squash(visibleFinal) === squash(assistantMessages[0]?.content ?? ''),
-    `bubbles=${await page.locator('div.prose').count()}; persisted=${assistantMessages.length}; visible=${squash(visibleFinal).slice(0, 80)}`,
+    assistantBubbleMatches,
+    assistantBubbleDetail,
   )
   const entrances = await readEntrances(page)
   const perId = new Map()
@@ -455,19 +536,19 @@ export default async function chatStreaming({ page, api, step, shot, visible, cl
       }
       if (timeline.data?.pending && timeline.data.live?.text && !chatMidTurnChecked) {
         const midOrder = await page.locator('div.max-w-2xl, div.prose').allInnerTexts()
-        const index = (text) => midOrder.findIndex((entry) => squash(entry).includes(squash(text)))
+        const index = (text) => findBubble(midOrder, text)
         const previousAnswer =
           timeline.data.messages.filter((message) => message.role === 'assistant').at(-1)
             ?.content ?? ''
         const previousIndex = index(previousAnswer)
         const promptIndex = index(prompt)
         if (previousIndex < 0 || promptIndex < 0) return null
-        const livePrefix = squash(timeline.data.live.text.slice(0, 32))
+        const livePrefix = words(timeline.data.live.text).slice(0, 32)
         const liveCount = midOrder.filter(
-          (entry, i) => i > promptIndex && squash(entry).includes(livePrefix),
+          (entry, i) => i > promptIndex && words(entry).includes(livePrefix),
         ).length
         const liveIndex = midOrder.findIndex(
-          (entry, i) => i > promptIndex && squash(entry).includes(livePrefix),
+          (entry, i) => i > promptIndex && words(entry).includes(livePrefix),
         )
         if (liveIndex < 0) return null
         chatMidTurnChecked = true
@@ -491,8 +572,7 @@ export default async function chatStreaming({ page, api, step, shot, visible, cl
   const chatOrder = await page.locator('div.max-w-2xl, div.prose').allInnerTexts()
   const firstChatAnswer =
     completion?.timeline.messages.find((message) => message.role === 'assistant')?.content ?? ''
-  const chatOrderIndex = (text) =>
-    chatOrder.findIndex((entry) => squash(entry).includes(squash(text)))
+  const chatOrderIndex = (text) => findBubble(chatOrder, text)
   const completedChatAnswers =
     secondChatCompletion?.messages?.filter((message) => message.role === 'assistant') ?? []
   let previousChatIndex = chatOrderIndex(firstChatAnswer)
@@ -506,7 +586,7 @@ export default async function chatStreaming({ page, api, step, shot, visible, cl
   await step(
     'Chat bubbles alternate for every sent turn',
     Boolean(secondChatCompletion) &&
-      chatOrderIndex('Escribe los números del 1 al 40 en palabras, uno por línea.') <
+      chatOrderIndex('Escribe los números del 1 al 120 en palabras, uno por línea.') <
         chatOrderIndex(firstChatAnswer) &&
       allSentTurnsAlternate,
     JSON.stringify(chatOrder.map((text) => squash(text).slice(0, 50))),
@@ -532,7 +612,7 @@ export default async function chatStreaming({ page, api, step, shot, visible, cl
   await page.reload({ waitUntil: 'domcontentloaded' })
   await page.getByRole('button', { name: 'Chat', exact: true }).click()
   await page
-    .getByRole('button', { name: /Escribe los números del 1 al 40/ })
+    .getByRole('button', { name: /Escribe los números del 1 al 120/ })
     .first()
     .click()
   await page
@@ -541,21 +621,20 @@ export default async function chatStreaming({ page, api, step, shot, visible, cl
     .first()
     .waitFor({ state: 'visible', timeout: 30_000 })
   const restoredTexts = await page.locator('div.max-w-2xl, div.prose').allInnerTexts()
-  const restoredAssistant1 = restoredTexts.findIndex((text) =>
-    squash(text).includes(squash(firstChatAnswer)),
-  )
+  const restoredAssistant1 = findBubble(restoredTexts, firstChatAnswer)
   const secondChatAnswer =
     secondChatCompletion?.messages?.filter((message) => message.role === 'assistant').at(-1)
       ?.content ?? ''
-  const restoredAssistant2 = restoredTexts.findIndex((text) =>
-    squash(text).includes(squash(secondChatAnswer)),
-  )
+  const restoredAssistant2 = findBubble(restoredTexts, secondChatAnswer)
   const lastSentChatPrompt = sampledChatPrompts.at(-1) ?? ''
   await step(
     'Chat exchange order remains correct after reload',
-    restoredTexts.findIndex((text) => text.includes('Escribe los números')) < restoredAssistant1 &&
-      restoredAssistant1 < restoredTexts.findIndex((text) => text.includes(lastSentChatPrompt)) &&
-      restoredTexts.findIndex((text) => text.includes(lastSentChatPrompt)) < restoredAssistant2,
+    restoredTexts.findIndex((text) => words(text).includes(words('Escribe los números'))) <
+      restoredAssistant1 &&
+      restoredAssistant1 <
+        restoredTexts.findIndex((text) => words(text).includes(words(lastSentChatPrompt))) &&
+      restoredTexts.findIndex((text) => words(text).includes(words(lastSentChatPrompt))) <
+        restoredAssistant2,
     `messages=${restoredTexts.length}`,
   )
 
@@ -667,7 +746,7 @@ export default async function chatStreaming({ page, api, step, shot, visible, cl
   await page.reload({ waitUntil: 'domcontentloaded' })
   const reloadedChat = page
     .locator('aside')
-    .getByText(/^Escribe los números del 1 al 40/)
+    .getByText(/^Escribe los números del 1 al 120/)
     .first()
   if (await visible(reloadedChat, 30_000)) await reloadedChat.click()
   const reloadedMessages = page.locator('[data-entered]')
