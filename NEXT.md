@@ -53,9 +53,6 @@ cerebro `d5afa04c` (`CLAUDE.md` del repo 4,9k → 1,6k tokens est.; historia en 
   2026-10-22 (3 pushes). Con cambios en `src/dashboard` o `src/run` tarda ~13 min (15 ui-gates + chat-gate).
 - El pre-commit NO corre lint; el pre-push sí. Correr `bun run lint` antes de commitear (el push de `2008db91` se
   rechazó por formato).
-- Codex filtra de su shell las variables con `TOKEN` en el nombre: no ve `AGENT_WRITER_TOKEN` aunque `delegate` la
-  exporte (`delegate:186`) y se niega a escribir. Esquive: el spec dice "tienes permiso de escritura; el hook sí recibe
-  el token". Arreglo real en `method/` del vault.
 - El hook `brain-no-code` toma una redirección a una ruta de código dentro del texto de un heredoc como escritura del
   cerebro (bloqueó un spec y este mismo `NEXT.md`): escribir specs y docs con Write/Edit, no con `cat <<EOF`.
 - Preflight del ejecutor: el ítem tiene que estar **abierto** en `PLAN.md` (no un sub-ítem, no un padre ya `[x]`).
