@@ -1,5 +1,5 @@
-import { runMigrations } from '../src/db/migrate.ts'
-import { type PlanItem, readyItems } from '../src/db/plan-items.ts'
+import type { PlanItem } from '../src/db/plan-items.ts'
+import { configureWorktreePlanHome } from './plan-worktree-home.ts'
 
 export const MAX_NEXT_ITEMS = 12
 
@@ -15,6 +15,9 @@ export function renderNext(items: PlanItem[]): string {
 }
 
 if (import.meta.main) {
+  configureWorktreePlanHome()
+  const { runMigrations } = await import('../src/db/migrate.ts')
+  const { readyItems } = await import('../src/db/plan-items.ts')
   runMigrations()
   process.stdout.write(`${renderNext(readyItems())}\n`)
 }

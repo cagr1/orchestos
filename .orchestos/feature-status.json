@@ -1057,6 +1057,33 @@
       "closedDate": null
     },
     {
+      "id": "WT.1",
+      "sprint": "Fuera de fase",
+      "block": "DOC.1 y LIMP.1 — Documentación al día y código muerto (GO de Carlos 2026-10-14)",
+      "delegation": "🔍",
+      "title": "Dos worktrees se pisan el registro del plan",
+      "status": "done",
+      "closedDate": null
+    },
+    {
+      "id": "CUOTA.1",
+      "sprint": "Fuera de fase",
+      "block": "DOC.1 y LIMP.1 — Documentación al día y código muerto (GO de Carlos 2026-10-14)",
+      "delegation": "🔍",
+      "title": "La barra marca 100% de Claude desde el 28-sep sin que nadie lo vea",
+      "status": "open",
+      "closedDate": null
+    },
+    {
+      "id": "MOD.1",
+      "sprint": "Fuera de fase",
+      "block": "DOC.1 y LIMP.1 — Documentación al día y código muerto (GO de Carlos 2026-10-14)",
+      "delegation": "🔍",
+      "title": "El catálogo de cada CLI sale de la fuente del CLI, con nombre y versión",
+      "status": "open",
+      "closedDate": null
+    },
+    {
       "id": "DOC.2",
       "sprint": "Fuera de fase",
       "block": "DOC.1 y LIMP.1 — Documentación al día y código muerto (GO de Carlos 2026-10-14)",

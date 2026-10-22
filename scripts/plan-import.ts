@@ -1,13 +1,19 @@
 import { existsSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
-import { runMigrations } from '../src/db/migrate.ts'
-import { findAllPlanTransitionCommits, getPlanItem, upsertPlanItem } from '../src/db/plan-items.ts'
-import { db } from '../src/db/sqlite.ts'
 import {
   type PlanItemSource,
   parsePlanDocumentSegments,
   parsePlanItemSources,
 } from './plan-status.ts'
+import { configureWorktreePlanHome } from './plan-worktree-home.ts'
+
+// Resolve the CLI's home BEFORE sqlite.ts freezes its path at first import.
+if (import.meta.main) configureWorktreePlanHome()
+const { runMigrations } = await import('../src/db/migrate.ts')
+const { findAllPlanTransitionCommits, getPlanItem, upsertPlanItem } = await import(
+  '../src/db/plan-items.ts'
+)
+const { db } = await import('../src/db/sqlite.ts')
 
 function bodyFromEvidence(root: string, href: string): string {
   const [relativePath, anchor] = href.split('#', 2)

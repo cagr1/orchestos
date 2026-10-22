@@ -2164,6 +2164,28 @@ igual que hoy, lo que se corta es que el **producto** lo herede por accidente.
   1906/0, import de config con `ORCHESTOS_HOME=/dev/null` exit 0.
   Gate en vivo: navegador real (Playwright), `docs/done/evidence/LIMP.3-live.json` (`model-routing` 18/18, `chat-roles` 10/10).
   Ejecutado por: GPT (criterio-alt, r1 y r2), QA GPT (qa) · Spec: docs/specs/LIMP.3.md
+- [x] **WT.1 — 🔍 Dos worktrees se pisan el registro del plan.** (abierto y cerrado 2026-10-21, Carlos: "mira lo mejor") El
+  ledger (`plan_items` + `plan_doc_segments` en la DB de `~/.orchestos`) es uno solo: `plan:reconcile` en master borró
+  UI.27/UI.27.1 (rama `ui/UI.27`, worktree `orchestos-ui27`) como huérfanos y reemplaza el documento entero
+  (`plan-import.ts:108-123`), así que el pre-commit del otro worktree falla en `plan:render --check`. Decisión: el
+  worktree principal es dueño del ledger compartido; un worktree secundario usa uno propio y no toca el compartido.
+  Arreglo: `scripts/plan-worktree-home.ts` detecta por git (`--git-dir` ≠ `--git-common-dir`) y, solo en los CLI del
+  ledger (`plan-import`, `plan-render`, `plan-gate`, `next`), apunta `ORCHESTOS_HOME` a `<git-dir>/orchestos-plan` antes
+  de importar `src/db/sqlite.ts`. El dashboard y el resto del pre-commit siguen en la DB compartida; master no cambia.
+  Una DB privada vacía se reconstruye con un reconcile (SHAs de cerrados desde git). Evidencia (cerebro): typecheck,
+  `plan-worktree-home.test.ts` 1/1 (38 expect, repo + `git worktree add` reales, ambas direcciones), `test:coverage`
+  1907/0. QA (Sol) sin defectos. Integrar una rama sigue igual: rebase sobre master y reconcile en master.
+  Ejecutado por: GPT (criterio-alt), QA GPT (qa) · Spec: docs/specs/WT.1.md
+- [ ] **CUOTA.1 — 🔍 La barra marca 100% de Claude desde el 28-sep sin que nadie lo vea.** (abierto 2026-10-21, Carlos)
+  Causa: sin lecturas nuevas desde `Sep 28 10:18` (la `statusLine` apuntaba a `~/Documents/projects/orchestos`; luego
+  Orca la reescribió sin el tee) y `ShellStatusBar.tsx:44` pinta 100% toda ventana ya reiniciada. Restaurado a mano
+  2026-10-21 (respaldo `~/.claude/settings.json.bak.20261021-statusline`): tee → Orca; lectura fresca 96%/10%. Falta que
+  no vuelva a pasar en silencio. Spec: docs/specs/CUOTA.1.md
+- [ ] **MOD.1 — 🔍 El catálogo de cada CLI sale de la fuente del CLI, con nombre y versión.** (abierto 2026-10-21,
+  Carlos: "siempre debe mostrar el modelo con su versión, no solo para Claude") Claude arma su lista con el historial de
+  uso (`chat-cli-models.ts:107`): Sonnet 5.5 no aparece hasta usarlo. El CLI ya guarda su catálogo oficial en
+  `~/.claude/cache/model-catalog/*-cc.json` (`id` + `name` "Sonnet 5.5"), como Codex `models_cache.json`.
+  Spec: docs/specs/MOD.1.md
 - [x] **DOC.2 — 🔍 `docs/` solo con lo relevante.** (abierto 2026-10-14, GO de Carlos) 36 archivos sueltos clasificados
   por contenido contra HEAD: lo vigente se fusiona o comprime, lo histórico pasa a `docs/done/`, lo obsoleto se borra.
   Ejecutado por: criterio (delegate) · clasificación: leer · Spec: docs/specs/DOC.2.md

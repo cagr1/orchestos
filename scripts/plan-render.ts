@@ -1,9 +1,10 @@
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
-import { runMigrations } from '../src/db/migrate.ts'
-import { renderPlan } from '../src/db/plan-doc.ts'
+import { configureWorktreePlanHome } from './plan-worktree-home.ts'
 
-export { renderPlan } from '../src/db/plan-doc.ts'
+if (import.meta.main) configureWorktreePlanHome()
+const { runMigrations } = await import('../src/db/migrate.ts')
+export const { renderPlan } = await import('../src/db/plan-doc.ts')
 
 function firstDivergentLine(actual: string, expected: string): number {
   const actualLines = actual.split('\n')

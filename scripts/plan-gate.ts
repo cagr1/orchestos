@@ -1,13 +1,13 @@
+import type { Database } from 'bun:sqlite'
 import { execFileSync } from 'node:child_process'
 import { existsSync } from 'node:fs'
 import { posix } from 'node:path'
-import { runMigrations } from '../src/db/migrate.ts'
-import { db } from '../src/db/sqlite.ts'
 import {
   parsePlanDocumentSegments,
   parsePlanFeatureStatus,
   parsePlanItemSources,
 } from './plan-status.ts'
+import { configureWorktreePlanHome } from './plan-worktree-home.ts'
 
 function git(args: string[], cwd?: string): string {
   return execFileSync('git', args, { encoding: 'utf8', cwd })
@@ -101,7 +101,7 @@ function isValidSpecReference(spec: string, id: string, cwd?: string): boolean {
   )
 }
 
-function checkSegmentStatuses(): void {
+function checkSegmentStatuses(db: Database): void {
   const segments = db
     .query<{ text: string; item_id: string | null }, []>(
       "SELECT text, item_id FROM plan_doc_segments WHERE doc = 'PLAN.md' AND kind = 'item' ORDER BY position",
@@ -209,8 +209,11 @@ export function checkProvenance(): void {
 
 if (import.meta.main) {
   try {
+    configureWorktreePlanHome()
+    const { runMigrations } = await import('../src/db/migrate.ts')
+    const { db } = await import('../src/db/sqlite.ts')
     runMigrations()
-    checkSegmentStatuses()
+    checkSegmentStatuses(db)
     checkProvenance()
   } catch (error) {
     console.error(`✗ plan gate: ${error instanceof Error ? error.message : String(error)}`)
