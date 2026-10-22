@@ -130,7 +130,7 @@ test('AT.11 — public CLI registration drives session → turn → persistence 
       let apiCalls = 0
       globalThis.fetch = async () => { apiCalls++; throw new Error('API must never be called') }
       const definition = (id) => ({ ...KNOWN_CLIS.find(c => c.id === 'gemini'), id, binary: id, label: id })
-      KNOWN_CLIS.push(definition('fixture-chat'), definition('fixture-no-chat'))
+      KNOWN_CLIS.push(definition('fixture-chat'), definition('fixture-no-chat'), definition('fixture-terminal'))
       let turnInput
       let turns = 0
       registerCliChatAdapter('fixture-chat', {
@@ -147,6 +147,7 @@ test('AT.11 — public CLI registration drives session → turn → persistence 
         async runRole() { throw new Error('role runner must not be used by chat') },
         failure: e => ({ message: e.message }),
       })
+      registerCliChatAdapter('fixture-terminal', { ...cliChatAdapterFor('opencode'), terminal: true })
       const registeredFixture = cliChatAdapterFor('fixture-chat')
       let duplicateRegistrationRejected = false
       try { registerCliChatAdapter('fixture-chat', { ...registeredFixture, label: 'replacement' }) }
@@ -170,6 +171,12 @@ test('AT.11 — public CLI registration drives session → turn → persistence 
       const rejected = await rejectedResponse.json()
       const noChatCreate = await handleApiChatSessionsCreate(post('/sessions', { projectId: null, agent: 'fixture-no-chat' }))
       const noChatCreateReply = await noChatCreate.json()
+      const terminalCreate = await handleApiChatSessionsCreate(post('/sessions', { projectId: null, agent: 'fixture-terminal' }))
+      const terminalSession = await terminalCreate.json()
+      const opencodeCreate = await handleApiChatSessionsCreate(post('/sessions', { projectId: null, agent: 'opencode', mode: 'code' }))
+      const opencodeSession = await opencodeCreate.json()
+      const unknownCreate = await handleApiChatSessionsCreate(post('/sessions', { projectId: null, agent: 'unknown-cli' }))
+      const unknownCreateReply = await unknownCreate.json()
       const unsupportedResponse = await handleApiChat(post('', { agent: 'fixture-no-chat', model: 'fixture-model', message: 'hello' }), root)
       const unsupportedReply = await unsupportedResponse.json()
       const unknownResponse = await handleApiChat(post('', { agent: 'unregistered-cli', model: 'fixture-model', message: 'hello' }), root)
@@ -178,7 +185,10 @@ test('AT.11 — public CLI registration drives session → turn → persistence 
       const opencodeReply = await opencodeResponse.json()
       process.stdout.write(JSON.stringify({ createStatus: createResponse.status, status: response.status, reply, endpoint, messages, timeline, run, turnInput, turns,
         efforts: chatEffortLevelsForAgent('fixture-chat'), duplicateRegistrationRejected, duplicateKeptOriginal: cliChatAdapterFor('fixture-chat') === registeredFixture, rejectedStatus: rejectedResponse.status, rejected, unsupportedStatus: unsupportedResponse.status, unsupportedReply,
-        noChatCreateStatus: noChatCreate.status, noChatCreateReply, unknownStatus: unknownResponse.status, unknownReply, opencodeStatus: opencodeResponse.status, opencodeReply, apiCalls }))
+        noChatCreateStatus: noChatCreate.status, noChatCreateReply, terminalCreateStatus: terminalCreate.status,
+        terminalSession, opencodeCreateStatus: opencodeCreate.status,
+        opencodeSession, unknownCreateStatus: unknownCreate.status, unknownCreateReply,
+        unknownStatus: unknownResponse.status, unknownReply, opencodeStatus: opencodeResponse.status, opencodeReply, apiCalls }))
       db.close()
     `,
       ],
@@ -241,6 +251,12 @@ test('AT.11 — public CLI registration drives session → turn → persistence 
     expect(result.rejected.error).toBe('invalid fixture model')
     expect(result.noChatCreateStatus).toBe(400)
     expect(result.noChatCreateReply.error).toBe('chat no soportado')
+    expect(result.terminalCreateStatus).toBe(201)
+    expect(result.terminalSession).toMatchObject({ agent: 'fixture-terminal' })
+    expect(result.opencodeCreateStatus).toBe(201)
+    expect(result.opencodeSession).toMatchObject({ agent: 'opencode', mode: 'code' })
+    expect(result.unknownCreateStatus).toBe(400)
+    expect(result.unknownCreateReply.error).toBe('chat no soportado')
     expect(result.unsupportedStatus).toBe(400)
     expect(result.unsupportedReply.error).toBe('chat no soportado')
     expect(result.unknownStatus).toBe(400)

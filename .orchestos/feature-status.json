@@ -337,6 +337,24 @@
       "closedDate": null
     },
     {
+      "id": "CI.32",
+      "sprint": "Fase 2 — Producto mínimo para entrega",
+      "block": "H.7 — El contexto se llena en silencio y nadie avisa (ABIERTO 2026-09-02)",
+      "delegation": "🔍",
+      "title": "Cinco ui-gates en vivo rotos en master tras el lote del 2026-10-21 sin pre-push",
+      "status": "open",
+      "closedDate": null
+    },
+    {
+      "id": "CI.33",
+      "sprint": "Fase 2 — Producto mínimo para entrega",
+      "block": "H.7 — El contexto se llena en silencio y nadie avisa (ABIERTO 2026-09-02)",
+      "delegation": "🔍",
+      "title": "`graph-runner.test.ts` \"stops at the maximum graph iterations\" roza su límite de 5 s",
+      "status": "open",
+      "closedDate": null
+    },
+    {
       "id": "CI.31",
       "sprint": "Fase 2 — Producto mínimo para entrega",
       "block": "H.7 — El contexto se llena en silencio y nadie avisa (ABIERTO 2026-09-02)",

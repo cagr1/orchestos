@@ -61,6 +61,7 @@ export interface CliTurnResult extends CliRoleResult {
 
 export interface CliChatAdapter {
   chat: boolean
+  terminal?: boolean
   reason?: string
   label: string
   efforts: readonly string[]
@@ -238,6 +239,7 @@ registerCliChatAdapter('codex', {
 
 registerCliChatAdapter('opencode', {
   chat: false,
+  terminal: true,
   reason: 'OpenCode se usa como terminal en el tab Dev; el chat no lo ejecuta.',
   label: 'OpenCode CLI',
   efforts: [],

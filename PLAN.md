@@ -694,6 +694,30 @@ Cerrada. Todos sus ítems están archivados en `docs/done/` (ver "Cerrados — e
   (el CLI hijo hereda stderr → `dashboard.log`) y el paso vuelca porcelain, `git log -5`, estado de la tarea y log.
   Reproducción: set de UI.26.4 6 de 6 verde, 0 líneas `[tasks-yaml]`. Abierto hasta el próximo fallo: leer el
   detalle del paso en `result.json` y escribir la fase 2 (causa).
+- [ ] **CI.32 — 🔍 Cinco ui-gates en vivo rotos en master tras el lote del 2026-10-21 sin pre-push.** (abierto
+  2026-10-22) `ui:gate` completo: 26 pasan, 5 fallan, y los 5 se repiten igual al relanzarlos solos (deterministas,
+  no intermitentes). Evidencia: `gate:evidence next-2026-10-22-ui-gate-full` y `next-2026-10-22-ui-gate-rerun5`.
+  Spec: `docs/specs/CI.32.md`.
+  - [x] **CI.32.a — `opencode-terminal`: `POST /api/chat/sessions` con `agent: opencode` responde 400 `chat no
+    soportado`.** (cerrado 2026-10-22) Lo trajo AT.11 (`c6014ede`, `chat-sessions.ts:265-270`): crear una sesión
+    exige un adaptador de chat, y OpenCode no tiene a propósito (es una ventana libre, no un chat). Arreglo: el
+    registro declara la capacidad (`CliChatAdapter.terminal`, `true` solo en `opencode`) y crear sesión acepta `chat`
+    o `terminal`; `/api/chat` sigue rechazando a OpenCode. Ronda 1 resolvía con `taskEngine === 'opencode'` (rama por
+    marca): devuelta. Evidencia: `gate:evidence CI.32.a-live` → `opencode-terminal` 8/8; `chat-adapters.test.ts` 3/0
+    (fixture `terminal: true` → 201, `fixture-no-chat` y desconocido → 400); `test:coverage` 1925/0 (80.02 %/68.02 %).
+    Ejecutado por: codex gpt-6-luna (mecanico).
+  - [ ] **CI.32.b — `chat-followup-task` y `chat-task-undo`: `/api/chat` responde 404 `Project not found`** al
+    elegir el proyecto temporal en Dev y volver a Chat.
+  - [ ] **CI.32.c — `auto-flow`: la tarea Codex aprobada se queda en `running` con `pendingApprovals: 1`** hasta
+    agotar 10 min (auto-edit, "crea codex-nota.md"). Hipótesis sin verificar: la petición de aprobación llega antes
+    que su `item/started`, sale con `withinProject=false` y queda retenida (`codex-app-server.ts:159`/`:260`). Primero
+    hay que hacer que lo registre.
+  - [ ] **CI.32.d — `chat-retry-report`: el primer intento se queda en `running`, `retryCount=0`.** Posiblemente la
+    misma causa que CI.32.c; se confirma después de corregir CI.32.c.
+- [ ] **CI.33 — 🔍 `graph-runner.test.ts` "stops at the maximum graph iterations" roza su límite de 5 s.** (abierto
+  2026-10-22) Cadena de 202 tareas con `runTask` simulado: aislado tarda ~5 s (3 de 3), en `test:coverage` dio
+  timeout 1 de 3 corridas del 2026-10-22. ~25 ms por iteración con el ejecutor simulado: medir dónde se va el tiempo
+  en `runGraph` (escrituras, esperas) antes de tocar el timeout; subir el límite solo si el costo es legítimo.
 - [x] **CI.31 — ⚡ El shard `executors` de Mutation Shards pasa el límite de 3 h.** (abierto y cerrado 2026-10-21) Run
   `39566168502` cancelado a 3h0m: 3352 mutantes en 15 archivos con `concurrency: 1` (el 2026-10-20 eran 2627 en 11 y
   tardó 2h37; ERP.7.1a/d1/d2 sumaron `*-approval.ts` y `opencode-server.ts`). Arreglo: partir el shard en dos
