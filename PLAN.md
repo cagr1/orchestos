@@ -749,9 +749,12 @@ Cerrada. Todos sus ítems están archivados en `docs/done/` (ver "Cerrados — e
   grafo real, ~25 ms frente a minutos de LLM): límite del test a 20 s con la medición en un comentario; producto sin
   tocar. Evidencia: test aislado 3/3 (4,97–5,03 s); `test:coverage` 2/2 verde (1926/0).
   Ejecutado por: claude sonnet (criterio) · Spec: docs/specs/CI.33.md
-- [ ] **CI.36 — ⚡ `RunLogger.write` nunca tumba la corrida.** (abierto 2026-10-22, GO de Carlos) `src/run/logger.ts:47-50`
-  hace `appendFileSync` sin guarda: si `runs/` desaparece tras el constructor, `ENOENT` sube a quien solo anotaba.
-  Spec: docs/specs/CI.36.md
+- [x] **CI.36 — ⚡ `RunLogger.write` nunca tumba la corrida.** (abierto y cerrado 2026-10-22, GO de Carlos)
+  `src/run/logger.ts:47-50` hacía `appendFileSync` sin guarda: si `runs/` desaparecía tras el constructor, `ENOENT` subía
+  a quien solo anotaba. Arreglo: ante `ENOENT` recrea el directorio y reintenta; si no puede, avisa una vez por instancia
+  en stderr (`[run-logger] …`) y sigue. Hermanos: `evals/runner.ts:168` escribe `.gitignore` (persistencia, no log): no se
+  traga. Evidencia: `src/run/logger.test.ts` 2/0; contraprueba con el `logger.ts` anterior 0/2; `tsc` y lint limpios.
+  Ejecutado por: codex gpt-6-luna (mecanico) · Spec: docs/specs/CI.36.md
 - [ ] **CI.37 — 🔍 `waitForTaskRun` ante un `pending` con intento fallido: averiguar y corregir.** (abierto 2026-10-22,
   Carlos: "manda a Sol averiguar y corregir") `src/dashboard/app/src/api/chat.ts:540` espera hasta 10 min; no se midió si
   deja el botón ocupado. Ejecuta `criterio-alt`. Spec: docs/specs/CI.37.md

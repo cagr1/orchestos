@@ -360,7 +360,7 @@
       "block": "H.7 — El contexto se llena en silencio y nadie avisa (ABIERTO 2026-09-02)",
       "delegation": "⚡",
       "title": "`RunLogger.write` nunca tumba la corrida",
-      "status": "open",
+      "status": "done",
       "closedDate": null
     },
     {

@@ -1,5 +1,5 @@
-import { appendFileSync, mkdirSync } from 'fs'
-import { join } from 'path'
+import { appendFileSync, mkdirSync } from 'node:fs'
+import { dirname, join } from 'node:path'
 import { redactSensitive } from '../security/secrets.ts'
 import { excludeRuntimeArtifacts } from './git-exclude.ts'
 
@@ -7,6 +7,7 @@ import { excludeRuntimeArtifacts } from './git-exclude.ts'
 export class RunLogger {
   private readonly logPath: string
   private readonly prefix: string // e.g. "[t1-normal]"
+  private writeWarningEmitted = false
 
   constructor(root: string, taskId: string) {
     excludeRuntimeArtifacts(root)
@@ -46,6 +47,28 @@ export class RunLogger {
 
   private write(event: string) {
     const ts = new Date().toISOString().slice(11, 23) // HH:mm:ss.mmm
-    appendFileSync(this.logPath, `${ts}  ${this.prefix}  ${redactSensitive(event)}\n`, 'utf-8')
+    const line = `${ts}  ${this.prefix}  ${redactSensitive(event)}\n`
+    try {
+      appendFileSync(this.logPath, line, 'utf-8')
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
+        try {
+          mkdirSync(dirname(this.logPath), { recursive: true })
+          appendFileSync(this.logPath, line, 'utf-8')
+          return
+        } catch (retryError) {
+          this.warnWriteFailure(retryError)
+          return
+        }
+      }
+      this.warnWriteFailure(error)
+    }
+  }
+
+  private warnWriteFailure(error: unknown) {
+    if (this.writeWarningEmitted) return
+    this.writeWarningEmitted = true
+    const message = error instanceof Error ? error.message : String(error)
+    process.stderr.write(`[run-logger] no se pudo escribir ${this.logPath}: ${message}\n`)
   }
 }
