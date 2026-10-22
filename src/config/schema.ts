@@ -36,7 +36,8 @@ export interface RoleAssignment {
  * (BB.1). La asignación del rol Executor decide el agente para tareas sin una
  * regla específica; OrchestOS no elige un modelo para los CLIs.
  */
-export type AgentChoice = 'local' | 'claude' | 'opencode' | 'codex' | 'api'
+/** Open agent id; boundaries validate it against their supported task or chat agents. */
+export type AgentChoice = string
 
 /**
  * I.3 (Mes 30, 2026-09-04) — el requisito nuevo de Carlos: con varios proyectos

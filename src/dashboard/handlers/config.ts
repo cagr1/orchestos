@@ -1,7 +1,12 @@
 import { existsSync, writeFileSync } from 'fs'
 import { join } from 'path'
 import { parseDocument, stringify as yamlStringify } from 'yaml'
-import { AGENT_CHOICES, loadOrcheConfig, scaffoldConfigYaml } from '../../config/load.ts'
+import {
+  agentChoices,
+  isAgentChoice,
+  loadOrcheConfig,
+  scaffoldConfigYaml,
+} from '../../config/load.ts'
 import {
   type AgentChoice,
   type OrcheConfig,
@@ -146,8 +151,8 @@ export async function handleApiConfigSet(req: Request, root = process.cwd()): Pr
   }
   if (body.roles !== undefined && typeof body.roles !== 'object')
     return errorResponse('roles must be an object', 400)
-  if (body.agent !== undefined && body.agent !== null && !AGENT_CHOICES.includes(body.agent)) {
-    return errorResponse(`agent must be one of: ${AGENT_CHOICES.join(', ')}`, 400)
+  if (body.agent !== undefined && body.agent !== null && !isAgentChoice(body.agent)) {
+    return errorResponse(`agent must be one of: ${agentChoices().join(', ')}`, 400)
   }
   if (body.roleAssignments !== undefined) {
     if (
@@ -190,9 +195,9 @@ export async function handleApiConfigSet(req: Request, root = process.cwd()): Pr
     if (!Array.isArray(body.taskAgentRules))
       return errorResponse('taskAgentRules must be an array', 400)
     for (const [index, rule] of body.taskAgentRules.entries()) {
-      if (!rule || typeof rule !== 'object' || !AGENT_CHOICES.includes(rule.agent))
+      if (!rule || typeof rule !== 'object' || !isAgentChoice(rule.agent))
         return errorResponse(
-          `taskAgentRules[${index}].agent must be one of: ${AGENT_CHOICES.join(', ')}`,
+          `taskAgentRules[${index}].agent must be one of: ${agentChoices().join(', ')}`,
           400,
         )
       const match = rule.match

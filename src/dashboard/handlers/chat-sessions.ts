@@ -1,6 +1,5 @@
 import { contextWindowFor } from '../../../scripts/context-budget.ts'
 import { loadOrcheConfig } from '../../config/load.ts'
-import type { AgentChoice } from '../../config/schema.ts'
 import {
   archiveChatSession,
   type ChatMessageRecord,
@@ -290,7 +289,7 @@ export async function handleApiChatSessionsCreate(
   try {
     const session = createChatSession({
       projectId,
-      agent: agent as AgentChoice,
+      agent,
       mode: mode as ChatSessionMode,
       title: body.title as string | undefined,
     })

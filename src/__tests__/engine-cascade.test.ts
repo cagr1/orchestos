@@ -1,6 +1,14 @@
 import { describe, expect, it } from 'bun:test'
 import type { OrcheConfig, TaskAgentRule } from '../config/schema.ts'
-import { resolveProjectAgentRule, taskFieldsFromRule } from '../router/engine-cascade.ts'
+import {
+  resolveProjectAgentRule,
+  taskAgentIds,
+  taskFieldsFromRule,
+} from '../router/engine-cascade.ts'
+
+it('lists exactly the agents supported by task routing in diagnostic order', () => {
+  expect(taskAgentIds()).toEqual(['local', 'claude', 'opencode', 'codex', 'api'])
+})
 
 describe('resolveProjectAgentRule()', () => {
   const rules: TaskAgentRule[] = [

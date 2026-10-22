@@ -2151,12 +2151,19 @@ igual que hoy, lo que se corta es que el **producto** lo herede por accidente.
   Gate en vivo: navegador real (Playwright), `docs/done/evidence/LIMP.2-live.json` (`shell-look` 49/49, dos pasos nuevos:
   ⌘K abre y Escape cierra en Chat; en Settings la general no abre, medido antes de Escape por hallazgo P2 de `qa`).
   Spec: docs/specs/LIMP.2.md (borrado) · Ejecutado por: GPT (mecanico) · QA: GPT (qa).
-- [ ] **LIMP.3 — 🔍 `AgentChoice` deja de ser una lista cerrada de 5 marcas.** (abierto 2026-10-21, GO de Carlos)
+- [x] **LIMP.3 — 🔍 `AgentChoice` deja de ser una lista cerrada de 5 marcas.** (abierto y cerrado 2026-10-21, GO de Carlos)
   Resto de AT.11: el registro de adaptadores ya es abierto, pero `schema.ts:39` y sus 7 consumidores (config, DB,
   handlers de chat-sessions/tasks/config) fuerzan `'local'|'claude'|'opencode'|'codex'|'api'`. Sin cambio visible ni
   migración (`agent` es `TEXT` sin CHECK). Fuera de alcance, decidido: lectores de transcripts por CLI (adaptadores
   legítimos), agrupación por marca de Usage (cambio visible) y columnas `codex_*`/`claude_*` (migración sin ganancia).
-  Spec: docs/specs/LIMP.3.md
+  Resultado: `AgentChoice = string`; el chat valida contra el registro (sin cast) y la config contra `taskAgentIds()`
+  de `engine-cascade.ts` (un solo mapa agente→motor, misma lista que antes). La r1 validaba la config contra el registro
+  de chat: QA (Sol) mostró que importar config abría la DB (`ENOTDIR` con `ORCHESTOS_HOME=/dev/null`) y que una regla
+  con un adaptador nuevo perdía su agente en `taskFieldsFromRule`; r2 lo corrige, QA r2 sin defectos. Ejecutar tareas
+  con adaptadores nuevos es una feature aparte, sin ítem. Evidencia (cerebro): typecheck, biome, `test:coverage`
+  1906/0, import de config con `ORCHESTOS_HOME=/dev/null` exit 0.
+  Gate en vivo: navegador real (Playwright), `docs/done/evidence/LIMP.3-live.json` (`model-routing` 18/18, `chat-roles` 10/10).
+  Ejecutado por: GPT (criterio-alt, r1 y r2), QA GPT (qa) · Spec: docs/specs/LIMP.3.md
 - [x] **DOC.2 — 🔍 `docs/` solo con lo relevante.** (abierto 2026-10-14, GO de Carlos) 36 archivos sueltos clasificados
   por contenido contra HEAD: lo vigente se fusiona o comprime, lo histórico pasa a `docs/done/`, lo obsoleto se borra.
   Ejecutado por: criterio (delegate) · clasificación: leer · Spec: docs/specs/DOC.2.md

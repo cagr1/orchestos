@@ -3,6 +3,112 @@ import { mkdtempSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 
+test('LIMP.3 — config import does not open the database', async () => {
+  const proc = Bun.spawn(['bun', '-e', 'await import("./src/config/load.ts")'], {
+    cwd: process.cwd(),
+    env: { ...process.env, ORCHESTOS_HOME: '/dev/null' },
+    stdout: 'pipe',
+    stderr: 'pipe',
+  })
+  const [stderr, code] = await Promise.all([new Response(proc.stderr).text(), proc.exited])
+  expect(code, stderr).toBe(0)
+})
+
+test('LIMP.3 — registered chat adapters persist in sessions but are rejected for tasks', async () => {
+  const home = mkdtempSync(join(tmpdir(), 'orchestos-agent-choice-'))
+  try {
+    const proc = Bun.spawn(
+      [
+        'bun',
+        '-e',
+        `
+      const assert = (await import('node:assert/strict')).default
+      const { writeFileSync } = await import('node:fs')
+      const { join } = await import('node:path')
+      const { runMigrations } = await import('./src/db/migrate.ts')
+      const { db } = await import('./src/db/sqlite.ts')
+      const { loadOrcheConfig, agentChoices } = await import('./src/config/load.ts')
+      const { KNOWN_CLIS } = await import('./src/run/executors/cli-registry.ts')
+      const { cliChatAdapterFor, registerCliChatAdapter } = await import('./src/run/executors/chat-adapters.ts')
+      const { createChatSession, getChatSession } = await import('./src/db/chat-sessions.ts')
+      const { handleApiChatSessionsCreate } = await import('./src/dashboard/handlers/chat-sessions.ts')
+      const { handleApiConfigSet } = await import('./src/dashboard/handlers/config.ts')
+      runMigrations()
+      const root = process.env.ORCHESTOS_HOME
+      const post = body => new Request('http://localhost/api/config', {
+        method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body),
+      })
+      assert.deepEqual(agentChoices(), ['local', 'claude', 'opencode', 'codex', 'api'])
+      const unknown = await handleApiConfigSet(post({ agent: 'unknown-cli' }), root)
+      assert.equal(unknown.status, 400)
+      assert.equal((await unknown.json()).error, 'agent must be one of: local, claude, opencode, codex, api')
+      const warnings = []
+      const originalError = console.error
+      console.error = (...args) => warnings.push(args.join(' '))
+      writeFileSync(join(root, 'orchestos.config.yaml'), 'agent: unknown-cli\\n')
+      assert.equal(loadOrcheConfig(root).agent, undefined)
+      console.error = originalError
+      assert.deepEqual(warnings, ["[config] ignorando agent: 'unknown-cli' no es un valor válido — se usará el default. Valores permitidos: local, claude, opencode, codex, api."])
+      for (const agent of agentChoices()) {
+        writeFileSync(join(root, 'orchestos.config.yaml'), 'agent: ' + agent + '\\n')
+        assert.equal(loadOrcheConfig(root).agent, agent)
+      }
+      // Chat registration must not expand the task engines supported by config.
+      KNOWN_CLIS.push({ ...KNOWN_CLIS.find(c => c.id === 'gemini'), id: 'fake-cli', binary: 'fake-cli' })
+      registerCliChatAdapter('fake-cli', { ...cliChatAdapterFor('claude'), label: 'Fake CLI' })
+      writeFileSync(join(root, 'orchestos.config.yaml'), 'agent: fake-cli\\ntaskAgentRules:\\n  - match: { skill: fake }\\n    agent: fake-cli\\n')
+      assert.deepEqual(agentChoices(), ['local', 'claude', 'opencode', 'codex', 'api'])
+      const taskWarnings = []
+      console.error = (...args) => taskWarnings.push(args.join(' '))
+      const cfg = loadOrcheConfig(root)
+      console.error = originalError
+      assert.equal(cfg.agent, undefined)
+      assert.equal(cfg.taskAgentRules, undefined)
+      assert.deepEqual(taskWarnings, [
+        "[config] ignorando agent: 'fake-cli' no es un valor válido — se usará el default. Valores permitidos: local, claude, opencode, codex, api.",
+        "[config] ignorando taskAgentRules[].agent: 'fake-cli' no es un valor válido — se usará el default. Valores permitidos: local, claude, opencode, codex, api.",
+      ])
+      const saved = await handleApiConfigSet(post({ agent: 'fake-cli', taskAgentRules: [{ match: { skill: 'fake' }, agent: 'fake-cli' }] }), root)
+      assert.equal(saved.status, 400)
+      assert.equal((await saved.json()).error, 'agent must be one of: local, claude, opencode, codex, api')
+      const session = createChatSession({ projectId: null, agent: 'fake-cli' })
+      assert.equal(getChatSession(session.id).agent, 'fake-cli')
+      for (const agent of ['fake-cli', 'local', 'api']) {
+        const response = await handleApiChatSessionsCreate(post({ projectId: null, agent }))
+        assert.equal(response.status, 201)
+        assert.equal((await response.json()).agent, agent)
+      }
+      const rejected = await handleApiChatSessionsCreate(post({ projectId: null, agent: 'unknown-cli' }))
+      assert.equal(rejected.status, 400)
+      assert.equal((await rejected.json()).error, 'chat no soportado')
+      for (const agent of ['unknown-cli', 'fake-cli']) {
+        const invalidRule = await handleApiConfigSet(post({ taskAgentRules: [{ match: { skill: 'fake' }, agent }] }), root)
+        assert.equal(invalidRule.status, 400)
+        assert.equal((await invalidRule.json()).error, 'taskAgentRules[0].agent must be one of: local, claude, opencode, codex, api')
+      }
+      db.close()
+      console.log('LIMP.3 assertions passed')
+    `,
+      ],
+      {
+        cwd: process.cwd(),
+        env: { ...process.env, HOME: home, ORCHESTOS_HOME: home },
+        stdout: 'pipe',
+        stderr: 'pipe',
+      },
+    )
+    const [stdout, stderr, code] = await Promise.all([
+      new Response(proc.stdout).text(),
+      new Response(proc.stderr).text(),
+      proc.exited,
+    ])
+    expect(code, stderr).toBe(0)
+    expect(stdout).toContain('LIMP.3 assertions passed')
+  } finally {
+    rmSync(home, { recursive: true, force: true })
+  }
+})
+
 test('AT.11 — public CLI registration drives session → turn → persistence without API fallback', async () => {
   const home = mkdtempSync(join(tmpdir(), 'orchestos-chat-adapter-'))
   try {

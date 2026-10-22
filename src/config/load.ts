@@ -13,6 +13,7 @@ import { existsSync, readFileSync } from 'fs'
 import { homedir } from 'os'
 import { join } from 'path'
 import { parse } from 'yaml'
+import { taskAgentIds } from '../router/engine-cascade.ts'
 import {
   type AgentChoice,
   DEFAULT_CONFIG,
@@ -24,7 +25,14 @@ import {
   type TaskAgentRule,
 } from './schema.ts'
 
-export const AGENT_CHOICES: AgentChoice[] = ['local', 'claude', 'opencode', 'codex', 'api']
+/** Agents supported by task routing, including local and API execution. */
+export function agentChoices(): AgentChoice[] {
+  return taskAgentIds()
+}
+
+export function isAgentChoice(value: unknown): value is AgentChoice {
+  return typeof value === 'string' && agentChoices().includes(value)
+}
 
 const GLOBAL_CONFIG_PATH = join(homedir(), '.orchestos', 'config.yaml')
 
@@ -184,8 +192,8 @@ const LEGACY_EXECUTOR_ENGINE_TO_AGENT: Record<string, AgentChoice> = {
 
 function resolveAgent(raw: Record<string, unknown>): AgentChoice | undefined {
   if (raw.agent !== undefined && raw.agent !== null) {
-    if ((AGENT_CHOICES as readonly unknown[]).includes(raw.agent)) return raw.agent as AgentChoice
-    warnIgnored('agent', raw.agent, AGENT_CHOICES)
+    if (isAgentChoice(raw.agent)) return raw.agent
+    warnIgnored('agent', raw.agent, agentChoices())
     return undefined
   }
   if (typeof raw.executor_mode === 'string' && raw.executor_mode in LEGACY_EXECUTOR_MODE_TO_AGENT) {
@@ -212,8 +220,8 @@ function parseTaskAgentRules(v: unknown): TaskAgentRule[] | undefined {
       continue
     }
     const obj = entry as Record<string, unknown>
-    if (!AGENT_CHOICES.includes(obj.agent as AgentChoice)) {
-      warnIgnored('taskAgentRules[].agent', obj.agent, AGENT_CHOICES)
+    if (!isAgentChoice(obj.agent)) {
+      warnIgnored('taskAgentRules[].agent', obj.agent, agentChoices())
       continue
     }
     const matchRaw = obj.match
@@ -232,7 +240,7 @@ function parseTaskAgentRules(v: unknown): TaskAgentRule[] | undefined {
     }
     rules.push({
       match: { output, skill },
-      agent: obj.agent as AgentChoice,
+      agent: obj.agent,
       model: typeof obj.model === 'string' && obj.model.trim() ? obj.model.trim() : undefined,
       cli_effort: typeof obj.cli_effort === 'string' ? obj.cli_effort : undefined,
     })

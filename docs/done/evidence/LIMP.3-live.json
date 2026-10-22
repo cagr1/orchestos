@@ -1,0 +1,172 @@
+[
+  {
+    "flujo": "model-routing",
+    "pass": true,
+    "steps": [
+      {
+        "nombre": "4 role cards are shown",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "all role cards start unassigned",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "legacy QA judge and model are absent",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "orchestrator does not offer OpenCode",
+        "ok": true,
+        "detalle": "{\"orchestratorOpenCodeCount\":0,\"orchestratorCodexCount\":1}"
+      },
+      {
+        "nombre": "executor still offers OpenCode",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "reviewer still offers OpenCode",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "auxiliary still offers OpenCode",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "OpenCode reviewer model menu stays under 60 percent of viewport and scrolls internally",
+        "ok": true,
+        "detalle": "{\"height\":550,\"viewportHeight\":1000,\"scrolls\":true}"
+      },
+      {
+        "nombre": "model search shows the empty state",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "model search reduces results and keeps the requested model",
+        "ok": true,
+        "detalle": "{\"initialModelCount\":383,\"matchingModelCount\":1,\"model\":\"opencode/beam-free\",\"matchingModelVisible\":1}"
+      },
+      {
+        "nombre": "keyboard selection opens effort for a variant model",
+        "ok": true,
+        "detalle": "{\"model\":\"opencode/beam-free\",\"efforts\":[\"low\",\"medium\",\"high\",\"xhigh\",\"max\"]}"
+      },
+      {
+        "nombre": "effort menu contains only this model variants",
+        "ok": true,
+        "detalle": "[\"low\",\"medium\",\"high\",\"xhigh\",\"max\"]"
+      },
+      {
+        "nombre": "model without variants hides effort control",
+        "ok": true,
+        "detalle": "{\"model\":\"opencode/big-pickle\",\"efforts\":[]}"
+      },
+      {
+        "nombre": "role assignments persist and reviewer warning appears",
+        "ok": true,
+        "detalle": "{\"roleAssignments\":{\"orchestrator\":{\"agent\":\"codex\",\"model\":\"gpt-6-luna\",\"effort\":\"medium\"},\"executor\":{\"agent\":\"codex\",\"model\":\"gpt-6-luna\",\"effort\":\"medium\"},\"reviewer\":{\"agent\":\"codex\",\"model\":\"gpt-6-luna\",\"effort\":\"medium\"},\"auxiliary\":{\"agent\":\"codex\",\"model\":\"gpt-6-luna\",\"effort\":\"medium\"}},\"roleWarnings\":[\"reviewer-same-as-executor\"],\"ui\":[\"Orchestrator\\nChat, drafts and task splitting\\nCodex\\nGPT-6-Luna\\nmedium\",\"Executor\\nRuns tasks\\nCodex\\nGPT-6-Luna\\nmedium\",\"Reviewer\\nQA (read-only)\\nCodex\\nGPT-6-Luna\\nmedium\\nSame agent and model as Executor: errors may correlate.\",\"Auxiliary\\nDiagnose and memory judge (read-only)\\nCodex\\nGPT-6-Luna\\nmedium\"],\"source\":[\"Source: orchestos.config.yaml\"]}"
+      },
+      {
+        "nombre": "task rule persists after reload",
+        "ok": true,
+        "detalle": "{\"rules\":[{\"match\":{\"output\":[\"docs/**\"]},\"agent\":\"codex\",\"model\":\"gpt-6.1-sol\"}],\"model\":\"gpt-6.1-sol\",\"ruleModelButtonText\":\"GPT-6.1-Sol\",\"ui\":[\"Task rules (1)\"],\"output\":\"docs/**\"}"
+      },
+      {
+        "nombre": "deleting the rule persists an empty list",
+        "ok": true,
+        "detalle": "[]"
+      },
+      {
+        "nombre": "project config remains selected before running task",
+        "ok": true,
+        "detalle": "{\"roleAssignments\":{\"orchestrator\":{\"agent\":\"codex\",\"model\":\"gpt-6-luna\",\"effort\":\"medium\"},\"executor\":{\"agent\":\"codex\",\"model\":\"gpt-6-luna\",\"effort\":\"medium\"},\"reviewer\":{\"agent\":\"codex\",\"model\":\"gpt-6-luna\",\"effort\":\"medium\"},\"auxiliary\":{\"agent\":\"codex\",\"model\":\"gpt-6-luna\",\"effort\":\"medium\"}}}"
+      },
+      {
+        "nombre": "run record stores the executor and QA models chosen in the UI",
+        "ok": true,
+        "detalle": "{\"id\":\"3ce76958-c182-4102-9984-16a165cf4fdd\",\"model\":\"gpt-6-luna\",\"qa_model\":\"gpt-6-luna\"}"
+      }
+    ],
+    "notes": [],
+    "errores": [],
+    "capturas": [
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-56668/model-routing/roles-unassigned.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-56668/model-routing/roles-assigned.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-56668/model-routing/task-rules.png"
+    ]
+  },
+  {
+    "flujo": "chat-roles",
+    "pass": true,
+    "steps": [
+      {
+        "nombre": "temporary project visible",
+        "ok": true,
+        "detalle": "orchestos-ui-mr-1-d1-NKMpJk"
+      },
+      {
+        "nombre": "Orchestrator Codex selected by default",
+        "ok": true,
+        "detalle": "Codex option visible: Codex"
+      },
+      {
+        "nombre": "question turn receives a response",
+        "ok": true,
+        "detalle": "The README has 1 line."
+      },
+      {
+        "nombre": "first normal turn latency (ms)",
+        "ok": true,
+        "detalle": "14607 ms from send to visible reply"
+      },
+      {
+        "nombre": "Orchestrator provider and model are recorded",
+        "ok": true,
+        "detalle": "{\"provider\":\"codex\",\"model\":\"gpt-6-luna\"}"
+      },
+      {
+        "nombre": "Orchestrator create_task call creates a held task without Auxiliary",
+        "ok": true,
+        "detalle": "{\"secondTurnDone\":true,\"httpStatus\":200,\"apiText\":\"his as a project task, since project file changes are handled through OrchestOS tasks.\\n\\nI submitted a task to add “Orchestrator marker gate” to [README.md](/private/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/orchestos-ui-mr-1-d1-NKMpJk/README.md). It needs approval before it can proceed.\\n\\n⏸ Created task `chat-bb010f09-4782-4ef2-ab74-9107c8417316`, waiting for your confirmation before it runs.\",\"autoTask\":{\"id\":\"chat-bb010f09-4782-4ef2-ab74-9107c8417316\",\"held\":true,\"existingFiles\":[\"README.md\"]},\"autoTaskSkipped\":false,\"dbTasks\":[],\"label\":\"Add the line \\\"Orchestrator marker gate\\\" to README.md.\\nReady to run\\nApprove & Run\\nReject\"}"
+      },
+      {
+        "nombre": "held task card visible at the bottom",
+        "ok": true,
+        "detalle": "{\"overflows\":true,\"atBottom\":true,\"contained\":true}"
+      },
+      {
+        "nombre": "chat follows content that grows after render",
+        "ok": true,
+        "detalle": "{\"grew\":true,\"atBottom\":true,\"distanceBefore\":0,\"distanceAfter\":0,\"scrollTop\":878,\"scrollHeight\":1189,\"clientHeight\":311,\"contentChildren\":2}"
+      },
+      {
+        "nombre": "task delegates execution without fixed model or engine",
+        "ok": true,
+        "detalle": "{\"id\":\"chat-bb010f09-4782-4ef2-ab74-9107c8417316\",\"description\":\"Add the line \\\"Orchestrator marker gate\\\" to README.md.\",\"output\":[\"README.md\"],\"status\":\"pending\",\"retry_count\":0,\"approvalMode\":\"auto-edit\",\"task_class\":\"implement\",\"skill\":\"doc-gen\"}"
+      },
+      {
+        "nombre": "Executor settings no longer contain Default agent chips",
+        "ok": true,
+        "detalle": "Default agent headings: 0; chips: 0"
+      }
+    ],
+    "notes": [],
+    "errores": [],
+    "capturas": [
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-56668/chat-roles/temporary-project-visible.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-56668/chat-roles/orchestrator-preselected.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-56668/chat-roles/orchestrator-question-response.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-56668/chat-roles/orchestrator-turn-recorded.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-56668/chat-roles/task-held-without-auxiliary.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-56668/chat-roles/task-yaml-delegates-to-role.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-56668/chat-roles/executor-settings-without-default-agent.png"
+    ]
+  }
+]
