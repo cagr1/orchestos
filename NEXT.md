@@ -21,8 +21,7 @@ cerebro `d5afa04c` (`CLAUDE.md` del repo 4,9k → 1,6k tokens est.; historia en 
 - Anotado, sin ítem: el revisor elige su ventana cortando en el primer tramo que no cabe (un revert posterior podría
   dejar caber uno más largo; nada se pierde, el salto queda anotado).
 - Decisiones pendientes de Carlos sin ítem: turno de chat con CLI lento (más de 120 s o aviso honesto, en CI.18);
-  peso de `main.js` tras UI.24.4 (dejarlo, alias de `rehype-raw` o lazy-load de Streamdown); arreglar en `method/` del
-  vault que `delegate` → Codex no vea `AGENT_WRITER_TOKEN` (ver Trampas).
+  peso de `main.js` tras UI.24.4 (dejarlo, alias de `rehype-raw` o lazy-load de Streamdown).
 
 ## Trampas vivas
 - Ítems de `PLAN.md` llevan emoji de delegación (`🧠 ⚡ 🔍`) tras el "—": sin él el parser
@@ -30,7 +29,10 @@ cerebro `d5afa04c` (`CLAUDE.md` del repo 4,9k → 1,6k tokens est.; historia en 
   lo pruebe, `plan:reconcile` aborta "Could not prove a closing commit SHA": volverlo a `open` en
   `~/.orchestos/db.sqlite` (`plan_items`) y reconciliar. La línea `Ejecutado por: … · Spec: docs/specs/<ID>.md` va en UNA
   línea; un cierre que toca dashboard lleva `Gate en vivo: navegador real (Playwright), `docs/done/evidence/<ID>-live.json``.
-- `delegate mecanico` (Codex) sigue sin ver `AGENT_WRITER_TOKEN` (otra vez en TCLI.2): para escribir, `criterio`.
+- `criterio` = Sol 6.1 (Codex) desde 2026-10-22, pedido de Carlos: repartir cupo; Sonnet es `criterio-alt`. El "Codex no
+  ve el token" era falso: lo recibía, pero leía `writer-lock.js status` "ocupado" y no escribía. Arreglado en el vault
+  `5134b27` (`status` dice si el token coincide; el prompt manda correr `check`). Si Codex vuelve a fallar por entorno,
+  se arregla la herramienta, no se rodea con Claude.
 - Chequeo de tipos en specs: `bun run typecheck`. `bunx tsc --noEmit` de la raíz excluye `src/dashboard/app`: no vio un
   import borrado de `Button` y Plan quedó en pantalla negra (UI.28 r2).
 - `delegate` prohíbe al ejecutor editar `PLAN.md`: archivar o reestructurar el plan lo hace el cerebro (DOC.4).
