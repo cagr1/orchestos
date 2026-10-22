@@ -1,27 +1,21 @@
-# NEXT — handoff 2026-10-22 (corte tras el lote CI.35–CI.38, UI.27.3, UI.28, CTX-GUARD.2, DOC.4)
+# NEXT — handoff 2026-10-22 (corte tras el lote TCLI.1–TCLI.2 y la poda de CLAUDE.md)
 
 Un solo presente: orden y trampas vivas. Lo cerrado vive en `docs/done/bloque-*.md` y git (regla `AGENTS.md` § Reglas
 generales, 2026-10-19: `NEXT.md` se toca solo al cerrar o cortar un lote). Arranque:
 `bun run agent:preflight -- --item <ID> --agent claude`. Lista viva: `bun run next`. Roster normal (`roster.conf`).
 
 ## Cerrado 2026-10-22
-CI.35 `e05c27e2` (`chat-streaming` compara palabras, no Markdown crudo), UI.27.3 `50aad30e`+`358942eb` (traído del
-worktree de la sesión Desktop; worktree y rama `ui/UI.27` borrados), CI.36 `cf250e8e` (`RunLogger.write` no tumba la
-corrida), UI.28 `d65ffb68` (Settings sin puertas manuales de tareas), CTX-GUARD.2 `bc90189f` (guard mide 2,2
-chars/token y skills de cuenta), CI.37 `7a8f87a2` (Sol: intento fallido que vuelve a `pending` termina la espera),
-DOC.4 `39c67167` (PLAN.md 2.678 → 216 líneas; `CONTEXT.md` al día), CI.38 `8f3d1199` (`chat-continuity`/`codex-live`
-eligen la sesión por `data-thread-id`: tras UI.27.3 dos chats pueden tener el mismo título). Todo en `origin/master`,
-pre-push verde. Detalle en `docs/done/bloque-*.md` y `PLAN.md`.
+Lote anterior (CI.35–CI.38, UI.27.3, UI.28, CTX-GUARD.2, DOC.4) en `docs/done/bloque-*.md` y git. Este lote, GO de
+Carlos: TCLI.1 `2ec35349` (registro CLI ↔ ejecutor de tareas en `src/run/executors/task-engines.ts`; un CLI sin
+ejecutor falla visible, ya no `single-shot`), TCLI.2 `f023ed2d` (tipos/front del registro; `executor-modes` con
+`taskEngine` y `session`; arreglado el intermitente del timeout de `codex-engine.test.ts`), CTX-GUARD.3 parte del
+cerebro `d5afa04c` (`CLAUDE.md` del repo 4,9k → 1,6k tokens est.; historia en `docs/done/claude-md-historia.md`).
 
 ## Orden
-1. **Plan para GO de Carlos: tareas con cualquier CLI** (pedido 2026-10-22: "no hay un CLI de preferencia, eso es
-   primordial"). Hoy: ramas cerradas en `engine-cascade.ts:5-11`, `harness.ts:353-367`, `load.ts:146`,
-   `tasks/schema.ts:15,140`, `dashboard/types.ts:216,276`, `App.tsx:883`; `external.ts` es Claude headless; un CLI sin
-   motor cae en silencio a `single-shot`. Cambia un comportamiento central → plan corto antes de codear (regla
-   2026-07-17). Mapa completo en la respuesta de `leer` del 2026-10-22 (resumida en `CONTEXT.md` § Estado vigente).
-2. **Peso de arranque**: el guard avisa ~15,2k tokens est. (CLAUDE.md global 3,2k, del repo 4,9k, MEMORY 3,3k, 13 skills
-   de cuenta 3,8k; límite 9k). Decide Carlos: bajar peso (podar CLAUDE.md/MEMORY, desactivar skills de cuenta en
-   claude.ai) o mover el límite.
+1. **CTX-GUARD.3 — falta Carlos**: apagar las 13 skills de cuenta en claude.ai. Con eso el guard mide ~8,1k (límite
+   9k); cerrar el ítem con la salida de `node .claude/hooks/startup-guard.js` sin aviso.
+2. **Agregar un CLI ejecutor de tareas** (DeepSeek/Gemini/Kimi/GLM) = entrada en `KNOWN_CLIS` + `registerTaskEngine`
+   con su `ExecutorEngine`. Solo cuando el CLI esté instalado y se pueda verificar en vivo.
 3. Fiabilidad, cuando el pre-push la tumba: CI.23, CI.18, CI.19, CI.11. Un flujo que revienta dice el locator y deja
    `<flujo>/failure.png`.
 - Anotado, sin ítem: el revisor elige su ventana cortando en el primer tramo que no cabe (un revert posterior podría
@@ -31,6 +25,12 @@ pre-push verde. Detalle en `docs/done/bloque-*.md` y `PLAN.md`.
   vault que `delegate` → Codex no vea `AGENT_WRITER_TOKEN` (ver Trampas).
 
 ## Trampas vivas
+- Ítems de `PLAN.md` llevan emoji de delegación (`🧠 ⚡ 🔍`) tras el "—": sin él el parser
+  (`scripts/plan-status.ts:45`) no los ve, ni `bun run next` ni el gate. Si un ítem ya quedó `done` en la DB sin commit que
+  lo pruebe, `plan:reconcile` aborta "Could not prove a closing commit SHA": volverlo a `open` en
+  `~/.orchestos/db.sqlite` (`plan_items`) y reconciliar. La línea `Ejecutado por: … · Spec: docs/specs/<ID>.md` va en UNA
+  línea; un cierre que toca dashboard lleva `Gate en vivo: navegador real (Playwright), `docs/done/evidence/<ID>-live.json``.
+- `delegate mecanico` (Codex) sigue sin ver `AGENT_WRITER_TOKEN` (otra vez en TCLI.2): para escribir, `criterio`.
 - Chequeo de tipos en specs: `bun run typecheck`. `bunx tsc --noEmit` de la raíz excluye `src/dashboard/app`: no vio un
   import borrado de `Button` y Plan quedó en pantalla negra (UI.28 r2).
 - `delegate` prohíbe al ejecutor editar `PLAN.md`: archivar o reestructurar el plan lo hace el cerebro (DOC.4).

@@ -44,11 +44,14 @@ conservan su fecha y, donde una frase quedó superada, lo dice la línea "Supera
   de terminal, `CliChatAdapter.terminal`, CI.32.a). El contexto inyectado lo arma `buildChatSystemPrompt`
   (`src/chat/chat-context.ts`). Roles: Orquestador, Ejecutor, Revisor y Auxiliar con {agente, modelo, esfuerzo} por
   proyecto (MR.1). El chat acepta cualquier adaptador registrado (LIMP.3).
-- **Tareas con cualquier CLI (pendiente de plan, 2026-10-22).** Carlos: las tareas deben correr con el CLI que el
-  usuario disponga, sin CLI preferido. Hoy la ejecución tiene ramas cerradas claude/codex/opencode
-  (`src/router/engine-cascade.ts:5-11`, `src/run/harness.ts:353-367`, `src/config/load.ts:146`) y un CLI sin motor cae
-  en silencio a `single-shot`.
-- **Guard de arranque (CTX-GUARD.2).** Mide con 2,2 chars/token (calibrado contra `/context`) y cuenta las skills de
+- **Tareas con cualquier CLI (TCLI.1–TCLI.2, 2026-10-22).** El ejecutor de tareas de cada CLI vive en un registro
+  (`src/run/executors/task-engines.ts`: claude→`external`, codex, opencode; ids persistidos sin cambio). Harness,
+  auto-route, evals, cascada, `cli.ts`, handlers y tipos consultan el registro; no quedan uniones cerradas de CLI. Un CLI
+  de `KNOWN_CLIS` sin ejecutor asignado al Ejecutor falla visible, nunca `single-shot`. `/api/system/executor-modes`
+  expone `taskEngine` y `session` (`chat`/`terminal`/`null`); Settings no ofrece al Ejecutor un CLI sin ejecutor y el
+  modal de chat nuevo filtra por `session`. Agregar un CLI = entrada en `KNOWN_CLIS` + `registerTaskEngine`.
+- **Guard de arranque (CTX-GUARD.2, .3).** `CLAUDE.md` del repo podado a las reglas (historia en
+  `docs/done/claude-md-historia.md`). Mide con 2,2 chars/token (calibrado contra `/context`) y cuenta las skills de
   cuenta (`~/.claude/skills/synced`, `~/.claude/plugins/synced`); desde 2026-10-22 avisa ~15k tokens de arranque. No ve
   conectores activos: `claude.ai Claude Docs` carga pese a `disabledMcpServers`.
 - **Superado:** "Codex/OpenCode … el transporte de chat responde 422" (nota CC.2), "No existe UI de sesiones en
