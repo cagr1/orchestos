@@ -758,9 +758,17 @@ Cerrada. Todos sus ítems están archivados en `docs/done/` (ver "Cerrados — e
 - [ ] **CI.37 — 🔍 `waitForTaskRun` ante un `pending` con intento fallido: averiguar y corregir.** (abierto 2026-10-22,
   Carlos: "manda a Sol averiguar y corregir") `src/dashboard/app/src/api/chat.ts:540` espera hasta 10 min; no se midió si
   deja el botón ocupado. Ejecuta `criterio-alt`. Spec: docs/specs/CI.37.md
-- [ ] **CTX-GUARD.2 — ⚡ El guard de arranque mide lo que de verdad carga.** (abierto 2026-10-22, GO de Carlos) Estima con
-  chars/4 y lo medido es 2,2 chars/token: hoy calla con 11,9k tokens de memoria (límite 9k); no mide las skills de cuenta
-  (`~/.claude/skills/synced`, `~/.claude/plugins/synced`). Spec: docs/specs/CTX-GUARD.2.md
+- [x] **CTX-GUARD.2 — ⚡ El guard de arranque mide lo que de verdad carga.** (abierto y cerrado 2026-10-22, GO de Carlos)
+  Estimaba con chars/4 y lo medido es 2,2 chars/token (`/context`: 26.309 chars → 11,9k tokens): callaba con 11,9k
+  tokens de memoria (límite 9k). No medía las skills de cuenta. Arreglo (`.claude/hooks/startup-guard.js`):
+  `CHARS_PER_TOKEN = 2.2`; suma la `description` de cada `SKILL.md` en `~/.claude/skills/**` y
+  `~/.claude/plugins/synced/**` (sin directorios ocultos: r2 contaba `~/.claude/skills/.trash`) y las nombra en el
+  hallazgo. Límite documentado en el archivo: `claude.ai Claude Docs` carga pese a `disabledMcpServers` y el guard no lo
+  ve sin `claude mcp list` (red). Con el HOME real: 15,2k tokens est. (CLAUDE.md global 3,2k, del repo 4,9k, MEMORY 3,3k,
+  13 skills de cuenta 3,8k; `/context` da 3,1k para 15 skills). Desde ahora avisa en cada arranque hasta bajar el peso o
+  mover el límite: decisión de Carlos. Evidencia: `tests/hooks/startup-guard.test.ts` 14/0, fixtures con HOME temporal
+  (pequeño calla; pesado avisa con `skills de cuenta (2)`; `.trash` no cuenta).
+  Ejecutado por: codex gpt-6-luna (mecanico) · Spec: docs/specs/CTX-GUARD.2.md
 - [x] **UI.28 — ⚡ Settings → Tasks no invita a crear tareas a mano.** (abierto y cerrado 2026-10-22, Carlos: "el
   Cerebro de OrchestOS es quien toma la decisión", 4.ª vez) Empty state con "Create First Task" y "tasks.yaml"
   (`OrchestSettingsView.tsx:2887`) → "Tasks appear here when the orchestrator creates them from Chat.", sin botón.

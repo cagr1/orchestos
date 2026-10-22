@@ -9,9 +9,9 @@ import { execFile, execFileSync } from 'node:child_process'
  * nada — un aviso que siempre aparece es el mismo mal que este hook cura.
  * Nunca bloquea la sesión: sale 0 siempre, silencio ante cualquier error.
  */
-import { existsSync, readFileSync } from 'node:fs'
+import { existsSync, readFileSync, readdirSync } from 'node:fs'
 import { homedir } from 'node:os'
-import { dirname, resolve } from 'node:path'
+import { basename, dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { promisify } from 'node:util'
 import { isClaudeStatuslineWired } from '../../scripts/claude-statusline-wiring.js'
@@ -25,6 +25,8 @@ const HOME = process.env.STARTUP_GUARD_HOME || homedir()
 
 const PLUGIN_ALLOWLIST = new Set(['security-guidance@claude-plugins-official'])
 const TOKEN_WEIGHT_LIMIT = 9_000
+// Calibrado 2026-10-22 contra `/context`: 26.309 chars → 11,9k tokens.
+const CHARS_PER_TOKEN = 2.2
 
 const CLAUDE_JSON_PATH = resolve(HOME, '.claude.json')
 const USER_SETTINGS_PATH = resolve(HOME, '.claude/settings.json')
@@ -63,13 +65,57 @@ function readJson(path) {
 function fileTokens(path) {
   try {
     const bytes = readFileSync(path, 'utf8').length
-    return bytes / 4
+    return bytes / CHARS_PER_TOKEN
   } catch {
     return 0
   }
 }
 
+function accountSkillDescriptions() {
+  const roots = [resolve(HOME, '.claude/skills'), resolve(HOME, '.claude/plugins/synced')]
+  const skills = []
+  const visit = (directory, depth) => {
+    if (depth > 5) return
+    let entries
+    try {
+      entries = readdirSync(directory, { withFileTypes: true })
+    } catch {
+      return
+    }
+    for (const entry of entries) {
+      if (entry.name.startsWith('.')) continue
+      const path = resolve(directory, entry.name)
+      if (entry.isDirectory()) {
+        visit(path, depth + 1)
+      } else if (entry.isFile() && entry.name === 'SKILL.md') {
+        try {
+          const content = readFileSync(path, 'utf8')
+          const lines = content.split(/\r?\n/)
+          if (lines[0]?.trim() !== '---') continue
+          const closing = lines.indexOf('---', 1)
+          if (closing < 0) continue
+          const description = lines
+            .slice(1, closing)
+            .find((line) => line.startsWith('description:'))
+            ?.slice('description:'.length)
+            .trim()
+          if (description) {
+            const unquoted = description.replace(/^(?:"([\s\S]*)"|'([\s\S]*)')$/, '$1$2')
+            skills.push({ name: basename(dirname(path)), chars: unquoted.length })
+          }
+        } catch {
+          // Una skill ilegible no debe impedir el arranque.
+        }
+      }
+    }
+  }
+  for (const root of roots) visit(root, 0)
+  return skills
+}
+
 function checkConnectorDrift(findings) {
+  // Límite conocido: `claude.ai Claude Docs` puede cargar aunque figure en
+  // disabledMcpServers; detectar conectores activos requiere `claude mcp list` (red).
   const claudeJson = readJson(CLAUDE_JSON_PATH)
   const repoSettings = readJson(REPO_SETTINGS_PATH)
   if (!claudeJson || !repoSettings) return
@@ -115,15 +161,21 @@ function checkPluginDrift(findings) {
 }
 
 function checkStartupWeight(findings) {
+  const skills = accountSkillDescriptions()
+  const skillTokens = skills.reduce((sum, skill) => sum + skill.chars / CHARS_PER_TOKEN, 0)
   const breakdown = [
     ['~/.claude/CLAUDE.md', fileTokens(USER_CLAUDE_MD_PATH)],
     ['CLAUDE.md', fileTokens(REPO_CLAUDE_MD_PATH)],
     ['MEMORY.md', fileTokens(MEMORY_MD_PATH)],
+    [`skills de cuenta (${skills.length})`, skillTokens],
   ]
   const total = breakdown.reduce((sum, [, tokens]) => sum + tokens, 0)
   if (total > TOKEN_WEIGHT_LIMIT) {
     const parts = breakdown.map(([label, tokens]) => `${label}=${Math.round(tokens)}`).join(', ')
     findings.push(`arranque pesado: ${Math.round(total)} tokens est. (${parts})`)
+    if (skills.length > 0) {
+      findings.push(`skills de cuenta: ${skills.slice(0, 15).map((skill) => skill.name).join(', ')}`)
+    }
   }
 }
 
