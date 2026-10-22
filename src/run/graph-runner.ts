@@ -512,7 +512,7 @@ async function executeSingleTask(
       persist(taskId, {
         status: 'done',
         run_id: harnessResult.runId,
-        qa_verdict: 'pass',
+        qa_verdict: harnessResult.qaVerdict,
         retry_reason: undefined,
       })
       return {

@@ -9,7 +9,7 @@ export interface TaskRowResponse {
   assignedAgent: string | null
   assignedModel: string | null
   retryCount: number
-  qaVerdict: 'pass' | 'fail' | null
+  qaVerdict: 'pass' | 'fail' | 'skipped' | null
   runId: string | null
   pendingApprovals: number
   sessionId: string | null

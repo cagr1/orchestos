@@ -194,7 +194,7 @@ export interface RunRow {
   id: string
   taskId: string | null
   status: 'done' | 'blocked' | 'failed'
-  qaVerdict: 'pass' | 'fail' | null
+  qaVerdict: 'pass' | 'fail' | 'skipped' | null
   qaReason: string | null
   /** ERP.4.8 — `runs.result` (motivo del fallo/bloqueo). */
   result: string | null
@@ -266,7 +266,7 @@ export interface TaskRow {
   assignedAgent: string | null
   assignedModel: string | null
   retryCount: number
-  qaVerdict: 'pass' | 'fail' | null
+  qaVerdict: 'pass' | 'fail' | 'skipped' | null
   pendingApprovals: number
   sessionId: string | null
   runId: string | null // link to latest run in /api/runs

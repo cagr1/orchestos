@@ -289,7 +289,7 @@ describe('F3.3 — every failure path leaves a row in runs and a non-empty runId
 describe('ERP.5.1 — el revisor LLM corre solo con criterios o un gate de revisión', () => {
   const EXEC = () => openRouterResponse('<<<FILE:out.txt>>>\nhello\n<<<ENDFILE>>>')
 
-  it('sin criterios ni gates reales: runQA no se llama, pass, qa_model null y motivo', async () => {
+  it('sin criterios ni gates reales: runQA no se llama, skipped, qa_model null y motivo', async () => {
     process.env.OPENROUTER_API_KEY = 'sk-test-or-key'
     const calls = installMockFetch([EXEC])
     const dir = tmpDir()
@@ -299,12 +299,41 @@ describe('ERP.5.1 — el revisor LLM corre solo con criterios o un gate de revis
       expect(calls.length).toBe(1)
       const { getRun } = await import('../db/runs.ts')
       const row = getRun(result.runId)!
-      expect(row.qa_verdict).toBe('pass')
+      expect(result.qaVerdict).toBe('skipped')
+      expect(row.qa_verdict).toBe('skipped')
       expect(row.qa_model).toBeNull()
-      expect(row.qa_reason).toContain('QA LLM omitido')
+      expect(row.qa_reason).toBe('Sin revisión LLM y sin checks: nada verificó esta tarea')
       const breakdown = parseCostBreakdownJson(row.cost_breakdown_json)
       expect(breakdown).toHaveLength(1)
       expect(breakdown.some((entry) => entry.label === 'reviewer')).toBe(false)
+    } finally {
+      rmSync(dir, { recursive: true, force: true })
+    }
+  })
+
+  it('sin criterios con checks verdes: conserva el conteo, comandos y evidencia sin declarar QA pass', async () => {
+    process.env.OPENROUTER_API_KEY = ['test', 'trust', 'key'].join('-')
+    const calls = installMockFetch([EXEC])
+    const dir = tmpDir()
+    try {
+      const result = await callRunTask(
+        baseTask({ checks: [{ cmd: 'test -f out.txt' }, { cmd: 'true' }] }),
+        dir,
+      )
+      expect(result.status).toBe('done')
+      expect(result.qaVerdict).toBe('skipped')
+      expect(result.qaReason).toBe(
+        'Sin revisión LLM (la tarea no declara criterios). Checks: 2 en verde: test -f out.txt, true',
+      )
+      expect(calls).toHaveLength(1)
+      const { getRun } = await import('../db/runs.ts')
+      const row = getRun(result.runId)!
+      expect(row.qa_verdict).toBe('skipped')
+      expect(row.qa_reason).toBe(result.qaReason!)
+      expect(JSON.parse(row.checks_json!)).toEqual([
+        expect.objectContaining({ cmd: 'test -f out.txt', exitCode: 0 }),
+        expect.objectContaining({ cmd: 'true', exitCode: 0 }),
+      ])
     } finally {
       rmSync(dir, { recursive: true, force: true })
     }

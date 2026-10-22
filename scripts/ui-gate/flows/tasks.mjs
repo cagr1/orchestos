@@ -190,7 +190,7 @@ export default async function tasks({ page, api, step, note, shot, visible, clea
     headers: { 'content-type': 'application/json', 'x-orchestos-project-id': project.id },
     body: JSON.stringify({
       id: 'gate-role-task',
-      description: 'Task created without its own model.',
+      description: 'Create ROLE.md containing exactly one line: ROLE-GATE.',
       output: ['ROLE.md'],
     }),
   })
@@ -528,6 +528,47 @@ export default async function tasks({ page, api, step, note, shot, visible, clea
     'no duplicated description',
     firstLine.length > 0 && rowText.split(firstLine).length - 1 === 1,
     `occurrences=${rowText.split(firstLine).length - 1} line=${JSON.stringify(firstLine)}`,
+  )
+  // TRUST.2 — la tarea creada sin criterios no puede afirmar que pasó por QA.
+  const roleBefore = (await tasksFor(api, project.id)).find((task) => task.id === 'gate-role-task')
+  await page.getByRole('button', { name: 'Run gate-role-task', exact: true }).click()
+  const roleFinished = await waitForTaskFinished(api, project.id, 'gate-role-task', roleBefore)
+  await step(
+    'task without criteria completes with skipped QA',
+    roleFinished?.status === 'done' && roleFinished?.qaVerdict === 'skipped',
+    JSON.stringify(roleFinished),
+  )
+  const listed = await api('/api/runs', { headers: { 'x-orchestos-project-id': project.id } })
+  const roleRun = (listed.data ?? []).find((item) => item.taskId === 'gate-role-task')
+  await step(
+    'task without criteria persists skipped verdict and no checks',
+    roleRun?.qaVerdict === 'skipped' &&
+      roleRun?.checks?.length === 0 &&
+      roleRun?.qaReason?.includes('nada verificó'),
+    JSON.stringify(roleRun),
+  )
+  await page.getByRole('button', { name: 'Runs', exact: true }).click()
+  const roleRunRow = page.locator('tr').filter({ hasText: 'gate-role-task' }).first()
+  await step(
+    'unverified task has warning badge and no QA pass',
+    (await visible(roleRunRow.getByText('Sin verificar', { exact: true }))) &&
+      (await roleRunRow.getByText(/QA pass/i).count()) === 0,
+    await roleRunRow.innerText(),
+  )
+  await roleRunRow.click()
+  await step(
+    'unverified run detail has no QA pass',
+    (await visible(page.getByText('Sin verificar', { exact: true }))) &&
+      (await page.getByText(/QA pass/i).count()) === 0,
+    'detail shows Sin verificar',
+  )
+  await page.getByRole('button', { name: 'QA Assertions', exact: true }).click()
+  await step(
+    'skipped QA explains that nothing verified the task',
+    await visible(
+      page.getByText(/QA: no corrió: Sin revisión LLM y sin checks: nada verificó esta tarea/),
+    ),
+    'QA: no corrió and reason visible',
   )
   await shot('tasks-real-data')
 }

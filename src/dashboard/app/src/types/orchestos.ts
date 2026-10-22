@@ -2,7 +2,7 @@ export type ApprovalMode = 'supervised' | 'auto-edit' | 'full'
 
 export type TaskStatus = 'pending' | 'running' | 'done' | 'failed' | 'failed_permanent' | 'blocked'
 
-export type QaVerdict = 'pass' | 'fail' | null
+export type QaVerdict = 'pass' | 'fail' | 'skipped' | null
 
 export type ExecutionEngine = 'single-shot' | 'agentic' | (string & {})
 

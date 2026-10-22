@@ -177,6 +177,18 @@ describe('runGraph (D1)', () => {
     expect(result.aggregated_cost).toBeCloseTo(0.15, 5)
   })
 
+  it('persists the real skipped verdict for a completed task', async () => {
+    writeTasks(tmpDir, [makeTask('a')])
+    runTaskMock.mockImplementation(async () => ({ ...doneResult('a'), qaVerdict: 'skipped' }))
+    const result = await runGraph(makeOpts(tmpDir))
+    expect(result.tasks[0]?.outcome).toBe('completed')
+    expect(fakeLoadTasks(tmpDir).tasks[0]).toMatchObject({
+      status: 'done',
+      qa_verdict: 'skipped',
+      run_id: 'run-a',
+    })
+  })
+
   it('happy path: parallel tasks (no deps) all complete', async () => {
     writeTasks(tmpDir, [makeTask('a'), makeTask('b'), makeTask('c')])
     runTaskMock.mockImplementation(async (opts: any) => doneResult(opts.task.id))

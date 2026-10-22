@@ -90,6 +90,36 @@ describe('projects API mappings', () => {
     })
   })
 
+  test('maps skipped QA as not run and never as passed', () => {
+    const run = mapRunRow({
+      id: 'r-skipped',
+      taskId: 'task-skipped',
+      status: 'done',
+      qaVerdict: 'skipped',
+      qaReason: 'Sin revisión LLM y sin checks: nada verificó esta tarea',
+      model: 'codex',
+      provider: 'codex',
+      inputTokens: 0,
+      outputTokens: 0,
+      costUsd: null,
+      elapsedMs: 0,
+      engine: 'codex',
+      iterations: 1,
+      fileDiffs: [],
+      costBreakdown: [],
+      contextWarnings: [],
+      createdAt: 'now',
+    })
+    expect(run.qaVerdict).toBe('skipped')
+    expect(run.qaEvaluation).toEqual([
+      {
+        criterion: 'QA: no corrió',
+        passed: false,
+        rationale: 'Sin revisión LLM y sin checks: nada verificó esta tarea',
+      },
+    ])
+  })
+
   test('maps unevaluated runs without turning them into failures', () => {
     const run = mapRunRow({
       id: 'chat-1',

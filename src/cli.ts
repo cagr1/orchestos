@@ -1262,7 +1262,7 @@ task
           updateTaskStatus(root, taskId, {
             status: 'done',
             run_id: result.runId,
-            qa_verdict: 'pass',
+            qa_verdict: result.qaVerdict,
             retry_reason: undefined,
           })
           const taskProjectId = project?.id ?? getProject(root)?.id
@@ -1278,13 +1278,15 @@ task
             description: t.description,
             outcome: 'done',
             files: result.filesWritten,
-            qaVerdict: 'pass',
+            qaVerdict: result.qaVerdict ?? null,
             qaReason: result.qaReason,
             provider: latestRun?.provider,
             model: latestRun?.model,
             attempts: t.retry_count + 1,
           })
-          console.log(`[task] ✓ ${taskId} done · QA pass — ${result.qaReason}`)
+          console.log(
+            `[task] ✓ ${taskId} done · QA ${result.qaVerdict ?? 'not run'} — ${result.qaReason}`,
+          )
           for (const f of result.filesWritten) console.log(`  → ${f}`)
           console.log(
             `  tokens: ${result.cost.inputTokens}/${result.cost.outputTokens} · $${result.cost.usd.toFixed(5)} · ${result.elapsedMs}ms`,
@@ -2276,10 +2278,10 @@ async function runClarifyMode(
     updateTaskStatus(root, taskId, {
       status: 'done',
       run_id: result.runId,
-      qa_verdict: 'pass',
+      qa_verdict: result.qaVerdict,
       retry_reason: undefined,
     })
-    console.log(`[task] ✓ ${taskId} done · QA pass`)
+    console.log(`[task] ✓ ${taskId} done · QA ${result.qaVerdict ?? 'not run'}`)
   } else if (result.status === 'retry') {
     updateTaskStatus(root, taskId, {
       status: 'pending',
@@ -2376,7 +2378,7 @@ export function printRunDetail(r: import('./db/runs.ts').RunRecord) {
   } else {
     const judge = (r as any).qa_model ? ` (judge: ${(r as any).qa_model})` : ''
     console.log(
-      `[${r.qa_verdict === 'pass' ? 'PASS' : 'FAIL'}]${judge} ${r.qa_reason ?? '(no reason recorded)'}`,
+      `[${r.qa_verdict === 'skipped' ? 'SKIPPED' : r.qa_verdict === 'pass' ? 'PASS' : 'FAIL'}]${judge} ${r.qa_reason ?? '(no reason recorded)'}`,
     )
   }
 

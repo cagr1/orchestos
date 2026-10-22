@@ -44,7 +44,7 @@ export function mapRunRow(row: RunRow): RunItem {
   const qaEvaluation = [
     row.qaVerdict
       ? {
-          criterion: `QA verdict: ${row.qaVerdict}`,
+          criterion: row.qaVerdict === 'skipped' ? 'QA: no corrió' : `QA verdict: ${row.qaVerdict}`,
           passed: row.qaVerdict === 'pass',
           rationale: row.qaReason || 'No reason recorded',
         }

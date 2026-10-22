@@ -1,0 +1,193 @@
+[
+  {
+    "flujo": "tasks",
+    "pass": true,
+    "steps": [
+      {
+        "nombre": "temporary project visible",
+        "ok": true,
+        "detalle": "project visible in sidebar"
+      },
+      {
+        "nombre": "project settings visible",
+        "ok": true,
+        "detalle": "project settings heading visible"
+      },
+      {
+        "nombre": "task id gate-first-task visible",
+        "ok": true,
+        "detalle": "real tasks.yaml id"
+      },
+      {
+        "nombre": "task id gate-dependent-task visible",
+        "ok": true,
+        "detalle": "real tasks.yaml id"
+      },
+      {
+        "nombre": "task id gate-failed-task visible",
+        "ok": true,
+        "detalle": "real tasks.yaml id"
+      },
+      {
+        "nombre": "real output visible",
+        "ok": true,
+        "detalle": "output boundary from tasks.yaml, in the task detail"
+      },
+      {
+        "nombre": "mock task absent",
+        "ok": true,
+        "detalle": "no initialMockTasks id rendered"
+      },
+      {
+        "nombre": "task created without model shows the Executor role agent and model",
+        "ok": true,
+        "detalle": "expected=codex · gpt-6-luna from fixture orchestos.config.yaml"
+      },
+      {
+        "nombre": "created task yaml has no hardcoded provider executor",
+        "ok": true,
+        "detalle": "tasks.yaml entry for gate-role-task has no executor: openrouter|anthropic|openai"
+      },
+      {
+        "nombre": "failed task offers its own Run button",
+        "ok": true,
+        "detalle": "visible=true enabled=true"
+      },
+      {
+        "nombre": "task with unfinished dependency has no Run button",
+        "ok": true,
+        "detalle": "button count=0"
+      },
+      {
+        "nombre": "Run Next Task enabled",
+        "ok": true,
+        "detalle": "first task has no unfinished dependency"
+      },
+      {
+        "nombre": "Run Next Task disabled while running",
+        "ok": true,
+        "detalle": "running task prevents a second run"
+      },
+      {
+        "nombre": "first task was posted",
+        "ok": true,
+        "detalle": "status=pending"
+      },
+      {
+        "nombre": "dependent task remains pending before first finishes",
+        "ok": true,
+        "detalle": "dependency prevents the second task from running"
+      },
+      {
+        "nombre": "final status badge is visible without reload",
+        "ok": true,
+        "detalle": "StatusBadge text=DONE"
+      },
+      {
+        "nombre": "badge leaves Pending without page reload",
+        "ok": true,
+        "detalle": "status=done"
+      },
+      {
+        "nombre": "UI and API agree on final task state",
+        "ok": true,
+        "detalle": "status=done"
+      },
+      {
+        "nombre": "completed task memory is returned by the project API",
+        "ok": true,
+        "detalle": "topicKey=task/gate-first-task content=Task gate-first-task — done\nAppend the line \"Gate ran.\" at the end of README.md\nFiles: README.md\nQA: pass — README.md contains the requested line.\nModel: codex/openai/gpt-6-luna · attempts 1"
+      },
+      {
+        "nombre": "completed task memory is visible in project Settings Memory",
+        "ok": true,
+        "detalle": "Memory view contains task/gate-first-task and QA: pass"
+      },
+      {
+        "nombre": "first task final state is committed in tasks.yaml",
+        "ok": true,
+        "detalle": "porcelain=\"\" subject=chore(tasks): gate-first-task done"
+      },
+      {
+        "nombre": "failed task relaunched by id ran",
+        "ok": true,
+        "detalle": "runId=98134e97-b5ed-4525-8800-0c0e295d7a15 previous=missing"
+      },
+      {
+        "nombre": "relaunched task reaches done",
+        "ok": true,
+        "detalle": "status=done"
+      },
+      {
+        "nombre": "relaunched task final state is committed in tasks.yaml",
+        "ok": true,
+        "detalle": "porcelain=\"\" subject=chore(tasks): gate-failed-task done"
+      },
+      {
+        "nombre": "relaunch did not start the dependent task",
+        "ok": true,
+        "detalle": "status=pending runId=missing"
+      },
+      {
+        "nombre": "task rows flat",
+        "ok": true,
+        "detalle": "[{\"height\":40,\"borderTop\":\"0px\",\"shadow\":\"none\"},{\"height\":40,\"borderTop\":\"0px\",\"shadow\":\"none\"},{\"height\":40,\"borderTop\":\"0px\",\"shadow\":\"none\"},{\"height\":40,\"borderTop\":\"0px\",\"shadow\":\"none\"}]"
+      },
+      {
+        "nombre": "task list header aligned",
+        "ok": true,
+        "detalle": "{\"text\":\"IDTaskAgentStatus\",\"headerCells\":{\"id\":{\"left\":310,\"right\":422},\"title\":{\"left\":434,\"right\":1052},\"meta\":{\"left\":1064,\"right\":1272},\"status\":{\"left\":1284,\"right\":1404}},\"rowCells\":{\"id\":{\"left\":310,\"right\":422},\"title\":{\"left\":434,\"right\":1052},\"meta\":{\"left\":1064,\"right\":1272},\"status\":{\"left\":1284,\"right\":1404}}}"
+      },
+      {
+        "nombre": "no palette in tasks tab",
+        "ok": true,
+        "detalle": "ninguna"
+      },
+      {
+        "nombre": "task detail opens",
+        "ok": true,
+        "detalle": "detail shows the task id"
+      },
+      {
+        "nombre": "task detail closes with Esc",
+        "ok": true,
+        "detalle": "detail count=0"
+      },
+      {
+        "nombre": "no duplicated description",
+        "ok": true,
+        "detalle": "occurrences=1 line=\"Inspect the first task result.\""
+      },
+      {
+        "nombre": "task without criteria completes with skipped QA",
+        "ok": true,
+        "detalle": "{\"id\":\"gate-role-task\",\"description\":\"Create ROLE.md containing exactly one line: ROLE-GATE.\",\"status\":\"done\",\"retryReason\":null,\"skill\":null,\"assignedAgent\":\"codex\",\"assignedModel\":\"gpt-6-luna\",\"retryCount\":0,\"qaVerdict\":\"skipped\",\"runId\":\"8d179179-bb34-4f01-8a66-2c0d2596f53e\",\"pendingApprovals\":0,\"sessionId\":null,\"lastRunAt\":\"2026-10-22T22:03:37.646Z\",\"engine\":null,\"output\":[\"ROLE.md\"],\"dependsOn\":[],\"acceptanceCriteria\":[],\"executorModel\":null}"
+      },
+      {
+        "nombre": "task without criteria persists skipped verdict and no checks",
+        "ok": true,
+        "detalle": "{\"id\":\"8d179179-bb34-4f01-8a66-2c0d2596f53e\",\"projectId\":\"1667759af593f6e8\",\"taskId\":\"gate-role-task\",\"prompt\":\"Create ROLE.md containing exactly one line: ROLE-GATE.\",\"allowedOutputs\":[\"ROLE.md\"],\"filesAttempted\":[\"ROLE.md\"],\"filesAuthorized\":[\"ROLE.md\"],\"filesBlocked\":[],\"checks\":[],\"status\":\"done\",\"qaVerdict\":\"skipped\",\"qaReason\":\"Sin revisión LLM y sin checks: nada verificó esta tarea\",\"result\":\"1 file(s) written\",\"executorReply\":null,\"qaModel\":null,\"qaCriteria\":[],\"model\":\"gpt-6-luna\",\"provider\":\"codex\",\"readAudit\":{\"version\":1,\"source\":\"uninstrumented\",\"coverage\":\"none\",\"completeness\":\"unknown\",\"tools\":[],\"limitations\":[\"transport-not-instrumented\",\"implicit-reads-not-observed\"],\"issues\":[],\"operations\":[]},\"skillId\":null,\"inputTokens\":3718,\"outputTokens\":156,\"costUsd\":0.0007134800000000001,\"costSource\":\"estimated\",\"costBreakdown\":[{\"label\":\"codex (exec)\",\"model\":\"gpt-6-luna\",\"inputTokens\":3718,\"outputTokens\":156,\"costUsd\":0.0007134800000000001,\"binary\":\"codex\",\"args\":[\"exec\",\"<contract>\",\"--json\",\"--sandbox\",\"workspace-write\",\"--color\",\"never\",\"-c\",\"model_reasoning_summary=auto\",\"-m\",\"gpt-6-luna\",\"-c\",\"model_reasoning_effort=medium\"]}],\"contextWarnings\":[],\"engine\":\"codex\",\"iterations\":1,\"fileDiffs\":[{\"path\":\"ROLE.md\",\"status\":\"added\",\"diff\":\"Index: ROLE.md\\n===================================================================\\n--- ROLE.md\\n+++ ROLE.md\\n@@ -0,0 +1,1 @@\\n+ROLE-GATE\\n\",\"additions\":1,\"deletions\":0}],\"commitSha\":\"28fa7814a14492e35b24022ff88fd8b3f087ba73\",\"revertedSha\":null,\"revertedAt\":null,\"skillGates\":[{\"id\":\"qa-structured\",\"candidate\":true,\"applied\":true,\"reason\":\"sin triggers declarados — aplica siempre en esta fase\"},{\"id\":\"security-review\",\"candidate\":true,\"applied\":false,\"reason\":\"ningún trigger coincidió con la descripción de la tarea\"}],\"elapsedMs\":9248,\"createdAt\":\"2026-10-22T22:03:37.646Z\"}"
+      },
+      {
+        "nombre": "unverified task has warning badge and no QA pass",
+        "ok": true,
+        "detalle": "8d179179-bb34-4f01-8a66-2c0d2596f53e\tgate-role-taskCreate ROLE.md containing exactly one line: ROLE-GATE.\tgpt-6-luna\t1m\t$0.0007\tSin verificar\tInspect"
+      },
+      {
+        "nombre": "unverified run detail has no QA pass",
+        "ok": true,
+        "detalle": "detail shows Sin verificar"
+      },
+      {
+        "nombre": "skipped QA explains that nothing verified the task",
+        "ok": true,
+        "detalle": "QA: no corrió and reason visible"
+      }
+    ],
+    "notes": [],
+    "errores": [],
+    "capturas": [
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-42952/tasks/tasks-real-data.png"
+    ]
+  }
+]

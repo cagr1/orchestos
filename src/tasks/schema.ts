@@ -62,7 +62,7 @@ export interface Task {
   status: TaskStatus
   retry_count: number
   retry_reason?: string // last QA fail reason
-  qa_verdict?: 'pass' | 'fail'
+  qa_verdict?: 'pass' | 'fail' | 'skipped'
   run_id?: string // last SQLite run id
 }
 
@@ -106,7 +106,7 @@ export function validateTask(t: unknown, index: number): Task {
     status: (task.status as TaskStatus) ?? 'pending',
     retry_count: typeof task.retry_count === 'number' ? task.retry_count : 0,
     retry_reason: typeof task.retry_reason === 'string' ? task.retry_reason : undefined,
-    qa_verdict: task.qa_verdict as 'pass' | 'fail' | undefined,
+    qa_verdict: task.qa_verdict as 'pass' | 'fail' | 'skipped' | undefined,
     run_id: typeof task.run_id === 'string' ? task.run_id : undefined,
   }
 }

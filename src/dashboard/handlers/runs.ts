@@ -117,7 +117,7 @@ export function runRecordToRow(r: RunRecord): RunRow {
       timedOut?: boolean
     }>(r.checks_json),
     status: r.status,
-    qaVerdict: r.qa_verdict as 'pass' | 'fail' | null,
+    qaVerdict: r.qa_verdict as 'pass' | 'fail' | 'skipped' | null,
     qaReason: r.qa_reason,
     result: r.result,
     executorReply: r.executor_reply ?? null,

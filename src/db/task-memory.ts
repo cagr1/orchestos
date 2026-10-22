@@ -6,7 +6,7 @@ export interface RecordTaskMemoryInput {
   description: string
   outcome: 'done' | 'failed_permanent'
   files: string[]
-  qaVerdict: 'pass' | 'fail' | null
+  qaVerdict: 'pass' | 'fail' | 'skipped' | null
   qaReason?: string
   provider?: string
   model?: string

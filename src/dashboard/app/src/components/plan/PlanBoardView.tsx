@@ -26,6 +26,15 @@ interface PlanBoardViewProps {
   onExplainTask: (taskId: string) => void | Promise<Record<string, unknown> | void>
 }
 
+function TaskQaBadge({ task }: { task: TaskItem }) {
+  if (task.status === 'done' && !task.runId)
+    return <span className="text-app-warning">Sin verificar</span>
+  if (task.qaVerdict === 'skipped') return <span className="text-app-muted">Sin QA</span>
+  if (task.qaVerdict === 'pass') return <span className="text-app-success">QA pass</span>
+  if (task.qaVerdict === 'fail') return <span className="text-app-error">QA fail</span>
+  return <span className="text-app-muted">—</span>
+}
+
 function formatExplainValue(value: unknown, key?: string): string {
   if (value === null || value === undefined) return '—'
   if (Array.isArray(value)) {
@@ -246,16 +255,8 @@ export const PlanBoardView: React.FC<PlanBoardViewProps> = ({
                               {task.id}
                             </span>
                             <div className="flex shrink-0 items-center gap-1.5 text-[11px]">
-                              {task.qaVerdict && (
-                                <span
-                                  className={
-                                    task.qaVerdict === 'pass'
-                                      ? 'text-app-success'
-                                      : 'text-app-error'
-                                  }
-                                >
-                                  QA {task.qaVerdict}
-                                </span>
+                              {(task.qaVerdict || (task.status === 'done' && !task.runId)) && (
+                                <TaskQaBadge task={task} />
                               )}
                               <span className="text-app-muted">{task.engine}</span>
                             </div>
@@ -386,15 +387,7 @@ export const PlanBoardView: React.FC<PlanBoardViewProps> = ({
                       </div>
                     </td>
                     <td className="px-3">
-                      {t.qaVerdict ? (
-                        <span
-                          className={t.qaVerdict === 'pass' ? 'text-app-success' : 'text-app-error'}
-                        >
-                          {t.qaVerdict}
-                        </span>
-                      ) : (
-                        <span className="text-app-muted">—</span>
-                      )}
+                      <TaskQaBadge task={t} />
                     </td>
                     <td className="px-3 tabular-nums text-app-muted">
                       {t.costUsd ? `$${t.costUsd.toFixed(3)}` : '—'}

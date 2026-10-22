@@ -16,6 +16,23 @@ interface RunsEvidenceViewProps {
   onRetry?: () => void
 }
 
+function RunQaBadge({ run }: { run: RunItem }) {
+  if (run.qaVerdict === 'skipped') {
+    const count = run.deterministicChecks.length
+    return count > 0 ? (
+      <span className="text-app-muted">Sin QA · {count} checks</span>
+    ) : (
+      <span className="text-app-warning">Sin verificar</span>
+    )
+  }
+  return (
+    <StatusBadge
+      status={run.qaVerdict === null ? 'idle' : run.qaVerdict === 'pass' ? 'passed' : 'failed'}
+      label={run.qaVerdict === null ? '—' : `QA ${run.qaVerdict}`}
+    />
+  )
+}
+
 export const RunsEvidenceView: React.FC<RunsEvidenceViewProps> = ({
   runs,
   onInspectRun,
@@ -30,7 +47,7 @@ export const RunsEvidenceView: React.FC<RunsEvidenceViewProps> = ({
 
   // KPI calculations
   const totalRuns = runs.length
-  const evaluatedRuns = runs.filter((r) => r.qaVerdict !== null)
+  const evaluatedRuns = runs.filter((r) => r.qaVerdict === 'pass' || r.qaVerdict === 'fail')
   const passedRuns = evaluatedRuns.filter((r) => r.qaVerdict === 'pass').length
   const passRate =
     evaluatedRuns.length > 0 ? `${((passedRuns / evaluatedRuns.length) * 100).toFixed(1)}%` : '—'
@@ -75,16 +92,7 @@ export const RunsEvidenceView: React.FC<RunsEvidenceViewProps> = ({
 
           <div className="flex items-center gap-2">
             <span className="font-mono text-xs font-semibold text-app">{selectedRun.id}</span>
-            <StatusBadge
-              status={
-                selectedRun.qaVerdict === null
-                  ? 'idle'
-                  : selectedRun.qaVerdict === 'pass'
-                    ? 'passed'
-                    : 'failed'
-              }
-              label={selectedRun.qaVerdict === null ? '—' : undefined}
-            />
+            <RunQaBadge run={selectedRun} />
           </div>
         </div>
 
@@ -419,16 +427,7 @@ export const RunsEvidenceView: React.FC<RunsEvidenceViewProps> = ({
                     ${run.costUsd?.toFixed(4)}
                   </td>
                   <td className="px-3 whitespace-nowrap">
-                    <StatusBadge
-                      status={
-                        run.qaVerdict === null
-                          ? 'idle'
-                          : run.qaVerdict === 'pass'
-                            ? 'passed'
-                            : 'failed'
-                      }
-                      label={run.qaVerdict === null ? '—' : undefined}
-                    />
+                    <RunQaBadge run={run} />
                   </td>
                   <td className="px-3 text-right whitespace-nowrap">
                     <span className="text-app-muted group-hover:text-app text-xs inline-flex items-center gap-1 font-medium">

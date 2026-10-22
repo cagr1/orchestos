@@ -469,3 +469,11 @@ r2: `session` por modo y filtro del modal; arreglo del mock de timeout de codex/
 modos de `KNOWN_CLIS`; test legacy con `gemini` inalcanzable. r2 se intentó primero con Codex (`mecanico`): sin
 `AGENT_WRITER_TOKEN`, no escribió. **Evidencia del cerebro**: typecheck/lint/fidelity limpios, `test:coverage` 1976/0,
 `TCLI.2-live` tasks 31/31, chat-roles 10/10, chat-continuity 8/8.
+
+
+## 2026-10-22 — Codex, ejecutor TRUST.2
+
+**Regla tocada**: `src/run/harness.ts`, archivo protegido por el cálculo de contexto/max_tokens.
+**Clasificación**: RESPETÓ.
+**Por qué**: sin cambiar contexto, checks, juez ni reintentos, registra `skipped` cuando no corre el juez y propaga el veredicto real; el log deja de afirmar `QA:pass` en ese camino.
+**Reversibilidad/evidencia**: diff de TRUST.2 y gates entregados al cerebro; sin commit del ejecutor.

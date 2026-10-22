@@ -80,10 +80,13 @@ Regla: nada se reintenta, cierra ni muestra sin evidencia medida que el usuario 
 - [x] **TRUST.0 — 🔍 Auditar la evidencia de cada paso del flujo.** (cerrado 2026-10-22) Tabla y 7 huecos verificados
   leyendo el código en `docs/specs/TRUST.md`; orden por riesgo: TRUST.2, TRUST.1, TRUST.3, CI.23.
   Ejecutado por: codex gpt-6-luna (leer) + verificación del cerebro · Spec: docs/specs/TRUST.md
-- [ ] **TRUST.2 — ⚡ "QA pass" solo si algo verificó.** Sin criterios el juez no corre y se escribe `pass`
-  (`src/run/harness.ts:783`), igual que un pase real; el badge dice "QA pass" (`PlanBoardView.tsx:249`). Veredicto propio
-  para "sin revisión" y la UI dice qué verificó la tarea (checks corridos, juez o nada). Una tarea sin checks ni criterios
-  no se muestra como verificada.
+- [x] **TRUST.2 — ⚡ "QA pass" solo si algo verificó.** (cerrado 2026-10-22) Sin criterios el juez no corría y se
+  escribía `pass` (`src/run/harness.ts:783`). Ahora veredicto `skipped` con motivo que dice qué verificó (checks corridos o
+  "nada verificó esta tarea"); `graph-runner`/`cli` copian el veredicto real, no un literal. UI: "Sin QA · n checks",
+  "Sin verificar" (aviso) o "QA pass/fail"; `skipped` no cuenta en la tasa de pase. Evidencia del cerebro: diff leído,
+  typecheck y lint limpios, 45/45 unitarios, captura del run "Sin verificar"; `test:coverage` 1985/0 (ejecutor).
+  Gate en vivo: navegador real (Playwright), `docs/done/evidence/TRUST.2-live.json`
+  Ejecutado por: codex gpt-6.1-sol (criterio) · Spec: docs/specs/TRUST.2.md
 - [ ] **TRUST.1 — ⚡ El reintento recibe la causa medida, no un resumen.** Hoy `retry_reason` = `check failed: <cmd> exit
   <n>` sin salida (`src/run/harness.ts:696`); stderr queda en `checks_json`. Motivo = cmd + exit + cola de stdout/stderr;
   razón del juez aparte y marcada; relanzar sin evidencia se avisa; la UI muestra cmd, exit y salida (hoy

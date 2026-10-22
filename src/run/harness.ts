@@ -107,7 +107,7 @@ export interface TaskResult {
   status: 'done' | 'retry' | 'failed' | 'blocked' | 'pending'
   /** ID del run insertado en SQLite (vacio si dryRun o fallo antes de insertar) */
   runId: string
-  qaVerdict?: 'pass' | 'fail'
+  qaVerdict?: 'pass' | 'fail' | 'skipped'
   qaReason?: string
   /** Razon del fallo o retry - para pasarla a updateTaskStatus como retry_reason */
   retryReason?: string
@@ -779,16 +779,20 @@ export async function runTask(opts: HarnessOpts): Promise<TaskResult> {
 
     const qaJudge = { provider: reviewer.provider, model: reviewer.model }
     // ERP.5.1 — el revisor LLM corre solo si hay algo concreto que revisar: criterios de aceptación
-    // declarados o un gate de revisión aplicado. Si no, checks y salidas declaradas ya dieron el veredicto.
+    // declarados o un gate de revisión aplicado. Si no, registrar que el juez no corrió.
     const runsReviewer =
       (ctx.task.acceptance_criteria?.length ?? 0) > 0 ||
       appliedGateSkills.filter((s) => s.id !== 'qa-structured').length > 0
-    let qa: Omit<Awaited<ReturnType<typeof runQA>>, 'model'> & { model: string | null }
+    let qa: Omit<Awaited<ReturnType<typeof runQA>>, 'model' | 'verdict'> & {
+      model: string | null
+      verdict: 'pass' | 'fail' | 'skipped'
+    }
     if (!runsReviewer) {
       qa = {
-        verdict: 'pass' as const,
-        reason:
-          'QA LLM omitido: la tarea no declara criterios de aceptación; checks y salidas declaradas en verde',
+        verdict: 'skipped' as const,
+        reason: checksResults.length
+          ? `Sin revisión LLM (la tarea no declara criterios). Checks: ${checksResults.length} en verde: ${checksResults.map((check) => check.cmd).join(', ')}`
+          : 'Sin revisión LLM y sin checks: nada verificó esta tarea',
         inputTokens: 0,
         outputTokens: 0,
         model: null,
@@ -965,7 +969,7 @@ export async function runTask(opts: HarnessOpts): Promise<TaskResult> {
       files_blocked: JSON.stringify(contractResult.filesBlocked),
       snapshot_before: JSON.stringify(before),
       snapshot_after: JSON.stringify(after),
-      qa_verdict: 'pass',
+      qa_verdict: qa.verdict,
       qa_reason: qa.reason,
       qa_model: qa.model,
       qa_criteria_json: qa.criteria?.length ? JSON.stringify(qa.criteria) : null,
@@ -989,13 +993,14 @@ export async function runTask(opts: HarnessOpts): Promise<TaskResult> {
       result: `${contractResult.written.length} file(s) written`,
     })
 
-    log.qaPass(qa.reason)
+    if (qa.verdict === 'pass') log.qaPass(qa.reason)
+    else log.info(`QA:skipped  ${qa.reason}`)
     log.done()
 
     return {
       status: 'done',
       runId,
-      qaVerdict: 'pass',
+      qaVerdict: qa.verdict,
       qaReason: qa.reason,
       filesWritten: contractResult.written.map((f) => f.path),
       filesBlocked: contractResult.filesBlocked,
