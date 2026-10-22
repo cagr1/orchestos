@@ -6,7 +6,9 @@ import { DEFAULT_CONFIG } from '../config/schema.ts'
 import { db } from '../db/sqlite.ts'
 import { calcCost } from '../router/pricing.ts'
 import * as roleRunner from '../router/role-runner.ts'
+import { buildPrompt, previousFailureForTask } from '../run/prompt.ts'
 import { parseCostBreakdownJson } from '../run/transcript-parser.ts'
+import { loadTasks, saveTasks, updateTaskStatus } from '../tasks/loader.ts'
 import type { Task } from '../tasks/schema.ts'
 
 // F3.3 — every failure path of runTask leaves a row in `runs` AND returns
@@ -231,6 +233,43 @@ describe('F3.3 — every failure path leaves a row in runs and a non-empty runId
     }
   })
 
+  it('TRUST.1: the stderr tail survives persistence and reaches attempt 2 prompt', async () => {
+    process.env.OPENROUTER_API_KEY = ['test', 'trust', 'key'].join('-')
+    installMockFetch([() => openRouterResponse('<<<FILE:out.txt>>>\nhello\n<<<ENDFILE>>>')])
+    const dir = tmpDir()
+    try {
+      const task = baseTask({
+        checks: [
+          { cmd: `bun -e 'console.error("noise".repeat(1000)+"TRUST1-MARKER"),process.exit(1)'` },
+        ],
+      })
+      saveTasks(dir, { version: 1, project: 'trust-test', tasks: [task] })
+      const result = await callRunTask(task, dir)
+      expect(result.status).toBe('retry')
+      expect(result.retryReason).toEndWith('TRUST1-MARKER\n')
+      const { getRun } = await import('../db/runs.ts')
+      expect(getRun(result.runId)!.qa_reason).toBe(result.retryReason!)
+      updateTaskStatus(dir, task.id, {
+        status: 'pending',
+        retry_count: 1,
+        retry_reason: result.retryReason,
+      })
+      const persisted = loadTasks(dir).tasks[0]!
+      const prompt = buildPrompt(
+        persisted,
+        '',
+        dir,
+        undefined,
+        undefined,
+        previousFailureForTask(persisted),
+      )
+      expect(prompt.userContent).toContain('TRUST1-MARKER')
+      expect(prompt.userContent).toContain('--- stderr (tail) ---')
+    } finally {
+      rmSync(dir, { recursive: true, force: true })
+    }
+  })
+
   it('QA fail: QA judge returns verdict=fail inserts a row with the QA reason', async () => {
     process.env.OPENROUTER_API_KEY = 'sk-test-or-key'
     installMockFetch([
@@ -250,7 +289,8 @@ describe('F3.3 — every failure path leaves a row in runs and a non-empty runId
       const { getRun } = await import('../db/runs.ts')
       const row = getRun(result.runId)!
       expect(row.qa_verdict).toBe('fail')
-      expect(row.qa_reason).toContain('qa fail test reason')
+      expect(row.qa_reason).toBe('qa fail test reason')
+      expect(result.retryReason).toBe(`Opinión del juez QA (${row.qa_model}): qa fail test reason`)
       const fileDiffs = JSON.parse(row.file_diffs ?? '[]') as Array<{ path: string; diff: string }>
       expect(fileDiffs).toHaveLength(1)
       expect(fileDiffs[0]).toMatchObject({ path: 'out.txt' })

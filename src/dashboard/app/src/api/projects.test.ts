@@ -61,6 +61,9 @@ describe('projects API mappings', () => {
       status: 'failed',
       qaVerdict: 'fail',
       qaReason: 'criterion mismatch',
+      checks: [
+        { cmd: 'test', exitCode: 1, elapsedMs: 20, stderr: 'TRUST1-MARKER', stdout: 'stdout' },
+      ],
       qaCriteria: [
         { text: 'bad criterion', pass: false },
         { text: 'good criterion', pass: true, evidence: { file: 'ok.txt', excerpt: 'VERDE' } },
@@ -78,6 +81,7 @@ describe('projects API mappings', () => {
       contextWarnings: [],
       createdAt: '2026-01-01T00:00:00Z',
     })
+    expect(run.deterministicChecks[0]?.output).toBe('TRUST1-MARKER\nstdout')
     expect(run.qaEvaluation).toContainEqual({
       criterion: 'bad criterion',
       passed: false,

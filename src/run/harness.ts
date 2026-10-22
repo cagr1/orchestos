@@ -40,7 +40,13 @@ import { resolveGates } from '../skills/catalog.ts'
 import { loadSpec } from '../spec/store.ts'
 import type { Task } from '../tasks/schema.ts'
 import { createApprovalRun, finishApprovalRun } from './approvals.ts'
-import { type CheckResult, defaultChecksFor, roadmapChecksFor, runChecks } from './checks.ts'
+import {
+  type CheckResult,
+  defaultChecksFor,
+  formatCheckFailure,
+  roadmapChecksFor,
+  runChecks,
+} from './checks.ts'
 import {
   enforceContract,
   type LLMFileResponse,
@@ -693,9 +699,9 @@ export async function runTask(opts: HarnessOpts): Promise<TaskResult> {
         } else if (!worktree) {
           restoreContents(ctx.effectiveRoot, beforeContent)
         }
-        const reason = firstFail.timedOut
-          ? `check timed out: ${firstFail.cmd}`
-          : `check failed: ${firstFail.cmd} exit ${firstFail.exitCode}`
+        const expectedExit =
+          effectiveChecks.find((check) => check.cmd === firstFail.cmd)?.expect_exit ?? 0
+        const reason = formatCheckFailure(firstFail, expectedExit)
         const elapsedCheck = Math.round(performance.now() - t0)
         const runId = insertRun({
           ...(approvalRunStarted ? { id: approvalRunId } : {}),
@@ -904,7 +910,7 @@ export async function runTask(opts: HarnessOpts): Promise<TaskResult> {
           runId,
           qaVerdict: 'fail',
           qaReason: qa.reason,
-          retryReason: qa.reason,
+          retryReason: `Opinión del juez QA (${qa.model}): ${qa.reason}`,
           filesWritten: [],
           filesBlocked: [],
           cost: {
@@ -922,7 +928,7 @@ export async function runTask(opts: HarnessOpts): Promise<TaskResult> {
         runId,
         qaVerdict: 'fail',
         qaReason: qa.reason,
-        retryReason: qa.reason,
+        retryReason: `Opinión del juez QA (${qa.model}): ${qa.reason}`,
         filesWritten: [],
         filesBlocked: [],
         cost: {

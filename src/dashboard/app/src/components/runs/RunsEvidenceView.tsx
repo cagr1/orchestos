@@ -297,6 +297,11 @@ export const RunsEvidenceView: React.FC<RunsEvidenceViewProps> = ({
                     className={check.passed ? 'text-emerald-400' : 'text-rose-400'}
                   >
                     {check.passed ? '✓' : '✗'} {check.command} (exit {check.exitCode})
+                    {!check.passed && check.output && (
+                      <pre className="p-3 bg-app-bg font-mono text-xs text-app overflow-x-auto leading-relaxed">
+                        {check.output}
+                      </pre>
+                    )}
                   </div>
                 ))}
                 {selectedRun.qaEvaluation.map((item) => (

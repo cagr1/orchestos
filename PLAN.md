@@ -87,13 +87,18 @@ Regla: nada se reintenta, cierra ni muestra sin evidencia medida que el usuario 
   typecheck y lint limpios, 45/45 unitarios, captura del run "Sin verificar"; `test:coverage` 1985/0 (ejecutor).
   Gate en vivo: navegador real (Playwright), `docs/done/evidence/TRUST.2-live.json`
   Ejecutado por: codex gpt-6.1-sol (criterio) · Spec: docs/specs/TRUST.2.md
-- [ ] **TRUST.1 — ⚡ El reintento recibe la causa medida, no un resumen.** Hoy `retry_reason` = `check failed: <cmd> exit
-  <n>` sin salida (`src/run/harness.ts:696`); stderr queda en `checks_json`. Motivo = cmd + exit + cola de stdout/stderr;
-  razón del juez aparte y marcada; relanzar sin evidencia se avisa; la UI muestra cmd, exit y salida (hoy
-  `api/runs.ts:76` tira stdout/stderr). Gate en vivo: tarea con check que
-  falla a propósito y el reintento la recibe.
+- [x] **TRUST.1 — ⚡ El reintento recibe la causa medida, no un resumen.** (cerrado 2026-10-22) `formatCheckFailure`
+  (`src/run/checks.ts`): cmd + exit/expected o timeout + cola de stderr/stdout, ≤ 1800. El prompt conserva primera línea
+  y final (antes cortaba el final). Fallo de QA llega como "Opinión del juez QA (<modelo>): …". UI: salida bajo el check
+  fallido en Runs; el detalle de tarea muestra el motivo sin exigir `retryCount > 0` y avisa "No hay registro de por qué
+  falló". Evidencia del cerebro: diff leído, typecheck y lint limpios, 63/63 unitarios, capturas con `TRUST1-MARKER` en
+  Runs y en Tasks; `test:coverage` 1991/0 (ejecutor). Dos paradas del ejecutor por casos borde de recorte no definidos
+  en el spec (corregido el spec, no el ejecutor).
+  Gate en vivo: navegador real (Playwright), `docs/done/evidence/TRUST.1-live.json`
+  Ejecutado por: codex gpt-6.1-sol (criterio) · Spec: docs/specs/TRUST.1.md
 - [ ] **TRUST.3 — ⚡ La UI separa medida de opinión.** Razón del juez y `executor_reply` hoy aparecen como hechos junto a
   exit codes (`src/dashboard/app/src/api/runs.ts:44`, `RunsEvidenceView.tsx:155`). Marcar opinión de LLM como tal.
+  Visto en TRUST.1/2: un fallo de check aparece como "QA verdict: fail" (es medida, no QA) y "QA: no corrió" lleva ✗ rojo.
 
 ### Abiertos — fiabilidad de los gates y documentación
 

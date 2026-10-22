@@ -477,3 +477,10 @@ modos de `KNOWN_CLIS`; test legacy con `gemini` inalcanzable. r2 se intentó pri
 **Clasificación**: RESPETÓ.
 **Por qué**: sin cambiar contexto, checks, juez ni reintentos, registra `skipped` cuando no corre el juez y propaga el veredicto real; el log deja de afirmar `QA:pass` en ese camino.
 **Reversibilidad/evidencia**: diff de TRUST.2 y gates entregados al cerebro; sin commit del ejecutor.
+
+## 2026-10-22 — Codex, ejecutor TRUST.1
+
+**Regla tocada**: `src/run/harness.ts`, archivo protegido.
+**Clasificación**: RESPETÓ.
+**Por qué**: propaga salida medida del check y marca opinión del juez en retryReason, sin cambiar contexto, política de reintentos, checks ni runs.result.
+**Reversibilidad/evidencia**: diff y salidas crudas de gates entregados al cerebro; sin commit del ejecutor.

@@ -10,7 +10,7 @@ import { afterEach, describe, expect, it } from 'bun:test'
 import { mkdirSync, mkdtempSync, rmSync, unlinkSync, writeFileSync } from 'fs'
 import { tmpdir } from 'os'
 import { join } from 'path'
-import { defaultChecksFor, runChecks } from '../run/checks.ts'
+import { type CheckResult, defaultChecksFor, formatCheckFailure, runChecks } from '../run/checks.ts'
 import { cleanupJsCheckTemp, jsCheckTempPath } from '../run/html-script-check.ts'
 import { RunLogger } from '../run/logger.ts'
 
@@ -365,5 +365,46 @@ describe('defaultChecksFor', () => {
 
     expect(result).toMatchObject({ cmd: '', exitCode: 1, timedOut: false })
     expect(result?.stderr).toContain('empty command')
+  })
+})
+
+describe('formatCheckFailure — TRUST.1', () => {
+  const result: CheckResult = {
+    cmd: 'test output',
+    exitCode: 2,
+    stdout: 'stdout end',
+    stderr: 'stderr end',
+    elapsedMs: 123,
+    timedOut: false,
+  }
+  it('includes measured exit, expected value and both streams', () => {
+    expect(formatCheckFailure(result, 7)).toBe(
+      'check failed: test output exit 2 (expected 7)\n--- stderr (tail) ---\nstderr end\n--- stdout (tail) ---\nstdout end',
+    )
+  })
+  it('includes measured timeout', () => {
+    expect(formatCheckFailure({ ...result, timedOut: true }, 0)).toStartWith(
+      'check timed out after 123ms: test output',
+    )
+  })
+  it('bounds long commands and streams, prioritizing the stderr tail', () => {
+    const text = formatCheckFailure(
+      { ...result, cmd: 'C'.repeat(1000), stderr: 'noise\n'.repeat(1000) + 'TRUST1-MARKER' },
+      7,
+    )
+    expect(text.length).toBe(1800)
+    expect(text).toStartWith(
+      `check failed: ${'C'.repeat(300)}… exit 2 (expected 7)\n--- stderr (tail) ---\n`,
+    )
+    expect(text).toEndWith('TRUST1-MARKER')
+    expect(text).not.toContain('stdout (tail)')
+  })
+  it('keeps stdout tail when stderr is empty and omits empty streams', () => {
+    expect(
+      formatCheckFailure({ ...result, stderr: '', stdout: 'S'.repeat(3000) + 'END' }, 0),
+    ).toEndWith('END')
+    expect(formatCheckFailure({ ...result, stderr: '', stdout: '' }, 0)).toBe(
+      'check failed: test output exit 2 (expected 0)',
+    )
   })
 })

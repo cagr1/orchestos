@@ -55,7 +55,16 @@ describe('buildPrompt — F1.1 retry feedback', () => {
     const tail = userContent.slice(idx + marker.length)
     const reasonInBlock = tail.slice(0, tail.indexOf('\nFix the cause described above.'))
     expect(reasonInBlock.length).toBe(2000)
-    expect(reasonInBlock).toBe('X'.repeat(2000))
+    expect(reasonInBlock).toBe('X'.repeat(300) + '\n…\n' + 'X'.repeat(1697))
+  })
+
+  it('keeps the first line and final error of a multiline reason', () => {
+    const reason = 'check failed: test exit 1\n' + 'noise\n'.repeat(1000) + 'TRUST1-MARKER'
+    const { userContent } = buildPrompt(makeTask(), '', '/tmp', undefined, undefined, reason)
+    const block = userContent.split('failed for this reason:\n')[1]!.split('\nFix the cause')[0]!
+    expect(block).toHaveLength(2000)
+    expect(block).toStartWith('check failed: test exit 1\n…\n')
+    expect(block).toEndWith('TRUST1-MARKER')
   })
 
   it('preserves a previousFailure shorter than 2000 chars verbatim', () => {

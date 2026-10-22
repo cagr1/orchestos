@@ -143,6 +143,19 @@ export default async function tasks({ page, api, step, note, shot, visible, clea
             retry_count: 0,
           },
           {
+            id: 'gate-check-failure',
+            description: 'Create TRUST.txt containing exactly: TRUST check fixture',
+            executor_model: 'openai/gpt-6-luna',
+            engine: 'codex',
+            cli_effort: 'medium',
+            input: [],
+            output: ['TRUST.txt'],
+            checks: [{ cmd: `bun -e 'console.error("TRUST1-MARKER"),process.exit(1)'` }],
+            depends_on: [],
+            status: 'pending',
+            retry_count: 0,
+          },
+          {
             id: 'gate-failed-task',
             description: 'Create NOTES.md containing the line: Retry ran.',
             executor_model: 'openai/gpt-6-luna',
@@ -571,4 +584,39 @@ export default async function tasks({ page, api, step, note, shot, visible, clea
     'QA: no corrió and reason visible',
   )
   await shot('tasks-real-data')
+
+  // TRUST.1 — measured failure is visible and persisted before any retry.
+  await page.getByRole('button', { name: 'Back to Runs', exact: true }).click()
+  await page.getByRole('button', { name: 'Tasks', exact: true }).click()
+  const checkBefore = (await tasksFor(api, project.id)).find(
+    (task) => task.id === 'gate-check-failure',
+  )
+  await page.getByRole('button', { name: 'Run gate-check-failure', exact: true }).click()
+  const checkFailed = await waitForTaskFinished(api, project.id, 'gate-check-failure', checkBefore)
+  const persistedTask = yamlParse(readFileSync(join(projectRoot, 'tasks.yaml'), 'utf8')).tasks.find(
+    (task) => task.id === 'gate-check-failure',
+  )
+  await step(
+    'check stderr persisted in retry_reason',
+    checkFailed?.retryReason?.includes('TRUST1-MARKER') &&
+      persistedTask?.retry_reason?.includes('TRUST1-MARKER'),
+    JSON.stringify({ api: checkFailed, persisted: persistedTask }),
+  )
+  await page.locator('[data-task-row][data-task-id="gate-check-failure"]').click()
+  await step(
+    'check stderr visible in task failure reason',
+    await visible(page.locator('[data-task-detail]').getByText('TRUST1-MARKER', { exact: false })),
+    await page.locator('[data-task-detail]').innerText(),
+  )
+  await shot('trust1-task-failure')
+  await page.keyboard.press('Escape')
+  await page.getByRole('button', { name: 'Runs', exact: true }).click()
+  await page.locator('tr').filter({ hasText: 'gate-check-failure' }).first().click()
+  await page.getByRole('button', { name: 'QA Assertions', exact: true }).click()
+  await step(
+    'check stderr visible under failed check in Runs',
+    await visible(page.locator('pre').filter({ hasText: 'TRUST1-MARKER' })),
+    await page.locator('pre').filter({ hasText: 'TRUST1-MARKER' }).innerText(),
+  )
+  await shot('trust1-run-check-failure')
 }

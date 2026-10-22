@@ -140,6 +140,24 @@ export interface CheckResult {
   timedOut: boolean
 }
 
+/** Bounded measured failure, retaining the end of stderr before stdout. */
+export function formatCheckFailure(result: CheckResult, expectedExit: number): string {
+  const cmd = result.cmd.length > 300 ? `${result.cmd.slice(0, 300)}…` : result.cmd
+  let text = result.timedOut
+    ? `check timed out after ${result.elapsedMs}ms: ${cmd}`
+    : `check failed: ${cmd} exit ${result.exitCode} (expected ${expectedExit})`
+  for (const [name, stream] of [
+    ['stderr', result.stderr],
+    ['stdout', result.stdout],
+  ]) {
+    if (!stream) continue
+    const header = `\n--- ${name} (tail) ---\n`
+    const available = 1800 - text.length - header.length
+    if (available > 0) text += header + stream.slice(-available)
+  }
+  return text
+}
+
 export async function runChecks(
   checks: Check[],
   projectRoot: string,

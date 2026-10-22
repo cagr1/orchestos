@@ -8,7 +8,14 @@ interface RunRow {
   filesAttempted?: string[]
   filesAuthorized?: string[]
   filesBlocked?: string[]
-  checks?: Array<{ cmd: string; exitCode: number; elapsedMs: number; timedOut?: boolean }>
+  checks?: Array<{
+    cmd: string
+    exitCode: number
+    elapsedMs: number
+    timedOut?: boolean
+    stderr?: string
+    stdout?: string
+  }>
   status: RunItem['status']
   qaVerdict: RunItem['qaVerdict']
   qaReason?: string | null
@@ -82,6 +89,7 @@ export function mapRunRow(row: RunRow): RunItem {
       passed: check.exitCode === 0 && !check.timedOut,
       durationMs: check.elapsedMs,
       exitCode: check.exitCode,
+      output: [check.stderr, check.stdout].filter(Boolean).join('\n'),
     })),
     qaEvaluation,
     filesAttempted: row.filesAttempted || [],

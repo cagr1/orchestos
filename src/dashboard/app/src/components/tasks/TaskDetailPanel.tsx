@@ -148,10 +148,15 @@ export function TaskDetailPanel({
             </Property>
           ) : null}
         </div>
-        {(task.retryCount ?? 0) > 0 && task.retryReason ? (
-          <p className="text-xs text-app-error">
-            Attempt {task.retryCount}/{maxAttempts} failed: {task.retryReason}
+        {['failed', 'failed_permanent', 'pending'].includes(task.status) && task.retryReason ? (
+          <p className="whitespace-pre-wrap font-mono text-xs text-app-error">
+            {(task.retryCount ?? 0) > 0
+              ? `Attempt ${task.retryCount}/${maxAttempts} failed: `
+              : 'Failed: '}
+            {task.retryReason}
           </p>
+        ) : ['failed', 'failed_permanent'].includes(task.status) ? (
+          <p className="text-xs text-app-warning">No hay registro de por qué falló</p>
         ) : null}
         {showDescription ? (
           <section>

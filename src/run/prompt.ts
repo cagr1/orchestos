@@ -49,7 +49,11 @@ export function buildPrompt(
   }
 
   if (previousFailure) {
-    const truncated = previousFailure.slice(0, 2000)
+    const head = previousFailure.split('\n', 1)[0]!.slice(0, 300)
+    const truncated =
+      previousFailure.length <= 2000
+        ? previousFailure
+        : head + '\n…\n' + previousFailure.slice(-(2000 - head.length - 3))
     userContent += `\n## PREVIOUS ATTEMPT FAILED\nThe last attempt at this task failed for this reason:\n${truncated}\nFix the cause described above. Do not repeat the same mistake.`
   }
 
