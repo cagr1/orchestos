@@ -17,10 +17,15 @@ beforeAll(() => runMigrations())
 afterAll(() => {
   for (const id of ids) db.run('DELETE FROM approval_runs WHERE id = ?', [id])
 })
-function fixture(die = false, requestBeforeStarted = false) {
+function fixture(
+  die = false,
+  requestBeforeStarted = false,
+  mode: 'auto-edit' | 'supervised' = 'auto-edit',
+  completeImmediately = false,
+) {
   const id = randomUUID()
   ids.push(id)
-  const adapter = createApprovalRun(id, 'task', null, 'auto-edit')
+  const adapter = createApprovalRun(id, 'task', null, mode)
   const child = new EventEmitter() as any
   child.stdin = new PassThrough()
   child.stdout = new PassThrough()
@@ -46,6 +51,23 @@ function fixture(die = false, requestBeforeStarted = false) {
       if (req.method === 'thread/start') reply({ thread: { id: 'thread' }, model: 'gpt-6-sol' })
       if (req.method === 'turn/start') {
         reply({ turn: { id: 'turn' } })
+        if (completeImmediately) {
+          queueMicrotask(() => {
+            emit({
+              method: 'thread/tokenUsage/updated',
+              params: {
+                threadId: 'thread',
+                turnId: 'turn',
+                tokenUsage: { last: { inputTokens: 10, outputTokens: 3, cachedInputTokens: 2 } },
+              },
+            })
+            emit({
+              method: 'turn/completed',
+              params: { threadId: 'thread', turn: { id: 'turn', status: 'completed' } },
+            })
+          })
+          continue
+        }
         queueMicrotask(() => {
           const itemStarted = {
             method: 'item/started',
@@ -211,15 +233,27 @@ for (const decision of ['approve', 'reject'] as const)
         decision === 'approve' ? 'accept' : 'decline',
       ])
       expect(f.calls.find((r) => r.method === 'thread/start').params).toMatchObject({
-        approvalPolicy: 'untrusted',
+        approvalPolicy: 'on-request',
         sandbox: 'workspace-write',
       })
-      expect(f.calls.find((r) => r.method === 'turn/start').params.approvalPolicy).toBe('untrusted')
+      expect(f.calls.find((r) => r.method === 'turn/start').params.approvalPolicy).toBe(
+        'on-request',
+      )
       expect(pendingApprovals(f.id)).toEqual([])
     } finally {
       log.mockRestore()
     }
   })
+for (const mode of ['auto-edit', 'supervised'] as const) {
+  test(`task app-server sends ${mode} approval policy to thread/start and turn/start`, async () => {
+    const f = fixture(false, false, mode, true)
+    await f.run
+    const policy = mode === 'auto-edit' ? 'on-request' : 'untrusted'
+    expect(f.calls.find((r) => r.method === 'thread/start').params.approvalPolicy).toBe(policy)
+    expect(f.calls.find((r) => r.method === 'turn/start').params.approvalPolicy).toBe(policy)
+  })
+}
+
 test('CLI exits with a pending action: turn rejects and pending resolves reject', async () => {
   const f = fixture(true)
   await expect(f.run).rejects.toThrow('app-server exited')

@@ -3,9 +3,9 @@ import { createHash } from 'node:crypto'
 import { mkdirSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { createInterface } from 'node:readline'
+import { redactSensitive } from '../../security/secrets.ts'
 import type { ApprovalAdapter } from '../approvals.ts'
 import { decideApproval } from '../approvals.ts'
-import { redactSensitive } from '../../security/secrets.ts'
 import { codexApprovalRequest } from './codex-approval.ts'
 import { type ExecutorStepEvent, readonlyCommandTarget } from './step-event.ts'
 
@@ -678,7 +678,8 @@ export class CodexAppServer {
     const started = await this.request('thread/start', {
       cwd: input.cwd,
       sandbox: 'workspace-write',
-      approvalPolicy: 'untrusted',
+      // CI.32.c (2026-10-22): auto-edit uses Codex's native sandbox approval behavior.
+      approvalPolicy: input.approvals.mode === 'auto-edit' ? 'on-request' : 'untrusted',
       approvalsReviewer: 'user',
       model: input.model,
       ephemeral: true,
@@ -718,7 +719,7 @@ export class CodexAppServer {
         cwd: input.cwd,
         model: input.model,
         effort: input.effort,
-        approvalPolicy: 'untrusted',
+        approvalPolicy: input.approvals.mode === 'auto-edit' ? 'on-request' : 'untrusted',
         approvalsReviewer: 'user',
         sandboxPolicy: { type: 'workspaceWrite', writableRoots: [input.cwd], networkAccess: false },
       })

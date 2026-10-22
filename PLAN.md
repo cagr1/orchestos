@@ -694,6 +694,9 @@ Cerrada. Todos sus ítems están archivados en `docs/done/` (ver "Cerrados — e
   (el CLI hijo hereda stderr → `dashboard.log`) y el paso vuelca porcelain, `git log -5`, estado de la tarea y log.
   Reproducción: set de UI.26.4 6 de 6 verde, 0 líneas `[tasks-yaml]`. Abierto hasta el próximo fallo: leer el
   detalle del paso en `result.json` y escribir la fase 2 (causa).
+  2026-10-22: visto 1 vez (`CI.32.c-live`, con `auto-flow chat-retry-report chat-permissions` antes): `porcelain="M
+  tasks.yaml"`, último commit `orchestos(gate-first-task): …`; `tasks` solo pasó 31/31 justo después. Detalle en
+  `$TMPDIR/ui-gate-65780/result.json` (temporal, no conservado).
 - [ ] **CI.32 — 🔍 Cinco ui-gates en vivo rotos en master tras el lote del 2026-10-21 sin pre-push.** (abierto
   2026-10-22) `ui:gate` completo: 26 pasan, 5 fallan, y los 5 se repiten igual al relanzarlos solos (deterministas,
   no intermitentes). Evidencia: `gate:evidence next-2026-10-22-ui-gate-full` y `next-2026-10-22-ui-gate-rerun5`.
@@ -708,7 +711,7 @@ Cerrada. Todos sus ítems están archivados en `docs/done/` (ver "Cerrados — e
     Ejecutado por: codex gpt-6-luna (mecanico).
   - [ ] **CI.32.b — `chat-followup-task` y `chat-task-undo`: `/api/chat` responde 404 `Project not found`** al
     elegir el proyecto temporal en Dev y volver a Chat.
-  - [ ] **CI.32.c — `auto-flow`: la tarea Codex aprobada se queda en `running` con `pendingApprovals: 1`** hasta
+  - [x] **CI.32.c — `auto-flow`: la tarea Codex aprobada se queda en `running` con `pendingApprovals: 1`** hasta
     agotar 10 min (auto-edit, "crea codex-nota.md"). Fase 1 (evidencia, 2026-10-22): cada petición deja
     `[codex-approval] {request|decision|item-started}` en `dashboard.log` (comando redactado, 300 caracteres).
     Corrida `CI.32.c1-live`: la hipótesis del orden `item/started` queda refutada. Codex escribió el archivo con
@@ -720,9 +723,14 @@ Cerrada. Todos sus ítems están archivados en `docs/done/` (ver "Cerrados — e
     **Decisión de Carlos 2026-10-22:** en `auto-edit`, Codex corre con su sandbox nativo de escritura en el proyecto
     (su modo "Auto"): los comandos dentro del proyecto pasan solos y solo pregunta lo que sale del proyecto o pide
     red, igual que el CLI directo. Cambia ERP.7.1a para Codex (`mkdir` dentro del proyecto ya no pregunta); `Supervised`
-    sigue preguntando todo comando. Fase 2: implementarlo en `codex-app-server.ts` (`taskTurn`).
-  - [ ] **CI.32.d — `chat-retry-report`: el primer intento se queda en `running`, `retryCount=0`.** Posiblemente la
-    misma causa que CI.32.c; se confirma después de corregir CI.32.c.
+    sigue preguntando todo comando. Fase 2 (cerrada 2026-10-22): `taskTurn` manda `approvalPolicy: 'on-request'` en
+    `auto-edit` y `'untrusted'` en `supervised` (`thread/start` y `turn/start`); sandbox `workspaceWrite` sin cambios.
+    Evidencia: `gate:evidence CI.32.c-live` → `auto-flow` 33/33, `chat-retry-report` 24/24, `chat-permissions` 9/9,
+    sin peticiones `[codex-approval]` (nada salió del sandbox); `tasks` falló en `tasks.yaml` sin commitear (CI.23) y
+    pasó 31/31 solo (`CI.32.c-live-tasks`); `codex-task-approvals.test.ts` 6/0 (un caso por modo); `test:coverage`
+    1930/0; `bun run lint` sin errores. Ejecutado por: codex gpt-6-luna (mecanico).
+  - [x] **CI.32.d — `chat-retry-report`: el primer intento se queda en `running`, `retryCount=0`.** (cerrado
+    2026-10-22) Misma causa que CI.32.c: con el sandbox nativo pasa 24/24 (`CI.32.c-live`). Sin cambio propio.
 - [x] **CI.33 — 🔍 `graph-runner.test.ts` "stops at the maximum graph iterations" roza su límite de 5 s.** (abierto y
   cerrado 2026-10-22) Cadena de 202 tareas con `runTask` simulado: ~5 s aislado; timeout en 2 de 4 `test:coverage`
   del 2026-10-22. Medido: ~4,95 s de 4,97 s son `new RunLogger` por intento (`graph-runner.ts:499` →
