@@ -14,6 +14,7 @@ import { resolveProjectAgentRule, taskFieldsFromRule } from '../../router/engine
 import { activeApprovalRun, pendingApprovals } from '../../run/approvals.ts'
 import { commitPaths, commitTasksYaml } from '../../run/commit-tasks-yaml.ts'
 import { detectInstalledClis } from '../../run/executors/cli-registry.ts'
+import { validTaskEngineIds } from '../../run/executors/task-engines.ts'
 import { DIRTY_TREE_REASON_PREFIX, listDirtyFiles } from '../../run/sandbox-policy.ts'
 import { isKnownSkillId } from '../../skills/catalog.ts'
 import { ensureTasksYaml, scaffoldTasksYaml } from '../../tasks/init.ts'
@@ -111,7 +112,8 @@ function buildTaskRow(
     pendingApprovals: approvalRunId ? pendingApprovals(approvalRunId).length : 0,
     sessionId: t.status === 'running' ? (getTaskRunWatch(root, t.id)?.session_id ?? null) : null,
     lastRunAt: lastRunAt(t.run_id),
-    engine: t.engine ?? null,
+    // TCLI.2 abre el tipo de dashboard/types.ts; hasta entonces el cast queda aquí.
+    engine: (t.engine ?? null) as TaskRow['engine'],
     output: t.output,
     dependsOn: t.depends_on,
     acceptanceCriteria: t.acceptance_criteria ?? [],
@@ -262,18 +264,11 @@ function createTaskRecord(
   const executor =
     params.executor || (executorModel ? inferExecutorFromModel(executorModel) : undefined)
   const engineRaw = params.engine?.trim()
-  let engine: 'single-shot' | 'agentic' | 'external' | 'opencode' | 'codex' | undefined
-  if (
-    engineRaw === 'single-shot' ||
-    engineRaw === 'agentic' ||
-    engineRaw === 'external' ||
-    engineRaw === 'opencode' ||
-    engineRaw === 'codex'
-  )
-    engine = engineRaw
+  let engine: string | undefined
+  if (engineRaw && validTaskEngineIds().includes(engineRaw)) engine = engineRaw
   else if (engineRaw && engineRaw.length > 0)
     return {
-      error: `unknown engine '${engineRaw}' — allowed: single-shot, agentic, external, opencode, codex`,
+      error: `unknown engine '${engineRaw}' — allowed: ${validTaskEngineIds().join(', ')}`,
       status: 400,
     }
   const cliEffortRaw = params.cli_effort?.trim()

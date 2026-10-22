@@ -116,6 +116,25 @@ Cerrada. Todos sus ítems están archivados en `docs/done/` (ver "Cerrados — e
   2026-10-22: visto 1 vez (`CI.32.c-live`, con `auto-flow chat-retry-report chat-permissions` antes): `porcelain="M
   tasks.yaml"`, último commit `orchestos(gate-first-task): …`; `tasks` solo pasó 31/31 justo después. Detalle en
   `$TMPDIR/ui-gate-65780/result.json` (temporal, no conservado).
+- [x] **TCLI.1 — Registro de ejecutores de tareas y elección por registro.** (cerrado 2026-10-22) (GO de Carlos 2026-10-22: "no hay un CLI
+  de preferencia, eso es primordial") Un módulo registra el ejecutor de tareas de cada CLI; harness, auto-route, evals,
+  cascada, CLI y handler de tareas lo consultan en vez de ramas fijas. Un CLI registrado sin ejecutor de tareas falla
+  con mensaje visible, nunca `single-shot` en silencio. Fuera de TCLI: ejecutores reales de DeepSeek/Gemini/Kimi/GLM
+  (no instalados, no verificables en vivo) y el chat. Spec: docs/specs/TCLI.1.md
+  Hecho: `src/run/executors/task-engines.ts` (registro CLI ↔ motor; built-ins con carga diferida porque `codex.ts` abre
+  la DB y LIMP.3 lo prohíbe al importar config); `taskEngine` sale de `CliDefinition`; harness, auto-route, evals,
+  engine-cascade, `cli.ts` (un chequeo de binario), `handlers/tasks.ts`, `task-report.ts` y `schema.ts` consultan el
+  registro. Los ids persistidos no cambian (`external` = Claude). Un CLI de `KNOWN_CLIS` sin ejecutor como Ejecutor →
+  "<label> no tiene ejecutor de tareas en OrchestOS…", ya no `single-shot`. Evidencia (cerebro): typecheck y lint
+  limpios, `test:coverage` 1971/0, `task-engines.test.ts` nuevo, `ui:gate tasks` 31/31 vía `gate:evidence`
+  (`TCLI.1-tasks-live`). Anotado: el ejecutor vio fallar 1 vez `codex-engine.test.ts` "timeout … timed out" (678 ms,
+  también sobre HEAD limpio); al cerebro pasó 3/3 suelto y en la suite: intermitente por tiempo, sin ítem hasta repetir.
+  Ejecutado por: claude sonnet (criterio) · Spec: borrado al cerrar
+- [ ] **TCLI.2 — Tipos y front derivados del registro.** `dashboard/types.ts:216,276`, `handlers/runs.ts:81`,
+  `app/src/types/orchestos.ts:7`, `App.tsx:876-886`, `load.ts:146`: sin uniones cerradas de CLI; el front ofrece los
+  CLI con ejecutor de tareas instalados. Gate en vivo `ui:gate tasks`.
+- [ ] **CTX-GUARD.3 — Bajar el peso de arranque bajo 9k.** (GO de Carlos 2026-10-22) Carlos apaga las 13 skills de
+  cuenta en claude.ai; el cerebro poda `CLAUDE.md` del repo (historia de incidentes → `docs/`, quedan las reglas).
 - [x] **CI.38 — ⚡ `chat-continuity` no distingue dos chats con el mismo título tras UI.27.3.** (abierto 2026-10-22)
   Pre-push de `39c67167` 2/2: `strict mode violation: getByRole('button', { name: 'Remember this code for later: …' })
   resolved to 2 elements`. El flujo crea un chat de Claude y uno de Codex con el mismo título en el mismo proyecto;

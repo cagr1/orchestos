@@ -1,7 +1,37 @@
 {
-  "exported_at": "2026-10-22T18:22:08.877Z",
+  "exported_at": "2026-10-22T19:25:09.625Z",
   "total_runs": 20,
   "runs": [
+    {
+      "id": "71d67799-546a-41b7-8a26-e4bbe701cb67",
+      "task_class": "gate:tcli.1-tasks-live:implement",
+      "model": "openai/gpt-6-luna",
+      "provider": "codex",
+      "status": "done",
+      "qa_verdict": "pass",
+      "qa_reason": "NOTES.md contains the required line.",
+      "files_blocked": [],
+      "checks_failed": 0,
+      "usd_cost": 0.00117118,
+      "elapsed_ms": 15565,
+      "tokens": 7091,
+      "created_at": "2026-10-22T19:23:55.324Z"
+    },
+    {
+      "id": "b80d65f8-a4ed-4710-8880-e902a7670392",
+      "task_class": "gate:tcli.1-tasks-live:doc",
+      "model": "openai/gpt-6-luna",
+      "provider": "codex",
+      "status": "done",
+      "qa_verdict": "pass",
+      "qa_reason": "README.md contains the requested line.",
+      "files_blocked": [],
+      "checks_failed": 0,
+      "usd_cost": 0.00150716,
+      "elapsed_ms": 15681,
+      "tokens": 9250,
+      "created_at": "2026-10-22T19:23:36.908Z"
+    },
     {
       "id": "fe3e5c0c-12a7-4f5a-8ba8-b0a9f99d18a4",
       "task_class": "gate:ci.37-live:implement",
@@ -271,36 +301,6 @@
       "elapsed_ms": 19325,
       "tokens": 6051,
       "created_at": "2026-10-22T14:59:44.778Z"
-    },
-    {
-      "id": "b558e815-181a-4397-b4ff-303cf9847e17",
-      "task_class": "gate:ci.32-close-ui-gate-full:implement",
-      "model": "anthropic/haiku",
-      "provider": "claude",
-      "status": "done",
-      "qa_verdict": "pass",
-      "qa_reason": "claude.txt contains the required line, and the exact-line check passed.",
-      "files_blocked": [],
-      "checks_failed": 0,
-      "usd_cost": 0.00155075,
-      "elapsed_ms": 10599,
-      "tokens": 2964,
-      "created_at": "2026-10-22T14:59:23.975Z"
-    },
-    {
-      "id": "0daaf85e-e221-4794-a6c3-510175ccafb3",
-      "task_class": "gate:ci.32-close-ui-gate-full:implement",
-      "model": "openai/gpt-6-luna",
-      "provider": "codex",
-      "status": "done",
-      "qa_verdict": "pass",
-      "qa_reason": "ok.txt contains the required line VERDE.",
-      "files_blocked": [],
-      "checks_failed": 0,
-      "usd_cost": 0.0013061,
-      "elapsed_ms": 22254,
-      "tokens": 8821,
-      "created_at": "2026-10-22T14:59:11.195Z"
     }
   ],
   "stats": {
@@ -308,6 +308,6 @@
     "blocked": 0,
     "done": 18,
     "qa_failed": 2,
-    "total_cost_usd": "0.0233"
+    "total_cost_usd": "0.0231"
   }
 }

@@ -30,9 +30,7 @@ import { calcCost } from './router/pricing.ts'
 import { roleClient } from './router/role-runner.ts'
 import { commitFinalTaskState } from './run/commit-tasks-yaml.ts'
 import { enforceContract, parseLLMResponse } from './run/contract.ts'
-import { codexUnavailableMessage, findCodexBinary } from './run/executors/codex.ts'
-import { claudeUnavailableMessage, findClaudeBinary } from './run/executors/external.ts'
-import { findOpencodeBinary, opencodeUnavailableMessage } from './run/executors/opencode.ts'
+import { taskEngineById, validTaskEngineIds } from './run/executors/task-engines.ts'
 import { runGraph } from './run/graph-runner.ts'
 import { runTask } from './run/harness.ts'
 import { RunLogger } from './run/logger.ts'
@@ -1170,15 +1168,9 @@ task
         // memoria, NO persiste en tasks.yaml. Validación de valores: 'single-shot',
         // 'agentic' o 'external' (B.2); cualquier otro cae con error explicativo.
         if (opts?.engine !== undefined) {
-          if (
-            opts.engine !== 'single-shot' &&
-            opts.engine !== 'agentic' &&
-            opts.engine !== 'external' &&
-            opts.engine !== 'opencode' &&
-            opts.engine !== 'codex'
-          ) {
+          if (!validTaskEngineIds().includes(opts.engine)) {
             console.error(
-              `[task] --engine: unknown engine '${opts.engine}' — allowed: single-shot, agentic, external, opencode, codex`,
+              `[task] --engine: unknown engine '${opts.engine}' — allowed: ${validTaskEngineIds().join(', ')}`,
             )
             return 'failed'
           }
@@ -1190,16 +1182,9 @@ task
         // accionable, ANTES de gastar trabajo en: crear worktree, resolver
         // sandbox, marcar la task como running, etc. Mismo mensaje que el
         // engine + endpoint del dashboard (single source of truth: external.ts).
-        if (t.engine === 'external' && !findClaudeBinary()) {
-          console.error(`[task] ${claudeUnavailableMessage(process.env.PATH)}`)
-          return 'failed'
-        }
-        if (t.engine === 'opencode' && !findOpencodeBinary()) {
-          console.error(`[task] ${opencodeUnavailableMessage(process.env.PATH)}`)
-          return 'failed'
-        }
-        if (t.engine === 'codex' && !findCodexBinary()) {
-          console.error(`[task] ${codexUnavailableMessage(process.env.PATH)}`)
+        const cliEngine = taskEngineById(t.engine)
+        if (cliEngine && !cliEngine.findBinary()) {
+          console.error(`[task] ${cliEngine.unavailableMessage(process.env.PATH)}`)
           return 'failed'
         }
         if (t.status === 'done') {

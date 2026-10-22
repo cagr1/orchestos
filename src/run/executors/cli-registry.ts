@@ -29,6 +29,7 @@ import { homedir } from 'node:os'
 import { join } from 'node:path'
 import { excludeRuntimeArtifacts } from '../git-exclude.ts'
 import { safeChildEnv } from '../path-policy.ts'
+import { cliForTaskEngine } from './task-engines.ts'
 
 export type CliReadBoundary =
   // H.9.2 (reabierto 2026-09-06) — `project-root` ya no es una promesa del
@@ -53,7 +54,6 @@ export interface CliDefinition {
   subagentBlock: { args: string[] } | 'not-guaranteed'
   mcp: CliMcpAdapter
   supportsActionApproval: boolean
-  taskEngine?: 'external' | 'codex' | 'opencode'
   configHome: {
     directory: string
     instructionFile: string
@@ -82,7 +82,6 @@ export const KNOWN_CLIS: CliDefinition[] = [
   {
     id: 'claude',
     supportsActionApproval: true,
-    taskEngine: 'external',
     binary: 'claude',
     label: 'Claude Code',
     icon: 'claude',
@@ -98,7 +97,6 @@ export const KNOWN_CLIS: CliDefinition[] = [
   {
     id: 'codex',
     supportsActionApproval: true,
-    taskEngine: 'codex',
     binary: 'codex',
     label: 'Codex',
     icon: 'openai',
@@ -113,7 +111,6 @@ export const KNOWN_CLIS: CliDefinition[] = [
   {
     id: 'opencode',
     supportsActionApproval: true,
-    taskEngine: 'opencode',
     binary: 'opencode',
     label: 'opencode',
     icon: 'opencode',
@@ -377,7 +374,8 @@ export function actionApprovalPolicy(
   engine: string,
   requested: 'supervised' | 'auto-edit' | 'full' = 'full',
 ) {
-  const cli = KNOWN_CLIS.find((entry) => entry.taskEngine === engine)
+  const cliId = cliForTaskEngine(engine)
+  const cli = KNOWN_CLIS.find((entry) => entry.id === cliId)
   return {
     requestedApprovalMode: requested,
     approvalMode: cli?.supportsActionApproval ? requested : ('full' as const),

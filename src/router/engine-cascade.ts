@@ -2,25 +2,21 @@
 
 import type { OrcheConfig, TaskAgentRule } from '../config/schema.ts'
 
-const TASK_ENGINE_BY_AGENT = {
-  claude: 'external',
-  opencode: 'opencode',
-  codex: 'codex',
-} as const
+import {
+  cliTaskEngineIds,
+  taskEngineById,
+  taskEngineForCli,
+} from '../run/executors/task-engines.ts'
 
 export function taskAgentIds(): string[] {
-  return ['local', ...Object.keys(TASK_ENGINE_BY_AGENT), 'api']
+  return ['local', ...cliTaskEngineIds().map((id) => taskEngineById(id)!.cliId), 'api']
 }
 
 export function taskFieldsFromRule(
   rule: TaskAgentRule,
   cfg: OrcheConfig,
-):
-  | { engine?: 'external' | 'codex' | 'opencode'; executor_model?: string; cli_effort?: string }
-  | { error: string } {
-  const engine = Object.hasOwn(TASK_ENGINE_BY_AGENT, rule.agent)
-    ? TASK_ENGINE_BY_AGENT[rule.agent as keyof typeof TASK_ENGINE_BY_AGENT]
-    : undefined
+): { engine?: string; executor_model?: string; cli_effort?: string } | { error: string } {
+  const engine = taskEngineForCli(rule.agent)?.engineId
   if (engine && !rule.model && rule.agent !== cfg.roles.executor?.agent)
     return {
       error: `Task rule for ${rule.agent} has no model. Set it in Settings → Task rules.`,

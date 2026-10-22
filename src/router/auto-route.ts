@@ -1,4 +1,5 @@
 import type { OrcheConfig, RoleAgent } from '../config/schema.ts'
+import { cliForTaskEngine } from '../run/executors/task-engines.ts'
 import type { Task } from '../tasks/schema.ts'
 
 interface RouteResult {
@@ -11,14 +12,7 @@ interface RouteResult {
 
 export function autoRoute(task: Task, cfg: OrcheConfig): RouteResult | null {
   const executor = cfg.roles.executor
-  const cliAgent =
-    task.engine === 'external'
-      ? 'claude'
-      : task.engine === 'codex'
-        ? 'codex'
-        : task.engine === 'opencode'
-          ? 'opencode'
-          : undefined
+  const cliAgent = cliForTaskEngine(task.engine)
   if (cliAgent) {
     const model = task.executor_model ?? (executor?.agent === cliAgent ? executor.model : undefined)
     if (!model) return null

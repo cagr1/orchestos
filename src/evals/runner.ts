@@ -15,6 +15,7 @@ import { insertRun } from '../db/runs.ts'
 import { autoRoute } from '../router/auto-route.ts'
 import { classifyTask } from '../router/classify.ts'
 import { type CheckResult, runChecks } from '../run/checks.ts'
+import { requireTaskEngineForAgent } from '../run/executors/task-engines.ts'
 import { runTask, type TaskResult } from '../run/harness.ts'
 import { RunLogger } from '../run/logger.ts'
 import { git } from '../run/sandbox.ts'
@@ -72,13 +73,9 @@ function resolveEvalConfiguration(
   const model = overrides.model ?? route!.model
   const engine =
     measuredTask.engine ??
-    (route?.agent === 'claude'
-      ? 'external'
-      : route?.agent === 'codex'
-        ? 'codex'
-        : route?.agent === 'opencode'
-          ? 'opencode'
-          : (config.apiMode ?? 'single-shot'))
+    requireTaskEngineForAgent(route?.agent)?.engineId ??
+    config.apiMode ??
+    'single-shot'
 
   return {
     task: measuredTask,

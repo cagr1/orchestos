@@ -454,3 +454,10 @@ en `/tmp/ERP.6.2-r4-*.log`. Sin commit ni edición del plan.
 `test:coverage`: exit 1, 1879 pass / 2 skip / 6 fail (adversarial-review ×2 por sandbox,
 warning de Git en readonly, timeout de runGraph y csrf-origin ×2 por EADDRINUSE), mismos
 nombres de fallos que el reporte de r2; no se corrigen fuera del spec. `runs-graph` no ejecutado.
+
+## 2026-10-22 19:20 — claude sonnet (criterio), ejecutor TCLI.1 · verificado por Opus
+**Clasificación**: RESPETÓ.
+Registro `task-engines.ts`; harness, auto-route, evals, cascada, `cli.ts`, handlers y schema consultan el registro.
+Desvíos menores justificados en el reporte: built-ins con carga diferida (LIMP.3: importar config no abre la DB),
+cast temporal en `handlers/tasks.ts` hasta TCLI.2. **Evidencia del cerebro**: typecheck/lint limpios,
+`test:coverage` 1971/0, `ui:gate tasks` 31/31 (`TCLI.1-tasks-live`).

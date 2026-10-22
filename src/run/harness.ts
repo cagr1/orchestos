@@ -49,10 +49,12 @@ import {
 } from './contract.ts'
 import { agenticEngine } from './executors/agentic.ts'
 import { actionApprovalPolicy } from './executors/cli-registry.ts'
-import { codexEngine } from './executors/codex.ts'
-import { externalEngine } from './executors/external.ts'
-import { opencodeEngine } from './executors/opencode.ts'
 import { ExecutorParseError, singleShotEngine } from './executors/single-shot.ts'
+import {
+  cliForTaskEngine,
+  requireTaskEngineForAgent,
+  taskEngineById,
+} from './executors/task-engines.ts'
 import type { ExecutorEngine, ExecutorOutcome } from './executors/types.ts'
 import { withGitLock } from './git-lock.ts'
 import type { RunLogger } from './logger.ts'
@@ -198,13 +200,10 @@ export async function runTask(opts: HarnessOpts): Promise<TaskResult> {
     const effectiveConfig = orcheConfig ?? loadOrcheConfig(projectRoot)
     const route = autoRoute(t, effectiveConfig)
     if (!route && !modelOverride) {
-      if (
-        t.engine &&
-        ['external', 'codex', 'opencode'].includes(t.engine) &&
-        effectiveConfig.roles.executor
-      )
+      const engineCli = cliForTaskEngine(t.engine)
+      if (engineCli && effectiveConfig.roles.executor)
         throw new Error(
-          `task ${t.id} runs on ${t.engine === 'external' ? 'claude' : t.engine} but has no executor_model, and the Executor is ${effectiveConfig.roles.executor.agent}`,
+          `task ${t.id} runs on ${engineCli} but has no executor_model, and the Executor is ${effectiveConfig.roles.executor.agent}`,
         )
       throw new RoleUnassignedError('executor')
     }
@@ -215,15 +214,7 @@ export async function runTask(opts: HarnessOpts): Promise<TaskResult> {
     })
     ctx.model = modelOverride ?? route!.model
     ctx.providerName = route?.provider ?? t.executor
-    const routeAgent =
-      route?.agent ??
-      (t.engine === 'external'
-        ? 'claude'
-        : t.engine === 'codex'
-          ? 'codex'
-          : t.engine === 'opencode'
-            ? 'opencode'
-            : 'api')
+    const routeAgent = route?.agent ?? cliForTaskEngine(t.engine) ?? 'api'
     ctx.provider =
       routeAgent === 'api'
         ? getProvider(ctx.providerName)
@@ -356,19 +347,11 @@ export async function runTask(opts: HarnessOpts): Promise<TaskResult> {
     // where agent:claude affected chat-created tasks but not manual runs.
     // Model selection stays independent from engine selection, per Carlos's rule.
     const routeEngine =
-      route?.agent === 'claude'
-        ? 'external'
-        : route?.agent === 'codex'
-          ? 'codex'
-          : route?.agent === 'opencode'
-            ? 'opencode'
-            : (effectiveConfig.apiMode ?? 'single-shot')
+      requireTaskEngineForAgent(route?.agent)?.engineId ?? effectiveConfig.apiMode ?? 'single-shot'
     const requestedEngine = ctx.task.engine ?? routeEngine
     let engine: ExecutorEngine = singleShotEngine
     if (requestedEngine === 'agentic') engine = agenticEngine
-    else if (requestedEngine === 'external') engine = externalEngine
-    else if (requestedEngine === 'opencode') engine = opencodeEngine
-    else if (requestedEngine === 'codex') engine = codexEngine
+    else engine = taskEngineById(requestedEngine)?.engine ?? singleShotEngine
     if (requestedEngine === 'agentic' && !supportsToolCalling(ctx.providerName, ctx.model)) {
       log.info(
         `agentic engine requested but ${ctx.providerName}/${ctx.model} does not support tool-calling — falling back to single-shot`,

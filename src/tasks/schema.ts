@@ -1,5 +1,6 @@
 import type { TaskClass } from '../router/classify.ts'
 import type { ApprovalMode } from '../run/approvals.ts'
+import { validTaskEngineIds } from '../run/executors/task-engines.ts'
 
 const TASK_CLASSES: readonly TaskClass[] = ['plan', 'implement', 'fix', 'review', 'doc']
 
@@ -12,7 +13,8 @@ export type TaskExecutor = 'openrouter' | 'anthropic' | 'openai' | 'codex'
 // B.2 — 'external' es la tercera implementación de ExecutorEngine (B.1, docs/done/design/external-executor-design.md).
 // Lanza el subproceso `claude -p` dentro del worktree; el harness aplica enforceContract post-hoc
 // igual que con single-shot/agentic. Opt-in por tarea o por config de proyecto.
-export type TaskEngine = 'single-shot' | 'agentic' | 'external' | 'opencode' | 'codex'
+// Los ids de motores de CLI viven en el registro (`run/executors/task-engines.ts`) y se validan en runtime.
+export type TaskEngine = 'single-shot' | 'agentic' | (string & {})
 
 const EXECUTORS: TaskExecutor[] = ['openrouter', 'anthropic', 'openai', 'codex']
 
@@ -22,7 +24,7 @@ const EXECUTORS: TaskExecutor[] = ['openrouter', 'anthropic', 'openai', 'codex']
 export const CLI_EFFORT_LEVELS = {
   external: ['low', 'medium', 'high', 'xhigh', 'max'],
   codex: ['minimal', 'low', 'medium', 'high', 'xhigh', 'max', 'ultra'],
-} as const satisfies Partial<Record<TaskEngine, readonly string[]>>
+} as const
 
 export type CliEffort = (typeof CLI_EFFORT_LEVELS)[keyof typeof CLI_EFFORT_LEVELS][number]
 
@@ -129,16 +131,8 @@ function validateTaskClass(value: unknown, err: (msg: string) => never): TaskCla
 
 function validateEngine(value: unknown, err: (msg: string) => never): TaskEngine | undefined {
   if (value === undefined) return undefined
-  if (
-    value !== 'single-shot' &&
-    value !== 'agentic' &&
-    value !== 'external' &&
-    value !== 'opencode' &&
-    value !== 'codex'
-  ) {
-    err(
-      `unknown engine '${String(value)}' — allowed: single-shot, agentic, external, opencode, codex`,
-    )
+  if (typeof value !== 'string' || !validTaskEngineIds().includes(value)) {
+    err(`unknown engine '${String(value)}' — allowed: ${validTaskEngineIds().join(', ')}`)
   }
   return value as TaskEngine
 }
