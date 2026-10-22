@@ -32,6 +32,10 @@ async function waitForRequestAfter(requests, after, predicate, timeout = 5_000) 
 }
 
 export default async function usageBar({ page, api, step, visible, cleanup, statuslineHome }) {
+  // Stop the previous document before registering a project it could discover while loading.
+  // The request count below must belong to one app load, not both sides of a reload.
+  const appUrl = page.url()
+  await page.goto('about:blank')
   const projectRoot = mkdtempSync(join(tmpdir(), 'orchestos-ui-13-5-'))
   writeFileSync(join(projectRoot, 'README.md'), '# UI.13.5\n')
   writeFileSync(join(projectRoot, '.gitignore'), '.orchestos/\n')
@@ -82,7 +86,7 @@ export default async function usageBar({ page, api, step, visible, cleanup, stat
     if (request.url().includes('/api/session/status'))
       requests.push({ request, observedAt: Date.now() })
   })
-  await page.reload({ waitUntil: 'domcontentloaded' })
+  await page.goto(appUrl, { waitUntil: 'domcontentloaded' })
   await page.getByRole('button', { name: 'Dev', exact: true }).click()
   const projectButton = page.getByRole('button', { name: basename(projectRoot), exact: true })
   await step('temporary project is visible', await visible(projectButton), 'project in sidebar')
@@ -96,9 +100,10 @@ export default async function usageBar({ page, api, step, visible, cleanup, stat
     loaded && requests.length === 1 && initialHeaders['x-orchestos-project-id'] === project.id,
     `requests=${requests.length}, header=${initialHeaders['x-orchestos-project-id'] ?? 'missing'}, expected=${project.id}`,
   )
+  const claudeQuota = page.locator('footer button[title^="Claude"]')
   await step(
     'Claude quota uses newest session reading',
-    await visible(page.getByText('61%', { exact: true })),
+    await visible(claudeQuota.getByText('61%', { exact: true })),
     '61% remaining in status bar',
   )
   const codexQuota = page.locator('button[title^="Codex:"]')
@@ -118,7 +123,7 @@ export default async function usageBar({ page, api, step, visible, cleanup, stat
   )
 
   const refreshButton = page.getByRole('button', { name: 'Refresh usage', exact: true })
-  const quota67 = page.getByText('67%', { exact: true }).first()
+  const quota67 = claudeQuota.getByText('67%', { exact: true })
   const manualResponsePromise = page
     .waitForResponse(
       (response) =>
@@ -133,7 +138,7 @@ export default async function usageBar({ page, api, step, visible, cleanup, stat
   while (Date.now() < manualRefreshDeadline) {
     if (await quota67.isVisible().catch(() => false)) saw67DuringRefresh = true
     if (
-      await page
+      await claudeQuota
         .getByText('61%', { exact: true })
         .isVisible()
         .catch(() => false)

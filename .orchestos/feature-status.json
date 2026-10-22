@@ -58,6 +58,15 @@
       "closedDate": "2026-10-22"
     },
     {
+      "id": "CI.39",
+      "sprint": "Fase 2 — Producto mínimo para entrega",
+      "block": "Abiertos — fiabilidad de los gates y documentación",
+      "delegation": "🔍",
+      "title": "`usage-bar` rojo: el refresco manual muestra la cuota vieja un instante",
+      "status": "done",
+      "closedDate": null
+    },
+    {
       "id": "CI.11",
       "sprint": "Fase 2 — Producto mínimo para entrega",
       "block": "Abiertos — fiabilidad de los gates y documentación",

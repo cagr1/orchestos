@@ -124,6 +124,14 @@ Regla: nada se reintenta, cierra ni muestra sin evidencia medida que el usuario 
 
 ### Abiertos — fiabilidad de los gates y documentación
 
+- [x] **CI.39 — 🔍 `usage-bar` rojo: el refresco manual muestra la cuota vieja un instante.** (abierto y cerrado 2026-10-22)
+  Bloqueaba el push de TRUST.5. Defecto del flujo, no del producto ni de TRUST.5: buscaba "67%" en toda la página y la
+  cuota real de Codex marcaba justo 67 %; además el conteo de requests mezclaba dos documentos (reload). Selectores
+  acotados a la cuota de Claude (`footer button[title^="Claude"]`) y carga limpia por `about:blank`; aserciones intactas.
+  Evidencia del cerebro: diff leído; contrapruebas del ejecutor (colisión forzada falla con el selector viejo y pasa con
+  el nuevo; Claude 61→67 % sigue fallando); `usage-bar` 5/5 (19/19), `test:coverage` 1992/0 (ejecutor).
+  Gate en vivo: navegador real (Playwright), `docs/done/evidence/CI.39-live.json`
+  Ejecutado por: codex gpt-6.1-sol (criterio) · Spec: docs/specs/CI.39.md
 - [ ] **CI.11 — 🔍 El turno 2 de Codex en `codex-live` tardó 180 s contra 22 s del turno 1.** (abierto 2026-10-03)
   Visto una vez en la corrida completa de ui-gates (`$TMPDIR/ui-gate-73235/result.json`, paso "turn 2 is faster than
   turn 1": 22141 ms vs 180113 ms, el timeout del flujo). Sin verificar si es latencia del modelo o un cuelgue al
