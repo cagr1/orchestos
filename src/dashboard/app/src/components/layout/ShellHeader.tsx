@@ -1,5 +1,7 @@
 import { FolderGit2, PanelLeft, PanelRight, Search } from 'lucide-react'
 import type React from 'react'
+import type { SessionContextResponse } from '../../api/chat'
+import { ContextRing } from '../common/ContextRing'
 
 interface ShellHeaderProps {
   onOpenCommandPalette: () => void
@@ -8,6 +10,7 @@ interface ShellHeaderProps {
   isRightInspectorOpen?: boolean
   activeProjectName?: string
   activeBranch?: string
+  sessionContext?: SessionContextResponse | null
 }
 
 export const ShellHeader: React.FC<ShellHeaderProps> = ({
@@ -17,9 +20,13 @@ export const ShellHeader: React.FC<ShellHeaderProps> = ({
   isRightInspectorOpen = true,
   activeProjectName = 'orchestos',
   activeBranch = 'master',
+  sessionContext,
 }) => {
   return (
-    <header className="h-11 bg-app-bg px-3.5 flex items-center justify-between select-none text-app flex-shrink-0 z-20">
+    <header
+      data-shell-header
+      className="h-11 bg-app-bg px-3.5 flex items-center justify-between select-none text-app flex-shrink-0 z-20"
+    >
       {/* Left: Brand + Search + Sidebar Toggle */}
       <div className="flex items-center gap-3">
         <div className="flex items-center gap-1 text-[13px] font-semibold tracking-tight text-app cursor-pointer select-none">
@@ -64,6 +71,13 @@ export const ShellHeader: React.FC<ShellHeaderProps> = ({
 
       {/* Right: Only single toggle button for right inspector (status indicator removed as requested) */}
       <div className="flex items-center gap-2">
+        {sessionContext?.pct != null && !Number.isNaN(sessionContext.pct) && (
+          <ContextRing
+            percent={sessionContext.pct}
+            usedTokens={sessionContext.used ?? undefined}
+            maxTokens={sessionContext.window ?? undefined}
+          />
+        )}
         {onToggleRightInspector && (
           <button
             type="button"

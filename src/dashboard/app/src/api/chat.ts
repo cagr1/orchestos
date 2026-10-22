@@ -441,6 +441,21 @@ export interface SessionContextResponse {
   engine: string | null
 }
 
+// Both thread views already fetch context. Share those results with the shell without another request.
+const sessionContexts = new Map<string, SessionContextResponse>()
+const contextListeners = new Set<() => void>()
+
+export function subscribeSessionContext(listener: () => void): () => void {
+  contextListeners.add(listener)
+  return () => {
+    contextListeners.delete(listener)
+  }
+}
+
+export function getCachedSessionContext(sessionId?: string): SessionContextResponse | null {
+  return sessionId ? (sessionContexts.get(sessionId) ?? null) : null
+}
+
 export async function getSessionContext(
   sessionId: string,
   model: string,
@@ -448,13 +463,26 @@ export async function getSessionContext(
   signal?: AbortSignal,
 ): Promise<SessionContextResponse> {
   const params = model ? `?model=${encodeURIComponent(model)}` : ''
-  return request<SessionContextResponse>(
-    scopedSessionPath(
-      `/api/chat/sessions/${encodeURIComponent(sessionId)}/context${params}`,
-      projectId,
-    ),
-    { headers: sessionScope(projectId).headers, signal },
-  )
+  try {
+    const context = await request<SessionContextResponse>(
+      scopedSessionPath(
+        `/api/chat/sessions/${encodeURIComponent(sessionId)}/context${params}`,
+        projectId,
+      ),
+      { headers: sessionScope(projectId).headers, signal },
+    )
+    if (!signal?.aborted) {
+      sessionContexts.set(sessionId, context)
+      for (const listener of contextListeners) listener()
+    }
+    return context
+  } catch (error) {
+    if (!signal?.aborted) {
+      sessionContexts.delete(sessionId)
+      for (const listener of contextListeners) listener()
+    }
+    throw error
+  }
 }
 
 export async function getProjectTasks(

@@ -41,6 +41,13 @@ const MODES = new Set<ChatSessionMode>(['chat', 'code'])
 const TITLE_MAX_LENGTH = 160
 
 function toSessionRow(row: ChatSessionRecord): ChatSessionRow {
+  const agentName =
+    row.agent === 'claude'
+      ? 'Claude'
+      : row.agent === 'api'
+        ? 'ChatGPT'
+        : KNOWN_CLIS.find((cli) => cli.id === row.agent)?.label
+  const prefix = agentName ? `${agentName}: ` : null
   const lastModelLabel =
     [...listChatMessages(row.id)].reverse().find((message) => message.role === 'assistant')
       ?.model ?? null
@@ -52,7 +59,7 @@ function toSessionRow(row: ChatSessionRecord): ChatSessionRow {
     projectId: row.project_id,
     agent: row.agent,
     mode: row.mode,
-    title: row.title,
+    title: prefix && row.title.startsWith(prefix) ? row.title.slice(prefix.length) : row.title,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
     archivedAt: row.archived_at,

@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react'
+import React, { useEffect, useRef, useState, useSyncExternalStore } from 'react'
 import {
   archiveSession,
   attachTurnDetails,
@@ -7,6 +7,7 @@ import {
   createSession,
   deleteProjectTask,
   deleteSession,
+  getCachedSessionContext,
   getProjectTasks,
   getSessionMessages,
   getTimeline,
@@ -19,6 +20,7 @@ import {
   restoreSession,
   runProjectTask,
   sendMessage,
+  subscribeSessionContext,
   type TimelineResponse,
 } from './api/chat'
 import { getProjectContext } from './api/project'
@@ -480,6 +482,11 @@ export default function App() {
     hasRunningThreadTasks,
   ])
   const activeAgent = currentProject?.agents.find((a) => a.id === activeAgentId) || null
+  const contextSessionId =
+    mode === 'chat' ? activeThread?.id : mode === 'dev' ? activeAgent?.id : undefined
+  const shellContext = useSyncExternalStore(subscribeSessionContext, () =>
+    getCachedSessionContext(contextSessionId),
+  )
   const projectForSession = (id: string) => {
     const thread = threads.find((item) => item.id === id)
     if (thread) return thread.projectId
@@ -1006,10 +1013,7 @@ export default function App() {
     })
       .then(async () => {
         const messages = await loadThreadMessages(threadId, thread?.projectId)
-        const firstMessageTitle =
-          thread?.messages.length === 0
-            ? `${agent === 'claude' ? 'Claude' : agent === 'codex' ? 'Codex' : agent === 'opencode' ? 'OpenCode' : 'ChatGPT'}: ${content.slice(0, 40)}`
-            : undefined
+        const firstMessageTitle = thread?.messages.length === 0 ? content.slice(0, 40) : undefined
         setThreads((prev) =>
           prev.map((thread) =>
             thread.id === threadId
@@ -1283,10 +1287,11 @@ export default function App() {
         isRightInspectorOpen={isRightInspectorOpen}
         activeProjectName={currentProject?.name}
         activeBranch={currentProject?.branch}
+        sessionContext={shellContext}
       />
 
       {/* Main App Workspace Layout */}
-      <div className="flex-1 flex overflow-hidden">
+      <div data-shell-workspace className="flex-1 flex overflow-hidden">
         {/* Left Sidebar: ONLY shown in Chat and Dev modes (Hidden in Settings for full-screen mode, Requirement 7) */}
         {mode !== 'settings' && isLeftSidebarOpen && (
           <ShellSidebar
@@ -1323,7 +1328,7 @@ export default function App() {
           }`}
         >
           {/* Center Canvas / Views */}
-          <div className="flex-1 flex overflow-hidden">
+          <div className="flex-1 min-w-[360px] flex overflow-hidden">
             {/* VIEW 1: CHAT */}
             {mode === 'chat' && (
               <OrchestChatView

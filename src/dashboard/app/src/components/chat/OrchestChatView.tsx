@@ -9,7 +9,6 @@ import {
   getCliModels,
   getSessionContext,
   getTimeline,
-  type SessionContextResponse,
   type TimelineResponse,
 } from '../../api/chat'
 import type { PendingApproval } from '../../api/runs'
@@ -17,7 +16,6 @@ import { type ConfigResponse, getConfig } from '../../api/settings'
 import { useStickToBottom } from '../../hooks/useStickToBottom'
 import type { ChatAttachment, ChatThread, SessionStatus, TaskItem } from '../../types/orchestos'
 import { AgentComposer, type CliId, cliDisplayName } from '../common/AgentComposer'
-import { ContextRing } from '../common/ContextRing'
 import {
   type EntranceMode,
   enterSession,
@@ -102,7 +100,6 @@ export const OrchestChatView: React.FC<OrchestChatViewProps> = ({
   )
   const [liveTimeline, setLiveTimeline] = useState<TimelineResponse | null>(null)
   const [composerModel, setComposerModel] = useState('')
-  const [sessionContext, setSessionContext] = useState<SessionContextResponse | null>(null)
 
   useEffect(() => {
     let disposed = false
@@ -171,21 +168,15 @@ export const OrchestChatView: React.FC<OrchestChatViewProps> = ({
     if (sessionId) markEntered(sessionId, messages, messagesLoaded)
   }, [sessionId, messages, messagesLoaded])
   useEffect(() => {
-    if (!sessionId) {
-      setSessionContext(null)
-      return
-    }
-    let disposed = false
+    if (!sessionId) return
     const controller = new AbortController()
-    void getSessionContext(sessionId, composerModel, thread?.projectId ?? null, controller.signal)
-      .then((context) => {
-        if (!disposed) setSessionContext(context)
-      })
-      .catch(() => {
-        if (!disposed) setSessionContext(null)
-      })
+    void getSessionContext(
+      sessionId,
+      composerModel,
+      thread?.projectId ?? null,
+      controller.signal,
+    ).catch(() => {})
     return () => {
-      disposed = true
       controller.abort()
     }
   }, [sessionId, composerModel, messages.length, thread?.projectId])
@@ -320,17 +311,6 @@ export const OrchestChatView: React.FC<OrchestChatViewProps> = ({
   return (
     <MotionConfig reducedMotion="user">
       <div className="flex-1 flex flex-col h-full text-app overflow-hidden relative select-none">
-        {/* Context telemetry floats above the thread without reserving header space. */}
-        {sessionContext?.pct != null && !Number.isNaN(sessionContext.pct) && (
-          <header data-chat-header className="absolute right-3.5 top-1.5 flex items-center z-20">
-            <ContextRing
-              percent={sessionContext.pct}
-              usedTokens={sessionContext.used ?? undefined}
-              maxTokens={sessionContext.window ?? undefined}
-            />
-          </header>
-        )}
-
         {/* Scrollable messages container */}
         <div ref={scrollContainerRef} className="flex-1 overflow-y-auto p-4 md:p-6 space-y-6">
           <div ref={contentRef}>

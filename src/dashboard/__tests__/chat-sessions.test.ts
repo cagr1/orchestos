@@ -108,6 +108,40 @@ printf '%s\\n' '${assistant}' '${result}'
 }
 
 describe('CC.2 — chat sessions backend', () => {
+  it('displays only exact own-agent title prefixes without modifying stored titles', async () => {
+    const result = await runIsolated(`
+      const { runMigrations } = await import('./src/db/migrate.ts')
+      const { db } = await import('./src/db/sqlite.ts')
+      const sessions = await import('./src/db/chat-sessions.ts')
+      const { handleApiChatSessionsList } = await import('./src/dashboard/handlers/chat-sessions.ts')
+      runMigrations()
+      const fixtures = [['claude', 'Claude: hello'], ['codex', 'Codex: hello'], ['codex', 'Claude: legitimate'], ['claude', 'Notes: legitimate'], ['claude', 'claude: lowercase'], ['claude', 'Claude:no space'], ['api', 'ChatGPT: hello']]
+      const created = fixtures.map(([agent, title]) => sessions.createChatSession({ projectId: null, agent, title }))
+      const url = new URL('http://localhost/api/chat/sessions?project=none')
+      const rows = await handleApiChatSessionsList(new Request(url)).json()
+      process.stdout.write(JSON.stringify({ displayed: created.map(s => rows.find(r => r.id === s.id).title), stored: created.map(s => sessions.getChatSession(s.id).title) }))
+      db.close()
+    `)
+    expect(result.displayed).toEqual([
+      'hello',
+      'hello',
+      'Claude: legitimate',
+      'Notes: legitimate',
+      'claude: lowercase',
+      'Claude:no space',
+      'hello',
+    ])
+    expect(result.stored).toEqual([
+      'Claude: hello',
+      'Codex: hello',
+      'Claude: legitimate',
+      'Notes: legitimate',
+      'claude: lowercase',
+      'Claude:no space',
+      'ChatGPT: hello',
+    ])
+  })
+
   it('reports thread context from the last run and selected catalog model', async () => {
     const result = await runIsolated(`
       const { runMigrations } = await import('./src/db/migrate.ts')

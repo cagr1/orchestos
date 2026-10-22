@@ -24,6 +24,7 @@ import React, { useEffect, useState } from 'react'
 import { getExplorerFile, getExplorerTree } from '../../api/explorer'
 import type { FileNode, ProjectItem, RunItem } from '../../types/orchestos'
 import { ProviderLogo } from '../common/ProviderLogos'
+import { ResizableAside } from '../common/ResizableAside'
 
 export interface HistorySession {
   id: string
@@ -212,7 +213,10 @@ export const OrcaRightInspector: React.FC<OrcaRightInspectorProps> = ({
   }
 
   return (
-    <aside className="w-96 flex-shrink-0 border-l border-app bg-app-bg flex flex-col h-full overflow-hidden text-app select-none z-10">
+    <ResizableAside
+      side="right"
+      className="flex-shrink-0 border-l border-app bg-app-bg flex flex-col h-full text-app select-none z-10"
+    >
       {/* Top Header with Tab Switcher (No redundant X button - only single toggle in ShellHeader) */}
       <div
         data-inspector-tabs
@@ -651,6 +655,6 @@ export const OrcaRightInspector: React.FC<OrcaRightInspectorProps> = ({
           </div>
         </div>
       )}
-    </aside>
+    </ResizableAside>
   )
 }

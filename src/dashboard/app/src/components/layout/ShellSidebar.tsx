@@ -18,6 +18,7 @@ import type React from 'react'
 import { useState } from 'react'
 import type { AppMode, ChatThread, ProjectItem } from '../../types/orchestos'
 import { ProviderLogo } from '../common/ProviderLogos'
+import { ResizableAside } from '../common/ResizableAside'
 import { DeleteProjectModal } from './DeleteProjectModal'
 import { NewAgentSelectorModal } from './NewAgentSelectorModal'
 
@@ -84,9 +85,9 @@ export const ShellSidebar: React.FC<ShellSidebarProps> = ({
   )
 
   return (
-    <aside
-      data-ff
-      className="w-64 flex-shrink-0 border-r border-app bg-app-bg flex flex-col justify-between select-none text-app z-10"
+    <ResizableAside
+      side="left"
+      className="flex-shrink-0 border-r border-app bg-app-bg flex flex-col justify-between select-none text-app z-10"
     >
       {/* Top Segmented Controls: [ Chat ] vs [ </> Dev ] */}
       <div className="p-3">
@@ -477,6 +478,6 @@ export const ShellSidebar: React.FC<ShellSidebarProps> = ({
           }}
         />
       )}
-    </aside>
+    </ResizableAside>
   )
 }

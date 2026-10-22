@@ -749,6 +749,20 @@ Cerrada. Todos sus ítems están archivados en `docs/done/` (ver "Cerrados — e
   grafo real, ~25 ms frente a minutos de LLM): límite del test a 20 s con la medición en un comentario; producto sin
   tocar. Evidencia: test aislado 3/3 (4,97–5,03 s); `test:coverage` 2/2 verde (1926/0).
   Ejecutado por: claude sonnet (criterio) · Spec: docs/specs/CI.33.md
+- [ ] **CI.36 — ⚡ `RunLogger.write` nunca tumba la corrida.** (abierto 2026-10-22, GO de Carlos) `src/run/logger.ts:47-50`
+  hace `appendFileSync` sin guarda: si `runs/` desaparece tras el constructor, `ENOENT` sube a quien solo anotaba.
+  Spec: docs/specs/CI.36.md
+- [ ] **CI.37 — 🔍 `waitForTaskRun` ante un `pending` con intento fallido: averiguar y corregir.** (abierto 2026-10-22,
+  Carlos: "manda a Sol averiguar y corregir") `src/dashboard/app/src/api/chat.ts:540` espera hasta 10 min; no se midió si
+  deja el botón ocupado. Ejecuta `criterio-alt`. Spec: docs/specs/CI.37.md
+- [ ] **CTX-GUARD.2 — ⚡ El guard de arranque mide lo que de verdad carga.** (abierto 2026-10-22, GO de Carlos) Estima con
+  chars/4 y lo medido es 2,2 chars/token: hoy calla con 11,9k tokens de memoria (límite 9k); no mide las skills de cuenta
+  (`~/.claude/skills/synced`, `~/.claude/plugins/synced`). Spec: docs/specs/CTX-GUARD.2.md
+- [ ] **UI.28 — ⚡ Settings → Tasks no invita a crear tareas a mano.** (abierto 2026-10-22, Carlos: "el Cerebro de
+  OrchestOS es quien toma la decisión", 4.ª vez) Empty state con "Create First Task" y "tasks.yaml"
+  (`OrchestSettingsView.tsx:2887`). Spec: docs/specs/UI.28.md
+- [ ] **DOC.4 — ⚡ Archivar los cerrados de PLAN.md y poner al día CONTEXT.md.** (abierto 2026-10-22, GO de Carlos)
+  128 `[x]` en línea contra 4 abiertos; `CONTEXT.md` sin las decisiones de CI.32.c/CI.34/CI.35.
 - [x] **CI.35 — 🔍 `chat-streaming` intermitente en `one assistant bubble matches persisted response`.** (abierto y
   cerrado 2026-10-22) 4 fallos el 2026-10-22, pasaba al reintento; existía antes de CI.32.b. Fase 1 (evidencia): en rojo
   el paso vuelca visible y persistido completos, `firstDiff` y relectura a 2 s. Causa (6 corridas, 3 rojas; fallo del
@@ -1534,6 +1548,20 @@ archivos fijados por `ui:fidelity:jsx` (`OrchestDevWorkspace`, `ShellStatusBar`,
   Fuera de Usage siguen con día UTC, sin tocar:
   `spec-archive.test.ts`, `check-sources-drift.ts`, `adversarial-review.ts`. Spec: docs/specs/UI.26.6b.4.md (borrado)
   Ejecutado por: GPT (criterio-alt) · QA: GPT (qa), sin hallazgos en este ítem.
+- [x] **UI.27.3 — 🔍 Títulos sin "Agente:", anillo de contexto en la barra superior, asides redimensionables.**
+  (abierto 2026-10-21, Carlos: "volver a escribir el nombre del agente es ser repetitivo", "el window context está
+  dentro del chat, ubiquémoslo más arriba", "quiero poder mover esas líneas")
+  Estado 2026-10-21 (pausa de Carlos): implementado y visto en vivo (títulos sin prefijo, anillo en la barra
+  superior, asides redimensionables); `shell-look` 73/73, `test:coverage` 1904/0. Bloquea el cierre una regresión:
+  `ui:gate shell-look chat-streaming` falla 2/4 ("Dev renders text…": el primer mensaje de Dev entra en la sesión de
+  Chat); en `c8a38542` pasa 3/3. Siguiente: delegar docs/specs/UI.27.3b.md a `criterio-alt` y exigir 4/4.
+  Cierre 2026-10-22 (la sesión Desktop se cerró; Carlos: "sube tú esos cambios"): el diff staged del worktree
+  `orchestos-ui27` se aplicó sobre master (`e05c27e2`, con CI.32–CI.35) sin conflictos. La regresión de UI.27.3b no se
+  reproduce: `ui:gate shell-look chat-streaming` 4/4 (`UI.27.3-master-1..4`, shell-look 73/73, chat-streaming 27/27).
+  Inferido, no instrumentado: la cubrió CI.34 (`merge-threads.ts`: una lectura de sesiones vieja ya no pisa el hilo
+  local). UI.27.3b no se ejecutó. `chat-sessions.test.ts` 26/0, lint sin errores, `ui:fidelity:jsx` verde.
+  Gate en vivo: navegador real (Playwright), `docs/done/evidence/UI.27.3-live.json` (`shell-look`, `chat-streaming`).
+  Ejecutado por: GPT (criterio-alt), sesión Desktop `8b65b9f2` · Spec: docs/specs/UI.27.3.md
 - [x] **UI.27.2 — 🔍 Anillo de contexto solo con la ventana, legible; header sin logo; OpenRouter sin logo ajeno.**
   (abierto 2026-10-21, Carlos: "solo debe darme el window context", "¿por qué sale 100K?") El popover decía
   `14661 de 1000000 tokens · claude (medido)`: número crudo que se lee como 100K y texto que el usuario ya sabe.

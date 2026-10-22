@@ -355,6 +355,51 @@
       "closedDate": null
     },
     {
+      "id": "CI.36",
+      "sprint": "Fase 2 — Producto mínimo para entrega",
+      "block": "H.7 — El contexto se llena en silencio y nadie avisa (ABIERTO 2026-09-02)",
+      "delegation": "⚡",
+      "title": "`RunLogger.write` nunca tumba la corrida",
+      "status": "open",
+      "closedDate": null
+    },
+    {
+      "id": "CI.37",
+      "sprint": "Fase 2 — Producto mínimo para entrega",
+      "block": "H.7 — El contexto se llena en silencio y nadie avisa (ABIERTO 2026-09-02)",
+      "delegation": "🔍",
+      "title": "`waitForTaskRun` ante un `pending` con intento fallido: averiguar y corregir",
+      "status": "open",
+      "closedDate": null
+    },
+    {
+      "id": "CTX-GUARD.2",
+      "sprint": "Fase 2 — Producto mínimo para entrega",
+      "block": "H.7 — El contexto se llena en silencio y nadie avisa (ABIERTO 2026-09-02)",
+      "delegation": "⚡",
+      "title": "El guard de arranque mide lo que de verdad carga",
+      "status": "open",
+      "closedDate": null
+    },
+    {
+      "id": "UI.28",
+      "sprint": "Fase 2 — Producto mínimo para entrega",
+      "block": "H.7 — El contexto se llena en silencio y nadie avisa (ABIERTO 2026-09-02)",
+      "delegation": "⚡",
+      "title": "Settings → Tasks no invita a crear tareas a mano",
+      "status": "open",
+      "closedDate": null
+    },
+    {
+      "id": "DOC.4",
+      "sprint": "Fase 2 — Producto mínimo para entrega",
+      "block": "H.7 — El contexto se llena en silencio y nadie avisa (ABIERTO 2026-09-02)",
+      "delegation": "⚡",
+      "title": "Archivar los cerrados de PLAN.md y poner al día CONTEXT.md",
+      "status": "open",
+      "closedDate": null
+    },
+    {
       "id": "CI.35",
       "sprint": "Fase 2 — Producto mínimo para entrega",
       "block": "H.7 — El contexto se llena en silencio y nadie avisa (ABIERTO 2026-09-02)",
@@ -693,6 +738,15 @@
       "block": "UI.26 — La forma de Gr8r en toda la app (ABIERTO 2026-10-13, GO de Carlos 2026-10-13)",
       "delegation": "🔍",
       "title": "El heatmap de Usage se corre un día desde las 19:00 (UTC−5)",
+      "status": "done",
+      "closedDate": null
+    },
+    {
+      "id": "UI.27.3",
+      "sprint": "Fase 2 — Producto mínimo para entrega",
+      "block": "UI.26 — La forma de Gr8r en toda la app (ABIERTO 2026-10-13, GO de Carlos 2026-10-13)",
+      "delegation": "🔍",
+      "title": "Títulos sin \"Agente:\", anillo de contexto en la barra superior, asides redimensionables",
       "status": "done",
       "closedDate": null
     },

@@ -685,6 +685,11 @@ export default async function shellLook({
   )
   await launchDialog.getByRole('button', { name: 'Launch Agent', exact: true }).click()
   const devSession = await (await sessionResponse).json()
+  await api(`/api/chat/sessions/${devSession.id}`, {
+    method: 'PATCH',
+    headers: configHeaders,
+    body: JSON.stringify({ title: `Codex: ${devSession.title}` }),
+  })
   const gptModel = 'gpt-6.1-sol'
   execFileSync(
     'bun',
@@ -787,6 +792,94 @@ export default async function shellLook({
       Math.abs(inspectorAlignment.inspectorBottom - inspectorAlignment.devHeaderBottom) <= 1,
     JSON.stringify(inspectorAlignment),
   )
+  // UI.27.3 — the same separator supports both sides, persistence, limits and keyboard input.
+  const resize = async (side, delta) => {
+    const separator = page.locator(`[data-resizable-aside="${side}"] [role="separator"]`)
+    const box = await separator.boundingBox()
+    if (!box) throw new Error(`Missing ${side} separator`)
+    await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2)
+    await page.mouse.down()
+    await page.mouse.move(box.x + box.width / 2 + delta, box.y + box.height / 2, { steps: 8 })
+    const captured = await separator.evaluate((el) => el.hasPointerCapture(1))
+    const noSelection = await page.evaluate(
+      () => getComputedStyle(document.body).userSelect === 'none',
+    )
+    await page.mouse.up()
+    return { captured, noSelection }
+  }
+  const asideWidth = (side) =>
+    page
+      .locator(`[data-resizable-aside="${side}"]`)
+      .evaluate((el) => el.getBoundingClientRect().width)
+  for (const [side, initial, delta, min, max] of [
+    ['left', 256, 64, 200, 420],
+    ['right', 384, -80, 280, 640],
+  ]) {
+    const separator = page.locator(`[data-resizable-aside="${side}"] [role="separator"]`)
+    await separator.dblclick()
+    const capture = await resize(side, delta)
+    const changed = await asideWidth(side)
+    await step(
+      `${side} aside drag captures pointer and resizes`,
+      changed > initial && changed <= max && capture.captured && capture.noSelection,
+      JSON.stringify({ changed, ...capture }),
+    )
+    await page.reload({ waitUntil: 'domcontentloaded' })
+    await page.locator('[data-dev-header]').waitFor({ state: 'visible' })
+    const restored = await asideWidth(side)
+    await step(
+      `${side} aside width survives reload`,
+      Math.abs(restored - changed) < 1,
+      `${changed} -> ${restored}`,
+    )
+    await separator.focus()
+    await page.keyboard.press(side === 'left' ? 'ArrowRight' : 'ArrowLeft')
+    const keyboardWidth = await asideWidth(side)
+    await step(
+      `${side} separator keyboard changes 16px`,
+      Math.abs(keyboardWidth - restored - 16) < 1,
+      `${restored} -> ${keyboardWidth}`,
+    )
+    await resize(side, side === 'left' ? 1600 : -1600)
+    const upper = await asideWidth(side)
+    const effectiveMax = Number(await separator.getAttribute('aria-valuemax'))
+    await resize(side, side === 'left' ? -1600 : 1600)
+    const lower = await asideWidth(side)
+    await step(
+      `${side} separator respects bounds`,
+      upper <= max && Math.abs(upper - effectiveMax) < 1 && lower === min,
+      JSON.stringify({ upper, lower, effectiveMax }),
+    )
+    await separator.dblclick()
+    await step(
+      `${side} separator double click resets`,
+      (await asideWidth(side)) === initial,
+      String(await asideWidth(side)),
+    )
+  }
+  await resize('left', 164)
+  await resize('right', -1000)
+  const centerWidth = await page
+    .locator('[data-dev-header]')
+    .evaluate((el) => el.getBoundingClientRect().width)
+  await step('resizing preserves 360px central thread', centerWidth >= 359, String(centerWidth))
+  for (const side of ['left', 'right'])
+    await page.locator(`[data-resizable-aside="${side}"] [role="separator"]`).dblclick()
+  await page.getByRole('button', { name: 'Toggle Navigation Sidebar', exact: true }).click()
+  await step(
+    'collapsed navigation has no resize handle',
+    (await page.locator('[data-resizable-aside="left"] [role="separator"]').count()) === 0,
+    'left separator unmounted',
+  )
+  await page.getByRole('button', { name: 'Toggle Navigation Sidebar', exact: true }).click()
+  // Reopening the sidebar remounts it with projects collapsed.
+  if ((await devAgentButton.count()) === 0)
+    await page.getByRole('button', { name: basename(projectRoot), exact: true }).click()
+  await step(
+    'Dev sidebar strips only matching agent prefix',
+    (await devAgentButton.getAttribute('title')) === devSession.title,
+    await devAgentButton.getAttribute('title'),
+  )
   await page.getByRole('button', { name: 'Chat', exact: true }).click()
   await page.locator('[data-composer-region]').waitFor({ state: 'visible' })
   const chatComposerBorder = await page
@@ -843,6 +936,26 @@ export default async function shellLook({
   )
   await chatDialog.getByRole('button', { name: 'Start Chat', exact: true }).click()
   const contextSession = await (await contextSessionResponse).json()
+  await api(`/api/chat/sessions/${contextSession.id}`, {
+    method: 'PATCH',
+    headers: configHeaders,
+    body: JSON.stringify({ title: 'Codex: Chat with Codex' }),
+  })
+  const claudeTitle = await api('/api/chat/sessions', {
+    method: 'POST',
+    headers: configHeaders,
+    body: JSON.stringify({
+      projectId: project.id,
+      agent: 'claude',
+      title: 'Claude: UI27 title fixture',
+    }),
+  })
+  cleanup(async () => {
+    await api(`/api/chat/sessions/${claudeTitle.data.id}`, {
+      method: 'DELETE',
+      headers: configHeaders,
+    })
+  })
   execFileSync(
     'bun',
     [
@@ -870,10 +983,28 @@ export default async function shellLook({
   await page.locator('[data-dev-header]').waitFor({ state: 'visible' })
   await page.getByRole('button', { name: 'Chat', exact: true }).click()
   await page.locator('aside [role="button"]').filter({ hasText: 'Chat with Codex' }).click()
-  const ring = page.locator('[data-chat-header] [aria-label^="Context window usage:"]')
+  const sidebarTitles = await page
+    .locator('aside [role="button"] span[title]')
+    .evaluateAll((spans) => spans.map((span) => span.getAttribute('title')))
+  await step(
+    'Chat sidebar removes Claude and Codex prefixes',
+    sidebarTitles.includes('Chat with Codex') &&
+      sidebarTitles.includes('UI27 title fixture') &&
+      sidebarTitles.every((title) => !/^(Claude|Codex): /.test(title)),
+    JSON.stringify(sidebarTitles),
+  )
+  const chatSearch = page.getByPlaceholder('Search chats', { exact: true })
+  await chatSearch.fill('UI27 title fixture')
+  await step(
+    'chat search uses displayed title',
+    (await page.locator('aside [role="button"] span[title="UI27 title fixture"]').count()) === 1,
+    'legacy Claude title found by normalized text',
+  )
+  await chatSearch.fill('')
+  const ring = page.locator('[data-shell-header] [aria-label^="Context window usage:"]')
   await ring.waitFor({ state: 'visible' })
   await ring.focus()
-  const tooltip = page.locator('[data-chat-header] [role="tooltip"]')
+  const tooltip = page.locator('[data-shell-header] [role="tooltip"]')
   await tooltip.waitFor({ state: 'visible' })
   const tooltipText = await tooltip.innerText()
   await step(
@@ -885,14 +1016,17 @@ export default async function shellLook({
       (await ring.getAttribute('title')) === null,
     JSON.stringify({ context: context.data, tooltipText }),
   )
-  const chatHeader = await page.locator('[data-chat-header]').evaluate((header) => ({
-    position: getComputedStyle(header).position,
-    images: header.querySelectorAll('img, [style*="mask-image"], svg rect').length,
-    gauges: header.querySelectorAll('svg circle').length,
+  const chatHeader = await page.locator('[data-shell-header]').evaluate((header) => ({
+    providerLogos: header.querySelectorAll('img, [style*="mask-image"]').length,
+    headerRings: header.querySelectorAll('[aria-label^="Context window usage:"]').length,
+    pageRings: document.querySelectorAll('[aria-label^="Context window usage:"]').length,
   }))
   await step(
-    'Chat header contains only the context ring without provider logo',
-    chatHeader.position === 'absolute' && chatHeader.images === 0 && chatHeader.gauges === 2,
+    'context ring lives in shell header, absent from thread',
+    chatHeader.providerLogos === 0 &&
+      chatHeader.headerRings === 1 &&
+      chatHeader.pageRings === 1 &&
+      (await page.locator('[data-chat-header]').count()) === 0,
     JSON.stringify(chatHeader),
   )
   await shot('chat-context-window')
