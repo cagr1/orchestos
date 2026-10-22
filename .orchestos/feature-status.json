@@ -4,6 +4,42 @@
   "note": "Derivado, no editar a mano — bun run plan:status regenera.",
   "items": [
     {
+      "id": "TRUST.0",
+      "sprint": "Fase 2 — Producto mínimo para entrega",
+      "block": "Confianza en el flujo — TRUST (GO de Carlos 2026-10-22)",
+      "delegation": "🔍",
+      "title": "Auditar la evidencia de cada paso del flujo",
+      "status": "done",
+      "closedDate": "2026-10-22"
+    },
+    {
+      "id": "TRUST.2",
+      "sprint": "Fase 2 — Producto mínimo para entrega",
+      "block": "Confianza en el flujo — TRUST (GO de Carlos 2026-10-22)",
+      "delegation": "⚡",
+      "title": "\"QA pass\" solo si algo verificó",
+      "status": "open",
+      "closedDate": null
+    },
+    {
+      "id": "TRUST.1",
+      "sprint": "Fase 2 — Producto mínimo para entrega",
+      "block": "Confianza en el flujo — TRUST (GO de Carlos 2026-10-22)",
+      "delegation": "⚡",
+      "title": "El reintento recibe la causa medida, no un resumen",
+      "status": "open",
+      "closedDate": null
+    },
+    {
+      "id": "TRUST.3",
+      "sprint": "Fase 2 — Producto mínimo para entrega",
+      "block": "Confianza en el flujo — TRUST (GO de Carlos 2026-10-22)",
+      "delegation": "⚡",
+      "title": "La UI separa medida de opinión",
+      "status": "open",
+      "closedDate": null
+    },
+    {
       "id": "CI.11",
       "sprint": "Fase 2 — Producto mínimo para entrega",
       "block": "Abiertos — fiabilidad de los gates y documentación",

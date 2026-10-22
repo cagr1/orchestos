@@ -73,6 +73,25 @@ Cerrada. Todos sus ítems están archivados en `docs/done/` (ver "Cerrados — e
 
 ## Fase 2 — Producto mínimo para entrega
 
+### Confianza en el flujo — TRUST (GO de Carlos 2026-10-22)
+
+Regla: nada se reintenta, cierra ni muestra sin evidencia medida que el usuario vea. Opinión de LLM se marca como tal.
+
+- [x] **TRUST.0 — 🔍 Auditar la evidencia de cada paso del flujo.** (cerrado 2026-10-22) Tabla y 7 huecos verificados
+  leyendo el código en `docs/specs/TRUST.md`; orden por riesgo: TRUST.2, TRUST.1, TRUST.3, CI.23.
+  Ejecutado por: codex gpt-6-luna (leer) + verificación del cerebro · Spec: docs/specs/TRUST.md
+- [ ] **TRUST.2 — ⚡ "QA pass" solo si algo verificó.** Sin criterios el juez no corre y se escribe `pass`
+  (`src/run/harness.ts:783`), igual que un pase real; el badge dice "QA pass" (`PlanBoardView.tsx:249`). Veredicto propio
+  para "sin revisión" y la UI dice qué verificó la tarea (checks corridos, juez o nada). Una tarea sin checks ni criterios
+  no se muestra como verificada.
+- [ ] **TRUST.1 — ⚡ El reintento recibe la causa medida, no un resumen.** Hoy `retry_reason` = `check failed: <cmd> exit
+  <n>` sin salida (`src/run/harness.ts:696`); stderr queda en `checks_json`. Motivo = cmd + exit + cola de stdout/stderr;
+  razón del juez aparte y marcada; relanzar sin evidencia se avisa; la UI muestra cmd, exit y salida (hoy
+  `api/runs.ts:76` tira stdout/stderr). Gate en vivo: tarea con check que
+  falla a propósito y el reintento la recibe.
+- [ ] **TRUST.3 — ⚡ La UI separa medida de opinión.** Razón del juez y `executor_reply` hoy aparecen como hechos junto a
+  exit codes (`src/dashboard/app/src/api/runs.ts:44`, `RunsEvidenceView.tsx:155`). Marcar opinión de LLM como tal.
+
 ### Abiertos — fiabilidad de los gates y documentación
 
 - [ ] **CI.11 — 🔍 El turno 2 de Codex en `codex-live` tardó 180 s contra 22 s del turno 1.** (abierto 2026-10-03)
