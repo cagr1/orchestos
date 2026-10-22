@@ -184,7 +184,7 @@ describe('ERP.4.8 — runs.executor_reply', () => {
     expect(saved.executor_reply).toBe('No escribí nada: esto es un veredicto de revisión.')
   })
 
-  it('un run done no guarda executor_reply', async () => {
+  it('un run done guarda el texto final del ejecutor', async () => {
     const dir = makeGitRepo()
     mockClaude('Listo, escribí out.txt.', 'out.txt')
     const origFetch = globalThis.fetch
@@ -205,7 +205,7 @@ describe('ERP.4.8 — runs.executor_reply', () => {
         .get(TASK_ID) as { id: string }
       const saved = getRun(row.id)!
       expect(saved.status).toBe('done')
-      expect(saved.executor_reply).toBeNull()
+      expect(saved.executor_reply).toBe('Listo, escribí out.txt.')
     } finally {
       globalThis.fetch = origFetch
     }

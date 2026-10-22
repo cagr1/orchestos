@@ -105,13 +105,20 @@ Regla: nada se reintenta, cierra ni muestra sin evidencia medida que el usuario 
   `executor_reply: null` → TRUST.4.
   Gate en vivo: navegador real (Playwright), `docs/done/evidence/TRUST.3-live.json`
   Ejecutado por: codex gpt-6.1-sol (criterio) · Spec: docs/specs/TRUST.3.md
-- [ ] **TRUST.4 — 🔍 Un run `done` de Codex no guarda lo que reportó el ejecutor.** En la batería de TRUST.3 el run
-  terminado de `tasks` trae `executor_reply: null` (`/tmp/TRUST.3-live.log`: `{"status":"done","reply":null}`). Averiguar
-  si el adaptador de Codex no captura el texto final o si el fixture no lo produce.
+- [x] **TRUST.4 — 🔍 Un run `done` de Codex no guarda lo que reportó el ejecutor.** (cerrado 2026-10-22) Bug del producto:
+  3 de 7 `insertRun` de `harness.ts` (éxito, excepción, fallo previo a checks) no pasaban `executor_reply`; ERP.4.8 lo
+  había acotado a fallos. Ahora todos. Evidencia del cerebro: diff leído, typecheck, 4/4 `harness-executor-reply`
+  (contraprueba contra HEAD: `Received: null`), captura del run `done` con el texto real de Codex bajo "Lo que reporta
+  el ejecutor (no verificado)"; `test:coverage` 1992/0 (ejecutor). Luna (`mecanico`) paró dos veces: `writer-lock check`
+  daba EPERM en el sandbox (arreglado en el vault `520f0e0`: el refresco no bloquea la autorización) y luego afirmó
+  cambios ajenos en `tasks.mjs` que no existían; pasó a Sol.
+  Gate en vivo: navegador real (Playwright), `docs/done/evidence/TRUST.4-live.json`
+  Ejecutado por: codex gpt-6.1-sol (criterio) · Spec: docs/specs/TRUST.4.md
 - [ ] **TRUST.5 — 🔍 La pestaña resaltada en el detalle de un run no es la que se ve.** En las capturas de TRUST.2 y
   TRUST.3 (`qa-negative-rejected.png`, `trust1-run-check-failure.png`) "Contract" sale resaltada con el contenido de
   "QA Assertions". El código (`RunsEvidenceView.tsx:121-157`) usa el mismo estado para ambos; sin verificar si es la
-  transición de 150 ms capturada a medias o un bug real.
+  transición de 150 ms capturada a medias o un bug real. En la captura de TRUST.4 "Contract" resaltada con su propio
+  contenido: parece que el resaltado se queda siempre en Contract.
 
 ### Abiertos — fiabilidad de los gates y documentación
 

@@ -361,6 +361,34 @@ export default async function tasks({ page, api, step, note, shot, visible, clea
     `status=${visibleStatus}`,
   )
   if (visibleStatus === 'done') {
+    const runResponse = await api(`/api/runs/${encodeURIComponent(finished.runId)}`, {
+      headers: { 'x-orchestos-project-id': project.id },
+    })
+    const completedRun = runResponse.data ?? runResponse
+    await step(
+      'completed Codex run API includes the executor reply',
+      completedRun.status === 'done' &&
+        typeof completedRun.executorReply === 'string' &&
+        completedRun.executorReply.trim().length > 0,
+      JSON.stringify(completedRun),
+    )
+    if (
+      typeof completedRun.executorReply !== 'string' ||
+      completedRun.executorReply.trim().length === 0
+    ) {
+      throw new Error(`done Codex run has no executor reply: ${JSON.stringify(completedRun)}`)
+    }
+    await page.getByRole('button', { name: 'Runs', exact: true }).click()
+    await page.locator('tr').filter({ hasText: 'gate-first-task' }).first().click()
+    await page.getByRole('button', { name: 'Contract', exact: true }).click()
+    await step(
+      'completed Codex run Contract shows the unverified executor report',
+      await visible(page.getByText('Lo que reporta el ejecutor (no verificado)', { exact: true })),
+      `executorReply=${completedRun.executorReply}`,
+    )
+    await shot('trust4-done-executor-reply')
+    await page.keyboard.press('Escape')
+    await page.getByRole('button', { name: 'Tasks', exact: true }).click()
     const memoriesResponse = await api(`/api/memory?project=${encodeURIComponent(project.id)}`, {
       headers: { 'x-orchestos-project-id': project.id },
     })

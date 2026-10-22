@@ -484,3 +484,10 @@ modos de `KNOWN_CLIS`; test legacy con `gemini` inalcanzable. r2 se intentó pri
 **Clasificación**: RESPETÓ.
 **Por qué**: propaga salida medida del check y marca opinión del juez en retryReason, sin cambiar contexto, política de reintentos, checks ni runs.result.
 **Reversibilidad/evidencia**: diff y salidas crudas de gates entregados al cerebro; sin commit del ejecutor.
+
+## 2026-10-22 — Codex, ejecutor TRUST.4
+
+**Regla tocada**: `src/run/harness.ts`, archivo protegido.
+**Clasificación**: RESPETÓ.
+**Por qué**: solo añade `executor_reply: outcome?.finalText ?? null` a los tres `insertRun` que no lo pasaban (éxito, excepción, fallo previo a checks), igual que los otros cuatro; sin cambiar contexto, checks, juez ni reintentos.
+**Reversibilidad/evidencia**: diff de TRUST.4, `harness-executor-reply` 4/4 con contraprueba contra HEAD; entrada escrita por el cerebro (el ejecutor no la añadió).
