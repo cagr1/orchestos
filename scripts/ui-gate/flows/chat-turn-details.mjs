@@ -423,7 +423,7 @@ export default async function chatTurnDetails({
 
   const sidebar = page.locator('aside')
   const sidebarText = await sidebar.innerText()
-  const reloadedThread = sidebar.getByText(/^Codex: Ejecuta el comando ls/).first()
+  const reloadedThread = sidebar.getByText(/^Ejecuta el comando ls/).first()
   await step(
     'reload: project chat reachable from Chat list',
     await visible(reloadedThread, 30_000),

@@ -1582,6 +1582,9 @@ archivos fijados por `ui:fidelity:jsx` (`OrchestDevWorkspace`, `ShellStatusBar`,
   Inferido, no instrumentado: la cubrió CI.34 (`merge-threads.ts`: una lectura de sesiones vieja ya no pisa el hilo
   local). UI.27.3b no se ejecutó. `chat-sessions.test.ts` 26/0, lint sin errores, `ui:fidelity:jsx` verde.
   Gate en vivo: navegador real (Playwright), `docs/done/evidence/UI.27.3-live.json` (`shell-look`, `chat-streaming`).
+  Seguimiento 2026-10-22: el pre-push cayó en `chat-turn-details` (buscaba `/^Codex: Ejecuta el comando ls/`; el título
+  ya no lleva prefijo) → regex sin prefijo; `chat-turn-details` 29/29. Lección: al cambiar textos visibles, `rg` en
+  `scripts/ui-gate/` antes de cerrar (trampa ya anotada; aquí no se hizo porque el cambio vino de otra sesión).
   Ejecutado por: GPT (criterio-alt), sesión Desktop `8b65b9f2` · Spec: docs/specs/UI.27.3.md
 - [x] **UI.27.2 — 🔍 Anillo de contexto solo con la ventana, legible; header sin logo; OpenRouter sin logo ajeno.**
   (abierto 2026-10-21, Carlos: "solo debe darme el window context", "¿por qué sale 100K?") El popover decía
