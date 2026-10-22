@@ -28,7 +28,9 @@ const nonNegative = (value: unknown): number =>
 const dateOf = (value: unknown): string | null => {
   if (typeof value !== 'string') return null
   const time = Date.parse(value)
-  return Number.isFinite(time) ? new Date(time).toISOString().slice(0, 10) : null
+  if (!Number.isFinite(time)) return null
+  const date = new Date(time)
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`
 }
 
 function claudeKey(root: string): string {

@@ -21,6 +21,63 @@ function fixture() {
 }
 
 describe('readCliTranscriptUsage', () => {
+  it('agrupa Claude y Codex por día local, también cuando el host de CI usa UTC', async () => {
+    const { root, agentHome } = fixture()
+    const key = realpathSync(root).replace(/[^a-zA-Z0-9]/g, '-')
+    const claudeDir = join(agentHome, '.claude', 'projects', key)
+    const codexDir = join(agentHome, '.codex', 'sessions')
+    mkdirSync(claudeDir, { recursive: true })
+    mkdirSync(codexDir, { recursive: true })
+    const timestamp = '2026-10-22T00:30:00Z'
+    writeFileSync(
+      join(claudeDir, 'local-day.jsonl'),
+      JSON.stringify({
+        type: 'assistant',
+        sessionId: 'local-day-claude',
+        timestamp,
+        message: { id: 'local-day', model: 'fixture', usage: { input_tokens: 1 } },
+      }),
+    )
+    writeFileSync(
+      join(codexDir, 'rollout-local-day.jsonl'),
+      [
+        { type: 'session_meta', payload: { id: 'local-day-codex', cwd: root } },
+        { type: 'turn_context', payload: { model: 'fixture' } },
+        {
+          timestamp,
+          payload: { type: 'token_count', info: { total_token_usage: { input_tokens: 1 } } },
+        },
+      ]
+        .map((entry) => JSON.stringify(entry))
+        .join('\n'),
+    )
+    for (const [tz, expected] of [
+      ['America/Guayaquil', '2026-10-21'],
+      ['UTC', '2026-10-22'],
+    ] as const) {
+      const child = Bun.spawn(
+        [
+          process.execPath,
+          '--eval',
+          `import { readCliTranscriptUsage } from './src/usage/cli-transcripts.ts';
+           console.log(JSON.stringify(await readCliTranscriptUsage(${JSON.stringify([root])}, ${JSON.stringify(agentHome)})));`,
+        ],
+        {
+          cwd: join(import.meta.dir, '../..'),
+          env: { ...process.env, TZ: tz },
+          stdout: 'pipe',
+          stderr: 'pipe',
+        },
+      )
+      const output = await new Response(child.stdout).text()
+      const error = await new Response(child.stderr).text()
+      expect(await child.exited, error).toBe(0)
+      const rows = JSON.parse(output)
+      expect(rows).toHaveLength(2)
+      expect(rows.map((row: { date: string }) => row.date)).toEqual([expected, expected])
+    }
+  })
+
   it('deduplica ids de Claude y cuenta worktrees registrados, excluyendo otros proyectos', async () => {
     const { root, other, agentHome } = fixture()
     const key = realpathSync(root).replace(/[^a-zA-Z0-9]/g, '-')

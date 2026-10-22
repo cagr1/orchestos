@@ -38,6 +38,44 @@ afterAll(() => {
 })
 
 describe('GET /api/usage', () => {
+  it('agrupa runs por el día local del dashboard en Guayaquil y UTC', async () => {
+    for (const [tz, expected] of [
+      ['America/Guayaquil', '2026-10-21'],
+      ['UTC', '2026-10-22'],
+    ] as const) {
+      const child = Bun.spawn(
+        [
+          process.execPath,
+          '--eval',
+          `import { runMigrations } from './src/db/migrate.ts';
+           import { db } from './src/db/sqlite.ts';
+           import { handleApiUsage } from './src/dashboard/handlers/usage.ts';
+           runMigrations();
+           db.run("INSERT INTO runs (id, prompt, task_class, model, provider, status, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)",
+             ['local-day', 'fixture', 'chat', 'local-day-model', 'fixture', 'done', '2026-10-22T00:30:00Z']);
+           const response = await handleApiUsage(${JSON.stringify(agentHome)});
+           console.log(JSON.stringify(await response.json()));`,
+        ],
+        {
+          cwd: join(import.meta.dir, '../..'),
+          env: { ...process.env, TZ: tz, ORCHESTOS_HOME: join(agentHome, tz) },
+          stdout: 'pipe',
+          stderr: 'pipe',
+        },
+      )
+      const output = await new Response(child.stdout).text()
+      const error = await new Response(child.stderr).text()
+      expect(await child.exited, error).toBe(0)
+      const data = JSON.parse(output)
+      expect(data.byDayModel).toHaveLength(1)
+      expect(data.byDayModel[0]).toMatchObject({
+        date: expected,
+        model: 'local-day-model',
+        runs: 1,
+      })
+    }
+  })
+
   it('devuelve el shape esperado, nunca lanza', async () => {
     const res = await handleApiUsage(agentHome)
     expect(res.status).toBe(200)

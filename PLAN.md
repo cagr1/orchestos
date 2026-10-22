@@ -1437,6 +1437,17 @@ archivos fijados por `ui:fidelity:jsx` (`OrchestDevWorkspace`, `ShellStatusBar`,
   Gate en vivo: navegador real (Playwright), `docs/done/evidence/UI.26.6b.3-live.json` (`shell-look` 47/47) y
   `docs/done/evidence/UI.26.6b.3-model-routing-live.json` (`model-routing` 18/18, guarda con la barra).
   Anotado: `components/common/CommandPalette.tsx` nunca se abre (`setIsCommandPaletteOpen` sin llamador); va a limpieza.
+- [x] **UI.26.6b.4 — 🔍 El heatmap de Usage se corre un día desde las 19:00 (UTC−5).** (abierto y cerrado 2026-10-21, visto por
+  `shell-look` "heatmap tooltip slides" a las 19:05) La clave del día es UTC en los tres sitios (front
+  `OrchestSettingsView.tsx:952` `toISOString`, back `usage.ts:36` `strftime` sin `localtime`, `cli-transcripts.ts:31`)
+  y la etiqueta es local: de noche las ejecuciones caen en el día siguiente. Arreglo: día local en los tres
+  (`getFullYear/getMonth/getDate` en front y `dateOf`; `strftime(…, 'localtime')` en back). Tests en subproceso con
+  `TZ=America/Guayaquil` y `UTC` (`usage-endpoint.test.ts`, `cli-transcripts.test.ts`) 9/9. Evidencia (cerebro, 19:xx −05):
+  typecheck, biome.
+  Gate en vivo: navegador real (Playwright), `docs/done/evidence/UI.26.6b.4-live.json` (`shell-look` 49/49, `usage-bar` 18/18).
+  Fuera de Usage siguen con día UTC, sin tocar:
+  `spec-archive.test.ts`, `check-sources-drift.ts`, `adversarial-review.ts`. Spec: docs/specs/UI.26.6b.4.md (borrado)
+  Ejecutado por: GPT (criterio-alt) · QA: GPT (qa), sin hallazgos en este ítem.
 - [x] **UI.26.7 — 🔍 Pendiente de revisar: inputs de "Orquestación" en Tasks no aceptan texto.** (Carlos 2026-10-14)
   "Máximo concurrente" y "Tope total por ejecución" (`OrchestSettingsView.tsx:~2321`) se renderizan `disabled`
   (visto en `erp-piloto`): no se puede escribir. Revisar por qué están deshabilitados y si la sección aporta.
@@ -2132,6 +2143,20 @@ igual que hoy, lo que se corta es que el **producto** lo herede por accidente.
   Gate en vivo: navegador real (Playwright), `docs/done/evidence/LIMP.1-live.json` — `chat-streaming` 24/24,
   `codex-live` 14/14.
 
+- [x] **LIMP.2 — ⚡ ⌘K abre la paleta general.** (abierto y cerrado 2026-10-21, GO de Carlos) `CommandPalette.tsx:43` deja el
+  "abrir" vacío: ⌘K solo cierra, aunque el botón 🔍 del header y su tooltip prometen el atajo. Decisión: en Settings ⌘K
+  sigue abriendo el buscador de Settings (`OrchestSettingsView.tsx:606`); fuera de Settings abre la paleta general.
+  La nota previa "nunca se abre" era falsa: el botón 🔍 del header (`ShellHeader.tsx:34`) sí la abría. Arreglo: prop
+  `onOpen` en `CommandPalette`, `App.tsx` la pasa solo fuera de Settings. Gate:
+  Gate en vivo: navegador real (Playwright), `docs/done/evidence/LIMP.2-live.json` (`shell-look` 49/49) con dos pasos nuevos
+  (⌘K abre y Escape cierra en Chat; en Settings la general no abre, medido antes de Escape por hallazgo P2 de `qa`).
+  Spec: docs/specs/LIMP.2.md (borrado) · Ejecutado por: GPT (mecanico) · QA: GPT (qa).
+- [ ] **LIMP.3 — 🔍 `AgentChoice` deja de ser una lista cerrada de 5 marcas.** (abierto 2026-10-21, GO de Carlos)
+  Resto de AT.11: el registro de adaptadores ya es abierto, pero `schema.ts:39` y sus 7 consumidores (config, DB,
+  handlers de chat-sessions/tasks/config) fuerzan `'local'|'claude'|'opencode'|'codex'|'api'`. Sin cambio visible ni
+  migración (`agent` es `TEXT` sin CHECK). Fuera de alcance, decidido: lectores de transcripts por CLI (adaptadores
+  legítimos), agrupación por marca de Usage (cambio visible) y columnas `codex_*`/`claude_*` (migración sin ganancia).
+  Spec: docs/specs/LIMP.3.md
 - [x] **DOC.2 — 🔍 `docs/` solo con lo relevante.** (abierto 2026-10-14, GO de Carlos) 36 archivos sueltos clasificados
   por contenido contra HEAD: lo vigente se fusiona o comprime, lo histórico pasa a `docs/done/`, lo obsoleto se borra.
   Ejecutado por: criterio (delegate) · clasificación: leer · Spec: docs/specs/DOC.2.md

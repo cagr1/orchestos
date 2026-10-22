@@ -33,7 +33,7 @@ export async function handleApiUsage(agentHome?: string): Promise<Response> {
     )
     const rows = db
       .query<UsageRow, []>(
-        `SELECT strftime('%Y-%m-%d', runs.created_at) AS date, runs.model, runs.provider, SUM(runs.usd_cost) AS usd, COUNT(*) AS runs, SUM(runs.input_tokens) AS inputTokens, SUM(runs.output_tokens) AS outputTokens, SUM(runs.cache_read_tokens) AS cacheReadTokens, SUM(runs.cache_write_tokens) AS cacheWriteTokens, 'orchestos' AS source
+        `SELECT strftime('%Y-%m-%d', runs.created_at, 'localtime') AS date, runs.model, runs.provider, SUM(runs.usd_cost) AS usd, COUNT(*) AS runs, SUM(runs.input_tokens) AS inputTokens, SUM(runs.output_tokens) AS outputTokens, SUM(runs.cache_read_tokens) AS cacheReadTokens, SUM(runs.cache_write_tokens) AS cacheWriteTokens, 'orchestos' AS source
        FROM runs
        LEFT JOIN eval_trials ON eval_trials.run_id = runs.id
        WHERE runs.created_at >= datetime('now', '-400 days')
