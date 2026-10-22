@@ -1,57 +1,53 @@
-# NEXT — handoff 2026-10-21 (lote cerrado: H.10.2, UI.26.6b completo, AT.11.1)
+# NEXT — handoff 2026-10-22 (corte tras el lote nocturno del 2026-10-21)
 
 Un solo presente: orden y trampas vivas. Lo cerrado vive en `PLAN.md` y git (regla `AGENTS.md` § Reglas generales,
 2026-10-19: `NEXT.md` se toca solo al cerrar o cortar un lote). Arranque:
 `bun run agent:preflight -- --item <ID> --agent claude`. Lista viva: `bun run next`.
+La asignación temporal de modelos de Carlos (Opus supervisor, código a GPT) venció el 2026-10-21: vuelve el roster.
+Cupos al cortar: Codex/Sol agotados (Codex reinicia 21:56 del 21), Claude semanal al 90 % usado.
 
-## Asignación de Carlos, vale 2026-10-20 y 2026-10-21 (extendida por Carlos el 20: "hoy y mañana vas a tener el rol de supervisor") (ahorrar cupo semanal de Claude: 75 % usado, reinicia en ~1 d 17 h)
-Prevalece sobre el roster y sobre `~/.claude/CLAUDE.md` § Selección de modelos. Vence al terminar el 2026-10-21. También el push: lo prepara un agente delegado, Opus verifica.
-- Opus (cerebro) solo crea (plan, spec, docs) y verifica (lee el diff, corre gates con comandos propios, commitea).
-  No lee a fondo ni teclea código: todo lo demás va a agentes GPT.
-- Código: `mecanico` (Luna) para ⚡; lo que exige criterio va a `criterio-alt` (Sol), no a `criterio` (Sonnet).
-- QA: `qa` (Sol), más que de costumbre: después de cada ítem delegado, también los ⚡, antes del commit.
-- Lectura: `leer` (Luna). `investigar` (Sonnet) solo si hace falta internet; no hay rol GPT con web en el roster.
-- Astra: no (tampoco hoy). Sin subagentes de Claude (`Agent`/`Explore`).
-- No se edita `roster.conf`: el cambio es temporal y se aplica eligiendo el rol al delegar.
+## Primero, antes de cualquier ítem
+1. Verificar lo subido sin pre-push: `263b3bdf` y `d9d71e53` salieron con `--no-verify` (pedido de Carlos, sin cupo de
+   Codex). Corridos a mano: typecheck, lint, `test:coverage` 1925/0, `shell-look` 58/58, `composer-picker` 5/5; CI
+   verde. **Sin correr**: gates en vivo de chat con Codex (`chat-*`, `codex-live`, `tasks`, `runs-graph`, `qa-negative`,
+   `restart-mid-run`, `model-routing`, `text-sweep`) y `usage-bar` "usage refreshes after a real turn". Correr
+   `bun run ui:gate` completo con cupo de Codex; un fallo ahí se corrige antes de seguir.
+2. `orchestos-ui27` (sesión Desktop `8b65b9f2`, candado propio): tiene UI.27.3/UI.27.3b staged SIN commitear y copias sin
+   commitear de `scripts/plan-{import,render,gate}.ts`, `scripts/next.ts`, `scripts/plan-worktree-home.ts`. Su rama ya
+   está en master (merge `263b3bdf`): allí `git rebase origin/master`, comparar esas copias con WT.1 (`7927bb07`) y
+   quedarse con master si son la misma idea. No escribir en ese árbol desde otra sesión.
 
-## Cierre 2026-10-21 noche (Carlos se fue a dormir; leer primero)
-- Subido `263b3bdf` con `--no-verify` (pedido de Carlos: Codex y Sol sin cupo). Corrido a mano en el árbol fusionado:
-  typecheck, lint, `test:coverage` 1925/0, `shell-look` 58/58, `composer-picker` 5/5; CI verde. **Sin correr**: los
-  gates en vivo de chat con Codex (`chat-*`, `codex-live`, `tasks`…) y el paso "usage refreshes after a real turn" de
-  `usage-bar` (falla por cupo de Codex). Primer push de mañana con pre-push completo = esa verificación.
-- Cerrados hoy (3.er y 4.º lote): CI.11 fase 1, LIMP.2, LIMP.3, UI.26.6b.4, WT.1, CUOTA.1, MOD.1; merge de UI.27/.1/.2.
-- `orchestos-ui27` (sesión Desktop `8b65b9f2`) tiene UI.27.3/UI.27.3b staged SIN commitear y copias sin commitear de
-  `scripts/plan-*.ts` + `plan-worktree-home.ts`: compararlas con WT.1 de master antes de commitear allí; si son la misma
-  idea, quedarse con master. Su rama ya está en master: hacer `git rebase origin/master` antes de seguir.
-- `~/.claude/settings.json` `statusLine` restaurado a mano (tee → Orca), respaldo `.bak.20261021-statusline`. Si Orca
-  lo vuelve a pisar, ahora lo avisan la barra y el startup-guard (CUOTA.1).
-- Trampas nuevas: el sandbox de `delegate` no tiene red (el push lo hace el cerebro); `plan:reconcile` no re-cierra un
-  ítem ya `[x]` editado antes de commitear (reabrir `[ ]`, reconcile, `[x]`, reconcile); `agent:live-gate` solo cuenta
-  la línea "Gate en vivo: navegador real (Playwright), `docs/done/evidence/…`" si cambia en el mismo commit, y la
-  procedencia exige `Ejecutado por: … · Spec: docs/specs/<ID>.md` al final de línea.
+## Cerrado 2026-10-21 (todo en `origin/master`)
+CI.11 fase 1 `04a8b061` (abierto hasta el próximo fallo: leer `[codex-turn]` en `dashboard.log`), CI.31 confirmado
+`949f2992` (Mutation `executors` 2h06m, margen ~54 min), UI.26.6b.4 `04770619`, LIMP.2 `0f48d64e`, LIMP.3 `908127a8`,
+WT.1 `7927bb07`, CUOTA.1 `a33a060b`, MOD.1 `74095cb6`, merge UI.27/.1/.2 `263b3bdf`. Antes ese día: CI.31, AT.11,
+H.10.2, UI.26.6b.1–.3, AT.11.1.
 
 ## Orden
-1. Cerrados 2026-10-20 (subidos, CI verde en `b5337022`): CI.27 `7fb8396a`, AT.17 `38550b9e`, AT.18 `14490f85`
-   (+ vault `49b3c5b`, sin push: no autorizado; el vault tiene cambios ajenos en `wiki/`/`targets/`), ERP.6.2 `b5337022`.
-2. Cerrados 2026-10-21 (subidos, pre-push verde): CI.31 `a95fbde4` (shard `executors` partido en dos: confirmar en
-   la corrida nocturna de Mutation Shards que ninguno pasa de 3 h), AT.11 `c6014ede` (registro `chat-adapters.ts`;
-   migración 30). Restos por marca anotados en AT.11: columnas `codex_*`/`claude_*` de `chat_sessions`.
-3. Cerrados 2026-10-21 (2.º lote): H.10.2 `98aca200` (revisor nocturno muerto desde 09-29 por E2BIG/timeouts; ahora stdin
-   + presupuesto 150 KB, el atraso anotado como "no revisado" en `REVIEW.md`; verificado a mano y por `launchctl
-   kickstart`), UI.26.6b.1 `0436994c` (heatmap), UI.26.6b.2 `dc20280f` (API keys).
-4. Cerrados 2026-10-21 (3.er lote): UI.26.6b.3 `496621d6` (paleta de Settings + barra de cambios sin guardar; cierra
-   UI.26.6b), AT.11.1 `214937b5` + `ef716dcc` (registro rechaza duplicados; roles = `roleAgentIds()`).
-   Siguiente: sin ítem listo de producto; fiabilidad (punto 5) o lo que Carlos elija. Acceso remoto = IDEAS `#73`.
-- Anotado para limpieza, sin ítem: `components/common/CommandPalette.tsx` nunca se abre (`setIsCommandPaletteOpen`
-  sin llamador); `AgentChoice` cerrado en `createChatSession` y listas por marca en Usage (restos de AT.11).
+1. Lo de "Primero".
+2. Sin ítem listo de producto: lo que Carlos elija. Acceso remoto = IDEAS `#73`.
+3. Fiabilidad, cuando el pre-push la tumba: CI.23, CI.18, CI.19, CI.11 (ya deja evidencia por fase). Desde CI.27 un
+   flujo que revienta dice el locator (`[waiting for …]`) y deja `<flujo>/failure.png`: usarlo antes de diagnosticar.
+- Anotado, sin ítem: ejecutar **tareas** con adaptadores CLI nuevos (hoy solo claude/codex/opencode en
+  `engine-cascade.ts`; el chat ya acepta cualquiera registrado, LIMP.3). Agrupación por marca en Usage
+  (`OrchestSettingsView.tsx:686-717`) y columnas `codex_*`/`claude_*` se quedan a propósito (LIMP.3).
 - Anotado, sin ítem: el revisor elige su ventana cortando en el primer tramo que no cabe (un revert posterior podría
   dejar caber uno más largo; nada se pierde, el salto queda anotado).
-5. Fiabilidad, cuando el pre-push la tumba: CI.23, CI.18, CI.19, CI.11. Desde CI.27 un flujo que revienta dice el
-   locator (`[waiting for …]`) y deja `<flujo>/failure.png`: usarlo antes de diagnosticar.
 - Decisiones pendientes de Carlos sin ítem: turno de chat con CLI lento (más de 120 s o aviso honesto, en CI.18);
   peso de `main.js` tras UI.24.4 (dejarlo, alias de `rehype-raw` o lazy-load de Streamdown).
 
 ## Trampas vivas
+- `~/.claude/settings.json` `statusLine` = tee de OrchestOS → script de Orca (restaurado a mano 2026-10-21, respaldo
+  `.bak.20261021-statusline`). Si Orca lo vuelve a pisar, lo avisan la barra y el startup-guard (CUOTA.1).
+- El sandbox de `delegate` no tiene red: `git push` lo hace el cerebro. Los gates en vivo dan `listen EPERM` dentro del
+  sandbox: el ejecutor los repite con permisos ampliados.
+- `plan:reconcile` no re-cierra un ítem ya `[x]` editado antes de commitear ("Could not prove a closing commit SHA"):
+  reabrir `[ ]`, reconcile, `[x]`, reconcile.
+- `agent:live-gate` solo cuenta "Gate en vivo: navegador real (Playwright), `docs/done/evidence/…`" si esa línea cambia
+  en el mismo commit; la procedencia exige `Ejecutado por: … · Spec: docs/specs/<ID>.md` al final de la línea. La
+  evidencia JSON copiada de `result.json` necesita `biome format --write` (salto de línea final) o el lint del pre-push
+  la tumba.
+- Los gates en vivo de chat usan Codex: sin cupo de Codex el pre-push falla en ~10 flujos sin defecto de código.
 - Push en segundo plano + seguir con el ítem siguiente = push fallido: el pre-push lintea el **árbol**, no el commit, y
   se come los cambios en vuelo (le pasó a `496621d6`). Esperar el push antes de tocar archivos, o no lanzarlo en fondo.
 - El plan gate parte el segmento de un ítem en su primera línea en blanco: `Ejecutado por: … · Spec:` va **antes** de
