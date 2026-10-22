@@ -71,7 +71,16 @@ async function inspect(page, panelSelector) {
   )
 }
 
-export default async function shellLook({ page, api, step, shot, visible, hidden, cleanup }) {
+export default async function shellLook({
+  page,
+  api,
+  step,
+  shot,
+  visible,
+  hidden,
+  cleanup,
+  databasePath,
+}) {
   const settle = () => page.waitForTimeout(700)
   await visible(page.getByRole('button', { name: 'Settings', exact: true }))
 
@@ -678,7 +687,26 @@ export default async function shellLook({ page, api, step, shot, visible, hidden
       new URL(response.url()).pathname === '/api/chat/sessions',
   )
   await launchDialog.getByRole('button', { name: 'Launch Agent', exact: true }).click()
-  await sessionResponse
+  const devSession = await (await sessionResponse).json()
+  const gptModel = 'gpt-6.1-sol'
+  execFileSync(
+    'bun',
+    [
+      '-e',
+      `import { Database } from 'bun:sqlite'
+       const db = new Database(process.argv[1])
+       try {
+         db.run('INSERT INTO chat_messages (session_id, role, content, model, created_at) VALUES (?, ?, ?, ?, ?)',
+           [process.argv[2], 'assistant', 'UI.27.1 provider logo fixture', process.argv[3], new Date().toISOString()])
+       } finally { db.close() }`,
+      databasePath,
+      devSession.id,
+      gptModel,
+    ],
+    { stdio: 'pipe' },
+  )
+  await page.reload({ waitUntil: 'domcontentloaded' })
+  await page.getByRole('button', { name: basename(projectRoot), exact: true }).click()
   await page.locator('[data-composer-region]').waitFor({ state: 'visible' })
   const devComposerBorder = await page
     .locator('[data-composer-region]')
@@ -723,6 +751,27 @@ export default async function shellLook({ page, api, step, shot, visible, hidden
     'Dev agent row retains provider logo',
     (await devAgentButton.locator('[style*="mask-image"], img[aria-hidden="true"]').count()) > 0,
     'provider logo alongside agent name',
+  )
+  const persistedDevSessions = await api('/api/chat/sessions', { headers: configHeaders })
+  const persistedDevSession = persistedDevSessions.data?.find(
+    (session) => session.id === devSession.id,
+  )
+  const devLogo = await devAgentButton.evaluate((button) => {
+    const logo = button.querySelector('span[aria-hidden="true"]')
+    const box = logo?.getBoundingClientRect()
+    return {
+      mask: logo ? getComputedStyle(logo).maskImage : null,
+      inlineSvg: button.querySelectorAll('svg').length,
+      visible: Boolean(box && box.width > 0 && box.height > 0),
+    }
+  })
+  await step(
+    'Dev gpt model uses ChatGPT asset mask without inline SVG',
+    persistedDevSession?.lastModel === gptModel &&
+      devLogo.visible &&
+      /chatgpt[^/]*\.svg/.test(devLogo.mask ?? '') &&
+      devLogo.inlineSvg === 0,
+    JSON.stringify({ model: persistedDevSession?.lastModel, ...devLogo }),
   )
   const toggleInspector = page.getByRole('button', { name: 'Toggle Right Workspace Panel' })
   if (!(await visible(page.locator('[data-inspector-tabs]')))) await toggleInspector.click()

@@ -1448,6 +1448,13 @@ archivos fijados por `ui:fidelity:jsx` (`OrchestDevWorkspace`, `ShellStatusBar`,
   Fuera de Usage siguen con día UTC, sin tocar:
   `spec-archive.test.ts`, `check-sources-drift.ts`, `adversarial-review.ts`. Spec: docs/specs/UI.26.6b.4.md (borrado)
   Ejecutado por: GPT (criterio-alt) · QA: GPT (qa), sin hallazgos en este ítem.
+- [x] **UI.27.1 — 🔍 Modelos `gpt-*` muestran el logo real de ChatGPT.** (abierto 2026-10-21, Carlos: "eso no es el
+  icono de codex") La fila de Dev pasa el modelo (`gpt-6.1-sol`) y `ProviderLogos.tsx:36-43` solo elige `chatgpt.svg`
+  con `codex|chatgpt|openai|api`: cae al SVG dibujado a mano. (cerrado 2026-10-21) `gpt` resuelve a `chatgpt.svg`;
+  fuera 6 fallbacks dibujados inalcanzables; hermano en Usage (`OrchestSettingsView.tsx:~2690`) corregido.
+  Ejecutado por: gpt-6.1-sol (rol `criterio-alt`) · Spec: docs/specs/UI.27.1.md (borrado). Revisión: Opus (diff +
+  navegador en vivo). Gates propios: typecheck, lint, `ui:fidelity:jsx` verdes.
+  Gate en vivo: navegador real (Playwright), `docs/done/evidence/UI.27.1-live.json` — `shell-look` 56/56.
 - [x] **UI.27 — 🔍 Chat/Dev: icono del agente siempre, hilo y composer en un solo cuerpo, sin texto sobrante.** (abierto
   2026-10-21, pedido de Carlos con capturas) Logo del agente en filas de chat y de Dev (hoy `MessageSquare` / sustituido
   por el estado), línea `border-r` del aside (perdida en UI.26.1), composer dentro de la superficie del hilo, fuera la

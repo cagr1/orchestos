@@ -2688,8 +2688,9 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
                           '',
                         )
                         const displayModel = model
-                        const logo =
-                          group.id === 'cli'
+                        const logo = /gpt/i.test(model)
+                          ? model
+                          : group.id === 'cli'
                             ? row.provider === 'claude' || /Claude/i.test(row.model)
                               ? 'claude'
                               : row.provider === 'codex' || /Codex/i.test(row.model)
