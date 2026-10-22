@@ -697,10 +697,11 @@ Cerrada. Todos sus ítems están archivados en `docs/done/` (ver "Cerrados — e
   2026-10-22: visto 1 vez (`CI.32.c-live`, con `auto-flow chat-retry-report chat-permissions` antes): `porcelain="M
   tasks.yaml"`, último commit `orchestos(gate-first-task): …`; `tasks` solo pasó 31/31 justo después. Detalle en
   `$TMPDIR/ui-gate-65780/result.json` (temporal, no conservado).
-- [ ] **CI.32 — 🔍 Cinco ui-gates en vivo rotos en master tras el lote del 2026-10-21 sin pre-push.** (abierto
-  2026-10-22) `ui:gate` completo: 26 pasan, 5 fallan, y los 5 se repiten igual al relanzarlos solos (deterministas,
-  no intermitentes). Evidencia: `gate:evidence next-2026-10-22-ui-gate-full` y `next-2026-10-22-ui-gate-rerun5`.
-  Spec: `docs/specs/CI.32.md`.
+- [x] **CI.32 — 🔍 Cinco ui-gates en vivo rotos en master tras el lote del 2026-10-21 sin pre-push.** (abierto y
+  cerrado 2026-10-22) `ui:gate` completo: 26 pasan, 5 fallan, y los 5 se repiten igual al relanzarlos solos
+  (deterministas, no intermitentes). Evidencia: `gate:evidence next-2026-10-22-ui-gate-full` y
+  `next-2026-10-22-ui-gate-rerun5`. Cerrado con CI.32.a–d.
+  Ejecutado por: codex gpt-6-luna (mecanico: a, c) + claude sonnet (criterio: b) · Spec: docs/specs/CI.32.md
   - [x] **CI.32.a — `opencode-terminal`: `POST /api/chat/sessions` con `agent: opencode` responde 400 `chat no
     soportado`.** (cerrado 2026-10-22) Lo trajo AT.11 (`c6014ede`, `chat-sessions.ts:265-270`): crear una sesión
     exige un adaptador de chat, y OpenCode no tiene a propósito (es una ventana libre, no un chat). Arreglo: el
@@ -709,8 +710,18 @@ Cerrada. Todos sus ítems están archivados en `docs/done/` (ver "Cerrados — e
     marca): devuelta. Evidencia: `gate:evidence CI.32.a-live` → `opencode-terminal` 8/8; `chat-adapters.test.ts` 3/0
     (fixture `terminal: true` → 201, `fixture-no-chat` y desconocido → 400); `test:coverage` 1925/0 (80.02 %/68.02 %).
     Ejecutado por: codex gpt-6-luna (mecanico).
-  - [ ] **CI.32.b — `chat-followup-task` y `chat-task-undo`: `/api/chat` responde 404 `Project not found`** al
-    elegir el proyecto temporal en Dev y volver a Chat.
+  - [x] **CI.32.b — `chat-followup-task` y `chat-task-undo`: `/api/chat` responde 404 `Project not found`** al
+    elegir el proyecto temporal en Dev y volver a Chat. (cerrado 2026-10-22) Causa: carrera. El composer del estado
+    vacío ya está visible mientras `createSession` de "Start Chat" no ha vuelto; un envío en ese instante veía
+    `activeThreadId=''`, abría una sesión general y la mandaba con `?project=none`, que el servidor buscaba como id
+    (404). Existía antes; UI.27 (composer visible desde el inicio) la destapó. Arreglo: el envío espera el New chat
+    en vuelo (`threadPendingForSend`); una lectura de sesiones tardía no pisa el hilo recién creado
+    (`lib/merge-threads.ts`, limitado a hilos del proyecto leído: la ronda 1 dejaba los hilos de A en la lista de B
+    y se devolvió); `?project=none` sin cabecera = sesión general (`isGeneralScopeRequest`). Evidencia:
+    `gate:evidence CI.32.b-live` → `chat-followup-task` 8/8, `chat-task-undo` 16/16, `project-tabs` 39/39,
+    `project-isolation` 14/14; `merge-threads.test.ts` 6/0, `project-context-general.test.ts`; `test:coverage`
+    1938/0; lint sin errores.
+    Gate en vivo: navegador real (Playwright), `docs/done/evidence/CI.32.b-live.json` (corrida de la ronda 2).
   - [x] **CI.32.c — `auto-flow`: la tarea Codex aprobada se queda en `running` con `pendingApprovals: 1`** hasta
     agotar 10 min (auto-edit, "crea codex-nota.md"). Fase 1 (evidencia, 2026-10-22): cada petición deja
     `[codex-approval] {request|decision|item-started}` en `dashboard.log` (comando redactado, 300 caracteres).

@@ -51,8 +51,19 @@ export function resolveDashboardProject(req: Request): DashboardProjectContext {
   const selected =
     req.headers.get(PROJECT_ID_HEADER)?.trim() || url.searchParams.get('project')?.trim()
   if (selected) return dashboardProjectFromId(selected)
+  return legacyCwdProject()
+}
 
+export function legacyCwdProject(): DashboardProjectContext {
   const root = realpathSync(resolve('.'))
   const registered = getProject(root)
   return { id: registered?.id ?? null, root, source: 'legacy-cwd' }
+}
+
+/** `?project=none` sin cabecera: el cliente declara una sesión general, no un id registrado. */
+export function isGeneralScopeRequest(req: Request): boolean {
+  return (
+    !req.headers.get(PROJECT_ID_HEADER)?.trim() &&
+    new URL(req.url).searchParams.get('project')?.trim() === 'none'
+  )
 }

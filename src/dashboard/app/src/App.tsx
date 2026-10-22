@@ -62,6 +62,7 @@ import {
   type SettingsSection,
 } from './components/settings/OrchestSettingsView'
 import { projectsWithApprovals, threadsWithApprovals } from './components/thread/taskCards'
+import { activeAfterLoad, mergeLoadedThreads, threadPendingForSend } from './lib/merge-threads'
 import type {
   AppMode,
   ChatAttachment,
@@ -152,6 +153,9 @@ export default function App() {
   const [projectTabsLoading, setProjectTabsLoading] = useState(false)
   const [projectTabsError, setProjectTabsError] = useState<string | null>(null)
   const [activeThreadId, setActiveThreadId] = useState<string>('')
+  const threadsRef = useRef<ChatThread[]>([])
+  const pendingNewChat = useRef<Promise<ChatThread | null> | null>(null)
+  threadsRef.current = threads
   const reportedTaskIds = useRef(new Set<string>())
   const completedTaskPollAttempts = useRef(new Map<string, number>())
   const seenRunningTaskIds = useRef(new Set<string>())
@@ -275,8 +279,15 @@ export default function App() {
     void listSessions(visibleProjectId)
       .then(async (loaded) => {
         if (disposed) return
-        setThreads(loaded.map((thread) => ({ ...thread, messagesLoaded: false })))
-        setActiveThreadId(loaded[0]?.id || '')
+        const initial = loaded.map((thread) => ({ ...thread, messagesLoaded: false }))
+        setThreads((current) => mergeLoadedThreads(current, initial, visibleProjectId))
+        setActiveThreadId((current) =>
+          activeAfterLoad(
+            current,
+            mergeLoadedThreads(threadsRef.current, initial, visibleProjectId),
+            loaded,
+          ),
+        )
         const hydrated = await Promise.all(
           loaded.map(async (thread) => ({
             ...thread,
@@ -284,7 +295,8 @@ export default function App() {
             messagesLoaded: true,
           })),
         )
-        if (!disposed) setThreads(hydrated)
+        if (!disposed)
+          setThreads((current) => mergeLoadedThreads(current, hydrated, visibleProjectId))
       })
       .catch(() => {
         if (!disposed) setThreads([])
@@ -844,6 +856,7 @@ export default function App() {
           'orchestos-last-dev',
           JSON.stringify({ kind: 'session', projectId, sessionId: thread.id }),
         )
+        threadsRef.current = [...threadsRef.current.filter((item) => item.id !== thread.id), thread]
         setThreads((current) => [...current.filter((item) => item.id !== thread.id), thread])
         setActiveThreadId(thread.id)
         setProjects(await listProjects())
@@ -863,16 +876,21 @@ export default function App() {
       cliId === 'local' || cliId === 'claude' || cliId === 'codex' || cliId === 'opencode'
         ? cliId
         : 'api'
+    const creating = createSession({
+      agent,
+      projectId: newChatProjectId(currentProject?.id, selectedProjectId),
+      title,
+    })
+    pendingNewChat.current = creating.catch(() => null)
     try {
-      const newThread = await createSession({
-        agent,
-        projectId: newChatProjectId(currentProject?.id, selectedProjectId),
-        title,
-      })
+      const newThread = await creating
+      threadsRef.current = [newThread, ...threadsRef.current]
       setThreads((prev) => [newThread, ...prev])
       setActiveThreadId(newThread.id)
     } catch {
       return
+    } finally {
+      pendingNewChat.current = null
     }
     setMode('chat')
   }
@@ -936,10 +954,21 @@ export default function App() {
   ): Promise<boolean> => {
     let threadId = activeThreadId
     let thread = threads.find((item) => item.id === threadId)
+    // El composer del estado vacío ya es visible mientras New chat crea el hilo: se espera ese hilo
+    // en vez de abrir una sesión general aparte y mandarle el mensaje sin proyecto.
+    const pendingThread = await threadPendingForSend(threadId, pendingNewChat.current)
+    if (pendingThread) {
+      thread = pendingThread
+      threadId = pendingThread.id
+      agent = pendingThread.agent
+      model = undefined
+      effort = undefined
+    }
     if (!threadId) {
       try {
         thread = await createSession({ agent: agent || 'api', projectId: null })
         threadId = thread.id
+        threadsRef.current = [thread, ...threadsRef.current]
         setThreads((prev) => [thread!, ...prev])
         setActiveThreadId(thread.id)
       } catch {

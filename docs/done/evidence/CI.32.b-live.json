@@ -1,0 +1,443 @@
+[
+  {
+    "flujo": "chat-followup-task",
+    "pass": true,
+    "steps": [
+      {
+        "nombre": "temporary project visible",
+        "ok": true,
+        "detalle": "project in Dev sidebar"
+      },
+      {
+        "nombre": "select Codex for new chat",
+        "ok": true,
+        "detalle": "agent option visible"
+      },
+      {
+        "nombre": "composer visible",
+        "ok": true,
+        "detalle": "chat composer visible after Start Chat"
+      },
+      {
+        "nombre": "message 1 plans without creating the task",
+        "ok": true,
+        "detalle": "{\"reply\":\"Crearía notas/seguimiento.md con una sola línea, hola, pero no crearé la tarea todavía.\",\"newTasks\":[]}"
+      },
+      {
+        "nombre": "message 2 creates the task from the thread",
+        "ok": true,
+        "detalle": "{\"reply\":\"Voy a registrar una tarea para crear notas/seguimiento.md con la única línea hola.\\n\\nLa tarea para crear notas/seguimiento.md con una sola línea (hola) quedó propuesta. OrchestOS la enviará para aprobación.\\n\\n▶ Started task .\"}"
+      },
+      {
+        "nombre": "task exists in tasks.yaml",
+        "ok": true,
+        "detalle": "task chat-b3589afb-f2e0-4407-a346-89d5ea82db29"
+      },
+      {
+        "nombre": "task declares the thread file and class implement",
+        "ok": true,
+        "detalle": "{\"output\":[\"notas/seguimiento.md\"],\"task_class\":\"implement\"}"
+      },
+      {
+        "nombre": "task finishes done and the file exists",
+        "ok": true,
+        "detalle": "{\"status\":\"done\",\"fileExists\":true}"
+      }
+    ],
+    "notes": [],
+    "errores": [],
+    "capturas": [
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-33847/chat-followup-task/followup-task-done.png"
+    ]
+  },
+  {
+    "flujo": "chat-task-undo",
+    "pass": true,
+    "steps": [
+      {
+        "nombre": "temporary project visible",
+        "ok": true,
+        "detalle": "project in Dev sidebar"
+      },
+      {
+        "nombre": "select Codex for new chat",
+        "ok": true,
+        "detalle": "agent option visible"
+      },
+      {
+        "nombre": "composer visible",
+        "ok": true,
+        "detalle": "chat composer visible after Start Chat"
+      },
+      {
+        "nombre": "message 1 plans without creating the task",
+        "ok": true,
+        "detalle": "{\"reply\":\"Crearía una tarea para crear not\",\"newTasks\":[]}"
+      },
+      {
+        "nombre": "message 2 creates the task from the thread",
+        "ok": true,
+        "detalle": "{\"reply\":\"Voy a crear la tarea para notas/undo-check.md con el contenido exacto de una línea: hola.\\n\\nLa propuesta de tarea para crear notas/undo-check.md con una sola línea (hola) fue enviada para aprobación.\\n\\n▶ Started task .\"}"
+      },
+      {
+        "nombre": "task exists in tasks.yaml",
+        "ok": true,
+        "detalle": "task chat-3b7ff8a1-e60f-48c5-b6e2-9bb08929d752"
+      },
+      {
+        "nombre": "task declares the thread file and class implement",
+        "ok": true,
+        "detalle": "{\"output\":[\"notas/undo-check.md\"],\"task_class\":\"implement\"}"
+      },
+      {
+        "nombre": "task finishes done and the file exists",
+        "ok": true,
+        "detalle": "{\"status\":\"done\",\"fileExists\":true}"
+      },
+      {
+        "nombre": "task card exposes diff summary",
+        "ok": true,
+        "detalle": "diff summary visible"
+      },
+      {
+        "nombre": "diff summary counts the added line",
+        "ok": true,
+        "detalle": "1 file +1 −0 · View diff"
+      },
+      {
+        "nombre": "diff shows created file",
+        "ok": true,
+        "detalle": "notas/undo-check.md"
+      },
+      {
+        "nombre": "undo button visible",
+        "ok": true,
+        "detalle": "committed run can be reverted"
+      },
+      {
+        "nombre": "undo completes and shows reverted sha",
+        "ok": true,
+        "detalle": "Undone · 6a1fcbb"
+      },
+      {
+        "nombre": "file returned to prior state",
+        "ok": true,
+        "detalle": "{\"fileExistsAfterUndo\":false}"
+      },
+      {
+        "nombre": "revert commit subject is correct",
+        "ok": true,
+        "detalle": "orchestos(chat-3b7ff8a1-e60f-48c5-b6e2-9bb08929d752): deshacer"
+      },
+      {
+        "nombre": "REVERT_HEAD does not remain",
+        "ok": true,
+        "detalle": "{\"revertHeadExists\":false}"
+      }
+    ],
+    "notes": [],
+    "errores": [],
+    "capturas": [
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-33847/chat-task-undo/task-diff-closed.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-33847/chat-task-undo/task-diff-open.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-33847/chat-task-undo/undo-confirmation.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-33847/chat-task-undo/task-undone.png"
+    ]
+  },
+  {
+    "flujo": "project-tabs",
+    "pass": true,
+    "steps": [
+      {
+        "nombre": "add project opens folder picker without modal",
+        "ok": true,
+        "detalle": "POST /api/projects/choose calls=1; dialog visible=false"
+      },
+      {
+        "nombre": "temporary project visible",
+        "ok": true,
+        "detalle": "project visible in sidebar"
+      },
+      {
+        "nombre": "project settings visible",
+        "ok": true,
+        "detalle": "settings heading"
+      },
+      {
+        "nombre": "specs empty state visible",
+        "ok": true,
+        "detalle": "empty project has no specs"
+      },
+      {
+        "nombre": "specs empty no page error",
+        "ok": true,
+        "detalle": "none"
+      },
+      {
+        "nombre": "real memory visible",
+        "ok": true,
+        "detalle": "seeded DB memory"
+      },
+      {
+        "nombre": "mock memory absent",
+        "ok": true,
+        "detalle": "no mock data"
+      },
+      {
+        "nombre": "memory conflict resolved",
+        "ok": true,
+        "detalle": "open conflicts: 0"
+      },
+      {
+        "nombre": "authoritative memory persisted and visible",
+        "ok": true,
+        "detalle": "content of entry A matches the resolved API value"
+      },
+      {
+        "nombre": "memory no palette",
+        "ok": true,
+        "detalle": "ninguna (con memoria sembrada)"
+      },
+      {
+        "nombre": "memory content aligned with header",
+        "ok": true,
+        "detalle": "left offset=0px"
+      },
+      {
+        "nombre": "real spec visible",
+        "ok": true,
+        "detalle": "seeded markdown spec"
+      },
+      {
+        "nombre": "mock specs absent",
+        "ok": true,
+        "detalle": "no mock data"
+      },
+      {
+        "nombre": "spec approved",
+        "ok": true,
+        "detalle": "API status approved"
+      },
+      {
+        "nombre": "spec lint updates API and row",
+        "ok": true,
+        "detalle": "Lint: pass (0); response findings=0; before=pass/0"
+      },
+      {
+        "nombre": "specs no palette",
+        "ok": true,
+        "detalle": "ninguna (con spec sembrado)"
+      },
+      {
+        "nombre": "specs content aligned with header",
+        "ok": true,
+        "detalle": "left offset=0px"
+      },
+      {
+        "nombre": "real skills listed",
+        "ok": true,
+        "detalle": "API skills=17"
+      },
+      {
+        "nombre": "compile response visible",
+        "ok": true,
+        "detalle": "success response rendered in the skill row"
+      },
+      {
+        "nombre": "mock skills absent",
+        "ok": true,
+        "detalle": "no mock data"
+      },
+      {
+        "nombre": "skills no palette",
+        "ok": true,
+        "detalle": "ninguna (con skills sembradas)"
+      },
+      {
+        "nombre": "skills content aligned with header",
+        "ok": true,
+        "detalle": "left offset=0px"
+      },
+      {
+        "nombre": "graph no palette",
+        "ok": true,
+        "detalle": "ninguna en CONTEXT"
+      },
+      {
+        "nombre": "graph content aligned with header",
+        "ok": true,
+        "detalle": "left offset=0px"
+      },
+      {
+        "nombre": "tab roots transparent (memory/specs/skills/graph)",
+        "ok": true,
+        "detalle": "memory=rgba(0, 0, 0, 0); specs=rgba(0, 0, 0, 0); skills=rgba(0, 0, 0, 0); graph=rgba(0, 0, 0, 0)"
+      },
+      {
+        "nombre": "mock instincts absent",
+        "ok": true,
+        "detalle": "no mock data"
+      },
+      {
+        "nombre": "instinct review visible",
+        "ok": true,
+        "detalle": "unverified instinct"
+      },
+      {
+        "nombre": "instinct approved",
+        "ok": true,
+        "detalle": "API verified"
+      },
+      {
+        "nombre": "manual instinct added",
+        "ok": true,
+        "detalle": "new API row"
+      },
+      {
+        "nombre": "instincts no palette",
+        "ok": true,
+        "detalle": "ninguna (con instincts sembrados)"
+      },
+      {
+        "nombre": "mock plan absent",
+        "ok": true,
+        "detalle": "no mock data"
+      },
+      {
+        "nombre": "plan board fills the view",
+        "ok": true,
+        "detalle": "danger zone top=972 scroller bottom=972"
+      },
+      {
+        "nombre": "plan no palette",
+        "ok": true,
+        "detalle": "ninguna en Kanban ni Table"
+      },
+      {
+        "nombre": "tab roots transparent",
+        "ok": true,
+        "detalle": "plan=rgba(0, 0, 0, 0); instincts=rgba(0, 0, 0, 0)"
+      },
+      {
+        "nombre": "explain fields visible as readable UI",
+        "ok": true,
+        "detalle": "GET /explain fields rendered inside the template block"
+      },
+      {
+        "nombre": "explain has no [object Object]",
+        "ok": true,
+        "detalle": "opened Explain modal contains no stringified object values"
+      },
+      {
+        "nombre": "task run finishes and badge changes without reload",
+        "ok": true,
+        "detalle": "status=done; retryCount/runId changed or terminal status observed"
+      },
+      {
+        "nombre": "Add task opens Chat",
+        "ok": true,
+        "detalle": "Chat composer visible, Plan view inactive, task count unchanged"
+      },
+      {
+        "nombre": "0 console errors",
+        "ok": true,
+        "detalle": "none"
+      }
+    ],
+    "notes": [],
+    "errores": [],
+    "capturas": [
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-33847/project-tabs/memory.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-33847/project-tabs/specs.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-33847/project-tabs/skills.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-33847/project-tabs/graph.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-33847/project-tabs/project-tabs-real-data.png"
+    ]
+  },
+  {
+    "flujo": "project-isolation",
+    "pass": true,
+    "steps": [
+      {
+        "nombre": "fixtures created for Alfa and Beta",
+        "ok": true,
+        "detalle": "1e02531bc24aadec; eeaa106243f7ebfe"
+      },
+      {
+        "nombre": "API lists only Alfa runs, memory search hides Beta, and sessions are scoped to Alfa",
+        "ok": true,
+        "detalle": "{\"runs\":[\"erp2-run-a\"],\"memory\":[],\"sessions\":[\"6a1bf972-02e7-4ca2-b945-5f5d2d547b92\"]}"
+      },
+      {
+        "nombre": "Alfa cannot read or mutate any Beta run, session, memory, or instinct",
+        "ok": true,
+        "detalle": "[{\"label\":\"GET run\",\"status\":404},{\"label\":\"GET messages\",\"status\":404},{\"label\":\"PATCH session\",\"status\":404},{\"label\":\"approve instinct\",\"status\":404},{\"label\":\"delete memory\",\"status\":404},{\"label\":\"delete instinct\",\"status\":404},{\"label\":\"delete run\",\"status\":404},{\"label\":\"delete session\",\"status\":404},{\"label\":\"chat with foreign session\",\"status\":404}]"
+      },
+      {
+        "nombre": "Beta data and message history remain intact after rejected Alfa requests",
+        "ok": true,
+        "detalle": "{\"run\":[\"erp2-run-b\"],\"memory\":[\"Centinela memoria Beta\",\"Centinela memoria Global\"],\"messages\":[\"Centinela chat Beta\"],\"instincts\":[\"erp2-instinct-b\",\"erp2-instinct-history\"]}"
+      },
+      {
+        "nombre": "Alfa Memory shows own and global entries, hides the other project",
+        "ok": true,
+        "detalle": "project memory isolation and Global label"
+      },
+      {
+        "nombre": "Alfa Active Instincts shows own and historical entries, hides the other project",
+        "ok": true,
+        "detalle": "project instinct isolation and historical label"
+      },
+      {
+        "nombre": "Alfa api-contract skill origin is Proyecto",
+        "ok": true,
+        "detalle": "api-contract origin: Proyecto"
+      },
+      {
+        "nombre": "Beta Memory shows own and global entries, hides the other project",
+        "ok": true,
+        "detalle": "project memory isolation and Global label"
+      },
+      {
+        "nombre": "Beta Active Instincts shows own and historical entries, hides the other project",
+        "ok": true,
+        "detalle": "project instinct isolation and historical label"
+      },
+      {
+        "nombre": "Beta api-contract skill origin is Biblioteca",
+        "ok": true,
+        "detalle": "api-contract origin: Biblioteca"
+      },
+      {
+        "nombre": "Codex CLI context includes the own project memory (positive control)",
+        "ok": true,
+        "detalle": "reply=\"OK\" · prompt 2312 chars · cli input 14 chars"
+      },
+      {
+        "nombre": "Codex CLI context excludes every Beta sentinel",
+        "ok": true,
+        "detalle": "fugas: [] · Centinela memoria Global: aparece"
+      },
+      {
+        "nombre": "Claude CLI context includes the own project memory (positive control)",
+        "ok": true,
+        "detalle": "reply=\"OK\" · prompt 2313 chars · cli input 14 chars"
+      },
+      {
+        "nombre": "Claude CLI context excludes every Beta sentinel",
+        "ok": true,
+        "detalle": "fugas: [] · Centinela memoria Global: aparece"
+      }
+    ],
+    "notes": [],
+    "errores": [],
+    "capturas": [
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-33847/project-isolation/memory-alfa.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-33847/project-isolation/instincts-alfa.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-33847/project-isolation/skills-alfa.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-33847/project-isolation/memory-beta.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-33847/project-isolation/instincts-beta.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-33847/project-isolation/skills-beta.png"
+    ]
+  }
+]

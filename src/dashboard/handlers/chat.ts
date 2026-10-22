@@ -89,6 +89,8 @@ import {
   type DashboardProjectContext,
   DashboardProjectError,
   dashboardProjectFromId,
+  isGeneralScopeRequest,
+  legacyCwdProject,
   resolveDashboardProject,
 } from '../project-context.ts'
 import { readEnv } from '../settings-store.ts'
@@ -857,7 +859,8 @@ async function handleApiChat(
   try {
     project = session?.project_id
       ? dashboardProjectFromId(session.project_id)
-      : (fallbackProject ?? resolveDashboardProject(req))
+      : (fallbackProject ??
+        (isGeneralScopeRequest(req) ? legacyCwdProject() : resolveDashboardProject(req)))
   } catch (error) {
     if (error instanceof DashboardProjectError) return errorResponse(error.message, error.status)
     return errorResponse(error instanceof Error ? error.message : String(error), 500)
