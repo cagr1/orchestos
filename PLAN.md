@@ -709,9 +709,13 @@ Cerrada. Todos sus ítems están archivados en `docs/done/` (ver "Cerrados — e
   - [ ] **CI.32.b — `chat-followup-task` y `chat-task-undo`: `/api/chat` responde 404 `Project not found`** al
     elegir el proyecto temporal en Dev y volver a Chat.
   - [ ] **CI.32.c — `auto-flow`: la tarea Codex aprobada se queda en `running` con `pendingApprovals: 1`** hasta
-    agotar 10 min (auto-edit, "crea codex-nota.md"). Hipótesis sin verificar: la petición de aprobación llega antes
-    que su `item/started`, sale con `withinProject=false` y queda retenida (`codex-app-server.ts:159`/`:260`). Primero
-    hay que hacer que lo registre.
+    agotar 10 min (auto-edit, "crea codex-nota.md"). Fase 1 (evidencia, 2026-10-22): cada petición deja
+    `[codex-approval] {request|decision|item-started}` en `dashboard.log` (comando redactado, 300 caracteres).
+    Corrida `CI.32.c1-live`: la hipótesis del orden `item/started` queda refutada. Codex escribió el archivo con
+    `/bin/zsh -lc "cat > codex-nota.md <<'EOF' …"` (`commandExecution`, `commandActions: [unknown]`), no con
+    `apply_patch`; auto-edit retiene comandos por diseño (ERP.7.1, `PLAN.md` § ERP.7.1a: solo pregunta `mkdir`).
+    Fase 2: que el prompt de tareas pida editar con la herramienta de edición del CLI, no con redirecciones de shell;
+    no se clasifica `cat >` como edición.
   - [ ] **CI.32.d — `chat-retry-report`: el primer intento se queda en `running`, `retryCount=0`.** Posiblemente la
     misma causa que CI.32.c; se confirma después de corregir CI.32.c.
 - [ ] **CI.33 — 🔍 `graph-runner.test.ts` "stops at the maximum graph iterations" roza su límite de 5 s.** (abierto

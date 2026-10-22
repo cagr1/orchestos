@@ -4,6 +4,8 @@ import { mkdirSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { createInterface } from 'node:readline'
 import type { ApprovalAdapter } from '../approvals.ts'
+import { decideApproval } from '../approvals.ts'
+import { redactSensitive } from '../../security/secrets.ts'
 import { codexApprovalRequest } from './codex-approval.ts'
 import { type ExecutorStepEvent, readonlyCommandTarget } from './step-event.ts'
 
@@ -162,9 +164,59 @@ export class CodexAppServer {
         state.items.get(message.params.itemId),
         state.cwd,
       )
+      console.error(
+        `[codex-approval] ${JSON.stringify({
+          event: 'request',
+          method: message.method,
+          itemId: message.params.itemId,
+          itemFound: state.items.has(message.params.itemId),
+          kind: request.kind,
+          files: request.detail.files ?? [],
+          withinProject: request.withinProject ?? false,
+          readOnly: request.readOnly ?? false,
+          paramsKeys: Object.keys(message.params),
+          changesInParams: Object.hasOwn(message.params, 'changes'),
+          command:
+            typeof message.params.command === 'string'
+              ? redactSensitive(message.params.command).slice(0, 300)
+              : undefined,
+          commandActions: Array.isArray(message.params.commandActions)
+            ? message.params.commandActions
+                .map((action: unknown) =>
+                  action && typeof action === 'object' && 'type' in action
+                    ? action.type
+                    : undefined,
+                )
+                .filter((type: unknown): type is string => typeof type === 'string')
+            : [],
+          availableDecisions: message.params.availableDecisions,
+        })}`,
+      )
       void state.adapter.requestApproval(request).then(
-        (decision) => reply(decision === 'approve' ? 'accept' : 'decline'),
-        () => reply('decline'),
+        (decision) => {
+          const automatic =
+            decideApproval(state.adapter.mode, request, new Set()) === 'auto-approve'
+          console.error(
+            `[codex-approval] ${JSON.stringify({
+              event: 'decision',
+              itemId: message.params.itemId,
+              decision,
+              auto: automatic,
+            })}`,
+          )
+          reply(decision === 'approve' ? 'accept' : 'decline')
+        },
+        () => {
+          console.error(
+            `[codex-approval] ${JSON.stringify({
+              event: 'decision',
+              itemId: message.params.itemId,
+              decision: 'reject',
+              auto: false,
+            })}`,
+          )
+          reply('decline')
+        },
       )
       return
     }
@@ -258,8 +310,18 @@ export class CodexAppServer {
   }
 
   private notification(method: string, params: any): void {
-    if (method === 'item/started' && params.item?.type === 'fileChange')
+    if (method === 'item/started' && params.item?.type === 'fileChange') {
       this.taskApprovals.get(params.threadId)?.items.set(params.item.id, params.item)
+      console.error(
+        `[codex-approval] ${JSON.stringify({
+          event: 'item-started',
+          itemId: params.item.id,
+          files: (params.item.changes ?? [])
+            .flatMap((change: any) => [change.path, change.kind?.move_path])
+            .filter((path: unknown): path is string => typeof path === 'string'),
+        })}`,
+      )
+    }
     if (method === 'item/agentMessage/delta' || method === 'item/reasoning/summaryTextDelta') {
       const state = this.turns.get(params.threadId)
       if (

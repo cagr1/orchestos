@@ -1,7 +1,37 @@
 {
-  "exported_at": "2026-10-22T12:30:17.751Z",
+  "exported_at": "2026-10-22T13:01:54.921Z",
   "total_runs": 20,
   "runs": [
+    {
+      "id": "81511421-bde7-48d7-b150-4d5fdb65636d",
+      "task_class": "gate:ci.32.c1-live:implement",
+      "model": "haiku",
+      "provider": "claude",
+      "status": "done",
+      "qa_verdict": "pass",
+      "qa_reason": "QA LLM omitido: la tarea no declara criterios de aceptación; checks y salidas declaradas en verde",
+      "files_blocked": [],
+      "checks_failed": 0,
+      "usd_cost": 0.0006137,
+      "elapsed_ms": 6283,
+      "tokens": 240,
+      "created_at": "2026-10-22T12:49:30.923Z"
+    },
+    {
+      "id": "1b0b8d06-7777-4722-bc31-7310803d4ed3",
+      "task_class": "gate:ci.32.c1-live:implement",
+      "model": "haiku",
+      "provider": "claude",
+      "status": "done",
+      "qa_verdict": "pass",
+      "qa_reason": "QA LLM omitido: la tarea no declara criterios de aceptación; checks y salidas declaradas en verde",
+      "files_blocked": [],
+      "checks_failed": 0,
+      "usd_cost": 0.0006198099999999999,
+      "elapsed_ms": 6921,
+      "tokens": 251,
+      "created_at": "2026-10-22T12:33:25.344Z"
+    },
     {
       "id": "cb1c59e6-115c-4225-ae43-b5fa20cc1b5e",
       "task_class": "gate:next-2026-10-22-ui-gate-rerun5:implement",
@@ -271,36 +301,6 @@
       "elapsed_ms": 0,
       "tokens": 0,
       "created_at": "2026-10-21T15:42:23.713Z"
-    },
-    {
-      "id": "033a270a-9695-4c77-afaf-dce578c225be",
-      "task_class": "gate:erp.6.2:doc",
-      "model": "openai/gpt-6-luna",
-      "provider": "codex",
-      "status": "done",
-      "qa_verdict": "pass",
-      "qa_reason": "README.md ends with the requested line.",
-      "files_blocked": [],
-      "checks_failed": 0,
-      "usd_cost": 0.0013195,
-      "elapsed_ms": 19300,
-      "tokens": 6943,
-      "created_at": "2026-10-20T23:12:50.318Z"
-    },
-    {
-      "id": "58b9ccc5-2964-42e9-ad97-560fb4e99ca9",
-      "task_class": "gate:erp.6.2:doc",
-      "model": "openai/gpt-6-luna",
-      "provider": "codex",
-      "status": "done",
-      "qa_verdict": "pass",
-      "qa_reason": "README.md contains the requested line.",
-      "files_blocked": [],
-      "checks_failed": 0,
-      "usd_cost": 0.0008553,
-      "elapsed_ms": 17684,
-      "tokens": 6457,
-      "created_at": "2026-10-20T23:03:43.422Z"
     }
   ],
   "stats": {
@@ -308,6 +308,6 @@
     "blocked": 0,
     "done": 19,
     "qa_failed": 3,
-    "total_cost_usd": "0.0201"
+    "total_cost_usd": "0.0191"
   }
 }
