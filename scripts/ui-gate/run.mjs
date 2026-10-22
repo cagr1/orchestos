@@ -230,6 +230,8 @@ async function runFlow(name, base, port) {
         const shotDir = path.join(runDir, name)
         await fsp.mkdir(shotDir, { recursive: true })
         const shotPath = path.join(shotDir, `${shotName}.png`)
+        // Let the 150 ms tab transitions settle before recording visual evidence.
+        await page.waitForTimeout(300)
         await page.screenshot({ path: shotPath, ...options })
         result.capturas.push(shotPath)
       },

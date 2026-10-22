@@ -114,11 +114,13 @@ Regla: nada se reintenta, cierra ni muestra sin evidencia medida que el usuario 
   cambios ajenos en `tasks.mjs` que no existían; pasó a Sol.
   Gate en vivo: navegador real (Playwright), `docs/done/evidence/TRUST.4-live.json`
   Ejecutado por: codex gpt-6.1-sol (criterio) · Spec: docs/specs/TRUST.4.md
-- [ ] **TRUST.5 — 🔍 La pestaña resaltada en el detalle de un run no es la que se ve.** En las capturas de TRUST.2 y
-  TRUST.3 (`qa-negative-rejected.png`, `trust1-run-check-failure.png`) "Contract" sale resaltada con el contenido de
-  "QA Assertions". El código (`RunsEvidenceView.tsx:121-157`) usa el mismo estado para ambos; sin verificar si es la
-  transición de 150 ms capturada a medias o un bug real. En la captura de TRUST.4 "Contract" resaltada con su propio
-  contenido: parece que el resaltado se queda siempre en Contract.
+- [x] **TRUST.5 — 🔍 La pestaña resaltada en el detalle de un run no es la que se ve.** (cerrado 2026-10-22) No era bug
+  del componente: las clases eran correctas; las capturas de ui-gate se tomaban dentro de la transición de 150 ms y la
+  evidencia visual mentía. `shot` (`scripts/ui-gate/run.mjs`) espera 300 ms antes de capturar; `qa-negative` afirma las
+  clases de las pestañas. Evidencia del cerebro: diff leído, captura nueva con "QA Assertions" resaltada; `test:coverage`
+  1992/0 (ejecutor).
+  Gate en vivo: navegador real (Playwright), `docs/done/evidence/TRUST.5-live.json`
+  Ejecutado por: codex gpt-6.1-sol (criterio) · Spec: docs/specs/TRUST.5.md
 
 ### Abiertos — fiabilidad de los gates y documentación
 

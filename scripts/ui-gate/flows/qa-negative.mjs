@@ -405,6 +405,20 @@ export default async function qaNegative({ page, api, step, shot, visible, clean
     JSON.stringify({ excerpt: replyExcerpt }),
   )
   await page.getByRole('button', { name: 'QA Assertions', exact: true }).click()
+  const evidenceTabClasses = {
+    contract: await page
+      .getByRole('button', { name: 'Contract', exact: true })
+      .getAttribute('class'),
+    qa: await page
+      .getByRole('button', { name: 'QA Assertions', exact: true })
+      .getAttribute('class'),
+  }
+  await step(
+    'QA tab is active and Contract tab is inactive',
+    evidenceTabClasses.qa?.split(/\s+/).includes('app-tab-btn-active') &&
+      evidenceTabClasses.contract?.split(/\s+/).includes('app-tab-btn-inactive'),
+    JSON.stringify(evidenceTabClasses),
+  )
   await step(
     'measured check and judge opinion are separated in QA tab',
     (await visible(page.getByText('Medido', { exact: true }))) &&
@@ -419,6 +433,7 @@ export default async function qaNegative({ page, api, step, shot, visible, clean
     await visible(page.getByText(/^✗ nota\.txt contains the line: AZUL/)),
     '✗ nota.txt contains the line: AZUL',
   )
+  await page.waitForTimeout(300)
   await shot('qa-negative-rejected')
   await page.getByRole('button', { name: 'Back to Runs', exact: true }).click()
   runRow = page.locator('tr').filter({ hasText: 'gate-qa-ok' }).first()
