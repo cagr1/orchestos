@@ -11,6 +11,8 @@ export interface CliQuotaInfo {
   reset5h?: string
   quotaWeekly: number | null
   resetWeekly?: string
+  missingData?: string
+  wiringWarning?: string
 }
 
 export function quotaTone(remaining: number | null): 'normal' | 'warning' | 'error' {
@@ -39,11 +41,26 @@ export function mapQuotas(status: SessionStatus | null): CliQuotaInfo[] {
       const windows = cli.rateLimits?.windows ?? []
       const fiveHour = windows.find((window) => window.windowMinutes === 300)
       const weekly = windows.find((window) => window.windowMinutes === 10080)
+      const isStale = (window: typeof fiveHour) => {
+        if (!window || window.resetsAt === null || window.resetsAt * 1000 > Date.now()) return false
+        const observedAt = Date.parse(window.observedAt ?? cli.observedAt ?? '')
+        return !Number.isFinite(observedAt) || observedAt < window.resetsAt * 1000
+      }
       const remaining = (window: typeof fiveHour) => {
         if (!window) return null
+        if (isStale(window)) return null
         if (window.resetsAt !== null && window.resetsAt * 1000 <= Date.now()) return 100
         return Math.max(0, window.remainingPct ?? 100 - window.usedPct)
       }
+      const staleWindow = [fiveHour, weekly].find(isStale)
+      const observedAt = Date.parse(staleWindow?.observedAt ?? cli.observedAt ?? '')
+      const ageMinutes = Math.max(0, Math.floor((Date.now() - observedAt) / 60_000))
+      const age =
+        ageMinutes < 60
+          ? `${ageMinutes} min`
+          : ageMinutes < 1440
+            ? `${Math.floor(ageMinutes / 60)} h`
+            : `${Math.floor(ageMinutes / 1440)} d`
       return {
         id: cli.id,
         name: cli.label,
@@ -51,6 +68,15 @@ export function mapQuotas(status: SessionStatus | null): CliQuotaInfo[] {
         reset5h: formatReset(fiveHour?.resetsAt ?? null),
         quotaWeekly: remaining(weekly),
         resetWeekly: formatReset(weekly?.resetsAt ?? null),
+        missingData: staleWindow
+          ? Number.isFinite(observedAt)
+            ? `no data since ${age}`
+            : 'no data, date unknown'
+          : undefined,
+        wiringWarning:
+          cli.statuslineWired === false
+            ? 'Claude statusLine is not routed through OrchestOS'
+            : undefined,
       }
     })
 }
@@ -122,7 +148,7 @@ export const ShellStatusBar: React.FC<ShellStatusBarProps> = ({
                   ? 'bg-app-elevated border border-app text-app'
                   : 'hover:bg-app-surface/60 text-app-muted hover:text-app'
               }`}
-              title={`${cli.name}: ${hasData ? `${pct}% 5-hour quota remaining` : 'No quota limits reported'}`}
+              title={`${cli.name}: ${hasData ? `${pct}% 5-hour quota remaining` : (cli.missingData ?? 'No quota limits reported')}${hasData && cli.missingData ? ` · ${cli.missingData}` : ''}${cli.wiringWarning ? ` · ${cli.wiringWarning}` : ''}`}
             >
               <ProviderLogo id={cli.id} size={14} className="w-3.5 h-3.5 flex-shrink-0" />
               <div className="w-12 h-1 bg-app-elevated rounded-pill overflow-hidden flex-shrink-0">
@@ -170,6 +196,12 @@ export const ShellStatusBar: React.FC<ShellStatusBarProps> = ({
             </div>
             <span className="text-[10px] text-app-muted">CLI Quotas</span>
           </div>
+          {(activeCli.missingData || activeCli.wiringWarning) && (
+            <div className="text-xs text-app-muted font-sans">
+              {activeCli.missingData && <p>{activeCli.missingData}</p>}
+              {activeCli.wiringWarning && <p>{activeCli.wiringWarning}</p>}
+            </div>
+          )}
 
           {activeCli.quota5h !== null || activeCli.quotaWeekly !== null ? (
             <div className="space-y-3 font-sans">

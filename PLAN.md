@@ -2176,11 +2176,19 @@ igual que hoy, lo que se corta es que el **producto** lo herede por accidente.
   `plan-worktree-home.test.ts` 1/1 (38 expect, repo + `git worktree add` reales, ambas direcciones), `test:coverage`
   1907/0. QA (Sol) sin defectos. Integrar una rama sigue igual: rebase sobre master y reconcile en master.
   Ejecutado por: GPT (criterio-alt), QA GPT (qa) · Spec: docs/specs/WT.1.md
-- [ ] **CUOTA.1 — 🔍 La barra marca 100% de Claude desde el 28-sep sin que nadie lo vea.** (abierto 2026-10-21, Carlos)
+- [x] **CUOTA.1 — 🔍 La barra marca 100% de Claude desde el 28-sep sin que nadie lo vea.** (abierto y cerrado 2026-10-21, Carlos)
   Causa: sin lecturas nuevas desde `Sep 28 10:18` (la `statusLine` apuntaba a `~/Documents/projects/orchestos`; luego
   Orca la reescribió sin el tee) y `ShellStatusBar.tsx:44` pinta 100% toda ventana ya reiniciada. Restaurado a mano
   2026-10-21 (respaldo `~/.claude/settings.json.bak.20261021-statusline`): tee → Orca; lectura fresca 96%/10%. Falta que
-  no vuelva a pasar en silencio. Spec: docs/specs/CUOTA.1.md
+  no vuelva a pasar en silencio. Arreglo: una ventana reiniciada sin lectura posterior vale `null` (por ventana: la
+  otra sigue visible) y el motivo "no data since <edad>" va en tooltip/popover, la píldora no cambia de ancho;
+  `scripts/claude-statusline-wiring.js` diagnostica si `statusLine` pasa por el tee (expansión `~`/`$HOME` como el
+  shell) y lo avisan la barra y `startup-guard.js`; a igual reset y uso gana la lectura más reciente. QA (Sol) r1: 3
+  hallazgos P2 (ventana vieja ocultaba la vigente, fecha vieja al fusionar sesiones, `"~/…"` falso positivo), los tres
+  con test de su reproducción en r2. QA r2 no corrida: cupo de Sol agotándose (Carlos, 2026-10-21).
+  Evidencia (cerebro): typecheck, tests 45/0, `test:coverage` 1921/0.
+  Gate en vivo: navegador real (Playwright), `docs/done/evidence/CUOTA.1-live.json` (`usage-bar` 19/19, lectura vieja → "no data since 1 h").
+  Ejecutado por: GPT (criterio-alt r1/r2, mecanico textos), QA GPT (qa r1) · Spec: docs/specs/CUOTA.1.md
 - [ ] **MOD.1 — 🔍 El catálogo de cada CLI sale de la fuente del CLI, con nombre y versión.** (abierto 2026-10-21,
   Carlos: "siempre debe mostrar el modelo con su versión, no solo para Claude") Claude arma su lista con el historial de
   uso (`chat-cli-models.ts:107`): Sonnet 5.5 no aparece hasta usarlo. El CLI ya guarda su catálogo oficial en

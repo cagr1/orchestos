@@ -15,6 +15,7 @@ import {
   readActiveSessionStatus,
   readActiveSessionStatuses,
   readClaudeStatuslineRateLimits,
+  readClaudeStatuslineWiring,
 } from './session-status.ts'
 
 const roots: string[] = []
@@ -32,6 +33,70 @@ afterEach(() => {
 })
 
 describe('session status', () => {
+  test('diagnostica tee presente, ausente, inexistente y Orca solo sin cambiar settings', () => {
+    const home = temp('orchestos-wiring-')
+    mkdirSync(join(home, '.claude'))
+    const settings = join(home, '.claude/settings.json')
+    const tee = join(home, 'path with spaces', 'claude-statusline-tee.sh')
+    mkdirSync(join(home, 'path with spaces'))
+    writeFileSync(tee, '#!/bin/sh\n')
+    writeFileSync(join(home, 'claude-statusline-tee.sh'), '#!/bin/sh\n')
+    for (const [command, wired] of [
+      [`ORCHESTOS_STATUSLINE_NEXT="/orca/statusline.sh" /bin/sh "${tee}"`, true],
+      ['sh "$HOME/path with spaces/claude-statusline-tee.sh"', true],
+      [`sh "\${HOME}/path with spaces/claude-statusline-tee.sh"`, true],
+      ['sh ~/claude-statusline-tee.sh', true],
+      ['sh $HOME/claude-statusline-tee.sh', true],
+      [`sh \${HOME}/claude-statusline-tee.sh`, true],
+      ['sh "~/claude-statusline-tee.sh"', false],
+      ["sh '~/claude-statusline-tee.sh'", false],
+      [`sh '\${HOME}/claude-statusline-tee.sh'`, false],
+      [`echo "${tee}"`, false],
+      ["sh '$HOME/path with spaces/claude-statusline-tee.sh'", false],
+      [undefined, false],
+      ['/missing/claude-statusline-tee.sh', false],
+      ['/orca/claude-statusline.sh', false],
+    ] as const) {
+      writeFileSync(settings, JSON.stringify({ statusLine: { command } }))
+      expect(readClaudeStatuslineWiring(settings)).toBe(wired)
+    }
+    writeFileSync(settings, '{broken')
+    expect(readClaudeStatuslineWiring(settings)).toBe(false)
+    expect(readClaudeStatuslineWiring(join(home, 'absent.json'))).toBe(false)
+  })
+
+  test('la fecha de cuota viene del statusline aunque el transcript sea reciente', async () => {
+    const home = temp('orchestos-statusline-date-')
+    const project = realpathSync(temp('orchestos-statusline-project-'))
+    const transcript = join(project, 'claude.jsonl')
+    writeFileSync(transcript, '{}\n')
+    const reading = join(home, 'claude-statusline.json')
+    writeFileSync(
+      reading,
+      JSON.stringify({ rate_limits: { five_hour: { used_percentage: 80, resets_at: 1 } } }),
+    )
+    const old = new Date('2026-09-28T12:00:00Z')
+    utimesSync(reading, old, old)
+    process.env.ORCHESTOS_CLAUDE_STATUSLINE_HOME = home
+    const statuses = await readActiveSessionStatuses({
+      projectRoot: project,
+      agentHome: home,
+      transcriptPath: transcript,
+      adapters: [
+        {
+          id: 'claude',
+          thresholds: { warn: 40, critical: 65 },
+          async read() {
+            return { used: 1, window: 100, model: null }
+          },
+        },
+      ],
+    })
+    const claude = statuses.find((cli) => cli.id === 'claude')
+    expect(claude?.observedAt).toBe(old.toISOString())
+    expect(claude?.rateLimits?.windows[0]?.observedAt).toBe(old.toISOString())
+    expect(claude?.statuslineWired).toBe(false)
+  })
   test('descubre Claude y Codex solo para el proyecto solicitado y ordena por mtime', () => {
     const agentHome = temp('orchestos-h75-home-')
     const project = realpathSync(temp('orchestos-h75-project-'))
@@ -137,7 +202,7 @@ describe('session status', () => {
     ])
   })
 
-  test('conserva una ventana de Claude vencida para que el cliente la pinte libre', () => {
+  test('conserva una ventana vencida con la fecha real de lectura para el cliente', () => {
     const home = temp('orchestos-statusline-expired-')
     writeFileSync(
       join(home, 'claude-statusline.json'),
@@ -228,6 +293,62 @@ describe('session status', () => {
     const result = readClaudeStatuslineRateLimits(home)
     expect(result?.windows).toEqual([expect.objectContaining({ usedPct: 39, remainingPct: 61 })])
     expect(existsSync(join(directory, 'stale-session.json'))).toBe(false)
+  })
+
+  test.each([false, true])(
+    'a igual reset y uso gana la observación más reciente (orden %s)',
+    (reverse) => {
+      const home = temp('orchestos-statusline-tie-')
+      const directory = join(home, 'claude-statusline')
+      mkdirSync(directory)
+      const now = Math.floor(Date.now() / 1000)
+      const old = new Date((now - 3600) * 1000)
+      const fresh = new Date(now * 1000)
+      const dates = reverse ? [fresh, old] : [old, fresh]
+      dates.forEach((date, index) => {
+        const path = join(directory, `${index}.json`)
+        writeFileSync(
+          path,
+          JSON.stringify({
+            rate_limits: { five_hour: { used_percentage: 80, resets_at: now - 1800 } },
+          }),
+        )
+        utimesSync(path, date, date)
+      })
+      process.env.ORCHESTOS_CLAUDE_STATUSLINE_HOME = home
+      expect(readClaudeStatuslineRateLimits(home)?.windows[0]?.observedAt).toBe(fresh.toISOString())
+    },
+  )
+
+  test('la fecha de otra sesión reciente no rejuvenece una ventana antigua', () => {
+    const home = temp('orchestos-statusline-window-date-')
+    const directory = join(home, 'claude-statusline')
+    mkdirSync(directory)
+    const oldPath = join(directory, 'old.json')
+    const old = new Date(Date.now() - 3_600_000)
+    writeFileSync(
+      oldPath,
+      JSON.stringify({
+        rate_limits: {
+          five_hour: { used_percentage: 80, resets_at: Math.floor(Date.now() / 1000) - 1800 },
+        },
+      }),
+    )
+    utimesSync(oldPath, old, old)
+    writeFileSync(
+      join(directory, 'fresh.json'),
+      JSON.stringify({
+        rate_limits: {
+          seven_day: { used_percentage: 10, resets_at: Math.floor(Date.now() / 1000) + 3600 },
+        },
+      }),
+    )
+    process.env.ORCHESTOS_CLAUDE_STATUSLINE_HOME = home
+    const result = readClaudeStatuslineRateLimits(home)
+    expect(result?.windows.find((window) => window.id === 'five_hour')?.observedAt).toBe(
+      old.toISOString(),
+    )
+    expect(result?.observedAt).not.toBe(old.toISOString())
   })
 
   test('mantiene el archivo legacy cuando no existen archivos por sesión', async () => {

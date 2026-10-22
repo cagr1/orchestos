@@ -55,6 +55,7 @@ export interface RateLimitWindow {
   windowMinutes: number | null
   /** Epoch Unix en segundos; `null` cuando el CLI no publica el reset. */
   resetsAt: number | null
+  observedAt?: string
   /** Complemento de usedPct, como lo presenta la UI oficial del CLI. */
   remainingPct?: number
 }

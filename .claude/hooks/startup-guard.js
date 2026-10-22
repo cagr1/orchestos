@@ -9,11 +9,12 @@ import { execFile, execFileSync } from 'node:child_process'
  * nada — un aviso que siempre aparece es el mismo mal que este hook cura.
  * Nunca bloquea la sesión: sale 0 siempre, silencio ante cualquier error.
  */
-import { readFileSync } from 'node:fs'
+import { existsSync, readFileSync } from 'node:fs'
 import { homedir } from 'node:os'
 import { dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { promisify } from 'node:util'
+import { isClaudeStatuslineWired } from '../../scripts/claude-statusline-wiring.js'
 
 // `STARTUP_GUARD_ROOT`/`STARTUP_GUARD_HOME` solo existen para que el test pueda
 // apuntar a fixtures en tmpdir sin tocar el repo real ni `~/.claude.json`. Sin
@@ -190,6 +191,9 @@ async function main() {
   checkConnectorDrift(findings)
   checkEnvDrift(findings)
   checkPluginDrift(findings)
+  if (!isClaudeStatuslineWired(readJson(USER_SETTINGS_PATH), HOME, existsSync)) {
+    findings.push('statusLine de Claude no pasa por OrchestOS')
+  }
   checkStartupWeight(findings)
   const configFindings = findings.length
   await checkActions(findings)

@@ -315,6 +315,7 @@ export interface SessionCliStatus {
   installed: boolean
   available: boolean
   observedAt: string | null
+  statuslineWired?: boolean
   context: {
     used: number
     window: number
@@ -329,6 +330,7 @@ export interface SessionCliStatus {
       remainingPct?: number
       windowMinutes: number | null
       resetsAt: number | null
+      observedAt?: string
     }>
   } | null
 }

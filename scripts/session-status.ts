@@ -21,6 +21,7 @@ import { homedir } from 'node:os'
 import { join, resolve } from 'node:path'
 import { globSync } from 'glob'
 import { type CliDetectionResult, detectInstalledClis } from '../src/run/executors/cli-registry.ts'
+import { isClaudeStatuslineWired } from './claude-statusline-wiring.js'
 import {
   type ContextAdapter,
   DEFAULT_ADAPTERS,
@@ -37,8 +38,9 @@ export interface SessionStatus {
   readBoundary: CliDetectionResult['readBoundary']
   installed: boolean
   available: boolean
-  /** Momento de la última escritura del transcript, no la hora del request. */
+  /** Última escritura de la fuente (statusline de Claude o transcript), no hora del request. */
   observedAt: string | null
+  statuslineWired?: boolean
   context: SessionMetrics['context'] | null
   rateLimits: SessionMetrics['rateLimits']
 }
@@ -51,6 +53,20 @@ export interface SessionStatusResponse {
 type ClaudeStatuslineReading = {
   windows: import('./context-adapters.ts').RateLimitWindow[]
   observedAt: string
+}
+
+export function readClaudeStatuslineWiring(
+  settingsPath = join(homedir(), '.claude/settings.json'),
+): boolean {
+  try {
+    return isClaudeStatuslineWired(
+      JSON.parse(readFileSync(settingsPath, 'utf8')),
+      resolve(settingsPath, '../..'),
+      existsSync,
+    )
+  } catch {
+    return false
+  }
 }
 
 function readClaudeStatuslineFile(path: string): ClaudeStatuslineReading | null {
@@ -77,6 +93,7 @@ function readClaudeStatuslineFile(path: string): ClaudeStatuslineReading | null 
           remainingPct: 100 - usedPct,
           windowMinutes: id === 'five_hour' ? 300 : 10080,
           resetsAt,
+          observedAt: stat.mtime.toISOString(),
         },
       ]
     })
@@ -134,7 +151,10 @@ export function readClaudeStatuslineRateLimits(
       if (
         !current ||
         (window.resetsAt ?? 0) > (current.resetsAt ?? 0) ||
-        ((window.resetsAt ?? 0) === (current.resetsAt ?? 0) && window.usedPct > current.usedPct)
+        ((window.resetsAt ?? 0) === (current.resetsAt ?? 0) &&
+          (window.usedPct > current.usedPct ||
+            (window.usedPct === current.usedPct &&
+              (window.observedAt ?? '') > (current.observedAt ?? ''))))
       ) {
         byWindow.set(window.id, window)
       }
@@ -196,6 +216,9 @@ export async function readActiveSessionStatuses(
   }
   const codex = detections.find((detection) => detection.id === 'codex')
   const claudeStatusline = readClaudeStatuslineRateLimits(options.agentHome)
+  const statuslineWired = readClaudeStatuslineWiring(
+    join(options.agentHome ?? homedir(), '.claude/settings.json'),
+  )
   const readCodexLimits = options.readCodexRateLimits ?? readCodexRateLimitsLive
   const liveWindows =
     !explicit && codex?.installed
@@ -224,7 +247,10 @@ export async function readActiveSessionStatuses(
       readBoundary: cli.readBoundary,
       installed: cli.installed,
       available: true,
-      observedAt: statSync(candidate.transcriptPath).mtime.toISOString(),
+      observedAt:
+        id === 'claude' && claudeStatusline
+          ? claudeStatusline.observedAt
+          : statSync(candidate.transcriptPath).mtime.toISOString(),
       ...normalized,
     })
   }
@@ -262,21 +288,21 @@ export async function readActiveSessionStatuses(
     })
   }
 
-  return detections.map(
-    (cli) =>
-      found.get(cli.id) ?? {
-        id: cli.id,
-        label: cli.label,
-        binary: cli.binary,
-        icon: cli.icon,
-        readBoundary: cli.readBoundary,
-        installed: cli.installed,
-        available: false,
-        observedAt: null,
-        context: null,
-        rateLimits: null,
-      },
-  )
+  return detections.map((cli) => ({
+    ...(found.get(cli.id) ?? {
+      id: cli.id,
+      label: cli.label,
+      binary: cli.binary,
+      icon: cli.icon,
+      readBoundary: cli.readBoundary,
+      installed: cli.installed,
+      available: false,
+      observedAt: null,
+      context: null,
+      rateLimits: null,
+    }),
+    ...(cli.id === 'claude' ? { statuslineWired } : {}),
+  }))
 }
 
 /**

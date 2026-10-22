@@ -1,5 +1,5 @@
 import { execFileSync } from 'node:child_process'
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
+import { mkdirSync, mkdtempSync, rmSync, utimesSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { basename, join } from 'node:path'
 import { setTimeout as delay } from 'node:timers/promises'
@@ -314,5 +314,41 @@ export default async function usageBar({ page, api, step, visible, cleanup, stat
     'an expired Claude window is shown as fully available',
     /100% 5-hour quota remaining$/.test(expiredClaudeTitle ?? ''),
     expiredClaudeTitle ?? 'Claude button title missing after expired reset',
+  )
+
+  const stalePath = join(statuslineDirectory, 'expired-session.json')
+  const staleObservedAt = new Date(Date.now() - 3_600_000)
+  writeFileSync(
+    stalePath,
+    JSON.stringify({
+      rate_limits: {
+        five_hour: { used_percentage: 80, resets_at: Math.floor(Date.now() / 1000) - 1800 },
+      },
+    }),
+  )
+  utimesSync(stalePath, staleObservedAt, staleObservedAt)
+  await delay(10_500)
+  const staleRefresh = page.waitForResponse(
+    (response) =>
+      response.url().includes('/api/session/status') && response.request().method() === 'GET',
+    { timeout: 10_000 },
+  )
+  await refreshButton.click()
+  const staleResponse = await staleRefresh
+  const stalePayload = await staleResponse.json()
+  await page.waitForFunction(() =>
+    document.querySelector('button[title^="Claude"]')?.textContent?.includes('—'),
+  )
+  const staleButton = page.locator('button[title^="Claude"]')
+  const staleTitle = await staleButton.getAttribute('title')
+  const staleClaude = stalePayload.clis?.find((cli) => cli.id === 'claude')
+  const staleWindow = staleClaude?.rateLimits?.windows?.find((window) => window.id === 'five_hour')
+  await step(
+    'a Claude reading before its expired reset shows missing data instead of 100%',
+    staleTitle?.includes('no data since') &&
+      !staleTitle.includes('100%') &&
+      (await staleButton.locator('div[style]').count()) === 0 &&
+      staleWindow?.observedAt === staleObservedAt.toISOString(),
+    `title=${staleTitle}, windowObservedAt=${staleWindow?.observedAt}, cliObservedAt=${staleClaude?.observedAt}`,
   )
 }

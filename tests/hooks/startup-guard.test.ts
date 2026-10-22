@@ -26,6 +26,7 @@ function makeFixtures(opts: {
   enabledPlugins?: Record<string, boolean>
   claudeJson?: string
   repoSettings?: string
+  statuslineCommand?: string | null
 }) {
   const home = mkdtempSync(join(tmpdir(), 'startup-guard-home-'))
   const root = mkdtempSync(join(tmpdir(), 'startup-guard-root-'))
@@ -33,6 +34,8 @@ function makeFixtures(opts: {
 
   mkdirSync(join(home, '.claude'), { recursive: true })
   mkdirSync(join(root, '.claude'), { recursive: true })
+  const tee = join(root, 'claude-statusline-tee.sh')
+  writeFileSync(tee, '#!/bin/sh\n')
 
   writeFileSync(
     join(home, '.claude.json'),
@@ -43,6 +46,13 @@ function makeFixtures(opts: {
     join(home, '.claude/settings.json'),
     JSON.stringify({
       enabledPlugins: opts.enabledPlugins ?? { 'security-guidance@claude-plugins-official': true },
+      statusLine:
+        opts.statuslineCommand === null
+          ? undefined
+          : {
+              type: 'command',
+              command: opts.statuslineCommand ?? `/bin/sh "${tee}"`,
+            },
     }),
   )
 
@@ -128,6 +138,15 @@ function runHook(home: string, root: string, actions = ACTION_FIXTURE) {
 }
 
 describe('startup-guard hook', () => {
+  it.each([null, '/missing/claude-statusline-tee.sh', '/orca/claude-statusline.sh'])(
+    'avisa cuando el cableado falla: %s',
+    (statuslineCommand) => {
+      const { home, root } = makeFixtures({ statuslineCommand })
+      const result = runHook(home, root)
+      expect(result.status).toBe(0)
+      expect(result.stdout).toContain('statusLine de Claude no pasa por OrchestOS')
+    },
+  )
   it('parsea remotos GitHub HTTPS y SSH', () => {
     expect(parseGitHubRemote('https://github.com/acme/orchestos.git')).toBe('acme/orchestos')
     expect(parseGitHubRemote('git@github.com:acme/orchestos.git')).toBe('acme/orchestos')
