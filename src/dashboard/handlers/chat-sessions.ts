@@ -264,7 +264,10 @@ export async function handleApiChatSessionsCreate(
   const agent = body.agent ?? defaultAgent
   if (
     typeof agent !== 'string' ||
-    (agent !== 'local' && agent !== 'api' && !cliChatAdapterFor(agent)?.chat && !cliChatAdapterFor(agent)?.terminal)
+    (agent !== 'local' &&
+      agent !== 'api' &&
+      !cliChatAdapterFor(agent)?.chat &&
+      !cliChatAdapterFor(agent)?.terminal)
   ) {
     return errorResponse('chat no soportado', 400)
   }
