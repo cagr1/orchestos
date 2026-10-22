@@ -300,7 +300,7 @@ export default async function codexLive({
   )
   const refreshedSession = (refreshedSessions.data ?? []).find((item) => item.id === session.id)
   if (!refreshedSession?.title) throw new Error(`Codex session missing after reload: ${session.id}`)
-  const reselectAgent = page.getByRole('button', { name: refreshedSession.title, exact: true })
+  const reselectAgent = page.locator(`[data-thread-id="${session.id}"]`)
   if (!(await reselectAgent.isVisible().catch(() => false))) {
     await page.getByRole('button', { name: basename(projectRoot), exact: true }).click()
   }

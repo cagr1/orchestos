@@ -40,6 +40,15 @@
       "closedDate": null
     },
     {
+      "id": "CI.38",
+      "sprint": "Fase 2 — Producto mínimo para entrega",
+      "block": "Abiertos — fiabilidad de los gates y documentación",
+      "delegation": "⚡",
+      "title": "`chat-continuity` no distingue dos chats con el mismo título tras UI.27.3",
+      "status": "done",
+      "closedDate": null
+    },
+    {
       "id": "DOC.4",
       "sprint": "Fase 2 — Producto mínimo para entrega",
       "block": "Abiertos — fiabilidad de los gates y documentación",

@@ -79,14 +79,9 @@ async function reopenSession(page, api, project, session) {
   const saved = (sessions.data ?? []).find((item) => item.id === session.id)
   if (!saved?.title) throw new Error(`Chat session missing after reload: ${session.id}`)
   const projectButton = page.getByRole('button', { name: projectName, exact: true })
-  if (
-    !(await page
-      .getByRole('button', { name: saved.title, exact: true })
-      .isVisible()
-      .catch(() => false))
-  )
-    await projectButton.click()
-  await page.getByRole('button', { name: saved.title, exact: true }).click()
+  const savedThread = page.locator(`[data-thread-id="${session.id}"]`)
+  if (!(await savedThread.isVisible().catch(() => false))) await projectButton.click()
+  await savedThread.click()
 }
 
 export default async function chatContinuity({

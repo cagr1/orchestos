@@ -158,6 +158,7 @@ export const ShellSidebar: React.FC<ShellSidebarProps> = ({
                 return (
                   <div
                     key={thread.id}
+                    data-thread-id={thread.id}
                     role="button"
                     tabIndex={0}
                     onClick={() => onSelectThread(thread.id)}
@@ -360,6 +361,7 @@ export const ShellSidebar: React.FC<ShellSidebarProps> = ({
                           >
                             <button
                               type="button"
+                              data-thread-id={ag.id}
                               onClick={() => {
                                 if (onSelectAgent) {
                                   onSelectAgent(ag.id, proj.id)

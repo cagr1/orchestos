@@ -116,6 +116,15 @@ Cerrada. Todos sus ítems están archivados en `docs/done/` (ver "Cerrados — e
   2026-10-22: visto 1 vez (`CI.32.c-live`, con `auto-flow chat-retry-report chat-permissions` antes): `porcelain="M
   tasks.yaml"`, último commit `orchestos(gate-first-task): …`; `tasks` solo pasó 31/31 justo después. Detalle en
   `$TMPDIR/ui-gate-65780/result.json` (temporal, no conservado).
+- [x] **CI.38 — ⚡ `chat-continuity` no distingue dos chats con el mismo título tras UI.27.3.** (abierto 2026-10-22)
+  Pre-push de `39c67167` 2/2: `strict mode violation: getByRole('button', { name: 'Remember this code for later: …' })
+  resolved to 2 elements`. El flujo crea un chat de Claude y uno de Codex con el mismo título en el mismo proyecto;
+  antes los separaba el prefijo "Claude:"/"Codex:", que UI.27.3 quitó (el icono los distingue). Arreglo:
+  `data-thread-id` en cada chat/sesión del sidebar (`ShellSidebar.tsx`, solo el atributo) y `chat-continuity` y su hermano
+  `codex-live` eligen la sesión por id. Evidencia: `chat-continuity` 8/8, `codex-live` 14/14, `chat-streaming` 27/27;
+  typecheck, lint y `ui:fidelity:jsx` limpios.
+  Gate en vivo: navegador real (Playwright), `docs/done/evidence/CI.38-live.json`.
+  Ejecutado por: codex gpt-6-luna (mecanico) · Spec: docs/specs/CI.38.md
 - [x] **DOC.4 — ⚡ Archivar los cerrados de PLAN.md y poner al día CONTEXT.md.** (abierto y cerrado 2026-10-22, GO de
   Carlos) 133 ítems `[x]` de primer nivel (con cuerpo y sub-ítems) y 6 secciones `###` ya cerradas movidos literal a
   `docs/done/bloque-<PREFIJO>.md` bajo `## Archivado 2026-10-22 desde PLAN.md (DOC.4)`, con ancla por ítem; nuevos
