@@ -61,6 +61,7 @@ describe('projects API mappings', () => {
       status: 'failed',
       qaVerdict: 'fail',
       qaReason: 'criterion mismatch',
+      qaModel: 'judge-model',
       checks: [
         { cmd: 'test', exitCode: 1, elapsedMs: 20, stderr: 'TRUST1-MARKER', stdout: 'stdout' },
       ],
@@ -81,17 +82,54 @@ describe('projects API mappings', () => {
       contextWarnings: [],
       createdAt: '2026-01-01T00:00:00Z',
     })
+    expect(run.qaModel).toBe('judge-model')
+    expect(run.qaEvaluation[0]).toEqual({
+      kind: 'judge',
+      criterion: 'QA verdict: fail',
+      passed: false,
+      rationale: 'criterion mismatch',
+    })
     expect(run.deterministicChecks[0]?.output).toBe('TRUST1-MARKER\nstdout')
     expect(run.qaEvaluation).toContainEqual({
+      kind: 'criterion',
       criterion: 'bad criterion',
       passed: false,
       rationale: 'no evidence in written files',
     })
     expect(run.qaEvaluation).toContainEqual({
+      kind: 'criterion',
       criterion: 'good criterion',
       passed: true,
       rationale: 'ok.txt: VERDE',
     })
+  })
+
+  test('does not invent a judge verdict when a deterministic check fails', () => {
+    const run = mapRunRow({
+      id: 'r-check',
+      taskId: 'task-check',
+      status: 'failed',
+      qaVerdict: 'fail',
+      qaModel: null,
+      qaReason: 'check failed',
+      checks: [{ cmd: 'test', exitCode: 1, elapsedMs: 20, stderr: 'MARKER' }],
+      model: 'codex',
+      provider: 'codex',
+      inputTokens: 0,
+      outputTokens: 0,
+      costUsd: null,
+      elapsedMs: 20,
+      engine: 'codex',
+      iterations: 1,
+      fileDiffs: [],
+      costBreakdown: [],
+      contextWarnings: [],
+      createdAt: 'now',
+    })
+    expect(run.qaModel).toBeNull()
+    expect(run.qaEvaluation).toEqual([])
+    expect(run.deterministicChecks[0]?.passed).toBe(false)
+    expect(run.deterministicChecks[0]?.output).toBe('MARKER')
   })
 
   test('maps skipped QA as not run and never as passed', () => {
@@ -117,6 +155,7 @@ describe('projects API mappings', () => {
     expect(run.qaVerdict).toBe('skipped')
     expect(run.qaEvaluation).toEqual([
       {
+        kind: 'skipped',
         criterion: 'QA: no corrió',
         passed: false,
         rationale: 'Sin revisión LLM y sin checks: nada verificó esta tarea',

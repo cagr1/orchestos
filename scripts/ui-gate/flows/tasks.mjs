@@ -577,6 +577,12 @@ export default async function tasks({ page, api, step, note, shot, visible, clea
   )
   await page.getByRole('button', { name: 'QA Assertions', exact: true }).click()
   await step(
+    'unverified run shows warning without failure symbols',
+    (await visible(page.getByText('Nada verificó este run', { exact: true }))) &&
+      (await page.getByText(/✗/).count()) === 0,
+    'Nada verificó este run; no ✗',
+  )
+  await step(
     'skipped QA explains that nothing verified the task',
     await visible(
       page.getByText(/QA: no corrió: Sin revisión LLM y sin checks: nada verificó esta tarea/),
@@ -617,6 +623,13 @@ export default async function tasks({ page, api, step, note, shot, visible, clea
     'check stderr visible under failed check in Runs',
     await visible(page.locator('pre').filter({ hasText: 'TRUST1-MARKER' })),
     await page.locator('pre').filter({ hasText: 'TRUST1-MARKER' }).innerText(),
+  )
+  await step(
+    'failed check is measured without a judge verdict',
+    (await visible(page.getByText('Medido', { exact: true }))) &&
+      (await page.getByText(/QA verdict/).count()) === 0 &&
+      (await page.getByText(/Opinión del juez/).count()) === 0,
+    'Medido with TRUST1-MARKER; no QA verdict or judge opinion',
   )
   await shot('trust1-run-check-failure')
 }

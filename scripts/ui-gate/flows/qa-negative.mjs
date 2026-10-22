@@ -397,15 +397,21 @@ export default async function qaNegative({ page, api, step, shot, visible, clean
   const replyExcerpt = executorReply.replace(/\s+/g, ' ').trim().slice(0, 30)
   await step(
     'executor reply visible in Contract tab',
-    (await visible(page.getByText('Executor reply', { exact: true }))) &&
+    (await visible(
+      page.getByText('Lo que reporta el ejecutor (no verificado)', { exact: true }),
+    )) &&
       replyExcerpt.length > 0 &&
       (await visible(page.getByText(replyExcerpt, { exact: false }).first())),
     JSON.stringify({ excerpt: replyExcerpt }),
   )
   await page.getByRole('button', { name: 'QA Assertions', exact: true }).click()
   await step(
-    'check visible in QA tab',
-    await visible(page.getByText('✓ test -f nota.txt (exit 0)', { exact: true })),
+    'measured check and judge opinion are separated in QA tab',
+    (await visible(page.getByText('Medido', { exact: true }))) &&
+      (await visible(
+        page.getByText(`Opinión del juez (${rejected.run.qaModel})`, { exact: true }),
+      )) &&
+      (await visible(page.getByText('✓ test -f nota.txt (exit 0)', { exact: true }))),
     '✓ test -f nota.txt (exit 0)',
   )
   await step(

@@ -36,6 +36,24 @@
       "block": "Confianza en el flujo — TRUST (GO de Carlos 2026-10-22)",
       "delegation": "⚡",
       "title": "La UI separa medida de opinión",
+      "status": "done",
+      "closedDate": "2026-10-22"
+    },
+    {
+      "id": "TRUST.4",
+      "sprint": "Fase 2 — Producto mínimo para entrega",
+      "block": "Confianza en el flujo — TRUST (GO de Carlos 2026-10-22)",
+      "delegation": "🔍",
+      "title": "Un run `done` de Codex no guarda lo que reportó el ejecutor",
+      "status": "open",
+      "closedDate": null
+    },
+    {
+      "id": "TRUST.5",
+      "sprint": "Fase 2 — Producto mínimo para entrega",
+      "block": "Confianza en el flujo — TRUST (GO de Carlos 2026-10-22)",
+      "delegation": "🔍",
+      "title": "La pestaña resaltada en el detalle de un run no es la que se ve",
       "status": "open",
       "closedDate": null
     },

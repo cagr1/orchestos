@@ -96,9 +96,22 @@ Regla: nada se reintenta, cierra ni muestra sin evidencia medida que el usuario 
   en el spec (corregido el spec, no el ejecutor).
   Gate en vivo: navegador real (Playwright), `docs/done/evidence/TRUST.1-live.json`
   Ejecutado por: codex gpt-6.1-sol (criterio) · Spec: docs/specs/TRUST.1.md
-- [ ] **TRUST.3 — ⚡ La UI separa medida de opinión.** Razón del juez y `executor_reply` hoy aparecen como hechos junto a
-  exit codes (`src/dashboard/app/src/api/runs.ts:44`, `RunsEvidenceView.tsx:155`). Marcar opinión de LLM como tal.
-  Visto en TRUST.1/2: un fallo de check aparece como "QA verdict: fail" (es medida, no QA) y "QA: no corrió" lleva ✗ rojo.
+- [x] **TRUST.3 — ⚡ La UI separa medida de opinión.** (cerrado 2026-10-22) Pestaña QA de Runs en "Medido" (checks y su
+  salida) y "Opinión del juez (<modelo>)" (veredicto y criterios); un check fallido ya no aparece como "QA verdict";
+  juez que no corrió en tono neutro, sin ✗; sin checks ni juez "Nada verificó este run". La respuesta del ejecutor se
+  titula "Lo que reporta el ejecutor (no verificado)" y se muestra también en runs `done`. Evidencia del cerebro: diff
+  leído, captura de `qa-negative` con las dos secciones; typecheck, lint, fidelidad JSX y `test:coverage` 1992/0
+  (ejecutor). Una aserción propia del ejecutor (reply en run `done`) se retiró porque el run real trae
+  `executor_reply: null` → TRUST.4.
+  Gate en vivo: navegador real (Playwright), `docs/done/evidence/TRUST.3-live.json`
+  Ejecutado por: codex gpt-6.1-sol (criterio) · Spec: docs/specs/TRUST.3.md
+- [ ] **TRUST.4 — 🔍 Un run `done` de Codex no guarda lo que reportó el ejecutor.** En la batería de TRUST.3 el run
+  terminado de `tasks` trae `executor_reply: null` (`/tmp/TRUST.3-live.log`: `{"status":"done","reply":null}`). Averiguar
+  si el adaptador de Codex no captura el texto final o si el fixture no lo produce.
+- [ ] **TRUST.5 — 🔍 La pestaña resaltada en el detalle de un run no es la que se ve.** En las capturas de TRUST.2 y
+  TRUST.3 (`qa-negative-rejected.png`, `trust1-run-check-failure.png`) "Contract" sale resaltada con el contenido de
+  "QA Assertions". El código (`RunsEvidenceView.tsx:121-157`) usa el mismo estado para ambos; sin verificar si es la
+  transición de 150 ms capturada a medias o un bug real.
 
 ### Abiertos — fiabilidad de los gates y documentación
 

@@ -66,6 +66,7 @@ export interface DeterministicCheck {
 }
 
 export interface QaEvaluationItem {
+  kind?: 'judge' | 'criterion' | 'skipped'
   criterion: string
   passed: boolean
   rationale: string
@@ -77,6 +78,7 @@ export interface RunItem {
   taskDescription: string
   status: 'done' | 'blocked' | 'failed'
   qaVerdict: QaVerdict
+  qaModel?: string | null
   failureReason?: string
   executorReply?: string
   model: string

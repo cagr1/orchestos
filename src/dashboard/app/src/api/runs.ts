@@ -1,4 +1,4 @@
-import type { FileDiffEntry, RunItem } from '../types/orchestos'
+import type { FileDiffEntry, QaEvaluationItem, RunItem } from '../types/orchestos'
 
 interface RunRow {
   id: string
@@ -48,15 +48,17 @@ async function listRunRows(projectId: string): Promise<RunRow[]> {
 
 export function mapRunRow(row: RunRow): RunItem {
   const duration = row.elapsedMs > 0 ? `${Math.max(1, Math.round(row.elapsedMs / 60000))}m` : '—'
-  const qaEvaluation = [
-    row.qaVerdict
+  const qaEvaluation: QaEvaluationItem[] = [
+    row.qaVerdict && (row.qaVerdict === 'skipped' || row.qaModel)
       ? {
+          kind: row.qaVerdict === 'skipped' ? ('skipped' as const) : ('judge' as const),
           criterion: row.qaVerdict === 'skipped' ? 'QA: no corrió' : `QA verdict: ${row.qaVerdict}`,
           passed: row.qaVerdict === 'pass',
           rationale: row.qaReason || 'No reason recorded',
         }
       : null,
     ...(row.qaCriteria || []).map((c) => ({
+      kind: 'criterion' as const,
       criterion: c.text,
       passed: c.pass,
       rationale: c.evidence
@@ -70,6 +72,7 @@ export function mapRunRow(row: RunRow): RunItem {
     taskDescription: row.prompt?.split(/\r?\n/, 1)[0] || row.taskId || '—',
     status: row.status,
     qaVerdict: row.qaVerdict,
+    qaModel: row.qaModel ?? null,
     ...(row.status !== 'done' && row.result ? { failureReason: row.result } : {}),
     ...(row.executorReply ? { executorReply: row.executorReply } : {}),
     model: row.model,

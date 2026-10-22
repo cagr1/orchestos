@@ -160,22 +160,23 @@ export const RunsEvidenceView: React.FC<RunsEvidenceViewProps> = ({
           {/* Tab 1: Contract */}
           {evidenceTab === 'contract' && (
             <div className="rounded-card border border-app bg-app-surface p-4 space-y-3 text-xs">
-              {selectedRun.status !== 'done' &&
-                (selectedRun.failureReason || selectedRun.executorReply) && (
-                  <div className="space-y-2">
-                    {selectedRun.failureReason && (
-                      <div className="text-amber-300">{selectedRun.failureReason}</div>
-                    )}
-                    {selectedRun.executorReply && (
-                      <>
-                        <div className="font-semibold text-app">Executor reply</div>
-                        <pre className="p-3 bg-app-bg font-mono text-xs text-app overflow-x-auto leading-relaxed">
-                          {selectedRun.executorReply}
-                        </pre>
-                      </>
-                    )}
-                  </div>
-                )}
+              {(selectedRun.failureReason || selectedRun.executorReply) && (
+                <div className="space-y-2">
+                  {selectedRun.failureReason && (
+                    <div className="text-amber-300">{selectedRun.failureReason}</div>
+                  )}
+                  {selectedRun.executorReply && (
+                    <>
+                      <div className="font-semibold text-app">
+                        Lo que reporta el ejecutor (no verificado)
+                      </div>
+                      <pre className="p-3 bg-app-bg font-mono text-xs text-app overflow-x-auto leading-relaxed">
+                        {selectedRun.executorReply}
+                      </pre>
+                    </>
+                  )}
+                </div>
+              )}
               <div className="font-semibold text-app">Contract Output Slice Whitelist</div>
               <div className="font-mono text-xs bg-app-bg p-3 rounded-control border border-app text-app-accent space-y-1">
                 {(selectedRun.outputSlice || []).map((file) => (
@@ -289,34 +290,56 @@ export const RunsEvidenceView: React.FC<RunsEvidenceViewProps> = ({
           {/* Tab 4: QA */}
           {evidenceTab === 'qa' && (
             <div className="rounded-card border border-app bg-app-surface p-4 space-y-3 text-xs">
-              <div className="font-semibold text-app">QA Gate Verdict & Acceptance Evaluation</div>
-              <div className="p-3 rounded-control bg-app-bg border border-app font-mono text-xs text-emerald-400 space-y-1">
-                {selectedRun.deterministicChecks.map((check) => (
-                  <div
-                    key={`${check.command}-${check.exitCode}`}
-                    className={check.passed ? 'text-emerald-400' : 'text-rose-400'}
-                  >
-                    {check.passed ? '✓' : '✗'} {check.command} (exit {check.exitCode})
-                    {!check.passed && check.output && (
-                      <pre className="p-3 bg-app-bg font-mono text-xs text-app overflow-x-auto leading-relaxed">
-                        {check.output}
-                      </pre>
-                    )}
+              {selectedRun.deterministicChecks.length > 0 && (
+                <div className="space-y-2">
+                  <div className="font-semibold text-app">Medido</div>
+                  <div className="p-3 rounded-control bg-app-bg border border-app font-mono text-xs space-y-1">
+                    {selectedRun.deterministicChecks.map((check) => (
+                      <div
+                        key={`${check.command}-${check.exitCode}`}
+                        className={check.passed ? 'text-emerald-400' : 'text-rose-400'}
+                      >
+                        {check.passed ? '✓' : '✗'} {check.command} (exit {check.exitCode})
+                        {!check.passed && check.output && (
+                          <pre className="p-3 bg-app-bg font-mono text-xs text-app overflow-x-auto leading-relaxed">
+                            {check.output}
+                          </pre>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+              {selectedRun.qaEvaluation
+                .filter((item) => item.kind === 'skipped')
+                .map((item) => (
+                  <div key={item.criterion} className="text-app-muted">
+                    {item.criterion}: {item.rationale}
                   </div>
                 ))}
-                {selectedRun.qaEvaluation.map((item) => (
-                  <div
-                    key={item.criterion}
-                    className={item.passed ? 'text-emerald-400' : 'text-rose-400'}
-                  >
-                    {item.passed ? '✓' : '✗'} {item.criterion}: {item.rationale}
+              {selectedRun.qaModel && selectedRun.qaVerdict !== 'skipped' && (
+                <div className="space-y-2">
+                  <div className="font-semibold text-app">
+                    Opinión del juez ({selectedRun.qaModel})
                   </div>
-                ))}
-                {selectedRun.deterministicChecks.length === 0 &&
-                  selectedRun.qaEvaluation.length === 0 && (
-                    <div className="text-app-muted">No QA recorded for this run</div>
-                  )}
-              </div>
+                  <div className="p-3 rounded-control bg-app-bg border border-app font-mono text-xs space-y-1">
+                    {selectedRun.qaEvaluation
+                      .filter((item) => item.kind !== 'skipped')
+                      .map((item) => (
+                        <div
+                          key={item.criterion}
+                          className={item.passed ? 'text-emerald-400' : 'text-rose-400'}
+                        >
+                          {item.passed ? '✓' : '✗'} {item.criterion}: {item.rationale}
+                        </div>
+                      ))}
+                  </div>
+                </div>
+              )}
+              {selectedRun.deterministicChecks.length === 0 &&
+                (!selectedRun.qaModel || selectedRun.qaVerdict === 'skipped') && (
+                  <div className="text-app-warning">Nada verificó este run</div>
+                )}
             </div>
           )}
         </div>
