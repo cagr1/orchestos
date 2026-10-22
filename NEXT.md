@@ -1,4 +1,4 @@
-# NEXT — handoff 2026-10-22 (corte tras el lote CI.35–CI.37, UI.27.3, UI.28, CTX-GUARD.2, DOC.4)
+# NEXT — handoff 2026-10-22 (corte tras el lote CI.35–CI.38, UI.27.3, UI.28, CTX-GUARD.2, DOC.4)
 
 Un solo presente: orden y trampas vivas. Lo cerrado vive en `docs/done/bloque-*.md` y git (regla `AGENTS.md` § Reglas
 generales, 2026-10-19: `NEXT.md` se toca solo al cerrar o cortar un lote). Arranque:
@@ -9,7 +9,9 @@ CI.35 `e05c27e2` (`chat-streaming` compara palabras, no Markdown crudo), UI.27.3
 worktree de la sesión Desktop; worktree y rama `ui/UI.27` borrados), CI.36 `cf250e8e` (`RunLogger.write` no tumba la
 corrida), UI.28 `d65ffb68` (Settings sin puertas manuales de tareas), CTX-GUARD.2 `bc90189f` (guard mide 2,2
 chars/token y skills de cuenta), CI.37 `7a8f87a2` (Sol: intento fallido que vuelve a `pending` termina la espera),
-DOC.4 (PLAN.md 2.678 → 216 líneas; `CONTEXT.md` al día). Detalle en `docs/done/bloque-*.md`.
+DOC.4 `39c67167` (PLAN.md 2.678 → 216 líneas; `CONTEXT.md` al día), CI.38 `8f3d1199` (`chat-continuity`/`codex-live`
+eligen la sesión por `data-thread-id`: tras UI.27.3 dos chats pueden tener el mismo título). Todo en `origin/master`,
+pre-push verde. Detalle en `docs/done/bloque-*.md` y `PLAN.md`.
 
 ## Orden
 1. **Plan para GO de Carlos: tareas con cualquier CLI** (pedido 2026-10-22: "no hay un CLI de preferencia, eso es
