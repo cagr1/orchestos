@@ -10,23 +10,16 @@ Carlos: TCLI.1 `2ec35349` (registro CLI ↔ ejecutor de tareas en `src/run/execu
 ejecutor falla visible, ya no `single-shot`), TCLI.2 `f023ed2d` (tipos/front del registro; `executor-modes` con
 `taskEngine` y `session`; arreglado el intermitente del timeout de `codex-engine.test.ts`), CTX-GUARD.3 parte del
 cerebro `d5afa04c` (`CLAUDE.md` del repo 4,9k → 1,6k tokens est.; historia en `docs/done/claude-md-historia.md`). Vault `5134b27`: `criterio` = Sol 6.1 (pedido de Carlos: repartir
-cupo), arreglo de `delegate`→Codex (`writer-lock status` dice si el token coincide).
+cupo), arreglo de `delegate`→Codex (`writer-lock status` dice si el token coincide). CTX-GUARD.3 cerrado: config
+local de Carlos + guard que mide lo que carga de verdad (`PLAN.md`).
 
 ## Orden
-1. **CTX-GUARD.3 — verificar al arrancar**: Carlos apagó skills de cuenta en claude.ai (2026-10-22). Antes del cut el
-   guard aún veía 10 (`built-in-browser`, `chrome-browser`, `computer-use`, `docs`, `docx`, `pdf`, `pptx`, `xlsx`,
-   `cowork-plugin-customizer`, `create-cowork-plugin`; ~11,6k tokens est.); solo salieron `deep-research`,
-   `import-memory` y `skill-creator`. Puede que el sync local (`~/.claude/skills/synced`) solo se refresque al abrir sesión
-   nueva. Si el guard de esta sesión no avisa → cerrar el ítem con esa salida. Si siguen → decirle a Carlos cuáles quedan; Carlos no encontraba
-   `docs` en la app (sin verificar la ruta exacta; ofrecido: `delegate investigar` sobre la ruta y sobre si Claude Code
-   puede no cargar skills de cuenta por proyecto, como `CLAUDE_CODE_DISABLE_BUNDLED_SKILLS`). También desconectar
-   el conector `claude.ai Claude Docs`, que carga pese a `disabledMcpServers`.
-2. **Propuesto, espera GO de Carlos: evaluar las skills de OrchestOS** (`skills/*.yaml` + `skills/pro/`, 16; las inyecta
+1. **Propuesto, espera GO de Carlos: evaluar las skills de OrchestOS** (`skills/*.yaml` + `skills/pro/`, 16; las inyecta
    el producto en tareas, no cargan en la sesión de Claude). Primero medir sin LLM: uso por skill en `runs` y resultado de
    QA; después decidir cuáles aportan y retirar las nunca usadas. Ejecutor: `criterio` (Sol).
-3. Fiabilidad, cuando el pre-push la tumba: CI.23, CI.18, CI.19, CI.11. Un flujo que revienta dice el locator y deja
+2. Fiabilidad, cuando el pre-push la tumba: CI.23, CI.18, CI.19, CI.11. Un flujo que revienta dice el locator y deja
    `<flujo>/failure.png`.
-4. Ejecutor de tareas para otro CLI (DeepSeek/Gemini/Kimi/GLM) = entrada en `KNOWN_CLIS` + `registerTaskEngine`, solo
+3. Ejecutor de tareas para otro CLI (DeepSeek/Gemini/Kimi/GLM) = entrada en `KNOWN_CLIS` + `registerTaskEngine`, solo
    con el CLI instalado y verificable en vivo.
 - Anotado, sin ítem: el revisor elige su ventana cortando en el primer tramo que no cabe (un revert posterior podría
   dejar caber uno más largo; nada se pierde, el salto queda anotado).
@@ -34,6 +27,8 @@ cupo), arreglo de `delegate`→Codex (`writer-lock status` dice si el token coin
   peso de `main.js` tras UI.24.4 (dejarlo, alias de `rehype-raw` o lazy-load de Streamdown).
 
 ## Trampas vivas
+- Peso de arranque ~8,9k est., al borde de 9k: crecer `CLAUDE.md`/`MEMORY.md` vuelve a disparar el guard.
+  `/reload-plugins` mostró "1 error during load" (detalle en `/plugin`, sin revisar).
 - Ítems de `PLAN.md` llevan emoji de delegación (`🧠 ⚡ 🔍`) tras el "—": sin él el parser
   (`scripts/plan-status.ts:45`) no los ve, ni `bun run next` ni el gate. Si un ítem ya quedó `done` en la DB sin commit que
   lo pruebe, `plan:reconcile` aborta "Could not prove a closing commit SHA": volverlo a `open` en

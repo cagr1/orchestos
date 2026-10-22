@@ -26,6 +26,8 @@ function makeFixtures(opts: {
   enabledPlugins?: Record<string, boolean>
   claudeJson?: string
   repoSettings?: string
+  skillOverrides?: Record<string, string>
+  userSettings?: Record<string, unknown>
   statuslineCommand?: string | null
 }) {
   const home = mkdtempSync(join(tmpdir(), 'startup-guard-home-'))
@@ -45,6 +47,8 @@ function makeFixtures(opts: {
   writeFileSync(
     join(home, '.claude/settings.json'),
     JSON.stringify({
+      ...opts.userSettings,
+      skillOverrides: opts.skillOverrides,
       enabledPlugins: opts.enabledPlugins ?? { 'security-guidance@claude-plugins-official': true },
       statusLine:
         opts.statuslineCommand === null
@@ -165,6 +169,68 @@ describe('startup-guard hook', () => {
     const result = runHook(home, root)
     expect(result.status).toBe(0)
     expect(result.stdout).toContain('conector no declarado: claude.ai Vercel')
+  })
+
+  it('disableClaudeAiConnectors true silencia conectores y sin la clave los detecta', () => {
+    const { home, root } = makeFixtures({
+      repoSettings: JSON.stringify({
+        env: { CLAUDE_CODE_DISABLE_BUNDLED_SKILLS: '1' },
+        disableClaudeAiConnectors: true,
+      }),
+    })
+    expect(runHook(home, root).stdout).not.toContain('conector no declarado')
+
+    const withoutKey = makeFixtures({
+      repoSettings: JSON.stringify({ env: { CLAUDE_CODE_DISABLE_BUNDLED_SKILLS: '1' } }),
+    })
+    expect(runHook(withoutKey.home, withoutKey.root).stdout).toContain('conector no declarado')
+  })
+
+  it('omite skills de cuenta con skillOverrides off y conserva las que no tienen override', () => {
+    const { home, root } = makeFixtures({
+      skillOverrides: { 'anthropic-skills:account-skill': 'off' },
+    })
+    writeFileSync(join(root, 'CLAUDE.md'), 'x'.repeat(20_000))
+    const skillDir = join(home, '.claude/skills/account-skill')
+    mkdirSync(skillDir, { recursive: true })
+    writeFileSync(join(skillDir, 'SKILL.md'), '---\ndescription: ignored account skill\n---\n')
+    const result = runHook(home, root)
+    expect(result.stdout).toContain('skills de cuenta (0)=0')
+
+    const enabled = makeFixtures({})
+    writeFileSync(join(enabled.root, 'CLAUDE.md'), 'x'.repeat(20_000))
+    const enabledSkillDir = join(enabled.home, '.claude/skills/account-skill')
+    mkdirSync(enabledSkillDir, { recursive: true })
+    writeFileSync(
+      join(enabledSkillDir, 'SKILL.md'),
+      '---\ndescription: counted account skill\n---\n',
+    )
+    const enabledResult = runHook(enabled.home, enabled.root)
+    expect(enabledResult.stdout).toContain('account-skill')
+  })
+
+  it('omite skills de plugins sincronizados deshabilitados en enabledPlugins', () => {
+    const { home, root } = makeFixtures({})
+    writeFileSync(join(root, 'CLAUDE.md'), 'x'.repeat(20_000))
+    const skillDir = join(home, '.claude/plugins/synced/anthropic/frontend-design/skills/design')
+    mkdirSync(skillDir, { recursive: true })
+    writeFileSync(join(skillDir, 'SKILL.md'), '---\ndescription: synced plugin skill\n---\n')
+    writeFileSync(
+      join(home, '.claude/settings.json'),
+      JSON.stringify({ enabledPlugins: { 'frontend-design@synced': false } }),
+    )
+    expect(runHook(home, root).stdout).not.toContain('design')
+  })
+
+  it('lee MEMORY.md desde la ruta de ROOT derivada', () => {
+    const { home, root } = makeFixtures({})
+    writeFileSync(join(root, 'CLAUDE.md'), 'x'.repeat(19_900))
+    const memoryDir = join(home, '.claude/projects', root.replace(/[^a-zA-Z0-9]/g, '-'), 'memory')
+    mkdirSync(memoryDir, { recursive: true })
+    writeFileSync(join(memoryDir, 'MEMORY.md'), 'memory-path-marker '.repeat(300))
+    const result = runHook(home, root)
+    expect(result.stdout).toContain('arranque pesado')
+    expect(result.stdout).toContain('MEMORY.md=')
   })
 
   it('env sin CLAUDE_CODE_DISABLE_BUNDLED_SKILLS produce hallazgo', () => {

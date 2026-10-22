@@ -52,8 +52,9 @@ conservan su fecha y, donde una frase quedó superada, lo dice la línea "Supera
   modal de chat nuevo filtra por `session`. Agregar un CLI = entrada en `KNOWN_CLIS` + `registerTaskEngine`.
 - **Guard de arranque (CTX-GUARD.2, .3).** `CLAUDE.md` del repo podado a las reglas (historia en
   `docs/done/claude-md-historia.md`). Mide con 2,2 chars/token (calibrado contra `/context`) y cuenta las skills de
-  cuenta (`~/.claude/skills/synced`, `~/.claude/plugins/synced`); desde 2026-10-22 avisa ~15k tokens de arranque. No ve
-  conectores activos: `claude.ai Claude Docs` carga pese a `disabledMcpServers`.
+  cuenta (`~/.claude/skills/synced`, `~/.claude/plugins/synced`) descontando las apagadas por `skillOverrides` o
+  `enabledPlugins["<plugin>@synced"]: false`. Conectores de claude.ai: `disableClaudeAiConnectors: true` los apaga todos
+  (`disabledMcpServers` no tenía efecto; retirado 2026-10-22).
 - **Superado:** "Codex/OpenCode … el transporte de chat responde 422" (nota CC.2), "No existe UI de sesiones en
   vanilla" / "selector … pertenece a UI.6" (notas CC.2/CC.3): el chat de Claude, Codex y OpenCode funciona por sus CLI
   y la UI es la plantilla React (UI.13); la regla "nunca degradar silenciosamente a API" sigue vigente.

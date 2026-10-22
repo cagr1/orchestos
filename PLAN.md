@@ -146,8 +146,14 @@ Cerrada. Todos sus ítems están archivados en `docs/done/` (ver "Cerrados — e
   Gate en vivo: navegador real (Playwright), `docs/done/evidence/TCLI.2-live.json`.
   r2 se lanzó primero a `mecanico` (Codex): no vio `AGENT_WRITER_TOKEN` y no escribió (trampa ya anotada en NEXT.md).
   Ejecutado por: claude sonnet (criterio) · Spec: docs/specs/TCLI.2.md
-- [ ] **CTX-GUARD.3 — 🧠 Bajar el peso de arranque bajo 9k.** (GO de Carlos 2026-10-22) Carlos apaga las 13 skills de
-  cuenta en claude.ai; el cerebro poda `CLAUDE.md` del repo (historia de incidentes → `docs/`, quedan las reglas).
+- [x] **CTX-GUARD.3 — 🧠 Bajar el peso de arranque bajo 9k.** (GO de Carlos 2026-10-22; cerrado 2026-10-22) El cerebro
+  podó `CLAUDE.md` (`d5afa04c`). Carlos apagó lo de cuenta en local: `skillOverrides` (`anthropic-skills:*` → `off`),
+  `cowork-plugin-management@synced: false` y `disableClaudeAiConnectors: true` (los conectores cayeron en vivo;
+  `disabledMcpServers` no tenía efecto y se retira). El guard contaba archivos en disco y daba falso positivo: ahora
+  descuenta `skillOverrides`/plugins `@synced` apagados, respeta `disableClaudeAiConnectors` y lee `MEMORY.md` de la ruta
+  derivada de `ROOT` (medía la vieja `-Documents-`). Evidencia: guard en vivo silencioso (~8,9k est.);
+  `startup-guard.test.ts` 18/18, los 3 tests nuevos fallan contra HEAD; typecheck y biome limpios.
+  Ejecutado por: codex gpt-6-luna (mecanico) · Spec: docs/specs/CTX-GUARD.3.md
 - [x] **CI.38 — ⚡ `chat-continuity` no distingue dos chats con el mismo título tras UI.27.3.** (abierto 2026-10-22)
   Pre-push de `39c67167` 2/2: `strict mode violation: getByRole('button', { name: 'Remember this code for later: …' })
   resolved to 2 elements`. El flujo crea un chat de Claude y uno de Codex con el mismo título en el mismo proyecto;

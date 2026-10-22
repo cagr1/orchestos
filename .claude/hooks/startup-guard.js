@@ -35,7 +35,9 @@ const USER_CLAUDE_MD_PATH = resolve(HOME, '.claude/CLAUDE.md')
 const REPO_CLAUDE_MD_PATH = resolve(ROOT, 'CLAUDE.md')
 const MEMORY_MD_PATH = resolve(
   HOME,
-  '.claude/projects/-Users-carlosgallardo-Documents-projects-orchestos/memory/MEMORY.md',
+  '.claude/projects',
+  ROOT.replace(/[^a-zA-Z0-9]/g, '-'),
+  'memory/MEMORY.md',
 )
 const ACTION_WORKFLOWS = ['CI', 'Mutation Shards', 'Secret Check', 'UI gate']
 const ACTION_WORKFLOW_FILES = new Map([
@@ -73,6 +75,24 @@ function fileTokens(path) {
 
 function accountSkillDescriptions() {
   const roots = [resolve(HOME, '.claude/skills'), resolve(HOME, '.claude/plugins/synced')]
+  const userSettings = readJson(USER_SETTINGS_PATH) ?? {}
+  const repoSettings = readJson(REPO_SETTINGS_PATH) ?? {}
+  const skillOverrides = {
+    ...(userSettings.skillOverrides && typeof userSettings.skillOverrides === 'object'
+      ? userSettings.skillOverrides
+      : {}),
+    ...(repoSettings.skillOverrides && typeof repoSettings.skillOverrides === 'object'
+      ? repoSettings.skillOverrides
+      : {}),
+  }
+  const enabledPlugins = {
+    ...(userSettings.enabledPlugins && typeof userSettings.enabledPlugins === 'object'
+      ? userSettings.enabledPlugins
+      : {}),
+    ...(repoSettings.enabledPlugins && typeof repoSettings.enabledPlugins === 'object'
+      ? repoSettings.enabledPlugins
+      : {}),
+  }
   const skills = []
   const visit = (directory, depth) => {
     if (depth > 5) return
@@ -88,6 +108,16 @@ function accountSkillDescriptions() {
       if (entry.isDirectory()) {
         visit(path, depth + 1)
       } else if (entry.isFile() && entry.name === 'SKILL.md') {
+        const relative = path.slice(roots[1].length + 1)
+        const isSyncedPlugin = path.startsWith(`${roots[1]}/`)
+        const plugin = isSyncedPlugin ? relative.split(/[\\/]/)[1] : null
+        if (
+          (isSyncedPlugin && enabledPlugins[`${plugin}@synced`] === false) ||
+          (!isSyncedPlugin &&
+            skillOverrides[`anthropic-skills:${basename(dirname(path))}`] === 'off')
+        ) {
+          continue
+        }
         try {
           const content = readFileSync(path, 'utf8')
           const lines = content.split(/\r?\n/)
@@ -114,11 +144,16 @@ function accountSkillDescriptions() {
 }
 
 function checkConnectorDrift(findings) {
-  // Límite conocido: `claude.ai Claude Docs` puede cargar aunque figure en
-  // disabledMcpServers; detectar conectores activos requiere `claude mcp list` (red).
   const claudeJson = readJson(CLAUDE_JSON_PATH)
   const repoSettings = readJson(REPO_SETTINGS_PATH)
+  const userSettings = readJson(USER_SETTINGS_PATH)
   if (!claudeJson || !repoSettings) return
+  if (
+    repoSettings.disableClaudeAiConnectors === true ||
+    userSettings?.disableClaudeAiConnectors === true
+  ) {
+    return
+  }
 
   const everConnected = Array.isArray(claudeJson.claudeAiMcpEverConnected)
     ? claudeJson.claudeAiMcpEverConnected

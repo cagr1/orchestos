@@ -52,7 +52,8 @@ temporal: `bun run gate:evidence -- --label <gate-id> -- <comando>` (`AGENTS.md`
 
 ## Higiene de contexto
 
-La config de carga vive en `.claude/settings.json` versionado (`disabledMcpServers`,
-`CLAUDE_CODE_DISABLE_BUNDLED_SKILLS=1`), no en la cuenta. `.claude/hooks/startup-guard.js` avisa al arrancar si hay
+La config de carga vive en `.claude/settings.json` versionado (`disableClaudeAiConnectors`,
+`CLAUDE_CODE_DISABLE_BUNDLED_SKILLS=1`) y en `~/.claude/settings.json` (`skillOverrides` para skills de cuenta,
+`enabledPlugins` `<plugin>@synced: false` para plugins sincronizados), no en la cuenta. `.claude/hooks/startup-guard.js` avisa al arrancar si hay
 conectores no declarados, plugins fuera de la allowlist o peso sobre 9k tokens; si avisa, el cerebro lo dice antes de
 trabajar, una vez. Detalle: `docs/specs/CTX-GUARD.md`.

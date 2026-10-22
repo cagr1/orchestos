@@ -3,6 +3,9 @@
 Escrito por el cerebro (Claude Opus 5) el 2026-09-11. El ejecutor NO toma decisiones de
 diseño: si algo no está resuelto aquí, para y reporta — no improvisa.
 
+> Histórico. Desde CTX-GUARD.3 (2026-10-22) `disabledMcpServers` se retiró (no tenía efecto): lo reemplaza
+> `disableClaudeAiConnectors: true`; skills de cuenta se apagan con `skillOverrides` en `~/.claude/settings.json`.
+
 ## Problema medido (no estimado)
 
 Tab nuevo y limpio en OrchestOS, antes del primer tool call: **57,035 tokens**.
