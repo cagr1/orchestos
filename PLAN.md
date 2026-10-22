@@ -761,9 +761,19 @@ Cerrada. Todos sus ítems están archivados en `docs/done/` (ver "Cerrados — e
 - [ ] **CTX-GUARD.2 — ⚡ El guard de arranque mide lo que de verdad carga.** (abierto 2026-10-22, GO de Carlos) Estima con
   chars/4 y lo medido es 2,2 chars/token: hoy calla con 11,9k tokens de memoria (límite 9k); no mide las skills de cuenta
   (`~/.claude/skills/synced`, `~/.claude/plugins/synced`). Spec: docs/specs/CTX-GUARD.2.md
-- [ ] **UI.28 — ⚡ Settings → Tasks no invita a crear tareas a mano.** (abierto 2026-10-22, Carlos: "el Cerebro de
-  OrchestOS es quien toma la decisión", 4.ª vez) Empty state con "Create First Task" y "tasks.yaml"
-  (`OrchestSettingsView.tsx:2887`). Spec: docs/specs/UI.28.md
+- [x] **UI.28 — ⚡ Settings → Tasks no invita a crear tareas a mano.** (abierto y cerrado 2026-10-22, Carlos: "el
+  Cerebro de OrchestOS es quien toma la decisión", 4.ª vez) Empty state con "Create First Task" y "tasks.yaml"
+  (`OrchestSettingsView.tsx:2887`) → "Tasks appear here when the orchestrator creates them from Chat.", sin botón.
+  Hermano (r2): pestaña Plan sin "Add task" (abría el chat, pero invitaba a crear) y fuera el modal de alta "Append to
+  tasks.yaml" (código muerto: nada lo abría); contador "N tasks declared in tasks.yaml" → "N tasks". Gates: `auto-flow`
+  y `project-tabs` afirman que no hay botón; `plan-doc` afirma el empty state nuevo en un proyecto sin tareas (r4).
+  r2 quitó el import de `Button` aún en uso → Plan en pantalla negra; no lo vio `bunx tsc --noEmit` (la raíz excluye
+  `src/dashboard/app`): el comando correcto en specs es `bun run typecheck`. Corregido en r3; contraprueba de
+  `project-tabs` en HEAD 39/39. Evidencia: `auto-flow` 33/33, `project-tabs` 39/39, `plan-doc` 16/16; typecheck, lint,
+  `ui:fidelity:jsx` y `bun test src/dashboard` 395/0.
+  Sin tocar, para decidir: el selector de sprints de Plan tiene "Sprint 29/30/31" fijos en el JSX (`PlanBoardView.tsx`).
+  Gate en vivo: navegador real (Playwright), `docs/done/evidence/UI.28-live.json` (`auto-flow`, `project-tabs`, `plan-doc`).
+  Ejecutado por: codex gpt-6-luna (mecanico) · Spec: docs/specs/UI.28.md
 - [ ] **DOC.4 — ⚡ Archivar los cerrados de PLAN.md y poner al día CONTEXT.md.** (abierto 2026-10-22, GO de Carlos)
   128 `[x]` en línea contra 4 abiertos; `CONTEXT.md` sin las decisiones de CI.32.c/CI.34/CI.35.
 - [x] **CI.35 — 🔍 `chat-streaming` intermitente en `one assistant bubble matches persisted response`.** (abierto y

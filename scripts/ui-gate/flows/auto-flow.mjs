@@ -115,7 +115,7 @@ async function startChat(page, agentName, step, visible) {
   return true
 }
 
-async function inspectManualDoor({ page, step, shot, visible, surface, projectRoot }) {
+async function inspectManualDoor({ page, step, shot, surface, projectRoot }) {
   if (surface === 'Chat') {
     await page.getByRole('button', { name: 'Chat', exact: true }).click()
   } else if (surface === 'Dev') {
@@ -182,23 +182,27 @@ async function inspectManualDoor({ page, step, shot, visible, surface, projectRo
       fieldCount === 0 && visibleForbidden.length === 0,
       `task form fields=${fieldCount}; forbidden buttons=${JSON.stringify(visibleForbidden)}`,
     )
-    const launchButton =
-      tabName === 'Tasks'
-        ? page.getByRole('button', { name: 'Create First Task', exact: true })
-        : page.getByRole('button', { name: 'Add task', exact: true })
-    if (await visible(launchButton, 2_000)) {
-      await launchButton.click()
-      const composer = page.locator('textarea').last()
-      const composerVisible = await visible(composer)
-      const dialogCount = await page.getByRole('dialog').count()
-      await step(
-        `${tabName} action opens only Chat composer`,
-        composerVisible && dialogCount === 0,
-        `composer visible=${composerVisible}; dialogs=${dialogCount}`,
+    if (tabName === 'Tasks') {
+      const emptyTitle = page.getByText('No Tasks Defined', { exact: true })
+      const guidance = page.getByText(
+        'Tasks appear here when the orchestrator creates them from Chat.',
+        { exact: true },
       )
-      await page.getByRole('button', { name: 'Settings', exact: true }).click()
-      await projectButton.waitFor({ state: 'visible' }).catch(() => undefined)
-      await projectButton.click().catch(() => undefined)
+      const obsoleteAction = page.getByRole('button', { name: 'Create First Task', exact: true })
+      await step(
+        'Settings Tasks empty state directs task creation through Chat',
+        (await obsoleteAction.count()) === 0 &&
+          ((await emptyTitle.count()) === 0 || (await guidance.count()) === 1),
+        `emptyTitle=${await emptyTitle.count()}; guidance count=${await guidance.count()}; obsolete action count=${await obsoleteAction.count()}`,
+      )
+    }
+    if (tabName === 'Plan') {
+      const addTaskButton = page.getByRole('button', { name: 'Add task', exact: true })
+      await step(
+        'Settings Plan has no manual task creation button',
+        (await addTaskButton.count()) === 0,
+        `Add task button count=${await addTaskButton.count()}`,
+      )
     }
   }
   await shot('no-manual-door')

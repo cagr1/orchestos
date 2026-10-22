@@ -346,7 +346,6 @@ interface OrchestSettingsViewProps {
   onAddInstinct?: (trigger: string, action: string) => void
   onRunTask?: (taskId: string) => void
   onExplainTask?: (taskId: string) => void | Promise<Record<string, unknown> | void>
-  onAddTask?: () => void
   onRunNextTask?: () => void
   canRunNextTask?: boolean
   taskRunBusy?: boolean
@@ -391,7 +390,6 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
   onAddInstinct,
   onRunTask,
   onExplainTask,
-  onAddTask,
   onRunNextTask,
   canRunNextTask = false,
   taskRunBusy = false,
@@ -2882,10 +2880,8 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
                         title={taskError ? 'Tasks unavailable' : 'No Tasks Defined'}
                         description={
                           taskError ||
-                          'Create a task contract in tasks.yaml or use Chat mode to draft a spec.'
+                          'Tasks appear here when the orchestrator creates them from Chat.'
                         }
-                        actionLabel="Create First Task"
-                        onAction={onOpenChat || (() => {})}
                       />
                     ) : (
                       <div>
@@ -3001,7 +2997,6 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
                     projectId={selectedProject?.id ?? activeProjectId}
                     onRunTask={onRunTask || (() => {})}
                     onExplainTask={onExplainTask || (() => {})}
-                    onAddTask={onAddTask || (() => {})}
                   />
                 )}
               </div>

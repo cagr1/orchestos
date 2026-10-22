@@ -1,0 +1,481 @@
+[
+  {
+    "flujo": "auto-flow",
+    "pass": true,
+    "steps": [
+      {
+        "nombre": "temporary project visible",
+        "ok": true,
+        "detalle": "project appears in Dev sidebar"
+      },
+      {
+        "nombre": "Chat: no manual task creation door",
+        "ok": true,
+        "detalle": "task form fields=0; forbidden buttons=[]"
+      },
+      {
+        "nombre": "Dev: no manual task creation door",
+        "ok": true,
+        "detalle": "task form fields=0; forbidden buttons=[]"
+      },
+      {
+        "nombre": "Settings Tasks: no manual task creation door",
+        "ok": true,
+        "detalle": "task form fields=0; forbidden buttons=[]"
+      },
+      {
+        "nombre": "Settings Tasks empty state directs task creation through Chat",
+        "ok": true,
+        "detalle": "emptyTitle=0; guidance count=0; obsolete action count=0"
+      },
+      {
+        "nombre": "Settings Plan: no manual task creation door",
+        "ok": true,
+        "detalle": "task form fields=0; forbidden buttons=[]"
+      },
+      {
+        "nombre": "Settings Plan has no manual task creation button",
+        "ok": true,
+        "detalle": "Add task button count=0"
+      },
+      {
+        "nombre": "select Codex for new chat",
+        "ok": true,
+        "detalle": "agent option visible"
+      },
+      {
+        "nombre": "model and effort controls visible",
+        "ok": true,
+        "detalle": "composer controls visible"
+      },
+      {
+        "nombre": "select gpt-6-luna",
+        "ok": true,
+        "detalle": "model option visible"
+      },
+      {
+        "nombre": "select medium effort",
+        "ok": true,
+        "detalle": "effort option visible"
+      },
+      {
+        "nombre": "model popover closes",
+        "ok": true,
+        "detalle": "popover closed after Escape/click outside"
+      },
+      {
+        "nombre": "chat response: ¿Qué es un DAG? Responde en una frase, sin cr",
+        "ok": true,
+        "detalle": "assistant reply visible"
+      },
+      {
+        "nombre": "non-task message does not create task",
+        "ok": true,
+        "detalle": "new task ids=[]; task card=false; approve=false"
+      },
+      {
+        "nombre": "non-task message leaves project clean",
+        "ok": true,
+        "detalle": "clean"
+      },
+      {
+        "nombre": "chat response: Crea el archivo claude-nota.md con una sola l",
+        "ok": true,
+        "detalle": "assistant reply visible"
+      },
+      {
+        "nombre": "claude-nota.md: starts without approval",
+        "ok": true,
+        "detalle": "{\"taskId\":\"chat-3ae2829e-e845-4054-91cf-d2520dac68c5\",\"buttonVisible\":false,\"status\":\"running\",\"runId\":null,\"cardVisible\":true}"
+      },
+      {
+        "nombre": "claude-nota.md: task finished",
+        "ok": true,
+        "detalle": "{\"id\":\"chat-3ae2829e-e845-4054-91cf-d2520dac68c5\",\"description\":\"Crea claude-nota.md en la raíz del proyecto con una sola línea exacta: nota de claude\",\"status\":\"done\",\"retryReason\":null,\"skill\":\"doc-gen\",\"assignedAgent\":\"claude\",\"assignedModel\":\"haiku\",\"retryCount\":0,\"qaVerdict\":\"pass\",\"runId\":\"0bb79d67-a3cc-4bd0-9cde-16c6b1a46ea9\",\"pendingApprovals\":0,\"sessionId\":null,\"lastRunAt\":\"2026-10-22T17:35:51.764Z\",\"engine\":\"external\",\"output\":[\"claude-nota.md\"],\"dependsOn\":[],\"acceptanceCriteria\":[],\"executorModel\":\"haiku\"}"
+      },
+      {
+        "nombre": "claude-nota.md: exact content",
+        "ok": true,
+        "detalle": "\"nota de claude\\n\""
+      },
+      {
+        "nombre": "claude-nota.md: inline report",
+        "ok": true,
+        "detalle": "dom=true; persisted=true"
+      },
+      {
+        "nombre": "claude-nota.md: chat and run persistence",
+        "ok": true,
+        "detalle": "{\"status\":\"done\",\"provider\":\"claude\",\"model\":\"haiku\",\"resultLength\":17,\"userMessage\":true,\"assistantMessage\":true}"
+      },
+      {
+        "nombre": "chat response: Crea el archivo codex-nota.md con una sola lí",
+        "ok": true,
+        "detalle": "assistant reply visible"
+      },
+      {
+        "nombre": "codex-nota.md: held for approval",
+        "ok": true,
+        "detalle": "{\"buttonVisible\":true,\"status\":\"pending\",\"runId\":null,\"content\":\"borrador viejo\\n\"}"
+      },
+      {
+        "nombre": "codex-nota.md: no uuid text",
+        "ok": true,
+        "detalle": "card innerText has no task id (180 chars)"
+      },
+      {
+        "nombre": "codex-nota.md: remains pending before approval",
+        "ok": true,
+        "detalle": "{\"status\":\"pending\",\"runId\":null,\"content\":\"borrador viejo\\n\"}"
+      },
+      {
+        "nombre": "codex-nota.md: starts after approval",
+        "ok": true,
+        "detalle": "{\"taskId\":\"chat-22e3614d-71c7-4fb7-9d0b-e360f32e3473\",\"status\":\"running\",\"runId\":\"de3995da-66de-447f-8f32-990f5811ea64\",\"buttonHidden\":true}"
+      },
+      {
+        "nombre": "codex-nota.md: task finished",
+        "ok": true,
+        "detalle": "{\"id\":\"chat-22e3614d-71c7-4fb7-9d0b-e360f32e3473\",\"description\":\"Crea codex-nota.md en la raíz del proyecto con una sola línea exacta: nota de codex\",\"status\":\"done\",\"retryReason\":null,\"skill\":null,\"assignedAgent\":\"codex\",\"assignedModel\":\"gpt-6-luna\",\"retryCount\":0,\"qaVerdict\":\"pass\",\"runId\":\"de3995da-66de-447f-8f32-990f5811ea64\",\"pendingApprovals\":0,\"sessionId\":null,\"lastRunAt\":\"2026-10-22T17:36:19.373Z\",\"engine\":\"codex\",\"output\":[\"codex-nota.md\"],\"dependsOn\":[],\"acceptanceCriteria\":[],\"executorModel\":null}"
+      },
+      {
+        "nombre": "codex-nota.md: exact content",
+        "ok": true,
+        "detalle": "\"nota de codex\\n\""
+      },
+      {
+        "nombre": "codex-nota.md: inline report",
+        "ok": true,
+        "detalle": "dom=true; persisted=true"
+      },
+      {
+        "nombre": "codex-nota.md: chat and run persistence",
+        "ok": true,
+        "detalle": "{\"status\":\"done\",\"provider\":\"codex\",\"model\":\"gpt-6-luna\",\"resultLength\":17,\"userMessage\":true,\"assistantMessage\":true}"
+      },
+      {
+        "nombre": "DAG routes Claude and Codex to distinct recorded engines",
+        "ok": true,
+        "detalle": "{\"claude\":{\"engine\":\"external\",\"provider\":\"claude\",\"model\":\"haiku\",\"status\":\"done\",\"result\":\"1 file(s) written\",\"retry_reason\":null},\"codex\":{\"engine\":\"codex\",\"provider\":\"codex\",\"model\":\"gpt-6-luna\"}}"
+      },
+      {
+        "nombre": "reload recovers task reports",
+        "ok": true,
+        "detalle": "{\"found\":[\"chat-3ae2829e-e845-4054-91cf-d2520dac68c5\",\"chat-22e3614d-71c7-4fb7-9d0b-e360f32e3473\"],\"missing\":[]}"
+      },
+      {
+        "nombre": "no implementation text visible",
+        "ok": true,
+        "detalle": "{\"implementationLeaks\":[],\"absoluteProjectPath\":false,\"sourcePathError\":false}"
+      }
+    ],
+    "notes": [],
+    "errores": [],
+    "capturas": [
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-66471/auto-flow/no-manual-door.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-66471/auto-flow/task-inline-report.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-66471/auto-flow/codex-task-inline-report.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-66471/auto-flow/after-reload.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-66471/auto-flow/final-chat.png"
+    ]
+  },
+  {
+    "flujo": "project-tabs",
+    "pass": true,
+    "steps": [
+      {
+        "nombre": "add project opens folder picker without modal",
+        "ok": true,
+        "detalle": "POST /api/projects/choose calls=1; dialog visible=false"
+      },
+      {
+        "nombre": "temporary project visible",
+        "ok": true,
+        "detalle": "project visible in sidebar"
+      },
+      {
+        "nombre": "project settings visible",
+        "ok": true,
+        "detalle": "settings heading"
+      },
+      {
+        "nombre": "specs empty state visible",
+        "ok": true,
+        "detalle": "empty project has no specs"
+      },
+      {
+        "nombre": "specs empty no page error",
+        "ok": true,
+        "detalle": "none"
+      },
+      {
+        "nombre": "real memory visible",
+        "ok": true,
+        "detalle": "seeded DB memory"
+      },
+      {
+        "nombre": "mock memory absent",
+        "ok": true,
+        "detalle": "no mock data"
+      },
+      {
+        "nombre": "memory conflict resolved",
+        "ok": true,
+        "detalle": "open conflicts: 0"
+      },
+      {
+        "nombre": "authoritative memory persisted and visible",
+        "ok": true,
+        "detalle": "content of entry A matches the resolved API value"
+      },
+      {
+        "nombre": "memory no palette",
+        "ok": true,
+        "detalle": "ninguna (con memoria sembrada)"
+      },
+      {
+        "nombre": "memory content aligned with header",
+        "ok": true,
+        "detalle": "left offset=0px"
+      },
+      {
+        "nombre": "real spec visible",
+        "ok": true,
+        "detalle": "seeded markdown spec"
+      },
+      {
+        "nombre": "mock specs absent",
+        "ok": true,
+        "detalle": "no mock data"
+      },
+      {
+        "nombre": "spec approved",
+        "ok": true,
+        "detalle": "API status approved"
+      },
+      {
+        "nombre": "spec lint updates API and row",
+        "ok": true,
+        "detalle": "Lint: pass (0); response findings=0; before=pass/0"
+      },
+      {
+        "nombre": "specs no palette",
+        "ok": true,
+        "detalle": "ninguna (con spec sembrado)"
+      },
+      {
+        "nombre": "specs content aligned with header",
+        "ok": true,
+        "detalle": "left offset=0px"
+      },
+      {
+        "nombre": "real skills listed",
+        "ok": true,
+        "detalle": "API skills=17"
+      },
+      {
+        "nombre": "compile response visible",
+        "ok": true,
+        "detalle": "success response rendered in the skill row"
+      },
+      {
+        "nombre": "mock skills absent",
+        "ok": true,
+        "detalle": "no mock data"
+      },
+      {
+        "nombre": "skills no palette",
+        "ok": true,
+        "detalle": "ninguna (con skills sembradas)"
+      },
+      {
+        "nombre": "skills content aligned with header",
+        "ok": true,
+        "detalle": "left offset=0px"
+      },
+      {
+        "nombre": "graph no palette",
+        "ok": true,
+        "detalle": "ninguna en CONTEXT"
+      },
+      {
+        "nombre": "graph content aligned with header",
+        "ok": true,
+        "detalle": "left offset=0px"
+      },
+      {
+        "nombre": "tab roots transparent (memory/specs/skills/graph)",
+        "ok": true,
+        "detalle": "memory=rgba(0, 0, 0, 0); specs=rgba(0, 0, 0, 0); skills=rgba(0, 0, 0, 0); graph=rgba(0, 0, 0, 0)"
+      },
+      {
+        "nombre": "mock instincts absent",
+        "ok": true,
+        "detalle": "no mock data"
+      },
+      {
+        "nombre": "instinct review visible",
+        "ok": true,
+        "detalle": "unverified instinct"
+      },
+      {
+        "nombre": "instinct approved",
+        "ok": true,
+        "detalle": "API verified"
+      },
+      {
+        "nombre": "manual instinct added",
+        "ok": true,
+        "detalle": "new API row"
+      },
+      {
+        "nombre": "instincts no palette",
+        "ok": true,
+        "detalle": "ninguna (con instincts sembrados)"
+      },
+      {
+        "nombre": "mock plan absent",
+        "ok": true,
+        "detalle": "no mock data"
+      },
+      {
+        "nombre": "plan board fills the view",
+        "ok": true,
+        "detalle": "danger zone top=972 scroller bottom=972"
+      },
+      {
+        "nombre": "plan no palette",
+        "ok": true,
+        "detalle": "ninguna en Kanban ni Table"
+      },
+      {
+        "nombre": "tab roots transparent",
+        "ok": true,
+        "detalle": "plan=rgba(0, 0, 0, 0); instincts=rgba(0, 0, 0, 0)"
+      },
+      {
+        "nombre": "explain fields visible as readable UI",
+        "ok": true,
+        "detalle": "GET /explain fields rendered inside the template block"
+      },
+      {
+        "nombre": "explain has no [object Object]",
+        "ok": true,
+        "detalle": "opened Explain modal contains no stringified object values"
+      },
+      {
+        "nombre": "task run finishes and badge changes without reload",
+        "ok": true,
+        "detalle": "status=done; retryCount/runId changed or terminal status observed"
+      },
+      {
+        "nombre": "Plan has no manual task creation button",
+        "ok": true,
+        "detalle": "Add task button absent"
+      },
+      {
+        "nombre": "0 console errors",
+        "ok": true,
+        "detalle": "none"
+      }
+    ],
+    "notes": [],
+    "errores": [],
+    "capturas": [
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-66471/project-tabs/memory.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-66471/project-tabs/specs.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-66471/project-tabs/skills.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-66471/project-tabs/graph.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-66471/project-tabs/project-tabs-real-data.png"
+    ]
+  },
+  {
+    "flujo": "plan-doc",
+    "pass": true,
+    "steps": [
+      {
+        "nombre": "orchestos-ui-10-a-UI.10.A checklist-RyzhPo visible",
+        "ok": true,
+        "detalle": "project visible in sidebar"
+      },
+      {
+        "nombre": "orchestos-ui-10-a-UI.10.A checklist-RyzhPo settings visible",
+        "ok": true,
+        "detalle": "project settings heading"
+      },
+      {
+        "nombre": "Settings Tasks empty state says the orchestrator creates tasks",
+        "ok": true,
+        "detalle": "empty state visible; Create First Task count: 0"
+      },
+      {
+        "nombre": "PLAN.md section visible",
+        "ok": true,
+        "detalle": "parsed section"
+      },
+      {
+        "nombre": "three checklist items visible",
+        "ok": true,
+        "detalle": "three read-only checkboxes"
+      },
+      {
+        "nombre": "completed item checked",
+        "ok": true,
+        "detalle": "Migrar DB is checked"
+      },
+      {
+        "nombre": "checkboxes disabled",
+        "ok": true,
+        "detalle": "PLAN.md is read-only"
+      },
+      {
+        "nombre": "nested item visible",
+        "ok": true,
+        "detalle": "indented checklist item"
+      },
+      {
+        "nombre": "Kanban still works",
+        "ok": true,
+        "detalle": "board restored"
+      },
+      {
+        "nombre": "orchestos-ui-10-a-UI.10.A empty-XrQYdn visible",
+        "ok": true,
+        "detalle": "project visible in sidebar"
+      },
+      {
+        "nombre": "orchestos-ui-10-a-UI.10.A empty-XrQYdn settings visible",
+        "ok": true,
+        "detalle": "project settings heading"
+      },
+      {
+        "nombre": "missing PLAN.md state",
+        "ok": true,
+        "detalle": "empty state"
+      },
+      {
+        "nombre": "orchestos visible",
+        "ok": true,
+        "detalle": "project visible in sidebar"
+      },
+      {
+        "nombre": "orchestos settings visible",
+        "ok": true,
+        "detalle": "project settings heading"
+      },
+      {
+        "nombre": "repository PLAN.md item visible",
+        "ok": true,
+        "detalle": "real repository plan item"
+      },
+      {
+        "nombre": "no browser console errors",
+        "ok": true,
+        "detalle": "ok"
+      }
+    ],
+    "notes": [],
+    "errores": [],
+    "capturas": []
+  }
+]

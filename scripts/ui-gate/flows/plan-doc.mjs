@@ -60,6 +60,7 @@ export default async function planDoc({ page, api, step, visible, cleanup, conso
 
   await page.reload({ waitUntil: 'domcontentloaded' })
 
+  let checkedTasksEmptyState = false
   const openProjectPlan = async (root) => {
     const backToApp = page.getByRole('button', { name: 'Back to app', exact: true })
     if (await backToApp.isVisible().catch(() => false)) await backToApp.click()
@@ -77,6 +78,23 @@ export default async function planDoc({ page, api, step, visible, cleanup, conso
       await visible(page.getByRole('heading', { name: basename(root), exact: true })),
       'project settings heading',
     )
+    if (!checkedTasksEmptyState) {
+      await page.getByRole('button', { name: 'Tasks', exact: true }).click()
+      await step(
+        'Settings Tasks empty state says the orchestrator creates tasks',
+        (await visible(
+          page.getByText('Tasks appear here when the orchestrator creates them from Chat.', {
+            exact: true,
+          }),
+        )) &&
+          (await page.getByRole('button', { name: 'Create First Task', exact: true }).count()) ===
+            0,
+        `empty state visible; Create First Task count: ${await page
+          .getByRole('button', { name: 'Create First Task', exact: true })
+          .count()}`,
+      )
+      checkedTasksEmptyState = true
+    }
     await page.getByRole('button', { name: 'Plan', exact: true }).click()
     await page.getByRole('button', { name: 'PLAN.md', exact: true }).click()
   }
@@ -112,7 +130,7 @@ export default async function planDoc({ page, api, step, visible, cleanup, conso
   await page.getByRole('button', { name: 'Kanban', exact: true }).click()
   await step(
     'Kanban still works',
-    await visible(page.getByText('tasks declared in tasks.yaml', { exact: false })),
+    await visible(page.getByText(/\d+ tasks$/, { exact: false })),
     'board restored',
   )
 

@@ -594,17 +594,10 @@ export default async function projectTabs({
       )),
     `status=${finishedStatus}; retryCount/runId changed or terminal status observed`,
   )
-  const taskCountBeforeChat = (await tasksFor(api, project.id)).length
-  await page.getByRole('button', { name: 'Add task', exact: true }).click()
   await step(
-    'Add task opens Chat',
-    (await visible(page.locator('textarea[placeholder^="Message "]'))) &&
-      !(await page
-        .getByRole('button', { name: 'Plan', exact: true })
-        .isVisible()
-        .catch(() => false)) &&
-      (await tasksFor(api, project.id)).length === taskCountBeforeChat,
-    'Chat composer visible, Plan view inactive, task count unchanged',
+    'Plan has no manual task creation button',
+    (await page.getByRole('button', { name: 'Add task', exact: true }).count()) === 0,
+    'Add task button absent',
   )
   await step('0 console errors', consoleErrors().length === 0, consoleErrors().join('; ') || 'none')
   await shot('project-tabs-real-data')

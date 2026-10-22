@@ -1231,9 +1231,6 @@ export default function App() {
     if (!currentProject) return {}
     return explainTask(currentProject.id, id)
   }
-  const handleAddTask = () => {
-    setMode('chat')
-  }
 
   // Command Palette Handlers (Requirement 9)
   const handleCommandPaletteSelectTab = (tab: NavigationTab) => {
@@ -1407,7 +1404,6 @@ export default function App() {
                 onAddInstinct={handleAddInstinct}
                 onRunTask={(id) => void handleRunTask(id)}
                 onExplainTask={handleExplainTask}
-                onAddTask={handleAddTask}
                 projectTabsLoading={projectTabsLoading}
                 projectTabsError={projectTabsError}
                 onPurgeProjectData={handlePurgeProjectData}

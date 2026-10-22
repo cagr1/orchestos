@@ -1,19 +1,12 @@
 import {
-  AlertOctagon,
-  ArrowRight,
   Check,
-  CheckCircle2,
-  Clock,
-  DollarSign,
   FileCode,
   FileText,
   Filter,
-  GitPullRequest,
   HelpCircle,
   Kanban,
   List,
   Play,
-  Plus,
   Repeat,
   Search,
   Shield,
@@ -31,7 +24,6 @@ interface PlanBoardViewProps {
   projectId: string
   onRunTask: (taskId: string) => void
   onExplainTask: (taskId: string) => void | Promise<Record<string, unknown> | void>
-  onAddTask: () => void
 }
 
 function formatExplainValue(value: unknown, key?: string): string {
@@ -54,7 +46,6 @@ export const PlanBoardView: React.FC<PlanBoardViewProps> = ({
   projectId,
   onRunTask,
   onExplainTask,
-  onAddTask,
 }) => {
   const [viewMode, setViewMode] = useState<'kanban' | 'table' | 'plan-doc'>('kanban')
   const [planDoc, setPlanDoc] = useState<PlanDocResponse | null>(null)
@@ -62,17 +53,10 @@ export const PlanBoardView: React.FC<PlanBoardViewProps> = ({
   const [planDocError, setPlanDocError] = useState<string | null>(null)
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedSprint, setSelectedSprint] = useState<string>('all')
-  const [showAddModal, setShowAddModal] = useState(false)
   const [explainModalTask, setExplainModalTask] = useState<TaskItem | null>(null)
   const [explainResult, setExplainResult] = useState<Record<string, unknown> | null>(null)
   const [explainError, setExplainError] = useState<string | null>(null)
   const [explaining, setExplaining] = useState(false)
-
-  // New task form state
-  const [newId, setNewId] = useState('')
-  const [newDesc, setNewDesc] = useState('')
-  const [newOutput, setNewOutput] = useState('')
-  const [newCriteria, setNewCriteria] = useState('')
 
   useEffect(() => {
     if (viewMode !== 'plan-doc') return
@@ -119,27 +103,6 @@ export const PlanBoardView: React.FC<PlanBoardViewProps> = ({
     failed_permanent: 'bg-app-error',
   }
 
-  const handleCreateTaskSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!newId || !newDesc) return
-    const outputFiles = newOutput
-      .split('\n')
-      .map((s) => s.trim())
-      .filter(Boolean)
-    const criteriaList = newCriteria
-      .split('\n')
-      .map((s) => s.trim())
-      .filter(Boolean)
-
-    onAddTask()
-
-    setNewId('')
-    setNewDesc('')
-    setNewOutput('')
-    setNewCriteria('')
-    setShowAddModal(false)
-  }
-
   const modeButton = (mode: 'kanban' | 'table' | 'plan-doc') =>
     `inline-flex items-center gap-1.5 rounded-control px-2.5 py-1 text-xs font-medium transition-colors ${
       viewMode === mode ? 'bg-app-elevated text-app' : 'text-app-muted hover:text-app'
@@ -149,7 +112,7 @@ export const PlanBoardView: React.FC<PlanBoardViewProps> = ({
 
   return (
     <div data-plan-view className="flex min-h-full flex-1 flex-col overflow-hidden select-none">
-      {/* Top Bar with View Mode Toggle, Filters, and Add Task */}
+      {/* Top Bar with View Mode Toggle and Filters */}
       <div className="flex flex-wrap items-center justify-between gap-3 px-6 py-3">
         <div className="flex items-center gap-3">
           <div className="inline-flex items-center gap-0.5 rounded-control bg-app-bg p-0.5">
@@ -205,14 +168,7 @@ export const PlanBoardView: React.FC<PlanBoardViewProps> = ({
         </div>
 
         <div className="flex items-center gap-3">
-          <div className="hidden text-xs text-app-muted sm:block">
-            {filteredTasks.length} tasks declared in tasks.yaml
-          </div>
-          <SettingsPrimaryAction>
-            <Button size="compact" leadingIcon={Plus} onClick={onAddTask}>
-              Add task
-            </Button>
-          </SettingsPrimaryAction>
+          <div className="hidden text-xs text-app-muted sm:block">{filteredTasks.length} tasks</div>
         </div>
       </div>
 
@@ -572,101 +528,6 @@ export const PlanBoardView: React.FC<PlanBoardViewProps> = ({
               </SettingsPrimaryAction>
             </div>
           </div>
-        </div>
-      )}
-
-      {/* Add Task Modal */}
-      {showAddModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
-          <form
-            onSubmit={handleCreateTaskSubmit}
-            className="w-full max-w-lg bg-app-surface border border-[color:color-mix(in_srgb,var(--app-border)_50%,transparent)] rounded-card p-5 space-y-4"
-          >
-            <div className="flex items-center justify-between border-b border-[color:color-mix(in_srgb,var(--app-border)_50%,transparent)] pb-3">
-              <h3 className="font-bold text-sm text-app flex items-center gap-2">
-                <Plus className="w-4 h-4 text-app-muted" />
-                Declare New Contract Task (tasks.yaml)
-              </h3>
-              <button
-                type="button"
-                onClick={() => setShowAddModal(false)}
-                className="text-app-muted hover:text-app"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-
-            <div className="space-y-3 text-xs">
-              <div>
-                <label className="block text-app font-semibold mb-1">Task Identifier</label>
-                <input
-                  type="text"
-                  required
-                  placeholder="e.g. t7_telemetry_exporter"
-                  value={newId}
-                  onChange={(e) => setNewId(e.target.value)}
-                  className="w-full bg-app-elevated rounded-control p-2 text-app font-mono text-xs focus:outline-none"
-                />
-              </div>
-
-              <div>
-                <label className="block text-app font-semibold mb-1">
-                  Description / Instruction
-                </label>
-                <textarea
-                  required
-                  rows={2}
-                  placeholder="What should the agent synthesize or refactor?"
-                  value={newDesc}
-                  onChange={(e) => setNewDesc(e.target.value)}
-                  className="w-full bg-app-elevated rounded-control p-2 text-app text-xs focus:outline-none"
-                />
-              </div>
-
-              <div>
-                <label className="block text-app font-semibold mb-1 flex items-center justify-between">
-                  <span>Declared output[] Whitelist (one file per line)</span>
-                  <span className="text-[10px] text-app-success">Strict contract</span>
-                </label>
-                <textarea
-                  rows={2}
-                  placeholder="src/telemetry/exporter.ts&#10;tests/telemetry.test.ts"
-                  value={newOutput}
-                  onChange={(e) => setNewOutput(e.target.value)}
-                  className="w-full bg-app-elevated rounded-control p-2 text-app font-mono text-xs focus:outline-none"
-                />
-              </div>
-
-              <div>
-                <label className="block text-app font-semibold mb-1">
-                  Acceptance Criteria (for QA LLM verification)
-                </label>
-                <textarea
-                  rows={2}
-                  placeholder="Exit code 0 on tests&#10;Zero unauthorized files modified"
-                  value={newCriteria}
-                  onChange={(e) => setNewCriteria(e.target.value)}
-                  className="w-full bg-app-elevated rounded-control p-2 text-app text-xs focus:outline-none"
-                />
-              </div>
-            </div>
-
-            <div className="flex justify-end gap-2 pt-2 border-t border-[color:color-mix(in_srgb,var(--app-border)_50%,transparent)]">
-              <Button
-                variant="ghost"
-                size="compact"
-                type="button"
-                onClick={() => setShowAddModal(false)}
-              >
-                Cancel
-              </Button>
-              <SettingsPrimaryAction>
-                <Button type="submit" size="compact">
-                  Append to tasks.yaml
-                </Button>
-              </SettingsPrimaryAction>
-            </div>
-          </form>
         </div>
       )}
     </div>
