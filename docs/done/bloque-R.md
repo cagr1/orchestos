@@ -652,3 +652,220 @@ Evidencia movida literalmente desde PLAN.md en S.2; PLAN.md conserva el índice.
   `runs-graph` 16/16, 0 "Uncommitted changes" en `dashboard.log` — pero las 3 tareas pasaron QA a la primera: el
   camino QA fail → reintento no se ejerció en vivo, lo cubre el test. Ajuste del cerebro: el mock de
   `claude-chat.test.ts:110` contaba el nuevo `git rev-parse` como sonda de Claude.
+
+## Archivado 2026-10-22 desde PLAN.md (DOC.4)
+
+<a id="bloque-r-r-8"></a>
+- [x] **R.8 — 🔍 Validación independiente del recorrido útil y corrección de evidencia de cierre.** (cerrado 2026-10-15)
+  Depende de R.1–R.7 y H.9.4. Revisar el recorrido completo: proyecto conectado → conversación →
+  tarea/confirmación → ejecución → checks/QA → resultado → recarga y evidencia recuperada;
+  incluir continuidad del historial hacia CLI, no solo su presencia en la pantalla. Repetir sobre
+  un proyecto externo de prueba, declarar transporte/configuración y registrar resultados por
+  intento. La utilidad debe contrastarse además con una tarea real de Carlos: resultado utilizado,
+  intervención necesaria y bloqueos, no solo número de tests.
+  **Corrección documental necesaria:** I.4 conserva abajo su cierre histórico del 2026-09-05,
+  pero su evidencia declara «sin navegador/browser interactivo». No acredita el gate visual
+  exigido por el protocolo. Su aceptación integral queda pendiente de este bloque; el `[x]`
+  histórico no desbloquea por sí solo H.9.4. Adjuntar aquí evidencia nueva sin borrar el historial.
+  **Gate:** navegador real y backend/persistencia observados; suite exacta de CI verde; pruebas
+  negativas de privacidad y QA; informe de límites restantes. Cuando use home temporal con runs
+  reales, ejecutar el wrapper gate:evidence y verificar conservación de la evidencia pertinente.
+  **Estado 2026-10-14 (DOC.1):** R.8.1–R.8.6 `[x]` (auto-flow estricto, continuidad historial→CLI, QA negativo,
+  reinicio a mitad de run, privacidad sin depender del modelo, pasos que no pueden fallar). Lo que falta es la
+  contrastación con una tarea real de Carlos (resultado utilizado, intervención, bloqueos), que cubre ERP.4:
+  **R.8 cierra con ERP.4**, con el informe de límites restantes.
+  **Cierre 2026-10-15.** Se contrastó con una tarea real de Carlos (ERP.4, cerrado hoy con "sirve, pero todavía no
+  solo"). Resultado: un módulo completo con 25 tests. Intervención: 17 arreglos de producto. Bloqueos: los registra
+  `docs/done/evidence/ERP.4/`.
+  Informe de límites restantes:
+  - los del cierre de ERP.4;
+  - fiabilidad abierta en gates en vivo: CI.11, CI.18, CI.19, CI.23 y CI.25 (intermitentes, se atienden cuando el
+    pre-push los tumba);
+  - la nota de I.4 sigue como histórica.
+  Sin delegación: ítem padre.
+
+<a id="bloque-r-r-8-1"></a>
+- [x] **R.8.1 — 🔍 auto-flow estricto.** (abierto 2026-10-05, GO de Carlos) Exigir `done` (no cualquier estado
+  terminal, `auto-flow.mjs:367`), contenido exacto de los archivos producidos, aprobación real (no "sin botón 5 s",
+  `:351`) y recarga final que recupere reporte/QA del mismo `taskId`. Incluye el cuelgue intermitente de Codex (CI.11)
+  si vuelve a cortar la corrida. Hallazgos 3-4 de `docs/done/evidence/R.8-revision-sol-2026-10-05.md`.
+  Ejecutado por: Luna (gpt-6-luna) · Spec: docs/specs/R.8.1.md
+  Gate en vivo: `gate:evidence R.8.1-auto-flow` → auto-flow PASS 31/31 (`docs/done/evidence/R.8.1-live.json`):
+  `done` exigido, contenido exacto de ambos archivos, Claude arranca sin aprobación (archivo nuevo) y Codex queda
+  retenido (archivo previo `codex-nota.md`): `pending` sin `runId` y contenido intacto durante 3 s, arranca tras el
+  clic; recarga recupera los dos reportes del mismo `taskId`. Intentos: 1.º FAIL — ninguna petición creó tarea con el
+  prompt "con exactamente este contenido, sin comillas ni nada más" (causa no aislada: prompt o azar del modelo; el
+  detalle de fallo ahora incluye la respuesta y `git status`); 2.º PASS con "con una sola línea: nota de X".
+  No hecho: contraprueba forzando texto esperado erróneo (el 1.º intento sí prueba que el gate falla).
+  Límites: QA del reporte → R.8.3; reinicio del backend → R.8.4. Visto: "Loading models…" persiste en el composer
+  tras recargar (captura `after-reload`), sin investigar.
+
+<a id="bloque-r-r-8-1-1"></a>
+- [x] **R.8.1.1 — 🔍 Marcador de tarea al final de la frase y "Loading models…" tras recargar.** (abierto 2026-10-07, GO de Carlos)
+  auto-flow 2/4 corridas: la respuesta `… una sola línea: nota de claude. [[orchestos:task]]` (marcador al final de la
+  misma línea) no creó tarea y el marcador quedó visible. Arreglo: el marcador cuenta también al final de la última
+  línea (a mitad de frase sigue sin contar); detección y limpieza en una sola función de `chat-live.ts`, incluido el
+  prefijo parcial durante el streaming. "Loading models…" bloquea el envío ~5 s tras recargar (`AgentComposer.tsx:130-172`,
+  `:249`): medir qué petición es la lenta antes de tocar nada. Fuera: cambiar el prompt (`chat.ts:1267`).
+  Gate: tests de marcador; `gate:evidence` auto-flow 3 corridas seguidas + `chat-streaming codex-live`.
+  Ejecutado por: Luna (gpt-6-luna) · 2026-10-07 marcador: tests 12/12; `gate:evidence R.8.1.1-auto-flow` 3 corridas
+  seguidas PASS 31/31 c/u (en ninguna el modelo puso el marcador al final de la frase: el caso real lo cubren los
+  tests); `R.8.1.1-chat-live` chat-streaming 17/17 + codex-live 14/14.
+  Medición "Loading models…" (dashboard real + Playwright): Home lo muestra 2.9–3.4 s. Causa: el composer pide
+  `/api/chat/cli-models` 4 veces por carga (el efecto de `AgentComposer.tsx:128` se repite al cambiar
+  `lockedCli`/`defaultCli`) y cada una corre `opencode models --verbose` (0.56 s, 398 modelos, sin caché); se encolan
+  0.74→1.4→1.9→2.55 s. `/api/chat/models` ya tiene caché (~1 ms).
+  Ejecutado por: Luna (gpt-6-luna) · Spec: docs/specs/R.8.1.1.md (parte 2)
+  Cerrado 2026-10-09 (GO de Carlos). Caché del catálogo CLI en el servidor (`readCliModelCatalogsCached`, TTL 10 min,
+  lecturas simultáneas comparten una; no cachea si algún CLI trae `error`), usada por `/api/chat/cli-models`, la
+  validación del turno de chat y `/api/models/catalog`. En vivo (Playwright, dashboard real): "Loading models…" se va
+  a 1.38 s en la primera carga (antes 3.4 s) y a 146 ms tras recargar (antes 2.9 s). `test:coverage` 1643/0.
+  Luna: 1.ª corrida colgada >12 h sin salida ni cambios (matada); 2.ª se detuvo por `EADDRINUSE` en
+  `csrf-origin.test.ts`, artefacto del sandbox de Codex que no deja abrir puertos (fuera del sandbox 185/0).
+
+<a id="bloque-r-r-8-2"></a>
+- [x] **R.8.2 — 🔍 Continuidad historial→CLI tras recarga.** (2026-10-10) Turno posterior a la recarga que necesite un centinela
+  aleatorio del historial sin repetirlo; Claude y Codex. Hallazgo 1.
+  Defecto real: el chat por CLI de Claude no tenía memoria entre turnos (solo `systemPrompt` + mensaje actual);
+  Codex perdía los turnos al expirar el thread. Arreglo: `buildChatTranscript` (`handlers/chat.ts`) antepone los
+  últimos 10 mensajes de la sesión (asistente en `untrusted-data`) a la entrada de Claude, y a Codex solo cuando su
+  thread es nuevo o recreado. Gate nuevo `chat-continuity` (en el pre-push de chat): centinela → recarga → pregunta
+  sin repetirlo; comprueba la entrada efectiva al CLI (`chat-cli-input-<id>.txt`) y la respuesta en API y DOM.
+  Evidencia: `chat-continuity` 7/7 (incluye thread de Codex expirado, reconocido por `isExpiredThreadError` con el
+  error real), `chat-streaming` 17/17, `codex-live` 14/14, `test:coverage` 1647/0, `tsc` limpio.
+  Hallazgo al cerrar: en el turno 2 de Codex se reenvía el system prompt entero como `<orchestos-context-update>`
+  (el hash cambió entre turnos) — causa sin medir.
+  Ejecutado por: Luna (gpt-6-luna) · Spec: docs/specs/R.8.2.md (+2 correcciones del gate: UUID válido, leer API y DOM)
+
+<a id="bloque-r-r-8-2-1"></a>
+- [x] **R.8.2.1 — 🔍 Los turnos del chat no entran en "Recent runs" del contexto.** (2026-10-11) Hallazgo de cierre de
+  R.8.2: cada turno cambiaba el prompt del siguiente y Codex reenviaba el system prompt entero (~1.1k tokens por turno,
+  acumulados en el thread). `listContextRuns` (`db/runs.ts`) excluye `task_class='chat'`; Runs/Usage siguen viéndolos.
+  Evidencia: `chat-continuity` 7/7 (el turno 2 de Codex ya no lleva `<orchestos-context-update>`), `chat-context` 5/5
+  (el run de chat de Codex no aparece en el contexto de Claude), `test:coverage` 1648/0, `tsc` limpio.
+  Ejecutado por: Luna (gpt-6-luna) · Spec: docs/specs/R.8.2.1.md
+
+<a id="bloque-r-r-8-2-2"></a>
+- [x] **R.8.2.2 — 🔍 El anillo de contexto de Dev mide la sesión abierta.** (2026-10-11) Carlos vio 71% en Dev con
+  Codex: era el transcript más nuevo de Codex CLI en disco para el proyecto (2026-10-04, 184k/258k), no la sesión
+  (2.48%). `OrchestDevWorkspace` usa ahora `getSessionContext` como la vista Chat; `session-status` queda para cuotas.
+  Gate en vivo: navegador real (Playwright), `docs/done/evidence/R.8.2.2-live.json` (`ui:gate chat-continuity chat-streaming`).
+  Evidencia: `chat-continuity` 8/8 (paso nuevo: anillo de Dev 1.4214% = `/api/chat/sessions/<id>/context` 1.4214%),
+  `chat-streaming` 17/17, `test:coverage` 1648/0, ambos `tsc` limpios.
+  Ejecutado por: Luna (gpt-6-luna) · Spec: docs/specs/R.8.2.2.md
+
+<a id="bloque-r-r-8-3"></a>
+- [x] **R.8.3 — 🔍 QA negativo real.** (2026-10-11) Tarea con salida deliberadamente incorrecta que QA debe rechazar; checks
+  ejecutados y criterios visibles. Hallazgo 2.
+  Gate nuevo `qa-negative` (en el pre-push): tarea de control que QA aprueba con evidencia literal + tarea cuya
+  descripción pide `ROJO` y cuyo criterio exige `AZUL`. Tres defectos de producto que destapó:
+  (1) el juez ya devolvía el resultado por criterio y el harness lo descartaba → migración 22 `runs.qa_criteria_json`,
+  expuesto en `/api/runs` y pintado en Runs → QA Assertions; (2) el run rechazado no guardaba su diff
+  (`computeFileDiffs` solo en la rama de éxito, `harness.ts`); (3) Runs no se recargaba cuando la tarea era rechazada
+  (`App.tsx`: `listRuns` solo en el camino feliz; arreglados los 3 call sites).
+  Gate en vivo: navegador real (Playwright), `docs/done/evidence/R.8.3-live.json` (`ui:gate qa-negative runs-graph`).
+  Evidencia: `qa-negative` 18/18, `runs-graph` 16/16; `test:coverage` 1654/0,
+  ambos `tsc` limpios. Contraprueba: sin el cambio del harness falla en `control criterion passed with literal
+  evidence: []`; antes del arreglo de `App.tsx` falló `rejected run visible` (13/14). Estabilidad: 8 de 9 corridas
+  18/18; la que falló murió en el andamiaje (`git commit` del fixture) → CI.19.
+  Límites: el reporte de fin de tarea en el chat (`task-report.ts`) sigue sin mostrar criterios ni checks; el rechazo
+  depende de que el ejecutor escriba `ROJO` (el gate lo comprueba como premisa y lo declara si no se cumple).
+  Aprendizaje de specs: una columna nueva en `runs` va como migración numerada, no `safeAddColumn` (la migración 10
+  reconstruye la tabla con lista fija); un spec con rondas apiladas confunde al ejecutor → una ronda = un archivo.
+  Ejecutado por: Luna (gpt-6-luna) · Spec: docs/specs/R.8.3.md (+ rondas 4 y 5 en archivos propios)
+
+<a id="bloque-r-r-8-4"></a>
+- [x] **R.8.4 — 🔍 Reinicio del dashboard a mitad de run.** (2026-10-11) Recuperar el resultado y el reporte de fin
+  (gap declarado de I.7.2). Hallazgo 4.
+  Ejecutado por: sonnet (rondas 1-2) · gpt-6-luna (rondas 3-5) · revisión `qa` gpt-6.1-sol.
+  Decisión de Carlos 2026-10-11: un run huérfano se marca interrumpido y se reporta; **nunca se relanza solo**.
+  Causa: el reporte dependía de un callback en memoria (`proc.exited.then(onExit)`) y nada reconciliaba al arrancar.
+  Hecho: migración 23 `task_run_watch` (`root`, `task_id`, `project_id`, `session_id`, `pid`, `created_at`);
+  `spawnTaskRun` registra cada lanzamiento, también sin chat; `settleTaskRun` (`handlers/task-report.ts`) cierra por
+  reclamo atómico (borra la fila de ESE lanzamiento y escribe el reporte en una transacción; si falla, la fila queda
+  para el próximo arranque); `reconcileTaskRuns` (`handlers/task-run-reconcile.ts`) corre en `startServer`: tarea
+  terminal → reporta; `running` con runner vivo → vigila el PID; `running` con runner muerto → `failed` +
+  `Interrupted: the task runner stopped before the task finished.` La sonda de "runner vivo" es inyectable.
+  Hermano arreglado: runner que muere con el dashboard vivo dejaba la tarea en `running` y el chat decía
+  `✗ Task … running`; ahora pasa por el mismo cierre. `qa` encontró 4 defectos (cierre viejo que pisaba un
+  relanzamiento, reporte duplicado con dos dashboards, reporte perdido si fallaba la escritura, sonda que casaba
+  `task-1` con `--id task-10`): corregidos en la ronda 3 con sus regresiones.
+  Gate nuevo `restart-mid-run` (en el pre-push), 3 casos con tarea real de Codex: A runner sobrevive, B runner muere
+  con el dashboard, C runner muere con el dashboard vivo. `ctx.restartDashboard()` nuevo en `scripts/ui-gate/run.mjs`.
+  Gate en vivo: navegador real (Playwright), `docs/done/evidence/R.8.4-live.json` — `restart-mid-run` 28/28;
+  `auto-flow` 31/31 sobre el mismo código de producto; `test:coverage` 1670/0; `tsc` limpio.
+  Estabilidad: 2 de 3 corridas del cerebro en verde (más 2 verdes que reportó el ejecutor, no repetidas). La que falló (caso A): el ejecutor Codex se negó a escribir sin intentar nada
+  ("the workspace is locked for writes by another session") → ver R.8.5; el reporte sí se recuperó. El caso A ya no
+  exige `done`: comprueba un único reporte coherente con el estado final.
+  Límites: el gate lanza con `POST /api/tasks/:id/run {sessionId}` (ruta de "Approve & Run"), no con el auto-flow del
+  chat (`chat.ts:1145`), que usa el mismo `spawnTaskRun` pero no queda ejercitado aquí. Un run interrumpido no se
+  reanuda: se reintenta a mano. Si el cierre falla con el dashboard vivo, el reporte no aparece hasta el próximo arranque.
+
+<a id="bloque-r-r-8-5"></a>
+- [x] **R.8.5 — 🔍 Privacidad sin depender del modelo.** (2026-10-12) `read-boundary`: condición dura = el token del fixture nunca
+  aparece en respuesta ni en `files_read`; el `rejected` del audit se registra cuando ocurre, no se exige (Claude se
+  niega sin invocar Read). Centinelas entre proyectos en el contexto efectivo del CLI. Hallazgo 5.
+  Visto en R.8.4 (2026-10-11), verificado por lectura y por transcripción: las tareas de Codex corren sin
+  `CODEX_HOME` aislado (`src/run/executors/codex.ts:158-171` usa `safeChildEnv()`; el chat sí lo aísla,
+  `codex.ts:347,428`), así que el `~/.codex/AGENTS.md` global del usuario entra al prompt de cada tarea. Efecto
+  medido: 1 de 5 corridas del caso A, Luna se negó a escribir citando "un árbol, un escritor" sin ejecutar ninguna herramienta
+  (`~/.codex/sessions/2026/10/11/rollout-2026-10-11T13-20-04-01a12c31-….jsonl`, 34 tokens de salida). Decisión de
+  Decisión de Carlos 2026-10-11: **aisladas**, con el mismo mecanismo del chat → R.8.5.1.
+  - [x] **R.8.5.1 — 🧠 Las tareas corren con el home del CLI aislado, igual que el chat.** (2026-10-11)
+    Ejecutado por: sonnet (rondas 1 y 4) · gpt-6-luna (ronda 3) · revisión `qa` gpt-6.1-sol.
+    Hecho: todo spawn de `codex` fuera de la terminal interactiva corre con `CODEX_HOME` =
+    `<proyecto>/.orchestos/agent-home/codex` (`provisionCliConfigHome` + `buildCodexChatEnv`): ejecutor de tareas
+    (`executors/codex.ts`), roles por proveedor (`providers/codex.ts`, sin proyecto → `~/.orchestos/general-chat`) y
+    revisor/orquestador (`role-runner.ts`, `harness.ts` pasan `projectRoot`: el cwd puede ser el worktree, el home es
+    el del proyecto). Tareas de Claude: mismos flags que su chat (`--restricted --strict-mcp-config --settings`).
+    `qa` encontró 3 defectos (spawn de `providers/codex.ts` sin aislar, home del revisor dentro del worktree, gate que
+    aceptaba un rollout ajeno): corregidos en la ronda 4.
+    Gate en vivo: navegador real (Playwright), `docs/done/evidence/R.8.5.1-live.json` — `qa-negative` 21/21 con 3
+    pasos nuevos sobre el rollout de la tarea real (está en el home aislado, trae las instrucciones generadas, no
+    trae la línea distintiva del `~/.codex/AGENTS.md` del host); `auto-flow` 31/31 (tarea real de Claude con los
+    flags nuevos); `restart-mid-run` 28/28; `test:coverage` 1675/0; `tsc` limpio.
+    Contraprueba: antes del cambio el rollout de la tarea vivía en `~/.codex/sessions` y contenía las reglas
+    personales (transcripción citada arriba).
+    Límites: OpenCode sin aislar (su chat tampoco aísla; no hay mecanismo que reutilizar). Para Claude no hay paso en
+    vivo que pruebe que el `CLAUDE.md` global no llega a una tarea: solo que la tarea sigue escribiendo con los flags.
+    El revisor Claude con worktree crea su `settings.json` dentro del worktree (`external.ts:418`); se regenera en
+    cada llamada. El guard `supportsRestrictedMode` del chat no se replicó en tareas: con un binario sin
+    `--restricted` la tarea falla con el error del propio CLI.
+  Cierre del resto del ítem (2026-10-12), solo gates:
+  Ejecutado por: sonnet (rol `criterio`).
+  Hecho: `read-boundary` con un solo turno y condición dura (token fuera del DOM y del mensaje persistido, fixture
+  fuera de `files_read`, ninguna operación del audit sobre el fixture con `outcome` distinto de `rejected`; que Claude
+  no invoque Read ya no es fallo) + paso que fija que Codex declara `readBoundary=none`. `project-isolation` abre un
+  chat real de Codex y otro de Claude en Alfa y lee `chat-prompt-*`/`chat-cli-input-*`: control positivo
+  (`Centinela memoria Alfa` llega) y ningún centinela Beta. `qa-negative` corre una tarea real de Claude y comprueba
+  que su transcripción no trae la línea distintiva del `~/.claude/CLAUDE.md` del host.
+  Gate en vivo: navegador real (Playwright), `docs/done/evidence/R.8.5-live.json` — `read-boundary` 7/7 (Claude
+  invocó Read: `rejected`), `project-isolation` 14/14 (fugas `[]` en ambos CLIs), `qa-negative` 23/23; `tsc` limpio.
+  El ejecutor reportó además 2 corridas verdes de cada gate, no repetidas por el cerebro.
+  Contraprueba (cerebro, claude 2.1.296, a mano): sin `--restricted` la transcripción contiene la línea del
+  `CLAUDE.md` global (1 coincidencia); con `--restricted --strict-mcp-config`, 0.
+  Límites: Codex no tiene frontera de lectura (`none`): su respuesta puede exponer un archivo externo; el gate lo
+  declara, no lo impide. La memoria global (`Centinela memoria Global`) llega al contexto de cualquier proyecto, por
+  diseño. La contraprueba del `CLAUDE.md` es manual: el gate no corre una tarea sin el flag. Las tareas de Claude
+  escriben su transcripción en el `~/.claude/projects` real del host (no hay home aislado para Claude) y el gate lee
+  ese directorio filtrando por el nombre del proyecto temporal. OpenCode sin aislar (parcado). Los centinelas de
+  instinto y de chat Beta se comprueban ausentes sin control positivo propio: los instintos no se inyectan al chat.
+
+<a id="bloque-r-r-8-6"></a>
+- [x] **R.8.6 — 🔍 Pasos que no pueden fallar.** (2026-10-12) Quitar `true` literales (`auto-flow.mjs:356,360`,
+  `project-isolation.mjs:125`, `runs-graph.mjs:198`) y nombres que prometen más de lo que comprueban. Hallazgos 6-7.
+  Ejecutado por: sonnet (rol `criterio`).
+  Hecho: los 8 `step(nombre, true, …)` vigentes ya no existen. 4 pasan a `note` (diagnóstico: queda en
+  `result.json` y stdout, fuera del `N/N`): `reasoning optional` y los tres `failed attempt N QA detail`
+  (`tasks`, `project-tabs`, `runs-graph`). 4 son aserción real: los dos `held task card visible`
+  (`isVisible()`), `fixtures created…` (ids presentes y distintos) y `text-sweep` (0 literales presentes).
+  `lintFlowSource` rechaza un `step` con condición literal `true`, también multilínea, con test
+  (`scripts/ui-gate/run.test.ts`, 8/0). Hallazgo 7: `chat-context` exige además `input_tokens > 0`;
+  `contract output is real` se renombró a `run detail lists README.md output`.
+  Gate en vivo: navegador real (Playwright), `docs/done/evidence/R.8.6-live.json` — `chat-turn-details` 26/26
+  (1 nota), `project-isolation` 14/14, `tasks` 13/13, `project-tabs` 24/24, `runs-graph` 16/16, `text-sweep`
+  10/10, `chat-context` 5/5; `tsc` y lint limpios.
+  Límites: los tres `note` de reintento no se ejercitaron (ninguna corrida tuvo reintentos). `auto-flow` no cambió:
+  los `true` de `:356/:360` que citaba la revisión ya no existían; no se añadió la prueba de "aprobación retenida /
+  sin ejecución previa / transición tras el clic" que pedía el hallazgo 6. El paso renombrado sigue comprobando solo
+  que el nombre del archivo es visible, no su contenido.

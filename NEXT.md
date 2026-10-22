@@ -1,32 +1,27 @@
-# NEXT — handoff 2026-10-22 (corte tras el lote CI.32–CI.34)
+# NEXT — handoff 2026-10-22 (corte tras el lote CI.35–CI.37, UI.27.3, UI.28, CTX-GUARD.2, DOC.4)
 
-Un solo presente: orden y trampas vivas. Lo cerrado vive en `PLAN.md` y git (regla `AGENTS.md` § Reglas generales,
-2026-10-19: `NEXT.md` se toca solo al cerrar o cortar un lote). Arranque:
+Un solo presente: orden y trampas vivas. Lo cerrado vive en `docs/done/bloque-*.md` y git (regla `AGENTS.md` § Reglas
+generales, 2026-10-19: `NEXT.md` se toca solo al cerrar o cortar un lote). Arranque:
 `bun run agent:preflight -- --item <ID> --agent claude`. Lista viva: `bun run next`. Roster normal (`roster.conf`).
 
-## Cerrado 2026-10-22 (todo en `origin/master`, pre-push verde)
-`ui:gate` completo sobre lo subido sin pre-push el 21: 5 flujos rotos de forma determinista → CI.32. CI.32.a
-`dfd1c6a3`+`853810d3` (OpenCode abre su sesión de terminal: `CliChatAdapter.terminal`), CI.32.c `e571a5ac`+`143fbce2`
-(`[codex-approval]` en `dashboard.log`; **decisión de Carlos**: en auto-edit, Codex con su sandbox nativo,
-`approvalPolicy: on-request`; supervised sigue `untrusted`), CI.32.d (misma causa), CI.32.b `ec92a168` (carrera New
-chat → envío caía en sesión general `?project=none` → 404), CI.33 `2008db91` (test de `runGraph` a 20 s, costo medido),
-CI.34 `375bdadd` (regresión de CI.32.b: lectura de sesiones vieja borraba el mensaje enviado y sus adjuntos).
-Batería de cierre: 29/31; los 2 rojos pasan al relanzar (ver Orden 2).
+## Cerrado 2026-10-22
+CI.35 `e05c27e2` (`chat-streaming` compara palabras, no Markdown crudo), UI.27.3 `50aad30e`+`358942eb` (traído del
+worktree de la sesión Desktop; worktree y rama `ui/UI.27` borrados), CI.36 `cf250e8e` (`RunLogger.write` no tumba la
+corrida), UI.28 `d65ffb68` (Settings sin puertas manuales de tareas), CTX-GUARD.2 `bc90189f` (guard mide 2,2
+chars/token y skills de cuenta), CI.37 `7a8f87a2` (Sol: intento fallido que vuelve a `pending` termina la espera),
+DOC.4 (PLAN.md 2.678 → 216 líneas; `CONTEXT.md` al día). Detalle en `docs/done/bloque-*.md`.
 
 ## Orden
-1. `orchestos-ui27` (worktree de la sesión Desktop `8b65b9f2`, rama `ui/UI.27`): UI.27.3/UI.27.3b staged sin commitear
-   (14 archivos, `ResizableAside.tsx` nuevo). Las copias de `scripts/plan-*.ts`/`next.ts`/`plan-worktree-home.ts` son
-   idénticas a master: descartarlas. Carlos tiene las instrucciones para esa sesión: commitear, `rebase origin/master`
-   (conflicto probable en `chat-sessions.ts` por CI.32.a y en `App.tsx` por CI.32.b/CI.34), gates, merge, borrar el
-   worktree. No escribir en ese árbol desde esta sesión. Master ya está libre para ese merge.
-2. `chat-streaming` intermitente: cerrado en CI.35 (fallo del gate: Markdown crudo vs DOM renderizado y turno
-   demasiado corto para el sondeo de 300 ms). Si vuelve, el detalle del paso trae visible y persistido completos.
-3. Sin ítem listo de producto: lo que Carlos elija. Acceso remoto = IDEAS `#73`.
-4. Fiabilidad, cuando el pre-push la tumba: CI.23 (visto otra vez el 22, ver PLAN), CI.18, CI.19, CI.11. Desde CI.27 un
-   flujo que revienta dice el locator (`[waiting for …]`) y deja `<flujo>/failure.png`: usarlo antes de diagnosticar.
-- Anotado, sin ítem: ejecutar **tareas** con adaptadores CLI nuevos (hoy solo claude/codex/opencode en
-  `engine-cascade.ts`; el chat ya acepta cualquiera registrado, LIMP.3). Agrupación por marca en Usage
-  (`OrchestSettingsView.tsx:686-717`) y columnas `codex_*`/`claude_*` se quedan a propósito (LIMP.3).
+1. **Plan para GO de Carlos: tareas con cualquier CLI** (pedido 2026-10-22: "no hay un CLI de preferencia, eso es
+   primordial"). Hoy: ramas cerradas en `engine-cascade.ts:5-11`, `harness.ts:353-367`, `load.ts:146`,
+   `tasks/schema.ts:15,140`, `dashboard/types.ts:216,276`, `App.tsx:883`; `external.ts` es Claude headless; un CLI sin
+   motor cae en silencio a `single-shot`. Cambia un comportamiento central → plan corto antes de codear (regla
+   2026-07-17). Mapa completo en la respuesta de `leer` del 2026-10-22 (resumida en `CONTEXT.md` § Estado vigente).
+2. **Peso de arranque**: el guard avisa ~15,2k tokens est. (CLAUDE.md global 3,2k, del repo 4,9k, MEMORY 3,3k, 13 skills
+   de cuenta 3,8k; límite 9k). Decide Carlos: bajar peso (podar CLAUDE.md/MEMORY, desactivar skills de cuenta en
+   claude.ai) o mover el límite.
+3. Fiabilidad, cuando el pre-push la tumba: CI.23, CI.18, CI.19, CI.11. Un flujo que revienta dice el locator y deja
+   `<flujo>/failure.png`.
 - Anotado, sin ítem: el revisor elige su ventana cortando en el primer tramo que no cabe (un revert posterior podría
   dejar caber uno más largo; nada se pierde, el salto queda anotado).
 - Decisiones pendientes de Carlos sin ítem: turno de chat con CLI lento (más de 120 s o aviso honesto, en CI.18);
@@ -34,6 +29,11 @@ Batería de cierre: 29/31; los 2 rojos pasan al relanzar (ver Orden 2).
   vault que `delegate` → Codex no vea `AGENT_WRITER_TOKEN` (ver Trampas).
 
 ## Trampas vivas
+- Chequeo de tipos en specs: `bun run typecheck`. `bunx tsc --noEmit` de la raíz excluye `src/dashboard/app`: no vio un
+  import borrado de `Button` y Plan quedó en pantalla negra (UI.28 r2).
+- `delegate` prohíbe al ejecutor editar `PLAN.md`: archivar o reestructurar el plan lo hace el cerebro (DOC.4).
+- Cambio de texto visible que viene de otra sesión: `rg` en `scripts/ui-gate/` antes de cerrar (UI.27.3 rompió
+  `chat-turn-details` por el prefijo "Codex: " del título).
 - `~/.claude/settings.json` `statusLine` = tee de OrchestOS → script de Orca (restaurado a mano 2026-10-21, respaldo
   `.bak.20261021-statusline`). Si Orca lo vuelve a pisar, lo avisan la barra y el startup-guard (CUOTA.1).
 - El sandbox de `delegate` no tiene red: `git push` lo hace el cerebro. Los gates en vivo dan `listen EPERM` dentro del
@@ -129,9 +129,6 @@ Batería de cierre: 29/31; los 2 rojos pasan al relanzar (ver Orden 2).
 Verificados el 2026-10-14 contra el código salvo "(sin re-verificar)".
 - Herramienta: `delegate investigar` y todo rol `claude` con `--tools` fallan (`~/.agent-method/bin/delegate:147,167-171`);
   esquive en `AGENTS.md`; el arreglo va en `method/` del vault.
-- startup-guard ciego a lo que de verdad carga: no mira `~/.claude/skills/*`, `~/.claude/skills/synced/` ni
-  `~/.claude/plugins/synced/` (`.claude/hooks/startup-guard.js` sin lectura de esas rutas); Claude Docs cargó pese a
-  `disabledMcpServers` (2026-10-10). Candidato a CTX-GUARD.2.
 - `readBoundaryWarning` sin consumidor (`src/dashboard/types.ts:90`, `app/src/api/chat.ts:14,77`; decisión de Carlos:
   sin aviso) → LIMP.1 comprobó que sí tiene consumidores (`chat.ts`, `chat-sessions.ts`, `api/chat.ts`): quitarlo cambia lógica, decide Carlos. Cuando el CLI se queda sin cupo ("out of usage credits") el chat lo muestra como
   respuesta normal, no como error (sin re-verificar).
@@ -142,17 +139,13 @@ Verificados el 2026-10-14 contra el código salvo "(sin re-verificar)".
   reintento pendiente debe decir "failed"); `chat-context` `locator.click` timeout al pasar de Codex a Claude (pre-push de `e1d3b12`; desde CI.27 deja locator y `failure.png`);
   `chat-context`, diálogo de nuevo chat sin Claude (sonda de CI.10 en
   negativo bajo carga, 2026-10-05).
-- `waitForTaskRun` (`app/src/api/chat.ts`) espera hasta 10 min ante un `pending` con intento fallido: no se midió si
-  deja el botón pulsado ocupado todo ese tiempo.
-- Settings → Tasks muestra "Create First Task" (`OrchestSettingsView.tsx:2463`; contradice "Tasks solo por chat") y
-  "Loading live settings…" fijo en la cabecera (2026-10-03, sin re-verificar). Settings → Skills: la pestaña
+- Settings → Tasks: "Loading live settings…" fijo en la cabecera (2026-10-03, sin re-verificar). Settings → Skills: la pestaña
   "Instincts" aparece resaltada además de "Skills" (2026-10-02, sin re-verificar).
-- `src/run/logger.ts:50-53` (`write`) hace `appendFileSync` sin guarda: lanza ENOENT si el cleanup de un flujo ya borró
-  el `runs/` del proyecto (visto en `ui-gate-68402/dashboard.log`, 2026-09-28).
 - CX.5: fila `<synthetic>` (0 tokens) visible en "CLI tabs"; "Avg cost / run" mezcla runs y sesiones (sin re-verificar).
   Runs de chat con caché no vistos en DB (el purge de los gates los borra; el anillo de CX.2 los usa y funciona).
 - H.5.3: `elapsed_ms` no cuenta el cuelgue de Codex; `effort` del rol no llega a `cli_effort` del eval (sin verificar
   si se aplica). El cuelgue en sí es CI.11.
+- Plan (Settings): el selector de sprints tiene "Sprint 29/30/31" fijos en el JSX (`PlanBoardView.tsx`), visto en UI.28.
 - "Clonar desde URL" (paso 2 de "+ Add project"): en espera por decisión de Carlos; feature nueva → plan corto antes.
 - Decisión pendiente de Carlos (UI.13.4b): la frontera por argumentos no frena `node -e`/`sh -c`; la barrera real es
   sandbox de proceso o lista de binarios permitidos. AT.14 cerró solo el hueco del hook `brain-no-code`.

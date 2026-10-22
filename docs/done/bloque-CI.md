@@ -628,3 +628,338 @@ Por eso UI.1 es un gate de abortar real, y por eso el orden es shell→pantallas
   Hecho: `onRunTask` limpia el error, lo captura en `taskRunError` y recarga tareas (patrón de `handleRunNextTask`).
   Gate en vivo: navegador real (Playwright), `docs/done/evidence/CI.13-live.json`; `project-tabs` 24/24. No
   verificado en vivo: el camino de error (esa corrida la tarea de Codex sí escribió README); solo por lectura.
+
+## Archivado 2026-10-22 desde PLAN.md (DOC.4)
+
+<a id="bloque-ci-ci-21"></a>
+- [x] **CI.21 — 🔍 El orquestador a veces se niega ("solo lectura") en vez de crear la tarea.** (abierto 2026-10-12)
+  `chat-turn-details` falló en el pre-push y 1 de 2 corridas a solas en el paso `held task card visible` (aserción
+  real desde R.8.6): al pedido "Modifica README.md…" el CLI respondió "No puedo modificar archivos en este entorno
+  porque el acceso al sistema de archivos es de solo lectura" y no puso el marcador. La instrucción del chat
+  (`chat.ts:1282`) no dice que su propio sandbox de solo lectura es lo esperado. Candidato a causa de CI.18 (mismo
+  paso del marcador en `chat-roles`). Gate: `chat-turn-details` 5 corridas seguidas + `chat-roles`.
+  Ejecutado por: gpt-6-luna (rol `mecanico`).
+  Hecho: la instrucción del chat pasa a `buildAutoTaskInstruction` (`chat.ts`) y la rama con proyecto añade que el
+  chat corre en solo lectura a propósito y que nunca se niegue ni lo mencione: ese pedido es el caso del marcador.
+  Test en `chat-task-marker.test.ts` (6/0).
+  Gate en vivo: navegador real (Playwright), `docs/done/evidence/CI.21-live.json` — `chat-turn-details` 26/26 en 5
+  corridas seguidas (antes: 1 fallo en el pre-push y 1 de 2 a solas) y `chat-roles` 11/11. CI.18 sigue abierto: 5
+  corridas no prueban que su intermitencia tuviera esta causa.
+
+<a id="bloque-ci-ci-22"></a>
+- [x] **CI.22 — 🔍 `usage-bar` falla en el pre-push completo: "Codex: No quota limits reported".** (abierto 2026-10-12)
+  Falló 2 veces seguidas dentro del pre-push (pasos `quota is visible without a project session` y `quota remains
+  visible after a real turn`) y pasó a solas entre medias. Medido en frío: `readCodexRateLimitsLive` responde en
+  0.5–0.8 s (6 lecturas); el tope es 3 s (`scripts/context-adapters.ts:201`) y al vencer devuelve `[]` sin dejar
+  rastro. Ya anotado como intermitente en `AGENTS.md:202`. Arreglo: tope de 8 s y una línea de log con el tiempo
+  cuando vence. Gate: tests del adaptador + pre-push completo verde.
+  Ejecutado por: gpt-6-luna (rol `mecanico`).
+  Hecho: `CODEX_RATE_LIMITS_TIMEOUT_MS = 8_000` y una línea `[rate-limits] … tras N ms` cuando no hay respuesta;
+  tests con binario falso (`scripts/context-adapters.test.ts`, 15/0); `AGENTS.md` actualizado. El resultado del
+  pre-push completo se anota en el commit siguiente.
+
+<a id="bloque-ci-ci-14"></a>
+- [x] **CI.14 — 🔍 GitHub Actions deja de fallar por la misma clase de bug.** (abierto 2026-10-06, GO de Carlos)
+  Datos 2026-09-05→10-05: CI rojo en 42/73 pushes en 3 rachas (lint 11-22 sep; `process.env`/HOME 23-24 sep; fixture git
+  sin identidad 4-5 oct), todas "pasa en el Mac, falla en Linux". Mutation Shards cancelado 4 noches (10-03→10-06):
+  cada mutante corre `src/__tests__` entero; R.7 (`934c7b4`) sumó `tasks-concurrency` (9.5 s) y el dry run pasó de 8 s a
+  21 s × 2,227 mutantes > 180 min. Partes: (A) cada shard corre solo los tests que alcanzan sus archivos mutados;
+  (B) pre-push corre `test:coverage` sin config global de git, con HOME temporal y PATH mínimo; (C) startup-guard avisa
+  al arrancar si el último CI/Mutation/Secret Check/UI gate terminó distinto de `success`. Gate: dry run por shard
+  medido; contraprueba de (B) con el fixture sin identidad; tests del guard; disparo manual de Mutation Shards.
+  Ejecutado por: Luna (gpt-6-luna) · Spec: docs/specs/CI.14.md
+  Cerrado 2026-10-06. (A) Mutation Shards manual `37480050158` verde 4/4: executors 121 min, orchestration 65,
+  runtime-boundaries 37, context-routing 26 (antes: 2 shards cancelados a 180 min las 4 noches). Scores más bajos que el
+  10-02 porque el 10-02 contaba kills falsos de un test flaky (`enforceContract`): 615 de 1,881 → ahora 1. Evidencia:
+  `docs/done/evidence/CI.14-mutation-2026-10-06.md`. (B) pre-push verde con HOME/PATH/gitconfig tipo CI; contraprueba:
+  sin `-c user.*` en el fixture de `tasks.test.ts` falla "Author identity unknown" (con `GIT_CONFIG_GLOBAL=/dev/null` NO
+  fallaba: git del Mac deduce la identidad). Destapó y arregló un bug real: el perfil Seatbelt de adversarial-review no
+  resolvía symlinks (`/var`→`/private/var`) y la regla de credenciales no aplicaba. (C) startup-guard: 4 consultas
+  `gh api` en paralelo, 1.3 s, avisó la Mutation cancelada; sin remoto falla abierto. CI/UI gate/Secret Check verdes en `9fda072`.
+  Visto sin ítem: `enforceContract` flaky bajo Stryker → CI.15.
+
+<a id="bloque-ci-ci-15"></a>
+- [x] **CI.15 — 🔍 `contract.test.ts` falla en el sandbox de Stryker por un tmp fijo compartido.** (abierto 2026-10-06)
+  Evidencia (reportes `mutation.json` de `36987578986` y `37480050158`): 189 kills falsos en 10-02 y 1 en 10-06 con la
+  misma firma: `ENOENT: realpath '.stryker-tmp/sandbox-*/tmp/contract-a1'` justo después de `mkdirSync` del mismo path,
+  a veces en `path-policy.ts:60` y a veces en `:74` (el directorio desaparece en una ventana < 1 ms de código síncrono →
+  otro proceso lo borra). 77 de los 189 son mutantes cosméticos (strings de `graph-summary.ts`) donde solo falla
+  contract: no lo causa el mutante. No reproduce en el Mac: 5/5 corridas de `bun test src/__tests__` verdes y ningún
+  `bun test` anidado al muestrear `ps`. Quién borra en Linux queda sin identificar. Arreglo: `TMP_ROOT` único por test
+  con `mkdtempSync(tmpdir())` (convención del repo), sin path compartido en `tmp/` del repo. Gate: `contract.test.ts`
+  verde, `test:coverage`, y próxima Mutation Shards sin `contract-a1` en ningún `statusReason`.
+  Ejecutado por: Luna (gpt-6-luna) · 2026-10-06: arreglo aplicado; `contract.test.ts` 18/18; `test:coverage` verde 3 de
+  4 corridas (la 1.ª: 1 fail + 1 error no capturados; las 3 siguientes 1636/0).
+  Cerrado 2026-10-10: Mutation nightly `38040297323` (commit `96446ec`, incluye el arreglo) verde 4/4 y 0 menciones
+  de `contract-a1` en los 4 `mutation.json`. Quién borraba el path en Linux sigue sin identificar (ya no afecta).
+  Sin delegación: este cierre es solo verificación; el arreglo lo aplicó Luna en `42775b5` (spec no versionado).
+
+<a id="bloque-ci-ci-16"></a>
+- [x] **CI.16 — 🔍 `usage-bar` intermitente: la barra muestra la cuota de Claude vieja.** (abierto 2026-10-09)
+  Falló 2 de 4 corridas el 2026-10-09 (`an expired Claude window is shown as fully available: Claude Code: 61%`;
+  61 % = 100 − 39 del fixture `new-session` anterior). Mecanismo verificado leyendo el código: `handleApiSessionStatus`
+  (`src/dashboard/handlers/session-status.ts`) espera el refresco como mucho 3 s y si no, devuelve la caché vieja. El
+  refresco (`readActiveSessionStatuses`) incluye la lectura en vivo de la cuota de Codex y tarda 1.5–2.2 s sin carga,
+  más de 3 s bajo la carga del gate. La cuota de Claude es una lectura de archivo barata, pero queda atada a la lenta de
+  Codex. Es el pendiente anotado "usage-bar falla a veces por `account/rateLimits/read`". Contraprueba: sin la caché de
+  R.8.1.1 pasó 1/1, y con ella falló 2 y pasó 2: no lo causa R.8.1.1. Arreglo (GO de Carlos 2026-10-10): separar la cuota de
+  Claude (statusline, se lee en cada request) del refresco lento de Codex.
+  Ejecutado por: Luna (gpt-6-luna) · Spec: docs/specs/CI.16.md
+  Cerrado 2026-10-10. `withFreshClaudeQuota` en `src/dashboard/handlers/session-status.ts` relee el statusline de Claude
+  en las 3 respuestas del GET (la caché sigue para Codex). Tests 6/6; `test:coverage` 1646/0; `gate:evidence
+  CI.16-usage-bar` 4 corridas seguidas PASS 18/18 c/u (antes 2/4 fallaban). Sin contraprueba determinista: el fallo
+  dependía de que Codex tardara >3 s; queda la serie de 4 verdes como evidencia.
+
+<a id="bloque-ci-ci-12"></a>
+- [x] **CI.12 — 🔍 `tasks-concurrency` (5 SIGKILL) falla por timeout del lock dentro de la suite completa.** (abierto 2026-10-03, cerrado 2026-10-14)
+  Visto 1 vez en el pre-push: `error: file-lock: timeout waiting for …/.orchestos/tasks.lock` → `(fail) … recovers valid
+  YAML after five SIGKILL interruptions and accepts a following mutation quickly [14649.63ms]`. Solo pasa 3/3 y pasó en
+  2 `test:coverage` completos del mismo día. Hipótesis sin verificar: bajo carga, un lock que dejó un proceso matado
+  tarda más en declararse stale que el plazo del test. Archivo: `src/__tests__/tasks-concurrency.test.ts`.
+  **Cierre 2026-10-14:** tumbó CI en `dff365d` (run 38617847158, 30985 ms). Causa: `withFileLock` creaba el candado
+  con `openSync('wx')` y escribía `pid:uuid` después; un SIGKILL entre ambos dejaba un candado vacío que solo se
+  recupera por mtime (60 s). Arreglo: token en temporal `<lock>.<pid>.<uuid>.tmp` + `linkSync` atómico; limpieza de
+  temporales de PIDs muertos. Tests nuevos: token publicado atómico, huérfanos, 20 SIGKILL sin candado vacío.
+  Evidencia: `typecheck` y `biome` limpios; `tasks-concurrency.test.ts` 9/9 ×5; `test:coverage` 1770 pass, 1 fail ajeno
+  (409 de ERP.4.13 por identidad git global del Mac, NEXT.md:69). Sin contraprueba contra HEAD: la ventana es de µs.
+  Ejecutado por: gpt-6-luna (mecanico)
+
+<a id="bloque-ci-ci-17"></a>
+- [x] **CI.17 — 🔍 `usage-bar` falla con `ENOTEMPTY` al borrar su tmpdir.** (2026-10-11) 2.ª vez (2026-10-05, 2026-10-11,
+  bloqueó un push). `maxRetries: 10, retryDelay: 300` en los 8 `rmSync` de flows que no lo tenían (como chat-context).
+  Evidencia: `usage-bar` 18/18, `tasks` 13/13, biome limpio. Sin contraprueba determinista: el fallo es una carrera con
+  el dashboard escribiendo tras el purge; la prueba real es que no reaparezca en los pre-push.
+  Ejecutado por: Luna (gpt-6-luna) · Spec: docs/specs/CI.17.md
+
+<a id="bloque-ci-ci-20"></a>
+- [x] **CI.20 — 🔍 `chat-continuity` lee la respuesta equivocada del DOM tras recargar.** (2026-10-11) Visto en el pre-push
+  (2 de 2): `Claude recalls sentinel after reload` con `API: R82-…` y `DOM: OK`; la captura muestra el centinela bien
+  pintado. Causa: `sendTurn` cuenta los `div.prose` antes de que el historial se hidrate tras `reopenSession` y lee
+  por índice la respuesta anterior.
+  Ejecutado por: gpt-6-luna
+  Hecho: `sendTurn` lee la última `div.prose` hasta que contiene el texto de la API. Evidencia: `ui:gate
+  chat-continuity` 8/8 en vivo tras el cambio (antes 2 fallos de 2). Mismo patrón por índice en `chat-context`,
+  `auto-flow`, `chat-roles` (candidato a causa de CI.18) y `read-boundary`: no recargan antes de enviar; sin tocar.
+
+<a id="bloque-ci-ci-32"></a>
+- [x] **CI.32 — 🔍 Cinco ui-gates en vivo rotos en master tras el lote del 2026-10-21 sin pre-push.** (abierto y
+  cerrado 2026-10-22) `ui:gate` completo: 26 pasan, 5 fallan, y los 5 se repiten igual al relanzarlos solos
+  (deterministas, no intermitentes). Evidencia: `gate:evidence next-2026-10-22-ui-gate-full` y
+  `next-2026-10-22-ui-gate-rerun5`. Cerrado con CI.32.a–d.
+  Ejecutado por: codex gpt-6-luna (mecanico: a, c) + claude sonnet (criterio: b) · Spec: docs/specs/CI.32.md
+  - [x] **CI.32.a — `opencode-terminal`: `POST /api/chat/sessions` con `agent: opencode` responde 400 `chat no
+    soportado`.** (cerrado 2026-10-22) Lo trajo AT.11 (`c6014ede`, `chat-sessions.ts:265-270`): crear una sesión
+    exige un adaptador de chat, y OpenCode no tiene a propósito (es una ventana libre, no un chat). Arreglo: el
+    registro declara la capacidad (`CliChatAdapter.terminal`, `true` solo en `opencode`) y crear sesión acepta `chat`
+    o `terminal`; `/api/chat` sigue rechazando a OpenCode. Ronda 1 resolvía con `taskEngine === 'opencode'` (rama por
+    marca): devuelta. Evidencia: `gate:evidence CI.32.a-live` → `opencode-terminal` 8/8; `chat-adapters.test.ts` 3/0
+    (fixture `terminal: true` → 201, `fixture-no-chat` y desconocido → 400); `test:coverage` 1925/0 (80.02 %/68.02 %).
+    Ejecutado por: codex gpt-6-luna (mecanico).
+  - [x] **CI.32.b — `chat-followup-task` y `chat-task-undo`: `/api/chat` responde 404 `Project not found`** al
+    elegir el proyecto temporal en Dev y volver a Chat. (cerrado 2026-10-22) Causa: carrera. El composer del estado
+    vacío ya está visible mientras `createSession` de "Start Chat" no ha vuelto; un envío en ese instante veía
+    `activeThreadId=''`, abría una sesión general y la mandaba con `?project=none`, que el servidor buscaba como id
+    (404). Existía antes; UI.27 (composer visible desde el inicio) la destapó. Arreglo: el envío espera el New chat
+    en vuelo (`threadPendingForSend`); una lectura de sesiones tardía no pisa el hilo recién creado
+    (`lib/merge-threads.ts`, limitado a hilos del proyecto leído: la ronda 1 dejaba los hilos de A en la lista de B
+    y se devolvió); `?project=none` sin cabecera = sesión general (`isGeneralScopeRequest`). Evidencia:
+    `gate:evidence CI.32.b-live` → `chat-followup-task` 8/8, `chat-task-undo` 16/16, `project-tabs` 39/39,
+    `project-isolation` 14/14; `merge-threads.test.ts` 6/0, `project-context-general.test.ts`; `test:coverage`
+    1938/0; lint sin errores.
+    Gate en vivo: navegador real (Playwright), `docs/done/evidence/CI.32.b-live.json` (corrida de la ronda 2).
+  - [x] **CI.32.c — `auto-flow`: la tarea Codex aprobada se queda en `running` con `pendingApprovals: 1`** hasta
+    agotar 10 min (auto-edit, "crea codex-nota.md"). Fase 1 (evidencia, 2026-10-22): cada petición deja
+    `[codex-approval] {request|decision|item-started}` en `dashboard.log` (comando redactado, 300 caracteres).
+    Corrida `CI.32.c1-live`: la hipótesis del orden `item/started` queda refutada. Codex escribió el archivo con
+    `/bin/zsh -lc "cat > codex-nota.md <<'EOF' …"` (`commandExecution`, `commandActions: [unknown]`), no con
+    `apply_patch`; auto-edit retiene comandos por diseño (ERP.7.1, `PLAN.md` § ERP.7.1a: solo pregunta `mkdir`).
+    Fase 2a (descartada): pedir en el prompt de tareas que edite con su herramienta, no con shell — Codex siguió con
+    `cat >` 2 de 2 (`CI.32.c2-live`, `-rerun`); revertido. Probablemente rojo desde ERP.7.1c (2026-10-20, auto-edit
+    por defecto): la última evidencia verde de `auto-flow` es UI.24.7 (2026-10-15).
+    **Decisión de Carlos 2026-10-22:** en `auto-edit`, Codex corre con su sandbox nativo de escritura en el proyecto
+    (su modo "Auto"): los comandos dentro del proyecto pasan solos y solo pregunta lo que sale del proyecto o pide
+    red, igual que el CLI directo. Cambia ERP.7.1a para Codex (`mkdir` dentro del proyecto ya no pregunta); `Supervised`
+    sigue preguntando todo comando. Fase 2 (cerrada 2026-10-22): `taskTurn` manda `approvalPolicy: 'on-request'` en
+    `auto-edit` y `'untrusted'` en `supervised` (`thread/start` y `turn/start`); sandbox `workspaceWrite` sin cambios.
+    Evidencia: `gate:evidence CI.32.c-live` → `auto-flow` 33/33, `chat-retry-report` 24/24, `chat-permissions` 9/9,
+    sin peticiones `[codex-approval]` (nada salió del sandbox); `tasks` falló en `tasks.yaml` sin commitear (CI.23) y
+    pasó 31/31 solo (`CI.32.c-live-tasks`); `codex-task-approvals.test.ts` 6/0 (un caso por modo); `test:coverage`
+    1930/0; `bun run lint` sin errores. Ejecutado por: codex gpt-6-luna (mecanico).
+  - [x] **CI.32.d — `chat-retry-report`: el primer intento se queda en `running`, `retryCount=0`.** (cerrado
+    2026-10-22) Misma causa que CI.32.c: con el sandbox nativo pasa 24/24 (`CI.32.c-live`). Sin cambio propio.
+
+<a id="bloque-ci-ci-33"></a>
+- [x] **CI.33 — 🔍 `graph-runner.test.ts` "stops at the maximum graph iterations" roza su límite de 5 s.** (abierto y
+  cerrado 2026-10-22) Cadena de 202 tareas con `runTask` simulado: ~5 s aislado; timeout en 2 de 4 `test:coverage`
+  del 2026-10-22. Medido: ~4,95 s de 4,97 s son `new RunLogger` por intento (`graph-runner.ts:499` →
+  `excludeRuntimeArtifacts` → `git rev-parse`, ~25 ms × 200); el resto suma <20 ms. Costo legítimo y por tarea (en un
+  grafo real, ~25 ms frente a minutos de LLM): límite del test a 20 s con la medición en un comentario; producto sin
+  tocar. Evidencia: test aislado 3/3 (4,97–5,03 s); `test:coverage` 2/2 verde (1926/0).
+  Ejecutado por: claude sonnet (criterio) · Spec: docs/specs/CI.33.md
+
+<a id="bloque-ci-ci-36"></a>
+- [x] **CI.36 — ⚡ `RunLogger.write` nunca tumba la corrida.** (abierto y cerrado 2026-10-22, GO de Carlos)
+  `src/run/logger.ts:47-50` hacía `appendFileSync` sin guarda: si `runs/` desaparecía tras el constructor, `ENOENT` subía
+  a quien solo anotaba. Arreglo: ante `ENOENT` recrea el directorio y reintenta; si no puede, avisa una vez por instancia
+  en stderr (`[run-logger] …`) y sigue. Hermanos: `evals/runner.ts:168` escribe `.gitignore` (persistencia, no log): no se
+  traga. Evidencia: `src/run/logger.test.ts` 2/0; contraprueba con el `logger.ts` anterior 0/2; `tsc` y lint limpios.
+  Ejecutado por: codex gpt-6-luna (mecanico) · Spec: docs/specs/CI.36.md
+
+<a id="bloque-ci-ci-37"></a>
+- [x] **CI.37 — 🔍 `waitForTaskRun` ante un `pending` con intento fallido: averiguar y corregir.** (abierto y cerrado
+  2026-10-22, Carlos: "manda a Sol averiguar y corregir") Causa: desde el dashboard `task run --id` persiste un intento
+  fallido como `pending` + `retry_reason` + `retry_count+1` y termina (`src/cli.ts:1343`; no reintenta solo, eso es del
+  `graph-runner`). `waitForTaskRun` (`api/chat.ts`) solo salía con estado terminal o árbol sucio: ante ese `pending`
+  esperaba los 10 min completos y `Retry`/`Commit & Run` quedaban ocupados. Arreglo: foto de la tarea antes del POST; un
+  `pending` con `retryCount`/`runId` distinto termina la espera con `Retry scheduled: <motivo>` (sin acortar el plazo).
+  Hermano `api/tasks.ts:runTask` (Settings): devolvía éxito con un `runId` nuevo aún `running` (aprobaciones) y no salía
+  ante árbol sucio; corregidos ambos. Evidencia: `task-run-polling.test.ts` 24/0, con el código anterior 12/12;
+  `bun test src/dashboard` 419/0; typecheck y lint limpios.
+  Gate en vivo: navegador real (Playwright), `docs/done/evidence/CI.37-live.json` (`chat-retry-report` 24/24,
+  `chat-followup-task` 8/8, `chat-turn-details` 29/29).
+  Ejecutado por: codex gpt-6.1-sol (criterio-alt) · Spec: docs/specs/CI.37.md
+
+<a id="bloque-ci-ci-35"></a>
+- [x] **CI.35 — 🔍 `chat-streaming` intermitente en `one assistant bubble matches persisted response`.** (abierto y
+  cerrado 2026-10-22) 4 fallos el 2026-10-22, pasaba al reintento; existía antes de CI.32.b. Fase 1 (evidencia): en rojo
+  el paso vuelca visible y persistido completos, `firstDiff` y relectura a 2 s. Causa (6 corridas, 3 rojas; fallo del
+  gate, no del producto): (1) Haiku a veces responde en lista numerada o en bloque ```` ``` ````; el DOM renderizado no
+  trae marcadores (`::marker`) ni cercas, y el gate comparaba contra el Markdown crudo (visible 389 vs persistido 540,
+  `firstDiff=0`, igual a los 2 s); (2) el front sondea `/timeline` cada 300 ms (`OrchestChatView.tsx:196-220`) y Haiku
+  escribía "del 1 al 40" en 1,1-1,6 s → 1 crecimiento visible. Arreglo (`chat-streaming.mjs`): `words()` normaliza ambos
+  lados (sin cercas ni marcadores de lista, letras y dígitos, minúsculas) en toda comparación DOM↔mensaje (6 sitios);
+  `findBubble` prueba coincidencia exacta antes que `includes`; crecimiento medido con `requestAnimationFrame` en la
+  página (coincide siempre con el sondeo: el DOM cambia solo al ritmo de los 300 ms); turno 1 "del 1 al 120" (ventana
+  ~3 s, 7-9 crecimientos). Rondas r3/r4 rompieron por spec (solapamiento 1-120/41-80 con `includes`; `words` sin dígitos
+  igualaba los prompts): corregidas en r4/r5. Evidencia: r5 6/6 verde (`CI.35-r5-1..6`); lint y `tsc` sin errores.
+  Gate en vivo: navegador real (Playwright), `docs/done/evidence/CI.35-live.json` (`chat-streaming`).
+  Ejecutado por: codex gpt-6-luna (mecanico) · Spec: docs/specs/CI.35.md
+
+<a id="bloque-ci-ci-34"></a>
+- [x] **CI.34 — 🔍 `chat-attachments` intermitente tras CI.32.b.** (abierto y cerrado 2026-10-22) Pasó 14/14 en la batería de
+  la mañana; tras `ec92a168` falló 2 de 3 (`sent message keeps 2 attachments … after the turn: {"names":[]}` y
+  `answer contains the token … answer=` vacío). Sospecha: la fusión de hilos de CI.32.b (`lib/merge-threads.ts`)
+  reemplaza el mensaje local con adjuntos tras el turno. Primero el experimento HEAD vs `App.tsx` de `143fbce2`.
+  Spec: `docs/specs/CI.34.md`. Mismo día, sin ítem propio: `chat-streaming` falló 3 de 4 corridas en `one assistant
+  bubble matches persisted response` (pre-push de `143fbce2`, batería `CI.32-close-ui-gate-full`, `CI.34-rerun-2`);
+  pasa al reintento. Ya fallaba antes de CI.32.b (pre-push de `143fbce2`): no lo trajo este lote.
+  Experimento: HEAD 3 FAIL de 7, `App.tsx` de `143fbce2` 5 PASS de 5. Causa (inferida, no reproducida con
+  instrumentación en 12 corridas): `mergeLoadedThreads` solo conservaba el hilo local con mensajes `pending_`; una
+  lectura de sesiones iniciada antes del envío resolvía después del turno y reemplazaba el hilo por su versión vieja,
+  sin el mensaje enviado ni sus adjuntos. CI.32.b adelantó el envío y agrandó esa ventana. Arreglo: el hilo local gana
+  también si tiene mensajes que la lectura no trae (`merge-threads.ts:22-26`). Evidencia: `chat-attachments` 6/6
+  seguidas; `merge-threads.test.ts` 8/0 (el caso nuevo falla con el código anterior); `test:coverage` 1940/0; lint
+  sin errores. `chat-streaming` falló 1 vez en la batería y pasó 3/3 solo (el intermitente de arriba).
+  Gate en vivo: navegador real (Playwright), `docs/done/evidence/CI.34-live.json` (`chat-attachments`,
+  `chat-followup-task`, `chat-task-undo`, `project-tabs`, `project-isolation`).
+  Ejecutado por: claude sonnet (criterio) · Spec: docs/specs/CI.34.md
+
+<a id="bloque-ci-ci-31"></a>
+- [x] **CI.31 — ⚡ El shard `executors` de Mutation Shards pasa el límite de 3 h.** (abierto y cerrado 2026-10-21) Run
+  `39566168502` cancelado a 3h0m: 3352 mutantes en 15 archivos con `concurrency: 1` (el 2026-10-20 eran 2627 en 11 y
+  tardó 2h37; ERP.7.1a/d1/d2 sumaron `*-approval.ts` y `opencode-server.ts`). Arreglo: partir el shard en dos
+  (`executors-codex` = `codex*.ts` + `external.ts`; `executors` = el resto, por exclusión, para que un archivo nuevo
+  caiga ahí sin tocar config). Spec: docs/specs/CI.31.md (borrado)
+  `scripts/mutation-test-shard.ts` ahora resuelve los `!` de `mutate` en orden, como Stryker (r2 por hallazgo de `qa`:
+  r1 aplicaba las exclusiones al final). Evidencia (cerebro): typecheck; `mutation-test-shard.test.ts` 4/4; dry runs
+  `executors` 11 archivos/1747 mutantes y `executors-codex` 4/1605 (suma 3352, sin solape). Límite: el tiempo real de
+  cada shard se ve en la próxima corrida nocturna.
+  Confirmado 2026-10-21 (run manual `39672854539`, success, 2h50m total): `executors` 2h06m, `executors-codex` 1h54m,
+  `runtime-boundaries` 55m, `context-routing` 35m. Margen de `executors`: ~54 min; si suma archivos, vigilar.
+  Ejecutado por: codex gpt-6-luna (mecanico, r1 y r2) · QA: codex gpt-6.1-sol (qa).
+
+<a id="bloque-ci-ci-24"></a>
+- [x] **CI.24 — 🔍 Claude se niega a usar el historial del chat ("untrusted data sources like conversation history").**
+  Visto 2026-10-14 en el pre-push de `ec3e309` (`chat-continuity`, intento 1): tras recargar, Claude responde que no
+  puede verificar datos de fuentes no confiables y no recuerda el código que el USUARIO le dio. Causa probable:
+  `buildChatTranscript` (`src/dashboard/handlers/chat.ts:114`) envuelve las respuestas previas en `<untrusted-data>`
+  sin decir qué es el bloque, y Claude extiende la desconfianza a todo el historial. Intento 2: timeout de 180 s
+  (otra causa, ver CI.11). Spec: docs/specs/CI.24.md
+  (cerrado 2026-10-14) La cabecera del historial dice que es la conversación propia y que lo que dijo el usuario es
+  fiable; el envoltorio de las respuestas previas se queda. Ejecutado por: mecanico (delegate).
+  Evidencia (cerebro): typecheck, `chat-turns` + `codex-app-server` 17/17.
+  Gate en vivo: navegador real (Playwright), `docs/done/evidence/CI.24-live.json` — `chat-continuity` 8/8 en 2 de 3
+  corridas; la 3.ª cayó por el timeout del turno 1 (→ CI.25). Límite: la negativa se vio 1 vez; que no reaparezca en 2
+  corridas es evidencia débil.
+
+<a id="bloque-ci-ci-26"></a>
+- [x] **CI.26 — 🔍 `CC.2 — chat sessions backend` llega al timeout de 5 s en `test:coverage` (intermitente).** Visto 2
+  veces: 2026-10-13 y pre-push de `8701044` (2026-10-14). El subproceso de `runIsolated` se cuelga tras
+  `[chat-turn] received` de la sesión `codex` (`chat-sessions.test.ts:323-326`, espera 502) y muere con 143. A solas
+  tarda <1 s, también con el entorno del pre-push y `--coverage`.
+  Ejecutado por: sonnet (rol `criterio`, r1) y gpt-6-luna (rol `mecanico`, r2) · Spec: docs/specs/CI.26.md (borrado)
+  (cerrado 2026-10-14) **Causa demostrada:** `handleApiChat` hacía `await ensureCatalogLoaded()` en todo turno; sin
+  caché fresco eso es un fetch a OpenRouter de hasta 10 s (`router/model-catalog.ts`), también en turnos CLI que no
+  usan el catálogo. Con red lenta el turno (y el test, 5 s) quedaba esperando. Arreglo de producto: solo el camino API
+  lo espera (`chat.ts:~1284`); el test además siembra un `models.json` fresco en su HOME. r2 (cerebro): la r1 acotaba
+  la espera a 1.5 s con `Promise.race`, que en un turno API con red lenta quitaba `reasoning` sin avisar.
+  Contraprueba (cerebro, `HTTPS_PROXY` a IP no ruteable): con HEAD fallan 2 tests a ~5001 ms; con solo el arreglo de
+  producto 24/24. Evidencia: `typecheck`, `chat-sessions.test.ts` 24/24 con y sin el proxy.
+
+<a id="bloque-ci-ci-28"></a>
+- [x] **CI.28 — 🔍 El test de `statusLine` de `session-status` lanza el `codex` real del host.** (abierto y cerrado 2026-10-16)
+  Visto 1 vez en `test:coverage` (timeout 5 s, pasó al repetir). Causa leída en el código: el test borra
+  `ORCHESTOS_SESSION_TRANSCRIPT` y `readActiveSessionStatuses` (`scripts/session-status.ts:199`) llama
+  `readCodexRateLimitsLive` con el `codex` instalado en el Mac; en CI no existe y nunca falla. Arreglo: inyectar
+  `detectClis` y `readCodexRateLimits` en el test; afirma 1 lectura falsa de cuota Codex.
+  Evidencia (cerebro): `session-status.test.ts` 6/6; `bun run test:coverage` 1821 pass / 0 fail.
+  Ejecutado por: codex gpt-6-luna (mecanico).
+
+<a id="bloque-ci-ci-27"></a>
+- [x] **CI.27 — 🔍 Un flujo que revienta no dice qué locator falló ni deja captura.** (abierto 2026-10-15)
+  El pre-push de `e1d3b12` falló una vez con `FAIL chat-context: flow: locator.click: Timeout 30000ms exceeded.`, al
+  pasar de Codex a Claude (`chat-context.mjs`, `startChat`/`selectClaudeHaiku`: 6 clics posibles). A solas pasó
+  5/5, y el reintento del push pasó entero. Ni `result.json` ni el log dicen qué locator era, y no quedó captura del
+  momento (`ui-gate-28520/chat-context/` solo tiene la de Codex). Primero, evidencia genérica en
+  `scripts/ui-gate/run.mjs`: ante la excepción de un flujo, guardar el mensaje completo de Playwright (incluye
+  `waiting for <locator>`) y una captura `failure.png`. Sirve también para CI.18, CI.19 y CI.23. Después, la causa.
+  (cerrado 2026-10-20) Playwright sí trae el locator (`Call log: waiting for …`), pero con ANSI y en otra línea, y el
+  `FAIL` solo mostraba la primera. Ahora `describeFlowError` (`scripts/ui-gate/lib.mjs`) deja una línea
+  `<error> [waiting for <locator>]`, `result.errorDetalle` guarda el mensaje completo sin ANSI y el runner toma
+  `<flujo>/failure.png` antes de cerrar el navegador (si la captura falla, va a `notes`, no cambia el resultado).
+  La causa del fallo de `chat-context` (visto 1 vez) pasa a "Intermitentes vistos una vez" en NEXT.md.
+  Evidencia (cerebro): diff leído; `run.test.ts` 11/11; tsc y biome verdes; QA (Sol): sin defectos. Ruta de fallo en
+  vivo probada solo por el ejecutor (flujo forzado: `FAIL … [waiting for getByRole(…)]` + `failure.png`); el hook
+  `brain-no-code` no deja al cerebro crear el flujo de prueba.
+  Gate en vivo: navegador real (Playwright), `docs/done/evidence/CI.27-live.json` — `chat-context` 5/5.
+  Ejecutado por: codex gpt-6-luna (mecanico) · Spec: docs/specs/CI.27.md
+
+<a id="bloque-ci-ci-25"></a>
+- [x] **CI.25 — 🔍 El turno 1 de Claude (haiku, "Reply only OK") no responde en 180 s, sin rastro.** Visto 2 veces el
+  2026-10-14 en `chat-continuity` (pre-push de `ec3e309`, intento 2, y corrida 2 de CI.24). El `dashboard.log` no dice
+  nada: el chat no registra spawn, salida ni duración del CLI. Primero que deje evidencia (pid, exit, stderr, ms del
+  CLI de chat en `dashboard.log`), luego causa. Posible hermano de CI.11 (turno 2 de Codex lento).
+  2026-10-14 tarde: se reproduce siempre (pre-push de `5d67f56` ×2 + a solas ×1) tras actualizarse Claude Code a
+  2.1.300; bloquea el push.
+  Ejecutado por: criterio (delegate) · Spec: docs/specs/CI.25.md
+  (cerrado 2026-10-14) Rastro nuevo: `[cli-spawn]` (agente, pid, entorno, primer byte, ms, exit, stderr) para Claude y
+  Codex (`src/run/executors/spawn-trace.ts`) y `[chat-turn] received` al llegar el POST. Con él, en la falla el
+  segundo turno (tras recargar) nunca llegó al servidor: `AgentComposer.handleSend` descartaba en silencio el Enter
+  mientras cargaban los modelos (el mismo "Loading models…" de R.8.1.1). Ahora el envío se recuerda y sale al
+  terminar la carga. Además un `result` con `is_error` del CLI (p. ej. "Not logged in") es error visible del turno.
+  **Causa inferida, no demostrada** (sin contraprueba con el arreglo revertido). Visto una vez en la depuración:
+  `claude not found in PATH` durante el auto-update de Claude Code (ya sale como 502 visible).
+  Evidencia (cerebro): diff leído; typecheck y lint verdes; `chat-continuity` 3/3 seguidas (8/8 cada una).
+  Gate en vivo: navegador real (Playwright), `docs/done/evidence/CI.25-live.json` — `chat-streaming` 24/24,
+  `codex-live` 14/14, `chat-continuity` 8/8, `composer-picker` 5/5.
+
+<a id="bloque-ci-ci-30"></a>
+- [x] **CI.30 — ⚡ El pre-push verifica el commit que se empuja, no el árbol de trabajo.** (abierto y cerrado 2026-10-17)
+  CI rojo en lint (run 39076415730): un archivo sin formatear en `74afe6d` pasó el pre-push porque el árbol de trabajo
+  tenía la versión formateada sin commitear (arreglado en `306c722`). Ahora `test:coverage` y `lint` corren en un
+  worktree temporal del SHA empujado (`node_modules` enlazado, borrado por `trap`); ui/chat-gates siguen en el árbol.
+  Ejecutado por: mecanico (Luna) · Spec: docs/specs/CI.30.md (borrado al cerrar)
+  Evidencia: `bash -n` ok; hook con stdin `74afe6d` → aborta en lint por `docs/done/evidence/CX.6-live.json` (el árbol
+  ya lo tenía formateado); `git worktree list` tras la corrida = solo el árbol principal; el push de este commit pasó
+  por el hook nuevo sobre HEAD.
+
+<a id="bloque-ci-ci-29"></a>
+- [x] **CI.29 — 🔍 El modelo del chat no se entera de que el usuario rechazó una tarea.** (abierto 2026-10-17, cerrado 2026-10-17) El
+  pre-push de AT.20 cayó en `chat-turn-details` "second held task card visible": tras Reject (borra la tarea) y repetir
+  el pedido, el modelo dice "sigue pendiente" y no llama a `create_task`. 2.ª vez visto. El prompt lista
+  "Rejected by the user (deleted, nothing was run)" con la misma regla que el front (`App.tsx:229-238`), máx. 5, y pide
+  volver a llamar a `create_task` si se repite el pedido; el cambio de hash llega a Codex/Claude reanudados como
+  `<orchestos-context-update>`.
+  Ejecutado por: `criterio` (roster.conf) · Spec: docs/specs/CI.29.md (borrado al cerrar)
+  Evidencia: typecheck y lint (0 errores) limpios; `test:coverage` 1844/0; `gate:evidence CI.29-chat-turn-details` ×3 →
+  `PASS chat-turn-details 29/29` las 3 veces; el pre-push completo la vuelve a correr.

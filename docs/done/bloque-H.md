@@ -1265,3 +1265,384 @@ catálogo real, no se toca).
   leyó con `cat` y devolvió el token — límite conocido y aceptado (frontera `none`), sin aviso por decisión de Carlos.
   Primera corrida falló por entorno: el modelo por defecto de Claude sin cupo ("out of usage credits") y Codex >180 s;
   el flujo ahora elige Haiku y falla con "Claude sin cupo" si vuelve a pasar. No va al pre-push (necesita CLIs reales).
+
+## Archivado 2026-10-22 desde PLAN.md (DOC.4)
+
+<a id="bloque-h-seccion-h-10-el-gate-de-evidencia-acepta-prosa-n"></a>
+### H.10 — El gate de evidencia acepta prosa, no el hecho (ABIERTO 2026-09-08, GO de Carlos)
+
+> Por qué existe: incidente R.5 del 2026-09-08 ([[feedback-verificar-gates-en-vivo]],
+> [[feedback-revisor-adversarial-cruzado]]). Claude cerró R.5 declarando "Gate en vivo: navegador
+> real..." en PLAN.md con `check-live-gate.ts` en verde — pero el gate solo verifica que esa
+> *frase* exista (regex sobre `Gate en vivo:.*(navegador|browser|Playwright)`), nunca que el
+> hecho (dos procesos concurrentes, exigido por el propio texto del ítem) haya ocurrido de
+> verdad. No ocurrió. Lo encontró Astra (GPT, revisión independiente) horas después, junto con 4
+> bugs reales de concurrencia/ownership que 1335 tests en verde no habían tocado — el mismo día,
+> mismo ítem.
+- [x] **H.10.2 — 🧠 Revisor adversarial nocturno, de un modelo distinto al que implementó.**
+  Reabierto 2026-09-08 por Carlos: corregir exclusivamente cinco fallos de H.10.1/H.10.2 antes de
+  volver a declararlo cerrado: aislamiento efectivo (filesystem, credenciales, red y timeout) de
+  tests generados; `test_path` canónico dentro de `review-evidence` sin traversal, absolutos,
+  symlinks externos ni sobreescritura; clasificación de fallos que separa aserción de sintaxis,
+  imports, infraestructura y timeout; fail-closed del estado `lastReviewedSha`; y evidencia del
+  gate ligada al ítem que se cierra y presente en el contenido staged. Añadir regresiones
+  adversariales, ejecutar los gates requeridos y documentar resultados/límites. No activar el
+  LaunchAgent, no cambiar `gpt-5.6-sol` y dejar la revisión independiente pendiente: los tests de
+  quien implementa no la sustituyen. **Scope declarado:** `scripts/adversarial-review.ts`,
+  `scripts/adversarial-review.test.ts`, `scripts/agent-governance.ts`,
+  `scripts/agent-governance.test.ts`, `scripts/check-live-gate.ts`, `PLAN.md` y, solo si hace
+  falta para el sandbox verificable, el script mínimo versionado que aquel invoque. **Fuera de
+  scope declarado:** LaunchAgent/launchd, `package.json`, prompt/modelo configurado, `REVIEW.md`,
+  automatización nocturna y cualquier hallazgo ajeno. Estado previo: cerrado 2026-09-08 (Claude implementó + Codex `gpt-5.6-terra` escribió los tests unitarios
+  sobre el contrato ya cerrado, delegación explícita de Carlos).
+  1. `scripts/adversarial-review.ts` (funciones puras exportadas, `main()` orquesta): toma
+     `git diff` desde el último sha revisado (`.orchestos/adversarial-review-state.json`) hasta
+     `HEAD` — si ese sha ya no existe (rebase/force-push), cae a `HEAD~1..HEAD` en vez de asumir
+     cuánto cubrir. Alcance acotado al diff, no barrido completo del repo (decisión de Carlos).
+  2. Corre `codex exec -m gpt-5.6-sol --json --sandbox read-only --ignore-user-config`. El
+     stream `--json` **no reporta el modelo usado** (verificado en vivo,
+     [[reference-codex-modelo-real-rollout]]) — el script captura `thread_id` del stream
+     (`extractThreadId`), busca `~/.codex/sessions/**/rollout-*-<thread_id>.jsonl`
+     (`findRolloutPath`), lee el `model` real de la línea `type:"turn_context"`
+     (`extractModelFromRollout` — path exacto verificado en el rollout real, no en memoria) y
+     **aborta sin escribir nada** si no coincide con `gpt-5.6-sol` (`verifyModelUsed` +
+     `main()`). El modelo de una corrida real no es una afirmación del LLM
+     ([[feedback-modelo-decision-final-carlos]]).
+  3. Prompt adversarial (`scripts/adversarial-review-prompt.md`) por los 4 dominios reales del
+     incidente: concurrencia/ownership, frontera de seguridad, evidencia declarada vs.
+     producida, contradicción comentario-vs-código. Contrato de salida: un único bloque
+     ` ```json ` con un array (vacío si no hay nada real — explícitamente autorizado a no
+     inventar).
+  4. **Regla dura anti-ruido:** `runFindingTest()` escribe el `test_code` de cada hallazgo bajo
+     `review-evidence/*.check.ts` (extensión deliberada, fuera del glob de descubrimiento de
+     `bun test` — un hallazgo real no puede romper el CI del propio repo) y lo corre con
+     `bun test <ruta explícita>`. Sobrevive solo si el proceso termina con código distinto de 0
+     — si el test no falla, se descarta y el archivo se borra en el mismo `main()`, antes de
+     tocar `REVIEW.md`.
+  5. Hallazgos sobrevivientes → `REVIEW.md` (nuevo, en la raíz, mismo principio que `DREAMING.md`
+     — nunca aplica cambios, Carlos decide qué promover a `PLAN.md`/`IDEAS.md`; entradas más
+     recientes primero, sin duplicar el header entre corridas — `appendToReviewMd`). El script
+     **nunca commitea** — deja el working tree con cambios locales para que Carlos los revise.
+  6. `~/Library/LaunchAgents/dev.cagr1.orchestos.review.plist` (creado, **sin cargar todavía en
+     launchd** — pendiente de que Carlos confirme activarlo) — mismo patrón que
+     `dev.cagr1.memoriesmd.sync.plist` (ya en la máquina): `StartCalendarInterval` 3am, sin
+     `pmset wake` (decisión explícita de Carlos: no vale el costo de forzar el despertar de la
+     máquina por esto). `bun run review:nightly` (`package.json`) usa la suscripción de Codex ya
+     pagada, no API key aparte — por eso no es GitHub Actions.
+  **Gate:** `bun test scripts/adversarial-review.test.ts` — 10 pass / 0 fail / 35 expects
+  (funciones puras: estado/rango, parseo de stream JSONL, verificación de modelo contra rollout,
+  parseo de hallazgos, formato de `REVIEW.md`). Además, **corrida real contra `codex exec`**
+  (no simulada) en dos repos git temporales — evidencia completa en
+  `scripts/h10-gate-evidence.json`:
+  (1) diff con un bug plantado de la misma forma que R.5 (comentario promete verificar el owner
+  del lease, el código no lo hace) → el modelo lo encontró, escribió un test, ese test falló
+  contra el código real, y la entrada quedó en `REVIEW.md` — texto y test verificados a mano;
+  (2) diff limpio (trim de un string, sin nada en los 4 dominios) → cero hallazgos, cero ruido,
+  no se crea ni `REVIEW.md` ni `review-evidence/`;
+  (3) `expectedModel` deliberadamente distinto al real (`gpt-5.6-sol` corrió de verdad, se pidió
+  verificar contra `"modelo-incorrecto-a-proposito"`) → abortó con exit code 1, no escribió
+  nada, y **no actualizó el estado** (el sha revisado no avanza, así que la próxima corrida real
+  vuelve a intentar ese mismo diff en vez de darlo por hecho).
+  **Corrección en curso 2026-09-08 (Codex, no cerrar hasta gates pendientes):** los cinco
+  hallazgos se corrigieron en el revisor y sus gates: las pruebas generadas corren bajo
+  `sandbox-exec` de macOS con root temporal de escritura, repo solo lectura, `HOME`/
+  `ORCHESTOS_HOME` limpios, red denegada y timeout de 30 s; si no existe ese sandbox, se rechaza
+  la prueba sin fallback. `test_path` rechaza absolutos/traversal, comprueba ancestros canónicos
+  (incluidos symlinks) y no pisa un destino existente. Solo una salida reconocible de aserción
+  puede confirmar un hallazgo; sintaxis, import, infraestructura y timeout se registran en
+  `*.result.json` con stdout/stderr y se descartan como prueba. El SHA queda inmóvil para spawn/
+  timeout de Codex, respuesta ausente, JSON o hallazgos malformados. H.10.1 ahora exige que el
+  artefacto sea un blob staged citado en la propia línea `Gate en vivo:` del mismo ítem cerrado.
+  **Verificado:** `bunx tsc --noEmit`; `bun test scripts/adversarial-review.test.ts
+  scripts/agent-governance.test.ts` — 19 pass / 0 fail / 80 expects; sandbox real adversarial
+  comprobó lectura externa, escritura fuera del temporal, credencial inyectada y red local
+  denegadas. `bunx biome check` sobre los cinco scripts tocados pasó. **Pendiente, no se
+  reclama:** `security:gate`/`test:coverage` completos no terminaron antes del límite de 30 s del
+  runner de esta sesión; revisión independiente sigue pendiente y estos tests propios no la
+  reemplazan. No se activó el LaunchAgent ni se cambió modelo, prompt o `package.json`.
+  **(cerrado 2026-10-21) El revisor llevaba muerto desde el 2026-09-29 y nadie lo vio.** Log: ~20 noches de timeout y
+  16 de `E2BIG`: fail-closed no avanza el SHA, el diff crece cada noche (5,2 MB, 338 commits) y el prompt iba como
+  argumento. Arreglo (r1–r3): prompt por stdin; presupuesto `MAX_DIFF_BYTES` = 150 KB con `selectReviewWindow` (el
+  tramo más largo de commits recientes que cabe); lo que no cabe se anota en `REVIEW.md` como "no revisado" y el SHA
+  avanza (decisión de Carlos 2026-10-21: el atraso se salta y se anota). r3 por `qa`: r1 elegía el tramo más corto (un
+  commit por noche) y perdía la anotación si el tramo nuevo tenía diff vacío. El rollout se busca bajo `CODEX_HOME`
+  (Orca lo define; sin eso abortaba con "rollout no encontrado"). Specs: docs/specs/H.10.2-r1.md, -r2, -r3 (borrados).
+  Ejecutado por: gpt-6-luna (rol `mecanico`, r1–r3) · QA: gpt-6-sol (rol `qa`) · Spec: docs/specs/H.10.2.md
+  Evidencia (cerebro): typecheck; `adversarial-review.test.ts` 26/26; corrida real 6 min 11 s con `gpt-5.6-sol`
+  verificado contra el rollout: anotó `d45e4f13..14490f85` (338 commits) como no revisado, revisó
+  `14490f85..c337db57` y confirmó 2 hallazgos con su test (→ AT.11.1); SHA avanzó a `c337db57`. `REVIEW.md` queda
+  local como `review-evidence/` (las pruebas que cita no se versionan). Límite: la corrida por launchd se verifica con
+  `launchctl kickstart` tras el commit.
+
+  **H.10.2-bis — revisión independiente (Claude, 2026-09-08): dos bugs bloqueantes que se
+  anulaban entre sí y hacían que el revisor NO pudiera confirmar ningún hallazgo jamás.**
+  Encontrados corriendo el recorrido completo, no leyendo el diff.
+  1. **El sandbox impedía ejecutar cualquier cosa.** El perfil `(deny default)` solo permitía
+     `process*` y unas rutas de lectura; macOS 26 exige además las clases `mach*`, `sysctl*`,
+     `signal`, `ipc*` y `system*` para que un binario arranque. Verificado a mano: hasta
+     `/bin/echo` moría con SIGABRT (exit 134) y stdout/stderr **vacíos**. Como
+     `classifyFindingFailure` clasifica por patrones en la salida, una salida vacía caía en
+     `non-assertion-failure` → **todo hallazgo se descartaba, siempre, en silencio**. El revisor
+     nocturno habría corrido cada noche reportando cero hallazgos, y eso se habría leído como
+     "no hay bugs". Es exactamente el botón que no hace nada de la regla cero de `CLAUDE.md`.
+  2. **`bun test <ruta>` sin `./` no ejecuta nada.** Bun trata el argumento como *filtro de
+     nombre*; como la evidencia usa `.check.ts` (deliberado, para no entrar al glob de la suite
+     del repo), no matcheaba ningún test y no corría ninguna aserción — devolviendo exit≠0
+     igual. Con la regla original ("sobrevive si exit≠0"), **cualquier** hallazgo quedaba
+     "confirmado" sin haberse probado nada. Verificado: sin `./` → `0 expect() calls`; con `./`
+     → `1 fail, 1 expect() calls`. **Esto invalida retroactivamente el gate declarado en la
+     primera pasada de H.10.2**: aquel "bug plantado detectado" fue un falso positivo — el test
+     nunca corrió. Queda registrado en `scripts/h10-gate-evidence.json` § `invalidatedFirstPass`
+     en vez de borrarse.
+  **Por qué ningún test los atrapó:** los tests del sandbox verificaban que nada ESCAPARA, pero
+  ninguno verificaba que algo FUNCIONARA dentro. Tercera repetición del mismo patrón en el día
+  ([[feedback-revisor-adversarial-cruzado]]): un test escrito contra el propio contrato del autor
+  hereda su punto ciego. Se agregó la regresión que faltaba — un hallazgo legítimo debe sobrevivir
+  con `reason: 'assertion-failed'` **y** con prueba de ejecución (`expect() calls` en la salida),
+  no solo con un exit code distinto de 0.
+  **Decisión de seguridad, explícita:** se permite `file-read*` amplio (acotarlo volvía a impedir
+  el arranque: el dyld cache de macOS 26 vive detrás de firmlinks). La frontera que sí se
+  sostiene y se verificó en vivo es **escritura solo al temporal + red denegada + credenciales
+  conocidas (`~/.ssh`, `~/.aws`, `~/.codex`, `~/.claude`, `~/.gnupg`, `~/.config/gh`) denegadas**.
+  Sin red, leer no permite exfiltrar; residuo aceptado: un test podría copiar lo leído al
+  `.result.json` local. `classifyFindingFailure` además distingue ahora `test-passed` (exit 0)
+  de un fallo raro, para que el `.result.json` sea legible.
+  **Gate (recorrido real, con Codex real, después del fix):** ver
+  `scripts/h10-gate-evidence.json`. (1) bug plantado con la forma de R.5 → hallazgo confirmado,
+  `reason: assertion-failed`, `1 fail / 3 expect() calls` — la aserción **corrió**; (2) diff
+  limpio → cero hallazgos, sin `REVIEW.md` ni `review-evidence/`; (3) mismatch de modelo → aborta
+  sin escribir y sin avanzar el SHA. Fronteras del sandbox probadas en vivo con un test que
+  intenta violarlas: escritura externa, red y credencial → las tres bloqueadas, `3 pass /
+  3 expect() calls` (probando que corrió). `bunx tsc --noEmit` limpio; `bun test` de los dos
+  archivos: 20 pass / 0 fail / 84 expects.
+  **Además — CI estaba rojo por `lint`, no por los tests.** `bun run lint` (Biome) fallaba con 7
+  errores de formato/`organizeImports`; el job venía en rojo desde antes de este bloque (19 de
+  los últimos 25 runs). Corregido con `bun run lint:fix` → `bun run lint` exit 0. Causa raíz de
+  por qué nadie lo veía: **`lint` no está en `pre-commit` ni en `pre-push`**, así que el único
+  lugar donde aparece es CI, y un CI siempre rojo deja de dar señal (mismo corolario ya escrito
+  en `CLAUDE.md`). Sumarlo al `pre-push` queda propuesto a Carlos, no hecho.
+  **Sigue pendiente, no se reclama:** el LaunchAgent quedó cargado en la pasada anterior
+  (`launchctl list` → `dev.cagr1.orchestos.review`) **antes** de que estos dos bugs se
+  descubrieran; con el fix ya aplicado el revisor funciona, pero su primera corrida nocturna real
+  todavía no ocurrió — hasta que ocurra, el recorrido en condiciones de cron sigue sin evidencia.
+  **Portabilidad CI en curso (Codex, 2026-09-08):** Ubuntu no tiene `sandbox-exec`; por ello las
+  dos integraciones que ejercitan el sandbox real se saltan únicamente si la sonda inyectable
+  declara que no hay sandbox macOS. La sonda cubre de forma determinista Darwin+binario,
+  Darwin+ausente y Linux+aun-con-ruta simulada; en Linux el camino productivo conserva
+  `infrastructure-error` y `survived:false`, nunca ejecuta evidencia sin aislamiento. En macOS,
+  ambas integraciones corrieron: `bun test scripts/adversarial-review.test.ts
+  scripts/agent-governance.test.ts` → 21 pass / 0 fail / 87 expects; `bunx tsc --noEmit` y Biome
+  de los dos archivos tocaron limpio. Límite explícito: CI acredita la selección portable y el
+  fallo cerrado; la frontera real de sandbox se acredita solo en macOS. `test:coverage` y
+  `security:gate` se iniciaron localmente pero esta terminal corta su proceso antes de resultado.
+  **Evidencia remota:** commit `04e75bd` — CI
+  [34285739231](https://github.com/cagr1/orchestos/actions/runs/34285739231) ✅: cobertura,
+  typecheck y lint; Secret Check
+  [34285739176](https://github.com/cagr1/orchestos/actions/runs/34285739176) ✅: typecheck y
+  secretos tracked. No acredita el sandbox macOS, que quedó cubierto por la integración local.
+  **Fuera de scope declarado:** `scripts/h10-gate-evidence.json` (el artefacto de evidencia del
+  propio gate, exigido por H.10.1 — no estaba en el scope-lock que declaró la corrección) y
+  `.orchestos/feature-status.json` (regenerado por el pre-commit desde este mismo PLAN.md).
+
+
+<a id="bloque-h-h-7-2c"></a>
+- [x] **H.7.2c — ⚡ Registro de adaptadores: falta OpenCode.** Hallazgo por código
+  (2026-09-08, Claude, verificando el hook H.7.3 a pedido de Carlos — "verifica que esto se
+  cumpla para cualquier modelo"). `DEFAULT_ADAPTERS` en `scripts/context-adapters.ts:267` solo
+  trae `[claudeAdapter, codexAdapter]`. El diseño del registro sí es genérico por modelo dentro
+  de cada CLI (`readTranscriptUsage()` lee el `model` real de la última línea del transcript en
+  cada disparo, nunca uno fijo) — pero por CLI es una lista cerrada de 2. Carlos usa OpenCode en
+  este mismo proyecto ([[codex-delegation-workflow]] / uso real observado en sesión); con ese
+  CLI activo, `readContextBudget()` no encuentra adaptador y el fail-open documentado en
+  `context-adapters.ts:117` ("un hook que rompe el turno es peor que un hook que no avisa")
+  hace que el aviso de 60%/65% **no aparezca en absoluto, en silencio** — no es un bug, es la
+  consecuencia no señalada de una decisión de diseño correcta.
+  Aplicar la misma regla ya escrita para este registro (`context-adapters.ts:10`, cita de
+  Carlos): "las soluciones no las hacemos una por modelo sino para los LLMs que vengan" —
+  agregar `opencodeAdapter` como entrada de datos en `DEFAULT_ADAPTERS`, no un `if` nuevo.
+  Antes de escribirlo: verificar contra un transcript real de OpenCode dónde publica
+  modelo/tokens/ventana (mismo método que H.7.2b usó para Codex — contrato verificado en vivo,
+  no asumido de la documentación). Si OpenCode no publica la ventana en su transcript, resolver
+  por catálogo igual que hace `claudeAdapter`, no inventar un fallback por familia.
+  **Gate:** sesión real con OpenCode como agente activo, cruzar el 60%, ver el aviso en vivo —
+  mismo criterio que el gate 🔍 de H.7.3, no un test que mockee el adaptador.
+  **Cerrado 2026-10-20.** OpenCode 1.19 no escribe JSONL: `opencodeAdapter` lee `~/.local/share/opencode/opencode.db`
+  en solo lectura (último mensaje assistant con tokens: `input + cache.read + cache.write`) y la ventana del catálogo
+  `~/.cache/opencode/models.json` (`limit.context`). El "transcript" es la pseudo-ruta `opencode-session:<id>`, que el hook
+  acepta. Como ningún hook de Claude corre en una sesión de OpenCode, se agregó el disparador:
+  `.opencode/plugin/context-budget.ts` llama al hook al final de cada turno (`session.idle` o `session.status` idle, uno
+  solo por turno, sin bloquear el event loop) y muestra el aviso como toast.
+  Gate en vivo: turno real de `opencode run -m opencode/deepseek-v4.1-flash-free` en este repo → `110241/200000`, 55 %,
+  `warn`; el plugin escribió `.orchestos/context-budget.json` con esa sesión 0,4 s después del fin del turno y regeneró el
+  handoff. Contra la DB real, `ses_051b929…` da `critical` (77 %). QA: sin bloqueantes; el aviso duplicado que halló se
+  corrigió (prueba con toast simulado: 1 toast). `tsc` verde, 34 tests en verde.
+  Hallado: `opencode.json` apunta a `opencode/deepseek-v4-flash-free`, que OpenCode ya no reconoce (lo decide Carlos).
+  Ejecutado por: mecanico (rondas 1 y 3) + criterio-alt (ronda 2) · revisión qa · Spec: docs/specs/H.7.2c.md
+
+<a id="bloque-h-h-7-3"></a>
+- [x] **H.7.3 — ⚡ El hook: avisar al 60% y volcar el handoff una sola vez.**
+  **Cerrado 2026-10-20 — gate 🔍 en vivo pasado.** Sesión real de Claude Code (`claude -p --model haiku`, retomada con
+  `--resume`, hooks del proyecto cargados): con 265 543 tokens (26,6 % de 1 000 000, `warn` por el tope absoluto de
+  250 000) el `UserPromptSubmit` del turno siguiente inyectó "Contexto alto: 265,543 tokens… Handoff actualizado." y el
+  modelo lo citó textual; `.orchestos/context-budget.json` quedó con esa sesión (`firedAt 15:03:43Z`) y el `mtime` de
+  `.orchestos/handoff.md` es 15:03:43Z, después del cruce (medido 15:03:40Z). En el turno siguiente la respuesta fue
+  "sin aviso", el estado y el handoff no cambiaron, y el transcript tiene un solo `hook_success` con el aviso: `warn`
+  avisa una sola vez por sesión. El mismo hook ya se había disparado en vivo desde OpenCode (H.7.2c). Costo del gate:
+  USD 1,43 de Haiku. Estado y handoff restaurados; la sesión de prueba se borró.
+  Sin delegación: gate corrido por el cerebro.
+  (2026-10-11, commit `91687e4`: `warn` es ahora 40 % o 250 000 tokens y `critical` 65 % o 400 000; los "60%" de abajo son
+  históricos. El gate 🔍 se cumple cruzando el umbral nuevo.)
+  Depende de H.7.1, H.7.2 y **H.7.2b** (la fuente del número se rehizo como registro de
+  adaptadores — no re-cerrar H.7.3 leyendo el JSONL directo). El hook debe consumir
+  `readContextBudget()` del registro, sin saber qué CLI está corriendo.
+  `.claude/hooks/context-budget.js`, registrado como
+  `UserPromptSubmit` en el `settings.json` **del proyecto** (no el global — el global es
+  portable entre máquinas, ver `~/.claude/CLAUDE.md`). Comportamiento:
+  - Lee `transcript_path` del JSON de stdin. Si falta o el archivo no existe: **salir 0 sin
+    imprimir nada**. Fallar abierto: un hook que rompe el turno es peor que un hook que no
+    avisa.
+  - `level === 'ok'` → **no imprime nada**. Cero tokens.
+  - `level === 'warn'` (≥60%) → dispara `bun run agent:handoff` **una sola vez por sesión**
+    (flag `{ sessionId, firedAt }` en `.orchestos/context-budget.json`, gitignored) e imprime
+    un aviso de ≤4 líneas: % actual, modelo, ventana, y la instrucción de cerrar el tab.
+  - `level === 'critical'` (**≥65%**, bajado desde 75% por decisión de Carlos el 2026-09-03 —
+    ver punto 6 de la investigación: el autocompact dispara a ~78% y no se puede desactivar de
+    forma fiable, así que el margen debe absorber un turno pesado entero) → aviso corto en cada
+    turno. **Este es el único nivel que avisa en cada turno**; en `warn` el aviso es una sola vez
+    por sesión (ver BUG-H.7.3-a abajo — hoy el código no cumple esto). Los dos umbrales son
+    **dato del registro de H.7.2b**, no constantes en el hook.
+  - Presupuesto de tiempo: el hook debe terminar en <500ms; `timeout` de 5000 en la config.
+  Gate 🔍 (no se cierra sin esto): correr una sesión real hasta cruzar el 60% y **ver el aviso
+  en vivo**, con `.orchestos/handoff.md` escrito y su timestamp posterior al cruce. No vale un
+  test que mockee el hook — es exactamente el fallo de "interfaz que no aporta" de la Regla
+  Cero, y la razón de [[feedback-verificar-gates-en-vivo]].
+  **Implementación lista; gate 🔍 pendiente:** hook de comando registrado en el `settings.json`
+  del proyecto con timeout real de 5 segundos (=5000 ms). Lee stdin, falla abierto ante ausencia,
+  corrupción, timeout, modelo no publicado o fallo de handoff; `warn`/`critical` genera el
+  handoff solo si el `{sessionId, firedAt}` no coincide y `critical` avisa en cada turno. El aviso
+  ocupa 3 líneas. La resolución proveedor-neutral de H.7.1 usa solo una coincidencia única del
+  catálogo. Prueba end-to-end de ruta normal con transcript real: `claude-sonnet-5` → ventana
+  publicada 1,000,000, 17.6%, silencioso, 110 ms. Falta una sesión real ≥60% para verificar el
+  aviso visible y el `mtime`; no se suplanta con fixture.
+  **Observaciones corregidas (2026-09-02, pedido explícito de Carlos):** el fixture de eval
+  crea su commit base con identidad efímera pasada como `git -c`, sin escribir configuración local
+  ni global; su test anula configuración global/sistema para reproducir GitHub Actions. El
+  pre-push mantiene el comando exacto de CI, pero guarda la salida completa en un log temporal y
+  muestra solo las 6 líneas finales al pasar (80 líneas al fallar). Corrida real ✅: 1219 pass /
+  0 fail, funciones 74.20%, líneas 63.32%; el output visible quedó acotado y el log conserva el
+  diagnóstico completo.
+
+  **Gate 🔍 corrido por Claude el 2026-09-03 — primera pasada, NO PASÓ (bugs abajo). Ambos
+  bugs se arreglaron después, dentro del trabajo de H.7.2b (commit `8a6ea80`) — ver
+  "BUG-H.7.3-a arreglado y verificado en vivo" / "BUG-H.7.3-b cerrado" más arriba en este
+  bloque. Se deja la tabla y el diagnóstico original como evidencia de por qué se reabrió
+  H.7.2b. Lo que sigue sin cerrar el ítem: el gate estricto pide una sesión en vivo cruzando
+  el 60% dentro de un turno; lo verificado hasta ahora es contra transcripts reales pero
+  históricos — falta esa corrida en caliente.**
+  Método: se invocó el hook real (`node .claude/hooks/context-budget.js`) con el JSON de stdin
+  que le pasa Claude Code, contra **transcripts reales de Carlos** de
+  `~/.claude/projects/<slug>/` que ya habían cruzado el umbral — no fixtures sintéticos.
+  Medición previa con `bun run context:budget --` sobre 8 transcripts: 3 en `warn`
+  (61.5% / 64.2% / 71.9%) y 1 en `critical` (78.0%).
+
+  | Prueba | Transcript | Resultado |
+  |---|---|---|
+  | `ok` | sesión actual, 17.6% | silencio, exit 0, **103 ms** |
+  | `warn` | `b1bb946b…` 71.9% | aviso 3 líneas + handoff regenerado, 237 ms ✅ |
+  | `warn`, 2º turno misma sesión | `b1bb946b…` | handoff **no** se regenera ✅ / aviso **se repite** ❌ |
+  | `critical` | `7c87bf0a…` 78.0% | "Contexto crítico", exit 0 ✅ |
+  | transcript inexistente | — | silencio, exit 0 ✅ |
+  | stdin no-JSON | — | silencio, exit 0 ✅ |
+
+  **BUG-H.7.3-a — el aviso de `warn` se imprime en cada turno, no una sola vez.**
+  En `.claude/hooks/context-budget.js:18-19` el guard de `sessionId` protege **solo** la
+  escritura del handoff; `printWarning(budget)` queda fuera del `if` y corre siempre:
+
+      if (readState()?.sessionId !== sessionId && !writeHandoff(...)) return
+      printWarning(budget)   // ← sin guard
+
+  Rompe tres cosas a la vez: (1) el spec de arriba, donde la **única** diferencia declarada
+  entre `warn` y `critical` es la frecuencia del aviso — con este bug `critical` no tiene
+  comportamiento propio; (2) la propia nota de evidencia de Codex ("`critical` avisa en cada
+  turno", que implica que `warn` no); (3) la regla global de `~/.claude/CLAUDE.md` § Costo de
+  contexto, punto 4, textual: *"un aviso por turno es el mismo mal que intenta curar"* — 3
+  líneas por turno desde el 60% hasta cerrar el tab, en el mecanismo cuyo propósito es
+  **ahorrar** contexto. Fix: mover `printWarning` dentro del guard para `warn`, dejando el
+  camino de cada turno solo para `critical`.
+
+  **BUG-H.7.3-b — el hook `.js` no tiene test propio.** `scripts/context-budget.test.ts` cubre
+  el script `.ts` de H.7.1, no `.claude/hooks/context-budget.js`; grep de `context-budget` en
+  los tests no devuelve ninguna referencia al hook. Sin test, BUG-a podía existir con la suite
+  en verde — y de hecho existió. Mismo patrón que el hook `pre-commit` desincronizado de la
+  Regla Cero de `CLAUDE.md`.
+
+  **Límites declarados de esta verificación** (no se presentan como cubiertos): los transcripts
+  usados son reales pero **históricos** — no es una sesión en vivo cruzando el 60% dentro de un
+  turno, que es la letra del gate. Y no se pudo distinguir si el hook estaba cargado en la
+  sesión activa, porque en `level === 'ok'` su comportamiento correcto es indistinguible de no
+  estar registrado ([[reference-settings-json-requires-restart]]). Estado restaurado al terminar:
+  `.orchestos/handoff.md` con su contenido original y `.orchestos/context-budget.json` borrado.
+
+  **Fuera de scope declarado:** ninguno.
+
+  **Aclaración 2026-09-03 (evitar falsa alarma repetida): Orca no mide esto.** Carlos vio 84%
+  en el indicador de Orca y preguntó por qué el hook no avisaba. Verificado con evidencia:
+  Orca muestra el `rate_limits` nativo de la statusLine de Claude Code (`used_percentage` de
+  las ventanas de 5h/7 días — cupo de cuenta, ver `~/.claude/cache/changelog.md:3181`),
+  reenviado sin cálculo propio por `~/.orca/agent-hooks/claude-statusline.sh` (filtra por
+  `"rate_limits"` en el payload). Es el eje **cupo/costo**, no el eje **ventana de contexto**
+  que mide H.7.3 (`~/.claude/CLAUDE.md` § Costo de contexto, punto 3). Corrida real en paralelo
+  esa misma sesión: hook contra el transcript real dio `pct: 10.66%, level: ok` — correcto para
+  esa sesión, el hook no debía avisar. Si esto se repite, **no es un bug del hook**: pedir el
+  número que muestra el propio indicador, no asumir que es contexto.
+
+<a id="bloque-h-seccion-h-7-prosa"></a>
+### H.7 — El contexto se llena en silencio y nadie avisa (ABIERTO 2026-09-02)
+
+> **Origen: dogfooding real, sesión del 2026-09-02.** Carlos pasó de 9% a 25% de contexto
+> cambiando de Sonnet a Opus, y de 25% a 50% en un chat "prácticamente nuevo". El sistema
+> nunca avisó. El síntoma se atribuye normalmente a "el modelo es verboso"; la medición dice
+> otra cosa (ver abajo). Es el mismo patrón de fondo que la Regla Cero de `CLAUDE.md`: una
+> regla escrita ("cortar a sesión nueva al 70%", [[feedback-limite-contexto-70]]) que ningún
+> mecanismo hace cumplir, deja de existir en la práctica.
+>
+> **Mediciones de esta sesión (evidencia, no estimación).** Del transcript real
+> `~/.claude/projects/<slug>/<session-id>.jsonl`, último mensaje `assistant`:
+>
+> ```
+> used = input_tokens(2) + cache_creation_input_tokens(1465) + cache_read_input_tokens(82893)
+>      = 84,360 tokens        model = claude-opus-5 (viene en la propia línea del JSONL)
+> ```
+>
+> **Los dos ejes que la UI no separa, y que este ítem sí debe separar:**
+> 1. **Ventana de contexto** — se llena dentro del tab, se resetea al abrir uno nuevo.
+> 2. **Cupo/costo facturado** — NO se resetea al abrir tab; el tab nuevo re-lee archivos.
+>
+> **Por qué cambiar de modelo dispara el consumo (mecanismo, no anécdota):** cambiar de modelo
+> **invalida el prompt cache**. Todo el historial se re-procesa como `cache_creation` (precio
+> completo) en vez de `cache_read` (~10% del precio). En la medición de arriba, 82,893 de los
+> 84,360 tokens fueron `cache_read` **porque no hubo cambio de modelo en la sesión**. Regla
+> operativa que sale de esto y que vale para cualquier proyecto: **cambiar de modelo al abrir
+> un tab, nunca a mitad de una sesión larga.**
+>
+> **Lo que ya existe y NO se rehace:** `scripts/handoff.ts` + `scripts/agent-handoff.ts`
+> (H.4.2, commit `c1c6edc`) ya escriben `.orchestos/handoff.md`. Su propio comentario de
+> cabecera declara el hueco: *"no es un gate: no existe un evento 'fin de sesión' universal
+> entre Claude/Codex/DeepSeek/OpenCode para engancharlo mecánicamente"*. **El umbral de
+> contexto ES ese evento.** H.7 es el disparador que a H.4.2 le faltaba, no un sistema nuevo.
+>
+> **Viabilidad verificada antes de escribir el ítem** (contra el binario 2.1.234, para que
+> nadie la re-investigue): `strings claude.exe` confirma `transcript_path` (11 ocurrencias),
+> `SessionStart` (117), `hookSpecificOutput` (124) y `additionalContext` (186). El payload
+> que necesita el hook existe.
+>
+> **Restricciones duras del diseño, no negociables por quien implemente:**
+> - **Nada de compactación automática** ([[feedback-no-compactar-contexto]]): se avisa y se le
+>   pide a Carlos cerrar el tab. Nunca se comprime la conversación por cuenta propia.
+> - **Nada de cambio automático de modelo** ([[feedback-modelo-decision-final-carlos]]).
+> - **Costo cero por debajo del umbral**: el hook no imprime nada. Un aviso por turno sería
+>   exactamente el mal que este ítem intenta curar.
+> - **El handoff lo escribe un script determinista, no un LLM.** Carlos lo planteó explícito:
+>   "guardar a cada momento también me consumiría tokens".
+> - El umbral es un **porcentaje**, y la ventana se **deriva del modelo del turno** — no un
+>   número fijo de tokens. Modelos distintos, ventanas distintas.

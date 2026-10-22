@@ -71,3 +71,30 @@
   Pendiente menor: la fila `<synthetic>` (0 tokens) se muestra; "Avg cost / run" mezcla runs y sesiones.
 
 ---
+
+## Archivado 2026-10-22 desde PLAN.md (DOC.4)
+
+<a id="bloque-cx-cx-6"></a>
+- [x] **CX.6 — 🔍 El anillo de contexto muestra el contexto real, en Chat y en Dev.** (abierto 2026-10-14; pedido de
+  Carlos; cerrado 2026-10-17) Antes `used` sumaba el run entero y `window` salía de catálogo. Ahora: Claude = último
+  `assistant` + `modelUsage[].contextWindow`; Codex = último `token_count` del rollout; migración 27
+  (`runs.context_used_tokens`, `context_window_tokens`); endpoint con `source` medido|estimado y `engine`; tooltip
+  "N de M tokens · <CLI> (medido|estimado)".
+  Ejecutado por: criterio (Sonnet) · Spec: docs/specs/CX.6.md (borrado al cerrar)
+  Evidencia: typecheck y lint (0 errores); `test:coverage` 1935/0 (2 skip). En vivo (dashboard real, :4343): Claude
+  `claude-sonnet-5` con 2 herramientas → 12663/1000000 medido = transcript (2+10894+1767; acumulado del run 23559);
+  Codex `gpt-6-luna` → 32569/258400 = último `token_count` del rollout; Codex `gpt-6.1-sol` → tooltip en Chat y en Dev
+  "39152 de 475000 tokens · codex (medido)" = rollout (el catálogo decía 1050000).
+  Gate en vivo: navegador real (Playwright), `docs/done/evidence/CX.6-live.json`: hover sobre el anillo en Chat y en Dev.
+
+<a id="bloque-cx-cx-6-1"></a>
+- [x] **CX.6.1 — 🧠 Chat Codex: costo del turno entero y contexto del propio evento.** (abierto y cerrado
+  2026-10-17, hallado al verificar CX.6) `codex-app-server.ts` guardaba solo la
+  última llamada como uso del turno: el costo del chat Codex con herramientas se subcontaba (32529 de 79929 en vivo).
+  Ahora suma cada `tokenUsage.last`; contexto = `last.totalTokens` y ventana = `modelContextWindow` del evento (el
+  rollout queda solo para `codex exec`). Claude ignora `assistant` de subagentes. El endpoint conserva el `used`
+  medido si la ventana es nula o el modelo pedido es otro (ventana estimada).
+  Ejecutado por: criterio (Sonnet) + mecanico (ajuste del endpoint) · Spec: docs/specs/CX.6.1.md (borrado al cerrar)
+  Evidencia: typecheck y lint (0 errores); `test:coverage` 1937/0 (2 skip). En vivo: turno Codex `gpt-6.1-sol` con
+  2 herramientas → run 22359 + 60928 en caché = 83287 = `total_token_usage` del rollout; contexto 34556/475000.
+  Gate en vivo: navegador real (Playwright), `docs/done/evidence/CX.6.1-live.json`: anillo "34556 de 475000 tokens · codex (medido)".

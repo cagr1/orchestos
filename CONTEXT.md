@@ -14,35 +14,48 @@ Ver `AGENTS.md` § "Invariantes de arquitectura permanentes" — QA, roadmap, co
 Movidos ahí el 2026-08-17 porque `orchestos context update` sobreescribe este archivo por completo
 y no debe ser la fuente de nada permanente.
 
-### Estado vigente (2026-10-14, DOC.1)
+### Estado vigente (2026-10-22, DOC.4)
 
-Fuente de lo activo: `PLAN.md` (§ Rumbo) y `NEXT.md`. Lo cerrado, con evidencia, en `docs/done/`. Este resumen
-registra el estado del producto al 2026-10-14; las notas "Estado estable" de abajo conservan su fecha y donde una
-frase quedó superada lo dice la línea "Superado:".
+Fuente de lo activo: `PLAN.md` (§ Rumbo, y 5 ítems abiertos) y `NEXT.md`. Lo cerrado, con evidencia, en
+`docs/done/bloque-<PREFIJO>.md` (DOC.4 archivó 133 ítems el 2026-10-22). Las notas "Estado estable" de abajo
+conservan su fecha y, donde una frase quedó superada, lo dice la línea "Superado:".
 
-- **Recorrido útil (R.8).** R.8.1–R.8.6 cerrados 2026-10-05/12: auto-flow estricto, continuidad historial→CLI
-  (`b9decaa`), QA negativo, reinicio a mitad de run, privacidad sin depender del modelo (`read-boundary`), pasos que
-  no pueden fallar. R.8 sigue abierto solo por la contrastación con una tarea real de Carlos, que cubre ERP.4.
-- **Piloto ERP.4 (repo `~/Projects/projects/erp-piloto`).** Corrió completo el 2026-10-13 (etapas 1-6, 25 tests en
-  verde, revisión `qa` sin defectos). Veredicto de Carlos: "sirve, pero todavía no solo". Hallazgos arreglados:
-  ERP.4.1–ERP.4.13 (p. ej. `b0ce9e4` primera tarea sin `tasks.yaml`, `867627d` respuesta del ejecutor en el run
-  fallido, `e6efa62` borrador lee el hilo, `c476e68` ejecutor según el rol, `043770c` estado de `tasks.yaml`
-  commiteado, `8ca4801` árbol sucio → `pending` + "Commit & Run"). Abiertos: ERP.4.14 (dentro de UI.24.6), 4.15, 4.16.
-- **Interfaz.** UI.24 (hilo premium, familia Fluid Functionalism): 24.1–24.3 cerrados (`6c17cce`, `2627ac9`,
-  `c4dfd5f`); faltan 24.4–24.7. UI.25 (Settings con la familia): cerrado, UI.25.2–25.4 absorbidos por UI.26
-  (`f3648db`, `a4ccf9d`). UI.26 (la forma de Gr8r): 26.1–26.4a cerrados (`2474c20`, `dd9cbce`, `03b9cf3`, `e85f527`,
-  `a9d5736`); faltan 26.5–26.7. El tema por defecto no cambia.
-- **Fiabilidad de CI.** CI.12 cerrado (`844f3b3`: el candado de `tasks.yaml` se publica atómico con su token) y CI.24
-  (`dff365d`: el historial del chat se presenta como la conversación propia). Abiertos: CI.11, CI.18, CI.19, CI.23
-  (fase 1 hecha, `9a82ee8`), CI.25. Estado real de CI: `gh run list --workflow CI`.
-- **Chat y transporte.** El chat usa el CLI del rol Orquestador (Claude, Codex por app-server, OpenCode en terminal
-  de Dev); el contexto que se inyecta lo arma `buildChatSystemPrompt` (`src/chat/chat-context.ts`, MR.1.d2
-  `3b8c9b2`). Roles: Orquestador, Ejecutor, Revisor y Auxiliar con {agente, modelo, esfuerzo} por proyecto (MR.1).
-  El selector de proyecto y las sesiones tienen UI en React (UI.13).
-- **Superado:** "Codex/OpenCode … el transporte de chat responde 422" (nota CC.2) y "No existe UI de sesiones en
-  vanilla" / "selector … pertenece a UI.6" (notas CC.2/CC.3): el chat de Codex y Claude funciona por sus CLI y la UI
-  es la plantilla React; la regla "nunca degradar silenciosamente a API" sigue vigente.
-- **Abierto de seguridad:** L.6.2, `L62-001`, `L62-002` (ver "Estado de seguridad" al final).
+- **Producto.** R.8 (recorrido útil) y el piloto ERP.4–ERP.7 cerrados; veredicto de Carlos sobre ERP.4 (2026-10-13):
+  "sirve, pero todavía no solo". Interfaz: UI.24 (hilo premium), UI.25 (Settings con la familia), UI.26 (forma de
+  Gr8r) y UI.27 (icono del agente, títulos sin "Agente:", anillo de contexto en la barra superior, asides
+  redimensionables) cerrados. El tema por defecto no cambia.
+- **Las tareas las decide el cerebro desde el chat** (Carlos, 4.ª vez, 2026-10-22). Ninguna vista invita a crearlas a
+  mano: UI.28 quitó "Create First Task" de Settings → Tasks y "Add task" + el modal "Append to tasks.yaml" de Plan.
+- **Permisos de Codex (CI.32.c, decisión de Carlos 2026-10-22).** En auto-edit, la tarea Codex corre con su sandbox
+  nativo y `approvalPolicy: on-request`; en supervised sigue `untrusted`. Las aprobaciones se registran como
+  `[codex-approval]` en `dashboard.log`.
+- **Hilo del chat (CI.32.b, CI.34).** Un envío hecho mientras se crea el chat espera a la sesión nueva (antes caía en la
+  sesión general → 404). `mergeLoadedThreads` (`lib/merge-threads.ts`): el hilo local gana si tiene mensajes que una
+  lectura de sesiones vieja no trae; esa carrera borraba el mensaje recién enviado y sus adjuntos.
+- **Espera de tareas en el front (CI.37).** Desde el dashboard, `task run --id` deja un intento fallido como `pending` +
+  `retry_reason` + `retry_count+1` y termina (`src/cli.ts:1343`); no reintenta solo (eso es del `graph-runner`).
+  `waitForTaskRun` (`api/chat.ts`) y `runTask` (`api/tasks.ts`) comparan contra la foto previa al POST y terminan con
+  `Retry scheduled: <motivo>`.
+- **Fiabilidad.** Abiertos CI.11, CI.18, CI.19, CI.23 (intermitentes del pre-push). `chat-streaming` (CI.35) compara
+  palabras y no Markdown crudo: el DOM renderizado no trae marcadores de lista ni cercas de código. `RunLogger.write`
+  (CI.36) nunca tumba la corrida. Estado real de CI: `gh run list --workflow CI`. Chequeo de tipos completo:
+  `bun run typecheck`; `bunx tsc --noEmit` de la raíz excluye `src/dashboard/app`.
+- **Chat y transporte.** El chat usa el CLI del rol Orquestador (Claude; Codex por app-server; OpenCode abre su sesión
+  de terminal, `CliChatAdapter.terminal`, CI.32.a). El contexto inyectado lo arma `buildChatSystemPrompt`
+  (`src/chat/chat-context.ts`). Roles: Orquestador, Ejecutor, Revisor y Auxiliar con {agente, modelo, esfuerzo} por
+  proyecto (MR.1). El chat acepta cualquier adaptador registrado (LIMP.3).
+- **Tareas con cualquier CLI (pendiente de plan, 2026-10-22).** Carlos: las tareas deben correr con el CLI que el
+  usuario disponga, sin CLI preferido. Hoy la ejecución tiene ramas cerradas claude/codex/opencode
+  (`src/router/engine-cascade.ts:5-11`, `src/run/harness.ts:353-367`, `src/config/load.ts:146`) y un CLI sin motor cae
+  en silencio a `single-shot`.
+- **Guard de arranque (CTX-GUARD.2).** Mide con 2,2 chars/token (calibrado contra `/context`) y cuenta las skills de
+  cuenta (`~/.claude/skills/synced`, `~/.claude/plugins/synced`); desde 2026-10-22 avisa ~15k tokens de arranque. No ve
+  conectores activos: `claude.ai Claude Docs` carga pese a `disabledMcpServers`.
+- **Superado:** "Codex/OpenCode … el transporte de chat responde 422" (nota CC.2), "No existe UI de sesiones en
+  vanilla" / "selector … pertenece a UI.6" (notas CC.2/CC.3): el chat de Claude, Codex y OpenCode funciona por sus CLI
+  y la UI es la plantilla React (UI.13); la regla "nunca degradar silenciosamente a API" sigue vigente.
+- **Abierto de seguridad:** L.6.2, `L62-001`, `L62-002` (ver "Estado de seguridad" al final; sin re-verificar
+  2026-10-22).
 
 ### Estado estable — sesiones de chat CC.2 (2026-08-18)
 
