@@ -212,8 +212,8 @@ export interface RunRow {
   elapsedMs: number
   costBreakdown: CostBreakdownEntry[] // parsed from cost_breakdown_json
   contextWarnings: ContextWarningEntry[] // parsed from context_warnings_json
-  /** G.4 / B.2 — derived from costBreakdown[0].label. 'single-shot' | 'agentic' | 'external' | 'opencode' | 'codex' | null (no breakdown persisted). */
-  engine: 'single-shot' | 'agentic' | 'external' | 'opencode' | 'codex' | null
+  /** G.4 / B.2 — derived from costBreakdown[0].label. 'single-shot' | 'agentic' | id de motor del registro de tareas | null (no breakdown persisted). */
+  engine: 'single-shot' | 'agentic' | (string & {}) | null
   /** G.4 / B.2 — derived from costBreakdown[0].label (e.g. "agentic (N rounds)" → N). 1 for single-shot/external, null if unknown. */
   iterations: number | null
   /** v0.12/C — parsed from file_diffs. [] si el run no lo produjo (fail/blocked, o previo al cambio). */
@@ -272,8 +272,8 @@ export interface TaskRow {
   runId: string | null // link to latest run in /api/runs
   /** `created_at` del run `runId`; `null` sin run o sin fila en `runs`. */
   lastRunAt: string | null
-  /** G.4 / B.2 — 'single-shot' | 'agentic' | 'external' | 'opencode' | 'codex' | null (undefined → inherit from orchestos.config.yaml, default 'single-shot') */
-  engine: 'single-shot' | 'agentic' | 'external' | 'opencode' | 'codex' | null
+  /** G.4 / B.2 — 'single-shot' | 'agentic' | id de motor del registro de tareas | null (undefined → inherit from orchestos.config.yaml, default 'single-shot') */
+  engine: 'single-shot' | 'agentic' | (string & {}) | null
   output: string[]
   dependsOn: string[]
   acceptanceCriteria: string[]

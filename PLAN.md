@@ -116,7 +116,7 @@ Cerrada. Todos sus ítems están archivados en `docs/done/` (ver "Cerrados — e
   2026-10-22: visto 1 vez (`CI.32.c-live`, con `auto-flow chat-retry-report chat-permissions` antes): `porcelain="M
   tasks.yaml"`, último commit `orchestos(gate-first-task): …`; `tasks` solo pasó 31/31 justo después. Detalle en
   `$TMPDIR/ui-gate-65780/result.json` (temporal, no conservado).
-- [x] **TCLI.1 — Registro de ejecutores de tareas y elección por registro.** (cerrado 2026-10-22) (GO de Carlos 2026-10-22: "no hay un CLI
+- [x] **TCLI.1 — ⚡ Registro de ejecutores de tareas y elección por registro.** (cerrado 2026-10-22) (GO de Carlos 2026-10-22: "no hay un CLI
   de preferencia, eso es primordial") Un módulo registra el ejecutor de tareas de cada CLI; harness, auto-route, evals,
   cascada, CLI y handler de tareas lo consultan en vez de ramas fijas. Un CLI registrado sin ejecutor de tareas falla
   con mensaje visible, nunca `single-shot` en silencio. Fuera de TCLI: ejecutores reales de DeepSeek/Gemini/Kimi/GLM
@@ -129,11 +129,24 @@ Cerrada. Todos sus ítems están archivados en `docs/done/` (ver "Cerrados — e
   limpios, `test:coverage` 1971/0, `task-engines.test.ts` nuevo, `ui:gate tasks` 31/31 vía `gate:evidence`
   (`TCLI.1-tasks-live`). Anotado: el ejecutor vio fallar 1 vez `codex-engine.test.ts` "timeout … timed out" (678 ms,
   también sobre HEAD limpio); al cerebro pasó 3/3 suelto y en la suite: intermitente por tiempo, sin ítem hasta repetir.
-  Ejecutado por: claude sonnet (criterio) · Spec: borrado al cerrar
-- [ ] **TCLI.2 — Tipos y front derivados del registro.** `dashboard/types.ts:216,276`, `handlers/runs.ts:81`,
-  `app/src/types/orchestos.ts:7`, `App.tsx:876-886`, `load.ts:146`: sin uniones cerradas de CLI; el front ofrece los
-  CLI con ejecutor de tareas instalados. Gate en vivo `ui:gate tasks`.
-- [ ] **CTX-GUARD.3 — Bajar el peso de arranque bajo 9k.** (GO de Carlos 2026-10-22) Carlos apaga las 13 skills de
+  Ejecutado por: claude sonnet (criterio) · Spec: docs/specs/TCLI.1.md
+- [x] **TCLI.2 — ⚡ Tipos y front derivados del registro.** (cerrado 2026-10-22) `dashboard/types.ts:216,276`,
+  `handlers/runs.ts:81`, `app/src/types/orchestos.ts:7`, `App.tsx:876-886`, `load.ts:146`: sin uniones cerradas de CLI.
+  Hecho: tipos de motor abiertos; `/api/system/executor-modes` = local + `KNOWN_CLIS` + api, con `taskEngine` (tiene
+  ejecutor de tareas) y `session` (`chat`/`terminal`/`null`, del adaptador de chat); Settings no ofrece al rol Ejecutor
+  un CLI sin ejecutor (`model-catalog.ts` expone `taskEngine`); el modal de chat nuevo filtra por `session` en vez del
+  caso especial de OpenCode (un Gemini instalado ya no se ofrece para chat y da 400); `load.ts` usa `KNOWN_CLIS`;
+  `App.tsx` pasa el agente tal cual (`chat-sessions.ts:270-279` rechaza con 400 los que no tienen adaptador). Además:
+  arreglado el intermitente de `codex-engine.test.ts` "timeout … timed out" (2 veces hoy) y su hermano en opencode: el
+  mock armaba el retardo de salida al construirse, antes del spawn; ahora en `start()` al spawnear. Evidencia
+  (cerebro): typecheck, lint, `ui:fidelity:jsx` limpios; `test:coverage` 1976/0; `gate:evidence` `TCLI.2-live`:
+  `tasks` 31/31, `chat-roles` 10/10, `chat-continuity` 8/8. El filtro del Ejecutor no cambia nada visible hoy (los 3
+  CLI instalados tienen ejecutor); lo cubre `executor-modes-endpoint.test.ts`. No se pudo probar la migración legacy
+  con `gemini`: `resolveAgent` descarta agentes sin adaptador de chat antes de llegar ahí.
+  Gate en vivo: navegador real (Playwright), `docs/done/evidence/TCLI.2-live.json`.
+  r2 se lanzó primero a `mecanico` (Codex): no vio `AGENT_WRITER_TOKEN` y no escribió (trampa ya anotada en NEXT.md).
+  Ejecutado por: claude sonnet (criterio) · Spec: docs/specs/TCLI.2.md
+- [ ] **CTX-GUARD.3 — 🧠 Bajar el peso de arranque bajo 9k.** (GO de Carlos 2026-10-22) Carlos apaga las 13 skills de
   cuenta en claude.ai; el cerebro poda `CLAUDE.md` del repo (historia de incidentes → `docs/`, quedan las reglas).
 - [x] **CI.38 — ⚡ `chat-continuity` no distingue dos chats con el mismo título tras UI.27.3.** (abierto 2026-10-22)
   Pre-push de `39c67167` 2/2: `strict mode violation: getByRole('button', { name: 'Remember this code for later: …' })

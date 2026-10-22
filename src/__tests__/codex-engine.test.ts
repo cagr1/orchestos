@@ -102,6 +102,8 @@ interface MockProc {
   stderr: ReadableStream<Uint8Array>
   exited: Promise<number>
   kill(_signal: string): void
+  /** Arma el retardo de salida; lo llama el mock de `Bun.spawn`, no el constructor. */
+  start?(): void
 }
 
 interface MockSpawnCall {
@@ -129,9 +131,11 @@ function makeMockProc(stdoutText: string, opts: { exitDelayMs?: number } = {}): 
   const exited = new Promise<number>((r) => {
     resolveExit = r
   })
-  if (opts.exitDelayMs) setTimeout(() => resolveExit(0), opts.exitDelayMs)
-  else queueMicrotask(() => resolveExit(0))
+  if (!opts.exitDelayMs) queueMicrotask(() => resolveExit(0))
   return {
+    start() {
+      if (opts.exitDelayMs) setTimeout(() => resolveExit(0), opts.exitDelayMs)
+    },
     stdout: stdoutStream,
     stderr: stderrStream,
     exited,
@@ -154,6 +158,7 @@ afterEach(() => {
 function overrideBunSpawn(proc: MockProc) {
   Bun.spawn = ((cmd: string[], opts?: { cwd?: string; env?: Record<string, string> }) => {
     spawnCalls.push({ cmd: cmd.slice(), cwd: opts?.cwd ?? '', env: opts?.env })
+    proc.start?.()
     return proc as unknown as ReturnType<typeof Bun.spawn>
   }) as typeof Bun.spawn
 }

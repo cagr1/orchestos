@@ -879,10 +879,7 @@ export default function App() {
     title?: string,
     selectedProjectId?: string | null,
   ) => {
-    const agent =
-      cliId === 'local' || cliId === 'claude' || cliId === 'codex' || cliId === 'opencode'
-        ? cliId
-        : 'api'
+    const agent = cliId || 'api'
     const creating = createSession({
       agent,
       projectId: newChatProjectId(currentProject?.id, selectedProjectId),

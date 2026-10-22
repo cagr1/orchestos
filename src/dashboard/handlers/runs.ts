@@ -78,7 +78,7 @@ function parseJsonArray<T>(raw: string | null | undefined): T[] {
 // | "opencode (N step[s])" (G.5) | "codex (exec)" (G.4.2b, siempre 1 — sin conteo de turnos).
 // Si el breakdown está vacío (run legacy pre-G.4 o path sin outcome), devuelve null/null.
 function deriveEngineFromBreakdown(breakdown: CostBreakdownEntry[]): {
-  engine: 'single-shot' | 'agentic' | 'external' | 'opencode' | 'codex' | null
+  engine: 'single-shot' | 'agentic' | (string & {}) | null
   iterations: number | null
 } {
   const label = breakdown[0]?.label

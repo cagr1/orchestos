@@ -40,6 +40,33 @@
       "closedDate": null
     },
     {
+      "id": "TCLI.1",
+      "sprint": "Fase 2 — Producto mínimo para entrega",
+      "block": "Abiertos — fiabilidad de los gates y documentación",
+      "delegation": "⚡",
+      "title": "Registro de ejecutores de tareas y elección por registro",
+      "status": "done",
+      "closedDate": "2026-10-22"
+    },
+    {
+      "id": "TCLI.2",
+      "sprint": "Fase 2 — Producto mínimo para entrega",
+      "block": "Abiertos — fiabilidad de los gates y documentación",
+      "delegation": "⚡",
+      "title": "Tipos y front derivados del registro",
+      "status": "done",
+      "closedDate": "2026-10-22"
+    },
+    {
+      "id": "CTX-GUARD.3",
+      "sprint": "Fase 2 — Producto mínimo para entrega",
+      "block": "Abiertos — fiabilidad de los gates y documentación",
+      "delegation": "🧠",
+      "title": "Bajar el peso de arranque bajo 9k",
+      "status": "open",
+      "closedDate": null
+    },
+    {
       "id": "CI.38",
       "sprint": "Fase 2 — Producto mínimo para entrega",
       "block": "Abiertos — fiabilidad de los gates y documentación",

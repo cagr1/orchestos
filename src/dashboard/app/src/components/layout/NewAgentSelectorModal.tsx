@@ -8,6 +8,7 @@ interface ExecutorMode {
   id: string
   label: string
   detected: boolean
+  session?: 'chat' | 'terminal' | null
 }
 
 interface NewAgentSelectorModalProps {
@@ -52,7 +53,7 @@ export const NewAgentSelectorModal: React.FC<NewAgentSelectorModalProps> = ({
       .then((executorModes) => {
         if (disposed) return
         const available = executorModes.modes.filter(
-          (mode) => mode.detected && (!isChatMode || mode.id !== 'opencode'),
+          (mode) => mode.detected && (isChatMode ? mode.session === 'chat' : mode.session !== null),
         )
         setModes(available)
         setSelectedCli((current) =>

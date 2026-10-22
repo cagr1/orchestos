@@ -1,7 +1,37 @@
 {
-  "exported_at": "2026-10-22T19:25:20.608Z",
+  "exported_at": "2026-10-22T19:50:33.186Z",
   "total_runs": 20,
   "runs": [
+    {
+      "id": "91061488-526a-491e-8acf-13832088c9ab",
+      "task_class": "gate:tcli.2-live:implement",
+      "model": "openai/gpt-6-luna",
+      "provider": "codex",
+      "status": "done",
+      "qa_verdict": "pass",
+      "qa_reason": "NOTES.md contains the required line.",
+      "files_blocked": [],
+      "checks_failed": 0,
+      "usd_cost": 0.00115456,
+      "elapsed_ms": 14026,
+      "tokens": 6684,
+      "created_at": "2026-10-22T19:42:21.621Z"
+    },
+    {
+      "id": "8a027050-f273-43e3-96a9-513e5c943835",
+      "task_class": "gate:tcli.2-live:doc",
+      "model": "openai/gpt-6-luna",
+      "provider": "codex",
+      "status": "done",
+      "qa_verdict": "pass",
+      "qa_reason": "README.md contains the requested line.",
+      "files_blocked": [],
+      "checks_failed": 0,
+      "usd_cost": 0.0012198,
+      "elapsed_ms": 16284,
+      "tokens": 6274,
+      "created_at": "2026-10-22T19:42:05.253Z"
+    },
     {
       "id": "71d67799-546a-41b7-8a26-e4bbe701cb67",
       "task_class": "gate:tcli.1-tasks-live:implement",
@@ -271,43 +301,13 @@
       "elapsed_ms": 35781,
       "tokens": 9345,
       "created_at": "2026-10-22T15:01:44.314Z"
-    },
-    {
-      "id": "480988b3-2494-4440-a7f2-68fc882f5d4b",
-      "task_class": "gate:ci.32-close-ui-gate-full:implement",
-      "model": "openai/gpt-6-luna",
-      "provider": "codex",
-      "status": "done",
-      "qa_verdict": "pass",
-      "qa_reason": "QA LLM omitido: la tarea no declara criterios de aceptación; checks y salidas declaradas en verde",
-      "files_blocked": [],
-      "checks_failed": 0,
-      "usd_cost": 0.00068516,
-      "elapsed_ms": 18093,
-      "tokens": 3438,
-      "created_at": "2026-10-22T15:00:31.142Z"
-    },
-    {
-      "id": "a2239cff-ddc3-42fc-9a06-d8ea085eb083",
-      "task_class": "gate:ci.32-close-ui-gate-full:implement",
-      "model": "openai/gpt-6-luna",
-      "provider": "codex",
-      "status": "failed",
-      "qa_verdict": "fail",
-      "qa_reason": "nota.txt contains ROJO, not the required AZUL line.",
-      "files_blocked": [],
-      "checks_failed": 0,
-      "usd_cost": 0.00106406,
-      "elapsed_ms": 19325,
-      "tokens": 6051,
-      "created_at": "2026-10-22T14:59:44.778Z"
     }
   ],
   "stats": {
-    "failed": 2,
+    "failed": 1,
     "blocked": 0,
-    "done": 18,
-    "qa_failed": 2,
-    "total_cost_usd": "0.0231"
+    "done": 19,
+    "qa_failed": 1,
+    "total_cost_usd": "0.0237"
   }
 }

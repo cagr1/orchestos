@@ -42,8 +42,14 @@ export interface LocalProviderResponse {
 
 export interface ExecutorMode {
   id: string
+  label?: string
   detected: boolean
   path: string | null
+  readBoundary?: string
+  /** `false` = el CLI no tiene ejecutor de tareas: no se ofrece al rol Ejecutor. */
+  taskEngine?: boolean
+  /** Modo de sesión: `chat`, `terminal` (tab Dev) o `null` (sin adaptador). */
+  session?: 'chat' | 'terminal' | null
 }
 
 export interface ExecutorModesResponse {

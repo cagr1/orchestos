@@ -13,8 +13,9 @@ import { autoRoute, describeTaskExecutor, formatRoute } from '../../router/auto-
 import { resolveProjectAgentRule, taskFieldsFromRule } from '../../router/engine-cascade.ts'
 import { activeApprovalRun, pendingApprovals } from '../../run/approvals.ts'
 import { commitPaths, commitTasksYaml } from '../../run/commit-tasks-yaml.ts'
+import { cliChatAdapterFor } from '../../run/executors/chat-adapters.ts'
 import { detectInstalledClis } from '../../run/executors/cli-registry.ts'
-import { validTaskEngineIds } from '../../run/executors/task-engines.ts'
+import { taskEngineForCli, validTaskEngineIds } from '../../run/executors/task-engines.ts'
 import { DIRTY_TREE_REASON_PREFIX, listDirtyFiles } from '../../run/sandbox-policy.ts'
 import { isKnownSkillId } from '../../skills/catalog.ts'
 import { ensureTasksYaml, scaffoldTasksYaml } from '../../tasks/init.ts'
@@ -23,6 +24,12 @@ import { isTaskClass } from '../../tasks/schema.ts'
 import { errorResponse, jsonResponse, validateTaskId } from '../http.ts'
 import type { DiagnoseRow, TaskRow } from '../types.ts'
 import { settleExitedTaskRun } from './task-run-reconcile.ts'
+
+function sessionModeForCli(id: string): 'chat' | 'terminal' | null {
+  const adapter = cliChatAdapterFor(id)
+  if (!adapter) return null
+  return adapter.terminal ? 'terminal' : 'chat'
+}
 
 async function handleApiSystemExecutorModes(root = process.cwd()): Promise<Response> {
   let localDetected = false
@@ -34,40 +41,43 @@ async function handleApiSystemExecutorModes(root = process.cwd()): Promise<Respo
     localDetected = res.ok
   } catch {}
 
-  // CC.D1 (2026-08-17) — `executor_mode`/valores `cli-*` renombrados a `agent`
-  // (`claude`/`opencode`/`codex`, sin el prefijo `cli-` redundante).
-  const detectedClis = detectInstalledClis()
-  const cliById = new Map(detectedClis.map((cli) => [cli.id, cli]))
+  // CC.D1 (2026-08-17) — `executor_mode`/valores `cli-*` renombrados a `agent`.
+  // TCLI.2 — un modo por CLI de KNOWN_CLIS; `taskEngine` dice si tiene ejecutor de tareas.
   const modes: {
     id: AgentChoice
     label: string
     detected: boolean
     path: string | null
     readBoundary?: string
+    taskEngine: boolean
+    /** Modo de sesión de chat: `null` = el CLI no tiene adaptador de chat ni terminal. */
+    session: 'chat' | 'terminal' | null
   }[] = [
-    { id: 'local', label: 'Local (Ollama)', detected: localDetected, path: null },
     {
-      id: 'claude',
-      label: cliById.get('claude')?.label ?? 'Claude Code',
-      detected: cliById.get('claude')?.installed ?? false,
-      path: cliById.get('claude')?.path ?? null,
-      readBoundary: cliById.get('claude')?.readBoundary.kind,
+      id: 'local',
+      label: 'Local (Ollama)',
+      detected: localDetected,
+      path: null,
+      taskEngine: true,
+      session: 'chat',
     },
+    ...detectInstalledClis().map((cli) => ({
+      id: cli.id,
+      label: cli.label,
+      detected: cli.installed,
+      path: cli.path,
+      readBoundary: cli.readBoundary.kind,
+      taskEngine: taskEngineForCli(cli.id) !== undefined,
+      session: sessionModeForCli(cli.id),
+    })),
     {
-      id: 'opencode',
-      label: cliById.get('opencode')?.label ?? 'opencode',
-      detected: cliById.get('opencode')?.installed ?? false,
-      path: cliById.get('opencode')?.path ?? null,
-      readBoundary: cliById.get('opencode')?.readBoundary.kind,
+      id: 'api',
+      label: 'OpenRouter API',
+      detected: true,
+      path: null,
+      taskEngine: true,
+      session: 'chat',
     },
-    {
-      id: 'codex',
-      label: cliById.get('codex')?.label ?? 'Codex',
-      detected: cliById.get('codex')?.installed ?? false,
-      path: cliById.get('codex')?.path ?? null,
-      readBoundary: cliById.get('codex')?.readBoundary.kind,
-    },
-    { id: 'api', label: 'OpenRouter API', detected: true, path: null },
   ]
 
   return jsonResponse({ modes, selected: loadOrcheConfig(root).agent ?? null })
@@ -112,8 +122,7 @@ function buildTaskRow(
     pendingApprovals: approvalRunId ? pendingApprovals(approvalRunId).length : 0,
     sessionId: t.status === 'running' ? (getTaskRunWatch(root, t.id)?.session_id ?? null) : null,
     lastRunAt: lastRunAt(t.run_id),
-    // TCLI.2 abre el tipo de dashboard/types.ts; hasta entonces el cast queda aquí.
-    engine: (t.engine ?? null) as TaskRow['engine'],
+    engine: t.engine ?? null,
     output: t.output,
     dependsOn: t.depends_on,
     acceptanceCriteria: t.acceptance_criteria ?? [],

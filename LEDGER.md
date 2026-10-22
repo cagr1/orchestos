@@ -461,3 +461,11 @@ Registro `task-engines.ts`; harness, auto-route, evals, cascada, `cli.ts`, handl
 Desvíos menores justificados en el reporte: built-ins con carga diferida (LIMP.3: importar config no abre la DB),
 cast temporal en `handlers/tasks.ts` hasta TCLI.2. **Evidencia del cerebro**: typecheck/lint limpios,
 `test:coverage` 1971/0, `ui:gate tasks` 31/31 (`TCLI.1-tasks-live`).
+
+## 2026-10-22 19:45 — claude sonnet (criterio), ejecutor TCLI.2 r1+r2 · verificado por Opus
+**Clasificación**: RESPETÓ.
+r1: tipos abiertos, `executor-modes` desde `KNOWN_CLIS` con `taskEngine`, filtro del rol Ejecutor, `load.ts`/`App.tsx`.
+r2: `session` por modo y filtro del modal; arreglo del mock de timeout de codex/opencode. Desvíos aceptados: orden de
+modos de `KNOWN_CLIS`; test legacy con `gemini` inalcanzable. r2 se intentó primero con Codex (`mecanico`): sin
+`AGENT_WRITER_TOKEN`, no escribió. **Evidencia del cerebro**: typecheck/lint/fidelity limpios, `test:coverage` 1976/0,
+`TCLI.2-live` tasks 31/31, chat-roles 10/10, chat-continuity 8/8.

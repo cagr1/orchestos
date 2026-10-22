@@ -11,6 +11,7 @@
 import { afterEach, describe, expect, it } from 'bun:test'
 import { loadOrcheConfig } from '../config/load.ts'
 import { handleApiSystemExecutorModes } from '../dashboard/handlers/tasks.ts'
+import { KNOWN_CLIS } from '../run/executors/cli-registry.ts'
 
 const originalWhich = Bun.which
 const originalFetch = globalThis.fetch
@@ -21,7 +22,7 @@ afterEach(() => {
 })
 
 describe('GET /api/system/executor-modes', () => {
-  it('devuelve los 5 modos en orden fijo, sin kimi', async () => {
+  it('devuelve local → KNOWN_CLIS → api, con taskEngine según el registro de ejecutores', async () => {
     ;(Bun as any).which = (_bin: string) => null
     globalThis.fetch = (async () => {
       throw new Error('connection refused')
@@ -30,7 +31,35 @@ describe('GET /api/system/executor-modes', () => {
     const res = await handleApiSystemExecutorModes()
     const data = (await res.json()) as { modes: { id: string }[]; selected: string | null }
 
-    expect(data.modes.map((m) => m.id)).toEqual(['local', 'claude', 'opencode', 'codex', 'api'])
+    expect(data.modes.map((m) => m.id)).toEqual([
+      'local',
+      ...KNOWN_CLIS.map((cli) => cli.id),
+      'api',
+    ])
+    const withEngine = (data.modes as { id: string; taskEngine: boolean }[])
+      .filter((m) => m.taskEngine)
+      .map((m) => m.id)
+    expect(withEngine).toEqual(['local', 'claude', 'codex', 'opencode', 'api'])
+    expect(
+      (data.modes as { id: string; taskEngine: boolean }[]).find((m) => m.id === 'gemini'),
+    ).toMatchObject({ taskEngine: false })
+  })
+
+  it("session: claude/codex 'chat', opencode 'terminal', CLI sin adaptador null", async () => {
+    ;(Bun as any).which = (_bin: string) => '/fake/bin'
+    globalThis.fetch = (async () => {
+      throw new Error('connection refused')
+    }) as unknown as typeof fetch
+
+    const res = await handleApiSystemExecutorModes()
+    const data = (await res.json()) as { modes: { id: string; session: string | null }[] }
+    const session = (id: string) => data.modes.find((m) => m.id === id)?.session
+    expect(session('claude')).toBe('chat')
+    expect(session('codex')).toBe('chat')
+    expect(session('opencode')).toBe('terminal')
+    expect(session('gemini')).toBeNull()
+    expect(session('local')).toBe('chat')
+    expect(session('api')).toBe('chat')
   })
 
   it("'api' siempre detected:true, path:null — no depende de ningún binario", async () => {

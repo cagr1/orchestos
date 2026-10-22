@@ -14,6 +14,7 @@ import { homedir } from 'os'
 import { join } from 'path'
 import { parse } from 'yaml'
 import { taskAgentIds } from '../router/engine-cascade.ts'
+import { KNOWN_CLIS } from '../run/executors/cli-registry.ts'
 import {
   type AgentChoice,
   DEFAULT_CONFIG,
@@ -143,8 +144,7 @@ function resolveRoles(raw: Record<string, unknown>): Partial<Record<RoleName, Ro
     const from = sources[name]
     if (!from || legacy[from] === undefined) continue
     // Los nombres legacy de CLI no traducen un modelo API viejo a un modelo CLI.
-    if (name === 'executor' && ['claude', 'codex', 'opencode'].includes(String(resolveAgent(raw))))
-      continue
+    if (name === 'executor' && KNOWN_CLIS.some((cli) => cli.id === resolveAgent(raw))) continue
     const parsed = parseRoleValue(legacy[from], { provider: '', model: '' })
     if (!parsed.model.trim()) continue
     result[name] = { agent: 'api', model: parsed.model, provider: parsed.provider }

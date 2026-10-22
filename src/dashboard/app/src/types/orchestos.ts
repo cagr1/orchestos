@@ -4,7 +4,7 @@ export type TaskStatus = 'pending' | 'running' | 'done' | 'failed' | 'failed_per
 
 export type QaVerdict = 'pass' | 'fail' | null
 
-export type ExecutionEngine = 'single-shot' | 'agentic' | 'external' | 'opencode' | 'codex'
+export type ExecutionEngine = 'single-shot' | 'agentic' | (string & {})
 
 export interface TaskItem {
   id: string

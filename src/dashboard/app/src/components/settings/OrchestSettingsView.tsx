@@ -463,6 +463,7 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
   type RoutingAgent = {
     id: string
     installed: boolean
+    taskEngine?: boolean
     models: { id: string; name: string; efforts?: string[]; group?: string; vendor?: string }[]
     efforts: string[]
     error?: string
@@ -1949,6 +1950,7 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
                           </button>
                           {routingCatalog
                             .filter((entry) => key !== 'orchestrator' || entry.id !== 'opencode')
+                            .filter((entry) => key !== 'executor' || entry.taskEngine !== false)
                             .map((entry) => (
                               <button
                                 key={entry.id}
