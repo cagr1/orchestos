@@ -1,4 +1,4 @@
-# NEXT — handoff 2026-10-22 (corte tras el lote TCLI.1–TCLI.2 y la poda de CLAUDE.md)
+# NEXT — handoff 2026-10-22 (corte tras TCLI.1–TCLI.2, poda de CLAUDE.md y Sol como `criterio`)
 
 Un solo presente: orden y trampas vivas. Lo cerrado vive en `docs/done/bloque-*.md` y git (regla `AGENTS.md` § Reglas
 generales, 2026-10-19: `NEXT.md` se toca solo al cerrar o cortar un lote). Arranque:
@@ -9,18 +9,28 @@ Lote anterior (CI.35–CI.38, UI.27.3, UI.28, CTX-GUARD.2, DOC.4) en `docs/done/
 Carlos: TCLI.1 `2ec35349` (registro CLI ↔ ejecutor de tareas en `src/run/executors/task-engines.ts`; un CLI sin
 ejecutor falla visible, ya no `single-shot`), TCLI.2 `f023ed2d` (tipos/front del registro; `executor-modes` con
 `taskEngine` y `session`; arreglado el intermitente del timeout de `codex-engine.test.ts`), CTX-GUARD.3 parte del
-cerebro `d5afa04c` (`CLAUDE.md` del repo 4,9k → 1,6k tokens est.; historia en `docs/done/claude-md-historia.md`).
+cerebro `d5afa04c` (`CLAUDE.md` del repo 4,9k → 1,6k tokens est.; historia en `docs/done/claude-md-historia.md`). Vault `5134b27`: `criterio` = Sol 6.1 (pedido de Carlos: repartir
+cupo), arreglo de `delegate`→Codex (`writer-lock status` dice si el token coincide).
 
 ## Orden
-1. **CTX-GUARD.3 — falta Carlos**: apagar las 13 skills de cuenta en claude.ai. Con eso el guard mide ~8,1k (límite
-   9k); cerrar el ítem con la salida de `node .claude/hooks/startup-guard.js` sin aviso.
-2. **Agregar un CLI ejecutor de tareas** (DeepSeek/Gemini/Kimi/GLM) = entrada en `KNOWN_CLIS` + `registerTaskEngine`
-   con su `ExecutorEngine`. Solo cuando el CLI esté instalado y se pueda verificar en vivo.
+1. **CTX-GUARD.3 — verificar al arrancar**: Carlos apagó skills de cuenta en claude.ai (2026-10-22). Antes del cut el
+   guard aún veía 10 (`built-in-browser`, `chrome-browser`, `computer-use`, `docs`, `docx`, `pdf`, `pptx`, `xlsx`,
+   `cowork-plugin-customizer`, `create-cowork-plugin`; ~11,6k tokens est.); solo salieron `deep-research`,
+   `import-memory` y `skill-creator`. Puede que el sync local (`~/.claude/skills/synced`) solo se refresque al abrir sesión
+   nueva. Si el guard de esta sesión no avisa → cerrar el ítem con esa salida. Si siguen → decirle a Carlos cuáles quedan; Carlos no encontraba
+   `docs` en la app (sin verificar la ruta exacta; ofrecido: `delegate investigar` sobre la ruta y sobre si Claude Code
+   puede no cargar skills de cuenta por proyecto, como `CLAUDE_CODE_DISABLE_BUNDLED_SKILLS`). También desconectar
+   el conector `claude.ai Claude Docs`, que carga pese a `disabledMcpServers`.
+2. **Propuesto, espera GO de Carlos: evaluar las skills de OrchestOS** (`skills/*.yaml` + `skills/pro/`, 16; las inyecta
+   el producto en tareas, no cargan en la sesión de Claude). Primero medir sin LLM: uso por skill en `runs` y resultado de
+   QA; después decidir cuáles aportan y retirar las nunca usadas. Ejecutor: `criterio` (Sol).
 3. Fiabilidad, cuando el pre-push la tumba: CI.23, CI.18, CI.19, CI.11. Un flujo que revienta dice el locator y deja
    `<flujo>/failure.png`.
+4. Ejecutor de tareas para otro CLI (DeepSeek/Gemini/Kimi/GLM) = entrada en `KNOWN_CLIS` + `registerTaskEngine`, solo
+   con el CLI instalado y verificable en vivo.
 - Anotado, sin ítem: el revisor elige su ventana cortando en el primer tramo que no cabe (un revert posterior podría
   dejar caber uno más largo; nada se pierde, el salto queda anotado).
-- Decisiones pendientes de Carlos sin ítem: turno de chat con CLI lento (más de 120 s o aviso honesto, en CI.18);
+- Decisiones pendientes de Carlos sin ítem: push del commit del vault `5134b27` (solo local, se le preguntó); turno de chat con CLI lento (más de 120 s o aviso honesto, en CI.18);
   peso de `main.js` tras UI.24.4 (dejarlo, alias de `rehype-raw` o lazy-load de Streamdown).
 
 ## Trampas vivas
