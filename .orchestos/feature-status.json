@@ -369,7 +369,7 @@
       "block": "H.7 — El contexto se llena en silencio y nadie avisa (ABIERTO 2026-09-02)",
       "delegation": "🔍",
       "title": "`waitForTaskRun` ante un `pending` con intento fallido: averiguar y corregir",
-      "status": "open",
+      "status": "done",
       "closedDate": null
     },
     {

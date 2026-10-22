@@ -755,9 +755,18 @@ Cerrada. Todos sus ítems están archivados en `docs/done/` (ver "Cerrados — e
   en stderr (`[run-logger] …`) y sigue. Hermanos: `evals/runner.ts:168` escribe `.gitignore` (persistencia, no log): no se
   traga. Evidencia: `src/run/logger.test.ts` 2/0; contraprueba con el `logger.ts` anterior 0/2; `tsc` y lint limpios.
   Ejecutado por: codex gpt-6-luna (mecanico) · Spec: docs/specs/CI.36.md
-- [ ] **CI.37 — 🔍 `waitForTaskRun` ante un `pending` con intento fallido: averiguar y corregir.** (abierto 2026-10-22,
-  Carlos: "manda a Sol averiguar y corregir") `src/dashboard/app/src/api/chat.ts:540` espera hasta 10 min; no se midió si
-  deja el botón ocupado. Ejecuta `criterio-alt`. Spec: docs/specs/CI.37.md
+- [x] **CI.37 — 🔍 `waitForTaskRun` ante un `pending` con intento fallido: averiguar y corregir.** (abierto y cerrado
+  2026-10-22, Carlos: "manda a Sol averiguar y corregir") Causa: desde el dashboard `task run --id` persiste un intento
+  fallido como `pending` + `retry_reason` + `retry_count+1` y termina (`src/cli.ts:1343`; no reintenta solo, eso es del
+  `graph-runner`). `waitForTaskRun` (`api/chat.ts`) solo salía con estado terminal o árbol sucio: ante ese `pending`
+  esperaba los 10 min completos y `Retry`/`Commit & Run` quedaban ocupados. Arreglo: foto de la tarea antes del POST; un
+  `pending` con `retryCount`/`runId` distinto termina la espera con `Retry scheduled: <motivo>` (sin acortar el plazo).
+  Hermano `api/tasks.ts:runTask` (Settings): devolvía éxito con un `runId` nuevo aún `running` (aprobaciones) y no salía
+  ante árbol sucio; corregidos ambos. Evidencia: `task-run-polling.test.ts` 24/0, con el código anterior 12/12;
+  `bun test src/dashboard` 419/0; typecheck y lint limpios.
+  Gate en vivo: navegador real (Playwright), `docs/done/evidence/CI.37-live.json` (`chat-retry-report` 24/24,
+  `chat-followup-task` 8/8, `chat-turn-details` 29/29).
+  Ejecutado por: codex gpt-6.1-sol (criterio-alt) · Spec: docs/specs/CI.37.md
 - [x] **CTX-GUARD.2 — ⚡ El guard de arranque mide lo que de verdad carga.** (abierto y cerrado 2026-10-22, GO de Carlos)
   Estimaba con chars/4 y lo medido es 2,2 chars/token (`/context`: 26.309 chars → 11,9k tokens): callaba con 11,9k
   tokens de memoria (límite 9k). No medía las skills de cuenta. Arreglo (`.claude/hooks/startup-guard.js`):

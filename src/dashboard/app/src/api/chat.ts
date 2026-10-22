@@ -170,6 +170,7 @@ export interface ProjectTaskRow {
   status: 'pending' | 'running' | 'done' | 'failed' | 'failed_permanent' | 'blocked'
   retryReason: string | null
   retryCount?: number
+  runId?: string | null
   output?: string[]
 }
 
@@ -507,6 +508,7 @@ export async function runProjectTask(
   onStarted?: () => void,
   sessionId?: string,
 ): Promise<void> {
+  const taskBeforeRun = await getTaskBeforeRun(taskId, projectId)
   await request(`/api/tasks/${encodeURIComponent(taskId)}/run`, {
     method: 'POST',
     headers: {
@@ -515,7 +517,7 @@ export async function runProjectTask(
     },
     body: JSON.stringify(sessionId ? { sessionId } : {}),
   })
-  await waitForTaskRun(taskId, projectId, onStarted)
+  await waitForTaskRun(taskBeforeRun, projectId, onStarted)
 }
 
 /** ERP.4.13 — commitea los archivos sucios elegidos y lanza la tarea (`POST /api/tasks/:id/commit-run`). */
@@ -526,6 +528,7 @@ export async function commitAndRunProjectTask(
   onStarted?: () => void,
   sessionId?: string,
 ): Promise<void> {
+  const taskBeforeRun = await getTaskBeforeRun(taskId, projectId)
   await request(`/api/tasks/${encodeURIComponent(taskId)}/commit-run`, {
     method: 'POST',
     headers: {
@@ -534,14 +537,24 @@ export async function commitAndRunProjectTask(
     },
     body: JSON.stringify(sessionId ? { files, sessionId } : { files }),
   })
-  await waitForTaskRun(taskId, projectId, onStarted)
+  await waitForTaskRun(taskBeforeRun, projectId, onStarted)
+}
+
+async function getTaskBeforeRun(
+  taskId: string,
+  projectId?: string | null,
+): Promise<ProjectTaskRow> {
+  const task = (await getProjectTasks(projectId)).find((task) => task.id === taskId)
+  if (!task) throw new Error(`Task ${taskId} disappeared before starting`)
+  return task
 }
 
 async function waitForTaskRun(
-  taskId: string,
+  taskBeforeRun: ProjectTaskRow,
   projectId?: string | null,
   onStarted?: () => void,
 ): Promise<void> {
+  const taskId = taskBeforeRun.id
   onStarted?.()
   const startedAt = Date.now()
   const deadline = startedAt + 10 * 60_000
@@ -553,6 +566,16 @@ async function waitForTaskRun(
     // ERP.4.13: bloqueada por árbol sucio — el run terminó sin empezar; el hilo ofrece "Commit & Run"
     if (lastTask.status === 'pending' && lastTask.retryReason?.startsWith(DIRTY_TREE_REASON_PREFIX))
       return
+    // A failed attempt returns to pending. Compare against the pre-launch snapshot:
+    // /run preserves the previous failure while the new attempt starts.
+    if (
+      lastTask.status === 'pending' &&
+      ((lastTask.retryCount ?? 0) !== (taskBeforeRun.retryCount ?? 0) ||
+        (lastTask.runId ?? null) !== (taskBeforeRun.runId ?? null))
+    ) {
+      if (lastTask.retryReason) throw new Error(`Retry scheduled: ${lastTask.retryReason}`)
+      return
+    }
     if (lastTask.status !== 'pending' && lastTask.status !== 'running') {
       if (lastTask.status === 'failed' || lastTask.status === 'failed_permanent') {
         throw new Error(lastTask.retryReason || `Task ${taskId} failed`)

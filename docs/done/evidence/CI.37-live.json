@@ -1,0 +1,351 @@
+[
+  {
+    "flujo": "chat-turn-details",
+    "pass": true,
+    "steps": [
+      {
+        "nombre": "temporary project clean before README task",
+        "ok": true,
+        "detalle": "clean"
+      },
+      {
+        "nombre": "select temporary project",
+        "ok": true,
+        "detalle": "project visible in sidebar"
+      },
+      {
+        "nombre": "select Codex for new chat",
+        "ok": true,
+        "detalle": "visible agent selector"
+      },
+      {
+        "nombre": "model and effort controls visible",
+        "ok": true,
+        "detalle": "composer controls visible"
+      },
+      {
+        "nombre": "select gpt-6-luna",
+        "ok": true,
+        "detalle": "model option visible"
+      },
+      {
+        "nombre": "select medium effort",
+        "ok": true,
+        "detalle": "effort option visible"
+      },
+      {
+        "nombre": "model popover closes",
+        "ok": true,
+        "detalle": "popover closed after Escape/click outside"
+      },
+      {
+        "nombre": "model used a tool within three attempts",
+        "ok": true,
+        "detalle": "1 backend tool step(s) observed"
+      },
+      {
+        "nombre": "tool block with command success",
+        "ok": true,
+        "detalle": "tool trace rendered"
+      },
+      {
+        "nombre": "command success row",
+        "ok": true,
+        "detalle": "1 tool step(s) after opening the row"
+      },
+      {
+        "nombre": "new chat is linked to temporary project",
+        "ok": true,
+        "detalle": "projectId=2b9faf5431e50e04, mode=code"
+      },
+      {
+        "nombre": "held task card visible",
+        "ok": true,
+        "detalle": "held task rendered"
+      },
+      {
+        "nombre": "held task card carries the id (copy button, no text)",
+        "ok": true,
+        "detalle": "chat-4bb6cc35-de97-49f3-96dc-13f9190ea085"
+      },
+      {
+        "nombre": "no uuid text",
+        "ok": true,
+        "detalle": "held card innerText has no task id"
+      },
+      {
+        "nombre": "Reject removes card",
+        "ok": true,
+        "detalle": "card removed"
+      },
+      {
+        "nombre": "Reject removes task from API",
+        "ok": true,
+        "detalle": "task absent"
+      },
+      {
+        "nombre": "second held task card visible",
+        "ok": true,
+        "detalle": "held task rendered again"
+      },
+      {
+        "nombre": "temporary project clean before Approve",
+        "ok": true,
+        "detalle": "clean"
+      },
+      {
+        "nombre": "Approve & Run starts task",
+        "ok": true,
+        "detalle": "chat-437372a7-e1b5-49bf-9167-c3ac33f01742"
+      },
+      {
+        "nombre": "Approve & Run removes card",
+        "ok": true,
+        "detalle": "card removed"
+      },
+      {
+        "nombre": "approved task leaves pending",
+        "ok": true,
+        "detalle": "status=running"
+      },
+      {
+        "nombre": "reload: approved card remains hidden",
+        "ok": true,
+        "detalle": "card remains hidden"
+      },
+      {
+        "nombre": "reload: temporary project visible",
+        "ok": true,
+        "detalle": "project visible after reload"
+      },
+      {
+        "nombre": "reload API message keeps turnId",
+        "ok": true,
+        "detalle": "6bc0b49f-035a-4546-be61-1c4009e4e3d1"
+      },
+      {
+        "nombre": "reload API timeline brings turn steps",
+        "ok": true,
+        "detalle": "13 pasos en 3 turnos"
+      },
+      {
+        "nombre": "reload: project chat reachable from Chat list",
+        "ok": true,
+        "detalle": "chat title visible; sidebar=\"Chat\\nDev\\nNew chat\\nChats\\nEjecuta el comando ls en la raíz del pro\\nSettings\""
+      },
+      {
+        "nombre": "reload: tool block visible in selected chat",
+        "ok": true,
+        "detalle": "tool trace rendered after selecting chat"
+      },
+      {
+        "nombre": "rejected task has no card after reload",
+        "ok": true,
+        "detalle": "chat-4bb6cc35-de97-49f3-96dc-13f9190ea085"
+      },
+      {
+        "nombre": "launched task keeps its name after reload",
+        "ok": true,
+        "detalle": "\"Añade al final de README.md una línea exacta con el texto:…\""
+      }
+    ],
+    "notes": [
+      {
+        "nombre": "reasoning optional",
+        "detalle": "reasoning: 0 pasos del CLI"
+      }
+    ],
+    "errores": [],
+    "capturas": [
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-11599/chat-turn-details/tool-and-reasoning.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-11599/chat-turn-details/held-task.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-11599/chat-turn-details/after-reject.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-11599/chat-turn-details/approved-task.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-11599/chat-turn-details/after-final-reload.png"
+    ]
+  },
+  {
+    "flujo": "chat-retry-report",
+    "pass": true,
+    "steps": [
+      {
+        "nombre": "select Codex for new chat",
+        "ok": true,
+        "detalle": "Codex option visible"
+      },
+      {
+        "nombre": "select gpt-6-luna",
+        "ok": true,
+        "detalle": "model option visible"
+      },
+      {
+        "nombre": "select medium effort",
+        "ok": true,
+        "detalle": "effort option visible"
+      },
+      {
+        "nombre": "held task card visible",
+        "ok": true,
+        "detalle": "held task rendered"
+      },
+      {
+        "nombre": "held task id obtained",
+        "ok": true,
+        "detalle": "chat-bd61a0f0-6853-4af1-a01a-71900ce9c6cc"
+      },
+      {
+        "nombre": "first attempt fails on a check",
+        "ok": true,
+        "detalle": "status=pending retryCount=1 retryReason=check failed: bunx tsc --noEmit exit 2"
+      },
+      {
+        "nombre": "failed attempt report visible without reload",
+        "ok": true,
+        "detalle": "Modificar únicamente nota.ts para añadir al final la línea…\n\nModificar únicamente nota.ts para añadir al final la línea exacta `export const gate = 1`.\n\nFailed\nAttempt 1/3 · codex/gpt-6-luna\n\ncheck failed: bunx tsc --noEmit exit 2\n\nRetry"
+      },
+      {
+        "nombre": "no uuid text",
+        "ok": true,
+        "detalle": "card innerText contains id=false"
+      },
+      {
+        "nombre": "project clean before retry",
+        "ok": true,
+        "detalle": "clean"
+      },
+      {
+        "nombre": "Retry offered on the last report without reload",
+        "ok": true,
+        "detalle": "Retry buttons=1"
+      },
+      {
+        "nombre": "second attempt done",
+        "ok": true,
+        "detalle": "done"
+      },
+      {
+        "nombre": "done report appears in the open thread without reload",
+        "ok": true,
+        "detalle": "task messages before=2; after=3; Modificar únicamente nota.ts para añadir al final la línea…\n\nModificar únicamente nota.ts para añadir al final la línea exacta `export const gate = 1`.\n\nDone\ncodex/gpt-6-luna\n\n1 file(s) written\n\nRetry scheduled: check failed: bunx tsc --noEmit exit 2\n1 file +2 −0 · View diff\nUndo\n1 earlier attempt"
+      },
+      {
+        "nombre": "previous report no longer shows Retry",
+        "ok": true,
+        "detalle": "Retry buttons=0"
+      },
+      {
+        "nombre": "one card per task after Retry, done, earlier attempts collapsed",
+        "ok": true,
+        "detalle": "cards=1 header=\"1 earlier attempt\" aria-expanded=false"
+      },
+      {
+        "nombre": "no uuid text after Retry",
+        "ok": true,
+        "detalle": "done card innerText has no task id"
+      },
+      {
+        "nombre": "second held task card visible",
+        "ok": true,
+        "detalle": "held task rendered"
+      },
+      {
+        "nombre": "second task id obtained",
+        "ok": true,
+        "detalle": "chat-184b275a-51b0-413e-b240-bdf9291d5d31"
+      },
+      {
+        "nombre": "dirty tree leaves the task pending with the uncommitted-changes reason",
+        "ok": true,
+        "detalle": "status=pending retryReason=uncommitted changes: sucio.txt"
+      },
+      {
+        "nombre": "thread lists the uncommitted file without reload",
+        "ok": true,
+        "detalle": "title=true sucio.txt=true"
+      },
+      {
+        "nombre": "dirty task held card is hidden",
+        "ok": true,
+        "detalle": "Approve & Run buttons visible=0"
+      },
+      {
+        "nombre": "Commit & Run commits the file with the dashboard message",
+        "ok": true,
+        "detalle": "chore: commit pending changes before chat-184b275a-51b0-413e-b240-bdf9291d5d31 (dashboard)"
+      },
+      {
+        "nombre": "sucio.txt is no longer listed as uncommitted",
+        "ok": true,
+        "detalle": "M tasks.yaml"
+      },
+      {
+        "nombre": "relaunched task finishes done",
+        "ok": true,
+        "detalle": "done"
+      },
+      {
+        "nombre": "done report of the relaunched task appears without reload",
+        "ok": true,
+        "detalle": "Modificar únicamente nota.ts para añadir al final la línea…\n\nModificar únicamente nota.ts para añadir al final la línea exacta `export const sucio = 2`.\n\nDone\ncodex/gpt-6-luna\n\n1 file(s) written\n\n1 file +2 −0 · View diff\nUndo\n1 earlier attempt"
+      }
+    ],
+    "notes": [],
+    "errores": [],
+    "capturas": [
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-11599/chat-retry-report/retry-report.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-11599/chat-retry-report/dirty-tree-report.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-11599/chat-retry-report/commit-run-report.png"
+    ]
+  },
+  {
+    "flujo": "chat-followup-task",
+    "pass": true,
+    "steps": [
+      {
+        "nombre": "temporary project visible",
+        "ok": true,
+        "detalle": "project in Dev sidebar"
+      },
+      {
+        "nombre": "select Codex for new chat",
+        "ok": true,
+        "detalle": "agent option visible"
+      },
+      {
+        "nombre": "composer visible",
+        "ok": true,
+        "detalle": "chat composer visible after Start Chat"
+      },
+      {
+        "nombre": "message 1 plans without creating the task",
+        "ok": true,
+        "detalle": "{\"reply\":\"Crearía notas/seguimiento.md con una sola línea: hola. No crearé la tarea todavía.\",\"newTasks\":[]}"
+      },
+      {
+        "nombre": "message 2 creates the task from the thread",
+        "ok": true,
+        "detalle": "{\"reply\":\"Voy a crear la tarea para generar ese archivo con el contenido indicado.\\n\\nLa propuesta de tarea fue enviada para aprobación. Su objetivo es crear notas/seguimiento.md con una sola línea: hola.\\n\\n▶ Started task .\"}"
+      },
+      {
+        "nombre": "task exists in tasks.yaml",
+        "ok": true,
+        "detalle": "task chat-cd83c6a6-3978-4dd6-8b49-c2d26ab4d1c4"
+      },
+      {
+        "nombre": "task declares the thread file and class implement",
+        "ok": true,
+        "detalle": "{\"output\":[\"notas/seguimiento.md\"],\"task_class\":\"implement\"}"
+      },
+      {
+        "nombre": "task finishes done and the file exists",
+        "ok": true,
+        "detalle": "{\"status\":\"done\",\"fileExists\":true}"
+      }
+    ],
+    "notes": [],
+    "errores": [],
+    "capturas": [
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-11599/chat-followup-task/followup-task-done.png"
+    ]
+  }
+]

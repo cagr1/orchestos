@@ -175,15 +175,16 @@ export async function runTask(
     onTasks(result.tasks)
     latest = result.tasks.find((task) => task.id === taskId)
     if (!latest) throw new Error(`Task ${taskId} disappeared after starting`)
+    if (latest.status === 'pending' && latest.retryReason?.startsWith(DIRTY_TREE_REASON_PREFIX)) {
+      throw new Error(latest.retryReason)
+    }
     const statusFinished = latest.status !== 'pending' && latest.status !== 'running'
     const retryChanged = latest.retryCount !== initialRetryCount
     const runChanged = (latest.runId ?? null) !== initialRunId
-    if (statusFinished || retryChanged || runChanged) {
-      if (
-        latest.status === 'pending' &&
-        latest.retryReason &&
-        (retryChanged || latest.retryReason !== taskBeforeRun.retryReason)
-      ) {
+    // A run id can be allocated while the executor is still running (approvals).
+    // Only a pending task with a new attempt, or a terminal status, ends this wait.
+    if (statusFinished || (latest.status === 'pending' && (retryChanged || runChanged))) {
+      if (latest.status === 'pending' && latest.retryReason && (retryChanged || runChanged)) {
         throw new Error(`Retry scheduled: ${latest.retryReason}`)
       }
       if (latest.status === 'failed' || latest.status === 'failed_permanent') {

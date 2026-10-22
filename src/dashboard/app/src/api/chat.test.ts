@@ -30,7 +30,7 @@ describe('chat API mapping', () => {
 
   test('runs an approved task until the server leaves pending', async () => {
     const originalFetch = globalThis.fetch
-    const statuses = ['pending', 'running', 'done']
+    const statuses = ['pending', 'pending', 'running', 'done']
     const calls: string[] = []
     let started = false
     globalThis.fetch = (async (input) => {
@@ -50,7 +50,7 @@ describe('chat API mapping', () => {
     } finally {
       globalThis.fetch = originalFetch
     }
-    expect(calls.filter((path) => path.endsWith('/api/tasks')).length).toBe(3)
+    expect(calls.filter((path) => path.endsWith('/api/tasks')).length).toBe(4)
     expect(started).toBe(true)
   })
 
