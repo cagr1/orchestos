@@ -321,19 +321,16 @@ export const OrchestChatView: React.FC<OrchestChatViewProps> = ({
   return (
     <MotionConfig reducedMotion="user">
       <div className="flex-1 flex flex-col h-full text-app overflow-hidden relative select-none">
-        {/* 40px Session Header (Shared format with Dev) */}
+        {/* Compact session identity and context */}
         <header
           data-chat-header
-          className="h-10 px-3.5 flex items-center justify-between flex-shrink-0 z-20"
+          className="h-8 px-3.5 flex items-center justify-between flex-shrink-0 z-20"
         >
-          {/* Left: CLI Product Logo (tooltip = name) + Title */}
+          {/* CLI product logo (tooltip = name) */}
           <div className="flex items-center gap-2.5 min-w-0">
             <div title={cliName} className="flex-shrink-0 cursor-default">
               <ProviderLogo id={cliId} size={16} className="w-4 h-4" />
             </div>
-            <span className="font-semibold text-[13px] text-app truncate max-w-sm">
-              {thread?.title || 'Interactive Session'}
-            </span>
           </div>
 
           {/* Context is rendered only when the selected session has real token telemetry. */}
@@ -574,25 +571,12 @@ export const OrchestChatView: React.FC<OrchestChatViewProps> = ({
         </div>
 
         {/* Shared Composer (Nothing under composer: no status line) */}
-        <div data-composer-region className="p-3 bg-app-bg flex-shrink-0">
+        <div
+          data-composer-region
+          data-permission-mode={thread?.projectId ? permissions?.mode : undefined}
+          className="p-3 flex-shrink-0"
+        >
           <div className="max-w-3xl lg:max-w-4xl mx-auto">
-            {thread?.projectId &&
-              (permissions ? (
-                <div
-                  data-permissions-strip
-                  data-permission-mode={permissions.mode}
-                  className="mb-1.5 px-1 text-xs text-app-muted"
-                >
-                  Chat: {permissions.chat} · Tasks: {permissions.tasks} ·{' '}
-                  <span className={permissions.mode === 'manual' ? 'text-app-accent' : undefined}>
-                    {permissions.mode === 'manual' ? 'Manual approval' : 'Auto-run'}
-                  </span>
-                </div>
-              ) : (
-                <div className="mb-1.5 px-1 text-xs text-app-muted" aria-hidden="true">
-                  {'\u00a0'}
-                </div>
-              ))}
             <AgentComposer
               onSendMessage={handleSendFromComposer}
               hasProject={!!thread?.projectId}

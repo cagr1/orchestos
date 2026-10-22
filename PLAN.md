@@ -1448,6 +1448,16 @@ archivos fijados por `ui:fidelity:jsx` (`OrchestDevWorkspace`, `ShellStatusBar`,
   Fuera de Usage siguen con día UTC, sin tocar:
   `spec-archive.test.ts`, `check-sources-drift.ts`, `adversarial-review.ts`. Spec: docs/specs/UI.26.6b.4.md (borrado)
   Ejecutado por: GPT (criterio-alt) · QA: GPT (qa), sin hallazgos en este ítem.
+- [x] **UI.27 — 🔍 Chat/Dev: icono del agente siempre, hilo y composer en un solo cuerpo, sin texto sobrante.** (abierto
+  2026-10-21, pedido de Carlos con capturas) Logo del agente en filas de chat y de Dev (hoy `MessageSquare` / sustituido
+  por el estado), línea `border-r` del aside (perdida en UI.26.1), composer dentro de la superficie del hilo, fuera la
+  tira "Chat: read-only · …" y el título del header (se queda el anillo). Worktree `ui/UI.27` (otra sesión tiene el
+  candado del árbol principal). (cerrado 2026-10-21)
+  Ejecutado por: gpt-6.1-sol (rol `criterio-alt`) · Spec: docs/specs/UI.27.md (borrado). Revisión: Opus (diff completo
+  + navegador en vivo, Chat y Dev). Gates propios: typecheck, lint, `ui:fidelity:jsx` verdes; `test:coverage` 1903/0;
+  Gate en vivo: navegador real (Playwright), `docs/done/evidence/UI.27-live.json` — `shell-look` 55/55,
+  `chat-permissions` 9/9, `chat-streaming` 27/27.
+  Anotado: el header de Dev (`OrchestDevWorkspace`, fijado por `ui:fidelity:jsx`) sigue mostrando el título del hilo.
 - [x] **UI.26.7 — 🔍 Pendiente de revisar: inputs de "Orquestación" en Tasks no aceptan texto.** (Carlos 2026-10-14)
   "Máximo concurrente" y "Tope total por ejecución" (`OrchestSettingsView.tsx:~2321`) se renderizan `disabled`
   (visto en `erp-piloto`): no se puede escribir. Revisar por qué están deshabilitados y si la sección aporta.

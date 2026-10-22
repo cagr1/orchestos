@@ -100,8 +100,9 @@ export default async function shellLook({ page, api, step, shot, visible, hidden
       facts.iconColors.join(' | ') || 'sin iconos',
     )
     await step(
-      `${view}: no line between sidebar and panel`,
-      facts.sidebarBorderRight.every((w) => w === 0) && facts.headerBorderBottom === 0,
+      `${view}: sidebar divider and flat header`,
+      facts.sidebarBorderRight.every((w) => (view === 'chat' ? w > 0 : w === 0)) &&
+        facts.headerBorderBottom === 0,
       `aside border-right=${facts.sidebarBorderRight.join(',')} header border-bottom=${facts.headerBorderBottom}`,
     )
     await step(
@@ -683,6 +684,46 @@ export default async function shellLook({ page, api, step, shot, visible, hidden
     .locator('[data-composer-region]')
     .evaluate((el) => getComputedStyle(el).borderTopWidth)
   await step('composer no top line (Dev)', devComposerBorder === '0px', devComposerBorder)
+  const sharedBody = async (mode) => {
+    const body = await page.locator('[data-composer-region]').evaluate((composer) => {
+      const panel = composer.parentElement
+      const scroll = panel?.querySelector(':scope > .overflow-y-auto')
+      const background = (element) => {
+        while (element) {
+          const color = getComputedStyle(element).backgroundColor
+          if (color !== 'rgba(0, 0, 0, 0)' && color !== 'transparent') return color
+          element = element.parentElement
+        }
+        return null
+      }
+      return {
+        sameParent: Boolean(scroll && scroll.parentElement === panel),
+        composerBg: background(composer),
+        scrollBg: background(scroll),
+        gap: scroll
+          ? composer.getBoundingClientRect().top - scroll.getBoundingClientRect().bottom
+          : null,
+      }
+    })
+    await step(
+      `${mode}: thread and composer share one body`,
+      body.sameParent &&
+        body.composerBg !== null &&
+        body.composerBg === body.scrollBg &&
+        Math.abs(body.gap) <= 1,
+      JSON.stringify(body),
+    )
+  }
+  await sharedBody('Dev')
+  const devAgentButton = page.getByRole('button', {
+    name: `Agent: Codex on ${basename(projectRoot)}`,
+    exact: true,
+  })
+  await step(
+    'Dev agent row retains provider logo',
+    (await devAgentButton.locator('[style*="mask-image"], img[aria-hidden="true"]').count()) > 0,
+    'provider logo alongside agent name',
+  )
   const toggleInspector = page.getByRole('button', { name: 'Toggle Right Workspace Panel' })
   if (!(await visible(page.locator('[data-inspector-tabs]')))) await toggleInspector.click()
   const inspectorAlignment = await page.evaluate(() => {
@@ -706,6 +747,41 @@ export default async function shellLook({ page, api, step, shot, visible, hidden
     .locator('[data-composer-region]')
     .evaluate((el) => getComputedStyle(el).borderTopWidth)
   await step('composer no top line (Chat)', chatComposerBorder === '0px', chatComposerBorder)
+
+  await sharedBody('Chat')
+  const chatRows = await page.locator('aside [role="button"]').evaluateAll((rows) =>
+    rows.map((row) => ({
+      messageSquare: row.querySelectorAll('.lucide-message-square').length,
+      logo: [
+        ...row.querySelectorAll('img[aria-hidden="true"], [style*="mask-image"], svg:not(.lucide)'),
+      ].some((icon) => {
+        const box = icon.getBoundingClientRect()
+        return Math.round(box.width) === 16 && Math.round(box.height) === 16
+      }),
+    })),
+  )
+  await step(
+    'Chat rows show agent logos',
+    chatRows.length > 0 && chatRows.every((row) => row.logo && row.messageSquare === 0),
+    JSON.stringify(chatRows),
+  )
+  const headerTitle = await page.locator('[data-chat-header]').evaluate((header) => ({
+    title: header.querySelector('.truncate')?.textContent ?? null,
+    height: header.getBoundingClientRect().height,
+    logo: header.querySelector('[title] [aria-hidden="true"]') !== null,
+  }))
+  await step(
+    'Chat header has logo without thread title',
+    headerTitle.title === null && headerTitle.logo && headerTitle.height <= 32,
+    JSON.stringify(headerTitle),
+  )
+  await step(
+    'Chat permissions strip removed',
+    (await page.locator('[data-permissions-strip]').count()) === 0 &&
+      !(await page.locator('[data-composer-region]').innerText()).includes('Chat: read-only'),
+    'no permissions text or strip below the thread',
+  )
+  await shot('chat-unified-body')
 
   const commandPalette = page.getByRole('textbox', {
     name: 'Type a command, search screen, or execute task...',
