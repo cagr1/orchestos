@@ -714,14 +714,22 @@ Cerrada. Todos sus ítems están archivados en `docs/done/` (ver "Cerrados — e
     Corrida `CI.32.c1-live`: la hipótesis del orden `item/started` queda refutada. Codex escribió el archivo con
     `/bin/zsh -lc "cat > codex-nota.md <<'EOF' …"` (`commandExecution`, `commandActions: [unknown]`), no con
     `apply_patch`; auto-edit retiene comandos por diseño (ERP.7.1, `PLAN.md` § ERP.7.1a: solo pregunta `mkdir`).
-    Fase 2: que el prompt de tareas pida editar con la herramienta de edición del CLI, no con redirecciones de shell;
-    no se clasifica `cat >` como edición.
+    Fase 2a (descartada): pedir en el prompt de tareas que edite con su herramienta, no con shell — Codex siguió con
+    `cat >` 2 de 2 (`CI.32.c2-live`, `-rerun`); revertido. Probablemente rojo desde ERP.7.1c (2026-10-20, auto-edit
+    por defecto): la última evidencia verde de `auto-flow` es UI.24.7 (2026-10-15).
+    **Decisión de Carlos 2026-10-22:** en `auto-edit`, Codex corre con su sandbox nativo de escritura en el proyecto
+    (su modo "Auto"): los comandos dentro del proyecto pasan solos y solo pregunta lo que sale del proyecto o pide
+    red, igual que el CLI directo. Cambia ERP.7.1a para Codex (`mkdir` dentro del proyecto ya no pregunta); `Supervised`
+    sigue preguntando todo comando. Fase 2: implementarlo en `codex-app-server.ts` (`taskTurn`).
   - [ ] **CI.32.d — `chat-retry-report`: el primer intento se queda en `running`, `retryCount=0`.** Posiblemente la
     misma causa que CI.32.c; se confirma después de corregir CI.32.c.
-- [ ] **CI.33 — 🔍 `graph-runner.test.ts` "stops at the maximum graph iterations" roza su límite de 5 s.** (abierto
-  2026-10-22) Cadena de 202 tareas con `runTask` simulado: aislado tarda ~5 s (3 de 3), en `test:coverage` dio
-  timeout 1 de 3 corridas del 2026-10-22. ~25 ms por iteración con el ejecutor simulado: medir dónde se va el tiempo
-  en `runGraph` (escrituras, esperas) antes de tocar el timeout; subir el límite solo si el costo es legítimo.
+- [x] **CI.33 — 🔍 `graph-runner.test.ts` "stops at the maximum graph iterations" roza su límite de 5 s.** (abierto y
+  cerrado 2026-10-22) Cadena de 202 tareas con `runTask` simulado: ~5 s aislado; timeout en 2 de 4 `test:coverage`
+  del 2026-10-22. Medido: ~4,95 s de 4,97 s son `new RunLogger` por intento (`graph-runner.ts:499` →
+  `excludeRuntimeArtifacts` → `git rev-parse`, ~25 ms × 200); el resto suma <20 ms. Costo legítimo y por tarea (en un
+  grafo real, ~25 ms frente a minutos de LLM): límite del test a 20 s con la medición en un comentario; producto sin
+  tocar. Evidencia: test aislado 3/3 (4,97–5,03 s); `test:coverage` 2/2 verde (1926/0).
+  Ejecutado por: claude sonnet (criterio) · Spec: docs/specs/CI.33.md
 - [x] **CI.31 — ⚡ El shard `executors` de Mutation Shards pasa el límite de 3 h.** (abierto y cerrado 2026-10-21) Run
   `39566168502` cancelado a 3h0m: 3352 mutantes en 15 archivos con `concurrency: 1` (el 2026-10-20 eran 2627 en 11 y
   tardó 2h37; ERP.7.1a/d1/d2 sumaron `*-approval.ts` y `opencode-server.ts`). Arreglo: partir el shard en dos

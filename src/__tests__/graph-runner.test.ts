@@ -335,7 +335,10 @@ describe('runGraph (D1)', () => {
 
     expect(result.tasks.filter((t) => t.outcome === 'completed')).toHaveLength(200)
     expect(result.tasks.filter((t) => t.outcome === 'skipped_circuit_breaker')).toHaveLength(2)
-  })
+    // CI.33: medido 2026-10-22, ~4.95 s de 4.97 s son `new RunLogger` por intento (200 ×
+    // `git rev-parse` de excludeRuntimeArtifacts, ~25 ms c/u); loadTasks, update, runTask y
+    // console.error suman <20 ms. Costo legítimo y por tarea, no por iteración: se sube el límite.
+  }, 20_000)
 
   it('stops a graph with an unmet dependency and reports the stuck task', async () => {
     writeTasks(tmpDir, [makeTask('blocked', ['missing'])])

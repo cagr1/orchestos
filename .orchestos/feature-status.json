@@ -351,7 +351,7 @@
       "block": "H.7 — El contexto se llena en silencio y nadie avisa (ABIERTO 2026-09-02)",
       "delegation": "🔍",
       "title": "`graph-runner.test.ts` \"stops at the maximum graph iterations\" roza su límite de 5 s",
-      "status": "open",
+      "status": "done",
       "closedDate": null
     },
     {
