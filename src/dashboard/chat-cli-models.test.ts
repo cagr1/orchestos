@@ -1,9 +1,14 @@
 import { beforeEach, describe, expect, test } from 'bun:test'
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
 import {
   formatClaudeModelIds,
   parseClaudeHelp,
+  parseClaudeModelCatalog,
   parseCodexModelsCache,
   parseOpencodeModels,
+  readClaudeModelIds,
   readCliModelCatalogs,
   readCliModelCatalogsCached,
   resetCliModelCatalogCache,
@@ -244,5 +249,105 @@ describe('UI.14 round 5 CLI model catalogs', () => {
         efforts: [],
       },
     ])
+  })
+})
+
+function claudeCatalog(
+  surface: string,
+  fetchedAt: number,
+  models: Array<{ id: string; name: string; section: string }>,
+) {
+  return JSON.stringify({
+    version: 2,
+    fetchedAt,
+    staleAt: fetchedAt + 1000,
+    catalog: {
+      surface,
+      config: {
+        models: models.map((model) => ({ ...model, short_name: model.name.split(' ')[0] })),
+      },
+    },
+  })
+}
+
+const claudeFixture = claudeCatalog('cc', 100, [
+  { id: 'claude-haiku-4-5-20251001', name: 'Haiku 4.5', section: 'overflow' },
+  { id: 'claude-opus-5-5', name: 'Opus 5.5', section: 'main' },
+  { id: 'claude-sonnet-5-5', name: 'Sonnet 5.5', section: 'main' },
+])
+
+describe('MOD.1 Claude model catalog from the CLI source', () => {
+  test('parses names with version, main before overflow', () => {
+    expect(parseClaudeModelCatalog(claudeFixture)).toEqual([
+      { id: 'claude-opus-5-5', name: 'Opus 5.5', short: 'Opus 5.5' },
+      { id: 'claude-sonnet-5-5', name: 'Sonnet 5.5', short: 'Sonnet 5.5' },
+      { id: 'claude-haiku-4-5-20251001', name: 'Haiku 4.5', short: 'Haiku 4.5', group: 'Older' },
+    ])
+    expect(parseClaudeModelCatalog('{oops')).toEqual([])
+    expect(parseClaudeModelCatalog('{}')).toEqual([])
+  })
+
+  test('readClaudeModelIds uses the newest cc catalog and appends unknown history', () => {
+    const home = mkdtempSync(join(tmpdir(), 'mod1-'))
+    try {
+      const dir = join(home, '.claude', 'cache', 'model-catalog')
+      mkdirSync(dir, { recursive: true })
+      writeFileSync(join(dir, 'a-cc.json'), claudeFixture)
+      writeFileSync(
+        join(dir, 'b-cc.json'),
+        claudeCatalog('cc', 50, [{ id: 'claude-old-1', name: 'Old 1', section: 'main' }]),
+      )
+      writeFileSync(
+        join(dir, 'c-ccd.json'),
+        claudeCatalog('ccd', 999, [{ id: 'claude-desktop-1', name: 'Desktop 1', section: 'main' }]),
+      )
+      writeFileSync(
+        join(home, '.claude', 'stats-cache.json'),
+        JSON.stringify({ modelUsage: { 'claude-opus-5-5': {}, 'claude-fable-4': {} } }),
+      )
+      const models = readClaudeModelIds(home)
+      expect(models.map((model) => model.id)).toEqual([
+        'claude-opus-5-5',
+        'claude-sonnet-5-5',
+        'claude-haiku-4-5-20251001',
+        'claude-fable-4',
+      ])
+      expect(models.at(-1)?.group).toBe('Older')
+    } finally {
+      rmSync(home, { recursive: true, force: true })
+    }
+  })
+
+  test('readClaudeModelIds without a catalog keeps the usage-history behaviour', () => {
+    const home = mkdtempSync(join(tmpdir(), 'mod1-'))
+    try {
+      mkdirSync(join(home, '.claude'), { recursive: true })
+      writeFileSync(
+        join(home, '.claude', 'stats-cache.json'),
+        JSON.stringify({ modelUsage: { 'claude-opus-5': {} } }),
+      )
+      expect(readClaudeModelIds(home)).toEqual([
+        { id: 'claude-opus-5', name: 'Opus 5', short: 'Opus 5' },
+      ])
+      expect(readClaudeModelIds(join(home, 'missing'))).toEqual([])
+    } finally {
+      rmSync(home, { recursive: true, force: true })
+    }
+  })
+
+  test('contract: every CLI source yields a non-empty list with readable names', () => {
+    const sources: Record<string, ReturnType<typeof parseClaudeModelCatalog>> = {
+      claude: parseClaudeModelCatalog(claudeFixture),
+      codex: parseCodexModelsCache(
+        JSON.stringify({ models: [{ slug: 'gpt-6-astra', display_name: 'GPT-6-Astra' }] }),
+      ),
+      opencode: parseOpencodeModels('openai/gpt-5\n{"name":"GPT-5"}\n'),
+    }
+    for (const [cli, models] of Object.entries(sources)) {
+      expect(models.length, cli).toBeGreaterThan(0)
+      for (const model of models) expect(model.name.length, `${cli}:${model.id}`).toBeGreaterThan(0)
+    }
+    for (const cli of ['claude', 'codex'])
+      for (const model of sources[cli] ?? []) expect(model.name).not.toBe(model.id)
   })
 })

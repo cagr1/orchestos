@@ -1,0 +1,43 @@
+[
+  {
+    "flujo": "composer-picker",
+    "pass": true,
+    "steps": [
+      {
+        "nombre": "temporary project visible in Dev",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "OpenCode not offered for new chat",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "Codex available for new chat",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "Codex model selector has no search input",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "Codex effort levels remain available",
+        "ok": true,
+        "detalle": "{\"model\":\"gpt-6.1-sol\",\"efforts\":[\"low\",\"medium\",\"high\",\"xhigh\",\"max\",\"ultra\"]}"
+      }
+    ],
+    "notes": [],
+    "errores": [],
+    "capturas": [
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-87490/composer-picker/project-registered.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-87490/composer-picker/dev-mode.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-87490/composer-picker/temporary-project-selected.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-87490/composer-picker/chat-mode.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-87490/composer-picker/new-chat-agent-selector.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-87490/composer-picker/codex-efforts-preserved.png"
+    ]
+  }
+]

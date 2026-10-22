@@ -2189,11 +2189,18 @@ igual que hoy, lo que se corta es que el **producto** lo herede por accidente.
   Evidencia (cerebro): typecheck, tests 45/0, `test:coverage` 1921/0.
   Gate en vivo: navegador real (Playwright), `docs/done/evidence/CUOTA.1-live.json` (`usage-bar` 19/19, lectura vieja → "no data since 1 h").
   Ejecutado por: GPT (criterio-alt r1/r2, mecanico textos), QA GPT (qa r1) · Spec: docs/specs/CUOTA.1.md
-- [ ] **MOD.1 — 🔍 El catálogo de cada CLI sale de la fuente del CLI, con nombre y versión.** (abierto 2026-10-21,
+- [x] **MOD.1 — 🔍 El catálogo de cada CLI sale de la fuente del CLI, con nombre y versión.** (abierto y cerrado 2026-10-21,
   Carlos: "siempre debe mostrar el modelo con su versión, no solo para Claude") Claude arma su lista con el historial de
   uso (`chat-cli-models.ts:107`): Sonnet 5.5 no aparece hasta usarlo. El CLI ya guarda su catálogo oficial en
   `~/.claude/cache/model-catalog/*-cc.json` (`id` + `name` "Sonnet 5.5"), como Codex `models_cache.json`.
-  Spec: docs/specs/MOD.1.md
+  Arreglo: `parseClaudeModelCatalog` + lectura del `surface: "cc"` más reciente; `main` primero, `overflow` y los ids
+  que solo están en el historial en el grupo `Older`; sin catálogo, como antes. Test de contrato por CLI (Claude,
+  Codex, OpenCode: lista no vacía, `name` legible). Evidencia (cerebro): typecheck, `chat-cli-models.test.ts` 16/0;
+  dashboard real (puerto 4399, home real, apagado después) `GET /api/chat/cli-models` → Opus 5.5, Sonnet 5.5,
+  Fable 5.1, Haiku 5.5, luego `Older`. Límite: el flujo usa home temporal sin catálogo; "Sonnet 5.5" en el selector
+  se vio por la API, no con clic en el navegador. QA de otro proveedor no corrida: Codex sin cupo; revisó el cerebro.
+  Gate en vivo: navegador real (Playwright), `docs/done/evidence/MOD.1-live.json` (`composer-picker` 5/5).
+  Ejecutado por: Claude Sonnet (criterio, r1 y r2), revisión del cerebro · Spec: docs/specs/MOD.1.md
 - [x] **DOC.2 — 🔍 `docs/` solo con lo relevante.** (abierto 2026-10-14, GO de Carlos) 36 archivos sueltos clasificados
   por contenido contra HEAD: lo vigente se fusiona o comprime, lo histórico pasa a `docs/done/`, lo obsoleto se borra.
   Ejecutado por: criterio (delegate) · clasificación: leer · Spec: docs/specs/DOC.2.md

@@ -1,4 +1,4 @@
-import { existsSync, readFileSync } from 'node:fs'
+import { existsSync, readdirSync, readFileSync } from 'node:fs'
 import { homedir } from 'node:os'
 import { registerNativeOpencodeModels } from '../router/opencode-catalog.ts'
 import { cliChatAdapterFor } from '../run/executors/chat-adapters.ts'
@@ -104,7 +104,61 @@ export function formatClaudeModelIds(ids: string[]): CliModelOption[] {
     .map(({ id, name, short }) => ({ id, name, short }))
 }
 
-function readClaudeModelIds(home: string): CliModelOption[] {
+// Claude Code keeps its own model catalog (`surface: "cc"`; `ccd` is Claude Desktop) under ~/.claude/cache/model-catalog.
+export function parseClaudeModelCatalog(raw: string): CliModelOption[] {
+  try {
+    const parsed = JSON.parse(raw) as { catalog?: { config?: { models?: unknown } } }
+    const entries = parsed.catalog?.config?.models
+    if (!Array.isArray(entries)) return []
+    const options = entries.flatMap((entry) => {
+      if (!entry || typeof entry !== 'object') return []
+      const model = entry as {
+        id?: unknown
+        name?: unknown
+        short_name?: unknown
+        section?: unknown
+      }
+      if (typeof model.id !== 'string' || !model.id) return []
+      const name = typeof model.name === 'string' && model.name ? model.name : model.id
+      const overflow = model.section === 'overflow'
+      return [{ id: model.id, name, short: name, overflow }]
+    })
+    return [...options.filter((m) => !m.overflow), ...options.filter((m) => m.overflow)].map(
+      ({ id, name, short, overflow }) => ({
+        id,
+        name,
+        short,
+        ...(overflow ? { group: 'Older' } : {}),
+      }),
+    )
+  } catch {
+    return []
+  }
+}
+
+function readClaudeCatalogModels(home: string): CliModelOption[] {
+  const dir = `${home}/.claude/cache/model-catalog`
+  let best: { fetchedAt: number; raw: string } | undefined
+  try {
+    for (const file of readdirSync(dir)) {
+      if (!file.endsWith('.json')) continue
+      try {
+        const raw = readFileSync(`${dir}/${file}`, 'utf8')
+        const parsed = JSON.parse(raw) as { fetchedAt?: unknown; catalog?: { surface?: unknown } }
+        if (parsed.catalog?.surface !== 'cc') continue
+        const fetchedAt = typeof parsed.fetchedAt === 'number' ? parsed.fetchedAt : 0
+        if (!best || fetchedAt > best.fetchedAt) best = { fetchedAt, raw }
+      } catch {
+        // A malformed catalog file does not invalidate the others.
+      }
+    }
+  } catch {
+    // No catalog directory is a valid no-data state.
+  }
+  return best ? parseClaudeModelCatalog(best.raw) : []
+}
+
+export function readClaudeModelIds(home: string): CliModelOption[] {
   const ids = new Set<string>()
   try {
     const stats = JSON.parse(readFileSync(`${home}/.claude/stats-cache.json`, 'utf8')) as {
@@ -125,7 +179,11 @@ function readClaudeModelIds(home: string): CliModelOption[] {
   } catch {
     // No statusLine payload is a valid no-data state.
   }
-  return formatClaudeModelIds([...ids])
+  const catalog = readClaudeCatalogModels(home)
+  const known = new Set(catalog.map((model) => model.id))
+  const history = formatClaudeModelIds([...ids]).filter((model) => !known.has(model.id))
+  if (!catalog.length) return history
+  return [...catalog, ...history.map((model) => ({ ...model, group: 'Older' }))]
 }
 
 export function parseOpencodeModels(raw: string): CliModelOption[] {
