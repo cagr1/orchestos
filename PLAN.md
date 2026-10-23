@@ -160,7 +160,7 @@ Regla: nada se reintenta, cierra ni muestra sin evidencia medida que el usuario 
   remoto puede repetir el chat) y el paso `turn 2 is faster than turn 1` vuelca esas líneas si falla. Abierto hasta el
   próximo fallo: leer en qué fase se fue el tiempo. Ejecutado por: GPT (criterio-alt + mecanico), QA: GPT (qa).
 
-- [ ] **CI.18 — 🔍 `chat-roles` intermitente en el pre-push completo (3.ª vez, 2026-10-11).** Instrumentar el paso del
+- [x] **CI.18 — 🔍 `chat-roles` intermitente en el pre-push completo (3.ª vez, 2026-10-11).** (cerrado 2026-10-23) Instrumentar el paso del
   marcador y medir la causa antes de arreglar. Spec: docs/specs/CI.18.md
   2026-10-11: instrumento aplicado (Luna): el detalle del paso guarda `/api/chat` (texto, `autoTask`) + captura
   `marker-failure`. Medido: 3 corridas del set completo del pre-push → 3/3 PASS; desde R.8.2.1 suma 6 de 7 (1 fallo, el
@@ -172,6 +172,16 @@ Regla: nada se reintenta, cierra ni muestra sin evidencia medida que el usuario 
   Codex al 90 %. Ese día Codex tardaba 30–65 s en responder "ok" fuera de OrchestOS y tumbó 2 corridas de
   `chat-permissions` igual. Causa de esta vez: latencia externa de Codex contra el timeout de 120 s del turno
   (familia CI.11). Pendiente de decidir: si el turno de chat necesita más margen o un aviso honesto, no reintentos ciegos.
+  2026-10-23 (5.ª vez, pre-push de CI.23): `held task card visible at the bottom` → `atBottom:false`; la captura muestra
+  el hilo cortado y la tarjeta "Approve & Run" fuera de vista. Bug de producto: `useStickToBottom` soltaba el hilo ante
+  cualquier `scrollTop` que bajara, también el que causa el layout (contracción, clamping). Arreglo (Sol): solo un gesto
+  del usuario (rueda arriba, tacto, teclado, arrastre de la barra) suelta el hilo; el ResizeObserver lo mantiene abajo.
+  `chat-roles` suma pasos deterministas: crecimiento con scroll entregado antes del ResizeObserver, y rueda real que
+  no se mueve al crecer el contenido. Contraprueba de Sol: hook anterior a 1200 px del fondo, nuevo a 0 px. Causa exacta
+  bajo carga: inferida. Sin scroll programático en los hilos (solo Settings). Cerebro: 54/0 thread, `chat-roles` 12/12.
+  La familia CI.11 (latencia de Codex) sigue en CI.11.
+  Gate en vivo: navegador real (Playwright), `docs/done/evidence/CI.18-live.json`
+  Ejecutado por: codex gpt-6.1-sol (criterio), revisión Opus · Spec: docs/specs/CI.18.md
 - [ ] **CI.19 — 🔍 El `git commit` del fixture falla a veces en el andamiaje de los ui-gates.** Visto 1 vez en
   `qa-negative` (2026-10-11, 1 de 9): `Command failed: git … commit -qm task fixture`, sin motivo porque el helper
   `run` usa `stdio: 'ignore'`. `qa-negative` ya reporta stdout/stderr y exit; los otros 20 flows con el mismo helper no.

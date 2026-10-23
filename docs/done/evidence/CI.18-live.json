@@ -1,0 +1,79 @@
+[
+  {
+    "flujo": "chat-roles",
+    "pass": true,
+    "steps": [
+      {
+        "nombre": "temporary project visible",
+        "ok": true,
+        "detalle": "orchestos-ui-mr-1-d1-nQV4kC"
+      },
+      {
+        "nombre": "Orchestrator Codex selected by default",
+        "ok": true,
+        "detalle": "Codex option visible: Codex"
+      },
+      {
+        "nombre": "question turn receives a response",
+        "ok": true,
+        "detalle": "The README has 1 line."
+      },
+      {
+        "nombre": "first normal turn latency (ms)",
+        "ok": true,
+        "detalle": "10841 ms from send to visible reply"
+      },
+      {
+        "nombre": "Orchestrator provider and model are recorded",
+        "ok": true,
+        "detalle": "{\"provider\":\"codex\",\"model\":\"gpt-6-luna\"}"
+      },
+      {
+        "nombre": "Orchestrator create_task call creates a held task without Auxiliary",
+        "ok": true,
+        "detalle": "{\"secondTurnDone\":true,\"httpStatus\":200,\"apiText\":\" project task flow, since project files are modified only through that mechanism here.\\n\\nI submitted a task proposal to add “Orchestrator marker gate” to [README.md](/private/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/orchestos-ui-mr-1-d1-nQV4kC/README.md). It will proceed after approval.\\n\\n⏸ Created task `chat-73967c27-1f51-4e17-b55f-26c9f5aa73b0`, waiting for your confirmation before it runs.\",\"autoTask\":{\"id\":\"chat-73967c27-1f51-4e17-b55f-26c9f5aa73b0\",\"held\":true,\"existingFiles\":[\"README.md\"]},\"autoTaskSkipped\":false,\"dbTasks\":[],\"label\":\"Add the exact line \\\"Orchestrator marker gate\\\" to README.md,…\\n\\nAdd the exact line \\\"Orchestrator marker gate\\\" to README.md, on a new line after the existing content.\\n\\nReady to run\\nApprove & Run\\nReject\"}"
+      },
+      {
+        "nombre": "held task card visible at the bottom",
+        "ok": true,
+        "detalle": "{\"overflows\":true,\"atBottom\":true,\"contained\":true}"
+      },
+      {
+        "nombre": "chat follows content that grows after render",
+        "ok": true,
+        "detalle": "{\"grew\":true,\"atBottom\":true,\"distanceBefore\":0,\"distanceAfter\":0,\"scrollTop\":861,\"scrollHeight\":1233,\"clientHeight\":372,\"contentChildren\":2}"
+      },
+      {
+        "nombre": "chat follows growth after an intermediate render clamps scrollTop",
+        "ok": true,
+        "detalle": "{\"clamped\":true,\"atBottom\":true,\"topBefore\":1461,\"clampedTop\":261,\"distanceAfter\":0}"
+      },
+      {
+        "nombre": "chat preserves the position of a reader who scrolled up",
+        "ok": true,
+        "detalle": "{\"detached\":true,\"stayed\":true,\"distanceBefore\":600,\"topBefore\":861,\"topAfter\":861}"
+      },
+      {
+        "nombre": "task delegates execution without fixed model or engine",
+        "ok": true,
+        "detalle": "{\"id\":\"chat-73967c27-1f51-4e17-b55f-26c9f5aa73b0\",\"description\":\"Add the exact line \\\"Orchestrator marker gate\\\" to README.md, on a new line after the existing content.\",\"output\":[\"README.md\"],\"status\":\"pending\",\"retry_count\":0,\"approvalMode\":\"auto-edit\",\"task_class\":\"implement\",\"skill\":\"doc-gen\"}"
+      },
+      {
+        "nombre": "Executor settings no longer contain Default agent chips",
+        "ok": true,
+        "detalle": "Default agent headings: 0; chips: 0"
+      }
+    ],
+    "notes": [],
+    "errores": [],
+    "capturas": [
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-35084/chat-roles/temporary-project-visible.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-35084/chat-roles/orchestrator-preselected.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-35084/chat-roles/orchestrator-question-response.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-35084/chat-roles/orchestrator-turn-recorded.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-35084/chat-roles/task-held-without-auxiliary.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-35084/chat-roles/task-yaml-delegates-to-role.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-35084/chat-roles/executor-settings-without-default-agent.png"
+    ]
+  }
+]

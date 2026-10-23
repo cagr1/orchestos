@@ -117,8 +117,8 @@
       "block": "Abiertos — fiabilidad de los gates y documentación",
       "delegation": "🔍",
       "title": "`chat-roles` intermitente en el pre-push completo (3.ª vez, 2026-10-11)",
-      "status": "open",
-      "closedDate": null
+      "status": "done",
+      "closedDate": "2026-10-23"
     },
     {
       "id": "CI.19",

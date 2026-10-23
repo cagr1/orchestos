@@ -249,6 +249,86 @@ export default async function chatRoles({ page, api, step, shot, visible, cleanu
     afterGrowth.grew && afterGrowth.atBottom,
     JSON.stringify(afterGrowth),
   )
+  // CI.18: a shorter intermediate render clamps scrollTop before the held
+  // card grows again. Deliver its scroll event before ResizeObserver to cover
+  // this ordering deterministically, independently of browser frame scheduling.
+  const afterReplacement = await heldTaskAction.evaluate(async (element) => {
+    let container = element.parentElement
+    while (container && !/(auto|scroll)/.test(getComputedStyle(container).overflowY))
+      container = container.parentElement
+    const content = container?.firstElementChild
+    if (!container || !content) return { clamped: false, atBottom: false }
+    const filler = document.createElement('div')
+    filler.style.height = '1200px'
+    content.appendChild(filler)
+    await new Promise((resolve) => setTimeout(resolve, 100))
+    const topBefore = container.scrollTop
+    filler.style.height = '0px'
+    const clampedTop = container.scrollTop // force the intermediate layout
+    filler.style.height = '1400px'
+    container.dispatchEvent(new Event('scroll'))
+    await new Promise((resolve) => setTimeout(resolve, 400))
+    const result = {
+      clamped: clampedTop < topBefore - 500,
+      atBottom: container.scrollHeight - container.scrollTop - container.clientHeight <= 2,
+      topBefore,
+      clampedTop,
+      distanceAfter: container.scrollHeight - container.scrollTop - container.clientHeight,
+    }
+    filler.remove()
+    return result
+  })
+  await step(
+    'chat follows growth after an intermediate render clamps scrollTop',
+    afterReplacement.clamped && afterReplacement.atBottom,
+    JSON.stringify(afterReplacement),
+  )
+  // Real wheel input must still leave the reader in place when more content arrives.
+  const readingBox = await heldTaskAction.evaluate(async (element) => {
+    let container = element.parentElement
+    while (container && !/(auto|scroll)/.test(getComputedStyle(container).overflowY))
+      container = container.parentElement
+    const content = container?.firstElementChild
+    if (!container || !content) throw new Error('Missing chat scroll container')
+    const filler = document.createElement('div')
+    filler.dataset.ci18Reading = ''
+    filler.style.height = '1200px'
+    content.appendChild(filler)
+    await new Promise((resolve) => setTimeout(resolve, 100))
+    const box = container.getBoundingClientRect()
+    return { x: box.x + box.width / 2, y: box.y + box.height / 2 }
+  })
+  await page.mouse.move(readingBox.x, readingBox.y)
+  await page.mouse.wheel(0, -600)
+  await page.waitForTimeout(300)
+  const whileReading = await heldTaskAction.evaluate(async (element) => {
+    let container = element.parentElement
+    while (container && !/(auto|scroll)/.test(getComputedStyle(container).overflowY))
+      container = container.parentElement
+    const content = container?.firstElementChild
+    if (!container || !content) return { detached: false, stayed: false }
+    const topBefore = container.scrollTop
+    const distanceBefore = container.scrollHeight - topBefore - container.clientHeight
+    const filler = document.createElement('div')
+    filler.style.height = '600px'
+    content.appendChild(filler)
+    await new Promise((resolve) => setTimeout(resolve, 400))
+    const result = {
+      detached: distanceBefore > 80,
+      stayed: Math.abs(container.scrollTop - topBefore) <= 2,
+      distanceBefore,
+      topBefore,
+      topAfter: container.scrollTop,
+    }
+    filler.remove()
+    content.querySelector('[data-ci18-reading]')?.remove()
+    return result
+  })
+  await step(
+    'chat preserves the position of a reader who scrolled up',
+    whileReading.detached && whileReading.stayed,
+    JSON.stringify(whileReading),
+  )
   if (viewport) await page.setViewportSize(viewport)
 
   const tasksAfterAuxiliary = await api('/api/tasks', {
