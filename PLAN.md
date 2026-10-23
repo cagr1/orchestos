@@ -121,6 +121,22 @@ Regla: nada se reintenta, cierra ni muestra sin evidencia medida que el usuario 
   1992/0 (ejecutor).
   Gate en vivo: navegador real (Playwright), `docs/done/evidence/TRUST.5-live.json`
   Ejecutado por: codex gpt-6.1-sol (criterio) · Spec: docs/specs/TRUST.5.md
+- [x] **TRUST.R2 — 🔍 Auditar aprobaciones, undo y lo que el chat afirma de las tareas.** (cerrado 2026-10-23) Mapeo de
+  Sol (`analizar`), huecos altos verificados por el cerebro leyendo el código. Tabla y huecos: `docs/specs/TRUST.md` §
+  Ronda 2. Sin delegación de código: auditoría de solo lectura.
+- [ ] **TRUST.6 — ⚡ El reporte de tarea dice "done" solo con un run `done` del mismo proyecto.** (abierto 2026-10-23)
+  `task-report.ts:39-44`: el titular sale de `tasks.yaml` sin mirar el run (puede decir "✓ done" + "No run was
+  recorded."), y sin run del proyecto usa `runs[0]` de cualquier proyecto (evidencia ajena con el mismo ID de tarea).
+- [ ] **TRUST.7 — ⚡ Undo comprueba que el rollback quedó limpio.** (abierto 2026-10-23) `runs.ts:253-266`: si el
+  commit del undo falla, `revert --abort` no se comprueba; podrían quedar cambios inversos aplicados con el error a la
+  vista. Verificar árbol vs. HEAD tras abortar y mostrar residuos. Inferido, reproducir primero: un run con varios
+  commits (fast-forward, `sandbox.ts:194/253`) registra solo HEAD y el undo revierte solo ese.
+- [ ] **TRUST.8 — ⚡ El chat no promete lo que no pasó.** (abierto 2026-10-23) `create_task` responde al orquestador
+  "the user will see it and approve it" (`src/mcp/server.ts:34`, `adapters.ts:118`) aunque fuera de modo manual arranca
+  solo (`chat.ts:1169`); "Started" se añade tras el spawn, sin estado `running` (`chat.ts:1189`); la nota del sistema
+  va pegada al texto libre del LLM (`chat.ts:1199`) y no se distingue. Aprobación: OpenCode sin `metadata.diff` y
+  `NotebookEdit` de Claude ofrecen aprobar una ruta sin cambio visible (`opencode-approval.ts:22`,
+  `claude-approval.ts:14-22`) → avisar que falta el detalle.
 
 ### Abiertos — fiabilidad de los gates y documentación
 

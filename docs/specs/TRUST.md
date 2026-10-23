@@ -33,3 +33,15 @@ no gate en vivo: cada hueco que pase a ítem se prueba en vivo al cerrarlo.
 6. **Medio — commit tras relanzar.** CI.23 (la tarea relanzada no deja `chore(tasks)`); el commit previo de archivos
    sucios (`tasks.ts:506`) no se enlaza al run (no verificado que falte). → **CI.23**, con la evidencia de TRUST.1.
 7. **Bajo, por diseño — la tarea la redacta el LLM.** Anotado; sin ítem.
+
+## Ronda 2 — aprobaciones, undo, afirmaciones del chat (2026-10-23)
+
+Mapeo de Sol (`analizar`); el cerebro verificó en el código los huecos altos (`task-report.ts:39-44`,
+`runs.ts:253-266`). Bien: la decisión de aprobación se persiste y se devuelve al CLI (`approvals.ts:143-197`); aprobar
+no amplía el contrato de archivos (`contract.ts:83`); undo rechaza árbol sucio y SHA fuera del historial y muestra
+conflictos (`runs.ts:240-260`).
+
+1. **Alto — "done" sin run `done`, y run de otro proyecto.** → **TRUST.6**.
+2. **Alto (inferido) — rollback del undo sin comprobar; varios commits por run, undo de uno.** → **TRUST.7**.
+3. **Medio — el chat promete aprobación que no hay, "Started" sin `running`, nota del sistema pegada al texto libre;
+   aprobaciones sin cambio visible.** → **TRUST.8**.

@@ -58,6 +58,42 @@
       "closedDate": "2026-10-22"
     },
     {
+      "id": "TRUST.R2",
+      "sprint": "Fase 2 — Producto mínimo para entrega",
+      "block": "Confianza en el flujo — TRUST (GO de Carlos 2026-10-22)",
+      "delegation": "🔍",
+      "title": "Auditar aprobaciones, undo y lo que el chat afirma de las tareas",
+      "status": "done",
+      "closedDate": "2026-10-23"
+    },
+    {
+      "id": "TRUST.6",
+      "sprint": "Fase 2 — Producto mínimo para entrega",
+      "block": "Confianza en el flujo — TRUST (GO de Carlos 2026-10-22)",
+      "delegation": "⚡",
+      "title": "El reporte de tarea dice \"done\" solo con un run `done` del mismo proyecto",
+      "status": "open",
+      "closedDate": null
+    },
+    {
+      "id": "TRUST.7",
+      "sprint": "Fase 2 — Producto mínimo para entrega",
+      "block": "Confianza en el flujo — TRUST (GO de Carlos 2026-10-22)",
+      "delegation": "⚡",
+      "title": "Undo comprueba que el rollback quedó limpio",
+      "status": "open",
+      "closedDate": null
+    },
+    {
+      "id": "TRUST.8",
+      "sprint": "Fase 2 — Producto mínimo para entrega",
+      "block": "Confianza en el flujo — TRUST (GO de Carlos 2026-10-22)",
+      "delegation": "⚡",
+      "title": "El chat no promete lo que no pasó",
+      "status": "open",
+      "closedDate": null
+    },
+    {
       "id": "CI.39",
       "sprint": "Fase 2 — Producto mínimo para entrega",
       "block": "Abiertos — fiabilidad de los gates y documentación",
