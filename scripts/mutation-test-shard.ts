@@ -1,9 +1,42 @@
 import { readFile } from 'node:fs/promises'
 import { dirname, extname, resolve } from 'node:path'
 import { Glob } from 'bun'
+import ts from 'typescript'
 
-const IMPORT_RE =
-  /(?:import\s*(?:[^'";]*?\sfrom\s*)?|export\s+[^'";]*?\sfrom\s*|import\s*\()(['"])(\.\.?\/[^'"\n]+)\1/g
+const transpilers = {
+  ts: new Bun.Transpiler({ loader: 'ts' }),
+  tsx: new Bun.Transpiler({ loader: 'tsx' }),
+}
+
+function runtimeImports(file: string, source: string): string[] {
+  // Bun erases both `import type` and inline type-only specifiers. Parsing also
+  // avoids treating comments and source snippets in test fixtures as imports.
+  const transpiler = transpilers[file.endsWith('.tsx') ? 'tsx' : 'ts']
+  const imports = new Set(
+    transpiler.scanImports(source.replace(/^#![^\n]*/, '')).map(({ path }) => path),
+  )
+  const ast = ts.createSourceFile(file, source, ts.ScriptTarget.Latest)
+  let computed = false
+  const candidates: string[] = []
+  function visit(node: ts.Node): void {
+    if (ts.isImportDeclaration(node) || ts.isExportDeclaration(node) || ts.isTypeNode(node)) return
+    if (ts.isStringLiteralLike(node) && /^\.\.?\//.test(node.text)) candidates.push(node.text)
+    if (
+      ts.isCallExpression(node) &&
+      (node.expression.kind === ts.SyntaxKind.ImportKeyword ||
+        (ts.isIdentifier(node.expression) && node.expression.text === 'require')) &&
+      node.arguments[0] &&
+      !ts.isStringLiteralLike(node.arguments[0])
+    )
+      computed = true
+    ts.forEachChild(node, visit)
+  }
+  visit(ast)
+  // Lazy registries pass local paths to require(module). Keep their possible
+  // targets conservatively; scanImports alone cannot see those runtime edges.
+  if (computed) for (const path of candidates) imports.add(path)
+  return [...imports].filter((path) => /^\.\.?\//.test(path))
+}
 
 async function files(root: string, pattern: string): Promise<string[]> {
   const result: string[] = []
@@ -49,6 +82,7 @@ export async function selectMutationShardTests(
   const tests = await files(root, 'src/__tests__/**/*.test.ts')
   const mutated = new Set(mutatedFiles.map((path) => path.replaceAll('\\', '/')))
   const selected: string[] = []
+  const graph = new Map<string, string[]>()
 
   for (const test of tests) {
     const visited = new Set<string>()
@@ -62,12 +96,18 @@ export async function selectMutationShardTests(
         reachesMutation = true
         break
       }
-      const source = await readFile(resolve(root, current), 'utf8')
-      for (const match of source.matchAll(IMPORT_RE)) {
-        if (!match[2]) continue
-        const imported = await resolveImport(root, current, match[2])
-        if (imported) pending.push(imported)
+      if (!/\.[cm]?[jt]sx?$/.test(current)) continue
+      let dependencies = graph.get(current)
+      if (!dependencies) {
+        dependencies = []
+        const source = await readFile(resolve(root, current), 'utf8')
+        for (const specifier of runtimeImports(current, source)) {
+          const imported = await resolveImport(root, current, specifier)
+          if (imported) dependencies.push(imported)
+        }
+        graph.set(current, dependencies)
       }
+      pending.push(...dependencies)
     }
     if (reachesMutation) selected.push(test)
   }

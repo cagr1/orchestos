@@ -139,6 +139,15 @@
       "closedDate": null
     },
     {
+      "id": "CI.42",
+      "sprint": "Fase 2 — Producto mínimo para entrega",
+      "block": "Abiertos — fiabilidad de los gates y documentación",
+      "delegation": "🔍",
+      "title": "`Mutation Shards` excede 3 h: cada shard arrastra los tests de todos los ejecutores",
+      "status": "open",
+      "closedDate": null
+    },
+    {
       "id": "CI.11",
       "sprint": "Fase 2 — Producto mínimo para entrega",
       "block": "Abiertos — fiabilidad de los gates y documentación",

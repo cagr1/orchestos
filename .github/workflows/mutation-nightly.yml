@@ -18,10 +18,14 @@ jobs:
       max-parallel: 2
       matrix:
         include:
-          - shard: executors
-            command: mutation:run:executors
-          - shard: executors-codex
-            command: mutation:run:executors-codex
+          - shard: executors-engines
+            command: mutation:run:executors-engines
+          - shard: executors-routing
+            command: mutation:run:executors-routing
+          - shard: executors-codex-server
+            command: mutation:run:executors-codex-server
+          - shard: executors-codex-engines
+            command: mutation:run:executors-codex-engines
           - shard: runtime-boundaries
             command: mutation:run:runtime-boundaries
           - shard: context-routing
