@@ -12,6 +12,7 @@ import { afterEach, describe, expect, it } from 'bun:test'
 import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'fs'
 import { tmpdir } from 'os'
 import { join } from 'path'
+import { parse as parseYaml } from 'yaml'
 import { loadOrcheConfig } from '../config/load.ts'
 import { handleApiConfigSet } from '../dashboard/handlers/config.ts'
 
@@ -27,6 +28,47 @@ const originalCwd = process.cwd()
 afterEach(() => process.chdir(originalCwd))
 
 describe('handleApiConfigSet — agent', () => {
+  it('Settings no resucita models en un YAML con los cuatro roles asignados', async () => {
+    const dir = mkdtempSync(join(tmpdir(), 'orchestos-cfg1-'))
+    const roles = {
+      executor: { agent: 'codex', model: 'executor-model', effort: 'medium' },
+      auxiliary: { agent: 'codex', model: 'auxiliary-model' },
+      orchestrator: { agent: 'claude', model: 'orchestrator-model' },
+      reviewer: { agent: 'claude', model: 'reviewer-model' },
+    }
+    try {
+      const path = join(dir, 'orchestos.config.yaml')
+      writeFileSync(path, JSON.stringify({ config_version: 1, roles }))
+      for (const body of [
+        { roleAssignments: roles },
+        { roles: { planner: 'legacy-planner', qa: 'legacy-qa' }, externalTimeoutMinutes: 25 },
+      ]) {
+        const res = await handleApiConfigSet(req(body), dir)
+        expect(res.status).toBe(200)
+        const saved = parseYaml(readFileSync(path, 'utf8'))
+        expect(saved).not.toHaveProperty('models')
+        expect(saved.roles).toEqual(roles)
+        expect(loadOrcheConfig(dir).roles).toEqual(roles)
+      }
+      expect(loadOrcheConfig(dir).external?.timeoutMs).toBe(25 * 60000)
+    } finally {
+      rmSync(dir, { recursive: true, force: true })
+    }
+  })
+
+  it('Settings sigue actualizando models cuando el YAML legacy ya lo contiene', async () => {
+    const dir = mkdtempSync(join(tmpdir(), 'orchestos-cfg1-legacy-'))
+    try {
+      const path = join(dir, 'orchestos.config.yaml')
+      writeFileSync(path, 'models:\n  planner: { provider: openrouter, model: old }\n')
+      const res = await handleApiConfigSet(req({ roles: { planner: 'new' } }), dir)
+      expect(res.status).toBe(200)
+      expect(loadOrcheConfig(dir).models.planner?.model).toBe('new')
+    } finally {
+      rmSync(dir, { recursive: true, force: true })
+    }
+  })
+
   it('valor inválido → 400, no escribe nada (cwd real intacto)', async () => {
     const res = await handleApiConfigSet(req({ agent: 'not-a-real-agent' }))
     expect(res.status).toBe(400)

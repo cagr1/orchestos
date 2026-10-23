@@ -257,8 +257,13 @@ Regla: nada se reintenta, cierra ni muestra sin evidencia medida que el usuario 
   `rg is not installed; use ["git","grep",…]`. Cerebro, sonda real en la Mac de Carlos: `[git, ls]`, la descripción
   no menciona `rg`, `rg` → error con alternativa, `git grep` → resultado. Ejecutor: 2025/0 en `test:coverage`.
   Ejecutado por: codex gpt-6.1-sol (criterio), revisión Opus · Spec: docs/specs/CHAT.1.md
-- [ ] **CFG.1 — 🔍 `orchestos.config.yaml` tiene bloques muertos que confunden.** `models:`, `agent`, `agentic`,
-  `apiMode` conviven con `roles:`; clasificar con evidencia qué se lee y quitar lo muerto. Spec: docs/specs/CFG.1.md
+- [x] **CFG.1 — 🔍 `orchestos.config.yaml` tiene bloques muertos que confunden.** Cerrado 2026-10-23. Clasificado con
+  lectores: `models:` era solo migración legacy con los 4 roles asignados → fuera del YAML (la migración de
+  `load.ts` queda para proyectos viejos); `agent`, `agentic`, `apiMode`, `external` tienen lectores vivos y se quedan.
+  Settings ya no recrea `models:` en un YAML que no lo tiene. Ejecutor: 2025/0 en `test:coverage`.
+  Settings con YAML sin `models:` muestra los 4 roles; un PUT con la clave legacy no lo recrea.
+  Gate en vivo: navegador real (Playwright, Chrome), `docs/done/evidence/CFG.1-live.json`
+  Ejecutado por: codex gpt-6.1-sol (criterio), revisión Opus · Spec: docs/specs/CFG.1.md
 - [x] **UI.26 — 🔍 En modo Dev, Copy de una respuesta vieja copia la última.** Cerrado 2026-10-23. Reportado por
   Carlos ("solo se copia el último"). El botón de cada respuesta buscaba el último `assistant` del timeline; ahora usa
   el del exchange (`assistantCopyTarget`, `components/dev/copy-target.ts`, 3 tests). Chat ya copiaba bien (22 botones,

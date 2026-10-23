@@ -339,6 +339,8 @@ export async function handleApiConfigSet(req: Request, root = process.cwd()): Pr
             })
         }
         for (const key of ROLE_KEYS) {
+          // CFG.1: Settings must not resurrect legacy models in a roles-only YAML.
+          if (!document.has('models')) break
           const raw = body.roles?.[key]
           if (typeof raw !== 'string') continue
           if (!raw.trim()) {

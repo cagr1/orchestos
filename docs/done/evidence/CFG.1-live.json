@@ -1,0 +1,20 @@
+[
+  {
+    "flujo": "cfg1-settings-roles",
+    "pass": true,
+    "fecha": "2026-10-23",
+    "entorno": "dashboard aparte en :4343 con el código de CFG.1, ORCHESTOS_HOME temporal con copia de la DB; Chrome (Playwright)",
+    "steps": [
+      {
+        "nombre": "Settings → Model routing con YAML sin models:",
+        "ok": true,
+        "detalle": "Orchestrator Claude Opus 5.5 medium · Executor Codex GPT-6-Luna medium · Reviewer Claude Sonnet 5.5 medium · Auxiliary Codex GPT-5.6-Luna"
+      },
+      {
+        "nombre": "PUT /api/config con roles legacy + roleAssignments",
+        "ok": true,
+        "detalle": "{\"ok\":true}; orchestos.config.yaml sigue sin models: (grep -c '^models:' = 0)"
+      }
+    ]
+  }
+]

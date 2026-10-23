@@ -1,27 +1,11 @@
 config_version: 1
-models:
-  planner:
-    provider: openrouter
-    model: anthropic/claude-haiku-4-5
-  executor_heavy:
-    provider: openrouter
-    model: deepseek/deepseek-v4-flash
-  executor_light:
-    provider: openrouter
-    model: deepseek/deepseek-v4-flash
-  default:
-    provider: openrouter
-    model: deepseek/deepseek-v4-flash
-  qa:
-    provider: openrouter
-    model: anthropic/claude-haiku-4-5
 agent: codex
 agentic:
   maxIterations: 2
 external:
   timeoutMs: 1200000
 apiMode: agentic
-# MR.1.b (2026-09-24) — roles elegidos por Carlos. orchestrator/reviewer migran de models.planner/models.qa.
+# MR.1.b (2026-09-24) — roles elegidos por Carlos.
 roles:
   executor:
     agent: codex
