@@ -206,15 +206,19 @@ tasks:
 
       6. Principio general: reglas claras y cortas para no gastar cupo ni contexto del asistente; preferir pocas reglas
       precisas sobre muchas.
+    skill: doc-gen
+    executor: openrouter
+    approvalMode: auto-edit
+    task_class: doc
+    input: []
     output:
       - docs/observaciones-asistente.md
-    status: pending
-    retry_count: 0
     acceptance_criteria:
       - Existe docs/observaciones-asistente.md en español, con no más de ~40 líneas
       - Incluye las 6 observaciones y marca la del orden de mensajes (OrchestDevWorkspace.tsx) como hipótesis no
         verificada
       - No se modificaron AGENTS.md ni CLAUDE.md
-    approvalMode: auto-edit
-    task_class: doc
-    skill: doc-gen
+    depends_on: []
+    status: pending
+    retry_count: 0
+    retry_reason: "uncommitted changes: .orchestos/feature-status.json"
