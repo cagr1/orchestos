@@ -168,3 +168,53 @@ tasks:
     retry_count: 2
     retry_reason: "missing declared output(s): scratch/design-test-premium-a1.html"
     qa_verdict: fail
+  - id: chat-4a0d93a2-b00d-4ea1-972b-a54ee47153a1
+    description: >-
+      Crear docs/observaciones-asistente.md, un documento corto (máx. ~40 líneas, en español, viñetas) con observaciones
+      del asistente de chat (rol orchestrator) para el agente que desarrolla OrchestOS. No modificar AGENTS.md ni
+      CLAUDE.md. Contenido:
+
+
+      1. Confusión de capas de roles. Existen dos conjuntos distintos: (a) los roles de desarrollo interno de AGENTS.md
+      (cerebro, mecanico, criterio, criterio-alt, qa, investigar, astra, definidos en ~/.agent-method/roster.conf) y (b)
+      los 4 roles fijos del producto en src/config/schema.ts (ROLE_NAMES = orchestrator, executor, reviewer, auxiliary).
+      El asistente de chat los mezcló al responder de memoria. Sugerencia: añadir una frase en el contexto del chat que
+      diga que los roles del producto están en src/config/schema.ts y que los de AGENTS.md son solo del flujo de
+      desarrollo, para que el asistente no tenga que buscarlo cada vez.
+
+
+      2. El asistente no sabe de entrada cómo está compuesto el sistema; lo verifica con Grep/Read. Sugerencia: un mapa
+      mínimo de 5-8 líneas en el prompt del chat (dónde están roles, tareas, config, chat) ahorraría contexto y evitaría
+      respuestas erróneas.
+
+
+      3. Un usuario no técnico no sabe que el chat no edita directamente. Sugerencia: que el prompt indique que ante un
+      pedido de cambio el asistente lo traduce a create_task sin explicar la arquitectura, y que solo explique roles si
+      el usuario lo pregunta.
+
+
+      4. Hipótesis NO verificada (marcarla así en el documento): el usuario reportó que su mensaje nuevo aparece debajo
+      de la respuesta anterior del asistente. El asistente apuntó a OrchestDevWorkspace.tsx (uso de
+      timeline?.live?.turnId para el mensaje optimista) sin haberlo confirmado leyendo el código. Verificar antes de
+      actuar; el orden cronológico normal puede ser el comportamiento correcto.
+
+
+      5. Tareas pendientes de prueba: design-test-premium-saas-a1 y su duplicado design-test-premium-saas-a1-mrtoizht
+      (qa:fail, falta el output scratch/design-test-premium-a1.html, 2 reintentos). El usuario dijo que son solo
+      pruebas; considerar limpiarlas o marcarlas para que no contaminen el estado que ve el asistente.
+
+
+      6. Principio general: reglas claras y cortas para no gastar cupo ni contexto del asistente; preferir pocas reglas
+      precisas sobre muchas.
+    output:
+      - docs/observaciones-asistente.md
+    status: pending
+    retry_count: 0
+    acceptance_criteria:
+      - Existe docs/observaciones-asistente.md en español, con no más de ~40 líneas
+      - Incluye las 6 observaciones y marca la del orden de mensajes (OrchestDevWorkspace.tsx) como hipótesis no
+        verificada
+      - No se modificaron AGENTS.md ni CLAUDE.md
+    approvalMode: auto-edit
+    task_class: doc
+    skill: doc-gen
