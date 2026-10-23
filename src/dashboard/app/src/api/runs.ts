@@ -137,16 +137,19 @@ export async function revertRun(
     error?: string
     dirtyFiles?: string[]
     conflictFiles?: string[]
+    residualFiles?: string[]
   } | null
   if (!response.ok) {
     const error = new Error(body?.error || `Request failed (${response.status})`) as Error & {
       status?: number
       dirtyFiles?: string[]
       conflictFiles?: string[]
+      residualFiles?: string[]
     }
     error.status = response.status
     error.dirtyFiles = body?.dirtyFiles
     error.conflictFiles = body?.conflictFiles
+    error.residualFiles = body?.residualFiles
     throw error
   }
   if (!body?.revertedSha) throw new Error('Revert response did not include revertedSha')

@@ -197,9 +197,16 @@ export function TaskCard({
         status?: number
         dirtyFiles?: string[]
         conflictFiles?: string[]
+        residualFiles?: string[]
       }
       setUndoError(error.message)
-      if (error.status === 409) setUndoFiles(error.dirtyFiles ?? error.conflictFiles ?? [])
+      setUndoFiles(
+        error.residualFiles?.length
+          ? error.residualFiles
+          : error.status === 409
+            ? (error.dirtyFiles ?? error.conflictFiles ?? [])
+            : [],
+      )
     } finally {
       setUndoBusy(false)
     }

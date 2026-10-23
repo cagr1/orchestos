@@ -151,9 +151,14 @@ Regla: nada se reintenta, cierra ni muestra sin evidencia medida que el usuario 
   Contraprueba: 5 tests fallan contra HEAD. Cerebro: diff leído, `test:coverage` 2003/0, `chat-task-undo` 16/16.
   Gate en vivo: navegador real (Playwright), `docs/done/evidence/TRUST.7-live.json`
   Ejecutado por: codex gpt-6.1-sol (criterio), revisión Opus · Spec: docs/specs/TRUST.7.md
-- [ ] **TRUST.7.1 — ⚡ La tarjeta muestra los archivos residuales de un undo que no quedó limpio.** (abierto 2026-10-23)
+- [x] **TRUST.7.1 — ⚡ La tarjeta muestra los archivos residuales de un undo que no quedó limpio.** (abierto y cerrado 2026-10-23)
   TRUST.7 devuelve `residualFiles` con 500; `revertRun` (`api/runs.ts:141`) y `TaskCard.tsx:202` solo pasan archivos en
   409 → el usuario vería el error sin los archivos.
+  Arreglo: `revertRun` pasa `residualFiles` y la tarjeta los pinta con cualquier status (lista existente, sin JSX nuevo).
+  Cerebro: diff leído, typecheck, `test:coverage` 2003/0, `chat-task-undo` 16/16 (camino feliz). **Sin verificar en
+  vivo el caso residual**: requiere un revert que deje residuos, que el flow no puede fabricar.
+  Gate en vivo: navegador real (Playwright), `docs/done/evidence/TRUST.7.1-live.json` (misma corrida que TRUST.7)
+  Ejecutado por: codex gpt-6-luna (mecanico) · Spec: docs/specs/TRUST.7.1.md
 - [ ] **TRUST.8 — ⚡ El chat no promete lo que no pasó.** (abierto 2026-10-23) `create_task` responde al orquestador
   "the user will see it and approve it" (`src/mcp/server.ts:34`, `adapters.ts:118`) aunque fuera de modo manual arranca
   solo (`chat.ts:1169`); "Started" se añade tras el spawn, sin estado `running` (`chat.ts:1189`); la nota del sistema
