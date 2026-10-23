@@ -159,6 +159,13 @@ Regla: nada se reintenta, cierra ni muestra sin evidencia medida que el usuario 
   vivo el caso residual**: requiere un revert que deje residuos, que el flow no puede fabricar.
   Gate en vivo: navegador real (Playwright), `docs/done/evidence/TRUST.7.1-live.json` (misma corrida que TRUST.7)
   Ejecutado por: codex gpt-6-luna (mecanico) · Spec: docs/specs/TRUST.7.1.md
+- [x] **TRUST.7.2 — ⚡ Los tests de TRUST.7 asumen que `git init` crea `.git/hooks`.** (abierto y cerrado 2026-10-23) El
+  pre-push (HOME temporal, sin plantilla de git) falló 3 tests de `run-revert.test.ts` con `ENOENT …/.git/hooks/
+  pre-commit`; localmente pasaban. Hermano: `scripts/ui-gate/flows/tasks.mjs:101` (CI.40).
+  Arreglo: `mkdirSync(.git/hooks, recursive)` antes de cada hook (3 tests + el flow). Cerebro: 15/0 con
+  `HOME` temporal, `GIT_CONFIG_GLOBAL=/dev/null` y `GIT_TEMPLATE_DIR` vacío. Trampa: un fixture que escribe hooks crea
+  la carpeta, como `commit-tasks-yaml.test.ts:110`.
+  Ejecutado por: codex gpt-6-luna (mecanico) · Spec: docs/specs/TRUST.7.2.md
 - [ ] **TRUST.8 — ⚡ El chat no promete lo que no pasó.** (abierto 2026-10-23) `create_task` responde al orquestador
   "the user will see it and approve it" (`src/mcp/server.ts:34`, `adapters.ts:118`) aunque fuera de modo manual arranca
   solo (`chat.ts:1169`); "Started" se añade tras el spawn, sin estado `running` (`chat.ts:1189`); la nota del sistema

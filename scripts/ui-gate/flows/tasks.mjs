@@ -1,5 +1,5 @@
 import { execFileSync } from 'node:child_process'
-import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { basename, join } from 'node:path'
 import { setTimeout as delay } from 'node:timers/promises'
@@ -97,6 +97,7 @@ export default async function tasks({ page, api, step, note, shot, visible, clea
   // CI.40 — seed an untracked output when this task's worktree is created.
   // Codex collects git status, and the harness requires a returned file, not
   // merely an existing tracked output. The check must not rely on model edits.
+  mkdirSync(join(projectRoot, '.git', 'hooks'), { recursive: true })
   writeFileSync(
     join(projectRoot, '.git', 'hooks', 'post-checkout'),
     '#!/bin/sh\ncase "$PWD" in\n  */.orchestos/worktrees/gate-check-failure-*) printf "%s\\n" "TRUST check fixture" > TRUST.txt ;;\nesac\n',

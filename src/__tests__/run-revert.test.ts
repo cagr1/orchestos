@@ -3,6 +3,7 @@ import { randomUUID } from 'node:crypto'
 import {
   chmodSync,
   existsSync,
+  mkdirSync,
   mkdtempSync,
   readFileSync,
   realpathSync,
@@ -217,6 +218,7 @@ describe('POST /api/runs/:id/revert (ERP.7.2a)', () => {
     const id = addRun(P, 't-hook', applyTask(root, 't-hook', 'b.txt', 'x\n'))
     const before = head(root)
     const hook = join(root, '.git', 'hooks', 'pre-commit')
+    mkdirSync(join(root, '.git', 'hooks'), { recursive: true })
     writeFileSync(hook, '#!/bin/sh\nprintf residue > hook-residue.txt\nexit 1\n')
     chmodSync(hook, 0o755)
     const res = revert(id, P, root)
@@ -238,6 +240,7 @@ describe('POST /api/runs/:id/revert (ERP.7.2a)', () => {
     const id = addRun(P, 't-clean-abort', applyTask(root, 't-clean-abort', 'b.txt', 'x\n'))
     const before = head(root)
     const hook = join(root, '.git', 'hooks', 'pre-commit')
+    mkdirSync(join(root, '.git', 'hooks'), { recursive: true })
     writeFileSync(hook, '#!/bin/sh\nexit 1\n')
     chmodSync(hook, 0o755)
     const res = revert(id, P, root)
@@ -257,6 +260,7 @@ describe('POST /api/runs/:id/revert (ERP.7.2a)', () => {
     const root = makeRepo()
     const id = addRun(P, 't-post-hook', applyTask(root, 't-post-hook', 'b.txt', 'x\n'))
     const hook = join(root, '.git', 'hooks', 'post-commit')
+    mkdirSync(join(root, '.git', 'hooks'), { recursive: true })
     writeFileSync(hook, '#!/bin/sh\nprintf residue > post-residue.txt\n')
     chmodSync(hook, 0o755)
     const res = revert(id, P, root)
