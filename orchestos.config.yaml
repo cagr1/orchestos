@@ -1,5 +1,4 @@
 config_version: 1
-agent: codex
 agentic:
   maxIterations: 15
 external:
