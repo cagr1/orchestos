@@ -94,6 +94,14 @@ export default async function tasks({ page, api, step, note, shot, visible, clea
   // identidad propia del repo temporal: el helper de producción no fija la suya
   run('git', ['config', 'user.name', 'ui-gate'], projectRoot)
   run('git', ['config', 'user.email', 'ui-gate@example.invalid'], projectRoot)
+  // CI.40 — seed an untracked output when this task's worktree is created.
+  // Codex collects git status, and the harness requires a returned file, not
+  // merely an existing tracked output. The check must not rely on model edits.
+  writeFileSync(
+    join(projectRoot, '.git', 'hooks', 'post-checkout'),
+    '#!/bin/sh\ncase "$PWD" in\n  */.orchestos/worktrees/gate-check-failure-*) printf "%s\\n" "TRUST check fixture" > TRUST.txt ;;\nesac\n',
+    { mode: 0o755 },
+  )
   run('git', ['add', 'README.md', '.gitignore'], projectRoot)
   run(
     'git',
@@ -148,7 +156,7 @@ export default async function tasks({ page, api, step, note, shot, visible, clea
           },
           {
             id: 'gate-check-failure',
-            description: 'Create TRUST.txt containing exactly: TRUST check fixture',
+            description: 'Leave the existing TRUST.txt unchanged. Do not create or edit any files.',
             executor_model: 'openai/gpt-6-luna',
             engine: 'codex',
             cli_effort: 'medium',
@@ -634,12 +642,22 @@ export default async function tasks({ page, api, step, note, shot, visible, clea
   const persistedTask = yamlParse(readFileSync(join(projectRoot, 'tasks.yaml'), 'utf8')).tasks.find(
     (task) => task.id === 'gate-check-failure',
   )
+  // A retry does not retain runId on the task; inspect the persisted run.
+  const checkRuns = await api('/api/runs', {
+    headers: { 'x-orchestos-project-id': project.id },
+  })
+  const checkRun = (checkRuns.data ?? []).find((run) => run.taskId === 'gate-check-failure')
+  const checkRan = checkRun?.checks?.some((check) => check.stderr?.includes('TRUST1-MARKER'))
   await step(
     'check stderr persisted in retry_reason',
-    checkFailed?.retryReason?.includes('TRUST1-MARKER') &&
+    checkRan &&
+      checkFailed?.retryReason?.includes('TRUST1-MARKER') &&
       persistedTask?.retry_reason?.includes('TRUST1-MARKER'),
-    JSON.stringify({ api: checkFailed, persisted: persistedTask }),
+    checkRan
+      ? JSON.stringify({ api: checkFailed, persisted: persistedTask })
+      : `premisa no cumplida: el check no emitió TRUST1-MARKER; retryReason=${JSON.stringify(checkFailed?.retryReason ?? null)}; ${JSON.stringify({ api: checkFailed, persisted: persistedTask, run: checkRun })}`,
   )
+  if (!checkRan) return
   await page.locator('[data-task-row][data-task-id="gate-check-failure"]').click()
   await step(
     'check stderr visible in task failure reason',

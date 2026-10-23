@@ -197,11 +197,17 @@ Regla: nada se reintenta, cierra ni muestra sin evidencia medida que el usuario 
   fallan contra HEAD. Gates del cerebro: typecheck, 10/10 unit, `ui:gate tasks` 43/43.
   Gate en vivo: navegador real (Playwright), `docs/done/evidence/CI.23-live.json`
   Ejecutado por: codex gpt-6.1-sol (criterio) · revisión: Opus
-- [ ] **CI.40 — 🔍 `tasks`: el paso de TRUST.1 depende de que el modelo real cree `TRUST.txt`.** (abierto 2026-10-23)
+- [x] **CI.40 — 🔍 `tasks`: el paso de TRUST.1 depende de que el modelo real cree `TRUST.txt`.** (abierto y cerrado 2026-10-23)
   Visto 1 vez (corrida de Sol para CI.23): `gate-check-failure` quedó `retryReason="missing declared output(s):
   TRUST.txt"`; el check con `TRUST1-MARKER` nunca corrió y el paso falló sin decir que la premisa no se cumplió. La
   corrida siguiente pasó. Arreglo: premisa determinista (sin depender del modelo) o, como `qa-negative.mjs:337`,
   informar "premisa no cumplida".
+  Arreglo: un hook `post-checkout` del repo fixture crea `TRUST.txt` en el worktree de `gate-check-failure` (la tarea
+  ya no pide escribir nada) y el paso exige que el check haya emitido `TRUST1-MARKER` en el run; si no, falla con
+  "premisa no cumplida" y el `retryReason`. Anotado sin tocar: `gate-first-task`, `gate-failed-task` y `gate-role-task`
+  también dependen de que el modelo escriba. Gates: Sol 43/43 ×2, cerebro 43/43.
+  Gate en vivo: navegador real (Playwright), `docs/done/evidence/CI.40-live.json`
+  Ejecutado por: codex gpt-6.1-sol (criterio), revisión Opus · Spec: docs/specs/CI.40.md
 - [x] **TCLI.1 — ⚡ Registro de ejecutores de tareas y elección por registro.** (cerrado 2026-10-22) (GO de Carlos 2026-10-22: "no hay un CLI
   de preferencia, eso es primordial") Un módulo registra el ejecutor de tareas de cada CLI; harness, auto-route, evals,
   cascada, CLI y handler de tareas lo consultan en vez de ramas fijas. Un CLI registrado sin ejecutor de tareas falla
