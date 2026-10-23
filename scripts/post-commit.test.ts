@@ -1,5 +1,5 @@
 import { expect, test } from 'bun:test'
-import { chmodSync, copyFileSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
+import { chmodSync, copyFileSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 
@@ -23,6 +23,7 @@ for (const withPostCommit of [false, true]) {
       git('-c', 'core.hooksPath=.git/hooks', 'commit', '-qm', 'initial')
 
       const preCommit = join(root, '.git/hooks/pre-commit')
+      mkdirSync(join(root, '.git/hooks'), { recursive: true })
       writeFileSync(
         preCommit,
         "#!/usr/bin/env bash\nset -eu\nprintf '[1]\\n' > runs-summary.json\ngit add -- runs-summary.json\n",
