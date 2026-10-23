@@ -1,0 +1,60 @@
+[
+  {
+    "flujo": "chat-permissions",
+    "pass": true,
+    "steps": [
+      {
+        "nombre": "select Codex for new chat",
+        "ok": true,
+        "detalle": "Codex option visible"
+      },
+      {
+        "nombre": "composer reports yolo without permissions strip",
+        "ok": true,
+        "detalle": "{\"mode\":\"yolo\",\"replacedWhileWaiting\":false,\"replacedAfterWait\":false,\"modeAfterWait\":\"yolo\"}"
+      },
+      {
+        "nombre": "Manual control visible in Settings",
+        "ok": true,
+        "detalle": "control rendered"
+      },
+      {
+        "nombre": "PUT /api/config accepted permissionMode",
+        "ok": true,
+        "detalle": "HTTP 200"
+      },
+      {
+        "nombre": "project YAML has permissionMode: manual",
+        "ok": true,
+        "detalle": "permissionMode: manual"
+      },
+      {
+        "nombre": "composer reports manual without permissions strip",
+        "ok": true,
+        "detalle": "{\"mode\":\"manual\",\"replacedWhileWaiting\":false,\"replacedAfterWait\":false,\"modeAfterWait\":\"manual\"}"
+      },
+      {
+        "nombre": "held task card visible in Manual",
+        "ok": true,
+        "detalle": "held task rendered"
+      },
+      {
+        "nombre": "task stays pending without a run after 5s",
+        "ok": true,
+        "detalle": "status=pending"
+      },
+      {
+        "nombre": "Approve & Run releases the task from held",
+        "ok": true,
+        "detalle": "status=pending"
+      }
+    ],
+    "notes": [],
+    "errores": [],
+    "capturas": [
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-49876/chat-permissions/1-yolo.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-49876/chat-permissions/2-manual.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-49876/chat-permissions/3-held.png"
+    ]
+  }
+]

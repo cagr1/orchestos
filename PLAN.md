@@ -183,11 +183,18 @@ Regla: nada se reintenta, cierra ni muestra sin evidencia medida que el usuario 
   en la del archivo de evidencia → CI.41.
   Gate en vivo: navegador real (Playwright), `docs/done/evidence/TRUST.8-live.json`
   Ejecutado por: codex gpt-6.1-sol (criterio) + gpt-6-luna (mecanico, 2 ajustes) · Spec: docs/specs/TRUST.8.md
-- [ ] **CI.41 — 🔍 `chat-permissions` intermitente: `data-permission-mode` null en el primer paso.** (abierto 2026-10-23)
+- [x] **CI.41 — 🔍 `chat-permissions` intermitente: `data-permission-mode` null en el primer paso.** (abierto y cerrado 2026-10-23)
   1 de 3 corridas hoy (set de 5 flows de chat): `composer reports yolo without permissions strip: mode=null`; la
   captura `1-yolo` muestra el composer cargado ("Auto-edit"). `chat-permissions.mjs:59-62`: el `waitForFunction` vio
   `yolo` y el `getAttribute` siguiente leyó `null` → el composer se re-montó entre ambos. Sola: 9/9. Próximo paso: el
   paso guarda el atributo en el mismo `waitForFunction` y el detalle dice si el nodo se reemplazó.
+  Medido (Sol): `yolo → null` ocurre sin reemplazar el nodo. Causa verificada por el cerebro: el efecto de config de
+  `OrchestChatView.tsx:104-118` pone `permissions` a `null` cada vez que se re-dispara y lo rellena al responder
+  `/api/config`; el atributo (`:541`) parpadea un fetch. No afecta al envío (el backend lee el modo de su config).
+  Arreglo del gate: lectura atómica dentro del `waitForFunction` + marca de reemplazo, en Yolo y Manual. Anotado sin
+  ítem: el parpadeo de `permissions` al re-disparar el efecto. Sol: 9/9 ×3 y set de chat verde; cerebro: 9/9.
+  Gate en vivo: navegador real (Playwright), `docs/done/evidence/CI.41-live.json`
+  Ejecutado por: codex gpt-6.1-sol (criterio), revisión Opus · Spec: docs/specs/CI.41.md
 
 ### Abiertos — fiabilidad de los gates y documentación
 

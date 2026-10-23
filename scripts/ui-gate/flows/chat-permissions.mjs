@@ -16,6 +16,36 @@ async function tasksFor(api, projectId) {
   return Array.isArray(response.data?.tasks) ? response.data.tasks : []
 }
 
+async function composerModeSnapshot(page, expected) {
+  const marker = `ci41-${expected}`
+  await page.locator('[data-composer-region]').evaluate((node, value) => {
+    node.dataset.permissionProbe = value
+  }, marker)
+  // Read the value in the same browser turn that satisfies the wait: a locator
+  // read after the wait can resolve to a new composer still loading its config.
+  const handle = await page.waitForFunction(
+    ({ expected, marker }) => {
+      const node = document.querySelector('[data-composer-region]')
+      const mode = node?.getAttribute('data-permission-mode')
+      if (mode !== expected) return false
+      const replacedWhileWaiting = node.dataset.permissionProbe !== marker
+      node.dataset.permissionProbe = marker
+      return { mode, replacedWhileWaiting }
+    },
+    { expected, marker },
+  )
+  const snapshot = await handle.jsonValue()
+  await handle.dispose()
+  const after = await page.evaluate((marker) => {
+    const node = document.querySelector('[data-composer-region]')
+    return {
+      replacedAfterWait: node?.dataset.permissionProbe !== marker,
+      modeAfterWait: node?.getAttribute('data-permission-mode') ?? null,
+    }
+  }, marker)
+  return { ...snapshot, ...after }
+}
+
 export default async function chatPermissions({ page, api, step, shot, visible, cleanup }) {
   const projectRoot = mkdtempSync(join(tmpdir(), 'orchestos-ui-8-6-'))
   writeFileSync(join(projectRoot, 'README.md'), '# UI.8.6\n')
@@ -56,14 +86,11 @@ export default async function chatPermissions({ page, api, step, shot, visible, 
   // 1 — Yolo por defecto
   const composerRegion = page.locator('[data-composer-region]')
   await visible(composerRegion, 30_000)
-  await page.waitForFunction(
-    () => document.querySelector('[data-composer-region]')?.dataset.permissionMode === 'yolo',
-  )
-  const yoloMode = await composerRegion.getAttribute('data-permission-mode')
+  const yolo = await composerModeSnapshot(page, 'yolo')
   await step(
     'composer reports yolo without permissions strip',
-    yoloMode === 'yolo' && (await page.locator('[data-permissions-strip]').count()) === 0,
-    `mode=${yoloMode}`,
+    yolo.mode === 'yolo' && (await page.locator('[data-permissions-strip]').count()) === 0,
+    JSON.stringify(yolo),
   )
   await shot('1-yolo')
 
@@ -91,14 +118,12 @@ export default async function chatPermissions({ page, api, step, shot, visible, 
   await page.getByRole('button', { name: /Back to app/ }).click()
   await page.getByRole('button', { name: 'Chat', exact: true }).click()
   await visible(composerRegion, 30_000)
-  await page.waitForFunction(
-    () => document.querySelector('[data-composer-region]')?.dataset.permissionMode === 'manual',
-  )
-  const manualMode = await composerRegion.getAttribute('data-permission-mode')
+  const manualSnapshot = await composerModeSnapshot(page, 'manual')
   await step(
     'composer reports manual without permissions strip',
-    manualMode === 'manual' && (await page.locator('[data-permissions-strip]').count()) === 0,
-    `mode=${manualMode}`,
+    manualSnapshot.mode === 'manual' &&
+      (await page.locator('[data-permissions-strip]').count()) === 0,
+    JSON.stringify(manualSnapshot),
   )
   await shot('2-manual')
 
