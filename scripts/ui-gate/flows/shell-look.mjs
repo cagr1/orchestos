@@ -227,10 +227,30 @@ export default async function shellLook({
   )
   await paletteInput.fill('executor')
   await paletteInput.press('Enter')
-  const highlight = page.locator(
-    '[data-settings-anchor="executor-timeout"] [data-settings-highlight]',
+  // The highlight unmounts after 960 ms; settle() + shot() already wait 1000 ms.
+  // Confirm visibility and capture its row in one browser evaluation before either wait.
+  const highlightedRow = await page.waitForFunction(
+    () => {
+      const highlight = document.querySelector(
+        '[data-settings-anchor="executor-timeout"] [data-settings-highlight]',
+      )
+      if (!highlight) return false
+      const box = highlight.getBoundingClientRect()
+      const style = getComputedStyle(highlight)
+      if (
+        box.width === 0 ||
+        box.height === 0 ||
+        style.visibility !== 'visible' ||
+        Number(style.opacity) === 0
+      )
+        return false
+      return highlight.parentElement.getBoundingClientRect().toJSON()
+    },
+    undefined,
+    { timeout: 15_000 },
   )
-  await visible(highlight)
+  const row = await highlightedRow.jsonValue()
+  await highlightedRow.dispose()
   await settle()
   await shot('settings-highlight')
   const restoredBox = await search.boundingBox()
@@ -273,7 +293,6 @@ export default async function shellLook({
       navigationVisibility,
     }),
   )
-  const row = await highlight.locator('..').boundingBox()
   await step(
     'settings palette navigates',
     (await hidden(palette)) &&
@@ -745,6 +764,62 @@ export default async function shellLook({
     )
   }
   await sharedBody('Dev')
+  // UI.29 — assistant actions sit below the card and keep their space on hover/focus.
+  const assistantMessage = page.locator('[data-dev-assistant-message]').filter({
+    hasText: 'UI.27.1 provider logo fixture',
+  })
+  const assistantCard = assistantMessage.locator('[data-dev-assistant-card]')
+  const assistantCopy = assistantMessage.getByRole('button', { name: 'Copy', exact: true })
+  await visible(assistantCard)
+  const restingBox = await assistantMessage.boundingBox()
+  await assistantMessage.hover()
+  const copyPosition = await assistantCopy.evaluate((button) => {
+    const card = button
+      .closest('[data-dev-assistant-message]')
+      .querySelector('[data-dev-assistant-card]')
+    const cardBox = card.getBoundingClientRect()
+    const buttonBox = button.getBoundingClientRect()
+    return {
+      top: buttonBox.top,
+      left: buttonBox.left,
+      cardBottom: cardBox.bottom,
+      cardLeft: cardBox.left,
+    }
+  })
+  await step(
+    'Dev assistant Copy is below the card at its left edge',
+    copyPosition.top >= copyPosition.cardBottom &&
+      Math.abs(copyPosition.left - copyPosition.cardLeft) <= 8,
+    JSON.stringify(copyPosition),
+  )
+  await page.context().grantPermissions(['clipboard-read', 'clipboard-write'])
+  await assistantCopy.click()
+  await assistantCopy.locator('svg.lucide-check').waitFor({ state: 'visible' })
+  const clipboard = await page.evaluate(() => navigator.clipboard.readText())
+  await step(
+    'Dev assistant Copy copies its response and shows Check',
+    clipboard === 'UI.27.1 provider logo fixture' &&
+      (await assistantCopy.locator('svg.lucide-check').isVisible()),
+    JSON.stringify({ clipboard }),
+  )
+  await page.mouse.move(0, 0)
+  await assistantCopy.focus()
+  await page.waitForTimeout(200)
+  const focusedOpacity = await assistantCopy.evaluate(
+    (button) => getComputedStyle(button.parentElement).opacity,
+  )
+  const focusedBox = await assistantMessage.boundingBox()
+  await step(
+    'Dev assistant actions appear on focus without shifting the message',
+    focusedOpacity === '1' &&
+      restingBox !== null &&
+      focusedBox !== null &&
+      ['x', 'y', 'width', 'height'].every(
+        (key) => Math.abs(restingBox[key] - focusedBox[key]) <= 1,
+      ),
+    JSON.stringify({ focusedOpacity, restingBox, focusedBox }),
+  )
+  await shot('dev-assistant-copy')
   const devAgentButton = page.getByRole('button', {
     name: `Agent: Codex on ${basename(projectRoot)}`,
     exact: true,
