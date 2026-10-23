@@ -5,6 +5,7 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { createChatSession, deleteChatSession, listChatMessages } from '../../db/chat-sessions.ts'
 import { getProject, purgeProject, upsertProject } from '../../db/projects.ts'
+import { insertRun } from '../../db/runs.ts'
 import { db } from '../../db/sqlite.ts'
 import { listTaskRunWatch, upsertTaskRunWatch } from '../../db/task-run-watch.ts'
 import { loadTasks } from '../../tasks/loader.ts'
@@ -19,9 +20,11 @@ import {
 
 const roots: string[] = []
 const sessions: string[] = []
+const runs: string[] = []
 
 beforeAll(async () => (await import('../../db/migrate.ts')).runMigrations())
 afterAll(() => {
+  for (const id of runs) db.run('DELETE FROM runs WHERE id = ?', [id])
   for (const id of sessions) deleteChatSession(id)
   for (const root of roots) {
     const project = getProject(root)
@@ -164,7 +167,44 @@ describe('settleExitedTaskRun', () => {
 
   it('runner salido con la tarea en done: reporte normal, estado intacto', () => {
     const { root, taskId, sessionId, row } = setup('done')
-    settleExitedTaskRun(row)
+    const projectId = getProject(root)?.id
+    if (!projectId) throw new Error('Fixture project was not registered')
+    const runId = insertRun({
+      project_id: projectId,
+      prompt: 'test',
+      task_class: 'test',
+      model: 'unit-model',
+      provider: 'unit-provider',
+      skill_id: null,
+      task_id: taskId,
+      allowed_outputs: null,
+      files_attempted: null,
+      files_authorized: null,
+      files_blocked: null,
+      files_read: null,
+      read_audit_json: null,
+      snapshot_before: null,
+      snapshot_after: null,
+      qa_verdict: null,
+      qa_reason: null,
+      checks_json: null,
+      context_source: null,
+      context_tokens: null,
+      embed_hits: null,
+      context_warnings_json: null,
+      cost_breakdown_json: null,
+      file_diffs: null,
+      skill_gates_json: null,
+      status: 'done',
+      input_tokens: 0,
+      output_tokens: 0,
+      usd_cost: 0,
+      elapsed_ms: 0,
+      result: 'test',
+    })
+    runs.push(runId)
+    const projectRow = upsertTaskRunWatch({ ...row, project_id: projectId })
+    settleExitedTaskRun(projectRow)
     expect(loadTasks(root).tasks[0]?.status).toBe('done')
     const found = reports(sessionId as string, taskId)
     expect(found).toHaveLength(1)

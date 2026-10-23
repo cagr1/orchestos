@@ -76,6 +76,15 @@
       "closedDate": null
     },
     {
+      "id": "TRUST.6.1",
+      "sprint": "Fase 2 — Producto mínimo para entrega",
+      "block": "Confianza en el flujo — TRUST (GO de Carlos 2026-10-22)",
+      "delegation": "⚡",
+      "title": "Regresión de TRUST.6: el test de reconcile esperaba \"✓ done\" sin run",
+      "status": "done",
+      "closedDate": null
+    },
+    {
       "id": "TRUST.7",
       "sprint": "Fase 2 — Producto mínimo para entrega",
       "block": "Confianza en el flujo — TRUST (GO de Carlos 2026-10-22)",

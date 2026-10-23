@@ -133,6 +133,13 @@ Regla: nada se reintenta, cierra ni muestra sin evidencia medida que el usuario 
   hermanos con el mismo defecto. Contraprueba: 5 tests fallan contra HEAD. Cerebro: tests 64/0 + thread.
   Gate en vivo: navegador real (Playwright), `docs/done/evidence/TRUST.6-live.json`
   Ejecutado por: codex gpt-6.1-sol (criterio), revisión Opus · Spec: docs/specs/TRUST.6.md
+- [x] **TRUST.6.1 — ⚡ Regresión de TRUST.6: el test de reconcile esperaba "✓ done" sin run.** (abierto y cerrado 2026-10-23)
+  `task-run-reconcile.test.ts:165` crea la tarea `done` sin run y sigue esperando `✓ done`: 15/1 en HEAD, 16/0 en
+  HEAD~1. Visto por Sol al correr `src/dashboard/handlers` en TRUST.7; el cerebro corrió solo suites acotadas al cerrar
+  TRUST.6. No llegó a CI (sin push).
+  Arreglo: el test registra un run `done` del proyecto y pasa el watch con su `project_id`; la expectativa no cambia.
+  Cerebro: diff leído, 16/0. Lección: al cambiar un texto que el producto emite, `grep -rn` del texto viejo en tests.
+  Ejecutado por: codex gpt-6-luna (mecanico) · Spec: docs/specs/TRUST.6.1.md
 - [ ] **TRUST.7 — ⚡ Undo comprueba que el rollback quedó limpio.** (abierto 2026-10-23) `runs.ts:253-266`: si el
   commit del undo falla, `revert --abort` no se comprueba; podrían quedar cambios inversos aplicados con el error a la
   vista. Verificar árbol vs. HEAD tras abortar y mostrar residuos. Inferido, reproducir primero: un run con varios
