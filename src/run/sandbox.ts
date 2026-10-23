@@ -7,6 +7,8 @@ export interface Worktree {
   branch: string
   baseBranch: string
   projectRoot: string
+  /** HEAD of the base branch immediately before the successful merge. */
+  mergedBaseSha?: string
   cleanup: () => void
 }
 
@@ -251,6 +253,7 @@ function mergeWorktreeBackLocked(
 
   // ERP.7.2a — el SHA se toma después del ff/rebase/squash: el rebase cambia el commit original.
   const headAfter = git(['rev-parse', 'HEAD'], worktree.projectRoot).stdout
+  worktree.mergedBaseSha = headBefore
   worktree.cleanup()
   return headAfter && headAfter !== headBefore ? headAfter : null
 }

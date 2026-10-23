@@ -246,27 +246,97 @@ function handleApiRunsRevert(url: URL, project: { id: string | null; root: strin
   return withGitLock(root, () => {
     if (git(['merge-base', '--is-ancestor', sha, 'HEAD'], root).exitCode !== 0)
       return errorResponse('Run commit is not in the current branch history', 409)
-    const dirtyFiles = listDirtyFiles(root)
+    const headBefore = git(['rev-parse', '--verify', 'HEAD'], root)
+    if (headBefore.exitCode !== 0) return errorResponse('Could not read HEAD before undo', 500)
+    const inspectTree = () => {
+      try {
+        return { verified: true, files: listDirtyFiles(root, true), detail: '' }
+      } catch (error) {
+        return { verified: false, files: [] as string[], detail: String(error) }
+      }
+    }
+    const initial = inspectTree()
+    if (!initial.verified) return errorResponse(`Could not inspect project: ${initial.detail}`, 500)
+    const dirtyFiles = initial.files
     if (dirtyFiles.length > 0) {
       return jsonResponse({ error: 'Uncommitted changes in the project', dirtyFiles }, 409)
     }
-    const revert = git(['revert', '--no-commit', sha], root)
+    let commits = [sha]
+    if (run.commit_base_sha) {
+      const base = run.commit_base_sha
+      if (
+        !/^[0-9a-f]{40,64}$/.test(base) ||
+        !/^[0-9a-f]{40,64}$/.test(sha) ||
+        git(['merge-base', '--is-ancestor', base, sha], root).exitCode !== 0
+      )
+        return errorResponse('Run has an invalid recorded commit range', 409)
+      const range = git(['rev-list', '--parents', `${base}..${sha}`], root)
+      const rows = range.stdout
+        .split('\n')
+        .filter(Boolean)
+        .map((line) => line.split(' '))
+      if (
+        range.exitCode !== 0 ||
+        rows.length === 0 ||
+        rows.some((row, i) => row.length !== 2 || row[1] !== (rows[i + 1]?.[0] ?? base))
+      )
+        return errorResponse('Run commit range is not a linear history; cannot undo safely', 409)
+      commits = rows.map((row) => row[0]!)
+    }
+    const abortUndo = (error: string, status: number, extra: Record<string, unknown> = {}) => {
+      const abort = git(['revert', '--abort'], root)
+      const tree = inspectTree()
+      const headNow = git(['rev-parse', '--verify', 'HEAD'], root)
+      const rollbackClean =
+        tree.verified &&
+        tree.files.length === 0 &&
+        headNow.exitCode === 0 &&
+        headNow.stdout === headBefore.stdout
+      return jsonResponse(
+        {
+          error: rollbackClean ? error : `${error}; rollback is not verified clean`,
+          ...extra,
+          rollbackClean,
+          residualFiles: tree.files,
+          abortExitCode: abort.exitCode,
+          abortDetail: abort.stderr,
+          verificationDetail: tree.detail,
+          headUnchanged: headNow.exitCode === 0 && headNow.stdout === headBefore.stdout,
+        },
+        rollbackClean ? status : 500,
+      )
+    }
+    const revert = git(['revert', '--no-commit', ...commits], root)
     if (revert.exitCode !== 0) {
       const conflictFiles = git(['diff', '--name-only', '--diff-filter=U'], root)
         .stdout.split('\n')
         .filter(Boolean)
-      git(['revert', '--abort'], root)
-      return jsonResponse(
-        { error: 'Undo conflicts with later changes', conflictFiles, detail: revert.stderr },
-        409,
-      )
+      return abortUndo('Undo conflicts with later changes', 409, {
+        conflictFiles,
+        detail: revert.stderr,
+      })
     }
     const commit = git(['commit', '-m', `orchestos(${run.task_id ?? id}): deshacer`], root)
     if (commit.exitCode !== 0) {
-      git(['revert', '--abort'], root)
-      return errorResponse(`Could not commit the undo: ${commit.stderr}`, 500)
+      return abortUndo(`Could not commit the undo: ${commit.stderr}`, 500)
     }
-    const revertedSha = git(['rev-parse', 'HEAD'], root).stdout
+    const finalTree = inspectTree()
+    const finalHead = git(['rev-parse', '--verify', 'HEAD'], root)
+    if (
+      !finalTree.verified ||
+      finalTree.files.length > 0 ||
+      finalHead.exitCode !== 0 ||
+      finalHead.stdout === headBefore.stdout
+    )
+      return jsonResponse(
+        {
+          error: 'Undo commit created but final state is not verified clean',
+          residualFiles: finalTree.files,
+          verificationDetail: finalTree.detail,
+        },
+        500,
+      )
+    const revertedSha = finalHead.stdout
     markRunReverted(run.id, revertedSha)
     return jsonResponse({ ok: true, revertedSha })
   })

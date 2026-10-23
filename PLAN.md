@@ -140,10 +140,20 @@ Regla: nada se reintenta, cierra ni muestra sin evidencia medida que el usuario 
   Arreglo: el test registra un run `done` del proyecto y pasa el watch con su `project_id`; la expectativa no cambia.
   Cerebro: diff leído, 16/0. Lección: al cambiar un texto que el producto emite, `grep -rn` del texto viejo en tests.
   Ejecutado por: codex gpt-6-luna (mecanico) · Spec: docs/specs/TRUST.6.1.md
-- [ ] **TRUST.7 — ⚡ Undo comprueba que el rollback quedó limpio.** (abierto 2026-10-23) `runs.ts:253-266`: si el
+- [x] **TRUST.7 — ⚡ Undo comprueba que el rollback quedó limpio.** (abierto y cerrado 2026-10-23) `runs.ts:253-266`: si el
   commit del undo falla, `revert --abort` no se comprueba; podrían quedar cambios inversos aplicados con el error a la
   vista. Verificar árbol vs. HEAD tras abortar y mostrar residuos. Inferido, reproducir primero: un run con varios
   commits (fast-forward, `sandbox.ts:194/253`) registra solo HEAD y el undo revierte solo ese.
+  Reproducido antes de arreglar (Sol): 2 commits en el worktree → undo dejaba vivo el primero. Arreglo: el merge guarda
+  la base tomada bajo el candado (`runs.commit_base_sha`, migración 31 aditiva, sin backfill) y el undo revierte el
+  rango lineal completo (rechaza historia no lineal); tras abortar o commitear compara HEAD y árbol, y solo marca
+  revertido si quedó limpio (si no: `rollbackClean:false` + `residualFiles`). Runs viejos sin base: undo de un SHA.
+  Contraprueba: 5 tests fallan contra HEAD. Cerebro: diff leído, `test:coverage` 2003/0, `chat-task-undo` 16/16.
+  Gate en vivo: navegador real (Playwright), `docs/done/evidence/TRUST.7-live.json`
+  Ejecutado por: codex gpt-6.1-sol (criterio), revisión Opus · Spec: docs/specs/TRUST.7.md
+- [ ] **TRUST.7.1 — ⚡ La tarjeta muestra los archivos residuales de un undo que no quedó limpio.** (abierto 2026-10-23)
+  TRUST.7 devuelve `residualFiles` con 500; `revertRun` (`api/runs.ts:141`) y `TaskCard.tsx:202` solo pasan archivos en
+  409 → el usuario vería el error sin los archivos.
 - [ ] **TRUST.8 — ⚡ El chat no promete lo que no pasó.** (abierto 2026-10-23) `create_task` responde al orquestador
   "the user will see it and approve it" (`src/mcp/server.ts:34`, `adapters.ts:118`) aunque fuera de modo manual arranca
   solo (`chat.ts:1169`); "Started" se añade tras el spawn, sin estado `running` (`chat.ts:1189`); la nota del sistema

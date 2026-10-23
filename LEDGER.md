@@ -491,3 +491,10 @@ modos de `KNOWN_CLIS`; test legacy con `gemini` inalcanzable. r2 se intentó pri
 **Clasificación**: RESPETÓ.
 **Por qué**: solo añade `executor_reply: outcome?.finalText ?? null` a los tres `insertRun` que no lo pasaban (éxito, excepción, fallo previo a checks), igual que los otros cuatro; sin cambiar contexto, checks, juez ni reintentos.
 **Reversibilidad/evidencia**: diff de TRUST.4, `harness-executor-reply` 4/4 con contraprueba contra HEAD; entrada escrita por el cerebro (el ejecutor no la añadió).
+
+## 2026-10-23 — codex gpt-6.1-sol · TRUST.7
+
+**Regla tocada**: `src/run/harness.ts`, registro del commit aplicado.
+**Clasificación**: RESPETÓ.
+**Por qué**: persiste la base del merge tomada bajo el mismo candado, para deshacer todos los commits del run. No cambia tokens, QA ni permisos.
+**Reversibilidad/evidencia**: migración 31 aditiva, sin backfill inventado; tests de undo con dos commits y hook que impide el commit. Logs y gates entregados al cerebro.

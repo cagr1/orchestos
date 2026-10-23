@@ -90,6 +90,15 @@
       "block": "Confianza en el flujo — TRUST (GO de Carlos 2026-10-22)",
       "delegation": "⚡",
       "title": "Undo comprueba que el rollback quedó limpio",
+      "status": "done",
+      "closedDate": null
+    },
+    {
+      "id": "TRUST.7.1",
+      "sprint": "Fase 2 — Producto mínimo para entrega",
+      "block": "Confianza en el flujo — TRUST (GO de Carlos 2026-10-22)",
+      "delegation": "⚡",
+      "title": "La tarjeta muestra los archivos residuales de un undo que no quedó limpio",
       "status": "open",
       "closedDate": null
     },

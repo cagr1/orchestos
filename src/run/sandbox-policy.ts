@@ -27,10 +27,13 @@ export class DirtyTreeError extends Error {
  * Rutas relativas con cambios sin commitear (incluye no seguidos), salvo `runs-summary.json`.
  * Parseo con `-z`: un rename aporta origen y destino.
  */
-export function listDirtyFiles(projectRoot: string): string[] {
+export function listDirtyFiles(projectRoot: string, strict = false): string[] {
   // spawn directo: `git()` recorta el stdout y comería el espacio inicial de ` M ruta`
   const proc = Bun.spawnSync(['git', 'status', '--porcelain', '-z'], { cwd: projectRoot })
-  if (proc.exitCode !== 0) return []
+  if (proc.exitCode !== 0) {
+    if (strict) throw new Error(proc.stderr.toString().trim() || 'git status failed')
+    return []
+  }
   const entries = proc.stdout.toString().split('\0')
   const files: string[] = []
   for (let i = 0; i < entries.length; i++) {

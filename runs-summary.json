@@ -1,7 +1,22 @@
 {
-  "exported_at": "2026-10-23T14:14:25.509Z",
+  "exported_at": "2026-10-23T14:20:16.311Z",
   "total_runs": 20,
   "runs": [
+    {
+      "id": "c3ceeffe-1099-4af0-96bc-36fa8777e2a2",
+      "task_class": "gate:trust.7-undo-live:implement",
+      "model": "gpt-6-luna",
+      "provider": "codex",
+      "status": "done",
+      "qa_verdict": "skipped",
+      "qa_reason": "Sin revisión LLM y sin checks: nada verificó esta tarea",
+      "files_blocked": [],
+      "checks_failed": 0,
+      "usd_cost": 0.00078912,
+      "elapsed_ms": 6802,
+      "tokens": 4436,
+      "created_at": "2026-10-23T14:19:11.363Z"
+    },
     {
       "id": "8771c8cf-5ba3-42e6-8355-190f2c0b16bb",
       "task_class": "gate:trust.7-live:implement",
@@ -286,21 +301,6 @@
       "elapsed_ms": 12009,
       "tokens": 6043,
       "created_at": "2026-10-23T13:15:48.566Z"
-    },
-    {
-      "id": "2736024d-2fe4-4138-a80c-67adad0feb37",
-      "task_class": "gate:ci.40-tasks-2:doc",
-      "model": "openai/gpt-6-luna",
-      "provider": "codex",
-      "status": "done",
-      "qa_verdict": "pass",
-      "qa_reason": "README.md contains the requested line.",
-      "files_blocked": [],
-      "checks_failed": 0,
-      "usd_cost": 0.0015144599999999998,
-      "elapsed_ms": 14168,
-      "tokens": 9315,
-      "created_at": "2026-10-23T13:15:33.181Z"
     }
   ],
   "stats": {
@@ -308,6 +308,6 @@
     "blocked": 0,
     "done": 15,
     "qa_failed": 5,
-    "total_cost_usd": "0.0201"
+    "total_cost_usd": "0.0194"
   }
 }

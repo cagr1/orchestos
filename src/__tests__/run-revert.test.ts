@@ -1,6 +1,14 @@
 import { afterAll, beforeAll, describe, expect, test } from 'bun:test'
 import { randomUUID } from 'node:crypto'
-import { existsSync, mkdtempSync, readFileSync, realpathSync, rmSync, writeFileSync } from 'node:fs'
+import {
+  chmodSync,
+  existsSync,
+  mkdtempSync,
+  readFileSync,
+  realpathSync,
+  rmSync,
+  writeFileSync,
+} from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { handleApiRunsRevert, runRecordToRow } from '../dashboard/handlers/runs.ts'
@@ -54,6 +62,7 @@ function addRun(
   sha: string | null,
   status = 'done',
   fileDiffs?: string,
+  baseSha?: string,
 ) {
   const id = insertRun({
     project_id: projectId,
@@ -78,6 +87,7 @@ function addRun(
     elapsed_ms: 0,
     result: null,
     commit_sha: sha,
+    commit_base_sha: baseSha,
     file_diffs: fileDiffs ?? null,
   })
   runIds.push(id)
@@ -173,6 +183,144 @@ describe('POST /api/runs/:id/revert (ERP.7.2a)', () => {
     expect(saved.reverted_sha).toBe(body.revertedSha)
     expect(saved.reverted_at).toBeTruthy()
     expect(runRecordToRow(saved).revertedSha).toBe(body.revertedSha)
+  })
+
+  test('TRUST.7: undo revierte los dos commits de un worktree', () => {
+    const root = makeRepo()
+    const wt = createWorktree('t-multi', 'master', root)
+    writeFileSync(join(wt.path, 'first.txt'), 'primero\n')
+    expect(git(['add', 'first.txt'], wt.path).exitCode).toBe(0)
+    expect(
+      git(
+        ['-c', 'user.name=fixture', '-c', 'user.email=fixture@invalid', 'commit', '-m', 'primero'],
+        wt.path,
+      ).exitCode,
+    ).toBe(0)
+    writeFileSync(join(wt.path, 'second.txt'), 'segundo\n')
+    expect(git(['add', 'second.txt'], wt.path).exitCode).toBe(0)
+    expect(
+      git(
+        ['-c', 'user.name=fixture', '-c', 'user.email=fixture@invalid', 'commit', '-m', 'segundo'],
+        wt.path,
+      ).exitCode,
+    ).toBe(0)
+    const sha = mergeWorktreeBack(wt, 'commit')
+    const id = addRun(P, 't-multi', sha, 'done', undefined, wt.mergedBaseSha)
+    expect(revert(id, P, root).status).toBe(200)
+    expect(existsSync(join(root, 'first.txt'))).toBe(false)
+    expect(existsSync(join(root, 'second.txt'))).toBe(false)
+    expect(git(['status', '--porcelain'], root).stdout).toBe('')
+  })
+
+  test('TRUST.7: fallo del commit informa los residuos si abort no los limpia', async () => {
+    const root = makeRepo()
+    const id = addRun(P, 't-hook', applyTask(root, 't-hook', 'b.txt', 'x\n'))
+    const before = head(root)
+    const hook = join(root, '.git', 'hooks', 'pre-commit')
+    writeFileSync(hook, '#!/bin/sh\nprintf residue > hook-residue.txt\nexit 1\n')
+    chmodSync(hook, 0o755)
+    const res = revert(id, P, root)
+    expect(res.status).toBe(500)
+    const body = (await res.json()) as {
+      error: string
+      residualFiles: string[]
+      rollbackClean: boolean
+    }
+    expect(body.rollbackClean).toBe(false)
+    expect(body.residualFiles).toEqual(['hook-residue.txt'])
+    expect(body.error).toContain('rollback')
+    expect(head(root)).toBe(before)
+    expect(getRun(id)!.reverted_sha).toBeNull()
+  })
+
+  test('TRUST.7: abort limpio tras commit fallido se verifica y no marca undone', async () => {
+    const root = makeRepo()
+    const id = addRun(P, 't-clean-abort', applyTask(root, 't-clean-abort', 'b.txt', 'x\n'))
+    const before = head(root)
+    const hook = join(root, '.git', 'hooks', 'pre-commit')
+    writeFileSync(hook, '#!/bin/sh\nexit 1\n')
+    chmodSync(hook, 0o755)
+    const res = revert(id, P, root)
+    expect(res.status).toBe(500)
+    expect(await res.json()).toMatchObject({
+      rollbackClean: true,
+      residualFiles: [],
+      headUnchanged: true,
+      abortExitCode: 0,
+    })
+    expect(head(root)).toBe(before)
+    expect(git(['status', '--porcelain'], root).stdout).toBe('')
+    expect(getRun(id)!.reverted_sha).toBeNull()
+  })
+
+  test('TRUST.7: commit exitoso con residuo del hook no marca undone', async () => {
+    const root = makeRepo()
+    const id = addRun(P, 't-post-hook', applyTask(root, 't-post-hook', 'b.txt', 'x\n'))
+    const hook = join(root, '.git', 'hooks', 'post-commit')
+    writeFileSync(hook, '#!/bin/sh\nprintf residue > post-residue.txt\n')
+    chmodSync(hook, 0o755)
+    const res = revert(id, P, root)
+    expect(res.status).toBe(500)
+    expect(await res.json()).toMatchObject({ residualFiles: ['post-residue.txt'] })
+    expect(getRun(id)!.reverted_sha).toBeNull()
+  })
+
+  test('TRUST.7: dos commits rebasados se deshacen sin borrar avances ajenos', () => {
+    const root = makeRepo()
+    const wt = createWorktree('t-multi-rebase', 'master', root)
+    for (const file of ['first.txt', 'second.txt']) {
+      writeFileSync(join(wt.path, file), file)
+      expect(git(['add', file], wt.path).exitCode).toBe(0)
+      expect(
+        git(
+          ['-c', 'user.name=fixture', '-c', 'user.email=fixture@invalid', 'commit', '-m', file],
+          wt.path,
+        ).exitCode,
+      ).toBe(0)
+    }
+    writeFileSync(join(root, 'unrelated.txt'), 'avance anterior\n')
+    expect(git(['add', 'unrelated.txt'], root).exitCode).toBe(0)
+    expect(
+      git(
+        [
+          '-c',
+          'user.name=fixture',
+          '-c',
+          'user.email=fixture@invalid',
+          'commit',
+          '-m',
+          'avance ajeno',
+        ],
+        root,
+      ).exitCode,
+    ).toBe(0)
+    const base = head(root)
+    const sha = mergeWorktreeBack(wt, 'commit')
+    expect(wt.mergedBaseSha).toBe(base)
+    const id = addRun(P, 't-multi-rebase', sha, 'done', undefined, wt.mergedBaseSha)
+    expect(getRun(id)!.commit_base_sha).toBe(base)
+    writeFileSync(join(root, 'later.txt'), 'avance posterior\n')
+    expect(git(['add', 'later.txt'], root).exitCode).toBe(0)
+    expect(
+      git(
+        [
+          '-c',
+          'user.name=fixture',
+          '-c',
+          'user.email=fixture@invalid',
+          'commit',
+          '-m',
+          'posterior',
+        ],
+        root,
+      ).exitCode,
+    ).toBe(0)
+    expect(revert(id, P, root).status).toBe(200)
+    expect(existsSync(join(root, 'first.txt'))).toBe(false)
+    expect(existsSync(join(root, 'second.txt'))).toBe(false)
+    expect(readFileSync(join(root, 'unrelated.txt'), 'utf8')).toBe('avance anterior\n')
+    expect(readFileSync(join(root, 'later.txt'), 'utf8')).toBe('avance posterior\n')
+    expect(git(['status', '--porcelain'], root).stdout).toBe('')
   })
 
   test('segundo revert del mismo run → 409', () => {

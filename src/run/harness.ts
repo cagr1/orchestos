@@ -945,6 +945,7 @@ export async function runTask(opts: HarnessOpts): Promise<TaskResult> {
 
     // -- success: merge worktree back (if applicable) --------------------------
     let commitSha: string | null = null
+    let commitBaseSha: string | null = null
     if (worktree) {
       const mergedBranch = worktree.branch
       commitSha = mergeWorktreeBack(
@@ -952,6 +953,7 @@ export async function runTask(opts: HarnessOpts): Promise<TaskResult> {
         'commit',
         `orchestos(${ctx.task.id}): ${ctx.task.description.slice(0, 72)}`,
       )
+      commitBaseSha = commitSha ? (worktree.mergedBaseSha ?? null) : null
       worktree = null
       log.info(`sandbox: merged ${mergedBranch} into ${sandboxBranch ?? ''}`)
     }
@@ -992,6 +994,7 @@ export async function runTask(opts: HarnessOpts): Promise<TaskResult> {
       cost_breakdown_json: finalBreakdownJson,
       file_diffs: fileDiffs.length ? JSON.stringify(fileDiffs) : null,
       commit_sha: commitSha,
+      commit_base_sha: commitBaseSha,
       status: 'done',
       input_tokens: totalTokens.inputTokens,
       cache_read_tokens: llmResponse.cacheReadTokens,

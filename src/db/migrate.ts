@@ -1031,6 +1031,21 @@ export const FUTURE_MIGRATIONS: readonly SchemaMigrationStep[] = [
       migration30SessionCounts.delete(database)
     },
   },
+  {
+    version: 31,
+    name: 'run-commit-base',
+    precondition: () => {},
+    apply: (database) => {
+      const columns = database.query<{ name: string }, []>('PRAGMA table_info(runs)').all()
+      if (columns.length && !columns.some((column) => column.name === 'commit_base_sha'))
+        database.exec('ALTER TABLE runs ADD COLUMN commit_base_sha TEXT')
+    },
+    postcondition: (database) => {
+      const columns = database.query<{ name: string }, []>('PRAGMA table_info(runs)').all()
+      if (columns.length && !columns.some((column) => column.name === 'commit_base_sha'))
+        throw new Error('Migration 31 did not add runs commit_base_sha')
+    },
+  },
 ]
 
 function appliedVersions(database: Database): Set<number> {
