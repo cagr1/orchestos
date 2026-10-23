@@ -1,4 +1,4 @@
-# NEXT — handoff 2026-10-23 (corte tras TRUST ronda 2 + fiabilidad; Sol como acompañante de confianza)
+# NEXT — handoff 2026-10-23 tarde (corte: CI.42 mutación y CI.19 fase 1; Codex sin cupo)
 
 Un solo presente: orden y trampas vivas. Lo cerrado vive en `docs/done/bloque-*.md`, `PLAN.md` y git (regla `AGENTS.md`
 § Reglas generales, 2026-10-19: `NEXT.md` se toca solo al cerrar o cortar un lote). Arranque:
@@ -18,11 +18,15 @@ solo un gesto del usuario lo suelta), TRUST.6 `49e212c0` + .6.1 `fefa332d` ("don
 proyecto), TRUST.7 `0f09c64e` + .7.1 `11e6d230` + .7.2 `fb6dc76d` (undo revierte el run completo y verifica el árbol),
 TRUST.8 `8ef8da67` (create_task honesto, "Run requested", aprobaciones sin contenido avisan), CI.41 `fbab27a9`.
 Vault `0208da4` (verificación: `qa` revisa lo de `mecanico`) y `d8e1d64` (rol `analizar`), solo locales.
+Tarde: CI.42 `f75e8524` (Mutation Shards: selección por imports de runtime + ejecutores en 4 particiones; Sol) y
+CI.19 fase 1 `c6e7066d` (un solo `run` en `scripts/ui-gate/lib.mjs` que dice exit y salida; Sonnet, Sol sin cupo).
 
 ## Orden
-1. Fiabilidad, cuando el pre-push la tumba: CI.19, CI.11.
-2. Evaluar las skills de OrchestOS (`skills/*.yaml` + `skills/pro/`): espera GO de Carlos.
-3. Ejecutor de tareas para otro CLI = entrada en `KNOWN_CLIS` + `registerTaskEngine`, solo con el CLI instalado y
+1. CI.42 abierto: leer tiempos reales de `gh run view 39983853493` (workflow_dispatch, 6 jobs, límite 180 min; Sol
+   estimó ~150 el más lento). Todos < 180 con margen → `[x]` + borrar `docs/specs/CI.42.md`; si no, partir más.
+2. Fiabilidad, con cupo de Codex (CI.11 es latencia de Codex): CI.11; CI.19 espera el próximo fallo para la fase 2.
+3. Evaluar las skills de OrchestOS (`skills/*.yaml` + `skills/pro/`): espera GO de Carlos.
+4. Ejecutor de tareas para otro CLI = entrada en `KNOWN_CLIS` + `registerTaskEngine`, solo con el CLI instalado y
    verificable en vivo.
 - Anotado, sin ítem: el revisor elige su ventana cortando en el primer tramo que no cabe; `permissions` parpadea a
   `null` al re-dispararse el efecto de config del chat (`OrchestChatView.tsx:108`, CI.41); TRUST.7.1 sin verificar en
@@ -31,6 +35,11 @@ Vault `0208da4` (verificación: `qa` revisa lo de `mecanico`) y `d8e1d64` (rol `
   tras UI.24.4.
 
 ## Trampas vivas
+- Sol/Codex sin cupo de 5 h → `criterio-alt` (Sonnet); su diff no tiene revisor de otro proveedor: decirlo al cerrar.
+  Sin Codex, los gates en vivo de chat y `qa-negative` no sirven: elegir flujos sin Codex (`plan-doc`,
+  `project-tabs`, `model-routing`).
+- Un registro que importa todos los motores (`task-engines.ts`) agranda la selección de cada shard de mutación: al
+  sumar un hub así, medir `scripts/mutation-test-shard.ts` por shard (CI.42).
 - Cambio de un texto que el producto emite: `grep -rn` del texto viejo en tests y flows, y correr la suite completa
   (`test:coverage`), no la acotada (TRUST.6.1 y TRUST.8 lo rompieron así).
 - Fixture que escribe un hook de git: `mkdirSync(.git/hooks, recursive)` antes; con HOME temporal `git init` no la
