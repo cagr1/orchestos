@@ -1,7 +1,22 @@
 {
-  "exported_at": "2026-10-23T21:56:45.489Z",
+  "exported_at": "2026-10-23T22:21:43.937Z",
   "total_runs": 20,
   "runs": [
+    {
+      "id": "429074c2-892a-41f5-9732-904aaaa6ae91",
+      "task_class": "chat",
+      "model": "claude-opus-5-5",
+      "provider": "claude",
+      "status": "done",
+      "qa_verdict": null,
+      "qa_reason": null,
+      "files_blocked": [],
+      "checks_failed": 0,
+      "usd_cost": 0.5183580000000001,
+      "elapsed_ms": 24388,
+      "tokens": 1734,
+      "created_at": "2026-10-23T22:19:52.722Z"
+    },
     {
       "id": "b5887dca-eec1-4b20-a163-fe421f0d0d57",
       "task_class": "chat",
@@ -286,21 +301,6 @@
       "elapsed_ms": 4653,
       "tokens": 3505,
       "created_at": "2026-10-23T14:07:27.803Z"
-    },
-    {
-      "id": "62eca829-1db7-42d6-aa24-5946ad46089b",
-      "task_class": "gate:trust.7-live:implement",
-      "model": "gpt-6-luna",
-      "provider": "codex",
-      "status": "done",
-      "qa_verdict": "skipped",
-      "qa_reason": "Sin revisión LLM y sin checks: nada verificó esta tarea",
-      "files_blocked": [],
-      "checks_failed": 0,
-      "usd_cost": 0.0010138999999999999,
-      "elapsed_ms": 13512,
-      "tokens": 7203,
-      "created_at": "2026-10-23T14:07:20.181Z"
     }
   ],
   "stats": {
@@ -308,6 +308,6 @@
     "blocked": 0,
     "done": 19,
     "qa_failed": 1,
-    "total_cost_usd": "1.5304"
+    "total_cost_usd": "2.0478"
   }
 }

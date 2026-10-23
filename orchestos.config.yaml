@@ -1,7 +1,7 @@
 config_version: 1
 agent: codex
 agentic:
-  maxIterations: 2
+  maxIterations: 15
 external:
   timeoutMs: 1200000
 apiMode: agentic
