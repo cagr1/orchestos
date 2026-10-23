@@ -166,6 +166,24 @@
       "closedDate": "2026-10-23"
     },
     {
+      "id": "CHAT.1",
+      "sprint": "Fase 2 — Producto mínimo para entrega",
+      "block": "Abiertos — fiabilidad de los gates y documentación",
+      "delegation": "🔍",
+      "title": "El chat ofrece `rg` aunque no esté instalado",
+      "status": "open",
+      "closedDate": null
+    },
+    {
+      "id": "CFG.1",
+      "sprint": "Fase 2 — Producto mínimo para entrega",
+      "block": "Abiertos — fiabilidad de los gates y documentación",
+      "delegation": "🔍",
+      "title": "`orchestos.config.yaml` tiene bloques muertos que confunden",
+      "status": "open",
+      "closedDate": null
+    },
+    {
       "id": "UI.26",
       "sprint": "Fase 2 — Producto mínimo para entrega",
       "block": "Abiertos — fiabilidad de los gates y documentación",

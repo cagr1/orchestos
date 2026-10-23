@@ -251,6 +251,10 @@ Regla: nada se reintenta, cierra ni muestra sin evidencia medida que el usuario 
   La familia CI.11 (latencia de Codex) sigue en CI.11.
   Gate en vivo: navegador real (Playwright), `docs/done/evidence/CI.18-live.json`
   Ejecutado por: codex gpt-6.1-sol (criterio), revisión Opus · Spec: docs/specs/CI.18.md
+- [ ] **CHAT.1 — 🔍 El chat ofrece `rg` aunque no esté instalado.** Reportado por el chat 2026-10-23: `run_readonly`
+  falla con "Executable not found". Sonda inyectable; sin `rg` no se ofrece. Spec: docs/specs/CHAT.1.md
+- [ ] **CFG.1 — 🔍 `orchestos.config.yaml` tiene bloques muertos que confunden.** `models:`, `agent`, `agentic`,
+  `apiMode` conviven con `roles:`; clasificar con evidencia qué se lee y quitar lo muerto. Spec: docs/specs/CFG.1.md
 - [x] **UI.26 — 🔍 En modo Dev, Copy de una respuesta vieja copia la última.** Cerrado 2026-10-23. Reportado por
   Carlos ("solo se copia el último"). El botón de cada respuesta buscaba el último `assistant` del timeline; ahora usa
   el del exchange (`assistantCopyTarget`, `components/dev/copy-target.ts`, 3 tests). Chat ya copiaba bien (22 botones,
