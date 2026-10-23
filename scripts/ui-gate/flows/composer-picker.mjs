@@ -1,12 +1,7 @@
-import { execFileSync } from 'node:child_process'
 import { mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { basename, join } from 'node:path'
-import { writeGateRoles } from '../lib.mjs'
-
-function run(command, args, cwd) {
-  execFileSync(command, args, { cwd, stdio: 'ignore' })
-}
+import { run, writeGateRoles } from '../lib.mjs'
 
 export default async function composerPicker({ page, api, step, shot, visible, cleanup }) {
   const projectRoot = mkdtempSync(join(tmpdir(), 'orchestos-ui-21-'))

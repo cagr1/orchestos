@@ -1,14 +1,9 @@
-import { execFileSync } from 'node:child_process'
 import { mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { basename, join } from 'node:path'
 import { setTimeout as delay } from 'node:timers/promises'
 import { stringify as yamlStringify } from 'yaml'
-import { writeGateRoles } from '../lib.mjs'
-
-function run(command, args, cwd) {
-  execFileSync(command, args, { cwd, stdio: 'ignore' })
-}
+import { run, writeGateRoles } from '../lib.mjs'
 
 async function runsFor(api, projectId) {
   const response = await api('/api/runs', {

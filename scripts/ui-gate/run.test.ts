@@ -4,11 +4,21 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { parse as yamlParse, stringify as yamlStringify } from 'yaml'
 
-const { describeFlowError, formatResult, lintFlowSource, writeGateRoles } = await import(
+const { describeFlowError, formatResult, lintFlowSource, run, writeGateRoles } = await import(
   './lib.mjs'
 )
 
 describe('ui gate pure helpers', () => {
+  test('run reports exit code and output of a failing command', () => {
+    const tmp = mkdtempSync(join(tmpdir(), 'ui-gate-run-'))
+    try {
+      expect(() => run('git', ['nope'], tmp)).toThrow(/exit 1.*git/s)
+      expect(() => run('git', ['--version'], tmp)).not.toThrow()
+    } finally {
+      rmSync(tmp, { recursive: true, force: true })
+    }
+  })
+
   test('describes Playwright locator timeouts in one line', () => {
     const error = new Error(
       "locator.click: Timeout 1000ms exceeded.\nCall log:\n\u001b[2m  - waiting for getByRole('button', { name: 'Nope' })\u001b[22m\n",

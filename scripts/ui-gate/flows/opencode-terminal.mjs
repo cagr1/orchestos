@@ -2,10 +2,7 @@ import { execFileSync } from 'node:child_process'
 import { mkdtempSync, realpathSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { basename, join } from 'node:path'
-
-function run(command, args, cwd) {
-  execFileSync(command, args, { cwd, stdio: 'ignore' })
-}
+import { run } from '../lib.mjs'
 
 function opencodePids() {
   try {

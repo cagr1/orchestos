@@ -3,11 +3,7 @@ import { mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { basename, join } from 'node:path'
 import { stringify as yamlStringify } from 'yaml'
-import { writeGateRoles } from '../lib.mjs'
-
-function run(command, args, cwd) {
-  execFileSync(command, args, { cwd, stdio: 'ignore' })
-}
+import { run, writeGateRoles } from '../lib.mjs'
 
 function runJson(source) {
   return JSON.parse(execFileSync('bun', ['-e', source], { encoding: 'utf8' }))

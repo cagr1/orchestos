@@ -4,18 +4,7 @@ import { tmpdir } from 'node:os'
 import { basename, join } from 'node:path'
 import { setTimeout as delay } from 'node:timers/promises'
 import { stringify as yamlStringify } from 'yaml'
-import { writeGateRoles } from '../lib.mjs'
-
-function run(command, args, cwd) {
-  try {
-    execFileSync(command, args, { cwd, stdio: ['ignore', 'pipe', 'pipe'], encoding: 'utf8' })
-  } catch (error) {
-    const detail = `${error.stdout ?? ''}${error.stderr ?? ''}`.trim().slice(-600)
-    throw new Error(
-      `${command} ${args.join(' ')} failed (exit ${error.status ?? 'n/a'}): ${detail || 'sin salida'}`,
-    )
-  }
-}
+import { run, writeGateRoles } from '../lib.mjs'
 
 function snapshot(databasePath, sessionId, taskId) {
   const source = `

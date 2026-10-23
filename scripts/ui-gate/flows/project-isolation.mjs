@@ -10,11 +10,7 @@ import {
 } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { basename, join } from 'node:path'
-import { writeGateRoles } from '../lib.mjs'
-
-function run(command, args, cwd) {
-  execFileSync(command, args, { cwd, stdio: 'ignore' })
-}
+import { run, writeGateRoles } from '../lib.mjs'
 
 async function startChat(page, projectName, agent) {
   await page.getByRole('button', { name: 'Dev', exact: true }).click()

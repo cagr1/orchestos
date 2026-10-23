@@ -1,3 +1,4 @@
+import { execFileSync } from 'node:child_process'
 import { existsSync, readFileSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { parse as yamlParse, stringify as yamlStringify } from 'yaml'
@@ -53,4 +54,15 @@ export function formatResult(result) {
   const step = failed?.nombre ?? 'flow'
   const detail = failed?.detalle ?? result.errores[0] ?? 'unknown error'
   return `FAIL ${result.flujo}: ${step}: ${detail}`
+}
+
+export function run(command, args, cwd) {
+  try {
+    execFileSync(command, args, { cwd, stdio: ['ignore', 'pipe', 'pipe'], encoding: 'utf8' })
+  } catch (error) {
+    const detail = `${error.stdout ?? ''}${error.stderr ?? ''}`.trim().slice(-600)
+    throw new Error(
+      `${command} ${args.join(' ')} failed (exit ${error.status ?? 'n/a'}): ${detail || 'sin salida'}`,
+    )
+  }
 }

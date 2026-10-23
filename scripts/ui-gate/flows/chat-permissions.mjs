@@ -1,15 +1,10 @@
-import { execFileSync } from 'node:child_process'
 import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { basename, join } from 'node:path'
 import { setTimeout as delay } from 'node:timers/promises'
-import { writeGateRoles } from '../lib.mjs'
+import { run, writeGateRoles } from '../lib.mjs'
 
 const IDENT = ['-c', 'user.name=ui-gate', '-c', 'user.email=ui-gate@example.invalid']
-
-function run(command, args, cwd) {
-  execFileSync(command, args, { cwd, stdio: 'ignore' })
-}
 
 async function tasksFor(api, projectId) {
   const response = await api('/api/tasks', { headers: { 'x-orchestos-project-id': projectId } })

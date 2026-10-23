@@ -1,9 +1,8 @@
-import { execFileSync } from 'node:child_process'
 import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { basename, join } from 'node:path'
 import { parse as parseYaml, stringify as stringifyYaml } from 'yaml'
-import { writeGateRoles } from '../lib.mjs'
+import { run, writeGateRoles } from '../lib.mjs'
 
 function plain(text) {
   return text
@@ -16,10 +15,6 @@ function plain(text) {
     .replace(/[‘’]/g, "'")
     .replace(/\s+/g, ' ')
     .trim()
-}
-
-function run(command, args, cwd) {
-  execFileSync(command, args, { cwd, stdio: 'ignore' })
 }
 
 async function waitFor(predicate, timeout = 180_000) {

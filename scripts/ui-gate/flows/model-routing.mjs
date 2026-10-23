@@ -1,13 +1,9 @@
-import { execFileSync } from 'node:child_process'
 import { mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { basename, join } from 'node:path'
 import { setTimeout as delay } from 'node:timers/promises'
 import { stringify as yamlStringify } from 'yaml'
-
-function run(command, args, cwd) {
-  execFileSync(command, args, { cwd, stdio: 'ignore' })
-}
+import { run } from '../lib.mjs'
 
 export default async function modelRouting({ page, api, step, shot, cleanup }) {
   const waitForExpanded = async (button, expanded) => {

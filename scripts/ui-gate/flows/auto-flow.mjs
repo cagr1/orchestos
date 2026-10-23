@@ -4,11 +4,7 @@ import { tmpdir } from 'node:os'
 import { basename, join } from 'node:path'
 import { setTimeout as delay } from 'node:timers/promises'
 import { parse as yamlParse, stringify as yamlStringify } from 'yaml'
-import { writeGateRoles } from '../lib.mjs'
-
-function run(command, args, cwd) {
-  execFileSync(command, args, { cwd, stdio: 'ignore' })
-}
+import { run, writeGateRoles } from '../lib.mjs'
 
 function runJson(source) {
   return JSON.parse(execFileSync('bun', ['-e', source], { encoding: 'utf8' }))
