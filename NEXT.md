@@ -1,34 +1,49 @@
-# NEXT — handoff 2026-10-22 (corte tras TCLI.1–TCLI.2, poda de CLAUDE.md y Sol como `criterio`)
+# NEXT — handoff 2026-10-22 (corte tras el bloque TRUST: evidencia antes de actuar)
 
-Un solo presente: orden y trampas vivas. Lo cerrado vive en `docs/done/bloque-*.md` y git (regla `AGENTS.md` § Reglas
-generales, 2026-10-19: `NEXT.md` se toca solo al cerrar o cortar un lote). Arranque:
+Un solo presente: orden y trampas vivas. Lo cerrado vive en `docs/done/bloque-*.md`, `PLAN.md` y git (regla `AGENTS.md`
+§ Reglas generales, 2026-10-19: `NEXT.md` se toca solo al cerrar o cortar un lote). Arranque:
 `bun run agent:preflight -- --item <ID> --agent claude`. Lista viva: `bun run next`. Roster normal (`roster.conf`).
 
-## Cerrado 2026-10-22
-Lote anterior (CI.35–CI.38, UI.27.3, UI.28, CTX-GUARD.2, DOC.4) en `docs/done/bloque-*.md` y git. Este lote, GO de
-Carlos: TCLI.1 `2ec35349` (registro CLI ↔ ejecutor de tareas en `src/run/executors/task-engines.ts`; un CLI sin
-ejecutor falla visible, ya no `single-shot`), TCLI.2 `f023ed2d` (tipos/front del registro; `executor-modes` con
-`taskEngine` y `session`; arreglado el intermitente del timeout de `codex-engine.test.ts`), CTX-GUARD.3 parte del
-cerebro `d5afa04c` (`CLAUDE.md` del repo 4,9k → 1,6k tokens est.; historia en `docs/done/claude-md-historia.md`). Vault `5134b27`: `criterio` = Sol 6.1 (pedido de Carlos: repartir
-cupo), arreglo de `delegate`→Codex (`writer-lock status` dice si el token coincide). CTX-GUARD.3 cerrado: config
-local de Carlos + guard que mide lo que carga de verdad (`PLAN.md`).
+## Regla nueva de Carlos (2026-10-22)
+Modo estricto: nada se reintenta, cierra ni muestra sin evidencia medida que el usuario vea; opinión de LLM marcada
+como tal. Memoria `feedback-evidencia-antes-de-actuar`. Auditoría y método: `docs/specs/TRUST.md`.
 
-## Orden
-1. **Propuesto, espera GO de Carlos: evaluar las skills de OrchestOS** (`skills/*.yaml` + `skills/pro/`, 16; las inyecta
-   el producto en tareas, no cargan en la sesión de Claude). Primero medir sin LLM: uso por skill en `runs` y resultado de
-   QA; después decidir cuáles aportan y retirar las nunca usadas. Ejecutor: `criterio` (Sol).
-2. Fiabilidad, cuando el pre-push la tumba: CI.23, CI.18, CI.19, CI.11. Un flujo que revienta dice el locator y deja
-   `<flujo>/failure.png`.
-3. Ejecutor de tareas para otro CLI (DeepSeek/Gemini/Kimi/GLM) = entrada en `KNOWN_CLIS` + `registerTaskEngine`, solo
-   con el CLI instalado y verificable en vivo.
-- Anotado, sin ítem: el revisor elige su ventana cortando en el primer tramo que no cabe (un revert posterior podría
-  dejar caber uno más largo; nada se pierde, el salto queda anotado).
-- Decisiones pendientes de Carlos sin ítem: push del commit del vault `5134b27` (solo local, se le preguntó); turno de chat con CLI lento (más de 120 s o aviso honesto, en CI.18);
-  peso de `main.js` tras UI.24.4 (dejarlo, alias de `rehype-raw` o lazy-load de Streamdown).
+## Cerrado 2026-10-22
+CTX-GUARD.3 `60e5897f` (guard mide lo que carga de verdad; `disableClaudeAiConnectors`, `skillOverrides`). Bloque TRUST
+(GO de Carlos): TRUST.0 `4f10f89b` (auditoría), TRUST.2 `60788138` ("QA pass" solo si algo verificó: `skipped`),
+TRUST.1 `7347735a` (reintento con cola de stderr/stdout), TRUST.3 `4f6e5605` (Medido vs Opinión del juez en Runs),
+TRUST.4 `2a59f203` (run `done` guarda `executor_reply`), TRUST.5 `27705be0` (capturas esperan la transición), CI.39
+`8d5213e5` (`usage-bar` confundía la cuota real de Codex). Vault `520f0e0`: `writer-lock check` no exige escribir en
+`.git` (sandbox de Codex). Detalle y evidencia en `PLAN.md`.
+
+## Orden (acordado con Carlos 2026-10-22)
+1. **CI.23** — la tarea relanzada no deja su commit `chore(tasks)`: último hueco de TRUST.0 (paso commit). Con la
+   evidencia de TRUST.1 ya disponible.
+2. **TRUST, segunda ronda** — mismo método de `docs/specs/TRUST.md` sobre lo no auditado: aprobaciones, undo/revert de
+   un run, y lo que el chat afirma de las tareas ("hecho", "creada"). `leer` mapea, el cerebro verifica cada hueco.
+3. Fiabilidad, cuando el pre-push la tumba: CI.18, CI.19, CI.11.
+4. Evaluar las skills de OrchestOS (`skills/*.yaml` + `skills/pro/`): Carlos lo dejó para después; espera su GO.
+5. Ejecutor de tareas para otro CLI = entrada en `KNOWN_CLIS` + `registerTaskEngine`, solo con el CLI instalado y
+   verificable en vivo.
+- Anotado, sin ítem: el revisor elige su ventana cortando en el primer tramo que no cabe.
+- Decisiones pendientes de Carlos: push del vault (`5134b27`, `520f0e0`, solo locales); turno de chat con CLI lento
+  (CI.18); peso de `main.js` tras UI.24.4.
 
 ## Trampas vivas
 - Peso de arranque ~8,9k est., al borde de 9k: crecer `CLAUDE.md`/`MEMORY.md` vuelve a disparar el guard.
   `/reload-plugins` mostró "1 error during load" (detalle en `/plugin`, sin revisar).
+- Luna (`mecanico`) inventó "cambios ajenos" en un archivo limpio (TRUST.4, dos veces con causas distintas): si un
+  ejecutor para por solapamiento, comprobar con `git diff --quiet HEAD -- <ruta>` y escribir el estado real en el spec.
+- `shot` de ui-gate espera 300 ms (TRUST.5): una captura dentro de una transición mentía sobre la pestaña activa.
+- Selectores de flujos acotados al componente: `getByText('67%')` en toda la página chocó con la cuota real de Codex
+  (CI.39). Datos reales del usuario aparecen en la barra durante los gates.
+- `qa-negative` puede fallar porque el modelo real no escribe la premisa ("premisa no cumplida… []"): el flujo lo dice;
+  reintentar una vez antes de diagnosticar.
+- Spec de recorte de texto: definir el algoritmo completo (primera línea larga, sin saltos); Sol para en cada caso no
+  definido (TRUST.1, dos paradas).
+- Contraprueba de un test de `~/.agent-method`: el test resuelve el hook desde el cwd (`path.resolve('method/hooks/…')`);
+  copiar a `<tmp>/method/hooks/` y correr desde `<tmp>`.
+- Evidencia de ejecutor: solo `docs/done/evidence/<ID>-live.json`; Sol deja carpetas `<ID>/` con logs → borrarlas.
 - Ítems de `PLAN.md` llevan emoji de delegación (`🧠 ⚡ 🔍`) tras el "—": sin él el parser
   (`scripts/plan-status.ts:45`) no los ve, ni `bun run next` ni el gate. Si un ítem ya quedó `done` en la DB sin commit que
   lo pruebe, `plan:reconcile` aborta "Could not prove a closing commit SHA": volverlo a `open` en
