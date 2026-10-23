@@ -124,9 +124,15 @@ Regla: nada se reintenta, cierra ni muestra sin evidencia medida que el usuario 
 - [x] **TRUST.R2 — 🔍 Auditar aprobaciones, undo y lo que el chat afirma de las tareas.** (cerrado 2026-10-23) Mapeo de
   Sol (`analizar`), huecos altos verificados por el cerebro leyendo el código. Tabla y huecos: `docs/specs/TRUST.md` §
   Ronda 2. Sin delegación de código: auditoría de solo lectura.
-- [ ] **TRUST.6 — ⚡ El reporte de tarea dice "done" solo con un run `done` del mismo proyecto.** (abierto 2026-10-23)
+- [x] **TRUST.6 — ⚡ El reporte de tarea dice "done" solo con un run `done` del mismo proyecto.** (abierto y cerrado 2026-10-23)
   `task-report.ts:39-44`: el titular sale de `tasks.yaml` sin mirar el run (puede decir "✓ done" + "No run was
   recorded."), y sin run del proyecto usa `runs[0]` de cualquier proyecto (evidencia ajena con el mismo ID de tarea).
+  Arreglo: run válido = el del mismo proyecto; sin `projectId` no se adjunta run (el lanzamiento sin proyecto tampoco
+  le pone `project_id`). `✓ done` exige yaml `done` + run `done`; si no, "marked done in tasks.yaml · latest run <estado>"
+  o "· no matching run recorded" y `outcome` = estado del run o `pending` (la tarjeta no lo pinta como éxito). Sin
+  hermanos con el mismo defecto. Contraprueba: 5 tests fallan contra HEAD. Cerebro: tests 64/0 + thread.
+  Gate en vivo: navegador real (Playwright), `docs/done/evidence/TRUST.6-live.json`
+  Ejecutado por: codex gpt-6.1-sol (criterio), revisión Opus · Spec: docs/specs/TRUST.6.md
 - [ ] **TRUST.7 — ⚡ Undo comprueba que el rollback quedó limpio.** (abierto 2026-10-23) `runs.ts:253-266`: si el
   commit del undo falla, `revert --abort` no se comprueba; podrían quedar cambios inversos aplicados con el error a la
   vista. Verificar árbol vs. HEAD tras abortar y mostrar residuos. Inferido, reproducir primero: un run con varios

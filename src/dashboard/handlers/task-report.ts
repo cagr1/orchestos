@@ -36,13 +36,15 @@ function buildTaskReportData(
     }
   }
   const runs = listRunsByTaskId(taskId)
-  const run = projectId
-    ? (runs.find((item) => item.project_id === projectId) ?? runs[0] ?? null)
-    : (runs[0] ?? null)
+  // Sin identidad de proyecto, ningún run puede respaldar este reporte.
+  const run = projectId ? (runs.find((item) => item.project_id === projectId) ?? null) : null
+  const verifiedDone = status === 'done' && run?.status === 'done'
+  const outcome = status === 'done' && !verifiedDone ? (run?.status ?? 'pending') : status
   const providerModel = run ? ` · ${run.provider}/${run.model}` : ''
-  const headline =
-    status === 'done'
-      ? `✓ Task \`${taskId}\` done${providerModel}`
+  const headline = verifiedDone
+    ? `✓ Task \`${taskId}\` done${providerModel}`
+    : status === 'done'
+      ? `Task \`${taskId}\` marked done in tasks.yaml · ${run ? `latest run ${run.status}${providerModel}` : 'no matching run recorded'}`
       : status === 'pending'
         ? task?.retry_count
           ? `✗ Task \`${taskId}\` failed · attempt ${task.retry_count}/${MAX_RETRIES}${providerModel}`
@@ -60,7 +62,7 @@ function buildTaskReportData(
   return {
     content: `${headline}\n\n> ${summary || 'No run was recorded.'}`,
     data: {
-      outcome: status,
+      outcome,
       ...(run && task?.approvalMode
         ? actionApprovalPolicy(
             task.engine ?? taskEngineForCli(run.provider)?.engineId ?? 'single-shot',
