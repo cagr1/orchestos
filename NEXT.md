@@ -1,35 +1,41 @@
-# NEXT — handoff 2026-10-22 (corte tras el bloque TRUST: evidencia antes de actuar)
+# NEXT — handoff 2026-10-23 (corte tras TRUST ronda 2 + fiabilidad; Sol como acompañante de confianza)
 
 Un solo presente: orden y trampas vivas. Lo cerrado vive en `docs/done/bloque-*.md`, `PLAN.md` y git (regla `AGENTS.md`
 § Reglas generales, 2026-10-19: `NEXT.md` se toca solo al cerrar o cortar un lote). Arranque:
 `bun run agent:preflight -- --item <ID> --agent claude`. Lista viva: `bun run next`. Roster normal (`roster.conf`).
 
-## Regla nueva de Carlos (2026-10-22)
-Modo estricto: nada se reintenta, cierra ni muestra sin evidencia medida que el usuario vea; opinión de LLM marcada
-como tal. Memoria `feedback-evidencia-antes-de-actuar`. Auditoría y método: `docs/specs/TRUST.md`.
+## Reglas de Carlos vigentes
+- 2026-10-22, modo estricto: nada se reintenta, cierra ni muestra sin evidencia medida que el usuario vea; opinión de
+  LLM marcada como tal. Memoria `feedback-evidencia-antes-de-actuar`. Método: `docs/specs/TRUST.md`.
+- 2026-10-23, repartir cupo: Sol 6.1 es el acompañante de confianza de Opus — diagnóstico, auditoría y revisión fuerte
+  van a Sol (`criterio` escribe, `analizar` audita solo lectura; `qa` solo revisa el diff sin commitear). Opus escribe
+  specs, decide con Carlos, revisa lo de Sol y cierra. Memoria `feedback-subagentes-modelo-barato`.
 
-## Cerrado 2026-10-22
-CTX-GUARD.3 `60e5897f` (guard mide lo que carga de verdad; `disableClaudeAiConnectors`, `skillOverrides`). Bloque TRUST
-(GO de Carlos): TRUST.0 `4f10f89b` (auditoría), TRUST.2 `60788138` ("QA pass" solo si algo verificó: `skipped`),
-TRUST.1 `7347735a` (reintento con cola de stderr/stdout), TRUST.3 `4f6e5605` (Medido vs Opinión del juez en Runs),
-TRUST.4 `2a59f203` (run `done` guarda `executor_reply`), TRUST.5 `27705be0` (capturas esperan la transición), CI.39
-`8d5213e5` (`usage-bar` confundía la cuota real de Codex). Vault `520f0e0`: `writer-lock check` no exige escribir en
-`.git` (sandbox de Codex). Detalle y evidencia en `PLAN.md`.
+## Cerrado 2026-10-23 (todo por Sol o Luna, revisado por Opus)
+CI.23 `e34d743f` (commit `chore(tasks)` sobrevive a `index.lock` ajeno), CI.40 `30d99814` (premisa de TRUST.1
+determinista), TRUST.R2 `19dd93d0` (auditoría: aprobaciones, undo, chat), CI.18 `0686bfff` (el hilo sigue abajo:
+solo un gesto del usuario lo suelta), TRUST.6 `49e212c0` + .6.1 `fefa332d` ("done" solo con run `done` del mismo
+proyecto), TRUST.7 `0f09c64e` + .7.1 `11e6d230` + .7.2 `fb6dc76d` (undo revierte el run completo y verifica el árbol),
+TRUST.8 `8ef8da67` (create_task honesto, "Run requested", aprobaciones sin contenido avisan), CI.41 `fbab27a9`.
+Vault `0208da4` (verificación: `qa` revisa lo de `mecanico`) y `d8e1d64` (rol `analizar`), solo locales.
 
-## Orden (acordado con Carlos 2026-10-22)
-1. **CI.23** — la tarea relanzada no deja su commit `chore(tasks)`: último hueco de TRUST.0 (paso commit). Con la
-   evidencia de TRUST.1 ya disponible.
-2. **TRUST, segunda ronda** — mismo método de `docs/specs/TRUST.md` sobre lo no auditado: aprobaciones, undo/revert de
-   un run, y lo que el chat afirma de las tareas ("hecho", "creada"). `leer` mapea, el cerebro verifica cada hueco.
-3. Fiabilidad, cuando el pre-push la tumba: CI.18, CI.19, CI.11.
-4. Evaluar las skills de OrchestOS (`skills/*.yaml` + `skills/pro/`): Carlos lo dejó para después; espera su GO.
-5. Ejecutor de tareas para otro CLI = entrada en `KNOWN_CLIS` + `registerTaskEngine`, solo con el CLI instalado y
+## Orden
+1. Fiabilidad, cuando el pre-push la tumba: CI.19, CI.11.
+2. Evaluar las skills de OrchestOS (`skills/*.yaml` + `skills/pro/`): espera GO de Carlos.
+3. Ejecutor de tareas para otro CLI = entrada en `KNOWN_CLIS` + `registerTaskEngine`, solo con el CLI instalado y
    verificable en vivo.
-- Anotado, sin ítem: el revisor elige su ventana cortando en el primer tramo que no cabe.
-- Decisiones pendientes de Carlos: push del vault (`5134b27`, `520f0e0`, solo locales); turno de chat con CLI lento
-  (CI.18); peso de `main.js` tras UI.24.4.
+- Anotado, sin ítem: el revisor elige su ventana cortando en el primer tramo que no cabe; `permissions` parpadea a
+  `null` al re-dispararse el efecto de config del chat (`OrchestChatView.tsx:108`, CI.41); TRUST.7.1 sin verificar en
+  vivo el caso de residuos.
+- Decisiones pendientes de Carlos: push del vault (`5134b27`, `520f0e0`, `0208da4`, `d8e1d64`); peso de `main.js`
+  tras UI.24.4.
 
 ## Trampas vivas
+- Cambio de un texto que el producto emite: `grep -rn` del texto viejo en tests y flows, y correr la suite completa
+  (`test:coverage`), no la acotada (TRUST.6.1 y TRUST.8 lo rompieron así).
+- Fixture que escribe un hook de git: `mkdirSync(.git/hooks, recursive)` antes; con HOME temporal `git init` no la
+  crea (TRUST.7.2).
+- `method/bin/delegate.test.sh` "sin temporales" falla si hay otro `delegate` corriendo (mira `/tmp` global).
 - Peso de arranque ~8,9k est., al borde de 9k: crecer `CLAUDE.md`/`MEMORY.md` vuelve a disparar el guard.
   `/reload-plugins` mostró "1 error during load" (detalle en `/plugin`, sin revisar).
 - Luna (`mecanico`) inventó "cambios ajenos" en un archivo limpio (TRUST.4, dos veces con causas distintas): si un
@@ -80,7 +86,8 @@ TRUST.4 `2a59f203` (run `done` guarda `executor_reply`), TRUST.5 `27705be0` (cap
   vez el 22 en `auto-flow`).
 - El plan gate parte el segmento de un ítem en su primera línea en blanco: `Ejecutado por: … · Spec:` va **antes** de
   ella o el gate dice "Procedencia … must delete docs/specs/<ID>.md" (pasó en H.10.2, ítem largo con párrafos).
-- `qa` vía `delegate` solo acepta un archivo de spec, no la pregunta directa ("spec no existe").
+- `qa` vía `delegate` solo acepta un archivo de spec y revisa el diff sin commitear: para auditar o diagnosticar
+  sin editar usar `analizar` (2026-10-23, `qa` devolvió "sin defectos" sobre `runs-summary.json`).
 - En los ui-gates, `visible(locator)` espera 15 s si el elemento no existe: para afirmar ausencia usar `count() === 0`,
   o la captura sale tarde y esconde fallos (UI.26.6b.2).
 - Claves de prueba en flujos: sin prefijo `sk-` (`security:secrets`, `src/security/secrets.ts:31`, bloquea el commit).
