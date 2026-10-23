@@ -35,6 +35,6 @@ roles:
     model: claude-opus-5-5
     effort: medium
   reviewer:
-    agent: codex
-    model: gpt-6-luna
+    agent: claude
+    model: claude-sonnet-5-5
     effort: medium
