@@ -317,3 +317,19 @@ test('unsupported action approval names the recorded CLI only for a degraded mod
   ).toBeNull()
   expect(approvalModeNotice()).toBeNull()
 })
+
+test('task cards absorb system notices and keep the model text', () => {
+  const claim = 'Done, the file has been updated.'
+  for (const notice of [
+    '⏸ Created task `t`, waiting for your approval before it runs (Manual permissions).',
+    '⏸ Created task `t`, waiting for your confirmation before it runs.',
+    '▶ Run requested for task `t`.',
+    '▶ Started task `t`.',
+  ]) {
+    const card = buildTaskCards([
+      msg('1', { taskId: 't', content: `${claim}\n\n${notice}` }),
+    ]).byTask.get('t')
+    expect(card?.anchorText).toBe(claim)
+    expect(card?.showAnchorText).toBe(true)
+  }
+})

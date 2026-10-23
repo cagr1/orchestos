@@ -51,7 +51,7 @@ function reportState(report: NonNullable<ChatMessage['taskReport']>, content: st
 
 function stripCreatedNotice(content: string, taskId: string): string {
   return content
-    .replace(/\s*⏸ Created task[^\n]*$/, '')
+    .replace(/\s*(?:⏸ Created task|▶ (?:Started task|Run requested for task))[^\n]*$/, '')
     .replaceAll(`\`${taskId}\``, '')
     .trim()
 }

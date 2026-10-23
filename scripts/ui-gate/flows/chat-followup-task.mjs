@@ -129,7 +129,7 @@ export default async function chatFollowupTaskFlow({ page, api, step, shot, visi
   const firstTasks = (await tasksFor(api, projectId)).filter((task) => !before.has(task.id))
   await step(
     'message 1 plans without creating the task',
-    !/Started task|Created task/.test(firstText) && firstTasks.length === 0,
+    !/Run requested for task|Created task/.test(firstText) && firstTasks.length === 0,
     JSON.stringify({ reply: firstText.slice(0, 300), newTasks: firstTasks.map((t) => t.id) }),
   )
 
@@ -142,21 +142,35 @@ export default async function chatFollowupTaskFlow({ page, api, step, shot, visi
   })
   if (!second) return
   let secondText = await second.innerText()
+  let created = (await tasksFor(api, projectId)).find((task) => !before.has(task.id))
   const noteDeadline = Date.now() + 60_000
   while (
     Date.now() < noteDeadline &&
-    !/▶ Started task|⏸ Created task|No task created|Could not auto-create/.test(secondText)
+    !created &&
+    !/No task created|Could not auto-create/.test(secondText)
   ) {
     await delay(1_000)
     secondText = await second.innerText()
+    created = (await tasksFor(api, projectId)).find((task) => !before.has(task.id))
   }
   await step(
     'message 2 creates the task from the thread',
-    /▶ Started task|⏸ Created task/.test(secondText) && !/No task created/.test(secondText),
-    JSON.stringify({ reply: secondText.slice(0, 400) }),
+    Boolean(created) && !/No task created|Could not auto-create/.test(secondText),
+    JSON.stringify({ reply: secondText.slice(0, 400), newTask: created?.id ?? null }),
   )
 
-  const created = (await tasksFor(api, projectId)).find((task) => !before.has(task.id))
+  if (created) {
+    await step(
+      'task card visible in the thread',
+      await visible(
+        page
+          .locator(`[data-task-row][data-task-id="${created.id}"]`)
+          .or(page.locator(`[data-task-id="${created.id}"]`))
+          .first(),
+      ),
+      `task ${created.id} visible`,
+    )
+  }
   await step(
     'task exists in tasks.yaml',
     Boolean(created),

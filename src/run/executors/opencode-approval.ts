@@ -19,7 +19,13 @@ export function opencodeApprovalRequest(
       typeof metadata.filepath === 'string' && metadata.filepath ? [metadata.filepath] : []
     return {
       kind: 'edit',
-      detail: { files, ...(typeof metadata.diff === 'string' ? { diff: metadata.diff } : {}) },
+      detail: {
+        files,
+        diff:
+          typeof metadata.diff === 'string' && metadata.diff.trim()
+            ? metadata.diff
+            : 'OpenCode did not provide the content of this change.',
+      },
       withinProject:
         files.length > 0 && files.every((file) => approvalPathWithin(projectRoot, file)),
     }

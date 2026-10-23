@@ -32,7 +32,7 @@ export function claudeApprovalRequest(
       .join('\n')
     return {
       kind: 'edit',
-      detail: { files, ...(diff ? { diff } : {}) },
+      detail: { files, diff: diff || 'Claude Code did not provide the content of this change.' },
       withinProject:
         files.length > 0 && files.every((file) => approvalPathWithin(projectRoot, file)),
     }

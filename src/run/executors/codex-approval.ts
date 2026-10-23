@@ -35,7 +35,15 @@ export function codexApprovalRequest(
       detail: {
         cwd: projectRoot,
         files,
-        diff: changes.map((c) => `${c.path}\n${c.diff ?? ''}`).join('\n'),
+        diff:
+          changes.length > 0
+            ? changes
+                .map(
+                  (c) =>
+                    `${c.path}\n${typeof c.diff === 'string' && c.diff.trim() ? c.diff : 'Codex did not provide the content of this change.'}`,
+                )
+                .join('\n')
+            : 'Codex did not provide the content of this change.',
       },
       withinProject:
         changes.length > 0 &&

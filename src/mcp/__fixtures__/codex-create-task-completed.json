@@ -18,7 +18,10 @@
       "readOnlyHint": null,
       "result": {
         "content": [
-          { "type": "text", "text": "Task proposal sent; the user will see it and approve it." }
+          {
+            "type": "text",
+            "text": "Task proposal received. OrchestOS will attempt to create it and either request a run or hold it for the user's approval; you will not see the result in this turn. Do not tell the user it is done."
+          }
         ],
         "structuredContent": null,
         "_meta": null

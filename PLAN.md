@@ -166,12 +166,28 @@ Regla: nada se reintenta, cierra ni muestra sin evidencia medida que el usuario 
   `HOME` temporal, `GIT_CONFIG_GLOBAL=/dev/null` y `GIT_TEMPLATE_DIR` vacío. Trampa: un fixture que escribe hooks crea
   la carpeta, como `commit-tasks-yaml.test.ts:110`.
   Ejecutado por: codex gpt-6-luna (mecanico) · Spec: docs/specs/TRUST.7.2.md
-- [ ] **TRUST.8 — ⚡ El chat no promete lo que no pasó.** (abierto 2026-10-23) `create_task` responde al orquestador
+- [x] **TRUST.8 — ⚡ El chat no promete lo que no pasó.** (abierto y cerrado 2026-10-23) `create_task` responde al orquestador
   "the user will see it and approve it" (`src/mcp/server.ts:34`, `adapters.ts:118`) aunque fuera de modo manual arranca
   solo (`chat.ts:1169`); "Started" se añade tras el spawn, sin estado `running` (`chat.ts:1189`); la nota del sistema
   va pegada al texto libre del LLM (`chat.ts:1199`) y no se distingue. Aprobación: OpenCode sin `metadata.diff` y
   `NotebookEdit` de Claude ofrecen aprobar una ruta sin cambio visible (`opencode-approval.ts:22`,
   `claude-approval.ts:14-22`) → avisar que falta el detalle.
+  Arreglo (Sol): `CREATE_TASK_RESPONSE` dice que la propuesta se recibió, que OrchestOS la correrá o retendrá y que
+  no diga que está hecha; `▶ Started` → `▶ Run requested` (es el spawn, no `running`) y la tarjeta absorbe esa nota
+  (ya no sale duplicada en la burbuja); Claude/OpenCode/Codex avisan "did not provide the content of this change" en
+  el detalle de la aprobación. Ajuste del cerebro: fuera las etiquetas "Model statement (unverified)" y "OrchestOS:"
+  que Sol puso en cada respuesta (texto que no aporta; el estado medido es la tarjeta) — Luna. `chat-followup-task` y
+  `chat-task-undo` miden la tarea por `/api/tasks` + tarjeta visible, no por el texto (Luna). En vivo, el modelo ahora
+  dice "la creación aún no está confirmada". Cerebro: `test:coverage` 2007/0; `chat-streaming` 27/27, `codex-live`
+  14/14, `chat-followup-task` 9/9, `chat-task-undo` 17/17; `chat-permissions` 9/9 en la corrida anterior y sola, 1 fallo
+  en la del archivo de evidencia → CI.41.
+  Gate en vivo: navegador real (Playwright), `docs/done/evidence/TRUST.8-live.json`
+  Ejecutado por: codex gpt-6.1-sol (criterio) + gpt-6-luna (mecanico, 2 ajustes) · Spec: docs/specs/TRUST.8.md
+- [ ] **CI.41 — 🔍 `chat-permissions` intermitente: `data-permission-mode` null en el primer paso.** (abierto 2026-10-23)
+  1 de 3 corridas hoy (set de 5 flows de chat): `composer reports yolo without permissions strip: mode=null`; la
+  captura `1-yolo` muestra el composer cargado ("Auto-edit"). `chat-permissions.mjs:59-62`: el `waitForFunction` vio
+  `yolo` y el `getAttribute` siguiente leyó `null` → el composer se re-montó entre ambos. Sola: 9/9. Próximo paso: el
+  paso guarda el atributo en el mismo `waitForFunction` y el detalle dice si el nodo se reemplazó.
 
 ### Abiertos — fiabilidad de los gates y documentación
 

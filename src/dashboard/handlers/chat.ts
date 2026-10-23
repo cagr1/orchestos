@@ -1186,7 +1186,7 @@ async function handleApiChat(
         : autoTask && 'held' in autoTask
           ? `\n\n⏸ Created task \`${autoTask.id}\`, waiting for your confirmation before it runs.`
           : autoTask && 'id' in autoTask
-            ? `\n\n▶ Started task \`${autoTask.id}\`.`
+            ? `\n\n▶ Run requested for task \`${autoTask.id}\`.`
             : autoTask && 'error' in autoTask
               ? `\n\n⚠ Could not auto-create the task: ${autoTask.error}`
               : ''

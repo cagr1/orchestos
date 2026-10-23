@@ -31,7 +31,8 @@ export const APPROVE_ACTION_SCHEMA = {
   required: ['tool_name', 'input'],
 } as const
 export const CREATE_TASK_TOOL = 'create_task'
-export const CREATE_TASK_RESPONSE = 'Task proposal sent; the user will see it and approve it.'
+export const CREATE_TASK_RESPONSE =
+  "Task proposal received. OrchestOS will attempt to create it and either request a run or hold it for the user's approval; you will not see the result in this turn. Do not tell the user it is done."
 
 export interface CreateTaskArgs {
   title: string

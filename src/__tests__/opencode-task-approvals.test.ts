@@ -357,3 +357,14 @@ for (const scenario of [
     expect(f.kills).toEqual(scenario === 'kill escalation' ? ['SIGTERM', 'SIGKILL'] : ['SIGTERM'])
   })
 }
+
+it('OpenCode edits warn when the CLI omits or sends an empty diff', () => {
+  for (const tool of ['edit', 'write', 'patch']) {
+    for (const diff of [undefined, null, '', '  \n']) {
+      const request = opencodeApprovalRequest(permission(tool, { filepath: 'a', diff }), cwd)
+      expect(request.detail.diff).toBe('OpenCode did not provide the content of this change.')
+      expect(request.detail.files).toEqual(['a'])
+      expect(request.withinProject).toBe(true)
+    }
+  }
+})

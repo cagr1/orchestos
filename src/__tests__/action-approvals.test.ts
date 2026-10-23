@@ -282,3 +282,29 @@ test('approval POST retains the shared CSRF rejection before routing', async () 
   )
   expect(response.status).toBe(403)
 })
+
+test('Codex warns for missing changes and for every file without a diff', () => {
+  for (const item of [null, { changes: [] }]) {
+    const request = codexApprovalRequest('item/fileChange/requestApproval', {}, item, '/tmp')
+    expect(request.detail.diff).toBe('Codex did not provide the content of this change.')
+    expect(request.withinProject).toBe(false)
+  }
+  for (const diff of [undefined, null, '', '  \n']) {
+    const request = codexApprovalRequest(
+      'item/fileChange/requestApproval',
+      {},
+      {
+        changes: [
+          { path: 'a', diff },
+          { path: 'b', diff: '-before\n+after' },
+        ],
+      },
+      '/tmp',
+    )
+    expect(request.detail.files).toEqual(['a', 'b'])
+    expect(request.detail.diff).toBe(
+      'a\nCodex did not provide the content of this change.\nb\n-before\n+after',
+    )
+    expect(request.withinProject).toBe(true)
+  }
+})

@@ -303,3 +303,14 @@ test('MCP stdio child uses the existing harness run and shared DB; resolution fr
     finishApprovalRun(run.runId)
   }
 })
+
+test('Claude edits without content explicitly warn instead of showing only a path', () => {
+  for (const tool_name of ['Edit', 'Write', 'MultiEdit', 'NotebookEdit']) {
+    const request = claudeApprovalRequest(
+      { tool_name, input: { file_path: 'a', notebook_path: 'a.ipynb' } },
+      root,
+    )
+    expect(request.detail.diff).toBe('Claude Code did not provide the content of this change.')
+    expect(request.withinProject).toBe(true)
+  }
+})

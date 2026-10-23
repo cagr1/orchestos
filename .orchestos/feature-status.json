@@ -117,6 +117,15 @@
       "block": "Confianza en el flujo — TRUST (GO de Carlos 2026-10-22)",
       "delegation": "⚡",
       "title": "El chat no promete lo que no pasó",
+      "status": "done",
+      "closedDate": null
+    },
+    {
+      "id": "CI.41",
+      "sprint": "Fase 2 — Producto mínimo para entrega",
+      "block": "Confianza en el flujo — TRUST (GO de Carlos 2026-10-22)",
+      "delegation": "🔍",
+      "title": "`chat-permissions` intermitente: `data-permission-mode` null en el primer paso",
       "status": "open",
       "closedDate": null
     },
