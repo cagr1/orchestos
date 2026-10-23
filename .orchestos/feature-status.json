@@ -166,6 +166,24 @@
       "closedDate": "2026-10-23"
     },
     {
+      "id": "UI.26",
+      "sprint": "Fase 2 — Producto mínimo para entrega",
+      "block": "Abiertos — fiabilidad de los gates y documentación",
+      "delegation": "🔍",
+      "title": "En modo Dev, Copy de una respuesta vieja copia la última",
+      "status": "done",
+      "closedDate": null
+    },
+    {
+      "id": "CI.43",
+      "sprint": "Fase 2 — Producto mínimo para entrega",
+      "block": "Abiertos — fiabilidad de los gates y documentación",
+      "delegation": "🔍",
+      "title": "Un `git commit -- <rutas>` deja el índice desfasado y bloquea las tareas",
+      "status": "done",
+      "closedDate": null
+    },
+    {
       "id": "CI.19",
       "sprint": "Fase 2 — Producto mínimo para entrega",
       "block": "Abiertos — fiabilidad de los gates y documentación",

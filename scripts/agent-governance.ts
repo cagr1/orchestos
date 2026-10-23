@@ -46,7 +46,7 @@ export function hookPath(root: string, hook: string, run: RunCommand = runComman
 
 export function checkHooks(root: string, run: RunCommand = runCommand): string[] {
   const errors: string[] = []
-  for (const hook of ['pre-commit', 'pre-push']) {
+  for (const hook of ['pre-commit', 'pre-push', 'post-commit']) {
     const source = resolve(root, 'scripts', `${hook}.sh`)
     const installed = hookPath(root, hook, run)
     if (!existsSync(source)) {
