@@ -6,6 +6,7 @@ describe('chat system context', () => {
     autoTaskInstruction: 'no tasks',
     now: new Date('2026-09-27T12:00:00Z'),
     timeZone: 'America/Guayaquil',
+    readonlyProbe: () => 'ripgrep fixture',
   }
   const profile = {
     manifest: { name: 'fixture', runtime: 'Bun', framework: 'React', deps: [] },
@@ -65,6 +66,19 @@ describe('chat system context', () => {
     const none = buildChatSystemPrompt({ ...base, agent: 'codex', offeredTools: ['create_task'] })
     expect(none).not.toContain('run_readonly')
     expect(none).not.toContain('argv')
+  })
+  it('omits unavailable rg and demonstrates git grep for every agent', () => {
+    for (const agent of ['claude', 'codex', 'api']) {
+      const prompt = buildChatSystemPrompt({
+        ...base,
+        agent,
+        offeredTools: ['run_readonly'],
+        readonlyProbe: () => null,
+      })
+      expect(prompt).not.toMatch(/\brg\b/)
+      expect(prompt).toContain('["git","grep","-n","pattern"]')
+      expect(prompt).toContain('for git, ls; project tests are not available')
+    }
   })
   it('describes tools enabled by each agent and omits empty memory/specs', () => {
     for (const [agent, phrase] of [

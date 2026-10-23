@@ -1,4 +1,4 @@
-import { afterAll, beforeAll, describe, expect, test } from 'bun:test'
+import { afterAll, beforeAll, describe, expect, spyOn, test } from 'bun:test'
 import {
   chmodSync,
   existsSync,
@@ -12,7 +12,16 @@ import {
 } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { planReadonly, runReadonly } from './readonly.ts'
+import {
+  planReadonly as planReadonlyWithProbe,
+  readonlyPrograms,
+  readonlyToolDefinition,
+  runReadonly,
+} from './readonly.ts'
+
+const rgAvailable = () => 'ripgrep fixture'
+const planReadonly = (input: unknown, projectRoot: string) =>
+  planReadonlyWithProbe(input, projectRoot, rgAvailable)
 
 let root: string
 let outside: string
@@ -49,6 +58,44 @@ const rejected = (argv: unknown) => {
   expect(plan.ok).toBe(false)
   return plan.ok ? '' : plan.error
 }
+
+describe('run_readonly — disponibilidad inyectada', () => {
+  for (const available of [true, false]) {
+    test(`schema y descripción ${available ? 'ofrecen' : 'omiten'} rg; sonda cacheada`, () => {
+      let calls = 0
+      const probe = (name: string, args: string[]) => {
+        calls++
+        expect(name).toBe('rg')
+        expect(args).toEqual(['--version'])
+        return available ? 'ripgrep fixture' : null
+      }
+      expect(readonlyPrograms(probe)).toEqual(available ? ['git', 'ls', 'rg'] : ['git', 'ls'])
+      const definition = readonlyToolDefinition(probe)
+      expect(definition.description.includes('`rg`')).toBe(available)
+      expect(definition.inputSchema.properties.argv.description.includes('`rg`')).toBe(available)
+      if (!available)
+        expect(definition.inputSchema.properties.argv.description).toContain(
+          '["git","grep","-n","pattern"]',
+        )
+      expect(planReadonlyWithProbe({ argv: ['rg', 'needle'] }, root, probe).ok).toBe(available)
+      expect(calls).toBe(1)
+    })
+  }
+
+  test('sin rg rechaza antes de spawn y sugiere git grep', async () => {
+    const spawn = spyOn(Bun, 'spawn')
+    try {
+      const out = await runReadonly({ argv: ['rg', 'needle'] }, root, undefined, () => null)
+      expect(out).toEqual({
+        isError: true,
+        text: 'rg is not installed; use ["git","grep","-n",…]',
+      })
+      expect(spawn).not.toHaveBeenCalled()
+    } finally {
+      spawn.mockRestore()
+    }
+  })
+})
 
 describe('run_readonly — lista de permitidos', () => {
   test('programas fuera de la lista y sh -c se rechazan', () => {
@@ -343,9 +390,9 @@ describe('run_readonly — ejecución real', () => {
   })
 
   test('rg ausente: error claro, no excepción', async () => {
-    const out = await runReadonly({ argv: ['rg', 'x'] }, root)
-    expect(typeof out.text).toBe('string')
-    if (!hasRg) expect(out).toMatchObject({ isError: true })
+    const out = await runReadonly({ argv: ['rg', 'x'] }, root, undefined, () => null)
+    expect(out).toMatchObject({ isError: true })
+    expect(out.text).toContain('rg is not installed; use ["git","grep","-n",…]')
   })
 
   test('git no escribe: el árbol y el índice quedan igual tras status/diff', async () => {

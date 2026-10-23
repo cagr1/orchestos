@@ -16,12 +16,7 @@
 import { join } from 'node:path'
 import type { ToolDef, ToolExecutor } from '../providers/tool-call.ts'
 import type { ExecutorStepEvent } from '../run/executors/step-event.ts'
-import {
-  RUN_READONLY_DESCRIPTION,
-  RUN_READONLY_SCHEMA,
-  RUN_READONLY_TOOL,
-  runReadonly,
-} from './readonly.ts'
+import { RUN_READONLY_TOOL, readonlyToolDefinition, runReadonly } from './readonly.ts'
 import {
   CREATE_TASK_RESPONSE,
   CREATE_TASK_SCHEMA,
@@ -125,11 +120,12 @@ export function createTaskApiTool(onProposal: (proposal: TaskProposal) => void):
 
 /** Chat por API (OpenRouter): `run_readonly` como herramienta nativa; misma validación y ejecución que el servidor MCP. */
 export function runReadonlyApiTool(root: string): { tool: ToolDef; execute: ToolExecutor } {
+  const definition = readonlyToolDefinition()
   return {
     tool: {
       name: RUN_READONLY_TOOL,
-      description: RUN_READONLY_DESCRIPTION,
-      input_schema: RUN_READONLY_SCHEMA as unknown as ToolDef['input_schema'],
+      description: definition.description,
+      input_schema: definition.inputSchema as unknown as ToolDef['input_schema'],
     },
     execute: async (_name, input) => {
       const out = await runReadonly(input, root)

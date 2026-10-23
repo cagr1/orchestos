@@ -1,6 +1,7 @@
+import type { ToolchainProbe } from '../detect/roadmap-profile.ts'
 import type { StackProfile } from '../generators/agents-md.ts'
 import { RUN_READONLY_STEP_LABEL } from '../mcp/adapters.ts'
-import { RUN_READONLY_TOOL } from '../mcp/readonly.ts'
+import { RUN_READONLY_TOOL, readonlyPrograms } from '../mcp/readonly.ts'
 
 interface ChatPromptInput {
   tasks?: Array<{
@@ -36,6 +37,7 @@ interface ChatPromptInput {
   readTools?: string
   /** Herramientas MCP/API que este turno ofrece de verdad (`create_task`, `run_readonly`); el texto se deriva de ellas. */
   offeredTools?: string[]
+  readonlyProbe?: ToolchainProbe
   rejectedTasks?: Array<{ id: string; description: string }>
 }
 
@@ -226,8 +228,14 @@ export function buildChatSystemPrompt(input: ChatPromptInput): string {
         : 'You cannot modify files or run code directly from this chat. OrchestOS can improve itself through Tasks → agent runs → code changes.'
   const cliAgent = input.agent === 'claude' || input.agent === 'codex'
   const readonlyName = cliAgent ? RUN_READONLY_STEP_LABEL : RUN_READONLY_TOOL
+  const programs = input.offeredTools?.includes(RUN_READONLY_TOOL)
+    ? readonlyPrograms(input.readonlyProbe)
+    : []
+  const readonlyExample = programs.includes('rg')
+    ? '["rg","-n","-A","18","pattern","path"]'
+    : '["git","grep","-n","pattern"]'
   const verifyText = input.offeredTools?.includes(RUN_READONLY_TOOL)
-    ? ` To verify facts instead of guessing, call the \`${readonlyName}\` tool with argv (no shell): git log/show/diff/status/blame/ls-files/grep/rev-parse/branch --list, ls, rg. Use it, not your own shell, for git, ls and rg; project tests are not available. Each flag and its value are separate argv items, e.g. ["rg","-n","-A","18","pattern","path"].${cliAgent ? ' Read file contents with your own file reading, not with run_readonly.' : ''}`
+    ? ` To verify facts instead of guessing, call the \`${readonlyName}\` tool with argv (no shell): git log/show/diff/status/blame/ls-files/grep/rev-parse/branch --list, ${programs.filter((program) => program !== 'git').join(', ')}. Use it, not your own shell, for ${programs.join(', ')}; project tests are not available. Each flag and its value are separate argv items, e.g. ${readonlyExample}.${cliAgent ? ' Read file contents with your own file reading, not with run_readonly.' : ''}`
     : ''
   const responseGuidance =
     'Answer in this chat whatever can be answered with text (writing text, code or lists in your reply is not a file change); only requests to change files in the project go through `create_task`, described below.'

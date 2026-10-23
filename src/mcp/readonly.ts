@@ -10,6 +10,7 @@
 
 import { realpathSync } from 'node:fs'
 import { dirname, isAbsolute, join, relative, resolve } from 'node:path'
+import type { ToolchainProbe } from '../detect/roadmap-profile.ts'
 
 export const RUN_READONLY_TOOL = 'run_readonly'
 export const READONLY_TIMEOUT_MS = 20_000
@@ -17,22 +18,58 @@ export const READONLY_MAX_BYTES = 64 * 1024
 /** Tope propio del listado de config: truncado = no verificable = se rechaza (ronda 6). */
 const CONFIG_LISTING_MAX_BYTES = 1024 * 1024
 
-export const RUN_READONLY_SCHEMA = {
-  type: 'object',
-  properties: {
-    argv: {
-      type: 'array',
-      items: { type: 'string' },
-      description:
-        'Program and arguments, no shell. Allowed: `git` (log, show, diff, status, blame, ls-files, grep, rev-parse, branch --list), `ls`, `rg`. Example: ["git","log","-1"].',
-    },
-  },
-  required: ['argv'],
-  additionalProperties: false,
-} as const
+const spawnReadonlyProbe: ToolchainProbe = (name, args) => {
+  try {
+    const proc = Bun.spawnSync([name, ...args], { env: { ...process.env }, stdin: 'ignore' })
+    return proc.exitCode === 0 ? proc.stdout.toString().trim() : null
+  } catch {
+    return null
+  }
+}
 
-export const RUN_READONLY_DESCRIPTION =
-  'Run a read-only command in the project root to verify facts instead of guessing: `git` (log, show, diff, status, blame, ls-files, grep, rev-parse, branch --list), `ls`, `rg`. No shell, pipes or redirects; project tests are not allowed.'
+type ReadonlyProgram = 'git' | 'ls' | 'rg'
+const programCache = new WeakMap<ToolchainProbe, readonly ReadonlyProgram[]>()
+
+/** Cache por proceso y sonda: los tests no dependen de los binarios del host. */
+export function readonlyPrograms(
+  probe: ToolchainProbe = spawnReadonlyProbe,
+): readonly ReadonlyProgram[] {
+  const cached = programCache.get(probe)
+  if (cached) return cached
+  const programs: ReadonlyProgram[] = ['git', 'ls']
+  if (probe('rg', ['--version']) !== null) programs.push('rg')
+  const available = Object.freeze(programs)
+  programCache.set(probe, available)
+  return available
+}
+
+/** Schema y descripción comparten la disponibilidad usada al ejecutar. */
+export function readonlyToolDefinition(probe?: ToolchainProbe) {
+  const programs = readonlyPrograms(probe)
+  const allowed = programs
+    .map((program) =>
+      program === 'git'
+        ? '`git` (log, show, diff, status, blame, ls-files, grep, rev-parse, branch --list)'
+        : `\`${program}\``,
+    )
+    .join(', ')
+  const example = programs.includes('rg') ? '["git","log","-1"]' : '["git","grep","-n","pattern"]'
+  return {
+    description: `Run a read-only command in the project root to verify facts instead of guessing: ${allowed}. No shell, pipes or redirects; project tests are not allowed.`,
+    inputSchema: {
+      type: 'object',
+      properties: {
+        argv: {
+          type: 'array',
+          items: { type: 'string' },
+          description: `Program and arguments, no shell. Allowed: ${allowed}. Example: ${example}.`,
+        },
+      },
+      required: ['argv'],
+      additionalProperties: false,
+    } as const,
+  }
+}
 
 export type ReadonlyPlan =
   | { ok: true; program: string; args: string[]; env: Record<string, string> }
@@ -522,7 +559,7 @@ function planRg(args: string[], root: string): ReadonlyPlan {
 }
 
 /** Valida `argv` y devuelve el plan de ejecución, o el motivo claro del rechazo. */
-export function planReadonly(input: unknown, root: string): ReadonlyPlan {
+export function planReadonly(input: unknown, root: string, probe?: ToolchainProbe): ReadonlyPlan {
   const argv = (input as { argv?: unknown } | null)?.argv ?? input
   if (!Array.isArray(argv) || argv.length === 0 || argv.some((a) => typeof a !== 'string'))
     return { ok: false, error: '`argv` must be a non-empty array of strings' }
@@ -535,11 +572,17 @@ export function planReadonly(input: unknown, root: string): ReadonlyPlan {
     case 'ls':
       return planLs(args, root)
     case 'rg':
+      if (!readonlyPrograms(probe).includes('rg'))
+        return { ok: false, error: 'rg is not installed; use ["git","grep","-n",…]' }
       return planRg(args, root)
     default:
       return {
         ok: false,
-        error: `\`${program}\` is not allowed. Allowed programs: git (${GIT_SUBCOMMANDS.join(', ')}), ls, rg. Tests and other project commands are not read-only.`,
+        error: `\`${program}\` is not allowed. Allowed programs: git (${GIT_SUBCOMMANDS.join(', ')}), ${readonlyPrograms(
+          probe,
+        )
+          .filter((name) => name !== 'git')
+          .join(', ')}. Tests and other project commands are not read-only.`,
       }
   }
 }
@@ -659,8 +702,9 @@ export async function runReadonly(
   input: unknown,
   root: string,
   timeoutMs = READONLY_TIMEOUT_MS,
+  probe?: ToolchainProbe,
 ): Promise<{ text: string; isError: boolean }> {
-  const plan = planReadonly(input, root)
+  const plan = planReadonly(input, root, probe)
   if (!plan.ok) return { text: plan.error, isError: true }
   const deadline = Date.now() + timeoutMs
   const remaining = () => deadline - Date.now()

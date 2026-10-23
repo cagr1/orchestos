@@ -12,12 +12,7 @@
  */
 
 import type { ApprovalMode } from '../run/approvals.ts'
-import {
-  RUN_READONLY_DESCRIPTION,
-  RUN_READONLY_SCHEMA,
-  RUN_READONLY_TOOL,
-  runReadonly,
-} from './readonly.ts'
+import { RUN_READONLY_TOOL, readonlyToolDefinition, runReadonly } from './readonly.ts'
 
 export const MCP_SERVER_NAME = 'orchestos'
 export const APPROVE_ACTION_TOOL = 'approve_action'
@@ -170,8 +165,7 @@ export async function handleMcpMessage(
             ? [
                 {
                   name: RUN_READONLY_TOOL,
-                  description: RUN_READONLY_DESCRIPTION,
-                  inputSchema: RUN_READONLY_SCHEMA,
+                  ...readonlyToolDefinition(),
                 },
               ]
             : []),
