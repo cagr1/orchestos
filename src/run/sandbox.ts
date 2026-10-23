@@ -16,11 +16,30 @@ export function git(
   args: string[],
   cwd: string,
 ): { exitCode: number; stdout: string; stderr: string } {
-  const proc = Bun.spawnSync(['git', ...args], { cwd })
-  return {
-    exitCode: proc.exitCode,
-    stdout: proc.stdout.toString().trim(),
-    stderr: proc.stderr.toString().trim(),
+  // Each add/commit waits at most 2 s for another process's index lock (4 s per
+  // add + commit pair). Never remove a lock or retry unrelated failures/hooks.
+  const retryIndexLock = args[0] === 'add' || args[0] === 'commit'
+  const deadline = performance.now() + 2_000
+  const env =
+    args[0] === 'status' || args[0] === 'diff'
+      ? { ...process.env, GIT_OPTIONAL_LOCKS: '0' }
+      : process.env
+  for (;;) {
+    const proc = Bun.spawnSync(['git', ...args], { cwd, env })
+    const result = {
+      exitCode: proc.exitCode,
+      stdout: proc.stdout.toString().trim(),
+      stderr: proc.stderr.toString().trim(),
+    }
+    const remaining = deadline - performance.now()
+    if (
+      !retryIndexLock ||
+      result.exitCode === 0 ||
+      !/fatal: Unable to create [^\n]*index\.lock['"]?: File exists/.test(result.stderr) ||
+      remaining <= 0
+    )
+      return result
+    Bun.sleepSync(Math.min(100, remaining))
   }
 }
 

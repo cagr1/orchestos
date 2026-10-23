@@ -25,7 +25,12 @@ function handleApiProjectContextGet(root: string): Response {
 }
 
 function gitValue(root: string, args: string[], emptyAsNull = true): string | null {
-  const result = Bun.spawnSync(['git', ...args], { cwd: root, stdout: 'pipe', stderr: 'ignore' })
+  const result = Bun.spawnSync(['git', ...args], {
+    cwd: root,
+    env: { ...process.env, GIT_OPTIONAL_LOCKS: '0' },
+    stdout: 'pipe',
+    stderr: 'ignore',
+  })
   if (result.exitCode !== 0) return null
   const value = result.stdout.toString().trim()
   return value || (emptyAsNull ? null : '')

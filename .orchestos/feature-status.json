@@ -99,6 +99,15 @@
       "block": "Abiertos — fiabilidad de los gates y documentación",
       "delegation": "🔍",
       "title": "`tasks`: la tarea relanzada no deja su commit `chore(tasks)` (intermitente en batería)",
+      "status": "done",
+      "closedDate": "2026-10-23"
+    },
+    {
+      "id": "CI.40",
+      "sprint": "Fase 2 — Producto mínimo para entrega",
+      "block": "Abiertos — fiabilidad de los gates y documentación",
+      "delegation": "🔍",
+      "title": "`tasks`: el paso de TRUST.1 depende de que el modelo real cree `TRUST.txt`",
       "status": "open",
       "closedDate": null
     },

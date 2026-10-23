@@ -11,7 +11,11 @@ function run(command, args, cwd) {
 }
 
 function gitOut(args, cwd) {
-  return execFileSync('git', args, { cwd, encoding: 'utf8' }).trim()
+  return execFileSync('git', args, {
+    cwd,
+    env: { ...process.env, GIT_OPTIONAL_LOCKS: '0' },
+    encoding: 'utf8',
+  }).trim()
 }
 
 // ERP.4.12 — el commit de tasks.yaml ocurre justo después de que el CLI escribe el estado

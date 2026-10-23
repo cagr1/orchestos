@@ -160,7 +160,7 @@ Regla: nada se reintenta, cierra ni muestra sin evidencia medida que el usuario 
   `qa-negative` (2026-10-11, 1 de 9): `Command failed: git … commit -qm task fixture`, sin motivo porque el helper
   `run` usa `stdio: 'ignore'`. `qa-negative` ya reporta stdout/stderr y exit; los otros 20 flows con el mismo helper no.
   Al próximo fallo, leer el motivo en el `result.json` antes de arreglar; llevar el helper a `scripts/ui-gate/lib.mjs`.
-- [ ] **CI.23 — 🔍 `tasks`: la tarea relanzada no deja su commit `chore(tasks)` (intermitente en batería).** Visto 2 de
+- [x] **CI.23 — 🔍 `tasks`: la tarea relanzada no deja su commit `chore(tasks)` (intermitente en batería).** (cerrado 2026-10-23) Visto 2 de
   6 corridas del set de UI.26.4 (2026-10-14), nunca con `tasks` solo: tras relanzar `gate-failed-task` y llegar a
   `done`, a los 15 s de `waitForTasksYamlCommit` el último commit es el del trabajo (`orchestos(gate-failed-task): …`)
   y `tasks.yaml` sigue modificado. No lo trajo UI.26.4 (solo presentación); el pre-push de `03b9cf3` pasó. Primero que
@@ -173,6 +173,19 @@ Regla: nada se reintenta, cierra ni muestra sin evidencia medida que el usuario 
   2026-10-22: visto 1 vez (`CI.32.c-live`, con `auto-flow chat-retry-report chat-permissions` antes): `porcelain="M
   tasks.yaml"`, último commit `orchestos(gate-first-task): …`; `tasks` solo pasó 31/31 justo después. Detalle en
   `$TMPDIR/ui-gate-65780/result.json` (temporal, no conservado).
+  Causa medida (fase 1, 2026-10-23, `dashboard.log:106` de esa corrida): `commit exit=128 … .git/index.lock: File
+  exists`; `add` pasó. Otro proceso git tenía el índice; cuál no quedó identificado (candidatos verificados en código:
+  `git status` del dashboard y del flow, `codex exec` read-only en la raíz). Arreglo: `git()` de `src/run/sandbox.ts`
+  reintenta `add`/`commit` ≤ 2 s solo ante ese error exacto, nunca borra el lock (vale para todas las rutas que
+  commitean); `status`/`diff` del dashboard y del flow con `GIT_OPTIONAL_LOCKS=0`. Contraprueba: los 4 tests nuevos
+  fallan contra HEAD. Gates del cerebro: typecheck, 10/10 unit, `ui:gate tasks` 43/43.
+  Gate en vivo: navegador real (Playwright), `docs/done/evidence/CI.23-live.json`
+  Ejecutado por: codex gpt-6.1-sol (criterio) · revisión: Opus
+- [ ] **CI.40 — 🔍 `tasks`: el paso de TRUST.1 depende de que el modelo real cree `TRUST.txt`.** (abierto 2026-10-23)
+  Visto 1 vez (corrida de Sol para CI.23): `gate-check-failure` quedó `retryReason="missing declared output(s):
+  TRUST.txt"`; el check con `TRUST1-MARKER` nunca corrió y el paso falló sin decir que la premisa no se cumplió. La
+  corrida siguiente pasó. Arreglo: premisa determinista (sin depender del modelo) o, como `qa-negative.mjs:337`,
+  informar "premisa no cumplida".
 - [x] **TCLI.1 — ⚡ Registro de ejecutores de tareas y elección por registro.** (cerrado 2026-10-22) (GO de Carlos 2026-10-22: "no hay un CLI
   de preferencia, eso es primordial") Un módulo registra el ejecutor de tareas de cada CLI; harness, auto-route, evals,
   cascada, CLI y handler de tareas lo consultan en vez de ramas fijas. Un CLI registrado sin ejecutor de tareas falla
