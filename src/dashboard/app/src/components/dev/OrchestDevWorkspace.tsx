@@ -37,6 +37,7 @@ import type {
 import { AgentComposer, type CliId } from '../common/AgentComposer'
 import { ContextRing } from '../common/ContextRing'
 import { ProviderLogo } from '../common/ProviderLogos'
+import { assistantCopyTarget } from './copy-target'
 
 interface OrchestDevWorkspaceProps {
   activeProject: ProjectItem
@@ -448,14 +449,14 @@ export const OrchestDevWorkspace: React.FC<OrchestDevWorkspaceProps> = ({
 
   function DevExchange(exchange: DevExchangeData) {
     const isCurrentExchange = timeline?.live?.turnId === exchange.id
-    const latestUserMessage = exchange.userMessage
+    const exchangeUserMessage = exchange.userMessage
     const pendingForExchange = exchange.optimistic && pendingUserMessage
     const visibleUserMessage = pendingForExchange
       ? {
           content: pendingUserMessage.content,
           createdAt: new Date(pendingUserMessage.sentAt).toISOString(),
         }
-      : latestUserMessage
+      : exchangeUserMessage
     const steps = exchange.steps
     const thoughtStep = steps.find((step) => step.type === 'text' && step.detail)
     const readSteps = steps.filter((step) => step.tool?.toLowerCase() === 'read' && step.target)
@@ -484,7 +485,7 @@ export const OrchestDevWorkspace: React.FC<OrchestDevWorkspaceProps> = ({
       ? [passedCommand.cmd, passedCommand.stdout, passedCommand.stderr].filter(Boolean).join('\n')
       : ''
     const hasRealTurn = Boolean(
-      latestUserMessage ||
+      exchangeUserMessage ||
         exchange.assistantMessage ||
         steps.length ||
         exchange.commands.length ||
@@ -494,6 +495,7 @@ export const OrchestDevWorkspace: React.FC<OrchestDevWorkspaceProps> = ({
       isCurrentExchange && timeline?.live?.text
         ? timeline.live.text
         : (exchange.assistantMessage?.content ?? '')
+    const assistantCopy = assistantCopyTarget(exchange, visibleAssistantMessage)
     const isThoughtExpanded = expandedExchanges[exchange.id]?.includes('thought') ?? false
     const isReadFilesExpanded = expandedExchanges[exchange.id]?.includes('read') ?? false
     const setExpanded = (key: string, expanded: boolean) =>
@@ -537,20 +539,20 @@ export const OrchestDevWorkspace: React.FC<OrchestDevWorkspaceProps> = ({
                 </div>
               ) : null}
               {visibleUserMessage.content}
-              {latestUserMessage && visibleUserMessage === latestUserMessage && (
+              {exchangeUserMessage && visibleUserMessage === exchangeUserMessage && (
                 <button
                   type="button"
                   onClick={() =>
                     void handleCopyMessage(
-                      latestUserMessage.id.toString(),
-                      latestUserMessage.content,
+                      exchangeUserMessage.id.toString(),
+                      exchangeUserMessage.content,
                     )
                   }
                   className="absolute right-0 top-full mt-1 p-1 rounded-control text-app-muted opacity-0 group-hover:opacity-100 hover:text-app hover:bg-app-surface transition-colors"
                   title="Copy"
                   aria-label="Copy"
                 >
-                  {copiedMessageId === latestUserMessage.id.toString() ? (
+                  {copiedMessageId === exchangeUserMessage.id.toString() ? (
                     <Check className="w-3 h-3" />
                   ) : (
                     <Copy className="w-3 h-3" />
@@ -928,21 +930,13 @@ export const OrchestDevWorkspace: React.FC<OrchestDevWorkspaceProps> = ({
               <button
                 type="button"
                 onClick={() => {
-                  const message = [...(timeline?.messages ?? [])]
-                    .reverse()
-                    .find((item) => item.role === 'assistant')
-                  if (message) void handleCopyMessage(message.id.toString(), message.content)
+                  if (assistantCopy) void handleCopyMessage(assistantCopy.id, assistantCopy.text)
                 }}
                 className="absolute right-2 top-2 p-1 rounded-control text-app-muted opacity-0 group-hover:opacity-100 hover:text-app hover:bg-app-elevated transition-colors"
                 title="Copy"
                 aria-label="Copy"
               >
-                {copiedMessageId ===
-                String(
-                  [...(timeline?.messages ?? [])]
-                    .reverse()
-                    .find((item) => item.role === 'assistant')?.id,
-                ) ? (
+                {assistantCopy && copiedMessageId === assistantCopy.id ? (
                   <Check className="w-3 h-3" />
                 ) : (
                   <Copy className="w-3 h-3" />

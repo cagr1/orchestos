@@ -251,24 +251,24 @@ Regla: nada se reintenta, cierra ni muestra sin evidencia medida que el usuario 
   La familia CI.11 (latencia de Codex) sigue en CI.11.
   Gate en vivo: navegador real (Playwright), `docs/done/evidence/CI.18-live.json`
   Ejecutado por: codex gpt-6.1-sol (criterio), revisión Opus · Spec: docs/specs/CI.18.md
-- [ ] **UI.26 — 🔍 En modo Dev, Copy de una respuesta vieja copia la última.** Cerrado 2026-10-23. Reportado por
+- [x] **UI.26 — 🔍 En modo Dev, Copy de una respuesta vieja copia la última.** Cerrado 2026-10-23. Reportado por
   Carlos ("solo se copia el último"). El botón de cada respuesta buscaba el último `assistant` del timeline; ahora usa
   el del exchange (`assistantCopyTarget`, `components/dev/copy-target.ts`, 3 tests). Chat ya copiaba bien (22 botones,
   probado en vivo). Cerebro: `test:coverage` 2017/0, typecheck y lint verdes.
-  Gate en vivo: navegador real (Playwright, Chrome) sobre copia de la DB real, 12/12 respuestas copian la suya,
-  `docs/done/evidence/UI.26-live.json`
-  Ejecutado por: codex (mecanico), revisión Opus · Spec: borrado
-- [ ] **CI.43.1 — 🔍 El test del post-commit falla en el pre-push.** Cerrado 2026-10-23. `git init` sin plantillas no
+  Dev, sesión "Hola" sobre copia de la DB: 12/12 respuestas copian la suya.
+  Gate en vivo: navegador real (Playwright, Chrome), `docs/done/evidence/UI.26-live.json`
+  Ejecutado por: codex (mecanico), revisión Opus · Spec: docs/specs/UI.26.md
+- [x] **CI.43.1 — 🔍 El test del post-commit falla en el pre-push.** Cerrado 2026-10-23. `git init` sin plantillas no
   crea `.git/hooks` (HOME temporal del pre-push): 2 fallos ENOENT; el test crea la carpeta. Cerebro: con HOME y
   `GIT_TEMPLATE_DIR` vacíos 2/2.
-  Ejecutado por: codex (mecanico), revisión Opus · Spec: borrado
-- [ ] **CI.43 — 🔍 Un `git commit -- <rutas>` deja el índice desfasado y bloquea las tareas.** Cerrado 2026-10-23: la tarea
+  Ejecutado por: codex (mecanico), revisión Opus · Spec: docs/specs/CI.43.1.md
+- [x] **CI.43 — 🔍 Un `git commit -- <rutas>` deja el índice desfasado y bloquea las tareas.** Cerrado 2026-10-23: la tarea
   `chat-4a0d93a2…` no arrancó ("uncommitted changes") con el árbol idéntico a HEAD: el pre-commit hace `git add` de
   los derivados en el índice temporal del commit parcial y el índice real queda viejo (`MM`). Reproducido en repo
   mínimo. Arreglo: `scripts/post-commit.sh` re-sincroniza los derivados idénticos a HEAD; `install-hooks.sh` y
   `checkHooks` lo incluyen. `scripts/post-commit.test.ts` reproduce `MM` sin el hook y limpio con él. Cerebro:
   `test:coverage` 2017/0; `git status` limpio tras este mismo commit parcial.
-  Ejecutado por: codex gpt-6.1-sol (criterio), revisión Opus · Spec: borrado
+  Ejecutado por: codex gpt-6.1-sol (criterio), revisión Opus · Spec: docs/specs/CI.43.md
 - [ ] **CI.19 — 🔍 El `git commit` del fixture falla a veces en el andamiaje de los ui-gates.** Visto 1 vez en
   `qa-negative` (2026-10-11, 1 de 9): `Command failed: git … commit -qm task fixture`, sin motivo porque el helper
   `run` usa `stdio: 'ignore'`. `qa-negative` ya reporta stdout/stderr y exit; los otros 20 flows con el mismo helper no.

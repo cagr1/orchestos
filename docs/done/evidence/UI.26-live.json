@@ -1,0 +1,17 @@
+[
+  {
+    "flujo": "dev-copy-per-message",
+    "pass": true,
+    "fecha": "2026-10-23",
+    "entorno": "dashboard aparte en :4343, ORCHESTOS_HOME temporal con copia de la DB real; Chrome (Playwright); sesión 'Hola' en modo Dev",
+    "steps": [
+      { "nombre": "respuestas visibles en Dev", "ok": true, "detalle": "12" },
+      {
+        "nombre": "hover + Copy en cada respuesta copia su propio texto",
+        "ok": true,
+        "detalle": "12/12 OK (primeros 20 caracteres del portapapeles = texto mostrado)"
+      },
+      { "nombre": "copias distintas", "ok": true, "detalle": "12 de 12" }
+    ]
+  }
+]

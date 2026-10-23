@@ -171,7 +171,7 @@
       "block": "Abiertos — fiabilidad de los gates y documentación",
       "delegation": "🔍",
       "title": "En modo Dev, Copy de una respuesta vieja copia la última",
-      "status": "open",
+      "status": "done",
       "closedDate": null
     },
     {
@@ -180,7 +180,7 @@
       "block": "Abiertos — fiabilidad de los gates y documentación",
       "delegation": "🔍",
       "title": "El test del post-commit falla en el pre-push",
-      "status": "open",
+      "status": "done",
       "closedDate": null
     },
     {
@@ -189,7 +189,7 @@
       "block": "Abiertos — fiabilidad de los gates y documentación",
       "delegation": "🔍",
       "title": "Un `git commit -- <rutas>` deja el índice desfasado y bloquea las tareas",
-      "status": "open",
+      "status": "done",
       "closedDate": null
     },
     {
