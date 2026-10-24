@@ -6,9 +6,7 @@
     "Modo Dev, proyecto orchestos, sesión existente abierta",
     "document.querySelectorAll('svg.-rotate-90') sobre la página"
   ],
-  "result": [
-    { "inShellHeader": true, "strokeDashoffset": "43.5456848864465" }
-  ],
+  "result": [{ "inShellHeader": true, "strokeDashoffset": "43.5456848864465" }],
   "verdict": "Un solo anillo de contexto, dentro de header.h-11 (barra superior), con dato de la sesión de Dev (~1 %). El de la cabecera de Dev ya no se pinta.",
   "gates": {
     "ui:fidelity:jsx": 0,
