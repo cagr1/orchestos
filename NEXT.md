@@ -1,4 +1,4 @@
-# NEXT — handoff 2026-10-23 tarde (corte: CI.42 mutación y CI.19 fase 1; Codex sin cupo)
+# NEXT — handoff 2026-10-23 noche (corte: índice de git, copiar en Dev, config y prompt del chat)
 
 Un solo presente: orden y trampas vivas. Lo cerrado vive en `docs/done/bloque-*.md`, `PLAN.md` y git (regla `AGENTS.md`
 § Reglas generales, 2026-10-19: `NEXT.md` se toca solo al cerrar o cortar un lote). Arranque:
@@ -21,7 +21,20 @@ Vault `0208da4` (verificación: `qa` revisa lo de `mecanico`) y `d8e1d64` (rol `
 Tarde: CI.42 `f75e8524` (Mutation Shards: selección por imports de runtime + ejecutores en 4 particiones; Sol) y
 CI.19 fase 1 `c6e7066d` (un solo `run` en `scripts/ui-gate/lib.mjs` que dice exit y salida; Sonnet, Sol sin cupo).
 
+Noche (revisado por Opus; Sol con cupo de nuevo): CI.43 `1171b3f7` + .1 `523202ce` (`scripts/post-commit.sh`: un
+`git commit -- <rutas>` dejaba `MM` en los derivados y el sandbox rechazaba tareas), UI.26 `33218005` (Copy en Dev
+copia su respuesta), CHAT.1 `fcebad54` (`rg` solo si está instalado), CFG.1 `a291f3a3` (fuera `models:`), config
+`eb41e790` (reviewer Claude Sonnet 5.5, decisión de Carlos), `310ede9f` (`agentic.maxIterations` 15), `160b6a4f`
+(fuera `agent:`), seguridad `c5e36e45` (zod 4.6.7 + overrides; `bun audit` limpio). Tareas `design-test-*` borradas.
+
 ## Orden
+0. Pendiente de Carlos: GO a CHAT.2 = 4 ajustes del prompt del chat (análisis del chat verificado 2026-10-23):
+   `Commands:` (`chat-context.ts:83`) aclarar que son de los ejecutores; decir si `create_task` corre ya (Yolo) o
+   espera (Manual); nombrar los "automatic checks" (`chat.ts:121`: outputs declarados + reviewer); qué responder a
+   reintentar/cancelar/borrar (tarjeta de la tarea). Opcional: avisar outputs que se pisan entre tareas. Toca chat →
+   gates `chat-streaming` + `codex-live`. El "prompt genérico de Claude Code" (`--append-system-prompt`) y quizá el
+   `~/.claude/CLAUDE.md` del HOME real (sin verificar) van a ERP.5 con medición, no a CHAT.2.
+   Tarea `chat-4a0d93a2…` (doc de observaciones del chat) sigue `pending`: Carlos le da Run.
 1. CI.42 abierto: leer tiempos reales de `gh run view 39983853493` (workflow_dispatch, 6 jobs, límite 180 min; Sol
    estimó ~150 el más lento). Todos < 180 con margen → `[x]` + borrar `docs/specs/CI.42.md`; si no, partir más.
 2. Fiabilidad, con cupo de Codex (CI.11 es latencia de Codex): CI.11; CI.19 espera el próximo fallo para la fase 2.
@@ -35,6 +48,14 @@ CI.19 fase 1 `c6e7066d` (un solo `run` en `scripts/ui-gate/lib.mjs` que dice exi
   tras UI.24.4.
 
 ## Trampas vivas
+- Cierre de ítem (gates de `PLAN.md`, 2026-10-23): (1) el ítem debe existir `[ ]` en HEAD antes del commit que lo
+  marca `[x]` (`closedPlanItemIds`); (2) `plan:reconcile` una sola vez por cierre: si ya quedó `done` en la DB sin
+  commit, reabrir `[ ]` → reconcile → `[x]` → reconcile; (3) la ruta de evidencia entre backticks va en la MISMA
+  línea que `Gate en vivo:`; (4) `Ejecutado por: … · Spec: docs/specs/<ID>.md` exacto, spec borrado en el commit;
+  (5) `git commit -- <ruta>` no acepta archivos sin seguir: `git add` antes.
+- Bun 1.3.14 no tiene `bun audit fix` (lo sugiere y no hace nada): fijar en `overrides` de `package.json`.
+- Probar el dashboard sin tocar el de Carlos: `ORCHESTOS_HOME=<tmp con sqlite3 .backup de la DB> PORT=4343 bun
+  src/dashboard/server.ts` + Playwright `channel: 'chrome'` (el chromium de Playwright no está instalado).
 - Sol/Codex sin cupo de 5 h → `criterio-alt` (Sonnet); su diff no tiene revisor de otro proveedor: decirlo al cerrar.
   Sin Codex, los gates en vivo de chat y `qa-negative` no sirven: elegir flujos sin Codex (`plan-doc`,
   `project-tabs`, `model-routing`).
