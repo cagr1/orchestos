@@ -29,16 +29,18 @@ copia su respuesta), CHAT.1 `fcebad54` (`rg` solo si está instalado), CFG.1 `a2
 2026-10-24: UI.29 integrada (merge `eca73ecb`, copiar en Dev debajo a la izquierda + carrera de `shell-look`), UI.30
 `a2800bfa` (un solo anillo de contexto en Dev). Worktree `orchestos-ui28` y rama `ui/UI.29` borrados. CI.42
 `[x]` (corrida `39983853493`: job más lento 122 min de 180). CHAT.2 `[x]` (prompt del chat: comandos, espera de
-tareas, checks, reintentos; Sol).
+tareas, checks, reintentos; Sol). SKILLS.1 `42781af5` (medición de skills; Carlos: se quedan
+todas, fuera solo el duplicado `skills/pro/api-contract.yaml`).
 
 ## Orden
 0. Tarea `chat-4a0d93a2…` (doc de observaciones del chat) sigue `pending`: Carlos le da Run. El "prompt genérico de
    Claude Code" (`--append-system-prompt`) y quizá el `~/.claude/CLAUDE.md` del HOME real van a ERP.5 con medición.
 1. Fiabilidad, con cupo de Codex (CI.11 es latencia de Codex): CI.11; CI.19 espera el próximo fallo para la fase 2.
-2. Evaluar las skills de OrchestOS (`skills/*.yaml` + `skills/pro/`): espera GO de Carlos.
-3. Ejecutor de tareas para otro CLI = entrada en `KNOWN_CLIS` + `registerTaskEngine`, solo con el CLI instalado y
+2. Ejecutor de tareas para otro CLI = entrada en `KNOWN_CLIS` + `registerTaskEngine`, solo con el CLI instalado y
    verificable en vivo.
-- Anotado, sin ítem: el revisor elige su ventana cortando en el primer tramo que no cabe; `permissions` parpadea a
+- Anotado, sin ítem: `pickAutoSkill` elige una skill `explicit` si es candidata única (`chat.ts:791`,
+  `verification-before-completion`) y `src/tasks/init.ts:71` genera `skill_id` `doc`/`implement` sin YAML — Carlos no
+  los priorizó (2026-10-24); el revisor elige su ventana cortando en el primer tramo que no cabe; `permissions` parpadea a
   `null` al re-dispararse el efecto de config del chat (`OrchestChatView.tsx:108`, CI.41); TRUST.7.1 sin verificar en
   vivo el caso de residuos.
 - Decisiones pendientes de Carlos: push del vault (`5134b27`, `520f0e0`, `0208da4`, `d8e1d64`); peso de `main.js`
