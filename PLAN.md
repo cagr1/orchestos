@@ -214,17 +214,20 @@ Regla: nada se reintenta, cierra ni muestra sin evidencia medida que el usuario 
   En vivo (dashboard real, Dev con sesión abierta): un solo anillo, dentro de `header.h-11`, con dato.
   Gate en vivo: navegador real (navegador integrado de Claude Desktop), `docs/done/evidence/UI.30-live.json`
   Ejecutado por: Opus (Dev, sin delegación) · codex mecanico (`jsx-allow.json`) · Spec: docs/specs/UI.30.md (borrado)
-- [ ] **CI.42 — 🔍 `Mutation Shards` excede 3 h: cada shard arrastra los tests de todos los ejecutores.** (abierto 2026-10-23)
+- [x] **CI.42 — 🔍 `Mutation Shards` excede 3 h: cada shard arrastra los tests de todos los ejecutores.** (abierto 2026-10-23, cerrado 2026-10-24)
   Corrida `39921431428` (d734166): `executors` y `executors-codex` cortados a 180 min; `context-routing` 21→69 min,
   `runtime-boundaries` 45→135 min. Prueba inicial de Stryker 7→27 s y 10→28 s. Medido (cerebro): la selección por
   grafo de imports (`scripts/mutation-test-shard.ts`) pasó de 52 a 62 archivos en context-routing y de 54 a 67 en
   executors desde el registro `task-engines.ts`; `tasks-concurrency` 10,8 s y `run-revert` 8,7 s entran ahora.
-  Spec: `docs/specs/CI.42.md`.
+  Spec: `docs/specs/CI.42.md` (borrado).
   Arreglo (Sol): el selector sigue solo imports de runtime (Bun `scanImports` + AST; fuera `import type`, comentarios
   y textos de fixtures) y `executors`/`executors-codex` se parten en 4 configs (6 jobs, mismos archivos mutados:
   13/13 y 4/4). Selección HEAD: context-routing 62→28, runtime-boundaries 65→34, particiones 45–49. Gates (cerebro):
   typecheck 0, lint sin errores, `mutation-test-shard.test.ts` 8/0; `test:coverage` 2013/0 (ejecutor). Abierto hasta
   ver los tiempos reales del `workflow_dispatch` (estimación de Sol: job más lento ~150 min).
+  Cierre (cerebro, `gh run view 39983853493`, success): executors-codex-engines 122, executors-routing 117,
+  executors-engines 115, executors-codex-server 110, runtime-boundaries 74, context-routing 24 min; todos < 180.
+  Ejecutado por: Sol (arreglo `f75e8524`) · cierre y medición: Opus
 - [ ] **CI.11 — 🔍 El turno 2 de Codex en `codex-live` tardó 180 s contra 22 s del turno 1.** (abierto 2026-10-03)
   Visto una vez en la corrida completa de ui-gates (`$TMPDIR/ui-gate-73235/result.json`, paso "turn 2 is faster than
   turn 1": 22141 ms vs 180113 ms, el timeout del flujo). Sin verificar si es latencia del modelo o un cuelgue al

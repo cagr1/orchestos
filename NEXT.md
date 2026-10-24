@@ -27,8 +27,8 @@ copia su respuesta), CHAT.1 `fcebad54` (`rg` solo si está instalado), CFG.1 `a2
 `eb41e790` (reviewer Claude Sonnet 5.5, decisión de Carlos), `310ede9f` (`agentic.maxIterations` 15), `160b6a4f`
 (fuera `agent:`), seguridad `c5e36e45` (zod 4.6.7 + overrides; `bun audit` limpio). Tareas `design-test-*` borradas.
 2026-10-24: UI.29 integrada (merge `eca73ecb`, copiar en Dev debajo a la izquierda + carrera de `shell-look`), UI.30
-`a2800bfa` (un solo anillo de contexto en Dev). Pendiente de limpieza: worktree `../orchestos-ui28` y rama local
-`ui/UI.29` ya integrados; la sesión UI no recibió el aviso (permisos distintos) — borrarlos con OK de Carlos.
+`a2800bfa` (un solo anillo de contexto en Dev). Worktree `orchestos-ui28` y rama `ui/UI.29` borrados. CI.42
+`[x]` (corrida `39983853493`: job más lento 122 min de 180).
 
 ## Orden
 0. Pendiente de Carlos: GO a CHAT.2 = 4 ajustes del prompt del chat (análisis del chat verificado 2026-10-23):
@@ -38,11 +38,9 @@ copia su respuesta), CHAT.1 `fcebad54` (`rg` solo si está instalado), CFG.1 `a2
    gates `chat-streaming` + `codex-live`. El "prompt genérico de Claude Code" (`--append-system-prompt`) y quizá el
    `~/.claude/CLAUDE.md` del HOME real (sin verificar) van a ERP.5 con medición, no a CHAT.2.
    Tarea `chat-4a0d93a2…` (doc de observaciones del chat) sigue `pending`: Carlos le da Run.
-1. CI.42 abierto: leer tiempos reales de `gh run view 39983853493` (workflow_dispatch, 6 jobs, límite 180 min; Sol
-   estimó ~150 el más lento). Todos < 180 con margen → `[x]` + borrar `docs/specs/CI.42.md`; si no, partir más.
-2. Fiabilidad, con cupo de Codex (CI.11 es latencia de Codex): CI.11; CI.19 espera el próximo fallo para la fase 2.
-3. Evaluar las skills de OrchestOS (`skills/*.yaml` + `skills/pro/`): espera GO de Carlos.
-4. Ejecutor de tareas para otro CLI = entrada en `KNOWN_CLIS` + `registerTaskEngine`, solo con el CLI instalado y
+1. Fiabilidad, con cupo de Codex (CI.11 es latencia de Codex): CI.11; CI.19 espera el próximo fallo para la fase 2.
+2. Evaluar las skills de OrchestOS (`skills/*.yaml` + `skills/pro/`): espera GO de Carlos.
+3. Ejecutor de tareas para otro CLI = entrada en `KNOWN_CLIS` + `registerTaskEngine`, solo con el CLI instalado y
    verificable en vivo.
 - Anotado, sin ítem: el revisor elige su ventana cortando en el primer tramo que no cabe; `permissions` parpadea a
   `null` al re-dispararse el efecto de config del chat (`OrchestChatView.tsx:108`, CI.41); TRUST.7.1 sin verificar en
