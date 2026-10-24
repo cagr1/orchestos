@@ -361,6 +361,15 @@ Regla: nada se reintenta, cierra ni muestra sin evidencia medida que el usuario 
   derivada de `ROOT` (medía la vieja `-Documents-`). Evidencia: guard en vivo silencioso (~8,9k est.);
   `startup-guard.test.ts` 18/18, los 3 tests nuevos fallan contra HEAD; typecheck y biome limpios.
   Ejecutado por: codex gpt-6-luna (mecanico) · Spec: docs/specs/CTX-GUARD.3.md
+- [x] **UI.29 — 🔍 Dev: el copiar de la respuesta del asistente va abajo a la izquierda.** (abierto 2026-10-23, Carlos:
+  "lo normal es que salga en la esquina inferior izquierda") `OrchestDevWorkspace.tsx:~935` lo pone `absolute right-2
+  top-2`; en Chat ya va debajo a la izquierda. Worktree `ui/UI.29` (otra sesión tiene el árbol principal).
+  (cerrado 2026-10-23) El botón va debajo de la tarjeta, alineado a su borde izquierdo (medido en vivo: 4 px bajo la
+  tarjeta, mismo `left`). De paso: `shell-look` fallaba en el resaltado de Settings (dura 960 ms y el flujo esperaba
+  1000 ms antes de medirlo); ahora confirma y mide en una sola evaluación, sin relajar la afirmación.
+  Ejecutado por: gpt-6.1-sol (rol `criterio`) · Spec: docs/specs/UI.29.md (borrado). Revisión: Opus (diff + vivo).
+  Gate en vivo: navegador real (Playwright), `docs/done/evidence/UI.29-live.json` — `shell-look` 76/76,
+  `chat-streaming` 27/27 (Sol: 3/3 rondas).
 - [x] **CI.38 — ⚡ `chat-continuity` no distingue dos chats con el mismo título tras UI.27.3.** (abierto 2026-10-22)
   Pre-push de `39c67167` 2/2: `strict mode violation: getByRole('button', { name: 'Remember this code for later: …' })
   resolved to 2 elements`. El flujo crea un chat de Claude y uno de Codex con el mismo título en el mismo proyecto;

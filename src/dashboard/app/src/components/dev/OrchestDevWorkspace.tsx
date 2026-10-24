@@ -923,25 +923,35 @@ export const OrchestDevWorkspace: React.FC<OrchestDevWorkspaceProps> = ({
         {hasRealTurn && visibleAssistantMessage && (
           <div className="flex items-start gap-2">
             <Bot className="mt-4 h-4 w-4 shrink-0 text-app-accent" aria-hidden="true" />
-            <div className="relative rounded-card p-4 bg-app-surface/60 border border-app/60 text-xs text-app leading-relaxed shadow-2xs flex-1 group">
-              <div className="prose prose-invert max-w-none text-xs leading-relaxed [&>p]:mb-2 [&>ul]:list-disc [&>ul]:pl-4 [&>pre]:bg-app-bg [&>pre]:p-2.5 [&>pre]:rounded-control [&>pre]:border [&>pre]:border-app [&>pre]:font-mono [&>code]:bg-app-bg [&>code]:px-1 [&>code]:py-0.5 [&>code]:rounded-control [&>code]:border [&>code]:border-app [&>code]:font-mono [&>strong]:font-bold [&>strong]:text-app">
-                <Markdown remarkPlugins={[remarkGfm]}>{visibleAssistantMessage}</Markdown>
-              </div>
-              <button
-                type="button"
-                onClick={() => {
-                  if (assistantCopy) void handleCopyMessage(assistantCopy.id, assistantCopy.text)
-                }}
-                className="absolute right-2 top-2 p-1 rounded-control text-app-muted opacity-0 group-hover:opacity-100 hover:text-app hover:bg-app-elevated transition-colors"
-                title="Copy"
-                aria-label="Copy"
+            <div
+              data-dev-assistant-message
+              className="flex-1 min-w-0 flex flex-col items-start gap-1 group"
+            >
+              <div
+                data-dev-assistant-card
+                className="relative rounded-card p-4 bg-app-surface/60 border border-app/60 text-xs text-app leading-relaxed shadow-2xs w-full"
               >
-                {assistantCopy && copiedMessageId === assistantCopy.id ? (
-                  <Check className="w-3 h-3" />
-                ) : (
-                  <Copy className="w-3 h-3" />
-                )}
-              </button>
+                <div className="prose prose-invert max-w-none text-xs leading-relaxed [&>p]:mb-2 [&>ul]:list-disc [&>ul]:pl-4 [&>pre]:bg-app-bg [&>pre]:p-2.5 [&>pre]:rounded-control [&>pre]:border [&>pre]:border-app [&>pre]:font-mono [&>code]:bg-app-bg [&>code]:px-1 [&>code]:py-0.5 [&>code]:rounded-control [&>code]:border [&>code]:border-app [&>code]:font-mono [&>strong]:font-bold [&>strong]:text-app">
+                  <Markdown remarkPlugins={[remarkGfm]}>{visibleAssistantMessage}</Markdown>
+                </div>
+              </div>
+              <div className="flex items-center opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity">
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (assistantCopy) void handleCopyMessage(assistantCopy.id, assistantCopy.text)
+                  }}
+                  className="p-1 rounded-control text-app-muted hover:text-app hover:bg-app-elevated transition-colors"
+                  title="Copy"
+                  aria-label="Copy"
+                >
+                  {assistantCopy && copiedMessageId === assistantCopy.id ? (
+                    <Check className="w-3 h-3" />
+                  ) : (
+                    <Copy className="w-3 h-3" />
+                  )}
+                </button>
+              </div>
             </div>
           </div>
         )}
