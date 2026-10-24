@@ -26,6 +26,9 @@ Noche (revisado por Opus; Sol con cupo de nuevo): CI.43 `1171b3f7` + .1 `523202c
 copia su respuesta), CHAT.1 `fcebad54` (`rg` solo si está instalado), CFG.1 `a291f3a3` (fuera `models:`), config
 `eb41e790` (reviewer Claude Sonnet 5.5, decisión de Carlos), `310ede9f` (`agentic.maxIterations` 15), `160b6a4f`
 (fuera `agent:`), seguridad `c5e36e45` (zod 4.6.7 + overrides; `bun audit` limpio). Tareas `design-test-*` borradas.
+2026-10-24: UI.29 integrada (merge `eca73ecb`, copiar en Dev debajo a la izquierda + carrera de `shell-look`), UI.30
+`a2800bfa` (un solo anillo de contexto en Dev). Pendiente de limpieza: worktree `../orchestos-ui28` y rama local
+`ui/UI.29` ya integrados; la sesión UI no recibió el aviso (permisos distintos) — borrarlos con OK de Carlos.
 
 ## Orden
 0. Pendiente de Carlos: GO a CHAT.2 = 4 ajustes del prompt del chat (análisis del chat verificado 2026-10-23):
