@@ -1,0 +1,18 @@
+{
+  "item": "UI.30",
+  "date": "2026-10-23",
+  "browser": "navegador integrado de Claude Desktop, dashboard real (bun run src/cli.ts dashboard, puerto 4243, build:app recién hecho)",
+  "steps": [
+    "Modo Dev, proyecto orchestos, sesión existente abierta",
+    "document.querySelectorAll('svg.-rotate-90') sobre la página"
+  ],
+  "result": [
+    { "inShellHeader": true, "strokeDashoffset": "43.5456848864465" }
+  ],
+  "verdict": "Un solo anillo de contexto, dentro de header.h-11 (barra superior), con dato de la sesión de Dev (~1 %). El de la cabecera de Dev ya no se pinta.",
+  "gates": {
+    "ui:fidelity:jsx": 0,
+    "typecheck": 0,
+    "test:coverage": "2023 pass / 0 fail"
+  }
+}

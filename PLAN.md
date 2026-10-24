@@ -206,6 +206,14 @@ Regla: nada se reintenta, cierra ni muestra sin evidencia medida que el usuario 
   el nuevo; Claude 61→67 % sigue fallando); `usage-bar` 5/5 (19/19), `test:coverage` 1992/0 (ejecutor).
   Gate en vivo: navegador real (Playwright), `docs/done/evidence/CI.39-live.json`
   Ejecutado por: codex gpt-6.1-sol (criterio) · Spec: docs/specs/CI.39.md
+- [x] **UI.30 — ⚡ Un solo anillo de contexto: fuera el de la cabecera de Dev.** (abierto y cerrado 2026-10-23, Carlos:
+  "esta repetido en el chat cual de los 2 vale?") UI.27.3 subió el anillo a la barra superior; el de la cabecera de Dev
+  quedó duplicado. Se quita; el fetch de Dev se queda porque llena la caché que lee la barra superior. model/source/engine
+  no se pasan: `ContextRing` nunca los muestra. Excepciones de fidelidad en `jsx-allow.json`.
+  Evidencia: `ui:fidelity:jsx` 0, typecheck 0, biome sin errores en los archivos tocados, `test:coverage` 2023/0.
+  En vivo (dashboard real, Dev con sesión abierta): un solo anillo, dentro de `header.h-11`, con dato.
+  Gate en vivo: navegador real (navegador integrado de Claude Desktop), `docs/done/evidence/UI.30-live.json`
+  Ejecutado por: Opus (Dev, sin delegación) · codex mecanico (`jsx-allow.json`) · Spec: docs/specs/UI.30.md (borrado)
 - [ ] **CI.42 — 🔍 `Mutation Shards` excede 3 h: cada shard arrastra los tests de todos los ejecutores.** (abierto 2026-10-23)
   Corrida `39921431428` (d734166): `executors` y `executors-codex` cortados a 180 min; `context-routing` 21→69 min,
   `runtime-boundaries` 45→135 min. Prueba inicial de Stryker 7→27 s y 10→28 s. Medido (cerebro): la selección por

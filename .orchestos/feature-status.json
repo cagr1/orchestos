@@ -139,6 +139,15 @@
       "closedDate": null
     },
     {
+      "id": "UI.30",
+      "sprint": "Fase 2 — Producto mínimo para entrega",
+      "block": "Abiertos — fiabilidad de los gates y documentación",
+      "delegation": "⚡",
+      "title": "Un solo anillo de contexto: fuera el de la cabecera de Dev",
+      "status": "done",
+      "closedDate": null
+    },
+    {
       "id": "CI.42",
       "sprint": "Fase 2 — Producto mínimo para entrega",
       "block": "Abiertos — fiabilidad de los gates y documentación",

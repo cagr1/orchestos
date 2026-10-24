@@ -21,12 +21,7 @@ import Markdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import { FileThumbnail } from '@/components/ui/file-thumbnail'
 import type { ChatMessageRow, TimelineStep, TimelineTurn } from '../../api/chat'
-import {
-  getSessionContext,
-  getTimeline,
-  type SessionContextResponse,
-  type TimelineResponse,
-} from '../../api/chat'
+import { getSessionContext, getTimeline, type TimelineResponse } from '../../api/chat'
 import { useStickToBottom } from '../../hooks/useStickToBottom'
 import type {
   AgentItem,
@@ -35,7 +30,6 @@ import type {
   ProjectItem,
 } from '../../types/orchestos'
 import { AgentComposer, type CliId } from '../common/AgentComposer'
-import { ContextRing } from '../common/ContextRing'
 import { ProviderLogo } from '../common/ProviderLogos'
 import { assistantCopyTarget } from './copy-target'
 
@@ -228,7 +222,6 @@ export const OrchestDevWorkspace: React.FC<OrchestDevWorkspaceProps> = ({
   // biome-ignore lint/correctness/useExhaustiveDependencies: solo al cambiar de agente.
   useEffect(() => stickToBottom(), [activeAgent?.id, stickToBottom])
   const [timeline, setTimeline] = useState<TimelineResponse | null>(null)
-  const [sessionContext, setSessionContext] = useState<SessionContextResponse | null>(null)
   const [pendingUserMessage, setPendingUserMessage] = useState<{
     content: string
     sentAt: number
@@ -263,26 +256,16 @@ export const OrchestDevWorkspace: React.FC<OrchestDevWorkspaceProps> = ({
   }, [activeAgent?.id, sessionStatus, timeline?.pending])
 
   useEffect(() => {
-    if (!activeAgent?.id) {
-      setSessionContext(null)
-      return
-    }
-    let disposed = false
+    // The fetch fills the shared cache that the top-bar ring reads.
+    if (!activeAgent?.id) return
     const controller = new AbortController()
     void getSessionContext(
       activeAgent.id,
       activeAgent.model,
       activeAgent.projectId ?? null,
       controller.signal,
-    )
-      .then((context) => {
-        if (!disposed) setSessionContext(context)
-      })
-      .catch(() => {
-        if (!disposed) setSessionContext(null)
-      })
+    ).catch(() => {})
     return () => {
-      disposed = true
       controller.abort()
     }
   }, [activeAgent?.id, activeAgent?.model, activeAgent?.projectId, timeline?.messages.length])
@@ -1039,17 +1022,6 @@ export const OrchestDevWorkspace: React.FC<OrchestDevWorkspaceProps> = ({
               <Archive className="w-3.5 h-3.5" />
             </button>
           )}
-
-          {/* Context ring (64% in Dev) */}
-          <ContextRing
-            percent={sessionContext?.pct ?? undefined}
-            model={sessionContext?.model ?? undefined}
-            usedTokens={sessionContext?.used == null ? undefined : `${sessionContext.used}`}
-            maxTokens={sessionContext?.window == null ? undefined : `${sessionContext.window}`}
-            source={sessionContext?.source}
-            engine={sessionContext?.engine}
-            className="ml-1"
-          />
         </div>
       </header>
 

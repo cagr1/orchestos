@@ -1,5 +1,15 @@
 [
   {
+    "archivo": "OrchestDevWorkspace.tsx",
+    "valor": "ContextRing",
+    "motivo": "Carlos 2026-10-23 (UI.30): UI.27.3 subió el anillo de contexto a la barra superior; el de la cabecera de Dev duplicaba el mismo dato."
+  },
+  {
+    "archivo": "OrchestDevWorkspace.tsx",
+    "valor": "ml-1",
+    "motivo": "Carlos 2026-10-23 (UI.30): UI.27.3 subió el anillo de contexto a la barra superior; el de la cabecera de Dev duplicaba el mismo dato."
+  },
+  {
     "archivo": "ShellStatusBar.tsx",
     "valor": "bg-app-muted/60",
     "motivo": "La celda vacía de cuota semanal de la plantilla se eliminó: sin dato no se renderiza un panel falso."
