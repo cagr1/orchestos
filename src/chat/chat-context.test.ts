@@ -29,7 +29,7 @@ describe('chat system context', () => {
     const context = chatProjectContext(profile)
     expect(context).toBe(
       'Stack: Bun · React · TypeScript 60%, JavaScript 30%, CSS 10%\n' +
-        'Commands: bun run test\n' +
+        'Commands: bun run test (for task executors and their checks, not this chat)\n' +
         'Conventions: Prettier configured — match existing formatting; ESLint configured — no new lint errors; EditorConfig present — respect indent and charset; TypeScript strict mode enabled; TS target: ES2022',
     )
     expect(context).not.toContain('Notes for AI agents')

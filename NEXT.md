@@ -28,16 +28,12 @@ copia su respuesta), CHAT.1 `fcebad54` (`rg` solo si está instalado), CFG.1 `a2
 (fuera `agent:`), seguridad `c5e36e45` (zod 4.6.7 + overrides; `bun audit` limpio). Tareas `design-test-*` borradas.
 2026-10-24: UI.29 integrada (merge `eca73ecb`, copiar en Dev debajo a la izquierda + carrera de `shell-look`), UI.30
 `a2800bfa` (un solo anillo de contexto en Dev). Worktree `orchestos-ui28` y rama `ui/UI.29` borrados. CI.42
-`[x]` (corrida `39983853493`: job más lento 122 min de 180).
+`[x]` (corrida `39983853493`: job más lento 122 min de 180). CHAT.2 `[x]` (prompt del chat: comandos, espera de
+tareas, checks, reintentos; Sol).
 
 ## Orden
-0. Pendiente de Carlos: GO a CHAT.2 = 4 ajustes del prompt del chat (análisis del chat verificado 2026-10-23):
-   `Commands:` (`chat-context.ts:83`) aclarar que son de los ejecutores; decir si `create_task` corre ya (Yolo) o
-   espera (Manual); nombrar los "automatic checks" (`chat.ts:121`: outputs declarados + reviewer); qué responder a
-   reintentar/cancelar/borrar (tarjeta de la tarea). Opcional: avisar outputs que se pisan entre tareas. Toca chat →
-   gates `chat-streaming` + `codex-live`. El "prompt genérico de Claude Code" (`--append-system-prompt`) y quizá el
-   `~/.claude/CLAUDE.md` del HOME real (sin verificar) van a ERP.5 con medición, no a CHAT.2.
-   Tarea `chat-4a0d93a2…` (doc de observaciones del chat) sigue `pending`: Carlos le da Run.
+0. Tarea `chat-4a0d93a2…` (doc de observaciones del chat) sigue `pending`: Carlos le da Run. El "prompt genérico de
+   Claude Code" (`--append-system-prompt`) y quizá el `~/.claude/CLAUDE.md` del HOME real van a ERP.5 con medición.
 1. Fiabilidad, con cupo de Codex (CI.11 es latencia de Codex): CI.11; CI.19 espera el próximo fallo para la fase 2.
 2. Evaluar las skills de OrchestOS (`skills/*.yaml` + `skills/pro/`): espera GO de Carlos.
 3. Ejecutor de tareas para otro CLI = entrada en `KNOWN_CLIS` + `registerTaskEngine`, solo con el CLI instalado y

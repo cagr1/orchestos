@@ -106,11 +106,13 @@ export function buildAutoTaskInstruction({
   hasProjectContext,
   mode,
   taskToolOffered = true,
+  permissionMode,
 }: {
   hasProjectContext: boolean
   mode: string | null | undefined
   /** AT.20 — el CLI de este turno recibió la herramienta `create_task`. */
   taskToolOffered?: boolean
+  permissionMode?: 'yolo' | 'manual'
 }): string {
   if (!hasProjectContext)
     return 'If the user asks you to build or modify files, say plainly that this chat has no associated project and no task can be created here.'
@@ -118,7 +120,11 @@ export function buildAutoTaskInstruction({
     return 'If the user asks you to build or modify files, say plainly that this Chat mode is read-only and they must switch to Code mode.'
   if (!taskToolOffered)
     return 'If the user asks you to build or modify files, say plainly that tasks can only be created from a Claude Code, Codex or tool-calling API chat.'
-  return 'If files must be created or modified, call `create_task`; answer everything else yourself. Pass `acceptance_criteria` only when the result is not covered by automatic checks.'
+  const execution =
+    permissionMode === 'manual'
+      ? 'Created tasks wait until the user clicks Run on the task card (Manual permissions).'
+      : 'Created tasks start automatically unless an output file already exists; then they wait for approval on the task card.'
+  return `If files must be created or modified, call \`create_task\`; answer everything else yourself. ${execution} Never claim a waiting task is running. Automatic checks verify declared outputs and run applicable task/project checks. Pass \`acceptance_criteria\` only for results those checks do not cover; an LLM reviewer runs when criteria or review gates apply. To retry, cancel or delete a task, direct the user to its task card: you have no tool for those actions and must not claim to have performed them.`
 }
 
 export function buildChatTranscript(history: { role: string; content: string }[]): string {
@@ -1306,6 +1312,7 @@ async function handleApiChat(
     hasProjectContext,
     mode: session?.mode,
     taskToolOffered,
+    permissionMode: orcheConfig.permissionMode,
   })
 
   const projectFiles = hasProjectContext

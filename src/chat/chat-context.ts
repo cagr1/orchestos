@@ -80,7 +80,10 @@ export function chatProjectContext(profile: StackProfile): string {
   ].filter(Boolean)
   const lines: string[] = []
   if (stack.length) lines.push(`Stack: ${stack.join(' · ')}`)
-  if (profile.commands.length) lines.push(`Commands: ${profile.commands.join(', ')}`)
+  if (profile.commands.length)
+    lines.push(
+      `Commands: ${profile.commands.join(', ')} (for task executors and their checks, not this chat)`,
+    )
 
   const conventions: string[] = []
   if (profile.conventions.prettier)

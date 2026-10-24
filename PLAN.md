@@ -228,6 +228,16 @@ Regla: nada se reintenta, cierra ni muestra sin evidencia medida que el usuario 
   Cierre (cerebro, `gh run view 39983853493`, success): executors-codex-engines 122, executors-routing 117,
   executors-engines 115, executors-codex-server 110, runtime-boundaries 74, context-routing 24 min; todos < 180.
   Ejecutado por: Sol (arreglo `f75e8524`) · cierre y medición: Opus
+- [x] **CHAT.2 — 🔍 El prompt del chat no explica comandos, espera de tareas, checks ni reintentos.** Cerrado 2026-10-24.
+  GO de Carlos 2026-10-24. Cuatro ajustes de texto: `Commands:` son de los ejecutores; `create_task` arranca o espera
+  (manual / archivos existentes); qué son los checks automáticos; reintentar/cancelar/borrar van por la tarjeta.
+  `Commands:` lleva "(for task executors and their checks, not this chat)"; `buildAutoTaskInstruction` recibe
+  `permissionMode` del config: Manual → espera Run en la tarjeta; Yolo → arranca salvo output existente; "never claim a
+  waiting task is running"; checks = outputs declarados + checks de tarea/proyecto, revisor LLM solo con criterios o
+  gate de revisión (cerebro lo contrastó en `harness.ts:791`); reintentar/cancelar/borrar → la tarjeta. Cerebro:
+  typecheck 0, unitarios 14/0; ejecutor `test:coverage` 2026/0.
+  Gate en vivo: `docs/done/evidence/CHAT.2-chat-live.json` (chat-streaming 27/27, codex-live 14/14)
+  Ejecutado por: codex gpt-6.1-sol (criterio), revisión Opus · Spec: docs/specs/CHAT.2.md (borrado)
 - [ ] **CI.11 — 🔍 El turno 2 de Codex en `codex-live` tardó 180 s contra 22 s del turno 1.** (abierto 2026-10-03)
   Visto una vez en la corrida completa de ui-gates (`$TMPDIR/ui-gate-73235/result.json`, paso "turn 2 is faster than
   turn 1": 22141 ms vs 180113 ms, el timeout del flujo). Sin verificar si es latencia del modelo o un cuelgue al
