@@ -3,6 +3,7 @@ import { existsSync, mkdtempSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { chat } from '../providers/codex.ts'
+import { generalChatConfigHome } from '../run/executors/codex.ts'
 
 const originalSpawn = Bun.spawn
 
@@ -25,6 +26,19 @@ function mockSpawn(calls: Array<{ cmd: string[]; env?: Record<string, string | u
 }
 
 describe('providers/codex — R.8.5.1', () => {
+  it('ubica el chat general bajo ORCHESTOS_HOME', () => {
+    const originalHome = process.env.ORCHESTOS_HOME
+    const home = mkdtempSync(join(tmpdir(), 'orchestos-codex-home-'))
+    try {
+      process.env.ORCHESTOS_HOME = home
+      expect(generalChatConfigHome()).toBe(join(home, '.orchestos', 'general-chat'))
+    } finally {
+      if (originalHome === undefined) delete process.env.ORCHESTOS_HOME
+      else process.env.ORCHESTOS_HOME = originalHome
+      rmSync(home, { recursive: true, force: true })
+    }
+  })
+
   it('lanza codex exec con CODEX_HOME aislado en el home del proyecto', async () => {
     const root = mkdtempSync(join(tmpdir(), 'orchestos-codex-provider-'))
     try {

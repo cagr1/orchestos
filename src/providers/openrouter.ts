@@ -1,6 +1,6 @@
 import { existsSync, readFileSync } from 'fs'
-import { homedir } from 'os'
 import { join } from 'path'
+import { orchestosDir } from '../config/orchestos-home.ts'
 
 export interface ChatMessage {
   role: 'user' | 'assistant' | 'system'
@@ -23,7 +23,7 @@ export interface ChatResponse {
  */
 export function tryLoadApiKey(): string | null {
   if (process.env.OPENROUTER_API_KEY) return process.env.OPENROUTER_API_KEY
-  const envPath = join(homedir(), '.orchestos', '.env')
+  const envPath = join(orchestosDir(), '.env')
   if (existsSync(envPath)) {
     for (const line of readFileSync(envPath, 'utf-8').split('\n')) {
       const m = line.match(/^OPENROUTER_API_KEY\s*=\s*(.+)$/)

@@ -1,11 +1,11 @@
 import { existsSync, readFileSync } from 'fs'
-import { homedir } from 'os'
 import { join } from 'path'
+import { orchestosDir } from '../config/orchestos-home.ts'
 import type { ChatMessage, ChatResponse } from './openrouter.ts'
 
 function loadApiKey(): string {
   if (process.env.OPENAI_API_KEY) return process.env.OPENAI_API_KEY
-  const envPath = join(homedir(), '.orchestos', '.env')
+  const envPath = join(orchestosDir(), '.env')
   if (existsSync(envPath)) {
     for (const line of readFileSync(envPath, 'utf-8').split('\n')) {
       const m = line.match(/^OPENAI_API_KEY\s*=\s*(.+)$/)

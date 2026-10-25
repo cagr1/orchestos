@@ -153,9 +153,11 @@ async function preserveCodexHome(base) {
   if (!response.ok) throw new Error(`projects returned HTTP ${response.status}`)
   const projects = await response.json()
   const prefix = `${path.resolve(os.tmpdir())}${path.sep}orchestos-ui-`
-  // General chat uses homedir(), not ORCHESTOS_HOME (codex.ts:runCodexChat).
   const homes = [
-    { source: path.join(os.homedir(), '.orchestos', 'general-chat'), name: 'general-chat' },
+    {
+      source: path.join(process.env.ORCHESTOS_HOME, '.orchestos', 'general-chat'),
+      name: 'general-chat',
+    },
   ]
   for (const project of Array.isArray(projects) ? projects : []) {
     if (typeof project.path !== 'string' || !path.resolve(project.path).startsWith(prefix)) continue

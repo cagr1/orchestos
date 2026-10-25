@@ -1,7 +1,6 @@
 import { homedir } from 'node:os'
-import { join } from 'node:path'
 import { provisionCliConfigHome } from '../run/executors/cli-registry.ts'
-import { buildCodexChatEnv } from '../run/executors/codex.ts'
+import { buildCodexChatEnv, generalChatConfigHome } from '../run/executors/codex.ts'
 import type { ChatMessage, ChatResponse } from './openrouter.ts'
 
 export async function chat(
@@ -22,7 +21,7 @@ export async function chat(
     ctx.projectRoot ?? homedir(),
     'codex',
     homedir(),
-    ctx.projectRoot ? undefined : join(homedir(), '.orchestos', 'general-chat'),
+    ctx.projectRoot ? undefined : generalChatConfigHome(),
   )
   const proc = Bun.spawn(['codex', 'exec', '--json', prompt], {
     env: buildCodexChatEnv(configHome.path),

@@ -10,11 +10,11 @@
  */
 
 import { existsSync, readFileSync } from 'fs'
-import { homedir } from 'os'
 import { join } from 'path'
 import { parse } from 'yaml'
 import { taskAgentIds } from '../router/engine-cascade.ts'
 import { KNOWN_CLIS } from '../run/executors/cli-registry.ts'
+import { orchestosDir } from './orchestos-home.ts'
 import {
   type AgentChoice,
   DEFAULT_CONFIG,
@@ -35,8 +35,6 @@ export function isAgentChoice(value: unknown): value is AgentChoice {
   return typeof value === 'string' && agentChoices().includes(value)
 }
 
-const GLOBAL_CONFIG_PATH = join(homedir(), '.orchestos', 'config.yaml')
-
 /**
  * Load and merge config from project → global → defaults.
  * Never throws — worst case returns DEFAULT_CONFIG.
@@ -44,7 +42,7 @@ const GLOBAL_CONFIG_PATH = join(homedir(), '.orchestos', 'config.yaml')
 export function loadOrcheConfig(projectPath?: string): OrcheConfig {
   const candidates: string[] = []
   if (projectPath) candidates.push(join(projectPath, 'orchestos.config.yaml'))
-  candidates.push(GLOBAL_CONFIG_PATH)
+  candidates.push(join(orchestosDir(), 'config.yaml'))
 
   for (const candidate of candidates) {
     if (!existsSync(candidate)) continue

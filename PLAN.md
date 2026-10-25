@@ -228,10 +228,17 @@ Regla: nada se reintenta, cierra ni muestra sin evidencia medida que el usuario 
   Cierre (cerebro, `gh run view 39983853493`, success): executors-codex-engines 122, executors-routing 117,
   executors-engines 115, executors-codex-server 110, runtime-boundaries 74, context-routing 24 min; todos < 180.
   Ejecutado por: Sol (arreglo `f75e8524`) · cierre y medición: Opus
-- [ ] **CI.44 — 🔍 Los gates usan el Codex del chat general del HOME real.** (abierto 2026-10-25) El chat sin proyecto
+- [x] **CI.44 — 🔍 Los gates usan el Codex del chat general del HOME real.** (abierto 2026-10-25, cerrado 2026-10-25) El chat sin proyecto
   arranca Codex con `CODEX_HOME=~/.orchestos/general-chat` del usuario aunque el gate corra con home aislado: el
   `logs_2.sqlite` real tiene threads de los gates (`docs/done/evidence/CHAT.3-r4/REPORT.md`). Mezcla sesiones de prueba
   con las de Carlos y comparte su límite de peticiones (429). Aislarlo en el home del gate.
+  Hecho: `src/config/orchestos-home.ts` (`orchestosHome()`/`orchestosDir()`, por llamada) y `generalChatConfigHome()`
+  en `codex.ts`; hermanos con el mismo defecto: `.env` de los 4 providers API, `dbPath` de setup (dashboard y CLI),
+  `config.yaml` global (`config/load.ts`) y la copia de evidencia de `ui-gate/run.mjs`. `auth.json` se sigue enlazando
+  del home real. Cerebro: tsc, lint, `test:coverage` 2083/0; `qa` sin defectos. En vivo: el hilo general del gate
+  (`01a17509…`, Codex real) no aparece en `~/.orchestos/general-chat/logs_2.sqlite` (717 filas antes y después).
+  Gate en vivo: navegador real (Playwright), chat-notices 5/5, codex-live 14/14, `docs/done/evidence/CI.44-live.json`
+  Ejecutado por: codex gpt-6-luna (mecanico), revisión qa + Opus · Spec: docs/specs/CI.44.md
 
 - [x] **CHAT.3 — 🔍 Si el modelo no responde, el chat dice por qué, en el momento.** (cerrado 2026-10-25, pedido de
   Carlos tras CI.11) Hoy el aviso de reintento de Codex (`error` con `willRetry`) se descarta, la cuota agotada

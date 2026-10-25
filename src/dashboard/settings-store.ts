@@ -1,6 +1,6 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'fs'
-import { homedir } from 'os'
 import { join } from 'path'
+import { orchestosHome } from '../config/orchestos-home.ts'
 
 /**
  * Honra `ORCHESTOS_HOME` — misma convención que `db/sqlite.ts`,
@@ -16,7 +16,7 @@ import { join } from 'path'
  * `model-catalog.ts:96-99`.
  */
 function envHome(): string {
-  return process.env.ORCHESTOS_HOME || homedir()
+  return orchestosHome()
 }
 
 function envFilePath(): string {

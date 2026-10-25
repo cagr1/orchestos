@@ -36,6 +36,7 @@ import { existsSync, readdirSync } from 'node:fs'
 import { homedir } from 'node:os'
 import { join } from 'node:path'
 import { codexAdapter } from '../../../scripts/context-adapters.ts'
+import { orchestosDir } from '../../config/orchestos-home.ts'
 import { getChatSession, getCodexChatThread, setCodexChatThread } from '../../db/chat-sessions.ts'
 import {
   codexExecMcpArgs,
@@ -515,7 +516,7 @@ export async function runCodexChat(
 
   const chatSession = getChatSession(sessionId)
   const isGeneralSession = chatSession?.project_id == null
-  const generalConfigHome = join(homedir(), '.orchestos', 'general-chat')
+  const generalConfigHome = generalChatConfigHome()
   const configHome = provisionCliConfigHome(
     projectRoot ?? cwd,
     'codex',
@@ -599,6 +600,10 @@ export async function runCodexChat(
     }
     throw error
   }
+}
+
+export function generalChatConfigHome(): string {
+  return join(orchestosDir(), 'general-chat')
 }
 
 // -- engine ---------------------------------------------------------------------

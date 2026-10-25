@@ -1,8 +1,7 @@
 import { existsSync } from 'fs'
-import { homedir } from 'os'
 import { join } from 'path'
 import { getProject } from '../../db/projects.ts'
-import { db } from '../../db/sqlite.ts'
+import { DB_PATH, db } from '../../db/sqlite.ts'
 import { listInstincts } from '../../instincts/store.ts'
 import { listSpecs } from '../../spec/store.ts'
 import { loadTasks } from '../../tasks/loader.ts'
@@ -51,7 +50,7 @@ async function handleApiSettingsGet(root: string): Promise<Response> {
 }
 
 function handleApiSetup(root: string): Response {
-  const dbPath = join(homedir(), '.orchestos', 'db.sqlite')
+  const dbPath = DB_PATH
   const env = readEnv()
   const items: SetupItem[] = []
 
@@ -195,7 +194,7 @@ async function handleApiSettingsPost(req: Request): Promise<Response> {
 
 function handleApiHealth(root: string): Response {
   const system = (() => {
-    const dbPath = join(homedir(), '.orchestos', 'db.sqlite')
+    const dbPath = DB_PATH
     const env = readEnv()
     const items: SetupItem[] = []
     const bunVersion = (globalThis as any).Bun?.version ?? ''

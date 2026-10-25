@@ -1,0 +1,122 @@
+[
+  {
+    "flujo": "chat-notices",
+    "pass": true,
+    "steps": [
+      {
+        "nombre": "normal Codex turn completes",
+        "ok": true,
+        "detalle": "{\"text\":\"CHAT3 normal response\",\"model\":\"gpt-6.1-sol via Codex CLI (effort: high)\",\"taskSuggestion\":{\"isTask\":false,\"reason\":\"\"},\"autoTask\":null,\"autoTaskSkipped\":false}"
+      },
+      {
+        "nombre": "normal Codex turn shows no failure notice",
+        "ok": true,
+        "detalle": "[]"
+      },
+      {
+        "nombre": "invalid Codex model is classified by the real server",
+        "ok": true,
+        "detalle": "{\"error\":\"Model 'modelo-inexistente-xyz' is not available for Codex CLI.\",\"notice\":{\"kind\":\"invalid-model\",\"message\":\"Model 'modelo-inexistente-xyz' is not available for Codex CLI.\",\"detail\":\"Model \\\"modelo-inexistente-xyz\\\" is not available for the codex CLI\"}}"
+      },
+      {
+        "nombre": "classified failure is visible in the chat thread",
+        "ok": true,
+        "detalle": "Model 'modelo-inexistente-xyz' is not available for Codex CLI."
+      },
+      {
+        "nombre": "original validation detail expands",
+        "ok": true,
+        "detalle": "Model \"modelo-inexistente-xyz\" is not available for the codex CLI"
+      }
+    ],
+    "notes": [],
+    "errores": [],
+    "capturas": [
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-17149/chat-notices/normal-turn-no-notice.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-17149/chat-notices/invalid-model-classified.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-17149/chat-notices/invalid-model-detail.png"
+    ]
+  },
+  {
+    "flujo": "codex-live",
+    "pass": true,
+    "steps": [
+      {
+        "nombre": "temporary project visible",
+        "ok": true,
+        "detalle": "orchestos-ui-codex-live-FCpJ72"
+      },
+      {
+        "nombre": "Codex agent available",
+        "ok": true,
+        "detalle": "Codex option"
+      },
+      {
+        "nombre": "turn 1 user message appears before completion",
+        "ok": true,
+        "detalle": "47 ms after send"
+      },
+      {
+        "nombre": "turn 1 streams multiple visible text updates",
+        "ok": true,
+        "detalle": "21 distinct non-empty samples before completion"
+      },
+      {
+        "nombre": "turn 1 working indicator stops after completion",
+        "ok": true,
+        "detalle": "0 working indicators remain"
+      },
+      {
+        "nombre": "turn 2 DOM order is assistant 1, user 2, live assistant 2 while generating",
+        "ok": true,
+        "detalle": "[\"04:48 PM\\nRemember the word MANGO-QQ0537XB. Reply i\",\"I’ll remember MANGO-QQ0537XB during this conversat\",\"04:48 PM\\nWhat word did I ask you to remember? Star\",\"MANGO-QQ0537XB. Mangoes are tropical fruits known\"]; first answer=I'll remember MANGO-QQ0537XB during this conversation. Mangoes are tropical frui"
+      },
+      {
+        "nombre": "turn 2 remembers the word from turn 1",
+        "ok": true,
+        "detalle": "MANGO-QQ0537XB. Mangoes are tropical fruits known for their sweet, juicy flesh and fragrant aroma.\n\nTheir skin can be green, yellow, orange, or red. Inside, golden flesh surrounds a large, flat seed.\n\nMangoes are enjoyed fresh, blended into smoothies, or added to salsas and desserts. Unripe mangoes lend a tart flavor to salads and pickles."
+      },
+      {
+        "nombre": "turn 2 working indicator stops after completion",
+        "ok": true,
+        "detalle": "0 working indicators remain"
+      },
+      {
+        "nombre": "both exchanges remain visible in order after turn 2",
+        "ok": true,
+        "detalle": "user bubbles=2; assistant bubbles=2; first answer=I'll remember MANGO-QQ0537XB during this conversation. Mangoes are tropical frui"
+      },
+      {
+        "nombre": "timeline DOM alternates user 1, assistant 1, user 2, assistant 2",
+        "ok": true,
+        "detalle": "[\"04:48 PM\\nRemember the word MANGO-QQ0537XB. Reply i\",\"I’ll remember MANGO-QQ0537XB during this conversat\",\"04:48 PM\\nWhat word did I ask you to remember? Star\",\"MANGO-QQ0537XB. Mangoes are tropical fruits known \"]; first answer=I'll remember MANGO-QQ0537XB during this conversation. Mangoes are tropical frui"
+      },
+      {
+        "nombre": "user bubbles contain no agent markup or response text",
+        "ok": true,
+        "detalle": "2 user bubbles checked; first answer=I'll remember MANGO-QQ0537XB during this conversation. Mangoes are tropical frui"
+      },
+      {
+        "nombre": "timeline DOM alternates user 1, assistant 1, user 2, assistant 2 after reload",
+        "ok": true,
+        "detalle": "user bubbles=2; assistant bubbles=2; first answer=I'll remember MANGO-QQ0537XB during this conversation. Mangoes are tropical frui"
+      },
+      {
+        "nombre": "turn 2 is faster than turn 1",
+        "ok": true,
+        "detalle": "turn 1=14155 ms; turn 2=4287 ms"
+      },
+      {
+        "nombre": "project chat runs are recorded with provider=codex",
+        "ok": true,
+        "detalle": "[{\"provider\":\"codex\",\"model\":\"gpt-6.1-sol\"},{\"provider\":\"codex\",\"model\":\"gpt-6.1-sol\"}]"
+      }
+    ],
+    "notes": [],
+    "errores": [],
+    "capturas": [
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-17149/codex-live/codex-live-turn-one.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-17149/codex-live/codex-live-turn-two.png"
+    ]
+  }
+]

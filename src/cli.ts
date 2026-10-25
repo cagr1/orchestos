@@ -6,6 +6,7 @@ import { diagnoseTask } from './agents/diagnose.ts'
 import { resolveDashboardPaths } from './cli-dashboard-paths.ts'
 import { registerSkillCurateImportCommands } from './cli-skill-curate.ts'
 import { registerSkillFetchCommands } from './cli-skill-fetch.ts'
+import { orchestosDir } from './config/orchestos-home.ts'
 import { buildContextMd, estimateTokens } from './context/compress.ts'
 import { refreshProjectContext } from './context/load.ts'
 import { listConflicts, resolveConflict } from './db/memory.ts'
@@ -1941,10 +1942,9 @@ program
   .command('setup')
   .description('Check all prerequisites and print setup instructions')
   .action(() => {
-    const { homedir } = require('os') as typeof import('os')
     const root = resolve('.')
-    const envPath = join(homedir(), '.orchestos', '.env')
-    const dbPath = join(homedir(), '.orchestos', 'db.sqlite')
+    const envPath = join(orchestosDir(), '.env')
+    const dbPath = join(orchestosDir(), 'db.sqlite')
 
     // ── helpers ────────────────────────────────────────────────────────────────
     const GREEN = '\x1b[32m'

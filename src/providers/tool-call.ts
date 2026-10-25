@@ -15,8 +15,8 @@
  */
 
 import { existsSync, readFileSync } from 'fs'
-import { homedir } from 'os'
 import { join } from 'path'
+import { orchestosDir } from '../config/orchestos-home.ts'
 import { estimateTokens } from '../context/compress.ts'
 import { catalogSupportsTools, DEFAULT_MAX_OUTPUT_TOKENS } from '../router/model-catalog.ts'
 import { parseAffordableTokens } from './openrouter.ts'
@@ -78,7 +78,7 @@ export interface ToolCallResponse {
 
 function loadEnvKey(envVar: string): string | undefined {
   if (process.env[envVar]) return process.env[envVar]
-  const envPath = join(homedir(), '.orchestos', '.env')
+  const envPath = join(orchestosDir(), '.env')
   if (existsSync(envPath)) {
     for (const line of readFileSync(envPath, 'utf-8').split('\n')) {
       const m = line.match(new RegExp(`^${envVar}\\s*=\\s*(.+)$`))
