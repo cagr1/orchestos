@@ -70,9 +70,7 @@
       }
     ],
     "notes": [],
-    "errores": [
-      "HTTP 502: http://127.0.0.1:56217/api/chat"
-    ],
+    "errores": ["HTTP 502: http://127.0.0.1:56217/api/chat"],
     "capturas": [
       "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-65894/codex-live/codex-live-turn-one.png",
       "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-65894/codex-live/codex-live-turn-two.png"

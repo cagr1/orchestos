@@ -1,0 +1,60 @@
+[
+  {
+    "flujo": "chat-timeout",
+    "pass": true,
+    "steps": [
+      {
+        "nombre": "live no-response counter reaches two seconds",
+        "ok": true,
+        "detalle": "Request sent to gpt-6.1-sol — no response yet, no error reported by Codex 2 s"
+      },
+      {
+        "nombre": "real Codex turn times out with a classified failure",
+        "ok": true,
+        "detalle": "{\"error\":\"No response from gpt-6.1-sol in 4 s. Codex reported no error.\",\"notice\":{\"kind\":\"timeout\",\"message\":\"No response from gpt-6.1-sol in 4 s. Codex reported no error.\",\"detail\":\"Codex timed out after 4000ms\"}}"
+      },
+      {
+        "nombre": "timeout message and Details remain visible in the turn",
+        "ok": true,
+        "detalle": "No response from gpt-6.1-sol in 4 s. Codex reported no error.\nDetails"
+      },
+      {
+        "nombre": "notice without reasoning has no Thought heading",
+        "ok": true,
+        "detalle": "No response from gpt-6.1-sol in 4 s. Codex reported no error.\nDetails"
+      },
+      {
+        "nombre": "failed user message remains visible",
+        "ok": true,
+        "detalle": "Write a very detailed 20000 word history of mathematics. Think carefully for at least ten seconds before answering; then write the complete essay."
+      },
+      {
+        "nombre": "raw CLI timeout is expandable",
+        "ok": true,
+        "detalle": "Codex timed out after 4000ms"
+      },
+      {
+        "nombre": "reload restores failed user message and classified timeout",
+        "ok": true,
+        "detalle": "No response from gpt-6.1-sol in 4 s. Codex reported no error.\nDetails"
+      },
+      {
+        "nombre": "reload keeps the notice without a Thought heading",
+        "ok": true,
+        "detalle": "No response from gpt-6.1-sol in 4 s. Codex reported no error.\nDetails"
+      },
+      {
+        "nombre": "database stores exactly one timeout notice for the turn",
+        "ok": true,
+        "detalle": "[{\"turn_id\":\"25af5eb4-36a4-4044-974a-39cc2f82f3ea\",\"n\":1}]"
+      }
+    ],
+    "notes": [],
+    "errores": [],
+    "capturas": [
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-5975/chat-timeout/timeout-waiting.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-5975/chat-timeout/timeout-failed.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-5975/chat-timeout/timeout-reloaded.png"
+    ]
+  }
+]

@@ -1046,6 +1046,38 @@ export const FUTURE_MIGRATIONS: readonly SchemaMigrationStep[] = [
         throw new Error('Migration 31 did not add runs commit_base_sha')
     },
   },
+  {
+    version: 32,
+    name: 'chat-turn-notices',
+    precondition: () => {},
+    apply: (database) => {
+      database.exec(`
+        CREATE TABLE chat_turn_steps_notices (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          session_id TEXT NOT NULL REFERENCES chat_sessions(id) ON DELETE CASCADE,
+          turn_id TEXT NOT NULL REFERENCES chat_turns(id) ON DELETE CASCADE,
+          seq INTEGER NOT NULL,
+          type TEXT NOT NULL CHECK(type IN ('tool_use', 'text', 'step_finish', 'reasoning', 'notice')),
+          tool TEXT, target TEXT, added INTEGER, removed INTEGER, exit_code INTEGER,
+          ok INTEGER CHECK(ok IS NULL OR ok IN (0, 1)), output TEXT, detail TEXT,
+          duration_ms INTEGER, created_at TEXT NOT NULL
+        );
+        INSERT INTO chat_turn_steps_notices SELECT * FROM chat_turn_steps;
+        DROP TABLE chat_turn_steps;
+        ALTER TABLE chat_turn_steps_notices RENAME TO chat_turn_steps;
+        CREATE INDEX idx_chat_turn_steps_session_seq ON chat_turn_steps(session_id, turn_id, seq, id);
+      `)
+    },
+    postcondition: (database) => {
+      const row = database
+        .query<{ sql: string }, []>("SELECT sql FROM sqlite_master WHERE name = 'chat_turn_steps'")
+        .get()
+      if (!row?.sql.includes("'notice'"))
+        throw new Error('Migration 32 did not enable chat notices')
+      if (database.query('PRAGMA foreign_key_check').all().length)
+        throw new Error('Migration 32 violated foreign keys')
+    },
+  },
 ]
 
 function appliedVersions(database: Database): Set<number> {
@@ -1076,7 +1108,11 @@ export function applyMigrationSteps(
     // The schema change and its evidence must commit together. Bun rolls the
     // transaction back if any contract check or the evidence insert throws.
     const rebuildsForeignKeyParents =
-      step.version === 10 || step.version === 11 || step.version === 14 || step.version === 30
+      step.version === 10 ||
+      step.version === 11 ||
+      step.version === 14 ||
+      step.version === 30 ||
+      step.version === 32
     if (rebuildsForeignKeyParents) database.exec('PRAGMA foreign_keys = OFF')
     try {
       const applyStep = database.transaction(() => {

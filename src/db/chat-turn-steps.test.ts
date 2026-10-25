@@ -100,3 +100,41 @@ describe('chat-turn-steps', () => {
     ).toEqual({ count: 1 })
   })
 })
+
+describe('CHAT.3 notice persistence', () => {
+  it('roundtrips a typed notice and preserves existing rows', () => {
+    const session = createChatSession({ agent: 'codex' })
+    sessionIds.push(session.id)
+    const claimed = beginTurn({
+      sessionId: session.id,
+      projectId: null,
+      requestKey: `notice-${session.id}`,
+      inputFingerprint: 'notice',
+      owner: 'test',
+    })
+    if (claimed.kind !== 'claimed') throw new Error('turn not claimed')
+    insertChatTurnStep({
+      sessionId: session.id,
+      turnId: claimed.turn.id,
+      seq: 0,
+      type: 'reasoning',
+      detail: 'before',
+    })
+    const notice = {
+      kind: 'quota' as const,
+      message: 'Codex usage limit reached.',
+      detail: 'raw quota failure',
+    }
+    insertChatTurnStep({
+      sessionId: session.id,
+      turnId: claimed.turn.id,
+      seq: 1,
+      type: 'notice',
+      notice,
+    })
+    const rows = listChatTurnSteps(session.id)
+    expect(rows[0]?.detail).toBe('before')
+    expect(rows[1]?.type).toBe('notice')
+    expect(JSON.parse(rows[1]!.detail!)).toEqual(notice)
+  })
+})

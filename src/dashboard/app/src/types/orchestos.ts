@@ -1,3 +1,4 @@
+import type { CliNotice } from '../../../../run/executors/cli-failure'
 export type ApprovalMode = 'supervised' | 'auto-edit' | 'full'
 
 export type TaskStatus = 'pending' | 'running' | 'done' | 'failed' | 'failed_permanent' | 'blocked'
@@ -190,6 +191,7 @@ export interface ChatMessage {
   content: string
   timestamp: string
   reasoning?: string[]
+  notices?: CliNotice[]
   thoughtMs?: number
   toolCalls?: ToolExecution[]
   attachments?: ChatAttachment[]

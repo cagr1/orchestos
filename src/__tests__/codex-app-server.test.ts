@@ -1,10 +1,14 @@
+import { Database } from 'bun:sqlite'
 import { describe, expect, spyOn, test } from 'bun:test'
 import { EventEmitter } from 'node:events'
 import { mkdtempSync, readFileSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { PassThrough } from 'node:stream'
+import type { TimelineTurn } from '../dashboard/app/src/api/chat.ts'
+import { livePhase } from '../dashboard/app/src/components/thread/thinking.ts'
 import { codexMcpThreadConfig, taskProposalFromStep } from '../mcp/adapters.ts'
+import { CliFailure } from '../run/executors/cli-failure.ts'
 import {
   CodexAppServer,
   type CodexAppServerThreadStore,
@@ -757,3 +761,390 @@ describe('Codex app-server', () => {
     server.kill()
   })
 })
+
+for (const scenario of ['retry', 'quota', 'quota-future', 'timeout', 'normal'] as const) {
+  test(`CHAT.3 ${scenario}: notices arrive before completion`, async () => {
+    const resetAt = new Date()
+    resetAt.setHours(23, 59, 0, 0)
+    if (scenario === 'quota-future') resetAt.setDate(resetAt.getDate() + 2)
+    const steps: import('../run/executors/step-event.ts').ExecutorStepEvent[] = []
+    const server = new CodexAppServer({
+      binary: 'fake',
+      env: {},
+      store: store().api,
+      spawnProcess: () =>
+        fakeProcess((request, stdout) => {
+          if (request.method === 'initialize') reply(stdout, request, {})
+          if (request.method === 'thread/start') reply(stdout, request, { thread: { id: 't' } })
+          if (request.method === 'turn/interrupt') reply(stdout, request, {})
+          if (request.method !== 'turn/start') return
+          reply(stdout, request, { turn: { id: 'u' } })
+          queueMicrotask(() => {
+            const send = (method: string, params: any) =>
+              stdout.write(`${JSON.stringify({ method, params })}\n`)
+            send('turn/started', { threadId: 't', turn: { id: 'u' } })
+            if (scenario === 'retry')
+              send('error', {
+                threadId: 't',
+                turnId: 'u',
+                willRetry: true,
+                error: { message: 'stream disconnected — reconnecting 1/5' },
+              })
+            if (scenario === 'quota' || scenario === 'quota-future')
+              send('account/rateLimits/updated', {
+                rateLimits: {
+                  primary: { usedPercent: 100, resetsAt: resetAt.getTime() / 1000 },
+                  secondary: { usedPercent: 30 },
+                },
+              })
+            if (scenario !== 'timeout')
+              setTimeout(() => {
+                if (scenario === 'normal')
+                  send('item/agentMessage/delta', { threadId: 't', turnId: 'u', delta: 'ok' })
+                send('turn/completed', { threadId: 't', turn: { id: 'u', status: 'completed' } })
+              }, 5)
+          })
+        }),
+    })
+    try {
+      const pending = server.turn({
+        sessionId: 's',
+        cwd: '/p',
+        model: 'gpt-test',
+        systemPrompt: '',
+        message: 'hello',
+        timeoutMs: 25,
+        onStep: (step) => steps.push(step),
+      })
+      if (scenario === 'timeout')
+        await expect(pending).rejects.toThrow('Codex timed out after 25ms')
+      else await pending
+      expect(steps.find((step) => step.notice?.kind === 'no-response')?.notice?.message).toContain(
+        'gpt-test',
+      )
+      const notices = steps.flatMap((step) =>
+        step.notice && step.notice.kind !== 'no-response' ? [step.notice] : [],
+      )
+      if (scenario === 'normal') expect(notices).toEqual([])
+      if (scenario === 'retry')
+        expect(notices[0]).toMatchObject({
+          kind: 'retrying',
+          message: 'stream disconnected — reconnecting 1/5',
+        })
+      if (scenario === 'quota' || scenario === 'quota-future')
+        expect(notices[0]?.message).toBe(
+          `Codex usage limit reached — resets at ${scenario === 'quota-future' ? `${resetAt.toLocaleDateString('en-US')} ` : ''}23:59`,
+        )
+      if (scenario === 'timeout')
+        expect(notices[0]).toMatchObject({
+          kind: 'timeout',
+          message: 'No response from gpt-test in 0.025 s. Codex reported no error.',
+        })
+    } finally {
+      server.kill()
+    }
+  })
+}
+
+for (const scenario of ['system-error', 'no-auth', 'healthy', 'unknown-enums'] as const) {
+  test(`CHAT.3 status diagnostics ${scenario}: safe values and truthful timeout`, async () => {
+    const steps: import('../run/executors/step-event.ts').ExecutorStepEvent[] = []
+    const logs: string[] = []
+    const logger = spyOn(console, 'error').mockImplementation((line) => logs.push(String(line)))
+    const server = new CodexAppServer({
+      binary: 'fake',
+      env: {},
+      store: store().api,
+      spawnProcess: () =>
+        fakeProcess((request, stdout) => {
+          if (request.method === 'initialize') reply(stdout, request, {})
+          if (request.method === 'thread/start') reply(stdout, request, { thread: { id: 't' } })
+          if (request.method === 'turn/interrupt') reply(stdout, request, {})
+          if (request.method !== 'turn/start') return
+          reply(stdout, request, { turn: { id: 'u' } })
+          queueMicrotask(() => {
+            const send = (method: string, params: any) =>
+              stdout.write(`${JSON.stringify({ method, params })}\n`)
+            send('turn/started', { threadId: 't', turn: { id: 'u' } })
+            send('thread/status/changed', {
+              threadId: 't',
+              status: {
+                type: scenario === 'system-error' ? 'systemError' : 'active',
+                activeFlags: ['waitingOnApproval', 'waitingOnUserInput', 'secret-flag'],
+              },
+            })
+            send('account/updated', {
+              authMode:
+                scenario === 'no-auth'
+                  ? null
+                  : scenario === 'unknown-enums'
+                    ? 'secret-auth'
+                    : 'chatgpt',
+              planType: scenario === 'unknown-enums' ? 'secret-plan' : 'pro',
+              email: 'secret-email',
+              accessToken: 'secret-token',
+            })
+          })
+        }),
+    })
+    try {
+      let failure: CliFailure | undefined
+      try {
+        await server.turn({
+          sessionId: 's',
+          cwd: '/p',
+          systemPrompt: '',
+          message: 'secret-prompt',
+          model: 'gpt-test',
+          timeoutMs: 25,
+          onStep: (step) => steps.push(step),
+        })
+      } catch (error) {
+        expect(error).toBeInstanceOf(CliFailure)
+        failure = error as CliFailure
+      }
+      expect(failure).toBeDefined()
+      const notices = steps.flatMap((step) =>
+        step.notice && step.notice.kind !== 'no-response' ? [step.notice] : [],
+      )
+      if (scenario === 'system-error' || scenario === 'no-auth') {
+        expect(notices[0]?.kind).toBe(scenario === 'system-error' ? 'unknown' : 'auth')
+        expect(failure?.notice.message).toBe(notices[0]?.message)
+        expect(failure?.notice.message).not.toContain('Codex reported no error')
+      } else {
+        expect(notices).toHaveLength(1)
+        expect(failure?.notice.message).toBe(
+          'No response from gpt-test in 0.025 s. Codex reported no error.',
+        )
+      }
+      const diagnostics = logs
+        .filter((line) => line.includes('[codex-turn]'))
+        .map((line) => JSON.parse(line.slice('[codex-turn] '.length)))
+      expect(diagnostics.find((entry) => entry.event === 'thread/status/changed')?.status).toEqual({
+        type: scenario === 'system-error' ? 'systemError' : 'active',
+        activeFlags: ['waitingOnApproval', 'waitingOnUserInput'],
+      })
+      expect(diagnostics.find((entry) => entry.event === 'account/updated')).toMatchObject({
+        fields: ['authMode', 'planType', 'email', 'accessToken'],
+        authMode:
+          scenario === 'no-auth' ? null : scenario === 'unknown-enums' ? 'unknown' : 'chatgpt',
+        planType: scenario === 'unknown-enums' ? 'unknown' : 'pro',
+      })
+      expect(logs.join('\n')).not.toContain('secret-')
+      expect(JSON.stringify(notices)).not.toContain('secret-')
+    } finally {
+      server.kill()
+      logger.mockRestore()
+    }
+  })
+}
+
+test('CHAT.3 CI.11 userMessage items preserve the live waiting phase and no-response timeout', async () => {
+  const steps: import('../run/executors/step-event.ts').ExecutorStepEvent[] = []
+  const originalSetTimeout = globalThis.setTimeout
+  const timer = spyOn(globalThis, 'setTimeout').mockImplementation(((
+    handler: TimerHandler,
+    delay?: number,
+    ...args: any[]
+  ) => originalSetTimeout(handler, delay === 120_000 ? 25 : delay, ...args)) as typeof setTimeout)
+  const server = new CodexAppServer({
+    binary: 'fake',
+    env: {},
+    store: store().api,
+    spawnProcess: () =>
+      fakeProcess((request, stdout) => {
+        if (request.method === 'initialize') reply(stdout, request, {})
+        if (request.method === 'thread/start') reply(stdout, request, { thread: { id: 't' } })
+        if (request.method === 'turn/interrupt') reply(stdout, request, {})
+        if (request.method !== 'turn/start') return
+        reply(stdout, request, { turn: { id: 'u' } })
+        queueMicrotask(() => {
+          const send = (method: string, params: any) =>
+            stdout.write(`${JSON.stringify({ method, params })}\n`)
+          send('turn/started', { threadId: 't', turn: { id: 'u' } })
+          const params = {
+            threadId: 't',
+            turnId: 'u',
+            item: { id: 'user-1', type: 'userMessage', content: [{ type: 'text', text: 'hello' }] },
+          }
+          send('item/started', params)
+          send('item/completed', params)
+        })
+      }),
+  })
+  try {
+    const result = server
+      .turn({
+        sessionId: 's',
+        cwd: '/p',
+        model: 'gpt-test',
+        systemPrompt: '',
+        message: 'hello',
+        timeoutMs: 120_000,
+        onStep: (event) => {
+          if (event.notice?.kind === 'timeout') {
+            const turn: TimelineTurn = {
+              id: 'turn',
+              status: 'pending',
+              error: null,
+              createdAt: '2026-10-25T10:00:00Z',
+              updatedAt: '2026-10-25T10:00:00Z',
+              steps: steps.map((step, seq) => ({
+                seq,
+                type: step.type,
+                notice: step.notice,
+                tool: null,
+                target: null,
+                added: null,
+                removed: null,
+                exitCode: null,
+                ok: null,
+                output: null,
+                detail: step.detail ?? null,
+                durationMs: null,
+                createdAt: '2026-10-25T10:00:00Z',
+              })),
+            }
+            expect(livePhase(turn, false)).toBe(
+              'Request sent to gpt-test — no response yet, no error reported by Codex',
+            )
+          }
+          steps.push(event)
+        },
+      })
+      .catch((error) => error)
+    const error = await result
+    expect(error).toBeInstanceOf(CliFailure)
+    expect(error.notice).toEqual({
+      kind: 'timeout',
+      message: 'No response from gpt-test in 120 s. Codex reported no error.',
+      detail: 'Codex timed out after 120000ms',
+    })
+    expect(steps.map((step) => step.type)).toEqual(['notice', 'notice'])
+    expect(steps.some((step) => step.type === 'reasoning')).toBe(false)
+  } finally {
+    timer.mockRestore()
+    server.kill()
+  }
+})
+
+for (const scenario of [
+  '429',
+  '503',
+  'other-thread',
+  'old-turn',
+  'old-row',
+  'missing',
+  'wrong-schema',
+  'responded',
+] as const) {
+  test(`CHAT.3 native Codex retry log: ${scenario}`, async () => {
+    const home = mkdtempSync(join(tmpdir(), 'chat3-native-log-'))
+    const steps: import('../run/executors/step-event.ts').ExecutorStepEvent[] = []
+    const logs = spyOn(console, 'error').mockImplementation(() => {})
+    const interval = globalThis.setInterval
+    const polling = spyOn(globalThis, 'setInterval').mockImplementation(((
+      fn: TimerHandler,
+      delay?: number,
+      ...args: any[]
+    ) => interval(fn, delay === 2_000 ? 5 : delay, ...args)) as typeof setInterval)
+    let fixture: Database | undefined
+    if (scenario !== 'missing') {
+      fixture = new Database(join(home, 'logs_2.sqlite'))
+      fixture.exec(
+        scenario === 'wrong-schema'
+          ? 'CREATE TABLE logs (body TEXT)'
+          : `CREATE TABLE logs (
+        id INTEGER PRIMARY KEY AUTOINCREMENT, ts INTEGER NOT NULL, ts_nanos INTEGER NOT NULL,
+        level TEXT NOT NULL, target TEXT NOT NULL, feedback_log_body TEXT, module_path TEXT,
+        file TEXT, line INTEGER, thread_id TEXT, process_uuid TEXT, estimated_bytes INTEGER NOT NULL DEFAULT 0
+      ); CREATE INDEX idx_logs_thread_id_ts ON logs(thread_id, ts)`,
+      )
+    }
+    const status = scenario === '503' ? '503 Service Unavailable' : '429 Too Many Requests'
+    const server = new CodexAppServer({
+      binary: 'fake',
+      env: { CODEX_HOME: home },
+      store: store().api,
+      spawnProcess: () =>
+        fakeProcess((request, stdout) => {
+          if (request.method === 'initialize' || request.method === 'turn/interrupt')
+            reply(stdout, request, {})
+          if (request.method === 'thread/start')
+            reply(stdout, request, { thread: { id: 'native-thread' } })
+          if (request.method !== 'turn/start') return
+          reply(stdout, request, { turn: { id: 'native-turn' } })
+          if (fixture && scenario !== 'wrong-schema') {
+            for (const attempt of [1, 1, 2])
+              fixture
+                .query(
+                  "INSERT INTO logs (ts,ts_nanos,level,target,feedback_log_body,thread_id) VALUES (?,0,'WARN','codex_core',?,?)",
+                )
+                .run(
+                  Math.floor(Date.now() / 1000) - (scenario === 'old-row' ? 10 : 0),
+                  `session_loop{private_context=SECRET}: stream disconnected - retrying sampling request (${attempt}/5 in 69.999812541s)... turn_id=${scenario === 'old-turn' ? 'previous-turn' : 'native-turn'} retries=${attempt} max_retries=5 sampling_error=exceeded retry limit, last status: ${status}`,
+                  scenario === 'other-thread' ? 'another-thread' : 'native-thread',
+                )
+          }
+          if (scenario === 'responded')
+            stdout.write(
+              `${JSON.stringify({ method: 'item/agentMessage/delta', params: { threadId: 'native-thread', turnId: 'native-turn', delta: 'hello' } })}\n`,
+            )
+        }),
+    })
+    try {
+      const error = await server
+        .turn({
+          sessionId: 's',
+          cwd: '/p',
+          model: 'gpt-test',
+          systemPrompt: '',
+          message: 'hello',
+          timeoutMs: 45,
+          onStep: (step) => steps.push(step),
+        })
+        .catch((error) => error)
+      expect(error).toBeInstanceOf(CliFailure)
+      const retries = steps.flatMap((step) =>
+        step.notice?.kind === 'retrying' ? [step.notice] : [],
+      )
+      if (scenario === '429' || scenario === '503') {
+        expect(retries.map((notice) => notice.message)).toEqual([
+          `Codex got ${status} — retry 1/5 in 70 s`,
+          `Codex got ${status} — retry 2/5 in 70 s`,
+        ])
+        expect(retries[0]?.detail).toBe(
+          scenario === '429'
+            ? 'Codex request rate limit reached.'
+            : 'Codex model provider is overloaded.',
+        )
+        expect(error.notice.message).toBe(
+          `No response from gpt-test in 0.045 s — Codex got ${status} and was waiting to retry (2/5 in 70 s).`,
+        )
+        expect(JSON.stringify(steps)).not.toContain('SECRET')
+        expect(logs.mock.calls.some(([line]) => String(line).includes('nativeLogReadErrors'))).toBe(
+          false,
+        )
+      } else {
+        expect(retries).toEqual([])
+        expect(error.notice.kind).toBe('timeout')
+        expect(error.notice.message).not.toContain('429')
+        if (scenario === 'missing' || scenario === 'wrong-schema')
+          expect(
+            logs.mock.calls.some(([line]) => String(line).includes('nativeLogReadErrors')),
+          ).toBe(true)
+      }
+      expect(steps.filter((step) => step.notice?.kind === 'timeout')).toHaveLength(1)
+      // Polling must stop when the turn ends, including failed reads.
+      const count = steps.length
+      await Bun.sleep(15)
+      expect(steps).toHaveLength(count)
+    } finally {
+      server.kill()
+      polling.mockRestore()
+      logs.mockRestore()
+      fixture?.close()
+      rmSync(home, { recursive: true, force: true })
+    }
+  })
+}

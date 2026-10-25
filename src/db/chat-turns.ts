@@ -176,12 +176,23 @@ interface CommitTurnFailureInput {
   turnId: string
   owner: string
   error: string
+  userContent?: string
+  model?: string
   run?: Parameters<typeof import('./runs.ts').insertRun>[0]
 }
 
 export function commitTurnFailure(input: CommitTurnFailureInput): void {
   const commit = db.transaction(() => {
-    requireTurnOwner(input.turnId, input.owner)
+    const turn = requireTurnOwner(input.turnId, input.owner)
+    if (input.userContent !== undefined) {
+      appendChatExchange({
+        sessionId: turn.session_id,
+        turnId: input.turnId,
+        userContent: input.userContent,
+        assistantContent: '',
+        model: input.model,
+      })
+    }
     const runId = input.run ? insertRun(input.run) : null
     const changes = db.run(
       `UPDATE chat_turns

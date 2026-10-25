@@ -427,3 +427,25 @@ test('sendMessage forwards the selected task approval mode', async () => {
     globalThis.fetch = originalFetch
   }
 })
+
+test('CHAT.3 failed send preserves classified message and expandable CLI detail', async () => {
+  const originalFetch = globalThis.fetch
+  const notice = {
+    kind: 'quota',
+    message: 'Codex usage limit reached.',
+    detail: 'original CLI text',
+  }
+  globalThis.fetch = (async () =>
+    new Response(JSON.stringify({ error: notice.message, notice }), {
+      status: 502,
+    })) as unknown as typeof fetch
+  try {
+    const error = await sendMessage({ sessionId: 's', projectId: null, message: 'hello' }).catch(
+      (error) => error,
+    )
+    expect(error.message).toBe(notice.message)
+    expect(error.notice).toEqual(notice)
+  } finally {
+    globalThis.fetch = originalFetch
+  }
+})

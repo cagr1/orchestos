@@ -39,6 +39,30 @@ describe('R.5 — durable chat turns', () => {
     )
   })
 
+  it('persists a failed CLI exchange atomically and fences duplicate finalization', async () => {
+    const result = await runIsolated(`
+      const { runMigrations } = await import('./src/db/migrate.ts')
+      const { createChatSession, listChatMessages } = await import('./src/db/chat-sessions.ts')
+      const { beginTurn, commitTurnFailure, getTurn } = await import('./src/db/chat-turns.ts')
+      runMigrations()
+      const session = createChatSession({ agent: 'codex' })
+      const claimed = beginTurn({ sessionId: session.id, projectId: null, requestKey: 'timeout', inputFingerprint: 'prompt', owner: 'worker' })
+      const failure = { turnId: claimed.turn.id, owner: 'worker', error: 'No response', userContent: 'Long question', model: 'test-model' }
+      commitTurnFailure(failure)
+      let duplicateRejected = false
+      try { commitTurnFailure(failure) } catch { duplicateRejected = true }
+      console.log(JSON.stringify({ messages: listChatMessages(session.id), status: getTurn(claimed.turn.id).status, duplicateRejected }))
+    `)
+    expect(result.status).toBe('failed')
+    expect(result.duplicateRejected).toBe(true)
+    const messages = result.messages as { role: string; content: string; turn_id: string }[]
+    expect(messages.map(({ role, content }) => ({ role, content }))).toEqual([
+      { role: 'user', content: 'Long question' },
+      { role: 'assistant', content: '' },
+    ])
+    expect(messages[0]?.turn_id).toBe(messages[1]?.turn_id)
+  })
+
   it('serializes different request keys across independent processes', async () => {
     const result = await runIsolated(`
       const { runMigrations } = await import('./src/db/migrate.ts')

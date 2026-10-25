@@ -228,11 +228,27 @@ Regla: nada se reintenta, cierra ni muestra sin evidencia medida que el usuario 
   Cierre (cerebro, `gh run view 39983853493`, success): executors-codex-engines 122, executors-routing 117,
   executors-engines 115, executors-codex-server 110, runtime-boundaries 74, context-routing 24 min; todos < 180.
   Ejecutado por: Sol (arreglo `f75e8524`) · cierre y medición: Opus
-- [ ] **CHAT.3 — 🔍 Si el modelo no responde, el chat dice por qué, en el momento.** (abierto 2026-10-25, pedido de
+- [ ] **CI.44 — 🔍 Los gates usan el Codex del chat general del HOME real.** (abierto 2026-10-25) El chat sin proyecto
+  arranca Codex con `CODEX_HOME=~/.orchestos/general-chat` del usuario aunque el gate corra con home aislado: el
+  `logs_2.sqlite` real tiene threads de los gates (`docs/done/evidence/CHAT.3-r4/REPORT.md`). Mezcla sesiones de prueba
+  con las de Carlos y comparte su límite de peticiones (429). Aislarlo en el home del gate.
+
+- [x] **CHAT.3 — 🔍 Si el modelo no responde, el chat dice por qué, en el momento.** (cerrado 2026-10-25, pedido de
   Carlos tras CI.11) Hoy el aviso de reintento de Codex (`error` con `willRetry`) se descarta, la cuota agotada
   (`account/rateLimits/updated`) no se muestra, no hay clasificación de errores (cuota, auth, red, sobrecarga, modelo
   inválido) y al timeout el hilo enseña el texto crudo `Codex CLI: Codex timed out after 120000ms`. Capa común de
-  avisos + adaptador por CLI (Codex, Claude). Spec: docs/specs/CHAT.3.md
+  avisos + adaptador por CLI (Codex, Claude).
+  Hecho: paso `notice` tipado (`src/run/executors/cli-failure.ts`, clasificador + mapa directo de errores de Claude
+  `api_retry`/`assistant.error`); Codex convierte `error` con `willRetry` y cuota al 100 % en avisos, y mientras calla
+  lee su log nativo `logs_2.sqlite` (solo lectura) para decir "Codex got 429 Too Many Requests — retry 1/5 in 70 s":
+  la causa medida de los silencios de CI.11 era un 429 con reintento a 70–245 s que Codex no emite por JSON-RPC. En el
+  hilo: línea viva "Request sent to <modelo> — no response yet…" con contador; el fallo queda visible con mensaje
+  clasificado y "Details", también tras recargar. Migración 32 (`chat_turn_steps.type` admite `notice`). Timeout del
+  turno configurable solo para gates (`ORCHESTOS_CHAT_TURN_TIMEOUT_MS`); flujos nuevos `chat-timeout` y
+  `chat-notices`. 5 rondas: la revisión del cerebro cazó que el mensaje del usuario contaba como respuesta, que el
+  aviso no llegaba a pantalla y que "Codex reported no error" mentía. Cerebro: tsc, lint, `test:coverage` 2079/0.
+  Gate en vivo: navegador real (Playwright), chat-streaming 27/27, codex-live 14/14, chat-notices 5/5, chat-timeout 9/9, `docs/done/evidence/CHAT.3-live.json`
+  Ejecutado por: codex gpt-6.1-sol (criterio), revisión Opus · Spec: docs/specs/CHAT.3.md
 
 - [x] **CHAT.2 — 🔍 El prompt del chat no explica comandos, espera de tareas, checks ni reintentos.** Cerrado 2026-10-24.
   GO de Carlos 2026-10-24. Cuatro ajustes de texto: `Commands:` son de los ejecutores; `create_task` arranca o espera

@@ -114,3 +114,35 @@ describe('thoughtMs', () => {
     expect(thoughtMs(turn([step(1)], { updatedAt: '2026-10-13 09:00:00' }))).toBeUndefined()
   })
 })
+
+test('CHAT.3 silence reports only known facts without duplicating the elapsed counter', () => {
+  const waiting = step(0, {
+    type: 'notice',
+    notice: {
+      kind: 'no-response',
+      message: 'Request sent to gpt-test',
+      detail: 'no response yet, no error reported by Codex',
+    },
+  })
+  expect(livePhase(turn([waiting]), false)).toBe(
+    'Request sent to gpt-test — no response yet, no error reported by Codex',
+  )
+  expect(livePhase(turn([waiting, step(1)]), false)).toBe('Thinking')
+  expect(livePhase(turn([waiting]), true)).toBe('Writing')
+})
+
+test('CHAT.3 never says no error reported after a retry or quota notice', () => {
+  const waiting = step(0, {
+    type: 'notice',
+    notice: {
+      kind: 'no-response',
+      message: 'Request sent to model',
+      detail: 'no response yet, no error reported by Codex',
+    },
+  })
+  const quota = step(1, {
+    type: 'notice',
+    notice: { kind: 'quota', message: 'Usage limit reached' },
+  })
+  expect(livePhase(turn([waiting, quota]), false)).toBe('Thinking')
+})

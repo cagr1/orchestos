@@ -4,6 +4,7 @@ import type React from 'react'
 import { useEffect, useRef, useState } from 'react'
 import { ChatMessage } from '@/components/ui/chat-message'
 import { FileThumbnail } from '@/components/ui/file-thumbnail'
+import type { CliNotice } from '../../../../../run/executors/cli-failure'
 import {
   type CliModelCatalog,
   getCliModels,
@@ -84,6 +85,7 @@ export const OrchestChatView: React.FC<OrchestChatViewProps> = ({
   const [taskActionErrors, setTaskActionErrors] = useState<Record<string, string>>({})
   const [reportActionErrors, setReportActionErrors] = useState<Record<string, string>>({})
   const [busyReportActions, setBusyReportActions] = useState<Record<string, boolean>>({})
+  const [sendNotice, setSendNotice] = useState<CliNotice | null>(null)
   const [sendError, setSendError] = useState<string | null>(null)
   // ERP.4.14: `undefined` = la config aún se lee; `null` = leída y sin orquestador.
   const [orchestrator, setOrchestrator] = useState<
@@ -293,6 +295,7 @@ export const OrchestChatView: React.FC<OrchestChatViewProps> = ({
     if (sendLock.current) return false
     sendLock.current = true
     setSendError(null)
+    setSendNotice(null)
     if (sessionId) noteLocalSend(sessionId)
     setIsWorking(true)
     stickToBottom()
@@ -301,6 +304,7 @@ export const OrchestChatView: React.FC<OrchestChatViewProps> = ({
       return accepted !== false
     } catch (error) {
       setSendError(error instanceof Error ? error.message : String(error))
+      setSendNotice((error as { notice?: CliNotice })?.notice ?? null)
       return false
     } finally {
       sendLock.current = false
@@ -414,7 +418,7 @@ export const OrchestChatView: React.FC<OrchestChatViewProps> = ({
                           </button>
                         }
                       >
-                        {msg.reasoning && msg.reasoning.length > 0 && (
+                        {((msg.reasoning?.length ?? 0) > 0 || (msg.notices?.length ?? 0) > 0) && (
                           <div className="mb-3 whitespace-normal">
                             <ThreadThinking
                               active={false}
@@ -423,7 +427,8 @@ export const OrchestChatView: React.FC<OrchestChatViewProps> = ({
                                   ? 'Thought'
                                   : `Thought for ${formatElapsed(msg.thoughtMs)}`
                               }
-                              steps={msg.reasoning}
+                              steps={msg.reasoning ?? []}
+                              notices={msg.notices}
                             />
                           </div>
                         )}
@@ -521,6 +526,9 @@ export const OrchestChatView: React.FC<OrchestChatViewProps> = ({
                         label={livePhase(liveTurn, Boolean(liveText))}
                         elapsed={formatElapsed(nowMs - workStartedAt)}
                         steps={liveReasoning}
+                        notices={(liveTurn?.steps ?? []).flatMap((step) =>
+                          step.notice ? [step.notice] : [],
+                        )}
                       />
                     </motion.div>
                   )}
@@ -531,6 +539,12 @@ export const OrchestChatView: React.FC<OrchestChatViewProps> = ({
           {sendError && (
             <div className="mx-auto max-w-3xl text-sm text-app-error" role="alert">
               {sendError}
+              {sendNotice?.detail && (
+                <details className="mt-2 text-muted-foreground">
+                  <summary className="cursor-pointer text-xs">Details</summary>
+                  <pre className="whitespace-pre-wrap break-words text-xs">{sendNotice.detail}</pre>
+                </details>
+              )}
             </div>
           )}
         </div>

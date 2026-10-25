@@ -1,3 +1,4 @@
+import type { CliNotice } from '../../../../run/executors/cli-failure'
 import { thoughtMs } from '../components/thread/thinking'
 import type {
   ApprovalMode,
@@ -121,7 +122,8 @@ export interface ConsoleExecResponse {
 
 export interface TimelineStep {
   seq: number
-  type: 'tool_use' | 'text' | 'step_finish' | 'reasoning'
+  type: 'tool_use' | 'text' | 'step_finish' | 'reasoning' | 'notice'
+  notice?: CliNotice
   tool: string | null
   target: string | null
   added: number | null
@@ -176,10 +178,14 @@ export interface ProjectTaskRow {
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const response = await fetch(path, init)
-  const body = (await response.json().catch(() => null)) as { error?: string } | T | null
+  const body = (await response.json().catch(() => null)) as
+    | { error?: string; notice?: CliNotice }
+    | T
+    | null
   if (!response.ok) {
     const message = body && typeof body === 'object' && 'error' in body ? body.error : undefined
-    throw new Error(message || `Request failed (${response.status})`)
+    const notice = body && typeof body === 'object' && 'notice' in body ? body.notice : undefined
+    throw Object.assign(new Error(message || `Request failed (${response.status})`), { notice })
   }
   return body as T
 }
@@ -274,6 +280,9 @@ export function attachTurnDetails(
       }))
     return {
       ...message,
+      notices: steps.flatMap((step) =>
+        step.notice && step.notice.kind !== 'no-response' ? [step.notice] : [],
+      ),
       ...(reasoning.length ? { reasoning } : {}),
       ...(reasoning.length && thoughtMs(turn) !== undefined ? { thoughtMs: thoughtMs(turn) } : {}),
       ...(toolCalls.length ? { toolCalls } : {}),

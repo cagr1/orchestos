@@ -1,0 +1,40 @@
+[
+  {
+    "flujo": "chat-notices",
+    "pass": true,
+    "steps": [
+      {
+        "nombre": "normal Codex turn completes",
+        "ok": true,
+        "detalle": "{\"text\":\"CHAT3 normal response\",\"model\":\"gpt-6.1-sol via Codex CLI (effort: high)\",\"taskSuggestion\":{\"isTask\":false,\"reason\":\"\"},\"autoTask\":null,\"autoTaskSkipped\":false}"
+      },
+      {
+        "nombre": "normal Codex turn shows no failure notice",
+        "ok": true,
+        "detalle": "[]"
+      },
+      {
+        "nombre": "invalid Codex model is classified by the real server",
+        "ok": true,
+        "detalle": "{\"error\":\"Model 'modelo-inexistente-xyz' is not available for Codex CLI.\",\"notice\":{\"kind\":\"invalid-model\",\"message\":\"Model 'modelo-inexistente-xyz' is not available for Codex CLI.\",\"detail\":\"Model \\\"modelo-inexistente-xyz\\\" is not available for the codex CLI\"}}"
+      },
+      {
+        "nombre": "classified failure is visible in the chat thread",
+        "ok": true,
+        "detalle": "Model 'modelo-inexistente-xyz' is not available for Codex CLI."
+      },
+      {
+        "nombre": "original validation detail expands",
+        "ok": true,
+        "detalle": "Model \"modelo-inexistente-xyz\" is not available for the codex CLI"
+      }
+    ],
+    "notes": [],
+    "errores": [],
+    "capturas": [
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-52077/chat-notices/normal-turn-no-notice.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-52077/chat-notices/invalid-model-classified.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-52077/chat-notices/invalid-model-detail.png"
+    ]
+  }
+]

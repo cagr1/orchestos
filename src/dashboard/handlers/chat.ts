@@ -77,6 +77,7 @@ import {
   uninstrumentedReadAudit,
 } from '../../run/read-audit.ts'
 import { capToolOutput } from '../../run/tool-output-cap.ts'
+import { redactSensitive } from '../../security/secrets.ts'
 import { untrustedContent } from '../../security/untrusted-content.ts'
 import { isReviewOnlyGate, listAllSkillCandidates } from '../../skills/catalog.ts'
 import { listSpecs } from '../../spec/store.ts'
@@ -918,7 +919,25 @@ async function handleApiChat(
   if (cliAdapter && chatAssignment?.model) {
     const catalog = (await readCliModelCatalogsCached()).find((item) => item.id === chatAgent)
     const error = cliAdapter.validateModel(requestedCliModel, catalog?.models ?? [])
-    if (error) return errorResponse(error, 400)
+    if (error) {
+      const failure = cliAdapter.failure(new Error(error), requestedCliModel)
+      return jsonResponse(
+        {
+          error: redactSensitive(failure.message),
+          notice: failure.notice
+            ? {
+                ...failure.notice,
+                message: redactSensitive(failure.notice.message),
+                detail:
+                  failure.notice.detail === undefined
+                    ? undefined
+                    : redactSensitive(failure.notice.detail),
+              }
+            : undefined,
+        },
+        400,
+      )
+    }
   }
 
   // B.3 (Mes 19) — múltiples adjuntos: el chat aceptaba un solo `fileId`, ahora
@@ -996,10 +1015,26 @@ async function handleApiChat(
   }
 
   let chatStepSeq = 0
+  const persistedNotices = new Set<string>()
   // AT.20 — la fuente de verdad de "crear tarea" es la llamada a `create_task` en el stream del CLI.
   let taskProposal: TaskProposal | null = null
   const activeToolMeta = new Map<string, { tool: string; target?: string }>()
   const persistChatStep = (step: ExecutorStepEvent): void => {
+    if (step.notice)
+      step = {
+        ...step,
+        notice: {
+          ...step.notice,
+          message: redactSensitive(step.notice.message),
+          detail:
+            step.notice.detail === undefined ? undefined : redactSensitive(step.notice.detail),
+        },
+      }
+    if (step.notice) {
+      const key = JSON.stringify(step.notice)
+      if (persistedNotices.has(key)) return
+      persistedNotices.add(key)
+    }
     taskProposal ??= taskProposalFromStep(step)
     if (!activeTurnId || !session) return
     const related = step.toolUseId ? activeToolMeta.get(step.toolUseId) : undefined
@@ -1015,6 +1050,7 @@ async function handleApiChat(
       turnId: activeTurnId,
       seq: chatStepSeq++,
       type: step.type,
+      notice: step.notice,
       tool:
         step.type === 'text' || step.type === 'reasoning'
           ? undefined
@@ -1039,6 +1075,7 @@ async function handleApiChat(
   // temprana pueda dejar un turno 'pending' huérfano sin resolver jamás.
   const finishTurnFailure = (params: {
     error: string
+    persistExchange?: boolean
     model?: string
     readAudit?: ReadAudit
     provider?: string
@@ -1079,6 +1116,8 @@ async function handleApiChat(
           turnId: activeTurnId,
           owner: CHAT_TURN_OWNER,
           error: params.error,
+          userContent: params.persistExchange ? message : undefined,
+          model: params.model,
           run: runInput,
         })
       } catch {
@@ -1551,7 +1590,10 @@ async function handleApiChat(
           cwd: isolatedCwd ?? root,
           system: systemPrompt,
           message: combinedText,
-          timeout: 120_000,
+          timeout: (() => {
+            const value = Number(process.env.ORCHESTOS_CHAT_TURN_TIMEOUT_MS)
+            return Number.isSafeInteger(value) && value > 0 ? value : 120_000
+          })(),
           model,
           effort: cliEffort,
           hasProjectContext,
@@ -1597,9 +1639,32 @@ async function handleApiChat(
           readBoundaryWarning: readBoundaryWarning ?? undefined,
         })
       } catch (e: any) {
-        const failure = cliAdapter.failure(e)
-        if (failure.record) finishTurnFailure({ ...failure.record, model, provider: chatAgent })
-        return errorResponse(failure.message, 502)
+        const failure = cliAdapter.failure(e, model)
+        if (failure.notice)
+          persistChatStep({ type: 'notice', label: failure.message, notice: failure.notice })
+        finishTurnFailure({
+          ...failure.record,
+          error: failure.message,
+          persistExchange: Boolean(failure.notice),
+          model,
+          provider: chatAgent,
+        })
+        return jsonResponse(
+          {
+            error: redactSensitive(failure.message),
+            notice: failure.notice
+              ? {
+                  ...failure.notice,
+                  message: redactSensitive(failure.notice.message),
+                  detail:
+                    failure.notice.detail === undefined
+                      ? undefined
+                      : redactSensitive(failure.notice.detail),
+                }
+              : undefined,
+          },
+          502,
+        )
       } finally {
         if (isolatedCwd) rmSync(isolatedCwd, { recursive: true, force: true })
         cliImages?.cleanup()

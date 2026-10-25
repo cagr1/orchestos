@@ -1,3 +1,4 @@
+import { Database } from 'bun:sqlite'
 import { type ChildProcessWithoutNullStreams, spawn } from 'node:child_process'
 import { createHash } from 'node:crypto'
 import { mkdirSync, writeFileSync } from 'node:fs'
@@ -6,6 +7,7 @@ import { createInterface } from 'node:readline'
 import { redactSensitive } from '../../security/secrets.ts'
 import type { ApprovalAdapter } from '../approvals.ts'
 import { decideApproval } from '../approvals.ts'
+import { CliFailure, type CliNotice, classifyCliFailure, cliFailureNotice } from './cli-failure.ts'
 import { codexApprovalRequest } from './codex-approval.ts'
 import { type ExecutorStepEvent, readonlyCommandTarget } from './step-event.ts'
 
@@ -22,6 +24,7 @@ type TurnDiagnostics = {
   dropped: Record<string, number>
   stdoutBytes: number
   stderrBytes: number
+  nativeLogReadErrors?: number
 }
 
 function turnDiagnostics(): TurnDiagnostics {
@@ -97,8 +100,11 @@ export class CodexAppServer {
       contextWindow?: number | null
       onDelta?: (delta: string) => void
       onStep?: (event: ExecutorStepEvent) => void
-      logPhase?: (event: string) => void
+      logPhase?: (event: string, details?: Record<string, unknown>) => void
       firstDelta?: boolean
+      responseStarted?: boolean
+      lastNotice?: CliNotice
+      model?: string
       diagnostics: TurnDiagnostics
       finish: (error?: Error) => void
     }
@@ -315,6 +321,7 @@ export class CodexAppServer {
     startedAt: number,
     error?: unknown,
     diagnostics?: TurnDiagnostics,
+    details?: Record<string, unknown>,
   ): void {
     let errorDetails: { kind: string; method?: string; name?: string } | undefined
     if (error !== undefined) {
@@ -331,6 +338,7 @@ export class CodexAppServer {
         ms: Date.now() - startedAt,
         ...errorDetails,
         ...(event === 'turn-error' || event === 'turn-completed' ? diagnostics : undefined),
+        ...details,
       })}`,
     )
   }
@@ -349,6 +357,116 @@ export class CodexAppServer {
       if (observed) {
         const dropped = observed.diagnostics.dropped
         dropped[reason] = (dropped[reason] ?? 0) + 1
+      }
+    }
+    // Protocol 0.164.0: only record status/auth enums, never account payloads or credentials.
+    if (method === 'thread/status/changed' || method === 'account/updated') {
+      const isThread = method === 'thread/status/changed'
+      const status = params.status
+      const details = isThread
+        ? {
+            status: {
+              type: ['notLoaded', 'idle', 'systemError', 'active'].includes(status?.type)
+                ? status.type
+                : 'unknown',
+              ...(Array.isArray(status?.activeFlags)
+                ? {
+                    activeFlags: status.activeFlags.filter((flag: unknown) =>
+                      ['waitingOnApproval', 'waitingOnUserInput'].includes(String(flag)),
+                    ),
+                  }
+                : {}),
+            },
+          }
+        : {
+            fields: Object.keys(params),
+            authMode:
+              params.authMode === null
+                ? null
+                : [
+                      'apikey',
+                      'chatgpt',
+                      'chatgptAuthTokens',
+                      'headers',
+                      'agentIdentity',
+                      'personalAccessToken',
+                      'bedrockApiKey',
+                      'bedrockAccessKeys',
+                    ].includes(params.authMode)
+                  ? params.authMode
+                  : 'unknown',
+            planType:
+              params.planType === null
+                ? null
+                : /^(free|go|plus|pro|prolite|promax|team|self_serve_business_(prolite|usage_based)|business|ent26|enterprise(_cbp_(automation|usage_based))?|edu(_plus|_pro)?|sci(_plus)?|unknown)$/.test(
+                      params.planType,
+                    )
+                  ? params.planType
+                  : 'unknown',
+          }
+      const states = isThread ? (observed ? [observed] : []) : [...this.turns.values()]
+      if (!states.length)
+        this.logTurn(
+          method,
+          isThread ? params.threadId : null,
+          Date.now(),
+          undefined,
+          undefined,
+          details,
+        )
+      for (const state of states) {
+        state.logPhase?.(method, details)
+        const notice: CliNotice | undefined =
+          isThread && status?.type === 'systemError'
+            ? {
+                kind: 'unknown',
+                message: 'Codex reported a system error for this thread.',
+                detail: JSON.stringify(details),
+              }
+            : !isThread && params.authMode === null
+              ? {
+                  kind: 'auth',
+                  message: 'Codex reported no authentication mode for this account.',
+                  detail: JSON.stringify(details),
+                }
+              : undefined
+        if (notice) {
+          state.lastNotice = notice
+          state.onStep?.({ type: 'notice', label: notice.message, notice })
+        }
+      }
+    }
+    if (method === 'account/rateLimits/updated') {
+      const limits = params.rateLimits
+      const windows = [limits, ...Object.values(params.rateLimitsByLimitId ?? {})] as any[]
+      const exhausted = windows
+        .flatMap((limit) => [limit?.primary, limit?.secondary])
+        .find((limit) => limit?.usedPercent >= 100)
+      if (exhausted) {
+        const resetDate =
+          typeof exhausted.resetsAt === 'number' ? new Date(exhausted.resetsAt * 1000) : undefined
+        const reset = resetDate
+          ? `${resetDate.toDateString() === new Date().toDateString() ? '' : `${resetDate.toLocaleDateString('en-US')} `}${resetDate.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', hour12: false })}`
+          : undefined
+        const message = `Codex usage limit reached${reset ? ` — resets at ${reset}` : '.'}`
+        for (const state of this.turns.values()) {
+          const notice: CliNotice = { kind: 'quota', message, detail: JSON.stringify(limits) }
+          state.lastNotice = notice
+          state.onStep?.({ type: 'notice', label: message, notice })
+        }
+      }
+    }
+    if (observed && (!observed.turnId || !params.turnId || observed.turnId === params.turnId)) {
+      if (method === 'turn/started' && !observed.responseStarted) {
+        const notice: CliNotice = {
+          kind: 'no-response',
+          message: `Request sent to ${observed.model || 'the model'}`,
+          detail: 'no response yet, no error reported by Codex',
+        }
+        observed.onStep?.({ type: 'notice', label: notice.message, notice })
+      }
+      if (method.startsWith('item/') && params.item?.type !== 'userMessage') {
+        observed.responseStarted = true
       }
     }
     if (method === 'item/started' && params.item?.type === 'fileChange') {
@@ -481,7 +599,15 @@ export class CodexAppServer {
       if (state && (!state.turnId || state.turnId === params.turn?.id)) {
         state.logPhase?.('turn-completed')
         if (params.turn?.status === 'failed')
-          state.finish(new CodexAppServerError(params.turn.error?.message ?? 'Codex turn failed'))
+          state.finish(
+            new CliFailure(
+              cliFailureNotice(
+                params.turn.error?.message ?? 'Codex turn failed',
+                'Codex CLI',
+                state.model,
+              ),
+            ),
+          )
         else {
           state.onStep?.({
             type: 'step_finish',
@@ -493,9 +619,27 @@ export class CodexAppServer {
       }
     } else if (method === 'error') {
       const state = this.turns.get(params.threadId)
-      if (state && params.willRetry) drop('will-retry')
+      if (state?.turnId && params.turnId && state.turnId !== params.turnId) return
+      if (state && params.willRetry) {
+        const message = params.error?.message ?? 'Codex is retrying the request'
+        const notice: CliNotice = {
+          kind: 'retrying',
+          message,
+          detail: JSON.stringify(params.error),
+        }
+        state.lastNotice = notice
+        state.onStep?.({ type: 'notice', label: message, notice })
+      }
       if (state && !params.willRetry)
-        state.finish(new CodexAppServerError(params.error?.message ?? 'Codex turn failed'))
+        state.finish(
+          new CliFailure(
+            cliFailureNotice(
+              params.error?.message ?? 'Codex turn failed',
+              'Codex CLI',
+              state.model,
+            ),
+          ),
+        )
     }
   }
 
@@ -640,10 +784,13 @@ export class CodexAppServer {
         lastUsage: undefined as any,
         contextWindow: undefined as number | null | undefined,
         diagnostics,
+        model: input.model,
+        responseStarted: false,
+        lastNotice: undefined as CliNotice | undefined,
         onDelta: input.onDelta,
         onStep: input.onStep,
-        logPhase: (event: string) =>
-          this.logTurn(event, threadId, startedAt, undefined, diagnostics),
+        logPhase: (event: string, details?: Record<string, unknown>) =>
+          this.logTurn(event, threadId, startedAt, undefined, diagnostics, details),
         finish: (_error?: Error) => {},
       }
       const completion = new Promise<void>((resolve, reject) => {
@@ -654,6 +801,7 @@ export class CodexAppServer {
       })
       this.turns.set(threadId, state)
       let turnStart: any
+      const nativeLogStartedAt = Date.now()
       try {
         if (process.env.ORCHESTOS_GATE_CAPTURE_DIR) {
           try {
@@ -688,11 +836,87 @@ export class CodexAppServer {
       state.turnId = turnStart?.turn?.id ?? null
       this.options.store.set(input.sessionId, threadId, hash)
       let timer: ReturnType<typeof setTimeout> | undefined
+      let nativeLogTimer: ReturnType<typeof setInterval> | undefined
+      let nativeRetry: { status: string; attempt: number; max: number; seconds: number } | undefined
+      const seenAttempts = new Set<number>()
+      const pollNativeLog = () => {
+        if (state.responseStarted || !this.turns.has(threadId!)) {
+          if (nativeLogTimer) clearInterval(nativeLogTimer)
+          return
+        }
+        const home = this.options.env.CODEX_HOME
+        if (!home) return
+        let db: Database | undefined
+        try {
+          db = new Database(join(home, 'logs_2.sqlite'), { readonly: true })
+          const rows = db
+            .query<{ feedback_log_body: string | null }, [string, number]>(
+              "SELECT feedback_log_body FROM logs WHERE thread_id = ? AND ts >= ? AND level IN ('WARN', 'ERROR') ORDER BY ts, id",
+            )
+            .all(threadId!, Math.floor(nativeLogStartedAt / 1000))
+          for (const row of rows) {
+            const body = row.feedback_log_body
+            if (typeof body !== 'string') continue
+            const loggedTurn = body.match(/\bturn_id=([^\s]+)/)?.[1]
+            if (loggedTurn && state.turnId && loggedTurn !== state.turnId) continue
+            const retry = body.match(
+              /stream disconnected - retrying sampling request \((\d+)\/(\d+) in (\d+(?:\.\d+)?)s\)/,
+            )
+            const status = body.match(/last status:\s*(\d{3})(?:\s+([A-Za-z][A-Za-z -]{0,79}))?/)
+            if (!retry || !status) continue
+            const attempt = Number(retry[1])
+            const max = Number(retry[2])
+            const seconds = Math.ceil(Number(retry[3]))
+            if (
+              !Number.isSafeInteger(attempt) ||
+              attempt < 1 ||
+              !Number.isSafeInteger(max) ||
+              max < attempt ||
+              !Number.isSafeInteger(seconds) ||
+              seenAttempts.has(attempt)
+            )
+              continue
+            seenAttempts.add(attempt)
+            const statusText = `${status[1]}${status[2] ? ` ${status[2].trim()}` : ''}`
+            const kind = Number(status[1]) >= 500 ? 'overloaded' : classifyCliFailure(statusText)
+            nativeRetry = { status: statusText, attempt, max, seconds }
+            const notice: CliNotice = {
+              kind: 'retrying',
+              message: `Codex got ${statusText} — retry ${attempt}/${max} in ${seconds} s`,
+              detail: cliFailureNotice(statusText, 'Codex', input.model, kind).message,
+            }
+            state.lastNotice = notice
+            input.onStep?.({ type: 'notice', label: notice.message, notice })
+          }
+        } catch {
+          diagnostics.nativeLogReadErrors = (diagnostics.nativeLogReadErrors ?? 0) + 1
+        } finally {
+          db?.close()
+        }
+      }
+      nativeLogTimer = setInterval(pollNativeLog, 2_000)
       const timeout = new Promise<never>((_, reject) => {
-        timer = setTimeout(
-          () => reject(new CodexAppServerError(`Codex timed out after ${input.timeoutMs}ms`)),
-          input.timeoutMs,
-        )
+        timer = setTimeout(() => {
+          pollNativeLog()
+          const raw = `Codex timed out after ${input.timeoutMs}ms`
+          const notice: CliNotice =
+            state.lastNotice && state.lastNotice.kind !== 'retrying'
+              ? {
+                  ...state.lastNotice,
+                  detail: `${state.lastNotice.detail ?? state.lastNotice.message}\n${raw}`,
+                }
+              : {
+                  kind: 'timeout',
+                  message: state.responseStarted
+                    ? `Codex timed out after ${input.timeoutMs / 1000} s while waiting for ${input.model || 'the model'}.`
+                    : nativeRetry
+                      ? `No response from ${input.model || 'the model'} in ${input.timeoutMs / 1000} s — Codex got ${nativeRetry.status} and was waiting to retry (${nativeRetry.attempt}/${nativeRetry.max} in ${nativeRetry.seconds} s).`
+                      : `No response from ${input.model || 'the model'} in ${input.timeoutMs / 1000} s. ${state.lastNotice ? state.lastNotice.message : 'Codex reported no error.'}`,
+                  detail: raw,
+                }
+          input.onStep?.({ type: 'notice', label: notice.message, notice })
+          reject(new CliFailure(notice))
+        }, input.timeoutMs)
       })
       try {
         await Promise.race([completion, timeout])
@@ -706,6 +930,7 @@ export class CodexAppServer {
         throw error
       } finally {
         if (timer) clearTimeout(timer)
+        if (nativeLogTimer) clearInterval(nativeLogTimer)
       }
       return {
         threadId,

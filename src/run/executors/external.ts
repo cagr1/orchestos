@@ -1,3 +1,4 @@
+import { CliFailure, claudeFailureKind, cliFailureNotice } from './cli-failure.ts'
 /**
  * src/run/executors/external.ts — B.1
  *
@@ -75,6 +76,7 @@ interface ClaudeCodeJson {
   result?: string
   /** `true` cuando el CLI terminó con error (p. ej. "Not logged in"): `result` trae el motivo. */
   is_error?: boolean
+  terminal_reason?: string
   /** Con `error_during_execution` el motivo viene aquí y `result` falta. */
   errors?: string[]
   usage?: {
@@ -291,6 +293,7 @@ async function runClaudeCode(
   resultLine?: string
   lastAssistant?: LastAssistantUsage
   readAudit: ReadAudit
+  apiError?: string
 }> {
   const env = safeChildEnv()
   if (approvalTimeout) env.MCP_TOOL_TIMEOUT = String(30 * 60 * 1000)
@@ -324,12 +327,14 @@ async function runClaudeCode(
   let lineBuffer = ''
   let resultLine: string | undefined
   let lastAssistant: LastAssistantUsage | undefined
+  let apiError: string | undefined
   const consumeLine = (line: string) => {
     if (!line.trim()) return
     audit.line(line)
     try {
       const evt = JSON.parse(line)
       if (evt?.type === 'result') resultLine = line
+      if (evt?.type === 'assistant' && typeof evt.error === 'string') apiError = evt.error
       if (evt?.type === 'assistant' && evt.message?.usage && evt.parent_tool_use_id == null) {
         const u = evt.message.usage
         lastAssistant = {
@@ -376,7 +381,7 @@ async function runClaudeCode(
     reader.releaseLock()
     clearTimeout(timer)
   }
-  return { stdout, timedOut, resultLine, lastAssistant, readAudit: audit.finish() }
+  return { stdout, timedOut, resultLine, lastAssistant, readAudit: audit.finish(), apiError }
 }
 
 // -- chat (CC.1, Mes 29) ----------------------------------------------------------
@@ -520,6 +525,7 @@ export async function runClaudeChat(
     onChatStep?.(step)
   }
 
+  let apiError: string | undefined
   let timedOut: boolean
   let resultLine: string | undefined
   let lastAssistant: LastAssistantUsage | undefined
@@ -530,7 +536,7 @@ export async function runClaudeChat(
     throw new ExecutorExternalError(`Claude Code no reconoce el modelo solicitado: ${model}`)
   }
   try {
-    ;({ timedOut, resultLine, lastAssistant } = await runClaudeCode(
+    ;({ timedOut, resultLine, lastAssistant, apiError } = await runClaudeCode(
       cwd,
       buildClaudeChatArgs(
         systemPrompt,
@@ -555,6 +561,13 @@ export async function runClaudeChat(
     throw error
   }
 
+  if (!resultLine && apiError)
+    throw Object.assign(
+      new CliFailure(
+        cliFailureNotice(apiError, 'Claude Code CLI', model, claudeFailureKind(apiError)),
+      ),
+      { readAudit: audit.finish() },
+    )
   if (!resultLine) {
     const error = new ExecutorExternalError(
       timedOut
@@ -571,17 +584,27 @@ export async function runClaudeChat(
     throw new ExecutorExternalError('claude code result event was not valid JSON')
   }
   // CI.25 — un `is_error` no es una respuesta vacía: se muestra como error del turno.
-  if (parsed.is_error === true) {
+  if (parsed.is_error === true || parsed.terminal_reason === 'api_error' || apiError) {
     // Texto medido (claude 2026-10-17): errors:["No conversation found with session ID: <id>"].
     if (resumeSessionId && parsed.errors?.some((e) => e.startsWith('No conversation found'))) {
       const notFound = new ClaudeSessionNotFoundError(parsed.errors.join('; '))
       notFound.readAudit = audit.finish()
       throw notFound
     }
-    const error = new ExecutorExternalError(
-      `claude code reported an error: ${parsed.result?.trim() || 'no message'}`,
+    const error = Object.assign(
+      new CliFailure(
+        cliFailureNotice(
+          parsed.result?.trim() ||
+            parsed.errors?.join('; ') ||
+            apiError ||
+            'Claude Code reported an API error',
+          'Claude Code CLI',
+          model,
+          apiError ? claudeFailureKind(apiError) : undefined,
+        ),
+      ),
+      { readAudit: audit.finish() },
     )
-    error.readAudit = audit.finish()
     throw error
   }
 

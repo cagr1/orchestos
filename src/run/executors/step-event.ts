@@ -1,3 +1,6 @@
+import type { CliNotice } from './cli-failure.ts'
+import { claudeFailureKind, cliFailureNotice } from './cli-failure.ts'
+
 /**
  * src/run/executors/step-event.ts — G.3.2
  *
@@ -23,8 +26,9 @@
  */
 
 export interface ExecutorStepEvent {
-  type: 'tool_use' | 'text' | 'step_finish' | 'reasoning'
+  type: 'tool_use' | 'text' | 'step_finish' | 'reasoning' | 'notice'
   label: string
+  notice?: CliNotice
   detail?: string
   target?: string
   added?: number
@@ -114,6 +118,39 @@ export function claudeEventToStep(raw: unknown): ExecutorStepEvent[] {
   const evt = raw as ClaudeAssistantEvent & ClaudeResultEvent
   if (!evt || typeof evt !== 'object') return []
 
+  const retry = raw as {
+    subtype?: string
+    attempt?: number
+    max_retries?: number
+    error?: string
+    error_status?: number
+    no_response?: { waited_ms?: number; retry_wait_ms?: number }
+    retry_delay_ms?: number
+  }
+  if (evt.type === 'system' && retry.subtype === 'api_retry') {
+    const cause =
+      retry.error ?? (retry.error_status ? String(retry.error_status) : 'no error reported')
+    const waited = retry.no_response?.waited_ms
+    const message = `Claude Code CLI is retrying ${retry.attempt ?? '?'}/${retry.max_retries ?? '?'}: ${cause}${waited === undefined ? '' : ` — no response for ${Math.floor(waited / 1000)} s`}`
+    return [
+      {
+        type: 'notice',
+        label: message,
+        notice: { kind: 'retrying', message, detail: JSON.stringify(raw) },
+      },
+    ]
+  }
+  if (evt.type === 'assistant' && retry.error) {
+    const notice = cliFailureNotice(
+      retry.error,
+      'Claude Code CLI',
+      undefined,
+      claudeFailureKind(retry.error),
+    )
+    return [
+      { type: 'notice', label: notice.message, notice: { ...notice, detail: JSON.stringify(raw) } },
+    ]
+  }
   if (evt.type === 'assistant') {
     const blocks = evt.message?.content ?? []
     const steps: ExecutorStepEvent[] = []

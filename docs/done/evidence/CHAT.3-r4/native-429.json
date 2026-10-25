@@ -1,0 +1,22 @@
+[
+  {
+    "timestamp": "2026-10-25 16:46:01",
+    "thread_id": "01a173f4-65dc-7d41-99da-2e58d95e6174",
+    "feedback_log_body": "session_loop{thread_id=01a173f4-65dc-7d41-99da-2e58d95e6174}:submission_dispatch{otel.name=\"op.dispatch.turn_input\" submission.id=\"01a173f4-65ec-7ae0-ada4-0f257ac5464f\" codex.op=\"turn_input\"}:codex.turn_input{conversation.id=01a173f4-65dc-7d41-99da-2e58d95e6174 turn.id=\"01a173f4-65ec-7ae0-ada4-0f257ac5464f\"}:turn{otel.name=\"session_task.turn\" thread.id=01a173f4-65dc-7d41-99da-2e58d95e6174 turn.id=01a173f4-65ec-7ae0-ada4-0f257ac5464f model=gpt-6.1-sol codex.turn.reasoning_effort=high}:session_task.run:run_turn:run_sampling_request{turn_id=01a173f4-65ec-7ae0-ada4-0f257ac5464f model=gpt-6.1-sol cwd=/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/orchestos-chat-sidExO}: stream disconnected - retrying sampling request (1/5 in 69.999812541s)... turn_id=01a173f4-65ec-7ae0-ada4-0f257ac5464f retries=1 max_retries=5 sampling_error=exceeded retry limit, last status: 429 Too Many Requests"
+  },
+  {
+    "timestamp": "2026-10-25 16:33:05",
+    "thread_id": "01a173e8-8b06-70f3-b876-8edafa9307ef",
+    "feedback_log_body": "session_loop{thread_id=01a173e8-8b06-70f3-b876-8edafa9307ef}:submission_dispatch{otel.name=\"op.dispatch.turn_input\" submission.id=\"01a173e8-8b17-7ef1-8e6f-8aa2b3956268\" codex.op=\"turn_input\"}:codex.turn_input{conversation.id=01a173e8-8b06-70f3-b876-8edafa9307ef turn.id=\"01a173e8-8b17-7ef1-8e6f-8aa2b3956268\"}:turn{otel.name=\"session_task.turn\" thread.id=01a173e8-8b06-70f3-b876-8edafa9307ef turn.id=01a173e8-8b17-7ef1-8e6f-8aa2b3956268 model=gpt-6.1-sol codex.turn.reasoning_effort=high}:session_task.run:run_turn:run_sampling_request{turn_id=01a173e8-8b17-7ef1-8e6f-8aa2b3956268 model=gpt-6.1-sol cwd=/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/orchestos-chat-aFXvJM}: stream disconnected - retrying sampling request (1/5 in 244.999839917s)... turn_id=01a173e8-8b17-7ef1-8e6f-8aa2b3956268 retries=1 max_retries=5 sampling_error=exceeded retry limit, last status: 429 Too Many Requests"
+  },
+  {
+    "timestamp": "2026-10-25 16:23:47",
+    "thread_id": "01a173e0-0c5c-7da1-ab85-e31a9aae8219",
+    "feedback_log_body": "session_loop{thread_id=01a173e0-0c5c-7da1-ab85-e31a9aae8219}:submission_dispatch{otel.name=\"op.dispatch.turn_input\" submission.id=\"01a173e0-0c74-7f82-999c-4033f749a243\" codex.op=\"turn_input\"}:codex.turn_input{conversation.id=01a173e0-0c5c-7da1-ab85-e31a9aae8219 turn.id=\"01a173e0-0c74-7f82-999c-4033f749a243\"}:turn{otel.name=\"session_task.turn\" thread.id=01a173e0-0c5c-7da1-ab85-e31a9aae8219 turn.id=01a173e0-0c74-7f82-999c-4033f749a243 model=gpt-6.1-sol codex.turn.reasoning_effort=high}:session_task.run:run_turn:run_sampling_request{turn_id=01a173e0-0c74-7f82-999c-4033f749a243 model=gpt-6.1-sol cwd=/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/orchestos-chat-WNUoSO}: stream disconnected - retrying sampling request (1/5 in 148.999859459s)... turn_id=01a173e0-0c74-7f82-999c-4033f749a243 retries=1 max_retries=5 sampling_error=exceeded retry limit, last status: 429 Too Many Requests"
+  },
+  {
+    "timestamp": "2026-10-25 16:21:17",
+    "thread_id": "01a173dd-c0c7-7e42-86e0-c2b08adcb9f7",
+    "feedback_log_body": "session_loop{thread_id=01a173dd-c0c7-7e42-86e0-c2b08adcb9f7}:submission_dispatch{otel.name=\"op.dispatch.turn_input\" submission.id=\"01a173dd-c0d4-76c3-a819-8cd0d32c433d\" codex.op=\"turn_input\"}:codex.turn_input{conversation.id=01a173dd-c0c7-7e42-86e0-c2b08adcb9f7 turn.id=\"01a173dd-c0d4-76c3-a819-8cd0d32c433d\"}:turn{otel.name=\"session_task.turn\" thread.id=01a173dd-c0c7-7e42-86e0-c2b08adcb9f7 turn.id=01a173dd-c0d4-76c3-a819-8cd0d32c433d model=gpt-6.1-sol codex.turn.reasoning_effort=high}:session_task.run:run_turn:run_sampling_request{turn_id=01a173dd-c0d4-76c3-a819-8cd0d32c433d model=gpt-6.1-sol cwd=/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/orchestos-chat-RFYaLA}: stream disconnected - retrying sampling request (1/5 in 298.999946708s)... turn_id=01a173dd-c0d4-76c3-a819-8cd0d32c433d retries=1 max_retries=5 sampling_error=exceeded retry limit, last status: 429 Too Many Requests"
+  }
+]

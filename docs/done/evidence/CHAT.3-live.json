@@ -1,0 +1,663 @@
+[
+  {
+    "flujo": "chat-timeout",
+    "pass": true,
+    "steps": [
+      {
+        "nombre": "live no-response counter reaches two seconds",
+        "ok": true,
+        "detalle": "Request sent to gpt-6.1-sol 2s ago — no response yet, no error reported by Codex 3 s"
+      },
+      {
+        "nombre": "real Codex turn times out with a classified failure",
+        "ok": true,
+        "detalle": "{\"error\":\"No response from gpt-6.1-sol in 4 s. Codex reported no error.\",\"notice\":{\"kind\":\"timeout\",\"message\":\"No response from gpt-6.1-sol in 4 s. Codex reported no error.\",\"detail\":\"Codex timed out after 4000ms\"}}"
+      },
+      {
+        "nombre": "timeout message and Details remain visible in the turn",
+        "ok": true,
+        "detalle": "No response from gpt-6.1-sol in 4 s. Codex reported no error.\nDetails"
+      },
+      {
+        "nombre": "failed user message remains visible",
+        "ok": true,
+        "detalle": "Write a very detailed 20000 word history of mathematics. Think carefully for at least ten seconds before answering; then write the complete essay."
+      },
+      {
+        "nombre": "raw CLI timeout is expandable",
+        "ok": true,
+        "detalle": "Codex timed out after 4000ms"
+      },
+      {
+        "nombre": "reload restores failed user message and classified timeout",
+        "ok": true,
+        "detalle": "No response from gpt-6.1-sol in 4 s. Codex reported no error.\nDetails"
+      },
+      {
+        "nombre": "database stores exactly one timeout notice for the turn",
+        "ok": true,
+        "detalle": "[{\"turn_id\":\"ad5d714f-f1aa-4848-a366-3cab09511248\",\"n\":1}]"
+      }
+    ],
+    "notes": [],
+    "errores": [],
+    "capturas": [
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-88329/chat-timeout/timeout-waiting.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-88329/chat-timeout/timeout-failed.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-88329/chat-timeout/timeout-reloaded.png"
+    ],
+    "sourceLog": "/tmp/CHAT.3-r2/timeout-live.log",
+    "sourceResult": "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-88329/result.json"
+  },
+  {
+    "flujo": "chat-streaming",
+    "pass": true,
+    "steps": [
+      {
+        "nombre": "temporary project visible",
+        "ok": true,
+        "detalle": "orchestos-ui-mr-1-d4-IDmiDO"
+      },
+      {
+        "nombre": "Claude option available",
+        "ok": true,
+        "detalle": "Start New Chat with Agent\nConversation Topic or Title (Optional)\nProject\nNo projectorchestos-ui-mr-1-d4-IDmiDO\nSelect Agent / Engine\nClaude Code\nCodex\nOpenRouter API\nCancel\nStart Chat"
+      },
+      {
+        "nombre": "first assistant text appears before completion",
+        "ok": true,
+        "detalle": "t_first=5422 ms; t_done=8878 ms"
+      },
+      {
+        "nombre": "visible text grows at least twice before completion",
+        "ok": true,
+        "detalle": "10 growth updates (rAF); poll saw 10"
+      },
+      {
+        "nombre": "live bubble stays at the bottom",
+        "ok": true,
+        "detalle": "11 growth measurements; remained at bottom: true"
+      },
+      {
+        "nombre": "captured screenshot during active turn",
+        "ok": true,
+        "detalle": "chat-text-visible-mid-turn"
+      },
+      {
+        "nombre": "working-indicator-names-phase",
+        "ok": true,
+        "detalle": "indicator text: \"Thinking 0 s\""
+      },
+      {
+        "nombre": "working-indicator-gone",
+        "ok": true,
+        "detalle": "indicator removed after 259 ms"
+      },
+      {
+        "nombre": "one assistant bubble matches persisted response",
+        "ok": true,
+        "detalle": "bubbles=1; persisted=1; visible=1 uno 2 dos 3 tres 4 cuatro 5 cinco 6 seis 7 siete 8 ocho 9 nueve 10 diez 11 onc"
+      },
+      {
+        "nombre": "new messages enter with data-entered=animate",
+        "ok": true,
+        "detalle": "animated kinds=user,assistant; events=[{\"id\":1,\"position\":0,\"kind\":\"user\"},{\"id\":2,\"position\":1,\"kind\":\"assistant\"}]"
+      },
+      {
+        "nombre": "no message animates its entrance twice",
+        "ok": true,
+        "detalle": "events=[{\"id\":1,\"position\":0,\"kind\":\"user\"},{\"id\":2,\"position\":1,\"kind\":\"assistant\"}]"
+      },
+      {
+        "nombre": "context ring reflects thread",
+        "ok": true,
+        "detalle": "used=7144, window=1000000, pct=0.7144"
+      },
+      {
+        "nombre": "context ring recalculates on model change",
+        "ok": true,
+        "detalle": "model=claude-haiku-4-5-20251001, expected pct=3.572, ring=Context window usage: 3.572%"
+      },
+      {
+        "nombre": "Chat composer empty during sampled turn",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "Chat DOM order during sampled turn is previous assistant, user, live assistant",
+        "ok": true,
+        "detalle": "{\"liveCount\":1,\"order\":[\"Escribe los números del 1 al 120 en palabras, uno \",\"1 uno 2 dos 3 tres 4 cuatro 5 cinco 6 seis 7 siete\",\"Escribe los números del 41 al 80 en palabras, uno \",\"41 cuarenta y\"]}"
+      },
+      {
+        "nombre": "Chat turn 2 was sampled while pending",
+        "ok": true,
+        "detalle": "1 long turn(s) sent; pending composer and live DOM order sampled"
+      },
+      {
+        "nombre": "Chat bubbles alternate for every sent turn",
+        "ok": true,
+        "detalle": "[\"Escribe los números del 1 al 120 en palabras, uno \",\"1 uno 2 dos 3 tres 4 cuatro 5 cinco 6 seis 7 siete\",\"Escribe los números del 41 al 80 en palabras, uno \",\"41 cuarenta y uno 42 cuarenta y dos 43 cuarenta y \"]"
+      },
+      {
+        "nombre": "Chat user bubbles contain no agent text or step markup",
+        "ok": true,
+        "detalle": "user bubbles=2"
+      },
+      {
+        "nombre": "Chat exchange order remains correct after reload",
+        "ok": true,
+        "detalle": "messages=4"
+      },
+      {
+        "nombre": "thread-font-inter",
+        "ok": true,
+        "detalle": "font-family=\"Inter Variable\", system-ui, -apple-system, \"system-ui\", \"Segoe UI\", Roboto, \"Noto Sans\", Ubuntu, Cantarell, \"Helvetica Neue\", sans-serif"
+      },
+      {
+        "nombre": "thread-body-14px",
+        "ok": true,
+        "detalle": "font-size=14px"
+      },
+      {
+        "nombre": "thread-assistant-unboxed",
+        "ok": true,
+        "detalle": "ancestors=[{\"backgroundColor\":\"rgba(0, 0, 0, 0)\",\"borderTopWidth\":\"0px\",\"boxShadow\":\"none\"},{\"backgroundColor\":\"rgba(0, 0, 0, 0)\",\"borderTopWidth\":\"0px\",\"boxShadow\":\"none\"},{\"backgroundColor\":\"rgba(0, 0, 0, 0)\",\"borderTopWidth\":\"0px\",\"boxShadow\":\"none\"}]"
+      },
+      {
+        "nombre": "thread-user-bubble-visible",
+        "ok": true,
+        "detalle": "bubble={\"found\":true,\"backgroundColor\":\"oklab(0.249498 -0.00229985 -0.0147313)\",\"opaque\":true,\"userBubbleL\":20.537404286089497,\"backgroundL\":12.733002212579532,\"difference\":7.804402073509966}"
+      },
+      {
+        "nombre": "thread-no-decoration",
+        "ok": true,
+        "detalle": "animate-ping=0, gradients=0, bot-icons=0, user-icons=0"
+      },
+      {
+        "nombre": "after reload every message is static",
+        "ok": true,
+        "detalle": "modes=[\"static\",\"static\",\"static\",\"static\"]"
+      },
+      {
+        "nombre": "reduced motion: response arrives with opacity 1 and no transform within 100 ms",
+        "ok": true,
+        "detalle": "samples=[{\"kind\":\"user\",\"opacity\":\"1\",\"transform\":\"none\"},{\"kind\":\"assistant\",\"opacity\":\"1\",\"transform\":\"none\"}]"
+      },
+      {
+        "nombre": "Dev renders text during generation before completion",
+        "ok": true,
+        "detalle": "t_first=1599 ms; t_done=2446 ms; visible=Uno, dos, tres, cuatro, cinco."
+      }
+    ],
+    "notes": [],
+    "errores": [],
+    "capturas": [
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-97421/chat-streaming/chat-text-visible-mid-turn.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-97421/chat-streaming/thread-hierarchy.png"
+    ],
+    "sourceLog": "/tmp/CHAT.3-r2/chat-live.log",
+    "sourceResult": "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-97421/result.json"
+  },
+  {
+    "flujo": "codex-live",
+    "pass": true,
+    "steps": [
+      {
+        "nombre": "temporary project visible",
+        "ok": true,
+        "detalle": "orchestos-ui-codex-live-St0mae"
+      },
+      {
+        "nombre": "Codex agent available",
+        "ok": true,
+        "detalle": "Codex option"
+      },
+      {
+        "nombre": "turn 1 user message appears before completion",
+        "ok": true,
+        "detalle": "18 ms after send"
+      },
+      {
+        "nombre": "turn 1 streams multiple visible text updates",
+        "ok": true,
+        "detalle": "22 distinct non-empty samples before completion"
+      },
+      {
+        "nombre": "turn 1 working indicator stops after completion",
+        "ok": true,
+        "detalle": "0 working indicators remain"
+      },
+      {
+        "nombre": "turn 2 DOM order is assistant 1, user 2, live assistant 2 while generating",
+        "ok": true,
+        "detalle": "[\"11:20 AM\\nRemember the word MANGO-4SZ022DR. Reply i\",\"I’ll remember MANGO-4SZ022DR during this conversat\",\"11:21 AM\\nWhat word did I ask you to remember? Star\",\"MANGO-4SZ022DR is the word you asked me to remembe\"]; first answer=I'll remember MANGO-4SZ022DR during this conversation. Mangoes are tropical frui"
+      },
+      {
+        "nombre": "turn 2 remembers the word from turn 1",
+        "ok": true,
+        "detalle": "MANGO-4SZ022DR is the word you asked me to remember. Mangoes are tropical fruits with sweet, juicy flesh and a large, flat seed.\n\nTheir skin can be green, yellow, orange, or red. A ripe mango usually gives slightly when gently squeezed and may smell sweet near its stem.\n\nEnjoy mangoes fresh, blended into smoothies, or diced into salsa. Let unripe mangoes soften at room temperature, then refrigerate them once ripe."
+      },
+      {
+        "nombre": "turn 2 working indicator stops after completion",
+        "ok": true,
+        "detalle": "0 working indicators remain"
+      },
+      {
+        "nombre": "both exchanges remain visible in order after turn 2",
+        "ok": true,
+        "detalle": "user bubbles=2; assistant bubbles=2; first answer=I'll remember MANGO-4SZ022DR during this conversation. Mangoes are tropical frui"
+      },
+      {
+        "nombre": "timeline DOM alternates user 1, assistant 1, user 2, assistant 2",
+        "ok": true,
+        "detalle": "[\"11:20 AM\\nRemember the word MANGO-4SZ022DR. Reply i\",\"I’ll remember MANGO-4SZ022DR during this conversat\",\"11:21 AM\\nWhat word did I ask you to remember? Star\",\"MANGO-4SZ022DR is the word you asked me to remembe\"]; first answer=I'll remember MANGO-4SZ022DR during this conversation. Mangoes are tropical frui"
+      },
+      {
+        "nombre": "user bubbles contain no agent markup or response text",
+        "ok": true,
+        "detalle": "2 user bubbles checked; first answer=I'll remember MANGO-4SZ022DR during this conversation. Mangoes are tropical frui"
+      },
+      {
+        "nombre": "timeline DOM alternates user 1, assistant 1, user 2, assistant 2 after reload",
+        "ok": true,
+        "detalle": "user bubbles=2; assistant bubbles=2; first answer=I'll remember MANGO-4SZ022DR during this conversation. Mangoes are tropical frui"
+      },
+      {
+        "nombre": "turn 2 is faster than turn 1",
+        "ok": true,
+        "detalle": "turn 1=18114 ms; turn 2=4091 ms"
+      },
+      {
+        "nombre": "project chat runs are recorded with provider=codex",
+        "ok": true,
+        "detalle": "[{\"provider\":\"codex\",\"model\":\"gpt-6.1-sol\"},{\"provider\":\"codex\",\"model\":\"gpt-6.1-sol\"}]"
+      }
+    ],
+    "notes": [],
+    "errores": [],
+    "capturas": [
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-97421/codex-live/codex-live-turn-one.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-97421/codex-live/codex-live-turn-two.png"
+    ],
+    "sourceLog": "/tmp/CHAT.3-r2/chat-live.log",
+    "sourceResult": "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-97421/result.json"
+  },
+  {
+    "flujo": "chat-notices",
+    "pass": false,
+    "steps": [
+      {
+        "nombre": "normal Codex turn completes",
+        "ok": false,
+        "detalle": "{\"error\":\"No response from gpt-6.1-sol in 120 s. Codex reported no error.\",\"notice\":{\"kind\":\"timeout\",\"message\":\"No response from gpt-6.1-sol in 120 s. Codex reported no error.\",\"detail\":\"Codex timed out after 120000ms\"}}"
+      },
+      {
+        "nombre": "normal Codex turn shows no failure notice",
+        "ok": false,
+        "detalle": "[{\"seq\":1,\"type\":\"notice\",\"notice\":{\"kind\":\"timeout\",\"message\":\"No response from gpt-6.1-sol in 120 s. Codex reported no error.\",\"detail\":\"Codex timed out after 120000ms\"},\"tool\":\"No response from gpt-6.1-sol in 120 s. Codex reported no error.\",\"target\":null,\"added\":null,\"removed\":null,\"exitCode\":null,\"ok\":null,\"output\":null,\"detail\":\"{\\\"kind\\\":\\\"timeout\\\",\\\"message\\\":\\\"No response from gpt-6.1-sol in 120 s. Codex reported no error.\\\",\\\"detail\\\":\\\"Codex timed out after 120000ms\\\"}\",\"durationMs\":null,\"createdAt\":\"2026-10-25T16:23:15.095Z\"}]"
+      },
+      {
+        "nombre": "invalid Codex model is classified by the real server",
+        "ok": true,
+        "detalle": "{\"error\":\"Model 'modelo-inexistente-xyz' is not available for Codex CLI.\",\"notice\":{\"kind\":\"invalid-model\",\"message\":\"Model 'modelo-inexistente-xyz' is not available for Codex CLI.\",\"detail\":\"Model \\\"modelo-inexistente-xyz\\\" is not available for the codex CLI\"}}"
+      },
+      {
+        "nombre": "classified failure is visible in the chat thread",
+        "ok": true,
+        "detalle": "Model 'modelo-inexistente-xyz' is not available for Codex CLI."
+      },
+      {
+        "nombre": "original validation detail expands",
+        "ok": true,
+        "detalle": "Model \"modelo-inexistente-xyz\" is not available for the codex CLI"
+      }
+    ],
+    "notes": [],
+    "errores": ["HTTP 502: http://127.0.0.1:60997/api/chat?project=none"],
+    "capturas": [
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-97421/chat-notices/normal-turn-no-notice.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-97421/chat-notices/invalid-model-classified.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-97421/chat-notices/invalid-model-detail.png"
+    ],
+    "sourceLog": "/tmp/CHAT.3-r2/chat-live.log",
+    "sourceResult": "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-97421/result.json"
+  },
+  {
+    "flujo": "chat-streaming",
+    "pass": true,
+    "steps": [
+      {
+        "nombre": "temporary project visible",
+        "ok": true,
+        "detalle": "orchestos-ui-mr-1-d4-tB9n1G"
+      },
+      {
+        "nombre": "Claude option available",
+        "ok": true,
+        "detalle": "Start New Chat with Agent\nConversation Topic or Title (Optional)\nProject\nNo projectorchestos-ui-mr-1-d4-tB9n1G\nSelect Agent / Engine\nClaude Code\nCodex\nOpenRouter API\nCancel\nStart Chat"
+      },
+      {
+        "nombre": "first assistant text appears before completion",
+        "ok": true,
+        "detalle": "t_first=3929 ms; t_done=6737 ms"
+      },
+      {
+        "nombre": "visible text grows at least twice before completion",
+        "ok": true,
+        "detalle": "7 growth updates (rAF); poll saw 7"
+      },
+      {
+        "nombre": "live bubble stays at the bottom",
+        "ok": true,
+        "detalle": "8 growth measurements; remained at bottom: true"
+      },
+      {
+        "nombre": "captured screenshot during active turn",
+        "ok": true,
+        "detalle": "chat-text-visible-mid-turn"
+      },
+      {
+        "nombre": "working-indicator-names-phase",
+        "ok": true,
+        "detalle": "indicator text: \"Thinking 0 s\""
+      },
+      {
+        "nombre": "working-indicator-gone",
+        "ok": true,
+        "detalle": "indicator removed after 258 ms"
+      },
+      {
+        "nombre": "one assistant bubble matches persisted response",
+        "ok": true,
+        "detalle": "bubbles=1; persisted=1; visible=uno dos tres cuatro cinco seis siete ocho nueve diez once doce trece catorce qui"
+      },
+      {
+        "nombre": "new messages enter with data-entered=animate",
+        "ok": true,
+        "detalle": "animated kinds=user,assistant; events=[{\"id\":1,\"position\":0,\"kind\":\"user\"},{\"id\":2,\"position\":1,\"kind\":\"assistant\"}]"
+      },
+      {
+        "nombre": "no message animates its entrance twice",
+        "ok": true,
+        "detalle": "events=[{\"id\":1,\"position\":0,\"kind\":\"user\"},{\"id\":2,\"position\":1,\"kind\":\"assistant\"}]"
+      },
+      {
+        "nombre": "context ring reflects thread",
+        "ok": true,
+        "detalle": "used=7141, window=1000000, pct=0.7141"
+      },
+      {
+        "nombre": "context ring recalculates on model change",
+        "ok": true,
+        "detalle": "model=claude-haiku-4-5-20251001, expected pct=3.5705, ring=Context window usage: 3.5705%"
+      },
+      {
+        "nombre": "Chat composer empty during sampled turn",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "Chat DOM order during sampled turn is previous assistant, user, live assistant",
+        "ok": true,
+        "detalle": "{\"liveCount\":1,\"order\":[\"Escribe los números del 1 al 120 en palabras, uno \",\"uno dos tres cuatro cinco seis siete ocho nueve di\",\"Escribe los números del 41 al 80 en palabras, uno \",\"cuarenta\"]}"
+      },
+      {
+        "nombre": "Chat turn 2 was sampled while pending",
+        "ok": true,
+        "detalle": "1 long turn(s) sent; pending composer and live DOM order sampled"
+      },
+      {
+        "nombre": "Chat bubbles alternate for every sent turn",
+        "ok": true,
+        "detalle": "[\"Escribe los números del 1 al 120 en palabras, uno \",\"uno dos tres cuatro cinco seis siete ocho nueve di\",\"Escribe los números del 41 al 80 en palabras, uno \",\"cuarenta cuarenta y uno cuarenta y dos cuarenta y \"]"
+      },
+      {
+        "nombre": "Chat user bubbles contain no agent text or step markup",
+        "ok": true,
+        "detalle": "user bubbles=2"
+      },
+      {
+        "nombre": "Chat exchange order remains correct after reload",
+        "ok": true,
+        "detalle": "messages=4"
+      },
+      {
+        "nombre": "thread-font-inter",
+        "ok": true,
+        "detalle": "font-family=\"Inter Variable\", system-ui, -apple-system, \"system-ui\", \"Segoe UI\", Roboto, \"Noto Sans\", Ubuntu, Cantarell, \"Helvetica Neue\", sans-serif"
+      },
+      {
+        "nombre": "thread-body-14px",
+        "ok": true,
+        "detalle": "font-size=14px"
+      },
+      {
+        "nombre": "thread-assistant-unboxed",
+        "ok": true,
+        "detalle": "ancestors=[{\"backgroundColor\":\"rgba(0, 0, 0, 0)\",\"borderTopWidth\":\"0px\",\"boxShadow\":\"none\"},{\"backgroundColor\":\"rgba(0, 0, 0, 0)\",\"borderTopWidth\":\"0px\",\"boxShadow\":\"none\"},{\"backgroundColor\":\"rgba(0, 0, 0, 0)\",\"borderTopWidth\":\"0px\",\"boxShadow\":\"none\"}]"
+      },
+      {
+        "nombre": "thread-user-bubble-visible",
+        "ok": true,
+        "detalle": "bubble={\"found\":true,\"backgroundColor\":\"oklab(0.249498 -0.00229985 -0.0147313)\",\"opaque\":true,\"userBubbleL\":20.537404286089497,\"backgroundL\":12.733002212579532,\"difference\":7.804402073509966}"
+      },
+      {
+        "nombre": "thread-no-decoration",
+        "ok": true,
+        "detalle": "animate-ping=0, gradients=0, bot-icons=0, user-icons=0"
+      },
+      {
+        "nombre": "after reload every message is static",
+        "ok": true,
+        "detalle": "modes=[\"static\",\"static\",\"static\",\"static\"]"
+      },
+      {
+        "nombre": "reduced motion: response arrives with opacity 1 and no transform within 100 ms",
+        "ok": true,
+        "detalle": "samples=[{\"kind\":\"user\",\"opacity\":\"1\",\"transform\":\"none\"},{\"kind\":\"assistant\",\"opacity\":\"1\",\"transform\":\"none\"}]"
+      },
+      {
+        "nombre": "Dev renders text during generation before completion",
+        "ok": true,
+        "detalle": "t_first=1936 ms; t_done=2839 ms; visible=uno, dos, tres, cuatro, cinco"
+      }
+    ],
+    "notes": [],
+    "errores": [],
+    "capturas": [
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-19974/chat-streaming/chat-text-visible-mid-turn.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-19974/chat-streaming/thread-hierarchy.png"
+    ],
+    "sourceLog": "/tmp/CHAT.3-r2/streaming-2.log",
+    "sourceResult": "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-19974/result.json"
+  },
+  {
+    "flujo": "chat-streaming",
+    "pass": true,
+    "steps": [
+      {
+        "nombre": "temporary project visible",
+        "ok": true,
+        "detalle": "orchestos-ui-mr-1-d4-Qs6qRy"
+      },
+      {
+        "nombre": "Claude option available",
+        "ok": true,
+        "detalle": "Start New Chat with Agent\nConversation Topic or Title (Optional)\nProject\nNo projectorchestos-ui-mr-1-d4-Qs6qRy\nSelect Agent / Engine\nClaude Code\nCodex\nOpenRouter API\nCancel\nStart Chat"
+      },
+      {
+        "nombre": "first assistant text appears before completion",
+        "ok": true,
+        "detalle": "t_first=3323 ms; t_done=6081 ms"
+      },
+      {
+        "nombre": "visible text grows at least twice before completion",
+        "ok": true,
+        "detalle": "7 growth updates (rAF); poll saw 7"
+      },
+      {
+        "nombre": "live bubble stays at the bottom",
+        "ok": true,
+        "detalle": "8 growth measurements; remained at bottom: true"
+      },
+      {
+        "nombre": "captured screenshot during active turn",
+        "ok": true,
+        "detalle": "chat-text-visible-mid-turn"
+      },
+      {
+        "nombre": "working-indicator-names-phase",
+        "ok": true,
+        "detalle": "indicator text: \"Thinking 0 s\""
+      },
+      {
+        "nombre": "working-indicator-gone",
+        "ok": true,
+        "detalle": "indicator removed after 258 ms"
+      },
+      {
+        "nombre": "one assistant bubble matches persisted response",
+        "ok": true,
+        "detalle": "bubbles=1; persisted=1; visible=uno dos tres cuatro cinco seis siete ocho nueve diez once doce trece catorce qui"
+      },
+      {
+        "nombre": "new messages enter with data-entered=animate",
+        "ok": true,
+        "detalle": "animated kinds=user,assistant; events=[{\"id\":1,\"position\":0,\"kind\":\"user\"},{\"id\":2,\"position\":1,\"kind\":\"assistant\"}]"
+      },
+      {
+        "nombre": "no message animates its entrance twice",
+        "ok": true,
+        "detalle": "events=[{\"id\":1,\"position\":0,\"kind\":\"user\"},{\"id\":2,\"position\":1,\"kind\":\"assistant\"}]"
+      },
+      {
+        "nombre": "context ring reflects thread",
+        "ok": true,
+        "detalle": "used=7143, window=1000000, pct=0.7143"
+      },
+      {
+        "nombre": "context ring recalculates on model change",
+        "ok": true,
+        "detalle": "model=claude-haiku-4-5-20251001, expected pct=3.5714999999999995, ring=Context window usage: 3.5714999999999995%"
+      },
+      {
+        "nombre": "Chat composer empty during sampled turn",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "Chat DOM order during sampled turn is previous assistant, user, live assistant",
+        "ok": true,
+        "detalle": "{\"liveCount\":1,\"order\":[\"Escribe los números del 1 al 120 en palabras, uno \",\"uno dos tres cuatro cinco seis siete ocho nueve di\",\"Escribe los números del 41 al 80 en palabras, uno \",\"cuarenta y uno cuarenta y d\"]}"
+      },
+      {
+        "nombre": "Chat turn 2 was sampled while pending",
+        "ok": true,
+        "detalle": "1 long turn(s) sent; pending composer and live DOM order sampled"
+      },
+      {
+        "nombre": "Chat bubbles alternate for every sent turn",
+        "ok": true,
+        "detalle": "[\"Escribe los números del 1 al 120 en palabras, uno \",\"uno dos tres cuatro cinco seis siete ocho nueve di\",\"Escribe los números del 41 al 80 en palabras, uno \",\"cuarenta y uno cuarenta y dos cuarenta y tres cuar\"]"
+      },
+      {
+        "nombre": "Chat user bubbles contain no agent text or step markup",
+        "ok": true,
+        "detalle": "user bubbles=2"
+      },
+      {
+        "nombre": "Chat exchange order remains correct after reload",
+        "ok": true,
+        "detalle": "messages=4"
+      },
+      {
+        "nombre": "thread-font-inter",
+        "ok": true,
+        "detalle": "font-family=\"Inter Variable\", system-ui, -apple-system, \"system-ui\", \"Segoe UI\", Roboto, \"Noto Sans\", Ubuntu, Cantarell, \"Helvetica Neue\", sans-serif"
+      },
+      {
+        "nombre": "thread-body-14px",
+        "ok": true,
+        "detalle": "font-size=14px"
+      },
+      {
+        "nombre": "thread-assistant-unboxed",
+        "ok": true,
+        "detalle": "ancestors=[{\"backgroundColor\":\"rgba(0, 0, 0, 0)\",\"borderTopWidth\":\"0px\",\"boxShadow\":\"none\"},{\"backgroundColor\":\"rgba(0, 0, 0, 0)\",\"borderTopWidth\":\"0px\",\"boxShadow\":\"none\"},{\"backgroundColor\":\"rgba(0, 0, 0, 0)\",\"borderTopWidth\":\"0px\",\"boxShadow\":\"none\"}]"
+      },
+      {
+        "nombre": "thread-user-bubble-visible",
+        "ok": true,
+        "detalle": "bubble={\"found\":true,\"backgroundColor\":\"oklab(0.249498 -0.00229985 -0.0147313)\",\"opaque\":true,\"userBubbleL\":20.537404286089497,\"backgroundL\":12.733002212579532,\"difference\":7.804402073509966}"
+      },
+      {
+        "nombre": "thread-no-decoration",
+        "ok": true,
+        "detalle": "animate-ping=0, gradients=0, bot-icons=0, user-icons=0"
+      },
+      {
+        "nombre": "after reload every message is static",
+        "ok": true,
+        "detalle": "modes=[\"static\",\"static\",\"static\",\"static\"]"
+      },
+      {
+        "nombre": "reduced motion: response arrives with opacity 1 and no transform within 100 ms",
+        "ok": true,
+        "detalle": "samples=[{\"kind\":\"user\",\"opacity\":\"1\",\"transform\":\"none\"},{\"kind\":\"assistant\",\"opacity\":\"1\",\"transform\":\"none\"}]"
+      },
+      {
+        "nombre": "Dev renders text during generation before completion",
+        "ok": true,
+        "detalle": "t_first=1930 ms; t_done=2736 ms; visible=uno, dos, tres, cuatro, cinco"
+      }
+    ],
+    "notes": [],
+    "errores": [],
+    "capturas": [
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-33488/chat-streaming/chat-text-visible-mid-turn.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-33488/chat-streaming/thread-hierarchy.png"
+    ],
+    "sourceLog": "/tmp/CHAT.3-r2/streaming-3.log",
+    "sourceResult": "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-33488/result.json"
+  },
+  {
+    "flujo": "chat-notices",
+    "pass": false,
+    "steps": [
+      {
+        "nombre": "normal Codex turn completes",
+        "ok": false,
+        "detalle": "{\"error\":\"No response from gpt-6.1-sol in 120 s. Codex reported no error.\",\"notice\":{\"kind\":\"timeout\",\"message\":\"No response from gpt-6.1-sol in 120 s. Codex reported no error.\",\"detail\":\"Codex timed out after 120000ms\"}}"
+      },
+      {
+        "nombre": "normal Codex turn shows no failure notice",
+        "ok": false,
+        "detalle": "[{\"seq\":1,\"type\":\"notice\",\"notice\":{\"kind\":\"timeout\",\"message\":\"No response from gpt-6.1-sol in 120 s. Codex reported no error.\",\"detail\":\"Codex timed out after 120000ms\"},\"tool\":\"No response from gpt-6.1-sol in 120 s. Codex reported no error.\",\"target\":null,\"added\":null,\"removed\":null,\"exitCode\":null,\"ok\":null,\"output\":null,\"detail\":\"{\\\"kind\\\":\\\"timeout\\\",\\\"message\\\":\\\"No response from gpt-6.1-sol in 120 s. Codex reported no error.\\\",\\\"detail\\\":\\\"Codex timed out after 120000ms\\\"}\",\"durationMs\":null,\"createdAt\":\"2026-10-25T16:25:45.432Z\"}]"
+      },
+      {
+        "nombre": "invalid Codex model is classified by the real server",
+        "ok": true,
+        "detalle": "{\"error\":\"Model 'modelo-inexistente-xyz' is not available for Codex CLI.\",\"notice\":{\"kind\":\"invalid-model\",\"message\":\"Model 'modelo-inexistente-xyz' is not available for Codex CLI.\",\"detail\":\"Model \\\"modelo-inexistente-xyz\\\" is not available for the codex CLI\"}}"
+      },
+      {
+        "nombre": "classified failure is visible in the chat thread",
+        "ok": true,
+        "detalle": "Model 'modelo-inexistente-xyz' is not available for Codex CLI."
+      },
+      {
+        "nombre": "original validation detail expands",
+        "ok": true,
+        "detalle": "Model \"modelo-inexistente-xyz\" is not available for the codex CLI"
+      }
+    ],
+    "notes": [],
+    "errores": ["HTTP 502: http://127.0.0.1:61606/api/chat?project=none"],
+    "capturas": [
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-83634/chat-notices/normal-turn-no-notice.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-83634/chat-notices/invalid-model-classified.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-83634/chat-notices/invalid-model-detail.png"
+    ],
+    "sourceLog": "/tmp/CHAT.3-r2/notices-retry.log",
+    "sourceResult": "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-83634/result.json"
+  }
+]

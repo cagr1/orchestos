@@ -153,9 +153,18 @@ async function preserveCodexHome(base) {
   if (!response.ok) throw new Error(`projects returned HTTP ${response.status}`)
   const projects = await response.json()
   const prefix = `${path.resolve(os.tmpdir())}${path.sep}orchestos-ui-`
+  // General chat uses homedir(), not ORCHESTOS_HOME (codex.ts:runCodexChat).
+  const homes = [
+    { source: path.join(os.homedir(), '.orchestos', 'general-chat'), name: 'general-chat' },
+  ]
   for (const project of Array.isArray(projects) ? projects : []) {
     if (typeof project.path !== 'string' || !path.resolve(project.path).startsWith(prefix)) continue
-    const codexHome = path.join(project.path, '.orchestos', 'agent-home', 'codex')
+    homes.push({
+      source: path.join(project.path, '.orchestos', 'agent-home', 'codex'),
+      name: project.id,
+    })
+  }
+  for (const { source: codexHome, name } of homes) {
     for (const directory of ['log', 'sessions']) {
       const source = path.join(codexHome, directory)
       try {
@@ -164,7 +173,7 @@ async function preserveCodexHome(base) {
         if (error.code === 'ENOENT') continue
         throw error
       }
-      await fsp.cp(source, path.join(runDir, 'codex-home', directory), { recursive: true })
+      await fsp.cp(source, path.join(runDir, 'codex-home', name, directory), { recursive: true })
     }
   }
 }

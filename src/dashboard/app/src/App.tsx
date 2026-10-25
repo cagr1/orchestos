@@ -1033,7 +1033,21 @@ export default function App() {
         void refreshUsage()
         return true
       })
-      .catch((error) => {
+      .catch(async (error) => {
+        if (error.notice) {
+          const messages = await loadThreadMessages(threadId, thread?.projectId)
+          if (
+            messages.some((message) =>
+              message.notices?.some((notice) => notice.message === error.notice.message),
+            )
+          ) {
+            setThreads((prev) =>
+              prev.map((item) => (item.id === threadId ? { ...item, messages } : item)),
+            )
+            void refreshUsage()
+            return false
+          }
+        }
         if (attachments?.length) {
           sentAttachments.current.set(
             threadId,

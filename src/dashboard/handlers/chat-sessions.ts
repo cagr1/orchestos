@@ -355,6 +355,7 @@ export function handleApiChatSessionTimeline(url: URL): Response {
         .map((step) => ({
           seq: step.seq,
           type: step.type,
+          ...(step.type === 'notice' && step.detail ? { notice: JSON.parse(step.detail) } : {}),
           tool: step.tool,
           target: step.target,
           added: step.added,

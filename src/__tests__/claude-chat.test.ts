@@ -528,3 +528,47 @@ describe('runClaudeChat (CC.1)', () => {
     expect(spawnCalls).toHaveLength(0)
   })
 })
+
+describe('CHAT.3 Claude API failure fixtures', () => {
+  it('subtype success with is_error and assistant model_not_found still fails with classified detail', async () => {
+    const detail =
+      "There's an issue with the selected model (modelo-inexistente-xyz). It may not exist or you may not have access to it. Run --model to pick a different model."
+    overrideBunSpawn(
+      makeMockProc(
+        streamOf(
+          {
+            type: 'assistant',
+            error: 'model_not_found',
+            api_error_status: '404',
+            is_api_error_message: true,
+            message: { model: '<synthetic>' },
+          },
+          {
+            type: 'result',
+            subtype: 'success',
+            is_error: true,
+            terminal_reason: 'api_error',
+            api_error_status: '404',
+            result: detail,
+          },
+        ),
+      ),
+    )
+    const steps: import('../run/executors/step-event.ts').ExecutorStepEvent[] = []
+    const error = await runClaudeChat(
+      '/tmp/p',
+      'sys',
+      'msg',
+      5000,
+      'modelo-inexistente-xyz',
+      undefined,
+      (step) => steps.push(step),
+    ).catch((error) => error)
+    expect(error.notice).toEqual({
+      kind: 'invalid-model',
+      message: "Model 'modelo-inexistente-xyz' is not available for Claude Code CLI.",
+      detail,
+    })
+    expect(steps[0]?.notice?.kind).toBe('invalid-model')
+  })
+})

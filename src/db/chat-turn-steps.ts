@@ -1,3 +1,4 @@
+import type { CliNotice } from '../run/executors/cli-failure.ts'
 import { db } from './sqlite.ts'
 
 interface ChatTurnStepRecord {
@@ -5,7 +6,7 @@ interface ChatTurnStepRecord {
   session_id: string
   turn_id: string
   seq: number
-  type: 'tool_use' | 'text' | 'step_finish' | 'reasoning'
+  type: 'tool_use' | 'text' | 'step_finish' | 'reasoning' | 'notice'
   tool: string | null
   target: string | null
   added: number | null
@@ -23,6 +24,7 @@ interface InsertChatTurnStepInput {
   turnId: string
   seq: number
   type: ChatTurnStepRecord['type']
+  notice?: CliNotice
   tool?: string
   target?: string
   added?: number
@@ -54,7 +56,7 @@ export function insertChatTurnStep(input: InsertChatTurnStepInput): ChatTurnStep
       input.exitCode ?? null,
       input.ok === undefined ? null : input.ok ? 1 : 0,
       input.output?.slice(0, OUTPUT_MAX) ?? null,
-      input.detail?.slice(0, OUTPUT_MAX) ?? null,
+      input.notice ? JSON.stringify(input.notice) : (input.detail?.slice(0, OUTPUT_MAX) ?? null),
       input.durationMs ?? null,
       createdAt,
     ],

@@ -22,7 +22,13 @@ export function formatDuration(ms: number): string {
 
 export function livePhase(turn: TimelineTurn | undefined, hasLiveText: boolean): string {
   const steps = turn ? [...turn.steps].sort((a, b) => a.seq - b.seq) : []
-  const last = steps[steps.length - 1]
+  const waiting = steps.find((step) => step.notice?.kind === 'no-response')
+  const responded = steps.some((step) => step.type !== 'notice' && step.seq > (waiting?.seq ?? -1))
+  const reportedError = steps.some((step) => step.notice && step.notice.kind !== 'no-response')
+  if (waiting?.notice && !responded && !reportedError && !hasLiveText) {
+    return `${waiting.notice.message} — ${waiting.notice.detail}`
+  }
+  const last = steps.filter((step) => step.type !== 'notice').pop()
   if (last?.type === 'tool_use' && last.ok === null) return `Running ${last.tool ?? 'tool'}`
   return hasLiveText ? 'Writing' : 'Thinking'
 }

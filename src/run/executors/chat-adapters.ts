@@ -4,6 +4,7 @@ import { decideClaudeResume } from '../../chat/claude-resume.ts'
 import { getClaudeChatSession, setClaudeChatSession } from '../../db/chat-sessions.ts'
 import type { McpOffer } from '../../mcp/adapters.ts'
 import { type ReadAudit, uninstrumentedReadAudit } from '../read-audit.ts'
+import { CliFailure, type CliNotice, cliFailureNotice } from './cli-failure.ts'
 import { KNOWN_CLIS } from './cli-registry.ts'
 import { CODEX_CHAT_EFFORT_LEVELS, runCodexChat } from './codex.ts'
 import { CLAUDE_CLI_EFFORTS, ClaudeSessionNotFoundError, runClaudeChat } from './external.ts'
@@ -70,7 +71,11 @@ export interface CliChatAdapter {
   validateModel: (model: string | undefined, models: readonly { id: string }[]) => string | null
   runTurn: (input: CliTurnInput) => Promise<CliTurnResult>
   runRole: (input: CliRoleInput) => Promise<CliRoleResult>
-  failure: (error: Error & { readAudit?: ReadAudit }) => {
+  failure: (
+    error: Error & { readAudit?: ReadAudit },
+    model?: string,
+  ) => {
+    notice?: CliNotice
     message: string
     record?: { error: string; readAudit: ReadAudit }
   }
@@ -180,8 +185,13 @@ registerCliChatAdapter('claude', {
       },
     }
   },
-  failure: (e) => ({
-    message: `Claude Code CLI: ${e.message}`,
+  failure: (e, model) => ({
+    message: (e instanceof CliFailure
+      ? e.notice
+      : cliFailureNotice(e.message, 'Claude Code CLI', model)
+    ).message,
+    notice:
+      e instanceof CliFailure ? e.notice : cliFailureNotice(e.message, 'Claude Code CLI', model),
     record: e.readAudit
       ? { error: `Claude stream failed: ${e.message}`, readAudit: e.readAudit }
       : undefined,
@@ -231,8 +241,10 @@ registerCliChatAdapter('codex', {
       cliSessionId: result.threadId,
     }
   },
-  failure: (e) => ({
-    message: `Codex CLI: ${e.message}`,
+  failure: (e, model) => ({
+    message: (e instanceof CliFailure ? e.notice : cliFailureNotice(e.message, 'Codex CLI', model))
+      .message,
+    notice: e instanceof CliFailure ? e.notice : cliFailureNotice(e.message, 'Codex CLI', model),
     record: { error: `Codex CLI failed: ${e.message}`, readAudit: uninstrumentedReadAudit() },
   }),
 })

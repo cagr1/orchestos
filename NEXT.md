@@ -50,6 +50,10 @@ todas, fuera solo el duplicado `skills/pro/api-contract.yaml`).
   tras UI.24.4.
 
 ## Trampas vivas
+- `gate:evidence` migra la DB durable (`scripts/run-evidence-gate.ts:116`) antes de exportar: una migración sin
+  commitear se aplica a `~/.orchestos/db.sqlite` de Carlos (pasó con la 32 de CHAT.3, 2026-10-25; DB íntegra).
+- Silencio de Codex sin eventos = casi siempre 429 con reintento largo; el motivo está en `$CODEX_HOME/logs_2.sqlite`
+  (CHAT.3 lo muestra en el chat). No es un fallo de OrchestOS.
 - Cierre de ítem (gates de `PLAN.md`, 2026-10-23): (1) el ítem debe existir `[ ]` en HEAD antes del commit que lo
   marca `[x]` (`closedPlanItemIds`); (2) `plan:reconcile` una sola vez por cierre: si ya quedó `done` en la DB sin
   commit, reabrir `[ ]` → reconcile → `[x]` → reconcile; (3) la ruta de evidencia entre backticks va en la MISMA
