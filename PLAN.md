@@ -228,6 +228,12 @@ Regla: nada se reintenta, cierra ni muestra sin evidencia medida que el usuario 
   Cierre (cerebro, `gh run view 39983853493`, success): executors-codex-engines 122, executors-routing 117,
   executors-engines 115, executors-codex-server 110, runtime-boundaries 74, context-routing 24 min; todos < 180.
   Ejecutado por: Sol (arreglo `f75e8524`) · cierre y medición: Opus
+- [ ] **CHAT.3 — 🔍 Si el modelo no responde, el chat dice por qué, en el momento.** (abierto 2026-10-25, pedido de
+  Carlos tras CI.11) Hoy el aviso de reintento de Codex (`error` con `willRetry`) se descarta, la cuota agotada
+  (`account/rateLimits/updated`) no se muestra, no hay clasificación de errores (cuota, auth, red, sobrecarga, modelo
+  inválido) y al timeout el hilo enseña el texto crudo `Codex CLI: Codex timed out after 120000ms`. Capa común de
+  avisos + adaptador por CLI (Codex, Claude). Spec: docs/specs/CHAT.3.md
+
 - [x] **CHAT.2 — 🔍 El prompt del chat no explica comandos, espera de tareas, checks ni reintentos.** Cerrado 2026-10-24.
   GO de Carlos 2026-10-24. Cuatro ajustes de texto: `Commands:` son de los ejecutores; `create_task` arranca o espera
   (manual / archivos existentes); qué son los checks automáticos; reintentar/cancelar/borrar van por la tarjeta.
