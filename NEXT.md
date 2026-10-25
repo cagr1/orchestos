@@ -1,4 +1,4 @@
-# NEXT — handoff 2026-10-23 noche (corte: índice de git, copiar en Dev, config y prompt del chat)
+# NEXT — handoff 2026-10-25 (corte: UI.29/30, CI.42, CHAT.2, SKILLS.1)
 
 Un solo presente: orden y trampas vivas. Lo cerrado vive en `docs/done/bloque-*.md`, `PLAN.md` y git (regla `AGENTS.md`
 § Reglas generales, 2026-10-19: `NEXT.md` se toca solo al cerrar o cortar un lote). Arranque:
@@ -38,6 +38,9 @@ todas, fuera solo el duplicado `skills/pro/api-contract.yaml`).
 1. Fiabilidad, con cupo de Codex (CI.11 es latencia de Codex): CI.11; CI.19 espera el próximo fallo para la fase 2.
 2. Ejecutor de tareas para otro CLI = entrada en `KNOWN_CLIS` + `registerTaskEngine`, solo con el CLI instalado y
    verificable en vivo.
+- Trampa: al cerrar un ítem, `plan:reconcile` una sola vez antes del commit. Un segundo reconcile ve el ítem ya
+  `done` sin commit que lo pruebe y falla ("Could not prove a closing commit SHA"); se arregla volviendo a reconciliar
+  desde `git show HEAD:PLAN.md` y luego el PLAN.md nuevo.
 - Anotado, sin ítem: `pickAutoSkill` elige una skill `explicit` si es candidata única (`chat.ts:791`,
   `verification-before-completion`) y `src/tasks/init.ts:71` genera `skill_id` `doc`/`implement` sin YAML — Carlos no
   los priorizó (2026-10-24); el revisor elige su ventana cortando en el primer tramo que no cabe; `permissions` parpadea a
