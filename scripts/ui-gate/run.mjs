@@ -148,6 +148,27 @@ async function waitForHealth(base) {
   return false
 }
 
+async function preserveCodexHome(base) {
+  const response = await fetch(`${base}/api/projects`)
+  if (!response.ok) throw new Error(`projects returned HTTP ${response.status}`)
+  const projects = await response.json()
+  const prefix = `${path.resolve(os.tmpdir())}${path.sep}orchestos-ui-`
+  for (const project of Array.isArray(projects) ? projects : []) {
+    if (typeof project.path !== 'string' || !path.resolve(project.path).startsWith(prefix)) continue
+    const codexHome = path.join(project.path, '.orchestos', 'agent-home', 'codex')
+    for (const directory of ['log', 'sessions']) {
+      const source = path.join(codexHome, directory)
+      try {
+        await fsp.access(source)
+      } catch (error) {
+        if (error.code === 'ENOENT') continue
+        throw error
+      }
+      await fsp.cp(source, path.join(runDir, 'codex-home', directory), { recursive: true })
+    }
+  }
+}
+
 async function runFlow(name, base, port) {
   const result = { flujo: name, pass: false, steps: [], notes: [], errores: [], capturas: [] }
   const sourcePath = path.resolve('scripts/ui-gate/flows', `${name}.mjs`)
@@ -268,6 +289,16 @@ async function runFlow(name, base, port) {
       }
     }
   } finally {
+    // Preserve Codex's own diagnostics before the flow removes its temporary project.
+    if (!result.pass) {
+      try {
+        await preserveCodexHome(base)
+      } catch (error) {
+        result.errores.push(
+          `Codex evidence copy failed: ${error instanceof Error ? error.message : String(error)}`,
+        )
+      }
+    }
     if (process.env.ORCHESTOS_GATE_EVIDENCE_HOME) {
       try {
         const databasePathLiteral = JSON.stringify(databasePath)

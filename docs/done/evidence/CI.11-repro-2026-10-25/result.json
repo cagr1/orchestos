@@ -1,0 +1,81 @@
+[
+  {
+    "flujo": "codex-live",
+    "pass": false,
+    "steps": [
+      {
+        "nombre": "temporary project visible",
+        "ok": true,
+        "detalle": "orchestos-ui-codex-live-fHFqGk"
+      },
+      {
+        "nombre": "Codex agent available",
+        "ok": true,
+        "detalle": "Codex option"
+      },
+      {
+        "nombre": "turn 1 user message appears before completion",
+        "ok": true,
+        "detalle": "31 ms after send"
+      },
+      {
+        "nombre": "turn 1 streams multiple visible text updates",
+        "ok": true,
+        "detalle": "32 distinct non-empty samples before completion"
+      },
+      {
+        "nombre": "turn 1 working indicator stops after completion",
+        "ok": true,
+        "detalle": "0 working indicators remain"
+      },
+      {
+        "nombre": "turn 2 remembers the word from turn 1",
+        "ok": false,
+        "detalle": "no second response"
+      },
+      {
+        "nombre": "turn 2 working indicator stops after completion",
+        "ok": true,
+        "detalle": "0 working indicators remain"
+      },
+      {
+        "nombre": "both exchanges remain visible in order after turn 2",
+        "ok": false,
+        "detalle": "user bubbles=1; assistant bubbles=1; first answer=I'll remember MANGO-S9OQE45K during this conversation. Mangoes are tropical frui"
+      },
+      {
+        "nombre": "timeline DOM alternates user 1, assistant 1, user 2, assistant 2",
+        "ok": false,
+        "detalle": "[\"10:08 AM\\nRemember the word MANGO-S9OQE45K. Reply i\",\"I’ll remember MANGO-S9OQE45K during this conversat\"]; first answer=I'll remember MANGO-S9OQE45K during this conversation. Mangoes are tropical frui"
+      },
+      {
+        "nombre": "user bubbles contain no agent markup or response text",
+        "ok": false,
+        "detalle": "1 user bubbles checked; first answer=I'll remember MANGO-S9OQE45K during this conversation. Mangoes are tropical frui"
+      },
+      {
+        "nombre": "timeline DOM alternates user 1, assistant 1, user 2, assistant 2 after reload",
+        "ok": false,
+        "detalle": "user bubbles=1; assistant bubbles=1; first answer=I'll remember MANGO-S9OQE45K during this conversation. Mangoes are tropical frui"
+      },
+      {
+        "nombre": "turn 2 is faster than turn 1",
+        "ok": false,
+        "detalle": "{\"turn1\":18608,\"turn2\":null,\"codexTurn\":[\"[chat-turn] {\\\"event\\\":\\\"received\\\",\\\"sessionId\\\":\\\"2f5a5a96-b784-49e9-9789-13f99c2708eb\\\",\\\"agent\\\":\\\"codex\\\",\\\"model\\\":\\\"gpt-6.1-sol\\\",\\\"messageChars\\\":78}\",\"[codex-turn] {\\\"event\\\":\\\"thread-start\\\",\\\"threadId\\\":\\\"01a1739a-d0ab-7370-983c-f89d2c34c207\\\",\\\"ms\\\":822}\",\"[codex-turn] {\\\"event\\\":\\\"turn-start\\\",\\\"threadId\\\":\\\"01a1739a-d0ab-7370-983c-f89d2c34c207\\\",\\\"ms\\\":827}\",\"[codex-turn] {\\\"event\\\":\\\"first-delta\\\",\\\"threadId\\\":\\\"01a1739a-d0ab-7370-983c-f89d2c34c207\\\",\\\"ms\\\":8605}\",\"[codex-turn] {\\\"event\\\":\\\"turn-completed\\\",\\\"threadId\\\":\\\"01a1739a-d0ab-7370-983c-f89d2c34c207\\\",\\\"ms\\\":18534}\",\"[chat-turn] {\\\"event\\\":\\\"received\\\",\\\"sessionId\\\":\\\"2f5a5a96-b784-49e9-9789-13f99c2708eb\\\",\\\"agent\\\":\\\"codex\\\",\\\"model\\\":\\\"gpt-6.1-sol\\\",\\\"messageChars\\\":99}\",\"[codex-turn] {\\\"event\\\":\\\"turn-start\\\",\\\"threadId\\\":\\\"01a1739a-d0ab-7370-983c-f89d2c34c207\\\",\\\"ms\\\":12}\",\"[codex-turn] {\\\"event\\\":\\\"turn-error\\\",\\\"threadId\\\":\\\"01a1739a-d0ab-7370-983c-f89d2c34c207\\\",\\\"ms\\\":120023,\\\"kind\\\":\\\"error\\\",\\\"name\\\":\\\"Error\\\"}\"]}"
+      },
+      {
+        "nombre": "project chat runs are recorded with provider=codex",
+        "ok": true,
+        "detalle": "[{\"provider\":\"codex\",\"model\":\"gpt-6.1-sol\"},{\"provider\":\"codex\",\"model\":\"gpt-6.1-sol\"}]"
+      }
+    ],
+    "notes": [],
+    "errores": [
+      "HTTP 502: http://127.0.0.1:56217/api/chat"
+    ],
+    "capturas": [
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-65894/codex-live/codex-live-turn-one.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-65894/codex-live/codex-live-turn-two.png"
+    ]
+  }
+]

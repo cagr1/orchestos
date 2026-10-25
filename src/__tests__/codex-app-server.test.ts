@@ -160,7 +160,13 @@ describe('Codex app-server', () => {
         firstPhases.map((phase) => phase.ms).sort((a, b) => a - b),
       )
       expect(
-        firstPhases.every((phase) => Object.keys(phase).sort().join(',') === 'event,ms,threadId'),
+        firstPhases.every(
+          (phase) =>
+            Object.keys(phase).sort().join(',') ===
+            (['turn-completed', 'turn-error'].includes(phase.event)
+              ? 'dropped,event,ms,notifications,stderrBytes,stdoutBytes,threadId'
+              : 'event,ms,threadId'),
+        ),
       ).toBe(true)
       log.mockClear()
       const second = await server.turn({
@@ -190,6 +196,122 @@ describe('Codex app-server', () => {
       expect(calls.filter((x) => x.method === 'turn/start')[1].params.input).toEqual([
         { type: 'text', text: 'second' },
       ])
+    } finally {
+      log.mockRestore()
+      server.kill()
+    }
+  })
+
+  test('drains large chat stderr and counts bytes per turn without logging its text', async () => {
+    let child: ReturnType<typeof fakeProcess>
+    let turn = 0
+    const payload = Buffer.alloc(256 * 1024, 'x')
+    const server = new CodexAppServer({
+      binary: 'codex',
+      env: {},
+      store: store().api,
+      spawnProcess: () => {
+        child = fakeProcess((request, stdout) => {
+          if (request.method === 'initialize') reply(stdout, request, {})
+          if (request.method === 'thread/start') reply(stdout, request, { thread: { id: 't' } })
+          if (request.method === 'turn/start') {
+            const id = `u-${++turn}`
+            reply(stdout, request, { turn: { id } })
+            setTimeout(() => {
+              child.stderr.write(payload, () => {
+                stdout.write(
+                  `${JSON.stringify({ method: 'turn/completed', params: { threadId: 't', turn: { id, status: 'completed' } } })}\n`,
+                )
+              })
+            }, 0)
+          }
+        })
+        return child
+      },
+    })
+    const log = spyOn(console, 'error').mockImplementation(() => {})
+    try {
+      for (let i = 0; i < 2; i++)
+        await server.turn({
+          sessionId: 's',
+          cwd: '/p',
+          systemPrompt: 'rules',
+          message: 'm',
+          timeoutMs: 1000,
+        })
+      const phases = log.mock.calls
+        .filter(([line]) => String(line).startsWith('[codex-turn] '))
+        .map(([line]) => JSON.parse(String(line).replace('[codex-turn] ', '')))
+      const completed = phases.filter((phase) => phase.event === 'turn-completed')
+      expect(completed).toHaveLength(2)
+      for (const phase of completed) {
+        expect(phase.stderrBytes).toBe(payload.length)
+        expect(phase.stdoutBytes).toBeGreaterThan(0)
+        expect(phase.notifications).toEqual({ 'turn/completed': 1 })
+        expect(phase.dropped).toEqual({})
+      }
+      expect(JSON.stringify(phases)).not.toContain('xxxxxxxx')
+    } finally {
+      log.mockRestore()
+      server.kill()
+    }
+  })
+
+  test('counts foreign turn deltas before filtering and keeps them out of the callback', async () => {
+    const server = new CodexAppServer({
+      binary: 'codex',
+      env: {},
+      store: store().api,
+      spawnProcess: () =>
+        fakeProcess((request, stdout) => {
+          if (request.method === 'initialize') reply(stdout, request, {})
+          if (request.method === 'thread/start') reply(stdout, request, { thread: { id: 't' } })
+          if (request.method === 'turn/start') {
+            reply(stdout, request, { turn: { id: 'u' } })
+            setTimeout(() => {
+              const send = (method: string, params: unknown) =>
+                stdout.write(`${JSON.stringify({ method, params })}\n`)
+              send('item/agentMessage/delta', {
+                threadId: 't',
+                turnId: 'foreign',
+                delta: 'private foreign text',
+              })
+              send('item/agentMessage/delta', {
+                threadId: 'other',
+                turnId: 'u',
+                delta: 'other thread',
+              })
+              send('item/agentMessage/delta', { threadId: 't', turnId: 'u', delta: 123 })
+              send('item/agentMessage/delta', { threadId: 't', turnId: 'u', delta: 'ok' })
+              send('turn/completed', { threadId: 't', turn: { id: 'u', status: 'completed' } })
+            }, 0)
+          }
+        }),
+    })
+    const log = spyOn(console, 'error').mockImplementation(() => {})
+    const deltas: string[] = []
+    try {
+      const result = await server.turn({
+        sessionId: 's',
+        cwd: '/p',
+        systemPrompt: 'rules',
+        message: 'm',
+        timeoutMs: 1000,
+        onDelta: (delta) => deltas.push(delta),
+      })
+      expect(deltas).toEqual(['ok'])
+      expect(result.text).toBe('ok')
+      const completed = log.mock.calls
+        .filter(([line]) => String(line).startsWith('[codex-turn] '))
+        .map(([line]) => JSON.parse(String(line).replace('[codex-turn] ', '')))
+        .find((phase) => phase.event === 'turn-completed')
+      expect(completed.notifications).toEqual({ 'item/agentMessage/delta': 4, 'turn/completed': 1 })
+      expect(completed.dropped).toEqual({
+        'turnId-mismatch': 1,
+        'no-state': 1,
+        'no-delta-string': 1,
+      })
+      expect(JSON.stringify(completed)).not.toContain('private foreign text')
     } finally {
       log.mockRestore()
       server.kill()

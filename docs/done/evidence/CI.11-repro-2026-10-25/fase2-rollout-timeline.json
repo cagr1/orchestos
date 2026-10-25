@@ -1,0 +1,137 @@
+[
+ {
+  "ts": "2026-10-25T15:24:40.960Z",
+  "type": "session_meta",
+  "event": null
+ },
+ {
+  "ts": "2026-10-25T15:24:40.960Z",
+  "type": "event_msg",
+  "event": "task_started"
+ },
+ {
+  "ts": "2026-10-25T15:24:42.901Z",
+  "type": "response_item",
+  "event": "additional_tools"
+ },
+ {
+  "ts": "2026-10-25T15:24:42.901Z",
+  "type": "response_item",
+  "event": "message"
+ },
+ {
+  "ts": "2026-10-25T15:24:42.901Z",
+  "type": "response_item",
+  "event": "message"
+ },
+ {
+  "ts": "2026-10-25T15:24:42.901Z",
+  "type": "response_item",
+  "event": "message"
+ },
+ {
+  "ts": "2026-10-25T15:24:42.901Z",
+  "type": "response_item",
+  "event": "message"
+ },
+ {
+  "ts": "2026-10-25T15:24:42.901Z",
+  "type": "response_item",
+  "event": "message"
+ },
+ {
+  "ts": "2026-10-25T15:24:42.903Z",
+  "type": "world_state",
+  "event": null
+ },
+ {
+  "ts": "2026-10-25T15:24:42.904Z",
+  "type": "turn_context",
+  "event": null
+ },
+ {
+  "ts": "2026-10-25T15:24:42.904Z",
+  "type": "event_msg",
+  "event": "thread_settings_applied"
+ },
+ {
+  "ts": "2026-10-25T15:24:42.906Z",
+  "type": "response_item",
+  "event": "message"
+ },
+ {
+  "ts": "2026-10-25T15:24:42.907Z",
+  "type": "event_msg",
+  "event": "item_completed"
+ },
+ {
+  "ts": "2026-10-25T15:26:40.802Z",
+  "type": "response_item",
+  "event": "message"
+ },
+ {
+  "ts": "2026-10-25T15:26:40.809Z",
+  "type": "event_msg",
+  "event": "turn_aborted"
+ },
+ {
+  "ts": "2026-10-25T15:27:43.477Z",
+  "type": "event_msg",
+  "event": "thread_settings_applied"
+ },
+ {
+  "ts": "2026-10-25T15:27:43.483Z",
+  "type": "event_msg",
+  "event": "task_started"
+ },
+ {
+  "ts": "2026-10-25T15:27:43.580Z",
+  "type": "response_item",
+  "event": "message"
+ },
+ {
+  "ts": "2026-10-25T15:27:43.581Z",
+  "type": "world_state",
+  "event": null
+ },
+ {
+  "ts": "2026-10-25T15:27:43.582Z",
+  "type": "turn_context",
+  "event": null
+ },
+ {
+  "ts": "2026-10-25T15:27:43.586Z",
+  "type": "response_item",
+  "event": "message"
+ },
+ {
+  "ts": "2026-10-25T15:27:43.587Z",
+  "type": "event_msg",
+  "event": "item_completed"
+ },
+ {
+  "ts": "2026-10-25T15:28:15.197Z",
+  "type": "event_msg",
+  "event": "item_completed"
+ },
+ {
+  "ts": "2026-10-25T15:28:15.204Z",
+  "type": "response_item",
+  "event": "message"
+ },
+ {
+  "ts": "2026-10-25T15:28:16.381Z",
+  "type": "token_usage_record",
+  "event": null
+ },
+ {
+  "ts": "2026-10-25T15:28:16.382Z",
+  "type": "event_msg",
+  "event": "token_count"
+ },
+ {
+  "ts": "2026-10-25T15:28:16.386Z",
+  "type": "event_msg",
+  "event": "task_complete"
+ }
+]

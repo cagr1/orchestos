@@ -249,7 +249,7 @@ Regla: nada se reintenta, cierra ni muestra sin evidencia medida que el usuario 
   Aporte no demostrable (muestras < 10, sin control). Hallazgos: `skills/pro/api-contract.yaml` idéntica (`cmp`) a la
   normal y sombreada; `pickAutoSkill` elige una skill `explicit` si es candidata única (`verification-before-completion`).
   Ejecutado por: codex gpt-6.1-sol (analizar), verificación Opus · Spec: docs/specs/SKILLS.1.md (borrado)
-- [ ] **CI.11 — 🔍 El turno 2 de Codex en `codex-live` tardó 180 s contra 22 s del turno 1.** (abierto 2026-10-03)
+- [x] **CI.11 — 🔍 El turno 2 de Codex en `codex-live` tardó 180 s contra 22 s del turno 1.** (abierto 2026-10-03, cerrado 2026-10-25)
   Visto una vez en la corrida completa de ui-gates (`$TMPDIR/ui-gate-73235/result.json`, paso "turn 2 is faster than
   turn 1": 22141 ms vs 180113 ms, el timeout del flujo). Sin verificar si es latencia del modelo o un cuelgue al
   retomar el thread. Señalado por la QA de Sol: sacar el flujo del pre-push no puede silenciar este detector.
@@ -260,6 +260,16 @@ Regla: nada se reintenta, cierra ni muestra sin evidencia medida que el usuario 
   `turn-completed`, `turn-error` con solo `kind`/`method`/`name`, sin texto del error: QA de Sol mostró que un error
   remoto puede repetir el chat) y el paso `turn 2 is faster than turn 1` vuelca esas líneas si falla. Abierto hasta el
   próximo fallo: leer en qué fase se fue el tiempo. Ejecutado por: GPT (criterio-alt + mecanico), QA: GPT (qa).
+  Fase 2 (2026-10-25, causa medida): reproducido 2 veces en 6 corridas, en turno 2 y en turno 1. Hipótesis de stderr
+  sin drenar (`codex-app-server.ts:99`, solo `taskTurn()` lo drenaba) refutada: con stderr drenado volvió a fallar y
+  `stderrBytes` fue 0. En el fallo el cliente no descartó nada (`dropped: {}`); Codex emitió `turn/started` e
+  `item/completed` del mensaje del usuario y después nada. El rollout de Codex muestra la petición al modelo a las
+  15:24:42 sin respuesta hasta el abort a las 15:26:40 (ni `token_count`): **latencia del backend del modelo, no de
+  OrchestOS.** Queda: stderr drenado siempre, `[codex-turn]` con `notifications`/`dropped`/`stdoutBytes`/`stderrBytes`
+  por turno, y `ui-gate` conserva `log/` y `sessions/` del home de Codex si un flujo falla. Qué hace el producto ante
+  ese silencio (aviso honesto, margen) es decisión de Carlos, fuera de este ítem.
+  Gate en vivo: `codex-live` 3 corridas (PASS/FAIL/PASS), `docs/done/evidence/CI.11-repro-2026-10-25/fase2-codex-turn.log`
+  Ejecutado por: codex gpt-6.1-sol (criterio), revisión Opus · Spec: docs/specs/CI.11.md
 
 - [x] **CI.18 — 🔍 `chat-roles` intermitente en el pre-push completo (3.ª vez, 2026-10-11).** (cerrado 2026-10-23) Instrumentar el paso del
   marcador y medir la causa antes de arreglar. Spec: docs/specs/CI.18.md

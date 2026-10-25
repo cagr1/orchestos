@@ -17,6 +17,21 @@ type JsonRpcMessage = {
   error?: { code?: number; message?: string; data?: unknown }
 }
 type Child = ChildProcessWithoutNullStreams
+type TurnDiagnostics = {
+  notifications: Record<string, number>
+  dropped: Record<string, number>
+  stdoutBytes: number
+  stderrBytes: number
+}
+
+function turnDiagnostics(): TurnDiagnostics {
+  return {
+    notifications: Object.create(null),
+    dropped: Object.create(null),
+    stdoutBytes: 0,
+    stderrBytes: 0,
+  }
+}
 
 class CodexAppServerError extends Error {
   constructor(
@@ -84,6 +99,7 @@ export class CodexAppServer {
       onStep?: (event: ExecutorStepEvent) => void
       logPhase?: (event: string) => void
       firstDelta?: boolean
+      diagnostics: TurnDiagnostics
       finish: (error?: Error) => void
     }
   >()
@@ -103,6 +119,14 @@ export class CodexAppServer {
     if (this.child && this.ready) return this.ready
     this.resumed.clear()
     this.child = this.spawnProcess(this.options.binary, this.options.env)
+    this.child.stderr.on('data', (chunk) => {
+      for (const state of this.turns.values())
+        state.diagnostics.stderrBytes += Buffer.byteLength(chunk)
+    })
+    this.child.stdout.on('data', (chunk) => {
+      for (const state of this.turns.values())
+        state.diagnostics.stdoutBytes += Buffer.byteLength(chunk)
+    })
     this.reader = createInterface({ input: this.child.stdout })
     this.reader.on('line', (line) => this.receive(line))
     this.child.on('error', (error) =>
@@ -290,6 +314,7 @@ export class CodexAppServer {
     threadId: string | null,
     startedAt: number,
     error?: unknown,
+    diagnostics?: TurnDiagnostics,
   ): void {
     let errorDetails: { kind: string; method?: string; name?: string } | undefined
     if (error !== undefined) {
@@ -305,11 +330,27 @@ export class CodexAppServer {
         threadId,
         ms: Date.now() - startedAt,
         ...errorDetails,
+        ...(event === 'turn-error' || event === 'turn-completed' ? diagnostics : undefined),
       })}`,
     )
   }
 
   private notification(method: string, params: any): void {
+    const observed = this.turns.get(params.threadId)
+    for (const state of observed ? [observed] : this.turns.values()) {
+      const counts = state.diagnostics.notifications
+      counts[method] = (counts[method] ?? 0) + 1
+      if (!observed) {
+        const dropped = state.diagnostics.dropped
+        dropped['no-state'] = (dropped['no-state'] ?? 0) + 1
+      }
+    }
+    const drop = (reason: string) => {
+      if (observed) {
+        const dropped = observed.diagnostics.dropped
+        dropped[reason] = (dropped[reason] ?? 0) + 1
+      }
+    }
     if (method === 'item/started' && params.item?.type === 'fileChange') {
       this.taskApprovals.get(params.threadId)?.items.set(params.item.id, params.item)
       console.error(
@@ -324,12 +365,15 @@ export class CodexAppServer {
     }
     if (method === 'item/agentMessage/delta' || method === 'item/reasoning/summaryTextDelta') {
       const state = this.turns.get(params.threadId)
-      if (
-        !state ||
-        (state.turnId && params.turnId !== state.turnId) ||
-        typeof params.delta !== 'string'
-      )
+      if (!state) return
+      if (state.turnId && params.turnId !== state.turnId) {
+        drop('turnId-mismatch')
         return
+      }
+      if (typeof params.delta !== 'string') {
+        drop('no-delta-string')
+        return
+      }
       if (method === 'item/agentMessage/delta') {
         if (!state.firstDelta) {
           state.firstDelta = true
@@ -348,6 +392,10 @@ export class CodexAppServer {
     }
     if (method === 'thread/tokenUsage/updated') {
       const state = this.turns.get(params.threadId)
+      if (state?.turnId && params.turnId !== state.turnId) {
+        drop('turnId-mismatch')
+        return
+      }
       if (state && (!state.turnId || params.turnId === state.turnId)) {
         // Un evento por llamada al modelo: el costo del turno es la suma de cada `last`.
         const last = params.tokenUsage?.last
@@ -370,13 +418,21 @@ export class CodexAppServer {
     }
     if (method === 'item/started' && params.item?.type === 'agentMessage') {
       const state = this.turns.get(params.threadId)
+      if (state?.turnId && params.turnId !== state.turnId) {
+        drop('turnId-mismatch')
+        return
+      }
       if (state && (!state.turnId || params.turnId === state.turnId) && state.text)
         state.messageBoundary = true
       return
     }
     if (method === 'item/completed') {
       const state = this.turns.get(params.threadId)
-      if (!state || (state.turnId && params.turnId !== state.turnId)) return
+      if (!state) return
+      if (state.turnId && params.turnId !== state.turnId) {
+        drop('turnId-mismatch')
+        return
+      }
       const item = params.item
       if (item?.type === 'agentMessage')
         state.onStep?.({ type: 'text', label: 'text', detail: item.text })
@@ -418,6 +474,10 @@ export class CodexAppServer {
     }
     if (method === 'turn/completed') {
       const state = this.turns.get(params.threadId)
+      if (state?.turnId && state.turnId !== params.turn?.id) {
+        drop('turnId-mismatch')
+        return
+      }
       if (state && (!state.turnId || state.turnId === params.turn?.id)) {
         state.logPhase?.('turn-completed')
         if (params.turn?.status === 'failed')
@@ -433,6 +493,7 @@ export class CodexAppServer {
       }
     } else if (method === 'error') {
       const state = this.turns.get(params.threadId)
+      if (state && params.willRetry) drop('will-retry')
       if (state && !params.willRetry)
         state.finish(new CodexAppServerError(params.error?.message ?? 'Codex turn failed'))
     }
@@ -476,6 +537,7 @@ export class CodexAppServer {
     model?: string
   }> {
     const startedAt = Date.now()
+    const diagnostics = turnDiagnostics()
     let threadId: string | null = null
     try {
       await this.ensureReady()
@@ -577,9 +639,11 @@ export class CodexAppServer {
         usage: null as any,
         lastUsage: undefined as any,
         contextWindow: undefined as number | null | undefined,
+        diagnostics,
         onDelta: input.onDelta,
         onStep: input.onStep,
-        logPhase: (event: string) => this.logTurn(event, threadId, startedAt),
+        logPhase: (event: string) =>
+          this.logTurn(event, threadId, startedAt, undefined, diagnostics),
         finish: (_error?: Error) => {},
       }
       const completion = new Promise<void>((resolve, reject) => {
@@ -658,7 +722,7 @@ export class CodexAppServer {
         model: observedModel,
       }
     } catch (error) {
-      this.logTurn('turn-error', threadId, startedAt, error)
+      this.logTurn('turn-error', threadId, startedAt, error, diagnostics)
       throw error
     }
   }
@@ -674,7 +738,6 @@ export class CodexAppServer {
     onStep?: (event: ExecutorStepEvent) => void
   }) {
     await this.ensureReady()
-    this.child?.stderr.resume()
     const started = await this.request('thread/start', {
       cwd: input.cwd,
       sandbox: 'workspace-write',
@@ -692,6 +755,7 @@ export class CodexAppServer {
       usage: null as any,
       lastUsage: undefined as any,
       contextWindow: undefined as number | null | undefined,
+      diagnostics: turnDiagnostics(),
       onStep: input.onStep,
       finish: (_error?: Error) => {},
     }

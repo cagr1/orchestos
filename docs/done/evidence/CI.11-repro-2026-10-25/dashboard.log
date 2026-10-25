@@ -1,0 +1,12 @@
+Migration 10: nulled 0 orphan runs.project_id
+Migration 11: nulled 0 orphan files and 0 orphan edges
+[dashboard] Server running at http://localhost:56217
+[dashboard] Open http://localhost:56217 in your browser
+[chat-turn] {"event":"received","sessionId":"2f5a5a96-b784-49e9-9789-13f99c2708eb","agent":"codex","model":"gpt-6.1-sol","messageChars":78}
+[codex-turn] {"event":"thread-start","threadId":"01a1739a-d0ab-7370-983c-f89d2c34c207","ms":822}
+[codex-turn] {"event":"turn-start","threadId":"01a1739a-d0ab-7370-983c-f89d2c34c207","ms":827}
+[codex-turn] {"event":"first-delta","threadId":"01a1739a-d0ab-7370-983c-f89d2c34c207","ms":8605}
+[codex-turn] {"event":"turn-completed","threadId":"01a1739a-d0ab-7370-983c-f89d2c34c207","ms":18534}
+[chat-turn] {"event":"received","sessionId":"2f5a5a96-b784-49e9-9789-13f99c2708eb","agent":"codex","model":"gpt-6.1-sol","messageChars":99}
+[codex-turn] {"event":"turn-start","threadId":"01a1739a-d0ab-7370-983c-f89d2c34c207","ms":12}
+[codex-turn] {"event":"turn-error","threadId":"01a1739a-d0ab-7370-983c-f89d2c34c207","ms":120023,"kind":"error","name":"Error"}

@@ -1,0 +1,46 @@
+```text
+Migration 10: nulled 0 orphan runs.project_id
+Migration 11: nulled 0 orphan files and 0 orphan edges
+[dashboard] Server running at http://localhost:57017
+[dashboard] Open http://localhost:57017 in your browser
+[chat-turn] {"event":"received","sessionId":"1676dba2-faf0-4e84-a2ca-fe7dbf30b8ee","agent":"codex","model":"gpt-6.1-sol","messageChars":78}
+[codex-turn] {"event":"thread-start","threadId":"01a173a9-31de-71a0-813f-835117c9bb8b","ms":689}
+[codex-turn] {"event":"turn-start","threadId":"01a173a9-31de-71a0-813f-835117c9bb8b","ms":693}
+[codex-turn] {"event":"first-delta","threadId":"01a173a9-31de-71a0-813f-835117c9bb8b","ms":8630}
+[codex-turn] {"event":"turn-completed","threadId":"01a173a9-31de-71a0-813f-835117c9bb8b","ms":14076,"notifications":{"thread/started":1,"mcpServer/startupStatus/updated":6,"thread/status/changed":2,"turn/started":1,"item/started":3,"item/completed":3,"item/agentMessage/delta":162,"thread/tokenUsage/updated":1,"account/rateLimits/updated":1,"turn/completed":1},"dropped":{"no-state":2},"stdoutBytes":49975,"stderrBytes":0}
+[chat-turn] {"event":"received","sessionId":"1676dba2-faf0-4e84-a2ca-fe7dbf30b8ee","agent":"codex","model":"gpt-6.1-sol","messageChars":99}
+[codex-turn] {"event":"turn-start","threadId":"01a173a9-31de-71a0-813f-835117c9bb8b","ms":11}
+[codex-turn] {"event":"first-delta","threadId":"01a173a9-31de-71a0-813f-835117c9bb8b","ms":2177}
+[codex-turn] {"event":"turn-completed","threadId":"01a173a9-31de-71a0-813f-835117c9bb8b","ms":4708,"notifications":{"thread/status/changed":2,"turn/started":1,"item/started":2,"item/completed":2,"item/agentMessage/delta":81,"thread/tokenUsage/updated":1,"account/rateLimits/updated":1,"turn/completed":1},"dropped":{"no-state":1},"stdoutBytes":25474,"stderrBytes":0}
+```
+
+## Corrida 2
+
+Resultado: FAIL. Tiempos del flujo: el flujo no llegó al paso de tiempos; ver log backend.
+
+Evidencia: `/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-81812`
+
+```text
+Migration 10: nulled 0 orphan runs.project_id
+Migration 11: nulled 0 orphan files and 0 orphan edges
+[dashboard] Server running at http://localhost:57196
+[dashboard] Open http://localhost:57196 in your browser
+[chat-turn] {"event":"received","sessionId":"3810c6d6-da00-49d1-81ac-889d57ff5c19","agent":"codex","model":"gpt-6.1-sol","messageChars":78}
+[codex-turn] {"event":"thread-start","threadId":"01a173a9-f303-78d2-9b37-7cd094131c25","ms":789}
+[codex-turn] {"event":"turn-start","threadId":"01a173a9-f303-78d2-9b37-7cd094131c25","ms":794}
+[codex-turn] {"event":"turn-error","threadId":"01a173a9-f303-78d2-9b37-7cd094131c25","ms":120821,"kind":"error","name":"Error","notifications":{"mcpServer/startupStatus/updated":6,"thread/status/changed":1,"turn/started":1,"item/started":1,"item/completed":1},"dropped":{},"stdoutBytes":2857,"stderrBytes":0}
+[chat-turn] {"event":"received","sessionId":"3810c6d6-da00-49d1-81ac-889d57ff5c19","agent":"codex","model":"gpt-6.1-sol","messageChars":99}
+[codex-turn] {"event":"turn-start","threadId":"01a173a9-f303-78d2-9b37-7cd094131c25","ms":29}
+[codex-turn] {"event":"first-delta","threadId":"01a173a9-f303-78d2-9b37-7cd094131c25","ms":28930}
+[codex-turn] {"event":"turn-completed","threadId":"01a173a9-f303-78d2-9b37-7cd094131c25","ms":32936,"notifications":{"thread/status/changed":2,"turn/started":1,"item/started":2,"item/completed":2,"item/agentMessage/delta":82,"thread/tokenUsage/updated":1,"account/rateLimits/updated":1,"turn/completed":1},"dropped":{"no-state":1},"stdoutBytes":25709,"stderrBytes":0}
+```
+
+Archivos conservados:
+
+- `/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-81812/codex-home/sessions/2026/10/25/rollout-2026-10-25T10-24-40-01a173a9-f303-78d2-9b37-7cd094131c25.jsonl`
+
+
+```json
+[
+  {
+    "flujo": "codex-live",
