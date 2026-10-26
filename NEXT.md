@@ -1,4 +1,4 @@
-# NEXT — handoff 2026-10-26 (corte: AT.11.3)
+# NEXT — handoff 2026-10-26 (corte: SET.1)
 
 Un solo presente: orden y trampas vivas. Lo cerrado vive en `docs/done/bloque-*.md`, `PLAN.md` y git (regla `AGENTS.md`
 § Reglas generales, 2026-10-19: `NEXT.md` se toca solo al cerrar o cortar un lote). Arranque:
@@ -20,12 +20,18 @@ Un solo presente: orden y trampas vivas. Lo cerrado vive en `docs/done/bloque-*.
 - 2026-10-26 (GO de Carlos, "cualquier CLI"): AT.11.2 `86fe9d00` motor genérico `cli:<id>` desde `config.yaml`
   global, solo Ejecutor, costo "no medido"; AT.11.3 `f3b5b678` su UI en Settings; CI.45 `f1fa38bb` el chat recrea la
   tarea rechazada al reenviarla (tumbó un pre-push).
+- 2026-10-26 (lote SET, diseño en Claude Desktop con Carlos): SET.0 `31cd9f89` (`/api/usage` parsea en un worker;
+  `/api/settings` concurrente 11,9 s → 0,11 s; empujado), SET.1 `235de306` (nav agrupada con iconos, guardado
+  instantáneo, buscador que resalta; sin empujar si el corte no lo hizo).
 
 ## Orden
-0. **SET.0–SET.6 (GO de Carlos 2026-10-26, diseño hecho en Claude Desktop).** Ítems en `PLAN.md` § SET, specs en
-   `docs/specs/SET.N.md` (sin commitear, a propósito). Orden: SET.0 (bloqueo de `/api/usage`) → SET.1 → SET.2 →
-   SET.3 → SET.4 → SET.5 → SET.6. Probar en vivo con `ORCHESTOS_HOME=/tmp/set-home` (la DB va en
-   `/tmp/set-home/.orchestos/db.sqlite`: `ORCHESTOS_HOME` es el padre de `.orchestos`, no la carpeta).
+0. **SET (GO de Carlos 2026-10-26).** Ítems en `PLAN.md` § SET, specs en `docs/specs/SET.N.md` (sin commitear, a
+   propósito). Orden nuevo, por pedido de Carlos ("aún no está cada cosa en su sitio"): **SET.5 → SET.2 → SET.3 →
+   SET.4 → SET.6**, sin pausa, y a Carlos se le muestra Settings solo cuando todo esté en su sitio (hoy Appearance,
+   Keybindings y Providers son páginas vacías y los temas siguen en General). SET.5 ya tiene spec completado tras dos
+   paradas válidas de Sol (General = fila Language; registro `lib/keybindings.ts`; solo hay 2 atajos globales, ambos
+   Cmd/Ctrl+K). Probar en vivo con `ORCHESTOS_HOME=/tmp/set-home` (config `orchestos-set-ref` en `.claude/launch.json`,
+   puerto 4343).
 1. CI.19 espera el próximo fallo para la fase 2 (CI.44 cerrado `07fbab61`).
 2. Cualquier CLI ya corre tareas sin código (AT.11.2/AT.11.3): se declara en Settings → Executor → "CLIs propios".
    Un adaptador rico (streaming, sesiones, cuotas) para un CLI nuevo sigue siendo `KNOWN_CLIS` + `registerTaskEngine`
@@ -45,6 +51,10 @@ Un solo presente: orden y trampas vivas. Lo cerrado vive en `docs/done/bloque-*.
   decide en el vault, no aquí; la tarea `chat-4a0d93a2…` era de prueba, sin urgencia.
 
 ## Trampas vivas
+- Los ui-gates recompilan `src/dashboard/app/dist/` compartido: el dashboard real de Carlos (4242) sirve ese `dist`
+  y le muestra trabajo de un ejecutor a medias (pasó con SET.1). Hallazgo sin ítem; avisar a Carlos antes de que mire.
+- Spec de guardado instantáneo: definir qué pasa con estados intermedios que el backend rechaza (SET.1 r1 paró por
+  agente sin modelo y regla sin `match`).
 - `codex-live` corre con proyecto: para probar el chat SIN proyecto con Codex real usar `chat-notices` o
   `chat-timeout`. La línea `Gate en vivo:` del ítem debe nombrar "navegador"/"Playwright" o `agent:live-gate` rechaza.
 - `mecanico` (Luna) puede parar por "cambios ajenos" que `git status` no muestra: escribir en el spec el estado del

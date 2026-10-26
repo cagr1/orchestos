@@ -103,7 +103,13 @@ Keybindings de solo lectura en la primera versión. Orden: SET.0 primero (bloque
 - [ ] **SET.4 — 🔍 "API & Models" pasa a "API keys" y OpenRouter deja de ser crítico.**
   Hoy Health marca `OPENROUTER_API_KEY` como crítico (`src/dashboard/handlers/setup.ts:95`) y `executor-modes`
   devuelve "OpenRouter API" `detected: true` sin clave. Spec: `docs/specs/SET.4.md`.
-- [ ] **SET.5 — ⚡ Appearance con página propia y Keybindings de solo lectura.** Spec: `docs/specs/SET.5.md`.
+- [x] **SET.5 — ⚡ Appearance con página propia y Keybindings de solo lectura.** (cerrado 2026-10-26) Temas en
+  Appearance sin descripción larga; General = fila Language (sale de la nav); Keybindings lee el registro nuevo
+  `lib/keybindings.ts` (2 atajos globales, ambos Cmd/Ctrl+K) que también usa `CommandPalette`. Dos paradas válidas
+  de Sol (General vacío, condición de filtro imposible); spec completado. Evidencia del cerebro: General, Appearance y
+  Keybindings vistos en vivo sobre copia de la DB; `test:coverage` 2101/0, typecheck y lint.
+  Gate en vivo: navegador real (Playwright) `settings-pages` 17/17, `settings-shell` 21/21, `shell-look` 73/73, `docs/done/evidence/SET.5-live.json`
+  Ejecutado por: codex gpt-6.1-sol (criterio), revisión Opus · Spec: docs/specs/SET.5.md
 - [ ] **SET.6 — 🔍 Fallas sueltas vistas en vivo en Settings.** "Agregar CLI" sin traducir en inglés; "Loading project
   data…" fijo en Tasks; punto verde de Health con setup 4/5; el buscador lleva a "CLI timeout" pero la fila dice
   "Timeout". Spec: `docs/specs/SET.6.md`.

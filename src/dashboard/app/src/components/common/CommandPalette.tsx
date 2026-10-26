@@ -15,6 +15,7 @@ import {
 } from 'lucide-react'
 import type React from 'react'
 import { useEffect, useState } from 'react'
+import { matchesKeybinding } from '@/lib/keybindings'
 import type { NavigationTab } from '../../types/orchestos'
 
 interface CommandPaletteProps {
@@ -38,7 +39,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+      if (matchesKeybinding(e, 'command-palette')) {
         e.preventDefault()
         if (isOpen) {
           onClose()

@@ -33,15 +33,9 @@ import React, { useCallback, useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { PageHeader } from '@/components/layout/page'
 import { Button } from '@/components/ui/button'
-import {
-  Card,
-  CardAction,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card'
+import { Card, CardAction, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { usePrefersReducedMotion } from '@/hooks/use-prefers-reduced-motion'
+import { KEYBINDINGS, matchesKeybinding } from '@/lib/keybindings'
 import { spring } from '@/lib/springs'
 import type {
   ConfigResponse,
@@ -159,7 +153,6 @@ export type SettingsSection =
   | 'executor'
   | 'usage'
   | 'danger_zone'
-  | 'language'
   | string // For individual project IDs like "project_<id>"
 
 type SettingsSearchEntry = {
@@ -178,7 +171,7 @@ const SETTINGS_SEARCH_INDEX: SettingsSearchEntry[] = [
   },
   {
     id: 'theme-orchestos',
-    section: 'general',
+    section: 'appearance',
     label: { en: 'OrchestOS', es: 'OrchestOS' },
     keywords: [
       'orchestos theme',
@@ -192,7 +185,7 @@ const SETTINGS_SEARCH_INDEX: SettingsSearchEntry[] = [
   },
   {
     id: 'theme-graphite',
-    section: 'general',
+    section: 'appearance',
     label: { en: 'Graphite', es: 'Graphite' },
     keywords: [
       'graphite theme',
@@ -206,7 +199,7 @@ const SETTINGS_SEARCH_INDEX: SettingsSearchEntry[] = [
   },
   {
     id: 'theme-carbon',
-    section: 'general',
+    section: 'appearance',
     label: { en: 'Carbon', es: 'Carbon' },
     keywords: [
       'carbon theme',
@@ -220,7 +213,7 @@ const SETTINGS_SEARCH_INDEX: SettingsSearchEntry[] = [
   },
   {
     id: 'theme-light',
-    section: 'general',
+    section: 'appearance',
     label: { en: 'Light', es: 'Light' },
     keywords: ['light theme', 'tema light', 'general', 'appearance', 'theme', 'tema', 'apariencia'],
   },
@@ -398,16 +391,10 @@ const SETTINGS_SEARCH_INDEX: SettingsSearchEntry[] = [
     ],
   },
   {
-    id: 'language-en',
-    section: 'language',
-    label: { en: 'English', es: 'English' },
-    keywords: ['language', 'idioma'],
-  },
-  {
-    id: 'language-es',
-    section: 'language',
-    label: { en: 'Español', es: 'Español' },
-    keywords: ['language', 'idioma'],
+    id: 'language',
+    section: 'general',
+    label: { en: 'Language', es: 'Language' },
+    keywords: ['language', 'idioma', 'English', 'Español'],
   },
 ]
 
@@ -520,6 +507,7 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
     activeProjectId || projects[0]?.id || 'orchestos',
   )
   const [searchQuery, setSearchQuery] = useState('')
+  const [keybindingQuery, setKeybindingQuery] = useState('')
   const [paletteOpen, setPaletteOpen] = useState(false)
   const [searchIndex, setSearchIndex] = useState(0)
   const [searchDestination, setSearchDestination] = useState<SettingsSearchEntry | null>(null)
@@ -715,7 +703,7 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
 
   useEffect(() => {
     const shortcut = (event: KeyboardEvent) => {
-      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'k') {
+      if (matchesKeybinding(event, 'settings-search', true)) {
         event.preventDefault()
         openSettingsSearch()
       }
@@ -1254,10 +1242,6 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
     {
       id: 'orchestos',
       name: 'OrchestOS',
-      desc:
-        language === 'es'
-          ? 'Fondo marino profundo (#080c14) con acentos celestes'
-          : 'Default deep navy canvas (#080c14) with sky accents',
       bgHex: '#080c14',
       surfaceHex: '#0f172a',
       accentHex: '#38bdf8',
@@ -1265,10 +1249,6 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
     {
       id: 'graphite',
       name: 'Graphite',
-      desc:
-        language === 'es'
-          ? 'Pizarra oscura suave con perfiles en gris frío'
-          : 'Subtle slate studio dark with cool gray contours',
       bgHex: '#18181b',
       surfaceHex: '#27272a',
       accentHex: '#a1a1aa',
@@ -1276,10 +1256,6 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
     {
       id: 'carbon',
       name: 'Carbon',
-      desc:
-        language === 'es'
-          ? 'Tono negro carbón puro (#09090b) de alto contraste'
-          : 'Minimalist pitch-black tone (#09090b) with high contrast',
       bgHex: '#09090b',
       surfaceHex: '#18181b',
       accentHex: '#f4f4f5',
@@ -1287,10 +1263,6 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
     {
       id: 'light',
       name: 'Light',
-      desc:
-        language === 'es'
-          ? 'Diseño diurno limpio y de alta legibilidad'
-          : 'Clean crisp daylight theme with high contrast typography',
       bgHex: '#f8fafc',
       surfaceHex: '#ffffff',
       accentHex: '#0284c7',
@@ -1546,7 +1518,6 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
                   { id: 'general', label: 'General', icon: SettingsIcon },
                   { id: 'appearance', label: 'Appearance', icon: Palette },
                   { id: 'keybindings', label: 'Keybindings', icon: Keyboard },
-                  { id: 'language', label: 'Language', icon: Globe },
                 ],
               },
               {
@@ -1652,9 +1623,27 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
           </div>
         )}
 
-        {/* SECTION: GENERAL — APPEARANCE */}
+        {/* SECTION: GENERAL */}
         {activeSection === 'general' && (
           <SettingsPage title="General">
+            <SettingsGroup>
+              <SettingsRow data-settings-anchor="language" label="Language">
+                <SettingsSegmented
+                  value={language}
+                  onChange={onSelectLanguage}
+                  ariaLabel="Language"
+                  options={[
+                    { value: 'en', label: 'English' },
+                    { value: 'es', label: 'Español' },
+                  ]}
+                />
+              </SettingsRow>
+            </SettingsGroup>
+          </SettingsPage>
+        )}
+
+        {activeSection === 'appearance' && (
+          <SettingsPage title="Appearance">
             {/* 4 Theme cards with color swatches */}
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
               {themeOptions.map((th) => {
@@ -1675,7 +1664,6 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
                           <Check className="h-4 w-4 text-app-accent" aria-label="Active" />
                         </CardAction>
                       ) : null}
-                      <CardDescription>{th.desc}</CardDescription>
                     </CardHeader>
                     <CardContent>
                       {/* Color Swatch Preview */}
@@ -1695,9 +1683,6 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
                           style={{ backgroundColor: th.accentHex }}
                           title="Accent"
                         />
-                        <span className="ml-auto font-mono text-[10px] text-app-muted">
-                          {th.bgHex}
-                        </span>
                       </div>
                     </CardContent>
                   </Card>
@@ -1707,17 +1692,65 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
           </SettingsPage>
         )}
 
-        {['appearance', 'keybindings', 'providers'].includes(activeSection) && (
-          <SettingsPage
-            title={
-              { appearance: 'Appearance', keybindings: 'Keybindings', providers: 'Providers' }[
-                activeSection
-              ]
-            }
-          >
-            {null}
+        {activeSection === 'keybindings' && (
+          <SettingsPage title="Keybindings">
+            <input
+              type="search"
+              aria-label={language === 'es' ? 'Buscar atajos' : 'Search keybindings'}
+              placeholder={language === 'es' ? 'Buscar atajos...' : 'Search keybindings...'}
+              value={keybindingQuery}
+              onChange={(event) => setKeybindingQuery(event.target.value)}
+              className="w-full rounded-control border border-app bg-app-bg px-3 py-2 text-sm outline-none focus-visible:ring-1 focus-visible:ring-app-accent"
+            />
+            <SettingsGroup>
+              <table className="w-full text-left text-[13px]" data-keybindings>
+                <thead className="text-app-muted">
+                  <tr>
+                    <th className="px-4 py-3 font-medium">
+                      {language === 'es' ? 'Comando' : 'Command'}
+                    </th>
+                    <th className="px-4 py-3 font-medium">
+                      {language === 'es' ? 'Atajo' : 'Shortcut'}
+                    </th>
+                    <th className="px-4 py-3 font-medium">
+                      {language === 'es' ? 'Cuándo' : 'When'}
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {KEYBINDINGS.filter((binding) =>
+                    normalizeSettingsSearch(
+                      `${binding.command} ${binding.keys.join('+')}`,
+                    ).includes(normalizeSettingsSearch(keybindingQuery.trim())),
+                  ).map((binding) => (
+                    <tr
+                      key={binding.id}
+                      data-keybinding={binding.id}
+                      className="border-t border-app"
+                    >
+                      <td className="px-4 py-3">{binding.command}</td>
+                      <td className="px-4 py-3">
+                        <span className="inline-flex items-center gap-1">
+                          {binding.keys.map((key) => (
+                            <kbd
+                              key={key}
+                              className="rounded border border-app bg-app-elevated px-1.5 py-0.5 font-mono text-xs"
+                            >
+                              {key}
+                            </kbd>
+                          ))}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3 text-app-muted">{binding.when}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </SettingsGroup>
           </SettingsPage>
         )}
+
+        {activeSection === 'providers' && <SettingsPage title="Providers">{null}</SettingsPage>}
 
         {/* SECTION: HEALTH */}
         {activeSection === 'health' && (
@@ -3013,34 +3046,6 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
                   Reset OrchestOS
                 </Button>
               </div>
-            </SettingsGroup>
-          </SettingsPage>
-        )}
-
-        {/* SECTION: LANGUAGE */}
-        {activeSection === 'language' && (
-          <SettingsPage title="Language / Idioma">
-            <SettingsGroup>
-              {(['en', 'es'] as const).map((option) => (
-                <button
-                  key={option}
-                  data-settings-anchor={`language-${option}`}
-                  type="button"
-                  onClick={() => onSelectLanguage(option)}
-                  className="block w-full text-left transition-colors hover:bg-app-elevated"
-                >
-                  <SettingsRow
-                    label={option === 'en' ? 'English' : 'Español'}
-                    description={
-                      option === 'en'
-                        ? 'English language interface'
-                        : 'Interfaz completa en idioma español'
-                    }
-                  >
-                    {language === option && <Check className="h-4 w-4 text-app-accent" />}
-                  </SettingsRow>
-                </button>
-              ))}
             </SettingsGroup>
           </SettingsPage>
         )}

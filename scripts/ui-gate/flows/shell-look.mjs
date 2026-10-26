@@ -90,7 +90,7 @@ export default async function shellLook({
   ]) {
     if (view === 'settings') {
       await page.getByRole('button', { name: 'Settings', exact: true }).click()
-      await page.getByRole('button', { name: 'General', exact: true }).click()
+      await page.getByRole('button', { name: 'Appearance', exact: true }).click()
       await visible(page.getByRole('heading', { name: 'Appearance', exact: true }))
     }
     await shot(`shell-${view}`)
@@ -335,7 +335,7 @@ export default async function shellLook({
     ['Model routing', 'model routing'],
     ['Usage', 'usage'],
     ['Danger zone', 'danger zone'],
-    [/^Language/, 'language'],
+    ['General', 'language'],
   ]) {
     await page
       .getByRole('button', typeof name === 'string' ? { name, exact: true } : { name })
