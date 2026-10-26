@@ -22,8 +22,10 @@ Un solo presente: orden y trampas vivas. Lo cerrado vive en `docs/done/bloque-*.
   tarea rechazada al reenviarla (tumbó un pre-push).
 
 ## Orden
-0. **SET (pedido de Carlos 2026-10-26): pulir Settings en Claude Desktop.** Referencia y prompt listos en
-   `docs/specs/SET-ref.md`; abrir allí, no aquí (hay que ver las apps). No se quitan secciones.
+0. **SET.0–SET.6 (GO de Carlos 2026-10-26, diseño hecho en Claude Desktop).** Ítems en `PLAN.md` § SET, specs en
+   `docs/specs/SET.N.md` (sin commitear, a propósito). Orden: SET.0 (bloqueo de `/api/usage`) → SET.1 → SET.2 →
+   SET.3 → SET.4 → SET.5 → SET.6. Probar en vivo con `ORCHESTOS_HOME=/tmp/set-home` (la DB va en
+   `/tmp/set-home/.orchestos/db.sqlite`: `ORCHESTOS_HOME` es el padre de `.orchestos`, no la carpeta).
 1. CI.19 espera el próximo fallo para la fase 2 (CI.44 cerrado `07fbab61`).
 2. Cualquier CLI ya corre tareas sin código (AT.11.2/AT.11.3): se declara en Settings → Executor → "CLIs propios".
    Un adaptador rico (streaming, sesiones, cuotas) para un CLI nuevo sigue siendo `KNOWN_CLIS` + `registerTaskEngine`
@@ -58,7 +60,8 @@ Un solo presente: orden y trampas vivas. Lo cerrado vive en `docs/done/bloque-*.
   línea que `Gate en vivo:`; (4) `Ejecutado por: … · Spec: docs/specs/<ID>.md` exacto, spec borrado en el commit;
   (5) `git commit -- <ruta>` no acepta archivos sin seguir: `git add` antes.
 - Bun 1.3.14 no tiene `bun audit fix` (lo sugiere y no hace nada): fijar en `overrides` de `package.json`.
-- Probar el dashboard sin tocar el de Carlos: `ORCHESTOS_HOME=<tmp con sqlite3 .backup de la DB> PORT=4343 bun
+- Probar el dashboard sin tocar el de Carlos: `ORCHESTOS_HOME=<tmp>` con el `sqlite3 .backup` en `<tmp>/.orchestos/db.sqlite` (si va en `<tmp>/db.sqlite` sale
+  "no such table: projects") + `PORT=4343 bun
   src/dashboard/server.ts` + Playwright `channel: 'chrome'` (el chromium de Playwright no está instalado).
 - Sol/Codex sin cupo de 5 h → `criterio-alt` (Sonnet); su diff no tiene revisor de otro proveedor: decirlo al cerrar.
   Sin Codex, los gates en vivo de chat y `qa-negative` no sirven: elegir flujos sin Codex (`plan-doc`,

@@ -73,6 +73,31 @@ Cerrada. Todos sus ítems están archivados en `docs/done/` (ver "Cerrados — e
 
 ## Fase 2 — Producto mínimo para entrega
 
+### Settings al nivel de los ADEs — SET (GO de Carlos 2026-10-26)
+
+Referencia: `docs/specs/SET-ref.md` (T3 Code, MonoCode y Orca vistos en vivo el 2026-10-26). No se quita ninguna
+sección. Decisiones de Carlos (2026-10-26): guardado instantáneo; página Providers nueva (Model routing y Executor la
+consumen; "CLIs propios" se muda ahí); "API & Models" pasa a "API keys" y Health deja de exigir OpenRouter;
+Keybindings de solo lectura en la primera versión. Orden: SET.0 primero (bloquea a los demás al probar en vivo).
+
+- [ ] **SET.0 — 🔍 `/api/usage` bloquea el servidor ~12 s y congela Settings en "Loading live settings…".**
+  Medido 2026-10-26 sobre copia de la DB: en frío `/api/usage` 12,2 s y `/api/settings` en paralelo 11,9 s (en serie
+  0,03 s). `readCliTranscriptUsage` (`src/usage/cli-transcripts.ts`) parsea ~1,4 GB de JSONL (`~/.claude/projects`
+  890 MB, `~/.codex/sessions` 522 MB) en el hilo principal. Spec: `docs/specs/SET.0.md`.
+- [ ] **SET.1 — 🧠 Shell de Settings: nav agrupada con iconos, guardado instantáneo y buscador que resalta la fila.**
+  Fuera la barra "N unsaved changes · Save"; fuera la descripción bajo cada título. Spec: `docs/specs/SET.1.md`.
+- [ ] **SET.2 — 🧠 Detección de CLIs como los ADEs: PATH del login shell, versión, sesión y modelos, 0 tokens.**
+  Backend `GET /api/providers`. Spec: `docs/specs/SET.2.md`.
+- [ ] **SET.3 — 🧠 Página Providers: una fila por CLI detectado + no encontrados + CLIs propios.**
+  Depende de SET.1 y SET.2. Spec: `docs/specs/SET.3.md`.
+- [ ] **SET.4 — 🔍 "API & Models" pasa a "API keys" y OpenRouter deja de ser crítico.**
+  Hoy Health marca `OPENROUTER_API_KEY` como crítico (`src/dashboard/handlers/setup.ts:95`) y `executor-modes`
+  devuelve "OpenRouter API" `detected: true` sin clave. Spec: `docs/specs/SET.4.md`.
+- [ ] **SET.5 — ⚡ Appearance con página propia y Keybindings de solo lectura.** Spec: `docs/specs/SET.5.md`.
+- [ ] **SET.6 — 🔍 Fallas sueltas vistas en vivo en Settings.** "Agregar CLI" sin traducir en inglés; "Loading project
+  data…" fijo en Tasks; punto verde de Health con setup 4/5; el buscador lleva a "CLI timeout" pero la fila dice
+  "Timeout". Spec: `docs/specs/SET.6.md`.
+
 ### Confianza en el flujo — TRUST (GO de Carlos 2026-10-22)
 
 Regla: nada se reintenta, cierra ni muestra sin evidencia medida que el usuario vea. Opinión de LLM se marca como tal.
