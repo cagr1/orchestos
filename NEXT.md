@@ -1,4 +1,4 @@
-# NEXT — handoff 2026-10-26 (corte: SET.1)
+# NEXT — handoff 2026-10-26 (corte: SET.5)
 
 Un solo presente: orden y trampas vivas. Lo cerrado vive en `docs/done/bloque-*.md`, `PLAN.md` y git (regla `AGENTS.md`
 § Reglas generales, 2026-10-19: `NEXT.md` se toca solo al cerrar o cortar un lote). Arranque:
@@ -22,16 +22,15 @@ Un solo presente: orden y trampas vivas. Lo cerrado vive en `docs/done/bloque-*.
   tarea rechazada al reenviarla (tumbó un pre-push).
 - 2026-10-26 (lote SET, diseño en Claude Desktop con Carlos): SET.0 `31cd9f89` (`/api/usage` parsea en un worker;
   `/api/settings` concurrente 11,9 s → 0,11 s; empujado), SET.1 `235de306` (nav agrupada con iconos, guardado
-  instantáneo, buscador que resalta; sin empujar si el corte no lo hizo).
+  instantáneo, buscador que resalta), SET.5 (temas en Appearance, General = fila Language, Keybindings desde
+  `lib/keybindings.ts`). Ver `git log` para los SHAs.
 
 ## Orden
 0. **SET (GO de Carlos 2026-10-26).** Ítems en `PLAN.md` § SET, specs en `docs/specs/SET.N.md` (sin commitear, a
-   propósito). Orden nuevo, por pedido de Carlos ("aún no está cada cosa en su sitio"): **SET.5 → SET.2 → SET.3 →
-   SET.4 → SET.6**, sin pausa, y a Carlos se le muestra Settings solo cuando todo esté en su sitio (hoy Appearance,
-   Keybindings y Providers son páginas vacías y los temas siguen en General). SET.5 ya tiene spec completado tras dos
-   paradas válidas de Sol (General = fila Language; registro `lib/keybindings.ts`; solo hay 2 atajos globales, ambos
-   Cmd/Ctrl+K). Probar en vivo con `ORCHESTOS_HOME=/tmp/set-home` (config `orchestos-set-ref` en `.claude/launch.json`,
-   puerto 4343).
+   propósito). Orden, por pedido de Carlos ("aún no está cada cosa en su sitio"): **SET.2 → SET.3 → SET.4 →
+   SET.6**, sin pausa; a Carlos se le muestra Settings solo cuando todo esté en su sitio (hoy Providers sigue vacía y
+   "CLIs propios" sigue en Executor). Probar en vivo con `ORCHESTOS_HOME=/tmp/set-home` (config `orchestos-set-ref`
+   en `.claude/launch.json`, puerto 4343). SET.4: el nav ya dice "API keys" desde SET.1; queda Health/executor-modes.
 1. CI.19 espera el próximo fallo para la fase 2 (CI.44 cerrado `07fbab61`).
 2. Cualquier CLI ya corre tareas sin código (AT.11.2/AT.11.3): se declara en Settings → Executor → "CLIs propios".
    Un adaptador rico (streaming, sesiones, cuotas) para un CLI nuevo sigue siendo `KNOWN_CLIS` + `registerTaskEngine`
