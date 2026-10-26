@@ -1,4 +1,4 @@
-# NEXT — handoff 2026-10-25 tarde (corte: CI.11, CHAT.3)
+# NEXT — handoff 2026-10-26 (corte: CI.44)
 
 Un solo presente: orden y trampas vivas. Lo cerrado vive en `docs/done/bloque-*.md`, `PLAN.md` y git (regla `AGENTS.md`
 § Reglas generales, 2026-10-19: `NEXT.md` se toca solo al cerrar o cortar un lote). Arranque:
@@ -11,36 +11,18 @@ Un solo presente: orden y trampas vivas. Lo cerrado vive en `docs/done/bloque-*.
   van a Sol (`criterio` escribe, `analizar` audita solo lectura; `qa` solo revisa el diff sin commitear). Opus escribe
   specs, decide con Carlos, revisa lo de Sol y cierra. Memoria `feedback-subagentes-modelo-barato`.
 
-## Cerrado 2026-10-23 (todo por Sol o Luna, revisado por Opus)
-CI.23 `e34d743f` (commit `chore(tasks)` sobrevive a `index.lock` ajeno), CI.40 `30d99814` (premisa de TRUST.1
-determinista), TRUST.R2 `19dd93d0` (auditoría: aprobaciones, undo, chat), CI.18 `0686bfff` (el hilo sigue abajo:
-solo un gesto del usuario lo suelta), TRUST.6 `49e212c0` + .6.1 `fefa332d` ("done" solo con run `done` del mismo
-proyecto), TRUST.7 `0f09c64e` + .7.1 `11e6d230` + .7.2 `fb6dc76d` (undo revierte el run completo y verifica el árbol),
-TRUST.8 `8ef8da67` (create_task honesto, "Run requested", aprobaciones sin contenido avisan), CI.41 `fbab27a9`.
-Vault `0208da4` (verificación: `qa` revisa lo de `mecanico`) y `d8e1d64` (rol `analizar`), solo locales.
-Tarde: CI.42 `f75e8524` (Mutation Shards: selección por imports de runtime + ejecutores en 4 particiones; Sol) y
-CI.19 fase 1 `c6e7066d` (un solo `run` en `scripts/ui-gate/lib.mjs` que dice exit y salida; Sonnet, Sol sin cupo).
-
-Noche (revisado por Opus; Sol con cupo de nuevo): CI.43 `1171b3f7` + .1 `523202ce` (`scripts/post-commit.sh`: un
-`git commit -- <rutas>` dejaba `MM` en los derivados y el sandbox rechazaba tareas), UI.26 `33218005` (Copy en Dev
-copia su respuesta), CHAT.1 `fcebad54` (`rg` solo si está instalado), CFG.1 `a291f3a3` (fuera `models:`), config
-`eb41e790` (reviewer Claude Sonnet 5.5, decisión de Carlos), `310ede9f` (`agentic.maxIterations` 15), `160b6a4f`
-(fuera `agent:`), seguridad `c5e36e45` (zod 4.6.7 + overrides; `bun audit` limpio). Tareas `design-test-*` borradas.
-2026-10-24: UI.29 integrada (merge `eca73ecb`, copiar en Dev debajo a la izquierda + carrera de `shell-look`), UI.30
-`a2800bfa` (un solo anillo de contexto en Dev). Worktree `orchestos-ui28` y rama `ui/UI.29` borrados. CI.42
-`[x]` (corrida `39983853493`: job más lento 122 min de 180). CHAT.2 `[x]` (prompt del chat: comandos, espera de
-tareas, checks, reintentos; Sol). SKILLS.1 `42781af5` (medición de skills; Carlos: se quedan
-todas, fuera solo el duplicado `skills/pro/api-contract.yaml`).
-
-## Cerrado 2026-10-25 tarde (Sol criterio, revisado por Opus)
-CI.11 `6880e028` (causa: 429 de OpenAI con reintento 70–245 s que Codex no emite por JSON-RPC; stderr drenado y
-diagnóstico `[codex-turn]`), CHAT.3 `760982d9` (el chat dice por qué el modelo no responde: avisos tipados Codex/Claude,
-429 leído de `logs_2.sqlite`, línea viva con contador, fallo visible y persistente; migración 32). Abierto CI.44.
+## Cerrado
+- 2026-10-23/25 (detalle en `PLAN.md` y git): CI.23, CI.40, TRUST.R2/.6/.7/.8, CI.18, CI.41–43, CI.19 fase 1, UI.26,
+  UI.29, UI.30, CHAT.1–3, CFG.1, SKILLS.1, CI.11.
+- 2026-10-26: CI.44 `07fbab61` (chat sin proyecto, `.env` de providers, `dbPath` de setup, `config.yaml` global y
+  evidencia del ui-gate honran `ORCHESTOS_HOME` vía `src/config/orchestos-home.ts`; Luna, `qa` sin defectos; log real
+  717→717 en vivo). Peso de `main.js` aceptado `6b6e0aaf`.
 
 ## Orden
 1. CI.19 espera el próximo fallo para la fase 2 (CI.44 cerrado `07fbab61`).
 2. Ejecutor de tareas para otro CLI = entrada en `KNOWN_CLIS` + `registerTaskEngine`, solo con el CLI instalado y
-   verificable en vivo.
+   verificable en vivo. Hoy solo están instalados `claude`, `codex` y `opencode`, y los tres ya tienen motor
+   (`src/run/executors/task-engines.ts:37-51`): bloqueado hasta que Carlos instale otro.
 - Trampa: al cerrar un ítem, `plan:reconcile` una sola vez antes del commit. Un segundo reconcile ve el ítem ya
   `done` sin commit que lo pruebe y falla ("Could not prove a closing commit SHA"); se arregla volviendo a reconciliar
   desde `git show HEAD:PLAN.md` y luego el PLAN.md nuevo.
@@ -54,6 +36,11 @@ diagnóstico `[codex-turn]`), CHAT.3 `760982d9` (el chat dice por qué el modelo
   decide en el vault, no aquí; la tarea `chat-4a0d93a2…` era de prueba, sin urgencia.
 
 ## Trampas vivas
+- `codex-live` corre con proyecto: para probar el chat SIN proyecto con Codex real usar `chat-notices` o
+  `chat-timeout`. La línea `Gate en vivo:` del ítem debe nombrar "navegador"/"Playwright" o `agent:live-gate` rechaza.
+- `mecanico` (Luna) puede parar por "cambios ajenos" que `git status` no muestra: escribir en el spec el estado del
+  árbol al delegar. Sus fallos de `test:coverage` por `~/.ssh` o `EADDRINUSE` son de su sandbox; el cerebro re-corre.
+- Spec nunca commiteado: el pre-commit imprime `docs/specs/<ID>.md does not exist in HEAD`; no bloquea.
 - `gate:evidence` migra la DB durable (`scripts/run-evidence-gate.ts:116`) antes de exportar: una migración sin
   commitear se aplica a `~/.orchestos/db.sqlite` de Carlos (pasó con la 32 de CHAT.3, 2026-10-25; DB íntegra).
 - Silencio de Codex sin eventos = casi siempre 429 con reintento largo; el motivo está en `$CODEX_HOME/logs_2.sqlite`
