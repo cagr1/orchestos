@@ -78,17 +78,11 @@ export default async function modelRouting({ page, api, step, shot, cleanup }) {
 
   const projectHeaders = { 'x-orchestos-project-id': project.id }
   const saveConfigAndWait = async () => {
-    const [response] = await Promise.all([
-      page.waitForResponse(
-        (res) => res.url().endsWith('/api/config') && res.request().method() === 'PUT',
-      ),
-      page.locator('[data-unsaved-bar]').getByRole('button', { name: 'Save', exact: true }).click(),
-    ])
-    const body = await response.text()
-    if (!response.ok()) {
-      throw new Error(`Save config failed: HTTP ${response.status()} ${body}`)
-    }
-    return { status: response.status(), body }
+    await page
+      .locator('input:focus, textarea:focus')
+      .evaluateAll((inputs) => inputs.forEach((input) => input.blur()))
+    await delay(150)
+    await page.locator('[data-settings-saving]').waitFor({ state: 'hidden' })
   }
   const reopenModelRouting = async () => {
     await page.reload({ waitUntil: 'domcontentloaded' })
@@ -96,7 +90,6 @@ export default async function modelRouting({ page, api, step, shot, cleanup }) {
     await projectButton.click()
     await page.getByRole('button', { name: 'Settings', exact: true }).click()
     await page.getByRole('button', { name: 'Model routing', exact: true }).click()
-    await page.getByText('Model routing config').waitFor()
     await page.getByText('Loading live settings…', { exact: true }).waitFor({ state: 'hidden' })
   }
 
@@ -178,7 +171,7 @@ export default async function modelRouting({ page, api, step, shot, cleanup }) {
     const reviewerCard = cards.nth(2)
     await reviewerCard.getByLabel('Reviewer agent').click()
     await page.getByRole('button', { name: 'opencode', exact: true }).last().click()
-    await reviewerCard.getByRole('button', { name: 'Select model' }).click()
+    await reviewerCard.getByLabel('Reviewer model', { exact: true }).click()
     const search = reviewerCard.getByPlaceholder('Filter models...')
     const menu = search.locator('xpath=..')
     const initialModelCount = await menu.getByRole('button').count()
@@ -246,7 +239,7 @@ export default async function modelRouting({ page, api, step, shot, cleanup }) {
     const card = cards.nth(index)
     await card.getByLabel(`${role} agent`).click()
     await page.getByRole('button', { name: 'codex', exact: true }).last().click()
-    await card.getByRole('button', { name: 'Select model' }).click()
+    await card.getByLabel(`${role} model`, { exact: true }).click()
     await card.getByPlaceholder('Filter models...').fill('gpt-6-luna')
     await card.locator('button[title="gpt-6-luna"]').click()
     await card.getByLabel(`${role} effort`).click()
@@ -272,7 +265,8 @@ export default async function modelRouting({ page, api, step, shot, cleanup }) {
             const card = cards.nth(index)
             return (
               (await card.getByLabel(`${role} agent`).innerText()) === 'Codex' &&
-              (await card.getByRole('button', { name: 'GPT-6-Luna', exact: true }).count()) === 1 &&
+              (await card.getByLabel(`${role} model`, { exact: true }).innerText()) ===
+                'GPT-6-Luna' &&
               (await card.getByLabel(`${role} effort`).innerText()) === 'medium'
             )
           }),
@@ -293,6 +287,12 @@ export default async function modelRouting({ page, api, step, shot, cleanup }) {
 
   await page.getByRole('button', { name: /Task rules/ }).click()
   await page.getByRole('button', { name: 'Add rule' }).click()
+  await step(
+    'new rule stays a local draft',
+    (await page.locator('[data-routing-rule][data-draft]').count()) === 1 &&
+      (await api('/api/config', { headers: projectHeaders })).data.taskAgentRules.length === 0,
+  )
+
   await page.getByLabel('rule agent').click()
   await page.getByRole('button', { name: 'Codex', exact: true }).last().click()
   const ruleModelButton = page.getByLabel('rule model')
@@ -311,6 +311,7 @@ export default async function modelRouting({ page, api, step, shot, cleanup }) {
   if (ruleModelChoiceIndex < 0) throw new Error('No task rule model option was available')
   await ruleModelChoices.nth(ruleModelChoiceIndex).click()
   await page.getByLabel('output globs').fill('docs/**')
+  await page.getByLabel('output globs').press('Enter')
   await saveConfigAndWait()
   await reopenModelRouting()
   await page.getByRole('button', { name: /Task rules/ }).click()

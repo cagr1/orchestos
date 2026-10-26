@@ -331,7 +331,7 @@ export default async function shellLook({
   // UI.26.6 — resto de Settings con los primitivos y a todo el ancho.
   for (const [name, key] of [
     ['Health', 'health'],
-    ['API & Models', 'api'],
+    ['API keys', 'api'],
     ['Model routing', 'model routing'],
     ['Usage', 'usage'],
     ['Danger zone', 'danger zone'],
@@ -383,27 +383,18 @@ export default async function shellLook({
       await toast.waitFor({ state: 'visible', timeout: 15_000 })
       await shot('api-keys')
       const toastText = await toast.innerText()
-      const inputValue = await form.locator('input').inputValue()
+      await form.waitFor({ state: 'detached' })
       const masked = openrouter.locator('[data-api-key-masked]')
-      const maskedVisible = (await masked.count()) > 0
       const notSet = await openrouter.getByText('Not set', { exact: true }).isVisible()
       await step(
-        'api key rejected',
+        'api key rejected and previous value restored',
         toastText.length > 0 &&
           toastText !== 'Saved API keys' &&
           (await page.locator('.fixed.bottom-5.right-5 .bg-app-error').count()) === 1 &&
-          (await visible(form)) &&
-          inputValue === testKey &&
+          (await form.count()) === 0 &&
           notSet &&
-          !maskedVisible,
-        `toast=${toastText}; form visible=${await visible(form)}; input preserved=${inputValue === testKey}; not set=${notSet}; masked=${maskedVisible}`,
-      )
-      await page.waitForTimeout(6000)
-      const inputPreservedAfterLoad = (await form.locator('input').inputValue()) === testKey
-      await step(
-        'api key survives initial settings load',
-        inputPreservedAfterLoad,
-        `input preserved after 6s=${inputPreservedAfterLoad}`,
+          (await masked.count()) === 0,
+        `toast=${toastText}; not set=${notSet}`,
       )
       const anthropic = page.locator('[data-api-key-row="anthropic"]')
       const anthropicForm = anthropic.locator('[data-api-key-form]')
@@ -578,52 +569,36 @@ export default async function shellLook({
   await page.getByRole('button', { name: 'Executor', exact: true }).click()
   await hidden(page.getByText('Loading live settings…', { exact: true }))
   const timeoutControl = page.getByRole('group', { name: 'timeout', exact: true })
-  const timeoutBefore = await timeoutControl.innerText()
-  const bar = page.locator('[data-unsaved-bar]')
-  await timeoutControl.getByRole('button', { name: 'Increase timeout', exact: true }).click()
-  await visible(bar)
-  const oneChange = await bar.locator('[data-unsaved-count]').innerText()
-  const timeoutToastCount = await page.locator('.fixed.bottom-5.right-5').count()
-  await page
-    .getByRole('radio', {
-      name: beforeExecutor.apiMode === 'agentic' ? 'Single-shot' : 'Agentic',
-      exact: true,
-    })
-    .click()
-  await settle()
-  const modeToastCount = await page.locator('.fixed.bottom-5.right-5').count()
-  await step(
-    'unsaved bar appears',
-    oneChange === '1' &&
-      (await bar.locator('[data-unsaved-count]').innerText()) === '2' &&
-      timeoutToastCount === 0 &&
-      modeToastCount === 0,
-    `first=${oneChange}, current=${await bar.locator('[data-unsaved-count]').innerText()}, toasts=${timeoutToastCount}/${modeToastCount}`,
-  )
-  await shot('unsaved-bar')
-  await bar.getByRole('button', { name: 'Discard', exact: true }).click()
-  await step(
-    'unsaved discard',
-    (await hidden(bar)) && (await timeoutControl.innerText()) === timeoutBefore,
-    await timeoutControl.innerText(),
-  )
-  await timeoutControl.getByRole('button', { name: 'Increase timeout', exact: true }).click()
-  await bar.getByRole('button', { name: 'Save', exact: true }).click()
-  const savedPill = page.locator('[data-unsaved-saved]')
-  const savedVisible = await visible(savedPill)
-  await shot('unsaved-saved')
-  const disappeared = await hidden(bar)
+  const [savedTimeout] = await Promise.all([
+    page.waitForResponse(
+      (res) => res.url().endsWith('/api/config') && res.request().method() === 'PUT',
+    ),
+    timeoutControl.getByRole('button', { name: 'Increase timeout', exact: true }).click(),
+  ])
+  await page.locator('[data-settings-saving]').waitFor({ state: 'hidden' })
+  const [savedMode] = await Promise.all([
+    page.waitForResponse(
+      (res) => res.url().endsWith('/api/config') && res.request().method() === 'PUT',
+    ),
+    page
+      .getByRole('radio', {
+        name: beforeExecutor.apiMode === 'agentic' ? 'Single-shot' : 'Agentic',
+        exact: true,
+      })
+      .click(),
+  ])
+  await page.locator('[data-settings-saving]').waitFor({ state: 'hidden' })
   const afterExecutor = (await api('/api/config', { headers: configHeaders })).data
   await step(
-    'unsaved save persists',
-    savedVisible &&
-      disappeared &&
-      afterExecutor.externalTimeoutMinutes === beforeExecutor.externalTimeoutMinutes + 5,
-    JSON.stringify({
-      before: beforeExecutor.externalTimeoutMinutes,
-      after: afterExecutor.externalTimeoutMinutes,
-    }),
+    'executor controls save immediately',
+    savedTimeout.ok() &&
+      savedMode.ok() &&
+      afterExecutor.externalTimeoutMinutes === beforeExecutor.externalTimeoutMinutes + 5 &&
+      afterExecutor.apiMode !== beforeExecutor.apiMode &&
+      (await page.locator('[data-unsaved-bar]').count()) === 0,
+    JSON.stringify({ before: beforeExecutor, after: afterExecutor }),
   )
+  await shot('executor-instant-save')
   await step('no saved banner', (await page.getByText(/configuration successfully/i).count()) === 0)
   await page.getByRole('button', { name: basename(projectRoot), exact: true }).click()
   await visible(page.getByRole('heading', { name: basename(projectRoot), exact: true }))

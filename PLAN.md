@@ -89,8 +89,13 @@ Keybindings de solo lectura en la primera versión. Orden: SET.0 primero (bloque
   `test:coverage` 2101/0, typecheck y lint verdes.
   Gate en vivo: navegador real (Playwright) `usage-bar` 19/19, `docs/done/evidence/SET.0-live.json`
   Ejecutado por: codex gpt-6.1-sol (criterio), revisión Opus · Spec: docs/specs/SET.0.md
-- [ ] **SET.1 — 🧠 Shell de Settings: nav agrupada con iconos, guardado instantáneo y buscador que resalta la fila.**
-  Fuera la barra "N unsaved changes · Save"; fuera la descripción bajo cada título. Spec: `docs/specs/SET.1.md`.
+- [x] **SET.1 — 🧠 Shell de Settings: nav agrupada con iconos, guardado instantáneo y buscador que resalta la fila.**
+  (cerrado 2026-10-26) Nav App/Agents/Observe/Protect con iconos; fuera la barra "N unsaved changes · Save" y la
+  descripción bajo cada título; borradores locales para estados que el backend rechaza (agente sin modelo, regla sin
+  `match`; ronda 1 paró por eso, spec completado). Appearance, Keybindings y Providers quedan vacías hasta SET.5/SET.3.
+  Evidencia del cerebro: página por página en vivo sobre copia de la DB; `test:coverage` 2101/0, typecheck y lint.
+  Gate en vivo: navegador real (Playwright) `settings-shell` 22/22, `model-routing` 19/19, `custom-cli` 13/13, `docs/done/evidence/SET.1-live.json`
+  Ejecutado por: codex gpt-6.1-sol (criterio), revisión Opus · Spec: docs/specs/SET.1.md
 - [ ] **SET.2 — 🧠 Detección de CLIs como los ADEs: PATH del login shell, versión, sesión y modelos, 0 tokens.**
   Backend `GET /api/providers`. Spec: `docs/specs/SET.2.md`.
 - [ ] **SET.3 — 🧠 Página Providers: una fila por CLI detectado + no encontrados + CLIs propios.**

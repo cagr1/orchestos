@@ -89,11 +89,11 @@ export default async function customCli({
     page.waitForResponse(
       (res) => res.url().endsWith('/api/clis') && res.request().method() === 'PUT',
     ),
-    page.locator('[data-unsaved-bar]').getByRole('button', { name: 'Save', exact: true }).click(),
+    form.getByLabel('Argumentos', { exact: true }).blur(),
   ])
   if (!cliSaved.ok())
     throw new Error(`save CLI failed ${cliSaved.status()}: ${await cliSaved.text()}`)
-  await page.locator('[data-unsaved-saved]').waitFor({ state: 'visible' })
+  await page.locator('[data-settings-saving]').waitFor({ state: 'hidden' })
   await step(
     'CLI added through Settings persisted globally',
     parse(readFileSync(globalPath, 'utf8')).clis.some(
@@ -109,19 +109,20 @@ export default async function customCli({
     'generic executor installed and selectable',
     (await visible(option)) && (await option.isEnabled()),
   )
-  await option.click()
-  await step(
-    'generic executor preselects default model',
-    await executor.getByRole('button', { name: 'Default del CLI', exact: true }).isVisible(),
-  )
-  await shot('custom-cli-settings')
   const [saved] = await Promise.all([
     page.waitForResponse(
       (res) => res.url().endsWith('/api/config') && res.request().method() === 'PUT',
     ),
-    page.locator('[data-unsaved-bar]').getByRole('button', { name: 'Save', exact: true }).click(),
+    option.click(),
   ])
   if (!saved.ok()) throw new Error(`save failed ${saved.status()}: ${await saved.text()}`)
+  await page.locator('[data-settings-saving]').waitFor({ state: 'hidden' })
+  await step(
+    'generic executor preselects default model',
+    (await executor.getByLabel('Executor model', { exact: true }).innerText()) ===
+      'Default del CLI',
+  )
+  await shot('custom-cli-settings')
   await step(
     'generic executor persisted',
     (await api('/api/config', { headers })).data?.roleAssignments?.executor?.agent ===
@@ -195,13 +196,12 @@ export default async function customCli({
   )
   await shot('custom-cli-run')
   await page.getByRole('button', { name: 'Executor', exact: true }).click()
-  await page.getByRole('button', { name: 'Quitar Claude (genérico)', exact: true }).click()
   expectHttpError(/\/api\/clis$/)
   const [blocked] = await Promise.all([
     page.waitForResponse(
       (res) => res.url().endsWith('/api/clis') && res.request().method() === 'PUT',
     ),
-    page.locator('[data-unsaved-bar]').getByRole('button', { name: 'Save', exact: true }).click(),
+    page.getByRole('button', { name: 'Quitar Claude (genérico)', exact: true }).click(),
   ])
   await step(
     'assigned CLI removal rejected inline',
@@ -212,41 +212,25 @@ export default async function customCli({
           .filter({ hasText: 'Está asignado como Ejecutor: cambia el Ejecutor antes de quitarlo' }),
       )),
   )
-  await page
-    .locator('[data-unsaved-bar]')
-    .getByRole('button', { name: 'Discard', exact: true })
-    .click()
+  await page.locator('[data-settings-saving]').waitFor({ state: 'hidden' })
   await page.getByRole('button', { name: 'Model routing', exact: true }).click()
   await executor.getByLabel('Executor agent').click()
-  await executor.getByRole('button', { name: 'claude', exact: true }).click()
-  const claude = (await api('/api/models/catalog')).data.agents.find(
-    (agent) => agent.id === 'claude',
-  )
-  if (!claude?.models.length) throw new Error('Claude model catalog is empty')
-  await executor.getByRole('button', { name: 'Select model', exact: true }).click()
-  await executor
-    .getByRole('dialog', { name: 'Executor model selector' })
-    .getByRole('button')
-    .filter({ hasText: claude.models[0].name })
-    .first()
-    .click()
   const [reassigned] = await Promise.all([
     page.waitForResponse(
       (res) => res.url().endsWith('/api/config') && res.request().method() === 'PUT',
     ),
-    page.locator('[data-unsaved-bar]').getByRole('button', { name: 'Save', exact: true }).click(),
+    executor.getByRole('button', { name: 'claude', exact: true }).click(),
   ])
   if (!reassigned.ok()) throw new Error(`reassign failed: ${await reassigned.text()}`)
-  await page.locator('[data-unsaved-saved]').waitFor({ state: 'visible' })
+  await page.locator('[data-settings-saving]').waitFor({ state: 'hidden' })
   await page.getByRole('button', { name: 'Executor', exact: true }).click()
-  await page.getByRole('button', { name: 'Quitar Claude (genérico)', exact: true }).click()
   const [removed] = await Promise.all([
     page.waitForResponse(
       (res) => res.url().endsWith('/api/clis') && res.request().method() === 'PUT',
     ),
-    page.locator('[data-unsaved-bar]').getByRole('button', { name: 'Save', exact: true }).click(),
+    page.getByRole('button', { name: 'Quitar Claude (genérico)', exact: true }).click(),
   ])
-  if (removed.ok()) await page.locator('[data-unsaved-saved]').waitFor({ state: 'visible' })
+  await page.locator('[data-settings-saving]').waitFor({ state: 'hidden' })
   await step(
     'unassigned CLI removed from global YAML',
     removed.ok() &&

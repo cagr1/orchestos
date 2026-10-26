@@ -8,14 +8,13 @@ import {
   CheckCircle2,
   ChevronDown,
   Cpu,
-  Database,
   DollarSign,
-  ExternalLink,
   FileCheck,
   FolderClosed,
   Globe,
   Kanban,
   Key,
+  Keyboard,
   Layers,
   Palette,
   Pencil,
@@ -24,14 +23,13 @@ import {
   Server,
   Settings as SettingsIcon,
   ShieldAlert,
-  Sliders,
   Sparkles,
   Terminal,
   Trash2,
   Zap,
 } from 'lucide-react'
 import { AnimatePresence, animate, motion } from 'motion/react'
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import React, { useCallback, useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { PageHeader } from '@/components/layout/page'
 import { Button } from '@/components/ui/button'
@@ -104,15 +102,22 @@ import {
   SettingsStepper,
 } from './primitives'
 
-type CliDraft = CustomCliEntry & { argsText: string; modelArgsText: string; modelsText: string }
+type CliDraft = CustomCliEntry & {
+  savedId?: string
+  argsText: string
+  modelArgsText: string
+  modelsText: string
+}
 const cliDraft = (cli: CustomCliEntry): CliDraft => ({
   ...cli,
+  savedId: cli.id || undefined,
   argsText: cli.args.join('\n'),
   modelArgsText: (cli.modelArgs ?? []).join('\n'),
   modelsText: (cli.models ?? []).join(', '),
 })
 const cliConfig = ({
   argsText,
+  savedId: _savedId,
   modelArgsText,
   modelsText,
   installed: _installed,
@@ -174,32 +179,63 @@ const SETTINGS_SEARCH_INDEX: SettingsSearchEntry[] = [
   {
     id: 'theme-orchestos',
     section: 'general',
-    label: { en: 'OrchestOS theme', es: 'Tema OrchestOS' },
-    keywords: ['general', 'appearance', 'theme', 'tema', 'apariencia'],
+    label: { en: 'OrchestOS', es: 'OrchestOS' },
+    keywords: [
+      'orchestos theme',
+      'tema orchestos',
+      'general',
+      'appearance',
+      'theme',
+      'tema',
+      'apariencia',
+    ],
   },
   {
     id: 'theme-graphite',
     section: 'general',
-    label: { en: 'Graphite theme', es: 'Tema Graphite' },
-    keywords: ['general', 'appearance', 'theme', 'tema', 'apariencia'],
+    label: { en: 'Graphite', es: 'Graphite' },
+    keywords: [
+      'graphite theme',
+      'tema graphite',
+      'general',
+      'appearance',
+      'theme',
+      'tema',
+      'apariencia',
+    ],
   },
   {
     id: 'theme-carbon',
     section: 'general',
-    label: { en: 'Carbon theme', es: 'Tema Carbon' },
-    keywords: ['general', 'appearance', 'theme', 'tema', 'apariencia'],
+    label: { en: 'Carbon', es: 'Carbon' },
+    keywords: [
+      'carbon theme',
+      'tema carbon',
+      'general',
+      'appearance',
+      'theme',
+      'tema',
+      'apariencia',
+    ],
   },
   {
     id: 'theme-light',
     section: 'general',
-    label: { en: 'Light theme', es: 'Tema Light' },
-    keywords: ['general', 'appearance', 'theme', 'tema', 'apariencia'],
+    label: { en: 'Light', es: 'Light' },
+    keywords: ['light theme', 'tema light', 'general', 'appearance', 'theme', 'tema', 'apariencia'],
   },
   {
     id: 'health',
     section: 'health',
     label: { en: 'Project health', es: 'Salud del proyecto' },
-    keywords: ['system', 'readiness', 'diagnostics'],
+    keywords: [
+      'health',
+      'project health',
+      'salud del proyecto',
+      'system',
+      'readiness',
+      'diagnostics',
+    ],
   },
   {
     id: 'api-openrouter',
@@ -234,103 +270,143 @@ const SETTINGS_SEARCH_INDEX: SettingsSearchEntry[] = [
   {
     id: 'routing-orchestrator',
     section: 'model_routing',
-    label: { en: 'Orchestrator', es: 'Orquestador' },
-    keywords: ['model', 'routing', 'roles', 'modelos'],
+    label: { en: 'Orchestrator', es: 'Orchestrator' },
+    keywords: ['orchestrator', 'orquestador', 'model', 'routing', 'roles', 'modelos'],
   },
   {
     id: 'routing-executor',
     section: 'model_routing',
-    label: { en: 'Executor role', es: 'Rol de ejecución' },
-    keywords: ['model', 'routing', 'roles', 'modelos'],
+    label: { en: 'Executor', es: 'Executor' },
+    keywords: ['executor', 'executor', 'model', 'routing', 'roles', 'modelos'],
   },
   {
     id: 'routing-reviewer',
     section: 'model_routing',
-    label: { en: 'Reviewer', es: 'Revisor' },
-    keywords: ['model', 'routing', 'roles', 'modelos'],
+    label: { en: 'Reviewer', es: 'Reviewer' },
+    keywords: ['reviewer', 'revisor', 'model', 'routing', 'roles', 'modelos'],
   },
   {
     id: 'routing-auxiliary',
     section: 'model_routing',
-    label: { en: 'Auxiliary', es: 'Auxiliar' },
-    keywords: ['model', 'routing', 'roles', 'modelos'],
+    label: { en: 'Auxiliary', es: 'Auxiliary' },
+    keywords: ['auxiliary', 'auxiliar', 'model', 'routing', 'roles', 'modelos'],
   },
   {
     id: 'routing-rules',
     section: 'model_routing',
-    label: { en: 'Task routing rules', es: 'Reglas por tarea' },
-    keywords: ['model', 'routing', 'output', 'skill'],
+    label: { en: 'Task rules', es: 'Task rules' },
+    keywords: ['task routing rules', 'reglas por tarea', 'model', 'routing', 'output', 'skill'],
   },
   {
     id: 'permissions',
     section: 'model_routing',
-    label: { en: 'Agent permissions', es: 'Permisos de agentes' },
-    keywords: ['manual', 'yolo', 'approval'],
+    label: { en: 'Agent permissions', es: 'Agent permissions' },
+    keywords: ['agent permissions', 'permisos de agentes', 'manual', 'yolo', 'approval'],
   },
   {
     id: 'executor-timeout',
     section: 'executor',
-    label: { en: 'CLI timeout', es: 'Tiempo límite CLI' },
-    keywords: ['executor', 'execution', 'ejecutor'],
+    label: { en: 'Timeout', es: 'Timeout' },
+    keywords: ['executor', 'execution', 'ejecutor', 'timeout', 'tiempo límite'],
   },
   {
     id: 'executor-mode',
     section: 'executor',
-    label: { en: 'Execution mode', es: 'Modo de ejecución' },
+    label: { en: 'Mode', es: 'Mode' },
     keywords: ['executor', 'execution', 'ejecutor'],
   },
   {
     id: 'executor-iterations',
     section: 'executor',
-    label: { en: 'Max iterations', es: 'Máximo de iteraciones' },
-    keywords: ['executor', 'execution', 'ejecutor'],
+    label: { en: 'Max iterations', es: 'Max iterations' },
+    keywords: ['max iterations', 'máximo de iteraciones', 'executor', 'execution', 'ejecutor'],
   },
   {
     id: 'usage-spend',
     section: 'usage',
-    label: { en: 'Total spend', es: 'Gasto total' },
-    keywords: ['usage', 'spend', 'telemetry', 'consumo', 'costo'],
+    label: { en: 'Total Spend', es: 'Total Spend' },
+    keywords: ['total spend', 'gasto total', 'usage', 'spend', 'telemetry', 'consumo', 'costo'],
   },
   {
     id: 'usage-runs',
     section: 'usage',
-    label: { en: 'Total runs', es: 'Ejecuciones totales' },
-    keywords: ['usage', 'spend', 'telemetry', 'consumo', 'costo'],
+    label: { en: 'Total Runs', es: 'Total Runs' },
+    keywords: [
+      'total runs',
+      'ejecuciones totales',
+      'usage',
+      'spend',
+      'telemetry',
+      'consumo',
+      'costo',
+    ],
   },
   {
     id: 'usage-average',
     section: 'usage',
-    label: { en: 'Average cost per run', es: 'Coste medio por ejecución' },
-    keywords: ['usage', 'spend', 'telemetry', 'consumo', 'costo'],
+    label: { en: 'Avg. Cost / Run', es: 'Avg. Cost / Run' },
+    keywords: [
+      'avg. cost / run',
+      'avg. cost / run',
+      'usage',
+      'spend',
+      'telemetry',
+      'consumo',
+      'costo',
+    ],
   },
   {
     id: 'usage-activity',
     section: 'usage',
-    label: { en: 'Daily activity', es: 'Actividad diaria' },
-    keywords: ['usage', 'spend', 'telemetry', 'consumo', 'costo'],
+    label: { en: 'Daily activity', es: 'Daily activity' },
+    keywords: [
+      'daily activity',
+      'actividad diaria',
+      'usage',
+      'spend',
+      'telemetry',
+      'consumo',
+      'costo',
+    ],
   },
   {
     id: 'usage-models',
     section: 'usage',
-    label: { en: 'Spend by model', es: 'Gasto por modelo' },
-    keywords: ['usage', 'spend', 'telemetry', 'consumo', 'costo'],
+    label: { en: 'Spend by model', es: 'Spend by model' },
+    keywords: [
+      'spend by model',
+      'gasto por modelo',
+      'usage',
+      'spend',
+      'telemetry',
+      'consumo',
+      'costo',
+    ],
   },
   {
     id: 'reset',
     section: 'danger_zone',
-    label: { en: 'Reset OrchestOS', es: 'Restablecer OrchestOS' },
-    keywords: ['danger', 'zone', 'delete', 'peligro', 'borrar'],
+    label: { en: 'Reset OrchestOS', es: 'Reset OrchestOS' },
+    keywords: [
+      'reset orchestos',
+      'restablecer orchestos',
+      'danger',
+      'zone',
+      'delete',
+      'peligro',
+      'borrar',
+    ],
   },
   {
     id: 'language-en',
     section: 'language',
-    label: { en: 'English language', es: 'Idioma inglés' },
+    label: { en: 'English', es: 'English' },
     keywords: ['language', 'idioma'],
   },
   {
     id: 'language-es',
     section: 'language',
-    label: { en: 'Spanish language', es: 'Idioma español' },
+    label: { en: 'Español', es: 'Español' },
     keywords: ['language', 'idioma'],
   },
 ]
@@ -504,11 +580,20 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
     taskEngine?: boolean
     generic?: boolean
     label?: string
-    models: { id: string; name: string; efforts?: string[]; group?: string; vendor?: string }[]
+    models: {
+      id: string
+      name: string
+      efforts?: string[]
+      group?: string
+      vendor?: string
+      default?: boolean
+    }[]
     efforts: string[]
     error?: string
   }
+  const ruleSequence = useRef(0)
   type RoutingRule = {
+    localId?: number
     match: { output?: string[]; skill?: string }
     agent: string
     model?: string
@@ -564,64 +649,31 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
     timeoutMinutes: number
   }
   const [baseline, setBaseline] = useState<SettingsBaseline | null>(null)
-  const [unsavedExpanded, setUnsavedExpanded] = useState(false)
-  const [unsavedSaved, setUnsavedSaved] = useState(false)
   const [savingChanges, setSavingChanges] = useState(false)
-  const changes = useMemo(() => {
-    if (!baseline) return { routing: 0, executor: 0, clis: 0, total: 0 }
-    const roles = new Set([...Object.keys(baseline.routingRoles), ...Object.keys(routingRoles)])
-    const serializeRules = (rules: RoutingRule[]) =>
-      JSON.stringify(
-        rules.map((rule) => [
-          rule.match.output,
-          rule.match.skill,
-          rule.agent,
-          rule.model,
-          rule.cli_effort,
-        ]),
-      )
-    const routing =
-      [...roles].filter((role) => {
-        const before = baseline.routingRoles[role]
-        const after = routingRoles[role]
-        return (
-          before?.agent !== after?.agent ||
-          before?.model !== after?.model ||
-          before?.effort !== after?.effort
-        )
-      }).length + Number(serializeRules(baseline.taskAgentRules) !== serializeRules(taskAgentRules))
-    const executor =
-      Number(apiMode !== baseline.apiMode) +
-      Number(maxIterations !== baseline.maxIterations) +
-      Number(timeoutMinutes !== baseline.timeoutMinutes)
-    const clis = Number(
-      JSON.stringify(customClis.map(cliConfig)) !==
-        JSON.stringify(baseline.customClis.map(cliConfig)),
-    )
-    return { routing, executor, clis, total: routing + executor + clis }
-  }, [baseline, routingRoles, taskAgentRules, apiMode, maxIterations, timeoutMinutes, customClis])
-  const dirtyCount = changes.total
-  const hasUnsavedChanges = dirtyCount > 0
-
+  const textEditing = useRef(false)
+  const [, commitText] = useState(0)
   const reduceActivityMotion = usePrefersReducedMotion()
-  useEffect(() => {
-    if (!hasUnsavedChanges) {
-      setUnsavedExpanded(false)
-      return
-    }
-    setUnsavedSaved(false)
-    const timer = setTimeout(
-      () => setUnsavedExpanded(true),
-      reduceActivityMotion ? 0 : spring.slow.duration * 1000,
+  const validRule = (rule: RoutingRule) =>
+    Boolean(
+      (rule.match.output?.length || rule.match.skill?.trim()) && rule.agent && rule.model?.trim(),
     )
-    return () => clearTimeout(timer)
-  }, [hasUnsavedChanges, reduceActivityMotion])
-  useEffect(() => {
-    if (!unsavedSaved) return
-    const timer = setTimeout(() => setUnsavedSaved(false), 1500)
-    return () => clearTimeout(timer)
-  }, [unsavedSaved])
+  const validCli = (cli: CliDraft, index: number) =>
+    /^[a-z0-9][a-z0-9-]*$/.test(cli.id) &&
+    Boolean(cli.label.trim() && cli.command.trim()) &&
+    !executorModes?.modes.some(
+      (mode) =>
+        mode.id === cli.id &&
+        mode.id !== 'local' &&
+        mode.id !== 'api' &&
+        !('generic' in mode && mode.generic),
+    ) &&
+    !customClis.some((other, i) => i !== index && other.id === cli.id)
 
+  const healthLabel = health
+    ? health.system.ready
+      ? 'All prerequisites met'
+      : 'Setup needs attention'
+    : 'Checking prerequisites…'
   const searchResults = [
     ...SETTINGS_SEARCH_INDEX,
     ...projects.map((project) => ({
@@ -631,6 +683,14 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
       keywords: ['project', 'proyecto'],
     })),
   ]
+    .map((entry) =>
+      entry.id === 'health'
+        ? {
+            ...entry,
+            label: { en: healthLabel, es: healthLabel },
+          }
+        : entry,
+    )
     .filter((entry) => entry.id !== 'executor-iterations' || apiMode === 'agentic')
     .filter((entry) =>
       normalizeSettingsSearch(`${entry.label[language]} ${entry.keywords.join(' ')}`).includes(
@@ -839,20 +899,23 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
             >
             taskAgentRules?: RoutingRule[]
           }
+          const nextRules = (routed.taskAgentRules ?? []).map((rule) => ({
+            ...rule,
+            localId: ruleSequence.current++,
+          }))
           setCustomClis(nextClis.clis.map(cliDraft))
           setEditingCli(null)
           setCliError(null)
           setBaseline({
             customClis: nextClis.clis.map(cliDraft),
             routingRoles: routed.roleAssignments ?? {},
-            taskAgentRules: routed.taskAgentRules ?? [],
+            taskAgentRules: nextRules,
             apiMode: nextConfig.apiMode,
             maxIterations: nextConfig.agenticMaxIterations,
             timeoutMinutes: nextConfig.externalTimeoutMinutes,
           })
-          setUnsavedSaved(false)
           setRoutingRoles(routed.roleAssignments ?? {})
-          setTaskAgentRules(routed.taskAgentRules ?? [])
+          setTaskAgentRules(nextRules)
           setApiMode(nextConfig.apiMode)
           setMaxIterations(nextConfig.agenticMaxIterations)
           setTimeoutMinutes(nextConfig.externalTimeoutMinutes)
@@ -895,6 +958,7 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
       setEditingKeyProvider((current) => (current === provider ? null : current))
       showSaveSuccess('API keys')
     } catch (error) {
+      cancelKeyEdit(provider)
       showToast(error instanceof Error ? error.message : 'Could not save API key', 'error')
     }
   }
@@ -911,31 +975,38 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
       setLocalProvider(await getLocalProvider())
       showSaveSuccess(language === 'es' ? 'configuración de Ollama' : 'Ollama settings')
     } catch (error) {
+      setOllamaHost(apiKeys.ollama.masked)
       showToast(error instanceof Error ? error.message : 'Could not save Ollama settings', 'error')
     }
   }
 
-  const handleSaveRouting = async () => {
+  const handleSaveRouting = async (rules: RoutingRule[]) => {
     try {
-      await saveConfig({ roleAssignments: routingRoles, taskAgentRules }, activeProjectId)
+      await saveConfig(
+        {
+          roleAssignments: routingRoles,
+          taskAgentRules: rules.map(({ localId: _localId, ...rule }) => rule),
+        },
+        activeProjectId,
+      )
       const updated = (await getConfig(configProjectId)) as ConfigResponse & {
         roleWarnings?: string[]
         roleAssignments?: Record<string, { agent: string; model: string; effort?: string } | null>
         taskAgentRules?: RoutingRule[]
       }
       setConfig(updated)
-      setRoutingRoles(updated.roleAssignments ?? {})
-      setTaskAgentRules(updated.taskAgentRules ?? [])
       setBaseline(
         (current) =>
           current && {
             ...current,
             routingRoles: updated.roleAssignments ?? {},
-            taskAgentRules: updated.taskAgentRules ?? [],
+            taskAgentRules: rules,
           },
       )
       return true
     } catch (error) {
+      setRoutingRoles(baseline?.routingRoles ?? {})
+      setTaskAgentRules(baseline?.taskAgentRules ?? [])
       showToast(error instanceof Error ? error.message : 'Could not save model routing', 'error')
       return false
     }
@@ -964,6 +1035,11 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
       setBaseline((current) => current && { ...current, apiMode, maxIterations, timeoutMinutes })
       return true
     } catch (error) {
+      if (baseline) {
+        setApiMode(baseline.apiMode)
+        setMaxIterations(baseline.maxIterations)
+        setTimeoutMinutes(baseline.timeoutMinutes)
+      }
       showToast(
         error instanceof Error ? error.message : 'Could not save executor settings',
         'error',
@@ -972,47 +1048,89 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
     }
   }
 
-  const handleSaveClis = async () => {
+  const handleSaveClis = async (clis: CliDraft[]) => {
     try {
-      await saveClis(customClis.map(cliConfig), activeProjectId)
+      await saveClis(clis.map(cliConfig), activeProjectId)
       const updated = (await getClis()).clis.map(cliDraft)
-      setCustomClis(updated)
+      setCustomClis((items) =>
+        items.map((item) => ({
+          ...item,
+          savedId: updated.some((saved) => saved.id === item.id) ? item.id : item.savedId,
+          installed: updated.find((saved) => saved.id === item.id)?.installed ?? false,
+        })),
+      )
       setBaseline((current) => current && { ...current, customClis: updated })
-      setEditingCli(null)
       setCliError(null)
       const catalog = await fetch('/api/models/catalog').then((response) => response.json())
       setRoutingCatalog(catalog.agents ?? [])
       return true
     } catch (error) {
-      setCliError(error instanceof Error ? error.message : 'Could not save CLIs')
+      setCustomClis(baseline?.customClis ?? [])
+      const message = error instanceof Error ? error.message : 'Could not save CLIs'
+      setCliError(message)
+      showToast(message, 'error')
       return false
     }
   }
 
-  const discardChanges = () => {
-    if (!baseline) return
-    setCustomClis(baseline.customClis)
-    setEditingCli(null)
-    setCliError(null)
-    setRoutingRoles(baseline.routingRoles)
-    setTaskAgentRules(baseline.taskAgentRules)
-    setApiMode(baseline.apiMode)
-    setMaxIterations(baseline.maxIterations)
-    setTimeoutMinutes(baseline.timeoutMinutes)
-  }
+  // Serialize saves. Text remains local until blur/Enter; invalid drafts never reach the API.
+  useEffect(() => {
+    if (!baseline || settingsLoading || savingChanges || textEditing.current) return
+    const timer = window.setTimeout(() => {
+      const rules = taskAgentRules.flatMap((rule) => {
+        const saved = baseline.taskAgentRules.find((item) => item.localId === rule.localId)
+        return validRule(rule) ? [rule] : saved ? [saved] : []
+      })
+      const clis = customClis.flatMap((cli, index) => {
+        const saved = baseline.customClis.find((item) => item.id === cli.savedId)
+        return validCli(cli, index) ? [cli] : saved ? [saved] : []
+      })
+      const routingChanged =
+        JSON.stringify([routingRoles, rules]) !==
+        JSON.stringify([baseline.routingRoles, baseline.taskAgentRules])
+      const executorChanged =
+        apiMode !== baseline.apiMode ||
+        maxIterations !== baseline.maxIterations ||
+        timeoutMinutes !== baseline.timeoutMinutes
+      const clisChanged =
+        JSON.stringify(clis.map(cliConfig)) !== JSON.stringify(baseline.customClis.map(cliConfig))
+      if (!routingChanged && !executorChanged && !clisChanged) return
+      setSavingChanges(true)
+      void (async () => {
+        try {
+          if (routingChanged) await handleSaveRouting(rules)
+          else if (executorChanged) await handleSaveExecutor()
+          else if (clisChanged) await handleSaveClis(clis)
+        } finally {
+          setSavingChanges(false)
+        }
+      })()
+    }, 0)
+    return () => window.clearTimeout(timer)
+  })
 
-  const saveChanges = async () => {
-    if (savingChanges) return
-    setSavingChanges(true)
-    try {
-      const routingSaved = !changes.routing || (await handleSaveRouting())
-      const executorSaved = !changes.executor || (await handleSaveExecutor())
-      const clisSaved = routingSaved && (!changes.clis || (await handleSaveClis()))
-      if (routingSaved && executorSaved && clisSaved) setUnsavedSaved(true)
-    } finally {
-      setSavingChanges(false)
+  useEffect(() => {
+    // Navigating away discards incomplete local entries without a prompt.
+    if (activeSection !== 'model_routing') {
+      setTaskAgentRules((items) =>
+        items.flatMap((rule) => {
+          if (validRule(rule)) return [rule]
+          const saved = baseline?.taskAgentRules.find((item) => item.localId === rule.localId)
+          return saved ? [saved] : []
+        }),
+      )
     }
-  }
+    if (activeSection !== 'executor') {
+      setCustomClis((items) =>
+        items.flatMap((cli, index) => {
+          if (validCli(cli, index)) return [cli]
+          const saved = baseline?.customClis.find((item) => item.id === cli.savedId)
+          return saved ? [saved] : []
+        }),
+      )
+      setEditingCli(null)
+    }
+  }, [activeSection])
 
   // Daily activity cells with uniform style and date tooltips
   const dailyActivityCells = React.useMemo(() => {
@@ -1198,7 +1316,31 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
   )
 
   return (
-    <div ref={settingsRootRef} className="flex-1 flex h-full text-app overflow-hidden select-none">
+    <div
+      ref={settingsRootRef}
+      data-settings-saving={savingChanges || undefined}
+      onFocusCapture={(event) => {
+        if (event.target instanceof HTMLInputElement || event.target instanceof HTMLTextAreaElement)
+          textEditing.current = true
+      }}
+      onBlurCapture={() => {
+        textEditing.current = false
+        commitText((version) => version + 1)
+      }}
+      onKeyDownCapture={(event) => {
+        if (
+          event.key === 'Enter' &&
+          (event.target instanceof HTMLInputElement ||
+            event.target instanceof HTMLTextAreaElement) &&
+          !event.target.closest('[role=dialog]') &&
+          !event.shiftKey
+        ) {
+          event.preventDefault()
+          event.target.blur()
+        }
+      }}
+      className="flex-1 flex h-full text-app overflow-hidden select-none"
+    >
       <AnimatePresence>
         {paletteOpen && (
           <motion.div
@@ -1397,153 +1539,60 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
 
           {/* Settings Groups matching the real application structure */}
           <div className="space-y-4 pt-1 text-[12.5px]">
-            {/* GROUP 1: WORKSPACE */}
-            <div className="space-y-0.5">
-              <div className="text-[11px] font-semibold text-app-muted px-2 mb-1">Workspace</div>
-
-              <button
-                type="button"
-                onClick={() => setActiveSection('general')}
-                aria-current={activeSection === 'general' ? 'page' : undefined}
-                className={`relative isolate w-full flex h-7 items-center gap-2 px-2 rounded-control text-left text-[12.5px] font-medium transition-colors ${
-                  activeSection === 'general'
-                    ? 'text-app [&_svg]:text-app'
-                    : 'text-app-muted hover:text-app hover:bg-app-surface'
-                }`}
-              >
-                {activeSection === 'general' && navHighlight}
-                <Palette className="w-4 h-4 text-app-muted" />
-                <span>General</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setActiveSection('health')}
-                aria-current={activeSection === 'health' ? 'page' : undefined}
-                className={`relative isolate w-full flex h-7 items-center justify-between px-2 gap-2 rounded-control text-left text-[12.5px] font-medium transition-colors ${
-                  activeSection === 'health'
-                    ? 'text-app [&_svg]:text-app'
-                    : 'text-app-muted hover:text-app hover:bg-app-surface'
-                }`}
-              >
-                {activeSection === 'health' && navHighlight}
-                <div className="flex items-center gap-2">
-                  <Activity className="w-4 h-4 text-app-muted" />
-                  <span>Health</span>
+            {[
+              {
+                label: 'App',
+                entries: [
+                  { id: 'general', label: 'General', icon: SettingsIcon },
+                  { id: 'appearance', label: 'Appearance', icon: Palette },
+                  { id: 'keybindings', label: 'Keybindings', icon: Keyboard },
+                  { id: 'language', label: 'Language', icon: Globe },
+                ],
+              },
+              {
+                label: 'Agents',
+                entries: [
+                  { id: 'providers', label: 'Providers', icon: Bot },
+                  { id: 'model_routing', label: 'Model routing', icon: Cpu },
+                  { id: 'executor', label: 'Executor', icon: Server },
+                  { id: 'api_models', label: 'API keys', icon: Key },
+                ],
+              },
+              {
+                label: 'Observe',
+                entries: [
+                  { id: 'health', label: 'Health', icon: Activity },
+                  { id: 'usage', label: 'Usage', icon: DollarSign },
+                ],
+              },
+              {
+                label: 'Protect',
+                entries: [{ id: 'danger_zone', label: 'Danger zone', icon: ShieldAlert }],
+              },
+            ].map((group) => (
+              <div key={group.label} className="space-y-0.5">
+                <div className="text-[11px] font-semibold text-app-muted px-2 mb-1">
+                  {group.label}
                 </div>
-                <span className="w-1.5 h-1.5 rounded-full bg-app-success" />
-              </button>
-            </div>
-
-            {/* GROUP 2: CONFIGURE */}
-            <div className="space-y-0.5">
-              <div className="text-[11px] font-semibold text-app-muted px-2 mb-1">Configure</div>
-
-              <button
-                type="button"
-                onClick={() => setActiveSection('api_models')}
-                aria-current={activeSection === 'api_models' ? 'page' : undefined}
-                className={`relative isolate w-full flex h-7 items-center gap-2 px-2 rounded-control text-left text-[12.5px] font-medium transition-colors ${
-                  activeSection === 'api_models'
-                    ? 'text-app [&_svg]:text-app'
-                    : 'text-app-muted hover:text-app hover:bg-app-surface'
-                }`}
-              >
-                {activeSection === 'api_models' && navHighlight}
-                <Key className="w-4 h-4 text-app-muted" />
-                <span>API & Models</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setActiveSection('model_routing')}
-                aria-current={activeSection === 'model_routing' ? 'page' : undefined}
-                className={`relative isolate w-full flex h-7 items-center gap-2 px-2 rounded-control text-left text-[12.5px] font-medium transition-colors ${
-                  activeSection === 'model_routing'
-                    ? 'text-app [&_svg]:text-app'
-                    : 'text-app-muted hover:text-app hover:bg-app-surface'
-                }`}
-              >
-                {activeSection === 'model_routing' && navHighlight}
-                <Cpu className="w-4 h-4 text-app-muted" />
-                <span>Model routing</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setActiveSection('executor')}
-                aria-current={activeSection === 'executor' ? 'page' : undefined}
-                className={`relative isolate w-full flex h-7 items-center gap-2 px-2 rounded-control text-left text-[12.5px] font-medium transition-colors ${
-                  activeSection === 'executor'
-                    ? 'text-app [&_svg]:text-app'
-                    : 'text-app-muted hover:text-app hover:bg-app-surface'
-                }`}
-              >
-                {activeSection === 'executor' && navHighlight}
-                <Server className="w-4 h-4 text-app-muted" />
-                <span>Executor</span>
-              </button>
-            </div>
-
-            {/* GROUP 3: OBSERVE */}
-            <div className="space-y-0.5">
-              <div className="text-[11px] font-semibold text-app-muted px-2 mb-1">Observe</div>
-
-              <button
-                type="button"
-                onClick={() => setActiveSection('usage')}
-                aria-current={activeSection === 'usage' ? 'page' : undefined}
-                className={`relative isolate w-full flex h-7 items-center gap-2 px-2 rounded-control text-left text-[12.5px] font-medium transition-colors ${
-                  activeSection === 'usage'
-                    ? 'text-app [&_svg]:text-app'
-                    : 'text-app-muted hover:text-app hover:bg-app-surface'
-                }`}
-              >
-                {activeSection === 'usage' && navHighlight}
-                <DollarSign className="w-4 h-4 text-app-muted" />
-                <span>Usage</span>
-              </button>
-            </div>
-
-            {/* GROUP 4: PROTECT */}
-            <div className="space-y-0.5">
-              <div className="text-[11px] font-semibold text-app-muted px-2 mb-1">Protect</div>
-
-              <button
-                type="button"
-                onClick={() => setActiveSection('danger_zone')}
-                aria-current={activeSection === 'danger_zone' ? 'page' : undefined}
-                className={`relative isolate w-full flex h-7 items-center gap-2 px-2 rounded-control text-left text-[12.5px] font-medium transition-colors ${
-                  activeSection === 'danger_zone'
-                    ? 'text-app [&_svg]:text-app'
-                    : 'text-app-muted hover:text-app hover:bg-app-surface'
-                }`}
-              >
-                {activeSection === 'danger_zone' && navHighlight}
-                <ShieldAlert className="w-4 h-4 text-app-muted" />
-                <span>Danger zone</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setActiveSection('language')}
-                aria-current={activeSection === 'language' ? 'page' : undefined}
-                className={`relative isolate w-full flex h-7 items-center justify-between px-2 gap-2 rounded-control text-left text-[12.5px] font-medium transition-colors ${
-                  activeSection === 'language'
-                    ? 'text-app [&_svg]:text-app'
-                    : 'text-app-muted hover:text-app hover:bg-app-surface'
-                }`}
-              >
-                {activeSection === 'language' && navHighlight}
-                <div className="flex items-center gap-2">
-                  <Globe className="w-4 h-4 text-app-muted" />
-                  <span>Language</span>
-                </div>
-                <span className="text-[11px] tabular-nums text-app-muted uppercase">
-                  {language}
-                </span>
-              </button>
-            </div>
+                {group.entries.map(({ id, label, icon: Icon }) => (
+                  <button
+                    key={id}
+                    type="button"
+                    onClick={() => setActiveSection(id)}
+                    aria-current={activeSection === id ? 'page' : undefined}
+                    className={`relative isolate w-full flex h-7 items-center gap-2 px-2 rounded-control text-left text-[12.5px] font-medium transition-colors ${
+                      activeSection === id
+                        ? 'text-app [&_svg]:text-app'
+                        : 'text-app-muted hover:text-app hover:bg-app-surface'
+                    }`}
+                  >
+                    {activeSection === id && navHighlight}
+                    <Icon className="w-4 h-4 text-app-muted" />
+                    <span>{label}</span>
+                  </button>
+                ))}
+              </div>
+            ))}
 
             {/* GROUP 5: PROJECTS (Individual item per project) */}
             <div className="space-y-0.5 pt-1">
@@ -1605,14 +1654,7 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
 
         {/* SECTION: GENERAL — APPEARANCE */}
         {activeSection === 'general' && (
-          <SettingsPage
-            title="Appearance"
-            description={
-              language === 'es'
-                ? 'Personaliza la paleta visual y el tema del sistema.'
-                : 'Customize system appearance and color themes.'
-            }
-          >
+          <SettingsPage title="General">
             {/* 4 Theme cards with color swatches */}
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
               {themeOptions.map((th) => {
@@ -1665,12 +1707,21 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
           </SettingsPage>
         )}
 
+        {['appearance', 'keybindings', 'providers'].includes(activeSection) && (
+          <SettingsPage
+            title={
+              { appearance: 'Appearance', keybindings: 'Keybindings', providers: 'Providers' }[
+                activeSection
+              ]
+            }
+          >
+            {null}
+          </SettingsPage>
+        )}
+
         {/* SECTION: HEALTH */}
         {activeSection === 'health' && (
-          <SettingsPage
-            title="Project Health"
-            description="Runtime readiness, blocked task contracts, and review queues."
-          >
+          <SettingsPage title="Project Health">
             <SettingsGroup>
               <SettingsRow
                 data-settings-anchor="health"
@@ -1768,10 +1819,7 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
 
         {/* SECTION: API & MODELS */}
         {activeSection === 'api_models' && (
-          <SettingsPage
-            title="API Keys & Models"
-            description="Configure gateway credentials and local inference endpoints."
-          >
+          <SettingsPage title="API Keys & Models">
             <SettingsGroup>
               {(['openrouter', 'anthropic', 'openai'] as const).map((provider) => {
                 const key = apiKeys[provider]
@@ -1829,6 +1877,13 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
                             >
                               <input
                                 ref={focusKeyInput}
+                                onBlur={(event) => {
+                                  if (
+                                    !(event.relatedTarget instanceof HTMLElement) ||
+                                    !event.relatedTarget.closest('[data-cancel-key]')
+                                  )
+                                    void handleSaveKey(provider)
+                                }}
                                 type="password"
                                 aria-label={`${label} key`}
                                 autoComplete="off"
@@ -1846,17 +1901,10 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
                                 className="min-w-0 flex-1 rounded-control border border-[color:color-mix(in_srgb,var(--app-border)_50%,transparent)] bg-app-bg px-2.5 py-1 font-mono text-xs text-app"
                               />
                               <Button
-                                type="submit"
-                                variant="secondary"
-                                size="compact"
-                                disabled={!key.newKey.trim()}
-                              >
-                                Save
-                              </Button>
-                              <Button
                                 type="button"
                                 variant="ghost"
                                 size="compact"
+                                data-cancel-key
                                 onClick={() => cancelKeyEdit(provider)}
                               >
                                 Cancel
@@ -1918,16 +1966,12 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
                     <Server className="h-4 w-4 text-app-muted" />
                     <span className="text-[13px] font-medium text-app">Ollama URL</span>
                   </div>
-                  <Button
-                    variant="secondary"
-                    size="compact"
-                    onClick={() => void handleSaveOllama()}
-                  >
-                    Save URL
-                  </Button>
                 </div>
                 <input
                   type="url"
+                  onBlur={() => {
+                    if (ollamaHost !== apiKeys.ollama.masked) void handleSaveOllama()
+                  }}
                   value={ollamaHost}
                   placeholder="http://localhost:11434"
                   onChange={(e) => setOllamaHost(e.target.value)}
@@ -1950,7 +1994,6 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
         {activeSection === 'model_routing' && (
           <SettingsPage
             title="Model routing config"
-            description="Assign specialist models to system orchestration roles."
             status={
               <span className="text-xs text-app-muted">
                 Source: {config?.source ? 'orchestos.config.yaml' : 'defaults'}
@@ -2038,13 +2081,18 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
                               <button
                                 key={entry.id}
                                 type="button"
-                                disabled={!entry.installed}
+                                disabled={
+                                  !entry.installed || (!entry.generic && !entry.models.length)
+                                }
                                 onClick={() => {
                                   setRoutingRoles((current) => ({
                                     ...current,
                                     [key]: {
                                       agent: entry.id,
-                                      model: entry.generic ? 'default' : '',
+                                      model:
+                                        entry.models.find((model) => model.default)?.id ??
+                                        entry.models[0]?.id ??
+                                        (entry.generic ? 'default' : ''),
                                     },
                                   }))
                                   setActiveComboboxRole(null)
@@ -2060,6 +2108,7 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
                     <div className="relative">
                       <button
                         type="button"
+                        aria-label={`${label} model`}
                         disabled={!agent}
                         onClick={() => {
                           setActiveComboboxRole(activeComboboxRole === key ? null : key)
@@ -2218,7 +2267,17 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
                 <div className="space-y-2 border-t border-[color:color-mix(in_srgb,var(--app-border)_50%,transparent)] p-3">
                   <p className="text-app-muted">The first matching rule wins.</p>
                   {taskAgentRules.map((rule, index) => (
-                    <div key={index} className="grid grid-cols-1 sm:grid-cols-5 gap-2 items-center">
+                    <div
+                      key={rule.localId}
+                      data-routing-rule
+                      data-draft={!validRule(rule) || undefined}
+                      className={`grid grid-cols-1 sm:grid-cols-5 gap-2 items-center ${!validRule(rule) ? 'rounded-control border border-dashed border-app p-2' : ''}`}
+                    >
+                      {!validRule(rule) && (
+                        <span className="text-xs text-app-muted sm:col-span-5">
+                          {language === 'es' ? 'Borrador' : 'Draft'}
+                        </span>
+                      )}
                       <input
                         aria-label="output globs"
                         placeholder="output globs"
@@ -2447,6 +2506,7 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
                       setTaskAgentRules((items) => [
                         ...items,
                         {
+                          localId: ruleSequence.current++,
                           match: {},
                           agent: routingCatalog.find((entry) => entry.installed)?.id ?? 'codex',
                         },
@@ -2483,10 +2543,7 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
 
         {/* SECTION: EXECUTOR */}
         {activeSection === 'executor' && (
-          <SettingsPage
-            title="Executor"
-            description="Tune API execution and CLI timeouts. The Executor role in Model routing chooses which agent runs tasks."
-          >
+          <SettingsPage title="Executor">
             <SettingsGroup>
               <SettingsRow
                 data-settings-anchor="executor-timeout"
@@ -2667,10 +2724,7 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
 
         {/* SECTION: USAGE */}
         {activeSection === 'usage' && (
-          <SettingsPage
-            title="Usage & Spend"
-            description="Telemetry quotas, token costs, and daily executor activity."
-          >
+          <SettingsPage title="Usage & Spend">
             {/* 3 KPI cards at the top (exact same numbers computed from table data) */}
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               <div
@@ -2936,10 +2990,7 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
 
         {/* SECTION: DANGER ZONE (GLOBAL RESET) */}
         {activeSection === 'danger_zone' && (
-          <SettingsPage
-            title="Danger Zone"
-            description="Destructive operations and system reset triggers."
-          >
+          <SettingsPage title="Danger Zone">
             <SettingsGroup
               title={
                 <span className="inline-flex items-center gap-2 text-app-error">
@@ -2968,14 +3019,7 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
 
         {/* SECTION: LANGUAGE */}
         {activeSection === 'language' && (
-          <SettingsPage
-            title="Language / Idioma"
-            description={
-              language === 'es'
-                ? 'Cambia toda la interfaz al instante.'
-                : 'Change application interface language instantly.'
-            }
-          >
+          <SettingsPage title="Language / Idioma">
             <SettingsGroup>
               {(['en', 'es'] as const).map((option) => (
                 <button
@@ -3017,7 +3061,6 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
                     <span className="font-mono">{selectedProject.branch}</span>
                   ) : undefined
                 }
-                description={<span className="font-mono">{selectedProject.path}</span>}
               />
 
               {/* Sub-tabs: Tasks | Runs | Graph | Memory | Specs | Skills | Instincts | Plan */}
@@ -3238,101 +3281,6 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
             </div>
           </div>
         )}
-        <AnimatePresence>
-          {(dirtyCount > 0 || unsavedSaved) && (
-            <motion.div
-              data-unsaved-bar
-              className="absolute bottom-6 inset-x-0 z-30 flex justify-center pointer-events-none"
-              initial={{ opacity: 0, y: reduceActivityMotion ? 0 : 12 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: reduceActivityMotion ? 0 : 8 }}
-              transition={reduceActivityMotion ? { duration: 0 } : spring.slow}
-            >
-              <motion.div
-                layout
-                className="relative isolate rounded-full px-4 py-2 pointer-events-auto"
-                transition={reduceActivityMotion ? { duration: 0 } : spring.slow}
-              >
-                <motion.div
-                  layout
-                  className="absolute inset-0 -z-10 rounded-full bg-app-elevated border border-app shadow-lg"
-                  transition={reduceActivityMotion ? { duration: 0 } : spring.slow}
-                />
-                <motion.div
-                  layout="position"
-                  className="flex items-center gap-3 text-sm whitespace-nowrap"
-                  transition={reduceActivityMotion ? { duration: 0 } : spring.slow}
-                >
-                  {unsavedSaved && dirtyCount === 0 ? (
-                    <motion.span
-                      data-unsaved-saved
-                      className="flex items-center gap-2"
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      transition={reduceActivityMotion ? { duration: 0 } : spring.moderate}
-                    >
-                      <Check className="size-4" />
-                      {language === 'es' ? 'Configuración guardada' : 'Settings saved'}
-                    </motion.span>
-                  ) : (
-                    <>
-                      <span className="flex items-center gap-1.5">
-                        <span className="inline-flex overflow-hidden tabular-nums">
-                          <AnimatePresence mode="popLayout" initial={false}>
-                            <motion.span
-                              key={dirtyCount}
-                              data-unsaved-count
-                              initial={{ opacity: 0, y: reduceActivityMotion ? 0 : 12 }}
-                              animate={{ opacity: 1, y: 0 }}
-                              exit={{ opacity: 0, y: reduceActivityMotion ? 0 : -12 }}
-                              transition={reduceActivityMotion ? { duration: 0 } : spring.moderate}
-                            >
-                              {dirtyCount}
-                            </motion.span>
-                          </AnimatePresence>
-                        </span>
-                        {unsavedExpanded && (
-                          <motion.span
-                            initial={{ opacity: 0 }}
-                            animate={{ opacity: 1 }}
-                            transition={reduceActivityMotion ? { duration: 0 } : spring.moderate}
-                          >
-                            {language === 'es' ? 'cambios sin guardar' : 'unsaved changes'}
-                          </motion.span>
-                        )}
-                      </span>
-                      {unsavedExpanded && (
-                        <motion.div
-                          className="flex items-center gap-2"
-                          initial={{ opacity: 0 }}
-                          animate={{ opacity: 1 }}
-                          transition={reduceActivityMotion ? { duration: 0 } : spring.moderate}
-                        >
-                          <Button
-                            variant="ghost"
-                            size="compact"
-                            disabled={savingChanges}
-                            onClick={discardChanges}
-                          >
-                            {language === 'es' ? 'Descartar' : 'Discard'}
-                          </Button>
-                          <Button
-                            variant="primary"
-                            size="compact"
-                            disabled={savingChanges}
-                            onClick={() => void saveChanges()}
-                          >
-                            {language === 'es' ? 'Guardar' : 'Save'}
-                          </Button>
-                        </motion.div>
-                      )}
-                    </>
-                  )}
-                </motion.div>
-              </motion.div>
-            </motion.div>
-          )}
-        </AnimatePresence>
       </main>
 
       {/* Confirmation Dialog for Purging Project Data */}
