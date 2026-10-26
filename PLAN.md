@@ -480,6 +480,17 @@ La corrida sobre carlosgallardo.dev citada en AT queda como smoke opcional, no c
 Revisión documental de esta ruta: preflight AT.10 válido; verificación por lectura, sin corrida
 ERP ni prueba visual nueva. Los ítems permanecen abiertos hasta sus gates reales.
 
+**AT.11 adelantado (GO de Carlos 2026-10-26):** "cualquier CLI" sin instalar nada ni escribir código por CLI. Hoy cada
+motor es código a mano (`src/run/executors/task-engines.ts:37-51`) y el único PTY está fijo a `opencode`
+(`src/dashboard/terminal.ts:19`). Modelo: capa común configurable (como Orca: cualquier CLI de terminal) + adaptadores
+ricos por CLI solo para streaming/sesiones/cuotas (como T3 Code). Fuera: chat con CLI genérico (necesita streaming).
+
+- [ ] **AT.11.2 — 🧠 Motor de tareas genérico: un CLI declarado en `~/.orchestos/config.yaml` corre tareas sin código
+  nuevo.** Comando + args con `{prompt}`, diff por worktree, costo "no medido" en vez de $0; aparece en el selector del
+  Ejecutor de Settings. Solo config global (un repo clonado no puede declarar ejecutables). Spec: docs/specs/AT.11.2.md
+- [ ] **AT.11.3 — 🧠 Settings: agregar, editar y quitar un CLI genérico desde la UI.** Back sin front no existe: va
+  justo después de AT.11.2. Look de la familia de Settings (UI.25/UI.26); escribe el mismo bloque `clis:` de AT.11.2.
+
 ## Fuera de fase
 
 **Fuera de scope declarado de H.9:** `opencode` (mismo criterio que H.8 — sin contrato

@@ -335,6 +335,15 @@
       "title": "Archivar los cerrados de PLAN.md y poner al día CONTEXT.md",
       "status": "done",
       "closedDate": null
+    },
+    {
+      "id": "AT.11.3",
+      "sprint": "Fase 3 — Correr dentro de OrchestOS igual que el CLI directo",
+      "block": null,
+      "delegation": "🧠",
+      "title": "Settings: agregar, editar y quitar un CLI genérico desde la UI",
+      "status": "open",
+      "closedDate": null
     }
   ]
 }
