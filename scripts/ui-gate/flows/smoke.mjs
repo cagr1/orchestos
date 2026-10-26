@@ -60,16 +60,23 @@ export default async function smoke({ page, api, step, shot, visible }) {
     'settings-view',
     projectNames.length > 0
       ? await visible(page.getByRole('heading', { name: currentProjectName, exact: true }))
-      : await visible(page.getByRole('heading', { name: 'Appearance', exact: true })),
-    projectNames.length > 0 ? 'current project section visible' : 'Appearance visible',
+      : await visible(page.getByRole('heading', { name: 'General', exact: true })),
+    projectNames.length > 0 ? 'current project section visible' : 'General visible',
   )
   await shot('settings')
 
   await page.getByRole('button', { name: 'General', exact: true }).click()
   await step(
     'settings-general',
+    await visible(page.getByRole('heading', { name: 'General', exact: true })),
+    'General visible',
+  )
+  await shot('settings-general')
+
+  await page.getByRole('button', { name: 'Appearance', exact: true }).click()
+  await step(
+    'settings-appearance',
     await visible(page.getByRole('heading', { name: 'Appearance', exact: true })),
     'Appearance visible',
   )
-  await shot('settings-general')
 }
