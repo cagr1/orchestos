@@ -38,10 +38,7 @@ diagnóstico `[codex-turn]`), CHAT.3 `760982d9` (el chat dice por qué el modelo
 429 leído de `logs_2.sqlite`, línea viva con contador, fallo visible y persistente; migración 32). Abierto CI.44.
 
 ## Orden
-0. Tarea `chat-4a0d93a2…` (doc de observaciones del chat) sigue `pending`: Carlos le da Run. El "prompt genérico de
-   Claude Code" (`--append-system-prompt`) y quizá el `~/.claude/CLAUDE.md` del HOME real van a ERP.5 con medición.
-1. CI.44: aislar el `CODEX_HOME` del chat sin proyecto en los gates (hoy usa `~/.orchestos/general-chat` real y comparte
-   su límite de peticiones). CI.19 espera el próximo fallo para la fase 2.
+1. CI.19 espera el próximo fallo para la fase 2 (CI.44 cerrado `07fbab61`).
 2. Ejecutor de tareas para otro CLI = entrada en `KNOWN_CLIS` + `registerTaskEngine`, solo con el CLI instalado y
    verificable en vivo.
 - Trampa: al cerrar un ítem, `plan:reconcile` una sola vez antes del commit. Un segundo reconcile ve el ítem ya
@@ -52,8 +49,9 @@ diagnóstico `[codex-turn]`), CHAT.3 `760982d9` (el chat dice por qué el modelo
   los priorizó (2026-10-24); el revisor elige su ventana cortando en el primer tramo que no cabe; `permissions` parpadea a
   `null` al re-dispararse el efecto de config del chat (`OrchestChatView.tsx:108`, CI.41); TRUST.7.1 sin verificar en
   vivo el caso de residuos.
-- Decisiones pendientes de Carlos: push del vault (`5134b27`, `520f0e0`, `0208da4`, `d8e1d64`); peso de `main.js`
-  tras UI.24.4.
+- Decidido 2026-10-26: el peso de `main.js` tras UI.24.4 (~1,9 MB, +22 % por `streamdown`) se acepta como precio de
+  la UI moderna; no se reabre sin síntoma medido (arranque lento o servir fuera de localhost). El push del vault se
+  decide en el vault, no aquí; la tarea `chat-4a0d93a2…` era de prueba, sin urgencia.
 
 ## Trampas vivas
 - `gate:evidence` migra la DB durable (`scripts/run-evidence-gate.ts:116`) antes de exportar: una migración sin
