@@ -353,6 +353,10 @@ Regla: nada se reintenta, cierra ni muestra sin evidencia medida que el usuario 
   `checkHooks` lo incluyen. `scripts/post-commit.test.ts` reproduce `MM` sin el hook y limpio con él. Cerebro:
   `test:coverage` 2017/0; `git status` limpio tras este mismo commit parcial.
   Ejecutado por: codex gpt-6.1-sol (criterio), revisión Opus · Spec: docs/specs/CI.43.md
+- [ ] **CI.45 — 🔍 Tras rechazar una tarea, el chat no la recrea cuando el usuario la reenvía (intermitente).**
+  Tumbó el pre-push de AT.11.2 (2026-10-26, `chat-turn-details`, 1 de 2): el modelo contestó "vuelve a enviarla como una
+  tarea" al mensaje que ya la reenviaba. Mismo síntoma que CI.29; la instrucción `src/chat/chat-context.ts:186` deja
+  abierta esa lectura. Spec: docs/specs/CI.45.md
 - [ ] **CI.19 — 🔍 El `git commit` del fixture falla a veces en el andamiaje de los ui-gates.** Visto 1 vez en
   `qa-negative` (2026-10-11, 1 de 9): `Command failed: git … commit -qm task fixture`, sin motivo porque el helper
   `run` usa `stdio: 'ignore'`. `qa-negative` ya reporta stdout/stderr y exit; los otros 20 flows con el mismo helper no.

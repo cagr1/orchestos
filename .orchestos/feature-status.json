@@ -256,6 +256,15 @@
       "closedDate": null
     },
     {
+      "id": "CI.45",
+      "sprint": "Fase 2 — Producto mínimo para entrega",
+      "block": "Abiertos — fiabilidad de los gates y documentación",
+      "delegation": "🔍",
+      "title": "Tras rechazar una tarea, el chat no la recrea cuando el usuario la reenvía (intermitente)",
+      "status": "open",
+      "closedDate": null
+    },
+    {
       "id": "CI.19",
       "sprint": "Fase 2 — Producto mínimo para entrega",
       "block": "Abiertos — fiabilidad de los gates y documentación",
