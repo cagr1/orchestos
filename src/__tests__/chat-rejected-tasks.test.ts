@@ -33,7 +33,9 @@ describe('buildChatSystemPrompt rejectedTasks', () => {
     })
     expect(p).toContain('Rejected by the user (deleted, nothing was run):')
     expect(p).toContain('- t1: Crear a.txt')
-    expect(p).toContain('If the user asks for it again, call create_task again.')
+    expect(p).toContain(
+      'A new user message that requests the same change again IS a new request: call create_task again right away. Do not ask the user to resend it.',
+    )
   })
   it('sin rechazadas no la incluye', () => {
     expect(buildChatSystemPrompt({ ...base, rejectedTasks: [] })).not.toContain('Rejected by')

@@ -261,7 +261,7 @@
       "block": "Abiertos — fiabilidad de los gates y documentación",
       "delegation": "🔍",
       "title": "Tras rechazar una tarea, el chat no la recrea cuando el usuario la reenvía (intermitente)",
-      "status": "open",
+      "status": "done",
       "closedDate": null
     },
     {

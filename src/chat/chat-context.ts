@@ -183,7 +183,9 @@ export function buildChatSystemPrompt(input: ChatPromptInput): string {
       const desc = (t.description.split(/\r?\n/, 1)[0] ?? '').trim()
       lines.push(`  - ${t.id}: ${desc.length > 80 ? `${desc.slice(0, 79).trimEnd()}…` : desc}`)
     }
-    lines.push('If the user asks for it again, call create_task again.')
+    lines.push(
+      'A new user message that requests the same change again IS a new request: call create_task again right away. Do not ask the user to resend it.',
+    )
   }
   if (input.runs?.length) {
     const unknown = input.runs.filter(

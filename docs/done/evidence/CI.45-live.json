@@ -1,0 +1,497 @@
+[
+  {
+    "flujo": "chat-turn-details",
+    "pass": true,
+    "steps": [
+      {
+        "nombre": "temporary project clean before README task",
+        "ok": true,
+        "detalle": "clean"
+      },
+      {
+        "nombre": "select temporary project",
+        "ok": true,
+        "detalle": "project visible in sidebar"
+      },
+      {
+        "nombre": "select Codex for new chat",
+        "ok": true,
+        "detalle": "visible agent selector"
+      },
+      {
+        "nombre": "model and effort controls visible",
+        "ok": true,
+        "detalle": "composer controls visible"
+      },
+      {
+        "nombre": "select gpt-6-luna",
+        "ok": true,
+        "detalle": "model option visible"
+      },
+      {
+        "nombre": "select medium effort",
+        "ok": true,
+        "detalle": "effort option visible"
+      },
+      {
+        "nombre": "model popover closes",
+        "ok": true,
+        "detalle": "popover closed after Escape/click outside"
+      },
+      {
+        "nombre": "model used a tool within three attempts",
+        "ok": true,
+        "detalle": "1 backend tool step(s) observed"
+      },
+      {
+        "nombre": "tool block with command success",
+        "ok": true,
+        "detalle": "tool trace rendered"
+      },
+      {
+        "nombre": "command success row",
+        "ok": true,
+        "detalle": "1 tool step(s) after opening the row"
+      },
+      {
+        "nombre": "new chat is linked to temporary project",
+        "ok": true,
+        "detalle": "projectId=3f4fec9d1f38d008, mode=code"
+      },
+      {
+        "nombre": "held task card visible",
+        "ok": true,
+        "detalle": "held task rendered"
+      },
+      {
+        "nombre": "held task card carries the id (copy button, no text)",
+        "ok": true,
+        "detalle": "chat-302bf42e-0af3-4d99-8b0d-f8e49978afc1"
+      },
+      {
+        "nombre": "no uuid text",
+        "ok": true,
+        "detalle": "held card innerText has no task id"
+      },
+      {
+        "nombre": "Reject removes card",
+        "ok": true,
+        "detalle": "card removed"
+      },
+      {
+        "nombre": "Reject removes task from API",
+        "ok": true,
+        "detalle": "task absent"
+      },
+      {
+        "nombre": "second held task card visible",
+        "ok": true,
+        "detalle": "held task rendered again"
+      },
+      {
+        "nombre": "temporary project clean before Approve",
+        "ok": true,
+        "detalle": "clean"
+      },
+      {
+        "nombre": "Approve & Run starts task",
+        "ok": true,
+        "detalle": "chat-36488433-4967-4ddd-9df0-4e2fbaac34c5"
+      },
+      {
+        "nombre": "Approve & Run removes card",
+        "ok": true,
+        "detalle": "card removed"
+      },
+      {
+        "nombre": "approved task leaves pending",
+        "ok": true,
+        "detalle": "status=failed; retry_reason=Interrupted: the task runner stopped before the task finished."
+      },
+      {
+        "nombre": "reload: approved card remains hidden",
+        "ok": true,
+        "detalle": "card remains hidden"
+      },
+      {
+        "nombre": "reload: temporary project visible",
+        "ok": true,
+        "detalle": "project visible after reload"
+      },
+      {
+        "nombre": "reload API message keeps turnId",
+        "ok": true,
+        "detalle": "a8e9cc71-b5ae-43ef-bca1-6d9c203c2e15"
+      },
+      {
+        "nombre": "reload API timeline brings turn steps",
+        "ok": true,
+        "detalle": "15 pasos en 3 turnos"
+      },
+      {
+        "nombre": "reload: project chat reachable from Chat list",
+        "ok": true,
+        "detalle": "chat title visible; sidebar=\"Chat\\nDev\\nNew chat\\nChats\\nEjecuta el comando ls en la raíz del pro\\nSettings\""
+      },
+      {
+        "nombre": "reload: tool block visible in selected chat",
+        "ok": true,
+        "detalle": "tool trace rendered after selecting chat"
+      },
+      {
+        "nombre": "rejected task has no card after reload",
+        "ok": true,
+        "detalle": "chat-302bf42e-0af3-4d99-8b0d-f8e49978afc1"
+      },
+      {
+        "nombre": "launched task keeps its name after reload",
+        "ok": true,
+        "detalle": "\"Añade al final de README.md la línea exacta \\\"gate UI.13.4c\\\".\""
+      }
+    ],
+    "notes": [
+      {
+        "nombre": "reasoning optional",
+        "detalle": "reasoning: 0 pasos del CLI"
+      }
+    ],
+    "errores": [],
+    "capturas": [
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-93102/chat-turn-details/tool-and-reasoning.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-93102/chat-turn-details/held-task.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-93102/chat-turn-details/after-reject.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-93102/chat-turn-details/approved-task.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-93102/chat-turn-details/after-final-reload.png"
+    ]
+  },
+  {
+    "flujo": "chat-turn-details",
+    "pass": true,
+    "steps": [
+      {
+        "nombre": "temporary project clean before README task",
+        "ok": true,
+        "detalle": "clean"
+      },
+      {
+        "nombre": "select temporary project",
+        "ok": true,
+        "detalle": "project visible in sidebar"
+      },
+      {
+        "nombre": "select Codex for new chat",
+        "ok": true,
+        "detalle": "visible agent selector"
+      },
+      {
+        "nombre": "model and effort controls visible",
+        "ok": true,
+        "detalle": "composer controls visible"
+      },
+      {
+        "nombre": "select gpt-6-luna",
+        "ok": true,
+        "detalle": "model option visible"
+      },
+      {
+        "nombre": "select medium effort",
+        "ok": true,
+        "detalle": "effort option visible"
+      },
+      {
+        "nombre": "model popover closes",
+        "ok": true,
+        "detalle": "popover closed after Escape/click outside"
+      },
+      {
+        "nombre": "model used a tool within three attempts",
+        "ok": true,
+        "detalle": "1 backend tool step(s) observed"
+      },
+      {
+        "nombre": "tool block with command success",
+        "ok": true,
+        "detalle": "tool trace rendered"
+      },
+      {
+        "nombre": "command success row",
+        "ok": true,
+        "detalle": "1 tool step(s) after opening the row"
+      },
+      {
+        "nombre": "new chat is linked to temporary project",
+        "ok": true,
+        "detalle": "projectId=5580c2ca8cd93c85, mode=code"
+      },
+      {
+        "nombre": "held task card visible",
+        "ok": true,
+        "detalle": "held task rendered"
+      },
+      {
+        "nombre": "held task card carries the id (copy button, no text)",
+        "ok": true,
+        "detalle": "chat-7f74efa4-4274-4a5b-9b4b-35e28884ef55"
+      },
+      {
+        "nombre": "no uuid text",
+        "ok": true,
+        "detalle": "held card innerText has no task id"
+      },
+      {
+        "nombre": "Reject removes card",
+        "ok": true,
+        "detalle": "card removed"
+      },
+      {
+        "nombre": "Reject removes task from API",
+        "ok": true,
+        "detalle": "task absent"
+      },
+      {
+        "nombre": "second held task card visible",
+        "ok": true,
+        "detalle": "held task rendered again"
+      },
+      {
+        "nombre": "temporary project clean before Approve",
+        "ok": true,
+        "detalle": "clean"
+      },
+      {
+        "nombre": "Approve & Run starts task",
+        "ok": true,
+        "detalle": "chat-ac9329a1-9697-43a2-9891-3286ae3e053b"
+      },
+      {
+        "nombre": "Approve & Run removes card",
+        "ok": true,
+        "detalle": "card removed"
+      },
+      {
+        "nombre": "approved task leaves pending",
+        "ok": true,
+        "detalle": "status=running"
+      },
+      {
+        "nombre": "reload: approved card remains hidden",
+        "ok": true,
+        "detalle": "card remains hidden"
+      },
+      {
+        "nombre": "reload: temporary project visible",
+        "ok": true,
+        "detalle": "project visible after reload"
+      },
+      {
+        "nombre": "reload API message keeps turnId",
+        "ok": true,
+        "detalle": "940e28e4-ffee-4bf7-88ac-6248a5173772"
+      },
+      {
+        "nombre": "reload API timeline brings turn steps",
+        "ok": true,
+        "detalle": "15 pasos en 3 turnos"
+      },
+      {
+        "nombre": "reload: project chat reachable from Chat list",
+        "ok": true,
+        "detalle": "chat title visible; sidebar=\"Chat\\nDev\\nNew chat\\nChats\\nEjecuta el comando ls en la raíz del pro\\nSettings\""
+      },
+      {
+        "nombre": "reload: tool block visible in selected chat",
+        "ok": true,
+        "detalle": "tool trace rendered after selecting chat"
+      },
+      {
+        "nombre": "rejected task has no card after reload",
+        "ok": true,
+        "detalle": "chat-7f74efa4-4274-4a5b-9b4b-35e28884ef55"
+      },
+      {
+        "nombre": "launched task keeps its name after reload",
+        "ok": true,
+        "detalle": "\"Añade al final de README.md una línea que contenga exactame…\""
+      }
+    ],
+    "notes": [
+      {
+        "nombre": "reasoning optional",
+        "detalle": "reasoning: 0 pasos del CLI"
+      }
+    ],
+    "errores": [],
+    "capturas": [
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-93102/chat-turn-details/tool-and-reasoning.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-93102/chat-turn-details/held-task.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-93102/chat-turn-details/after-reject.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-93102/chat-turn-details/approved-task.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-93102/chat-turn-details/after-final-reload.png"
+    ]
+  },
+  {
+    "flujo": "chat-turn-details",
+    "pass": true,
+    "steps": [
+      {
+        "nombre": "temporary project clean before README task",
+        "ok": true,
+        "detalle": "clean"
+      },
+      {
+        "nombre": "select temporary project",
+        "ok": true,
+        "detalle": "project visible in sidebar"
+      },
+      {
+        "nombre": "select Codex for new chat",
+        "ok": true,
+        "detalle": "visible agent selector"
+      },
+      {
+        "nombre": "model and effort controls visible",
+        "ok": true,
+        "detalle": "composer controls visible"
+      },
+      {
+        "nombre": "select gpt-6-luna",
+        "ok": true,
+        "detalle": "model option visible"
+      },
+      {
+        "nombre": "select medium effort",
+        "ok": true,
+        "detalle": "effort option visible"
+      },
+      {
+        "nombre": "model popover closes",
+        "ok": true,
+        "detalle": "popover closed after Escape/click outside"
+      },
+      {
+        "nombre": "model used a tool within three attempts",
+        "ok": true,
+        "detalle": "1 backend tool step(s) observed"
+      },
+      {
+        "nombre": "tool block with command success",
+        "ok": true,
+        "detalle": "tool trace rendered"
+      },
+      {
+        "nombre": "command success row",
+        "ok": true,
+        "detalle": "1 tool step(s) after opening the row"
+      },
+      {
+        "nombre": "new chat is linked to temporary project",
+        "ok": true,
+        "detalle": "projectId=9ba3751fdbb81c9e, mode=code"
+      },
+      {
+        "nombre": "held task card visible",
+        "ok": true,
+        "detalle": "held task rendered"
+      },
+      {
+        "nombre": "held task card carries the id (copy button, no text)",
+        "ok": true,
+        "detalle": "chat-168400aa-3fc9-4d4e-8b5c-e38379ae26ce"
+      },
+      {
+        "nombre": "no uuid text",
+        "ok": true,
+        "detalle": "held card innerText has no task id"
+      },
+      {
+        "nombre": "Reject removes card",
+        "ok": true,
+        "detalle": "card removed"
+      },
+      {
+        "nombre": "Reject removes task from API",
+        "ok": true,
+        "detalle": "task absent"
+      },
+      {
+        "nombre": "second held task card visible",
+        "ok": true,
+        "detalle": "held task rendered again"
+      },
+      {
+        "nombre": "temporary project clean before Approve",
+        "ok": true,
+        "detalle": "clean"
+      },
+      {
+        "nombre": "Approve & Run starts task",
+        "ok": true,
+        "detalle": "chat-1748e8d2-a5e5-4198-804b-28fe0a21b529"
+      },
+      {
+        "nombre": "Approve & Run removes card",
+        "ok": true,
+        "detalle": "card removed"
+      },
+      {
+        "nombre": "approved task leaves pending",
+        "ok": true,
+        "detalle": "status=running"
+      },
+      {
+        "nombre": "reload: approved card remains hidden",
+        "ok": true,
+        "detalle": "card remains hidden"
+      },
+      {
+        "nombre": "reload: temporary project visible",
+        "ok": true,
+        "detalle": "project visible after reload"
+      },
+      {
+        "nombre": "reload API message keeps turnId",
+        "ok": true,
+        "detalle": "6dbabcad-6cb4-4c94-b130-feb987e8002b"
+      },
+      {
+        "nombre": "reload API timeline brings turn steps",
+        "ok": true,
+        "detalle": "15 pasos en 3 turnos"
+      },
+      {
+        "nombre": "reload: project chat reachable from Chat list",
+        "ok": true,
+        "detalle": "chat title visible; sidebar=\"Chat\\nDev\\nNew chat\\nChats\\nEjecuta el comando ls en la raíz del pro\\nSettings\""
+      },
+      {
+        "nombre": "reload: tool block visible in selected chat",
+        "ok": true,
+        "detalle": "tool trace rendered after selecting chat"
+      },
+      {
+        "nombre": "rejected task has no card after reload",
+        "ok": true,
+        "detalle": "chat-168400aa-3fc9-4d4e-8b5c-e38379ae26ce"
+      },
+      {
+        "nombre": "launched task keeps its name after reload",
+        "ok": true,
+        "detalle": "\"Añadir al final de README.md la línea exacta gate UI.13.4c,…\""
+      }
+    ],
+    "notes": [
+      {
+        "nombre": "reasoning optional",
+        "detalle": "reasoning: 0 pasos del CLI"
+      }
+    ],
+    "errores": [],
+    "capturas": [
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-93102/chat-turn-details/tool-and-reasoning.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-93102/chat-turn-details/held-task.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-93102/chat-turn-details/after-reject.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-93102/chat-turn-details/approved-task.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-93102/chat-turn-details/after-final-reload.png"
+    ]
+  }
+]
