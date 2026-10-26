@@ -1,4 +1,4 @@
-# NEXT — handoff 2026-10-26 (corte: CI.44)
+# NEXT — handoff 2026-10-26 (corte: AT.11.3)
 
 Un solo presente: orden y trampas vivas. Lo cerrado vive en `docs/done/bloque-*.md`, `PLAN.md` y git (regla `AGENTS.md`
 § Reglas generales, 2026-10-19: `NEXT.md` se toca solo al cerrar o cortar un lote). Arranque:
@@ -17,12 +17,17 @@ Un solo presente: orden y trampas vivas. Lo cerrado vive en `docs/done/bloque-*.
 - 2026-10-26: CI.44 `07fbab61` (chat sin proyecto, `.env` de providers, `dbPath` de setup, `config.yaml` global y
   evidencia del ui-gate honran `ORCHESTOS_HOME` vía `src/config/orchestos-home.ts`; Luna, `qa` sin defectos; log real
   717→717 en vivo). Peso de `main.js` aceptado `6b6e0aaf`.
+- 2026-10-26 (GO de Carlos, "cualquier CLI"): AT.11.2 `86fe9d00` motor genérico `cli:<id>` desde `config.yaml`
+  global, solo Ejecutor, costo "no medido"; AT.11.3 `f3b5b678` su UI en Settings; CI.45 `f1fa38bb` el chat recrea la
+  tarea rechazada al reenviarla (tumbó un pre-push).
 
 ## Orden
 1. CI.19 espera el próximo fallo para la fase 2 (CI.44 cerrado `07fbab61`).
-2. Ejecutor de tareas para otro CLI = entrada en `KNOWN_CLIS` + `registerTaskEngine`, solo con el CLI instalado y
-   verificable en vivo. Hoy solo están instalados `claude`, `codex` y `opencode`, y los tres ya tienen motor
-   (`src/run/executors/task-engines.ts:37-51`): bloqueado hasta que Carlos instale otro.
+2. Cualquier CLI ya corre tareas sin código (AT.11.2/AT.11.3): se declara en Settings → Executor → "CLIs propios".
+   Un adaptador rico (streaming, sesiones, cuotas) para un CLI nuevo sigue siendo `KNOWN_CLIS` + `registerTaskEngine`
+   y lo instala el cerebro para probarlo, no Carlos. Fuera hoy: CLI genérico en el chat (necesita streaming).
+- Trampa: el título en negrita de un ítem de `PLAN.md` debe cerrar `**` en la primera línea; partido en dos, el
+  parser no lo ve y el gate dice "Closed item … is missing from staged PLAN.md" (AT.11.2).
 - Trampa: al cerrar un ítem, `plan:reconcile` una sola vez antes del commit. Un segundo reconcile ve el ítem ya
   `done` sin commit que lo pruebe y falla ("Could not prove a closing commit SHA"); se arregla volviendo a reconciliar
   desde `git show HEAD:PLAN.md` y luego el PLAN.md nuevo.
