@@ -485,8 +485,8 @@ motor es código a mano (`src/run/executors/task-engines.ts:37-51`) y el único 
 (`src/dashboard/terminal.ts:19`). Modelo: capa común configurable (como Orca: cualquier CLI de terminal) + adaptadores
 ricos por CLI solo para streaming/sesiones/cuotas (como T3 Code). Fuera: chat con CLI genérico (necesita streaming).
 
-- [ ] **AT.11.2 — 🧠 Motor de tareas genérico: un CLI declarado en `~/.orchestos/config.yaml` corre tareas sin código
-  nuevo.** Comando + args con `{prompt}`, diff por worktree, costo "no medido" en vez de $0; aparece en el selector del
+- [ ] **AT.11.2 — 🧠 Motor genérico: un CLI declarado en la config global corre tareas.** Sin código por CLI, en
+  `~/.orchestos/config.yaml`. Comando + args con `{prompt}`, diff por worktree, costo "no medido" en vez de $0; aparece en el selector del
   Ejecutor de Settings. Solo config global (un repo clonado no puede declarar ejecutables). Spec: docs/specs/AT.11.2.md
 - [ ] **AT.11.3 — 🧠 Settings: agregar, editar y quitar un CLI genérico desde la UI.** Back sin front no existe: va
   justo después de AT.11.2. Look de la familia de Settings (UI.25/UI.26); escribe el mismo bloque `clis:` de AT.11.2.
