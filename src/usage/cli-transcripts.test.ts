@@ -1,8 +1,9 @@
-import { afterEach, describe, expect, it } from 'bun:test'
-import { mkdirSync, mkdtempSync, realpathSync, rmSync, writeFileSync } from 'node:fs'
+import { afterEach, describe, expect, it, mock } from 'bun:test'
+import { mkdirSync, mkdtempSync, realpathSync, rmSync, utimesSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { readCliTranscriptUsage } from './cli-transcripts.ts'
+import { cachedParse } from './cli-transcripts-reader.ts'
 
 const temporary: string[] = []
 afterEach(() => {
@@ -21,6 +22,29 @@ function fixture() {
 }
 
 describe('readCliTranscriptUsage', () => {
+  it('no vuelve a invocar el parser salvo que cambie ruta, tamaño o mtime', async () => {
+    const { base } = fixture()
+    const path = join(base, 'cache.jsonl')
+    writeFileSync(path, 'one')
+    const parser = mock(() => [])
+    await cachedParse(path, parser)
+    await cachedParse(path, parser)
+    expect(parser).toHaveBeenCalledTimes(1)
+    const later = new Date(Date.now() + 2000)
+    utimesSync(path, later, later)
+    await cachedParse(path, parser)
+    expect(parser).toHaveBeenCalledTimes(2)
+    writeFileSync(path, 'longer')
+    utimesSync(path, later, later)
+    await cachedParse(path, parser)
+    expect(parser).toHaveBeenCalledTimes(3)
+    const other = join(base, 'other.jsonl')
+    writeFileSync(other, 'longer')
+    utimesSync(other, later, later)
+    await cachedParse(other, parser)
+    expect(parser).toHaveBeenCalledTimes(4)
+  })
+
   it('agrupa Claude y Codex por día local, también cuando el host de CI usa UTC', async () => {
     const { root, agentHome } = fixture()
     const key = realpathSync(root).replace(/[^a-zA-Z0-9]/g, '-')

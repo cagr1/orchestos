@@ -9,7 +9,7 @@
       "block": "Settings al nivel de los ADEs — SET (GO de Carlos 2026-10-26)",
       "delegation": "🔍",
       "title": "`/api/usage` bloquea el servidor ~12 s y congela Settings en \"Loading live settings…\"",
-      "status": "open",
+      "status": "done",
       "closedDate": null
     },
     {

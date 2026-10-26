@@ -80,10 +80,15 @@ sección. Decisiones de Carlos (2026-10-26): guardado instantáneo; página Prov
 consumen; "CLIs propios" se muda ahí); "API & Models" pasa a "API keys" y Health deja de exigir OpenRouter;
 Keybindings de solo lectura en la primera versión. Orden: SET.0 primero (bloquea a los demás al probar en vivo).
 
-- [ ] **SET.0 — 🔍 `/api/usage` bloquea el servidor ~12 s y congela Settings en "Loading live settings…".**
-  Medido 2026-10-26 sobre copia de la DB: en frío `/api/usage` 12,2 s y `/api/settings` en paralelo 11,9 s (en serie
-  0,03 s). `readCliTranscriptUsage` (`src/usage/cli-transcripts.ts`) parsea ~1,4 GB de JSONL (`~/.claude/projects`
-  890 MB, `~/.codex/sessions` 522 MB) en el hilo principal. Spec: `docs/specs/SET.0.md`.
+- [x] **SET.0 — 🔍 `/api/usage` bloquea el servidor ~12 s y congela Settings en "Loading live settings…".**
+  (cerrado 2026-10-26) Medido sobre copia de la DB: en frío `/api/usage` 12,2 s y `/api/settings` en paralelo 11,9 s
+  (en serie 0,03 s); `readCliTranscriptUsage` parseaba ~1,4 GB de JSONL en el hilo principal. Arreglo: el lector
+  (`src/usage/cli-transcripts-reader.ts`, sin cambios de lógica) corre en un worker persistente
+  (`cli-transcripts-worker.ts`) con su caché por `(ruta, size, mtime)`. Evidencia del cerebro en vivo, mismo
+  escenario: `/api/settings` concurrente 0,11 s, `/api/usage` 10,6 s en frío y 0,23 s después, payload idéntico;
+  `test:coverage` 2101/0, typecheck y lint verdes.
+  Gate en vivo: navegador real (Playwright) `usage-bar` 19/19, `docs/done/evidence/SET.0-live.json`
+  Ejecutado por: codex gpt-6.1-sol (criterio), revisión Opus · Spec: docs/specs/SET.0.md
 - [ ] **SET.1 — 🧠 Shell de Settings: nav agrupada con iconos, guardado instantáneo y buscador que resalta la fila.**
   Fuera la barra "N unsaved changes · Save"; fuera la descripción bajo cada título. Spec: `docs/specs/SET.1.md`.
 - [ ] **SET.2 — 🧠 Detección de CLIs como los ADEs: PATH del login shell, versión, sesión y modelos, 0 tokens.**
