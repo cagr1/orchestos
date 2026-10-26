@@ -279,13 +279,14 @@ async function readCliCatalog(
 export async function readCliModelCatalogs(
   runner: CommandRunner = defaultRunner,
   detectedClis = detectInstalledClis(),
+  home = homedir(),
 ): Promise<CliModelCatalog[]> {
   const installed = detectedClis.filter((cli) => cli.installed)
   const catalogs = await Promise.all(
     installed.map(async (cli): Promise<CliModelCatalog> => {
       try {
         return {
-          ...(await readCliCatalog(cli.id, cli.binary, runner)),
+          ...(await readCliCatalog(cli.id, cli.binary, runner, home)),
           chat: cliChatAdapterFor(cli.id)?.chat ?? false,
           installed: cli.installed,
           label: cli.label,

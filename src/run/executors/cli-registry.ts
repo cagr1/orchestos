@@ -33,6 +33,7 @@ import { orchestosDir } from '../../config/orchestos-home.ts'
 import type { CustomCliConfig } from '../../config/schema.ts'
 import { excludeRuntimeArtifacts } from '../git-exclude.ts'
 import { safeChildEnv } from '../path-policy.ts'
+import { type CliDiscoveryProbe, cliSearchPath, systemCliDiscoveryProbe } from './cli-discovery.ts'
 import { cliForTaskEngine } from './task-engines.ts'
 
 export type CliReadBoundary =
@@ -443,9 +444,11 @@ export interface CliDetectionResult {
 
 export function detectInstalledClis(
   probe: CliCapabilityProbe = spawnCliCapabilityProbe,
+  discovery: CliDiscoveryProbe = systemCliDiscoveryProbe,
 ): CliDetectionResult[] {
+  const searchPath = cliSearchPath(discovery)
   return allClis().map((def) => {
-    const path = Bun.which(def.binary)
+    const path = discovery.which(def.binary, searchPath)
     // H.9.2 — se expone la frontera EFECTIVA (verificada contra el binario), no la
     // declarada: si la UI mostrara `project-root` sobre un binario que no la
     // sostiene, estaría prometiendo un aislamiento inexistente.

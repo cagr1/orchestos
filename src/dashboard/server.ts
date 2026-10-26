@@ -64,6 +64,7 @@ import {
   handleApiProjectPurge,
   handleApiProjects,
 } from './handlers/projects.ts'
+import { handleApiProviders } from './handlers/providers.ts'
 import { handleApiRunGraph, handleApiRunGraphStatus } from './handlers/run-graph.ts'
 import {
   handleApiRunApproval,
@@ -517,6 +518,9 @@ export async function route(req: Request, port: number): Promise<Response> {
   }
   if (method === 'GET' && url.pathname === '/api/config') {
     return withDashboardProject(req, (project) => handleApiConfigGet(project.root))
+  }
+  if (method === 'GET' && url.pathname === '/api/providers') {
+    return withDashboardProject(req, (project) => handleApiProviders(url, project.root))
   }
   if (method === 'GET' && url.pathname === '/api/clis') {
     return handleApiClisGet()

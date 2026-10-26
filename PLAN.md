@@ -96,8 +96,14 @@ Keybindings de solo lectura en la primera versión. Orden: SET.0 primero (bloque
   Evidencia del cerebro: página por página en vivo sobre copia de la DB; `test:coverage` 2101/0, typecheck y lint.
   Gate en vivo: navegador real (Playwright) `settings-shell` 22/22, `model-routing` 19/19, `custom-cli` 13/13, `docs/done/evidence/SET.1-live.json`
   Ejecutado por: codex gpt-6.1-sol (criterio), revisión Opus · Spec: docs/specs/SET.1.md
-- [ ] **SET.2 — 🧠 Detección de CLIs como los ADEs: PATH del login shell, versión, sesión y modelos, 0 tokens.**
-  Backend `GET /api/providers`. Spec: `docs/specs/SET.2.md`.
+- [x] **SET.2 — 🧠 Detección de CLIs como los ADEs: PATH del login shell, versión, sesión y modelos, 0 tokens.**
+  (cerrado 2026-10-26) `GET /api/providers` (`src/dashboard/handlers/providers.ts`): PATH del proceso + login shell
+  (una vez, 3 s) + rutas conocidas en `src/run/executors/cli-discovery.ts`, que también usa `detectInstalledClis`;
+  `--version` en paralelo, sesión leída de disco (Claude `oauthAccount.emailAddress`/`organizationType`, Codex payload
+  de `id_token`; ronda 1 leía campos inexistentes y la ronda 2 lo corrigió), caché 30 s y `?refresh=1`. Evidencia del
+  cerebro en vivo (`orchestos-set-ref`): Claude 2.1.311 pro, Codex 0.164.0 plus, opencode 1.19.0, 4 no encontrados;
+  0 tokens/JWT en la respuesta; 1,1 s en frío, 11 ms en caché. `test:coverage` 2109/0 fuera del sandbox.
+  Ejecutado por: codex gpt-6.1-sol (criterio), revisión Opus · Spec: docs/specs/SET.2.md
 - [ ] **SET.3 — 🧠 Página Providers: una fila por CLI detectado + no encontrados + CLIs propios.**
   Depende de SET.1 y SET.2. Spec: `docs/specs/SET.3.md`.
 - [ ] **SET.4 — 🔍 "API & Models" pasa a "API keys" y OpenRouter deja de ser crítico.**
