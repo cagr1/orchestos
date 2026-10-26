@@ -22,6 +22,8 @@ Un solo presente: orden y trampas vivas. Lo cerrado vive en `docs/done/bloque-*.
   tarea rechazada al reenviarla (tumbó un pre-push).
 
 ## Orden
+0. **SET (pedido de Carlos 2026-10-26): pulir Settings en Claude Desktop.** Referencia y prompt listos en
+   `docs/specs/SET-ref.md`; abrir allí, no aquí (hay que ver las apps). No se quitan secciones.
 1. CI.19 espera el próximo fallo para la fase 2 (CI.44 cerrado `07fbab61`).
 2. Cualquier CLI ya corre tareas sin código (AT.11.2/AT.11.3): se declara en Settings → Executor → "CLIs propios".
    Un adaptador rico (streaming, sesiones, cuotas) para un CLI nuevo sigue siendo `KNOWN_CLIS` + `registerTaskEngine`
