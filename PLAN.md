@@ -485,9 +485,17 @@ motor es código a mano (`src/run/executors/task-engines.ts:37-51`) y el único 
 (`src/dashboard/terminal.ts:19`). Modelo: capa común configurable (como Orca: cualquier CLI de terminal) + adaptadores
 ricos por CLI solo para streaming/sesiones/cuotas (como T3 Code). Fuera: chat con CLI genérico (necesita streaming).
 
-- [ ] **AT.11.2 — 🧠 Motor genérico: un CLI declarado en la config global corre tareas.** Sin código por CLI, en
-  `~/.orchestos/config.yaml`. Comando + args con `{prompt}`, diff por worktree, costo "no medido" en vez de $0; aparece en el selector del
-  Ejecutor de Settings. Solo config global (un repo clonado no puede declarar ejecutables). Spec: docs/specs/AT.11.2.md
+- [x] **AT.11.2 — 🧠 Motor genérico: un CLI declarado en la config global corre tareas.** (cerrado 2026-10-26)
+  Sin código por CLI, declarado en `~/.orchestos/config.yaml`. Comando + args con `{prompt}` (o stdin), `modelArgs` con `{model}` salvo modelo
+  `default`, sin shell, diff por worktree; tokens y costo "no medido" en vez de $0. Solo config global: `clis` en la
+  config de proyecto se ignora con aviso y Settings no lo escribe nunca. Solo rol Ejecutor (400 en los otros tres; fuera
+  del chat). La vista del run nombra el CLI (`claude-plain · default`), no solo el modelo.
+  Evidencia del cerebro: diff leído (motor, config, rol, persistencia por rutas del YAML); tsc 0, lint 0,
+  `ui:fidelity:jsx` 0, `test:coverage` 2091/0; capturas de Settings (Ejecutor "Claude (genérico)", modelo "Default del
+  CLI") y del run (`README.md` escrito, costo/tokens "no medido"). Sol cortado por "model at capacity" antes de su
+  reporte: verificado entero por el cerebro.
+  Gate en vivo: navegador real (Playwright) `custom-cli` 9/9, `tasks` 43/43, `model-routing` 18/18, `docs/done/evidence/AT.11.2-live.json`
+  Ejecutado por: codex gpt-6.1-sol (criterio) + gpt-6-luna (mecanico, anexo) · Spec: docs/specs/AT.11.2.md
 - [ ] **AT.11.3 — 🧠 Settings: agregar, editar y quitar un CLI genérico desde la UI.** Back sin front no existe: va
   justo después de AT.11.2. Look de la familia de Settings (UI.25/UI.26); escribe el mismo bloque `clis:` de AT.11.2.
 

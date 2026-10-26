@@ -50,8 +50,31 @@ describe('projects API mappings', () => {
       createdAt: '2026-01-01T00:00:00Z',
     })
     expect(run.fileDiffs).toHaveLength(1)
-    expect(run.costUsd).toBe(0)
+    expect(run.costUsd).toBeNull()
     expect(run.agentModel).toBe('codex')
+  })
+
+  test('labels generic CLI runs with their provider when using the default model', () => {
+    const row = {
+      id: 'r-cli',
+      taskId: 'task-cli',
+      status: 'done' as const,
+      qaVerdict: 'pass' as const,
+      model: 'default',
+      provider: 'claude-plain',
+      inputTokens: 2,
+      outputTokens: 3,
+      costUsd: null,
+      elapsedMs: 20,
+      engine: 'cli:claude-plain' as const,
+      iterations: 1,
+      fileDiffs: [],
+      costBreakdown: [],
+      contextWarnings: [],
+      createdAt: '2026-01-01T00:00:00Z',
+    }
+    expect(mapRunRow(row).agentModel).toBe('claude-plain · default')
+    expect(mapRunRow({ ...row, model: 'sonnet' }).agentModel).toBe('sonnet')
   })
 
   test('maps failed QA criteria without evidence and passed criteria with literal evidence', () => {

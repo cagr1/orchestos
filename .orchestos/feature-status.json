@@ -342,8 +342,8 @@
       "block": null,
       "delegation": "🧠",
       "title": "Motor genérico: un CLI declarado en la config global corre tareas",
-      "status": "open",
-      "closedDate": null
+      "status": "done",
+      "closedDate": "2026-10-26"
     },
     {
       "id": "AT.11.3",

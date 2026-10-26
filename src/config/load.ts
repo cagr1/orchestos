@@ -13,7 +13,7 @@ import { existsSync, readFileSync } from 'fs'
 import { join } from 'path'
 import { parse } from 'yaml'
 import { taskAgentIds } from '../router/engine-cascade.ts'
-import { KNOWN_CLIS } from '../run/executors/cli-registry.ts'
+import { allClis, configuredClis } from '../run/executors/cli-registry.ts'
 import { orchestosDir } from './orchestos-home.ts'
 import {
   type AgentChoice,
@@ -48,13 +48,19 @@ export function loadOrcheConfig(projectPath?: string): OrcheConfig {
     if (!existsSync(candidate)) continue
     try {
       const raw = parse(readFileSync(candidate, 'utf8')) as Record<string, unknown>
-      return mergeWithDefaults(raw)
+      if (
+        projectPath &&
+        candidate === join(projectPath, 'orchestos.config.yaml') &&
+        raw.clis !== undefined
+      )
+        console.error('[config] ignorando clis del proyecto: solo se permite config global')
+      return { ...mergeWithDefaults(raw), clis: configuredClis() }
     } catch {
       // malformed YAML → skip to next candidate
     }
   }
 
-  return DEFAULT_CONFIG
+  return { ...DEFAULT_CONFIG, clis: configuredClis() }
 }
 
 function mergeWithDefaults(raw: Record<string, unknown>): OrcheConfig {
@@ -142,7 +148,7 @@ function resolveRoles(raw: Record<string, unknown>): Partial<Record<RoleName, Ro
     const from = sources[name]
     if (!from || legacy[from] === undefined) continue
     // Los nombres legacy de CLI no traducen un modelo API viejo a un modelo CLI.
-    if (name === 'executor' && KNOWN_CLIS.some((cli) => cli.id === resolveAgent(raw))) continue
+    if (name === 'executor' && allClis().some((cli) => cli.id === resolveAgent(raw))) continue
     const parsed = parseRoleValue(legacy[from], { provider: '', model: '' })
     if (!parsed.model.trim()) continue
     result[name] = { agent: 'api', model: parsed.model, provider: parsed.provider }

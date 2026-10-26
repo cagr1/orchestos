@@ -52,8 +52,12 @@ export const RunsEvidenceView: React.FC<RunsEvidenceViewProps> = ({
   const passRate =
     evaluatedRuns.length > 0 ? `${((passedRuns / evaluatedRuns.length) * 100).toFixed(1)}%` : '—'
   const passRatio = evaluatedRuns.length > 0 ? passedRuns / evaluatedRuns.length : 0
-  const totalCost = runs.reduce((acc, r) => acc + (r.costUsd || 0), 0).toFixed(4)
-  const totalTokens = runs.reduce((acc, r) => acc + (r.tokensUsed || 0), 0).toLocaleString()
+  const totalCost = runs.some((run) => run.costUsd == null)
+    ? 'no medido'
+    : `$${runs.reduce((acc, r) => acc + (r.costUsd ?? 0), 0).toFixed(4)}`
+  const totalTokens = runs.some((run) => run.engine?.startsWith('cli:'))
+    ? 'no medido'
+    : runs.reduce((acc, r) => acc + (r.tokensUsed || 0), 0).toLocaleString()
 
   const filteredRuns = runs.filter((run) => {
     const matchesSearch =
@@ -109,10 +113,18 @@ export const RunsEvidenceView: React.FC<RunsEvidenceViewProps> = ({
                 Duration: <span className="text-app">{selectedRun.duration}</span>
               </div>
               <div>
-                Cost: <span className="text-app-accent">${selectedRun.costUsd?.toFixed(4)}</span>
+                Cost:{' '}
+                <span className="text-app-accent">
+                  {selectedRun.costUsd == null ? 'no medido' : `$${selectedRun.costUsd.toFixed(4)}`}
+                </span>
               </div>
               <div>
-                Tokens: <span className="text-app">{selectedRun.tokensUsed?.toLocaleString()}</span>
+                Tokens:{' '}
+                <span className="text-app">
+                  {selectedRun.engine?.startsWith('cli:')
+                    ? 'no medido'
+                    : selectedRun.tokensUsed?.toLocaleString()}
+                </span>
               </div>
             </div>
           </div>
@@ -238,13 +250,17 @@ export const RunsEvidenceView: React.FC<RunsEvidenceViewProps> = ({
                 <div className="p-3 rounded-control bg-app-bg border border-app">
                   <div className="text-app-muted text-xs">Total Incurred</div>
                   <div className="text-sm font-bold text-app font-mono mt-1">
-                    ${selectedRun.costUsd?.toFixed(4)}
+                    {selectedRun.costUsd == null
+                      ? 'no medido'
+                      : `$${selectedRun.costUsd.toFixed(4)}`}
                   </div>
                 </div>
                 <div className="p-3 rounded-control bg-app-bg border border-app">
                   <div className="text-app-muted text-xs">Tokens</div>
                   <div className="text-sm font-bold text-app font-mono mt-1">
-                    {selectedRun.tokensUsed?.toLocaleString()}
+                    {selectedRun.engine?.startsWith('cli:')
+                      ? 'no medido'
+                      : selectedRun.tokensUsed?.toLocaleString()}
                   </div>
                 </div>
                 <div className="p-3 rounded-control bg-app-bg border border-app">
@@ -273,12 +289,12 @@ export const RunsEvidenceView: React.FC<RunsEvidenceViewProps> = ({
                       </span>
                       <span className="text-app-muted">{entry.model}</span>
                       <span className="text-app-muted">
-                        {(entry.inputTokens + entry.outputTokens).toLocaleString()}
+                        {entry.source === 'unknown'
+                          ? 'no medido'
+                          : (entry.inputTokens + entry.outputTokens).toLocaleString()}
                       </span>
                       <span className="text-app">
-                        {entry.label === 'reviewer' && entry.source === 'unknown'
-                          ? '—'
-                          : `$${entry.costUsd.toFixed(4)}`}
+                        {entry.source === 'unknown' ? 'no medido' : `$${entry.costUsd.toFixed(4)}`}
                       </span>
                     </div>
                   ))}
@@ -370,7 +386,7 @@ export const RunsEvidenceView: React.FC<RunsEvidenceViewProps> = ({
                       ? 'error'
                       : undefined,
             },
-            { label: 'Total Cost', value: `$${totalCost}` },
+            { label: 'Total Cost', value: totalCost },
             { label: 'Token Volume', value: totalTokens },
           ]}
         />
@@ -452,7 +468,7 @@ export const RunsEvidenceView: React.FC<RunsEvidenceViewProps> = ({
                     {run.duration}
                   </td>
                   <td className="px-3 tabular-nums text-app-muted whitespace-nowrap">
-                    ${run.costUsd?.toFixed(4)}
+                    {run.costUsd == null ? 'no medido' : `$${run.costUsd.toFixed(4)}`}
                   </td>
                   <td className="px-3 whitespace-nowrap">
                     <RunQaBadge run={run} />

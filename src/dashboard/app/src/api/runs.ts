@@ -76,12 +76,15 @@ export function mapRunRow(row: RunRow): RunItem {
     ...(row.status !== 'done' && row.result ? { failureReason: row.result } : {}),
     ...(row.executorReply ? { executorReply: row.executorReply } : {}),
     model: row.model,
-    agentModel: row.model,
+    agentModel:
+      row.engine?.startsWith('cli:') && row.model === 'default'
+        ? `${row.provider} · default`
+        : row.model,
     provider: row.provider,
     inputTokens: row.inputTokens,
     outputTokens: row.outputTokens,
     tokensUsed: row.inputTokens + row.outputTokens,
-    costUsd: row.costUsd ?? 0,
+    costUsd: row.costUsd,
     elapsedMs: row.elapsedMs,
     duration,
     engine: row.engine || 'single-shot',

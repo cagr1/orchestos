@@ -1,5 +1,6 @@
 import type { RoleAgent } from '../../config/schema.ts'
 import { roleAgentIds } from '../../run/executors/chat-adapters.ts'
+import { configuredClis } from '../../run/executors/cli-registry.ts'
 import { taskEngineForCli } from '../../run/executors/task-engines.ts'
 import { readCliModelCatalogsCached } from '../chat-cli-models.ts'
 import { jsonResponse } from '../http.ts'
@@ -8,6 +9,8 @@ import { type ChatModelsFetch, readOpenRouterChatModels } from './chat.ts'
 interface CatalogAgent {
   id: RoleAgent
   installed: boolean
+  generic?: boolean
+  label?: string
   /** `false` = sin ejecutor de tareas: no se ofrece al rol Ejecutor. */
   taskEngine: boolean
   models: { id: string; name: string; efforts?: string[] }[]
@@ -39,6 +42,22 @@ export async function handleApiModelCatalog(deps?: {
       efforts: entry?.efforts ?? [],
     }
   })
+  agents.push(
+    ...configuredClis().map((cli) => ({
+      id: cli.id,
+      label: cli.label,
+      generic: true,
+      installed: Bun.which(cli.command) !== null,
+      taskEngine: true,
+      models: [
+        { id: 'default', name: 'Default del CLI' },
+        ...(cli.modelArgs
+          ? (cli.models ?? []).filter((id) => id !== 'default').map((id) => ({ id, name: id }))
+          : []),
+      ],
+      efforts: [],
+    })),
+  )
   try {
     const models = await readOpenRouterChatModels(deps?.fetchFn)
     const apiAgent = agents.find((agent) => agent.id === 'api')

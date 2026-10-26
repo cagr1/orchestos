@@ -1,6 +1,6 @@
 /** Registro de ejecutores de tareas: CLI ↔ motor. Agregar un CLI ejecutor = una entrada acá. */
 
-import { KNOWN_CLIS } from './cli-registry.ts'
+import { allClis, configuredClis } from './cli-registry.ts'
 import type { ExecutorEngine } from './types.ts'
 
 export interface TaskEngineEntry {
@@ -53,24 +53,37 @@ const entries: TaskEngineEntry[] = [
 ]
 
 function load(): TaskEngineEntry[] {
-  return entries
+  return [
+    ...entries,
+    ...configuredClis().map(
+      (cli): TaskEngineEntry => ({
+        cliId: cli.id,
+        engineId: `cli:${cli.id}`,
+        get engine() {
+          return require('./generic-cli.ts').genericCliEngine(cli) as ExecutorEngine
+        },
+        findBinary: () => Bun.which(cli.command),
+        unavailableMessage: () => `${cli.label} binary "${cli.command}" not found in PATH.`,
+      }),
+    ),
+  ]
 }
 
 /** Public registration used by built-in and additional CLI executors alike. */
 export function registerTaskEngine(entry: TaskEngineEntry): void {
   const all = load()
-  if (!KNOWN_CLIS.some((cli) => cli.id === entry.cliId))
+  if (!allClis().some((cli) => cli.id === entry.cliId))
     throw new Error(`Unknown CLI: ${entry.cliId}`)
   if (all.some((e) => e.cliId === entry.cliId))
     throw new Error(`CLI task engine already registered: ${entry.cliId}`)
   if (all.some((e) => e.engineId === entry.engineId))
     throw new Error(`Task engine id already registered: ${entry.engineId}`)
-  all.push(entry)
+  entries.push(entry)
 }
 
 /** Test helper: quita una entrada registrada (también built-ins). */
 export function unregisterTaskEngine(cliId: string): void {
-  const all = load()
+  const all = entries
   const i = all.findIndex((e) => e.cliId === cliId)
   if (i >= 0) all.splice(i, 1)
 }
@@ -102,7 +115,7 @@ export function validTaskEngineIds(): string[] {
  */
 export function requireTaskEngineForAgent(agent: string | undefined): TaskEngineEntry | undefined {
   if (!agent) return undefined
-  const cli = KNOWN_CLIS.find((c) => c.id === agent)
+  const cli = allClis().find((c) => c.id === agent)
   if (!cli) return undefined
   const entry = taskEngineForCli(agent)
   if (!entry)

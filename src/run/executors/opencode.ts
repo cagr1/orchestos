@@ -33,6 +33,7 @@ import { getOpencodeCatalog, hasNativeOpencodeModel } from '../../router/opencod
 import { safeChildEnv } from '../path-policy.ts'
 import { runOpencodeServer } from './opencode-server.ts'
 import { type ExecutorStepEvent, opencodeEventToStep } from './step-event.ts'
+import { buildCliTaskPrompt } from './task-prompt.ts'
 import type { ExecutorEngine, ExecutorOutcome } from './types.ts'
 import { readWorktreeDiff } from './worktree-diff.ts'
 
@@ -64,20 +65,6 @@ export function orchestosModelToOpencodeModel(model: string | undefined): string
   if (catalog?.has(model)) return `openrouter/${model}`
   if (hasNativeOpencodeModel(model)) return model
   return undefined
-}
-
-function buildOpencodePrompt(ctx: Parameters<ExecutorEngine['run']>[0]): string {
-  return [
-    ctx.effectiveContext,
-    ctx.skillInstructions,
-    ctx.instinctBlock,
-    `## OUTPUT CONTRACT`,
-    `You may ONLY create or edit these files: ${ctx.task.output.join(', ')}.`,
-    `Do not touch any other file in this repository. When you are done, stop — do not run git commands yourself.`,
-    ctx.prompt.userContent,
-  ]
-    .filter(Boolean)
-    .join('\n\n')
 }
 
 function buildOpencodeArgs(prompt: string, model?: string, variant?: string): string[] {
@@ -329,7 +316,7 @@ export const opencodeEngine: ExecutorEngine = {
       )
     }
 
-    const prompt = buildOpencodePrompt(ctx)
+    const prompt = buildCliTaskPrompt(ctx)
     const model = orchestosModelToOpencodeModel(ctx.model)
     if (ctx.model && !model) {
       throw new ExecutorOpencodeError(`OpenCode no reconoce el modelo solicitado: ${ctx.model}`)

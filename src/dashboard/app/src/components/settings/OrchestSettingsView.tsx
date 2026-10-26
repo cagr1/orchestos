@@ -464,6 +464,8 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
     id: string
     installed: boolean
     taskEngine?: boolean
+    generic?: boolean
+    label?: string
     models: { id: string; name: string; efforts?: string[]; group?: string; vendor?: string }[]
     efforts: string[]
     error?: string
@@ -1929,9 +1931,11 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
                       >
                         <span>
                           {assignment?.agent
-                            ? (AGENTS_LIST.find(
+                            ? (agent?.label ??
+                              AGENTS_LIST.find(
                                 (entry) => entry.id.toLowerCase() === assignment.agent,
-                              )?.name ?? assignment.agent)
+                              )?.name ??
+                              assignment.agent)
                             : 'Unassigned'}
                         </span>
                         <ChevronDown className="w-3.5 h-3.5 text-app-muted" />
@@ -1950,6 +1954,7 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
                           </button>
                           {routingCatalog
                             .filter((entry) => key !== 'orchestrator' || entry.id !== 'opencode')
+                            .filter((entry) => key === 'executor' || !entry.generic)
                             .filter((entry) => key !== 'executor' || entry.taskEngine !== false)
                             .map((entry) => (
                               <button
@@ -1959,13 +1964,16 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
                                 onClick={() => {
                                   setRoutingRoles((current) => ({
                                     ...current,
-                                    [key]: { agent: entry.id, model: '' },
+                                    [key]: {
+                                      agent: entry.id,
+                                      model: entry.generic ? 'default' : '',
+                                    },
                                   }))
                                   setActiveComboboxRole(null)
                                 }}
                                 className="block w-full text-left px-2.5 py-1.5 text-app hover:bg-app-elevated disabled:opacity-50"
                               >
-                                {entry.id}
+                                {entry.label ?? entry.id}
                               </button>
                             ))}
                         </div>

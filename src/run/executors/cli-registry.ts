@@ -20,6 +20,7 @@ import {
   existsSync,
   lstatSync,
   mkdirSync,
+  readFileSync,
   realpathSync,
   statSync,
   symlinkSync,
@@ -27,6 +28,9 @@ import {
 } from 'node:fs'
 import { homedir } from 'node:os'
 import { join } from 'node:path'
+import { parse } from 'yaml'
+import { orchestosDir } from '../../config/orchestos-home.ts'
+import type { CustomCliConfig } from '../../config/schema.ts'
 import { excludeRuntimeArtifacts } from '../git-exclude.ts'
 import { safeChildEnv } from '../path-policy.ts'
 import { cliForTaskEngine } from './task-engines.ts'
@@ -50,6 +54,7 @@ export interface CliDefinition {
   binary: string
   label: string
   icon: string
+  generic?: boolean
   readBoundary: CliReadBoundary
   subagentBlock: { args: string[] } | 'not-guaranteed'
   mcp: CliMcpAdapter
@@ -179,6 +184,87 @@ export const KNOWN_CLIS: CliDefinition[] = [
     subagentBlock: 'not-guaranteed',
   },
 ]
+
+/** Read afresh: project YAML can never contribute executable declarations. */
+export function configuredClis(directory = orchestosDir()): CustomCliConfig[] {
+  const path = join(directory, 'config.yaml')
+  if (!existsSync(path)) return []
+  let raw: unknown
+  try {
+    raw = parse(readFileSync(path, 'utf8'))?.clis
+  } catch {
+    console.error('[config] ignorando clis: config global inválida')
+    return []
+  }
+  if (raw === undefined) return []
+  const warn = () => console.error('[config] ignorando entrada clis inválida o duplicada')
+  if (!Array.isArray(raw)) {
+    warn()
+    return []
+  }
+  const ids = new Set(KNOWN_CLIS.map((cli) => cli.id))
+  const result: CustomCliConfig[] = []
+  const strings = (value: unknown): value is string[] =>
+    Array.isArray(value) && value.every((s) => typeof s === 'string')
+  for (const entry of raw) {
+    if (
+      !entry ||
+      typeof entry !== 'object' ||
+      typeof entry.id !== 'string' ||
+      !/^[a-z0-9][a-z0-9-]*$/.test(entry.id) ||
+      ids.has(entry.id) ||
+      typeof entry.label !== 'string' ||
+      !entry.label.trim() ||
+      typeof entry.command !== 'string' ||
+      !entry.command.trim() ||
+      !strings(entry.args) ||
+      (entry.modelArgs !== undefined && !strings(entry.modelArgs)) ||
+      (entry.models !== undefined && !strings(entry.models)) ||
+      (entry.timeoutMs !== undefined &&
+        (typeof entry.timeoutMs !== 'number' ||
+          !Number.isFinite(entry.timeoutMs) ||
+          entry.timeoutMs <= 0))
+    ) {
+      warn()
+      continue
+    }
+    ids.add(entry.id)
+    result.push({
+      id: entry.id,
+      label: entry.label,
+      command: entry.command,
+      args: entry.args,
+      ...(entry.modelArgs === undefined ? {} : { modelArgs: entry.modelArgs }),
+      ...(entry.timeoutMs === undefined ? {} : { timeoutMs: entry.timeoutMs }),
+      ...(entry.models === undefined ? {} : { models: entry.models }),
+    })
+  }
+  return result
+}
+
+export function allClis(): CliDefinition[] {
+  return [
+    ...KNOWN_CLIS,
+    ...configuredClis().map(
+      (cli): CliDefinition => ({
+        id: cli.id,
+        label: cli.label,
+        binary: cli.command,
+        icon: 'terminal',
+        generic: true,
+        readBoundary: {
+          kind: 'none',
+          reason: 'CLI configurado por el usuario: OrchestOS no limita su lectura',
+        },
+        subagentBlock: 'not-guaranteed',
+        mcp: { kind: 'none', reason: 'CLI genérico' },
+        supportsActionApproval: false,
+        // Generic task engines do not provision a config home or claim isolation.
+        configHome: { directory: cli.id, instructionFile: 'AGENTS.md' },
+      }),
+    ),
+  ]
+}
 
 export function provisionCliConfigHome(
   projectRoot: string,
@@ -341,6 +427,7 @@ export interface CliDetectionResult {
   label: string
   binary: string
   icon: string
+  generic?: boolean
   readBoundary: CliReadBoundary
   installed: boolean
   path: string | null
@@ -349,7 +436,7 @@ export interface CliDetectionResult {
 export function detectInstalledClis(
   probe: CliCapabilityProbe = spawnCliCapabilityProbe,
 ): CliDetectionResult[] {
-  return KNOWN_CLIS.map((def) => {
+  return allClis().map((def) => {
     const path = Bun.which(def.binary)
     // H.9.2 — se expone la frontera EFECTIVA (verificada contra el binario), no la
     // declarada: si la UI mostrara `project-root` sobre un binario que no la
@@ -375,7 +462,7 @@ export function actionApprovalPolicy(
   requested: 'supervised' | 'auto-edit' | 'full' = 'full',
 ) {
   const cliId = cliForTaskEngine(engine)
-  const cli = KNOWN_CLIS.find((entry) => entry.id === cliId)
+  const cli = allClis().find((entry) => entry.id === cliId)
   return {
     requestedApprovalMode: requested,
     approvalMode: cli?.supportsActionApproval ? requested : ('full' as const),

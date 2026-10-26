@@ -88,7 +88,7 @@ export interface RunItem {
   inputTokens: number
   outputTokens: number
   tokensUsed?: number
-  costUsd: number
+  costUsd: number | null
   elapsedMs: number
   duration?: string
   engine: ExecutionEngine

@@ -68,7 +68,19 @@ export interface TaskAgentRule {
   cli_effort?: string
 }
 
+export interface CustomCliConfig {
+  id: string
+  label: string
+  command: string
+  args: string[]
+  modelArgs?: string[]
+  models?: string[]
+  timeoutMs?: number
+}
+
 export interface OrcheConfig {
+  /** Executables trusted only from the global configuration. */
+  clis?: CustomCliConfig[]
   config_version: number
   /** Assignments for MR.1 role routing; see PLAN.md § MR.1. */
   roles: Partial<Record<RoleName, RoleAssignment>>

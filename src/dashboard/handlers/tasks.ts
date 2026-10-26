@@ -50,6 +50,7 @@ async function handleApiSystemExecutorModes(root = process.cwd()): Promise<Respo
     path: string | null
     readBoundary?: string
     taskEngine: boolean
+    generic?: boolean
     /** Modo de sesión de chat: `null` = el CLI no tiene adaptador de chat ni terminal. */
     session: 'chat' | 'terminal' | null
   }[] = [
@@ -64,6 +65,7 @@ async function handleApiSystemExecutorModes(root = process.cwd()): Promise<Respo
     ...detectInstalledClis().map((cli) => ({
       id: cli.id,
       label: cli.label,
+      generic: cli.generic,
       detected: cli.installed,
       path: cli.path,
       readBoundary: cli.readBoundary.kind,

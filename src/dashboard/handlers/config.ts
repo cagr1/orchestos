@@ -17,6 +17,7 @@ import {
 } from '../../config/schema.ts'
 import { autoRoute, describeTaskExecutor, formatRoute } from '../../router/auto-route.ts'
 import { roleAgentIds } from '../../run/executors/chat-adapters.ts'
+import { configuredClis } from '../../run/executors/cli-registry.ts'
 import { findClaudeBinary } from '../../run/executors/external.ts'
 import { describePermissions } from '../../run/permissions.ts'
 import { loadTasks, tasksExist } from '../../tasks/loader.ts'
@@ -169,11 +170,16 @@ export async function handleApiConfigSet(req: Request, root = process.cwd()): Pr
         !assignment ||
         typeof assignment !== 'object' ||
         typeof assignment.agent !== 'string' ||
-        !roleAgentIds().includes(assignment.agent) ||
+        ![...roleAgentIds(), ...configuredClis().map((cli) => cli.id)].includes(assignment.agent) ||
         typeof assignment.model !== 'string' ||
         !assignment.model.trim()
       )
         return errorResponse(`invalid assignment for role '${name}'`, 400)
+      if (name !== 'executor' && configuredClis().some((cli) => cli.id === assignment.agent))
+        return errorResponse(
+          'un CLI genérico solo puede ser Ejecutor: chat y revisión necesitan streaming',
+          400,
+        )
       if (name === 'orchestrator' && assignment.agent === 'opencode')
         return errorResponse(
           'roles.orchestrator.agent cannot be opencode: OpenCode is used as a terminal in the Dev tab, not to run chat.',
@@ -276,6 +282,8 @@ export async function handleApiConfigSet(req: Request, root = process.cwd()): Pr
       }
   }
   const newConfig: OrcheConfig = { ...current, models, roles: nextRoleAssignments }
+  // Executable declarations belong only to the global file, never the project YAML.
+  delete newConfig.clis
   if (body.taskAgentRules !== undefined) newConfig.taskAgentRules = body.taskAgentRules
   if (body.permissionMode === 'manual') newConfig.permissionMode = 'manual'
   else if (body.permissionMode === 'yolo') delete newConfig.permissionMode

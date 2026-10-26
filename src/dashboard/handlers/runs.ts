@@ -83,6 +83,7 @@ function deriveEngineFromBreakdown(breakdown: CostBreakdownEntry[]): {
 } {
   const label = breakdown[0]?.label
   if (!label) return { engine: null, iterations: null }
+  if (label.startsWith('cli:')) return { engine: label, iterations: 1 }
   if (label === 'single-shot') return { engine: 'single-shot', iterations: 1 }
   const m = label.match(/^agentic \((\d+) rounds?\)$/)
   if (m) return { engine: 'agentic', iterations: parseInt(m[1]!, 10) }
