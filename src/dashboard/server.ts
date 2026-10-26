@@ -23,6 +23,7 @@ import {
   handleApiChatSessionTimeline,
   handleApiChatSessionTurnStatus,
 } from './handlers/chat-sessions.ts'
+import { handleApiClisGet, handleApiClisSet } from './handlers/clis.ts'
 import { handleApiConfigGet, handleApiConfigInit, handleApiConfigSet } from './handlers/config.ts'
 import { handleApiExplorerFile, handleApiExplorerTree } from './handlers/explorer.ts'
 import {
@@ -516,6 +517,12 @@ export async function route(req: Request, port: number): Promise<Response> {
   }
   if (method === 'GET' && url.pathname === '/api/config') {
     return withDashboardProject(req, (project) => handleApiConfigGet(project.root))
+  }
+  if (method === 'GET' && url.pathname === '/api/clis') {
+    return handleApiClisGet()
+  }
+  if (method === 'PUT' && url.pathname === '/api/clis') {
+    return withDashboardProject(req, (project) => handleApiClisSet(req, project.root))
   }
   if (method === 'POST' && url.pathname === '/api/config/init') {
     return withDashboardProject(req, (project) => handleApiConfigInit(project.root))

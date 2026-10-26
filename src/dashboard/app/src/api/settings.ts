@@ -235,3 +235,28 @@ export async function saveConfig(body: Record<string, unknown>, projectId?: stri
 export async function resetSystem(): Promise<void> {
   await request('/api/system/reset', jsonInit('POST', { confirm: true }))
 }
+
+export interface CustomCliConfig {
+  id: string
+  label: string
+  command: string
+  args: string[]
+  modelArgs?: string[]
+  models?: string[]
+  timeoutMs?: number
+}
+export type CustomCliEntry = CustomCliConfig & { installed: boolean }
+
+export function cliArgumentLines(value: string): string[] {
+  return value.split(/\r?\n/).filter((line) => line.trim().length > 0)
+}
+
+export async function getClis(): Promise<{ clis: CustomCliEntry[] }> {
+  return request('/api/clis')
+}
+
+export async function saveClis(clis: CustomCliConfig[], projectId?: string): Promise<void> {
+  const init = jsonInit('PUT', { clis })
+  if (projectId) init.headers = { ...init.headers, 'x-orchestos-project-id': projectId }
+  await request('/api/clis', init)
+}

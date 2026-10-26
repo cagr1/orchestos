@@ -50,6 +50,17 @@ describe('L.2 — bind a loopback (no exposición accidental)', () => {
 })
 
 describe('L.2 — isSameOrigin rechaza CSRF entre apps locales de distinto puerto', () => {
+  it('PUT /api/clis rejects a foreign origin before writing global config', async () => {
+    const res = await route(
+      new Request(`http://localhost:${PORT}/api/clis`, {
+        method: 'PUT',
+        headers: { origin: 'https://attacker.example' },
+        body: '{"clis":[]}',
+      }),
+      PORT,
+    )
+    expect(res.status).toBe(403)
+  })
   it('mismo host y mismo puerto → autorizado', async () => {
     const res = await route(mutatingReq(`http://localhost:${PORT}`), PORT)
     expect(res.status).not.toBe(403)

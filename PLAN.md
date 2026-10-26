@@ -503,8 +503,18 @@ ricos por CLI solo para streaming/sesiones/cuotas (como T3 Code). Fuera: chat co
   reporte: verificado entero por el cerebro.
   Gate en vivo: navegador real (Playwright) `custom-cli` 9/9, `tasks` 43/43, `model-routing` 18/18, `docs/done/evidence/AT.11.2-live.json`
   Ejecutado por: codex gpt-6.1-sol (criterio) + gpt-6-luna (mecanico, anexo) · Spec: docs/specs/AT.11.2.md
-- [ ] **AT.11.3 — 🧠 Settings: agregar, editar y quitar un CLI genérico desde la UI.** Back sin front no existe: va
-  justo después de AT.11.2. Look de la familia de Settings (UI.25/UI.26); escribe el mismo bloque `clis:` de AT.11.2.
+- [x] **AT.11.3 — 🧠 Settings: agregar, editar y quitar un CLI genérico desde la UI.** (cerrado 2026-10-26)
+  Settings → Executor → "CLIs propios": lista con instalado/no instalado, formulario en línea (nombre, ID, comando,
+  argumentos uno por línea, args de modelo, modelos) dentro de la barra de cambios sin guardar. `GET/PUT /api/clis`
+  escribe solo el `config.yaml` global por rutas del documento, valida con la misma función que el registro y rechaza
+  con motivo quitar un CLI asignado como Ejecutor o en una regla. La edición espera a que cargue Settings (la carga
+  borraba el borrador). Límite anotado: el bloqueo por Ejecutor asignado mira la config efectiva del proyecto activo,
+  no la de otros proyectos.
+  Evidencia del cerebro: diff del handler leído; tsc 0, lint 0, `ui:fidelity:jsx` 0, `test:coverage` 2099/0; capturas
+  del formulario y de la lista. Tres defectos del flujo nuevo (Sol no pudo correrlo: su sandbox no ejecuta `claude`)
+  corregidos por Luna: espera de la fila de Runs, navegación sobrante, 400 esperado sin declarar.
+  Gate en vivo: navegador real (Playwright) `custom-cli` 13/13, `tasks` 43/43, `model-routing` 18/18, `docs/done/evidence/AT.11.3-live.json`
+  Ejecutado por: codex gpt-6.1-sol (criterio) + gpt-6-luna (mecanico, anexos) · Spec: docs/specs/AT.11.3.md
 
 ## Fuera de fase
 

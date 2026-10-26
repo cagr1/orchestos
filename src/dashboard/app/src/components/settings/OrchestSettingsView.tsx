@@ -18,6 +18,7 @@ import {
   Key,
   Layers,
   Palette,
+  Pencil,
   Plus,
   Search,
   Server,
@@ -46,6 +47,7 @@ import { usePrefersReducedMotion } from '@/hooks/use-prefers-reduced-motion'
 import { spring } from '@/lib/springs'
 import type {
   ConfigResponse,
+  CustomCliEntry,
   ExecutorModesResponse,
   HealthResponse,
   LocalProviderResponse,
@@ -53,6 +55,8 @@ import type {
   UsageResponse,
 } from '../../api/settings'
 import {
+  cliArgumentLines,
+  getClis,
   getConfig,
   getExecutorModes,
   getHealth,
@@ -64,6 +68,7 @@ import {
   mapUsageByModel,
   resetSystem,
   saveApiKey,
+  saveClis,
   saveConfig,
   saveSettings,
 } from '../../api/settings'
@@ -99,6 +104,33 @@ import {
   SettingsStepper,
 } from './primitives'
 
+type CliDraft = CustomCliEntry & { argsText: string; modelArgsText: string; modelsText: string }
+const cliDraft = (cli: CustomCliEntry): CliDraft => ({
+  ...cli,
+  argsText: cli.args.join('\n'),
+  modelArgsText: (cli.modelArgs ?? []).join('\n'),
+  modelsText: (cli.models ?? []).join(', '),
+})
+const cliConfig = ({
+  argsText,
+  modelArgsText,
+  modelsText,
+  installed: _installed,
+  ...cli
+}: CliDraft) => ({
+  ...cli,
+  args: cliArgumentLines(argsText),
+  ...(modelArgsText ? { modelArgs: cliArgumentLines(modelArgsText) } : { modelArgs: undefined }),
+  ...(modelsText
+    ? {
+        models: modelsText
+          .split(',')
+          .map((value) => value.trim())
+          .filter(Boolean),
+      }
+    : { models: undefined }),
+})
+
 /** Espejo de `MAX_RETRIES` en `src/run/qa.ts`. */
 const TASK_MAX_ATTEMPTS = 3
 
@@ -133,6 +165,12 @@ type SettingsSearchEntry = {
 }
 
 const SETTINGS_SEARCH_INDEX: SettingsSearchEntry[] = [
+  {
+    id: 'executor-clis',
+    section: 'executor',
+    label: { en: 'Custom CLIs', es: 'CLIs propios' },
+    keywords: ['cli', 'custom', 'terminal', 'gemini', 'aider'],
+  },
   {
     id: 'theme-orchestos',
     section: 'general',
@@ -509,7 +547,16 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
   const [maxIterations, setMaxIterations] = useState<number>(15)
   const [timeoutMinutes, setTimeoutMinutes] = useState<number>(20)
 
+  const [customClis, setCustomClis] = useState<CliDraft[]>([])
+  const [editingCli, setEditingCli] = useState<number | null>(null)
+  const [cliError, setCliError] = useState<string | null>(null)
+  const updateCli = (index: number, patch: Partial<CliDraft>) => {
+    setCustomClis((items) => items.map((item, i) => (i === index ? { ...item, ...patch } : item)))
+    setCliError(null)
+  }
+
   type SettingsBaseline = {
+    customClis: CliDraft[]
     routingRoles: typeof routingRoles
     taskAgentRules: RoutingRule[]
     apiMode: typeof apiMode
@@ -521,7 +568,7 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
   const [unsavedSaved, setUnsavedSaved] = useState(false)
   const [savingChanges, setSavingChanges] = useState(false)
   const changes = useMemo(() => {
-    if (!baseline) return { routing: 0, executor: 0, total: 0 }
+    if (!baseline) return { routing: 0, executor: 0, clis: 0, total: 0 }
     const roles = new Set([...Object.keys(baseline.routingRoles), ...Object.keys(routingRoles)])
     const serializeRules = (rules: RoutingRule[]) =>
       JSON.stringify(
@@ -547,8 +594,12 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
       Number(apiMode !== baseline.apiMode) +
       Number(maxIterations !== baseline.maxIterations) +
       Number(timeoutMinutes !== baseline.timeoutMinutes)
-    return { routing, executor, total: routing + executor }
-  }, [baseline, routingRoles, taskAgentRules, apiMode, maxIterations, timeoutMinutes])
+    const clis = Number(
+      JSON.stringify(customClis.map(cliConfig)) !==
+        JSON.stringify(baseline.customClis.map(cliConfig)),
+    )
+    return { routing, executor, clis, total: routing + executor + clis }
+  }, [baseline, routingRoles, taskAgentRules, apiMode, maxIterations, timeoutMinutes, customClis])
   const dirtyCount = changes.total
   const hasUnsavedChanges = dirtyCount > 0
 
@@ -751,6 +802,7 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
       getUsage(),
       getConfig(configProjectId, controller.signal),
       fetch('/api/models/catalog').then((response) => response.json()),
+      getClis(),
     ])
       .then(
         ([
@@ -762,6 +814,7 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
           nextUsage,
           nextConfig,
           nextCatalog,
+          nextClis,
         ]) => {
           if (disposed) return
           const keys = mapSettingsKeys(settings)
@@ -786,7 +839,11 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
             >
             taskAgentRules?: RoutingRule[]
           }
+          setCustomClis(nextClis.clis.map(cliDraft))
+          setEditingCli(null)
+          setCliError(null)
           setBaseline({
+            customClis: nextClis.clis.map(cliDraft),
             routingRoles: routed.roleAssignments ?? {},
             taskAgentRules: routed.taskAgentRules ?? [],
             apiMode: nextConfig.apiMode,
@@ -915,8 +972,28 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
     }
   }
 
+  const handleSaveClis = async () => {
+    try {
+      await saveClis(customClis.map(cliConfig), activeProjectId)
+      const updated = (await getClis()).clis.map(cliDraft)
+      setCustomClis(updated)
+      setBaseline((current) => current && { ...current, customClis: updated })
+      setEditingCli(null)
+      setCliError(null)
+      const catalog = await fetch('/api/models/catalog').then((response) => response.json())
+      setRoutingCatalog(catalog.agents ?? [])
+      return true
+    } catch (error) {
+      setCliError(error instanceof Error ? error.message : 'Could not save CLIs')
+      return false
+    }
+  }
+
   const discardChanges = () => {
     if (!baseline) return
+    setCustomClis(baseline.customClis)
+    setEditingCli(null)
+    setCliError(null)
     setRoutingRoles(baseline.routingRoles)
     setTaskAgentRules(baseline.taskAgentRules)
     setApiMode(baseline.apiMode)
@@ -930,7 +1007,8 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
     try {
       const routingSaved = !changes.routing || (await handleSaveRouting())
       const executorSaved = !changes.executor || (await handleSaveExecutor())
-      if (routingSaved && executorSaved) setUnsavedSaved(true)
+      const clisSaved = routingSaved && (!changes.clis || (await handleSaveClis()))
+      if (routingSaved && executorSaved && clisSaved) setUnsavedSaved(true)
     } finally {
       setSavingChanges(false)
     }
@@ -2459,6 +2537,130 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
                   />
                 </SettingsRow>
               )}
+            </SettingsGroup>
+            <SettingsGroup title={language === 'es' ? 'CLIs propios' : 'Custom CLIs'}>
+              <div data-settings-anchor="executor-clis">
+                {customClis.map((cli, index) => (
+                  <React.Fragment key={index}>
+                    <SettingsRow
+                      label={cli.label || 'Nuevo CLI'}
+                      description={<span className="font-mono">{cli.command}</span>}
+                    >
+                      <span className="text-xs text-app-muted">
+                        {cli.installed ? '● Instalado' : '○ No instalado'}
+                      </span>
+                      <Button
+                        variant="ghost"
+                        size="icon-compact"
+                        aria-label={`Editar ${cli.label}`}
+                        disabled={settingsLoading || !baseline}
+                        onClick={() => setEditingCli(editingCli === index ? null : index)}
+                      >
+                        <Pencil />
+                      </Button>
+                      <button
+                        type="button"
+                        aria-label={`Quitar ${cli.label}`}
+                        disabled={settingsLoading || !baseline}
+                        className="p-1.5 text-app-muted hover:text-app"
+                        onClick={() => {
+                          setCustomClis((items) => items.filter((_, i) => i !== index))
+                          setEditingCli(null)
+                          setCliError(null)
+                        }}
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </SettingsRow>
+                    {editingCli === index && (
+                      <div className="flex flex-col gap-3 p-4" data-cli-form>
+                        {(
+                          [
+                            ['label', 'Nombre'],
+                            ['id', 'ID'],
+                            ['command', 'Comando'],
+                            ['argsText', 'Argumentos'],
+                            ['modelArgsText', 'Args de modelo'],
+                            ['modelsText', 'Modelos'],
+                          ] as const
+                        ).map(([field, label]) => (
+                          <label key={field} className="flex flex-col gap-2 text-xs text-app-muted">
+                            {label}
+                            {field === 'argsText' || field === 'modelArgsText' ? (
+                              <textarea
+                                aria-label={label}
+                                value={cli[field]}
+                                rows={4}
+                                className="w-full px-2.5 py-1.5 rounded-control bg-app-bg border border-app text-xs text-app"
+                                onChange={(event) =>
+                                  updateCli(index, { [field]: event.target.value })
+                                }
+                              />
+                            ) : (
+                              <input
+                                aria-label={label}
+                                value={cli[field]}
+                                disabled={
+                                  field === 'id' &&
+                                  baseline?.customClis.some((saved) => saved.id === cli.id)
+                                }
+                                className="w-full px-2.5 py-1.5 rounded-control bg-app-bg border border-app text-xs text-app"
+                                onChange={(event) => {
+                                  const value = event.target.value
+                                  updateCli(index, {
+                                    [field]: value,
+                                    ...(field === 'label' &&
+                                    !baseline?.customClis.some((saved) => saved.id === cli.id)
+                                      ? {
+                                          id: value
+                                            .normalize('NFD')
+                                            .replace(/[\u0300-\u036f]/g, '')
+                                            .toLowerCase()
+                                            .replace(/[^a-z0-9]+/g, '-')
+                                            .replace(/^-|-$/g, ''),
+                                        }
+                                      : {}),
+                                  })
+                                }}
+                              />
+                            )}
+                            {field === 'argsText' && (
+                              <span>
+                                Usa {'{prompt}'} donde va la tarea; sin {'{prompt}'} se envía por
+                                stdin.
+                              </span>
+                            )}
+                            {field === 'modelArgsText' && <span>Opcional, uno por línea.</span>}
+                            {field === 'modelsText' && <span>Opcional, separados por coma.</span>}
+                          </label>
+                        ))}
+                      </div>
+                    )}
+                  </React.Fragment>
+                ))}
+                {cliError && (
+                  <p role="alert" className="px-4 py-2 text-xs text-app-muted">
+                    {cliError}
+                  </p>
+                )}
+                <div className="p-4">
+                  <Button
+                    variant="ghost"
+                    leadingIcon={Plus}
+                    disabled={settingsLoading || !baseline}
+                    onClick={() => {
+                      setEditingCli(customClis.length)
+                      setCustomClis((items) => [
+                        ...items,
+                        cliDraft({ id: '', label: '', command: '', args: [], installed: false }),
+                      ])
+                      setCliError(null)
+                    }}
+                  >
+                    Agregar CLI
+                  </Button>
+                </div>
+              </div>
             </SettingsGroup>
           </SettingsPage>
         )}

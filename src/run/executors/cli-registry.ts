@@ -204,27 +204,8 @@ export function configuredClis(directory = orchestosDir()): CustomCliConfig[] {
   }
   const ids = new Set(KNOWN_CLIS.map((cli) => cli.id))
   const result: CustomCliConfig[] = []
-  const strings = (value: unknown): value is string[] =>
-    Array.isArray(value) && value.every((s) => typeof s === 'string')
   for (const entry of raw) {
-    if (
-      !entry ||
-      typeof entry !== 'object' ||
-      typeof entry.id !== 'string' ||
-      !/^[a-z0-9][a-z0-9-]*$/.test(entry.id) ||
-      ids.has(entry.id) ||
-      typeof entry.label !== 'string' ||
-      !entry.label.trim() ||
-      typeof entry.command !== 'string' ||
-      !entry.command.trim() ||
-      !strings(entry.args) ||
-      (entry.modelArgs !== undefined && !strings(entry.modelArgs)) ||
-      (entry.models !== undefined && !strings(entry.models)) ||
-      (entry.timeoutMs !== undefined &&
-        (typeof entry.timeoutMs !== 'number' ||
-          !Number.isFinite(entry.timeoutMs) ||
-          entry.timeoutMs <= 0))
-    ) {
+    if (customCliValidationError(entry, ids)) {
       warn()
       continue
     }
@@ -240,6 +221,33 @@ export function configuredClis(directory = orchestosDir()): CustomCliConfig[] {
     })
   }
   return result
+}
+
+/** Shared by the forgiving config reader and the strict Settings writer. */
+export function customCliValidationError(
+  entry: unknown,
+  ids: ReadonlySet<string> = new Set(KNOWN_CLIS.map((cli) => cli.id)),
+): string | null {
+  if (!entry || typeof entry !== 'object' || Array.isArray(entry)) return 'debe ser un objeto'
+  const value = entry as Record<string, unknown>
+  if (typeof value.id !== 'string' || !/^[a-z0-9][a-z0-9-]*$/.test(value.id))
+    return '.id debe contener letras minúsculas, números o guiones'
+  if (ids.has(value.id)) return `.id choca con "${value.id}"`
+  for (const key of ['label', 'command'] as const)
+    if (typeof value[key] !== 'string' || !value[key].trim()) return `.${key} no puede estar vacío`
+  const strings = (input: unknown) =>
+    Array.isArray(input) && input.every((item) => typeof item === 'string')
+  for (const key of ['args', 'modelArgs', 'models'] as const)
+    if ((key === 'args' || value[key] !== undefined) && !strings(value[key]))
+      return `.${key} debe ser una lista de textos`
+  if (
+    value.timeoutMs !== undefined &&
+    (typeof value.timeoutMs !== 'number' ||
+      !Number.isFinite(value.timeoutMs) ||
+      value.timeoutMs <= 0)
+  )
+    return '.timeoutMs debe ser un número positivo'
+  return null
 }
 
 export function allClis(): CliDefinition[] {

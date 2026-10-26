@@ -13,24 +13,22 @@ import { setTimeout as delay } from 'node:timers/promises'
 import { parse, stringify } from 'yaml'
 import { run, writeGateRoles } from '../lib.mjs'
 
-export default async function customCli({ page, api, step, shot, cleanup, databasePath, visible }) {
+export default async function customCli({
+  page,
+  api,
+  step,
+  shot,
+  cleanup,
+  databasePath,
+  visible,
+  expectHttpError,
+}) {
   const globalPath = join(dirname(databasePath), 'config.yaml')
   const original = existsSync(globalPath) ? readFileSync(globalPath, 'utf8') : null
-  const globalConfig = parse(original ?? '') ?? {}
-  globalConfig.clis = [
-    ...(globalConfig.clis ?? []),
-    {
-      id: 'claude-plain',
-      label: 'Claude (genérico)',
-      command: 'claude',
-      args: ['-p', '{prompt}', '--permission-mode', 'acceptEdits'],
-    },
-  ]
   cleanup(() => {
     if (original === null) rmSync(globalPath, { force: true })
     else writeFileSync(globalPath, original)
   })
-  writeFileSync(globalPath, stringify(globalConfig))
 
   const root = realpathSync(mkdtempSync(join(tmpdir(), 'orchestos-ui-custom-cli-')))
   writeFileSync(join(root, 'README.md'), '# Generic CLI fixture\n')
@@ -77,6 +75,32 @@ export default async function customCli({ page, api, step, shot, cleanup, databa
   await page.getByRole('button', { name: 'Dev', exact: true }).click()
   await page.getByRole('button', { name: basename(root), exact: true }).click()
   await page.getByRole('button', { name: 'Settings', exact: true }).click()
+  await page.getByRole('button', { name: 'Executor', exact: true }).click()
+  await page.getByRole('button', { name: 'Agregar CLI', exact: true }).click()
+  const form = page.locator('[data-cli-form]')
+  await form.getByLabel('Nombre', { exact: true }).fill('Claude (genérico)')
+  await form.getByLabel('ID', { exact: true }).fill('claude-plain')
+  await form.getByLabel('Comando', { exact: true }).fill('claude')
+  await form
+    .getByLabel('Argumentos', { exact: true })
+    .fill('-p\n{prompt}\n--permission-mode\nacceptEdits')
+  await shot('custom-cli-form')
+  const [cliSaved] = await Promise.all([
+    page.waitForResponse(
+      (res) => res.url().endsWith('/api/clis') && res.request().method() === 'PUT',
+    ),
+    page.locator('[data-unsaved-bar]').getByRole('button', { name: 'Save', exact: true }).click(),
+  ])
+  if (!cliSaved.ok())
+    throw new Error(`save CLI failed ${cliSaved.status()}: ${await cliSaved.text()}`)
+  await page.locator('[data-unsaved-saved]').waitFor({ state: 'visible' })
+  await step(
+    'CLI added through Settings persisted globally',
+    parse(readFileSync(globalPath, 'utf8')).clis.some(
+      (cli) => cli.id === 'claude-plain' && cli.command === 'claude',
+    ),
+  )
+  await shot('custom-cli-list')
   await page.getByRole('button', { name: 'Model routing', exact: true }).click()
   const executor = page.locator('[data-settings-anchor="routing-executor"]')
   await executor.getByLabel('Executor agent').click()
@@ -158,16 +182,82 @@ export default async function customCli({ page, api, step, shot, cleanup, databa
   const row = page.locator('tr').filter({ hasText: 'gate-custom-cli' }).first()
   await step(
     'unknown cost visible in run row',
-    await row.getByText('no medido', { exact: true }).isVisible(),
+    await visible(row.getByText('no medido', { exact: true }), 30_000),
   )
   await row.click()
   await step(
     'unknown cost visible in run detail',
-    await page.getByText('no medido', { exact: true }).first().isVisible(),
+    await visible(page.getByText('no medido', { exact: true }).first(), 30_000),
   )
   await step(
     'generic CLI provider and default model visible in run detail',
-    await page.getByText('claude-plain · default', { exact: true }).isVisible(),
+    await visible(page.getByText('claude-plain · default', { exact: true }), 30_000),
   )
   await shot('custom-cli-run')
+  await page.getByRole('button', { name: 'Executor', exact: true }).click()
+  await page.getByRole('button', { name: 'Quitar Claude (genérico)', exact: true }).click()
+  expectHttpError(/\/api\/clis$/)
+  const [blocked] = await Promise.all([
+    page.waitForResponse(
+      (res) => res.url().endsWith('/api/clis') && res.request().method() === 'PUT',
+    ),
+    page.locator('[data-unsaved-bar]').getByRole('button', { name: 'Save', exact: true }).click(),
+  ])
+  await step(
+    'assigned CLI removal rejected inline',
+    blocked.status() === 400 &&
+      (await visible(
+        page
+          .getByRole('alert')
+          .filter({ hasText: 'Está asignado como Ejecutor: cambia el Ejecutor antes de quitarlo' }),
+      )),
+  )
+  await page
+    .locator('[data-unsaved-bar]')
+    .getByRole('button', { name: 'Discard', exact: true })
+    .click()
+  await page.getByRole('button', { name: 'Model routing', exact: true }).click()
+  await executor.getByLabel('Executor agent').click()
+  await executor.getByRole('button', { name: 'claude', exact: true }).click()
+  const claude = (await api('/api/models/catalog')).data.agents.find(
+    (agent) => agent.id === 'claude',
+  )
+  if (!claude?.models.length) throw new Error('Claude model catalog is empty')
+  await executor.getByRole('button', { name: 'Select model', exact: true }).click()
+  await executor
+    .getByRole('dialog', { name: 'Executor model selector' })
+    .getByRole('button')
+    .filter({ hasText: claude.models[0].name })
+    .first()
+    .click()
+  const [reassigned] = await Promise.all([
+    page.waitForResponse(
+      (res) => res.url().endsWith('/api/config') && res.request().method() === 'PUT',
+    ),
+    page.locator('[data-unsaved-bar]').getByRole('button', { name: 'Save', exact: true }).click(),
+  ])
+  if (!reassigned.ok()) throw new Error(`reassign failed: ${await reassigned.text()}`)
+  await page.locator('[data-unsaved-saved]').waitFor({ state: 'visible' })
+  await page.getByRole('button', { name: 'Executor', exact: true }).click()
+  await page.getByRole('button', { name: 'Quitar Claude (genérico)', exact: true }).click()
+  const [removed] = await Promise.all([
+    page.waitForResponse(
+      (res) => res.url().endsWith('/api/clis') && res.request().method() === 'PUT',
+    ),
+    page.locator('[data-unsaved-bar]').getByRole('button', { name: 'Save', exact: true }).click(),
+  ])
+  if (removed.ok()) await page.locator('[data-unsaved-saved]').waitFor({ state: 'visible' })
+  await step(
+    'unassigned CLI removed from global YAML',
+    removed.ok() &&
+      !(parse(readFileSync(globalPath, 'utf8'))?.clis ?? []).some(
+        (cli) => cli.id === 'claude-plain',
+      ),
+  )
+  await page.getByRole('button', { name: 'Model routing', exact: true }).click()
+  await executor.getByLabel('Executor agent').click()
+  await step(
+    'removed CLI absent from refreshed selector',
+    (await executor.getByRole('button', { name: 'Claude (genérico)', exact: true }).count()) === 0,
+  )
 }
