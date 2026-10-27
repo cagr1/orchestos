@@ -7,6 +7,7 @@ import {
   Check,
   CheckCircle2,
   ChevronDown,
+  Copy,
   Cpu,
   DollarSign,
   FileCheck,
@@ -19,6 +20,7 @@ import {
   Palette,
   Pencil,
   Plus,
+  RefreshCw,
   Search,
   Server,
   Settings as SettingsIcon,
@@ -43,6 +45,7 @@ import type {
   ExecutorModesResponse,
   HealthResponse,
   LocalProviderResponse,
+  ProviderSnapshot,
   SetupResponse,
   UsageResponse,
 } from '../../api/settings'
@@ -53,6 +56,7 @@ import {
   getExecutorModes,
   getHealth,
   getLocalProvider,
+  getProviders,
   getSettings,
   getSetup,
   getUsage,
@@ -62,6 +66,7 @@ import {
   saveApiKey,
   saveClis,
   saveConfig,
+  saveHiddenClis,
   saveSettings,
 } from '../../api/settings'
 import { isTaskRunnable } from '../../api/tasks'
@@ -95,6 +100,16 @@ import {
   SettingsSegmented,
   SettingsStepper,
 } from './primitives'
+
+const PROVIDER_INSTALL_URLS: Record<string, string> = {
+  claude: 'https://code.claude.com/docs/en/setup',
+  codex: 'https://developers.openai.com/codex/cli',
+  opencode: 'https://opencode.ai/docs/',
+  gemini: 'https://github.com/google-gemini/gemini-cli',
+  deepseek: 'https://github.com/deepseek-ai',
+  kimi: 'https://github.com/MoonshotAI/kimi-cli',
+  glm: 'https://docs.z.ai/',
+}
 
 type CliDraft = CustomCliEntry & {
   savedId?: string
@@ -165,7 +180,7 @@ type SettingsSearchEntry = {
 const SETTINGS_SEARCH_INDEX: SettingsSearchEntry[] = [
   {
     id: 'executor-clis',
-    section: 'executor',
+    section: 'providers',
     label: { en: 'Custom CLIs', es: 'CLIs propios' },
     keywords: ['cli', 'custom', 'terminal', 'gemini', 'aider'],
   },
@@ -562,6 +577,8 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
   const [localProvider, setLocalProvider] = useState<LocalProviderResponse | null>(null)
   const [executorModes, setExecutorModes] = useState<ExecutorModesResponse | null>(null)
   const [usage, setUsage] = useState<UsageResponse | null>(null)
+  const [usageLoading, setUsageLoading] = useState(true)
+  const [usageError, setUsageError] = useState<string | null>(null)
   type RoutingAgent = {
     id: string
     installed: boolean
@@ -620,6 +637,46 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
   const [maxIterations, setMaxIterations] = useState<number>(15)
   const [timeoutMinutes, setTimeoutMinutes] = useState<number>(20)
 
+  const [providers, setProviders] = useState<ProviderSnapshot[]>([])
+  const [providersLoading, setProvidersLoading] = useState(true)
+  const [hiddenClis, setHiddenClis] = useState<string[]>([])
+  const [providerUpdatedAt, setProviderUpdatedAt] = useState<number | null>(null)
+  const [providerNow, setProviderNow] = useState(Date.now())
+  const [providerRefreshing, setProviderRefreshing] = useState(false)
+  const [providerError, setProviderError] = useState<string | null>(null)
+  const [visibilitySaving, setVisibilitySaving] = useState(false)
+  useEffect(() => {
+    const timer = window.setInterval(() => setProviderNow(Date.now()), 60_000)
+    return () => window.clearInterval(timer)
+  }, [])
+  const refreshProviders = async () => {
+    setProviderRefreshing(true)
+    try {
+      const result = await getProviders(true, configProjectId)
+      setProviders(result.providers)
+      setProviderUpdatedAt(Date.now())
+      setProviderNow(Date.now())
+      setProviderError(null)
+    } catch (error) {
+      setProviderError(error instanceof Error ? error.message : 'Could not refresh providers')
+    } finally {
+      setProviderRefreshing(false)
+    }
+  }
+  const toggleProvider = async (id: string) => {
+    const previous = hiddenClis
+    const next = previous.includes(id) ? previous.filter((item) => item !== id) : [...previous, id]
+    setHiddenClis(next)
+    setVisibilitySaving(true)
+    try {
+      await saveHiddenClis(next)
+    } catch (error) {
+      setHiddenClis(previous)
+      showToast(error instanceof Error ? error.message : 'Could not save visibility', 'error')
+    } finally {
+      setVisibilitySaving(false)
+    }
+  }
   const [customClis, setCustomClis] = useState<CliDraft[]>([])
   const [editingCli, setEditingCli] = useState<number | null>(null)
   const [cliError, setCliError] = useState<string | null>(null)
@@ -841,13 +898,41 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
     const controller = new AbortController()
     configRequest.current = controller
     setSettingsLoading(true)
+    setUsageLoading(true)
+    setUsageError(null)
+    getUsage(controller.signal)
+      .then((nextUsage) => {
+        if (!disposed) setUsage(nextUsage)
+      })
+      .catch((error: unknown) => {
+        if (!disposed && !controller.signal.aborted)
+          setUsageError(error instanceof Error ? error.message : 'Usage could not be loaded')
+      })
+      .finally(() => {
+        if (!disposed) setUsageLoading(false)
+      })
+    setProvidersLoading(true)
+    setProviderError(null)
+    getProviders(false, configProjectId, controller.signal)
+      .then((nextProviders) => {
+        if (disposed) return
+        setProviders(nextProviders.providers)
+        setProviderUpdatedAt(Date.now())
+        setProviderNow(Date.now())
+      })
+      .catch((error: unknown) => {
+        if (!disposed && !controller.signal.aborted)
+          setProviderError(error instanceof Error ? error.message : 'Providers could not be loaded')
+      })
+      .finally(() => {
+        if (!disposed) setProvidersLoading(false)
+      })
     Promise.all([
       getSettings(),
       getSetup(),
       getHealth(),
       getLocalProvider(),
       getExecutorModes(),
-      getUsage(),
       getConfig(configProjectId, controller.signal),
       fetch('/api/models/catalog').then((response) => response.json()),
       getClis(),
@@ -859,7 +944,6 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
           nextHealth,
           nextLocal,
           nextModes,
-          nextUsage,
           nextConfig,
           nextCatalog,
           nextClis,
@@ -877,7 +961,6 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
           setHealth(nextHealth)
           setLocalProvider(nextLocal)
           setExecutorModes(nextModes)
-          setUsage(nextUsage)
           setConfig(nextConfig)
           setRoutingCatalog(nextCatalog.agents ?? [])
           const routed = nextConfig as ConfigResponse & {
@@ -891,6 +974,7 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
             ...rule,
             localId: ruleSequence.current++,
           }))
+          setHiddenClis(nextClis.hiddenClis ?? [])
           setCustomClis(nextClis.clis.map(cliDraft))
           setEditingCli(null)
           setCliError(null)
@@ -1108,7 +1192,7 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
         }),
       )
     }
-    if (activeSection !== 'executor') {
+    if (activeSection !== 'providers') {
       setCustomClis((items) =>
         items.flatMap((cli, index) => {
           if (validCli(cli, index)) return [cli]
@@ -1750,7 +1834,320 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
           </SettingsPage>
         )}
 
-        {activeSection === 'providers' && <SettingsPage title="Providers">{null}</SettingsPage>}
+        {activeSection === 'providers' && (
+          <SettingsPage
+            title="Providers"
+            status={
+              <div className="flex items-center gap-2 text-xs text-app-muted">
+                {providersLoading ? (
+                  <span role="status">{language === 'es' ? 'Cargando…' : 'Loading…'}</span>
+                ) : (
+                  providerUpdatedAt !== null && (
+                    <span>
+                      {language === 'es'
+                        ? `hace ${Math.max(0, Math.floor((providerNow - providerUpdatedAt) / 60000))} min`
+                        : `${Math.max(0, Math.floor((providerNow - providerUpdatedAt) / 60000))} min ago`}
+                    </span>
+                  )
+                )}
+                <Button
+                  variant="ghost"
+                  size="icon-compact"
+                  aria-label={language === 'es' ? 'Refrescar providers' : 'Refresh providers'}
+                  disabled={settingsLoading || providersLoading || providerRefreshing}
+                  onClick={() => void refreshProviders()}
+                >
+                  <RefreshCw className={providerRefreshing ? 'animate-spin' : ''} />
+                </Button>
+              </div>
+            }
+          >
+            {providerError && (
+              <p role="alert" className="text-xs text-app-muted">
+                {providerError}
+              </p>
+            )}
+            {!providersLoading && !providerError && (
+              <>
+                <SettingsGroup
+                  title={`${language === 'es' ? 'Instalados' : 'Installed'} (${providers.filter((cli) => cli.installed).length})`}
+                >
+                  {providers
+                    .filter((cli) => cli.installed)
+                    .map((cli) => (
+                      <div key={cli.id} data-provider-id={cli.id} data-provider-installed="true">
+                        <SettingsRow
+                          label={
+                            <span className="flex items-center gap-2">
+                              <ProviderLogo id={cli.id} className="size-5" />
+                              {cli.label}
+                              <span className="font-mono text-xs font-normal text-app-muted">
+                                {cli.version}
+                              </span>
+                            </span>
+                          }
+                          description={
+                            <span className="inline-flex items-center gap-1.5">
+                              <span
+                                aria-hidden
+                                className={`size-1.5 rounded-full ${cli.auth.status === 'ok' ? 'bg-emerald-500' : 'bg-app-muted'}`}
+                              />
+                              {cli.auth.status === 'missing'
+                                ? language === 'es'
+                                  ? 'Sin sesión'
+                                  : 'Signed out'
+                                : cli.auth.account
+                                  ? cli.auth.account.replace(/^(.).*(@.*)$/, '$1•••$2')
+                                  : language === 'es'
+                                    ? 'Sesión desconocida'
+                                    : 'Session unknown'}
+                              {cli.auth.plan && ` · ${cli.auth.plan}`} · {cli.models.length}{' '}
+                              {language === 'es' ? 'modelos' : 'models'}
+                            </span>
+                          }
+                        >
+                          <div className="flex items-center gap-4">
+                            {routingRoles.executor?.agent === cli.id && (
+                              <label className="flex flex-col gap-1 text-xs text-app-muted">
+                                {language === 'es'
+                                  ? 'Modelo por defecto (Ejecutor)'
+                                  : 'Default model (Executor)'}
+                                <select
+                                  aria-label={
+                                    language === 'es'
+                                      ? 'Modelo por defecto (Ejecutor)'
+                                      : 'Default model (Executor)'
+                                  }
+                                  className="rounded-control border border-app bg-app-bg px-2 py-1 text-app"
+                                  value={routingRoles.executor.model}
+                                  disabled={settingsLoading || savingChanges}
+                                  onChange={(event) => {
+                                    const model = event.target.value
+                                    setRoutingRoles((current) => ({
+                                      ...current,
+                                      executor: current.executor
+                                        ? { agent: current.executor.agent, model }
+                                        : null,
+                                    }))
+                                  }}
+                                >
+                                  {[...new Set([routingRoles.executor.model, ...cli.models])].map(
+                                    (model) => (
+                                      <option key={model} value={model}>
+                                        {model}
+                                      </option>
+                                    ),
+                                  )}
+                                </select>
+                              </label>
+                            )}
+                            <label className="flex items-center gap-2 text-xs text-app-muted">
+                              {language === 'es' ? 'Mostrar en el picker' : 'Show in picker'}
+                              <input
+                                type="checkbox"
+                                role="switch"
+                                className="relative h-5 w-9 shrink-0 cursor-pointer appearance-none rounded-full bg-app-elevated transition-colors after:absolute after:left-0.5 after:top-0.5 after:size-4 after:rounded-full after:bg-app-muted after:transition-transform checked:bg-blue-500 checked:after:translate-x-4 checked:after:bg-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 disabled:cursor-default disabled:opacity-50"
+                                aria-checked={!hiddenClis.includes(cli.id)}
+                                aria-label={`${language === 'es' ? 'Mostrar en el picker' : 'Show in picker'} ${cli.label}`}
+                                checked={!hiddenClis.includes(cli.id)}
+                                disabled={settingsLoading || visibilitySaving}
+                                onChange={() => void toggleProvider(cli.id)}
+                              />
+                            </label>
+                          </div>
+                        </SettingsRow>
+                        {cli.auth.status === 'missing' &&
+                          (cli.id === 'claude' || cli.id === 'codex') && (
+                            <div className="flex items-center gap-2 px-4 pb-3 text-xs text-app-muted">
+                              <code>
+                                {cli.id === 'claude' ? 'claude auth login' : 'codex login'}
+                              </code>
+                              <Button
+                                variant="ghost"
+                                size="icon-compact"
+                                aria-label={language === 'es' ? 'Copiar comando' : 'Copy command'}
+                                onClick={() =>
+                                  void navigator.clipboard
+                                    .writeText(
+                                      cli.id === 'claude' ? 'claude auth login' : 'codex login',
+                                    )
+                                    .catch((error: unknown) =>
+                                      showToast(
+                                        error instanceof Error
+                                          ? error.message
+                                          : 'Could not copy command',
+                                        'error',
+                                      ),
+                                    )
+                                }
+                              >
+                                <Copy />
+                              </Button>
+                            </div>
+                          )}
+                      </div>
+                    ))}
+                </SettingsGroup>
+                <SettingsGroup title={language === 'es' ? 'No encontrados' : 'Not found'}>
+                  {providers
+                    .filter(
+                      (cli) => !cli.installed && !customClis.some((custom) => custom.id === cli.id),
+                    )
+                    .map((cli) => (
+                      <div
+                        key={cli.id}
+                        data-provider-id={cli.id}
+                        data-provider-installed="false"
+                        className="opacity-60"
+                      >
+                        <SettingsRow
+                          label={
+                            <span className="flex items-center gap-2">
+                              <ProviderLogo id={cli.id} className="size-5" />
+                              {cli.label}
+                            </span>
+                          }
+                        >
+                          <a
+                            className="text-xs text-app-muted hover:text-app underline"
+                            href={PROVIDER_INSTALL_URLS[cli.id]}
+                            target="_blank"
+                            rel="noreferrer"
+                          >
+                            {language === 'es' ? 'Cómo instalar' : 'How to install'}
+                          </a>
+                        </SettingsRow>
+                      </div>
+                    ))}
+                </SettingsGroup>
+              </>
+            )}
+            <SettingsGroup title={language === 'es' ? 'CLIs propios' : 'Custom CLIs'}>
+              <div data-settings-anchor="executor-clis">
+                {customClis.map((cli, index) => (
+                  <React.Fragment key={index}>
+                    <SettingsRow
+                      label={cli.label || 'Nuevo CLI'}
+                      description={<span className="font-mono">{cli.command}</span>}
+                    >
+                      <span className="text-xs text-app-muted">
+                        {cli.installed ? '● Instalado' : '○ No instalado'}
+                      </span>
+                      <Button
+                        variant="ghost"
+                        size="icon-compact"
+                        aria-label={`Editar ${cli.label}`}
+                        disabled={settingsLoading || !baseline}
+                        onClick={() => setEditingCli(editingCli === index ? null : index)}
+                      >
+                        <Pencil />
+                      </Button>
+                      <button
+                        type="button"
+                        aria-label={`Quitar ${cli.label}`}
+                        disabled={settingsLoading || !baseline}
+                        className="p-1.5 text-app-muted hover:text-app"
+                        onClick={() => {
+                          setCustomClis((items) => items.filter((_, i) => i !== index))
+                          setEditingCli(null)
+                          setCliError(null)
+                        }}
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </SettingsRow>
+                    {editingCli === index && (
+                      <div className="flex flex-col gap-3 p-4" data-cli-form>
+                        {(
+                          [
+                            ['label', 'Nombre'],
+                            ['id', 'ID'],
+                            ['command', 'Comando'],
+                            ['argsText', 'Argumentos'],
+                            ['modelArgsText', 'Args de modelo'],
+                            ['modelsText', 'Modelos'],
+                          ] as const
+                        ).map(([field, label]) => (
+                          <label key={field} className="flex flex-col gap-2 text-xs text-app-muted">
+                            {label}
+                            {field === 'argsText' || field === 'modelArgsText' ? (
+                              <textarea
+                                aria-label={label}
+                                value={cli[field]}
+                                rows={4}
+                                className="w-full px-2.5 py-1.5 rounded-control bg-app-bg border border-app text-xs text-app"
+                                onChange={(event) =>
+                                  updateCli(index, { [field]: event.target.value })
+                                }
+                              />
+                            ) : (
+                              <input
+                                aria-label={label}
+                                value={cli[field]}
+                                disabled={
+                                  field === 'id' &&
+                                  baseline?.customClis.some((saved) => saved.id === cli.id)
+                                }
+                                className="w-full px-2.5 py-1.5 rounded-control bg-app-bg border border-app text-xs text-app"
+                                onChange={(event) => {
+                                  const value = event.target.value
+                                  updateCli(index, {
+                                    [field]: value,
+                                    ...(field === 'label' &&
+                                    !baseline?.customClis.some((saved) => saved.id === cli.id)
+                                      ? {
+                                          id: value
+                                            .normalize('NFD')
+                                            .replace(/[\u0300-\u036f]/g, '')
+                                            .toLowerCase()
+                                            .replace(/[^a-z0-9]+/g, '-')
+                                            .replace(/^-|-$/g, ''),
+                                        }
+                                      : {}),
+                                  })
+                                }}
+                              />
+                            )}
+                            {field === 'argsText' && (
+                              <span>
+                                Usa {'{prompt}'} donde va la tarea; sin {'{prompt}'} se envía por
+                                stdin.
+                              </span>
+                            )}
+                            {field === 'modelArgsText' && <span>Opcional, uno por línea.</span>}
+                            {field === 'modelsText' && <span>Opcional, separados por coma.</span>}
+                          </label>
+                        ))}
+                      </div>
+                    )}
+                  </React.Fragment>
+                ))}
+                {cliError && (
+                  <p role="alert" className="px-4 py-2 text-xs text-app-muted">
+                    {cliError}
+                  </p>
+                )}
+                <div className="p-4">
+                  <Button
+                    variant="ghost"
+                    leadingIcon={Plus}
+                    disabled={settingsLoading || !baseline}
+                    onClick={() => {
+                      setEditingCli(customClis.length)
+                      setCustomClis((items) => [
+                        ...items,
+                        cliDraft({ id: '', label: '', command: '', args: [], installed: false }),
+                      ])
+                      setCliError(null)
+                    }}
+                  >
+                    Agregar CLI
+                  </Button>
+                </div>
+              </div>
+            </SettingsGroup>
+          </SettingsPage>
+        )}
 
         {/* SECTION: HEALTH */}
         {activeSection === 'health' && (
@@ -2107,6 +2504,11 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
                             Unassigned
                           </button>
                           {routingCatalog
+                            .filter(
+                              (entry) =>
+                                entry.installed &&
+                                (entry.id === assignment?.agent || !hiddenClis.includes(entry.id)),
+                            )
                             .filter((entry) => key !== 'orchestrator' || entry.id !== 'opencode')
                             .filter((entry) => key === 'executor' || !entry.generic)
                             .filter((entry) => key !== 'executor' || entry.taskEngine !== false)
@@ -2378,39 +2780,46 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
                         </button>
                         {activeComboboxRole === `rule-agent-${index}` && (
                           <div className="absolute left-0 top-full mt-1 w-full rounded-card bg-app-surface border border-app shadow-2xl z-40 max-h-56 overflow-y-auto">
-                            {['local', ...routingCatalog.map((entry) => entry.id)].map(
-                              (agentId) => {
-                                const catalogAgent = routingCatalog.find(
-                                  (entry) => entry.id === agentId,
+                            {[
+                              'local',
+                              ...routingCatalog
+                                .filter(
+                                  (entry) =>
+                                    entry.installed &&
+                                    (entry.id === rule.agent || !hiddenClis.includes(entry.id)),
                                 )
-                                return (
-                                  <button
-                                    key={agentId}
-                                    type="button"
-                                    disabled={!!catalogAgent && !catalogAgent.installed}
-                                    onClick={() => {
-                                      setTaskAgentRules((items) =>
-                                        items.map((item, i) =>
-                                          i === index
-                                            ? {
-                                                ...item,
-                                                agent: agentId,
-                                                model: undefined,
-                                                cli_effort: undefined,
-                                              }
-                                            : item,
-                                        ),
-                                      )
-                                      setActiveComboboxRole(null)
-                                    }}
-                                    className="block w-full text-left px-2.5 py-1.5 text-app hover:bg-app-elevated disabled:opacity-50"
-                                  >
-                                    {AGENTS_LIST.find((entry) => entry.id.toLowerCase() === agentId)
-                                      ?.name ?? agentId}
-                                  </button>
-                                )
-                              },
-                            )}
+                                .map((entry) => entry.id),
+                            ].map((agentId) => {
+                              const catalogAgent = routingCatalog.find(
+                                (entry) => entry.id === agentId,
+                              )
+                              return (
+                                <button
+                                  key={agentId}
+                                  type="button"
+                                  disabled={!!catalogAgent && !catalogAgent.installed}
+                                  onClick={() => {
+                                    setTaskAgentRules((items) =>
+                                      items.map((item, i) =>
+                                        i === index
+                                          ? {
+                                              ...item,
+                                              agent: agentId,
+                                              model: undefined,
+                                              cli_effort: undefined,
+                                            }
+                                          : item,
+                                      ),
+                                    )
+                                    setActiveComboboxRole(null)
+                                  }}
+                                  className="block w-full text-left px-2.5 py-1.5 text-app hover:bg-app-elevated disabled:opacity-50"
+                                >
+                                  {AGENTS_LIST.find((entry) => entry.id.toLowerCase() === agentId)
+                                    ?.name ?? agentId}
+                                </button>
+                              )
+                            })}
                           </div>
                         )}
                       </div>
@@ -2541,7 +2950,10 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
                         {
                           localId: ruleSequence.current++,
                           match: {},
-                          agent: routingCatalog.find((entry) => entry.installed)?.id ?? 'codex',
+                          agent:
+                            routingCatalog.find(
+                              (entry) => entry.installed && !hiddenClis.includes(entry.id),
+                            )?.id ?? 'codex',
                         },
                       ])
                     }
@@ -2628,136 +3040,26 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
                 </SettingsRow>
               )}
             </SettingsGroup>
-            <SettingsGroup title={language === 'es' ? 'CLIs propios' : 'Custom CLIs'}>
-              <div data-settings-anchor="executor-clis">
-                {customClis.map((cli, index) => (
-                  <React.Fragment key={index}>
-                    <SettingsRow
-                      label={cli.label || 'Nuevo CLI'}
-                      description={<span className="font-mono">{cli.command}</span>}
-                    >
-                      <span className="text-xs text-app-muted">
-                        {cli.installed ? '● Instalado' : '○ No instalado'}
-                      </span>
-                      <Button
-                        variant="ghost"
-                        size="icon-compact"
-                        aria-label={`Editar ${cli.label}`}
-                        disabled={settingsLoading || !baseline}
-                        onClick={() => setEditingCli(editingCli === index ? null : index)}
-                      >
-                        <Pencil />
-                      </Button>
-                      <button
-                        type="button"
-                        aria-label={`Quitar ${cli.label}`}
-                        disabled={settingsLoading || !baseline}
-                        className="p-1.5 text-app-muted hover:text-app"
-                        onClick={() => {
-                          setCustomClis((items) => items.filter((_, i) => i !== index))
-                          setEditingCli(null)
-                          setCliError(null)
-                        }}
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    </SettingsRow>
-                    {editingCli === index && (
-                      <div className="flex flex-col gap-3 p-4" data-cli-form>
-                        {(
-                          [
-                            ['label', 'Nombre'],
-                            ['id', 'ID'],
-                            ['command', 'Comando'],
-                            ['argsText', 'Argumentos'],
-                            ['modelArgsText', 'Args de modelo'],
-                            ['modelsText', 'Modelos'],
-                          ] as const
-                        ).map(([field, label]) => (
-                          <label key={field} className="flex flex-col gap-2 text-xs text-app-muted">
-                            {label}
-                            {field === 'argsText' || field === 'modelArgsText' ? (
-                              <textarea
-                                aria-label={label}
-                                value={cli[field]}
-                                rows={4}
-                                className="w-full px-2.5 py-1.5 rounded-control bg-app-bg border border-app text-xs text-app"
-                                onChange={(event) =>
-                                  updateCli(index, { [field]: event.target.value })
-                                }
-                              />
-                            ) : (
-                              <input
-                                aria-label={label}
-                                value={cli[field]}
-                                disabled={
-                                  field === 'id' &&
-                                  baseline?.customClis.some((saved) => saved.id === cli.id)
-                                }
-                                className="w-full px-2.5 py-1.5 rounded-control bg-app-bg border border-app text-xs text-app"
-                                onChange={(event) => {
-                                  const value = event.target.value
-                                  updateCli(index, {
-                                    [field]: value,
-                                    ...(field === 'label' &&
-                                    !baseline?.customClis.some((saved) => saved.id === cli.id)
-                                      ? {
-                                          id: value
-                                            .normalize('NFD')
-                                            .replace(/[\u0300-\u036f]/g, '')
-                                            .toLowerCase()
-                                            .replace(/[^a-z0-9]+/g, '-')
-                                            .replace(/^-|-$/g, ''),
-                                        }
-                                      : {}),
-                                  })
-                                }}
-                              />
-                            )}
-                            {field === 'argsText' && (
-                              <span>
-                                Usa {'{prompt}'} donde va la tarea; sin {'{prompt}'} se envía por
-                                stdin.
-                              </span>
-                            )}
-                            {field === 'modelArgsText' && <span>Opcional, uno por línea.</span>}
-                            {field === 'modelsText' && <span>Opcional, separados por coma.</span>}
-                          </label>
-                        ))}
-                      </div>
-                    )}
-                  </React.Fragment>
-                ))}
-                {cliError && (
-                  <p role="alert" className="px-4 py-2 text-xs text-app-muted">
-                    {cliError}
-                  </p>
-                )}
-                <div className="p-4">
-                  <Button
-                    variant="ghost"
-                    leadingIcon={Plus}
-                    disabled={settingsLoading || !baseline}
-                    onClick={() => {
-                      setEditingCli(customClis.length)
-                      setCustomClis((items) => [
-                        ...items,
-                        cliDraft({ id: '', label: '', command: '', args: [], installed: false }),
-                      ])
-                      setCliError(null)
-                    }}
-                  >
-                    Agregar CLI
-                  </Button>
-                </div>
-              </div>
-            </SettingsGroup>
           </SettingsPage>
         )}
 
         {/* SECTION: USAGE */}
         {activeSection === 'usage' && (
-          <SettingsPage title="Usage & Spend">
+          <SettingsPage
+            title="Usage & Spend"
+            status={
+              usageLoading ? (
+                <span role="status" className="text-xs text-app-muted">
+                  {language === 'es' ? 'Cargando…' : 'Loading…'}
+                </span>
+              ) : undefined
+            }
+          >
+            {usageError && (
+              <p role="alert" className="text-xs text-app-muted">
+                {usageError}
+              </p>
+            )}
             {/* 3 KPI cards at the top (exact same numbers computed from table data) */}
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               <div

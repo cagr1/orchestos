@@ -4,6 +4,7 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { cliSearchPath } from '../../run/executors/cli-discovery.ts'
 import { detectInstalledClis } from '../../run/executors/cli-registry.ts'
+import { readCliModelCatalogsCached, resetCliModelCatalogCache } from '../chat-cli-models.ts'
 import { createProviderReader, handleApiProviders, type ProviderProbe } from './providers.ts'
 
 let home: string
@@ -41,7 +42,11 @@ afterEach(() => rmSync(home, { recursive: true, force: true }))
 function reader() {
   return createProviderReader(probe, {
     models: async () => [
-      { id: 'claude', models: [{ id: 'sonnet', name: 'Sonnet', short: 'Sonnet' }], efforts: [] },
+      ...['claude', 'codex', 'opencode'].map((id) => ({
+        id,
+        models: [{ id: 'sonnet', name: 'Sonnet', short: 'Sonnet' }],
+        efforts: [],
+      })),
     ],
     executor: (root) => ({
       agent: root === '/codex-project' ? 'codex' : 'claude',
@@ -70,7 +75,7 @@ it('detects login-shell binaries using the shared detector and includes all fall
   const providers = await reader()('/project')
   expect(providers.find((cli) => cli.id === 'claude')).toMatchObject({
     installed: true,
-    version: 'claude 1.2.3',
+    version: '1.2.3',
     models: ['sonnet'],
     defaultModel: 'selected-model',
     taskEngine: true,
@@ -218,6 +223,86 @@ it('continues detection when login shell times out', async () => {
   expect((await reader()('/project')).find((cli) => cli.id === 'codex')?.installed).toBe(true)
 })
 
+it('normalizes versions from the first output line, preserving lines without version tokens', async () => {
+  for (const [output, version] of [
+    ['2.1.311 (Claude Code)', '2.1.311'],
+    ['codex-cli 0.164.0', '0.164.0'],
+    ['1.19.0', '1.19.0'],
+    ['cli 1.2.3-beta.1+build', '1.2.3-beta.1'],
+    ['development\n1.2.3', 'development'],
+  ] as const) {
+    probe.command = async () => output
+    expect((await reader()('/project')).find((cli) => cli.id === 'claude')?.version).toBe(version)
+  }
+})
+
+for (const failure of ['empty', 'error', 'throw']) {
+  it(`retries a ${failure} model catalog without refresh and caches healthy CLIs separately`, async () => {
+    let attempts = 0
+    const batches: string[][] = []
+    const read = createProviderReader(probe, {
+      models: async (clis) => {
+        batches.push(clis.map((cli) => cli.id))
+        attempts++
+        if (failure === 'throw' && attempts === 1) throw new Error('catalog unavailable')
+        return clis.map((cli) => ({
+          id: cli.id,
+          models:
+            cli.id === 'opencode' && attempts === 1
+              ? []
+              : [{ id: 'recovered', name: 'Recovered', short: 'Recovered' }],
+          efforts: [],
+          ...(failure === 'error' && cli.id === 'opencode' && attempts === 1
+            ? { error: 'catalog unavailable' }
+            : {}),
+        }))
+      },
+      executor: () => undefined,
+      customClis: () => [],
+    })
+    expect((await read('/project')).find((cli) => cli.id === 'opencode')?.models).toEqual([])
+    expect((await read('/project')).find((cli) => cli.id === 'opencode')?.models).toEqual([
+      'recovered',
+    ])
+    expect(batches[1]).toEqual(failure === 'throw' ? ['claude', 'codex', 'opencode'] : ['opencode'])
+    await read('/project')
+    expect(attempts).toBe(2)
+  })
+}
+
+it('keeps an in-flight retry intact when refresh clears the cache', async () => {
+  let attempts = 0
+  let release = () => {}
+  const waiting = new Promise<void>((resolve) => {
+    release = resolve
+  })
+  const read = createProviderReader(probe, {
+    models: async (clis) => {
+      const attempt = ++attempts
+      if (attempt === 2) await waiting
+      return clis.map((cli) => ({
+        id: cli.id,
+        models:
+          attempt === 1 && cli.id === 'opencode'
+            ? []
+            : [{ id: `model-${attempt}`, name: 'Model', short: 'Model' }],
+        efforts: [],
+      }))
+    },
+    executor: () => undefined,
+    customClis: () => [],
+  })
+  await read('/project')
+  const retry = read('/project')
+  const refreshed = await read('/project', true)
+  release()
+  const retried = await retry
+  expect(retried.find((cli) => cli.id === 'claude')?.models).toEqual(['model-1'])
+  expect(retried.find((cli) => cli.id === 'opencode')?.models).toEqual(['model-2'])
+  expect(await read('/project')).toEqual(refreshed)
+  expect(attempts).toBe(3)
+})
+
 it('includes configured CLIs and their Model routing catalog', async () => {
   const previous = process.env.ORCHESTOS_HOME
   process.env.ORCHESTOS_HOME = home
@@ -238,7 +323,7 @@ it('includes configured CLIs and their Model routing catalog', async () => {
       label: 'Custom CLI',
       installed: true,
       path: '/login/bin/custom-bin',
-      version: 'custom-bin 1.2.3',
+      version: '1.2.3',
       auth: { status: 'unknown' },
       models: ['default', 'small', 'large'],
       defaultModel: 'large',
@@ -251,22 +336,41 @@ it('includes configured CLIs and their Model routing catalog', async () => {
   }
 })
 
-it('reuses the CLI model catalog with fake commands and a temporary model cache', async () => {
-  mkdirSync(join(home, '.codex'))
-  writeFileSync(
-    join(home, '.codex/models_cache.json'),
-    '{"models":[{"slug":"cached-codex","display_name":"Cached"}]}',
-  )
-  const original = probe.command
-  probe.command = async (binary, args) => {
-    if (args[0] === '--help') return '--model (e.g. "sonnet", "opus")'
-    if (args[0] === 'models') return 'openai/cached-opencode'
-    return original(binary, args)
+it('shares the default model catalog with concurrent providers and refresh without probing models', async () => {
+  resetCliModelCatalogCache()
+  let catalogReads = 0
+  let release = () => {}
+  const waiting = new Promise<void>((resolve) => {
+    release = resolve
+  })
+  try {
+    const catalog = readCliModelCatalogsCached({
+      read: async () => {
+        catalogReads++
+        await waiting
+        return ['claude', 'codex', 'opencode'].map((id) => ({
+          id,
+          models: [{ id: `cached-${id}`, name: 'Cached', short: 'Cached' }],
+          efforts: [],
+        }))
+      },
+    })
+    const read = createProviderReader(probe, { executor: () => undefined, customClis: () => [] })
+    const first = read('/project')
+    const refreshed = read('/project', true)
+    expect(catalogReads).toBe(1)
+    release()
+    const [providers, refreshedProviders] = await Promise.all([first, refreshed, catalog])
+    expect(refreshedProviders).toEqual(providers)
+    for (const id of ['claude', 'codex', 'opencode'])
+      expect(providers.find((cli) => cli.id === id)?.models).toEqual([`cached-${id}`])
+    expect(providers.every((cli) => cli.defaultModel === undefined)).toBe(true)
+    expect(await read('/project', true)).toEqual(providers)
+    expect(catalogReads).toBe(1)
+    expect(calls).toHaveLength(9)
+    expect(calls.every((call) => call.endsWith(' --version'))).toBe(true)
+  } finally {
+    release()
+    resetCliModelCatalogCache()
   }
-  const read = createProviderReader(probe, { executor: () => undefined, customClis: () => [] })
-  const providers = await read('/project')
-  expect(providers.find((cli) => cli.id === 'claude')?.models).toEqual(['sonnet', 'opus'])
-  expect(providers.find((cli) => cli.id === 'codex')?.models).toEqual(['cached-codex'])
-  expect(providers.find((cli) => cli.id === 'opencode')?.models).toEqual(['openai/cached-opencode'])
-  expect(providers.every((cli) => cli.defaultModel === undefined)).toBe(true)
 })

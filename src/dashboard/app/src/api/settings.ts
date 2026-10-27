@@ -198,8 +198,8 @@ export async function getLocalProvider(): Promise<LocalProviderResponse> {
 export async function getExecutorModes(): Promise<ExecutorModesResponse> {
   return request('/api/system/executor-modes')
 }
-export async function getUsage(): Promise<UsageResponse> {
-  return request('/api/usage')
+export async function getUsage(signal?: AbortSignal): Promise<UsageResponse> {
+  return request('/api/usage', { signal })
 }
 export async function getConfig(projectId?: string, signal?: AbortSignal): Promise<ConfigResponse> {
   return mapConfigResponse(
@@ -251,7 +251,7 @@ export function cliArgumentLines(value: string): string[] {
   return value.split(/\r?\n/).filter((line) => line.trim().length > 0)
 }
 
-export async function getClis(): Promise<{ clis: CustomCliEntry[] }> {
+export async function getClis(): Promise<{ clis: CustomCliEntry[]; hiddenClis: string[] }> {
   return request('/api/clis')
 }
 
@@ -259,4 +259,28 @@ export async function saveClis(clis: CustomCliConfig[], projectId?: string): Pro
   const init = jsonInit('PUT', { clis })
   if (projectId) init.headers = { ...init.headers, 'x-orchestos-project-id': projectId }
   await request('/api/clis', init)
+}
+
+export interface ProviderSnapshot {
+  id: string
+  label: string
+  installed: boolean
+  version: string | null
+  auth: { status: 'ok' | 'missing' | 'unknown'; account?: string; plan?: string }
+  models: string[]
+}
+
+export async function getProviders(
+  refresh = false,
+  projectId?: string,
+  signal?: AbortSignal,
+): Promise<{ providers: ProviderSnapshot[] }> {
+  return request(`/api/providers${refresh ? '?refresh=1' : ''}`, {
+    ...(projectId ? { headers: { 'x-orchestos-project-id': projectId } } : {}),
+    signal,
+  })
+}
+
+export async function saveHiddenClis(hiddenClis: string[]): Promise<void> {
+  await request('/api/clis', jsonInit('PUT', { hiddenClis }))
 }

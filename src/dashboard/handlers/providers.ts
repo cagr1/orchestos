@@ -9,7 +9,7 @@ import {
 } from '../../run/executors/cli-discovery.ts'
 import { configuredClis, detectInstalledClis } from '../../run/executors/cli-registry.ts'
 import { taskEngineForCli } from '../../run/executors/task-engines.ts'
-import { type CliModelCatalog, readCliModelCatalogs } from '../chat-cli-models.ts'
+import { type CliModelCatalog, readCliModelCatalogsCached } from '../chat-cli-models.ts'
 import { jsonResponse } from '../http.ts'
 
 export interface ProviderAuth {
@@ -142,41 +142,41 @@ export function createProviderReader(
     >
   } = {},
 ) {
-  let cache: { expires: number; value: ProviderSnapshot[] } | undefined
+  const cache = new Map<string, { expires: number; value: ProviderSnapshot }>()
   let pending: Promise<ProviderSnapshot[]> | undefined
+  let generation = 0
   const detect = dependencies.detect ?? (() => detectInstalledClis(() => null, probe))
   const models =
     dependencies.models ??
-    ((clis) =>
-      readCliModelCatalogs(
-        async (bin, args) => {
-          const stdout = await probe.command(bin, args)
-          return { stdout: stdout ?? '', exitCode: stdout === null ? 1 : 0 }
-        },
-        clis.map((cli) => ({ ...cli, binary: cli.path ?? cli.binary })),
-        probe.home,
+    (async (clis) =>
+      (await readCliModelCatalogsCached()).filter((catalog) =>
+        clis.some((cli) => cli.id === catalog.id),
       ))
   return async (root: string, refresh = false): Promise<ProviderSnapshot[]> => {
     if (refresh) {
-      cache = undefined
+      cache.clear()
       pending = undefined
     }
-    if (!cache || probe.now() >= cache.expires) {
+    const detected = detect()
+    if (detected.some((cli) => (cache.get(cli.id)?.expires ?? -1) <= probe.now())) {
       if (!pending) {
+        const currentGeneration = ++generation
+        const cached = new Map(cache)
         const request = (async () => {
-          const clis = detect()
+          const clis = detected.filter((cli) => (cache.get(cli.id)?.expires ?? -1) <= probe.now())
           const [catalogs, versions] = await Promise.all([
-            models(clis),
+            models(clis).catch(() => [] as CliModelCatalog[]),
             Promise.all(
               clis.map(async (cli) => {
                 if (!cli.path) return null
                 const output = await probe.command(cli.path, ['--version'])
-                return output?.split(/\r?\n/, 1)[0]?.trim() || null
+                const line = output?.split(/\r?\n/, 1)[0]?.trim()
+                return line?.match(/\d+\.\d+(\.\d+)?([-+.][\w.]+)?/)?.[0] || line || null
               }),
             ),
           ])
           const custom = (dependencies.customClis ?? configuredClis)()
-          return clis.map((cli, index): ProviderSnapshot => {
+          const fresh = clis.map((cli, index): ProviderSnapshot => {
             const own = custom.find((entry) => entry.id === cli.id)
             return {
               id: cli.id,
@@ -200,12 +200,20 @@ export function createProviderReader(
                   : null,
             }
           })
+          if (generation === currentGeneration) {
+            for (const value of fresh) {
+              const catalog = catalogs.find((entry) => entry.id === value.id)
+              if (!value.installed || (value.models.length > 0 && !catalog?.error))
+                cache.set(value.id, { value, expires: probe.now() + 30_000 })
+              else cache.delete(value.id)
+            }
+          }
+          return detected.map(
+            (cli) => fresh.find((value) => value.id === cli.id) ?? cached.get(cli.id)!.value,
+          )
         })()
         pending = request
         void request
-          .then((value) => {
-            if (pending === request) cache = { value, expires: probe.now() + 30_000 }
-          })
           .finally(() => {
             if (pending === request) pending = undefined
           })
@@ -215,7 +223,10 @@ export function createProviderReader(
       // A refreshed request may have replaced the pending read. Use this request's result.
       return withDefault(value, root)
     }
-    return withDefault(cache.value, root)
+    return withDefault(
+      detected.map((cli) => cache.get(cli.id)!.value),
+      root,
+    )
   }
 
   function withDefault(value: ProviderSnapshot[], root: string): ProviderSnapshot[] {

@@ -286,7 +286,7 @@ export async function readCliModelCatalogs(
     installed.map(async (cli): Promise<CliModelCatalog> => {
       try {
         return {
-          ...(await readCliCatalog(cli.id, cli.binary, runner, home)),
+          ...(await readCliCatalog(cli.id, cli.path ?? cli.binary, runner, home)),
           chat: cliChatAdapterFor(cli.id)?.chat ?? false,
           installed: cli.installed,
           label: cli.label,

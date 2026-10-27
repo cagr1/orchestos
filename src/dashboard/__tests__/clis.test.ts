@@ -38,6 +38,7 @@ describe('custom CLI Settings', () => {
     )
     expect(Object.keys(parse(readFileSync(globalPath, 'utf8')))).toEqual(['clis'])
     const result = await handleApiClisGet().json()
+    expect(result.hiddenClis).toEqual([])
     expect(result.clis).toEqual([
       { ...cli, installed: false },
       { ...cli, id: 'bun-cli', command: process.execPath, installed: true },
@@ -56,6 +57,32 @@ describe('custom CLI Settings', () => {
     expect(parse(readFileSync(globalPath, 'utf8')).clis).toBeUndefined()
     expect(readFileSync(globalPath, 'utf8')).toContain(original.trim())
     expect(readFileSync(join(root, 'orchestos.config.yaml'), 'utf8')).toBe(project)
+  })
+  it('persists hidden CLIs independently without changing declarations or project roles', async () => {
+    expect((await put([cli])).status).toBe(200)
+    const project = '# existing roles\nroles:\n  executor: { agent: codex, model: existing }\n'
+    writeFileSync(join(root, 'orchestos.config.yaml'), project)
+    const update = (hiddenClis: unknown) =>
+      handleApiClisSet(
+        new Request('http://localhost/api/clis', {
+          method: 'PUT',
+          body: JSON.stringify({ hiddenClis }),
+        }),
+        root,
+      )
+    expect((await update(['codex', 'codex'])).status).toBe(200)
+    expect((await handleApiClisGet().json()).hiddenClis).toEqual(['codex'])
+    expect(parse(readFileSync(globalPath, 'utf8')).clis).toEqual([cli])
+    expect(readFileSync(join(root, 'orchestos.config.yaml'), 'utf8')).toBe(project)
+    const original = readFileSync(globalPath, 'utf8')
+    for (const invalid of [null, 'codex', [42], ['../codex']]) {
+      expect((await update(invalid)).status).toBe(400)
+      expect(readFileSync(globalPath, 'utf8')).toBe(original)
+    }
+    expect((await put([cli])).status).toBe(200)
+    expect((await handleApiClisGet().json()).hiddenClis).toEqual(['codex'])
+    expect((await update([])).status).toBe(200)
+    expect((await handleApiClisGet().json()).hiddenClis).toEqual([])
   })
   it('rejects entire invalid lists with index and concrete cause', async () => {
     expect((await put([cli])).status).toBe(200)

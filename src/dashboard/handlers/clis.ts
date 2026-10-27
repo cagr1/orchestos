@@ -1,6 +1,6 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
-import { isMap, parseDocument } from 'yaml'
+import { isMap, parse, parseDocument } from 'yaml'
 import { loadOrcheConfig } from '../../config/load.ts'
 import { orchestosDir } from '../../config/orchestos-home.ts'
 import type { CustomCliConfig } from '../../config/schema.ts'
@@ -11,28 +11,48 @@ import {
 } from '../../run/executors/cli-registry.ts'
 import { errorResponse, jsonResponse } from '../http.ts'
 
+function hiddenClis(): string[] {
+  try {
+    const value = parse(readFileSync(join(orchestosDir(), 'config.yaml'), 'utf8'))?.hiddenClis
+    return Array.isArray(value) && value.every((id) => typeof id === 'string') ? value : []
+  } catch {
+    return []
+  }
+}
+
 export function handleApiClisGet(): Response {
   return jsonResponse({
+    hiddenClis: hiddenClis(),
     clis: configuredClis().map((cli) => ({ ...cli, installed: Bun.which(cli.command) !== null })),
   })
 }
 
 export async function handleApiClisSet(req: Request, root = process.cwd()): Promise<Response> {
-  let body: { clis?: unknown }
+  let body: { clis?: unknown; hiddenClis?: unknown }
   try {
     body = await req.json()
   } catch {
     return errorResponse('JSON inválido', 400)
   }
-  if (!body || !Array.isArray(body.clis)) return errorResponse('clis debe ser una lista', 400)
+  if (!body || (body.clis === undefined && body.hiddenClis === undefined))
+    return errorResponse('clis debe ser una lista', 400)
+  if (body.clis !== undefined && !Array.isArray(body.clis))
+    return errorResponse('clis debe ser una lista', 400)
+  if (
+    body.hiddenClis !== undefined &&
+    (!Array.isArray(body.hiddenClis) ||
+      !body.hiddenClis.every((id) => typeof id === 'string' && /^[a-z0-9][a-z0-9-]*$/.test(id)))
+  )
+    return errorResponse('hiddenClis debe ser una lista de IDs', 400)
+  const entries = (body.clis ?? configuredClis()) as unknown[]
   const ids = new Set(KNOWN_CLIS.map((cli) => cli.id))
-  for (const [index, entry] of body.clis.entries()) {
+  for (const [index, entry] of entries.entries()) {
     const error = customCliValidationError(entry, ids)
     if (error)
       return errorResponse(`clis[${index}]${error.startsWith('.') ? '' : ' '}${error}`, 400)
-    ids.add(entry.id)
+    ids.add((entry as CustomCliConfig).id)
   }
-  const clis = body.clis as CustomCliConfig[]
+  const clis = entries as CustomCliConfig[]
   const kept = new Set(clis.map((cli) => cli.id))
   const removed = configuredClis().filter((cli) => !kept.has(cli.id))
   const config = loadOrcheConfig(root)
@@ -48,7 +68,9 @@ export async function handleApiClisSet(req: Request, root = process.cwd()): Prom
   if (document.errors.length || (document.contents !== null && !isMap(document.contents)))
     return errorResponse('Config global inválida', 400)
   // Persist only the declaration fields; `installed` is derived from PATH.
-  if (clis.length)
+  if (body.hiddenClis !== undefined)
+    document.set('hiddenClis', [...new Set(body.hiddenClis as string[])])
+  if (body.clis !== undefined && clis.length)
     document.set(
       'clis',
       clis.map(({ id, label, command, args, modelArgs, models, timeoutMs }) => ({
@@ -61,7 +83,7 @@ export async function handleApiClisSet(req: Request, root = process.cwd()): Prom
         ...(timeoutMs === undefined ? {} : { timeoutMs }),
       })),
     )
-  else document.delete('clis')
+  else if (body.clis !== undefined) document.delete('clis')
   mkdirSync(directory, { recursive: true })
   writeFileSync(path, document.toString(), 'utf8')
   return jsonResponse({ ok: true })

@@ -104,8 +104,20 @@ Keybindings de solo lectura en la primera versión. Orden: SET.0 primero (bloque
   cerebro en vivo (`orchestos-set-ref`): Claude 2.1.311 pro, Codex 0.164.0 plus, opencode 1.19.0, 4 no encontrados;
   0 tokens/JWT en la respuesta; 1,1 s en frío, 11 ms en caché. `test:coverage` 2109/0 fuera del sandbox.
   Ejecutado por: codex gpt-6.1-sol (criterio), revisión Opus · Spec: docs/specs/SET.2.md
-- [ ] **SET.3 — 🧠 Página Providers: una fila por CLI detectado + no encontrados + CLIs propios.**
-  Depende de SET.1 y SET.2. Spec: `docs/specs/SET.3.md`.
+- [ ] **SET.2.1 — 🧠 Los CLIs se lanzan con el mismo PATH con que se detectan.**
+  Hermano de SET.2: un CLI hallado solo por el PATH del login shell sale "instalado" pero chat/tareas lo lanzan con
+  el PATH del proceso (ENOENT). Spec: `docs/specs/SET.2.1.md`.
+- [x] **SET.3 — 🧠 Página Providers: una fila por CLI detectado + no encontrados + CLIs propios.**
+  (cerrado 2026-10-26) Providers con Instalados (versión, cuenta enmascarada, plan, N modelos, toggle `hiddenClis`),
+  No encontrados con "How to install" y CLIs propios movidos desde Executor; el select de modelo solo en la fila del CLI
+  Ejecutor (escribe `roles.executor.model`; decisión del cerebro, Model routing no cambia). Siete rondas: r1 paró por
+  esa decisión; en vivo el cerebro halló opencode "0 models" (su catálogo propio se cortaba a 3 s en paralelo con el
+  del chat → ahora usa `readCliModelCatalogsCached`), versión con el nombre del CLI, Settings entera esperando a
+  `/api/usage` en frío (12,4 s; `getUsage`/`getProviders` salen del `Promise.all`) y catálogos lanzados por nombre
+  aunque la detección diera la ruta. Evidencia del cerebro en vivo (`orchestos-set-ref`): Claude 2.1.311 pro 13,
+  Codex 0.164.0 plus 10, opencode 1.19.0 380 en la primera carga. `test:coverage` 2118/0.
+  Gate en vivo: navegador real (Playwright) `providers` 12/12, `custom-cli` 13/13, `model-routing` 19/19, `usage-bar` 19/19, `settings-shell` 21/21, `docs/done/evidence/SET.3-live.json`
+  Ejecutado por: codex gpt-6.1-sol (criterio) r1–r5, luna (mecanico) r7, claude sonnet (criterio-alt) r6 por cupo de Codex, revisión Opus · Spec: docs/specs/SET.3.md
 - [ ] **SET.4 — 🔍 "API & Models" pasa a "API keys" y OpenRouter deja de ser crítico.**
   Hoy Health marca `OPENROUTER_API_KEY` como crítico (`src/dashboard/handlers/setup.ts:95`) y `executor-modes`
   devuelve "OpenRouter API" `detected: true` sin clave. Spec: `docs/specs/SET.4.md`.

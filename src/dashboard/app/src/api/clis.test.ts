@@ -19,10 +19,10 @@ it('GET and PUT use the custom CLI endpoint and surface server validation errors
     calls.push({ path: String(path), init })
     return init?.method === 'PUT'
       ? Response.json({ error: 'clis[0].id choca con "claude"' }, { status: 400 })
-      : Response.json({ clis: [{ ...cli, installed: true }] })
+      : Response.json({ clis: [{ ...cli, installed: true }], hiddenClis: [] })
   }) as typeof fetch
   try {
-    expect(await getClis()).toEqual({ clis: [{ ...cli, installed: true }] })
+    expect(await getClis()).toEqual({ clis: [{ ...cli, installed: true }], hiddenClis: [] })
     await expect(saveClis([cli], 'project')).rejects.toThrow('clis[0].id choca con "claude"')
     expect(calls.map((call) => call.path)).toEqual(['/api/clis', '/api/clis'])
     expect(JSON.parse(String(calls[1]?.init?.body))).toEqual({ clis: [cli] })

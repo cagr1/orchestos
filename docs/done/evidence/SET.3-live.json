@@ -1,0 +1,481 @@
+[
+  {
+    "flujo": "providers",
+    "pass": true,
+    "steps": [
+      {
+        "nombre": "General and navigation load while Usage is still pending (delayed 8 s)",
+        "ok": true,
+        "detalle": "settingsReadyMs=152 usagePending=true"
+      },
+      {
+        "nombre": "Providers shows a header loading indicator without an empty Installed group",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "installed Claude and missing Gemini are grouped separately",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "version, masked account, plan and model count are shown",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "only Executor row has the default model selector",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "missing session offers a copyable login command",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "default model persists after reload",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "refresh requests a fresh provider probe",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "picker visibility persists after reload",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "Model routing shares Executor model and retains hidden current agent",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "hidden CLI is absent from other role pickers after reload",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "Executor role remains assigned on disk",
+        "ok": true,
+        "detalle": "ok"
+      }
+    ],
+    "notes": [],
+    "errores": [],
+    "capturas": [
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-38818/providers/providers.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-38818/providers/providers-hidden-routing.png"
+    ]
+  },
+  {
+    "flujo": "custom-cli",
+    "pass": true,
+    "steps": [
+      {
+        "nombre": "CLI added through Settings persisted globally",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "generic executor installed and selectable",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "generic executor preselects default model",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "generic executor persisted",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "generic task completed",
+        "ok": true,
+        "detalle": "{\"task\":{\"id\":\"gate-custom-cli\",\"description\":\"Append exactly the line GENERIC-CLI-RAN to README.md. Use your file editing tool, then stop.\",\"status\":\"done\",\"retryReason\":null,\"skill\":null,\"assignedAgent\":\"claude-plain\",\"assignedModel\":\"default\",\"retryCount\":0,\"qaVerdict\":\"skipped\",\"runId\":\"3c26e170-b278-46b4-a269-2662fde8a5ab\",\"pendingApprovals\":0,\"sessionId\":null,\"lastRunAt\":\"2026-10-27T02:14:24.749Z\",\"engine\":\"cli:claude-plain\",\"output\":[\"README.md\"],\"dependsOn\":[],\"acceptanceCriteria\":[],\"executorModel\":\"default\"},\"result\":{\"id\":\"3c26e170-b278-46b4-a269-2662fde8a5ab\",\"projectId\":\"1179599a78391539\",\"taskId\":\"gate-custom-cli\",\"prompt\":\"Append exactly the line GENERIC-CLI-RAN to README.md. Use your file editing tool, then stop.\",\"allowedOutputs\":[\"README.md\"],\"filesAttempted\":[\"README.md\"],\"filesAuthorized\":[\"README.md\"],\"filesBlocked\":[],\"checks\":[],\"status\":\"done\",\"qaVerdict\":\"skipped\",\"qaReason\":\"Sin revisión LLM y sin checks: nada verificó esta tarea\",\"result\":\"1 file(s) written\",\"executorReply\":\"I added `GENERIC-CLI-RAN` to the end of `README.md`. I also put a blank line between it and the heading, so the file is now the heading, a blank line, then `GENERIC-CLI-RAN`. No other files were touched and I ran no git commands.\",\"qaModel\":null,\"qaCriteria\":[],\"model\":\"default\",\"provider\":\"claude-plain\",\"readAudit\":{\"version\":1,\"source\":\"uninstrumented\",\"coverage\":\"none\",\"completeness\":\"unknown\",\"tools\":[],\"limitations\":[\"transport-not-instrumented\",\"implicit-reads-not-observed\"],\"issues\":[],\"operations\":[]},\"skillId\":null,\"inputTokens\":0,\"outputTokens\":0,\"costUsd\":null,\"costSource\":\"unknown\",\"costBreakdown\":[{\"label\":\"cli:claude-plain\",\"model\":\"default\",\"inputTokens\":0,\"outputTokens\":0,\"costUsd\":0,\"source\":\"unknown\",\"binary\":\"claude\",\"args\":[\"-p\",\"<contract>\",\"--permission-mode\",\"acceptEdits\"]}],\"contextWarnings\":[],\"engine\":\"cli:claude-plain\",\"iterations\":1,\"fileDiffs\":[{\"path\":\"README.md\",\"status\":\"modified\",\"diff\":\"Index: README.md\\n===================================================================\\n--- README.md\\n+++ README.md\\n@@ -1,1 +1,3 @@\\n # Generic CLI fixture\\n+\\n+GENERIC-CLI-RAN\\n\",\"additions\":2,\"deletions\":0}],\"commitSha\":\"9dceafcf8ada763ba5d508c35cfdc26fc7b806e6\",\"revertedSha\":null,\"revertedAt\":null,\"skillGates\":[{\"id\":\"qa-structured\",\"candidate\":true,\"applied\":true,\"reason\":\"sin triggers declarados — aplica siempre en esta fase\"},{\"id\":\"security-review\",\"candidate\":true,\"applied\":false,\"reason\":\"ningún trigger coincidió con la descripción de la tarea\"}],\"elapsedMs\":12778,\"createdAt\":\"2026-10-27T02:14:24.749Z\"}}"
+      },
+      {
+        "nombre": "generic engine and unknown cost persisted",
+        "ok": true,
+        "detalle": "{\"id\":\"3c26e170-b278-46b4-a269-2662fde8a5ab\",\"projectId\":\"1179599a78391539\",\"taskId\":\"gate-custom-cli\",\"prompt\":\"Append exactly the line GENERIC-CLI-RAN to README.md. Use your file editing tool, then stop.\",\"allowedOutputs\":[\"README.md\"],\"filesAttempted\":[\"README.md\"],\"filesAuthorized\":[\"README.md\"],\"filesBlocked\":[],\"checks\":[],\"status\":\"done\",\"qaVerdict\":\"skipped\",\"qaReason\":\"Sin revisión LLM y sin checks: nada verificó esta tarea\",\"result\":\"1 file(s) written\",\"executorReply\":\"I added `GENERIC-CLI-RAN` to the end of `README.md`. I also put a blank line between it and the heading, so the file is now the heading, a blank line, then `GENERIC-CLI-RAN`. No other files were touched and I ran no git commands.\",\"qaModel\":null,\"qaCriteria\":[],\"model\":\"default\",\"provider\":\"claude-plain\",\"readAudit\":{\"version\":1,\"source\":\"uninstrumented\",\"coverage\":\"none\",\"completeness\":\"unknown\",\"tools\":[],\"limitations\":[\"transport-not-instrumented\",\"implicit-reads-not-observed\"],\"issues\":[],\"operations\":[]},\"skillId\":null,\"inputTokens\":0,\"outputTokens\":0,\"costUsd\":null,\"costSource\":\"unknown\",\"costBreakdown\":[{\"label\":\"cli:claude-plain\",\"model\":\"default\",\"inputTokens\":0,\"outputTokens\":0,\"costUsd\":0,\"source\":\"unknown\",\"binary\":\"claude\",\"args\":[\"-p\",\"<contract>\",\"--permission-mode\",\"acceptEdits\"]}],\"contextWarnings\":[],\"engine\":\"cli:claude-plain\",\"iterations\":1,\"fileDiffs\":[{\"path\":\"README.md\",\"status\":\"modified\",\"diff\":\"Index: README.md\\n===================================================================\\n--- README.md\\n+++ README.md\\n@@ -1,1 +1,3 @@\\n # Generic CLI fixture\\n+\\n+GENERIC-CLI-RAN\\n\",\"additions\":2,\"deletions\":0}],\"commitSha\":\"9dceafcf8ada763ba5d508c35cfdc26fc7b806e6\",\"revertedSha\":null,\"revertedAt\":null,\"skillGates\":[{\"id\":\"qa-structured\",\"candidate\":true,\"applied\":true,\"reason\":\"sin triggers declarados — aplica siempre en esta fase\"},{\"id\":\"security-review\",\"candidate\":true,\"applied\":false,\"reason\":\"ningún trigger coincidió con la descripción de la tarea\"}],\"elapsedMs\":12778,\"createdAt\":\"2026-10-27T02:14:24.749Z\"}"
+      },
+      {
+        "nombre": "declared output changed in the run diff",
+        "ok": true,
+        "detalle": "[{\"path\":\"README.md\",\"status\":\"modified\",\"diff\":\"Index: README.md\\n===================================================================\\n--- README.md\\n+++ README.md\\n@@ -1,1 +1,3 @@\\n # Generic CLI fixture\\n+\\n+GENERIC-CLI-RAN\\n\",\"additions\":2,\"deletions\":0}]"
+      },
+      {
+        "nombre": "unknown cost visible in run row",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "unknown cost visible in run detail",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "generic CLI provider and default model visible in run detail",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "assigned CLI removal rejected inline",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "unassigned CLI removed from global YAML",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "removed CLI absent from refreshed selector",
+        "ok": true,
+        "detalle": "ok"
+      }
+    ],
+    "notes": [],
+    "errores": [],
+    "capturas": [
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-28574/custom-cli/custom-cli-form.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-28574/custom-cli/custom-cli-list.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-28574/custom-cli/custom-cli-settings.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-28574/custom-cli/custom-cli-run.png"
+    ]
+  },
+  {
+    "flujo": "model-routing",
+    "pass": true,
+    "steps": [
+      {
+        "nombre": "4 role cards are shown",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "all role cards start unassigned",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "legacy QA judge and model are absent",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "orchestrator does not offer OpenCode",
+        "ok": true,
+        "detalle": "{\"orchestratorOpenCodeCount\":0,\"orchestratorCodexCount\":1}"
+      },
+      {
+        "nombre": "executor still offers OpenCode",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "reviewer still offers OpenCode",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "auxiliary still offers OpenCode",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "OpenCode reviewer model menu stays under 60 percent of viewport and scrolls internally",
+        "ok": true,
+        "detalle": "{\"height\":550,\"viewportHeight\":1000,\"scrolls\":true}"
+      },
+      {
+        "nombre": "model search shows the empty state",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "model search reduces results and keeps the requested model",
+        "ok": true,
+        "detalle": "{\"initialModelCount\":381,\"matchingModelCount\":1,\"model\":\"opencode/beam-free\",\"matchingModelVisible\":1}"
+      },
+      {
+        "nombre": "keyboard selection opens effort for a variant model",
+        "ok": true,
+        "detalle": "{\"model\":\"opencode/beam-free\",\"efforts\":[\"low\",\"medium\",\"high\",\"xhigh\",\"max\"]}"
+      },
+      {
+        "nombre": "effort menu contains only this model variants",
+        "ok": true,
+        "detalle": "[\"low\",\"medium\",\"high\",\"xhigh\",\"max\"]"
+      },
+      {
+        "nombre": "model without variants hides effort control",
+        "ok": true,
+        "detalle": "{\"model\":\"opencode/big-pickle\",\"efforts\":[]}"
+      },
+      {
+        "nombre": "role assignments persist and reviewer warning appears",
+        "ok": true,
+        "detalle": "{\"roleAssignments\":{\"orchestrator\":{\"agent\":\"codex\",\"model\":\"gpt-6-luna\",\"effort\":\"medium\"},\"executor\":{\"agent\":\"codex\",\"model\":\"gpt-6-luna\",\"effort\":\"medium\"},\"reviewer\":{\"agent\":\"codex\",\"model\":\"gpt-6-luna\",\"effort\":\"medium\"},\"auxiliary\":{\"agent\":\"codex\",\"model\":\"gpt-6-luna\",\"effort\":\"medium\"}},\"roleWarnings\":[\"reviewer-same-as-executor\"],\"ui\":[\"Orchestrator\\nChat, drafts and task splitting\\nCodex\\nGPT-6-Luna\\nmedium\",\"Executor\\nRuns tasks\\nCodex\\nGPT-6-Luna\\nmedium\",\"Reviewer\\nQA (read-only)\\nCodex\\nGPT-6-Luna\\nmedium\\nSame agent and model as Executor: errors may correlate.\",\"Auxiliary\\nDiagnose and memory judge (read-only)\\nCodex\\nGPT-6-Luna\\nmedium\"],\"source\":[\"Source: orchestos.config.yaml\"]}"
+      },
+      {
+        "nombre": "new rule stays a local draft",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "task rule persists after reload",
+        "ok": true,
+        "detalle": "{\"rules\":[{\"match\":{\"output\":[\"docs/**\"]},\"agent\":\"codex\",\"model\":\"gpt-6.1-sol\"}],\"model\":\"gpt-6.1-sol\",\"ruleModelButtonText\":\"GPT-6.1-Sol\",\"ui\":[\"Task rules (1)\"],\"output\":\"docs/**\"}"
+      },
+      {
+        "nombre": "deleting the rule persists an empty list",
+        "ok": true,
+        "detalle": "[]"
+      },
+      {
+        "nombre": "project config remains selected before running task",
+        "ok": true,
+        "detalle": "{\"roleAssignments\":{\"orchestrator\":{\"agent\":\"codex\",\"model\":\"gpt-6-luna\",\"effort\":\"medium\"},\"executor\":{\"agent\":\"codex\",\"model\":\"gpt-6-luna\",\"effort\":\"medium\"},\"reviewer\":{\"agent\":\"codex\",\"model\":\"gpt-6-luna\",\"effort\":\"medium\"},\"auxiliary\":{\"agent\":\"codex\",\"model\":\"gpt-6-luna\",\"effort\":\"medium\"}}}"
+      },
+      {
+        "nombre": "run record stores the executor and QA models chosen in the UI",
+        "ok": true,
+        "detalle": "{\"id\":\"c947de40-002e-444d-84a6-2e3c9fec41b1\",\"model\":\"gpt-6-luna\",\"qa_model\":\"gpt-6-luna\"}"
+      }
+    ],
+    "notes": [],
+    "errores": [],
+    "capturas": [
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-28574/model-routing/roles-unassigned.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-28574/model-routing/roles-assigned.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-28574/model-routing/task-rules.png"
+    ]
+  },
+  {
+    "flujo": "usage-bar",
+    "pass": true,
+    "steps": [
+      {
+        "nombre": "temporary project is visible",
+        "ok": true,
+        "detalle": "project in sidebar"
+      },
+      {
+        "nombre": "one status request carries project id",
+        "ok": true,
+        "detalle": "requests=1, header=06f0046543a29793, expected=06f0046543a29793"
+      },
+      {
+        "nombre": "Claude quota uses newest session reading",
+        "ok": true,
+        "detalle": "61% remaining in status bar"
+      },
+      {
+        "nombre": "app shell and bundle disable browser caching",
+        "ok": true,
+        "detalle": "shell=no-cache, bundle=no-cache"
+      },
+      {
+        "nombre": "manual usage refresh keeps the newest Claude quota",
+        "ok": true,
+        "detalle": "response=true, saw61=true, saw67=false"
+      },
+      {
+        "nombre": "Claude footer quota color for 50% used",
+        "ok": true,
+        "detalle": "clicks=1, response=true, bar=normal, number=normal, class=h-full bg-app-accent rounded-pill transition-all"
+      },
+      {
+        "nombre": "Claude footer quota color for 70% used",
+        "ok": true,
+        "detalle": "clicks=1, response=true, bar=warning, number=warning, class=h-full bg-app-warning rounded-pill transition-all"
+      },
+      {
+        "nombre": "Claude footer quota color for 90% used",
+        "ok": true,
+        "detalle": "clicks=1, response=true, bar=error, number=error, class=h-full bg-app-error rounded-pill transition-all"
+      },
+      {
+        "nombre": "Claude 5-hour popover quota shows error tone at 90% used",
+        "ok": true,
+        "detalle": "number=error, bar=error, class=h-full bg-app-error rounded-pill"
+      },
+      {
+        "nombre": "Claude footer quota color for 39% used",
+        "ok": true,
+        "detalle": "clicks=1, response=true, bar=normal, number=normal, class=h-full bg-app-accent rounded-pill transition-all"
+      },
+      {
+        "nombre": "Codex account quota is visible without a project session",
+        "ok": true,
+        "detalle": "Codex: 100% 5-hour quota remaining"
+      },
+      {
+        "nombre": "Codex chat option visible",
+        "ok": true,
+        "detalle": "Codex option"
+      },
+      {
+        "nombre": "Luna model visible",
+        "ok": true,
+        "detalle": "gpt-6-luna"
+      },
+      {
+        "nombre": "medium effort visible",
+        "ok": true,
+        "detalle": "medium"
+      },
+      {
+        "nombre": "usage refreshes after a real turn",
+        "ok": true,
+        "detalle": "chatResponse=true, usage-bar-ok=true, refresh=true, requests before=6, after=7, requestTimes=1793067291744,1793067294883,1793067307470,1793067318554,1793067329807,1793067341036,1793067347423, responseAt=1793067347420"
+      },
+      {
+        "nombre": "Codex account quota remains visible after a real turn",
+        "ok": true,
+        "detalle": "Codex: 100% 5-hour quota remaining"
+      },
+      {
+        "nombre": "an expired Claude window is shown as fully available",
+        "ok": true,
+        "detalle": "Claude Code: 100% 5-hour quota remaining"
+      },
+      {
+        "nombre": "a Claude reading before its expired reset shows missing data instead of 100%",
+        "ok": true,
+        "detalle": "title=Claude Code: no data since 1 h, windowObservedAt=2026-10-27T01:16:02.160Z, cliObservedAt=2026-10-27T02:15:47.524Z"
+      },
+      {
+        "nombre": "no temporary UI projects remain after cleanup",
+        "ok": true,
+        "detalle": "temporary projects are cleaned after the flow"
+      }
+    ],
+    "notes": [],
+    "errores": [],
+    "capturas": []
+  },
+  {
+    "flujo": "settings-shell",
+    "pass": true,
+    "steps": [
+      {
+        "nombre": "navigation group App",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "navigation group Agents",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "navigation group Observe",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "navigation group Protect",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "navigation group Projects",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "General has an icon and title only",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "Appearance has an icon and title only",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "Keybindings has an icon and title only",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "Providers has an icon and title only",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "Model routing has an icon and title only",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "Executor has an icon and title only",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "API keys has an icon and title only",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "Health has an icon and title only",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "Usage has an icon and title only",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "Danger zone has an icon and title only",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "timeout saves immediately",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "timeout survives reload",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "search highlights the matching Timeout row",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "save error shows reason and restores timeout",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "leaving an incomplete rule discards only its local draft",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "global save bar is absent",
+        "ok": true,
+        "detalle": "ok"
+      }
+    ],
+    "notes": [],
+    "errores": [],
+    "capturas": [
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-28574/settings-shell/settings-timeout-highlight.png"
+    ]
+  }
+]

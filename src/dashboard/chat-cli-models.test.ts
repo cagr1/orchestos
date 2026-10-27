@@ -200,10 +200,43 @@ describe('UI.14 round 5 CLI model catalogs', () => {
     ])
   })
 
+  test('runs detected CLIs by their absolute path outside the process PATH', async () => {
+    const home = mkdtempSync(join(tmpdir(), 'cli-model-path-'))
+    const binary = join(home, 'login-shell-bin', 'claude')
+    const calls: Array<{ command: string; args: string[] }> = []
+    try {
+      expect(Bun.which('claude', { PATH: join(home, 'process-bin') })).toBeNull()
+      const catalogs = await readCliModelCatalogs(
+        async (command, args) => {
+          calls.push({ command, args })
+          if (command !== binary) throw new Error('CLI is outside the process PATH')
+          return { stdout: "--model <model> (e.g. 'opus', 'sonnet')", exitCode: 0 }
+        },
+        [
+          {
+            id: 'claude',
+            label: 'Claude',
+            binary: 'claude',
+            icon: 'claude',
+            installed: true,
+            path: binary,
+            readBoundary: { kind: 'none', reason: 'test' },
+          },
+        ],
+        home,
+      )
+      expect(calls).toEqual([{ command: binary, args: ['--help'] }])
+      expect(catalogs[0]?.models.map((model) => model.id)).toEqual(['opus', 'sonnet'])
+      expect(catalogs[0]?.error).toBeUndefined()
+    } finally {
+      rmSync(home, { recursive: true, force: true })
+    }
+  })
+
   test('keeps healthy CLI catalogs when one CLI spawn fails', async () => {
     const catalogs = await readCliModelCatalogs(
       async (command) => {
-        if (command === 'claude-broken') throw new Error('ENOEXEC: spawn failed')
+        if (command === '/claude-broken') throw new Error('ENOEXEC: spawn failed')
         return { stdout: 'openai/gpt-5', exitCode: 0 }
       },
       [

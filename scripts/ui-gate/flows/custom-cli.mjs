@@ -75,7 +75,7 @@ export default async function customCli({
   await page.getByRole('button', { name: 'Dev', exact: true }).click()
   await page.getByRole('button', { name: basename(root), exact: true }).click()
   await page.getByRole('button', { name: 'Settings', exact: true }).click()
-  await page.getByRole('button', { name: 'Executor', exact: true }).click()
+  await page.getByRole('button', { name: 'Providers', exact: true }).click()
   await page.getByRole('button', { name: 'Agregar CLI', exact: true }).click()
   const form = page.locator('[data-cli-form]')
   await form.getByLabel('Nombre', { exact: true }).fill('Claude (genérico)')
@@ -195,7 +195,7 @@ export default async function customCli({
     await visible(page.getByText('claude-plain · default', { exact: true }), 30_000),
   )
   await shot('custom-cli-run')
-  await page.getByRole('button', { name: 'Executor', exact: true }).click()
+  await page.getByRole('button', { name: 'Providers', exact: true }).click()
   expectHttpError(/\/api\/clis$/)
   const [blocked] = await Promise.all([
     page.waitForResponse(
@@ -223,7 +223,7 @@ export default async function customCli({
   ])
   if (!reassigned.ok()) throw new Error(`reassign failed: ${await reassigned.text()}`)
   await page.locator('[data-settings-saving]').waitFor({ state: 'hidden' })
-  await page.getByRole('button', { name: 'Executor', exact: true }).click()
+  await page.getByRole('button', { name: 'Providers', exact: true }).click()
   const [removed] = await Promise.all([
     page.waitForResponse(
       (res) => res.url().endsWith('/api/clis') && res.request().method() === 'PUT',

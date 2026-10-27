@@ -31,12 +31,21 @@
       "closedDate": null
     },
     {
+      "id": "SET.2.1",
+      "sprint": "Fase 2 — Producto mínimo para entrega",
+      "block": "Settings al nivel de los ADEs — SET (GO de Carlos 2026-10-26)",
+      "delegation": "🧠",
+      "title": "Los CLIs se lanzan con el mismo PATH con que se detectan",
+      "status": "open",
+      "closedDate": null
+    },
+    {
       "id": "SET.3",
       "sprint": "Fase 2 — Producto mínimo para entrega",
       "block": "Settings al nivel de los ADEs — SET (GO de Carlos 2026-10-26)",
       "delegation": "🧠",
       "title": "Página Providers: una fila por CLI detectado + no encontrados + CLIs propios",
-      "status": "open",
+      "status": "done",
       "closedDate": null
     },
     {
