@@ -141,7 +141,9 @@ describe('formatReset', () => {
       const html = renderToStaticMarkup(createElement(ShellStatusBar, { status }))
       expect(html).toContain('>10%</span>')
       expect(html).toContain('style="width:10%"')
-      expect(html).toContain('10% 5-hour quota used · no data since 1 h')
+      expect(html).toContain(
+        `${staleMinutes === 300 ? '10% weekly quota used' : '10% 5-hour quota used'} · no data since 1 h`,
+      )
       expect(html).not.toContain('>—</span>')
     },
   )
@@ -238,5 +240,29 @@ describe('formatReset', () => {
     expect(html).toContain('>5%</span>')
     expect(html).toContain('title="Codex: 5% 5-hour quota used"')
     expect(html).not.toContain('CLI Quotas')
+  })
+
+  test('labels weekly quota in the bar title when the five-hour window is missing', () => {
+    const status: SessionStatus = {
+      available: true,
+      clis: [
+        {
+          id: 'claude',
+          label: 'Claude Code',
+          binary: 'claude',
+          icon: 'claude',
+          installed: true,
+          available: true,
+          observedAt: new Date().toISOString(),
+          context: null,
+          rateLimits: {
+            windows: [{ id: 'seven_day', usedPct: 45, windowMinutes: 10080, resetsAt: null }],
+          },
+        },
+      ],
+    }
+    expect(renderToStaticMarkup(createElement(ShellStatusBar, { status }))).toContain(
+      'title="Claude Code: 45% weekly quota used"',
+    )
   })
 })

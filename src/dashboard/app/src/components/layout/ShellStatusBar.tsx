@@ -163,7 +163,7 @@ export const ShellStatusBar: React.FC<ShellStatusBarProps> = ({
                   ? 'bg-app-elevated border border-app text-app'
                   : 'hover:bg-app-surface/60 text-app-muted hover:text-app'
               }`}
-              title={`${cli.name}: ${hasData ? `${pct}% 5-hour quota used` : (cli.missingData ?? 'No quota limits reported')}${hasData && cli.missingData ? ` · ${cli.missingData}` : ''}${cli.wiringWarning ? ` · ${cli.wiringWarning}` : ''}`}
+              title={`${cli.name}: ${hasData ? `${pct}% ${cli.quota5h === null ? 'weekly' : '5-hour'} quota used` : (cli.missingData ?? 'No quota limits reported')}${hasData && cli.missingData ? ` · ${cli.missingData}` : ''}${cli.wiringWarning ? ` · ${cli.wiringWarning}` : ''}`}
             >
               <ProviderLogo id={cli.id} size={14} className="w-3.5 h-3.5 flex-shrink-0" />
               <div className="w-12 h-1 bg-app-elevated rounded-pill overflow-hidden flex-shrink-0">

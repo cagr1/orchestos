@@ -9,13 +9,16 @@
 import {
   closeSync,
   existsSync,
+  mkdirSync,
   openSync,
   readdirSync,
   readFileSync,
   readSync,
   realpathSync,
+  renameSync,
   statSync,
   unlinkSync,
+  writeFileSync,
 } from 'node:fs'
 import { homedir } from 'node:os'
 import { join, resolve } from 'node:path'
@@ -105,19 +108,69 @@ function readClaudeStatuslineFile(path: string): ClaudeStatuslineReading | null 
 
 const STATUSLINE_SESSION_MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000
 
-function statuslineHome(agentHome: string): string {
-  return (
-    process.env.ORCHESTOS_CLAUDE_STATUSLINE_HOME ??
-    process.env.ORCHESTOS_HOME ??
-    join(agentHome, '.orchestos')
-  )
+function statuslineHome(
+  agentHome: string,
+  override = process.env.ORCHESTOS_CLAUDE_STATUSLINE_HOME,
+): string {
+  return override ?? process.env.ORCHESTOS_HOME ?? join(agentHome, '.orchestos')
+}
+
+/** Persists Claude quota events emitted by OrchestOS-owned CLI runs. */
+export function recordClaudeRateLimitEvent(
+  event: unknown,
+  agentHome = homedir(),
+  statuslineHomeOverride?: string,
+): boolean {
+  try {
+    if (typeof event !== 'object' || event === null || Array.isArray(event)) return false
+    const payload = event as Record<string, unknown>
+    if (payload.type !== 'rate_limit_event') return false
+    const info = payload.rate_limit_info
+    if (typeof info !== 'object' || info === null || Array.isArray(info)) return false
+    const rawWindows = (info as Record<string, unknown>).unifiedWindows
+    if (typeof rawWindows !== 'object' || rawWindows === null || Array.isArray(rawWindows))
+      return false
+
+    const windows: Record<string, { used_percentage: number; resets_at?: number }> = {}
+    for (const id of ['five_hour', 'seven_day']) {
+      const raw = (rawWindows as Record<string, unknown>)[id]
+      if (typeof raw !== 'object' || raw === null || Array.isArray(raw)) continue
+      const window = raw as Record<string, unknown>
+      const utilization = window.utilization
+      if (
+        typeof utilization !== 'number' ||
+        !Number.isFinite(utilization) ||
+        utilization < 0 ||
+        utilization > 1
+      )
+        continue
+      windows[id] = {
+        used_percentage: Math.round(utilization * 1000) / 10,
+        ...(typeof window.resetsAt === 'number' && Number.isFinite(window.resetsAt)
+          ? { resets_at: window.resetsAt }
+          : {}),
+      }
+    }
+    if (Object.keys(windows).length === 0) return false
+
+    const directory = join(statuslineHome(agentHome, statuslineHomeOverride), 'claude-statusline')
+    mkdirSync(directory, { recursive: true })
+    const path = join(directory, 'orchestos-stream.json')
+    const temporary = `${path}.${process.pid}.${Date.now()}.tmp`
+    writeFileSync(temporary, JSON.stringify({ rate_limits: windows }))
+    renameSync(temporary, path)
+    return true
+  } catch {
+    return false
+  }
 }
 
 /** Selects the newest monotonic value for each Claude quota window. */
 export function readClaudeStatuslineRateLimits(
   agentHome = homedir(),
+  statuslineHomeOverride?: string,
 ): ClaudeStatuslineReading | null {
-  const home = statuslineHome(agentHome)
+  const home = statuslineHome(agentHome, statuslineHomeOverride)
   const directory = join(home, 'claude-statusline')
   let paths: string[] = []
   try {

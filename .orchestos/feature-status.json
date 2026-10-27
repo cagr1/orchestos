@@ -211,6 +211,15 @@
       "closedDate": null
     },
     {
+      "id": "UI.34",
+      "sprint": "Fase 2 — Producto mínimo para entrega",
+      "block": "Abiertos — fiabilidad de los gates y documentación",
+      "delegation": "⚡",
+      "title": "Cuota de Claude fresca desde las corridas propias de OrchestOS",
+      "status": "done",
+      "closedDate": null
+    },
+    {
       "id": "UI.33",
       "sprint": "Fase 2 — Producto mínimo para entrega",
       "block": "Abiertos — fiabilidad de los gates y documentación",

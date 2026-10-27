@@ -1,0 +1,23 @@
+{
+  "item": "UI.34",
+  "date": "2026-10-27",
+  "browser": "navegador integrado de Claude Desktop, dashboard real (bun run src/cli.ts dashboard, puerto 4243, reiniciado con el executor nuevo)",
+  "steps": [
+    "Antes: ~/.orchestos/claude-statusline/orchestos-stream.json no existe; popover de Claude 'no data since 1 d', sin 5-hour",
+    "Turno real de chat con Claude (Opus 5.5): 'Reply only: ok'",
+    "Recargar y abrir el popover de Claude"
+  ],
+  "result": {
+    "file": "{\"rate_limits\":{\"five_hour\":{\"used_percentage\":16,\"resets_at\":1793133000},\"seven_day\":{\"used_percentage\":46,\"resets_at\":1793260800}}}",
+    "statusBarTitle": "Claude Code: 16% 5-hour quota used",
+    "popover": ["5-hour 16% · resets 3:30 PM", "Weekly 46% · 1D 12h"],
+    "missingData": "ya no aparece"
+  },
+  "verdict": "Las corridas propias de OrchestOS refrescan la cuota de Claude sin statusLine; la 5 h vuelve a verse.",
+  "gates": {
+    "typecheck": 0,
+    "session-status.test.ts + ShellStatusBar.test.ts": "33 pass / 0 fail",
+    "ui:gate chat-streaming": "27/27",
+    "ui:gate codex-live": "14/14"
+  }
+}

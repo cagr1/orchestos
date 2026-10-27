@@ -21,6 +21,7 @@ import { CliFailure, claudeFailureKind, cliFailureNotice } from './cli-failure.t
 
 import { realpathSync } from 'node:fs'
 import { join } from 'node:path'
+import { recordClaudeRateLimitEvent } from '../../../scripts/session-status.ts'
 import { claudeMcpArgs, type McpOffer } from '../../mcp/adapters.ts'
 import type { ApprovalAdapter } from '../approvals.ts'
 import { safeChildEnv } from '../path-policy.ts'
@@ -334,6 +335,7 @@ async function runClaudeCode(
     audit.line(line)
     try {
       const evt = JSON.parse(line)
+      if (evt?.type === 'rate_limit_event') recordClaudeRateLimitEvent(evt)
       if (evt?.type === 'result') resultLine = line
       if (evt?.type === 'assistant' && typeof evt.error === 'string') apiError = evt.error
       if (evt?.type === 'assistant' && evt.message?.usage && evt.parent_tool_use_id == null) {

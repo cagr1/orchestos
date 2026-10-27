@@ -279,6 +279,16 @@ Regla: nada se reintenta, cierra ni muestra sin evidencia medida que el usuario 
   el nuevo; Claude 61→67 % sigue fallando); `usage-bar` 5/5 (19/19), `test:coverage` 1992/0 (ejecutor).
   Gate en vivo: navegador real (Playwright), `docs/done/evidence/CI.39-live.json`
   Ejecutado por: codex gpt-6.1-sol (criterio) · Spec: docs/specs/CI.39.md
+- [x] **UI.34 — ⚡ Cuota de Claude fresca desde las corridas propias de OrchestOS.** (cerrado 2026-10-27, GO de
+  Carlos.) La app de escritorio no ejecuta `statusLine`; la 5 h de Claude desaparecía. Cada `claude -p` de OrchestOS
+  emite `rate_limit_event` con ambas ventanas: `consumeLine` (`external.ts`, chat y tareas) llama a
+  `recordClaudeRateLimitEvent` (`scripts/session-status.ts`), que escribe `claude-statusline/orchestos-stream.json`
+  en el formato del statusline; el lector existente lo toma sin cambios. Hermano: el title de la barra decía
+  "5-hour" mostrando el semanal; ahora dice "weekly".
+  Evidencia (cerebro): diff leído; typecheck 0; tests 33/0; `chat-streaming` 27/27 y `codex-live` 14/14; en vivo un
+  turno real de chat con Claude escribió el archivo (16 % / 46 %) y el popover muestra `5-hour 16%`.
+  Gate en vivo: navegador real (navegador integrado de Claude Desktop), `docs/done/evidence/UI.34-live.json`
+  Ejecutado por: codex gpt-6-luna (mecanico) · Spec: docs/specs/UI.34.md (borrado)
 - [x] **UI.33 — ⚡ Colores de cuota por consumo: verde < 60 %, naranja 60–80 %, rojo > 80 %.** (cerrado 2026-10-27,
   Carlos; 5 h y semanal, barra inferior y popover.) `quotaTone` decide por consumo (`> 80` error, `>= 60` warning);
   barras `bg-emerald-400` / `bg-orange-500` / `bg-app-error`, número naranja `text-orange-400`.

@@ -16,6 +16,7 @@ import {
   readActiveSessionStatuses,
   readClaudeStatuslineRateLimits,
   readClaudeStatuslineWiring,
+  recordClaudeRateLimitEvent,
 } from './session-status.ts'
 
 const roots: string[] = []
@@ -33,6 +34,52 @@ afterEach(() => {
 })
 
 describe('session status', () => {
+  test('records Claude stream quota events atomically in the statusline reader format', () => {
+    const agentHome = temp('orchestos-stream-quota-')
+    const rateLimitEvent = {
+      type: 'rate_limit_event',
+      rate_limit_info: {
+        unifiedWindows: {
+          five_hour: { utilization: 0.13, resetsAt: 1_793_133_000 },
+          seven_day: { utilization: 0.45, resetsAt: 1_793_260_800 },
+        },
+      },
+    }
+    const statusHome = join(agentHome, '.orchestos')
+    expect(recordClaudeRateLimitEvent(rateLimitEvent, agentHome, statusHome)).toBe(true)
+    expect(readClaudeStatuslineRateLimits(agentHome, statusHome)?.windows).toEqual([
+      expect.objectContaining({ id: 'five_hour', usedPct: 13, resetsAt: 1_793_133_000 }),
+      expect.objectContaining({ id: 'seven_day', usedPct: 45, resetsAt: 1_793_260_800 }),
+    ])
+
+    const noWindowsHome = temp('orchestos-stream-quota-empty-')
+    expect(
+      recordClaudeRateLimitEvent(
+        { type: 'rate_limit_event' },
+        noWindowsHome,
+        join(noWindowsHome, '.orchestos'),
+      ),
+    ).toBe(false)
+    expect(
+      existsSync(join(noWindowsHome, '.orchestos/claude-statusline/orchestos-stream.json')),
+    ).toBe(false)
+
+    const invalidHome = temp('orchestos-stream-quota-invalid-')
+    expect(
+      recordClaudeRateLimitEvent(
+        {
+          type: 'rate_limit_event',
+          rate_limit_info: { unifiedWindows: { five_hour: { utilization: 1.1 } } },
+        },
+        invalidHome,
+        join(invalidHome, '.orchestos'),
+      ),
+    ).toBe(false)
+    expect(
+      existsSync(join(invalidHome, '.orchestos/claude-statusline/orchestos-stream.json')),
+    ).toBe(false)
+  })
+
   test('diagnostica tee presente, ausente, inexistente y Orca solo sin cambiar settings', () => {
     const home = temp('orchestos-wiring-')
     mkdirSync(join(home, '.claude'))
