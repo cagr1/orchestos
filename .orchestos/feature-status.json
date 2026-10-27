@@ -211,6 +211,15 @@
       "closedDate": null
     },
     {
+      "id": "UI.31",
+      "sprint": "Fase 2 — Producto mínimo para entrega",
+      "block": "Abiertos — fiabilidad de los gates y documentación",
+      "delegation": "⚡",
+      "title": "Cuotas de CLI: se ve lo consumido, sin \"CLI Quotas\", semanal como \"5D 14h\"",
+      "status": "done",
+      "closedDate": null
+    },
+    {
       "id": "UI.30",
       "sprint": "Fase 2 — Producto mínimo para entrega",
       "block": "Abiertos — fiabilidad de los gates y documentación",

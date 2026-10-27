@@ -279,6 +279,15 @@ Regla: nada se reintenta, cierra ni muestra sin evidencia medida que el usuario 
   el nuevo; Claude 61→67 % sigue fallando); `usage-bar` 5/5 (19/19), `test:coverage` 1992/0 (ejecutor).
   Gate en vivo: navegador real (Playwright), `docs/done/evidence/CI.39-live.json`
   Ejecutado por: codex gpt-6.1-sol (criterio) · Spec: docs/specs/CI.39.md
+- [x] **UI.31 — ⚡ Cuotas de CLI: se ve lo consumido, sin "CLI Quotas", semanal como "5D 14h".** (cerrado 2026-10-27,
+  Carlos, captura del popover de Codex: 95 % restante debe leerse 5 %.) `ShellStatusBar.tsx` muestra `100 − restante`
+  en barra y popover (el tono sigue por restante), etiquetas `5-hour`/`Weekly`, `formatCountdown` para el semanal.
+  Evidencia (cerebro): typecheck 0; `ShellStatusBar.test.ts` 19/0; `ui:gate usage-bar` 19/19; en vivo (navegador
+  integrado, :4243) Codex `5-hour 5% · resets 3:42 PM`, `Weekly 23% · 5D 11h`, sin "CLI Quotas".
+  Hallazgo: la cuota de 5 h de Claude falta porque la app de escritorio no ejecuta `statusLine`; última lectura
+  2026-10-26 17:30 local, el reset de 5 h pasó sin lectura nueva y se oculta por vieja (comportamiento correcto).
+  Gate en vivo: navegador real (navegador integrado de Claude Desktop), `docs/done/evidence/UI.31-live.json`
+  Ejecutado por: codex gpt-6-luna (mecanico) · Spec: docs/specs/UI.31.md (borrado)
 - [x] **UI.30 — ⚡ Un solo anillo de contexto: fuera el de la cabecera de Dev.** (abierto y cerrado 2026-10-23, Carlos:
   "esta repetido en el chat cual de los 2 vale?") UI.27.3 subió el anillo a la barra superior; el de la cabecera de Dev
   quedó duplicado. Se quita; el fetch de Dev se queda porque llena la caché que lee la barra superior. model/source/engine

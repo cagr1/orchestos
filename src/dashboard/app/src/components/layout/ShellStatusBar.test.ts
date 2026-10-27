@@ -2,7 +2,13 @@ import { afterEach, describe, expect, test } from 'bun:test'
 import { createElement } from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
 import type { SessionStatus } from '../../types/orchestos'
-import { formatReset, mapQuotas, quotaTone, ShellStatusBar } from './ShellStatusBar'
+import {
+  formatCountdown,
+  formatReset,
+  mapQuotas,
+  quotaTone,
+  ShellStatusBar,
+} from './ShellStatusBar'
 
 describe('quotaTone', () => {
   test.each([
@@ -17,6 +23,25 @@ describe('quotaTone', () => {
     [0, 'error'],
   ] as const)('maps %s remaining to %s', (remaining, tone) => {
     expect(quotaTone(remaining)).toBe(tone)
+  })
+})
+
+describe('formatCountdown', () => {
+  const originalNow = Date.now
+
+  afterEach(() => {
+    Date.now = originalNow
+  })
+
+  test('formats days, hours, and minutes as a countdown', () => {
+    const now = new Date('2026-09-22T12:00:00Z').getTime()
+    Date.now = () => now
+
+    expect(formatCountdown(now / 1000 + 5 * 86_400 + 14 * 3_600)).toBe('5D 14h')
+    expect(formatCountdown(now / 1000 + 14 * 3_600 + 20 * 60)).toBe('14h 20m')
+    expect(formatCountdown(now / 1000 + 20 * 60)).toBe('20m')
+    expect(formatCountdown(null)).toBeUndefined()
+    expect(formatCountdown(now / 1000 - 1)).toBeUndefined()
   })
 })
 
@@ -116,9 +141,9 @@ describe('formatReset', () => {
       expect(quota?.quota5h).toBe(staleMinutes === 300 ? null : 90)
       expect(quota?.quotaWeekly).toBe(staleMinutes === 10080 ? null : 90)
       const html = renderToStaticMarkup(createElement(ShellStatusBar, { status }))
-      expect(html).toContain('>90%</span>')
-      expect(html).toContain('style="width:90%"')
-      expect(html).toContain('90% 5-hour quota remaining · no data since 1 h')
+      expect(html).toContain('>10%</span>')
+      expect(html).toContain('style="width:10%"')
+      expect(html).toContain('10% 5-hour quota used · no data since 1 h')
       expect(html).not.toContain('>—</span>')
     },
   )
@@ -179,5 +204,41 @@ describe('formatReset', () => {
     expect(html).toContain('>—</span>')
     expect(html).toContain('Claude statusLine is not routed through OrchestOS')
     expect(html).not.toContain('no data since')
+  })
+
+  test('maps consumed quota and weekly reset countdown for the popover', () => {
+    const now = new Date('2026-09-22T12:00:00Z').getTime()
+    Date.now = () => now
+    const status: SessionStatus = {
+      available: true,
+      clis: [
+        {
+          id: 'codex',
+          label: 'Codex',
+          binary: 'codex',
+          icon: 'codex',
+          installed: true,
+          available: true,
+          observedAt: null,
+          context: null,
+          rateLimits: {
+            windows: [
+              { id: 'five_hour', usedPct: 5, windowMinutes: 300, resetsAt: now / 1000 + 3600 },
+              {
+                id: 'weekly',
+                usedPct: 10,
+                windowMinutes: 10080,
+                resetsAt: now / 1000 + 5 * 86_400 + 14 * 3_600,
+              },
+            ],
+          },
+        },
+      ],
+    }
+    expect(mapQuotas(status)[0]?.resetWeekly).toBe('5D 14h')
+    const html = renderToStaticMarkup(createElement(ShellStatusBar, { status }))
+    expect(html).toContain('>5%</span>')
+    expect(html).toContain('title="Codex: 5% 5-hour quota used"')
+    expect(html).not.toContain('CLI Quotas')
   })
 })

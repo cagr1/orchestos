@@ -98,8 +98,8 @@ export default async function usageBar({ page, api, step, visible, cleanup, stat
   const claudeQuota = page.locator('footer button[title^="Claude"]')
   await step(
     'Claude quota uses newest session reading',
-    await visible(claudeQuota.getByText('61%', { exact: true })),
-    '61% remaining in status bar',
+    await visible(claudeQuota.getByText('39%', { exact: true })),
+    '39% used in status bar',
   )
   const codexQuota = page.locator('button[title^="Codex:"]')
 
@@ -118,7 +118,7 @@ export default async function usageBar({ page, api, step, visible, cleanup, stat
   )
 
   const refreshButton = page.getByRole('button', { name: 'Refresh usage', exact: true })
-  const quota67 = claudeQuota.getByText('67%', { exact: true })
+  const quota33 = claudeQuota.getByText('33%', { exact: true })
   const manualResponsePromise = page
     .waitForResponse(
       (response) =>
@@ -127,24 +127,24 @@ export default async function usageBar({ page, api, step, visible, cleanup, stat
     .catch(() => null)
   await refreshButton.click()
   const manualResponse = await manualResponsePromise
-  let saw67DuringRefresh = false
-  let saw61DuringRefresh = false
+  let saw33DuringRefresh = false
+  let saw39DuringRefresh = false
   const manualRefreshDeadline = Date.now() + 2_000
   while (Date.now() < manualRefreshDeadline) {
-    if (await quota67.isVisible().catch(() => false)) saw67DuringRefresh = true
+    if (await quota33.isVisible().catch(() => false)) saw33DuringRefresh = true
     if (
       await claudeQuota
-        .getByText('61%', { exact: true })
+        .getByText('39%', { exact: true })
         .isVisible()
         .catch(() => false)
     )
-      saw61DuringRefresh = true
+      saw39DuringRefresh = true
     await delay(100)
   }
   await step(
     'manual usage refresh keeps the newest Claude quota',
-    Boolean(manualResponse) && saw61DuringRefresh && !saw67DuringRefresh,
-    `response=${Boolean(manualResponse)}, saw61=${saw61DuringRefresh}, saw67=${saw67DuringRefresh}`,
+    Boolean(manualResponse) && saw39DuringRefresh && !saw33DuringRefresh,
+    `response=${Boolean(manualResponse)}, saw39=${saw39DuringRefresh}, saw33=${saw33DuringRefresh}`,
   )
 
   let scenarioSession = 0
@@ -232,7 +232,7 @@ export default async function usageBar({ page, api, step, visible, cleanup, stat
   const codexTitleBeforeTurn = await codexQuota.getAttribute('title')
   await step(
     'Codex account quota is visible without a project session',
-    /^Codex: \d+% 5-hour quota remaining$/.test(codexTitleBeforeTurn ?? ''),
+    /^Codex: \d+% 5-hour quota used$/.test(codexTitleBeforeTurn ?? ''),
     codexTitleBeforeTurn ?? 'Codex button title missing',
   )
 
@@ -283,7 +283,7 @@ export default async function usageBar({ page, api, step, visible, cleanup, stat
   const codexTitleAfterTurn = await codexQuota.getAttribute('title')
   await step(
     'Codex account quota remains visible after a real turn',
-    /^Codex: \d+% 5-hour quota remaining$/.test(codexTitleAfterTurn ?? ''),
+    /^Codex: \d+% 5-hour quota used$/.test(codexTitleAfterTurn ?? ''),
     codexTitleAfterTurn ?? 'Codex button title missing after turn',
   )
 
@@ -312,7 +312,7 @@ export default async function usageBar({ page, api, step, visible, cleanup, stat
   const expiredClaudeTitle = await page.locator('button[title^="Claude"]').getAttribute('title')
   await step(
     'an expired Claude window is shown as fully available',
-    /100% 5-hour quota remaining$/.test(expiredClaudeTitle ?? ''),
+    /0% 5-hour quota used$/.test(expiredClaudeTitle ?? ''),
     expiredClaudeTitle ?? 'Claude button title missing after expired reset',
   )
 

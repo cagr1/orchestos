@@ -1,0 +1,21 @@
+{
+  "item": "UI.31",
+  "date": "2026-10-27",
+  "browser": "navegador integrado de Claude Desktop, dashboard real (puerto 4243, build:app recién hecho por ui:gate usage-bar)",
+  "steps": [
+    "Recargar la página",
+    "Botón de Codex en la barra inferior: title 'Codex: 5% 5-hour quota used'",
+    "Click: popover de Codex"
+  ],
+  "result": {
+    "statusBarTitle": "Codex: 5% 5-hour quota used",
+    "popover": ["5-hour 5% · resets 3:42 PM", "Weekly 23% · 5D 11h"],
+    "header": "logo + Codex, sin 'CLI Quotas'"
+  },
+  "verdict": "Se ve lo consumido (API: Codex usedPct 5 y 23), sin 'CLI Quotas', semanal como cuenta atrás.",
+  "gates": {
+    "typecheck": 0,
+    "ShellStatusBar.test.ts": "19 pass / 0 fail",
+    "ui:gate usage-bar": "19/19"
+  }
+}

@@ -34,6 +34,19 @@ export function formatReset(epochSeconds: number | null): string | undefined {
   return `resets ${format.format(date)}`
 }
 
+export function formatCountdown(epochSeconds: number | null): string | undefined {
+  if (epochSeconds === null) return undefined
+  const remainingSeconds = epochSeconds - Date.now() / 1000
+  if (remainingSeconds <= 0) return undefined
+  const remainingMinutes = Math.ceil(remainingSeconds / 60)
+  const days = Math.floor(remainingMinutes / 1_440)
+  const hours = Math.floor((remainingMinutes % 1_440) / 60)
+  const minutes = remainingMinutes % 60
+  if (days > 0) return `${days}D ${hours}h`
+  if (hours > 0) return `${hours}h ${minutes}m`
+  return `${remainingMinutes}m`
+}
+
 export function mapQuotas(status: SessionStatus | null): CliQuotaInfo[] {
   return (status?.clis ?? [])
     .filter((cli) => cli.installed)
@@ -67,7 +80,7 @@ export function mapQuotas(status: SessionStatus | null): CliQuotaInfo[] {
         quota5h: remaining(fiveHour),
         reset5h: formatReset(fiveHour?.resetsAt ?? null),
         quotaWeekly: remaining(weekly),
-        resetWeekly: formatReset(weekly?.resetsAt ?? null),
+        resetWeekly: formatCountdown(weekly?.resetsAt ?? null),
         missingData: staleWindow
           ? Number.isFinite(observedAt)
             ? `no data since ${age}`
@@ -131,12 +144,13 @@ export const ShellStatusBar: React.FC<ShellStatusBarProps> = ({
 
   return (
     <footer className="h-7 border-t border-app bg-app-bg px-3 flex items-center justify-between select-none text-xs flex-shrink-0 z-30 relative font-mono">
-      {/* Installed CLIs list: product logo + thin bar + percent of its 5-hour quota remaining */}
+      {/* Installed CLIs list: product logo + thin bar + percent of its 5-hour quota used */}
       <div className="flex items-center gap-4">
         {quotas.map((cli) => {
           const hasData = cli.quota5h !== null || cli.quotaWeekly !== null
-          const pct = hasData ? Math.round(cli.quota5h ?? cli.quotaWeekly ?? 0) : null
-          const tone = quotaTone(pct)
+          const remaining = hasData ? (cli.quota5h ?? cli.quotaWeekly ?? 0) : null
+          const pct = remaining === null ? null : Math.round(100 - remaining)
+          const tone = quotaTone(remaining)
 
           return (
             <button
@@ -148,7 +162,7 @@ export const ShellStatusBar: React.FC<ShellStatusBarProps> = ({
                   ? 'bg-app-elevated border border-app text-app'
                   : 'hover:bg-app-surface/60 text-app-muted hover:text-app'
               }`}
-              title={`${cli.name}: ${hasData ? `${pct}% 5-hour quota remaining` : (cli.missingData ?? 'No quota limits reported')}${hasData && cli.missingData ? ` · ${cli.missingData}` : ''}${cli.wiringWarning ? ` · ${cli.wiringWarning}` : ''}`}
+              title={`${cli.name}: ${hasData ? `${pct}% 5-hour quota used` : (cli.missingData ?? 'No quota limits reported')}${hasData && cli.missingData ? ` · ${cli.missingData}` : ''}${cli.wiringWarning ? ` · ${cli.wiringWarning}` : ''}`}
             >
               <ProviderLogo id={cli.id} size={14} className="w-3.5 h-3.5 flex-shrink-0" />
               <div className="w-12 h-1 bg-app-elevated rounded-pill overflow-hidden flex-shrink-0">
@@ -194,7 +208,6 @@ export const ShellStatusBar: React.FC<ShellStatusBarProps> = ({
               <ProviderLogo id={activeCli.id} size={16} className="w-4 h-4 flex-shrink-0" />
               <span className="font-semibold text-xs font-sans text-app">{activeCli.name}</span>
             </div>
-            <span className="text-[10px] text-app-muted">CLI Quotas</span>
           </div>
           {(activeCli.missingData || activeCli.wiringWarning) && (
             <div className="text-xs text-app-muted font-sans">
@@ -209,13 +222,13 @@ export const ShellStatusBar: React.FC<ShellStatusBarProps> = ({
               {activeCli.quota5h !== null && (
                 <div className="space-y-1">
                   <div className="flex items-center justify-between text-xs">
-                    <span className="text-app-muted">5-hour quota</span>
+                    <span className="text-app-muted">5-hour</span>
                     <div className="flex items-center gap-1.5 font-mono text-[11px]">
                       <span
                         className={`font-semibold ${fiveHourTone === 'error' ? 'text-app-error' : fiveHourTone === 'warning' ? 'text-app-warning' : 'text-app'}`}
                         data-quota-tone={fiveHourTone}
                       >
-                        {activeCli.quota5h}%
+                        {Math.round(100 - activeCli.quota5h)}%
                       </span>
                       <span className="text-app-muted">·</span>
                       <span className="text-app-muted text-[10px]">{activeCli.reset5h}</span>
@@ -225,7 +238,7 @@ export const ShellStatusBar: React.FC<ShellStatusBarProps> = ({
                     <div
                       className={`h-full ${fiveHourTone === 'error' ? 'bg-app-error' : fiveHourTone === 'warning' ? 'bg-app-warning' : 'bg-app-accent'} rounded-pill`}
                       data-quota-tone={fiveHourTone}
-                      style={{ width: `${activeCli.quota5h}%` }}
+                      style={{ width: `${Math.round(100 - activeCli.quota5h)}%` }}
                     />
                   </div>
                 </div>
@@ -235,13 +248,13 @@ export const ShellStatusBar: React.FC<ShellStatusBarProps> = ({
               {activeCli.quotaWeekly !== null && (
                 <div className="space-y-1">
                   <div className="flex items-center justify-between text-xs">
-                    <span className="text-app-muted">Weekly quota</span>
+                    <span className="text-app-muted">Weekly</span>
                     <div className="flex items-center gap-1.5 font-mono text-[11px]">
                       <span
                         className={`font-semibold ${weeklyTone === 'error' ? 'text-app-error' : weeklyTone === 'warning' ? 'text-app-warning' : 'text-app'}`}
                         data-quota-tone={weeklyTone}
                       >
-                        {activeCli.quotaWeekly}%
+                        {Math.round(100 - activeCli.quotaWeekly)}%
                       </span>
                       <span className="text-app-muted">·</span>
                       <span className="text-app-muted text-[10px]">{activeCli.resetWeekly}</span>
@@ -251,7 +264,7 @@ export const ShellStatusBar: React.FC<ShellStatusBarProps> = ({
                     <div
                       className={`h-full ${weeklyTone === 'error' ? 'bg-app-error' : weeklyTone === 'warning' ? 'bg-app-warning' : 'bg-app-accent/60'} rounded-pill`}
                       data-quota-tone={weeklyTone}
-                      style={{ width: `${activeCli.quotaWeekly}%` }}
+                      style={{ width: `${Math.round(100 - activeCli.quotaWeekly)}%` }}
                     />
                   </div>
                 </div>
