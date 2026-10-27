@@ -5,5 +5,6 @@ export default {
   commandRunner: {
     command: 'bun run scripts/mutation-test-shard.ts stryker.run-executors-codex-server.config.mjs',
   },
-  mutate: ['src/run/executors/codex-app-server.ts', 'src/run/executors/codex-approval.ts'],
+  // Cortar solo entre métodos: un mutante que cruza el corte se pierde (CI.46).
+  mutate: ['src/run/executors/codex-app-server.ts:1-345', 'src/run/executors/codex-approval.ts'],
 }

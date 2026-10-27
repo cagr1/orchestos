@@ -433,6 +433,17 @@ Regla: nada se reintenta, cierra ni muestra sin evidencia medida que el usuario 
   que lo reenvíe. Evidencia del cerebro: diff leído (2 líneas); `test:coverage` 2091/0.
   Gate en vivo: navegador real (Playwright) `chat-turn-details` 29/29 tres veces seguidas, `docs/done/evidence/CI.45-live.json`
   Ejecutado por: codex gpt-6-luna (mecanico) · Spec: docs/specs/CI.45.md
+- [x] **CI.46 — 🔍 `Mutation Shards`: `executors-codex-server` pasa las 3 h (2 noches seguidas).** (cerrado 2026-10-27)
+  Corridas `40290380197` y `40473341541` cortan ese job a 180 min; el 10-25 tardó 2h32. Medido (cerebro):
+  `codex-app-server.ts` 784 → 1073 líneas (CHAT.3, CI.11) y la suite seleccionada 47 → 54 s (+`generic-cli.test.ts`);
+  2h32 × 1,37 × 1,15 ≈ 4 h. Un solo archivo excede: se parte por rango de líneas (`archivo:inicio-fin`).
+  Arreglo: `codex-app-server.ts` en tres shards cortados entre métodos (`1-345` + `codex-approval.ts`, `346-645`,
+  `646-99999`); `mutationFiles` quita el rango antes del glob y `-engines` excluye los archivos enteros. r1 cortó en
+  535 dentro de `notification` y perdió 2 mutantes: Stryker solo toma un mutante que cabe entero en el rango.
+  Evidencia (cerebro): typecheck 0; `mutation-test-shard.test.ts` 9/0; dry runs 364 + 536 + 396 = 1296 = los dos
+  archivos enteros (1296), `-engines` 850; selección 48 archivos en cada shard. Pendiente: tiempos reales en la
+  próxima corrida nocturna (estimado ~1h10–1h40 por shard).
+  Ejecutado por: codex gpt-6-luna (mecanico, r1 y r2) · QA: codex gpt-6.1-sol (qa), sin defectos · Spec: docs/specs/CI.46.md (borrado)
 - [ ] **CI.19 — 🔍 El `git commit` del fixture falla a veces en el andamiaje de los ui-gates.** Visto 1 vez en
   `qa-negative` (2026-10-11, 1 de 9): `Command failed: git … commit -qm task fixture`, sin motivo porque el helper
   `run` usa `stdio: 'ignore'`. `qa-negative` ya reporta stdout/stderr y exit; los otros 20 flows con el mismo helper no.

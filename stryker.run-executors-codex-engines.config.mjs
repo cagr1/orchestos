@@ -7,5 +7,8 @@ export default {
     command:
       'bun run scripts/mutation-test-shard.ts stryker.run-executors-codex-engines.config.mjs',
   },
-  mutate: [...base.mutate, ...server.mutate.map((pattern) => `!${pattern}`)],
+  mutate: [
+    ...base.mutate,
+    ...server.mutate.map((pattern) => `!${pattern.replace(/:\d+-\d+$/, '')}`),
+  ],
 }

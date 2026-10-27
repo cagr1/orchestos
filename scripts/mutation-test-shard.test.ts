@@ -8,7 +8,15 @@ import { mutationFiles, mutationTestArgs, selectMutationShardTests } from './mut
 describe('selectMutationShardTests', () => {
   for (const [parent, children] of [
     ['executors', ['executors-engines', 'executors-routing']],
-    ['executors-codex', ['executors-codex-server', 'executors-codex-engines']],
+    [
+      'executors-codex',
+      [
+        'executors-codex-server',
+        'executors-codex-server-b',
+        'executors-codex-server-c',
+        'executors-codex-engines',
+      ],
+    ],
   ] as const) {
     test(`las particiones de ${parent} conservan todos los archivos y gates sin solaparse`, async () => {
       const root = resolve(import.meta.dir, '..')
@@ -38,8 +46,13 @@ describe('selectMutationShardTests', () => {
         expect(files.length).toBeGreaterThan(0)
         partitioned.push(...files)
       }
-      expect(partitioned.sort()).toEqual(original)
-      expect(new Set(partitioned).size).toBe(partitioned.length)
+      expect([...new Set(partitioned)].sort()).toEqual(original)
+      const duplicates = partitioned.filter((path, index) => partitioned.indexOf(path) !== index)
+      expect(duplicates).toEqual(
+        parent === 'executors-codex'
+          ? ['src/run/executors/codex-app-server.ts', 'src/run/executors/codex-app-server.ts']
+          : [],
+      )
     })
   }
 
@@ -61,6 +74,18 @@ describe('selectMutationShardTests', () => {
           '!src/run/executors/external.ts',
         ]),
       ).toEqual(['src/run/executors/local.ts'])
+    } finally {
+      await rm(root, { recursive: true, force: true })
+    }
+  })
+
+  test('mutationFiles quita los rangos de línea de patrones incluidos y negados', async () => {
+    const root = await mkdtemp(join(tmpdir(), 'mutation-range-'))
+    try {
+      await mkdir(root, { recursive: true })
+      await writeFile(join(root, 'x.ts'), '')
+      expect(await mutationFiles(root, ['x.ts:1-10'])).toEqual(['x.ts'])
+      expect(await mutationFiles(root, ['x.ts:1-10', '!x.ts:1-10'])).toEqual([])
     } finally {
       await rm(root, { recursive: true, force: true })
     }

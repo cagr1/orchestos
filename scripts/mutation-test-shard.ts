@@ -46,7 +46,8 @@ async function files(root: string, pattern: string): Promise<string[]> {
 
 export async function mutationFiles(root: string, patterns: string[]): Promise<string[]> {
   const result = new Set<string>()
-  for (const pattern of patterns) {
+  for (const rawPattern of patterns) {
+    const pattern = rawPattern.replace(/^(!?)(.*?):\d+-\d+$/, '$1$2')
     if (pattern.startsWith('!')) {
       for (const path of await files(root, pattern.slice(1))) result.delete(path)
     } else {
