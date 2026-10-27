@@ -1,4 +1,4 @@
-# NEXT — handoff 2026-10-26 (corte: SET.5)
+# NEXT — handoff 2026-10-26 (cierre del lote SET)
 
 Un solo presente: orden y trampas vivas. Lo cerrado vive en `docs/done/bloque-*.md`, `PLAN.md` y git (regla `AGENTS.md`
 § Reglas generales, 2026-10-19: `NEXT.md` se toca solo al cerrar o cortar un lote). Arranque:
@@ -24,15 +24,16 @@ Un solo presente: orden y trampas vivas. Lo cerrado vive en `docs/done/bloque-*.
   `/api/settings` concurrente 11,9 s → 0,11 s; empujado), SET.1 `235de306` (nav agrupada con iconos, guardado
   instantáneo, buscador que resalta), SET.5 (temas en Appearance, General = fila Language, Keybindings desde
   `lib/keybindings.ts`). Ver `git log` para los SHAs.
+- 2026-10-26 (resto del lote SET, sin pausa): SET.2 `0f426752` (`/api/providers`: login shell, versión, sesión, modelos),
+  SET.3 `e9f5613c` (página Providers; Settings ya no espera a `/api/usage`), SET.2.1 `acfed752` (CLIs se lanzan con el PATH
+  de detección; hermano hallado en revisión), SET.4 `927ef50f` (API keys, OpenRouter no crítico), SET.6 `5bccfbd4`.
 
 ## Orden
-0. **SET (GO de Carlos 2026-10-26).** Ítems en `PLAN.md` § SET, specs en `docs/specs/SET.N.md` (sin commitear, a
-   propósito). Orden, por pedido de Carlos ("aún no está cada cosa en su sitio"): **SET.2 → SET.3 → SET.4 →
-   SET.6**, sin pausa; a Carlos se le muestra Settings solo cuando todo esté en su sitio (hoy Providers sigue vacía y
-   "CLIs propios" sigue en Executor). Probar en vivo con `ORCHESTOS_HOME=/tmp/set-home` (config `orchestos-set-ref`
-   en `.claude/launch.json`, puerto 4343). SET.4: el nav ya dice "API keys" desde SET.1; queda Health/executor-modes.
+0. **Mostrar Settings a Carlos** (lote SET completo): Providers, API keys, Health, CLIs propios en Providers. Probar
+   con `orchestos-set-ref` (`.claude/launch.json`, puerto 4343). Sin verificar en vivo: el punto ámbar de Health (solo
+   código) y la causa de "Loading project data…" (no se reprodujo).
 1. CI.19 espera el próximo fallo para la fase 2 (CI.44 cerrado `07fbab61`).
-2. Cualquier CLI ya corre tareas sin código (AT.11.2/AT.11.3): se declara en Settings → Executor → "CLIs propios".
+2. Cualquier CLI ya corre tareas sin código (AT.11.2/AT.11.3): se declara en Settings → Providers → "CLIs propios".
    Un adaptador rico (streaming, sesiones, cuotas) para un CLI nuevo sigue siendo `KNOWN_CLIS` + `registerTaskEngine`
    y lo instala el cerebro para probarlo, no Carlos. Fuera hoy: CLI genérico en el chat (necesita streaming).
 - Trampa: el título en negrita de un ítem de `PLAN.md` debe cerrar `**` en la primera línea; partido en dos, el
