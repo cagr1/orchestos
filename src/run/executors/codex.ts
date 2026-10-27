@@ -1,3 +1,4 @@
+import { whichCli } from './cli-discovery.ts'
 /**
  * src/run/executors/codex.ts — G.4.2b
  *
@@ -67,7 +68,7 @@ const DEFAULT_TIMEOUT_MS = 20 * 60 * 1000 // mismo default que external.ts/openc
 const CODEX_BINARY = 'codex'
 
 export function findCodexBinary(): string | null {
-  return Bun.which(CODEX_BINARY)
+  return whichCli(CODEX_BINARY)
 }
 
 export function codexUnavailableMessage(pathHint?: string): string {

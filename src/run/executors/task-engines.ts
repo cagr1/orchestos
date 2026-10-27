@@ -1,3 +1,4 @@
+import { whichCli } from './cli-discovery.ts'
 /** Registro de ejecutores de tareas: CLI ↔ motor. Agregar un CLI ejecutor = una entrada acá. */
 
 import { allClis, configuredClis } from './cli-registry.ts'
@@ -62,7 +63,7 @@ function load(): TaskEngineEntry[] {
         get engine() {
           return require('./generic-cli.ts').genericCliEngine(cli) as ExecutorEngine
         },
-        findBinary: () => Bun.which(cli.command),
+        findBinary: () => whichCli(cli.command),
         unavailableMessage: () => `${cli.label} binary "${cli.command}" not found in PATH.`,
       }),
     ),

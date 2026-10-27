@@ -1,3 +1,5 @@
+import { whichCli } from '../run/executors/cli-discovery.ts'
+
 type TerminalOptions = {
   cwd: string
   cols: number
@@ -17,7 +19,7 @@ type TerminalSession = {
 const sessions = new Set<TerminalSession>()
 
 export function resolveOpenCodeCommand(
-  which: (name: string) => string | null = Bun.which,
+  which: (name: string) => string | null = whichCli,
 ): string[] {
   const binary = which('opencode')
   if (!binary) throw new Error('OpenCode no está instalado (no se encontró "opencode" en el PATH)')

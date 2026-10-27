@@ -45,3 +45,24 @@ export function cliSearchPath(probe: CliDiscoveryProbe = systemCliDiscoveryProbe
     ),
   ].join(delimiter)
 }
+
+let searchPathApplied = false
+
+const SEARCH_PATH_MARKER = 'ORCHESTOS_CLI_SEARCH_PATH'
+
+/** Deja el PATH de detección como PATH del proceso, para que lo que se detecta se lance por nombre. Con la sonda del sistema, una vez por proceso. El marcador evita repetir el login shell (0,64 s) en procesos hijos que ya heredan el PATH ampliado. */
+export function applyCliSearchPath(probe: CliDiscoveryProbe = systemCliDiscoveryProbe): void {
+  const isSystem = probe === systemCliDiscoveryProbe
+  if (isSystem) {
+    if (searchPathApplied) return
+    searchPathApplied = true
+  }
+  const inherited = probe.env[SEARCH_PATH_MARKER] === '1'
+  process.env.PATH = cliSearchPath(inherited ? { ...probe, loginPath: () => null } : probe)
+  if (isSystem) process.env[SEARCH_PATH_MARKER] = '1'
+}
+
+/** `Bun.which` con el PATH actual de `process.env` (Bun no lo relee solo en runtime). */
+export function whichCli(binary: string): string | null {
+  return Bun.which(binary, { PATH: process.env.PATH ?? '' })
+}

@@ -3,6 +3,7 @@ import { homedir } from 'node:os'
 import { registerNativeOpencodeModels } from '../router/opencode-catalog.ts'
 import { cliChatAdapterFor } from '../run/executors/chat-adapters.ts'
 import { detectInstalledClis } from '../run/executors/cli-registry.ts'
+import { safeChildEnv } from '../run/path-policy.ts'
 
 export interface CliModelOption {
   id: string
@@ -28,8 +29,12 @@ type CommandRunner = (
   args: string[],
 ) => Promise<{ stdout: string; exitCode: number }>
 
-const defaultRunner: CommandRunner = async (command, args) => {
-  const process = Bun.spawn([command, ...args], { stdout: 'pipe', stderr: 'ignore' })
+export const defaultRunner: CommandRunner = async (command, args) => {
+  const process = Bun.spawn([command, ...args], {
+    env: safeChildEnv(),
+    stdout: 'pipe',
+    stderr: 'ignore',
+  })
   const [stdout, exitCode] = await Promise.all([
     new Response(process.stdout).text(),
     process.exited,

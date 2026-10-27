@@ -4,6 +4,7 @@ import { isMap, parse, parseDocument } from 'yaml'
 import { loadOrcheConfig } from '../../config/load.ts'
 import { orchestosDir } from '../../config/orchestos-home.ts'
 import type { CustomCliConfig } from '../../config/schema.ts'
+import { whichCli } from '../../run/executors/cli-discovery.ts'
 import {
   configuredClis,
   customCliValidationError,
@@ -23,7 +24,7 @@ function hiddenClis(): string[] {
 export function handleApiClisGet(): Response {
   return jsonResponse({
     hiddenClis: hiddenClis(),
-    clis: configuredClis().map((cli) => ({ ...cli, installed: Bun.which(cli.command) !== null })),
+    clis: configuredClis().map((cli) => ({ ...cli, installed: whichCli(cli.command) !== null })),
   })
 }
 

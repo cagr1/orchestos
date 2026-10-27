@@ -1,6 +1,7 @@
 import { realpathSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { getChatSession } from '../db/chat-sessions.ts'
+import { applyCliSearchPath } from '../run/executors/cli-discovery.ts'
 import { stopCodexAppServers } from '../run/executors/codex-app-server.ts'
 import {
   handleApiChat,
@@ -552,6 +553,7 @@ export function startServer(
   port = DEFAULT_PORT,
   terminalCommand?: string[],
 ): { server: any; url: string } {
+  applyCliSearchPath()
   const terminalSessions = new WeakMap<object, ReturnType<typeof createTerminalSession>>()
   const server = Bun.serve<{ cwd: string; cols: number; rows: number }>({
     port,

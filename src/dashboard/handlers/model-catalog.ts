@@ -1,5 +1,6 @@
 import type { RoleAgent } from '../../config/schema.ts'
 import { roleAgentIds } from '../../run/executors/chat-adapters.ts'
+import { whichCli } from '../../run/executors/cli-discovery.ts'
 import { configuredClis } from '../../run/executors/cli-registry.ts'
 import { taskEngineForCli } from '../../run/executors/task-engines.ts'
 import { readCliModelCatalogsCached } from '../chat-cli-models.ts'
@@ -47,7 +48,7 @@ export async function handleApiModelCatalog(deps?: {
       id: cli.id,
       label: cli.label,
       generic: true,
-      installed: Bun.which(cli.command) !== null,
+      installed: whichCli(cli.command) !== null,
       taskEngine: true,
       models: [
         { id: 'default', name: 'Default del CLI' },

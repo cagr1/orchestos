@@ -1,4 +1,8 @@
 #!/usr/bin/env bun
+import { applyCliSearchPath } from './run/executors/cli-discovery.ts'
+
+applyCliSearchPath()
+
 import { Command } from 'commander'
 import { existsSync, readFileSync, writeFileSync } from 'fs'
 import { join, resolve } from 'path'

@@ -104,9 +104,14 @@ Keybindings de solo lectura en la primera versión. Orden: SET.0 primero (bloque
   cerebro en vivo (`orchestos-set-ref`): Claude 2.1.311 pro, Codex 0.164.0 plus, opencode 1.19.0, 4 no encontrados;
   0 tokens/JWT en la respuesta; 1,1 s en frío, 11 ms en caché. `test:coverage` 2109/0 fuera del sandbox.
   Ejecutado por: codex gpt-6.1-sol (criterio), revisión Opus · Spec: docs/specs/SET.2.md
-- [ ] **SET.2.1 — 🧠 Los CLIs se lanzan con el mismo PATH con que se detectan.**
-  Hermano de SET.2: un CLI hallado solo por el PATH del login shell sale "instalado" pero chat/tareas lo lanzan con
-  el PATH del proceso (ENOENT). Spec: `docs/specs/SET.2.1.md`.
+- [x] **SET.2.1 — 🧠 Los CLIs se lanzan con el mismo PATH con que se detectan.**
+  (cerrado 2026-10-26) Hermano de SET.2 hallado por el cerebro: un CLI visto solo por el PATH del login shell salía
+  "instalado" pero chat/tareas lo lanzaban con el PATH del proceso (ENOENT). `applyCliSearchPath()` al arrancar
+  dashboard y CLI deja `process.env.PATH = cliSearchPath()`; `whichCli` en los checks de existencia, `env` en el único
+  spawn sin él (`chat-cli-models` `defaultRunner`); marcador `ORCHESTOS_CLI_SEARCH_PATH` para que los hijos no repitan
+  el login shell (0,64 s medido). Test con ejecutable falso fuera del PATH. `test:coverage` 2120/0; chat y tareas
+  reales pasan en el gate del lote (`model-routing` 19/19, `usage-bar` 19/19, `text-sweep` 10/10).
+  Ejecutado por: claude sonnet (criterio-alt, Codex sin cupo), revisión Opus · Spec: docs/specs/SET.2.1.md
 - [x] **SET.3 — 🧠 Página Providers: una fila por CLI detectado + no encontrados + CLIs propios.**
   (cerrado 2026-10-26) Providers con Instalados (versión, cuenta enmascarada, plan, N modelos, toggle `hiddenClis`),
   No encontrados con "How to install" y CLIs propios movidos desde Executor; el select de modelo solo en la fila del CLI

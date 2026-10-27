@@ -1,3 +1,4 @@
+import { whichCli } from './cli-discovery.ts'
 import { CliFailure, claudeFailureKind, cliFailureNotice } from './cli-failure.ts'
 /**
  * src/run/executors/external.ts — B.1
@@ -58,7 +59,7 @@ const CLAUDE_BINARY = 'claude'
  * (no duplicar `Bun.which` en 3 sitios y arriesgar drift).
  */
 export function findClaudeBinary(): string | null {
-  return Bun.which(CLAUDE_BINARY)
+  return whichCli(CLAUDE_BINARY)
 }
 
 /** Mensaje canónico cuando el binario no está. Reusado en engine, CLI y API. */

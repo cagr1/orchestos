@@ -33,7 +33,12 @@ import { orchestosDir } from '../../config/orchestos-home.ts'
 import type { CustomCliConfig } from '../../config/schema.ts'
 import { excludeRuntimeArtifacts } from '../git-exclude.ts'
 import { safeChildEnv } from '../path-policy.ts'
-import { type CliDiscoveryProbe, cliSearchPath, systemCliDiscoveryProbe } from './cli-discovery.ts'
+import {
+  type CliDiscoveryProbe,
+  cliSearchPath,
+  systemCliDiscoveryProbe,
+  whichCli,
+} from './cli-discovery.ts'
 import { cliForTaskEngine } from './task-engines.ts'
 
 export type CliReadBoundary =
@@ -379,7 +384,7 @@ export function supportsRestrictedMode(
   let cacheKey = binary
   if (useCache) {
     try {
-      const resolved = Bun.which(binary)
+      const resolved = whichCli(binary)
       if (!resolved) return false
       binary = realpathSync(resolved)
       const stat = statSync(binary)

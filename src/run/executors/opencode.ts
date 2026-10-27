@@ -1,3 +1,4 @@
+import { whichCli } from './cli-discovery.ts'
 /**
  * src/run/executors/opencode.ts — G.5
  *
@@ -47,7 +48,7 @@ const OPENCODE_BINARY = 'opencode'
 let nativeVariantsCache: { loadedAt: number; models: Map<string, string[]> } | null = null
 
 export function findOpencodeBinary(): string | null {
-  return Bun.which(OPENCODE_BINARY)
+  return whichCli(OPENCODE_BINARY)
 }
 
 export function opencodeUnavailableMessage(pathHint?: string): string {
