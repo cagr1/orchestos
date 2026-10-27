@@ -123,9 +123,13 @@ Keybindings de solo lectura en la primera versión. Orden: SET.0 primero (bloque
   Codex 0.164.0 plus 10, opencode 1.19.0 380 en la primera carga. `test:coverage` 2118/0.
   Gate en vivo: navegador real (Playwright) `providers` 12/12, `custom-cli` 13/13, `model-routing` 19/19, `usage-bar` 19/19, `settings-shell` 21/21, `docs/done/evidence/SET.3-live.json`
   Ejecutado por: codex gpt-6.1-sol (criterio) r1–r5, luna (mecanico) r7, claude sonnet (criterio-alt) r6 por cupo de Codex, revisión Opus · Spec: docs/specs/SET.3.md
-- [ ] **SET.4 — 🔍 "API & Models" pasa a "API keys" y OpenRouter deja de ser crítico.**
-  Hoy Health marca `OPENROUTER_API_KEY` como crítico (`src/dashboard/handlers/setup.ts:95`) y `executor-modes`
-  devuelve "OpenRouter API" `detected: true` sin clave. Spec: `docs/specs/SET.4.md`.
+- [x] **SET.4 — 🔍 "API & Models" pasa a "API keys" y OpenRouter deja de ser crítico.**
+  (cerrado 2026-10-26) Título de la página "API keys"/"Claves de API" y fuera la línea al pie; `openrouter-key`
+  `critical: false` en `setup.ts` (2 sitios): con un CLI de tareas el setup queda listo sin clave (en vivo, Health
+  "All prerequisites met" con OpenRouter listado como el check que falta); `executor-modes` marca "OpenRouter API"
+  `detected` solo con `OPENROUTER_API_KEY`. `rg "API & Models"` = 0. `test:coverage` 2121/0.
+  Gate en vivo: navegador real (Playwright) `model-routing` 19/19, `docs/done/evidence/SET.4-live.json`
+  Ejecutado por: claude sonnet (criterio-alt, Codex sin cupo), revisión Opus · Spec: docs/specs/SET.4.md
 - [x] **SET.5 — ⚡ Appearance con página propia y Keybindings de solo lectura.** (cerrado 2026-10-26) Temas en
   Appearance sin descripción larga; General = fila Language (sale de la nav); Keybindings lee el registro nuevo
   `lib/keybindings.ts` (2 atajos globales, ambos Cmd/Ctrl+K) que también usa `CommandPalette`. Dos paradas válidas

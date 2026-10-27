@@ -95,7 +95,7 @@ function handleApiSetup(root: string): Response {
     id: 'openrouter-key',
     label: openRouter ? 'OPENROUTER_API_KEY configured' : 'OPENROUTER_API_KEY missing',
     ok: !!openRouter,
-    critical: true,
+    critical: false,
     kind: 'credential',
     hint: openRouter
       ? 'The primary LLM gateway is ready.'
@@ -221,7 +221,7 @@ function handleApiHealth(root: string): Response {
       id: 'openrouter-key',
       label: openRouter ? 'OPENROUTER_API_KEY configured' : 'OPENROUTER_API_KEY missing',
       ok: !!openRouter,
-      critical: true,
+      critical: false,
       kind: 'credential',
       hint: openRouter ? 'OK' : 'Add an API key in Settings.',
     })

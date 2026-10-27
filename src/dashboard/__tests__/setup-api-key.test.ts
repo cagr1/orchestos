@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, test } from 'bun:test'
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'fs'
 import { tmpdir } from 'os'
 import { join } from 'path'
-import { handleApiSetupApiKey } from '../handlers/setup.ts'
+import { handleApiSetup, handleApiSetupApiKey } from '../handlers/setup.ts'
 import { envFilePath } from '../settings-store.ts'
 
 // L62-002 (gate de seguridad L.6.2, 2026-08-02) — `handleApiSetupApiKey()`
@@ -90,5 +90,21 @@ describe('handleApiSetupApiKey — no persiste una key sin validar (L62-002)', (
 
     expect(persistedEnv()).toContain('sk-ant-existing-value')
     expect(persistedEnv()).not.toContain('sk-or-v1-testkeyvalue0000000000')
+  })
+})
+
+describe('handleApiSetup — OpenRouter no es crítico', () => {
+  test('sin clave, openrouter-key.critical === false', async () => {
+    const prev = process.env.OPENROUTER_API_KEY
+    delete process.env.OPENROUTER_API_KEY
+    try {
+      const res = handleApiSetup(tmpHome)
+      const body = (await res.json()) as { items: { id: string; critical: boolean; ok: boolean }[] }
+      const item = body.items.find((i) => i.id === 'openrouter-key')!
+      expect(item.ok).toBe(false)
+      expect(item.critical).toBe(false)
+    } finally {
+      if (prev !== undefined) process.env.OPENROUTER_API_KEY = prev
+    }
   })
 })

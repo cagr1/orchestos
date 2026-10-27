@@ -2249,7 +2249,7 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
 
         {/* SECTION: API & MODELS */}
         {activeSection === 'api_models' && (
-          <SettingsPage title="API Keys & Models">
+          <SettingsPage title={language === 'es' ? 'Claves de API' : 'API keys'}>
             <SettingsGroup>
               {(['openrouter', 'anthropic', 'openai'] as const).map((provider) => {
                 const key = apiKeys[provider]
@@ -2409,14 +2409,6 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
                 />
               </div>
             </SettingsGroup>
-            <div className="flex flex-wrap items-center justify-between gap-3 px-1 text-xs text-app-muted">
-              <p className="max-w-prose text-xs">
-                Leave a field blank to keep its current value. Stored in ~/.orchestos/.env
-              </p>
-              <span className="text-[10px] text-app-muted">
-                Keys are validated and saved per provider.
-              </span>
-            </div>
           </SettingsPage>
         )}
 

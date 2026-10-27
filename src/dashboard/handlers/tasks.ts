@@ -22,6 +22,7 @@ import { ensureTasksYaml, scaffoldTasksYaml } from '../../tasks/init.ts'
 import { loadTasks, mutateTasks } from '../../tasks/loader.ts'
 import { isTaskClass } from '../../tasks/schema.ts'
 import { errorResponse, jsonResponse, validateTaskId } from '../http.ts'
+import { readEnv } from '../settings-store.ts'
 import type { DiagnoseRow, TaskRow } from '../types.ts'
 import { settleExitedTaskRun } from './task-run-reconcile.ts'
 
@@ -75,7 +76,7 @@ async function handleApiSystemExecutorModes(root = process.cwd()): Promise<Respo
     {
       id: 'api',
       label: 'OpenRouter API',
-      detected: true,
+      detected: !!(readEnv().OPENROUTER_API_KEY || process.env.OPENROUTER_API_KEY),
       path: null,
       taskEngine: true,
       session: 'chat',

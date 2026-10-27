@@ -291,7 +291,7 @@ async function runTarget(target) {
   for (const section of [
     'General',
     'Health',
-    'API & Models',
+    'API keys',
     'Model routing',
     'Executor',
     'Usage',

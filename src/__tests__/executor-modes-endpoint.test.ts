@@ -9,6 +9,9 @@
  * [[reference-bun-mock-module-gotcha]]).
  */
 import { afterEach, describe, expect, it } from 'bun:test'
+import { mkdtempSync, rmSync } from 'fs'
+import { tmpdir } from 'os'
+import { join } from 'path'
 import { loadOrcheConfig } from '../config/load.ts'
 import { handleApiSystemExecutorModes } from '../dashboard/handlers/tasks.ts'
 import { KNOWN_CLIS } from '../run/executors/cli-registry.ts'
@@ -62,19 +65,35 @@ describe('GET /api/system/executor-modes', () => {
     expect(session('api')).toBe('chat')
   })
 
-  it("'api' siempre detected:true, path:null — no depende de ningún binario", async () => {
+  it("'api' detected solo con OPENROUTER_API_KEY; path:null", async () => {
     ;(Bun as any).which = (_bin: string) => null
     globalThis.fetch = (async () => {
       throw new Error('connection refused')
     }) as unknown as typeof fetch
+    const home = mkdtempSync(join(tmpdir(), 'orchestos-modes-'))
+    const prev = { home: process.env.ORCHESTOS_HOME, key: process.env.OPENROUTER_API_KEY }
+    process.env.ORCHESTOS_HOME = home
+    try {
+      delete process.env.OPENROUTER_API_KEY
+      const without = (await (await handleApiSystemExecutorModes()).json()) as {
+        modes: { id: string; detected: boolean; path: string | null }[]
+      }
+      const api = without.modes.find((m) => m.id === 'api')!
+      expect(api.detected).toBe(false)
+      expect(api.path).toBeNull()
 
-    const res = await handleApiSystemExecutorModes()
-    const data = (await res.json()) as {
-      modes: { id: string; detected: boolean; path: string | null }[]
+      process.env.OPENROUTER_API_KEY = 'sk-or-v1-testkeyvalue0000000000'
+      const withKey = (await (await handleApiSystemExecutorModes()).json()) as {
+        modes: { id: string; detected: boolean }[]
+      }
+      expect(withKey.modes.find((m) => m.id === 'api')!.detected).toBe(true)
+    } finally {
+      if (prev.home === undefined) delete process.env.ORCHESTOS_HOME
+      else process.env.ORCHESTOS_HOME = prev.home
+      if (prev.key === undefined) delete process.env.OPENROUTER_API_KEY
+      else process.env.OPENROUTER_API_KEY = prev.key
+      rmSync(home, { recursive: true, force: true })
     }
-    const api = data.modes.find((m) => m.id === 'api')!
-    expect(api.detected).toBe(true)
-    expect(api.path).toBeNull()
   })
 
   it("'local' refleja el probe real de Ollama (fetch ok con status 200 → detected:true)", async () => {
