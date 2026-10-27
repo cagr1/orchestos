@@ -211,6 +211,15 @@
       "closedDate": null
     },
     {
+      "id": "UI.33",
+      "sprint": "Fase 2 — Producto mínimo para entrega",
+      "block": "Abiertos — fiabilidad de los gates y documentación",
+      "delegation": "⚡",
+      "title": "Colores de cuota por consumo: verde < 60 %, naranja 60–80 %, rojo > 80 %",
+      "status": "done",
+      "closedDate": null
+    },
+    {
       "id": "UI.32",
       "sprint": "Fase 2 — Producto mínimo para entrega",
       "block": "Abiertos — fiabilidad de los gates y documentación",

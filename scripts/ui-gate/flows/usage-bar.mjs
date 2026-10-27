@@ -205,7 +205,7 @@ export default async function usageBar({ page, api, step, visible, cleanup, stat
     )
   }
   await refreshQuotaScenario(50, 'normal', null)
-  await refreshQuotaScenario(70, 'warning', 'bg-app-warning')
+  await refreshQuotaScenario(70, 'warning', 'bg-orange-500')
   await refreshQuotaScenario(90, 'error', 'bg-app-error')
 
   await page.locator('button[title^="Claude"]').click()

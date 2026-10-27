@@ -1,0 +1,20 @@
+{
+  "item": "UI.33",
+  "date": "2026-10-27",
+  "browser": "navegador integrado de Claude Desktop, dashboard real (bun run src/cli.ts dashboard, puerto 4243, build:app recién hecho por ui:gate usage-bar)",
+  "steps": [
+    "Recargar; leer [data-quota-tone] de la barra inferior con getComputedStyle",
+    "Buscar en dist/main.css las clases de los tres tonos"
+  ],
+  "result": {
+    "claude": { "used": 37, "tone": "normal", "class": "bg-emerald-400", "bg": "oklch(0.765 0.177 163.223)" },
+    "codex": { "used": 9, "tone": "normal", "class": "bg-emerald-400", "bg": "oklch(0.765 0.177 163.223)" },
+    "cssBundle": [".bg-emerald-400", ".bg-orange-500", ".text-orange-400", ".bg-app-error"]
+  },
+  "verdict": "Verde en vivo con consumo < 60 %. Naranja y rojo no ocurren con los datos de hoy: cubiertos por los bordes de quotaTone en tests y presentes en el CSS compilado.",
+  "gates": {
+    "typecheck": 0,
+    "ShellStatusBar.test.ts": "17 pass / 0 fail",
+    "ui:gate usage-bar": "19/19"
+  }
+}

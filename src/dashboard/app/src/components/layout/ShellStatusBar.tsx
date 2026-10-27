@@ -17,8 +17,9 @@ export interface CliQuotaInfo {
 
 export function quotaTone(remaining: number | null): 'normal' | 'warning' | 'error' {
   if (remaining === null) return 'normal'
-  if (remaining < 20) return 'error'
-  if (remaining < 40) return 'warning'
+  const used = 100 - remaining
+  if (used > 80) return 'error'
+  if (used >= 60) return 'warning'
   return 'normal'
 }
 
@@ -168,14 +169,14 @@ export const ShellStatusBar: React.FC<ShellStatusBarProps> = ({
               <div className="w-12 h-1 bg-app-elevated rounded-pill overflow-hidden flex-shrink-0">
                 {hasData && (
                   <div
-                    className={`h-full ${tone === 'error' ? 'bg-app-error' : tone === 'warning' ? 'bg-app-warning' : 'bg-app-accent'} rounded-pill transition-all`}
+                    className={`h-full ${tone === 'error' ? 'bg-app-error' : tone === 'warning' ? 'bg-orange-500' : 'bg-emerald-400'} rounded-pill transition-all`}
                     data-quota-tone={tone}
                     style={{ width: `${pct}%` }}
                   />
                 )}
               </div>
               <span
-                className={`text-[11px] ${tone === 'error' ? 'text-app-error' : tone === 'warning' ? 'text-app-warning' : 'text-app-muted'}`}
+                className={`text-[11px] ${tone === 'error' ? 'text-app-error' : tone === 'warning' ? 'text-orange-400' : 'text-app-muted'}`}
                 data-quota-tone={tone}
               >
                 {hasData ? `${pct}%` : '—'}
@@ -225,7 +226,7 @@ export const ShellStatusBar: React.FC<ShellStatusBarProps> = ({
                     <span className="text-app-muted">5-hour</span>
                     <div className="flex items-center gap-1.5 font-mono text-[11px]">
                       <span
-                        className={`font-semibold ${fiveHourTone === 'error' ? 'text-app-error' : fiveHourTone === 'warning' ? 'text-app-warning' : 'text-app'}`}
+                        className={`font-semibold ${fiveHourTone === 'error' ? 'text-app-error' : fiveHourTone === 'warning' ? 'text-orange-400' : 'text-app'}`}
                         data-quota-tone={fiveHourTone}
                       >
                         {Math.round(100 - activeCli.quota5h)}%
@@ -236,7 +237,7 @@ export const ShellStatusBar: React.FC<ShellStatusBarProps> = ({
                   </div>
                   <div className="w-full h-1 bg-app-elevated rounded-pill overflow-hidden">
                     <div
-                      className={`h-full ${fiveHourTone === 'error' ? 'bg-app-error' : fiveHourTone === 'warning' ? 'bg-app-warning' : 'bg-app-accent'} rounded-pill`}
+                      className={`h-full ${fiveHourTone === 'error' ? 'bg-app-error' : fiveHourTone === 'warning' ? 'bg-orange-500' : 'bg-emerald-400'} rounded-pill`}
                       data-quota-tone={fiveHourTone}
                       style={{ width: `${Math.round(100 - activeCli.quota5h)}%` }}
                     />
@@ -251,7 +252,7 @@ export const ShellStatusBar: React.FC<ShellStatusBarProps> = ({
                     <span className="text-app-muted">Weekly</span>
                     <div className="flex items-center gap-1.5 font-mono text-[11px]">
                       <span
-                        className={`font-semibold ${weeklyTone === 'error' ? 'text-app-error' : weeklyTone === 'warning' ? 'text-app-warning' : 'text-app'}`}
+                        className={`font-semibold ${weeklyTone === 'error' ? 'text-app-error' : weeklyTone === 'warning' ? 'text-orange-400' : 'text-app'}`}
                         data-quota-tone={weeklyTone}
                       >
                         {Math.round(100 - activeCli.quotaWeekly)}%
@@ -262,7 +263,7 @@ export const ShellStatusBar: React.FC<ShellStatusBarProps> = ({
                   </div>
                   <div className="w-full h-1 bg-app-elevated rounded-pill overflow-hidden">
                     <div
-                      className={`h-full ${weeklyTone === 'error' ? 'bg-app-error' : weeklyTone === 'warning' ? 'bg-app-warning' : 'bg-app-accent/60'} rounded-pill`}
+                      className={`h-full ${weeklyTone === 'error' ? 'bg-app-error' : weeklyTone === 'warning' ? 'bg-orange-500' : 'bg-emerald-400'} rounded-pill`}
                       data-quota-tone={weeklyTone}
                       style={{ width: `${Math.round(100 - activeCli.quotaWeekly)}%` }}
                     />

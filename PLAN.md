@@ -279,6 +279,13 @@ Regla: nada se reintenta, cierra ni muestra sin evidencia medida que el usuario 
   el nuevo; Claude 61→67 % sigue fallando); `usage-bar` 5/5 (19/19), `test:coverage` 1992/0 (ejecutor).
   Gate en vivo: navegador real (Playwright), `docs/done/evidence/CI.39-live.json`
   Ejecutado por: codex gpt-6.1-sol (criterio) · Spec: docs/specs/CI.39.md
+- [x] **UI.33 — ⚡ Colores de cuota por consumo: verde < 60 %, naranja 60–80 %, rojo > 80 %.** (cerrado 2026-10-27,
+  Carlos; 5 h y semanal, barra inferior y popover.) `quotaTone` decide por consumo (`> 80` error, `>= 60` warning);
+  barras `bg-emerald-400` / `bg-orange-500` / `bg-app-error`, número naranja `text-orange-400`.
+  Evidencia (cerebro): diff leído; typecheck 0; `ShellStatusBar.test.ts` 17/0; `ui:gate usage-bar` 19/19; en vivo
+  Claude 37 % y Codex 9 % en verde (computed oklch emerald); naranja/rojo presentes en `dist/main.css`.
+  Gate en vivo: navegador real (navegador integrado de Claude Desktop), `docs/done/evidence/UI.33-live.json`
+  Ejecutado por: codex gpt-6-luna (mecanico) · Spec: docs/specs/UI.33.md (borrado)
 - [x] **UI.32 — ⚡ Pestaña Diff: muestra los cambios del working tree de git, como VS Code (solo lectura).** (cerrado
   2026-10-27, GO de Carlos.) Antes solo listaba diffs guardados por tareas y nunca leía git. Ahora
   `handlers/git-changes.ts` sirve `GET /api/git/changes` (status porcelain + numstat contra HEAD, sin seguimiento
