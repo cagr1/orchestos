@@ -1644,6 +1644,14 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
                     {activeSection === id && navHighlight}
                     <Icon className="w-4 h-4 text-app-muted" />
                     <span>{label}</span>
+                    {id === 'health' && health && (
+                      <span
+                        data-health-dot
+                        data-health-state={health.system.ready ? 'ready' : 'attention'}
+                        aria-hidden="true"
+                        className={`ml-auto size-1.5 rounded-full ${health.system.ready ? 'bg-app-success' : 'bg-app-warning'}`}
+                      />
+                    )}
                   </button>
                 ))}
               </div>
@@ -2027,16 +2035,22 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
                 {customClis.map((cli, index) => (
                   <React.Fragment key={index}>
                     <SettingsRow
-                      label={cli.label || 'Nuevo CLI'}
+                      label={cli.label || (language === 'es' ? 'Nuevo CLI' : 'New CLI')}
                       description={<span className="font-mono">{cli.command}</span>}
                     >
                       <span className="text-xs text-app-muted">
-                        {cli.installed ? '● Instalado' : '○ No instalado'}
+                        {cli.installed
+                          ? language === 'es'
+                            ? '● Instalado'
+                            : '● Installed'
+                          : language === 'es'
+                            ? '○ No instalado'
+                            : '○ Not installed'}
                       </span>
                       <Button
                         variant="ghost"
                         size="icon-compact"
-                        aria-label={`Editar ${cli.label}`}
+                        aria-label={`${language === 'es' ? 'Editar' : 'Edit'} ${cli.label}`}
                         disabled={settingsLoading || !baseline}
                         onClick={() => setEditingCli(editingCli === index ? null : index)}
                       >
@@ -2044,7 +2058,7 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
                       </Button>
                       <button
                         type="button"
-                        aria-label={`Quitar ${cli.label}`}
+                        aria-label={`${language === 'es' ? 'Quitar' : 'Remove'} ${cli.label}`}
                         disabled={settingsLoading || !baseline}
                         className="p-1.5 text-app-muted hover:text-app"
                         onClick={() => {
@@ -2060,12 +2074,12 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
                       <div className="flex flex-col gap-3 p-4" data-cli-form>
                         {(
                           [
-                            ['label', 'Nombre'],
+                            ['label', language === 'es' ? 'Nombre' : 'Name'],
                             ['id', 'ID'],
-                            ['command', 'Comando'],
-                            ['argsText', 'Argumentos'],
-                            ['modelArgsText', 'Args de modelo'],
-                            ['modelsText', 'Modelos'],
+                            ['command', language === 'es' ? 'Comando' : 'Command'],
+                            ['argsText', language === 'es' ? 'Argumentos' : 'Arguments'],
+                            ['modelArgsText', language === 'es' ? 'Args de modelo' : 'Model args'],
+                            ['modelsText', language === 'es' ? 'Modelos' : 'Models'],
                           ] as const
                         ).map(([field, label]) => (
                           <label key={field} className="flex flex-col gap-2 text-xs text-app-muted">
@@ -2110,12 +2124,33 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
                             )}
                             {field === 'argsText' && (
                               <span>
-                                Usa {'{prompt}'} donde va la tarea; sin {'{prompt}'} se envía por
-                                stdin.
+                                {language === 'es' ? (
+                                  <>
+                                    Usa {'{prompt}'} donde va la tarea; sin {'{prompt}'} se envía
+                                    por stdin.
+                                  </>
+                                ) : (
+                                  <>
+                                    Use {'{prompt}'} where the task goes; without {'{prompt}'} it is
+                                    sent via stdin.
+                                  </>
+                                )}
                               </span>
                             )}
-                            {field === 'modelArgsText' && <span>Opcional, uno por línea.</span>}
-                            {field === 'modelsText' && <span>Opcional, separados por coma.</span>}
+                            {field === 'modelArgsText' && (
+                              <span>
+                                {language === 'es'
+                                  ? 'Opcional, uno por línea.'
+                                  : 'Optional, one per line.'}
+                              </span>
+                            )}
+                            {field === 'modelsText' && (
+                              <span>
+                                {language === 'es'
+                                  ? 'Opcional, separados por coma.'
+                                  : 'Optional, comma-separated.'}
+                              </span>
+                            )}
                           </label>
                         ))}
                       </div>
@@ -2141,7 +2176,7 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
                       setCliError(null)
                     }}
                   >
-                    Agregar CLI
+                    {language === 'es' ? 'Agregar CLI' : 'Add CLI'}
                   </Button>
                 </div>
               </div>
@@ -2178,7 +2213,10 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
                 }
                 description={
                   health
-                    ? `${health.system.items.filter((item) => item.ok).length}/${health.system.items.length} system checks passing in ${setup?.cwd || health.system.cwd}.`
+                    ? `${health.system.items.filter((item) => item.ok).length}/${health.system.items.length} system checks passing in ${setup?.cwd || health.system.cwd}.${health.system.items
+                        .filter((item) => !item.ok)
+                        .map((item) => ` ${item.label}: ${item.hint}`)
+                        .join('')}`
                     : settingsError || 'Checking system checks…'
                 }
               ></SettingsRow>

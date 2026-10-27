@@ -137,9 +137,14 @@ Keybindings de solo lectura en la primera versión. Orden: SET.0 primero (bloque
   Keybindings vistos en vivo sobre copia de la DB; `test:coverage` 2101/0, typecheck y lint.
   Gate en vivo: navegador real (Playwright) `settings-pages` 17/17, `settings-shell` 21/21, `shell-look` 73/73, `docs/done/evidence/SET.5-live.json`
   Ejecutado por: codex gpt-6.1-sol (criterio), revisión Opus · Spec: docs/specs/SET.5.md
-- [ ] **SET.6 — 🔍 Fallas sueltas vistas en vivo en Settings.** "Agregar CLI" sin traducir en inglés; "Loading project
-  data…" fijo en Tasks; punto verde de Health con setup 4/5; el buscador lleva a "CLI timeout" pero la fila dice
-  "Timeout". Spec: `docs/specs/SET.6.md`.
+- [x] **SET.6 — 🔍 Fallas sueltas vistas en vivo en Settings.** (cerrado 2026-10-26) El bloque de CLIs propios
+  (ahora en Providers) pasa por `language`: "Add CLI", "New CLI", Installed/Not installed, formulario y ayudas (visto
+  en vivo en inglés); "Setup needs attention" lista los checks que fallan (label + hint); la entrada Health de la nav
+  lleva un punto verde con `ready` y ámbar si falta algo crítico (no existía; visto verde en vivo, el ámbar solo
+  leído en código). "Loading project data…" no se reprodujo con la tabla cargada (probable causa: Settings esperaba a
+  `/api/usage`, arreglado en SET.3 r3; hipótesis, sin reproducción previa); `project-tabs` lo vigila. `test:coverage` 2121/0.
+  Gate en vivo: navegador real (Playwright) `project-tabs` 40/40, `text-sweep` 10/10, `docs/done/evidence/SET.6-live.json`
+  Ejecutado por: claude sonnet (criterio-alt, Codex sin cupo), revisión Opus · Spec: docs/specs/SET.6.md
 
 ### Confianza en el flujo — TRUST (GO de Carlos 2026-10-22)
 

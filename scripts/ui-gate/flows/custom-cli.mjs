@@ -76,20 +76,20 @@ export default async function customCli({
   await page.getByRole('button', { name: basename(root), exact: true }).click()
   await page.getByRole('button', { name: 'Settings', exact: true }).click()
   await page.getByRole('button', { name: 'Providers', exact: true }).click()
-  await page.getByRole('button', { name: 'Agregar CLI', exact: true }).click()
+  await page.getByRole('button', { name: /^(Agregar|Add) CLI$/ }).click()
   const form = page.locator('[data-cli-form]')
-  await form.getByLabel('Nombre', { exact: true }).fill('Claude (genérico)')
+  await form.getByLabel(/^(Nombre|Name)$/).fill('Claude (genérico)')
   await form.getByLabel('ID', { exact: true }).fill('claude-plain')
-  await form.getByLabel('Comando', { exact: true }).fill('claude')
+  await form.getByLabel(/^(Comando|Command)$/).fill('claude')
   await form
-    .getByLabel('Argumentos', { exact: true })
+    .getByLabel(/^(Argumentos|Arguments)$/)
     .fill('-p\n{prompt}\n--permission-mode\nacceptEdits')
   await shot('custom-cli-form')
   const [cliSaved] = await Promise.all([
     page.waitForResponse(
       (res) => res.url().endsWith('/api/clis') && res.request().method() === 'PUT',
     ),
-    form.getByLabel('Argumentos', { exact: true }).blur(),
+    form.getByLabel(/^(Argumentos|Arguments)$/).blur(),
   ])
   if (!cliSaved.ok())
     throw new Error(`save CLI failed ${cliSaved.status()}: ${await cliSaved.text()}`)
@@ -201,7 +201,7 @@ export default async function customCli({
     page.waitForResponse(
       (res) => res.url().endsWith('/api/clis') && res.request().method() === 'PUT',
     ),
-    page.getByRole('button', { name: 'Quitar Claude (genérico)', exact: true }).click(),
+    page.getByRole('button', { name: /^(Quitar|Remove) Claude \(genérico\)$/ }).click(),
   ])
   await step(
     'assigned CLI removal rejected inline',
@@ -228,7 +228,7 @@ export default async function customCli({
     page.waitForResponse(
       (res) => res.url().endsWith('/api/clis') && res.request().method() === 'PUT',
     ),
-    page.getByRole('button', { name: 'Quitar Claude (genérico)', exact: true }).click(),
+    page.getByRole('button', { name: /^(Quitar|Remove) Claude \(genérico\)$/ }).click(),
   ])
   await page.locator('[data-settings-saving]').waitFor({ state: 'hidden' })
   await step(

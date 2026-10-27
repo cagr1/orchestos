@@ -287,6 +287,19 @@ export default async function projectTabs({
       await Promise.all(mockTitles.map((title) => page.getByText(title, { exact: true }).count()))
     ).every((count) => count === 0)
 
+  await tab('Tasks').click()
+  await page.locator('[data-tasks-tab]').waitFor({ timeout: 10_000 })
+  await step(
+    'loading indicator gone after tasks load',
+    await page
+      .getByText('Loading project data', { exact: false })
+      .waitFor({ state: 'detached', timeout: 10_000 })
+      .then(
+        () => true,
+        () => false,
+      ),
+    `count=${await page.getByText('Loading project data', { exact: false }).count()}`,
+  )
   await tab('Specs').click()
   await step(
     'specs empty state visible',
