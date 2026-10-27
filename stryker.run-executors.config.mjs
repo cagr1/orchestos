@@ -7,6 +7,7 @@ export default {
     'src/run/executors/**/*.ts',
     '!src/run/executors/codex*.ts',
     '!src/run/executors/external.ts',
+    '!src/run/**/*.test.ts',
   ],
   coverageAnalysis: 'off',
   checkers: ['typescript'],

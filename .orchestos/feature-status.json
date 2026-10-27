@@ -382,6 +382,15 @@
       "closedDate": "2026-10-27"
     },
     {
+      "id": "CI.47",
+      "sprint": "Fase 2 — Producto mínimo para entrega",
+      "block": "Abiertos — fiabilidad de los gates y documentación",
+      "delegation": "🔍",
+      "title": "`Mutation Shards`: `executors-routing` pasa las 3 h y `executors-engines` va a 168 min",
+      "status": "done",
+      "closedDate": "2026-10-27"
+    },
+    {
       "id": "CI.19",
       "sprint": "Fase 2 — Producto mínimo para entrega",
       "block": "Abiertos — fiabilidad de los gates y documentación",

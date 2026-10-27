@@ -20,8 +20,12 @@ jobs:
         include:
           - shard: executors-engines
             command: mutation:run:executors-engines
+          - shard: executors-engines-b
+            command: mutation:run:executors-engines-b
           - shard: executors-routing
             command: mutation:run:executors-routing
+          - shard: executors-routing-b
+            command: mutation:run:executors-routing-b
           - shard: executors-codex-server
             command: mutation:run:executors-codex-server
           - shard: executors-codex-server-b

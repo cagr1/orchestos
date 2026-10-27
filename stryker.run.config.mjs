@@ -3,7 +3,7 @@ export default {
   commandRunner: {
     command: 'bun test src/__tests__ --timeout 30000',
   },
-  mutate: ['src/run/**/*.ts'],
+  mutate: ['src/run/**/*.ts', '!src/run/**/*.test.ts'],
   coverageAnalysis: 'off',
   checkers: ['typescript'],
   tsconfigFile: 'tsconfig.json',

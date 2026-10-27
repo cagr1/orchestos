@@ -8,7 +8,6 @@ export default {
   mutate: [
     'src/run/executors/agentic.ts',
     'src/run/executors/claude-approval.ts',
-    'src/run/executors/opencode*.ts',
     'src/run/executors/single-shot.ts',
     'src/run/executors/spawn-trace.ts',
     'src/run/executors/worktree-diff.ts',

@@ -7,7 +7,10 @@ import { mutationFiles, mutationTestArgs, selectMutationShardTests } from './mut
 
 describe('selectMutationShardTests', () => {
   for (const [parent, children] of [
-    ['executors', ['executors-engines', 'executors-routing']],
+    [
+      'executors',
+      ['executors-engines', 'executors-engines-b', 'executors-routing', 'executors-routing-b'],
+    ],
     [
       'executors-codex',
       [

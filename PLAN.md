@@ -480,6 +480,17 @@ Regla: nada se reintenta, cierra ni muestra sin evidencia medida que el usuario 
   archivos enteros (1296), `-engines` 850; selección 48 archivos en cada shard. Pendiente: tiempos reales en la
   próxima corrida nocturna (estimado ~1h10–1h40 por shard).
   Ejecutado por: codex gpt-6-luna (mecanico, r1 y r2) · QA: codex gpt-6.1-sol (qa), sin defectos · Spec: docs/specs/CI.46.md (borrado)
+- [x] **CI.47 — 🔍 `Mutation Shards`: `executors-routing` pasa las 3 h y `executors-engines` va a 168 min.** (cerrado 2026-10-27)
+  Corrida `40550536708`: `-routing` cortado a 180 min (128 → 147 → 180+ en 3 noches, crece con SET.2/AT.11),
+  `-engines` 140 → 154 → 168. Causa extra: el glob `src/run/executors/**/*.ts` tomaba `cli-search-path.test.ts`
+  (SET.2.1, 10-26) y Stryker mutaba el propio test. Arreglo: cada shard en dos por archivos enteros
+  (`-engines-b` = `opencode*.ts`; `-routing-b` = `step-event`, `chat-adapters`, `task-engines`) y
+  `!src/run/**/*.test.ts` en `stryker.run-executors` y `stryker.run` (hermano).
+  Evidencia (cerebro): typecheck 0; `mutation-test-shard.test.ts` 9/0 (partición sin huecos ni solapes); dry runs
+  `-engines` 415, `-engines-b` 569, `-routing` 614, `-routing-b` 770 mutantes, ~52 s de suite cada uno; a ~10 s por
+  mutante (168 min / 984) el mayor estima ~2h10. Ningún `.test.ts` en `mutate`. Pendiente: tiempos reales en la
+  próxima corrida. Tiempos de CI.46 en `40550536708`: `-server` 42 min, `-server-b` 80, `-server-c` 77.
+  Ejecutado por: codex gpt-6-luna (mecanico, r1 y r2) · QA: codex gpt-6.1-sol (qa), sin defectos · Spec: docs/specs/CI.47.md (borrado)
 - [ ] **CI.19 — 🔍 El `git commit` del fixture falla a veces en el andamiaje de los ui-gates.** Visto 1 vez en
   `qa-negative` (2026-10-11, 1 de 9): `Command failed: git … commit -qm task fixture`, sin motivo porque el helper
   `run` usa `stdio: 'ignore'`. `qa-negative` ya reporta stdout/stderr y exit; los otros 20 flows con el mismo helper no.
