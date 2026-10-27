@@ -13,6 +13,7 @@ import {
   MoreHorizontal,
   RefreshCw,
   RotateCcw,
+  RotateCw,
   Search,
   ShieldCheck,
   Sliders,
@@ -20,9 +21,10 @@ import {
   Upload,
   X,
 } from 'lucide-react'
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import { getExplorerFile, getExplorerTree } from '../../api/explorer'
-import type { FileNode, ProjectItem, RunItem } from '../../types/orchestos'
+import { type GitChange, getGitChanges, getGitDiff } from '../../api/git'
+import type { FileNode, ProjectItem } from '../../types/orchestos'
 import { ProviderLogo } from '../common/ProviderLogos'
 import { ResizableAside } from '../common/ResizableAside'
 
@@ -42,7 +44,6 @@ export interface HistorySession {
 interface OrcaRightInspectorProps {
   currentProject: ProjectItem
   projects: ProjectItem[]
-  recentRuns: RunItem[]
   historySessions?: HistorySession[]
   onRestoreAgentToSidebar?: (session: HistorySession) => void
   onDeleteHistorySession?: (sessionId: string) => void
@@ -67,7 +68,6 @@ export function parseDiffPatch(patch: string): {
 export const OrcaRightInspector: React.FC<OrcaRightInspectorProps> = ({
   currentProject,
   projects,
-  recentRuns,
   historySessions = [],
   onRestoreAgentToSidebar,
   onDeleteHistorySession,
@@ -100,6 +100,59 @@ export const OrcaRightInspector: React.FC<OrcaRightInspectorProps> = ({
     setSelectedFile(null)
     loadTree()
   }, [currentProject.id])
+
+  const [gitFiles, setGitFiles] = useState<GitChange[]>([])
+  const [gitError, setGitError] = useState(false)
+  const [openDiff, setOpenDiff] = useState<string | null>(null)
+  const [patch, setPatch] = useState<string | null>(null)
+  const [patchError, setPatchError] = useState(false)
+  const [refresh, setRefresh] = useState(0)
+  const diffRequest = useRef(0)
+
+  useEffect(() => {
+    setGitFiles([])
+    setOpenDiff(null)
+    diffRequest.current++
+  }, [currentProject.id])
+
+  useEffect(() => {
+    if (activeTab !== 'diff') return
+    let cancelled = false
+    const load = async () => {
+      try {
+        const data = await getGitChanges(currentProject.id)
+        if (!cancelled) {
+          setGitFiles(data.files)
+          setGitError(false)
+        }
+      } catch {
+        if (!cancelled) setGitError(true)
+      }
+    }
+    void load()
+    const timer = window.setInterval(() => void load(), 4000)
+    return () => {
+      cancelled = true
+      window.clearInterval(timer)
+    }
+  }, [activeTab, currentProject.id, refresh])
+
+  const toggleDiff = async (path: string) => {
+    const request = ++diffRequest.current
+    if (openDiff === path) {
+      setOpenDiff(null)
+      return
+    }
+    setOpenDiff(path)
+    setPatch(null)
+    setPatchError(false)
+    try {
+      const data = await getGitDiff(path, currentProject.id)
+      if (request === diffRequest.current) setPatch(data.patch)
+    } catch {
+      if (request === diffRequest.current) setPatchError(true)
+    }
+  }
 
   // History Tab specific states
   const [historyScope, setHistoryScope] = useState<'workspace' | 'project' | 'all'>('workspace')
@@ -407,37 +460,89 @@ export const OrcaRightInspector: React.FC<OrcaRightInspectorProps> = ({
 
       {/* TAB 2: Worktree Diff */}
       {activeTab === 'diff' && (
-        <div className="flex-1 flex flex-col p-3 overflow-y-auto space-y-3">
-          {recentRuns.flatMap((run) => run.fileDiffs || []).length === 0 ? (
-            <div className="p-3 text-xs text-app-muted">
-              No persisted file diffs for this project.
+        <div className="flex-1 flex flex-col overflow-hidden">
+          <div className="p-3 border-b border-app flex items-center justify-between flex-shrink-0">
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-semibold text-app">CHANGES</span>
+              <span className="px-1.5 rounded-pill bg-app-surface text-xs text-app-muted">
+                {gitFiles.length}
+              </span>
             </div>
-          ) : (
-            <div className="space-y-2">
-              {recentRuns
-                .flatMap((run) => run.fileDiffs || [])
-                .map((diff, index) => (
-                  <div
-                    key={`${diff.path || diff.filePath || 'diff'}-${index}`}
-                    className="border border-app rounded-card bg-app-surface overflow-hidden text-xs"
+            <button
+              type="button"
+              aria-label="Refresh git changes"
+              onClick={() => setRefresh((value) => value + 1)}
+              className="p-1 text-app-muted hover:text-app rounded-control"
+            >
+              <RotateCw className="w-3.5 h-3.5" />
+            </button>
+          </div>
+          <div className="flex-1 overflow-y-auto p-1">
+            {gitError && (
+              <div className="p-3 text-xs text-app-muted">Could not read git changes</div>
+            )}
+            {!gitError && gitFiles.length === 0 && (
+              <div className="p-3 text-xs text-app-muted">No changes</div>
+            )}
+            {gitFiles.map((file) => {
+              const parts = file.path.split('/')
+              const name = parts.pop()
+              const statusColor =
+                file.status === 'M'
+                  ? 'text-app-warning'
+                  : file.status === 'D'
+                    ? 'text-app-error'
+                    : file.status === 'R'
+                      ? 'text-app-accent'
+                      : 'text-emerald-400'
+              return (
+                <div key={file.path}>
+                  <button
+                    type="button"
+                    title={file.path}
+                    aria-expanded={openDiff === file.path}
+                    onClick={() => void toggleDiff(file.path)}
+                    className="w-full flex items-center gap-2 px-2 py-1 text-xs text-left hover:bg-app-surface rounded-control"
                   >
-                    <div className="px-3 py-1.5 bg-app-elevated border-b border-app flex items-center justify-between font-mono">
-                      <span className="text-app font-medium truncate">
-                        {diff.path || diff.filePath || 'Changed file'}
-                      </span>
-                      <span className="text-emerald-400">
-                        +{diff.additions ?? 0} -{diff.deletions ?? 0}
-                      </span>
+                    <FileCode className="w-3.5 h-3.5 flex-shrink-0 text-app-muted" />
+                    <span className="text-app truncate">{name}</span>
+                    <span className="text-app-muted truncate flex-1">{parts.join('/')}</span>
+                    <span className="font-mono text-emerald-400 flex-shrink-0">
+                      +{file.additions}
+                    </span>
+                    <span className="font-mono text-app-error flex-shrink-0">
+                      −{file.deletions}
+                    </span>
+                    <span className={`font-mono flex-shrink-0 ${statusColor}`}>{file.status}</span>
+                  </button>
+                  {openDiff === file.path && (
+                    <div className="overflow-auto max-h-48 font-mono text-[11px] text-app-muted">
+                      {patchError ? (
+                        <div className="p-2">Could not read git changes</div>
+                      ) : patch === null ? (
+                        <div className="p-2">Loading…</div>
+                      ) : (
+                        <pre className="w-max min-w-full py-2">
+                          {parseDiffPatch(patch)
+                            .lines.filter(
+                              (line) => !/^(diff --git |index |--- |\+\+\+ )/.test(line),
+                            )
+                            .map((line, index) => (
+                              <div
+                                key={index}
+                                className={`px-2 ${line.startsWith('+') ? 'bg-emerald-500/10 text-emerald-400' : line.startsWith('-') ? 'bg-red-500/10 text-app-error' : line.startsWith('@@') ? 'text-app-accent' : ''}`}
+                              >
+                                {line}
+                              </div>
+                            ))}
+                        </pre>
+                      )}
                     </div>
-                    {diff.diff && (
-                      <pre className="p-2 font-mono text-[11px] whitespace-pre-wrap overflow-auto max-h-48 text-app-muted">
-                        {diff.diff}
-                      </pre>
-                    )}
-                  </div>
-                ))}
-            </div>
-          )}
+                  )}
+                </div>
+              )
+            })}
+          </div>
         </div>
       )}
 

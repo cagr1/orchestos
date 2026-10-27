@@ -279,6 +279,16 @@ Regla: nada se reintenta, cierra ni muestra sin evidencia medida que el usuario 
   el nuevo; Claude 61→67 % sigue fallando); `usage-bar` 5/5 (19/19), `test:coverage` 1992/0 (ejecutor).
   Gate en vivo: navegador real (Playwright), `docs/done/evidence/CI.39-live.json`
   Ejecutado por: codex gpt-6.1-sol (criterio) · Spec: docs/specs/CI.39.md
+- [x] **UI.32 — ⚡ Pestaña Diff: muestra los cambios del working tree de git, como VS Code (solo lectura).** (cerrado
+  2026-10-27, GO de Carlos.) Antes solo listaba diffs guardados por tareas y nunca leía git. Ahora
+  `handlers/git-changes.ts` sirve `GET /api/git/changes` (status porcelain + numstat contra HEAD, sin seguimiento
+  contado por líneas) y `GET /api/git/diff?path=` (ruta validada dentro del proyecto; sin seguimiento vía
+  `--no-index`); la pestaña lista `CHANGES N` con nombre, carpeta, `+N −M` y letra de estado, refresca cada 4 s y
+  despliega el diff coloreado. Fuera los `fileDiffs` de runs en esta pestaña.
+  Evidencia (cerebro): diff leído; typecheck 0; `git-changes.test.ts` 7/0; lint sin errores; en vivo 8 filas = `git
+  status`, conteos = `git diff HEAD --numstat`.
+  Gate en vivo: navegador real (navegador integrado de Claude Desktop), `docs/done/evidence/UI.32-live.json`
+  Ejecutado por: codex gpt-6.1-sol (criterio), revisión Opus · Spec: docs/specs/UI.32.md (borrado)
 - [x] **UI.31 — ⚡ Cuotas de CLI: se ve lo consumido, sin "CLI Quotas", semanal como "5D 14h".** (cerrado 2026-10-27,
   Carlos, captura del popover de Codex: 95 % restante debe leerse 5 %.) `ShellStatusBar.tsx` muestra `100 − restante`
   en barra y popover (el tono sigue por restante), etiquetas `5-hour`/`Weekly`, `formatCountdown` para el semanal.

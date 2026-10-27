@@ -1432,7 +1432,6 @@ export default function App() {
             <OrcaRightInspector
               currentProject={currentProject}
               projects={projects}
-              recentRuns={runs}
               historySessions={historySessions}
               onRestoreAgentToSidebar={handleRestoreAgent}
               onDeleteHistorySession={handleDeleteHistorySession}

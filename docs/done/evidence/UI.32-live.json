@@ -1,0 +1,31 @@
+{
+  "item": "UI.32",
+  "date": "2026-10-27",
+  "browser": "navegador integrado de Claude Desktop, dashboard real (bun run src/cli.ts dashboard, puerto 4243, reiniciado tras build:app)",
+  "steps": [
+    "Modo Dev, proyecto orchestos, pestaña Diff",
+    "Comparar la lista con git status --porcelain (8 entradas) y git diff HEAD --numstat",
+    "Click en OrcaRightInspector.tsx"
+  ],
+  "result": {
+    "count": 8,
+    "rows": [
+      "UI.32.md docs/specs +52 -0 U",
+      "PLAN.md +2 -0 M",
+      "git.ts src/dashboard/app/src/api +23 -0 U",
+      "App.tsx src/dashboard/app/src +0 -1 M",
+      "OrcaRightInspector.tsx +137 -32 M",
+      "git-changes.test.ts +115 -0 U",
+      "git-changes.ts +102 -0 U",
+      "server.ts src/dashboard +7 -0 M"
+    ],
+    "numstat": ["PLAN.md 2/0", "App.tsx 0/1", "OrcaRightInspector.tsx 137/32", "server.ts 7/0"],
+    "diffExpanded": "hunks @@ en acento, línea + con fondo verde, cabeceras diff/index/---/+++ ocultas"
+  },
+  "verdict": "La pestaña Diff lista los mismos archivos que git status, con letra y conteos iguales a numstat, y despliega el diff coloreado.",
+  "gates": {
+    "typecheck": 0,
+    "git-changes.test.ts": "7 pass / 0 fail",
+    "lint": "sin errores"
+  }
+}

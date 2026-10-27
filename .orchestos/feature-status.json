@@ -211,6 +211,15 @@
       "closedDate": null
     },
     {
+      "id": "UI.32",
+      "sprint": "Fase 2 — Producto mínimo para entrega",
+      "block": "Abiertos — fiabilidad de los gates y documentación",
+      "delegation": "⚡",
+      "title": "Pestaña Diff: muestra los cambios del working tree de git, como VS Code (solo lectura)",
+      "status": "done",
+      "closedDate": null
+    },
+    {
       "id": "UI.31",
       "sprint": "Fase 2 — Producto mínimo para entrega",
       "block": "Abiertos — fiabilidad de los gates y documentación",

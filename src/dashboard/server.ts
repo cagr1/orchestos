@@ -27,6 +27,7 @@ import {
 import { handleApiClisGet, handleApiClisSet } from './handlers/clis.ts'
 import { handleApiConfigGet, handleApiConfigInit, handleApiConfigSet } from './handlers/config.ts'
 import { handleApiExplorerFile, handleApiExplorerTree } from './handlers/explorer.ts'
+import { handleApiGitChanges, handleApiGitDiff } from './handlers/git-changes.ts'
 import {
   handleApiInstincts,
   handleApiInstinctsApprove,
@@ -534,6 +535,12 @@ export async function route(req: Request, port: number): Promise<Response> {
   }
   if (method === 'PUT' && url.pathname === '/api/config') {
     return withDashboardProject(req, (project) => handleApiConfigSet(req, project.root))
+  }
+  if (method === 'GET' && url.pathname === '/api/git/changes') {
+    return withDashboardProject(req, (project) => handleApiGitChanges(project.root))
+  }
+  if (method === 'GET' && url.pathname === '/api/git/diff') {
+    return withDashboardProject(req, (project) => handleApiGitDiff(url, project.root))
   }
   if (method === 'GET' && url.pathname === '/api/explorer/tree') {
     return withDashboardProject(req, (project) => handleApiExplorerTree(url, project.root))
