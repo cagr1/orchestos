@@ -36,6 +36,9 @@ Un solo presente: orden y trampas vivas. Lo cerrado vive en `docs/done/bloque-*.
 2. Cualquier CLI ya corre tareas sin código (AT.11.2/AT.11.3): se declara en Settings → Providers → "CLIs propios".
    Un adaptador rico (streaming, sesiones, cuotas) para un CLI nuevo sigue siendo `KNOWN_CLIS` + `registerTaskEngine`
    y lo instala el cerebro para probarlo, no Carlos. Fuera hoy: CLI genérico en el chat (necesita streaming).
+- Trampa: dos ítems sin commitear en el mismo archivo (SET.3/4/6 en `OrchestSettingsView.tsx`): guardar el parche de
+  cada ítem antes de delegar el siguiente y commitear con `git apply --cached` + `git commit` SIN rutas; `git commit --
+  <ruta>` toma el archivo del árbol y mezcla los ítems.
 - Trampa: el título en negrita de un ítem de `PLAN.md` debe cerrar `**` en la primera línea; partido en dos, el
   parser no lo ve y el gate dice "Closed item … is missing from staged PLAN.md" (AT.11.2).
 - Trampa: al cerrar un ítem, `plan:reconcile` una sola vez antes del commit. Un segundo reconcile ve el ítem ya
