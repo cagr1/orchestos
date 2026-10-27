@@ -7,8 +7,18 @@
     "Buscar en dist/main.css las clases de los tres tonos"
   ],
   "result": {
-    "claude": { "used": 37, "tone": "normal", "class": "bg-emerald-400", "bg": "oklch(0.765 0.177 163.223)" },
-    "codex": { "used": 9, "tone": "normal", "class": "bg-emerald-400", "bg": "oklch(0.765 0.177 163.223)" },
+    "claude": {
+      "used": 37,
+      "tone": "normal",
+      "class": "bg-emerald-400",
+      "bg": "oklch(0.765 0.177 163.223)"
+    },
+    "codex": {
+      "used": 9,
+      "tone": "normal",
+      "class": "bg-emerald-400",
+      "bg": "oklch(0.765 0.177 163.223)"
+    },
     "cssBundle": [".bg-emerald-400", ".bg-orange-500", ".text-orange-400", ".bg-app-error"]
   },
   "verdict": "Verde en vivo con consumo < 60 %. Naranja y rojo no ocurren con los datos de hoy: cubiertos por los bordes de quotaTone en tests y presentes en el CSS compilado.",
