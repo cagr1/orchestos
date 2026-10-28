@@ -48,6 +48,7 @@ function startDashboard(port) {
       ORCHESTOS_HOME: home,
       ORCHESTOS_GATE_CAPTURE_DIR: captureDir,
       ORCHESTOS_CLAUDE_STATUSLINE_HOME: statuslineHome,
+      ORCHESTOS_CLAUDE_USAGE_LIVE: '0',
     },
     stdio: ['ignore', dashboardLogFd, dashboardLogFd],
   })

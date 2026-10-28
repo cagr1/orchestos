@@ -14,6 +14,13 @@ const statusRefreshes = new Map<string, Promise<void>>()
 const STATUS_CACHE_MAX_AGE_MS = 10_000
 const STATUS_REFRESH_TIMEOUT_MS = 3_000
 
+export function claudeUsageRefresher(
+  env: NodeJS.ProcessEnv = process.env,
+): (() => ReturnType<typeof refreshClaudeUsageLive>) | undefined {
+  if (env.ORCHESTOS_CLAUDE_USAGE_LIVE === '0') return undefined
+  return () => refreshClaudeUsageLive()
+}
+
 export function withFreshClaudeQuota(
   clis: SessionStatus[],
   read = readClaudeStatuslineRateLimits,
@@ -54,7 +61,7 @@ export async function handleApiSessionStatus(root: string): Promise<Response> {
     if (pending) return pending
     const promise = readActiveSessionStatuses({
       projectRoot: root,
-      refreshClaudeUsage: () => refreshClaudeUsageLive(),
+      refreshClaudeUsage: claudeUsageRefresher(),
     })
       .then((clis) => {
         statusCache.set(cacheKey, { clis, refreshedAt: Date.now() })

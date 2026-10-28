@@ -4,7 +4,7 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { readActiveSessionStatuses, type SessionStatus } from '../../../scripts/session-status.ts'
 import type { CliDetectionResult } from '../../../src/run/executors/cli-registry.ts'
-import { withFreshClaudeQuota } from '../handlers/session-status.ts'
+import { claudeUsageRefresher, withFreshClaudeQuota } from '../handlers/session-status.ts'
 import { route } from '../server.ts'
 
 const PORT = 4257
@@ -77,6 +77,16 @@ describe('withFreshClaudeQuota', () => {
         throw new Error('unavailable')
       }),
     ).toBe(quotaStatuses)
+  })
+})
+
+describe('claudeUsageRefresher', () => {
+  test('disables live Claude usage reads when explicitly disabled', () => {
+    expect(claudeUsageRefresher({ ORCHESTOS_CLAUDE_USAGE_LIVE: '0' })).toBeUndefined()
+  })
+
+  test('enables live Claude usage reads by default', () => {
+    expect(claudeUsageRefresher({})).toBeFunction()
   })
 })
 

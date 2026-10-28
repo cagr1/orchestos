@@ -501,6 +501,9 @@ Regla: nada se reintenta, cierra ni muestra sin evidencia medida que el usuario 
   Evidencia (cerebro): typecheck 0; `session-status.test.ts` ×2 35/0; sin corrida propia, popover
   "5-hour 10% · resets 9:00 PM", "Weekly 48% · 1D 7h"; archivo sin token.
   Gate en vivo: navegador real (dashboard 4243), `docs/done/evidence/UI.35-live.json`.
+  Pre-push: el dashboard de `usage-bar` leyó el llavero real y tapó el fixture (39 %); los ui-gates arrancan con
+  `ORCHESTOS_CLAUDE_USAGE_LIVE=0` y no tocan llavero ni red. `ui:gate usage-bar` 19/19, tests 37/0.
+  **Fuera de scope declarado:** PLAN.md lo escribe el cerebro al registrar la evidencia del arreglo del gate.
   Ejecutado por: codex gpt-6.1-sol (criterio r1) · codex gpt-6-luna (mecanico r2-r4) · QA: codex gpt-6.1-sol (P2 en r3, sin defectos en r4) · Spec: docs/specs/UI.35.md (borrado)
 - [ ] **CI.19 — 🔍 El `git commit` del fixture falla a veces en el andamiaje de los ui-gates.** Visto 1 vez en
   `qa-negative` (2026-10-11, 1 de 9): `Command failed: git … commit -qm task fixture`, sin motivo porque el helper
