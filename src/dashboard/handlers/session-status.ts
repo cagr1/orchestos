@@ -1,6 +1,7 @@
 import {
   readActiveSessionStatuses,
   readClaudeStatuslineRateLimits,
+  refreshClaudeUsageLive,
   type SessionStatus,
 } from '../../../scripts/session-status.ts'
 import { jsonResponse } from '../http.ts'
@@ -51,7 +52,10 @@ export async function handleApiSessionStatus(root: string): Promise<Response> {
   const refresh = async () => {
     const pending = statusRefreshes.get(cacheKey)
     if (pending) return pending
-    const promise = readActiveSessionStatuses({ projectRoot: root })
+    const promise = readActiveSessionStatuses({
+      projectRoot: root,
+      refreshClaudeUsage: () => refreshClaudeUsageLive(),
+    })
       .then((clis) => {
         statusCache.set(cacheKey, { clis, refreshedAt: Date.now() })
       })

@@ -1,0 +1,22 @@
+{
+  "item": "UI.35",
+  "date": "2026-10-27",
+  "browser": "navegador integrado de Claude Desktop, dashboard real (bun run src/cli.ts dashboard, puerto 4243, reiniciado con el backend nuevo)",
+  "steps": [
+    "Antes: captura de Carlos, popover de Claude 'no data since 5 h' y solo Weekly",
+    "Consulta directa del cerebro al endpoint: 200, five_hour 7, seven_day 47",
+    "r1 en vivo: refreshClaudeUsageLive false por ~/.claude/.credentials.json vencido (julio) leído antes del llavero",
+    "r3: llavero primero en macOS, credencial vigente gana; reiniciar dashboard, abrir el popover"
+  ],
+  "result": {
+    "file": "{\"rate_limits\":{\"five_hour\":{\"used_percentage\":10,\"resets_at\":1793152800},\"seven_day\":{\"used_percentage\":48,\"resets_at\":1793260800}}}",
+    "tokenInFile": 0,
+    "statusBarTitle": "Claude Code: 10% 5-hour quota used",
+    "popover": ["5-hour 10% · resets 9:00 PM", "Weekly 48% · 1D 7h"]
+  },
+  "verdict": "La 5 h de Claude se ve sin corrida propia de OrchestOS; el archivo guarda solo porcentajes y resets.",
+  "gates": {
+    "typecheck": 0,
+    "session-status.test.ts (scripts + dashboard)": "34 pass / 0 fail"
+  }
+}

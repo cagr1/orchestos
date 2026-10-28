@@ -3,6 +3,7 @@ import {
   existsSync,
   mkdirSync,
   mkdtempSync,
+  readFileSync,
   realpathSync,
   rmSync,
   utimesSync,
@@ -12,11 +13,15 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import {
   discoverSessionTranscripts,
+  pickClaudeCredential,
   readActiveSessionStatus,
   readActiveSessionStatuses,
+  readClaudeCredentialSources,
   readClaudeStatuslineRateLimits,
   readClaudeStatuslineWiring,
   recordClaudeRateLimitEvent,
+  refreshClaudeUsageLive,
+  resetClaudeUsageThrottleForTests,
 } from './session-status.ts'
 
 const roots: string[] = []
@@ -28,9 +33,200 @@ const temp = (prefix: string) => {
 }
 
 afterEach(() => {
+  resetClaudeUsageThrottleForTests()
   if (originalStatuslineHome === undefined) delete process.env.ORCHESTOS_CLAUDE_STATUSLINE_HOME
   else process.env.ORCHESTOS_CLAUDE_STATUSLINE_HOME = originalStatuslineHome
   for (const root of roots.splice(0)) rmSync(root, { recursive: true, force: true })
+})
+
+describe('Claude live usage', () => {
+  const now = () => Date.parse('2026-10-27T00:00:00Z')
+  const token = 'fixture-oauth'
+  const credential = JSON.stringify({
+    claudeAiOauth: { accessToken: token, expiresAt: now() + 86_400_000 },
+  })
+  const usage = {
+    five_hour: { utilization: 7, resets_at: '2026-10-28T02:00:00.333412+00:00' },
+    seven_day: { utilization: 47, resets_at: '2026-10-29T08:00:00.333431+00:00' },
+  }
+  const setup = () => {
+    const agentHome = temp('orchestos-live-usage-')
+    const statuslineHomeOverride = join(agentHome, '.orchestos')
+    return {
+      agentHome,
+      statuslineHomeOverride,
+      path: join(statuslineHomeOverride, 'claude-statusline/orchestos-usage.json'),
+      now,
+      readCredential: async () => credential,
+    }
+  }
+  const fakeFetch = (impl: (...args: Parameters<typeof fetch>) => Promise<Response>) =>
+    impl as typeof fetch
+
+  test('prefers a usable credential and skips null or malformed sources', () => {
+    const expired = JSON.stringify({
+      claudeAiOauth: { accessToken: 'expired', expiresAt: now() - 1 },
+    })
+    const valid = JSON.stringify({ claudeAiOauth: { accessToken: 'valid', expiresAt: now() + 1 } })
+    expect(pickClaudeCredential([expired, valid], now())).toBe(valid)
+    expect(pickClaudeCredential([valid, expired], now())).toBe(valid)
+    expect(pickClaudeCredential([expired, null], now())).toBe(expired)
+    expect(pickClaudeCredential([null, '{broken', valid], now())).toBe(valid)
+    expect(pickClaudeCredential([null, '{broken'], now())).toBeNull()
+  })
+
+  test('keeps a keychain credential when reading the file source throws', async () => {
+    const sources = await readClaudeCredentialSources({
+      agentHome: temp('orchestos-credential-source-'),
+      readKeychain: async () => credential,
+      readFile: () => {
+        throw new Error('EACCES')
+      },
+    })
+    expect(sources).toEqual([credential, null])
+    expect(pickClaudeCredential(sources, now())).toBe(credential)
+  })
+
+  test('writes normalized usage atomically without the session token', async () => {
+    const options = setup()
+    let calls = 0
+    expect(
+      await refreshClaudeUsageLive({
+        ...options,
+        fetchImpl: fakeFetch(async (url, init) => {
+          calls++
+          expect(url).toBe('https://api.anthropic.com/api/oauth/usage')
+          const headers = new Headers(init?.headers)
+          expect(headers.get('Authorization')).toBe(`Bearer ${token}`)
+          expect(headers.get('anthropic-beta')).toBe('oauth-2025-04-20')
+          expect(init?.signal).toBeInstanceOf(AbortSignal)
+          return Response.json(usage)
+        }),
+      }),
+    ).toBe(true)
+    expect(calls).toBe(1)
+    const output = readFileSync(options.path, 'utf8')
+    expect(JSON.parse(output)).toEqual({
+      rate_limits: {
+        five_hour: { used_percentage: 7, resets_at: 1793152800 },
+        seven_day: { used_percentage: 47, resets_at: 1793260800 },
+      },
+    })
+    expect(output).not.toContain(token)
+  })
+
+  test.each([
+    null,
+    '{broken',
+    JSON.stringify({ claudeAiOauth: { expiresAt: now() + 1 } }),
+    JSON.stringify({ claudeAiOauth: { accessToken: token, expiresAt: now() } }),
+  ])('rejects absent, malformed or expired credentials (%#)', async (rawCredential) => {
+    const options = setup()
+    let calls = 0
+    expect(
+      await refreshClaudeUsageLive({
+        ...options,
+        readCredential: async () => rawCredential,
+        fetchImpl: fakeFetch(async () => {
+          calls++
+          return Response.json(usage)
+        }),
+      }),
+    ).toBe(false)
+    expect(calls).toBe(0)
+    expect(existsSync(options.path)).toBe(false)
+  })
+
+  test.each(['401', 'throws', 'invalid windows'])('fails safely for %s', async (failure) => {
+    const options = setup()
+    expect(
+      await refreshClaudeUsageLive({
+        ...options,
+        fetchImpl: fakeFetch(async () => {
+          if (failure === 'throws') throw new Error('unavailable')
+          return failure === '401'
+            ? new Response(null, { status: 401 })
+            : Response.json({ five_hour: { utilization: 101 } })
+        }),
+      }),
+    ).toBe(false)
+    expect(existsSync(options.path)).toBe(false)
+  })
+
+  test('omits an invalid reset date and keeps valid percentage boundaries', async () => {
+    const options = setup()
+    expect(
+      await refreshClaudeUsageLive({
+        ...options,
+        fetchImpl: fakeFetch(async () =>
+          Response.json({
+            five_hour: { utilization: 0, resets_at: 'invalid' },
+            seven_day: { utilization: 100 },
+          }),
+        ),
+      }),
+    ).toBe(true)
+    expect(JSON.parse(readFileSync(options.path, 'utf8'))).toEqual({
+      rate_limits: { five_hour: { used_percentage: 0 }, seven_day: { used_percentage: 100 } },
+    })
+  })
+
+  test.each([200, 401])('throttles attempts for 60 seconds after status %i', async (status) => {
+    const options = setup()
+    let elapsed = 0
+    let reads = 0
+    let calls = 0
+    const request = {
+      ...options,
+      now: () => now() + elapsed,
+      readCredential: async () => {
+        reads++
+        return credential
+      },
+      fetchImpl: fakeFetch(async () => {
+        calls++
+        return Response.json(usage, { status })
+      }),
+    }
+    expect(await refreshClaudeUsageLive(request)).toBe(status === 200)
+    expect(await refreshClaudeUsageLive(request)).toBe(false)
+    expect(reads).toBe(1)
+    expect(calls).toBe(1)
+    elapsed = 60_000
+    expect(await refreshClaudeUsageLive(request)).toBe(status === 200)
+    expect(calls).toBe(2)
+  })
+
+  test('refreshes before reading the Claude card', async () => {
+    const options = setup()
+    process.env.ORCHESTOS_CLAUDE_STATUSLINE_HOME = options.statuslineHomeOverride
+    let calls = 0
+    const statuses = await readActiveSessionStatuses({
+      projectRoot: temp('orchestos-live-project-'),
+      agentHome: options.agentHome,
+      readCodexRateLimits: async () => [],
+      refreshClaudeUsage: async () => {
+        calls++
+        return refreshClaudeUsageLive({
+          ...options,
+          fetchImpl: fakeFetch(async () => Response.json(usage)),
+        })
+      },
+    })
+    expect(calls).toBe(1)
+    expect(statuses.find((cli) => cli.id === 'claude')?.rateLimits?.windows).toContainEqual(
+      expect.objectContaining({ id: 'five_hour', usedPct: 7 }),
+    )
+    await readActiveSessionStatuses({
+      transcriptPath: join(options.agentHome, 'absent.jsonl'),
+      agentHome: options.agentHome,
+      readCodexRateLimits: async () => [],
+      refreshClaudeUsage: async () => {
+        calls++
+      },
+    })
+    expect(calls).toBe(1)
+  })
 })
 
 describe('session status', () => {

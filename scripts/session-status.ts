@@ -115,6 +115,163 @@ function statuslineHome(
   return override ?? process.env.ORCHESTOS_HOME ?? join(agentHome, '.orchestos')
 }
 
+type ClaudeQuotaWindows = Record<string, { used_percentage: number; resets_at?: number }>
+
+function writeClaudeQuotaFile(
+  fileName: string,
+  windows: ClaudeQuotaWindows,
+  agentHome: string,
+  statuslineHomeOverride?: string,
+): void {
+  const directory = join(statuslineHome(agentHome, statuslineHomeOverride), 'claude-statusline')
+  mkdirSync(directory, { recursive: true })
+  const path = join(directory, fileName)
+  const temporary = `${path}.${process.pid}.${Date.now()}.tmp`
+  writeFileSync(temporary, JSON.stringify({ rate_limits: windows }))
+  renameSync(temporary, path)
+}
+
+let lastClaudeUsageAttempt: number | undefined
+
+export function pickClaudeCredential(sources: (string | null)[], now: number): string | null {
+  const parsed = sources.flatMap((raw) => {
+    if (!raw) return []
+    try {
+      const oauth = JSON.parse(raw)?.claudeAiOauth
+      if (typeof oauth?.accessToken !== 'string' || !oauth.accessToken) return []
+      if (typeof oauth.expiresAt !== 'number' || !Number.isFinite(oauth.expiresAt)) return []
+      return [{ raw, expiresAt: oauth.expiresAt }]
+    } catch {
+      return []
+    }
+  })
+  return parsed.find(({ expiresAt }) => expiresAt > now)?.raw ?? parsed[0]?.raw ?? null
+}
+
+export async function readClaudeCredentialSources(options: {
+  agentHome: string
+  timeoutMs?: number
+  readKeychain?: () => Promise<string | null>
+  readFile?: () => string | null
+}): Promise<(string | null)[]> {
+  const path = join(options.agentHome, '.claude/.credentials.json')
+  const sources: (string | null)[] = []
+  if (process.platform === 'darwin' || options.readKeychain) {
+    try {
+      const value = await (
+        options.readKeychain ??
+        (async () => {
+          const child = Bun.spawn(
+            ['security', 'find-generic-password', '-s', 'Claude Code-credentials', '-w'],
+            {
+              stdout: 'pipe',
+              stderr: 'ignore',
+              timeout: options.timeoutMs ?? 3000,
+              killSignal: 'SIGKILL',
+            },
+          )
+          const credential = await new Response(child.stdout).text()
+          return (await child.exited) === 0 && credential.trim() ? credential : null
+        })
+      )()
+      sources.push(value)
+    } catch {
+      sources.push(null)
+    }
+  }
+  try {
+    const value = options.readFile
+      ? options.readFile()
+      : existsSync(path)
+        ? readFileSync(path, 'utf8')
+        : null
+    sources.push(value)
+  } catch {
+    sources.push(null)
+  }
+  return sources
+}
+
+export function resetClaudeUsageThrottleForTests(): void {
+  lastClaudeUsageAttempt = undefined
+}
+
+/** Reads Claude Code's existing session without persisting or rotating credentials. */
+export async function refreshClaudeUsageLive(
+  options: {
+    agentHome?: string
+    statuslineHomeOverride?: string
+    readCredential?: () => Promise<string | null>
+    fetchImpl?: typeof fetch
+    now?: () => number
+    timeoutMs?: number
+  } = {},
+): Promise<boolean> {
+  try {
+    const now = options.now ?? Date.now
+    const attemptedAt = now()
+    if (lastClaudeUsageAttempt !== undefined && attemptedAt - lastClaudeUsageAttempt < 60_000)
+      return false
+    lastClaudeUsageAttempt = attemptedAt
+    const agentHome = options.agentHome ?? homedir()
+    const readCredential =
+      options.readCredential ??
+      (async () =>
+        pickClaudeCredential(
+          await readClaudeCredentialSources({
+            agentHome,
+            timeoutMs: options.timeoutMs,
+          }),
+          now(),
+        ))
+    const rawCredential = await readCredential()
+    if (!rawCredential) return false
+    const credential = JSON.parse(rawCredential)?.claudeAiOauth
+    if (
+      typeof credential?.accessToken !== 'string' ||
+      !credential.accessToken ||
+      typeof credential.expiresAt !== 'number' ||
+      !Number.isFinite(credential.expiresAt) ||
+      credential.expiresAt <= now()
+    )
+      return false
+    const response = await (options.fetchImpl ?? fetch)(
+      'https://api.anthropic.com/api/oauth/usage',
+      {
+        headers: {
+          Authorization: `Bearer ${credential.accessToken}`,
+          'anthropic-beta': 'oauth-2025-04-20',
+        },
+        signal: AbortSignal.timeout(options.timeoutMs ?? 3000),
+      },
+    )
+    if (response.status !== 200) return false
+    const payload = await response.json()
+    const windows: ClaudeQuotaWindows = {}
+    for (const id of ['five_hour', 'seven_day']) {
+      const raw = payload?.[id]
+      const utilization = raw?.utilization
+      if (
+        typeof utilization !== 'number' ||
+        !Number.isFinite(utilization) ||
+        utilization < 0 ||
+        utilization > 100
+      )
+        continue
+      const resetsAt = typeof raw.resets_at === 'string' ? Date.parse(raw.resets_at) : Number.NaN
+      windows[id] = {
+        used_percentage: utilization,
+        ...(Number.isFinite(resetsAt) ? { resets_at: Math.floor(resetsAt / 1000) } : {}),
+      }
+    }
+    if (Object.keys(windows).length === 0) return false
+    writeClaudeQuotaFile('orchestos-usage.json', windows, agentHome, options.statuslineHomeOverride)
+    return true
+  } catch {
+    return false
+  }
+}
+
 /** Persists Claude quota events emitted by OrchestOS-owned CLI runs. */
 export function recordClaudeRateLimitEvent(
   event: unknown,
@@ -153,12 +310,7 @@ export function recordClaudeRateLimitEvent(
     }
     if (Object.keys(windows).length === 0) return false
 
-    const directory = join(statuslineHome(agentHome, statuslineHomeOverride), 'claude-statusline')
-    mkdirSync(directory, { recursive: true })
-    const path = join(directory, 'orchestos-stream.json')
-    const temporary = `${path}.${process.pid}.${Date.now()}.tmp`
-    writeFileSync(temporary, JSON.stringify({ rate_limits: windows }))
-    renameSync(temporary, path)
+    writeClaudeQuotaFile('orchestos-stream.json', windows, agentHome, statuslineHomeOverride)
     return true
   } catch {
     return false
@@ -225,6 +377,7 @@ interface SessionStatusOptions {
   agentHome?: string
   adapters?: ContextAdapter[]
   readCodexRateLimits?: typeof readCodexRateLimitsLive
+  refreshClaudeUsage?: () => Promise<unknown>
   detectClis?: typeof detectInstalledClis
 }
 
@@ -268,6 +421,7 @@ export async function readActiveSessionStatuses(
     if (cli && !selected.has(cli.id)) selected.set(cli.id, candidate)
   }
   const codex = detections.find((detection) => detection.id === 'codex')
+  if (!explicit && options.refreshClaudeUsage) await options.refreshClaudeUsage()
   const claudeStatusline = readClaudeStatuslineRateLimits(options.agentHome)
   const statuslineWired = readClaudeStatuslineWiring(
     join(options.agentHome ?? homedir(), '.claude/settings.json'),

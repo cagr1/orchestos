@@ -491,6 +491,17 @@ Regla: nada se reintenta, cierra ni muestra sin evidencia medida que el usuario 
   mutante (168 min / 984) el mayor estima ~2h10. Ningún `.test.ts` en `mutate`. Pendiente: tiempos reales en la
   próxima corrida. Tiempos de CI.46 en `40550536708`: `-server` 42 min, `-server-b` 80, `-server-c` 77.
   Ejecutado por: codex gpt-6-luna (mecanico, r1 y r2) · QA: codex gpt-6.1-sol (qa), sin defectos · Spec: docs/specs/CI.47.md (borrado)
+- [x] **UI.35 — La cuota de Claude se lee del endpoint de usage de Claude Code.** (cerrado 2026-10-27) GO de Carlos:
+  sin corridas propias la 5 h caduca y la barra la oculta (captura 10-27, "no data since 5 h"). Arreglo:
+  `refreshClaudeUsageLive` consulta `api.anthropic.com/api/oauth/usage` (lo de `/usage`, 0 tokens) con la sesión de
+  Claude Code (llavero en macOS, `~/.claude/.credentials.json` de respaldo; gana la vigente, nunca se refresca el
+  token), como mucho cada 60 s, y escribe solo % y resets en `claude-statusline/orchestos-usage.json`; el lector
+  existente lo mezcla. Si falla, queda el método de UI.34. r3: en la máquina de Carlos un `.credentials.json` vencido
+  de julio tapaba el llavero. r4 (QA): una fuente que falla ya no invalida la otra.
+  Evidencia (cerebro): typecheck 0; `session-status.test.ts` ×2 35/0; sin corrida propia, popover
+  "5-hour 10% · resets 9:00 PM", "Weekly 48% · 1D 7h"; archivo sin token.
+  Gate en vivo: navegador real (dashboard 4243), `docs/done/evidence/UI.35-live.json`.
+  Ejecutado por: codex gpt-6.1-sol (criterio r1) · codex gpt-6-luna (mecanico r2-r4) · QA: codex gpt-6.1-sol (P2 en r3, sin defectos en r4) · Spec: docs/specs/UI.35.md (borrado)
 - [ ] **CI.19 — 🔍 El `git commit` del fixture falla a veces en el andamiaje de los ui-gates.** Visto 1 vez en
   `qa-negative` (2026-10-11, 1 de 9): `Command failed: git … commit -qm task fixture`, sin motivo porque el helper
   `run` usa `stdio: 'ignore'`. `qa-negative` ya reporta stdout/stderr y exit; los otros 20 flows con el mismo helper no.
