@@ -423,8 +423,8 @@
       "block": "Abiertos — fiabilidad de los gates y documentación",
       "delegation": "🧠",
       "title": "Dev con sesiones en pestañas y archivos en pestañas junto al chat (patrón MonoCode)",
-      "status": "open",
-      "closedDate": null
+      "status": "done",
+      "closedDate": "2026-10-29"
     },
     {
       "id": "UI.38.1",
@@ -441,8 +441,8 @@
       "block": "Abiertos — fiabilidad de los gates y documentación",
       "delegation": "🧠",
       "title": "Dev: panel de archivo con pestañas entre el chat y Files",
-      "status": "open",
-      "closedDate": null
+      "status": "done",
+      "closedDate": "2026-10-29"
     },
     {
       "id": "CI.48",

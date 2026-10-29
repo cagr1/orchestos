@@ -532,13 +532,14 @@ Regla: nada se reintenta, cierra ni muestra sin evidencia medida que el usuario 
   a la red. Test del override en `setup-api-key.test.ts` (8/0). Pendiente aparte: `shell-look` no está en el pre-push.
   Gate en vivo: navegador real (Playwright, `shell-look` 73/73), `docs/done/evidence/UI.37-live.json`.
   Ejecutado por: codex gpt-6.1-sol (criterio r1 paró por spec incompleto, r2) · Revisión: Opus · Spec: docs/specs/UI.37.1.md
-- [ ] **UI.38 — 🧠 Dev con sesiones en pestañas y archivos en pestañas junto al chat (patrón MonoCode).** GO de
+- [x] **UI.38 — 🧠 Dev con sesiones en pestañas y archivos en pestañas junto al chat (patrón MonoCode).** (cerrado 2026-10-29) GO de
   Carlos 2026-10-29. Visto en vivo en MonoCode: cada sesión es una pestaña arriba; "+" abre "New session" con el
   composer centrado; clic en un archivo parte el área en dos (chat | editor), cada panel con su ×; clic = pestaña de
   vista previa (cursiva, la reemplaza el siguiente clic), doble clic = pestaña fija; solo lectura; Markdown con
   Preview/Source, código con números de línea. Files se queda a la derecha. Hoy el archivo se ve dentro de Files
   (`OrcaRightInspector.tsx:424`) y el centro de Dev queda vacío ("No active session open"). Toca varios componentes:
   spec con layout antes de delegar.
+  Sin delegación: padre; se cerró por UI.38.1 (`be9c972f`) y UI.38.2.
 - [x] **UI.38.1 — 🧠 Dev: sesiones abiertas en pestañas arriba del centro.** (cerrado 2026-10-29) Decisiones de Carlos
   2026-10-29: la lista del sidebar se queda (pestañas = abiertas); "+" abre New session con el composer centrado; las
   pestañas abiertas se guardan por proyecto. `DevSessionTabs.tsx` + lógica pura `session-tabs.ts`; × cierra la pestaña
@@ -547,10 +548,15 @@ Regla: nada se reintenta, cierra ni muestra sin evidencia medida que el usuario 
   en vivo (dashboard real 4299): crea la sesión, abre su pestaña y responde; sesión de prueba borrada.
   Gate en vivo: navegador real (Playwright, `dev-session-tabs` 11/11 + `project-tabs` 40/40), `docs/done/evidence/UI.38.1-live.json`.
   Ejecutado por: codex gpt-6.1-sol (criterio) · Revisión: Opus · Spec: docs/specs/UI.38.1.md
-- [ ] **UI.38.2 — 🧠 Dev: panel de archivo con pestañas entre el chat y Files.** Clic = vista previa en cursiva,
-  doble clic = fija; solo lectura; Markdown Preview/Source; código con colores (el resaltador del chat) y números de
-  línea (se agrega highlight.js, decisión de Carlos 2026-10-29: no había resaltador); las fijas se guardan por
-  proyecto. Sale la vista previa de abajo de Files. Spec: `docs/specs/UI.38.2.md`.
+- [x] **UI.38.2 — 🧠 Dev: panel de archivo con pestañas entre el chat y Files.** (cerrado 2026-10-29) Layout
+  `chat | archivo | Files`; clic = vista previa en cursiva (el siguiente clic la reemplaza), doble clic = fija; solo
+  lectura; Markdown Preview/Source; código con números y colores vía `highlight.js` (core + ts/js/json/md/yaml/css/sh;
+  decisión de Carlos 2026-10-29, no había resaltador; `main.js` 1.972.917 → 2.036.858 B, +3,2 %); las fijas se
+  guardan por proyecto; sale la vista previa de abajo de Files. El chat sigue sin colorear código (no se tocó).
+  Evidencia (cerebro): en vivo en el dashboard real (4299) con `src/cli.ts` (5373 tokens coloreados, scroll horizontal)
+  y `biome.json` fijado; capturas `UI.38.2-*.png`. Visto: en ventanas angostas el composer del chat se aprieta.
+  Gate en vivo: navegador real (Playwright, `dev-session-tabs` 21/21 + `project-tabs` 40/40), `docs/done/evidence/UI.38.2-live.json`.
+  Ejecutado por: codex gpt-6.1-sol (criterio) · Revisión: Opus · Spec: docs/specs/UI.38.2.md
 - [ ] **CI.48 — 🔍 `codex-live` falla también en HEAD (2026-10-29).** HEAD `79c501f0`: `turn 1 streams multiple visible
   text updates: 0 distinct non-empty samples` (`ui-gate-4953`). Con UI.37: el DOM muestra `I’ll` (apóstrofo tipográfico)
   y lo persistido `I'll`, y el turno 2 tardó 180 s (`ui-gate-3138`). El pre-push lo corre en cada cambio del chat y

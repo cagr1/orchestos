@@ -1,0 +1,338 @@
+[
+  {
+    "flujo": "dev-session-tabs",
+    "pass": true,
+    "steps": [
+      {
+        "nombre": "sidebar opens two sessions as ordered tabs",
+        "ok": true,
+        "detalle": "Alpha, Beta; Gamma stays only in sidebar"
+      },
+      {
+        "nombre": "tab click activates session",
+        "ok": true,
+        "detalle": "Alpha active"
+      },
+      {
+        "nombre": "reopening existing tab does not duplicate it",
+        "ok": true,
+        "detalle": "two tabs"
+      },
+      {
+        "nombre": "reload restores open tabs order and active id",
+        "ok": true,
+        "detalle": "Alpha active; Alpha, Beta restored"
+      },
+      {
+        "nombre": "closing active tab selects right neighbour and keeps sidebar session",
+        "ok": true,
+        "detalle": "Beta active; Alpha remains in sidebar"
+      },
+      {
+        "nombre": "closing tab does not archive or delete session",
+        "ok": true,
+        "detalle": "Alpha remains in unarchived sessions API"
+      },
+      {
+        "nombre": "plus opens centered New session composer",
+        "ok": true,
+        "detalle": "composer vertical center within 2px of available area"
+      },
+      {
+        "nombre": "New session selection persists with other tabs still open",
+        "ok": true,
+        "detalle": "Beta open, New session selected"
+      },
+      {
+        "nombre": "reload silently drops dead persisted ids",
+        "ok": true,
+        "detalle": "missing id pruned from storage"
+      },
+      {
+        "nombre": "closing final tab shows New session",
+        "ok": true,
+        "detalle": "no open tabs"
+      },
+      {
+        "nombre": "README single click opens italic Markdown Preview",
+        "ok": true,
+        "detalle": "rendered heading; preview tab italic"
+      },
+      {
+        "nombre": "next file replaces preview with numbered highlighted code",
+        "ok": true,
+        "detalle": "context.json only; line numbers and computed token color differ from base text"
+      },
+      {
+        "nombre": "tree double click pins the preview",
+        "ok": true,
+        "detalle": "context.json fixed"
+      },
+      {
+        "nombre": "tab double click fixes Markdown alongside pinned code",
+        "ok": true,
+        "detalle": "two fixed file tabs"
+      },
+      {
+        "nombre": "Markdown Source shows literal source and line numbers",
+        "ok": true,
+        "detalle": "literal Markdown source, numbered"
+      },
+      {
+        "nombre": "unknown extension uses plain numbered text",
+        "ok": true,
+        "detalle": "notes.txt: plain text with line numbers"
+      },
+      {
+        "nombre": "reload restores fixed tabs only",
+        "ok": true,
+        "detalle": "context.json and README.md restored; preview notes.txt omitted"
+      },
+      {
+        "nombre": "Markdown defaults to Preview after reload",
+        "ok": true,
+        "detalle": "rendered Markdown"
+      },
+      {
+        "nombre": "closing last file tab removes panel",
+        "ok": true,
+        "detalle": "center returned to workspace"
+      },
+      {
+        "nombre": "panel close clears all file tabs",
+        "ok": true,
+        "detalle": "panel closed"
+      },
+      {
+        "nombre": "0 console errors",
+        "ok": true,
+        "detalle": "none"
+      }
+    ],
+    "notes": [],
+    "errores": [],
+    "capturas": [
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-53646/dev-session-tabs/session-tabs.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-53646/dev-session-tabs/new-session.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-53646/dev-session-tabs/file-markdown-preview.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-53646/dev-session-tabs/file-highlighted-code.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-53646/dev-session-tabs/file-markdown-source.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-53646/dev-session-tabs/file-panel-closed.png"
+    ]
+  },
+  {
+    "flujo": "project-tabs",
+    "pass": true,
+    "steps": [
+      {
+        "nombre": "add project opens folder picker without modal",
+        "ok": true,
+        "detalle": "POST /api/projects/choose calls=1; dialog visible=false"
+      },
+      {
+        "nombre": "temporary project visible",
+        "ok": true,
+        "detalle": "project visible in sidebar"
+      },
+      {
+        "nombre": "project settings visible",
+        "ok": true,
+        "detalle": "settings heading"
+      },
+      {
+        "nombre": "loading indicator gone after tasks load",
+        "ok": true,
+        "detalle": "count=0"
+      },
+      {
+        "nombre": "specs empty state visible",
+        "ok": true,
+        "detalle": "empty project has no specs"
+      },
+      {
+        "nombre": "specs empty no page error",
+        "ok": true,
+        "detalle": "none"
+      },
+      {
+        "nombre": "real memory visible",
+        "ok": true,
+        "detalle": "seeded DB memory"
+      },
+      {
+        "nombre": "mock memory absent",
+        "ok": true,
+        "detalle": "no mock data"
+      },
+      {
+        "nombre": "memory conflict resolved",
+        "ok": true,
+        "detalle": "open conflicts: 0"
+      },
+      {
+        "nombre": "authoritative memory persisted and visible",
+        "ok": true,
+        "detalle": "content of entry A matches the resolved API value"
+      },
+      {
+        "nombre": "memory no palette",
+        "ok": true,
+        "detalle": "ninguna (con memoria sembrada)"
+      },
+      {
+        "nombre": "memory content aligned with header",
+        "ok": true,
+        "detalle": "left offset=0px"
+      },
+      {
+        "nombre": "real spec visible",
+        "ok": true,
+        "detalle": "seeded markdown spec"
+      },
+      {
+        "nombre": "mock specs absent",
+        "ok": true,
+        "detalle": "no mock data"
+      },
+      {
+        "nombre": "spec approved",
+        "ok": true,
+        "detalle": "API status approved"
+      },
+      {
+        "nombre": "spec lint updates API and row",
+        "ok": true,
+        "detalle": "Lint: pass (0); response findings=0; before=pass/0"
+      },
+      {
+        "nombre": "specs no palette",
+        "ok": true,
+        "detalle": "ninguna (con spec sembrado)"
+      },
+      {
+        "nombre": "specs content aligned with header",
+        "ok": true,
+        "detalle": "left offset=0px"
+      },
+      {
+        "nombre": "real skills listed",
+        "ok": true,
+        "detalle": "API skills=17"
+      },
+      {
+        "nombre": "compile response visible",
+        "ok": true,
+        "detalle": "success response rendered in the skill row"
+      },
+      {
+        "nombre": "mock skills absent",
+        "ok": true,
+        "detalle": "no mock data"
+      },
+      {
+        "nombre": "skills no palette",
+        "ok": true,
+        "detalle": "ninguna (con skills sembradas)"
+      },
+      {
+        "nombre": "skills content aligned with header",
+        "ok": true,
+        "detalle": "left offset=0px"
+      },
+      {
+        "nombre": "graph no palette",
+        "ok": true,
+        "detalle": "ninguna en CONTEXT"
+      },
+      {
+        "nombre": "graph content aligned with header",
+        "ok": true,
+        "detalle": "left offset=0px"
+      },
+      {
+        "nombre": "tab roots transparent (memory/specs/skills/graph)",
+        "ok": true,
+        "detalle": "memory=rgba(0, 0, 0, 0); specs=rgba(0, 0, 0, 0); skills=rgba(0, 0, 0, 0); graph=rgba(0, 0, 0, 0)"
+      },
+      {
+        "nombre": "mock instincts absent",
+        "ok": true,
+        "detalle": "no mock data"
+      },
+      {
+        "nombre": "instinct review visible",
+        "ok": true,
+        "detalle": "unverified instinct"
+      },
+      {
+        "nombre": "instinct approved",
+        "ok": true,
+        "detalle": "API verified"
+      },
+      {
+        "nombre": "manual instinct added",
+        "ok": true,
+        "detalle": "new API row"
+      },
+      {
+        "nombre": "instincts no palette",
+        "ok": true,
+        "detalle": "ninguna (con instincts sembrados)"
+      },
+      {
+        "nombre": "mock plan absent",
+        "ok": true,
+        "detalle": "no mock data"
+      },
+      {
+        "nombre": "plan board fills the view",
+        "ok": true,
+        "detalle": "danger zone top=972 scroller bottom=972"
+      },
+      {
+        "nombre": "plan no palette",
+        "ok": true,
+        "detalle": "ninguna en Kanban ni Table"
+      },
+      {
+        "nombre": "tab roots transparent",
+        "ok": true,
+        "detalle": "plan=rgba(0, 0, 0, 0); instincts=rgba(0, 0, 0, 0)"
+      },
+      {
+        "nombre": "explain fields visible as readable UI",
+        "ok": true,
+        "detalle": "GET /explain fields rendered inside the template block"
+      },
+      {
+        "nombre": "explain has no [object Object]",
+        "ok": true,
+        "detalle": "opened Explain modal contains no stringified object values"
+      },
+      {
+        "nombre": "task run finishes and badge changes without reload",
+        "ok": true,
+        "detalle": "status=done; retryCount/runId changed or terminal status observed"
+      },
+      {
+        "nombre": "Plan has no manual task creation button",
+        "ok": true,
+        "detalle": "Add task button absent"
+      },
+      {
+        "nombre": "0 console errors",
+        "ok": true,
+        "detalle": "none"
+      }
+    ],
+    "notes": [],
+    "errores": [],
+    "capturas": [
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-48523/project-tabs/memory.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-48523/project-tabs/specs.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-48523/project-tabs/skills.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-48523/project-tabs/graph.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-48523/project-tabs/project-tabs-real-data.png"
+    ]
+  }
+]

@@ -14,6 +14,7 @@ export default async function devSessionTabs({
 }) {
   const root = mkdtempSync(join(tmpdir(), 'orchestos-dev-tabs-'))
   writeFileSync(join(root, 'README.md'), '# Dev session tabs\n')
+  writeFileSync(join(root, 'notes.txt'), 'Preview only\n')
   run('git', ['init', '-q'], root)
   run('bun', ['run', join(process.cwd(), 'src/cli.ts'), 'init', root], process.cwd())
   const project = (await api('/api/projects')).data.find((item) => item.path === root)
@@ -151,5 +152,101 @@ export default async function devSessionTabs({
       (await visible(page.locator('[data-dev-new-session] textarea'))),
     'no open tabs',
   )
+  const fileTab = (path) => page.locator(`[data-file-tab="${path}"]`)
+  const treeFile = (path) => page.locator(`[data-explorer-file="${path}"]`)
+  const filePanel = page.locator('[data-dev-file-panel]')
+  await treeFile('README.md').click()
+  await filePanel.getByRole('heading', { name: 'Dev session tabs' }).waitFor()
+  await step(
+    'README single click opens italic Markdown Preview',
+    (await fileTab('README.md').evaluate((el) => getComputedStyle(el).fontStyle === 'italic')) &&
+      (await visible(filePanel.locator('[data-file-markdown]'))),
+    'rendered heading; preview tab italic',
+  )
+  await shot('file-markdown-preview')
+  await treeFile('context.json').click()
+  await filePanel.locator('.hljs-attr').first().waitFor()
+  const tokenColored = await filePanel
+    .locator('.hljs-attr')
+    .first()
+    .evaluate((el) => getComputedStyle(el).color !== getComputedStyle(el.closest('pre')).color)
+  await step(
+    'next file replaces preview with numbered highlighted code',
+    (await fileTab('README.md').count()) === 0 &&
+      (await filePanel.getByRole('tab').count()) === 1 &&
+      (await visible(filePanel.locator('[data-line-numbers]'))) &&
+      tokenColored,
+    'context.json only; line numbers and computed token color differ from base text',
+  )
+  await treeFile('context.json').dblclick()
+  await step(
+    'tree double click pins the preview',
+    await fileTab('context.json').evaluate((el) => getComputedStyle(el).fontStyle !== 'italic'),
+    'context.json fixed',
+  )
+  await shot('file-highlighted-code')
+  await treeFile('README.md').click()
+  await filePanel.getByRole('heading', { name: 'Dev session tabs' }).waitFor()
+  await fileTab('README.md').dblclick()
+  await step(
+    'tab double click fixes Markdown alongside pinned code',
+    (await filePanel.getByRole('tab').count()) === 2 &&
+      (await fileTab('README.md').evaluate((el) => getComputedStyle(el).fontStyle !== 'italic')),
+    'two fixed file tabs',
+  )
+  await filePanel.getByRole('button', { name: 'Source', exact: true }).click()
+  await filePanel.locator('[data-file-source]').waitFor()
+  await step(
+    'Markdown Source shows literal source and line numbers',
+    (await filePanel.locator('[data-file-source] code').innerText()).includes(
+      '# Dev session tabs',
+    ) && (await filePanel.locator('[data-line-numbers]').innerText()).startsWith('1'),
+    'literal Markdown source, numbered',
+  )
+  await shot('file-markdown-source')
+  // A third file stays preview-only and must not survive reload.
+  await treeFile('notes.txt').click()
+  await fileTab('notes.txt').waitFor()
+  await filePanel.locator('[data-file-source] code').waitFor()
+  await step(
+    'unknown extension uses plain numbered text',
+    (await filePanel.locator('[data-file-source] code').innerText()).includes('Preview only') &&
+      (await filePanel.locator('[data-file-source] code span').count()) === 0 &&
+      (await visible(filePanel.locator('[data-line-numbers]'))),
+    'notes.txt: plain text with line numbers',
+  )
+  await page.reload({ waitUntil: 'domcontentloaded' })
+  await fileTab('README.md').waitFor()
+  await step(
+    'reload restores fixed tabs only',
+    (await filePanel.getByRole('tab').count()) === 2 &&
+      (await fileTab('notes.txt').count()) === 0 &&
+      (await visible(fileTab('context.json'))),
+    'context.json and README.md restored; preview notes.txt omitted',
+  )
+  await fileTab('README.md').click()
+  await filePanel.getByRole('heading', { name: 'Dev session tabs' }).waitFor()
+  await step(
+    'Markdown defaults to Preview after reload',
+    await visible(filePanel.locator('[data-file-markdown]')),
+    'rendered Markdown',
+  )
+  await fileTab('context.json').hover()
+  await page.getByRole('button', { name: 'Close file tab context.json', exact: true }).click()
+  await fileTab('context.json').waitFor({ state: 'detached' })
+  await fileTab('README.md').hover()
+  await page.getByRole('button', { name: 'Close file tab README.md', exact: true }).click()
+  await filePanel.waitFor({ state: 'detached' })
+  await step(
+    'closing last file tab removes panel',
+    (await filePanel.count()) === 0,
+    'center returned to workspace',
+  )
+  await shot('file-panel-closed')
+  await treeFile('README.md').click()
+  await filePanel.waitFor()
+  await page.getByRole('button', { name: 'Close file panel', exact: true }).click()
+  await filePanel.waitFor({ state: 'detached' })
+  await step('panel close clears all file tabs', (await filePanel.count()) === 0, 'panel closed')
   await step('0 console errors', consoleErrors().length === 0, consoleErrors().join('; ') || 'none')
 }

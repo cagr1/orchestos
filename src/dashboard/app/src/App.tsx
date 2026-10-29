@@ -50,7 +50,17 @@ import {
 import { mergeOptimisticAttachments } from './components/chat/mergeAttachments'
 import { OrchestChatView } from './components/chat/OrchestChatView'
 import { CommandPalette } from './components/common/CommandPalette'
+import { DevFilePanel } from './components/dev/DevFilePanel'
 import { DevSessionTabs } from './components/dev/DevSessionTabs'
+import {
+  closeFileTab,
+  emptyFileTabs,
+  FILE_TABS_KEY,
+  type FileTabs,
+  openFileTab,
+  persistedFileTabs,
+  readFileTabs,
+} from './components/dev/file-tabs'
 import { OpenCodeTerminal } from './components/dev/OpenCodeTerminal'
 import { type HistorySession, OrcaRightInspector } from './components/dev/OrcaRightInspector'
 import { OrchestDevWorkspace } from './components/dev/OrchestDevWorkspace'
@@ -107,6 +117,30 @@ export default function App() {
   const [projects, setProjects] = useState<ProjectItem[]>([])
   const [deletingProjectIds, setDeletingProjectIds] = useState<Set<string>>(() => new Set())
   const [activeProjectId, setActiveProjectId] = useState<string>('')
+  const [fileTabs, setFileTabs] = useState(readFileTabs)
+  const activeFileTabs = fileTabs[activeProjectId] ?? emptyFileTabs()
+  const updateFileTabs = (update: (state: FileTabs) => FileTabs) => {
+    setFileTabs((current) => ({
+      ...current,
+      [activeProjectId]: update(current[activeProjectId] ?? emptyFileTabs()),
+    }))
+  }
+  const handleOpenFile = (path: string, { pin }: { pin: boolean }) =>
+    updateFileTabs((tabs) => openFileTab(tabs, path, pin))
+  useEffect(() => {
+    try {
+      localStorage.setItem(
+        FILE_TABS_KEY,
+        JSON.stringify(
+          Object.fromEntries(
+            Object.entries(fileTabs).map(([id, tabs]) => [id, persistedFileTabs(tabs)]),
+          ),
+        ),
+      )
+    } catch {
+      /* Storage unavailable. */
+    }
+  }, [fileTabs])
   const [devTabs, setDevTabs] = useState(readSessionTabs)
   const activeAgentId = devTabs[activeProjectId]?.activeId ?? null
   const updateDevTabs = (
@@ -1506,6 +1540,17 @@ export default function App() {
               </div>
             )}
 
+            {mode === 'dev' && currentProject && activeFileTabs.tabs.length > 0 && (
+              <DevFilePanel
+                key={activeProjectId}
+                projectId={activeProjectId}
+                state={activeFileTabs}
+                onOpen={handleOpenFile}
+                onClose={(path) => updateFileTabs((tabs) => closeFileTab(tabs, path))}
+                onCloseAll={() => updateFileTabs(emptyFileTabs)}
+              />
+            )}
+
             {/* VIEW 3: SETTINGS (Full screen mode without sidebar, hosts project tasks, runs, specs, etc.) */}
             {mode === 'settings' && (
               <OrchestSettingsView
@@ -1554,6 +1599,8 @@ export default function App() {
             <OrcaRightInspector
               currentProject={currentProject}
               projects={projects}
+              activeFilePath={activeFileTabs.activePath}
+              onOpenFile={handleOpenFile}
               historySessions={historySessions}
               onRestoreAgentToSidebar={handleRestoreAgent}
               onDeleteHistorySession={handleDeleteHistorySession}

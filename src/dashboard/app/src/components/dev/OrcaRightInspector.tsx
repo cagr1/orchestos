@@ -19,10 +19,10 @@ import {
   Sliders,
   Trash2,
   Upload,
-  X,
 } from 'lucide-react'
-import React, { useEffect, useRef, useState } from 'react'
-import { getExplorerFile, getExplorerTree } from '../../api/explorer'
+import type React from 'react'
+import { useEffect, useRef, useState } from 'react'
+import { getExplorerTree } from '../../api/explorer'
 import { type GitChange, getGitChanges, getGitDiff } from '../../api/git'
 import type { FileNode, ProjectItem } from '../../types/orchestos'
 import { ProviderLogo } from '../common/ProviderLogos'
@@ -78,6 +78,8 @@ interface OrcaRightInspectorProps {
   historySessions?: HistorySession[]
   onRestoreAgentToSidebar?: (session: HistorySession) => void
   onDeleteHistorySession?: (sessionId: string) => void
+  activeFilePath?: string | null
+  onOpenFile: (path: string, options: { pin: boolean }) => void
   onUploadFiles?: (files: FileList) => void
 }
 
@@ -103,13 +105,14 @@ export const OrcaRightInspector: React.FC<OrcaRightInspectorProps> = ({
   onRestoreAgentToSidebar,
   onDeleteHistorySession,
   onUploadFiles,
+  activeFilePath,
+  onOpenFile,
 }) => {
   const [activeTab, setActiveTab] = useState<'files' | 'diff' | 'history'>('files')
   const [expandedFolders, setExpandedFolders] = useState<Record<string, boolean>>({})
   const [searchQuery, setSearchQuery] = useState('')
   const [searchMode, setSearchMode] = useState<'names' | 'contents'>('names')
   const [fileTree, setFileTree] = useState<FileNode[]>([])
-  const [selectedFile, setSelectedFile] = useState<FileNode | null>(null)
   const [treeError, setTreeError] = useState<string | null>(null)
   const [loadingFolders, setLoadingFolders] = useState<Record<string, boolean>>({})
   const treeRequest = useRef(0)
@@ -135,7 +138,6 @@ export const OrcaRightInspector: React.FC<OrcaRightInspectorProps> = ({
   }
 
   useEffect(() => {
-    setSelectedFile(null)
     loadTree()
   }, [currentProject.id])
 
@@ -269,7 +271,7 @@ export const OrcaRightInspector: React.FC<OrcaRightInspectorProps> = ({
       .map((node) => {
         const isFolder = node.isDir
         const isExpanded = !!expandedFolders[node.path]
-        const isSelected = selectedFile?.path === node.path
+        const isSelected = activeFilePath === node.path
 
         return (
           <div key={node.path} className="select-none">
@@ -279,13 +281,13 @@ export const OrcaRightInspector: React.FC<OrcaRightInspectorProps> = ({
                 if (isFolder) {
                   toggleFolder(node.path)
                 } else {
-                  void getExplorerFile(node.path, currentProject.id)
-                    .then(setSelectedFile)
-                    .catch((error) =>
-                      setTreeError(error instanceof Error ? error.message : 'Unable to open file.'),
-                    )
+                  onOpenFile(node.path, { pin: false })
                 }
               }}
+              onDoubleClick={() => {
+                if (!isFolder) onOpenFile(node.path, { pin: true })
+              }}
+              data-explorer-file={isFolder ? undefined : node.path}
               style={{ paddingLeft: `${depth * 14 + 10}px` }}
               className={`w-full flex items-center justify-between py-1 px-2 rounded-control text-xs text-left cursor-pointer transition-colors ${
                 isSelected
@@ -492,42 +494,6 @@ export const OrcaRightInspector: React.FC<OrcaRightInspectorProps> = ({
               renderTree(fileTree)
             )}
           </div>
-
-          {/* File Preview Drawer if selected: breadcrumb + ✕ icon */}
-          {selectedFile && selectedFile.content && (
-            <div className="h-56 border-t border-app bg-app-surface flex flex-col flex-shrink-0">
-              <div className="px-3 py-1.5 border-b border-app bg-app-elevated/70 flex items-center justify-between text-xs">
-                <div className="flex items-center gap-1 font-mono text-[11px] truncate min-w-0 pr-2">
-                  {selectedFile.path.split('/').map((seg, idx, arr) => (
-                    <React.Fragment key={idx}>
-                      <span
-                        className={
-                          idx === arr.length - 1 ? 'text-app font-medium' : 'text-app-muted'
-                        }
-                      >
-                        {seg}
-                      </span>
-                      {idx < arr.length - 1 && (
-                        <span className="text-app-muted/40 select-none">/</span>
-                      )}
-                    </React.Fragment>
-                  ))}
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setSelectedFile(null)}
-                  className="p-1 rounded-control text-app-muted hover:text-app hover:bg-app-surface transition-colors flex-shrink-0"
-                  title="Close preview"
-                  aria-label="Close file preview"
-                >
-                  <X className="w-3.5 h-3.5" />
-                </button>
-              </div>
-              <div className="flex-1 p-2.5 overflow-auto font-mono text-xs text-app bg-app-bg whitespace-pre leading-relaxed">
-                {selectedFile.content}
-              </div>
-            </div>
-          )}
         </div>
       )}
 
