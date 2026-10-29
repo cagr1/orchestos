@@ -1,0 +1,69 @@
+[
+  {
+    "flujo": "dev-session-tabs",
+    "pass": true,
+    "steps": [
+      {
+        "nombre": "sidebar opens two sessions as ordered tabs",
+        "ok": true,
+        "detalle": "Alpha, Beta; Gamma stays only in sidebar"
+      },
+      {
+        "nombre": "tab click activates session",
+        "ok": true,
+        "detalle": "Alpha active"
+      },
+      {
+        "nombre": "reopening existing tab does not duplicate it",
+        "ok": true,
+        "detalle": "two tabs"
+      },
+      {
+        "nombre": "reload restores open tabs order and active id",
+        "ok": true,
+        "detalle": "Alpha active; Alpha, Beta restored"
+      },
+      {
+        "nombre": "closing active tab selects right neighbour and keeps sidebar session",
+        "ok": true,
+        "detalle": "Beta active; Alpha remains in sidebar"
+      },
+      {
+        "nombre": "closing tab does not archive or delete session",
+        "ok": true,
+        "detalle": "Alpha remains in unarchived sessions API"
+      },
+      {
+        "nombre": "plus opens centered New session composer",
+        "ok": true,
+        "detalle": "composer vertical center within 2px of available area"
+      },
+      {
+        "nombre": "New session selection persists with other tabs still open",
+        "ok": true,
+        "detalle": "Beta open, New session selected"
+      },
+      {
+        "nombre": "reload silently drops dead persisted ids",
+        "ok": true,
+        "detalle": "missing id pruned from storage"
+      },
+      {
+        "nombre": "closing final tab shows New session",
+        "ok": true,
+        "detalle": "no open tabs"
+      },
+      {
+        "nombre": "0 console errors",
+        "ok": true,
+        "detalle": "none"
+      }
+    ],
+    "notes": [],
+    "errores": [],
+    "capturas": [
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-34496/dev-session-tabs/session-tabs.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-34496/dev-session-tabs/new-session.png"
+    ]
+  }
+]

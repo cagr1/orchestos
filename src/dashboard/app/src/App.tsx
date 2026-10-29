@@ -50,9 +50,18 @@ import {
 import { mergeOptimisticAttachments } from './components/chat/mergeAttachments'
 import { OrchestChatView } from './components/chat/OrchestChatView'
 import { CommandPalette } from './components/common/CommandPalette'
+import { DevSessionTabs } from './components/dev/DevSessionTabs'
 import { OpenCodeTerminal } from './components/dev/OpenCodeTerminal'
 import { type HistorySession, OrcaRightInspector } from './components/dev/OrcaRightInspector'
 import { OrchestDevWorkspace } from './components/dev/OrchestDevWorkspace'
+import {
+  closeSessionTab,
+  emptySessionTabs,
+  openSessionTab,
+  readSessionTabs,
+  restoreSessionTabs,
+  SESSION_TABS_KEY,
+} from './components/dev/session-tabs'
 import { ShellHeader } from './components/layout/ShellHeader'
 import { ShellSidebar } from './components/layout/ShellSidebar'
 import { ShellStatusBar } from './components/layout/ShellStatusBar'
@@ -98,7 +107,40 @@ export default function App() {
   const [projects, setProjects] = useState<ProjectItem[]>([])
   const [deletingProjectIds, setDeletingProjectIds] = useState<Set<string>>(() => new Set())
   const [activeProjectId, setActiveProjectId] = useState<string>('')
-  const [activeAgentId, setActiveAgentId] = useState<string | null>(null)
+  const [devTabs, setDevTabs] = useState(readSessionTabs)
+  const activeAgentId = devTabs[activeProjectId]?.activeId ?? null
+  const updateDevTabs = (
+    projectId: string,
+    update: (
+      tabs: import('./components/dev/session-tabs').SessionTabs,
+    ) => import('./components/dev/session-tabs').SessionTabs,
+  ) => {
+    setDevTabs((current) => ({
+      ...current,
+      [projectId]: update(current[projectId] ?? emptySessionTabs()),
+    }))
+  }
+  useEffect(() => {
+    try {
+      localStorage.setItem(SESSION_TABS_KEY, JSON.stringify(devTabs))
+    } catch {
+      /* Storage unavailable. */
+    }
+  }, [devTabs])
+  useEffect(() => {
+    if (!projects.length) return
+    setDevTabs((current) =>
+      Object.fromEntries(
+        projects.map((project) => [
+          project.id,
+          restoreSessionTabs(
+            current[project.id],
+            project.agents.map((agent) => agent.id),
+          ),
+        ]),
+      ),
+    )
+  }, [projects])
   const [sessionStatus, setSessionStatus] = useState<SessionStatus | null>(() => {
     try {
       const cached = localStorage.getItem('orchestos-session-status')
@@ -155,6 +197,9 @@ export default function App() {
   const [activeThreadId, setActiveThreadId] = useState<string>('')
   const threadsRef = useRef<ChatThread[]>([])
   const pendingNewChat = useRef<Promise<ChatThread | null> | null>(null)
+  useEffect(() => {
+    if (mode === 'dev') setActiveThreadId(activeAgentId || '')
+  }, [mode, activeAgentId])
   threadsRef.current = threads
   const reportedTaskIds = useRef(new Set<string>())
   const completedTaskPollAttempts = useRef(new Map<string, number>())
@@ -334,8 +379,14 @@ export default function App() {
             ? current
             : rememberedProject?.id || loaded[0]?.id || '',
         )
+        if (rememberedProject) setMode('dev')
         if (rememberedProject && rememberedAgent) {
-          setActiveAgentId(rememberedAgent.id)
+          setDevTabs((current) => ({
+            ...current,
+            [rememberedProject.id]:
+              current[rememberedProject.id] ??
+              openSessionTab(emptySessionTabs(), rememberedAgent.id),
+          }))
           setMode('dev')
           void listSessions(rememberedProject.id).then(async (sessions) => {
             const session = sessions.find((item) => item.id === rememberedAgent.id)
@@ -721,7 +772,7 @@ export default function App() {
   // Agent selection and launch in Dev mode
   const handleSelectAgent = async (agentId: string, projectId: string) => {
     setActiveProjectId(projectId)
-    setActiveAgentId(agentId)
+    updateDevTabs(projectId, (tabs) => openSessionTab(tabs, agentId))
     localStorage.setItem(
       'orchestos-last-dev',
       JSON.stringify({ kind: 'session', projectId, sessionId: agentId }),
@@ -756,7 +807,17 @@ export default function App() {
   const handleCloseAgent = async (agentId: string) => {
     try {
       await archiveSession(agentId, projectForSession(agentId))
-      if (activeAgentId === agentId) setActiveAgentId(null)
+      setDevTabs((current) =>
+        Object.fromEntries(
+          Object.entries(current).map(([projectId, tabs]) => [
+            projectId,
+            {
+              ...closeSessionTab(tabs, agentId),
+              activeId: tabs.activeId === agentId ? null : tabs.activeId,
+            },
+          ]),
+        ),
+      )
       setProjects(await listProjects())
       await reloadHistory()
     } catch {
@@ -800,7 +861,7 @@ export default function App() {
           ? ''
           : current,
       )
-      setActiveAgentId(null)
+      updateDevTabs(projectId, () => emptySessionTabs())
       await reloadHistory()
     } catch {
       // Keep the project visible when the delete request fails.
@@ -821,7 +882,7 @@ export default function App() {
       const loaded = await listProjects()
       setProjects(loaded)
       setActiveProjectId((current) => (current === projectId ? loaded[0]?.id || '' : current))
-      setActiveAgentId(null)
+      updateDevTabs(projectId, () => emptySessionTabs())
       setRuns([])
       setThreads((current) => current.filter((thread) => thread.projectId !== projectId))
       setMode(previousMode || 'dev')
@@ -851,7 +912,7 @@ export default function App() {
     void createSession({ agent: cliId, projectId, title })
       .then(async (thread) => {
         setActiveProjectId(projectId)
-        setActiveAgentId(thread.id)
+        updateDevTabs(projectId, (tabs) => openSessionTab(tabs, thread.id))
         localStorage.setItem(
           'orchestos-last-dev',
           JSON.stringify({ kind: 'session', projectId, sessionId: thread.id }),
@@ -920,7 +981,7 @@ export default function App() {
   }
 
   const handleSlashCommand = async (command: string, argument?: string) => {
-    const id = activeThreadId
+    const id = mode === 'dev' ? activeAgentId : activeThreadId
     if (!id) return
     if (command === '/rename') {
       const title = argument?.trim() || window.prompt('Rename conversation', '')
@@ -941,6 +1002,48 @@ export default function App() {
     }
   }
 
+  const devSendLock = useRef(false)
+  const handleDevSendMessage: typeof handleSendMessage = async (
+    content,
+    attachments,
+    agent,
+    model,
+    effort,
+    approvalMode,
+  ) => {
+    if (devSendLock.current || !currentProject) return false
+    devSendLock.current = true
+    try {
+      let thread = threadsRef.current.find((item) => item.id === activeAgentId)
+      if (!activeAgentId) {
+        thread = await createSession({ agent: agent || 'api', projectId: currentProject.id })
+        threadsRef.current = [thread, ...threadsRef.current]
+        setThreads((current) => [thread!, ...current])
+        setActiveThreadId(thread.id)
+        updateDevTabs(currentProject.id, (tabs) => openSessionTab(tabs, thread!.id))
+        localStorage.setItem(
+          'orchestos-last-dev',
+          JSON.stringify({ projectId: currentProject.id, sessionId: thread.id }),
+        )
+        setProjects(await listProjects())
+      }
+      if (!thread) return false
+      return await handleSendMessage(
+        content,
+        attachments,
+        agent,
+        model,
+        effort,
+        approvalMode,
+        thread,
+      )
+    } catch {
+      return false
+    } finally {
+      devSendLock.current = false
+    }
+  }
+
   const handleSendMessage = async (
     content: string,
     attachments?: ChatAttachment[],
@@ -948,9 +1051,10 @@ export default function App() {
     model?: string,
     effort?: string,
     approvalMode?: import('./types/orchestos').ApprovalMode,
+    devThread?: ChatThread,
   ): Promise<boolean> => {
-    let threadId = activeThreadId
-    let thread = threads.find((item) => item.id === threadId)
+    let threadId = devThread?.id ?? activeThreadId
+    let thread = devThread ?? threads.find((item) => item.id === threadId)
     // El composer del estado vacío ya es visible mientras New chat crea el hilo: se espera ese hilo
     // en vez de abrir una sesión general aparte y mandarle el mensaje sin proyecto.
     const pendingThread = await threadPendingForSend(threadId, pendingNewChat.current)
@@ -1357,24 +1461,50 @@ export default function App() {
             )}
 
             {/* VIEW 2: DEV WORKSPACE */}
-            {mode === 'dev' &&
-              (activeAgent?.agent === 'opencode' && currentProject ? (
-                <OpenCodeTerminal
-                  key={activeAgent.id}
-                  projectId={currentProject.id}
-                  sessionTitle={activeAgent.name}
-                  onClose={() => void handleCloseAgent(activeAgent.id)}
+            {mode === 'dev' && (
+              <div className="flex-1 min-w-0 flex flex-col overflow-hidden">
+                <DevSessionTabs
+                  agents={(devTabs[activeProjectId]?.ids ?? []).flatMap(
+                    (id) => currentProject?.agents.find((agent) => agent.id === id) ?? [],
+                  )}
+                  activeId={activeAgentId}
+                  onSelect={(id) => {
+                    void handleSelectAgent(id, activeProjectId)
+                  }}
+                  onClose={(id) =>
+                    updateDevTabs(activeProjectId, (tabs) => closeSessionTab(tabs, id))
+                  }
+                  onNew={() => {
+                    updateDevTabs(activeProjectId, (tabs) => ({ ...tabs, activeId: null }))
+                    localStorage.setItem(
+                      'orchestos-last-dev',
+                      JSON.stringify({ projectId: activeProjectId }),
+                    )
+                  }}
                 />
-              ) : (
-                <OrchestDevWorkspace
-                  activeProject={currentProject}
-                  activeAgent={activeAgent}
-                  onCloseAgent={handleCloseAgent}
-                  onSendMessage={handleSendMessage}
-                  sessionStatus={sessionStatus}
-                  onSlashCommand={handleSlashCommand}
-                />
-              ))}
+                {activeAgent?.agent === 'opencode' && currentProject ? (
+                  <OpenCodeTerminal
+                    key={activeAgent.id}
+                    projectId={currentProject.id}
+                    sessionTitle={activeAgent.name}
+                    onClose={() =>
+                      updateDevTabs(activeProjectId, (tabs) =>
+                        closeSessionTab(tabs, activeAgent.id),
+                      )
+                    }
+                  />
+                ) : (
+                  <OrchestDevWorkspace
+                    activeProject={currentProject}
+                    activeAgent={activeAgent}
+                    onCloseAgent={handleCloseAgent}
+                    onSendMessage={handleDevSendMessage}
+                    sessionStatus={sessionStatus}
+                    onSlashCommand={handleSlashCommand}
+                  />
+                )}
+              </div>
+            )}
 
             {/* VIEW 3: SETTINGS (Full screen mode without sidebar, hosts project tasks, runs, specs, etc.) */}
             {mode === 'settings' && (

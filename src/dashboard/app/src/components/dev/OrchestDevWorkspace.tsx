@@ -393,34 +393,21 @@ export const OrchestDevWorkspace: React.FC<OrchestDevWorkspaceProps> = ({
     stickToBottom()
   }
 
-  // EMPTY STATE: when no agent session is selected (keep "OrchestOS Dev")
   if (!activeAgent) {
     return (
-      <main className="flex-1 flex flex-col items-center justify-center p-8 bg-app-bg text-app select-none overflow-hidden">
-        <div className="flex flex-col items-center max-w-sm text-center space-y-4 opacity-75 hover:opacity-100 transition-opacity">
-          <div className="w-14 h-14 rounded-card bg-app-surface border border-app flex items-center justify-center text-app-accent shadow-xs">
-            <span className="text-xl font-black tracking-tighter">O</span>
-            <span className="text-lg font-black text-app">S</span>
-          </div>
-
-          <div className="space-y-1">
-            <h1 className="text-lg font-bold text-app tracking-tight">OrchestOS Dev</h1>
-            <p className="text-xs text-app-muted leading-relaxed">
-              No active session open. Select an agent from the sidebar or click + to launch a new
-              CLI session.
-            </p>
-          </div>
-
-          {onSelectAgent && (
-            <button
-              type="button"
-              onClick={() => onSelectAgent('ag_handoff')}
-              className="mt-1 inline-flex items-center gap-2 px-3 py-1.5 rounded-control bg-app-surface border border-app text-xs font-mono text-app hover:border-app-accent transition-colors shadow-2xs"
-            >
-              <ProviderLogo id="claude" size={14} className="w-3.5 h-3.5" />
-              <span>Resume session</span>
-            </button>
-          )}
+      <main
+        data-dev-new-session
+        className="flex-1 flex flex-col items-center justify-center p-8 bg-app-bg text-app overflow-hidden"
+      >
+        <div data-composer-region className="w-full max-w-3xl lg:max-w-4xl space-y-4">
+          <h1 className="text-lg font-bold text-app text-center">New session</h1>
+          <AgentComposer
+            onSendMessage={(content, attachments, cli, model, effort) =>
+              onSendMessage?.(content, attachments, cli, model, effort)
+            }
+            defaultCli={cliId}
+            onSlashCommand={onSlashCommand}
+          />
         </div>
       </main>
     )

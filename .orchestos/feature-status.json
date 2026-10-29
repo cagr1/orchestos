@@ -427,6 +427,24 @@
       "closedDate": null
     },
     {
+      "id": "UI.38.1",
+      "sprint": "Fase 2 — Producto mínimo para entrega",
+      "block": "Abiertos — fiabilidad de los gates y documentación",
+      "delegation": "🧠",
+      "title": "Dev: sesiones abiertas en pestañas arriba del centro",
+      "status": "done",
+      "closedDate": "2026-10-29"
+    },
+    {
+      "id": "UI.38.2",
+      "sprint": "Fase 2 — Producto mínimo para entrega",
+      "block": "Abiertos — fiabilidad de los gates y documentación",
+      "delegation": "🧠",
+      "title": "Dev: panel de archivo con pestañas entre el chat y Files",
+      "status": "open",
+      "closedDate": null
+    },
+    {
       "id": "CI.48",
       "sprint": "Fase 2 — Producto mínimo para entrega",
       "block": "Abiertos — fiabilidad de los gates y documentación",

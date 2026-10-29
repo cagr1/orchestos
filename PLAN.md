@@ -539,6 +539,17 @@ Regla: nada se reintenta, cierra ni muestra sin evidencia medida que el usuario 
   Preview/Source, código con números de línea. Files se queda a la derecha. Hoy el archivo se ve dentro de Files
   (`OrcaRightInspector.tsx:424`) y el centro de Dev queda vacío ("No active session open"). Toca varios componentes:
   spec con layout antes de delegar.
+- [x] **UI.38.1 — 🧠 Dev: sesiones abiertas en pestañas arriba del centro.** (cerrado 2026-10-29) Decisiones de Carlos
+  2026-10-29: la lista del sidebar se queda (pestañas = abiertas); "+" abre New session con el composer centrado; las
+  pestañas abiertas se guardan por proyecto. `DevSessionTabs.tsx` + lógica pura `session-tabs.ts`; × cierra la pestaña
+  sin tocar la sesión; ids muertos se descartan al recargar; sale "No active session open…".
+  Evidencia (cerebro): capturas `UI.38.1-session-tabs.png` y `UI.38.1-new-session.png`; primer envío desde New session
+  en vivo (dashboard real 4299): crea la sesión, abre su pestaña y responde; sesión de prueba borrada.
+  Gate en vivo: navegador real (Playwright, `dev-session-tabs` 11/11 + `project-tabs` 40/40), `docs/done/evidence/UI.38.1-live.json`.
+  Ejecutado por: codex gpt-6.1-sol (criterio) · Revisión: Opus · Spec: docs/specs/UI.38.1.md
+- [ ] **UI.38.2 — 🧠 Dev: panel de archivo con pestañas entre el chat y Files.** Clic = vista previa en cursiva,
+  doble clic = fija; solo lectura; Markdown Preview/Source; código con colores (el resaltador del chat) y números de
+  línea; las fijas se guardan por proyecto. Sale la vista previa de abajo de Files. Spec al cerrar UI.38.1.
 - [ ] **CI.48 — 🔍 `codex-live` falla también en HEAD (2026-10-29).** HEAD `79c501f0`: `turn 1 streams multiple visible
   text updates: 0 distinct non-empty samples` (`ui-gate-4953`). Con UI.37: el DOM muestra `I’ll` (apóstrofo tipográfico)
   y lo persistido `I'll`, y el turno 2 tardó 180 s (`ui-gate-3138`). El pre-push lo corre en cada cambio del chat y
