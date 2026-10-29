@@ -1,4 +1,4 @@
-# NEXT — handoff 2026-10-26 (cierre del lote SET)
+# NEXT — handoff 2026-10-28 (cierre del lote cuotas + mutación)
 
 Un solo presente: orden y trampas vivas. Lo cerrado vive en `docs/done/bloque-*.md`, `PLAN.md` y git (regla `AGENTS.md`
 § Reglas generales, 2026-10-19: `NEXT.md` se toca solo al cerrar o cortar un lote). Arranque:
@@ -12,21 +12,17 @@ Un solo presente: orden y trampas vivas. Lo cerrado vive en `docs/done/bloque-*.
   specs, decide con Carlos, revisa lo de Sol y cierra. Memoria `feedback-subagentes-modelo-barato`.
 
 ## Cerrado
-- 2026-10-23/25 (detalle en `PLAN.md` y git): CI.23, CI.40, TRUST.R2/.6/.7/.8, CI.18, CI.41–43, CI.19 fase 1, UI.26,
-  UI.29, UI.30, CHAT.1–3, CFG.1, SKILLS.1, CI.11.
-- 2026-10-26: CI.44 `07fbab61` (chat sin proyecto, `.env` de providers, `dbPath` de setup, `config.yaml` global y
-  evidencia del ui-gate honran `ORCHESTOS_HOME` vía `src/config/orchestos-home.ts`; Luna, `qa` sin defectos; log real
-  717→717 en vivo). Peso de `main.js` aceptado `6b6e0aaf`.
-- 2026-10-26 (GO de Carlos, "cualquier CLI"): AT.11.2 `86fe9d00` motor genérico `cli:<id>` desde `config.yaml`
-  global, solo Ejecutor, costo "no medido"; AT.11.3 `f3b5b678` su UI en Settings; CI.45 `f1fa38bb` el chat recrea la
-  tarea rechazada al reenviarla (tumbó un pre-push).
-- 2026-10-26 (lote SET, diseño en Claude Desktop con Carlos): SET.0 `31cd9f89` (`/api/usage` parsea en un worker;
-  `/api/settings` concurrente 11,9 s → 0,11 s; empujado), SET.1 `235de306` (nav agrupada con iconos, guardado
-  instantáneo, buscador que resalta), SET.5 (temas en Appearance, General = fila Language, Keybindings desde
-  `lib/keybindings.ts`). Ver `git log` para los SHAs.
-- 2026-10-26 (resto del lote SET, sin pausa): SET.2 `0f426752` (`/api/providers`: login shell, versión, sesión, modelos),
-  SET.3 `e9f5613c` (página Providers; Settings ya no espera a `/api/usage`), SET.2.1 `acfed752` (CLIs se lanzan con el PATH
-  de detección; hermano hallado en revisión), SET.4 `927ef50f` (API keys, OpenRouter no crítico), SET.6 `5bccfbd4`.
+- Antes del 2026-10-27 (lotes SET, AT.11.2/.3, CI.44/45 y anteriores): `PLAN.md` y `git log`.
+- 2026-10-27/28 (este lote, todo empujado, CI verde, nocturna de mutación `40661058704` verde entera):
+  - CI.46 `74ac5097`: `codex-app-server.ts` en 3 shards por rango de líneas cortado entre métodos (41/63/76 min).
+  - CI.47 `7c482813`: `executors-routing` y `-engines` en dos shards cada uno por archivos enteros (57/81/77/69 min);
+    el glob mutaba `cli-search-path.test.ts`. Tiempos en `24cbd9f3`.
+  - UI.31 `8fe4bd0c`: el popover de cuotas muestra lo consumido, sin "CLI Quotas", semanal como `5D 14h`.
+  - UI.32 `d03804a0`: la pestaña Diff lista los cambios del working tree de git (como VS Code), solo lectura.
+  - UI.33 `95d6f06e` (+ `b3cd5ad8`): color por consumo, verde < 60 %, naranja 60–80 %, rojo > 80 %.
+  - UI.34 `67c2f904`: las corridas propias de Claude guardan su `rate_limit_event` como cuota.
+  - UI.35 `b60b0317` + `ac5239ee`: la cuota de Claude sale del endpoint de `/usage` (`api/oauth/usage`, 0 tokens)
+    con la sesión del llavero (sin guardarla ni refrescarla), cada 60 s como mucho; los ui-gates lo apagan.
 
 ## Orden
 0. **Mostrar Settings a Carlos** (lote SET completo): Providers, API keys, Health, CLIs propios en Providers. Probar
@@ -54,6 +50,15 @@ Un solo presente: orden y trampas vivas. Lo cerrado vive en `docs/done/bloque-*.
   decide en el vault, no aquí; la tarea `chat-4a0d93a2…` era de prueba, sin urgencia.
 
 ## Trampas vivas
+- Todo arnés que levante un dashboard de prueba debe poner `ORCHESTOS_CLAUDE_USAGE_LIVE=0` (como
+  `scripts/ui-gate/run.mjs`): si no, lee el llavero real y la cuota real tapa el fixture (UI.35, `usage-bar` 39 %).
+- `~/.claude/.credentials.json` de Carlos está vencido (julio); el llavero es la fuente buena en macOS.
+- Corregir un ítem ya `[x]` con un ejecutor: reabrirlo `[ ]` solo para el preflight y volver a `[x]`. Deja
+  `.orchestos/active-item.json` con su scope; el siguiente commit del cerebro falla en `scope:check` → borrar el archivo
+  (estado de sesión de un ítem cerrado).
+- `security:secrets` marca `token|secret|password… = '<16+ caracteres>'` aunque sea un fixture: valores cortos.
+- Stryker: un glob `dir/**/*.ts` en `mutate` toma también los `.test.ts` co-ubicados; excluir `!…/*.test.ts`. Partir
+  un shard: por archivos enteros si se puede; por rango, solo entre métodos (un mutante que cruza el corte se pierde).
 - Los ui-gates recompilan `src/dashboard/app/dist/` compartido: el dashboard real de Carlos (4242) sirve ese `dist`
   y le muestra trabajo de un ejecutor a medias (pasó con SET.1). Hallazgo sin ítem; avisar a Carlos antes de que mire.
 - Spec de guardado instantáneo: definir qué pasa con estados intermedios que el backend rechaza (SET.1 r1 paró por
@@ -86,7 +91,7 @@ Un solo presente: orden y trampas vivas. Lo cerrado vive en `docs/done/bloque-*.
 - Fixture que escribe un hook de git: `mkdirSync(.git/hooks, recursive)` antes; con HOME temporal `git init` no la
   crea (TRUST.7.2).
 - `method/bin/delegate.test.sh` "sin temporales" falla si hay otro `delegate` corriendo (mira `/tmp` global).
-- Peso de arranque ~8,9k est., al borde de 9k: crecer `CLAUDE.md`/`MEMORY.md` vuelve a disparar el guard.
+- Peso de arranque 9117 est., sobre el tope de 9k (`MEMORY.md` 4057): podar `MEMORY.md` lo baja.
   `/reload-plugins` mostró "1 error during load" (detalle en `/plugin`, sin revisar).
 - Luna (`mecanico`) inventó "cambios ajenos" en un archivo limpio (TRUST.4, dos veces con causas distintas): si un
   ejecutor para por solapamiento, comprobar con `git diff --quiet HEAD -- <ruta>` y escribir el estado real en el spec.
