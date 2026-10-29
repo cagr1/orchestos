@@ -22,6 +22,7 @@ import remarkGfm from 'remark-gfm'
 import { FileThumbnail } from '@/components/ui/file-thumbnail'
 import type { ChatMessageRow, TimelineStep, TimelineTurn } from '../../api/chat'
 import { getSessionContext, getTimeline, type TimelineResponse } from '../../api/chat'
+import { type ConfigResponse, getConfig } from '../../api/settings'
 import { useStickToBottom } from '../../hooks/useStickToBottom'
 import type {
   AgentItem,
@@ -195,6 +196,23 @@ export const OrchestDevWorkspace: React.FC<OrchestDevWorkspaceProps> = ({
   onSlashCommand,
   sessionStatus: apiSessionStatus,
 }) => {
+  const [orchestrator, setOrchestrator] = useState<
+    NonNullable<ConfigResponse['roleAssignments']>[string] | undefined
+  >(undefined)
+  useEffect(() => {
+    let disposed = false
+    setOrchestrator(undefined)
+    void getConfig(activeProject.id)
+      .then((config) => {
+        if (!disposed) setOrchestrator(config.roleAssignments?.orchestrator ?? null)
+      })
+      .catch(() => {
+        if (!disposed) setOrchestrator(null)
+      })
+    return () => {
+      disposed = true
+    }
+  }, [activeProject.id])
   // Session status state: amber pulsing dot when waiting for approval
   const [sessionStatus, setSessionStatus] = useState<SessionStatus>('done')
   const [elapsedTime] = useState('')
@@ -400,12 +418,18 @@ export const OrchestDevWorkspace: React.FC<OrchestDevWorkspaceProps> = ({
         className="flex-1 flex flex-col items-center justify-center p-8 bg-app-bg text-app overflow-hidden"
       >
         <div data-composer-region className="w-full max-w-3xl lg:max-w-4xl space-y-4">
-          <h1 className="text-lg font-bold text-app text-center">New session</h1>
+          <h1 className="text-lg font-bold text-app text-center">
+            What should we work on in {activeProject.name}?
+          </h1>
           <AgentComposer
             onSendMessage={(content, attachments, cli, model, effort) =>
               onSendMessage?.(content, attachments, cli, model, effort)
             }
-            defaultCli={cliId}
+            defaultCli={(orchestrator?.agent ?? cliId) as CliId}
+            defaultModel={orchestrator?.model}
+            defaultEffort={orchestrator?.effort}
+            orchestratorLoading={orchestrator === undefined}
+            orchestratorAssigned={!!orchestrator}
             onSlashCommand={onSlashCommand}
           />
         </div>

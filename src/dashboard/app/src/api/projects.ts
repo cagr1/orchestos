@@ -1,4 +1,5 @@
 import type { AgentSession, ProjectItem } from '../types/orchestos'
+import { getConfig } from './settings'
 
 export interface ProjectRow {
   id: string
@@ -62,14 +63,19 @@ export function mapProjectRow(row: ProjectRow, agents: AgentSession[] = []): Pro
 export function mapSessionToAgent(
   session: SessionRow,
   status: TurnStatus = { kind: 'none' },
+  orchestrator?: { agent: string; model: string; effort?: string } | null,
 ): AgentSession {
+  const assignment =
+    !session.lastModel && orchestrator?.agent === session.agent ? orchestrator : undefined
   return {
     id: session.id,
     projectId: session.projectId ?? null,
     name: session.title,
     agent: session.agent,
-    model: session.lastModel || session.agent,
-    ...(session.lastEffort ? { effort: session.lastEffort } : {}),
+    model: assignment?.model || session.lastModel || session.agent,
+    ...(assignment?.effort || session.lastEffort
+      ? { effort: assignment?.effort || session.lastEffort }
+      : {}),
     duration: timeSince(session.updatedAt),
     status:
       status.kind === 'pending'
@@ -89,7 +95,10 @@ export function mapSessionToAgent(
   }
 }
 
-async function loadAgent(session: SessionRow): Promise<AgentSession> {
+async function loadAgent(
+  session: SessionRow,
+  orchestrator?: { agent: string; model: string; effort?: string } | null,
+): Promise<AgentSession> {
   const path = `/api/chat/sessions/${encodeURIComponent(session.id)}/turn-status`
   const scope = session.projectId
     ? { query: '', headers: { 'x-orchestos-project-id': session.projectId } }
@@ -97,7 +106,7 @@ async function loadAgent(session: SessionRow): Promise<AgentSession> {
   const status = await request<TurnStatus>(`${path}${scope.query}`, scope.headers).catch(() => ({
     kind: 'none' as const,
   }))
-  return mapSessionToAgent(session, status)
+  return mapSessionToAgent(session, status, orchestrator)
 }
 
 export async function listProjects(): Promise<ProjectItem[]> {
@@ -107,7 +116,10 @@ export async function listProjects(): Promise<ProjectItem[]> {
       const sessions = await request<SessionRow[]>(
         `/api/chat/sessions?project=${encodeURIComponent(row.id)}`,
       )
-      const agents = await Promise.all(sessions.map(loadAgent))
+      const config = await getConfig(row.id).catch(() => null)
+      const agents = await Promise.all(
+        sessions.map((session) => loadAgent(session, config?.roleAssignments?.orchestrator)),
+      )
       return mapProjectRow(row, agents)
     }),
   )

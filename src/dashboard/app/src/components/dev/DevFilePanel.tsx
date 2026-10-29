@@ -6,11 +6,9 @@ import json from 'highlight.js/lib/languages/json'
 import markdown from 'highlight.js/lib/languages/markdown'
 import typescript from 'highlight.js/lib/languages/typescript'
 import yaml from 'highlight.js/lib/languages/yaml'
-import { X } from 'lucide-react'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { getExplorerFile } from '../../api/explorer'
 import { ThreadMarkdown } from '../thread/ThreadMarkdown'
-import type { FileTabs } from './file-tabs'
 
 for (const [name, language] of Object.entries({
   bash,
@@ -79,22 +77,18 @@ function FileSource({ path, content }: { path: string; content: string }) {
 
 export function DevFilePanel({
   projectId,
-  state,
-  onOpen,
+  path,
   onClose,
-  onCloseAll,
 }: {
   projectId: string
-  state: FileTabs
-  onOpen: (path: string, options: { pin: boolean }) => void
+  path: string
   onClose: (path: string) => void
-  onCloseAll: () => void
 }) {
   const [files, setFiles] = useState<Record<string, { content?: string; error?: string }>>({})
   const [sourcePaths, setSourcePaths] = useState<Record<string, boolean>>({})
   const closeRef = useRef(onClose)
   closeRef.current = onClose
-  const paths = JSON.stringify(state.tabs.map((tab) => tab.path))
+  const paths = JSON.stringify([path])
   useEffect(() => {
     let cancelled = false
     setFiles({})
@@ -114,7 +108,6 @@ export function DevFilePanel({
       cancelled = true
     }
   }, [projectId, paths])
-  const path = state.activePath
   const file = path ? files[path] : undefined
   const isMarkdown = /\.(md|markdown)$/i.test(path ?? '')
   const source = !!sourcePaths[path ?? '']
@@ -122,47 +115,8 @@ export function DevFilePanel({
     <section
       data-dev-file-panel
       aria-label="File viewer"
-      className="flex flex-col flex-1 min-w-0 overflow-hidden border-l border-app bg-app-bg"
+      className="flex flex-col flex-1 min-w-0 overflow-hidden bg-app-bg"
     >
-      <div className="flex shrink-0 items-center border-b border-app">
-        <div role="tablist" aria-label="Open files" className="flex flex-1 min-w-0 overflow-x-auto">
-          {state.tabs.map((tab) => (
-            <div
-              key={tab.path}
-              className={`group flex items-center border-r border-app ${path === tab.path ? 'bg-app-surface text-app' : 'text-app-muted'}`}
-            >
-              <button
-                type="button"
-                role="tab"
-                data-file-tab={tab.path}
-                aria-selected={path === tab.path}
-                onClick={() => onOpen(tab.path, { pin: false })}
-                onDoubleClick={() => onOpen(tab.path, { pin: true })}
-                title={tab.path}
-                className={`px-3 py-2 text-xs whitespace-nowrap hover:text-app ${tab.pinned ? '' : 'italic'}`}
-              >
-                {tab.path.split('/').pop()}
-              </button>
-              <button
-                type="button"
-                aria-label={`Close file tab ${tab.path}`}
-                onClick={() => onClose(tab.path)}
-                className="mr-2 p-1 rounded-control opacity-0 group-hover:opacity-100 focus:opacity-100 hover:bg-app-hover text-app-muted hover:text-app"
-              >
-                <X size={12} />
-              </button>
-            </div>
-          ))}
-        </div>
-        <button
-          type="button"
-          aria-label="Close file panel"
-          onClick={onCloseAll}
-          className="p-2 text-app-muted hover:text-app hover:bg-app-hover"
-        >
-          <X size={14} />
-        </button>
-      </div>
       {isMarkdown && path && (
         <div className="flex justify-end gap-1 p-1 border-b border-app">
           {['Preview', 'Source'].map((label) => (

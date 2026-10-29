@@ -1,63 +1,24 @@
 import { describe, expect, test } from 'bun:test'
-import {
-  closeFileTab,
-  emptyFileTabs,
-  openFileTab,
-  persistedFileTabs,
-  restoreFileTabs,
-} from './file-tabs'
+import { openFileTab } from './file-tabs'
+import { emptySessionTabs, openSessionTab } from './session-tabs'
 
-describe('Dev file tabs', () => {
-  test('single click replaces preview in place and keeps pinned files', () => {
-    const pinned = openFileTab(emptyFileTabs(), 'fixed.ts', true)
-    const first = openFileTab(pinned, 'README.md')
-    const replaced = openFileTab(first, 'context.json')
-    expect(replaced).toEqual({
-      tabs: [
-        { path: 'fixed.ts', pinned: true },
-        { path: 'context.json', pinned: false },
-      ],
-      activePath: 'context.json',
-    })
-    expect(first.tabs[1]?.path).toBe('README.md')
+describe('Files in unified Dev tabs', () => {
+  test('opening a file replaces only preview, preserving session and pinned file', () => {
+    const state = openFileTab(
+      openFileTab(openSessionTab(emptySessionTabs(), 'a'), 'fixed', true),
+      'preview',
+    )
+    expect(openFileTab(state, 'next').tabs.map((tab) => tab.id)).toEqual([
+      'a',
+      'file:fixed',
+      'file:next',
+    ])
+    expect(state.tabs[2]?.id).toBe('file:preview')
   })
-  test('pinning preview fixes it; later opens do not duplicate or unpin', () => {
-    const preview = openFileTab(emptyFileTabs(), 'a.ts')
-    const fixed = openFileTab(preview, 'a.ts', true)
+  test('double click pins; later clicks neither duplicate nor unpin', () => {
+    const fixed = openFileTab(openFileTab(emptySessionTabs(), 'a.ts'), 'a.ts', true)
     expect(openFileTab(fixed, 'a.ts')).toEqual(fixed)
-    expect(openFileTab(fixed, 'b.ts').tabs).toHaveLength(2)
-    expect(fixed.tabs[0]?.pinned).toBe(true)
-  })
-  test('close selects right then left neighbour; last close empties panel', () => {
-    const state = openFileTab(openFileTab(emptyFileTabs(), 'a', true), 'b', true)
-    expect(closeFileTab({ ...state, activePath: 'a' }, 'a').activePath).toBe('b')
-    expect(closeFileTab(state, 'b').activePath).toBe('a')
-    expect(closeFileTab(closeFileTab(state, 'a'), 'b')).toEqual(emptyFileTabs())
-    expect(closeFileTab(state, 'a').activePath).toBe('b')
-  })
-  test('persistence saves only pinned tabs and restores a pinned active path', () => {
-    const state = openFileTab(openFileTab(emptyFileTabs(), 'fixed', true), 'preview')
-    expect(persistedFileTabs(state)).toEqual({
-      tabs: [{ path: 'fixed', pinned: true }],
-      activePath: 'fixed',
-    })
-    expect(restoreFileTabs(state)).toEqual(persistedFileTabs(state))
-  })
-  test('restore drops dead paths, duplicates and malformed data', () => {
-    const value = {
-      tabs: [
-        { path: 'dead', pinned: true },
-        { path: 'live', pinned: true },
-        { path: 'live', pinned: true },
-        null,
-      ],
-      activePath: 'dead',
-    }
-    expect(restoreFileTabs(value, ['live'])).toEqual({
-      tabs: [{ path: 'live', pinned: true }],
-      activePath: 'live',
-    })
-    for (const invalid of [null, [], 'bad', { tabs: 'bad' }])
-      expect(restoreFileTabs(invalid)).toEqual(emptyFileTabs())
+    expect(fixed.tabs[0]).toEqual({ type: 'file', id: 'file:a.ts', path: 'a.ts', pinned: true })
+    expect(openFileTab(fixed, 'next').tabs).toHaveLength(2)
   })
 })

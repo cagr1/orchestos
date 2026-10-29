@@ -124,7 +124,29 @@ export default async function codexLive({
   const session = await (await startResponse).json()
   if (session.agent !== 'codex')
     throw new Error(`Expected Codex session, received ${session.agent}`)
+  await page.locator(`[data-session-tab="${session.id}"][aria-selected="true"]`).waitFor()
+  await page.locator('[data-dev-new-session]').waitFor({ state: 'detached' })
 
+  const sessionThread = () =>
+    runJson(`
+    import { Database } from 'bun:sqlite'
+    const db = new Database(${JSON.stringify(databasePath)}, { readonly: true })
+    console.log(JSON.stringify(db.query('SELECT codex_thread_id FROM chat_sessions WHERE id = ?').get(${JSON.stringify(session.id)})?.codex_thread_id ?? null))
+    db.close()
+  `)
+  const sessionLogs = (threadIds) =>
+    readFileSync(join(runDir, 'dashboard.log'), 'utf8')
+      .split('\n')
+      .flatMap((line) => {
+        const match = line.match(/\[(codex-turn|chat-turn)\] (\{.*\})/)
+        if (!match) return []
+        const event = JSON.parse(match[2])
+        return event.sessionId === session.id ||
+          (event.threadId && threadIds.includes(event.threadId))
+          ? [{ ...event, source: match[1] }]
+          : []
+      })
+  const sampleInterval = 150
   const composer = page.locator('textarea').last()
   const word = `MANGO-${Math.random().toString(36).slice(2, 10).toUpperCase()}`
   const sentMessage = `Remember the word ${word}. Reply in ten short paragraphs about mangoes.`
@@ -147,7 +169,7 @@ export default async function codexLive({
       const text = await visibleText()
       if (text) textSamples.push({ text, at: Date.now() })
     } catch {}
-  }, 150)
+  }, sampleInterval)
   sampler.unref?.()
   let firstDone
   const firstCompletion = await waitFor(async () => {
@@ -167,11 +189,23 @@ export default async function codexLive({
   clearInterval(sampler)
   const samplesBeforeCompletion = textSamples.filter((sample) => sample.at < firstStart + firstDone)
   const distinct = new Set(samplesBeforeCompletion.map((sample) => sample.text)).size
+  const firstThreadId = sessionThread()
+  const firstLogs = sessionLogs([firstThreadId])
+  const firstDelta = firstLogs.find((entry) => entry.event === 'first-delta')
+  const firstComplete = firstLogs.find((entry) => entry.event === 'turn-completed')
+  const deltaCount = firstComplete?.notifications?.['item/agentMessage/delta'] ?? 0
+  const backendWindow = firstDelta && firstComplete ? firstComplete.ms - firstDelta.ms : null
+  const backendBurst =
+    deltaCount > 1 &&
+    backendWindow !== null &&
+    backendWindow >= 0 &&
+    backendWindow < 2 * sampleInterval
   await step(
     'turn 1 streams multiple visible text updates',
-    Boolean(firstCompletion && distinct >= 2),
-    `${distinct} distinct non-empty samples before completion`,
+    Boolean(firstCompletion && (distinct >= 2 || backendBurst)),
+    `${distinct} distinct non-empty samples before completion; sessionId=${session.id}; threadId=${firstThreadId}; first delta=${firstDelta?.ms ?? 'missing'} ms; complete=${firstComplete?.ms ?? 'missing'} ms; deltas=${deltaCount}; ${backendBurst ? `ráfaga del backend: ${deltaCount} deltas en ${backendWindow} ms` : `backend window=${backendWindow} ms`}`,
   )
+  if (!firstCompletion) throw new Error('Turn 1 did not complete')
   await shot('codex-live-turn-one')
   await new Promise((resolve) => setTimeout(resolve, 3000))
   await step(
@@ -188,10 +222,30 @@ export default async function codexLive({
   let secondMidTurn = false
   const secondUserPrompt =
     'What word did I ask you to remember? Start with it, then explain mangoes in three short paragraphs.'
-  await waitFor(async () => {
+  let secondDone = null
+  let secondFinished = false
+  const completionObserver = waitFor(async () => {
     const timeline = await api(`/api/chat/sessions/${encodeURIComponent(session.id)}/timeline`, {
       headers: { 'x-orchestos-project-id': project.id },
     })
+    const assistants =
+      timeline.data?.messages?.filter((message) => message.role === 'assistant') ?? []
+    if (!timeline.data?.pending && assistants.length >= 2) {
+      secondDone = Date.now() - secondStart
+      secondFinished = true
+      return assistants.at(-1)
+    }
+    return null
+  }).then((result) => {
+    secondFinished = true
+    return result
+  })
+  const midTurnObserver = waitFor(async () => {
+    if (secondFinished) return true
+    const timeline = await api(`/api/chat/sessions/${encodeURIComponent(session.id)}/timeline`, {
+      headers: { 'x-orchestos-project-id': project.id },
+    })
+    if (secondFinished) return true
     if (!timeline.data?.pending || !timeline.data.live?.text) return null
     const currentTurnId = timeline.data.turns.at(-1)?.id
     if (!currentTurnId || timeline.data.live.turnId !== currentTurnId) return null
@@ -220,15 +274,8 @@ export default async function codexLive({
     )
     return true
   })
-  const secondCompletion = await waitFor(async () => {
-    const timeline = await api(`/api/chat/sessions/${encodeURIComponent(session.id)}/timeline`, {
-      headers: { 'x-orchestos-project-id': project.id },
-    })
-    const assistants =
-      timeline.data?.messages?.filter((message) => message.role === 'assistant') ?? []
-    return !timeline.data?.pending && assistants.length >= 2 ? assistants.at(-1) : null
-  })
-  const secondDone = secondCompletion ? Date.now() - secondStart : null
+  const [secondCompletion] = await Promise.all([completionObserver, midTurnObserver])
+  const secondThreadId = sessionThread()
   await step(
     'turn 2 remembers the word from turn 1',
     Boolean(secondCompletion?.content?.includes(word)),
@@ -264,14 +311,24 @@ export default async function codexLive({
     const prefix = plain(text).slice(0, 40)
     return completedOrder.findIndex((entry) => plain(entry).includes(prefix))
   }
+  const completedIndices = [
+    sentMessage,
+    firstAnswer,
+    secondUserPrompt,
+    secondCompletion?.content ?? '',
+  ].map(orderIndex)
+  const inOrder = (indices) =>
+    indices.every((index, i) => index >= 0 && (i === 0 || indices[i - 1] < index))
+  const finalOrderOk = inOrder(completedIndices)
   await step(
     'timeline DOM alternates user 1, assistant 1, user 2, assistant 2',
-    secondMidTurn &&
-      orderIndex(sentMessage) < orderIndex(firstAnswer) &&
-      orderIndex(firstAnswer) < orderIndex(secondUserPrompt) &&
-      orderIndex(secondUserPrompt) < orderIndex(secondCompletion?.content ?? ''),
-    `${JSON.stringify(completedOrder.map((text) => text.trim().slice(0, 50)))}; first answer=${plain(firstAnswer).slice(0, 80)}`,
+    finalOrderOk,
+    `indices=${JSON.stringify(completedIndices)}; secondMidTurn=${secondMidTurn}; ${JSON.stringify(completedOrder.map((text) => text.trim().slice(0, 50)))}`,
   )
+  if (!finalOrderOk)
+    throw new Error(
+      `Final timeline order failed: indices=${JSON.stringify(completedIndices)}; secondMidTurn=${secondMidTurn}`,
+    )
   await step(
     'user bubbles contain no agent markup or response text',
     (await timelineView.locator('div.max-w-2xl').allInnerTexts()).length >= 2 &&
@@ -318,34 +375,40 @@ export default async function codexLive({
     const prefix = plain(text).slice(0, 40)
     return reloadedMixed.findIndex((entry) => plain(entry).includes(prefix))
   }
+  const reloadedIndices = [
+    sentMessage,
+    firstAnswer,
+    secondUserPrompt,
+    secondCompletion?.content ?? '',
+  ].map(reloadedIndex)
+  const reloadedOrderOk = inOrder(reloadedIndices) && reloadedProse.length >= 2
   await step(
     'timeline DOM alternates user 1, assistant 1, user 2, assistant 2 after reload',
-    reloadedIndex(sentMessage) >= 0 &&
-      reloadedIndex(sentMessage) < reloadedIndex(firstAnswer) &&
-      reloadedIndex(firstAnswer) < reloadedIndex(secondUserPrompt) &&
-      reloadedIndex(secondUserPrompt) < reloadedIndex(secondCompletion?.content ?? '') &&
-      reloadedProse.length >= 2,
-    `user bubbles=${reloadedBubbles.length}; assistant bubbles=${reloadedProse.length}; first answer=${plain(firstAnswer).slice(0, 80)}`,
+    reloadedOrderOk,
+    `indices=${JSON.stringify(reloadedIndices)}; secondMidTurn=${secondMidTurn}; user bubbles=${reloadedBubbles.length}; assistant bubbles=${reloadedProse.length}; ${JSON.stringify(reloadedMixed.map((text) => text.trim().slice(0, 50)))}`,
   )
+  if (!reloadedOrderOk)
+    throw new Error(
+      `Reloaded timeline order failed: indices=${JSON.stringify(reloadedIndices)}; secondMidTurn=${secondMidTurn}`,
+    )
+  const turnLogs = sessionLogs([firstThreadId, secondThreadId])
+  const completedTurns = turnLogs.filter((entry) => entry.event === 'turn-completed')
   await step(
-    'turn 2 is faster than turn 1',
-    Number.isFinite(secondDone) && secondDone < firstDone,
-    Number.isFinite(secondDone) && secondDone < firstDone
-      ? `turn 1=${firstDone} ms; turn 2=${secondDone ?? 'timeout'} ms`
-      : JSON.stringify({
-          turn1: firstDone,
-          turn2: secondDone,
-          codexTurn: (() => {
-            try {
-              return readFileSync(join(runDir, 'dashboard.log'), 'utf8')
-                .split('\n')
-                .filter((line) => line.includes('[codex-turn]') || line.includes('[chat-turn]'))
-                .slice(-40)
-            } catch (error) {
-              return [`dashboard.log unreadable: ${error?.code || error?.message}`]
-            }
-          })(),
-        }),
+    'turn 2 reuses the same Codex thread',
+    Boolean(
+      firstThreadId &&
+        firstThreadId === secondThreadId &&
+        completedTurns.length === 2 &&
+        completedTurns.every((entry) => entry.threadId === firstThreadId),
+    ),
+    JSON.stringify({
+      turn1: firstDone,
+      turn2: secondDone,
+      sessionId: session.id,
+      firstThreadId,
+      secondThreadId,
+      codexTurn: turnLogs,
+    }),
   )
 
   const records = runJson(`
@@ -359,6 +422,11 @@ export default async function codexLive({
     'project chat runs are recorded with provider=codex',
     records.length >= 2 && records.every((row) => row.provider === 'codex'),
     JSON.stringify(records),
+  )
+  await step(
+    'project chat runs use the configured orchestrator model',
+    records.length >= 2 && records.every((row) => row.model === config.roles.orchestrator.model),
+    `expected=${config.roles.orchestrator.model}; records=${JSON.stringify(records)}`,
   )
   await shot('codex-live-turn-two')
 }

@@ -445,13 +445,22 @@
       "closedDate": "2026-10-29"
     },
     {
+      "id": "UI.38.3",
+      "sprint": "Fase 2 — Producto mínimo para entrega",
+      "block": "Abiertos — fiabilidad de los gates y documentación",
+      "delegation": "🧠",
+      "title": "Dev como MonoCode: una fila de pestañas (sesiones + archivos), contenido a todo el centro",
+      "status": "done",
+      "closedDate": "2026-10-29"
+    },
+    {
       "id": "CI.48",
       "sprint": "Fase 2 — Producto mínimo para entrega",
       "block": "Abiertos — fiabilidad de los gates y documentación",
       "delegation": "🔍",
       "title": "`codex-live` falla también en HEAD (2026-10-29)",
-      "status": "open",
-      "closedDate": null
+      "status": "done",
+      "closedDate": "2026-10-29"
     },
     {
       "id": "CI.19",

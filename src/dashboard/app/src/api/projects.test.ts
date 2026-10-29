@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test'
 import { parseDiffPatch } from '../components/dev/OrcaRightInspector'
-import { mapProjectRow, mapSessionToAgent, timeSince } from './projects'
+import { listProjects, mapProjectRow, mapSessionToAgent, timeSince } from './projects'
 import { mapRunRow } from './runs'
 
 describe('projects API mappings', () => {
@@ -28,6 +28,86 @@ describe('projects API mappings', () => {
     }
     expect(mapSessionToAgent(session, { kind: 'pending' }).status).toBe('active')
     expect(mapSessionToAgent(session, { kind: 'none' }).status).toBe('completed')
+  })
+
+  test('Dev uses the orchestrator only for sessions without a last model', () => {
+    const session = {
+      id: 's1',
+      projectId: 'p1',
+      agent: 'codex',
+      mode: 'code' as const,
+      title: 'Build',
+      createdAt: '2026-01-01T00:00:00Z',
+      updatedAt: '2026-01-01T00:05:00Z',
+    }
+    const role = { agent: 'codex', model: 'gpt-6-luna', effort: 'medium' }
+    expect(mapSessionToAgent(session, { kind: 'none' }, role)).toMatchObject({
+      model: 'gpt-6-luna',
+      effort: 'medium',
+    })
+    expect(
+      mapSessionToAgent(
+        { ...session, lastModel: 'gpt-6.1-sol', lastEffort: 'high' },
+        { kind: 'none' },
+        role,
+      ),
+    ).toMatchObject({ model: 'gpt-6.1-sol', effort: 'high' })
+    expect(
+      mapSessionToAgent({ ...session, lastModel: 'gpt-6.1-sol' }, { kind: 'none' }, role).effort,
+    ).toBeUndefined()
+    expect(
+      mapSessionToAgent(
+        { ...session, lastModel: 'sonnet', agent: 'claude' },
+        { kind: 'none' },
+        role,
+      ).model,
+    ).toBe('sonnet')
+  })
+
+  test('lists projects and their sessions when project config cannot be loaded', async () => {
+    const originalFetch = globalThis.fetch
+    const paths: string[] = []
+    globalThis.fetch = (async (input: string | URL | Request) => {
+      const path = String(input)
+      paths.push(path)
+      if (path === '/api/projects')
+        return Response.json([{ id: 'p1', path: '/work/alpha', lastUpdated: 'now' }])
+      if (path === '/api/chat/sessions?project=p1')
+        return Response.json([
+          {
+            id: 's1',
+            projectId: 'p1',
+            agent: 'codex',
+            title: 'Build',
+            updatedAt: '2026-01-01T00:05:00Z',
+            lastModel: 'gpt-6.1-sol',
+            lastEffort: 'high',
+          },
+          {
+            id: 's2',
+            projectId: 'p1',
+            agent: 'codex',
+            title: 'New',
+            updatedAt: '2026-01-01T00:05:00Z',
+          },
+        ])
+      if (path === '/api/config') return Response.json({ error: 'Unavailable' }, { status: 500 })
+      if (path.endsWith('/turn-status')) return Response.json({ kind: 'none' })
+      throw new Error(`Unexpected request: ${path}`)
+    }) as typeof fetch
+    try {
+      const projects = await listProjects()
+      expect(projects).toHaveLength(1)
+      expect(projects[0]?.agents[0]).toMatchObject({
+        id: 's1',
+        model: 'gpt-6.1-sol',
+        effort: 'high',
+      })
+      expect(projects[0]?.agents[1]).toMatchObject({ id: 's2', model: 'codex' })
+      expect(paths).toContain('/api/config')
+    } finally {
+      globalThis.fetch = originalFetch
+    }
   })
 
   test('maps API runs without inventing a diff', () => {

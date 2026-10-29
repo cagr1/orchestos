@@ -1,50 +1,70 @@
 import { describe, expect, test } from 'bun:test'
+import { openFileTab } from './file-tabs'
 import {
   closeSessionTab,
+  convertNewTab,
   emptySessionTabs,
+  openNewTab,
   openSessionTab,
+  persistedDevTabs,
   restoreSessionTabs,
 } from './session-tabs'
 
-describe('Dev session tabs', () => {
-  test('opens in order and activates an existing tab without duplicating it', () => {
+describe('Unified Dev tabs', () => {
+  test('sessions and files share ordered tabs; activating a session does not duplicate', () => {
     let state = openSessionTab(emptySessionTabs(), 'a')
+    state = openFileTab(state, 'README.md', true)
     state = openSessionTab(state, 'b')
-    expect(openSessionTab(state, 'a')).toEqual({ ids: ['a', 'b'], activeId: 'a' })
+    expect(openSessionTab(state, 'a')).toEqual({ ...state, activeId: 'a' })
+    expect(state.tabs.map((tab) => tab.type)).toEqual(['session', 'file', 'session'])
   })
-  test('closing the active tab selects its right neighbour, then its left', () => {
-    const state = { ids: ['a', 'b', 'c'], activeId: 'b' }
-    expect(closeSessionTab(state, 'b')).toEqual({ ids: ['a', 'c'], activeId: 'c' })
-    expect(closeSessionTab({ ...state, activeId: 'c' }, 'c')).toEqual({
-      ids: ['a', 'b'],
-      activeId: 'b',
-    })
+  test('plus appends independent drafts; first send converts same position', () => {
+    let state = openNewTab(openSessionTab(emptySessionTabs(), 'a'), 'draft')
+    state = openFileTab(state, 'a.ts', true)
+    const converted = convertNewTab(state, 'draft', 'b')
+    expect(converted.tabs.map((tab) => tab.id)).toEqual(['a', 'b', 'file:a.ts'])
+    expect(converted.activeId).toBe('file:a.ts')
+    expect(convertNewTab({ ...state, activeId: 'draft' }, 'draft', 'b').activeId).toBe('b')
+    expect(openNewTab(openNewTab(emptySessionTabs())).tabs).toHaveLength(2)
   })
-  test('closing the final tab returns to New session; closing another preserves selection', () => {
-    expect(closeSessionTab({ ids: ['a'], activeId: 'a' }, 'a')).toEqual(emptySessionTabs())
-    expect(closeSessionTab({ ids: ['a', 'b'], activeId: 'a' }, 'b')).toEqual({
-      ids: ['a'],
-      activeId: 'a',
-    })
-    expect(closeSessionTab({ ids: ['a'], activeId: null }, 'a')).toEqual(emptySessionTabs())
+  test('closing selects right then left neighbour across types', () => {
+    const state = openSessionTab(
+      openFileTab(openSessionTab(emptySessionTabs(), 'a'), 'a.ts', true),
+      'b',
+    )
+    expect(closeSessionTab({ ...state, activeId: 'file:a.ts' }, 'file:a.ts').activeId).toBe('b')
+    expect(closeSessionTab(state, 'b').activeId).toBe('file:a.ts')
+    expect(closeSessionTab(state, 'a').activeId).toBe('b')
+    expect(closeSessionTab(openSessionTab(emptySessionTabs(), 'a'), 'a')).toEqual(
+      emptySessionTabs(),
+    )
   })
-  test('persisted order and active tab roundtrip, discarding dead and duplicate ids', () => {
-    const stored = JSON.parse(JSON.stringify({ ids: ['b', 'dead', 'a', 'b'], activeId: 'a' }))
-    expect(restoreSessionTabs(stored, ['a', 'b', 'closed'])).toEqual({
-      ids: ['b', 'a'],
-      activeId: 'a',
-    })
-    expect(restoreSessionTabs({ ...stored, activeId: 'dead' }, ['a', 'b'])).toEqual({
-      ids: ['b', 'a'],
-      activeId: 'b',
-    })
+  test('roundtrip prunes dead and duplicate sessions and files; retains draft selection', () => {
+    const state = openNewTab(
+      openFileTab(openSessionTab(emptySessionTabs(), 'a'), 'fixed', true),
+      'draft',
+    )
+    const stored = JSON.parse(JSON.stringify(state))
+    stored.tabs.push(
+      { type: 'session', id: 'dead' },
+      stored.tabs[0],
+      { type: 'file', id: 'file:dead', path: 'dead', pinned: true },
+      null,
+    )
+    expect(restoreSessionTabs(stored, ['a'], undefined, ['fixed'])).toEqual(state)
+    expect(restoreSessionTabs({ ...state, activeId: 'dead' }, ['a']).activeId).toBe('a')
   })
-  test('New session persists without losing open tabs and malformed storage is harmless', () => {
-    expect(restoreSessionTabs({ ids: ['a'], activeId: null }, ['a'])).toEqual({
-      ids: ['a'],
-      activeId: null,
-    })
-    for (const invalid of [null, false, 'bad', { ids: 1 }, { ids: [null, 5, 'dead'] }])
-      expect(restoreSessionTabs(invalid, ['a'])).toEqual(emptySessionTabs())
+  test('without saved tabs restores last session; otherwise first available or New session', () => {
+    for (const invalid of [null, false, 'bad', { tabs: 1 }, { tabs: [null, 5] }]) {
+      expect(restoreSessionTabs(invalid, ['a', 'b'], 'b').activeId).toBe('b')
+      expect(restoreSessionTabs(invalid, ['a'], 'dead').activeId).toBe('a')
+      expect(restoreSessionTabs(invalid, []).tabs[0]?.type).toBe('new')
+    }
+  })
+  test('persistence omits previews and retains session and fixed-file active ids', () => {
+    const fixed = openFileTab(openSessionTab(emptySessionTabs(), 'a'), 'fixed', true)
+    expect(restoreSessionTabs(persistedDevTabs(fixed), ['a'])).toEqual(fixed)
+    expect(persistedDevTabs(openFileTab(fixed, 'preview')).tabs).toEqual(fixed.tabs)
+    expect(persistedDevTabs(openSessionTab(fixed, 'a')).activeId).toBe('a')
   })
 })

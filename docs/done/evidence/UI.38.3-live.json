@@ -1,0 +1,469 @@
+[
+  {
+    "flujo": "dev-session-tabs",
+    "pass": true,
+    "steps": [
+      {
+        "nombre": "reload starts in Chat",
+        "ok": true,
+        "detalle": "Dev tabs absent after reload"
+      },
+      {
+        "nombre": "entering Dev restores last session without saved tabs",
+        "ok": true,
+        "detalle": "remembered Alpha active, no New session"
+      },
+      {
+        "nombre": "sidebar opens ordered sessions and existing tabs do not duplicate",
+        "ok": true,
+        "detalle": "Alpha, Beta"
+      },
+      {
+        "nombre": "file opens italic preview in the shared row and occupies full center",
+        "ok": true,
+        "detalle": "session remains a tab; file only content at full width"
+      },
+      {
+        "nombre": "session tab restores full center chat",
+        "ok": true,
+        "detalle": "file viewer absent, composer visible"
+      },
+      {
+        "nombre": "opening another file replaces only preview with numbered colored source",
+        "ok": true,
+        "detalle": "two sessions plus context.json preview; code colored"
+      },
+      {
+        "nombre": "tree double click pins file",
+        "ok": true,
+        "detalle": "fixed code tab"
+      },
+      {
+        "nombre": "Markdown Source keeps numbered literal source",
+        "ok": true,
+        "detalle": "literal Markdown source"
+      },
+      {
+        "nombre": "reload starts in Chat",
+        "ok": true,
+        "detalle": "Dev tabs absent after reload"
+      },
+      {
+        "nombre": "reload restores mixed tab order and active fixed file",
+        "ok": true,
+        "detalle": "Alpha, Beta, context.json, README.md active"
+      },
+      {
+        "nombre": "closing active file selects its left neighbour",
+        "ok": true,
+        "detalle": "context.json active"
+      },
+      {
+        "nombre": "closing session selects right neighbour without deleting session",
+        "ok": true,
+        "detalle": "Beta active; Alpha remains in API"
+      },
+      {
+        "nombre": "plus appends centered New session using configured orchestrator model and effort",
+        "ok": true,
+        "detalle": "What should we work on in orchestos-dev-tabs-jndl6R?\nGPT-6-Luna · medium"
+      },
+      {
+        "nombre": "reload starts in Chat",
+        "ok": true,
+        "detalle": "Dev tabs absent after reload"
+      },
+      {
+        "nombre": "reload restores active New session alongside sessions and fixed files",
+        "ok": true,
+        "detalle": "Beta, context.json, New session"
+      },
+      {
+        "nombre": "reload starts in Chat",
+        "ok": true,
+        "detalle": "Dev tabs absent after reload"
+      },
+      {
+        "nombre": "restoration removes dead session ids",
+        "ok": true,
+        "detalle": "dead id removed"
+      },
+      {
+        "nombre": "0 console errors",
+        "ok": true,
+        "detalle": "none"
+      }
+    ],
+    "notes": [],
+    "errores": [],
+    "capturas": [
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-75940/dev-session-tabs/session-tabs.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-75940/dev-session-tabs/file-markdown-preview.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-75940/dev-session-tabs/file-highlighted-code.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-75940/dev-session-tabs/file-markdown-source.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-75940/dev-session-tabs/new-session.png"
+    ]
+  },
+  {
+    "flujo": "project-tabs",
+    "pass": true,
+    "steps": [
+      {
+        "nombre": "add project opens folder picker without modal",
+        "ok": true,
+        "detalle": "POST /api/projects/choose calls=1; dialog visible=false"
+      },
+      {
+        "nombre": "temporary project visible",
+        "ok": true,
+        "detalle": "project visible in sidebar"
+      },
+      {
+        "nombre": "project settings visible",
+        "ok": true,
+        "detalle": "settings heading"
+      },
+      {
+        "nombre": "loading indicator gone after tasks load",
+        "ok": true,
+        "detalle": "count=0"
+      },
+      {
+        "nombre": "specs empty state visible",
+        "ok": true,
+        "detalle": "empty project has no specs"
+      },
+      {
+        "nombre": "specs empty no page error",
+        "ok": true,
+        "detalle": "none"
+      },
+      {
+        "nombre": "real memory visible",
+        "ok": true,
+        "detalle": "seeded DB memory"
+      },
+      {
+        "nombre": "mock memory absent",
+        "ok": true,
+        "detalle": "no mock data"
+      },
+      {
+        "nombre": "memory conflict resolved",
+        "ok": true,
+        "detalle": "open conflicts: 0"
+      },
+      {
+        "nombre": "authoritative memory persisted and visible",
+        "ok": true,
+        "detalle": "content of entry A matches the resolved API value"
+      },
+      {
+        "nombre": "memory no palette",
+        "ok": true,
+        "detalle": "ninguna (con memoria sembrada)"
+      },
+      {
+        "nombre": "memory content aligned with header",
+        "ok": true,
+        "detalle": "left offset=0px"
+      },
+      {
+        "nombre": "real spec visible",
+        "ok": true,
+        "detalle": "seeded markdown spec"
+      },
+      {
+        "nombre": "mock specs absent",
+        "ok": true,
+        "detalle": "no mock data"
+      },
+      {
+        "nombre": "spec approved",
+        "ok": true,
+        "detalle": "API status approved"
+      },
+      {
+        "nombre": "spec lint updates API and row",
+        "ok": true,
+        "detalle": "Lint: pass (0); response findings=0; before=pass/0"
+      },
+      {
+        "nombre": "specs no palette",
+        "ok": true,
+        "detalle": "ninguna (con spec sembrado)"
+      },
+      {
+        "nombre": "specs content aligned with header",
+        "ok": true,
+        "detalle": "left offset=0px"
+      },
+      {
+        "nombre": "real skills listed",
+        "ok": true,
+        "detalle": "API skills=17"
+      },
+      {
+        "nombre": "compile response visible",
+        "ok": true,
+        "detalle": "success response rendered in the skill row"
+      },
+      {
+        "nombre": "mock skills absent",
+        "ok": true,
+        "detalle": "no mock data"
+      },
+      {
+        "nombre": "skills no palette",
+        "ok": true,
+        "detalle": "ninguna (con skills sembradas)"
+      },
+      {
+        "nombre": "skills content aligned with header",
+        "ok": true,
+        "detalle": "left offset=0px"
+      },
+      {
+        "nombre": "graph no palette",
+        "ok": true,
+        "detalle": "ninguna en CONTEXT"
+      },
+      {
+        "nombre": "graph content aligned with header",
+        "ok": true,
+        "detalle": "left offset=0px"
+      },
+      {
+        "nombre": "tab roots transparent (memory/specs/skills/graph)",
+        "ok": true,
+        "detalle": "memory=rgba(0, 0, 0, 0); specs=rgba(0, 0, 0, 0); skills=rgba(0, 0, 0, 0); graph=rgba(0, 0, 0, 0)"
+      },
+      {
+        "nombre": "mock instincts absent",
+        "ok": true,
+        "detalle": "no mock data"
+      },
+      {
+        "nombre": "instinct review visible",
+        "ok": true,
+        "detalle": "unverified instinct"
+      },
+      {
+        "nombre": "instinct approved",
+        "ok": true,
+        "detalle": "API verified"
+      },
+      {
+        "nombre": "manual instinct added",
+        "ok": true,
+        "detalle": "new API row"
+      },
+      {
+        "nombre": "instincts no palette",
+        "ok": true,
+        "detalle": "ninguna (con instincts sembrados)"
+      },
+      {
+        "nombre": "mock plan absent",
+        "ok": true,
+        "detalle": "no mock data"
+      },
+      {
+        "nombre": "plan board fills the view",
+        "ok": true,
+        "detalle": "danger zone top=972 scroller bottom=972"
+      },
+      {
+        "nombre": "plan no palette",
+        "ok": true,
+        "detalle": "ninguna en Kanban ni Table"
+      },
+      {
+        "nombre": "tab roots transparent",
+        "ok": true,
+        "detalle": "plan=rgba(0, 0, 0, 0); instincts=rgba(0, 0, 0, 0)"
+      },
+      {
+        "nombre": "explain fields visible as readable UI",
+        "ok": true,
+        "detalle": "GET /explain fields rendered inside the template block"
+      },
+      {
+        "nombre": "explain has no [object Object]",
+        "ok": true,
+        "detalle": "opened Explain modal contains no stringified object values"
+      },
+      {
+        "nombre": "task run finishes and badge changes without reload",
+        "ok": true,
+        "detalle": "status=done; retryCount/runId changed or terminal status observed"
+      },
+      {
+        "nombre": "Plan has no manual task creation button",
+        "ok": true,
+        "detalle": "Add task button absent"
+      },
+      {
+        "nombre": "0 console errors",
+        "ok": true,
+        "detalle": "none"
+      }
+    ],
+    "notes": [],
+    "errores": [],
+    "capturas": [
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-75940/project-tabs/memory.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-75940/project-tabs/specs.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-75940/project-tabs/skills.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-75940/project-tabs/graph.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-75940/project-tabs/project-tabs-real-data.png"
+    ]
+  },
+  {
+    "flujo": "chat-streaming",
+    "pass": true,
+    "steps": [
+      {
+        "nombre": "temporary project visible",
+        "ok": true,
+        "detalle": "orchestos-ui-mr-1-d4-guPgFj"
+      },
+      {
+        "nombre": "Claude option available",
+        "ok": true,
+        "detalle": "Start New Chat with Agent\nConversation Topic or Title (Optional)\nProject\nNo projectorchestos-ui-mr-1-d4-guPgFj\nSelect Agent / Engine\nClaude Code\nCodex\nCancel\nStart Chat"
+      },
+      {
+        "nombre": "first assistant text appears before completion",
+        "ok": true,
+        "detalle": "t_first=6372 ms; t_done=9081 ms"
+      },
+      {
+        "nombre": "visible text grows at least twice before completion",
+        "ok": true,
+        "detalle": "7 growth updates (rAF); poll saw 7"
+      },
+      {
+        "nombre": "live bubble stays at the bottom",
+        "ok": true,
+        "detalle": "8 growth measurements; remained at bottom: true"
+      },
+      {
+        "nombre": "captured screenshot during active turn",
+        "ok": true,
+        "detalle": "chat-text-visible-mid-turn"
+      },
+      {
+        "nombre": "working-indicator-names-phase",
+        "ok": true,
+        "detalle": "indicator text: \"Thinking 0 s\""
+      },
+      {
+        "nombre": "working-indicator-gone",
+        "ok": true,
+        "detalle": "indicator removed after 260 ms"
+      },
+      {
+        "nombre": "one assistant bubble matches persisted response",
+        "ok": true,
+        "detalle": "bubbles=1; persisted=1; visible=uno dos tres cuatro cinco seis siete ocho nueve diez once doce trece catorce qui"
+      },
+      {
+        "nombre": "new messages enter with data-entered=animate",
+        "ok": true,
+        "detalle": "animated kinds=user,assistant; events=[{\"id\":1,\"position\":0,\"kind\":\"user\"},{\"id\":2,\"position\":1,\"kind\":\"assistant\"}]"
+      },
+      {
+        "nombre": "no message animates its entrance twice",
+        "ok": true,
+        "detalle": "events=[{\"id\":1,\"position\":0,\"kind\":\"user\"},{\"id\":2,\"position\":1,\"kind\":\"assistant\"}]"
+      },
+      {
+        "nombre": "context ring reflects thread",
+        "ok": true,
+        "detalle": "used=7141, window=1000000, pct=0.7141"
+      },
+      {
+        "nombre": "context ring recalculates on model change",
+        "ok": true,
+        "detalle": "model=claude-haiku-4-5-20251001, expected pct=3.5705, ring=Context window usage: 3.5705%"
+      },
+      {
+        "nombre": "Chat composer empty during sampled turn",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "Chat DOM order during sampled turn is previous assistant, user, live assistant",
+        "ok": true,
+        "detalle": "{\"liveCount\":1,\"order\":[\"Escribe los números del 1 al 120 en palabras, uno \",\"uno dos tres cuatro cinco seis siete ocho nueve di\",\"Escribe los números del 41 al 80 en palabras, uno \",\"cuarenta cuarenta y uno cuarenta y d\"]}"
+      },
+      {
+        "nombre": "Chat turn 2 was sampled while pending",
+        "ok": true,
+        "detalle": "1 long turn(s) sent; pending composer and live DOM order sampled"
+      },
+      {
+        "nombre": "Chat bubbles alternate for every sent turn",
+        "ok": true,
+        "detalle": "[\"Escribe los números del 1 al 120 en palabras, uno \",\"uno dos tres cuatro cinco seis siete ocho nueve di\",\"Escribe los números del 41 al 80 en palabras, uno \",\"cuarenta cuarenta y uno cuarenta y dos cuarenta y \"]"
+      },
+      {
+        "nombre": "Chat user bubbles contain no agent text or step markup",
+        "ok": true,
+        "detalle": "user bubbles=2"
+      },
+      {
+        "nombre": "Chat exchange order remains correct after reload",
+        "ok": true,
+        "detalle": "messages=4"
+      },
+      {
+        "nombre": "thread-font-inter",
+        "ok": true,
+        "detalle": "font-family=\"Inter Variable\", system-ui, -apple-system, \"system-ui\", \"Segoe UI\", Roboto, \"Noto Sans\", Ubuntu, Cantarell, \"Helvetica Neue\", sans-serif"
+      },
+      {
+        "nombre": "thread-body-14px",
+        "ok": true,
+        "detalle": "font-size=14px"
+      },
+      {
+        "nombre": "thread-assistant-unboxed",
+        "ok": true,
+        "detalle": "ancestors=[{\"backgroundColor\":\"rgba(0, 0, 0, 0)\",\"borderTopWidth\":\"0px\",\"boxShadow\":\"none\"},{\"backgroundColor\":\"rgba(0, 0, 0, 0)\",\"borderTopWidth\":\"0px\",\"boxShadow\":\"none\"},{\"backgroundColor\":\"rgba(0, 0, 0, 0)\",\"borderTopWidth\":\"0px\",\"boxShadow\":\"none\"}]"
+      },
+      {
+        "nombre": "thread-user-bubble-visible",
+        "ok": true,
+        "detalle": "bubble={\"found\":true,\"backgroundColor\":\"oklab(0.249498 -0.00229985 -0.0147313)\",\"opaque\":true,\"userBubbleL\":20.537404286089497,\"backgroundL\":12.733002212579532,\"difference\":7.804402073509966}"
+      },
+      {
+        "nombre": "thread-no-decoration",
+        "ok": true,
+        "detalle": "animate-ping=0, gradients=0, bot-icons=0, user-icons=0"
+      },
+      {
+        "nombre": "after reload every message is static",
+        "ok": true,
+        "detalle": "modes=[\"static\",\"static\",\"static\",\"static\"]"
+      },
+      {
+        "nombre": "reduced motion: response arrives with opacity 1 and no transform within 100 ms",
+        "ok": true,
+        "detalle": "samples=[{\"kind\":\"user\",\"opacity\":\"1\",\"transform\":\"none\"},{\"kind\":\"assistant\",\"opacity\":\"1\",\"transform\":\"none\"}]"
+      },
+      {
+        "nombre": "Dev renders text during generation before completion",
+        "ok": true,
+        "detalle": "t_first=1903 ms; t_done=2912 ms; visible=Uno, dos, tres, cuatro, cinco."
+      }
+    ],
+    "notes": [],
+    "errores": [],
+    "capturas": [
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-75940/chat-streaming/chat-text-visible-mid-turn.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-75940/chat-streaming/thread-hierarchy.png"
+    ]
+  }
+]

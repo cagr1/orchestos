@@ -557,7 +557,18 @@ Regla: nada se reintenta, cierra ni muestra sin evidencia medida que el usuario 
   y `biome.json` fijado; capturas `UI.38.2-*.png`. Visto: en ventanas angostas el composer del chat se aprieta.
   Gate en vivo: navegador real (Playwright, `dev-session-tabs` 21/21 + `project-tabs` 40/40), `docs/done/evidence/UI.38.2-live.json`.
   Ejecutado por: codex gpt-6.1-sol (criterio) · Revisión: Opus · Spec: docs/specs/UI.38.2.md
-- [ ] **CI.48 — 🔍 `codex-live` falla también en HEAD (2026-10-29).** HEAD `79c501f0`: `turn 1 streams multiple visible
+- [x] **UI.38.3 — 🧠 Dev como MonoCode: una fila de pestañas (sesiones + archivos), contenido a todo el centro.** (cerrado 2026-10-29)
+  Revisión de Carlos 2026-10-29: UI.38.2 partía la pantalla (`chat | archivo`) y UI.38.1 abría Dev en New session;
+  MonoCode (visto en vivo) abre el archivo a todo el centro como pestaña junto a la sesión y "+" crea una pestaña
+  New session. Ahora: una fila única (sesión / archivo preview-fijo / new); el archivo ocupa el centro; "+" agrega
+  "New session" con "What should we work on in <proyecto>?" y el modelo del rol; entrar a Dev abre la última sesión.
+  Regresión de UI.38.1 quitada: recargar saltaba a Dev (regla "inicio siempre Chat", tercera vez); rompía
+  `chat-streaming`.
+  Evidencia (cerebro): dashboard real (4299): la app abre en Chat; Dev abre la última sesión; `AGENTS.md` a todo el
+  centro en pestaña cursiva junto a la sesión. Capturas `UI.38.3-*.png`.
+  Gate en vivo: navegador real (Playwright, `dev-session-tabs` 18/18, `project-tabs` 40/40, `chat-streaming` 27/27), `docs/done/evidence/UI.38.3-live.json`.
+  Ejecutado por: codex gpt-6.1-sol (criterio) · Revisión: Opus · Spec: docs/specs/UI.38.3.md
+- [x] **CI.48 — 🔍 `codex-live` falla también en HEAD (2026-10-29).** (cerrado 2026-10-29) HEAD `79c501f0`: `turn 1 streams multiple visible
   text updates: 0 distinct non-empty samples` (`ui-gate-4953`). Con UI.37: el DOM muestra `I’ll` (apóstrofo tipográfico)
   y lo persistido `I'll`, y el turno 2 tardó 180 s (`ui-gate-3138`). El pre-push lo corre en cada cambio del chat y
   bloquea el push. Primero evidencia de qué parte es del modelo y qué del render; luego causa.
@@ -566,7 +577,11 @@ Regla: nada se reintenta, cierra ni muestra sin evidencia medida que el usuario 
   modelo por defecto del CLI (Sol) en vez del del rol. Arreglo de Sol r1 (gate + `api/projects.ts`) en
   `git stash` "CI.48 Sol r1 aparcado…". Decisión de Carlos 2026-10-29: una sesión ya usada conserva su último modelo;
   el del rol solo para sesiones sin historial; falta `catch` de `getConfig`. **Aparcado** por Carlos 2026-10-29
-  (primero la interfaz). Mientras siga abierto, el pre-push de cambios del chat falla en `codex-live`.
+  (primero la interfaz); retomado el mismo día. r2: una sesión con historial conserva su último modelo, sin
+  historial usa el del rol; `getConfig` fallido no rompe la lista. Queda: 1 de 3 corridas de `codex-live` falló en
+  "turn 1 user message appears before completion" (2 s); el pre-push reintenta una vez.
+  Gate en vivo: navegador real (Playwright, `codex-live` 14/14 ×2, `chat-continuity` 8/8), `docs/done/evidence/CI.48-live.json`.
+  Ejecutado por: codex gpt-6.1-sol (analizar + criterio r1, r2) · Revisión: Opus · Spec: docs/specs/CI.48.md
 - [ ] **CI.19 — 🔍 El `git commit` del fixture falla a veces en el andamiaje de los ui-gates.** Visto 1 vez en
   `qa-negative` (2026-10-11, 1 de 9): `Command failed: git … commit -qm task fixture`, sin motivo porque el helper
   `run` usa `stdio: 'ignore'`. `qa-negative` ya reporta stdout/stderr y exit; los otros 20 flows con el mismo helper no.

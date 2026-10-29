@@ -52,22 +52,17 @@ import { OrchestChatView } from './components/chat/OrchestChatView'
 import { CommandPalette } from './components/common/CommandPalette'
 import { DevFilePanel } from './components/dev/DevFilePanel'
 import { DevSessionTabs } from './components/dev/DevSessionTabs'
-import {
-  closeFileTab,
-  emptyFileTabs,
-  FILE_TABS_KEY,
-  type FileTabs,
-  openFileTab,
-  persistedFileTabs,
-  readFileTabs,
-} from './components/dev/file-tabs'
+import { openFileTab } from './components/dev/file-tabs'
 import { OpenCodeTerminal } from './components/dev/OpenCodeTerminal'
 import { type HistorySession, OrcaRightInspector } from './components/dev/OrcaRightInspector'
 import { OrchestDevWorkspace } from './components/dev/OrchestDevWorkspace'
 import {
   closeSessionTab,
+  convertNewTab,
   emptySessionTabs,
+  openNewTab,
   openSessionTab,
+  persistedDevTabs,
   readSessionTabs,
   restoreSessionTabs,
   SESSION_TABS_KEY,
@@ -117,32 +112,12 @@ export default function App() {
   const [projects, setProjects] = useState<ProjectItem[]>([])
   const [deletingProjectIds, setDeletingProjectIds] = useState<Set<string>>(() => new Set())
   const [activeProjectId, setActiveProjectId] = useState<string>('')
-  const [fileTabs, setFileTabs] = useState(readFileTabs)
-  const activeFileTabs = fileTabs[activeProjectId] ?? emptyFileTabs()
-  const updateFileTabs = (update: (state: FileTabs) => FileTabs) => {
-    setFileTabs((current) => ({
-      ...current,
-      [activeProjectId]: update(current[activeProjectId] ?? emptyFileTabs()),
-    }))
-  }
-  const handleOpenFile = (path: string, { pin }: { pin: boolean }) =>
-    updateFileTabs((tabs) => openFileTab(tabs, path, pin))
-  useEffect(() => {
-    try {
-      localStorage.setItem(
-        FILE_TABS_KEY,
-        JSON.stringify(
-          Object.fromEntries(
-            Object.entries(fileTabs).map(([id, tabs]) => [id, persistedFileTabs(tabs)]),
-          ),
-        ),
-      )
-    } catch {
-      /* Storage unavailable. */
-    }
-  }, [fileTabs])
   const [devTabs, setDevTabs] = useState(readSessionTabs)
-  const activeAgentId = devTabs[activeProjectId]?.activeId ?? null
+  const activeDevTabs = devTabs[activeProjectId] ?? emptySessionTabs()
+  const activeDevTab = activeDevTabs.tabs.find((tab) => tab.id === activeDevTabs.activeId)
+  const activeAgentId = activeDevTab?.type === 'session' ? activeDevTab.id : null
+  const handleOpenFile = (path: string, { pin }: { pin: boolean }) =>
+    updateDevTabs(activeProjectId, (tabs) => openFileTab(tabs, path, pin))
   const updateDevTabs = (
     projectId: string,
     update: (
@@ -156,7 +131,14 @@ export default function App() {
   }
   useEffect(() => {
     try {
-      localStorage.setItem(SESSION_TABS_KEY, JSON.stringify(devTabs))
+      localStorage.setItem(
+        SESSION_TABS_KEY,
+        JSON.stringify(
+          Object.fromEntries(
+            Object.entries(devTabs).map(([id, tabs]) => [id, persistedDevTabs(tabs)]),
+          ),
+        ),
+      )
     } catch {
       /* Storage unavailable. */
     }
@@ -170,6 +152,14 @@ export default function App() {
           restoreSessionTabs(
             current[project.id],
             project.agents.map((agent) => agent.id),
+            (() => {
+              try {
+                const last = JSON.parse(localStorage.getItem('orchestos-last-dev') || 'null')
+                return last?.projectId === project.id ? last.sessionId : undefined
+              } catch {
+                return undefined
+              }
+            })(),
           ),
         ]),
       ),
@@ -413,7 +403,6 @@ export default function App() {
             ? current
             : rememberedProject?.id || loaded[0]?.id || '',
         )
-        if (rememberedProject) setMode('dev')
         if (rememberedProject && rememberedAgent) {
           setDevTabs((current) => ({
             ...current,
@@ -421,7 +410,6 @@ export default function App() {
               current[rememberedProject.id] ??
               openSessionTab(emptySessionTabs(), rememberedAgent.id),
           }))
-          setMode('dev')
           void listSessions(rememberedProject.id).then(async (sessions) => {
             const session = sessions.find((item) => item.id === rememberedAgent.id)
             if (!session) return
@@ -788,6 +776,22 @@ export default function App() {
     if (mode !== 'settings') {
       setPreviousMode(mode)
     }
+    if (newMode === 'dev' && currentProject && !activeDevTabs.tabs.length) {
+      let lastId: string | undefined
+      try {
+        const last = JSON.parse(localStorage.getItem('orchestos-last-dev') || 'null')
+        if (last?.projectId === currentProject.id) lastId = last.sessionId
+      } catch {
+        /* Storage unavailable. */
+      }
+      updateDevTabs(currentProject.id, (tabs) =>
+        restoreSessionTabs(
+          tabs,
+          currentProject.agents.map((agent) => agent.id),
+          lastId,
+        ),
+      )
+    }
     setMode(newMode)
   }
 
@@ -845,10 +849,7 @@ export default function App() {
         Object.fromEntries(
           Object.entries(current).map(([projectId, tabs]) => [
             projectId,
-            {
-              ...closeSessionTab(tabs, agentId),
-              activeId: tabs.activeId === agentId ? null : tabs.activeId,
-            },
+            closeSessionTab(tabs, agentId),
           ]),
         ),
       )
@@ -1054,7 +1055,9 @@ export default function App() {
         threadsRef.current = [thread, ...threadsRef.current]
         setThreads((current) => [thread!, ...current])
         setActiveThreadId(thread.id)
-        updateDevTabs(currentProject.id, (tabs) => openSessionTab(tabs, thread!.id))
+        updateDevTabs(currentProject.id, (tabs) =>
+          convertNewTab(tabs, activeDevTab?.id ?? null, thread!.id),
+        )
         localStorage.setItem(
           'orchestos-last-dev',
           JSON.stringify({ projectId: currentProject.id, sessionId: thread.id }),
@@ -1498,25 +1501,32 @@ export default function App() {
             {mode === 'dev' && (
               <div className="flex-1 min-w-0 flex flex-col overflow-hidden">
                 <DevSessionTabs
-                  agents={(devTabs[activeProjectId]?.ids ?? []).flatMap(
-                    (id) => currentProject?.agents.find((agent) => agent.id === id) ?? [],
-                  )}
-                  activeId={activeAgentId}
+                  agents={currentProject?.agents ?? []}
+                  state={activeDevTabs}
+                  projectId={activeProjectId}
                   onSelect={(id) => {
-                    void handleSelectAgent(id, activeProjectId)
+                    const tab = activeDevTabs.tabs.find((tab) => tab.id === id)
+                    if (tab?.type === 'session') void handleSelectAgent(id, activeProjectId)
+                    else updateDevTabs(activeProjectId, (tabs) => ({ ...tabs, activeId: id }))
                   }}
+                  onPin={(path) => handleOpenFile(path, { pin: true })}
                   onClose={(id) =>
                     updateDevTabs(activeProjectId, (tabs) => closeSessionTab(tabs, id))
                   }
-                  onNew={() => {
-                    updateDevTabs(activeProjectId, (tabs) => ({ ...tabs, activeId: null }))
-                    localStorage.setItem(
-                      'orchestos-last-dev',
-                      JSON.stringify({ projectId: activeProjectId }),
-                    )
-                  }}
+                  onNew={() => updateDevTabs(activeProjectId, openNewTab)}
                 />
-                {activeAgent?.agent === 'opencode' && currentProject ? (
+                {activeDevTab?.type === 'file' ? (
+                  <DevFilePanel
+                    key={activeProjectId}
+                    projectId={activeProjectId}
+                    path={activeDevTab.path}
+                    onClose={(path) =>
+                      updateDevTabs(activeProjectId, (tabs) =>
+                        closeSessionTab(tabs, `file:${path}`),
+                      )
+                    }
+                  />
+                ) : activeAgent?.agent === 'opencode' && currentProject ? (
                   <OpenCodeTerminal
                     key={activeAgent.id}
                     projectId={currentProject.id}
@@ -1527,8 +1537,9 @@ export default function App() {
                       )
                     }
                   />
-                ) : (
+                ) : activeDevTab && currentProject ? (
                   <OrchestDevWorkspace
+                    key={activeDevTab?.id ?? activeProjectId}
                     activeProject={currentProject}
                     activeAgent={activeAgent}
                     onCloseAgent={handleCloseAgent}
@@ -1536,19 +1547,8 @@ export default function App() {
                     sessionStatus={sessionStatus}
                     onSlashCommand={handleSlashCommand}
                   />
-                )}
+                ) : null}
               </div>
-            )}
-
-            {mode === 'dev' && currentProject && activeFileTabs.tabs.length > 0 && (
-              <DevFilePanel
-                key={activeProjectId}
-                projectId={activeProjectId}
-                state={activeFileTabs}
-                onOpen={handleOpenFile}
-                onClose={(path) => updateFileTabs((tabs) => closeFileTab(tabs, path))}
-                onCloseAll={() => updateFileTabs(emptyFileTabs)}
-              />
             )}
 
             {/* VIEW 3: SETTINGS (Full screen mode without sidebar, hosts project tasks, runs, specs, etc.) */}
@@ -1599,7 +1599,7 @@ export default function App() {
             <OrcaRightInspector
               currentProject={currentProject}
               projects={projects}
-              activeFilePath={activeFileTabs.activePath}
+              activeFilePath={activeDevTab?.type === 'file' ? activeDevTab.path : null}
               onOpenFile={handleOpenFile}
               historySessions={historySessions}
               onRestoreAgentToSidebar={handleRestoreAgent}

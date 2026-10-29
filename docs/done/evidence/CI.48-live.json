@@ -1,0 +1,14 @@
+{
+  "item": "CI.48",
+  "date": "2026-10-29",
+  "browser": "Playwright (ui-gates codex-live, chat-continuity, dev-session-tabs, chat-streaming), dashboard real con home aislado",
+  "result": {
+    "codex-live": "14/14 en dos corridas seguidas (r2); una corrida previa falló en 'turn 1 user message appears before completion: not visible within 2 s'",
+    "chat-continuity": "8/8",
+    "dev-session-tabs": "21/21 (r2) y 18/18 tras UI.38.3",
+    "chat-streaming": "27/27 tras quitar el salto a Dev al recargar (UI.38.3)",
+    "projects.test.ts": "sesión con historial conserva su último modelo; sin historial usa el del rol; getConfig fallido no rompe la lista",
+    "newSessionModel": "New session de Dev con rol codex/gpt-6-luna/medium: el composer muestra GPT-6-Luna · medium (UI.38.3-new-session.png)"
+  },
+  "verdict": "codex-live mide la ráfaga del backend y la reutilización del hilo; el modelo del rol se usa solo en sesiones sin historial."
+}
