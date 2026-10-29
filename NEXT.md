@@ -1,4 +1,4 @@
-# NEXT — handoff 2026-10-28 (cierre del lote cuotas + mutación)
+# NEXT — handoff 2026-10-29 (UI.36 cerrado; sigue UI.37/UI.38)
 
 Un solo presente: orden y trampas vivas. Lo cerrado vive en `docs/done/bloque-*.md`, `PLAN.md` y git (regla `AGENTS.md`
 § Reglas generales, 2026-10-19: `NEXT.md` se toca solo al cerrar o cortar un lote). Arranque:
@@ -10,6 +10,8 @@ Un solo presente: orden y trampas vivas. Lo cerrado vive en `docs/done/bloque-*.
 - 2026-10-23, repartir cupo: Sol 6.1 es el acompañante de confianza de Opus — diagnóstico, auditoría y revisión fuerte
   van a Sol (`criterio` escribe, `analizar` audita solo lectura; `qa` solo revisa el diff sin commitear). Opus escribe
   specs, decide con Carlos, revisa lo de Sol y cierra. Memoria `feedback-subagentes-modelo-barato`.
+- 2026-10-29, pruebas largas no se esperan: el pre-push (~13 min con ui-gates) y la mutación se lanzan en segundo
+  plano o de noche y se verifican al terminar. Memoria `feedback-push-largo-no-se-espera`.
 
 ## Cerrado
 - Antes del 2026-10-27 (lotes SET, AT.11.2/.3, CI.44/45 y anteriores): `PLAN.md` y `git log`.
@@ -24,6 +26,9 @@ Un solo presente: orden y trampas vivas. Lo cerrado vive en `docs/done/bloque-*.
   - UI.35 `b60b0317` + `ac5239ee`: la cuota de Claude sale del endpoint de `/usage` (`api/oauth/usage`, 0 tokens)
     con la sesión del llavero (sin guardarla ni refrescarla), cada 60 s como mucho; los ui-gates lo apagan.
 - 2026-10-29: UI.36 `32cc68d6` las carpetas de Files se abren (carga de hijos por effect, en cascada y tras refrescar).
+  **Primero al arrancar:** su push se lanzó en segundo plano al cortar, sin esperar; comprobar `git status -sb` (sin
+  "ahead") y `gh run list --workflow CI -L 1`. Si el pre-push falló, el log está en
+  `$TMPDIR/orchestos-pre-push.*/`; arreglarlo antes de UI.37.
 
 ## Orden
 0. **UI.37 y UI.38 (GO de Carlos 2026-10-29, patrón MonoCode visto en vivo; detalle en `PLAN.md`)**: UI.37 anillo de
