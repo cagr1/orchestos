@@ -477,8 +477,8 @@ Regla: nada se reintenta, cierra ni muestra sin evidencia medida que el usuario 
   `646-99999`); `mutationFiles` quita el rango antes del glob y `-engines` excluye los archivos enteros. r1 cortó en
   535 dentro de `notification` y perdió 2 mutantes: Stryker solo toma un mutante que cabe entero en el rango.
   Evidencia (cerebro): typecheck 0; `mutation-test-shard.test.ts` 9/0; dry runs 364 + 536 + 396 = 1296 = los dos
-  archivos enteros (1296), `-engines` 850; selección 48 archivos en cada shard. Pendiente: tiempos reales en la
-  próxima corrida nocturna (estimado ~1h10–1h40 por shard).
+  archivos enteros (1296), `-engines` 850; selección 48 archivos en cada shard. Tiempos reales (`40550536708`,
+  `40661058704`): `-server` 42/41 min, `-server-b` 80/63, `-server-c` 77/76.
   Ejecutado por: codex gpt-6-luna (mecanico, r1 y r2) · QA: codex gpt-6.1-sol (qa), sin defectos · Spec: docs/specs/CI.46.md (borrado)
 - [x] **CI.47 — 🔍 `Mutation Shards`: `executors-routing` pasa las 3 h y `executors-engines` va a 168 min.** (cerrado 2026-10-27)
   Corrida `40550536708`: `-routing` cortado a 180 min (128 → 147 → 180+ en 3 noches, crece con SET.2/AT.11),
@@ -488,8 +488,9 @@ Regla: nada se reintenta, cierra ni muestra sin evidencia medida que el usuario 
   `!src/run/**/*.test.ts` en `stryker.run-executors` y `stryker.run` (hermano).
   Evidencia (cerebro): typecheck 0; `mutation-test-shard.test.ts` 9/0 (partición sin huecos ni solapes); dry runs
   `-engines` 415, `-engines-b` 569, `-routing` 614, `-routing-b` 770 mutantes, ~52 s de suite cada uno; a ~10 s por
-  mutante (168 min / 984) el mayor estima ~2h10. Ningún `.test.ts` en `mutate`. Pendiente: tiempos reales en la
-  próxima corrida. Tiempos de CI.46 en `40550536708`: `-server` 42 min, `-server-b` 80, `-server-c` 77.
+  mutante (168 min / 984) el mayor estima ~2h10. Ningún `.test.ts` en `mutate`. Tiempos reales
+  (`40661058704`, verde entera): `-engines` 57 min, `-engines-b` 81, `-routing` 77, `-routing-b` 69; el mayor de la
+  corrida, `-codex-engines`, 131.
   Ejecutado por: codex gpt-6-luna (mecanico, r1 y r2) · QA: codex gpt-6.1-sol (qa), sin defectos · Spec: docs/specs/CI.47.md (borrado)
 - [x] **UI.35 — La cuota de Claude se lee del endpoint de usage de Claude Code.** (cerrado 2026-10-27) GO de Carlos:
   sin corridas propias la 5 h caduca y la barra la oculta (captura 10-27, "no data since 5 h"). Arreglo:
