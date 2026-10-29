@@ -10,10 +10,18 @@ import {
   X,
 } from 'lucide-react'
 import type React from 'react'
-import { Fragment, useEffect, useRef, useState } from 'react'
-import { type CliModelOption, getChatModels, getCliModels, uploadChatFile } from '../../api/chat'
+import { Fragment, useEffect, useRef, useState, useSyncExternalStore } from 'react'
+import {
+  type CliModelOption,
+  getCachedSessionContext,
+  getChatModels,
+  getCliModels,
+  subscribeSessionContext,
+  uploadChatFile,
+} from '../../api/chat'
 import type { ApprovalMode, ChatAttachment } from '../../types/orchestos'
 import { FileThumbnail } from '../ui/file-thumbnail'
+import { ContextRing } from './ContextRing'
 import { ProviderLogo } from './ProviderLogos'
 
 export type CliId = string
@@ -125,6 +133,7 @@ export interface AgentComposerProps {
     approvalMode?: ApprovalMode,
   ) => unknown
   hasProject?: boolean
+  contextSessionId?: string
   defaultCli?: CliId
   defaultModel?: string
   defaultEffort?: EffortLevel
@@ -142,6 +151,7 @@ export interface AgentComposerProps {
 export const AgentComposer: React.FC<AgentComposerProps> = ({
   onSendMessage,
   hasProject = false,
+  contextSessionId,
   defaultCli = 'claude',
   defaultModel,
   defaultEffort = 'high',
@@ -154,6 +164,9 @@ export const AgentComposer: React.FC<AgentComposerProps> = ({
   onSelectionChange,
   className = '',
 }) => {
+  const context = useSyncExternalStore(subscribeSessionContext, () =>
+    getCachedSessionContext(contextSessionId),
+  )
   const [availableClis, setAvailableClis] = useState<CliConfig[]>([])
   const [isLoadingModels, setIsLoadingModels] = useState(true)
   const sendWhenReadyRef = useRef(false)
@@ -861,28 +874,37 @@ export const AgentComposer: React.FC<AgentComposerProps> = ({
             )}
           </div>
 
-          {/* Right: Send Button */}
-          <button
-            type="button"
-            onClick={handleSend}
-            disabled={
-              (!inputText.trim() && !hasSendableAttachments) ||
-              (!isShellMode && !modelsReady) ||
-              orchestratorLoading ||
-              attachments.some((att) => att.status === 'uploading') ||
-              !orchestratorAssigned ||
-              busy
-            }
-            className={`p-1.5 rounded-control flex items-center justify-center transition-all ${
-              inputText.trim() || hasSendableAttachments
-                ? 'bg-app-accent text-white hover:opacity-90 shadow-2xs'
-                : 'text-app-muted/40 cursor-not-allowed'
-            }`}
-            title="Send message (Enter)"
-            aria-label="Send message"
-          >
-            <ArrowUp className="w-3.5 h-3.5 stroke-[2.5]" />
-          </button>
+          {/* Right: Context Ring + Send Button */}
+          <div className="flex items-center gap-2">
+            {context?.pct != null && !Number.isNaN(context.pct) && (
+              <ContextRing
+                percent={context.pct}
+                usedTokens={context.used ?? undefined}
+                maxTokens={context.window ?? undefined}
+              />
+            )}
+            <button
+              type="button"
+              onClick={handleSend}
+              disabled={
+                (!inputText.trim() && !hasSendableAttachments) ||
+                (!isShellMode && !modelsReady) ||
+                orchestratorLoading ||
+                attachments.some((att) => att.status === 'uploading') ||
+                !orchestratorAssigned ||
+                busy
+              }
+              className={`p-1.5 rounded-control flex items-center justify-center transition-all ${
+                inputText.trim() || hasSendableAttachments
+                  ? 'bg-app-accent text-white hover:opacity-90 shadow-2xs'
+                  : 'text-app-muted/40 cursor-not-allowed'
+              }`}
+              title="Send message (Enter)"
+              aria-label="Send message"
+            >
+              <ArrowUp className="w-3.5 h-3.5 stroke-[2.5]" />
+            </button>
+          </div>
         </div>
         {!orchestratorLoading && !orchestratorAssigned && (
           <div

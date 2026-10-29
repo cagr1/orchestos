@@ -1,0 +1,26 @@
+{
+  "item": "UI.37",
+  "subitems": ["UI.37.1"],
+  "date": "2026-10-29",
+  "browser": "Playwright (ui-gate shell-look), dashboard real con home aislado y build:app recién hecho",
+  "steps": [
+    "Chat con proyecto y sesión Codex con contexto medido (15K / 1M)",
+    "Foco en el anillo del composer: aparece el popover",
+    "Se mide posición del anillo, del botón Send y del popover"
+  ],
+  "result": {
+    "headerRings": 0,
+    "composerRings": 1,
+    "ringSharesSendParent": true,
+    "tooltipAboveRing": true,
+    "tooltipText": "15K / 1M 1%"
+  },
+  "verdict": "El anillo de contexto está dentro del composer, a la izquierda de enviar; el header ya no lo muestra; el popover abre hacia arriba.",
+  "gates": {
+    "shell-look": "73/73 (ui-gate-938, cerebro; ui-gate-96104 y ui-gate-98150, Sol)",
+    "chat-streaming": "27/27 (ui-gate-6653)",
+    "setup-api-key.test.ts": "8 pass / 0 fail",
+    "typecheck": 0,
+    "codex-live": "falla también en HEAD 79c501f0 (ui-gate-4953) → CI.48"
+  }
+}

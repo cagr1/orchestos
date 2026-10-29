@@ -256,7 +256,7 @@ export const OrchestDevWorkspace: React.FC<OrchestDevWorkspaceProps> = ({
   }, [activeAgent?.id, sessionStatus, timeline?.pending])
 
   useEffect(() => {
-    // The fetch fills the shared cache that the top-bar ring reads.
+    // The fetch fills the shared cache that the composer ring reads.
     if (!activeAgent?.id) return
     const controller = new AbortController()
     void getSessionContext(
@@ -1037,6 +1037,7 @@ export const OrchestDevWorkspace: React.FC<OrchestDevWorkspaceProps> = ({
         <div className="max-w-3xl lg:max-w-4xl mx-auto">
           <AgentComposer
             onSendMessage={handleSendMessage}
+            contextSessionId={activeAgent.id}
             defaultCli={cliId}
             defaultModel={activeAgent.model}
             defaultEffort={activeAgent.effort}

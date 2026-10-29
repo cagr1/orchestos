@@ -405,8 +405,17 @@
       "block": "Abiertos — fiabilidad de los gates y documentación",
       "delegation": "⚡",
       "title": "El anillo de contexto va dentro del composer, junto a enviar",
-      "status": "open",
-      "closedDate": null
+      "status": "done",
+      "closedDate": "2026-10-29"
+    },
+    {
+      "id": "UI.37.1",
+      "sprint": "Fase 2 — Producto mínimo para entrega",
+      "block": "Abiertos — fiabilidad de los gates y documentación",
+      "delegation": "🔍",
+      "title": "`shell-look` vuelve a verde (roto desde SET.4, fuera del pre-push)",
+      "status": "done",
+      "closedDate": "2026-10-29"
     },
     {
       "id": "UI.38",
@@ -414,6 +423,15 @@
       "block": "Abiertos — fiabilidad de los gates y documentación",
       "delegation": "🧠",
       "title": "Dev con sesiones en pestañas y archivos en pestañas junto al chat (patrón MonoCode)",
+      "status": "open",
+      "closedDate": null
+    },
+    {
+      "id": "CI.48",
+      "sprint": "Fase 2 — Producto mínimo para entrega",
+      "block": "Abiertos — fiabilidad de los gates y documentación",
+      "delegation": "🔍",
+      "title": "`codex-live` falla también en HEAD (2026-10-29)",
       "status": "open",
       "closedDate": null
     },

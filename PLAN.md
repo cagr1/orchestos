@@ -515,8 +515,23 @@ Regla: nada se reintenta, cierra ni muestra sin evidencia medida que el usuario 
   contenido, también tras refrescar.
   Gate en vivo: navegador real (dashboard 4243), `docs/done/evidence/UI.36-live.json`.
   Ejecutado por: codex gpt-6-luna (mecanico r1-r4) · QA: codex gpt-6.1-sol (qa) · Spec: docs/specs/UI.36.md (borrado)
-- [ ] **UI.37 — ⚡ El anillo de contexto va dentro del composer, junto a enviar.** GO de Carlos 2026-10-29. Hoy está en
-  `ShellHeader.tsx:75`; MonoCode (visto en vivo) lo pone dentro de la caja del composer. Sale del header.
+- [x] **UI.37 — ⚡ El anillo de contexto va dentro del composer, junto a enviar.** (cerrado 2026-10-29) GO de Carlos.
+  Sale de `ShellHeader.tsx`; `AgentComposer` lo lee del caché compartido (`contextSessionId`, Chat = hilo, Dev =
+  agente) y lo pinta a la izquierda de enviar; el popover abre hacia arriba. `shell-look` comprueba anillo en el
+  composer junto a enviar, 0 en el header y tooltip por encima.
+  Evidencia (cerebro): `shell-look` 73/73 (dos corridas de Sol + una del cerebro, `ui-gate-938`, captura
+  `chat-context-window.png`); `chat-streaming` 27/27 (`ui-gate-6653`; una corrida previa falló porque el modelo
+  envolvió la respuesta en un bloque ```text, no por UI.37). `codex-live` también falla en HEAD → CI.48.
+  Gate en vivo: navegador real (Playwright, `shell-look`), `docs/done/evidence/UI.37-live.json`.
+  Ejecutado por: codex gpt-6-luna (mecanico) · Revisión: Opus · Spec: docs/specs/UI.37.md
+- [x] **UI.37.1 — 🔍 `shell-look` vuelve a verde (roto desde SET.4, fuera del pre-push).** (cerrado 2026-10-29)
+  Causa: desde `927ef50f` el modo `api` (OpenRouter) sale en New chat solo con `OPENROUTER_API_KEY` y el gate no la
+  ponía; además el paso de API keys validaba contra openrouter.ai con 15 s y esperaba el toast 15 s (carrera).
+  Arreglo: el gate escribe una clave de prueba en el `.env` de su home aislado antes de New chat; `setup.ts` acepta
+  `ORCHESTOS_OPENROUTER_TEST_URL` (leído en cada llamada) y `run.mjs` lo apunta a un puerto cerrado: ningún ui-gate sale
+  a la red. Test del override en `setup-api-key.test.ts` (8/0). Pendiente aparte: `shell-look` no está en el pre-push.
+  Gate en vivo: navegador real (Playwright, `shell-look` 73/73), `docs/done/evidence/UI.37-live.json`.
+  Ejecutado por: codex gpt-6.1-sol (criterio r1 paró por spec incompleto, r2) · Revisión: Opus · Spec: docs/specs/UI.37.1.md
 - [ ] **UI.38 — 🧠 Dev con sesiones en pestañas y archivos en pestañas junto al chat (patrón MonoCode).** GO de
   Carlos 2026-10-29. Visto en vivo en MonoCode: cada sesión es una pestaña arriba; "+" abre "New session" con el
   composer centrado; clic en un archivo parte el área en dos (chat | editor), cada panel con su ×; clic = pestaña de
@@ -524,6 +539,10 @@ Regla: nada se reintenta, cierra ni muestra sin evidencia medida que el usuario 
   Preview/Source, código con números de línea. Files se queda a la derecha. Hoy el archivo se ve dentro de Files
   (`OrcaRightInspector.tsx:424`) y el centro de Dev queda vacío ("No active session open"). Toca varios componentes:
   spec con layout antes de delegar.
+- [ ] **CI.48 — 🔍 `codex-live` falla también en HEAD (2026-10-29).** HEAD `79c501f0`: `turn 1 streams multiple visible
+  text updates: 0 distinct non-empty samples` (`ui-gate-4953`). Con UI.37: el DOM muestra `I’ll` (apóstrofo tipográfico)
+  y lo persistido `I'll`, y el turno 2 tardó 180 s (`ui-gate-3138`). El pre-push lo corre en cada cambio del chat y
+  bloquea el push. Primero evidencia de qué parte es del modelo y qué del render; luego causa.
 - [ ] **CI.19 — 🔍 El `git commit` del fixture falla a veces en el andamiaje de los ui-gates.** Visto 1 vez en
   `qa-negative` (2026-10-11, 1 de 9): `Command failed: git … commit -qm task fixture`, sin motivo porque el helper
   `run` usa `stdio: 'ignore'`. `qa-negative` ya reporta stdout/stderr y exit; los otros 20 flows con el mismo helper no.

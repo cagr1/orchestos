@@ -559,6 +559,7 @@ export const OrchestChatView: React.FC<OrchestChatViewProps> = ({
             <AgentComposer
               onSendMessage={handleSendFromComposer}
               hasProject={!!thread?.projectId}
+              contextSessionId={sessionId}
               defaultModel={initialModel}
               defaultEffort={initialEffort}
               defaultCli={cliId}

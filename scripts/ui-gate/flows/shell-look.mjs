@@ -1,7 +1,7 @@
 import { execFileSync } from 'node:child_process'
-import { mkdtempSync, rmSync, writeFileSync } from 'node:fs'
+import { appendFileSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
-import { basename, join } from 'node:path'
+import { basename, dirname, join } from 'node:path'
 import { writeGateRoles } from '../lib.mjs'
 
 // UI.26.1 — forma del marco: filas planas, iconos de un tono, sin líneas entre barra y panel.
@@ -962,6 +962,7 @@ export default async function shellLook({
   )
   await shot('chat-unified-body')
 
+  appendFileSync(join(dirname(databasePath), '.env'), '\nOPENROUTER_API_KEY=ui-gate-key\n')
   await page.getByRole('button', { name: 'New chat', exact: true }).click()
   const chatDialog = page.getByRole('dialog')
   const openRouterOption = chatDialog.getByRole('button', { name: 'OpenRouter API', exact: true })
@@ -1051,10 +1052,10 @@ export default async function shellLook({
     'legacy Claude title found by normalized text',
   )
   await chatSearch.fill('')
-  const ring = page.locator('[data-shell-header] [aria-label^="Context window usage:"]')
+  const ring = page.locator('[data-composer-region] [aria-label^="Context window usage:"]')
   await ring.waitFor({ state: 'visible' })
   await ring.focus()
-  const tooltip = page.locator('[data-shell-header] [role="tooltip"]')
+  const tooltip = page.locator('[data-composer-region] [role="tooltip"]')
   await tooltip.waitFor({ state: 'visible' })
   const tooltipText = await tooltip.innerText()
   await step(
@@ -1066,18 +1067,36 @@ export default async function shellLook({
       (await ring.getAttribute('title')) === null,
     JSON.stringify({ context: context.data, tooltipText }),
   )
-  const chatHeader = await page.locator('[data-shell-header]').evaluate((header) => ({
-    providerLogos: header.querySelectorAll('img, [style*="mask-image"]').length,
-    headerRings: header.querySelectorAll('[aria-label^="Context window usage:"]').length,
-    pageRings: document.querySelectorAll('[aria-label^="Context window usage:"]').length,
-  }))
+  const ringLayout = await page.evaluate(() => {
+    const header = document.querySelector('[data-shell-header]')
+    const composer = document.querySelector('[data-composer-region]')
+    const ring = composer?.querySelector('[aria-label^="Context window usage:"]')
+    const sendButton = composer?.querySelector('[aria-label="Send message"]')
+    const tooltipElement = composer?.querySelector('[role="tooltip"]')
+    const ringBox = ring?.getBoundingClientRect()
+    const tooltipBox = tooltipElement?.getBoundingClientRect()
+    return {
+      providerLogos: header?.querySelectorAll('img, [style*="mask-image"]').length ?? 0,
+      headerRings: header?.querySelectorAll('[aria-label^="Context window usage:"]').length ?? 0,
+      composerRings:
+        composer?.querySelectorAll('[aria-label^="Context window usage:"]').length ?? 0,
+      pageRings: document.querySelectorAll('[aria-label^="Context window usage:"]').length,
+      ringSharesSendParent: Boolean(ring?.parentElement?.contains(sendButton ?? null)),
+      tooltipAboveRing: Boolean(
+        tooltipBox && ringBox && tooltipBox.y + tooltipBox.height <= ringBox.y + 1,
+      ),
+    }
+  })
   await step(
-    'context ring lives in shell header, absent from thread',
-    chatHeader.providerLogos === 0 &&
-      chatHeader.headerRings === 1 &&
-      chatHeader.pageRings === 1 &&
+    'context ring lives in composer next to send, absent from header',
+    ringLayout.providerLogos === 0 &&
+      ringLayout.headerRings === 0 &&
+      ringLayout.composerRings === 1 &&
+      ringLayout.pageRings === 1 &&
+      ringLayout.ringSharesSendParent &&
+      ringLayout.tooltipAboveRing &&
       (await page.locator('[data-chat-header]').count()) === 0,
-    JSON.stringify(chatHeader),
+    JSON.stringify(ringLayout),
   )
   await shot('chat-context-window')
   await page.keyboard.press('Tab')

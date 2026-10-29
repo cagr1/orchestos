@@ -99,7 +99,7 @@ export const ContextRing: React.FC<ContextRingProps> = ({
       {showPopover && (
         <div
           role="tooltip"
-          className="absolute right-0 top-full mt-2 w-max max-w-56 p-2.5 rounded-control bg-app-surface border border-app shadow-xl text-app z-50 animate-in fade-in zoom-in-95 duration-100"
+          className="absolute right-0 bottom-full mb-2 w-max max-w-56 p-2.5 rounded-control bg-app-surface border border-app shadow-xl text-app z-50 animate-in fade-in zoom-in-95 duration-100"
         >
           <div className="flex items-center justify-between gap-3 text-xs font-mono">
             {usedTokens != null && maxTokens != null && (

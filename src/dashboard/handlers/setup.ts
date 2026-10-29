@@ -394,7 +394,11 @@ async function handleApiSetupApiKey(req: Request): Promise<Response> {
   try {
     const controller = new AbortController()
     const timer = setTimeout(() => controller.abort(), 15_000)
-    const res = await fetch(cfg.testUrl, {
+    const testUrl =
+      provider === 'openrouter'
+        ? process.env.ORCHESTOS_OPENROUTER_TEST_URL || cfg.testUrl
+        : cfg.testUrl
+    const res = await fetch(testUrl, {
       method: 'POST',
       headers: cfg.headers(key),
       body: cfg.body,

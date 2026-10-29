@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState, useSyncExternalStore } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import {
   archiveSession,
   attachTurnDetails,
@@ -7,7 +7,6 @@ import {
   createSession,
   deleteProjectTask,
   deleteSession,
-  getCachedSessionContext,
   getProjectTasks,
   getSessionMessages,
   getTimeline,
@@ -20,7 +19,6 @@ import {
   restoreSession,
   runProjectTask,
   sendMessage,
-  subscribeSessionContext,
   type TimelineResponse,
 } from './api/chat'
 import { getProjectContext } from './api/project'
@@ -482,11 +480,6 @@ export default function App() {
     hasRunningThreadTasks,
   ])
   const activeAgent = currentProject?.agents.find((a) => a.id === activeAgentId) || null
-  const contextSessionId =
-    mode === 'chat' ? activeThread?.id : mode === 'dev' ? activeAgent?.id : undefined
-  const shellContext = useSyncExternalStore(subscribeSessionContext, () =>
-    getCachedSessionContext(contextSessionId),
-  )
   const projectForSession = (id: string) => {
     const thread = threads.find((item) => item.id === id)
     if (thread) return thread.projectId
@@ -1295,7 +1288,6 @@ export default function App() {
         isRightInspectorOpen={isRightInspectorOpen}
         activeProjectName={currentProject?.name}
         activeBranch={currentProject?.branch}
-        sessionContext={shellContext}
       />
 
       {/* Main App Workspace Layout */}

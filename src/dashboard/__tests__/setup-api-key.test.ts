@@ -16,15 +16,19 @@ import { envFilePath } from '../settings-store.ts'
 
 const originalHome = process.env.ORCHESTOS_HOME
 const originalFetch = globalThis.fetch
+const originalTestUrl = process.env.ORCHESTOS_OPENROUTER_TEST_URL
 let tmpHome: string
 
 beforeEach(() => {
   tmpHome = mkdtempSync(join(tmpdir(), 'orchestos-l62-'))
   process.env.ORCHESTOS_HOME = tmpHome
+  delete process.env.ORCHESTOS_OPENROUTER_TEST_URL
 })
 
 afterEach(() => {
   globalThis.fetch = originalFetch
+  if (originalTestUrl === undefined) delete process.env.ORCHESTOS_OPENROUTER_TEST_URL
+  else process.env.ORCHESTOS_OPENROUTER_TEST_URL = originalTestUrl
   if (originalHome === undefined) delete process.env.ORCHESTOS_HOME
   else process.env.ORCHESTOS_HOME = originalHome
   rmSync(tmpHome, { recursive: true, force: true })
@@ -52,6 +56,28 @@ describe('handleApiSetupApiKey — no persiste una key sin validar (L62-002)', (
     const res = await handleApiSetupApiKey(keyRequest())
     expect(await res.json()).toEqual({ valid: true })
     expect(persistedEnv()).toContain('sk-or-v1-testkeyvalue0000000000')
+  })
+
+  test('el override de OpenRouter se lee en cada llamada y conserva el default', async () => {
+    const urls: string[] = []
+    globalThis.fetch = (async (url: string | URL | Request) => {
+      urls.push(String(url))
+      return new Response('unauthorized', { status: 401 })
+    }) as typeof fetch
+
+    process.env.ORCHESTOS_OPENROUTER_TEST_URL = 'http://127.0.0.1:9/'
+    await handleApiSetupApiKey(keyRequest('ui-gate-key'))
+    process.env.ORCHESTOS_OPENROUTER_TEST_URL = 'http://127.0.0.1:10/'
+    await handleApiSetupApiKey(keyRequest('ui-gate-key'))
+    delete process.env.ORCHESTOS_OPENROUTER_TEST_URL
+    await handleApiSetupApiKey(keyRequest('ui-gate-key'))
+
+    expect(urls).toEqual([
+      'http://127.0.0.1:9/',
+      'http://127.0.0.1:10/',
+      'https://openrouter.ai/api/v1/chat/completions',
+    ])
+    expect(persistedEnv()).toBe('')
   })
 
   test('timeout / error de red NO persiste la key', async () => {
