@@ -1,4 +1,4 @@
-# NEXT — handoff 2026-10-29 (UI.36 cerrado; sigue UI.37/UI.38)
+# NEXT — handoff 2026-10-29 (UI.37 y UI.38 cerrados, sin empujar; CI.48 aparcado)
 
 Un solo presente: orden y trampas vivas. Lo cerrado vive en `docs/done/bloque-*.md`, `PLAN.md` y git (regla `AGENTS.md`
 § Reglas generales, 2026-10-19: `NEXT.md` se toca solo al cerrar o cortar un lote). Arranque:
@@ -25,17 +25,16 @@ Un solo presente: orden y trampas vivas. Lo cerrado vive en `docs/done/bloque-*.
   - UI.34 `67c2f904`: las corridas propias de Claude guardan su `rate_limit_event` como cuota.
   - UI.35 `b60b0317` + `ac5239ee`: la cuota de Claude sale del endpoint de `/usage` (`api/oauth/usage`, 0 tokens)
     con la sesión del llavero (sin guardarla ni refrescarla), cada 60 s como mucho; los ui-gates lo apagan.
-- 2026-10-29: UI.36 `32cc68d6` las carpetas de Files se abren (carga de hijos por effect, en cascada y tras refrescar).
-  **Primero al arrancar:** su push se lanzó en segundo plano al cortar, sin esperar; comprobar `git status -sb` (sin
-  "ahead") y `gh run list --workflow CI -L 1`. Si el pre-push falló, el log está en
-  `$TMPDIR/orchestos-pre-push.*/`; arreglarlo antes de UI.37.
+- 2026-10-29: UI.36 `32cc68d6` (empujado, CI verde). Sin empujar (4 commits): UI.37 `a9eabb2e` anillo en el composer
+  junto a enviar (+ UI.37.1: `shell-look` verde otra vez, estaba roto desde SET.4); UI.38.1 `be9c972f` sesiones en
+  pestañas en Dev; UI.38.2 `eeae3b4e` panel de archivo con pestañas y colores (highlight.js, +3,2 % main.js).
 
 ## Orden
-0. **UI.37 y UI.38 (GO de Carlos 2026-10-29, patrón MonoCode visto en vivo; detalle en `PLAN.md`)**: UI.37 anillo de
-   contexto dentro del composer junto a enviar (sale de `ShellHeader.tsx:75`); UI.38 Dev con sesiones en pestañas y
-   archivos en pestañas en un panel junto al chat (clic = vista previa en cursiva, doble clic = fija; solo lectura;
-   Markdown Preview/Source). UI.38 es 🧠: spec con layout antes de delegar. Para mirar MonoCode: computer use
-   (`com.monocode.desktop`, ya autorizado en la sesión anterior; pedir acceso de nuevo).
+0. **Empujar UI.37/UI.38 exige CI.48 primero**: el pre-push corre `codex-live` en cambios del chat y ese gate falla
+   también en HEAD. Carlos aparcó CI.48 (2026-10-29: primero la interfaz). Trabajo de Sol en `git stash`
+   "CI.48 Sol r1 aparcado…"; falta: el modelo de la última sesión manda (decisión de Carlos) y `catch` de `getConfig`.
+   Detalle en `PLAN.md` CI.48. Anotado de UI.38.2: en ventanas angostas el composer del chat se aprieta; el chat sigue
+   sin colorear código (se podría con el mismo highlight.js).
 1. **Mostrar Settings a Carlos** (lote SET completo): Providers, API keys, Health, CLIs propios en Providers. Probar
    con `orchestos-set-ref` (`.claude/launch.json`, puerto 4343). Sin verificar en vivo: el punto ámbar de Health (solo
    código) y la causa de "Loading project data…" (no se reprodujo).
