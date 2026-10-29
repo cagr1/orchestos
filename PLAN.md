@@ -549,7 +549,8 @@ Regla: nada se reintenta, cierra ni muestra sin evidencia medida que el usuario 
   Ejecutado por: codex gpt-6.1-sol (criterio) · Revisión: Opus · Spec: docs/specs/UI.38.1.md
 - [ ] **UI.38.2 — 🧠 Dev: panel de archivo con pestañas entre el chat y Files.** Clic = vista previa en cursiva,
   doble clic = fija; solo lectura; Markdown Preview/Source; código con colores (el resaltador del chat) y números de
-  línea; las fijas se guardan por proyecto. Sale la vista previa de abajo de Files. Spec al cerrar UI.38.1.
+  línea (se agrega highlight.js, decisión de Carlos 2026-10-29: no había resaltador); las fijas se guardan por
+  proyecto. Sale la vista previa de abajo de Files. Spec: `docs/specs/UI.38.2.md`.
 - [ ] **CI.48 — 🔍 `codex-live` falla también en HEAD (2026-10-29).** HEAD `79c501f0`: `turn 1 streams multiple visible
   text updates: 0 distinct non-empty samples` (`ui-gate-4953`). Con UI.37: el DOM muestra `I’ll` (apóstrofo tipográfico)
   y lo persistido `I'll`, y el turno 2 tardó 180 s (`ui-gate-3138`). El pre-push lo corre en cada cambio del chat y
