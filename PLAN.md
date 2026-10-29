@@ -543,6 +543,12 @@ Regla: nada se reintenta, cierra ni muestra sin evidencia medida que el usuario 
   text updates: 0 distinct non-empty samples` (`ui-gate-4953`). Con UI.37: el DOM muestra `I’ll` (apóstrofo tipográfico)
   y lo persistido `I'll`, y el turno 2 tardó 180 s (`ui-gate-3138`). El pre-push lo corre en cada cambio del chat y
   bloquea el push. Primero evidencia de qué parte es del modelo y qué del render; luego causa.
+  Diagnóstico Sol (analizar): el gate mide mal (Codex entrega en ráfaga de ~15–70 ms y el gate muestrea cada 150 ms;
+  espera 180 s un estado intermedio antes de medir el turno 2) y un bug real: una sesión de Dev sin historial toma el
+  modelo por defecto del CLI (Sol) en vez del del rol. Arreglo de Sol r1 (gate + `api/projects.ts`) en
+  `git stash` "CI.48 Sol r1 aparcado…". Decisión de Carlos 2026-10-29: una sesión ya usada conserva su último modelo;
+  el del rol solo para sesiones sin historial; falta `catch` de `getConfig`. **Aparcado** por Carlos 2026-10-29
+  (primero la interfaz). Mientras siga abierto, el pre-push de cambios del chat falla en `codex-live`.
 - [ ] **CI.19 — 🔍 El `git commit` del fixture falla a veces en el andamiaje de los ui-gates.** Visto 1 vez en
   `qa-negative` (2026-10-11, 1 de 9): `Command failed: git … commit -qm task fixture`, sin motivo porque el helper
   `run` usa `stdio: 'ignore'`. `qa-negative` ya reporta stdout/stderr y exit; los otros 20 flows con el mismo helper no.
