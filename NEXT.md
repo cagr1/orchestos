@@ -23,13 +23,19 @@ Un solo presente: orden y trampas vivas. Lo cerrado vive en `docs/done/bloque-*.
   - UI.34 `67c2f904`: las corridas propias de Claude guardan su `rate_limit_event` como cuota.
   - UI.35 `b60b0317` + `ac5239ee`: la cuota de Claude sale del endpoint de `/usage` (`api/oauth/usage`, 0 tokens)
     con la sesión del llavero (sin guardarla ni refrescarla), cada 60 s como mucho; los ui-gates lo apagan.
+- 2026-10-29: UI.36 `32cc68d6` las carpetas de Files se abren (carga de hijos por effect, en cascada y tras refrescar).
 
 ## Orden
-0. **Mostrar Settings a Carlos** (lote SET completo): Providers, API keys, Health, CLIs propios en Providers. Probar
+0. **UI.37 y UI.38 (GO de Carlos 2026-10-29, patrón MonoCode visto en vivo; detalle en `PLAN.md`)**: UI.37 anillo de
+   contexto dentro del composer junto a enviar (sale de `ShellHeader.tsx:75`); UI.38 Dev con sesiones en pestañas y
+   archivos en pestañas en un panel junto al chat (clic = vista previa en cursiva, doble clic = fija; solo lectura;
+   Markdown Preview/Source). UI.38 es 🧠: spec con layout antes de delegar. Para mirar MonoCode: computer use
+   (`com.monocode.desktop`, ya autorizado en la sesión anterior; pedir acceso de nuevo).
+1. **Mostrar Settings a Carlos** (lote SET completo): Providers, API keys, Health, CLIs propios en Providers. Probar
    con `orchestos-set-ref` (`.claude/launch.json`, puerto 4343). Sin verificar en vivo: el punto ámbar de Health (solo
    código) y la causa de "Loading project data…" (no se reprodujo).
-1. CI.19 espera el próximo fallo para la fase 2 (CI.44 cerrado `07fbab61`).
-2. Cualquier CLI ya corre tareas sin código (AT.11.2/AT.11.3): se declara en Settings → Providers → "CLIs propios".
+2. CI.19 espera el próximo fallo para la fase 2 (CI.44 cerrado `07fbab61`).
+3. Cualquier CLI ya corre tareas sin código (AT.11.2/AT.11.3): se declara en Settings → Providers → "CLIs propios".
    Un adaptador rico (streaming, sesiones, cuotas) para un CLI nuevo sigue siendo `KNOWN_CLIS` + `registerTaskEngine`
    y lo instala el cerebro para probarlo, no Carlos. Fuera hoy: CLI genérico en el chat (necesita streaming).
 - Trampa: dos ítems sin commitear en el mismo archivo (SET.3/4/6 en `OrchestSettingsView.tsx`): guardar el parche de
