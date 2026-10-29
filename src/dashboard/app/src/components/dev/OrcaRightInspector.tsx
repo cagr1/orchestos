@@ -28,6 +28,37 @@ import type { FileNode, ProjectItem } from '../../types/orchestos'
 import { ProviderLogo } from '../common/ProviderLogos'
 import { ResizableAside } from '../common/ResizableAside'
 
+export function attachExplorerChildren(
+  nodes: FileNode[],
+  path: string,
+  children: FileNode[],
+): FileNode[] {
+  return nodes.map((node) =>
+    node.path === path && !node.children
+      ? { ...node, children }
+      : node.children
+        ? { ...node, children: attachExplorerChildren(node.children, path, children) }
+        : node,
+  )
+}
+
+export function foldersToLoad(tree: FileNode[], expanded: Record<string, boolean>): string[] {
+  const openPaths = Object.entries(expanded)
+    .filter(([, isExpanded]) => isExpanded)
+    .map(([path]) => path)
+  const folders = new Map<string, FileNode>()
+  const visit = (nodes: FileNode[]) => {
+    for (const node of nodes) {
+      if (node.isDir) folders.set(node.path, node)
+      if (node.children) visit(node.children)
+    }
+  }
+  visit(tree)
+  return openPaths
+    .filter((path) => folders.has(path) && !folders.get(path)?.children)
+    .sort((left, right) => left.split('/').length - right.split('/').length)
+}
+
 export interface HistorySession {
   id: string
   projectId: string
@@ -74,32 +105,66 @@ export const OrcaRightInspector: React.FC<OrcaRightInspectorProps> = ({
   onUploadFiles,
 }) => {
   const [activeTab, setActiveTab] = useState<'files' | 'diff' | 'history'>('files')
-  const [expandedFolders, setExpandedFolders] = useState<Record<string, boolean>>({
-    context: true,
-    dashboard: true,
-    tasks: true,
-  })
+  const [expandedFolders, setExpandedFolders] = useState<Record<string, boolean>>({})
   const [searchQuery, setSearchQuery] = useState('')
   const [searchMode, setSearchMode] = useState<'names' | 'contents'>('names')
   const [fileTree, setFileTree] = useState<FileNode[]>([])
   const [selectedFile, setSelectedFile] = useState<FileNode | null>(null)
   const [treeError, setTreeError] = useState<string | null>(null)
+  const [loadingFolders, setLoadingFolders] = useState<Record<string, boolean>>({})
+  const treeRequest = useRef(0)
+  const foldersInFlight = useRef(new Set<string>())
+  const currentProjectId = useRef(currentProject.id)
+  currentProjectId.current = currentProject.id
 
   const loadTree = () => {
-    void getExplorerTree('', currentProject.id)
+    const projectId = currentProject.id
+    const request = ++treeRequest.current
+    void getExplorerTree('', projectId)
       .then((tree) => {
+        if (request !== treeRequest.current || projectId !== currentProjectId.current) return
         setFileTree(tree)
         setTreeError(null)
+        setLoadingFolders({})
       })
-      .catch((error) =>
-        setTreeError(error instanceof Error ? error.message : 'Unable to load files.'),
-      )
+      .catch((error) => {
+        if (request === treeRequest.current && projectId === currentProjectId.current) {
+          setTreeError(error instanceof Error ? error.message : 'Unable to load files.')
+        }
+      })
   }
 
   useEffect(() => {
     setSelectedFile(null)
     loadTree()
   }, [currentProject.id])
+
+  useEffect(() => {
+    const projectId = currentProject.id
+    for (const path of foldersToLoad(fileTree, expandedFolders)) {
+      const requestKey = `${projectId}:${path}`
+      if (foldersInFlight.current.has(requestKey)) continue
+      foldersInFlight.current.add(requestKey)
+      setLoadingFolders((prev) => ({ ...prev, [path]: true }))
+      void getExplorerTree(path, projectId)
+        .then((children) => {
+          if (projectId !== currentProjectId.current) return
+          setFileTree((prev) => attachExplorerChildren(prev, path, children))
+          setTreeError(null)
+        })
+        .catch((error) => {
+          if (projectId === currentProjectId.current) {
+            setTreeError(error instanceof Error ? error.message : 'Unable to load files.')
+          }
+        })
+        .finally(() => {
+          foldersInFlight.current.delete(requestKey)
+          if (projectId === currentProjectId.current) {
+            setLoadingFolders((prev) => ({ ...prev, [path]: false }))
+          }
+        })
+    }
+  }, [fileTree, expandedFolders, currentProject.id])
 
   const [gitFiles, setGitFiles] = useState<GitChange[]>([])
   const [gitError, setGitError] = useState(false)
@@ -257,6 +322,14 @@ export const OrcaRightInspector: React.FC<OrcaRightInspectorProps> = ({
               )}
             </button>
 
+            {isFolder && isExpanded && loadingFolders[node.path] && (
+              <div
+                className="px-2 py-1 text-xs text-app-muted/60"
+                style={{ paddingLeft: `${(depth + 1) * 14 + 10}px` }}
+              >
+                Loading…
+              </div>
+            )}
             {isFolder && isExpanded && node.children && (
               <div>{renderTree(node.children, depth + 1)}</div>
             )}

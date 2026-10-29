@@ -506,6 +506,24 @@ Regla: nada se reintenta, cierra ni muestra sin evidencia medida que el usuario 
   `ORCHESTOS_CLAUDE_USAGE_LIVE=0` y no tocan llavero ni red. `ui:gate usage-bar` 19/19, tests 37/0.
   **Fuera de scope declarado:** PLAN.md lo escribe el cerebro al registrar la evidencia del arreglo del gate.
   Ejecutado por: codex gpt-6.1-sol (criterio r1) · codex gpt-6-luna (mecanico r2-r4) · QA: codex gpt-6.1-sol (P2 en r3, sin defectos en r4) · Spec: docs/specs/UI.35.md (borrado)
+- [x] **UI.36 — ⚡ Las carpetas del explorador (Files) se abren y muestran su contenido.** (cerrado 2026-10-29) GO de Carlos.
+  Causa (cerebro): `getExplorerTree('')` trae un nivel y `toggleFolder` solo cambiaba el flag; `node.children` nunca se
+  cargaba. Arreglo: un solo effect carga los hijos de toda carpeta abierta sin hijos (`foldersToLoad`), en cascada y
+  tras refrescar; una respuesta tardía del mismo proyecto se adjunta al árbol actual. QA Sol: P2 en r1-r3 (carrera del
+  refresco, anidadas, respuesta tardía), r4 sin defectos.
+  Evidencia (cerebro): typecheck 0; `OrcaRightInspector.test.ts` 5/0; en vivo `src` y `src/dashboard` abiertas con
+  contenido, también tras refrescar.
+  Gate en vivo: navegador real (dashboard 4243), `docs/done/evidence/UI.36-live.json`.
+  Ejecutado por: codex gpt-6-luna (mecanico r1-r4) · QA: codex gpt-6.1-sol (qa) · Spec: docs/specs/UI.36.md (borrado)
+- [ ] **UI.37 — ⚡ El anillo de contexto va dentro del composer, junto a enviar.** GO de Carlos 2026-10-29. Hoy está en
+  `ShellHeader.tsx:75`; MonoCode (visto en vivo) lo pone dentro de la caja del composer. Sale del header.
+- [ ] **UI.38 — 🧠 Dev con sesiones en pestañas y archivos en pestañas junto al chat (patrón MonoCode).** GO de
+  Carlos 2026-10-29. Visto en vivo en MonoCode: cada sesión es una pestaña arriba; "+" abre "New session" con el
+  composer centrado; clic en un archivo parte el área en dos (chat | editor), cada panel con su ×; clic = pestaña de
+  vista previa (cursiva, la reemplaza el siguiente clic), doble clic = pestaña fija; solo lectura; Markdown con
+  Preview/Source, código con números de línea. Files se queda a la derecha. Hoy el archivo se ve dentro de Files
+  (`OrcaRightInspector.tsx:424`) y el centro de Dev queda vacío ("No active session open"). Toca varios componentes:
+  spec con layout antes de delegar.
 - [ ] **CI.19 — 🔍 El `git commit` del fixture falla a veces en el andamiaje de los ui-gates.** Visto 1 vez en
   `qa-negative` (2026-10-11, 1 de 9): `Command failed: git … commit -qm task fixture`, sin motivo porque el helper
   `run` usa `stdio: 'ignore'`. `qa-negative` ya reporta stdout/stderr y exit; los otros 20 flows con el mismo helper no.

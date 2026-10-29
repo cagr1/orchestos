@@ -1,0 +1,21 @@
+{
+  "item": "UI.36",
+  "date": "2026-10-29",
+  "browser": "navegador integrado de Claude Desktop, dashboard real (bun run src/cli.ts dashboard, puerto 4243, build:app recién hecho)",
+  "steps": [
+    "Modo Dev, proyecto orchestos, pestaña Files",
+    "Clic en src; clic en src/dashboard",
+    "Clic en Refresh file tree con las dos abiertas"
+  ],
+  "result": {
+    "src": "__tests__, agents, analyze, chat, config, context, dashboard, … y sus archivos",
+    "src/dashboard": "__tests__, app, handlers, llm, prompts, … y sus archivos",
+    "afterRefresh": "las dos siguen abiertas y con contenido"
+  },
+  "verdict": "Las carpetas se abren y muestran su contenido, también anidadas y tras refrescar.",
+  "gates": {
+    "typecheck": 0,
+    "OrcaRightInspector.test.ts": "5 pass / 0 fail",
+    "qa": "Sol: 3 rondas con P2 (carrera del refresco, anidadas, respuesta tardía), r4 sin defectos"
+  }
+}
