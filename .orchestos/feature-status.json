@@ -499,6 +499,24 @@
       "closedDate": null
     },
     {
+      "id": "CI.49",
+      "sprint": "Fase 2 — Producto mínimo para entrega",
+      "block": "Abiertos — fiabilidad de los gates y documentación",
+      "delegation": "🔍",
+      "title": "5 tests de `chat-sessions.test.ts` agotan 5 s esperando al `opencode` real (2026-11-02)",
+      "status": "open",
+      "closedDate": null
+    },
+    {
+      "id": "CI.50",
+      "sprint": "Fase 2 — Producto mínimo para entrega",
+      "block": "Abiertos — fiabilidad de los gates y documentación",
+      "delegation": "🔍",
+      "title": "El chat espera sin límite a que un CLI liste sus modelos",
+      "status": "open",
+      "closedDate": null
+    },
+    {
       "id": "CI.23",
       "sprint": "Fase 2 — Producto mínimo para entrega",
       "block": "Abiertos — fiabilidad de los gates y documentación",
