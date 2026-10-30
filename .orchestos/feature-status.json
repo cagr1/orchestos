@@ -486,8 +486,8 @@
       "block": "Abiertos — fiabilidad de los gates y documentación",
       "delegation": "⚡",
       "title": "El dashboard pide `/favicon.ico` y recibe 404",
-      "status": "open",
-      "closedDate": null
+      "status": "done",
+      "closedDate": "2026-10-30"
     },
     {
       "id": "UI.40",

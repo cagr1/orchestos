@@ -599,8 +599,12 @@ Regla: nada se reintenta, cierra ni muestra sin evidencia medida que el usuario 
   `test:coverage` 2012/0 (ejecutor). Sigue abierto hasta el próximo fallo: leer el motivo y escribir la fase 2.
   Gate en vivo: navegador real (Playwright), `docs/done/evidence/CI.19-live.json`
   Ejecutado por: claude sonnet (criterio-alt; Sol sin cupo de 5 h) · Spec: docs/specs/CI.19.md
-- [ ] **UI.39 — ⚡ El dashboard pide `/favicon.ico` y recibe 404.** Visto 2026-10-30 con Playwright en Settings (4343):
-  el único error de consola es ese 404. Ícono SVG en línea en `src/dashboard/app/index.html`, sin ruta nueva.
+- [x] **UI.39 — ⚡ El dashboard pide `/favicon.ico` y recibe 404.** (cerrado 2026-10-30) Visto con Playwright en Settings
+  (4343): el único error de consola era ese 404. Ícono SVG en línea en `src/dashboard/app/index.html` (cuadrado oscuro,
+  "O" en el azul del logo), sin ruta nueva.
+  Evidencia (cerebro): 4343 con Playwright: `link[rel=icon]` presente, 0 errores de consola.
+  Gate en vivo: navegador real (Playwright, `smoke` 7/7), `docs/done/evidence/UI.39-live.json`.
+  Ejecutado por: codex gpt-6-luna (mecanico) · Spec: docs/specs/UI.39.md
 - [ ] **UI.40 — ⚡ Health dice "All prerequisites met" con 4/5 checks y marca como fallo la falta de `OPENROUTER_API_KEY`.**
   Visto 2026-10-30 en vivo (4343). Decisión (memoria "CLI antes que API"): una API key no es requisito cuando se trabaja
   con CLIs; `openrouter-key` queda opcional como `anthropic-key` (`src/dashboard/handlers/setup.ts:93` y `:220`).
