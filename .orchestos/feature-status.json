@@ -503,9 +503,9 @@
       "sprint": "Fase 2 — Producto mínimo para entrega",
       "block": "Abiertos — fiabilidad de los gates y documentación",
       "delegation": "🔍",
-      "title": "5 tests de `chat-sessions.test.ts` agotan 5 s esperando al `opencode` real (2026-11-02)",
-      "status": "open",
-      "closedDate": null
+      "title": "5 tests de `chat-sessions.test.ts` agotan 5 s esperando al `opencode` real",
+      "status": "done",
+      "closedDate": "2026-10-30"
     },
     {
       "id": "CI.50",

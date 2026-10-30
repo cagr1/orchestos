@@ -22,6 +22,10 @@ async function runIsolated(
 ): Promise<Record<string, unknown>> {
   const home = mkdtempSync(join(tmpdir(), 'orchestos-chat-sessions-'))
   try {
+    // CI.49 — seed an empty CLI model catalog so login-shell opencode discovery cannot stall chat tests.
+    body =
+      "await (await import('./src/dashboard/chat-cli-models.ts')).readCliModelCatalogsCached({ read: async () => [] });\n" +
+      body
     // CI.26 — sin cache de catálogo fresco, `ensureCatalogLoaded` pega a OpenRouter (hasta 10 s) y el
     // subproceso no sale hasta que el fetch termina: con red lenta el test revienta su timeout de 5 s.
     // Cada test que necesita un catálogo propio lo escribe encima.

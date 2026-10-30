@@ -608,11 +608,13 @@ Regla: nada se reintenta, cierra ni muestra sin evidencia medida que el usuario 
 - [ ] **UI.40 — ⚡ Health dice "All prerequisites met" con 4/5 checks y marca como fallo la falta de `OPENROUTER_API_KEY`.**
   Visto 2026-10-30 en vivo (4343). Decisión (memoria "CLI antes que API"): una API key no es requisito cuando se trabaja
   con CLIs; `openrouter-key` queda opcional como `anthropic-key` (`src/dashboard/handlers/setup.ts:93` y `:220`).
-- [ ] **CI.49 — 🔍 5 tests de `chat-sessions.test.ts` agotan 5 s esperando al `opencode` real (2026-11-02).** El pre-push
+- [x] **CI.49 — 🔍 5 tests de `chat-sessions.test.ts` agotan 5 s esperando al `opencode` real.** (cerrado 2026-10-30) El pre-push
   rechazó el push: `handleApiChat → readCliModelCatalogsCached` corre `opencode models --verbose` (~6 s hoy); el filtro
   `NO_CLI_PATH` (`chat-sessions.test.ts:14`) no basta porque la detección suma el PATH del login shell
   (`cli-registry.ts:454`). Diagnóstico Sol (analizar). Arreglo: el hijo de `runIsolated` siembra el catálogo CLI vacío
   con la inyección existente `readCliModelCatalogsCached({ read: async () => [] })`.
+  Evidencia (cerebro): `chat-sessions.test.ts` 26/26 (antes 21/5); `test:coverage` 2163 pass / 0 fail.
+  Ejecutado por: codex gpt-6-luna (mecanico) · Diagnóstico: codex gpt-6.1-sol (analizar) · Spec: docs/specs/CI.49.md
 - [ ] **CI.50 — 🔍 El chat espera sin límite a que un CLI liste sus modelos.** Hermano de CI.49 en el producto:
   `defaultRunner` (`src/dashboard/chat-cli-models.ts:33`) no tiene timeout; un CLI lento (opencode ~6 s) retrasa cada
   primer envío del chat. Timeout corto, matar el proceso y seguir sin ese catálogo.
