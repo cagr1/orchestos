@@ -23,8 +23,8 @@ export default async function smoke({ page, api, step, shot, visible }) {
   await page.getByRole('button', { name: 'Dev', exact: true }).click()
   await step(
     'dev-view',
-    await visible(page.getByRole('heading', { name: 'OrchestOS Dev', exact: true })),
-    'OrchestOS Dev visible',
+    await visible(page.locator('[data-dev-session-tabs]')),
+    'Dev session tabs visible',
   )
   await shot('dev')
 

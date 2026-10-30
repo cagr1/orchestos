@@ -38,7 +38,7 @@ export function DevSessionTabs({
   return (
     <div
       data-dev-session-tabs
-      className="flex shrink-0 items-center overflow-x-auto border-b border-app bg-app-bg"
+      className="flex h-10 shrink-0 items-center overflow-x-auto border-b border-app bg-app-bg"
     >
       <div role="tablist" aria-label="Open Dev tabs" className="flex items-center">
         {state.tabs.map((tab) => {

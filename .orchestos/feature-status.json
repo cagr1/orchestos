@@ -454,6 +454,15 @@
       "closedDate": "2026-10-29"
     },
     {
+      "id": "UI.38.4",
+      "sprint": "Fase 2 — Producto mínimo para entrega",
+      "block": "Abiertos — fiabilidad de los gates y documentación",
+      "delegation": "⚡",
+      "title": "Dev sin la cabecera de sesión (la fila de pestañas la reemplaza)",
+      "status": "done",
+      "closedDate": "2026-10-29"
+    },
+    {
       "id": "CI.48",
       "sprint": "Fase 2 — Producto mínimo para entrega",
       "block": "Abiertos — fiabilidad de los gates y documentación",

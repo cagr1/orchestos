@@ -1,5 +1,4 @@
 import {
-  Archive,
   Bot,
   Check,
   ChevronDown,
@@ -10,7 +9,6 @@ import {
   Loader2,
   Search,
   Sparkles,
-  Square,
   Terminal,
   User,
   X,
@@ -31,7 +29,6 @@ import type {
   ProjectItem,
 } from '../../types/orchestos'
 import { AgentComposer, type CliId } from '../common/AgentComposer'
-import { ProviderLogo } from '../common/ProviderLogos'
 import { assistantCopyTarget } from './copy-target'
 
 interface OrchestDevWorkspaceProps {
@@ -189,7 +186,6 @@ const INITIAL_DIFF_LINES: DiffLine[] = [] /* real diff lines are supplied by tim
 export const OrchestDevWorkspace: React.FC<OrchestDevWorkspaceProps> = ({
   activeProject,
   activeAgent,
-  onCloseAgent,
   onRunCommand,
   onSelectAgent,
   onSendMessage,
@@ -323,17 +319,6 @@ export const OrchestDevWorkspace: React.FC<OrchestDevWorkspaceProps> = ({
   }
 
   const cliId = getCliId()
-  const cliName =
-    cliId === 'claude'
-      ? 'Claude'
-      : cliId === 'codex'
-        ? 'Codex'
-        : cliId === 'opencode'
-          ? 'OpenCode'
-          : cliId === 'deepseek'
-            ? 'DeepSeek'
-            : 'Gemini'
-
   const handleApprove = () => {
     setApprovalState('approved')
     setSessionStatus('working')
@@ -348,11 +333,6 @@ export const OrchestDevWorkspace: React.FC<OrchestDevWorkspaceProps> = ({
     setApprovalState('denied')
     setSessionStatus('failed')
     setCurrentStep('Cache re-indexing denied by user')
-  }
-
-  const handleStop = () => {
-    setSessionStatus('done')
-    setCurrentStep('Execution interrupted by user')
   }
 
   const handleCopyBash = (text: string, type: 'fail' | 'pass') => {
@@ -966,84 +946,14 @@ export const OrchestDevWorkspace: React.FC<OrchestDevWorkspaceProps> = ({
 
   return (
     <main className="flex-1 flex flex-col h-full bg-app-bg text-app overflow-hidden relative select-none">
-      {/* 1. SESSION HEADER (40px) */}
-      {/* title; CLI product logo before it (tooltip = name); small status dot next to title (tooltip = state); Archive and Stop as icon buttons; context ring on right. No path pill, no CLI name text, no status text. */}
-      <header
-        data-dev-header
-        className="h-10 border-b border-app bg-app-bg px-3.5 flex items-center justify-between flex-shrink-0 z-20"
-      >
-        {/* Left: Product logo + Title + Status dot */}
-        <div className="flex items-center gap-2.5 min-w-0">
-          <div title={cliName} className="flex-shrink-0 cursor-default">
-            <ProviderLogo id={cliId} size={16} className="w-4 h-4" />
-          </div>
-
-          <span className="font-semibold text-xs text-app truncate max-w-sm">
-            {activeAgent.name}
-          </span>
-
-          {/* Small status dot next to title (tooltip = state) */}
-          {sessionStatus === 'waiting for approval' && (
-            <span
-              title="waiting for approval"
-              className="w-2 h-2 rounded-full bg-amber-400 animate-pulse flex-shrink-0 cursor-default"
-            />
-          )}
-          {isWorking && (
-            <span title="working" className="flex items-center flex-shrink-0 cursor-default">
-              <Loader2 className="w-3 h-3 text-app-accent animate-spin" />
-            </span>
-          )}
-          {sessionStatus === 'done' && (
-            <span
-              title="done"
-              className="w-2 h-2 rounded-full bg-emerald-400 flex-shrink-0 cursor-default"
-            />
-          )}
-          {sessionStatus === 'failed' && (
-            <span
-              title="failed"
-              className="w-2 h-2 rounded-full bg-rose-500 flex-shrink-0 cursor-default"
-            />
-          )}
-        </div>
-
-        {/* Right: Archive and Stop as icon buttons + Context ring (64% in Dev) */}
-        <div className="flex items-center gap-2 flex-shrink-0">
-          {isWorking && (
-            <button
-              type="button"
-              onClick={handleStop}
-              className="p-1 rounded-control text-app-muted hover:text-rose-400 hover:bg-rose-950/20 transition-colors"
-              title="Stop execution"
-              aria-label="Stop execution"
-            >
-              <Square className="w-3.5 h-3.5 fill-current" />
-            </button>
-          )}
-
-          {onCloseAgent && (
-            <button
-              type="button"
-              onClick={() => onCloseAgent(activeAgent.id)}
-              className="p-1 rounded-control text-app-muted hover:text-app hover:bg-app-surface transition-colors"
-              title="Archive session"
-              aria-label="Archive session"
-            >
-              <Archive className="w-3.5 h-3.5" />
-            </button>
-          )}
-        </div>
-      </header>
-
-      {/* 2. TIMELINE (Centered, same max width as Chat) */}
+      {/* 1. TIMELINE (Centered, same max width as Chat) */}
       <div ref={timelineContainerRef} className="flex-1 overflow-y-auto p-4 md:p-6 space-y-4">
         <div ref={timelineContentRef} className="max-w-3xl lg:max-w-4xl mx-auto space-y-3">
           {exchanges.map(DevExchange)}
         </div>
       </div>
 
-      {/* 3. COMPOSER (Chat and Dev share it) */}
+      {/* 2. COMPOSER (Chat and Dev share it) */}
       <div data-composer-region className="p-3 bg-app-bg flex-shrink-0">
         <div className="max-w-3xl lg:max-w-4xl mx-auto">
           <AgentComposer

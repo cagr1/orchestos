@@ -568,6 +568,14 @@ Regla: nada se reintenta, cierra ni muestra sin evidencia medida que el usuario 
   centro en pestaña cursiva junto a la sesión. Capturas `UI.38.3-*.png`.
   Gate en vivo: navegador real (Playwright, `dev-session-tabs` 18/18, `project-tabs` 40/40, `chat-streaming` 27/27), `docs/done/evidence/UI.38.3-live.json`.
   Ejecutado por: codex gpt-6.1-sol (criterio) · Revisión: Opus · Spec: docs/specs/UI.38.3.md
+- [x] **UI.38.4 — ⚡ Dev sin la cabecera de sesión (la fila de pestañas la reemplaza).** (cerrado 2026-10-29) Carlos
+  2026-10-29: "ya no tiene sentido". Sale título + punto + Archive + Stop; Stop era falso (`handleStop` solo cambiaba
+  estado local); Archive sigue en el sidebar. Gates al día: `smoke` buscaba el título del estado vacío quitado en
+  UI.38.1 (rompió el pre-push); `shell-look` esperaba Dev tras recargar (ahora inicia en Chat) y mide contra la fila de
+  pestañas, alineada a 40 px con el inspector.
+  Evidencia (cerebro): `project-tabs` 40/40 y `smoke` 7/7 (`ui-gate-23732`).
+  Gate en vivo: navegador real (Playwright, `shell-look` 75/75, `dev-session-tabs` 18/18), `docs/done/evidence/UI.38.4-live.json`.
+  Ejecutado por: codex gpt-6-luna (mecanico r1) · codex gpt-6.1-sol (criterio r2) · Revisión: Opus · Spec: docs/specs/UI.38.4.md
 - [x] **CI.48 — 🔍 `codex-live` falla también en HEAD (2026-10-29).** (cerrado 2026-10-29) HEAD `79c501f0`: `turn 1 streams multiple visible
   text updates: 0 distinct non-empty samples` (`ui-gate-4953`). Con UI.37: el DOM muestra `I’ll` (apóstrofo tipográfico)
   y lo persistido `I'll`, y el turno 2 tardó 180 s (`ui-gate-3138`). El pre-push lo corre en cada cambio del chat y

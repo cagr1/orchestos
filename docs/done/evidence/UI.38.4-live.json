@@ -1,0 +1,554 @@
+[
+  {
+    "flujo": "smoke",
+    "pass": true,
+    "steps": [
+      {
+        "nombre": "home",
+        "ok": true,
+        "detalle": "Chat visible"
+      },
+      {
+        "nombre": "home-dev",
+        "ok": true,
+        "detalle": "Dev visible"
+      },
+      {
+        "nombre": "dev-view",
+        "ok": true,
+        "detalle": "Dev session tabs visible"
+      },
+      {
+        "nombre": "chat-composer",
+        "ok": true,
+        "detalle": "chat composer visible"
+      },
+      {
+        "nombre": "settings-view",
+        "ok": true,
+        "detalle": "General visible"
+      },
+      {
+        "nombre": "settings-general",
+        "ok": true,
+        "detalle": "General visible"
+      },
+      {
+        "nombre": "settings-appearance",
+        "ok": true,
+        "detalle": "Appearance visible"
+      }
+    ],
+    "notes": [],
+    "errores": [],
+    "capturas": [
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-21437/smoke/chat.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-21437/smoke/dev.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-21437/smoke/chat-returned.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-21437/smoke/settings.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-21437/smoke/settings-general.png"
+    ]
+  },
+  {
+    "flujo": "shell-look",
+    "pass": true,
+    "steps": [
+      {
+        "nombre": "chat: sidebar present",
+        "ok": true,
+        "detalle": "1 aside"
+      },
+      {
+        "nombre": "chat: sidebar rows flat",
+        "ok": true,
+        "detalle": "sin borde ni sombra"
+      },
+      {
+        "nombre": "chat: nav icons one tone",
+        "ok": true,
+        "detalle": "rgb(148, 163, 184)"
+      },
+      {
+        "nombre": "chat: sidebar divider and flat header",
+        "ok": true,
+        "detalle": "aside border-right=1 header border-bottom=0"
+      },
+      {
+        "nombre": "chat: panel lighter than chrome",
+        "ok": true,
+        "detalle": "panel=rgb(14, 19, 32) sidebar=rgb(8, 12, 20)"
+      },
+      {
+        "nombre": "chat: no palette classes in chrome",
+        "ok": true,
+        "detalle": "ninguna"
+      },
+      {
+        "nombre": "settings: sidebar present",
+        "ok": true,
+        "detalle": "1 aside"
+      },
+      {
+        "nombre": "settings: sidebar rows flat",
+        "ok": true,
+        "detalle": "sin borde ni sombra"
+      },
+      {
+        "nombre": "settings: nav icons one tone",
+        "ok": true,
+        "detalle": "rgb(148, 163, 184)"
+      },
+      {
+        "nombre": "settings: sidebar divider and flat header",
+        "ok": true,
+        "detalle": "aside border-right=0 header border-bottom=0"
+      },
+      {
+        "nombre": "settings: panel lighter than chrome",
+        "ok": true,
+        "detalle": "panel=rgb(14, 19, 32) sidebar=rgb(8, 12, 20)"
+      },
+      {
+        "nombre": "settings: no palette classes in chrome",
+        "ok": true,
+        "detalle": "ninguna"
+      },
+      {
+        "nombre": "settings palette text not stretched",
+        "ok": true,
+        "detalle": "{\"settled\":{\"input\":18,\"option\":34},\"samples\":[{\"ms\":60,\"input\":18,\"option\":34},{\"ms\":120,\"input\":18,\"option\":34},{\"ms\":200,\"input\":18,\"option\":34}]}"
+      },
+      {
+        "nombre": "settings palette opaque",
+        "ok": true,
+        "detalle": "rgb(14, 19, 32); alpha=1"
+      },
+      {
+        "nombre": "settings palette opens",
+        "ok": true,
+        "detalle": "{\"searchBox\":{\"x\":14,\"y\":102,\"width\":228,\"height\":28},\"paletteBox\":{\"x\":432,\"y\":229,\"width\":576,\"height\":542}}"
+      },
+      {
+        "nombre": "settings palette finds",
+        "ok": true,
+        "detalle": "first=Ollama Local; no results for zzzz"
+      },
+      {
+        "nombre": "settings palette closes clean",
+        "ok": true,
+        "detalle": "{\"searchBox\":{\"x\":14,\"y\":102,\"width\":228,\"height\":28},\"restoredBox\":{\"x\":14,\"y\":102,\"width\":228,\"height\":28},\"remainingDialogs\":0,\"remainingBackdrops\":0,\"sidebarNavigation\":11,\"navigationVisibility\":[true,true,true,true,true,true,true,true,true,true,true]}"
+      },
+      {
+        "nombre": "settings palette navigates",
+        "ok": true,
+        "detalle": "{\"row\":{\"x\":281,\"y\":129.8817901611328,\"width\":1134,\"height\":52,\"top\":129.8817901611328,\"right\":1415,\"bottom\":181.8817901611328,\"left\":281},\"viewport\":{\"width\":1440,\"height\":1000}}"
+      },
+      {
+        "nombre": "settings palette shortcut",
+        "ok": true,
+        "detalle": "Meta+k"
+      },
+      {
+        "nombre": "settings shortcut does not open the general command palette",
+        "ok": true,
+        "detalle": "general palette count while settings shortcut is open=0"
+      },
+      {
+        "nombre": "settings nav slides",
+        "ok": true,
+        "detalle": "one shared highlight inside General after switching from Executor"
+      },
+      {
+        "nombre": "settings health no palette",
+        "ok": true,
+        "detalle": "ninguna"
+      },
+      {
+        "nombre": "settings api no palette",
+        "ok": true,
+        "detalle": "ninguna"
+      },
+      {
+        "nombre": "api key form unfolds",
+        "ok": true,
+        "detalle": "inline password input focused; no dialog"
+      },
+      {
+        "nombre": "api key rejected and previous value restored",
+        "ok": true,
+        "detalle": "toast=No se pudo conectar con el proveedor. Verifica tu conexión.; not set=true"
+      },
+      {
+        "nombre": "api key cancel",
+        "ok": true,
+        "detalle": "Escape closes the form without setting a key"
+      },
+      {
+        "nombre": "settings model routing no palette",
+        "ok": true,
+        "detalle": "ninguna"
+      },
+      {
+        "nombre": "settings fills width",
+        "ok": true,
+        "detalle": "model routing: contenido 1136 px de 1184 px"
+      },
+      {
+        "nombre": "settings usage no palette",
+        "ok": true,
+        "detalle": "ninguna"
+      },
+      {
+        "nombre": "settings fills width",
+        "ok": true,
+        "detalle": "usage: contenido 1136 px de 1184 px"
+      },
+      {
+        "nombre": "heatmap fills width",
+        "ok": true,
+        "detalle": "{\"grid\":1102,\"inner\":1102}"
+      },
+      {
+        "nombre": "heatmap tooltip slides",
+        "ok": true,
+        "detalle": "{\"sameNode\":true,\"firstText\":\"No activity on Nov 14, 2025\",\"secondText\":\"No activity on Oct 9, 2026\",\"firstBox\":{\"x\":359.546875,\"y\":279.171875,\"width\":161.125,\"height\":25.390625},\"secondBox\":{\"x\":1237.875,\"y\":279.171875,\"width\":154.203125,\"height\":25.390625}}"
+      },
+      {
+        "nombre": "heatmap total",
+        "ok": true,
+        "detalle": "expected=0, actual=0 runs, cells=371"
+      },
+      {
+        "nombre": "heatmap reduced motion",
+        "ok": true,
+        "detalle": "cells=371, opacities=1"
+      },
+      {
+        "nombre": "settings danger zone no palette",
+        "ok": true,
+        "detalle": "ninguna"
+      },
+      {
+        "nombre": "settings language no palette",
+        "ok": true,
+        "detalle": "ninguna"
+      },
+      {
+        "nombre": "executor controls save immediately",
+        "ok": true,
+        "detalle": "{\"before\":{\"source\":\"/private/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/orchestos-ui-26-2-k365tQ/orchestos.config.yaml\",\"configFound\":true,\"roles\":{\"planner\":\"(sin asignar)\",\"executor_heavy\":\"(sin asignar)\",\"executor_light\":\"(sin asignar)\",\"default\":\"(sin asignar)\",\"qa\":null},\"roleAssignments\":{\"orchestrator\":{\"agent\":\"codex\",\"model\":\"gpt-6-luna\",\"effort\":\"medium\"},\"executor\":{\"agent\":\"codex\",\"model\":\"gpt-6-luna\",\"effort\":\"medium\"},\"reviewer\":{\"agent\":\"codex\",\"model\":\"gpt-6-luna\",\"effort\":\"medium\"},\"auxiliary\":{\"agent\":\"codex\",\"model\":\"gpt-6-luna\",\"effort\":\"medium\"}},\"taskAgentRules\":[],\"permissionMode\":\"yolo\",\"permissions\":{\"mode\":\"yolo\",\"chat\":\"read-only\",\"tasks\":\"isolated worktree · sandbox workspace-write\"},\"roleWarnings\":[\"reviewer-same-as-executor\"],\"pendingRouting\":[],\"apiMode\":\"single-shot\",\"agent\":null,\"agenticMaxIterations\":15,\"externalTimeoutMinutes\":20,\"claudeCliDetected\":true},\"after\":{\"source\":\"/private/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/orchestos-ui-26-2-k365tQ/orchestos.config.yaml\",\"configFound\":true,\"roles\":{\"planner\":\"(sin asignar)\",\"executor_heavy\":\"(sin asignar)\",\"executor_light\":\"(sin asignar)\",\"default\":\"(sin asignar)\",\"qa\":null},\"roleAssignments\":{\"orchestrator\":{\"agent\":\"codex\",\"model\":\"gpt-6-luna\",\"effort\":\"medium\"},\"executor\":{\"agent\":\"codex\",\"model\":\"gpt-6-luna\",\"effort\":\"medium\"},\"reviewer\":{\"agent\":\"codex\",\"model\":\"gpt-6-luna\",\"effort\":\"medium\"},\"auxiliary\":{\"agent\":\"codex\",\"model\":\"gpt-6-luna\",\"effort\":\"medium\"}},\"taskAgentRules\":[],\"permissionMode\":\"yolo\",\"permissions\":{\"mode\":\"yolo\",\"chat\":\"read-only\",\"tasks\":\"isolated worktree · sandbox workspace-write\"},\"roleWarnings\":[\"reviewer-same-as-executor\"],\"pendingRouting\":[],\"apiMode\":\"agentic\",\"agent\":null,\"agenticMaxIterations\":15,\"externalTimeoutMinutes\":25,\"claudeCliDetected\":true}}"
+      },
+      {
+        "nombre": "no saved banner",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "project header flat",
+        "ok": true,
+        "detalle": "{\"border\":0,\"bg\":\"rgba(0, 0, 0, 0)\"}"
+      },
+      {
+        "nombre": "project tabs flat",
+        "ok": true,
+        "detalle": "8 pestañas, 28 px"
+      },
+      {
+        "nombre": "runs stat strip",
+        "ok": true,
+        "detalle": "4 celdas; paleta: ninguna"
+      },
+      {
+        "nombre": "chat without telemetry reserves no header space",
+        "ok": true,
+        "detalle": "no header when context is unavailable"
+      },
+      {
+        "nombre": "Dev mode opens before launching a session",
+        "ok": true,
+        "detalle": "Dev session tabs visible"
+      },
+      {
+        "nombre": "composer no top line (Dev)",
+        "ok": true,
+        "detalle": "0px"
+      },
+      {
+        "nombre": "Dev: thread and composer share one body",
+        "ok": true,
+        "detalle": "{\"sameParent\":true,\"composerBg\":\"rgb(8, 12, 20)\",\"scrollBg\":\"rgb(8, 12, 20)\",\"gap\":0}"
+      },
+      {
+        "nombre": "Dev session header is removed",
+        "ok": true,
+        "detalle": "no session header in Dev"
+      },
+      {
+        "nombre": "Dev assistant Copy is below the card at its left edge",
+        "ok": true,
+        "detalle": "{\"top\":189.390625,\"left\":304,\"cardBottom\":185.390625,\"cardLeft\":304}"
+      },
+      {
+        "nombre": "Dev assistant Copy copies its response and shows Check",
+        "ok": true,
+        "detalle": "{\"clipboard\":\"UI.27.1 provider logo fixture\"}"
+      },
+      {
+        "nombre": "Dev assistant actions appear on focus without shifting the message",
+        "ok": true,
+        "detalle": "{\"focusedOpacity\":\"1\",\"restingBox\":{\"x\":304,\"y\":128,\"width\":728,\"height\":81.390625},\"focusedBox\":{\"x\":304,\"y\":128,\"width\":728,\"height\":81.390625}}"
+      },
+      {
+        "nombre": "Dev agent row retains provider logo",
+        "ok": true,
+        "detalle": "provider logo alongside agent name"
+      },
+      {
+        "nombre": "Dev gpt model uses ChatGPT asset mask without inline SVG",
+        "ok": true,
+        "detalle": "{\"model\":\"gpt-6.1-sol\",\"mask\":\"url(\\\"http://127.0.0.1:64992/app/dist/chatgpt.svg\\\")\",\"inlineSvg\":0,\"visible\":true}"
+      },
+      {
+        "nombre": "inspector line aligned",
+        "ok": true,
+        "detalle": "{\"inspectorBottom\":84,\"devSessionTabsBottom\":84}"
+      },
+      {
+        "nombre": "left aside drag captures pointer and resizes",
+        "ok": true,
+        "detalle": "{\"changed\":320,\"captured\":true,\"noSelection\":true}"
+      },
+      {
+        "nombre": "left aside width survives reload",
+        "ok": true,
+        "detalle": "320 -> 320"
+      },
+      {
+        "nombre": "left separator keyboard changes 16px",
+        "ok": true,
+        "detalle": "320 -> 336"
+      },
+      {
+        "nombre": "left separator respects bounds",
+        "ok": true,
+        "detalle": "{\"upper\":420,\"lower\":200,\"effectiveMax\":420}"
+      },
+      {
+        "nombre": "left separator double click resets",
+        "ok": true,
+        "detalle": "256"
+      },
+      {
+        "nombre": "right aside drag captures pointer and resizes",
+        "ok": true,
+        "detalle": "{\"changed\":464,\"captured\":true,\"noSelection\":true}"
+      },
+      {
+        "nombre": "right aside width survives reload",
+        "ok": true,
+        "detalle": "464 -> 464"
+      },
+      {
+        "nombre": "right separator keyboard changes 16px",
+        "ok": true,
+        "detalle": "464 -> 480"
+      },
+      {
+        "nombre": "right separator respects bounds",
+        "ok": true,
+        "detalle": "{\"upper\":640,\"lower\":280,\"effectiveMax\":640}"
+      },
+      {
+        "nombre": "right separator double click resets",
+        "ok": true,
+        "detalle": "384"
+      },
+      {
+        "nombre": "resizing preserves 360px central thread",
+        "ok": true,
+        "detalle": "380"
+      },
+      {
+        "nombre": "collapsed navigation has no resize handle",
+        "ok": true,
+        "detalle": "left separator unmounted"
+      },
+      {
+        "nombre": "Dev sidebar strips only matching agent prefix",
+        "ok": true,
+        "detalle": "Agent: Codex on orchestos-ui-26-2-k365tQ"
+      },
+      {
+        "nombre": "composer no top line (Chat)",
+        "ok": true,
+        "detalle": "0px"
+      },
+      {
+        "nombre": "Chat: thread and composer share one body",
+        "ok": true,
+        "detalle": "{\"sameParent\":true,\"composerBg\":\"rgb(14, 19, 32)\",\"scrollBg\":\"rgb(14, 19, 32)\",\"gap\":0}"
+      },
+      {
+        "nombre": "Chat rows show agent logos",
+        "ok": true,
+        "detalle": "[{\"messageSquare\":0,\"logo\":true}]"
+      },
+      {
+        "nombre": "Chat permissions strip removed",
+        "ok": true,
+        "detalle": "no permissions text or strip below the thread"
+      },
+      {
+        "nombre": "OpenRouter option uses generic logo without ChatGPT asset",
+        "ok": true,
+        "detalle": "{\"generic\":true,\"chatgpt\":false}"
+      },
+      {
+        "nombre": "Chat sidebar removes Claude and Codex prefixes",
+        "ok": true,
+        "detalle": "[\"UI27 title fixture\",\"Chat with Codex\",\"Agent: Codex on orchestos-ui-26-2-k365tQ\"]"
+      },
+      {
+        "nombre": "chat search uses displayed title",
+        "ok": true,
+        "detalle": "legacy Claude title found by normalized text"
+      },
+      {
+        "nombre": "context popover shows only compact window and percent",
+        "ok": true,
+        "detalle": "{\"context\":{\"used\":14661,\"window\":1000000,\"pct\":1.4661,\"model\":\"gpt-6-luna\",\"source\":\"measured\",\"engine\":\"codex\"},\"tooltipText\":\"15K / 1M\\n1%\"}"
+      },
+      {
+        "nombre": "context ring lives in composer next to send, absent from header",
+        "ok": true,
+        "detalle": "{\"providerLogos\":0,\"headerRings\":0,\"composerRings\":1,\"pageRings\":1,\"ringSharesSendParent\":true,\"tooltipAboveRing\":true}"
+      },
+      {
+        "nombre": "command palette shortcut opens and Escape closes in Chat",
+        "ok": true,
+        "detalle": "Meta+k; opened=true; closed=true"
+      }
+    ],
+    "notes": [],
+    "errores": [],
+    "capturas": [
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-21437/shell-look/shell-chat.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-21437/shell-look/shell-settings.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-21437/shell-look/settings-palette.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-21437/shell-look/settings-highlight.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-21437/shell-look/api-keys.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-21437/shell-look/heatmap-usage.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-21437/shell-look/heatmap-reduced-motion.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-21437/shell-look/executor-instant-save.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-21437/shell-look/shell-project.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-21437/shell-look/dev-assistant-copy.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-21437/shell-look/chat-unified-body.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-21437/shell-look/chat-context-window.png"
+    ]
+  },
+  {
+    "flujo": "dev-session-tabs",
+    "pass": true,
+    "steps": [
+      {
+        "nombre": "reload starts in Chat",
+        "ok": true,
+        "detalle": "Dev tabs absent after reload"
+      },
+      {
+        "nombre": "entering Dev restores last session without saved tabs",
+        "ok": true,
+        "detalle": "remembered Alpha active, no New session"
+      },
+      {
+        "nombre": "sidebar opens ordered sessions and existing tabs do not duplicate",
+        "ok": true,
+        "detalle": "Alpha, Beta"
+      },
+      {
+        "nombre": "file opens italic preview in the shared row and occupies full center",
+        "ok": true,
+        "detalle": "session remains a tab; file only content at full width"
+      },
+      {
+        "nombre": "session tab restores full center chat",
+        "ok": true,
+        "detalle": "file viewer absent, composer visible"
+      },
+      {
+        "nombre": "opening another file replaces only preview with numbered colored source",
+        "ok": true,
+        "detalle": "two sessions plus context.json preview; code colored"
+      },
+      {
+        "nombre": "tree double click pins file",
+        "ok": true,
+        "detalle": "fixed code tab"
+      },
+      {
+        "nombre": "Markdown Source keeps numbered literal source",
+        "ok": true,
+        "detalle": "literal Markdown source"
+      },
+      {
+        "nombre": "reload starts in Chat",
+        "ok": true,
+        "detalle": "Dev tabs absent after reload"
+      },
+      {
+        "nombre": "reload restores mixed tab order and active fixed file",
+        "ok": true,
+        "detalle": "Alpha, Beta, context.json, README.md active"
+      },
+      {
+        "nombre": "closing active file selects its left neighbour",
+        "ok": true,
+        "detalle": "context.json active"
+      },
+      {
+        "nombre": "closing session selects right neighbour without deleting session",
+        "ok": true,
+        "detalle": "Beta active; Alpha remains in API"
+      },
+      {
+        "nombre": "plus appends centered New session using configured orchestrator model and effort",
+        "ok": true,
+        "detalle": "What should we work on in orchestos-dev-tabs-evz6li?\nGPT-6-Luna · medium"
+      },
+      {
+        "nombre": "reload starts in Chat",
+        "ok": true,
+        "detalle": "Dev tabs absent after reload"
+      },
+      {
+        "nombre": "reload restores active New session alongside sessions and fixed files",
+        "ok": true,
+        "detalle": "Beta, context.json, New session"
+      },
+      {
+        "nombre": "reload starts in Chat",
+        "ok": true,
+        "detalle": "Dev tabs absent after reload"
+      },
+      {
+        "nombre": "restoration removes dead session ids",
+        "ok": true,
+        "detalle": "dead id removed"
+      },
+      {
+        "nombre": "0 console errors",
+        "ok": true,
+        "detalle": "none"
+      }
+    ],
+    "notes": [],
+    "errores": [],
+    "capturas": [
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-21437/dev-session-tabs/session-tabs.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-21437/dev-session-tabs/file-markdown-preview.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-21437/dev-session-tabs/file-highlighted-code.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-21437/dev-session-tabs/file-markdown-source.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-21437/dev-session-tabs/new-session.png"
+    ]
+  }
+]

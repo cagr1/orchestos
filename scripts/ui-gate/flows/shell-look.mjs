@@ -668,6 +668,11 @@ export default async function shellLook({
   )
 
   await page.getByRole('button', { name: 'Dev', exact: true }).click()
+  await step(
+    'Dev mode opens before launching a session',
+    await visible(page.locator('[data-dev-session-tabs]')),
+    'Dev session tabs visible',
+  )
   await page.getByRole('button', { name: basename(projectRoot), exact: true }).click()
   await page.getByRole('button', { name: 'Launch new agent', exact: true }).click()
   const launchDialog = page.getByRole('dialog')
@@ -702,6 +707,7 @@ export default async function shellLook({
     { stdio: 'pipe' },
   )
   await page.reload({ waitUntil: 'domcontentloaded' })
+  await page.getByRole('button', { name: 'Dev', exact: true }).click()
   await page.getByRole('button', { name: basename(projectRoot), exact: true }).click()
   await page.locator('[data-composer-region]').waitFor({ state: 'visible' })
   const devComposerBorder = await page
@@ -739,6 +745,11 @@ export default async function shellLook({
     )
   }
   await sharedBody('Dev')
+  await step(
+    'Dev session header is removed',
+    (await page.locator('[data-dev-header]').count()) === 0,
+    'no session header in Dev',
+  )
   // UI.29 — assistant actions sit below the card and keep their space on hover/focus.
   const assistantMessage = page.locator('[data-dev-assistant-message]').filter({
     hasText: 'UI.27.1 provider logo fixture',
@@ -829,17 +840,17 @@ export default async function shellLook({
   if (!(await visible(page.locator('[data-inspector-tabs]')))) await toggleInspector.click()
   const inspectorAlignment = await page.evaluate(() => {
     const inspector = document.querySelector('[data-inspector-tabs]')
-    const devHeader = document.querySelector('[data-dev-header]')
-    if (!inspector || !devHeader) return null
+    const devSessionTabs = document.querySelector('[data-dev-session-tabs]')
+    if (!inspector || !devSessionTabs) return null
     return {
       inspectorBottom: inspector.getBoundingClientRect().bottom,
-      devHeaderBottom: devHeader.getBoundingClientRect().bottom,
+      devSessionTabsBottom: devSessionTabs.getBoundingClientRect().bottom,
     }
   })
   await step(
     'inspector line aligned',
     inspectorAlignment !== null &&
-      Math.abs(inspectorAlignment.inspectorBottom - inspectorAlignment.devHeaderBottom) <= 1,
+      Math.abs(inspectorAlignment.inspectorBottom - inspectorAlignment.devSessionTabsBottom) <= 1,
     JSON.stringify(inspectorAlignment),
   )
   // UI.27.3 — the same separator supports both sides, persistence, limits and keyboard input.
@@ -875,7 +886,8 @@ export default async function shellLook({
       JSON.stringify({ changed, ...capture }),
     )
     await page.reload({ waitUntil: 'domcontentloaded' })
-    await page.locator('[data-dev-header]').waitFor({ state: 'visible' })
+    await page.getByRole('button', { name: 'Dev', exact: true }).click()
+    await page.locator('[data-dev-session-tabs]').waitFor({ state: 'visible' })
     const restored = await asideWidth(side)
     await step(
       `${side} aside width survives reload`,
@@ -910,7 +922,7 @@ export default async function shellLook({
   await resize('left', 164)
   await resize('right', -1000)
   const centerWidth = await page
-    .locator('[data-dev-header]')
+    .locator('[data-dev-session-tabs]')
     .evaluate((el) => el.getBoundingClientRect().width)
   await step('resizing preserves 360px central thread', centerWidth >= 359, String(centerWidth))
   for (const side of ['left', 'right'])
@@ -1031,7 +1043,8 @@ export default async function shellLook({
     headers: configHeaders,
   })
   await page.reload({ waitUntil: 'domcontentloaded' })
-  await page.locator('[data-dev-header]').waitFor({ state: 'visible' })
+  await page.getByRole('button', { name: 'Dev', exact: true }).click()
+  await page.locator('[data-dev-session-tabs]').waitFor({ state: 'visible' })
   await page.getByRole('button', { name: 'Chat', exact: true }).click()
   await page.locator('aside [role="button"]').filter({ hasText: 'Chat with Codex' }).click()
   const sidebarTitles = await page
