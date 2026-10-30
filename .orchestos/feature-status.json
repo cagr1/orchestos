@@ -481,6 +481,24 @@
       "closedDate": null
     },
     {
+      "id": "UI.39",
+      "sprint": "Fase 2 — Producto mínimo para entrega",
+      "block": "Abiertos — fiabilidad de los gates y documentación",
+      "delegation": "⚡",
+      "title": "El dashboard pide `/favicon.ico` y recibe 404",
+      "status": "open",
+      "closedDate": null
+    },
+    {
+      "id": "UI.40",
+      "sprint": "Fase 2 — Producto mínimo para entrega",
+      "block": "Abiertos — fiabilidad de los gates y documentación",
+      "delegation": "⚡",
+      "title": "Health dice \"All prerequisites met\" con 4/5 checks y marca como fallo la falta de `OPENROUTER_API_KEY`",
+      "status": "open",
+      "closedDate": null
+    },
+    {
       "id": "CI.23",
       "sprint": "Fase 2 — Producto mínimo para entrega",
       "block": "Abiertos — fiabilidad de los gates y documentación",
