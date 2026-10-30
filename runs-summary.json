@@ -1,7 +1,22 @@
 {
-  "exported_at": "2026-10-30T03:29:27.293Z",
+  "exported_at": "2026-11-02T15:00:23.589Z",
   "total_runs": 20,
   "runs": [
+    {
+      "id": "b0237769-9d1a-4d86-8e47-1503984ea671",
+      "task_class": "chat",
+      "model": "claude-opus-5-5",
+      "provider": "claude",
+      "status": "done",
+      "qa_verdict": null,
+      "qa_reason": null,
+      "files_blocked": [],
+      "checks_failed": 0,
+      "usd_cost": 0.3937506,
+      "elapsed_ms": 26915,
+      "tokens": 2270,
+      "created_at": "2026-11-02T14:51:19.539Z"
+    },
     {
       "id": "2819a601-a84d-401d-919b-3da9d66dabc0",
       "task_class": "gate:ui.38.4:doc",
@@ -286,21 +301,6 @@
       "elapsed_ms": 23637,
       "tokens": 6920,
       "created_at": "2026-10-26T23:52:55.593Z"
-    },
-    {
-      "id": "39b0ce90-628e-4175-a151-fc523a753607",
-      "task_class": "gate:set.3:doc",
-      "model": "default",
-      "provider": "claude-plain",
-      "status": "done",
-      "qa_verdict": "skipped",
-      "qa_reason": "Sin revisión LLM y sin checks: nada verificó esta tarea",
-      "files_blocked": [],
-      "checks_failed": 0,
-      "usd_cost": 0,
-      "elapsed_ms": 8116,
-      "tokens": 0,
-      "created_at": "2026-10-26T23:52:18.757Z"
     }
   ],
   "stats": {
@@ -308,6 +308,6 @@
     "blocked": 0,
     "done": 16,
     "qa_failed": 0,
-    "total_cost_usd": "1.0231"
+    "total_cost_usd": "1.4168"
   }
 }

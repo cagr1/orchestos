@@ -200,3 +200,10 @@ Ningún archivo se borra. Todo es reversible con un `mv`.
 - No toca los dos `CLAUDE.md`.
 - No borra archivos.
 - No baja el umbral del guard.
+
+## Poda 2026-11-02 (startup-guard: arranque 9175 > 9000 tokens)
+Índice `MEMORY.md` de 9260 a 6811 bytes; el guard queda sin hallazgos. Pasadas a `archive/` por duplicar
+`~/.claude/CLAUDE.md` (lotes, roles, cierre, sesión nueva) o fundirse con otra: `feedback-flujo-por-lote`,
+`feedback-flujo-opus-luna`, `feedback-clear-vs-tab-nuevo`, `feedback-marcar-plan-al-cerrar`,
+`feedback-subir-al-repo-significa-push`, `feedback-no-reinventar-ui-usar-libreria` (dentro de "prototipo ES el
+frontend"). El resto de líneas, ganchos más cortos sin perder la regla.
