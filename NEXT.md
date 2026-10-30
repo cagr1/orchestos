@@ -1,4 +1,4 @@
-# NEXT — handoff 2026-10-29 (UI.37 y UI.38 cerrados, sin empujar; CI.48 aparcado)
+# NEXT — handoff 2026-10-29 (UI.37, UI.38 y CI.48 cerrados y empujados)
 
 Un solo presente: orden y trampas vivas. Lo cerrado vive en `docs/done/bloque-*.md`, `PLAN.md` y git (regla `AGENTS.md`
 § Reglas generales, 2026-10-19: `NEXT.md` se toca solo al cerrar o cortar un lote). Arranque:
@@ -25,16 +25,19 @@ Un solo presente: orden y trampas vivas. Lo cerrado vive en `docs/done/bloque-*.
   - UI.34 `67c2f904`: las corridas propias de Claude guardan su `rate_limit_event` como cuota.
   - UI.35 `b60b0317` + `ac5239ee`: la cuota de Claude sale del endpoint de `/usage` (`api/oauth/usage`, 0 tokens)
     con la sesión del llavero (sin guardarla ni refrescarla), cada 60 s como mucho; los ui-gates lo apagan.
-- 2026-10-29: UI.36 `32cc68d6` (empujado, CI verde). Sin empujar (4 commits): UI.37 `a9eabb2e` anillo en el composer
-  junto a enviar (+ UI.37.1: `shell-look` verde otra vez, estaba roto desde SET.4); UI.38.1 `be9c972f` sesiones en
-  pestañas en Dev; UI.38.2 `eeae3b4e` panel de archivo con pestañas y colores (highlight.js, +3,2 % main.js).
+- 2026-10-29 (empujado hasta `5823c084`, pre-push verde): UI.36 carpetas de Files; UI.37 anillo de contexto en el
+  composer junto a enviar (+ UI.37.1 `shell-look` verde de nuevo); UI.38 Dev como MonoCode: una fila de pestañas que
+  mezcla sesiones y archivos, el archivo a todo el centro (vista previa en cursiva, doble clic fija; Markdown
+  Preview/Source; código con highlight.js), "+" = pestaña New session con el modelo del rol, entrar a Dev abre la
+  última sesión, la app inicia siempre en Chat (UI.38.1 lo había roto: tercera vez), sin la cabecera de sesión
+  (UI.38.4; su Stop era falso). CI.48: `codex-live` mide ráfaga e hilo; sesión con historial conserva su modelo, sin
+  historial usa el del rol.
 
 ## Orden
-0. **Empujar UI.37/UI.38 exige CI.48 primero**: el pre-push corre `codex-live` en cambios del chat y ese gate falla
-   también en HEAD. Carlos aparcó CI.48 (2026-10-29: primero la interfaz). Trabajo de Sol en `git stash`
-   "CI.48 Sol r1 aparcado…"; falta: el modelo de la última sesión manda (decisión de Carlos) y `catch` de `getConfig`.
-   Detalle en `PLAN.md` CI.48. Anotado de UI.38.2: en ventanas angostas el composer del chat se aprieta; el chat sigue
-   sin colorear código (se podría con el mismo highlight.js).
+0. **Anotado de UI.38, sin ítem**: en ventanas angostas el composer se aprieta; el chat no colorea código (se podría
+   con el mismo highlight.js); Dev no tiene Stop real (el viejo era falso); `codex-live` falló 1 de 3 corridas en "turn
+   1 user message appears before completion" (2 s) — el pre-push reintenta. Para mirar MonoCode: computer use
+   (`com.monocode.desktop`); en la sesión anterior quedó una pestaña "New session" vacía abierta allí.
 1. **Mostrar Settings a Carlos** (lote SET completo): Providers, API keys, Health, CLIs propios en Providers. Probar
    con `orchestos-set-ref` (`.claude/launch.json`, puerto 4343). Sin verificar en vivo: el punto ámbar de Health (solo
    código) y la causa de "Loading project data…" (no se reprodujo).
