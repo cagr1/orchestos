@@ -73,7 +73,7 @@ Comprueba, en este orden, y **acumula** los hallazgos:
   es un hallazgo.
 - **Peso del arranque:** suma `wc -c / 4` de `~/.claude/CLAUDE.md`, `CLAUDE.md` del repo y
   `<memoria del proyecto>/MEMORY.md` (ruta:
-  `~/.claude/projects/-Users-carlosgallardo-Documents-projects-orchestos/memory/MEMORY.md`).
+  `~/.claude/projects/-Users-carlosgallardo-Projects-projects-orchestos/memory/MEMORY.md`).
   Si el total supera **9,000** tokens estimados, hallazgo con el desglose por archivo.
 
 **Salida — regla dura, misma lógica que `context-budget.js`:** si no hay ningún hallazgo,
@@ -103,7 +103,7 @@ tocar el `~/.claude.json` real:
 
 `PLAN.md`, `src/**`, `scripts/**`, `.claude/hooks/context-budget.js`,
 `.claude/hooks/session-resume.js`, `AGENTS.md`, `CLAUDE.md`, cualquier archivo de
-`~/Documents/MemoriesMD`, y `~/.claude/settings.json`. No borrar ni reordenar las claves
+`~/Projects/MemoriesMD`, y `~/.claude/settings.json`. No borrar ni reordenar las claves
 ya existentes de `.claude/settings.json`.
 
 ## Gates de cierre
