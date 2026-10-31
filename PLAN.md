@@ -619,9 +619,15 @@ Regla: nada se reintenta, cierra ni muestra sin evidencia medida que el usuario 
   con la inyección existente `readCliModelCatalogsCached({ read: async () => [] })`.
   Evidencia (cerebro): `chat-sessions.test.ts` 26/26 (antes 21/5); `test:coverage` 2163 pass / 0 fail.
   Ejecutado por: codex gpt-6-luna (mecanico) · Diagnóstico: codex gpt-6.1-sol (analizar) · Spec: docs/specs/CI.49.md
-- [ ] **CI.50 — 🔍 El chat espera sin límite a que un CLI liste sus modelos.** Hermano de CI.49 en el producto:
+- [x] **CI.50 — 🔍 El chat espera sin límite a que un CLI liste sus modelos.** (cerrado 2026-10-31) Hermano de CI.49 en el producto:
   `defaultRunner` (`src/dashboard/chat-cli-models.ts:33`) no tiene timeout; un CLI lento (opencode ~6 s) retrasa cada
   primer envío del chat. Timeout corto, matar el proceso y seguir sin ese catálogo.
+  Arreglo: `defaultRunner` con límite `CLI_CATALOG_TIMEOUT_MS` (10 s); al vencer mata el proceso y rechaza; el catálogo
+  de ese CLI queda con `error` y no se cachea (se reintenta). Los demás CLIs no esperan al lento.
+  Evidencia (cerebro): `chat-cli-models.test.ts` 19/19 (timeout y caso normal); 4343 reiniciado:
+  `/api/chat/cli-models` en 1,29 s con claude 13, codex 10, opencode 372, sin `error`.
+  Gate en vivo: navegador real (Playwright, `smoke` 7/7), `docs/done/evidence/CI.50-live.json`.
+  Ejecutado por: codex gpt-6-luna (mecanico) · Spec: docs/specs/CI.50.md
 - [ ] **UI.41 — 🧠 El chat colorea los bloques de código como Dev.** Anotado en UI.38.2: Dev ya colorea con
   `highlight.js` (`DevFilePanel.tsx:1`) y el hilo del chat (`ThreadMarkdown.tsx`, Streamdown 2.7) muestra el código
   plano. Mismo resaltador y lenguajes que Dev, conservando cabecera y botón de copiar de Streamdown y el streaming.

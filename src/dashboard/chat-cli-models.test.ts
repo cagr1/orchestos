@@ -4,6 +4,7 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import {
   formatClaudeModelIds,
+  defaultRunner,
   parseClaudeHelp,
   parseClaudeModelCatalog,
   parseCodexModelsCache,
@@ -16,6 +17,20 @@ import {
 
 describe('UI.14 round 5 CLI model catalogs', () => {
   beforeEach(() => resetCliModelCatalogCache())
+
+  test('defaultRunner kills a CLI that exceeds its timeout', async () => {
+    const startedAt = Date.now()
+    await expect(
+      defaultRunner(process.execPath, ['-e', 'setTimeout(() => {}, 5000)'], 200),
+    ).rejects.toThrow('timed out')
+    expect(Date.now() - startedAt).toBeLessThan(2000)
+  })
+
+  test('defaultRunner returns output and exit code for a successful CLI', async () => {
+    await expect(
+      defaultRunner(process.execPath, ['-e', 'console.log("ok")'], 5000),
+    ).resolves.toEqual({ stdout: 'ok\n', exitCode: 0 })
+  })
 
   test('shares one in-flight read between simultaneous callers', async () => {
     let resolveRead!: (catalogs: Awaited<ReturnType<typeof readCliModelCatalogs>>) => void

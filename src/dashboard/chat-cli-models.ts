@@ -27,19 +27,37 @@ export interface CliModelCatalog {
 type CommandRunner = (
   command: string,
   args: string[],
+  timeoutMs?: number,
 ) => Promise<{ stdout: string; exitCode: number }>
 
-export const defaultRunner: CommandRunner = async (command, args) => {
+export const CLI_CATALOG_TIMEOUT_MS = 10_000
+
+export const defaultRunner: CommandRunner = async (
+  command,
+  args,
+  timeoutMs = CLI_CATALOG_TIMEOUT_MS,
+) => {
   const process = Bun.spawn([command, ...args], {
     env: safeChildEnv(),
     stdout: 'pipe',
     stderr: 'ignore',
   })
-  const [stdout, exitCode] = await Promise.all([
-    new Response(process.stdout).text(),
-    process.exited,
-  ])
-  return { stdout, exitCode }
+  let timer: ReturnType<typeof setTimeout> | undefined
+  try {
+    const result = await Promise.race([
+      Promise.all([new Response(process.stdout).text(), process.exited]),
+      new Promise<never>((_, reject) => {
+        timer = setTimeout(() => {
+          process.kill()
+          reject(new Error(`${command} ${args.join(' ')} timed out after ${timeoutMs / 1000} s`))
+        }, timeoutMs)
+      }),
+    ])
+    const [stdout, exitCode] = result
+    return { stdout, exitCode }
+  } finally {
+    if (timer) clearTimeout(timer)
+  }
 }
 
 export function parseCodexModelsCache(raw: string): CliModelOption[] {

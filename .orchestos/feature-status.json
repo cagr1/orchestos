@@ -513,8 +513,8 @@
       "block": "Abiertos — fiabilidad de los gates y documentación",
       "delegation": "🔍",
       "title": "El chat espera sin límite a que un CLI liste sus modelos",
-      "status": "open",
-      "closedDate": null
+      "status": "done",
+      "closedDate": "2026-10-31"
     },
     {
       "id": "UI.41",
