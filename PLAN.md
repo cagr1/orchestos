@@ -605,9 +605,13 @@ Regla: nada se reintenta, cierra ni muestra sin evidencia medida que el usuario 
   Evidencia (cerebro): 4343 con Playwright: `link[rel=icon]` presente, 0 errores de consola.
   Gate en vivo: navegador real (Playwright, `smoke` 7/7), `docs/done/evidence/UI.39-live.json`.
   Ejecutado por: codex gpt-6-luna (mecanico) · Spec: docs/specs/UI.39.md
-- [ ] **UI.40 — ⚡ Health dice "All prerequisites met" con 4/5 checks y marca como fallo la falta de `OPENROUTER_API_KEY`.**
+- [x] **UI.40 — ⚡ Health dice "All prerequisites met" con 4/5 checks y marca como fallo la falta de `OPENROUTER_API_KEY`.** (cerrado 2026-10-31)
   Visto 2026-10-30 en vivo (4343). Decisión (memoria "CLI antes que API"): una API key no es requisito cuando se trabaja
   con CLIs; `openrouter-key` queda opcional como `anthropic-key` (`src/dashboard/handlers/setup.ts:93` y `:220`).
+  Evidencia (cerebro): 4343 reiniciado, Health dice "5/5 system checks passing", captura `UI.40-health.png`;
+  `setup-api-key.test.ts` 9/9.
+  Gate en vivo: navegador real (Playwright, `smoke` 7/7), `docs/done/evidence/UI.40-live.json`.
+  Ejecutado por: codex gpt-6-luna (mecanico) · Spec: docs/specs/UI.40.md
 - [x] **CI.49 — 🔍 5 tests de `chat-sessions.test.ts` agotan 5 s esperando al `opencode` real.** (cerrado 2026-10-30) El pre-push
   rechazó el push: `handleApiChat → readCliModelCatalogsCached` corre `opencode models --verbose` (~6 s hoy); el filtro
   `NO_CLI_PATH` (`chat-sessions.test.ts:14`) no basta porque la detección suma el PATH del login shell

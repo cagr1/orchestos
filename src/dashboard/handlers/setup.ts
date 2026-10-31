@@ -93,15 +93,15 @@ function handleApiSetup(root: string): Response {
   const openRouter = env.OPENROUTER_API_KEY || process.env.OPENROUTER_API_KEY || ''
   items.push({
     id: 'openrouter-key',
-    label: openRouter ? 'OPENROUTER_API_KEY configured' : 'OPENROUTER_API_KEY missing',
-    ok: !!openRouter,
+    label: openRouter ? 'OPENROUTER_API_KEY configured' : 'OPENROUTER_API_KEY optional',
+    ok: true,
     critical: false,
     kind: 'credential',
     hint: openRouter
       ? 'The primary LLM gateway is ready.'
-      : 'Add an OpenRouter key to start using the agent.',
-    action: openRouter ? undefined : 'open-wizard',
-    actionLabel: openRouter ? undefined : 'Configure now',
+      : 'Optional. Only the API executor needs it; CLI providers work without it.',
+    action: openRouter ? undefined : 'save-settings',
+    actionLabel: openRouter ? undefined : 'Add optional key',
   })
 
   const anthropic = env.ANTHROPIC_API_KEY || process.env.ANTHROPIC_API_KEY || ''
@@ -219,11 +219,11 @@ function handleApiHealth(root: string): Response {
     const openRouter = env.OPENROUTER_API_KEY || process.env.OPENROUTER_API_KEY || ''
     items.push({
       id: 'openrouter-key',
-      label: openRouter ? 'OPENROUTER_API_KEY configured' : 'OPENROUTER_API_KEY missing',
-      ok: !!openRouter,
+      label: openRouter ? 'OPENROUTER_API_KEY configured' : 'OPENROUTER_API_KEY optional',
+      ok: true,
       critical: false,
       kind: 'credential',
-      hint: openRouter ? 'OK' : 'Add an API key in Settings.',
+      hint: openRouter ? 'OK' : 'Optional.',
     })
     const hasTasks = existsSync(join(root, 'tasks.yaml'))
     items.push({

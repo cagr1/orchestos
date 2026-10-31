@@ -495,8 +495,8 @@
       "block": "Abiertos — fiabilidad de los gates y documentación",
       "delegation": "⚡",
       "title": "Health dice \"All prerequisites met\" con 4/5 checks y marca como fallo la falta de `OPENROUTER_API_KEY`",
-      "status": "open",
-      "closedDate": null
+      "status": "done",
+      "closedDate": "2026-10-31"
     },
     {
       "id": "CI.49",
