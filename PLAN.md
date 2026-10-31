@@ -622,6 +622,10 @@ Regla: nada se reintenta, cierra ni muestra sin evidencia medida que el usuario 
 - [ ] **CI.50 — 🔍 El chat espera sin límite a que un CLI liste sus modelos.** Hermano de CI.49 en el producto:
   `defaultRunner` (`src/dashboard/chat-cli-models.ts:33`) no tiene timeout; un CLI lento (opencode ~6 s) retrasa cada
   primer envío del chat. Timeout corto, matar el proceso y seguir sin ese catálogo.
+- [ ] **UI.41 — 🧠 El chat colorea los bloques de código como Dev.** Anotado en UI.38.2: Dev ya colorea con
+  `highlight.js` (`DevFilePanel.tsx:1`) y el hilo del chat (`ThreadMarkdown.tsx`, Streamdown 2.7) muestra el código
+  plano. Mismo resaltador y lenguajes que Dev, conservando cabecera y botón de copiar de Streamdown y el streaming.
+  Sin dependencia pesada nueva (memoria "peso de la UI aceptado": medir `main.js` antes y después).
 - [x] **CI.23 — 🔍 `tasks`: la tarea relanzada no deja su commit `chore(tasks)` (intermitente en batería).** (cerrado 2026-10-23) Visto 2 de
   6 corridas del set de UI.26.4 (2026-10-14), nunca con `tasks` solo: tras relanzar `gate-failed-task` y llegar a
   `done`, a los 15 s de `waitForTasksYamlCommit` el último commit es el del trabajo (`orchestos(gate-failed-task): …`)

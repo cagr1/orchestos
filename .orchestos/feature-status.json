@@ -517,6 +517,15 @@
       "closedDate": null
     },
     {
+      "id": "UI.41",
+      "sprint": "Fase 2 — Producto mínimo para entrega",
+      "block": "Abiertos — fiabilidad de los gates y documentación",
+      "delegation": "🧠",
+      "title": "El chat colorea los bloques de código como Dev",
+      "status": "open",
+      "closedDate": null
+    },
+    {
       "id": "CI.23",
       "sprint": "Fase 2 — Producto mínimo para entrega",
       "block": "Abiertos — fiabilidad de los gates y documentación",
