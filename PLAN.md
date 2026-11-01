@@ -639,10 +639,14 @@ Regla: nada se reintenta, cierra ni muestra sin evidencia medida que el usuario 
   (keyword/string/número/comentario coloreados). Visto: `hljs-built_in` sin color también en Dev → UI.43.
   Gate en vivo: navegador real (Playwright, flujo de Sol 14/14: copia, streaming y colores iguales a Dev), `docs/done/evidence/UI.41-live.json`.
   Ejecutado por: codex gpt-6.1-sol (criterio) · Revisión: Opus · Spec: docs/specs/UI.41.md
-- [ ] **UI.42 — ⚡ El modo de permisos del chat parpadea a vacío al re-dispararse el efecto de config.** Anotado en
+- [x] **UI.42 — ⚡ El modo de permisos del chat parpadea a vacío al re-dispararse el efecto de config.** (cerrado 2026-11-01) Anotado en
   CI.41: `OrchestChatView.tsx:110` pone `permissions` en `null` cada vez que cambia `projectExists`, aunque el proyecto
   sea el mismo; `data-permission-mode` (`:555`) queda vacío hasta que vuelve `getConfig` y un gate que lo lee puede
   ver el hueco. Limpiar solo al cambiar de proyecto.
+  Arreglo: un `useRef` con el último `projectId`; `permissions` y `orchestrator` se limpian solo si cambió.
+  Evidencia (cerebro): diff leído; `tsc` limpio.
+  Gate en vivo: navegador real (Playwright, `chat-permissions` 9/9), `docs/done/evidence/UI.42-live.json`.
+  Ejecutado por: codex gpt-6-luna (mecanico) · Spec: docs/specs/UI.42.md
 - [ ] **UI.43 — ⚡ `hljs-built_in` (p. ej. `number`) sale sin color en Dev y en el chat.** Visto en UI.41: en
   `TOKEN_CLASSES` (`src/dashboard/app/src/lib/highlight.ts`) la variante `[&_.hljs-built_in]` lleva `_`, que Tailwind
   convierte en espacio; la regla no aplica (color computado = texto normal). Escapar el guion bajo.

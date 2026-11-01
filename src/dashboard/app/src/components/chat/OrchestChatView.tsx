@@ -100,14 +100,18 @@ export const OrchestChatView: React.FC<OrchestChatViewProps> = ({
   const [permissions, setPermissions] = useState<NonNullable<ConfigResponse['permissions']> | null>(
     null,
   )
+  const lastProjectId = useRef(thread?.projectId)
   const [liveTimeline, setLiveTimeline] = useState<TimelineResponse | null>(null)
   const [composerModel, setComposerModel] = useState('')
 
   useEffect(() => {
     let disposed = false
     const projectId = thread?.projectId
-    setOrchestrator(undefined)
-    setPermissions(null)
+    if (lastProjectId.current !== projectId) {
+      lastProjectId.current = projectId
+      setOrchestrator(undefined)
+      setPermissions(null)
+    }
     if (projectId && !projectExists) {
       setOrchestrator(null)
       return

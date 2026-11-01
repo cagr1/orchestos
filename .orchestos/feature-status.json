@@ -531,8 +531,8 @@
       "block": "Abiertos — fiabilidad de los gates y documentación",
       "delegation": "⚡",
       "title": "El modo de permisos del chat parpadea a vacío al re-dispararse el efecto de config",
-      "status": "open",
-      "closedDate": null
+      "status": "done",
+      "closedDate": "2026-11-01"
     },
     {
       "id": "UI.43",
