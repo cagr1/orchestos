@@ -628,14 +628,24 @@ Regla: nada se reintenta, cierra ni muestra sin evidencia medida que el usuario 
   `/api/chat/cli-models` en 1,29 s con claude 13, codex 10, opencode 372, sin `error`.
   Gate en vivo: navegador real (Playwright, `smoke` 7/7), `docs/done/evidence/CI.50-live.json`.
   Ejecutado por: codex gpt-6-luna (mecanico) · Spec: docs/specs/CI.50.md
-- [ ] **UI.41 — 🧠 El chat colorea los bloques de código como Dev.** Anotado en UI.38.2: Dev ya colorea con
+- [x] **UI.41 — 🧠 El chat colorea los bloques de código como Dev.** (cerrado 2026-11-01) Anotado en UI.38.2: Dev ya colorea con
   `highlight.js` (`DevFilePanel.tsx:1`) y el hilo del chat (`ThreadMarkdown.tsx`, Streamdown 2.7) muestra el código
   plano. Mismo resaltador y lenguajes que Dev, conservando cabecera y botón de copiar de Streamdown y el streaming.
   Sin dependencia pesada nueva (memoria "peso de la UI aceptado": medir `main.js` antes y después).
+  Arreglo: `lib/highlight.ts` comparte `hljs`, lenguajes y clases de color entre Dev y el chat; el chat usa el plugin
+  `code` de Streamdown con un adaptador a highlight.js (`thread/code-highlighter.ts`), conserva cabecera, copiar y
+  streaming. `main.js` 2.035.098 → 2.036.292 bytes (+1,2 KB), sin dependencias ni CSS nuevos.
+  Evidencia (cerebro): 4343 con un chat de prueba: 2 bloques, 19 tokens `hljs-*`, captura `UI.41-chat-code.png`
+  (keyword/string/número/comentario coloreados). Visto: `hljs-built_in` sin color también en Dev → UI.43.
+  Gate en vivo: navegador real (Playwright, flujo de Sol 14/14: copia, streaming y colores iguales a Dev), `docs/done/evidence/UI.41-live.json`.
+  Ejecutado por: codex gpt-6.1-sol (criterio) · Revisión: Opus · Spec: docs/specs/UI.41.md
 - [ ] **UI.42 — ⚡ El modo de permisos del chat parpadea a vacío al re-dispararse el efecto de config.** Anotado en
   CI.41: `OrchestChatView.tsx:110` pone `permissions` en `null` cada vez que cambia `projectExists`, aunque el proyecto
   sea el mismo; `data-permission-mode` (`:555`) queda vacío hasta que vuelve `getConfig` y un gate que lo lee puede
   ver el hueco. Limpiar solo al cambiar de proyecto.
+- [ ] **UI.43 — ⚡ `hljs-built_in` (p. ej. `number`) sale sin color en Dev y en el chat.** Visto en UI.41: en
+  `TOKEN_CLASSES` (`src/dashboard/app/src/lib/highlight.ts`) la variante `[&_.hljs-built_in]` lleva `_`, que Tailwind
+  convierte en espacio; la regla no aplica (color computado = texto normal). Escapar el guion bajo.
 - [x] **CI.23 — 🔍 `tasks`: la tarea relanzada no deja su commit `chore(tasks)` (intermitente en batería).** (cerrado 2026-10-23) Visto 2 de
   6 corridas del set de UI.26.4 (2026-10-14), nunca con `tasks` solo: tras relanzar `gate-failed-task` y llegar a
   `done`, a los 15 s de `waitForTasksYamlCommit` el último commit es el del trabajo (`orchestos(gate-failed-task): …`)

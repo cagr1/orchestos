@@ -3,6 +3,8 @@ import remarkBreaks from 'remark-breaks'
 import remarkGfm from 'remark-gfm'
 import { defaultRemarkPlugins, Streamdown } from 'streamdown'
 import { usePrefersReducedMotion } from '@/hooks/use-prefers-reduced-motion'
+import { TOKEN_CLASSES } from '../../lib/highlight'
+import { threadCodeHighlighter } from './code-highlighter'
 
 const REMARK_PLUGINS = [...Object.values(defaultRemarkPlugins), remarkGfm, remarkBreaks]
 
@@ -25,7 +27,7 @@ const COMPONENTS = {
 export function ThreadMarkdown({ text, streaming }: { text: string; streaming: boolean }) {
   const reduced = usePrefersReducedMotion()
   return (
-    <div className={CLASS_NAME}>
+    <div className={`${CLASS_NAME} ${TOKEN_CLASSES}`}>
       <Streamdown
         mode="streaming"
         animated={!reduced}
@@ -35,6 +37,7 @@ export function ThreadMarkdown({ text, streaming }: { text: string; streaming: b
         components={COMPONENTS}
         controls={{ code: { copy: true, download: false }, table: false, mermaid: false }}
         lineNumbers={false}
+        plugins={{ code: threadCodeHighlighter }}
       >
         {text}
       </Streamdown>

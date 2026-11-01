@@ -522,8 +522,8 @@
       "block": "Abiertos — fiabilidad de los gates y documentación",
       "delegation": "🧠",
       "title": "El chat colorea los bloques de código como Dev",
-      "status": "open",
-      "closedDate": null
+      "status": "done",
+      "closedDate": "2026-11-01"
     },
     {
       "id": "UI.42",
@@ -531,6 +531,15 @@
       "block": "Abiertos — fiabilidad de los gates y documentación",
       "delegation": "⚡",
       "title": "El modo de permisos del chat parpadea a vacío al re-dispararse el efecto de config",
+      "status": "open",
+      "closedDate": null
+    },
+    {
+      "id": "UI.43",
+      "sprint": "Fase 2 — Producto mínimo para entrega",
+      "block": "Abiertos — fiabilidad de los gates y documentación",
+      "delegation": "⚡",
+      "title": "`hljs-built_in` (p. ej. `number`) sale sin color en Dev y en el chat",
       "status": "open",
       "closedDate": null
     },
