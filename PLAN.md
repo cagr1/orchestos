@@ -647,9 +647,15 @@ Regla: nada se reintenta, cierra ni muestra sin evidencia medida que el usuario 
   Evidencia (cerebro): diff leído; `tsc` limpio.
   Gate en vivo: navegador real (Playwright, `chat-permissions` 9/9), `docs/done/evidence/UI.42-live.json`.
   Ejecutado por: codex gpt-6-luna (mecanico) · Spec: docs/specs/UI.42.md
-- [ ] **UI.43 — ⚡ `hljs-built_in` (p. ej. `number`) sale sin color en Dev y en el chat.** Visto en UI.41: en
+- [x] **UI.43 — ⚡ `hljs-built_in` (p. ej. `number`) sale sin color en Dev y en el chat.** (cerrado 2026-11-01) Visto en UI.41: en
   `TOKEN_CLASSES` (`src/dashboard/app/src/lib/highlight.ts`) la variante `[&_.hljs-built_in]` lleva `_`, que Tailwind
   convierte en espacio; la regla no aplica (color computado = texto normal). Escapar el guion bajo.
+  r1 (`'built\\_in'` en string normal) no aplicaba: Tailwind escanea la fuente con dos barras y la clase en runtime
+  lleva una. r2: esa línea con `String.raw` (fuente y runtime con una barra).
+  Evidencia (cerebro): 4343, chat de prueba: `number` (`hljs-built_in`) con color computado `rgb(56, 189, 248)`
+  (antes `rgb(244, 244, 245)`); selector en `dist/main.css` `.hljs-built_in`.
+  Gate en vivo: navegador real (Playwright, `smoke` 7/7), `docs/done/evidence/UI.43-live.json`.
+  Ejecutado por: codex gpt-6-luna (mecanico r1, r2) · Spec: docs/specs/UI.43.md
 - [x] **CI.23 — 🔍 `tasks`: la tarea relanzada no deja su commit `chore(tasks)` (intermitente en batería).** (cerrado 2026-10-23) Visto 2 de
   6 corridas del set de UI.26.4 (2026-10-14), nunca con `tasks` solo: tras relanzar `gate-failed-task` y llegar a
   `done`, a los 15 s de `waitForTasksYamlCommit` el último commit es el del trabajo (`orchestos(gate-failed-task): …`)

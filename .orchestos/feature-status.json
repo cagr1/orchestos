@@ -540,8 +540,8 @@
       "block": "Abiertos — fiabilidad de los gates y documentación",
       "delegation": "⚡",
       "title": "`hljs-built_in` (p. ej. `number`) sale sin color en Dev y en el chat",
-      "status": "open",
-      "closedDate": null
+      "status": "done",
+      "closedDate": "2026-11-01"
     },
     {
       "id": "CI.23",

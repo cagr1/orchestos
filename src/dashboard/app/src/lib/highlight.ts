@@ -35,7 +35,7 @@ export const LANGUAGES: Record<string, string> = {
 export const TOKEN_CLASSES = [
   '[&_.hljs-keyword]:text-app-accent [&_.hljs-selector-tag]:text-app-accent [&_.hljs-name]:text-app-accent',
   '[&_.hljs-string]:text-app-success [&_.hljs-attr]:text-app-accent [&_.hljs-regexp]:text-app-success',
-  '[&_.hljs-number]:text-app-warning [&_.hljs-literal]:text-app-warning [&_.hljs-built_in]:text-app-accent',
+  String.raw`[&_.hljs-number]:text-app-warning [&_.hljs-literal]:text-app-warning [&_.hljs-built\_in]:text-app-accent`,
   '[&_.hljs-comment]:text-app-muted [&_.hljs-comment]:italic [&_.hljs-meta]:text-app-muted',
   '[&_.hljs-title]:text-app-accent [&_.hljs-type]:text-app-warning [&_.hljs-section]:text-app-accent',
 ].join(' ')
