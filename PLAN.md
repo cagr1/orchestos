@@ -632,6 +632,10 @@ Regla: nada se reintenta, cierra ni muestra sin evidencia medida que el usuario 
   `highlight.js` (`DevFilePanel.tsx:1`) y el hilo del chat (`ThreadMarkdown.tsx`, Streamdown 2.7) muestra el código
   plano. Mismo resaltador y lenguajes que Dev, conservando cabecera y botón de copiar de Streamdown y el streaming.
   Sin dependencia pesada nueva (memoria "peso de la UI aceptado": medir `main.js` antes y después).
+- [ ] **UI.42 — ⚡ El modo de permisos del chat parpadea a vacío al re-dispararse el efecto de config.** Anotado en
+  CI.41: `OrchestChatView.tsx:110` pone `permissions` en `null` cada vez que cambia `projectExists`, aunque el proyecto
+  sea el mismo; `data-permission-mode` (`:555`) queda vacío hasta que vuelve `getConfig` y un gate que lo lee puede
+  ver el hueco. Limpiar solo al cambiar de proyecto.
 - [x] **CI.23 — 🔍 `tasks`: la tarea relanzada no deja su commit `chore(tasks)` (intermitente en batería).** (cerrado 2026-10-23) Visto 2 de
   6 corridas del set de UI.26.4 (2026-10-14), nunca con `tasks` solo: tras relanzar `gate-failed-task` y llegar a
   `done`, a los 15 s de `waitForTasksYamlCommit` el último commit es el del trabajo (`orchestos(gate-failed-task): …`)
