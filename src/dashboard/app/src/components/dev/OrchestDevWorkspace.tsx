@@ -442,9 +442,9 @@ export const OrchestDevWorkspace: React.FC<OrchestDevWorkspaceProps> = ({
             What should we work on in {activeProject.name}?
           </h1>
           <AgentComposer
-            onSendMessage={(content, attachments, cli, model, effort) =>
-              onSendMessage?.(content, attachments, cli, model, effort)
-            }
+            onSendMessage={handleSendMessage}
+            hasProject={!!activeProject.id}
+            projectId={activeProject.id}
             defaultCli={(newSessionAgent ?? orchestrator?.agent ?? cliId) as CliId}
             defaultModel={orchestrator?.model}
             useCliDefaultModel={!!newSessionAgent && !orchestrator?.model}
@@ -999,6 +999,7 @@ export const OrchestDevWorkspace: React.FC<OrchestDevWorkspaceProps> = ({
           <AgentComposer
             onSendMessage={handleSendMessage}
             hasProject={!!activeAgent.projectId}
+            projectId={activeAgent.projectId ?? undefined}
             busy={isWorking}
             onStop={stop.onStop}
             stopping={stop.stopping}

@@ -766,9 +766,17 @@ Regla: nada se reintenta, cierra ni muestra sin evidencia medida que el usuario 
   Gates del cerebro: lint, `dev-session-tabs` 41/41, `shell-look` 75/75. Sol: `test:coverage` 2213/0.
   Gate en vivo: navegador real (Playwright), `docs/done/evidence/UI.53-live.json`.
   Ejecutado por: codex gpt-6.1-sol (criterio) · revisión Opus · Spec: docs/specs/UI.53.md
-- [ ] **UI.54 — 🧠 "@" en el composer referencia archivos del proyecto.** (abierto 2026-11-02) Carlos 2026-11-02
+- [x] **UI.54 — 🧠 "@" en el composer referencia archivos del proyecto.** (abierto 2026-11-02) Carlos 2026-11-02
   (auditoría de ADE, opción recomendada): como MonoCode y Orca, "@" abre un buscador de archivos del proyecto e
-  inserta la ruta; en Chat y Dev. Hoy solo "/" (`AgentComposer.tsx:328`). Spec: docs/specs/UI.54.md
+  inserta la ruta; en Chat y Dev. Hoy solo "/" (`AgentComposer.tsx:328`).
+  Hecho: "@" al inicio o tras espacio (no en "a@b") abre "Files" con la búsqueda de Files del proyecto (20, con
+  debounce); Enter/Tab inserta `@ruta `. Placeholder "… / for commands, @ for files" con proyecto. r2: aserción del
+  placeholder en `dev-session-tabs` y hermano de UI.49 (la pestaña New session no pasaba `hasProject` ni
+  `approvalMode`). En vivo (cerebro, 4343, repo real): "revisa @PLA" → `revisa @PLAN.md `. Gates del cerebro: lint,
+  `composer-picker` 11/11, `chat-streaming` 27/27, `dev-session-tabs` 42/42, `chat-permissions` 9/9. Sol:
+  `test:coverage` 2215/0.
+  Gate en vivo: navegador real (Playwright), `docs/done/evidence/UI.54-live.json`.
+  Ejecutado por: codex gpt-6.1-sol (criterio r1, r2) · revisión Opus · Spec: docs/specs/UI.54.md
 - [ ] **UI.55 — 🧠 Terminal del proyecto en un panel inferior de Dev.** (abierto 2026-11-02) Carlos 2026-11-02
   (auditoría de ADE, opción recomendada): como MonoCode, botón "Terminal" en la barra inferior y Ctrl+` abren una
   shell en la raíz del proyecto bajo el centro de Dev. Reusa el PTY de OpenCode (`src/dashboard/terminal.ts`,

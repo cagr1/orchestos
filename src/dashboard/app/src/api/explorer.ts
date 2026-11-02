@@ -18,16 +18,21 @@ interface ExplorerFileResponse {
   binary: boolean
 }
 
-async function request<T>(path: string, projectId: string): Promise<T> {
-  const response = await fetch(path, { headers: { 'x-orchestos-project-id': projectId } })
+async function request<T>(path: string, projectId: string, signal?: AbortSignal): Promise<T> {
+  const response = await fetch(path, { headers: { 'x-orchestos-project-id': projectId }, signal })
   if (!response.ok) throw new Error(`Request failed (${response.status})`)
   return response.json() as Promise<T>
 }
 
-export async function getExplorerTree(path = '', projectId: string): Promise<FileNode[]> {
+export async function getExplorerTree(
+  path = '',
+  projectId: string,
+  signal?: AbortSignal,
+): Promise<FileNode[]> {
   const data = await request<ExplorerTreeResponse>(
     `/api/explorer/tree?path=${encodeURIComponent(path)}`,
     projectId,
+    signal,
   )
   return data.entries.map((entry) => ({
     name: entry.name,
@@ -55,4 +60,25 @@ export async function getExplorerFile(path: string, projectId: string): Promise<
     isDir: false,
     content: data.content,
   }
+}
+
+/** Same name search as Files, loading nested folders through its project-scoped tree API. */
+export async function findExplorerFiles(
+  query: string,
+  projectId: string,
+  signal?: AbortSignal,
+): Promise<FileNode[]> {
+  const files: FileNode[] = []
+  const folders = ['']
+  const needle = query.toLowerCase()
+  while (folders.length && files.length < 20) {
+    signal?.throwIfAborted()
+    const nodes = await getExplorerTree(folders.shift()!, projectId, signal)
+    for (const node of nodes) {
+      if (node.isDir) folders.push(node.path)
+      else if (node.name.toLowerCase().includes(needle)) files.push(node)
+      if (files.length === 20) break
+    }
+  }
+  return files
 }

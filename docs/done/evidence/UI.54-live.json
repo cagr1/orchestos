@@ -1,0 +1,507 @@
+[
+  {
+    "flujo": "composer-picker",
+    "pass": true,
+    "steps": [
+      {
+        "nombre": "temporary project visible in Dev",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "OpenCode not offered for new chat",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "Codex available for new chat",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "Codex model selector has no search input",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "Codex effort levels remain available",
+        "ok": true,
+        "detalle": "{\"model\":\"gpt-6.1-sol\",\"efforts\":[\"low\",\"medium\",\"high\",\"xhigh\",\"max\",\"ultra\"]}"
+      },
+      {
+        "nombre": "project file matches @ query",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "Enter inserts plain file reference",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "Tab replaces reference after a space",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "arrow navigation chooses the highlighted file",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "Escape closes file references",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "email does not open file references",
+        "ok": true,
+        "detalle": "ok"
+      }
+    ],
+    "notes": [],
+    "errores": [],
+    "capturas": [
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-25390/composer-picker/project-registered.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-25390/composer-picker/dev-mode.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-25390/composer-picker/temporary-project-selected.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-25390/composer-picker/chat-mode.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-25390/composer-picker/new-chat-agent-selector.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-25390/composer-picker/codex-efforts-preserved.png"
+    ]
+  },
+  {
+    "flujo": "chat-streaming",
+    "pass": true,
+    "steps": [
+      {
+        "nombre": "temporary project visible",
+        "ok": true,
+        "detalle": "orchestos-ui-mr-1-d4-oicwkV"
+      },
+      {
+        "nombre": "Claude option available",
+        "ok": true,
+        "detalle": "Start New Chat with Agent\nConversation Topic or Title (Optional)\nProject\nNo projectorchestos-ui-mr-1-d4-oicwkV\nSelect Agent / Engine\nClaude Code\nCodex\nCancel\nStart Chat"
+      },
+      {
+        "nombre": "first assistant text appears before completion",
+        "ok": true,
+        "detalle": "t_first=5445 ms; t_done=8217 ms"
+      },
+      {
+        "nombre": "visible text grows at least twice before completion",
+        "ok": true,
+        "detalle": "7 growth updates (rAF); poll saw 7"
+      },
+      {
+        "nombre": "live bubble stays at the bottom",
+        "ok": true,
+        "detalle": "8 growth measurements; remained at bottom: true"
+      },
+      {
+        "nombre": "captured screenshot during active turn",
+        "ok": true,
+        "detalle": "chat-text-visible-mid-turn"
+      },
+      {
+        "nombre": "working-indicator-names-phase",
+        "ok": true,
+        "detalle": "indicator text: \"Thinking 0 s\""
+      },
+      {
+        "nombre": "working-indicator-gone",
+        "ok": true,
+        "detalle": "indicator removed after 256 ms"
+      },
+      {
+        "nombre": "one assistant bubble matches persisted response",
+        "ok": true,
+        "detalle": "bubbles=1; persisted=1; visible=uno dos tres cuatro cinco seis siete ocho nueve diez once doce trece catorce qui"
+      },
+      {
+        "nombre": "new messages enter with data-entered=animate",
+        "ok": true,
+        "detalle": "animated kinds=user,assistant; events=[{\"id\":1,\"position\":0,\"kind\":\"user\"},{\"id\":2,\"position\":1,\"kind\":\"assistant\"}]"
+      },
+      {
+        "nombre": "no message animates its entrance twice",
+        "ok": true,
+        "detalle": "events=[{\"id\":1,\"position\":0,\"kind\":\"user\"},{\"id\":2,\"position\":1,\"kind\":\"assistant\"}]"
+      },
+      {
+        "nombre": "context ring reflects thread",
+        "ok": true,
+        "detalle": "used=7099, window=1000000, pct=0.7099"
+      },
+      {
+        "nombre": "context ring recalculates on model change",
+        "ok": true,
+        "detalle": "model=claude-haiku-4-5-20251001, expected pct=3.5495, ring=Context window usage: 3.5495%"
+      },
+      {
+        "nombre": "Chat composer empty during sampled turn",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "Chat DOM order during sampled turn is previous assistant, user, live assistant",
+        "ok": true,
+        "detalle": "{\"liveCount\":1,\"order\":[\"Escribe los números del 1 al 120 en palabras, uno \",\"uno dos tres cuatro cinco seis siete ocho nueve di\",\"Escribe los números del 41 al 80 en palabras, uno \",\"cuarenta y uno cuarenta y\"]}"
+      },
+      {
+        "nombre": "Chat turn 2 was sampled while pending",
+        "ok": true,
+        "detalle": "1 long turn(s) sent; pending composer and live DOM order sampled"
+      },
+      {
+        "nombre": "Chat bubbles alternate for every sent turn",
+        "ok": true,
+        "detalle": "[\"Escribe los números del 1 al 120 en palabras, uno \",\"uno dos tres cuatro cinco seis siete ocho nueve di\",\"Escribe los números del 41 al 80 en palabras, uno \",\"cuarenta y uno cuarenta y dos cuarenta y tres cuar\"]"
+      },
+      {
+        "nombre": "Chat user bubbles contain no agent text or step markup",
+        "ok": true,
+        "detalle": "user bubbles=2"
+      },
+      {
+        "nombre": "Chat exchange order remains correct after reload",
+        "ok": true,
+        "detalle": "messages=4"
+      },
+      {
+        "nombre": "thread-font-inter",
+        "ok": true,
+        "detalle": "font-family=\"Inter Variable\", system-ui, -apple-system, \"system-ui\", \"Segoe UI\", Roboto, \"Noto Sans\", Ubuntu, Cantarell, \"Helvetica Neue\", sans-serif"
+      },
+      {
+        "nombre": "thread-body-14px",
+        "ok": true,
+        "detalle": "font-size=14px"
+      },
+      {
+        "nombre": "thread-assistant-unboxed",
+        "ok": true,
+        "detalle": "ancestors=[{\"backgroundColor\":\"rgba(0, 0, 0, 0)\",\"borderTopWidth\":\"0px\",\"boxShadow\":\"none\"},{\"backgroundColor\":\"rgba(0, 0, 0, 0)\",\"borderTopWidth\":\"0px\",\"boxShadow\":\"none\"},{\"backgroundColor\":\"rgba(0, 0, 0, 0)\",\"borderTopWidth\":\"0px\",\"boxShadow\":\"none\"}]"
+      },
+      {
+        "nombre": "thread-user-bubble-visible",
+        "ok": true,
+        "detalle": "bubble={\"found\":true,\"backgroundColor\":\"oklab(0.249498 -0.00229985 -0.0147313)\",\"opaque\":true,\"userBubbleL\":20.537404286089497,\"backgroundL\":12.733002212579532,\"difference\":7.804402073509966}"
+      },
+      {
+        "nombre": "thread-no-decoration",
+        "ok": true,
+        "detalle": "animate-ping=0, gradients=0, bot-icons=0, user-icons=0"
+      },
+      {
+        "nombre": "after reload every message is static",
+        "ok": true,
+        "detalle": "modes=[\"static\",\"static\",\"static\",\"static\"]"
+      },
+      {
+        "nombre": "reduced motion: response arrives with opacity 1 and no transform within 100 ms",
+        "ok": true,
+        "detalle": "samples=[{\"kind\":\"user\",\"opacity\":\"1\",\"transform\":\"none\"},{\"kind\":\"assistant\",\"opacity\":\"1\",\"transform\":\"none\"}]"
+      },
+      {
+        "nombre": "Dev renders text during generation before completion",
+        "ok": true,
+        "detalle": "t_first=1620 ms; t_done=2611 ms; visible=Uno, dos, tres, cuatro, cinco."
+      }
+    ],
+    "notes": [],
+    "errores": [],
+    "capturas": [
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-25390/chat-streaming/chat-text-visible-mid-turn.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-25390/chat-streaming/thread-hierarchy.png"
+    ]
+  },
+  {
+    "flujo": "dev-session-tabs",
+    "pass": true,
+    "steps": [
+      {
+        "nombre": "reload starts in Chat",
+        "ok": true,
+        "detalle": "Dev tabs absent after reload"
+      },
+      {
+        "nombre": "entering Dev restores last session without saved tabs",
+        "ok": true,
+        "detalle": "remembered Alpha active, no New session"
+      },
+      {
+        "nombre": "running session tab shows the accent spinner",
+        "ok": true,
+        "detalle": "Alpha spinner is visible while its session is running"
+      },
+      {
+        "nombre": "finished session timeline clears its tab spinner",
+        "ok": true,
+        "detalle": "Alpha spinner clears when its active timeline reports pending false"
+      },
+      {
+        "nombre": "sidebar opens ordered sessions and existing tabs do not duplicate",
+        "ok": true,
+        "detalle": "Alpha, Beta"
+      },
+      {
+        "nombre": "Dev response shares Chat markdown and highlights code",
+        "ok": true,
+        "detalle": "heading, two list items and highlighted TypeScript tokens"
+      },
+      {
+        "nombre": "Files dims and italicizes git ignored entries but keeps tracked files unmarked",
+        "ok": true,
+        "detalle": "ignored.txt visible at opacity 0.5 and italic; tracked README.md normal"
+      },
+      {
+        "nombre": "file opens italic preview in the shared row and occupies full center",
+        "ok": true,
+        "detalle": "session remains a tab; file only content at full width"
+      },
+      {
+        "nombre": "session tab restores full center chat",
+        "ok": true,
+        "detalle": "file viewer absent, composer visible"
+      },
+      {
+        "nombre": "Dev composer shows its task approval mode",
+        "ok": true,
+        "detalle": "selector visible"
+      },
+      {
+        "nombre": "changing Dev approval mode updates the composer button",
+        "ok": true,
+        "detalle": "Supervised"
+      },
+      {
+        "nombre": "opening another file replaces only preview with numbered colored source",
+        "ok": true,
+        "detalle": "two sessions plus context.json preview; code colored"
+      },
+      {
+        "nombre": "tree double click pins file",
+        "ok": true,
+        "detalle": "fixed code tab"
+      },
+      {
+        "nombre": "Markdown Source keeps numbered literal source",
+        "ok": true,
+        "detalle": "literal Markdown source"
+      },
+      {
+        "nombre": "reload starts in Chat",
+        "ok": true,
+        "detalle": "Dev tabs absent after reload"
+      },
+      {
+        "nombre": "reload restores mixed tab order and active fixed file",
+        "ok": true,
+        "detalle": "Alpha, Beta, context.json, README.md active"
+      },
+      {
+        "nombre": "closing active file selects its left neighbour",
+        "ok": true,
+        "detalle": "context.json active"
+      },
+      {
+        "nombre": "closing session selects right neighbour without deleting session",
+        "ok": true,
+        "detalle": "Beta active; Alpha remains in API"
+      },
+      {
+        "nombre": "plus opens usable agents including OpenCode Terminal with last used agent preselected",
+        "ok": true,
+        "detalle": "Claude\nCodex\nOpenCode\nTerminal"
+      },
+      {
+        "nombre": "Escape closes menu without creating a tab",
+        "ok": true,
+        "detalle": "tab count unchanged"
+      },
+      {
+        "nombre": "Enter creates with last used Claude and its unassigned CLI default",
+        "ok": true,
+        "detalle": "What should we work on in orchestos-dev-tabs-yooiCS?\nCLI default\nSupervised"
+      },
+      {
+        "nombre": "New session exposes the task approval mode selector",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "arrow keys move the preselected agent",
+        "ok": true,
+        "detalle": "Codex selected"
+      },
+      {
+        "nombre": "plus appends centered New session using configured orchestrator model and effort",
+        "ok": true,
+        "detalle": "What should we work on in orchestos-dev-tabs-yooiCS?\nGPT-6-Luna · medium\nSupervised"
+      },
+      {
+        "nombre": "chosen Codex becomes first and preselected",
+        "ok": true,
+        "detalle": "Codex\nClaude\nOpenCode\nTerminal"
+      },
+      {
+        "nombre": "click outside closes without creating",
+        "ok": true,
+        "detalle": "three tabs remain"
+      },
+      {
+        "nombre": "reload starts in Chat",
+        "ok": true,
+        "detalle": "Dev tabs absent after reload"
+      },
+      {
+        "nombre": "reload restores active New session alongside sessions and fixed files",
+        "ok": true,
+        "detalle": "Beta, context.json, New session"
+      },
+      {
+        "nombre": "reload starts in Chat",
+        "ok": true,
+        "detalle": "Dev tabs absent after reload"
+      },
+      {
+        "nombre": "restoration removes dead session ids",
+        "ok": true,
+        "detalle": "dead id removed"
+      },
+      {
+        "nombre": "OpenCode creates a session directly and mounts a live terminal",
+        "ok": true,
+        "detalle": "{\"id\":\"9bfe76cd-dbda-4c96-ac45-2201d6e9ca97\",\"projectId\":\"4d149927a43c4146\",\"agent\":\"opencode\",\"mode\":\"code\",\"title\":\"OpenCode\",\"createdAt\":\"2026-11-02T23:50:01.108Z\",\"updatedAt\":\"2026-11-02T23:50:01.108Z\",\"archivedAt\":null,\"running\":false,\"hasPersistentWork\":false,\"lastPersistentTaskId\":null,\"lastModel\":null,\"lastEffort\":null,\"readBoundaryWarning\":\"No hay un contrato verificado de frontera de lectura para este CLI.\"}"
+      },
+      {
+        "nombre": "OpenCode counts as last used agent",
+        "ok": true,
+        "detalle": "OpenCode\nTerminal\nClaude\nCodex"
+      },
+      {
+        "nombre": "Diff click opens an italic selected patch at full center with colored numbered lines",
+        "ok": true,
+        "detalle": "README.md (diff)\nOpen file\n@@ -1 +1 @@\n1\n-# Dev session tabs\n1\n+# Updated diff heading"
+      },
+      {
+        "nombre": "another diff replaces the preview",
+        "ok": true,
+        "detalle": "notes.txt preview replaces README.md"
+      },
+      {
+        "nombre": "Diff double click pins the patch",
+        "ok": true,
+        "detalle": "fixed README.md diff"
+      },
+      {
+        "nombre": "Open file opens a distinct fixed normal file tab",
+        "ok": true,
+        "detalle": "file:README.md and diff:README.md coexist"
+      },
+      {
+        "nombre": "reactivating diff reloads changed working tree",
+        "ok": true,
+        "detalle": "README.md (diff)\nOpen file\n@@ -1 +1 @@\n1\n-# Dev session tabs\n1\n+# Refreshed working tree"
+      },
+      {
+        "nombre": "reload starts in Chat",
+        "ok": true,
+        "detalle": "Dev tabs absent after reload"
+      },
+      {
+        "nombre": "reload restores active fixed diff beside the normal file",
+        "ok": true,
+        "detalle": "fixed diff restored"
+      },
+      {
+        "nombre": "deleted file diff disables Open file",
+        "ok": true,
+        "detalle": "deleted notes.txt"
+      },
+      {
+        "nombre": "patch failure is visible inside the center tab",
+        "ok": true,
+        "detalle": "same error as inspector"
+      },
+      {
+        "nombre": "0 console errors",
+        "ok": true,
+        "detalle": "none"
+      }
+    ],
+    "notes": [],
+    "errores": [],
+    "capturas": [
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-25390/dev-session-tabs/session-tabs.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-25390/dev-session-tabs/file-markdown-preview.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-25390/dev-session-tabs/file-highlighted-code.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-25390/dev-session-tabs/file-markdown-source.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-25390/dev-session-tabs/new-session-agent-menu.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-25390/dev-session-tabs/new-session.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-25390/dev-session-tabs/opencode-terminal-tab.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-25390/dev-session-tabs/diff-center-preview.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-25390/dev-session-tabs/diff-center-pinned.png"
+    ]
+  },
+  {
+    "flujo": "chat-permissions",
+    "pass": true,
+    "steps": [
+      {
+        "nombre": "select Codex for new chat",
+        "ok": true,
+        "detalle": "Codex option visible"
+      },
+      {
+        "nombre": "composer reports yolo without permissions strip",
+        "ok": true,
+        "detalle": "{\"mode\":\"yolo\",\"replacedWhileWaiting\":false,\"replacedAfterWait\":false,\"modeAfterWait\":\"yolo\"}"
+      },
+      {
+        "nombre": "Manual control visible in Settings",
+        "ok": true,
+        "detalle": "control rendered"
+      },
+      {
+        "nombre": "PUT /api/config accepted permissionMode",
+        "ok": true,
+        "detalle": "HTTP 200"
+      },
+      {
+        "nombre": "project YAML has permissionMode: manual",
+        "ok": true,
+        "detalle": "permissionMode: manual"
+      },
+      {
+        "nombre": "composer reports manual without permissions strip",
+        "ok": true,
+        "detalle": "{\"mode\":\"manual\",\"replacedWhileWaiting\":false,\"replacedAfterWait\":false,\"modeAfterWait\":\"manual\"}"
+      },
+      {
+        "nombre": "held task card visible in Manual",
+        "ok": true,
+        "detalle": "held task rendered"
+      },
+      {
+        "nombre": "task stays pending without a run after 5s",
+        "ok": true,
+        "detalle": "status=pending"
+      },
+      {
+        "nombre": "Approve & Run releases the task from held",
+        "ok": true,
+        "detalle": "status=pending"
+      }
+    ],
+    "notes": [],
+    "errores": [],
+    "capturas": [
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-25390/chat-permissions/1-yolo.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-25390/chat-permissions/2-manual.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-25390/chat-permissions/3-held.png"
+    ]
+  }
+]

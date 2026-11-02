@@ -333,8 +333,13 @@ for (const probe of [systemCliDiscoveryProbe, systemCliHealthProbe]) {
   await step(
     'Enter creates with last used Claude and its unassigned CLI default',
     (await tabs.locator('[data-new-session-tab][aria-selected="true"]').count()) === 1 &&
-      (await fresh.locator('textarea').getAttribute('placeholder')) === 'Message Claude…',
+      (await fresh.locator('textarea').getAttribute('placeholder')) ===
+        'Message Claude… / for commands, @ for files',
     await fresh.innerText(),
+  )
+  await step(
+    'New session exposes the task approval mode selector',
+    await visible(fresh.getByRole('button', { name: 'Task approval mode', exact: true })),
   )
   await page.getByRole('button', { name: 'Close tab New session', exact: true }).click()
   await page.getByRole('button', { name: 'New session', exact: true }).click()
@@ -386,13 +391,16 @@ for (const probe of [systemCliDiscoveryProbe, systemCliHealthProbe]) {
   await reloadChat()
   await enterDev()
   await fresh.waitFor()
-  await fresh.locator('textarea[placeholder="Message Codex…"]').waitFor()
+  await fresh
+    .locator('textarea[placeholder="Message Codex… / for commands, @ for files"]')
+    .waitFor()
   await step(
     'reload restores active New session alongside sessions and fixed files',
     (await tabs.getByRole('tab').count()) === 3 &&
       (await tab(1).count()) === 1 &&
       (await fileTab('context.json').count()) === 1 &&
-      (await fresh.locator('textarea').getAttribute('placeholder')) === 'Message Codex…',
+      (await fresh.locator('textarea').getAttribute('placeholder')) ===
+        'Message Codex… / for commands, @ for files',
     'Beta, context.json, New session',
   )
   await page.evaluate((projectId) => {

@@ -20,10 +20,16 @@ import {
   subscribeSessionContext,
   uploadChatFile,
 } from '../../api/chat'
+import { findExplorerFiles } from '../../api/explorer'
 import type { ApprovalMode, ChatAttachment } from '../../types/orchestos'
 import { FileThumbnail } from '../ui/file-thumbnail'
 import { ContextRing } from './ContextRing'
 import { ProviderLogo } from './ProviderLogos'
+
+export function fileReferenceToken(text: string, cursor: number) {
+  const match = /(?:^|\s)@([^\s@]*)$/.exec(text.slice(0, cursor))
+  return match ? { start: cursor - match[1].length - 1, end: cursor, query: match[1] } : null
+}
 
 export type CliId = string
 
@@ -134,6 +140,7 @@ export interface AgentComposerProps {
     isShellCmd?: boolean,
     approvalMode?: ApprovalMode,
   ) => unknown
+  projectId?: string
   hasProject?: boolean
   contextSessionId?: string
   defaultCli?: CliId
@@ -156,6 +163,7 @@ export interface AgentComposerProps {
 export const AgentComposer: React.FC<AgentComposerProps> = ({
   onSendMessage,
   hasProject = false,
+  projectId,
   contextSessionId,
   defaultCli = 'claude',
   defaultModel,
@@ -203,6 +211,38 @@ export const AgentComposer: React.FC<AgentComposerProps> = ({
   }, [lockedCli, defaultCli, defaultModel, defaultEffort, useCliDefaultModel])
 
   const [inputText, setInputText] = useState('')
+  const [referenceToken, setReferenceToken] = useState<ReturnType<typeof fileReferenceToken>>(null)
+  const [referenceFiles, setReferenceFiles] = useState<string[]>([])
+  const [referenceError, setReferenceError] = useState(false)
+  const [referenceLoading, setReferenceLoading] = useState(false)
+  const [activeReferenceIndex, setActiveReferenceIndex] = useState(0)
+  useEffect(() => {
+    setReferenceFiles([])
+    setReferenceError(false)
+    setReferenceLoading(!!referenceToken && !!projectId)
+    setActiveReferenceIndex(0)
+    if (!referenceToken || !projectId) return
+    const controller = new AbortController()
+    const timer = setTimeout(() => {
+      void findExplorerFiles(referenceToken.query, projectId, controller.signal)
+        .then((files) => {
+          if (!controller.signal.aborted) {
+            setReferenceFiles(files.map((file) => file.path))
+            setReferenceLoading(false)
+          }
+        })
+        .catch(() => {
+          if (!controller.signal.aborted) {
+            setReferenceError(true)
+            setReferenceLoading(false)
+          }
+        })
+    }, 200)
+    return () => {
+      clearTimeout(timer)
+      controller.abort()
+    }
+  }, [referenceToken, projectId])
   const [isShellMode, setIsShellMode] = useState(false)
   const [showSlashMenu, setShowSlashMenu] = useState(false)
   const [showDropdown, setShowDropdown] = useState(false)
@@ -320,6 +360,7 @@ export const AgentComposer: React.FC<AgentComposerProps> = ({
     // Check for ! shell prefix
     if (!isShellMode && val === '!') {
       setIsShellMode(true)
+      setReferenceToken(null)
       setInputText('')
       setShowSlashMenu(false)
       return
@@ -332,9 +373,49 @@ export const AgentComposer: React.FC<AgentComposerProps> = ({
     }
 
     setInputText(val)
+    setReferenceToken(
+      projectId && !isShellMode ? fileReferenceToken(val, e.target.selectionStart) : null,
+    )
+  }
+
+  const selectReference = (path: string) => {
+    if (!referenceToken) return
+    const inserted = `@${path} `
+    const cursor = referenceToken.start + inserted.length
+    setInputText(
+      inputText.slice(0, referenceToken.start) + inserted + inputText.slice(referenceToken.end),
+    )
+    setReferenceToken(null)
+    requestAnimationFrame(() => {
+      textareaRef.current?.focus()
+      textareaRef.current?.setSelectionRange(cursor, cursor)
+    })
   }
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (referenceToken && projectId) {
+      if (e.key === 'Escape') {
+        e.preventDefault()
+        setReferenceToken(null)
+        return
+      }
+      if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+        e.preventDefault()
+        if (referenceFiles.length)
+          setActiveReferenceIndex(
+            (index) =>
+              (index + (e.key === 'ArrowDown' ? 1 : -1) + referenceFiles.length) %
+              referenceFiles.length,
+          )
+        return
+      }
+      if (e.key === 'Enter' || e.key === 'Tab') {
+        e.preventDefault()
+        if (referenceFiles[activeReferenceIndex])
+          selectReference(referenceFiles[activeReferenceIndex])
+        return
+      }
+    }
     if (e.key === 'Backspace' && isShellMode && inputText === '') {
       setIsShellMode(false)
       return
@@ -366,6 +447,7 @@ export const AgentComposer: React.FC<AgentComposerProps> = ({
     }
     if (!isShellMode && currentCliConfig.models.length === 0) return
     const content = inputText.trim()
+    setReferenceToken(null)
     if (content.startsWith('/')) {
       const [command, ...argument] = content.split(/\s+/)
       if (SLASH_COMMANDS.some((item) => item.cmd === command)) {
@@ -508,6 +590,39 @@ export const AgentComposer: React.FC<AgentComposerProps> = ({
 
   return (
     <div className={`relative w-full ${className}`}>
+      {referenceToken && projectId && (
+        <div
+          role="listbox"
+          aria-label="Project files"
+          className="absolute left-3 bottom-full mb-2 w-80 max-h-64 overflow-y-auto rounded-card bg-app-surface border border-app shadow-2xl p-1 text-xs space-y-0.5 z-50 animate-in fade-in duration-100"
+        >
+          <div className="px-2 py-1 text-[10px] font-mono text-app-muted uppercase tracking-wider border-b border-app/60">
+            Files
+          </div>
+          {referenceFiles.map((path, index) => (
+            <button
+              key={path}
+              type="button"
+              role="option"
+              aria-selected={index === activeReferenceIndex}
+              onMouseDown={(event) => event.preventDefault()}
+              onClick={() => selectReference(path)}
+              className={`w-full truncate px-2.5 py-1.5 rounded-control text-left font-mono text-app hover:bg-app-elevated ${index === activeReferenceIndex ? 'bg-app-elevated' : ''}`}
+            >
+              {path}
+            </button>
+          ))}
+          {!referenceFiles.length && (
+            <div role="status" className="px-2.5 py-1.5 text-app-muted">
+              {referenceError
+                ? 'Unable to load files'
+                : referenceLoading
+                  ? 'Searching files…'
+                  : 'No matching files'}
+            </div>
+          )}
+        </div>
+      )}
       {/* Slash command autocomplete menu */}
       {showSlashMenu && (
         <div className="absolute left-3 bottom-full mb-2 w-80 rounded-card bg-app-surface border border-app shadow-2xl p-1 text-xs space-y-0.5 z-40 animate-in fade-in duration-100">
@@ -746,12 +861,33 @@ export const AgentComposer: React.FC<AgentComposerProps> = ({
             onChange={handleInputChange}
             onKeyDown={handleKeyDown}
             onPaste={handlePaste}
+            onClick={(event) =>
+              setReferenceToken(
+                projectId && !isShellMode
+                  ? fileReferenceToken(inputText, event.currentTarget.selectionStart)
+                  : null,
+              )
+            }
+            onKeyUp={(event) => {
+              if (
+                event.key === 'ArrowLeft' ||
+                event.key === 'ArrowRight' ||
+                event.key === 'Home' ||
+                event.key === 'End'
+              ) {
+                setReferenceToken(
+                  projectId && !isShellMode
+                    ? fileReferenceToken(inputText, event.currentTarget.selectionStart)
+                    : null,
+                )
+              }
+            }}
             placeholder={
               isShellMode
                 ? 'Enter bash command to execute in sandbox…'
                 : isLoadingModels
                   ? 'Loading models…'
-                  : `Message ${currentCliConfig.name}…`
+                  : `Message ${currentCliConfig.name}…${projectId ? ' / for commands, @ for files' : ''}`
             }
             className="flex-1 bg-transparent border-none text-xs text-app placeholder:text-app-muted resize-none focus:outline-hidden leading-relaxed font-sans"
           />

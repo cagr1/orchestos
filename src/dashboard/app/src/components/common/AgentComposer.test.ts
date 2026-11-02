@@ -2,9 +2,11 @@ import { describe, expect, test } from 'bun:test'
 import { createElement } from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { stopChatTurn } from '../../api/chat'
+import { findExplorerFiles } from '../../api/explorer'
 import { StoppedResponse } from '../thread/StoppedResponse'
 import {
   ComposerSubmitButton,
+  fileReferenceToken,
   persistApprovalMode,
   readApprovalMode,
   selectionFromDefaults,
@@ -134,4 +136,51 @@ test('approval mode defaults safely and persists each supported selection', () =
       },
     }),
   ).not.toThrow()
+})
+
+test('file reference token starts at @ or after whitespace, never inside an email', () => {
+  expect(fileReferenceToken('@', 1)).toEqual({ start: 0, end: 1, query: '' })
+  expect(fileReferenceToken('Read @README then', 12)).toEqual({
+    start: 5,
+    end: 12,
+    query: 'README',
+  })
+  expect(fileReferenceToken('a@b', 3)).toBeNull()
+  expect(fileReferenceToken('@README ', 8)).toBeNull()
+  expect(fileReferenceToken('line\n@file', 10)).toEqual({ start: 5, end: 10, query: 'file' })
+})
+
+test('file search traverses nested folders with the session project and caps at 20 matches', async () => {
+  const originalFetch = globalThis.fetch
+  const requested: string[] = []
+  const controller = new AbortController()
+  globalThis.fetch = (async (path, init) => {
+    expect(new Headers(init?.headers).get('x-orchestos-project-id')).toBe('session-project')
+    expect(init?.signal).toBe(controller.signal)
+    const folder = new URL(String(path), 'http://localhost').searchParams.get('path')
+    requested.push(folder ?? '')
+    const entries =
+      folder === ''
+        ? [
+            { name: 'src', path: 'src', type: 'dir' },
+            { name: 'other.md', path: 'other.md', type: 'file' },
+          ]
+        : Array.from({ length: 25 }, (_, index) => ({
+            name: `file-${index}.ts`,
+            path: `src/file-${index}.ts`,
+            type: 'file',
+          }))
+    return Response.json({ entries })
+  }) as typeof fetch
+  try {
+    const files = await findExplorerFiles('FILE-', 'session-project', controller.signal)
+    expect(requested).toEqual(['', 'src'])
+    expect(files).toHaveLength(20)
+    expect(files[0].path).toBe('src/file-0.ts')
+    controller.abort()
+    await expect(findExplorerFiles('', 'session-project', controller.signal)).rejects.toThrow()
+    expect(requested).toHaveLength(2)
+  } finally {
+    globalThis.fetch = originalFetch
+  }
 })

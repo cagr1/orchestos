@@ -86,4 +86,37 @@ export default async function composerPicker({ page, api, step, shot, visible, c
     JSON.stringify({ model: codexModel.id, efforts: codexModel.efforts }),
   )
   await shot('codex-efforts-preserved')
+  await page.keyboard.press('Escape')
+  const composer = page.locator('textarea').last()
+  await composer.fill('@READ')
+  const files = page.getByRole('listbox', { name: 'Project files' })
+  await step(
+    'project file matches @ query',
+    await visible(files.getByRole('option', { name: 'README.md', exact: true })),
+  )
+  await composer.press('Enter')
+  await step('Enter inserts plain file reference', (await composer.inputValue()) === '@README.md ')
+  await composer.fill('Read @READ')
+  await visible(files.getByRole('option', { name: 'README.md', exact: true }))
+  await composer.press('Tab')
+  await step(
+    'Tab replaces reference after a space',
+    (await composer.inputValue()) === 'Read @README.md ',
+  )
+  await composer.fill('@')
+  await visible(files.getByRole('option', { name: 'README.md', exact: true }))
+  await composer.press('ArrowDown')
+  const selectedPath = await files.getByRole('option', { selected: true }).innerText()
+  await composer.press('Enter')
+  await step(
+    'arrow navigation chooses the highlighted file',
+    (await composer.inputValue()) === `@${selectedPath} `,
+  )
+  await composer.fill('@READ')
+  await visible(files)
+  await composer.press('Escape')
+  await step('Escape closes file references', (await files.count()) === 0)
+  await composer.fill('a@b')
+  await step('email does not open file references', (await files.count()) === 0)
+  await composer.fill('')
 }
