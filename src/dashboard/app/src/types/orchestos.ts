@@ -186,6 +186,7 @@ export interface ProjectContext {
 
 export interface ChatMessage {
   id: string
+  stopped?: boolean
   taskId?: string
   role: 'user' | 'assistant' | 'system'
   content: string

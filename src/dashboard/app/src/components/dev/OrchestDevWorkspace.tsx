@@ -22,6 +22,7 @@ import type { ChatMessageRow, TimelineStep, TimelineTurn } from '../../api/chat'
 import { getSessionContext, getTimeline, type TimelineResponse } from '../../api/chat'
 import { type ConfigResponse, getConfig } from '../../api/settings'
 import { useStickToBottom } from '../../hooks/useStickToBottom'
+import { useStopChatTurn } from '../../hooks/useStopChatTurn'
 import type {
   AgentItem,
   SessionStatus as ApiSessionStatus,
@@ -29,6 +30,7 @@ import type {
   ProjectItem,
 } from '../../types/orchestos'
 import { AgentComposer, type CliId } from '../common/AgentComposer'
+import { StoppedResponse } from '../thread/StoppedResponse'
 import { assistantCopyTarget } from './copy-target'
 import { resolveNewSessionAgent } from './new-session-agent'
 
@@ -304,6 +306,13 @@ export const OrchestDevWorkspace: React.FC<OrchestDevWorkspaceProps> = ({
 
   const exchanges = buildExchanges(timeline)
   const isWorking = sessionStatus === 'working' || timeline?.pending === true
+  const pendingTurn = timeline?.turns.find((turn) => turn.status === 'pending')
+  const stop = useStopChatTurn(
+    activeAgent?.id,
+    pendingTurn?.id,
+    isWorking,
+    activeAgent?.projectId ?? null,
+  )
   const persistedPendingMessage = (timeline?.messages ?? []).some(
     (message) =>
       message.role === 'user' &&
@@ -913,7 +922,7 @@ export const OrchestDevWorkspace: React.FC<OrchestDevWorkspaceProps> = ({
         )}
 
         {/* 8. FINAL ANSWER IN MARKDOWN */}
-        {hasRealTurn && visibleAssistantMessage && (
+        {hasRealTurn && (visibleAssistantMessage || exchange.assistantMessage?.stopped) && (
           <div className="flex items-start gap-2">
             <Bot className="mt-4 h-4 w-4 shrink-0 text-app-accent" aria-hidden="true" />
             <div
@@ -924,9 +933,12 @@ export const OrchestDevWorkspace: React.FC<OrchestDevWorkspaceProps> = ({
                 data-dev-assistant-card
                 className="relative rounded-card p-4 bg-app-surface/60 border border-app/60 text-xs text-app leading-relaxed shadow-2xs w-full"
               >
-                <div className="prose prose-invert max-w-none text-xs leading-relaxed [&>p]:mb-2 [&>ul]:list-disc [&>ul]:pl-4 [&>pre]:bg-app-bg [&>pre]:p-2.5 [&>pre]:rounded-control [&>pre]:border [&>pre]:border-app [&>pre]:font-mono [&>code]:bg-app-bg [&>code]:px-1 [&>code]:py-0.5 [&>code]:rounded-control [&>code]:border [&>code]:border-app [&>code]:font-mono [&>strong]:font-bold [&>strong]:text-app">
-                  <Markdown remarkPlugins={[remarkGfm]}>{visibleAssistantMessage}</Markdown>
-                </div>
+                {visibleAssistantMessage && (
+                  <div className="prose prose-invert max-w-none text-xs leading-relaxed [&>p]:mb-2 [&>ul]:list-disc [&>ul]:pl-4 [&>pre]:bg-app-bg [&>pre]:p-2.5 [&>pre]:rounded-control [&>pre]:border [&>pre]:border-app [&>pre]:font-mono [&>code]:bg-app-bg [&>code]:px-1 [&>code]:py-0.5 [&>code]:rounded-control [&>code]:border [&>code]:border-app [&>code]:font-mono [&>strong]:font-bold [&>strong]:text-app">
+                    <Markdown remarkPlugins={[remarkGfm]}>{visibleAssistantMessage}</Markdown>
+                  </div>
+                )}
+                <StoppedResponse stopped={exchange.assistantMessage?.stopped} />
               </div>
               <div className="flex items-center opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity">
                 <button
@@ -977,6 +989,9 @@ export const OrchestDevWorkspace: React.FC<OrchestDevWorkspaceProps> = ({
         <div className="max-w-3xl lg:max-w-4xl mx-auto">
           <AgentComposer
             onSendMessage={handleSendMessage}
+            busy={isWorking}
+            onStop={stop.onStop}
+            stopping={stop.stopping}
             contextSessionId={activeAgent.id}
             defaultCli={cliId}
             defaultModel={activeAgent.model}

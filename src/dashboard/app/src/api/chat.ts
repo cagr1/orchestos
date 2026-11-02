@@ -34,6 +34,7 @@ export interface ChatMessageRow {
   taskHeld: boolean
   existingFiles: string[]
   turnId?: string | null
+  stopped?: boolean
   taskReport?: {
     outcome: string
     approvalMode?: 'supervised' | 'auto-edit' | 'full'
@@ -89,6 +90,7 @@ export interface CliModelCatalog {
 
 export interface ChatSendResponse {
   text: string
+  stopped?: boolean
   model?: string
   toolCalls?: Array<{
     name: string
@@ -226,6 +228,7 @@ export function mapMessage(row: ChatMessageRow): ChatMessage {
     taskId: row.taskId ?? undefined,
     role: row.role,
     content: row.content,
+    stopped: row.stopped,
     timestamp: toTimestamp(row.createdAt),
     model: row.model ?? undefined,
     taskHeld: row.taskHeld || undefined,
@@ -436,6 +439,20 @@ export async function getTimeline(
     {
       headers: sessionScope(projectId).headers,
       signal,
+    },
+  )
+}
+
+export async function stopChatTurn(
+  sessionId: string,
+  turnId: string,
+  projectId: string | null = null,
+): Promise<void> {
+  await request(
+    scopedSessionPath(`/api/chat/sessions/${encodeURIComponent(sessionId)}/stop`, projectId),
+    {
+      ...jsonInit('POST', { turnId }),
+      headers: { ...sessionScope(projectId).headers, 'Content-Type': 'application/json' },
     },
   )
 }

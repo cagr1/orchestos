@@ -6,6 +6,7 @@ import {
   Loader2,
   Paperclip,
   RotateCw,
+  Square,
   Terminal,
   X,
 } from 'lucide-react'
@@ -143,6 +144,8 @@ export interface AgentComposerProps {
   /** ERP.4.14: la config de roles aún se lee; ni aviso ni envío hasta saberlo. */
   orchestratorLoading?: boolean
   busy?: boolean
+  onStop?: () => Promise<void>
+  stopping?: boolean
   onOpenRouting?: () => void
   onSlashCommand?: (command: string, argument?: string) => void
   onSelectionChange?: (cli: CliId, model: string) => void
@@ -161,6 +164,8 @@ export const AgentComposer: React.FC<AgentComposerProps> = ({
   orchestratorAssigned = true,
   orchestratorLoading = false,
   busy = false,
+  onStop,
+  stopping = false,
   onOpenRouting,
   onSlashCommand,
   onSelectionChange,
@@ -892,27 +897,20 @@ export const AgentComposer: React.FC<AgentComposerProps> = ({
                 maxTokens={context.window ?? undefined}
               />
             )}
-            <button
-              type="button"
-              onClick={handleSend}
-              disabled={
+            <ComposerSubmitButton
+              busy={busy}
+              onStop={onStop}
+              stopping={stopping}
+              onSend={handleSend}
+              hasDraft={!!inputText.trim() || hasSendableAttachments}
+              sendDisabled={
                 (!inputText.trim() && !hasSendableAttachments) ||
                 (!isShellMode && !modelsReady) ||
                 orchestratorLoading ||
                 attachments.some((att) => att.status === 'uploading') ||
-                !orchestratorAssigned ||
-                busy
+                !orchestratorAssigned
               }
-              className={`p-1.5 rounded-control flex items-center justify-center transition-all ${
-                inputText.trim() || hasSendableAttachments
-                  ? 'bg-app-accent text-white hover:opacity-90 shadow-2xs'
-                  : 'text-app-muted/40 cursor-not-allowed'
-              }`}
-              title="Send message (Enter)"
-              aria-label="Send message"
-            >
-              <ArrowUp className="w-3.5 h-3.5 stroke-[2.5]" />
-            </button>
+            />
           </div>
         </div>
         {!orchestratorLoading && !orchestratorAssigned && (
@@ -932,5 +930,43 @@ export const AgentComposer: React.FC<AgentComposerProps> = ({
         )}
       </div>
     </div>
+  )
+}
+
+export function ComposerSubmitButton({
+  busy,
+  onStop,
+  stopping,
+  onSend,
+  hasDraft,
+  sendDisabled,
+}: {
+  busy: boolean
+  onStop?: () => Promise<void>
+  stopping: boolean
+  onSend: () => unknown
+  hasDraft: boolean
+  sendDisabled: boolean
+}) {
+  const canStop = busy && !!onStop
+  return (
+    <button
+      type="button"
+      onClick={canStop ? onStop : onSend}
+      disabled={canStop ? stopping : busy || sendDisabled}
+      className={`p-1.5 rounded-control flex items-center justify-center transition-all ${
+        canStop || hasDraft
+          ? 'bg-app-accent text-white hover:opacity-90 shadow-2xs'
+          : 'text-app-muted/40 cursor-not-allowed'
+      }`}
+      title={canStop ? (stopping ? 'Deteniendo…' : 'Detener') : 'Send message (Enter)'}
+      aria-label={canStop ? (stopping ? 'Stopping response' : 'Stop response') : 'Send message'}
+    >
+      {canStop ? (
+        <Square className="w-3.5 h-3.5 fill-current" />
+      ) : (
+        <ArrowUp className="w-3.5 h-3.5 stroke-[2.5]" />
+      )}
+    </button>
   )
 }

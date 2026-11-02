@@ -15,6 +15,7 @@ import {
 import type { PendingApproval } from '../../api/runs'
 import { type ConfigResponse, getConfig } from '../../api/settings'
 import { useStickToBottom } from '../../hooks/useStickToBottom'
+import { useStopChatTurn } from '../../hooks/useStopChatTurn'
 import type { ChatAttachment, ChatThread, SessionStatus, TaskItem } from '../../types/orchestos'
 import { AgentComposer, type CliId, cliDisplayName } from '../common/AgentComposer'
 import {
@@ -26,6 +27,7 @@ import {
   noteLocalSend,
   noteStreamed,
 } from '../thread/entrance'
+import { StoppedResponse } from '../thread/StoppedResponse'
 import { TaskCard } from '../thread/TaskCard'
 import { ThreadEmpty } from '../thread/ThreadEmpty'
 import { ThreadMarkdown } from '../thread/ThreadMarkdown'
@@ -232,6 +234,12 @@ export const OrchestChatView: React.FC<OrchestChatViewProps> = ({
     .filter((step) => step.type === 'reasoning' && step.detail)
     .sort((a, b) => a.seq - b.seq)
     .map((step) => (step.detail as string).replace(/^\*\*(.*?)\*\*$/s, '$1'))
+  const stop = useStopChatTurn(
+    sessionId,
+    liveTurn?.status === 'pending' ? liveTurn.id : undefined,
+    isWorking,
+    thread?.projectId ?? null,
+  )
   const [workStartedAt, setWorkStartedAt] = useState(0)
   const [nowMs, setNowMs] = useState(0)
   useEffect(() => {
@@ -447,6 +455,7 @@ export const OrchestChatView: React.FC<OrchestChatViewProps> = ({
                             streaming={false}
                           />
                         )}
+                        <StoppedResponse stopped={msg.stopped} />
                         {showCard && (
                           <TaskCard
                             card={
@@ -570,6 +579,8 @@ export const OrchestChatView: React.FC<OrchestChatViewProps> = ({
               orchestratorAssigned={!!orchestrator}
               orchestratorLoading={orchestrator === undefined}
               busy={isWorking}
+              onStop={stop.onStop}
+              stopping={stop.stopping}
               onOpenRouting={onOpenRouting}
               onSlashCommand={onSlashCommand}
               onSelectionChange={(_cli, model) => setComposerModel(model)}

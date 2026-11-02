@@ -696,7 +696,7 @@ Regla: nada se reintenta, cierra ni muestra sin evidencia medida que el usuario 
   Opus 5.5 · medium; capturas `/tmp/set-shots/plus-*.png`.
   Gate en vivo: navegador real (Playwright, `dev-session-tabs` 24/24, `shell-look` 75/75, `smoke` 7/7), `docs/done/evidence/UI.45-live.json`.
   Ejecutado por: codex gpt-6.1-sol (criterio r1, r2) · codex gpt-6-luna (mecanico r3) · Revisión: Opus · Spec: docs/specs/UI.45.md
-- [ ] **CHAT.4 — 🧠 Stop real: detener un turno en curso desde el chat y desde Dev.** Carlos 2026-11-02: GO a
+- [x] **CHAT.4 — 🧠 Stop real: detener un turno en curso desde el chat y desde Dev.** Carlos 2026-11-02: GO a
   planificarlo. Hoy no hay cancelación de turno en el backend (el Stop de Dev era falso, UI.38.4). Plan antes de
   código: cómo se corta cada motor (Claude CLI, Codex app-server, API), qué queda en el hilo y en la DB, qué ve el
   usuario. Toca back y front → plan + GO de Carlos.
@@ -706,6 +706,13 @@ Regla: nada se reintenta, cierra ni muestra sin evidencia medida que el usuario 
   SIGTERM→SIGKILL 2 s y sin `--resume` tras Stop, `signal` hasta cada fetch de API, migración 33 `cancelled`. Gates
   del cerebro: typecheck, lint, `test:coverage` 2182/0 (funciones 80,64 %, líneas 68,31 %); contraprueba de Sol 12
   fallos contra HEAD. Sin verificar en vivo: va en CHAT.4.2. Ejecutado por: codex gpt-6.1-sol (criterio) · revisión Opus.
+  CHAT.4.2 UI: el botón de enviar pasa a "Detener" (cuadrado) y "Deteniendo…" mientras hay turno en curso, en Chat y
+  Dev (`ComposerSubmitButton`, `useStopChatTurn`); el hilo marca "Respuesta detenida" en muted sin banner; fallo del
+  stop silencioso. ui-gate nuevo `chat-stop` (Chat y Dev con el CLI real: Stop, parcial que no crece, `stopped` en
+  la DB, segundo turno normal y sin `--resume` de Claude). Gates del cerebro: lint, `test:coverage` 2187/0,
+  `ui:gate chat-stop` 22/22. Sol: `chat-stop` 22/22, `chat-streaming` 27/27, `codex-live` 15/15.
+  Gate en vivo: navegador real (Playwright), `docs/done/evidence/CHAT.4-live.json`.
+  Ejecutado por: codex gpt-6.1-sol (criterio, .1 y .2) · revisión Opus · Spec: docs/specs/CHAT.4.md
 - [x] **CI.23 — 🔍 `tasks`: la tarea relanzada no deja su commit `chore(tasks)` (intermitente en batería).** (cerrado 2026-10-23) Visto 2 de
   6 corridas del set de UI.26.4 (2026-10-14), nunca con `tasks` solo: tras relanzar `gate-failed-task` y llegar a
   `done`, a los 15 s de `waitForTasksYamlCommit` el último commit es el del trabajo (`orchestos(gate-failed-task): …`)

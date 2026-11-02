@@ -11,11 +11,63 @@ import {
   runProjectTask,
   sendMessage,
   sessionListQueries,
+  stopChatTurn,
   toTimestamp,
   uploadChatFile,
 } from './chat'
 
 describe('chat API mapping', () => {
+  test('stops the exact turn with explicit project scope, and propagates stop failures', async () => {
+    const originalFetch = globalThis.fetch
+    const calls: Array<{ path: string; init?: RequestInit }> = []
+    let status = 202
+    globalThis.fetch = (async (path, init) => {
+      calls.push({ path: String(path), init })
+      return new Response(
+        JSON.stringify(status === 404 ? { error: 'Chat turn not found' } : { status: 'stopping' }),
+        { status },
+      )
+    }) as typeof fetch
+    try {
+      await stopChatTurn('session/1', 'turn-2', 'project-1')
+      expect(calls[0]?.path).toBe('/api/chat/sessions/session%2F1/stop')
+      expect(calls[0]?.init?.method).toBe('POST')
+      expect(calls[0]?.init?.headers).toEqual({
+        'Content-Type': 'application/json',
+        'x-orchestos-project-id': 'project-1',
+      })
+      expect(JSON.parse(String(calls[0]?.init?.body))).toEqual({ turnId: 'turn-2' })
+      status = 404
+      await expect(stopChatTurn('general', 'turn-3')).rejects.toThrow('Chat turn not found')
+      expect(calls[1]?.path).toBe('/api/chat/sessions/general/stop?project=none')
+      globalThis.fetch = (async () => {
+        throw new Error('offline')
+      }) as unknown as typeof fetch
+      await expect(stopChatTurn('general', 'turn-3')).rejects.toThrow('offline')
+    } finally {
+      globalThis.fetch = originalFetch
+    }
+  })
+
+  test('preserves partial and empty stopped responses when mapping persisted messages', () => {
+    for (const content of ['partial response', '']) {
+      const message = mapMessage({
+        id: 1,
+        sessionId: 's',
+        role: 'assistant',
+        content,
+        model: null,
+        taskId: null,
+        ocrUsed: [],
+        taskHeld: false,
+        existingFiles: [],
+        createdAt: '2026-11-02T12:00:00Z',
+        stopped: true,
+      })
+      expect(message.content).toBe(content)
+      expect(message.stopped).toBe(true)
+    }
+  })
   test('requests the visible project and general chats, or only general chats without projects', () => {
     expect(sessionListQueries('project-1')).toEqual(['?project=project-1', '?project=none'])
     expect(sessionListQueries(null)).toEqual(['?project=none'])
