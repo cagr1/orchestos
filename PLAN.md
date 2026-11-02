@@ -656,9 +656,12 @@ Regla: nada se reintenta, cierra ni muestra sin evidencia medida que el usuario 
   (antes `rgb(244, 244, 245)`); selector en `dist/main.css` `.hljs-built_in`.
   Gate en vivo: navegador real (Playwright, `smoke` 7/7), `docs/done/evidence/UI.43-live.json`.
   Ejecutado por: codex gpt-6-luna (mecanico r1, r2) · Spec: docs/specs/UI.43.md
-- [ ] **CI.51 — 🔍 El pre-commit no corre biome; el error se ve recién en el pre-push.** 2026-11-01/02: dos pushes
+- [x] **CI.51 — 🔍 El pre-commit no corre biome; el error se ve recién en el pre-push.** (cerrado 2026-11-02) 2026-11-01/02: dos pushes
   rechazados por biome (evidencia JSON sin newline final; imports sin ordenar en un test) tras ~3 min de pre-push.
   `biome check --diagnostic-level=error` sobre los archivos staged en `scripts/pre-commit.sh`; solo errores.
+  Evidencia (cerebro): hook reinstalado igual a su fuente; probe: un `.json` staged sin newline final → commit exit 1
+  con `✗ biome: ejecuta bunx biome check --write ci51-probe.json`; probe borrado.
+  Ejecutado por: codex gpt-6-luna (mecanico) · Spec: docs/specs/CI.51.md
 - [ ] **CI.52 — 🔍 `project-delete`: 404 de `/api/config` y del timeline del chat tras borrar el proyecto (intermitente).**
   Pre-push del 2026-11-02 (`ui-gate-82671`): `HTTP 404 …/api/chat/sessions/<id>/timeline; HTTP 404 …/api/config`;
   2 reruns 11/11. Misma familia que `bloque-CI.md:367` (`App.tsx` cancela sus lecturas antes del purge), pero las del

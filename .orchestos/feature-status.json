@@ -549,8 +549,8 @@
       "block": "Abiertos — fiabilidad de los gates y documentación",
       "delegation": "🔍",
       "title": "El pre-commit no corre biome; el error se ve recién en el pre-push",
-      "status": "open",
-      "closedDate": null
+      "status": "done",
+      "closedDate": "2026-11-02"
     },
     {
       "id": "CI.52",

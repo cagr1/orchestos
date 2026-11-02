@@ -39,6 +39,22 @@ bun run typecheck
 echo "🔐 Verificando secretos en cambios staged..."
 bun run security:secrets
 
+echo "🎨 Verificando Biome en archivos staged..."
+biome_files=()
+while IFS= read -r -d '' file; do
+  case "$file" in
+    *.ts|*.tsx|*.js|*.mjs|*.json|*.jsonc|*.css) biome_files+=("$file") ;;
+  esac
+done < <(git diff --cached --name-only --diff-filter=ACMR -z)
+if ((${#biome_files[@]})); then
+  if ! bunx biome check --diagnostic-level=error --no-errors-on-unmatched --files-ignore-unknown=true "${biome_files[@]}"; then
+    printf '✗ biome: ejecuta bunx biome check --write' >&2
+    printf ' %q' "${biome_files[@]}" >&2
+    printf '\n' >&2
+    exit 1
+  fi
+fi
+
 if git diff --cached --name-only --diff-filter=ACMRTUXB | grep -Fxq 'PLAN.md'; then
   staged_plan="$(mktemp)"
   trap 'rm -f "$staged_plan"' EXIT
