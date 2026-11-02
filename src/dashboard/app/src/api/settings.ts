@@ -262,6 +262,9 @@ export async function saveClis(clis: CustomCliConfig[], projectId?: string): Pro
 }
 
 export interface ProviderSnapshot {
+  functional: boolean
+  authDetail?: string
+  checkedAt: number
   id: string
   label: string
   installed: boolean

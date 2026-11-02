@@ -10,3 +10,7 @@ export function resolveNewSessionAgent(
   }
   return { agent }
 }
+
+export function isFunctionalChatCli(cli: { chat?: boolean; functional?: boolean }): boolean {
+  return Boolean(cli.chat && cli.functional)
+}

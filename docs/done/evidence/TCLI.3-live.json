@@ -1,0 +1,307 @@
+[
+  {
+    "flujo": "providers",
+    "pass": true,
+    "steps": [
+      {
+        "nombre": "General and navigation load while Usage is still pending (delayed 8 s)",
+        "ok": true,
+        "detalle": "settingsReadyMs=149 usagePending=true"
+      },
+      {
+        "nombre": "Providers shows a header loading indicator without an empty Installed group",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "installed Claude and missing Gemini are grouped separately",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "version, masked account, plan and model count are shown",
+        "ok": true,
+        "detalle": "{\"card\":\"Claude Code\\n1.2.3\\nc•••@example.test · pro · 13 models\\nDefault model (Executor)\\nsonnet\\nclaude-opus-5-5\\nclaude-sonnet-5-5\\nclaude-fable-5-1\\nclaude-haiku-5-5\\nclaude-haiku-4-5-20251001\\nclaude-sonnet-5\\nclaude-opus-5\\nclaude-fable-5\\nclaude-opus-4-8\\nclaude-opus-4-7\\nclaude-opus-4-6\\nclaude-sonnet-4-6\\nclaude-sonnet-4-5-20250929\\nShow in picker\",\"providers\":{\"providers\":[{\"id\":\"claude\",\"label\":\"Claude Code\",\"installed\":true,\"path\":\"/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/orchestos-ui-providers-lcqbUS/claude\",\"version\":\"1.2.3\",\"auth\":{\"account\":\"carlos@example.test\",\"plan\":\"pro\",\"status\":\"ok\"},\"functional\":true,\"authDetail\":\"oauth_token · pro\",\"checkedAt\":1793652746545,\"models\":[\"claude-opus-5-5\",\"claude-sonnet-5-5\",\"claude-fable-5-1\",\"claude-haiku-5-5\",\"claude-haiku-4-5-20251001\",\"claude-sonnet-5\",\"claude-opus-5\",\"claude-fable-5\",\"claude-opus-4-8\",\"claude-opus-4-7\",\"claude-opus-4-6\",\"claude-sonnet-4-6\",\"claude-sonnet-4-5-20250929\"],\"taskEngine\":true,\"session\":\"chat\",\"defaultModel\":\"sonnet\"},{\"id\":\"codex\",\"label\":\"Codex\",\"installed\":true,\"path\":\"/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/orchestos-ui-providers-lcqbUS/codex\",\"version\":\"1.2.3\",\"auth\":{\"status\":\"missing\"},\"functional\":false,\"checkedAt\":1793652746545,\"models\":[\"gpt-6.1-sol\",\"gpt-6-astra\",\"gpt-6.1-terra\",\"gpt-6-sol\",\"gpt-reserve\",\"gpt-6-luna\",\"gpt-5.6-sol\",\"gpt-5.6-terra\",\"gpt-5.6-luna\",\"codex-auto-review\"],\"taskEngine\":true,\"session\":\"chat\"},{\"id\":\"opencode\",\"label\":\"opencode\",\"installed\":false,\"path\":null,\"version\":null,\"auth\":{\"status\":\"unknown\"},\"functional\":false,\"checkedAt\":1793652746546,\"models\":[],\"taskEngine\":true,\"session\":\"terminal\"},{\"id\":\"deepseek\",\"label\":\"DeepSeek\",\"installed\":false,\"path\":null,\"version\":null,\"auth\":{\"status\":\"unknown\"},\"functional\":false,\"checkedAt\":1793652746546,\"models\":[],\"taskEngine\":false,\"session\":null},{\"id\":\"gemini\",\"label\":\"Gemini\",\"installed\":false,\"path\":null,\"version\":null,\"auth\":{\"status\":\"unknown\"},\"functional\":false,\"checkedAt\":1793652746546,\"models\":[],\"taskEngine\":false,\"session\":null},{\"id\":\"kimi\",\"label\":\"Kimi\",\"installed\":false,\"path\":null,\"version\":null,\"auth\":{\"status\":\"unknown\"},\"functional\":false,\"checkedAt\":1793652746546,\"models\":[],\"taskEngine\":false,\"session\":null},{\"id\":\"glm\",\"label\":\"GLM\",\"installed\":false,\"path\":null,\"version\":null,\"auth\":{\"status\":\"unknown\"},\"functional\":false,\"checkedAt\":1793652746546,\"models\":[],\"taskEngine\":false,\"session\":null}]},\"modelCount\":13}"
+      },
+      {
+        "nombre": "only Executor row has the default model selector",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "missing session offers a copyable login command",
+        "ok": true,
+        "detalle": "{\"card\":\"Codex\\n1.2.3\\nSigned out · 10 models\\nShow in picker\\ncodex login\",\"providers\":{\"providers\":[{\"id\":\"claude\",\"label\":\"Claude Code\",\"installed\":true,\"path\":\"/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/orchestos-ui-providers-lcqbUS/claude\",\"version\":\"1.2.3\",\"auth\":{\"account\":\"carlos@example.test\",\"plan\":\"pro\",\"status\":\"ok\"},\"functional\":true,\"authDetail\":\"oauth_token · pro\",\"checkedAt\":1793652746545,\"models\":[\"claude-opus-5-5\",\"claude-sonnet-5-5\",\"claude-fable-5-1\",\"claude-haiku-5-5\",\"claude-haiku-4-5-20251001\",\"claude-sonnet-5\",\"claude-opus-5\",\"claude-fable-5\",\"claude-opus-4-8\",\"claude-opus-4-7\",\"claude-opus-4-6\",\"claude-sonnet-4-6\",\"claude-sonnet-4-5-20250929\"],\"taskEngine\":true,\"session\":\"chat\",\"defaultModel\":\"sonnet\"},{\"id\":\"codex\",\"label\":\"Codex\",\"installed\":true,\"path\":\"/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/orchestos-ui-providers-lcqbUS/codex\",\"version\":\"1.2.3\",\"auth\":{\"status\":\"missing\"},\"functional\":false,\"checkedAt\":1793652746545,\"models\":[\"gpt-6.1-sol\",\"gpt-6-astra\",\"gpt-6.1-terra\",\"gpt-6-sol\",\"gpt-reserve\",\"gpt-6-luna\",\"gpt-5.6-sol\",\"gpt-5.6-terra\",\"gpt-5.6-luna\",\"codex-auto-review\"],\"taskEngine\":true,\"session\":\"chat\"},{\"id\":\"opencode\",\"label\":\"opencode\",\"installed\":false,\"path\":null,\"version\":null,\"auth\":{\"status\":\"unknown\"},\"functional\":false,\"checkedAt\":1793652746546,\"models\":[],\"taskEngine\":true,\"session\":\"terminal\"},{\"id\":\"deepseek\",\"label\":\"DeepSeek\",\"installed\":false,\"path\":null,\"version\":null,\"auth\":{\"status\":\"unknown\"},\"functional\":false,\"checkedAt\":1793652746546,\"models\":[],\"taskEngine\":false,\"session\":null},{\"id\":\"gemini\",\"label\":\"Gemini\",\"installed\":false,\"path\":null,\"version\":null,\"auth\":{\"status\":\"unknown\"},\"functional\":false,\"checkedAt\":1793652746546,\"models\":[],\"taskEngine\":false,\"session\":null},{\"id\":\"kimi\",\"label\":\"Kimi\",\"installed\":false,\"path\":null,\"version\":null,\"auth\":{\"status\":\"unknown\"},\"functional\":false,\"checkedAt\":1793652746546,\"models\":[],\"taskEngine\":false,\"session\":null},{\"id\":\"glm\",\"label\":\"GLM\",\"installed\":false,\"path\":null,\"version\":null,\"auth\":{\"status\":\"unknown\"},\"functional\":false,\"checkedAt\":1793652746546,\"models\":[],\"taskEngine\":false,\"session\":null}]}}"
+      },
+      {
+        "nombre": "default model persists after reload",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "refresh requests a fresh provider probe",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "picker visibility persists after reload",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "Model routing shares Executor model and retains hidden current agent",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "hidden CLI is absent from other role pickers after reload",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "Executor role remains assigned on disk",
+        "ok": true,
+        "detalle": "ok"
+      }
+    ],
+    "notes": [],
+    "errores": [],
+    "capturas": [
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-98081/providers/providers.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-98081/providers/providers-hidden-routing.png"
+    ]
+  },
+  {
+    "flujo": "settings-pages",
+    "pass": true,
+    "steps": [
+      {
+        "nombre": "Language lives in General without a navigation entry",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "language saves instantly and survives reload",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "language search highlights its General row",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "Appearance has four themes",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "theme OrchestOS is available",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "theme Graphite is available",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "theme Carbon is available",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "theme Light is available",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "chosen theme persists after reload",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "Keybindings has one row per registry entry",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "registered shortcut command-palette",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "registered shortcut settings-search",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "command filter leaves exactly its matching row",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "key filter matches the registered shortcuts",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "unmatched filter has zero rows and keeps page usable",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "clearing the filter restores all rows",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "registered Settings shortcut opens search",
+        "ok": true,
+        "detalle": "ok"
+      }
+    ],
+    "notes": [],
+    "errores": [],
+    "capturas": [
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-98081/settings-pages/appearance.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-98081/settings-pages/keybindings.png"
+    ]
+  },
+  {
+    "flujo": "dev-session-tabs",
+    "pass": true,
+    "steps": [
+      {
+        "nombre": "reload starts in Chat",
+        "ok": true,
+        "detalle": "Dev tabs absent after reload"
+      },
+      {
+        "nombre": "entering Dev restores last session without saved tabs",
+        "ok": true,
+        "detalle": "remembered Alpha active, no New session"
+      },
+      {
+        "nombre": "sidebar opens ordered sessions and existing tabs do not duplicate",
+        "ok": true,
+        "detalle": "Alpha, Beta"
+      },
+      {
+        "nombre": "file opens italic preview in the shared row and occupies full center",
+        "ok": true,
+        "detalle": "session remains a tab; file only content at full width"
+      },
+      {
+        "nombre": "session tab restores full center chat",
+        "ok": true,
+        "detalle": "file viewer absent, composer visible"
+      },
+      {
+        "nombre": "opening another file replaces only preview with numbered colored source",
+        "ok": true,
+        "detalle": "two sessions plus context.json preview; code colored"
+      },
+      {
+        "nombre": "tree double click pins file",
+        "ok": true,
+        "detalle": "fixed code tab"
+      },
+      {
+        "nombre": "Markdown Source keeps numbered literal source",
+        "ok": true,
+        "detalle": "literal Markdown source"
+      },
+      {
+        "nombre": "reload starts in Chat",
+        "ok": true,
+        "detalle": "Dev tabs absent after reload"
+      },
+      {
+        "nombre": "reload restores mixed tab order and active fixed file",
+        "ok": true,
+        "detalle": "Alpha, Beta, context.json, README.md active"
+      },
+      {
+        "nombre": "closing active file selects its left neighbour",
+        "ok": true,
+        "detalle": "context.json active"
+      },
+      {
+        "nombre": "closing session selects right neighbour without deleting session",
+        "ok": true,
+        "detalle": "Beta active; Alpha remains in API"
+      },
+      {
+        "nombre": "plus opens the installed chat agent menu with last used agent preselected",
+        "ok": true,
+        "detalle": "Claude\nCodex"
+      },
+      {
+        "nombre": "Escape closes menu without creating a tab",
+        "ok": true,
+        "detalle": "tab count unchanged"
+      },
+      {
+        "nombre": "Enter creates with last used Claude and its unassigned CLI default",
+        "ok": true,
+        "detalle": "What should we work on in orchestos-dev-tabs-VvocfM?\nCLI default"
+      },
+      {
+        "nombre": "arrow keys move the preselected agent",
+        "ok": true,
+        "detalle": "Codex selected"
+      },
+      {
+        "nombre": "plus appends centered New session using configured orchestrator model and effort",
+        "ok": true,
+        "detalle": "What should we work on in orchestos-dev-tabs-VvocfM?\nGPT-6-Luna · medium"
+      },
+      {
+        "nombre": "chosen Codex becomes first and preselected",
+        "ok": true,
+        "detalle": "Codex\nClaude"
+      },
+      {
+        "nombre": "click outside closes without creating",
+        "ok": true,
+        "detalle": "three tabs remain"
+      },
+      {
+        "nombre": "reload starts in Chat",
+        "ok": true,
+        "detalle": "Dev tabs absent after reload"
+      },
+      {
+        "nombre": "reload restores active New session alongside sessions and fixed files",
+        "ok": true,
+        "detalle": "Beta, context.json, New session"
+      },
+      {
+        "nombre": "reload starts in Chat",
+        "ok": true,
+        "detalle": "Dev tabs absent after reload"
+      },
+      {
+        "nombre": "restoration removes dead session ids",
+        "ok": true,
+        "detalle": "dead id removed"
+      },
+      {
+        "nombre": "0 console errors",
+        "ok": true,
+        "detalle": "none"
+      }
+    ],
+    "notes": [],
+    "errores": [],
+    "capturas": [
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-98081/dev-session-tabs/session-tabs.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-98081/dev-session-tabs/file-markdown-preview.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-98081/dev-session-tabs/file-highlighted-code.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-98081/dev-session-tabs/file-markdown-source.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-98081/dev-session-tabs/new-session-agent-menu.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-98081/dev-session-tabs/new-session.png"
+    ]
+  }
+]

@@ -3,10 +3,12 @@ import { join } from 'node:path'
 import { loadOrcheConfig } from '../../config/load.ts'
 import { cliChatAdapterFor } from '../../run/executors/chat-adapters.ts'
 import {
-  type CliDiscoveryProbe,
-  cliSearchPath,
-  systemCliDiscoveryProbe,
-} from '../../run/executors/cli-discovery.ts'
+  type CliHealth,
+  type CliHealthProbe,
+  createCliHealthReader,
+  readCliHealth,
+  systemCliHealthProbe,
+} from '../../run/executors/cli-health.ts'
 import { configuredClis, detectInstalledClis } from '../../run/executors/cli-registry.ts'
 import { taskEngineForCli } from '../../run/executors/task-engines.ts'
 import { type CliModelCatalog, readCliModelCatalogsCached } from '../chat-cli-models.ts'
@@ -29,34 +31,20 @@ export interface ProviderSnapshot {
   defaultModel?: string
   taskEngine: boolean
   session: 'chat' | 'terminal' | null
+  functional: boolean
+  authDetail?: string
+  checkedAt: number
 }
 
-export interface ProviderProbe extends CliDiscoveryProbe {
-  command(binary: string, args: string[]): Promise<string | null>
+export interface ProviderProbe extends CliHealthProbe {
   readFile(path: string): string | null
-  now(): number
 }
 
 export const systemProviderProbe: ProviderProbe = {
-  ...systemCliDiscoveryProbe,
-  now: Date.now,
+  ...systemCliHealthProbe,
   readFile(path) {
     try {
       return readFileSync(path, 'utf8')
-    } catch {
-      return null
-    }
-  },
-  async command(binary, args) {
-    try {
-      const proc = Bun.spawn([binary, ...args], {
-        env: { ...process.env, PATH: cliSearchPath(systemCliDiscoveryProbe) },
-        stdout: 'pipe',
-        stderr: 'ignore',
-        timeout: 3_000,
-      })
-      const [output, exit] = await Promise.all([new Response(proc.stdout).text(), proc.exited])
-      return exit === 0 ? output : null
     } catch {
       return null
     }
@@ -69,17 +57,17 @@ function object(value: unknown): Record<string, unknown> | undefined {
     : undefined
 }
 
-function readAuth(id: string, probe: ProviderProbe): ProviderAuth {
-  if (id !== 'claude' && id !== 'codex') return { status: 'unknown' }
+function readIdentity(id: string, probe: ProviderProbe): Pick<ProviderAuth, 'account' | 'plan'> {
+  if (id !== 'claude' && id !== 'codex') return {}
   const path =
     id === 'claude'
       ? join(probe.home, '.claude.json')
       : join(probe.env.CODEX_HOME || join(probe.home, '.codex'), 'auth.json')
   const raw = probe.readFile(path)
-  if (raw === null) return { status: 'missing' }
+  if (raw === null) return {}
   try {
     const data = object(JSON.parse(raw))
-    if (!data) return { status: 'unknown' }
+    if (!data) return {}
     let identity = id === 'claude' ? object(data.oauthAccount) : undefined
     if (id === 'codex') {
       const idToken = object(data.tokens)?.id_token
@@ -93,7 +81,7 @@ function readAuth(id: string, probe: ProviderProbe): ProviderAuth {
         }
       }
     }
-    if (id === 'claude' && !identity) return { status: 'missing' }
+    if (id === 'claude' && !identity) return {}
     // Explicit allowlist: neither token objects nor arbitrary auth fields reach the response.
     const account =
       id === 'claude' && typeof identity?.emailAddress === 'string'
@@ -111,22 +99,12 @@ function readAuth(id: string, probe: ProviderProbe): ProviderAuth {
           ? planValue.replace(/^claude_/, '')
           : planValue
         : undefined
-    const hasAuth =
-      id === 'claude'
-        ? Boolean(account)
-        : Boolean(
-            account ||
-              data.auth_mode === 'apikey' ||
-              object(data.tokens) ||
-              (typeof data.OPENAI_API_KEY === 'string' && data.OPENAI_API_KEY),
-          )
     return {
-      status: hasAuth ? 'ok' : 'missing',
       ...(account ? { account } : {}),
       ...(plan ? { plan } : {}),
     }
   } catch {
-    return { status: 'unknown' }
+    return {}
   }
 }
 
@@ -134,6 +112,7 @@ function readAuth(id: string, probe: ProviderProbe): ProviderAuth {
 export function createProviderReader(
   probe: ProviderProbe = systemProviderProbe,
   dependencies: {
+    health?: (refresh?: boolean) => Promise<CliHealth[]>
     detect?: () => ReturnType<typeof detectInstalledClis>
     models?: (clis: ReturnType<typeof detectInstalledClis>) => Promise<CliModelCatalog[]>
     executor?: (root: string) => { agent?: string; model?: string } | undefined
@@ -142,6 +121,9 @@ export function createProviderReader(
     >
   } = {},
 ) {
+  const health =
+    dependencies.health ??
+    (probe === systemProviderProbe ? readCliHealth : createCliHealthReader(probe))
   const cache = new Map<string, { expires: number; value: ProviderSnapshot }>()
   let pending: Promise<ProviderSnapshot[]> | undefined
   let generation = 0
@@ -158,33 +140,32 @@ export function createProviderReader(
       pending = undefined
     }
     const detected = detect()
+    const statesPromise = health(refresh)
     if (detected.some((cli) => (cache.get(cli.id)?.expires ?? -1) <= probe.now())) {
       if (!pending) {
         const currentGeneration = ++generation
         const cached = new Map(cache)
         const request = (async () => {
           const clis = detected.filter((cli) => (cache.get(cli.id)?.expires ?? -1) <= probe.now())
-          const [catalogs, versions] = await Promise.all([
+          const [catalogs, states] = await Promise.all([
             models(clis).catch(() => [] as CliModelCatalog[]),
-            Promise.all(
-              clis.map(async (cli) => {
-                if (!cli.path) return null
-                const output = await probe.command(cli.path, ['--version'])
-                const line = output?.split(/\r?\n/, 1)[0]?.trim()
-                return line?.match(/\d+\.\d+(\.\d+)?([-+.][\w.]+)?/)?.[0] || line || null
-              }),
-            ),
+            statesPromise,
           ])
           const custom = (dependencies.customClis ?? configuredClis)()
-          const fresh = clis.map((cli, index): ProviderSnapshot => {
+          const fresh = clis.map((cli): ProviderSnapshot => {
+            const state = states.find((entry) => entry.id === cli.id)
+            if (!state) throw new Error(`Missing CLI health for ${cli.id}`)
             const own = custom.find((entry) => entry.id === cli.id)
             return {
               id: cli.id,
               label: cli.label,
               installed: cli.installed,
               path: cli.path,
-              version: versions[index] ?? null,
-              auth: readAuth(cli.id, probe),
+              version: state.version,
+              auth: { ...readIdentity(cli.id, probe), status: state.auth },
+              functional: state.functional,
+              authDetail: state.authDetail,
+              checkedAt: state.checkedAt,
               models: own
                 ? [
                     'default',
@@ -221,22 +202,38 @@ export function createProviderReader(
       }
       const value = await pending
       // A refreshed request may have replaced the pending read. Use this request's result.
-      return withDefault(value, root)
+      return withDefault(value, root, await statesPromise)
     }
     return withDefault(
       detected.map((cli) => cache.get(cli.id)!.value),
       root,
+      await statesPromise,
     )
   }
 
-  function withDefault(value: ProviderSnapshot[], root: string): ProviderSnapshot[] {
+  function withDefault(
+    value: ProviderSnapshot[],
+    root: string,
+    states: CliHealth[],
+  ): ProviderSnapshot[] {
     const executor = (
       dependencies.executor ?? ((directory) => loadOrcheConfig(directory).roles.executor)
     )(root)
-    return value.map((cli) => ({
-      ...cli,
-      ...(executor?.agent === cli.id && executor.model ? { defaultModel: executor.model } : {}),
-    }))
+    return value.map((cli) => {
+      const state = states.find((entry) => entry.id === cli.id)
+      if (!state) throw new Error(`Missing CLI health for ${cli.id}`)
+      return {
+        ...cli,
+        installed: state.installed,
+        path: state.path,
+        version: state.version,
+        auth: { ...cli.auth, status: state.auth },
+        functional: state.functional,
+        authDetail: state.authDetail,
+        checkedAt: state.checkedAt,
+        ...(executor?.agent === cli.id && executor.model ? { defaultModel: executor.model } : {}),
+      }
+    })
   }
 }
 

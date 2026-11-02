@@ -1,5 +1,5 @@
 import { expect, test } from 'bun:test'
-import { resolveNewSessionAgent } from './new-session-agent'
+import { isFunctionalChatCli, resolveNewSessionAgent } from './new-session-agent'
 
 test('resolves the chosen agent role rather than the orchestrator of another agent', () => {
   expect(
@@ -31,4 +31,15 @@ test('multiple roles use orchestrator, executor, reviewer, auxiliary priority', 
     )
     expect(resolveNewSessionAgent('codex', roles).model).toBe(order[index])
   }
+})
+
+test('Dev + excludes signed-out chat CLIs and keeps functional unknown-auth CLIs; terminals stay excluded', () => {
+  const catalogs = [
+    { id: 'claude', chat: true, installed: true, auth: 'missing', functional: false },
+    { id: 'codex', chat: true, installed: true, auth: 'ok', functional: true },
+    { id: 'custom', chat: true, installed: true, auth: 'unknown', functional: true },
+    { id: 'absent', chat: true, installed: false, auth: 'unknown', functional: false },
+    { id: 'opencode', chat: false, installed: true, auth: 'ok', functional: true },
+  ]
+  expect(catalogs.filter(isFunctionalChatCli).map((cli) => cli.id)).toEqual(['codex', 'custom'])
 })

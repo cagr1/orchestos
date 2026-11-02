@@ -24,23 +24,33 @@ export default async function providers({ page, api, step, shot, cleanup, restar
 case "$1" in
 --version) echo "Claude fixture 1.2.3";;
 --help) echo "  --model <model> (e.g. 'sonnet', 'opus')";;
+auth) echo '{"loggedIn":true,"authMethod":"oauth_token","subscriptionType":"pro"}';;
 esac
 `,
     { mode: 0o755 },
   )
   const codexBinary = join(fixture, 'codex')
-  writeFileSync(codexBinary, '#!/bin/sh\necho \"Codex fixture 1.2.3\"\n', {
-    mode: 0o755,
-  })
+  writeFileSync(
+    codexBinary,
+    `#!/bin/sh
+case "$1" in
+--version) echo "Codex fixture 1.2.3";;
+login) echo "Not logged in" >&2; exit 1;;
+esac
+`,
+    { mode: 0o755 },
+  )
   const preload = join(fixture, 'probe.ts')
   writeFileSync(
     preload,
     `
 import { systemCliDiscoveryProbe } from ${JSON.stringify(resolve('src/run/executors/cli-discovery.ts'))}
+import { systemCliHealthProbe } from ${JSON.stringify(resolve('src/run/executors/cli-health.ts'))}
 import { systemProviderProbe } from ${JSON.stringify(resolve('src/dashboard/handlers/providers.ts'))}
 const discovery = { home: ${JSON.stringify(home)}, loginPath: () => null,
   which: (binary) => binary === 'claude' ? ${JSON.stringify(binary)} : binary === 'codex' ? ${JSON.stringify(codexBinary)} : null }
 Object.assign(systemCliDiscoveryProbe, discovery)
+Object.assign(systemCliHealthProbe, discovery)
 Object.assign(systemProviderProbe, discovery, { env: { ...process.env, CODEX_HOME: ${JSON.stringify(join(home, '.codex'))} } })
 `,
   )
@@ -127,6 +137,9 @@ Object.assign(systemProviderProbe, discovery, { env: { ...process.env, CODEX_HOM
     (entry) => entry.id === 'claude',
   )?.models
   const modelCount = chatModels?.length ?? 0
+  const providerSnapshot = (await api('/api/providers', { headers })).data
+  const claudeText = await claude.innerText()
+  const codexText = await codex.innerText()
   await step(
     'version, masked account, plan and model count are shown',
     /1.2.3/.test(await claude.innerText()) &&
@@ -136,6 +149,7 @@ Object.assign(systemProviderProbe, discovery, { env: { ...process.env, CODEX_HOM
       /pro/.test(await claude.innerText()) &&
       modelCount > 0 &&
       new RegExp(`\\b${modelCount} (models|modelos)`).test(await claude.innerText()),
+    JSON.stringify({ card: claudeText, providers: providerSnapshot, modelCount }),
   )
   await step(
     'only Executor row has the default model selector',
@@ -149,6 +163,7 @@ Object.assign(systemProviderProbe, discovery, { env: { ...process.env, CODEX_HOM
     /Signed out|Sin sesión/.test(await codex.innerText()) &&
       (await codex.getByText('codex login', { exact: true }).isVisible()) &&
       (await codex.getByRole('button', { name: /Copy command|Copiar comando/ }).isVisible()),
+    JSON.stringify({ card: codexText, providers: providerSnapshot }),
   )
   const chosen = await claude
     .locator('select')

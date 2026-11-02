@@ -721,13 +721,21 @@ Regla: nada se reintenta, cierra ni muestra sin evidencia medida que el usuario 
   cola del hilo, composer, botón, timeline, status del POST, `[chat-turn]` y a qué ms apareció (sigue hasta 15 s).
   Contraprueba forzada (filtro inexistente) con la evidencia completa; corrida normal 14/14 (Sol y cerebro). Abierto
   hasta el próximo fallo: leer ese JSON y escribir la fase 2. Fase 1 por codex gpt-6.1-sol (criterio r1, r2).
-- [ ] **TCLI.3 — ⚡ Detección común de CLIs funcionales: instalado → versión → sesión, sin efectos secundarios.** (abierto 2026-11-02)
+- [x] **TCLI.3 — ⚡ Detección común de CLIs funcionales: instalado → versión → sesión, sin efectos secundarios.** (abierto 2026-11-02)
   Carlos 2026-11-02 (opción recomendada, como T3 Code): hoy "funcional" = binario en el PATH (`cli-discovery.ts`);
   la sesión solo se mira en Settings y solo para Claude/Codex por archivos (`providers.ts:160`). Un solo estado por
   CLI, cacheado, que consumen Settings, el "+" de Dev y la barra de cuotas. Sondas medidas en esta máquina:
   `claude auth status` (JSON `loggedIn`), `codex login status` ("Logged in using ChatGPT", 18 ms), `opencode auth
   list` (credenciales, 0,5 s). CLI sin sesión: marcado en Settings, fuera del "+" y de la barra. Sondas inyectables
   (`ToolchainProbe`), nunca spawn directo en tests.
+  Hecho: `src/run/executors/cli-health.ts` (estado por CLI cacheado 5 min, sondas en paralelo con tope de 5 s,
+  inyectables); `/api/providers` y `/api/chat/cli-models` llevan `auth` y `functional`; el "+" de Dev filtra
+  `chat && functional`. En vivo (cerebro, 4343): claude 2.1.316, codex 0.166.0 y opencode 1.19.0 con `auth ok` y
+  `functional`; deepseek/gemini/kimi/glm no instalados. Gates del cerebro: lint, `test:coverage` 2201/0.
+  r2: el ui-gate `providers` fallaba 2 pasos (los CLIs falsos del fixture no respondían a las sondas de sesión); ahora
+  responden `auth status`/`login status` y el gate sigue verificando versión, cuenta, plan y comando de login.
+  Gate en vivo: navegador real (Playwright), `docs/done/evidence/TCLI.3-live.json`.
+  Ejecutado por: codex gpt-6.1-sol (criterio r1, r2) · revisión Opus · Spec: docs/specs/TCLI.3.md
 - [ ] **UI.48 — ⚡ Clic en un archivo de la pestaña Diff lo abre al centro, como Files.** (abierto 2026-11-02)
   Carlos 2026-11-02: hoy se abre dentro del panel de Diff; en MonoCode y Orca ocupa el centro para verlo completo.
   Mismo comportamiento que Files (UI.38): pestaña de archivo en la fila de Dev, vista previa en cursiva, doble clic

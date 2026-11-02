@@ -1906,9 +1906,13 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
                                   : 'Signed out'
                                 : cli.auth.account
                                   ? cli.auth.account.replace(/^(.).*(@.*)$/, '$1•••$2')
-                                  : language === 'es'
-                                    ? 'Sesión desconocida'
-                                    : 'Session unknown'}
+                                  : cli.auth.status === 'ok'
+                                    ? language === 'es'
+                                      ? 'Sesión activa'
+                                      : 'Signed in'
+                                    : language === 'es'
+                                      ? 'Sesión desconocida'
+                                      : 'Session unknown'}
                               {cli.auth.plan && ` · ${cli.auth.plan}`} · {cli.models.length}{' '}
                               {language === 'es' ? 'modelos' : 'models'}
                             </span>

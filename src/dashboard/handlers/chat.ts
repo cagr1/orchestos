@@ -62,6 +62,7 @@ import {
 import { knownCost } from '../../router/pricing.ts'
 import { clientFromAssignment } from '../../router/role-runner.ts'
 import { cliChatAdapterFor } from '../../run/executors/chat-adapters.ts'
+import { readCliHealth } from '../../run/executors/cli-health.ts'
 import {
   type CliCapabilityProbe,
   KNOWN_CLIS,
@@ -349,8 +350,19 @@ export async function handleApiChatModels(fetchFn: ChatModelsFetch = fetch): Pro
   }
 }
 
-export async function handleApiChatCliModels(): Promise<Response> {
-  return jsonResponse(await readCliModelCatalogsCached())
+export async function handleApiChatCliModels(
+  deps: { catalogs?: typeof readCliModelCatalogsCached; health?: typeof readCliHealth } = {},
+): Promise<Response> {
+  const [catalogs, health] = await Promise.all([
+    (deps.catalogs ?? readCliModelCatalogsCached)(),
+    (deps.health ?? readCliHealth)(),
+  ])
+  return jsonResponse(
+    catalogs.map((catalog) => {
+      const state = health.find((cli) => cli.id === catalog.id)
+      return { ...catalog, auth: state?.auth ?? 'unknown', functional: state?.functional ?? false }
+    }),
+  )
 }
 
 export async function executeFetchUrl(

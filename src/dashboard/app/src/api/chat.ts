@@ -85,6 +85,8 @@ export interface CliModelCatalog {
   error?: string
   chat?: boolean
   installed?: boolean
+  functional?: boolean
+  auth?: 'ok' | 'missing' | 'unknown'
   label?: string
 }
 

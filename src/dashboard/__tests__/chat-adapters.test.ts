@@ -157,7 +157,7 @@ test('AT.11 — public CLI registration drives session → turn → persistence 
       const catalogs = await readCliModelCatalogs(async () => { throw new Error('no real binary allowed') }, [fixture, unsupported])
       catalogs.find(c => c.id === 'fixture-chat').models = [{ id: 'fixture-model', name: 'Fixture', short: 'Fixture' }]
       await readCliModelCatalogsCached({ read: async () => catalogs })
-      const endpoint = await (await handleApiChatCliModels()).json()
+      const endpoint = await (await handleApiChatCliModels({ health: async () => [] })).json()
       const post = (path, body) => new Request('http://localhost/api/chat' + path, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
       const createResponse = await handleApiChatSessionsCreate(post('/sessions', { projectId: null, agent: 'fixture-chat' }))
       const session = await createResponse.json()

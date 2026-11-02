@@ -6,6 +6,7 @@ import { getConfig } from '../../api/settings'
 import type { AgentItem } from '../../types/orchestos'
 import { cliDisplayName } from '../common/AgentComposer'
 import { ProviderLogo } from '../common/ProviderLogos'
+import { isFunctionalChatCli } from './new-session-agent'
 import type { SessionTabs } from './session-tabs'
 
 export function DevSessionTabs({
@@ -48,7 +49,7 @@ export function DevSessionTabs({
     let disposed = false
     void getCliModels()
       .then((catalogs) => {
-        if (!disposed) setCatalogs(catalogs.filter((catalog) => catalog.chat && catalog.installed))
+        if (!disposed) setCatalogs(catalogs.filter(isFunctionalChatCli))
       })
       .catch(() => {})
     return () => {

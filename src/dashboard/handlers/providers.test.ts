@@ -34,6 +34,14 @@ beforeEach(() => {
       calls.push(`${binary} ${args.join(' ')}`)
       return args[0] === '--version' ? `${binary.split('/').at(-1)} 1.2.3\nsecond line` : ''
     },
+    authCommand: async (binary) => ({
+      stdout: binary.endsWith('claude')
+        ? JSON.stringify({ loggedIn: true })
+        : binary.endsWith('codex')
+          ? 'Logged in using ChatGPT'
+          : '1 credential',
+      exitCode: 0,
+    }),
     now: () => now,
   }
 })
@@ -155,10 +163,10 @@ it('honors CODEX_HOME and handles malformed JWTs without inventing account detai
   writeFileSync(join(probe.env.CODEX_HOME, 'auth.json'), '{"tokens":{"id_token":"opaque-token"}}')
   const providers = await reader()('/project')
   expect(providers.find((cli) => cli.id === 'codex')?.auth).toEqual({ status: 'ok' })
-  expect(providers.find((cli) => cli.id === 'claude')?.auth).toEqual({ status: 'missing' })
+  expect(providers.find((cli) => cli.id === 'claude')?.auth).toEqual({ status: 'ok' })
 })
 
-it('uses Claude email fallback and requires an email for authenticated status', async () => {
+it('uses Claude email fallback while session status comes from the CLI probe', async () => {
   writeFileSync(
     join(home, '.claude.json'),
     JSON.stringify({
@@ -173,7 +181,7 @@ it('uses Claude email fallback and requires an email for authenticated status', 
   })
   writeFileSync(join(home, '.claude.json'), JSON.stringify({ oauthAccount: {} }))
   expect((await read('/project', true)).find((cli) => cli.id === 'claude')?.auth).toEqual({
-    status: 'missing',
+    status: 'ok',
   })
 })
 
@@ -190,6 +198,9 @@ it('recognizes Codex API key authentication without exposing credentials or acco
 
 it('returns null version on timeout and safely handles malformed auth', async () => {
   probe.command = async () => null
+  probe.authCommand = async () => {
+    throw new Error('probe timeout')
+  }
   writeFileSync(join(home, '.claude.json'), 'invalid json')
   const providers = await reader()('/project')
   expect(providers.find((cli) => cli.id === 'claude')).toMatchObject({
@@ -209,9 +220,9 @@ it('caches for 30 seconds, refresh invalidates, and executor defaults remain pro
   expect(calls).toHaveLength(3)
   now = 30_000
   await read('/project')
-  expect(calls).toHaveLength(6)
+  expect(calls).toHaveLength(3)
   await handleApiProviders(new URL('http://localhost/api/providers?refresh=1'), '/project', read)
-  expect(calls).toHaveLength(9)
+  expect(calls).toHaveLength(6)
 })
 
 it('continues detection when login shell times out', async () => {
@@ -319,6 +330,9 @@ it('includes configured CLIs and their Model routing catalog', async () => {
     })
     const providers = await read('/project')
     expect(providers.find((cli) => cli.id === 'custom')).toEqual({
+      functional: true,
+      checkedAt: 0,
+      authDetail: undefined,
       id: 'custom',
       label: 'Custom CLI',
       installed: true,
@@ -373,4 +387,48 @@ it('shares the default model catalog with concurrent providers and refresh witho
     release()
     resetCliModelCatalogCache()
   }
+})
+
+it('exposes shared session health in /api/providers, keeps signed-out CLIs and refreshes auth explicitly', async () => {
+  probe.authCommand = async (binary) => ({
+    stdout: binary.endsWith('claude')
+      ? '{"loggedIn":false}'
+      : binary.endsWith('codex')
+        ? 'Not logged in'
+        : '0 credentials',
+    exitCode: 0,
+  })
+  const read = reader()
+  const response = await handleApiProviders(
+    new URL('http://localhost/api/providers'),
+    '/project',
+    read,
+  )
+  const { providers } = await response.json()
+  for (const id of ['claude', 'codex', 'opencode']) {
+    expect(providers.find((cli: { id: string }) => cli.id === id)).toMatchObject({
+      auth: { status: 'missing' },
+      functional: false,
+      installed: true,
+      checkedAt: 0,
+    })
+  }
+  probe.authCommand = async (binary) => ({
+    stdout: binary.endsWith('claude')
+      ? '{"loggedIn":true}'
+      : binary.endsWith('codex')
+        ? 'Logged in using ChatGPT'
+        : '1 credential',
+    exitCode: 0,
+  })
+  now = 30_001
+  expect((await read('/project')).find((cli) => cli.id === 'claude')?.functional).toBe(false)
+  const refreshed = await handleApiProviders(
+    new URL('http://localhost/api/providers?refresh=1'),
+    '/project',
+    read,
+  )
+  expect(
+    (await refreshed.json()).providers.find((cli: { id: string }) => cli.id === 'claude'),
+  ).toMatchObject({ auth: { status: 'ok' }, functional: true, checkedAt: now })
 })
