@@ -747,10 +747,16 @@ Regla: nada se reintenta, cierra ni muestra sin evidencia medida que el usuario 
   cerebro: `usage-bar` 21/21, `shell-look` 75/75. Ejecutor: lint, `test:coverage` 2211/0.
   Gate en vivo: navegador real (Playwright), `docs/done/evidence/UI.51-live.json`.
   Ejecutado por: codex gpt-6-luna (mecanico) · revisión Opus · Spec: docs/specs/UI.51.md
-- [ ] **UI.52 — 🧠 Dev pinta la respuesta igual que Chat.** (abierto 2026-11-02) Auditoría de ADE: Dev usa una
+- [x] **UI.52 — 🧠 Dev pinta la respuesta igual que Chat.** (abierto 2026-11-02) Auditoría de ADE: Dev usa una
   tarjeta con borde y `react-markdown` (`OrchestDevWorkspace.tsx:929-938`); Chat usa `ChatMessage` + `ThreadMarkdown`
   (Streamdown, highlight de UI.41) sin tarjeta. Títulos y listas se ven distintos entre vistas; Dev no colorea código.
-  Spec: docs/specs/UI.52.md
+  Hecho: Dev usa `ChatMessage` + `ThreadMarkdown` (Streamdown con highlight) sin tarjeta; `react-markdown` fuera de
+  `package.json`. r2: `shell-look` medía la caja "en reposo" durante la animación de entrada (falló 3/3 en el
+  cerebro); ahora espera `getAnimations().finished`, sin relajar la tolerancia. Gates del cerebro: lint,
+  `shell-look` 75/75 ×2, `dev-session-tabs` 40/40, `chat-streaming` 27/27, `chat-stop` 22/22. Sol: `test:coverage`
+  2211/0. Captura con título, lista y código coloreado en Dev.
+  Gate en vivo: navegador real (Playwright), `docs/done/evidence/UI.52-live.json`.
+  Ejecutado por: codex gpt-6.1-sol (criterio r1, r2) · revisión Opus · Spec: docs/specs/UI.52.md
 - [ ] **UI.53 — 🧠 El árbol de Files atenúa lo que git ignora, como VS Code y Orca.** (abierto 2026-11-02) Auditoría de
   ADE: Orca pinta en cursiva atenuada los ignorados; Files los muestra igual que el resto
   (`OrcaRightInspector.tsx:279`). Spec: docs/specs/UI.53.md

@@ -1,5 +1,4 @@
 import {
-  Bot,
   Check,
   ChevronDown,
   ChevronRight,
@@ -10,13 +9,11 @@ import {
   Search,
   Sparkles,
   Terminal,
-  User,
   X,
 } from 'lucide-react'
 import type React from 'react'
 import { useEffect, useRef, useState } from 'react'
-import Markdown from 'react-markdown'
-import remarkGfm from 'remark-gfm'
+import { ChatMessage } from '@/components/ui/chat-message'
 import { FileThumbnail } from '@/components/ui/file-thumbnail'
 import type { ChatMessageRow, TimelineStep, TimelineTurn } from '../../api/chat'
 import { getSessionContext, getTimeline, type TimelineResponse } from '../../api/chat'
@@ -32,6 +29,7 @@ import type {
 } from '../../types/orchestos'
 import { AgentComposer, type CliId } from '../common/AgentComposer'
 import { StoppedResponse } from '../thread/StoppedResponse'
+import { ThreadMarkdown } from '../thread/ThreadMarkdown'
 import { assistantCopyTarget } from './copy-target'
 import { resolveNewSessionAgent } from './new-session-agent'
 
@@ -526,16 +524,38 @@ export const OrchestDevWorkspace: React.FC<OrchestDevWorkspaceProps> = ({
       <div key={exchange.id} className="space-y-3 pt-2">
         {/* USER MESSAGE: no avatar, no "You" label; time only on hover */}
         {visibleUserMessage && (
-          <div className="flex justify-end group">
-            <div className="relative max-w-2xl px-4 py-2.5 rounded-card bg-app-surface text-app border border-app text-xs leading-relaxed shadow-2xs">
-              <span className="absolute right-0 bottom-full mb-1 text-[10px] font-mono text-app-muted opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
-                {visibleUserMessage
-                  ? new Date(visibleUserMessage.createdAt).toLocaleTimeString([], {
-                      hour: '2-digit',
-                      minute: '2-digit',
-                    })
-                  : ''}
-              </span>
+          <div className="flex flex-col">
+            <ChatMessage
+              from="user"
+              layout={false}
+              className="max-w-2xl select-text"
+              time={new Date(visibleUserMessage.createdAt).toLocaleTimeString([], {
+                hour: '2-digit',
+                minute: '2-digit',
+              })}
+              actions={
+                exchangeUserMessage && visibleUserMessage === exchangeUserMessage ? (
+                  <button
+                    type="button"
+                    onClick={() =>
+                      void handleCopyMessage(
+                        exchangeUserMessage.id.toString(),
+                        exchangeUserMessage.content,
+                      )
+                    }
+                    className="p-1 rounded-control text-app-muted hover:text-app transition-colors"
+                    title="Copy"
+                    aria-label="Copy"
+                  >
+                    {copiedMessageId === exchangeUserMessage.id.toString() ? (
+                      <Check className="w-3 h-3" />
+                    ) : (
+                      <Copy className="w-3 h-3" />
+                    )}
+                  </button>
+                ) : undefined
+              }
+            >
               {sentAttachments.current.get(visibleUserMessage.content)?.length ? (
                 <div className="flex flex-wrap gap-1.5 mb-2">
                   {sentAttachments.current.get(visibleUserMessage.content)?.map((att) =>
@@ -556,28 +576,7 @@ export const OrchestDevWorkspace: React.FC<OrchestDevWorkspaceProps> = ({
                 </div>
               ) : null}
               {visibleUserMessage.content}
-              {exchangeUserMessage && visibleUserMessage === exchangeUserMessage && (
-                <button
-                  type="button"
-                  onClick={() =>
-                    void handleCopyMessage(
-                      exchangeUserMessage.id.toString(),
-                      exchangeUserMessage.content,
-                    )
-                  }
-                  className="absolute right-0 top-full mt-1 p-1 rounded-control text-app-muted opacity-0 group-hover:opacity-100 hover:text-app hover:bg-app-surface transition-colors"
-                  title="Copy"
-                  aria-label="Copy"
-                >
-                  {copiedMessageId === exchangeUserMessage.id.toString() ? (
-                    <Check className="w-3 h-3" />
-                  ) : (
-                    <Copy className="w-3 h-3" />
-                  )}
-                </button>
-              )}
-            </div>
-            <User className="mb-2 h-4 w-4 shrink-0 text-app-muted" aria-hidden="true" />
+            </ChatMessage>
           </div>
         )}
 
@@ -938,42 +937,37 @@ export const OrchestDevWorkspace: React.FC<OrchestDevWorkspaceProps> = ({
 
         {/* 8. FINAL ANSWER IN MARKDOWN */}
         {hasRealTurn && (visibleAssistantMessage || exchange.assistantMessage?.stopped) && (
-          <div className="flex items-start gap-2">
-            <Bot className="mt-4 h-4 w-4 shrink-0 text-app-accent" aria-hidden="true" />
-            <div
-              data-dev-assistant-message
-              className="flex-1 min-w-0 flex flex-col items-start gap-1 group"
-            >
-              <div
-                data-dev-assistant-card
-                className="relative rounded-card p-4 bg-app-surface/60 border border-app/60 text-xs text-app leading-relaxed shadow-2xs w-full"
+          <ChatMessage
+            from="assistant"
+            layout={false}
+            data-dev-assistant-message
+            className="max-w-full w-full select-text"
+            actions={
+              <button
+                type="button"
+                onClick={() => {
+                  if (assistantCopy) void handleCopyMessage(assistantCopy.id, assistantCopy.text)
+                }}
+                className="p-1 rounded-control text-app-muted hover:text-app hover:bg-app-elevated transition-colors"
+                title="Copy"
+                aria-label="Copy"
               >
-                {visibleAssistantMessage && (
-                  <div className="prose prose-invert max-w-none text-xs leading-relaxed [&>p]:mb-2 [&>ul]:list-disc [&>ul]:pl-4 [&>pre]:bg-app-bg [&>pre]:p-2.5 [&>pre]:rounded-control [&>pre]:border [&>pre]:border-app [&>pre]:font-mono [&>code]:bg-app-bg [&>code]:px-1 [&>code]:py-0.5 [&>code]:rounded-control [&>code]:border [&>code]:border-app [&>code]:font-mono [&>strong]:font-bold [&>strong]:text-app">
-                    <Markdown remarkPlugins={[remarkGfm]}>{visibleAssistantMessage}</Markdown>
-                  </div>
+                {assistantCopy && copiedMessageId === assistantCopy.id ? (
+                  <Check className="w-3 h-3" />
+                ) : (
+                  <Copy className="w-3 h-3" />
                 )}
-                <StoppedResponse stopped={exchange.assistantMessage?.stopped} />
-              </div>
-              <div className="flex items-center opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity">
-                <button
-                  type="button"
-                  onClick={() => {
-                    if (assistantCopy) void handleCopyMessage(assistantCopy.id, assistantCopy.text)
-                  }}
-                  className="p-1 rounded-control text-app-muted hover:text-app hover:bg-app-elevated transition-colors"
-                  title="Copy"
-                  aria-label="Copy"
-                >
-                  {assistantCopy && copiedMessageId === assistantCopy.id ? (
-                    <Check className="w-3 h-3" />
-                  ) : (
-                    <Copy className="w-3 h-3" />
-                  )}
-                </button>
-              </div>
-            </div>
-          </div>
+              </button>
+            }
+          >
+            {visibleAssistantMessage && (
+              <ThreadMarkdown
+                text={visibleAssistantMessage}
+                streaming={Boolean(isCurrentExchange && timeline?.pending)}
+              />
+            )}
+            <StoppedResponse stopped={exchange.assistantMessage?.stopped} />
+          </ChatMessage>
         )}
 
         {/* 9. WHILE RUNNING: one live row with subtle shimmer, current step and elapsed time */}

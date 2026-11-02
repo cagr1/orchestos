@@ -750,19 +750,28 @@ export default async function shellLook({
     (await page.locator('[data-dev-header]').count()) === 0,
     'no session header in Dev',
   )
-  // UI.29 — assistant actions sit below the card and keep their space on hover/focus.
+  // UI.29 / UI.52 — assistant actions sit below the response and keep their space on hover/focus.
   const assistantMessage = page.locator('[data-dev-assistant-message]').filter({
     hasText: 'UI.27.1 provider logo fixture',
   })
-  const assistantCard = assistantMessage.locator('[data-dev-assistant-card]')
+  const assistantCard = assistantMessage.locator(':scope > div').first()
   const assistantCopy = assistantMessage.getByRole('button', { name: 'Copy', exact: true })
   await visible(assistantCard)
+  // ChatMessage enters with translation/scale; measure rest only after that motion settles.
+  const entranceMotion = await assistantMessage.evaluate(async (element) => {
+    const before = element.getBoundingClientRect().toJSON()
+    const animations = element.getAnimations({ subtree: true })
+    const active = animations.map((animation) => ({
+      playState: animation.playState,
+      keyframes: animation.effect?.getKeyframes(),
+    }))
+    await Promise.all(animations.map((animation) => animation.finished))
+    return { before, active, after: element.getBoundingClientRect().toJSON() }
+  })
   const restingBox = await assistantMessage.boundingBox()
   await assistantMessage.hover()
   const copyPosition = await assistantCopy.evaluate((button) => {
-    const card = button
-      .closest('[data-dev-assistant-message]')
-      .querySelector('[data-dev-assistant-card]')
+    const card = button.closest('[data-dev-assistant-message]').firstElementChild
     const cardBox = card.getBoundingClientRect()
     const buttonBox = button.getBoundingClientRect()
     return {
@@ -773,7 +782,7 @@ export default async function shellLook({
     }
   })
   await step(
-    'Dev assistant Copy is below the card at its left edge',
+    'Dev assistant Copy is below the response at its left edge',
     copyPosition.top >= copyPosition.cardBottom &&
       Math.abs(copyPosition.left - copyPosition.cardLeft) <= 8,
     JSON.stringify(copyPosition),
@@ -792,7 +801,7 @@ export default async function shellLook({
   await assistantCopy.focus()
   await page.waitForTimeout(200)
   const focusedOpacity = await assistantCopy.evaluate(
-    (button) => getComputedStyle(button.parentElement).opacity,
+    (button) => getComputedStyle(button.parentElement.parentElement).opacity,
   )
   const focusedBox = await assistantMessage.boundingBox()
   await step(
@@ -803,7 +812,7 @@ export default async function shellLook({
       ['x', 'y', 'width', 'height'].every(
         (key) => Math.abs(restingBox[key] - focusedBox[key]) <= 1,
       ),
-    JSON.stringify({ focusedOpacity, restingBox, focusedBox }),
+    JSON.stringify({ entranceMotion, focusedOpacity, restingBox, focusedBox }),
   )
   await shot('dev-assistant-copy')
   const devAgentButton = page.getByRole('button', {

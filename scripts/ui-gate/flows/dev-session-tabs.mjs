@@ -116,7 +116,24 @@ for (const probe of [systemCliDiscoveryProbe, systemCliHealthProbe]) {
   await page.route('**/api/chat/sessions/*/timeline*', async (route) => {
     const response = await route.fetch()
     const timeline = await response.json()
-    if (route.request().url().includes(sessions[0].id)) timeline.pending = fixtureRunning
+    if (route.request().url().includes(sessions[0].id)) {
+      timeline.pending = fixtureRunning
+      timeline.messages = ['user', 'assistant'].map((role, index) => ({
+        id: index + 1,
+        sessionId: sessions[0].id,
+        role,
+        content:
+          role === 'user'
+            ? 'Show a title, a list and TypeScript code.'
+            : '## Shared response style\n\n- Same renderer as Chat\n- Highlighted code\n\n```ts\nconst answer: number = 42\nconsole.log(answer)\n```',
+        model: null,
+        taskId: null,
+        ocrUsed: [],
+        taskHeld: false,
+        existingFiles: [],
+        createdAt: '2026-11-02T12:00:00Z',
+      }))
+    }
     await route.fulfill({ response, json: timeline })
   })
   const sidebar = (index) => page.locator(`[data-thread-id="${sessions[index].id}"]`)
@@ -160,7 +177,16 @@ for (const probe of [systemCliDiscoveryProbe, systemCliHealthProbe]) {
       (await tab(0).getAttribute('aria-selected')) === 'true',
     'Alpha, Beta',
   )
+  const assistantResponse = page.locator('[data-dev-assistant-message]')
+  await assistantResponse.getByRole('heading', { name: 'Shared response style' }).waitFor()
+  await step(
+    'Dev response shares Chat markdown and highlights code',
+    (await assistantResponse.locator('ul > li').count()) === 2 &&
+      (await assistantResponse.locator('[data-streamdown="code-block"] .hljs-keyword').count()) > 0,
+    'heading, two list items and highlighted TypeScript tokens',
+  )
   await shot('session-tabs')
+  await page.screenshot({ path: '/tmp/UI.52-dev-markdown.png' })
   await treeFile('README.md').click()
   await panel.getByRole('heading', { name: 'Dev session tabs' }).waitFor()
   await step(
