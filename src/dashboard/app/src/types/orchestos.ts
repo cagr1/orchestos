@@ -291,6 +291,7 @@ export interface FileNode {
   name: string
   path: string
   isDir: boolean
+  ignored?: boolean
   children?: FileNode[]
   content?: string
   size?: string

@@ -52,8 +52,10 @@ for (const probe of [systemCliDiscoveryProbe, systemCliHealthProbe]) {
   await restartDashboard()
   writeFileSync(join(root, 'README.md'), '# Dev session tabs\n')
   writeFileSync(join(root, 'notes.txt'), 'Preview only\n')
+  writeFileSync(join(root, '.gitignore'), 'ignored.txt\n')
+  writeFileSync(join(root, 'ignored.txt'), 'Ignored but visible\n')
   run('git', ['init', '-q'], root)
-  run('git', ['add', 'README.md', 'notes.txt'], root)
+  run('git', ['add', 'README.md', 'notes.txt', '.gitignore'], root)
   run(
     'git',
     [
@@ -188,6 +190,18 @@ for (const probe of [systemCliDiscoveryProbe, systemCliHealthProbe]) {
   await shot('session-tabs')
   await page.screenshot({ path: '/tmp/UI.52-dev-markdown.png' })
   await treeFile('README.md').click()
+  await step(
+    'Files dims and italicizes git ignored entries but keeps tracked files unmarked',
+    (await treeFile('ignored.txt').evaluate((el) => {
+      const style = getComputedStyle(el)
+      return style.opacity === '0.5' && style.fontStyle === 'italic'
+    })) &&
+      (await treeFile('README.md').evaluate((el) => {
+        const style = getComputedStyle(el)
+        return style.opacity === '1' && style.fontStyle !== 'italic'
+      })),
+    'ignored.txt visible at opacity 0.5 and italic; tracked README.md normal',
+  )
   await panel.getByRole('heading', { name: 'Dev session tabs' }).waitFor()
   await step(
     'file opens italic preview in the shared row and occupies full center',

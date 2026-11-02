@@ -1,3 +1,4 @@
+import { spawnSync } from 'node:child_process'
 import { type Dirent, readdirSync, readFileSync, statSync } from 'node:fs'
 import { join, relative, resolve, sep } from 'node:path'
 import { errorResponse, jsonResponse } from '../http.ts'
@@ -12,7 +13,21 @@ interface ExplorerEntry {
   name: string
   path: string
   type: 'dir' | 'file'
+  ignored: boolean
   size?: number
+}
+
+export type ExplorerIgnoreProbe = (root: string, paths: string[]) => string | null
+
+const gitIgnoreProbe: ExplorerIgnoreProbe = (root, paths) => {
+  const result = spawnSync('git', ['check-ignore', '--stdin', '-z'], {
+    cwd: root,
+    input: `${paths.join('\0')}\0`,
+    encoding: 'utf8',
+    timeout: 3000,
+    windowsHide: true,
+  })
+  return result.status === 0 || result.status === 1 ? result.stdout : null
 }
 
 // Evita path traversal (../../etc) — el resuelto debe quedar dentro de root.
@@ -22,7 +37,11 @@ function safeResolve(root: string, rel: string): string | null {
   return target
 }
 
-function handleApiExplorerTree(url: URL, root: string): Response {
+function handleApiExplorerTree(
+  url: URL,
+  root: string,
+  probe: ExplorerIgnoreProbe = gitIgnoreProbe,
+): Response {
   const rel = url.searchParams.get('path') || ''
   const target = safeResolve(root, rel)
   if (!target) return errorResponse('Invalid path', 400)
@@ -40,9 +59,26 @@ function handleApiExplorerTree(url: URL, root: string): Response {
       name: e.name,
       path: relative(root, join(target, e.name)).split(sep).join('/'),
       type: e.isDirectory() ? ('dir' as const) : ('file' as const),
+      ignored: false,
       size: e.isDirectory() ? undefined : statSync(join(target, e.name)).size,
     }))
     .sort((a, b) => (a.type === b.type ? a.name.localeCompare(b.name) : a.type === 'dir' ? -1 : 1))
+
+  if (entries.length) {
+    try {
+      const ignored = new Set(
+        (
+          probe(
+            root,
+            entries.map((entry) => entry.path),
+          ) ?? ''
+        ).split('\0'),
+      )
+      for (const entry of entries) entry.ignored = ignored.has(entry.path)
+    } catch {
+      // Git is optional: listing files still works when unavailable.
+    }
+  }
 
   return jsonResponse({ path: rel, entries })
 }

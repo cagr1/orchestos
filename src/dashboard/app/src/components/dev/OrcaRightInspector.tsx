@@ -280,7 +280,7 @@ export const OrcaRightInspector: React.FC<OrcaRightInspectorProps> = ({
                 isSelected
                   ? 'bg-app-surface text-app-accent font-medium border border-app'
                   : 'text-app-muted hover:text-app hover:bg-app-surface/50'
-              }`}
+              } ${node.ignored ? 'opacity-50 italic' : ''}`}
             >
               <div className="flex items-center gap-1.5 min-w-0">
                 {isFolder ? (

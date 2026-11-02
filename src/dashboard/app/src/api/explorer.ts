@@ -4,6 +4,7 @@ interface ExplorerEntry {
   name: string
   path: string
   type: 'dir' | 'file'
+  ignored: boolean
   size?: number
 }
 interface ExplorerTreeResponse {
@@ -32,6 +33,7 @@ export async function getExplorerTree(path = '', projectId: string): Promise<Fil
     name: entry.name,
     path: entry.path,
     isDir: entry.type === 'dir',
+    ignored: entry.ignored,
     size: entry.size == null ? undefined : formatBytes(entry.size),
   }))
 }

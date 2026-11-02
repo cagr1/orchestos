@@ -23,6 +23,7 @@ describe('UI.13.5 round 3 contracts', () => {
     const body = (await handleApiExplorerTree(
       new URL('http://localhost/api/explorer/tree'),
       root,
+      () => null,
     ).json()) as {
       entries: Array<{ name: string; size?: number }>
     }

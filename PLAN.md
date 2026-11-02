@@ -757,9 +757,15 @@ Regla: nada se reintenta, cierra ni muestra sin evidencia medida que el usuario 
   2211/0. Captura con título, lista y código coloreado en Dev.
   Gate en vivo: navegador real (Playwright), `docs/done/evidence/UI.52-live.json`.
   Ejecutado por: codex gpt-6.1-sol (criterio r1, r2) · revisión Opus · Spec: docs/specs/UI.52.md
-- [ ] **UI.53 — 🧠 El árbol de Files atenúa lo que git ignora, como VS Code y Orca.** (abierto 2026-11-02) Auditoría de
+- [x] **UI.53 — 🧠 El árbol de Files atenúa lo que git ignora, como VS Code y Orca.** (abierto 2026-11-02) Auditoría de
   ADE: Orca pinta en cursiva atenuada los ignorados; Files los muestra igual que el resto
-  (`OrcaRightInspector.tsx:279`). Spec: docs/specs/UI.53.md
+  (`OrcaRightInspector.tsx:279`).
+  Hecho: `/api/explorer/tree` marca `ignored` por entrada con una llamada a `git check-ignore --stdin -z` por
+  listado (sonda inyectable; sin git, todo falso); Files pinta `opacity-50 italic`. En vivo (cerebro, repo real):
+  raíz marca `demo`, `test-project`, `.DS_Store`, `eng.traineddata`, `REVIEW.md` (como Orca) y los hijos de `demo`.
+  Gates del cerebro: lint, `dev-session-tabs` 41/41, `shell-look` 75/75. Sol: `test:coverage` 2213/0.
+  Gate en vivo: navegador real (Playwright), `docs/done/evidence/UI.53-live.json`.
+  Ejecutado por: codex gpt-6.1-sol (criterio) · revisión Opus · Spec: docs/specs/UI.53.md
 - [ ] **UI.54 — 🧠 "@" en el composer referencia archivos del proyecto.** (abierto 2026-11-02) Carlos 2026-11-02
   (auditoría de ADE, opción recomendada): como MonoCode y Orca, "@" abre un buscador de archivos del proyecto e
   inserta la ruta; en Chat y Dev. Hoy solo "/" (`AgentComposer.tsx:328`). Spec: docs/specs/UI.54.md
