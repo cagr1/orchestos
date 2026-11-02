@@ -736,11 +736,15 @@ Regla: nada se reintenta, cierra ni muestra sin evidencia medida que el usuario 
   responden `auth status`/`login status` y el gate sigue verificando versión, cuenta, plan y comando de login.
   Gate en vivo: navegador real (Playwright), `docs/done/evidence/TCLI.3-live.json`.
   Ejecutado por: codex gpt-6.1-sol (criterio r1, r2) · revisión Opus · Spec: docs/specs/TCLI.3.md
-- [ ] **UI.48 — ⚡ Clic en un archivo de la pestaña Diff lo abre al centro, como Files.** (abierto 2026-11-02)
+- [x] **UI.48 — ⚡ Clic en un archivo de la pestaña Diff lo abre al centro, como Files.** (abierto 2026-11-02)
   Carlos 2026-11-02: hoy se abre dentro del panel de Diff; en MonoCode y Orca ocupa el centro para verlo completo.
   Mismo comportamiento que Files (UI.38): pestaña de archivo en la fila de Dev, vista previa en cursiva, doble clic
   fija; muestra el diff del archivo contra HEAD (añadidas/quitadas con color) y permite pasar al archivo entero.
-  Spec: docs/specs/UI.48.md
+  Hecho: `DevDiffPanel.tsx`; clic en la lista de Diff abre la pestaña de diff al centro (cursiva), doble clic la fija,
+  "Abrir archivo" pasa al archivo entero; la lista marca el diff activo y el acordeón del panel desapareció.
+  Gates del cerebro: `test:coverage` 2208/0, `ui:gate dev-session-tabs` 33/33. Sol: 33/33 + `shell-look` 75/75.
+  Gate en vivo: navegador real (Playwright), `docs/done/evidence/UI.48-live.json`.
+  Ejecutado por: codex gpt-6.1-sol (criterio) · revisión Opus · Spec: docs/specs/UI.48.md
 - [x] **UI.46 — ⚡ La barra de cuotas muestra solo los CLIs con cuota real.** (abierto 2026-11-02) Carlos
   2026-11-02: hoy lista todos los instalados y OpenCode sale con "—"; OpenCode no expone cuota (`opencode stats` da
   costo equivalente a API; Orca la saca pegando la cookie de opencode.ai, no cubre API key). Queda: CLIs funcionales

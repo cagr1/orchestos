@@ -1,4 +1,4 @@
-import { FileCode, FileText, Plus, X } from 'lucide-react'
+import { FileCode, FileText, GitCompare, Plus, X } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { type CliModelCatalog, getCliModels } from '../../api/chat'
@@ -6,6 +6,7 @@ import { getConfig } from '../../api/settings'
 import type { AgentItem } from '../../types/orchestos'
 import { cliDisplayName } from '../common/AgentComposer'
 import { ProviderLogo } from '../common/ProviderLogos'
+import type { OpenPathRequest } from './file-tabs'
 import { isFunctionalChatCli } from './new-session-agent'
 import type { SessionTabs } from './session-tabs'
 
@@ -24,7 +25,7 @@ export function DevSessionTabs({
   onSelect: (id: string) => void
   onClose: (id: string) => void
   onNew: (agent: string) => void
-  onPin: (path: string) => void
+  onPin: (request: OpenPathRequest) => void
 }) {
   const [agent, setAgent] = useState('')
   useEffect(() => {
@@ -115,8 +116,8 @@ export function DevSessionTabs({
           const session =
             tab.type === 'session' ? agents.find((agent) => agent.id === tab.id) : null
           const title =
-            tab.type === 'file'
-              ? tab.path.split('/').pop()
+            tab.type === 'file' || tab.type === 'diff'
+              ? `${tab.path.split('/').pop()}${tab.type === 'diff' ? ' (diff)' : ''}`
               : tab.type === 'new'
                 ? 'New session'
                 : (session?.name ?? 'Session')
@@ -131,15 +132,19 @@ export function DevSessionTabs({
                 aria-selected={state.activeId === tab.id}
                 data-session-tab={tab.type === 'session' ? tab.id : undefined}
                 data-file-tab={tab.type === 'file' ? tab.path : undefined}
+                data-diff-tab={tab.type === 'diff' ? tab.path : undefined}
                 data-new-session-tab={tab.type === 'new' ? tab.id : undefined}
-                title={tab.type === 'file' ? tab.path : title}
+                title={tab.type === 'file' || tab.type === 'diff' ? tab.path : title}
                 onClick={() => onSelect(tab.id)}
                 onDoubleClick={() => {
-                  if (tab.type === 'file') onPin(tab.path)
+                  if (tab.type === 'file' || tab.type === 'diff')
+                    onPin({ kind: tab.type, path: tab.path, pin: true })
                 }}
-                className={`flex min-w-0 flex-1 items-center gap-2 px-3 py-1.5 pr-8 text-left text-xs whitespace-nowrap ${tab.type === 'file' && !tab.pinned ? 'italic' : ''}`}
+                className={`flex min-w-0 flex-1 items-center gap-2 px-3 py-1.5 pr-8 text-left text-xs whitespace-nowrap ${(tab.type === 'file' || tab.type === 'diff') && !tab.pinned ? 'italic' : ''}`}
               >
-                {tab.type === 'file' ? (
+                {tab.type === 'diff' ? (
+                  <GitCompare size={14} className="text-app-accent" />
+                ) : tab.type === 'file' ? (
                   tab.path.endsWith('.md') ? (
                     <FileText size={14} className="text-amber-400/80" />
                   ) : (
@@ -156,7 +161,11 @@ export function DevSessionTabs({
               <button
                 type="button"
                 aria-label={
-                  tab.type === 'file' ? `Close file tab ${tab.path}` : `Close tab ${title}`
+                  tab.type === 'diff'
+                    ? `Close diff tab ${tab.path}`
+                    : tab.type === 'file'
+                      ? `Close file tab ${tab.path}`
+                      : `Close tab ${title}`
                 }
                 onClick={() => onClose(tab.id)}
                 className="absolute right-1 rounded-control p-1 text-app-muted opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 hover:bg-app-hover hover:text-app focus:opacity-100"

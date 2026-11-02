@@ -1,4 +1,4 @@
-import { mkdtempSync, rmSync, writeFileSync } from 'node:fs'
+import { mkdtempSync, rmSync, unlinkSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { basename, join } from 'node:path'
 import { run, writeGateRoles } from '../lib.mjs'
@@ -11,11 +11,26 @@ export default async function devSessionTabs({
   cleanup,
   visible,
   consoleErrors,
+  expectHttpError,
 }) {
   const root = mkdtempSync(join(tmpdir(), 'orchestos-dev-tabs-'))
   writeFileSync(join(root, 'README.md'), '# Dev session tabs\n')
   writeFileSync(join(root, 'notes.txt'), 'Preview only\n')
   run('git', ['init', '-q'], root)
+  run('git', ['add', 'README.md', 'notes.txt'], root)
+  run(
+    'git',
+    [
+      '-c',
+      'user.name=Gate',
+      '-c',
+      'user.email=gate@example.test',
+      'commit',
+      '-qm',
+      'fixture baseline',
+    ],
+    root,
+  )
   run('bun', ['run', join(process.cwd(), 'src/cli.ts'), 'init', root], process.cwd())
   writeGateRoles(root)
   const project = (await api('/api/projects')).data.find((item) => item.path === root)
@@ -279,5 +294,110 @@ export default async function devSessionTabs({
     ),
     'dead id removed',
   )
+  // UI.48: git patches share the center tab row with files and sessions.
+  writeFileSync(join(root, 'README.md'), '# Updated diff heading\n')
+  writeFileSync(join(root, 'notes.txt'), 'Updated preview\n')
+  await page.getByRole('button', { name: 'Diff', exact: true }).click()
+  const diffFile = (path) => page.locator(`[data-diff-file="${path}"]`)
+  const diffTab = (path) => tabs.locator(`[data-diff-tab="${path}"]`)
+  const diffPanel = page.locator('[data-dev-diff-panel]')
+  await diffFile('README.md').click()
+  await diffPanel
+    .locator('[data-diff-added]')
+    .filter({ hasText: '+# Updated diff heading' })
+    .waitFor()
+  await diffPanel
+    .locator('[data-diff-removed]')
+    .filter({ hasText: '-# Dev session tabs' })
+    .waitFor()
+  await step(
+    'Diff click opens an italic selected patch at full center with colored numbered lines',
+    (await diffTab('README.md').evaluate((el) => getComputedStyle(el).fontStyle === 'italic')) &&
+      (await diffFile('README.md').getAttribute('aria-pressed')) === 'true' &&
+      (await diffFile('README.md').getAttribute('aria-expanded')) === null &&
+      (await diffPanel.evaluate(
+        (el) =>
+          Math.abs(
+            el.getBoundingClientRect().width - el.parentElement.getBoundingClientRect().width,
+          ) < 2,
+      )) &&
+      (await diffPanel
+        .locator('[data-diff-added]')
+        .first()
+        .evaluate(
+          (el) =>
+            getComputedStyle(el).color !== getComputedStyle(el.parentElement).color &&
+            el.children[1].textContent === '1',
+        )),
+    await diffPanel.innerText(),
+  )
+  await shot('diff-center-preview')
+  await diffFile('notes.txt').click()
+  await diffPanel.getByText('+Updated preview', { exact: true }).waitFor()
+  await step(
+    'another diff replaces the preview',
+    (await diffTab('README.md').count()) === 0,
+    'notes.txt preview replaces README.md',
+  )
+  await diffFile('README.md').dblclick()
+  await diffPanel.getByText('+# Updated diff heading', { exact: true }).waitFor()
+  await step(
+    'Diff double click pins the patch',
+    await diffTab('README.md').evaluate((el) => getComputedStyle(el).fontStyle !== 'italic'),
+    'fixed README.md diff',
+  )
+  await diffPanel.getByRole('button', { name: 'Abrir archivo', exact: true }).click()
+  await panel.getByRole('heading', { name: 'Updated diff heading', exact: true }).waitFor()
+  await step(
+    'Abrir archivo opens a distinct fixed normal file tab',
+    (await diffTab('README.md').count()) === 1 &&
+      (await fileTab('README.md').getAttribute('aria-selected')) === 'true' &&
+      (await fileTab('README.md').evaluate((el) => getComputedStyle(el).fontStyle !== 'italic')),
+    'file:README.md and diff:README.md coexist',
+  )
+  writeFileSync(join(root, 'README.md'), '# Refreshed working tree\n')
+  await page.getByRole('button', { name: 'Refresh git changes', exact: true }).click()
+  await diffTab('README.md').click()
+  await diffPanel.getByText('+# Refreshed working tree', { exact: true }).waitFor()
+  await step(
+    'reactivating diff reloads changed working tree',
+    (await diffFile('README.md').getAttribute('aria-pressed')) === 'true',
+    await diffPanel.innerText(),
+  )
+  await shot('diff-center-pinned')
+  await reloadChat()
+  await enterDev()
+  await diffPanel.getByText('+# Refreshed working tree', { exact: true }).waitFor()
+  await step(
+    'reload restores active fixed diff beside the normal file',
+    (await diffTab('README.md').getAttribute('aria-selected')) === 'true' &&
+      (await fileTab('README.md').count()) === 1,
+    'fixed diff restored',
+  )
+  // Deleted files keep their diff but cannot open a normal file.
+  unlinkSync(join(root, 'notes.txt'))
+  await page.getByRole('button', { name: 'Diff', exact: true }).click()
+  await page.getByRole('button', { name: 'Refresh git changes', exact: true }).click()
+  await diffFile('notes.txt').click()
+  await diffPanel.getByText('-Preview only', { exact: true }).waitFor()
+  await step(
+    'deleted file diff disables Abrir archivo',
+    await diffPanel.getByRole('button', { name: 'Abrir archivo', exact: true }).isDisabled(),
+    'deleted notes.txt',
+  )
+  // A failed patch request must render the same message as the old panel.
+  expectHttpError(/\/api\/git\/diff\?/)
+  await page.route('**/api/git/diff?*', (route) =>
+    route.fulfill({ status: 500, contentType: 'application/json', body: '{}' }),
+  )
+  await fileTab('README.md').click()
+  await diffTab('README.md').click()
+  await diffPanel.getByRole('alert').waitFor()
+  await step(
+    'patch failure is visible inside the center tab',
+    (await diffPanel.getByRole('alert').innerText()) === 'Could not read git changes',
+    'same error as inspector',
+  )
+  await page.unroute('**/api/git/diff?*')
   await step('0 console errors', consoleErrors().length === 0, consoleErrors().join('; ') || 'none')
 }

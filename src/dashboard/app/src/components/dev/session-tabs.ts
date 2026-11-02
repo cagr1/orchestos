@@ -1,6 +1,6 @@
 export type DevTab =
   | { type: 'session'; id: string }
-  | { type: 'file'; id: string; path: string; pinned: boolean }
+  | { type: 'file' | 'diff'; id: string; path: string; pinned: boolean }
   | { type: 'new'; id: string; agent?: string }
 export interface SessionTabs {
   tabs: DevTab[]
@@ -41,7 +41,9 @@ export function closeSessionTab(state: SessionTabs, id: string): SessionTabs {
   }
 }
 export function persistedDevTabs(state: SessionTabs): SessionTabs {
-  const tabs = state.tabs.filter((tab) => tab.type !== 'file' || tab.pinned)
+  const tabs = state.tabs.filter(
+    (tab) => (tab.type !== 'file' && tab.type !== 'diff') || tab.pinned,
+  )
   return {
     tabs,
     activeId: tabs.find((tab) => tab.id === state.activeId)?.id ?? tabs[0]?.id ?? null,
@@ -66,14 +68,14 @@ export function restoreSessionTabs(
         ...(typeof tab.agent === 'string' ? { agent: tab.agent } : {}),
       })
     else if (
-      tab.type === 'file' &&
+      (tab.type === 'file' || tab.type === 'diff') &&
       typeof tab.path === 'string' &&
       tab.path &&
-      (!paths || paths.includes(tab.path))
+      (tab.type === 'diff' || !paths || paths.includes(tab.path))
     )
       tabs.push({
-        type: 'file',
-        id: `file:${tab.path}`,
+        type: tab.type,
+        id: `${tab.type}:${tab.path}`,
         path: tab.path,
         pinned: tab.pinned === true,
       })

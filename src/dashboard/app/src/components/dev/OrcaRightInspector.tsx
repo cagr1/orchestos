@@ -23,10 +23,11 @@ import {
 import type React from 'react'
 import { useEffect, useRef, useState } from 'react'
 import { getExplorerTree } from '../../api/explorer'
-import { type GitChange, getGitChanges, getGitDiff } from '../../api/git'
+import { type GitChange, getGitChanges } from '../../api/git'
 import type { FileNode, ProjectItem } from '../../types/orchestos'
 import { ProviderLogo } from '../common/ProviderLogos'
 import { ResizableAside } from '../common/ResizableAside'
+import type { OpenPathRequest } from './file-tabs'
 
 export function attachExplorerChildren(
   nodes: FileNode[],
@@ -79,6 +80,9 @@ interface OrcaRightInspectorProps {
   onRestoreAgentToSidebar?: (session: HistorySession) => void
   onDeleteHistorySession?: (sessionId: string) => void
   activeFilePath?: string | null
+  activeDiffPath?: string | null
+  onOpenDiff: (request: OpenPathRequest) => void
+  onDiffRefresh: () => void
   onOpenFile: (path: string, options: { pin: boolean }) => void
   onUploadFiles?: (files: FileList) => void
 }
@@ -106,6 +110,9 @@ export const OrcaRightInspector: React.FC<OrcaRightInspectorProps> = ({
   onDeleteHistorySession,
   onUploadFiles,
   activeFilePath,
+  activeDiffPath,
+  onOpenDiff,
+  onDiffRefresh,
   onOpenFile,
 }) => {
   const [activeTab, setActiveTab] = useState<'files' | 'diff' | 'history'>('files')
@@ -170,16 +177,12 @@ export const OrcaRightInspector: React.FC<OrcaRightInspectorProps> = ({
 
   const [gitFiles, setGitFiles] = useState<GitChange[]>([])
   const [gitError, setGitError] = useState(false)
-  const [openDiff, setOpenDiff] = useState<string | null>(null)
-  const [patch, setPatch] = useState<string | null>(null)
-  const [patchError, setPatchError] = useState(false)
   const [refresh, setRefresh] = useState(0)
-  const diffRequest = useRef(0)
+  const refreshRef = useRef(onDiffRefresh)
+  refreshRef.current = onDiffRefresh
 
   useEffect(() => {
     setGitFiles([])
-    setOpenDiff(null)
-    diffRequest.current++
   }, [currentProject.id])
 
   useEffect(() => {
@@ -191,6 +194,7 @@ export const OrcaRightInspector: React.FC<OrcaRightInspectorProps> = ({
         if (!cancelled) {
           setGitFiles(data.files)
           setGitError(false)
+          refreshRef.current()
         }
       } catch {
         if (!cancelled) setGitError(true)
@@ -203,23 +207,6 @@ export const OrcaRightInspector: React.FC<OrcaRightInspectorProps> = ({
       window.clearInterval(timer)
     }
   }, [activeTab, currentProject.id, refresh])
-
-  const toggleDiff = async (path: string) => {
-    const request = ++diffRequest.current
-    if (openDiff === path) {
-      setOpenDiff(null)
-      return
-    }
-    setOpenDiff(path)
-    setPatch(null)
-    setPatchError(false)
-    try {
-      const data = await getGitDiff(path, currentProject.id)
-      if (request === diffRequest.current) setPatch(data.patch)
-    } catch {
-      if (request === diffRequest.current) setPatchError(true)
-    }
-  }
 
   // History Tab specific states
   const [historyScope, setHistoryScope] = useState<'workspace' | 'project' | 'all'>('workspace')
@@ -536,12 +523,10 @@ export const OrcaRightInspector: React.FC<OrcaRightInspectorProps> = ({
                       : 'text-emerald-400'
               return (
                 <div key={file.path}>
-                  <button
-                    type="button"
-                    title={file.path}
-                    aria-expanded={openDiff === file.path}
-                    onClick={() => void toggleDiff(file.path)}
-                    className="w-full flex items-center gap-2 px-2 py-1 text-xs text-left hover:bg-app-surface rounded-control"
+                  <DiffFileButton
+                    path={file.path}
+                    selected={activeDiffPath === file.path}
+                    onOpen={onOpenDiff}
                   >
                     <FileCode className="w-3.5 h-3.5 flex-shrink-0 text-app-muted" />
                     <span className="text-app truncate">{name}</span>
@@ -553,31 +538,7 @@ export const OrcaRightInspector: React.FC<OrcaRightInspectorProps> = ({
                       −{file.deletions}
                     </span>
                     <span className={`font-mono flex-shrink-0 ${statusColor}`}>{file.status}</span>
-                  </button>
-                  {openDiff === file.path && (
-                    <div className="overflow-auto max-h-48 font-mono text-[11px] text-app-muted">
-                      {patchError ? (
-                        <div className="p-2">Could not read git changes</div>
-                      ) : patch === null ? (
-                        <div className="p-2">Loading…</div>
-                      ) : (
-                        <pre className="w-max min-w-full py-2">
-                          {parseDiffPatch(patch)
-                            .lines.filter(
-                              (line) => !/^(diff --git |index |--- |\+\+\+ )/.test(line),
-                            )
-                            .map((line, index) => (
-                              <div
-                                key={index}
-                                className={`px-2 ${line.startsWith('+') ? 'bg-emerald-500/10 text-emerald-400' : line.startsWith('-') ? 'bg-red-500/10 text-app-error' : line.startsWith('@@') ? 'text-app-accent' : ''}`}
-                              >
-                                {line}
-                              </div>
-                            ))}
-                        </pre>
-                      )}
-                    </div>
-                  )}
+                  </DiffFileButton>
                 </div>
               )
             })}
@@ -800,5 +761,31 @@ export const OrcaRightInspector: React.FC<OrcaRightInspectorProps> = ({
         </div>
       )}
     </ResizableAside>
+  )
+}
+
+export function DiffFileButton({
+  path,
+  selected,
+  onOpen,
+  children,
+}: {
+  path: string
+  selected: boolean
+  onOpen: (request: OpenPathRequest) => void
+  children?: React.ReactNode
+}) {
+  return (
+    <button
+      type="button"
+      title={path}
+      data-diff-file={path}
+      aria-pressed={selected}
+      onClick={() => onOpen({ kind: 'diff', path, pin: false })}
+      onDoubleClick={() => onOpen({ kind: 'diff', path, pin: true })}
+      className={`w-full flex items-center gap-2 px-2 py-1 text-xs text-left hover:bg-app-surface rounded-control ${selected ? 'bg-app-surface' : ''}`}
+    >
+      {children}
+    </button>
   )
 }

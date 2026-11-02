@@ -51,9 +51,10 @@ import {
 import { mergeOptimisticAttachments } from './components/chat/mergeAttachments'
 import { OrchestChatView } from './components/chat/OrchestChatView'
 import { CommandPalette } from './components/common/CommandPalette'
+import { DevDiffPanel } from './components/dev/DevDiffPanel'
 import { DevFilePanel } from './components/dev/DevFilePanel'
 import { DevSessionTabs } from './components/dev/DevSessionTabs'
-import { openFileTab } from './components/dev/file-tabs'
+import { openFileTab, openPathTab } from './components/dev/file-tabs'
 import { OpenCodeTerminal } from './components/dev/OpenCodeTerminal'
 import { type HistorySession, OrcaRightInspector } from './components/dev/OrcaRightInspector'
 import { OrchestDevWorkspace } from './components/dev/OrchestDevWorkspace'
@@ -113,6 +114,7 @@ export default function App() {
   const [projects, setProjects] = useState<ProjectItem[]>([])
   const [deletingProjectIds, setDeletingProjectIds] = useState<Set<string>>(() => new Set())
   const [activeProjectId, setActiveProjectId] = useState<string>('')
+  const [diffRevision, setDiffRevision] = useState(0)
   const [devTabs, setDevTabs] = useState(readSessionTabs)
   const activeDevTabs = devTabs[activeProjectId] ?? emptySessionTabs()
   const activeDevTab = activeDevTabs.tabs.find((tab) => tab.id === activeDevTabs.activeId)
@@ -1523,7 +1525,9 @@ export default function App() {
                     if (tab?.type === 'session') void handleSelectAgent(id, activeProjectId)
                     else updateDevTabs(activeProjectId, (tabs) => ({ ...tabs, activeId: id }))
                   }}
-                  onPin={(path) => handleOpenFile(path, { pin: true })}
+                  onPin={(request) =>
+                    updateDevTabs(activeProjectId, (tabs) => openPathTab(tabs, request))
+                  }
                   onClose={(id) =>
                     updateDevTabs(activeProjectId, (tabs) => closeSessionTab(tabs, id))
                   }
@@ -1531,7 +1535,15 @@ export default function App() {
                     updateDevTabs(activeProjectId, (tabs) => openNewTab(tabs, undefined, agent))
                   }
                 />
-                {activeDevTab?.type === 'file' ? (
+                {activeDevTab?.type === 'diff' ? (
+                  <DevDiffPanel
+                    key={`${activeProjectId}:${activeDevTab.path}`}
+                    projectId={activeProjectId}
+                    path={activeDevTab.path}
+                    revision={diffRevision}
+                    onOpenFile={handleOpenFile}
+                  />
+                ) : activeDevTab?.type === 'file' ? (
                   <DevFilePanel
                     key={activeProjectId}
                     projectId={activeProjectId}
@@ -1617,6 +1629,11 @@ export default function App() {
               currentProject={currentProject}
               projects={projects}
               activeFilePath={activeDevTab?.type === 'file' ? activeDevTab.path : null}
+              activeDiffPath={activeDevTab?.type === 'diff' ? activeDevTab.path : null}
+              onOpenDiff={(request) =>
+                updateDevTabs(activeProjectId, (tabs) => openPathTab(tabs, request))
+              }
+              onDiffRefresh={() => setDiffRevision((value) => value + 1)}
               onOpenFile={handleOpenFile}
               historySessions={historySessions}
               onRestoreAgentToSidebar={handleRestoreAgent}
