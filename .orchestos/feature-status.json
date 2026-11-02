@@ -544,6 +544,15 @@
       "closedDate": "2026-11-01"
     },
     {
+      "id": "CI.51",
+      "sprint": "Fase 2 — Producto mínimo para entrega",
+      "block": "Abiertos — fiabilidad de los gates y documentación",
+      "delegation": "🔍",
+      "title": "El pre-commit no corre biome; el error se ve recién en el pre-push",
+      "status": "open",
+      "closedDate": null
+    },
+    {
       "id": "CI.23",
       "sprint": "Fase 2 — Producto mínimo para entrega",
       "block": "Abiertos — fiabilidad de los gates y documentación",

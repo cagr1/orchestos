@@ -656,6 +656,9 @@ Regla: nada se reintenta, cierra ni muestra sin evidencia medida que el usuario 
   (antes `rgb(244, 244, 245)`); selector en `dist/main.css` `.hljs-built_in`.
   Gate en vivo: navegador real (Playwright, `smoke` 7/7), `docs/done/evidence/UI.43-live.json`.
   Ejecutado por: codex gpt-6-luna (mecanico r1, r2) · Spec: docs/specs/UI.43.md
+- [ ] **CI.51 — 🔍 El pre-commit no corre biome; el error se ve recién en el pre-push.** 2026-11-01/02: dos pushes
+  rechazados por biome (evidencia JSON sin newline final; imports sin ordenar en un test) tras ~3 min de pre-push.
+  `biome check --diagnostic-level=error` sobre los archivos staged en `scripts/pre-commit.sh`; solo errores.
 - [x] **CI.23 — 🔍 `tasks`: la tarea relanzada no deja su commit `chore(tasks)` (intermitente en batería).** (cerrado 2026-10-23) Visto 2 de
   6 corridas del set de UI.26.4 (2026-10-14), nunca con `tasks` solo: tras relanzar `gate-failed-task` y llegar a
   `done`, a los 15 s de `waitForTasksYamlCommit` el último commit es el del trabajo (`orchestos(gate-failed-task): …`)
