@@ -318,6 +318,8 @@ export interface SessionCliStatus {
   binary: string
   icon: string
   installed: boolean
+  functional: boolean
+  quotaSource: boolean
   available: boolean
   observedAt: string | null
   statuslineWired?: boolean

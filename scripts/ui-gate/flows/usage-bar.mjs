@@ -26,7 +26,15 @@ async function waitForRequestAfter(requests, after, predicate, timeout = 5_000) 
   return null
 }
 
-export default async function usageBar({ page, api, step, visible, cleanup, statuslineHome }) {
+export default async function usageBar({
+  page,
+  api,
+  step,
+  shot,
+  visible,
+  cleanup,
+  statuslineHome,
+}) {
   // Stop the previous document before registering a project it could discover while loading.
   // The request count below must belong to one app load, not both sides of a reload.
   const appUrl = page.url()
@@ -101,6 +109,22 @@ export default async function usageBar({ page, api, step, visible, cleanup, stat
     await visible(claudeQuota.getByText('39%', { exact: true })),
     '39% used in status bar',
   )
+  const quotaStatus = await api('/api/session/status', {
+    headers: { 'x-orchestos-project-id': project.id },
+  })
+  const eligible = (quotaStatus.data?.clis ?? []).filter((cli) => cli.functional && cli.quotaSource)
+  const quotaTitles = await page
+    .locator('footer button[title]:not([title="Refresh usage"])')
+    .evaluateAll((buttons) => buttons.map((button) => button.title))
+  await step(
+    'quota bar lists only functional CLIs with a declared quota source',
+    eligible.length > 0 &&
+      quotaTitles.length === eligible.length &&
+      eligible.every((cli) => quotaTitles.some((title) => title.startsWith(`${cli.label}:`))) &&
+      !quotaTitles.some((title) => /^opencode:/i.test(title)),
+    JSON.stringify({ eligible: eligible.map((cli) => cli.id), quotaTitles }),
+  )
+  await shot('UI.46-quota-bar')
   const codexQuota = page.locator('button[title^="Codex:"]')
 
   const cacheHeaders = await page.evaluate(async () => {

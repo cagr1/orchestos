@@ -740,10 +740,16 @@ Regla: nada se reintenta, cierra ni muestra sin evidencia medida que el usuario 
   Carlos 2026-11-02: hoy se abre dentro del panel de Diff; en MonoCode y Orca ocupa el centro para verlo completo.
   Mismo comportamiento que Files (UI.38): pestaña de archivo en la fila de Dev, vista previa en cursiva, doble clic
   fija; muestra el diff del archivo contra HEAD (añadidas/quitadas con color) y permite pasar al archivo entero.
-- [ ] **UI.46 — ⚡ La barra de cuotas muestra solo los CLIs con cuota real.** (abierto 2026-11-02) Carlos
+  Spec: docs/specs/UI.48.md
+- [x] **UI.46 — ⚡ La barra de cuotas muestra solo los CLIs con cuota real.** (abierto 2026-11-02) Carlos
   2026-11-02: hoy lista todos los instalados y OpenCode sale con "—"; OpenCode no expone cuota (`opencode stats` da
   costo equivalente a API; Orca la saca pegando la cookie de opencode.ai, no cubre API key). Queda: CLIs funcionales
   (TCLI.3) con fuente de cuota (Claude, Codex). El contexto de OpenCode sigue en el anillo del composer. Tras TCLI.3.
+  Hecho: `quotaSource` en el registro (`cli-registry.ts`, Claude y Codex); `/api/session/status` añade `functional`
+  (TCLI.3) y `quotaSource`; `mapQuotas` filtra ambos y sin elegibles la sección no se pinta. Captura: Claude 39 % y
+  Codex 34 %, sin OpenCode. Gates del cerebro: `test:coverage` 2208/0; Sol: `shell-look` 75/75, `usage-bar` 20/20.
+  Gate en vivo: navegador real (Playwright), `docs/done/evidence/UI.46-live.json`.
+  Ejecutado por: codex gpt-6.1-sol (criterio) · revisión Opus · Spec: docs/specs/UI.46.md
 - [ ] **UI.47 — ⚡ El "+" de Dev ofrece OpenCode como terminal.** (abierto 2026-11-02) Carlos 2026-11-02: OpenCode
   en el "+" abre una pestaña con su TUI real (`OpenCodeTerminal`, decisión 2026-09-28 "tal cual trabaja"), con su
   propia configuración; los agentes de chat siguen igual. Solo si OpenCode está funcional (TCLI.3). Tras TCLI.3.

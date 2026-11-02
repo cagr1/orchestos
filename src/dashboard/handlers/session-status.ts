@@ -4,6 +4,8 @@ import {
   refreshClaudeUsageLive,
   type SessionStatus,
 } from '../../../scripts/session-status.ts'
+import { readCliHealth } from '../../run/executors/cli-health.ts'
+import { allClis } from '../../run/executors/cli-registry.ts'
 import { jsonResponse } from '../http.ts'
 
 const statusCache = new Map<
@@ -51,7 +53,23 @@ export function withFreshClaudeQuota(
  * H.7.5 — métricas de la sesión interactiva más reciente del proyecto.
  * Solo devuelve el contrato normalizado: nunca rutas ni contenido del transcript.
  */
-export async function handleApiSessionStatus(root: string): Promise<Response> {
+export async function handleApiSessionStatus(
+  root: string,
+  deps: {
+    health?: typeof readCliHealth
+    statuses?: typeof readActiveSessionStatuses
+  } = {},
+): Promise<Response> {
+  const health = await (deps.health ?? readCliHealth)()
+  const definitions = allClis()
+  const respond = (statuses: SessionStatus[]) => {
+    const clis = statuses.map((cli) => ({
+      ...cli,
+      functional: health.find((entry) => entry.id === cli.id)?.functional ?? false,
+      quotaSource: definitions.find((entry) => entry.id === cli.id)?.quotaSource ?? false,
+    }))
+    return jsonResponse({ available: clis.some((cli) => cli.available), clis })
+  }
   // Explicit transcript paths are test/runtime overrides and must not share the
   // project's normal cache entry.
   const cacheKey = `${root}\0${process.env.ORCHESTOS_SESSION_TRANSCRIPT ?? ''}`
@@ -59,7 +77,7 @@ export async function handleApiSessionStatus(root: string): Promise<Response> {
   const refresh = async () => {
     const pending = statusRefreshes.get(cacheKey)
     if (pending) return pending
-    const promise = readActiveSessionStatuses({
+    const promise = (deps.statuses ?? readActiveSessionStatuses)({
       projectRoot: root,
       refreshClaudeUsage: claudeUsageRefresher(),
     })
@@ -81,18 +99,15 @@ export async function handleApiSessionStatus(root: string): Promise<Response> {
         // Claude's statusline is cheap; keep its quota fresh even when Codex delays refresh.
         // The slow Codex rate-limit request must not age Claude's displayed quota.
         const clis = withFreshClaudeQuota(refreshed.clis)
-        return jsonResponse({
-          available: clis.some((cli) => cli.available),
-          clis,
-        })
+        return respond(clis)
       }
     } else {
       void refresh()
     }
     const clis = withFreshClaudeQuota(cached.clis)
-    return jsonResponse({ available: clis.some((cli) => cli.available), clis })
+    return respond(clis)
   }
   await refresh()
   const clis = withFreshClaudeQuota(statusCache.get(cacheKey)?.clis ?? [])
-  return jsonResponse({ available: clis.some((cli) => cli.available), clis })
+  return respond(clis)
 }

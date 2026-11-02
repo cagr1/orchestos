@@ -73,6 +73,8 @@ describe('formatReset', () => {
             binary: 'claude',
             icon: 'claude',
             installed: true,
+            functional: true,
+            quotaSource: true,
             available: true,
             observedAt,
             context: null,
@@ -121,6 +123,8 @@ describe('formatReset', () => {
             binary: 'claude',
             icon: 'claude',
             installed: true,
+            functional: true,
+            quotaSource: true,
             available: true,
             context: null,
             observedAt: new Date(now - 3_600_000).toISOString(),
@@ -160,6 +164,8 @@ describe('formatReset', () => {
           binary: 'claude',
           icon: 'claude',
           installed: true,
+          functional: true,
+          quotaSource: true,
           available: true,
           observedAt: new Date(now).toISOString(),
           context: null,
@@ -192,6 +198,8 @@ describe('formatReset', () => {
           binary: 'claude',
           icon: 'claude',
           installed: true,
+          functional: true,
+          quotaSource: true,
           available: false,
           observedAt: null,
           context: null,
@@ -218,6 +226,8 @@ describe('formatReset', () => {
           binary: 'codex',
           icon: 'codex',
           installed: true,
+          functional: true,
+          quotaSource: true,
           available: true,
           observedAt: null,
           context: null,
@@ -252,6 +262,8 @@ describe('formatReset', () => {
           binary: 'claude',
           icon: 'claude',
           installed: true,
+          functional: true,
+          quotaSource: true,
           available: true,
           observedAt: new Date().toISOString(),
           context: null,
@@ -264,5 +276,47 @@ describe('formatReset', () => {
     expect(renderToStaticMarkup(createElement(ShellStatusBar, { status }))).toContain(
       'title="Claude Code: 45% weekly quota used"',
     )
+  })
+})
+
+describe('mapQuotas eligibility', () => {
+  const cli = {
+    id: 'fixture',
+    label: 'Fixture',
+    binary: 'fixture',
+    icon: 'terminal',
+    installed: true,
+    functional: true,
+    quotaSource: true,
+    available: false,
+    observedAt: null,
+    context: null,
+    rateLimits: null,
+  }
+
+  test('uses declared capability and health rather than installation or a fixed CLI list', () => {
+    const status = {
+      available: false,
+      clis: [
+        cli,
+        { ...cli, id: 'opencode', quotaSource: false },
+        { ...cli, id: 'signed-out', functional: false },
+      ],
+    }
+    expect(mapQuotas(status).map((entry) => entry.id)).toEqual(['fixture'])
+  })
+
+  test('omits the entire quota section and refresh control when no CLI qualifies', () => {
+    const status = {
+      available: false,
+      clis: [
+        { ...cli, quotaSource: false },
+        { ...cli, functional: false },
+      ],
+    }
+    expect(mapQuotas(status)).toEqual([])
+    expect(mapQuotas(null)).toEqual([])
+    const html = renderToStaticMarkup(createElement(ShellStatusBar, { status, onRefresh() {} }))
+    expect(html).toBe('')
   })
 })

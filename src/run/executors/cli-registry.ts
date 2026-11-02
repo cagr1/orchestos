@@ -64,6 +64,7 @@ export interface CliDefinition {
   readBoundary: CliReadBoundary
   subagentBlock: { args: string[] } | 'not-guaranteed'
   mcp: CliMcpAdapter
+  quotaSource: boolean
   supportsActionApproval: boolean
   configHome: {
     directory: string
@@ -92,6 +93,7 @@ Do not load or reference user-level configuration, personal instructions, or pri
 export const KNOWN_CLIS: CliDefinition[] = [
   {
     id: 'claude',
+    quotaSource: true,
     supportsActionApproval: true,
     binary: 'claude',
     label: 'Claude Code',
@@ -107,6 +109,7 @@ export const KNOWN_CLIS: CliDefinition[] = [
   },
   {
     id: 'codex',
+    quotaSource: true,
     supportsActionApproval: true,
     binary: 'codex',
     label: 'Codex',
@@ -121,6 +124,7 @@ export const KNOWN_CLIS: CliDefinition[] = [
   },
   {
     id: 'opencode',
+    quotaSource: false,
     supportsActionApproval: true,
     binary: 'opencode',
     label: 'opencode',
@@ -135,6 +139,7 @@ export const KNOWN_CLIS: CliDefinition[] = [
   },
   {
     id: 'deepseek',
+    quotaSource: false,
     supportsActionApproval: false,
     binary: 'deepseek',
     label: 'DeepSeek',
@@ -149,6 +154,7 @@ export const KNOWN_CLIS: CliDefinition[] = [
   },
   {
     id: 'gemini',
+    quotaSource: false,
     supportsActionApproval: false,
     binary: 'gemini',
     label: 'Gemini',
@@ -163,6 +169,7 @@ export const KNOWN_CLIS: CliDefinition[] = [
   },
   {
     id: 'kimi',
+    quotaSource: false,
     supportsActionApproval: false,
     binary: 'kimi',
     label: 'Kimi',
@@ -177,6 +184,7 @@ export const KNOWN_CLIS: CliDefinition[] = [
   },
   {
     id: 'glm',
+    quotaSource: false,
     supportsActionApproval: false,
     binary: 'glm',
     label: 'GLM',
@@ -266,6 +274,7 @@ export function allClis(): CliDefinition[] {
         binary: cli.command,
         icon: 'terminal',
         generic: true,
+        quotaSource: false,
         readBoundary: {
           kind: 'none',
           reason: 'CLI configurado por el usuario: OrchestOS no limita su lectura',

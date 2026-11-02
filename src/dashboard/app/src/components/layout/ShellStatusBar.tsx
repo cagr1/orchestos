@@ -50,7 +50,7 @@ export function formatCountdown(epochSeconds: number | null): string | undefined
 
 export function mapQuotas(status: SessionStatus | null): CliQuotaInfo[] {
   return (status?.clis ?? [])
-    .filter((cli) => cli.installed)
+    .filter((cli) => cli.functional && cli.quotaSource)
     .map((cli) => {
       const windows = cli.rateLimits?.windows ?? []
       const fiveHour = windows.find((window) => window.windowMinutes === 300)
@@ -139,13 +139,15 @@ export const ShellStatusBar: React.FC<ShellStatusBarProps> = ({
     }
   }, [activeCliId])
 
+  if (quotas.length === 0) return null
+
   const activeCli = quotas.find((c) => c.id === activeCliId)
   const fiveHourTone = quotaTone(activeCli?.quota5h ?? null)
   const weeklyTone = quotaTone(activeCli?.quotaWeekly ?? null)
 
   return (
     <footer className="h-7 border-t border-app bg-app-bg px-3 flex items-center justify-between select-none text-xs flex-shrink-0 z-30 relative font-mono">
-      {/* Installed CLIs list: product logo + thin bar + percent of its 5-hour quota used */}
+      {/* Functional CLIs with a quota source */}
       <div className="flex items-center gap-4">
         {quotas.map((cli) => {
           const hasData = cli.quota5h !== null || cli.quotaWeekly !== null
