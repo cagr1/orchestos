@@ -26,6 +26,7 @@ import { useStopChatTurn } from '../../hooks/useStopChatTurn'
 import type {
   AgentItem,
   SessionStatus as ApiSessionStatus,
+  ApprovalMode,
   ChatAttachment,
   ProjectItem,
 } from '../../types/orchestos'
@@ -47,6 +48,7 @@ interface OrchestDevWorkspaceProps {
     agent?: string,
     model?: string,
     effort?: string,
+    approvalMode?: ApprovalMode,
     // biome-ignore lint/suspicious/noConfusingVoidType: preserve void callbacks alongside async acceptance.
   ) => void | Promise<boolean>
   sessionStatus?: ApiSessionStatus
@@ -391,6 +393,7 @@ export const OrchestDevWorkspace: React.FC<OrchestDevWorkspaceProps> = ({
     model?: string,
     effort?: string,
     isShellCmd?: boolean,
+    approvalMode?: ApprovalMode,
   ) => {
     if (!isShellCmd) {
       const sentAt = Date.now()
@@ -399,7 +402,14 @@ export const OrchestDevWorkspace: React.FC<OrchestDevWorkspaceProps> = ({
       setPendingUserMessage({ content, sentAt })
       setSessionStatus('working')
       try {
-        const accepted = await onSendMessage?.(content, attachments, cli, model, effort)
+        const accepted = await onSendMessage?.(
+          content,
+          attachments,
+          cli,
+          model,
+          effort,
+          approvalMode,
+        )
         setSessionStatus(accepted ? 'done' : 'failed')
         if (!accepted) setPendingUserMessage(null)
       } catch {
@@ -989,6 +999,7 @@ export const OrchestDevWorkspace: React.FC<OrchestDevWorkspaceProps> = ({
         <div className="max-w-3xl lg:max-w-4xl mx-auto">
           <AgentComposer
             onSendMessage={handleSendMessage}
+            hasProject={!!activeAgent.projectId}
             busy={isWorking}
             onStop={stop.onStop}
             stopping={stop.stopping}

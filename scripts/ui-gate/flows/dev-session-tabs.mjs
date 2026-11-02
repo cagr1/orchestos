@@ -155,6 +155,19 @@ for (const probe of [systemCliDiscoveryProbe, systemCliHealthProbe]) {
     (await panel.count()) === 0 && (await visible(tab(0))),
     'file viewer absent, composer visible',
   )
+  const permissionMode = page.getByRole('button', { name: 'Task approval mode' })
+  await step(
+    'Dev composer shows its task approval mode',
+    await visible(permissionMode),
+    'selector visible',
+  )
+  await permissionMode.click()
+  await page.getByRole('menuitemradio', { name: /^Supervised/ }).click()
+  await step(
+    'changing Dev approval mode updates the composer button',
+    (await permissionMode.innerText()).includes('Supervised'),
+    await permissionMode.innerText(),
+  )
   await treeFile('context.json').click()
   await panel.locator('.hljs-attr').first().waitFor()
   await step(

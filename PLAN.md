@@ -721,6 +721,35 @@ Regla: nada se reintenta, cierra ni muestra sin evidencia medida que el usuario 
   cola del hilo, composer, botón, timeline, status del POST, `[chat-turn]` y a qué ms apareció (sigue hasta 15 s).
   Contraprueba forzada (filtro inexistente) con la evidencia completa; corrida normal 14/14 (Sol y cerebro). Abierto
   hasta el próximo fallo: leer ese JSON y escribir la fase 2. Fase 1 por codex gpt-6.1-sol (criterio r1, r2).
+- [x] **UI.49 — ⚡ El composer de Dev muestra el modo de permisos, como Chat.** (abierto 2026-11-02) Auditoría de
+  ADE (Dev vs MonoCode/Orca, capturas `/tmp/ade/`): Chat muestra "Auto-edit" y Dev no, porque Dev no pasa
+  `hasProject` a `AgentComposer` (`OrchestDevWorkspace.tsx:990`, `AgentComposer.tsx:836`). MonoCode lo muestra
+  siempre ("Supervised").
+  Hecho: Dev pasa `hasProject` y reenvía `approvalMode` hasta `sendMessage` (mismo camino que Chat). Gates del
+  cerebro: `dev-session-tabs` 37/37 (paso nuevo: selector visible y cambio a Supervised), `chat-permissions` 9/9.
+  Ejecutor: lint, typecheck, `test:coverage` 2211/0.
+  Gate en vivo: navegador real (Playwright), `docs/done/evidence/UI.49-live.json`.
+  Ejecutado por: codex gpt-6-luna (mecanico) · revisión Opus · Spec: docs/specs/UI.49.md
+- [ ] **UI.50 — ⚡ La pestaña de Dev indica cuando su sesión está corriendo.** (abierto 2026-11-02) Auditoría de ADE:
+  Orca pone un spinner en la pestaña del agente que trabaja; en Dev solo se ve dentro del hilo
+  (`DevSessionTabs.tsx:163`). Spec: docs/specs/UI.50.md
+- [ ] **UI.51 — ⚡ La barra de cuotas muestra cuánto falta para el reinicio.** (abierto 2026-11-02) Auditoría de ADE:
+  Orca ("18% used 2h 22m") y MonoCode ("1% 2h 47m") lo muestran junto al %; OrchestOS solo el %
+  (`ShellStatusBar.tsx:184`), el tiempo vive en el popover. Spec: docs/specs/UI.51.md
+- [ ] **UI.52 — 🧠 Dev pinta la respuesta igual que Chat.** (abierto 2026-11-02) Auditoría de ADE: Dev usa una
+  tarjeta con borde y `react-markdown` (`OrchestDevWorkspace.tsx:929-938`); Chat usa `ChatMessage` + `ThreadMarkdown`
+  (Streamdown, highlight de UI.41) sin tarjeta. Títulos y listas se ven distintos entre vistas; Dev no colorea código.
+  Spec: docs/specs/UI.52.md
+- [ ] **UI.53 — 🧠 El árbol de Files atenúa lo que git ignora, como VS Code y Orca.** (abierto 2026-11-02) Auditoría de
+  ADE: Orca pinta en cursiva atenuada los ignorados; Files los muestra igual que el resto
+  (`OrcaRightInspector.tsx:279`). Spec: docs/specs/UI.53.md
+- [ ] **UI.54 — 🧠 "@" en el composer referencia archivos del proyecto.** (abierto 2026-11-02) Carlos 2026-11-02
+  (auditoría de ADE, opción recomendada): como MonoCode y Orca, "@" abre un buscador de archivos del proyecto e
+  inserta la ruta; en Chat y Dev. Hoy solo "/" (`AgentComposer.tsx:328`). Spec: docs/specs/UI.54.md
+- [ ] **UI.55 — 🧠 Terminal del proyecto en un panel inferior de Dev.** (abierto 2026-11-02) Carlos 2026-11-02
+  (auditoría de ADE, opción recomendada): como MonoCode, botón "Terminal" en la barra inferior y Ctrl+` abren una
+  shell en la raíz del proyecto bajo el centro de Dev. Reusa el PTY de OpenCode (`src/dashboard/terminal.ts`,
+  `OpenCodeTerminal.tsx`). Spec: docs/specs/UI.55.md
 - [x] **TCLI.3 — ⚡ Detección común de CLIs funcionales: instalado → versión → sesión, sin efectos secundarios.** (abierto 2026-11-02)
   Carlos 2026-11-02 (opción recomendada, como T3 Code): hoy "funcional" = binario en el PATH (`cli-discovery.ts`);
   la sesión solo se mira en Settings y solo para Claude/Codex por archivos (`providers.ts:160`). Un solo estado por

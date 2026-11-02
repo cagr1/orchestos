@@ -598,6 +598,69 @@
       "closedDate": null
     },
     {
+      "id": "UI.49",
+      "sprint": "Fase 2 — Producto mínimo para entrega",
+      "block": "Abiertos — fiabilidad de los gates y documentación",
+      "delegation": "⚡",
+      "title": "El composer de Dev muestra el modo de permisos, como Chat",
+      "status": "done",
+      "closedDate": null
+    },
+    {
+      "id": "UI.50",
+      "sprint": "Fase 2 — Producto mínimo para entrega",
+      "block": "Abiertos — fiabilidad de los gates y documentación",
+      "delegation": "⚡",
+      "title": "La pestaña de Dev indica cuando su sesión está corriendo",
+      "status": "open",
+      "closedDate": null
+    },
+    {
+      "id": "UI.51",
+      "sprint": "Fase 2 — Producto mínimo para entrega",
+      "block": "Abiertos — fiabilidad de los gates y documentación",
+      "delegation": "⚡",
+      "title": "La barra de cuotas muestra cuánto falta para el reinicio",
+      "status": "open",
+      "closedDate": null
+    },
+    {
+      "id": "UI.52",
+      "sprint": "Fase 2 — Producto mínimo para entrega",
+      "block": "Abiertos — fiabilidad de los gates y documentación",
+      "delegation": "🧠",
+      "title": "Dev pinta la respuesta igual que Chat",
+      "status": "open",
+      "closedDate": null
+    },
+    {
+      "id": "UI.53",
+      "sprint": "Fase 2 — Producto mínimo para entrega",
+      "block": "Abiertos — fiabilidad de los gates y documentación",
+      "delegation": "🧠",
+      "title": "El árbol de Files atenúa lo que git ignora, como VS Code y Orca",
+      "status": "open",
+      "closedDate": null
+    },
+    {
+      "id": "UI.54",
+      "sprint": "Fase 2 — Producto mínimo para entrega",
+      "block": "Abiertos — fiabilidad de los gates y documentación",
+      "delegation": "🧠",
+      "title": "\"@\" en el composer referencia archivos del proyecto",
+      "status": "open",
+      "closedDate": null
+    },
+    {
+      "id": "UI.55",
+      "sprint": "Fase 2 — Producto mínimo para entrega",
+      "block": "Abiertos — fiabilidad de los gates y documentación",
+      "delegation": "🧠",
+      "title": "Terminal del proyecto en un panel inferior de Dev",
+      "status": "open",
+      "closedDate": null
+    },
+    {
       "id": "TCLI.3",
       "sprint": "Fase 2 — Producto mínimo para entrega",
       "block": "Abiertos — fiabilidad de los gates y documentación",
