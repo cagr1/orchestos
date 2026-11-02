@@ -1,4 +1,4 @@
-# NEXT — handoff 2026-11-02 (UI.39–45, CI.49–52, CHAT.4 cerrados)
+# NEXT — handoff 2026-11-02 (CHAT.4, TCLI.3, UI.46–48 cerrados; CI.54 espera fallo)
 
 Un solo presente: orden y trampas vivas. Lo cerrado vive en `docs/done/bloque-*.md`, `PLAN.md` y git (regla `AGENTS.md`
 § Reglas generales, 2026-10-19: `NEXT.md` se toca solo al cerrar o cortar un lote). Arranque:
@@ -50,8 +50,15 @@ Un solo presente: orden y trampas vivas. Lo cerrado vive en `docs/done/bloque-*.
   `cancelled`); `f1a8df7f` UI (botón Detener/Deteniendo… en Chat y Dev, "Respuesta detenida"), ui-gate nuevo
   `chat-stop` 22/22 corrido por el cerebro. Fuera: opencode (espera a que termine), tareas ya lanzadas.
 
+- 2026-11-02, noche (2): CI.53 `7ceebbb5` timeout real en `chat-stop.test.ts` (caché de Bun fría con HOME
+  temporal); CI.54 fase 1 `85bbb985` (`codex-live` deja captura+JSON si la burbuja no aparece); TCLI.3 `c24519c2`
+  detección común (instalado → versión → sesión, `cli-health.ts`); UI.46 `ccfbb675` barra de cuotas solo con CLIs
+  funcionales con cuota (Claude, Codex); UI.48 `d9e9c5bd` diff al centro como Files; UI.47 `be9f0e5b` OpenCode en el
+  "+" como terminal (+ bug: el scroll de la fila de pestañas cerraba el menú). Memoria nueva: lo obvio de un ADE se
+  agrega sin preguntar.
+
 ## Orden
-0. CHAT.4 cerrado (ver Cerrado). Nada en curso.
+0. Nada en curso. CI.54 y CI.19 esperan su próximo fallo (leer la evidencia que dejan y escribir la fase 2).
    **Anotado, sin ítem**: `codex-live` falló 1 de 3 en "turn 1 user
    message appears before completion" (2 s), el pre-push reintenta. El composer angosto no se reprodujo a 820 px en
    Chat (2026-11-02). Dos commits aparecieron en `origin` sin push de esta sesión (2026-11-02, fast-forward limpio;
