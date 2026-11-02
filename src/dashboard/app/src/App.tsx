@@ -959,6 +959,7 @@ export default function App() {
     model: string,
     title: string,
   ) => {
+    setProjectTabsError(null)
     void createSession({ agent: cliId, projectId, title })
       .then(async (thread) => {
         setActiveProjectId(projectId)
@@ -973,7 +974,7 @@ export default function App() {
         setProjects(await listProjects())
         setMode('dev')
       })
-      .catch(() => undefined)
+      .catch((error) => setProjectTabsError(error instanceof Error ? error.message : String(error)))
   }
 
   // Chat actions
@@ -1531,9 +1532,15 @@ export default function App() {
                   onClose={(id) =>
                     updateDevTabs(activeProjectId, (tabs) => closeSessionTab(tabs, id))
                   }
-                  onNew={(agent) =>
-                    updateDevTabs(activeProjectId, (tabs) => openNewTab(tabs, undefined, agent))
-                  }
+                  onNew={(action) => {
+                    if (action.kind === 'create-session') {
+                      handleCreateAgentInProject(activeProjectId, action.agent, '', 'OpenCode')
+                    } else {
+                      updateDevTabs(activeProjectId, (tabs) =>
+                        openNewTab(tabs, undefined, action.agent),
+                      )
+                    }
+                  }}
                 />
                 {activeDevTab?.type === 'diff' ? (
                   <DevDiffPanel

@@ -83,6 +83,7 @@ export interface CliModelCatalog {
   models: CliModelOption[]
   efforts: string[]
   error?: string
+  terminal?: boolean
   chat?: boolean
   installed?: boolean
   functional?: boolean

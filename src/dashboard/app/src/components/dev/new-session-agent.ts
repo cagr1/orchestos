@@ -11,6 +11,20 @@ export function resolveNewSessionAgent(
   return { agent }
 }
 
-export function isFunctionalChatCli(cli: { chat?: boolean; functional?: boolean }): boolean {
-  return Boolean(cli.chat && cli.functional)
+export interface DevSessionCli {
+  id: string
+  chat?: boolean
+  terminal?: boolean
+  functional?: boolean
+}
+
+export function isFunctionalDevCli(cli: DevSessionCli): boolean {
+  return Boolean(cli.functional && (cli.chat || cli.terminal))
+}
+
+export function devSessionAction(cli: DevSessionCli): {
+  kind: 'create-session' | 'new-tab'
+  agent: string
+} {
+  return { kind: cli.terminal ? 'create-session' : 'new-tab', agent: cli.id }
 }

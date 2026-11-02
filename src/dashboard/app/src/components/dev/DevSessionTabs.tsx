@@ -7,7 +7,7 @@ import type { AgentItem } from '../../types/orchestos'
 import { cliDisplayName } from '../common/AgentComposer'
 import { ProviderLogo } from '../common/ProviderLogos'
 import type { OpenPathRequest } from './file-tabs'
-import { isFunctionalChatCli } from './new-session-agent'
+import { devSessionAction, isFunctionalDevCli } from './new-session-agent'
 import type { SessionTabs } from './session-tabs'
 
 export function DevSessionTabs({
@@ -24,7 +24,7 @@ export function DevSessionTabs({
   projectId: string
   onSelect: (id: string) => void
   onClose: (id: string) => void
-  onNew: (agent: string) => void
+  onNew: (action: ReturnType<typeof devSessionAction>) => void
   onPin: (request: OpenPathRequest) => void
 }) {
   const [agent, setAgent] = useState('')
@@ -50,7 +50,7 @@ export function DevSessionTabs({
     let disposed = false
     void getCliModels()
       .then((catalogs) => {
-        if (!disposed) setCatalogs(catalogs.filter(isFunctionalChatCli))
+        if (!disposed) setCatalogs(catalogs.filter(isFunctionalDevCli))
       })
       .catch(() => {})
     return () => {
@@ -91,20 +91,29 @@ export function DevSessionTabs({
         setMenu(null)
     }
     const dismiss = () => setMenu(null)
+    // El "+" vive dentro de la franja con scroll horizontal: al desplazarla el menú sigue al botón.
+    const follow = (event: Event) => {
+      const button = buttonRef.current
+      if (button && event.target instanceof Node && event.target.contains(button)) {
+        const rect = button.getBoundingClientRect()
+        setMenu({ left: Math.min(rect.left, window.innerWidth - 224), top: rect.bottom + 4 })
+      } else dismiss()
+    }
     document.addEventListener('mousedown', close)
     window.addEventListener('resize', dismiss)
-    window.addEventListener('scroll', dismiss, true)
+    window.addEventListener('scroll', follow, true)
     return () => {
       document.removeEventListener('mousedown', close)
       window.removeEventListener('resize', dismiss)
-      window.removeEventListener('scroll', dismiss, true)
+      window.removeEventListener('scroll', follow, true)
     }
   }, [menu])
   const choose = (agent: string) => {
     setMenu(null)
     setLastAgent(agent)
     localStorage.setItem(`orchestos-dev-agent:${projectId}`, agent)
-    onNew(agent)
+    const cli = catalogs.find((cli) => cli.id === agent)
+    if (cli) onNew(devSessionAction(cli))
   }
   return (
     <div
@@ -227,6 +236,7 @@ export function DevSessionTabs({
                 key={option.id}
                 type="button"
                 role="menuitemradio"
+                aria-label={`${cliDisplayName(option.id, option.label)}${option.terminal ? ' Terminal' : ''}`}
                 aria-checked={selected === index}
                 tabIndex={selected === index ? 0 : -1}
                 onFocus={() => setSelected(index)}
@@ -235,6 +245,9 @@ export function DevSessionTabs({
               >
                 <ProviderLogo id={option.id} size={14} />
                 {cliDisplayName(option.id, option.label)}
+                {option.terminal && (
+                  <span className="ml-auto text-[10px] text-app-muted">Terminal</span>
+                )}
               </button>
             ))}
           </div>,

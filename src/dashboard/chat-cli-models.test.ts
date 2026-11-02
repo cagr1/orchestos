@@ -283,12 +283,14 @@ describe('UI.14 round 5 CLI model catalogs', () => {
         efforts: [],
         error: 'ENOEXEC: spawn failed',
         chat: true,
+        terminal: false,
         installed: true,
         label: 'Claude',
       },
       {
         id: 'opencode',
         chat: false,
+        terminal: true,
         installed: true,
         label: 'OpenCode',
         models: [

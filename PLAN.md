@@ -754,9 +754,16 @@ Regla: nada se reintenta, cierra ni muestra sin evidencia medida que el usuario 
   Codex 34 %, sin OpenCode. Gates del cerebro: `test:coverage` 2208/0; Sol: `shell-look` 75/75, `usage-bar` 20/20.
   Gate en vivo: navegador real (Playwright), `docs/done/evidence/UI.46-live.json`.
   Ejecutado por: codex gpt-6.1-sol (criterio) · revisión Opus · Spec: docs/specs/UI.46.md
-- [ ] **UI.47 — ⚡ El "+" de Dev ofrece OpenCode como terminal.** (abierto 2026-11-02) Carlos 2026-11-02: OpenCode
+- [x] **UI.47 — ⚡ El "+" de Dev ofrece OpenCode como terminal.** (abierto 2026-11-02) Carlos 2026-11-02: OpenCode
   en el "+" abre una pestaña con su TUI real (`OpenCodeTerminal`, decisión 2026-09-28 "tal cual trabaja"), con su
   propia configuración; los agentes de chat siguen igual. Solo si OpenCode está funcional (TCLI.3). Tras TCLI.3.
+  Hecho: el "+" lista OpenCode con la marca "Terminal" si está funcional; elegirlo crea la sesión `opencode` y monta
+  `OpenCodeTerminal` sin pantalla intermedia (flag `terminal` del adaptador). r2 (bug real hallado con consola): el
+  listener de `scroll` en captura cerraba el menú cuando la fila de pestañas (`overflow-x-auto`) se desplazaba;
+  ahora el menú se reposiciona con ese scroll. Crear sesión ya no traga errores (`setProjectTabsError`). "Abrir
+  archivo" → "Open file". Gates del cerebro: lint, `test:coverage` 2209/0, `dev-session-tabs` 35/35 ×2.
+  Gate en vivo: navegador real (Playwright), `docs/done/evidence/UI.47-live.json`.
+  Ejecutado por: codex gpt-6.1-sol (criterio r1) · claude sonnet (criterio-alt r2) · revisión Opus · Spec: docs/specs/UI.47.md
 - [x] **CI.53 — 🔍 `chat-stop.test.ts` vence el timeout de 5 s con HOME temporal (pre-push y CI).** (abierto 2026-11-02)
   El pre-push de CHAT.4 falló 2 de 7: el proceso hijo de `isolated()` importa `chat.ts` con la caché de
   transpilación de Bun fría y tarda ~6 s (1,4 s caliente). Reproducido con `env HOME=$(mktemp -d)`. Arreglo: timeout

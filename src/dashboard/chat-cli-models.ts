@@ -19,6 +19,7 @@ export interface CliModelCatalog {
   models: CliModelOption[]
   efforts: string[]
   error?: string
+  terminal?: boolean
   chat?: boolean
   installed?: boolean
   label?: string
@@ -311,6 +312,7 @@ export async function readCliModelCatalogs(
         return {
           ...(await readCliCatalog(cli.id, cli.path ?? cli.binary, runner, home)),
           chat: cliChatAdapterFor(cli.id)?.chat ?? false,
+          terminal: cliChatAdapterFor(cli.id)?.terminal ?? false,
           installed: cli.installed,
           label: cli.label,
         }
@@ -318,6 +320,7 @@ export async function readCliModelCatalogs(
         return {
           id: cli.id,
           chat: cliChatAdapterFor(cli.id)?.chat ?? false,
+          terminal: cliChatAdapterFor(cli.id)?.terminal ?? false,
           installed: cli.installed,
           label: cli.label,
           models: [],

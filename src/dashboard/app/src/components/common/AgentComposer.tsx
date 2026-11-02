@@ -45,6 +45,7 @@ const CLIS: CliConfig[] = [
 ]
 
 export function cliDisplayName(id: string, label?: string): string {
+  if (id === 'opencode') return 'OpenCode'
   return CLIS.find((cli) => cli.id === id)?.name ?? label ?? id
 }
 

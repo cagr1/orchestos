@@ -69,7 +69,7 @@ export function DevDiffPanel({
           onClick={() => onOpenFile(path, { pin: true })}
           className="shrink-0 rounded-control px-2 py-1 text-app-muted hover:text-app hover:bg-app-surface disabled:opacity-50"
         >
-          Abrir archivo
+          Open file
         </button>
       </header>
       <div className="flex-1 min-h-0 overflow-auto font-mono text-xs leading-6 text-app-muted">

@@ -1,6 +1,6 @@
 import { mkdtempSync, rmSync, unlinkSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
-import { basename, join } from 'node:path'
+import { basename, join, resolve } from 'node:path'
 import { run, writeGateRoles } from '../lib.mjs'
 
 export default async function devSessionTabs({
@@ -12,8 +12,44 @@ export default async function devSessionTabs({
   visible,
   consoleErrors,
   expectHttpError,
+  restartDashboard,
 }) {
   const root = mkdtempSync(join(tmpdir(), 'orchestos-dev-tabs-'))
+  const opencode = join(root, 'opencode')
+  writeFileSync(
+    opencode,
+    `#!/bin/sh
+case "$1" in
+--version) echo "OpenCode fixture 1.2.3"; exit 0;;
+auth) echo "1 credential"; exit 0;;
+models) exit 0;;
+esac
+echo "OpenCode terminal fixture ready"
+while IFS= read -r line; do echo "$line"; done
+`,
+    { mode: 0o755 },
+  )
+  const preload = join(root, 'probe.ts')
+  writeFileSync(
+    preload,
+    `
+import { systemCliDiscoveryProbe } from ${JSON.stringify(resolve('src/run/executors/cli-discovery.ts'))}
+import { systemCliHealthProbe } from ${JSON.stringify(resolve('src/run/executors/cli-health.ts'))}
+process.env.PATH = ${JSON.stringify(root)} + ':' + process.env.PATH
+for (const probe of [systemCliDiscoveryProbe, systemCliHealthProbe]) {
+  const original = probe.which
+  probe.which = (binary, path) => binary === 'opencode' ? ${JSON.stringify(opencode)} : original(binary, path)
+}
+`,
+  )
+  const previousOptions = process.env.BUN_OPTIONS
+  cleanup(async () => {
+    if (previousOptions === undefined) delete process.env.BUN_OPTIONS
+    else process.env.BUN_OPTIONS = previousOptions
+    await restartDashboard()
+  })
+  process.env.BUN_OPTIONS = `${previousOptions ?? ''} --preload=${preload}`.trim()
+  await restartDashboard()
   writeFileSync(join(root, 'README.md'), '# Dev session tabs\n')
   writeFileSync(join(root, 'notes.txt'), 'Preview only\n')
   run('git', ['init', '-q'], root)
@@ -190,11 +226,13 @@ export default async function devSessionTabs({
   const agentMenu = page.getByRole('menu', { name: 'New session agent', exact: true })
   await agentMenu.waitFor()
   await step(
-    'plus opens the installed chat agent menu with last used agent preselected',
+    'plus opens usable agents including OpenCode Terminal with last used agent preselected',
     (await agentMenu.getByRole('menuitemradio').first().innerText()) === 'Claude' &&
       (await agentMenu.getByRole('menuitemradio').first().getAttribute('aria-checked')) ===
         'true' &&
-      (await agentMenu.getByText(/opencode/i).count()) === 0,
+      (await agentMenu
+        .getByRole('menuitemradio', { name: 'OpenCode Terminal', exact: true })
+        .count()) === 1,
     await agentMenu.innerText(),
   )
   await shot('new-session-agent-menu')
@@ -294,6 +332,49 @@ export default async function devSessionTabs({
     ),
     'dead id removed',
   )
+  await page.getByRole('button', { name: 'New session', exact: true }).click()
+  await agentMenu.waitFor()
+  await page.screenshot({ path: '/tmp/UI.47-menu.png' })
+  const [createdTerminal] = await Promise.all([
+    page.waitForResponse(
+      (response) =>
+        new URL(response.url()).pathname === '/api/chat/sessions' &&
+        response.request().method() === 'POST',
+    ),
+    agentMenu.getByRole('menuitemradio', { name: 'OpenCode Terminal', exact: true }).click(),
+  ])
+  const terminalSession = await createdTerminal.json()
+  const terminalTab = tabs.locator(`[data-session-tab="${terminalSession.id}"]`)
+  const terminal = page.getByRole('region', { name: 'OpenCode terminal' })
+  await terminal
+    .locator('.xterm-rows')
+    .getByText('OpenCode terminal fixture ready', { exact: false })
+    .waitFor()
+  await step(
+    'OpenCode creates a session directly and mounts a live terminal',
+    terminalSession.agent === 'opencode' &&
+      !terminalSession.lastModel &&
+      !terminalSession.lastEffort &&
+      (await terminalTab.getAttribute('aria-selected')) === 'true' &&
+      (await terminalTab.locator('[aria-hidden="true"]').count()) === 1 &&
+      (await fresh.count()) === 0 &&
+      (await visible(terminal.locator('.xterm'))),
+    JSON.stringify(terminalSession),
+  )
+  await shot('opencode-terminal-tab')
+  await page.screenshot({ path: '/tmp/UI.47-opencode.png' })
+  await page.getByRole('button', { name: 'New session', exact: true }).click()
+  await agentMenu.waitFor()
+  await step(
+    'OpenCode counts as last used agent',
+    (await agentMenu.getByRole('menuitemradio').first().getAttribute('aria-label')) ===
+      'OpenCode Terminal' &&
+      (await agentMenu.getByRole('menuitemradio').first().getAttribute('aria-checked')) === 'true',
+    await agentMenu.innerText(),
+  )
+  await page.keyboard.press('Escape')
+  await terminalTab.hover()
+  await page.getByRole('button', { name: 'Close tab OpenCode', exact: true }).click()
   // UI.48: git patches share the center tab row with files and sessions.
   writeFileSync(join(root, 'README.md'), '# Updated diff heading\n')
   writeFileSync(join(root, 'notes.txt'), 'Updated preview\n')
@@ -346,10 +427,10 @@ export default async function devSessionTabs({
     await diffTab('README.md').evaluate((el) => getComputedStyle(el).fontStyle !== 'italic'),
     'fixed README.md diff',
   )
-  await diffPanel.getByRole('button', { name: 'Abrir archivo', exact: true }).click()
+  await diffPanel.getByRole('button', { name: 'Open file', exact: true }).click()
   await panel.getByRole('heading', { name: 'Updated diff heading', exact: true }).waitFor()
   await step(
-    'Abrir archivo opens a distinct fixed normal file tab',
+    'Open file opens a distinct fixed normal file tab',
     (await diffTab('README.md').count()) === 1 &&
       (await fileTab('README.md').getAttribute('aria-selected')) === 'true' &&
       (await fileTab('README.md').evaluate((el) => getComputedStyle(el).fontStyle !== 'italic')),
@@ -381,8 +462,8 @@ export default async function devSessionTabs({
   await diffFile('notes.txt').click()
   await diffPanel.getByText('-Preview only', { exact: true }).waitFor()
   await step(
-    'deleted file diff disables Abrir archivo',
-    await diffPanel.getByRole('button', { name: 'Abrir archivo', exact: true }).isDisabled(),
+    'deleted file diff disables Open file',
+    await diffPanel.getByRole('button', { name: 'Open file', exact: true }).isDisabled(),
     'deleted notes.txt',
   )
   // A failed patch request must render the same message as the old panel.
