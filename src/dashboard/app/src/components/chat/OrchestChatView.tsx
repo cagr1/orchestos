@@ -174,7 +174,7 @@ export const OrchestChatView: React.FC<OrchestChatViewProps> = ({
     if (sessionId) markEntered(sessionId, messages, messagesLoaded)
   }, [sessionId, messages, messagesLoaded])
   useEffect(() => {
-    if (!sessionId) return
+    if (!sessionId || !projectExists) return
     const controller = new AbortController()
     void getSessionContext(
       sessionId,
@@ -185,13 +185,13 @@ export const OrchestChatView: React.FC<OrchestChatViewProps> = ({
     return () => {
       controller.abort()
     }
-  }, [sessionId, composerModel, messages.length, thread?.projectId])
+  }, [sessionId, composerModel, messages.length, thread?.projectId, projectExists])
   // Abrir otra conversación siempre la muestra desde el último mensaje.
   // biome-ignore lint/correctness/useExhaustiveDependencies: solo al cambiar de sesión.
   useEffect(() => stickToBottom(), [sessionId, stickToBottom])
 
   useEffect(() => {
-    if (!isWorking || !sessionId) {
+    if (!isWorking || !sessionId || !projectExists) {
       setLiveTimeline(null)
       return
     }
@@ -213,7 +213,7 @@ export const OrchestChatView: React.FC<OrchestChatViewProps> = ({
       controller?.abort()
       window.clearInterval(timer)
     }
-  }, [isWorking, sessionId, thread?.projectId])
+  }, [isWorking, sessionId, thread?.projectId, projectExists])
   const liveText = liveTimeline?.live?.text ?? ''
   const liveMode = useRef<EntranceMode | null>(null)
   if (!liveText) liveMode.current = null

@@ -558,8 +558,8 @@
       "block": "Abiertos — fiabilidad de los gates y documentación",
       "delegation": "🔍",
       "title": "`project-delete`: 404 de `/api/config` y del timeline del chat tras borrar el proyecto (intermitente)",
-      "status": "open",
-      "closedDate": null
+      "status": "done",
+      "closedDate": "2026-11-02"
     },
     {
       "id": "CI.23",

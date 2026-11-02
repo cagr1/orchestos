@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react'
+import { flushSync } from 'react-dom'
 import {
   archiveSession,
   attachTurnDetails,
@@ -880,7 +881,10 @@ export default function App() {
   }
 
   const handleDeleteProject = async (projectId: string) => {
-    setDeletingProjectIds((current) => new Set(current).add(projectId))
+    purgingProjectIds.current.add(projectId)
+    // Desmontar primero: el cleanup cancela también las lecturas propias de Chat/Dev.
+    flushSync(() => setDeletingProjectIds((current) => new Set(current).add(projectId)))
+    await abortProjectHydrations(projectId)
     try {
       await deleteProject(projectId)
       const loaded = await listProjects()
@@ -900,6 +904,8 @@ export default function App() {
       await reloadHistory()
     } catch {
       // Keep the project visible when the delete request fails.
+    } finally {
+      purgingProjectIds.current.delete(projectId)
       setDeletingProjectIds((current) => {
         const next = new Set(current)
         next.delete(projectId)
@@ -911,6 +917,7 @@ export default function App() {
   // Purge all project telemetry data (Danger Zone in Project Settings)
   const handlePurgeProjectData = async (projectId: string) => {
     purgingProjectIds.current.add(projectId)
+    flushSync(() => setDeletingProjectIds((current) => new Set(current).add(projectId)))
     await abortProjectHydrations(projectId)
     try {
       await purgeProjectData(projectId)
@@ -925,6 +932,12 @@ export default function App() {
     } catch {
       purgingProjectIds.current.delete(projectId)
       // Keep the project settings visible when the purge request fails.
+    } finally {
+      setDeletingProjectIds((current) => {
+        const next = new Set(current)
+        next.delete(projectId)
+        return next
+      })
     }
   }
 
@@ -1471,31 +1484,32 @@ export default function App() {
           {/* Center Canvas / Views */}
           <div className="flex-1 min-w-[360px] flex overflow-hidden">
             {/* VIEW 1: CHAT */}
-            {mode === 'chat' && (
-              <OrchestChatView
-                thread={activeThread}
-                tasks={activeThreadTasks}
-                approvals={
-                  approvals?.projectId === activeThread?.projectId ? approvals?.byRun : undefined
-                }
-                projectName={
-                  projects.find((project) => project.id === activeThread?.projectId)?.name
-                }
-                projectExists={
-                  !activeThread?.projectId ||
-                  (!deletingProjectIds.has(activeThread.projectId) &&
-                    projects.some((project) => project.id === activeThread.projectId))
-                }
-                onSendMessage={handleSendMessage}
-                onApproveHeldTask={handleApproveHeldTask}
-                onRetryTask={handleApproveHeldTask}
-                onCommitRunTask={handleCommitRunTask}
-                onRejectHeldTask={handleRejectHeldTask}
-                sessionStatus={sessionStatus}
-                onSlashCommand={handleSlashCommand}
-                onOpenRouting={() => handleOpenSettings('model_routing')}
-              />
-            )}
+            {mode === 'chat' &&
+              (!activeThread?.projectId || !deletingProjectIds.has(activeThread.projectId)) && (
+                <OrchestChatView
+                  thread={activeThread}
+                  tasks={activeThreadTasks}
+                  approvals={
+                    approvals?.projectId === activeThread?.projectId ? approvals?.byRun : undefined
+                  }
+                  projectName={
+                    projects.find((project) => project.id === activeThread?.projectId)?.name
+                  }
+                  projectExists={
+                    !activeThread?.projectId ||
+                    (!deletingProjectIds.has(activeThread.projectId) &&
+                      projects.some((project) => project.id === activeThread.projectId))
+                  }
+                  onSendMessage={handleSendMessage}
+                  onApproveHeldTask={handleApproveHeldTask}
+                  onRetryTask={handleApproveHeldTask}
+                  onCommitRunTask={handleCommitRunTask}
+                  onRejectHeldTask={handleRejectHeldTask}
+                  sessionStatus={sessionStatus}
+                  onSlashCommand={handleSlashCommand}
+                  onOpenRouting={() => handleOpenSettings('model_routing')}
+                />
+              )}
 
             {/* VIEW 2: DEV WORKSPACE */}
             {mode === 'dev' && (
@@ -1537,7 +1551,7 @@ export default function App() {
                       )
                     }
                   />
-                ) : activeDevTab && currentProject ? (
+                ) : activeDevTab && currentProject && !deletingProjectIds.has(currentProject.id) ? (
                   <OrchestDevWorkspace
                     key={activeDevTab?.id ?? activeProjectId}
                     activeProject={currentProject}

@@ -98,8 +98,36 @@ export default async function projectDelete({
     'two project actions',
   )
   await page.getByRole('button', { name: 'Delete project', exact: true }).click()
+  // Hold DELETE long enough for the idle Dev timeline poll to fire if the view survives.
+  let deleting = false
+  const readsDuringDelete = []
+  const observeDeleteReads = (request) => {
+    if (
+      deleting &&
+      request.method() === 'GET' &&
+      request.headers()['x-orchestos-project-id'] === project.id
+    )
+      readsDuringDelete.push(request.url())
+  }
+  page.on('request', observeDeleteReads)
+  const deleteUrl = `**/api/projects/${project.id}`
+  await page.route(deleteUrl, async (route) => {
+    if (route.request().method() === 'DELETE') {
+      deleting = true
+      await page.waitForTimeout(1200)
+    }
+    await route.continue()
+  })
   await page.getByRole('button', { name: 'Delete Project', exact: true }).click()
   await step('soft delete removes project from sidebar', await hidden(projectButton), 'row hidden')
+  deleting = false
+  page.off('request', observeDeleteReads)
+  await page.unroute(deleteUrl)
+  await step(
+    'project reads stop before soft delete',
+    readsDuringDelete.length === 0,
+    JSON.stringify(readsDuringDelete),
+  )
   const softDeleted = dbCounts(project.id, databasePath)
   await step(
     'soft delete preserves chat and run rows',

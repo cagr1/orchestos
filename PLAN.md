@@ -662,10 +662,17 @@ Regla: nada se reintenta, cierra ni muestra sin evidencia medida que el usuario 
   Evidencia (cerebro): hook reinstalado igual a su fuente; probe: un `.json` staged sin newline final → commit exit 1
   con `✗ biome: ejecuta bunx biome check --write ci51-probe.json`; probe borrado.
   Ejecutado por: codex gpt-6-luna (mecanico) · Spec: docs/specs/CI.51.md
-- [ ] **CI.52 — 🔍 `project-delete`: 404 de `/api/config` y del timeline del chat tras borrar el proyecto (intermitente).**
+- [x] **CI.52 — 🔍 `project-delete`: 404 de `/api/config` y del timeline del chat tras borrar el proyecto (intermitente).** (cerrado 2026-11-02)
   Pre-push del 2026-11-02 (`ui-gate-82671`): `HTTP 404 …/api/chat/sessions/<id>/timeline; HTTP 404 …/api/config`;
   2 reruns 11/11. Misma familia que `bloque-CI.md:367` (`App.tsx` cancela sus lecturas antes del purge), pero las del
   chat (`OrchestChatView.tsx`: config y timeline) no se cancelan. Causa medida antes de arreglar.
+  Causa (Sol, reproducida con contraprueba que falla en HEAD): Dev y Chat seguían montados y leyendo timeline/config
+  del proyecto durante el DELETE. Arreglo: `App.tsx` desmonta Chat/Dev del proyecto (`flushSync`) antes de cancelar
+  sus hidrataciones y borrar; Chat y Dev cancelan con `AbortController` sus lecturas de config y timeline y no leen si
+  el proyecto ya no existe. El gate retiene el DELETE 1,2 s y falla si sale una lectura del proyecto mientras tanto.
+  Evidencia (cerebro): `project-delete` 4/4 (12/12) además de las 10/10 de Sol; `tsc` limpio.
+  Gate en vivo: navegador real (Playwright, `project-delete` 12/12, `chat-permissions` 9/9, `smoke` 7/7), `docs/done/evidence/CI.52-live.json`.
+  Ejecutado por: codex gpt-6.1-sol (criterio) · Revisión: Opus · Spec: docs/specs/CI.52.md
 - [x] **CI.23 — 🔍 `tasks`: la tarea relanzada no deja su commit `chore(tasks)` (intermitente en batería).** (cerrado 2026-10-23) Visto 2 de
   6 corridas del set de UI.26.4 (2026-10-14), nunca con `tasks` solo: tras relanzar `gate-failed-task` y llegar a
   `done`, a los 15 s de `waitForTasksYamlCommit` el último commit es el del trabajo (`orchestos(gate-failed-task): …`)

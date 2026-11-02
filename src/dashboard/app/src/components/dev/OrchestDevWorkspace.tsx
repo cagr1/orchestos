@@ -198,7 +198,8 @@ export const OrchestDevWorkspace: React.FC<OrchestDevWorkspaceProps> = ({
   useEffect(() => {
     let disposed = false
     setOrchestrator(undefined)
-    void getConfig(activeProject.id)
+    const controller = new AbortController()
+    void getConfig(activeProject.id, controller.signal)
       .then((config) => {
         if (!disposed) setOrchestrator(config.roleAssignments?.orchestrator ?? null)
       })
@@ -207,6 +208,7 @@ export const OrchestDevWorkspace: React.FC<OrchestDevWorkspaceProps> = ({
       })
     return () => {
       disposed = true
+      controller.abort()
     }
   }, [activeProject.id])
   // Session status state: amber pulsing dot when waiting for approval
@@ -252,22 +254,28 @@ export const OrchestDevWorkspace: React.FC<OrchestDevWorkspaceProps> = ({
       return
     }
     let disposed = false
-    const refreshTimeline = () =>
-      getTimeline(activeAgent.id, activeAgent.projectId ?? null)
+    const controllers = new Set<AbortController>()
+    const refreshTimeline = () => {
+      const controller = new AbortController()
+      controllers.add(controller)
+      return getTimeline(activeAgent.id, activeAgent.projectId ?? null, controller.signal)
         .then((next) => {
           if (!disposed) setTimeline(next)
         })
         .catch(() => {
           if (!disposed) setTimeline(null)
         })
+        .finally(() => controllers.delete(controller))
+    }
     void refreshTimeline()
     const pollInterval = sessionStatus === 'working' || timeline?.pending ? 300 : 1000
     const timer = window.setInterval(() => void refreshTimeline(), pollInterval)
     return () => {
       disposed = true
       window.clearInterval(timer)
+      for (const controller of controllers) controller.abort()
     }
-  }, [activeAgent?.id, sessionStatus, timeline?.pending])
+  }, [activeAgent?.id, activeAgent?.projectId, sessionStatus, timeline?.pending])
 
   useEffect(() => {
     // The fetch fills the shared cache that the composer ring reads.
