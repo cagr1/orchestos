@@ -1,4 +1,4 @@
-# NEXT — handoff 2026-11-02 (lote de vuelta de vacaciones: UI.39–43, CI.49–52)
+# NEXT — handoff 2026-11-02 (UI.39–45, CI.49–52 empujados; CHAT.4 espera GO)
 
 Un solo presente: orden y trampas vivas. Lo cerrado vive en `docs/done/bloque-*.md`, `PLAN.md` y git (regla `AGENTS.md`
 § Reglas generales, 2026-10-19: `NEXT.md` se toca solo al cerrar o cortar un lote). Arranque:
@@ -40,10 +40,23 @@ Un solo presente: orden y trampas vivas. Lo cerrado vive en `docs/done/bloque-*.
   espera al `opencode` real; CI.50 listado de modelos de un CLI con límite de 10 s; CI.51 biome sobre lo staged en el
   pre-commit; CI.52 ninguna lectura del proyecto sale durante su borrado (`project-delete`). Memoria podada (arranque
   bajo 9k).
+- 2026-11-02, tarde (empujado hasta `21f51e67`, pre-push verde): UI.44 `1bebddd3` pestañas de Dev flotantes como
+  MonoCode (píldoras, fila de 40 px alineada con el inspector); UI.45 `21f51e67` "+" en Dev abre un menú con los
+  agentes de chat (último usado preseleccionado); modelo = primer rol del agente (orchestrator → executor → reviewer →
+  auxiliary) o default del CLI (`new-session-agent.ts`).
 
 ## Orden
-0. **Anotado, sin ítem**: Dev y el chat no tienen Stop real (no hay cancelación de turno en el backend; toca back y
-   front → plan + GO de Carlos, preguntado 2026-11-02 sin respuesta); `codex-live` falló 1 de 3 en "turn 1 user
+0. **CHAT.4 Stop real — plan listo, espera GO de Carlos** (Carlos 2026-11-02: "sí, abre el Stop real"; el plan se
+   le mostró y falta su GO para el código). Diseño de Sol (`analizar`, solo lectura, sin verificar en vivo): registro
+   de turno por sesión tras el claim con `AbortController`; `POST /api/chat/sessions/:id/stop` `{turnId}` idempotente
+   (202 stopping / 200 ya terminó / 404); Codex `turn/interrupt` sin matar el app-server compartido ni activar el
+   fallback; Claude SIGTERM→SIGKILL y no `--resume` tras Stop (reenviar transcripción); API `AbortController` hasta
+   cada fetch; estado `cancelled` (migración del CHECK de `chat_turns`, `src/db/migrate.ts:172`); parcial guardado con
+   marca "Respuesta detenida"; Stop no crea tareas nuevas ni detiene las ya lanzadas. UI: el botón de enviar de
+   `AgentComposer.tsx:886` pasa a "Detener"/"Deteniendo…" en Chat y Dev. Fases CHAT.4.1 back, .2 UI, .3 tests con
+   fakes (`fakeProcess`/`spawnProcess` simulan `turn/interrupt`) + ui-gate. Fuera: tareas/harness, terminal, opencode.
+   Con GO: specs por fase a Sol (`criterio`).
+   **Anotado, sin ítem**: `codex-live` falló 1 de 3 en "turn 1 user
    message appears before completion" (2 s), el pre-push reintenta. El composer angosto no se reprodujo a 820 px en
    Chat (2026-11-02). Dos commits aparecieron en `origin` sin push de esta sesión (2026-11-02, fast-forward limpio;
    no fueron Codex ni hooks; Orca y MonoCode tenían el repo abierto); Carlos: dejarlo pasar.
