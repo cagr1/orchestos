@@ -51,6 +51,7 @@ interface OrchestDevWorkspaceProps {
     approvalMode?: ApprovalMode,
     // biome-ignore lint/suspicious/noConfusingVoidType: preserve void callbacks alongside async acceptance.
   ) => void | Promise<boolean>
+  onTimelinePending?: (sessionId: string, pending: boolean) => void
   sessionStatus?: ApiSessionStatus
   onSlashCommand?: (command: string, argument?: string) => void
 }
@@ -196,6 +197,7 @@ export const OrchestDevWorkspace: React.FC<OrchestDevWorkspaceProps> = ({
   onRunCommand,
   onSelectAgent,
   onSendMessage,
+  onTimelinePending,
   onSlashCommand,
   sessionStatus: apiSessionStatus,
 }) => {
@@ -274,7 +276,10 @@ export const OrchestDevWorkspace: React.FC<OrchestDevWorkspaceProps> = ({
       controllers.add(controller)
       return getTimeline(activeAgent.id, activeAgent.projectId ?? null, controller.signal)
         .then((next) => {
-          if (!disposed) setTimeline(next)
+          if (!disposed) {
+            setTimeline(next)
+            onTimelinePending?.(activeAgent.id, next.pending)
+          }
         })
         .catch(() => {
           if (!disposed) setTimeline(null)
@@ -289,7 +294,7 @@ export const OrchestDevWorkspace: React.FC<OrchestDevWorkspaceProps> = ({
       window.clearInterval(timer)
       for (const controller of controllers) controller.abort()
     }
-  }, [activeAgent?.id, activeAgent?.projectId, sessionStatus, timeline?.pending])
+  }, [activeAgent?.id, activeAgent?.projectId, sessionStatus, timeline?.pending, onTimelinePending])
 
   useEffect(() => {
     // The fetch fills the shared cache that the composer ring reads.

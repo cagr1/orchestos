@@ -18,6 +18,7 @@ export interface ChatSessionRow {
   createdAt: string
   updatedAt: string
   archivedAt?: string | null
+  running?: boolean
   readBoundaryWarning?: string
   lastModel?: string | null
   lastEffort?: string | null
@@ -312,6 +313,7 @@ export function mapSessionToThread(
     costUsd: 0,
     messages: messages.map(mapMessage),
     projectId: session.projectId,
+    running: session.running,
   }
 }
 

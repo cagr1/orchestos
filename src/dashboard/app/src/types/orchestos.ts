@@ -309,6 +309,7 @@ export interface ChatThread {
   messages: ChatMessage[]
   /** `false` mientras los mensajes de la sesión aún se leen (UI.24.7). */
   messagesLoaded?: boolean
+  running?: boolean
   projectId?: string | null
 }
 

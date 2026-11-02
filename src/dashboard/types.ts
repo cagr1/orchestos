@@ -81,6 +81,7 @@ export interface ChatSessionRow {
   createdAt: string
   updatedAt: string
   archivedAt: string | null
+  running?: boolean
   hasPersistentWork: boolean
   lastPersistentTaskId: string | null
   lastModel: string | null

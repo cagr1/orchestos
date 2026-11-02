@@ -121,9 +121,11 @@ describe('CC.2 — chat sessions backend', () => {
       runMigrations()
       const fixtures = [['claude', 'Claude: hello'], ['codex', 'Codex: hello'], ['codex', 'Claude: legitimate'], ['claude', 'Notes: legitimate'], ['claude', 'claude: lowercase'], ['claude', 'Claude:no space'], ['api', 'ChatGPT: hello']]
       const created = fixtures.map(([agent, title]) => sessions.createChatSession({ projectId: null, agent, title }))
+      const { beginTurn } = await import('./src/db/chat-turns.ts')
+      beginTurn({ sessionId: created[0].id, projectId: null, requestKey: 'running', inputFingerprint: 'running', owner: 'test' })
       const url = new URL('http://localhost/api/chat/sessions?project=none')
       const rows = await handleApiChatSessionsList(new Request(url)).json()
-      process.stdout.write(JSON.stringify({ displayed: created.map(s => rows.find(r => r.id === s.id).title), stored: created.map(s => sessions.getChatSession(s.id).title) }))
+      process.stdout.write(JSON.stringify({ displayed: created.map(s => rows.find(r => r.id === s.id).title), stored: created.map(s => sessions.getChatSession(s.id).title), running: created.map(s => rows.find(r => r.id === s.id).running) }))
       db.close()
     `)
     expect(result.displayed).toEqual([
@@ -144,6 +146,7 @@ describe('CC.2 — chat sessions backend', () => {
       'Claude:no space',
       'ChatGPT: hello',
     ])
+    expect(result.running).toEqual([true, false, false, false, false, false, false])
   })
 
   it('reports thread context from the last run and selected catalog model', async () => {

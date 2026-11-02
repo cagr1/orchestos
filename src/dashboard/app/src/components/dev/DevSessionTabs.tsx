@@ -1,4 +1,4 @@
-import { FileCode, FileText, GitCompare, Plus, X } from 'lucide-react'
+import { FileCode, FileText, GitCompare, Loader2, Plus, X } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { type CliModelCatalog, getCliModels } from '../../api/chat'
@@ -18,6 +18,7 @@ export function DevSessionTabs({
   onClose,
   onNew,
   onPin,
+  runningSessionIds,
 }: {
   agents: AgentItem[]
   state: SessionTabs
@@ -26,6 +27,7 @@ export function DevSessionTabs({
   onClose: (id: string) => void
   onNew: (action: ReturnType<typeof devSessionAction>) => void
   onPin: (request: OpenPathRequest) => void
+  runningSessionIds: Set<string>
 }) {
   const [agent, setAgent] = useState('')
   useEffect(() => {
@@ -159,6 +161,10 @@ export function DevSessionTabs({
                   ) : (
                     <FileCode size={14} className="text-sky-400/80" />
                   )
+                ) : tab.type === 'session' && runningSessionIds.has(tab.id) ? (
+                  <span role="img" title="Running" aria-label="Running" className="shrink-0">
+                    <Loader2 size={14} className="animate-spin text-app-accent" />
+                  </span>
                 ) : (
                   <ProviderLogo
                     id={session?.agent || (tab.type === 'new' ? tab.agent : '') || agent}

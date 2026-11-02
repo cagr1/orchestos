@@ -730,9 +730,15 @@ Regla: nada se reintenta, cierra ni muestra sin evidencia medida que el usuario 
   Ejecutor: lint, typecheck, `test:coverage` 2211/0.
   Gate en vivo: navegador real (Playwright), `docs/done/evidence/UI.49-live.json`.
   Ejecutado por: codex gpt-6-luna (mecanico) · revisión Opus · Spec: docs/specs/UI.49.md
-- [ ] **UI.50 — ⚡ La pestaña de Dev indica cuando su sesión está corriendo.** (abierto 2026-11-02) Auditoría de ADE:
+- [x] **UI.50 — ⚡ La pestaña de Dev indica cuando su sesión está corriendo.** (abierto 2026-11-02) Auditoría de ADE:
   Orca pone un spinner en la pestaña del agente que trabaja; en Dev solo se ve dentro del hilo
-  (`DevSessionTabs.tsx:163`). Spec: docs/specs/UI.50.md
+  (`DevSessionTabs.tsx:163`).
+  Hecho: `running: hasActiveTurn(id)` en `GET /api/chat/sessions`; `App` guarda las sesiones con turno (envío local +
+  sembradas del listado, que se apagan con `pending: false` del timeline salvo las de envío local, r2) y la píldora
+  cambia el ícono del proveedor por un spinner "Running". Gates del cerebro: lint, `dev-session-tabs` 39/39,
+  `shell-look` 75/75, `chat-stop` 22/22. Ejecutor: `test:coverage` 2211/0.
+  Gate en vivo: navegador real (Playwright), `docs/done/evidence/UI.50-live.json`.
+  Ejecutado por: codex gpt-6-luna (mecanico r1–r2; r0 paró por spec incompleto) · revisión Opus · Spec: docs/specs/UI.50.md
 - [ ] **UI.51 — ⚡ La barra de cuotas muestra cuánto falta para el reinicio.** (abierto 2026-11-02) Auditoría de ADE:
   Orca ("18% used 2h 22m") y MonoCode ("1% 2h 47m") lo muestran junto al %; OrchestOS solo el %
   (`ShellStatusBar.tsx:184`), el tiempo vive en el popover. Spec: docs/specs/UI.51.md

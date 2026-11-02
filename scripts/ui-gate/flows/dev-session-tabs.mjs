@@ -102,6 +102,23 @@ for (const probe of [systemCliDiscoveryProbe, systemCliHealthProbe]) {
   )
   const enterDev = () => page.getByRole('button', { name: 'Dev', exact: true }).click()
   const tab = (index) => page.locator(`[data-session-tab="${sessions[index].id}"]`)
+  let fixtureRunning = true
+  await page.route('**/api/chat/sessions?*', async (route) => {
+    const response = await route.fetch()
+    const rows = await response.json()
+    await route.fulfill({
+      response,
+      json: rows.map((row) =>
+        row.id === sessions[0].id ? { ...row, running: fixtureRunning } : row,
+      ),
+    })
+  })
+  await page.route('**/api/chat/sessions/*/timeline*', async (route) => {
+    const response = await route.fetch()
+    const timeline = await response.json()
+    if (route.request().url().includes(sessions[0].id)) timeline.pending = fixtureRunning
+    await route.fulfill({ response, json: timeline })
+  })
   const sidebar = (index) => page.locator(`[data-thread-id="${sessions[index].id}"]`)
   const tabs = page.locator('[data-dev-session-tabs]')
   const fileTab = (path) => tabs.locator(`[data-file-tab="${path}"]`)
@@ -121,6 +138,18 @@ for (const probe of [systemCliDiscoveryProbe, systemCliHealthProbe]) {
     (await tab(0).getAttribute('aria-selected')) === 'true' &&
       (await page.locator('[data-dev-new-session]').count()) === 0,
     'remembered Alpha active, no New session',
+  )
+  await step(
+    'running session tab shows the accent spinner',
+    (await tab(0).locator('[aria-label="Running"]').count()) === 1,
+    'Alpha spinner is visible while its session is running',
+  )
+  fixtureRunning = false
+  await tab(0).locator('[aria-label="Running"]').waitFor({ state: 'detached' })
+  await step(
+    'finished session timeline clears its tab spinner',
+    (await tab(0).locator('[aria-label="Running"]').count()) === 0,
+    'Alpha spinner clears when its active timeline reports pending false',
   )
   await page.getByRole('button', { name: basename(root), exact: true }).click()
   await sidebar(1).click()

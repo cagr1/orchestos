@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react'
+import React, { useCallback, useEffect, useRef, useState } from 'react'
 import { flushSync } from 'react-dom'
 import {
   archiveSession,
@@ -218,6 +218,17 @@ export default function App() {
   const [instincts, setInstincts] = useState<InstinctItem[]>([])
   const [memories, setMemories] = useState<MemoryItem[]>([])
   const [threads, setThreads] = useState<ChatThread[]>([])
+  const [runningSessionIds, setRunningSessionIds] = useState<Set<string>>(() => new Set())
+  const locallyRunningSessionIds = useRef<Set<string>>(new Set())
+  const handleDevTimelinePending = useCallback((sessionId: string, pending: boolean) => {
+    if (pending || locallyRunningSessionIds.current.has(sessionId)) return
+    setRunningSessionIds((current) => {
+      if (!current.has(sessionId)) return current
+      const next = new Set(current)
+      next.delete(sessionId)
+      return next
+    })
+  }, [])
   const [skills, setSkills] = useState<SkillItem[]>([])
   const [projectTabsLoading, setProjectTabsLoading] = useState(false)
   const [projectTabsError, setProjectTabsError] = useState<string | null>(null)
@@ -352,6 +363,14 @@ export default function App() {
       .then(async (loaded) => {
         if (disposed) return
         const initial = loaded.map((thread) => ({ ...thread, messagesLoaded: false }))
+        setRunningSessionIds((current) => {
+          const next = new Set(current)
+          for (const thread of loaded) {
+            if (thread.running) next.add(thread.id)
+            else if (!locallyRunningSessionIds.current.has(thread.id)) next.delete(thread.id)
+          }
+          return next
+        })
         setThreads((current) => mergeLoadedThreads(current, initial, visibleProjectId))
         setActiveThreadId((current) =>
           activeAfterLoad(
@@ -367,6 +386,23 @@ export default function App() {
             messagesLoaded: true,
           })),
         )
+        const activeTimelines = await Promise.all(
+          loaded
+            .filter((thread) => thread.running)
+            .map(async (thread) => ({
+              id: thread.id,
+              pending: (await getTimeline(thread.id, thread.projectId).catch(() => null))?.pending,
+            })),
+        )
+        if (!disposed) {
+          setRunningSessionIds((current) => {
+            const next = new Set(current)
+            for (const timeline of activeTimelines)
+              if (timeline.pending === false && !locallyRunningSessionIds.current.has(timeline.id))
+                next.delete(timeline.id)
+            return next
+          })
+        }
         if (!disposed)
           setThreads((current) => mergeLoadedThreads(current, hydrated, visibleProjectId))
       })
@@ -1148,6 +1184,8 @@ export default function App() {
         thread.id === threadId ? { ...thread, messages: [...thread.messages, optimistic] } : thread,
       ),
     )
+    locallyRunningSessionIds.current.add(threadId)
+    setRunningSessionIds((current) => new Set(current).add(threadId))
     return sendMessage({
       sessionId: threadId,
       projectId: thread?.projectId ?? null,
@@ -1218,6 +1256,14 @@ export default function App() {
         )
         void refreshUsage()
         throw error
+      })
+      .finally(() => {
+        locallyRunningSessionIds.current.delete(threadId)
+        setRunningSessionIds((current) => {
+          const next = new Set(current)
+          next.delete(threadId)
+          return next
+        })
       })
   }
 
@@ -1520,6 +1566,7 @@ export default function App() {
                 <DevSessionTabs
                   agents={currentProject?.agents ?? []}
                   state={activeDevTabs}
+                  runningSessionIds={runningSessionIds}
                   projectId={activeProjectId}
                   onSelect={(id) => {
                     const tab = activeDevTabs.tabs.find((tab) => tab.id === id)
@@ -1580,6 +1627,7 @@ export default function App() {
                     newSessionAgent={activeDevTab.type === 'new' ? activeDevTab.agent : undefined}
                     onCloseAgent={handleCloseAgent}
                     onSendMessage={handleDevSendMessage}
+                    onTimelinePending={handleDevTimelinePending}
                     sessionStatus={sessionStatus}
                     onSlashCommand={handleSlashCommand}
                   />

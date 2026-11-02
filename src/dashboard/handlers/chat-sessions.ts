@@ -66,6 +66,7 @@ function toSessionRow(row: ChatSessionRecord): ChatSessionRow {
     createdAt: row.created_at,
     updatedAt: row.updated_at,
     archivedAt: row.archived_at,
+    running: hasActiveTurn(row.id),
     hasPersistentWork: sessionHasPersistentWork(row.id),
     lastPersistentTaskId: getLastPersistentTaskId(row.id),
     lastModel,
