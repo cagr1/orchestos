@@ -38,9 +38,9 @@ export function DevSessionTabs({
   return (
     <div
       data-dev-session-tabs
-      className="flex h-10 shrink-0 items-center overflow-x-auto border-b border-app bg-app-bg"
+      className="flex h-10 shrink-0 items-center gap-1 overflow-x-auto border-b border-app bg-app-bg px-2 py-1"
     >
-      <div role="tablist" aria-label="Open Dev tabs" className="flex items-center">
+      <div role="tablist" aria-label="Open Dev tabs" className="flex items-center gap-1">
         {state.tabs.map((tab) => {
           const session =
             tab.type === 'session' ? agents.find((agent) => agent.id === tab.id) : null
@@ -53,7 +53,7 @@ export function DevSessionTabs({
           return (
             <div
               key={tab.id}
-              className={`group flex items-center border-r border-app ${state.activeId === tab.id ? 'bg-app-surface text-app' : 'text-app-muted'}`}
+              className={`group relative flex w-56 shrink-0 items-center rounded-lg ${state.activeId === tab.id ? 'bg-app-surface text-app' : 'text-app-muted hover:bg-app-hover hover:text-app'}`}
             >
               <button
                 type="button"
@@ -67,7 +67,7 @@ export function DevSessionTabs({
                 onDoubleClick={() => {
                   if (tab.type === 'file') onPin(tab.path)
                 }}
-                className={`flex items-center gap-2 px-3 py-2 text-xs whitespace-nowrap hover:text-app ${tab.type === 'file' && !tab.pinned ? 'italic' : ''}`}
+                className={`flex min-w-0 flex-1 items-center gap-2 px-3 py-1.5 pr-8 text-xs whitespace-nowrap ${tab.type === 'file' && !tab.pinned ? 'italic' : ''}`}
               >
                 {tab.type === 'file' ? (
                   tab.path.endsWith('.md') ? (
@@ -78,7 +78,7 @@ export function DevSessionTabs({
                 ) : (
                   <ProviderLogo id={session?.agent || agent} size={14} />
                 )}
-                <span className="max-w-48 truncate">{title}</span>
+                <span className="min-w-0 flex-1 truncate">{title}</span>
               </button>
               <button
                 type="button"
@@ -86,7 +86,7 @@ export function DevSessionTabs({
                   tab.type === 'file' ? `Close file tab ${tab.path}` : `Close tab ${title}`
                 }
                 onClick={() => onClose(tab.id)}
-                className="mr-2 p-1 rounded-control opacity-0 group-hover:opacity-100 focus:opacity-100 hover:bg-app-hover text-app-muted hover:text-app"
+                className="absolute right-1 rounded-control p-1 text-app-muted opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 hover:bg-app-hover hover:text-app focus:opacity-100"
               >
                 <X size={12} />
               </button>
@@ -98,7 +98,7 @@ export function DevSessionTabs({
         type="button"
         aria-label="New session"
         onClick={onNew}
-        className="shrink-0 p-2 text-app-muted hover:text-app hover:bg-app-hover rounded-control"
+        className="shrink-0 rounded-lg p-2 text-app-muted hover:bg-app-hover hover:text-app"
       >
         <Plus size={16} />
       </button>

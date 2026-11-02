@@ -673,11 +673,18 @@ Regla: nada se reintenta, cierra ni muestra sin evidencia medida que el usuario 
   Evidencia (cerebro): `project-delete` 4/4 (12/12) además de las 10/10 de Sol; `tsc` limpio.
   Gate en vivo: navegador real (Playwright, `project-delete` 12/12, `chat-permissions` 9/9, `smoke` 7/7), `docs/done/evidence/CI.52-live.json`.
   Ejecutado por: codex gpt-6.1-sol (criterio) · Revisión: Opus · Spec: docs/specs/CI.52.md
-- [ ] **UI.44 — ⚡ Pestañas de Dev flotantes, como MonoCode.** Carlos 2026-11-02: "quiero que los tabs se vean
+- [x] **UI.44 — ⚡ Pestañas de Dev flotantes, como MonoCode.** (cerrado 2026-11-02) Carlos 2026-11-02: "quiero que los tabs se vean
   flotantes; mira como lo hace monocode". Visto en vivo en MonoCode (capturas `/tmp/mono/*.png`): píldoras redondeadas
   separadas entre sí, sin bordes ni separadores; la activa con fondo más claro y texto blanco; las inactivas solo ícono
   y texto atenuado; en hover fondo tenue, texto más claro y × a la derecha; ancho fijo con título truncado. Hoy
   (`DevSessionTabs.tsx:41-101`) es una franja plana con `border-r` por pestaña y `border-b`.
+  Arreglo: píldoras `rounded-lg` de ancho fijo (`w-56`) con `gap-1`, sin `border-r`; activa `bg-app-surface`, inactiva
+  atenuada con hover tenue; × absoluta visible en hover/focus. r1 subió la fila a 48 px y rompió `shell-look` (92 vs
+  84); r2 la deja en 40 px con la línea inferior, alineada con el inspector.
+  Evidencia (cerebro): capturas antes/después en 4343 (`/tmp/set-shots/dev-tabs*.png`); la píldora activa iguala a la
+  de "Files" del inspector.
+  Gate en vivo: navegador real (Playwright, `shell-look` 75/75, `dev-session-tabs` 18/18), `docs/done/evidence/UI.44-live.json`.
+  Ejecutado por: codex gpt-6-luna (mecanico r1, r2) · Spec: docs/specs/UI.44.md
 - [ ] **UI.45 — 🧠 "+" en Dev pregunta con qué agente iniciar.** Carlos 2026-11-02: "al abrir un nuevo tab debe
   preguntar con que agente iniciar; hoy solo abre el último que fue usado". "+" abre un menú con los agentes de chat
   instalados (memoria "OpenCode = ventana libre": opencode no va); el último usado primero y preseleccionado (Enter
