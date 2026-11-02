@@ -713,6 +713,12 @@ Regla: nada se reintenta, cierra ni muestra sin evidencia medida que el usuario 
   `ui:gate chat-stop` 22/22. Sol: `chat-stop` 22/22, `chat-streaming` 27/27, `codex-live` 15/15.
   Gate en vivo: navegador real (Playwright), `docs/done/evidence/CHAT.4-live.json`.
   Ejecutado por: codex gpt-6.1-sol (criterio, .1 y .2) · revisión Opus · Spec: docs/specs/CHAT.4.md
+- [x] **CI.53 — 🔍 `chat-stop.test.ts` vence el timeout de 5 s con HOME temporal (pre-push y CI).** (abierto 2026-11-02)
+  El pre-push de CHAT.4 falló 2 de 7: el proceso hijo de `isolated()` importa `chat.ts` con la caché de
+  transpilación de Bun fría y tarda ~6 s (1,4 s caliente). Reproducido con `env HOME=$(mktemp -d)`. Arreglo: timeout
+  de 30 s en los tests con proceso aislado (`ISOLATED_TIMEOUT_MS`). Contraprueba: con HOME frío 2 fallos antes, 7/7
+  después (cerebro, con HOME temporal y PATH mínimo como el pre-push).
+  Ejecutado por: codex gpt-6-luna (mecanico, r3; r1–r2 sin cambio por spec impreciso) · revisión Opus · Spec: docs/specs/CI.53.md
 - [x] **CI.23 — 🔍 `tasks`: la tarea relanzada no deja su commit `chore(tasks)` (intermitente en batería).** (cerrado 2026-10-23) Visto 2 de
   6 corridas del set de UI.26.4 (2026-10-14), nunca con `tasks` solo: tras relanzar `gate-failed-task` y llegar a
   `done`, a los 15 s de `waitForTasksYamlCommit` el último commit es el del trabajo (`orchestos(gate-failed-task): …`)

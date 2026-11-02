@@ -3,6 +3,9 @@ import { mkdtempSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 
+// The isolated child may have a cold Bun transpilation cache in CI.
+const ISOLATED_TIMEOUT_MS = 30_000
+
 async function isolated(body: string): Promise<any> {
   const home = mkdtempSync(join(tmpdir(), 'chat-stop-'))
   try {
@@ -43,8 +46,10 @@ async function isolated(body: string): Promise<any> {
   }
 }
 
-test('Stop is idempotent, scopes the turn to its session and replays cancelled results', async () => {
-  const result = await isolated(`
+test(
+  'Stop is idempotent, scopes the turn to its session and replays cancelled results',
+  async () => {
+    const result = await isolated(`
     const input = { sessionId: session.id, projectId: null, requestKey: 'key', inputFingerprint: 'fp', owner: 'worker' }
     const turn = turns.beginTurn(input).turn
     const signal = registry.registerChatTurn(session.id, turn.id)
@@ -62,23 +67,27 @@ test('Stop is idempotent, scopes the turn to its session and replays cancelled r
     const messages = await handleApiChatSessionMessages(new URL('http://localhost/api/chat/sessions/' + session.id + '/messages')).json()
     console.log(JSON.stringify({ first: [first.status, await first.json()], second: second.status, final: [final.status, await final.json()], missing: [wrongSession.status, absentTurn.status, absentSession.status], aborted, turn: turns.getTurn(turn.id), replay: replay.kind, messages }))
   `)
-  expect(result.first).toEqual([202, { status: 'stopping' }])
-  expect(result.second).toBe(202)
-  expect(result.final).toEqual([200, { status: 'cancelled' }])
-  expect(result.missing).toEqual([404, 404, 404])
-  expect(result.aborted).toBe(true)
-  expect(result.turn.error).toBeNull()
-  expect(result.replay).toBe('duplicate-result')
-  expect(JSON.parse(result.turn.response_envelope_json)).toMatchObject({
-    text: 'partial',
-    stopped: true,
-  })
-  expect(result.messages[1]).toMatchObject({ content: 'partial', stopped: true })
-})
+    expect(result.first).toEqual([202, { status: 'stopping' }])
+    expect(result.second).toBe(202)
+    expect(result.final).toEqual([200, { status: 'cancelled' }])
+    expect(result.missing).toEqual([404, 404, 404])
+    expect(result.aborted).toBe(true)
+    expect(result.turn.error).toBeNull()
+    expect(result.replay).toBe('duplicate-result')
+    expect(JSON.parse(result.turn.response_envelope_json)).toMatchObject({
+      text: 'partial',
+      stopped: true,
+    })
+    expect(result.messages[1]).toMatchObject({ content: 'partial', stopped: true })
+  },
+  ISOLATED_TIMEOUT_MS,
+)
 
 for (const partial of ['', 'partial'])
-  test(`chat persists cancelled ${partial ? 'partial' : 'empty'} response and ignores late create_task`, async () => {
-    const result = await isolated(`
+  test(
+    `chat persists cancelled ${partial ? 'partial' : 'empty'} response and ignores late create_task`,
+    async () => {
+      const result = await isolated(`
     const { handleApiChat } = await import('./src/dashboard/handlers/chat.ts')
     const { cliChatAdapterFor } = await import('./src/run/executors/chat-adapters.ts')
     const { mkdirSync, writeFileSync, readFileSync } = await import('node:fs')
@@ -104,20 +113,24 @@ for (const partial of ['', 'partial'])
     const turn = turns.getLastTurn(session.id)
     console.log(JSON.stringify({ status: response.status, body: await response.json(), turn, messages: sessions.listChatMessages(session.id), first, second, calls, tasksUnchanged: readFileSync(root + '/tasks.yaml', 'utf8') === originalTasks, finalStop: (await stop(turn.id)).status }))
   `)
-    expect(result.status).toBe(200)
-    expect(result.body).toMatchObject({ text: partial, stopped: true })
-    expect(result.turn.status).toBe('cancelled')
-    expect(result.turn.error).toBeNull()
-    expect(result.turn.task_id).toBeNull()
-    expect(result.messages[1]).toMatchObject({ content: partial, stopped: true })
-    expect(result.tasksUnchanged).toBe(true)
-    expect([result.first, result.second, result.calls, result.finalStop]).toEqual([
-      202, 202, 1, 200,
-    ])
-  })
+      expect(result.status).toBe(200)
+      expect(result.body).toMatchObject({ text: partial, stopped: true })
+      expect(result.turn.status).toBe('cancelled')
+      expect(result.turn.error).toBeNull()
+      expect(result.turn.task_id).toBeNull()
+      expect(result.messages[1]).toMatchObject({ content: partial, stopped: true })
+      expect(result.tasksUnchanged).toBe(true)
+      expect([result.first, result.second, result.calls, result.finalStop]).toEqual([
+        202, 202, 1, 200,
+      ])
+    },
+    ISOLATED_TIMEOUT_MS,
+  )
 
-test('Claude stopped session clears persisted resume id and next turn resends transcript', async () => {
-  const result = await isolated(`
+test(
+  'Claude stopped session clears persisted resume id and next turn resends transcript',
+  async () => {
+    const result = await isolated(`
     const { cliChatAdapterFor } = await import('./src/run/executors/chat-adapters.ts')
     const { chatContextHash } = await import('./src/run/executors/codex-app-server.ts')
     sessions.setClaudeChatSession(session.id, 'old-id', chatContextHash('rules'), 2)
@@ -134,13 +147,17 @@ test('Claude stopped session clears persisted resume id and next turn resends tr
     await adapter.runTurn(input)
     console.log(JSON.stringify({ stored, calls }))
   `)
-  expect(result.stored.sessionId).toBeNull()
-  expect(result.calls[0].resume).toBe('old-id')
-  expect(result.calls[1]).toEqual({ text: 'previous transcript\nquestion', resume: null })
-})
+    expect(result.stored.sessionId).toBeNull()
+    expect(result.calls[0].resume).toBe('old-id')
+    expect(result.calls[1]).toEqual({ text: 'previous transcript\nquestion', resume: null })
+  },
+  ISOLATED_TIMEOUT_MS,
+)
 
-test('API fetch receives the turn signal; late create_task in tool response is never executed', async () => {
-  const result = await isolated(`
+test(
+  'API fetch receives the turn signal; late create_task in tool response is never executed',
+  async () => {
+    const result = await isolated(`
     const { chat } = await import('./src/providers/openrouter.ts')
     const { runToolLoop } = await import('./src/providers/tool-call.ts')
     process.env.OPENROUTER_API_KEY = 'fixture-key'
@@ -162,17 +179,21 @@ test('API fetch receives the turn signal; late create_task in tool response is n
     try { await runToolLoop('openrouter', 'fake', { system: '', messages: [], tools: [], signal: toolController.signal, executeTool: async () => { calls++; return 'created' } }) } catch { toolRejected = true }
     console.log(JSON.stringify({ sameSignal: received === controller.signal, aborted: received.aborted, rejected, toolRejected, calls }))
   `)
-  expect(result).toEqual({
-    sameSignal: true,
-    aborted: true,
-    rejected: true,
-    toolRejected: true,
-    calls: 0,
-  })
-})
+    expect(result).toEqual({
+      sameSignal: true,
+      aborted: true,
+      rejected: true,
+      toolRejected: true,
+      calls: 0,
+    })
+  },
+  ISOLATED_TIMEOUT_MS,
+)
 
-test('Codex abort never falls back to exec or retries a protocol failure', async () => {
-  const result = await isolated(`
+test(
+  'Codex abort never falls back to exec or retries a protocol failure',
+  async () => {
+    const result = await isolated(`
     const { CodexAppServer, stopCodexAppServers } = await import('./src/run/executors/codex-app-server.ts')
     const { runCodexChat } = await import('./src/run/executors/codex.ts')
     const { mkdirSync } = await import('node:fs')
@@ -192,11 +213,15 @@ test('Codex abort never falls back to exec or retries a protocol failure', async
     stopCodexAppServers()
     console.log(JSON.stringify({ turnsCalled, spawns, error }))
   `)
-  expect(result).toEqual({ turnsCalled: 1, spawns: 0, error: 'stopped protocol failure' })
-})
+    expect(result).toEqual({ turnsCalled: 1, spawns: 0, error: 'stopped protocol failure' })
+  },
+  ISOLATED_TIMEOUT_MS,
+)
 
-test('migration 33 preserves populated turns, indexes and dependent rows and accepts cancelled', async () => {
-  const result = await isolated(`
+test(
+  'migration 33 preserves populated turns, indexes and dependent rows and accepts cancelled',
+  async () => {
+    const result = await isolated(`
     const { applyMigrationSteps, FUTURE_MIGRATIONS } = await import('./src/db/migrate.ts')
     const turn = turns.beginTurn({ sessionId: session.id, projectId: null, requestKey: 'key', inputFingerprint: 'fp', owner: 'worker' }).turn
     sessions.appendChatExchange({ sessionId: session.id, turnId: turn.id, userContent: 'question', assistantContent: 'answer' })
@@ -215,9 +240,11 @@ test('migration 33 preserves populated turns, indexes and dependent rows and acc
     db.run("UPDATE chat_turns SET status = 'cancelled' WHERE id = ?", [turn.id])
     console.log(JSON.stringify({ before, after, indexes, indexesAfter, status: turns.getTurn(turn.id).status, messages: sessions.listChatMessages(session.id).length, steps: db.query('SELECT COUNT(*) AS n FROM chat_turn_steps WHERE turn_id = ?').get(turn.id).n, foreignKeys: db.query('PRAGMA foreign_keys').get().foreign_keys, violations: db.query('PRAGMA foreign_key_check').all() }))
   `)
-  expect(result.after).toEqual(result.before)
-  expect(result.indexesAfter).toEqual(result.indexes)
-  expect(result.status).toBe('cancelled')
-  expect([result.messages, result.steps, result.foreignKeys]).toEqual([2, 1, 1])
-  expect(result.violations).toEqual([])
-})
+    expect(result.after).toEqual(result.before)
+    expect(result.indexesAfter).toEqual(result.indexes)
+    expect(result.status).toBe('cancelled')
+    expect([result.messages, result.steps, result.foreignKeys]).toEqual([2, 1, 1])
+    expect(result.violations).toEqual([])
+  },
+  ISOLATED_TIMEOUT_MS,
+)
