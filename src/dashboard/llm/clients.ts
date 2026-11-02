@@ -1,5 +1,6 @@
 async function ollamaChat(opts: {
   model: string
+  signal?: AbortSignal
   system: string
   messages: { role: 'user' | 'assistant'; content: any }[]
 }): Promise<{ text: string; model: string }> {
@@ -9,6 +10,7 @@ async function ollamaChat(opts: {
     stream: false,
   }
   const res = await fetch('http://localhost:11434/v1/chat/completions', {
+    signal: opts.signal,
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',

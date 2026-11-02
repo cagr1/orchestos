@@ -98,6 +98,7 @@ export class CodexAppServer {
       /** CX.6.1 — `last` del último evento y ventana del modelo (contexto del propio evento). */
       lastUsage?: any
       contextWindow?: number | null
+      onStarted?: () => void
       onDelta?: (delta: string) => void
       onStep?: (event: ExecutorStepEvent) => void
       logPhase?: (event: string, details?: Record<string, unknown>) => void
@@ -457,6 +458,14 @@ export class CodexAppServer {
       }
     }
     if (observed && (!observed.turnId || !params.turnId || observed.turnId === params.turnId)) {
+      if (
+        method === 'turn/started' &&
+        typeof params.turn?.id === 'string' &&
+        (!observed.turnId || observed.turnId === params.turn.id)
+      ) {
+        observed.turnId = params.turn.id
+        observed.onStarted?.()
+      }
       if (method === 'turn/started' && !observed.responseStarted) {
         const notice: CliNotice = {
           kind: 'no-response',
@@ -667,6 +676,7 @@ export class CodexAppServer {
     /** Clave de las herramientas ofrecidas (`mcpOfferKey`); ausente = la del propio config. */
     offerKey?: string
     timeoutMs: number
+    signal?: AbortSignal
     onDelta?: (delta: string) => void
     onStep?: (event: ExecutorStepEvent) => void
   }): Promise<{
@@ -777,6 +787,7 @@ export class CodexAppServer {
         : ''
       const includeTranscript = !stored.threadId || threadRecreated
       const message = `${dateIgnoredSystemPrompt}${includeTranscript ? (input.transcript ?? '') : ''}${input.message}`
+      input.signal?.throwIfAborted()
       const state = {
         turnId: null as string | null,
         text: '',
@@ -787,6 +798,7 @@ export class CodexAppServer {
         model: input.model,
         responseStarted: false,
         lastNotice: undefined as CliNotice | undefined,
+        onStarted: undefined as (() => void) | undefined,
         onDelta: input.onDelta,
         onStep: input.onStep,
         logPhase: (event: string, details?: Record<string, unknown>) =>
@@ -800,6 +812,32 @@ export class CodexAppServer {
         }
       })
       this.turns.set(threadId, state)
+      let timer: ReturnType<typeof setTimeout> | undefined
+      let stopTimer: ReturnType<typeof setTimeout> | undefined
+      let interruptSent = false
+      const interrupt = () => {
+        if (!state.turnId || interruptSent) return
+        interruptSent = true
+        void this.request('turn/interrupt', { threadId, turnId: state.turnId }, 2_000).catch(
+          () => {},
+        )
+      }
+      state.onStarted = () => {
+        if (input.signal?.aborted) interrupt()
+      }
+      const abort = () => {
+        if (timer) clearTimeout(timer)
+        stopTimer = setTimeout(() => {
+          console.warn('[codex-app-server] interrupted turn did not finish within 5s', {
+            threadId,
+            turnId: state.turnId,
+          })
+          state.finish()
+        }, 5_000)
+        interrupt()
+      }
+      input.signal?.addEventListener('abort', abort, { once: true })
+      if (input.signal?.aborted) abort()
       let turnStart: any
       const nativeLogStartedAt = Date.now()
       try {
@@ -812,7 +850,7 @@ export class CodexAppServer {
             )
           } catch {}
         }
-        turnStart = await this.request(
+        const start = this.request(
           'turn/start',
           {
             threadId,
@@ -828,14 +866,21 @@ export class CodexAppServer {
           },
           15_000,
           () => this.logTurn('turn-start', threadId, startedAt),
-        )
+        ).then((result) => {
+          state.turnId = result?.turn?.id ?? state.turnId
+          if (input.signal?.aborted) interrupt()
+          return result
+        })
+        // Keep the request observed: a delayed turn/start reply must still interrupt the turn after our deadline.
+        turnStart = await Promise.race([start, completion.then(() => null)])
       } catch (error) {
+        input.signal?.removeEventListener('abort', abort)
+        if (stopTimer) clearTimeout(stopTimer)
         this.turns.delete(threadId)
         throw error
       }
-      state.turnId = turnStart?.turn?.id ?? null
+      state.turnId = turnStart?.turn?.id ?? state.turnId
       this.options.store.set(input.sessionId, threadId, hash)
-      let timer: ReturnType<typeof setTimeout> | undefined
       let nativeLogTimer: ReturnType<typeof setInterval> | undefined
       let nativeRetry: { status: string; attempt: number; max: number; seconds: number } | undefined
       const seenAttempts = new Set<number>()
@@ -917,18 +962,21 @@ export class CodexAppServer {
           input.onStep?.({ type: 'notice', label: notice.message, notice })
           reject(new CliFailure(notice))
         }, input.timeoutMs)
+        if (input.signal?.aborted && timer) clearTimeout(timer)
       })
       try {
         await Promise.race([completion, timeout])
       } catch (error) {
-        if (state.turnId) {
+        if (!input.signal?.aborted && state.turnId) {
           try {
             await this.request('turn/interrupt', { threadId, turnId: state.turnId }, 2_000)
           } catch {}
         }
         state.finish(error as Error)
-        throw error
+        if (!input.signal?.aborted) throw error
       } finally {
+        input.signal?.removeEventListener('abort', abort)
+        if (stopTimer) clearTimeout(stopTimer)
         if (timer) clearTimeout(timer)
         if (nativeLogTimer) clearInterval(nativeLogTimer)
       }

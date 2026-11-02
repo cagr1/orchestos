@@ -232,6 +232,7 @@ async function buildNaturalDraft(
   input: string,
   root = process.cwd(),
   context?: NaturalDraftContext,
+  signal?: AbortSignal,
 ): Promise<NaturalDraft> {
   const projectCtx = (await refreshProjectContext(root))?.agentsMd ?? ''
   let tasksSummary = ''
@@ -258,6 +259,7 @@ async function buildNaturalDraft(
     model: orchestrator.model,
     system: systemPrompt,
     messages: buildDraftMessages(input, context),
+    signal,
   })
   const raw = resp.text
     .replace(/^```(?:json)?\n?/, '')

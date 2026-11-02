@@ -98,6 +98,71 @@ const assistantText = (text: string) => ({
 const resultEvent = (fields: Record<string, unknown>) => ({ type: 'result', ...fields })
 
 describe('runClaudeChat (CC.1)', () => {
+  for (const ignoresTerm of [false, true])
+    it(`Stop sends SIGTERM${ignoresTerm ? ' then SIGKILL after 2s' : ''}`, async () => {
+      const signals: string[] = []
+      let stream!: ReadableStreamDefaultController<Uint8Array>
+      let finish!: (code: number) => void
+      const controller = new AbortController()
+      const startedAt: number[] = []
+      const proc: MockProc = {
+        stdin: {
+          write() {},
+          end() {
+            queueMicrotask(() => controller.abort())
+          },
+        },
+        stdout: new ReadableStream({
+          start(c) {
+            stream = c
+          },
+        }),
+        stderr: new ReadableStream({
+          start(c) {
+            c.close()
+          },
+        }),
+        exited: new Promise((resolve) => {
+          finish = resolve
+        }),
+        kill(signal) {
+          signals.push(signal)
+          startedAt.push(Date.now())
+          if (signal === 'SIGKILL' || !ignoresTerm) {
+            stream.close()
+            finish(1)
+          }
+        },
+      }
+      overrideBunSpawn(proc)
+      const rescue = setTimeout(() => {
+        stream.close()
+        finish(1)
+      }, 3500)
+      try {
+        await expect(
+          runClaudeChat(
+            '/tmp',
+            'rules',
+            'question',
+            10_000,
+            undefined,
+            undefined,
+            undefined,
+            undefined,
+            undefined,
+            undefined,
+            undefined,
+            controller.signal,
+          ),
+        ).rejects.toThrow()
+      } finally {
+        clearTimeout(rescue)
+      }
+      expect(signals).toEqual(ignoresTerm ? ['SIGTERM', 'SIGKILL'] : ['SIGTERM'])
+      if (ignoresTerm) expect(startedAt[1]! - startedAt[0]!).toBeGreaterThanOrEqual(1900)
+    })
+
   it('rechaza el binario viejo antes del spawn de conversación', async () => {
     ;(Bun as any).spawnSync = () => ({ exitCode: 0, stdout: Buffer.from('  --settings') })
     overrideBunSpawn(makeMockProc(''))

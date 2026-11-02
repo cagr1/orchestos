@@ -20,11 +20,14 @@ export async function chat(opts: {
   system: string
   messages: ChatMessage[]
   maxTokens?: number
+  signal?: AbortSignal
 }): Promise<ChatResponse> {
+  opts.signal?.throwIfAborted()
   const apiKey = loadApiKey()
   const model = normalizeModel(opts.model)
 
   const res = await fetch('https://api.openai.com/v1/chat/completions', {
+    signal: opts.signal,
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',

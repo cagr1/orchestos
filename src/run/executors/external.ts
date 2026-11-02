@@ -289,6 +289,7 @@ async function runClaudeCode(
   audit = new ClaudeReadAudit(),
   onTextDelta?: (text: string) => void,
   approvalTimeout = false,
+  signal?: AbortSignal,
 ): Promise<{
   stdout: string
   timedOut: boolean
@@ -297,6 +298,7 @@ async function runClaudeCode(
   readAudit: ReadAudit
   apiError?: string
 }> {
+  signal?.throwIfAborted()
   const env = safeChildEnv()
   if (approvalTimeout) env.MCP_TOOL_TIMEOUT = String(30 * 60 * 1000)
   const proc = Bun.spawn([binary, ...args], {
@@ -317,6 +319,20 @@ async function runClaudeCode(
   proc.stdin.write(userPrompt)
   proc.stdin.end()
 
+  let exited = false
+  let killTimer: ReturnType<typeof setTimeout> | undefined
+  void proc.exited.then(() => {
+    exited = true
+    if (killTimer) clearTimeout(killTimer)
+  })
+  const abort = () => {
+    proc.kill('SIGTERM')
+    killTimer = setTimeout(() => {
+      if (!exited) proc.kill('SIGKILL')
+    }, 2_000)
+  }
+  signal?.addEventListener('abort', abort, { once: true })
+  if (signal?.aborted) abort()
   let timedOut = false
   const timer = setTimeout(() => {
     timedOut = true
@@ -383,7 +399,10 @@ async function runClaudeCode(
   } finally {
     reader.releaseLock()
     clearTimeout(timer)
+    signal?.removeEventListener('abort', abort)
+    if (exited && killTimer) clearTimeout(killTimer)
   }
+  signal?.throwIfAborted()
   return { stdout, timedOut, resultLine, lastAssistant, readAudit: audit.finish(), apiError }
 }
 
@@ -511,6 +530,7 @@ export async function runClaudeChat(
   attachmentsDir?: string,
   resumeSessionId?: string,
   mcpOffer?: McpOffer,
+  signal?: AbortSignal,
 ): Promise<ClaudeChatResult> {
   const found = findClaudeBinary()
   if (!found) {
@@ -557,6 +577,8 @@ export async function runClaudeChat(
       binary,
       audit,
       onChatTextDelta,
+      false,
+      signal,
     ))
   } catch (e: any) {
     const error = new ExecutorExternalError(`failed to run claude code: ${e.message}`)

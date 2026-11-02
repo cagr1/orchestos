@@ -10,6 +10,7 @@ export interface ChatOpts {
   messages: ChatMessage[]
   effort?: string
   maxTokens?: number
+  signal?: AbortSignal
 }
 
 /** Raíz del proyecto de quien llama; solo la usan los proveedores que lanzan un CLI. */

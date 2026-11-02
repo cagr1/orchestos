@@ -73,9 +73,11 @@ export async function chat(opts: {
   effort?: 'low' | 'medium' | 'high'
   /** Tope de tokens de salida — el caller debe resolverlo vía `maxOutputTokensFor()` (model-catalog.ts) en vez de adivinar; default 8192 si no se pasa (mismo valor histórico, para no romper callers que todavía no migraron). */
   maxTokens?: number
+  signal?: AbortSignal
   /** Interno — evita un segundo reintento si el 402 persiste con el presupuesto ya reducido. */
   _retriedForBalance?: boolean
 }): Promise<ChatResponse> {
+  opts.signal?.throwIfAborted()
   const apiKey = loadApiKey()
 
   const requestedMaxTokens = opts.maxTokens ?? 8192
@@ -87,6 +89,7 @@ export async function chat(opts: {
   if (opts.effort) body.reasoning = { effort: opts.effort }
 
   const res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+    signal: opts.signal,
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',

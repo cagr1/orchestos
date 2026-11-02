@@ -17,6 +17,7 @@ import { listChatTurnSteps } from '../../db/chat-turn-steps.ts'
 import {
   getLastPersistentTaskId,
   getLastTurn,
+  getTurn,
   hasActiveTurn,
   listChatTurns,
   sessionHasPersistentWork,
@@ -36,6 +37,8 @@ import {
   resolveDashboardProject,
 } from '../project-context.ts'
 import type { ChatMessageRow, ChatSessionRow } from '../types.ts'
+
+import { stopChatTurn } from './chat-turn-registry.ts'
 
 const MODES = new Set<ChatSessionMode>(['chat', 'code'])
 const TITLE_MAX_LENGTH = 160
@@ -82,6 +85,7 @@ function toMessageRow(row: ChatMessageRecord): ChatMessageRow {
     taskHeld: row.task_held,
     existingFiles: row.existing_files,
     turnId: row.turn_id,
+    ...(row.stopped ? { stopped: true } : {}),
     ...(row.taskReport ? { taskReport: row.taskReport } : {}),
     createdAt: row.created_at,
   }
@@ -89,7 +93,7 @@ function toMessageRow(row: ChatMessageRecord): ChatMessageRow {
 
 function sessionIdFromUrl(url: URL): string | null {
   const match = url.pathname.match(
-    /^\/api\/chat\/sessions\/([^/]+)(?:\/messages|\/timeline|\/context|\/turn-status|\/archive|\/restore|\/exec|\/console)?$/,
+    /^\/api\/chat\/sessions\/([^/]+)(?:\/messages|\/timeline|\/context|\/turn-status|\/stop|\/archive|\/restore|\/exec|\/console)?$/,
   )
   if (!match?.[1]) return null
   try {
@@ -539,4 +543,24 @@ export function handleApiChatSessionArchive(url: URL, restore = false): Response
   return updated
     ? jsonResponse(toSessionRow(updated))
     : errorResponse('Chat session not found', 404)
+}
+
+export async function handleApiChatSessionStop(req: Request, url: URL): Promise<Response> {
+  const id = sessionIdFromUrl(url)
+  if (!id || !getChatSession(id)) return errorResponse('Chat session not found', 404)
+  let body: unknown
+  try {
+    body = await req.json()
+  } catch {
+    return errorResponse('Invalid JSON body', 400)
+  }
+  const turnId =
+    body && typeof body === 'object' && !Array.isArray(body)
+      ? (body as { turnId?: unknown }).turnId
+      : undefined
+  if (typeof turnId !== 'string' || !turnId.trim()) return errorResponse('turnId is required', 400)
+  const turn = getTurn(turnId)
+  if (!turn || turn.session_id !== id) return errorResponse('Chat turn not found', 404)
+  if (stopChatTurn(id, turnId)) return jsonResponse({ status: 'stopping' }, 202)
+  return jsonResponse({ status: turn.status })
 }

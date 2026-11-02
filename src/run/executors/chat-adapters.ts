@@ -1,7 +1,11 @@
 import { mkdirSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { decideClaudeResume } from '../../chat/claude-resume.ts'
-import { getClaudeChatSession, setClaudeChatSession } from '../../db/chat-sessions.ts'
+import {
+  clearClaudeChatSession,
+  getClaudeChatSession,
+  setClaudeChatSession,
+} from '../../db/chat-sessions.ts'
 import type { McpOffer } from '../../mcp/adapters.ts'
 import { type ReadAudit, uninstrumentedReadAudit } from '../read-audit.ts'
 import { CliFailure, type CliNotice, cliFailureNotice } from './cli-failure.ts'
@@ -37,6 +41,7 @@ export interface CliRoleResult {
 }
 
 export interface CliTurnInput extends CliRoleInput {
+  signal?: AbortSignal
   hasProjectContext: boolean
   sessionId?: string
   historyLength: number
@@ -128,61 +133,72 @@ registerCliChatAdapter('claude', {
   runRole: (i) =>
     (i.deps?.claude ?? runClaudeChat)(i.cwd, i.system, i.message, i.timeout, i.model, i.effort),
   async runTurn(i) {
-    const { chatContextHash } = await import('./codex-app-server.ts')
-    const contextHash = chatContextHash(i.system)
-    const resumeDecision = decideClaudeResume({
-      hasSession: !!i.sessionId,
-      hasProjectContext: i.hasProjectContext,
-      stored: i.sessionId
-        ? getClaudeChatSession(i.sessionId)
-        : { sessionId: null, contextHash: null, messageCount: null },
-      historyLength: i.historyLength,
-      contextHash,
-    })
-    const imageNote = i.imagePaths.map((p) => `\nAttached image: ${p}`).join('')
-    const contextUpdate = resumeDecision.contextUpdate
-      ? `<orchestos-context-update>\n${i.system}\n</orchestos-context-update>\n\n`
-      : ''
-    const input = resumeDecision.resume
-      ? `${contextUpdate}${i.message}${imageNote}`
-      : `${i.transcript}${i.message}${imageNote}`
-    captureInput(i.sessionId, input)
-    const runTurn = (text: string, resume?: string) =>
-      runClaudeChat(
-        i.cwd,
-        i.system,
-        text,
-        i.timeout,
-        i.model,
-        i.effort,
-        i.onStep,
-        i.onText,
-        i.attachmentsDir,
-        resume,
-        i.mcpOffer,
-      )
-    let result: Awaited<ReturnType<typeof runTurn>>
-    try {
-      result = await runTurn(input, resumeDecision.resume ?? undefined)
-    } catch (error) {
-      if (!(error instanceof ClaudeSessionNotFoundError)) throw error
-      i.onStep({
-        type: 'reasoning',
-        label: 'Claude session expired — started a new one (earlier turns were resent)',
-      })
-      const retryInput = `${i.transcript}${i.message}${imageNote}`
-      captureInput(i.sessionId, retryInput)
-      result = await runTurn(retryInput)
+    const onAbort = () => {
+      if (i.sessionId) clearClaudeChatSession(i.sessionId)
     }
-    return {
-      ...result,
-      resultLabel: `${result.model} via Claude Code CLI${result.effort ? ` (effort: ${result.effort})` : ''}`,
-      cliSessionId: result.sessionId,
-      responseReadAudit: result.readAudit,
-      afterSuccess: () => {
-        if (i.sessionId && i.hasProjectContext && result.sessionId)
-          setClaudeChatSession(i.sessionId, result.sessionId, contextHash, i.historyLength + 2)
-      },
+    i.signal?.addEventListener('abort', onAbort, { once: true })
+    try {
+      i.signal?.throwIfAborted()
+      const { chatContextHash } = await import('./codex-app-server.ts')
+      const contextHash = chatContextHash(i.system)
+      const resumeDecision = decideClaudeResume({
+        hasSession: !!i.sessionId,
+        hasProjectContext: i.hasProjectContext,
+        stored: i.sessionId
+          ? getClaudeChatSession(i.sessionId)
+          : { sessionId: null, contextHash: null, messageCount: null },
+        historyLength: i.historyLength,
+        contextHash,
+      })
+      const imageNote = i.imagePaths.map((p) => `\nAttached image: ${p}`).join('')
+      const contextUpdate = resumeDecision.contextUpdate
+        ? `<orchestos-context-update>\n${i.system}\n</orchestos-context-update>\n\n`
+        : ''
+      const input = resumeDecision.resume
+        ? `${contextUpdate}${i.message}${imageNote}`
+        : `${i.transcript}${i.message}${imageNote}`
+      captureInput(i.sessionId, input)
+      const runTurn = (text: string, resume?: string) =>
+        (i.deps?.claude ?? runClaudeChat)(
+          i.cwd,
+          i.system,
+          text,
+          i.timeout,
+          i.model,
+          i.effort,
+          i.onStep,
+          i.onText,
+          i.attachmentsDir,
+          resume,
+          i.mcpOffer,
+          i.signal,
+        )
+      let result: Awaited<ReturnType<typeof runTurn>>
+      try {
+        result = await runTurn(input, resumeDecision.resume ?? undefined)
+      } catch (error) {
+        if (i.signal?.aborted) throw error
+        if (!(error instanceof ClaudeSessionNotFoundError)) throw error
+        i.onStep({
+          type: 'reasoning',
+          label: 'Claude session expired — started a new one (earlier turns were resent)',
+        })
+        const retryInput = `${i.transcript}${i.message}${imageNote}`
+        captureInput(i.sessionId, retryInput)
+        result = await runTurn(retryInput)
+      }
+      return {
+        ...result,
+        resultLabel: `${result.model} via Claude Code CLI${result.effort ? ` (effort: ${result.effort})` : ''}`,
+        cliSessionId: result.sessionId,
+        responseReadAudit: result.readAudit,
+        afterSuccess: () => {
+          if (!i.signal?.aborted && i.sessionId && i.hasProjectContext && result.sessionId)
+            setClaudeChatSession(i.sessionId, result.sessionId, contextHash, i.historyLength + 2)
+        },
+      }
+    } finally {
+      i.signal?.removeEventListener('abort', onAbort)
     }
   },
   failure: (e, model) => ({
@@ -233,6 +249,7 @@ registerCliChatAdapter('codex', {
       undefined,
       i.imagePaths,
       i.mcpOffer,
+      i.signal,
     )
     return {
       ...result,
@@ -249,6 +266,7 @@ registerCliChatAdapter('codex', {
   }),
 })
 
+// OpenCode cannot interrupt chat: stopping waits for the motor to finish.
 registerCliChatAdapter('opencode', {
   chat: false,
   terminal: true,

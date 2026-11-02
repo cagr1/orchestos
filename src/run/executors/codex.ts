@@ -497,7 +497,9 @@ export async function runCodexChat(
   projectRoot?: string,
   imagePaths: string[] = [],
   mcpOffer?: McpOffer,
+  signal?: AbortSignal,
 ): Promise<CodexChatResult> {
+  signal?.throwIfAborted()
   if (!sessionId)
     return runCodexChatExec(
       cwd,
@@ -548,6 +550,7 @@ export async function runCodexChat(
       threadConfig: mcpOffer?.tools.length ? codexMcpThreadConfig(mcpOffer) : undefined,
       offerKey: mcpOfferKey(mcpOffer),
       timeoutMs,
+      signal,
       onDelta: onTextDelta,
       onStep: notifyStep,
     })
@@ -575,6 +578,7 @@ export async function runCodexChat(
       contextWindow: result.contextWindow,
     }
   } catch (error) {
+    if (signal?.aborted) throw error
     if (
       error instanceof Error &&
       'protocol' in error &&

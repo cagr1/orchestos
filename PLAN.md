@@ -700,6 +700,12 @@ Regla: nada se reintenta, cierra ni muestra sin evidencia medida que el usuario 
   planificarlo. Hoy no hay cancelación de turno en el backend (el Stop de Dev era falso, UI.38.4). Plan antes de
   código: cómo se corta cada motor (Claude CLI, Codex app-server, API), qué queda en el hilo y en la DB, qué ve el
   usuario. Toca back y front → plan + GO de Carlos.
+  GO de Carlos al plan 2026-11-02. Spec: docs/specs/CHAT.4.md (fases .1 back, .2 UI + gate en vivo).
+  CHAT.4.1 back hecho: registro de turnos con `AbortController` (`chat-turn-registry.ts`), `POST
+  /api/chat/sessions/:id/stop` (202/200/404), Codex `turn/interrupt` sin matar el app-server ni fallback, Claude
+  SIGTERM→SIGKILL 2 s y sin `--resume` tras Stop, `signal` hasta cada fetch de API, migración 33 `cancelled`. Gates
+  del cerebro: typecheck, lint, `test:coverage` 2182/0 (funciones 80,64 %, líneas 68,31 %); contraprueba de Sol 12
+  fallos contra HEAD. Sin verificar en vivo: va en CHAT.4.2. Ejecutado por: codex gpt-6.1-sol (criterio) · revisión Opus.
 - [x] **CI.23 — 🔍 `tasks`: la tarea relanzada no deja su commit `chore(tasks)` (intermitente en batería).** (cerrado 2026-10-23) Visto 2 de
   6 corridas del set de UI.26.4 (2026-10-14), nunca con `tasks` solo: tras relanzar `gate-failed-task` y llegar a
   `done`, a los 15 s de `waitForTasksYamlCommit` el último commit es el del trabajo (`orchestos(gate-failed-task): …`)

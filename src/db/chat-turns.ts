@@ -3,7 +3,7 @@ import { appendChatExchange } from './chat-sessions.ts'
 import { insertRun } from './runs.ts'
 import { db } from './sqlite.ts'
 
-type ChatTurnStatus = 'pending' | 'completed' | 'failed' | 'interrupted'
+type ChatTurnStatus = 'pending' | 'completed' | 'failed' | 'interrupted' | 'cancelled'
 
 interface ChatTurnRecord {
   id: string
@@ -83,7 +83,11 @@ export function beginTurn(input: BeginTurnInput): BeginTurnResult {
     const existing = getTurnForRequest(input.sessionId, input.requestKey)
     if (existing) {
       if (existing.input_fingerprint !== input.inputFingerprint) return { kind: 'conflict' }
-      if (existing.status === 'completed' || existing.status === 'failed') {
+      if (
+        existing.status === 'completed' ||
+        existing.status === 'failed' ||
+        existing.status === 'cancelled'
+      ) {
         return { kind: 'duplicate-result', turn: existing }
       }
       // A vanished process may already have billed the provider or dispatched a
@@ -179,6 +183,35 @@ interface CommitTurnFailureInput {
   userContent?: string
   model?: string
   run?: Parameters<typeof import('./runs.ts').insertRun>[0]
+}
+
+export function commitTurnCancelled(input: {
+  turnId: string
+  owner: string
+  userContent: string
+  text: string
+  model: string
+}): void {
+  db.transaction(() => {
+    const turn = requireTurnOwner(input.turnId, input.owner)
+    appendChatExchange({
+      sessionId: turn.session_id,
+      turnId: input.turnId,
+      userContent: input.userContent,
+      assistantContent: input.text,
+      model: input.model,
+      taskId: turn.task_id,
+    })
+    db.run(
+      `UPDATE chat_turns SET status = 'cancelled', error = NULL,
+      response_envelope_json = ?, updated_at = ? WHERE id = ?`,
+      [
+        JSON.stringify({ text: input.text, model: input.model, stopped: true }),
+        new Date().toISOString(),
+        input.turnId,
+      ],
+    )
+  }).immediate()
 }
 
 export function commitTurnFailure(input: CommitTurnFailureInput): void {

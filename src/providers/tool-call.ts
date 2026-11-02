@@ -415,6 +415,7 @@ async function anthropicRound(
   history: unknown[],
   tools: ToolDef[],
   maxTokens?: number,
+  signal?: AbortSignal,
 ): Promise<{
   text: string
   toolUses: RawToolUse[]
@@ -426,6 +427,7 @@ async function anthropicRound(
   const m = model.startsWith('anthropic/') ? model.slice('anthropic/'.length) : model
 
   const res = await fetch('https://api.anthropic.com/v1/messages', {
+    signal,
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -481,6 +483,7 @@ async function openaiRound(
   effort?: 'low' | 'medium' | 'high',
   maxTokens?: number,
   _retriedForBalance?: boolean,
+  signal?: AbortSignal,
 ): Promise<{
   text: string
   toolUses: RawToolUse[]
@@ -510,6 +513,7 @@ async function openaiRound(
 
   const requestedMaxTokens = maxTokens ?? DEFAULT_MAX_OUTPUT_TOKENS
   const res = await fetch(`${baseUrl}/chat/completions`, {
+    signal,
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -542,7 +546,17 @@ async function openaiRound(
       const affordable = parseAffordableTokens(err)
       if (affordable && affordable < requestedMaxTokens) {
         const retryBudget = Math.max(256, affordable - 256)
-        return openaiRound(model, system, history, tools, provider, effort, retryBudget, true)
+        return openaiRound(
+          model,
+          system,
+          history,
+          tools,
+          provider,
+          effort,
+          retryBudget,
+          true,
+          signal,
+        )
       }
     }
     throw new Error(`OpenAI tool-call error ${res.status}: ${err}`)
@@ -606,6 +620,8 @@ export async function runToolLoop(
      * got cut mid-argument, producing invalid tool-call JSON.
      */
     maxTokens?: number
+    signal?: AbortSignal
+    onText?: (text: string) => void
   },
 ): Promise<ToolLoopResult> {
   const maxTurns = opts.maxTurns ?? 3
@@ -633,9 +649,17 @@ export async function runToolLoop(
       assistantMessage?: unknown
     }
 
+    opts.signal?.throwIfAborted()
     const turnMaxTokens = shrinkForGrowth(opts.maxTokens, growthSince(history))
     if (provider === 'anthropic') {
-      result = await anthropicRound(model, opts.system, history, opts.tools, turnMaxTokens)
+      result = await anthropicRound(
+        model,
+        opts.system,
+        history,
+        opts.tools,
+        turnMaxTokens,
+        opts.signal,
+      )
     } else {
       result = await openaiRound(
         model,
@@ -645,9 +669,12 @@ export async function runToolLoop(
         provider,
         opts.effort,
         turnMaxTokens,
+        undefined,
+        opts.signal,
       )
     }
 
+    if (result.text && !opts.signal?.aborted) opts.onText?.(result.text)
     totalInputTokens += result.inputTokens
     totalOutputTokens += result.outputTokens
 
@@ -664,6 +691,7 @@ export async function runToolLoop(
     history.push(provider === 'anthropic' ? result.assistantContent : result.assistantMessage)
 
     for (const tu of result.toolUses) {
+      opts.signal?.throwIfAborted()
       const toolResult = await opts.executeTool(tu.name, tu.input, tu.id)
       executed.push({ name: tu.name, input: tu.input })
 
@@ -705,7 +733,7 @@ export async function runToolLoop(
   const finalMaxTokens = shrinkForGrowth(opts.maxTokens, growthSince(finalHistory))
   const finalRound =
     provider === 'anthropic'
-      ? await anthropicRound(model, opts.system, finalHistory, [], finalMaxTokens)
+      ? await anthropicRound(model, opts.system, finalHistory, [], finalMaxTokens, opts.signal)
       : await openaiRound(
           model,
           opts.system,
@@ -714,6 +742,8 @@ export async function runToolLoop(
           provider,
           opts.effort,
           finalMaxTokens,
+          undefined,
+          opts.signal,
         )
 
   return {

@@ -10,6 +10,7 @@ import type { RoleAgent } from '../../config/schema.ts'
 import { estimateTokens } from '../../context/compress.ts'
 import { refreshProjectContext } from '../../context/load.ts'
 import {
+  clearClaudeChatSession,
   getChatSession,
   listChatMessages,
   sessionAllowsTaskExecution,
@@ -17,6 +18,7 @@ import {
 import { insertChatTurnStep } from '../../db/chat-turn-steps.ts'
 import {
   beginTurn,
+  commitTurnCancelled,
   commitTurnFailure,
   commitTurnSuccess,
   getActiveTurn,
@@ -83,7 +85,7 @@ import { isReviewOnlyGate, listAllSkillCandidates } from '../../skills/catalog.t
 import { listSpecs } from '../../spec/store.ts'
 import { loadTasks } from '../../tasks/loader.ts'
 import { readCliModelCatalogsCached } from '../chat-cli-models.ts'
-import { appendLiveText, clearLiveText, replaceLiveText } from '../chat-live.ts'
+import { appendLiveText, clearLiveText, getLiveText, replaceLiveText } from '../chat-live.ts'
 import { errorResponse, jsonResponse } from '../http.ts'
 import { ollamaChat } from '../llm/clients.ts'
 import {
@@ -97,6 +99,7 @@ import {
 import { readEnv } from '../settings-store.ts'
 import { checkSsrSafe } from '../ssrf.ts'
 import type { ChatFileType, ChatUploadResponse } from '../types.ts'
+import { registerChatTurn, unregisterChatTurn, waitForChatWork } from './chat-turn-registry.ts'
 import { buildNaturalDraft, dropIgnoredOutputs } from './project.ts'
 import { createTaskRecord, spawnTaskRun } from './tasks.ts'
 
@@ -354,6 +357,7 @@ export async function executeFetchUrl(
   _toolName: string,
   input: unknown,
   lookupFn?: import('../ssrf.ts').LookupFn,
+  signal?: AbortSignal,
 ): Promise<string> {
   const url = (input as { url?: string })?.url
   if (!url) return '[Error: no URL provided]'
@@ -373,7 +377,12 @@ export async function executeFetchUrl(
   if (ssrfBlock) return ssrfBlock
 
   try {
-    const resp = await fetch(url, { redirect: 'error', signal: AbortSignal.timeout(10_000) })
+    const resp = await fetch(url, {
+      redirect: 'error',
+      signal: signal
+        ? AbortSignal.any([signal, AbortSignal.timeout(10_000)])
+        : AbortSignal.timeout(10_000),
+    })
 
     if (!resp.ok) return `[Error fetching ${url}: HTTP ${resp.status}]`
     const postFetchSsrBlock = await checkSsrSafe(parsed, lookupFn)
@@ -957,6 +966,7 @@ async function handleApiChat(
   // ausente): sigue sin turno, mismo comportamiento que antes de R.5 — la
   // decisión de darle turno también es la Fase 2 (ver PLAN.md R.5, punto 12).
   let activeTurnId: string | null = null
+  let signal: AbortSignal | undefined
   if (session) {
     const requestKey =
       typeof body.requestKey === 'string' && body.requestKey.trim()
@@ -1012,677 +1022,871 @@ async function handleApiChat(
       return errorResponse('Stored response for this request could not be replayed', 500)
     }
     activeTurnId = claim.turn.id
+    signal = registerChatTurn(session.id, activeTurnId)
   }
 
-  let chatStepSeq = 0
-  const persistedNotices = new Set<string>()
-  // AT.20 — la fuente de verdad de "crear tarea" es la llamada a `create_task` en el stream del CLI.
-  let taskProposal: TaskProposal | null = null
-  const activeToolMeta = new Map<string, { tool: string; target?: string }>()
-  const persistChatStep = (step: ExecutorStepEvent): void => {
-    if (step.notice)
-      step = {
-        ...step,
-        notice: {
-          ...step.notice,
-          message: redactSensitive(step.notice.message),
-          detail:
-            step.notice.detail === undefined ? undefined : redactSensitive(step.notice.detail),
-        },
-      }
-    if (step.notice) {
-      const key = JSON.stringify(step.notice)
-      if (persistedNotices.has(key)) return
-      persistedNotices.add(key)
-    }
-    taskProposal ??= taskProposalFromStep(step)
-    if (!activeTurnId || !session) return
-    const related = step.toolUseId ? activeToolMeta.get(step.toolUseId) : undefined
-    if (step.type === 'tool_use' && step.toolUseId && step.label !== 'tool_result') {
-      activeToolMeta.set(step.toolUseId, { tool: step.label, target: step.target })
-      return
-    }
-    const detail = step.detail
-    if (step.type === 'text' && !detail?.trim()) return
-    if (step.type === 'text' && detail) replaceLiveText(session.id, activeTurnId, detail)
-    insertChatTurnStep({
-      sessionId: session.id,
-      turnId: activeTurnId,
-      seq: chatStepSeq++,
-      type: step.type,
-      notice: step.notice,
-      tool:
-        step.type === 'text' || step.type === 'reasoning'
-          ? undefined
-          : (related?.tool ?? step.label),
-      target: step.target ?? related?.target,
-      added: step.added,
-      removed: step.removed,
-      exitCode: step.exitCode,
-      ok: step.ok,
-      output: step.output,
-      detail,
-      durationMs: step.durationMs,
-    })
-  }
-
-  // R.5 — equivalente de fallo: si hay turno reclamado, el registro de la
-  // evidencia parcial y el estado 'failed' del turno son una sola operación
-  // (antes: solo el camino Claude CLI registraba algo en su catch; Codex,
-  // OpenCode, Ollama y el plano de OpenRouter no dejaban ningún rastro).
-  // Definida acá (antes de los primeros `return errorResponse` posibles, como
-  // el mismatch sesión-local/modelo-ollama) para que ningún camino de salida
-  // temprana pueda dejar un turno 'pending' huérfano sin resolver jamás.
-  const finishTurnFailure = (params: {
-    error: string
-    persistExchange?: boolean
-    model?: string
-    readAudit?: ReadAudit
-    provider?: string
-  }): void => {
-    if (activeTurnId && session) clearLiveText(session.id, activeTurnId)
-    const provider = params.provider ?? 'openrouter'
-    const projectId = session?.project_id ?? project.id
-    const runInput = params.readAudit
-      ? {
-          project_id: projectId,
-          prompt: message.slice(0, 2000),
-          task_class: 'chat',
-          model: params.model ?? 'unknown',
-          provider,
-          skill_id: null,
-          task_id: null,
-          allowed_outputs: null,
-          files_attempted: null,
-          files_authorized: null,
-          files_blocked: null,
-          files_read: null,
-          read_audit_json: JSON.stringify(params.readAudit),
-          snapshot_before: null,
-          snapshot_after: null,
-          qa_verdict: null,
-          qa_reason: null,
-          status: 'failed' as const,
-          input_tokens: 0,
-          output_tokens: 0,
-          usd_cost: 0,
-          elapsed_ms: Date.now() - turnStartedAt,
-          result: params.error,
+  try {
+    let chatStepSeq = 0
+    const persistedNotices = new Set<string>()
+    // AT.20 — la fuente de verdad de "crear tarea" es la llamada a `create_task` en el stream del CLI.
+    let taskProposal: TaskProposal | null = null
+    const activeToolMeta = new Map<string, { tool: string; target?: string }>()
+    const persistChatStep = (step: ExecutorStepEvent): void => {
+      if (signal?.aborted) return
+      if (step.notice)
+        step = {
+          ...step,
+          notice: {
+            ...step.notice,
+            message: redactSensitive(step.notice.message),
+            detail:
+              step.notice.detail === undefined ? undefined : redactSensitive(step.notice.detail),
+          },
         }
-      : undefined
-    if (activeTurnId) {
-      try {
-        commitTurnFailure({
-          turnId: activeTurnId,
-          owner: CHAT_TURN_OWNER,
-          error: params.error,
-          userContent: params.persistExchange ? message : undefined,
-          model: params.model,
-          run: runInput,
-        })
-      } catch {
-        /* best-effort — nunca debe romper la respuesta de error ya decidida */
+      if (step.notice) {
+        const key = JSON.stringify(step.notice)
+        if (persistedNotices.has(key)) return
+        persistedNotices.add(key)
       }
-    } else if (runInput) {
-      logChatRun(
-        message,
-        runInput.model,
-        0,
-        0,
-        projectId,
-        params.error,
-        params.readAudit,
-        provider,
-        'failed',
-        undefined,
-        undefined,
-        0,
-        0,
-        Date.now() - turnStartedAt,
-      )
+      taskProposal ??= taskProposalFromStep(step)
+      if (!activeTurnId || !session) return
+      const related = step.toolUseId ? activeToolMeta.get(step.toolUseId) : undefined
+      if (step.type === 'tool_use' && step.toolUseId && step.label !== 'tool_result') {
+        activeToolMeta.set(step.toolUseId, { tool: step.label, target: step.target })
+        return
+      }
+      const detail = step.detail
+      if (step.type === 'text' && !detail?.trim()) return
+      if (step.type === 'text' && detail) replaceLiveText(session.id, activeTurnId, detail)
+      insertChatTurnStep({
+        sessionId: session.id,
+        turnId: activeTurnId,
+        seq: chatStepSeq++,
+        type: step.type,
+        notice: step.notice,
+        tool:
+          step.type === 'text' || step.type === 'reasoning'
+            ? undefined
+            : (related?.tool ?? step.label),
+        target: step.target ?? related?.target,
+        added: step.added,
+        removed: step.removed,
+        exitCode: step.exitCode,
+        ok: step.ok,
+        output: step.output,
+        detail,
+        durationMs: step.durationMs,
+      })
     }
-  }
 
-  if (!chatAgent || !chatAssignment?.model) {
-    const error = 'Orchestrator role is unassigned — assign it in Settings → Model routing'
-    finishTurnFailure({ error })
-    return errorResponse(error, 400)
-  }
-
-  // CC.2 — una sesión es la fuente de verdad de su historia. Ignorar el array
-  // enviado por el cliente evita mezclar/injectar mensajes de otra sesión.
-  const rawHistory = session
-    ? listChatMessages(session.id).map((row) => ({ role: row.role, content: row.content }))
-    : Array.isArray(body.history)
-      ? body.history
-      : []
-  const history = rawHistory.slice(-10)
-  const transcript = buildChatTranscript(history)
-
-  const barShownByCount = rawHistory.length + 1 >= 3
-  let taskSuggestion = { isTask: false, reason: '' }
-  let autoTask:
-    | { id: string }
-    | { id: string; held: true; existingFiles: string[] }
-    | { error: string }
-    | null = null
-  let autoTaskSkipped = false
-  const settleTaskIntent = async (rawText: string) => {
-    const proposal = taskProposal as TaskProposal | null
-    const isTask = proposal !== null
-    const text = rawText.trimEnd()
-    taskSuggestion = { isTask, reason: isTask ? 'create_task' : '' }
-    if (proposal && !proposal.ok) autoTask = { error: `create_task: ${proposal.error}` }
-    else if (proposal && hasProjectContext && sessionAllowsTaskExecution(session?.mode ?? null)) {
-      try {
-        const draft = await buildNaturalDraft(message, root, {
-          history,
-          assistantReply: text,
-        })
-        // Salidas y descripción son las que el modelo pasó a la herramienta, no las que adivina el borrador.
-        draft.description = proposal.args.description
-        const output = dropIgnoredOutputs(root, proposal.args.outputs)
-        if (output.length === 0) autoTaskSkipped = true
-        else {
-          const skill = pickAutoSkill(draft.skillOptions)
-          const cfg = loadOrcheConfig(root)
-          const projectRule = resolveProjectAgentRule(cfg.taskAgentRules, {
-            output,
-            skill,
+    // R.5 — equivalente de fallo: si hay turno reclamado, el registro de la
+    // evidencia parcial y el estado 'failed' del turno son una sola operación
+    // (antes: solo el camino Claude CLI registraba algo en su catch; Codex,
+    // OpenCode, Ollama y el plano de OpenRouter no dejaban ningún rastro).
+    // Definida acá (antes de los primeros `return errorResponse` posibles, como
+    // el mismatch sesión-local/modelo-ollama) para que ningún camino de salida
+    // temprana pueda dejar un turno 'pending' huérfano sin resolver jamás.
+    const finishTurnFailure = (params: {
+      error: string
+      persistExchange?: boolean
+      model?: string
+      readAudit?: ReadAudit
+      provider?: string
+    }): void => {
+      if (signal?.aborted) return
+      if (activeTurnId && session) clearLiveText(session.id, activeTurnId)
+      const provider = params.provider ?? 'openrouter'
+      const projectId = session?.project_id ?? project.id
+      const runInput = params.readAudit
+        ? {
+            project_id: projectId,
+            prompt: message.slice(0, 2000),
+            task_class: 'chat',
+            model: params.model ?? 'unknown',
+            provider,
+            skill_id: null,
+            task_id: null,
+            allowed_outputs: null,
+            files_attempted: null,
+            files_authorized: null,
+            files_blocked: null,
+            files_read: null,
+            read_audit_json: JSON.stringify(params.readAudit),
+            snapshot_before: null,
+            snapshot_after: null,
+            qa_verdict: null,
+            qa_reason: null,
+            status: 'failed' as const,
+            input_tokens: 0,
+            output_tokens: 0,
+            usd_cost: 0,
+            elapsed_ms: Date.now() - turnStartedAt,
+            result: params.error,
+          }
+        : undefined
+      if (activeTurnId) {
+        try {
+          commitTurnFailure({
+            turnId: activeTurnId,
+            owner: CHAT_TURN_OWNER,
+            error: params.error,
+            userContent: params.persistExchange ? message : undefined,
+            model: params.model,
+            run: runInput,
           })
-          const ruleFields = projectRule ? taskFieldsFromRule(projectRule, cfg) : {}
-          if ('error' in ruleFields) {
-            autoTask = { error: ruleFields.error }
-          } else {
-            const existingFiles = output.filter((f: string) => existsSync(join(root, f)))
-            const reservedId = activeTurnId ? reserveTurnTask(activeTurnId, CHAT_TURN_OWNER) : null
-            const created = createTaskRecord(
-              root,
-              {
-                id: reservedId ?? draft.id,
-                description: draft.description,
-                output,
-                acceptance_criteria: proposal.args.acceptance_criteria,
-                approvalMode,
-                task_class: draft.taskClass,
-                ...ruleFields,
-                skill,
-              },
-              { reservedId: reservedId !== null },
-            )
-            if ('error' in created) autoTask = { error: created.error }
-            else if (existingFiles.length || cfg.permissionMode === 'manual')
-              autoTask = { id: created.id, held: true, existingFiles }
-            else {
-              if (activeTurnId) requireTurnOwner(activeTurnId, CHAT_TURN_OWNER)
-              spawnTaskRun(root, created.id, undefined, undefined, session?.id)
-              autoTask = { id: created.id }
+        } catch {
+          /* best-effort — nunca debe romper la respuesta de error ya decidida */
+        }
+      } else if (runInput) {
+        logChatRun(
+          message,
+          runInput.model,
+          0,
+          0,
+          projectId,
+          params.error,
+          params.readAudit,
+          provider,
+          'failed',
+          undefined,
+          undefined,
+          0,
+          0,
+          Date.now() - turnStartedAt,
+        )
+      }
+    }
+
+    if (!chatAgent || !chatAssignment?.model) {
+      const error = 'Orchestrator role is unassigned — assign it in Settings → Model routing'
+      finishTurnFailure({ error })
+      return errorResponse(error, 400)
+    }
+
+    // CC.2 — una sesión es la fuente de verdad de su historia. Ignorar el array
+    // enviado por el cliente evita mezclar/injectar mensajes de otra sesión.
+    const rawHistory = session
+      ? listChatMessages(session.id).map((row) => ({ role: row.role, content: row.content }))
+      : Array.isArray(body.history)
+        ? body.history
+        : []
+    const history = rawHistory.slice(-10)
+    const transcript = buildChatTranscript(history)
+
+    const barShownByCount = rawHistory.length + 1 >= 3
+    let taskSuggestion = { isTask: false, reason: '' }
+    let autoTask:
+      | { id: string }
+      | { id: string; held: true; existingFiles: string[] }
+      | { error: string }
+      | null = null
+    let autoTaskSkipped = false
+    const settleTaskIntent = async (rawText: string) => {
+      signal?.throwIfAborted()
+      const proposal = taskProposal as TaskProposal | null
+      const isTask = proposal !== null
+      const text = rawText.trimEnd()
+      taskSuggestion = { isTask, reason: isTask ? 'create_task' : '' }
+      if (proposal && !proposal.ok) autoTask = { error: `create_task: ${proposal.error}` }
+      else if (proposal && hasProjectContext && sessionAllowsTaskExecution(session?.mode ?? null)) {
+        try {
+          const draft = await buildNaturalDraft(
+            message,
+            root,
+            {
+              history,
+              assistantReply: text,
+            },
+            signal,
+          )
+          signal?.throwIfAborted()
+          // Salidas y descripción son las que el modelo pasó a la herramienta, no las que adivina el borrador.
+          draft.description = proposal.args.description
+          const output = dropIgnoredOutputs(root, proposal.args.outputs)
+          if (output.length === 0) autoTaskSkipped = true
+          else {
+            const skill = pickAutoSkill(draft.skillOptions)
+            const cfg = loadOrcheConfig(root)
+            const projectRule = resolveProjectAgentRule(cfg.taskAgentRules, {
+              output,
+              skill,
+            })
+            const ruleFields = projectRule ? taskFieldsFromRule(projectRule, cfg) : {}
+            if ('error' in ruleFields) {
+              autoTask = { error: ruleFields.error }
+            } else {
+              const existingFiles = output.filter((f: string) => existsSync(join(root, f)))
+              signal?.throwIfAborted()
+              const reservedId = activeTurnId
+                ? reserveTurnTask(activeTurnId, CHAT_TURN_OWNER)
+                : null
+              const created = createTaskRecord(
+                root,
+                {
+                  id: reservedId ?? draft.id,
+                  description: draft.description,
+                  output,
+                  acceptance_criteria: proposal.args.acceptance_criteria,
+                  approvalMode,
+                  task_class: draft.taskClass,
+                  ...ruleFields,
+                  skill,
+                },
+                { reservedId: reservedId !== null },
+              )
+              if ('error' in created) autoTask = { error: created.error }
+              else if (existingFiles.length || cfg.permissionMode === 'manual')
+                autoTask = { id: created.id, held: true, existingFiles }
+              else {
+                if (activeTurnId) requireTurnOwner(activeTurnId, CHAT_TURN_OWNER)
+                spawnTaskRun(root, created.id, undefined, undefined, session?.id)
+                autoTask = { id: created.id }
+              }
             }
           }
+        } catch (e: any) {
+          autoTask = { error: e.message }
         }
-      } catch (e: any) {
-        autoTask = { error: e.message }
       }
+      const note = autoTaskSkipped
+        ? '\n\n⚠ No task created: every output file is ignored by Git.'
+        : autoTask && 'held' in autoTask && autoTask.existingFiles.length === 0
+          ? `\n\n⏸ Created task \`${autoTask.id}\`, waiting for your approval before it runs (Manual permissions).`
+          : autoTask && 'held' in autoTask
+            ? `\n\n⏸ Created task \`${autoTask.id}\`, waiting for your confirmation before it runs.`
+            : autoTask && 'id' in autoTask
+              ? `\n\n▶ Run requested for task \`${autoTask.id}\`.`
+              : autoTask && 'error' in autoTask
+                ? `\n\n⚠ Could not auto-create the task: ${autoTask.error}`
+                : ''
+      logChatTaskBarEvent({
+        kind: 'message',
+        message,
+        historyLen: rawHistory.length + 1,
+        barShown: barShownByCount || isTask,
+      })
+      return { text: text + note, taskSuggestion, autoTask, autoTaskSkipped }
     }
-    const note = autoTaskSkipped
-      ? '\n\n⚠ No task created: every output file is ignored by Git.'
-      : autoTask && 'held' in autoTask && autoTask.existingFiles.length === 0
-        ? `\n\n⏸ Created task \`${autoTask.id}\`, waiting for your approval before it runs (Manual permissions).`
-        : autoTask && 'held' in autoTask
-          ? `\n\n⏸ Created task \`${autoTask.id}\`, waiting for your confirmation before it runs.`
-          : autoTask && 'id' in autoTask
-            ? `\n\n▶ Run requested for task \`${autoTask.id}\`.`
-            : autoTask && 'error' in autoTask
-              ? `\n\n⚠ Could not auto-create the task: ${autoTask.error}`
-              : ''
-    logChatTaskBarEvent({
-      kind: 'message',
-      message,
-      historyLen: rawHistory.length + 1,
-      barShown: barShownByCount || isTask,
-    })
-    return { text: text + note, taskSuggestion, autoTask, autoTaskSkipped }
-  }
 
-  let attachedFiles: FileEntry[] = []
-  if (Array.isArray(body.fileIds) && body.fileIds.length > 0) {
-    pruneExpiredFiles()
-    attachedFiles = body.fileIds.map((id) => fileStore.get(id)).filter((f): f is FileEntry => !!f)
-  }
+    let attachedFiles: FileEntry[] = []
+    if (Array.isArray(body.fileIds) && body.fileIds.length > 0) {
+      pruneExpiredFiles()
+      attachedFiles = body.fileIds.map((id) => fileStore.get(id)).filter((f): f is FileEntry => !!f)
+    }
 
-  let taskRows: any[] = []
-  const taskCounts: Record<string, number> = { pending: 0, running: 0, done: 0, failed: 0 }
+    let taskRows: any[] = []
+    const taskCounts: Record<string, number> = { pending: 0, running: 0, done: 0, failed: 0 }
 
-  if (hasProjectContext)
-    try {
-      const file = loadTasks(root)
-      taskRows = file.tasks as any[]
-      for (const task of taskRows) {
-        const k = task.status === 'failed_permanent' ? 'failed' : task.status
-        if (k in taskCounts) {
-          taskCounts[k as string] = (taskCounts[k as string] ?? 0) + 1
+    if (hasProjectContext)
+      try {
+        const file = loadTasks(root)
+        taskRows = file.tasks as any[]
+        for (const task of taskRows) {
+          const k = task.status === 'failed_permanent' ? 'failed' : task.status
+          if (k in taskCounts) {
+            taskCounts[k as string] = (taskCounts[k as string] ?? 0) + 1
+          }
         }
-      }
-    } catch {}
+      } catch {}
 
-  let recentRuns: any[] = []
-  if (hasProjectContext)
-    try {
-      recentRuns = listContextRuns(project.id ?? null, 10)
-    } catch {}
+    let recentRuns: any[] = []
+    if (hasProjectContext)
+      try {
+        recentRuns = listContextRuns(project.id ?? null, 10)
+      } catch {}
 
-  const qaReasons: Record<string, string> = {}
-  for (const task of taskRows.filter((t) => t.qa_verdict === 'fail')) {
-    const row = db
-      .query<{ qa_reason: string | null }, [string]>(
-        'SELECT qa_reason FROM runs WHERE task_id = ? ORDER BY created_at DESC LIMIT 1',
-      )
-      .get(task.id)
-    const reason = row?.qa_reason || task.retry_reason
-    if (reason) qaReasons[task.id] = reason
-  }
-  const memoryRows: MemoryEntry[] = []
-  if (hasProjectContext)
-    try {
-      const memRows = project.id
-        ? db
-            .query<MemoryEntry, string>(
-              'SELECT topic_key, scope, content FROM memory_entries WHERE project_id = ? ORDER BY updated_at DESC LIMIT 20',
-            )
-            .all(project.id)
-        : db
-            .query<MemoryEntry, []>(
-              'SELECT topic_key, scope, content FROM memory_entries ORDER BY updated_at DESC LIMIT 20',
-            )
-            .all()
-      memoryRows.push(...memRows)
-    } catch {}
-
-  let specRows: { id: string; status: string }[] = []
-  if (hasProjectContext)
-    try {
-      const specs = listSpecs(root, true)
-      specRows = specs.map((s) => ({ id: s.frontmatter.id, status: s.frontmatter.status }))
-    } catch {}
-
-  const projectContext = hasProjectContext ? await refreshProjectContext(root) : null
-  // The CLI owns its default model. Passing the API default here would make
-  // Codex receive a misleading non-openai model.
-  const requestedModel = body.model?.trim()
-  const model = requestedModel || chatAssignment.model
-  const isOllama = /^ollama\//.test(model)
-  if (session?.agent === 'local' && !isOllama) {
-    finishTurnFailure({ error: 'A local session requires an ollama/* model', model })
-    return errorResponse('A local session requires an ollama/* model', 400)
-  }
-  if (session?.agent === 'api' && isOllama) {
-    finishTurnFailure({ error: 'An api session cannot use an ollama/* model', model })
-    return errorResponse('An api session cannot use an ollama/* model', 400)
-  }
-  // CLI capabilities come from the registered adapter; API/Ollama keep their transport.
-  if (!cliAdapter) await ensureCatalogLoaded()
-  const selectedEffort = body.effort ?? chatAssignment?.effort
-  const cliEffort = cliAdapter ? selectedEffort : undefined
-  const effort =
-    !cliAdapter && selectedEffort && supportsReasoningEffort(model)
-      ? (selectedEffort as ReasoningEffort)
-      : undefined
-  const modelLabel = cliAdapter
-    ? `${cliAdapter.label} — model: ${model || '(CLI default)'}${cliEffort ? `, effort: ${cliEffort}` : ''}`
-    : isOllama
-      ? `${model.replace('ollama/', '')} vía Ollama (local) — modelo local, los resultados pueden variar`
-      : `${model} via OpenRouter`
-
-  const taskToolOffered =
-    hasProjectContext &&
-    sessionAllowsTaskExecution(session?.mode ?? null) &&
-    (cliAdapter
-      ? !cliAdapter.taskToolRequiresSession || !!session
-      : !isOllama && supportsToolCalling('openrouter', model))
-  const readonlyOffered =
-    hasProjectContext && (!!cliAdapter || (!isOllama && supportsToolCalling('openrouter', model)))
-  const offeredTools = [
-    ...(taskToolOffered ? [CREATE_TASK_TOOL] : []),
-    ...(readonlyOffered ? [RUN_READONLY_TOOL] : []),
-  ]
-  const mcpOffer: McpOffer | undefined =
-    cliAdapter && offeredTools.length ? { tools: offeredTools, root } : undefined
-  const autoTaskInstruction = buildAutoTaskInstruction({
-    hasProjectContext,
-    mode: session?.mode,
-    taskToolOffered,
-    permissionMode: orcheConfig.permissionMode,
-  })
-
-  const projectFiles = hasProjectContext
-    ? ['AGENTS.md', 'CLAUDE.md', 'CONTEXT.md', 'PLAN.md', 'README.md'].filter((file) =>
-        existsSync(join(root, file)),
-      )
-    : []
-  const rejectedTasks =
-    hasProjectContext && session
-      ? rejectedSessionTasks(
-          listChatMessages(session.id),
-          taskRows.map((t) => t.id),
+    const qaReasons: Record<string, string> = {}
+    for (const task of taskRows.filter((t) => t.qa_verdict === 'fail')) {
+      const row = db
+        .query<{ qa_reason: string | null }, [string]>(
+          'SELECT qa_reason FROM runs WHERE task_id = ? ORDER BY created_at DESC LIMIT 1',
         )
-      : undefined
-  const systemPrompt = buildChatSystemPrompt({
-    tasks: hasProjectContext ? taskRows : undefined,
-    rejectedTasks,
-    taskCounts,
-    runs: recentRuns,
-    qaReasons,
-    memory: memoryRows,
-    specs: specRows,
-    projectFiles,
-    projectProfile: projectContext?.profile,
-    agent: chatAgent,
-    modelLabel,
-    autoTaskInstruction,
-    now: new Date(),
-    timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
-    readTools: CLAUDE_CHAT_TOOLS,
-    offeredTools,
-  })
-  // Solo lo activa scripts/ui-gate/run.mjs.
-  if (process.env.ORCHESTOS_GATE_CAPTURE_DIR && session)
-    try {
-      mkdirSync(process.env.ORCHESTOS_GATE_CAPTURE_DIR, { recursive: true })
-      writeFileSync(
-        join(process.env.ORCHESTOS_GATE_CAPTURE_DIR, `chat-prompt-${session.id}.txt`),
-        systemPrompt,
-      )
-    } catch {}
-  const contextTokens = estimateTokens(systemPrompt)
-
-  const messages: { role: 'user' | 'assistant'; content: any }[] = history
-    .filter((h) => h.role === 'user' || h.role === 'assistant')
-    .map((h) => ({ role: h.role as 'user' | 'assistant', content: String(h.content) }))
-
-  // J.2 (Mes 18) — bug real encontrado en dogfooding (2026-07-09): el chat
-  // mandaba el image_url block sin chequear si el modelo elegido soporta
-  // visión — con un modelo sin visión la imagen se manda y se ignora en
-  // silencio, el usuario ve "no cargó mi imagen" sin ninguna explicación.
-  // C.1 (Mes 19) — el 422 de J.2 deja de ser el único camino: si el modelo
-  // no soporta visión, se intenta OCR (tesseract.js, decisión A.2 — Baidu
-  // Cloud descartado) ANTES de rechazar. El 422 queda solo para cuando el
-  // OCR también falla (nunca degradar en silencio). B.3 (Mes 19) generalizó
-  // esto a N adjuntos — cada imagen se resuelve de forma independiente.
-  const imageParts: { type: 'image_url'; image_url: { url: string } }[] = []
-  const textBlocks: string[] = []
-  const ocrUsed: string[] = []
-  // UI.24.6a — en el turno por CLI la imagen llega como archivo (Codex `--image`/
-  // `localImage`, Claude `--add-dir` + ruta en el prompt), fuera del proyecto;
-  // si no se pudo escribir, cae a OCR como siempre.
-  const cliImages = cliAdapter
-    ? writeChatImages(attachedFiles.filter((f) => f.type === 'image').map((f) => f.content))
-    : null
-  const cliImagePaths: string[] = []
-  let cliImageIndex = 0
-  for (const f of attachedFiles) {
-    if (f.type !== 'image') {
-      const label = f.filename.toLowerCase().endsWith('.pdf') ? 'PDF' : 'File'
-      textBlocks.push(untrustedContent(`${label}:${f.filename}`, f.content) + '\n\n')
-      continue
+        .get(task.id)
+      const reason = row?.qa_reason || task.retry_reason
+      if (reason) qaReasons[task.id] = reason
     }
-    if (cliImages) {
-      const written = cliImages.paths[cliImageIndex++]
-      if (written) {
-        cliImagePaths.push(written)
+    const memoryRows: MemoryEntry[] = []
+    if (hasProjectContext)
+      try {
+        const memRows = project.id
+          ? db
+              .query<MemoryEntry, string>(
+                'SELECT topic_key, scope, content FROM memory_entries WHERE project_id = ? ORDER BY updated_at DESC LIMIT 20',
+              )
+              .all(project.id)
+          : db
+              .query<MemoryEntry, []>(
+                'SELECT topic_key, scope, content FROM memory_entries ORDER BY updated_at DESC LIMIT 20',
+              )
+              .all()
+        memoryRows.push(...memRows)
+      } catch {}
+
+    let specRows: { id: string; status: string }[] = []
+    if (hasProjectContext)
+      try {
+        const specs = listSpecs(root, true)
+        specRows = specs.map((s) => ({ id: s.frontmatter.id, status: s.frontmatter.status }))
+      } catch {}
+
+    const projectContext = hasProjectContext
+      ? await waitForChatWork(refreshProjectContext(root), signal)
+      : null
+    // The CLI owns its default model. Passing the API default here would make
+    // Codex receive a misleading non-openai model.
+    const requestedModel = body.model?.trim()
+    const model = requestedModel || chatAssignment.model
+    const isOllama = /^ollama\//.test(model)
+    if (session?.agent === 'local' && !isOllama) {
+      finishTurnFailure({ error: 'A local session requires an ollama/* model', model })
+      return errorResponse('A local session requires an ollama/* model', 400)
+    }
+    if (session?.agent === 'api' && isOllama) {
+      finishTurnFailure({ error: 'An api session cannot use an ollama/* model', model })
+      return errorResponse('An api session cannot use an ollama/* model', 400)
+    }
+    // CLI capabilities come from the registered adapter; API/Ollama keep their transport.
+    if (!cliAdapter) await waitForChatWork(ensureCatalogLoaded(), signal)
+    const selectedEffort = body.effort ?? chatAssignment?.effort
+    const cliEffort = cliAdapter ? selectedEffort : undefined
+    const effort =
+      !cliAdapter && selectedEffort && supportsReasoningEffort(model)
+        ? (selectedEffort as ReasoningEffort)
+        : undefined
+    const modelLabel = cliAdapter
+      ? `${cliAdapter.label} — model: ${model || '(CLI default)'}${cliEffort ? `, effort: ${cliEffort}` : ''}`
+      : isOllama
+        ? `${model.replace('ollama/', '')} vía Ollama (local) — modelo local, los resultados pueden variar`
+        : `${model} via OpenRouter`
+
+    const taskToolOffered =
+      hasProjectContext &&
+      sessionAllowsTaskExecution(session?.mode ?? null) &&
+      (cliAdapter
+        ? !cliAdapter.taskToolRequiresSession || !!session
+        : !isOllama && supportsToolCalling('openrouter', model))
+    const readonlyOffered =
+      hasProjectContext && (!!cliAdapter || (!isOllama && supportsToolCalling('openrouter', model)))
+    const offeredTools = [
+      ...(taskToolOffered ? [CREATE_TASK_TOOL] : []),
+      ...(readonlyOffered ? [RUN_READONLY_TOOL] : []),
+    ]
+    const mcpOffer: McpOffer | undefined =
+      cliAdapter && offeredTools.length ? { tools: offeredTools, root } : undefined
+    const autoTaskInstruction = buildAutoTaskInstruction({
+      hasProjectContext,
+      mode: session?.mode,
+      taskToolOffered,
+      permissionMode: orcheConfig.permissionMode,
+    })
+
+    const projectFiles = hasProjectContext
+      ? ['AGENTS.md', 'CLAUDE.md', 'CONTEXT.md', 'PLAN.md', 'README.md'].filter((file) =>
+          existsSync(join(root, file)),
+        )
+      : []
+    const rejectedTasks =
+      hasProjectContext && session
+        ? rejectedSessionTasks(
+            listChatMessages(session.id),
+            taskRows.map((t) => t.id),
+          )
+        : undefined
+    const systemPrompt = buildChatSystemPrompt({
+      tasks: hasProjectContext ? taskRows : undefined,
+      rejectedTasks,
+      taskCounts,
+      runs: recentRuns,
+      qaReasons,
+      memory: memoryRows,
+      specs: specRows,
+      projectFiles,
+      projectProfile: projectContext?.profile,
+      agent: chatAgent,
+      modelLabel,
+      autoTaskInstruction,
+      now: new Date(),
+      timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+      readTools: CLAUDE_CHAT_TOOLS,
+      offeredTools,
+    })
+    // Solo lo activa scripts/ui-gate/run.mjs.
+    if (process.env.ORCHESTOS_GATE_CAPTURE_DIR && session)
+      try {
+        mkdirSync(process.env.ORCHESTOS_GATE_CAPTURE_DIR, { recursive: true })
+        writeFileSync(
+          join(process.env.ORCHESTOS_GATE_CAPTURE_DIR, `chat-prompt-${session.id}.txt`),
+          systemPrompt,
+        )
+      } catch {}
+    const contextTokens = estimateTokens(systemPrompt)
+
+    const messages: { role: 'user' | 'assistant'; content: any }[] = history
+      .filter((h) => h.role === 'user' || h.role === 'assistant')
+      .map((h) => ({ role: h.role as 'user' | 'assistant', content: String(h.content) }))
+
+    // J.2 (Mes 18) — bug real encontrado en dogfooding (2026-07-09): el chat
+    // mandaba el image_url block sin chequear si el modelo elegido soporta
+    // visión — con un modelo sin visión la imagen se manda y se ignora en
+    // silencio, el usuario ve "no cargó mi imagen" sin ninguna explicación.
+    // C.1 (Mes 19) — el 422 de J.2 deja de ser el único camino: si el modelo
+    // no soporta visión, se intenta OCR (tesseract.js, decisión A.2 — Baidu
+    // Cloud descartado) ANTES de rechazar. El 422 queda solo para cuando el
+    // OCR también falla (nunca degradar en silencio). B.3 (Mes 19) generalizó
+    // esto a N adjuntos — cada imagen se resuelve de forma independiente.
+    const imageParts: { type: 'image_url'; image_url: { url: string } }[] = []
+    const textBlocks: string[] = []
+    const ocrUsed: string[] = []
+    // UI.24.6a — en el turno por CLI la imagen llega como archivo (Codex `--image`/
+    // `localImage`, Claude `--add-dir` + ruta en el prompt), fuera del proyecto;
+    // si no se pudo escribir, cae a OCR como siempre.
+    const cliImages = cliAdapter
+      ? writeChatImages(attachedFiles.filter((f) => f.type === 'image').map((f) => f.content))
+      : null
+    const cliImagePaths: string[] = []
+    let cliImageIndex = 0
+    for (const f of attachedFiles) {
+      if (f.type !== 'image') {
+        const label = f.filename.toLowerCase().endsWith('.pdf') ? 'PDF' : 'File'
+        textBlocks.push(untrustedContent(`${label}:${f.filename}`, f.content) + '\n\n')
         continue
       }
+      if (cliImages) {
+        const written = cliImages.paths[cliImageIndex++]
+        if (written) {
+          cliImagePaths.push(written)
+          continue
+        }
+      }
+      if (isOllama || supportsVisionInput(model)) {
+        imageParts.push({ type: 'image_url', image_url: { url: f.content } })
+        continue
+      }
+      try {
+        const ocrText = await waitForChatWork(extractTextFromImage(f.content), signal)
+        // C.1 — mismo boundary "dato externo" que ya usa fetch_url (Mes 13):
+        // el texto extraído de una imagen subida por el usuario no es confiable,
+        // nunca debe leerse como instrucción.
+        textBlocks.push(
+          untrustedContent(`OCR:${f.filename}`, ocrText || '(no text detected in image)') + '\n\n',
+        )
+        ocrUsed.push(f.filename)
+      } catch {
+        if (signal?.aborted) {
+          cliImages?.cleanup()
+          throw signal.reason
+        }
+        const ocrError = `The model "${model}" does not support image input, and OCR could not read "${f.filename}". Choose a vision-capable model (e.g. a Claude, GPT-4o, or Gemini model), or remove the image and continue with text only.`
+        cliImages?.cleanup()
+        finishTurnFailure({ error: ocrError, model })
+        return errorResponse(ocrError, 422)
+      }
     }
-    if (isOllama || supportsVisionInput(model)) {
-      imageParts.push({ type: 'image_url', image_url: { url: f.content } })
-      continue
-    }
-    try {
-      const ocrText = await extractTextFromImage(f.content)
-      // C.1 — mismo boundary "dato externo" que ya usa fetch_url (Mes 13):
-      // el texto extraído de una imagen subida por el usuario no es confiable,
-      // nunca debe leerse como instrucción.
-      textBlocks.push(
-        untrustedContent(`OCR:${f.filename}`, ocrText || '(no text detected in image)') + '\n\n',
-      )
-      ocrUsed.push(f.filename)
-    } catch {
-      const ocrError = `The model "${model}" does not support image input, and OCR could not read "${f.filename}". Choose a vision-capable model (e.g. a Claude, GPT-4o, or Gemini model), or remove the image and continue with text only.`
-      cliImages?.cleanup()
-      finishTurnFailure({ error: ocrError, model })
-      return errorResponse(ocrError, 422)
-    }
-  }
-  const combinedText = textBlocks.join('') + message
+    const combinedText = textBlocks.join('') + message
 
-  // R.5 — reemplaza el par logChatRun()+persistResponse() (dos escrituras
-  // separadas, sin garantía conjunta — el hallazgo central de R.5) por una
-  // única llamada atómica cuando hay un turno reclamado: insertRun +
-  // appendChatExchange + estado del turno ocurren en la MISMA transacción
-  // (commitTurnSuccess, db/chat-turns.ts) — nunca puede quedar uno sin el
-  // otro. Camino legacy sin sesión (activeTurnId null): mismo comportamiento
-  // que antes de R.5, solo el run (no hay mensajes de sesión que guardar).
-  const finishTurnSuccess = (params: {
-    responseText: string
-    resultLabel: string
-    inputTokens: number
-    cacheReadTokens?: number
-    cacheWriteTokens?: number
-    outputTokens: number
-    readAudit?: ReadAudit
-    readBoundaryWarning?: string | null
-    provider?: string
-    canonicalModel?: string
-    reportedUsd?: number | null
-    cliSessionId?: string
-    contextUsed?: number | null
-    contextWindow?: number | null
-  }): void => {
-    if (activeTurnId && session) clearLiveText(session.id, activeTurnId)
-    const { responseText, resultLabel, inputTokens, outputTokens, provider = 'openrouter' } = params
-    const canonicalModel = params.canonicalModel ?? resultLabel
-    const cost = chatCost(canonicalModel, inputTokens, outputTokens, params.reportedUsd)
-    const readAudit = params.readAudit ?? uninstrumentedReadAudit()
-    const projectId = session?.project_id ?? project.id
-    const held = Boolean(autoTask && 'held' in autoTask && autoTask.held)
-    const runInput = {
-      project_id: projectId,
-      cli_session_id: params.cliSessionId ?? null,
-      prompt: message.slice(0, 2000),
-      task_class: 'chat',
-      model: canonicalModel,
-      provider,
-      skill_id: null,
-      task_id: null,
-      allowed_outputs: null,
-      files_attempted: null,
-      files_authorized: null,
-      files_blocked: null,
-      files_read:
-        successfulReadPaths(readAudit) === null
-          ? null
-          : JSON.stringify(successfulReadPaths(readAudit)),
-      read_audit_json: JSON.stringify(readAudit),
-      snapshot_before: null,
-      snapshot_after: null,
-      qa_verdict: null,
-      qa_reason: null,
-      status: 'done' as const,
-      input_tokens: inputTokens,
-      cache_read_tokens: params.cacheReadTokens ?? 0,
-      cache_write_tokens: params.cacheWriteTokens ?? 0,
-      output_tokens: outputTokens,
-      context_tokens: contextTokens,
-      context_used_tokens: params.contextUsed ?? null,
-      context_window_tokens: params.contextWindow ?? null,
-      usd_cost: cost.usd,
-      cost_breakdown_json: JSON.stringify([
-        {
-          label: 'chat',
-          model: canonicalModel,
+    // R.5 — reemplaza el par logChatRun()+persistResponse() (dos escrituras
+    // separadas, sin garantía conjunta — el hallazgo central de R.5) por una
+    // única llamada atómica cuando hay un turno reclamado: insertRun +
+    // appendChatExchange + estado del turno ocurren en la MISMA transacción
+    // (commitTurnSuccess, db/chat-turns.ts) — nunca puede quedar uno sin el
+    // otro. Camino legacy sin sesión (activeTurnId null): mismo comportamiento
+    // que antes de R.5, solo el run (no hay mensajes de sesión que guardar).
+    const finishTurnSuccess = (params: {
+      responseText: string
+      resultLabel: string
+      inputTokens: number
+      cacheReadTokens?: number
+      cacheWriteTokens?: number
+      outputTokens: number
+      readAudit?: ReadAudit
+      readBoundaryWarning?: string | null
+      provider?: string
+      canonicalModel?: string
+      reportedUsd?: number | null
+      cliSessionId?: string
+      contextUsed?: number | null
+      contextWindow?: number | null
+    }): void => {
+      signal?.throwIfAborted()
+      if (activeTurnId && session) clearLiveText(session.id, activeTurnId)
+      const {
+        responseText,
+        resultLabel,
+        inputTokens,
+        outputTokens,
+        provider = 'openrouter',
+      } = params
+      const canonicalModel = params.canonicalModel ?? resultLabel
+      const cost = chatCost(canonicalModel, inputTokens, outputTokens, params.reportedUsd)
+      const readAudit = params.readAudit ?? uninstrumentedReadAudit()
+      const projectId = session?.project_id ?? project.id
+      const held = Boolean(autoTask && 'held' in autoTask && autoTask.held)
+      const runInput = {
+        project_id: projectId,
+        cli_session_id: params.cliSessionId ?? null,
+        prompt: message.slice(0, 2000),
+        task_class: 'chat',
+        model: canonicalModel,
+        provider,
+        skill_id: null,
+        task_id: null,
+        allowed_outputs: null,
+        files_attempted: null,
+        files_authorized: null,
+        files_blocked: null,
+        files_read:
+          successfulReadPaths(readAudit) === null
+            ? null
+            : JSON.stringify(successfulReadPaths(readAudit)),
+        read_audit_json: JSON.stringify(readAudit),
+        snapshot_before: null,
+        snapshot_after: null,
+        qa_verdict: null,
+        qa_reason: null,
+        status: 'done' as const,
+        input_tokens: inputTokens,
+        cache_read_tokens: params.cacheReadTokens ?? 0,
+        cache_write_tokens: params.cacheWriteTokens ?? 0,
+        output_tokens: outputTokens,
+        context_tokens: contextTokens,
+        context_used_tokens: params.contextUsed ?? null,
+        context_window_tokens: params.contextWindow ?? null,
+        usd_cost: cost.usd,
+        cost_breakdown_json: JSON.stringify([
+          {
+            label: 'chat',
+            model: canonicalModel,
+            inputTokens,
+            outputTokens,
+            costUsd: cost.usd,
+            source: cost.source,
+          },
+        ]),
+        elapsed_ms: Date.now() - turnStartedAt,
+        result: responseText,
+      }
+      if (activeTurnId && session) {
+        commitTurnSuccess({
+          turnId: activeTurnId,
+          owner: CHAT_TURN_OWNER,
+          run: runInput,
+          userContent: message,
+          assistantContent: responseText,
+          model: resultLabel,
+          taskId: autoTask && 'id' in autoTask ? autoTask.id : null,
+          ocrUsed,
+          taskHeld: held,
+          existingFiles:
+            autoTask && 'existingFiles' in autoTask ? autoTask.existingFiles : undefined,
+          envelope: {
+            text: responseText,
+            model: resultLabel,
+            ocrUsed: ocrUsed.length ? ocrUsed : undefined,
+            taskSuggestion: taskSuggestion.isTask
+              ? { isTask: true, reason: taskSuggestion.reason }
+              : { isTask: false, reason: '' },
+            autoTask,
+            autoTaskSkipped,
+            readAudit: params.readAudit,
+            readBoundaryWarning: params.readBoundaryWarning ?? undefined,
+          },
+        })
+      } else {
+        logChatRun(
+          message,
+          canonicalModel,
           inputTokens,
           outputTokens,
-          costUsd: cost.usd,
-          source: cost.source,
-        },
-      ]),
-      elapsed_ms: Date.now() - turnStartedAt,
-      result: responseText,
+          projectId,
+          responseText,
+          readAudit,
+          provider,
+          'done',
+          params.reportedUsd,
+          contextTokens,
+          params.cacheReadTokens ?? 0,
+          params.cacheWriteTokens ?? 0,
+          Date.now() - turnStartedAt,
+          params.cliSessionId,
+          params.contextUsed,
+          params.contextWindow,
+        )
+      }
     }
-    if (activeTurnId && session) {
-      commitTurnSuccess({
-        turnId: activeTurnId,
-        owner: CHAT_TURN_OWNER,
-        run: runInput,
-        userContent: message,
-        assistantContent: responseText,
-        model: resultLabel,
-        taskId: autoTask && 'id' in autoTask ? autoTask.id : null,
-        ocrUsed,
-        taskHeld: held,
-        existingFiles: autoTask && 'existingFiles' in autoTask ? autoTask.existingFiles : undefined,
-        envelope: {
+
+    messages.push({
+      role: 'user',
+      content:
+        imageParts.length > 0
+          ? [...imageParts, { type: 'text', text: combinedText }]
+          : combinedText,
+    })
+
+    try {
+      signal?.throwIfAborted()
+      if (cliAdapter) {
+        const isolatedCwd = hasProjectContext
+          ? null
+          : mkdtempSync(join(tmpdir(), 'orchestos-chat-'))
+        try {
+          const result = await cliAdapter.runTurn({
+            cwd: isolatedCwd ?? root,
+            system: systemPrompt,
+            message: combinedText,
+            timeout: (() => {
+              const value = Number(process.env.ORCHESTOS_CHAT_TURN_TIMEOUT_MS)
+              return Number.isSafeInteger(value) && value > 0 ? value : 120_000
+            })(),
+            model,
+            effort: cliEffort,
+            hasProjectContext,
+            sessionId: session?.id,
+            historyLength: rawHistory.length,
+            transcript,
+            imagePaths: cliImagePaths,
+            attachmentsDir: cliImages && cliImagePaths.length > 0 ? cliImages.dir : undefined,
+            mcpOffer,
+            signal,
+            onStep: persistChatStep,
+            onText: (text) => {
+              if (!signal?.aborted && activeTurnId && session)
+                appendLiveText(session.id, activeTurnId, text)
+            },
+          })
+          const { text: responseText } = await settleTaskIntent(result.text)
+          finishTurnSuccess({
+            responseText,
+            resultLabel: result.resultLabel,
+            inputTokens: result.inputTokens,
+            cacheReadTokens: result.cacheReadTokens,
+            cacheWriteTokens: result.cacheWriteTokens,
+            outputTokens: result.outputTokens,
+            readAudit: result.readAudit,
+            readBoundaryWarning,
+            provider: chatAgent,
+            canonicalModel: result.model,
+            reportedUsd: result.usd,
+            cliSessionId: result.cliSessionId,
+            contextUsed: result.contextUsed,
+            contextWindow: result.contextWindow,
+          })
+          result.afterSuccess?.()
+          return jsonResponse({
+            text: responseText,
+            model: result.resultLabel,
+            ...(result.responseReadAudit ? { readAudit: result.responseReadAudit } : {}),
+            ocrUsed: ocrUsed.length ? ocrUsed : undefined,
+            taskSuggestion: taskSuggestion.isTask
+              ? { isTask: true, reason: taskSuggestion.reason }
+              : { isTask: false, reason: '' },
+            autoTask,
+            autoTaskSkipped,
+            readBoundaryWarning: readBoundaryWarning ?? undefined,
+          })
+        } catch (e: any) {
+          if (signal?.aborted) throw e
+          const failure = cliAdapter.failure(e, model)
+          if (failure.notice)
+            persistChatStep({ type: 'notice', label: failure.message, notice: failure.notice })
+          finishTurnFailure({
+            ...failure.record,
+            error: failure.message,
+            persistExchange: Boolean(failure.notice),
+            model,
+            provider: chatAgent,
+          })
+          return jsonResponse(
+            {
+              error: redactSensitive(failure.message),
+              notice: failure.notice
+                ? {
+                    ...failure.notice,
+                    message: redactSensitive(failure.notice.message),
+                    detail:
+                      failure.notice.detail === undefined
+                        ? undefined
+                        : redactSensitive(failure.notice.detail),
+                  }
+                : undefined,
+            },
+            502,
+          )
+        } finally {
+          if (isolatedCwd) rmSync(isolatedCwd, { recursive: true, force: true })
+          cliImages?.cleanup()
+        }
+      }
+
+      if (isOllama) {
+        const bareModel = model.replace('ollama/', '')
+        const resp = await ollamaChat({ model: bareModel, system: systemPrompt, messages, signal })
+        const { text: responseText } = await settleTaskIntent(resp.text)
+        // R.5 (hallazgo #5) — Ollama no reporta uso; 0/0 declara el dato como
+        // desconocido en vez de inventar tokens/costo (R.6 calcula costo real).
+        finishTurnSuccess({
+          responseText,
+          resultLabel: resp.model,
+          inputTokens: 0,
+          outputTokens: 0,
+          provider: 'ollama',
+        })
+        return jsonResponse({
           text: responseText,
-          model: resultLabel,
+          model: resp.model,
           ocrUsed: ocrUsed.length ? ocrUsed : undefined,
           taskSuggestion: taskSuggestion.isTask
             ? { isTask: true, reason: taskSuggestion.reason }
             : { isTask: false, reason: '' },
           autoTask,
           autoTaskSkipped,
-          readAudit: params.readAudit,
-          readBoundaryWarning: params.readBoundaryWarning ?? undefined,
-        },
-      })
-    } else {
-      logChatRun(
-        message,
-        canonicalModel,
-        inputTokens,
-        outputTokens,
-        projectId,
-        responseText,
-        readAudit,
-        provider,
-        'done',
-        params.reportedUsd,
-        contextTokens,
-        params.cacheReadTokens ?? 0,
-        params.cacheWriteTokens ?? 0,
-        Date.now() - turnStartedAt,
-        params.cliSessionId,
-        params.contextUsed,
-        params.contextWindow,
-      )
-    }
-  }
-
-  messages.push({
-    role: 'user',
-    content:
-      imageParts.length > 0 ? [...imageParts, { type: 'text', text: combinedText }] : combinedText,
-  })
-
-  try {
-    if (cliAdapter) {
-      const isolatedCwd = hasProjectContext ? null : mkdtempSync(join(tmpdir(), 'orchestos-chat-'))
-      try {
-        const result = await cliAdapter.runTurn({
-          cwd: isolatedCwd ?? root,
-          system: systemPrompt,
-          message: combinedText,
-          timeout: (() => {
-            const value = Number(process.env.ORCHESTOS_CHAT_TURN_TIMEOUT_MS)
-            return Number.isSafeInteger(value) && value > 0 ? value : 120_000
-          })(),
-          model,
-          effort: cliEffort,
-          hasProjectContext,
-          sessionId: session?.id,
-          historyLength: rawHistory.length,
-          transcript,
-          imagePaths: cliImagePaths,
-          attachmentsDir: cliImages && cliImagePaths.length > 0 ? cliImages.dir : undefined,
-          mcpOffer,
-          onStep: persistChatStep,
-          onText: (text) => {
-            if (activeTurnId && session) appendLiveText(session.id, activeTurnId, text)
-          },
         })
+      }
+
+      // Presupuesto real derivado del catálogo — nunca un número hardcodeado
+      // (mismo cálculo que harness.ts usa desde F0.6; ver hallazgo de G.5:
+      // tool-call.ts tenía max_tokens=4096 fijo por ronda sin forma de
+      // sobreescribirlo). El chat no puede "quedar pending" como una tarea si
+      // el contexto es muy ajustado — es interactivo, así que si el presupuesto
+      // calculado no da margen razonable cae a DEFAULT_MAX_OUTPUT_TOKENS como
+      // último recurso en vez de bloquear la respuesta.
+      const messagesText = messages
+        .map((m) => (typeof m.content === 'string' ? m.content : JSON.stringify(m.content)))
+        .join('\n')
+      const promptTokens = estimateTokens(systemPrompt) + estimateTokens(messagesText)
+      // Mes 22/E.4 (2026-07-16): 1024 no alcanza cuando el chat usa tool-calling
+      // (runToolLoop adjunta 6 tool schemas al request real que `promptTokens`
+      // nunca ve — estimateTokens solo mira systemPrompt+messagesText). Reproducido
+      // en vivo: prompt estimado ~2001, real 2733 texto + 611 de tool schemas =
+      // 3344 → 400 del proveedor pidiendo ~1.045M de salida contra una ventana de
+      // 1.048M. No es el clamp-al-catálogo prohibido por
+      // [[feedback-context-no-max-tokens]] (E.1) — sigue derivado 100% de
+      // `contextWindow − prompt`, con margen realista para tool schemas + drift.
+      const CHAT_SAFETY_MARGIN = 8192
+      const available = contextWindowFor(model) - promptTokens - CHAT_SAFETY_MARGIN
+      // B.2.1 (Mes 18, 2026-07-05): `available` solo mira la ventana de contexto
+      // TOTAL — para modelos con tope de salida real publicado por el catálogo
+      // (`maxOutputTokensFor`, 0 = desconocido), pedir más que ese tope hace que
+      // el proveedor rechace la llamada aunque "entre" en la ventana de contexto.
+      // Mismo bug y mismo fix que harness.ts aplicó en G.5 (2026-07-02) — nunca
+      // se había replicado acá. Reproducido en vivo: claude-haiku-4-5 pidiendo
+      // ~196K de salida contra una ventana de 200K → 400 del proveedor.
+      // J.3 (Mes 18, 2026-07-09): lo de arriba clampea el presupuesto de SALIDA,
+      // pero si el prompt en sí ya no entra (`available` muy negativo), seguía
+      // cayendo a DEFAULT_MAX_OUTPUT_TOKENS e intentando la llamada igual — el
+      // proveedor la rechaza con un 400 genérico ("maximum context length
+      // exceeded") que el usuario ve como un error opaco. harness.ts resuelve
+      // esto dejando la tarea `pending`; el chat no puede — es interactivo, el
+      // usuario está esperando ahí — así que en vez de reintentar a ciegas,
+      // avisamos claro ANTES de gastar la llamada.
+      const CHAT_MIN_OUTPUT_BUDGET = 512
+      if (available < CHAT_MIN_OUTPUT_BUDGET) {
+        const contextError = `This conversation plus the project context (~${promptTokens} tokens) leaves no room to reply within "${model}"'s context window (${contextWindowFor(model)} tokens). Try a model with a bigger context window, or start a new/shorter conversation.`
+        // R.5 — return directo (no throw): sin esto el catch general nunca lo
+        // ve y el turno queda 'pending' huérfano, nadie lo resuelve jamás.
+        finishTurnFailure({ error: contextError, model })
+        return errorResponse(contextError, 422)
+      }
+      // Mes 22/E.1 — mismo fix que harness.ts: `knownMaxOutputTokensFor` (0 =
+      // desconocido) en vez de `maxOutputTokensFor` (que colapsa 0→8192 y topaba
+      // toda respuesta a 8192). Base = `available` (contextWindow − prompt);
+      // clamp de seguridad solo con tope real >0.
+      const providerRealCap = knownMaxOutputTokensFor(model)
+      const clamped = providerRealCap > 0 ? Math.min(available, providerRealCap) : available
+      const chatMaxTokens = clamped > 0 ? clamped : DEFAULT_MAX_OUTPUT_TOKENS
+
+      if (hasProjectContext && supportsToolCalling('openrouter', model)) {
+        const readCollector = new ReadAuditCollector('openrouter-local-tools')
+        const auditedReader = createAuditedProjectReader(root, readCollector)
+        const readonlyTool = runReadonlyApiTool(root)
+        const createTaskTool = taskToolOffered
+          ? createTaskApiTool((proposal) => {
+              taskProposal = proposal
+            })
+          : null
+        const result = await runToolLoop('openrouter', model, {
+          system: systemPrompt,
+          messages,
+          tools: [
+            FETCH_URL_TOOL,
+            SEARCH_MEMORY_TOOL,
+            READ_PLAN_TOOL,
+            READ_TASKS_TOOL,
+            READ_IDEAS_TOOL,
+            READ_FILE_TOOL,
+            ...(createTaskTool ? [createTaskTool.tool] : []),
+            readonlyTool.tool,
+          ],
+          executeTool: createToolRouter({
+            ...(createTaskTool ? { [createTaskTool.tool.name]: createTaskTool.execute } : {}),
+            [readonlyTool.tool.name]: readonlyTool.execute,
+            fetch_url: (name, input) => executeFetchUrl(name, input, undefined, signal),
+            search_memory: (name, input) => executeSearchMemory(name, input, project.id),
+            read_plan: auditedReader,
+            read_tasks: auditedReader,
+            read_ideas: auditedReader,
+            read_file: auditedReader,
+          }),
+          effort,
+          maxTokens: chatMaxTokens,
+          signal,
+          onText: (text) => {
+            if (!signal?.aborted && session && activeTurnId)
+              appendLiveText(session.id, activeTurnId, text)
+          },
+        }).catch((error) => {
+          finishTurnFailure({
+            error: 'Tool loop failed; read evidence incomplete',
+            model,
+            readAudit: readCollector.snapshot(false),
+            provider: 'openrouter',
+          })
+          throw error
+        })
+        const readAudit = readCollector.snapshot(true)
         const { text: responseText } = await settleTaskIntent(result.text)
         finishTurnSuccess({
           responseText,
-          resultLabel: result.resultLabel,
+          resultLabel: model,
           inputTokens: result.inputTokens,
-          cacheReadTokens: result.cacheReadTokens,
-          cacheWriteTokens: result.cacheWriteTokens,
           outputTokens: result.outputTokens,
-          readAudit: result.readAudit,
-          readBoundaryWarning,
-          provider: chatAgent,
-          canonicalModel: result.model,
-          reportedUsd: result.usd,
-          cliSessionId: result.cliSessionId,
-          contextUsed: result.contextUsed,
-          contextWindow: result.contextWindow,
+          readAudit,
         })
-        result.afterSuccess?.()
         return jsonResponse({
           text: responseText,
-          model: result.resultLabel,
-          ...(result.responseReadAudit ? { readAudit: result.responseReadAudit } : {}),
+          model,
+          toolCalls: result.toolCallsExecuted,
+          readAudit,
           ocrUsed: ocrUsed.length ? ocrUsed : undefined,
           taskSuggestion: taskSuggestion.isTask
             ? { isTask: true, reason: taskSuggestion.reason }
             : { isTask: false, reason: '' },
           autoTask,
           autoTaskSkipped,
-          readBoundaryWarning: readBoundaryWarning ?? undefined,
         })
-      } catch (e: any) {
-        const failure = cliAdapter.failure(e, model)
-        if (failure.notice)
-          persistChatStep({ type: 'notice', label: failure.message, notice: failure.notice })
-        finishTurnFailure({
-          ...failure.record,
-          error: failure.message,
-          persistExchange: Boolean(failure.notice),
-          model,
-          provider: chatAgent,
-        })
-        return jsonResponse(
-          {
-            error: redactSensitive(failure.message),
-            notice: failure.notice
-              ? {
-                  ...failure.notice,
-                  message: redactSensitive(failure.notice.message),
-                  detail:
-                    failure.notice.detail === undefined
-                      ? undefined
-                      : redactSensitive(failure.notice.detail),
-                }
-              : undefined,
-          },
-          502,
-        )
-      } finally {
-        if (isolatedCwd) rmSync(isolatedCwd, { recursive: true, force: true })
-        cliImages?.cleanup()
       }
-    }
 
-    if (isOllama) {
-      const bareModel = model.replace('ollama/', '')
-      const resp = await ollamaChat({ model: bareModel, system: systemPrompt, messages })
+      const resolvedAssignment = {
+        ...chatAssignment,
+        agent: chatAgent as RoleAgent,
+        model,
+      }
+      const orchestratorClient = clientFromAssignment('orchestrator', resolvedAssignment, {
+        cwd: root,
+      })
+      const resp = await orchestratorClient.provider.chat({
+        model,
+        system: systemPrompt,
+        effort,
+        messages,
+        maxTokens: chatMaxTokens,
+        signal,
+      })
       const { text: responseText } = await settleTaskIntent(resp.text)
-      // R.5 (hallazgo #5) — Ollama no reporta uso; 0/0 declara el dato como
-      // desconocido en vez de inventar tokens/costo (R.6 calcula costo real).
       finishTurnSuccess({
         responseText,
         resultLabel: resp.model,
-        inputTokens: 0,
-        outputTokens: 0,
-        provider: 'ollama',
+        inputTokens: resp.inputTokens,
+        outputTokens: resp.outputTokens,
       })
       return jsonResponse({
         text: responseText,
@@ -1694,165 +1898,32 @@ async function handleApiChat(
         autoTask,
         autoTaskSkipped,
       })
+    } catch (e: any) {
+      // R.5 (hallazgo #6) — red de seguridad final: cualquier camino que no
+      // haya registrado su propio fallo específico arriba (ej. el plano de
+      // OpenRouter, que no tenía try/catch propio) deja evidencia igual, en
+      // vez de un turno 'pending' huérfano que ningún proceso vuelve a tocar.
+      if (signal?.aborted) throw e
+      finishTurnFailure({ error: `Chat failed: ${e.message}` })
+      return errorResponse(`Chat failed: ${e.message}`, 502)
     }
-
-    // Presupuesto real derivado del catálogo — nunca un número hardcodeado
-    // (mismo cálculo que harness.ts usa desde F0.6; ver hallazgo de G.5:
-    // tool-call.ts tenía max_tokens=4096 fijo por ronda sin forma de
-    // sobreescribirlo). El chat no puede "quedar pending" como una tarea si
-    // el contexto es muy ajustado — es interactivo, así que si el presupuesto
-    // calculado no da margen razonable cae a DEFAULT_MAX_OUTPUT_TOKENS como
-    // último recurso en vez de bloquear la respuesta.
-    const messagesText = messages
-      .map((m) => (typeof m.content === 'string' ? m.content : JSON.stringify(m.content)))
-      .join('\n')
-    const promptTokens = estimateTokens(systemPrompt) + estimateTokens(messagesText)
-    // Mes 22/E.4 (2026-07-16): 1024 no alcanza cuando el chat usa tool-calling
-    // (runToolLoop adjunta 6 tool schemas al request real que `promptTokens`
-    // nunca ve — estimateTokens solo mira systemPrompt+messagesText). Reproducido
-    // en vivo: prompt estimado ~2001, real 2733 texto + 611 de tool schemas =
-    // 3344 → 400 del proveedor pidiendo ~1.045M de salida contra una ventana de
-    // 1.048M. No es el clamp-al-catálogo prohibido por
-    // [[feedback-context-no-max-tokens]] (E.1) — sigue derivado 100% de
-    // `contextWindow − prompt`, con margen realista para tool schemas + drift.
-    const CHAT_SAFETY_MARGIN = 8192
-    const available = contextWindowFor(model) - promptTokens - CHAT_SAFETY_MARGIN
-    // B.2.1 (Mes 18, 2026-07-05): `available` solo mira la ventana de contexto
-    // TOTAL — para modelos con tope de salida real publicado por el catálogo
-    // (`maxOutputTokensFor`, 0 = desconocido), pedir más que ese tope hace que
-    // el proveedor rechace la llamada aunque "entre" en la ventana de contexto.
-    // Mismo bug y mismo fix que harness.ts aplicó en G.5 (2026-07-02) — nunca
-    // se había replicado acá. Reproducido en vivo: claude-haiku-4-5 pidiendo
-    // ~196K de salida contra una ventana de 200K → 400 del proveedor.
-    // J.3 (Mes 18, 2026-07-09): lo de arriba clampea el presupuesto de SALIDA,
-    // pero si el prompt en sí ya no entra (`available` muy negativo), seguía
-    // cayendo a DEFAULT_MAX_OUTPUT_TOKENS e intentando la llamada igual — el
-    // proveedor la rechaza con un 400 genérico ("maximum context length
-    // exceeded") que el usuario ve como un error opaco. harness.ts resuelve
-    // esto dejando la tarea `pending`; el chat no puede — es interactivo, el
-    // usuario está esperando ahí — así que en vez de reintentar a ciegas,
-    // avisamos claro ANTES de gastar la llamada.
-    const CHAT_MIN_OUTPUT_BUDGET = 512
-    if (available < CHAT_MIN_OUTPUT_BUDGET) {
-      const contextError = `This conversation plus the project context (~${promptTokens} tokens) leaves no room to reply within "${model}"'s context window (${contextWindowFor(model)} tokens). Try a model with a bigger context window, or start a new/shorter conversation.`
-      // R.5 — return directo (no throw): sin esto el catch general nunca lo
-      // ve y el turno queda 'pending' huérfano, nadie lo resuelve jamás.
-      finishTurnFailure({ error: contextError, model })
-      return errorResponse(contextError, 422)
-    }
-    // Mes 22/E.1 — mismo fix que harness.ts: `knownMaxOutputTokensFor` (0 =
-    // desconocido) en vez de `maxOutputTokensFor` (que colapsa 0→8192 y topaba
-    // toda respuesta a 8192). Base = `available` (contextWindow − prompt);
-    // clamp de seguridad solo con tope real >0.
-    const providerRealCap = knownMaxOutputTokensFor(model)
-    const clamped = providerRealCap > 0 ? Math.min(available, providerRealCap) : available
-    const chatMaxTokens = clamped > 0 ? clamped : DEFAULT_MAX_OUTPUT_TOKENS
-
-    if (hasProjectContext && supportsToolCalling('openrouter', model)) {
-      const readCollector = new ReadAuditCollector('openrouter-local-tools')
-      const auditedReader = createAuditedProjectReader(root, readCollector)
-      const readonlyTool = runReadonlyApiTool(root)
-      const createTaskTool = taskToolOffered
-        ? createTaskApiTool((proposal) => {
-            taskProposal = proposal
-          })
-        : null
-      const result = await runToolLoop('openrouter', model, {
-        system: systemPrompt,
-        messages,
-        tools: [
-          FETCH_URL_TOOL,
-          SEARCH_MEMORY_TOOL,
-          READ_PLAN_TOOL,
-          READ_TASKS_TOOL,
-          READ_IDEAS_TOOL,
-          READ_FILE_TOOL,
-          ...(createTaskTool ? [createTaskTool.tool] : []),
-          readonlyTool.tool,
-        ],
-        executeTool: createToolRouter({
-          ...(createTaskTool ? { [createTaskTool.tool.name]: createTaskTool.execute } : {}),
-          [readonlyTool.tool.name]: readonlyTool.execute,
-          fetch_url: (name, input) => executeFetchUrl(name, input),
-          search_memory: (name, input) => executeSearchMemory(name, input, project.id),
-          read_plan: auditedReader,
-          read_tasks: auditedReader,
-          read_ideas: auditedReader,
-          read_file: auditedReader,
-        }),
-        effort,
-        maxTokens: chatMaxTokens,
-      }).catch((error) => {
-        finishTurnFailure({
-          error: 'Tool loop failed; read evidence incomplete',
-          model,
-          readAudit: readCollector.snapshot(false),
-          provider: 'openrouter',
-        })
-        throw error
-      })
-      const readAudit = readCollector.snapshot(true)
-      const { text: responseText } = await settleTaskIntent(result.text)
-      finishTurnSuccess({
-        responseText,
-        resultLabel: model,
-        inputTokens: result.inputTokens,
-        outputTokens: result.outputTokens,
-        readAudit,
-      })
-      return jsonResponse({
-        text: responseText,
-        model,
-        toolCalls: result.toolCallsExecuted,
-        readAudit,
-        ocrUsed: ocrUsed.length ? ocrUsed : undefined,
-        taskSuggestion: taskSuggestion.isTask
-          ? { isTask: true, reason: taskSuggestion.reason }
-          : { isTask: false, reason: '' },
-        autoTask,
-        autoTaskSkipped,
-      })
-    }
-
-    const resolvedAssignment = {
-      ...chatAssignment,
-      agent: chatAgent as RoleAgent,
+  } catch (error) {
+    if (!signal?.aborted || !session || !activeTurnId) throw error
+    if (session.agent === 'claude') clearClaudeChatSession(session.id)
+    const live = getLiveText(session.id)
+    const text = live?.turnId === activeTurnId ? live.text : ''
+    const model = body.model?.trim() || chatAssignment?.model || chatAgent || 'unknown'
+    commitTurnCancelled({
+      turnId: activeTurnId,
+      owner: CHAT_TURN_OWNER,
+      userContent: message,
+      text,
       model,
-    }
-    const orchestratorClient = clientFromAssignment('orchestrator', resolvedAssignment, {
-      cwd: root,
     })
-    const resp = await orchestratorClient.provider.chat({
-      model,
-      system: systemPrompt,
-      effort,
-      messages,
-      maxTokens: chatMaxTokens,
-    })
-    const { text: responseText } = await settleTaskIntent(resp.text)
-    finishTurnSuccess({
-      responseText,
-      resultLabel: resp.model,
-      inputTokens: resp.inputTokens,
-      outputTokens: resp.outputTokens,
-    })
-    return jsonResponse({
-      text: responseText,
-      model: resp.model,
-      ocrUsed: ocrUsed.length ? ocrUsed : undefined,
-      taskSuggestion: taskSuggestion.isTask
-        ? { isTask: true, reason: taskSuggestion.reason }
-        : { isTask: false, reason: '' },
-      autoTask,
-      autoTaskSkipped,
-    })
-  } catch (e: any) {
-    // R.5 (hallazgo #6) — red de seguridad final: cualquier camino que no
-    // haya registrado su propio fallo específico arriba (ej. el plano de
-    // OpenRouter, que no tenía try/catch propio) deja evidencia igual, en
-    // vez de un turno 'pending' huérfano que ningún proceso vuelve a tocar.
-    finishTurnFailure({ error: `Chat failed: ${e.message}` })
-    return errorResponse(`Chat failed: ${e.message}`, 502)
+    clearLiveText(session.id, activeTurnId)
+    return jsonResponse({ text, model, stopped: true })
+  } finally {
+    if (session && activeTurnId) unregisterChatTurn(session.id, activeTurnId)
   }
 }
 

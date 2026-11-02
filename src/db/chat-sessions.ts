@@ -31,6 +31,7 @@ interface StoredChatMessage {
   turn_id: string | null
   // ERP.4.13 — JSON del reporte de fin de tarea (`TaskReportData`); null en mensajes normales
   task_report: string | null
+  stopped?: number
   created_at: string
 }
 
@@ -51,11 +52,15 @@ export interface TaskReportData {
 }
 
 export interface ChatMessageRecord
-  extends Omit<StoredChatMessage, 'ocr_used' | 'task_held' | 'existing_files' | 'task_report'> {
+  extends Omit<
+    StoredChatMessage,
+    'ocr_used' | 'task_held' | 'existing_files' | 'task_report' | 'stopped'
+  > {
   ocr_used: string[]
   task_held: boolean
   existing_files: string[]
   taskReport?: TaskReportData
+  stopped?: boolean
 }
 
 interface CreateChatSessionInput {
@@ -129,10 +134,11 @@ function parseTaskReport(value: string | null): TaskReportData | undefined {
 }
 
 function mapMessage(row: StoredChatMessage): ChatMessageRecord {
-  const { task_report: taskReport, ...rest } = row
+  const { task_report: taskReport, stopped, ...rest } = row
   const parsedReport = parseTaskReport(taskReport)
   return {
     ...rest,
+    ...(stopped ? { stopped: true } : {}),
     ocr_used: parseStringArray(row.ocr_used),
     task_held: row.task_held === 1,
     existing_files: parseStringArray(row.existing_files),
@@ -283,6 +289,14 @@ export function setClaudeChatSession(
   )
 }
 
+/** A stopped Claude transcript must never be resumed, including after a restart. */
+export function clearClaudeChatSession(sessionId: string): void {
+  db.run(
+    'UPDATE chat_sessions SET claude_session_id = NULL, claude_context_hash = NULL, claude_message_count = NULL WHERE id = ?',
+    [sessionId],
+  )
+}
+
 export function updateChatSession(
   id: string,
   patch: { mode?: ChatSessionMode; title?: string },
@@ -306,7 +320,8 @@ export function deleteChatSession(id: string): boolean {
 export function listChatMessages(sessionId: string): ChatMessageRecord[] {
   return db
     .query<StoredChatMessage, string>(
-      'SELECT * FROM chat_messages WHERE session_id = ? ORDER BY id ASC',
+      `SELECT m.*, CASE WHEN m.role = 'assistant' AND t.status = 'cancelled' THEN 1 ELSE 0 END AS stopped
+       FROM chat_messages m LEFT JOIN chat_turns t ON t.id = m.turn_id WHERE m.session_id = ? ORDER BY m.id ASC`,
     )
     .all(sessionId)
     .map(mapMessage)

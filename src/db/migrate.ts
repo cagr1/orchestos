@@ -3,6 +3,7 @@ import { db } from './sqlite.ts'
 
 const CURRENT_SCHEMA_VERSION = 1
 const BASELINE_NAME = 'baseline-current-schema'
+const migration33Turns = new WeakMap<Database, { count: number; indexes: string[] }>()
 const migration30SessionCounts = new WeakMap<Database, number>()
 
 interface SchemaMigrationStep {
@@ -1078,6 +1079,67 @@ export const FUTURE_MIGRATIONS: readonly SchemaMigrationStep[] = [
         throw new Error('Migration 32 violated foreign keys')
     },
   },
+  {
+    version: 33,
+    name: 'chat-turn-cancelled',
+    precondition: (database) => {
+      const table = database
+        .query("SELECT sql FROM sqlite_master WHERE name = 'chat_turns' AND type = 'table'")
+        .get()
+      if (!table) return
+      migration33Turns.set(database, {
+        count: database
+          .query<{ count: number }, []>('SELECT COUNT(*) AS count FROM chat_turns')
+          .get()!.count,
+        indexes: database
+          .query<{ sql: string }, []>(
+            "SELECT sql FROM sqlite_master WHERE type = 'index' AND tbl_name = 'chat_turns' AND sql IS NOT NULL ORDER BY name",
+          )
+          .all()
+          .map((row) => row.sql),
+      })
+    },
+    apply: (database) => {
+      if (!migration33Turns.has(database)) return
+      const sql = database
+        .query<{ sql: string }, []>("SELECT sql FROM sqlite_master WHERE name = 'chat_turns'")
+        .get()!.sql
+      database.exec(
+        sql
+          .replace(/CREATE TABLE ["`]?chat_turns["`]?/i, 'CREATE TABLE chat_turns_new')
+          .replace("'interrupted'", "'interrupted','cancelled'"),
+      )
+      database.exec(
+        'INSERT INTO chat_turns_new SELECT * FROM chat_turns; DROP TABLE chat_turns; ALTER TABLE chat_turns_new RENAME TO chat_turns;',
+      )
+      for (const sql of migration33Turns.get(database)!.indexes) database.exec(sql)
+    },
+    postcondition: (database) => {
+      const before = migration33Turns.get(database)
+      if (!before) return
+      const after = database
+        .query<{ count: number }, []>('SELECT COUNT(*) AS count FROM chat_turns')
+        .get()!.count
+      const indexes = database
+        .query<{ sql: string }, []>(
+          "SELECT sql FROM sqlite_master WHERE type = 'index' AND tbl_name = 'chat_turns' AND sql IS NOT NULL ORDER BY name",
+        )
+        .all()
+        .map((row) => row.sql)
+      const sql = database
+        .query<{ sql: string }, []>("SELECT sql FROM sqlite_master WHERE name = 'chat_turns'")
+        .get()!.sql
+      if (
+        after !== before.count ||
+        JSON.stringify(indexes) !== JSON.stringify(before.indexes) ||
+        !sql.includes("'cancelled'")
+      )
+        throw new Error('Migration 33 lost chat turns/indexes or did not enable cancelled')
+      if (database.query('PRAGMA foreign_key_check').all().length)
+        throw new Error('Migration 33 violated foreign keys')
+      migration33Turns.delete(database)
+    },
+  },
 ]
 
 function appliedVersions(database: Database): Set<number> {
@@ -1112,7 +1174,8 @@ export function applyMigrationSteps(
       step.version === 11 ||
       step.version === 14 ||
       step.version === 30 ||
-      step.version === 32
+      step.version === 32 ||
+      step.version === 33
     if (rebuildsForeignKeyParents) database.exec('PRAGMA foreign_keys = OFF')
     try {
       const applyStep = database.transaction(() => {

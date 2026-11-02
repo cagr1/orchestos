@@ -56,6 +56,183 @@ function store() {
 }
 
 describe('Codex app-server', () => {
+  test('Stop interrupts from turn/started even before the turn/start reply arrives', async () => {
+    const controller = new AbortController()
+    let interrupted = false
+    let startReplied = false
+    const server = new CodexAppServer({
+      binary: 'fake',
+      env: {},
+      store: store().api,
+      spawnProcess: () =>
+        fakeProcess((request, stdout) => {
+          if (request.method === 'initialize') reply(stdout, request, {})
+          if (request.method === 'thread/start')
+            reply(stdout, request, { thread: { id: 'pending-start' } })
+          if (request.method === 'turn/start') {
+            stdout.write(
+              `${JSON.stringify({ method: 'turn/started', params: { threadId: 'pending-start', turn: { id: 'pending-turn' } } })}\n`,
+            )
+            setTimeout(() => {
+              startReplied = true
+              reply(stdout, request, { turn: { id: 'pending-turn' } })
+            }, 20)
+          }
+          if (request.method === 'turn/interrupt') {
+            interrupted = !startReplied
+            reply(stdout, request, {})
+            stdout.write(
+              `${JSON.stringify({ method: 'turn/completed', params: { threadId: 'pending-start', turn: { id: 'pending-turn', status: 'interrupted' } } })}\n`,
+            )
+          }
+        }),
+    })
+    try {
+      await server.turn({
+        sessionId: 's',
+        cwd: '/p',
+        systemPrompt: 'rules',
+        message: 'question',
+        timeoutMs: 1000,
+        signal: controller.signal,
+        onStep: (step) => {
+          if (step.notice?.kind === 'no-response') controller.abort()
+        },
+      })
+      expect(interrupted).toBe(true)
+      await new Promise((resolve) => setTimeout(resolve, 30))
+    } finally {
+      server.kill()
+    }
+  })
+
+  test('Stop finishes and logs after 5s without completion; shared process is not killed', async () => {
+    const controller = new AbortController()
+    let child: any
+    let killed = 0
+    let interrupts = 0
+    let stoppedAt = 0
+    const log = spyOn(console, 'warn').mockImplementation(() => {})
+    const server = new CodexAppServer({
+      binary: 'fake',
+      env: {},
+      store: store().api,
+      spawnProcess: () => {
+        child = fakeProcess((request, stdout) => {
+          if (request.method === 'initialize') reply(stdout, request, {})
+          if (request.method === 'thread/start')
+            reply(stdout, request, { thread: { id: 'no-completion' } })
+          if (request.method === 'turn/start') {
+            reply(stdout, request, { turn: { id: 'stop-timeout' } })
+            setTimeout(() => {
+              stoppedAt = Date.now()
+              controller.abort()
+            }, 0)
+          }
+          if (request.method === 'turn/interrupt') {
+            interrupts++
+            reply(stdout, request, {})
+          }
+        })
+        const kill = child.kill
+        child.kill = () => {
+          killed++
+          return kill()
+        }
+        return child
+      },
+    })
+    try {
+      const result = await server.turn({
+        sessionId: 's',
+        cwd: '/p',
+        systemPrompt: 'rules',
+        message: 'question',
+        timeoutMs: 100,
+        signal: controller.signal,
+      })
+      expect(result.text).toBe('')
+      expect(Date.now() - stoppedAt).toBeGreaterThanOrEqual(4900)
+      expect(interrupts).toBe(1)
+      expect(killed).toBe(0)
+      expect(log.mock.calls[0]?.[0]).toContain('did not finish within 5s')
+    } finally {
+      log.mockRestore()
+      server.kill()
+    }
+  }, 10_000)
+
+  test('abort interrupts only the active turn, retains partial and keeps shared server alive', async () => {
+    const calls: any[] = []
+    const controller = new AbortController()
+    let child: any
+    let killed = 0
+    let spawned = 0
+    let nextTurn = 0
+    const server = new CodexAppServer({
+      binary: 'fake',
+      env: {},
+      store: store().api,
+      spawnProcess: () => {
+        spawned++
+        child = fakeProcess((request, stdout) => {
+          calls.push(request)
+          if (request.method === 'initialize') reply(stdout, request, {})
+          if (request.method === 'thread/start')
+            reply(stdout, request, { thread: { id: 'thread-stop' } })
+          if (request.method === 'turn/start') {
+            const id = `stop-${++nextTurn}`
+            reply(stdout, request, { turn: { id } })
+            stdout.write(
+              `${JSON.stringify({ method: 'item/agentMessage/delta', params: { threadId: 'thread-stop', turnId: id, delta: 'partial' } })}\n`,
+            )
+            if (nextTurn === 2)
+              stdout.write(
+                `${JSON.stringify({ method: 'turn/completed', params: { threadId: 'thread-stop', turn: { id, status: 'completed' } } })}\n`,
+              )
+          }
+          if (request.method === 'turn/interrupt') {
+            reply(stdout, request, {})
+            stdout.write(
+              `${JSON.stringify({ method: 'turn/completed', params: { threadId: 'thread-stop', turn: { id: 'stop-1', status: 'interrupted' } } })}\n`,
+            )
+          }
+        })
+        const kill = child.kill
+        child.kill = () => {
+          killed++
+          return kill()
+        }
+        return child
+      },
+    })
+    try {
+      const input = {
+        sessionId: 's',
+        cwd: '/p',
+        systemPrompt: 'rules',
+        message: 'question',
+        timeoutMs: 1000,
+      }
+      const first = await server.turn({
+        ...input,
+        signal: controller.signal,
+        onDelta: () => controller.abort(),
+      })
+      expect(first.text).toBe('partial')
+      expect(calls.filter((r) => r.method === 'turn/interrupt').map((r) => r.params)).toEqual([
+        { threadId: 'thread-stop', turnId: 'stop-1' },
+      ])
+      expect(killed).toBe(0)
+      const second = await server.turn(input)
+      expect(second.text).toBe('partial')
+      expect(spawned).toBe(1)
+      expect(calls.filter((r) => r.method === 'turn/start')).toHaveLength(2)
+    } finally {
+      child.kill()
+    }
+  })
+
   test('ignores only the generated Now line when hashing context', () => {
     expect(codexContextHash('rules\nNow: today')).toBe(codexContextHash('rules\nNow: tomorrow'))
     expect(codexContextHash('task: update timeout title')).not.toBe(

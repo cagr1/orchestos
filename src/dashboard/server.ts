@@ -19,6 +19,7 @@ import {
   handleApiChatSessionExec,
   handleApiChatSessionMessages,
   handleApiChatSessionPatch,
+  handleApiChatSessionStop,
   handleApiChatSessionsCreate,
   handleApiChatSessionsList,
   handleApiChatSessionTimeline,
@@ -418,6 +419,9 @@ export async function route(req: Request, port: number): Promise<Response> {
   }
   if (method === 'GET' && url.pathname.match(/^\/api\/chat\/sessions\/[^/]+\/console$/)) {
     return handleApiChatSessionConsole(url)
+  }
+  if (method === 'POST' && url.pathname.match(/^\/api\/chat\/sessions\/[^/]+\/stop$/)) {
+    return handleApiChatSessionStop(req, url)
   }
   if (method === 'POST' && url.pathname.match(/^\/api\/chat\/sessions\/[^/]+\/exec$/)) {
     return handleApiChatSessionExec(req, url)
