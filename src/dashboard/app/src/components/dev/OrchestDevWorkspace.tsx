@@ -30,10 +30,12 @@ import type {
 } from '../../types/orchestos'
 import { AgentComposer, type CliId } from '../common/AgentComposer'
 import { assistantCopyTarget } from './copy-target'
+import { resolveNewSessionAgent } from './new-session-agent'
 
 interface OrchestDevWorkspaceProps {
   activeProject: ProjectItem
   activeAgent?: AgentItem | null
+  newSessionAgent?: string
   onCloseAgent?: (agentId: string) => void
   onRunCommand?: (cmd: string) => void
   onSelectAgent?: (agentId: string) => void
@@ -186,6 +188,7 @@ const INITIAL_DIFF_LINES: DiffLine[] = [] /* real diff lines are supplied by tim
 export const OrchestDevWorkspace: React.FC<OrchestDevWorkspaceProps> = ({
   activeProject,
   activeAgent,
+  newSessionAgent,
   onRunCommand,
   onSelectAgent,
   onSendMessage,
@@ -193,7 +196,9 @@ export const OrchestDevWorkspace: React.FC<OrchestDevWorkspaceProps> = ({
   sessionStatus: apiSessionStatus,
 }) => {
   const [orchestrator, setOrchestrator] = useState<
-    NonNullable<ConfigResponse['roleAssignments']>[string] | undefined
+    | NonNullable<ConfigResponse['roleAssignments']>[string]
+    | undefined
+    | { agent: string; model?: string; effort?: string }
   >(undefined)
   useEffect(() => {
     let disposed = false
@@ -201,7 +206,12 @@ export const OrchestDevWorkspace: React.FC<OrchestDevWorkspaceProps> = ({
     const controller = new AbortController()
     void getConfig(activeProject.id, controller.signal)
       .then((config) => {
-        if (!disposed) setOrchestrator(config.roleAssignments?.orchestrator ?? null)
+        if (!disposed)
+          setOrchestrator(
+            newSessionAgent
+              ? resolveNewSessionAgent(newSessionAgent, config.roleAssignments)
+              : (config.roleAssignments?.orchestrator ?? null),
+          )
       })
       .catch(() => {
         if (!disposed) setOrchestrator(null)
@@ -210,7 +220,7 @@ export const OrchestDevWorkspace: React.FC<OrchestDevWorkspaceProps> = ({
       disposed = true
       controller.abort()
     }
-  }, [activeProject.id])
+  }, [activeProject.id, newSessionAgent])
   // Session status state: amber pulsing dot when waiting for approval
   const [sessionStatus, setSessionStatus] = useState<SessionStatus>('done')
   const [elapsedTime] = useState('')
@@ -413,8 +423,9 @@ export const OrchestDevWorkspace: React.FC<OrchestDevWorkspaceProps> = ({
             onSendMessage={(content, attachments, cli, model, effort) =>
               onSendMessage?.(content, attachments, cli, model, effort)
             }
-            defaultCli={(orchestrator?.agent ?? cliId) as CliId}
+            defaultCli={(newSessionAgent ?? orchestrator?.agent ?? cliId) as CliId}
             defaultModel={orchestrator?.model}
+            useCliDefaultModel={!!newSessionAgent && !orchestrator?.model}
             defaultEffort={orchestrator?.effort}
             orchestratorLoading={orchestrator === undefined}
             orchestratorAssigned={!!orchestrator}

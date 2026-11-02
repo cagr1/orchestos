@@ -135,6 +135,7 @@ export interface AgentComposerProps {
   hasProject?: boolean
   contextSessionId?: string
   defaultCli?: CliId
+  useCliDefaultModel?: boolean
   defaultModel?: string
   defaultEffort?: EffortLevel
   lockedCli?: CliId
@@ -154,6 +155,7 @@ export const AgentComposer: React.FC<AgentComposerProps> = ({
   contextSessionId,
   defaultCli = 'claude',
   defaultModel,
+  useCliDefaultModel = false,
   defaultEffort = 'high',
   lockedCli,
   orchestratorAssigned = true,
@@ -190,9 +192,9 @@ export const AgentComposer: React.FC<AgentComposerProps> = ({
   useEffect(() => {
     const next = selectionFromDefaults(defaultCli, defaultModel, defaultEffort, lockedCli)
     setActiveCli(next.cli)
-    setSelectedModel(next.model)
+    setSelectedModel(useCliDefaultModel && !defaultModel ? '' : next.model)
     setSelectedEffort(next.effort)
-  }, [lockedCli, defaultCli, defaultModel, defaultEffort])
+  }, [lockedCli, defaultCli, defaultModel, defaultEffort, useCliDefaultModel])
 
   const [inputText, setInputText] = useState('')
   const [isShellMode, setIsShellMode] = useState(false)
@@ -254,7 +256,7 @@ export const AgentComposer: React.FC<AgentComposerProps> = ({
         setAvailableClis(next)
         const sessionCli = lockedCli ?? defaultCli
         const sessionConfig = next.find((cli) => cli.id === sessionCli)
-        if (sessionConfig?.models.length) {
+        if (sessionConfig?.models.length && !useCliDefaultModel) {
           setSelectedModel((current) =>
             sessionConfig.models.some((model) => model.id === current)
               ? current
@@ -271,15 +273,19 @@ export const AgentComposer: React.FC<AgentComposerProps> = ({
     return () => {
       disposed = true
     }
-  }, [lockedCli, defaultCli])
+  }, [lockedCli, defaultCli, useCliDefaultModel])
 
   // Sync model if CLI changes and model is not in list
   useEffect(() => {
     const valid = currentCliConfig.models.some((m) => m.id === selectedModel)
-    if (!valid && currentCliConfig.models[0]) {
-      setSelectedModel(currentCliConfig.models[0].id)
+    if (!valid && currentCliConfig.models[0] && !(useCliDefaultModel && !selectedModel)) {
+      setSelectedModel(
+        currentCliConfig.models.some((model) => model.id === defaultModel)
+          ? defaultModel!
+          : currentCliConfig.models[0].id,
+      )
     }
-  }, [currentCliConfig, selectedModel])
+  }, [currentCliConfig, selectedModel, useCliDefaultModel, defaultModel])
 
   useEffect(() => {
     if (currentCliConfig.efforts.length > 0 && !currentCliConfig.efforts.includes(selectedEffort)) {
@@ -466,13 +472,16 @@ export const AgentComposer: React.FC<AgentComposerProps> = ({
   }
 
   // Find short model label
-  const effectiveSelectedModel = currentCliConfig.models.some((model) => model.id === selectedModel)
-    ? selectedModel
-    : (currentCliConfig.models[0]?.id ?? selectedModel)
+  const effectiveSelectedModel =
+    useCliDefaultModel && !selectedModel
+      ? ''
+      : currentCliConfig.models.some((model) => model.id === selectedModel)
+        ? selectedModel
+        : (currentCliConfig.models[0]?.id ?? selectedModel)
   const currentModelObj = currentCliConfig.models.find((m) => m.id === effectiveSelectedModel)
   const shortModelLabel = currentModelObj
     ? currentModelObj.short
-    : effectiveSelectedModel.split(' ')[0]
+    : effectiveSelectedModel.split(' ')[0] || 'CLI default'
   const effortSteps = currentModelObj?.efforts?.length
     ? currentModelObj.efforts
     : currentCliConfig.id === 'api'

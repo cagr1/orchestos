@@ -1,7 +1,10 @@
 import { FileCode, FileText, Plus, X } from 'lucide-react'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
+import { type CliModelCatalog, getCliModels } from '../../api/chat'
 import { getConfig } from '../../api/settings'
 import type { AgentItem } from '../../types/orchestos'
+import { cliDisplayName } from '../common/AgentComposer'
 import { ProviderLogo } from '../common/ProviderLogos'
 import type { SessionTabs } from './session-tabs'
 
@@ -19,7 +22,7 @@ export function DevSessionTabs({
   projectId: string
   onSelect: (id: string) => void
   onClose: (id: string) => void
-  onNew: () => void
+  onNew: (agent: string) => void
   onPin: (path: string) => void
 }) {
   const [agent, setAgent] = useState('')
@@ -35,6 +38,72 @@ export function DevSessionTabs({
       disposed = true
     }
   }, [projectId])
+  const [catalogs, setCatalogs] = useState<CliModelCatalog[]>([])
+  const [lastAgent, setLastAgent] = useState('')
+  const [menu, setMenu] = useState<{ left: number; top: number } | null>(null)
+  const [selected, setSelected] = useState(0)
+  const buttonRef = useRef<HTMLButtonElement>(null)
+  const menuRef = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    let disposed = false
+    void getCliModels()
+      .then((catalogs) => {
+        if (!disposed) setCatalogs(catalogs.filter((catalog) => catalog.chat && catalog.installed))
+      })
+      .catch(() => {})
+    return () => {
+      disposed = true
+    }
+  }, [])
+  useEffect(() => {
+    setMenu(null)
+    setLastAgent(localStorage.getItem(`orchestos-dev-agent:${projectId}`) ?? '')
+  }, [projectId])
+  useEffect(() => {
+    const active = state.tabs.find((tab) => tab.id === state.activeId)
+    const used =
+      active?.type === 'new'
+        ? active.agent
+        : active?.type === 'session'
+          ? agents.find((agent) => agent.id === active.id)?.agent
+          : undefined
+    if (used) {
+      setLastAgent(used)
+      localStorage.setItem(`orchestos-dev-agent:${projectId}`, used)
+    }
+  }, [state.activeId, state.tabs, agents, projectId])
+  const options = [...catalogs].sort(
+    (a, b) => Number(b.id === lastAgent) - Number(a.id === lastAgent),
+  )
+  useEffect(() => {
+    if (!menu) return
+    menuRef.current?.querySelectorAll<HTMLButtonElement>('button')[selected]?.focus()
+  }, [menu, selected])
+  useEffect(() => {
+    if (!menu) return
+    const close = (event: MouseEvent) => {
+      if (
+        !menuRef.current?.contains(event.target as Node) &&
+        !buttonRef.current?.contains(event.target as Node)
+      )
+        setMenu(null)
+    }
+    const dismiss = () => setMenu(null)
+    document.addEventListener('mousedown', close)
+    window.addEventListener('resize', dismiss)
+    window.addEventListener('scroll', dismiss, true)
+    return () => {
+      document.removeEventListener('mousedown', close)
+      window.removeEventListener('resize', dismiss)
+      window.removeEventListener('scroll', dismiss, true)
+    }
+  }, [menu])
+  const choose = (agent: string) => {
+    setMenu(null)
+    setLastAgent(agent)
+    localStorage.setItem(`orchestos-dev-agent:${projectId}`, agent)
+    onNew(agent)
+  }
   return (
     <div
       data-dev-session-tabs
@@ -67,7 +136,7 @@ export function DevSessionTabs({
                 onDoubleClick={() => {
                   if (tab.type === 'file') onPin(tab.path)
                 }}
-                className={`flex min-w-0 flex-1 items-center gap-2 px-3 py-1.5 pr-8 text-xs whitespace-nowrap ${tab.type === 'file' && !tab.pinned ? 'italic' : ''}`}
+                className={`flex min-w-0 flex-1 items-center gap-2 px-3 py-1.5 pr-8 text-left text-xs whitespace-nowrap ${tab.type === 'file' && !tab.pinned ? 'italic' : ''}`}
               >
                 {tab.type === 'file' ? (
                   tab.path.endsWith('.md') ? (
@@ -76,7 +145,10 @@ export function DevSessionTabs({
                     <FileCode size={14} className="text-sky-400/80" />
                   )
                 ) : (
-                  <ProviderLogo id={session?.agent || agent} size={14} />
+                  <ProviderLogo
+                    id={session?.agent || (tab.type === 'new' ? tab.agent : '') || agent}
+                    size={14}
+                  />
                 )}
                 <span className="min-w-0 flex-1 truncate">{title}</span>
               </button>
@@ -96,12 +168,68 @@ export function DevSessionTabs({
       </div>
       <button
         type="button"
+        ref={buttonRef}
         aria-label="New session"
-        onClick={onNew}
+        aria-haspopup="menu"
+        aria-expanded={!!menu}
+        disabled={!options.length}
+        onClick={() => {
+          if (options.length === 1) return choose(options[0].id)
+          const rect = buttonRef.current!.getBoundingClientRect()
+          setSelected(0)
+          setMenu(
+            menu
+              ? null
+              : { left: Math.min(rect.left, window.innerWidth - 224), top: rect.bottom + 4 },
+          )
+        }}
         className="shrink-0 rounded-lg p-2 text-app-muted hover:bg-app-hover hover:text-app"
       >
         <Plus size={16} />
       </button>
+      {menu &&
+        createPortal(
+          <div
+            ref={menuRef}
+            role="menu"
+            aria-label="New session agent"
+            style={menu}
+            className="fixed z-50 w-56 rounded-card bg-app-surface border border-app shadow-2xl p-2 text-xs text-app"
+            onKeyDown={(event) => {
+              if (event.key === 'Escape' || event.key === 'Tab') {
+                setMenu(null)
+                if (event.key === 'Escape') {
+                  event.preventDefault()
+                  buttonRef.current?.focus()
+                }
+              } else if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+                event.preventDefault()
+                setSelected(
+                  (index) =>
+                    (index + (event.key === 'ArrowDown' ? 1 : -1) + options.length) %
+                    options.length,
+                )
+              }
+            }}
+          >
+            {options.map((option, index) => (
+              <button
+                key={option.id}
+                type="button"
+                role="menuitemradio"
+                aria-checked={selected === index}
+                tabIndex={selected === index ? 0 : -1}
+                onFocus={() => setSelected(index)}
+                onClick={() => choose(option.id)}
+                className={`w-full flex items-center gap-2 px-2 py-1.5 rounded-control text-left text-app-muted hover:text-app hover:bg-app-elevated/40 ${selected === index ? 'bg-app-elevated/40 text-app' : ''}`}
+              >
+                <ProviderLogo id={option.id} size={14} />
+                {cliDisplayName(option.id, option.label)}
+              </button>
+            ))}
+          </div>,
+          document.body,
+        )}
     </div>
   )
 }

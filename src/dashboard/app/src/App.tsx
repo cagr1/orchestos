@@ -1527,7 +1527,9 @@ export default function App() {
                   onClose={(id) =>
                     updateDevTabs(activeProjectId, (tabs) => closeSessionTab(tabs, id))
                   }
-                  onNew={() => updateDevTabs(activeProjectId, openNewTab)}
+                  onNew={(agent) =>
+                    updateDevTabs(activeProjectId, (tabs) => openNewTab(tabs, undefined, agent))
+                  }
                 />
                 {activeDevTab?.type === 'file' ? (
                   <DevFilePanel
@@ -1556,6 +1558,7 @@ export default function App() {
                     key={activeDevTab?.id ?? activeProjectId}
                     activeProject={currentProject}
                     activeAgent={activeAgent}
+                    newSessionAgent={activeDevTab.type === 'new' ? activeDevTab.agent : undefined}
                     onCloseAgent={handleCloseAgent}
                     onSendMessage={handleDevSendMessage}
                     sessionStatus={sessionStatus}

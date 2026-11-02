@@ -685,10 +685,17 @@ Regla: nada se reintenta, cierra ni muestra sin evidencia medida que el usuario 
   de "Files" del inspector.
   Gate en vivo: navegador real (Playwright, `shell-look` 75/75, `dev-session-tabs` 18/18), `docs/done/evidence/UI.44-live.json`.
   Ejecutado por: codex gpt-6-luna (mecanico r1, r2) · Spec: docs/specs/UI.44.md
-- [ ] **UI.45 — 🧠 "+" en Dev pregunta con qué agente iniciar.** Carlos 2026-11-02: "al abrir un nuevo tab debe
+- [x] **UI.45 — 🧠 "+" en Dev pregunta con qué agente iniciar.** (cerrado 2026-11-02) Carlos 2026-11-02: "al abrir un nuevo tab debe
   preguntar con que agente iniciar; hoy solo abre el último que fue usado". "+" abre un menú con los agentes de chat
   instalados (memoria "OpenCode = ventana libre": opencode no va); el último usado primero y preseleccionado (Enter
   lo toma); elegir abre New session con ese agente y el modelo de su rol.
+  Decisión del cerebro (pregunta de Sol r1): modelo/esfuerzo del primer rol del agente en orden
+  orchestrator → executor → reviewer → auxiliary; sin rol, el default de su CLI (`new-session-agent.ts`, con test).
+  r3: título alineado a la izquierda (`text-left`; el `<button>` lo centraba).
+  Evidencia (cerebro): 4343: "+" muestra Claude (preseleccionado) y Codex; Enter abre New session con Claude
+  Opus 5.5 · medium; capturas `/tmp/set-shots/plus-*.png`.
+  Gate en vivo: navegador real (Playwright, `dev-session-tabs` 24/24, `shell-look` 75/75, `smoke` 7/7), `docs/done/evidence/UI.45-live.json`.
+  Ejecutado por: codex gpt-6.1-sol (criterio r1, r2) · codex gpt-6-luna (mecanico r3) · Revisión: Opus · Spec: docs/specs/UI.45.md
 - [ ] **CHAT.4 — 🧠 Stop real: detener un turno en curso desde el chat y desde Dev.** Carlos 2026-11-02: GO a
   planificarlo. Hoy no hay cancelación de turno en el backend (el Stop de Dev era falso, UI.38.4). Plan antes de
   código: cómo se corta cada motor (Claude CLI, Codex app-server, API), qué queda en el hilo y en la DB, qué ve el

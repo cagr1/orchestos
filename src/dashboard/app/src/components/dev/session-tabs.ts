@@ -1,7 +1,7 @@
 export type DevTab =
   | { type: 'session'; id: string }
   | { type: 'file'; id: string; path: string; pinned: boolean }
-  | { type: 'new'; id: string }
+  | { type: 'new'; id: string; agent?: string }
 export interface SessionTabs {
   tabs: DevTab[]
   activeId: string | null
@@ -16,8 +16,12 @@ export function openSessionTab(state: SessionTabs, id: string): SessionTabs {
     activeId: id,
   }
 }
-export function openNewTab(state: SessionTabs, id = `new:${crypto.randomUUID()}`): SessionTabs {
-  return { tabs: [...state.tabs, { type: 'new', id }], activeId: id }
+export function openNewTab(
+  state: SessionTabs,
+  id = `new:${crypto.randomUUID()}`,
+  agent?: string,
+): SessionTabs {
+  return { tabs: [...state.tabs, { type: 'new', id, ...(agent ? { agent } : {}) }], activeId: id }
 }
 export function convertNewTab(state: SessionTabs, newId: string | null, id: string): SessionTabs {
   if (!state.tabs.some((tab) => tab.type === 'new' && tab.id === newId))
@@ -55,7 +59,12 @@ export function restoreSessionTabs(
     if (!tab || typeof tab.id !== 'string' || tabs.some((item) => item.id === tab.id)) continue
     if (tab.type === 'session' && available.includes(tab.id))
       tabs.push({ type: 'session', id: tab.id })
-    else if (tab.type === 'new') tabs.push({ type: 'new', id: tab.id })
+    else if (tab.type === 'new')
+      tabs.push({
+        type: 'new',
+        id: tab.id,
+        ...(typeof tab.agent === 'string' ? { agent: tab.agent } : {}),
+      })
     else if (
       tab.type === 'file' &&
       typeof tab.path === 'string' &&

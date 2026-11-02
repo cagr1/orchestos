@@ -172,11 +172,51 @@ export default async function devSessionTabs({
     'Beta active; Alpha remains in API',
   )
   await page.getByRole('button', { name: 'New session', exact: true }).click()
+  const agentMenu = page.getByRole('menu', { name: 'New session agent', exact: true })
+  await agentMenu.waitFor()
+  await step(
+    'plus opens the installed chat agent menu with last used agent preselected',
+    (await agentMenu.getByRole('menuitemradio').first().innerText()) === 'Claude' &&
+      (await agentMenu.getByRole('menuitemradio').first().getAttribute('aria-checked')) ===
+        'true' &&
+      (await agentMenu.getByText(/opencode/i).count()) === 0,
+    await agentMenu.innerText(),
+  )
+  await shot('new-session-agent-menu')
+  const beforeNew = await tabs.getByRole('tab').count()
+  await page.keyboard.press('Escape')
+  await step(
+    'Escape closes menu without creating a tab',
+    (await agentMenu.count()) === 0 && (await tabs.getByRole('tab').count()) === beforeNew,
+    'tab count unchanged',
+  )
+  await page.getByRole('button', { name: 'New session', exact: true }).click()
+  await agentMenu.waitFor()
+  await page.keyboard.press('Enter')
   const fresh = page.locator('[data-dev-new-session]')
+  await fresh.getByText('CLI default', { exact: true }).waitFor()
+  await step(
+    'Enter creates with last used Claude and its unassigned CLI default',
+    (await tabs.locator('[data-new-session-tab][aria-selected="true"]').count()) === 1 &&
+      (await fresh.locator('textarea').getAttribute('placeholder')) === 'Message Claude…',
+    await fresh.innerText(),
+  )
+  await page.getByRole('button', { name: 'Close tab New session', exact: true }).click()
+  await page.getByRole('button', { name: 'New session', exact: true }).click()
+  await agentMenu.waitFor()
+  await page.keyboard.press('ArrowDown')
+  await step(
+    'arrow keys move the preselected agent',
+    (await agentMenu
+      .getByRole('menuitemradio', { name: 'Codex', exact: true })
+      .getAttribute('aria-checked')) === 'true',
+    'Codex selected',
+  )
+  await agentMenu.getByRole('menuitemradio', { name: 'Codex', exact: true }).click()
   await fresh
     .getByRole('heading', { name: `What should we work on in ${basename(root)}?`, exact: true })
     .waitFor()
-  await fresh.getByRole('button', { name: /medium/i }).waitFor()
+  await fresh.getByRole('button', { name: /Luna.*medium/i }).waitFor()
   const centered = await fresh.evaluate((root) => {
     const composer = root.querySelector('[data-composer-region]').getBoundingClientRect()
     const area = root.getBoundingClientRect()
@@ -194,14 +234,30 @@ export default async function devSessionTabs({
     await fresh.innerText(),
   )
   await shot('new-session')
+  await page.getByRole('button', { name: 'New session', exact: true }).click()
+  await agentMenu.waitFor()
+  await step(
+    'chosen Codex becomes first and preselected',
+    (await agentMenu.getByRole('menuitemradio').first().innerText()) === 'Codex' &&
+      (await agentMenu.getByRole('menuitemradio').first().getAttribute('aria-checked')) === 'true',
+    await agentMenu.innerText(),
+  )
+  await fresh.getByRole('heading').click()
+  await step(
+    'click outside closes without creating',
+    (await agentMenu.count()) === 0 && (await tabs.getByRole('tab').count()) === 3,
+    'three tabs remain',
+  )
   await reloadChat()
   await enterDev()
   await fresh.waitFor()
+  await fresh.locator('textarea[placeholder="Message Codex…"]').waitFor()
   await step(
     'reload restores active New session alongside sessions and fixed files',
     (await tabs.getByRole('tab').count()) === 3 &&
       (await tab(1).count()) === 1 &&
-      (await fileTab('context.json').count()) === 1,
+      (await fileTab('context.json').count()) === 1 &&
+      (await fresh.locator('textarea').getAttribute('placeholder')) === 'Message Codex…',
     'Beta, context.json, New session',
   )
   await page.evaluate((projectId) => {

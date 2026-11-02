@@ -68,3 +68,13 @@ describe('Unified Dev tabs', () => {
     expect(persistedDevTabs(openSessionTab(fixed, 'a')).activeId).toBe('a')
   })
 })
+
+test('new tabs retain independently chosen agents through persistence and restoration', () => {
+  const state = openNewTab(openNewTab(emptySessionTabs(), 'a', 'claude'), 'b', 'codex')
+  expect(restoreSessionTabs(persistedDevTabs(state), [])).toEqual(state)
+  expect(convertNewTab(state, 'b', 'session').tabs[0]).toEqual({
+    type: 'new',
+    id: 'a',
+    agent: 'claude',
+  })
+})
