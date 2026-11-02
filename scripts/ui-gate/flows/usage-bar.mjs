@@ -109,6 +109,11 @@ export default async function usageBar({
     await visible(claudeQuota.getByText('39%', { exact: true })),
     '39% used in status bar',
   )
+  await step(
+    'Claude quota bar shows the five-hour reset countdown',
+    await visible(claudeQuota.getByText('1h 0m', { exact: true })),
+    '1h 0m remaining until the fixture reset',
+  )
   const quotaStatus = await api('/api/session/status', {
     headers: { 'x-orchestos-project-id': project.id },
   })

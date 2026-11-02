@@ -739,9 +739,14 @@ Regla: nada se reintenta, cierra ni muestra sin evidencia medida que el usuario 
   `shell-look` 75/75, `chat-stop` 22/22. Ejecutor: `test:coverage` 2211/0.
   Gate en vivo: navegador real (Playwright), `docs/done/evidence/UI.50-live.json`.
   Ejecutado por: codex gpt-6-luna (mecanico r1–r2; r0 paró por spec incompleto) · revisión Opus · Spec: docs/specs/UI.50.md
-- [ ] **UI.51 — ⚡ La barra de cuotas muestra cuánto falta para el reinicio.** (abierto 2026-11-02) Auditoría de ADE:
+- [x] **UI.51 — ⚡ La barra de cuotas muestra cuánto falta para el reinicio.** (abierto 2026-11-02) Auditoría de ADE:
   Orca ("18% used 2h 22m") y MonoCode ("1% 2h 47m") lo muestran junto al %; OrchestOS solo el %
-  (`ShellStatusBar.tsx:184`), el tiempo vive en el popover. Spec: docs/specs/UI.51.md
+  (`ShellStatusBar.tsx:184`), el tiempo vive en el popover.
+  Hecho: junto al % va el tiempo hasta el reinicio de la ventana de 5 h (`formatCountdown`, el del popover), reloj
+  de 60 s; sin `resetsAt` o vencido no se muestra. En vivo (cerebro, 4343): "26% 1h 35m", "54% 2h 11m". Gates del
+  cerebro: `usage-bar` 21/21, `shell-look` 75/75. Ejecutor: lint, `test:coverage` 2211/0.
+  Gate en vivo: navegador real (Playwright), `docs/done/evidence/UI.51-live.json`.
+  Ejecutado por: codex gpt-6-luna (mecanico) · revisión Opus · Spec: docs/specs/UI.51.md
 - [ ] **UI.52 — 🧠 Dev pinta la respuesta igual que Chat.** (abierto 2026-11-02) Auditoría de ADE: Dev usa una
   tarjeta con borde y `react-markdown` (`OrchestDevWorkspace.tsx:929-938`); Chat usa `ChatMessage` + `ThreadMarkdown`
   (Streamdown, highlight de UI.41) sin tarjeta. Títulos y listas se ven distintos entre vistas; Dev no colorea código.

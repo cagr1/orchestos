@@ -9,6 +9,7 @@ export interface CliQuotaInfo {
   name: string
   quota5h: number | null // null if no data
   reset5h?: string
+  countdown5h?: string
   quotaWeekly: number | null
   resetWeekly?: string
   missingData?: string
@@ -80,6 +81,7 @@ export function mapQuotas(status: SessionStatus | null): CliQuotaInfo[] {
         name: cli.label,
         quota5h: remaining(fiveHour),
         reset5h: formatReset(fiveHour?.resetsAt ?? null),
+        countdown5h: formatCountdown(fiveHour?.resetsAt ?? null),
         quotaWeekly: remaining(weekly),
         resetWeekly: formatCountdown(weekly?.resetsAt ?? null),
         missingData: staleWindow
@@ -108,9 +110,15 @@ export const ShellStatusBar: React.FC<ShellStatusBarProps> = ({
 }) => {
   const [activeCliId, setActiveCliId] = useState<string | null>(null)
   const [status, setStatus] = useState<SessionStatus | null>(incomingStatus ?? null)
+  const [, setNow] = useState(Date.now())
   const panelRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => setStatus(incomingStatus ?? null), [incomingStatus])
+
+  useEffect(() => {
+    const interval = window.setInterval(() => setNow(Date.now()), 60_000)
+    return () => window.clearInterval(interval)
+  }, [])
 
   const quotas = mapQuotas(status)
 
@@ -183,6 +191,9 @@ export const ShellStatusBar: React.FC<ShellStatusBarProps> = ({
               >
                 {hasData ? `${pct}%` : '—'}
               </span>
+              {cli.countdown5h && (
+                <span className="text-[11px] text-app-muted"> {cli.countdown5h}</span>
+              )}
             </button>
           )
         })}
