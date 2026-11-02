@@ -58,7 +58,11 @@ Un solo presente: orden y trampas vivas. Lo cerrado vive en `docs/done/bloque-*.
   agrega sin preguntar.
 
 ## Orden
-0. Nada en curso. CI.54 y CI.19 esperan su próximo fallo (leer la evidencia que dejan y escribir la fase 2).
+0. Nada en curso. **Propuesta pendiente de Carlos** (2026-11-02): auditoría de ADE — comparar Dev y Chat con
+   MonoCode/Orca lado a lado en el navegador y sacar ítems; lo obvio se hace sin preguntar (memoria
+   `feedback-comportamiento-ade-obvio-sin-preguntar`), lo de producto en una ronda. Alternativas: Stop de OpenCode
+   (pesa poco: en su TUI se corta con Ctrl+C), comentarios de Settings. CI.54 y CI.19 esperan su próximo fallo
+   (leer la evidencia que dejan y escribir la fase 2).
    **Anotado, sin ítem**: `codex-live` falló 1 de 3 en "turn 1 user
    message appears before completion" (2 s), el pre-push reintenta. El composer angosto no se reprodujo a 820 px en
    Chat (2026-11-02). Dos commits aparecieron en `origin` sin push de esta sesión (2026-11-02, fast-forward limpio;
@@ -69,6 +73,11 @@ Un solo presente: orden y trampas vivas. Lo cerrado vive en `docs/done/bloque-*.
 3. Cualquier CLI ya corre tareas sin código (AT.11.2/AT.11.3): se declara en Settings → Providers → "CLIs propios".
    Un adaptador rico (streaming, sesiones, cuotas) para un CLI nuevo sigue siendo `KNOWN_CLIS` + `registerTaskEngine`
    y lo instala el cerebro para probarlo, no Carlos. Fuera hoy: CLI genérico en el chat (necesita streaming).
+- Trampa: `delegate <rol>` exige una ruta a un archivo de spec, no texto libre (falla con "spec no existe"); `leer` e
+  `investigar` sí aceptan la pregunta directa.
+- Trampa: antes de abrir un ítem, grepear que el ID no exista ya cerrado (`grep -n "\*\*TCLI\.2" PLAN.md`): el
+  gate falla con "item … is duplicated". Y no marcar `[x]` antes de que el ejecutor termine: su preflight exige el
+  ítem abierto.
 - Trampa: dos ítems sin commitear en el mismo archivo (SET.3/4/6 en `OrchestSettingsView.tsx`): guardar el parche de
   cada ítem antes de delegar el siguiente y commitear con `git apply --cached` + `git commit` SIN rutas; `git commit --
   <ruta>` toma el archivo del árbol y mezcla los ítems.
