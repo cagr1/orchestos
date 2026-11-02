@@ -659,6 +659,10 @@ Regla: nada se reintenta, cierra ni muestra sin evidencia medida que el usuario 
 - [ ] **CI.51 — 🔍 El pre-commit no corre biome; el error se ve recién en el pre-push.** 2026-11-01/02: dos pushes
   rechazados por biome (evidencia JSON sin newline final; imports sin ordenar en un test) tras ~3 min de pre-push.
   `biome check --diagnostic-level=error` sobre los archivos staged en `scripts/pre-commit.sh`; solo errores.
+- [ ] **CI.52 — 🔍 `project-delete`: 404 de `/api/config` y del timeline del chat tras borrar el proyecto (intermitente).**
+  Pre-push del 2026-11-02 (`ui-gate-82671`): `HTTP 404 …/api/chat/sessions/<id>/timeline; HTTP 404 …/api/config`;
+  2 reruns 11/11. Misma familia que `bloque-CI.md:367` (`App.tsx` cancela sus lecturas antes del purge), pero las del
+  chat (`OrchestChatView.tsx`: config y timeline) no se cancelan. Causa medida antes de arreglar.
 - [x] **CI.23 — 🔍 `tasks`: la tarea relanzada no deja su commit `chore(tasks)` (intermitente en batería).** (cerrado 2026-10-23) Visto 2 de
   6 corridas del set de UI.26.4 (2026-10-14), nunca con `tasks` solo: tras relanzar `gate-failed-task` y llegar a
   `done`, a los 15 s de `waitForTasksYamlCommit` el último commit es el del trabajo (`orchestos(gate-failed-task): …`)

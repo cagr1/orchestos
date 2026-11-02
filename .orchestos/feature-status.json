@@ -553,6 +553,15 @@
       "closedDate": null
     },
     {
+      "id": "CI.52",
+      "sprint": "Fase 2 — Producto mínimo para entrega",
+      "block": "Abiertos — fiabilidad de los gates y documentación",
+      "delegation": "🔍",
+      "title": "`project-delete`: 404 de `/api/config` y del timeline del chat tras borrar el proyecto (intermitente)",
+      "status": "open",
+      "closedDate": null
+    },
+    {
       "id": "CI.23",
       "sprint": "Fase 2 — Producto mínimo para entrega",
       "block": "Abiertos — fiabilidad de los gates y documentación",
