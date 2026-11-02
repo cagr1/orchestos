@@ -1,4 +1,4 @@
-# NEXT — handoff 2026-10-29 (UI.37, UI.38 y CI.48 cerrados y empujados)
+# NEXT — handoff 2026-11-02 (lote de vuelta de vacaciones: UI.39–43, CI.49–52)
 
 Un solo presente: orden y trampas vivas. Lo cerrado vive en `docs/done/bloque-*.md`, `PLAN.md` y git (regla `AGENTS.md`
 § Reglas generales, 2026-10-19: `NEXT.md` se toca solo al cerrar o cortar un lote). Arranque:
@@ -33,14 +33,22 @@ Un solo presente: orden y trampas vivas. Lo cerrado vive en `docs/done/bloque-*.
   (UI.38.4; su Stop era falso). CI.48: `codex-live` mide ráfaga e hilo; sesión con historial conserva su modelo, sin
   historial usa el del rol.
 
+- 2026-11-02 (todo empujado hasta `9e63f1f5`, pre-push verde con los 19 ui-gates; sesión del 2 de noviembre; commits fechados 30-oct a 2-nov a pedido de Carlos, 5 por día, para el mapa
+  de contribuciones): UI.39 favicon en línea; UI.40 Health no cuenta la API key de OpenRouter como requisito (5/5);
+  UI.41 el chat colorea código con el highlight.js de Dev (`lib/highlight.ts`, plugin `code` de Streamdown, +1,2 KB);
+  UI.42 permisos del chat sin parpadeo; UI.43 `hljs-built_in` con color (`String.raw`); CI.49 `chat-sessions` no
+  espera al `opencode` real; CI.50 listado de modelos de un CLI con límite de 10 s; CI.51 biome sobre lo staged en el
+  pre-commit; CI.52 ninguna lectura del proyecto sale durante su borrado (`project-delete`). Memoria podada (arranque
+  bajo 9k).
+
 ## Orden
-0. **Anotado de UI.38, sin ítem**: en ventanas angostas el composer se aprieta; el chat no colorea código (se podría
-   con el mismo highlight.js); Dev no tiene Stop real (el viejo era falso); `codex-live` falló 1 de 3 corridas en "turn
-   1 user message appears before completion" (2 s) — el pre-push reintenta. Para mirar MonoCode: computer use
-   (`com.monocode.desktop`); en la sesión anterior quedó una pestaña "New session" vacía abierta allí.
-1. **Mostrar Settings a Carlos** (lote SET completo): Providers, API keys, Health, CLIs propios en Providers. Probar
-   con `orchestos-set-ref` (`.claude/launch.json`, puerto 4343). Sin verificar en vivo: el punto ámbar de Health (solo
-   código) y la causa de "Loading project data…" (no se reprodujo).
+0. **Anotado, sin ítem**: Dev y el chat no tienen Stop real (no hay cancelación de turno en el backend; toca back y
+   front → plan + GO de Carlos, preguntado 2026-11-02 sin respuesta); `codex-live` falló 1 de 3 en "turn 1 user
+   message appears before completion" (2 s), el pre-push reintenta. El composer angosto no se reprodujo a 820 px en
+   Chat (2026-11-02). Dos commits aparecieron en `origin` sin push de esta sesión (2026-11-02, fast-forward limpio;
+   no fueron Codex ni hooks; Orca y MonoCode tenían el repo abierto); Carlos: dejarlo pasar.
+1. **Settings mostrado a Carlos** 2026-11-02 en 4343 (Providers, API keys, Health): sin pedidos de cambio aún. Sin
+   reproducir: "Loading project data…".
 2. CI.19 espera el próximo fallo para la fase 2 (CI.44 cerrado `07fbab61`).
 3. Cualquier CLI ya corre tareas sin código (AT.11.2/AT.11.3): se declara en Settings → Providers → "CLIs propios".
    Un adaptador rico (streaming, sesiones, cuotas) para un CLI nuevo sigue siendo `KNOWN_CLIS` + `registerTaskEngine`
@@ -63,6 +71,12 @@ Un solo presente: orden y trampas vivas. Lo cerrado vive en `docs/done/bloque-*.
   decide en el vault, no aquí; la tarea `chat-4a0d93a2…` era de prueba, sin urgencia.
 
 ## Trampas vivas
+- Commits con fecha pasada: `GIT_COMMITTER_DATE="$D" git commit --date="$D" …` en orden cronológico; `--amend` solo
+  sobre lo no empujado. El pre-push valida el commit empujado, no el árbol: un rebase cambiaría fechas de committer.
+- Evidencia `docs/done/evidence/*.json` copiada de `result.json` → `bunx biome format --write` antes del commit (el
+  pre-commit ya lo exige desde CI.51).
+- Tailwind lee la fuente, no el runtime: un `\_` dentro de una variante arbitraria va en `String.raw` (UI.43).
+- Nunca `git stash` con un ejecutor trabajando en el árbol (2026-11-02 se guardó un instante el trabajo de Sol).
 - Todo arnés que levante un dashboard de prueba debe poner `ORCHESTOS_CLAUDE_USAGE_LIVE=0` (como
   `scripts/ui-gate/run.mjs`): si no, lee el llavero real y la cuota real tapa el fixture (UI.35, `usage-bar` 39 %).
 - `~/.claude/.credentials.json` de Carlos está vencido (julio); el llavero es la fuente buena en macOS.
