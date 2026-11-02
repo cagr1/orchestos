@@ -673,6 +673,19 @@ Regla: nada se reintenta, cierra ni muestra sin evidencia medida que el usuario 
   Evidencia (cerebro): `project-delete` 4/4 (12/12) además de las 10/10 de Sol; `tsc` limpio.
   Gate en vivo: navegador real (Playwright, `project-delete` 12/12, `chat-permissions` 9/9, `smoke` 7/7), `docs/done/evidence/CI.52-live.json`.
   Ejecutado por: codex gpt-6.1-sol (criterio) · Revisión: Opus · Spec: docs/specs/CI.52.md
+- [ ] **UI.44 — ⚡ Pestañas de Dev flotantes, como MonoCode.** Carlos 2026-11-02: "quiero que los tabs se vean
+  flotantes; mira como lo hace monocode". Visto en vivo en MonoCode (capturas `/tmp/mono/*.png`): píldoras redondeadas
+  separadas entre sí, sin bordes ni separadores; la activa con fondo más claro y texto blanco; las inactivas solo ícono
+  y texto atenuado; en hover fondo tenue, texto más claro y × a la derecha; ancho fijo con título truncado. Hoy
+  (`DevSessionTabs.tsx:41-101`) es una franja plana con `border-r` por pestaña y `border-b`.
+- [ ] **UI.45 — 🧠 "+" en Dev pregunta con qué agente iniciar.** Carlos 2026-11-02: "al abrir un nuevo tab debe
+  preguntar con que agente iniciar; hoy solo abre el último que fue usado". "+" abre un menú con los agentes de chat
+  instalados (memoria "OpenCode = ventana libre": opencode no va); el último usado primero y preseleccionado (Enter
+  lo toma); elegir abre New session con ese agente y el modelo de su rol.
+- [ ] **CHAT.4 — 🧠 Stop real: detener un turno en curso desde el chat y desde Dev.** Carlos 2026-11-02: GO a
+  planificarlo. Hoy no hay cancelación de turno en el backend (el Stop de Dev era falso, UI.38.4). Plan antes de
+  código: cómo se corta cada motor (Claude CLI, Codex app-server, API), qué queda en el hilo y en la DB, qué ve el
+  usuario. Toca back y front → plan + GO de Carlos.
 - [x] **CI.23 — 🔍 `tasks`: la tarea relanzada no deja su commit `chore(tasks)` (intermitente en batería).** (cerrado 2026-10-23) Visto 2 de
   6 corridas del set de UI.26.4 (2026-10-14), nunca con `tasks` solo: tras relanzar `gate-failed-task` y llegar a
   `done`, a los 15 s de `waitForTasksYamlCommit` el último commit es el del trabajo (`orchestos(gate-failed-task): …`)

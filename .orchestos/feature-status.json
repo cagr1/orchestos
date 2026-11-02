@@ -562,6 +562,33 @@
       "closedDate": "2026-11-02"
     },
     {
+      "id": "UI.44",
+      "sprint": "Fase 2 — Producto mínimo para entrega",
+      "block": "Abiertos — fiabilidad de los gates y documentación",
+      "delegation": "⚡",
+      "title": "Pestañas de Dev flotantes, como MonoCode",
+      "status": "open",
+      "closedDate": null
+    },
+    {
+      "id": "UI.45",
+      "sprint": "Fase 2 — Producto mínimo para entrega",
+      "block": "Abiertos — fiabilidad de los gates y documentación",
+      "delegation": "🧠",
+      "title": "\"+\" en Dev pregunta con qué agente iniciar",
+      "status": "open",
+      "closedDate": null
+    },
+    {
+      "id": "CHAT.4",
+      "sprint": "Fase 2 — Producto mínimo para entrega",
+      "block": "Abiertos — fiabilidad de los gates y documentación",
+      "delegation": "🧠",
+      "title": "Stop real: detener un turno en curso desde el chat y desde Dev",
+      "status": "open",
+      "closedDate": null
+    },
+    {
       "id": "CI.23",
       "sprint": "Fase 2 — Producto mínimo para entrega",
       "block": "Abiertos — fiabilidad de los gates y documentación",
