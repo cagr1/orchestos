@@ -713,6 +713,32 @@ Regla: nada se reintenta, cierra ni muestra sin evidencia medida que el usuario 
   `ui:gate chat-stop` 22/22. Sol: `chat-stop` 22/22, `chat-streaming` 27/27, `codex-live` 15/15.
   Gate en vivo: navegador real (Playwright), `docs/done/evidence/CHAT.4-live.json`.
   Ejecutado por: codex gpt-6.1-sol (criterio, .1 y .2) · revisión Opus · Spec: docs/specs/CHAT.4.md
+- [ ] **CI.54 — 🔍 `codex-live`: la burbuja del usuario a veces no aparece en 2 s.** (abierto 2026-11-02)
+  Visto 1 de 3 (2026-11-02, "turn 1 user message appears before completion"); el pre-push reintenta y lo oculta.
+  Fase 1: que el fallo deje evidencia (captura, DOM, composer, timeline, log); fase 2: causa con esa evidencia.
+  Spec: docs/specs/CI.54.md
+  Fase 1 hecha: si la burbuja falta a los 2 s, el paso guarda `turn1-bubble-missing.png` y un JSON con burbujas,
+  cola del hilo, composer, botón, timeline, status del POST, `[chat-turn]` y a qué ms apareció (sigue hasta 15 s).
+  Contraprueba forzada (filtro inexistente) con la evidencia completa; corrida normal 14/14 (Sol y cerebro). Abierto
+  hasta el próximo fallo: leer ese JSON y escribir la fase 2. Fase 1 por codex gpt-6.1-sol (criterio r1, r2).
+- [ ] **TCLI.3 — ⚡ Detección común de CLIs funcionales: instalado → versión → sesión, sin efectos secundarios.** (abierto 2026-11-02)
+  Carlos 2026-11-02 (opción recomendada, como T3 Code): hoy "funcional" = binario en el PATH (`cli-discovery.ts`);
+  la sesión solo se mira en Settings y solo para Claude/Codex por archivos (`providers.ts:160`). Un solo estado por
+  CLI, cacheado, que consumen Settings, el "+" de Dev y la barra de cuotas. Sondas medidas en esta máquina:
+  `claude auth status` (JSON `loggedIn`), `codex login status` ("Logged in using ChatGPT", 18 ms), `opencode auth
+  list` (credenciales, 0,5 s). CLI sin sesión: marcado en Settings, fuera del "+" y de la barra. Sondas inyectables
+  (`ToolchainProbe`), nunca spawn directo en tests.
+- [ ] **UI.48 — ⚡ Clic en un archivo de la pestaña Diff lo abre al centro, como Files.** (abierto 2026-11-02)
+  Carlos 2026-11-02: hoy se abre dentro del panel de Diff; en MonoCode y Orca ocupa el centro para verlo completo.
+  Mismo comportamiento que Files (UI.38): pestaña de archivo en la fila de Dev, vista previa en cursiva, doble clic
+  fija; muestra el diff del archivo contra HEAD (añadidas/quitadas con color) y permite pasar al archivo entero.
+- [ ] **UI.46 — ⚡ La barra de cuotas muestra solo los CLIs con cuota real.** (abierto 2026-11-02) Carlos
+  2026-11-02: hoy lista todos los instalados y OpenCode sale con "—"; OpenCode no expone cuota (`opencode stats` da
+  costo equivalente a API; Orca la saca pegando la cookie de opencode.ai, no cubre API key). Queda: CLIs funcionales
+  (TCLI.3) con fuente de cuota (Claude, Codex). El contexto de OpenCode sigue en el anillo del composer. Tras TCLI.3.
+- [ ] **UI.47 — ⚡ El "+" de Dev ofrece OpenCode como terminal.** (abierto 2026-11-02) Carlos 2026-11-02: OpenCode
+  en el "+" abre una pestaña con su TUI real (`OpenCodeTerminal`, decisión 2026-09-28 "tal cual trabaja"), con su
+  propia configuración; los agentes de chat siguen igual. Solo si OpenCode está funcional (TCLI.3). Tras TCLI.3.
 - [x] **CI.53 — 🔍 `chat-stop.test.ts` vence el timeout de 5 s con HOME temporal (pre-push y CI).** (abierto 2026-11-02)
   El pre-push de CHAT.4 falló 2 de 7: el proceso hijo de `isolated()` importa `chat.ts` con la caché de
   transpilación de Bun fría y tarda ~6 s (1,4 s caliente). Reproducido con `env HOME=$(mktemp -d)`. Arreglo: timeout

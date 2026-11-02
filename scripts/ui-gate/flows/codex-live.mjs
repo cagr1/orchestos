@@ -150,16 +150,86 @@ export default async function codexLive({
   const composer = page.locator('textarea').last()
   const word = `MANGO-${Math.random().toString(36).slice(2, 10).toUpperCase()}`
   const sentMessage = `Remember the word ${word}. Reply in ten short paragraphs about mangoes.`
+  let firstResponseStatus = null
+  const observeFirstResponse = (response) => {
+    if (response.request().method() === 'POST' && new URL(response.url()).pathname === '/api/chat')
+      firstResponseStatus = response.status()
+  }
+  page.on('response', observeFirstResponse)
+  cleanup(() => page.off('response', observeFirstResponse))
   const firstStart = await sendTurn(page, composer, sentMessage)
   const timelineView = page.locator('main').last().locator('div.max-w-3xl').first()
   const bubbleVisibleAt = await waitFor(async () => {
     const bubble = page.locator('div.max-w-2xl').filter({ hasText: sentMessage }).first()
     return (await bubble.isVisible().catch(() => false)) ? Date.now() : null
   }, 2000)
+  let bubbleMissingDetail
+  if (bubbleVisibleAt === null) {
+    const lateBubble = waitFor(
+      async () => {
+        const bubble = page.locator('div.max-w-2xl').filter({ hasText: sentMessage }).first()
+        return (await bubble.isVisible().catch(() => false)) ? Date.now() : null
+      },
+      Math.max(0, firstStart + 15_000 - Date.now()),
+    )
+    const capture = async (read) => {
+      try {
+        return await read()
+      } catch (error) {
+        return { error: String(error).slice(0, 120) }
+      }
+    }
+    const diagnostics = {
+      sessionId: session.id,
+      sampledAtMs: Date.now() - firstStart,
+      postChatStatus: firstResponseStatus,
+      matchingBubbles: await capture(() =>
+        page.locator('div.max-w-2xl').filter({ hasText: sentMessage }).count(),
+      ),
+      totalBubbles: await capture(() => page.locator('div.max-w-2xl').count()),
+      mainTail: await capture(async () =>
+        (await page.locator('main').last().innerText({ timeout: 1000 })).slice(-300),
+      ),
+      composerValue: await capture(() => composer.inputValue({ timeout: 1000 })),
+      sendButtonLabel: await capture(() =>
+        page
+          .getByRole('button', { name: /^(Send message|Stop response|Stopping response)$/ })
+          .last()
+          .getAttribute('aria-label', { timeout: 1000 }),
+      ),
+      timeline: await capture(async () => {
+        const timeline = await api(
+          `/api/chat/sessions/${encodeURIComponent(session.id)}/timeline`,
+          { headers: { 'x-orchestos-project-id': project.id } },
+        )
+        return {
+          pending: timeline.data?.pending,
+          messageCount: timeline.data?.messages?.length,
+          roles: timeline.data?.messages?.map((message) => message.role),
+        }
+      }),
+      chatTurnLogs: await capture(() =>
+        sessionLogs([]).filter((entry) => entry.source === 'chat-turn'),
+      ),
+      screenshot: 'codex-live/turn1-bubble-missing.png',
+    }
+    diagnostics.screenshotResult = await capture(() => shot('turn1-bubble-missing'))
+    const lateVisibleAt = await lateBubble
+    diagnostics.bubbleVisibleAfterMs = lateVisibleAt ? lateVisibleAt - firstStart : 'nunca'
+    const diagnosticPath = join(runDir, 'turn1-bubble-missing.json')
+    writeFileSync(diagnosticPath, JSON.stringify(diagnostics, null, 2))
+    bubbleMissingDetail = JSON.stringify({
+      ...diagnostics,
+      composerValue: String(diagnostics.composerValue).slice(-150),
+      chatTurnLogs: JSON.stringify(diagnostics.chatTurnLogs).slice(-600),
+      diagnosticPath,
+    })
+  }
+  page.off('response', observeFirstResponse)
   await step(
     'turn 1 user message appears before completion',
     Boolean(bubbleVisibleAt),
-    bubbleVisibleAt ? `${bubbleVisibleAt - firstStart} ms after send` : 'not visible within 2 s',
+    bubbleVisibleAt ? `${bubbleVisibleAt - firstStart} ms after send` : bubbleMissingDetail,
   )
   const visibleText = async () =>
     (await page.locator('div.prose').allInnerTexts()).at(-1)?.trim() ?? ''

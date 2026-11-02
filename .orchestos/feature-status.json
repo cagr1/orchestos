@@ -589,6 +589,51 @@
       "closedDate": null
     },
     {
+      "id": "CI.54",
+      "sprint": "Fase 2 — Producto mínimo para entrega",
+      "block": "Abiertos — fiabilidad de los gates y documentación",
+      "delegation": "🔍",
+      "title": "`codex-live`: la burbuja del usuario a veces no aparece en 2 s",
+      "status": "open",
+      "closedDate": null
+    },
+    {
+      "id": "TCLI.3",
+      "sprint": "Fase 2 — Producto mínimo para entrega",
+      "block": "Abiertos — fiabilidad de los gates y documentación",
+      "delegation": "⚡",
+      "title": "Detección común de CLIs funcionales: instalado → versión → sesión, sin efectos secundarios",
+      "status": "open",
+      "closedDate": null
+    },
+    {
+      "id": "UI.48",
+      "sprint": "Fase 2 — Producto mínimo para entrega",
+      "block": "Abiertos — fiabilidad de los gates y documentación",
+      "delegation": "⚡",
+      "title": "Clic en un archivo de la pestaña Diff lo abre al centro, como Files",
+      "status": "open",
+      "closedDate": null
+    },
+    {
+      "id": "UI.46",
+      "sprint": "Fase 2 — Producto mínimo para entrega",
+      "block": "Abiertos — fiabilidad de los gates y documentación",
+      "delegation": "⚡",
+      "title": "La barra de cuotas muestra solo los CLIs con cuota real",
+      "status": "open",
+      "closedDate": null
+    },
+    {
+      "id": "UI.47",
+      "sprint": "Fase 2 — Producto mínimo para entrega",
+      "block": "Abiertos — fiabilidad de los gates y documentación",
+      "delegation": "⚡",
+      "title": "El \"+\" de Dev ofrece OpenCode como terminal",
+      "status": "open",
+      "closedDate": null
+    },
+    {
       "id": "CI.53",
       "sprint": "Fase 2 — Producto mínimo para entrega",
       "block": "Abiertos — fiabilidad de los gates y documentación",
