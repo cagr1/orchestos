@@ -1,4 +1,4 @@
-# NEXT — handoff 2026-11-02 (UI.39–45, CI.49–52 empujados; CHAT.4 espera GO)
+# NEXT — handoff 2026-11-02 (UI.39–45, CI.49–52, CHAT.4 cerrados)
 
 Un solo presente: orden y trampas vivas. Lo cerrado vive en `docs/done/bloque-*.md`, `PLAN.md` y git (regla `AGENTS.md`
 § Reglas generales, 2026-10-19: `NEXT.md` se toca solo al cerrar o cortar un lote). Arranque:
@@ -45,17 +45,13 @@ Un solo presente: orden y trampas vivas. Lo cerrado vive en `docs/done/bloque-*.
   agentes de chat (último usado preseleccionado); modelo = primer rol del agente (orchestrator → executor → reviewer →
   auxiliary) o default del CLI (`new-session-agent.ts`).
 
+- 2026-11-02, noche: CHAT.4 Stop real. `5e5251bc` back (registro con `AbortController`, `POST
+  /api/chat/sessions/:id/stop`, Codex `turn/interrupt`, Claude SIGTERM→SIGKILL sin `--resume` después, migración 33
+  `cancelled`); `f1a8df7f` UI (botón Detener/Deteniendo… en Chat y Dev, "Respuesta detenida"), ui-gate nuevo
+  `chat-stop` 22/22 corrido por el cerebro. Fuera: opencode (espera a que termine), tareas ya lanzadas.
+
 ## Orden
-0. **CHAT.4 Stop real — plan listo, espera GO de Carlos** (Carlos 2026-11-02: "sí, abre el Stop real"; el plan se
-   le mostró y falta su GO para el código). Diseño de Sol (`analizar`, solo lectura, sin verificar en vivo): registro
-   de turno por sesión tras el claim con `AbortController`; `POST /api/chat/sessions/:id/stop` `{turnId}` idempotente
-   (202 stopping / 200 ya terminó / 404); Codex `turn/interrupt` sin matar el app-server compartido ni activar el
-   fallback; Claude SIGTERM→SIGKILL y no `--resume` tras Stop (reenviar transcripción); API `AbortController` hasta
-   cada fetch; estado `cancelled` (migración del CHECK de `chat_turns`, `src/db/migrate.ts:172`); parcial guardado con
-   marca "Respuesta detenida"; Stop no crea tareas nuevas ni detiene las ya lanzadas. UI: el botón de enviar de
-   `AgentComposer.tsx:886` pasa a "Detener"/"Deteniendo…" en Chat y Dev. Fases CHAT.4.1 back, .2 UI, .3 tests con
-   fakes (`fakeProcess`/`spawnProcess` simulan `turn/interrupt`) + ui-gate. Fuera: tareas/harness, terminal, opencode.
-   Con GO: specs por fase a Sol (`criterio`).
+0. CHAT.4 cerrado (ver Cerrado). Nada en curso.
    **Anotado, sin ítem**: `codex-live` falló 1 de 3 en "turn 1 user
    message appears before completion" (2 s), el pre-push reintenta. El composer angosto no se reprodujo a 820 px en
    Chat (2026-11-02). Dos commits aparecieron en `origin` sin push de esta sesión (2026-11-02, fast-forward limpio;
