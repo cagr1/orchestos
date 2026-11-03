@@ -128,14 +128,16 @@ describe('OpenCode chat variant arguments', () => {
       'hello',
       '--format',
       'json',
+      '--standalone',
       '--agent',
       'plan',
       '--model',
-      'openai/gpt-6',
-      '--variant',
-      'high',
+      'openai/gpt-6#high',
     ])
-    expect(buildOpencodeChatArgs('hello', 'openai/gpt-6')).not.toContain('--variant')
+    const withoutVariant = buildOpencodeChatArgs('hello', 'openai/gpt-6')
+    expect(withoutVariant).toContain('openai/gpt-6')
+    expect(withoutVariant.some((arg) => arg.includes('#'))).toBe(false)
+    expect(withoutVariant).not.toContain('--variant')
   })
 })
 function trackWorktree(wt: Worktree) {
@@ -289,6 +291,7 @@ describe('G.5 — opencodeEngine (opencode subprocess)', () => {
     expect(spawnCalls[0]!.cmd).toContain('run')
     expect(spawnCalls[0]!.cmd).toContain('--format')
     expect(spawnCalls[0]!.cmd).toContain('json')
+    expect(spawnCalls[0]!.cmd).toContain('--standalone')
     expect(spawnCalls[0]!.cmd).toContain('--auto')
     // Los ids provider/model del catálogo nativo se pasan tal cual al CLI.
     expect(spawnCalls[0]!.cmd).toContain('--model')
@@ -305,7 +308,7 @@ describe('G.5 — opencodeEngine (opencode subprocess)', () => {
     expect(outcome.log[0]).toContain('1 file(s) changed')
   })
 
-  it('cli_effort de la tarea se pasa como --variant', async () => {
+  it('cli_effort de la tarea se pasa como sufijo #variante del modelo', async () => {
     const root = makeGitRepo()
     const wt = createWorktree('g5-variant', 'main', root)
     trackWorktree(wt)
@@ -329,9 +332,10 @@ describe('G.5 — opencodeEngine (opencode subprocess)', () => {
     await opencodeEngine.run(ctx, { maxTokens: 1024, maxIterations: 1, timeoutMs: 5000 })
 
     const runCall = spawnCalls.find((call) => call.cmd.includes('run'))
-    const idx = runCall?.cmd.indexOf('--variant') ?? -1
+    const idx = runCall?.cmd.indexOf('--model') ?? -1
     expect(idx).toBeGreaterThan(-1)
-    expect(runCall?.cmd[idx + 1]).toBe('high')
+    expect(runCall?.cmd[idx + 1]).toEndWith('#high')
+    expect(runCall?.cmd).not.toContain('--variant')
   })
 
   it('binario ausente: throw con mensaje accionable ANTES de crear worktree o spawn', async () => {

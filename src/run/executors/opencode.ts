@@ -10,8 +10,9 @@ import { whichCli } from './cli-discovery.ts'
  *
  * Contrato real verificado en vivo (2026-07-20, `opencode --help` /
  * `opencode run --help` / probes reales con `--format json`):
- *   - `opencode run "<message>" --format json --auto` — sin esto último,
- *     opencode pide confirmación interactiva por cada tool call (escribir
+ *   - `opencode run "<message>" --format json --standalone --auto` —
+ *     `--standalone` usa un servidor privado; `--auto` evita que opencode
+ *     pida confirmación interactiva por cada tool call (escribir
  *     archivo, correr comando) y el proceso headless se cuelga esperando
  *     stdin que nunca llega. `--auto` es equivalente a lo que `--allowedTools`
  *     hace para `claude -p` en external.ts: el contrato de OUTPUT en el
@@ -24,7 +25,7 @@ import { whichCli } from './cli-discovery.ts'
  *     `step_start` / `tool_use` / `text` / `step_finish`. El costo y los
  *     tokens NO vienen en un campo final único — cada `step_finish` trae su
  *     propio `part.cost` y `part.tokens`; hay que sumarlos.
- *   - `-m provider/model`: el namespace de opencode NO coincide con el de
+ *   - `--model provider/model#variant`: el namespace de opencode NO coincide con el de
  *     OrchestOS. Los ids OpenRouter verificados en models.dev se traducen a
  *     `openrouter/<provider>/<model>`; ids ausentes en ese catálogo omiten
  *     `--model` en vez de fingir soporte.
@@ -69,18 +70,16 @@ export function orchestosModelToOpencodeModel(model: string | undefined): string
 }
 
 function buildOpencodeArgs(prompt: string, model?: string, variant?: string): string[] {
-  const args = ['run', prompt, '--format', 'json', OPENCODE_TASK_AUTO_FLAG]
-  if (model) args.push('--model', model)
-  if (variant) args.push('--variant', variant)
+  const args = ['run', prompt, '--format', 'json', '--standalone', OPENCODE_TASK_AUTO_FLAG]
+  if (model) args.push('--model', variant ? `${model}#${variant}` : model)
   return args
 }
 
 /** Mismo motivo que buildClaudeArgsDisplay en external.ts — placeholder en vez
  * del prompt real completo (puede tener miles de chars) para "info de proceso". */
 function buildOpencodeArgsDisplay(model?: string, variant?: string): string[] {
-  const args = ['run', '<contract>', '--format', 'json', OPENCODE_TASK_AUTO_FLAG]
-  if (model) args.push('--model', model)
-  if (variant) args.push('--variant', variant)
+  const args = ['run', '<contract>', '--format', 'json', '--standalone', OPENCODE_TASK_AUTO_FLAG]
+  if (model) args.push('--model', variant ? `${model}#${variant}` : model)
   return args
 }
 
@@ -238,9 +237,8 @@ interface OpencodeChatResult {
 }
 
 export function buildOpencodeChatArgs(message: string, model?: string, variant?: string): string[] {
-  const args = ['run', message, '--format', 'json', '--agent', 'plan']
-  if (model) args.push('--model', model)
-  if (variant) args.push('--variant', variant)
+  const args = ['run', message, '--format', 'json', '--standalone', '--agent', 'plan']
+  if (model) args.push('--model', variant ? `${model}#${variant}` : model)
   return args
 }
 

@@ -108,8 +108,12 @@ Cerrada. Todos sus ítems están archivados en `docs/done/` (ver "Cerrados — e
   `docs/reference/gotchas.md` (no cargado); `NEXT.md` recupera seguimientos, alcance de Settings y "abrir solo si Carlos
   lo pide". `knownCost` sale de decisiones pendientes: solo entra con `usd` `undefined` (`harness.ts:835`).
   Ejecutado por: claude opus-5.5 (cerebro, solo docs)
-- [ ] **OC.3 — El ejecutor `opencode run` usa `--standalone` y `--model prov/modelo#variante`.** (abierto 2026-11-03)
-  2.2.5 quitó `--variant`; sin `--standalone` depende del servicio. Falta validar `step-finish` con inferencia real.
+- [x] **OC.3 — El ejecutor `opencode run` usa `--standalone` y `--model prov/modelo#variante`.** (abierto 2026-11-03)
+  2.2.5 quitó `--variant`; sin `--standalone` depende del servicio. Hecho: tarea, display y chat pasan `--standalone` y
+  `--model <modelo>#<variante>`; parser intacto (`part.type` sigue `step-finish`). Gates del cerebro: tsc, lint,
+  `test:coverage` 2243/0. Gate en vivo: inferencia real con los args del chat, `docs/done/evidence/OC.3-live.json`.
+  Revisión: Opus.
+  Ejecutado por: codex gpt-6-luna (mecanico r1) · Spec: docs/specs/OC.3.md
 - [ ] **OC.4 — El adaptador HTTP de aprobaciones migra a la API v2 de OpenCode.** (abierto 2026-11-03) Cambiaron
   banner, `/api/session`, prompt, modelo y permisos (`src/run/executors/opencode-server.ts`).
 - [ ] **CI.19 — El `git commit` del fixture falla a veces en el andamiaje de los ui-gates.** Visto 1 vez en

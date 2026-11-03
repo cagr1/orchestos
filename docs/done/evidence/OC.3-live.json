@@ -1,0 +1,49 @@
+{
+  "item": "OC.3",
+  "date": "2026-11-03",
+  "opencode": "2.2.5",
+  "checks": [
+    {
+      "name": "buildOpencodeChatArgs live",
+      "command": "bun /tmp/oc3probe/live.ts",
+      "result": {
+        "args": [
+          "run",
+          "responde solo: ok",
+          "--format",
+          "json",
+          "--standalone",
+          "--agent",
+          "plan",
+          "--model",
+          "opencode/pulse-alpha-free#low"
+        ],
+        "exitCode": 0,
+        "stepFinish": [
+          {
+            "reason": "stop",
+            "cost": 0,
+            "tokens": {
+              "input": 224,
+              "output": 5,
+              "reasoning": 86,
+              "cache": {
+                "read": 8704,
+                "write": 0
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "old --variant flag rejected",
+      "command": "opencode run x --format json --standalone --variant low",
+      "result": "prints run help, does not execute"
+    },
+    {
+      "name": "parser compatibility",
+      "detail": "parseOpencodeStream reads part.type === 'step-finish', part.cost, part.tokens; 2.2.5 NDJSON keeps that part shape (outer type step_finish)"
+    }
+  ]
+}
