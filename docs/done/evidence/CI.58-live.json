@@ -1,0 +1,79 @@
+[
+  {
+    "flujo": "opencode-terminal",
+    "pass": true,
+    "steps": [
+      {
+        "nombre": "Dev agent modal still offers OpenCode",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "OpenCode session appears in Dev sidebar",
+        "ok": true,
+        "detalle": "AT.15 OpenCode 1793728627619"
+      },
+      {
+        "nombre": "OpenCode terminal is mounted",
+        "ok": true,
+        "detalle": "OpenCode terminal region visible"
+      },
+      {
+        "nombre": "OpenCode TUI rendered text",
+        "ok": true,
+        "detalle": "Starting background server...\n "
+      },
+      {
+        "nombre": "OpenCode terminal inherits Carbon background",
+        "ok": true,
+        "detalle": "rgb(9, 9, 11)"
+      },
+      {
+        "nombre": "OpenCode terminal inherits theme changes while mounted",
+        "ok": true,
+        "detalle": "rgb(15, 17, 21)"
+      },
+      {
+        "nombre": "dashboard spawned an opencode process",
+        "ok": true,
+        "detalle": "New OpenCode PIDs: 53040"
+      },
+      {
+        "nombre": "OpenCode stays mounted and its process lives behind another tab",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "returning to OpenCode preserves its process and terminal output",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "terminal remains visible after viewport resize",
+        "ok": true,
+        "detalle": "Terminal region survived resize"
+      },
+      {
+        "nombre": "OpenCode tab has no duplicate terminal header or close button",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "OpenCode tab close button is available",
+        "ok": true,
+        "detalle": "Close button belongs to the session tab"
+      },
+      {
+        "nombre": "no spawned OpenCode process survives close",
+        "ok": true,
+        "detalle": "Exited: 53040"
+      }
+    ],
+    "notes": [],
+    "errores": [],
+    "capturas": [
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-52241/opencode-terminal/opencode-terminal-starting.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-52241/opencode-terminal/opencode-terminal.png"
+    ]
+  }
+]

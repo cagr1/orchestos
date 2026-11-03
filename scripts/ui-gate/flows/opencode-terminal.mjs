@@ -7,7 +7,24 @@ import { run } from '../lib.mjs'
 function opencodePids() {
   try {
     const output = execFileSync('pgrep', ['-x', 'opencode'], { encoding: 'utf8' })
-    return new Set(output.trim().split(/\s+/).filter(Boolean).map(Number))
+    return new Set(
+      output
+        .trim()
+        .split(/\s+/)
+        .filter(Boolean)
+        .map(Number)
+        .filter((pid) => {
+          try {
+            const args = execFileSync('ps', ['-o', 'args=', '-p', String(pid)], {
+              encoding: 'utf8',
+            })
+            // OpenCode ≥ 2.2.5 starts a shared daemon that the tab does not own.
+            return !args.includes('serve --service')
+          } catch {
+            return true
+          }
+        }),
+    )
   } catch {
     return new Set()
   }

@@ -773,6 +773,13 @@ Regla: nada se reintenta, cierra ni muestra sin evidencia medida que el usuario 
   5/30/50/85 % por el cerebro: `docs/done/evidence/UI.56-rings.png`.
   Gate en vivo: navegador real (Playwright), `docs/done/evidence/UI.56-live.json` (captura `UI.56-rings.png`).
   Ejecutado por: codex gpt-6-luna (mecanico) · revisión Opus
+- [x] **CI.58 — ⚡ `opencode-terminal` cuenta el daemon de OpenCode 2.2.5 como proceso de la pestaña.** (abierto
+  2026-11-03, visto al cerrar UI.61) El último paso falla con `Still alive: <pid>` = `opencode serve --service`
+  (ppid 1, sale solo); falla igual en HEAD `4f40d406`.
+  Hecho: `opencodePids()` excluye los pids con `serve --service`; el daemon no se mata (puede servir a otras ventanas).
+  Gate del cerebro: `ui:gate opencode-terminal` 13/13.
+  Gate en vivo: navegador real (Playwright), `docs/done/evidence/CI.58-live.json`.
+  Ejecutado por: codex gpt-6-luna (mecanico r1) · revisión Opus
 - [ ] **CI.57 — 🔍 `composer-picker`: a veces elegir otro modelo de Codex en Chat no queda aplicado.** (abierto
   2026-11-03) Falló 4 seguidas (pre-push del lote UI.57/58, 2 aisladas, una en worktree de `82820986`) en `Codex
   effort levels remain available` (`composer-picker.mjs:75-87`): tras clic en GPT-6.1-Sol el selector sigue en
