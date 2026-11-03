@@ -35,7 +35,7 @@ Nunca `git config user.email|user.name`, ni `--local`/`--global` salvo pedido ex
 `bun run test:coverage`; si cambia el chat (`src/dashboard/handlers/chat*`, chat del front, `src/run/executors/`) corre
 también `chat-streaming` y `codex-live`. Al cerrar un ítem de chat:
 `bun run gate:evidence -- --label <ítem>-chat-live -- bun run ui:gate chat-streaming codex-live`. Gates en vivo con home
-temporal: `bun run gate:evidence -- --label <gate-id> -- <comando>` (`AGENTS.md` § "Evidencia de gates reales").
+temporal: `bun run gate:evidence -- --label <gate-id> -- <comando>` (`AGENTS.md` § "Gates y tests").
 
 ## Verificar contra CI, no contra tu máquina
 

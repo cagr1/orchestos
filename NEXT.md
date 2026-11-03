@@ -1,333 +1,67 @@
-# NEXT — handoff 2026-11-03 (UI.56–60 y CI.56 cerrados; CI.19, CI.54, CI.55, CI.57 esperan fallo)
+# NEXT — handoff 2026-11-03 (DOC.5/DOC.6: plan e instrucciones podados; CI.19, CI.54, CI.55, CI.57 esperan fallo)
 
-Un solo presente: orden y trampas vivas. Lo cerrado vive en `docs/done/bloque-*.md`, `PLAN.md` y git (regla `AGENTS.md`
-§ Reglas generales, 2026-10-19: `NEXT.md` se toca solo al cerrar o cortar un lote). Arranque:
-`bun run agent:preflight -- --item <ID> --agent claude`. Lista viva: `bun run next`. Roster normal (`roster.conf`).
-
-## Reglas de Carlos vigentes
-- 2026-10-22, modo estricto: nada se reintenta, cierra ni muestra sin evidencia medida que el usuario vea; opinión de
-  LLM marcada como tal. Memoria `feedback-evidencia-antes-de-actuar`. Método: `docs/specs/TRUST.md`.
-- 2026-10-23, repartir cupo: Sol 6.1 es el acompañante de confianza de Opus — diagnóstico, auditoría y revisión fuerte
-  van a Sol (`criterio` escribe, `analizar` audita solo lectura; `qa` solo revisa el diff sin commitear). Opus escribe
-  specs, decide con Carlos, revisa lo de Sol y cierra. Memoria `feedback-subagentes-modelo-barato`.
-- 2026-10-29, pruebas largas no se esperan: el pre-push (~13 min con ui-gates) y la mutación se lanzan en segundo
-  plano o de noche y se verifican al terminar. Memoria `feedback-push-largo-no-se-espera`.
-
-## Cerrado
-- Antes del 2026-10-27 (lotes SET, AT.11.2/.3, CI.44/45 y anteriores): `PLAN.md` y `git log`.
-- 2026-10-27/28 (este lote, todo empujado, CI verde, nocturna de mutación `40661058704` verde entera):
-  - CI.46 `74ac5097`: `codex-app-server.ts` en 3 shards por rango de líneas cortado entre métodos (41/63/76 min).
-  - CI.47 `7c482813`: `executors-routing` y `-engines` en dos shards cada uno por archivos enteros (57/81/77/69 min);
-    el glob mutaba `cli-search-path.test.ts`. Tiempos en `24cbd9f3`.
-  - UI.31 `8fe4bd0c`: el popover de cuotas muestra lo consumido, sin "CLI Quotas", semanal como `5D 14h`.
-  - UI.32 `d03804a0`: la pestaña Diff lista los cambios del working tree de git (como VS Code), solo lectura.
-  - UI.33 `95d6f06e` (+ `b3cd5ad8`): color por consumo, verde < 60 %, naranja 60–80 %, rojo > 80 %.
-  - UI.34 `67c2f904`: las corridas propias de Claude guardan su `rate_limit_event` como cuota.
-  - UI.35 `b60b0317` + `ac5239ee`: la cuota de Claude sale del endpoint de `/usage` (`api/oauth/usage`, 0 tokens)
-    con la sesión del llavero (sin guardarla ni refrescarla), cada 60 s como mucho; los ui-gates lo apagan.
-- 2026-10-29 (empujado hasta `5823c084`, pre-push verde): UI.36 carpetas de Files; UI.37 anillo de contexto en el
-  composer junto a enviar (+ UI.37.1 `shell-look` verde de nuevo); UI.38 Dev como MonoCode: una fila de pestañas que
-  mezcla sesiones y archivos, el archivo a todo el centro (vista previa en cursiva, doble clic fija; Markdown
-  Preview/Source; código con highlight.js), "+" = pestaña New session con el modelo del rol, entrar a Dev abre la
-  última sesión, la app inicia siempre en Chat (UI.38.1 lo había roto: tercera vez), sin la cabecera de sesión
-  (UI.38.4; su Stop era falso). CI.48: `codex-live` mide ráfaga e hilo; sesión con historial conserva su modelo, sin
-  historial usa el del rol.
-
-- 2026-11-02 (todo empujado hasta `9e63f1f5`, pre-push verde con los 19 ui-gates; sesión del 2 de noviembre; commits fechados 30-oct a 2-nov a pedido de Carlos, 5 por día, para el mapa
-  de contribuciones): UI.39 favicon en línea; UI.40 Health no cuenta la API key de OpenRouter como requisito (5/5);
-  UI.41 el chat colorea código con el highlight.js de Dev (`lib/highlight.ts`, plugin `code` de Streamdown, +1,2 KB);
-  UI.42 permisos del chat sin parpadeo; UI.43 `hljs-built_in` con color (`String.raw`); CI.49 `chat-sessions` no
-  espera al `opencode` real; CI.50 listado de modelos de un CLI con límite de 10 s; CI.51 biome sobre lo staged en el
-  pre-commit; CI.52 ninguna lectura del proyecto sale durante su borrado (`project-delete`). Memoria podada (arranque
-  bajo 9k).
-- 2026-11-02, tarde (empujado hasta `21f51e67`, pre-push verde): UI.44 `1bebddd3` pestañas de Dev flotantes como
-  MonoCode (píldoras, fila de 40 px alineada con el inspector); UI.45 `21f51e67` "+" en Dev abre un menú con los
-  agentes de chat (último usado preseleccionado); modelo = primer rol del agente (orchestrator → executor → reviewer →
-  auxiliary) o default del CLI (`new-session-agent.ts`).
-
-- 2026-11-02, noche: CHAT.4 Stop real. `5e5251bc` back (registro con `AbortController`, `POST
-  /api/chat/sessions/:id/stop`, Codex `turn/interrupt`, Claude SIGTERM→SIGKILL sin `--resume` después, migración 33
-  `cancelled`); `f1a8df7f` UI (botón Detener/Deteniendo… en Chat y Dev, "Respuesta detenida"), ui-gate nuevo
-  `chat-stop` 22/22 corrido por el cerebro. Fuera: opencode (espera a que termine), tareas ya lanzadas.
-
-- 2026-11-02, noche (2): CI.53 `7ceebbb5` timeout real en `chat-stop.test.ts` (caché de Bun fría con HOME
-  temporal); CI.54 fase 1 `85bbb985` (`codex-live` deja captura+JSON si la burbuja no aparece); TCLI.3 `c24519c2`
-  detección común (instalado → versión → sesión, `cli-health.ts`); UI.46 `ccfbb675` barra de cuotas solo con CLIs
-  funcionales con cuota (Claude, Codex); UI.48 `d9e9c5bd` diff al centro como Files; UI.47 `be9f0e5b` OpenCode en el
-  "+" como terminal (+ bug: el scroll de la fila de pestañas cerraba el menú). Memoria nueva: lo obvio de un ADE se
-  agrega sin preguntar.
-
-- 2026-11-02, noche (3): auditoría de ADE (OrchestOS vs MonoCode/Orca, capturas `/tmp/ade/`). UI.49 `c21c65f5` modo
-  de permisos en el composer de Dev; UI.50 `381d3520` spinner en la pestaña de la sesión que corre (`running` en
-  `/api/chat/sessions`); UI.51 `d8779774` tiempo al reinicio junto al % de cuota; UI.52 `0ab1fe9e` Dev pinta con
-  `ThreadMarkdown` como Chat (sin `react-markdown`); UI.53 `c1a42acd` + `5dc86638` Files atenúa lo ignorado por git;
-  UI.54 `1f4816cf` "@" referencia archivos (Chat y Dev); UI.55 `7a97bdf1` terminal del proyecto en panel inferior
-  de Dev (botón en la barra, Ctrl+`). Todo empujado hasta `949847d2`, pre-push verde al segundo intento (CI.55). Visto de paso: Orca mostraba Codex 39 % y el `app-server` oficial 49 %
-  (OrchestOS correcto). Codex tiene 3 créditos de reinicio de cuota disponibles (`rateLimitResetCredits`), sin UI.
+Un solo presente: orden y trampas vivas del lote. Lo cerrado vive en `docs/done/bloque-*.md` y git; las reglas, en
+`AGENTS.md`. Versión anterior completa: `docs/done/poda-instrucciones-2026-11-03.md` (histórico).
+Arranque: `bun run agent:preflight -- --item <ID> --agent claude`. Lista viva: `bun run next`.
 
 ## Orden
-0. Nada en curso. Cerrado 2026-11-02/03 (todo empujado, pre-push verde en `e4534111`): UI.56 `487d2d52` anillo de
-   contexto como sector relleno; UI.57 `a4beb111` OpenCode con el tema elegido, sin cabecera ni texto; UI.58
-   `82820986` Terminal como pestaña central, PTY vivo entre pestañas; UI.59 `06d6ec92` pre-commit `ui:text-gate`
-   (todo texto JSX nuevo se declara en `Texto visible:` del ítem); UI.60 `20ddb8ee` "+" de Dev siempre a la vista;
-   CI.56 `5ad28377` palabra de `codex-live` sin relación con el tema. Descartados con evidencia: Stop de OpenCode (su
-   chat está desactivado; las tareas ya cancelan, `opencode-server.ts:67`); "pestaña desaparecida" (navegador limpio
-   → Dev abre la sesión más reciente).
-1. **Esperan su próximo fallo** (leer la evidencia y escribir la fase 2): CI.55 `4b8ca91d` deja
-   `role-task-missing-output.json`; CI.57 `fa2d65c6` deja `composer-picker-model-missing.json` (falló 4 seguidas y
-   luego 6/6 verde; mi bisección que culpaba a UI.58 era falsa); CI.54 deja `turn1-bubble-missing.json`; CI.19.
-   Todos en el `runDir` del gate (`/var/folders/.../ui-gate-<pid>/`, ruta en el detalle del paso).
-   **Anotado, sin ítem**: `chat-continuity` cayó 1 vez por timeout de 180 s esperando al modelo (pasó al reintento);
-   `chat-streaming` falló 1 vez en el scroll con la cobertura en paralelo (aislado pasa).
-2. **Decisiones de Carlos pendientes**: mostrar los créditos de reinicio de Codex (recomendación: en el popover de
-   cuotas); comentarios de Settings (mostrado 2026-11-02, sin pedidos). Sin reproducir: "Loading project data…".
-3. Cualquier CLI ya corre tareas sin código (AT.11.2/AT.11.3): se declara en Settings → Providers → "CLIs propios".
-   Un adaptador rico (streaming, sesiones, cuotas) para un CLI nuevo sigue siendo `KNOWN_CLIS` + `registerTaskEngine`
-   y lo instala el cerebro para probarlo, no Carlos. Fuera hoy: CLI genérico en el chat (necesita streaming).
-- Trampa: `plan:reconcile` dos veces con un ítem `[x]` sin commitear falla ("Could not prove a closing commit SHA"):
-  reabrir `[ ]`, reconcile, volver a `[x]`, reconcile. El live-gate exige citar un `.json`/`.log`, no `.png`; el plan-gate exige
-  `Ejecutado por: … · Spec: docs/specs/<ID>.md` si el spec nunca se commiteó.
-- Trampa: `delegate <rol>` exige una ruta a un archivo de spec, no texto libre (falla con "spec no existe"); `leer` e
-  `investigar` sí aceptan la pregunta directa.
-- Trampa: antes de abrir un ítem, grepear que el ID no exista ya cerrado (`grep -n "\*\*TCLI\.2" PLAN.md`): el
-  gate falla con "item … is duplicated". Y no marcar `[x]` antes de que el ejecutor termine: su preflight exige el
-  ítem abierto.
-- Trampa: dos ítems sin commitear en el mismo archivo (SET.3/4/6 en `OrchestSettingsView.tsx`): guardar el parche de
-  cada ítem antes de delegar el siguiente y commitear con `git apply --cached` + `git commit` SIN rutas; `git commit --
-  <ruta>` toma el archivo del árbol y mezcla los ítems.
-- Trampa: el título en negrita de un ítem de `PLAN.md` debe cerrar `**` en la primera línea; partido en dos, el
-  parser no lo ve y el gate dice "Closed item … is missing from staged PLAN.md" (AT.11.2).
-- Trampa: al cerrar un ítem, `plan:reconcile` una sola vez antes del commit. Un segundo reconcile ve el ítem ya
-  `done` sin commit que lo pruebe y falla ("Could not prove a closing commit SHA"); se arregla volviendo a reconciliar
-  desde `git show HEAD:PLAN.md` y luego el PLAN.md nuevo.
-- Anotado, sin ítem: `pickAutoSkill` elige una skill `explicit` si es candidata única (`chat.ts:791`,
-  `verification-before-completion`) y `src/tasks/init.ts:71` genera `skill_id` `doc`/`implement` sin YAML — Carlos no
-  los priorizó (2026-10-24); el revisor elige su ventana cortando en el primer tramo que no cabe; `permissions` parpadea a
-  `null` al re-dispararse el efecto de config del chat (`OrchestChatView.tsx:108`, CI.41); TRUST.7.1 sin verificar en
-  vivo el caso de residuos.
-- Decidido 2026-10-26: el peso de `main.js` tras UI.24.4 (~1,9 MB, +22 % por `streamdown`) se acepta como precio de
-  la UI moderna; no se reabre sin síntoma medido (arranque lento o servir fuera de localhost). El push del vault se
-  decide en el vault, no aquí; la tarea `chat-4a0d93a2…` era de prueba, sin urgencia.
 
-## Trampas vivas
-- Commits con fecha pasada: `GIT_COMMITTER_DATE="$D" git commit --date="$D" …` en orden cronológico; `--amend` solo
-  sobre lo no empujado. El pre-push valida el commit empujado, no el árbol: un rebase cambiaría fechas de committer.
-- Evidencia `docs/done/evidence/*.json` copiada de `result.json` → `bunx biome format --write` antes del commit (el
-  pre-commit ya lo exige desde CI.51).
-- Tailwind lee la fuente, no el runtime: un `\_` dentro de una variante arbitraria va en `String.raw` (UI.43).
-- Nunca `git stash` con un ejecutor trabajando en el árbol (2026-11-02 se guardó un instante el trabajo de Sol).
-- Todo arnés que levante un dashboard de prueba debe poner `ORCHESTOS_CLAUDE_USAGE_LIVE=0` (como
-  `scripts/ui-gate/run.mjs`): si no, lee el llavero real y la cuota real tapa el fixture (UI.35, `usage-bar` 39 %).
-- `~/.claude/.credentials.json` de Carlos está vencido (julio); el llavero es la fuente buena en macOS.
-- Corregir un ítem ya `[x]` con un ejecutor: reabrirlo `[ ]` solo para el preflight y volver a `[x]`. Deja
-  `.orchestos/active-item.json` con su scope; el siguiente commit del cerebro falla en `scope:check` → borrar el archivo
-  (estado de sesión de un ítem cerrado).
-- `security:secrets` marca `token|secret|password… = '<16+ caracteres>'` aunque sea un fixture: valores cortos.
-- Stryker: un glob `dir/**/*.ts` en `mutate` toma también los `.test.ts` co-ubicados; excluir `!…/*.test.ts`. Partir
-  un shard: por archivos enteros si se puede; por rango, solo entre métodos (un mutante que cruza el corte se pierde).
-- Los ui-gates recompilan `src/dashboard/app/dist/` compartido: el dashboard real de Carlos (4242) sirve ese `dist`
-  y le muestra trabajo de un ejecutor a medias (pasó con SET.1). Hallazgo sin ítem; avisar a Carlos antes de que mire.
-- Spec de guardado instantáneo: definir qué pasa con estados intermedios que el backend rechaza (SET.1 r1 paró por
-  agente sin modelo y regla sin `match`).
-- `codex-live` corre con proyecto: para probar el chat SIN proyecto con Codex real usar `chat-notices` o
-  `chat-timeout`. La línea `Gate en vivo:` del ítem debe nombrar "navegador"/"Playwright" o `agent:live-gate` rechaza.
-- `mecanico` (Luna) puede parar por "cambios ajenos" que `git status` no muestra: escribir en el spec el estado del
-  árbol al delegar. Sus fallos de `test:coverage` por `~/.ssh` o `EADDRINUSE` son de su sandbox; el cerebro re-corre.
-- Spec nunca commiteado: el pre-commit imprime `docs/specs/<ID>.md does not exist in HEAD`; no bloquea.
-- `gate:evidence` migra la DB durable (`scripts/run-evidence-gate.ts:116`) antes de exportar: una migración sin
-  commitear se aplica a `~/.orchestos/db.sqlite` de Carlos (pasó con la 32 de CHAT.3, 2026-10-25; DB íntegra).
-- Silencio de Codex sin eventos = casi siempre 429 con reintento largo; el motivo está en `$CODEX_HOME/logs_2.sqlite`
-  (CHAT.3 lo muestra en el chat). No es un fallo de OrchestOS.
-- Cierre de ítem (gates de `PLAN.md`, 2026-10-23): (1) el ítem debe existir `[ ]` en HEAD antes del commit que lo
-  marca `[x]` (`closedPlanItemIds`); (2) `plan:reconcile` una sola vez por cierre: si ya quedó `done` en la DB sin
-  commit, reabrir `[ ]` → reconcile → `[x]` → reconcile; (3) la ruta de evidencia entre backticks va en la MISMA
-  línea que `Gate en vivo:`; (4) `Ejecutado por: … · Spec: docs/specs/<ID>.md` exacto, spec borrado en el commit;
-  (5) `git commit -- <ruta>` no acepta archivos sin seguir: `git add` antes.
-- Bun 1.3.14 no tiene `bun audit fix` (lo sugiere y no hace nada): fijar en `overrides` de `package.json`.
-- Probar el dashboard sin tocar el de Carlos: `ORCHESTOS_HOME=<tmp>` con el `sqlite3 .backup` en `<tmp>/.orchestos/db.sqlite` (si va en `<tmp>/db.sqlite` sale
-  "no such table: projects") + `PORT=4343 bun
-  src/dashboard/server.ts` + Playwright `channel: 'chrome'` (el chromium de Playwright no está instalado).
-- Sol/Codex sin cupo de 5 h → `criterio-alt` (Sonnet); su diff no tiene revisor de otro proveedor: decirlo al cerrar.
-  Sin Codex, los gates en vivo de chat y `qa-negative` no sirven: elegir flujos sin Codex (`plan-doc`,
-  `project-tabs`, `model-routing`).
-- Un registro que importa todos los motores (`task-engines.ts`) agranda la selección de cada shard de mutación: al
-  sumar un hub así, medir `scripts/mutation-test-shard.ts` por shard (CI.42).
-- Cambio de un texto que el producto emite: `grep -rn` del texto viejo en tests y flows, y correr la suite completa
-  (`test:coverage`), no la acotada (TRUST.6.1 y TRUST.8 lo rompieron así).
-- Fixture que escribe un hook de git: `mkdirSync(.git/hooks, recursive)` antes; con HOME temporal `git init` no la
-  crea (TRUST.7.2).
-- `method/bin/delegate.test.sh` "sin temporales" falla si hay otro `delegate` corriendo (mira `/tmp` global).
-- Peso de arranque 9117 est., sobre el tope de 9k (`MEMORY.md` 4057): podar `MEMORY.md` lo baja.
-  `/reload-plugins` mostró "1 error during load" (detalle en `/plugin`, sin revisar).
-- Luna (`mecanico`) inventó "cambios ajenos" en un archivo limpio (TRUST.4, dos veces con causas distintas): si un
-  ejecutor para por solapamiento, comprobar con `git diff --quiet HEAD -- <ruta>` y escribir el estado real en el spec.
-- `shot` de ui-gate espera 300 ms (TRUST.5): una captura dentro de una transición mentía sobre la pestaña activa.
-- Selectores de flujos acotados al componente: `getByText('67%')` en toda la página chocó con la cuota real de Codex
-  (CI.39). Datos reales del usuario aparecen en la barra durante los gates.
-- `qa-negative` puede fallar porque el modelo real no escribe la premisa ("premisa no cumplida… []"): el flujo lo dice;
-  reintentar una vez antes de diagnosticar.
-- Spec de recorte de texto: definir el algoritmo completo (primera línea larga, sin saltos); Sol para en cada caso no
-  definido (TRUST.1, dos paradas).
-- Contraprueba de un test de `~/.agent-method`: el test resuelve el hook desde el cwd (`path.resolve('method/hooks/…')`);
-  copiar a `<tmp>/method/hooks/` y correr desde `<tmp>`.
-- Evidencia de ejecutor: solo `docs/done/evidence/<ID>-live.json`; Sol deja carpetas `<ID>/` con logs → borrarlas.
-- Ítems de `PLAN.md` llevan emoji de delegación (`🧠 ⚡ 🔍`) tras el "—": sin él el parser
-  (`scripts/plan-status.ts:45`) no los ve, ni `bun run next` ni el gate. Si un ítem ya quedó `done` en la DB sin commit que
-  lo pruebe, `plan:reconcile` aborta "Could not prove a closing commit SHA": volverlo a `open` en
-  `~/.orchestos/db.sqlite` (`plan_items`) y reconciliar. La línea `Ejecutado por: … · Spec: docs/specs/<ID>.md` va en UNA
-  línea; un cierre que toca dashboard lleva `Gate en vivo: navegador real (Playwright), `docs/done/evidence/<ID>-live.json``.
-- `criterio` = Sol 6.1 (Codex) desde 2026-10-22, pedido de Carlos: repartir cupo; Sonnet es `criterio-alt`. El "Codex no
-  ve el token" era falso: lo recibía, pero leía `writer-lock.js status` "ocupado" y no escribía. Arreglado en el vault
-  `5134b27` (`status` dice si el token coincide; el prompt manda correr `check`). Si Codex vuelve a fallar por entorno,
-  se arregla la herramienta, no se rodea con Claude.
-- Chequeo de tipos en specs: `bun run typecheck`. `bunx tsc --noEmit` de la raíz excluye `src/dashboard/app`: no vio un
-  import borrado de `Button` y Plan quedó en pantalla negra (UI.28 r2).
-- `delegate` prohíbe al ejecutor editar `PLAN.md`: archivar o reestructurar el plan lo hace el cerebro (DOC.4).
-- Cambio de texto visible que viene de otra sesión: `rg` en `scripts/ui-gate/` antes de cerrar (UI.27.3 rompió
-  `chat-turn-details` por el prefijo "Codex: " del título).
-- `~/.claude/settings.json` `statusLine` = tee de OrchestOS → script de Orca (restaurado a mano 2026-10-21, respaldo
-  `.bak.20261021-statusline`). Si Orca lo vuelve a pisar, lo avisan la barra y el startup-guard (CUOTA.1).
-- El sandbox de `delegate` no tiene red: `git push` lo hace el cerebro. Los gates en vivo dan `listen EPERM` dentro del
-  sandbox: el ejecutor los repite con permisos ampliados.
-- `plan:reconcile` no re-cierra un ítem ya `[x]` editado antes de commitear ("Could not prove a closing commit SHA"):
-  reabrir `[ ]`, reconcile, `[x]`, reconcile.
-- `agent:live-gate` solo cuenta "Gate en vivo: navegador real (Playwright), `docs/done/evidence/…`" si esa línea cambia
-  en el mismo commit; la procedencia exige `Ejecutado por: … · Spec: docs/specs/<ID>.md` al final de la línea. La
-  evidencia JSON copiada de `result.json` necesita `biome format --write` (salto de línea final) o el lint del pre-push
-  la tumba.
-- Los gates en vivo de chat usan Codex: sin cupo de Codex el pre-push falla en ~10 flujos sin defecto de código.
-- Desde CI.30 el pre-push verifica el commit empujado en un árbol aparte: push en fondo + seguir delegando funcionó el
-  2026-10-22 (3 pushes). Con cambios en `src/dashboard` o `src/run` tarda ~13 min (15 ui-gates + chat-gate).
-- El pre-commit NO corre lint; el pre-push sí. Correr `bun run lint` antes de commitear (el push de `2008db91` se
-  rechazó por formato).
-- El hook `brain-no-code` toma una redirección a una ruta de código dentro del texto de un heredoc como escritura del
-  cerebro (bloqueó un spec y este mismo `NEXT.md`): escribir specs y docs con Write/Edit, no con `cat <<EOF`.
-- Preflight del ejecutor: el ítem tiene que estar **abierto** en `PLAN.md` (no un sub-ítem, no un padre ya `[x]`).
-- `src/run/logger.ts` ENOENT al limpiar el fixture de un flujo que agotó su espera: consecuencia, no causa (visto otra
-  vez el 22 en `auto-flow`).
-- El plan gate parte el segmento de un ítem en su primera línea en blanco: `Ejecutado por: … · Spec:` va **antes** de
-  ella o el gate dice "Procedencia … must delete docs/specs/<ID>.md" (pasó en H.10.2, ítem largo con párrafos).
-- `qa` vía `delegate` solo acepta un archivo de spec y revisa el diff sin commitear: para auditar o diagnosticar
-  sin editar usar `analizar` (2026-10-23, `qa` devolvió "sin defectos" sobre `runs-summary.json`).
-- En los ui-gates, `visible(locator)` espera 15 s si el elemento no existe: para afirmar ausencia usar `count() === 0`,
-  o la captura sale tarde y esconde fallos (UI.26.6b.2).
-- Claves de prueba en flujos: sin prefijo `sk-` (`security:secrets`, `src/security/secrets.ts:31`, bloquea el commit).
-- En esta terminal `CODEX_HOME` apunta a la cuenta de Orca: los rollouts de `codex exec` van ahí, no a `~/.codex`.
-- Pre-commit con candado (AT.18): rechaza el commit si otra sesión tiene el candado del árbol. El "deshacer" del
-  dashboard sobre este repo falla con 500 mientras tanto (límite declarado en `AGENTS.md` § Un árbol, un escritor).
-- El cerebro no puede crear flujos de prueba en `scripts/` (hook `brain-no-code`): un gate de fallo forzado se delega.
-- Trabajo de `criterio-alt` (Sol) lo revisa el cerebro, no `qa` (también Sol: mismo proveedor).
-- Costo del revisor: lo reporta el adaptador en `ChatResponse.usd` (null = sin precio → `—`); nunca resolver precios
-  con ramas por marca en `harness.ts` (r4 de ERP.6.2 lo hizo y se revirtió).
-- `delegate` (rol de escritura) inyecta "No hagas commit ni edites el plan": commit y push los hace el cerebro (Carlos
-  eligió eso el 2026-10-20). El sandbox de los ejecutores GPT no tiene red (`bun install`/`bun audit` los corre el cerebro)
-  y a veces lee el candado del cerebro como ajeno: el spec dice "el candado es del cerebro que te lanzó; escribe".
-- `delegate` inyecta "No invoques codex exec ni claude": un spec que exija probar un contrato de CLI en vivo para al ejecutor.
-  El cerebro prueba el contrato (como en ERP.7.1d1/d2) y lo pega en el spec como "verificado; no invoques".
-- Ronda de corrección = spec propio (`docs/specs/<ID>-rN.md`), no un anexo: con anexo, `mecanico` re-aplicó el spec entero
-  y pisó la evidencia en vivo con un fallo de su sandbox (ERP.7.1c r4).
-- Contratos de permisos verificados 2026-10-20: Claude 2.1.304 `--permission-prompt-tool` (ojo `--restricted` quita Bash y
-  el `defaultMode: auto` del usuario aprueba sin preguntar si no hay `--settings` propio); OpenCode 1.19.0 `opencode serve`
-  (`run` sin `--auto` rechaza solo; `always` es por patrón; Basic `opencode:<OPENCODE_SERVER_PASSWORD>`). Detalle en PLAN.md
-  § ERP.7.1d1/d2.
-- Codex 0.163: `commandActions` es aproximado; nunca derivar de ahí una identidad o una clasificación sin mirar el comando
-  completo (bloqueante de QA en ERP.7.1a).
-- `plan:reconcile` "Could not prove a closing commit SHA": reabrir (`[ ]`), reconciliar, `[x]`, reconciliar, commitear.
-  Salió en cada cierre de ERP.5.2 y en el padre ERP.7.2; candidato a arreglo en el gate.
-- `delegate` con rol `claude` en `leer`/`investigar` fallaba (`--tools` variádico se comía el prompt); arreglado en
-  el vault `12c683b`. Si vuelve "Input must be provided", mirar el orden de argumentos.
-- El spec ya no se commitea (ERP.5.6): la línea `Ejecutado por: … · Spec: docs/specs/<ID>.md` termina en la ruta y el
-  spec se borra del disco antes del commit.
-- Cambio de dashboard/config: el ítem cerrado necesita `Gate en vivo: navegador real (Playwright), `docs/done/evidence/<ID>-live.json``
-  con el `result.json` del ui-gate copiado ahí (lo exige `agent:live-gate`).
-- Ítem nuevo: emoji de delegación tras `— ` y título en negrita en una sola línea, o el plan gate no lo parsea.
-- Preflight de sub-ítem indentado falla (`scripts/agent-governance.ts:37`): ítems de primer nivel.
-- Spec para Codex (`mecanico`/`leer`): decir "no te detengas por el baseline; `csrf-origin.test.ts` da `EADDRINUSE`
-  falso en tu sandbox" y "`git stash` prohibido incluso para diagnosticar".
-- Al cambiar texto/selector del hilo: `rg` en todo `scripts/ui-gate/` (vale para cualquier vista: ERP.5.5 dejó
-  `runs-graph` haciendo clic en un botón borrado y solo lo vio el pre-push).
-- Evidencia `docs/done/evidence/*.json` copiada del ui-gate: `bunx biome format --write` antes del commit (sin salto
-  final, el lint del pre-push la rechaza).
-- Spec para ejecutor: nombrar el ítem (`Ítem: **<ID>**`) y decir que los cambios en vuelo del mismo ítem no son ajenos;
-  si no, el ejecutor deduce el ID del nombre del archivo y para. Corrección de un ítem ya `[x]`: reabrirlo antes.
-- `delegate` ya bloquea `git stash` (ERP.5.7): 1-2 intentos = aviso, 3 = QA. Spec en `/tmp` no lo puede leer un rol
-  `claude` (permiso denegado): dejarlo en `docs/specs/`. En el vault, `claude -p` no puede correr Bash (gates los corre
-  el cerebro).
+0. Hecho hoy: DOC.5 (`7df5ee18`, `PLAN.md` de 116 a 15 KB) y DOC.6 (`AGENTS.md` y `NEXT.md` podados). En la otra
+   sesión: UI.61, CI.58, CI.59, UI.62 y CI.60. **Push bloqueado**: el ui-gate `model-routing` falla tras actualizar
+   OpenCode a 2.2.5 (lo lleva esa sesión). `master` va por delante de `origin`.
+1. **Esperan su próximo fallo** (leer el JSON y escribir la fase 2). Todos dejan evidencia en el `runDir` del gate
+   (`$TMPDIR/ui-gate-<pid>/`): CI.55 `role-task-missing-output.json`; CI.57 `composer-picker-model-missing.json`;
+   CI.54 `turn1-bubble-missing.json`; CI.19, el motivo en el detalle del paso. Bucle de flakes del 2026-11-03
+   (`/tmp/soak/`): `composer-picker` 15/15 verde.
+2. **Decisiones de Carlos pendientes**: créditos de reinicio de Codex (recomendación: en el popover de cuotas);
+   comentarios de Settings (mostrado 2026-11-02, sin pedidos); precio del revisor QA: el fallback `knownCost` sigue en
+   `src/run/harness.ts:835` aunque la regla dice no resolver precios en el harness.
+3. Cualquier CLI corre tareas sin código (Settings → Providers → "CLIs propios"). Un adaptador rico para un CLI nuevo
+   sigue siendo `KNOWN_CLIS` + `registerTaskEngine`, y lo prueba el cerebro, no Carlos.
+
+## Trampas vivas (las que no están en `AGENTS.md`)
+
+- `delegate` le prohíbe al ejecutor editar `PLAN.md`/`NEXT.md`: un ítem que solo mueve texto del plan lo hace el
+  cerebro (DOC.5).
+- `delegate <rol>` exige ruta a un archivo de spec; `leer` e `investigar` aceptan la pregunta directa.
+- No marcar `[x]` antes de que el ejecutor termine: su preflight exige el ítem abierto.
+- Codex en silencio: mirar sus logs (`logs_2.sqlite`, rollout en `<proyecto>/.orchestos/agent-home/codex/sessions/`)
+  antes de culpar al producto. Gates que dependen de Codex necesitan cupo; sin él, no cuentan como validación.
+- Codex corre con el `CODEX_HOME` de Orca (`~/Library/Application Support/orca/codex-accounts/*/home`).
+- El flujo `opencode-terminal` no va en el pre-push (necesita el binario `opencode`; CI no lo tiene).
+- Hub que importa todos los motores (`task-engines.ts`) agranda cada shard de mutación: medir
+  `scripts/mutation-test-shard.ts` por shard al sumarlo.
+- `method/bin/delegate.test.sh` "sin temporales" falla si corre otro `delegate` (mira `/tmp` global). La contraprueba
+  de un test de `~/.agent-method` copia a `<tmp>/method/hooks/` y corre desde `<tmp>`.
+- Spec o doc con comandos de escritura dentro de un heredoc de Bash dispara `brain-no-code`: usar Write/Edit.
+
+## Anotado, sin ítem (abrir solo si se repite o Carlos lo pide)
+
+- Intermitentes vistos una vez: `chat-continuity` timeout de 180 s esperando al modelo; `chat-streaming` scroll con
+  la cobertura en paralelo y `t_first=null` en Dev; `chat-context` clic de Codex a Claude; `restart-mid-run` caso A
+  ("failed · attempt 1/3" con reintento pendiente: decidir si debe decir "failed").
+- `pickAutoSkill` elige una skill `explicit` si es candidata única (`chat.ts:791`); `src/tasks/init.ts:71` genera
+  `skill_id` sin YAML; `permissions` parpadea a `null` (`OrchestChatView.tsx:108`).
+- `readBoundaryWarning` tiene consumidores; quitarlo cambia lógica (decide Carlos). Sin cupo, el chat muestra "out of
+  usage credits" como respuesta normal (sin re-verificar).
+- Sin re-verificar: Settings → Tasks "Loading live settings…" fijo; Skills resalta "Instincts"; fila `<synthetic>` en
+  "CLI tabs"; "Avg cost / run" mezcla runs y sesiones; selector de sprints fijo en `PlanBoardView.tsx`;
+  "Loading project data…".
+- Decisión pendiente (UI.13.4b): la frontera por argumentos no frena `node -e`/`sh -c`; la barrera real es sandbox de
+  proceso o lista de binarios.
+- "Clonar desde URL" en "+ Add project": feature nueva, plan corto antes.
 
 ## Decisiones de Carlos vigentes
-- 2026-10-13: veredicto de utilidad de ERP.4 = "sirve, pero todavía no solo"; ERP.4 se cierra al terminar su lote.
-- 2026-10-13: sin regla de presupuesto: un fallo se diagnostica y se arregla en el producto ("si aplico una regla de
-  presupuesto no mejoro, solo limito").
-- 2026-10-13: árbol sucio = seguir bloqueando + tarea `pending` + "Commit & Run" en el hilo (ERP.4.13); reintento desde
-  el hilo (GO); `chat-retry-report` NO entra al pre-push.
-- 2026-10-13: Memory = entrada mecánica por tarea terminada, sin LLM (ERP.4.16). Sin UI nueva en Settings para ese
-  lote: Carlos revisará Settings pestaña por pestaña (dashboard real) y dirá qué sirve y qué sobra.
-- 2026-10-13: nada hardcodeado en el ejecutor que muestra la tarea: dice quién la hizo según la config (ERP.4.11).
-- 2026-10-13/14: UI.24 primero, ERP.4 al final. Referencias vivas: gr8r-taskmanagement.vercel.app (medidas en
-  `PLAN.md` § UI.26), Arc UI (uiarc.dev; los bloques Pro no se compran), MusicKind
-  (`~/Projects/projects/portfolio/dist/projects/musickind-screen@1x.webp`).
-- 2026-10-14: DOC.1 y LIMP.1 (GO).
 
-## Decisiones de Carlos 2026-10-14 (respuesta a AT.19 y `readBoundaryWarning`)
-- (a) `create_task` en lugar del marcador: GO, implementar sin presentar plan → AT.20.
-- (b) Shell de solo lectura: sí, para todos los LLM, nunca solo para uno → AT.21 (mismo servidor MCP que AT.20).
-- Le interesa ver la ventana de contexto real en Chat y en Dev → CX.6. `readBoundaryWarning` (aviso de privacidad,
-  no un número) sigue sin mostrarse; la frontera de lectura está verificada por el gate `read-boundary`.
+- Settings se revisa con Carlos pestaña por pestaña en el dashboard real; no sumar UI ahí por iniciativa propia.
+- Nada hardcodeado en quién ejecutó una tarea: lo dice la config.
+- Memory = entrada mecánica por tarea terminada, sin LLM.
+- Árbol sucio = seguir bloqueando + tarea `pending` + "Commit & Run" en el hilo.
+- Peso de `main.js` (~1,9 MB) aceptado; no se reabre sin síntoma medido.
 
-## Pendientes sin ítem (una sola lista; abrir ítem solo si Carlos lo pide)
-Verificados el 2026-10-14 contra el código salvo "(sin re-verificar)".
-- Herramienta: `delegate investigar` y todo rol `claude` con `--tools` fallan (`~/.agent-method/bin/delegate:147,167-171`);
-  esquive en `AGENTS.md`; el arreglo va en `method/` del vault.
-- `readBoundaryWarning` sin consumidor (`src/dashboard/types.ts:90`, `app/src/api/chat.ts:14,77`; decisión de Carlos:
-  sin aviso) → LIMP.1 comprobó que sí tiene consumidores (`chat.ts`, `chat-sessions.ts`, `api/chat.ts`): quitarlo cambia lógica, decide Carlos. Cuando el CLI se queda sin cupo ("out of usage credits") el chat lo muestra como
-  respuesta normal, no como error (sin re-verificar).
-- Intermitentes vistos una vez, sin ítem (si se repiten, abrir):
-  `chat-streaming` "Dev renders text during generation … t_first=null" (ejecutor de AT.19.1, 2026-10-17);
-  `restart-mid-run` caso A, reporte "failed · attempt 1/3" con
-  reintento pendiente cuando el gate exige coincidir con el estado final (2026-10-13; decidir si un intento fallido con
-  reintento pendiente debe decir "failed"); `chat-context` `locator.click` timeout al pasar de Codex a Claude (pre-push de `e1d3b12`; desde CI.27 deja locator y `failure.png`);
-  `chat-context`, diálogo de nuevo chat sin Claude (sonda de CI.10 en
-  negativo bajo carga, 2026-10-05).
-- Settings → Tasks: "Loading live settings…" fijo en la cabecera (2026-10-03, sin re-verificar). Settings → Skills: la pestaña
-  "Instincts" aparece resaltada además de "Skills" (2026-10-02, sin re-verificar).
-- CX.5: fila `<synthetic>` (0 tokens) visible en "CLI tabs"; "Avg cost / run" mezcla runs y sesiones (sin re-verificar).
-  Runs de chat con caché no vistos en DB (el purge de los gates los borra; el anillo de CX.2 los usa y funciona).
-- H.5.3: `elapsed_ms` no cuenta el cuelgue de Codex; `effort` del rol no llega a `cli_effort` del eval (sin verificar
-  si se aplica). El cuelgue en sí es CI.11.
-- Plan (Settings): el selector de sprints tiene "Sprint 29/30/31" fijos en el JSX (`PlanBoardView.tsx`), visto en UI.28.
-- "Clonar desde URL" (paso 2 de "+ Add project"): en espera por decisión de Carlos; feature nueva → plan corto antes.
-- Decisión pendiente de Carlos (UI.13.4b): la frontera por argumentos no frena `node -e`/`sh -c`; la barrera real es
-  sandbox de proceso o lista de binarios permitidos. AT.14 cerró solo el hueco del hook `brain-no-code`.
-- Ajustes menores: idioma solo traduce Settings; fuente del prototipo = del sistema; reemplazar el prompt base del CLI
-  es el punto 8 de AT.13.
-- Migración de ruta (2026-09-28): confirmar con Carlos que Orca detecta el proyecto en
-  `~/Projects/projects/orchestos`.
-- Sin identificar: qué borró `~/Library/Caches/ms-playwright` y un `duplicate column name` que salió una vez
-  (2026-10-13). Sin verificar a ojo: el bloque "Executor reply" de la pestaña Contract (se comprobó por texto visible);
-  el botón `Run` de Settings → Plan no se probó en vivo.
+## Entorno
 
-## Datos del entorno vigentes
-- Repo en `/Users/carlosgallardo/Projects/projects/orchestos` (migrado 2026-09-28; plantilla en `~/Projects/screens`).
-  Restos inofensivos dejados a propósito: `~/.claude/projects/-Users-carlosgallardo-Documents-projects-orchestos`
-  (transcripciones para /resume) y entradas `[projects."…/Documents/…"]` en los `config.toml` de Codex dentro de Orca.
-- Codex corre con `CODEX_HOME` de Orca (`~/Library/Application Support/orca/codex-accounts/*/home`); sin API key de
-  OpenRouter el catálogo se baja igual (endpoint público).
-- El flujo `opencode-terminal` NO va en el pre-push (necesita el binario opencode; CI no lo tiene).
-- Delegación: por rol con `~/.agent-method/bin/delegate <rol> <spec>`; modelos solo en `~/.agent-method/roster.conf`.
-  El cerebro no edita código (hook `brain-no-code`): los ejecutores van por `ORCHESTOS_ROLE=executor`.
-- `git stash list` conserva 5 stashes viejos (UI.12.2b, UI.11, AT.10 parcial, wip cascada E.16, config local): no aplicar.
-- Piloto ERP.4: repo `~/Projects/projects/erp-piloto`; conductor Playwright en `docs/done/evidence/ERP.4/conductor/`
-  (copiar a `/tmp/erp4/`, crear `cmd/`, `out/`, `shots/`; `node driver.mjs` en segundo plano, `do.sh`, `stage.sh`,
-  `screen.mjs`); registro de hallazgos en `docs/done/evidence/ERP.4/piloto-2026-10-12.md`.
-
-## Lección LIMP.1 (2026-10-14)
-Inventario de código muerto: `bunx knip@5 --config /tmp/limp1/knip.json` (config fuera del repo; entradas `src/cli.ts`,
-`scripts/**`, `app/src/main.tsx`, `.claude/hooks/*.js`). Falsos positivos vistos: fixtures, `assets.d.ts`, `tailwindcss`
-(lo usa el CSS), archivos que un test lee por ruta (`db/backup.ts`, `orcaProjectData.ts`). Un símbolo borrado puede dejar
-falso el comentario que lo explicaba: revisar comentarios reescritos.
-- Trampa: `PLAN.md` se renderiza desde la DB; tras editarlo a mano, `bun run plan:reconcile` antes del commit o el
-  pre-commit falla con "PLAN.md staged no coincide con render(DB)".
-- Trampa: al commitear por rutas con `git diff --name-only`, los archivos NUEVOS del ejecutor quedan fuera (pasó con
-  el test de UI.53); mirar `git status --short` por `??` antes de commitear.
-- Trampa: los ejecutores Codex corren `test:coverage`/`ui:gate` dentro del sandbox y fallan con `EADDRINUSE`/`EPERM`
-  (abren puertos); el spec debe decir "fuera del sandbox" o el ejecutor para por baseline rojo.
+- Repo: `~/Projects/projects/orchestos`. Piloto ERP: `~/Projects/projects/erp-piloto`; conductor Playwright en
+  `docs/done/evidence/ERP.4/conductor/`.
+- Inventario de código muerto: `bunx knip@5` con config fuera del repo; falsos positivos conocidos en fixtures,
+  `assets.d.ts`, `tailwindcss` y archivos que un test lee por ruta.

@@ -30,10 +30,10 @@ mocks o la afirmación de otro agente.
 7. Implementar solo el ítem elegido (scope-lock: `AGENTS.md` § Trabajo en equipo). Un hallazgo que
    daña el sistema se corrige antes del siguiente ítem sin preguntar; el resto va al reporte del lote.
 8. Ejecutar los gates de la matriz. Con `ORCHESTOS_HOME` temporal, `bun run gate:evidence`
-   (`AGENTS.md` § Evidencia de gates reales); crear/borrar el temporal a mano no satisface el gate.
+   (`AGENTS.md` § Gates y tests); crear/borrar el temporal a mano no satisface el gate.
 9. Evidencia concreta (comandos/resultados) en el archivo de `docs/done/` del bloque y solo entonces
-   `[x]` en `PLAN.md` (`AGENTS.md` § Reglas generales).
-10. Commit por ítem, sin `--no-verify`; push según `AGENTS.md` § Reglas generales.
+   `[x]` en `PLAN.md` (`AGENTS.md` § Ciclo de un ítem).
+10. Commit por ítem, sin `--no-verify`; push según `AGENTS.md` § Git.
 11. Si la sesión termina con un ítem sin cerrar o cambios sin commitear: `bun run agent:handoff`
     antes de parar. Es narrativo: no hay un evento "fin de sesión" uniforme entre CLIs para
     bloquearlo (PLAN.md § H.4.2).

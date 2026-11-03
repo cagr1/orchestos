@@ -176,3 +176,13 @@ pila de cambios sin commitear. `--force` sigue requiriendo pedido explícito.
   Evidencia (cerebro): copia previa en /tmp; los 98 bloques aparecen byte a byte en su destino (98/98); `docs/done/`
   solo suma líneas (0 `-`); `PLAN.md` 115 975 → ~15 KB, 0 `[x]`, 4 `[ ]`; `bun run next` lista CI.19, CI.54, CI.55, CI.57.
   Ejecutado por: claude opus (cerebro; `delegate mecanico` se negó: su regla le prohíbe editar el plan).
+- [x] **DOC.6 — ⚡ AGENTS.md y NEXT.md con solo lo vigente.** (abierto y cerrado 2026-11-03, GO de Carlos)
+  `AGENTS.md` 35 → 9 KB y `NEXT.md` 32 → 5 KB: una regla por línea, sin fechas ni incidentes; lo duplicado en
+  `CLAUDE.md`/método global o ya cumplido por un hook o script, fuera. Originales íntegros en
+  `docs/done/poda-instrucciones-2026-11-03.md` (histórico). Contradicciones resueltas por la regla escrita: el spec no
+  se commitea aparte (`plan-gate.ts:172`); los commits van por rutas, salvo dos ítems en un mismo archivo; los roles
+  salen del roster (sale "solo ⚡ para Codex"). Precio del revisor QA queda como decisión de Carlos en `NEXT.md`.
+  Referencias a secciones renombradas corregidas en `CLAUDE.md` y `docs/agent-work-protocol.md`; el título
+  "Protocolo de delegación" se conserva porque lo cita `brain-no-code.js`.
+  Evidencia (cerebro): clasificación sección por sección de Sol (`analizar`, solo lectura) con referencias al código.
+  Ejecutado por: claude opus (cerebro; documentos de reglas).
