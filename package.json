@@ -42,6 +42,7 @@
     "security:secrets:tracked": "bun run scripts/check-secrets.ts --tracked",
     "security:gate": "bun run scripts/security-gate.ts",
     "agent:preflight": "bun run scripts/agent-preflight.ts",
+    "ui:text-gate": "bun run scripts/check-ui-text.ts",
     "agent:live-gate": "bun run scripts/check-live-gate.ts",
     "hooks:check": "bun run scripts/agent-preflight.ts --hooks-only",
     "hooks:install": "bash scripts/install-hooks.sh",

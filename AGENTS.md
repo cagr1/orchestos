@@ -32,6 +32,8 @@ Si necesitas saber el email activo, usa `git config user.email` (solo lectura).
 
 ## Reglas generales
 
+- Todo texto visible nuevo de UI debe declararse en `Texto visible:` del ítem de `PLAN.md`, con por qué no basta un ícono; `bun run ui:text-gate` lo exige en pre-commit (UI.59).
+
 - No uses `--no-verify` en commits salvo que el usuario lo pida.
 - No hagas `git push --force` salvo instrucción explícita.
 - No crees ni borres ramas remotas sin confirmación del usuario.

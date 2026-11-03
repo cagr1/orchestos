@@ -713,6 +713,19 @@ Regla: nada se reintenta, cierra ni muestra sin evidencia medida que el usuario 
   `ui:gate chat-stop` 22/22. Sol: `chat-stop` 22/22, `chat-streaming` 27/27, `codex-live` 15/15.
   Gate en vivo: navegador real (Playwright), `docs/done/evidence/CHAT.4-live.json`.
   Ejecutado por: codex gpt-6.1-sol (criterio, .1 y .2) · revisión Opus · Spec: docs/specs/CHAT.4.md
+- [x] **UI.59 — ⚡ Gate de pre-commit: todo texto visible nuevo de la UI se declara en el ítem.** (abierto 2026-11-03,
+  GO de Carlos) La regla "texto que no aporta desaparece" vive solo en memoria y se rompió 5+ veces (último: "Terminal"
+  en el menú, cabecera OpenCode, "Iniciando OpenCode…"). El gate exige `Texto visible:` en `PLAN.md` por cada texto
+  JSX nuevo.
+  Hecho: `scripts/check-ui-text.ts` (AST de TypeScript) toma el texto JSX y los `title`/`placeholder`/`alt` literales
+  de las líneas añadidas en `.tsx` de la app y exige que cada uno aparezca en una línea `Texto visible:` añadida a
+  `PLAN.md`; corre en pre-commit (`ui:text-gate`). Regla en `AGENTS.md` § Reglas generales.
+  Gates del cerebro: `check-ui-text.test.ts` 13/13, lint, typecheck; contraprueba real (`<span>Prueba</span>` →
+  exit 1, Sol). Cobertura: la corre el pre-push.
+  Ejecutado por: codex gpt-6.1-sol (criterio r1) · revisión Opus
+- [ ] **UI.60 — ⚡ El "+" de las pestañas de Dev siempre visible.** (abierto 2026-11-03, GO de Carlos) Con 4 pestañas
+  el "+" sale de la vista dentro de la franja desplazable (`DevSessionTabs.tsx`).
+  Spec: docs/specs/UI.60.md
 - [x] **UI.58 — ⚡ Terminal abre en el espacio central, como una pestaña de Dev.** (abierto 2026-11-03) Carlos: el
   botón Terminal abre un panel bajo de 35 % (`App.tsx:1667`, UI.55); debe ocupar el espacio central y cerrarse desde
   su pestaña. Las pestañas de terminal siguen vivas al mirar otra.
