@@ -84,6 +84,8 @@ Cerrada. Todos sus ítems están archivados en `docs/done/` (ver "Cerrados — e
   `test:coverage` 2012/0 (ejecutor). Sigue abierto hasta el próximo fallo: leer el motivo y escribir la fase 2.
   Gate en vivo: navegador real (Playwright), `docs/done/evidence/CI.19-live.json`
   Ejecutado por: claude sonnet (criterio-alt; Sol sin cupo de 5 h) · Spec: docs/specs/CI.19.md
+  Bucle aislado 2026-11-03 (en serie, sin carga): `qa-negative` 3/3 verde, sin reproducir. Los fallos vistos fueron en
+  el pre-push (con carga); próximo intento: repetir bajo carga.
 - [ ] **CI.57 — 🔍 `composer-picker`: a veces elegir otro modelo de Codex en Chat no queda aplicado.** (abierto
   2026-11-03) Falló 4 seguidas (pre-push del lote UI.57/58, 2 aisladas, una en worktree de `82820986`) en `Codex
   effort levels remain available` (`composer-picker.mjs:75-87`): tras clic en GPT-6.1-Sol el selector sigue en
@@ -97,6 +99,8 @@ Cerrada. Todos sus ítems están archivados en `docs/done/` (ver "Cerrados — e
   visibles, estado del botón). Contraprueba forzada con todas las partes (Sol; `lastModel` de la sesión es `null` antes
   de enviar, la red es la evidencia útil); corrida normal 11/11 (Sol y cerebro, `gate:evidence`
   `CI.57-composer-picker`). Abierto hasta el próximo fallo. Fase 1 por codex gpt-6.1-sol (criterio r1).
+  Bucle aislado 2026-11-03 (en serie, sin carga): `composer-picker` 15/15 verde, sin reproducir. Los fallos vistos fueron en
+  el pre-push (con carga); próximo intento: repetir bajo carga.
 - [ ] **CI.55 — 🔍 `tasks`: la tarea real `gate-role-task` a veces no deja `ROLE.md` en el primer intento.** (abierto 2026-11-02)
   Visto 1 vez (pre-push del lote UI.49–55, 2026-11-02): el gate corre Codex real (`gpt-6-luna`); la corrida
   terminó con `retryReason: "missing declared output(s): ROLE.md"`, `retryCount: 1`, `runId: null`, `qaVerdict: fail`, y
@@ -109,6 +113,8 @@ Cerrada. Todos sus ítems están archivados en `docs/done/` (ver "Cerrados — e
   `dashboard.log` y el estado git/worktrees con `ROLE.md`; el detalle del paso lleva un resumen y la ruta. Contraprueba
   forzada con las 4 partes (Sol); corrida normal 43/43 (Sol y cerebro, `gate:evidence` `CI.55-tasks`). Abierto hasta
   el próximo fallo: leer ese JSON y escribir la fase 2. Fase 1 por codex gpt-6.1-sol (criterio r1).
+  Bucle aislado 2026-11-03 (en serie, sin carga): `tasks` 5/5 verde, sin reproducir. Los fallos vistos fueron en
+  el pre-push (con carga); próximo intento: repetir bajo carga.
 - [ ] **CI.54 — 🔍 `codex-live`: la burbuja del usuario a veces no aparece en 2 s.** (abierto 2026-11-02)
   Visto 1 de 3 (2026-11-02, "turn 1 user message appears before completion"); el pre-push reintenta y lo oculta.
   Fase 1: que el fallo deje evidencia (captura, DOM, composer, timeline, log); fase 2: causa con esa evidencia.
@@ -117,6 +123,8 @@ Cerrada. Todos sus ítems están archivados en `docs/done/` (ver "Cerrados — e
   cola del hilo, composer, botón, timeline, status del POST, `[chat-turn]` y a qué ms apareció (sigue hasta 15 s).
   Contraprueba forzada (filtro inexistente) con la evidencia completa; corrida normal 14/14 (Sol y cerebro). Abierto
   hasta el próximo fallo: leer ese JSON y escribir la fase 2. Fase 1 por codex gpt-6.1-sol (criterio r1, r2).
+  Bucle aislado 2026-11-03 (en serie, sin carga): `codex-live` 5/5 verde, sin reproducir. Los fallos vistos fueron en
+  el pre-push (con carga); próximo intento: repetir bajo carga.
 
 **Mantenibilidad (observación transversal):** en la revisión, cli.ts tenía 2923 líneas,
 harness.ts 1203 y chat.ts 1237. La concentración de responsabilidades merece atención, pero
