@@ -1,4 +1,4 @@
-# NEXT — handoff 2026-11-02 (auditoría de ADE: UI.49–55 cerrados; CI.54 y CI.19 esperan fallo)
+# NEXT — handoff 2026-11-02 (auditoría de ADE: UI.49–55 cerrados; CI.54, CI.55 y CI.19 esperan fallo)
 
 Un solo presente: orden y trampas vivas. Lo cerrado vive en `docs/done/bloque-*.md`, `PLAN.md` y git (regla `AGENTS.md`
 § Reglas generales, 2026-10-19: `NEXT.md` se toca solo al cerrar o cortar un lote). Arranque:
@@ -62,13 +62,16 @@ Un solo presente: orden y trampas vivas. Lo cerrado vive en `docs/done/bloque-*.
   `/api/chat/sessions`); UI.51 `d8779774` tiempo al reinicio junto al % de cuota; UI.52 `0ab1fe9e` Dev pinta con
   `ThreadMarkdown` como Chat (sin `react-markdown`); UI.53 `c1a42acd` + `5dc86638` Files atenúa lo ignorado por git;
   UI.54 `1f4816cf` "@" referencia archivos (Chat y Dev); UI.55 `7a97bdf1` terminal del proyecto en panel inferior
-  de Dev (botón en la barra, Ctrl+`). Visto de paso: Orca mostraba Codex 39 % y el `app-server` oficial 49 %
+  de Dev (botón en la barra, Ctrl+`). Todo empujado hasta `949847d2`, pre-push verde al segundo intento (CI.55). Visto de paso: Orca mostraba Codex 39 % y el `app-server` oficial 49 %
   (OrchestOS correcto). Codex tiene 3 créditos de reinicio de cuota disponibles (`rateLimitResetCredits`), sin UI.
 
 ## Orden
 0. Nada en curso. Auditoría de ADE hecha (UI.49–55). Candidatos sin ítem, para la próxima ronda con Carlos: mostrar
    los créditos de reinicio de Codex; el anillo de contexto a ~5 % parece un spinner de carga; Stop de OpenCode;
    comentarios de Settings. CI.54 y CI.19 esperan su próximo fallo (leer la evidencia y escribir la fase 2).
+   CI.55 (abierto `949847d2`): el gate `tasks` corre Codex real y una vez `gate-role-task` no dejó `ROLE.md`
+   (tumbó el primer push del lote; aislado 43/43). Siguiente paso: que el fallo guarde la salida del CLI de esa
+   corrida (log en `docs/done/evidence/CI.55-prepush-fail.log`).
    **Anotado, sin ítem**: `codex-live` falló 1 de 3 en "turn 1 user message appears before completion" (2 s), el
    pre-push reintenta. `chat-streaming` falló 1 vez en el scroll con la cobertura corriendo en paralelo (Sol, UI.54);
    aislado pasa.
