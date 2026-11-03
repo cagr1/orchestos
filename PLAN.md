@@ -749,6 +749,12 @@ Regla: nada se reintenta, cierra ni muestra sin evidencia medida que el usuario 
   bisección no prueba que sea UI.58. Sospecha (opinión de LLM): una actualización tardía del estado del chat pisa
   la selección. Fase 1: que el fallo deje evidencia (modelo del chat en API antes/después del clic, requests entre
   clic y reapertura, captura).
+  Spec: docs/specs/CI.57.md
+  Fase 1 hecha: si el paso falla, guarda `composer-picker-model-missing.json` y su captura en el `runDir` (red
+  `/api/chat*` y `/api/config*` con ms desde el clic, sesión antes/después/al reabrir, botones marcados, esfuerzos
+  visibles, estado del botón). Contraprueba forzada con todas las partes (Sol; `lastModel` de la sesión es `null` antes
+  de enviar, la red es la evidencia útil); corrida normal 11/11 (Sol y cerebro, `gate:evidence`
+  `CI.57-composer-picker`). Abierto hasta el próximo fallo. Fase 1 por codex gpt-6.1-sol (criterio r1).
 - [x] **CI.56 — 🔍 `codex-live`: la palabra a recordar se parecía al tema y el modelo contestó "MANGOES".** (abierto
   2026-11-03) Pre-push del lote UI.57/58: mismo hilo en los dos turnos, pero la palabra `MANGO-<8>` con el tema
   "mangoes" (`codex-live.mjs:151`) hizo que Codex respondiera "MANGOES". El primer intento cayó en `chat-continuity`

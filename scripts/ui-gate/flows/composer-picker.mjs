@@ -3,7 +3,7 @@ import { tmpdir } from 'node:os'
 import { basename, join } from 'node:path'
 import { run, writeGateRoles } from '../lib.mjs'
 
-export default async function composerPicker({ page, api, step, shot, visible, cleanup }) {
+export default async function composerPicker({ page, api, step, shot, visible, cleanup, runDir }) {
   const projectRoot = mkdtempSync(join(tmpdir(), 'orchestos-ui-21-'))
   let projectId
   cleanup(async () => {
@@ -72,18 +72,151 @@ export default async function composerPicker({ page, api, step, shot, visible, c
   const codexSearch = selector.getByLabel('Search models')
   await step('Codex model selector has no search input', (await codexSearch.count()) === 0)
   const codexModelList = selector.locator('.overflow-y-auto')
-  await codexModelList.getByRole('button', { name: codexModel.name, exact: true }).click()
+  const network = []
+  const responseBodies = new Set()
+  let clickedAt
+  const chatOrConfig = (url) => /^\/api\/(chat|config)/.test(new URL(url).pathname)
+  const requestInfo = (request) => ({
+    method: request.method(),
+    path: new URL(request.url()).pathname + new URL(request.url()).search,
+    at: Date.now(),
+  })
+  const observeRequest = (request) => {
+    if (!chatOrConfig(request.url())) return
+    network.push({
+      type: 'request',
+      ...requestInfo(request),
+      status: null,
+      body: (request.postData() ?? '').slice(0, 300),
+    })
+  }
+  const observeResponse = (response) => {
+    if (!chatOrConfig(response.url())) return
+    const entry = {
+      type: 'response',
+      ...requestInfo(response.request()),
+      status: response.status(),
+      body: null,
+    }
+    network.push(entry)
+    const pending = response
+      .text()
+      .then((body) => {
+        entry.body = body.slice(0, 300)
+      })
+      .catch((error) => {
+        entry.body = String(error).slice(0, 300)
+      })
+      .finally(() => responseBodies.delete(pending))
+    responseBodies.add(pending)
+  }
+  page.on('request', observeRequest)
+  page.on('response', observeResponse)
+  cleanup(() => {
+    page.off('request', observeRequest)
+    page.off('response', observeResponse)
+  })
+  const sessionSnapshots = []
+  let sessionId
+  const snapshotSession = async (phase) => {
+    const at = Date.now()
+    try {
+      const response = await api('/api/chat/sessions', {
+        headers: { 'x-orchestos-project-id': projectId },
+      })
+      const session = (response.data ?? []).find((item) =>
+        sessionId ? item.id === sessionId : item.agent === 'codex',
+      )
+      sessionId ??= session?.id
+      sessionSnapshots.push({ phase, at, status: response.status, session: session ?? null })
+    } catch (error) {
+      sessionSnapshots.push({ phase, at, error: String(error) })
+    }
+  }
+  await snapshotSession('before-click')
+  const modelButton = codexModelList.getByRole('button', { name: codexModel.name, exact: true })
+  const modelButtonState = {
+    visible: await modelButton.isVisible(),
+    enabled: await modelButton.isEnabled(),
+  }
+  clickedAt = Date.now()
+  await modelButton.click()
+  await snapshotSession('after-click')
   await codexControl.click()
+  await snapshotSession('reopened')
   const codexEffortSection = selector.getByText('Effort', { exact: true }).locator('xpath=..')
   const codexEffortsVisible = await Promise.all(
     codexModel.efforts.map((effort) =>
       codexEffortSection.getByRole('button', { name: new RegExp(`^${effort}$`, 'i') }).isVisible(),
     ),
   )
+  let effortDetail = JSON.stringify({ model: codexModel.id, efforts: codexModel.efforts })
+  if (!codexEffortsVisible.every(Boolean)) {
+    const modelButtons = await codexModelList.getByRole('button').evaluateAll((buttons) =>
+      buttons.map((button) => ({
+        name: button.textContent,
+        model: button.title,
+        ariaChecked: button.getAttribute('aria-checked'),
+        checkVisible: [...button.querySelectorAll('svg.lucide-check')].some(
+          (check) => check.getClientRects().length > 0,
+        ),
+      })),
+    )
+    const visibleEfforts = await codexEffortSection
+      .getByRole('button')
+      .evaluateAll((buttons) =>
+        buttons
+          .filter((button) => button.getClientRects().length > 0)
+          .map((button) => button.textContent),
+      )
+    page.off('request', observeRequest)
+    page.off('response', observeResponse)
+    await Promise.allSettled([...responseBodies])
+    const diagnosticPath = join(runDir, 'composer-picker-model-missing.json')
+    const screenshot = join(runDir, 'composer-picker-model-missing.png')
+    const diagnostics = {
+      expectedModel: codexModel,
+      clickedAt,
+      modelButtonState,
+      sessionSnapshots: sessionSnapshots.map(({ at, ...snapshot }) => ({
+        ...snapshot,
+        ms: at - clickedAt,
+      })),
+      modelButtons,
+      visibleEfforts,
+      codexEffortsVisible,
+      network: network.map(({ at, ...entry }) => ({ ...entry, ms: at - clickedAt })),
+      screenshot,
+    }
+    try {
+      await page.screenshot({ path: screenshot })
+    } catch (error) {
+      diagnostics.screenshotError = String(error)
+    }
+    writeFileSync(diagnosticPath, JSON.stringify(diagnostics, null, 2))
+    effortDetail = JSON.stringify({
+      diagnosticPath,
+      screenshot,
+      modelButtonState,
+      expectedModel: codexModel.id,
+      visibleEfforts,
+      markedModels: modelButtons.filter(
+        (button) => button.ariaChecked === 'true' || button.checkVisible,
+      ),
+      sessionModels: diagnostics.sessionSnapshots.map(({ session, ...snapshot }) => ({
+        ...snapshot,
+        id: session?.id ?? null,
+        model: session?.lastModel ?? null,
+      })),
+      networkSummary: JSON.stringify(diagnostics.network).slice(0, 600),
+    })
+  }
+  page.off('request', observeRequest)
+  page.off('response', observeResponse)
   await step(
     'Codex effort levels remain available',
     codexEffortsVisible.every(Boolean),
-    JSON.stringify({ model: codexModel.id, efforts: codexModel.efforts }),
+    effortDetail,
   )
   await shot('codex-efforts-preserved')
   await page.keyboard.press('Escape')
