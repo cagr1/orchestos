@@ -713,6 +713,19 @@ Regla: nada se reintenta, cierra ni muestra sin evidencia medida que el usuario 
   `ui:gate chat-stop` 22/22. Sol: `chat-stop` 22/22, `chat-streaming` 27/27, `codex-live` 15/15.
   Gate en vivo: navegador real (Playwright), `docs/done/evidence/CHAT.4-live.json`.
   Ejecutado por: codex gpt-6.1-sol (criterio, .1 y .2) · revisión Opus · Spec: docs/specs/CHAT.4.md
+- [x] **UI.61 — ⚡ La terminal de Dev se reabre tras actualizar el CLI.** (abierto 2026-11-03, GO de Carlos) Carlos
+  actualizó OpenCode desde su TUI; el proceso salió y la pestaña quedó con solo el ↻, sin relanzarse. Si el binario
+  cambió al salir, se reabre sola; en cualquier salida, Enter en la terminal la reabre.
+  Hecho: `terminal.ts` toma la huella del ejecutable (ruta real, mtime, tamaño) al lanzar y al salir; el `exit` del
+  WebSocket lleva `binaryChanged`; `OpenCodeTerminal.tsx` reabre sola si es `true` y con Enter en estado `exited`; el
+  `onclose` de un socket viejo ya no pisa el estado del nuevo. Sin texto visible nuevo.
+  Gates del cerebro: typecheck, lint, `terminal.test.ts` + `server-terminal.test.ts` 15/0, `ui:gate dev-terminal`
+  16/16 (salida + Enter reabre y el PTY responde). En vivo con un `opencode` falso que se reescribe y sale: el front
+  recibe `{"type":"exit","code":0,"binaryChanged":true}` y muestra la versión nueva sin ↻
+  (`docs/done/evidence/UI.61-after-upgrade.png`). `opencode-terminal` falla igual en HEAD por el daemon de OpenCode
+  2.2.5 → CI.58.
+  Gate en vivo: navegador real (Playwright), `docs/done/evidence/UI.61-live.json`.
+  Ejecutado por: codex gpt-6.1-sol (criterio r1) · revisión Opus
 - [x] **UI.59 — ⚡ Gate de pre-commit: todo texto visible nuevo de la UI se declara en el ítem.** (abierto 2026-11-03,
   GO de Carlos) La regla "texto que no aporta desaparece" vive solo en memoria y se rompió 5+ veces (último: "Terminal"
   en el menú, cabecera OpenCode, "Iniciando OpenCode…"). El gate exige `Texto visible:` en `PLAN.md` por cada texto

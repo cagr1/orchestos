@@ -1,4 +1,4 @@
-import { existsSync } from 'node:fs'
+import { existsSync, realpathSync, statSync } from 'node:fs'
 import { whichCli } from '../run/executors/cli-discovery.ts'
 
 type TerminalOptions = {
@@ -6,8 +6,9 @@ type TerminalOptions = {
   cols: number
   rows: number
   command?: string[]
+  fingerprint?: (path: string) => string | null
   onData: (data: Uint8Array) => void
-  onExit: (code: number) => void
+  onExit: (code: number, details: { binaryChanged: boolean }) => void
 }
 
 type TerminalSession = {
@@ -42,8 +43,20 @@ function clamp(value: number, min: number, max: number, fallback: number): numbe
   return Number.isFinite(value) ? Math.max(min, Math.min(max, Math.floor(value))) : fallback
 }
 
+function binaryFingerprint(path: string): string | null {
+  try {
+    const realPath = realpathSync(path)
+    const { mtimeMs, size } = statSync(realPath)
+    return JSON.stringify([realPath, mtimeMs, size])
+  } catch {
+    return null
+  }
+}
+
 export function createTerminalSession(options: TerminalOptions): TerminalSession {
   const command = options.command ?? resolveOpenCodeCommand()
+  const fingerprint = options.fingerprint ?? binaryFingerprint
+  const initialFingerprint = fingerprint(command[0]!)
   const terminal = new Bun.Terminal({
     cols: clamp(options.cols, 2, 500, 80),
     rows: clamp(options.rows, 2, 200, 24),
@@ -96,7 +109,13 @@ export function createTerminalSession(options: TerminalOptions): TerminalSession
       terminal.close()
     }
     sessions.delete(session)
-    options.onExit(code)
+    const finalFingerprint = fingerprint(command[0]!)
+    options.onExit(code, {
+      binaryChanged:
+        initialFingerprint !== null &&
+        finalFingerprint !== null &&
+        initialFingerprint !== finalFingerprint,
+    })
   })
   return session
 }

@@ -19,6 +19,17 @@ export function OpenCodeTerminal({ projectId, kind = 'opencode' }: Props) {
   const [state, setState] = useState<'connecting' | 'connected' | 'error' | 'exited'>('connecting')
   const [message, setMessage] = useState('')
   const [hasOutput, setHasOutput] = useState(false)
+  const stateRef = useRef(state)
+  stateRef.current = state
+
+  const reopen = useCallback(() => {
+    terminalRef.current?.clear()
+    setMessage('')
+    setHasOutput(false)
+    stateRef.current = 'connecting'
+    setState('connecting')
+    setAttempt((value) => value + 1)
+  }, [])
 
   useEffect(() => {
     const host = hostRef.current
@@ -69,7 +80,13 @@ export function OpenCodeTerminal({ projectId, kind = 'opencode' }: Props) {
               setMessage(payload.message)
               setState('error')
             }
-            if (payload.type === 'exit') setState('exited')
+            if (payload.type === 'exit') {
+              if (payload.binaryChanged === true) reopen()
+              else {
+                stateRef.current = 'exited'
+                setState('exited')
+              }
+            }
           } catch {
             /* Ignore malformed control messages. */
           }
@@ -81,10 +98,17 @@ export function OpenCodeTerminal({ projectId, kind = 'opencode' }: Props) {
         )
         setState('error')
       }
-      socket.onclose = () => setState((current) => (current === 'connected' ? 'exited' : current))
+      socket.onclose = () => {
+        if (socketRef.current !== socket) return
+        setState((current) => (current === 'connected' ? 'exited' : current))
+      }
     }
     connect()
     const input = terminal.onData((data) => {
+      if (stateRef.current === 'exited' && data === '\r') {
+        reopen()
+        return
+      }
       if (socketRef.current?.readyState === WebSocket.OPEN)
         socketRef.current.send(JSON.stringify({ type: 'input', data }))
     })
@@ -115,15 +139,7 @@ export function OpenCodeTerminal({ projectId, kind = 'opencode' }: Props) {
       terminal.dispose()
       terminalRef.current = null
     }
-  }, [projectId, attempt, isShell])
-
-  const reopen = useCallback(() => {
-    terminalRef.current?.clear()
-    setMessage('')
-    setHasOutput(false)
-    setState('connecting')
-    setAttempt((value) => value + 1)
-  }, [])
+  }, [projectId, attempt, isShell, reopen])
 
   return (
     <section

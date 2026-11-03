@@ -608,8 +608,8 @@ export function startServer(
             command:
               terminalCommand ?? (ws.data.kind === 'shell' ? resolveShellCommand() : undefined),
             onData: (data) => ws.send(data),
-            onExit: (code) => {
-              ws.send(JSON.stringify({ type: 'exit', code }))
+            onExit: (code, { binaryChanged }) => {
+              ws.send(JSON.stringify({ type: 'exit', code, binaryChanged }))
               ws.close(1000)
             },
           })

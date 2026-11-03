@@ -9,6 +9,32 @@ import {
 afterEach(async () => stopTerminalSessions())
 
 describe('dashboard terminal sessions', () => {
+  test.each([
+    ['changed', 'before', 'after', true],
+    ['unchanged', 'same', 'same', false],
+    ['unavailable', null, null, false],
+    ['unavailable at exit', 'before', null, false],
+    ['unavailable at start', null, 'after', false],
+  ] as const)('reports binaryChanged when fingerprint is %s', async (_, before, after, changed) => {
+    let calls = 0
+    const result = await new Promise<{ code: number; binaryChanged: boolean }>((resolve) => {
+      createTerminalSession({
+        cwd: process.cwd(),
+        cols: 80,
+        rows: 24,
+        command: ['/bin/sh', '-c', 'exit 0'],
+        fingerprint: (path) => {
+          expect(path).toBe('/bin/sh')
+          return calls++ === 0 ? before : after
+        },
+        onData: () => {},
+        onExit: (code, { binaryChanged }) => resolve({ code, binaryChanged }),
+      })
+    })
+    expect(result).toEqual({ code: 0, binaryChanged: changed })
+    expect(calls).toBe(2)
+  })
+
   test('writes input to the process and receives terminal output', async () => {
     const output: string[] = []
     const session = createTerminalSession({

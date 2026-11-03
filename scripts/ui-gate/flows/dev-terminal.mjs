@@ -134,6 +134,20 @@ export default async function devTerminal({ page, api, step, visible, cleanup, s
   await page.keyboard.type('echo ui58-again')
   await page.keyboard.press('Enter')
   await step('tras Reabrir, el PTY vuelve a responder', await waitEcho('ui58-again'))
+  await page.keyboard.type('exit')
+  await page.keyboard.press('Enter')
+  await step('otra salida ofrece Reabrir', await visible(reopen))
+  await panel.locator('.xterm-helper-textarea').focus()
+  await page.keyboard.press('Enter')
+  await reopen.waitFor({ state: 'hidden' })
+  await page.waitForTimeout(2_000)
+  const marker = `UI61-${Date.now()}`
+  await page.keyboard.type(`echo ${marker}`)
+  await page.keyboard.press('Enter')
+  await step(
+    'Enter reabre la terminal y el PTY vuelve a responder',
+    !(await reopen.isVisible()) && (await waitEcho(marker)),
+  )
   const liveSocket = sockets.at(-1)
   await tab.hover()
   await page.getByRole('button', { name: 'Close tab Terminal', exact: true }).click()
