@@ -773,6 +773,10 @@ Regla: nada se reintenta, cierra ni muestra sin evidencia medida que el usuario 
   5/30/50/85 % por el cerebro: `docs/done/evidence/UI.56-rings.png`.
   Gate en vivo: navegador real (Playwright), `docs/done/evidence/UI.56-live.json` (captura `UI.56-rings.png`).
   Ejecutado por: codex gpt-6-luna (mecanico) · revisión Opus
+- [x] **CI.60 — ⚡ `cli-health.test.ts` arma la ruta de `auth.json` sin normalizar el HOME.** (abierto 2026-11-03,
+  pre-push de UI.62) Con HOME terminado en `/` espera `//`.
+  Hecho: la ruta esperada usa `join(homedir(), …)`. Gate del cerebro: `HOME="$TMPDIR/" bun test` del archivo 12/0.
+  Ejecutado por: codex gpt-6-luna (mecanico r1) · revisión Opus
 - [x] **CI.59 — ⚡ `session-status.test.ts` espera a los CLIs reales del host.** (abierto 2026-11-03, bloqueó el
   push de UI.61/CI.58) El test vence a 5 s esperando `opencode auth list` real; falla 5/5. Diagnóstico Sol (analizar).
   Hecho: los dos tests llaman al handler con `health` falso y detección de CLIs de fixture; el lector real de estados

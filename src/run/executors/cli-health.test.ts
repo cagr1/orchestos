@@ -1,4 +1,5 @@
 import { expect, test } from 'bun:test'
+import { join } from 'node:path'
 import { type CliHealthProbe, createCliHealthReader } from './cli-health.ts'
 import { KNOWN_CLIS } from './cli-registry.ts'
 
@@ -169,7 +170,7 @@ test('OpenCode respects XDG_DATA_HOME and HOME with a system home fallback', asy
   f.probe.env.XDG_DATA_HOME = '/custom-data'
   await f.read(true)
   expect(paths).toEqual([
-    `${homedir()}/.local/share/opencode/auth.json`,
+    join(homedir(), '.local/share/opencode/auth.json'),
     '/custom-home/.local/share/opencode/auth.json',
     '/custom-data/opencode/auth.json',
   ])
