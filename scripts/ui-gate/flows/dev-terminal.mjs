@@ -42,44 +42,105 @@ export default async function devTerminal({ page, api, step, visible, cleanup, s
     .first()
     .click()
   await step('Dev muestra el botón Terminal', await visible(toggle))
+  const sockets = []
+  page.on('websocket', (socket) => {
+    if (socket.url().includes('/api/terminal')) {
+      const tracked = { socket, closed: false }
+      socket.on('close', () => {
+        tracked.closed = true
+      })
+      sockets.push(tracked)
+    }
+  })
   await toggle.click()
-  const panel = page.getByRole('region', { name: 'Project terminal' })
-  await step('el panel de terminal se abre', await visible(panel))
+  const panel = page.getByRole('region', { name: 'Project terminal', includeHidden: true })
+  const tab = page.getByRole('tab', { name: 'Terminal', exact: true })
+  await step(
+    'Terminal abre como pestaña activa central',
+    (await visible(panel)) && (await tab.getAttribute('aria-selected')) === 'true',
+  )
+  await step(
+    'Terminal ocupa todo el espacio bajo las pestañas',
+    await panel.evaluate((el) => {
+      const area = el.parentElement.parentElement
+      const rect = el.getBoundingClientRect()
+      const tabs = area.querySelector('[data-dev-session-tabs]').getBoundingClientRect()
+      const center = area.getBoundingClientRect()
+      return (
+        Math.abs(rect.width - center.width) < 2 &&
+        Math.abs(rect.height - (center.height - tabs.height)) < 2
+      )
+    }),
+  )
   await page.waitForTimeout(2_000)
-  const rows = page.locator('[data-dev-terminal] .xterm-rows')
-  const count = async (needle) =>
-    ((await rows.innerText().catch(() => '')).match(new RegExp(needle, 'g')) ?? []).length
+  const rows = panel.locator('.xterm-rows')
   const waitEcho = async (needle) => {
     for (let i = 0; i < 20; i++) {
-      if ((await count(needle)) >= 2) return true
+      if (
+        ((await rows.innerText().catch(() => '')).match(new RegExp(needle, 'g')) ?? []).length >= 2
+      )
+        return true
       await page.waitForTimeout(250)
     }
     return false
   }
-  // Sin clic previo ni focus() manual: el foco debe estar ya en el xterm.
-  await page.keyboard.type('echo ui55-focus')
+  await page.keyboard.type('echo ui58-focus')
   await page.keyboard.press('Enter')
-  await step('al abrir, el foco está en el xterm (ui55-focus)', await waitEcho('ui55-focus'))
-  await page.keyboard.type('echo ui55-ok')
-  await page.keyboard.press('Enter')
-  const seen = await rows.innerText().catch(() => '')
-  await step('xterm muestra la salida ui55-ok', await waitEcho('ui55-ok'), seen.slice(0, 200))
+  await step('al abrir, el foco está en el PTY y echo produce salida', await waitEcho('ui58-focus'))
   await shot('dev-terminal')
+  const terminalId = await tab.getAttribute('data-terminal-tab')
+  const initialSocket = sockets.at(-1)
+  const initialSocketCount = sockets.length
   await page.keyboard.press('Control+`')
-  await page.waitForTimeout(500)
-  await step('Ctrl+` cierra el panel', (await panel.count()) === 0)
+  await step(
+    'Ctrl+` mantiene la misma pestaña activa sin duplicarla',
+    (await tab.count()) === 1 &&
+      (await tab.getAttribute('data-terminal-tab')) === terminalId &&
+      (await tab.getAttribute('aria-selected')) === 'true',
+  )
+  await page.locator('[data-explorer-file="README.md"]').click()
+  await page.locator('[data-dev-file-panel]').waitFor()
+  await step(
+    'otra pestaña oculta la terminal sin desmontarla',
+    (await panel.count()) === 1 && !(await panel.isVisible()),
+  )
   await page.keyboard.press('Control+`')
-  await step('Ctrl+` lo reabre', await visible(panel))
-  await page.waitForTimeout(2_000)
+  await step(
+    'Ctrl+` reactiva la misma terminal y conserva la salida',
+    (await visible(panel)) &&
+      (await tab.getAttribute('data-terminal-tab')) === terminalId &&
+      (await waitEcho('ui58-focus')),
+  )
+  await shot('dev-terminal-return')
+  await panel.locator('.xterm-helper-textarea').focus()
+  await page.keyboard.type('echo ui58-alive')
+  await page.keyboard.press('Enter')
+  await step('el PTY sigue vivo después de cambiar de pestaña', await waitEcho('ui58-alive'))
+  await step(
+    'cambiar de pestaña conserva el mismo socket',
+    sockets.length === initialSocketCount && !!initialSocket && !initialSocket.closed,
+    JSON.stringify({
+      before: initialSocketCount,
+      after: sockets.length,
+      closed: initialSocket?.closed,
+    }),
+  )
   await page.keyboard.type('exit')
   await page.keyboard.press('Enter')
-  const exited = page.getByText('Process exited', { exact: true })
-  await step('exit muestra "Process exited"', await visible(exited))
-  await page.getByRole('button', { name: 'Reopen', exact: true }).click()
+  const reopen = panel.getByRole('button', { name: 'Reabrir', exact: true })
+  await step('exit ofrece el icono Reabrir', await visible(reopen))
+  await reopen.click()
   await page.waitForTimeout(2_000)
-  await page.keyboard.type('echo ui55-again')
+  await page.keyboard.type('echo ui58-again')
   await page.keyboard.press('Enter')
-  await step('tras Reopen, ui55-again aparece', await waitEcho('ui55-again'))
-  await page.getByRole('button', { name: 'Close terminal', exact: true }).click()
-  await step('el botón cerrar quita el panel', (await panel.count()) === 0)
+  await step('tras Reabrir, el PTY vuelve a responder', await waitEcho('ui58-again'))
+  const liveSocket = sockets.at(-1)
+  await tab.hover()
+  await page.getByRole('button', { name: 'Close tab Terminal', exact: true }).click()
+  for (let i = 0; i < 20 && !liveSocket?.closed; i++) await page.waitForTimeout(100)
+  await step('cerrar la pestaña cierra el socket del PTY', !!liveSocket?.closed)
+  await step(
+    'cerrar la pestaña desmonta la terminal',
+    (await panel.count()) === 0 && (await tab.count()) === 0,
+  )
 }

@@ -589,6 +589,15 @@
       "closedDate": null
     },
     {
+      "id": "UI.58",
+      "sprint": "Fase 2 — Producto mínimo para entrega",
+      "block": "Abiertos — fiabilidad de los gates y documentación",
+      "delegation": "⚡",
+      "title": "Terminal abre en el espacio central, como una pestaña de Dev",
+      "status": "done",
+      "closedDate": null
+    },
+    {
       "id": "UI.57",
       "sprint": "Fase 2 — Producto mínimo para entrega",
       "block": "Abiertos — fiabilidad de los gates y documentación",

@@ -6,6 +6,7 @@ import {
   emptySessionTabs,
   openNewTab,
   openSessionTab,
+  openTerminalTab,
   persistedDevTabs,
   restoreSessionTabs,
 } from './session-tabs'
@@ -77,4 +78,18 @@ test('new tabs retain independently chosen agents through persistence and restor
     id: 'a',
     agent: 'claude',
   })
+})
+
+test('terminal opens once, reactivates in place, closes and never restores a dead PTY', () => {
+  const initial = openSessionTab(emptySessionTabs(), 'session')
+  const terminal = openTerminalTab(initial)
+  expect(terminal.tabs[1].type).toBe('terminal')
+  expect(terminal.activeId).toStartWith('terminal:')
+  const switched = openFileTab(terminal, 'README.md', true)
+  expect(openTerminalTab(switched)).toEqual({ ...switched, activeId: terminal.activeId })
+  expect(closeSessionTab(terminal, terminal.activeId!)).toEqual(initial)
+  expect(persistedDevTabs(terminal)).toEqual(initial)
+  expect(restoreSessionTabs(terminal, ['session'])).toEqual(initial)
+  expect(persistedDevTabs(openTerminalTab(emptySessionTabs()))).toEqual(emptySessionTabs())
+  expect(restoreSessionTabs(openTerminalTab(emptySessionTabs()), []).tabs[0].type).toBe('new')
 })

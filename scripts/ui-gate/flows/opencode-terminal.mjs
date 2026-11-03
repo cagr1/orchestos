@@ -90,7 +90,7 @@ export default async function opencodeTerminal({ page, api, step, visible, clean
   }
   await step('OpenCode session appears in Dev sidebar', await visible(sessionLabel), title)
   if (await sessionLabel.isVisible().catch(() => false)) await sessionLabel.click()
-  const terminal = page.getByRole('region', { name: 'OpenCode terminal' })
+  const terminal = page.getByRole('region', { name: 'OpenCode terminal', includeHidden: true })
   await step(
     'OpenCode terminal is mounted',
     await visible(terminal),
@@ -139,6 +139,23 @@ export default async function opencodeTerminal({ page, api, step, visible, clean
     `New OpenCode PIDs: ${spawned.join(', ') || '(none)'}`,
   )
   await shot('opencode-terminal')
+  const terminalTab = page.locator(`[data-session-tab="${created.data.id}"]`)
+  await page.locator('[data-explorer-file="README.md"]').click()
+  await page.locator('[data-dev-file-panel]').waitFor()
+  await step(
+    'OpenCode stays mounted and its process lives behind another tab',
+    (await terminal.count()) === 1 &&
+      !(await terminal.isVisible()) &&
+      spawned.length > 0 &&
+      spawned.every(isProcessAlive),
+  )
+  await terminalTab.click()
+  await step(
+    'returning to OpenCode preserves its process and terminal output',
+    (await visible(terminal)) &&
+      spawned.every(isProcessAlive) &&
+      (await rows.evaluate((element) => Boolean(element.textContent?.trim()))),
+  )
   await page.setViewportSize({ width: 1180, height: 720 })
   await page.waitForTimeout(250)
   await step(

@@ -1,4 +1,4 @@
-import { FileCode, FileText, GitCompare, Loader2, Plus, X } from 'lucide-react'
+import { FileCode, FileText, GitCompare, Loader2, Plus, SquareTerminal, X } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { type CliModelCatalog, getCliModels } from '../../api/chat'
@@ -129,9 +129,11 @@ export function DevSessionTabs({
           const title =
             tab.type === 'file' || tab.type === 'diff'
               ? `${tab.path.split('/').pop()}${tab.type === 'diff' ? ' (diff)' : ''}`
-              : tab.type === 'new'
-                ? 'New session'
-                : (session?.name ?? 'Session')
+              : tab.type === 'terminal'
+                ? 'Terminal'
+                : tab.type === 'new'
+                  ? 'New session'
+                  : (session?.name ?? 'Session')
           return (
             <div
               key={tab.id}
@@ -144,6 +146,7 @@ export function DevSessionTabs({
                 data-session-tab={tab.type === 'session' ? tab.id : undefined}
                 data-file-tab={tab.type === 'file' ? tab.path : undefined}
                 data-diff-tab={tab.type === 'diff' ? tab.path : undefined}
+                data-terminal-tab={tab.type === 'terminal' ? tab.id : undefined}
                 data-new-session-tab={tab.type === 'new' ? tab.id : undefined}
                 title={tab.type === 'file' || tab.type === 'diff' ? tab.path : title}
                 onClick={() => onSelect(tab.id)}
@@ -153,7 +156,9 @@ export function DevSessionTabs({
                 }}
                 className={`flex min-w-0 flex-1 items-center gap-2 px-3 py-1.5 pr-8 text-left text-xs whitespace-nowrap ${(tab.type === 'file' || tab.type === 'diff') && !tab.pinned ? 'italic' : ''}`}
               >
-                {tab.type === 'diff' ? (
+                {tab.type === 'terminal' ? (
+                  <SquareTerminal size={14} />
+                ) : tab.type === 'diff' ? (
                   <GitCompare size={14} className="text-app-accent" />
                 ) : tab.type === 'file' ? (
                   tab.path.endsWith('.md') ? (

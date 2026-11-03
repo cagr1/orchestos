@@ -6,13 +6,11 @@ import '@xterm/xterm/css/xterm.css'
 
 type Props = {
   projectId: string
-  sessionTitle: string
-  onClose?: () => void
   /** `shell` abre la shell del usuario; por defecto OpenCode. */
   kind?: 'opencode' | 'shell'
 }
 
-export function OpenCodeTerminal({ projectId, sessionTitle, onClose, kind = 'opencode' }: Props) {
+export function OpenCodeTerminal({ projectId, kind = 'opencode' }: Props) {
   const isShell = kind === 'shell'
   const hostRef = useRef<HTMLDivElement>(null)
   const socketRef = useRef<WebSocket | null>(null)
@@ -52,7 +50,7 @@ export function OpenCodeTerminal({ projectId, sessionTitle, onClose, kind = 'ope
     terminalRef.current = terminal
     if (isShell) terminal.focus()
     const connect = () => {
-      fit.fit()
+      if (host.clientWidth > 0 && host.clientHeight > 0) fit.fit()
       const protocol = location.protocol === 'https:' ? 'wss:' : 'ws:'
       const socket = new WebSocket(
         `${protocol}//${location.host}/api/terminal?project=${encodeURIComponent(projectId)}${isShell ? '&kind=shell' : ''}&cols=${terminal.cols}&rows=${terminal.rows}`,
@@ -91,6 +89,7 @@ export function OpenCodeTerminal({ projectId, sessionTitle, onClose, kind = 'ope
         socketRef.current.send(JSON.stringify({ type: 'input', data }))
     })
     const observer = new ResizeObserver(() => {
+      if (!host.clientWidth || !host.clientHeight) return
       fit.fit()
       if (socketRef.current?.readyState === WebSocket.OPEN)
         socketRef.current.send(
@@ -131,45 +130,19 @@ export function OpenCodeTerminal({ projectId, sessionTitle, onClose, kind = 'ope
       className="flex-1 min-w-0 h-full flex flex-col overflow-hidden"
       aria-label={isShell ? 'Project terminal' : 'OpenCode terminal'}
     >
-      {isShell && (
-        <header className="h-9 shrink-0 flex items-center justify-between border-b border-[var(--app-border)] px-3 text-xs text-[var(--app-text-muted)]">
-          <span className="truncate">{sessionTitle}</span>
-          <div className="flex items-center gap-2">
-            {state === 'connecting' && <span>Conectando…</span>}
-            {state === 'error' && (
-              <span role="alert" className="text-red-400">
-                {message}
-              </span>
-            )}
-            {state === 'exited' && (
-              <>
-                <span>Process exited</span>
-                <button type="button" onClick={reopen} className="text-[var(--app-accent)]">
-                  Reopen
-                </button>
-              </>
-            )}
-            {onClose && (
-              <button type="button" onClick={onClose} aria-label="Close terminal">
-                ×
-              </button>
-            )}
-          </div>
-        </header>
-      )}
       <div className="relative flex-1 min-h-0 p-2">
         <div ref={hostRef} className="h-full min-h-0" />
-        {!isShell && !hasOutput && state !== 'error' && state !== 'exited' && (
+        {!hasOutput && state !== 'error' && state !== 'exited' && (
           <div className="absolute inset-0 z-10 flex items-center justify-center text-[var(--app-text-muted)]">
             <Loader2
               size={16}
               className="animate-spin"
               role="status"
-              aria-label="Iniciando OpenCode"
+              aria-label={isShell ? 'Iniciando terminal' : 'Iniciando OpenCode'}
             />
           </div>
         )}
-        {!isShell && (state === 'error' || state === 'exited') && (
+        {(state === 'error' || state === 'exited') && (
           <div className="absolute inset-0 z-10 flex items-center justify-center gap-3 text-sm text-[var(--app-text-muted)]">
             {state === 'error' && <span role="alert">{message}</span>}
             <button

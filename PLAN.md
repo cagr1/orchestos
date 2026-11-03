@@ -713,6 +713,16 @@ Regla: nada se reintenta, cierra ni muestra sin evidencia medida que el usuario 
   `ui:gate chat-stop` 22/22. Sol: `chat-stop` 22/22, `chat-streaming` 27/27, `codex-live` 15/15.
   Gate en vivo: navegador real (Playwright), `docs/done/evidence/CHAT.4-live.json`.
   Ejecutado por: codex gpt-6.1-sol (criterio, .1 y .2) · revisión Opus · Spec: docs/specs/CHAT.4.md
+- [x] **UI.58 — ⚡ Terminal abre en el espacio central, como una pestaña de Dev.** (abierto 2026-11-03) Carlos: el
+  botón Terminal abre un panel bajo de 35 % (`App.tsx:1667`, UI.55); debe ocupar el espacio central y cerrarse desde
+  su pestaña. Las pestañas de terminal siguen vivas al mirar otra.
+  Hecho: tipo de pestaña `terminal` (no se persiste); el botón Terminal y `Ctrl+\`` activan la pestaña del proyecto o
+  abren una; panel inferior eliminado; las pestañas terminal y OpenCode quedan montadas ocultas al cambiar de pestaña
+  (el PTY sigue vivo) y `fit` se salta con tamaño 0; el shell perdió su cabecera (spinner/Reabrir como OpenCode).
+  Gates del cerebro: lint, typecheck, `test:coverage` 2218/0, `dev-terminal` 14/14, `opencode-terminal` 13/13,
+  `dev-session-tabs` 42/42, `shell-look` 75/75.
+  Gate en vivo: navegador real (Playwright), `docs/done/evidence/UI.58-live.json` (captura `UI.58-terminal-return.png`).
+  Ejecutado por: codex gpt-6.1-sol (criterio r1) · revisión Opus
 - [x] **UI.57 — ⚡ La pestaña OpenCode usa el tema elegido y no repite la cabecera.** (abierto 2026-11-03) Visto por
   Carlos con Carbon: el terminal sale con el tema por defecto (lee las variables de `<html>`, el `data-theme` vive en
   `App.tsx:1508`) y la pestaña repite "OpenCode" + "×" en una cabecera propia (`OpenCodeTerminal.tsx:118`).

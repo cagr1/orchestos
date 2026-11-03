@@ -64,6 +64,7 @@ import {
   emptySessionTabs,
   openNewTab,
   openSessionTab,
+  openTerminalTab,
   persistedDevTabs,
   readSessionTabs,
   restoreSessionTabs,
@@ -109,9 +110,6 @@ export default function App() {
   const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState<boolean>(false)
   const [isLeftSidebarOpen, setIsLeftSidebarOpen] = useState<boolean>(true)
   const [isRightInspectorOpen, setIsRightInspectorOpen] = useState<boolean>(true)
-  const [terminalOpen, setTerminalOpen] = useState(false)
-  const [terminalHeight, setTerminalHeight] = useState<number | null>(null)
-  const devColumnRef = useRef<HTMLDivElement>(null)
 
   // Projects state
   const [projects, setProjects] = useState<ProjectItem[]>([])
@@ -155,18 +153,29 @@ export default function App() {
       Object.fromEntries(
         projects.map((project) => [
           project.id,
-          restoreSessionTabs(
-            current[project.id],
-            project.agents.map((agent) => agent.id),
-            (() => {
-              try {
-                const last = JSON.parse(localStorage.getItem('orchestos-last-dev') || 'null')
-                return last?.projectId === project.id ? last.sessionId : undefined
-              } catch {
-                return undefined
-              }
-            })(),
-          ),
+          (() => {
+            const live = current[project.id]
+            const restored = restoreSessionTabs(
+              live,
+              project.agents.map((agent) => agent.id),
+              (() => {
+                try {
+                  const last = JSON.parse(localStorage.getItem('orchestos-last-dev') || 'null')
+                  return last?.projectId === project.id ? last.sessionId : undefined
+                } catch {
+                  return undefined
+                }
+              })(),
+            )
+            if (!live?.tabs.some((tab) => tab.type === 'terminal')) return restored
+            const tabs = live.tabs.filter(
+              (tab) => tab.type === 'terminal' || restored.tabs.some((item) => item.id === tab.id),
+            )
+            return {
+              tabs,
+              activeId: tabs.find((tab) => tab.id === live.activeId)?.id ?? tabs[0]?.id ?? null,
+            }
+          })(),
         ]),
       ),
     )
@@ -476,39 +485,22 @@ export default function App() {
 
   const currentProject = projects.find((p) => p.id === activeProjectId) || projects[0]
 
-  // Terminal del proyecto: se cierra al cambiar de proyecto o salir de Dev.
-  useEffect(() => {
-    setTerminalOpen(false)
-  }, [currentProject?.id, mode])
+  const handleOpenTerminal = () => {
+    if (currentProject) updateDevTabs(currentProject.id, openTerminalTab)
+  }
 
   useEffect(() => {
-    if (mode !== 'dev') return
+    if (mode !== 'dev' || !currentProject) return
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.ctrlKey && !event.metaKey && !event.altKey && event.code === 'Backquote') {
         event.preventDefault()
-        setTerminalOpen((open) => !open)
+        updateDevTabs(currentProject.id, openTerminalTab)
       }
     }
     window.addEventListener('keydown', onKeyDown)
     return () => window.removeEventListener('keydown', onKeyDown)
-  }, [mode])
+  }, [mode, currentProject?.id])
 
-  const startTerminalResize = (event: React.MouseEvent) => {
-    event.preventDefault()
-    const column = devColumnRef.current
-    if (!column) return
-    const rect = column.getBoundingClientRect()
-    const onMove = (move: MouseEvent) => {
-      const next = rect.bottom - move.clientY
-      setTerminalHeight(Math.max(120, Math.min(rect.height - 120, next)))
-    }
-    const onUp = () => {
-      window.removeEventListener('mousemove', onMove)
-      window.removeEventListener('mouseup', onUp)
-    }
-    window.addEventListener('mousemove', onMove)
-    window.addEventListener('mouseup', onUp)
-  }
   const activeThread = threads.find((t) => t.id === activeThreadId)
   const hasRunningTasks = tasks.some((task) => task.status === 'running')
   const activeThreadTasks =
@@ -1599,7 +1591,7 @@ export default function App() {
 
             {/* VIEW 2: DEV WORKSPACE */}
             {mode === 'dev' && (
-              <div ref={devColumnRef} className="flex-1 min-w-0 flex flex-col overflow-hidden">
+              <div className="flex-1 min-w-0 flex flex-col overflow-hidden">
                 <DevSessionTabs
                   agents={currentProject?.agents ?? []}
                   state={activeDevTabs}
@@ -1645,13 +1637,11 @@ export default function App() {
                       )
                     }
                   />
-                ) : activeAgent?.agent === 'opencode' && currentProject ? (
-                  <OpenCodeTerminal
-                    key={activeAgent.id}
-                    projectId={currentProject.id}
-                    sessionTitle={activeAgent.name}
-                  />
-                ) : activeDevTab && currentProject && !deletingProjectIds.has(currentProject.id) ? (
+                ) : activeDevTab &&
+                  activeDevTab.type !== 'terminal' &&
+                  activeAgent?.agent !== 'opencode' &&
+                  currentProject &&
+                  !deletingProjectIds.has(currentProject.id) ? (
                   <OrchestDevWorkspace
                     key={activeDevTab?.id ?? activeProjectId}
                     activeProject={currentProject}
@@ -1664,30 +1654,33 @@ export default function App() {
                     onSlashCommand={handleSlashCommand}
                   />
                 ) : null}
-                {terminalOpen && currentProject && (
-                  <>
-                    <div
-                      role="separator"
-                      aria-orientation="horizontal"
-                      data-terminal-divider
-                      onMouseDown={startTerminalResize}
-                      className="h-1 shrink-0 cursor-row-resize bg-[var(--app-border)] hover:bg-[var(--app-accent)]"
-                    />
-                    <div
-                      data-dev-terminal
-                      className="shrink-0 min-h-[120px] flex flex-col overflow-hidden"
-                      style={{ height: terminalHeight ?? '35%' }}
-                    >
-                      <OpenCodeTerminal
-                        key={currentProject.id}
-                        kind="shell"
-                        projectId={currentProject.id}
-                        sessionTitle="Terminal"
-                        onClose={() => setTerminalOpen(false)}
-                      />
-                    </div>
-                  </>
-                )}
+                {currentProject &&
+                  activeDevTabs.tabs.map((tab) => {
+                    const isShell = tab.type === 'terminal'
+                    if (
+                      !isShell &&
+                      !(
+                        tab.type === 'session' &&
+                        currentProject.agents.some(
+                          (agent) => agent.id === tab.id && agent.agent === 'opencode',
+                        )
+                      )
+                    )
+                      return null
+                    return (
+                      <div
+                        key={tab.id}
+                        hidden={tab.id !== activeDevTabs.activeId}
+                        data-dev-terminal={isShell ? '' : undefined}
+                        className="flex-1 min-h-0 min-w-0 overflow-hidden"
+                      >
+                        <OpenCodeTerminal
+                          projectId={currentProject.id}
+                          kind={isShell ? 'shell' : 'opencode'}
+                        />
+                      </div>
+                    )
+                  })}
               </div>
             )}
 
@@ -1757,8 +1750,8 @@ export default function App() {
         status={sessionStatus}
         refreshing={refreshingUsage}
         onRefresh={() => void refreshUsage()}
-        onToggleTerminal={mode === 'dev' ? () => setTerminalOpen((open) => !open) : undefined}
-        terminalOpen={terminalOpen}
+        onToggleTerminal={mode === 'dev' ? handleOpenTerminal : undefined}
+        terminalOpen={activeDevTab?.type === 'terminal'}
       />
       {/* Global Command Palette (⌘K) with fully functional handlers */}
       <CommandPalette
