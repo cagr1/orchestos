@@ -7,7 +7,6 @@
       "id": "OC.1",
       "sprint": "Fase 2 — Producto mínimo para entrega",
       "block": "Abiertos — fiabilidad de los gates y documentación",
-      "delegation": "⚡",
       "title": "La terminal de Dev lanza OpenCode con `--standalone`",
       "status": "done",
       "closedDate": null
@@ -16,7 +15,6 @@
       "id": "OC.2",
       "sprint": "Fase 2 — Producto mínimo para entrega",
       "block": "Abiertos — fiabilidad de los gates y documentación",
-      "delegation": "⚡",
       "title": "El catálogo de OpenCode usa `api --standalone model.list`",
       "status": "done",
       "closedDate": null
@@ -25,8 +23,15 @@
       "id": "OC.2.1",
       "sprint": "Fase 2 — Producto mínimo para entrega",
       "block": "Abiertos — fiabilidad de los gates y documentación",
-      "delegation": "⚡",
       "title": "`opencode-engine.test.ts` simula el catálogo con el formato viejo",
+      "status": "done",
+      "closedDate": null
+    },
+    {
+      "id": "DOC.7",
+      "sprint": "Fase 2 — Producto mínimo para entrega",
+      "block": "Abiertos — fiabilidad de los gates y documentación",
+      "title": "Fuera los marcadores de delegación de los ítems del plan",
       "status": "done",
       "closedDate": null
     },
@@ -34,7 +39,6 @@
       "id": "OC.3",
       "sprint": "Fase 2 — Producto mínimo para entrega",
       "block": "Abiertos — fiabilidad de los gates y documentación",
-      "delegation": "⚡",
       "title": "El ejecutor `opencode run` usa `--standalone` y `--model prov/modelo#variante`",
       "status": "open",
       "closedDate": null
@@ -43,7 +47,6 @@
       "id": "OC.4",
       "sprint": "Fase 2 — Producto mínimo para entrega",
       "block": "Abiertos — fiabilidad de los gates y documentación",
-      "delegation": "⚡",
       "title": "El adaptador HTTP de aprobaciones migra a la API v2 de OpenCode",
       "status": "open",
       "closedDate": null
@@ -52,7 +55,6 @@
       "id": "CI.19",
       "sprint": "Fase 2 — Producto mínimo para entrega",
       "block": "Abiertos — fiabilidad de los gates y documentación",
-      "delegation": "🔍",
       "title": "El `git commit` del fixture falla a veces en el andamiaje de los ui-gates",
       "status": "open",
       "closedDate": null
@@ -61,7 +63,6 @@
       "id": "CI.57",
       "sprint": "Fase 2 — Producto mínimo para entrega",
       "block": "Abiertos — fiabilidad de los gates y documentación",
-      "delegation": "🔍",
       "title": "`composer-picker`: a veces elegir otro modelo de Codex en Chat no queda aplicado",
       "status": "open",
       "closedDate": null
@@ -70,7 +71,6 @@
       "id": "CI.55",
       "sprint": "Fase 2 — Producto mínimo para entrega",
       "block": "Abiertos — fiabilidad de los gates y documentación",
-      "delegation": "🔍",
       "title": "`tasks`: la tarea real `gate-role-task` a veces no deja `ROLE.md` en el primer intento",
       "status": "open",
       "closedDate": null
@@ -79,7 +79,6 @@
       "id": "CI.54",
       "sprint": "Fase 2 — Producto mínimo para entrega",
       "block": "Abiertos — fiabilidad de los gates y documentación",
-      "delegation": "🔍",
       "title": "`codex-live`: la burbuja del usuario a veces no aparece en 2 s",
       "status": "open",
       "closedDate": null

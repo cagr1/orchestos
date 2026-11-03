@@ -152,7 +152,7 @@ export function renderHandoff(input: HandoffInput): string {
   lines.push('## Próximos ítems abiertos (de .orchestos/feature-status.json, H.3.1)')
   if (input.openItems.length > 0) {
     for (const item of input.openItems.slice(0, 5)) {
-      lines.push(`- **${item.id}** ${item.delegation} — ${item.title}`)
+      lines.push(`- **${item.id}** — ${item.title}`)
     }
     if (input.openItems.length > 5) {
       lines.push(`- (+${input.openItems.length - 5} más — ver PLAN.md)`)

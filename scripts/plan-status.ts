@@ -7,21 +7,15 @@
  * siempre desde PLAN.md (scripts/generate-feature-status.ts) y jamás se
  * edita a mano, el mismo contrato que `runs-summary.json`.
  *
- * Discriminador de "esto es un ítem de trabajo": la línea debe tener la forma
- * `**<ID> — <emoji-de-delegación> <título>**`. Las líneas de cierre de mes
- * (`**SÍ — Sprint 27 cerrado...**`, `**PARCIAL — ...**`) no llevan emoji de
- * delegación justo tras el guión largo, así que el regex las excluye solas
- * — no hace falta una lista negra de patrones a mano.
+ * Discriminador de ítem de trabajo: checkbox, ID ASCII y título en negrita.
+ * El marcador de delegación antiguo se acepta al leer, pero no forma parte
+ * del estado del ítem ni del formato que se emite.
  */
-
-const DELEGATION_EMOJI = ['🧠', '⚡', '🔍'] as const
-export type Delegation = (typeof DELEGATION_EMOJI)[number]
 
 export interface FeatureStatusItem {
   id: string
   sprint: string | null
   block: string | null
-  delegation: Delegation
   title: string
   status: 'open' | 'done'
   closedDate: string | null
@@ -42,7 +36,16 @@ export interface PlanDocumentSegment {
 }
 
 const ITEM_LINE_RE =
-  /^- \[( |x)\] \*\*([A-Za-z0-9][A-Za-z0-9.'-]*) — (🧠|⚡|🔍) (.+?)\.?\*\*(?:\s*\(cerrado (\d{4}-\d{2}-\d{2})[^)]*\))?/
+  /^- \[( |x)\] \*\*([A-Za-z0-9][A-Za-z0-9.'-]*) — (?:(?:🧠|⚡|🔍) )?(.+?)\.?\*\*(?:\s*\(cerrado (\d{4}-\d{2}-\d{2})[^)]*\))?/d
+
+/** Removes only a legacy header marker, preserving the rest of the source verbatim. */
+export function normalizePlanItemHeader(text: string): string {
+  const match = text.match(ITEM_LINE_RE)
+  const titleOffset = match?.indices?.[3]?.[0]
+  if (!match || titleOffset === undefined) return text
+  const prefix = `- [${match[1]}] **${match[2]} — `
+  return prefix + text.slice(titleOffset)
+}
 
 export function parsePlanFeatureStatus(plan: string): FeatureStatusItem[] {
   const items: FeatureStatusItem[] = []
@@ -63,13 +66,12 @@ export function parsePlanFeatureStatus(plan: string): FeatureStatusItem[] {
     }
     const itemMatch = line.match(ITEM_LINE_RE)
     if (!itemMatch) continue
-    const [, checked, id, emoji, title, closedDate] = itemMatch
-    if (!checked || !id || !emoji || !title) continue
+    const [, checked, id, title, closedDate] = itemMatch
+    if (!checked || !id || !title) continue
     items.push({
       id,
       sprint,
       block,
-      delegation: emoji as Delegation,
       title: title.trim(),
       status: checked === 'x' ? 'done' : 'open',
       closedDate: closedDate ?? null,

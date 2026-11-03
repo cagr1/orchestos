@@ -42,7 +42,7 @@ afterEach(() => {
 describe('session-resume hook', () => {
   test('inyecta la salida compacta de bun run next como JSON válido', () => {
     const root = createHookWorkspace(
-      "process.stdout.write('Ítems listos para tomar: 1\\nS.5 ⚡ — Arranque barato\\n')",
+      "process.stdout.write('Ítems listos para tomar: 1\\nS.5 — Arranque barato\\n')",
     )
 
     const result = runHook(root)
@@ -50,7 +50,7 @@ describe('session-resume hook', () => {
     expect(result).toMatchObject({ exitCode: 0, stderr: '' })
     const output = JSON.parse(result.stdout)
     expect(output.hookSpecificOutput.hookEventName).toBe('SessionStart')
-    expect(output.hookSpecificOutput.additionalContext).toContain('S.5 ⚡ — Arranque barato')
+    expect(output.hookSpecificOutput.additionalContext).toContain('S.5 — Arranque barato')
     expect(output.hookSpecificOutput.additionalContext).not.toContain('handoff.md')
   })
 

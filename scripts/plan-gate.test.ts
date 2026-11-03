@@ -35,7 +35,7 @@ function scenarioScript(setup: string): string {
     git(['-c', 'init.defaultBranch=master', 'checkout', '-b', 'master'])
 
     // Base commit: item F.1 open, its own spec still present.
-    write('PLAN.md', '## Sprint fixture\\n### Block fixture\\n- [ ] **F.1 — ⚡ Item fixture.**\\n  F.1 body.\\n')
+    write('PLAN.md', '## Sprint fixture\\n### Block fixture\\n- [ ] **F.1 — Item fixture.**\\n  F.1 body.\\n')
     write('docs/specs/F.1.md', '# F.1 spec\\n')
     git(['add', '-A'])
     git(['commit', '-m', 'base'])
@@ -56,7 +56,7 @@ function scenarioScript(setup: string): string {
 it('accepts a close whose evidence lives in docs/done/ with a fresh Ejecutado por line', async () => {
   const { code, out, err } = await runScenario(
     scenarioScript(`
-      write('PLAN.md', '## Sprint fixture\\n### Block fixture\\n- [x] **F.1 — ⚡ Item fixture.** → [evidencia](docs/done/bloque-F.md#bloque-f-f-1)\\n')
+      write('PLAN.md', '## Sprint fixture\\n### Block fixture\\n- [x] **F.1 — Item fixture.** → [evidencia](docs/done/bloque-F.md#bloque-f-f-1)\\n')
       write('docs/done/bloque-F.md', '<a id="bloque-f-f-1"></a>\\n### F.1\\nEjecutado por: gpt-5.6-terra · Spec: docs/specs/F.1.md\\n')
       git(['add', '-A'])
       git(['rm', '--cached', 'docs/specs/F.1.md'])
@@ -70,7 +70,7 @@ it('accepts a close whose evidence lives in docs/done/ with a fresh Ejecutado po
 it('rejects evidence that is not staged as a blob', async () => {
   const { out } = await runScenario(
     scenarioScript(`
-      write('PLAN.md', '## Sprint fixture\\n### Block fixture\\n- [x] **F.1 — ⚡ Item fixture.** → [evidencia](docs/done/bloque-F.md#bloque-f-f-1)\\n')
+      write('PLAN.md', '## Sprint fixture\\n### Block fixture\\n- [x] **F.1 — Item fixture.** → [evidencia](docs/done/bloque-F.md#bloque-f-f-1)\\n')
       // docs/done/bloque-F.md written to disk but never staged.
       write('docs/done/bloque-F.md', '<a id="bloque-f-f-1"></a>\\nEjecutado por: gpt-5.6-terra · Spec: docs/specs/F.1.md\\n')
       git(['add', 'PLAN.md'])
@@ -84,7 +84,7 @@ it('rejects evidence that is not staged as a blob', async () => {
 it('rejects a missing anchor in the evidence file', async () => {
   const { out } = await runScenario(
     scenarioScript(`
-      write('PLAN.md', '## Sprint fixture\\n### Block fixture\\n- [x] **F.1 — ⚡ Item fixture.** → [evidencia](docs/done/bloque-F.md#bloque-f-f-1)\\n')
+      write('PLAN.md', '## Sprint fixture\\n### Block fixture\\n- [x] **F.1 — Item fixture.** → [evidencia](docs/done/bloque-F.md#bloque-f-f-1)\\n')
       write('docs/done/bloque-F.md', 'Ejecutado por: gpt-5.6-terra · Spec: docs/specs/F.1.md\\n')
       git(['add', '-A'])
       git(['rm', '--cached', 'docs/specs/F.1.md'])
@@ -97,7 +97,7 @@ it('rejects a missing anchor in the evidence file', async () => {
 it('rejects a duplicated anchor in the evidence file', async () => {
   const { out } = await runScenario(
     scenarioScript(`
-      write('PLAN.md', '## Sprint fixture\\n### Block fixture\\n- [x] **F.1 — ⚡ Item fixture.** → [evidencia](docs/done/bloque-F.md#bloque-f-f-1)\\n')
+      write('PLAN.md', '## Sprint fixture\\n### Block fixture\\n- [x] **F.1 — Item fixture.** → [evidencia](docs/done/bloque-F.md#bloque-f-f-1)\\n')
       write('docs/done/bloque-F.md', '<a id="bloque-f-f-1"></a>\\nEjecutado por: gpt-5.6-terra · Spec: docs/specs/F.1.md\\n<a id="bloque-f-f-1"></a>\\nOther section\\n')
       git(['add', '-A'])
       git(['rm', '--cached', 'docs/specs/F.1.md'])
@@ -116,7 +116,7 @@ it('rejects an evidence link outside docs/done/', async () => {
   ]) {
     const { out } = await runScenario(
       scenarioScript(`
-        write('PLAN.md', '## Sprint fixture\\n### Block fixture\\n- [x] **F.1 — ⚡ Item fixture.** → [evidencia](${href})\\n')
+        write('PLAN.md', '## Sprint fixture\\n### Block fixture\\n- [x] **F.1 — Item fixture.** → [evidencia](${href})\\n')
         git(['add', '-A'])
         git(['rm', '--cached', 'docs/specs/F.1.md'])
         unlinkSync(join(root, 'docs/specs/F.1.md'))
@@ -129,7 +129,7 @@ it('rejects an evidence link outside docs/done/', async () => {
 it('rejects evidence whose section belongs to a different item', async () => {
   const { out } = await runScenario(
     scenarioScript(`
-      write('PLAN.md', '## Sprint fixture\\n### Block fixture\\n- [x] **F.1 — ⚡ Item fixture.** → [evidencia](docs/done/bloque-F.md#bloque-f-f-1)\\n')
+      write('PLAN.md', '## Sprint fixture\\n### Block fixture\\n- [x] **F.1 — Item fixture.** → [evidencia](docs/done/bloque-F.md#bloque-f-f-1)\\n')
       write('docs/done/bloque-F.md', '<a id="bloque-f-f-1"></a>\\nEjecutado por: gpt-5.6-terra · Spec: docs/specs/OTHER.md\\n')
       git(['add', '-A'])
       git(['rm', '--cached', 'docs/specs/F.1.md'])
@@ -142,7 +142,7 @@ it('rejects evidence whose section belongs to a different item', async () => {
 it("rejects an evidence spec where a wildcard char stands in for the id's literal dot", async () => {
   const { out } = await runScenario(
     scenarioScript(`
-      write('PLAN.md', '## Sprint fixture\\n### Block fixture\\n- [x] **F.1 — ⚡ Item fixture.** → [evidencia](docs/done/bloque-F.md#bloque-f-f-1)\\n')
+      write('PLAN.md', '## Sprint fixture\\n### Block fixture\\n- [x] **F.1 — Item fixture.** → [evidencia](docs/done/bloque-F.md#bloque-f-f-1)\\n')
       write('docs/done/bloque-F.md', '<a id="bloque-f-f-1"></a>\\nEjecutado por: gpt-5.6-terra · Spec: docs/specs/Fx1.md\\n')
       git(['add', '-A'])
       git(['rm', '--cached', 'docs/specs/F.1.md'])
@@ -155,7 +155,7 @@ it("rejects an evidence spec where a wildcard char stands in for the id's litera
 it('rejects a symlinked evidence path', async () => {
   const { out } = await runScenario(
     scenarioScript(`
-      write('PLAN.md', '## Sprint fixture\\n### Block fixture\\n- [x] **F.1 — ⚡ Item fixture.** → [evidencia](docs/done/bloque-F.md#bloque-f-f-1)\\n')
+      write('PLAN.md', '## Sprint fixture\\n### Block fixture\\n- [x] **F.1 — Item fixture.** → [evidencia](docs/done/bloque-F.md#bloque-f-f-1)\\n')
       git(['add', 'PLAN.md'])
       git(['rm', '--cached', 'docs/specs/F.1.md'])
       unlinkSync(join(root, 'docs/specs/F.1.md'))
@@ -174,7 +174,7 @@ it('rejects an Ejecutado por line that already existed at HEAD instead of being 
       write('docs/done/bloque-F.md', '<a id="bloque-f-f-1"></a>\\nEjecutado por: gpt-5.6-terra · Spec: docs/specs/F.1.md\\n')
       git(['add', '-A'])
       git(['commit', '-m', 'pre-existing evidence'])
-      write('PLAN.md', '## Sprint fixture\\n### Block fixture\\n- [x] **F.1 — ⚡ Item fixture.** → [evidencia](docs/done/bloque-F.md#bloque-f-f-1)\\n')
+      write('PLAN.md', '## Sprint fixture\\n### Block fixture\\n- [x] **F.1 — Item fixture.** → [evidencia](docs/done/bloque-F.md#bloque-f-f-1)\\n')
       git(['add', 'PLAN.md'])
       git(['rm', '--cached', 'docs/specs/F.1.md'])
       unlinkSync(join(root, 'docs/specs/F.1.md'))
@@ -186,7 +186,7 @@ it('rejects an Ejecutado por line that already existed at HEAD instead of being 
 it('keeps accepting the historical inline Ejecutado por format with no evidenceHref', async () => {
   const { out } = await runScenario(
     scenarioScript(`
-      write('PLAN.md', '## Sprint fixture\\n### Block fixture\\n- [x] **F.1 — ⚡ Item fixture.**\\n  Ejecutado por: gpt-5.6-terra · Spec: docs/specs/F.1.md\\n')
+      write('PLAN.md', '## Sprint fixture\\n### Block fixture\\n- [x] **F.1 — Item fixture.**\\n  Ejecutado por: gpt-5.6-terra · Spec: docs/specs/F.1.md\\n')
       git(['add', 'PLAN.md'])
       git(['rm', '--cached', 'docs/specs/F.1.md'])
       unlinkSync(join(root, 'docs/specs/F.1.md'))
@@ -203,7 +203,7 @@ it('accepts a shared spec that was closed and deleted by another item', async ()
       git(['commit', '-m', 'close shared spec'])
       git(['rm', 'docs/specs/SHARED.md'])
       git(['commit', '-m', 'delete shared spec'])
-      write('PLAN.md', '## Sprint fixture\\n### Block fixture\\n- [x] **F.1 — ⚡ Item fixture.**\\n  Ejecutado por: luna · Spec: docs/specs/SHARED.md\\n')
+      write('PLAN.md', '## Sprint fixture\\n### Block fixture\\n- [x] **F.1 — Item fixture.**\\n  Ejecutado por: luna · Spec: docs/specs/SHARED.md\\n')
       git(['add', 'PLAN.md'])
     `),
   )
@@ -213,7 +213,7 @@ it('accepts a shared spec that was closed and deleted by another item', async ()
 it('rejects a shared spec that never existed in git history', async () => {
   const { out } = await runScenario(
     scenarioScript(`
-      write('PLAN.md', '## Sprint fixture\\n### Block fixture\\n- [x] **F.1 — ⚡ Item fixture.**\\n  Ejecutado por: luna · Spec: docs/specs/NEVER.md\\n')
+      write('PLAN.md', '## Sprint fixture\\n### Block fixture\\n- [x] **F.1 — Item fixture.**\\n  Ejecutado por: luna · Spec: docs/specs/NEVER.md\\n')
       git(['add', 'PLAN.md'])
     `),
   )
@@ -226,7 +226,7 @@ it('rejects a shared spec that still exists at HEAD', async () => {
       write('docs/specs/SHARED.md', '# shared spec\\n')
       git(['add', 'docs/specs/SHARED.md'])
       git(['commit', '-m', 'keep shared spec'])
-      write('PLAN.md', '## Sprint fixture\\n### Block fixture\\n- [x] **F.1 — ⚡ Item fixture.**\\n  Ejecutado por: luna · Spec: docs/specs/SHARED.md\\n')
+      write('PLAN.md', '## Sprint fixture\\n### Block fixture\\n- [x] **F.1 — Item fixture.**\\n  Ejecutado por: luna · Spec: docs/specs/SHARED.md\\n')
       git(['add', 'PLAN.md'])
     `),
   )
@@ -238,7 +238,7 @@ it('accepts its own spec when it was never committed and is absent from disk', a
     scenarioScript(`
       git(['rm', 'docs/specs/F.1.md'])
       git(['commit', '-m', 'remove fixture spec before close'])
-      write('PLAN.md', '## Sprint fixture\\n### Block fixture\\n- [x] **F.1 — ⚡ Item fixture.**\\n  Ejecutado por: luna · Spec: docs/specs/F.1.md\\n')
+      write('PLAN.md', '## Sprint fixture\\n### Block fixture\\n- [x] **F.1 — Item fixture.**\\n  Ejecutado por: luna · Spec: docs/specs/F.1.md\\n')
       git(['add', 'PLAN.md'])
     `),
   )
@@ -251,7 +251,7 @@ it('rejects its own spec when it was never committed but is still present on dis
       git(['rm', 'docs/specs/F.1.md'])
       git(['commit', '-m', 'remove fixture spec before close'])
       write('docs/specs/F.1.md', '# uncommitted spec\\n')
-      write('PLAN.md', '## Sprint fixture\\n### Block fixture\\n- [x] **F.1 — ⚡ Item fixture.**\\n  Ejecutado por: luna · Spec: docs/specs/F.1.md\\n')
+      write('PLAN.md', '## Sprint fixture\\n### Block fixture\\n- [x] **F.1 — Item fixture.**\\n  Ejecutado por: luna · Spec: docs/specs/F.1.md\\n')
       git(['add', 'PLAN.md'])
     `),
   )

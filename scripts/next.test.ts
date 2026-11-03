@@ -10,7 +10,7 @@ function createDatabase(): Database {
   databases.push(database)
   database.run(`
     CREATE TABLE plan_items (
-      id TEXT PRIMARY KEY, sprint TEXT NOT NULL, block TEXT, delegation TEXT NOT NULL,
+      id TEXT PRIMARY KEY, sprint TEXT NOT NULL, block TEXT,
       title TEXT NOT NULL, body TEXT NOT NULL DEFAULT '', status TEXT NOT NULL,
       commit_sha TEXT, closed_at TEXT, position INTEGER NOT NULL
     );
@@ -27,7 +27,6 @@ function addItem(database: Database, id: string, status: 'open' | 'done', positi
     {
       id,
       sprint: 'Bloque S',
-      delegation: '⚡',
       title: `Título ${id}`,
       status,
       commitSha: status === 'done' ? 'commit-fixture' : null,
@@ -49,9 +48,7 @@ test('muestra solo ítems abiertos cuyas dependencias ya están cerradas', () =>
   setDeps('ready', ['done'], database)
   setDeps('blocked', ['ready'], database)
 
-  expect(renderNext(readyItems(database))).toBe(
-    'Ítems listos para tomar: 1\nready ⚡ — Título ready',
-  )
+  expect(renderNext(readyItems(database))).toBe('Ítems listos para tomar: 1\nready — Título ready')
 })
 
 test('acota el contexto a doce ítems y declara los restantes', () => {
@@ -64,7 +61,7 @@ test('acota el contexto a doce ítems y declara los restantes', () => {
   expect(lines).toHaveLength(MAX_NEXT_ITEMS + 2)
   expect(lines[0]).toBe(`Ítems listos para tomar: ${MAX_NEXT_ITEMS + 2}`)
   expect(lines.at(-1)).toBe('… 2 más.')
-  expect(lines.join('\n')).not.toContain('S.13 ⚡')
+  expect(lines.join('\n')).not.toContain('S.13 —')
 })
 
 test('explica cuando no hay trabajo listo', () => {

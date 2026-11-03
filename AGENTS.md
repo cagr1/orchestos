@@ -55,7 +55,7 @@ Reglas vigentes, una por línea. Texto anterior e incidentes que las motivaron:
 - `PLAN.md` se renderiza desde la DB: tras editarlo, `bun run plan:reconcile` una vez antes del commit. Segundo
   reconcile con un `[x]` sin commitear → "Could not prove a closing commit SHA": reabrir `[ ]`, reconcile, `[x]`,
   reconcile.
-- Ítem = línea de primer nivel `- [ ] **ID — <emoji> título.**` con `**` cerrado en la misma línea; el preflight no ve
+- Ítem = línea de primer nivel `- [ ] **ID — título.**` con `**` cerrado en la misma línea; el preflight no ve
   sub-ítems con sangría (usar el padre).
 - `--scope` del preflight usa globs (`src/dashboard/**`) e incluye `PLAN.md`, `NEXT.md`, `LEDGER.md`, `docs/**` y
   `.orchestos/feature-status.json`, o el cierre exige `**Fuera de scope declarado:**`.

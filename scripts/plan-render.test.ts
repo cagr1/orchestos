@@ -11,7 +11,7 @@ test('parsePlanDocumentSegments conserva byte a byte la prosa y los bloques de �
     '',
     '> Cita literal',
     '',
-    '- [ ] **F.1 — ⚡ Ítem fixture.**',
+    '- [ ] **F.1 — Ítem fixture.**',
     '  cuerpo indentado',
     '',
     '### Tabla',
@@ -22,7 +22,7 @@ test('parsePlanDocumentSegments conserva byte a byte la prosa y los bloques de �
   const segments = parsePlanDocumentSegments(fixture)
   expect(segments.filter((segment) => segment.kind === 'item')).toHaveLength(1)
   expect(segments.find((segment) => segment.kind === 'item')?.text).toBe(
-    '- [ ] **F.1 — ⚡ Ítem fixture.**\n  cuerpo indentado\n',
+    '- [ ] **F.1 — Ítem fixture.**\n  cuerpo indentado\n',
   )
   expect(segments.map((segment) => segment.text).join('')).toBe(fixture)
 })
@@ -31,7 +31,7 @@ test('renderPlan concatena segmentos ordenados desde la DB', () => {
   const database = new Database(':memory:')
   database.exec(`
     CREATE TABLE plan_items (
-      id TEXT PRIMARY KEY, sprint TEXT NOT NULL, block TEXT, delegation TEXT NOT NULL,
+      id TEXT PRIMARY KEY, sprint TEXT NOT NULL, block TEXT,
       title TEXT NOT NULL, status TEXT NOT NULL, position INTEGER NOT NULL
     );
     CREATE TABLE plan_doc_segments (
@@ -50,11 +50,10 @@ test('renderPlan concatena segmentos ordenados desde la DB', () => {
     '# Fixture\n',
     null,
   ])
-  database.run('INSERT INTO plan_items VALUES (?, ?, ?, ?, ?, ?, ?)', [
+  database.run('INSERT INTO plan_items VALUES (?, ?, ?, ?, ?, ?)', [
     'F.1',
     '',
     null,
-    '⚡',
     'Item',
     'open',
     0,
@@ -63,18 +62,34 @@ test('renderPlan concatena segmentos ordenados desde la DB', () => {
     'PLAN.md',
     1,
     'item',
-    '- [ ] **F.1 — ⚡ Item.**\n',
+    '- [ ] **F.1 — Item.**\n',
     'F.1',
   ])
-  expect(renderPlan(database)).toBe('# Fixture\n- [ ] **F.1 — ⚡ Item.**\n')
+  expect(renderPlan(database)).toBe('# Fixture\n- [ ] **F.1 — Item.**\n')
   database.close()
+})
+
+test('renderPlan normaliza marcadores legados y conserva prosa, cuerpo y evidencia', () => {
+  for (const marker of ['🧠', '⚡', '🔍']) {
+    const database = integrityFixture()
+    const body = `  Texto literal ${marker} del cuerpo.\n`
+    const suffix = ' (abierto 2026-11-03) → [evidencia](docs/done/fixture.md#f1)\n'
+    database.run('UPDATE plan_doc_segments SET text = ? WHERE item_id = ?', [
+      `- [ ] **F.1 — ${marker} Item fixture.**${suffix}${body}`,
+      'F.1',
+    ])
+    expect(renderPlan(database)).toBe(
+      `## Sprint fixture\n### Block fixture\n- [ ] **F.1 — Item fixture.**${suffix}${body}`,
+    )
+    database.close()
+  }
 })
 
 function integrityFixture(): Database {
   const database = new Database(':memory:')
   database.exec(`
     CREATE TABLE plan_items (
-      id TEXT PRIMARY KEY, sprint TEXT NOT NULL, block TEXT, delegation TEXT NOT NULL,
+      id TEXT PRIMARY KEY, sprint TEXT NOT NULL, block TEXT,
       title TEXT NOT NULL, status TEXT NOT NULL, position INTEGER NOT NULL
     );
     CREATE TABLE plan_doc_segments (
@@ -84,7 +99,7 @@ function integrityFixture(): Database {
   `)
   const segments: Array<[kind: string, text: string, itemId: string | null]> = [
     ['prose', '## Sprint fixture\n### Block fixture\n', null],
-    ['item', '- [ ] **F.1 — ⚡ Item fixture.**\n', 'F.1'],
+    ['item', '- [ ] **F.1 — Item fixture.**\n', 'F.1'],
   ]
   for (const [position, [kind, text, itemId]] of segments.entries())
     database.run('INSERT INTO plan_doc_segments VALUES (?, ?, ?, ?, ?)', [
@@ -94,11 +109,10 @@ function integrityFixture(): Database {
       text,
       itemId,
     ])
-  database.run('INSERT INTO plan_items VALUES (?, ?, ?, ?, ?, ?, ?)', [
+  database.run('INSERT INTO plan_items VALUES (?, ?, ?, ?, ?, ?)', [
     'F.1',
     'Sprint fixture',
     'Block fixture',
-    '⚡',
     'Item fixture',
     'open',
     0,
@@ -109,7 +123,6 @@ function integrityFixture(): Database {
 test('renderPlan rejects every structured item divergence rather than printing a false sync', () => {
   for (const [column, value] of [
     ['title', 'Other title'],
-    ['delegation', '🧠'],
     ['sprint', 'Other sprint'],
     ['block', 'Other block'],
     ['position', 4],
@@ -126,11 +139,10 @@ test('renderPlan rejects missing, extra, duplicated, and wrongly-labelled item s
   for (const mutate of [
     (database: Database) => database.run("DELETE FROM plan_doc_segments WHERE item_id = 'F.1'"),
     (database: Database) =>
-      database.run('INSERT INTO plan_items VALUES (?, ?, ?, ?, ?, ?, ?)', [
+      database.run('INSERT INTO plan_items VALUES (?, ?, ?, ?, ?, ?)', [
         'EXTRA',
         'Sprint fixture',
         null,
-        '⚡',
         'Extra',
         'open',
         1,

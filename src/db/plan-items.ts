@@ -5,14 +5,12 @@ import { parsePlanFeatureStatus } from '../../scripts/plan-status.ts'
 import { renderPlan } from './plan-doc.ts'
 import { db } from './sqlite.ts'
 
-export type PlanItemDelegation = '🧠' | '⚡' | '🔍'
 export type PlanItemStatus = 'open' | 'done'
 
 export interface PlanItem {
   id: string
   sprint: string
   block: string | null
-  delegation: PlanItemDelegation
   title: string
   body: string
   status: PlanItemStatus
@@ -25,7 +23,6 @@ interface UpsertPlanItemInput {
   id: string
   sprint: string
   block?: string | null
-  delegation: PlanItemDelegation
   title: string
   body?: string
   status: PlanItemStatus
@@ -43,7 +40,6 @@ interface PlanItemWithDeps {
   id: string
   sprint: string
   block: string | null
-  delegation: PlanItemDelegation
   title: string
   status: PlanItemStatus
   position: number
@@ -70,12 +66,11 @@ interface PreparePlanCloseOptions {
 export function upsertPlanItem(input: UpsertPlanItemInput, database: Database = db): PlanItem {
   database.run(
     `INSERT INTO plan_items (
-       id, sprint, block, delegation, title, body, status, commit_sha, closed_at, position
-     ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+       id, sprint, block, title, body, status, commit_sha, closed_at, position
+     ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
      ON CONFLICT(id) DO UPDATE SET
        sprint = excluded.sprint,
        block = excluded.block,
-       delegation = excluded.delegation,
        title = excluded.title,
        body = excluded.body,
        status = excluded.status,
@@ -86,7 +81,6 @@ export function upsertPlanItem(input: UpsertPlanItemInput, database: Database = 
       input.id,
       input.sprint,
       input.block ?? null,
-      input.delegation,
       input.title,
       input.body ?? '',
       input.status,
@@ -158,7 +152,6 @@ export function listPlanItemsWithDeps(database: Database = db): PlanItemWithDeps
       id: item.id,
       sprint: item.sprint,
       block: item.block,
-      delegation: item.delegation,
       title: item.title,
       status: item.status,
       position: item.position,

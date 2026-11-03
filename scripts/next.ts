@@ -9,7 +9,7 @@ export function renderNext(items: PlanItem[]): string {
 
   const visible = items.slice(0, MAX_NEXT_ITEMS)
   const lines = [`Ítems listos para tomar: ${items.length}`]
-  for (const item of visible) lines.push(`${item.id} ${item.delegation} — ${item.title}`)
+  for (const item of visible) lines.push(`${item.id} — ${item.title}`)
   if (items.length > visible.length) lines.push(`… ${items.length - visible.length} más.`)
   return lines.join('\n')
 }

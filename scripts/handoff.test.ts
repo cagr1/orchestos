@@ -42,7 +42,6 @@ describe('renderHandoff', () => {
       id: 'H.5',
       sprint: 'BLOQUE H',
       block: 'H.5',
-      delegation: '🧠',
       title: 'Evals propios',
       status: 'open',
       closedDate: null,
@@ -73,7 +72,7 @@ describe('renderHandoff', () => {
     expect(out).toContain('**H.4.2**')
     expect(out).toContain('scripts/**')
     expect(out).toContain('M src/x.ts')
-    expect(out).toContain('**H.5** 🧠 — Evals propios')
+    expect(out).toContain('**H.5** — Evals propios')
   })
 
   test('trunca la lista de ítems abiertos a 5 y avisa el resto', () => {
@@ -81,7 +80,6 @@ describe('renderHandoff', () => {
       id: `X.${i}`,
       sprint: null,
       block: null,
-      delegation: '⚡' as const,
       title: `item ${i}`,
       status: 'open' as const,
       closedDate: null,

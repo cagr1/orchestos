@@ -12,12 +12,12 @@ test('imports every parsed plan item into an isolated database with literal bodi
       join(fixture, 'PLAN.md'),
       `## Sprint fixture
 
-- [ ] **F.1 — ⚡ Ítem abierto.**
+- [ ] **F.1 — Ítem abierto.**
   Cuerpo controlado del ítem abierto.
 
 ### Sub-bloque fixture
 
-- [x] **F.2 — 🧠 Ítem cerrado con evidencia.** (cerrado 2026-09-09) → [evidencia](docs/done/fixture.md#f2)
+- [x] **F.2 — Ítem cerrado con evidencia.** (cerrado 2026-09-09) → [evidencia](docs/done/fixture.md#f2)
   Este cuerpo del plan no debe importarse para el ítem cerrado.
 `,
     )
@@ -147,7 +147,7 @@ test('reconcile accepts a provisional HEAD for a newly-closing item, but never f
   try {
     writeFileSync(
       join(fixture, 'PLAN.md'),
-      '## Sprint fixture\n- [ ] **F.1 — ⚡ Open item.**\n  Body for F.1.\n',
+      '## Sprint fixture\n- [ ] **F.1 — Open item.**\n  Body for F.1.\n',
     )
     git(['init'])
     git(['add', 'PLAN.md'])
@@ -179,7 +179,7 @@ test('reconcile accepts a provisional HEAD for a newly-closing item, but never f
     // Close F.1 in the working tree WITHOUT committing yet — the exact pre-commit sequence.
     writeFileSync(
       join(fixture, 'PLAN.md'),
-      '## Sprint fixture\n- [x] **F.1 — ⚡ Open item.**\n  Body for F.1.\n',
+      '## Sprint fixture\n- [x] **F.1 — Open item.**\n  Body for F.1.\n',
     )
     const headBeforeCommit = Bun.spawnSync(['git', 'rev-parse', 'HEAD'], {
       cwd: fixture,
@@ -254,7 +254,7 @@ test('reconcile keeps a reclosed item pending instead of reviving its pre-reopen
     expect(result.exitCode, new TextDecoder().decode(result.stderr)).toBe(0)
   }
   const plan = (status: 'open' | 'done') =>
-    `## Sprint fixture\n- [${status === 'done' ? 'x' : ' '}] **F.1 — ⚡ Reopen fixture.**\n  Body for F.1.\n`
+    `## Sprint fixture\n- [${status === 'done' ? 'x' : ' '}] **F.1 — Reopen fixture.**\n  Body for F.1.\n`
   try {
     writeFileSync(join(fixture, 'PLAN.md'), plan('open'))
     git(['init'])

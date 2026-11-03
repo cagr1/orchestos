@@ -8,7 +8,7 @@ import {
 
 describe('agent governance', () => {
   test('solo acepta un item abierto exacto', () => {
-    const plan = '- [ ] **GOV.1 — 🧠 Regla**\n- [x] **GOV.2 — cerrado**\n'
+    const plan = '- [ ] **GOV.1 — Regla**\n- [x] **GOV.2 — cerrado**\n'
     expect(findOpenPlanItem(plan, 'GOV.1')).not.toBeNull()
     expect(findOpenPlanItem(plan, 'GOV.2')).toBeNull()
     expect(findOpenPlanItem(plan, 'GOV')).toBeNull()

@@ -40,7 +40,7 @@ test('ledger CLIs isolate secondary worktrees and rebuild closed SHAs from git',
     return result.stdout.toString()
   }
   const plan = (id: string) =>
-    `## Sprint fixture\n\n- [x] **F.1 — ⚡ Historical close.**\n  Literal evidence.\n\n- [ ] **${id} — ⚡ Tree-specific item.**\n  Worktree body.\n`
+    `## Sprint fixture\n\n- [x] **F.1 — Historical close.**\n  Literal evidence.\n\n- [ ] **${id} — Tree-specific item.**\n  Worktree body.\n`
   const rows = (path: string) => {
     const database = new Database(path, { readonly: true })
     try {

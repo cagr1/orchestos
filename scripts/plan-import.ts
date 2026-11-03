@@ -94,7 +94,6 @@ function importSources(sources: PlanItemSource[], root: string, reconcile: boole
           id: item.id,
           sprint: item.sprint ?? '',
           block: item.block,
-          delegation: item.delegation,
           title: item.title,
           body,
           status: item.status,

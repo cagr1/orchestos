@@ -1,5 +1,5 @@
 import type { Database } from 'bun:sqlite'
-import { parsePlanItemSources } from '../../scripts/plan-status.ts'
+import { normalizePlanItemHeader, parsePlanItemSources } from '../../scripts/plan-status.ts'
 import { db } from './sqlite.ts'
 
 interface RenderedPlanSegment {
@@ -13,7 +13,6 @@ interface StoredPlanItem {
   id: string
   sprint: string
   block: string | null
-  delegation: string
   title: string
   status: string
   position: number
@@ -29,7 +28,7 @@ function validatePlanDocumentIntegrity(segments: RenderedPlanSegment[], database
   const parsed = parsePlanItemSources(text)
   const rows = database
     .query<StoredPlanItem, []>(
-      'SELECT id, sprint, block, delegation, title, status, position FROM plan_items ORDER BY position ASC, id ASC',
+      'SELECT id, sprint, block, title, status, position FROM plan_items ORDER BY position ASC, id ASC',
     )
     .all()
   const segmentItems = segments.filter((segment) => segment.kind === 'item')
@@ -58,7 +57,6 @@ function validatePlanDocumentIntegrity(segments: RenderedPlanSegment[], database
     const expected: Record<string, string | number | null> = {
       status: item.status,
       title: item.title,
-      delegation: item.delegation,
       sprint: item.sprint ?? '',
       block: item.block,
       position: item.position,
@@ -89,5 +87,9 @@ export function renderPlan(database: Database = db): string {
     if (segments[index]?.text == null) throw new Error(`PLAN.md segment ${index} has no text`)
   }
   validatePlanDocumentIntegrity(segments, database)
-  return segments.map((segment) => segment.text ?? '').join('')
+  return segments
+    .map((segment) =>
+      segment.kind === 'item' ? normalizePlanItemHeader(segment.text ?? '') : (segment.text ?? ''),
+    )
+    .join('')
 }

@@ -22,7 +22,7 @@ async function isolated(): Promise<{ statuses: number[]; blockedBy: string[]; re
           const home = process.env.ORCHESTOS_HOME
           const root = join(home, 'project')
           const otherRoot = join(home, 'other-project')
-          const plan = '# Fixture\\n\\n## Sprint One\\n### Block One\\n- [ ] **A — ⚡ First.**\\n  A body.\\n\\n- [ ] **B — ⚡ Blocked.**\\n  B body.\\n\\n## Sprint Two\\n### Block Two\\n- [ ] **C — 🔍 Ready.**\\n  C body.\\n'
+          const plan = '# Fixture\\n\\n## Sprint One\\n### Block One\\n- [ ] **A — First.**\\n  A body.\\n\\n- [ ] **B — Blocked.**\\n  B body.\\n\\n## Sprint Two\\n### Block Two\\n- [ ] **C — Ready.**\\n  C body.\\n'
           const assert = (condition, message) => { if (!condition) throw new Error(message) }
           mkdirSync(root)
           mkdirSync(otherRoot)
@@ -134,7 +134,7 @@ async function isolatedCommitLifecycle(): Promise<{
           const { route } = await import('./src/dashboard/server.ts')
           const home = process.env.ORCHESTOS_HOME
           const root = join(home, 'project')
-          const plan = '## Sprint One\\n### Block One\\n- [ ] **A — ⚡ First.**\\n  A body.\\n\\n- [ ] **B — ⚡ Second.**\\n  B body.\\n'
+          const plan = '## Sprint One\\n### Block One\\n- [ ] **A — First.**\\n  A body.\\n\\n- [ ] **B — Second.**\\n  B body.\\n'
           const assert = (condition, message) => { if (!condition) throw new Error(message) }
           const gitEnv = { ...process.env, GIT_AUTHOR_NAME: 'fixture', GIT_AUTHOR_EMAIL: 'fixture@example.invalid', GIT_COMMITTER_NAME: 'fixture', GIT_COMMITTER_EMAIL: 'fixture@example.invalid' }
           const git = (args) => execFileSync('git', args, { cwd: root, stdio: 'pipe', env: gitEnv })

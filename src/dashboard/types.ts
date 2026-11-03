@@ -43,13 +43,12 @@
 
 import type { AgentChoice } from '../config/schema.ts'
 import type { ChatSessionMode } from '../db/chat-sessions.ts'
-import type { PlanItemDelegation, PlanItemStatus } from '../db/plan-items.ts'
+import type { PlanItemStatus } from '../db/plan-items.ts'
 
 export interface PlanItemRow {
   id: string
   sprint: string
   block: string | null
-  delegation: PlanItemDelegation
   title: string
   status: PlanItemStatus
   position: number

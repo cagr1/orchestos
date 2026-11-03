@@ -58,7 +58,7 @@ evidencia, no su veracidad: ejecutar y observar el flujo es obligación verifica
 Parar sin declarar éxito si: no hay ítem abierto o el scope es ambiguo; hay cambios ajenos que se
 solapan; falla baseline, test, hook o gate requerido; una UI/config no se probó en el sistema real;
 una acción destructiva no tiene confirmación explícita; la evidencia viene solo del agente que
-implementó y el ítem exige revisión 🔍.
+implementó y el ítem exige revisión.
 
 Parar significa **no cerrar ese ítem**, no devolver el turno a Carlos: un test, hook o gate rojo se
 diagnostica y corrige en el mismo lote. Se vuelve a Carlos solo por el mismo fallo tras 2 intentos con

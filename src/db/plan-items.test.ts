@@ -17,7 +17,7 @@ function fixtureDb(): Database {
   database.exec(`
     PRAGMA foreign_keys = ON;
     CREATE TABLE plan_items (
-      id TEXT PRIMARY KEY, sprint TEXT NOT NULL, block TEXT, delegation TEXT NOT NULL,
+      id TEXT PRIMARY KEY, sprint TEXT NOT NULL, block TEXT,
       title TEXT NOT NULL, body TEXT NOT NULL DEFAULT '', status TEXT NOT NULL,
       commit_sha TEXT, closed_at TEXT, position INTEGER NOT NULL,
       CHECK (status = 'open' OR commit_sha IS NOT NULL)
@@ -37,10 +37,7 @@ function fixtureDb(): Database {
     ['B', 1],
     ['C', 2],
   ] as const) {
-    upsertPlanItem(
-      { id, sprint: 'Sprint fixture', delegation: '⚡', title: id, status: 'open', position },
-      database,
-    )
+    upsertPlanItem({ id, sprint: 'Sprint fixture', title: id, status: 'open', position }, database)
   }
   return database
 }
@@ -77,8 +74,7 @@ describe('preparePlanItemClose', () => {
     const database = fixtureDb()
     const root = mkdtempSync(join(tmpdir(), 'plan-close-'))
     roots.push(root)
-    const plan =
-      '## Sprint fixture\n- [ ] **A — ⚡ A.**\n- [ ] **B — ⚡ B.**\n- [ ] **C — ⚡ C.**\n'
+    const plan = '## Sprint fixture\n- [ ] **A — A.**\n- [ ] **B — B.**\n- [ ] **C — C.**\n'
     writeFileSync(join(root, 'PLAN.md'), plan, 'utf-8')
     database.run('INSERT INTO plan_doc_segments VALUES (?, ?, ?, ?, ?)', [
       'PLAN.md',
@@ -91,21 +87,21 @@ describe('preparePlanItemClose', () => {
       'PLAN.md',
       1,
       'item',
-      '- [ ] **A — ⚡ A.**\n',
+      '- [ ] **A — A.**\n',
       'A',
     ])
     database.run('INSERT INTO plan_doc_segments VALUES (?, ?, ?, ?, ?)', [
       'PLAN.md',
       2,
       'item',
-      '- [ ] **B — ⚡ B.**\n',
+      '- [ ] **B — B.**\n',
       'B',
     ])
     database.run('INSERT INTO plan_doc_segments VALUES (?, ?, ?, ?, ?)', [
       'PLAN.md',
       3,
       'item',
-      '- [ ] **C — ⚡ C.**\n',
+      '- [ ] **C — C.**\n',
       'C',
     ])
 
@@ -118,7 +114,7 @@ describe('preparePlanItemClose', () => {
     })
     expect(closed.status).toBe('done')
     expect(readFileSync(join(root, 'PLAN.md'), 'utf-8')).toBe(
-      '## Sprint fixture\n- [x] **A — ⚡ A.**\n- [ ] **B — ⚡ B.**\n- [ ] **C — ⚡ C.**\n',
+      '## Sprint fixture\n- [x] **A — A.**\n- [ ] **B — B.**\n- [ ] **C — C.**\n',
     )
     expect(listPlanItemsWithDeps(database).find((item) => item.id === 'B')?.status).toBe('open')
     database.close()
@@ -128,8 +124,7 @@ describe('preparePlanItemClose', () => {
     const database = fixtureDb()
     const root = mkdtempSync(join(tmpdir(), 'plan-close-fail-'))
     roots.push(root)
-    const plan =
-      '## Sprint fixture\n- [ ] **A — ⚡ A.**\n- [ ] **B — ⚡ B.**\n- [ ] **C — ⚡ C.**\n'
+    const plan = '## Sprint fixture\n- [ ] **A — A.**\n- [ ] **B — B.**\n- [ ] **C — C.**\n'
     writeFileSync(join(root, 'PLAN.md'), plan, 'utf-8')
     database.run('INSERT INTO plan_doc_segments VALUES (?, ?, ?, ?, ?)', [
       'PLAN.md',
@@ -142,21 +137,21 @@ describe('preparePlanItemClose', () => {
       'PLAN.md',
       1,
       'item',
-      '- [ ] **A — ⚡ A.**\n',
+      '- [ ] **A — A.**\n',
       'A',
     ])
     database.run('INSERT INTO plan_doc_segments VALUES (?, ?, ?, ?, ?)', [
       'PLAN.md',
       2,
       'item',
-      '- [ ] **B — ⚡ B.**\n',
+      '- [ ] **B — B.**\n',
       'B',
     ])
     database.run('INSERT INTO plan_doc_segments VALUES (?, ?, ?, ?, ?)', [
       'PLAN.md',
       3,
       'item',
-      '- [ ] **C — ⚡ C.**\n',
+      '- [ ] **C — C.**\n',
       'C',
     ])
 
@@ -205,13 +200,13 @@ describe('listPlanItemsWithCommitStatus — shallow history (S.7c)', () => {
     const root = mkdtempSync(join(tmpdir(), 'plan-reachability-'))
     roots.push(root)
 
-    writeFileSync(join(root, 'PLAN.md'), '## Sprint fixture\n- [ ] **X — ⚡ X item.**\n')
+    writeFileSync(join(root, 'PLAN.md'), '## Sprint fixture\n- [ ] **X — X item.**\n')
     gitRun(root, ['init'])
     gitRun(root, ['add', 'PLAN.md'])
     gitRun(root, ['commit', '-m', 'X open'])
     const parentSha = gitHead(root)
 
-    writeFileSync(join(root, 'PLAN.md'), '## Sprint fixture\n- [x] **X — ⚡ X item.**\n')
+    writeFileSync(join(root, 'PLAN.md'), '## Sprint fixture\n- [x] **X — X item.**\n')
     gitRun(root, ['add', 'PLAN.md'])
     gitRun(root, ['commit', '-m', 'close X'])
     const closeSha = gitHead(root)
@@ -221,7 +216,6 @@ describe('listPlanItemsWithCommitStatus — shallow history (S.7c)', () => {
       {
         id: 'X',
         sprint: 'Sprint fixture',
-        delegation: '⚡',
         title: 'X item',
         status: 'done',
         commitSha: closeSha,
@@ -250,21 +244,18 @@ describe('listPlanItemsWithCommitStatus — shallow history (S.7c)', () => {
     roots.push(origin, clone)
 
     // Commit 1: X open.
-    writeFileSync(join(origin, 'PLAN.md'), '## Sprint fixture\n- [ ] **X — ⚡ X item.**\n')
+    writeFileSync(join(origin, 'PLAN.md'), '## Sprint fixture\n- [ ] **X — X item.**\n')
     gitRun(origin, ['init'])
     gitRun(origin, ['add', 'PLAN.md'])
     gitRun(origin, ['commit', '-m', 'X open'])
 
     // Commit 2: real close of X.
-    writeFileSync(join(origin, 'PLAN.md'), '## Sprint fixture\n- [x] **X — ⚡ X item.**\n')
+    writeFileSync(join(origin, 'PLAN.md'), '## Sprint fixture\n- [x] **X — X item.**\n')
     gitRun(origin, ['add', 'PLAN.md'])
     gitRun(origin, ['commit', '-m', 'close X'])
 
     // Commit 3: prose-only change, does not touch X's line.
-    writeFileSync(
-      join(origin, 'PLAN.md'),
-      '## Sprint fixture (renamed)\n- [x] **X — ⚡ X item.**\n',
-    )
+    writeFileSync(join(origin, 'PLAN.md'), '## Sprint fixture (renamed)\n- [x] **X — X item.**\n')
     gitRun(origin, ['add', 'PLAN.md'])
     gitRun(origin, ['commit', '-m', 'prose only'])
     const proseSha = gitHead(origin)
@@ -284,7 +275,6 @@ describe('listPlanItemsWithCommitStatus — shallow history (S.7c)', () => {
       {
         id: 'X',
         sprint: 'Sprint fixture',
-        delegation: '⚡',
         title: 'X item',
         status: 'done',
         commitSha: proseSha,
@@ -302,7 +292,7 @@ describe('listPlanItemsWithCommitStatus — shallow history (S.7c)', () => {
     const root = mkdtempSync(join(tmpdir(), 'plan-root-close-'))
     roots.push(root)
 
-    writeFileSync(join(root, 'PLAN.md'), '## Sprint fixture\n- [x] **X — ⚡ X item.**\n')
+    writeFileSync(join(root, 'PLAN.md'), '## Sprint fixture\n- [x] **X — X item.**\n')
     gitRun(root, ['init'])
     gitRun(root, ['add', 'PLAN.md'])
     gitRun(root, ['commit', '-m', 'X born closed'])
@@ -321,7 +311,6 @@ describe('listPlanItemsWithCommitStatus — shallow history (S.7c)', () => {
       {
         id: 'X',
         sprint: 'Sprint fixture',
-        delegation: '⚡',
         title: 'X item',
         status: 'done',
         commitSha: rootSha,

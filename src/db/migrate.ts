@@ -1140,6 +1140,23 @@ export const FUTURE_MIGRATIONS: readonly SchemaMigrationStep[] = [
       migration33Turns.delete(database)
     },
   },
+  {
+    version: 34,
+    name: 'plan-items-without-delegation',
+    precondition: () => {},
+    apply: (database) => {
+      const columns = database.query<{ name: string }, []>('PRAGMA table_info(plan_items)').all()
+      if (columns.some((column) => column.name === 'delegation'))
+        database.exec('ALTER TABLE plan_items DROP COLUMN delegation')
+    },
+    postcondition: (database) => {
+      const columns = database.query<{ name: string }, []>('PRAGMA table_info(plan_items)').all()
+      if (columns.some((column) => column.name === 'delegation'))
+        throw new Error('Migration 34 did not remove plan_items delegation')
+      if (database.query('PRAGMA foreign_key_check').all().length)
+        throw new Error('Migration 34 violated foreign keys')
+    },
+  },
 ]
 
 function appliedVersions(database: Database): Set<number> {

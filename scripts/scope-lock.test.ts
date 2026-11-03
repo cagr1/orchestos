@@ -50,20 +50,20 @@ describe('hasOutOfScopeJustification', () => {
 
 describe('planClosesItem', () => {
   test('detecta el cierre del ítem en el diff agregado', () => {
-    const diff = '+- [x] **H.4.1 — 🧠 Título.** (cerrado 2026-09-01)\n'
+    const diff = '+- [x] **H.4.1 — Título.** (cerrado 2026-09-01)\n'
     expect(planClosesItem(diff, 'H.4.1')).toBe(true)
   })
 
   test('no confunde con otro ítem parecido', () => {
-    const diff = '+- [x] **H.4.2 — 🧠 Título.** (cerrado 2026-09-01)\n'
+    const diff = '+- [x] **H.4.2 — Título.** (cerrado 2026-09-01)\n'
     expect(planClosesItem(diff, 'H.4.1')).toBe(false)
   })
 })
 
 describe('planHasItem', () => {
   const plan = [
-    '- [x] **S.1 — ⚡ Renombrar la etiqueta histórica.** (cerrado 2026-09-09)',
-    '- [ ] **H.7.3** — ⚡ El hook: avisar al 60%',
+    '- [x] **S.1 — Renombrar la etiqueta histórica.** (cerrado 2026-09-09)',
+    '- [ ] **H.7.3** — El hook: avisar al 60%',
   ].join('\n')
 
   test('encuentra un ítem abierto', () => {

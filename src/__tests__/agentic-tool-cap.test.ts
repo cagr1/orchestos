@@ -239,7 +239,7 @@ describe('A.3 — cap wiring in agenticEngine tools', () => {
 })
 
 /**
- * A.4 — 🔍 GATE (PLAN.md Mes 22 Bloque A). No basta con "el output está
+ * A.4 — GATE (PLAN.md Mes 22 Bloque A). No basta con "el output está
  * acotado" (eso es A.3); el gate prueba el VÍNCULO CAUSAL de #32: sin el cap,
  * el tool-result de un read_file gigante infla `messages[]` por encima de la
  * ventana del modelo (la condición exacta que dispara `pending` / overflow de

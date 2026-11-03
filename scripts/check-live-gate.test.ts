@@ -45,7 +45,7 @@ function baseCommit(root: string): void {
   write(
     root,
     'PLAN.md',
-    '## Sprint fixture\n### Block fixture\n- [ ] **F.1 — ⚡ Item fixture.**\n  F.1 body.\n',
+    '## Sprint fixture\n### Block fixture\n- [ ] **F.1 — Item fixture.**\n  F.1 body.\n',
   )
   write(root, 'docs/specs/F.1.md', '# F.1 spec\n')
   write(root, 'src/dashboard/app/src/App.tsx', 'export default function App() {}\n')
@@ -60,7 +60,7 @@ it('passes when the item closed inline in PLAN.md carries its own evidence', () 
   write(
     root,
     'PLAN.md',
-    '## Sprint fixture\n### Block fixture\n- [x] **F.1 — ⚡ Item fixture.**\n  Gate en vivo: verificado con Playwright (navegador real) — `scripts/f1-evidence.json`.\n',
+    '## Sprint fixture\n### Block fixture\n- [x] **F.1 — Item fixture.**\n  Gate en vivo: verificado con Playwright (navegador real) — `scripts/f1-evidence.json`.\n',
   )
   write(root, 'scripts/f1-evidence.json', '{}\n')
   git(root, ['add', '-A'])
@@ -82,7 +82,7 @@ it('passes when evidence for the closed item lives in docs/done/ behind an evide
   write(
     root,
     'PLAN.md',
-    '## Sprint fixture\n### Block fixture\n- [x] **F.1 — ⚡ Item fixture.** → [evidencia](docs/done/bloque-F.md#bloque-f-f-1)\n',
+    '## Sprint fixture\n### Block fixture\n- [x] **F.1 — Item fixture.** → [evidencia](docs/done/bloque-F.md#bloque-f-f-1)\n',
   )
   write(
     root,
@@ -103,7 +103,7 @@ it('fails when the archived section has the phrase but the cited evidence file i
   write(
     root,
     'PLAN.md',
-    '## Sprint fixture\n### Block fixture\n- [x] **F.1 — ⚡ Item fixture.** → [evidencia](docs/done/bloque-F.md#bloque-f-f-1)\n',
+    '## Sprint fixture\n### Block fixture\n- [x] **F.1 — Item fixture.** → [evidencia](docs/done/bloque-F.md#bloque-f-f-1)\n',
   )
   write(
     root,
@@ -124,7 +124,7 @@ it('fails when the archived section is missing the browser/Playwright phrase ent
   write(
     root,
     'PLAN.md',
-    '## Sprint fixture\n### Block fixture\n- [x] **F.1 — ⚡ Item fixture.** → [evidencia](docs/done/bloque-F.md#bloque-f-f-1)\n',
+    '## Sprint fixture\n### Block fixture\n- [x] **F.1 — Item fixture.** → [evidencia](docs/done/bloque-F.md#bloque-f-f-1)\n',
   )
   write(root, 'docs/done/bloque-F.md', '<a id="bloque-f-f-1"></a>\nTests unitarios verdes.\n')
   write(root, 'scripts/f1-evidence.json', '{}\n')

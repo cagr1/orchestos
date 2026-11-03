@@ -75,28 +75,36 @@ Cerrada. Todos sus ítems están archivados en `docs/done/` (ver "Cerrados — e
 
 ### Abiertos — fiabilidad de los gates y documentación
 
-- [x] **OC.1 — ⚡ La terminal de Dev lanza OpenCode con `--standalone`.** (abierto 2026-11-03, GO de Carlos al plan
+- [x] **OC.1 — La terminal de Dev lanza OpenCode con `--standalone`.** (abierto 2026-11-03, GO de Carlos al plan
   OC.1–OC.4) Con OpenCode 2.2.5 y el servicio compartido desincronizado, la TUI sale a los ~20 s.
   Hecho: `resolveOpenCodeCommand` devuelve `[binary, '--standalone']` (servidor privado por pestaña).
   Gates del cerebro: tsc, tests 36/0, `ui:gate opencode-terminal` 13/13 con el servicio compartido aún roto.
   Gate en vivo: navegador real (Playwright), `docs/done/evidence/OC.1-OC.2-live.json`.
   Ejecutado por: codex gpt-6-luna (mecanico r1) · revisión Opus
-- [x] **OC.2 — ⚡ El catálogo de OpenCode usa `api --standalone model.list`.** (abierto 2026-11-03) 2.2.5 quitó
+- [x] **OC.2 — El catálogo de OpenCode usa `api --standalone model.list`.** (abierto 2026-11-03) 2.2.5 quitó
   `models --verbose`; catálogo vacío y `model-routing` rojo bloquean el push.
   Hecho: `parseOpencodeModels` lee `data[]` (`providerID/id`, esfuerzos = `variants[].id`); sale la llamada a
   `run --help`. En vivo (Sol): `/api/models/catalog` 361 modelos, 230 con esfuerzos y 131 sin.
   Gates del cerebro: tsc, tests 36/0, `ui:gate model-routing` 19/19.
   Gate en vivo: navegador real (Playwright), `docs/done/evidence/OC.1-OC.2-live.json`.
   Ejecutado por: codex gpt-6.1-sol (criterio r1) · revisión Opus
-- [x] **OC.2.1 — ⚡ `opencode-engine.test.ts` simula el catálogo con el formato viejo.** (abierto 2026-11-03, regresión
+- [x] **OC.2.1 — `opencode-engine.test.ts` simula el catálogo con el formato viejo.** (abierto 2026-11-03, regresión
   de OC.2 vista en el pre-push; el cerebro corrió 3 archivos en vez de `test:coverage`)
   Hecho: el mock responde a `model.list` con el JSON nuevo. Gate del cerebro: `test:coverage` 2240/0.
   Ejecutado por: codex gpt-6-luna (mecanico r1) · revisión Opus
-- [ ] **OC.3 — ⚡ El ejecutor `opencode run` usa `--standalone` y `--model prov/modelo#variante`.** (abierto 2026-11-03)
+- [x] **DOC.7 — Fuera los marcadores de delegación de los ítems del plan.** (abierto 2026-11-03, decisión de Carlos
+  2026-10-13 reafirmada hoy) El rol sale del roster; el marcador era formato parseado (regex, columna con CHECK).
+  Hecho: formato `- [ ] **ID — título.**`; `plan-status.ts` acepta el marcador legado pero nunca lo emite; migración 34
+  quita `plan_items.delegation` (DB real migrada); `next`, `handoff`, `plan-doc`, tipos y tests sin el campo;
+  `AGENTS.md` y `docs/agent-work-protocol.md` sin marcador; los 10 ítems de `PLAN.md` sin él. `docs/done/` intacto.
+  Gates del cerebro: tsc, `test:coverage` 2243/0, `plan-render --check` 0, `next` lista `ID — título`.
+  Gate en vivo: navegador real (Playwright), `docs/done/evidence/DOC.7-live.json` (`plan-doc` 16/16).
+  Ejecutado por: codex gpt-6.1-sol (criterio r1) · revisión Opus
+- [ ] **OC.3 — El ejecutor `opencode run` usa `--standalone` y `--model prov/modelo#variante`.** (abierto 2026-11-03)
   2.2.5 quitó `--variant`; sin `--standalone` depende del servicio. Falta validar `step-finish` con inferencia real.
-- [ ] **OC.4 — ⚡ El adaptador HTTP de aprobaciones migra a la API v2 de OpenCode.** (abierto 2026-11-03) Cambiaron
+- [ ] **OC.4 — El adaptador HTTP de aprobaciones migra a la API v2 de OpenCode.** (abierto 2026-11-03) Cambiaron
   banner, `/api/session`, prompt, modelo y permisos (`src/run/executors/opencode-server.ts`).
-- [ ] **CI.19 — 🔍 El `git commit` del fixture falla a veces en el andamiaje de los ui-gates.** Visto 1 vez en
+- [ ] **CI.19 — El `git commit` del fixture falla a veces en el andamiaje de los ui-gates.** Visto 1 vez en
   `qa-negative` (2026-10-11, 1 de 9): `Command failed: git … commit -qm task fixture`, sin motivo porque el helper
   `run` usa `stdio: 'ignore'`. `qa-negative` ya reporta stdout/stderr y exit; los otros 20 flows con el mismo helper no.
   Al próximo fallo, leer el motivo en el `result.json` antes de arreglar; llevar el helper a `scripts/ui-gate/lib.mjs`.
@@ -107,7 +115,7 @@ Cerrada. Todos sus ítems están archivados en `docs/done/` (ver "Cerrados — e
   Ejecutado por: claude sonnet (criterio-alt; Sol sin cupo de 5 h) · Spec: docs/specs/CI.19.md
   Bucle aislado 2026-11-03 (en serie, sin carga): `qa-negative` 3/3 verde, sin reproducir. Los fallos vistos fueron en
   el pre-push (con carga); próximo intento: repetir bajo carga.
-- [ ] **CI.57 — 🔍 `composer-picker`: a veces elegir otro modelo de Codex en Chat no queda aplicado.** (abierto
+- [ ] **CI.57 — `composer-picker`: a veces elegir otro modelo de Codex en Chat no queda aplicado.** (abierto
   2026-11-03) Falló 4 seguidas (pre-push del lote UI.57/58, 2 aisladas, una en worktree de `82820986`) en `Codex
   effort levels remain available` (`composer-picker.mjs:75-87`): tras clic en GPT-6.1-Sol el selector sigue en
   GPT-6-Luna. Luego pasó 11/11 en `50e087e2`, `a4beb111`, y 5 veces en HEAD (Sol 3, cerebro 2): intermitente, la
@@ -122,7 +130,7 @@ Cerrada. Todos sus ítems están archivados en `docs/done/` (ver "Cerrados — e
   `CI.57-composer-picker`). Abierto hasta el próximo fallo. Fase 1 por codex gpt-6.1-sol (criterio r1).
   Bucle aislado 2026-11-03 (en serie, sin carga): `composer-picker` 15/15 verde, sin reproducir. Los fallos vistos fueron en
   el pre-push (con carga); próximo intento: repetir bajo carga.
-- [ ] **CI.55 — 🔍 `tasks`: la tarea real `gate-role-task` a veces no deja `ROLE.md` en el primer intento.** (abierto 2026-11-02)
+- [ ] **CI.55 — `tasks`: la tarea real `gate-role-task` a veces no deja `ROLE.md` en el primer intento.** (abierto 2026-11-02)
   Visto 1 vez (pre-push del lote UI.49–55, 2026-11-02): el gate corre Codex real (`gpt-6-luna`); la corrida
   terminó con `retryReason: "missing declared output(s): ROLE.md"`, `retryCount: 1`, `runId: null`, `qaVerdict: fail`, y
   `waitForTaskFinished` (`tasks.mjs:39`) lo toma como fin. Aislado pasa 43/43 justo después. El lote no tocó tareas.
@@ -136,7 +144,7 @@ Cerrada. Todos sus ítems están archivados en `docs/done/` (ver "Cerrados — e
   el próximo fallo: leer ese JSON y escribir la fase 2. Fase 1 por codex gpt-6.1-sol (criterio r1).
   Bucle aislado 2026-11-03 (en serie, sin carga): `tasks` 5/5 verde, sin reproducir. Los fallos vistos fueron en
   el pre-push (con carga); próximo intento: repetir bajo carga.
-- [ ] **CI.54 — 🔍 `codex-live`: la burbuja del usuario a veces no aparece en 2 s.** (abierto 2026-11-02)
+- [ ] **CI.54 — `codex-live`: la burbuja del usuario a veces no aparece en 2 s.** (abierto 2026-11-02)
   Visto 1 de 3 (2026-11-02, "turn 1 user message appears before completion"); el pre-push reintenta y lo oculta.
   Fase 1: que el fallo deje evidencia (captura, DOM, composer, timeline, log); fase 2: causa con esa evidencia.
   Spec: docs/specs/CI.54.md

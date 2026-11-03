@@ -2,19 +2,23 @@ import { describe, expect, test } from 'bun:test'
 import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { parsePlanFeatureStatus, serializeFeatureStatus } from './plan-status.ts'
+import {
+  normalizePlanItemHeader,
+  parsePlanFeatureStatus,
+  serializeFeatureStatus,
+} from './plan-status.ts'
 
 const SAMPLE = `
 ## BLOQUE H — Huecos de harness (ABIERTO 2026-09-01, PRIORIDAD SOBRE SPRINT 30)
 
 ### H.1 — Presentación
 
-- [x] **H.1.1 — ⚡ README miente sobre el estado del proyecto.** (cerrado 2026-09-01) Dice cosas
+- [x] **H.1.1 — README miente sobre el estado del proyecto.** (cerrado 2026-09-01) Dice cosas
   viejas.
 
 ### H.3 — Estado
 
-- [ ] **H.3.1 — 🧠 El estado del producto no es machine-readable.** \`PLAN.md\` (1003 líneas)
+- [ ] **H.3.1 — El estado del producto no es machine-readable.** \`PLAN.md\` (1003 líneas)
   es la fuente real.
 
 ## SPRINT 27 — Backlog canónico
@@ -30,9 +34,9 @@ describe('parsePlanFeatureStatus', () => {
       writeFileSync(
         fixturePath,
         [
-          '- [x] **R.2-bis — 🔍 Título de prueba.** (cerrado 2026-09-06)',
-          "- [x] **H.8.3' — ⚡ Otro título.** (cerrado 2026-09-04)",
-          '- [ ] **S.9 — 🧠 Ítem normal abierto.**',
+          '- [x] **R.2-bis — Título de prueba.** (cerrado 2026-09-06)',
+          "- [x] **H.8.3' — Otro título.** (cerrado 2026-09-04)",
+          '- [ ] **S.9 — Ítem normal abierto.**',
           '- [x] **SÍ — Sprint 27 cerrado.**',
         ].join('\n'),
       )
@@ -69,13 +73,27 @@ describe('parsePlanFeatureStatus', () => {
     expect(second!.closedDate).toBeNull()
   })
 
-  test('delegation captura el emoji de la taxonomía', () => {
-    const [first, second] = parsePlanFeatureStatus(SAMPLE)
-    expect(first!.delegation).toBe('⚡')
-    expect(second!.delegation).toBe('🧠')
+  test('acepta ítems sin marcador y marcadores legados sin conservar delegation', () => {
+    const canonical = '- [ ] **DOC.7 — Título de prueba.**'
+    const expected = parsePlanFeatureStatus(canonical)
+    expect(expected[0]).toMatchObject({ id: 'DOC.7', title: 'Título de prueba', status: 'open' })
+    expect(expected[0]).not.toHaveProperty('delegation')
+    for (const marker of ['🧠', '⚡', '🔍']) {
+      expect(parsePlanFeatureStatus(canonical.replace('— ', `— ${marker} `))).toEqual(expected)
+    }
   })
 
-  test('un veredicto de cierre de mes (sin emoji de delegación) no cuenta como ítem', () => {
+  test('normaliza solo el marcador legado incluso si coincide con el título', () => {
+    for (const marker of ['🧠', '⚡', '🔍']) {
+      const canonical = `- [ ] **DOC.7 — ${marker}.**\n  Cuerpo literal.\n`
+      expect(normalizePlanItemHeader(canonical.replace('— ', `— ${marker} `))).toBe(canonical)
+    }
+    const canonical = '- [ ] **DOC.7 — Título.**\n'
+    expect(normalizePlanItemHeader(canonical)).toBe(canonical)
+    expect(normalizePlanItemHeader('Prosa literal.\n')).toBe('Prosa literal.\n')
+  })
+
+  test('un veredicto de cierre de mes (ID no ASCII) no cuenta como ítem', () => {
     const items = parsePlanFeatureStatus(SAMPLE)
     expect(items.find((i) => i.id === 'SÍ')).toBeUndefined()
   })
