@@ -583,10 +583,107 @@ export default async function tasks({ page, api, step, note, shot, visible, clea
   const roleBefore = (await tasksFor(api, project.id)).find((task) => task.id === 'gate-role-task')
   await page.getByRole('button', { name: 'Run gate-role-task', exact: true }).click()
   const roleFinished = await waitForTaskFinished(api, project.id, 'gate-role-task', roleBefore)
+  let roleFinishedDetail = JSON.stringify(roleFinished)
+  if (!(roleFinished?.status === 'done' && roleFinished?.qaVerdict === 'skipped')) {
+    const capture = async (read) => {
+      try {
+        return await read()
+      } catch (error) {
+        return { error: error instanceof Error ? error.message : String(error) }
+      }
+    }
+    const headers = { 'x-orchestos-project-id': project.id }
+    const diagnostics = {
+      task: await capture(() => roleFinished ?? null),
+      runs: await capture(async () => {
+        const response = await api('/api/runs', { headers })
+        return await Promise.all(
+          (response.data ?? [])
+            .filter((row) => row.taskId === 'gate-role-task')
+            .map(async (row) => ({
+              row,
+              detail: await capture(async () => {
+                const response = await api(`/api/runs/${encodeURIComponent(row.id)}`, { headers })
+                const detail = response.data ?? response
+                return Object.fromEntries(
+                  [
+                    'status',
+                    'result',
+                    'executorReply',
+                    'filesAttempted',
+                    'filesAuthorized',
+                    'filesBlocked',
+                    'checks',
+                    'model',
+                    'provider',
+                    'qaVerdict',
+                    'qaReason',
+                    'costBreakdown',
+                  ].map((key) => [key, detail[key] ?? null]),
+                )
+              }),
+            })),
+        )
+      }),
+      dashboardLog: await capture(() =>
+        readFileSync(join(runDir, 'dashboard.log'), 'utf8')
+          .split('\n')
+          .filter((line) => line.includes('[cli-spawn]') || line.includes('gate-role-task'))
+          .slice(-80),
+      ),
+      git: await capture(async () => {
+        const status = await capture(() => gitOut(['status', '--porcelain'], projectRoot))
+        const log = await capture(() => gitOut(['log', '-3', '--oneline'], projectRoot))
+        const worktrees = await capture(() => gitOut(['worktree', 'list'], projectRoot))
+        const worktreePaths = await capture(() =>
+          gitOut(['worktree', 'list', '--porcelain', '-z'], projectRoot)
+            .split('\0')
+            .filter((field) => field.startsWith('worktree '))
+            .map((field) => field.slice('worktree '.length)),
+        )
+        const roleFiles = await Promise.all(
+          [...new Set([projectRoot, ...(Array.isArray(worktreePaths) ? worktreePaths : [])])].map(
+            async (root) => {
+              const path = join(root, 'ROLE.md')
+              return {
+                path,
+                content: await capture(() => readFileSync(path, 'utf8').slice(0, 4000)),
+              }
+            },
+          ),
+        )
+        return { status, log, worktrees, worktreePaths, roleFiles }
+      }),
+    }
+    const diagnosticPath = join(runDir, 'role-task-missing-output.json')
+    const diagnosticWrite = await capture(() =>
+      writeFileSync(diagnosticPath, JSON.stringify(diagnostics, null, 2)),
+    )
+    roleFinishedDetail = JSON.stringify({
+      task: JSON.stringify(diagnostics.task).slice(0, 500),
+      result: JSON.stringify(
+        Array.isArray(diagnostics.runs)
+          ? diagnostics.runs.map((run) => run.detail.result ?? run.detail.error)
+          : diagnostics.runs,
+      ).slice(-300),
+      executorReply: JSON.stringify(
+        Array.isArray(diagnostics.runs)
+          ? diagnostics.runs.map((run) => run.detail.executorReply)
+          : diagnostics.runs,
+      ).slice(-350),
+      cliSpawn: JSON.stringify(
+        Array.isArray(diagnostics.dashboardLog)
+          ? diagnostics.dashboardLog.filter((line) => line.includes('[cli-spawn]'))
+          : diagnostics.dashboardLog,
+      ).slice(-350),
+      diagnosticPath,
+      diagnosticWrite,
+    })
+  }
   await step(
     'task without criteria completes with skipped QA',
     roleFinished?.status === 'done' && roleFinished?.qaVerdict === 'skipped',
-    JSON.stringify(roleFinished),
+    roleFinishedDetail,
   )
   const listed = await api('/api/runs', { headers: { 'x-orchestos-project-id': project.id } })
   const roleRun = (listed.data ?? []).find((item) => item.taskId === 'gate-role-task')
