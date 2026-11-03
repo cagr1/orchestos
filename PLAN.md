@@ -88,6 +88,10 @@ Cerrada. Todos sus ítems están archivados en `docs/done/` (ver "Cerrados — e
   Gates del cerebro: tsc, tests 36/0, `ui:gate model-routing` 19/19.
   Gate en vivo: navegador real (Playwright), `docs/done/evidence/OC.1-OC.2-live.json`.
   Ejecutado por: codex gpt-6.1-sol (criterio r1) · revisión Opus
+- [x] **OC.2.1 — ⚡ `opencode-engine.test.ts` simula el catálogo con el formato viejo.** (abierto 2026-11-03, regresión
+  de OC.2 vista en el pre-push; el cerebro corrió 3 archivos en vez de `test:coverage`)
+  Hecho: el mock responde a `model.list` con el JSON nuevo. Gate del cerebro: `test:coverage` 2240/0.
+  Ejecutado por: codex gpt-6-luna (mecanico r1) · revisión Opus
 - [ ] **OC.3 — ⚡ El ejecutor `opencode run` usa `--standalone` y `--model prov/modelo#variante`.** (abierto 2026-11-03)
   2.2.5 quitó `--variant`; sin `--standalone` depende del servicio. Falta validar `step-finish` con inferencia real.
 - [ ] **OC.4 — ⚡ El adaptador HTTP de aprobaciones migra a la API v2 de OpenCode.** (abierto 2026-11-03) Cambiaron

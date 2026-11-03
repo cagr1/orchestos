@@ -100,7 +100,8 @@ afterEach(() => {
 function overrideBunSpawn(proc: MockProc, catalogOutput?: string) {
   Bun.spawn = ((cmd: string[], opts?: { cwd?: string }) => {
     spawnCalls.push({ cmd: cmd.slice(), cwd: opts?.cwd ?? '' })
-    const selected = cmd.includes('--verbose') && catalogOutput ? makeMockProc(catalogOutput) : proc
+    const selected =
+      cmd.includes('model.list') && catalogOutput ? makeMockProc(catalogOutput) : proc
     selected.start?.()
     return selected as unknown as ReturnType<typeof Bun.spawn>
   }) as typeof Bun.spawn
@@ -310,7 +311,19 @@ describe('G.5 — opencodeEngine (opencode subprocess)', () => {
     trackWorktree(wt)
 
     const proc = installMockSpawn(ndjson(stepFinish(0.001, 5, 1)))
-    overrideBunSpawn(proc, 'deepseek/deepseek-v4-flash\n{"variants":{"high":{}}}')
+    overrideBunSpawn(
+      proc,
+      JSON.stringify({
+        location: 'remote',
+        data: [
+          {
+            providerID: 'deepseek',
+            id: 'deepseek-v4-flash',
+            variants: [{ id: 'high', settings: {} }],
+          },
+        ],
+      }),
+    )
 
     const ctx = buildCtx(wt, baseTask({ cli_effort: 'high' as any }))
     await opencodeEngine.run(ctx, { maxTokens: 1024, maxIterations: 1, timeoutMs: 5000 })
