@@ -68,7 +68,10 @@ Un solo presente: orden y trampas vivas. Lo cerrado vive en `docs/done/bloque-*.
 ## Orden
 0. Nada en curso. Auditoría de ADE hecha (UI.49–55). Candidatos sin ítem, para la próxima ronda con Carlos: mostrar
    los créditos de reinicio de Codex;
-   comentarios de Settings. UI.56 `487d2d52` cerró el anillo (sector relleno). Stop de OpenCode descartado: su chat
+   comentarios de Settings. UI.56 `487d2d52` cerró el anillo (sector relleno). UI.57 `a4beb111` (OpenCode con el tema, sin cabecera ni
+   texto) y UI.58 `82820986` (Terminal como pestaña central, PTY vivo entre pestañas). Propuesto a Carlos, sin GO:
+   UI.59 gate de pre-commit que exige `Texto visible:` en el ítem para todo literal JSX nuevo. Vistos sin ítem: con
+   4 pestañas el "+" sale de la vista; una vez la pestaña de la sesión de Claude desapareció de la franja. Stop de OpenCode descartado: su chat
    está desactivado (terminal en Dev, Ctrl+C) y las tareas ya cancelan (`opencode-server.ts:67`). CI.54 y CI.19 esperan su próximo fallo (leer la evidencia y escribir la fase 2).
    CI.55 (abierto `949847d2`): el gate `tasks` corre Codex real y una vez `gate-role-task` no dejó `ROLE.md`
    (tumbó el primer push del lote; aislado 43/43). Siguiente paso: que el fallo guarde la salida del CLI de esa
