@@ -742,6 +742,13 @@ Regla: nada se reintenta, cierra ni muestra sin evidencia medida que el usuario 
   5/30/50/85 % por el cerebro: `docs/done/evidence/UI.56-rings.png`.
   Gate en vivo: navegador real (Playwright), `docs/done/evidence/UI.56-live.json` (captura `UI.56-rings.png`).
   Ejecutado por: codex gpt-6-luna (mecanico) · revisión Opus
+- [x] **CI.56 — 🔍 `codex-live`: la palabra a recordar se parecía al tema y el modelo contestó "MANGOES".** (abierto
+  2026-11-03) Pre-push del lote UI.57/58: mismo hilo en los dos turnos, pero la palabra `MANGO-<8>` con el tema
+  "mangoes" (`codex-live.mjs:151`) hizo que Codex respondiera "MANGOES". El primer intento cayó en `chat-continuity`
+  por timeout de 180 s esperando al modelo (anotado, pasó en el reintento).
+  Hecho: la palabra es `ZEBRA-<8>`; tema y aserción exacta iguales; ningún otro flow usa el patrón. Gates: lint
+  (ejecutor), `codex-live` 15/15 (ejecutor y cerebro, `gate:evidence` `CI.56-codex-live`).
+  Ejecutado por: codex gpt-6-luna (mecanico) · revisión Opus
 - [ ] **CI.55 — 🔍 `tasks`: la tarea real `gate-role-task` a veces no deja `ROLE.md` en el primer intento.** (abierto 2026-11-02)
   Visto 1 vez (pre-push del lote UI.49–55, 2026-11-02): el gate corre Codex real (`gpt-6-luna`); la corrida
   terminó con `retryReason: "missing declared output(s): ROLE.md"`, `retryCount: 1`, `runId: null`, `qaVerdict: fail`, y

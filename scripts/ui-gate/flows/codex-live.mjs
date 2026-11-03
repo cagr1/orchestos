@@ -148,7 +148,7 @@ export default async function codexLive({
       })
   const sampleInterval = 150
   const composer = page.locator('textarea').last()
-  const word = `MANGO-${Math.random().toString(36).slice(2, 10).toUpperCase()}`
+  const word = `ZEBRA-${Math.random().toString(36).slice(2, 10).toUpperCase()}`
   const sentMessage = `Remember the word ${word}. Reply in ten short paragraphs about mangoes.`
   let firstResponseStatus = null
   const observeFirstResponse = (response) => {

@@ -616,6 +616,15 @@
       "closedDate": null
     },
     {
+      "id": "CI.56",
+      "sprint": "Fase 2 — Producto mínimo para entrega",
+      "block": "Abiertos — fiabilidad de los gates y documentación",
+      "delegation": "🔍",
+      "title": "`codex-live`: la palabra a recordar se parecía al tema y el modelo contestó \"MANGOES\"",
+      "status": "done",
+      "closedDate": null
+    },
+    {
       "id": "CI.55",
       "sprint": "Fase 2 — Producto mínimo para entrega",
       "block": "Abiertos — fiabilidad de los gates y documentación",
