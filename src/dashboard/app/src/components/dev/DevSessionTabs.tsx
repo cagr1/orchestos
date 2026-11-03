@@ -242,7 +242,7 @@ export function DevSessionTabs({
                 key={option.id}
                 type="button"
                 role="menuitemradio"
-                aria-label={`${cliDisplayName(option.id, option.label)}${option.terminal ? ' Terminal' : ''}`}
+                aria-label={cliDisplayName(option.id, option.label)}
                 aria-checked={selected === index}
                 tabIndex={selected === index ? 0 : -1}
                 onFocus={() => setSelected(index)}
@@ -251,9 +251,6 @@ export function DevSessionTabs({
               >
                 <ProviderLogo id={option.id} size={14} />
                 {cliDisplayName(option.id, option.label)}
-                {option.terminal && (
-                  <span className="ml-auto text-[10px] text-app-muted">Terminal</span>
-                )}
               </button>
             ))}
           </div>,

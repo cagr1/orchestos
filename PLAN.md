@@ -713,6 +713,17 @@ Regla: nada se reintenta, cierra ni muestra sin evidencia medida que el usuario 
   `ui:gate chat-stop` 22/22. Sol: `chat-stop` 22/22, `chat-streaming` 27/27, `codex-live` 15/15.
   Gate en vivo: navegador real (Playwright), `docs/done/evidence/CHAT.4-live.json`.
   Ejecutado por: codex gpt-6.1-sol (criterio, .1 y .2) · revisión Opus · Spec: docs/specs/CHAT.4.md
+- [x] **UI.57 — ⚡ La pestaña OpenCode usa el tema elegido y no repite la cabecera.** (abierto 2026-11-03) Visto por
+  Carlos con Carbon: el terminal sale con el tema por defecto (lee las variables de `<html>`, el `data-theme` vive en
+  `App.tsx:1508`) y la pestaña repite "OpenCode" + "×" en una cabecera propia (`OpenCodeTerminal.tsx:118`).
+  Hecho: el terminal lee el tema del host y lo actualiza al cambiarlo (`MutationObserver` sobre `data-theme`); la
+  pestaña OpenCode no tiene cabecera (se cierra desde la pestaña), spinner sin texto hasta el primer byte, botón ícono
+  Reabrir al terminar. r2 (Carlos): fuera "Terminal" del menú del "+" y todo texto que el ícono ya dice.
+  Gates del cerebro: lint, typecheck, `test:coverage` 2217/0. `dev-session-tabs` 42/42, `opencode-terminal` 11/11
+  (Carbon `rgb(9, 9, 11)`, Graphite `rgb(15, 17, 21)`).
+  Gate en vivo: navegador real (Playwright), `docs/done/evidence/UI.57-live.json` (capturas `UI.57-menu.png`,
+  `UI.57-opencode.png`).
+  Ejecutado por: codex gpt-6-luna (mecanico, r1 r2) · revisión Opus
 - [x] **UI.56 — ⚡ El anillo de contexto con poco uso no parece un spinner de carga.** (abierto 2026-11-02) Auditoría
   de ADE: a ~5 % el anillo es pista gris + arco corto redondeado sin número (`ContextRing.tsx:61-92`), la forma de un
   spinner. Cambio: sector de pastel relleno dentro de la pista; el resto igual.

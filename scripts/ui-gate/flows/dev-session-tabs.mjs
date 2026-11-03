@@ -308,13 +308,15 @@ for (const probe of [systemCliDiscoveryProbe, systemCliHealthProbe]) {
   const agentMenu = page.getByRole('menu', { name: 'New session agent', exact: true })
   await agentMenu.waitFor()
   await step(
-    'plus opens usable agents including OpenCode Terminal with last used agent preselected',
+    'plus opens usable agents including OpenCode with last used agent preselected',
     (await agentMenu.getByRole('menuitemradio').first().innerText()) === 'Claude' &&
       (await agentMenu.getByRole('menuitemradio').first().getAttribute('aria-checked')) ===
         'true' &&
+      (await agentMenu.getByRole('menuitemradio', { name: 'OpenCode', exact: true }).count()) ===
+        1 &&
       (await agentMenu
-        .getByRole('menuitemradio', { name: 'OpenCode Terminal', exact: true })
-        .count()) === 1,
+        .getByRole('menuitemradio', { name: 'OpenCode', exact: true })
+        .innerText()) === 'OpenCode',
     await agentMenu.innerText(),
   )
   await shot('new-session-agent-menu')
@@ -431,11 +433,13 @@ for (const probe of [systemCliDiscoveryProbe, systemCliHealthProbe]) {
         new URL(response.url()).pathname === '/api/chat/sessions' &&
         response.request().method() === 'POST',
     ),
-    agentMenu.getByRole('menuitemradio', { name: 'OpenCode Terminal', exact: true }).click(),
+    agentMenu.getByRole('menuitemradio', { name: 'OpenCode', exact: true }).click(),
   ])
   const terminalSession = await createdTerminal.json()
   const terminalTab = tabs.locator(`[data-session-tab="${terminalSession.id}"]`)
   const terminal = page.getByRole('region', { name: 'OpenCode terminal' })
+  await terminal.waitFor()
+  await shot('opencode-terminal-starting')
   await terminal
     .locator('.xterm-rows')
     .getByText('OpenCode terminal fixture ready', { exact: false })
@@ -458,7 +462,7 @@ for (const probe of [systemCliDiscoveryProbe, systemCliHealthProbe]) {
   await step(
     'OpenCode counts as last used agent',
     (await agentMenu.getByRole('menuitemradio').first().getAttribute('aria-label')) ===
-      'OpenCode Terminal' &&
+      'OpenCode' &&
       (await agentMenu.getByRole('menuitemradio').first().getAttribute('aria-checked')) === 'true',
     await agentMenu.innerText(),
   )

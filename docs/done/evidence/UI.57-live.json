@@ -1,0 +1,56 @@
+{
+  "item": "UI.57",
+  "date": "2026-11-03",
+  "browser": "Playwright chromium, dashboard real (ui-gate)",
+  "flows": [
+    {
+      "flow": "dev-session-tabs",
+      "pass": true,
+      "steps": 42,
+      "relevant": [
+        {
+          "nombre": "running session tab shows the accent spinner",
+          "ok": true,
+          "detalle": "Alpha spinner is visible while its session is running"
+        },
+        {
+          "nombre": "finished session timeline clears its tab spinner",
+          "ok": true,
+          "detalle": "Alpha spinner clears when its active timeline reports pending false"
+        },
+        {
+          "nombre": "Escape closes menu without creating a tab",
+          "ok": true,
+          "detalle": "tab count unchanged"
+        }
+      ]
+    },
+    {
+      "flow": "opencode-terminal",
+      "pass": true,
+      "steps": 11,
+      "relevant": [
+        {
+          "nombre": "OpenCode terminal inherits Carbon background",
+          "ok": true,
+          "detalle": "rgb(9, 9, 11)"
+        },
+        {
+          "nombre": "OpenCode terminal inherits theme changes while mounted",
+          "ok": true,
+          "detalle": "rgb(15, 17, 21)"
+        },
+        {
+          "nombre": "terminal remains visible after viewport resize",
+          "ok": true,
+          "detalle": "Terminal region survived resize"
+        },
+        {
+          "nombre": "OpenCode tab has no duplicate terminal header or close button",
+          "ok": true,
+          "detalle": "ok"
+        }
+      ]
+    }
+  ]
+}

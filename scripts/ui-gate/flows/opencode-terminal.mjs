@@ -60,6 +60,7 @@ export default async function opencodeTerminal({ page, api, step, visible, clean
   if (!created.data?.id)
     throw new Error(`Could not create OpenCode session: ${JSON.stringify(created)}`)
   const before = opencodePids()
+  await page.evaluate(() => localStorage.setItem('orchestos-theme', 'carbon'))
   await page.reload({ waitUntil: 'domcontentloaded' })
   await page.getByRole('button', { name: 'Dev', exact: true }).click()
   const projectName = basename(projectRoot)
@@ -95,6 +96,7 @@ export default async function opencodeTerminal({ page, api, step, visible, clean
     await visible(terminal),
     'OpenCode terminal region visible',
   )
+  await shot('opencode-terminal-starting')
   await page.waitForTimeout(4_000)
   const rows = page.locator('.xterm-rows')
   const hasText = await rows
@@ -104,6 +106,31 @@ export default async function opencodeTerminal({ page, api, step, visible, clean
     'OpenCode TUI rendered text',
     hasText,
     await rows.innerText().catch(() => 'No xterm rows'),
+  )
+  const xterm = terminal.locator('.xterm')
+  const carbonBackground = await xterm
+    .locator('.xterm-viewport')
+    .evaluate((element) => getComputedStyle(element).backgroundColor)
+  await step(
+    'OpenCode terminal inherits Carbon background',
+    carbonBackground === 'rgb(9, 9, 11)',
+    carbonBackground,
+  )
+  await page
+    .locator('[data-theme]')
+    .evaluate((element) => element.setAttribute('data-theme', 'graphite'))
+  await page.waitForFunction(
+    () =>
+      getComputedStyle(document.querySelector('.xterm-viewport')).backgroundColor ===
+      'rgb(15, 17, 21)',
+  )
+  const graphiteBackground = await xterm
+    .locator('.xterm-viewport')
+    .evaluate((element) => getComputedStyle(element).backgroundColor)
+  await step(
+    'OpenCode terminal inherits theme changes while mounted',
+    graphiteBackground === 'rgb(15, 17, 21)',
+    graphiteBackground,
   )
   const spawned = [...opencodePids()].filter((pid) => !before.has(pid))
   await step(
@@ -119,11 +146,16 @@ export default async function opencodeTerminal({ page, api, step, visible, clean
     await visible(terminal),
     'Terminal region survived resize',
   )
-  const closeButton = page.getByRole('button', { name: 'Cerrar terminal', exact: true })
+  const closeButton = page.getByRole('button', { name: `Close tab ${title}`, exact: true })
   await step(
-    'OpenCode terminal close button is available',
+    'OpenCode tab has no duplicate terminal header or close button',
+    (await terminal.getByText(title, { exact: true }).count()) === 0 &&
+      (await terminal.getByRole('button', { name: 'Cerrar terminal', exact: true }).count()) === 0,
+  )
+  await step(
+    'OpenCode tab close button is available',
     await visible(closeButton),
-    'Button accessible name: Cerrar terminal',
+    'Close button belongs to the session tab',
   )
   await closeButton.click()
   await page.waitForTimeout(3_000)

@@ -1,5 +1,6 @@
 import { FitAddon } from '@xterm/addon-fit'
 import { Terminal } from '@xterm/xterm'
+import { Loader2, RotateCcw } from 'lucide-react'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import '@xterm/xterm/css/xterm.css'
 
@@ -19,21 +20,25 @@ export function OpenCodeTerminal({ projectId, sessionTitle, onClose, kind = 'ope
   const [attempt, setAttempt] = useState(0)
   const [state, setState] = useState<'connecting' | 'connected' | 'error' | 'exited'>('connecting')
   const [message, setMessage] = useState('')
+  const [hasOutput, setHasOutput] = useState(false)
 
   useEffect(() => {
     const host = hostRef.current
     if (!host) return
-    const styles = getComputedStyle(document.documentElement)
+    const getTerminalTheme = () => {
+      const styles = getComputedStyle(host)
+      return {
+        background: styles.getPropertyValue('--app-bg').trim() || '#111827',
+        foreground: styles.getPropertyValue('--app-text').trim() || '#e5e7eb',
+        cursor: styles.getPropertyValue('--app-accent').trim() || '#8b5cf6',
+      }
+    }
     const terminal = new Terminal({
       fontFamily: '"Fira Code", monospace',
       fontSize: 13,
       cursorBlink: true,
       convertEol: false,
-      theme: {
-        background: styles.getPropertyValue('--app-bg').trim() || '#111827',
-        foreground: styles.getPropertyValue('--app-text').trim() || '#e5e7eb',
-        cursor: styles.getPropertyValue('--app-accent').trim() || '#8b5cf6',
-      },
+      theme: getTerminalTheme(),
     })
     const fit = new FitAddon()
     terminal.loadAddon(fit)
@@ -42,6 +47,8 @@ export function OpenCodeTerminal({ projectId, sessionTitle, onClose, kind = 'ope
         (event) => !(event.ctrlKey && (event.code === 'Backquote' || event.key === '`')),
       )
     terminal.open(host)
+    const viewport = host.querySelector<HTMLElement>('.xterm-viewport')
+    if (viewport) viewport.style.backgroundColor = getTerminalTheme().background
     terminalRef.current = terminal
     if (isShell) terminal.focus()
     const connect = () => {
@@ -54,8 +61,10 @@ export function OpenCodeTerminal({ projectId, sessionTitle, onClose, kind = 'ope
       socketRef.current = socket
       socket.onopen = () => setState('connected')
       socket.onmessage = (event) => {
-        if (event.data instanceof ArrayBuffer) terminal.write(new Uint8Array(event.data))
-        else {
+        if (event.data instanceof ArrayBuffer) {
+          setHasOutput(true)
+          terminal.write(new Uint8Array(event.data))
+        } else {
           try {
             const payload = JSON.parse(String(event.data))
             if (payload.type === 'error') {
@@ -89,8 +98,18 @@ export function OpenCodeTerminal({ projectId, sessionTitle, onClose, kind = 'ope
         )
     })
     observer.observe(host)
+    const themeHost = host.closest('[data-theme]')
+    const themeObserver = new MutationObserver(() => {
+      const theme = getTerminalTheme()
+      terminal.options.theme = theme
+      const viewport = host.querySelector<HTMLElement>('.xterm-viewport')
+      if (viewport) viewport.style.backgroundColor = theme.background
+    })
+    if (themeHost)
+      themeObserver.observe(themeHost, { attributes: true, attributeFilter: ['data-theme'] })
     return () => {
       observer.disconnect()
+      themeObserver.disconnect()
       input.dispose()
       socketRef.current?.close()
       socketRef.current = null
@@ -102,6 +121,7 @@ export function OpenCodeTerminal({ projectId, sessionTitle, onClose, kind = 'ope
   const reopen = useCallback(() => {
     terminalRef.current?.clear()
     setMessage('')
+    setHasOutput(false)
     setState('connecting')
     setAttempt((value) => value + 1)
   }, [])
@@ -111,35 +131,59 @@ export function OpenCodeTerminal({ projectId, sessionTitle, onClose, kind = 'ope
       className="flex-1 min-w-0 h-full flex flex-col overflow-hidden"
       aria-label={isShell ? 'Project terminal' : 'OpenCode terminal'}
     >
-      <header className="h-9 shrink-0 flex items-center justify-between border-b border-[var(--app-border)] px-3 text-xs text-[var(--app-text-muted)]">
-        <span className="truncate">{sessionTitle}</span>
-        <div className="flex items-center gap-2">
-          {state === 'connecting' && <span>Conectando…</span>}
-          {state === 'error' && (
-            <span role="alert" className="text-red-400">
-              {message}
-            </span>
-          )}
-          {state === 'exited' && (
-            <>
-              <span>{isShell ? 'Process exited' : 'Proceso terminado'}</span>
-              <button type="button" onClick={reopen} className="text-[var(--app-accent)]">
-                {isShell ? 'Reopen' : 'Reabrir'}
+      {isShell && (
+        <header className="h-9 shrink-0 flex items-center justify-between border-b border-[var(--app-border)] px-3 text-xs text-[var(--app-text-muted)]">
+          <span className="truncate">{sessionTitle}</span>
+          <div className="flex items-center gap-2">
+            {state === 'connecting' && <span>Conectando…</span>}
+            {state === 'error' && (
+              <span role="alert" className="text-red-400">
+                {message}
+              </span>
+            )}
+            {state === 'exited' && (
+              <>
+                <span>Process exited</span>
+                <button type="button" onClick={reopen} className="text-[var(--app-accent)]">
+                  Reopen
+                </button>
+              </>
+            )}
+            {onClose && (
+              <button type="button" onClick={onClose} aria-label="Close terminal">
+                ×
               </button>
-            </>
-          )}
-          {onClose && (
+            )}
+          </div>
+        </header>
+      )}
+      <div className="relative flex-1 min-h-0 p-2">
+        <div ref={hostRef} className="h-full min-h-0" />
+        {!isShell && !hasOutput && state !== 'error' && state !== 'exited' && (
+          <div className="absolute inset-0 z-10 flex items-center justify-center text-[var(--app-text-muted)]">
+            <Loader2
+              size={16}
+              className="animate-spin"
+              role="status"
+              aria-label="Iniciando OpenCode"
+            />
+          </div>
+        )}
+        {!isShell && (state === 'error' || state === 'exited') && (
+          <div className="absolute inset-0 z-10 flex items-center justify-center gap-3 text-sm text-[var(--app-text-muted)]">
+            {state === 'error' && <span role="alert">{message}</span>}
             <button
               type="button"
-              onClick={onClose}
-              aria-label={isShell ? 'Close terminal' : 'Cerrar terminal'}
+              onClick={reopen}
+              className="text-[var(--app-accent)]"
+              aria-label="Reabrir"
+              title="Reabrir"
             >
-              ×
+              <RotateCcw size={16} />
             </button>
-          )}
-        </div>
-      </header>
-      <div ref={hostRef} className="flex-1 min-h-0 p-2" />
+          </div>
+        )}
+      </div>
     </section>
   )
 }

@@ -1650,11 +1650,6 @@ export default function App() {
                     key={activeAgent.id}
                     projectId={currentProject.id}
                     sessionTitle={activeAgent.name}
-                    onClose={() =>
-                      updateDevTabs(activeProjectId, (tabs) =>
-                        closeSessionTab(tabs, activeAgent.id),
-                      )
-                    }
                   />
                 ) : activeDevTab && currentProject && !deletingProjectIds.has(currentProject.id) ? (
                   <OrchestDevWorkspace
