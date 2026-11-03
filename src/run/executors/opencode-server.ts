@@ -4,23 +4,76 @@ import { safeChildEnv } from '../path-policy.ts'
 import { type OpencodePermission, opencodeApprovalRequest } from './opencode-approval.ts'
 import { type ExecutorStepEvent, opencodeEventToStep } from './step-event.ts'
 
-interface SessionMessage {
-  info: { role: string; time?: { completed?: number }; error?: unknown }
-  parts: Array<{ type: string; [key: string]: unknown }>
+interface Part {
+  type: string
+  text?: string
+  name?: string
+  time?: { completed?: number }
+  state?: {
+    status?: string
+    input?: Record<string, unknown>
+    content?: Array<{ type: string; text?: string }>
+    error?: { message?: string }
+  }
 }
 
-/** Session storage uses the same parts as run --format json. Ignore user parts. */
-export function opencodeMessagesToStream(messages: SessionMessage[]): string {
-  const types: Record<string, string> = {
-    tool: 'tool_use',
-    'step-finish': 'step_finish',
-    'step-start': 'step_start',
+interface SessionMessage {
+  id: string
+  type: string
+  time?: { created?: number; completed?: number }
+  content?: Part[]
+  finish?: string
+  error?: unknown
+  cost?: number
+  tokens?: { input?: number; output?: number }
+}
+
+function partEvent(part: Part) {
+  if (part.type === 'text' || part.type === 'reasoning')
+    return { type: part.type, part: { type: part.type, text: part.text } }
+  if (part.type === 'tool')
+    return {
+      type: 'tool_use',
+      part: {
+        type: 'tool',
+        tool: part.name,
+        state: {
+          status: part.state?.status,
+          input: part.state?.input,
+          output:
+            part.state?.status === 'error'
+              ? part.state.error?.message
+              : (part.state?.content ?? [])
+                  .filter((item) => item.type === 'text')
+                  .map((item) => item.text ?? '')
+                  .join('\n'),
+        },
+      },
+    }
+  return undefined
+}
+
+function finishEvent(message: SessionMessage) {
+  return {
+    type: 'step_finish',
+    part: {
+      type: 'step-finish',
+      reason: message.finish,
+      cost: message.cost ?? 0,
+      tokens: { input: message.tokens?.input, output: message.tokens?.output },
+    },
   }
+}
+
+/** Translate v2 stored messages into the existing NDJSON executor contract. */
+export function opencodeMessagesToStream(messages: SessionMessage[]): string {
   return messages
-    .filter((message) => message.info.role === 'assistant')
-    .flatMap((message) =>
-      message.parts.map((part) => JSON.stringify({ type: types[part.type] ?? part.type, part })),
-    )
+    .filter((message) => message.type === 'assistant')
+    .flatMap((message) => [
+      ...(message.content ?? []).map(partEvent).filter((event) => event !== undefined),
+      ...(message.time?.completed ? [finishEvent(message)] : []),
+    ])
+    .map((event) => JSON.stringify(event))
     .join('\n')
 }
 
@@ -111,7 +164,7 @@ export async function runOpencodeServer(
           if (done) break
           buffer = (buffer + decoder.decode(value, { stream: true })).slice(-8192)
           const match = buffer.match(
-            /opencode server listening on (http:\/\/127\.0\.0\.1:\d+)\r?\n/,
+            /(?:opencode )?server listening on (http:\/\/127\.0\.0\.1:\d+)\r?\n/i,
           )
           if (match) resolveAddress(match[1]!)
         }
@@ -122,89 +175,111 @@ export async function runOpencodeServer(
     void consume(proc.stdout).catch((error) => controller.abort(error))
     void consume(proc.stderr).catch((error) => controller.abort(error))
     const base = await bounded(address)
-    const api = async <T>(path: string, body?: unknown): Promise<T> => {
+    const apiBody = async <T>(path: string, body?: unknown): Promise<T> => {
       const response = await bounded(
-        probe.fetch(`${base}${path}?directory=${encodeURIComponent(input.cwd)}`, {
-          method: body === undefined ? 'GET' : 'POST',
-          headers: { 'Content-Type': 'application/json', Authorization: authorization },
-          ...(body === undefined ? {} : { body: JSON.stringify(body) }),
-          signal: controller.signal,
-        }),
+        probe.fetch(
+          `${base}${path}${path.includes('?') ? '&' : '?'}directory=${encodeURIComponent(input.cwd)}`,
+          {
+            method: body === undefined ? 'GET' : 'POST',
+            headers: { 'Content-Type': 'application/json', Authorization: authorization },
+            ...(body === undefined ? {} : { body: JSON.stringify(body) }),
+            signal: controller.signal,
+          },
+        ),
       )
       if (!response.ok) throw new Error(`OpenCode ${path}: HTTP ${response.status}`)
       return response.status === 204 ? (undefined as T) : (bounded(response.json()) as Promise<T>)
     }
-    const session = await api<{ id: string }>('/session', {
+    const api = async <T>(path: string, body?: unknown): Promise<T> =>
+      (await apiBody<{ data: T } | undefined>(path, body))?.data as T
+    const slash = input.model?.indexOf('/') ?? -1
+    const session = await api<{ id: string }>('/api/session', {
       title: `OrchestOS ${input.approvals.runId}`,
-      permission: [
-        { permission: '*', pattern: '*', action: 'ask' },
-        ...['read', 'glob', 'grep', 'list'].map((permission) => ({
-          permission,
-          pattern: '*',
-          action: 'allow',
+      permissions: [
+        { action: '*', resource: '*', effect: 'ask' },
+        ...['read', 'glob', 'grep', 'list'].map((action) => ({
+          action,
+          resource: '*',
+          effect: 'allow',
         })),
       ],
-    })
-    if (typeof session.id !== 'string' || !session.id)
-      throw new Error('OpenCode returned no session id')
-    const path = `/session/${encodeURIComponent(session.id)}`
-    const slash = input.model?.indexOf('/') ?? -1
-    await api(`${path}/prompt_async`, {
       ...(input.model && slash > 0
         ? {
             model: {
               providerID: input.model.slice(0, slash),
-              modelID: input.model.slice(slash + 1),
+              id: input.model.slice(slash + 1),
+              ...(input.variant ? { variant: input.variant } : {}),
             },
           }
         : {}),
-      ...(input.variant ? { variant: input.variant } : {}),
-      parts: [{ type: 'text', text: input.prompt }],
     })
+    if (typeof session.id !== 'string' || !session.id)
+      throw new Error('OpenCode returned no session id')
+    const path = `/api/session/${encodeURIComponent(session.id)}`
+    await api(`${path}/prompt`, { text: input.prompt })
+    const readMessages = async (): Promise<SessionMessage[]> => {
+      const messages: SessionMessage[] = []
+      let query = 'order=asc&limit=200'
+      while (true) {
+        const page = await apiBody<{
+          data: SessionMessage[]
+          cursor?: { next?: string }
+        }>(`${path}/message?${query}`)
+        messages.push(...page.data)
+        if (page.data.length < 200) return messages
+        if (!page.cursor?.next) throw new Error('OpenCode message page returned no next cursor')
+        query = `cursor=${encodeURIComponent(page.cursor.next)}&limit=200`
+      }
+    }
     const replied = new Set<string>()
     const emitted = new Set<string>()
     while (true) {
-      for (const permission of await api<OpencodePermission[]>('/permission')) {
+      for (const permission of await api<OpencodePermission[]>('/api/permission/request')) {
         if (permission.sessionID !== session.id || replied.has(permission.id)) continue
         const decision = await bounded(
           input.approvals.requestApproval(opencodeApprovalRequest(permission, input.cwd)),
         )
         // Never send OpenCode's pattern-wide "always", even for an OrchestOS grant.
-        await api(`/permission/${encodeURIComponent(permission.id)}/reply`, {
-          reply: decision === 'approve' ? 'once' : 'reject',
+        await api(`${path}/permission/${encodeURIComponent(permission.id)}/reply`, {
+          decision: decision === 'approve' ? 'once' : 'reject',
         })
         replied.add(permission.id)
       }
-      const statuses = await api<Record<string, { type: string }>>('/session/status')
+      const active = await api<Record<string, { type: string }>>('/api/session/active')
       // Read after status: an idle transition must not finalize an older snapshot.
-      const messages = await api<SessionMessage[]>(`${path}/message`)
-      for (const [messageIndex, message] of messages.entries()) {
-        if (message.info.role !== 'assistant') continue
-        for (const [partIndex, part] of message.parts.entries()) {
-          const state = part.state as { status?: string } | undefined
-          if (part.type === 'tool' && state?.status !== 'completed' && state?.status !== 'error')
+      const messages = await readMessages()
+      const emit = (
+        id: string,
+        event: ReturnType<typeof partEvent> | ReturnType<typeof finishEvent>,
+      ) => {
+        if (!event || emitted.has(id)) return
+        for (const step of opencodeEventToStep(event)) input.onStep?.(step)
+        emitted.add(id)
+      }
+      for (const message of messages) {
+        if (message.type !== 'assistant') continue
+        for (const [index, part] of (message.content ?? []).entries()) {
+          if (
+            part.type === 'tool' &&
+            part.state?.status !== 'completed' &&
+            part.state?.status !== 'error'
+          )
             continue
           if (
             (part.type === 'text' || part.type === 'reasoning') &&
-            !message.info.time?.completed &&
-            !(part.time as { end?: number } | undefined)?.end
+            !part.time?.completed &&
+            !message.time?.completed
           )
             continue
-          const id = typeof part.id === 'string' ? part.id : `${messageIndex}:${partIndex}`
-          if (emitted.has(id)) continue
-          const stream = opencodeMessagesToStream([{ ...message, parts: [part] }])
-          for (const step of opencodeEventToStep(JSON.parse(stream))) input.onStep?.(step)
-          emitted.add(id)
+          emit(`${message.id}:${index}`, partEvent(part))
         }
+        if (message.time?.completed) emit(`${message.id}:finish`, finishEvent(message))
       }
-      const last = messages.filter((message) => message.info.role === 'assistant').at(-1)
+      const last = messages.filter((message) => message.type === 'assistant').at(-1)
       // A fresh session is also idle: require a completed assistant message before accepting idle.
-      if (
-        (!statuses[session.id] || statuses[session.id]?.type === 'idle') &&
-        last?.info.time?.completed
-      ) {
-        if (last.info.error)
-          throw new Error(`OpenCode task failed: ${JSON.stringify(last.info.error)}`)
+      if (!(session.id in active) && last?.time?.completed) {
+        if (last.error || last.finish === 'error')
+          throw new Error(`OpenCode task failed: ${JSON.stringify(last.error ?? last.finish)}`)
         const stdout = opencodeMessagesToStream(messages)
         return { stdout, timedOut: false }
       }

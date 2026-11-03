@@ -114,8 +114,15 @@ Cerrada. Todos sus ítems están archivados en `docs/done/` (ver "Cerrados — e
   `test:coverage` 2243/0. Gate en vivo: inferencia real con los args del chat, `docs/done/evidence/OC.3-live.json`.
   Revisión: Opus.
   Ejecutado por: codex gpt-6-luna (mecanico r1) · Spec: docs/specs/OC.3.md
-- [ ] **OC.4 — El adaptador HTTP de aprobaciones migra a la API v2 de OpenCode.** (abierto 2026-11-03) Cambiaron
-  banner, `/api/session`, prompt, modelo y permisos (`src/run/executors/opencode-server.ts`).
+- [x] **OC.4 — El adaptador HTTP de aprobaciones migra a la API v2 de OpenCode.** (abierto 2026-11-03) Cambiaron
+  banner, `/api/session`, prompt, modelo y permisos (`src/run/executors/opencode-server.ts`). Hecho: rutas `/api`,
+  envoltura `data`, reglas `{action,resource,effect}`, variante dentro de `model`, `decision` once/reject (nunca always),
+  `session/active`, mensajes paginados y traducidos al NDJSON de siempre; permisos v2 en `opencode-approval.ts`.
+  r1: el test del motor seguía simulando la API v1. Gates del cerebro: tsc, lint, `test:coverage` 2250/0.
+  Gate en vivo: `opencode serve` real, edición aprobada crea el archivo con costo y tokens; shell rechazado falla la
+  tarea; sin servidores huérfanos (`docs/done/evidence/OC.4-live.json`).
+  Revisión: Opus (diff de Sol leído completo).
+  Ejecutado por: codex gpt-6.1-sol (criterio) + gpt-6-luna (mecanico r1) · Spec: docs/specs/OC.4.md
 - [ ] **CI.19 — El `git commit` del fixture falla a veces en el andamiaje de los ui-gates.** Visto 1 vez en
   `qa-negative` (2026-10-11, 1 de 9): `Command failed: git … commit -qm task fixture`, sin motivo porque el helper
   `run` usa `stdio: 'ignore'`. `qa-negative` ya reporta stdout/stderr y exit; los otros 20 flows con el mismo helper no.

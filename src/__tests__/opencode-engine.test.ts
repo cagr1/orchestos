@@ -213,7 +213,7 @@ describe('G.5 — opencodeEngine (opencode subprocess)', () => {
     writeFileSync(join(wt.path, 'out.txt'), 'approved edit\n')
     let exit!: (code: number) => void
     let killed = false
-    const proc = makeMockProc('opencode server listening on http://127.0.0.1:1234\n')
+    const proc = makeMockProc('Server listening on http://127.0.0.1:1234\n')
     proc.exited = new Promise((resolve) => {
       exit = resolve
     })
@@ -222,22 +222,42 @@ describe('G.5 — opencodeEngine (opencode subprocess)', () => {
       exit(0)
     }
     overrideBunSpawn(proc)
-    globalThis.fetch = (async (url: string) => {
+    globalThis.fetch = (async (url: string, init?: RequestInit) => {
       const path = new URL(url).pathname
-      if (path === '/session') return Response.json({ id: 'ses_task' })
-      if (path.endsWith('/prompt_async')) return new Response(null, { status: 204 })
-      if (path === '/permission') return Response.json([])
-      if (path === '/session/status') return Response.json({})
-      return Response.json([
-        {
-          info: { role: 'assistant', time: { completed: 1 } },
-          parts: [
-            stepFinish(0.002, 100, 10).part,
-            { type: 'text', text: 'done' },
-            stepFinish(0.0005, 20, 2).part,
+      if (path === '/api/session' && init?.method === 'POST') {
+        return Response.json({ data: { id: 'ses_task' } })
+      }
+      if (path === '/api/session/ses_task/prompt') {
+        return Response.json({ data: { id: 'msg_user', type: 'user' } })
+      }
+      if (path === '/api/permission/request') return Response.json({ data: [] })
+      if (path === '/api/session/active') return Response.json({ data: {} })
+      if (path === '/api/session/ses_task/message') {
+        return Response.json({
+          data: [
+            {
+              id: 'msg_assistant_1',
+              type: 'assistant',
+              time: { created: 1, completed: 2 },
+              finish: 'tool-calls',
+              cost: 0.002,
+              tokens: { input: 100, output: 10 },
+              content: [],
+            },
+            {
+              id: 'msg_assistant_2',
+              type: 'assistant',
+              time: { created: 1, completed: 2 },
+              finish: 'stop',
+              cost: 0.0005,
+              tokens: { input: 20, output: 2 },
+              content: [{ type: 'text', text: 'done' }],
+            },
           ],
-        },
-      ])
+          cursor: {},
+        })
+      }
+      return new Response('unexpected', { status: 404 })
     }) as typeof fetch
     const outcome = await opencodeEngine.run(buildCtx(wt, baseTask()), {
       maxTokens: 8192,
