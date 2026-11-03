@@ -424,6 +424,78 @@ for (const probe of [systemCliDiscoveryProbe, systemCliHealthProbe]) {
     ),
     'dead id removed',
   )
+  const crowdedSessions = []
+  for (let index = 0; index < 5; index++) {
+    const response = await api('/api/chat/sessions', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-orchestos-project-id': project.id },
+      body: JSON.stringify({
+        agent: 'claude',
+        projectId: project.id,
+        title: `Dev tab Crowded ${index + 1}`,
+      }),
+    })
+    if (!response.ok || !response.data.id)
+      throw new Error(`create crowded session: ${JSON.stringify(response)}`)
+    crowdedSessions.push(response.data)
+  }
+  await page.evaluate(
+    ({ projectId, ids }) => {
+      const tabs = [
+        ...ids.map((id) => ({ type: 'session', id })),
+        { type: 'file', id: 'file:context.json', path: 'context.json', pinned: true },
+      ]
+      localStorage.setItem(
+        'orchestos-dev-tabs',
+        JSON.stringify({ [projectId]: { tabs, activeId: ids[0] } }),
+      )
+    },
+    {
+      projectId: project.id,
+      ids: [...sessions.map((item) => item.id), ...crowdedSessions.map((item) => item.id)],
+    },
+  )
+  await reloadChat()
+  await enterDev()
+  await tabs.getByRole('tab').nth(7).waitFor()
+  const plus = page.getByRole('button', { name: 'New session', exact: true })
+  await step(
+    'plus stays visible with eight open tabs',
+    await plus.evaluate((button) => {
+      const rect = button.getBoundingClientRect()
+      return rect.width > 0 && rect.left >= 0 && rect.right <= window.innerWidth
+    }),
+    JSON.stringify(await plus.boundingBox()),
+  )
+  await shot('eight-session-tabs-plus-visible')
+  await plus.click()
+  const crowdedMenu = page.getByRole('menu', { name: 'New session agent', exact: true })
+  await crowdedMenu.waitFor()
+  await step('visible plus opens the new session menu', await visible(crowdedMenu))
+  await crowdedMenu.getByRole('menuitemradio', { name: 'Codex', exact: true }).click()
+  const activeNewTab = tabs.locator('[data-new-session-tab][aria-selected="true"]')
+  await activeNewTab.waitFor()
+  await step(
+    'newly created active tab scrolls into view',
+    await activeNewTab.evaluate((tab) => {
+      const rect = tab.getBoundingClientRect()
+      const viewport = tab.closest('[role="tablist"]').getBoundingClientRect()
+      return rect.left >= viewport.left && rect.right <= viewport.right
+    }),
+    JSON.stringify(await activeNewTab.boundingBox()),
+  )
+  const tablist = tabs.getByRole('tablist')
+  await tablist.evaluate((list) => {
+    list.scrollLeft = 0
+  })
+  const initialTabScroll = await tablist.evaluate((list) => list.scrollLeft)
+  await page.waitForTimeout(3000)
+  const tabScrollAfterPolling = await tablist.evaluate((list) => list.scrollLeft)
+  await step(
+    'session polling leaves manually scrolled tabs in place',
+    tabScrollAfterPolling === initialTabScroll,
+    `scrollLeft ${initialTabScroll} → ${tabScrollAfterPolling}`,
+  )
   await page.getByRole('button', { name: 'New session', exact: true }).click()
   await agentMenu.waitFor()
   await page.screenshot({ path: '/tmp/UI.47-menu.png' })

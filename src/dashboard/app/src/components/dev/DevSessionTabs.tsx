@@ -47,6 +47,7 @@ export function DevSessionTabs({
   const [menu, setMenu] = useState<{ left: number; top: number } | null>(null)
   const [selected, setSelected] = useState(0)
   const buttonRef = useRef<HTMLButtonElement>(null)
+  const tablistRef = useRef<HTMLDivElement>(null)
   const menuRef = useRef<HTMLDivElement>(null)
   useEffect(() => {
     let disposed = false
@@ -76,6 +77,11 @@ export function DevSessionTabs({
       localStorage.setItem(`orchestos-dev-agent:${projectId}`, used)
     }
   }, [state.activeId, state.tabs, agents, projectId])
+  useEffect(() => {
+    tablistRef.current
+      ?.querySelector<HTMLElement>('[aria-selected="true"]')
+      ?.scrollIntoView({ inline: 'nearest', block: 'nearest' })
+  }, [state.activeId])
   const options = [...catalogs].sort(
     (a, b) => Number(b.id === lastAgent) - Number(a.id === lastAgent),
   )
@@ -93,21 +99,11 @@ export function DevSessionTabs({
         setMenu(null)
     }
     const dismiss = () => setMenu(null)
-    // El "+" vive dentro de la franja con scroll horizontal: al desplazarla el menú sigue al botón.
-    const follow = (event: Event) => {
-      const button = buttonRef.current
-      if (button && event.target instanceof Node && event.target.contains(button)) {
-        const rect = button.getBoundingClientRect()
-        setMenu({ left: Math.min(rect.left, window.innerWidth - 224), top: rect.bottom + 4 })
-      } else dismiss()
-    }
     document.addEventListener('mousedown', close)
     window.addEventListener('resize', dismiss)
-    window.addEventListener('scroll', follow, true)
     return () => {
       document.removeEventListener('mousedown', close)
       window.removeEventListener('resize', dismiss)
-      window.removeEventListener('scroll', follow, true)
     }
   }, [menu])
   const choose = (agent: string) => {
@@ -120,9 +116,14 @@ export function DevSessionTabs({
   return (
     <div
       data-dev-session-tabs
-      className="flex h-10 shrink-0 items-center gap-1 overflow-x-auto border-b border-app bg-app-bg px-2 py-1"
+      className="flex h-10 min-w-0 shrink-0 items-center gap-1 border-b border-app bg-app-bg px-2 py-1"
     >
-      <div role="tablist" aria-label="Open Dev tabs" className="flex items-center gap-1">
+      <div
+        role="tablist"
+        aria-label="Open Dev tabs"
+        ref={tablistRef}
+        className="flex min-w-0 flex-1 items-center gap-1 overflow-x-auto"
+      >
         {state.tabs.map((tab) => {
           const session =
             tab.type === 'session' ? agents.find((agent) => agent.id === tab.id) : null
@@ -137,7 +138,7 @@ export function DevSessionTabs({
           return (
             <div
               key={tab.id}
-              className={`group relative flex w-56 shrink-0 items-center rounded-lg ${state.activeId === tab.id ? 'bg-app-surface text-app' : 'text-app-muted hover:bg-app-hover hover:text-app'}`}
+              className={`group relative flex w-56 min-w-24 shrink items-center rounded-lg ${state.activeId === tab.id ? 'bg-app-surface text-app' : 'text-app-muted hover:bg-app-hover hover:text-app'}`}
             >
               <button
                 type="button"

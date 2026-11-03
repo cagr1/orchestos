@@ -723,9 +723,14 @@ Regla: nada se reintenta, cierra ni muestra sin evidencia medida que el usuario 
   Gates del cerebro: `check-ui-text.test.ts` 13/13, lint, typecheck; contraprueba real (`<span>Prueba</span>` →
   exit 1, Sol). Cobertura: la corre el pre-push.
   Ejecutado por: codex gpt-6.1-sol (criterio r1) · revisión Opus
-- [ ] **UI.60 — ⚡ El "+" de las pestañas de Dev siempre visible.** (abierto 2026-11-03, GO de Carlos) Con 4 pestañas
+- [x] **UI.60 — ⚡ El "+" de las pestañas de Dev siempre visible.** (abierto 2026-11-03, GO de Carlos) Con 4 pestañas
   el "+" sale de la vista dentro de la franja desplazable (`DevSessionTabs.tsx`).
-  Spec: docs/specs/UI.60.md
+  Hecho: el tablist es el que se desplaza y el "+" queda fuera, a la derecha; las pestañas encogen hasta `min-w-24`;
+  la activa se trae a la vista solo al cambiar (`useEffect` sobre `activeId`, r2: el `ref` en línea la traía en
+  cada render). Gates del cerebro: lint, typecheck, `dev-session-tabs` 47/47 (8 pestañas: "+" visible, abre menú,
+  `scrollLeft` estable 3 s), `shell-look` 75/75.
+  Gate en vivo: navegador real (Playwright), `docs/done/evidence/UI.60-live.json` (captura `UI.60-eight-tabs.png`).
+  Ejecutado por: codex gpt-6-luna (mecanico, r1 r2) · revisión Opus · Spec: docs/specs/UI.60.md
 - [x] **UI.58 — ⚡ Terminal abre en el espacio central, como una pestaña de Dev.** (abierto 2026-11-03) Carlos: el
   botón Terminal abre un panel bajo de 35 % (`App.tsx:1667`, UI.55); debe ocupar el espacio central y cerrarse desde
   su pestaña. Las pestañas de terminal siguen vivas al mirar otra.
