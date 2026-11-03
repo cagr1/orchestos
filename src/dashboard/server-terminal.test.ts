@@ -49,4 +49,15 @@ describe.skipIf(portProbe === null)('terminal WebSocket origin boundary', () => 
     })
     expect(response.status).toBe(403)
   })
+
+  test('kind desconocido responde 400', async () => {
+    const port = await availablePort()
+    if (port === null) throw new Error('Loopback listener became unavailable')
+    const { server } = startServer(port, ['sh'])
+    servers.push(server)
+    const response = await fetch(`http://127.0.0.1:${server.port}/api/terminal?kind=bogus`, {
+      headers: { origin: `http://127.0.0.1:${server.port}` },
+    })
+    expect(response.status).toBe(400)
+  })
 })

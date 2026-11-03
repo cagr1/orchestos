@@ -3,9 +3,16 @@ import { Terminal } from '@xterm/xterm'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import '@xterm/xterm/css/xterm.css'
 
-type Props = { projectId: string; sessionTitle: string; onClose?: () => void }
+type Props = {
+  projectId: string
+  sessionTitle: string
+  onClose?: () => void
+  /** `shell` abre la shell del usuario; por defecto OpenCode. */
+  kind?: 'opencode' | 'shell'
+}
 
-export function OpenCodeTerminal({ projectId, sessionTitle, onClose }: Props) {
+export function OpenCodeTerminal({ projectId, sessionTitle, onClose, kind = 'opencode' }: Props) {
+  const isShell = kind === 'shell'
   const hostRef = useRef<HTMLDivElement>(null)
   const socketRef = useRef<WebSocket | null>(null)
   const terminalRef = useRef<Terminal | null>(null)
@@ -30,13 +37,18 @@ export function OpenCodeTerminal({ projectId, sessionTitle, onClose }: Props) {
     })
     const fit = new FitAddon()
     terminal.loadAddon(fit)
+    if (isShell)
+      terminal.attachCustomKeyEventHandler(
+        (event) => !(event.ctrlKey && (event.code === 'Backquote' || event.key === '`')),
+      )
     terminal.open(host)
     terminalRef.current = terminal
+    if (isShell) terminal.focus()
     const connect = () => {
       fit.fit()
       const protocol = location.protocol === 'https:' ? 'wss:' : 'ws:'
       const socket = new WebSocket(
-        `${protocol}//${location.host}/api/terminal?project=${encodeURIComponent(projectId)}&cols=${terminal.cols}&rows=${terminal.rows}`,
+        `${protocol}//${location.host}/api/terminal?project=${encodeURIComponent(projectId)}${isShell ? '&kind=shell' : ''}&cols=${terminal.cols}&rows=${terminal.rows}`,
       )
       socket.binaryType = 'arraybuffer'
       socketRef.current = socket
@@ -57,7 +69,9 @@ export function OpenCodeTerminal({ projectId, sessionTitle, onClose }: Props) {
         }
       }
       socket.onerror = () => {
-        setMessage('No se pudo conectar con OpenCode.')
+        setMessage(
+          isShell ? 'Could not connect to the terminal.' : 'No se pudo conectar con OpenCode.',
+        )
         setState('error')
       }
       socket.onclose = () => setState((current) => (current === 'connected' ? 'exited' : current))
@@ -83,7 +97,7 @@ export function OpenCodeTerminal({ projectId, sessionTitle, onClose }: Props) {
       terminal.dispose()
       terminalRef.current = null
     }
-  }, [projectId, attempt])
+  }, [projectId, attempt, isShell])
 
   const reopen = useCallback(() => {
     terminalRef.current?.clear()
@@ -95,7 +109,7 @@ export function OpenCodeTerminal({ projectId, sessionTitle, onClose }: Props) {
   return (
     <section
       className="flex-1 min-w-0 h-full flex flex-col overflow-hidden"
-      aria-label="OpenCode terminal"
+      aria-label={isShell ? 'Project terminal' : 'OpenCode terminal'}
     >
       <header className="h-9 shrink-0 flex items-center justify-between border-b border-[var(--app-border)] px-3 text-xs text-[var(--app-text-muted)]">
         <span className="truncate">{sessionTitle}</span>
@@ -108,14 +122,18 @@ export function OpenCodeTerminal({ projectId, sessionTitle, onClose }: Props) {
           )}
           {state === 'exited' && (
             <>
-              <span>Proceso terminado</span>
+              <span>{isShell ? 'Process exited' : 'Proceso terminado'}</span>
               <button type="button" onClick={reopen} className="text-[var(--app-accent)]">
-                Reabrir
+                {isShell ? 'Reopen' : 'Reabrir'}
               </button>
             </>
           )}
           {onClose && (
-            <button type="button" onClick={onClose} aria-label="Cerrar terminal">
+            <button
+              type="button"
+              onClick={onClose}
+              aria-label={isShell ? 'Close terminal' : 'Cerrar terminal'}
+            >
               ×
             </button>
           )}

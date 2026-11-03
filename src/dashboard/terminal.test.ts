@@ -1,5 +1,10 @@
 import { afterEach, describe, expect, test } from 'bun:test'
-import { createTerminalSession, resolveOpenCodeCommand, stopTerminalSessions } from './terminal.ts'
+import {
+  createTerminalSession,
+  resolveOpenCodeCommand,
+  resolveShellCommand,
+  stopTerminalSessions,
+} from './terminal.ts'
 
 afterEach(async () => stopTerminalSessions())
 
@@ -44,5 +49,22 @@ describe('dashboard terminal sessions', () => {
     expect(() => resolveOpenCodeCommand(() => null)).toThrow(
       'OpenCode no está instalado (no se encontró "opencode" en el PATH)',
     )
+  })
+})
+
+describe('resolveShellCommand', () => {
+  test('usa $SHELL con -l cuando existe', () => {
+    expect(resolveShellCommand({ SHELL: '/bin/fish' }, () => true)).toEqual(['/bin/fish', '-l'])
+  })
+  test('sin $SHELL cae a /bin/zsh y luego /bin/sh', () => {
+    expect(resolveShellCommand({}, (p) => p === '/bin/zsh')).toEqual(['/bin/zsh', '-l'])
+    expect(resolveShellCommand({}, () => false)).toEqual(['/bin/sh', '-l'])
+  })
+  test('$SHELL inexistente o relativo se ignora', () => {
+    expect(resolveShellCommand({ SHELL: '/nope/sh' }, (p) => p === '/bin/zsh')).toEqual([
+      '/bin/zsh',
+      '-l',
+    ])
+    expect(resolveShellCommand({ SHELL: 'zsh' }, () => true)).toEqual(['/bin/zsh', '-l'])
   })
 })

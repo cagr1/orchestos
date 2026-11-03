@@ -138,7 +138,7 @@ import {
   DashboardProjectError,
   resolveDashboardProject,
 } from './project-context.ts'
-import { createTerminalSession, stopTerminalSessions } from './terminal.ts'
+import { createTerminalSession, resolveShellCommand, stopTerminalSessions } from './terminal.ts'
 import { DEFAULT_PORT } from './types.ts'
 
 async function withDashboardProject(
@@ -560,13 +560,15 @@ export async function route(req: Request, port: number): Promise<Response> {
   return errorResponse('Method not allowed', 405)
 }
 
+type TerminalSocketData = { cwd: string; cols: number; rows: number; kind: 'opencode' | 'shell' }
+
 export function startServer(
   port = DEFAULT_PORT,
   terminalCommand?: string[],
 ): { server: any; url: string } {
   applyCliSearchPath()
   const terminalSessions = new WeakMap<object, ReturnType<typeof createTerminalSession>>()
-  const server = Bun.serve<{ cwd: string; cols: number; rows: number }>({
+  const server = Bun.serve<TerminalSocketData>({
     port,
     hostname: '127.0.0.1',
     // Default idle timeout (10s) is too short for routes that call an LLM with
@@ -581,11 +583,14 @@ export function startServer(
       if (req.method !== 'GET') return errorResponse('Method not allowed', 405)
       const origin = req.headers.get('origin')
       if (!origin || !isSameOrigin(req, server.port ?? port)) return errorResponse('Forbidden', 403)
+      const kind = url.searchParams.get('kind') ?? 'opencode'
+      if (kind !== 'opencode' && kind !== 'shell')
+        return errorResponse('Unknown terminal kind', 400)
       try {
         const project = resolveDashboardProject(req)
         const cols = Number(url.searchParams.get('cols') ?? 80)
         const rows = Number(url.searchParams.get('rows') ?? 24)
-        const upgraded = server.upgrade(req, { data: { cwd: project.root, cols, rows } })
+        const upgraded = server.upgrade(req, { data: { cwd: project.root, cols, rows, kind } })
         return upgraded ? undefined : errorResponse('WebSocket upgrade failed', 400)
       } catch (error) {
         if (error instanceof DashboardProjectError)
@@ -600,7 +605,8 @@ export function startServer(
             cwd: ws.data.cwd,
             cols: ws.data.cols,
             rows: ws.data.rows,
-            command: terminalCommand,
+            command:
+              terminalCommand ?? (ws.data.kind === 'shell' ? resolveShellCommand() : undefined),
             onData: (data) => ws.send(data),
             onExit: (code) => {
               ws.send(JSON.stringify({ type: 'exit', code }))

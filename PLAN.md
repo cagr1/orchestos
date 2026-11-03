@@ -777,10 +777,19 @@ Regla: nada se reintenta, cierra ni muestra sin evidencia medida que el usuario 
   `test:coverage` 2215/0.
   Gate en vivo: navegador real (Playwright), `docs/done/evidence/UI.54-live.json`.
   Ejecutado por: codex gpt-6.1-sol (criterio r1, r2) · revisión Opus · Spec: docs/specs/UI.54.md
-- [ ] **UI.55 — 🧠 Terminal del proyecto en un panel inferior de Dev.** (abierto 2026-11-02) Carlos 2026-11-02
+- [x] **UI.55 — 🧠 Terminal del proyecto en un panel inferior de Dev.** (abierto 2026-11-02) Carlos 2026-11-02
   (auditoría de ADE, opción recomendada): como MonoCode, botón "Terminal" en la barra inferior y Ctrl+` abren una
   shell en la raíz del proyecto bajo el centro de Dev. Reusa el PTY de OpenCode (`src/dashboard/terminal.ts`,
-  `OpenCodeTerminal.tsx`). Spec: docs/specs/UI.55.md
+  `OpenCodeTerminal.tsx`).
+  Hecho: `/api/terminal?kind=shell` abre `$SHELL -l` (o zsh/sh) en la raíz del proyecto; sin `kind` sigue OpenCode;
+  `kind` desconocido 400. Panel bajo el centro de Dev (35 %, divisor, mín. 120 px, cerrar), botón "Terminal" en la
+  barra (solo Dev) y Ctrl+`; foco al xterm al abrir y al "Reopen"; "Process exited" + "Reopen". r2: el botón contaba
+  como cuota en `usage-bar` (ahora `data-quota-cli`) y el foco quedaba en el botón (un Enter lo cerraba, hallado en
+  vivo por el cerebro). En vivo (cerebro, 4343): shell en el repo, `exit` → Reopen → `echo` ok. Gates del cerebro:
+  lint, `dev-terminal` 10/10, `usage-bar` 21/21, `opencode-terminal` 8/8, `shell-look` 75/75, `dev-session-tabs`
+  42/42. Ejecutor: `test:coverage` 2217/0.
+  Gate en vivo: navegador real (Playwright), `docs/done/evidence/UI.55-live.json`.
+  Ejecutado por: claude sonnet (criterio-alt r1, r2; cupo de Codex al 82 %) · revisión Opus · Spec: docs/specs/UI.55.md
 - [x] **TCLI.3 — ⚡ Detección común de CLIs funcionales: instalado → versión → sesión, sin efectos secundarios.** (abierto 2026-11-02)
   Carlos 2026-11-02 (opción recomendada, como T3 Code): hoy "funcional" = binario en el PATH (`cli-discovery.ts`);
   la sesión solo se mira en Settings y solo para Claude/Codex por archivos (`providers.ts:160`). Un solo estado por

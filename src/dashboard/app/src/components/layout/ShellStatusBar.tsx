@@ -1,4 +1,4 @@
-import { RefreshCw } from 'lucide-react'
+import { RefreshCw, SquareTerminal } from 'lucide-react'
 import type React from 'react'
 import { useEffect, useRef, useState } from 'react'
 import type { SessionStatus } from '../../types/orchestos'
@@ -101,12 +101,17 @@ interface ShellStatusBarProps {
   status?: SessionStatus | null
   refreshing?: boolean
   onRefresh?: () => void
+  /** Presente solo en Dev: muestra el botón Terminal. */
+  onToggleTerminal?: () => void
+  terminalOpen?: boolean
 }
 
 export const ShellStatusBar: React.FC<ShellStatusBarProps> = ({
   status: incomingStatus,
   refreshing = false,
   onRefresh,
+  onToggleTerminal,
+  terminalOpen = false,
 }) => {
   const [activeCliId, setActiveCliId] = useState<string | null>(null)
   const [status, setStatus] = useState<SessionStatus | null>(incomingStatus ?? null)
@@ -147,7 +152,7 @@ export const ShellStatusBar: React.FC<ShellStatusBarProps> = ({
     }
   }, [activeCliId])
 
-  if (quotas.length === 0) return null
+  if (quotas.length === 0 && !onToggleTerminal) return null
 
   const activeCli = quotas.find((c) => c.id === activeCliId)
   const fiveHourTone = quotaTone(activeCli?.quota5h ?? null)
@@ -167,6 +172,7 @@ export const ShellStatusBar: React.FC<ShellStatusBarProps> = ({
             <button
               key={cli.id}
               type="button"
+              data-quota-cli={cli.id}
               onClick={() => setActiveCliId(activeCliId === cli.id ? null : cli.id)}
               className={`flex items-center gap-1.5 py-0.5 px-1 rounded-control transition-colors ${
                 activeCliId === cli.id
@@ -210,6 +216,24 @@ export const ShellStatusBar: React.FC<ShellStatusBarProps> = ({
           </button>
         )}
       </div>
+
+      {onToggleTerminal && (
+        <button
+          type="button"
+          data-terminal-toggle
+          onClick={onToggleTerminal}
+          aria-pressed={terminalOpen}
+          title="Terminal (Ctrl+`)"
+          className={`ml-auto flex items-center gap-1.5 py-0.5 px-1.5 rounded-control transition-colors ${
+            terminalOpen
+              ? 'bg-app-elevated border border-app text-app'
+              : 'hover:bg-app-surface/60 text-app-muted hover:text-app'
+          }`}
+        >
+          <SquareTerminal className="w-3.5 h-3.5" />
+          <span className="text-[11px]">Terminal</span>
+        </button>
+      )}
 
       {/* Floating Detail Panel (above the bar, not clipped) */}
       {activeCli && (

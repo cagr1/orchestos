@@ -119,7 +119,7 @@ export default async function usageBar({
   })
   const eligible = (quotaStatus.data?.clis ?? []).filter((cli) => cli.functional && cli.quotaSource)
   const quotaTitles = await page
-    .locator('footer button[title]:not([title="Refresh usage"])')
+    .locator('footer button[data-quota-cli]')
     .evaluateAll((buttons) => buttons.map((button) => button.title))
   await step(
     'quota bar lists only functional CLIs with a declared quota source',

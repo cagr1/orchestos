@@ -1,0 +1,856 @@
+[
+  {
+    "flujo": "dev-terminal",
+    "pass": true,
+    "steps": [
+      {
+        "nombre": "Chat no muestra el botón Terminal",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "Dev muestra el botón Terminal",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "el panel de terminal se abre",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "al abrir, el foco está en el xterm (ui55-focus)",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "xterm muestra la salida ui55-ok",
+        "ok": true,
+        "detalle": "carlosgallardo@192 orchestos-ui-devterm-sMOY8G % echo ui55-focus\nui55-focus\ncarlosgallardo@192 orchestos-ui-devterm-sMOY8G %  "
+      },
+      {
+        "nombre": "Ctrl+` cierra el panel",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "Ctrl+` lo reabre",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "exit muestra \"Process exited\"",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "tras Reopen, ui55-again aparece",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "el botón cerrar quita el panel",
+        "ok": true,
+        "detalle": "ok"
+      }
+    ],
+    "notes": [],
+    "errores": [],
+    "capturas": [
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-49951/dev-terminal/dev-terminal.png"
+    ]
+  },
+  {
+    "flujo": "usage-bar",
+    "pass": true,
+    "steps": [
+      {
+        "nombre": "temporary project is visible",
+        "ok": true,
+        "detalle": "project in sidebar"
+      },
+      {
+        "nombre": "one status request carries project id",
+        "ok": true,
+        "detalle": "requests=1, header=fda689b1cfaddbcc, expected=fda689b1cfaddbcc"
+      },
+      {
+        "nombre": "Claude quota uses newest session reading",
+        "ok": true,
+        "detalle": "39% used in status bar"
+      },
+      {
+        "nombre": "Claude quota bar shows the five-hour reset countdown",
+        "ok": true,
+        "detalle": "1h 0m remaining until the fixture reset"
+      },
+      {
+        "nombre": "quota bar lists only functional CLIs with a declared quota source",
+        "ok": true,
+        "detalle": "{\"eligible\":[\"claude\",\"codex\"],\"quotaTitles\":[\"Claude Code: 39% 5-hour quota used\",\"Codex: 82% 5-hour quota used\"]}"
+      },
+      {
+        "nombre": "app shell and bundle disable browser caching",
+        "ok": true,
+        "detalle": "shell=no-cache, bundle=no-cache"
+      },
+      {
+        "nombre": "manual usage refresh keeps the newest Claude quota",
+        "ok": true,
+        "detalle": "response=true, saw39=true, saw33=false"
+      },
+      {
+        "nombre": "Claude footer quota color for 50% used",
+        "ok": true,
+        "detalle": "clicks=1, response=true, bar=normal, number=normal, class=h-full bg-emerald-400 rounded-pill transition-all"
+      },
+      {
+        "nombre": "Claude footer quota color for 70% used",
+        "ok": true,
+        "detalle": "clicks=1, response=true, bar=warning, number=warning, class=h-full bg-orange-500 rounded-pill transition-all"
+      },
+      {
+        "nombre": "Claude footer quota color for 90% used",
+        "ok": true,
+        "detalle": "clicks=1, response=true, bar=error, number=error, class=h-full bg-app-error rounded-pill transition-all"
+      },
+      {
+        "nombre": "Claude 5-hour popover quota shows error tone at 90% used",
+        "ok": true,
+        "detalle": "number=error, bar=error, class=h-full bg-app-error rounded-pill"
+      },
+      {
+        "nombre": "Claude footer quota color for 39% used",
+        "ok": true,
+        "detalle": "clicks=1, response=true, bar=normal, number=normal, class=h-full bg-emerald-400 rounded-pill transition-all"
+      },
+      {
+        "nombre": "Codex account quota is visible without a project session",
+        "ok": true,
+        "detalle": "Codex: 82% 5-hour quota used"
+      },
+      {
+        "nombre": "Codex chat option visible",
+        "ok": true,
+        "detalle": "Codex option"
+      },
+      {
+        "nombre": "Luna model visible",
+        "ok": true,
+        "detalle": "gpt-6-luna"
+      },
+      {
+        "nombre": "medium effort visible",
+        "ok": true,
+        "detalle": "medium"
+      },
+      {
+        "nombre": "usage refreshes after a real turn",
+        "ok": true,
+        "detalle": "chatResponse=true, usage-bar-ok=true, refresh=true, requests before=6, after=7, requestTimes=1793664435605,1793664439249,1793664451875,1793664462555,1793664473945,1793664485210,1793664490144, responseAt=1793664490140"
+      },
+      {
+        "nombre": "Codex account quota remains visible after a real turn",
+        "ok": true,
+        "detalle": "Codex: 82% 5-hour quota used"
+      },
+      {
+        "nombre": "an expired Claude window is shown as fully available",
+        "ok": true,
+        "detalle": "Claude Code: 0% 5-hour quota used"
+      },
+      {
+        "nombre": "a Claude reading before its expired reset shows missing data instead of 100%",
+        "ok": true,
+        "detalle": "title=Claude Code: no data since 1 h, windowObservedAt=2026-11-02T23:08:25.102Z, cliObservedAt=2026-11-03T00:08:10.244Z"
+      },
+      {
+        "nombre": "no temporary UI projects remain after cleanup",
+        "ok": true,
+        "detalle": "temporary projects are cleaned after the flow"
+      }
+    ],
+    "notes": [],
+    "errores": [],
+    "capturas": [
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-49951/usage-bar/UI.46-quota-bar.png"
+    ]
+  },
+  {
+    "flujo": "opencode-terminal",
+    "pass": true,
+    "steps": [
+      {
+        "nombre": "Dev agent modal still offers OpenCode",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "OpenCode session appears in Dev sidebar",
+        "ok": true,
+        "detalle": "AT.15 OpenCode 1793664516019"
+      },
+      {
+        "nombre": "OpenCode terminal is mounted",
+        "ok": true,
+        "detalle": "OpenCode terminal region visible"
+      },
+      {
+        "nombre": "OpenCode TUI rendered text",
+        "ok": true,
+        "detalle": "                                                                                                    \n                                                                                                    \n                                                                                                    \n                                                                                                    \n                                                                                                    \n                                                                                                    \n                                                                                                    \n                                                                                                    \n                                                                                                    \n                                                                                                    \n                                                                                                    \n                                                                                                    \n                                                                                                    \n                                                                                                    \n                                                                                                    \n                                                                                                    \n                                                                                                    \n                                                                                                    \n                                                                                                    \n                                                                                                    \n                                                                ▄                                   \n                               █▀▀█ █▀▀█ █▀▀█ █▀▀▄ █▀▀▀ █▀▀█ █▀▀█ █▀▀█                              \n                               █  █ █  █ █▀▀▀ █  █ █    █  █ █  █ █▀▀▀                              \n                               ▀▀▀▀ █▀▀▀ ▀▀▀▀ ▀▀▀▀ ▀▀▀▀ ▀▀▀▀ ▀▀▀▀ ▀▀▀▀                              \n                                                                                                    \n                                     /update to install v1.19.5                                     \n                                                                                                    \n             ┃                                                                                      \n             ┃  Ask anything… \"What is the tech stack of this project?\"                             \n             ┃                                                                                      \n             ┃  Build · DeepSeek V4.1 Flash OpenRouter                                              \n             ╹▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀            \n                                                             tab agents  ctrl+p commands            \n                                                                                                    \n                                                                                                    \n                                                                                                    \n                                                                                                    \n                                                                                                    \n                                                                                                    \n                                                                                                    \n                                                                                                    \n                                                                                                    \n                                                                                                    \n                                                                                                    \n                                                                                                    \n                                                                                                    \n                                                                                                    \n                                                                                                    \n                                                                                                    \n                                                                                                    \n                                                                                                    \n                                                                                                    \n                                                                                                    \n  /private/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/orchestos-ui-opencode-EWdtuG:    1.19.0  \n  main                                                                                              \n                                                                                                    "
+      },
+      {
+        "nombre": "dashboard spawned an opencode process",
+        "ok": true,
+        "detalle": "New OpenCode PIDs: 53127"
+      },
+      {
+        "nombre": "terminal remains visible after viewport resize",
+        "ok": true,
+        "detalle": "Terminal region survived resize"
+      },
+      {
+        "nombre": "OpenCode terminal close button is available",
+        "ok": true,
+        "detalle": "Button accessible name: Cerrar terminal"
+      },
+      {
+        "nombre": "no spawned OpenCode process survives close",
+        "ok": true,
+        "detalle": "Exited: 53127"
+      }
+    ],
+    "notes": [],
+    "errores": [],
+    "capturas": [
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-49951/opencode-terminal/opencode-terminal.png"
+    ]
+  },
+  {
+    "flujo": "shell-look",
+    "pass": true,
+    "steps": [
+      {
+        "nombre": "chat: sidebar present",
+        "ok": true,
+        "detalle": "1 aside"
+      },
+      {
+        "nombre": "chat: sidebar rows flat",
+        "ok": true,
+        "detalle": "sin borde ni sombra"
+      },
+      {
+        "nombre": "chat: nav icons one tone",
+        "ok": true,
+        "detalle": "rgb(148, 163, 184)"
+      },
+      {
+        "nombre": "chat: sidebar divider and flat header",
+        "ok": true,
+        "detalle": "aside border-right=1 header border-bottom=0"
+      },
+      {
+        "nombre": "chat: panel lighter than chrome",
+        "ok": true,
+        "detalle": "panel=rgb(14, 19, 32) sidebar=rgb(8, 12, 20)"
+      },
+      {
+        "nombre": "chat: no palette classes in chrome",
+        "ok": true,
+        "detalle": "ninguna"
+      },
+      {
+        "nombre": "settings: sidebar present",
+        "ok": true,
+        "detalle": "1 aside"
+      },
+      {
+        "nombre": "settings: sidebar rows flat",
+        "ok": true,
+        "detalle": "sin borde ni sombra"
+      },
+      {
+        "nombre": "settings: nav icons one tone",
+        "ok": true,
+        "detalle": "rgb(148, 163, 184)"
+      },
+      {
+        "nombre": "settings: sidebar divider and flat header",
+        "ok": true,
+        "detalle": "aside border-right=0 header border-bottom=0"
+      },
+      {
+        "nombre": "settings: panel lighter than chrome",
+        "ok": true,
+        "detalle": "panel=rgb(14, 19, 32) sidebar=rgb(8, 12, 20)"
+      },
+      {
+        "nombre": "settings: no palette classes in chrome",
+        "ok": true,
+        "detalle": "ninguna"
+      },
+      {
+        "nombre": "settings palette text not stretched",
+        "ok": true,
+        "detalle": "{\"settled\":{\"input\":18,\"option\":34},\"samples\":[{\"ms\":60,\"input\":18,\"option\":34},{\"ms\":120,\"input\":18,\"option\":34},{\"ms\":200,\"input\":18,\"option\":34}]}"
+      },
+      {
+        "nombre": "settings palette opaque",
+        "ok": true,
+        "detalle": "rgb(14, 19, 32); alpha=1"
+      },
+      {
+        "nombre": "settings palette opens",
+        "ok": true,
+        "detalle": "{\"searchBox\":{\"x\":14,\"y\":102,\"width\":228,\"height\":28},\"paletteBox\":{\"x\":432,\"y\":229,\"width\":576,\"height\":542}}"
+      },
+      {
+        "nombre": "settings palette finds",
+        "ok": true,
+        "detalle": "first=Ollama Local; no results for zzzz"
+      },
+      {
+        "nombre": "settings palette closes clean",
+        "ok": true,
+        "detalle": "{\"searchBox\":{\"x\":14,\"y\":102,\"width\":228,\"height\":28},\"restoredBox\":{\"x\":14,\"y\":102,\"width\":228,\"height\":28},\"remainingDialogs\":0,\"remainingBackdrops\":0,\"sidebarNavigation\":11,\"navigationVisibility\":[true,true,true,true,true,true,true,true,true,true,true]}"
+      },
+      {
+        "nombre": "settings palette navigates",
+        "ok": true,
+        "detalle": "{\"row\":{\"x\":281,\"y\":130.19654846191406,\"width\":1134,\"height\":52,\"top\":130.19654846191406,\"right\":1415,\"bottom\":182.19654846191406,\"left\":281},\"viewport\":{\"width\":1440,\"height\":1000}}"
+      },
+      {
+        "nombre": "settings palette shortcut",
+        "ok": true,
+        "detalle": "Meta+k"
+      },
+      {
+        "nombre": "settings shortcut does not open the general command palette",
+        "ok": true,
+        "detalle": "general palette count while settings shortcut is open=0"
+      },
+      {
+        "nombre": "settings nav slides",
+        "ok": true,
+        "detalle": "one shared highlight inside General after switching from Executor"
+      },
+      {
+        "nombre": "settings health no palette",
+        "ok": true,
+        "detalle": "ninguna"
+      },
+      {
+        "nombre": "settings api no palette",
+        "ok": true,
+        "detalle": "ninguna"
+      },
+      {
+        "nombre": "api key form unfolds",
+        "ok": true,
+        "detalle": "inline password input focused; no dialog"
+      },
+      {
+        "nombre": "api key rejected and previous value restored",
+        "ok": true,
+        "detalle": "toast=No se pudo conectar con el proveedor. Verifica tu conexión.; not set=true"
+      },
+      {
+        "nombre": "api key cancel",
+        "ok": true,
+        "detalle": "Escape closes the form without setting a key"
+      },
+      {
+        "nombre": "settings model routing no palette",
+        "ok": true,
+        "detalle": "ninguna"
+      },
+      {
+        "nombre": "settings fills width",
+        "ok": true,
+        "detalle": "model routing: contenido 1136 px de 1184 px"
+      },
+      {
+        "nombre": "settings usage no palette",
+        "ok": true,
+        "detalle": "ninguna"
+      },
+      {
+        "nombre": "settings fills width",
+        "ok": true,
+        "detalle": "usage: contenido 1136 px de 1184 px"
+      },
+      {
+        "nombre": "heatmap fills width",
+        "ok": true,
+        "detalle": "{\"grid\":1102,\"inner\":1102}"
+      },
+      {
+        "nombre": "heatmap tooltip slides",
+        "ok": true,
+        "detalle": "{\"sameNode\":true,\"firstText\":\"No activity on Nov 18, 2025\",\"secondText\":\"No activity on Oct 13, 2026\",\"firstBox\":{\"x\":359.546875,\"y\":279.171875,\"width\":160.953125,\"height\":25.390625},\"secondBox\":{\"x\":1238.046875,\"y\":279.171875,\"width\":158.6875,\"height\":25.390625}}"
+      },
+      {
+        "nombre": "heatmap total",
+        "ok": true,
+        "detalle": "expected=1, actual=1 runs, cells=371"
+      },
+      {
+        "nombre": "heatmap reduced motion",
+        "ok": true,
+        "detalle": "cells=371, opacities=1"
+      },
+      {
+        "nombre": "settings danger zone no palette",
+        "ok": true,
+        "detalle": "ninguna"
+      },
+      {
+        "nombre": "settings language no palette",
+        "ok": true,
+        "detalle": "ninguna"
+      },
+      {
+        "nombre": "executor controls save immediately",
+        "ok": true,
+        "detalle": "{\"before\":{\"source\":\"/private/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/orchestos-ui-26-2-zqHfCm/orchestos.config.yaml\",\"configFound\":true,\"roles\":{\"planner\":\"(sin asignar)\",\"executor_heavy\":\"(sin asignar)\",\"executor_light\":\"(sin asignar)\",\"default\":\"(sin asignar)\",\"qa\":null},\"roleAssignments\":{\"orchestrator\":{\"agent\":\"codex\",\"model\":\"gpt-6-luna\",\"effort\":\"medium\"},\"executor\":{\"agent\":\"codex\",\"model\":\"gpt-6-luna\",\"effort\":\"medium\"},\"reviewer\":{\"agent\":\"codex\",\"model\":\"gpt-6-luna\",\"effort\":\"medium\"},\"auxiliary\":{\"agent\":\"codex\",\"model\":\"gpt-6-luna\",\"effort\":\"medium\"}},\"taskAgentRules\":[],\"permissionMode\":\"yolo\",\"permissions\":{\"mode\":\"yolo\",\"chat\":\"read-only\",\"tasks\":\"isolated worktree · sandbox workspace-write\"},\"roleWarnings\":[\"reviewer-same-as-executor\"],\"pendingRouting\":[],\"apiMode\":\"single-shot\",\"agent\":null,\"agenticMaxIterations\":15,\"externalTimeoutMinutes\":20,\"claudeCliDetected\":true},\"after\":{\"source\":\"/private/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/orchestos-ui-26-2-zqHfCm/orchestos.config.yaml\",\"configFound\":true,\"roles\":{\"planner\":\"(sin asignar)\",\"executor_heavy\":\"(sin asignar)\",\"executor_light\":\"(sin asignar)\",\"default\":\"(sin asignar)\",\"qa\":null},\"roleAssignments\":{\"orchestrator\":{\"agent\":\"codex\",\"model\":\"gpt-6-luna\",\"effort\":\"medium\"},\"executor\":{\"agent\":\"codex\",\"model\":\"gpt-6-luna\",\"effort\":\"medium\"},\"reviewer\":{\"agent\":\"codex\",\"model\":\"gpt-6-luna\",\"effort\":\"medium\"},\"auxiliary\":{\"agent\":\"codex\",\"model\":\"gpt-6-luna\",\"effort\":\"medium\"}},\"taskAgentRules\":[],\"permissionMode\":\"yolo\",\"permissions\":{\"mode\":\"yolo\",\"chat\":\"read-only\",\"tasks\":\"isolated worktree · sandbox workspace-write\"},\"roleWarnings\":[\"reviewer-same-as-executor\"],\"pendingRouting\":[],\"apiMode\":\"agentic\",\"agent\":null,\"agenticMaxIterations\":15,\"externalTimeoutMinutes\":25,\"claudeCliDetected\":true}}"
+      },
+      {
+        "nombre": "no saved banner",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "project header flat",
+        "ok": true,
+        "detalle": "{\"border\":0,\"bg\":\"rgba(0, 0, 0, 0)\"}"
+      },
+      {
+        "nombre": "project tabs flat",
+        "ok": true,
+        "detalle": "8 pestañas, 28 px"
+      },
+      {
+        "nombre": "runs stat strip",
+        "ok": true,
+        "detalle": "4 celdas; paleta: ninguna"
+      },
+      {
+        "nombre": "chat without telemetry reserves no header space",
+        "ok": true,
+        "detalle": "no header when context is unavailable"
+      },
+      {
+        "nombre": "Dev mode opens before launching a session",
+        "ok": true,
+        "detalle": "Dev session tabs visible"
+      },
+      {
+        "nombre": "composer no top line (Dev)",
+        "ok": true,
+        "detalle": "0px"
+      },
+      {
+        "nombre": "Dev: thread and composer share one body",
+        "ok": true,
+        "detalle": "{\"sameParent\":true,\"composerBg\":\"rgb(8, 12, 20)\",\"scrollBg\":\"rgb(8, 12, 20)\",\"gap\":0}"
+      },
+      {
+        "nombre": "Dev session header is removed",
+        "ok": true,
+        "detalle": "no session header in Dev"
+      },
+      {
+        "nombre": "Dev assistant Copy is below the response at its left edge",
+        "ok": true,
+        "detalle": "{\"top\":170,\"left\":284,\"cardBottom\":164,\"cardLeft\":280}"
+      },
+      {
+        "nombre": "Dev assistant Copy copies its response and shows Check",
+        "ok": true,
+        "detalle": "{\"clipboard\":\"UI.27.1 provider logo fixture\"}"
+      },
+      {
+        "nombre": "Dev assistant actions appear on focus without shifting the message",
+        "ok": true,
+        "detalle": "{\"entranceMotion\":{\"before\":{\"x\":280,\"y\":131.1785888671875,\"width\":742.876708984375,\"height\":61.24781799316406,\"top\":131.1785888671875,\"right\":1022.876708984375,\"bottom\":192.42640686035156,\"left\":280},\"active\":[{\"playState\":\"running\",\"keyframes\":[{\"offset\":null,\"easing\":\"linear\",\"composite\":\"auto\",\"opacity\":\"0\",\"computedOffset\":0},{\"offset\":null,\"easing\":\"linear\",\"composite\":\"auto\",\"opacity\":\"1\",\"computedOffset\":1}]}],\"after\":{\"x\":280,\"y\":128,\"width\":752,\"height\":62,\"top\":128,\"right\":1032,\"bottom\":190,\"left\":280}},\"focusedOpacity\":\"1\",\"restingBox\":{\"x\":280,\"y\":128,\"width\":752,\"height\":62},\"focusedBox\":{\"x\":280,\"y\":128,\"width\":752,\"height\":62}}"
+      },
+      {
+        "nombre": "Dev agent row retains provider logo",
+        "ok": true,
+        "detalle": "provider logo alongside agent name"
+      },
+      {
+        "nombre": "Dev gpt model uses ChatGPT asset mask without inline SVG",
+        "ok": true,
+        "detalle": "{\"model\":\"gpt-6.1-sol\",\"mask\":\"url(\\\"http://127.0.0.1:63294/app/dist/chatgpt.svg\\\")\",\"inlineSvg\":0,\"visible\":true}"
+      },
+      {
+        "nombre": "inspector line aligned",
+        "ok": true,
+        "detalle": "{\"inspectorBottom\":84,\"devSessionTabsBottom\":84}"
+      },
+      {
+        "nombre": "left aside drag captures pointer and resizes",
+        "ok": true,
+        "detalle": "{\"changed\":320,\"captured\":true,\"noSelection\":true}"
+      },
+      {
+        "nombre": "left aside width survives reload",
+        "ok": true,
+        "detalle": "320 -> 320"
+      },
+      {
+        "nombre": "left separator keyboard changes 16px",
+        "ok": true,
+        "detalle": "320 -> 336"
+      },
+      {
+        "nombre": "left separator respects bounds",
+        "ok": true,
+        "detalle": "{\"upper\":420,\"lower\":200,\"effectiveMax\":420}"
+      },
+      {
+        "nombre": "left separator double click resets",
+        "ok": true,
+        "detalle": "256"
+      },
+      {
+        "nombre": "right aside drag captures pointer and resizes",
+        "ok": true,
+        "detalle": "{\"changed\":464,\"captured\":true,\"noSelection\":true}"
+      },
+      {
+        "nombre": "right aside width survives reload",
+        "ok": true,
+        "detalle": "464 -> 464"
+      },
+      {
+        "nombre": "right separator keyboard changes 16px",
+        "ok": true,
+        "detalle": "464 -> 480"
+      },
+      {
+        "nombre": "right separator respects bounds",
+        "ok": true,
+        "detalle": "{\"upper\":640,\"lower\":280,\"effectiveMax\":640}"
+      },
+      {
+        "nombre": "right separator double click resets",
+        "ok": true,
+        "detalle": "384"
+      },
+      {
+        "nombre": "resizing preserves 360px central thread",
+        "ok": true,
+        "detalle": "380"
+      },
+      {
+        "nombre": "collapsed navigation has no resize handle",
+        "ok": true,
+        "detalle": "left separator unmounted"
+      },
+      {
+        "nombre": "Dev sidebar strips only matching agent prefix",
+        "ok": true,
+        "detalle": "Agent: Codex on orchestos-ui-26-2-zqHfCm"
+      },
+      {
+        "nombre": "composer no top line (Chat)",
+        "ok": true,
+        "detalle": "0px"
+      },
+      {
+        "nombre": "Chat: thread and composer share one body",
+        "ok": true,
+        "detalle": "{\"sameParent\":true,\"composerBg\":\"rgb(14, 19, 32)\",\"scrollBg\":\"rgb(14, 19, 32)\",\"gap\":0}"
+      },
+      {
+        "nombre": "Chat rows show agent logos",
+        "ok": true,
+        "detalle": "[{\"messageSquare\":0,\"logo\":true}]"
+      },
+      {
+        "nombre": "Chat permissions strip removed",
+        "ok": true,
+        "detalle": "no permissions text or strip below the thread"
+      },
+      {
+        "nombre": "OpenRouter option uses generic logo without ChatGPT asset",
+        "ok": true,
+        "detalle": "{\"generic\":true,\"chatgpt\":false}"
+      },
+      {
+        "nombre": "Chat sidebar removes Claude and Codex prefixes",
+        "ok": true,
+        "detalle": "[\"UI27 title fixture\",\"Chat with Codex\",\"Agent: Codex on orchestos-ui-26-2-zqHfCm\"]"
+      },
+      {
+        "nombre": "chat search uses displayed title",
+        "ok": true,
+        "detalle": "legacy Claude title found by normalized text"
+      },
+      {
+        "nombre": "context popover shows only compact window and percent",
+        "ok": true,
+        "detalle": "{\"context\":{\"used\":14661,\"window\":1000000,\"pct\":1.4661,\"model\":\"gpt-6-luna\",\"source\":\"measured\",\"engine\":\"codex\"},\"tooltipText\":\"15K / 1M\\n1%\"}"
+      },
+      {
+        "nombre": "context ring lives in composer next to send, absent from header",
+        "ok": true,
+        "detalle": "{\"providerLogos\":0,\"headerRings\":0,\"composerRings\":1,\"pageRings\":1,\"ringSharesSendParent\":true,\"tooltipAboveRing\":true}"
+      },
+      {
+        "nombre": "command palette shortcut opens and Escape closes in Chat",
+        "ok": true,
+        "detalle": "Meta+k; opened=true; closed=true"
+      }
+    ],
+    "notes": [],
+    "errores": [],
+    "capturas": [
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-49951/shell-look/shell-chat.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-49951/shell-look/shell-settings.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-49951/shell-look/settings-palette.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-49951/shell-look/settings-highlight.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-49951/shell-look/api-keys.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-49951/shell-look/heatmap-usage.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-49951/shell-look/heatmap-reduced-motion.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-49951/shell-look/executor-instant-save.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-49951/shell-look/shell-project.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-49951/shell-look/dev-assistant-copy.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-49951/shell-look/chat-unified-body.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-49951/shell-look/chat-context-window.png"
+    ]
+  },
+  {
+    "flujo": "dev-session-tabs",
+    "pass": true,
+    "steps": [
+      {
+        "nombre": "reload starts in Chat",
+        "ok": true,
+        "detalle": "Dev tabs absent after reload"
+      },
+      {
+        "nombre": "entering Dev restores last session without saved tabs",
+        "ok": true,
+        "detalle": "remembered Alpha active, no New session"
+      },
+      {
+        "nombre": "running session tab shows the accent spinner",
+        "ok": true,
+        "detalle": "Alpha spinner is visible while its session is running"
+      },
+      {
+        "nombre": "finished session timeline clears its tab spinner",
+        "ok": true,
+        "detalle": "Alpha spinner clears when its active timeline reports pending false"
+      },
+      {
+        "nombre": "sidebar opens ordered sessions and existing tabs do not duplicate",
+        "ok": true,
+        "detalle": "Alpha, Beta"
+      },
+      {
+        "nombre": "Dev response shares Chat markdown and highlights code",
+        "ok": true,
+        "detalle": "heading, two list items and highlighted TypeScript tokens"
+      },
+      {
+        "nombre": "Files dims and italicizes git ignored entries but keeps tracked files unmarked",
+        "ok": true,
+        "detalle": "ignored.txt visible at opacity 0.5 and italic; tracked README.md normal"
+      },
+      {
+        "nombre": "file opens italic preview in the shared row and occupies full center",
+        "ok": true,
+        "detalle": "session remains a tab; file only content at full width"
+      },
+      {
+        "nombre": "session tab restores full center chat",
+        "ok": true,
+        "detalle": "file viewer absent, composer visible"
+      },
+      {
+        "nombre": "Dev composer shows its task approval mode",
+        "ok": true,
+        "detalle": "selector visible"
+      },
+      {
+        "nombre": "changing Dev approval mode updates the composer button",
+        "ok": true,
+        "detalle": "Supervised"
+      },
+      {
+        "nombre": "opening another file replaces only preview with numbered colored source",
+        "ok": true,
+        "detalle": "two sessions plus context.json preview; code colored"
+      },
+      {
+        "nombre": "tree double click pins file",
+        "ok": true,
+        "detalle": "fixed code tab"
+      },
+      {
+        "nombre": "Markdown Source keeps numbered literal source",
+        "ok": true,
+        "detalle": "literal Markdown source"
+      },
+      {
+        "nombre": "reload starts in Chat",
+        "ok": true,
+        "detalle": "Dev tabs absent after reload"
+      },
+      {
+        "nombre": "reload restores mixed tab order and active fixed file",
+        "ok": true,
+        "detalle": "Alpha, Beta, context.json, README.md active"
+      },
+      {
+        "nombre": "closing active file selects its left neighbour",
+        "ok": true,
+        "detalle": "context.json active"
+      },
+      {
+        "nombre": "closing session selects right neighbour without deleting session",
+        "ok": true,
+        "detalle": "Beta active; Alpha remains in API"
+      },
+      {
+        "nombre": "plus opens usable agents including OpenCode Terminal with last used agent preselected",
+        "ok": true,
+        "detalle": "Claude\nCodex\nOpenCode\nTerminal"
+      },
+      {
+        "nombre": "Escape closes menu without creating a tab",
+        "ok": true,
+        "detalle": "tab count unchanged"
+      },
+      {
+        "nombre": "Enter creates with last used Claude and its unassigned CLI default",
+        "ok": true,
+        "detalle": "What should we work on in orchestos-dev-tabs-xo09ja?\nCLI default\nSupervised"
+      },
+      {
+        "nombre": "New session exposes the task approval mode selector",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "arrow keys move the preselected agent",
+        "ok": true,
+        "detalle": "Codex selected"
+      },
+      {
+        "nombre": "plus appends centered New session using configured orchestrator model and effort",
+        "ok": true,
+        "detalle": "What should we work on in orchestos-dev-tabs-xo09ja?\nGPT-6-Luna · medium\nSupervised"
+      },
+      {
+        "nombre": "chosen Codex becomes first and preselected",
+        "ok": true,
+        "detalle": "Codex\nClaude\nOpenCode\nTerminal"
+      },
+      {
+        "nombre": "click outside closes without creating",
+        "ok": true,
+        "detalle": "three tabs remain"
+      },
+      {
+        "nombre": "reload starts in Chat",
+        "ok": true,
+        "detalle": "Dev tabs absent after reload"
+      },
+      {
+        "nombre": "reload restores active New session alongside sessions and fixed files",
+        "ok": true,
+        "detalle": "Beta, context.json, New session"
+      },
+      {
+        "nombre": "reload starts in Chat",
+        "ok": true,
+        "detalle": "Dev tabs absent after reload"
+      },
+      {
+        "nombre": "restoration removes dead session ids",
+        "ok": true,
+        "detalle": "dead id removed"
+      },
+      {
+        "nombre": "OpenCode creates a session directly and mounts a live terminal",
+        "ok": true,
+        "detalle": "{\"id\":\"4ba83e92-3dcf-4143-8814-110d907b9dfc\",\"projectId\":\"54d3c91f81bd5665\",\"agent\":\"opencode\",\"mode\":\"code\",\"title\":\"OpenCode\",\"createdAt\":\"2026-11-03T00:09:17.620Z\",\"updatedAt\":\"2026-11-03T00:09:17.620Z\",\"archivedAt\":null,\"running\":false,\"hasPersistentWork\":false,\"lastPersistentTaskId\":null,\"lastModel\":null,\"lastEffort\":null,\"readBoundaryWarning\":\"No hay un contrato verificado de frontera de lectura para este CLI.\"}"
+      },
+      {
+        "nombre": "OpenCode counts as last used agent",
+        "ok": true,
+        "detalle": "OpenCode\nTerminal\nClaude\nCodex"
+      },
+      {
+        "nombre": "Diff click opens an italic selected patch at full center with colored numbered lines",
+        "ok": true,
+        "detalle": "README.md (diff)\nOpen file\n@@ -1 +1 @@\n1\n-# Dev session tabs\n1\n+# Updated diff heading"
+      },
+      {
+        "nombre": "another diff replaces the preview",
+        "ok": true,
+        "detalle": "notes.txt preview replaces README.md"
+      },
+      {
+        "nombre": "Diff double click pins the patch",
+        "ok": true,
+        "detalle": "fixed README.md diff"
+      },
+      {
+        "nombre": "Open file opens a distinct fixed normal file tab",
+        "ok": true,
+        "detalle": "file:README.md and diff:README.md coexist"
+      },
+      {
+        "nombre": "reactivating diff reloads changed working tree",
+        "ok": true,
+        "detalle": "README.md (diff)\nOpen file\n@@ -1 +1 @@\n1\n-# Dev session tabs\n1\n+# Refreshed working tree"
+      },
+      {
+        "nombre": "reload starts in Chat",
+        "ok": true,
+        "detalle": "Dev tabs absent after reload"
+      },
+      {
+        "nombre": "reload restores active fixed diff beside the normal file",
+        "ok": true,
+        "detalle": "fixed diff restored"
+      },
+      {
+        "nombre": "deleted file diff disables Open file",
+        "ok": true,
+        "detalle": "deleted notes.txt"
+      },
+      {
+        "nombre": "patch failure is visible inside the center tab",
+        "ok": true,
+        "detalle": "same error as inspector"
+      },
+      {
+        "nombre": "0 console errors",
+        "ok": true,
+        "detalle": "none"
+      }
+    ],
+    "notes": [],
+    "errores": [],
+    "capturas": [
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-49951/dev-session-tabs/session-tabs.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-49951/dev-session-tabs/file-markdown-preview.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-49951/dev-session-tabs/file-highlighted-code.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-49951/dev-session-tabs/file-markdown-source.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-49951/dev-session-tabs/new-session-agent-menu.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-49951/dev-session-tabs/new-session.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-49951/dev-session-tabs/opencode-terminal-tab.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-49951/dev-session-tabs/diff-center-preview.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-49951/dev-session-tabs/diff-center-pinned.png"
+    ]
+  }
+]

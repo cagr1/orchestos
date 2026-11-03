@@ -1,3 +1,4 @@
+import { existsSync } from 'node:fs'
 import { whichCli } from '../run/executors/cli-discovery.ts'
 
 type TerminalOptions = {
@@ -24,6 +25,17 @@ export function resolveOpenCodeCommand(
   const binary = which('opencode')
   if (!binary) throw new Error('OpenCode no está instalado (no se encontró "opencode" en el PATH)')
   return [binary]
+}
+
+export function resolveShellCommand(
+  env: Record<string, string | undefined> = process.env,
+  exists: (path: string) => boolean = (path) => existsSync(path),
+): string[] {
+  const candidates = [env.SHELL, '/bin/zsh', '/bin/sh'].filter(
+    (value): value is string => !!value && value.startsWith('/'),
+  )
+  const shell = candidates.find((candidate) => exists(candidate)) ?? '/bin/sh'
+  return [shell, '-l']
 }
 
 function clamp(value: number, min: number, max: number, fallback: number): number {
