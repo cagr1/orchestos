@@ -589,6 +589,15 @@
       "closedDate": null
     },
     {
+      "id": "CI.55",
+      "sprint": "Fase 2 — Producto mínimo para entrega",
+      "block": "Abiertos — fiabilidad de los gates y documentación",
+      "delegation": "🔍",
+      "title": "`tasks`: la tarea real `gate-role-task` a veces no deja `ROLE.md` en el primer intento",
+      "status": "open",
+      "closedDate": null
+    },
+    {
       "id": "CI.54",
       "sprint": "Fase 2 — Producto mínimo para entrega",
       "block": "Abiertos — fiabilidad de los gates y documentación",

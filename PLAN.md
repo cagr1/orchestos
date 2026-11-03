@@ -713,6 +713,12 @@ Regla: nada se reintenta, cierra ni muestra sin evidencia medida que el usuario 
   `ui:gate chat-stop` 22/22. Sol: `chat-stop` 22/22, `chat-streaming` 27/27, `codex-live` 15/15.
   Gate en vivo: navegador real (Playwright), `docs/done/evidence/CHAT.4-live.json`.
   Ejecutado por: codex gpt-6.1-sol (criterio, .1 y .2) · revisión Opus · Spec: docs/specs/CHAT.4.md
+- [ ] **CI.55 — 🔍 `tasks`: la tarea real `gate-role-task` a veces no deja `ROLE.md` en el primer intento.** (abierto 2026-11-02)
+  Visto 1 vez (pre-push del lote UI.49–55, 2026-11-02): el gate corre Codex real (`gpt-6-luna`); la corrida
+  terminó con `retryReason: "missing declared output(s): ROLE.md"`, `retryCount: 1`, `runId: null`, `qaVerdict: fail`, y
+  `waitForTaskFinished` (`tasks.mjs:39`) lo toma como fin. Aislado pasa 43/43 justo después. El lote no tocó tareas.
+  Evidencia: `docs/done/evidence/CI.55-prepush-fail.log`. Falta: que el próximo fallo deje la salida del CLI de esa
+  corrida (stdout/stderr o el log del run) para distinguir modelo, cuota o sandbox.
 - [ ] **CI.54 — 🔍 `codex-live`: la burbuja del usuario a veces no aparece en 2 s.** (abierto 2026-11-02)
   Visto 1 de 3 (2026-11-02, "turn 1 user message appears before completion"); el pre-push reintenta y lo oculta.
   Fase 1: que el fallo deje evidencia (captura, DOM, composer, timeline, log); fase 2: causa con esa evidencia.
