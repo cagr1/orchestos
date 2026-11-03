@@ -677,3 +677,382 @@ En todos: `prefers-reduced-motion` = cambios instantáneos o fundidos cortos.
   Ejecutado por: codex gpt-6-luna (mecanico, 3 rondas).
   Fuera de scope declarado: `useStickToBottom.ts` y `OrchestChatView.tsx` (la ronda 2 declaró solo `scripts/ui-gate/flows/**`;
   la ronda 3 es el arreglo de la causa medida).
+
+## Archivado 2026-11-03 desde PLAN.md (DOC.5)
+
+<a id="bloque-ui-seccion-abiertos---fiabilidad-de-los-gates-y-doc"></a>
+### Abiertos — fiabilidad de los gates y documentación
+
+- [x] **UI.34 — ⚡ Cuota de Claude fresca desde las corridas propias de OrchestOS.** (cerrado 2026-10-27, GO de
+  Carlos.) La app de escritorio no ejecuta `statusLine`; la 5 h de Claude desaparecía. Cada `claude -p` de OrchestOS
+  emite `rate_limit_event` con ambas ventanas: `consumeLine` (`external.ts`, chat y tareas) llama a
+  `recordClaudeRateLimitEvent` (`scripts/session-status.ts`), que escribe `claude-statusline/orchestos-stream.json`
+  en el formato del statusline; el lector existente lo toma sin cambios. Hermano: el title de la barra decía
+  "5-hour" mostrando el semanal; ahora dice "weekly".
+  Evidencia (cerebro): diff leído; typecheck 0; tests 33/0; `chat-streaming` 27/27 y `codex-live` 14/14; en vivo un
+  turno real de chat con Claude escribió el archivo (16 % / 46 %) y el popover muestra `5-hour 16%`.
+  Gate en vivo: navegador real (navegador integrado de Claude Desktop), `docs/done/evidence/UI.34-live.json`
+  Ejecutado por: codex gpt-6-luna (mecanico) · Spec: docs/specs/UI.34.md (borrado)
+- [x] **UI.33 — ⚡ Colores de cuota por consumo: verde < 60 %, naranja 60–80 %, rojo > 80 %.** (cerrado 2026-10-27,
+  Carlos; 5 h y semanal, barra inferior y popover.) `quotaTone` decide por consumo (`> 80` error, `>= 60` warning);
+  barras `bg-emerald-400` / `bg-orange-500` / `bg-app-error`, número naranja `text-orange-400`.
+  Evidencia (cerebro): diff leído; typecheck 0; `ShellStatusBar.test.ts` 17/0; `ui:gate usage-bar` 19/19; en vivo
+  Claude 37 % y Codex 9 % en verde (computed oklch emerald); naranja/rojo presentes en `dist/main.css`.
+  Gate en vivo: navegador real (navegador integrado de Claude Desktop), `docs/done/evidence/UI.33-live.json`
+  Ejecutado por: codex gpt-6-luna (mecanico) · Spec: docs/specs/UI.33.md (borrado)
+- [x] **UI.32 — ⚡ Pestaña Diff: muestra los cambios del working tree de git, como VS Code (solo lectura).** (cerrado
+  2026-10-27, GO de Carlos.) Antes solo listaba diffs guardados por tareas y nunca leía git. Ahora
+  `handlers/git-changes.ts` sirve `GET /api/git/changes` (status porcelain + numstat contra HEAD, sin seguimiento
+  contado por líneas) y `GET /api/git/diff?path=` (ruta validada dentro del proyecto; sin seguimiento vía
+  `--no-index`); la pestaña lista `CHANGES N` con nombre, carpeta, `+N −M` y letra de estado, refresca cada 4 s y
+  despliega el diff coloreado. Fuera los `fileDiffs` de runs en esta pestaña.
+  Evidencia (cerebro): diff leído; typecheck 0; `git-changes.test.ts` 7/0; lint sin errores; en vivo 8 filas = `git
+  status`, conteos = `git diff HEAD --numstat`.
+  Gate en vivo: navegador real (navegador integrado de Claude Desktop), `docs/done/evidence/UI.32-live.json`
+  Ejecutado por: codex gpt-6.1-sol (criterio), revisión Opus · Spec: docs/specs/UI.32.md (borrado)
+- [x] **UI.31 — ⚡ Cuotas de CLI: se ve lo consumido, sin "CLI Quotas", semanal como "5D 14h".** (cerrado 2026-10-27,
+  Carlos, captura del popover de Codex: 95 % restante debe leerse 5 %.) `ShellStatusBar.tsx` muestra `100 − restante`
+  en barra y popover (el tono sigue por restante), etiquetas `5-hour`/`Weekly`, `formatCountdown` para el semanal.
+  Evidencia (cerebro): typecheck 0; `ShellStatusBar.test.ts` 19/0; `ui:gate usage-bar` 19/19; en vivo (navegador
+  integrado, :4243) Codex `5-hour 5% · resets 3:42 PM`, `Weekly 23% · 5D 11h`, sin "CLI Quotas".
+  Hallazgo: la cuota de 5 h de Claude falta porque la app de escritorio no ejecuta `statusLine`; última lectura
+  2026-10-26 17:30 local, el reset de 5 h pasó sin lectura nueva y se oculta por vieja (comportamiento correcto).
+  Gate en vivo: navegador real (navegador integrado de Claude Desktop), `docs/done/evidence/UI.31-live.json`
+  Ejecutado por: codex gpt-6-luna (mecanico) · Spec: docs/specs/UI.31.md (borrado)
+- [x] **UI.30 — ⚡ Un solo anillo de contexto: fuera el de la cabecera de Dev.** (abierto y cerrado 2026-10-23, Carlos:
+  "esta repetido en el chat cual de los 2 vale?") UI.27.3 subió el anillo a la barra superior; el de la cabecera de Dev
+  quedó duplicado. Se quita; el fetch de Dev se queda porque llena la caché que lee la barra superior. model/source/engine
+  no se pasan: `ContextRing` nunca los muestra. Excepciones de fidelidad en `jsx-allow.json`.
+  Evidencia: `ui:fidelity:jsx` 0, typecheck 0, biome sin errores en los archivos tocados, `test:coverage` 2023/0.
+  En vivo (dashboard real, Dev con sesión abierta): un solo anillo, dentro de `header.h-11`, con dato.
+  Gate en vivo: navegador real (navegador integrado de Claude Desktop), `docs/done/evidence/UI.30-live.json`
+  Ejecutado por: Opus (Dev, sin delegación) · codex mecanico (`jsx-allow.json`) · Spec: docs/specs/UI.30.md (borrado)
+- [x] **UI.26 — 🔍 En modo Dev, Copy de una respuesta vieja copia la última.** Cerrado 2026-10-23. Reportado por
+  Carlos ("solo se copia el último"). El botón de cada respuesta buscaba el último `assistant` del timeline; ahora usa
+  el del exchange (`assistantCopyTarget`, `components/dev/copy-target.ts`, 3 tests). Chat ya copiaba bien (22 botones,
+  probado en vivo). Cerebro: `test:coverage` 2017/0, typecheck y lint verdes.
+  Dev, sesión "Hola" sobre copia de la DB: 12/12 respuestas copian la suya.
+  Gate en vivo: navegador real (Playwright, Chrome), `docs/done/evidence/UI.26-live.json`
+  Ejecutado por: codex (mecanico), revisión Opus · Spec: docs/specs/UI.26.md
+- [x] **UI.35 — La cuota de Claude se lee del endpoint de usage de Claude Code.** (cerrado 2026-10-27) GO de Carlos:
+  sin corridas propias la 5 h caduca y la barra la oculta (captura 10-27, "no data since 5 h"). Arreglo:
+  `refreshClaudeUsageLive` consulta `api.anthropic.com/api/oauth/usage` (lo de `/usage`, 0 tokens) con la sesión de
+  Claude Code (llavero en macOS, `~/.claude/.credentials.json` de respaldo; gana la vigente, nunca se refresca el
+  token), como mucho cada 60 s, y escribe solo % y resets en `claude-statusline/orchestos-usage.json`; el lector
+  existente lo mezcla. Si falla, queda el método de UI.34. r3: en la máquina de Carlos un `.credentials.json` vencido
+  de julio tapaba el llavero. r4 (QA): una fuente que falla ya no invalida la otra.
+  Evidencia (cerebro): typecheck 0; `session-status.test.ts` ×2 35/0; sin corrida propia, popover
+  "5-hour 10% · resets 9:00 PM", "Weekly 48% · 1D 7h"; archivo sin token.
+  Gate en vivo: navegador real (dashboard 4243), `docs/done/evidence/UI.35-live.json`.
+  Pre-push: el dashboard de `usage-bar` leyó el llavero real y tapó el fixture (39 %); los ui-gates arrancan con
+  `ORCHESTOS_CLAUDE_USAGE_LIVE=0` y no tocan llavero ni red. `ui:gate usage-bar` 19/19, tests 37/0.
+  **Fuera de scope declarado:** PLAN.md lo escribe el cerebro al registrar la evidencia del arreglo del gate.
+  Ejecutado por: codex gpt-6.1-sol (criterio r1) · codex gpt-6-luna (mecanico r2-r4) · QA: codex gpt-6.1-sol (P2 en r3, sin defectos en r4) · Spec: docs/specs/UI.35.md (borrado)
+- [x] **UI.36 — ⚡ Las carpetas del explorador (Files) se abren y muestran su contenido.** (cerrado 2026-10-29) GO de Carlos.
+  Causa (cerebro): `getExplorerTree('')` trae un nivel y `toggleFolder` solo cambiaba el flag; `node.children` nunca se
+  cargaba. Arreglo: un solo effect carga los hijos de toda carpeta abierta sin hijos (`foldersToLoad`), en cascada y
+  tras refrescar; una respuesta tardía del mismo proyecto se adjunta al árbol actual. QA Sol: P2 en r1-r3 (carrera del
+  refresco, anidadas, respuesta tardía), r4 sin defectos.
+  Evidencia (cerebro): typecheck 0; `OrcaRightInspector.test.ts` 5/0; en vivo `src` y `src/dashboard` abiertas con
+  contenido, también tras refrescar.
+  Gate en vivo: navegador real (dashboard 4243), `docs/done/evidence/UI.36-live.json`.
+  Ejecutado por: codex gpt-6-luna (mecanico r1-r4) · QA: codex gpt-6.1-sol (qa) · Spec: docs/specs/UI.36.md (borrado)
+- [x] **UI.37 — ⚡ El anillo de contexto va dentro del composer, junto a enviar.** (cerrado 2026-10-29) GO de Carlos.
+  Sale de `ShellHeader.tsx`; `AgentComposer` lo lee del caché compartido (`contextSessionId`, Chat = hilo, Dev =
+  agente) y lo pinta a la izquierda de enviar; el popover abre hacia arriba. `shell-look` comprueba anillo en el
+  composer junto a enviar, 0 en el header y tooltip por encima.
+  Evidencia (cerebro): `shell-look` 73/73 (dos corridas de Sol + una del cerebro, `ui-gate-938`, captura
+  `chat-context-window.png`); `chat-streaming` 27/27 (`ui-gate-6653`; una corrida previa falló porque el modelo
+  envolvió la respuesta en un bloque ```text, no por UI.37). `codex-live` también falla en HEAD → CI.48.
+  Gate en vivo: navegador real (Playwright, `shell-look`), `docs/done/evidence/UI.37-live.json`.
+  Ejecutado por: codex gpt-6-luna (mecanico) · Revisión: Opus · Spec: docs/specs/UI.37.md
+- [x] **UI.37.1 — 🔍 `shell-look` vuelve a verde (roto desde SET.4, fuera del pre-push).** (cerrado 2026-10-29)
+  Causa: desde `927ef50f` el modo `api` (OpenRouter) sale en New chat solo con `OPENROUTER_API_KEY` y el gate no la
+  ponía; además el paso de API keys validaba contra openrouter.ai con 15 s y esperaba el toast 15 s (carrera).
+  Arreglo: el gate escribe una clave de prueba en el `.env` de su home aislado antes de New chat; `setup.ts` acepta
+  `ORCHESTOS_OPENROUTER_TEST_URL` (leído en cada llamada) y `run.mjs` lo apunta a un puerto cerrado: ningún ui-gate sale
+  a la red. Test del override en `setup-api-key.test.ts` (8/0). Pendiente aparte: `shell-look` no está en el pre-push.
+  Gate en vivo: navegador real (Playwright, `shell-look` 73/73), `docs/done/evidence/UI.37-live.json`.
+  Ejecutado por: codex gpt-6.1-sol (criterio r1 paró por spec incompleto, r2) · Revisión: Opus · Spec: docs/specs/UI.37.1.md
+- [x] **UI.38 — 🧠 Dev con sesiones en pestañas y archivos en pestañas junto al chat (patrón MonoCode).** (cerrado 2026-10-29) GO de
+  Carlos 2026-10-29. Visto en vivo en MonoCode: cada sesión es una pestaña arriba; "+" abre "New session" con el
+  composer centrado; clic en un archivo parte el área en dos (chat | editor), cada panel con su ×; clic = pestaña de
+  vista previa (cursiva, la reemplaza el siguiente clic), doble clic = pestaña fija; solo lectura; Markdown con
+  Preview/Source, código con números de línea. Files se queda a la derecha. Hoy el archivo se ve dentro de Files
+  (`OrcaRightInspector.tsx:424`) y el centro de Dev queda vacío ("No active session open"). Toca varios componentes:
+  spec con layout antes de delegar.
+  Sin delegación: padre; se cerró por UI.38.1 (`be9c972f`) y UI.38.2.
+- [x] **UI.38.1 — 🧠 Dev: sesiones abiertas en pestañas arriba del centro.** (cerrado 2026-10-29) Decisiones de Carlos
+  2026-10-29: la lista del sidebar se queda (pestañas = abiertas); "+" abre New session con el composer centrado; las
+  pestañas abiertas se guardan por proyecto. `DevSessionTabs.tsx` + lógica pura `session-tabs.ts`; × cierra la pestaña
+  sin tocar la sesión; ids muertos se descartan al recargar; sale "No active session open…".
+  Evidencia (cerebro): capturas `UI.38.1-session-tabs.png` y `UI.38.1-new-session.png`; primer envío desde New session
+  en vivo (dashboard real 4299): crea la sesión, abre su pestaña y responde; sesión de prueba borrada.
+  Gate en vivo: navegador real (Playwright, `dev-session-tabs` 11/11 + `project-tabs` 40/40), `docs/done/evidence/UI.38.1-live.json`.
+  Ejecutado por: codex gpt-6.1-sol (criterio) · Revisión: Opus · Spec: docs/specs/UI.38.1.md
+- [x] **UI.38.2 — 🧠 Dev: panel de archivo con pestañas entre el chat y Files.** (cerrado 2026-10-29) Layout
+  `chat | archivo | Files`; clic = vista previa en cursiva (el siguiente clic la reemplaza), doble clic = fija; solo
+  lectura; Markdown Preview/Source; código con números y colores vía `highlight.js` (core + ts/js/json/md/yaml/css/sh;
+  decisión de Carlos 2026-10-29, no había resaltador; `main.js` 1.972.917 → 2.036.858 B, +3,2 %); las fijas se
+  guardan por proyecto; sale la vista previa de abajo de Files. El chat sigue sin colorear código (no se tocó).
+  Evidencia (cerebro): en vivo en el dashboard real (4299) con `src/cli.ts` (5373 tokens coloreados, scroll horizontal)
+  y `biome.json` fijado; capturas `UI.38.2-*.png`. Visto: en ventanas angostas el composer del chat se aprieta.
+  Gate en vivo: navegador real (Playwright, `dev-session-tabs` 21/21 + `project-tabs` 40/40), `docs/done/evidence/UI.38.2-live.json`.
+  Ejecutado por: codex gpt-6.1-sol (criterio) · Revisión: Opus · Spec: docs/specs/UI.38.2.md
+- [x] **UI.38.3 — 🧠 Dev como MonoCode: una fila de pestañas (sesiones + archivos), contenido a todo el centro.** (cerrado 2026-10-29)
+  Revisión de Carlos 2026-10-29: UI.38.2 partía la pantalla (`chat | archivo`) y UI.38.1 abría Dev en New session;
+  MonoCode (visto en vivo) abre el archivo a todo el centro como pestaña junto a la sesión y "+" crea una pestaña
+  New session. Ahora: una fila única (sesión / archivo preview-fijo / new); el archivo ocupa el centro; "+" agrega
+  "New session" con "What should we work on in <proyecto>?" y el modelo del rol; entrar a Dev abre la última sesión.
+  Regresión de UI.38.1 quitada: recargar saltaba a Dev (regla "inicio siempre Chat", tercera vez); rompía
+  `chat-streaming`.
+  Evidencia (cerebro): dashboard real (4299): la app abre en Chat; Dev abre la última sesión; `AGENTS.md` a todo el
+  centro en pestaña cursiva junto a la sesión. Capturas `UI.38.3-*.png`.
+  Gate en vivo: navegador real (Playwright, `dev-session-tabs` 18/18, `project-tabs` 40/40, `chat-streaming` 27/27), `docs/done/evidence/UI.38.3-live.json`.
+  Ejecutado por: codex gpt-6.1-sol (criterio) · Revisión: Opus · Spec: docs/specs/UI.38.3.md
+- [x] **UI.38.4 — ⚡ Dev sin la cabecera de sesión (la fila de pestañas la reemplaza).** (cerrado 2026-10-29) Carlos
+  2026-10-29: "ya no tiene sentido". Sale título + punto + Archive + Stop; Stop era falso (`handleStop` solo cambiaba
+  estado local); Archive sigue en el sidebar. Gates al día: `smoke` buscaba el título del estado vacío quitado en
+  UI.38.1 (rompió el pre-push); `shell-look` esperaba Dev tras recargar (ahora inicia en Chat) y mide contra la fila de
+  pestañas, alineada a 40 px con el inspector.
+  Evidencia (cerebro): `project-tabs` 40/40 y `smoke` 7/7 (`ui-gate-23732`).
+  Gate en vivo: navegador real (Playwright, `shell-look` 75/75, `dev-session-tabs` 18/18), `docs/done/evidence/UI.38.4-live.json`.
+  Ejecutado por: codex gpt-6-luna (mecanico r1) · codex gpt-6.1-sol (criterio r2) · Revisión: Opus · Spec: docs/specs/UI.38.4.md
+- [x] **UI.39 — ⚡ El dashboard pide `/favicon.ico` y recibe 404.** (cerrado 2026-10-30) Visto con Playwright en Settings
+  (4343): el único error de consola era ese 404. Ícono SVG en línea en `src/dashboard/app/index.html` (cuadrado oscuro,
+  "O" en el azul del logo), sin ruta nueva.
+  Evidencia (cerebro): 4343 con Playwright: `link[rel=icon]` presente, 0 errores de consola.
+  Gate en vivo: navegador real (Playwright, `smoke` 7/7), `docs/done/evidence/UI.39-live.json`.
+  Ejecutado por: codex gpt-6-luna (mecanico) · Spec: docs/specs/UI.39.md
+- [x] **UI.40 — ⚡ Health dice "All prerequisites met" con 4/5 checks y marca como fallo la falta de `OPENROUTER_API_KEY`.** (cerrado 2026-10-31)
+  Visto 2026-10-30 en vivo (4343). Decisión (memoria "CLI antes que API"): una API key no es requisito cuando se trabaja
+  con CLIs; `openrouter-key` queda opcional como `anthropic-key` (`src/dashboard/handlers/setup.ts:93` y `:220`).
+  Evidencia (cerebro): 4343 reiniciado, Health dice "5/5 system checks passing", captura `UI.40-health.png`;
+  `setup-api-key.test.ts` 9/9.
+  Gate en vivo: navegador real (Playwright, `smoke` 7/7), `docs/done/evidence/UI.40-live.json`.
+  Ejecutado por: codex gpt-6-luna (mecanico) · Spec: docs/specs/UI.40.md
+- [x] **UI.41 — 🧠 El chat colorea los bloques de código como Dev.** (cerrado 2026-11-01) Anotado en UI.38.2: Dev ya colorea con
+  `highlight.js` (`DevFilePanel.tsx:1`) y el hilo del chat (`ThreadMarkdown.tsx`, Streamdown 2.7) muestra el código
+  plano. Mismo resaltador y lenguajes que Dev, conservando cabecera y botón de copiar de Streamdown y el streaming.
+  Sin dependencia pesada nueva (memoria "peso de la UI aceptado": medir `main.js` antes y después).
+  Arreglo: `lib/highlight.ts` comparte `hljs`, lenguajes y clases de color entre Dev y el chat; el chat usa el plugin
+  `code` de Streamdown con un adaptador a highlight.js (`thread/code-highlighter.ts`), conserva cabecera, copiar y
+  streaming. `main.js` 2.035.098 → 2.036.292 bytes (+1,2 KB), sin dependencias ni CSS nuevos.
+  Evidencia (cerebro): 4343 con un chat de prueba: 2 bloques, 19 tokens `hljs-*`, captura `UI.41-chat-code.png`
+  (keyword/string/número/comentario coloreados). Visto: `hljs-built_in` sin color también en Dev → UI.43.
+  Gate en vivo: navegador real (Playwright, flujo de Sol 14/14: copia, streaming y colores iguales a Dev), `docs/done/evidence/UI.41-live.json`.
+  Ejecutado por: codex gpt-6.1-sol (criterio) · Revisión: Opus · Spec: docs/specs/UI.41.md
+- [x] **UI.42 — ⚡ El modo de permisos del chat parpadea a vacío al re-dispararse el efecto de config.** (cerrado 2026-11-01) Anotado en
+  CI.41: `OrchestChatView.tsx:110` pone `permissions` en `null` cada vez que cambia `projectExists`, aunque el proyecto
+  sea el mismo; `data-permission-mode` (`:555`) queda vacío hasta que vuelve `getConfig` y un gate que lo lee puede
+  ver el hueco. Limpiar solo al cambiar de proyecto.
+  Arreglo: un `useRef` con el último `projectId`; `permissions` y `orchestrator` se limpian solo si cambió.
+  Evidencia (cerebro): diff leído; `tsc` limpio.
+  Gate en vivo: navegador real (Playwright, `chat-permissions` 9/9), `docs/done/evidence/UI.42-live.json`.
+  Ejecutado por: codex gpt-6-luna (mecanico) · Spec: docs/specs/UI.42.md
+- [x] **UI.43 — ⚡ `hljs-built_in` (p. ej. `number`) sale sin color en Dev y en el chat.** (cerrado 2026-11-01) Visto en UI.41: en
+  `TOKEN_CLASSES` (`src/dashboard/app/src/lib/highlight.ts`) la variante `[&_.hljs-built_in]` lleva `_`, que Tailwind
+  convierte en espacio; la regla no aplica (color computado = texto normal). Escapar el guion bajo.
+  r1 (`'built\\_in'` en string normal) no aplicaba: Tailwind escanea la fuente con dos barras y la clase en runtime
+  lleva una. r2: esa línea con `String.raw` (fuente y runtime con una barra).
+  Evidencia (cerebro): 4343, chat de prueba: `number` (`hljs-built_in`) con color computado `rgb(56, 189, 248)`
+  (antes `rgb(244, 244, 245)`); selector en `dist/main.css` `.hljs-built_in`.
+  Gate en vivo: navegador real (Playwright, `smoke` 7/7), `docs/done/evidence/UI.43-live.json`.
+  Ejecutado por: codex gpt-6-luna (mecanico r1, r2) · Spec: docs/specs/UI.43.md
+- [x] **UI.44 — ⚡ Pestañas de Dev flotantes, como MonoCode.** (cerrado 2026-11-02) Carlos 2026-11-02: "quiero que los tabs se vean
+  flotantes; mira como lo hace monocode". Visto en vivo en MonoCode (capturas `/tmp/mono/*.png`): píldoras redondeadas
+  separadas entre sí, sin bordes ni separadores; la activa con fondo más claro y texto blanco; las inactivas solo ícono
+  y texto atenuado; en hover fondo tenue, texto más claro y × a la derecha; ancho fijo con título truncado. Hoy
+  (`DevSessionTabs.tsx:41-101`) es una franja plana con `border-r` por pestaña y `border-b`.
+  Arreglo: píldoras `rounded-lg` de ancho fijo (`w-56`) con `gap-1`, sin `border-r`; activa `bg-app-surface`, inactiva
+  atenuada con hover tenue; × absoluta visible en hover/focus. r1 subió la fila a 48 px y rompió `shell-look` (92 vs
+  84); r2 la deja en 40 px con la línea inferior, alineada con el inspector.
+  Evidencia (cerebro): capturas antes/después en 4343 (`/tmp/set-shots/dev-tabs*.png`); la píldora activa iguala a la
+  de "Files" del inspector.
+  Gate en vivo: navegador real (Playwright, `shell-look` 75/75, `dev-session-tabs` 18/18), `docs/done/evidence/UI.44-live.json`.
+  Ejecutado por: codex gpt-6-luna (mecanico r1, r2) · Spec: docs/specs/UI.44.md
+- [x] **UI.45 — 🧠 "+" en Dev pregunta con qué agente iniciar.** (cerrado 2026-11-02) Carlos 2026-11-02: "al abrir un nuevo tab debe
+  preguntar con que agente iniciar; hoy solo abre el último que fue usado". "+" abre un menú con los agentes de chat
+  instalados (memoria "OpenCode = ventana libre": opencode no va); el último usado primero y preseleccionado (Enter
+  lo toma); elegir abre New session con ese agente y el modelo de su rol.
+  Decisión del cerebro (pregunta de Sol r1): modelo/esfuerzo del primer rol del agente en orden
+  orchestrator → executor → reviewer → auxiliary; sin rol, el default de su CLI (`new-session-agent.ts`, con test).
+  r3: título alineado a la izquierda (`text-left`; el `<button>` lo centraba).
+  Evidencia (cerebro): 4343: "+" muestra Claude (preseleccionado) y Codex; Enter abre New session con Claude
+  Opus 5.5 · medium; capturas `/tmp/set-shots/plus-*.png`.
+  Gate en vivo: navegador real (Playwright, `dev-session-tabs` 24/24, `shell-look` 75/75, `smoke` 7/7), `docs/done/evidence/UI.45-live.json`.
+  Ejecutado por: codex gpt-6.1-sol (criterio r1, r2) · codex gpt-6-luna (mecanico r3) · Revisión: Opus · Spec: docs/specs/UI.45.md
+- [x] **UI.61 — ⚡ La terminal de Dev se reabre tras actualizar el CLI.** (abierto 2026-11-03, GO de Carlos) Carlos
+  actualizó OpenCode desde su TUI; el proceso salió y la pestaña quedó con solo el ↻, sin relanzarse. Si el binario
+  cambió al salir, se reabre sola; en cualquier salida, Enter en la terminal la reabre.
+  Hecho: `terminal.ts` toma la huella del ejecutable (ruta real, mtime, tamaño) al lanzar y al salir; el `exit` del
+  WebSocket lleva `binaryChanged`; `OpenCodeTerminal.tsx` reabre sola si es `true` y con Enter en estado `exited`; el
+  `onclose` de un socket viejo ya no pisa el estado del nuevo. Sin texto visible nuevo.
+  Gates del cerebro: typecheck, lint, `terminal.test.ts` + `server-terminal.test.ts` 15/0, `ui:gate dev-terminal`
+  16/16 (salida + Enter reabre y el PTY responde). En vivo con un `opencode` falso que se reescribe y sale: el front
+  recibe `{"type":"exit","code":0,"binaryChanged":true}` y muestra la versión nueva sin ↻
+  (`docs/done/evidence/UI.61-after-upgrade.png`). `opencode-terminal` falla igual en HEAD por el daemon de OpenCode
+  2.2.5 → CI.58.
+  Gate en vivo: navegador real (Playwright), `docs/done/evidence/UI.61-live.json`.
+  Ejecutado por: codex gpt-6.1-sol (criterio r1) · revisión Opus
+- [x] **UI.59 — ⚡ Gate de pre-commit: todo texto visible nuevo de la UI se declara en el ítem.** (abierto 2026-11-03,
+  GO de Carlos) La regla "texto que no aporta desaparece" vive solo en memoria y se rompió 5+ veces (último: "Terminal"
+  en el menú, cabecera OpenCode, "Iniciando OpenCode…"). El gate exige `Texto visible:` en `PLAN.md` por cada texto
+  JSX nuevo.
+  Hecho: `scripts/check-ui-text.ts` (AST de TypeScript) toma el texto JSX y los `title`/`placeholder`/`alt` literales
+  de las líneas añadidas en `.tsx` de la app y exige que cada uno aparezca en una línea `Texto visible:` añadida a
+  `PLAN.md`; corre en pre-commit (`ui:text-gate`). Regla en `AGENTS.md` § Reglas generales.
+  Gates del cerebro: `check-ui-text.test.ts` 13/13, lint, typecheck; contraprueba real (`<span>Prueba</span>` →
+  exit 1, Sol). Cobertura: la corre el pre-push.
+  Ejecutado por: codex gpt-6.1-sol (criterio r1) · revisión Opus
+- [x] **UI.60 — ⚡ El "+" de las pestañas de Dev siempre visible.** (abierto 2026-11-03, GO de Carlos) Con 4 pestañas
+  el "+" sale de la vista dentro de la franja desplazable (`DevSessionTabs.tsx`).
+  Hecho: el tablist es el que se desplaza y el "+" queda fuera, a la derecha; las pestañas encogen hasta `min-w-24`;
+  la activa se trae a la vista solo al cambiar (`useEffect` sobre `activeId`, r2: el `ref` en línea la traía en
+  cada render). Gates del cerebro: lint, typecheck, `dev-session-tabs` 47/47 (8 pestañas: "+" visible, abre menú,
+  `scrollLeft` estable 3 s), `shell-look` 75/75.
+  Gate en vivo: navegador real (Playwright), `docs/done/evidence/UI.60-live.json` (captura `UI.60-eight-tabs.png`).
+  Ejecutado por: codex gpt-6-luna (mecanico, r1 r2) · revisión Opus · Spec: docs/specs/UI.60.md
+- [x] **UI.58 — ⚡ Terminal abre en el espacio central, como una pestaña de Dev.** (abierto 2026-11-03) Carlos: el
+  botón Terminal abre un panel bajo de 35 % (`App.tsx:1667`, UI.55); debe ocupar el espacio central y cerrarse desde
+  su pestaña. Las pestañas de terminal siguen vivas al mirar otra.
+  Hecho: tipo de pestaña `terminal` (no se persiste); el botón Terminal y `Ctrl+\`` activan la pestaña del proyecto o
+  abren una; panel inferior eliminado; las pestañas terminal y OpenCode quedan montadas ocultas al cambiar de pestaña
+  (el PTY sigue vivo) y `fit` se salta con tamaño 0; el shell perdió su cabecera (spinner/Reabrir como OpenCode).
+  Gates del cerebro: lint, typecheck, `test:coverage` 2218/0, `dev-terminal` 14/14, `opencode-terminal` 13/13,
+  `dev-session-tabs` 42/42, `shell-look` 75/75.
+  Gate en vivo: navegador real (Playwright), `docs/done/evidence/UI.58-live.json` (captura `UI.58-terminal-return.png`).
+  Ejecutado por: codex gpt-6.1-sol (criterio r1) · revisión Opus
+- [x] **UI.57 — ⚡ La pestaña OpenCode usa el tema elegido y no repite la cabecera.** (abierto 2026-11-03) Visto por
+  Carlos con Carbon: el terminal sale con el tema por defecto (lee las variables de `<html>`, el `data-theme` vive en
+  `App.tsx:1508`) y la pestaña repite "OpenCode" + "×" en una cabecera propia (`OpenCodeTerminal.tsx:118`).
+  Hecho: el terminal lee el tema del host y lo actualiza al cambiarlo (`MutationObserver` sobre `data-theme`); la
+  pestaña OpenCode no tiene cabecera (se cierra desde la pestaña), spinner sin texto hasta el primer byte, botón ícono
+  Reabrir al terminar. r2 (Carlos): fuera "Terminal" del menú del "+" y todo texto que el ícono ya dice.
+  Gates del cerebro: lint, typecheck, `test:coverage` 2217/0. `dev-session-tabs` 42/42, `opencode-terminal` 11/11
+  (Carbon `rgb(9, 9, 11)`, Graphite `rgb(15, 17, 21)`).
+  Gate en vivo: navegador real (Playwright), `docs/done/evidence/UI.57-live.json` (capturas `UI.57-menu.png`,
+  `UI.57-opencode.png`).
+  Ejecutado por: codex gpt-6-luna (mecanico, r1 r2) · revisión Opus
+- [x] **UI.56 — ⚡ El anillo de contexto con poco uso no parece un spinner de carga.** (abierto 2026-11-02) Auditoría
+  de ADE: a ~5 % el anillo es pista gris + arco corto redondeado sin número (`ContextRing.tsx:61-92`), la forma de un
+  spinner. Cambio: sector de pastel relleno dentro de la pista; el resto igual.
+  Hecho: sector `<path>` relleno (radio 5) desde las 12 en sentido horario; 0 % sin sector, 100 % círculo relleno.
+  Gates: lint, typecheck, `shell-look` 75/75, `chat-continuity` 8/8 (ejecutor). Captura del componente real a
+  5/30/50/85 % por el cerebro: `docs/done/evidence/UI.56-rings.png`.
+  Gate en vivo: navegador real (Playwright), `docs/done/evidence/UI.56-live.json` (captura `UI.56-rings.png`).
+  Ejecutado por: codex gpt-6-luna (mecanico) · revisión Opus
+- [x] **UI.62 — ⚡ La salud de OpenCode no lanza `opencode auth list`.** (abierto 2026-11-03) Con OpenCode 2.2.5 ese
+  comando tarda ~20 s; la sonda corta a 5 s y OpenCode queda `auth: unknown` con Health/estado lentos. Se lee
+  `auth.json` (solo nombres de proveedor).
+  Hecho: `cli-health.ts` lee `$XDG_DATA_HOME|~/.local/share/opencode/auth.json` por la sonda `readFile`; ≥ 1
+  proveedor → ok; vacío/ausente → lógica de `PROVIDER_KEYS`; JSON inválido → unknown. Ningún valor sale del archivo.
+  Gates del cerebro: tsc, tests 37/0. En vivo (dashboard real): `GET /api/providers?refresh=1` en 0,26 s con OpenCode
+  `auth: ok`, `functional: true`.
+  Ejecutado por: codex gpt-6.1-sol (criterio r1) · revisión Opus
+- [x] **UI.49 — ⚡ El composer de Dev muestra el modo de permisos, como Chat.** (abierto 2026-11-02) Auditoría de
+  ADE (Dev vs MonoCode/Orca, capturas `/tmp/ade/`): Chat muestra "Auto-edit" y Dev no, porque Dev no pasa
+  `hasProject` a `AgentComposer` (`OrchestDevWorkspace.tsx:990`, `AgentComposer.tsx:836`). MonoCode lo muestra
+  siempre ("Supervised").
+  Hecho: Dev pasa `hasProject` y reenvía `approvalMode` hasta `sendMessage` (mismo camino que Chat). Gates del
+  cerebro: `dev-session-tabs` 37/37 (paso nuevo: selector visible y cambio a Supervised), `chat-permissions` 9/9.
+  Ejecutor: lint, typecheck, `test:coverage` 2211/0.
+  Gate en vivo: navegador real (Playwright), `docs/done/evidence/UI.49-live.json`.
+  Ejecutado por: codex gpt-6-luna (mecanico) · revisión Opus · Spec: docs/specs/UI.49.md
+- [x] **UI.50 — ⚡ La pestaña de Dev indica cuando su sesión está corriendo.** (abierto 2026-11-02) Auditoría de ADE:
+  Orca pone un spinner en la pestaña del agente que trabaja; en Dev solo se ve dentro del hilo
+  (`DevSessionTabs.tsx:163`).
+  Hecho: `running: hasActiveTurn(id)` en `GET /api/chat/sessions`; `App` guarda las sesiones con turno (envío local +
+  sembradas del listado, que se apagan con `pending: false` del timeline salvo las de envío local, r2) y la píldora
+  cambia el ícono del proveedor por un spinner "Running". Gates del cerebro: lint, `dev-session-tabs` 39/39,
+  `shell-look` 75/75, `chat-stop` 22/22. Ejecutor: `test:coverage` 2211/0.
+  Gate en vivo: navegador real (Playwright), `docs/done/evidence/UI.50-live.json`.
+  Ejecutado por: codex gpt-6-luna (mecanico r1–r2; r0 paró por spec incompleto) · revisión Opus · Spec: docs/specs/UI.50.md
+- [x] **UI.51 — ⚡ La barra de cuotas muestra cuánto falta para el reinicio.** (abierto 2026-11-02) Auditoría de ADE:
+  Orca ("18% used 2h 22m") y MonoCode ("1% 2h 47m") lo muestran junto al %; OrchestOS solo el %
+  (`ShellStatusBar.tsx:184`), el tiempo vive en el popover.
+  Hecho: junto al % va el tiempo hasta el reinicio de la ventana de 5 h (`formatCountdown`, el del popover), reloj
+  de 60 s; sin `resetsAt` o vencido no se muestra. En vivo (cerebro, 4343): "26% 1h 35m", "54% 2h 11m". Gates del
+  cerebro: `usage-bar` 21/21, `shell-look` 75/75. Ejecutor: lint, `test:coverage` 2211/0.
+  Gate en vivo: navegador real (Playwright), `docs/done/evidence/UI.51-live.json`.
+  Ejecutado por: codex gpt-6-luna (mecanico) · revisión Opus · Spec: docs/specs/UI.51.md
+- [x] **UI.52 — 🧠 Dev pinta la respuesta igual que Chat.** (abierto 2026-11-02) Auditoría de ADE: Dev usa una
+  tarjeta con borde y `react-markdown` (`OrchestDevWorkspace.tsx:929-938`); Chat usa `ChatMessage` + `ThreadMarkdown`
+  (Streamdown, highlight de UI.41) sin tarjeta. Títulos y listas se ven distintos entre vistas; Dev no colorea código.
+  Hecho: Dev usa `ChatMessage` + `ThreadMarkdown` (Streamdown con highlight) sin tarjeta; `react-markdown` fuera de
+  `package.json`. r2: `shell-look` medía la caja "en reposo" durante la animación de entrada (falló 3/3 en el
+  cerebro); ahora espera `getAnimations().finished`, sin relajar la tolerancia. Gates del cerebro: lint,
+  `shell-look` 75/75 ×2, `dev-session-tabs` 40/40, `chat-streaming` 27/27, `chat-stop` 22/22. Sol: `test:coverage`
+  2211/0. Captura con título, lista y código coloreado en Dev.
+  Gate en vivo: navegador real (Playwright), `docs/done/evidence/UI.52-live.json`.
+  Ejecutado por: codex gpt-6.1-sol (criterio r1, r2) · revisión Opus · Spec: docs/specs/UI.52.md
+- [x] **UI.53 — 🧠 El árbol de Files atenúa lo que git ignora, como VS Code y Orca.** (abierto 2026-11-02) Auditoría de
+  ADE: Orca pinta en cursiva atenuada los ignorados; Files los muestra igual que el resto
+  (`OrcaRightInspector.tsx:279`).
+  Hecho: `/api/explorer/tree` marca `ignored` por entrada con una llamada a `git check-ignore --stdin -z` por
+  listado (sonda inyectable; sin git, todo falso); Files pinta `opacity-50 italic`. En vivo (cerebro, repo real):
+  raíz marca `demo`, `test-project`, `.DS_Store`, `eng.traineddata`, `REVIEW.md` (como Orca) y los hijos de `demo`.
+  Gates del cerebro: lint, `dev-session-tabs` 41/41, `shell-look` 75/75. Sol: `test:coverage` 2213/0.
+  Gate en vivo: navegador real (Playwright), `docs/done/evidence/UI.53-live.json`.
+  Ejecutado por: codex gpt-6.1-sol (criterio) · revisión Opus · Spec: docs/specs/UI.53.md
+- [x] **UI.54 — 🧠 "@" en el composer referencia archivos del proyecto.** (abierto 2026-11-02) Carlos 2026-11-02
+  (auditoría de ADE, opción recomendada): como MonoCode y Orca, "@" abre un buscador de archivos del proyecto e
+  inserta la ruta; en Chat y Dev. Hoy solo "/" (`AgentComposer.tsx:328`).
+  Hecho: "@" al inicio o tras espacio (no en "a@b") abre "Files" con la búsqueda de Files del proyecto (20, con
+  debounce); Enter/Tab inserta `@ruta `. Placeholder "… / for commands, @ for files" con proyecto. r2: aserción del
+  placeholder en `dev-session-tabs` y hermano de UI.49 (la pestaña New session no pasaba `hasProject` ni
+  `approvalMode`). En vivo (cerebro, 4343, repo real): "revisa @PLA" → `revisa @PLAN.md `. Gates del cerebro: lint,
+  `composer-picker` 11/11, `chat-streaming` 27/27, `dev-session-tabs` 42/42, `chat-permissions` 9/9. Sol:
+  `test:coverage` 2215/0.
+  Gate en vivo: navegador real (Playwright), `docs/done/evidence/UI.54-live.json`.
+  Ejecutado por: codex gpt-6.1-sol (criterio r1, r2) · revisión Opus · Spec: docs/specs/UI.54.md
+- [x] **UI.55 — 🧠 Terminal del proyecto en un panel inferior de Dev.** (abierto 2026-11-02) Carlos 2026-11-02
+  (auditoría de ADE, opción recomendada): como MonoCode, botón "Terminal" en la barra inferior y Ctrl+` abren una
+  shell en la raíz del proyecto bajo el centro de Dev. Reusa el PTY de OpenCode (`src/dashboard/terminal.ts`,
+  `OpenCodeTerminal.tsx`).
+  Hecho: `/api/terminal?kind=shell` abre `$SHELL -l` (o zsh/sh) en la raíz del proyecto; sin `kind` sigue OpenCode;
+  `kind` desconocido 400. Panel bajo el centro de Dev (35 %, divisor, mín. 120 px, cerrar), botón "Terminal" en la
+  barra (solo Dev) y Ctrl+`; foco al xterm al abrir y al "Reopen"; "Process exited" + "Reopen". r2: el botón contaba
+  como cuota en `usage-bar` (ahora `data-quota-cli`) y el foco quedaba en el botón (un Enter lo cerraba, hallado en
+  vivo por el cerebro). En vivo (cerebro, 4343): shell en el repo, `exit` → Reopen → `echo` ok. Gates del cerebro:
+  lint, `dev-terminal` 10/10, `usage-bar` 21/21, `opencode-terminal` 8/8, `shell-look` 75/75, `dev-session-tabs`
+  42/42. Ejecutor: `test:coverage` 2217/0.
+  Gate en vivo: navegador real (Playwright), `docs/done/evidence/UI.55-live.json`.
+  Ejecutado por: claude sonnet (criterio-alt r1, r2; cupo de Codex al 82 %) · revisión Opus · Spec: docs/specs/UI.55.md
+- [x] **UI.48 — ⚡ Clic en un archivo de la pestaña Diff lo abre al centro, como Files.** (abierto 2026-11-02)
+  Carlos 2026-11-02: hoy se abre dentro del panel de Diff; en MonoCode y Orca ocupa el centro para verlo completo.
+  Mismo comportamiento que Files (UI.38): pestaña de archivo en la fila de Dev, vista previa en cursiva, doble clic
+  fija; muestra el diff del archivo contra HEAD (añadidas/quitadas con color) y permite pasar al archivo entero.
+  Hecho: `DevDiffPanel.tsx`; clic en la lista de Diff abre la pestaña de diff al centro (cursiva), doble clic la fija,
+  "Abrir archivo" pasa al archivo entero; la lista marca el diff activo y el acordeón del panel desapareció.
+  Gates del cerebro: `test:coverage` 2208/0, `ui:gate dev-session-tabs` 33/33. Sol: 33/33 + `shell-look` 75/75.
+  Gate en vivo: navegador real (Playwright), `docs/done/evidence/UI.48-live.json`.
+  Ejecutado por: codex gpt-6.1-sol (criterio) · revisión Opus · Spec: docs/specs/UI.48.md
+- [x] **UI.46 — ⚡ La barra de cuotas muestra solo los CLIs con cuota real.** (abierto 2026-11-02) Carlos
+  2026-11-02: hoy lista todos los instalados y OpenCode sale con "—"; OpenCode no expone cuota (`opencode stats` da
+  costo equivalente a API; Orca la saca pegando la cookie de opencode.ai, no cubre API key). Queda: CLIs funcionales
+  (TCLI.3) con fuente de cuota (Claude, Codex). El contexto de OpenCode sigue en el anillo del composer. Tras TCLI.3.
+  Hecho: `quotaSource` en el registro (`cli-registry.ts`, Claude y Codex); `/api/session/status` añade `functional`
+  (TCLI.3) y `quotaSource`; `mapQuotas` filtra ambos y sin elegibles la sección no se pinta. Captura: Claude 39 % y
+  Codex 34 %, sin OpenCode. Gates del cerebro: `test:coverage` 2208/0; Sol: `shell-look` 75/75, `usage-bar` 20/20.
+  Gate en vivo: navegador real (Playwright), `docs/done/evidence/UI.46-live.json`.
+  Ejecutado por: codex gpt-6.1-sol (criterio) · revisión Opus · Spec: docs/specs/UI.46.md
+- [x] **UI.47 — ⚡ El "+" de Dev ofrece OpenCode como terminal.** (abierto 2026-11-02) Carlos 2026-11-02: OpenCode
+  en el "+" abre una pestaña con su TUI real (`OpenCodeTerminal`, decisión 2026-09-28 "tal cual trabaja"), con su
+  propia configuración; los agentes de chat siguen igual. Solo si OpenCode está funcional (TCLI.3). Tras TCLI.3.
+  Hecho: el "+" lista OpenCode con la marca "Terminal" si está funcional; elegirlo crea la sesión `opencode` y monta
+  `OpenCodeTerminal` sin pantalla intermedia (flag `terminal` del adaptador). r2 (bug real hallado con consola): el
+  listener de `scroll` en captura cerraba el menú cuando la fila de pestañas (`overflow-x-auto`) se desplazaba;
+  ahora el menú se reposiciona con ese scroll. Crear sesión ya no traga errores (`setProjectTabsError`). "Abrir
+  archivo" → "Open file". Gates del cerebro: lint, `test:coverage` 2209/0, `dev-session-tabs` 35/35 ×2.
+  Gate en vivo: navegador real (Playwright), `docs/done/evidence/UI.47-live.json`.
+  Ejecutado por: codex gpt-6.1-sol (criterio r1) · claude sonnet (criterio-alt r2) · revisión Opus · Spec: docs/specs/UI.47.md
+- [x] **UI.29 — 🔍 Dev: el copiar de la respuesta del asistente va abajo a la izquierda.** (abierto 2026-10-23, Carlos:
+  "lo normal es que salga en la esquina inferior izquierda") `OrchestDevWorkspace.tsx:~935` lo pone `absolute right-2
+  top-2`; en Chat ya va debajo a la izquierda. Worktree `ui/UI.29` (otra sesión tiene el árbol principal).
+  (cerrado 2026-10-23) El botón va debajo de la tarjeta, alineado a su borde izquierdo (medido en vivo: 4 px bajo la
+  tarjeta, mismo `left`). De paso: `shell-look` fallaba en el resaltado de Settings (dura 960 ms y el flujo esperaba
+  1000 ms antes de medirlo); ahora confirma y mide en una sola evaluación, sin relajar la afirmación.
+  Ejecutado por: gpt-6.1-sol (rol `criterio`) · Spec: docs/specs/UI.29.md (borrado). Revisión: Opus (diff + vivo).
+  Gate en vivo: navegador real (Playwright), `docs/done/evidence/UI.29-live.json` — `shell-look` 76/76,
+  `chat-streaming` 27/27 (Sol: 3/3 rondas).

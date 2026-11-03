@@ -963,3 +963,259 @@ Por eso UI.1 es un gate de abortar real, y por eso el orden es shell→pantallas
   Ejecutado por: `criterio` (roster.conf) · Spec: docs/specs/CI.29.md (borrado al cerrar)
   Evidencia: typecheck y lint (0 errores) limpios; `test:coverage` 1844/0; `gate:evidence CI.29-chat-turn-details` ×3 →
   `PASS chat-turn-details 29/29` las 3 veces; el pre-push completo la vuelve a correr.
+
+## Archivado 2026-11-03 desde PLAN.md (DOC.5)
+
+<a id="bloque-ci-seccion-confianza-en-el-flujo---trust--go-de-car"></a>
+### Confianza en el flujo — TRUST (GO de Carlos 2026-10-22)
+
+- [x] **CI.41 — 🔍 `chat-permissions` intermitente: `data-permission-mode` null en el primer paso.** (abierto y cerrado 2026-10-23)
+  1 de 3 corridas hoy (set de 5 flows de chat): `composer reports yolo without permissions strip: mode=null`; la
+  captura `1-yolo` muestra el composer cargado ("Auto-edit"). `chat-permissions.mjs:59-62`: el `waitForFunction` vio
+  `yolo` y el `getAttribute` siguiente leyó `null` → el composer se re-montó entre ambos. Sola: 9/9. Próximo paso: el
+  paso guarda el atributo en el mismo `waitForFunction` y el detalle dice si el nodo se reemplazó.
+  Medido (Sol): `yolo → null` ocurre sin reemplazar el nodo. Causa verificada por el cerebro: el efecto de config de
+  `OrchestChatView.tsx:104-118` pone `permissions` a `null` cada vez que se re-dispara y lo rellena al responder
+  `/api/config`; el atributo (`:541`) parpadea un fetch. No afecta al envío (el backend lee el modo de su config).
+  Arreglo del gate: lectura atómica dentro del `waitForFunction` + marca de reemplazo, en Yolo y Manual. Anotado sin
+  ítem: el parpadeo de `permissions` al re-disparar el efecto. Sol: 9/9 ×3 y set de chat verde; cerebro: 9/9.
+  Gate en vivo: navegador real (Playwright), `docs/done/evidence/CI.41-live.json`
+  Ejecutado por: codex gpt-6.1-sol (criterio), revisión Opus · Spec: docs/specs/CI.41.md
+
+<a id="bloque-ci-seccion-abiertos---fiabilidad-de-los-gates-y-doc"></a>
+### Abiertos — fiabilidad de los gates y documentación
+
+- [x] **CI.39 — 🔍 `usage-bar` rojo: el refresco manual muestra la cuota vieja un instante.** (abierto y cerrado 2026-10-22)
+  Bloqueaba el push de TRUST.5. Defecto del flujo, no del producto ni de TRUST.5: buscaba "67%" en toda la página y la
+  cuota real de Codex marcaba justo 67 %; además el conteo de requests mezclaba dos documentos (reload). Selectores
+  acotados a la cuota de Claude (`footer button[title^="Claude"]`) y carga limpia por `about:blank`; aserciones intactas.
+  Evidencia del cerebro: diff leído; contrapruebas del ejecutor (colisión forzada falla con el selector viejo y pasa con
+  el nuevo; Claude 61→67 % sigue fallando); `usage-bar` 5/5 (19/19), `test:coverage` 1992/0 (ejecutor).
+  Gate en vivo: navegador real (Playwright), `docs/done/evidence/CI.39-live.json`
+  Ejecutado por: codex gpt-6.1-sol (criterio) · Spec: docs/specs/CI.39.md
+- [x] **CI.42 — 🔍 `Mutation Shards` excede 3 h: cada shard arrastra los tests de todos los ejecutores.** (abierto 2026-10-23, cerrado 2026-10-24)
+  Corrida `39921431428` (d734166): `executors` y `executors-codex` cortados a 180 min; `context-routing` 21→69 min,
+  `runtime-boundaries` 45→135 min. Prueba inicial de Stryker 7→27 s y 10→28 s. Medido (cerebro): la selección por
+  grafo de imports (`scripts/mutation-test-shard.ts`) pasó de 52 a 62 archivos en context-routing y de 54 a 67 en
+  executors desde el registro `task-engines.ts`; `tasks-concurrency` 10,8 s y `run-revert` 8,7 s entran ahora.
+  Spec: `docs/specs/CI.42.md` (borrado).
+  Arreglo (Sol): el selector sigue solo imports de runtime (Bun `scanImports` + AST; fuera `import type`, comentarios
+  y textos de fixtures) y `executors`/`executors-codex` se parten en 4 configs (6 jobs, mismos archivos mutados:
+  13/13 y 4/4). Selección HEAD: context-routing 62→28, runtime-boundaries 65→34, particiones 45–49. Gates (cerebro):
+  typecheck 0, lint sin errores, `mutation-test-shard.test.ts` 8/0; `test:coverage` 2013/0 (ejecutor). Abierto hasta
+  ver los tiempos reales del `workflow_dispatch` (estimación de Sol: job más lento ~150 min).
+  Cierre (cerebro, `gh run view 39983853493`, success): executors-codex-engines 122, executors-routing 117,
+  executors-engines 115, executors-codex-server 110, runtime-boundaries 74, context-routing 24 min; todos < 180.
+  Ejecutado por: Sol (arreglo `f75e8524`) · cierre y medición: Opus
+- [x] **CI.44 — 🔍 Los gates usan el Codex del chat general del HOME real.** (abierto 2026-10-25, cerrado 2026-10-25) El chat sin proyecto
+  arranca Codex con `CODEX_HOME=~/.orchestos/general-chat` del usuario aunque el gate corra con home aislado: el
+  `logs_2.sqlite` real tiene threads de los gates (`docs/done/evidence/CHAT.3-r4/REPORT.md`). Mezcla sesiones de prueba
+  con las de Carlos y comparte su límite de peticiones (429). Aislarlo en el home del gate.
+  Hecho: `src/config/orchestos-home.ts` (`orchestosHome()`/`orchestosDir()`, por llamada) y `generalChatConfigHome()`
+  en `codex.ts`; hermanos con el mismo defecto: `.env` de los 4 providers API, `dbPath` de setup (dashboard y CLI),
+  `config.yaml` global (`config/load.ts`) y la copia de evidencia de `ui-gate/run.mjs`. `auth.json` se sigue enlazando
+  del home real. Cerebro: tsc, lint, `test:coverage` 2083/0; `qa` sin defectos. En vivo: el hilo general del gate
+  (`01a17509…`, Codex real) no aparece en `~/.orchestos/general-chat/logs_2.sqlite` (717 filas antes y después).
+  Gate en vivo: navegador real (Playwright), chat-notices 5/5, codex-live 14/14, `docs/done/evidence/CI.44-live.json`
+  Ejecutado por: codex gpt-6-luna (mecanico), revisión qa + Opus · Spec: docs/specs/CI.44.md
+- [x] **CI.11 — 🔍 El turno 2 de Codex en `codex-live` tardó 180 s contra 22 s del turno 1.** (abierto 2026-10-03, cerrado 2026-10-25)
+  Visto una vez en la corrida completa de ui-gates (`$TMPDIR/ui-gate-73235/result.json`, paso "turn 2 is faster than
+  turn 1": 22141 ms vs 180113 ms, el timeout del flujo). Sin verificar si es latencia del modelo o un cuelgue al
+  retomar el thread. Señalado por la QA de Sol: sacar el flujo del pre-push no puede silenciar este detector.
+  Siguiente paso: reproducir con `gate:evidence` y leer el log del app-server de Codex en ese turno.
+  Fase 1 (evidencia, 2026-10-21, spec `docs/specs/CI.11.md`): solo no se reproduce (4 de 4 verde, turno 1 ≈10 s,
+  turno 2 ≈3–5 s) y `dashboard.log` no guardaba nada del app-server. Ahora `CodexAppServer.turn()` escribe
+  `[codex-turn] {event, threadId, ms}` por fase (`thread-start`/`thread-resume`, `turn-start`, `first-delta`,
+  `turn-completed`, `turn-error` con solo `kind`/`method`/`name`, sin texto del error: QA de Sol mostró que un error
+  remoto puede repetir el chat) y el paso `turn 2 is faster than turn 1` vuelca esas líneas si falla. Abierto hasta el
+  próximo fallo: leer en qué fase se fue el tiempo. Ejecutado por: GPT (criterio-alt + mecanico), QA: GPT (qa).
+  Fase 2 (2026-10-25, causa medida): reproducido 2 veces en 6 corridas, en turno 2 y en turno 1. Hipótesis de stderr
+  sin drenar (`codex-app-server.ts:99`, solo `taskTurn()` lo drenaba) refutada: con stderr drenado volvió a fallar y
+  `stderrBytes` fue 0. En el fallo el cliente no descartó nada (`dropped: {}`); Codex emitió `turn/started` e
+  `item/completed` del mensaje del usuario y después nada. El rollout de Codex muestra la petición al modelo a las
+  15:24:42 sin respuesta hasta el abort a las 15:26:40 (ni `token_count`): **latencia del backend del modelo, no de
+  OrchestOS.** Queda: stderr drenado siempre, `[codex-turn]` con `notifications`/`dropped`/`stdoutBytes`/`stderrBytes`
+  por turno, y `ui-gate` conserva `log/` y `sessions/` del home de Codex si un flujo falla. Qué hace el producto ante
+  ese silencio (aviso honesto, margen) es decisión de Carlos, fuera de este ítem.
+  Gate en vivo: `codex-live` 3 corridas (PASS/FAIL/PASS), `docs/done/evidence/CI.11-repro-2026-10-25/fase2-codex-turn.log`
+  Ejecutado por: codex gpt-6.1-sol (criterio), revisión Opus · Spec: docs/specs/CI.11.md
+- [x] **CI.18 — 🔍 `chat-roles` intermitente en el pre-push completo (3.ª vez, 2026-10-11).** (cerrado 2026-10-23) Instrumentar el paso del
+  marcador y medir la causa antes de arreglar. Spec: docs/specs/CI.18.md
+  2026-10-11: instrumento aplicado (Luna): el detalle del paso guarda `/api/chat` (texto, `autoTask`) + captura
+  `marker-failure`. Medido: 3 corridas del set completo del pre-push → 3/3 PASS; desde R.8.2.1 suma 6 de 7 (1 fallo, el
+  del pre-push de las 09:10). En las 3, Codex emitió el marcador sin que se le repitiera la instrucción → la hipótesis
+  "R.8.2.1 quitó el refuerzo" no se sostiene. Causa del fallo sin medir: queda abierto hasta el próximo fallo, que ya
+  deja evidencia. `dbTasks` siempre `[]` (las tareas no viven en la tabla `tasks` con `project_id`): campo inútil.
+  2026-10-16 (4.ª vez, pre-push de UI.8.6): falló otro paso, `question turn receives a response: No response text`;
+  la captura `orchestrator-question-response` muestra `Codex CLI: Codex timed out after 120000ms` con la cuota de
+  Codex al 90 %. Ese día Codex tardaba 30–65 s en responder "ok" fuera de OrchestOS y tumbó 2 corridas de
+  `chat-permissions` igual. Causa de esta vez: latencia externa de Codex contra el timeout de 120 s del turno
+  (familia CI.11). Pendiente de decidir: si el turno de chat necesita más margen o un aviso honesto, no reintentos ciegos.
+  2026-10-23 (5.ª vez, pre-push de CI.23): `held task card visible at the bottom` → `atBottom:false`; la captura muestra
+  el hilo cortado y la tarjeta "Approve & Run" fuera de vista. Bug de producto: `useStickToBottom` soltaba el hilo ante
+  cualquier `scrollTop` que bajara, también el que causa el layout (contracción, clamping). Arreglo (Sol): solo un gesto
+  del usuario (rueda arriba, tacto, teclado, arrastre de la barra) suelta el hilo; el ResizeObserver lo mantiene abajo.
+  `chat-roles` suma pasos deterministas: crecimiento con scroll entregado antes del ResizeObserver, y rueda real que
+  no se mueve al crecer el contenido. Contraprueba de Sol: hook anterior a 1200 px del fondo, nuevo a 0 px. Causa exacta
+  bajo carga: inferida. Sin scroll programático en los hilos (solo Settings). Cerebro: 54/0 thread, `chat-roles` 12/12.
+  La familia CI.11 (latencia de Codex) sigue en CI.11.
+  Gate en vivo: navegador real (Playwright), `docs/done/evidence/CI.18-live.json`
+  Ejecutado por: codex gpt-6.1-sol (criterio), revisión Opus · Spec: docs/specs/CI.18.md
+- [x] **CI.43.1 — 🔍 El test del post-commit falla en el pre-push.** Cerrado 2026-10-23. `git init` sin plantillas no
+  crea `.git/hooks` (HOME temporal del pre-push): 2 fallos ENOENT; el test crea la carpeta. Cerebro: con HOME y
+  `GIT_TEMPLATE_DIR` vacíos 2/2.
+  Ejecutado por: codex (mecanico), revisión Opus · Spec: docs/specs/CI.43.1.md
+- [x] **CI.43 — 🔍 Un `git commit -- <rutas>` deja el índice desfasado y bloquea las tareas.** Cerrado 2026-10-23: la tarea
+  `chat-4a0d93a2…` no arrancó ("uncommitted changes") con el árbol idéntico a HEAD: el pre-commit hace `git add` de
+  los derivados en el índice temporal del commit parcial y el índice real queda viejo (`MM`). Reproducido en repo
+  mínimo. Arreglo: `scripts/post-commit.sh` re-sincroniza los derivados idénticos a HEAD; `install-hooks.sh` y
+  `checkHooks` lo incluyen. `scripts/post-commit.test.ts` reproduce `MM` sin el hook y limpio con él. Cerebro:
+  `test:coverage` 2017/0; `git status` limpio tras este mismo commit parcial.
+  Ejecutado por: codex gpt-6.1-sol (criterio), revisión Opus · Spec: docs/specs/CI.43.md
+- [x] **CI.45 — 🔍 Tras rechazar una tarea, el chat no la recrea cuando el usuario la reenvía (intermitente).**
+  (cerrado 2026-10-26) Tumbó el pre-push de AT.11.2 (`chat-turn-details`, 1 de 2): el modelo contestó "vuelve a
+  enviarla como una tarea" al mensaje que ya la reenviaba. Mismo síntoma que CI.29; la instrucción
+  `src/chat/chat-context.ts:186` dejaba abierta esa lectura: ahora dice que el mensaje nuevo ES el pedido y prohíbe pedir
+  que lo reenvíe. Evidencia del cerebro: diff leído (2 líneas); `test:coverage` 2091/0.
+  Gate en vivo: navegador real (Playwright) `chat-turn-details` 29/29 tres veces seguidas, `docs/done/evidence/CI.45-live.json`
+  Ejecutado por: codex gpt-6-luna (mecanico) · Spec: docs/specs/CI.45.md
+- [x] **CI.46 — 🔍 `Mutation Shards`: `executors-codex-server` pasa las 3 h (2 noches seguidas).** (cerrado 2026-10-27)
+  Corridas `40290380197` y `40473341541` cortan ese job a 180 min; el 10-25 tardó 2h32. Medido (cerebro):
+  `codex-app-server.ts` 784 → 1073 líneas (CHAT.3, CI.11) y la suite seleccionada 47 → 54 s (+`generic-cli.test.ts`);
+  2h32 × 1,37 × 1,15 ≈ 4 h. Un solo archivo excede: se parte por rango de líneas (`archivo:inicio-fin`).
+  Arreglo: `codex-app-server.ts` en tres shards cortados entre métodos (`1-345` + `codex-approval.ts`, `346-645`,
+  `646-99999`); `mutationFiles` quita el rango antes del glob y `-engines` excluye los archivos enteros. r1 cortó en
+  535 dentro de `notification` y perdió 2 mutantes: Stryker solo toma un mutante que cabe entero en el rango.
+  Evidencia (cerebro): typecheck 0; `mutation-test-shard.test.ts` 9/0; dry runs 364 + 536 + 396 = 1296 = los dos
+  archivos enteros (1296), `-engines` 850; selección 48 archivos en cada shard. Tiempos reales (`40550536708`,
+  `40661058704`): `-server` 42/41 min, `-server-b` 80/63, `-server-c` 77/76.
+  Ejecutado por: codex gpt-6-luna (mecanico, r1 y r2) · QA: codex gpt-6.1-sol (qa), sin defectos · Spec: docs/specs/CI.46.md (borrado)
+- [x] **CI.47 — 🔍 `Mutation Shards`: `executors-routing` pasa las 3 h y `executors-engines` va a 168 min.** (cerrado 2026-10-27)
+  Corrida `40550536708`: `-routing` cortado a 180 min (128 → 147 → 180+ en 3 noches, crece con SET.2/AT.11),
+  `-engines` 140 → 154 → 168. Causa extra: el glob `src/run/executors/**/*.ts` tomaba `cli-search-path.test.ts`
+  (SET.2.1, 10-26) y Stryker mutaba el propio test. Arreglo: cada shard en dos por archivos enteros
+  (`-engines-b` = `opencode*.ts`; `-routing-b` = `step-event`, `chat-adapters`, `task-engines`) y
+  `!src/run/**/*.test.ts` en `stryker.run-executors` y `stryker.run` (hermano).
+  Evidencia (cerebro): typecheck 0; `mutation-test-shard.test.ts` 9/0 (partición sin huecos ni solapes); dry runs
+  `-engines` 415, `-engines-b` 569, `-routing` 614, `-routing-b` 770 mutantes, ~52 s de suite cada uno; a ~10 s por
+  mutante (168 min / 984) el mayor estima ~2h10. Ningún `.test.ts` en `mutate`. Tiempos reales
+  (`40661058704`, verde entera): `-engines` 57 min, `-engines-b` 81, `-routing` 77, `-routing-b` 69; el mayor de la
+  corrida, `-codex-engines`, 131.
+  Ejecutado por: codex gpt-6-luna (mecanico, r1 y r2) · QA: codex gpt-6.1-sol (qa), sin defectos · Spec: docs/specs/CI.47.md (borrado)
+- [x] **CI.48 — 🔍 `codex-live` falla también en HEAD (2026-10-29).** (cerrado 2026-10-29) HEAD `79c501f0`: `turn 1 streams multiple visible
+  text updates: 0 distinct non-empty samples` (`ui-gate-4953`). Con UI.37: el DOM muestra `I’ll` (apóstrofo tipográfico)
+  y lo persistido `I'll`, y el turno 2 tardó 180 s (`ui-gate-3138`). El pre-push lo corre en cada cambio del chat y
+  bloquea el push. Primero evidencia de qué parte es del modelo y qué del render; luego causa.
+  Diagnóstico Sol (analizar): el gate mide mal (Codex entrega en ráfaga de ~15–70 ms y el gate muestrea cada 150 ms;
+  espera 180 s un estado intermedio antes de medir el turno 2) y un bug real: una sesión de Dev sin historial toma el
+  modelo por defecto del CLI (Sol) en vez del del rol. Arreglo de Sol r1 (gate + `api/projects.ts`) en
+  `git stash` "CI.48 Sol r1 aparcado…". Decisión de Carlos 2026-10-29: una sesión ya usada conserva su último modelo;
+  el del rol solo para sesiones sin historial; falta `catch` de `getConfig`. **Aparcado** por Carlos 2026-10-29
+  (primero la interfaz); retomado el mismo día. r2: una sesión con historial conserva su último modelo, sin
+  historial usa el del rol; `getConfig` fallido no rompe la lista. Queda: 1 de 3 corridas de `codex-live` falló en
+  "turn 1 user message appears before completion" (2 s); el pre-push reintenta una vez.
+  Gate en vivo: navegador real (Playwright, `codex-live` 14/14 ×2, `chat-continuity` 8/8), `docs/done/evidence/CI.48-live.json`.
+  Ejecutado por: codex gpt-6.1-sol (analizar + criterio r1, r2) · Revisión: Opus · Spec: docs/specs/CI.48.md
+- [x] **CI.49 — 🔍 5 tests de `chat-sessions.test.ts` agotan 5 s esperando al `opencode` real.** (cerrado 2026-10-30) El pre-push
+  rechazó el push: `handleApiChat → readCliModelCatalogsCached` corre `opencode models --verbose` (~6 s hoy); el filtro
+  `NO_CLI_PATH` (`chat-sessions.test.ts:14`) no basta porque la detección suma el PATH del login shell
+  (`cli-registry.ts:454`). Diagnóstico Sol (analizar). Arreglo: el hijo de `runIsolated` siembra el catálogo CLI vacío
+  con la inyección existente `readCliModelCatalogsCached({ read: async () => [] })`.
+  Evidencia (cerebro): `chat-sessions.test.ts` 26/26 (antes 21/5); `test:coverage` 2163 pass / 0 fail.
+  Ejecutado por: codex gpt-6-luna (mecanico) · Diagnóstico: codex gpt-6.1-sol (analizar) · Spec: docs/specs/CI.49.md
+- [x] **CI.50 — 🔍 El chat espera sin límite a que un CLI liste sus modelos.** (cerrado 2026-10-31) Hermano de CI.49 en el producto:
+  `defaultRunner` (`src/dashboard/chat-cli-models.ts:33`) no tiene timeout; un CLI lento (opencode ~6 s) retrasa cada
+  primer envío del chat. Timeout corto, matar el proceso y seguir sin ese catálogo.
+  Arreglo: `defaultRunner` con límite `CLI_CATALOG_TIMEOUT_MS` (10 s); al vencer mata el proceso y rechaza; el catálogo
+  de ese CLI queda con `error` y no se cachea (se reintenta). Los demás CLIs no esperan al lento.
+  Evidencia (cerebro): `chat-cli-models.test.ts` 19/19 (timeout y caso normal); 4343 reiniciado:
+  `/api/chat/cli-models` en 1,29 s con claude 13, codex 10, opencode 372, sin `error`.
+  Gate en vivo: navegador real (Playwright, `smoke` 7/7), `docs/done/evidence/CI.50-live.json`.
+  Ejecutado por: codex gpt-6-luna (mecanico) · Spec: docs/specs/CI.50.md
+- [x] **CI.51 — 🔍 El pre-commit no corre biome; el error se ve recién en el pre-push.** (cerrado 2026-11-02) 2026-11-01/02: dos pushes
+  rechazados por biome (evidencia JSON sin newline final; imports sin ordenar en un test) tras ~3 min de pre-push.
+  `biome check --diagnostic-level=error` sobre los archivos staged en `scripts/pre-commit.sh`; solo errores.
+  Evidencia (cerebro): hook reinstalado igual a su fuente; probe: un `.json` staged sin newline final → commit exit 1
+  con `✗ biome: ejecuta bunx biome check --write ci51-probe.json`; probe borrado.
+  Ejecutado por: codex gpt-6-luna (mecanico) · Spec: docs/specs/CI.51.md
+- [x] **CI.52 — 🔍 `project-delete`: 404 de `/api/config` y del timeline del chat tras borrar el proyecto (intermitente).** (cerrado 2026-11-02)
+  Pre-push del 2026-11-02 (`ui-gate-82671`): `HTTP 404 …/api/chat/sessions/<id>/timeline; HTTP 404 …/api/config`;
+  2 reruns 11/11. Misma familia que `bloque-CI.md:367` (`App.tsx` cancela sus lecturas antes del purge), pero las del
+  chat (`OrchestChatView.tsx`: config y timeline) no se cancelan. Causa medida antes de arreglar.
+  Causa (Sol, reproducida con contraprueba que falla en HEAD): Dev y Chat seguían montados y leyendo timeline/config
+  del proyecto durante el DELETE. Arreglo: `App.tsx` desmonta Chat/Dev del proyecto (`flushSync`) antes de cancelar
+  sus hidrataciones y borrar; Chat y Dev cancelan con `AbortController` sus lecturas de config y timeline y no leen si
+  el proyecto ya no existe. El gate retiene el DELETE 1,2 s y falla si sale una lectura del proyecto mientras tanto.
+  Evidencia (cerebro): `project-delete` 4/4 (12/12) además de las 10/10 de Sol; `tsc` limpio.
+  Gate en vivo: navegador real (Playwright, `project-delete` 12/12, `chat-permissions` 9/9, `smoke` 7/7), `docs/done/evidence/CI.52-live.json`.
+  Ejecutado por: codex gpt-6.1-sol (criterio) · Revisión: Opus · Spec: docs/specs/CI.52.md
+- [x] **CI.60 — ⚡ `cli-health.test.ts` arma la ruta de `auth.json` sin normalizar el HOME.** (abierto 2026-11-03,
+  pre-push de UI.62) Con HOME terminado en `/` espera `//`.
+  Hecho: la ruta esperada usa `join(homedir(), …)`. Gate del cerebro: `HOME="$TMPDIR/" bun test` del archivo 12/0.
+  Ejecutado por: codex gpt-6-luna (mecanico r1) · revisión Opus
+- [x] **CI.59 — ⚡ `session-status.test.ts` espera a los CLIs reales del host.** (abierto 2026-11-03, bloqueó el
+  push de UI.61/CI.58) El test vence a 5 s esperando `opencode auth list` real; falla 5/5. Diagnóstico Sol (analizar).
+  Hecho: los dos tests llaman al handler con `health` falso y detección de CLIs de fixture; el lector real de estados
+  se conserva. Gates del cerebro: tsc, los 4 archivos de salud/estado 37/0 en 94 ms.
+  Ejecutado por: codex gpt-6-luna (mecanico r1) · diagnóstico gpt-6.1-sol (analizar) · revisión Opus
+- [x] **CI.58 — ⚡ `opencode-terminal` cuenta el daemon de OpenCode 2.2.5 como proceso de la pestaña.** (abierto
+  2026-11-03, visto al cerrar UI.61) El último paso falla con `Still alive: <pid>` = `opencode serve --service`
+  (ppid 1, sale solo); falla igual en HEAD `4f40d406`.
+  Hecho: `opencodePids()` excluye los pids con `serve --service`; el daemon no se mata (puede servir a otras ventanas).
+  Gate del cerebro: `ui:gate opencode-terminal` 13/13.
+  Gate en vivo: navegador real (Playwright), `docs/done/evidence/CI.58-live.json`.
+  Ejecutado por: codex gpt-6-luna (mecanico r1) · revisión Opus
+- [x] **CI.56 — 🔍 `codex-live`: la palabra a recordar se parecía al tema y el modelo contestó "MANGOES".** (abierto
+  2026-11-03) Pre-push del lote UI.57/58: mismo hilo en los dos turnos, pero la palabra `MANGO-<8>` con el tema
+  "mangoes" (`codex-live.mjs:151`) hizo que Codex respondiera "MANGOES". El primer intento cayó en `chat-continuity`
+  por timeout de 180 s esperando al modelo (anotado, pasó en el reintento).
+  Hecho: la palabra es `ZEBRA-<8>`; tema y aserción exacta iguales; ningún otro flow usa el patrón. Gates: lint
+  (ejecutor), `codex-live` 15/15 (ejecutor y cerebro, `gate:evidence` `CI.56-codex-live`).
+  Ejecutado por: codex gpt-6-luna (mecanico) · revisión Opus
+- [x] **CI.53 — 🔍 `chat-stop.test.ts` vence el timeout de 5 s con HOME temporal (pre-push y CI).** (abierto 2026-11-02)
+  El pre-push de CHAT.4 falló 2 de 7: el proceso hijo de `isolated()` importa `chat.ts` con la caché de
+  transpilación de Bun fría y tarda ~6 s (1,4 s caliente). Reproducido con `env HOME=$(mktemp -d)`. Arreglo: timeout
+  de 30 s en los tests con proceso aislado (`ISOLATED_TIMEOUT_MS`). Contraprueba: con HOME frío 2 fallos antes, 7/7
+  después (cerebro, con HOME temporal y PATH mínimo como el pre-push).
+  Ejecutado por: codex gpt-6-luna (mecanico, r3; r1–r2 sin cambio por spec impreciso) · revisión Opus · Spec: docs/specs/CI.53.md
+- [x] **CI.23 — 🔍 `tasks`: la tarea relanzada no deja su commit `chore(tasks)` (intermitente en batería).** (cerrado 2026-10-23) Visto 2 de
+  6 corridas del set de UI.26.4 (2026-10-14), nunca con `tasks` solo: tras relanzar `gate-failed-task` y llegar a
+  `done`, a los 15 s de `waitForTasksYamlCommit` el último commit es el del trabajo (`orchestos(gate-failed-task): …`)
+  y `tasks.yaml` sigue modificado. No lo trajo UI.26.4 (solo presentación); el pre-push de `03b9cf3` pasó. Primero que
+  deje evidencia (estado de la tarea, `git log -3` y el log del dashboard en el detalle del paso), luego causa.
+  Spec fase 1 (evidencia): docs/specs/CI.23.md — `commitTasksYaml` hoy traga todo fallo (candado 30 s, commit exit≠0).
+  Fase 1 cerrada (`9a82ee8`, 2026-10-14): `commitTasksYaml`/`commitFinalTaskState` escriben `[tasks-yaml] …` en stderr
+  (el CLI hijo hereda stderr → `dashboard.log`) y el paso vuelca porcelain, `git log -5`, estado de la tarea y log.
+  Reproducción: set de UI.26.4 6 de 6 verde, 0 líneas `[tasks-yaml]`. Abierto hasta el próximo fallo: leer el
+  detalle del paso en `result.json` y escribir la fase 2 (causa).
+  2026-10-22: visto 1 vez (`CI.32.c-live`, con `auto-flow chat-retry-report chat-permissions` antes): `porcelain="M
+  tasks.yaml"`, último commit `orchestos(gate-first-task): …`; `tasks` solo pasó 31/31 justo después. Detalle en
+  `$TMPDIR/ui-gate-65780/result.json` (temporal, no conservado).
+  Causa medida (fase 1, 2026-10-23, `dashboard.log:106` de esa corrida): `commit exit=128 … .git/index.lock: File
+  exists`; `add` pasó. Otro proceso git tenía el índice; cuál no quedó identificado (candidatos verificados en código:
+  `git status` del dashboard y del flow, `codex exec` read-only en la raíz). Arreglo: `git()` de `src/run/sandbox.ts`
+  reintenta `add`/`commit` ≤ 2 s solo ante ese error exacto, nunca borra el lock (vale para todas las rutas que
+  commitean); `status`/`diff` del dashboard y del flow con `GIT_OPTIONAL_LOCKS=0`. Contraprueba: los 4 tests nuevos
+  fallan contra HEAD. Gates del cerebro: typecheck, 10/10 unit, `ui:gate tasks` 43/43.
+  Gate en vivo: navegador real (Playwright), `docs/done/evidence/CI.23-live.json`
+  Ejecutado por: codex gpt-6.1-sol (criterio) · revisión: Opus
+- [x] **CI.40 — 🔍 `tasks`: el paso de TRUST.1 depende de que el modelo real cree `TRUST.txt`.** (abierto y cerrado 2026-10-23)
+  Visto 1 vez (corrida de Sol para CI.23): `gate-check-failure` quedó `retryReason="missing declared output(s):
+  TRUST.txt"`; el check con `TRUST1-MARKER` nunca corrió y el paso falló sin decir que la premisa no se cumplió. La
+  corrida siguiente pasó. Arreglo: premisa determinista (sin depender del modelo) o, como `qa-negative.mjs:337`,
+  informar "premisa no cumplida".
+  Arreglo: un hook `post-checkout` del repo fixture crea `TRUST.txt` en el worktree de `gate-check-failure` (la tarea
+  ya no pide escribir nada) y el paso exige que el check haya emitido `TRUST1-MARKER` en el run; si no, falla con
+  "premisa no cumplida" y el `retryReason`. Anotado sin tocar: `gate-first-task`, `gate-failed-task` y `gate-role-task`
+  también dependen de que el modelo escriba. Gates: Sol 43/43 ×2, cerebro 43/43.
+  Gate en vivo: navegador real (Playwright), `docs/done/evidence/CI.40-live.json`
+  Ejecutado por: codex gpt-6.1-sol (criterio), revisión Opus · Spec: docs/specs/CI.40.md
+- [x] **CI.38 — ⚡ `chat-continuity` no distingue dos chats con el mismo título tras UI.27.3.** (abierto 2026-10-22)
+  Pre-push de `39c67167` 2/2: `strict mode violation: getByRole('button', { name: 'Remember this code for later: …' })
+  resolved to 2 elements`. El flujo crea un chat de Claude y uno de Codex con el mismo título en el mismo proyecto;
+  antes los separaba el prefijo "Claude:"/"Codex:", que UI.27.3 quitó (el icono los distingue). Arreglo:
+  `data-thread-id` en cada chat/sesión del sidebar (`ShellSidebar.tsx`, solo el atributo) y `chat-continuity` y su hermano
+  `codex-live` eligen la sesión por id. Evidencia: `chat-continuity` 8/8, `codex-live` 14/14, `chat-streaming` 27/27;
+  typecheck, lint y `ui:fidelity:jsx` limpios.
+  Gate en vivo: navegador real (Playwright), `docs/done/evidence/CI.38-live.json`.
+  Ejecutado por: codex gpt-6-luna (mecanico) · Spec: docs/specs/CI.38.md

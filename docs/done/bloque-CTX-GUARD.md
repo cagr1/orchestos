@@ -12,3 +12,17 @@
   mover el límite: decisión de Carlos. Evidencia: `tests/hooks/startup-guard.test.ts` 14/0, fixtures con HOME temporal
   (pequeño calla; pesado avisa con `skills de cuenta (2)`; `.trash` no cuenta).
   Ejecutado por: codex gpt-6-luna (mecanico) · Spec: docs/specs/CTX-GUARD.2.md
+
+## Archivado 2026-11-03 desde PLAN.md (DOC.5)
+
+<a id="bloque-ctx-guard-seccion-abiertos---fiabilidad-de-los-gates-y-doc"></a>
+### Abiertos — fiabilidad de los gates y documentación
+
+- [x] **CTX-GUARD.3 — 🧠 Bajar el peso de arranque bajo 9k.** (GO de Carlos 2026-10-22; cerrado 2026-10-22) El cerebro
+  podó `CLAUDE.md` (`d5afa04c`). Carlos apagó lo de cuenta en local: `skillOverrides` (`anthropic-skills:*` → `off`),
+  `cowork-plugin-management@synced: false` y `disableClaudeAiConnectors: true` (los conectores cayeron en vivo;
+  `disabledMcpServers` no tenía efecto y se retira). El guard contaba archivos en disco y daba falso positivo: ahora
+  descuenta `skillOverrides`/plugins `@synced` apagados, respeta `disableClaudeAiConnectors` y lee `MEMORY.md` de la ruta
+  derivada de `ROOT` (medía la vieja `-Documents-`). Evidencia: guard en vivo silencioso (~8,9k est.);
+  `startup-guard.test.ts` 18/18, los 3 tests nuevos fallan contra HEAD; typecheck y biome limpios.
+  Ejecutado por: codex gpt-6-luna (mecanico) · Spec: docs/specs/CTX-GUARD.3.md

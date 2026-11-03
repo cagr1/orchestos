@@ -155,3 +155,24 @@ pila de cambios sin commitear. `--force` sigue requiriendo pedido explícito.
   Evidencia (cerebro): cada afirmación contrastada con `cli-skill-fetch.ts`, `auto-route.ts`, `tasks/schema.ts`,
   `patterns.ts:144`, `diagnose.ts:167`; `bash -n install.sh`; pre-commit y pre-push verdes.
 
+
+## Archivado 2026-11-03 desde PLAN.md (DOC.5)
+
+<a id="bloque-doc-seccion-abiertos---fiabilidad-de-los-gates-y-doc"></a>
+### Abiertos — fiabilidad de los gates y documentación
+
+- [x] **DOC.4 — ⚡ Archivar los cerrados de PLAN.md y poner al día CONTEXT.md.** (abierto y cerrado 2026-10-22, GO de
+  Carlos) 133 ítems `[x]` de primer nivel (con cuerpo y sub-ítems) y 6 secciones `###` ya cerradas movidos literal a
+  `docs/done/bloque-<PREFIJO>.md` bajo `## Archivado 2026-10-22 desde PLAN.md (DOC.4)`, con ancla por ítem; nuevos
+  `bloque-UI`, `bloque-CTX-GUARD`, `bloque-SEC`, `bloque-OC`; la prosa de H.7 a `bloque-H.md`. `PLAN.md` 2.678 → 216
+  líneas; comprobación de 0 líneas perdidas (multiconjunto de líneas no vacías antes ⊆ después + archivos). `plan:reconcile`
+  borró 133 huérfanos de la DB; `bun run next` igual. Lo hizo el cerebro con un script en `/tmp`: `delegate` prohíbe al
+  ejecutor editar el plan. `CONTEXT.md` § Estado vigente reescrito al 2026-10-22 (CI.32.c, CI.34, CI.35–CI.37, UI.27,
+  UI.28, CTX-GUARD.2, tareas con cualquier CLI pendiente de plan).
+  Sin delegación: plan y docs son del cerebro.
+- [x] **DOC.5 — ⚡ PLAN.md vuelve a ser solo lo abierto.** (abierto y cerrado 2026-11-03, GO de Carlos) 98 ítems `[x]`
+  ocupaban ~100 KB de 116 KB; cada sesión los cargaba. Movidos tal cual a `docs/done/bloque-<PREFIJO>.md` (formato de
+  DOC.4); nuevos: CFG, CHAT, SET, SKILLS, TCLI, TRUST, enlazados en "Cerrados". SET y TRUST salen con su prosa.
+  Evidencia (cerebro): copia previa en /tmp; los 98 bloques aparecen byte a byte en su destino (98/98); `docs/done/`
+  solo suma líneas (0 `-`); `PLAN.md` 115 975 → ~15 KB, 0 `[x]`, 4 `[ ]`; `bun run next` lista CI.19, CI.54, CI.55, CI.57.
+  Ejecutado por: claude opus (cerebro; `delegate mecanico` se negó: su regla le prohíbe editar el plan).

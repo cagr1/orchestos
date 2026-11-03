@@ -561,3 +561,32 @@ y `PLAN.md` queda sin ítems de método** (decisión de Carlos, 2026-10-11).
   Evidencia (cerebro): typecheck; `test:coverage` 1899 pass / 0 fail; las dos pruebas del revisor en
   `review-evidence/` pasan (la de roles adaptada a `roleAgentIds()`).
   Gate en vivo: navegador real (Playwright), `docs/done/evidence/AT.11.1-live.json` (`model-routing` 18/18).
+
+## Archivado 2026-11-03 desde PLAN.md (DOC.5)
+
+<a id="bloque-at-seccion-fase-3---correr-dentro-de-orchestos-igua"></a>
+### Fase 3 — Correr dentro de OrchestOS igual que el CLI directo
+
+- [x] **AT.11.2 — 🧠 Motor genérico: un CLI declarado en la config global corre tareas.** (cerrado 2026-10-26)
+  Sin código por CLI, declarado en `~/.orchestos/config.yaml`. Comando + args con `{prompt}` (o stdin), `modelArgs` con `{model}` salvo modelo
+  `default`, sin shell, diff por worktree; tokens y costo "no medido" en vez de $0. Solo config global: `clis` en la
+  config de proyecto se ignora con aviso y Settings no lo escribe nunca. Solo rol Ejecutor (400 en los otros tres; fuera
+  del chat). La vista del run nombra el CLI (`claude-plain · default`), no solo el modelo.
+  Evidencia del cerebro: diff leído (motor, config, rol, persistencia por rutas del YAML); tsc 0, lint 0,
+  `ui:fidelity:jsx` 0, `test:coverage` 2091/0; capturas de Settings (Ejecutor "Claude (genérico)", modelo "Default del
+  CLI") y del run (`README.md` escrito, costo/tokens "no medido"). Sol cortado por "model at capacity" antes de su
+  reporte: verificado entero por el cerebro.
+  Gate en vivo: navegador real (Playwright) `custom-cli` 9/9, `tasks` 43/43, `model-routing` 18/18, `docs/done/evidence/AT.11.2-live.json`
+  Ejecutado por: codex gpt-6.1-sol (criterio) + gpt-6-luna (mecanico, anexo) · Spec: docs/specs/AT.11.2.md
+- [x] **AT.11.3 — 🧠 Settings: agregar, editar y quitar un CLI genérico desde la UI.** (cerrado 2026-10-26)
+  Settings → Executor → "CLIs propios": lista con instalado/no instalado, formulario en línea (nombre, ID, comando,
+  argumentos uno por línea, args de modelo, modelos) dentro de la barra de cambios sin guardar. `GET/PUT /api/clis`
+  escribe solo el `config.yaml` global por rutas del documento, valida con la misma función que el registro y rechaza
+  con motivo quitar un CLI asignado como Ejecutor o en una regla. La edición espera a que cargue Settings (la carga
+  borraba el borrador). Límite anotado: el bloqueo por Ejecutor asignado mira la config efectiva del proyecto activo,
+  no la de otros proyectos.
+  Evidencia del cerebro: diff del handler leído; tsc 0, lint 0, `ui:fidelity:jsx` 0, `test:coverage` 2099/0; capturas
+  del formulario y de la lista. Tres defectos del flujo nuevo (Sol no pudo correrlo: su sandbox no ejecuta `claude`)
+  corregidos por Luna: espera de la fila de Runs, navegación sobrante, 400 esperado sin declarar.
+  Gate en vivo: navegador real (Playwright) `custom-cli` 13/13, `tasks` 43/43, `model-routing` 18/18, `docs/done/evidence/AT.11.3-live.json`
+  Ejecutado por: codex gpt-6.1-sol (criterio) + gpt-6-luna (mecanico, anexos) · Spec: docs/specs/AT.11.3.md
