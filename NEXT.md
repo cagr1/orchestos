@@ -6,16 +6,15 @@ Arranque: `bun run agent:preflight -- --item <ID> --agent claude`. Lista viva: `
 
 ## Orden
 
-0. Hecho hoy: DOC.5 (`7df5ee18`, `PLAN.md` de 116 a 15 KB) y DOC.6 (`AGENTS.md` y `NEXT.md` podados). En la otra
-   sesión: UI.61, CI.58, CI.59, UI.62 y CI.60. **Push bloqueado**: el ui-gate `model-routing` falla tras actualizar
-   OpenCode a 2.2.5 (lo lleva esa sesión). `master` va por delante de `origin`.
+0. Hecho hoy y empujado: DOC.5, DOC.6, UI.61, CI.58, CI.59, UI.62, CI.60, OC.1, OC.2, DOC.7 y DOC.8 (reglas vivas
+   que DOC.6 había retirado, de vuelta en `AGENTS.md`; recetas en `docs/reference/gotchas.md`). Siguen OC.3 y OC.4
+   (OpenCode 2.2.5).
 1. **Esperan su próximo fallo** (leer el JSON y escribir la fase 2). Todos dejan evidencia en el `runDir` del gate
    (`$TMPDIR/ui-gate-<pid>/`): CI.55 `role-task-missing-output.json`; CI.57 `composer-picker-model-missing.json`;
    CI.54 `turn1-bubble-missing.json`; CI.19, el motivo en el detalle del paso. Bucle de flakes del 2026-11-03
    (`/tmp/soak/`): `composer-picker` 15/15 verde.
 2. **Decisiones de Carlos pendientes**: créditos de reinicio de Codex (recomendación: en el popover de cuotas);
-   comentarios de Settings (mostrado 2026-11-02, sin pedidos); precio del revisor QA: el fallback `knownCost` sigue en
-   `src/run/harness.ts:835` aunque la regla dice no resolver precios en el harness.
+   comentarios de Settings (mostrado 2026-11-02, sin pedidos).
 3. Cualquier CLI corre tareas sin código (Settings → Providers → "CLIs propios"). Un adaptador rico para un CLI nuevo
    sigue siendo `KNOWN_CLIS` + `registerTaskEngine`, y lo prueba el cerebro, no Carlos.
 
@@ -35,8 +34,12 @@ Arranque: `bun run agent:preflight -- --item <ID> --agent claude`. Lista viva: `
   de un test de `~/.agent-method` copia a `<tmp>/method/hooks/` y corre desde `<tmp>`.
 - Spec o doc con comandos de escritura dentro de un heredoc de Bash dispara `brain-no-code`: usar Write/Edit.
 
-## Anotado, sin ítem (abrir solo si se repite o Carlos lo pide)
+## Anotado, sin ítem (abrir ítem solo si Carlos lo pide; los intermitentes, también si se repiten)
 
+- Sin evidencia de cierre: el revisor elige su ventana cortando en el primer tramo que no cabe; TRUST.7.1 sin gate
+  vivo del caso de residuos; `elapsed_ms` no cuenta el cuelgue de Codex y `effort` del rol quizá no llega a
+  `cli_effort`; reemplazar el prompt base del CLI (punto 8 de AT.13); "Executor reply" de Contract sin mirar a ojo;
+  `Run` de Settings → Plan sin probar en vivo. Fuera de alcance: CLI genérico en el chat (necesita streaming).
 - Intermitentes vistos una vez: `chat-continuity` timeout de 180 s esperando al modelo; `chat-streaming` scroll con
   la cobertura en paralelo y `t_first=null` en Dev; `chat-context` clic de Codex a Claude; `restart-mid-run` caso A
   ("failed · attempt 1/3" con reintento pendiente: decidir si debe decir "failed").
@@ -53,7 +56,8 @@ Arranque: `bun run agent:preflight -- --item <ID> --agent claude`. Lista viva: `
 
 ## Decisiones de Carlos vigentes
 
-- Settings se revisa con Carlos pestaña por pestaña en el dashboard real; no sumar UI ahí por iniciativa propia.
+- Settings se revisa con Carlos pestaña por pestaña en el dashboard real (desde 2026-10-13); hasta que termine esa
+  revisión, no sumar UI ahí por iniciativa propia.
 - Nada hardcodeado en quién ejecutó una tarea: lo dice la config.
 - Memory = entrada mecánica por tarea terminada, sin LLM.
 - Árbol sucio = seguir bloqueando + tarea `pending` + "Commit & Run" en el hilo.

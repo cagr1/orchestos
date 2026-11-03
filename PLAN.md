@@ -100,6 +100,14 @@ Cerrada. Todos sus ítems están archivados en `docs/done/` (ver "Cerrados — e
   Gates del cerebro: tsc, `test:coverage` 2243/0, `plan-render --check` 0, `next` lista `ID — título`.
   Gate en vivo: navegador real (Playwright), `docs/done/evidence/DOC.7-live.json` (`plan-doc` 16/16).
   Ejecutado por: codex gpt-6.1-sol (criterio r1) · revisión Opus
+- [x] **DOC.8 — Vuelven las reglas vivas que DOC.6 retiró.** (abierto 2026-11-03, GO de Carlos tras la auditoría de
+  Sol: 36 reglas sin respaldo y 7 de significado cambiado) Hecho: `AGENTS.md` recupera las generales (no duplicar ítem
+  tomado, no improvisar gobierno, control computable, lint completo, contrato CLI lo prueba el cerebro, evidencia solo
+  `<ID>-live.json`, aviso de `criterio-alt`, fecha de caso de campo, limpieza comprobada por consulta, batería completa
+  en cambio de marco, texto emitido, roadmap determinista, costo QA, `CONTEXT.md` derivado); 23 recetas en
+  `docs/reference/gotchas.md` (no cargado); `NEXT.md` recupera seguimientos, alcance de Settings y "abrir solo si Carlos
+  lo pide". `knownCost` sale de decisiones pendientes: solo entra con `usd` `undefined` (`harness.ts:835`).
+  Ejecutado por: claude opus-5.5 (cerebro, solo docs)
 - [ ] **OC.3 — El ejecutor `opencode run` usa `--standalone` y `--model prov/modelo#variante`.** (abierto 2026-11-03)
   2.2.5 quitó `--variant`; sin `--standalone` depende del servicio. Falta validar `step-finish` con inferencia real.
 - [ ] **OC.4 — El adaptador HTTP de aprobaciones migra a la API v2 de OpenCode.** (abierto 2026-11-03) Cambiaron

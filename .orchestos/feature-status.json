@@ -36,6 +36,14 @@
       "closedDate": null
     },
     {
+      "id": "DOC.8",
+      "sprint": "Fase 2 — Producto mínimo para entrega",
+      "block": "Abiertos — fiabilidad de los gates y documentación",
+      "title": "Vuelven las reglas vivas que DOC.6 retiró",
+      "status": "done",
+      "closedDate": null
+    },
+    {
       "id": "OC.3",
       "sprint": "Fase 2 — Producto mínimo para entrega",
       "block": "Abiertos — fiabilidad de los gates y documentación",
