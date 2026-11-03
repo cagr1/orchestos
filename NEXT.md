@@ -69,7 +69,9 @@ Un solo presente: orden y trampas vivas. Lo cerrado vive en `docs/done/bloque-*.
 0. Nada en curso. Auditoría de ADE hecha (UI.49–55). Candidatos sin ítem, para la próxima ronda con Carlos: mostrar
    los créditos de reinicio de Codex;
    comentarios de Settings. UI.56 `487d2d52` cerró el anillo (sector relleno). UI.57 `a4beb111` (OpenCode con el tema, sin cabecera ni
-   texto) y UI.58 `82820986` (Terminal como pestaña central, PTY vivo entre pestañas). Propuesto a Carlos, sin GO:
+   texto) y UI.58 `82820986` (Terminal como pestaña central, PTY vivo entre pestañas). CI.56 `5ad28377` (palabra de `codex-live` sin relación con el tema). CI.57 fase 1
+   `fa2d65c6`: `composer-picker` intermitente (falló 4 seguidas, luego 6/6 verde), el fallo deja evidencia; mi
+   bisección que culpaba a UI.58 era falsa. Propuesto a Carlos, sin GO:
    UI.59 gate de pre-commit que exige `Texto visible:` en el ítem para todo literal JSX nuevo. Vistos sin ítem: con
    4 pestañas el "+" sale de la vista; una vez la pestaña de la sesión de Claude desapareció de la franja. Stop de OpenCode descartado: su chat
    está desactivado (terminal en Dev, Ctrl+C) y las tareas ya cancelan (`opencode-server.ts:67`). CI.54 y CI.19 esperan su próximo fallo (leer la evidencia y escribir la fase 2).
