@@ -4,10 +4,12 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { readActiveSessionStatuses, type SessionStatus } from '../../../scripts/session-status.ts'
 import type { CliDetectionResult } from '../../../src/run/executors/cli-registry.ts'
-import { claudeUsageRefresher, withFreshClaudeQuota } from '../handlers/session-status.ts'
-import { route } from '../server.ts'
+import {
+  claudeUsageRefresher,
+  handleApiSessionStatus,
+  withFreshClaudeQuota,
+} from '../handlers/session-status.ts'
 
-const PORT = 4257
 const originalTranscript = process.env.ORCHESTOS_SESSION_TRANSCRIPT
 const originalOrchestosHome = process.env.ORCHESTOS_HOME
 const roots: string[] = []
@@ -99,6 +101,35 @@ afterEach(() => {
 })
 
 describe('H.7.5 — GET /api/session/status', () => {
+  const fixtureDetections: CliDetectionResult[] = [
+    {
+      id: 'claude',
+      label: 'Claude Code',
+      binary: 'claude',
+      icon: 'claude',
+      readBoundary: { kind: 'none', reason: 'fixture' },
+      installed: true,
+      path: '/fixture/claude',
+    },
+    {
+      id: 'codex',
+      label: 'Codex',
+      binary: 'codex',
+      icon: 'codex',
+      readBoundary: { kind: 'none', reason: 'fixture' },
+      installed: true,
+      path: '/fixture/codex',
+    },
+  ]
+
+  const readFixtureStatuses = (root: string) =>
+    readActiveSessionStatuses({
+      projectRoot: root,
+      agentHome: root,
+      detectClis: () => fixtureDetections,
+      readCodexRateLimits: async () => [],
+    })
+
   test('expone contexto y cupo normalizados sin filtrar la ruta del transcript', async () => {
     const root = mkdtempSync(join(tmpdir(), 'orchestos-h75-api-'))
     roots.push(root)
@@ -109,7 +140,10 @@ describe('H.7.5 — GET /api/session/status', () => {
     )
     process.env.ORCHESTOS_SESSION_TRANSCRIPT = transcript
 
-    const response = await route(new Request(`http://localhost:${PORT}/api/session/status`), PORT)
+    const response = await handleApiSessionStatus(root, {
+      health: async () => [],
+      statuses: () => readFixtureStatuses(root),
+    })
     expect(response.status).toBe(200)
     const body = (await response.json()) as Record<string, unknown>
     expect(body.available).toBe(true)
@@ -132,7 +166,10 @@ describe('H.7.5 — GET /api/session/status', () => {
     roots.push(root)
     process.env.ORCHESTOS_SESSION_TRANSCRIPT = join(root, 'missing.jsonl')
 
-    const response = await route(new Request(`http://localhost:${PORT}/api/session/status`), PORT)
+    const response = await handleApiSessionStatus(root, {
+      health: async () => [],
+      statuses: () => readFixtureStatuses(root),
+    })
     expect(response.status).toBe(200)
     const body = (await response.json()) as {
       available: boolean

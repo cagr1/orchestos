@@ -643,6 +643,24 @@
       "closedDate": null
     },
     {
+      "id": "CI.59",
+      "sprint": "Fase 2 — Producto mínimo para entrega",
+      "block": "Abiertos — fiabilidad de los gates y documentación",
+      "delegation": "⚡",
+      "title": "`session-status.test.ts` espera a los CLIs reales del host",
+      "status": "done",
+      "closedDate": null
+    },
+    {
+      "id": "UI.62",
+      "sprint": "Fase 2 — Producto mínimo para entrega",
+      "block": "Abiertos — fiabilidad de los gates y documentación",
+      "delegation": "⚡",
+      "title": "La salud de OpenCode no lanza `opencode auth list`",
+      "status": "done",
+      "closedDate": null
+    },
+    {
       "id": "CI.58",
       "sprint": "Fase 2 — Producto mínimo para entrega",
       "block": "Abiertos — fiabilidad de los gates y documentación",

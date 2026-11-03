@@ -13,11 +13,13 @@ let calls: string[]
 let now: number
 beforeEach(() => {
   home = mkdtempSync(join(tmpdir(), 'set2-providers-'))
+  mkdirSync(join(home, '.local/share/opencode'), { recursive: true })
+  writeFileSync(join(home, '.local/share/opencode/auth.json'), '{"provider":{"type":"api"}}')
   calls = []
   now = 0
   probe = {
     home,
-    env: { PATH: '/process/bin', SHELL: '/fake/shell' },
+    env: { HOME: home, PATH: '/process/bin', SHELL: '/fake/shell' },
     loginPath: () => '/login/bin',
     which: (binary, path) =>
       ['claude', 'codex', 'opencode'].includes(binary) && path.split(':').includes('/login/bin')
@@ -390,6 +392,7 @@ it('shares the default model catalog with concurrent providers and refresh witho
 })
 
 it('exposes shared session health in /api/providers, keeps signed-out CLIs and refreshes auth explicitly', async () => {
+  rmSync(join(home, '.local/share/opencode/auth.json'))
   probe.authCommand = async (binary) => ({
     stdout: binary.endsWith('claude')
       ? '{"loggedIn":false}'

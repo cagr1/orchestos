@@ -8,6 +8,7 @@ function fixture(id: string) {
   const probe: CliHealthProbe = {
     env: {},
     home: '/fake',
+    readFile: () => null,
     loginPath: () => null,
     which: (binary) => `/fake/${binary}`,
     now: () => now,
@@ -39,7 +40,6 @@ for (const [id, args, ok, missing] of [
     '{"loggedIn":false}',
   ],
   ['codex', 'login status', 'Logged in using ChatGPT', 'Not logged in'],
-  ['opencode', 'auth list', '\u001b[90m└  2 credentials\u001b[0m', '└  0 credentials'],
 ] as const) {
   test(`${id}: authenticates with the expected read-only command and reports missing sessions`, async () => {
     const f = fixture(id)
@@ -58,7 +58,7 @@ for (const [id, args, ok, missing] of [
       checkedAt: 0,
     })
     expect(JSON.stringify(healthy)).not.toContain('private')
-    f.probe.authCommand = async () => ({ stdout: missing, exitCode: id === 'opencode' ? 0 : 1 })
+    f.probe.authCommand = async () => ({ stdout: missing, exitCode: 1 })
     expect((await f.read(true))[0]).toMatchObject({ auth: 'missing', functional: false })
   })
   test(`${id}: failed probes and absent binaries remain unknown`, async () => {
@@ -98,7 +98,7 @@ for (const [id, args, ok, missing] of [
 }
 
 test('Codex reads stderr and treats nonzero exit as missing; other malformed failures stay unknown', async () => {
-  for (const id of ['claude', 'codex', 'opencode']) {
+  for (const id of ['claude', 'codex']) {
     const f = fixture(id)
     f.probe.authCommand = async () => ({
       stdout: '',
@@ -111,13 +111,68 @@ test('Codex reads stderr and treats nonzero exit as missing; other malformed fai
   }
 })
 
-test('OpenCode with zero stored credentials and a known provider key has unknown auth', async () => {
+test('OpenCode reads provider keys without exposing credentials or invoking authCommand', async () => {
   const f = fixture('opencode')
-  f.probe.authCommand = async () => ({ stdout: '0 credentials', exitCode: 0 })
-  f.probe.env.OPENAI_API_KEY = 'private-key'
-  expect((await f.read())[0]).toMatchObject({ auth: 'unknown', functional: true })
-  f.probe.env = { UNRELATED_API_KEY: 'private-key', OPENAI_API_KEY: '' }
-  expect((await f.read(true))[0]).toMatchObject({ auth: 'missing', functional: false })
+  f.probe.readFile = () => '{"openrouter":{"type":"api","key":"private-key"}}'
+  let authCalls = 0
+  f.probe.authCommand = async () => {
+    authCalls++
+    throw new Error('must not run')
+  }
+  const [health] = await f.read()
+  expect(health).toMatchObject({ auth: 'ok', functional: true })
+  expect(JSON.stringify(health)).not.toContain('private-key')
+  expect(JSON.stringify(health)).not.toContain('openrouter')
+  expect(authCalls).toBe(0)
+})
+
+test('OpenCode missing, empty and zero-provider files use environment provider keys', async () => {
+  const f = fixture('opencode')
+  for (const contents of [null, '', '  ', '{}']) {
+    f.probe.readFile = () => contents
+    f.probe.env = { UNRELATED_API_KEY: 'private-key', OPENROUTER_API_KEY: '' }
+    expect((await f.read(true))[0]).toMatchObject({ auth: 'missing', functional: false })
+    f.probe.env.OPENROUTER_API_KEY = 'private-key'
+    expect((await f.read(true))[0]).toMatchObject({ auth: 'unknown', functional: true })
+  }
+})
+
+test('OpenCode invalid JSON and read failures return unknown without file data', async () => {
+  const f = fixture('opencode')
+  for (const contents of ['private-file-data', 'null', '[]', '42']) {
+    f.probe.readFile = () => contents
+    const [health] = await f.read(true)
+    expect(health?.auth).toBe('unknown')
+    expect(typeof health?.authDetail).toBe('string')
+    expect(health?.authDetail ?? '').not.toContain(contents)
+  }
+  f.probe.readFile = () => {
+    throw new Error('private-file-data')
+  }
+  expect((await f.read(true))[0]).toMatchObject({
+    auth: 'unknown',
+    authDetail: 'Unable to read OpenCode credentials',
+  })
+})
+
+test('OpenCode respects XDG_DATA_HOME and HOME with a system home fallback', async () => {
+  const { homedir } = await import('node:os')
+  const f = fixture('opencode')
+  const paths: string[] = []
+  f.probe.readFile = (path) => {
+    paths.push(path)
+    return '{}'
+  }
+  await f.read()
+  f.probe.env.HOME = '/custom-home'
+  await f.read(true)
+  f.probe.env.XDG_DATA_HOME = '/custom-data'
+  await f.read(true)
+  expect(paths).toEqual([
+    `${homedir()}/.local/share/opencode/auth.json`,
+    '/custom-home/.local/share/opencode/auth.json',
+    '/custom-data/opencode/auth.json',
+  ])
 })
 
 test('unknown adapters and custom CLIs stay functional without auth commands', async () => {
@@ -156,6 +211,10 @@ test('probes CLIs, versions and auth concurrently; one failure cannot reject the
     release = resolve
   })
   const started: string[] = []
+  f.probe.readFile = () => {
+    started.push('auth:opencode-file')
+    throw new Error('read failure')
+  }
   f.probe.command = async (binary) => {
     started.push(`version:${binary}`)
     await waiting

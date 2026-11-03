@@ -773,6 +773,19 @@ Regla: nada se reintenta, cierra ni muestra sin evidencia medida que el usuario 
   5/30/50/85 % por el cerebro: `docs/done/evidence/UI.56-rings.png`.
   Gate en vivo: navegador real (Playwright), `docs/done/evidence/UI.56-live.json` (captura `UI.56-rings.png`).
   Ejecutado por: codex gpt-6-luna (mecanico) · revisión Opus
+- [x] **CI.59 — ⚡ `session-status.test.ts` espera a los CLIs reales del host.** (abierto 2026-11-03, bloqueó el
+  push de UI.61/CI.58) El test vence a 5 s esperando `opencode auth list` real; falla 5/5. Diagnóstico Sol (analizar).
+  Hecho: los dos tests llaman al handler con `health` falso y detección de CLIs de fixture; el lector real de estados
+  se conserva. Gates del cerebro: tsc, los 4 archivos de salud/estado 37/0 en 94 ms.
+  Ejecutado por: codex gpt-6-luna (mecanico r1) · diagnóstico gpt-6.1-sol (analizar) · revisión Opus
+- [x] **UI.62 — ⚡ La salud de OpenCode no lanza `opencode auth list`.** (abierto 2026-11-03) Con OpenCode 2.2.5 ese
+  comando tarda ~20 s; la sonda corta a 5 s y OpenCode queda `auth: unknown` con Health/estado lentos. Se lee
+  `auth.json` (solo nombres de proveedor).
+  Hecho: `cli-health.ts` lee `$XDG_DATA_HOME|~/.local/share/opencode/auth.json` por la sonda `readFile`; ≥ 1
+  proveedor → ok; vacío/ausente → lógica de `PROVIDER_KEYS`; JSON inválido → unknown. Ningún valor sale del archivo.
+  Gates del cerebro: tsc, tests 37/0. En vivo (dashboard real): `GET /api/providers?refresh=1` en 0,26 s con OpenCode
+  `auth: ok`, `functional: true`.
+  Ejecutado por: codex gpt-6.1-sol (criterio r1) · revisión Opus
 - [x] **CI.58 — ⚡ `opencode-terminal` cuenta el daemon de OpenCode 2.2.5 como proceso de la pestaña.** (abierto
   2026-11-03, visto al cerrar UI.61) El último paso falla con `Still alive: <pid>` = `opencode serve --service`
   (ppid 1, sale solo); falla igual en HEAD `4f40d406`.

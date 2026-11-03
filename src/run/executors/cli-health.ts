@@ -1,3 +1,6 @@
+import { readFileSync } from 'node:fs'
+import { homedir } from 'node:os'
+import { join } from 'node:path'
 import { type CliDiscoveryProbe, cliSearchPath, systemCliDiscoveryProbe } from './cli-discovery.ts'
 import { allClis, type CliDefinition } from './cli-registry.ts'
 
@@ -14,6 +17,7 @@ export interface CliHealth {
 }
 
 export interface CliHealthProbe extends CliDiscoveryProbe {
+  readFile(path: string): string | null
   command(binary: string, args: string[]): Promise<string | null>
   authCommand(
     binary: string,
@@ -46,6 +50,13 @@ export const systemCliHealthProbe: CliHealthProbe = {
   ...systemCliDiscoveryProbe,
   now: Date.now,
   authCommand: command,
+  readFile(path) {
+    try {
+      return readFileSync(path, 'utf8')
+    } catch {
+      return null
+    }
+  },
   async command(binary, args) {
     try {
       const result = await command(binary, args)
@@ -73,15 +84,26 @@ async function authFor(
   path: string,
   probe: CliHealthProbe,
 ): Promise<Pick<CliHealth, 'auth' | 'authDetail'>> {
+  if (cli.generic) return { auth: 'unknown' }
+  if (cli.id === 'opencode') {
+    try {
+      const dataHome = probe.env.XDG_DATA_HOME || join(probe.env.HOME || homedir(), '.local/share')
+      const contents = probe.readFile(join(dataHome, 'opencode/auth.json'))
+      if (contents?.trim()) {
+        const credentials = JSON.parse(contents)
+        if (!credentials || typeof credentials !== 'object' || Array.isArray(credentials)) {
+          return { auth: 'unknown', authDetail: 'Invalid OpenCode credentials format' }
+        }
+        if (Object.keys(credentials).length > 0) return { auth: 'ok' }
+      }
+      return { auth: PROVIDER_KEYS.some((key) => probe.env[key]?.trim()) ? 'unknown' : 'missing' }
+    } catch {
+      return { auth: 'unknown', authDetail: 'Unable to read OpenCode credentials' }
+    }
+  }
   const args =
-    cli.id === 'claude'
-      ? ['auth', 'status']
-      : cli.id === 'codex'
-        ? ['login', 'status']
-        : cli.id === 'opencode'
-          ? ['auth', 'list']
-          : null
-  if (!args || cli.generic) return { auth: 'unknown' }
+    cli.id === 'claude' ? ['auth', 'status'] : cli.id === 'codex' ? ['login', 'status'] : null
+  if (!args) return { auth: 'unknown' }
   try {
     const result = await probe.authCommand(path, args)
     const text = `${result.stdout}\n${result.stderr ?? ''}`.replace(/\x1b\[[0-9;]*m/g, '')
@@ -98,12 +120,6 @@ async function authFor(
           auth: data.loggedIn ? 'ok' : 'missing',
           ...(detail ? { authDetail: detail } : {}),
         }
-      }
-    } else if (result.exitCode === 0) {
-      const count = text.match(/\b(\d+)\s+credentials?\b/i)
-      if (count) {
-        if (Number(count[1]) > 0) return { auth: 'ok' }
-        return { auth: PROVIDER_KEYS.some((key) => probe.env[key]?.trim()) ? 'unknown' : 'missing' }
       }
     }
     return { auth: 'unknown', authDetail: `Unrecognized auth response (exit ${result.exitCode})` }

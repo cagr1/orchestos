@@ -9,6 +9,7 @@ test('session endpoint exposes quota capability and current health using fake pr
   const reader = createCliHealthReader({
     env: {},
     home: '/fake',
+    readFile: () => '{"provider":{"type":"api"}}',
     loginPath: () => null,
     which: (binary) => (binary === 'gemini' ? null : `/fake/${binary}`),
     now: () => 0,
