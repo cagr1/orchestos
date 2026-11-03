@@ -1,4 +1,4 @@
-# NEXT — handoff 2026-11-02 (CHAT.4, TCLI.3, UI.46–48 cerrados; CI.54 espera fallo)
+# NEXT — handoff 2026-11-02 (auditoría de ADE: UI.49–55 cerrados; CI.54 y CI.19 esperan fallo)
 
 Un solo presente: orden y trampas vivas. Lo cerrado vive en `docs/done/bloque-*.md`, `PLAN.md` y git (regla `AGENTS.md`
 § Reglas generales, 2026-10-19: `NEXT.md` se toca solo al cerrar o cortar un lote). Arranque:
@@ -57,16 +57,21 @@ Un solo presente: orden y trampas vivas. Lo cerrado vive en `docs/done/bloque-*.
   "+" como terminal (+ bug: el scroll de la fila de pestañas cerraba el menú). Memoria nueva: lo obvio de un ADE se
   agrega sin preguntar.
 
+- 2026-11-02, noche (3): auditoría de ADE (OrchestOS vs MonoCode/Orca, capturas `/tmp/ade/`). UI.49 `c21c65f5` modo
+  de permisos en el composer de Dev; UI.50 `381d3520` spinner en la pestaña de la sesión que corre (`running` en
+  `/api/chat/sessions`); UI.51 `d8779774` tiempo al reinicio junto al % de cuota; UI.52 `0ab1fe9e` Dev pinta con
+  `ThreadMarkdown` como Chat (sin `react-markdown`); UI.53 `c1a42acd` + `5dc86638` Files atenúa lo ignorado por git;
+  UI.54 `1f4816cf` "@" referencia archivos (Chat y Dev); UI.55 `7a97bdf1` terminal del proyecto en panel inferior
+  de Dev (botón en la barra, Ctrl+`). Visto de paso: Orca mostraba Codex 39 % y el `app-server` oficial 49 %
+  (OrchestOS correcto). Codex tiene 3 créditos de reinicio de cuota disponibles (`rateLimitResetCredits`), sin UI.
+
 ## Orden
-0. Nada en curso. **Propuesta pendiente de Carlos** (2026-11-02): auditoría de ADE — comparar Dev y Chat con
-   MonoCode/Orca lado a lado en el navegador y sacar ítems; lo obvio se hace sin preguntar (memoria
-   `feedback-comportamiento-ade-obvio-sin-preguntar`), lo de producto en una ronda. Alternativas: Stop de OpenCode
-   (pesa poco: en su TUI se corta con Ctrl+C), comentarios de Settings. CI.54 y CI.19 esperan su próximo fallo
-   (leer la evidencia que dejan y escribir la fase 2).
-   **Anotado, sin ítem**: `codex-live` falló 1 de 3 en "turn 1 user
-   message appears before completion" (2 s), el pre-push reintenta. El composer angosto no se reprodujo a 820 px en
-   Chat (2026-11-02). Dos commits aparecieron en `origin` sin push de esta sesión (2026-11-02, fast-forward limpio;
-   no fueron Codex ni hooks; Orca y MonoCode tenían el repo abierto); Carlos: dejarlo pasar.
+0. Nada en curso. Auditoría de ADE hecha (UI.49–55). Candidatos sin ítem, para la próxima ronda con Carlos: mostrar
+   los créditos de reinicio de Codex; el anillo de contexto a ~5 % parece un spinner de carga; Stop de OpenCode;
+   comentarios de Settings. CI.54 y CI.19 esperan su próximo fallo (leer la evidencia y escribir la fase 2).
+   **Anotado, sin ítem**: `codex-live` falló 1 de 3 en "turn 1 user message appears before completion" (2 s), el
+   pre-push reintenta. `chat-streaming` falló 1 vez en el scroll con la cobertura corriendo en paralelo (Sol, UI.54);
+   aislado pasa.
 1. **Settings mostrado a Carlos** 2026-11-02 en 4343 (Providers, API keys, Health): sin pedidos de cambio aún. Sin
    reproducir: "Loading project data…".
 2. CI.19 espera el próximo fallo para la fase 2 (CI.44 cerrado `07fbab61`).
@@ -311,3 +316,9 @@ Inventario de código muerto: `bunx knip@5 --config /tmp/limp1/knip.json` (confi
 `scripts/**`, `app/src/main.tsx`, `.claude/hooks/*.js`). Falsos positivos vistos: fixtures, `assets.d.ts`, `tailwindcss`
 (lo usa el CSS), archivos que un test lee por ruta (`db/backup.ts`, `orcaProjectData.ts`). Un símbolo borrado puede dejar
 falso el comentario que lo explicaba: revisar comentarios reescritos.
+- Trampa: `PLAN.md` se renderiza desde la DB; tras editarlo a mano, `bun run plan:reconcile` antes del commit o el
+  pre-commit falla con "PLAN.md staged no coincide con render(DB)".
+- Trampa: al commitear por rutas con `git diff --name-only`, los archivos NUEVOS del ejecutor quedan fuera (pasó con
+  el test de UI.53); mirar `git status --short` por `??` antes de commitear.
+- Trampa: los ejecutores Codex corren `test:coverage`/`ui:gate` dentro del sandbox y fallan con `EADDRINUSE`/`EPERM`
+  (abren puertos); el spec debe decir "fuera del sandbox" o el ejecutor para por baseline rojo.
