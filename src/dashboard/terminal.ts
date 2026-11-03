@@ -25,7 +25,7 @@ export function resolveOpenCodeCommand(
 ): string[] {
   const binary = which('opencode')
   if (!binary) throw new Error('OpenCode no está instalado (no se encontró "opencode" en el PATH)')
-  return [binary]
+  return [binary, '--standalone']
 }
 
 export function resolveShellCommand(

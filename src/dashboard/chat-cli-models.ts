@@ -211,59 +211,45 @@ export function readClaudeModelIds(home: string): CliModelOption[] {
 }
 
 export function parseOpencodeModels(raw: string): CliModelOption[] {
-  const models: CliModelOption[] = []
-  const lines = raw.split(/\r?\n/)
-  for (let index = 0; index < lines.length; index += 1) {
-    const line = lines[index]?.trim() ?? ''
-    const id = line.match(/^([\w.-]+\/[\w./:@~-]+)(?:\s|$)/)?.[1]
-    if (!id || line.startsWith('Warning:') || line.startsWith('Error:')) continue
-    let efforts: string[] = []
-    const jsonLine = lines[index + 1]?.trim()
-    if (jsonLine?.startsWith('{')) {
-      let block = jsonLine
-      let blockEnd = index + 1
-      let depth = [...jsonLine].reduce(
-        (count, char) => count + (char === '{' ? 1 : char === '}' ? -1 : 0),
-        0,
+  try {
+    const parsed = JSON.parse(raw) as { data?: unknown }
+    if (!Array.isArray(parsed.data)) return []
+    return parsed.data.flatMap((entry) => {
+      if (!entry || typeof entry !== 'object') return []
+      const model = entry as { providerID?: unknown; id?: unknown; variants?: unknown }
+      if (
+        typeof model.providerID !== 'string' ||
+        !model.providerID ||
+        typeof model.id !== 'string' ||
+        !model.id
       )
-      while (depth > 0 && blockEnd + 1 < lines.length) {
-        const next = lines[++blockEnd] ?? ''
-        block += `\n${next}`
-        depth += [...next].reduce(
-          (count, char) => count + (char === '{' ? 1 : char === '}' ? -1 : 0),
-          0,
-        )
-      }
-      try {
-        const parsed = JSON.parse(block) as { variants?: unknown }
-        if (
-          parsed.variants &&
-          typeof parsed.variants === 'object' &&
-          !Array.isArray(parsed.variants)
-        ) {
-          efforts = Object.keys(parsed.variants)
-        }
-      } catch {
-        // A malformed model detail block does not invalidate the catalog.
-      }
-      index = blockEnd
-    }
-    const segments = id.split('/')
-    const name = segments.at(-1) ?? id
-    const provider = segments[0] ?? ''
-    const group =
-      provider === 'opencode' ? 'Zen' : provider === 'openrouter' ? 'OpenRouter' : provider
-    const vendor = segments.length === 3 ? segments[1]?.replace(/^~/, '') : undefined
-    models.push({ id, name, short: name, efforts, group, ...(vendor ? { vendor } : {}) })
+        return []
+      const id = `${model.providerID}/${model.id}`
+      const efforts = Array.isArray(model.variants)
+        ? model.variants.flatMap((variant) => {
+            if (!variant || typeof variant !== 'object') return []
+            const effort = (variant as { id?: unknown }).id
+            return typeof effort === 'string' && effort ? [effort] : []
+          })
+        : []
+      const segments = id.split('/')
+      const name = segments.at(-1) ?? id
+      const provider = model.providerID
+      const group =
+        provider === 'opencode' ? 'Zen' : provider === 'openrouter' ? 'OpenRouter' : provider
+      const vendor = segments.length === 3 ? segments[1]?.replace(/^~/, '') : undefined
+      return [{ id, name, short: name, efforts, group, ...(vendor ? { vendor } : {}) }]
+    })
+  } catch {
+    return []
   }
-  return models
 }
 
 export async function readOpencodeModelCatalog(
   runner: CommandRunner = defaultRunner,
   binary = 'opencode',
 ): Promise<CliModelOption[]> {
-  const result = await runner(binary, ['models', '--verbose'])
+  const result = await runner(binary, ['api', '--standalone', 'model.list'])
   return result.exitCode === 0 ? parseOpencodeModels(result.stdout) : []
 }
 
@@ -290,11 +276,7 @@ async function readCliCatalog(
     }
   }
   if (id === 'opencode') {
-    const [modelsResult] = await Promise.all([
-      runner(binary, ['models', '--verbose']),
-      runner(binary, ['run', '--help']),
-    ])
-    const models = parseOpencodeModels(modelsResult.stdout)
+    const models = await readOpencodeModelCatalog(runner, binary)
     return { id, models, efforts: [...new Set(models.flatMap((model) => model.efforts ?? []))] }
   }
   return { id, models: [], efforts: [] }
@@ -338,7 +320,7 @@ export async function readCliModelCatalogs(
 let cliModelCatalogCache: { value: CliModelCatalog[]; expiresAt: number } | undefined
 let cliModelCatalogRead: Promise<CliModelCatalog[]> | null = null
 
-// The composer requests the catalog four times per load, and each read runs `opencode models --verbose` (~0.56 s).
+// The composer requests the catalog four times per load, and each read runs the OpenCode model API.
 // Without a cache, those reads queued up to ~2.5 s (R.8.1.1).
 export function readCliModelCatalogsCached(deps?: {
   ttlMs?: number

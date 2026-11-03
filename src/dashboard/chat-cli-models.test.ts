@@ -12,8 +12,25 @@ import {
   readClaudeModelIds,
   readCliModelCatalogs,
   readCliModelCatalogsCached,
+  readOpencodeModelCatalog,
   resetCliModelCatalogCache,
 } from './chat-cli-models.ts'
+
+const opencodeFixture = JSON.stringify({
+  location: { directory: '/project' },
+  data: [
+    {
+      providerID: 'openai',
+      id: 'gpt-6',
+      modelID: 'upstream-gpt-6',
+      variants: [
+        { id: 'low', settings: {} },
+        { id: 'high', settings: {} },
+      ],
+    },
+    { providerID: 'opencode', id: 'big-pickle', modelID: 'big-pickle', variants: [] },
+  ],
+})
 
 describe('UI.14 round 5 CLI model catalogs', () => {
   beforeEach(() => resetCliModelCatalogCache())
@@ -136,16 +153,34 @@ describe('UI.14 round 5 CLI model catalogs', () => {
     ).toEqual(['fable', 'opus', 'sonnet'])
   })
 
-  test('parses only provider/model rows from OpenCode output', () => {
-    expect(parseOpencodeModels('openai/gpt-5\nWarning: noisy\nnot-a-model')).toEqual([
-      { id: 'openai/gpt-5', name: 'gpt-5', short: 'gpt-5', efforts: [], group: 'openai' },
+  test('parses OpenCode API models with and without variants in order', () => {
+    expect(parseOpencodeModels(opencodeFixture)).toEqual([
+      {
+        id: 'openai/gpt-6',
+        name: 'gpt-6',
+        short: 'gpt-6',
+        efforts: ['low', 'high'],
+        group: 'openai',
+      },
+      {
+        id: 'opencode/big-pickle',
+        name: 'big-pickle',
+        short: 'big-pickle',
+        efforts: [],
+        group: 'Zen',
+      },
     ])
   })
 
-  test('groups OpenCode providers and displays final model names with vendors', () => {
+  test('groups OpenCode providers and preserves nested vendor names', () => {
     expect(
       parseOpencodeModels(
-        'openrouter/~anthropic/claude-haiku-latest\nopencode/big-pickle\nlocal/model/vendor',
+        JSON.stringify({
+          data: [
+            { providerID: 'openrouter', id: '~anthropic/claude-haiku-latest', variants: [] },
+            { providerID: 'local', id: 'model/vendor' },
+          ],
+        }),
       ),
     ).toEqual([
       {
@@ -155,13 +190,6 @@ describe('UI.14 round 5 CLI model catalogs', () => {
         efforts: [],
         group: 'OpenRouter',
         vendor: 'anthropic',
-      },
-      {
-        id: 'opencode/big-pickle',
-        name: 'big-pickle',
-        short: 'big-pickle',
-        efforts: [],
-        group: 'Zen',
       },
       {
         id: 'local/model/vendor',
@@ -174,28 +202,58 @@ describe('UI.14 round 5 CLI model catalogs', () => {
     ])
   })
 
-  test('parses OpenCode verbose variants in order and tolerates malformed model blocks', () => {
+  test('tolerates malformed API responses, entries and variant IDs', () => {
+    for (const raw of ['{oops', '{}', 'null', '{"data":{}}'])
+      expect(parseOpencodeModels(raw)).toEqual([])
     expect(
       parseOpencodeModels(
-        'openai/gpt-6\n{"variants":{"low":{},"high":{}}}\nopenai/broken\n{oops}\nanthropic/claude\n{\n  "variants": {"minimal": {}, "xhigh": {}}\n}',
+        JSON.stringify({
+          data: [
+            null,
+            {},
+            { providerID: 'openai' },
+            { providerID: '', id: 'bad' },
+            { providerID: 'openai', id: 5 },
+            {
+              providerID: 'openai',
+              id: 'gpt-6',
+              variants: [null, {}, { id: '' }, { id: 5 }, { id: 'high' }],
+            },
+          ],
+        }),
       ),
     ).toEqual([
+      { id: 'openai/gpt-6', name: 'gpt-6', short: 'gpt-6', efforts: ['high'], group: 'openai' },
+    ])
+  })
+
+  test('both OpenCode readers use only the standalone model API with the detected binary', async () => {
+    const calls: Array<{ command: string; args: string[] }> = []
+    const runner = async (command: string, args: string[]) => {
+      calls.push({ command, args })
+      return { stdout: opencodeFixture, exitCode: 0 }
+    }
+    const models = await readOpencodeModelCatalog(runner, '/opencode')
+    const catalogs = await readCliModelCatalogs(runner, [
       {
-        id: 'openai/gpt-6',
-        name: 'gpt-6',
-        short: 'gpt-6',
-        efforts: ['low', 'high'],
-        group: 'openai',
-      },
-      { id: 'openai/broken', name: 'broken', short: 'broken', efforts: [], group: 'openai' },
-      {
-        id: 'anthropic/claude',
-        name: 'claude',
-        short: 'claude',
-        efforts: ['minimal', 'xhigh'],
-        group: 'anthropic',
+        id: 'opencode',
+        label: 'OpenCode',
+        binary: 'opencode',
+        icon: 'opencode',
+        installed: true,
+        path: '/opencode',
+        readBoundary: { kind: 'none', reason: 'test' },
       },
     ])
+    expect(catalogs[0]?.models).toEqual(models)
+    expect(catalogs[0]?.efforts).toEqual(['low', 'high'])
+    expect(calls).toEqual([
+      { command: '/opencode', args: ['api', '--standalone', 'model.list'] },
+      { command: '/opencode', args: ['api', '--standalone', 'model.list'] },
+    ])
+    expect(
+      await readOpencodeModelCatalog(async () => ({ stdout: opencodeFixture, exitCode: 1 })),
+    ).toEqual([])
   })
 
   test('normalizes and orders Claude versions without date suffixes', () => {
@@ -252,7 +310,10 @@ describe('UI.14 round 5 CLI model catalogs', () => {
     const catalogs = await readCliModelCatalogs(
       async (command) => {
         if (command === '/claude-broken') throw new Error('ENOEXEC: spawn failed')
-        return { stdout: 'openai/gpt-5', exitCode: 0 }
+        return {
+          stdout: JSON.stringify({ data: [{ providerID: 'openai', id: 'gpt-5', variants: [] }] }),
+          exitCode: 0,
+        }
       },
       [
         {
@@ -391,7 +452,7 @@ describe('MOD.1 Claude model catalog from the CLI source', () => {
       codex: parseCodexModelsCache(
         JSON.stringify({ models: [{ slug: 'gpt-6-astra', display_name: 'GPT-6-Astra' }] }),
       ),
-      opencode: parseOpencodeModels('openai/gpt-5\n{"name":"GPT-5"}\n'),
+      opencode: parseOpencodeModels(opencodeFixture),
     }
     for (const [cli, models] of Object.entries(sources)) {
       expect(models.length, cli).toBeGreaterThan(0)

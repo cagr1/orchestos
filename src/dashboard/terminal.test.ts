@@ -76,6 +76,13 @@ describe('dashboard terminal sessions', () => {
       'OpenCode no está instalado (no se encontró "opencode" en el PATH)',
     )
   })
+
+  test('launches OpenCode in standalone mode', () => {
+    expect(resolveOpenCodeCommand(() => '/usr/bin/opencode')).toEqual([
+      '/usr/bin/opencode',
+      '--standalone',
+    ])
+  })
 })
 
 describe('resolveShellCommand', () => {

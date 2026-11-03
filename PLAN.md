@@ -75,6 +75,23 @@ Cerrada. Todos sus ítems están archivados en `docs/done/` (ver "Cerrados — e
 
 ### Abiertos — fiabilidad de los gates y documentación
 
+- [x] **OC.1 — ⚡ La terminal de Dev lanza OpenCode con `--standalone`.** (abierto 2026-11-03, GO de Carlos al plan
+  OC.1–OC.4) Con OpenCode 2.2.5 y el servicio compartido desincronizado, la TUI sale a los ~20 s.
+  Hecho: `resolveOpenCodeCommand` devuelve `[binary, '--standalone']` (servidor privado por pestaña).
+  Gates del cerebro: tsc, tests 36/0, `ui:gate opencode-terminal` 13/13 con el servicio compartido aún roto.
+  Gate en vivo: navegador real (Playwright), `docs/done/evidence/OC.1-OC.2-live.json`.
+  Ejecutado por: codex gpt-6-luna (mecanico r1) · revisión Opus
+- [x] **OC.2 — ⚡ El catálogo de OpenCode usa `api --standalone model.list`.** (abierto 2026-11-03) 2.2.5 quitó
+  `models --verbose`; catálogo vacío y `model-routing` rojo bloquean el push.
+  Hecho: `parseOpencodeModels` lee `data[]` (`providerID/id`, esfuerzos = `variants[].id`); sale la llamada a
+  `run --help`. En vivo (Sol): `/api/models/catalog` 361 modelos, 230 con esfuerzos y 131 sin.
+  Gates del cerebro: tsc, tests 36/0, `ui:gate model-routing` 19/19.
+  Gate en vivo: navegador real (Playwright), `docs/done/evidence/OC.1-OC.2-live.json`.
+  Ejecutado por: codex gpt-6.1-sol (criterio r1) · revisión Opus
+- [ ] **OC.3 — ⚡ El ejecutor `opencode run` usa `--standalone` y `--model prov/modelo#variante`.** (abierto 2026-11-03)
+  2.2.5 quitó `--variant`; sin `--standalone` depende del servicio. Falta validar `step-finish` con inferencia real.
+- [ ] **OC.4 — ⚡ El adaptador HTTP de aprobaciones migra a la API v2 de OpenCode.** (abierto 2026-11-03) Cambiaron
+  banner, `/api/session`, prompt, modelo y permisos (`src/run/executors/opencode-server.ts`).
 - [ ] **CI.19 — 🔍 El `git commit` del fixture falla a veces en el andamiaje de los ui-gates.** Visto 1 vez en
   `qa-negative` (2026-10-11, 1 de 9): `Command failed: git … commit -qm task fixture`, sin motivo porque el helper
   `run` usa `stdio: 'ignore'`. `qa-negative` ya reporta stdout/stderr y exit; los otros 20 flows con el mismo helper no.
