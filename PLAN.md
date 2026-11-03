@@ -742,6 +742,13 @@ Regla: nada se reintenta, cierra ni muestra sin evidencia medida que el usuario 
   5/30/50/85 % por el cerebro: `docs/done/evidence/UI.56-rings.png`.
   Gate en vivo: navegador real (Playwright), `docs/done/evidence/UI.56-live.json` (captura `UI.56-rings.png`).
   Ejecutado por: codex gpt-6-luna (mecanico) · revisión Opus
+- [ ] **CI.57 — 🔍 `composer-picker`: a veces elegir otro modelo de Codex en Chat no queda aplicado.** (abierto
+  2026-11-03) Falló 4 seguidas (pre-push del lote UI.57/58, 2 aisladas, una en worktree de `82820986`) en `Codex
+  effort levels remain available` (`composer-picker.mjs:75-87`): tras clic en GPT-6.1-Sol el selector sigue en
+  GPT-6-Luna. Luego pasó 11/11 en `50e087e2`, `a4beb111`, y 5 veces en HEAD (Sol 3, cerebro 2): intermitente, la
+  bisección no prueba que sea UI.58. Sospecha (opinión de LLM): una actualización tardía del estado del chat pisa
+  la selección. Fase 1: que el fallo deje evidencia (modelo del chat en API antes/después del clic, requests entre
+  clic y reapertura, captura).
 - [x] **CI.56 — 🔍 `codex-live`: la palabra a recordar se parecía al tema y el modelo contestó "MANGOES".** (abierto
   2026-11-03) Pre-push del lote UI.57/58: mismo hilo en los dos turnos, pero la palabra `MANGO-<8>` con el tema
   "mangoes" (`codex-live.mjs:151`) hizo que Codex respondiera "MANGOES". El primer intento cayó en `chat-continuity`

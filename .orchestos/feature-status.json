@@ -616,6 +616,15 @@
       "closedDate": null
     },
     {
+      "id": "CI.57",
+      "sprint": "Fase 2 — Producto mínimo para entrega",
+      "block": "Abiertos — fiabilidad de los gates y documentación",
+      "delegation": "🔍",
+      "title": "`composer-picker`: a veces elegir otro modelo de Codex en Chat no queda aplicado",
+      "status": "open",
+      "closedDate": null
+    },
+    {
       "id": "CI.56",
       "sprint": "Fase 2 — Producto mínimo para entrega",
       "block": "Abiertos — fiabilidad de los gates y documentación",
