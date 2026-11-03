@@ -6,9 +6,8 @@ Arranque: `bun run agent:preflight -- --item <ID> --agent claude`. Lista viva: `
 
 ## Orden
 
-0. Hecho hoy y empujado: DOC.5, DOC.6, UI.61, CI.58, CI.59, UI.62, CI.60, OC.1, OC.2, DOC.7 y DOC.8 (reglas vivas
-   que DOC.6 había retirado, de vuelta en `AGENTS.md`; recetas en `docs/reference/gotchas.md`). Siguen OC.3 y OC.4
-   (OpenCode 2.2.5).
+0. Hecho hoy: DOC.5–DOC.8, UI.61, UI.62, CI.58–CI.60 y OC.1–OC.4 (OpenCode 2.2.5 completo: terminal, catálogo,
+   `run` y aprobaciones por la API v2). Servicio de OpenCode reiniciado (el huérfano 32162 bloqueaba el puerto 49374).
 1. **Esperan su próximo fallo** (leer el JSON y escribir la fase 2). Todos dejan evidencia en el `runDir` del gate
    (`$TMPDIR/ui-gate-<pid>/`): CI.55 `role-task-missing-output.json`; CI.57 `composer-picker-model-missing.json`;
    CI.54 `turn1-bubble-missing.json`; CI.19, el motivo en el detalle del paso. Bucle de flakes del 2026-11-03
