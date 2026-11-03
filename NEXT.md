@@ -67,11 +67,13 @@ Un solo presente: orden y trampas vivas. Lo cerrado vive en `docs/done/bloque-*.
 
 ## Orden
 0. Nada en curso. Auditoría de ADE hecha (UI.49–55). Candidatos sin ítem, para la próxima ronda con Carlos: mostrar
-   los créditos de reinicio de Codex; el anillo de contexto a ~5 % parece un spinner de carga; Stop de OpenCode;
-   comentarios de Settings. CI.54 y CI.19 esperan su próximo fallo (leer la evidencia y escribir la fase 2).
+   los créditos de reinicio de Codex;
+   comentarios de Settings. UI.56 `487d2d52` cerró el anillo (sector relleno). Stop de OpenCode descartado: su chat
+   está desactivado (terminal en Dev, Ctrl+C) y las tareas ya cancelan (`opencode-server.ts:67`). CI.54 y CI.19 esperan su próximo fallo (leer la evidencia y escribir la fase 2).
    CI.55 (abierto `949847d2`): el gate `tasks` corre Codex real y una vez `gate-role-task` no dejó `ROLE.md`
    (tumbó el primer push del lote; aislado 43/43). Siguiente paso: que el fallo guarde la salida del CLI de esa
-   corrida (log en `docs/done/evidence/CI.55-prepush-fail.log`).
+   corrida (log en `docs/done/evidence/CI.55-prepush-fail.log`). Fase 1 hecha `4b8ca91d`: el fallo deja
+   `role-task-missing-output.json` en el `runDir` del gate.
    **Anotado, sin ítem**: `codex-live` falló 1 de 3 en "turn 1 user message appears before completion" (2 s), el
    pre-push reintenta. `chat-streaming` falló 1 vez en el scroll con la cobertura corriendo en paralelo (Sol, UI.54);
    aislado pasa.
@@ -81,6 +83,8 @@ Un solo presente: orden y trampas vivas. Lo cerrado vive en `docs/done/bloque-*.
 3. Cualquier CLI ya corre tareas sin código (AT.11.2/AT.11.3): se declara en Settings → Providers → "CLIs propios".
    Un adaptador rico (streaming, sesiones, cuotas) para un CLI nuevo sigue siendo `KNOWN_CLIS` + `registerTaskEngine`
    y lo instala el cerebro para probarlo, no Carlos. Fuera hoy: CLI genérico en el chat (necesita streaming).
+- Trampa: `plan:reconcile` dos veces con un ítem `[x]` sin commitear falla ("Could not prove a closing commit SHA"):
+  reabrir `[ ]`, reconcile, volver a `[x]`, reconcile. El live-gate exige citar un `.json`/`.log`, no `.png`.
 - Trampa: `delegate <rol>` exige una ruta a un archivo de spec, no texto libre (falla con "spec no existe"); `leer` e
   `investigar` sí aceptan la pregunta directa.
 - Trampa: antes de abrir un ítem, grepear que el ID no exista ya cerrado (`grep -n "\*\*TCLI\.2" PLAN.md`): el
