@@ -34,8 +34,10 @@ export const ContextRing: React.FC<ContextRingProps> = ({
 
   const clamped = Math.min(100, Math.max(0, percent))
   const r = 7
-  const circumference = 2 * Math.PI * r
-  const strokeDashoffset = circumference - (clamped / 100) * circumference
+  const angle = (clamped / 100) * 2 * Math.PI
+  const sectorEndX = 10 + 5 * Math.cos(angle)
+  const sectorEndY = 10 + 5 * Math.sin(angle)
+  const sectorPath = `M 15 10 A 5 5 0 ${clamped > 50 ? 1 : 0} 1 ${sectorEndX} ${sectorEndY} L 10 10 Z`
 
   let strokeColor = 'var(--app-accent, #6366f1)'
   let textColorClass = 'text-app-accent'
@@ -74,18 +76,11 @@ export const ContextRing: React.FC<ContextRingProps> = ({
           className="text-app-muted/20"
         />
         {/* Fill */}
-        <circle
-          cx="10"
-          cy="10"
-          r={r}
-          fill="none"
-          stroke={strokeColor}
-          strokeWidth="2"
-          strokeLinecap="round"
-          strokeDasharray={circumference}
-          strokeDashoffset={strokeDashoffset}
-          className="transition-all duration-300"
-        />
+        {clamped === 100 ? (
+          <circle cx="10" cy="10" r="5" fill={strokeColor} />
+        ) : clamped > 0 ? (
+          <path d={sectorPath} fill={strokeColor} />
+        ) : null}
       </svg>
 
       {/* No number under 50%, a short mono 62% from 50% */}
