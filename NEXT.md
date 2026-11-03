@@ -1,4 +1,4 @@
-# NEXT — handoff 2026-11-02 (auditoría de ADE: UI.49–55 cerrados; CI.54, CI.55 y CI.19 esperan fallo)
+# NEXT — handoff 2026-11-03 (UI.56–60 y CI.56 cerrados; CI.19, CI.54, CI.55, CI.57 esperan fallo)
 
 Un solo presente: orden y trampas vivas. Lo cerrado vive en `docs/done/bloque-*.md`, `PLAN.md` y git (regla `AGENTS.md`
 § Reglas generales, 2026-10-19: `NEXT.md` se toca solo al cerrar o cortar un lote). Arranque:
@@ -66,25 +66,21 @@ Un solo presente: orden y trampas vivas. Lo cerrado vive en `docs/done/bloque-*.
   (OrchestOS correcto). Codex tiene 3 créditos de reinicio de cuota disponibles (`rateLimitResetCredits`), sin UI.
 
 ## Orden
-0. Nada en curso. Auditoría de ADE hecha (UI.49–55). Candidatos sin ítem, para la próxima ronda con Carlos: mostrar
-   los créditos de reinicio de Codex;
-   comentarios de Settings. UI.56 `487d2d52` cerró el anillo (sector relleno). UI.57 `a4beb111` (OpenCode con el tema, sin cabecera ni
-   texto) y UI.58 `82820986` (Terminal como pestaña central, PTY vivo entre pestañas). CI.56 `5ad28377` (palabra de `codex-live` sin relación con el tema). CI.57 fase 1
-   `fa2d65c6`: `composer-picker` intermitente (falló 4 seguidas, luego 6/6 verde), el fallo deja evidencia; mi
-   bisección que culpaba a UI.58 era falsa. UI.59 `06d6ec92`: pre-commit `ui:text-gate` exige `Texto
-   visible:` en el ítem por cada texto JSX nuevo. UI.60 `20ddb8ee`: el "+" de Dev siempre a la vista. La "pestaña
-   desaparecida" no era bug: navegador limpio → Dev abre la sesión más reciente. Stop de OpenCode descartado: su chat
-   está desactivado (terminal en Dev, Ctrl+C) y las tareas ya cancelan (`opencode-server.ts:67`). CI.54 y CI.19 esperan su próximo fallo (leer la evidencia y escribir la fase 2).
-   CI.55 (abierto `949847d2`): el gate `tasks` corre Codex real y una vez `gate-role-task` no dejó `ROLE.md`
-   (tumbó el primer push del lote; aislado 43/43). Siguiente paso: que el fallo guarde la salida del CLI de esa
-   corrida (log en `docs/done/evidence/CI.55-prepush-fail.log`). Fase 1 hecha `4b8ca91d`: el fallo deja
-   `role-task-missing-output.json` en el `runDir` del gate.
-   **Anotado, sin ítem**: `codex-live` falló 1 de 3 en "turn 1 user message appears before completion" (2 s), el
-   pre-push reintenta. `chat-streaming` falló 1 vez en el scroll con la cobertura corriendo en paralelo (Sol, UI.54);
-   aislado pasa.
-1. **Settings mostrado a Carlos** 2026-11-02 en 4343 (Providers, API keys, Health): sin pedidos de cambio aún. Sin
-   reproducir: "Loading project data…".
-2. CI.19 espera el próximo fallo para la fase 2 (CI.44 cerrado `07fbab61`).
+0. Nada en curso. Cerrado 2026-11-02/03 (todo empujado, pre-push verde en `e4534111`): UI.56 `487d2d52` anillo de
+   contexto como sector relleno; UI.57 `a4beb111` OpenCode con el tema elegido, sin cabecera ni texto; UI.58
+   `82820986` Terminal como pestaña central, PTY vivo entre pestañas; UI.59 `06d6ec92` pre-commit `ui:text-gate`
+   (todo texto JSX nuevo se declara en `Texto visible:` del ítem); UI.60 `20ddb8ee` "+" de Dev siempre a la vista;
+   CI.56 `5ad28377` palabra de `codex-live` sin relación con el tema. Descartados con evidencia: Stop de OpenCode (su
+   chat está desactivado; las tareas ya cancelan, `opencode-server.ts:67`); "pestaña desaparecida" (navegador limpio
+   → Dev abre la sesión más reciente).
+1. **Esperan su próximo fallo** (leer la evidencia y escribir la fase 2): CI.55 `4b8ca91d` deja
+   `role-task-missing-output.json`; CI.57 `fa2d65c6` deja `composer-picker-model-missing.json` (falló 4 seguidas y
+   luego 6/6 verde; mi bisección que culpaba a UI.58 era falsa); CI.54 deja `turn1-bubble-missing.json`; CI.19.
+   Todos en el `runDir` del gate (`/var/folders/.../ui-gate-<pid>/`, ruta en el detalle del paso).
+   **Anotado, sin ítem**: `chat-continuity` cayó 1 vez por timeout de 180 s esperando al modelo (pasó al reintento);
+   `chat-streaming` falló 1 vez en el scroll con la cobertura en paralelo (aislado pasa).
+2. **Decisiones de Carlos pendientes**: mostrar los créditos de reinicio de Codex (recomendación: en el popover de
+   cuotas); comentarios de Settings (mostrado 2026-11-02, sin pedidos). Sin reproducir: "Loading project data…".
 3. Cualquier CLI ya corre tareas sin código (AT.11.2/AT.11.3): se declara en Settings → Providers → "CLIs propios".
    Un adaptador rico (streaming, sesiones, cuotas) para un CLI nuevo sigue siendo `KNOWN_CLIS` + `registerTaskEngine`
    y lo instala el cerebro para probarlo, no Carlos. Fuera hoy: CLI genérico en el chat (necesita streaming).
