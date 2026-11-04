@@ -1,6 +1,7 @@
 {
   "name": "orchestos",
   "version": "0.12.0",
+  "license": "MIT",
   "module": "index.ts",
   "type": "module",
   "private": true,
