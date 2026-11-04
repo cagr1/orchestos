@@ -55,7 +55,7 @@ describe('model roles config', () => {
         resolveRole(cfg, 'executor')
       } catch (error) {
         expect((error as Error).message).toBe(
-          "Rol 'executor' sin asignar: elígelo en Settings → Model routing",
+          'Executor role is unassigned — assign it in Settings → Model routing',
         )
       }
     } finally {

@@ -158,7 +158,9 @@ function resolveRoles(raw: Record<string, unknown>): Partial<Record<RoleName, Ro
 
 export class RoleUnassignedError extends Error {
   constructor(role: RoleName) {
-    super(`Rol '${role}' sin asignar: elígelo en Settings → Model routing`)
+    super(
+      `${role.charAt(0).toUpperCase()}${role.slice(1)} role is unassigned — assign it in Settings → Model routing`,
+    )
     this.name = 'RoleUnassignedError'
   }
 }

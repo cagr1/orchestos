@@ -131,7 +131,7 @@ describe('role runner', () => {
 
   it('throws the exact unassigned role error', () => {
     expect(() => roleClient(cfg(), 'reviewer', { cwd: '/tmp' })).toThrow(
-      "Rol 'reviewer' sin asignar: elígelo en Settings → Model routing",
+      'Reviewer role is unassigned — assign it in Settings → Model routing',
     )
     expect(() => resolveRole(cfg(), 'reviewer')).toThrow(RoleUnassignedError)
   })
@@ -190,7 +190,7 @@ describe('role runner', () => {
         }),
       })
       expect(result.status).toBe('failed')
-      expect(result.retryReason).toContain("Rol 'reviewer' sin asignar")
+      expect(result.retryReason).toContain('Reviewer role is unassigned')
       expect(calls).toBe(0)
     } finally {
       globalThis.fetch = oldFetch

@@ -5,7 +5,7 @@ import { setTimeout as delay } from 'node:timers/promises'
 import { stringify as yamlStringify } from 'yaml'
 import { run } from '../lib.mjs'
 
-export default async function modelRouting({ page, api, step, shot, cleanup }) {
+export default async function modelRouting({ page, api, step, shot, cleanup, expectHttpError }) {
   const waitForExpanded = async (button, expanded) => {
     const expected = String(expanded)
     const deadline = Date.now() + 5000
@@ -113,10 +113,80 @@ export default async function modelRouting({ page, api, step, shot, cleanup }) {
       (await page.getByText('Claude 3.7 Sonnet', { exact: true }).count()) === 0,
   )
 
+  await projectButton.click()
+  expectHttpError(/\/api\/tasks\/gate-model-routing\/run$/)
+  const rejectedRun = page.waitForResponse(
+    (response) =>
+      response.url().includes('/api/tasks/gate-model-routing/run') &&
+      response.request().method() === 'POST',
+  )
+  await page.getByRole('button', { name: 'Run Next Task', exact: true }).click()
+  const rejected = await rejectedRun
+  const roleError = await rejected.json()
+  await page
+    .getByRole('alert')
+    .filter({ hasText: 'Executor role is unassigned' })
+    .waitFor({ state: 'visible' })
+  await step(
+    'unassigned task run returns a structured error and displays it',
+    rejected.status() === 400 && roleError.code === 'role_unassigned',
+    JSON.stringify(roleError),
+  )
+  await page.getByRole('button', { name: 'Model routing', exact: true }).last().click()
+  await step(
+    'task error action opens Model routing',
+    await page.getByText('Model routing config', { exact: true }).isVisible(),
+  )
+
   const catalog = (await api('/api/models/catalog')).data.agents
   const codex = catalog.find((agent) => agent.id === 'codex')
   if (!codex?.installed || !codex.models.some((model) => model.id === 'gpt-6-luna'))
     throw new Error('Codex gpt-6-luna is not available in the model catalog')
+  const suggestedId = (await api('/api/chat/default-agent')).data.agent
+  const suggested = catalog.find((agent) => agent.id === suggestedId)
+  if (!suggested || suggested.id === 'api' || !suggested.installed)
+    throw new Error('The default chat agent must suggest an installed CLI')
+  const suggestedName = suggested.id === 'claude' ? 'Claude' : (suggested.label ?? suggested.id)
+  const suggestedRoles = ['orchestrator', 'executor', 'reviewer', 'auxiliary'].filter(
+    (role) =>
+      (role !== 'orchestrator' || suggested.id !== 'opencode') &&
+      (role === 'executor' || !suggested.generic) &&
+      (role !== 'executor' || suggested.taskEngine !== false) &&
+      (suggested.generic || suggested.models.length),
+  )
+  const suggestionButton = page.getByRole('button', {
+    name: `Use ${suggestedName} for unassigned roles`,
+    exact: true,
+  })
+  await step('installed CLI is proposed for unassigned roles', await suggestionButton.isVisible())
+  await shot('roles-suggestion')
+  await suggestionButton.click()
+  await saveConfigAndWait()
+  await reopenModelRouting()
+  const suggestedConfig = (await api('/api/config', { headers: projectHeaders })).data
+  const suggestedModel =
+    suggested.models.find((model) => model.default)?.id ??
+    suggested.models[0]?.id ??
+    (suggested.generic ? 'default' : '')
+  await step(
+    'click and existing save persist only eligible suggested roles',
+    suggestedRoles.length > 0 &&
+      suggestedRoles.every(
+        (role) =>
+          suggestedConfig.roleAssignments[role]?.agent === suggested.id &&
+          suggestedConfig.roleAssignments[role]?.model === suggestedModel,
+      ) &&
+      ['orchestrator', 'executor', 'reviewer', 'auxiliary']
+        .filter((role) => !suggestedRoles.includes(role))
+        .every((role) => !suggestedConfig.roleAssignments[role]),
+    JSON.stringify({ suggestedId, suggestedRoles, assignments: suggestedConfig.roleAssignments }),
+  )
+  await step(
+    'suggestion disappears when no eligible unassigned role remains',
+    (await suggestionButton.count()) === 0,
+  )
+  await shot('suggested-roles-saved')
+
   const roles = ['Orchestrator', 'Executor', 'Reviewer', 'Auxiliary']
   const opencode = catalog.find((agent) => agent.id === 'opencode')
   if (opencode?.installed) {

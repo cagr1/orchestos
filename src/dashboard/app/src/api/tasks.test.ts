@@ -312,3 +312,35 @@ describe('polling del reporte por intento', () => {
     ).toBe('resolve')
   })
 })
+
+test('ONB.2 runTask preserves the structured role error code', async () => {
+  const originalFetch = globalThis.fetch
+  globalThis.fetch = (async (input) =>
+    String(input).endsWith('/run')
+      ? new Response(
+          JSON.stringify({ error: 'Executor role is unassigned', code: 'role_unassigned' }),
+          { status: 400 },
+        )
+      : new Response(
+          JSON.stringify({
+            exists: true,
+            tasks: [
+              {
+                id: 'unassigned',
+                status: 'pending',
+                output: [],
+                dependsOn: [],
+                acceptanceCriteria: [],
+              },
+            ],
+          }),
+        )) as typeof fetch
+  try {
+    await expect(runTask('unassigned', 'project', () => {})).rejects.toMatchObject({
+      message: 'Executor role is unassigned',
+      code: 'role_unassigned',
+    })
+  } finally {
+    globalThis.fetch = originalFetch
+  }
+})

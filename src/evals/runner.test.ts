@@ -57,8 +57,8 @@ describe('eval runner dry-run', () => {
 
       expect(exitCode, stderr).toBe(0)
       expect(stdout).toContain('"model":"fixture/config-root-executor"')
-      expect(stderr).not.toContain("Rol 'reviewer' sin asignar")
-      expect(stderr).not.toContain("Rol 'executor' sin asignar")
+      expect(stderr).not.toContain('Reviewer role is unassigned')
+      expect(stderr).not.toContain('Executor role is unassigned')
     } finally {
       rmSync(home, { recursive: true, force: true })
     }

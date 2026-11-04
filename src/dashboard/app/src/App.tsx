@@ -47,6 +47,7 @@ import {
   listTasks,
   resolveTaskReportPoll,
   runTask,
+  TaskRunError,
 } from './api/tasks'
 import { mergeOptimisticAttachments } from './components/chat/mergeAttachments'
 import { OrchestChatView } from './components/chat/OrchestChatView'
@@ -222,7 +223,7 @@ export default function App() {
     byRun: Record<string, PendingApproval[]>
   } | null>(null)
   const [taskError, setTaskError] = useState<string | null>(null)
-  const [taskRunError, setTaskRunError] = useState<string | null>(null)
+  const [taskRunError, setTaskRunError] = useState<{ message: string; code?: string } | null>(null)
   const [runningTaskId, setRunningTaskId] = useState<string | null>(null)
   const [runs, setRuns] = useState<RunItem[]>([])
   const [projectContext, setProjectContext] = useState<ProjectContext | null>(null)
@@ -1131,7 +1132,7 @@ export default function App() {
     try {
       let thread = threadsRef.current.find((item) => item.id === activeAgentId)
       if (!activeAgentId) {
-        thread = await createSession({ agent: agent || 'api', projectId: currentProject.id })
+        thread = await createSession({ ...(agent ? { agent } : {}), projectId: currentProject.id })
         threadsRef.current = [thread, ...threadsRef.current]
         setThreads((current) => [thread!, ...current])
         setActiveThreadId(thread.id)
@@ -1184,7 +1185,7 @@ export default function App() {
     }
     if (!threadId) {
       try {
-        thread = await createSession({ agent: agent || 'api', projectId: null })
+        thread = await createSession({ ...(agent ? { agent } : {}), projectId: null })
         threadId = thread.id
         threadsRef.current = [thread, ...threadsRef.current]
         setThreads((prev) => [thread!, ...prev])
@@ -1361,7 +1362,10 @@ export default function App() {
       })
       await reloadTabs()
     } catch (error) {
-      setTaskRunError(error instanceof Error ? error.message : String(error))
+      setTaskRunError({
+        message: error instanceof Error ? error.message : String(error),
+        code: error instanceof TaskRunError ? error.code : undefined,
+      })
       await listTasks(currentProject.id)
         .then((result) => {
           setTasks(result.tasks)
@@ -1697,7 +1701,12 @@ export default function App() {
                 initialSection={settingsSection}
                 initialProjectTab={settingsProjectTab}
                 tasks={tasks}
-                taskError={taskError || taskRunError}
+                taskError={taskRunError?.message || taskError}
+                onOpenTaskRouting={
+                  taskRunError?.code === 'role_unassigned'
+                    ? () => handleOpenSettings('model_routing')
+                    : undefined
+                }
                 runs={runs}
                 projectContext={projectContext}
                 specs={specs}

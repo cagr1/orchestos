@@ -53,6 +53,10 @@ describe('dashboard task run session reporting', () => {
       const proc = Bun.spawnSync(['git', ...args], { cwd: root, stdout: 'pipe', stderr: 'pipe' })
       expect(proc.exitCode, new TextDecoder().decode(proc.stderr)).toBe(0)
     }
+    writeFileSync(
+      join(root, 'orchestos.config.yaml'),
+      'roles:\n  executor: { agent: codex, model: test }\n  reviewer: { agent: codex, model: test }\n',
+    )
     const originalSpawn = Bun.spawn
     Bun.spawn = (() => ({ pid: 424242, exited: Promise.resolve(0) })) as unknown as typeof Bun.spawn
     try {
@@ -97,7 +101,11 @@ describe('dashboard task commit-run (ERP.4.13)', () => {
     git(root, 'init', '-b', 'main')
     git(root, 'config', 'user.name', 'OrchestOS test')
     git(root, 'config', 'user.email', 'test@invalid')
-    git(root, 'add', 'tasks.yaml')
+    writeFileSync(
+      join(root, 'orchestos.config.yaml'),
+      'roles:\n  executor: { agent: codex, model: test }\n  reviewer: { agent: codex, model: test }\n',
+    )
+    git(root, 'add', 'tasks.yaml', 'orchestos.config.yaml')
     git(root, 'commit', '-m', 'fixture')
     writeFileSync(join(root, 'a.txt'), 'a')
     writeFileSync(join(root, 'b.txt'), 'b')
@@ -262,4 +270,31 @@ describe('task approval rows (ERP.7.1b)', () => {
       db.run('DELETE FROM approval_runs WHERE id = ?', [runId])
     }
   })
+})
+
+describe('ONB.2 unassigned task roles', () => {
+  for (const role of ['executor', 'reviewer']) {
+    test(`returns role_unassigned for ${role} without launching or mutating the task`, async () => {
+      const root = mkdtempSync(join(tmpdir(), 'orchestos-unassigned-'))
+      roots.push(root)
+      const source =
+        'version: 1\nproject: test\ntasks:\n  - id: unassigned\n    description: Test\n    input: []\n    output: [out.txt]\n    status: failed\n'
+      writeFileSync(join(root, 'tasks.yaml'), source)
+      writeFileSync(
+        join(root, 'orchestos.config.yaml'),
+        role === 'executor' ? 'roles: {}\n' : 'roles:\n  executor: { agent: codex, model: test }\n',
+      )
+      const response = await handleApiTasksRun(
+        new Request('http://localhost/api/tasks/unassigned/run', { method: 'POST', body: '{}' }),
+        new URL('http://localhost/api/tasks/unassigned/run'),
+        root,
+      )
+      expect(response.status).toBe(400)
+      expect(await response.json()).toEqual({
+        code: 'role_unassigned',
+        error: `${role.charAt(0).toUpperCase()}${role.slice(1)} role is unassigned — assign it in Settings → Model routing`,
+      })
+      expect(readFileSync(join(root, 'tasks.yaml'), 'utf8')).toBe(source)
+    })
+  }
 })

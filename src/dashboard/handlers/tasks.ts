@@ -2,7 +2,7 @@ import { existsSync } from 'fs'
 import { join } from 'path'
 import { fileURLToPath } from 'url'
 import { diagnoseTask } from '../../agents/diagnose.ts'
-import { loadOrcheConfig } from '../../config/load.ts'
+import { loadOrcheConfig, RoleUnassignedError, resolveRole } from '../../config/load.ts'
 import type { AgentChoice } from '../../config/schema.ts'
 import { getChatSession } from '../../db/chat-sessions.ts'
 import { getProject } from '../../db/projects.ts'
@@ -459,6 +459,17 @@ function launchTask(
   const model = body.model?.trim() || undefined
   const clarification = body.clarification?.trim() || undefined
   if (!existsSync(join(root, 'tasks.yaml'))) return errorResponse('tasks.yaml not found', 404)
+  const task = loadTasks(root).tasks.find((item) => item.id === id)
+  if (!task) return errorResponse('Task not found', 404)
+  try {
+    const cfg = loadOrcheConfig(root)
+    if (!autoRoute(task, cfg) && !model && !cfg.roles.executor) resolveRole(cfg, 'executor')
+    resolveRole(cfg, 'reviewer')
+  } catch (error) {
+    if (error instanceof RoleUnassignedError)
+      return jsonResponse({ error: error.message, code: 'role_unassigned' }, 400)
+    throw error
+  }
   const taskResult = mutateTasks(root, (file) => {
     const task = file.tasks.find((t: any) => t.id === id)
     if (!task) return false

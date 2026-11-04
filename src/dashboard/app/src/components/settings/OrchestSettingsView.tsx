@@ -39,6 +39,7 @@ import { Card, CardAction, CardContent, CardHeader, CardTitle } from '@/componen
 import { usePrefersReducedMotion } from '@/hooks/use-prefers-reduced-motion'
 import { KEYBINDINGS, matchesKeybinding } from '@/lib/keybindings'
 import { spring } from '@/lib/springs'
+import { getDefaultChatAgent } from '../../api/chat'
 import type {
   ConfigResponse,
   CustomCliEntry,
@@ -100,6 +101,13 @@ import {
   SettingsSegmented,
   SettingsStepper,
 } from './primitives'
+import {
+  type RoutingAgent,
+  routingAgentAllowed,
+  routingAgentEnabled,
+  routingAssignment,
+  suggestUnassignedRoles,
+} from './routing-roles'
 
 const PROVIDER_INSTALL_URLS: Record<string, string> = {
   claude: 'https://code.claude.com/docs/en/setup',
@@ -442,6 +450,7 @@ interface OrchestSettingsViewProps {
   initialProjectTab?: ProjectSubTab
   tasks: TaskItem[]
   taskError?: string | null
+  onOpenTaskRouting?: () => void
   runs: RunItem[]
   specs: SpecItem[]
   memories: MemoryItem[]
@@ -486,6 +495,7 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
   initialProjectTab = 'tasks',
   tasks,
   taskError,
+  onOpenTaskRouting,
   runs,
   specs,
   memories,
@@ -579,23 +589,6 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
   const [usage, setUsage] = useState<UsageResponse | null>(null)
   const [usageLoading, setUsageLoading] = useState(true)
   const [usageError, setUsageError] = useState<string | null>(null)
-  type RoutingAgent = {
-    id: string
-    installed: boolean
-    taskEngine?: boolean
-    generic?: boolean
-    label?: string
-    models: {
-      id: string
-      name: string
-      efforts?: string[]
-      group?: string
-      vendor?: string
-      default?: boolean
-    }[]
-    efforts: string[]
-    error?: string
-  }
   const ruleSequence = useRef(0)
   type RoutingRule = {
     localId?: number
@@ -604,6 +597,7 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
     model?: string
     cli_effort?: string
   }
+  const [suggestedCli, setSuggestedCli] = useState<string | null>(null)
   const [routingCatalog, setRoutingCatalog] = useState<RoutingAgent[]>([])
   const [routingRoles, setRoutingRoles] = useState<
     Record<string, { agent: string; model: string; effort?: string } | null>
@@ -936,6 +930,7 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
       getConfig(configProjectId, controller.signal),
       fetch('/api/models/catalog').then((response) => response.json()),
       getClis(),
+      getDefaultChatAgent().catch(() => ({ agent: null })),
     ])
       .then(
         ([
@@ -947,6 +942,7 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
           nextConfig,
           nextCatalog,
           nextClis,
+          defaultAgent,
         ]) => {
           if (disposed) return
           const keys = mapSettingsKeys(settings)
@@ -963,6 +959,7 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
           setExecutorModes(nextModes)
           setConfig(nextConfig)
           setRoutingCatalog(nextCatalog.agents ?? [])
+          setSuggestedCli(defaultAgent.agent)
           const routed = nextConfig as ConfigResponse & {
             roleAssignments?: Record<
               string,
@@ -1319,6 +1316,11 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
       icon: <Globe className="w-5 h-5 text-blue-400" />,
     },
   ]
+
+  const routingAgentName = (id: string) =>
+    routingCatalog.find((entry) => entry.id === id)?.label ??
+    AGENTS_LIST.find((entry) => entry.id.toLowerCase() === id)?.name ??
+    id
 
   const selectedProject = projects.find((p) => p.id === selectedProjectId) || projects[0]
 
@@ -2464,6 +2466,20 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
               </span>
             }
           >
+            {suggestUnassignedRoles(routingRoles, routingCatalog, suggestedCli, hiddenClis) !==
+              routingRoles && (
+              <button
+                type="button"
+                className="self-start w-fit px-2.5 py-1.5 rounded-control border border-app text-xs text-app hover:bg-app-elevated"
+                onClick={() =>
+                  setRoutingRoles((current) =>
+                    suggestUnassignedRoles(current, routingCatalog, suggestedCli, hiddenClis),
+                  )
+                }
+              >
+                Use {routingAgentName(suggestedCli)} for unassigned roles
+              </button>
+            )}
             <div className="grid grid-cols-1 gap-3 text-xs lg:grid-cols-2">
               {(
                 [
@@ -2515,13 +2531,7 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
                         className="w-full flex items-center justify-between px-2.5 py-1.5 rounded-control bg-app-bg border border-app text-xs text-app text-left"
                       >
                         <span>
-                          {assignment?.agent
-                            ? (agent?.label ??
-                              AGENTS_LIST.find(
-                                (entry) => entry.id.toLowerCase() === assignment.agent,
-                              )?.name ??
-                              assignment.agent)
-                            : 'Unassigned'}
+                          {assignment?.agent ? routingAgentName(assignment.agent) : 'Unassigned'}
                         </span>
                         <ChevronDown className="w-3.5 h-3.5 text-app-muted" />
                       </button>
@@ -2538,31 +2548,18 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
                             Unassigned
                           </button>
                           {routingCatalog
-                            .filter(
-                              (entry) =>
-                                entry.installed &&
-                                (entry.id === assignment?.agent || !hiddenClis.includes(entry.id)),
+                            .filter((entry) =>
+                              routingAgentAllowed(key, entry, hiddenClis, assignment?.agent),
                             )
-                            .filter((entry) => key !== 'orchestrator' || entry.id !== 'opencode')
-                            .filter((entry) => key === 'executor' || !entry.generic)
-                            .filter((entry) => key !== 'executor' || entry.taskEngine !== false)
                             .map((entry) => (
                               <button
                                 key={entry.id}
                                 type="button"
-                                disabled={
-                                  !entry.installed || (!entry.generic && !entry.models.length)
-                                }
+                                disabled={!routingAgentEnabled(entry)}
                                 onClick={() => {
                                   setRoutingRoles((current) => ({
                                     ...current,
-                                    [key]: {
-                                      agent: entry.id,
-                                      model:
-                                        entry.models.find((model) => model.default)?.id ??
-                                        entry.models[0]?.id ??
-                                        (entry.generic ? 'default' : ''),
-                                    },
+                                    [key]: routingAssignment(entry),
                                   }))
                                   setActiveComboboxRole(null)
                                 }}
@@ -3470,6 +3467,23 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
                       )}
                     </div>
 
+                    {taskError && tasks.length > 0 && (
+                      <p className="text-xs text-app-error" role="alert">
+                        {taskError}
+                      </p>
+                    )}
+                    {onOpenTaskRouting && taskError && (
+                      <button
+                        type="button"
+                        className="px-2 py-1.5 rounded-control border border-app text-app"
+                        onClick={() => {
+                          onOpenTaskRouting()
+                          setActiveSection('model_routing')
+                        }}
+                      >
+                        Model routing
+                      </button>
+                    )}
                     {tasks.length === 0 ? (
                       <EmptyState
                         icon={Kanban}

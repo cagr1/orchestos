@@ -146,6 +146,16 @@ export function isTaskRunnable(task: TaskItem, tasks: TaskItem[]): boolean {
   )
 }
 
+export class TaskRunError extends Error {
+  constructor(
+    message: string,
+    public readonly code?: string,
+  ) {
+    super(message)
+    this.name = 'TaskRunError'
+  }
+}
+
 export async function runTask(
   taskId: string,
   projectId: string,
@@ -165,8 +175,9 @@ export async function runTask(
     },
     body: JSON.stringify({}),
   })
-  const body = (await response.json().catch(() => null)) as { error?: string } | null
-  if (!response.ok) throw new Error(body?.error || `Request failed (${response.status})`)
+  const body = (await response.json().catch(() => null)) as { error?: string; code?: string } | null
+  if (!response.ok)
+    throw new TaskRunError(body?.error || `Request failed (${response.status})`, body?.code)
 
   const deadline = Date.now() + 10 * 60_000
   let latest: TaskItem | undefined

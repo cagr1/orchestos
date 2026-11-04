@@ -68,6 +68,22 @@
       "closedDate": null
     },
     {
+      "id": "ONB.2",
+      "sprint": "Fase 2 — Producto mínimo para entrega",
+      "block": "Abiertos — fiabilidad de los gates y documentación",
+      "title": "Model routing propone la CLI detectada para los roles vacíos",
+      "status": "done",
+      "closedDate": null
+    },
+    {
+      "id": "CI.61",
+      "sprint": "Fase 2 — Producto mínimo para entrega",
+      "block": "Abiertos — fiabilidad de los gates y documentación",
+      "title": "`Mutation Shards`: `executors-routing` vuelve a pasar las 3 h",
+      "status": "open",
+      "closedDate": null
+    },
+    {
       "id": "CI.19",
       "sprint": "Fase 2 — Producto mínimo para entrega",
       "block": "Abiertos — fiabilidad de los gates y documentación",

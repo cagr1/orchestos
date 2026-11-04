@@ -135,6 +135,25 @@ Cerrada. Todos sus ítems están archivados en `docs/done/` (ver "Cerrados — e
   primer mensaje respondido por la CLI en 2,4 s, sin error). Sin probar en vivo: el caso sin ninguna CLI (tests).
   Revisión: Opus (diff de Sol leído completo).
   Ejecutado por: codex gpt-6.1-sol (criterio r1) · Spec: docs/specs/ONB.1.md
+- [x] **ONB.2 — Model routing propone la CLI detectada para los roles vacíos.** (abierto 2026-11-04, GO de Carlos,
+  opción 1) Clon limpio: los cuatro roles nacen sin asignar y la primera tarea falla con "Rol 'executor' sin asignar";
+  el error no lleva a Settings. Detectar no es decidir: se propone, Carlos confirma con un clic y guarda.
+  Texto visible: "Use <CLI> for unassigned roles" y "Model routing" junto al error de tarea; un ícono no dice
+  qué CLI se detectó ni adónde lleva. El mensaje del rol sin asignar pasa al inglés, como el resto de la UI.
+  Hecho: `routing-roles.ts` (filtros y modelo compartidos entre selector y botón); la sugerencia sale de
+  `/api/chat/default-agent`; correr una tarea sin rol devuelve `code: 'role_unassigned'` y el error muestra el botón
+  "Model routing"; `createSession` sin agente deja que el servidor lo resuelva (hermanos de ONB.1). r1: nombre visible
+  "Claude" (como el selector) y botón compacto. Gates del cerebro: tsc, lint, `test:coverage` 2275/0.
+  Gate en vivo: navegador real (Playwright), `docs/done/evidence/ONB.2-live.json`; `ui:gate model-routing` 24/24
+  repetido por el cerebro (error 400 `role_unassigned` → botón → Model routing; "Use Claude for unassigned roles" →
+  guardar → los 4 roles en `claude`/`claude-opus-5-5`; el botón desaparece). Captura mirada a ojo.
+  Anotado: con una sola CLI el Reviewer queda igual que el Executor (la UI ya avisa "errors may correlate").
+  Revisión: Opus (diff de Sol leído completo; r1 de Luna verificado en la captura).
+  Ejecutado por: codex gpt-6.1-sol (criterio) + luna (mecanico r1) · Spec: docs/specs/ONB.2.md
+- [ ] **CI.61 — `Mutation Shards`: `executors-routing` vuelve a pasar las 3 h.** (abierto 2026-11-04) Corrida
+  `41811181197`: shard cancelado a 180 min (11:09 → 14:10); los otros 9 verdes. Duración 77 min (2026-10-27) →
+  151 (2026-11-03) → 180+. Muta `cli-registry.ts` (496 líneas, 46 tests) y otros 6 archivos (~506 líneas, hasta
+  51 tests). Se parte en dos: `executors-routing` = `cli-registry.ts`; `executors-routing-c` = el resto.
 - [ ] **CI.19 — El `git commit` del fixture falla a veces en el andamiaje de los ui-gates.** Visto 1 vez en
   `qa-negative` (2026-10-11, 1 de 9): `Command failed: git … commit -qm task fixture`, sin motivo porque el helper
   `run` usa `stdio: 'ignore'`. `qa-negative` ya reporta stdout/stderr y exit; los otros 20 flows con el mismo helper no.
