@@ -1,4 +1,5 @@
 #!/usr/bin/env bun
+import { aiSessionSetupCheck, readDefaultChatAgent } from './dashboard/default-chat-agent.ts'
 import { applyCliSearchPath } from './run/executors/cli-discovery.ts'
 
 applyCliSearchPath()
@@ -1945,7 +1946,7 @@ instinct
 program
   .command('setup')
   .description('Check all prerequisites and print setup instructions')
-  .action(() => {
+  .action(async () => {
     const root = resolve('.')
     const envPath = join(orchestosDir(), '.env')
     const dbPath = join(orchestosDir(), 'db.sqlite')
@@ -2014,12 +2015,14 @@ program
     const hasANT = /^ANTHROPIC_API_KEY\s*=\s*.+/m.test(envContent)
     const hasOAI = /^OPENAI_API_KEY\s*=\s*.+/m.test(envContent)
 
+    items.push(aiSessionSetupCheck(await readDefaultChatAgent(), envPath))
     if (hasOR) {
-      items.push({ label: 'OPENROUTER_API_KEY  (requerida)', ok: true })
+      items.push({ label: 'OPENROUTER_API_KEY  (opcional)', ok: true })
     } else {
       items.push({
-        label: 'OPENROUTER_API_KEY faltante  (requerida)',
-        ok: false,
+        label: 'OPENROUTER_API_KEY no configurada  (opcional)',
+        ok: true,
+        warn: true,
         hint: `Añade en ${envPath}:\n      OPENROUTER_API_KEY=sk-or-...`,
       })
     }

@@ -123,6 +123,18 @@ Cerrada. Todos sus ítems están archivados en `docs/done/` (ver "Cerrados — e
   tarea; sin servidores huérfanos (`docs/done/evidence/OC.4-live.json`).
   Revisión: Opus (diff de Sol leído completo).
   Ejecutado por: codex gpt-6.1-sol (criterio) + gpt-6-luna (mecanico r1) · Spec: docs/specs/OC.4.md
+- [x] **ONB.1 — El primer arranque usa una CLI instalada, no OpenRouter.** (abierto 2026-11-04, GO de Carlos) Clon
+  limpio: `setup` exigía `OPENROUTER_API_KEY`, el chat nacía en `api` con `typesafe/jev-router` (precio -1 ordenado
+  primero) rotulado "ChatGPT" y el primer mensaje fallaba.
+  Texto visible: mensaje de error sin CLI ni clave (dice qué instalar; un ícono no lo explica) y la etiqueta
+  "OpenRouter" (reemplaza "ChatGPT", que era falsa).
+  Hecho: `default-chat-agent.ts` (config → primera CLI instalada, con chat y funcional en orden del registro →
+  `api` con clave → nada); sesiones, `GET /api/chat/default-agent`, composer sin hilo y `setup` lo usan; catálogo
+  sin precios negativos; clave de OpenRouter opcional. Gates del cerebro: tsc, lint, `test:coverage` 2264/0.
+  Gate en vivo: navegador real (Playwright), `docs/done/evidence/ONB.1-live.json` (`ORCHESTOS_HOME` vacío → "Message Claude…",
+  primer mensaje respondido por la CLI en 2,4 s, sin error). Sin probar en vivo: el caso sin ninguna CLI (tests).
+  Revisión: Opus (diff de Sol leído completo).
+  Ejecutado por: codex gpt-6.1-sol (criterio r1) · Spec: docs/specs/ONB.1.md
 - [ ] **CI.19 — El `git commit` del fixture falla a veces en el andamiaje de los ui-gates.** Visto 1 vez en
   `qa-negative` (2026-10-11, 1 de 9): `Command failed: git … commit -qm task fixture`, sin motivo porque el helper
   `run` usa `stdio: 'ignore'`. `qa-negative` ya reporta stdout/stderr y exit; los otros 20 flows con el mismo helper no.

@@ -381,7 +381,7 @@ export async function getSessionMessages(
 }
 
 export async function createSession(params: {
-  agent: string
+  agent?: string
   projectId?: string | null
   title?: string
 }): Promise<ChatThread> {
@@ -676,6 +676,10 @@ export async function sendMessage(options: ChatSendOptions): Promise<ChatSendRes
     ...jsonInit('POST', body),
     headers: { ...sessionScope(options.projectId).headers, 'Content-Type': 'application/json' },
   })
+}
+
+export function getDefaultChatAgent(): Promise<{ agent: string | null }> {
+  return request<{ agent: string | null }>('/api/chat/default-agent')
 }
 
 export function getCliModels(): Promise<CliModelCatalog[]> {

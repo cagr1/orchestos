@@ -94,6 +94,28 @@ describe('UI.13.5 round 3 contracts', () => {
     expect(await second.json()).toEqual(await first.clone().json())
   })
 
+  test('chat catalog excludes negative and non-finite prompt prices before sorting', async () => {
+    const response = await handleApiChatModels(
+      async () =>
+        new Response(
+          JSON.stringify({
+            data: [
+              { id: 'router', pricing: { prompt: '-1' } },
+              { id: 'paid', pricing: { prompt: '0.01' } },
+              { id: 'free', pricing: { prompt: '0' } },
+              { id: 'invalid', pricing: { prompt: 'NaN' } },
+              { id: 'infinite', pricing: { prompt: 'Infinity' } },
+              { id: 'missing', pricing: {} },
+            ],
+          }),
+        ),
+    )
+    expect((await response.json()).map((model: { id: string }) => model.id)).toEqual([
+      'free',
+      'paid',
+    ])
+  })
+
   test('chat models return 502 when upstream fails without cache', async () => {
     const response = await handleApiChatModels(async () => {
       throw new Error('offline')

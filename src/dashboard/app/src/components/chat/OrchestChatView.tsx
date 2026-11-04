@@ -8,6 +8,7 @@ import type { CliNotice } from '../../../../../run/executors/cli-failure'
 import {
   type CliModelCatalog,
   getCliModels,
+  getDefaultChatAgent,
   getSessionContext,
   getTimeline,
   type TimelineResponse,
@@ -250,6 +251,20 @@ export const OrchestChatView: React.FC<OrchestChatViewProps> = ({
     const timer = window.setInterval(() => setNowMs(Date.now()), 1000)
     return () => window.clearInterval(timer)
   }, [isWorking])
+  const [defaultAgent, setDefaultAgent] = useState<string | null | undefined>(undefined)
+  useEffect(() => {
+    let disposed = false
+    void getDefaultChatAgent()
+      .then(({ agent }) => {
+        if (!disposed) setDefaultAgent(agent)
+      })
+      .catch(() => {
+        if (!disposed) setDefaultAgent(null)
+      })
+    return () => {
+      disposed = true
+    }
+  }, [])
   const [chatClis, setChatClis] = useState<CliModelCatalog[]>([])
   useEffect(() => {
     let disposed = false
@@ -263,7 +278,8 @@ export const OrchestChatView: React.FC<OrchestChatViewProps> = ({
     }
   }, [])
   const selectedCli = chatClis.find((cli) => cli.id === thread?.agent)
-  const cliId: CliId = thread?.agent && thread.agent !== 'local' ? thread.agent : 'api'
+  const cliId: CliId =
+    thread?.agent && thread.agent !== 'local' ? thread.agent : (defaultAgent ?? 'api')
   const cliName = cliDisplayName(cliId, selectedCli?.label)
   const lastAssistant = [...messages].reverse().find((message) => message.role === 'assistant')
   const lastModel = lastAssistant?.model
@@ -578,7 +594,9 @@ export const OrchestChatView: React.FC<OrchestChatViewProps> = ({
               defaultEffort={initialEffort}
               defaultCli={cliId}
               orchestratorAssigned={!!orchestrator}
-              orchestratorLoading={orchestrator === undefined}
+              orchestratorLoading={
+                orchestrator === undefined || (!thread && defaultAgent === undefined)
+              }
               busy={isWorking}
               onStop={stop.onStop}
               stopping={stop.stopping}

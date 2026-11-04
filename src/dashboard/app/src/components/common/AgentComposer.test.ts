@@ -6,6 +6,7 @@ import { findExplorerFiles } from '../../api/explorer'
 import { StoppedResponse } from '../thread/StoppedResponse'
 import {
   ComposerSubmitButton,
+  cliDisplayName,
   fileReferenceToken,
   persistApprovalMode,
   readApprovalMode,
@@ -183,4 +184,16 @@ test('file search traverses nested folders with the session project and caps at 
   } finally {
     globalThis.fetch = originalFetch
   }
+})
+
+test('API engine is labeled OpenRouter', () => {
+  expect(cliDisplayName('api')).toBe('OpenRouter')
+})
+
+test('composer without a thread takes the backend default and honors an explicit CLI', () => {
+  const backendDefault = { agent: 'codex' }
+  expect(selectionFromDefaults(backendDefault.agent, undefined, 'medium').cli).toBe('codex')
+  expect(selectionFromDefaults(backendDefault.agent, undefined, 'medium', 'claude').cli).toBe(
+    'claude',
+  )
 })

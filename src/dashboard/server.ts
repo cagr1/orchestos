@@ -6,6 +6,7 @@ import { stopCodexAppServers } from '../run/executors/codex-app-server.ts'
 import {
   handleApiChat,
   handleApiChatCliModels,
+  handleApiChatDefaultAgent,
   handleApiChatModels,
   handleApiChatTaskBarClick,
   handleApiChatTaskBarEvents,
@@ -389,6 +390,9 @@ export async function route(req: Request, port: number): Promise<Response> {
   }
   if (method === 'GET' && url.pathname === '/api/chat/models') {
     return handleApiChatModels()
+  }
+  if (method === 'GET' && url.pathname === '/api/chat/default-agent') {
+    return handleApiChatDefaultAgent()
   }
   if (method === 'GET' && url.pathname === '/api/chat/cli-models') {
     return handleApiChatCliModels()

@@ -43,7 +43,7 @@ export interface CliConfig {
 }
 
 const CLIS: CliConfig[] = [
-  { id: 'api', name: 'ChatGPT', defaultModel: '', models: [], efforts: [] },
+  { id: 'api', name: 'OpenRouter', defaultModel: '', models: [], efforts: [] },
   { id: 'claude', name: 'Claude', defaultModel: '', models: [], efforts: [] },
   { id: 'codex', name: 'Codex', defaultModel: '', models: [], efforts: [] },
   { id: 'deepseek', name: 'DeepSeek', defaultModel: '', models: [], efforts: [] },
@@ -292,7 +292,7 @@ export const AgentComposer: React.FC<AgentComposerProps> = ({
               ...detected,
               {
                 id: 'api' as const,
-                name: 'ChatGPT',
+                name: 'OpenRouter',
                 defaultModel: apiModels[0].name,
                 models: apiModels,
                 efforts: ['low', 'medium', 'high'],
@@ -311,7 +311,7 @@ export const AgentComposer: React.FC<AgentComposerProps> = ({
         }
         setActiveCli((current) => {
           if (lockedCli) return lockedCli
-          return next.some((cli) => cli.id === current) ? current : next[0]?.id || 'api'
+          return next.some((cli) => cli.id === current) ? current : sessionCli
         })
         setIsLoadingModels(false)
       },

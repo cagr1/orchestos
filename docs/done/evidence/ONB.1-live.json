@@ -1,0 +1,24 @@
+{
+  "item": "ONB.1",
+  "date": "2026-11-04",
+  "setup": "ORCHESTOS_HOME vacío, CLIs reales con sesión, sin OPENROUTER_API_KEY",
+  "default_agent_endpoint": {
+    "agent": "claude"
+  },
+  "orchestos_setup": [
+    "✓ CLI de IA con sesión: claude",
+    "! OPENROUTER_API_KEY no configurada (opcional)",
+    "✓ Todo listo."
+  ],
+  "browser": {
+    "placeholder": "Message Claude…",
+    "picker": "Opus 5.5 · high",
+    "firstMessage": "Responde solo: hola",
+    "reply": "hola",
+    "replyMs": 2366,
+    "chatFailedVisible": 0,
+    "posts": ["/api/chat/sessions", "/api/chat"]
+  },
+  "before_fix_fresh_clone": "chat por defecto 'ChatGPT · typesafe/jev-router', primer mensaje → Chat failed: OPENROUTER_API_KEY not found",
+  "not_verified_live": "caso sin ninguna CLI ni clave (cubierto por tests unitarios; el dashboard encuentra las CLIs por el shell de login)"
+}

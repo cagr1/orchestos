@@ -4,6 +4,7 @@ import {
   createSession,
   execCommand,
   getConsole,
+  getDefaultChatAgent,
   getSessionMessages,
   mapMessage,
   mapSessionToThread,
@@ -497,6 +498,40 @@ test('CHAT.3 failed send preserves classified message and expandable CLI detail'
     )
     expect(error.message).toBe(notice.message)
     expect(error.notice).toEqual(notice)
+  } finally {
+    globalThis.fetch = originalFetch
+  }
+})
+
+test('new chat reads the backend default and leaves an omitted agent to the server', async () => {
+  const originalFetch = globalThis.fetch
+  const calls: Array<{ path: string; init?: RequestInit }> = []
+  globalThis.fetch = (async (path, init) => {
+    calls.push({ path: String(path), init })
+    return new Response(
+      JSON.stringify(
+        String(path).endsWith('default-agent')
+          ? { agent: 'codex' }
+          : {
+              id: 'new',
+              projectId: null,
+              agent: 'codex',
+              mode: 'chat',
+              title: 'New chat',
+              createdAt: new Date().toISOString(),
+              updatedAt: new Date().toISOString(),
+              archivedAt: null,
+            },
+      ),
+    )
+  }) as typeof fetch
+  try {
+    expect(await getDefaultChatAgent()).toEqual({ agent: 'codex' })
+    expect(calls[0]?.path).toBe('/api/chat/default-agent')
+    expect((await createSession({ projectId: null })).agent).toBe('codex')
+    expect(JSON.parse(String(calls[1]?.init?.body))).not.toHaveProperty('agent')
+    await createSession({ projectId: null, agent: 'claude' })
+    expect(JSON.parse(String(calls[2]?.init?.body)).agent).toBe('claude')
   } finally {
     globalThis.fetch = originalFetch
   }

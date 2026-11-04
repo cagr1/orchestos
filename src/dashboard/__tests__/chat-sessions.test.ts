@@ -119,7 +119,7 @@ describe('CC.2 — chat sessions backend', () => {
       const sessions = await import('./src/db/chat-sessions.ts')
       const { handleApiChatSessionsList } = await import('./src/dashboard/handlers/chat-sessions.ts')
       runMigrations()
-      const fixtures = [['claude', 'Claude: hello'], ['codex', 'Codex: hello'], ['codex', 'Claude: legitimate'], ['claude', 'Notes: legitimate'], ['claude', 'claude: lowercase'], ['claude', 'Claude:no space'], ['api', 'ChatGPT: hello']]
+      const fixtures = [['claude', 'Claude: hello'], ['codex', 'Codex: hello'], ['codex', 'Claude: legitimate'], ['claude', 'Notes: legitimate'], ['claude', 'claude: lowercase'], ['claude', 'Claude:no space'], ['api', 'OpenRouter: hello'], ['api', 'ChatGPT: hello']]
       const created = fixtures.map(([agent, title]) => sessions.createChatSession({ projectId: null, agent, title }))
       const { beginTurn } = await import('./src/db/chat-turns.ts')
       beginTurn({ sessionId: created[0].id, projectId: null, requestKey: 'running', inputFingerprint: 'running', owner: 'test' })
@@ -136,6 +136,7 @@ describe('CC.2 — chat sessions backend', () => {
       'claude: lowercase',
       'Claude:no space',
       'hello',
+      'hello',
     ])
     expect(result.stored).toEqual([
       'Claude: hello',
@@ -144,9 +145,10 @@ describe('CC.2 — chat sessions backend', () => {
       'Notes: legitimate',
       'claude: lowercase',
       'Claude:no space',
+      'OpenRouter: hello',
       'ChatGPT: hello',
     ])
-    expect(result.running).toEqual([true, false, false, false, false, false, false])
+    expect(result.running).toEqual([true, false, false, false, false, false, false, false])
   })
 
   it('reports thread context from the last run and selected catalog model', async () => {
@@ -415,6 +417,25 @@ describe('CC.2 — chat sessions backend', () => {
       ]),
     )
   })
+  it('creates a general session using the injected default resolver', async () => {
+    const result = await runIsolated(`
+      const { runMigrations } = await import('./src/db/migrate.ts')
+      const { handleApiChatSessionsCreate } = await import('./src/dashboard/handlers/chat-sessions.ts')
+      runMigrations()
+      const response = await handleApiChatSessionsCreate(new Request('http://localhost/api/chat/sessions', {
+        method: 'POST', body: JSON.stringify({ projectId: null })
+      }), undefined, {
+        detect: () => [{ id: 'codex', installed: true }],
+        health: async () => [{ id: 'codex', functional: true }],
+        chat: () => true,
+        key: () => undefined,
+      })
+      console.log(JSON.stringify({ status: response.status, session: await response.json() }))
+    `)
+    expect(result.status).toBe(201)
+    expect((result.session as { agent: string }).agent).toBe('codex')
+  })
+
   it('implements CRUD, immutable agent, persistence and cascade delete', async () => {
     const result = await runIsolated(`
       const { runMigrations } = await import('./src/db/migrate.ts')

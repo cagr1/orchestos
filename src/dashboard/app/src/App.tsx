@@ -1049,9 +1049,8 @@ export default function App() {
     title?: string,
     selectedProjectId?: string | null,
   ) => {
-    const agent = cliId || 'api'
     const creating = createSession({
-      agent,
+      ...(cliId ? { agent: cliId } : {}),
       projectId: newChatProjectId(currentProject?.id, selectedProjectId),
       title,
     })

@@ -87,6 +87,11 @@ import { listSpecs } from '../../spec/store.ts'
 import { loadTasks } from '../../tasks/loader.ts'
 import { readCliModelCatalogsCached } from '../chat-cli-models.ts'
 import { appendLiveText, clearLiveText, getLiveText, replaceLiveText } from '../chat-live.ts'
+import {
+  type DefaultChatAgentDeps,
+  readDefaultChatAgent,
+  resolveChatErrorMessage,
+} from '../default-chat-agent.ts'
 import { errorResponse, jsonResponse } from '../http.ts'
 import { ollamaChat } from '../llm/clients.ts'
 import {
@@ -322,7 +327,10 @@ export async function readOpenRouterChatModels(
       }[]
     }
     const models = (data.data || [])
-      .filter((m) => m.pricing?.prompt !== undefined)
+      .filter((m) => {
+        const p = Number(m.pricing?.prompt)
+        return Number.isFinite(p) && p >= 0
+      })
       .sort((a, b) => Number(a.pricing.prompt) - Number(b.pricing.prompt))
       .map((m) => ({
         id: m.id,
@@ -348,6 +356,12 @@ export async function handleApiChatModels(fetchFn: ChatModelsFetch = fetch): Pro
   } catch {
     return errorResponse('Unable to load chat models', 502)
   }
+}
+
+export async function handleApiChatDefaultAgent(
+  deps: DefaultChatAgentDeps = {},
+): Promise<Response> {
+  return jsonResponse({ agent: await readDefaultChatAgent(undefined, deps) })
 }
 
 export async function handleApiChatCliModels(
@@ -1916,8 +1930,9 @@ async function handleApiChat(
       // OpenRouter, que no tenía try/catch propio) deja evidencia igual, en
       // vez de un turno 'pending' huérfano que ningún proceso vuelve a tocar.
       if (signal?.aborted) throw e
-      finishTurnFailure({ error: `Chat failed: ${e.message}` })
-      return errorResponse(`Chat failed: ${e.message}`, 502)
+      const message = await resolveChatErrorMessage(e.message)
+      finishTurnFailure({ error: `Chat failed: ${message}` })
+      return errorResponse(`Chat failed: ${message}`, 502)
     }
   } catch (error) {
     if (!signal?.aborted || !session || !activeTurnId) throw error

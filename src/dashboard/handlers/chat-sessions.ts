@@ -29,6 +29,7 @@ import { runOneCheck } from '../../run/checks.ts'
 import { cliChatAdapterFor } from '../../run/executors/chat-adapters.ts'
 import { KNOWN_CLIS } from '../../run/executors/cli-registry.ts'
 import { getLiveText } from '../chat-live.ts'
+import { type DefaultChatAgentDeps, readDefaultChatAgent } from '../default-chat-agent.ts'
 import { errorResponse, jsonResponse } from '../http.ts'
 import {
   type DashboardProjectContext,
@@ -48,7 +49,9 @@ function toSessionRow(row: ChatSessionRecord): ChatSessionRow {
     row.agent === 'claude'
       ? 'Claude'
       : row.agent === 'api'
-        ? 'ChatGPT'
+        ? row.title.startsWith('ChatGPT: ')
+          ? 'ChatGPT'
+          : 'OpenRouter'
         : KNOWN_CLIS.find((cli) => cli.id === row.agent)?.label
   const prefix = agentName ? `${agentName}: ` : null
   const lastModelLabel =
@@ -233,6 +236,7 @@ export function handleApiChatSessionsList(req: Request): Response {
 export async function handleApiChatSessionsCreate(
   req: Request,
   fallbackProject?: DashboardProjectContext,
+  defaultAgentDeps: DefaultChatAgentDeps = {},
 ): Promise<Response> {
   let parsed: unknown
   try {
@@ -272,8 +276,13 @@ export async function handleApiChatSessionsCreate(
       return errorResponse(error instanceof Error ? error.message : String(error), status)
     }
   }
-  const defaultAgent = projectId === null ? 'api' : (loadOrcheConfig(configRoot!).agent ?? 'api')
-  const agent = body.agent ?? defaultAgent
+  const agent =
+    body.agent ??
+    (await readDefaultChatAgent(
+      projectId !== null ? loadOrcheConfig(configRoot!).agent : undefined,
+      defaultAgentDeps,
+    )) ??
+    'api'
   if (
     typeof agent !== 'string' ||
     (agent !== 'local' &&
