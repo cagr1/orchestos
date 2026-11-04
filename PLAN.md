@@ -150,10 +150,16 @@ Cerrada. Todos sus ítems están archivados en `docs/done/` (ver "Cerrados — e
   Anotado: con una sola CLI el Reviewer queda igual que el Executor (la UI ya avisa "errors may correlate").
   Revisión: Opus (diff de Sol leído completo; r1 de Luna verificado en la captura).
   Ejecutado por: codex gpt-6.1-sol (criterio) + luna (mecanico r1) · Spec: docs/specs/ONB.2.md
-- [ ] **CI.61 — `Mutation Shards`: `executors-routing` vuelve a pasar las 3 h.** (abierto 2026-11-04) Corrida
+- [x] **CI.61 — `Mutation Shards`: `executors-routing` vuelve a pasar las 3 h.** (abierto 2026-11-04) Corrida
   `41811181197`: shard cancelado a 180 min (11:09 → 14:10); los otros 9 verdes. Duración 77 min (2026-10-27) →
   151 (2026-11-03) → 180+. Muta `cli-registry.ts` (496 líneas, 46 tests) y otros 6 archivos (~506 líneas, hasta
   51 tests). Se parte en dos: `executors-routing` = `cli-registry.ts`; `executors-routing-c` = el resto.
+  Hecho: `stryker.run-executors-routing-c.config.mjs`, exclusión en `-routing`, script en `package.json`, matriz del
+  workflow y prueba de particiones. Gates del cerebro: `mutation-test-shard.test.ts` 9/0, lint, `test:coverage`
+  2273/0 (los 6 fallos del ejecutor eran de su sandbox: EADDRINUSE y EPERM en `~/.ssh`). La duración real se ve en
+  la próxima corrida nocturna; si `-routing` sigue sobre 150 min, se reabre.
+  Revisión: Opus (diff leído completo).
+  Ejecutado por: luna (mecanico) · Spec: docs/specs/CI.61.md
 - [ ] **CI.19 — El `git commit` del fixture falla a veces en el andamiaje de los ui-gates.** Visto 1 vez en
   `qa-negative` (2026-10-11, 1 de 9): `Command failed: git … commit -qm task fixture`, sin motivo porque el helper
   `run` usa `stdio: 'ignore'`. `qa-negative` ya reporta stdout/stderr y exit; los otros 20 flows con el mismo helper no.

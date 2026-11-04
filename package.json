@@ -58,6 +58,7 @@
     "mutation:run:executors-engines-b": "stryker run stryker.run-executors-engines-b.config.mjs",
     "mutation:run:executors-routing": "stryker run stryker.run-executors-routing.config.mjs",
     "mutation:run:executors-routing-b": "stryker run stryker.run-executors-routing-b.config.mjs",
+    "mutation:run:executors-routing-c": "stryker run stryker.run-executors-routing-c.config.mjs",
     "mutation:run:executors-codex-server": "stryker run stryker.run-executors-codex-server.config.mjs",
     "mutation:run:executors-codex-server-b": "stryker run stryker.run-executors-codex-server-b.config.mjs",
     "mutation:run:executors-codex-server-c": "stryker run stryker.run-executors-codex-server-c.config.mjs",

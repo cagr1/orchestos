@@ -2,6 +2,7 @@ import base from './stryker.run-executors.config.mjs'
 import engines from './stryker.run-executors-engines.config.mjs'
 import enginesB from './stryker.run-executors-engines-b.config.mjs'
 import routingB from './stryker.run-executors-routing-b.config.mjs'
+import routingC from './stryker.run-executors-routing-c.config.mjs'
 
 export default {
   ...base,
@@ -13,5 +14,6 @@ export default {
     ...engines.mutate.map((pattern) => `!${pattern}`),
     ...enginesB.mutate.map((pattern) => `!${pattern}`),
     ...routingB.mutate.map((pattern) => `!${pattern}`),
+    ...routingC.mutate.map((pattern) => `!${pattern}`),
   ],
 }

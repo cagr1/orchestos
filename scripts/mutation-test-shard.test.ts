@@ -9,7 +9,13 @@ describe('selectMutationShardTests', () => {
   for (const [parent, children] of [
     [
       'executors',
-      ['executors-engines', 'executors-engines-b', 'executors-routing', 'executors-routing-b'],
+      [
+        'executors-engines',
+        'executors-engines-b',
+        'executors-routing',
+        'executors-routing-b',
+        'executors-routing-c',
+      ],
     ],
     [
       'executors-codex',

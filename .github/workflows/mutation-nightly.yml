@@ -26,6 +26,8 @@ jobs:
             command: mutation:run:executors-routing
           - shard: executors-routing-b
             command: mutation:run:executors-routing-b
+          - shard: executors-routing-c
+            command: mutation:run:executors-routing-c
           - shard: executors-codex-server
             command: mutation:run:executors-codex-server
           - shard: executors-codex-server-b
