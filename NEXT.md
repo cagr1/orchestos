@@ -16,7 +16,8 @@ Arranque: `bun run agent:preflight -- --item <ID> --agent claude`. Lista viva: `
 2. **Esperan su próximo fallo** (leer el JSON y escribir la fase 2). Todos dejan evidencia en el `runDir` del gate
    (`$TMPDIR/ui-gate-<pid>/`): CI.55 `role-task-missing-output.json`; CI.57 `composer-picker-model-missing.json`;
    CI.54 `turn1-bubble-missing.json`; CI.19, el motivo en el detalle del paso.
-3. **Siguiente**: RUN.1 (spec listo, criterio) y después UI.64 (spec listo); en serie, un ejecutor por árbol.
+3. **Siguiente**: UI.64 (spec listo, criterio). Después: spec de la fase 2 de CI.55 (hallazgos en PLAN.md).
+   Hecho 2026-11-05: DOC.9 + DOC.9.1 (readme:sync), RUN.2 (notice en run_steps), RUN.1 (diagnóstico sin Retry).
 4. Cualquier CLI corre tareas sin código (Settings → Providers → "CLIs propios"). Un adaptador rico para un CLI nuevo
    sigue siendo `KNOWN_CLIS` + `registerTaskEngine`, y lo prueba el cerebro, no Carlos.
 
@@ -36,6 +37,9 @@ Arranque: `bun run agent:preflight -- --item <ID> --agent claude`. Lista viva: `
   de un test de `~/.agent-method` copia a `<tmp>/method/hooks/` y corre desde `<tmp>`.
 - Spec o doc con comandos de escritura dentro de un heredoc de Bash dispara `brain-no-code`: usar Write/Edit.
 - `.gitignore:55` ignora `.github/workflows/`: un workflow nuevo se suma con `git add -f`.
+- Un ítem `[x]` ya reconciliado no se puede reescribir antes de su commit ("Could not prove a closing commit SHA"):
+  pasarlo a `[ ]`, `plan:reconcile`, volver a `[x]`, `plan:reconcile`.
+- Texto visible nuevo en TSX exige una línea `Texto visible: "<texto>" (por qué no basta un ícono)` en el ítem.
 
 ## Anotado, sin ítem (abrir ítem solo si Carlos lo pide; los intermitentes, también si se repiten)
 
