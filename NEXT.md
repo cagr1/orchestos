@@ -1,4 +1,4 @@
-# NEXT — handoff 2026-11-03 (DOC.5/DOC.6: plan e instrucciones podados; CI.19, CI.54, CI.55, CI.57 esperan fallo)
+# NEXT — handoff 2026-11-05 (ONB.1/ONB.2 arranque por CLI, UI.63, CI.61; CI.19, CI.54, CI.55, CI.57 esperan fallo)
 
 Un solo presente: orden y trampas vivas del lote. Lo cerrado vive en `docs/done/bloque-*.md` y git; las reglas, en
 `AGENTS.md`. Versión anterior completa: `docs/done/poda-instrucciones-2026-11-03.md` (histórico).
@@ -6,15 +6,22 @@ Arranque: `bun run agent:preflight -- --item <ID> --agent claude`. Lista viva: `
 
 ## Orden
 
-0. Hecho hoy: DOC.5–DOC.8, UI.61, UI.62, CI.58–CI.60 y OC.1–OC.4 (OpenCode 2.2.5 completo: terminal, catálogo,
-   `run` y aprobaciones por la API v2). Servicio de OpenCode reiniciado (el huérfano 32162 bloqueaba el puerto 49374).
-1. **Esperan su próximo fallo** (leer el JSON y escribir la fase 2). Todos dejan evidencia en el `runDir` del gate
+0. Hecho 2026-11-04 (todo empujado, pre-push verde): ONB.1 `daa4b8e4` (el chat arranca en una CLI con sesión, no
+   OpenRouter); licencia MIT `58ffe912`; ONB.2 `4a611d6d` (Model routing propone la CLI detectada con "Use <CLI> for
+   unassigned roles"; el error de rol vacío lleva a Model routing); CI.61 `8ec9b071` (shard `executors-routing`
+   partido en `-routing` + `-routing-c`); UI.63 `e67b7dff` ("Reset credits" de Codex en el popover de cuotas).
+   Descripción del repo en GitHub publicada (CLIs, APIs y LLMs locales).
+1. **Mirar la corrida nocturna de `Mutation Shards`** (CI.61): si `executors-routing` o `-routing-c` pasa 150 min,
+   reabrir CI.61 con la duración medida (`gh run view <id> --json jobs`).
+2. **Esperan su próximo fallo** (leer el JSON y escribir la fase 2). Todos dejan evidencia en el `runDir` del gate
    (`$TMPDIR/ui-gate-<pid>/`): CI.55 `role-task-missing-output.json`; CI.57 `composer-picker-model-missing.json`;
-   CI.54 `turn1-bubble-missing.json`; CI.19, el motivo en el detalle del paso. Bucle de flakes del 2026-11-03
-   (`/tmp/soak/`): `composer-picker` 15/15 verde.
-2. **Decisiones de Carlos pendientes**: créditos de reinicio de Codex (recomendación: en el popover de cuotas);
-   comentarios de Settings (mostrado 2026-11-02, sin pedidos).
-3. Cualquier CLI corre tareas sin código (Settings → Providers → "CLIs propios"). Un adaptador rico para un CLI nuevo
+   CI.54 `turn1-bubble-missing.json`; CI.19, el motivo en el detalle del paso.
+3. **Decisiones de Carlos pendientes**:
+   - README los viernes. Propuesta: `bun run readme:sync` reescribe solo bloques marcados con datos computables
+     (tests, CLIs, proveedores), sin LLM, y un workflow de los viernes abre un PR.
+   - Mientras no responda, el número de tests del README (1816) queda viejo.
+   - Revisión de Settings pestaña por pestaña: mostrada el 2026-11-02, sin pedidos; se le preguntó si se cierra.
+4. Cualquier CLI corre tareas sin código (Settings → Providers → "CLIs propios"). Un adaptador rico para un CLI nuevo
    sigue siendo `KNOWN_CLIS` + `registerTaskEngine`, y lo prueba el cerebro, no Carlos.
 
 ## Trampas vivas (las que no están en `AGENTS.md`)
@@ -51,6 +58,8 @@ Arranque: `bun run agent:preflight -- --item <ID> --agent claude`. Lista viva: `
   "Loading project data…".
 - Decisión pendiente (UI.13.4b): la frontera por argumentos no frena `node -e`/`sh -c`; la barrera real es sandbox de
   proceso o lista de binarios.
+- ONB: con una sola CLI, Reviewer = Executor (la UI avisa "errors may correlate"); el caso "ninguna CLI" solo
+  está probado en tests; health `functional` de OpenCode no prueba que el servicio responda (huérfano 32162).
 - "Clonar desde URL" en "+ Add project": feature nueva, plan corto antes.
 
 ## Decisiones de Carlos vigentes
