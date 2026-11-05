@@ -204,7 +204,7 @@ describe('Claude live usage', () => {
     const statuses = await readActiveSessionStatuses({
       projectRoot: temp('orchestos-live-project-'),
       agentHome: options.agentHome,
-      readCodexRateLimits: async () => [],
+      readCodexRateLimits: async () => ({ windows: [], resetCredits: null }),
       refreshClaudeUsage: async () => {
         calls++
         return refreshClaudeUsageLive({
@@ -220,7 +220,7 @@ describe('Claude live usage', () => {
     await readActiveSessionStatuses({
       transcriptPath: join(options.agentHome, 'absent.jsonl'),
       agentHome: options.agentHome,
-      readCodexRateLimits: async () => [],
+      readCodexRateLimits: async () => ({ windows: [], resetCredits: null }),
       refreshClaudeUsage: async () => {
         calls++
       },
@@ -494,15 +494,18 @@ describe('session status', () => {
             path: null,
           },
         ],
-        readCodexRateLimits: async () => [
-          {
-            id: 'primary',
-            usedPct: 14,
-            remainingPct: 86,
-            windowMinutes: 300,
-            resetsAt: 4_102_444_800,
-          },
-        ],
+        readCodexRateLimits: async () => ({
+          windows: [
+            {
+              id: 'primary',
+              usedPct: 14,
+              remainingPct: 86,
+              windowMinutes: 300,
+              resetsAt: 4_102_444_800,
+            },
+          ],
+          resetCredits: { available: 3, nextExpiresAt: 1794001782 },
+        }),
       })
     ).find((status) => status.id === 'codex')
     expect(codex).toMatchObject({
@@ -511,6 +514,7 @@ describe('session status', () => {
       context: null,
       rateLimits: {
         source: 'codex',
+        resetCredits: { available: 3, nextExpiresAt: 1794001782 },
         windows: [{ id: 'primary', usedPct: 14, windowMinutes: 300 }],
       },
     })

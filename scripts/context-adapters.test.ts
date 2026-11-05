@@ -9,6 +9,7 @@ import {
   codexAdapter,
   createOpencodeAdapter,
   DEFAULT_ADAPTERS,
+  parseCodexResetCredits,
   readCodexRateLimitsLive,
   readContextBudget,
   readSessionMetrics,
@@ -267,22 +268,25 @@ let input = ''
 process.stdin.on('data', (chunk) => {
   input += chunk
   if (input.includes('"method":"initialized"')) {
-    process.stdout.write(JSON.stringify({ jsonrpc: '2.0', id: 2, result: { rateLimits: { primary: { usedPercent: 3, windowDurationMins: 300, resetsAt: 1788460888 } } } }) + '\\n')
+    process.stdout.write(JSON.stringify({ jsonrpc: '2.0', id: 2, result: { rateLimits: { primary: { usedPercent: 3, windowDurationMins: 300, resetsAt: 1788460888 }, credits: { hasCredits: false, balance: '0' } }, rateLimitResetCredits: { availableCount: 3, credits: [{ id: 'private-id', status: 'available', expiresAt: 1794001782, description: 'private-description' }] } } }) + '\\n')
   }
 })
 `,
     )
     chmodSync(binary, 0o755)
     try {
-      await expect(readCodexRateLimitsLive({ binary, timeoutMs: 5_000 })).resolves.toEqual([
-        {
-          id: 'primary',
-          usedPct: 3,
-          remainingPct: 97,
-          windowMinutes: 300,
-          resetsAt: 1788460888,
-        },
-      ])
+      await expect(readCodexRateLimitsLive({ binary, timeoutMs: 5_000 })).resolves.toEqual({
+        windows: [
+          {
+            id: 'primary',
+            usedPct: 3,
+            remainingPct: 97,
+            windowMinutes: 300,
+            resetsAt: 1788460888,
+          },
+        ],
+        resetCredits: { available: 3, nextExpiresAt: 1794001782 },
+      })
     } finally {
       rmSync(directory, { recursive: true, force: true })
     }
@@ -303,15 +307,16 @@ process.stdin.on('data', (chunk) => {
     )
     chmodSync(binary, 0o755)
     try {
-      await expect(readCodexRateLimitsLive({ binary, timeoutMs: 1_000 })).resolves.toMatchObject([
-        { id: 'primary', usedPct: 12, remainingPct: 88 },
-      ])
+      await expect(readCodexRateLimitsLive({ binary, timeoutMs: 1_000 })).resolves.toMatchObject({
+        windows: [{ id: 'primary', usedPct: 12, remainingPct: 88 }],
+        resetCredits: null,
+      })
     } finally {
       rmSync(directory, { recursive: true, force: true })
     }
   }, 5_000)
 
-  test('devuelve [] si el app-server nunca responde dentro del tope', async () => {
+  test('devuelve ventanas vacías si el app-server nunca responde dentro del tope', async () => {
     const directory = mkdtempSync(join(tmpdir(), 'orchestos-codex-rate-limits-never-'))
     const binary = join(directory, 'fake-codex')
     writeFileSync(binary, '#!/usr/bin/env bun\nprocess.stdin.resume()\n')
@@ -319,7 +324,10 @@ process.stdin.on('data', (chunk) => {
     const startedAt = Date.now()
     const errorSpy = spyOn(console, 'error').mockImplementation(() => {})
     try {
-      await expect(readCodexRateLimitsLive({ binary, timeoutMs: 300 })).resolves.toEqual([])
+      await expect(readCodexRateLimitsLive({ binary, timeoutMs: 300 })).resolves.toEqual({
+        windows: [],
+        resetCredits: null,
+      })
       expect(Date.now() - startedAt).toBeLessThan(2_000)
       expect(errorSpy).toHaveBeenCalledTimes(1)
       expect(errorSpy).toHaveBeenCalledWith(expect.stringMatching(/tras \d+ ms \(tope 300 ms\)$/))
@@ -328,4 +336,56 @@ process.stdin.on('data', (chunk) => {
       rmSync(directory, { recursive: true, force: true })
     }
   }, 5_000)
+})
+
+describe('Codex reset credits', () => {
+  test('normalizes the real response without exposing credit metadata', () => {
+    expect(
+      parseCodexResetCredits({
+        availableCount: 3,
+        credits: [
+          {
+            id: 'RateLimitResetCredit_test',
+            resetType: 'codexRateLimits',
+            status: 'available',
+            grantedAt: 1791409782,
+            expiresAt: 1794001782,
+            title: 'Full reset (Weekly + 5 hr)',
+            description: 'Thanks for using Codex!',
+          },
+        ],
+      }),
+    ).toEqual({ available: 3, nextExpiresAt: 1794001782 })
+  })
+  test.each([
+    undefined,
+    null,
+    'invalid',
+    {},
+    { credits: 'invalid' },
+    { credits: [null] },
+    { availableCount: -1, credits: [] },
+    { availableCount: '3', credits: [] },
+    { credits: [{ status: 'available', expiresAt: 'invalid' }] },
+  ])('rejects missing or malformed credits: %j', (value) => {
+    expect(parseCodexResetCredits(value)).toBeNull()
+  })
+  test('counts available credits and selects only their earliest expiration', () => {
+    expect(
+      parseCodexResetCredits({
+        credits: [
+          { status: 'available', expiresAt: 200 },
+          { status: 'used', expiresAt: 50 },
+          { status: 'available', expiresAt: 100 },
+        ],
+      }),
+    ).toEqual({ available: 2, nextExpiresAt: 100 })
+  })
+  test('empty credits have no expiration', () => {
+    expect(parseCodexResetCredits({ credits: [] })).toEqual({ available: 0, nextExpiresAt: null })
+    expect(parseCodexResetCredits({ availableCount: 0, credits: [] })).toEqual({
+      available: 0,
+      nextExpiresAt: null,
+    })
+  })
 })

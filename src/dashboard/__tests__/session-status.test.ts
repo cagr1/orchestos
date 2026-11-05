@@ -127,7 +127,7 @@ describe('H.7.5 — GET /api/session/status', () => {
       projectRoot: root,
       agentHome: root,
       detectClis: () => fixtureDetections,
-      readCodexRateLimits: async () => [],
+      readCodexRateLimits: async () => ({ windows: [], resetCredits: null }),
     })
 
   test('expone contexto y cupo normalizados sin filtrar la ruta del transcript', async () => {
@@ -223,7 +223,7 @@ describe('H.7.5 — GET /api/session/status', () => {
       detectClis: () => detections,
       readCodexRateLimits: async () => {
         codexRateLimitReads += 1
-        return []
+        return { windows: [], resetCredits: null }
       },
     })
     const claude = statuses.find((status) => status.id === 'claude')

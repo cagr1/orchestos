@@ -60,6 +60,38 @@ export interface RateLimitWindow {
   remainingPct?: number
 }
 
+export interface ResetCredits {
+  available: number
+  nextExpiresAt: number | null
+}
+
+export interface CodexRateLimits {
+  windows: RateLimitWindow[]
+  resetCredits: ResetCredits | null
+}
+
+export function parseCodexResetCredits(value: unknown): ResetCredits | null {
+  const field = objectAt({ value }, 'value')
+  if (!field || !Array.isArray(field.credits)) return null
+  const credits = field.credits.map((credit) => objectAt({ credit }, 'credit'))
+  if (credits.some((credit) => !credit || typeof credit.status !== 'string')) return null
+  const availableCredits = credits.filter((credit) => credit?.status === 'available')
+  const count = field.availableCount
+  if (count !== undefined && (typeof count !== 'number' || !Number.isInteger(count) || count < 0))
+    return null
+  const expirations: number[] = []
+  for (const credit of availableCredits) {
+    if (credit?.expiresAt == null) continue
+    const expiresAt = nonNegativeNumber(credit.expiresAt)
+    if (expiresAt === null) return null
+    expirations.push(expiresAt)
+  }
+  return {
+    available: count === undefined ? availableCredits.length : (count as number),
+    nextExpiresAt: expirations.length > 0 ? Math.min(...expirations) : null,
+  }
+}
+
 export interface ContextAdapter {
   /** Identificador del CLI; viaja al resultado como `source`. */
   id: string
@@ -87,7 +119,11 @@ export interface ContextBudget extends ContextReading {
 export interface SessionMetrics {
   context: ContextBudget
   /** `null` si el adaptador no publica cupo; nunca se inventa un cero. */
-  rateLimits: { source: string; windows: RateLimitWindow[] } | null
+  rateLimits: {
+    source: string
+    windows: RateLimitWindow[]
+    resetCredits?: ResetCredits | null
+  } | null
 }
 
 /**
@@ -294,7 +330,7 @@ export const opencodeAdapter = createOpencodeAdapter({
  */
 export async function readCodexRateLimitsLive(
   options: { binary?: string; timeoutMs?: number } = {},
-): Promise<RateLimitWindow[]> {
+): Promise<CodexRateLimits> {
   const binary = options.binary ?? 'codex'
   const timeoutMs = options.timeoutMs ?? CODEX_RATE_LIMITS_TIMEOUT_MS
   const startedAt = Date.now()
@@ -357,7 +393,7 @@ export async function readCodexRateLimitsLive(
             },
           ]
         })
-        if (windows.length > 0) return windows
+        return { windows, resetCredits: parseCodexResetCredits(result?.rateLimitResetCredits) }
       }
     }
   } catch {
@@ -372,7 +408,7 @@ export async function readCodexRateLimitsLive(
   console.error(
     `[rate-limits] codex app-server sin respuesta de account/rateLimits/read tras ${Date.now() - startedAt} ms (tope ${timeoutMs} ms)`,
   )
-  return []
+  return { windows: [], resetCredits: null }
 }
 
 export const CODEX_RATE_LIMITS_TIMEOUT_MS = 8_000

@@ -55,3 +55,33 @@ test('session endpoint exposes quota capability and current health using fake pr
     quotaSource: true,
   })
 })
+
+test('session endpoint propagates Codex reset credits without adding the field to other CLIs', async () => {
+  const statuses: SessionStatus[] = KNOWN_CLIS.map((cli) => ({
+    id: cli.id,
+    binary: cli.binary,
+    icon: cli.icon,
+    label: cli.label,
+    readBoundary: cli.readBoundary,
+    installed: true,
+    available: true,
+    observedAt: null,
+    context: null,
+    rateLimits: {
+      source: cli.id,
+      windows: [],
+      ...(cli.id === 'codex' ? { resetCredits: { available: 3, nextExpiresAt: 1794001782 } } : {}),
+    },
+  }))
+  const response = await handleApiSessionStatus('/fake/UI.63-reset-credits', {
+    health: async () => [],
+    statuses: async () => statuses,
+  })
+  const body = await response.json()
+  expect(
+    body.clis.find((cli: SessionStatus) => cli.id === 'codex').rateLimits.resetCredits,
+  ).toEqual({ available: 3, nextExpiresAt: 1794001782 })
+  for (const cli of body.clis.filter((cli: SessionStatus) => cli.id !== 'codex')) {
+    expect(cli.rateLimits).not.toHaveProperty('resetCredits')
+  }
+})

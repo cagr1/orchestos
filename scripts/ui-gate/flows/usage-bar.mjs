@@ -31,6 +31,7 @@ export default async function usageBar({
   api,
   step,
   shot,
+  note,
   visible,
   cleanup,
   statuslineHome,
@@ -131,6 +132,25 @@ export default async function usageBar({
   )
   await shot('UI.46-quota-bar')
   const codexQuota = page.locator('button[title^="Codex:"]')
+  const resetCredits = quotaStatus.data?.clis?.find((cli) => cli.id === 'codex')?.rateLimits
+    ?.resetCredits
+  if (resetCredits?.available > 0) {
+    await codexQuota.click()
+    const row = page
+      .locator('footer div.absolute')
+      .getByText('Reset credits', { exact: true })
+      .locator('..')
+    await step(
+      'Codex popover shows available reset credits',
+      (await visible(row)) &&
+        (await visible(row.getByText(String(resetCredits.available), { exact: true }))),
+      `available=${resetCredits.available}`,
+    )
+    await shot('UI.63-reset-credits')
+    await page.keyboard.press('Escape')
+  } else {
+    note('Codex reset credits: paso omitido', 'sin créditos')
+  }
 
   const cacheHeaders = await page.evaluate(async () => {
     const [shell, bundle] = await Promise.all([fetch('/'), fetch('/app/dist/main.js')])

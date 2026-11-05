@@ -427,19 +427,19 @@ export async function readActiveSessionStatuses(
     join(options.agentHome ?? homedir(), '.claude/settings.json'),
   )
   const readCodexLimits = options.readCodexRateLimits ?? readCodexRateLimitsLive
-  const liveWindows =
+  const liveLimits =
     !explicit && codex?.installed
       ? await readCodexLimits({
           binary: codex.binary,
         })
-      : []
+      : { windows: [], resetCredits: null }
 
   for (const [id, candidate] of selected) {
     const cli = detections.find((detection) => detection.id === id)
     if (!cli || !candidate.metrics) continue
     const normalized =
-      id === 'codex' && liveWindows.length > 0
-        ? { ...candidate.metrics, rateLimits: { source: 'codex' as const, windows: liveWindows } }
+      id === 'codex' && (liveLimits.windows.length > 0 || liveLimits.resetCredits !== null)
+        ? { ...candidate.metrics, rateLimits: { source: 'codex' as const, ...liveLimits } }
         : id === 'claude' && claudeStatusline
           ? {
               ...candidate.metrics,
@@ -480,7 +480,11 @@ export async function readActiveSessionStatuses(
     }
   }
 
-  if (liveWindows.length > 0 && !found.has('codex') && codex) {
+  if (
+    (liveLimits.windows.length > 0 || liveLimits.resetCredits !== null) &&
+    !found.has('codex') &&
+    codex
+  ) {
     found.set('codex', {
       id: codex.id,
       label: codex.label,
@@ -491,7 +495,7 @@ export async function readActiveSessionStatuses(
       available: true,
       observedAt: null,
       context: null,
-      rateLimits: { source: 'codex', windows: liveWindows },
+      rateLimits: { source: 'codex', ...liveLimits },
     })
   }
 

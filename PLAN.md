@@ -160,6 +160,19 @@ Cerrada. Todos sus ítems están archivados en `docs/done/` (ver "Cerrados — e
   la próxima corrida nocturna; si `-routing` sigue sobre 150 min, se reabre.
   Revisión: Opus (diff leído completo).
   Ejecutado por: luna (mecanico) · Spec: docs/specs/CI.61.md
+- [x] **UI.63 — El popover de cuotas muestra los créditos de reinicio de Codex.** (abierto 2026-11-04, GO de Carlos)
+  `account/rateLimits/read` ya devuelve `rateLimitResetCredits {availableCount, credits[{status, expiresAt, title}]}`
+  (en vivo hoy: 3 disponibles, "Full reset (Weekly + 5 hr)") y OrchestOS lo descarta. Solo se muestra; gastar un
+  crédito (`account/rateLimitResetCredit/consume`) es irreversible y queda fuera.
+  Texto visible: "Reset credits" en el popover (un número suelto no dice qué es) y la expiración del más próximo.
+  Hecho: `parseCodexResetCredits` en `scripts/context-adapters.ts` (cuenta y vencimiento más próximo; sin `id` ni
+  `description`); `rateLimits.resetCredits` en `/api/session/status` solo para Codex; fila "Reset credits N · expires
+  in Nd" en el popover, solo con créditos > 0. r1: el número no hereda el color de la cuota semanal. Gates del cerebro:
+  tsc, lint, `test:coverage` 2287/0.
+  Gate en vivo: navegador real (Playwright), `docs/done/evidence/UI.63-live.json`; `ui:gate usage-bar` 22/22 repetido
+  por el cerebro con Codex real; captura mirada a ojo: "Reset credits 3 · expires in 1d".
+  Revisión: Opus (diff de Sol leído completo; r1 de Luna verificado).
+  Ejecutado por: codex gpt-6.1-sol (criterio) + luna (mecanico r1) · Spec: docs/specs/UI.63.md
 - [ ] **CI.19 — El `git commit` del fixture falla a veces en el andamiaje de los ui-gates.** Visto 1 vez en
   `qa-negative` (2026-10-11, 1 de 9): `Command failed: git … commit -qm task fixture`, sin motivo porque el helper
   `run` usa `stdio: 'ignore'`. `qa-negative` ya reporta stdout/stderr y exit; los otros 20 flows con el mismo helper no.

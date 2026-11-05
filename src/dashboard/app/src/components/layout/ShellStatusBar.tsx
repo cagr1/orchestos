@@ -12,6 +12,7 @@ export interface CliQuotaInfo {
   countdown5h?: string
   quotaWeekly: number | null
   resetWeekly?: string
+  resetCredits?: { available: number; nextExpiresAt: number | null } | null
   missingData?: string
   wiringWarning?: string
 }
@@ -49,6 +50,12 @@ export function formatCountdown(epochSeconds: number | null): string | undefined
   return `${remainingMinutes}m`
 }
 
+export function formatCreditExpiry(epochSeconds: number | null): string | undefined {
+  if (epochSeconds === null) return undefined
+  const hours = Math.max(0, (epochSeconds - Date.now() / 1000) / 3600)
+  return `expires in ${hours >= 24 ? `${Math.floor(hours / 24)}d` : `${Math.ceil(hours)}h`}`
+}
+
 export function mapQuotas(status: SessionStatus | null): CliQuotaInfo[] {
   return (status?.clis ?? [])
     .filter((cli) => cli.functional && cli.quotaSource)
@@ -84,6 +91,7 @@ export function mapQuotas(status: SessionStatus | null): CliQuotaInfo[] {
         countdown5h: formatCountdown(fiveHour?.resetsAt ?? null),
         quotaWeekly: remaining(weekly),
         resetWeekly: formatCountdown(weekly?.resetsAt ?? null),
+        resetCredits: cli.id === 'codex' ? cli.rateLimits?.resetCredits : undefined,
         missingData: staleWindow
           ? Number.isFinite(observedAt)
             ? `no data since ${age}`
@@ -254,7 +262,9 @@ export const ShellStatusBar: React.FC<ShellStatusBarProps> = ({
             </div>
           )}
 
-          {activeCli.quota5h !== null || activeCli.quotaWeekly !== null ? (
+          {activeCli.quota5h !== null ||
+          activeCli.quotaWeekly !== null ||
+          (activeCli.resetCredits?.available ?? 0) > 0 ? (
             <div className="space-y-3 font-sans">
               {/* 5-hour quota */}
               {activeCli.quota5h !== null && (
@@ -304,6 +314,24 @@ export const ShellStatusBar: React.FC<ShellStatusBarProps> = ({
                       data-quota-tone={weeklyTone}
                       style={{ width: `${Math.round(100 - activeCli.quotaWeekly)}%` }}
                     />
+                  </div>
+                </div>
+              )}
+              {(activeCli.resetCredits?.available ?? 0) > 0 && (
+                <div className="flex items-center justify-between text-xs">
+                  <span className="text-app-muted">Reset credits</span>
+                  <div className="flex items-center gap-1.5 font-mono text-[11px]">
+                    <span className="font-semibold text-app">
+                      {activeCli.resetCredits?.available}
+                    </span>
+                    {activeCli.resetCredits?.nextExpiresAt != null && (
+                      <>
+                        <span className="text-app-muted">·</span>
+                        <span className="text-app-muted text-[10px]">
+                          {formatCreditExpiry(activeCli.resetCredits.nextExpiresAt)}
+                        </span>
+                      </>
+                    )}
                   </div>
                 </div>
               )}

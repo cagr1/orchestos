@@ -170,7 +170,11 @@ export interface SessionStatusResponse {
       level: 'ok' | 'warn' | 'critical'
       source: string
     } | null
-    rateLimits: { source: string; windows: SessionRateLimitWindow[] } | null
+    rateLimits: {
+      source: string
+      windows: SessionRateLimitWindow[]
+      resetCredits?: { available: number; nextExpiresAt: number | null } | null
+    } | null
   }>
 }
 

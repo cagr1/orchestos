@@ -333,6 +333,7 @@ export interface SessionCliStatus {
     model: string | null
   } | null
   rateLimits: {
+    resetCredits?: { available: number; nextExpiresAt: number | null } | null
     windows: Array<{
       id: string
       usedPct: number

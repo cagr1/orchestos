@@ -4,6 +4,7 @@ import { renderToStaticMarkup } from 'react-dom/server'
 import type { SessionStatus } from '../../types/orchestos'
 import {
   formatCountdown,
+  formatCreditExpiry,
   formatReset,
   mapQuotas,
   quotaTone,
@@ -318,5 +319,14 @@ describe('mapQuotas eligibility', () => {
     expect(mapQuotas(null)).toEqual([])
     const html = renderToStaticMarkup(createElement(ShellStatusBar, { status, onRefresh() {} }))
     expect(html).toBe('')
+  })
+})
+
+describe('reset credit expiration', () => {
+  test('formats days or hours and keeps an unknown expiration absent', () => {
+    const now = Date.now() / 1000
+    expect(formatCreditExpiry(now + 72 * 3600 + 60)).toBe('expires in 3d')
+    expect(formatCreditExpiry(now + 2 * 3600 - 60)).toBe('expires in 2h')
+    expect(formatCreditExpiry(null)).toBeUndefined()
   })
 })
