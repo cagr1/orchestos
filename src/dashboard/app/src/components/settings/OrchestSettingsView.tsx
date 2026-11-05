@@ -447,6 +447,7 @@ interface OrchestSettingsViewProps {
   language: 'en' | 'es'
   onSelectLanguage: (lang: 'en' | 'es') => void
   initialSection?: SettingsSection
+  initialRunId?: string
   initialProjectTab?: ProjectSubTab
   tasks: TaskItem[]
   taskError?: string | null
@@ -493,6 +494,7 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
   onSelectLanguage,
   initialSection = 'general',
   initialProjectTab = 'tasks',
+  initialRunId,
   tasks,
   taskError,
   onOpenTaskRouting,
@@ -3552,7 +3554,9 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
                 )}
 
                 {/* TAB: Runs */}
-                {activeProjectTab === 'runs' && <RunsEvidenceView runs={runs} />}
+                {activeProjectTab === 'runs' && (
+                  <RunsEvidenceView runs={runs} initialRunId={initialRunId} />
+                )}
 
                 {/* TAB: Graph */}
                 {activeProjectTab === 'graph' &&

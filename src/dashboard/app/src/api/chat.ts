@@ -37,6 +37,14 @@ export interface ChatMessageRow {
   turnId?: string | null
   stopped?: boolean
   taskReport?: {
+    diagnosis?: {
+      cause?: string
+      failedCheck?: { command: string; output?: string }
+      qaReasons?: string[]
+      executorReport?: string
+      runId?: string
+    }
+    interrupted?: boolean
     outcome: string
     approvalMode?: 'supervised' | 'auto-edit' | 'full'
     requestedApprovalMode?: 'supervised' | 'auto-edit' | 'full'

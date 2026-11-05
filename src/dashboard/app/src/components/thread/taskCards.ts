@@ -4,6 +4,8 @@ import type { ChatMessage, ChatThread, ProjectItem, TaskItem } from '../../types
 export type TaskCardState = 'held' | 'running' | 'failed' | 'blocked' | 'pending' | 'done'
 
 export interface TaskCardReport {
+  diagnosis?: NonNullable<ChatMessage['taskReport']>['diagnosis']
+  interrupted?: boolean
   messageId: string
   state: TaskCardState
   attempt?: number
@@ -81,6 +83,8 @@ export function buildTaskCards(
           ? `${message.taskReport.provider}/${message.taskReport.model}`
           : undefined,
       summary: message.taskReport.summary,
+      diagnosis: message.taskReport.diagnosis,
+      interrupted: message.taskReport.interrupted,
       approvalMode: message.taskReport.approvalMode,
       requestedApprovalMode: message.taskReport.requestedApprovalMode,
       approvalCli: message.taskReport.approvalCli,

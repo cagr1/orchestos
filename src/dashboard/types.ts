@@ -195,7 +195,14 @@ export interface RunRow {
   filesAttempted: string[]
   filesAuthorized: string[]
   filesBlocked: string[]
-  checks: Array<{ cmd: string; exitCode: number; elapsedMs: number; timedOut?: boolean }>
+  checks: Array<{
+    cmd: string
+    exitCode: number
+    elapsedMs: number
+    timedOut?: boolean
+    stderr?: string
+    stdout?: string
+  }>
   readAudit?: import('../run/read-audit.ts').ReadAudit
   id: string
   taskId: string | null

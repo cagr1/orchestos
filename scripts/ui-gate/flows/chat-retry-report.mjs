@@ -127,8 +127,12 @@ export default async function chatRetryReport({ page, api, step, shot, visible, 
   const heldPrompt =
     'Modifica nota.ts para añadir al final la línea "export const gate = 1". La única ruta de salida es nota.ts.'
   const beforeIds = new Set((await tasksFor(api, project.id)).map((task) => task.id))
+  const firstTurn = page.waitForResponse(
+    (response) => response.request().method() === 'POST' && /\/api\/chat$/.test(response.url()),
+  )
   await composer.fill(heldPrompt)
-  await composer.press('Enter')
+  await page.getByRole('button', { name: 'Send message', exact: true }).click()
+  await (await firstTurn).finished()
   const taskCard = page.locator('[data-task-state="held"]').first()
   const heldCardVisible = await visible(taskCard, 180_000)
   await step('held task card visible', heldCardVisible, 'held task rendered')
@@ -155,7 +159,6 @@ export default async function chatRetryReport({ page, api, step, shot, visible, 
       /check failed/i.test(retryReason),
     `status=${firstAttempt?.status ?? 'missing'} retryCount=${firstAttempt?.retryCount ?? 'missing'} retryReason=${retryReason}`,
   )
-  const taskCardOf = (id) => page.locator(`[data-task-id="${id}"]`)
   const failedReport = page.locator(`[data-task-id="${taskId}"][data-task-state="failed"]`)
   const reportVisible = await visible(failedReport, 60_000)
   const failedText = (await failedReport.innerText().catch(() => 'report not visible')).trim()
@@ -191,63 +194,73 @@ export default async function chatRetryReport({ page, api, step, shot, visible, 
   const unexpectedChanges = cleanStatus
     .split('\n')
     .filter((line) => line && !/^\s*[?MADRCU]{1,2}\s+tasks\.yaml$/.test(line))
-  await step('project clean before retry', unexpectedChanges.length === 0, cleanStatus || 'clean')
+  await step(
+    'project clean before dirty-tree scenario',
+    unexpectedChanges.length === 0,
+    cleanStatus || 'clean',
+  )
 
-  // ERP.4.13 — el reintento sale del último reporte del hilo, sin recargar la página.
-  const retry = page.getByRole('button', { name: /^Retry$/ })
+  const latestReport = (await messagesFor(api, project.id, session.id, taskId)).at(-1)?.taskReport
+  const diagnosis = latestReport?.diagnosis
+  const diagnosisBlock = failedReport.locator('[data-task-diagnosis]')
   await step(
-    'Retry offered on the last report without reload',
-    (await visible(retry)) && (await retry.count()) === 1,
-    `Retry buttons=${await retry.count()}`,
-  )
-  if (!(await retry.first().isVisible())) return
-  const before = (await messagesFor(api, project.id, session.id, taskId)).length
-  await retry.first().click()
-  const secondTask = await waitForTask(
-    api,
-    project.id,
-    taskId,
-    (item) => item.status === 'done',
-    10 * 60_000,
-  )
-  await step('second attempt done', secondTask?.status === 'done', secondTask?.status ?? 'missing')
-  if (secondTask?.status !== 'done') return
-  const doneReport = page.locator(`[data-task-id="${taskId}"][data-task-state="done"]`)
-  const doneVisible = await visible(doneReport, 90_000)
-  const after = (await messagesFor(api, project.id, session.id, taskId)).length
-  await step(
-    'done report appears in the open thread without reload',
-    doneVisible,
-    `task messages before=${before}; after=${after}; ${await doneReport.innerText().catch(() => 'report not visible')}`,
+    'failed attempt shows its recorded cause and failed check output',
+    Boolean(
+      diagnosis?.cause && diagnosis?.failedCheck?.command && diagnosis?.failedCheck?.output,
+    ) &&
+      (await visible(diagnosisBlock)) &&
+      (await diagnosisBlock.innerText()).includes(diagnosis.cause.split('\n')[0]) &&
+      (await diagnosisBlock.innerText()).includes(diagnosis.failedCheck.command) &&
+      (await diagnosisBlock.locator('pre').first().textContent()).includes(
+        diagnosis.failedCheck.output,
+      ),
+    JSON.stringify(diagnosis),
   )
   await step(
-    'previous report no longer shows Retry',
-    (await retry.count()) === 0,
-    `Retry buttons=${await retry.count()}`,
+    'failed attempt has no Retry or Resume action',
+    (await failedReport.getByRole('button', { name: /^(Retry|Resume)$/ }).count()) === 0,
+    await failedReport.innerText(),
   )
-  const doneCards = await taskCardOf(taskId).count()
-  const earlier = doneReport.locator('button[aria-expanded]').filter({ hasText: 'earlier' })
-  const earlierText = (await earlier.innerText().catch(() => '')).trim()
-  const earlierState = await earlier.getAttribute('aria-expanded').catch(() => null)
+  const diagnosisText = await diagnosisBlock.innerText()
   await step(
-    'one card per task after Retry, done, earlier attempts collapsed',
-    doneCards === 1 && /^1 earlier attempt/.test(earlierText) && earlierState === 'false',
-    `cards=${doneCards} header=${JSON.stringify(earlierText)} aria-expanded=${earlierState}`,
+    'diagnosis shows the cause once and removes worktree prefixes',
+    (await diagnosisBlock.locator('p.text-app-error').textContent()).trim() ===
+      diagnosis?.cause?.split('\n')[0] &&
+      (await diagnosisBlock.locator('div.font-mono').count()) === 0 &&
+      (await failedReport.getByRole('alert').count()) === 0 &&
+      !diagnosisText.includes('/.orchestos/worktrees/') &&
+      !diagnosisText.includes('QA:'),
+    diagnosisText,
   )
+  await shot('failed-task-diagnosis')
+  const evidence = failedReport.getByRole('button', { name: 'View evidence', exact: true })
   await step(
-    'no uuid text after Retry',
-    !(await doneReport.innerText()).includes(taskId),
-    'done card innerText has no task id',
+    'View evidence offered for the recorded run',
+    await visible(evidence),
+    diagnosis?.runId ?? 'missing run',
   )
-  await shot('retry-report')
+  await evidence.click()
+  await step(
+    'View evidence opens the selected run in Runs',
+    Boolean(diagnosis?.runId) &&
+      (await visible(page.getByText(diagnosis.runId, { exact: true }))) &&
+      (await visible(page.getByRole('button', { name: 'Back to Runs', exact: true }))),
+    diagnosis?.runId ?? 'missing run',
+  )
+  await page.getByRole('button', { name: 'Back to app', exact: true }).click()
+  await page.getByRole('button', { name: 'Chat', exact: true }).click()
 
   // Tramo 2 — árbol sucio: la tarea queda pending y el hilo ofrece "Commit & Run".
   writeFileSync(join(projectRoot, 'sucio.txt'), 'sin commitear\n')
   const knownIds = new Set((await tasksFor(api, project.id)).map((item) => item.id))
+  const secondTurn = page.waitForResponse(
+    (response) => response.request().method() === 'POST' && /\/api\/chat$/.test(response.url()),
+  )
   await composer.fill(
     'Modifica nota.ts para añadir al final la línea "export const sucio = 2". La única ruta de salida es nota.ts.',
   )
-  await composer.press('Enter')
+  await page.getByRole('button', { name: 'Send message', exact: true }).click()
+  await (await secondTurn).finished()
   const secondCard = page.locator('[data-task-state="held"]').last()
   const secondCardVisible = await visible(secondCard, 180_000)
   await step('second held task card visible', secondCardVisible, 'held task rendered')

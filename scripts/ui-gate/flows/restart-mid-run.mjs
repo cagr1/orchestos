@@ -364,6 +364,15 @@ export default async function restartMidRun({
       await showChat('r84-runner-dies', 'gate-restart-b', /Interrupted/),
       'interruption report visible in the session',
     )
+    const interruptedCardB = page.locator('[data-task-id="gate-restart-b"]')
+    await step(
+      'B: interruption offers only Resume, without failure diagnosis',
+      (await visible(interruptedCardB.getByRole('button', { name: 'Resume', exact: true }))) &&
+        (await interruptedCardB.getByRole('button', { name: 'Retry', exact: true }).count()) ===
+          0 &&
+        (await interruptedCardB.locator('[data-task-diagnosis]').count()) === 0,
+      await interruptedCardB.innerText(),
+    )
     await shot('restart-mid-run-b-chat')
   }
 
@@ -420,6 +429,15 @@ export default async function restartMidRun({
       'C: chat shows the interruption report after reloading the page',
       await showChat('r84-runner-killed-alive-dashboard', 'gate-restart-c', /Interrupted/),
       'interruption report visible in the session',
+    )
+    const interruptedCardC = page.locator('[data-task-id="gate-restart-c"]')
+    await step(
+      'C: interruption offers only Resume, without failure diagnosis',
+      (await visible(interruptedCardC.getByRole('button', { name: 'Resume', exact: true }))) &&
+        (await interruptedCardC.getByRole('button', { name: 'Retry', exact: true }).count()) ===
+          0 &&
+        (await interruptedCardC.locator('[data-task-diagnosis]').count()) === 0,
+      await interruptedCardC.innerText(),
     )
     await shot('restart-mid-run-c-chat')
   }

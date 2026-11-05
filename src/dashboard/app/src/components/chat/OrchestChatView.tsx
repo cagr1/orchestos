@@ -53,6 +53,7 @@ interface OrchestChatViewProps {
   ) => unknown
   onApproveHeldTask?: (taskId: string) => void | Promise<void>
   onRejectHeldTask?: (taskId: string) => void | Promise<void>
+  onViewEvidence?: (runId: string) => void | Promise<void>
   onRetryTask?: (taskId: string) => void | Promise<void>
   onCommitRunTask?: (taskId: string, files: string[]) => void | Promise<void>
   sessionStatus?: SessionStatus | null
@@ -74,6 +75,7 @@ export const OrchestChatView: React.FC<OrchestChatViewProps> = ({
   onApproveHeldTask,
   onRejectHeldTask,
   onRetryTask,
+  onViewEvidence,
   onCommitRunTask,
   sessionStatus,
   onSlashCommand,
@@ -512,6 +514,9 @@ export const OrchestChatView: React.FC<OrchestChatViewProps> = ({
                                       error instanceof Error ? error.message : String(error),
                                   })),
                               )
+                            }
+                            onViewEvidence={(runId) =>
+                              runReportAction(showCard.actionKey, () => onViewEvidence?.(runId))
                             }
                             onRetry={() =>
                               runReportAction(showCard.actionKey, () =>

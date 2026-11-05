@@ -9,6 +9,7 @@ import { insertRun } from '../../db/runs.ts'
 import { db } from '../../db/sqlite.ts'
 import { DIRTY_TREE_REASON_PREFIX } from '../../run/sandbox-policy.ts'
 import { reportTaskOutcome } from './task-report.ts'
+import { INTERRUPTED_REASON } from './task-run-reconcile.ts'
 
 const roots: string[] = []
 const sessions: string[] = []
@@ -122,6 +123,7 @@ describe('reportTaskOutcome', () => {
       attempt: 2,
       maxAttempts: 3,
       summary: 'missing declared output(s): out.txt',
+      diagnosis: { cause: 'missing declared output(s): out.txt' },
     })
   })
 
@@ -184,6 +186,7 @@ describe('reportTaskOutcome', () => {
     expect(listChatMessages(failed.session.id)[0]?.taskReport).toEqual({
       outcome: 'failed',
       summary: 'boom',
+      diagnosis: { cause: 'boom' },
     })
   })
 
@@ -227,4 +230,132 @@ it('task reports persist requested and effective approval modes with registry CL
       approvalCli: label,
     })
   }
+})
+
+function reportData(fixture: ReturnType<typeof setup>) {
+  reportTaskOutcome(fixture.root, fixture.session.id, fixture.taskId, fixture.projectId)
+  return listChatMessages(fixture.session.id)[0]?.taskReport
+}
+
+it('diagnosis uses the first failed deterministic check and the same evidence as Runs', () => {
+  const fixture = setup('failed', 'check failed: typecheck')
+  const runId = addRun(fixture.taskId, 'run failure', fixture.projectId, 'failed')
+  db.run('UPDATE runs SET checks_json = ?, executor_reply = ? WHERE id = ?', [
+    JSON.stringify([
+      { cmd: 'lint', exitCode: 0, elapsedMs: 1, stdout: 'ok' },
+      { cmd: 'typecheck', exitCode: 1, elapsedMs: 1, stderr: 'type error', stdout: 'details' },
+      { cmd: 'other', exitCode: 1, elapsedMs: 1, stderr: 'later failure' },
+    ]),
+    'executor claimed success',
+    runId,
+  ])
+  expect(reportData(fixture)?.diagnosis).toEqual({
+    cause: 'check failed: typecheck',
+    failedCheck: { command: 'typecheck', output: 'type error\ndetails' },
+    executorReport: 'executor claimed success',
+    runId,
+  })
+})
+
+it('diagnosis includes QA reasons and treats a timed-out check as failed', () => {
+  const fixture = setup('pending', 'QA rejected the result', 1)
+  const runId = addRun(fixture.taskId, 'QA rejected the result', fixture.projectId, 'failed')
+  db.run('UPDATE runs SET qa_verdict = ?, qa_reason = ?, checks_json = ? WHERE id = ?', [
+    'fail',
+    'Missing acceptance evidence',
+    JSON.stringify([{ cmd: 'slow check', exitCode: 0, elapsedMs: 500, timedOut: true }]),
+    runId,
+  ])
+  expect(reportData(fixture)?.diagnosis).toEqual({
+    cause: 'QA rejected the result',
+    qaReasons: ['Missing acceptance evidence'],
+    failedCheck: { command: 'slow check' },
+    runId,
+  })
+})
+
+it('diagnosis without a matching run omits unavailable evidence', () => {
+  const fixture = setup('failed', 'local failure')
+  const other = setup('failed')
+  addRun(fixture.taskId, 'foreign cause', other.projectId, 'failed')
+  expect(reportData(fixture)?.diagnosis).toEqual({ cause: 'local failure' })
+  expect(reportData(setup('failed'))?.diagnosis).toBeUndefined()
+  expect(reportData(setup('pending'))?.diagnosis).toBeUndefined()
+})
+
+it('diagnosis bounds UTF-8 byte sizes and keeps the tail of failed check output', () => {
+  const fixture = setup('failed', 'é'.repeat(2000))
+  const runId = addRun(fixture.taskId, 'failure', fixture.projectId, 'failed')
+  db.run('UPDATE runs SET checks_json = ?, executor_reply = ?, qa_reason = ? WHERE id = ?', [
+    JSON.stringify([
+      {
+        cmd: 'check',
+        exitCode: 1,
+        elapsedMs: 1,
+        stdout: `${'discard'.repeat(1000)}${'é'.repeat(1100)}TAIL`,
+      },
+    ]),
+    'é'.repeat(1000),
+    'ø'.repeat(2000),
+    runId,
+  ])
+  const diagnosis = reportData(fixture)?.diagnosis
+  expect(Buffer.byteLength(diagnosis?.cause ?? '')).toBe(2048)
+  expect(Buffer.byteLength(diagnosis?.failedCheck?.output ?? '')).toBe(2048)
+  expect(diagnosis?.failedCheck?.output?.endsWith('TAIL')).toBe(true)
+  expect(Buffer.byteLength(diagnosis?.executorReport ?? '')).toBe(1024)
+  expect(Buffer.byteLength(diagnosis?.qaReasons?.[0] ?? '')).toBe(2048)
+})
+
+it('diagnosis removes worktree prefixes wherever paths occur without changing other paths', () => {
+  const worktree = `/tmp/project/.orchestos/worktrees/chat-${randomUUID()}-123/`
+  const fixture = setup('failed', `check failed: typecheck\nError in ${worktree}src/nota.ts`)
+  const runId = addRun(fixture.taskId, 'failure', fixture.projectId, 'failed')
+  db.run('UPDATE runs SET checks_json = ?, executor_reply = ? WHERE id = ?', [
+    JSON.stringify([
+      {
+        cmd: 'typecheck',
+        exitCode: 2,
+        elapsedMs: 1,
+        stderr: `Error: ${worktree}src/nota.ts\nSee "${worktree}other.ts" and /tmp/keep.ts`,
+        stdout: `Checked ${worktree}nota.ts`,
+      },
+    ]),
+    `Edited \`${worktree}nota.ts\` and ${worktree}src/other.ts.\nKept /tmp/keep.ts.`,
+    runId,
+  ])
+  expect(reportData(fixture)?.diagnosis).toEqual({
+    cause: 'check failed: typecheck\nError in src/nota.ts',
+    failedCheck: {
+      command: 'typecheck',
+      output: 'Error: src/nota.ts\nSee "other.ts" and /tmp/keep.ts\nChecked nota.ts',
+    },
+    executorReport: 'Edited `nota.ts` and src/other.ts.\nKept /tmp/keep.ts.',
+    runId,
+  })
+})
+
+it('diagnosis omits QA reasons equal to or contained in the complete cause after whitespace normalization', () => {
+  for (const reason of [
+    ' check failed: typecheck\n type error at nota.ts ',
+    'type error\n at nota.ts',
+  ]) {
+    const fixture = setup('failed', 'check failed: typecheck\n\ntype error at nota.ts')
+    const runId = addRun(fixture.taskId, 'failure', fixture.projectId, 'failed')
+    db.run('UPDATE runs SET qa_reason = ? WHERE id = ?', [reason, runId])
+    expect(reportData(fixture)?.diagnosis).toEqual({
+      cause: 'check failed: typecheck\n\ntype error at nota.ts',
+      runId,
+    })
+  }
+})
+
+it('interruptions remain failed and carry only the resume marker, without diagnosis', () => {
+  const fixture = setup('failed', INTERRUPTED_REASON)
+  addRun(fixture.taskId, 'old failure', fixture.projectId, 'failed')
+  const report = reportData(fixture)
+  expect(report?.outcome).toBe('failed')
+  expect(report?.interrupted).toBe(true)
+  expect(report?.diagnosis).toBeUndefined()
+  expect(reportData(setup('failed', 'Interrupted: another failure'))?.interrupted).toBeUndefined()
 })

@@ -1,6 +1,6 @@
 import { Activity, AlertCircle, ArrowLeft, CheckCircle2, ChevronRight, Search } from 'lucide-react'
 import type React from 'react'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import type { RunItem } from '../../types/orchestos'
 import { StatusBadge } from '../common/StatusBadge'
 import { EmptyState, ErrorState, SkeletonView } from '../common/ViewStateFeedback'
@@ -8,6 +8,7 @@ import { StatStrip } from '../layout/page'
 import { SettingsSegmented } from '../settings/primitives'
 
 interface RunsEvidenceViewProps {
+  initialRunId?: string
   runs: RunItem[]
   onInspectRun?: (runId: string) => void
   onFilterStatus?: (status: string) => void
@@ -35,12 +36,15 @@ function RunQaBadge({ run }: { run: RunItem }) {
 
 export const RunsEvidenceView: React.FC<RunsEvidenceViewProps> = ({
   runs,
+  initialRunId,
   onInspectRun,
   isLoading = false,
   error = null,
   onRetry,
 }) => {
-  const [selectedRun, setSelectedRun] = useState<RunItem | null>(null)
+  const [selectedRunId, setSelectedRunId] = useState(initialRunId)
+  const selectedRun = runs.find((run) => run.id === selectedRunId) ?? null
+  useEffect(() => setSelectedRunId(initialRunId), [initialRunId])
   const [searchQuery, setSearchQuery] = useState('')
   const [statusFilter, setStatusFilter] = useState<'all' | 'passed' | 'failed'>('all')
   const [evidenceTab, setEvidenceTab] = useState<'contract' | 'diffs' | 'cost' | 'qa'>('contract')
@@ -87,7 +91,7 @@ export const RunsEvidenceView: React.FC<RunsEvidenceViewProps> = ({
         <div className="p-3 border-b border-app bg-app-surface/60 flex items-center justify-between flex-shrink-0">
           <button
             type="button"
-            onClick={() => setSelectedRun(null)}
+            onClick={() => setSelectedRunId(undefined)}
             className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-control bg-app-elevated border border-app text-xs text-app hover:bg-app-surface transition-colors"
           >
             <ArrowLeft className="w-3.5 h-3.5" />
@@ -443,7 +447,7 @@ export const RunsEvidenceView: React.FC<RunsEvidenceViewProps> = ({
                 <tr
                   key={run.id}
                   onClick={() => {
-                    setSelectedRun(run)
+                    setSelectedRunId(run.id)
                     if (onInspectRun) onInspectRun(run.id)
                   }}
                   className="group h-10 border-b border-[color:color-mix(in_srgb,var(--app-border)_50%,transparent)] hover:bg-app-elevated cursor-pointer transition-colors"

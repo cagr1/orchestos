@@ -7,6 +7,8 @@ import { taskEngineForCli } from '../../run/executors/task-engines.ts'
 import { MAX_RETRIES } from '../../run/qa.ts'
 import { DIRTY_TREE_REASON_PREFIX, listDirtyFiles } from '../../run/sandbox-policy.ts'
 import { loadTasks } from '../../tasks/loader.ts'
+import { runRecordToRow } from './runs.ts'
+import { INTERRUPTED_REASON } from './task-run-reconcile.ts'
 
 export function reportTaskOutcome(
   root: string,
@@ -20,6 +22,25 @@ export function reportTaskOutcome(
   } catch (error) {
     console.error('Could not report task outcome', error)
   }
+}
+
+/** Bound UTF-8 bytes without cutting a code point; check output keeps its tail. */
+function bounded(text: string, maxBytes: number, tail = false): string {
+  const chars = Array.from(text)
+  if (tail) chars.reverse()
+  const kept: string[] = []
+  let bytes = 0
+  for (const char of chars) {
+    bytes += Buffer.byteLength(char)
+    if (bytes > maxBytes) break
+    kept.push(char)
+  }
+  return (tail ? kept.reverse() : kept).join('')
+}
+
+/** Apply taskWorktreeRelativePath's worktree-root removal to paths embedded in prose. */
+function relativeWorktreePaths(text: string): string {
+  return text.replace(/\/[^\s"'`<>]*\/\.orchestos\/worktrees\/[^/\s]+\//g, '')
 }
 
 function buildTaskReportData(
@@ -38,6 +59,38 @@ function buildTaskReportData(
   const runs = listRunsByTaskId(taskId)
   // Sin identidad de proyecto, ningún run puede respaldar este reporte.
   const run = projectId ? (runs.find((item) => item.project_id === projectId) ?? null) : null
+  const interrupted = status === 'failed' && task?.retry_reason === INTERRUPTED_REASON
+  const evidence = run ? runRecordToRow(run) : null
+  const rawCause = task?.retry_reason || evidence?.result
+  const cause = rawCause ? relativeWorktreePaths(rawCause) : undefined
+  const failedCheck = evidence?.checks.find((check) => check.exitCode !== 0 || check.timedOut)
+  const checkOutput = failedCheck
+    ? relativeWorktreePaths([failedCheck.stderr, failedCheck.stdout].filter(Boolean).join('\n'))
+    : ''
+  const qaReason = evidence?.qaReason ? relativeWorktreePaths(evidence.qaReason) : undefined
+  const normalizedCause = cause?.replace(/\s+/g, ' ').trim()
+  const normalizedQaReason = qaReason?.replace(/\s+/g, ' ').trim()
+  const diagnosis =
+    !interrupted && (status === 'failed' || (status === 'pending' && task?.retry_count))
+      ? {
+          ...(cause ? { cause: bounded(cause, 2048) } : {}),
+          ...(failedCheck
+            ? {
+                failedCheck: {
+                  command: bounded(relativeWorktreePaths(failedCheck.cmd), 2048),
+                  ...(checkOutput ? { output: bounded(checkOutput, 2048, true) } : {}),
+                },
+              }
+            : {}),
+          ...(qaReason && normalizedQaReason && !normalizedCause?.includes(normalizedQaReason)
+            ? { qaReasons: [bounded(qaReason, 2048)] }
+            : {}),
+          ...(evidence?.executorReply
+            ? { executorReport: bounded(relativeWorktreePaths(evidence.executorReply), 1024) }
+            : {}),
+          ...(run ? { runId: run.id } : {}),
+        }
+      : undefined
   const verifiedDone = status === 'done' && run?.status === 'done'
   const outcome = status === 'done' && !verifiedDone ? (run?.status ?? 'pending') : status
   const providerModel = run ? ` · ${run.provider}/${run.model}` : ''
@@ -63,6 +116,8 @@ function buildTaskReportData(
     content: `${headline}\n\n> ${summary || 'No run was recorded.'}`,
     data: {
       outcome,
+      ...(interrupted ? { interrupted: true } : {}),
+      ...(diagnosis && Object.keys(diagnosis).length ? { diagnosis } : {}),
       ...(run && task?.approvalMode
         ? actionApprovalPolicy(
             task.engine ?? taskEngineForCli(run.provider)?.engineId ?? 'single-shot',

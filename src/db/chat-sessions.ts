@@ -36,7 +36,17 @@ interface StoredChatMessage {
 }
 
 /** Datos estructurados de un reporte de fin de tarea. */
+export interface TaskDiagnosis {
+  cause?: string
+  failedCheck?: { command: string; output?: string }
+  qaReasons?: string[]
+  executorReport?: string
+  runId?: string
+}
+
 export interface TaskReportData {
+  diagnosis?: TaskDiagnosis
+  interrupted?: boolean
   outcome: string
   approvalMode?: 'supervised' | 'auto-edit' | 'full'
   requestedApprovalMode?: 'supervised' | 'auto-edit' | 'full'
@@ -92,6 +102,30 @@ function parseStringArray(value: string | null): string[] {
   }
 }
 
+function parseTaskDiagnosis(value: unknown): TaskDiagnosis | undefined {
+  if (!value || typeof value !== 'object') return undefined
+  const raw = value as Record<string, unknown>
+  const diagnosis: TaskDiagnosis = {}
+  for (const key of ['cause', 'executorReport', 'runId'] as const) {
+    if (typeof raw[key] === 'string') diagnosis[key] = raw[key]
+  }
+  if (Array.isArray(raw.qaReasons)) {
+    diagnosis.qaReasons = raw.qaReasons.filter(
+      (reason): reason is string => typeof reason === 'string',
+    )
+  }
+  if (raw.failedCheck && typeof raw.failedCheck === 'object') {
+    const check = raw.failedCheck as Record<string, unknown>
+    if (typeof check.command === 'string') {
+      diagnosis.failedCheck = {
+        command: check.command,
+        ...(typeof check.output === 'string' ? { output: check.output } : {}),
+      }
+    }
+  }
+  return Object.keys(diagnosis).length ? diagnosis : undefined
+}
+
 function parseTaskReport(value: string | null): TaskReportData | undefined {
   if (!value) return undefined
   try {
@@ -106,6 +140,8 @@ function parseTaskReport(value: string | null): TaskReportData | undefined {
     const text = (value: unknown) => (typeof value === 'string' ? value : undefined)
     const count = (value: unknown) => (typeof value === 'number' ? value : undefined)
     const optional: Partial<TaskReportData> = {
+      diagnosis: parseTaskDiagnosis(raw.diagnosis),
+      interrupted: raw.interrupted === true ? true : undefined,
       attempt: count(raw.attempt),
       maxAttempts: count(raw.maxAttempts),
       provider: text(raw.provider),

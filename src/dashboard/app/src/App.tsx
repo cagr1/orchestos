@@ -39,7 +39,7 @@ import {
   rejectInstinct,
   resolveMemoryConflict,
 } from './api/projectTabs'
-import { getRunApprovals, listRuns, type PendingApproval } from './api/runs'
+import { getRun, getRunApprovals, listRuns, type PendingApproval } from './api/runs'
 import { pollProjectAndThreadTasks } from './api/taskPolling'
 import {
   decideTaskPollAction,
@@ -225,6 +225,7 @@ export default function App() {
   const [taskError, setTaskError] = useState<string | null>(null)
   const [taskRunError, setTaskRunError] = useState<{ message: string; code?: string } | null>(null)
   const [runningTaskId, setRunningTaskId] = useState<string | null>(null)
+  const [evidenceRunId, setEvidenceRunId] = useState<string | undefined>()
   const [runs, setRuns] = useState<RunItem[]>([])
   const [projectContext, setProjectContext] = useState<ProjectContext | null>(null)
   const [specs, setSpecs] = useState<SpecItem[]>([])
@@ -1583,6 +1584,13 @@ export default function App() {
                   }
                   onSendMessage={handleSendMessage}
                   onApproveHeldTask={handleApproveHeldTask}
+                  onViewEvidence={async (runId) => {
+                    if (!activeThread?.projectId) return
+                    const evidence = await getRun(runId, activeThread.projectId)
+                    setRuns((current) => [evidence, ...current.filter((run) => run.id !== runId)])
+                    setEvidenceRunId(runId)
+                    handleOpenSettings(`project_${activeThread.projectId}`, 'runs')
+                  }}
                   onRetryTask={handleApproveHeldTask}
                   onCommitRunTask={handleCommitRunTask}
                   onRejectHeldTask={handleRejectHeldTask}
@@ -1700,6 +1708,7 @@ export default function App() {
                 onSelectLanguage={setLanguage}
                 initialSection={settingsSection}
                 initialProjectTab={settingsProjectTab}
+                initialRunId={evidenceRunId}
                 tasks={tasks}
                 taskError={taskRunError?.message || taskError}
                 onOpenTaskRouting={

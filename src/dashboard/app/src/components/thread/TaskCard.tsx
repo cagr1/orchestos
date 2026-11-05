@@ -113,6 +113,7 @@ interface TaskCardProps {
   busy?: boolean
   onApprove?: () => void
   onReject?: () => void
+  onViewEvidence?: (runId: string) => void
   onRetry?: () => void
   onCommit?: (files: string[]) => void
   projectId?: string | null
@@ -127,6 +128,7 @@ export function TaskCard({
   onApprove,
   onReject,
   onRetry,
+  onViewEvidence,
   onCommit,
   projectId,
 }: TaskCardProps) {
@@ -151,6 +153,11 @@ export function TaskCard({
   const [copied, setCopied] = useState(false)
   const reduced = useReducedMotion()
   const last = card.reports.at(-1)
+  const interrupted = card.state === 'failed' && last?.interrupted === true
+  const diagnosis = card.state === 'failed' && !interrupted ? last?.diagnosis : undefined
+  const evidenceRunId = diagnosis?.runId
+  const normalizedCause = diagnosis?.cause?.replace(/\s+/g, ' ').trim()
+  const redundantError = normalizedCause && error?.replace(/\s+/g, ' ').includes(normalizedCause)
   const earlier = card.reports.slice(0, -1)
   const name = taskName(card.description)
   const detail = taskDetail(card.description)
@@ -253,7 +260,7 @@ export function TaskCard({
             card.state === 'running' && 'shimmer-text',
           )}
         >
-          {LABEL[card.state]}
+          {interrupted ? 'Interrupted' : LABEL[card.state]}
         </span>
         {attempt && <span className="text-app-muted">{attempt}</span>}
       </div>
@@ -264,7 +271,63 @@ export function TaskCard({
         transition={{ duration: reduced ? 0 : 0.15 }}
         className="flex flex-col gap-2"
       >
+        {interrupted && (
+          <p className="text-xs text-app-muted">
+            Interrupted — the task runner stopped before it finished
+          </p>
+        )}
+        {diagnosis && (
+          <div data-task-diagnosis className="space-y-2 text-xs text-app-muted">
+            {diagnosis.cause && (
+              <p className="whitespace-pre-wrap break-words text-app-error">
+                {diagnosis.failedCheck ? diagnosis.cause.split('\n')[0] : diagnosis.cause}
+              </p>
+            )}
+            {diagnosis.failedCheck && (
+              <div className="space-y-1">
+                {!diagnosis.cause && (
+                  <div className="font-mono break-words text-app">
+                    {diagnosis.failedCheck.command}
+                  </div>
+                )}
+                {diagnosis.failedCheck.output &&
+                  (diagnosis.failedCheck.output.split('\n').length > 12 ? (
+                    <details>
+                      <summary className="cursor-pointer">Check output</summary>
+                      <pre className="p-3 bg-app-bg font-mono text-xs overflow-x-auto whitespace-pre-wrap break-words">
+                        {diagnosis.failedCheck.output}
+                      </pre>
+                    </details>
+                  ) : (
+                    <pre className="p-3 bg-app-bg font-mono text-xs overflow-x-auto whitespace-pre-wrap break-words">
+                      {diagnosis.failedCheck.output}
+                    </pre>
+                  ))}
+              </div>
+            )}
+            {diagnosis.qaReasons?.map((reason) => (
+              <p key={reason} className="whitespace-pre-wrap break-words">
+                QA: {reason}
+              </p>
+            ))}
+            {diagnosis.executorReport && (
+              <div>
+                <p>Executor report (not verified)</p>
+                <pre className="font-mono whitespace-pre-wrap break-words">
+                  {diagnosis.executorReport}
+                </pre>
+              </div>
+            )}
+            {evidenceRunId && onViewEvidence && (
+              <Button variant="ghost" disabled={busy} onClick={() => onViewEvidence(evidenceRunId)}>
+                View evidence
+              </Button>
+            )}
+          </div>
+        )}
         {last &&
+          !interrupted &&
+          !diagnosis &&
           (last.summary ? (
             <p className="text-xs text-app-muted">{last.summary}</p>
           ) : (
@@ -279,7 +342,7 @@ export function TaskCard({
             ))}
           </div>
         )}
-        {error && (
+        {error && !redundantError && (
           <div role="alert" className="text-xs text-app-error">
             {error}
           </div>
@@ -429,10 +492,10 @@ export function TaskCard({
             </Button>
           </div>
         )}
-        {(card.state === 'failed' || card.state === 'pending') && (
+        {interrupted && (
           <div className="flex items-center gap-2 pt-1">
             <Button variant="primary" leadingIcon={RotateCw} disabled={busy} onClick={onRetry}>
-              Retry
+              Resume
             </Button>
           </div>
         )}
