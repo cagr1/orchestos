@@ -108,6 +108,14 @@
       "closedDate": null
     },
     {
+      "id": "RUN.2",
+      "sprint": "Fase 2 — Producto mínimo para entrega",
+      "block": "Abiertos — fiabilidad de los gates y documentación",
+      "title": "`run_steps` acepta el paso `notice` de Codex; persistir un paso nunca rompe la corrida",
+      "status": "done",
+      "closedDate": null
+    },
+    {
       "id": "RUN.1",
       "sprint": "Fase 2 — Producto mínimo para entrega",
       "block": "Abiertos — fiabilidad de los gates y documentación",

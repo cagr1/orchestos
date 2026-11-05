@@ -353,3 +353,46 @@ it('a task engine without action approval runs full without creating an approval
     rmSync(dir, { recursive: true, force: true })
   }
 })
+
+it('RUN.2 logs a failed step insert and completes the run with later steps intact', async () => {
+  process.env.OPENROUTER_API_KEY = ['test', 'key'].join('-')
+  const { singleShotEngine } = await import('../run/executors/single-shot.ts')
+  const { getRunSteps, clearRunSteps } = await import('../db/run-steps.ts')
+  const originalRun = db.run.bind(db)
+  const persistence = spyOn(db, 'run').mockImplementation((sql, ...args) => {
+    if (sql.includes('INSERT INTO run_steps') && args[0]?.includes('notice'))
+      throw new Error('injected step persistence failure')
+    return originalRun(sql, ...args)
+  })
+  const errors = spyOn(console, 'error').mockImplementation(() => {})
+  const engineCall = spyOn(singleShotEngine, 'run').mockImplementation(async (_ctx, opts) => {
+    opts.onStep?.({ type: 'notice', label: 'Retrying' })
+    opts.onStep?.({ type: 'text', label: 'Recovered' })
+    return {
+      files: [{ path: 'out.txt', content: 'hello' }],
+      inputTokens: 0,
+      outputTokens: 0,
+      usd: 0,
+      iterations: 1,
+      costByIteration: [],
+      log: [],
+    }
+  })
+  const dir = tmpDir()
+  try {
+    const result = await callRunTask(baseTask(), dir)
+    expect(result.status).toBe('done')
+    expect(getRunSteps('g4-persist-test')).toMatchObject([{ type: 'text', label: 'Recovered' }])
+    expect(errors).toHaveBeenCalledWith('Failed to persist run step', {
+      task_id: 'g4-persist-test',
+      type: 'notice',
+      error: expect.objectContaining({ message: 'injected step persistence failure' }),
+    })
+  } finally {
+    persistence.mockRestore()
+    errors.mockRestore()
+    engineCall.mockRestore()
+    clearRunSteps('g4-persist-test')
+    rmSync(dir, { recursive: true, force: true })
+  }
+})

@@ -47,6 +47,34 @@ describe('run-steps', () => {
     expect(sinceFirst[0]!.label).toBe('b')
   })
 
+  it('persiste notice con mensaje, kind y detalle sin perder redacción', () => {
+    clearRunSteps(TASK_ID)
+    const secret = ['sk', 'proj', '0123456789abcdefghijklmnopqrstuvwxyz'].join('-')
+    insertRunStep(TASK_ID, {
+      type: 'notice',
+      label: 'notice',
+      notice: { kind: 'auth', message: 'Sign in again', detail: `Authorization: Bearer ${secret}` },
+    })
+    const [step] = getRunSteps(TASK_ID)
+    expect(step!.type).toBe('notice')
+    expect(step!.label).toBe('Sign in again')
+    expect(JSON.parse(step!.detail!)).toMatchObject({ kind: 'auth', message: 'Sign in again' })
+    expect(step!.detail).not.toContain(secret)
+  })
+
+  it('persiste notices sin detalle y sin payload estructurado', () => {
+    clearRunSteps(TASK_ID)
+    insertRunStep(TASK_ID, {
+      type: 'notice',
+      label: 'Quota reached',
+      notice: { kind: 'quota', message: 'Quota reached' },
+    })
+    insertRunStep(TASK_ID, { type: 'notice', label: 'Retrying', detail: 'Attempt 2' })
+    const steps = getRunSteps(TASK_ID)
+    expect(JSON.parse(steps[0]!.detail!)).toEqual({ kind: 'quota', message: 'Quota reached' })
+    expect(steps[1]).toMatchObject({ type: 'notice', label: 'Retrying', detail: 'Attempt 2' })
+  })
+
   it('costUsd/tokens se persisten y se leen de vuelta', () => {
     clearRunSteps(TASK_ID)
     insertRunStep(TASK_ID, {

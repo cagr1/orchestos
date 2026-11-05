@@ -179,6 +179,7 @@ export function handleApiChatSessionConsole(url: URL): Response {
       for (const step of getRunSteps(turn.task_id)) {
         let text = `[tool] ${step.label}`
         if (step.type === 'text') text = `[text] ${step.detail || step.label}`
+        if (step.type === 'notice') text = `[notice] ${step.label}`
         if (step.type === 'step_finish') {
           const tokens = step.tokens_json ? ` ${step.tokens_json}` : ''
           const cost = step.cost_usd != null ? ` cost ${step.cost_usd}` : ''

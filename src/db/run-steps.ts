@@ -26,6 +26,9 @@ interface RunStepRecord {
 
 export function insertRunStep(taskId: string, event: ExecutorStepEvent): void {
   if (event.type === 'reasoning') return
+  const label = event.type === 'notice' ? (event.notice?.message ?? event.label) : event.label
+  const detail =
+    event.type === 'notice' && event.notice ? JSON.stringify(event.notice) : event.detail
   // MAX(seq)+1 solo es correcto si la lectura y la escritura son atómicas.
   // BEGIN IMMEDIATE toma el lock de escritura antes del SELECT, evitando que
   // dos procesos CLI/dashboard calculen el mismo seq al mismo tiempo.
@@ -44,8 +47,8 @@ export function insertRunStep(taskId: string, event: ExecutorStepEvent): void {
         taskId,
         seq,
         event.type,
-        redactSensitive(event.label),
-        event.detail ? redactSensitive(event.detail) : null,
+        redactSensitive(label),
+        detail ? redactSensitive(detail) : null,
         event.costUsd ?? null,
         event.tokens ? JSON.stringify(event.tokens) : null,
         new Date().toISOString(),

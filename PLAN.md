@@ -186,6 +186,17 @@ Cerrada. Todos sus ítems están archivados en `docs/done/` (ver "Cerrados — e
   Hecho: `syncReadme` recibe la ruta del README; el test usa un README de fixture en `mkdtempSync`. Gates del
   cerebro: test 10/0 con el README real alterado a mano (restaurado), lint, tsc.
   Ejecutado por: codex gpt-6-luna (mecanico)
+- [x] **RUN.2 — `run_steps` acepta el paso `notice` de Codex; persistir un paso nunca rompe la corrida.** (visto
+  2026-11-05 en el gate de RUN.1) Desde CHAT.3 (`760982d9`) Codex emite `notice` y el CHECK de `run_steps` lo rechaza
+  con `SQLITE_CONSTRAINT_CHECK` dentro del handler de `codex-app-server.ts:475`. En HEAD sin el arreglo,
+  `chat-retry-report` deja la tarea "Interrupted: the task runner stopped" (el error tumba el runner).
+  Hecho: migración 35 `run-step-notices` (CHECK con `notice`, filas copiadas); `insertRunStep` guarda el notice
+  (`detail` = JSON del `CliNotice`); `harness.ts` registra y sigue si el insert lanza; consola de sesión pinta
+  `[notice]`. Hermano `chat_turn_steps` ya lo admitía. No es la causa de CI.55 (reprodujo con el arreglo).
+  Gates del cerebro: tsc, lint, `test:coverage` 2308/0, `tasks` 43/43 sin `SQLITE_CONSTRAINT` en `dashboard.log`.
+  Gate en vivo: navegador real (Playwright), `docs/done/evidence/RUN.2-live.json`
+  Revisión: Opus (diff de Sol leído completo).
+  Ejecutado por: codex gpt-6.1-sol (criterio)
 - [ ] **RUN.1 — Una tarea fallida explica por qué falló en vez de reintentar a ciegas.** (pedido de Carlos
   2026-11-05) "No creo que el usuario deba hacer restart de una tarea fallida; si algo falló, es más valioso saber
   por qué que volver a intentar." Origen: `restart-mid-run` caso A ("failed · attempt 1/3" con reintento pendiente).
@@ -245,7 +256,12 @@ Cerrada. Todos sus ítems están archivados en `docs/done/` (ver "Cerrados — e
   Bucle aislado 2026-11-03 (en serie, sin carga): `tasks` 5/5 verde, sin reproducir. Los fallos vistos fueron en
   el pre-push (con carga); próximo intento: repetir bajo carga.
   Bajo carga 2026-11-05 (secuencia del pre-push, 16 flows, con `test:coverage` en paralelo): verde, sin reproducir.
-  Sigue esperando el fallo.
+  Reproducido 2026-11-05 (ejecutor de RUN.1 r2, `tasks` 38/43, con RUN.2 aplicado: no es el bug de `notice`).
+  Evidencia `$TMPDIR/ui-gate-88246/role-task-missing-output.json`: run `codex exec --sandbox workspace-write`
+  `gpt-6-luna`, 1 iteración, 30 tokens de salida, `executorReply` "I can't make or verify this change because no
+  file-editing tool is available in this session"; `retryCount 1`, tarea `pending` (reintento programado). Fase 2,
+  dos hallazgos: (a) Codex a veces dice no tener herramienta de edición con `workspace-write` (causa sin aislar);
+  (b) `waitForTaskFinished` (`tasks.mjs:39`) toma `pending` con reintento programado como fin. Falta spec.
 - [ ] **CI.54 — `codex-live`: la burbuja del usuario a veces no aparece en 2 s.** (abierto 2026-11-02)
   Visto 1 de 3 (2026-11-02, "turn 1 user message appears before completion"); el pre-push reintenta y lo oculta.
   Fase 1: que el fallo deje evidencia (captura, DOM, composer, timeline, log); fase 2: causa con esa evidencia.

@@ -409,7 +409,17 @@ export async function runTask(opts: HarnessOpts): Promise<TaskResult> {
         maxTokens,
         maxIterations,
         timeoutMs: externalTimeoutMs,
-        onStep: (event) => insertRunStep(ctx.task.id, event),
+        onStep: (event) => {
+          try {
+            insertRunStep(ctx.task.id, event)
+          } catch (error) {
+            console.error('Failed to persist run step', {
+              task_id: ctx.task.id,
+              type: event.type,
+              error,
+            })
+          }
+        },
       })
       outcome = runOutcome
       llmResponse = {

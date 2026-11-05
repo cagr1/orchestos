@@ -498,3 +498,13 @@ modos de `KNOWN_CLIS`; test legacy con `gemini` inalcanzable. r2 se intentó pri
 **Clasificación**: RESPETÓ.
 **Por qué**: persiste la base del merge tomada bajo el mismo candado, para deshacer todos los commits del run. No cambia tokens, QA ni permisos.
 **Reversibilidad/evidencia**: migración 31 aditiva, sin backfill inventado; tests de undo con dos commits y hook que impide el commit. Logs y gates entregados al cerebro.
+
+
+## 2026-11-05 — Codex, ejecutor RUN.2
+
+**Regla tocada**: `src/run/harness.ts`, protegido por la derivación de contexto/max_tokens.
+**Clasificación**: RESPETÓ.
+**Por qué**: captura únicamente el error de `insertRunStep` en `onStep` y registra `task_id`, tipo y error;
+no modifica contexto, max_tokens, checks, QA ni reintentos.
+**Reversibilidad/evidencia**: diff RUN.2 sin commit; test en `src/__tests__/harness-engine-persistence.test.ts`
+inyecta un fallo de INSERT, verifica el log y comprueba la corrida terminada y el paso posterior persistido.

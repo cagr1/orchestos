@@ -1157,6 +1157,37 @@ export const FUTURE_MIGRATIONS: readonly SchemaMigrationStep[] = [
         throw new Error('Migration 34 violated foreign keys')
     },
   },
+  {
+    version: 35,
+    name: 'run-step-notices',
+    precondition: () => {},
+    apply: (database) => {
+      database.exec(`
+        CREATE TABLE run_steps_notices (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          task_id TEXT NOT NULL,
+          seq INTEGER NOT NULL,
+          type TEXT NOT NULL CHECK(type IN ('tool_use', 'text', 'step_finish', 'notice')),
+          label TEXT NOT NULL,
+          detail TEXT,
+          cost_usd REAL,
+          tokens_json TEXT,
+          created_at TEXT NOT NULL
+        );
+        INSERT INTO run_steps_notices SELECT * FROM run_steps;
+        DROP TABLE run_steps;
+        ALTER TABLE run_steps_notices RENAME TO run_steps;
+        CREATE INDEX idx_run_steps_task_id ON run_steps(task_id, seq);
+      `)
+    },
+    postcondition: (database) => {
+      const row = database
+        .query<{ sql: string }, []>("SELECT sql FROM sqlite_master WHERE name = 'run_steps'")
+        .get()
+      if (!row?.sql.includes("'notice'"))
+        throw new Error('Migration 35 did not enable run step notices')
+    },
+  },
 ]
 
 function appliedVersions(database: Database): Set<number> {
@@ -1445,7 +1476,7 @@ export function runMigrations(): void {
       id          INTEGER PRIMARY KEY AUTOINCREMENT,
       task_id     TEXT NOT NULL,
       seq         INTEGER NOT NULL,
-      type        TEXT NOT NULL CHECK(type IN ('tool_use', 'text', 'step_finish')),
+      type        TEXT NOT NULL CHECK(type IN ('tool_use', 'text', 'step_finish', 'notice')),
       label       TEXT NOT NULL,
       detail      TEXT,
       cost_usd    REAL,
