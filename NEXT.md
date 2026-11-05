@@ -11,8 +11,8 @@ Arranque: `bun run agent:preflight -- --item <ID> --agent claude`. Lista viva: `
    unassigned roles"; el error de rol vacío lleva a Model routing); CI.61 `8ec9b071` (shard `executors-routing`
    partido en `-routing` + `-routing-c`); UI.63 `e67b7dff` ("Reset credits" de Codex en el popover de cuotas).
    Descripción del repo en GitHub publicada (CLIs, APIs y LLMs locales).
-1. **Mirar la corrida nocturna de `Mutation Shards`** (CI.61): si `executors-routing` o `-routing-c` pasa 150 min,
-   reabrir CI.61 con la duración medida (`gh run view <id> --json jobs`).
+1. **`Mutation Shards`** (CI.61): corrida 42006593533 (`e67b7dff`): `executors-routing` 43 min y `-routing-c` 109 min,
+   debajo de 150. Si una corrida posterior pasa 150 min, reabrir CI.61 con la duración medida.
 2. **Esperan su próximo fallo** (leer el JSON y escribir la fase 2). Todos dejan evidencia en el `runDir` del gate
    (`$TMPDIR/ui-gate-<pid>/`): CI.55 `role-task-missing-output.json`; CI.57 `composer-picker-model-missing.json`;
    CI.54 `turn1-bubble-missing.json`; CI.19, el motivo en el detalle del paso.
