@@ -41,6 +41,7 @@ export function syncReadme(
     const result = spawnSync('bun', ['run', 'test:coverage'], { encoding: 'utf8' })
     return { status: result.status, stdout: result.stdout ?? '', stderr: result.stderr ?? '' }
   },
+  readmePath = 'README.md',
 ): number {
   const check = args.includes('--check')
   const fromLogIndex = args.indexOf('--from-log')
@@ -66,7 +67,7 @@ export function syncReadme(
       throw new Error(
         `test:coverage terminó con estado ${coverage.status}: ${coverage.stderr.trim()}`,
       )
-    const readme = readFileSync('README.md', 'utf8')
+    const readme = readFileSync(readmePath, 'utf8')
     const next = renderBlocks(readme, {
       clis: `${KNOWN_CLIS.map((cli) => cli.label).join(', ')}, …`,
       tests: `${parsed.tests} tests · 0 failures · coverage gate in CI`,
@@ -76,7 +77,7 @@ export function syncReadme(
       console.error('README.md necesita actualizarse (readme:sync --check).')
       return 1
     }
-    writeFileSync('README.md', next)
+    writeFileSync(readmePath, next)
     return 0
   } catch (error) {
     console.error(error instanceof Error ? error.message : String(error))

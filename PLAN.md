@@ -181,6 +181,11 @@ Cerrada. Todos sus ítems están archivados en `docs/done/` (ver "Cerrados — e
   cerebro: `test:coverage` 2295/0, `readme:sync` real → 2296 (suma el test de r2), `--check` exit 0, lint y tsc.
   qa (Sol) r1: 2 P1 (resumen en stderr, `tee` sin stderr) confirmados y corregidos en r2. `actionlint` no instalado.
   Ejecutado por: codex gpt-6-luna (mecanico r1, r2) · revisión qa codex gpt-6.1-sol
+- [x] **DOC.9.1 — El test de `readme-sync` no depende del `README.md` real.** (regresión de DOC.9, 2026-11-05) El
+  pre-push de `52879bd5` falló: el test fija 2295 y lee el README real, que ya dice 2296.
+  Hecho: `syncReadme` recibe la ruta del README; el test usa un README de fixture en `mkdtempSync`. Gates del
+  cerebro: test 10/0 con el README real alterado a mano (restaurado), lint, tsc.
+  Ejecutado por: codex gpt-6-luna (mecanico)
 - [ ] **RUN.1 — Una tarea fallida explica por qué falló en vez de reintentar a ciegas.** (pedido de Carlos
   2026-11-05) "No creo que el usuario deba hacer restart de una tarea fallida; si algo falló, es más valioso saber
   por qué que volver a intentar." Origen: `restart-mid-run` caso A ("failed · attempt 1/3" con reintento pendiente).

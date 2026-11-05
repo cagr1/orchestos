@@ -100,6 +100,14 @@
       "closedDate": null
     },
     {
+      "id": "DOC.9.1",
+      "sprint": "Fase 2 — Producto mínimo para entrega",
+      "block": "Abiertos — fiabilidad de los gates y documentación",
+      "title": "El test de `readme-sync` no depende del `README.md` real",
+      "status": "done",
+      "closedDate": null
+    },
+    {
       "id": "RUN.1",
       "sprint": "Fase 2 — Producto mínimo para entrega",
       "block": "Abiertos — fiabilidad de los gates y documentación",
