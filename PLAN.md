@@ -180,7 +180,7 @@ Cerrada. Todos sus ítems están archivados en `docs/done/` (ver "Cerrados — e
   `.github/workflows/readme-sync.yml` (viernes 12:00 UTC + manual, PR si cambia, uno abierto a la vez). Gates del
   cerebro: `test:coverage` 2295/0, `readme:sync` real → 2296 (suma el test de r2), `--check` exit 0, lint y tsc.
   qa (Sol) r1: 2 P1 (resumen en stderr, `tee` sin stderr) confirmados y corregidos en r2. `actionlint` no instalado.
-  Ejecutado por: codex luna (mecanico r1, r2) · revisión qa codex sol
+  Ejecutado por: codex gpt-6-luna (mecanico r1, r2) · revisión qa codex gpt-6.1-sol
 - [ ] **RUN.1 — Una tarea fallida explica por qué falló en vez de reintentar a ciegas.** (pedido de Carlos
   2026-11-05) "No creo que el usuario deba hacer restart de una tarea fallida; si algo falló, es más valioso saber
   por qué que volver a intentar." Origen: `restart-mid-run` caso A ("failed · attempt 1/3" con reintento pendiente).
