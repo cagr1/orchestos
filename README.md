@@ -1,11 +1,11 @@
 # orchestos — contract-first LLM coding runner
 
-A local dashboard and CLI that orchestrate the coding CLIs you already use (Claude Code, Codex, OpenCode, …).
+A local dashboard and CLI that orchestrate the coding CLIs you already use (<!-- readme-sync:clis -->Claude Code, Codex, opencode, DeepSeek, Gemini, Kimi, GLM, …<!-- /readme-sync:clis -->).
 You ask in a chat; the orchestrator turns the request into a task with a declared file contract, an executor
 writes only those files inside a git worktree, deterministic checks and a QA reviewer validate the result, and
 the outcome comes back to the same chat thread. Every run produces evidence in SQLite.
 
-1816 tests · 0 failures · coverage gate in CI
+<!-- readme-sync:tests -->2296 tests · 0 failures · coverage gate in CI<!-- /readme-sync:tests -->
 
 ---
 

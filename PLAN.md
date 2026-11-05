@@ -173,6 +173,28 @@ Cerrada. Todos sus ítems están archivados en `docs/done/` (ver "Cerrados — e
   por el cerebro con Codex real; captura mirada a ojo: "Reset credits 3 · expires in 1d".
   Revisión: Opus (diff de Sol leído completo; r1 de Luna verificado).
   Ejecutado por: codex gpt-6.1-sol (criterio) + luna (mecanico r1) · Spec: docs/specs/UI.63.md
+- [x] **DOC.9 — `bun run readme:sync`: el README se actualiza solo con datos computables.** (GO de Carlos
+  2026-11-05) Bloques marcados (CLIs, número de tests) reescritos sin LLM; un workflow de los viernes abre un PR.
+  Hecho: `scripts/readme-sync.ts` (bloques `readme-sync:clis` desde `KNOWN_CLIS` y `readme-sync:tests` desde la salida
+  de `test:coverage`, stdout+stderr; con fallos no escribe), `--check`, `--from-log`; workflow
+  `.github/workflows/readme-sync.yml` (viernes 12:00 UTC + manual, PR si cambia, uno abierto a la vez). Gates del
+  cerebro: `test:coverage` 2295/0, `readme:sync` real → 2296 (suma el test de r2), `--check` exit 0, lint y tsc.
+  qa (Sol) r1: 2 P1 (resumen en stderr, `tee` sin stderr) confirmados y corregidos en r2. `actionlint` no instalado.
+  Ejecutado por: codex luna (mecanico r1, r2) · revisión qa codex sol
+- [ ] **RUN.1 — Una tarea fallida explica por qué falló en vez de reintentar a ciegas.** (pedido de Carlos
+  2026-11-05) "No creo que el usuario deba hacer restart de una tarea fallida; si algo falló, es más valioso saber
+  por qué que volver a intentar." Origen: `restart-mid-run` caso A ("failed · attempt 1/3" con reintento pendiente).
+  Decisión (2026-11-05): el reintento automático con el motivo del fallo se mantiene; la tarjeta fallida del hilo
+  muestra arriba el diagnóstico (check que falló con su salida, razones del QA, reporte del ejecutor, enlace a la
+  evidencia) y se quita `Retry` (`TaskCard.tsx:432`); para seguir, se ajusta el pedido en el chat.
+  Spec: docs/specs/RUN.1.md
+- [ ] **UI.64 — El (+) de proyecto y el de adjuntar abren un menú, no una acción directa.** (pedido de Carlos
+  2026-11-05) "+ Add project" ofrece clonar desde URL como Orca, T3 y MonoCode. Adjuntar archivo en Chat y Dev hoy
+  abre directo el selector del sistema; debe abrir antes un menú.
+  Decisión (2026-11-05): adjuntar = "Subir desde la computadora" + "Archivo del proyecto"; clonar = URL + carpeta de
+  destino elegible (por defecto la que contiene los proyectos), registra y activa. Referencias leídas (bundle de Orca, código de T3): ambas abren directo el selector al
+  adjuntar; el menú del clip es decisión propia. MonoCode sin verificar (binario Tauri).
+  Spec: docs/specs/UI.64.md
 - [ ] **CI.19 — El `git commit` del fixture falla a veces en el andamiaje de los ui-gates.** Visto 1 vez en
   `qa-negative` (2026-10-11, 1 de 9): `Command failed: git … commit -qm task fixture`, sin motivo porque el helper
   `run` usa `stdio: 'ignore'`. `qa-negative` ya reporta stdout/stderr y exit; los otros 20 flows con el mismo helper no.

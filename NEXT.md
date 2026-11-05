@@ -16,11 +16,7 @@ Arranque: `bun run agent:preflight -- --item <ID> --agent claude`. Lista viva: `
 2. **Esperan su próximo fallo** (leer el JSON y escribir la fase 2). Todos dejan evidencia en el `runDir` del gate
    (`$TMPDIR/ui-gate-<pid>/`): CI.55 `role-task-missing-output.json`; CI.57 `composer-picker-model-missing.json`;
    CI.54 `turn1-bubble-missing.json`; CI.19, el motivo en el detalle del paso.
-3. **Decisiones de Carlos pendientes**:
-   - README los viernes. Propuesta: `bun run readme:sync` reescribe solo bloques marcados con datos computables
-     (tests, CLIs, proveedores), sin LLM, y un workflow de los viernes abre un PR.
-   - Mientras no responda, el número de tests del README (1816) queda viejo.
-   - Revisión de Settings pestaña por pestaña: mostrada el 2026-11-02, sin pedidos; se le preguntó si se cierra.
+3. **Siguiente**: RUN.1 (spec listo, criterio) y después UI.64 (spec listo); en serie, un ejecutor por árbol.
 4. Cualquier CLI corre tareas sin código (Settings → Providers → "CLIs propios"). Un adaptador rico para un CLI nuevo
    sigue siendo `KNOWN_CLIS` + `registerTaskEngine`, y lo prueba el cerebro, no Carlos.
 
@@ -39,6 +35,7 @@ Arranque: `bun run agent:preflight -- --item <ID> --agent claude`. Lista viva: `
 - `method/bin/delegate.test.sh` "sin temporales" falla si corre otro `delegate` (mira `/tmp` global). La contraprueba
   de un test de `~/.agent-method` copia a `<tmp>/method/hooks/` y corre desde `<tmp>`.
 - Spec o doc con comandos de escritura dentro de un heredoc de Bash dispara `brain-no-code`: usar Write/Edit.
+- `.gitignore:55` ignora `.github/workflows/`: un workflow nuevo se suma con `git add -f`.
 
 ## Anotado, sin ítem (abrir ítem solo si Carlos lo pide; los intermitentes, también si se repiten)
 
@@ -64,8 +61,7 @@ Arranque: `bun run agent:preflight -- --item <ID> --agent claude`. Lista viva: `
 
 ## Decisiones de Carlos vigentes
 
-- Settings se revisa con Carlos pestaña por pestaña en el dashboard real (desde 2026-10-13); hasta que termine esa
-  revisión, no sumar UI ahí por iniciativa propia.
+- Revisión de Settings pestaña por pestaña: cerrada por ahora (Carlos, 2026-11-05).
 - Nada hardcodeado en quién ejecutó una tarea: lo dice la config.
 - Memory = entrada mecánica por tarea terminada, sin LLM.
 - Árbol sucio = seguir bloqueando + tarea `pending` + "Commit & Run" en el hilo.

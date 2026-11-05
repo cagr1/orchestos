@@ -92,6 +92,30 @@
       "closedDate": null
     },
     {
+      "id": "DOC.9",
+      "sprint": "Fase 2 — Producto mínimo para entrega",
+      "block": "Abiertos — fiabilidad de los gates y documentación",
+      "title": "`bun run readme:sync`: el README se actualiza solo con datos computables",
+      "status": "done",
+      "closedDate": null
+    },
+    {
+      "id": "RUN.1",
+      "sprint": "Fase 2 — Producto mínimo para entrega",
+      "block": "Abiertos — fiabilidad de los gates y documentación",
+      "title": "Una tarea fallida explica por qué falló en vez de reintentar a ciegas",
+      "status": "open",
+      "closedDate": null
+    },
+    {
+      "id": "UI.64",
+      "sprint": "Fase 2 — Producto mínimo para entrega",
+      "block": "Abiertos — fiabilidad de los gates y documentación",
+      "title": "El (+) de proyecto y el de adjuntar abren un menú, no una acción directa",
+      "status": "open",
+      "closedDate": null
+    },
+    {
       "id": "CI.19",
       "sprint": "Fase 2 — Producto mínimo para entrega",
       "block": "Abiertos — fiabilidad de los gates y documentación",
