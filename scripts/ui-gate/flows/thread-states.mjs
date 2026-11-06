@@ -226,7 +226,14 @@ export default async function threadStates({ page, base, step, shot, visible, co
         earlier: 0,
       },
       'task-running': { state: 'running', label: 'Running', actions: [], earlier: 0 },
-      'task-failed': { state: 'failed', label: 'Failed', actions: ['Retry'], earlier: 1 },
+      // RUN.1: a failed card explains why it failed and offers no Retry.
+      'task-failed': {
+        state: 'failed',
+        label: 'Failed',
+        actions: [],
+        absent: ['Retry'],
+        earlier: 1,
+      },
       'task-blocked': {
         state: 'blocked',
         label: 'Uncommitted changes',
@@ -272,6 +279,14 @@ export default async function threadStates({ page, base, step, shot, visible, co
           `${themeName}-${id}-action-${action}`,
           inside === 1 && total === 1,
           `${themeName}: ${id} "${action}" inside card (${inside}/${total})`,
+        )
+      }
+      for (const action of expected.absent ?? []) {
+        const total = await section.getByRole('button', { name: action, exact: true }).count()
+        await step(
+          `${themeName}-${id}-no-${action}`,
+          total === 0,
+          `${themeName}: ${id} has no "${action}" (${total})`,
         )
       }
       if (expected.earlier > 0) {

@@ -317,7 +317,7 @@ export default function ThreadStatesSheet() {
           </State>
 
           <State id="thread-empty" label="Empty state">
-            <ThreadEmpty title="OrchestOS" subtitle="Claude · claude-sonnet-5-5" />
+            <ThreadEmpty title="OrchestOS" />
           </State>
 
           <State id="composer-empty" label="Empty composer">

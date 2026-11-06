@@ -89,6 +89,16 @@ Cerrada. Todos sus ítems están archivados en `docs/done/` (ver "Cerrados — e
   `dev-session-tabs` 47/47 y `shell-look` 75/75 (`gate:evidence` `UI.67-dev-tabs`).
   Gate en vivo: navegador real (panel del navegador, 10 tabs abiertas en :4299), `docs/done/evidence/UI.67-live.json`
   Ejecutado por: claude opus 5.5
+- [x] **UI.68 — Chat vacío sin la línea "agente · modelo".** (Carlos, 2026-11-06: "texto innecesario") Bajo el
+  nombre del proyecto se repetía p. ej. "Codex · gpt-6.1-sol", que el composer ya muestra. `ThreadEmpty` queda solo
+  con el título; se borran `cliName`, `chatClis` y su `getCliModels`, que solo existían para esa línea.
+  Hermano hallado: `thread-states` estaba rojo en `master` (`a2666db3`) desde RUN.1, que quitó Retry de la tarjeta
+  fallida a propósito pero no actualizó el gate; ahora el gate exige que Retry no esté.
+  Gates del cerebro: `tsc --noEmit`, `build:app`, `thread-states` 311/311, `chat-streaming` 27/27, `codex-live`
+  15/15 (`gate:evidence` `UI.68-chat-live`).
+  Gate en vivo: navegador real (panel del navegador, chat nuevo en :4299), `docs/done/evidence/UI.68-live.json`
+  Ejecutado por: claude opus 5.5
+  Texto visible: "OrchestOS" (título de ejemplo del chat vacío en la hoja de estados; ya existía, solo pierde el subtítulo)
 - [x] **OC.1 — La terminal de Dev lanza OpenCode con `--standalone`.** (abierto 2026-11-03, GO de Carlos al plan
   OC.1–OC.4) Con OpenCode 2.2.5 y el servicio compartido desincronizado, la TUI sale a los ~20 s.
   Hecho: `resolveOpenCodeCommand` devuelve `[binary, '--standalone']` (servidor privado por pestaña).

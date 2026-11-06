@@ -6,8 +6,6 @@ import { ChatMessage } from '@/components/ui/chat-message'
 import { FileThumbnail } from '@/components/ui/file-thumbnail'
 import type { CliNotice } from '../../../../../run/executors/cli-failure'
 import {
-  type CliModelCatalog,
-  getCliModels,
   getDefaultChatAgent,
   getSessionContext,
   getTimeline,
@@ -18,7 +16,7 @@ import { type ConfigResponse, getConfig } from '../../api/settings'
 import { useStickToBottom } from '../../hooks/useStickToBottom'
 import { useStopChatTurn } from '../../hooks/useStopChatTurn'
 import type { ChatAttachment, ChatThread, SessionStatus, TaskItem } from '../../types/orchestos'
-import { AgentComposer, type CliId, cliDisplayName } from '../common/AgentComposer'
+import { AgentComposer, type CliId } from '../common/AgentComposer'
 import {
   type EntranceMode,
   enterSession,
@@ -267,22 +265,8 @@ export const OrchestChatView: React.FC<OrchestChatViewProps> = ({
       disposed = true
     }
   }, [])
-  const [chatClis, setChatClis] = useState<CliModelCatalog[]>([])
-  useEffect(() => {
-    let disposed = false
-    void getCliModels()
-      .then((catalogs) => {
-        if (!disposed) setChatClis(catalogs.filter((cli) => cli.chat && cli.installed))
-      })
-      .catch(() => {})
-    return () => {
-      disposed = true
-    }
-  }, [])
-  const selectedCli = chatClis.find((cli) => cli.id === thread?.agent)
   const cliId: CliId =
     thread?.agent && thread.agent !== 'local' ? thread.agent : (defaultAgent ?? 'api')
-  const cliName = cliDisplayName(cliId, selectedCli?.label)
   const lastAssistant = [...messages].reverse().find((message) => message.role === 'assistant')
   const lastModel = lastAssistant?.model
     ?.replace(/\s+via\s+.+$/i, '')
@@ -349,10 +333,7 @@ export const OrchestChatView: React.FC<OrchestChatViewProps> = ({
         <div ref={scrollContainerRef} className="flex-1 overflow-y-auto p-4 md:p-6 space-y-6">
           <div ref={contentRef}>
             {messages.length === 0 ? (
-              <ThreadEmpty
-                title={projectName || 'Chat'}
-                subtitle={[cliName, composerModel || initialModel].filter(Boolean).join(' · ')}
-              />
+              <ThreadEmpty title={projectName || 'Chat'} />
             ) : (
               <div
                 data-ff
