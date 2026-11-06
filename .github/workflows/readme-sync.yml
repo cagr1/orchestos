@@ -30,7 +30,7 @@ jobs:
             echo "An open README sync pull request already exists."
             exit 0
           fi
-          branch="readme-sync/$(date -u +%Y-%m-%d)"
+          branch="readme-sync/$(date -u +%Y-%m-%d)-${{ github.run_id }}"
           git switch -c "$branch"
           git -c user.name="github-actions[bot]" -c user.email="41898309+github-actions[bot]@users.noreply.github.com" commit -am "docs: sync README test count and CLIs"
           git push origin "$branch"
