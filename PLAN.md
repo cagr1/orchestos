@@ -1,2 +1,2 @@
 ## Sprint fixture
-- [ ] **X — X item.**
+- [x] **X — X item.**
