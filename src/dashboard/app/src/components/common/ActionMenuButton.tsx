@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react'
+import type { ReactNode, RefObject } from 'react'
 import { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 
@@ -8,12 +8,14 @@ export function ActionMenuButton({
   className,
   children,
   options,
+  anchorRef,
 }: {
   label: string
   menuLabel: string
   className: string
   children: ReactNode
   options: { label: string; action: () => void }[]
+  anchorRef?: RefObject<HTMLElement | null>
 }) {
   const buttonRef = useRef<HTMLButtonElement>(null)
   const menuRef = useRef<HTMLDivElement>(null)
@@ -71,8 +73,12 @@ export function ActionMenuButton({
             ref={menuRef}
             role="menu"
             aria-label={menuLabel}
-            style={menu}
-            className="fixed z-50 w-56 rounded-card bg-app-surface border border-app shadow-2xl p-2 text-xs text-app"
+            style={anchorRef ? undefined : menu}
+            className={
+              anchorRef
+                ? 'absolute bottom-full left-2.5 mb-1 z-50 w-56 rounded-card bg-app-surface border border-app shadow-2xl p-2 text-xs text-app'
+                : 'fixed z-50 w-56 rounded-card bg-app-surface border border-app shadow-2xl p-2 text-xs text-app'
+            }
             onKeyDown={(event) => {
               if (event.key === 'Escape' || event.key === 'Tab') {
                 event.preventDefault()
@@ -104,7 +110,7 @@ export function ActionMenuButton({
               </button>
             ))}
           </div>,
-          document.body,
+          anchorRef?.current ?? document.body,
         )}
     </>
   )

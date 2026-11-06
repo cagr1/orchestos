@@ -116,6 +116,24 @@ export default async function projectAddMenu({ page, api, step, shot, visible, h
   await newChat.getByRole('button', { name: /Codex/ }).first().click()
   await newChat.getByRole('button', { name: 'Start Chat', exact: true }).click()
   const attach = page.getByRole('button', { name: 'Attach file', exact: true })
+  async function checkAttachmentPosition(surface) {
+    const menu = page.getByRole('menu', { name: 'Attach files', exact: true })
+    await visible(menu)
+    const composer = page.locator('textarea').last().locator('..').locator('..')
+    const menuRect = await menu.boundingBox()
+    const composerRect = await composer.boundingBox()
+    await shot(`attachment-menu-${surface}`)
+    await step(
+      `${surface} attachment menu clears the composer border`,
+      menuRect &&
+        composerRect &&
+        (menuRect.y + menuRect.height < composerRect.y ||
+          menuRect.y > composerRect.y + composerRect.height ||
+          menuRect.x + menuRect.width < composerRect.x ||
+          menuRect.x > composerRect.x + composerRect.width),
+      JSON.stringify({ menuRect, composerRect }),
+    )
+  }
   await attach.click()
   const attachments = page.getByRole('menu', { name: 'Attach files', exact: true })
   await step(
@@ -128,6 +146,7 @@ export default async function projectAddMenu({ page, api, step, shot, visible, h
       )),
   )
   await shot('attachment-menu')
+  await checkAttachmentPosition('chat')
   await attachments.getByRole('menuitem', { name: 'File from project', exact: true }).click()
   const files = page.getByRole('listbox', { name: 'Project files', exact: true })
   await step(
@@ -144,4 +163,8 @@ export default async function projectAddMenu({ page, api, step, shot, visible, h
   const chooser = page.waitForEvent('filechooser')
   await attachments.getByRole('menuitem', { name: 'Upload from computer', exact: true }).click()
   await step('Upload from computer opens system file picker', (await chooser).isMultiple())
+  await page.getByRole('button', { name: 'Dev', exact: true }).click()
+  await attach.click()
+  await checkAttachmentPosition('dev')
+  await page.keyboard.press('Escape')
 }

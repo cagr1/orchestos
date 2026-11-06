@@ -272,9 +272,7 @@ export function TaskCard({
         className="flex flex-col gap-2"
       >
         {interrupted && (
-          <p className="text-xs text-app-muted">
-            Interrupted — the task runner stopped before it finished
-          </p>
+          <p className="text-xs text-app-muted">The task runner stopped before it finished</p>
         )}
         {diagnosis && (
           <div data-task-diagnosis className="space-y-2 text-xs text-app-muted">

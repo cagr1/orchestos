@@ -366,6 +366,14 @@ export default async function restartMidRun({
     )
     const interruptedCardB = page.locator('[data-task-id="gate-restart-b"]')
     await step(
+      'B: interruption label appears once with a separate explanation',
+      (await interruptedCardB.innerText()).match(/Interrupted/g)?.length === 1 &&
+        (await visible(
+          interruptedCardB.getByText('The task runner stopped before it finished', { exact: true }),
+        )),
+      await interruptedCardB.innerText(),
+    )
+    await step(
       'B: interruption offers only Resume, without failure diagnosis',
       (await visible(interruptedCardB.getByRole('button', { name: 'Resume', exact: true }))) &&
         (await interruptedCardB.getByRole('button', { name: 'Retry', exact: true }).count()) ===

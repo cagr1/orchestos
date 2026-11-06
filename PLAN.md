@@ -266,11 +266,19 @@ Cerrada. Todos sus ítems están archivados en `docs/done/` (ver "Cerrados — e
   Hecho: `chat_paths` cubre `src/dashboard/(chat-|default-chat-)*.ts` y el hilo. Gate del cerebro: sondeo de la regex
   (5 rutas de chat coinciden, `server.ts` y Settings no), `bash -n`, hook instalado idéntico a la fuente.
   Ejecutado por: codex gpt-6-luna (mecanico)
-- [ ] **UI.65 — Acabados de la tarjeta de tarea y del menú del clip.** (pedido de Carlos 2026-11-06) Anotados en
+- [x] **UI.65 — Acabados de la tarjeta de tarea y del menú del clip.** (pedido de Carlos 2026-11-06) Anotados en
   RUN.1 y UI.64: "Interrupted" sale dos veces en la tarjeta interrumpida (`TaskCard.tsx:263` y `:276`); `pending` con
   reintento muestra el resumen y no el diagnóstico (sin causa aislada: `task-report.ts:73` sí lo arma); el menú del
-  clip se superpone al borde del composer (`AgentComposer.tsx`). Spec: `docs/specs/UI.65.md`.
-  Texto visible: "The task runner stopped before it finished" (reemplaza al anterior sin repetir el rótulo)
+  clip se superpone al borde del composer (`AgentComposer.tsx`).
+  Hecho: la tarjeta interrumpida dice "Interrupted" una vez; el menú del clip se ancla al composer
+  (`ActionMenuButton` con `anchorRef`, `bottom-full`) y ya no pisa su borde en Chat ni Dev; paso nuevo
+  `failed attempt shows diagnosis` en `chat-retry-report`: el intento 1/3 muestra el diagnóstico (no reprodujo el
+  resumen visto en RUN.1; probable mensaje persistido antes de RUN.1, sin confirmar). Gates del cerebro: tsc, lint,
+  `chat-retry-report` 26/26, `restart-mid-run` 31/31, `project-add-menu` 14/14 (`gate:evidence` `UI.65-live`).
+  Gate en vivo: navegador real (Playwright), `docs/done/evidence/UI.65-live.json`
+  Revisión: Opus (diff leído; capturas del clip antes/después en Chat y Dev, tarjeta fallida e interrumpida mirados).
+  Ejecutado por: codex gpt-6.1-sol (criterio) · Spec: docs/specs/UI.65.md
+  Texto visible: "The task runner stopped before it finished" (un ícono no dice que el runner se cortó antes de terminar)
 - [ ] **CI.19 — El `git commit` del fixture falla a veces en el andamiaje de los ui-gates.** Visto 1 vez en
   `qa-negative` (2026-10-11, 1 de 9): `Command failed: git … commit -qm task fixture`, sin motivo porque el helper
   `run` usa `stdio: 'ignore'`. `qa-negative` ya reporta stdout/stderr y exit; los otros 20 flows con el mismo helper no.

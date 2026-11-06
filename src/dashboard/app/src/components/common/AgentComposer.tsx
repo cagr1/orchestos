@@ -265,6 +265,7 @@ export const AgentComposer: React.FC<AgentComposerProps> = ({
   const uploadControllers = useRef(new Map<string, AbortController>())
 
   const textareaRef = useRef<HTMLTextAreaElement>(null)
+  const composerRef = useRef<HTMLDivElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const dropdownRef = useRef<HTMLDivElement>(null)
 
@@ -766,7 +767,8 @@ export const AgentComposer: React.FC<AgentComposerProps> = ({
 
       {/* Main Composer Box */}
       <div
-        className={`rounded-card border bg-app-surface focus-within:border-app-accent/80 transition-all flex flex-col p-2.5 shadow-xs ${
+        ref={composerRef}
+        className={`relative rounded-card border bg-app-surface focus-within:border-app-accent/80 transition-all flex flex-col p-2.5 shadow-xs ${
           dragging ? 'border-app-accent border-dashed' : 'border-app'
         }`}
         onDragOver={(e) => {
@@ -907,6 +909,7 @@ export const AgentComposer: React.FC<AgentComposerProps> = ({
               multiple
             />
             <ActionMenuButton
+              anchorRef={composerRef}
               label="Attach file"
               menuLabel="Attach files"
               className="p-1 rounded-control text-app-muted hover:text-app hover:bg-app-elevated/60 transition-colors"

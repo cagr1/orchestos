@@ -209,6 +209,25 @@ export default async function chatRetryReport({ page, api, step, shot, visible, 
     reportVisible && /Attempt 1\/3/.test(failedText),
     failedText,
   )
+  const failedMessage = (await messagesFor(api, project.id, session.id, taskId)).at(-1)
+  const failedDiagnosis = failedReport.locator('[data-task-diagnosis]')
+  const plainSummary = failedReport.getByText(failedMessage?.taskReport?.summary ?? '', {
+    exact: true,
+  })
+  const showsDiagnosis =
+    (await visible(failedDiagnosis)) &&
+    (await plainSummary.evaluateAll((nodes) =>
+      nodes.every((node) => node.closest('[data-task-diagnosis]')),
+    ))
+  await step('failed attempt shows diagnosis', showsDiagnosis, JSON.stringify(failedMessage))
+  await shot('failed-attempt-diagnosis')
+  if (!showsDiagnosis) {
+    writeFileSync(
+      join(runDir, 'failed-attempt-message.json'),
+      JSON.stringify(failedMessage, null, 2),
+    )
+    return
+  }
   await step(
     'no uuid text',
     reportVisible && !failedText.includes(taskId),
