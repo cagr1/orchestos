@@ -124,6 +124,14 @@
       "closedDate": null
     },
     {
+      "id": "CI.62",
+      "sprint": "Fase 2 — Producto mínimo para entrega",
+      "block": "Abiertos — fiabilidad de los gates y documentación",
+      "title": "`ui:gate` borra al arrancar los `runDir` de más de 24 h",
+      "status": "open",
+      "closedDate": null
+    },
+    {
       "id": "UI.64",
       "sprint": "Fase 2 — Producto mínimo para entrega",
       "block": "Abiertos — fiabilidad de los gates y documentación",

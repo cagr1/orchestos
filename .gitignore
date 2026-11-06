@@ -86,3 +86,10 @@ review-evidence/
 REVIEW.md
 .orchestos/adversarial-review-state.json
 .orchestos/tasks.lock
+
+# Capturas de gates: se miran en $TMPDIR y se borran; la evidencia versionada es JSON/log (Carlos, 2026-11-05)
+docs/done/evidence/**/*.png
+docs/done/evidence/**/*.jpg
+docs/done/evidence/**/*.jpeg
+docs/done/evidence/**/*.webm
+docs/done/evidence/**/*.gif

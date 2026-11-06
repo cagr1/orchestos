@@ -218,6 +218,10 @@ Cerrada. Todos sus ítems están archivados en `docs/done/` (ver "Cerrados — e
   Texto visible: "Check output" (rótulo del desplegable de una salida larga) · "QA:" (de quién es la razón)
   Texto visible: "View evidence" · "Resume" (botones: una acción sin rótulo es ambigua)
   Ejecutado por: codex gpt-6.1-sol (criterio r1, r2)
+- [ ] **CI.62 — `ui:gate` borra al arrancar los `runDir` de más de 24 h.** (pedido de Carlos 2026-11-05: "no quiero
+  capturas guardadas sin sentido") Limpieza manual ya hecha: 1932 carpetas `ui-gate-*` (384 MB) y 50 imágenes
+  versionadas de `docs/done/evidence/`, que `.gitignore` ahora excluye. Falta el mecanismo para que no se repita.
+  Spec: docs/specs/CI.62.md
 - [ ] **UI.64 — El (+) de proyecto y el de adjuntar abren un menú, no una acción directa.** (pedido de Carlos
   2026-11-05) "+ Add project" ofrece clonar desde URL como Orca, T3 y MonoCode. Adjuntar archivo en Chat y Dev hoy
   abre directo el selector del sistema; debe abrir antes un menú.

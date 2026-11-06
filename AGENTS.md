@@ -75,8 +75,12 @@ Reglas vigentes, una por línea. Texto anterior e incidentes que las motivaron:
 
 - Verificar con el comando de CI (`bun run test:coverage`), nunca `bun test` a secas. Flaky bajo carga
   (`chat-sessions`, `context-adapters`): repetir en frío antes de culpar al diff.
-- Gate en vivo con home temporal: `bun run gate:evidence -- --label <gate-id> -- <comando>`; nunca borrar el temporal
-  a mano. Migra la DB durable antes de exportar: una migración sin commitear llega a `~/.orchestos/db.sqlite`.
+- Gate en vivo con home temporal: `bun run gate:evidence -- --label <gate-id> -- <comando>`. Migra la DB durable antes
+  de exportar: una migración sin commitear llega a `~/.orchestos/db.sqlite`.
+- Capturas de gates (Carlos, 2026-11-05): se miran en el `runDir` (`$TMPDIR/ui-gate-<pid>/`) y, ya verificadas, se
+  borran junto con su carpeta. No se versionan imágenes; `.gitignore` las excluye de `docs/done/evidence/`, donde va
+  solo el `result.json` o el log. Antes la regla decía "nunca borrar el temporal a mano"; así se juntaron 1938
+  carpetas (384 MB) y 50 imágenes versionadas.
 - `ui:gate` sin lista de flujos no corre nada (lista del pre-push en `scripts/pre-push.sh`). Tras tocar flujos:
   `bunx biome lint --only=correctness/noUndeclaredVariables scripts/ui-gate/flows`.
 - Flujos: `page.reload` tras registrar el proyecto; ausencia con `ctx.hidden()` o `count() === 0` (`visible()` espera
