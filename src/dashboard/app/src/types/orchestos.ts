@@ -1,0 +1,363 @@
+import type { TaskClass } from '../../../../router/classify'
+import type { CliNotice } from '../../../../run/executors/cli-failure'
+export type ApprovalMode = 'supervised' | 'auto-edit' | 'full'
+
+export type TaskStatus = 'pending' | 'running' | 'done' | 'failed' | 'failed_permanent' | 'blocked'
+
+export type QaVerdict = 'pass' | 'fail' | 'skipped' | null
+
+export type ExecutionEngine = 'single-shot' | 'agentic' | (string & {})
+
+export interface TaskItem {
+  id: string
+  title?: string
+  description: string
+  status: TaskStatus
+  output: string[] // contract writeable files
+  outputSlice?: string[]
+  assignedAgent?: string
+  depends_on: string[]
+  acceptance_criteria: string[]
+  retryCount: number
+  retryReason?: string | null
+  qaVerdict?: QaVerdict
+  runId?: string | null
+  pendingApprovals?: number
+  sessionId?: string | null
+  lastRunAt?: string | null
+  phaseSkills?: string[]
+  skill?: string | null
+  engine: ExecutionEngine
+  costUsd?: number | null
+  specId?: string
+  sprint?: string
+}
+
+export interface FileDiffEntry {
+  path?: string
+  filePath?: string
+  status: 'added' | 'modified'
+  diff?: string
+  patch?: string
+  additions?: number
+  deletions?: number
+}
+
+export interface CostBreakdownEntry {
+  label: string
+  model: string
+  effort?: string
+  inputTokens: number
+  outputTokens: number
+  costUsd: number
+  source?: 'reported' | 'estimated' | 'unknown'
+}
+
+export interface ContextWarningEntry {
+  code: string
+  severity: 'warning' | 'critical' | 'notice'
+  message: string
+}
+
+export interface DeterministicCheck {
+  name: string
+  command?: string
+  passed: boolean
+  durationMs?: number
+  output?: string
+  exitCode?: number
+}
+
+export interface QaEvaluationItem {
+  kind?: 'judge' | 'criterion' | 'skipped'
+  criterion: string
+  passed: boolean
+  rationale: string
+}
+
+export interface RunItem {
+  id: string
+  taskId: string
+  taskDescription: string
+  status: 'done' | 'blocked' | 'failed'
+  qaVerdict: QaVerdict
+  qaModel?: string | null
+  failureReason?: string
+  executorReply?: string
+  model: string
+  agentModel?: string
+  provider: string
+  inputTokens: number
+  outputTokens: number
+  tokensUsed?: number
+  costUsd: number | null
+  elapsedMs: number
+  duration?: string
+  engine: ExecutionEngine
+  iterations: number
+  deterministicChecks: DeterministicCheck[]
+  qaEvaluation: QaEvaluationItem[]
+  filesAttempted: string[]
+  filesAuthorized: string[]
+  filesBlocked: string[]
+  fileDiffs: FileDiffEntry[]
+  commitSha?: string | null
+  revertedSha?: string | null
+  revertedAt?: string | null
+  outputSlice?: string[]
+  costBreakdown: CostBreakdownEntry[]
+  contextWarnings: ContextWarningEntry[]
+  createdAt: string
+  diagnose?: {
+    pattern: string
+    confidence: 'high' | 'medium' | 'low'
+    suggestion: string
+  }
+}
+
+export interface SpecCriteria {
+  when: string
+  then: string
+}
+
+export interface SpecItem {
+  id: string
+  taskId: string
+  title: string
+  status: 'draft' | 'approved' | 'archived'
+  clarify: 'pending' | 'resolved' | 'none'
+  lintStatus: 'pass' | 'fail' | 'unknown'
+  lintFindings: number
+  deltaIssues: number
+  criteria: SpecCriteria[]
+  createdAt: string
+  rawMarkdown?: string
+}
+
+export interface InstinctItem {
+  id: string
+  trigger: string
+  action: string
+  confidence: number
+  source: 'manual' | 'auto'
+  verified: boolean
+  usagesCount: number
+  createdAt?: string
+  projectId?: string | null
+}
+
+export interface MemoryItem {
+  id: string
+  topicKey: string
+  scope: 'session' | 'project' | 'global'
+  content: string
+  updatedAt: string
+  projectId?: string | null
+  hasConflict?: boolean
+  conflictDetails?: {
+    conflictId: string
+    conflictingContent: string
+    detectedFromRun: string
+  }
+}
+
+export interface SkillItem {
+  phases: TaskClass[]
+  id: string
+  name: string
+  language: string
+  verifierCommand: string
+  status: 'compiled' | 'source' | 'remote'
+  usageRuns: number
+  description: string
+  enabled?: boolean
+  origin?: 'project' | 'user-library' | 'built-in'
+}
+
+export interface ToolExecution {
+  name: string
+  args: Record<string, any>
+  result?: string
+  status: 'running' | 'success' | 'failed'
+  durationMs?: number
+}
+
+export interface ProjectContext {
+  contextDoc: string
+  isCleanWorktree: boolean | null
+  gitBranch: string | null
+}
+
+export interface ChatMessage {
+  id: string
+  stopped?: boolean
+  taskId?: string
+  role: 'user' | 'assistant' | 'system'
+  content: string
+  timestamp: string
+  reasoning?: string[]
+  notices?: CliNotice[]
+  thoughtMs?: number
+  toolCalls?: ToolExecution[]
+  attachments?: ChatAttachment[]
+  model?: string
+  effort?: string
+  taskContract?: {
+    output: string[]
+    status: 'verified' | 'violation'
+    blockedFiles?: string[]
+  }
+  taskHeld?: boolean
+  /** Descripción de la tarea (de la lista de tareas), para nombrar la tarjeta tras recargar. */
+  taskDescription?: string
+  /** La tarea ya no existe (rechazada/borrada) y no dejó reportes. */
+  taskDeleted?: boolean
+  heldTask?: {
+    taskId: string
+    taskDescription: string
+    actionRequired: string
+    estimatedImpact?: string
+  }
+  proposedTask?: {
+    id: string
+    description: string
+    output: string[]
+  }
+  // ERP.4.13 — datos estructurados de un reporte de fin de tarea
+  taskReport?: {
+    diagnosis?: {
+      cause?: string
+      failedCheck?: { command: string; output?: string }
+      qaReasons?: string[]
+      executorReport?: string
+      runId?: string
+    }
+    interrupted?: boolean
+    outcome: string
+    approvalMode?: 'supervised' | 'auto-edit' | 'full'
+    requestedApprovalMode?: 'supervised' | 'auto-edit' | 'full'
+    approvalCli?: string
+    runId?: string | null
+    dirtyFiles?: string[]
+    attempt?: number
+    maxAttempts?: number
+    provider?: string
+    model?: string
+    summary?: string
+  }
+}
+
+export type AppMode = 'chat' | 'dev' | 'settings'
+
+export type NavigationTab =
+  | 'threads'
+  | 'plan'
+  | 'runs'
+  | 'specs'
+  | 'instincts'
+  | 'memory'
+  | 'skills'
+  | 'context'
+
+export interface ChatAttachment {
+  id: string
+  name: string
+  size: string
+  type: 'file' | 'pdf' | 'folder' | 'image'
+  /** Archivo original: da la miniatura en el composer y en el mensaje enviado. */
+  file?: File
+  /** Id del servidor tras `POST /api/chat/upload`; es lo que viaja en `fileIds`. */
+  fileId?: string
+  status?: 'uploading' | 'ready' | 'error'
+  error?: string
+}
+
+export interface AgentSession {
+  id: string
+  projectId?: string | null
+  name: string
+  agent?: string
+  model: string
+  effort?: string
+  duration: string
+  status: 'active' | 'completed' | 'idle' | 'waiting_approval'
+  shellCommandsCount: number
+  filesCount: number
+  lastLog?: string
+  branch?: string
+}
+
+export type AgentItem = AgentSession
+
+export interface ProjectItem {
+  id: string
+  name: string
+  branch?: string
+  isPrimary?: boolean
+  agents: AgentSession[]
+  path?: string
+  filesCount: number
+}
+
+export interface FileNode {
+  name: string
+  path: string
+  isDir: boolean
+  ignored?: boolean
+  children?: FileNode[]
+  content?: string
+  size?: string
+}
+
+export interface ChatThread {
+  id: string
+  title: string
+  agent: string
+  mode: 'orchestrator' | 'coder' | 'qa_validator' | 'diagnostician'
+  status: 'active' | 'completed' | 'waiting_approval'
+  createdAt: string
+  updatedAt: string
+  tokenCount: number
+  costUsd: number
+  messages: ChatMessage[]
+  /** `false` mientras los mensajes de la sesión aún se leen (UI.24.7). */
+  messagesLoaded?: boolean
+  running?: boolean
+  projectId?: string | null
+}
+
+export interface SessionCliStatus {
+  id: string
+  label: string
+  binary: string
+  icon: string
+  installed: boolean
+  functional: boolean
+  quotaSource: boolean
+  available: boolean
+  observedAt: string | null
+  statuslineWired?: boolean
+  context: {
+    used: number
+    window: number
+    pct: number
+    level: 'ok' | 'warn' | 'critical'
+    model: string | null
+  } | null
+  rateLimits: {
+    resetCredits?: { available: number; nextExpiresAt: number | null } | null
+    windows: Array<{
+      id: string
+      usedPct: number
+      remainingPct?: number
+      windowMinutes: number | null
+      resetsAt: number | null
+      observedAt?: string
+    }>
+  } | null
+}
+
+export interface SessionStatus {
+  available: boolean
+  clis: SessionCliStatus[]
+}

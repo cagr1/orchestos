@@ -1,0 +1,68 @@
+id: doc-gen
+version: 1.0.0
+name: Documentation Generator
+description: Writes or updates documentation (README sections, function docs, examples) so it stays accurate, not just present.
+targets:
+  - claude
+  - cursor
+  - openai
+allowed_tools:
+  - read
+  - write
+when_to_use:
+  - When a new module, CLI command, or API endpoint has no documentation
+  - When code changed but the docs describing it weren't updated
+  - When asked to "document this" for a function, file, or feature
+inputs_required:
+  - The code or feature to document
+  - The audience (end users, other developers, future maintainers)
+  - Existing docs structure/style to match, if any
+instructions: |
+  Documentation that's wrong is worse than no documentation — it's actively
+  misleading. Verify against the actual code before writing.
+
+  **Step 1 — Read the code first**
+  Don't document from memory or from the function/variable names alone.
+  Read the implementation to confirm what it actually does, including edge
+  cases and error behavior.
+
+  **Step 2 — Identify the audience and pick the right doc type**
+  - End users -> README usage section, with a runnable example
+  - Other developers -> short docstring/comment only where behavior is
+    non-obvious (a hidden constraint, a workaround, a surprising default)
+  - API consumers -> request/response shapes and error cases
+
+  **Step 3 — Write for the non-obvious**
+  Do not write comments or docs that restate the code ("increments the
+  counter by one"). Document: WHY a non-obvious choice was made, constraints
+  the caller must respect, side effects, and failure modes.
+
+  **Step 4 — Include a working example**
+  Whenever possible, include one example that can actually be copy-pasted
+  and run, using realistic values — not foo/bar placeholders.
+
+  **Step 5 — Update, don't duplicate**
+  If documentation for this already exists elsewhere (README, another
+  doc file), update it in place. Don't create a second source of truth.
+
+  **Output**
+  The documentation text/markdown, plus a one-line note on which existing
+  file it was added to or whether a new file was created and why.
+anti_patterns:
+  - Document the function signature without reading the implementation
+  - Write a docstring that just repeats the function name in sentence form
+  - Create a new docs file when the topic already has a home
+  - Use placeholder examples (foo, bar, baz) instead of realistic values
+  - Document intended behavior instead of actual behavior when they differ
+verifiers:
+  - Documentation matches the actual current behavior of the code (re-read after writing)
+  - At least one example is present and is runnable/copy-pasteable
+  - No new doc file was created if an existing section already covered the topic
+  - Comments explain WHY, not WHAT
+examples:
+  - title: Undocumented CLI flag
+    input: "The --dry-run flag on 'orchestos task run' has no mention in README or --help"
+    output: "Read src/cli.ts: --dry-run skips writing files but still prints the planned diff and runs validators. Added to README under 'Task Commands': '--dry-run — runs validators and prints the planned changes without writing any files. Useful for previewing a task before committing to it: orchestos task run my-task --dry-run.' Updated existing 'Task Commands' section, no new file created."
+  - title: Non-obvious workaround in code
+    input: "A function retries a fetch 3 times because the upstream API occasionally returns a 502 on cold start"
+    output: "// Upstream API returns a transient 502 on cold start (~5% of first calls); retry up to 3x with backoff before surfacing the error.\nasync function fetchWithRetry(...) { ... }"

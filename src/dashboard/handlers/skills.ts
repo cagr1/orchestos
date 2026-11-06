@@ -1,0 +1,773 @@
+import { existsSync, mkdirSync, readFileSync, renameSync, unlinkSync, writeFileSync } from 'fs'
+import { dirname, join } from 'path'
+import { loadOrcheConfig } from '../../config/load.ts'
+import type { getProvider } from '../../providers/index.ts'
+import type { ChatMessage, ChatResponse } from '../../providers/openrouter.ts'
+import { chat as realOpenrouterChat } from '../../providers/openrouter.ts'
+import { roleClient } from '../../router/role-runner.ts'
+import { compileSkill } from '../../skills/compile.ts'
+import { convertSkillMarkdown, skillMarkdownUrl } from '../../skills/markdown-import.ts'
+import {
+  getEnabledSkillIds,
+  getSkillPath,
+  getUserSkillsDir,
+  listProSkillFiles,
+  listSkillFilesWithOrigin,
+  loadSkill,
+  resolveProSkillPath,
+  resolveSkillPath,
+  setSkillEnabled,
+  validateSkill,
+} from '../../skills/registry.ts'
+import { isTaskClass } from '../../tasks/schema.ts'
+
+// Mutable reference for test injection — same pattern as run-graph.ts __setRunGraphForTests.
+// Bun's mock.module() on a shared provider module would leak across test files; this
+// keeps the fake scoped to the single test file that calls __setChatForTests.
+let chatImpl: (opts: {
+  model: string
+  system: string
+  messages: ChatMessage[]
+}) => Promise<ChatResponse> = realOpenrouterChat
+
+function auxiliaryClient(root: string) {
+  const config = loadOrcheConfig(root)
+  const deps =
+    chatImpl === realOpenrouterChat
+      ? undefined
+      : {
+          getProvider: (name: string) =>
+            ({ name, chat: chatImpl }) as ReturnType<typeof getProvider>,
+        }
+  return roleClient(config, 'auxiliary', { cwd: root, deps })
+}
+
+import { parse, stringify } from 'yaml'
+import { db } from '../../db/sqlite.ts'
+import { fetchRegistryList, fetchRegistrySkillContent } from '../../skills/fetch.ts'
+import { errorResponse, jsonResponse } from '../http.ts'
+import { CURATOR_SYSTEM, IMPORT_SYSTEM } from '../prompts/curator.ts'
+import { checkSsrSafe } from '../ssrf.ts'
+import type {
+  MutationResult,
+  RegistryImportResponse,
+  RegistryListResponse,
+  SkillBuildResponse,
+  SkillCurateResponse,
+  SkillImportResponse,
+  SkillProRow,
+  SkillRow,
+} from '../types.ts'
+
+function handleApiSkillsList(root = process.cwd(), projectId: string | null = null): Response {
+  try {
+    const files = listSkillFilesWithOrigin(root)
+    const skills: SkillRow[] = []
+    for (const { path: f, origin } of files) {
+      try {
+        const s = loadSkill(f)
+        skills.push({
+          id: s.id,
+          phases: s.activation?.mode === 'automatic' ? (s.activation.phases ?? []) : [],
+          origin,
+          enabled: origin !== 'user-library' || getEnabledSkillIds(root).has(s.id),
+          name: s.name,
+          description: s.description,
+          version: s.version,
+          targets: [...s.targets],
+          instructionSummary:
+            s.instructions.length > 100 ? s.instructions.slice(0, 100) + '...' : s.instructions,
+          language: Object.keys(s.language_targets ?? {})[0] ?? 'General',
+          verifierCommand:
+            s.verifiers?.[0] ?? Object.values(s.language_targets ?? {})[0]?.verifiers?.[0] ?? '—',
+          status: 'source',
+          usageRuns:
+            db
+              .query<{ count: number }, [string, string | null]>(
+                'SELECT COUNT(*) AS count FROM runs WHERE skill_id = ? AND project_id IS ?',
+              )
+              .get(s.id, projectId)?.count ?? 0,
+        })
+      } catch {}
+    }
+    return jsonResponse(skills)
+  } catch (e: any) {
+    return errorResponse(e.message, 500)
+  }
+}
+
+function handleApiSkillsGet(url: URL, root = process.cwd()): Response {
+  const m = url.pathname.match(/^\/api\/skills\/([^/]+)$/)
+  if (!m || !m[1]) return errorResponse('Missing skill id', 400)
+  const id: string = m[1]
+  const path = resolveSkillPath(id, root)
+  if (!existsSync(path)) return errorResponse('Skill not found', 404)
+  try {
+    const skill = loadSkill(path)
+    return jsonResponse(skill)
+  } catch (e: any) {
+    return errorResponse(e.message, 500)
+  }
+}
+
+function handleApiSkillsExport(url: URL, root = process.cwd()): Response {
+  const m = url.pathname.match(/^\/api\/skills\/([^/]+)\/export$/)
+  if (!m || !m[1]) return errorResponse('Missing skill id', 400)
+  const id: string = m[1]
+  const path = resolveSkillPath(id, root)
+  if (!existsSync(path)) return errorResponse('Skill not found', 404)
+  try {
+    const yaml = readFileSync(path, 'utf-8')
+    return new Response(yaml, {
+      status: 200,
+      headers: {
+        'Content-Type': 'application/x-yaml; charset=utf-8',
+        'Content-Disposition': `attachment; filename="${encodeURIComponent(id)}.yaml"`,
+      },
+    })
+  } catch (e: any) {
+    return errorResponse(e.message, 500)
+  }
+}
+
+async function handleApiSkillsCreate(req: Request, root = process.cwd()): Promise<Response> {
+  let body: Record<string, unknown>
+  try {
+    body = (await req.json()) as Record<string, unknown>
+  } catch {
+    return errorResponse('Invalid JSON', 400)
+  }
+
+  const id = body.id as string
+  if (!id || !/^[a-z0-9]+(-[a-z0-9]+)*$/.test(id)) {
+    return errorResponse('Invalid id — must be kebab-case', 400)
+  }
+
+  const path = getSkillPath(id, root)
+  if (existsSync(path)) return errorResponse('Skill already exists', 409)
+
+  try {
+    const validated = validateSkill(body, `api:${id}`)
+    const yaml = stringify(validated, { lineWidth: 120 })
+    mkdirSync(dirname(path), { recursive: true })
+    writeFileSync(path, yaml, 'utf-8')
+    return jsonResponse({ ok: true, id } satisfies MutationResult)
+  } catch (e: any) {
+    return errorResponse(e.message, 400)
+  }
+}
+
+async function handleApiSkillsUpdate(
+  req: Request,
+  url: URL,
+  root = process.cwd(),
+): Promise<Response> {
+  const m = url.pathname.match(/^\/api\/skills\/([^/]+)$/)
+  if (!m || !m[1]) return errorResponse('Missing skill id', 400)
+  const id: string = m[1]
+  // O.1 — existe si está en el proyecto O centralizada, pero se escribe SIEMPRE
+  // en el proyecto: editar una skill centralizada desde otro repo crea una
+  // copia local que la pisa (copy-on-write), nunca muta la instalación.
+  if (!existsSync(resolveSkillPath(id, root))) return errorResponse('Skill not found', 404)
+  const path = getSkillPath(id, root)
+
+  let body: Record<string, unknown>
+  try {
+    body = (await req.json()) as Record<string, unknown>
+  } catch {
+    return errorResponse('Invalid JSON', 400)
+  }
+
+  try {
+    const validated = validateSkill(body, `api:${id}`)
+    const yaml = stringify(validated, { lineWidth: 120 })
+    mkdirSync(dirname(path), { recursive: true })
+    writeFileSync(path, yaml, 'utf-8')
+    return jsonResponse({ ok: true, id } satisfies MutationResult)
+  } catch (e: any) {
+    return errorResponse(e.message, 400)
+  }
+}
+
+async function handleApiSkillsDelete(
+  req: Request,
+  url: URL,
+  root = process.cwd(),
+): Promise<Response> {
+  const m = url.pathname.match(/^\/api\/skills\/([^/]+)$/)
+  if (!m || !m[1]) return errorResponse('Missing skill id', 400)
+  const id: string = m[1]
+  // O.1 — borrar SOLO toca el proyecto, nunca la instalación de OrchestOS: si
+  // la skill resuelve únicamente contra la carpeta central, borrarla desde este
+  // proyecto la haría desaparecer de todos los demás. Se rechaza explícito en
+  // vez de fallar en silencio o de mutar la instalación.
+  const path = getSkillPath(id, root)
+  if (!existsSync(path)) {
+    if (existsSync(resolveSkillPath(id, root))) {
+      return errorResponse(
+        `"${id}" is a centrally installed skill — it can't be deleted from this project`,
+        409,
+      )
+    }
+    return errorResponse('Skill not found', 404)
+  }
+
+  let body: { confirm?: boolean }
+  try {
+    body = (await req.json()) as { confirm?: boolean }
+  } catch {
+    return errorResponse('Invalid JSON', 400)
+  }
+  if (body.confirm !== true)
+    return errorResponse('Confirmation required — send { confirm: true }', 400)
+
+  try {
+    unlinkSync(path)
+    return jsonResponse({ ok: true, id } satisfies MutationResult)
+  } catch (e: any) {
+    return errorResponse(e.message, 500)
+  }
+}
+
+function handleApiSkillsBuild(url: URL, root = process.cwd()): Response {
+  const m = url.pathname.match(/^\/api\/skills\/([^/]+)\/build$/)
+  if (!m || !m[1]) return errorResponse('Missing skill id', 400)
+  const id: string = m[1]
+  const path = resolveSkillPath(id, root)
+  if (!existsSync(path)) return errorResponse('Skill not found', 404)
+
+  try {
+    const skill = loadSkill(path)
+    const paths = compileSkill(skill)
+    return jsonResponse({ ok: true, paths, skillId: id } satisfies SkillBuildResponse)
+  } catch (e: any) {
+    return jsonResponse(
+      { ok: false, paths: [], skillId: id, error: e.message } as SkillBuildResponse & {
+        error: string
+      },
+      500,
+    )
+  }
+}
+
+function handleApiSkillsProList(root = process.cwd()): Response {
+  try {
+    const files = listProSkillFiles(root)
+    const skills: SkillProRow[] = []
+    for (const f of files) {
+      try {
+        const s = loadSkill(f)
+        skills.push({
+          id: s.id,
+          name: s.name,
+          description: s.description,
+          targets: [...s.targets],
+          imported: existsSync(getSkillPath(s.id, root)),
+        })
+      } catch {}
+    }
+    return jsonResponse(skills)
+  } catch (e: any) {
+    return errorResponse(e.message, 500)
+  }
+}
+
+function handleApiSkillsProImport(url: URL, root = process.cwd()): Response {
+  const m = url.pathname.match(/^\/api\/skills\/pro\/([^/]+)\/import$/)
+  if (!m || !m[1]) return errorResponse('Missing skill id', 400)
+  const id: string = m[1]
+
+  const proPath = resolveProSkillPath(id, root)
+  if (!existsSync(proPath)) return errorResponse('Pro skill not found', 404)
+
+  const targetPath = getSkillPath(id, root)
+  if (existsSync(targetPath)) return errorResponse('Skill already exists', 409)
+
+  try {
+    const skill = loadSkill(proPath)
+    const yaml = stringify(skill, { lineWidth: 120 })
+    mkdirSync(dirname(targetPath), { recursive: true })
+    writeFileSync(targetPath, yaml, 'utf-8')
+    return jsonResponse({ ok: true, id } satisfies MutationResult)
+  } catch (e: any) {
+    return errorResponse(e.message, 500)
+  }
+}
+
+// Test harnesses inject a URL probe; production always uses checkSsrSafe.
+let libraryUrlCheck: typeof checkSsrSafe = checkSsrSafe
+export function __setLibraryUrlCheckForTests(check: typeof checkSsrSafe = checkSsrSafe): void {
+  libraryUrlCheck = check
+}
+
+async function handleApiSkillsLibrary(req: Request): Promise<Response> {
+  try {
+    const body = await req.json()
+    if (!body || typeof body.url !== 'string') return errorResponse('url is required', 400)
+    const { fetchUrl, sourceUrl } = skillMarkdownUrl(body.url)
+    const blocked = await libraryUrlCheck(fetchUrl)
+    if (blocked) return errorResponse(blocked, 400)
+    const response = await fetch(fetchUrl, {
+      redirect: 'error',
+      signal: AbortSignal.timeout(15000),
+    })
+    if (!response.ok) return errorResponse(`HTTP ${response.status} fetching URL`, 400)
+    const limit = 256 * 1024
+    if (Number(response.headers.get('content-length') ?? 0) > limit) {
+      await response.body?.cancel()
+      return errorResponse('Fetched skill exceeds the 256 KB limit', 413)
+    }
+    const reader = response.body?.getReader()
+    if (!reader) return errorResponse('Empty SKILL.md response', 400)
+    const chunks: Uint8Array[] = []
+    let size = 0
+    try {
+      while (true) {
+        const { value, done } = await reader.read()
+        if (done) break
+        size += value.byteLength
+        if (size > limit) {
+          await reader.cancel()
+          return errorResponse('Fetched skill exceeds the 256 KB limit', 413)
+        }
+        chunks.push(value)
+      }
+    } finally {
+      reader.releaseLock()
+    }
+    const { skill, warnings } = convertSkillMarkdown(
+      Buffer.concat(chunks).toString('utf8'),
+      sourceUrl,
+    )
+    const dir = getUserSkillsDir()
+    mkdirSync(dir, { recursive: true })
+    const path = join(dir, `${skill.id}.yaml`)
+    if (existsSync(path) || existsSync(join(dir, `${skill.id}.yml`)))
+      return errorResponse('Skill already exists', 409)
+    try {
+      writeFileSync(path, stringify(skill, { lineWidth: 120 }), { encoding: 'utf8', flag: 'wx' })
+    } catch (error: any) {
+      if (error.code === 'EEXIST') return errorResponse('Skill already exists', 409)
+      throw error
+    }
+    return jsonResponse({ ok: true, id: skill.id, skill, warnings })
+  } catch (error: any) {
+    return errorResponse(error.message, 400)
+  }
+}
+
+async function handleApiSkillEnabled(
+  req: Request,
+  url: URL,
+  root = process.cwd(),
+): Promise<Response> {
+  const id = url.pathname.match(/^\/api\/skills\/([a-z0-9]+(?:-[a-z0-9]+)*)\/enabled$/)?.[1]
+  if (!id) return errorResponse('Invalid skill id', 400)
+  try {
+    const body = await req.json()
+    if (typeof body?.enabled !== 'boolean') return errorResponse('enabled must be a boolean', 400)
+    if (
+      !listSkillFilesWithOrigin(root).some(
+        ({ path, origin }) => origin === 'user-library' && loadSkill(path).id === id,
+      )
+    )
+      return errorResponse('Library skill not found', 404)
+    setSkillEnabled(id, body.enabled, root)
+    return jsonResponse({ ok: true, id, enabled: body.enabled })
+  } catch (error: any) {
+    return errorResponse(error.message, 400)
+  }
+}
+
+async function handleApiSkillPhases(
+  req: Request,
+  url: URL,
+  root = process.cwd(),
+): Promise<Response> {
+  const id = url.pathname.match(/^\/api\/skills\/([a-z0-9]+(?:-[a-z0-9]+)*)\/phases$/)?.[1]
+  if (!id) return errorResponse('Invalid skill id', 400)
+  try {
+    const body = await req.json()
+    if (
+      !Array.isArray(body?.phases) ||
+      !body.phases.every(isTaskClass) ||
+      new Set(body.phases).size !== body.phases.length
+    )
+      return errorResponse('phases must contain unique task classes', 400)
+    const entry = listSkillFilesWithOrigin(root).find(
+      ({ path, origin }) => origin === 'user-library' && loadSkill(path).id === id,
+    )
+    if (!entry) return errorResponse('Library skill not found', 404)
+    const skill = loadSkill(entry.path)
+    if (body.phases.length) {
+      skill.activation = {
+        mode: 'automatic',
+        phases: body.phases,
+        ...(skill.activation?.triggers ? { triggers: skill.activation.triggers } : {}),
+      }
+    } else delete skill.activation
+    const validated = validateSkill(skill as unknown as Record<string, unknown>, entry.path)
+    const temp = `${entry.path}.${crypto.randomUUID()}.tmp`
+    try {
+      writeFileSync(temp, stringify(validated, { lineWidth: 120 }), 'utf8')
+      renameSync(temp, entry.path)
+    } finally {
+      if (existsSync(temp)) unlinkSync(temp)
+    }
+    return jsonResponse({ ok: true, id, phases: body.phases })
+  } catch (error: any) {
+    return errorResponse(error.message, 400)
+  }
+}
+
+async function handleApiSkillsImport(req: Request, root = process.cwd()): Promise<Response> {
+  let body: { type?: string; url?: string; yaml?: string }
+  try {
+    body = (await req.json()) as { type?: string; url?: string; yaml?: string }
+  } catch {
+    return errorResponse('Invalid JSON', 400)
+  }
+
+  let rawYaml: string
+  let sourceDesc: string
+
+  if (body.type === 'url') {
+    if (!body.url) return errorResponse('url is required', 400)
+    sourceDesc = `URL: ${body.url}`
+    try {
+      const parsed = new URL(body.url)
+      const ssrfBlock = await checkSsrSafe(parsed)
+      if (ssrfBlock) return errorResponse(ssrfBlock, 400)
+      const resp = await fetch(body.url, { redirect: 'error', signal: AbortSignal.timeout(15000) })
+      if (!resp.ok) return errorResponse(`HTTP ${resp.status} fetching URL`, 400)
+      const contentLength = Number(resp.headers.get('content-length') ?? 0)
+      if (contentLength > 256 * 1024)
+        return errorResponse('Fetched skill exceeds the 256 KB limit', 413)
+      rawYaml = (await resp.text()).slice(0, 256 * 1024)
+    } catch (e: any) {
+      return errorResponse(`Failed to fetch URL: ${e.message}`, 400)
+    }
+  } else if (body.type === 'yaml') {
+    if (!body.yaml) return errorResponse('yaml content is required', 400)
+    sourceDesc = 'pasted YAML'
+    rawYaml = body.yaml
+  } else {
+    return errorResponse('type must be "url" or "yaml"', 400)
+  }
+
+  let parsed: Record<string, unknown>
+  try {
+    parsed = parse(rawYaml) as Record<string, unknown>
+  } catch (e: any) {
+    return normalizeImport(rawYaml, `YAML syntax error: ${e.message}`, sourceDesc, root)
+  }
+
+  if (typeof parsed.id === 'string') {
+    parsed.id = parsed.id
+      .toLowerCase()
+      .replace(/[^a-z0-9-]/g, '-')
+      .replace(/-+/g, '-')
+      .replace(/^-|-$/g, '')
+  }
+
+  try {
+    validateSkill(parsed, 'import')
+    return jsonResponse({
+      ok: true,
+      skill: parsed,
+      normalized: false,
+      warnings: [],
+      iterations: 0,
+    } satisfies SkillImportResponse)
+  } catch (e: any) {
+    return normalizeImport(rawYaml, e.message, sourceDesc, root)
+  }
+}
+
+async function normalizeImport(
+  rawYaml: string,
+  error: string,
+  sourceDesc: string,
+  root: string,
+): Promise<Response> {
+  const MAX_RETRIES = 2
+  let lastError = error
+
+  for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+    const userMessage =
+      attempt === 0
+        ? `Fix this invalid skill definition:\n\n${rawYaml}\n\nValidation error: ${lastError}`
+        : `Previous fix failed. Error: ${lastError}\n\nOriginal content:\n${rawYaml}\n\nPlease return a corrected JSON.`
+
+    let raw: string
+    try {
+      const client = auxiliaryClient(root)
+      const resp = await client.provider.chat({
+        model: client.model,
+        system: IMPORT_SYSTEM,
+        messages: [{ role: 'user', content: userMessage }],
+      })
+      raw = resp.text
+        .replace(/^```(?:json)?\n?/, '')
+        .replace(/\n?```$/, '')
+        .trim()
+    } catch (e: any) {
+      return errorResponse(`LLM normalization failed: ${e.message}`, 502)
+    }
+
+    let draft: Record<string, unknown>
+    try {
+      draft = JSON.parse(raw) as Record<string, unknown>
+    } catch {
+      lastError = 'Response was not valid JSON'
+      continue
+    }
+
+    if (typeof draft.id === 'string') {
+      draft.id = draft.id
+        .toLowerCase()
+        .replace(/[^a-z0-9-]/g, '-')
+        .replace(/-+/g, '-')
+        .replace(/^-|-$/g, '')
+    }
+
+    try {
+      validateSkill(draft, 'import')
+      return jsonResponse({
+        ok: true,
+        skill: draft,
+        normalized: true,
+        warnings: [`Original ${sourceDesc} had issues: ${error}. Fixed by AI curator.`],
+        iterations: attempt + 1,
+      } satisfies SkillImportResponse)
+    } catch (e: any) {
+      lastError = e.message
+    }
+  }
+
+  return jsonResponse(
+    {
+      ok: false,
+      error: `Could not normalize after ${MAX_RETRIES + 1} attempts: ${lastError}`,
+      normalized: false,
+      warnings: [],
+      iterations: MAX_RETRIES + 1,
+    } satisfies SkillImportResponse,
+    422,
+  )
+}
+
+async function handleApiSkillsRegistryList(): Promise<Response> {
+  try {
+    const items = await fetchRegistryList()
+    const skills = items.map((item) => ({
+      id: item.id,
+      name: item.name,
+      description: item.description,
+      source: item.source,
+      fileCount: item.fileCount,
+      bundleHash: item.bundleHash,
+      reviewStatus:
+        item.reviewStatus === 'approved' ||
+        item.reviewStatus === 'pending' ||
+        item.reviewStatus === 'rejected'
+          ? (item.reviewStatus as 'approved' | 'pending' | 'rejected')
+          : ('pending' as const),
+    }))
+    return jsonResponse({
+      ok: true,
+      skills,
+      count: skills.length,
+      generatedAt: new Date().toISOString(),
+    } satisfies RegistryListResponse)
+  } catch (e: any) {
+    return errorResponse(`Registry unavailable: ${e.message}`, 502)
+  }
+}
+
+async function handleApiSkillsRegistryImport(
+  _req: Request,
+  url: URL,
+  root = process.cwd(),
+): Promise<Response> {
+  const m = url.pathname.match(/^\/api\/skills\/registry\/([^/]+)\/import$/)
+  if (!m || !m[1]) return errorResponse('Missing skill id', 400)
+  const id: string = m[1]
+
+  const targetPath = getSkillPath(id, root)
+  if (existsSync(targetPath)) return errorResponse('Skill already exists', 409)
+
+  let rawContent: string
+  try {
+    rawContent = await fetchRegistrySkillContent(id)
+  } catch (e: any) {
+    return errorResponse(`Failed to fetch skill from registry: ${e.message}`, 502)
+  }
+
+  // Try direct parse first (some SKILL.md frontmatter may be valid SkillDef)
+  let parsed: Record<string, unknown>
+  try {
+    parsed = parse(rawContent) as Record<string, unknown>
+    if (typeof parsed.id === 'string') {
+      parsed.id = parsed.id
+        .toLowerCase()
+        .replace(/[^a-z0-9-]/g, '-')
+        .replace(/-+/g, '-')
+        .replace(/^-|-$/g, '')
+    }
+    validateSkill(parsed, `registry:${id}`)
+    // Valid as-is — save directly
+    const yaml = stringify(parsed, { lineWidth: 120 })
+    mkdirSync(dirname(targetPath), { recursive: true })
+    writeFileSync(targetPath, yaml, 'utf-8')
+    return jsonResponse({
+      ok: true,
+      id,
+      normalized: false,
+      warnings: [],
+    } satisfies RegistryImportResponse)
+  } catch {
+    // Needs AI normalization
+  }
+
+  return normalizeImport(
+    rawContent,
+    'SKILL.md format — needs SkillDef conversion',
+    `Registry: ${id}`,
+    root,
+  ).then(async (resp) => {
+    const data = (await resp.json()) as {
+      ok: boolean
+      skill?: Record<string, unknown>
+      error?: string
+      normalized: boolean
+      warnings: string[]
+      iterations: number
+    }
+    if (data.ok && data.skill) {
+      const yaml = stringify(data.skill, { lineWidth: 120 })
+      mkdirSync(dirname(targetPath), { recursive: true })
+      writeFileSync(targetPath, yaml, 'utf-8')
+      return jsonResponse({
+        ok: true,
+        id,
+        normalized: data.normalized,
+        warnings: data.warnings || [],
+      } satisfies RegistryImportResponse)
+    }
+    return jsonResponse(
+      {
+        ok: false,
+        error: data.error || 'Normalization failed',
+        normalized: false,
+        warnings: [],
+      } satisfies RegistryImportResponse,
+      422,
+    )
+  })
+}
+
+async function handleApiSkillsCurate(req: Request, root = process.cwd()): Promise<Response> {
+  let body: { text?: string }
+  try {
+    body = (await req.json()) as { text?: string }
+  } catch {
+    return errorResponse('Invalid JSON', 400)
+  }
+  const text = body.text?.trim()
+  if (!text) return errorResponse('text is required', 400)
+
+  const MAX_RETRIES = 2
+  let lastError = ''
+
+  for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+    const userMessage =
+      attempt === 0
+        ? text
+        : `${text}\n\nPrevious attempt failed validation with this error: ${lastError}\nPlease fix the issue and return a corrected JSON.`
+
+    let raw: string
+    try {
+      const client = auxiliaryClient(root)
+      const resp = await client.provider.chat({
+        model: client.model,
+        system: CURATOR_SYSTEM,
+        messages: [{ role: 'user', content: userMessage }],
+      })
+      raw = resp.text
+        .replace(/^```(?:json)?\n?/, '')
+        .replace(/\n?```$/, '')
+        .trim()
+    } catch (e: any) {
+      return errorResponse(`LLM call failed: ${e.message}`, 502)
+    }
+
+    let draft: Record<string, unknown>
+    try {
+      draft = JSON.parse(raw) as Record<string, unknown>
+    } catch {
+      lastError = 'Response was not valid JSON'
+      continue
+    }
+
+    if (typeof draft.id === 'string') {
+      draft.id = draft.id
+        .toLowerCase()
+        .replace(/[^a-z0-9-]/g, '-')
+        .replace(/-+/g, '-')
+        .replace(/^-|-$/g, '')
+    }
+
+    try {
+      validateSkill(draft, 'curate')
+      return jsonResponse({
+        ok: true,
+        skill: draft,
+        iterations: attempt + 1,
+      } satisfies SkillCurateResponse)
+    } catch (e: any) {
+      lastError = e.message
+    }
+  }
+
+  return jsonResponse(
+    {
+      ok: false,
+      error: `Curator failed after ${MAX_RETRIES + 1} attempts: ${lastError}`,
+      iterations: MAX_RETRIES + 1,
+    } satisfies SkillCurateResponse,
+    422,
+  )
+}
+
+/** Test-only: swap chat implementation without touching the shared module graph. */
+function __setChatForTests(
+  fn: (opts: { model: string; system: string; messages: ChatMessage[] }) => Promise<ChatResponse>,
+): void {
+  chatImpl = fn
+}
+/** Test-only: restore the real chat implementation. */
+function __resetChatForTests(): void {
+  chatImpl = realOpenrouterChat
+}
+
+export {
+  __resetChatForTests,
+  __setChatForTests,
+  handleApiSkillEnabled,
+  handleApiSkillPhases,
+  handleApiSkillsBuild,
+  handleApiSkillsCreate,
+  handleApiSkillsCurate,
+  handleApiSkillsDelete,
+  handleApiSkillsExport,
+  handleApiSkillsGet,
+  handleApiSkillsImport,
+  handleApiSkillsLibrary,
+  handleApiSkillsList,
+  handleApiSkillsProImport,
+  handleApiSkillsProList,
+  handleApiSkillsRegistryImport,
+  handleApiSkillsRegistryList,
+  handleApiSkillsUpdate,
+}

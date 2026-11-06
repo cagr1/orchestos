@@ -1,0 +1,24 @@
+id: summarize-pr-diff
+version: 1.0.0
+name: Summarize PR Diff
+description: Use when a pull request or branch diff needs a readable summary — for a PR description, a review handoff, or a changelog entry.
+when_to_use:
+  - When opening a pull request that needs a clear description of what changed
+  - When a reviewer needs to understand a large diff before reading the code
+  - When handing off work in progress to someone else
+  - When writing a changelog or release note from a set of commits
+targets:
+  - claude
+  - cursor
+  - openai
+allowed_tools:
+  - read
+instructions: |
+  1. Read the diff provided (git diff or PR patch format).
+  2. Identify: files changed, lines added/removed, and the intent of each change.
+  3. Output a structured summary with these sections:
+     - **What changed**: bullet list of files and what was modified.
+     - **Why** (if inferable from code or commit message): one sentence.
+     - **Risk areas**: files or patterns that could cause regressions.
+     - **Suggested review focus**: the 1-2 most important things to verify.
+  4. Keep the summary under 200 words. No filler phrases.

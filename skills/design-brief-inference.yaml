@@ -1,0 +1,92 @@
+id: design-brief-inference
+version: 1.0.0
+name: Design Brief Inference
+description: Read the brief before designing — infer audience, vibe, and constraints, then pick real direction instead of the default AI aesthetic.
+targets:
+  - claude
+  - cursor
+  - openai
+allowed_tools:
+  - read
+  - write
+  - edit
+when_to_use:
+  - Before starting any landing page, portfolio, or marketing site from scratch
+  - When a design "looks generic" or the direction feels arbitrary/undecided
+  - When the user gives a vague brief (a few adjectives, no concrete reference)
+  - Before choosing a component library or design system for a new UI
+inputs_required:
+  - The user's brief, verbatim (vibe words, references, competitors named, audience)
+  - Whether this is greenfield or a redesign (existing brand assets to preserve)
+instructions: |
+  Distilled from taste-skill (MIT, github.com/Leonxlnx/taste-skill) and the
+  DESIGN.md philosophy (Apache 2.0, github.com/google-labs-code/design.md).
+  Purpose: most generic-looking AI output happens because the model jumps to a
+  default aesthetic instead of reading the brief. Do this BEFORE writing any code.
+
+  1. READ THE BRIEF (before touching code)
+  Extract: page kind (SaaS/consumer/agency/portfolio/editorial), vibe words used
+  verbatim ("minimalist", "Awwwards", "Linear-style", "brutalist", "premium"),
+  reference signals (URLs, screenshots, named competitors), audience (B2B
+  procurement vs. design-conscious consumer vs. recruiter), existing brand
+  assets to preserve (redesigns), and quiet constraints (accessibility-first,
+  regulated industry, trust-first commerce) — these OVERRIDE aesthetic
+  preference, always.
+
+  2. STATE A ONE-LINE "DESIGN READ" BEFORE GENERATING
+  Format: "Reading this as: <page kind> for <audience>, with a <vibe> language,
+  leaning toward <design system/aesthetic family>."
+  Example: "Reading this as: B2B SaaS landing for technical buyers, with a
+  Linear-style minimalist language, leaning toward Tailwind + restrained motion."
+  If genuinely ambiguous, ask ONE clarifying question — never a multi-question
+  dump. If you can confidently infer, don't ask.
+
+  3. A SPECIFIC REFERENCE BEATS A LIST OF ADJECTIVES
+  "Modern, clean, trustworthy, premium" evokes nothing specific — the model
+  lands in the generic center of that space. "A 1970s graduate lecture handout
+  from an old university" evokes a complete, specific world (one ink color,
+  generous margins, no decoration) and carries its own negative constraints for
+  free — you don't need to separately ban gradients on a lecture handout,
+  naming the reference already excludes them. Prefer writing ONE concrete
+  reference over a list of adjectives.
+
+  4. ANTI-DEFAULT DISCIPLINE (refuse these unless the brief specifically wants them)
+  AI-purple gradients · centered hero over dark mesh background · three equal
+  feature cards · generic glassmorphism on everything · infinite-loop
+  micro-animations everywhere · Inter font + slate-900 text as the unexamined
+  default. These are the reflexive LLM defaults — reach past them deliberately.
+
+  5. WHEN TO USE A REAL DESIGN SYSTEM VS. CUSTOM CSS
+  Don't invent CSS for things with an official package, and don't treat an
+  aesthetic trend as if it were an official system:
+  - Enterprise/dashboard/Microsoft-ish → real Fluent UI package, not homemade.
+  - Material-flavored product → real Material 3 tokens, not approximated hex.
+  - Government/public-sector/trust-first → GOV.UK Frontend or USWDS, not custom.
+  - Everything else (marketing/brand pages) → custom is correct, but still
+    needs the specific reference from step 3, not adjectives.
+
+  6. TOKENS SERVE THE PROSE, NOT THE OTHER WAY AROUND
+  When documenting a design system (DESIGN.md-style), token VALUES are context,
+  not the specification itself. Write prose describing what each token means
+  and where it's used ("vermilion is the single accent, appears only in charts,
+  never on typography") — the prose is what keeps generations consistent
+  across a session; a bare hex value alone does not.
+anti_patterns:
+  - Starting to write code before stating the one-line design read
+  - Treating "modern, clean, premium, trustworthy" as sufficient creative direction
+  - Defaulting to purple gradients / centered hero+mesh / three feature cards without the brief asking for it
+  - Hand-rolling custom CSS for a brief that clearly wants Material or Fluent or GOV.UK
+  - Overriding an explicit accessibility/regulated/trust-first constraint for aesthetic preference
+  - Writing a token list with no prose explaining what each token means or where it's used
+verifiers:
+  - A one-line design read was stated before any code was written
+  - The direction traces to a specific reference, not a list of adjectives
+  - Quiet constraints (a11y, regulated, trust-first) were checked and respected
+  - No unexamined default (purple gradient, mesh hero, 3 feature cards) shipped without justification
+examples:
+  - title: Vague brief for a commercial landing page
+    input: "Build a landing page for our new project management SaaS, make it look modern and premium"
+    output: "Design read: 'B2B SaaS landing for technical buyers, premium-but-not-flashy, leaning toward Linear-style restrained minimalism, Tailwind + one committed accent color.' Rejected purple-gradient-mesh-hero default. Wrote DESIGN.md prose: accent color used only for primary CTA, never decoratively."
+  - title: Ambiguous vibe words
+    input: "Design a portfolio, kind of brutalist but also professional"
+    output: "Genuinely ambiguous — asked one question: 'Closer to raw Swiss-typography brutalism (Bloomberg Terminal energy) or refined brutalist-lite (bold type, still polished spacing)?' Waited for the answer before generating."

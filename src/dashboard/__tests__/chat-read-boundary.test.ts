@@ -1,0 +1,67 @@
+/**
+ * H.9.2 — frontera de lectura del chat de proyecto.
+ *
+ * REESCRITO 2026-09-06 (ítem reabierto). La versión anterior llamaba
+ * `projectChatReadBoundaryError('claude')` sin sonda: con la frontera ahora
+ * verificada contra el binario, eso spawnearía el `claude` real del host y el
+ * resultado dependería de qué versión tenga instalada cada máquina — el mismo
+ * defecto que dejó CI en rojo el 2026-08-01 ([[reference-ci-host-environment-drift]]).
+ * La sonda se inyecta, igual que `ToolchainProbe`.
+ */
+import { beforeEach, describe, expect, test } from 'bun:test'
+import { _resetCliCapabilityCache } from '../../run/executors/cli-registry.ts'
+import { projectChatReadBoundaryWarning } from '../handlers/chat.ts'
+import { handleApiSystemExecutorModes } from '../handlers/tasks.ts'
+
+// Fragmentos textuales del `--help` real (2.1.263 lo trae, 2.1.234 no).
+const helpConRestricted = '  --restricted     Restricted mode: removes the built-in tools\n'
+const helpSinRestricted = '  --settings <file-or-json>   Path to a settings JSON file\n'
+
+beforeEach(() => _resetCliCapabilityCache())
+
+describe('H.9.2 — frontera de lectura del chat', () => {
+  test('executor-modes publica none si el binario instalado no sostiene la frontera', async () => {
+    const which = Bun.which
+    const spawnSync = Bun.spawnSync
+    const fetch = globalThis.fetch
+    try {
+      ;(Bun as any).which = (name: string) =>
+        name === 'claude' || name === process.execPath ? process.execPath : null
+      ;(Bun as any).spawnSync = () => ({ exitCode: 0, stdout: Buffer.from('  --settings') })
+      globalThis.fetch = (async () =>
+        new Response('{}', { status: 503 })) as unknown as typeof fetch
+      const payload = await (await handleApiSystemExecutorModes()).json()
+      expect(payload.modes.find((mode: { id: string }) => mode.id === 'claude')).toMatchObject({
+        detected: true,
+        readBoundary: 'none',
+      })
+    } finally {
+      Bun.which = which
+      Bun.spawnSync = spawnSync
+      globalThis.fetch = fetch
+    }
+  })
+  test('permite Claude cuando el binario instalado sostiene la frontera', () => {
+    expect(projectChatReadBoundaryWarning('claude', () => helpConRestricted)).toBeNull()
+  })
+
+  test('avisa si Claude no soporta --restricted y conserva la capability efectiva', () => {
+    // El binario sin --restricted se puede usar, pero el chat debe exponer
+    // el motivo real de que no exista una frontera efectiva.
+    const err = projectChatReadBoundaryWarning('claude', () => helpSinRestricted)
+    expect(err).toContain('2.1.248')
+    expect(err).toContain('chat de proyecto')
+  })
+
+  test('avisa para Codex con el texto exacto del registro', () => {
+    expect(projectChatReadBoundaryWarning('codex', () => helpConRestricted)).toBe(
+      'Codex no limita la lectura a este proyecto',
+    )
+  })
+
+  test('avisa para cualquier CLI registrado sin contrato verificado', () => {
+    expect(projectChatReadBoundaryWarning('opencode', () => helpConRestricted)).toContain(
+      'contrato verificado',
+    )
+  })
+})

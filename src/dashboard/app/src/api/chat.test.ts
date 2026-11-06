@@ -1,0 +1,538 @@
+import { describe, expect, test } from 'bun:test'
+import {
+  attachTurnDetails,
+  createSession,
+  execCommand,
+  getConsole,
+  getDefaultChatAgent,
+  getSessionMessages,
+  mapMessage,
+  mapSessionToThread,
+  newChatProjectId,
+  runProjectTask,
+  sendMessage,
+  sessionListQueries,
+  stopChatTurn,
+  toTimestamp,
+  uploadChatFile,
+} from './chat'
+
+describe('chat API mapping', () => {
+  test('stops the exact turn with explicit project scope, and propagates stop failures', async () => {
+    const originalFetch = globalThis.fetch
+    const calls: Array<{ path: string; init?: RequestInit }> = []
+    let status = 202
+    globalThis.fetch = (async (path, init) => {
+      calls.push({ path: String(path), init })
+      return new Response(
+        JSON.stringify(status === 404 ? { error: 'Chat turn not found' } : { status: 'stopping' }),
+        { status },
+      )
+    }) as typeof fetch
+    try {
+      await stopChatTurn('session/1', 'turn-2', 'project-1')
+      expect(calls[0]?.path).toBe('/api/chat/sessions/session%2F1/stop')
+      expect(calls[0]?.init?.method).toBe('POST')
+      expect(calls[0]?.init?.headers).toEqual({
+        'Content-Type': 'application/json',
+        'x-orchestos-project-id': 'project-1',
+      })
+      expect(JSON.parse(String(calls[0]?.init?.body))).toEqual({ turnId: 'turn-2' })
+      status = 404
+      await expect(stopChatTurn('general', 'turn-3')).rejects.toThrow('Chat turn not found')
+      expect(calls[1]?.path).toBe('/api/chat/sessions/general/stop?project=none')
+      globalThis.fetch = (async () => {
+        throw new Error('offline')
+      }) as unknown as typeof fetch
+      await expect(stopChatTurn('general', 'turn-3')).rejects.toThrow('offline')
+    } finally {
+      globalThis.fetch = originalFetch
+    }
+  })
+
+  test('preserves partial and empty stopped responses when mapping persisted messages', () => {
+    for (const content of ['partial response', '']) {
+      const message = mapMessage({
+        id: 1,
+        sessionId: 's',
+        role: 'assistant',
+        content,
+        model: null,
+        taskId: null,
+        ocrUsed: [],
+        taskHeld: false,
+        existingFiles: [],
+        createdAt: '2026-11-02T12:00:00Z',
+        stopped: true,
+      })
+      expect(message.content).toBe(content)
+      expect(message.stopped).toBe(true)
+    }
+  })
+  test('requests the visible project and general chats, or only general chats without projects', () => {
+    expect(sessionListQueries('project-1')).toEqual(['?project=project-1', '?project=none'])
+    expect(sessionListQueries(null)).toEqual(['?project=none'])
+  })
+
+  test('binds New chat to the visible project unless No project is explicit', () => {
+    expect(newChatProjectId('project-1')).toBe('project-1')
+    expect(newChatProjectId(undefined)).toBeNull()
+    expect(newChatProjectId('project-1', null)).toBeNull()
+    expect(newChatProjectId('project-1', 'project-2')).toBe('project-2')
+  })
+
+  test('runs an approved task until the server leaves pending', async () => {
+    const originalFetch = globalThis.fetch
+    const statuses = ['pending', 'pending', 'running', 'done']
+    const calls: string[] = []
+    let started = false
+    globalThis.fetch = (async (input) => {
+      const path = String(input)
+      calls.push(path)
+      if (path.endsWith('/run')) return new Response(JSON.stringify({ ok: true }), { status: 200 })
+      const status = statuses.shift() ?? 'done'
+      return new Response(
+        JSON.stringify({ tasks: [{ id: 'task-1', description: 'x', status, retryReason: null }] }),
+        { status: 200 },
+      )
+    }) as typeof fetch
+    try {
+      await runProjectTask('task-1', 'project-1', () => {
+        started = true
+      })
+    } finally {
+      globalThis.fetch = originalFetch
+    }
+    expect(calls.filter((path) => path.endsWith('/api/tasks')).length).toBe(4)
+    expect(started).toBe(true)
+  })
+
+  test('surfaces the persisted task failure reason', async () => {
+    const originalFetch = globalThis.fetch
+    globalThis.fetch = (async (input) => {
+      if (String(input).endsWith('/run'))
+        return new Response(JSON.stringify({ ok: true }), { status: 200 })
+      return new Response(
+        JSON.stringify({
+          tasks: [
+            {
+              id: 'task-1',
+              description: 'x',
+              status: 'failed',
+              retryReason: 'sandbox refused dirty tree',
+            },
+          ],
+        }),
+        { status: 200 },
+      )
+    }) as typeof fetch
+    try {
+      await expect(runProjectTask('task-1', 'project-1')).rejects.toThrow(
+        'sandbox refused dirty tree',
+      )
+    } finally {
+      globalThis.fetch = originalFetch
+    }
+  })
+
+  test('creates project chats without forcing chat mode', async () => {
+    const originalFetch = globalThis.fetch
+    let body: Record<string, unknown> | undefined
+    globalThis.fetch = (async (_input, init) => {
+      body = JSON.parse(String(init?.body)) as Record<string, unknown>
+      return new Response(
+        JSON.stringify({
+          id: 'session-1',
+          projectId: 'project-1',
+          agent: 'codex',
+          mode: 'code',
+          title: 'New chat',
+          createdAt: '2026-09-23T12:00:00.000Z',
+          updatedAt: '2026-09-23T12:00:00.000Z',
+        }),
+        { status: 200 },
+      )
+    }) as typeof fetch
+    try {
+      await createSession({ agent: 'codex', projectId: 'project-1' })
+    } finally {
+      globalThis.fetch = originalFetch
+    }
+    expect(body).toEqual({ agent: 'codex', projectId: 'project-1' })
+  })
+
+  test('maps persisted session and message rows to the prototype types', () => {
+    const thread = mapSessionToThread(
+      {
+        id: 'session-1',
+        projectId: null,
+        agent: 'api',
+        mode: 'chat',
+        title: 'Real chat',
+        createdAt: '2026-09-21T12:00:00.000Z',
+        updatedAt: '2026-09-21T12:01:00.000Z',
+      },
+      [
+        {
+          id: 1,
+          sessionId: 'session-1',
+          role: 'assistant',
+          content: 'Persisted answer',
+          model: 'model-x',
+          taskId: null,
+          ocrUsed: [],
+          taskHeld: false,
+          existingFiles: [],
+          createdAt: '2026-09-21T12:01:00.000Z',
+        },
+      ],
+    )
+    expect(thread).toMatchObject({ id: 'session-1', title: 'Real chat', agent: 'api' })
+    expect(thread.messages[0]).toMatchObject({
+      id: '1',
+      content: 'Persisted answer',
+      model: 'model-x',
+    })
+  })
+
+  test('sends the same session/message controls as the legacy composer', async () => {
+    const calls: RequestInit[] = []
+    const originalFetch = globalThis.fetch
+    globalThis.fetch = (async (_input, init) => {
+      calls.push(init ?? {})
+      return new Response(JSON.stringify({ text: 'ok' }), { status: 200 })
+    }) as typeof fetch
+    try {
+      await sendMessage({
+        sessionId: 'session-1',
+        projectId: 'project-1',
+        message: 'hello',
+        agent: 'api',
+        model: 'provider/model',
+        effort: 'High',
+        attachments: [
+          { id: 'att_local', fileId: 'file-1', name: 'notes.txt', size: '1 KB', type: 'file' },
+          { id: 'att_pending', name: 'late.txt', size: '1 KB', type: 'file' },
+        ],
+      })
+    } finally {
+      globalThis.fetch = originalFetch
+    }
+    const body = JSON.parse(String(calls[0].body))
+    expect(body).toMatchObject({
+      sessionId: 'session-1',
+      history: [],
+      message: 'hello',
+      model: 'provider/model',
+      effort: 'high',
+      fileIds: ['file-1'],
+    })
+    expect(body.fileIds).not.toContain('att_local')
+    expect(typeof body.requestKey).toBe('string')
+  })
+
+  test('uploads a file as multipart and surfaces the server error message', async () => {
+    const originalFetch = globalThis.fetch
+    const calls: RequestInit[] = []
+    let fail = false
+    globalThis.fetch = (async (_input, init) => {
+      calls.push(init as RequestInit)
+      return fail
+        ? new Response(JSON.stringify({ error: 'File exceeds 10 MB limit' }), { status: 413 })
+        : new Response(
+            JSON.stringify({ fileId: 'srv-1', type: 'text', preview: 'hi', filename: 'a.txt' }),
+            { status: 200 },
+          )
+    }) as typeof fetch
+    try {
+      const uploaded = await uploadChatFile(new File(['hi'], 'a.txt', { type: 'text/plain' }))
+      expect(uploaded.fileId).toBe('srv-1')
+      const form = calls[0].body as FormData
+      expect(form).toBeInstanceOf(FormData)
+      expect((form.get('file') as File).name).toBe('a.txt')
+      fail = true
+      await expect(uploadChatFile(new File(['x'], 'b.txt'))).rejects.toThrow(
+        'File exceeds 10 MB limit',
+      )
+    } finally {
+      globalThis.fetch = originalFetch
+    }
+  })
+
+  test('maps held tasks without inventing a response body', () => {
+    expect(
+      mapMessage({
+        id: 7,
+        sessionId: 's',
+        role: 'assistant',
+        content: 'Review this',
+        model: null,
+        taskId: 'task-7',
+        ocrUsed: [],
+        taskHeld: true,
+        existingFiles: ['src/a.ts'],
+        createdAt: '2026-09-21T12:00:00.000Z',
+      }),
+    ).toMatchObject({ taskHeld: true, heldTask: { taskId: 'task-7' } })
+  })
+
+  test('attaches ordered reasoning and tool statuses to the assistant turn', () => {
+    const rows = [
+      {
+        id: 1,
+        sessionId: 's',
+        role: 'assistant' as const,
+        content: 'done',
+        model: null,
+        taskId: null,
+        ocrUsed: [],
+        taskHeld: false,
+        existingFiles: [],
+        turnId: 'turn-1',
+        createdAt: '2026-09-21T12:00:00.000Z',
+      },
+    ]
+    const message = mapMessage(rows[0])
+    const detailed = attachTurnDetails([message], rows, {
+      live: null,
+      turns: [
+        {
+          id: 'turn-1',
+          status: 'completed',
+          createdAt: '',
+          updatedAt: '',
+          error: null,
+          steps: [
+            {
+              seq: 2,
+              type: 'tool_use',
+              tool: 'command',
+              target: null,
+              added: null,
+              removed: null,
+              exitCode: 1,
+              ok: false,
+              output: 'nope',
+              detail: 'ls missing',
+              durationMs: 4,
+              createdAt: '',
+            },
+            {
+              seq: 0,
+              type: 'reasoning',
+              tool: null,
+              target: null,
+              added: null,
+              removed: null,
+              exitCode: null,
+              ok: null,
+              output: null,
+              detail: '**inspect repo**',
+              durationMs: null,
+              createdAt: '',
+            },
+            {
+              seq: 1,
+              type: 'tool_use',
+              tool: 'command',
+              target: 'README.md',
+              added: null,
+              removed: null,
+              exitCode: 0,
+              ok: true,
+              output: 'ok',
+              detail: null,
+              durationMs: 2,
+              createdAt: '',
+            },
+          ],
+        },
+      ],
+      messages: rows,
+      commands: [],
+      pending: false,
+      events: [],
+    })
+    expect(detailed[0]).toMatchObject({ reasoning: ['inspect repo'] })
+    expect(detailed[0]?.toolCalls).toEqual([
+      {
+        name: 'command',
+        args: { target: 'README.md' },
+        result: 'ok',
+        status: 'success',
+        durationMs: 2,
+      },
+      {
+        name: 'command',
+        args: { command: 'ls missing' },
+        result: 'nope',
+        status: 'failed',
+        durationMs: 4,
+      },
+    ])
+  })
+
+  test('leaves messages without a turn id unchanged', () => {
+    const message = mapMessage({
+      id: 1,
+      sessionId: 's',
+      role: 'assistant',
+      content: 'plain',
+      model: null,
+      taskId: null,
+      ocrUsed: [],
+      taskHeld: false,
+      existingFiles: [],
+      turnId: null,
+      createdAt: '2026-09-21T12:00:00.000Z',
+    })
+    expect(
+      attachTurnDetails([message], [{ ...message, id: 1 } as never], {
+        live: null,
+        turns: [],
+        messages: [],
+        commands: [],
+        pending: false,
+        events: [],
+      }),
+    ).toEqual([message])
+  })
+
+  test('general session scope ignores the last project saved in localStorage', async () => {
+    const originalFetch = globalThis.fetch
+    const originalStorage = Object.getOwnPropertyDescriptor(globalThis, 'localStorage')
+    const calls: Array<{ input: RequestInfo | URL; init?: RequestInit }> = []
+    Object.defineProperty(globalThis, 'localStorage', {
+      configurable: true,
+      value: { getItem: (key: string) => (key === 'orchestos-last-project' ? 'project-b' : null) },
+    })
+    globalThis.fetch = (async (input, init) => {
+      calls.push({ input, init })
+      return new Response('[]', { status: 200 })
+    }) as typeof fetch
+    try {
+      await getSessionMessages('general-session', null)
+    } finally {
+      globalThis.fetch = originalFetch
+      if (originalStorage) Object.defineProperty(globalThis, 'localStorage', originalStorage)
+      else Reflect.deleteProperty(globalThis, 'localStorage')
+    }
+    expect(String(calls[0]?.input)).toContain('?project=none')
+    expect(new Headers(calls[0]?.init?.headers).has('x-orchestos-project-id')).toBe(false)
+  })
+
+  test('renders SQLite UTC timestamps in the browser local timezone', () => {
+    const sqliteValue = '2026-09-21 12:00:00'
+    expect(toTimestamp(sqliteValue)).toBe(
+      new Date('2026-09-21T12:00:00Z').toLocaleString([], { hour: '2-digit', minute: '2-digit' }),
+    )
+  })
+
+  test('loads the real console and executes a command for a session', async () => {
+    const calls: Array<{ input: RequestInfo | URL; init?: RequestInit }> = []
+    const originalFetch = globalThis.fetch
+    globalThis.fetch = (async (input, init) => {
+      calls.push({ input, init })
+      const body =
+        calls.length === 1
+          ? { lines: [{ at: '2026-09-22T12:00:00Z', kind: 'output', text: 'ok' }], pending: false }
+          : {
+              id: 1,
+              cmd: 'ls',
+              exitCode: 0,
+              stdout: 'src',
+              stderr: '',
+              elapsedMs: 4,
+              timedOut: false,
+            }
+      return new Response(JSON.stringify(body), { status: 200 })
+    }) as typeof fetch
+    try {
+      await expect(getConsole('session-1', 'project-1')).resolves.toMatchObject({ pending: false })
+      await expect(execCommand('session-1', 'ls', 'project-1')).resolves.toMatchObject({
+        exitCode: 0,
+      })
+    } finally {
+      globalThis.fetch = originalFetch
+    }
+    expect(String(calls[0]?.input)).toContain('/console')
+    expect(String(calls[1]?.input)).toContain('/exec')
+    expect(JSON.parse(String(calls[1]?.init?.body))).toEqual({ cmd: 'ls' })
+  })
+})
+
+test('sendMessage forwards the selected task approval mode', async () => {
+  const originalFetch = globalThis.fetch
+  let body: Record<string, unknown> = {}
+  globalThis.fetch = (async (_input, init) => {
+    body = JSON.parse(String(init?.body))
+    return new Response(JSON.stringify({ text: 'ok' }), { status: 200 })
+  }) as typeof fetch
+  try {
+    await sendMessage({
+      sessionId: 's',
+      projectId: 'p',
+      message: 'edit',
+      approvalMode: 'supervised',
+    })
+    expect(body.approvalMode).toBe('supervised')
+  } finally {
+    globalThis.fetch = originalFetch
+  }
+})
+
+test('CHAT.3 failed send preserves classified message and expandable CLI detail', async () => {
+  const originalFetch = globalThis.fetch
+  const notice = {
+    kind: 'quota',
+    message: 'Codex usage limit reached.',
+    detail: 'original CLI text',
+  }
+  globalThis.fetch = (async () =>
+    new Response(JSON.stringify({ error: notice.message, notice }), {
+      status: 502,
+    })) as unknown as typeof fetch
+  try {
+    const error = await sendMessage({ sessionId: 's', projectId: null, message: 'hello' }).catch(
+      (error) => error,
+    )
+    expect(error.message).toBe(notice.message)
+    expect(error.notice).toEqual(notice)
+  } finally {
+    globalThis.fetch = originalFetch
+  }
+})
+
+test('new chat reads the backend default and leaves an omitted agent to the server', async () => {
+  const originalFetch = globalThis.fetch
+  const calls: Array<{ path: string; init?: RequestInit }> = []
+  globalThis.fetch = (async (path, init) => {
+    calls.push({ path: String(path), init })
+    return new Response(
+      JSON.stringify(
+        String(path).endsWith('default-agent')
+          ? { agent: 'codex' }
+          : {
+              id: 'new',
+              projectId: null,
+              agent: 'codex',
+              mode: 'chat',
+              title: 'New chat',
+              createdAt: new Date().toISOString(),
+              updatedAt: new Date().toISOString(),
+              archivedAt: null,
+            },
+      ),
+    )
+  }) as typeof fetch
+  try {
+    expect(await getDefaultChatAgent()).toEqual({ agent: 'codex' })
+    expect(calls[0]?.path).toBe('/api/chat/default-agent')
+    expect((await createSession({ projectId: null })).agent).toBe('codex')
+    expect(JSON.parse(String(calls[1]?.init?.body))).not.toHaveProperty('agent')
+    await createSession({ projectId: null, agent: 'claude' })
+    expect(JSON.parse(String(calls[2]?.init?.body)).agent).toBe('claude')
+  } finally {
+    globalThis.fetch = originalFetch
+  }
+})

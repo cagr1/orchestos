@@ -1,0 +1,56 @@
+id: bug-hypothesis
+version: 1.0.0
+name: Bug Hypothesis Triage
+description: Quickly ranks likely root causes for a reported bug before any code is touched, to focus the investigation.
+targets:
+  - claude
+  - cursor
+  - openai
+allowed_tools:
+  - read
+when_to_use:
+  - When a bug report comes in and the cause is unclear
+  - When multiple parts of the codebase could plausibly cause the symptom
+  - Before starting a deep debugging session, to avoid investigating the wrong area first
+inputs_required:
+  - The bug report or symptom description (what's wrong, when it happens)
+  - Access to read the relevant source files
+instructions: |
+  This is a triage step, not a fix. The goal is a short written hypothesis
+  list that points the next debugging session at the right files.
+
+  **Step 1 — Restate the symptom precisely**
+  Rewrite the report as: "When [trigger], [actual behavior] happens instead
+  of [expected behavior]." If the report is too vague to do this, list the
+  questions that need answering before triage can continue.
+
+  **Step 2 — List 3-5 candidate causes**
+  For each candidate, name the specific file/module/layer involved (e.g.
+  "race condition in the cache invalidation in src/cache/store.ts", not
+  "maybe a caching issue").
+
+  **Step 3 — Rank by likelihood and cost to check**
+  For each candidate, estimate likelihood (high/medium/low) and how long it
+  would take to confirm or rule out (read code / add a log / run a test).
+  Sort the list: cheapest-to-check-first among the high-likelihood ones.
+
+  **Step 4 — Recommend the next action**
+  State which candidate to check first and exactly how (e.g. "add a log of
+  `cacheKey` at store.ts:44 and reproduce").
+
+  **Output format**
+  A numbered list: "N. [Candidate] — likelihood: [H/M/L], check via: [action],
+  files: [path]". End with "Start with #N because [reason]."
+anti_patterns:
+  - Start editing code during triage — this step only produces a plan
+  - List candidates without naming a specific file or module
+  - Rank purely by likelihood, ignoring how cheap a candidate is to rule out
+  - Produce only one candidate when the symptom could plausibly have several causes
+verifiers:
+  - Each candidate names a specific file or module
+  - The recommended first check is the cheapest among the high-likelihood candidates
+  - The output contains no code edits
+examples:
+  - title: Intermittent 500 on checkout
+    input: "Users occasionally get a 500 error on checkout, happens maybe 1 in 20 attempts, no pattern in the logs"
+    output: "1. Race condition between inventory check and reservation — likelihood: H, check via: add log of stock count + reservation order, files: src/services/inventory.ts. 2. Connection pool exhaustion under load — likelihood: M, check via: review pool size config, files: src/db/pool.ts. 3. Unhandled promise rejection in payment webhook — likelihood: M, check via: grep for .then without .catch, files: src/webhooks/payment.ts. Start with #1 because it's the cheapest check and matches the 'occasional' pattern best."

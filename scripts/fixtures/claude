@@ -1,0 +1,20 @@
+#!/bin/sh
+# Deterministic Claude stream fixture for scripts/live-r6-cost.ts.
+if [ "$1" = "--help" ]; then
+  printf '  --restricted  restrict reads\n'
+  exit 0
+fi
+fixture_input=$(cat)
+if printf '%s' "$fixture_input" | grep -q 'R6 unknown model fixture'; then
+  printf '%s\n' '{"type":"assistant","message":{"content":[{"type":"text","text":"R6 unknown fixture reply"}]}}'
+  printf '%s\n' '{"type":"result","usage":{"input_tokens":30,"output_tokens":10},"modelUsage":{"unknown-cli-model":{}}}'
+elif printf '%s' "$fixture_input" | grep -q 'R6 zero cost fixture'; then
+  printf '%s\n' '{"type":"assistant","message":{"content":[{"type":"text","text":"R6 zero fixture reply"}]}}'
+  printf '%s\n' '{"type":"result","total_cost_usd":0,"usage":{"input_tokens":20,"output_tokens":5},"modelUsage":{"claude-sonnet-5":{}}}'
+elif printf '%s' "$fixture_input" | grep -q 'R6 estimated cost fixture'; then
+  printf '%s\n' '{"type":"assistant","message":{"content":[{"type":"text","text":"R6 estimated fixture reply"}]}}'
+  printf '%s\n' '{"type":"result","usage":{"input_tokens":1000,"output_tokens":2000},"modelUsage":{"openai/gpt-4o":{}}}'
+else
+  printf '%s\n' '{"type":"assistant","message":{"content":[{"type":"text","text":"R6 fixture reply"}]}}'
+  printf '%s\n' '{"type":"result","total_cost_usd":0.0123,"usage":{"input_tokens":120,"output_tokens":45},"modelUsage":{"claude-sonnet-5":{}}}'
+fi

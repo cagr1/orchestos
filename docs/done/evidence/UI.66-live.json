@@ -1,0 +1,17 @@
+{
+  "item": "UI.66",
+  "recordedAt": "2026-11-06",
+  "status": "complete",
+  "productChanges": true,
+  "live": {
+    "base": "http://localhost:4299",
+    "browser": "Claude desktop browser pane",
+    "selector": "[data-shell-header]",
+    "headerTextBefore": "Orchest\nOS\norchestos\n/\nmaster",
+    "headerTextAfter": "Orchest\nOS"
+  },
+  "gates": [
+    { "command": "bunx tsc --noEmit", "exitCode": 0 },
+    { "command": "bun run build:app", "exitCode": 0 }
+  ]
+}

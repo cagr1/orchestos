@@ -1,0 +1,328 @@
+import { existsSync, readFileSync, realpathSync } from 'fs'
+import { homedir } from 'os'
+import { dirname, join, resolve } from 'path'
+import type { Check } from '../tasks/schema.ts'
+import { jsSyntaxCheckForHtmlFile, jsSyntaxCheckForJsFile } from './html-script-check.ts'
+import type { RunLogger } from './logger.ts'
+import { PathPolicyError, resolveProjectCwd, safeChildEnv } from './path-policy.ts'
+
+const DEFAULT_TIMEOUT_MS = 60_000
+const OUTPUT_LIMIT = 2_000
+const TSC_TIMEOUT_MS = 120_000
+const JS_CHECK_TIMEOUT_MS = 15_000
+const TEST_ASSERTION_CHECK_TIMEOUT_MS = 15_000
+
+function commandAvailable(command: string, args: string[]): boolean {
+  try {
+    return Bun.spawnSync([command, ...args]).exitCode === 0
+  } catch {
+    return false
+  }
+}
+
+/** Checks deterministas derivados del perfil de lenguaje, cuando el proyecto
+ * tiene el manifiesto correspondiente y el toolchain está disponible. La
+ * ausencia se reporta antes como missing/blocked por roadmap-context.ts. */
+export function roadmapChecksFor(output: string[], effectiveRoot: string): Check[] {
+  const checks: Check[] = []
+  if (
+    output.some((p) => p.endsWith('.rs')) &&
+    existsSync(join(effectiveRoot, 'Cargo.toml')) &&
+    commandAvailable('cargo', ['--version'])
+  ) {
+    checks.push({ cmd: 'cargo test', timeout_ms: DEFAULT_TIMEOUT_MS })
+  }
+  if (
+    output.some((p) => p.endsWith('.go')) &&
+    existsSync(join(effectiveRoot, 'go.mod')) &&
+    commandAvailable('go', ['version'])
+  ) {
+    checks.push({ cmd: 'go test ./...', timeout_ms: DEFAULT_TIMEOUT_MS })
+  }
+  return checks
+}
+
+function testAssertionCheckFor(path: string): Check {
+  const checker = resolve(import.meta.dir, '../../scripts/check-test-assertions.ts')
+  return {
+    cmd: `${process.execPath} run ${checker} ${JSON.stringify(path)}`,
+    timeout_ms: TEST_ASSERTION_CHECK_TIMEOUT_MS,
+    trusted: true,
+  }
+}
+
+/**
+ * D3 finding (Mes 14, 2026-06-25): a task with no explicit `checks:` only gets
+ * validated by the LLM QA judge (qa.ts), which approved a generated test file that
+ * didn't even compile (wrong test framework import, missing Task fields). These are
+ * sensible defaults for code-output tasks that don't declare their own checks —
+ * explicit `checks:` always wins (this is never consulted if the task has any).
+ *
+ * A.5 (Mes 22 / IDEAS #36): cierra el hueco análogo para JS embebido en `.html`/`.js`
+ * que dejó pasar el bug de Mes 20/C.1 — `:` en vez de `+` en una concatenación dentro
+ * de `<script>` no lo detectaron ni `tsc` (cubre `.ts/.tsx`) ni el QA-LLM. Se valida
+ * con `node --check` sobre el código extraído, sin ejecutar — mismo principio que
+ * `tsc --noEmit`.
+ *
+ * Los checks de TS/JS-test siguen gateados por la presencia de `node_modules` (un
+ * worktree fresco sin deps no debe producir fails falsos por módulos no resueltos);
+ * los checks de sintaxis JS NO — `node --check` solo parsea, no carga deps.
+ * ERP.4.6 (2026-10-13): `tsc --noEmit` también requiere `tsconfig.json`; sin él,
+ * TypeScript muestra la ayuda y sale con error, haciendo fallar tareas válidas.
+ */
+export function defaultChecksFor(output: string[], effectiveRoot: string): Check[] {
+  const checks: Check[] = []
+  const hasNodeModules = existsSync(join(effectiveRoot, 'node_modules'))
+
+  if (hasNodeModules) {
+    if (
+      existsSync(join(effectiveRoot, 'tsconfig.json')) &&
+      output.some((p) => p.endsWith('.ts') || p.endsWith('.tsx'))
+    ) {
+      checks.push({ cmd: 'bunx tsc --noEmit', timeout_ms: TSC_TIMEOUT_MS })
+    }
+    for (const p of output) {
+      if (p.endsWith('.test.ts') || p.endsWith('.test.tsx')) {
+        checks.push({ cmd: `bun test ${p}` })
+      }
+    }
+  }
+
+  // K.3 — a test file with zero assertions passes `bun test` vacuously. This
+  // static check is independent of node_modules and therefore also runs in a
+  // fresh worktree. Missing files are left to the output contract check.
+  for (const p of output) {
+    if (
+      (p.endsWith('.test.ts') || p.endsWith('.test.tsx')) &&
+      existsSync(resolve(effectiveRoot, p))
+    ) {
+      checks.push(testAssertionCheckFor(p))
+    }
+  }
+
+  // A.5 — checks de sintaxis JS (no requieren node_modules).
+  // Para `.js` standalone y para `<script>` inline en `.html`. Si el archivo no existe
+  // cuando se computan los checks, no emitimos nada (el contrato / filesystem lo flaggea
+  // por otra vía — no agregar ruido acá).
+  for (const p of output) {
+    const abs = resolve(effectiveRoot, p)
+    if (p.endsWith('.js')) {
+      if (existsSync(abs)) {
+        checks.push(jsSyntaxCheckForJsFile(abs, JS_CHECK_TIMEOUT_MS))
+      }
+      continue
+    }
+    if (p.endsWith('.html')) {
+      if (!existsSync(abs)) continue
+      try {
+        const content = readFileSync(abs, 'utf-8')
+        const built = jsSyntaxCheckForHtmlFile(abs, content, { timeoutMs: JS_CHECK_TIMEOUT_MS })
+        if (built) checks.push(built.check)
+      } catch {
+        // Permisos o lectura parcial — pasamos; el contrato es la red principal.
+      }
+    }
+  }
+
+  checks.push(...roadmapChecksFor(output, effectiveRoot))
+
+  return checks
+}
+
+export interface CheckResult {
+  cmd: string
+  /** Versión observada del ejecutable antes del check, cuando se puede consultar. */
+  version?: string
+  exitCode: number
+  stdout: string
+  stderr: string
+  elapsedMs: number
+  timedOut: boolean
+}
+
+/** Bounded measured failure, retaining the end of stderr before stdout. */
+export function formatCheckFailure(result: CheckResult, expectedExit: number): string {
+  const cmd = result.cmd.length > 300 ? `${result.cmd.slice(0, 300)}…` : result.cmd
+  let text = result.timedOut
+    ? `check timed out after ${result.elapsedMs}ms: ${cmd}`
+    : `check failed: ${cmd} exit ${result.exitCode} (expected ${expectedExit})`
+  for (const [name, stream] of [
+    ['stderr', result.stderr],
+    ['stdout', result.stdout],
+  ]) {
+    if (!stream) continue
+    const header = `\n--- ${name} (tail) ---\n`
+    const available = 1800 - text.length - header.length
+    if (available > 0) text += header + stream.slice(-available)
+  }
+  return text
+}
+
+export async function runChecks(
+  checks: Check[],
+  projectRoot: string,
+  logger: RunLogger,
+): Promise<CheckResult[]> {
+  const results: CheckResult[] = []
+  for (const check of checks) {
+    const result = await runOneCheck(check, projectRoot)
+    results.push(result)
+
+    const expected = check.expect_exit ?? 0
+    if (result.timedOut) {
+      logger.error(`CHECK timeout: ${check.cmd}`)
+    } else if (result.exitCode !== expected) {
+      logger.error(`CHECK failed: ${check.cmd} exit=${result.exitCode} expected=${expected}`)
+    }
+  }
+  return results
+}
+
+export async function runOneCheck(check: Check, projectRoot: string): Promise<CheckResult> {
+  const argv = splitCommand(check.cmd)
+  const command = argv[0]
+  const args = argv.slice(1)
+  const timeoutMs = check.timeout_ms ?? DEFAULT_TIMEOUT_MS
+  const started = performance.now()
+
+  let cwd: string
+  try {
+    cwd = resolveProjectCwd(projectRoot, check.cwd ?? '.')
+  } catch (e) {
+    const message = e instanceof PathPolicyError ? e.message : 'invalid command cwd'
+    return failureResult(check.cmd, message, started, false)
+  }
+
+  if (!command) {
+    return failureResult(check.cmd, 'empty command', started, false)
+  }
+
+  if (!check.trusted) {
+    const realRoot = realpathSync(projectRoot)
+    for (const arg of args) {
+      for (const value of pathValuesInArgument(arg)) {
+        if (!looksLikePath(value)) continue
+        const candidate = resolveCommandPath(value, cwd)
+        const realCandidate = realPathOrResolved(candidate)
+        if (!isWithinRoot(realCandidate, realRoot)) {
+          return failureResult(check.cmd, `path outside project: ${arg}`, started, false)
+        }
+      }
+    }
+  }
+
+  const version = commandVersion(command)
+
+  let timedOut = false
+  try {
+    const proc = Bun.spawn([command, ...args], {
+      cwd,
+      env: safeChildEnv(),
+      stdout: 'pipe',
+      stderr: 'pipe',
+    })
+
+    const timer = setTimeout(() => {
+      timedOut = true
+      proc.kill()
+    }, timeoutMs)
+
+    const [exitCode, stdout, stderr] = await Promise.all([
+      proc.exited,
+      new Response(proc.stdout).text(),
+      new Response(proc.stderr).text(),
+    ])
+    clearTimeout(timer)
+
+    return {
+      cmd: check.cmd,
+      version,
+      exitCode,
+      stdout: tail(stdout),
+      stderr: tail(stderr),
+      elapsedMs: Math.round(performance.now() - started),
+      timedOut,
+    }
+  } catch (e: any) {
+    return failureResult(check.cmd, e.message, started, timedOut)
+  }
+}
+
+function looksLikePath(value: string): boolean {
+  return (
+    value.startsWith('/') || value.startsWith('~') || value.startsWith('.') || value.includes('/')
+  )
+}
+
+function pathValuesInArgument(arg: string): string[] {
+  const values = [arg]
+  const equals = arg.indexOf('=')
+  if (equals >= 0) values.push(arg.slice(equals + 1))
+  if (arg.startsWith('-') && !arg.startsWith('--') && arg.length > 2) values.push(arg.slice(2))
+  return values
+}
+
+function resolveCommandPath(value: string, cwd: string): string {
+  if (value === '~') return homedir()
+  if (value.startsWith('~/')) return resolve(homedir(), value.slice(2))
+  return resolve(cwd, value)
+}
+
+function realPathOrResolved(path: string): string {
+  try {
+    return realpathSync(path)
+  } catch {
+    let parent = dirname(path)
+    try {
+      parent = realpathSync(parent)
+    } catch {
+      return resolve(path)
+    }
+    return resolve(parent, path.slice(path.lastIndexOf('/') + 1))
+  }
+}
+
+function isWithinRoot(path: string, root: string): boolean {
+  return path === root || path.startsWith(`${root}/`)
+}
+
+function splitCommand(cmd: string): string[] {
+  const parts: string[] = []
+  const re = /"([^"]*)"|'([^']*)'|[^\s]+/g
+  for (const match of cmd.matchAll(re)) {
+    parts.push(match[1] ?? match[2] ?? match[0])
+  }
+  return parts
+}
+
+function tail(text: string): string {
+  return text.length > OUTPUT_LIMIT ? text.slice(-OUTPUT_LIMIT) : text
+}
+
+function failureResult(
+  cmd: string,
+  message: string,
+  started: number,
+  timedOut: boolean,
+): CheckResult {
+  return {
+    cmd,
+    exitCode: 1,
+    stdout: '',
+    stderr: tail(message),
+    elapsedMs: Math.round(performance.now() - started),
+    timedOut,
+  }
+}
+
+function commandVersion(command: string): string | undefined {
+  const executable = command === 'bunx' ? 'bun' : command
+  const args = executable === 'go' ? ['version'] : ['--version']
+  try {
+    const proc = Bun.spawnSync([executable, ...args])
+    if (proc.exitCode !== 0) return undefined
+    return proc.stdout.toString().trim() || undefined
+  } catch {
+    return undefined
+  }
+}

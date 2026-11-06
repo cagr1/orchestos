@@ -1,0 +1,56 @@
+name: Mutation Shards
+
+on:
+  schedule:
+    - cron: '0 3 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  mutation:
+    name: Mutation / ${{ matrix.shard }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    strategy:
+      fail-fast: false
+      max-parallel: 2
+      matrix:
+        include:
+          - shard: executors-engines
+            command: mutation:run:executors-engines
+          - shard: executors-engines-b
+            command: mutation:run:executors-engines-b
+          - shard: executors-routing
+            command: mutation:run:executors-routing
+          - shard: executors-routing-b
+            command: mutation:run:executors-routing-b
+          - shard: executors-routing-c
+            command: mutation:run:executors-routing-c
+          - shard: executors-codex-server
+            command: mutation:run:executors-codex-server
+          - shard: executors-codex-server-b
+            command: mutation:run:executors-codex-server-b
+          - shard: executors-codex-server-c
+            command: mutation:run:executors-codex-server-c
+          - shard: executors-codex-engines
+            command: mutation:run:executors-codex-engines
+          - shard: runtime-boundaries
+            command: mutation:run:runtime-boundaries
+          - shard: context-routing
+            command: mutation:run:context-routing
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+      - run: bun install --frozen-lockfile
+      - run: bun run typecheck
+      - run: bun run ${{ matrix.command }}
+      - name: Upload mutation report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: mutation-${{ matrix.shard }}
+          path: reports/mutation/mutation.json
+          if-no-files-found: warn
+          retention-days: 14

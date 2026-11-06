@@ -1,0 +1,331 @@
+import { afterAll, describe, expect, test } from 'bun:test'
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
+import { db } from '../../db/sqlite.ts'
+import { deleteTaskRunWatch, getTaskRunWatch, upsertTaskRunWatch } from '../../db/task-run-watch.ts'
+import {
+  createApprovalRun,
+  finishApprovalRun,
+  pendingApprovals,
+  resolveApproval,
+} from '../../run/approvals.ts'
+import {
+  handleApiTasks,
+  handleApiTasksCommitRun,
+  handleApiTasksRun,
+  loadTaskRows,
+  resolveTaskRunProjectId,
+} from './tasks.ts'
+
+const roots: string[] = []
+afterAll(() => roots.forEach((root) => rmSync(root, { recursive: true, force: true })))
+
+describe('dashboard task run project binding', () => {
+  test('uses the request-selected project id instead of re-resolving by path', () => {
+    expect(resolveTaskRunProjectId('/path-that-is-not-registered', 'request-project')).toBe(
+      'request-project',
+    )
+  })
+})
+
+describe('dashboard task run session reporting', () => {
+  test('ignora sessionId desconocido y responde ok sin lanzar un CLI real', async () => {
+    const root = mkdtempSync(join(tmpdir(), 'orchestos-task-run-session-'))
+    roots.push(root)
+    writeFileSync(
+      join(root, 'tasks.yaml'),
+      'version: 1\nproject: test\ntasks:\n  - id: task-test\n    description: Test\n    executor: openrouter\n    input: []\n    output: [out.txt]\n    depends_on: []\n    status: running\n    retry_count: 0\n',
+    )
+    for (const args of [
+      ['init', '-b', 'main'],
+      ['add', 'tasks.yaml'],
+      [
+        '-c',
+        'user.name=OrchestOS test',
+        '-c',
+        'user.email=test@invalid',
+        'commit',
+        '-m',
+        'fixture',
+      ],
+    ]) {
+      const proc = Bun.spawnSync(['git', ...args], { cwd: root, stdout: 'pipe', stderr: 'pipe' })
+      expect(proc.exitCode, new TextDecoder().decode(proc.stderr)).toBe(0)
+    }
+    writeFileSync(
+      join(root, 'orchestos.config.yaml'),
+      'roles:\n  executor: { agent: codex, model: test }\n  reviewer: { agent: codex, model: test }\n',
+    )
+    const originalSpawn = Bun.spawn
+    Bun.spawn = (() => ({ pid: 424242, exited: Promise.resolve(0) })) as unknown as typeof Bun.spawn
+    try {
+      const response = await handleApiTasksRun(
+        new Request('http://localhost/api/tasks/task-test/run', {
+          method: 'POST',
+          body: JSON.stringify({ sessionId: 'unknown-session' }),
+        }),
+        new URL('http://localhost/api/tasks/task-test/run'),
+        root,
+      )
+      expect(response.status).toBe(200)
+      expect(await response.json()).toMatchObject({ ok: true })
+    } finally {
+      Bun.spawn = originalSpawn
+    }
+  })
+})
+
+describe('dashboard task commit-run (ERP.4.13)', () => {
+  function git(root: string, ...args: string[]) {
+    const proc = Bun.spawnSync(
+      ['git', '-c', 'user.name=OrchestOS test', '-c', 'user.email=test@invalid', ...args],
+      {
+        cwd: root,
+        env: { PATH: process.env.PATH ?? '', HOME: root },
+        stdout: 'pipe',
+        stderr: 'pipe',
+      },
+    )
+    expect(proc.exitCode, proc.stderr.toString()).toBe(0)
+    return proc.stdout.toString().trim()
+  }
+
+  function fixture() {
+    const root = mkdtempSync(join(tmpdir(), 'orchestos-commit-run-'))
+    roots.push(root)
+    writeFileSync(
+      join(root, 'tasks.yaml'),
+      'version: 1\nproject: test\ntasks:\n  - id: task-dirty\n    description: Test\n    executor: openrouter\n    input: []\n    output: [out.txt]\n    depends_on: []\n    status: pending\n    retry_count: 0\n    retry_reason: "uncommitted changes: a.txt"\n',
+    )
+    git(root, 'init', '-b', 'main')
+    git(root, 'config', 'user.name', 'OrchestOS test')
+    git(root, 'config', 'user.email', 'test@invalid')
+    writeFileSync(
+      join(root, 'orchestos.config.yaml'),
+      'roles:\n  executor: { agent: codex, model: test }\n  reviewer: { agent: codex, model: test }\n',
+    )
+    git(root, 'add', 'tasks.yaml', 'orchestos.config.yaml')
+    git(root, 'commit', '-m', 'fixture')
+    writeFileSync(join(root, 'a.txt'), 'a')
+    writeFileSync(join(root, 'b.txt'), 'b')
+    return root
+  }
+
+  const call = (root: string, body: unknown) =>
+    handleApiTasksCommitRun(
+      new Request('http://localhost/api/tasks/task-dirty/commit-run', {
+        method: 'POST',
+        body: JSON.stringify(body),
+      }),
+      new URL('http://localhost/api/tasks/task-dirty/commit-run'),
+      root,
+    )
+
+  test('rechaza rutas fuera de la lista sucia, con .. o absolutas, sin commitear nada', async () => {
+    const root = fixture()
+    const head = git(root, 'rev-parse', 'HEAD')
+    for (const file of ['limpio.txt', '../a.txt', '/etc/passwd']) {
+      const response = await call(root, { files: ['a.txt', file] })
+      expect(response.status).toBe(400)
+      expect(JSON.stringify(await response.json())).toContain(file)
+    }
+    expect((await call(root, { files: [] })).status).toBe(400)
+    expect(git(root, 'rev-parse', 'HEAD')).toBe(head)
+  })
+
+  test('commitea solo los archivos pedidos y lanza la tarea', async () => {
+    const root = fixture()
+    const originalSpawn = Bun.spawn
+    let spawned = 0
+    Bun.spawn = (() => {
+      spawned += 1
+      return { pid: 424243, exited: Promise.resolve(0) }
+    }) as unknown as typeof Bun.spawn
+    try {
+      const response = await call(root, { files: ['a.txt'] })
+      expect(response.status).toBe(200)
+      expect(spawned).toBe(1)
+      const message = git(root, 'log', '--grep=chore: commit pending changes', '-1', '--format=%s')
+      expect(message).toBe('chore: commit pending changes before task-dirty (dashboard)')
+      const files = git(
+        root,
+        'log',
+        '--grep=chore: commit pending changes',
+        '-1',
+        '--name-only',
+        '--format=',
+      )
+      expect(files).toBe('a.txt')
+      expect(git(root, 'status', '--porcelain')).toContain('b.txt')
+      expect(readFileSync(join(root, 'tasks.yaml'), 'utf8')).not.toContain('uncommitted changes')
+    } finally {
+      Bun.spawn = originalSpawn
+    }
+  })
+
+  test('sin identidad git el commit se rechaza con 409 y la tarea no se lanza', async () => {
+    const root = fixture()
+    // Una identidad local vacía tapa la identidad global del host.
+    git(root, 'config', 'user.name', '')
+    git(root, 'config', 'user.email', '')
+    git(root, 'config', 'user.useConfigOnly', 'true')
+    const originalSpawn = Bun.spawn
+    let spawned = 0
+    Bun.spawn = (() => {
+      spawned += 1
+      return { pid: 424244, exited: Promise.resolve(0) }
+    }) as unknown as typeof Bun.spawn
+    try {
+      const response = await call(root, { files: ['a.txt'] })
+      expect(response.status).toBe(409)
+      expect(spawned).toBe(0)
+    } finally {
+      Bun.spawn = originalSpawn
+    }
+  })
+})
+
+describe('dashboard task rows lastRunAt (UI.26.3)', () => {
+  function fixture(runId: string | null) {
+    const root = mkdtempSync(join(tmpdir(), 'orchestos-task-lastrun-'))
+    roots.push(root)
+    const runLine = runId ? `    run_id: ${runId}\n` : ''
+    writeFileSync(
+      join(root, 'tasks.yaml'),
+      `version: 1\nproject: test\ntasks:\n  - id: task-a\n    description: A\n    executor: openrouter\n    input: []\n    output: [out.txt]\n    depends_on: []\n    status: done\n    retry_count: 0\n${runLine}`,
+    )
+    return root
+  }
+
+  test('lastRunAt es el created_at del run enlazado', async () => {
+    const runId = `run-lastrun-${crypto.randomUUID()}`
+    const createdAt = '2026-10-14T09:30:00.000Z'
+    db.run(
+      `INSERT INTO runs (id, prompt, task_class, model, provider, status, created_at)
+       VALUES (?, 'p', 'code', 'm', 'x', 'done', ?)`,
+      [runId, createdAt],
+    )
+    try {
+      const root = fixture(runId)
+      expect(loadTaskRows(root)[0]?.lastRunAt).toBe(createdAt)
+      const body = (await handleApiTasks(root).json()) as { tasks: { lastRunAt: string | null }[] }
+      expect(body.tasks[0]?.lastRunAt).toBe(createdAt)
+    } finally {
+      db.run('DELETE FROM runs WHERE id = ?', [runId])
+    }
+  })
+
+  test('phaseSkills contains only applied ids from the linked run and handles legacy or malformed JSON', () => {
+    const runId = `run-phases-${crypto.randomUUID()}`
+    db.run(
+      `INSERT INTO runs (id, prompt, task_class, model, provider, status, created_at) VALUES (?, 'p', 'fix', 'm', 'x', 'done', 'now')`,
+      [runId],
+    )
+    try {
+      const root = fixture(runId)
+      for (const [json, expected] of [
+        [
+          JSON.stringify([
+            { id: 'tdd', applied: true },
+            { id: 'omitted', applied: false },
+          ]),
+          ['tdd'],
+        ],
+        [null, []],
+        ['invalid', []],
+        ['{}', []],
+        ['[null, {"applied":true}]', []],
+      ] as const) {
+        db.run('UPDATE runs SET phase_skills_json = ? WHERE id = ?', [json, runId])
+        expect(loadTaskRows(root)[0]?.phaseSkills).toEqual([...expected])
+      }
+      expect(loadTaskRows(fixture(null))[0]?.phaseSkills).toEqual([])
+      expect(loadTaskRows(fixture('missing'))[0]?.phaseSkills).toEqual([])
+    } finally {
+      db.run('DELETE FROM runs WHERE id = ?', [runId])
+    }
+  })
+
+  test('sin run_id, o con un run inexistente, lastRunAt es null', async () => {
+    const noRun = fixture(null)
+    expect(loadTaskRows(noRun)[0]?.lastRunAt).toBeNull()
+    const body = (await handleApiTasks(noRun).json()) as { tasks: { lastRunAt: string | null }[] }
+    expect(body.tasks[0]?.lastRunAt).toBeNull()
+    expect(loadTaskRows(fixture('run-que-no-existe'))[0]?.lastRunAt).toBeNull()
+  })
+})
+
+describe('task approval rows (ERP.7.1b)', () => {
+  test('counts live requests, binds the watch session and clears both outside running', async () => {
+    const root = mkdtempSync(join(tmpdir(), 'task-approval-'))
+    roots.push(root)
+    const path = join(root, 'tasks.yaml')
+    const yaml =
+      'version: 1\nproject: test\ntasks:\n  - id: approval-task\n    description: Approval\n    executor: openrouter\n    output: [out.txt]\n    status: running\n'
+    writeFileSync(path, yaml)
+    const runId = crypto.randomUUID()
+    const adapter = createApprovalRun(runId, 'approval-task', null, 'supervised')
+    upsertTaskRunWatch({
+      root,
+      task_id: 'approval-task',
+      project_id: null,
+      session_id: 'chat-session',
+      pid: process.pid,
+    })
+    const requests = [
+      adapter.requestApproval({ kind: 'command', detail: { command: 'mkdir a' } }),
+      adapter.requestApproval({ kind: 'edit', detail: { files: ['out.txt'], diff: '+hello' } }),
+    ]
+    try {
+      expect(loadTaskRows(root)[0]).toMatchObject({
+        runId,
+        pendingApprovals: 2,
+        sessionId: 'chat-session',
+      })
+      expect((await handleApiTasks(root).json()).tasks[0].pendingApprovals).toBe(2)
+      const first = pendingApprovals(runId)[0]!
+      resolveApproval(runId, first.approvalId, 'approve')
+      expect(loadTaskRows(root)[0]?.pendingApprovals).toBe(1)
+      finishApprovalRun(runId)
+      expect(loadTaskRows(root)[0]?.pendingApprovals).toBe(0)
+      writeFileSync(path, yaml.replace('status: running', 'status: done'))
+      expect(loadTaskRows(root)[0]).toMatchObject({ pendingApprovals: 0, sessionId: null })
+    } finally {
+      finishApprovalRun(runId)
+      await Promise.all(requests)
+      const watch = getTaskRunWatch(root, 'approval-task')
+      if (watch) deleteTaskRunWatch(watch)
+      db.run('DELETE FROM approval_events WHERE run_id = ?', [runId])
+      db.run('DELETE FROM action_approvals WHERE run_id = ?', [runId])
+      db.run('DELETE FROM approval_runs WHERE id = ?', [runId])
+    }
+  })
+})
+
+describe('ONB.2 unassigned task roles', () => {
+  for (const role of ['executor', 'reviewer']) {
+    test(`returns role_unassigned for ${role} without launching or mutating the task`, async () => {
+      const root = mkdtempSync(join(tmpdir(), 'orchestos-unassigned-'))
+      roots.push(root)
+      const source =
+        'version: 1\nproject: test\ntasks:\n  - id: unassigned\n    description: Test\n    input: []\n    output: [out.txt]\n    status: failed\n'
+      writeFileSync(join(root, 'tasks.yaml'), source)
+      writeFileSync(
+        join(root, 'orchestos.config.yaml'),
+        role === 'executor' ? 'roles: {}\n' : 'roles:\n  executor: { agent: codex, model: test }\n',
+      )
+      const response = await handleApiTasksRun(
+        new Request('http://localhost/api/tasks/unassigned/run', { method: 'POST', body: '{}' }),
+        new URL('http://localhost/api/tasks/unassigned/run'),
+        root,
+      )
+      expect(response.status).toBe(400)
+      expect(await response.json()).toEqual({
+        code: 'role_unassigned',
+        error: `${role.charAt(0).toUpperCase()}${role.slice(1)} role is unassigned — assign it in Settings → Model routing`,
+      })
+      expect(readFileSync(join(root, 'tasks.yaml'), 'utf8')).toBe(source)
+    })
+  }
+})

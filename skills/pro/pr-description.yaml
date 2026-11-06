@@ -1,0 +1,61 @@
+id: pr-description
+version: 1.0.0
+name: PR Description
+description: Writes a clear pull request description from a diff — what changed, why, how it was tested, and risk.
+targets:
+  - claude
+  - cursor
+  - openai
+allowed_tools:
+  - read
+when_to_use:
+  - Before opening a pull request
+  - When asked to "write up" or "summarize" a set of changes
+  - When a diff has grown large and needs a reviewer-friendly summary
+inputs_required:
+  - The diff or list of changed files
+  - The original task/ticket description, if available
+  - How the change was tested (manually, new tests, etc.)
+instructions: |
+  Write a PR description with these sections, in this order. Skip a section
+  only if it is genuinely empty (e.g. "Risk: none — docs only").
+
+  **Summary** (1-3 sentences)
+  What changed, in plain language. A reviewer who hasn't seen the ticket
+  should understand the change after reading only this.
+
+  **Why**
+  The motivation: bug being fixed, feature being added, or debt being paid
+  down. Link the ticket/issue if one exists. If this "why" is obvious from
+  the summary, this section can be one sentence.
+
+  **What changed**
+  A bullet list of the meaningful changes, grouped by area (e.g. "API",
+  "Database", "Frontend"). Do not list every file — group by intent.
+  Call out any new dependencies, config, or env vars.
+
+  **Testing**
+  How this was verified: new/updated tests (name them), manual steps taken,
+  or "not yet tested — needs QA on staging."
+
+  **Risk & rollback**
+  What could break, and how to roll back if it does (revert commit, feature
+  flag, migration rollback). For low-risk changes (docs, comments), say so.
+
+  **Output format**
+  Markdown with the headers above. Keep the whole description scannable in
+  under 30 seconds — use bullets, not paragraphs, wherever possible.
+anti_patterns:
+  - List every changed file individually instead of grouping by intent
+  - Write "various fixes" or "misc changes" without specifics
+  - Omit the Risk section for changes that touch auth, payments, or migrations
+  - Copy the ticket description verbatim instead of summarizing the actual diff
+  - Claim something was tested when it was not
+verifiers:
+  - Every section present is non-empty and specific (no "TBD" or "N/A" without reason)
+  - Risk section addresses the actual blast radius of the diff (DB, auth, public API)
+  - A reviewer unfamiliar with the ticket can understand the change from the Summary alone
+examples:
+  - title: Bug fix PR
+    input: "Diff fixes a null pointer in UserCard.tsx by adding a loading guard, plus one new test"
+    output: "## Summary\nFixes a crash on the profile page when user data is still loading.\n\n## Why\nFixes #482 — UserCard crashed with 'Cannot read properties of undefined' during the initial fetch.\n\n## What changed\n- Frontend: add `if (!user) return null` guard in UserCard.tsx\n\n## Testing\n- Added UserCard.test.tsx covering the loading state\n- Manually verified on the profile page with throttled network\n\n## Risk & rollback\nLow risk — UI-only guard. Revert the single commit if needed."

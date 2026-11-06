@@ -1,0 +1,426 @@
+/**
+ * G.4 / B.2 — POST /api/tasks acepta `engine: 'single-shot' | 'agentic' | 'external'`,
+ * lo persiste en tasks.yaml, lo expone en GET /api/tasks (TaskRow.engine). Validación
+ * temprana: cualquier otro string devuelve 400 con el mismo mensaje que
+ * validateEngine() en src/tasks/schema.ts.
+ *
+ * Patrón (heredado de run-graph-api.test.ts — F0.1): tmp dir real con
+ * tasks.yaml real, chdir al tmp, sin mock.module(). __resetRunGraphForTests no
+ * se necesita acá — no tocamos el graph runner.
+ */
+import { afterAll, beforeEach, describe, expect, it } from 'bun:test'
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'fs'
+import { tmpdir } from 'os'
+import { join } from 'path'
+import { stringify as yamlStringify } from 'yaml'
+
+const { route } = await import('../server.ts')
+
+const PORT = 4242
+const originalCwd = process.cwd()
+const tmpDir = mkdtempSync(join(tmpdir(), 'tasks-api-engine-'))
+process.chdir(tmpDir)
+
+function writeTasksYaml(tasks: Record<string, unknown>[]): void {
+  writeFileSync(
+    join(tmpDir, 'tasks.yaml'),
+    yamlStringify({ version: 1, project: 'g4', tasks }, { lineWidth: 120 }),
+    'utf-8',
+  )
+}
+
+afterAll(() => {
+  process.chdir(originalCwd)
+  rmSync(tmpDir, { recursive: true, force: true })
+})
+
+beforeEach(() => {
+  writeTasksYaml([])
+  rmSync(join(tmpDir, 'orchestos.config.yaml'), { force: true })
+})
+
+function req(method: string, path: string, body?: unknown): Request {
+  return new Request(`http://localhost:${PORT}${path}`, {
+    method,
+    headers: { 'Content-Type': 'application/json' },
+    body: body !== undefined ? JSON.stringify(body) : undefined,
+  })
+}
+
+interface TaskRow {
+  id: string
+  engine: 'single-shot' | 'agentic' | 'external' | null
+}
+
+/** v0.12 / Bloque D.1.a — GET /api/tasks ahora devuelve { exists, tasks, error? }
+ * en vez de un array pelado. Este helper extrae `tasks` con la misma forma
+ * que antes para no tocar cada expect() del archivo. */
+interface TasksListResponse {
+  exists: boolean
+  tasks: TaskRow[]
+  error?: string
+}
+async function getTasks(): Promise<TaskRow[]> {
+  const res = await route(req('GET', '/api/tasks'), PORT)
+  const body = (await res.json()) as TasksListResponse
+  return body.tasks
+}
+
+describe('G.4 — POST /api/tasks acepta engine', () => {
+  it('does not freeze a model without a matching rule and derives only the engine from a Codex rule', async () => {
+    const noRule = await route(
+      req('POST', '/api/tasks', {
+        id: 'role-default-task',
+        description: 'defer execution model to the Executor role',
+        output: ['README.md'],
+      }),
+      PORT,
+    )
+    expect(noRule.status).toBe(200)
+    let yaml = readFileSync(join(tmpDir, 'tasks.yaml'), 'utf8')
+    expect(yaml).not.toContain('engine:')
+    expect(yaml).not.toContain('executor_model:')
+
+    writeTasksYaml([])
+    writeFileSync(
+      join(tmpDir, 'orchestos.config.yaml'),
+      'roles:\n  executor: { agent: codex, model: gpt-6-luna }\ntaskAgentRules:\n  - match:\n      output: ["src/**"]\n    agent: codex\n',
+    )
+    const matched = await route(
+      req('POST', '/api/tasks', {
+        id: 'codex-rule-task',
+        description: 'Codex rule chooses the engine only',
+        output: ['src/main.ts'],
+      }),
+      PORT,
+    )
+    expect(matched.status).toBe(200)
+    yaml = readFileSync(join(tmpDir, 'tasks.yaml'), 'utf8')
+    expect(yaml).toContain('engine: codex')
+    expect(yaml).not.toContain('executor_model:')
+  })
+
+  it('rejects a matching CLI rule without a model before changing tasks.yaml', async () => {
+    writeFileSync(
+      join(tmpDir, 'orchestos.config.yaml'),
+      'config_version: 1\nroles:\n  executor: { agent: codex, model: gpt-6-luna }\ntaskAgentRules:\n  - match: { output: ["claude-*.md"] }\n    agent: claude\n',
+    )
+    const before = readFileSync(join(tmpDir, 'tasks.yaml'), 'utf8')
+    const response = await route(
+      req('POST', '/api/tasks', {
+        id: 'missing-model',
+        description: 'missing model',
+        output: ['claude-note.md'],
+      }),
+      PORT,
+    )
+    expect(response.status).toBe(400)
+    expect(await response.json()).toMatchObject({
+      error: 'Task rule for claude has no model. Set it in Settings → Task rules.',
+    })
+    expect(readFileSync(join(tmpDir, 'tasks.yaml'), 'utf8')).toBe(before)
+  })
+
+  it('engine="agentic" persiste el campo en tasks.yaml y aparece en GET /api/tasks', async () => {
+    const res = await route(
+      req('POST', '/api/tasks', {
+        id: 'agentic-task',
+        description: 'agentic task for G.4',
+        output: ['out.txt'],
+        executor: 'openrouter',
+        executor_model: 'anthropic/claude-haiku-4-5',
+        engine: 'agentic',
+      }),
+      PORT,
+    )
+    expect(res.status).toBe(200)
+    const body = (await res.json()) as { ok: boolean; id: string }
+    expect(body.ok).toBe(true)
+
+    // Persistido en disco
+    const yaml = readFileSync(join(tmpDir, 'tasks.yaml'), 'utf-8')
+    expect(yaml).toContain('engine: agentic')
+
+    // Visible en GET /api/tasks
+    const rows = await getTasks()
+    expect(rows).toHaveLength(1)
+    expect(rows[0]!.id).toBe('agentic-task')
+    expect(rows[0]!.engine).toBe('agentic')
+  })
+
+  it('engine="single-shot" persiste el campo', async () => {
+    const res = await route(
+      req('POST', '/api/tasks', {
+        id: 'single-task',
+        description: 'single task',
+        output: ['out.txt'],
+        engine: 'single-shot',
+      }),
+      PORT,
+    )
+    expect(res.status).toBe(200)
+
+    const yaml = readFileSync(join(tmpDir, 'tasks.yaml'), 'utf-8')
+    expect(yaml).toContain('engine: single-shot')
+
+    const rows = await getTasks()
+    expect(rows[0]!.engine).toBe('single-shot')
+  })
+
+  it('engine ausente: no se persiste y TaskRow.engine es null', async () => {
+    const res = await route(
+      req('POST', '/api/tasks', {
+        id: 'no-engine',
+        description: 'inherits config',
+        output: ['out.txt'],
+      }),
+      PORT,
+    )
+    expect(res.status).toBe(200)
+
+    const yaml = readFileSync(join(tmpDir, 'tasks.yaml'), 'utf-8')
+    expect(yaml).not.toContain('engine:')
+
+    const rows = await getTasks()
+    expect(rows[0]!.engine).toBeNull()
+  })
+
+  it('engine="bogus" devuelve 400 con mensaje claro', async () => {
+    const res = await route(
+      req('POST', '/api/tasks', {
+        id: 'bad-engine',
+        description: 'invalid engine value',
+        output: ['out.txt'],
+        engine: 'bogus',
+      }),
+      PORT,
+    )
+    expect(res.status).toBe(400)
+    const body = (await res.json()) as { error: string }
+    expect(body.error).toContain("unknown engine 'bogus'")
+    expect(body.error).toContain('single-shot')
+    expect(body.error).toContain('agentic')
+  })
+
+  it('engine="" (string vacío): se trata como ausente, no persiste', async () => {
+    const res = await route(
+      req('POST', '/api/tasks', {
+        id: 'empty-engine',
+        description: 'empty string engine',
+        output: ['out.txt'],
+        engine: '',
+      }),
+      PORT,
+    )
+    expect(res.status).toBe(200)
+
+    const yaml = readFileSync(join(tmpDir, 'tasks.yaml'), 'utf-8')
+    expect(yaml).not.toContain('engine:')
+
+    const rows = await getTasks()
+    expect(rows[0]!.engine).toBeNull()
+  })
+
+  it('múltiples tasks con engines distintos: GET devuelve cada uno con su engine', async () => {
+    await route(
+      req('POST', '/api/tasks', {
+        id: 'a',
+        description: 'A',
+        output: ['o.txt'],
+        engine: 'agentic',
+      }),
+      PORT,
+    )
+    await route(
+      req('POST', '/api/tasks', {
+        id: 'b',
+        description: 'B',
+        output: ['o.txt'],
+        engine: 'single-shot',
+      }),
+      PORT,
+    )
+    await route(req('POST', '/api/tasks', { id: 'c', description: 'C', output: ['o.txt'] }), PORT)
+
+    const rows = (await getTasks()).sort((x, y) => x.id.localeCompare(y.id))
+    expect(rows).toHaveLength(3)
+    expect(rows[0]!.engine).toBe('agentic')
+    expect(rows[1]!.engine).toBe('single-shot')
+    expect(rows[2]!.engine).toBeNull()
+  })
+
+  // B.2 — engine='external' es la tercera opción; mismo flujo de validación y persistencia.
+  it('engine="external" persiste el campo y aparece como "external" en GET /api/tasks', async () => {
+    const res = await route(
+      req('POST', '/api/tasks', {
+        id: 'external-task',
+        description: 'external engine task',
+        output: ['out.txt'],
+        engine: 'external',
+      }),
+      PORT,
+    )
+    expect(res.status).toBe(200)
+
+    const yaml = readFileSync(join(tmpDir, 'tasks.yaml'), 'utf-8')
+    expect(yaml).toContain('engine: external')
+
+    const rows = await getTasks()
+    expect(rows).toHaveLength(1)
+    expect(rows[0]!.engine).toBe('external')
+  })
+
+  it('engine="codex" persiste el effort que el usuario elige', async () => {
+    const res = await route(
+      req('POST', '/api/tasks', {
+        id: 'codex-task',
+        description: 'codex engine task',
+        output: ['out.txt'],
+        engine: 'codex',
+        cli_effort: 'minimal',
+      }),
+      PORT,
+    )
+    expect(res.status).toBe(200)
+
+    const yaml = readFileSync(join(tmpDir, 'tasks.yaml'), 'utf-8')
+    expect(yaml).toContain('engine: codex')
+    expect(yaml).toContain('cli_effort: minimal')
+
+    const custom = await route(
+      req('POST', '/api/tasks', {
+        id: 'codex-invalid-task',
+        description: 'codex invalid effort',
+        output: ['out.txt'],
+        engine: 'codex',
+        cli_effort: 'turbo',
+      }),
+      PORT,
+    )
+    expect(custom.status).toBe(200)
+    expect(readFileSync(join(tmpDir, 'tasks.yaml'), 'utf-8')).toContain('cli_effort: turbo')
+  })
+
+  it('engine="bogus2" devuelve 400 con mensaje que incluye "external"', async () => {
+    const res = await route(
+      req('POST', '/api/tasks', {
+        id: 'bad-engine-2',
+        description: 'invalid engine value',
+        output: ['o.txt'],
+        engine: 'bogus2',
+      }),
+      PORT,
+    )
+    expect(res.status).toBe(400)
+    const body = (await res.json()) as { error: string }
+    expect(body.error).toContain("unknown engine 'bogus2'")
+    expect(body.error).toContain('single-shot')
+    expect(body.error).toContain('agentic')
+    expect(body.error).toContain('external')
+  })
+
+  it('múltiples tasks: agentic + single-shot + external + inherit', async () => {
+    await route(
+      req('POST', '/api/tasks', {
+        id: 'a',
+        description: 'A',
+        output: ['o.txt'],
+        engine: 'agentic',
+      }),
+      PORT,
+    )
+    await route(
+      req('POST', '/api/tasks', {
+        id: 'b',
+        description: 'B',
+        output: ['o.txt'],
+        engine: 'single-shot',
+      }),
+      PORT,
+    )
+    await route(
+      req('POST', '/api/tasks', {
+        id: 'e',
+        description: 'E',
+        output: ['o.txt'],
+        engine: 'external',
+      }),
+      PORT,
+    )
+    await route(req('POST', '/api/tasks', { id: 'n', description: 'N', output: ['o.txt'] }), PORT)
+
+    const rows = (await getTasks()).sort((x, y) => x.id.localeCompare(y.id))
+    expect(rows).toHaveLength(4)
+    expect(rows[0]!.engine).toBe('agentic')
+    expect(rows[1]!.engine).toBe('single-shot')
+    expect(rows[2]!.engine).toBe('external')
+    expect(rows[3]!.engine).toBeNull()
+  })
+})
+
+describe('ERP.5.1 — chat→tarea conserva los criterios de aceptación', () => {
+  it('createTaskRecord con acceptance_criteria los persiste en la tarea', async () => {
+    const { createTaskRecord } = await import('../handlers/tasks.ts')
+    const created = createTaskRecord(tmpDir, {
+      id: 'with-criteria',
+      description: 'C',
+      output: ['o.txt'],
+      acceptance_criteria: [' el archivo existe ', ''],
+    })
+    expect('error' in created).toBe(false)
+    const yaml = readFileSync(join(tmpDir, 'tasks.yaml'), 'utf-8')
+    expect(yaml).toContain('acceptance_criteria:')
+    expect(yaml).toContain('- el archivo existe')
+  })
+})
+
+describe('ERP.4.11 — el ejecutor visible sale de la config, no del campo guardado', () => {
+  it('createTaskRecord sin executor ni executor_model no escribe la clave executor', async () => {
+    await route(
+      req('POST', '/api/tasks', { id: 'no-exec', description: 'N', output: ['o.txt'] }),
+      PORT,
+    )
+    expect(readFileSync(join(tmpDir, 'tasks.yaml'), 'utf-8')).not.toContain('executor:')
+  })
+
+  it('con executor_model claude-x infiere executor: anthropic', async () => {
+    await route(
+      req('POST', '/api/tasks', {
+        id: 'with-model',
+        description: 'M',
+        output: ['o.txt'],
+        executor_model: 'claude-x',
+      }),
+      PORT,
+    )
+    expect(readFileSync(join(tmpDir, 'tasks.yaml'), 'utf-8')).toContain('executor: anthropic')
+  })
+
+  it('GET /api/tasks resuelve assignedAgent/assignedModel con el rol Executor aunque el YAML diga anthropic', async () => {
+    writeFileSync(
+      join(tmpDir, 'orchestos.config.yaml'),
+      'roles:\n  executor: { agent: codex, model: gpt-6-luna }\n',
+    )
+    writeTasksYaml([
+      {
+        id: 'pilot',
+        description: 'pilot task',
+        output: ['o.txt'],
+        executor: 'anthropic',
+        status: 'pending',
+        retry_count: 0,
+      },
+    ])
+    const rows = (await getTasks()) as unknown as Record<string, unknown>[]
+    expect(rows[0]).toMatchObject({ assignedAgent: 'codex', assignedModel: 'gpt-6-luna' })
+    expect(rows[0]).not.toHaveProperty('executor')
+  })
+
+  it('sin rol Executor ni modelo propio devuelve null', async () => {
+    writeTasksYaml([
+      { id: 'orphan', description: 'o', output: ['o.txt'], status: 'pending', retry_count: 0 },
+    ])
+    const rows = (await getTasks()) as unknown as Record<string, unknown>[]
+    expect(rows[0]).toMatchObject({ assignedAgent: null, assignedModel: null })
+  })
+})

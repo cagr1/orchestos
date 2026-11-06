@@ -1,0 +1,11 @@
+# Explicit project-level selection. Heuristics may not infer architecture or AI-agent work
+# from a custom implementation; these overrides make the intended disciplines visible.
+roadmap_overrides:
+  disciplines:
+    include:
+      - architecture
+      - ai-agents
+    exclude: []
+  languages:
+    include: []
+    exclude: []

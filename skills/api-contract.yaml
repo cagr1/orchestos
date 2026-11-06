@@ -1,0 +1,62 @@
+id: api-contract
+version: 1.0.0
+name: API Contract Design
+description: Defines an API endpoint's request/response contract, error cases, and versioning before implementation begins.
+targets:
+  - claude
+  - cursor
+  - openai
+allowed_tools:
+  - read
+  - write
+when_to_use:
+  - Before implementing a new API endpoint
+  - When changing the shape of an existing endpoint's request or response
+  - When a frontend and backend need to agree on a contract before both are built
+inputs_required:
+  - What the endpoint should do (one sentence)
+  - Who calls it (internal service, frontend, external partner)
+  - Any existing similar endpoints to match conventions with
+instructions: |
+  Produce a contract document before writing implementation code. The
+  contract is the source of truth both sides build against.
+
+  **1. Endpoint shape**
+  - Method + path (follow existing naming conventions in the codebase —
+    check 2-3 sibling endpoints first)
+  - Path/query parameters with types and whether required
+
+  **2. Request body** (if applicable)
+  - Full shape with types, required vs optional fields, and validation rules
+    (max length, format, allowed enum values)
+
+  **3. Success response**
+  - Status code (200/201/204) and full response body shape with types
+  - For lists: pagination shape (cursor or page-based — match existing convention)
+
+  **4. Error responses**
+  - Enumerate every error case: validation failure, not found, unauthorized,
+    conflict, rate limit. For each: status code, error body shape, and the
+    condition that triggers it.
+
+  **5. Versioning & compatibility**
+  - If this changes an existing endpoint: is it backward compatible? If not,
+    does it need a new version path or a deprecation plan for the old one?
+
+  **Output format**
+  A markdown contract with the 5 sections above, using TypeScript-style
+  type definitions for bodies (even in non-TS projects, as a clear notation).
+anti_patterns:
+  - Start implementing before the contract is written down
+  - Leave error cases as "TODO" or "handle errors appropriately"
+  - Introduce a response shape that doesn't match sibling endpoints' conventions
+  - Make a breaking change to an existing endpoint without a versioning note
+verifiers:
+  - Every error case has a status code and a body shape
+  - Request and response types are fully specified (no `any` / `object`)
+  - The contract matches the naming and pagination conventions of sibling endpoints
+  - Breaking changes are explicitly flagged with a migration/versioning note
+examples:
+  - title: New "list orders" endpoint
+    input: "We need an endpoint for the frontend to list a user's orders, paginated"
+    output: "## Endpoint\nGET /api/users/:userId/orders\n\n## Query params\n- cursor?: string\n- limit?: number (default 20, max 100)\n\n## Success (200)\n{ orders: Order[], nextCursor: string | null }\n\n## Errors\n- 401 { error: 'unauthorized' } if no valid session\n- 403 { error: 'forbidden' } if userId !== session.userId\n- 400 { error: 'invalid_cursor' } if cursor is malformed\n\n## Versioning\nNew endpoint, no compatibility concerns."

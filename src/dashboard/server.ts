@@ -1,0 +1,716 @@
+import { realpathSync } from 'node:fs'
+import { resolve } from 'node:path'
+import { getChatSession } from '../db/chat-sessions.ts'
+import { applyCliSearchPath } from '../run/executors/cli-discovery.ts'
+import { stopCodexAppServers } from '../run/executors/codex-app-server.ts'
+import {
+  handleApiChat,
+  handleApiChatCliModels,
+  handleApiChatDefaultAgent,
+  handleApiChatModels,
+  handleApiChatTaskBarClick,
+  handleApiChatTaskBarEvents,
+  handleApiChatUpload,
+} from './handlers/chat.ts'
+import {
+  handleApiChatSessionArchive,
+  handleApiChatSessionConsole,
+  handleApiChatSessionContext,
+  handleApiChatSessionDelete,
+  handleApiChatSessionExec,
+  handleApiChatSessionMessages,
+  handleApiChatSessionPatch,
+  handleApiChatSessionStop,
+  handleApiChatSessionsCreate,
+  handleApiChatSessionsList,
+  handleApiChatSessionTimeline,
+  handleApiChatSessionTurnStatus,
+} from './handlers/chat-sessions.ts'
+import { handleApiClisGet, handleApiClisSet } from './handlers/clis.ts'
+import { handleApiConfigGet, handleApiConfigInit, handleApiConfigSet } from './handlers/config.ts'
+import { handleApiExplorerFile, handleApiExplorerTree } from './handlers/explorer.ts'
+import { handleApiGitChanges, handleApiGitDiff } from './handlers/git-changes.ts'
+import {
+  handleApiInstincts,
+  handleApiInstinctsApprove,
+  handleApiInstinctsBulkDelete,
+  handleApiInstinctsCreate,
+  handleApiInstinctsDelete,
+  handleApiInstinctsPropose,
+  handleApiInstinctsReject,
+  handleApiInstinctsSetConfidence,
+} from './handlers/instincts.ts'
+import {
+  handleApiMemory,
+  handleApiMemoryBulkDelete,
+  handleApiMemoryConflictResolve,
+  handleApiMemoryConflicts,
+  handleApiMemoryDelete,
+} from './handlers/memory.ts'
+import { handleApiModelCatalog } from './handlers/model-catalog.ts'
+import {
+  handleApiPlan,
+  handleApiPlanDependencies,
+  handleApiPlanPrepareClose,
+} from './handlers/plan.ts'
+import { handleApiPlanDoc } from './handlers/plan-doc.ts'
+import {
+  handleApiNatural,
+  handleApiProjectContextGet,
+  handleApiProjectContextRegenerate,
+  handleApiProjectDetect,
+  handleApiProjectGit,
+  handleApiProjectSummary,
+} from './handlers/project.ts'
+import {
+  handleApiProjectChoose,
+  handleApiProjectClone,
+  handleApiProjectCloneLocation,
+  handleApiProjectDelete,
+  handleApiProjectPurge,
+  handleApiProjects,
+} from './handlers/projects.ts'
+import { handleApiProviders } from './handlers/providers.ts'
+import { handleApiRunGraph, handleApiRunGraphStatus } from './handlers/run-graph.ts'
+import {
+  handleApiRunApproval,
+  handleApiRuns,
+  handleApiRunsAnalyze,
+  handleApiRunsBulkDelete,
+  handleApiRunsDelete,
+  handleApiRunsRevert,
+} from './handlers/runs.ts'
+import { handleApiSessionStatus } from './handlers/session-status.ts'
+import {
+  handleApiHealth,
+  handleApiProvidersLocal,
+  handleApiSettingsGet,
+  handleApiSettingsPost,
+  handleApiSetup,
+  handleApiSetupApiKey,
+} from './handlers/setup.ts'
+import {
+  handleApiSkillEnabled,
+  handleApiSkillPhases,
+  handleApiSkillsBuild,
+  handleApiSkillsCreate,
+  handleApiSkillsCurate,
+  handleApiSkillsDelete,
+  handleApiSkillsExport,
+  handleApiSkillsGet,
+  handleApiSkillsImport,
+  handleApiSkillsLibrary,
+  handleApiSkillsList,
+  handleApiSkillsProImport,
+  handleApiSkillsProList,
+  handleApiSkillsRegistryImport,
+  handleApiSkillsRegistryList,
+  handleApiSkillsUpdate,
+} from './handlers/skills.ts'
+import {
+  handleApiSpecs,
+  handleApiSpecsApprove,
+  handleApiSpecsApproveDesign,
+  handleApiSpecsArchive,
+  handleApiSpecsBulkDelete,
+  handleApiSpecsCreate,
+  handleApiSpecsDelete,
+  handleApiSpecsDraft,
+  handleApiSpecsLint,
+} from './handlers/specs.ts'
+import {
+  handleApiSystemEnginesExternalAvailability,
+  handleApiSystemReset,
+} from './handlers/system.ts'
+import { reconcileTaskRuns } from './handlers/task-run-reconcile.ts'
+import {
+  handleApiSystemExecutorModes,
+  handleApiTasks,
+  handleApiTasksBulkDelete,
+  handleApiTasksCommitRun,
+  handleApiTasksCreate,
+  handleApiTasksDelete,
+  handleApiTasksDiagnose,
+  handleApiTasksExplain,
+  handleApiTasksInit,
+  handleApiTasksRun,
+  handleApiTasksSteps,
+} from './handlers/tasks.ts'
+import { handleApiUsage } from './handlers/usage.ts'
+import { errorResponse, isSameOrigin, jsonResponse, serveStatic } from './http.ts'
+import { ownsRow, requestScope } from './ownership.ts'
+import {
+  type DashboardProjectContext,
+  DashboardProjectError,
+  resolveDashboardProject,
+} from './project-context.ts'
+import { createTerminalSession, resolveShellCommand, stopTerminalSessions } from './terminal.ts'
+import { DEFAULT_PORT } from './types.ts'
+
+async function withDashboardProject(
+  req: Request,
+  handler: (project: DashboardProjectContext) => Response | Promise<Response>,
+): Promise<Response> {
+  try {
+    const scope = requestScope(req)
+    const context =
+      scope.kind === 'project'
+        ? { id: scope.id, root: scope.root, source: 'request' as const }
+        : { id: null, root: realpathSync(resolve('.')), source: 'legacy-cwd' as const }
+    return await handler(context)
+  } catch (error) {
+    if (error instanceof DashboardProjectError) return errorResponse(error.message, error.status)
+    return errorResponse(error instanceof Error ? error.message : String(error), 500)
+  }
+}
+
+export async function route(req: Request, port: number): Promise<Response> {
+  const url = new URL(req.url)
+  const method = req.method
+
+  if (
+    (method === 'POST' || method === 'PUT' || method === 'PATCH' || method === 'DELETE') &&
+    !isSameOrigin(req, port)
+  ) {
+    return errorResponse('Forbidden', 403)
+  }
+
+  const sessionRoute = url.pathname.match(/^\/api\/chat\/sessions\/([^/]+)/)
+  let sessionId = sessionRoute?.[1] ? decodeURIComponent(sessionRoute[1]) : null
+  if ((url.pathname === '/api/chat' || url.pathname === '/api/chat/upload') && method === 'POST') {
+    try {
+      const body = (await req.clone().json()) as { sessionId?: unknown }
+      if (typeof body.sessionId === 'string') sessionId = body.sessionId
+    } catch {}
+  }
+  if (sessionId) {
+    try {
+      const scope = requestScope(req)
+      const session = getChatSession(sessionId)
+      if (!session || !ownsRow(scope, session.project_id))
+        return errorResponse('Chat session not found', 404)
+    } catch (error) {
+      if (error instanceof DashboardProjectError) return errorResponse(error.message, error.status)
+      return errorResponse('Chat session not found', 404)
+    }
+  }
+
+  if (
+    (method === 'GET' || method === 'POST') &&
+    /^\/api\/runs\/[^/]+\/approval$/.test(url.pathname)
+  )
+    return withDashboardProject(req, (project) => handleApiRunApproval(req, url, project.id))
+
+  if (method === 'POST' && url.pathname === '/api/runs/analyze') {
+    return withDashboardProject(req, (project) => handleApiRunsAnalyze(req, project.id))
+  }
+  if (method === 'GET' && (url.pathname === '/api/runs' || url.pathname.startsWith('/api/runs/'))) {
+    return withDashboardProject(req, (project) => handleApiRuns(url, project.id))
+  }
+  if (method === 'GET' && url.pathname === '/api/usage') {
+    return handleApiUsage()
+  }
+  if (method === 'GET' && url.pathname === '/api/session/status') {
+    return withDashboardProject(req, (project) => handleApiSessionStatus(project.root))
+  }
+  if (method === 'GET' && url.pathname === '/api/plan') {
+    return withDashboardProject(req, (project) =>
+      project.root === realpathSync(resolve('.'))
+        ? handleApiPlan(project.root)
+        : jsonResponse({ items: [], unavailable: 'plan-not-per-project' }),
+    )
+  }
+  if (method === 'GET' && url.pathname === '/api/plan/doc') {
+    return withDashboardProject(req, (project) => handleApiPlanDoc(project.root))
+  }
+  if (method === 'PUT' && /^\/api\/plan\/items\/[^/]+\/dependencies$/.test(url.pathname)) {
+    return withDashboardProject(req, (project) =>
+      project.root === realpathSync(resolve('.'))
+        ? handleApiPlanDependencies(req, project.root)
+        : errorResponse('Plan per project is not available yet', 409),
+    )
+  }
+  if (method === 'POST' && /^\/api\/plan\/items\/[^/]+\/prepare-close$/.test(url.pathname)) {
+    return withDashboardProject(req, (project) =>
+      project.root === realpathSync(resolve('.'))
+        ? handleApiPlanPrepareClose(req, project.root)
+        : errorResponse('Plan per project is not available yet', 409),
+    )
+  }
+  if (method === 'DELETE' && url.pathname.match(/^\/api\/runs\/[^/]+$/)) {
+    return withDashboardProject(req, (project) => handleApiRunsDelete(url, project.id))
+  }
+  if (method === 'POST' && /^\/api\/runs\/[^/]+\/revert$/.test(url.pathname)) {
+    return withDashboardProject(req, (project) => handleApiRunsRevert(url, project))
+  }
+  if (method === 'POST' && url.pathname === '/api/runs/bulk-delete') {
+    return withDashboardProject(req, (project) => handleApiRunsBulkDelete(req, project.id))
+  }
+  if (method === 'GET' && url.pathname === '/api/tasks') {
+    return withDashboardProject(req, (project) => handleApiTasks(project.root))
+  }
+  // v0.12 / Bloque D.1.a — ruta literal DEBE ir antes de los regex `/api/tasks/[^/]+/...`
+  // para que `init` no sea interpretado como un task id.
+  if (method === 'POST' && url.pathname === '/api/tasks/init') {
+    return withDashboardProject(req, (project) => handleApiTasksInit(project.root))
+  }
+  if (method === 'POST' && url.pathname === '/api/tasks') {
+    return withDashboardProject(req, (project) => handleApiTasksCreate(req, project.root))
+  }
+  if (method === 'POST' && url.pathname.match(/^\/api\/tasks\/[^/]+\/run$/)) {
+    return withDashboardProject(req, (project) =>
+      handleApiTasksRun(req, url, project.root, req.headers.get('x-orchestos-project-id')),
+    )
+  }
+  if (method === 'POST' && url.pathname.match(/^\/api\/tasks\/[^/]+\/commit-run$/)) {
+    return withDashboardProject(req, (project) =>
+      handleApiTasksCommitRun(req, url, project.root, req.headers.get('x-orchestos-project-id')),
+    )
+  }
+  if (method === 'DELETE' && url.pathname.match(/^\/api\/tasks\/[^/]+$/)) {
+    return withDashboardProject(req, (project) => handleApiTasksDelete(url, project.root))
+  }
+  if (method === 'POST' && url.pathname === '/api/tasks/bulk-delete') {
+    return withDashboardProject(req, (project) => handleApiTasksBulkDelete(req, project.root))
+  }
+  if (method === 'GET' && url.pathname.match(/^\/api\/tasks\/[^/]+\/diagnose$/)) {
+    return withDashboardProject(req, (project) => handleApiTasksDiagnose(url, project.root))
+  }
+  if (method === 'GET' && url.pathname.match(/^\/api\/tasks\/[^/]+\/explain$/)) {
+    return withDashboardProject(req, (project) => handleApiTasksExplain(url, project.root))
+  }
+  if (method === 'GET' && url.pathname.match(/^\/api\/tasks\/[^/]+\/steps$/)) {
+    return withDashboardProject(req, (project) =>
+      project.id === null
+        ? errorResponse('Task not found', 404)
+        : handleApiTasksSteps(url, project.root),
+    )
+  }
+  if (method === 'POST' && url.pathname === '/api/run/graph') {
+    return withDashboardProject(req, (project) => handleApiRunGraph(req, project.root))
+  }
+  if (method === 'GET' && url.pathname === '/api/run/graph/status') {
+    return withDashboardProject(req, (project) => handleApiRunGraphStatus(project.root))
+  }
+  if (method === 'GET' && url.pathname === '/api/instincts') {
+    return withDashboardProject(req, (project) => handleApiInstincts(project.id))
+  }
+  if (method === 'POST' && url.pathname === '/api/instincts') {
+    return withDashboardProject(req, (project) => handleApiInstinctsCreate(req, project.id))
+  }
+  if (method === 'POST' && url.pathname.match(/^\/api\/instincts\/([^/]+)\/approve$/)) {
+    return withDashboardProject(req, (project) => handleApiInstinctsApprove(url, project.id))
+  }
+  if (method === 'POST' && url.pathname.match(/^\/api\/instincts\/([^/]+)\/reject$/)) {
+    return withDashboardProject(req, (project) => handleApiInstinctsReject(url, project.id))
+  }
+  if (method === 'DELETE' && url.pathname.match(/^\/api\/instincts\/[^/]+$/)) {
+    return withDashboardProject(req, (project) => handleApiInstinctsDelete(url, project.id))
+  }
+  if (method === 'POST' && url.pathname === '/api/instincts/bulk-delete') {
+    return withDashboardProject(req, (project) => handleApiInstinctsBulkDelete(req, project.id))
+  }
+  if (method === 'POST' && url.pathname === '/api/instincts/propose') {
+    return withDashboardProject(req, (project) => handleApiInstinctsPropose(req, project.id))
+  }
+  if (method === 'POST' && url.pathname.match(/^\/api\/instincts\/([^/]+)\/confidence$/)) {
+    return withDashboardProject(req, (project) =>
+      handleApiInstinctsSetConfidence(req, url, project.id),
+    )
+  }
+
+  if (method === 'POST' && url.pathname === '/api/skills/library') {
+    return handleApiSkillsLibrary(req)
+  }
+  if (method === 'PUT' && /^\/api\/skills\/[^/]+\/enabled$/.test(url.pathname)) {
+    if (!req.headers.get('x-orchestos-project-id'))
+      return errorResponse('Project header is required', 400)
+    return withDashboardProject(req, (project) => handleApiSkillEnabled(req, url, project.root))
+  }
+  if (method === 'PUT' && /^\/api\/skills\/[^/]+\/phases$/.test(url.pathname)) {
+    if (!req.headers.get('x-orchestos-project-id'))
+      return errorResponse('Project header is required', 400)
+    return withDashboardProject(req, (project) => handleApiSkillPhases(req, url, project.root))
+  }
+  if (method === 'GET' && url.pathname === '/api/skills') {
+    return withDashboardProject(req, (project) => handleApiSkillsList(project.root, project.id))
+  }
+  if (method === 'GET' && url.pathname === '/api/skills/registry') {
+    return handleApiSkillsRegistryList()
+  }
+  if (method === 'POST' && url.pathname.match(/^\/api\/skills\/registry\/([^/]+)\/import$/)) {
+    return withDashboardProject(req, (project) =>
+      handleApiSkillsRegistryImport(req, url, project.root),
+    )
+  }
+  if (method === 'GET' && url.pathname === '/api/skills/pro') {
+    return withDashboardProject(req, (project) => handleApiSkillsProList(project.root))
+  }
+  if (method === 'GET' && url.pathname.match(/^\/api\/skills\/([^/]+)$/)) {
+    return withDashboardProject(req, (project) => handleApiSkillsGet(url, project.root))
+  }
+  if (method === 'GET' && url.pathname.match(/^\/api\/skills\/([^/]+)\/export$/)) {
+    return withDashboardProject(req, (project) => handleApiSkillsExport(url, project.root))
+  }
+  if (method === 'POST' && url.pathname === '/api/skills') {
+    return withDashboardProject(req, (project) => handleApiSkillsCreate(req, project.root))
+  }
+  if (method === 'PUT' && url.pathname.match(/^\/api\/skills\/([^/]+)$/)) {
+    return withDashboardProject(req, (project) => handleApiSkillsUpdate(req, url, project.root))
+  }
+  if (method === 'DELETE' && url.pathname.match(/^\/api\/skills\/([^/]+)$/)) {
+    return withDashboardProject(req, (project) => handleApiSkillsDelete(req, url, project.root))
+  }
+  if (method === 'POST' && url.pathname.match(/^\/api\/skills\/([^/]+)\/build$/)) {
+    return withDashboardProject(req, (project) => handleApiSkillsBuild(url, project.root))
+  }
+  if (method === 'POST' && url.pathname === '/api/skills/curate') {
+    return withDashboardProject(req, (project) => handleApiSkillsCurate(req, project.root))
+  }
+  if (method === 'POST' && url.pathname === '/api/skills/import') {
+    return withDashboardProject(req, (project) => handleApiSkillsImport(req, project.root))
+  }
+  if (method === 'POST' && url.pathname.match(/^\/api\/skills\/pro\/([^/]+)\/import$/)) {
+    return withDashboardProject(req, (project) => handleApiSkillsProImport(url, project.root))
+  }
+
+  if (method === 'GET' && url.pathname === '/api/projects') {
+    return handleApiProjects()
+  }
+  if (method === 'POST' && url.pathname.match(/^\/api\/projects\/[^/]+\/purge$/)) {
+    return handleApiProjectPurge(url)
+  }
+  if (method === 'DELETE' && url.pathname.match(/^\/api\/projects\/[^/]+$/)) {
+    return handleApiProjectDelete(url)
+  }
+  if (method === 'POST' && url.pathname === '/api/projects/choose') {
+    return handleApiProjectChoose()
+  }
+  if (method === 'POST' && url.pathname === '/api/projects/clone') return handleApiProjectClone(req)
+  if ((method === 'GET' || method === 'POST') && url.pathname === '/api/projects/clone-location')
+    return handleApiProjectCloneLocation(method === 'POST')
+  if (method === 'GET' && url.pathname === '/api/project/context') {
+    return withDashboardProject(req, (project) => handleApiProjectContextGet(project.root))
+  }
+  if (method === 'GET' && url.pathname === '/api/project/git') {
+    return withDashboardProject(req, (project) => handleApiProjectGit(project.root))
+  }
+  if (method === 'POST' && url.pathname === '/api/project/context/regenerate') {
+    return withDashboardProject(req, (project) => handleApiProjectContextRegenerate(project.root))
+  }
+  if (method === 'POST' && url.pathname === '/api/project/detect') {
+    return withDashboardProject(req, (project) => handleApiProjectDetect(project.root))
+  }
+  // v0.12 D.1.c — ruta literal DEBE ir antes del catch-all GET→serveStatic
+  // de abajo (sirve un PDF binario, no HTML estático).
+  if (method === 'GET' && url.pathname === '/api/project/summary') {
+    return withDashboardProject(req, (project) => handleApiProjectSummary(project.root))
+  }
+  if (method === 'POST' && url.pathname === '/api/natural') {
+    return withDashboardProject(req, (project) => handleApiNatural(req, project.root))
+  }
+  if (method === 'GET' && url.pathname === '/api/chat/models') {
+    return handleApiChatModels()
+  }
+  if (method === 'GET' && url.pathname === '/api/chat/default-agent') {
+    return handleApiChatDefaultAgent()
+  }
+  if (method === 'GET' && url.pathname === '/api/chat/cli-models') {
+    return handleApiChatCliModels()
+  }
+  if (method === 'GET' && url.pathname === '/api/models/catalog') {
+    return handleApiModelCatalog()
+  }
+  if (method === 'GET' && url.pathname === '/api/chat/sessions') {
+    return handleApiChatSessionsList(req)
+  }
+  if (
+    method === 'POST' &&
+    url.pathname.match(/^\/api\/chat\/sessions\/[^/]+\/(archive|restore)$/)
+  ) {
+    return handleApiChatSessionArchive(url, url.pathname.endsWith('/restore'))
+  }
+  if (method === 'POST' && url.pathname === '/api/chat/sessions') {
+    return handleApiChatSessionsCreate(req)
+  }
+  if (method === 'GET' && url.pathname.match(/^\/api\/chat\/sessions\/[^/]+\/messages$/)) {
+    return handleApiChatSessionMessages(url)
+  }
+  if (method === 'GET' && url.pathname.match(/^\/api\/chat\/sessions\/[^/]+\/timeline$/)) {
+    return handleApiChatSessionTimeline(url)
+  }
+  if (method === 'GET' && url.pathname.match(/^\/api\/chat\/sessions\/[^/]+\/context$/)) {
+    return handleApiChatSessionContext(url)
+  }
+  if (method === 'GET' && url.pathname.match(/^\/api\/chat\/sessions\/[^/]+\/console$/)) {
+    return handleApiChatSessionConsole(url)
+  }
+  if (method === 'POST' && url.pathname.match(/^\/api\/chat\/sessions\/[^/]+\/stop$/)) {
+    return handleApiChatSessionStop(req, url)
+  }
+  if (method === 'POST' && url.pathname.match(/^\/api\/chat\/sessions\/[^/]+\/exec$/)) {
+    return handleApiChatSessionExec(req, url)
+  }
+  if (method === 'GET' && url.pathname.match(/^\/api\/chat\/sessions\/[^/]+\/turn-status$/)) {
+    return handleApiChatSessionTurnStatus(url)
+  }
+  if (method === 'PATCH' && url.pathname.match(/^\/api\/chat\/sessions\/[^/]+$/)) {
+    return handleApiChatSessionPatch(req, url)
+  }
+  if (method === 'DELETE' && url.pathname.match(/^\/api\/chat\/sessions\/[^/]+$/)) {
+    return handleApiChatSessionDelete(url)
+  }
+  if (method === 'POST' && url.pathname === '/api/chat/upload') {
+    return handleApiChatUpload(req)
+  }
+  if (method === 'POST' && url.pathname === '/api/chat') {
+    return handleApiChat(req)
+  }
+  if (method === 'POST' && url.pathname === '/api/chat/task-bar-click') {
+    return handleApiChatTaskBarClick()
+  }
+  if (method === 'GET' && url.pathname === '/api/chat/task-bar-events') {
+    return handleApiChatTaskBarEvents()
+  }
+  if (method === 'GET' && url.pathname === '/api/specs') {
+    return withDashboardProject(req, (project) => handleApiSpecs(project.root))
+  }
+  if (method === 'POST' && url.pathname === '/api/specs/draft') {
+    return withDashboardProject(req, (project) => handleApiSpecsDraft(req, project.root))
+  }
+  // v0.12 Bloque A — DEBE ir antes del /^\/api\/specs\/[^/]+$/ genérico de abajo
+  // (handleApiSpecsCreate): sin id con slash, ese regex también matchea
+  // "/api/specs/bulk-delete" y se comería esta ruta.
+  if (method === 'POST' && url.pathname === '/api/specs/bulk-delete') {
+    return withDashboardProject(req, (project) => handleApiSpecsBulkDelete(req, project.root))
+  }
+  if (method === 'POST' && /^\/api\/specs\/[^/]+$/.test(url.pathname)) {
+    return withDashboardProject(req, (project) => handleApiSpecsCreate(req, project.root))
+  }
+  // AA.4 (IDEAS #6) — ruta propia junto al resto de approve/lint/archive.
+  if (method === 'POST' && url.pathname.endsWith('/approve-design')) {
+    return withDashboardProject(req, (project) => handleApiSpecsApproveDesign(req, project.root))
+  }
+  if (method === 'POST' && url.pathname.endsWith('/approve')) {
+    return withDashboardProject(req, (project) => handleApiSpecsApprove(req, project.root))
+  }
+  if (method === 'GET' && url.pathname.endsWith('/lint')) {
+    return withDashboardProject(req, (project) => handleApiSpecsLint(req, project.root))
+  }
+  if (method === 'POST' && url.pathname.endsWith('/archive')) {
+    return withDashboardProject(req, (project) => handleApiSpecsArchive(req, project.root))
+  }
+  if (method === 'DELETE' && /^\/api\/specs\/[^/]+$/.test(url.pathname)) {
+    return withDashboardProject(req, (project) => handleApiSpecsDelete(req, project.root))
+  }
+  if (method === 'GET' && url.pathname === '/api/memory/conflicts') {
+    return withDashboardProject(req, (project) => handleApiMemoryConflicts(url, project.id))
+  }
+  if (method === 'POST' && url.pathname.match(/^\/api\/memory\/conflicts\/([^/]+)\/resolve$/)) {
+    return withDashboardProject(req, (project) =>
+      handleApiMemoryConflictResolve(url, req, project.id),
+    )
+  }
+  if (method === 'GET' && url.pathname === '/api/memory') {
+    return withDashboardProject(req, (project) => handleApiMemory(url, project.id))
+  }
+  if (method === 'DELETE' && url.pathname.match(/^\/api\/memory\/[^/]+$/)) {
+    return withDashboardProject(req, (project) => handleApiMemoryDelete(url, project.id))
+  }
+  if (method === 'POST' && url.pathname === '/api/memory/bulk-delete') {
+    return withDashboardProject(req, (project) => handleApiMemoryBulkDelete(req, project.id))
+  }
+  if (method === 'GET' && url.pathname === '/api/settings') {
+    return withDashboardProject(req, (project) => handleApiSettingsGet(project.root))
+  }
+  if (method === 'GET' && url.pathname === '/api/setup') {
+    return withDashboardProject(req, (project) => handleApiSetup(project.root))
+  }
+  if (method === 'GET' && url.pathname === '/api/health') {
+    return withDashboardProject(req, (project) => handleApiHealth(project.root))
+  }
+  if (method === 'GET' && url.pathname === '/api/providers/local') {
+    return handleApiProvidersLocal()
+  }
+  if (method === 'POST' && url.pathname === '/api/setup/api-key') {
+    return await handleApiSetupApiKey(req)
+  }
+  if (method === 'POST' && url.pathname === '/api/settings') {
+    return handleApiSettingsPost(req)
+  }
+  if (method === 'POST' && url.pathname === '/api/system/reset') {
+    return withDashboardProject(req, (project) => handleApiSystemReset(req, project.root))
+  }
+  if (method === 'GET' && url.pathname === '/api/system/engines/external/availability') {
+    return handleApiSystemEnginesExternalAvailability()
+  }
+  if (method === 'GET' && url.pathname === '/api/system/executor-modes') {
+    return withDashboardProject(req, (project) => handleApiSystemExecutorModes(project.root))
+  }
+  if (method === 'GET' && url.pathname === '/api/config') {
+    return withDashboardProject(req, (project) => handleApiConfigGet(project.root))
+  }
+  if (method === 'GET' && url.pathname === '/api/providers') {
+    return withDashboardProject(req, (project) => handleApiProviders(url, project.root))
+  }
+  if (method === 'GET' && url.pathname === '/api/clis') {
+    return handleApiClisGet()
+  }
+  if (method === 'PUT' && url.pathname === '/api/clis') {
+    return withDashboardProject(req, (project) => handleApiClisSet(req, project.root))
+  }
+  if (method === 'POST' && url.pathname === '/api/config/init') {
+    return withDashboardProject(req, (project) => handleApiConfigInit(project.root))
+  }
+  if (method === 'PUT' && url.pathname === '/api/config') {
+    return withDashboardProject(req, (project) => handleApiConfigSet(req, project.root))
+  }
+  if (method === 'GET' && url.pathname === '/api/git/changes') {
+    return withDashboardProject(req, (project) => handleApiGitChanges(project.root))
+  }
+  if (method === 'GET' && url.pathname === '/api/git/diff') {
+    return withDashboardProject(req, (project) => handleApiGitDiff(url, project.root))
+  }
+  if (method === 'GET' && url.pathname === '/api/explorer/tree') {
+    return withDashboardProject(req, (project) => handleApiExplorerTree(url, project.root))
+  }
+  if (method === 'GET' && url.pathname === '/api/explorer/file') {
+    return withDashboardProject(req, (project) => handleApiExplorerFile(url, project.root))
+  }
+
+  if (method === 'GET') {
+    return serveStatic(url.pathname)
+  }
+
+  return errorResponse('Method not allowed', 405)
+}
+
+type TerminalSocketData = { cwd: string; cols: number; rows: number; kind: 'opencode' | 'shell' }
+
+export function startServer(
+  port = DEFAULT_PORT,
+  terminalCommand?: string[],
+): { server: any; url: string } {
+  applyCliSearchPath()
+  const terminalSessions = new WeakMap<object, ReturnType<typeof createTerminalSession>>()
+  const server = Bun.serve<TerminalSocketData>({
+    port,
+    hostname: '127.0.0.1',
+    // Default idle timeout (10s) is too short for routes that call an LLM with
+    // retries (curator, registry import normalization) or fetch external
+    // registries before normalizing — those can legitimately take 15-30s.
+    // Without this, Bun kills the connection before the response is delivered
+    // even though the handler keeps running and completes the work server-side.
+    idleTimeout: 60,
+    fetch: async (req, server) => {
+      const url = new URL(req.url)
+      if (url.pathname !== '/api/terminal') return route(req, server.port ?? port)
+      if (req.method !== 'GET') return errorResponse('Method not allowed', 405)
+      const origin = req.headers.get('origin')
+      if (!origin || !isSameOrigin(req, server.port ?? port)) return errorResponse('Forbidden', 403)
+      const kind = url.searchParams.get('kind') ?? 'opencode'
+      if (kind !== 'opencode' && kind !== 'shell')
+        return errorResponse('Unknown terminal kind', 400)
+      try {
+        const project = resolveDashboardProject(req)
+        const cols = Number(url.searchParams.get('cols') ?? 80)
+        const rows = Number(url.searchParams.get('rows') ?? 24)
+        const upgraded = server.upgrade(req, { data: { cwd: project.root, cols, rows, kind } })
+        return upgraded ? undefined : errorResponse('WebSocket upgrade failed', 400)
+      } catch (error) {
+        if (error instanceof DashboardProjectError)
+          return errorResponse(error.message, error.status)
+        return errorResponse(error instanceof Error ? error.message : String(error), 500)
+      }
+    },
+    websocket: {
+      open(ws) {
+        try {
+          const session = createTerminalSession({
+            cwd: ws.data.cwd,
+            cols: ws.data.cols,
+            rows: ws.data.rows,
+            command:
+              terminalCommand ?? (ws.data.kind === 'shell' ? resolveShellCommand() : undefined),
+            onData: (data) => ws.send(data),
+            onExit: (code, { binaryChanged }) => {
+              ws.send(JSON.stringify({ type: 'exit', code, binaryChanged }))
+              ws.close(1000)
+            },
+          })
+          terminalSessions.set(ws, session)
+        } catch (error) {
+          ws.send(
+            JSON.stringify({
+              type: 'error',
+              message: error instanceof Error ? error.message : String(error),
+            }),
+          )
+          ws.close(1011)
+        }
+      },
+      message(ws, message) {
+        if (typeof message !== 'string') return
+        let payload: unknown
+        try {
+          payload = JSON.parse(message)
+        } catch {
+          return
+        }
+        const session = terminalSessions.get(ws)
+        if (!session || !payload || typeof payload !== 'object') return
+        const control = payload as {
+          type?: unknown
+          data?: unknown
+          cols?: unknown
+          rows?: unknown
+        }
+        if (control.type === 'input' && typeof control.data === 'string')
+          session.write(control.data)
+        if (
+          control.type === 'resize' &&
+          typeof control.cols === 'number' &&
+          typeof control.rows === 'number'
+        ) {
+          session.resize(control.cols, control.rows)
+        }
+      },
+      close(ws) {
+        void terminalSessions.get(ws)?.close()
+        terminalSessions.delete(ws)
+      },
+    },
+  })
+  const stop = server.stop.bind(server)
+  // R.8.4 — cierra los reportes de runs que el reinicio anterior dejó a medias.
+  let taskRunReconcile: { stop(): void } | null = null
+  try {
+    taskRunReconcile = reconcileTaskRuns()
+  } catch (error) {
+    console.error('[dashboard] Could not reconcile task runs', error)
+  }
+  let stopped = false
+  const onSignal = () => server.stop(true)
+  const stopWithCodex = (...args: any[]) => {
+    if (!stopped) {
+      stopped = true
+      taskRunReconcile?.stop()
+      process.off('SIGINT', onSignal)
+      process.off('SIGTERM', onSignal)
+      stopCodexAppServers()
+      void stopTerminalSessions()
+    }
+    return stop(...args)
+  }
+  server.stop = stopWithCodex
+  process.once('SIGINT', onSignal)
+  process.once('SIGTERM', onSignal)
+  const url = `http://localhost:${server.port}`
+  console.log(`[dashboard] Server running at ${url}`)
+  return { server, url }
+}
+
+if (import.meta.main) {
+  const port = parseInt(process.env.PORT ?? String(DEFAULT_PORT))
+  startServer(port)
+}

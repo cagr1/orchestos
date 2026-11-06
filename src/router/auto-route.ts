@@ -1,0 +1,51 @@
+import type { OrcheConfig, RoleAgent } from '../config/schema.ts'
+import { cliForTaskEngine } from '../run/executors/task-engines.ts'
+import type { Task } from '../tasks/schema.ts'
+
+interface RouteResult {
+  agent: RoleAgent
+  provider: string
+  model: string
+  effort?: string
+  source: 'task' | 'executor'
+}
+
+export function autoRoute(task: Task, cfg: OrcheConfig): RouteResult | null {
+  const executor = cfg.roles.executor
+  const cliAgent = cliForTaskEngine(task.engine)
+  if (cliAgent) {
+    const model = task.executor_model ?? (executor?.agent === cliAgent ? executor.model : undefined)
+    if (!model) return null
+    return {
+      agent: cliAgent,
+      provider: cliAgent,
+      model,
+      effort: executor?.agent === cliAgent ? executor.effort : undefined,
+      source: task.executor_model ? 'task' : 'executor',
+    }
+  }
+  if (task.executor_model)
+    return { agent: 'api', provider: task.executor, model: task.executor_model, source: 'task' }
+  const a = executor
+  if (!a) return null
+  return {
+    agent: a.agent,
+    provider: a.provider ?? (a.agent === 'api' ? 'openrouter' : a.agent),
+    model: a.model,
+    effort: a.effort,
+    source: 'executor',
+  }
+}
+
+export function formatRoute(route: RouteResult): string {
+  return `${route.agent}/${route.model} (${route.source})${route.effort ? ` · ${route.effort}` : ''}`
+}
+
+/** Quién ejecuta la tarea según la config y la tarea; `null` = sin rol Executor y sin modelo propio. */
+export function describeTaskExecutor(
+  task: Task,
+  cfg: OrcheConfig,
+): { agent: string; model: string } | null {
+  const route = autoRoute(task, cfg)
+  return route ? { agent: route.agent, model: route.model } : null
+}

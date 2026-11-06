@@ -1,0 +1,65 @@
+id: perf-profile
+version: 1.0.0
+name: Performance Profiling
+description: Measures before optimizing — finds the actual bottleneck via profiling, fixes it, then re-measures to confirm the gain.
+targets:
+  - claude
+  - cursor
+  - openai
+allowed_tools:
+  - read
+  - write
+  - edit
+when_to_use:
+  - When something is reported as "slow" without a specific cause
+  - Before optimizing code based on a guess about what's slow
+  - When a previous optimization didn't move the needle and needs re-investigation
+inputs_required:
+  - What is slow, and how it's measured (page load, API response time, test suite duration)
+  - A way to reproduce the slowness consistently
+  - Access to profiling tools available in the stack (browser devtools, language profiler, query EXPLAIN)
+instructions: |
+  Optimization without measurement is guessing. Follow this order strictly.
+
+  **Step 1 — Establish a baseline**
+  Measure the current performance with a reproducible method (same input,
+  same environment, run 3+ times, take the median). Write down the number
+  and the exact steps to reproduce it.
+
+  **Step 2 — Profile, don't guess**
+  Use a profiler appropriate to the layer: browser performance tab for
+  frontend, language profiler (e.g. --prof, py-spy) for CPU, EXPLAIN ANALYZE
+  for SQL queries, network tab for request waterfalls.
+  Identify the single largest contributor to the total time — not a list of
+  everything that could theoretically be faster.
+
+  **Step 3 — Form a hypothesis about the bottleneck**
+  State it precisely: "80% of the time is spent in function X, which does Y
+  inefficiently because Z." If profiling shows the time is spread evenly
+  with no single hotspot, say so — that changes the strategy (architecture
+  issue, not a hotspot fix).
+
+  **Step 4 — Apply the smallest fix for that bottleneck**
+  Common fixes: add an index, cache a repeated computation, reduce N+1
+  queries to one, avoid an unnecessary re-render, stream instead of buffer.
+  Apply ONE fix at a time.
+
+  **Step 5 — Re-measure**
+  Re-run the exact same baseline measurement. Report before/after numbers
+  and the percentage improvement. If the improvement is negligible, say so
+  honestly and revert if the fix added complexity for no gain.
+anti_patterns:
+  - Optimize the first thing that "looks slow" without profiling
+  - Apply multiple optimizations at once, making it impossible to know what helped
+  - Report "should be faster now" without a re-measured number
+  - Add caching as a first resort before checking if the underlying work is unnecessary
+  - Micro-optimize code that isn't on the hot path the profiler identified
+verifiers:
+  - A baseline measurement exists with reproduction steps
+  - The bottleneck is identified via a profiler, not inferred from reading code alone
+  - Exactly one fix is applied per measurement cycle
+  - A re-measurement with before/after numbers is reported
+examples:
+  - title: Slow dashboard page load
+    input: "Dashboard takes 4.2s to load, reported as 'feels slow'"
+    output: "Baseline: 4.2s median over 3 loads (network tab, cold cache). Profile: waterfall shows /api/runs taking 3.1s of the 4.2s. EXPLAIN ANALYZE on the runs query shows a sequential scan on a 50k-row table filtered by project_id. Hypothesis: missing index on runs.project_id. Fix: add index on runs(project_id). Re-measure: query drops from 3.1s to 0.04s, page load now 1.3s — 69% improvement."

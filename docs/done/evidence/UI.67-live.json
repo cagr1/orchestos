@@ -1,0 +1,30 @@
+{
+  "item": "UI.67",
+  "recordedAt": "2026-11-06",
+  "status": "complete",
+  "productChanges": true,
+  "live": {
+    "base": "http://localhost:4299",
+    "browser": "Claude desktop browser pane, viewport 1280x800",
+    "openedTabs": 10,
+    "limitFound": false,
+    "afterOpening": {
+      "clientWidth": 588,
+      "scrollWidth": 1316,
+      "scrollLeft": 728,
+      "tabWidth": 128,
+      "plusGapAfterLastTabPx": 4,
+      "fade": "left"
+    },
+    "afterWheelUp": { "scrollLeft": 0, "fade": "right" },
+    "afterClosingTestTabs": { "remaining": 1, "plusGapAfterLastTabPx": 4, "fade": "none" }
+  },
+  "gates": [
+    { "command": "bunx tsc --noEmit", "exitCode": 0 },
+    { "command": "bun run build:app", "exitCode": 0 },
+    {
+      "command": "bun run gate:evidence -- --label UI.67-dev-tabs -- bun run ui:gate dev-session-tabs shell-look",
+      "result": "dev-session-tabs 47/47, shell-look 75/75"
+    }
+  ]
+}

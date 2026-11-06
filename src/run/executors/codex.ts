@@ -1,0 +1,741 @@
+import { whichCli } from './cli-discovery.ts'
+/**
+ * src/run/executors/codex.ts — G.4.2b
+ *
+ * Tercer executor de CLI (junto a external.ts/claude y opencode.ts), mismo
+ * contrato `ExecutorEngine`. Contrato real verificado en vivo (2026-07-27,
+ * `codex exec --help` + probe real contra un git repo temporal):
+ *   - `codex exec "<prompt>" --json --sandbox workspace-write --color never`
+ *     — headless por diseño ("Run Codex non-interactively"), sin flag
+ *     equivalente a `--auto`/`--allowedTools`: `--sandbox workspace-write`
+ *     alcanza para que escriba archivos sin pedir confirmación interactiva.
+ *   - Sin flag de system-prompt separado (igual que opencode) — contrato +
+ *     contexto + skill + user content van en el único argumento `prompt`.
+ *   - `--json` emite JSONL: `thread.started`, `turn.started`,
+ *     `item.started`/`item.completed` (item.type: `agent_message`,
+ *     `command_execution`, `file_change`, `error`), `turn.completed` con
+ *     `usage: {input_tokens, cached_input_tokens, cache_write_input_tokens,
+ *     output_tokens, reasoning_output_tokens}`.
+ *   - **Sin costo en USD en el evento** (a diferencia de claude/opencode) —
+ *     se computa con `calcCost()` sobre el catálogo real, y SOLO si el
+ *     modelo corrido está en catálogo (`getCatalog()?.has(model)`); si no,
+ *     se lanza en vez de reportar $0 silencioso (F0.8, mismo criterio que
+ *     los otros dos executors).
+ *   - `-m <model>`: Codex usa naming nativo de OpenAI (`gpt-5.4`), NO el id
+ *     estilo OpenRouter de OrchestOS (`openai/gpt-5.4`) — mismo criterio que
+ *     `orchestosModelToCliModel()`.
+ *   - **BB.6 (2026-08-18)**: si el modelo configurado NO es `openai/*`, ya no
+ *     se corre con el default de Codex — se lanza antes del spawn. Ver
+ *     `codexCostUnmeasurableMessage()` para el porqué completo. El comentario
+ *     anterior afirmaba que el default era `gpt-5.4` "confirmado en
+ *     `~/.codex/config.toml`"; al verificarlo ese archivo declaraba
+ *     `gpt-6-luna` — el dato se desactualizó solo, que es exactamente por qué
+ *     no se puede tarifar contra un default que OrchestOS no controla.
+ */
+
+import { existsSync, readdirSync } from 'node:fs'
+import { homedir } from 'node:os'
+import { join } from 'node:path'
+import { codexAdapter } from '../../../scripts/context-adapters.ts'
+import { orchestosDir } from '../../config/orchestos-home.ts'
+import { getChatSession, getCodexChatThread, setCodexChatThread } from '../../db/chat-sessions.ts'
+import {
+  codexExecMcpArgs,
+  codexMcpThreadConfig,
+  type McpOffer,
+  mcpOfferKey,
+} from '../../mcp/adapters.ts'
+import { getCatalog } from '../../router/model-catalog.ts'
+import { knownCostWithCache } from '../../router/pricing.ts'
+import { safeChildEnv } from '../path-policy.ts'
+import { provisionCliConfigHome } from './cli-registry.ts'
+import {
+  CodexAppServer,
+  type CodexAppServerThreadStore,
+  getCodexAppServer,
+} from './codex-app-server.ts'
+import { startSpawnTrace } from './spawn-trace.ts'
+import { codexEventToStep, type ExecutorStepEvent } from './step-event.ts'
+import type { ExecutorEngine, ExecutorOutcome } from './types.ts'
+import { readWorktreeDiff } from './worktree-diff.ts'
+
+/** UI.8.6 — sandbox de una tarea en Codex; `describePermissions` lo lee de acá. */
+export const CODEX_TASK_SANDBOX = 'workspace-write'
+
+export class ExecutorCodexError extends Error {}
+
+const DEFAULT_TIMEOUT_MS = 20 * 60 * 1000 // mismo default que external.ts/opencode.ts
+const CODEX_BINARY = 'codex'
+
+export function findCodexBinary(): string | null {
+  return whichCli(CODEX_BINARY)
+}
+
+export function codexUnavailableMessage(pathHint?: string): string {
+  const where = pathHint ? ` (PATH searched: ${pathHint})` : ''
+  return [
+    `codex binary "${CODEX_BINARY}" not found in PATH${where}.`,
+    `Install Codex (https://github.com/openai/codex) or use --engine single-shot / --engine agentic / --engine external / --engine opencode instead.`,
+  ].join(' ')
+}
+
+export function orchestosModelToCodexModel(model: string | undefined): string | undefined {
+  if (!model) return undefined
+  if (model.startsWith('openai/')) return model.slice('openai/'.length)
+  // Chat CLI catalogs return native Codex ids (for example gpt-6-luna).
+  // They must not be treated as an implicit request for Codex's default.
+  if (!model.includes('/')) return model
+  return undefined
+}
+
+/** Pricing is published under OpenRouter ids; Codex catalogs expose native ids. */
+function codexPricingId(model: string): string {
+  return model.includes('/') ? model : `openai/${model}`
+}
+
+/**
+ * BB.6 (2026-08-18) — guard de costo medible, ANTES de gastar tokens.
+ *
+ * El costo de codex se computa con `calcCost(codexPricingId(ctx.model), …)` porque el binario
+ * no reporta USD. Eso solo es válido si `ctx.model` es **el modelo que codex
+ * realmente corrió**, y eso pasa únicamente cuando le pasamos `-m`.
+ *
+ * Si `ctx.model` no es un id `openai/*`, `orchestosModelToCodexModel()` devuelve
+ * `undefined`, se omite `-m`, y **codex corre con su propio default** — que es
+ * un valor que OrchestOS no controla ni puede leer del stream. Verificado contra
+ * el binario real (2026-08-18): ningún evento de `codex exec --json`
+ * (`thread.started` / `turn.started` / `item.completed` / `turn.completed`)
+ * expone el modelo; `turn.completed` solo trae `usage`. Tampoco sirve leer
+ * `~/.codex/config.toml`: en esta máquina declara `gpt-6-luna`, mientras el
+ * comentario de este archivo afirmaba `gpt-5.4` — el dato se desactualizó solo.
+ *
+ * Sin esto, tarifar tokens de un modelo con el precio de otro produce un número
+ * con apariencia de real: el `$0.00924` de BB.4 eran tokens del default de codex
+ * cobrados a precio de `deepseek-v4-flash`. Mismo criterio que F0.8 y que
+ * opencode/external: costo desconocido se declara, no se fabrica.
+ */
+function codexCostUnmeasurableMessage(orchestosModel: string | undefined): string {
+  return [
+    `codex would run with its own default model because OrchestOS model "${orchestosModel ?? '(none)'}" is not an "openai/*" id, so -m was omitted.`,
+    `The real model is unknowable (codex does not report it in --json), so its cost cannot be measured and OrchestOS refuses to fabricate one.`,
+    `Set an "openai/*" model that exists in the pricing catalog, or run this task with --engine external / --engine opencode instead.`,
+  ].join(' ')
+}
+
+function buildCodexPrompt(ctx: Parameters<ExecutorEngine['run']>[0]): string {
+  return [
+    ctx.effectiveContext,
+    ctx.skillInstructions,
+    ctx.instinctBlock,
+    `## OUTPUT CONTRACT`,
+    `You may ONLY create or edit these files: ${ctx.task.output.join(', ')}.`,
+    `Do not touch any other file in this repository. When you are done, stop — do not run git commands yourself.`,
+    ctx.prompt.userContent,
+  ]
+    .filter(Boolean)
+    .join('\n\n')
+}
+
+export function buildCodexArgs(prompt: string, model?: string, cliEffort?: string): string[] {
+  const args = [
+    'exec',
+    prompt,
+    '--json',
+    '--sandbox',
+    CODEX_TASK_SANDBOX,
+    '--color',
+    'never',
+    '-c',
+    'model_reasoning_summary=auto',
+  ]
+  if (model) args.push('-m', model)
+  if (cliEffort) args.push('-c', `model_reasoning_effort=${cliEffort}`)
+  return args
+}
+
+export function buildCodexArgsDisplay(model?: string, cliEffort?: string): string[] {
+  const args = [
+    'exec',
+    '<contract>',
+    '--json',
+    '--sandbox',
+    CODEX_TASK_SANDBOX,
+    '--color',
+    'never',
+    '-c',
+    'model_reasoning_summary=auto',
+  ]
+  if (model) args.push('-m', model)
+  if (cliEffort) args.push('-c', `model_reasoning_effort=${cliEffort}`)
+  return args
+}
+
+// -- subprocess ---------------------------------------------------------------
+
+async function runCodex(
+  cwd: string,
+  args: string[],
+  timeoutMs: number,
+  onStep?: (event: ExecutorStepEvent) => void,
+  env: Record<string, string> = safeChildEnv(),
+): Promise<{ stdout: string; timedOut: boolean }> {
+  const proc = Bun.spawn([CODEX_BINARY, ...args], {
+    cwd,
+    env,
+    stdin: 'ignore',
+    stdout: 'pipe',
+    stderr: 'pipe',
+  })
+  const trace = startSpawnTrace('codex', proc.pid, args, cwd, env)
+  let stderrText = ''
+  const stderrDone = new Response(proc.stderr)
+    .text()
+    .then((t) => {
+      stderrText = t
+    })
+    .catch(() => {})
+
+  let timedOut = false
+  const timer = setTimeout(() => {
+    timedOut = true
+    proc.kill('SIGTERM')
+  }, timeoutMs)
+
+  const reader = proc.stdout.getReader()
+  const decoder = new TextDecoder()
+  let stdout = ''
+  let lineBuffer = ''
+  try {
+    while (true) {
+      const { done, value } = await reader.read()
+      if (done) break
+      trace.firstByte()
+      const chunk = decoder.decode(value, { stream: true })
+      stdout += chunk
+      lineBuffer += chunk
+      let nl: number
+      while ((nl = lineBuffer.indexOf('\n')) !== -1) {
+        const line = lineBuffer.slice(0, nl).trim()
+        lineBuffer = lineBuffer.slice(nl + 1)
+        if (!line || !onStep) continue
+        try {
+          const evt = JSON.parse(line)
+          for (const step of codexEventToStep(evt)) onStep(step)
+        } catch {
+          // línea parcial/corrupta o log no-JSON (ej. warnings de rmcp) — no aborta el stream
+        }
+      }
+    }
+  } finally {
+    reader.releaseLock()
+  }
+
+  const exitCode = await proc.exited
+  clearTimeout(timer)
+  await stderrDone
+  trace.end(exitCode, stderrText, timedOut)
+
+  return { stdout, timedOut }
+}
+
+// -- JSONL parsing --------------------------------------------------------------
+
+interface CodexTurnCompleted {
+  type: 'turn.completed'
+  usage?: {
+    input_tokens?: number
+    output_tokens?: number
+    cached_input_tokens?: number
+    cache_write_input_tokens?: number
+  }
+}
+
+export function parseCodexStream(stdout: string): {
+  inputTokens: number
+  outputTokens: number
+  cacheReadTokens: number
+  cacheWriteTokens: number
+  threadId?: string
+  finalText?: string
+} {
+  let last: CodexTurnCompleted | undefined
+  let threadId: string | undefined
+  let finalText: string | undefined
+  for (const line of stdout.split('\n')) {
+    const trimmed = line.trim()
+    if (!trimmed) continue
+    try {
+      const evt = JSON.parse(trimmed)
+      if (evt?.type === 'thread.started' && typeof evt.thread_id === 'string')
+        threadId = evt.thread_id
+      if (evt?.type === 'turn.completed') last = evt
+      if (
+        evt?.type === 'item.completed' &&
+        evt.item?.type === 'agent_message' &&
+        typeof evt.item.text === 'string'
+      )
+        finalText = evt.item.text
+    } catch {}
+  }
+  if (!last) {
+    throw new ExecutorCodexError(
+      'codex produced no turn.completed event — cost unknown, not reported as $0',
+    )
+  }
+  return {
+    inputTokens: Math.max(
+      0,
+      (last.usage?.input_tokens ?? 0) - (last.usage?.cached_input_tokens ?? 0),
+    ),
+    outputTokens: last.usage?.output_tokens ?? 0,
+    cacheReadTokens: last.usage?.cached_input_tokens ?? 0,
+    cacheWriteTokens: last.usage?.cache_write_input_tokens ?? 0,
+    threadId,
+    finalText,
+  }
+}
+
+// -- chat (CC.1-D1, 2026-08-19) -----------------------------------------------
+//
+// CC.1 (2026-08-16) bloqueaba `agent: codex` en el chat entero con un 422
+// ("no verified read-only transport") — decisión de implementación, no un
+// límite pedido por Carlos: en ese momento nadie había verificado si el
+// binario tenía un flag real de solo-lectura equivalente a
+// `--allowedTools Read,Glob,Grep` de Claude. Sí lo tiene: `codex exec --help`
+// confirma `--sandbox <read-only|workspace-write|danger-full-access>`. Mismo
+// criterio que `runClaudeChat` en external.ts: `--sandbox read-only` es la
+// frontera real (el binario no puede escribir aunque corra contra el
+// proyecto real), no un texto en el prompt pidiéndoselo por favor.
+interface CodexChatResult {
+  threadId?: string
+  text: string
+  inputTokens: number
+  cacheReadTokens: number
+  cacheWriteTokens: number
+  outputTokens: number
+  usd: number | null
+  model: string
+  /** CX.6 — contexto real del último `token_count` del rollout; null si no apareció. */
+  contextUsed: number | null
+  contextWindow: number | null
+}
+
+/** CX.6 — rollout `sessions/YYYY/MM/DD/rollout-*-<threadId>.jsonl` bajo el CODEX_HOME del spawn. */
+function findCodexRollout(dir: string, threadId: string): string | null {
+  let entries: import('node:fs').Dirent[]
+  try {
+    entries = readdirSync(dir, { withFileTypes: true })
+  } catch {
+    return null
+  }
+  for (const entry of entries) {
+    const full = join(dir, entry.name)
+    if (entry.isDirectory()) {
+      const found = findCodexRollout(full, threadId)
+      if (found) return found
+    } else if (entry.name.startsWith('rollout-') && entry.name.endsWith(`-${threadId}.jsonl`)) {
+      return full
+    }
+  }
+  return null
+}
+
+export async function readCodexRolloutContext(
+  codexHome: string,
+  threadId: string | undefined,
+): Promise<{ contextUsed: number | null; contextWindow: number | null }> {
+  const none = { contextUsed: null, contextWindow: null }
+  if (!threadId) return none
+  const sessions = join(codexHome, 'sessions')
+  if (!existsSync(sessions)) return none
+  try {
+    const path = findCodexRollout(sessions, threadId)
+    const reading = path ? await codexAdapter.read(path) : null
+    return reading ? { contextUsed: reading.used, contextWindow: reading.window } : none
+  } catch {
+    return none
+  }
+}
+
+export function buildCodexChatArgs(
+  prompt: string,
+  model?: string,
+  cliEffort?: string,
+  imagePaths: string[] = [],
+  mcpOffer?: McpOffer,
+): string[] {
+  const args = [
+    'exec',
+    prompt,
+    '--json',
+    '--sandbox',
+    'read-only',
+    '--color',
+    'never',
+    '--ignore-user-config',
+    '--skip-git-repo-check',
+    '-c',
+    'model_reasoning_summary=auto',
+  ]
+  if (model) args.push('-m', model)
+  if (cliEffort) args.push('-c', `model_reasoning_effort=${cliEffort}`)
+  // UI.24.6a — `codex exec -i, --image <FILE>...`; va tras el prompt, un flag por imagen.
+  for (const path of imagePaths) args.push('--image', path)
+  // AT.20 — respaldo sin app-server: el servidor MCP va por `-c` y se aprueba su herramienta sin preguntar.
+  if (mcpOffer?.tools.length) args.push(...codexExecMcpArgs(mcpOffer))
+  return args
+}
+
+export const CODEX_CHAT_EFFORT_LEVELS = Object.freeze([
+  'minimal',
+  'low',
+  'medium',
+  'high',
+  'xhigh',
+  'max',
+  'ultra',
+] as const)
+
+export function buildCodexChatEnv(configHomePath: string): Record<string, string> {
+  return { ...safeChildEnv(), CODEX_HOME: configHomePath }
+}
+
+async function runCodexChatExec(
+  cwd: string,
+  systemPrompt: string,
+  userMessage: string,
+  timeoutMs: number,
+  model?: string,
+  cliEffort?: string,
+  onChatStep?: (event: ExecutorStepEvent) => void,
+  projectRoot?: string,
+  imagePaths: string[] = [],
+  mcpOffer?: McpOffer,
+): Promise<CodexChatResult> {
+  if (!findCodexBinary()) {
+    throw new ExecutorCodexError(codexUnavailableMessage(process.env.PATH))
+  }
+
+  const codexModel = orchestosModelToCodexModel(model)
+  const prompt = [systemPrompt, userMessage].filter(Boolean).join('\n\n')
+  // R.8.5.1 — el home es el del proyecto aunque el cwd sea un worktree.
+  const configHome = provisionCliConfigHome(projectRoot ?? cwd, 'codex')
+
+  let text = ''
+  const onStep = (step: ExecutorStepEvent) => {
+    if (step.type === 'text' && step.detail) text += text ? `\n\n${step.detail}` : step.detail
+    onChatStep?.(step)
+  }
+
+  let stdout: string
+  let timedOut: boolean
+  try {
+    ;({ stdout, timedOut } = await runCodex(
+      cwd,
+      buildCodexChatArgs(prompt, codexModel, cliEffort, imagePaths, mcpOffer),
+      timeoutMs,
+      onStep,
+      buildCodexChatEnv(configHome.path),
+    ))
+  } catch (e: any) {
+    throw new ExecutorCodexError(`failed to spawn codex: ${e.message}`)
+  }
+
+  let parsed: ReturnType<typeof parseCodexStream>
+  try {
+    parsed = parseCodexStream(stdout)
+  } catch (e: any) {
+    throw new ExecutorCodexError(
+      timedOut
+        ? `codex timed out after ${timeoutMs}ms with no parseable output — cost unknown, not reported as $0`
+        : e.message,
+    )
+  }
+
+  // F0.8 — mismo criterio que el engine de tareas: costo desconocido explícito
+  // (no $0 fabricado) cuando el modelo corrido no está en el catálogo real.
+  // El chat también debe conservar la decisión explícita del usuario: nunca
+  // cae silenciosamente al modelo por defecto del binario.
+  if (model && !codexModel) {
+    throw new ExecutorCodexError(codexCostUnmeasurableMessage(model))
+  }
+  const pricingId = model ? codexPricingId(model) : undefined
+  const usd =
+    pricingId && getCatalog()?.has(pricingId)
+      ? (knownCostWithCache(pricingId, {
+          input: parsed.inputTokens,
+          output: parsed.outputTokens,
+          cacheRead: parsed.cacheReadTokens,
+          cacheWrite: parsed.cacheWriteTokens,
+        }) ?? 0)
+      : null
+
+  return {
+    threadId: parsed.threadId,
+    text,
+    inputTokens: parsed.inputTokens,
+    cacheReadTokens: parsed.cacheReadTokens,
+    cacheWriteTokens: parsed.cacheWriteTokens,
+    outputTokens: parsed.outputTokens,
+    usd,
+    model: model ?? 'codex (cli default model)',
+    ...(await readCodexRolloutContext(configHome.path, parsed.threadId)),
+  }
+}
+
+export async function runCodexChat(
+  cwd: string,
+  systemPrompt: string,
+  userMessage: string,
+  timeoutMs: number,
+  model?: string,
+  cliEffort?: string,
+  onChatStep?: (event: ExecutorStepEvent) => void,
+  sessionId?: string,
+  onTextDelta?: (text: string) => void,
+  transcript?: string,
+  projectRoot?: string,
+  imagePaths: string[] = [],
+  mcpOffer?: McpOffer,
+  signal?: AbortSignal,
+): Promise<CodexChatResult> {
+  signal?.throwIfAborted()
+  if (!sessionId)
+    return runCodexChatExec(
+      cwd,
+      systemPrompt,
+      userMessage,
+      timeoutMs,
+      model,
+      cliEffort,
+      onChatStep,
+      projectRoot,
+      imagePaths,
+      mcpOffer,
+    )
+  if (!findCodexBinary()) throw new ExecutorCodexError(codexUnavailableMessage(process.env.PATH))
+  if (model && !orchestosModelToCodexModel(model))
+    throw new ExecutorCodexError(codexCostUnmeasurableMessage(model))
+
+  const chatSession = getChatSession(sessionId)
+  const isGeneralSession = chatSession?.project_id == null
+  const generalConfigHome = generalChatConfigHome()
+  const configHome = provisionCliConfigHome(
+    projectRoot ?? cwd,
+    'codex',
+    homedir(),
+    isGeneralSession ? generalConfigHome : undefined,
+  )
+  const store: CodexAppServerThreadStore = {
+    get: (id) => getCodexChatThread(id),
+    set: (id, threadId, hash) => setCodexChatThread(id, threadId, hash),
+  }
+  const server = getCodexAppServer(
+    configHome.path,
+    findCodexBinary()!,
+    buildCodexChatEnv(configHome.path),
+    store,
+  )
+  const notifyStep = (step: ExecutorStepEvent) => onChatStep?.(step)
+  try {
+    const result = await server.turn({
+      sessionId,
+      cwd,
+      systemPrompt,
+      message: userMessage,
+      imagePaths,
+      transcript,
+      model: orchestosModelToCodexModel(model),
+      effort: cliEffort,
+      threadConfig: mcpOffer?.tools.length ? codexMcpThreadConfig(mcpOffer) : undefined,
+      offerKey: mcpOfferKey(mcpOffer),
+      timeoutMs,
+      signal,
+      onDelta: onTextDelta,
+      onStep: notifyStep,
+    })
+    const pricingModel = result.model ?? model
+    const pricingId = pricingModel ? codexPricingId(pricingModel) : undefined
+    const usd =
+      pricingId && getCatalog()?.has(pricingId)
+        ? (knownCostWithCache(pricingId, {
+            input: result.inputTokens,
+            output: result.outputTokens,
+            cacheRead: result.cacheReadTokens,
+            cacheWrite: result.cacheWriteTokens,
+          }) ?? 0)
+        : null
+    return {
+      threadId: result.threadId,
+      text: result.text,
+      inputTokens: result.inputTokens,
+      cacheReadTokens: result.cacheReadTokens,
+      cacheWriteTokens: result.cacheWriteTokens,
+      outputTokens: result.outputTokens,
+      usd,
+      model: result.model ?? model ?? 'codex (cli default model)',
+      contextUsed: result.contextUsed,
+      contextWindow: result.contextWindow,
+    }
+  } catch (error) {
+    if (signal?.aborted) throw error
+    if (
+      error instanceof Error &&
+      'protocol' in error &&
+      (error as Error & { protocol: boolean }).protocol
+    ) {
+      const reason = error.message
+      notifyStep({
+        type: 'reasoning',
+        label: `Codex app-server unavailable — using codex exec (${reason})`,
+        detail: `Codex app-server unavailable — using codex exec (${reason})`,
+      })
+      return runCodexChatExec(
+        cwd,
+        systemPrompt,
+        userMessage,
+        timeoutMs,
+        model,
+        cliEffort,
+        onChatStep,
+        undefined,
+        imagePaths,
+        mcpOffer,
+      )
+    }
+    throw error
+  }
+}
+
+export function generalChatConfigHome(): string {
+  return join(orchestosDir(), 'general-chat')
+}
+
+// -- engine ---------------------------------------------------------------------
+
+export const codexEngine: ExecutorEngine = {
+  async run(ctx, opts) {
+    if (!findCodexBinary()) {
+      throw new ExecutorCodexError(codexUnavailableMessage(process.env.PATH))
+    }
+
+    if (!ctx.worktree) {
+      throw new ExecutorCodexError(
+        'codex engine requires worktree sandbox mode — refusing to run an uncontrolled external process against the real project directory',
+      )
+    }
+
+    const prompt = buildCodexPrompt(ctx)
+    const codexModel = orchestosModelToCodexModel(ctx.model)
+
+    // BB.6 — se valida ANTES del spawn, no después: si el costo no va a poder
+    // medirse, fallar acá evita gastar tokens y tiempo en un run cuya evidencia
+    // económica iba a ser falsa de todos modos. Ver codexCostUnmeasurableMessage().
+    if (!codexModel) {
+      throw new ExecutorCodexError(codexCostUnmeasurableMessage(ctx.model))
+    }
+
+    const pricingId = codexPricingId(ctx.model ?? codexModel)
+    if (!getCatalog()?.has(pricingId)) {
+      throw new ExecutorCodexError(
+        `codex model "${ctx.model ?? codexModel}" is not in the pricing catalog — cost unknown, not reported as $0`,
+      )
+    }
+
+    const timeoutMs = opts.timeoutMs ?? DEFAULT_TIMEOUT_MS
+    // R.8.5.1 — home del proyecto (no del worktree), el mismo que usa el chat.
+    const configHome = provisionCliConfigHome(ctx.opts.projectRoot, 'codex')
+
+    let parsed: ReturnType<typeof parseCodexStream>
+    let timedOut = false
+    const approvalMode = ctx.task.approvalMode ?? 'full'
+    if (approvalMode !== 'full') {
+      if (!opts.approvals) throw new ExecutorCodexError('Task approval adapter is required')
+      const server = new CodexAppServer({
+        binary: CODEX_BINARY,
+        env: buildCodexChatEnv(configHome.path),
+        store: { get: () => ({ threadId: null, contextHash: null }), set: () => {} },
+      })
+      try {
+        parsed = await server.taskTurn({
+          cwd: ctx.effectiveRoot,
+          prompt,
+          model: codexModel,
+          effort: ctx.cliEffort,
+          timeoutMs,
+          approvals: opts.approvals,
+          onStep: opts.onStep,
+        })
+      } finally {
+        server.kill()
+      }
+    } else {
+      let stdout: string
+      try {
+        ;({ stdout, timedOut } = await runCodex(
+          ctx.effectiveRoot,
+          buildCodexArgs(prompt, codexModel, ctx.cliEffort),
+          timeoutMs,
+          opts.onStep,
+          buildCodexChatEnv(configHome.path),
+        ))
+      } catch (e: any) {
+        throw new ExecutorCodexError(`failed to spawn codex: ${e.message}`)
+      }
+
+      try {
+        parsed = parseCodexStream(stdout)
+      } catch (e: any) {
+        throw new ExecutorCodexError(
+          timedOut
+            ? `codex timed out after ${timeoutMs}ms with no parseable output — cost unknown, not reported as $0`
+            : e.message,
+        )
+      }
+    }
+
+    // F0.8 — costo desconocido explícito, nunca $0 silencioso: codex no
+    // expone total_cost_usd (a diferencia de claude/opencode), así que solo
+    // se computa si el modelo corrido está en el catálogo real.
+    const usd =
+      knownCostWithCache(pricingId, {
+        input: parsed.inputTokens,
+        output: parsed.outputTokens,
+        cacheRead: parsed.cacheReadTokens,
+        cacheWrite: parsed.cacheWriteTokens,
+      }) ?? 0
+
+    const files = readWorktreeDiff(ctx.effectiveRoot, ctx.task.output)
+
+    const outcome: ExecutorOutcome = {
+      cliSessionId: parsed.threadId,
+      files,
+      inputTokens: parsed.inputTokens,
+      cacheReadTokens: parsed.cacheReadTokens,
+      cacheWriteTokens: parsed.cacheWriteTokens,
+      outputTokens: parsed.outputTokens,
+      finalText: parsed.finalText,
+      usd,
+      iterations: 1, // codex exec no expone conteo de turnos internos en --json
+      costByIteration: [
+        {
+          label: 'codex (exec)',
+          model: ctx.model,
+          inputTokens: parsed.inputTokens,
+          outputTokens: parsed.outputTokens,
+          costUsd: usd,
+          binary: CODEX_BINARY,
+          args:
+            approvalMode === 'full'
+              ? buildCodexArgsDisplay(codexModel, ctx.cliEffort)
+              : ['app-server'],
+        },
+      ],
+      log: [
+        `codex: ${files.length} file(s) changed in worktree${timedOut ? ' (killed by timeout, partial output parsed)' : ''}`,
+      ],
+    }
+
+    return outcome
+  },
+}

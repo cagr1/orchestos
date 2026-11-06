@@ -1,0 +1,1828 @@
+import React, { useCallback, useEffect, useRef, useState } from 'react'
+import { flushSync } from 'react-dom'
+import type { TaskClass } from '../../../router/classify'
+import {
+  archiveSession,
+  attachTurnDetails,
+  type ChatMessageRow,
+  commitAndRunProjectTask,
+  createSession,
+  deleteProjectTask,
+  deleteSession,
+  getProjectTasks,
+  getSessionMessages,
+  getTimeline,
+  listArchivedSessions,
+  listSessions,
+  mapMessage,
+  newChatProjectId,
+  type ProjectTaskRow,
+  renameSession,
+  restoreSession,
+  runProjectTask,
+  sendMessage,
+  type TimelineResponse,
+} from './api/chat'
+import { getProjectContext } from './api/project'
+import { chooseProject, deleteProject, listProjects, purgeProjectData } from './api/projects'
+import {
+  addInstinct,
+  addLibrarySkill,
+  approveInstinct,
+  approveSpec,
+  compileSkill,
+  draftSpec,
+  enableLibrarySkill,
+  explainTask,
+  lintSpec,
+  listInstincts,
+  listMemory,
+  listSkills,
+  listSpecs,
+  rejectInstinct,
+  resolveMemoryConflict,
+  setLibrarySkillPhases,
+} from './api/projectTabs'
+import { getRun, getRunApprovals, listRuns, type PendingApproval } from './api/runs'
+import { pollProjectAndThreadTasks } from './api/taskPolling'
+import {
+  decideTaskPollAction,
+  getRunnableTask,
+  listTasks,
+  resolveTaskReportPoll,
+  runTask,
+  TaskRunError,
+} from './api/tasks'
+import { mergeOptimisticAttachments } from './components/chat/mergeAttachments'
+import { OrchestChatView } from './components/chat/OrchestChatView'
+import { CloneProjectDialog } from './components/common/CloneProjectDialog'
+import { CommandPalette } from './components/common/CommandPalette'
+import type { ProjectAddAction } from './components/common/ProjectAddButton'
+import { DevDiffPanel } from './components/dev/DevDiffPanel'
+import { DevFilePanel } from './components/dev/DevFilePanel'
+import { DevSessionTabs } from './components/dev/DevSessionTabs'
+import { openFileTab, openPathTab } from './components/dev/file-tabs'
+import { OpenCodeTerminal } from './components/dev/OpenCodeTerminal'
+import { type HistorySession, OrcaRightInspector } from './components/dev/OrcaRightInspector'
+import { OrchestDevWorkspace } from './components/dev/OrchestDevWorkspace'
+import {
+  closeSessionTab,
+  convertNewTab,
+  emptySessionTabs,
+  openNewTab,
+  openSessionTab,
+  openTerminalTab,
+  persistedDevTabs,
+  readSessionTabs,
+  restoreSessionTabs,
+  SESSION_TABS_KEY,
+} from './components/dev/session-tabs'
+import { ShellHeader } from './components/layout/ShellHeader'
+import { ShellSidebar } from './components/layout/ShellSidebar'
+import { ShellStatusBar } from './components/layout/ShellStatusBar'
+import {
+  OrchestSettingsView,
+  type ProjectSubTab,
+  type SettingsSection,
+} from './components/settings/OrchestSettingsView'
+import { projectsWithApprovals, threadsWithApprovals } from './components/thread/taskCards'
+import { activeAfterLoad, mergeLoadedThreads, threadPendingForSend } from './lib/merge-threads'
+import type {
+  AppMode,
+  ChatAttachment,
+  ChatThread,
+  InstinctItem,
+  MemoryItem,
+  NavigationTab,
+  ProjectContext,
+  ProjectItem,
+  RunItem,
+  SessionStatus,
+  SkillItem,
+  SpecItem,
+  TaskItem,
+} from './types/orchestos'
+
+export default function App() {
+  const [theme, setTheme] = useState<string>(() => {
+    try {
+      return localStorage.getItem('orchestos-theme') || 'orchestos'
+    } catch {
+      return 'orchestos'
+    }
+  })
+  const [mode, setMode] = useState<AppMode>('chat')
+  const [previousMode, setPreviousMode] = useState<AppMode>('chat')
+
+  const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState<boolean>(false)
+  const [isLeftSidebarOpen, setIsLeftSidebarOpen] = useState<boolean>(true)
+  const [isRightInspectorOpen, setIsRightInspectorOpen] = useState<boolean>(true)
+
+  // Projects state
+  const [projects, setProjects] = useState<ProjectItem[]>([])
+  const [deletingProjectIds, setDeletingProjectIds] = useState<Set<string>>(() => new Set())
+  const [activeProjectId, setActiveProjectId] = useState<string>('')
+  const [diffRevision, setDiffRevision] = useState(0)
+  const [devTabs, setDevTabs] = useState(readSessionTabs)
+  const activeDevTabs = devTabs[activeProjectId] ?? emptySessionTabs()
+  const activeDevTab = activeDevTabs.tabs.find((tab) => tab.id === activeDevTabs.activeId)
+  const activeAgentId = activeDevTab?.type === 'session' ? activeDevTab.id : null
+  const handleOpenFile = (path: string, { pin }: { pin: boolean }) =>
+    updateDevTabs(activeProjectId, (tabs) => openFileTab(tabs, path, pin))
+  const updateDevTabs = (
+    projectId: string,
+    update: (
+      tabs: import('./components/dev/session-tabs').SessionTabs,
+    ) => import('./components/dev/session-tabs').SessionTabs,
+  ) => {
+    setDevTabs((current) => ({
+      ...current,
+      [projectId]: update(current[projectId] ?? emptySessionTabs()),
+    }))
+  }
+  useEffect(() => {
+    try {
+      localStorage.setItem(
+        SESSION_TABS_KEY,
+        JSON.stringify(
+          Object.fromEntries(
+            Object.entries(devTabs).map(([id, tabs]) => [id, persistedDevTabs(tabs)]),
+          ),
+        ),
+      )
+    } catch {
+      /* Storage unavailable. */
+    }
+  }, [devTabs])
+  useEffect(() => {
+    if (!projects.length) return
+    setDevTabs((current) =>
+      Object.fromEntries(
+        projects.map((project) => [
+          project.id,
+          (() => {
+            const live = current[project.id]
+            const restored = restoreSessionTabs(
+              live,
+              project.agents.map((agent) => agent.id),
+              (() => {
+                try {
+                  const last = JSON.parse(localStorage.getItem('orchestos-last-dev') || 'null')
+                  return last?.projectId === project.id ? last.sessionId : undefined
+                } catch {
+                  return undefined
+                }
+              })(),
+            )
+            if (!live?.tabs.some((tab) => tab.type === 'terminal')) return restored
+            const tabs = live.tabs.filter(
+              (tab) => tab.type === 'terminal' || restored.tabs.some((item) => item.id === tab.id),
+            )
+            return {
+              tabs,
+              activeId: tabs.find((tab) => tab.id === live.activeId)?.id ?? tabs[0]?.id ?? null,
+            }
+          })(),
+        ]),
+      ),
+    )
+  }, [projects])
+  const [sessionStatus, setSessionStatus] = useState<SessionStatus | null>(() => {
+    try {
+      const cached = localStorage.getItem('orchestos-session-status')
+      return cached ? (JSON.parse(cached) as SessionStatus) : null
+    } catch {
+      return null
+    }
+  })
+  const [refreshingUsage, setRefreshingUsage] = useState(false)
+  const usageAbortRef = useRef<AbortController | null>(null)
+  const [historySessions, setHistorySessions] = useState<HistorySession[]>([])
+  const [projectError, setProjectError] = useState<string | null>(null)
+
+  // Settings deep-link state
+  const [settingsSection, setSettingsSection] = useState<SettingsSection>('general')
+  const [settingsProjectTab, setSettingsProjectTab] = useState<ProjectSubTab>('tasks')
+  const [language, setLanguage] = useState<'en' | 'es'>(() => {
+    try {
+      return (localStorage.getItem('orchestos-language') as 'en' | 'es' | null) || 'en'
+    } catch {
+      return 'en'
+    }
+  })
+
+  useEffect(() => {
+    localStorage.setItem('orchestos-theme', theme)
+  }, [theme])
+  useEffect(() => {
+    localStorage.setItem('orchestos-language', language)
+  }, [language])
+
+  // Core OrchestOS entities state
+  const [tasks, setTasks] = useState<TaskItem[]>([])
+  const [threadTasks, setThreadTasks] = useState<{
+    projectId: string | null | undefined
+    tasks: TaskItem[]
+  } | null>(null)
+  const [approvals, setApprovals] = useState<{
+    projectId: string | null | undefined
+    byRun: Record<string, PendingApproval[]>
+  } | null>(null)
+  const [taskError, setTaskError] = useState<string | null>(null)
+  const [taskRunError, setTaskRunError] = useState<{ message: string; code?: string } | null>(null)
+  const [runningTaskId, setRunningTaskId] = useState<string | null>(null)
+  const [evidenceRunId, setEvidenceRunId] = useState<string | undefined>()
+  const [runs, setRuns] = useState<RunItem[]>([])
+  const [projectContext, setProjectContext] = useState<ProjectContext | null>(null)
+  const [specs, setSpecs] = useState<SpecItem[]>([])
+  const [instincts, setInstincts] = useState<InstinctItem[]>([])
+  const [memories, setMemories] = useState<MemoryItem[]>([])
+  const [threads, setThreads] = useState<ChatThread[]>([])
+  const [runningSessionIds, setRunningSessionIds] = useState<Set<string>>(() => new Set())
+  const locallyRunningSessionIds = useRef<Set<string>>(new Set())
+  const handleDevTimelinePending = useCallback((sessionId: string, pending: boolean) => {
+    if (pending || locallyRunningSessionIds.current.has(sessionId)) return
+    setRunningSessionIds((current) => {
+      if (!current.has(sessionId)) return current
+      const next = new Set(current)
+      next.delete(sessionId)
+      return next
+    })
+  }, [])
+  const [skills, setSkills] = useState<SkillItem[]>([])
+  const [projectTabsLoading, setProjectTabsLoading] = useState(false)
+  const [projectTabsError, setProjectTabsError] = useState<string | null>(null)
+  const [activeThreadId, setActiveThreadId] = useState<string>('')
+  const threadsRef = useRef<ChatThread[]>([])
+  const pendingNewChat = useRef<Promise<ChatThread | null> | null>(null)
+  useEffect(() => {
+    if (mode === 'dev') setActiveThreadId(activeAgentId || '')
+  }, [mode, activeAgentId])
+  threadsRef.current = threads
+  const reportedTaskIds = useRef(new Set<string>())
+  const completedTaskPollAttempts = useRef(new Map<string, number>())
+  const seenRunningTaskIds = useRef(new Set<string>())
+  const projectHydrationControllers = useRef(new Map<string, Set<AbortController>>())
+  const projectHydrationReads = useRef(new Map<string, Set<Promise<unknown>>>())
+  const purgingProjectIds = useRef(new Set<string>())
+
+  const abortProjectHydrations = async (projectId: string) => {
+    for (const controller of projectHydrationControllers.current.get(projectId) ?? []) {
+      controller.abort()
+    }
+    projectHydrationControllers.current.delete(projectId)
+    const pendingReads = [...(projectHydrationReads.current.get(projectId) ?? [])]
+    await Promise.allSettled(pendingReads)
+    projectHydrationReads.current.delete(projectId)
+  }
+
+  // El servidor no persiste adjuntos: se recuerdan por sesión para devolverlos al mensaje al recargar.
+  const sentAttachments = useRef(
+    new Map<string, Array<{ content: string; attachments: ChatAttachment[] }>>(),
+  )
+
+  const loadThreadMessages = async (sessionId: string, projectId?: string | null) => {
+    const messages = await loadThreadMessagesRaw(sessionId, projectId)
+    return [...(sentAttachments.current.get(sessionId) ?? [])]
+      .reverse()
+      .reduce((merged, entry) => mergeOptimisticAttachments(merged, entry), messages)
+  }
+
+  const loadThreadMessagesRaw = async (sessionId: string, projectId?: string | null) => {
+    if (projectId && purgingProjectIds.current.has(projectId)) return []
+    const controller = new AbortController()
+    if (projectId) {
+      const controllers = projectHydrationControllers.current.get(projectId) ?? new Set()
+      controllers.add(controller)
+      projectHydrationControllers.current.set(projectId, controllers)
+    }
+    let settled: [
+      PromiseSettledResult<ChatMessageRow[]>,
+      PromiseSettledResult<TimelineResponse>,
+      PromiseSettledResult<ProjectTaskRow[]>,
+    ]
+    try {
+      const reads = Promise.allSettled([
+        getSessionMessages(sessionId, projectId ?? null, controller.signal),
+        getTimeline(sessionId, projectId ?? null, controller.signal),
+        getProjectTasks(projectId, controller.signal),
+      ])
+      if (projectId) {
+        const pending = projectHydrationReads.current.get(projectId) ?? new Set()
+        pending.add(reads)
+        projectHydrationReads.current.set(projectId, pending)
+      }
+      try {
+        settled = await reads
+      } finally {
+        if (projectId) {
+          const pending = projectHydrationReads.current.get(projectId)
+          pending?.delete(reads)
+          if (pending?.size === 0) projectHydrationReads.current.delete(projectId)
+        }
+      }
+    } finally {
+      if (projectId) {
+        const controllers = projectHydrationControllers.current.get(projectId)
+        controllers?.delete(controller)
+        if (controllers?.size === 0) projectHydrationControllers.current.delete(projectId)
+      }
+    }
+    if (controller.signal.aborted) return []
+    const [messagesResult, timelineResult, tasksResult] = settled
+    if (messagesResult.status !== 'fulfilled') throw messagesResult.reason
+    const rows = messagesResult.value
+    const baseMessages = rows.map(mapMessage)
+    if (timelineResult.status !== 'fulfilled' || tasksResult.status !== 'fulfilled')
+      return baseMessages
+    const detailed = attachTurnDetails(baseMessages, rows, timelineResult.value)
+    const pendingTasks = new Map(
+      tasksResult.value.filter((task) => task.status === 'pending').map((task) => [task.id, task]),
+    )
+    const taskById = new Map(tasksResult.value.map((task) => [task.id, task]))
+    return detailed.map((named) => {
+      const row = rows.find((candidate) => String(candidate.id) === named.id)
+      let message = named
+      if (row?.taskId) {
+        const known = taskById.get(row.taskId)
+        const hasLaterReport = rows.some(
+          (other) => other.taskId === row.taskId && other.taskReport && other.id > row.id,
+        )
+        message = {
+          ...named,
+          taskDescription: known?.description,
+          ...(!known && !hasLaterReport && !named.taskReport ? { taskDeleted: true } : {}),
+        }
+      }
+      if (!message.taskHeld || !row?.taskId) return message
+      const task = pendingTasks.get(row.taskId)
+      // Una pending con motivo ya fue lanzada (fallo o bloqueo por árbol sucio).
+      if (task?.status === 'pending' && task.retryReason?.trim())
+        return { ...message, taskHeld: false, proposedTask: undefined }
+      // ERP.4.13: ya se lanzó (hay un reporte posterior de la misma tarea): la acción vive en el último reporte
+      const launched = rows.some(
+        (later) => later.id > row.id && later.taskId === row.taskId && later.taskReport,
+      )
+      if (launched) return { ...message, taskHeld: false, proposedTask: undefined }
+      if (!task) return { ...message, taskHeld: false, proposedTask: undefined }
+      return {
+        ...message,
+        proposedTask: {
+          id: task.id,
+          description: task.description,
+          output: row.existingFiles.length ? row.existingFiles : (task.output ?? []),
+        },
+      }
+    })
+  }
+
+  useEffect(() => {
+    let disposed = false
+    const visibleProjectId = activeProjectId || projects[0]?.id || null
+    void listSessions(visibleProjectId)
+      .then(async (loaded) => {
+        if (disposed) return
+        const initial = loaded.map((thread) => ({ ...thread, messagesLoaded: false }))
+        setRunningSessionIds((current) => {
+          const next = new Set(current)
+          for (const thread of loaded) {
+            if (thread.running) next.add(thread.id)
+            else if (!locallyRunningSessionIds.current.has(thread.id)) next.delete(thread.id)
+          }
+          return next
+        })
+        setThreads((current) => mergeLoadedThreads(current, initial, visibleProjectId))
+        setActiveThreadId((current) =>
+          activeAfterLoad(
+            current,
+            mergeLoadedThreads(threadsRef.current, initial, visibleProjectId),
+            loaded,
+          ),
+        )
+        const hydrated = await Promise.all(
+          loaded.map(async (thread) => ({
+            ...thread,
+            messages: await loadThreadMessages(thread.id, thread.projectId).catch(() => []),
+            messagesLoaded: true,
+          })),
+        )
+        const activeTimelines = await Promise.all(
+          loaded
+            .filter((thread) => thread.running)
+            .map(async (thread) => ({
+              id: thread.id,
+              pending: (await getTimeline(thread.id, thread.projectId).catch(() => null))?.pending,
+            })),
+        )
+        if (!disposed) {
+          setRunningSessionIds((current) => {
+            const next = new Set(current)
+            for (const timeline of activeTimelines)
+              if (timeline.pending === false && !locallyRunningSessionIds.current.has(timeline.id))
+                next.delete(timeline.id)
+            return next
+          })
+        }
+        if (!disposed)
+          setThreads((current) => mergeLoadedThreads(current, hydrated, visibleProjectId))
+      })
+      .catch(() => {
+        if (!disposed) setThreads([])
+      })
+    return () => {
+      disposed = true
+    }
+  }, [activeProjectId, projects, mode])
+
+  useEffect(() => {
+    let disposed = false
+    void listProjects()
+      .then((loaded) => {
+        if (disposed) return
+        setProjects(loaded)
+        const remembered = (() => {
+          try {
+            return JSON.parse(localStorage.getItem('orchestos-last-dev') || 'null') as {
+              projectId?: string
+              sessionId?: string
+            } | null
+          } catch {
+            return null
+          }
+        })()
+        const rememberedProjectId =
+          remembered?.projectId || localStorage.getItem('orchestos-last-project')
+        const rememberedProject =
+          rememberedProjectId && loaded.find((project) => project.id === rememberedProjectId)
+        const rememberedAgent = rememberedProject?.agents.find(
+          (agent) => agent.id === remembered?.sessionId,
+        )
+        setActiveProjectId((current) =>
+          current && loaded.some((project) => project.id === current)
+            ? current
+            : rememberedProject?.id || loaded[0]?.id || '',
+        )
+        if (rememberedProject && rememberedAgent) {
+          setDevTabs((current) => ({
+            ...current,
+            [rememberedProject.id]:
+              current[rememberedProject.id] ??
+              openSessionTab(emptySessionTabs(), rememberedAgent.id),
+          }))
+          void listSessions(rememberedProject.id).then(async (sessions) => {
+            const session = sessions.find((item) => item.id === rememberedAgent.id)
+            if (!session) return
+            const hydrated = {
+              ...session,
+              messages: await loadThreadMessages(session.id, session.projectId),
+            }
+            setThreads((current) => [
+              ...current.filter((item) => item.id !== hydrated.id),
+              hydrated,
+            ])
+          })
+        }
+      })
+      .catch(() => {
+        if (!disposed) setProjects([])
+      })
+    return () => {
+      disposed = true
+    }
+  }, [])
+
+  const currentProject = projects.find((p) => p.id === activeProjectId) || projects[0]
+
+  const handleOpenTerminal = () => {
+    if (currentProject) updateDevTabs(currentProject.id, openTerminalTab)
+  }
+
+  useEffect(() => {
+    if (mode !== 'dev' || !currentProject) return
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.ctrlKey && !event.metaKey && !event.altKey && event.code === 'Backquote') {
+        event.preventDefault()
+        updateDevTabs(currentProject.id, openTerminalTab)
+      }
+    }
+    window.addEventListener('keydown', onKeyDown)
+    return () => window.removeEventListener('keydown', onKeyDown)
+  }, [mode, currentProject?.id])
+
+  const activeThread = threads.find((t) => t.id === activeThreadId)
+  const hasRunningTasks = tasks.some((task) => task.status === 'running')
+  const activeThreadTasks =
+    threadTasks?.projectId === activeThread?.projectId ? (threadTasks?.tasks ?? []) : []
+  const hasRunningThreadTasks = activeThreadTasks.some((task) => task.status === 'running')
+  useEffect(() => {
+    if (!currentProject) return
+    const localCountOf = (thread: ChatThread, taskId: string) =>
+      thread.messages.filter((other) => other.taskId === taskId).length
+    const awaiting = [
+      ...new Set(
+        (activeThread?.messages ?? [])
+          .filter((message) => message.role === 'assistant' && message.taskId && !message.taskHeld)
+          .map((message) => message.taskId as string),
+      ),
+    ].filter(
+      (taskId) =>
+        !reportedTaskIds.current.has(
+          `${activeThread?.id}:${taskId}:${activeThread ? localCountOf(activeThread, taskId) : 0}`,
+        ),
+    )
+    if (!awaiting.length && !hasRunningTasks && !hasRunningThreadTasks) return
+    let disposed = false
+    let polling = false
+    const poll = async () => {
+      if (polling) return
+      polling = true
+      try {
+        const result = await pollProjectAndThreadTasks(currentProject.id, activeThread?.projectId)
+        if (disposed) return
+        const tasks = result.threadTasks
+        setTasks(result.projectTasks)
+        setThreadTasks({ projectId: activeThread?.projectId, tasks })
+        const byRun: Record<string, PendingApproval[]> = {}
+        await Promise.all(
+          tasks
+            .filter(
+              (task) => task.status === 'running' && task.runId && (task.pendingApprovals ?? 0) > 0,
+            )
+            .map(async (task) => {
+              byRun[task.runId!] = await getRunApprovals(task.runId!, activeThread?.projectId)
+            }),
+        )
+        if (disposed) return
+        setApprovals({ projectId: activeThread?.projectId, byRun })
+        for (const taskId of awaiting) {
+          if (disposed || !activeThread) return
+          const task = tasks.find((item) => item.id === taskId)
+          const localCount = localCountOf(activeThread, taskId)
+          const runKey = `${activeThread.id}:${taskId}`
+          const key = `${runKey}:${localCount}`
+          const action = decideTaskPollAction({
+            task,
+            localCount,
+            seenRunning: seenRunningTaskIds.current.has(runKey),
+          })
+          if (action === 'running') {
+            seenRunningTaskIds.current.add(runKey)
+            completedTaskPollAttempts.current.delete(key)
+            continue
+          }
+          if (action === 'resolve') {
+            reportedTaskIds.current.add(key)
+            completedTaskPollAttempts.current.delete(key)
+            continue
+          }
+          const messages = await loadThreadMessages(activeThread.id, activeThread.projectId)
+          if (disposed) return
+          const outcome = resolveTaskReportPoll({
+            localCount,
+            serverCount: messages.filter((message) => message.taskId === taskId).length,
+            attempts: completedTaskPollAttempts.current.get(key) ?? 0,
+          })
+          if (outcome.resolved) {
+            reportedTaskIds.current.add(key)
+            completedTaskPollAttempts.current.delete(key)
+            if (outcome.merge) seenRunningTaskIds.current.delete(runKey)
+          } else {
+            completedTaskPollAttempts.current.set(key, outcome.attempts)
+          }
+          if (outcome.merge) {
+            setThreads((prev) =>
+              prev.map((thread) =>
+                thread.id === activeThread.id
+                  ? {
+                      ...thread,
+                      messages: [
+                        ...thread.messages,
+                        ...messages.filter(
+                          (message) =>
+                            !thread.messages.some((existing) => existing.id === message.id),
+                        ),
+                      ],
+                    }
+                  : thread,
+              ),
+            )
+          }
+        }
+      } catch {
+        // A transient polling failure should not hide a report forever.
+      } finally {
+        polling = false
+      }
+    }
+    const timer = window.setInterval(() => void poll(), 1_000)
+    void poll()
+    return () => {
+      disposed = true
+      window.clearInterval(timer)
+    }
+  }, [
+    activeThread?.id,
+    activeThread?.projectId,
+    activeThread?.messages,
+    currentProject?.id,
+    hasRunningTasks,
+    hasRunningThreadTasks,
+  ])
+  const activeAgent = currentProject?.agents.find((a) => a.id === activeAgentId) || null
+  const projectForSession = (id: string) => {
+    const thread = threads.find((item) => item.id === id)
+    if (thread) return thread.projectId
+    const archived = historySessions.find((item) => item.id === id)
+    return archived?.projectId && archived.projectId !== 'workspace' ? archived.projectId : null
+  }
+
+  const handleSelectProject = (projectId: string) => {
+    setActiveProjectId(projectId)
+    localStorage.setItem('orchestos-last-project', projectId)
+  }
+
+  const reloadHistory = async () => {
+    const archived = await listArchivedSessions()
+    const projectNames = new Map(projects.map((project) => [project.id, project.name]))
+    const loaded = await Promise.all(
+      archived.map(async (session) => {
+        const messages = await loadThreadMessages(session.id, session.projectId).catch(() => [])
+        const last = messages[messages.length - 1]
+        const elapsed = Math.max(0, Date.now() - Date.parse(session.updatedAt))
+        const minutes = Math.floor(elapsed / 60000)
+        const timeAgo =
+          minutes < 60
+            ? `${minutes}m`
+            : minutes < 2880
+              ? `${Math.floor(minutes / 60)}h`
+              : `${Math.floor(minutes / 1440)}d`
+        return {
+          id: session.id,
+          projectId: session.projectId || 'workspace',
+          projectName: session.projectId
+            ? projectNames.get(session.projectId) || 'Unknown project'
+            : 'Workspace',
+          title: session.title,
+          lastMessage: last?.content?.split(/\r?\n/).filter(Boolean).pop() || 'No messages',
+          cliId: session.agent,
+          model: last?.model || session.agent,
+          messageCount: messages.length,
+          timeAgo,
+          logs: messages.map((message) => `${message.role}: ${message.content}`).slice(-8),
+        } satisfies HistorySession
+      }),
+    )
+    setHistorySessions(loaded)
+  }
+
+  useEffect(() => {
+    if (projects.length) void reloadHistory().catch(() => setHistorySessions([]))
+  }, [projects])
+
+  useEffect(() => {
+    if (!currentProject) {
+      setRuns([])
+      return
+    }
+    let disposed = false
+    void listRuns(currentProject.id)
+      .then((loaded) => {
+        if (!disposed) setRuns(loaded)
+      })
+      .catch(() => {
+        if (!disposed) setRuns([])
+      })
+    return () => {
+      disposed = true
+    }
+  }, [currentProject?.id])
+
+  useEffect(() => {
+    if (!currentProject) {
+      setProjectContext(null)
+      return
+    }
+    let disposed = false
+    setProjectContext(null)
+    void getProjectContext(currentProject.id)
+      .then((context) => {
+        if (!disposed) setProjectContext(context)
+      })
+      .catch(() => {
+        if (!disposed) setProjectContext(null)
+      })
+    return () => {
+      disposed = true
+    }
+  }, [currentProject?.id])
+
+  useEffect(() => {
+    if (!currentProject) {
+      setTasks([])
+      setTaskError(null)
+      return
+    }
+    if (purgingProjectIds.current.has(currentProject.id)) return
+    let disposed = false
+    const controller = new AbortController()
+    const controllers = projectHydrationControllers.current.get(currentProject.id) ?? new Set()
+    controllers.add(controller)
+    projectHydrationControllers.current.set(currentProject.id, controllers)
+    const taskRead = listTasks(currentProject.id, controller.signal)
+    const pendingReads = projectHydrationReads.current.get(currentProject.id) ?? new Set()
+    pendingReads.add(taskRead)
+    projectHydrationReads.current.set(currentProject.id, pendingReads)
+    void taskRead
+      .then((result) => {
+        if (disposed) return
+        setTasks(result.tasks)
+        setTaskError(result.error || null)
+      })
+      .catch((error) => {
+        if (!disposed && !controller.signal.aborted) {
+          setTasks([])
+          setTaskError(error instanceof Error ? error.message : String(error))
+        }
+      })
+    return () => {
+      disposed = true
+      controller.abort()
+      const active = projectHydrationControllers.current.get(currentProject.id)
+      active?.delete(controller)
+      if (active?.size === 0) projectHydrationControllers.current.delete(currentProject.id)
+      const pending = projectHydrationReads.current.get(currentProject.id)
+      pending?.delete(taskRead)
+      if (pending?.size === 0) projectHydrationReads.current.delete(currentProject.id)
+    }
+  }, [mode, currentProject?.id])
+
+  const refreshProjectTabs = async (projectId: string) => {
+    if (purgingProjectIds.current.has(projectId)) return
+    // Registrada como hidratación del proyecto: el purge la aborta antes de borrar (si no, 404 tras el purge).
+    const controller = new AbortController()
+    const controllers = projectHydrationControllers.current.get(projectId) ?? new Set()
+    controllers.add(controller)
+    projectHydrationControllers.current.set(projectId, controllers)
+    setProjectTabsLoading(true)
+    setProjectTabsError(null)
+    const reads = Promise.all([
+      listMemory(projectId, controller.signal),
+      listSpecs(projectId, controller.signal),
+      listSkills(projectId, controller.signal),
+      listInstincts(projectId, controller.signal),
+    ])
+    const pending = projectHydrationReads.current.get(projectId) ?? new Set()
+    pending.add(reads)
+    projectHydrationReads.current.set(projectId, pending)
+    try {
+      const [nextMemory, nextSpecs, nextSkills, nextInstincts] = await reads
+      if (controller.signal.aborted) return
+      setMemories(nextMemory)
+      setSpecs(nextSpecs)
+      setSkills(nextSkills)
+      setInstincts(nextInstincts)
+    } catch (error) {
+      if (!controller.signal.aborted)
+        setProjectTabsError(error instanceof Error ? error.message : String(error))
+    } finally {
+      pending.delete(reads)
+      if (pending.size === 0) projectHydrationReads.current.delete(projectId)
+      controllers.delete(controller)
+      if (controllers.size === 0) projectHydrationControllers.current.delete(projectId)
+      setProjectTabsLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    if (currentProject) void refreshProjectTabs(currentProject.id)
+    else {
+      setMemories([])
+      setSpecs([])
+      setSkills([])
+      setInstincts([])
+    }
+  }, [mode, currentProject?.id])
+
+  const refreshUsage = async () => {
+    if (!currentProject) return
+    usageAbortRef.current?.abort()
+    const controller = new AbortController()
+    usageAbortRef.current = controller
+    setRefreshingUsage(true)
+    try {
+      const response = await fetch('/api/session/status', {
+        headers: { 'x-orchestos-project-id': currentProject.id },
+        signal: controller.signal,
+      })
+      if (!response.ok) throw new Error(String(response.status))
+      const nextStatus = (await response.json()) as SessionStatus
+      setSessionStatus(nextStatus)
+      try {
+        localStorage.setItem('orchestos-session-status', JSON.stringify(nextStatus))
+      } catch {
+        // Storage is an optimization only; the live response remains authoritative.
+      }
+    } catch (error) {
+      if (!(error instanceof DOMException && error.name === 'AbortError')) setSessionStatus(null)
+    } finally {
+      if (usageAbortRef.current === controller) {
+        usageAbortRef.current = null
+        setRefreshingUsage(false)
+      }
+    }
+  }
+
+  useEffect(() => {
+    if (!currentProject) return
+    void refreshUsage()
+    const timer = window.setInterval(() => void refreshUsage(), 60_000)
+    const onVisibilityChange = () => {
+      if (document.visibilityState === 'visible') void refreshUsage()
+    }
+    document.addEventListener('visibilitychange', onVisibilityChange)
+    return () => {
+      window.clearInterval(timer)
+      document.removeEventListener('visibilitychange', onVisibilityChange)
+      usageAbortRef.current?.abort()
+    }
+  }, [currentProject?.id])
+
+  // Mode change handler that tracks previous mode
+  const handleModeChange = (newMode: AppMode) => {
+    if (mode !== 'settings') {
+      setPreviousMode(mode)
+    }
+    if (newMode === 'dev' && currentProject && !activeDevTabs.tabs.length) {
+      let lastId: string | undefined
+      try {
+        const last = JSON.parse(localStorage.getItem('orchestos-last-dev') || 'null')
+        if (last?.projectId === currentProject.id) lastId = last.sessionId
+      } catch {
+        /* Storage unavailable. */
+      }
+      updateDevTabs(currentProject.id, (tabs) =>
+        restoreSessionTabs(
+          tabs,
+          currentProject.agents.map((agent) => agent.id),
+          lastId,
+        ),
+      )
+    }
+    setMode(newMode)
+  }
+
+  const handleOpenSettings = (section?: SettingsSection, tab: ProjectSubTab = 'tasks') => {
+    setPreviousMode(mode === 'settings' ? 'dev' : mode)
+    setSettingsSection(section || (currentProject ? `project_${currentProject.id}` : 'general'))
+    setSettingsProjectTab(tab)
+    setMode('settings')
+  }
+
+  const handleOpenProjectSettings = (projectId: string) => {
+    setActiveProjectId(projectId)
+    handleOpenSettings(`project_${projectId}`, 'tasks')
+  }
+
+  // Agent selection and launch in Dev mode
+  const handleSelectAgent = async (agentId: string, projectId: string) => {
+    setActiveProjectId(projectId)
+    updateDevTabs(projectId, (tabs) => openSessionTab(tabs, agentId))
+    localStorage.setItem(
+      'orchestos-last-dev',
+      JSON.stringify({ kind: 'session', projectId, sessionId: agentId }),
+    )
+    const session = (await listSessions(projectId)).find((item) => item.id === agentId)
+    if (session) {
+      const hydrated = {
+        ...session,
+        messages: await loadThreadMessages(agentId, session.projectId),
+      }
+      setThreads((current) => [...current.filter((item) => item.id !== agentId), hydrated])
+      setActiveThreadId(agentId)
+    }
+    setMode('dev')
+  }
+
+  // Restore session from history to sidebar
+  // Project creation
+  const [showCloneProject, setShowCloneProject] = useState(false)
+  const handleNewProject = async (action: ProjectAddAction) => {
+    if (action === 'clone') {
+      setShowCloneProject(true)
+      return
+    }
+    setProjectError(null)
+    try {
+      const project = await chooseProject()
+      if (!project) return
+      const loaded = await listProjects()
+      setProjects(loaded)
+      setActiveProjectId(project.id)
+    } catch (error) {
+      setProjectError(error instanceof Error ? error.message : 'Could not choose a project folder.')
+    }
+  }
+
+  const handleCloseAgent = async (agentId: string) => {
+    try {
+      await archiveSession(agentId, projectForSession(agentId))
+      setDevTabs((current) =>
+        Object.fromEntries(
+          Object.entries(current).map(([projectId, tabs]) => [
+            projectId,
+            closeSessionTab(tabs, agentId),
+          ]),
+        ),
+      )
+      setProjects(await listProjects())
+      await reloadHistory()
+    } catch {
+      // Keep the agent visible when the archive request fails.
+    }
+  }
+
+  const handleRestoreAgent = async (session: HistorySession) => {
+    try {
+      await restoreSession(session.id, session.projectId === 'workspace' ? null : session.projectId)
+      setProjects(await listProjects())
+      await reloadHistory()
+    } catch {
+      // Keep the history entry visible when the restore request fails.
+    }
+  }
+
+  const handleDeleteHistorySession = async (sessionId: string, projectId?: string | null) => {
+    try {
+      await deleteSession(sessionId, projectId ?? projectForSession(sessionId))
+      await reloadHistory()
+    } catch {
+      // Keep the history entry visible when the delete request fails.
+    }
+  }
+
+  const handleDeleteProject = async (projectId: string) => {
+    purgingProjectIds.current.add(projectId)
+    // Desmontar primero: el cleanup cancela también las lecturas propias de Chat/Dev.
+    flushSync(() => setDeletingProjectIds((current) => new Set(current).add(projectId)))
+    await abortProjectHydrations(projectId)
+    try {
+      await deleteProject(projectId)
+      const loaded = await listProjects()
+      setProjects(loaded)
+      setActiveProjectId((current) =>
+        current === projectId || !loaded.some((project) => project.id === current)
+          ? loaded[0]?.id || ''
+          : current,
+      )
+      setThreads((current) => current.filter((thread) => thread.projectId !== projectId))
+      setActiveThreadId((current) =>
+        threads.some((thread) => thread.id === current && thread.projectId === projectId)
+          ? ''
+          : current,
+      )
+      updateDevTabs(projectId, () => emptySessionTabs())
+      await reloadHistory()
+    } catch {
+      // Keep the project visible when the delete request fails.
+    } finally {
+      purgingProjectIds.current.delete(projectId)
+      setDeletingProjectIds((current) => {
+        const next = new Set(current)
+        next.delete(projectId)
+        return next
+      })
+    }
+  }
+
+  // Purge all project telemetry data (Danger Zone in Project Settings)
+  const handlePurgeProjectData = async (projectId: string) => {
+    purgingProjectIds.current.add(projectId)
+    flushSync(() => setDeletingProjectIds((current) => new Set(current).add(projectId)))
+    await abortProjectHydrations(projectId)
+    try {
+      await purgeProjectData(projectId)
+      const loaded = await listProjects()
+      setProjects(loaded)
+      setActiveProjectId((current) => (current === projectId ? loaded[0]?.id || '' : current))
+      updateDevTabs(projectId, () => emptySessionTabs())
+      setRuns([])
+      setThreads((current) => current.filter((thread) => thread.projectId !== projectId))
+      setMode(previousMode || 'dev')
+      await reloadHistory()
+    } catch {
+      purgingProjectIds.current.delete(projectId)
+      // Keep the project settings visible when the purge request fails.
+    } finally {
+      setDeletingProjectIds((current) => {
+        const next = new Set(current)
+        next.delete(projectId)
+        return next
+      })
+    }
+  }
+
+  // Danger Zone - Reset OrchestOS
+  const handleResetOrchestos = () => {
+    setRuns([])
+    setInstincts((prev) => prev.filter((i) => i.verified))
+    setTasks((prev) =>
+      prev.map((t) => ({ ...t, status: 'pending', retryCount: 0, qaVerdict: undefined })),
+    )
+  }
+
+  // Create new agent in project (triggered by Plus on project row)
+  const handleCreateAgentInProject = (
+    projectId: string,
+    cliId: string,
+    model: string,
+    title: string,
+  ) => {
+    setProjectTabsError(null)
+    void createSession({ agent: cliId, projectId, title })
+      .then(async (thread) => {
+        setActiveProjectId(projectId)
+        updateDevTabs(projectId, (tabs) => openSessionTab(tabs, thread.id))
+        localStorage.setItem(
+          'orchestos-last-dev',
+          JSON.stringify({ kind: 'session', projectId, sessionId: thread.id }),
+        )
+        threadsRef.current = [...threadsRef.current.filter((item) => item.id !== thread.id), thread]
+        setThreads((current) => [...current.filter((item) => item.id !== thread.id), thread])
+        setActiveThreadId(thread.id)
+        setProjects(await listProjects())
+        setMode('dev')
+      })
+      .catch((error) => setProjectTabsError(error instanceof Error ? error.message : String(error)))
+  }
+
+  // Chat actions
+  const handleNewChat = async (
+    cliId?: string,
+    _model?: string,
+    title?: string,
+    selectedProjectId?: string | null,
+  ) => {
+    const creating = createSession({
+      ...(cliId ? { agent: cliId } : {}),
+      projectId: newChatProjectId(currentProject?.id, selectedProjectId),
+      title,
+    })
+    pendingNewChat.current = creating.catch(() => null)
+    try {
+      const newThread = await creating
+      threadsRef.current = [newThread, ...threadsRef.current]
+      setThreads((prev) => [newThread, ...prev])
+      setActiveThreadId(newThread.id)
+    } catch {
+      return
+    } finally {
+      pendingNewChat.current = null
+    }
+    setMode('chat')
+  }
+
+  const handleDeleteChat = async (id: string) => {
+    try {
+      await deleteSession(id, projectForSession(id))
+      setThreads((prev) => {
+        const remaining = prev.filter((thread) => thread.id !== id)
+        if (activeThreadId === id) setActiveThreadId(remaining[0]?.id || '')
+        return remaining
+      })
+    } catch {
+      // Keep the server-backed row visible when the API rejects the mutation.
+    }
+  }
+
+  const handleRenameChat = async (id: string) => {
+    const thread = threads.find((item) => item.id === id)
+    const title = window.prompt('Rename conversation', thread?.title || '')
+    if (!title?.trim()) return
+    try {
+      const updated = await renameSession(id, title.trim(), projectForSession(id))
+      setThreads((prev) =>
+        prev.map((item) => (item.id === id ? { ...item, title: updated.title } : item)),
+      )
+    } catch {
+      // Keep the current title when validation or the request fails.
+    }
+  }
+
+  const handleSlashCommand = async (command: string, argument?: string) => {
+    const id = mode === 'dev' ? activeAgentId : activeThreadId
+    if (!id) return
+    if (command === '/rename') {
+      const title = argument?.trim() || window.prompt('Rename conversation', '')
+      if (title?.trim()) {
+        const updated = await renameSession(id, title.trim(), projectForSession(id))
+        setThreads((prev) =>
+          prev.map((item) => (item.id === id ? { ...item, title: updated.title } : item)),
+        )
+        setHistorySessions((prev) =>
+          prev.map((item) => (item.id === id ? { ...item, title: updated.title } : item)),
+        )
+        setProjects(await listProjects())
+      }
+    } else if (command === '/usage') {
+      handleOpenSettings('usage', 'tasks')
+    } else if (command === '/archive') {
+      await handleCloseAgent(id)
+    }
+  }
+
+  const devSendLock = useRef(false)
+  const handleDevSendMessage: typeof handleSendMessage = async (
+    content,
+    attachments,
+    agent,
+    model,
+    effort,
+    approvalMode,
+  ) => {
+    if (devSendLock.current || !currentProject) return false
+    devSendLock.current = true
+    try {
+      let thread = threadsRef.current.find((item) => item.id === activeAgentId)
+      if (!activeAgentId) {
+        thread = await createSession({ ...(agent ? { agent } : {}), projectId: currentProject.id })
+        threadsRef.current = [thread, ...threadsRef.current]
+        setThreads((current) => [thread!, ...current])
+        setActiveThreadId(thread.id)
+        updateDevTabs(currentProject.id, (tabs) =>
+          convertNewTab(tabs, activeDevTab?.id ?? null, thread!.id),
+        )
+        localStorage.setItem(
+          'orchestos-last-dev',
+          JSON.stringify({ projectId: currentProject.id, sessionId: thread.id }),
+        )
+        setProjects(await listProjects())
+      }
+      if (!thread) return false
+      return await handleSendMessage(
+        content,
+        attachments,
+        agent,
+        model,
+        effort,
+        approvalMode,
+        thread,
+      )
+    } catch {
+      return false
+    } finally {
+      devSendLock.current = false
+    }
+  }
+
+  const handleSendMessage = async (
+    content: string,
+    attachments?: ChatAttachment[],
+    agent?: string,
+    model?: string,
+    effort?: string,
+    approvalMode?: import('./types/orchestos').ApprovalMode,
+    devThread?: ChatThread,
+  ): Promise<boolean> => {
+    let threadId = devThread?.id ?? activeThreadId
+    let thread = devThread ?? threads.find((item) => item.id === threadId)
+    // El composer del estado vacío ya es visible mientras New chat crea el hilo: se espera ese hilo
+    // en vez de abrir una sesión general aparte y mandarle el mensaje sin proyecto.
+    const pendingThread = await threadPendingForSend(threadId, pendingNewChat.current)
+    if (pendingThread) {
+      thread = pendingThread
+      threadId = pendingThread.id
+      agent = pendingThread.agent
+      model = undefined
+      effort = undefined
+    }
+    if (!threadId) {
+      try {
+        thread = await createSession({ ...(agent ? { agent } : {}), projectId: null })
+        threadId = thread.id
+        threadsRef.current = [thread, ...threadsRef.current]
+        setThreads((prev) => [thread!, ...prev])
+        setActiveThreadId(thread.id)
+      } catch {
+        return false
+      }
+    }
+    const activeModel = model || undefined
+    const optimistic = {
+      id: `pending_${Date.now()}`,
+      role: 'user' as const,
+      content,
+      timestamp: 'Just now',
+      attachments,
+      model: activeModel,
+      effort,
+    }
+    if (attachments?.length) {
+      const sent = sentAttachments.current.get(threadId) ?? []
+      sentAttachments.current.set(threadId, [...sent, { content, attachments }])
+    }
+    setThreads((prev) =>
+      prev.map((thread) =>
+        thread.id === threadId ? { ...thread, messages: [...thread.messages, optimistic] } : thread,
+      ),
+    )
+    locallyRunningSessionIds.current.add(threadId)
+    setRunningSessionIds((current) => new Set(current).add(threadId))
+    return sendMessage({
+      sessionId: threadId,
+      projectId: thread?.projectId ?? null,
+      message: content,
+      agent: agent || thread?.agent,
+      model,
+      effort,
+      attachments,
+      approvalMode,
+    })
+      .then(async () => {
+        const messages = await loadThreadMessages(threadId, thread?.projectId)
+        const firstMessageTitle = thread?.messages.length === 0 ? content.slice(0, 40) : undefined
+        setThreads((prev) =>
+          prev.map((thread) =>
+            thread.id === threadId
+              ? {
+                  ...thread,
+                  messages,
+                  title: firstMessageTitle || thread.title,
+                }
+              : thread,
+          ),
+        )
+        if (firstMessageTitle) {
+          void renameSession(threadId, firstMessageTitle, thread?.projectId ?? null).catch(
+            () => undefined,
+          )
+          void listProjects()
+            .then(setProjects)
+            .catch(() => undefined)
+        }
+        void refreshUsage()
+        return true
+      })
+      .catch(async (error) => {
+        if (error.notice) {
+          const messages = await loadThreadMessages(threadId, thread?.projectId)
+          if (
+            messages.some((message) =>
+              message.notices?.some((notice) => notice.message === error.notice.message),
+            )
+          ) {
+            setThreads((prev) =>
+              prev.map((item) => (item.id === threadId ? { ...item, messages } : item)),
+            )
+            void refreshUsage()
+            return false
+          }
+        }
+        if (attachments?.length) {
+          sentAttachments.current.set(
+            threadId,
+            (sentAttachments.current.get(threadId) ?? []).filter(
+              (entry) => entry.attachments !== attachments,
+            ),
+          )
+        }
+        setThreads((prev) =>
+          prev.map((item) =>
+            item.id === threadId
+              ? {
+                  ...item,
+                  messages: item.messages.filter((message) => message.id !== optimistic.id),
+                }
+              : item,
+          ),
+        )
+        void refreshUsage()
+        throw error
+      })
+      .finally(() => {
+        locallyRunningSessionIds.current.delete(threadId)
+        setRunningSessionIds((current) => {
+          const next = new Set(current)
+          next.delete(threadId)
+          return next
+        })
+      })
+  }
+
+  const handleApproveHeldTask = (taskId: string) =>
+    launchThreadTask(taskId, (thread, onStarted) =>
+      runProjectTask(taskId, thread.projectId, onStarted, thread.id),
+    )
+
+  // ERP.4.13 — "Commit & Run" del reporte de árbol sucio: mismo ciclo que aprobar, otro endpoint.
+  const handleCommitRunTask = (taskId: string, files: string[]) =>
+    launchThreadTask(taskId, (thread, onStarted) =>
+      commitAndRunProjectTask(taskId, files, thread.projectId, onStarted, thread.id),
+    )
+
+  const launchThreadTask = async (
+    taskId: string,
+    launch: (thread: ChatThread, onStarted: () => void) => Promise<void>,
+  ) => {
+    const thread = activeThread
+    if (!thread) return
+    try {
+      const runKey = `${thread.id}:${taskId}`
+      for (const key of [...reportedTaskIds.current]) {
+        if (key.startsWith(`${runKey}:`)) reportedTaskIds.current.delete(key)
+      }
+      seenRunningTaskIds.current.add(runKey)
+      await launch(thread, () => {
+        setThreads((prev) =>
+          prev.map((item) =>
+            item.id === thread.id
+              ? {
+                  ...item,
+                  messages: item.messages.map((message) =>
+                    message.proposedTask?.id === taskId
+                      ? { ...message, taskHeld: false, proposedTask: undefined }
+                      : message,
+                  ),
+                }
+              : item,
+          ),
+        )
+      })
+    } finally {
+      if (thread.projectId === currentProject?.id) {
+        await listRuns(thread.projectId)
+          .then(setRuns)
+          .catch(() => undefined)
+      }
+      const messages = await loadThreadMessages(thread.id, thread.projectId).catch(() => null)
+      if (messages) {
+        setThreads((prev) =>
+          prev.map((item) => (item.id === thread.id ? { ...item, messages } : item)),
+        )
+      }
+      await refreshUsage()
+    }
+  }
+
+  const handleRunTask = async (taskId: string) => {
+    if (!currentProject || runningTaskId) return
+    setTaskRunError(null)
+    setRunningTaskId(taskId)
+    try {
+      await runTask(taskId, currentProject.id, (loaded) => {
+        setTasks(loaded)
+        setTaskError(null)
+      })
+      await reloadTabs()
+    } catch (error) {
+      setTaskRunError({
+        message: error instanceof Error ? error.message : String(error),
+        code: error instanceof TaskRunError ? error.code : undefined,
+      })
+      await listTasks(currentProject.id)
+        .then((result) => {
+          setTasks(result.tasks)
+          setTaskError(result.error || null)
+        })
+        .catch(() => undefined)
+    } finally {
+      setRunningTaskId(null)
+      await listRuns(currentProject.id)
+        .then(setRuns)
+        .catch(() => undefined)
+      await refreshUsage()
+    }
+  }
+
+  const handleRunNextTask = async () => {
+    const nextTask = getRunnableTask(tasks)
+    if (nextTask) await handleRunTask(nextTask.id)
+  }
+
+  const handleRejectHeldTask = async (taskId: string) => {
+    const thread = activeThread
+    if (!thread) return
+    // Hide it immediately after the DELETE succeeds; the reload is only for
+    // persisted state and must use the session's project context.
+    await deleteProjectTask(taskId, thread.projectId)
+    setThreads((prev) =>
+      prev.map((item) =>
+        item.id === thread.id
+          ? {
+              ...item,
+              messages: item.messages.map((message) =>
+                message.proposedTask?.id === taskId
+                  ? { ...message, taskHeld: false, proposedTask: undefined, taskDeleted: true }
+                  : message,
+              ),
+            }
+          : item,
+      ),
+    )
+    const messages = await loadThreadMessages(thread.id, thread.projectId)
+    setThreads((prev) => prev.map((item) => (item.id === thread.id ? { ...item, messages } : item)))
+  }
+
+  const reloadTabs = () =>
+    currentProject ? refreshProjectTabs(currentProject.id) : Promise.resolve()
+  const handleApproveSpec = async (id: string) => {
+    if (currentProject) {
+      await approveSpec(currentProject.id, id)
+      await reloadTabs()
+    }
+  }
+  const handleDraftSpec = async (id: string) => {
+    if (currentProject) {
+      await draftSpec(
+        currentProject.id,
+        id,
+        tasks.find((task) => task.id === id)?.description ?? id,
+      )
+      await reloadTabs()
+    }
+  }
+  const handleLintSpec = async (id: string) => {
+    if (currentProject) {
+      await lintSpec(currentProject.id, id)
+      await reloadTabs()
+    }
+  }
+  const handleResolveConflict = async (id: string, content: string) => {
+    if (currentProject) {
+      await resolveMemoryConflict(currentProject.id, id, content)
+      await reloadTabs()
+    }
+  }
+  const handleAddLibrarySkill = async (url: string) => {
+    if (!currentProject) throw new Error('Select a project')
+    const result = await addLibrarySkill(currentProject.id, url)
+    await reloadTabs()
+    return result
+  }
+  const handleEnableLibrarySkill = async (id: string, enabled: boolean) => {
+    if (!currentProject) throw new Error('Select a project')
+    await enableLibrarySkill(currentProject.id, id, enabled)
+    await reloadTabs()
+  }
+  const handleSetLibrarySkillPhases = async (id: string, phases: TaskClass[]) => {
+    if (!currentProject) throw new Error('Select a project')
+    await setLibrarySkillPhases(currentProject.id, id, phases)
+    await reloadTabs()
+  }
+  const handleCompileSkill = async (id: string) => {
+    if (currentProject) {
+      const result = await compileSkill(currentProject.id, id)
+      await reloadTabs()
+      return result
+    }
+    return { paths: [] }
+  }
+  const handleApproveInstinct = async (id: string) => {
+    if (currentProject) {
+      await approveInstinct(currentProject.id, id)
+      await reloadTabs()
+    }
+  }
+  const handleRejectInstinct = async (id: string) => {
+    if (currentProject) {
+      await rejectInstinct(currentProject.id, id)
+      await reloadTabs()
+    }
+  }
+  const handleAddInstinct = async (trigger: string, action: string) => {
+    if (currentProject) {
+      await addInstinct(currentProject.id, trigger, action)
+      await reloadTabs()
+    }
+  }
+  const handleExplainTask = async (id: string) => {
+    if (!currentProject) return {}
+    return explainTask(currentProject.id, id)
+  }
+
+  // Command Palette Handlers (Requirement 9)
+  const handleCommandPaletteSelectTab = (tab: NavigationTab) => {
+    if (tab === 'threads') {
+      setMode('chat')
+    } else {
+      // Map navigation tab to Settings -> Projects subtab
+      const validSubTabs: Record<string, ProjectSubTab> = {
+        plan: 'plan',
+        runs: 'runs',
+        specs: 'specs',
+        instincts: 'instincts',
+        memory: 'memory',
+        skills: 'skills',
+        context: 'graph',
+      }
+      const targetTab = validSubTabs[tab] || 'tasks'
+      handleOpenSettings('projects', targetTab)
+    }
+  }
+
+  const handleCommandPaletteSelectModel = (modelName: string) => {
+    // Apply selected model across active chat thread
+    setThreads((prev) =>
+      prev.map((t) => (t.id === activeThreadId ? { ...t, agent: modelName } : t)),
+    )
+  }
+
+  return (
+    <div
+      data-theme={theme}
+      className="h-screen w-screen flex flex-col bg-app-bg text-app font-sans overflow-hidden select-none"
+    >
+      {projectError && (
+        <div
+          role="alert"
+          className="fixed right-4 top-12 z-[60] max-w-sm rounded-control border border-app-error/60 bg-app-surface px-3 py-2 text-xs text-app shadow-2xl"
+        >
+          {projectError}
+        </div>
+      )}
+      {/* Top Shell Header */}
+      <ShellHeader
+        onOpenCommandPalette={() => setIsCommandPaletteOpen(true)}
+        onToggleLeftSidebar={
+          mode !== 'settings' ? () => setIsLeftSidebarOpen(!isLeftSidebarOpen) : undefined
+        }
+        onToggleRightInspector={
+          mode === 'dev' ? () => setIsRightInspectorOpen(!isRightInspectorOpen) : undefined
+        }
+        isRightInspectorOpen={isRightInspectorOpen}
+      />
+
+      {/* Main App Workspace Layout */}
+      <div data-shell-workspace className="flex-1 flex overflow-hidden">
+        {/* Left Sidebar: ONLY shown in Chat and Dev modes (Hidden in Settings for full-screen mode, Requirement 7) */}
+        {mode !== 'settings' && isLeftSidebarOpen && (
+          <ShellSidebar
+            mode={mode}
+            onChangeMode={handleModeChange}
+            threads={threadsWithApprovals(threads, [
+              { projectId: currentProject?.id, tasks },
+              { projectId: activeThread?.projectId, tasks: activeThreadTasks },
+            ])}
+            activeThreadId={activeThreadId}
+            onSelectThread={setActiveThreadId}
+            onNewChat={handleNewChat}
+            onDeleteChat={handleDeleteChat}
+            projects={projectsWithApprovals(projects, currentProject?.id, tasks)}
+            activeProjectId={activeProjectId}
+            onSelectProject={handleSelectProject}
+            onNewProject={(action) => {
+              void handleNewProject(action)
+            }}
+            onOpenSettings={() => handleOpenSettings(undefined, 'tasks')}
+            onOpenProjectSettings={handleOpenProjectSettings}
+            activeAgentId={activeAgentId}
+            onSelectAgent={handleSelectAgent}
+            onCloseAgent={handleCloseAgent}
+            onDeleteProject={handleDeleteProject}
+            onCreateAgentInProject={handleCreateAgentInProject}
+          />
+        )}
+
+        {/* Panel: everything right of the sidebar, a lighter surface under the header */}
+        <div
+          className={`flex-1 flex overflow-hidden ${
+            mode === 'settings' ? '' : 'bg-app-surface rounded-tl-[10px]'
+          }`}
+        >
+          {/* Center Canvas / Views */}
+          <div className="flex-1 min-w-[360px] flex overflow-hidden">
+            {/* VIEW 1: CHAT */}
+            {mode === 'chat' &&
+              (!activeThread?.projectId || !deletingProjectIds.has(activeThread.projectId)) && (
+                <OrchestChatView
+                  thread={activeThread}
+                  tasks={activeThreadTasks}
+                  approvals={
+                    approvals?.projectId === activeThread?.projectId ? approvals?.byRun : undefined
+                  }
+                  projectName={
+                    projects.find((project) => project.id === activeThread?.projectId)?.name
+                  }
+                  projectExists={
+                    !activeThread?.projectId ||
+                    (!deletingProjectIds.has(activeThread.projectId) &&
+                      projects.some((project) => project.id === activeThread.projectId))
+                  }
+                  onSendMessage={handleSendMessage}
+                  onApproveHeldTask={handleApproveHeldTask}
+                  onViewEvidence={async (runId) => {
+                    if (!activeThread?.projectId) return
+                    const evidence = await getRun(runId, activeThread.projectId)
+                    setRuns((current) => [evidence, ...current.filter((run) => run.id !== runId)])
+                    setEvidenceRunId(runId)
+                    handleOpenSettings(`project_${activeThread.projectId}`, 'runs')
+                  }}
+                  onRetryTask={handleApproveHeldTask}
+                  onCommitRunTask={handleCommitRunTask}
+                  onRejectHeldTask={handleRejectHeldTask}
+                  sessionStatus={sessionStatus}
+                  onSlashCommand={handleSlashCommand}
+                  onOpenRouting={() => handleOpenSettings('model_routing')}
+                />
+              )}
+
+            {/* VIEW 2: DEV WORKSPACE */}
+            {mode === 'dev' && (
+              <div className="flex-1 min-w-0 flex flex-col overflow-hidden">
+                <DevSessionTabs
+                  agents={currentProject?.agents ?? []}
+                  state={activeDevTabs}
+                  runningSessionIds={runningSessionIds}
+                  projectId={activeProjectId}
+                  onSelect={(id) => {
+                    const tab = activeDevTabs.tabs.find((tab) => tab.id === id)
+                    if (tab?.type === 'session') void handleSelectAgent(id, activeProjectId)
+                    else updateDevTabs(activeProjectId, (tabs) => ({ ...tabs, activeId: id }))
+                  }}
+                  onPin={(request) =>
+                    updateDevTabs(activeProjectId, (tabs) => openPathTab(tabs, request))
+                  }
+                  onClose={(id) =>
+                    updateDevTabs(activeProjectId, (tabs) => closeSessionTab(tabs, id))
+                  }
+                  onNew={(action) => {
+                    if (action.kind === 'create-session') {
+                      handleCreateAgentInProject(activeProjectId, action.agent, '', 'OpenCode')
+                    } else {
+                      updateDevTabs(activeProjectId, (tabs) =>
+                        openNewTab(tabs, undefined, action.agent),
+                      )
+                    }
+                  }}
+                />
+                {activeDevTab?.type === 'diff' ? (
+                  <DevDiffPanel
+                    key={`${activeProjectId}:${activeDevTab.path}`}
+                    projectId={activeProjectId}
+                    path={activeDevTab.path}
+                    revision={diffRevision}
+                    onOpenFile={handleOpenFile}
+                  />
+                ) : activeDevTab?.type === 'file' ? (
+                  <DevFilePanel
+                    key={activeProjectId}
+                    projectId={activeProjectId}
+                    path={activeDevTab.path}
+                    onClose={(path) =>
+                      updateDevTabs(activeProjectId, (tabs) =>
+                        closeSessionTab(tabs, `file:${path}`),
+                      )
+                    }
+                  />
+                ) : activeDevTab &&
+                  activeDevTab.type !== 'terminal' &&
+                  activeAgent?.agent !== 'opencode' &&
+                  currentProject &&
+                  !deletingProjectIds.has(currentProject.id) ? (
+                  <OrchestDevWorkspace
+                    key={activeDevTab?.id ?? activeProjectId}
+                    activeProject={currentProject}
+                    activeAgent={activeAgent}
+                    newSessionAgent={activeDevTab.type === 'new' ? activeDevTab.agent : undefined}
+                    onCloseAgent={handleCloseAgent}
+                    onSendMessage={handleDevSendMessage}
+                    onTimelinePending={handleDevTimelinePending}
+                    sessionStatus={sessionStatus}
+                    onSlashCommand={handleSlashCommand}
+                  />
+                ) : null}
+                {currentProject &&
+                  activeDevTabs.tabs.map((tab) => {
+                    const isShell = tab.type === 'terminal'
+                    if (
+                      !isShell &&
+                      !(
+                        tab.type === 'session' &&
+                        currentProject.agents.some(
+                          (agent) => agent.id === tab.id && agent.agent === 'opencode',
+                        )
+                      )
+                    )
+                      return null
+                    return (
+                      <div
+                        key={tab.id}
+                        hidden={tab.id !== activeDevTabs.activeId}
+                        data-dev-terminal={isShell ? '' : undefined}
+                        className="flex-1 min-h-0 min-w-0 overflow-hidden"
+                      >
+                        <OpenCodeTerminal
+                          projectId={currentProject.id}
+                          kind={isShell ? 'shell' : 'opencode'}
+                        />
+                      </div>
+                    )
+                  })}
+              </div>
+            )}
+
+            {/* VIEW 3: SETTINGS (Full screen mode without sidebar, hosts project tasks, runs, specs, etc.) */}
+            {mode === 'settings' && (
+              <OrchestSettingsView
+                onBackToApp={() => setMode(previousMode || 'dev')}
+                projects={projects}
+                activeProjectId={activeProjectId}
+                onSelectProject={handleSelectProject}
+                onAddProject={(action) => {
+                  void handleNewProject(action)
+                }}
+                currentTheme={theme}
+                onSelectTheme={setTheme}
+                language={language}
+                onSelectLanguage={setLanguage}
+                initialSection={settingsSection}
+                initialProjectTab={settingsProjectTab}
+                initialRunId={evidenceRunId}
+                tasks={tasks}
+                taskError={taskRunError?.message || taskError}
+                onOpenTaskRouting={
+                  taskRunError?.code === 'role_unassigned'
+                    ? () => handleOpenSettings('model_routing')
+                    : undefined
+                }
+                runs={runs}
+                projectContext={projectContext}
+                specs={specs}
+                memories={memories}
+                skills={skills}
+                instincts={instincts}
+                onApproveSpec={handleApproveSpec}
+                onDraftSpec={handleDraftSpec}
+                onLintSpec={handleLintSpec}
+                onResolveConflict={handleResolveConflict}
+                onCompileSkill={handleCompileSkill}
+                onAddLibrarySkill={handleAddLibrarySkill}
+                onEnableLibrarySkill={handleEnableLibrarySkill}
+                onSetLibrarySkillPhases={handleSetLibrarySkillPhases}
+                onApproveInstinct={handleApproveInstinct}
+                onRejectInstinct={handleRejectInstinct}
+                onAddInstinct={handleAddInstinct}
+                onRunTask={(id) => void handleRunTask(id)}
+                onExplainTask={handleExplainTask}
+                projectTabsLoading={projectTabsLoading}
+                projectTabsError={projectTabsError}
+                onPurgeProjectData={handlePurgeProjectData}
+                onResetOrchestos={handleResetOrchestos}
+                onOpenChat={() => setMode('chat')}
+                onRunNextTask={() => void handleRunNextTask()}
+                canRunNextTask={Boolean(getRunnableTask(tasks)) && !runningTaskId}
+                taskRunBusy={Boolean(runningTaskId)}
+              />
+            )}
+          </div>
+
+          {/* Right Inspector: ONLY available in Dev mode, toggleable via top header button */}
+          {mode === 'dev' && isRightInspectorOpen && currentProject && (
+            <OrcaRightInspector
+              currentProject={currentProject}
+              projects={projects}
+              activeFilePath={activeDevTab?.type === 'file' ? activeDevTab.path : null}
+              activeDiffPath={activeDevTab?.type === 'diff' ? activeDevTab.path : null}
+              onOpenDiff={(request) =>
+                updateDevTabs(activeProjectId, (tabs) => openPathTab(tabs, request))
+              }
+              onDiffRefresh={() => setDiffRevision((value) => value + 1)}
+              onOpenFile={handleOpenFile}
+              historySessions={historySessions}
+              onRestoreAgentToSidebar={handleRestoreAgent}
+              onDeleteHistorySession={handleDeleteHistorySession}
+            />
+          )}
+        </div>
+      </div>
+      <ShellStatusBar
+        status={sessionStatus}
+        refreshing={refreshingUsage}
+        onRefresh={() => void refreshUsage()}
+        onToggleTerminal={mode === 'dev' ? handleOpenTerminal : undefined}
+        terminalOpen={activeDevTab?.type === 'terminal'}
+      />
+      {showCloneProject && (
+        <CloneProjectDialog
+          projectPath={currentProject?.path}
+          onClose={() => setShowCloneProject(false)}
+          onCloned={async (project) => {
+            setProjects(await listProjects())
+            setActiveProjectId(project.id)
+          }}
+        />
+      )}
+      {/* Global Command Palette (⌘K) with fully functional handlers */}
+      <CommandPalette
+        isOpen={isCommandPaletteOpen}
+        onClose={() => setIsCommandPaletteOpen(false)}
+        onOpen={mode !== 'settings' ? () => setIsCommandPaletteOpen(true) : undefined}
+        onSelectTab={handleCommandPaletteSelectTab}
+        onSelectModel={handleCommandPaletteSelectModel}
+        onRunNextTask={() => {
+          handleOpenSettings('projects', 'tasks')
+          void handleRunNextTask()
+        }}
+      />
+    </div>
+  )
+}

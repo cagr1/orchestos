@@ -1,0 +1,149 @@
+/**
+ * src/config/schema.ts
+ *
+ * Schema for orchestos.config.yaml — project-level model routing config.
+ * Each role maps to a {provider, model} pair.
+ * String shorthand: "anthropic/claude-opus-4-7" → {provider:'anthropic', model:'claude-opus-4-7'}
+ * Single word: "codex" → {provider:'codex', model:''}
+ */
+
+export interface ModelRoleConfig {
+  provider: string // e.g. 'openrouter', 'anthropic', 'openai', 'codex'
+  model: string // e.g. 'claude-opus-4-7', 'deepseek/deepseek-v3' (empty for codex)
+}
+
+export const ROLE_NAMES = ['orchestrator', 'executor', 'reviewer', 'auxiliary'] as const
+export type RoleName = (typeof ROLE_NAMES)[number]
+export type RoleAgent = string
+export interface RoleAssignment {
+  agent: RoleAgent
+  model: string
+  effort?: string
+  provider?: string
+}
+
+/**
+ * CC.D1 (Mes 29, 2026-08-17) — reemplaza `ExecutorMode` + los valores CLI de
+ * `executorEngine` (que eran el mismo concepto con dos nombres: `cli-claude`↔
+ * `external`, `cli-codex`↔`codex`, `cli-opencode`↔`opencode`, traducidos entre sí
+ * por `resolveExecutorSelection()`). Un solo campo, guiado por el estándar real
+ * de la industria — [[wiki/concepts/agent-client-protocol]] (ACP, Zed): el
+ * cliente elige EL AGENTE, el agente elige su propio modelo. Ver PLAN.md §
+ * Mes 29 / CC.D.
+ *
+ * Preferencia PERSISTENTE del usuario para tareas de build auto-creadas desde
+ * el chat (D.7/G.2) y ahora también para el chat mismo (CC.1) y el harness
+ * (BB.1). La asignación del rol Executor decide el agente para tareas sin una
+ * regla específica; OrchestOS no elige un modelo para los CLIs.
+ */
+/** Open agent id; boundaries validate it against their supported task or chat agents. */
+export type AgentChoice = string
+
+/**
+ * I.3 (Mes 30, 2026-09-04) — el requisito nuevo de Carlos: con varios proyectos
+ * y varios CLIs, la asignación agente+modelo tiene que resolverse POR TAREA, no
+ * solo por proyecto entero (`agent` de arriba). Esto es lo que el DAG mixto
+ * Claude/Codex del dogfooding necesita ("la tarea 3 corre con Codex, la 7 con
+ * Claude") — no reemplaza el rol Executor, lo precede. Reglas declarativas, nunca inferidas por un LLM
+ * (misma línea no-negociable que ya cubre `agent`): se editan a mano en
+ * orchestos.config.yaml, igual que `models.*` — sin UI de edición todavía,
+ * deliberado (ver PLAN.md I.3).
+ *
+ * Matching: `output` (glob contra `Task.output`, vía Bun.Glob) tiene prioridad
+ * sobre `skill` (id exacto) si una tarea matchea ambos tipos de regla — más
+ * específico gana. La primera regla que matchea, en orden de declaración, se
+ * usa; no hay merge de varias reglas parciales.
+ */
+export interface TaskAgentRule {
+  match: {
+    /** Glob(s) contra algún path de `Task.output` — ej. "apps/api/**". */
+    output?: string[]
+    /** Id exacto de skill asignada a la tarea. */
+    skill?: string
+  }
+  agent: AgentChoice
+  /** CLI model selected by this rule; required when routing away from the Executor agent. */
+  model?: string
+  /** Opcional — esfuerzo del CLI cuando esta regla selecciona una tarea. */
+  cli_effort?: string
+}
+
+export interface CustomCliConfig {
+  id: string
+  label: string
+  command: string
+  args: string[]
+  modelArgs?: string[]
+  models?: string[]
+  timeoutMs?: number
+}
+
+export interface OrcheConfig {
+  /** Executables trusted only from the global configuration. */
+  clis?: CustomCliConfig[]
+  config_version: number
+  /** Assignments for MR.1 role routing; see PLAN.md § MR.1. */
+  roles: Partial<Record<RoleName, RoleAssignment>>
+  models: Partial<
+    Record<'planner' | 'executor_heavy' | 'executor_light' | 'default', ModelRoleConfig>
+  > & {
+    /** Optional QA judge model — absence triggers the resolution logic in harness.ts (never same model as executor) */
+    qa?: ModelRoleConfig
+  }
+  /** CC.D1 — ver AgentChoice arriba. Ausente = sin preferencia guardada todavía. */
+  agent?: AgentChoice
+  /** I.3 — ver TaskAgentRule arriba. Ausente/vacío = sin reglas, se salta este paso. */
+  taskAgentRules?: TaskAgentRule[]
+  /** If true, every task must have an approved spec before it can run */
+  requireSpec?: boolean
+  /**
+   * CC.D1 — antes vivía dentro de `executorEngine` (`single-shot`/`agentic`),
+   * mezclado con los valores CLI. Renombrado y acotado: solo tiene sentido
+   * cuando `agent` es `'api'` (o ausente) — un CLI no expone esta distinción,
+   * la decide el binario. Absencia = `'single-shot'` (G.3, opt-in), cero
+   * cambio de comportamiento para lo existente.
+   */
+  apiMode?: 'single-shot' | 'agentic'
+  /** Agentic engine tuning — absence means default (maxIterations: 15). No cost cap by design (see docs/done/design/executor-engine-design.md §3). */
+  agentic?: { maxIterations?: number }
+  /** B.2 — External engine tuning. timeoutMs = wall-clock guarantee of termination (no cost cap by design, same as maxIterations). Absence = default in external.ts (20min, see docs §4). */
+  external?: { timeoutMs?: number }
+  /** UI.8.6 — aprobación de tareas creadas por el chat, por proyecto. Ausente = `yolo`. */
+  permissionMode?: 'yolo' | 'manual'
+}
+
+// Defaults — used when no config file is found or a role is missing
+export const DEFAULT_CONFIG: OrcheConfig = {
+  config_version: 1,
+  roles: {},
+  models: {},
+}
+
+/**
+ * Parse a role value from YAML — accepts string shorthand or object form.
+ * "anthropic/claude-opus-4-7" → {provider:'anthropic', model:'claude-opus-4-7'}
+ * "codex"                     → {provider:'codex', model:''}
+ * {provider:'anthropic', model:'claude-opus-4-7'} → as-is
+ */
+export function parseRoleValue(value: unknown, fallback: ModelRoleConfig): ModelRoleConfig {
+  if (value === undefined || value === null) return fallback
+
+  if (typeof value === 'string') {
+    const slash = value.indexOf('/')
+    if (slash === -1) {
+      // single word → treat as provider name (e.g. "codex")
+      return { provider: value, model: '' }
+    }
+    return { provider: value.slice(0, slash), model: value.slice(slash + 1) }
+  }
+
+  if (typeof value === 'object' && !Array.isArray(value)) {
+    const obj = value as Record<string, unknown>
+    return {
+      provider: typeof obj.provider === 'string' ? obj.provider : fallback.provider,
+      model: typeof obj.model === 'string' ? obj.model : fallback.model,
+    }
+  }
+
+  return fallback
+}

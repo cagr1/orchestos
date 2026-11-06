@@ -1,0 +1,221 @@
+import { expect, it } from 'bun:test'
+import { chmodSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
+
+async function isolated(body: string): Promise<any> {
+  const home = mkdtempSync(join(tmpdir(), 'orchestos-r5-test-'))
+  try {
+    // AT.20 — claude falso: la propuesta de tarea llega como la llamada MCP real a `create_task`
+    // (forma de src/mcp/__fixtures__/claude-create-task-assistant.json); sin proposal.json solo responde texto.
+    mkdirSync(join(home, 'bin'))
+    const fakeClaude = `#!/bin/sh
+if [ "$1" = --help ]; then printf '  --restricted  fake\\n'; exit 0; fi
+cat >/dev/null
+if [ -f "${home}/proposal.json" ]; then
+  printf '{"type":"assistant","message":{"content":[{"type":"text","text":"Task proposed."},{"type":"tool_use","id":"toolu_fake","name":"mcp__orchestos__create_task","input":%s}]}}\\n' "$(cat "${home}/proposal.json")"
+fi
+printf '{"type":"result","subtype":"success","is_error":false,"result":"Task proposed.","session_id":"fake-session","usage":{"input_tokens":1,"output_tokens":1},"total_cost_usd":0,"num_turns":1}\\n'
+`
+    writeFileSync(join(home, 'bin', 'claude'), fakeClaude)
+    chmodSync(join(home, 'bin', 'claude'), 0o755)
+    const child = Bun.spawn(
+      [
+        process.execPath,
+        '-e',
+        `
+      const { mkdirSync, writeFileSync, readFileSync } = await import('node:fs')
+      const { join } = await import('node:path')
+      const { db } = await import('./src/db/sqlite.ts')
+      const { runMigrations } = await import('./src/db/migrate.ts')
+      const { createChatSession } = await import('./src/db/chat-sessions.ts')
+      const { handleApiChat } = await import('./src/dashboard/handlers/chat.ts')
+      const { createTaskRecord } = await import('./src/dashboard/handlers/tasks.ts')
+      const turns = await import('./src/db/chat-turns.ts')
+      runMigrations()
+      const home = process.env.ORCHESTOS_HOME
+      const root = join(home, 'project')
+      mkdirSync(root)
+      mkdirSync(join(home, '.orchestos/cache'), { recursive: true })
+      writeFileSync(join(home, '.orchestos/cache/models.json'), JSON.stringify({ schemaVersion: 2, fetchedAt: Date.now(), models: {
+        'deepseek/deepseek-v4-flash': { contextLength: 64000, priceIn: 0, priceOut: 0, supportsTools: false, maxOutputTokens: 8192 }
+      }}))
+      writeFileSync(join(root, 'orchestos.config.yaml'), 'roles:\\n  orchestrator: { agent: api, provider: openrouter, model: mock/orchestrator }\\n  auxiliary: { agent: api, provider: openrouter, model: mock/auxiliary }\\n  executor: { agent: api, provider: openrouter, model: mock/executor }\\n')
+      writeFileSync(join(root, 'tasks.yaml'), 'version: 1\\nproject: fixture\\ntasks: []\\n')
+      writeFileSync(join(root, 'existing.txt'), 'unchanged')
+      db.run('INSERT INTO projects (id,path,stack_profile,agents_md,last_updated) VALUES (?,?,?,?,?)', ['fixture', root, '{}', '', new Date().toISOString()])
+      process.chdir(root)
+      let calls = 0
+      let viaClaude = false
+      const useTaskTool = (input) => {
+        writeFileSync(join(home, 'proposal.json'), JSON.stringify(input))
+        db.run('UPDATE chat_sessions SET agent = ? WHERE id = ?', ['claude', session.id])
+        viaClaude = true
+      }
+      let draftOutput = ['existing.txt']
+      let beforeResponse = () => {}
+      globalThis.fetch = async (url, init) => {
+        if (String(url).includes('11434')) return new Response('{}', { status: 503 })
+        const payload = JSON.parse(init.body)
+        const system = payload.messages.find(m => m.role === 'system')?.content || ''
+        calls++
+        const content = system.includes('skill_candidates')
+          ? JSON.stringify({ id: 'draft-id', description: 'Modify existing fixture', output: draftOutput, executor: 'openrouter', skill_candidates: [] })
+          : 'fixture response'
+        if (!system.includes('skill_candidates')) await beforeResponse()
+        return new Response(JSON.stringify({ choices: [{ message: { content } }], usage: { prompt_tokens: 1, completion_tokens: 1 } }))
+      }
+      const session = createChatSession({ projectId: 'fixture', agent: 'api', mode: 'code' })
+      const request = (key, extra = {}) => handleApiChat(new Request('http://localhost/api/chat', { method: 'POST', body: JSON.stringify({ sessionId: session.id, message: 'fixture request', requestKey: key, ...extra, ...(viaClaude ? { model: 'claude-sonnet-5' } : {}) }) }))
+      ${body}
+      db.close()
+    `,
+      ],
+      {
+        env: {
+          ...process.env,
+          ORCHESTOS_HOME: home,
+          OPENROUTER_API_KEY: 'test-key',
+          PATH: `${join(home, 'bin')}:${process.env.PATH}`,
+        },
+        stdout: 'pipe',
+        stderr: 'pipe',
+      },
+    )
+    const [code, out, err] = await Promise.all([
+      child.exited,
+      new Response(child.stdout).text(),
+      new Response(child.stderr).text(),
+    ])
+    expect(code, err).toBe(0)
+    return JSON.parse(out)
+  } finally {
+    rmSync(home, { recursive: true, force: true })
+  }
+}
+
+it('rejects concurrent HTTP requests and replays committed results without provider calls', async () => {
+  const result = await isolated(`
+    let entered, release
+    const waiting = new Promise(resolve => entered = resolve)
+    const blocker = new Promise(resolve => release = resolve)
+    beforeResponse = async () => { entered(); await blocker }
+    const first = request('first')
+    await waiting
+    const duplicate = await request('first')
+    const other = await request('other')
+    const before = calls
+    release()
+    const response = await first
+    const payload = await response.json()
+    const replay = await request('first')
+    console.log(JSON.stringify({ statuses: [response.status, duplicate.status, other.status, replay.status], before, after: calls, same: JSON.stringify(payload) === JSON.stringify(await replay.json()), turns: db.query('SELECT COUNT(*) AS n FROM chat_turns').get().n }))
+  `)
+  expect(result.statuses).toEqual([200, 409, 409, 200])
+  expect(result.after).toBe(result.before)
+  expect(result.same).toBe(true)
+  expect(result.turns).toBe(1)
+})
+
+it('returns an HTTP error and rolls back run/messages when the final write fails', async () => {
+  const result = await isolated(`
+    db.exec("CREATE TRIGGER fail_messages BEFORE INSERT ON chat_messages BEGIN SELECT RAISE(ABORT, 'injected message failure'); END")
+    const response = await request('rollback')
+    console.log(JSON.stringify({ status: response.status, runs: db.query('SELECT COUNT(*) AS n FROM runs').get().n, messages: db.query('SELECT COUNT(*) AS n FROM chat_messages').get().n }))
+  `)
+  expect(result.status).toBeGreaterThanOrEqual(500)
+  expect(result.runs).toBe(0)
+  expect(result.messages).toBe(0)
+})
+
+it('reserves before YAML creation and never renames a colliding reservation', async () => {
+  const result = await isolated(`
+    useTaskTool({ title: 'Modify fixture', description: 'Modify existing fixture', outputs: ['existing.txt'] })
+    const before = readFileSync(join(root, 'tasks.yaml'), 'utf8')
+    db.exec("CREATE TRIGGER fail_reservation BEFORE UPDATE OF task_id ON chat_turns BEGIN SELECT RAISE(ABORT, 'injected reservation failure'); END")
+    const response = await request('reserve-fails')
+    const payload = await response.json()
+    const unchanged = before === readFileSync(join(root, 'tasks.yaml'), 'utf8')
+    db.exec('DROP TRIGGER fail_reservation')
+    const response2 = await request('reserve-works')
+    const payload2 = await response2.json()
+    const turn = turns.getTurnByRequestKey(session.id, 'reserve-works')
+    const yaml = readFileSync(join(root, 'tasks.yaml'), 'utf8')
+    const collision = createTaskRecord(root, { id: turn.task_id, description: 'duplicate', output: ['existing.txt'] }, { reservedId: true })
+    db.run('UPDATE chat_turns SET status = ?, owner_expires_at = ? WHERE id = ?', ['pending', '2000-01-01', turn.id])
+    const beforeRetry = calls
+    const retry = await request('reserve-works')
+    console.log(JSON.stringify({ unchanged, failure: payload.autoTask, held: payload2.autoTask, reserved: turn.task_id, collision, sameYaml: yaml === readFileSync(join(root, 'tasks.yaml'), 'utf8'), retryStatus: retry.status, noCalls: calls === beforeRetry }))
+  `)
+  expect(result.unchanged).toBe(true)
+  expect(result.failure.error).toContain('injected reservation failure')
+  expect(result.held).toMatchObject({ id: result.reserved, held: true })
+  expect(result.collision.status).toBe(409)
+  expect(result.sameYaml).toBe(true)
+  expect(result.retryStatus).toBe(409)
+  expect(result.noCalls).toBe(true)
+})
+
+it('shows invalid create_task arguments as an error and leaves tasks and runs untouched', async () => {
+  const result = await isolated(`
+    useTaskTool({ title: 'No files', description: 'Modify existing fixture', outputs: [] })
+    const before = readFileSync(join(root, 'tasks.yaml'), 'utf8')
+    const response = await request('empty-output')
+    const payload = await response.json()
+    console.log(JSON.stringify({
+      status: response.status,
+      autoTask: payload.autoTask,
+      text: payload.text,
+      sameYaml: before === readFileSync(join(root, 'tasks.yaml'), 'utf8'),
+      tasks: JSON.parse(JSON.stringify((await import('./src/tasks/loader.ts')).loadTasks(root).tasks)),
+      taskRuns: db.query('SELECT COUNT(*) AS n FROM runs WHERE task_id IS NOT NULL').get().n,
+    }))
+  `)
+  expect(result.status).toBe(200)
+  expect(result.autoTask).toEqual({ error: 'create_task: `outputs` must name at least one file' })
+  expect(result.text).toStartWith('Task proposed.')
+  expect(result.text).toContain('⚠ Could not auto-create the task')
+  expect(result.sameYaml).toBe(true)
+  expect(result.tasks).toEqual([])
+  expect(result.taskRuns).toBe(0)
+})
+
+it('rejects createTaskRecord without touching tasks.yaml when output is empty', async () => {
+  const result = await isolated(`
+    const before = readFileSync(join(root, 'tasks.yaml'), 'utf8')
+    const invalid = createTaskRecord(root, { description: 'No files', output: [] })
+    console.log(JSON.stringify({ invalid, sameYaml: before === readFileSync(join(root, 'tasks.yaml'), 'utf8') }))
+  `)
+  expect(result.invalid).toEqual({
+    error: '"output" must be a non-empty array — this is the contract',
+    status: 400,
+  })
+  expect(result.sameYaml).toBe(true)
+})
+
+for (const mode of ['supervised', 'auto-edit', 'full', undefined]) {
+  it(`chat persists approvalMode ${mode ?? 'auto-edit by default'} on the created task`, async () => {
+    const result = await isolated(`
+      useTaskTool({ title: 'Modify fixture', description: 'Modify existing fixture', outputs: ['existing.txt'] })
+      const response = await request('approval-mode', ${JSON.stringify(mode === undefined ? {} : { approvalMode: mode })})
+      const payload = await response.json()
+      const { loadTasks } = await import('./src/tasks/loader.ts')
+      console.log(JSON.stringify({ status: response.status, payload, mode: loadTasks(root).tasks[0]?.approvalMode }))
+    `)
+    expect(result.status).toBe(200)
+    expect(result.payload.autoTask.held).toBe(true)
+    expect(result.mode).toBe(mode ?? 'auto-edit')
+  })
+}
+it('chat rejects invalid approvalMode before calling providers or creating tasks', async () => {
+  const result = await isolated(`
+    const statuses = []
+    for (const approvalMode of ['invalid', null, 7, {}, ['full']]) {
+      const response = await request('invalid-mode', { approvalMode })
+      statuses.push(response.status)
+    }
+    const { loadTasks } = await import('./src/tasks/loader.ts')
+    console.log(JSON.stringify({ statuses, calls, tasks: loadTasks(root).tasks.length }))
+  `)
+  expect(result).toEqual({ statuses: [400, 400, 400, 400, 400], calls: 0, tasks: 0 })
+})

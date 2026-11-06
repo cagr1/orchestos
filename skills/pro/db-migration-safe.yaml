@@ -1,0 +1,71 @@
+id: db-migration-safe
+version: 1.0.0
+name: Safe DB Migration
+description: Writes database migrations using the expand/contract pattern so they are reversible and don't break running code.
+targets:
+  - claude
+  - cursor
+  - openai
+allowed_tools:
+  - read
+  - write
+  - edit
+when_to_use:
+  - When adding, removing, or renaming a database column or table
+  - When changing a column's type or nullability
+  - Before any migration that runs against a production database with existing rows
+inputs_required:
+  - The schema change needed (e.g. "add a required `status` column to orders")
+  - The migration tool/ORM in use (e.g. Prisma, Knex, raw SQL)
+  - Whether the app is deployed with zero downtime (old and new code run simultaneously)
+instructions: |
+  Schema changes that run against live data must not break the version of
+  the app that's still running during deploy. Use expand/contract: never
+  remove or rename in the same migration that adds.
+
+  **Step 1 — Classify the change**
+  - Additive (new table, new nullable column): usually safe in one step.
+  - Destructive (drop column/table, rename, change type, add NOT NULL to
+    existing column): needs expand/contract across multiple deploys.
+
+  **Step 2 — For destructive changes, plan the sequence**
+  - Migration A (expand): add the new column/table alongside the old one.
+    Backfill existing rows. Old code keeps working untouched.
+  - Code deploy: update application code to write to both old and new
+    (or read from new, fall back to old).
+  - Migration B (contract), in a LATER deploy: remove the old column/table,
+    once no code references it.
+  Never combine A and B in one migration for a live table.
+
+  **Step 3 — Make it reversible**
+  - Every migration needs a working `down`/rollback that restores the prior
+    schema without data loss for additive changes.
+  - For backfills, write them so they can be re-run safely (idempotent).
+
+  **Step 4 — Test against existing data**
+  - Run the migration against a copy of production-shaped data (or a
+    realistic seed), not just an empty test DB.
+  - Verify the rollback (`down`) actually runs cleanly.
+
+  **Output**
+  State: the classification (additive/destructive), the migration(s) needed
+  with their order, and what must happen between them (code deploy, time
+  window for backfill).
+anti_patterns:
+  - Add a NOT NULL column to an existing table without a default or backfill
+  - Rename a column in a single migration on a live table
+  - Write a migration with no rollback ("down is a no-op")
+  - Run a migration only against an empty test database
+  - Drop a column in the same release that stops using it
+verifiers:
+  - Every migration has a working down/rollback
+  - Destructive changes are split into expand + contract across separate migrations
+  - Backfills are idempotent (safe to re-run)
+  - The migration was tested against non-empty, realistic data
+examples:
+  - title: Add required column to existing table
+    input: "Add a required `status` column (enum: pending/active/done) to the `orders` table, which has live rows"
+    output: "Classification: destructive (NOT NULL on existing rows). Migration A (expand): add `status` as nullable with default 'pending', backfill existing rows. Code deploy: app starts writing `status` on new orders. Migration B (contract, later deploy): once all rows have a value and code never reads NULL, alter to NOT NULL. Down for A: drop column (no data loss since it's new)."
+  - title: Rename a column
+    input: "Rename `users.fullname` to `users.full_name`"
+    output: "Classification: destructive (rename breaks old code mid-deploy). Migration A: add `full_name` column, backfill from `fullname`, copy in both directions via trigger or app-level dual-write. Code deploy: read from `full_name`, write to both. Migration B (later): drop `fullname` and the dual-write code. Down for A: drop `full_name` column."

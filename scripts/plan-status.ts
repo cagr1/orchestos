@@ -1,0 +1,177 @@
+/**
+ * scripts/plan-status.ts
+ *
+ * H.3.1 (PLAN.md § Bloque H) — PLAN.md sigue siendo la ÚNICA fuente de verdad
+ * (prosa + evidencia). Este módulo la parsea a una forma machine-readable
+ * DERIVADA — nunca al revés. `.orchestos/feature-status.json` se regenera
+ * siempre desde PLAN.md (scripts/generate-feature-status.ts) y jamás se
+ * edita a mano, el mismo contrato que `runs-summary.json`.
+ *
+ * Discriminador de ítem de trabajo: checkbox, ID ASCII y título en negrita.
+ * El marcador de delegación antiguo se acepta al leer, pero no forma parte
+ * del estado del ítem ni del formato que se emite.
+ */
+
+export interface FeatureStatusItem {
+  id: string
+  sprint: string | null
+  block: string | null
+  title: string
+  status: 'open' | 'done'
+  closedDate: string | null
+}
+
+export interface PlanItemSource extends FeatureStatusItem {
+  body: string
+  position: number
+  evidenceHref: string | null
+}
+
+export interface PlanDocumentSegment {
+  doc: 'PLAN.md'
+  position: number
+  kind: 'prose' | 'item'
+  text: string
+  itemId: string | null
+}
+
+const ITEM_LINE_RE =
+  /^- \[( |x)\] \*\*([A-Za-z0-9][A-Za-z0-9.'-]*) — (?:(?:🧠|⚡|🔍) )?(.+?)\.?\*\*(?:\s*\(cerrado (\d{4}-\d{2}-\d{2})[^)]*\))?/d
+
+/** Removes only a legacy header marker, preserving the rest of the source verbatim. */
+export function normalizePlanItemHeader(text: string): string {
+  const match = text.match(ITEM_LINE_RE)
+  const titleOffset = match?.indices?.[3]?.[0]
+  if (!match || titleOffset === undefined) return text
+  const prefix = `- [${match[1]}] **${match[2]} — `
+  return prefix + text.slice(titleOffset)
+}
+
+export function parsePlanFeatureStatus(plan: string): FeatureStatusItem[] {
+  const items: FeatureStatusItem[] = []
+  let sprint: string | null = null
+  let block: string | null = null
+
+  for (const line of plan.split('\n')) {
+    const sprintMatch = line.match(/^## (.+)$/)
+    if (sprintMatch?.[1]) {
+      sprint = sprintMatch[1].trim()
+      block = null
+      continue
+    }
+    const blockMatch = line.match(/^### (.+)$/)
+    if (blockMatch?.[1]) {
+      block = blockMatch[1].trim()
+      continue
+    }
+    const itemMatch = line.match(ITEM_LINE_RE)
+    if (!itemMatch) continue
+    const [, checked, id, title, closedDate] = itemMatch
+    if (!checked || !id || !title) continue
+    items.push({
+      id,
+      sprint,
+      block,
+      title: title.trim(),
+      status: checked === 'x' ? 'done' : 'open',
+      closedDate: closedDate ?? null,
+    })
+  }
+  return items
+}
+
+/**
+ * Reuses the canonical status parser above, adding only the source text that
+ * is not represented in feature-status.json: indented item body and order.
+ */
+export function parsePlanItemSources(plan: string): PlanItemSource[] {
+  const items = parsePlanFeatureStatus(plan)
+  const lines = plan.split('\n')
+  const sources: PlanItemSource[] = []
+  let searchFrom = 0
+
+  for (const item of items) {
+    const itemPrefix = `- [${item.status === 'done' ? 'x' : ' '}] **${item.id} — `
+    const lineIndex = lines.findIndex(
+      (line, index) => index >= searchFrom && line.startsWith(itemPrefix),
+    )
+    if (lineIndex === -1) throw new Error(`Could not locate source line for plan item ${item.id}`)
+    searchFrom = lineIndex + 1
+
+    let end = lines.length
+    for (let index = lineIndex + 1; index < lines.length; index += 1) {
+      if (lines[index]?.startsWith('## ') || /^- \[[ x]\] \*\*/.test(lines[index] ?? '')) {
+        end = index
+        break
+      }
+    }
+    const body = lines
+      .slice(lineIndex + 1, end)
+      .filter((line) => /^\s+/.test(line))
+      .join('\n')
+      .trim()
+    const evidenceHref = lines[lineIndex]?.match(/→ \[evidencia\]\(([^)]+)\)/)?.[1] ?? null
+    sources.push({ ...item, body, position: sources.length, evidenceHref })
+  }
+  return sources
+}
+
+export function parsePlanDocumentSegments(plan: string): PlanDocumentSegment[] {
+  const items = parsePlanFeatureStatus(plan)
+  const itemById = new Map(items.map((item) => [item.id, item]))
+  const lines = plan.match(/[^\n]*\n|[^\n]+/g) ?? []
+  const segments: PlanDocumentSegment[] = []
+  let prose = ''
+
+  const flushProse = () => {
+    if (!prose) return
+    segments.push({
+      doc: 'PLAN.md',
+      position: segments.length,
+      kind: 'prose',
+      text: prose,
+      itemId: null,
+    })
+    prose = ''
+  }
+
+  for (let index = 0; index < lines.length; index += 1) {
+    const line = lines[index]
+    if (line == null) continue
+    const match = line.match(/^- \[( |x)\] \*\*([A-Za-z0-9][A-Za-z0-9.'-]*) — /)
+    const item = match?.[2] ? itemById.get(match[2]) : undefined
+    if (!match || !item || (match[1] === 'x') !== (item.status === 'done')) {
+      prose += line
+      continue
+    }
+
+    flushProse()
+    let text = line
+    while (index + 1 < lines.length && /^\s+\S/.test(lines[index + 1] ?? '')) {
+      index += 1
+      text += lines[index]
+    }
+    segments.push({
+      doc: 'PLAN.md',
+      position: segments.length,
+      kind: 'item',
+      text,
+      itemId: item.id,
+    })
+  }
+  flushProse()
+  return segments
+}
+
+export function serializeFeatureStatus(items: FeatureStatusItem[]): string {
+  return `${JSON.stringify(
+    {
+      generatedFrom: 'PLAN.md',
+      generatedBy: 'scripts/generate-feature-status.ts',
+      note: 'Derivado, no editar a mano — bun run plan:status regenera.',
+      items,
+    },
+    null,
+    2,
+  )}\n`
+}

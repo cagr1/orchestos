@@ -1,0 +1,404 @@
+import { existsSync, writeFileSync } from 'fs'
+import { join } from 'path'
+import { parseDocument, stringify as yamlStringify } from 'yaml'
+import {
+  agentChoices,
+  isAgentChoice,
+  loadOrcheConfig,
+  scaffoldConfigYaml,
+} from '../../config/load.ts'
+import {
+  type AgentChoice,
+  type OrcheConfig,
+  ROLE_NAMES,
+  type RoleAssignment,
+  type RoleName,
+  type TaskAgentRule,
+} from '../../config/schema.ts'
+import { autoRoute, describeTaskExecutor, formatRoute } from '../../router/auto-route.ts'
+import { roleAgentIds } from '../../run/executors/chat-adapters.ts'
+import { configuredClis } from '../../run/executors/cli-registry.ts'
+import { findClaudeBinary } from '../../run/executors/external.ts'
+import { describePermissions } from '../../run/permissions.ts'
+import { loadTasks, tasksExist } from '../../tasks/loader.ts'
+import { errorResponse, jsonResponse } from '../http.ts'
+
+// CC.D1 (2026-08-17) — `apiMode` solo tiene sentido cuando `agent` es 'api' (o
+// ausente): un CLI no expone la distinción single-shot/agentic, la decide el
+// binario. Antes esto vivía mezclado dentro de `executorEngine` junto con los
+// valores CLI (external/opencode/codex) — separado ahora, ver schema.ts.
+const API_MODES = ['single-shot', 'agentic'] as const
+
+const ROLE_KEYS = ['planner', 'executor_heavy', 'executor_light', 'default', 'qa'] as const
+
+// E.9 (Mes 18, paridad CLI↔Dashboard) — equivalente de `orchestos config show`:
+// fuente activa (orchestos.config.yaml vs defaults), roles resueltos, y preview
+// de routing para tareas pendientes (mismo autoRoute() que usa el harness real).
+export async function handleApiConfigGet(root = process.cwd()): Promise<Response> {
+  const configPath = join(root, 'orchestos.config.yaml')
+  const configFound = existsSync(configPath)
+  const cfg = loadOrcheConfig(root)
+
+  const legacyModel = (name: 'planner' | 'executor_heavy' | 'executor_light' | 'default') => {
+    const assignment = cfg.models[name]
+    return assignment ? `${assignment.provider}/${assignment.model || '(self)'}` : '(sin asignar)'
+  }
+  const roles = {
+    planner: legacyModel('planner'),
+    executor_heavy: legacyModel('executor_heavy'),
+    executor_light: legacyModel('executor_light'),
+    default: legacyModel('default'),
+    qa: cfg.models.qa ? `${cfg.models.qa.provider}/${cfg.models.qa.model || '(self)'}` : null,
+  }
+
+  // Bug real encontrado en vivo (2026-07-27, verificando H.4): una tasks.yaml
+  // con una sola tarea malformada (ej. `output: []`) tiraba `loadTasks()` sin
+  // atrapar, y ESE throw tumbaba el endpoint ENTERO con 500 — Settings
+  // dejaba de cargar por completo (routing, executor, todo). Mismo patrón de
+  // resiliencia que ya usa `handleApiTasks()` (dashboard/handlers/tasks.ts):
+  // el preview de routing es un extra, nunca debe poder romper el config.
+  let pendingRouting: Array<{ id: string; model: string; executor: string }> = []
+  if (tasksExist(root)) {
+    try {
+      const tasksFile = loadTasks(root)
+      const pending = tasksFile.tasks.filter((t) => t.status === 'pending')
+      pendingRouting = pending.map((t) => {
+        const route = autoRoute(t, cfg)
+        const modelStr = route ? formatRoute(route) : '(executor sin asignar)'
+        return {
+          id: t.id,
+          model: modelStr,
+          executor: describeTaskExecutor(t, cfg)?.agent ?? 'unassigned',
+        }
+      })
+    } catch {
+      // tasks.yaml malformado — el resto del config sigue siendo válido y se
+      // devuelve igual; el preview de routing queda vacío en vez de 500.
+    }
+  }
+
+  return jsonResponse({
+    source: configFound ? configPath : null,
+    configFound,
+    roles,
+    roleAssignments: Object.fromEntries(ROLE_NAMES.map((name) => [name, cfg.roles[name] ?? null])),
+    taskAgentRules: cfg.taskAgentRules ?? [],
+    permissionMode: cfg.permissionMode ?? 'yolo',
+    permissions: describePermissions(cfg),
+    roleWarnings:
+      cfg.roles.reviewer &&
+      cfg.roles.executor &&
+      cfg.roles.reviewer.agent === cfg.roles.executor.agent &&
+      cfg.roles.reviewer.model === cfg.roles.executor.model
+        ? ['reviewer-same-as-executor']
+        : [],
+    pendingRouting,
+    // CC.D1 (2026-08-17) — `executorEngine` renombrado a `apiMode` (solo aplica
+    // cuando `agent` es 'api'/ausente). `executor_mode` renombrado a `agent`.
+    apiMode: cfg.apiMode ?? 'single-shot',
+    // CC.1b bugfix (2026-08-17) — hallazgo real de Carlos: bajó el server varias
+    // veces y el selector de esfuerzo del chat seguía mostrando 3 niveles en vez
+    // de 5. Causa real: este endpoint nunca devolvía la preferencia de agente —
+    // el PUT (más abajo) sí la escribía al YAML, pero el GET no la leía de
+    // vuelta. El label de la respuesta del chat SÍ reflejaba el CLI (ese código
+    // lee loadOrcheConfig() directo en el servidor, sin pasar por este
+    // endpoint) — pero el frontend (buildChatModelFx) depende de `/api/config`
+    // para saber el agente activo, así que quedaba `undefined` ahí siempre, sin
+    // importar cuántas veces se reiniciara el servidor.
+    agent: cfg.agent ?? null,
+    agenticMaxIterations: cfg.agentic?.maxIterations ?? 15,
+    externalTimeoutMinutes: Math.round((cfg.external?.timeoutMs ?? 20 * 60 * 1000) / 60000),
+    claudeCliDetected: findClaudeBinary() !== null,
+  })
+}
+
+// E.9 — equivalente de `orchestos config init`: crea orchestos.config.yaml con
+// el scaffold de siempre. 409 si ya existe (mismo comportamiento que la CLI,
+// que hace process.exit(1) en vez de sobreescribir en silencio).
+export async function handleApiConfigInit(root = process.cwd()): Promise<Response> {
+  const configPath = join(root, 'orchestos.config.yaml')
+  if (existsSync(configPath)) {
+    return errorResponse('orchestos.config.yaml already exists', 409)
+  }
+  writeFileSync(configPath, scaffoldConfigYaml(), 'utf8')
+  return jsonResponse({ ok: true, path: configPath })
+}
+
+// Fix real (2026-07-08): Carlos notó que la vista de roles en Settings era de
+// solo lectura — ni la CLI (config init/show) ni el dashboard tenían forma de
+// CAMBIAR el modelo por rol, solo mostrarlo. Este endpoint escribe directo a
+// orchestos.config.yaml (lo crea si no existía, mismo efecto que config init
+// pero ya con los roles elegidos en vez del scaffold default). Siempre asume
+// provider 'openrouter' — igual que el resto del selector de modelos en la
+// app (chat, composer de tareas, diagnose), ninguno expone otros providers.
+export async function handleApiConfigSet(req: Request, root = process.cwd()): Promise<Response> {
+  let body: {
+    roles?: Record<string, string>
+    apiMode?: string
+    agenticMaxIterations?: number
+    externalTimeoutMinutes?: number
+    /** CC.D1 (era G.4.4, `executorMode`) — preferencia persistente de agente. `null`
+     * limpia la preferencia guardada (vuelve a "Auto" — la cascada sugiere, ver
+     * [[feedback-deteccion-no-decision-automatica]]). */
+    agent?: AgentChoice | null
+    roleAssignments?: Partial<Record<RoleName, RoleAssignment | null>>
+    taskAgentRules?: TaskAgentRule[]
+    permissionMode?: string
+  }
+  try {
+    body = (await req.json()) as typeof body
+  } catch {
+    return errorResponse('Invalid JSON', 400)
+  }
+  if (body.roles !== undefined && typeof body.roles !== 'object')
+    return errorResponse('roles must be an object', 400)
+  if (body.agent !== undefined && body.agent !== null && !isAgentChoice(body.agent)) {
+    return errorResponse(`agent must be one of: ${agentChoices().join(', ')}`, 400)
+  }
+  if (body.roleAssignments !== undefined) {
+    if (
+      !body.roleAssignments ||
+      typeof body.roleAssignments !== 'object' ||
+      Array.isArray(body.roleAssignments)
+    )
+      return errorResponse('roleAssignments must be an object', 400)
+    for (const [name, assignment] of Object.entries(body.roleAssignments)) {
+      if (!ROLE_NAMES.includes(name as RoleName))
+        return errorResponse(`invalid role '${name}'`, 400)
+      if (assignment === null) continue
+      if (
+        !assignment ||
+        typeof assignment !== 'object' ||
+        typeof assignment.agent !== 'string' ||
+        ![...roleAgentIds(), ...configuredClis().map((cli) => cli.id)].includes(assignment.agent) ||
+        typeof assignment.model !== 'string' ||
+        !assignment.model.trim()
+      )
+        return errorResponse(`invalid assignment for role '${name}'`, 400)
+      if (name !== 'executor' && configuredClis().some((cli) => cli.id === assignment.agent))
+        return errorResponse(
+          'un CLI genérico solo puede ser Ejecutor: chat y revisión necesitan streaming',
+          400,
+        )
+      if (name === 'orchestrator' && assignment.agent === 'opencode')
+        return errorResponse(
+          'roles.orchestrator.agent cannot be opencode: OpenCode is used as a terminal in the Dev tab, not to run chat.',
+          400,
+        )
+      if (assignment.effort !== undefined && typeof assignment.effort !== 'string')
+        return errorResponse(`invalid effort for role '${name}'`, 400)
+      if (assignment.provider !== undefined && typeof assignment.provider !== 'string')
+        return errorResponse(`invalid provider for role '${name}'`, 400)
+    }
+  }
+  if (
+    body.permissionMode !== undefined &&
+    body.permissionMode !== 'yolo' &&
+    body.permissionMode !== 'manual'
+  )
+    return errorResponse('permissionMode must be one of: yolo, manual', 400)
+  if (body.taskAgentRules !== undefined) {
+    if (!Array.isArray(body.taskAgentRules))
+      return errorResponse('taskAgentRules must be an array', 400)
+    for (const [index, rule] of body.taskAgentRules.entries()) {
+      if (!rule || typeof rule !== 'object' || !isAgentChoice(rule.agent))
+        return errorResponse(
+          `taskAgentRules[${index}].agent must be one of: ${agentChoices().join(', ')}`,
+          400,
+        )
+      const match = rule.match
+      const validOutput =
+        Array.isArray(match?.output) &&
+        match.output.length > 0 &&
+        match.output.every((item) => typeof item === 'string' && item.trim())
+      const validSkill = typeof match?.skill === 'string' && Boolean(match.skill.trim())
+      if (!match || typeof match !== 'object' || (!validOutput && !validSkill))
+        return errorResponse(
+          `taskAgentRules[${index}].match requires non-empty output globs or skill`,
+          400,
+        )
+      if (
+        match.output !== undefined &&
+        (!Array.isArray(match.output) ||
+          !match.output.every((item) => typeof item === 'string' && item.trim()))
+      )
+        return errorResponse(
+          `taskAgentRules[${index}].match.output must be an array of non-empty strings`,
+          400,
+        )
+      if (match.skill !== undefined && (typeof match.skill !== 'string' || !match.skill.trim()))
+        return errorResponse(`taskAgentRules[${index}].match.skill must be a non-empty string`, 400)
+      if (rule.cli_effort !== undefined && typeof rule.cli_effort !== 'string')
+        return errorResponse(`taskAgentRules[${index}].cli_effort must be a string`, 400)
+      if (rule.model !== undefined && (typeof rule.model !== 'string' || !rule.model.trim()))
+        return errorResponse(`taskAgentRules[${index}].model must be a non-empty string`, 400)
+    }
+  }
+  if (
+    !body.roles &&
+    body.roleAssignments === undefined &&
+    body.apiMode === undefined &&
+    body.agenticMaxIterations === undefined &&
+    body.externalTimeoutMinutes === undefined &&
+    body.agent === undefined &&
+    body.taskAgentRules === undefined &&
+    body.permissionMode === undefined
+  ) {
+    return errorResponse('nothing to save', 400)
+  }
+
+  const configPath = join(root, 'orchestos.config.yaml')
+  const current = loadOrcheConfig(root)
+  const models: OrcheConfig['models'] = { ...current.models }
+
+  for (const key of ROLE_KEYS) {
+    const raw = body.roles?.[key]
+    if (typeof raw !== 'string') continue
+    // qa es el único rol legítimamente "sin configurar" (harness.ts lo
+    // auto-resuelve si está ausente, nunca el mismo modelo que el executor).
+    // Un string vacío para qa es una limpieza explícita, no "no tocar" —
+    // para el resto de los roles un vacío se ignora (nunca deben quedar sin valor).
+    if (!raw.trim()) {
+      if (key === 'qa') delete models.qa
+      continue
+    }
+    models[key] = { provider: 'openrouter', model: raw.trim() }
+  }
+
+  const nextRoleAssignments = { ...current.roles }
+  for (const [name, assignment] of Object.entries(body.roleAssignments ?? {}) as [
+    RoleName,
+    RoleAssignment | null,
+  ][]) {
+    if (assignment === null) delete nextRoleAssignments[name]
+    else
+      nextRoleAssignments[name] = {
+        agent: assignment.agent,
+        model: assignment.model.trim(),
+        ...(assignment.effort ? { effort: assignment.effort } : {}),
+        ...(assignment.agent === 'api' && assignment.provider
+          ? { provider: assignment.provider }
+          : {}),
+      }
+  }
+  const newConfig: OrcheConfig = { ...current, models, roles: nextRoleAssignments }
+  // Executable declarations belong only to the global file, never the project YAML.
+  delete newConfig.clis
+  if (body.taskAgentRules !== undefined) newConfig.taskAgentRules = body.taskAgentRules
+  if (body.permissionMode === 'manual') newConfig.permissionMode = 'manual'
+  else if (body.permissionMode === 'yolo') delete newConfig.permissionMode
+  for (const [name, assignment] of Object.entries(body.roleAssignments ?? {})) {
+    if (assignment === null) (newConfig.roles as Record<string, unknown>)[name] = null
+  }
+
+  if (typeof body.apiMode === 'string' && (API_MODES as readonly string[]).includes(body.apiMode)) {
+    newConfig.apiMode = body.apiMode as OrcheConfig['apiMode']
+  }
+  if (
+    typeof body.agenticMaxIterations === 'number' &&
+    Number.isFinite(body.agenticMaxIterations) &&
+    body.agenticMaxIterations > 0
+  ) {
+    newConfig.agentic = { maxIterations: Math.round(body.agenticMaxIterations) }
+  }
+  if (
+    typeof body.externalTimeoutMinutes === 'number' &&
+    Number.isFinite(body.externalTimeoutMinutes) &&
+    body.externalTimeoutMinutes > 0
+  ) {
+    newConfig.external = { timeoutMs: Math.round(body.externalTimeoutMinutes * 60000) }
+  }
+  if (body.agent === null) {
+    delete newConfig.agent
+  } else if (body.agent !== undefined) {
+    newConfig.agent = body.agent
+  }
+
+  // CC.D1c (2026-08-18) — `loadOrcheConfig()` migra los nombres legacy en
+  // memoria. Serializar `newConfig` directamente después de cargarlo hacía
+  // que cualquier PUT (incluso un cambio de roles no relacionado) reescribiera
+  // todo el YAML, borrara campos desconocidos y limpiara silenciosamente
+  // `executor_mode`/`executorEngine`. Editar el documento existente por rutas
+  // concretas conserva el resto del archivo y deja la migración explícita.
+  let output = yamlStringify(newConfig)
+  if (existsSync(configPath)) {
+    try {
+      const document = parseDocument(await Bun.file(configPath).text())
+      if (document.errors.length === 0) {
+        if (body.taskAgentRules !== undefined) {
+          if (body.taskAgentRules.length) document.set('taskAgentRules', body.taskAgentRules)
+          else document.delete('taskAgentRules')
+        }
+        if (body.permissionMode === 'manual') document.set('permissionMode', 'manual')
+        else if (body.permissionMode === 'yolo') document.delete('permissionMode')
+        for (const [name, assignment] of Object.entries(body.roleAssignments ?? {}) as [
+          RoleName,
+          RoleAssignment | null,
+        ][]) {
+          if (assignment === null) document.setIn(['roles', name], null)
+          else
+            document.setIn(['roles', name], {
+              agent: assignment.agent,
+              model: assignment.model.trim(),
+              ...(assignment.effort ? { effort: assignment.effort } : {}),
+              ...(assignment.agent === 'api' && assignment.provider
+                ? { provider: assignment.provider }
+                : {}),
+            })
+        }
+        for (const key of ROLE_KEYS) {
+          // CFG.1: Settings must not resurrect legacy models in a roles-only YAML.
+          if (!document.has('models')) break
+          const raw = body.roles?.[key]
+          if (typeof raw !== 'string') continue
+          if (!raw.trim()) {
+            if (key === 'qa') document.deleteIn(['models', key])
+            continue
+          }
+          document.setIn(['models', key], { provider: 'openrouter', model: raw.trim() })
+        }
+
+        if (
+          typeof body.apiMode === 'string' &&
+          (API_MODES as readonly string[]).includes(body.apiMode)
+        ) {
+          document.set('apiMode', body.apiMode)
+          // `executorEngine` used these values before apiMode existed. Remove
+          // only that legacy field when the user explicitly edits apiMode;
+          // CLI values there belong to the separate agent migration.
+          const legacyEngine = document.get('executorEngine')
+          if (legacyEngine === 'single-shot' || legacyEngine === 'agentic')
+            document.delete('executorEngine')
+        }
+        if (
+          typeof body.agenticMaxIterations === 'number' &&
+          Number.isFinite(body.agenticMaxIterations) &&
+          body.agenticMaxIterations > 0
+        ) {
+          document.setIn(['agentic', 'maxIterations'], Math.round(body.agenticMaxIterations))
+        }
+        if (
+          typeof body.externalTimeoutMinutes === 'number' &&
+          Number.isFinite(body.externalTimeoutMinutes) &&
+          body.externalTimeoutMinutes > 0
+        ) {
+          document.setIn(['external', 'timeoutMs'], Math.round(body.externalTimeoutMinutes * 60000))
+        }
+        if (body.agent === null || body.agent !== undefined) {
+          if (body.agent === null) document.delete('agent')
+          else document.set('agent', body.agent)
+          // The user explicitly touched the canonical agent field, so this is
+          // the one case where cleaning its legacy aliases is intentional.
+          document.delete('executor_mode')
+          document.delete('executorEngine')
+        }
+        output = document.toString()
+      }
+    } catch {
+      // Invalid existing YAML keeps the previous safe behavior: write the
+      // validated, fully resolved configuration instead of failing silently.
+    }
+  }
+  writeFileSync(configPath, output, 'utf8')
+  return jsonResponse({ ok: true })
+}

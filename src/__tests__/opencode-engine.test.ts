@@ -1,0 +1,484 @@
+/**
+ * G.5 — unit tests for the opencode ExecutorEngine (`opencode run`, headless).
+ *
+ * Mismo patrón que external-engine.test.ts (Bun.spawn/Bun.which overrideados,
+ * worktree real vía createWorktree + git) — el proceso opencode se mockea,
+ * el diff se ejercita de verdad. Diferencia clave respecto a external.ts:
+ * opencode emite NDJSON incremental (step_start/tool_use/text/step_finish),
+ * no un solo blob JSON — el costo/tokens se suman entre step_finish events.
+ */
+
+import { afterEach, beforeEach, describe, expect, it } from 'bun:test'
+import { mkdtempSync, rmSync, writeFileSync } from 'fs'
+import { tmpdir } from 'os'
+import { join } from 'path'
+import { _resetOpencodeCatalog, registerNativeOpencodeModels } from '../router/opencode-catalog.ts'
+import {
+  buildOpencodeChatArgs,
+  ExecutorOpencodeError,
+  opencodeEngine,
+  orchestosModelToOpencodeModel,
+} from '../run/executors/opencode.ts'
+import type { RunContext } from '../run/middleware.ts'
+import { createWorktree, git, type Worktree } from '../run/sandbox.ts'
+import type { Task } from '../tasks/schema.ts'
+
+const originalWhich = Bun.which
+beforeEach(() => {
+  _resetOpencodeCatalog()
+  registerNativeOpencodeModels(['deepseek/deepseek-v4-flash', 'anthropic/claude-sonnet-5'])
+  ;(Bun as any).which = (_bin: string) => '/usr/local/bin/opencode'
+})
+afterEach(() => {
+  _resetOpencodeCatalog()
+  Bun.which = originalWhich
+})
+
+// -- fixtures (mismo patrón que external-engine.test.ts) ------------------------
+
+const originalSpawn = Bun.spawn
+const originalFetch = globalThis.fetch
+
+interface MockProc {
+  stdout: ReadableStream<Uint8Array>
+  stderr: ReadableStream<Uint8Array>
+  exited: Promise<number>
+  kill(_signal: string): void
+  /** Arma el retardo de salida; lo llama el mock de `Bun.spawn`, no el constructor. */
+  start?(): void
+}
+
+interface MockSpawnCall {
+  cmd: string[]
+  cwd: string
+}
+
+function makeMockProc(stdoutText: string, opts: { exitDelayMs?: number } = {}): MockProc {
+  const encoder = new TextEncoder()
+  const stdoutStream = new ReadableStream<Uint8Array>({
+    start(controller) {
+      queueMicrotask(() => {
+        controller.enqueue(encoder.encode(stdoutText))
+        controller.close()
+      })
+    },
+  })
+  const stderrStream = new ReadableStream<Uint8Array>({
+    start(c) {
+      c.close()
+    },
+  })
+  let resolveExit!: (n: number) => void
+  const exited = new Promise<number>((r) => {
+    resolveExit = r
+  })
+  if (!opts.exitDelayMs) queueMicrotask(() => resolveExit(0))
+  return {
+    start() {
+      if (opts.exitDelayMs) setTimeout(() => resolveExit(0), opts.exitDelayMs)
+    },
+    stdout: stdoutStream,
+    stderr: stderrStream,
+    exited,
+    kill(_signal) {
+      /* no-op */
+    },
+  }
+}
+
+const spawnCalls: MockSpawnCall[] = []
+function installMockSpawn(stdout: string, opts: { exitDelayMs?: number } = {}): MockProc {
+  return makeMockProc(stdout, opts)
+}
+
+afterEach(() => {
+  Bun.spawn = originalSpawn
+  globalThis.fetch = originalFetch
+  spawnCalls.length = 0
+})
+
+function overrideBunSpawn(proc: MockProc, catalogOutput?: string) {
+  Bun.spawn = ((cmd: string[], opts?: { cwd?: string }) => {
+    spawnCalls.push({ cmd: cmd.slice(), cwd: opts?.cwd ?? '' })
+    const selected =
+      cmd.includes('model.list') && catalogOutput ? makeMockProc(catalogOutput) : proc
+    selected.start?.()
+    return selected as unknown as ReturnType<typeof Bun.spawn>
+  }) as typeof Bun.spawn
+}
+
+function makeGitRepo(): string {
+  const dir = mkdtempSync(join(tmpdir(), 'orchestos-g5-opencode-'))
+  git(['init', '-b', 'main'], dir)
+  git(['config', 'user.email', 'test@test.com'], dir)
+  git(['config', 'user.name', 'Test'], dir)
+  writeFileSync(join(dir, 'README.md'), 'init')
+  git(['add', '-A'], dir)
+  git(['commit', '-m', 'init'], dir)
+  return dir
+}
+
+const repos: string[] = []
+const worktrees: Worktree[] = []
+
+describe('OpenCode chat variant arguments', () => {
+  it('passes a selected variant and omits it when unset', () => {
+    expect(buildOpencodeChatArgs('hello', 'openai/gpt-6', 'high')).toEqual([
+      'run',
+      'hello',
+      '--format',
+      'json',
+      '--standalone',
+      '--agent',
+      'plan',
+      '--model',
+      'openai/gpt-6#high',
+    ])
+    const withoutVariant = buildOpencodeChatArgs('hello', 'openai/gpt-6')
+    expect(withoutVariant).toContain('openai/gpt-6')
+    expect(withoutVariant.some((arg) => arg.includes('#'))).toBe(false)
+    expect(withoutVariant).not.toContain('--variant')
+  })
+})
+function trackWorktree(wt: Worktree) {
+  worktrees.push(wt)
+  repos.push(wt.projectRoot)
+}
+
+function baseTask(overrides: Partial<Task> = {}): Task {
+  return {
+    id: 'g5-opencode-test',
+    description: 'G.5 opencode engine test',
+    executor: 'openrouter',
+    input: [],
+    output: ['out.txt'],
+    depends_on: [],
+    status: 'pending',
+    retry_count: 0,
+    ...overrides,
+  }
+}
+
+function buildCtx(worktree: Worktree, task: Task): RunContext {
+  return {
+    opts: {} as any,
+    taskClass: 'implement',
+    model: 'deepseek/deepseek-v4-flash',
+    providerName: 'openrouter',
+    provider: null as any,
+    cliEffort: task.cli_effort,
+    task,
+    skillInstructions: '',
+    phaseSkills: [],
+    effectiveContext: '',
+    contextSource: 'AGENTS.md',
+    contextTokens: 0,
+    effectiveRoot: worktree.path,
+    worktree,
+    instinctBlock: '',
+    prompt: { system: '', userContent: 'Task: ' + task.description },
+    contextWarnings: [],
+  }
+}
+
+afterEach(() => {
+  for (const wt of worktrees.splice(0)) {
+    try {
+      wt.cleanup()
+    } catch {}
+  }
+  for (const r of repos.splice(0)) {
+    try {
+      rmSync(r, { recursive: true, force: true })
+    } catch {}
+  }
+})
+
+// NDJSON real (probado en vivo el 2026-07-20 con `opencode run --format json --auto`).
+function ndjson(...events: object[]): string {
+  return events.map((e) => JSON.stringify(e)).join('\n') + '\n'
+}
+
+const stepFinish = (cost: number, input: number, output: number) => ({
+  type: 'step_finish',
+  part: { type: 'step-finish', cost, tokens: { input, output } },
+})
+
+// -- tests ---------------------------------------------------------------------
+
+describe('G.5 — opencodeEngine (opencode subprocess)', () => {
+  it('auto-edit uses serve and the existing parser sums stored session parts', async () => {
+    const root = makeGitRepo()
+    const wt = createWorktree('approval-server', 'main', root)
+    trackWorktree(wt)
+    writeFileSync(join(wt.path, 'out.txt'), 'approved edit\n')
+    let exit!: (code: number) => void
+    let killed = false
+    const proc = makeMockProc('Server listening on http://127.0.0.1:1234\n')
+    proc.exited = new Promise((resolve) => {
+      exit = resolve
+    })
+    proc.kill = () => {
+      killed = true
+      exit(0)
+    }
+    overrideBunSpawn(proc)
+    globalThis.fetch = (async (url: string, init?: RequestInit) => {
+      const path = new URL(url).pathname
+      if (path === '/api/session' && init?.method === 'POST') {
+        return Response.json({ data: { id: 'ses_task' } })
+      }
+      if (path === '/api/session/ses_task/prompt') {
+        return Response.json({ data: { id: 'msg_user', type: 'user' } })
+      }
+      if (path === '/api/permission/request') return Response.json({ data: [] })
+      if (path === '/api/session/active') return Response.json({ data: {} })
+      if (path === '/api/session/ses_task/message') {
+        return Response.json({
+          data: [
+            {
+              id: 'msg_assistant_1',
+              type: 'assistant',
+              time: { created: 1, completed: 2 },
+              finish: 'tool-calls',
+              cost: 0.002,
+              tokens: { input: 100, output: 10 },
+              content: [],
+            },
+            {
+              id: 'msg_assistant_2',
+              type: 'assistant',
+              time: { created: 1, completed: 2 },
+              finish: 'stop',
+              cost: 0.0005,
+              tokens: { input: 20, output: 2 },
+              content: [{ type: 'text', text: 'done' }],
+            },
+          ],
+          cursor: {},
+        })
+      }
+      return new Response('unexpected', { status: 404 })
+    }) as typeof fetch
+    const outcome = await opencodeEngine.run(buildCtx(wt, baseTask()), {
+      maxTokens: 8192,
+      maxIterations: 1,
+      timeoutMs: 5000,
+      approvals: { runId: 'task', mode: 'auto-edit', requestApproval: async () => 'reject' },
+    })
+    expect(spawnCalls[0]?.cmd).toEqual([
+      'opencode',
+      'serve',
+      '--port',
+      '0',
+      '--hostname',
+      '127.0.0.1',
+    ])
+    expect(outcome.inputTokens).toBe(120)
+    expect(outcome.outputTokens).toBe(12)
+    expect(outcome.usd).toBeCloseTo(0.0025, 6)
+    expect(outcome.iterations).toBe(2)
+    expect(outcome.files).toEqual([{ path: 'out.txt', content: 'approved edit\n' }])
+    expect(killed).toBe(true)
+  })
+
+  it('happy path: NDJSON con 2 step_finish → outcome suma costo/tokens de ambos', async () => {
+    const root = makeGitRepo()
+    const wt = createWorktree('g5-happy', 'main', root)
+    trackWorktree(wt)
+
+    writeFileSync(join(wt.path, 'out.txt'), 'hello from opencode\n')
+
+    const stdout = ndjson(
+      { type: 'step_start', part: { type: 'step-start' } },
+      { type: 'tool_use', part: { type: 'tool' } },
+      stepFinish(0.002, 100, 10),
+      { type: 'text', part: { type: 'text', text: 'done' } },
+      stepFinish(0.0005, 20, 2),
+    )
+    const proc = installMockSpawn(stdout)
+    overrideBunSpawn(proc)
+
+    const ctx = buildCtx(wt, baseTask())
+    const outcome = await opencodeEngine.run(ctx, {
+      maxTokens: 8192,
+      maxIterations: 1,
+      timeoutMs: 5000,
+    })
+
+    expect(spawnCalls).toHaveLength(1)
+    expect(spawnCalls[0]!.cwd).toBe(wt.path)
+    expect(spawnCalls[0]!.cmd[0]).toBe('opencode')
+    expect(spawnCalls[0]!.cmd).toContain('run')
+    expect(spawnCalls[0]!.cmd).toContain('--format')
+    expect(spawnCalls[0]!.cmd).toContain('json')
+    expect(spawnCalls[0]!.cmd).toContain('--standalone')
+    expect(spawnCalls[0]!.cmd).toContain('--auto')
+    // Los ids provider/model del catálogo nativo se pasan tal cual al CLI.
+    expect(spawnCalls[0]!.cmd).toContain('--model')
+    expect(spawnCalls[0]!.cmd).toContain('deepseek/deepseek-v4-flash')
+
+    expect(outcome.files).toEqual([{ path: 'out.txt', content: 'hello from opencode\n' }])
+    expect(outcome.inputTokens).toBe(120)
+    expect(outcome.outputTokens).toBe(12)
+    expect(outcome.usd).toBeCloseTo(0.0025, 6)
+    expect(outcome.iterations).toBe(2)
+    expect(outcome.costByIteration).toHaveLength(1)
+    expect(outcome.costByIteration[0]!.label).toBe('opencode (2 steps)')
+    expect(outcome.costByIteration[0]!.binary).toBe('opencode')
+    expect(outcome.log[0]).toContain('1 file(s) changed')
+  })
+
+  it('cli_effort de la tarea se pasa como sufijo #variante del modelo', async () => {
+    const root = makeGitRepo()
+    const wt = createWorktree('g5-variant', 'main', root)
+    trackWorktree(wt)
+
+    const proc = installMockSpawn(ndjson(stepFinish(0.001, 5, 1)))
+    overrideBunSpawn(
+      proc,
+      JSON.stringify({
+        location: 'remote',
+        data: [
+          {
+            providerID: 'deepseek',
+            id: 'deepseek-v4-flash',
+            variants: [{ id: 'high', settings: {} }],
+          },
+        ],
+      }),
+    )
+
+    const ctx = buildCtx(wt, baseTask({ cli_effort: 'high' as any }))
+    await opencodeEngine.run(ctx, { maxTokens: 1024, maxIterations: 1, timeoutMs: 5000 })
+
+    const runCall = spawnCalls.find((call) => call.cmd.includes('run'))
+    const idx = runCall?.cmd.indexOf('--model') ?? -1
+    expect(idx).toBeGreaterThan(-1)
+    expect(runCall?.cmd[idx + 1]).toEndWith('#high')
+    expect(runCall?.cmd).not.toContain('--variant')
+  })
+
+  it('binario ausente: throw con mensaje accionable ANTES de crear worktree o spawn', async () => {
+    const originalW = Bun.which
+    ;(Bun as any).which = (_bin: string) => null
+    try {
+      const root = makeGitRepo()
+      const wt = createWorktree('g5-no-binary', 'main', root)
+      trackWorktree(wt)
+
+      const proc = installMockSpawn(ndjson(stepFinish(0.0001, 1, 1)))
+      overrideBunSpawn(proc)
+
+      const ctx = buildCtx(wt, baseTask())
+      let caught: Error | null = null
+      try {
+        await opencodeEngine.run(ctx, { maxTokens: 1024, maxIterations: 1, timeoutMs: 5000 })
+      } catch (e: any) {
+        caught = e
+      }
+
+      expect(caught).toBeInstanceOf(ExecutorOpencodeError)
+      expect(caught!.message).toContain('"opencode"')
+      expect(caught!.message).toContain('not found in PATH')
+      expect(spawnCalls).toHaveLength(0)
+    } finally {
+      ;(Bun as any).which = originalW
+    }
+  })
+
+  it('sin worktree: rechaza correr contra el proyecto real sin sandbox', async () => {
+    const ctx = {
+      ...buildCtx(
+        { path: '/tmp/fake', projectRoot: '/tmp/fake', cleanup() {} } as Worktree,
+        baseTask(),
+      ),
+      worktree: null,
+    }
+    let caught: Error | null = null
+    try {
+      await opencodeEngine.run(ctx as any, { maxTokens: 1024, maxIterations: 1, timeoutMs: 5000 })
+    } catch (e: any) {
+      caught = e
+    }
+    expect(caught).toBeInstanceOf(ExecutorOpencodeError)
+    expect(caught!.message).toContain('worktree sandbox mode')
+  })
+
+  it('timeout: proceso muere sin flushear stdout parseable → error menciona "timed out" (no $0 silencioso)', async () => {
+    // Mismo patrón que external-engine.test.ts: el mock no honra kill(), así que un
+    // hang real nunca resolvería `exited`. En vez de eso: el proceso SÍ termina, pero
+    // después del timeout (exitDelayMs > timeoutMs) y sin stdout parseable — es la
+    // condición real que dispara "killed by timeout, partial output parsed" en el engine.
+    const root = makeGitRepo()
+    const wt = createWorktree('g5-timeout', 'main', root)
+    trackWorktree(wt)
+
+    const proc = installMockSpawn('not ndjson at all, opencode was killed before flushing', {
+      exitDelayMs: 50,
+    })
+    overrideBunSpawn(proc)
+
+    const ctx = buildCtx(wt, baseTask())
+    let caught: Error | null = null
+    try {
+      await opencodeEngine.run(ctx, { maxTokens: 1024, maxIterations: 1, timeoutMs: 1 })
+    } catch (e: any) {
+      caught = e
+    }
+    expect(caught).toBeInstanceOf(ExecutorOpencodeError)
+    expect(caught!.message).toContain('timed out')
+  })
+
+  it('sin ningun step_finish en el stream: error explícito, nunca usd=0 silencioso', async () => {
+    const root = makeGitRepo()
+    const wt = createWorktree('g5-no-cost', 'main', root)
+    trackWorktree(wt)
+
+    const proc = installMockSpawn(ndjson({ type: 'step_start', part: { type: 'step-start' } }))
+    overrideBunSpawn(proc)
+
+    const ctx = buildCtx(wt, baseTask())
+    let caught: Error | null = null
+    try {
+      await opencodeEngine.run(ctx, { maxTokens: 1024, maxIterations: 1, timeoutMs: 5000 })
+    } catch (e: any) {
+      caught = e
+    }
+    expect(caught).toBeInstanceOf(ExecutorOpencodeError)
+    expect(caught!.message).toContain('step-finish')
+  })
+
+  it('líneas NDJSON corruptas/parciales se ignoran sin abortar el parseo del resto', async () => {
+    const root = makeGitRepo()
+    const wt = createWorktree('g5-partial', 'main', root)
+    trackWorktree(wt)
+
+    const stdout =
+      ndjson(stepFinish(0.001, 10, 1)) +
+      '{"type":"text","part":{"tex\n' +
+      ndjson(stepFinish(0.002, 20, 2))
+    const proc = installMockSpawn(stdout)
+    overrideBunSpawn(proc)
+
+    const ctx = buildCtx(wt, baseTask())
+    const outcome = await opencodeEngine.run(ctx, {
+      maxTokens: 1024,
+      maxIterations: 1,
+      timeoutMs: 5000,
+    })
+
+    expect(outcome.usd).toBeCloseTo(0.003, 6)
+    expect(outcome.iterations).toBe(2)
+  })
+
+  it('orchestosModelToOpencodeModel: pasa ids provider/model nativos', () => {
+    expect(orchestosModelToOpencodeModel('deepseek/deepseek-v4-flash')).toBe(
+      'deepseek/deepseek-v4-flash',
+    )
+    expect(orchestosModelToOpencodeModel('anthropic/claude-sonnet-5')).toBe(
+      'anthropic/claude-sonnet-5',
+    )
+    expect(orchestosModelToOpencodeModel(undefined)).toBeUndefined()
+  })
+})

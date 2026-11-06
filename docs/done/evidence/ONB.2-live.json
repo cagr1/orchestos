@@ -1,0 +1,342 @@
+{
+  "item": "ONB.2",
+  "date": "2026-11-04T21:48:32.468628+00:00",
+  "gates": [
+    {
+      "gate": "writer-lock",
+      "command": "node ~/.agent-method/hooks/writer-lock.js check",
+      "exit": 0,
+      "raw_log": "/tmp/ONB.2-writer-check.log",
+      "output_tail": ""
+    },
+    {
+      "gate": "preflight",
+      "command": "bun run agent:preflight -- --item ONB.2 --agent codex",
+      "exit": 0,
+      "raw_log": "/tmp/ONB.2-preflight.log",
+      "output_tail": " M src/dashboard/app/src/App.tsx\n M src/dashboard/app/src/api/tasks.test.ts\n M src/dashboard/app/src/api/tasks.ts\n M src/dashboard/app/src/components/settings/OrchestSettingsView.tsx\n M src/dashboard/handlers/tasks.test.ts\n M src/dashboard/handlers/tasks.ts\n M src/evals/runner.test.ts\n?? docs/specs/CI.61.md\n?? docs/specs/ONB.2.md\n?? src/dashboard/app/src/components/settings/routing-roles.test.ts\n?? src/dashboard/app/src/components/settings/routing-roles.ts\nSiguiente gate: bunx tsc --noEmit + suite relevante antes de editar"
+    },
+    {
+      "gate": "tsc",
+      "command": "bunx tsc --noEmit",
+      "exit": 0,
+      "raw_log": "/tmp/ONB.2-tsc.log",
+      "output_tail": ""
+    },
+    {
+      "gate": "typecheck",
+      "command": "bun run typecheck",
+      "exit": 0,
+      "raw_log": "/tmp/ONB.2-typecheck.log",
+      "output_tail": "$ tsc --noEmit && tsc -p src/dashboard/app/tsconfig.json --noEmit"
+    },
+    {
+      "gate": "lint",
+      "command": "bun run lint",
+      "exit": 0,
+      "raw_log": "/tmp/ONB.2-lint.log",
+      "output_tail": "    186 │     file.tasks[0]!.status = 'done'\n  > 187 │     file.tasks[0]!.run_id = result.runId\n        │     ^^^^^^^^^^^^^^\n    188 │     saveTasks(root, file)\n    189 │     console.log('GET_FINAL', JSON.stringify(await request(`/api/runs/${runId}/approval`)))\n  \n\nThe number of diagnostics exceeds the limit allowed. Use --max-diagnostics to increase it.\nDiagnostics not shown: 1418.\nChecked 889 files in 404ms. No fixes applied.\nFound 1061 warnings.\nFound 377 infos."
+    },
+    {
+      "gate": "flows-lint",
+      "command": "bunx biome lint --only=correctness/noUndeclaredVariables scripts/ui-gate/flows",
+      "exit": 0,
+      "raw_log": "/tmp/ONB.2-flows-lint.log",
+      "output_tail": "Checked 39 files in 29ms. No fixes applied."
+    },
+    {
+      "gate": "coverage",
+      "command": "bun run test:coverage",
+      "exit": 0,
+      "raw_log": "/tmp/ONB.2-coverage.log",
+      "output_tail": "[config] ignorando clis: config global inválida\n\nsrc/dashboard/__tests__/usage-responsive.test.ts:\n\nsrc/dashboard/__tests__/csrf-origin.test.ts:\n\n 2275 pass\n 0 fail\n 6802 expect() calls\nRan 2275 tests across 243 files. [244.39s]\ncoverage gate: functions 81.36% (required 69.00%)\ncoverage gate: lines 68.56% (required 57.00%)"
+    },
+    {
+      "gate": "ui",
+      "command": "ORCHESTOS_CLAUDE_USAGE_LIVE=0 bun run gate:evidence -- --label onb.2-live-verified -- bun run ui:gate model-routing settings-shell",
+      "exit": 0,
+      "raw_log": "/tmp/ONB.2-ui.log",
+      "output_tail": "$ bun run scripts/run-evidence-gate.ts --label \"onb.2-live-verified\" -- bun run ui:gate model-routing settings-shell\n[gate:evidence] isolated home: /var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/orchestos-evidence-onb.2-live-verified-TrhTZ9\n[gate:evidence] durable home: /Users/carlosgallardo\n$ node scripts/ui-gate/run.mjs model-routing settings-shell\n$ bun run scripts/build-app.ts\n✓ build:app → src/dashboard/app/dist/ (main.js, main.css, main.js.map, fira-code-latin-400-normal.woff2, fira-code-latin-500-normal.woff2, fira-code-latin-600-normal.woff2, fira-code-latin-ext-400-normal.woff2, fira-code-latin-ext-500-normal.woff2, fira-code-latin-ext-600-normal.woff2, inter-latin-ext-opsz-normal.woff2, inter-latin-opsz-normal.woff2, chatgpt.svg, claude.svg, deepseek.svg, gemini.svg, grok.svg, kimi.svg, ollama-icon.svg, opencode.svg) en 363ms\nPASS model-routing 24/24\nPASS settings-shell 21/21\nEVIDENCE /var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-64122/result.json\n[gate:evidence] evidence: 1 exported, 0 duplicate(s)"
+    },
+    {
+      "gate": "diff-check",
+      "command": "git diff --check",
+      "exit": 0,
+      "raw_log": "/tmp/ONB.2-diff-check.log",
+      "output_tail": ""
+    }
+  ],
+  "browser": [
+    {
+      "flujo": "model-routing",
+      "pass": true,
+      "steps": [
+        {
+          "nombre": "4 role cards are shown",
+          "ok": true,
+          "detalle": "ok"
+        },
+        {
+          "nombre": "all role cards start unassigned",
+          "ok": true,
+          "detalle": "ok"
+        },
+        {
+          "nombre": "legacy QA judge and model are absent",
+          "ok": true,
+          "detalle": "ok"
+        },
+        {
+          "nombre": "unassigned task run returns a structured error and displays it",
+          "ok": true,
+          "detalle": "{\"error\":\"Executor role is unassigned — assign it in Settings → Model routing\",\"code\":\"role_unassigned\"}"
+        },
+        {
+          "nombre": "task error action opens Model routing",
+          "ok": true,
+          "detalle": "ok"
+        },
+        {
+          "nombre": "installed CLI is proposed for unassigned roles",
+          "ok": true,
+          "detalle": "ok"
+        },
+        {
+          "nombre": "click and existing save persist only eligible suggested roles",
+          "ok": true,
+          "detalle": "{\"suggestedId\":\"claude\",\"suggestedRoles\":[\"orchestrator\",\"executor\",\"reviewer\",\"auxiliary\"],\"assignments\":{\"orchestrator\":{\"agent\":\"claude\",\"model\":\"claude-opus-5-5\"},\"executor\":{\"agent\":\"claude\",\"model\":\"claude-opus-5-5\"},\"reviewer\":{\"agent\":\"claude\",\"model\":\"claude-opus-5-5\"},\"auxiliary\":{\"agent\":\"claude\",\"model\":\"claude-opus-5-5\"}}}"
+        },
+        {
+          "nombre": "suggestion disappears when no eligible unassigned role remains",
+          "ok": true,
+          "detalle": "ok"
+        },
+        {
+          "nombre": "orchestrator does not offer OpenCode",
+          "ok": true,
+          "detalle": "{\"orchestratorOpenCodeCount\":0,\"orchestratorCodexCount\":1}"
+        },
+        {
+          "nombre": "executor still offers OpenCode",
+          "ok": true,
+          "detalle": "ok"
+        },
+        {
+          "nombre": "reviewer still offers OpenCode",
+          "ok": true,
+          "detalle": "ok"
+        },
+        {
+          "nombre": "auxiliary still offers OpenCode",
+          "ok": true,
+          "detalle": "ok"
+        },
+        {
+          "nombre": "OpenCode reviewer model menu stays under 60 percent of viewport and scrolls internally",
+          "ok": true,
+          "detalle": "{\"height\":550,\"viewportHeight\":1000,\"scrolls\":true}"
+        },
+        {
+          "nombre": "model search shows the empty state",
+          "ok": true,
+          "detalle": "ok"
+        },
+        {
+          "nombre": "model search reduces results and keeps the requested model",
+          "ok": true,
+          "detalle": "{\"initialModelCount\":363,\"matchingModelCount\":2,\"model\":\"openrouter/tencent/hy4\",\"matchingModelVisible\":1}"
+        },
+        {
+          "nombre": "keyboard selection opens effort for a variant model",
+          "ok": true,
+          "detalle": "{\"model\":\"openrouter/tencent/hy4\",\"efforts\":[\"none\",\"low\",\"high\"]}"
+        },
+        {
+          "nombre": "effort menu contains only this model variants",
+          "ok": true,
+          "detalle": "[\"none\",\"low\",\"high\"]"
+        },
+        {
+          "nombre": "model without variants hides effort control",
+          "ok": true,
+          "detalle": "{\"model\":\"openrouter/ricursiveai/ripple-65b-preview\",\"efforts\":[]}"
+        },
+        {
+          "nombre": "role assignments persist and reviewer warning appears",
+          "ok": true,
+          "detalle": "{\"roleAssignments\":{\"orchestrator\":{\"agent\":\"codex\",\"model\":\"gpt-6-luna\",\"effort\":\"medium\"},\"executor\":{\"agent\":\"codex\",\"model\":\"gpt-6-luna\",\"effort\":\"medium\"},\"reviewer\":{\"agent\":\"codex\",\"model\":\"gpt-6-luna\",\"effort\":\"medium\"},\"auxiliary\":{\"agent\":\"codex\",\"model\":\"gpt-6-luna\",\"effort\":\"medium\"}},\"roleWarnings\":[\"reviewer-same-as-executor\"],\"ui\":[\"Orchestrator\\nChat, drafts and task splitting\\nCodex\\nGPT-6-Luna\\nmedium\",\"Executor\\nRuns tasks\\nCodex\\nGPT-6-Luna\\nmedium\",\"Reviewer\\nQA (read-only)\\nCodex\\nGPT-6-Luna\\nmedium\\nSame agent and model as Executor: errors may correlate.\",\"Auxiliary\\nDiagnose and memory judge (read-only)\\nCodex\\nGPT-6-Luna\\nmedium\"],\"source\":[\"Source: orchestos.config.yaml\"]}"
+        },
+        {
+          "nombre": "new rule stays a local draft",
+          "ok": true,
+          "detalle": "ok"
+        },
+        {
+          "nombre": "task rule persists after reload",
+          "ok": true,
+          "detalle": "{\"rules\":[{\"match\":{\"output\":[\"docs/**\"]},\"agent\":\"codex\",\"model\":\"gpt-6.1-sol\"}],\"model\":\"gpt-6.1-sol\",\"ruleModelButtonText\":\"GPT-6.1-Sol\",\"ui\":[\"Task rules (1)\"],\"output\":\"docs/**\"}"
+        },
+        {
+          "nombre": "deleting the rule persists an empty list",
+          "ok": true,
+          "detalle": "[]"
+        },
+        {
+          "nombre": "project config remains selected before running task",
+          "ok": true,
+          "detalle": "{\"roleAssignments\":{\"orchestrator\":{\"agent\":\"codex\",\"model\":\"gpt-6-luna\",\"effort\":\"medium\"},\"executor\":{\"agent\":\"codex\",\"model\":\"gpt-6-luna\",\"effort\":\"medium\"},\"reviewer\":{\"agent\":\"codex\",\"model\":\"gpt-6-luna\",\"effort\":\"medium\"},\"auxiliary\":{\"agent\":\"codex\",\"model\":\"gpt-6-luna\",\"effort\":\"medium\"}}}"
+        },
+        {
+          "nombre": "run record stores the executor and QA models chosen in the UI",
+          "ok": true,
+          "detalle": "{\"id\":\"6908c807-5fa4-4632-89a6-5a6c6bc20d88\",\"model\":\"gpt-6-luna\",\"qa_model\":\"gpt-6-luna\"}"
+        }
+      ],
+      "notes": [],
+      "errores": [],
+      "capturas": [
+        "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-64122/model-routing/roles-unassigned.png",
+        "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-64122/model-routing/roles-suggestion.png",
+        "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-64122/model-routing/suggested-roles-saved.png",
+        "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-64122/model-routing/roles-assigned.png",
+        "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-64122/model-routing/task-rules.png"
+      ]
+    },
+    {
+      "flujo": "settings-shell",
+      "pass": true,
+      "steps": [
+        {
+          "nombre": "navigation group App",
+          "ok": true,
+          "detalle": "ok"
+        },
+        {
+          "nombre": "navigation group Agents",
+          "ok": true,
+          "detalle": "ok"
+        },
+        {
+          "nombre": "navigation group Observe",
+          "ok": true,
+          "detalle": "ok"
+        },
+        {
+          "nombre": "navigation group Protect",
+          "ok": true,
+          "detalle": "ok"
+        },
+        {
+          "nombre": "navigation group Projects",
+          "ok": true,
+          "detalle": "ok"
+        },
+        {
+          "nombre": "General has an icon and title only",
+          "ok": true,
+          "detalle": "ok"
+        },
+        {
+          "nombre": "Appearance has an icon and title only",
+          "ok": true,
+          "detalle": "ok"
+        },
+        {
+          "nombre": "Keybindings has an icon and title only",
+          "ok": true,
+          "detalle": "ok"
+        },
+        {
+          "nombre": "Providers has an icon and title only",
+          "ok": true,
+          "detalle": "ok"
+        },
+        {
+          "nombre": "Model routing has an icon and title only",
+          "ok": true,
+          "detalle": "ok"
+        },
+        {
+          "nombre": "Executor has an icon and title only",
+          "ok": true,
+          "detalle": "ok"
+        },
+        {
+          "nombre": "API keys has an icon and title only",
+          "ok": true,
+          "detalle": "ok"
+        },
+        {
+          "nombre": "Health has an icon and title only",
+          "ok": true,
+          "detalle": "ok"
+        },
+        {
+          "nombre": "Usage has an icon and title only",
+          "ok": true,
+          "detalle": "ok"
+        },
+        {
+          "nombre": "Danger zone has an icon and title only",
+          "ok": true,
+          "detalle": "ok"
+        },
+        {
+          "nombre": "timeout saves immediately",
+          "ok": true,
+          "detalle": "ok"
+        },
+        {
+          "nombre": "timeout survives reload",
+          "ok": true,
+          "detalle": "ok"
+        },
+        {
+          "nombre": "search highlights the matching Timeout row",
+          "ok": true,
+          "detalle": "ok"
+        },
+        {
+          "nombre": "save error shows reason and restores timeout",
+          "ok": true,
+          "detalle": "ok"
+        },
+        {
+          "nombre": "leaving an incomplete rule discards only its local draft",
+          "ok": true,
+          "detalle": "ok"
+        },
+        {
+          "nombre": "global save bar is absent",
+          "ok": true,
+          "detalle": "ok"
+        }
+      ],
+      "notes": [],
+      "errores": [],
+      "capturas": [
+        "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-64122/settings-shell/settings-timeout-highlight.png"
+      ]
+    }
+  ],
+  "visual_review": "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-64122/model-routing/roles-suggestion.png",
+  "previous_failures": [
+    {
+      "gate": "coverage under simultaneous UI load",
+      "exit": 1,
+      "reason": "run-revert.test.ts conflict test timed out after 5000ms; cold full repetition passed",
+      "raw_log": "/tmp/ONB.2-coverage-first.log"
+    },
+    {
+      "gate": "UI error scenario",
+      "exit": 1,
+      "reason": "Expected role_unassigned HTTP 400 was not yet declared in flow; expectHttpError added and full repetition passed",
+      "raw_log": "/tmp/ONB.2-ui-second.log"
+    }
+  ],
+  "preexisting_changes_not_edited": [
+    "PLAN.md",
+    "docs/specs/ONB.2.md",
+    "docs/specs/CI.61.md (appeared during execution)"
+  ]
+}

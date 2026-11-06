@@ -1,0 +1,95 @@
+# dependencies (bun install)
+node_modules
+
+# output
+out
+dist
+*.tgz
+# generated demo and local harness fixtures
+demo/
+test-project/
+# code coverage
+coverage
+*.lcov
+reports/mutation/
+
+# logs
+logs
+_.log
+report.[0-9]_.[0-9]_.[0-9]_.[0-9]_.json
+runs/*.log
+
+# dotenv environment variable files
+.env
+.env.development.local
+.env.test.local
+.env.production.local
+.env.local
+
+# caches
+.eslintcache
+.cache
+*.tsbuildinfo
+
+# tesseract.js — datos de idioma descargados al cwd en el primer uso de OCR (Mes 19)
+*.traineddata
+*.traineddata.gz
+
+# IntelliJ based IDEs
+.idea
+
+# Finder (MacOS) folder config
+.DS_Store
+
+dist/
+
+# local tool configs (settings.json se commitea a propósito: allowlist de permisos
+# para rutinas programadas que corren en un clon fresco del repo, ej. dreaming.
+# protected-rules.json también se commitea a propósito: registro del gate de
+# LEDGER.md, Mes 22/F.2 — tiene que viajar con el repo, no es config local)
+.claude/*
+!.claude/settings.json
+!.claude/protected-rules.json
+!.claude/hooks/
+!.claude/hooks/context-budget.js
+.github/workflows/
+
+# temporary test directories
+.tmp-spec-test-*/
+
+# playwright test artifacts
+.playwright-mcp/
+
+# runtime state del sandbox: worktrees temporales + lockfile entre procesos (E.5)
+.orchestos/worktrees/
+.orchestos/git.lock
+.orchestos/agent-home/
+
+# H.4.1 — scope declarado por sesión (agent:preflight --scope). Estado
+# efímero de sesión, no fuente de verdad; se limpia solo al cerrar el ítem.
+.orchestos/active-item.json
+
+# H.4.2 — handoff de clock-out (agent:handoff). Estado en vuelo, se
+# sobrescribe cada corrida; nunca duplica lo que PLAN.md/LEDGER.md ya
+# capturan de forma durable.
+.orchestos/handoff.md
+
+# H.7.3 — evita regenerar el handoff más de una vez por sesión Claude.
+.orchestos/context-budget.json
+.orchestos/adversarial-review.log
+
+# AT.8 — estado del presupuesto de subagentes, aislado por session_id.
+.orchestos/subagent-budget/
+
+# 2026-10-02 — artefactos locales del revisor adversarial (scripts/adversarial-review.ts:35) y lock de R.7.
+review-evidence/
+REVIEW.md
+.orchestos/adversarial-review-state.json
+.orchestos/tasks.lock
+
+# Capturas de gates: se miran en $TMPDIR y se borran; la evidencia versionada es JSON/log (Carlos, 2026-11-05)
+docs/done/evidence/**/*.png
+docs/done/evidence/**/*.jpg
+docs/done/evidence/**/*.jpeg
+docs/done/evidence/**/*.webm
+docs/done/evidence/**/*.gif

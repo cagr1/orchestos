@@ -1,0 +1,355 @@
+import { existsSync, readdirSync, readFileSync } from 'node:fs'
+import { homedir } from 'node:os'
+import { registerNativeOpencodeModels } from '../router/opencode-catalog.ts'
+import { cliChatAdapterFor } from '../run/executors/chat-adapters.ts'
+import { detectInstalledClis } from '../run/executors/cli-registry.ts'
+import { safeChildEnv } from '../run/path-policy.ts'
+
+export interface CliModelOption {
+  id: string
+  name: string
+  short: string
+  efforts?: string[]
+  group?: string
+  vendor?: string
+}
+
+export interface CliModelCatalog {
+  id: string
+  models: CliModelOption[]
+  efforts: string[]
+  error?: string
+  terminal?: boolean
+  chat?: boolean
+  installed?: boolean
+  label?: string
+}
+
+type CommandRunner = (
+  command: string,
+  args: string[],
+  timeoutMs?: number,
+) => Promise<{ stdout: string; exitCode: number }>
+
+export const CLI_CATALOG_TIMEOUT_MS = 10_000
+
+export const defaultRunner: CommandRunner = async (
+  command,
+  args,
+  timeoutMs = CLI_CATALOG_TIMEOUT_MS,
+) => {
+  const process = Bun.spawn([command, ...args], {
+    env: safeChildEnv(),
+    stdout: 'pipe',
+    stderr: 'ignore',
+  })
+  let timer: ReturnType<typeof setTimeout> | undefined
+  try {
+    const result = await Promise.race([
+      Promise.all([new Response(process.stdout).text(), process.exited]),
+      new Promise<never>((_, reject) => {
+        timer = setTimeout(() => {
+          process.kill()
+          reject(new Error(`${command} ${args.join(' ')} timed out after ${timeoutMs / 1000} s`))
+        }, timeoutMs)
+      }),
+    ])
+    const [stdout, exitCode] = result
+    return { stdout, exitCode }
+  } finally {
+    if (timer) clearTimeout(timer)
+  }
+}
+
+export function parseCodexModelsCache(raw: string): CliModelOption[] {
+  try {
+    const parsed = JSON.parse(raw) as { models?: unknown }
+    if (!Array.isArray(parsed.models)) return []
+    return parsed.models.flatMap((entry) => {
+      if (!entry || typeof entry !== 'object') return []
+      const model = entry as {
+        slug?: unknown
+        display_name?: unknown
+        supported_reasoning_levels?: unknown
+      }
+      if (typeof model.slug !== 'string' || !model.slug) return []
+      const efforts = Array.isArray(model.supported_reasoning_levels)
+        ? model.supported_reasoning_levels.flatMap((level) => {
+            if (!level || typeof level !== 'object') return []
+            const effort = (level as { effort?: unknown }).effort
+            return typeof effort === 'string' && effort ? [effort] : []
+          })
+        : []
+      const name = typeof model.display_name === 'string' ? model.display_name : model.slug
+      return [{ id: model.slug, name, short: name, efforts }]
+    })
+  } catch {
+    return []
+  }
+}
+
+export function parseClaudeHelp(raw: string): { models: CliModelOption[]; efforts: string[] } {
+  const aliasMatch = raw.match(/--model[\s\S]{0,320}?\(e\.g\.[\s\S]*?\)/i)
+  const models = aliasMatch
+    ? [...aliasMatch[0].matchAll(/['"]([^'"]+)['"]/g)].map((match) => {
+        const id = match[1] ?? ''
+        return { id, name: id, short: id }
+      })
+    : []
+  const effortMatch = raw.match(/--effort[\s\S]{0,240}?\(([^)]+)\)/i)
+  const efforts = effortMatch
+    ? (effortMatch[1] ?? '')
+        .split(/[|,\s]+/)
+        .map((value) => value.trim().toLowerCase())
+        .filter(Boolean)
+    : []
+  return { models, efforts: [...new Set(efforts)] }
+}
+
+export function formatClaudeModelIds(ids: string[]): CliModelOption[] {
+  const normalized = new Map<string, string>()
+  for (const id of ids.filter((value) => value.startsWith('claude-'))) {
+    const key = id.replace(/-\d{8}$/, '')
+    const existing = normalized.get(key)
+    if (!existing || /-\d{8}$/.test(id)) normalized.set(key, id)
+  }
+  const familyOrder = ['fable', 'opus', 'sonnet', 'haiku']
+  return [...normalized.entries()]
+    .map(([key, id]) => {
+      const [, family = 'model', ...version] = key.split('-')
+      const label = `${family[0]?.toUpperCase() ?? ''}${family.slice(1)}${version.length ? ` ${version.join('.')}` : ''}`
+      return { id, name: label, short: label, family, version }
+    })
+    .sort((a, b) => {
+      const family = familyOrder.indexOf(a.family) - familyOrder.indexOf(b.family)
+      if (family !== 0) return family
+      return b.version.join('.').localeCompare(a.version.join('.'), undefined, { numeric: true })
+    })
+    .map(({ id, name, short }) => ({ id, name, short }))
+}
+
+// Claude Code keeps its own model catalog (`surface: "cc"`; `ccd` is Claude Desktop) under ~/.claude/cache/model-catalog.
+export function parseClaudeModelCatalog(raw: string): CliModelOption[] {
+  try {
+    const parsed = JSON.parse(raw) as { catalog?: { config?: { models?: unknown } } }
+    const entries = parsed.catalog?.config?.models
+    if (!Array.isArray(entries)) return []
+    const options = entries.flatMap((entry) => {
+      if (!entry || typeof entry !== 'object') return []
+      const model = entry as {
+        id?: unknown
+        name?: unknown
+        short_name?: unknown
+        section?: unknown
+      }
+      if (typeof model.id !== 'string' || !model.id) return []
+      const name = typeof model.name === 'string' && model.name ? model.name : model.id
+      const overflow = model.section === 'overflow'
+      return [{ id: model.id, name, short: name, overflow }]
+    })
+    return [...options.filter((m) => !m.overflow), ...options.filter((m) => m.overflow)].map(
+      ({ id, name, short, overflow }) => ({
+        id,
+        name,
+        short,
+        ...(overflow ? { group: 'Older' } : {}),
+      }),
+    )
+  } catch {
+    return []
+  }
+}
+
+function readClaudeCatalogModels(home: string): CliModelOption[] {
+  const dir = `${home}/.claude/cache/model-catalog`
+  let best: { fetchedAt: number; raw: string } | undefined
+  try {
+    for (const file of readdirSync(dir)) {
+      if (!file.endsWith('.json')) continue
+      try {
+        const raw = readFileSync(`${dir}/${file}`, 'utf8')
+        const parsed = JSON.parse(raw) as { fetchedAt?: unknown; catalog?: { surface?: unknown } }
+        if (parsed.catalog?.surface !== 'cc') continue
+        const fetchedAt = typeof parsed.fetchedAt === 'number' ? parsed.fetchedAt : 0
+        if (!best || fetchedAt > best.fetchedAt) best = { fetchedAt, raw }
+      } catch {
+        // A malformed catalog file does not invalidate the others.
+      }
+    }
+  } catch {
+    // No catalog directory is a valid no-data state.
+  }
+  return best ? parseClaudeModelCatalog(best.raw) : []
+}
+
+export function readClaudeModelIds(home: string): CliModelOption[] {
+  const ids = new Set<string>()
+  try {
+    const stats = JSON.parse(readFileSync(`${home}/.claude/stats-cache.json`, 'utf8')) as {
+      modelUsage?: Record<string, unknown>
+    }
+    for (const id of Object.keys(stats.modelUsage ?? {})) if (id.startsWith('claude-')) ids.add(id)
+  } catch {
+    // Optional source: statusLine is checked independently below.
+  }
+  try {
+    const status = JSON.parse(
+      readFileSync(`${home}/.orchestos/claude-statusline.json`, 'utf8'),
+    ) as {
+      model?: { id?: unknown }
+    }
+    if (typeof status.model?.id === 'string' && status.model.id.startsWith('claude-'))
+      ids.add(status.model.id)
+  } catch {
+    // No statusLine payload is a valid no-data state.
+  }
+  const catalog = readClaudeCatalogModels(home)
+  const known = new Set(catalog.map((model) => model.id))
+  const history = formatClaudeModelIds([...ids]).filter((model) => !known.has(model.id))
+  if (!catalog.length) return history
+  return [...catalog, ...history.map((model) => ({ ...model, group: 'Older' }))]
+}
+
+export function parseOpencodeModels(raw: string): CliModelOption[] {
+  try {
+    const parsed = JSON.parse(raw) as { data?: unknown }
+    if (!Array.isArray(parsed.data)) return []
+    return parsed.data.flatMap((entry) => {
+      if (!entry || typeof entry !== 'object') return []
+      const model = entry as { providerID?: unknown; id?: unknown; variants?: unknown }
+      if (
+        typeof model.providerID !== 'string' ||
+        !model.providerID ||
+        typeof model.id !== 'string' ||
+        !model.id
+      )
+        return []
+      const id = `${model.providerID}/${model.id}`
+      const efforts = Array.isArray(model.variants)
+        ? model.variants.flatMap((variant) => {
+            if (!variant || typeof variant !== 'object') return []
+            const effort = (variant as { id?: unknown }).id
+            return typeof effort === 'string' && effort ? [effort] : []
+          })
+        : []
+      const segments = id.split('/')
+      const name = segments.at(-1) ?? id
+      const provider = model.providerID
+      const group =
+        provider === 'opencode' ? 'Zen' : provider === 'openrouter' ? 'OpenRouter' : provider
+      const vendor = segments.length === 3 ? segments[1]?.replace(/^~/, '') : undefined
+      return [{ id, name, short: name, efforts, group, ...(vendor ? { vendor } : {}) }]
+    })
+  } catch {
+    return []
+  }
+}
+
+export async function readOpencodeModelCatalog(
+  runner: CommandRunner = defaultRunner,
+  binary = 'opencode',
+): Promise<CliModelOption[]> {
+  const result = await runner(binary, ['api', '--standalone', 'model.list'])
+  return result.exitCode === 0 ? parseOpencodeModels(result.stdout) : []
+}
+
+async function readCliCatalog(
+  id: string,
+  binary: string,
+  runner: CommandRunner,
+  home = homedir(),
+): Promise<CliModelCatalog> {
+  if (id === 'codex') {
+    const path = `${home}/.codex/models_cache.json`
+    const models = existsSync(path) ? parseCodexModelsCache(readFileSync(path, 'utf8')) : []
+    return { id, models, efforts: [...new Set(models.flatMap((model) => model.efforts ?? []))] }
+  }
+  if (id === 'claude') {
+    const result = await runner(binary, ['--help'])
+    const parsed = parseClaudeHelp(result.stdout)
+    const versions = readClaudeModelIds(home)
+    const models = versions.length ? versions : parsed.models
+    return {
+      id,
+      models: models.map((model) => ({ ...model, efforts: parsed.efforts })),
+      efforts: parsed.efforts,
+    }
+  }
+  if (id === 'opencode') {
+    const models = await readOpencodeModelCatalog(runner, binary)
+    return { id, models, efforts: [...new Set(models.flatMap((model) => model.efforts ?? []))] }
+  }
+  return { id, models: [], efforts: [] }
+}
+
+export async function readCliModelCatalogs(
+  runner: CommandRunner = defaultRunner,
+  detectedClis = detectInstalledClis(),
+  home = homedir(),
+): Promise<CliModelCatalog[]> {
+  const installed = detectedClis.filter((cli) => cli.installed)
+  const catalogs = await Promise.all(
+    installed.map(async (cli): Promise<CliModelCatalog> => {
+      try {
+        return {
+          ...(await readCliCatalog(cli.id, cli.path ?? cli.binary, runner, home)),
+          chat: cliChatAdapterFor(cli.id)?.chat ?? false,
+          terminal: cliChatAdapterFor(cli.id)?.terminal ?? false,
+          installed: cli.installed,
+          label: cli.label,
+        }
+      } catch (error) {
+        return {
+          id: cli.id,
+          chat: cliChatAdapterFor(cli.id)?.chat ?? false,
+          terminal: cliChatAdapterFor(cli.id)?.terminal ?? false,
+          installed: cli.installed,
+          label: cli.label,
+          models: [],
+          efforts: [],
+          error: error instanceof Error ? error.message : String(error),
+        }
+      }
+    }),
+  )
+  const opencode = catalogs.find((catalog) => catalog.id === 'opencode')
+  if (opencode) registerNativeOpencodeModels(opencode.models.map((model) => model.id))
+  return catalogs
+}
+
+let cliModelCatalogCache: { value: CliModelCatalog[]; expiresAt: number } | undefined
+let cliModelCatalogRead: Promise<CliModelCatalog[]> | null = null
+
+// The composer requests the catalog four times per load, and each read runs the OpenCode model API.
+// Without a cache, those reads queued up to ~2.5 s (R.8.1.1).
+export function readCliModelCatalogsCached(deps?: {
+  ttlMs?: number
+  now?: () => number
+  read?: () => Promise<CliModelCatalog[]>
+}): Promise<CliModelCatalog[]> {
+  const ttlMs = deps?.ttlMs ?? 10 * 60 * 1000
+  const now = deps?.now ?? Date.now
+  const read = deps?.read ?? (() => readCliModelCatalogs())
+  if (cliModelCatalogCache && now() < cliModelCatalogCache.expiresAt)
+    return Promise.resolve(cliModelCatalogCache.value)
+  if (cliModelCatalogRead) return cliModelCatalogRead
+
+  const request = read().then((catalogs) => {
+    if (!catalogs.some((catalog) => catalog.error)) {
+      cliModelCatalogCache = { value: catalogs, expiresAt: now() + ttlMs }
+    }
+    return catalogs
+  })
+  cliModelCatalogRead = request
+  void request
+    .finally(() => {
+      if (cliModelCatalogRead === request) cliModelCatalogRead = null
+    })
+    .catch(() => {})
+  return request
+}
+
+export function resetCliModelCatalogCache(): void {
+  cliModelCatalogCache = undefined
+  cliModelCatalogRead = null
+}

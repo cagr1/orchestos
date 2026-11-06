@@ -1,0 +1,85 @@
+import { describe, expect, test } from 'bun:test'
+import {
+  citedEvidenceFiles,
+  findOpenPlanItem,
+  hasLiveGateEvidence,
+  requiresLiveGate,
+} from './agent-governance.ts'
+
+describe('agent governance', () => {
+  test('solo acepta un item abierto exacto', () => {
+    const plan = '- [ ] **GOV.1 — Regla**\n- [x] **GOV.2 — cerrado**\n'
+    expect(findOpenPlanItem(plan, 'GOV.1')).not.toBeNull()
+    expect(findOpenPlanItem(plan, 'GOV.2')).toBeNull()
+    expect(findOpenPlanItem(plan, 'GOV')).toBeNull()
+  })
+
+  test('detecta superficies de dashboard y configuracion', () => {
+    expect(requiresLiveGate(['src/dashboard/app/src/App.tsx'])).toBe(true)
+    expect(requiresLiveGate(['src/dashboard/handlers/config.ts'])).toBe(true)
+    expect(requiresLiveGate(['src/run/harness.ts'])).toBe(false)
+  })
+
+  test('extrae rutas citadas entre backticks en líneas agregadas', () => {
+    expect(
+      citedEvidenceFiles(
+        '+ Gate en vivo: ver `scripts/live-a1-review.ts` y `scripts/evidence.json`.',
+      ),
+    ).toEqual(['scripts/live-a1-review.ts', 'scripts/evidence.json'])
+    expect(citedEvidenceFiles('- Gate en vivo: ver `scripts/removed.ts`.')).toEqual([])
+    expect(
+      citedEvidenceFiles('+ Sin backticks acá, `nota.txt` no cuenta (ext no permitida).'),
+    ).toEqual([])
+  })
+
+  // H.10.1 (2026-09-08) — incidente R.5: la frase sola pasaba este gate aunque el
+  // hecho declarado (dos procesos concurrentes) nunca hubiera corrido. Desde acá,
+  // la frase exige además un archivo citado que esté REALMENTE en el commit.
+  test('exige cierre + frase + archivo de evidencia citado Y presente en el commit', () => {
+    const diffConArchivo =
+      '+ - [x] **A.1 — UI**\n' +
+      '+  Gate en vivo: `scripts/live-a1-review.ts` + `scripts/a1-evidence.json` confirman Playwright.'
+    expect(
+      hasLiveGateEvidence(diffConArchivo, [
+        'scripts/live-a1-review.ts',
+        'scripts/a1-evidence.json',
+      ]),
+    ).toBe(true)
+
+    // Regresión exacta del incidente: cierre + frase con "navegador", SIN ningún
+    // archivo citado — lo que de hecho commiteó R.5 y el gate viejo aceptaba.
+    const diffSoloFrase = '+ - [x] **A.1 — UI**\n+  Gate en vivo: navegador real confirmó el flujo.'
+    expect(hasLiveGateEvidence(diffSoloFrase, ['scripts/otro-archivo.ts'])).toBe(false)
+
+    // Cita un archivo, pero ese archivo no forma parte de este commit (stagedPaths
+    // no lo incluye) — citar no es lo mismo que aportar.
+    const diffCitaSinStagear = diffConArchivo
+    expect(hasLiveGateEvidence(diffCitaSinStagear, [])).toBe(false)
+    expect(
+      hasLiveGateEvidence(
+        diffConArchivo,
+        ['scripts/live-a1-review.ts'],
+        ['scripts/live-a1-review.ts'],
+      ),
+    ).toBe(true)
+    // El path listado pero no presente como blob staged no es un artefacto del commit.
+    expect(hasLiveGateEvidence(diffConArchivo, ['scripts/live-a1-review.ts'], [])).toBe(false)
+
+    // Una evidencia de A.2 no puede satisfacer el gate de A.1: la cita tiene que
+    // vivir dentro del mismo bloque del ítem que declara su Gate en vivo.
+    const diffAjeno =
+      '+ - [x] **A.1 — UI**\n' +
+      '+  Gate en vivo: navegador real confirmó el flujo.\n' +
+      '+ - [x] **A.2 — otro**\n' +
+      '+  Evidencia ajena: `scripts/a2-evidence.json`.'
+    expect(hasLiveGateEvidence(diffAjeno, ['scripts/a2-evidence.json'])).toBe(false)
+    const diffCitaFueraDeGate =
+      '+ - [x] **A.1 — UI**\n' +
+      '+  Gate en vivo: navegador real confirmó el flujo.\n' +
+      '+  Archivo ajeno: `scripts/a1-evidence.json`.'
+    expect(hasLiveGateEvidence(diffCitaFueraDeGate, ['scripts/a1-evidence.json'])).toBe(false)
+
+    expect(hasLiveGateEvidence('+ - [x] **A.1 — UI**\n+  Tests unitarios verdes.', [])).toBe(false)
+    expect(hasLiveGateEvidence('+ Gate en vivo: navegador real.', [])).toBe(false)
+  })
+})
