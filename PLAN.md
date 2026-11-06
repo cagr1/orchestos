@@ -292,7 +292,14 @@ Cerrada. Todos sus ítems están archivados en `docs/done/` (ver "Cerrados — e
   `gpt-6-luna`, 1 iteración, 30 tokens de salida, `executorReply` "I can't make or verify this change because no
   file-editing tool is available in this session"; `retryCount 1`, tarea `pending` (reintento programado). Fase 2,
   dos hallazgos: (a) Codex a veces dice no tener herramienta de edición con `workspace-write` (causa sin aislar);
-  (b) `waitForTaskFinished` (`tasks.mjs:39`) toma `pending` con reintento programado como fin. Falta spec.
+  (b) `waitForTaskFinished` (`tasks.mjs:39`) toma `pending` con reintento programado como fin.
+  Fase 2 hecha: (b) `gate-role-task` sigue el reintento del producto como `gate-first-task` (hasta 3 intentos, cada
+  uno con nota `gate-role-task retried` en el resumen); (a) cada intento fallido guarda
+  `role-task-missing-output-attempt-<n>.json` con `codexRollouts` (primera línea y últimas 60 del rollout de Codex
+  del proyecto temporal). Contraprueba forzada del ejecutor: rollout de 21 líneas capturado. Gates del cerebro: tsc,
+  biome, `tasks` 43/43 (`gate:evidence` `CI.55-fase2-tasks`). Abierto hasta el próximo fallo: leer `codexRollouts`
+  para aislar (a). Anotado: la escritura del JSON por intento no va envuelta en `capture`.
+  Fase 2 por codex gpt-6-luna (mecanico).
 - [ ] **CI.54 — `codex-live`: la burbuja del usuario a veces no aparece en 2 s.** (abierto 2026-11-02)
   Visto 1 de 3 (2026-11-02, "turn 1 user message appears before completion"); el pre-push reintenta y lo oculta.
   Fase 1: que el fallo deje evidencia (captura, DOM, composer, timeline, log); fase 2: causa con esa evidencia.

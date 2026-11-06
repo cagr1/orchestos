@@ -11,8 +11,8 @@ Arranque: `bun run agent:preflight -- --item <ID> --agent claude`. Lista viva: `
    (tarjeta fallida con diagnóstico, sin `Retry`; interrupción con "Resume"); UI.64 `985f0730` ((+) de proyecto con
    "Clone from URL"; clip con menú); CI.62 `eec3bc8a` (`ui:gate` borra `runDir` de más de 24 h); poda de specs
    `04b2303b` y de capturas versionadas `912b693b`. Settings: revisión pestaña por pestaña cerrada por ahora.
-1. **CI.55 fase 2** (siguiente): escribir spec con los dos hallazgos de `PLAN.md` (Codex dice no tener herramienta de
-   edición con `workspace-write`; `waitForTaskFinished` toma `pending` con reintento como fin).
+1. CI.55 fase 2 hecha: el gate sigue el reintento y guarda el rollout de Codex por intento. Espera su próximo
+   fallo: leer `codexRollouts` de `role-task-missing-output-attempt-<n>.json` (nota `gate-role-task retried`).
 2. **`Mutation Shards`** (CI.61): corrida 42006593533 debajo de 150 min. Si una posterior pasa 150, reabrir CI.61.
 3. **Esperan su próximo fallo**: CI.57 `composer-picker-model-missing.json`; CI.54 `turn1-bubble-missing.json`; CI.19,
    el motivo en el detalle del paso. Leer el JSON el mismo día: CI.62 borra el `runDir` a las 24 h.

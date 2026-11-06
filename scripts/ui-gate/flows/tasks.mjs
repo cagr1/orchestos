@@ -1,5 +1,13 @@
 import { execFileSync } from 'node:child_process'
-import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import {
+  mkdirSync,
+  mkdtempSync,
+  readdirSync,
+  readFileSync,
+  rmSync,
+  statSync,
+  writeFileSync,
+} from 'node:fs'
 import { tmpdir } from 'node:os'
 import { basename, join } from 'node:path'
 import { setTimeout as delay } from 'node:timers/promises'
@@ -80,6 +88,105 @@ async function recordRetry(api, projectId, task, note) {
     file_diffs: run.fileDiffs ?? [],
   }
   note(`failed attempt ${task.retryCount} QA detail`, JSON.stringify(detail))
+}
+
+async function captureRoleTaskDiagnostics({
+  api,
+  projectId,
+  projectRoot,
+  runDir,
+  task,
+  attemptStartedAt,
+}) {
+  const capture = async (read) => {
+    try {
+      return await read()
+    } catch (error) {
+      return { error: error instanceof Error ? error.message : String(error) }
+    }
+  }
+  const headers = { 'x-orchestos-project-id': projectId }
+  return {
+    task: await capture(() => task ?? null),
+    runs: await capture(async () => {
+      const response = await api('/api/runs', { headers })
+      return await Promise.all(
+        (response.data ?? [])
+          .filter((row) => row.taskId === 'gate-role-task')
+          .map(async (row) => ({
+            row,
+            detail: await capture(async () => {
+              const response = await api(`/api/runs/${encodeURIComponent(row.id)}`, { headers })
+              const detail = response.data ?? response
+              return Object.fromEntries(
+                [
+                  'status',
+                  'result',
+                  'executorReply',
+                  'filesAttempted',
+                  'filesAuthorized',
+                  'filesBlocked',
+                  'checks',
+                  'model',
+                  'provider',
+                  'qaVerdict',
+                  'qaReason',
+                  'costBreakdown',
+                ].map((key) => [key, detail[key] ?? null]),
+              )
+            }),
+          })),
+      )
+    }),
+    dashboardLog: await capture(() =>
+      readFileSync(join(runDir, 'dashboard.log'), 'utf8')
+        .split('\n')
+        .filter((line) => line.includes('[cli-spawn]') || line.includes('gate-role-task'))
+        .slice(-80),
+    ),
+    git: await capture(async () => {
+      const status = await capture(() => gitOut(['status', '--porcelain'], projectRoot))
+      const log = await capture(() => gitOut(['log', '-3', '--oneline'], projectRoot))
+      const worktrees = await capture(() => gitOut(['worktree', 'list'], projectRoot))
+      const worktreePaths = await capture(() =>
+        gitOut(['worktree', 'list', '--porcelain', '-z'], projectRoot)
+          .split('\0')
+          .filter((field) => field.startsWith('worktree '))
+          .map((field) => field.slice('worktree '.length)),
+      )
+      const roleFiles = await Promise.all(
+        [...new Set([projectRoot, ...(Array.isArray(worktreePaths) ? worktreePaths : [])])].map(
+          async (root) => {
+            const path = join(root, 'ROLE.md')
+            return {
+              path,
+              content: await capture(() => readFileSync(path, 'utf8').slice(0, 4000)),
+            }
+          },
+        ),
+      )
+      return { status, log, worktrees, worktreePaths, roleFiles }
+    }),
+    codexRollouts: await capture(() => {
+      const sessionsDir = join(projectRoot, '.orchestos', 'agent-home', 'codex', 'sessions')
+      return readdirSync(sessionsDir, { recursive: true })
+        .filter(
+          (relativePath) =>
+            relativePath.endsWith('.jsonl') && basename(relativePath).startsWith('rollout-'),
+        )
+        .map((relativePath) => ({ path: join(sessionsDir, relativePath), relativePath }))
+        .filter(({ path }) => statSync(path).mtimeMs >= attemptStartedAt)
+        .map(({ path }) => {
+          const lines = readFileSync(path, 'utf8').split('\n').filter(Boolean)
+          return {
+            path,
+            lines: [lines[0], ...lines.slice(-60)]
+              .filter(Boolean)
+              .map((line) => line.slice(0, 2000)),
+          }
+        })
+    }),
+  }
 }
 
 export default async function tasks({ page, api, step, note, shot, visible, cleanup, runDir }) {
@@ -581,79 +688,55 @@ export default async function tasks({ page, api, step, note, shot, visible, clea
   )
   // TRUST.2 — la tarea creada sin criterios no puede afirmar que pasó por QA.
   const roleBefore = (await tasksFor(api, project.id)).find((task) => task.id === 'gate-role-task')
+  let roleRecordedRetryCount = roleBefore?.retryCount ?? 0
+  let roleAttemptStartedAt = Date.now()
   await page.getByRole('button', { name: 'Run gate-role-task', exact: true }).click()
-  const roleFinished = await waitForTaskFinished(api, project.id, 'gate-role-task', roleBefore)
+  let roleFinished = await waitForTaskFinished(api, project.id, 'gate-role-task', roleBefore)
+  while (
+    roleFinished?.status === 'pending' &&
+    roleFinished.retryCount > roleRecordedRetryCount &&
+    roleFinished.retryCount < 3
+  ) {
+    const failedAttempt = roleFinished.retryCount
+    const diagnostics = await captureRoleTaskDiagnostics({
+      api,
+      projectId: project.id,
+      projectRoot,
+      runDir,
+      task: roleFinished,
+      attemptStartedAt: roleAttemptStartedAt,
+    })
+    const diagnosticPath = join(runDir, `role-task-missing-output-attempt-${failedAttempt}.json`)
+    await writeFileSync(diagnosticPath, JSON.stringify(diagnostics, null, 2))
+    await recordRetry(api, project.id, roleFinished, note)
+    roleRecordedRetryCount = roleFinished.retryCount
+    note(
+      'gate-role-task retried',
+      `${roleFinished.retryReason ?? 'retry reason unavailable'} · ${diagnosticPath}`,
+    )
+    const roleRunButton = page.getByRole('button', { name: 'Run gate-role-task', exact: true })
+    if (!(await roleRunButton.isEnabled())) break
+    const retryBefore = roleFinished
+    roleAttemptStartedAt = Date.now()
+    await roleRunButton.click()
+    roleFinished = await waitForTaskFinished(api, project.id, 'gate-role-task', retryBefore)
+  }
   let roleFinishedDetail = JSON.stringify(roleFinished)
   if (!(roleFinished?.status === 'done' && roleFinished?.qaVerdict === 'skipped')) {
+    const diagnostics = await captureRoleTaskDiagnostics({
+      api,
+      projectId: project.id,
+      projectRoot,
+      runDir,
+      task: roleFinished,
+      attemptStartedAt: roleAttemptStartedAt,
+    })
     const capture = async (read) => {
       try {
         return await read()
       } catch (error) {
         return { error: error instanceof Error ? error.message : String(error) }
       }
-    }
-    const headers = { 'x-orchestos-project-id': project.id }
-    const diagnostics = {
-      task: await capture(() => roleFinished ?? null),
-      runs: await capture(async () => {
-        const response = await api('/api/runs', { headers })
-        return await Promise.all(
-          (response.data ?? [])
-            .filter((row) => row.taskId === 'gate-role-task')
-            .map(async (row) => ({
-              row,
-              detail: await capture(async () => {
-                const response = await api(`/api/runs/${encodeURIComponent(row.id)}`, { headers })
-                const detail = response.data ?? response
-                return Object.fromEntries(
-                  [
-                    'status',
-                    'result',
-                    'executorReply',
-                    'filesAttempted',
-                    'filesAuthorized',
-                    'filesBlocked',
-                    'checks',
-                    'model',
-                    'provider',
-                    'qaVerdict',
-                    'qaReason',
-                    'costBreakdown',
-                  ].map((key) => [key, detail[key] ?? null]),
-                )
-              }),
-            })),
-        )
-      }),
-      dashboardLog: await capture(() =>
-        readFileSync(join(runDir, 'dashboard.log'), 'utf8')
-          .split('\n')
-          .filter((line) => line.includes('[cli-spawn]') || line.includes('gate-role-task'))
-          .slice(-80),
-      ),
-      git: await capture(async () => {
-        const status = await capture(() => gitOut(['status', '--porcelain'], projectRoot))
-        const log = await capture(() => gitOut(['log', '-3', '--oneline'], projectRoot))
-        const worktrees = await capture(() => gitOut(['worktree', 'list'], projectRoot))
-        const worktreePaths = await capture(() =>
-          gitOut(['worktree', 'list', '--porcelain', '-z'], projectRoot)
-            .split('\0')
-            .filter((field) => field.startsWith('worktree '))
-            .map((field) => field.slice('worktree '.length)),
-        )
-        const roleFiles = await Promise.all(
-          [...new Set([projectRoot, ...(Array.isArray(worktreePaths) ? worktreePaths : [])])].map(
-            async (root) => {
-              const path = join(root, 'ROLE.md')
-              return {
-                path,
-                content: await capture(() => readFileSync(path, 'utf8').slice(0, 4000)),
-              }
-            },
-          ),
-        )
-        return { status, log, worktrees, worktreePaths, roleFiles }
-      }),
     }
     const diagnosticPath = join(runDir, 'role-task-missing-output.json')
     const diagnosticWrite = await capture(() =>
@@ -676,6 +759,9 @@ export default async function tasks({ page, api, step, note, shot, visible, clea
           ? diagnostics.dashboardLog.filter((line) => line.includes('[cli-spawn]'))
           : diagnostics.dashboardLog,
       ).slice(-350),
+      codexRollouts: Array.isArray(diagnostics.codexRollouts)
+        ? diagnostics.codexRollouts.length
+        : diagnostics.codexRollouts,
       diagnosticPath,
       diagnosticWrite,
     })

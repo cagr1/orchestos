@@ -1,7 +1,67 @@
 {
-  "exported_at": "2026-11-06T01:50:44.277Z",
+  "exported_at": "2026-11-06T02:09:18.865Z",
   "total_runs": 20,
   "runs": [
+    {
+      "id": "b46baec7-363a-4d1e-95b2-2190fe805881",
+      "task_class": "gate:ci.55-fase2-tasks:implement",
+      "model": "openai/gpt-6-luna",
+      "provider": "codex",
+      "status": "failed",
+      "qa_verdict": "fail",
+      "qa_reason": "check failed: bun -e 'console.error(\"TRUST1-MARKER\"),process.exit(1)' exit 1 (expected 0)\n--- stderr (tail) ---\nTRUST1-MARKER\n",
+      "files_blocked": [],
+      "checks_failed": 1,
+      "usd_cost": 0.0004215,
+      "elapsed_ms": 5467,
+      "tokens": 2983,
+      "created_at": "2026-11-06T02:08:33.158Z"
+    },
+    {
+      "id": "c788c97e-70d5-45d6-84b5-45a317339612",
+      "task_class": "gate:ci.55-fase2-tasks:implement",
+      "model": "gpt-6-luna",
+      "provider": "codex",
+      "status": "done",
+      "qa_verdict": "skipped",
+      "qa_reason": "Sin revisión LLM y sin checks: nada verificó esta tarea",
+      "files_blocked": [],
+      "checks_failed": 0,
+      "usd_cost": 0.0009101000000000001,
+      "elapsed_ms": 8468,
+      "tokens": 6161,
+      "created_at": "2026-11-06T02:08:25.521Z"
+    },
+    {
+      "id": "ca33d378-1a43-4188-bfcb-2ebc2210f259",
+      "task_class": "gate:ci.55-fase2-tasks:implement",
+      "model": "openai/gpt-6-luna",
+      "provider": "codex",
+      "status": "done",
+      "qa_verdict": "pass",
+      "qa_reason": "NOTES.md contains the required line.",
+      "files_blocked": [],
+      "checks_failed": 0,
+      "usd_cost": 0.00111218,
+      "elapsed_ms": 22779,
+      "tokens": 6621,
+      "created_at": "2026-11-06T02:08:15.489Z"
+    },
+    {
+      "id": "0a53fe50-e725-41c0-9572-2a21924d6395",
+      "task_class": "gate:ci.55-fase2-tasks:doc",
+      "model": "openai/gpt-6-luna",
+      "provider": "codex",
+      "status": "done",
+      "qa_verdict": "pass",
+      "qa_reason": "README.md contains the requested line.",
+      "files_blocked": [],
+      "checks_failed": 0,
+      "usd_cost": 0.00155554,
+      "elapsed_ms": 16349,
+      "tokens": 9705,
+      "created_at": "2026-11-06T02:07:49.492Z"
+    },
     {
       "id": "b949719f-27db-4d6d-a0ec-46f1889601d3",
       "task_class": "gate:ui.64-live:doc",
@@ -241,66 +301,6 @@
       "elapsed_ms": 6561,
       "tokens": 3516,
       "created_at": "2026-11-05T22:14:57.363Z"
-    },
-    {
-      "id": "ac7ddbf6-b146-4527-9bc5-3c5056fa2dae",
-      "task_class": "gate:run.1-r2-ready-composer:implement",
-      "model": "gpt-6-luna",
-      "provider": "codex",
-      "status": "failed",
-      "qa_verdict": "fail",
-      "qa_reason": "missing declared output(s): ROLE.md",
-      "files_blocked": [],
-      "checks_failed": 0,
-      "usd_cost": 0.0004253,
-      "elapsed_ms": 9416,
-      "tokens": 2981,
-      "created_at": "2026-11-05T22:14:03.472Z"
-    },
-    {
-      "id": "54f9dfde-177f-4661-a136-68e135cb0b42",
-      "task_class": "gate:run.1-r2-ready-composer:implement",
-      "model": "openai/gpt-6-luna",
-      "provider": "codex",
-      "status": "done",
-      "qa_verdict": "pass",
-      "qa_reason": "NOTES.md contains the required line.",
-      "files_blocked": [],
-      "checks_failed": 0,
-      "usd_cost": 0.00106486,
-      "elapsed_ms": 19188,
-      "tokens": 6051,
-      "created_at": "2026-11-05T22:13:42.669Z"
-    },
-    {
-      "id": "350cc1ae-25e3-4987-b89e-fcd69dc2a175",
-      "task_class": "gate:run.1-r2-ready-composer:doc",
-      "model": "openai/gpt-6-luna",
-      "provider": "codex",
-      "status": "done",
-      "qa_verdict": "pass",
-      "qa_reason": "README.md contains the requested line.",
-      "files_blocked": [],
-      "checks_failed": 0,
-      "usd_cost": 0.0012652,
-      "elapsed_ms": 30072,
-      "tokens": 6420,
-      "created_at": "2026-11-05T22:13:13.311Z"
-    },
-    {
-      "id": "62f614aa-b69e-497d-b6e8-9a7f02bf5483",
-      "task_class": "gate:run.1-r2-ready-composer:implement",
-      "model": "openai/gpt-6-luna",
-      "provider": "codex",
-      "status": "done",
-      "qa_verdict": "skipped",
-      "qa_reason": "Sin revisión LLM y sin checks: nada verificó esta tarea",
-      "files_blocked": [],
-      "checks_failed": 0,
-      "usd_cost": 0.0006615600000000001,
-      "elapsed_ms": 16197,
-      "tokens": 3426,
-      "created_at": "2026-11-05T22:12:09.462Z"
     }
   ],
   "stats": {
@@ -308,6 +308,6 @@
     "blocked": 0,
     "done": 16,
     "qa_failed": 4,
-    "total_cost_usd": "0.0194"
+    "total_cost_usd": "0.0200"
   }
 }
