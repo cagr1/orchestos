@@ -782,7 +782,7 @@ export async function runTask(opts: HarnessOpts): Promise<TaskResult> {
     // resueltos ANTES de invocar el juez, nunca por el mismo LLM que hizo el trabajo.
     // Registrados en el run (`skill_gates_json`) para distinguir "ninguna aplicaba"
     // de "el selector falló en silencio" — hoy indistinguibles con el escalar `skill_id`.
-    const gateEvaluations = resolveGates(ctx.task.description, 'review')
+    const gateEvaluations = resolveGates(ctx.task.description, 'review', projectRoot)
     const gatesJson = gateEvaluations.length
       ? JSON.stringify(
           gateEvaluations.map((g) => ({

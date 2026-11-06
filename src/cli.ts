@@ -52,6 +52,7 @@ import {
   getSkillPath,
   listSkillFiles,
   loadSkill,
+  resolveEnabledSkillPath,
   resolveSkillPath,
   type SkillTarget,
 } from './skills/registry.ts'
@@ -615,7 +616,7 @@ program
           // prompt.ts y skill-route.ts. Como el CLI pasa `skillGuidelines` explícito
           // a buildPrompt(), bypasseaba el fallback ya arreglado: por el CLI, el
           // iron_law seguía sin llegar al ejecutor. Ahora usa buildSections().
-          const skillDef = loadSkill(resolveSkillPath(opts.skill))
+          const skillDef = loadSkill(resolveEnabledSkillPath(opts.skill, root))
           skillGuidelines = `\n## SKILL GUIDELINES: ${skillDef.name}\n${buildSections(skillDef).join('\n\n')}\n`
         } catch (e: any) {
           console.warn(`[run] Skill "${opts.skill}" not found — continuing without it`)

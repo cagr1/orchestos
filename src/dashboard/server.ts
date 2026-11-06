@@ -90,6 +90,7 @@ import {
   handleApiSetupApiKey,
 } from './handlers/setup.ts'
 import {
+  handleApiSkillEnabled,
   handleApiSkillsBuild,
   handleApiSkillsCreate,
   handleApiSkillsCurate,
@@ -97,6 +98,7 @@ import {
   handleApiSkillsExport,
   handleApiSkillsGet,
   handleApiSkillsImport,
+  handleApiSkillsLibrary,
   handleApiSkillsList,
   handleApiSkillsProImport,
   handleApiSkillsProList,
@@ -316,6 +318,14 @@ export async function route(req: Request, port: number): Promise<Response> {
     )
   }
 
+  if (method === 'POST' && url.pathname === '/api/skills/library') {
+    return handleApiSkillsLibrary(req)
+  }
+  if (method === 'PUT' && /^\/api\/skills\/[^/]+\/enabled$/.test(url.pathname)) {
+    if (!req.headers.get('x-orchestos-project-id'))
+      return errorResponse('Project header is required', 400)
+    return withDashboardProject(req, (project) => handleApiSkillEnabled(req, url, project.root))
+  }
   if (method === 'GET' && url.pathname === '/api/skills') {
     return withDashboardProject(req, (project) => handleApiSkillsList(project.root, project.id))
   }

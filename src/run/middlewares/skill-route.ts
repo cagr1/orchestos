@@ -1,5 +1,5 @@
 import { isReviewOnlyGate } from '../../skills/catalog.ts'
-import { loadSkill, resolveSkillPath } from '../../skills/registry.ts'
+import { loadSkill, resolveEnabledSkillPath } from '../../skills/registry.ts'
 import { buildSections } from '../../skills/targets/_shared.ts'
 import type { MiddlewareFn, RunContext } from '../middleware.ts'
 
@@ -13,7 +13,7 @@ export const skillRoute: MiddlewareFn<RunContext> = async (ctx, next) => {
   const skillId = ctx.task.skill
   if (skillId) {
     try {
-      const skill = loadSkill(resolveSkillPath(skillId))
+      const skill = loadSkill(resolveEnabledSkillPath(skillId, ctx.opts.projectRoot))
       if (!isReviewOnlyGate(skill.activation)) {
         ctx.skillInstructions = `\n## SKILL GUIDELINES: ${skill.name}\n${buildSections(skill).join('\n\n')}\n`
       }

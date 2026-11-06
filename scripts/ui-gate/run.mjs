@@ -49,19 +49,32 @@ async function freePort() {
 // R.8.4 — el arranque vive en una función para que `ctx.restartDashboard()` lo repita
 // con el mismo ORCHESTOS_HOME, puerto y log.
 function startDashboard(port) {
-  dashboard = spawn('bun', ['run', 'src/cli.ts', 'dashboard', '--port', String(port)], {
-    cwd: process.cwd(),
-    env: {
-      ...process.env,
-      ORCHESTOS_HOME: home,
-      ORCHESTOS_GATE_CAPTURE_DIR: captureDir,
-      ORCHESTOS_CLAUDE_STATUSLINE_HOME: statuslineHome,
-      ORCHESTOS_CLAUDE_USAGE_LIVE: '0',
-      ORCHESTOS_OPENROUTER_TEST_URL: 'http://127.0.0.1:9/',
-      ORCHESTOS_TEST_PROJECT_CLONE_FILE: '1',
+  dashboard = spawn(
+    'bun',
+    [
+      'run',
+      ...(flows.includes('skills-library')
+        ? ['--preload', './scripts/ui-gate/skills-library-probe.ts']
+        : []),
+      'src/cli.ts',
+      'dashboard',
+      '--port',
+      String(port),
+    ],
+    {
+      cwd: process.cwd(),
+      env: {
+        ...process.env,
+        ORCHESTOS_HOME: home,
+        ORCHESTOS_GATE_CAPTURE_DIR: captureDir,
+        ORCHESTOS_CLAUDE_STATUSLINE_HOME: statuslineHome,
+        ORCHESTOS_CLAUDE_USAGE_LIVE: '0',
+        ORCHESTOS_OPENROUTER_TEST_URL: 'http://127.0.0.1:9/',
+        ORCHESTOS_TEST_PROJECT_CLONE_FILE: '1',
+      },
+      stdio: ['ignore', dashboardLogFd, dashboardLogFd],
     },
-    stdio: ['ignore', dashboardLogFd, dashboardLogFd],
-  })
+  )
 }
 
 // `whileStopped` corre con el dashboard ya detenido y antes de volver a levantarlo: permite

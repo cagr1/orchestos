@@ -7,12 +7,25 @@ import { EmptyState } from '../common/ViewStateFeedback'
 
 interface SkillsViewProps {
   skills: SkillItem[]
+  onAddLibrarySkill?: (url: string) => Promise<{ warnings: string[] }>
+  onEnableLibrarySkill?: (id: string, enabled: boolean) => Promise<void>
   onCompileSkill: (skillId: string) => Promise<{ paths: string[] }>
 }
 
 const ROW_BORDER = 'border-[color:color-mix(in_srgb,var(--app-border)_50%,transparent)]'
 
-export const SkillsView: React.FC<SkillsViewProps> = ({ skills, onCompileSkill }) => {
+export const SkillsView: React.FC<SkillsViewProps> = ({
+  skills,
+  onCompileSkill,
+  onAddLibrarySkill,
+  onEnableLibrarySkill,
+}) => {
+  const [showAdd, setShowAdd] = useState(false)
+  const [url, setUrl] = useState('')
+  const [error, setError] = useState('')
+  const [warnings, setWarnings] = useState<string[]>([])
+  const [saving, setSaving] = useState(false)
+  const [pendingEnabled, setPendingEnabled] = useState<Record<string, boolean>>({})
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedLanguage, setSelectedLanguage] = useState<string>('all')
   const [compileResults, setCompileResults] = useState<Record<string, string>>({})
@@ -67,6 +80,16 @@ export const SkillsView: React.FC<SkillsViewProps> = ({ skills, onCompileSkill }
           </div>
         </div>
 
+        <Button
+          size="compact"
+          onClick={() => {
+            setError('')
+            setShowAdd(true)
+          }}
+          disabled={!onAddLibrarySkill}
+        >
+          Add skill
+        </Button>
         <select
           value={selectedLanguage}
           onChange={(e) => setSelectedLanguage(e.target.value)}
@@ -81,6 +104,75 @@ export const SkillsView: React.FC<SkillsViewProps> = ({ skills, onCompileSkill }
         </select>
       </div>
 
+      {error && !showAdd && (
+        <p role="alert" className="px-6 text-xs text-app-error">
+          {error}
+        </p>
+      )}
+      {warnings.map((warning) => (
+        <p key={warning} role="status" className="px-6 text-xs text-app-muted">
+          {warning}
+        </p>
+      ))}
+      {showAdd && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-label="Add skill"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 p-4 backdrop-blur-xs"
+        >
+          <form
+            className="w-full max-w-md space-y-4 rounded-card border border-app bg-app-surface p-5 text-xs shadow-2xl"
+            onSubmit={async (event) => {
+              event.preventDefault()
+              if (!onAddLibrarySkill) return
+              setSaving(true)
+              setError('')
+              try {
+                const result = await onAddLibrarySkill(url)
+                setWarnings(result.warnings)
+                setUrl('')
+                setShowAdd(false)
+              } catch (error) {
+                setError(error instanceof Error ? error.message : String(error))
+              } finally {
+                setSaving(false)
+              }
+            }}
+          >
+            <h2 className="text-sm font-semibold text-app">Add skill</h2>
+            <label className="block space-y-2 text-app-muted">
+              <span>GitHub URL of a SKILL.md or folder</span>
+              <input
+                required
+                type="url"
+                value={url}
+                onChange={(event) => setUrl(event.target.value)}
+                className="h-8 w-full rounded-control border border-app bg-app-elevated px-3 text-xs text-app focus:outline-none"
+              />
+            </label>
+            {error && (
+              <p role="alert" className="text-app-error">
+                {error}
+              </p>
+            )}
+            <div className="flex justify-end gap-2 border-t border-app pt-2">
+              <Button
+                type="button"
+                variant="ghost"
+                size="compact"
+                disabled={saving}
+                onClick={() => setShowAdd(false)}
+              >
+                Cancel
+              </Button>
+              <Button type="submit" size="compact" disabled={saving}>
+                Add
+              </Button>
+            </div>
+          </form>
+        </div>
+      )}
       {/* Skills list */}
       <div data-view-content="skills" className="flex-1 overflow-y-auto px-6 pb-6">
         <div>
@@ -114,11 +206,47 @@ export const SkillsView: React.FC<SkillsViewProps> = ({ skills, onCompileSkill }
                   <span className="shrink-0 text-xs text-app-muted">{skill.language}</span>
                   <span className="shrink-0 text-xs text-app-muted">{skill.status}</span>
                   <span className="shrink-0 text-xs text-app-muted">
-                    {skill.origin === 'library' ? 'Biblioteca' : 'Proyecto'}
+                    {skill.origin === 'user-library'
+                      ? 'Library'
+                      : skill.origin === 'built-in'
+                        ? 'Built-in'
+                        : 'Project'}
                   </span>
                   <span className="ml-auto shrink-0 text-xs tabular-nums text-app-muted">
                     {skill.usageRuns} runs
                   </span>
+                  {skill.origin === 'user-library' && (
+                    <label className="flex items-center gap-2 text-xs text-app-muted">
+                      Use in this project
+                      <input
+                        type="checkbox"
+                        role="switch"
+                        aria-label={`Use in this project ${skill.name}`}
+                        aria-checked={pendingEnabled[skill.id] ?? !!skill.enabled}
+                        checked={pendingEnabled[skill.id] ?? !!skill.enabled}
+                        disabled={saving || !onEnableLibrarySkill}
+                        className="relative h-5 w-9 shrink-0 cursor-pointer appearance-none rounded-full bg-app-elevated transition-colors after:absolute after:left-0.5 after:top-0.5 after:size-4 after:rounded-full after:bg-app-muted after:transition-transform checked:bg-app-accent checked:after:translate-x-4 checked:after:bg-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 disabled:opacity-50"
+                        onChange={async (event) => {
+                          const enabled = event.target.checked
+                          setPendingEnabled((previous) => ({ ...previous, [skill.id]: enabled }))
+                          setSaving(true)
+                          setError('')
+                          try {
+                            await onEnableLibrarySkill?.(skill.id, enabled)
+                          } catch (error) {
+                            setError(error instanceof Error ? error.message : String(error))
+                          } finally {
+                            setPendingEnabled((previous) => {
+                              const next = { ...previous }
+                              delete next[skill.id]
+                              return next
+                            })
+                            setSaving(false)
+                          }
+                        }}
+                      />
+                    </label>
+                  )}
                   <Button
                     variant="ghost"
                     size="compact"

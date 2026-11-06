@@ -26,10 +26,12 @@ import { getProjectContext } from './api/project'
 import { chooseProject, deleteProject, listProjects, purgeProjectData } from './api/projects'
 import {
   addInstinct,
+  addLibrarySkill,
   approveInstinct,
   approveSpec,
   compileSkill,
   draftSpec,
+  enableLibrarySkill,
   explainTask,
   lintSpec,
   listInstincts,
@@ -1448,6 +1450,17 @@ export default function App() {
       await reloadTabs()
     }
   }
+  const handleAddLibrarySkill = async (url: string) => {
+    if (!currentProject) throw new Error('Select a project')
+    const result = await addLibrarySkill(currentProject.id, url)
+    await reloadTabs()
+    return result
+  }
+  const handleEnableLibrarySkill = async (id: string, enabled: boolean) => {
+    if (!currentProject) throw new Error('Select a project')
+    await enableLibrarySkill(currentProject.id, id, enabled)
+    await reloadTabs()
+  }
   const handleCompileSkill = async (id: string) => {
     if (currentProject) {
       const result = await compileSkill(currentProject.id, id)
@@ -1737,6 +1750,8 @@ export default function App() {
                 onLintSpec={handleLintSpec}
                 onResolveConflict={handleResolveConflict}
                 onCompileSkill={handleCompileSkill}
+                onAddLibrarySkill={handleAddLibrarySkill}
+                onEnableLibrarySkill={handleEnableLibrarySkill}
                 onApproveInstinct={handleApproveInstinct}
                 onRejectInstinct={handleRejectInstinct}
                 onAddInstinct={handleAddInstinct}

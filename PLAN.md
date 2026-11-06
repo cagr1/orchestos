@@ -289,16 +289,30 @@ Cerrada. Todos sus ítems están archivados en `docs/done/` (ver "Cerrados — e
   `test:coverage` 2347/0. Anotado: el repo no registra `release` en SessionEnd (lo hace el hook global; sin él,
   el candado vence a los 45 min).
   Ejecutado por: codex gpt-6.1-sol (criterio) · Spec: docs/specs/DEV.1.md
-- [ ] **SK.1 — Biblioteca de skills general, activación por proyecto y "Add skill" en Settings.** (GO de Carlos
+- [x] **SK.1 — Biblioteca de skills general, activación por proyecto y "Add skill" en Settings.** (GO de Carlos
   2026-11-06) Las skills no se instalan en el CLI: quedan disponibles en `~/.orchestos/skills/` y cada proyecto elige
   cuáles usa; la del proyecto gana. Hoy importar por URL existe solo por API y no acepta `SKILL.md`. Siguen SK.2
   (skill por fase: plan/diseño/código/revisión/seguridad) y SK.3 (perfil "¿sabes programar?"). Set curado inicial:
   `karpathy-guidelines`, `grill-me`/`to-spec` (mattpocock), `impeccable`, `tdd`, `verification-before-completion`
-  (superpowers), `security-audit` (Cloudflare, modo orientación). Spec: `docs/specs/SK.1.md`.
-  Texto visible: "Add skill" · "Add" (botón y acción: un ícono "+" solo no dice qué agrega)
-  Texto visible: "GitHub URL of a SKILL.md or folder" (el campo debe decir qué URL acepta)
-  Texto visible: "Project" · "Library" · "Built-in" (origen de cada skill; sin él no se sabe cuál gana)
-  Texto visible: "Use in this project" (el switch sin rótulo es ambiguo)
+  (superpowers), `security-audit` (Cloudflare, modo orientación).
+  Hecho: biblioteca `~/.orchestos/skills/` (orden proyecto > biblioteca > incluida); `POST /api/skills/library`
+  importa un `SKILL.md` (URL raw, blob o tree de GitHub) sin LLM, con `checkSsrSafe`, 256 KB y sin redirecciones,
+  y avisa los archivos auxiliares no traídos; las de biblioteca llegan apagadas y se activan por proyecto
+  (`<proyecto>/.orchestos/skills.json`, excluido de git para no ensuciar el árbol); el selector, `skillRoute` y la
+  resolución por id solo ven las habilitadas. Esquema: `description` ≤ 1024, `instructions` ≤ 32 000; el catálogo
+  del selector recorta la descripción a 200. UI: "Add skill", origen por fila y switch. Gate nuevo `skills-library`
+  en el pre-push (la excepción de SSRF para el servidor local del gate entra solo por `--preload`).
+  Gates del cerebro: `test:coverage` 2359/1 (el fallo, `session-status.test.ts` por timeout, no lo toca el ítem y
+  aislado pasa 3/3: intermitente por carga), `skills-library` 9/9 ×2 y 11/11 ×3 con importación real de
+  `karpathy-guidelines` desde GitHub (`gate:evidence` `SK.1-skills-library`).
+  Gate en vivo: navegador real (Playwright), `docs/done/evidence/SK.1-live.json`
+  Revisión: Opus (diff de registry, handlers, conversión y sonda del gate leídos; defecto `skills.json` → árbol
+  sucio hallado y corregido en r3; capturas del diálogo y la lista mirados).
+  Ejecutado por: codex gpt-6.1-sol (criterio r1, r2) + gpt-6-luna (mecanico r3) · Spec: docs/specs/SK.1.md
+  Texto visible: "Add skill" · "Add" · "Cancel" (botones del diálogo: un "+" solo no dice qué agrega ni cómo salir)
+  Texto visible: "GitHub URL of a SKILL.md or folder" (rótulo del campo: dice qué URL acepta)
+  Texto visible: "Project" · "Library" · "Built-in" (origen por fila: sin él no se sabe cuál gana)
+  Texto visible: "Use in this project" (rótulo del switch: sin texto, el switch es ambiguo)
 - [ ] **CI.19 — El `git commit` del fixture falla a veces en el andamiaje de los ui-gates.** Visto 1 vez en
   `qa-negative` (2026-10-11, 1 de 9): `Command failed: git … commit -qm task fixture`, sin motivo porque el helper
   `run` usa `stdio: 'ignore'`. `qa-negative` ya reporta stdout/stderr y exit; los otros 20 flows con el mismo helper no.

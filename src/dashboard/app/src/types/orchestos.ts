@@ -167,7 +167,8 @@ export interface SkillItem {
   status: 'compiled' | 'source' | 'remote'
   usageRuns: number
   description: string
-  origin?: 'project' | 'library'
+  enabled?: boolean
+  origin?: 'project' | 'user-library' | 'built-in'
 }
 
 export interface ToolExecution {

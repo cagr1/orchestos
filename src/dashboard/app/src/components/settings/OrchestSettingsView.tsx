@@ -466,6 +466,8 @@ interface OrchestSettingsViewProps {
   onRecordMemory?: (content: string, type: 'semantic' | 'procedural' | 'episodic') => void
   onResolveConflict?: (id: string, resolvedContent: string) => void
   onToggleSkill?: (id: string) => void
+  onAddLibrarySkill?: (url: string) => Promise<{ warnings: string[] }>
+  onEnableLibrarySkill?: (id: string, enabled: boolean) => Promise<void>
   onCompileSkill?: (skillId: string) => Promise<{ paths: string[] }>
   onTeachInstinct?: (when: string, then: string) => void
   onApproveInstinct?: (id: string) => void
@@ -513,6 +515,8 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
   onResolveConflict,
   onToggleSkill,
   onCompileSkill,
+  onAddLibrarySkill,
+  onEnableLibrarySkill,
   onTeachInstinct,
   onApproveInstinct,
   onRejectInstinct,
@@ -3582,6 +3586,8 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
                 {activeProjectTab === 'skills' && (
                   <SkillsView
                     skills={skills}
+                    onAddLibrarySkill={onAddLibrarySkill}
+                    onEnableLibrarySkill={onEnableLibrarySkill}
                     onCompileSkill={onCompileSkill || (async () => ({ paths: [] }))}
                   />
                 )}

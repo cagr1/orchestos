@@ -1,18 +1,22 @@
 import { existsSync, mkdirSync, readFileSync, unlinkSync, writeFileSync } from 'fs'
-import { dirname } from 'path'
+import { dirname, join } from 'path'
 import { loadOrcheConfig } from '../../config/load.ts'
 import type { getProvider } from '../../providers/index.ts'
 import type { ChatMessage, ChatResponse } from '../../providers/openrouter.ts'
 import { chat as realOpenrouterChat } from '../../providers/openrouter.ts'
 import { roleClient } from '../../router/role-runner.ts'
 import { compileSkill } from '../../skills/compile.ts'
+import { convertSkillMarkdown, skillMarkdownUrl } from '../../skills/markdown-import.ts'
 import {
+  getEnabledSkillIds,
   getSkillPath,
+  getUserSkillsDir,
   listProSkillFiles,
   listSkillFilesWithOrigin,
   loadSkill,
   resolveProSkillPath,
   resolveSkillPath,
+  setSkillEnabled,
   validateSkill,
 } from '../../skills/registry.ts'
 
@@ -64,6 +68,7 @@ function handleApiSkillsList(root = process.cwd(), projectId: string | null = nu
         skills.push({
           id: s.id,
           origin,
+          enabled: origin !== 'user-library' || getEnabledSkillIds(root).has(s.id),
           name: s.name,
           description: s.description,
           version: s.version,
@@ -284,6 +289,91 @@ function handleApiSkillsProImport(url: URL, root = process.cwd()): Response {
     return jsonResponse({ ok: true, id } satisfies MutationResult)
   } catch (e: any) {
     return errorResponse(e.message, 500)
+  }
+}
+
+// Test harnesses inject a URL probe; production always uses checkSsrSafe.
+let libraryUrlCheck: typeof checkSsrSafe = checkSsrSafe
+export function __setLibraryUrlCheckForTests(check: typeof checkSsrSafe = checkSsrSafe): void {
+  libraryUrlCheck = check
+}
+
+async function handleApiSkillsLibrary(req: Request): Promise<Response> {
+  try {
+    const body = await req.json()
+    if (!body || typeof body.url !== 'string') return errorResponse('url is required', 400)
+    const { fetchUrl, sourceUrl } = skillMarkdownUrl(body.url)
+    const blocked = await libraryUrlCheck(fetchUrl)
+    if (blocked) return errorResponse(blocked, 400)
+    const response = await fetch(fetchUrl, {
+      redirect: 'error',
+      signal: AbortSignal.timeout(15000),
+    })
+    if (!response.ok) return errorResponse(`HTTP ${response.status} fetching URL`, 400)
+    const limit = 256 * 1024
+    if (Number(response.headers.get('content-length') ?? 0) > limit) {
+      await response.body?.cancel()
+      return errorResponse('Fetched skill exceeds the 256 KB limit', 413)
+    }
+    const reader = response.body?.getReader()
+    if (!reader) return errorResponse('Empty SKILL.md response', 400)
+    const chunks: Uint8Array[] = []
+    let size = 0
+    try {
+      while (true) {
+        const { value, done } = await reader.read()
+        if (done) break
+        size += value.byteLength
+        if (size > limit) {
+          await reader.cancel()
+          return errorResponse('Fetched skill exceeds the 256 KB limit', 413)
+        }
+        chunks.push(value)
+      }
+    } finally {
+      reader.releaseLock()
+    }
+    const { skill, warnings } = convertSkillMarkdown(
+      Buffer.concat(chunks).toString('utf8'),
+      sourceUrl,
+    )
+    const dir = getUserSkillsDir()
+    mkdirSync(dir, { recursive: true })
+    const path = join(dir, `${skill.id}.yaml`)
+    if (existsSync(path) || existsSync(join(dir, `${skill.id}.yml`)))
+      return errorResponse('Skill already exists', 409)
+    try {
+      writeFileSync(path, stringify(skill, { lineWidth: 120 }), { encoding: 'utf8', flag: 'wx' })
+    } catch (error: any) {
+      if (error.code === 'EEXIST') return errorResponse('Skill already exists', 409)
+      throw error
+    }
+    return jsonResponse({ ok: true, id: skill.id, skill, warnings })
+  } catch (error: any) {
+    return errorResponse(error.message, 400)
+  }
+}
+
+async function handleApiSkillEnabled(
+  req: Request,
+  url: URL,
+  root = process.cwd(),
+): Promise<Response> {
+  const id = url.pathname.match(/^\/api\/skills\/([a-z0-9]+(?:-[a-z0-9]+)*)\/enabled$/)?.[1]
+  if (!id) return errorResponse('Invalid skill id', 400)
+  try {
+    const body = await req.json()
+    if (typeof body?.enabled !== 'boolean') return errorResponse('enabled must be a boolean', 400)
+    if (
+      !listSkillFilesWithOrigin(root).some(
+        ({ path, origin }) => origin === 'user-library' && loadSkill(path).id === id,
+      )
+    )
+      return errorResponse('Library skill not found', 404)
+    setSkillEnabled(id, body.enabled, root)
+    return jsonResponse({ ok: true, id, enabled: body.enabled })
+  } catch (error: any) {
+    return errorResponse(error.message, 400)
   }
 }
 
@@ -621,6 +711,7 @@ function __resetChatForTests(): void {
 export {
   __resetChatForTests,
   __setChatForTests,
+  handleApiSkillEnabled,
   handleApiSkillsBuild,
   handleApiSkillsCreate,
   handleApiSkillsCurate,
@@ -628,6 +719,7 @@ export {
   handleApiSkillsExport,
   handleApiSkillsGet,
   handleApiSkillsImport,
+  handleApiSkillsLibrary,
   handleApiSkillsList,
   handleApiSkillsProImport,
   handleApiSkillsProList,

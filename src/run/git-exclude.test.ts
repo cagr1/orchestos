@@ -2,9 +2,11 @@ import { afterEach, describe, expect, test } from 'bun:test'
 import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'fs'
 import { tmpdir } from 'os'
 import { join } from 'path'
+import { setSkillEnabled } from '../skills/registry.ts'
 import { provisionCliConfigHome } from './executors/cli-registry.ts'
 import { excludeRuntimeArtifacts } from './git-exclude.ts'
 import { RunLogger } from './logger.ts'
+import { listDirtyFiles } from './sandbox-policy.ts'
 
 const roots: string[] = []
 
@@ -53,5 +55,19 @@ describe('excludeRuntimeArtifacts', () => {
   test('does not throw outside a Git repository', () => {
     const root = tempDir()
     expect(() => excludeRuntimeArtifacts(root)).not.toThrow()
+  })
+
+  test('keeps project skill activation state out of the dirty file list', () => {
+    const root = tempDir()
+    git(['init'], root)
+    git(['config', 'user.email', 'test@example.com'], root)
+    git(['config', 'user.name', 'Test'], root)
+    writeFileSync(join(root, 'tracked.txt'), 'tracked\n')
+    git(['add', 'tracked.txt'], root)
+    git(['commit', '-m', 'initial'], root)
+
+    setSkillEnabled('x', true, root)
+
+    expect(listDirtyFiles(root)).toEqual([])
   })
 })

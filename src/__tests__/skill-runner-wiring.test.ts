@@ -54,7 +54,11 @@ function makeTask(overrides: Partial<Task> = {}): Task {
 describe('skillRoute middleware — compiles through buildSections (N.4.5)', () => {
   test('iron_law reaches ctx.skillInstructions', async () => {
     writeTestSkill()
-    const ctx = { task: makeTask({ skill: TEST_SKILL_ID }), skillInstructions: '' } as RunContext
+    const ctx = {
+      task: makeTask({ skill: TEST_SKILL_ID }),
+      skillInstructions: '',
+      opts: { projectRoot: process.cwd() },
+    } as RunContext
     await skillRoute(ctx, async () => {})
     expect(ctx.skillInstructions).toContain('## Iron law')
     expect(ctx.skillInstructions).toContain('Never skip the test.')
@@ -62,19 +66,31 @@ describe('skillRoute middleware — compiles through buildSections (N.4.5)', () 
   })
 
   test('no skill leaves skillInstructions untouched', async () => {
-    const ctx = { task: makeTask(), skillInstructions: '' } as RunContext
+    const ctx = {
+      task: makeTask(),
+      skillInstructions: '',
+      opts: { projectRoot: process.cwd() },
+    } as RunContext
     await skillRoute(ctx, async () => {})
     expect(ctx.skillInstructions).toBe('')
   })
 
   test('review-only gate skill is not injected into the executor', async () => {
-    const ctx = { task: makeTask({ skill: 'qa-structured' }), skillInstructions: '' } as RunContext
+    const ctx = {
+      task: makeTask({ skill: 'qa-structured' }),
+      skillInstructions: '',
+      opts: { projectRoot: process.cwd() },
+    } as RunContext
     await skillRoute(ctx, async () => {})
     expect(ctx.skillInstructions).toBe('')
   })
 
   test('propagates downstream errors from a review-only gate after one next call', async () => {
-    const ctx = { task: makeTask({ skill: 'qa-structured' }), skillInstructions: '' } as RunContext
+    const ctx = {
+      task: makeTask({ skill: 'qa-structured' }),
+      skillInstructions: '',
+      opts: { projectRoot: process.cwd() },
+    } as RunContext
     const next = Object.assign(
       async () => {
         throw new Error('boom')

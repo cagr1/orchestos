@@ -1,7 +1,7 @@
 import { existsSync, readFileSync } from 'fs'
 import { join } from 'path'
 import { isReviewOnlyGate } from '../skills/catalog.ts'
-import { loadSkill, resolveSkillPath } from '../skills/registry.ts'
+import { loadSkill, resolveEnabledSkillPath } from '../skills/registry.ts'
 import { buildSections } from '../skills/targets/_shared.ts'
 import type { Task } from '../tasks/schema.ts'
 
@@ -24,7 +24,7 @@ export function buildPrompt(
   previousFailure?: string,
   roadmapInstructions?: string,
 ): BuiltPrompt {
-  const guidelines = skillGuidelines ?? loadSkillGuidelines(task.skill)
+  const guidelines = skillGuidelines ?? loadSkillGuidelines(task.skill, projectRoot)
 
   const system = [
     contextText || '# Project context\nNo AGENTS.md found.',
@@ -65,11 +65,11 @@ export function buildPrompt(
 // duplicaba `skill.instructions` a mano y nunca incluía iron_law /
 // common_rationalizations / red_flags (N.1-N.3) — el endurecimiento llegaba
 // a herramientas externas pero nunca al ejecutor propio de OrchestOS.
-function loadSkillGuidelines(skillId?: string): string {
+function loadSkillGuidelines(skillId?: string, root = process.cwd()): string {
   if (!skillId) return ''
 
   try {
-    const skill = loadSkill(resolveSkillPath(skillId))
+    const skill = loadSkill(resolveEnabledSkillPath(skillId, root))
     if (isReviewOnlyGate(skill.activation)) return ''
     return `\n## SKILL GUIDELINES: ${skill.name}\n${buildSections(skill).join('\n\n')}\n`
   } catch {

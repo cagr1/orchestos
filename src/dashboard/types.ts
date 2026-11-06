@@ -457,7 +457,8 @@ export interface ApiKeyValidationResponse {
 // ── /api/skills ────────────────────────────────────────────────────────────────
 
 export interface SkillRow {
-  origin: 'project' | 'library'
+  enabled: boolean
+  origin: 'project' | 'user-library' | 'built-in'
   id: string
   name: string
   description: string

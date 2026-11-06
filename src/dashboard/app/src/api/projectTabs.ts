@@ -153,3 +153,25 @@ export async function explainTask(
 }
 
 export type { TaskItem }
+
+export async function addLibrarySkill(
+  projectId: string,
+  url: string,
+): Promise<{ warnings: string[] }> {
+  return request('/api/skills/library', projectId, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ url }),
+  })
+}
+export async function enableLibrarySkill(
+  projectId: string,
+  id: string,
+  enabled: boolean,
+): Promise<void> {
+  await request(`/api/skills/${encodeURIComponent(id)}/enabled`, projectId, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ enabled }),
+  })
+}

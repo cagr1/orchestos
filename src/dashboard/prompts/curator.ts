@@ -8,8 +8,8 @@ REQUIRED:
 - name: short human-readable name (max 60 chars)
 - description: the TRIGGER CONDITION for this skill — when should the harness activate it?
   Start with "Use when..." whenever possible. This is NOT a summary of what the skill does
-  or how it works — that belongs in 'instructions'. Max 200 chars.
-- instructions: detailed step-by-step instructions for the agent (max 4000 chars)
+  or how it works — that belongs in 'instructions'. Max 1024 chars.
+- instructions: detailed step-by-step instructions for the agent (max 32000 chars)
 - targets: array — use ["claude", "cursor", "openai"] unless the description restricts targets
 
 OPTIONAL (include only when relevant):
@@ -29,8 +29,8 @@ Rules:
 - Respond ONLY with a valid JSON object — no markdown fences, no extra text, no explanations
 - If the description is in Spanish, write instructions and other text fields in Spanish
 - id must be kebab-case: lowercase letters, numbers, and hyphens only — no leading/trailing hyphens
-- description must not exceed 200 chars
-- instructions must not exceed 4000 chars`
+- description must not exceed 1024 chars
+- instructions must not exceed 32000 chars`
 
 const IMPORT_SYSTEM = `You are a skill importer for OrchestOS. You normalize YAML or JSON skill definitions into valid SkillDef JSON.
 
@@ -42,8 +42,8 @@ REQUIRED fields:
 - name: short human-readable name (max 60 chars)
 - description: the TRIGGER CONDITION for this skill — when should the harness activate it?
   Start with "Use when..." whenever possible. This is NOT a summary of what the skill does
-  or how it works — that belongs in 'instructions'. Max 200 chars.
-- instructions: detailed step-by-step instructions for the agent (max 4000 chars)
+  or how it works — that belongs in 'instructions'. Max 1024 chars.
+- instructions: detailed step-by-step instructions for the agent (max 32000 chars)
 - targets: non-empty array of "claude", "cursor", "openai"
 
 OPTIONAL (include only if present in the original content):
@@ -63,11 +63,11 @@ OPTIONAL (include only if present in the original content):
 Rules:
 - Respond ONLY with a valid JSON object — no markdown fences, no extra text, no explanations
 - Never discard content to fit a length limit — relocate it instead. If the original
-  description is longer than 200 chars, it usually mixes a trigger condition with an
+  description is longer than 1024 chars, it usually mixes a trigger condition with an
   explanation of what the skill does or how. Keep only the trigger condition in
-  'description' (<=200 chars, "Use when..." style); move the "what it does"/"how" part into
+  'description' (<=1024 chars, "Use when..." style); move the "what it does"/"how" part into
   'instructions', and split any list-like trigger conditions into separate 'when_to_use'
-  entries. Same principle for 'instructions' if it exceeds 4000 chars — compress prose,
+  entries. Same principle for 'instructions' if it exceeds 32000 chars — compress prose,
   don't cut content off mid-thought.
 - Use English for text fields unless original content is in another language`
 

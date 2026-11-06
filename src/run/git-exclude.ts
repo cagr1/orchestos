@@ -2,7 +2,7 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'fs'
 import { dirname, isAbsolute, resolve } from 'path'
 
 const COMMENT = '# OrchestOS runtime artifacts'
-const ENTRIES = ['/runs/*.log', '/.orchestos/agent-home/']
+const ENTRIES = ['/runs/*.log', '/.orchestos/agent-home/', '/.orchestos/skills.json']
 
 /** Keep OrchestOS runtime files out of the user's project status without changing .gitignore. */
 export function excludeRuntimeArtifacts(projectRoot: string): void {

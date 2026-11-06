@@ -228,7 +228,7 @@ describe('project ownership', () => {
     expect(result.instinctIds).not.toContain(result.instinctB)
     expect(result.historical).toBe(true)
     expect(result.skillOrigins).toEqual(['project'])
-    expect(result.libraryOriginsB).toEqual(['library'])
+    expect(result.libraryOriginsB).toEqual(['built-in'])
     expect(result.sharedSkillUsageA).toBe(1)
     expect(result.bSkillIncluded).toBe(false)
     expect(result.bSkillIncludedInB).toBe(true)

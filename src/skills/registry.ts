@@ -1,7 +1,9 @@
-import { existsSync, readdirSync, readFileSync } from 'fs'
-import { join } from 'path'
+import { existsSync, mkdirSync, readdirSync, readFileSync, renameSync, writeFileSync } from 'fs'
+import { basename, join } from 'path'
 import { parse } from 'yaml'
+import { orchestosDir } from '../config/orchestos-home.ts'
 import type { TaskClass } from '../router/classify.ts'
+import { excludeRuntimeArtifacts } from '../run/git-exclude.ts'
 
 export type SkillTarget = 'claude' | 'cursor' | 'openai'
 
@@ -52,6 +54,7 @@ export interface SkillDef {
   common_rationalizations?: SkillRationalization[]
   red_flags?: string[]
   activation?: SkillActivation
+  source?: { url: string; fetchedAt: string }
 }
 
 const IRON_LAW_MAX_LENGTH = 300
@@ -72,7 +75,7 @@ const VALID_TASK_CLASSES: TaskClass[] = ['plan', 'implement', 'fix', 'review', '
  * Todo el Bloque O habría funcionado solo dentro de este repo.
  *
  * Lectura y escritura NO son simétricas, a propósito:
- * - leer  → proyecto primero, instalación como fallback (`resolveSkillPath`)
+ * - leer  → proyecto, biblioteca del usuario, instalación como fallback (`resolveSkillPath`)
  * - escribir → SIEMPRE el proyecto (`getSkillPath`), nunca la instalación:
  *   crear/editar una skill mientras se gestiona otro repo no debe mutar el
  *   OrchestOS instalado. Es la misma excepción que `project-profile.md` en la
@@ -92,14 +95,15 @@ function getInstallSkillsDir(): string {
 
 /**
  * Ruta de la que LEER una skill: la del proyecto gana; si no existe, la
- * centralizada. Devuelve la ruta del proyecto cuando no hay ninguna, para que
+ * biblioteca del usuario y luego la instalación. Devuelve la ruta del proyecto cuando no hay ninguna, para que
  * el mensaje de error apunte a donde el usuario esperaría crearla.
  */
 export function resolveSkillPath(id: string, root = process.cwd()): string {
+  const entry = listSkillFilesWithOrigin(root).find(
+    ({ path }) => basename(path).replace(/\.ya?ml$/, '') === id,
+  )
+  if (entry) return entry.path
   const own = join(getSkillsDir(root), `${id}.yaml`)
-  if (existsSync(own)) return own
-  const central = join(getInstallSkillsDir(), `${id}.yaml`)
-  if (existsSync(central)) return central
   const centralPro = join(getInstallSkillsDir(), 'pro', `${id}.yaml`)
   if (existsSync(centralPro)) return centralPro
   return own
@@ -136,9 +140,9 @@ export function validateSkill(raw: Record<string, unknown>, filePath: string): S
   if (!raw.version || typeof raw.version !== 'string') err('missing "version" (e.g. 1.0.0)')
   if (!raw.name || typeof raw.name !== 'string') err('missing "name"')
   if (!raw.description || typeof raw.description !== 'string') err('missing "description"')
-  if ((raw.description as string).length > 200) err('"description" exceeds 200 chars')
+  if ((raw.description as string).length > 1024) err('"description" exceeds 1024 chars')
   if (!raw.instructions || typeof raw.instructions !== 'string') err('missing "instructions"')
-  if ((raw.instructions as string).length > 4000) err('"instructions" exceeds 4000 chars')
+  if ((raw.instructions as string).length > 32000) err('"instructions" exceeds 32000 chars')
   if (!Array.isArray(raw.targets) || raw.targets.length === 0)
     err('"targets" must be a non-empty array')
   for (const t of raw.targets as string[]) {
@@ -221,19 +225,77 @@ export function loadSkill(filePath: string): SkillDef {
   return validateSkill(raw, filePath)
 }
 
-/** Catálogo legible: skills del proyecto + las centralizadas (proyecto gana). */
-export function listSkillFiles(root = process.cwd()): string[] {
-  return mergeSkillDirs(getSkillsDir(root), getInstallSkillsDir())
+export type SkillOrigin = 'project' | 'user-library' | 'built-in'
+
+export function getUserSkillsDir(): string {
+  return join(orchestosDir(), 'skills')
 }
 
+export function getEnabledSkillIds(root = process.cwd()): Set<string> {
+  try {
+    const state = JSON.parse(readFileSync(join(root, '.orchestos', 'skills.json'), 'utf8'))
+    if (
+      !Array.isArray(state.enabled) ||
+      state.enabled.some((id: unknown) => typeof id !== 'string')
+    )
+      return new Set()
+    return new Set(state.enabled)
+  } catch {
+    return new Set()
+  }
+}
+
+export function setSkillEnabled(id: string, enabled: boolean, root = process.cwd()): void {
+  const ids = getEnabledSkillIds(root)
+  if (enabled) ids.add(id)
+  else ids.delete(id)
+  const dir = join(root, '.orchestos')
+  excludeRuntimeArtifacts(root)
+  mkdirSync(dir, { recursive: true })
+  const path = join(dir, 'skills.json')
+  const temp = `${path}.${crypto.randomUUID()}.tmp`
+  writeFileSync(temp, JSON.stringify({ enabled: [...ids] }, null, 2) + '\n')
+  renameSync(temp, path)
+}
+
+/** Complete catalog for Settings; precedence is independent of activation. */
 export function listSkillFilesWithOrigin(
   root = process.cwd(),
-): Array<{ path: string; origin: 'project' | 'library' }> {
-  const own = new Set(mergeSkillDirs(getSkillsDir(root), getSkillsDir(root)))
-  return mergeSkillDirs(getSkillsDir(root), getInstallSkillsDir()).map((path) => ({
-    path,
-    origin: own.has(path) ? 'project' : 'library',
-  }))
+): Array<{ path: string; origin: SkillOrigin }> {
+  const byId = new Map<string, { path: string; origin: SkillOrigin }>()
+  for (const [dir, origin] of [
+    [getInstallSkillsDir(), 'built-in'],
+    [getUserSkillsDir(), 'user-library'],
+    [getSkillsDir(root), 'project'],
+  ] as const) {
+    if (!existsSync(dir)) continue
+    for (const file of readdirSync(dir)) {
+      if (!/\.ya?ml$/.test(file)) continue
+      byId.set(basename(file).replace(/\.ya?ml$/, ''), { path: join(dir, file), origin })
+    }
+  }
+  return [...byId.values()]
+}
+
+/** Runtime catalog: user-library skills are opt-in for each project. */
+export function listSkillFiles(root = process.cwd()): string[] {
+  const enabled = getEnabledSkillIds(root)
+  return listSkillFilesWithOrigin(root)
+    .filter(
+      ({ path, origin }) =>
+        origin !== 'user-library' || enabled.has(basename(path).replace(/\.ya?ml$/, '')),
+    )
+    .map(({ path }) => path)
+}
+
+/** Runtime resolution cannot bypass project activation through an explicit id. */
+export function resolveEnabledSkillPath(id: string, root = process.cwd()): string {
+  const entry = listSkillFilesWithOrigin(root).find(
+    ({ path }) => basename(path).replace(/\.ya?ml$/, '') === id,
+  )
+  if (entry?.origin === 'user-library' && !getEnabledSkillIds(root).has(id))
+    throw new Error(`Skill "${id}" is disabled in this project`)
+  return entry?.path ?? resolveSkillPath(id, root)
 }
 
 /** Destino de ESCRITURA — siempre el proyecto, nunca la instalación. Para leer usar `resolveSkillPath()`. */

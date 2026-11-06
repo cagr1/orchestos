@@ -244,7 +244,7 @@ async function buildNaturalDraft(
       .join('\n')
   } catch {}
 
-  const skillCandidateInfos = listAllSkillCandidates()
+  const skillCandidateInfos = listAllSkillCandidates(root)
   const skillsSummary = renderSkillCatalog(skillCandidateInfos)
 
   const systemPrompt = buildDraftSystemPrompt({

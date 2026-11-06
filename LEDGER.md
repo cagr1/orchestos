@@ -508,3 +508,14 @@ modos de `KNOWN_CLIS`; test legacy con `gemini` inalcanzable. r2 se intentó pri
 no modifica contexto, max_tokens, checks, QA ni reintentos.
 **Reversibilidad/evidencia**: diff RUN.2 sin commit; test en `src/__tests__/harness-engine-persistence.test.ts`
 inyecta un fallo de INSERT, verifica el log y comprueba la corrida terminada y el paso posterior persistido.
+
+---
+
+## 2026-11-06 — Codex (ejecutor SK.1)
+
+**Regla tocada**: `src/run/harness.ts`, resolución de skills para QA por proyecto.
+**Clasificación**: RESPETÓ
+**Por qué**: `resolveGates` recibe `projectRoot` para filtrar las skills de biblioteca con la activación
+persistida del proyecto que ejecuta la tarea. No cambia precios, límites de contexto ni veredictos de QA.
+**Reversibilidad/evidencia**: cambio de un argumento; pruebas y gates registrados en
+`docs/done/evidence/SK.1-live.json`. Sin commit por instrucción del usuario.

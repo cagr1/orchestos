@@ -1,6 +1,12 @@
+import { basename } from 'path'
 import type { TaskClass } from '../router/classify.ts'
 import type { SkillActivationMode, SkillDef } from './registry.ts'
-import { listProSkillFiles, listSkillFiles, loadSkill } from './registry.ts'
+import {
+  listProSkillFiles,
+  listSkillFiles,
+  listSkillFilesWithOrigin,
+  loadSkill,
+} from './registry.ts'
 
 /**
  * O.2 (Bloque O, 2026-08-03) — catálogo de skills compartido.
@@ -25,16 +31,29 @@ interface SkillCandidateInfo {
   phases?: TaskClass[]
 }
 
+/** A library override also shadows a Pro fallback while it is disabled. */
+function runtimeSkillFiles(root: string): string[] {
+  const ordinaryIds = new Set(
+    listSkillFilesWithOrigin(root).map(({ path }) => basename(path).replace(/\.ya?ml$/, '')),
+  )
+  return [
+    ...listSkillFiles(root),
+    ...listProSkillFiles(root).filter(
+      (path) => !ordinaryIds.has(basename(path).replace(/\.ya?ml$/, '')),
+    ),
+  ]
+}
+
 /** Todas las skills instaladas — propias del proyecto y centralizadas (O.1). */
-export function listAllSkillCandidates(): SkillCandidateInfo[] {
+export function listAllSkillCandidates(root = process.cwd()): SkillCandidateInfo[] {
   const out: SkillCandidateInfo[] = []
-  for (const f of [...listSkillFiles(), ...listProSkillFiles()]) {
+  for (const f of runtimeSkillFiles(root)) {
     try {
       const s = loadSkill(f)
       out.push({
         id: s.id,
         name: s.name,
-        description: s.description,
+        description: s.description.slice(0, 200),
         whenToUse: s.when_to_use ?? [],
         mode: s.activation?.mode,
         phases: s.activation?.phases,
@@ -59,8 +78,8 @@ export function isReviewOnlyGate(
  * Bloque D (Mes 18, ex-IDEAS #21) — un `skill` inventado o mal escrito se ignora
  * en silencio en vez de romper la creación de la tarea; solo importa que exista.
  */
-export function isKnownSkillId(id: string): boolean {
-  return listAllSkillCandidates().some((s) => s.id === id)
+export function isKnownSkillId(id: string, root = process.cwd()): boolean {
+  return listAllSkillCandidates(root).some((s) => s.id === id)
 }
 
 /**
@@ -77,7 +96,7 @@ export function renderSkillCatalog(candidates?: SkillCandidateInfo[]): string {
   return list
     .map(
       (s) =>
-        `- ${s.id}: ${s.description}${s.whenToUse.length ? ' — Use when: ' + s.whenToUse.join('; ') : ''}`,
+        `- ${s.id}: ${s.description.slice(0, 200)}${s.whenToUse.length ? ' — Use when: ' + s.whenToUse.join('; ') : ''}`,
     )
     .join('\n')
 }
@@ -107,10 +126,14 @@ interface GateEvaluation {
  * bajos también matchean con espacio, ya que las skills los escriben así por
  * legibilidad pero el texto de la tarea normalmente no).
  */
-export function resolveGates(taskText: string, phase: TaskClass): GateEvaluation[] {
+export function resolveGates(
+  taskText: string,
+  phase: TaskClass,
+  root = process.cwd(),
+): GateEvaluation[] {
   const out: GateEvaluation[] = []
   const haystack = taskText.toLowerCase()
-  for (const f of [...listSkillFiles(), ...listProSkillFiles()]) {
+  for (const f of runtimeSkillFiles(root)) {
     let skill: SkillDef
     try {
       skill = loadSkill(f)

@@ -315,7 +315,7 @@ function createTaskRecord(
       if (params.approvalMode) newTask.approvalMode = params.approvalMode
       if (taskClass) newTask.task_class = taskClass
       const skill = params.skill?.trim()
-      if (skill && isKnownSkillId(skill)) newTask.skill = skill
+      if (skill && isKnownSkillId(skill, root)) newTask.skill = skill
       ;(file.tasks as any[]).push(newTask)
       return { id: finalId }
     })

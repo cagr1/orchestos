@@ -824,9 +824,12 @@ const MAX_CHAT_ATTACHMENTS = 5
  * ERP.4.5 (2026-10-13): gates automáticos exclusivos de review se filtran antes
  * del desempate; resolveGates ya los aplica en QA y no deben dirigir al ejecutor.
  */
-export function pickAutoSkill(skillOptions: { id: string }[]): string | undefined {
-  const byId = new Map(listAllSkillCandidates().map((c) => [c.id, c]))
-  const eligible = skillOptions.filter((s) => !isReviewOnlyGate(byId.get(s.id)))
+export function pickAutoSkill(
+  skillOptions: { id: string }[],
+  root = process.cwd(),
+): string | undefined {
+  const byId = new Map(listAllSkillCandidates(root).map((c) => [c.id, c]))
+  const eligible = skillOptions.filter((s) => byId.has(s.id) && !isReviewOnlyGate(byId.get(s.id)))
   const automatic = eligible.find((s) => byId.get(s.id)?.mode === 'automatic')
   if (automatic) return automatic.id
   if (eligible.some((s) => s.id === 'frontend-design')) return 'frontend-design'
@@ -1231,7 +1234,7 @@ async function handleApiChat(
           const output = dropIgnoredOutputs(root, proposal.args.outputs)
           if (output.length === 0) autoTaskSkipped = true
           else {
-            const skill = pickAutoSkill(draft.skillOptions)
+            const skill = pickAutoSkill(draft.skillOptions, root)
             const cfg = loadOrcheConfig(root)
             const projectRule = resolveProjectAgentRule(cfg.taskAgentRules, {
               output,
