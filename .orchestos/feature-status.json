@@ -28,6 +28,14 @@
       "closedDate": null
     },
     {
+      "id": "UI.69",
+      "sprint": "Fase 2 — Producto mínimo para entrega",
+      "block": "Abiertos — fiabilidad de los gates y documentación",
+      "title": "Restaurar el logo \"S\" en el header y el favicon",
+      "status": "done",
+      "closedDate": null
+    },
+    {
       "id": "OC.1",
       "sprint": "Fase 2 — Producto mínimo para entrega",
       "block": "Abiertos — fiabilidad de los gates y documentación",

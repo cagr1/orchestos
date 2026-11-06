@@ -99,6 +99,14 @@ Cerrada. Todos sus ítems están archivados en `docs/done/` (ver "Cerrados — e
   Gate en vivo: navegador real (panel del navegador, chat nuevo en :4299), `docs/done/evidence/UI.68-live.json`
   Ejecutado por: claude opus 5.5
   Texto visible: "OrchestOS" (título de ejemplo del chat vacío en la hoja de estados; ya existía, solo pierde el subtítulo)
+- [x] **UI.69 — Restaurar el logo "S" en el header y el favicon.** (Carlos, 2026-11-06: eligió su logo original, la
+  "S" geométrica borrada en `ff090e38`, frente a la marca de red con degradado) Hecho: `BrandMark.tsx` con los 4
+  trazos de `AnimatedLogoDark.svg` sin animación y en `currentColor`; el header lo muestra a 16 px antes de
+  "Orchest OS"; el favicon pasa de la "O" celeste a la S clara sobre fondo oscuro. Trazos comparados uno a uno con
+  el original (componente y favicon: iguales). Gates del cerebro: `tsc --noEmit`, `build:app`, `shell-look` 75/75
+  (`gate:evidence` `UI.69-shell-look`).
+  Gate en vivo: navegador real (panel del navegador, header en :4299), `docs/done/evidence/UI.69-live.json`
+  Ejecutado por: codex gpt-6-luna (mecanico) · Spec: docs/specs/UI.69.md
 - [x] **OC.1 — La terminal de Dev lanza OpenCode con `--standalone`.** (abierto 2026-11-03, GO de Carlos al plan
   OC.1–OC.4) Con OpenCode 2.2.5 y el servicio compartido desincronizado, la TUI sale a los ~20 s.
   Hecho: `resolveOpenCodeCommand` devuelve `[binary, '--standalone']` (servidor privado por pestaña).

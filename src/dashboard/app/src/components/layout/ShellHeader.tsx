@@ -1,5 +1,6 @@
 import { PanelLeft, PanelRight, Search } from 'lucide-react'
 import type React from 'react'
+import { BrandMark } from './BrandMark'
 
 interface ShellHeaderProps {
   onOpenCommandPalette: () => void
@@ -21,7 +22,8 @@ export const ShellHeader: React.FC<ShellHeaderProps> = ({
     >
       {/* Left: Brand + Search + Sidebar Toggle */}
       <div className="flex items-center gap-3">
-        <div className="flex items-center gap-1 text-[13px] font-semibold tracking-tight text-app cursor-pointer select-none">
+        <div className="flex items-center gap-1.5 text-[13px] font-semibold tracking-tight text-app cursor-pointer select-none">
+          <BrandMark className="h-4 w-4 text-app" />
           <span className="text-app">Orchest</span>
           <span className="text-app-accent">OS</span>
         </div>
