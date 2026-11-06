@@ -1,4 +1,4 @@
-# NEXT — handoff 2026-11-06 (CI.55 fase 2, CI.63, CI.64, UI.65, limpieza; desacople del método esperando GO)
+# NEXT — handoff 2026-11-06 (DEV.1, SK.1, CI.65; siguen el set curado de skills, SK.2, SK.3 y el desacople)
 
 Un solo presente: orden y trampas vivas del lote. Lo cerrado vive en `docs/done/bloque-*.md` y git; las reglas, en
 `AGENTS.md`. Versión anterior completa: `docs/done/poda-instrucciones-2026-11-03.md` (histórico).
@@ -6,21 +6,29 @@ Arranque: `bun run agent:preflight -- --item <ID> --agent claude`. Lista viva: `
 
 ## Orden
 
-0. Hecho 2026-11-05 (todo empujado, pre-push verde): DOC.9 `1fba1673` + DOC.9.1 `9692bf2c` (`readme:sync` y PR de
-   los viernes); RUN.2 `77975857` (`notice` de Codex en `run_steps`; antes tumbaba el runner); RUN.1 `6bce134f`
-   (tarjeta fallida con diagnóstico, sin `Retry`; interrupción con "Resume"); UI.64 `985f0730` ((+) de proyecto con
-   "Clone from URL"; clip con menú); CI.62 `eec3bc8a` (`ui:gate` borra `runDir` de más de 24 h); poda de specs
-   `04b2303b` y de capturas versionadas `912b693b`. Settings: revisión pestaña por pestaña cerrada por ahora.
-0b. Hecho 2026-11-06: CI.55 fase 2 `bb92b483`; CI.63 `fe602898` (el texto en vivo duplicaba el mensaje que sigue a
-   una herramienta: `chat-live.ts`); CI.64 `0e6fdac7` (pre-push reconoce `chat-live.ts` y el hilo como chat); UI.65
-   `aafee2ce`; limpieza `735bf403` (307 evidencias e imágenes, 3,2 MB); push cada 2 commits `1e69a1d2`.
-0c. **Espera GO de Carlos — desacoplar el método personal** (plan en `docs/specs/LIMPIEZA-2.md` § 2 y en la salida
-   de Sol): reescribir `AGENTS.md`, hooks `.claude/` y roadmaps sin `agent-method`/`delegate`/Sol/Luna/vault; el
-   candado de escritor del pre-commit (`scripts/pre-commit.sh:27`) sin `~/.agent-method` no protege: implementarlo
-   dentro del repo (recomendado) o quitarlo.
-0d. Propuesta pendiente de Carlos (investigación ODD/SDD/TDD 2026-11-06): mutación sobre los módulos tocados por el
-   ítem antes de cerrar (hoy `Mutation Shards` es nocturno y por módulos fijos). ODD descartado: sin definición
-   estable; lo único con respaldo es eval-driven (arXiv 2411.13768).
+0. Hecho 2026-11-06: CI.55 fase 2 `bb92b483`; CI.63 `fe602898`; CI.64 `0e6fdac7`; UI.65 `aafee2ce`; limpieza
+   `735bf403` (307 archivos, 3,2 MB); regla de push cada 2 commits `1e69a1d2`; DEV.1 `a557f107` (candado en
+   `scripts/writer-lock.mjs`); SK.1 `c222bfc5` (biblioteca `~/.orchestos/skills/`, activación por proyecto, "Add
+   skill"); CI.65 `4d7d6e62` (gates de chat esperan "Send" habilitado). **Primer paso al retomar**: confirmar que el
+   push de `a557f107..4d7d6e62` salió (`git status` → no "ahead"); si no, mirar `/tmp/push6.log` o re-empujar.
+0a. **Siguiente: cargar el set curado** en la biblioteca con "Add skill" (Settings → proyecto → Skills), ya
+   importado `karpathy-guidelines`: `grill-me` y `to-spec` (github.com/mattpocock/skills), `impeccable`
+   (github.com/pbakaus/impeccable), `tdd` (mattpocock), `verification-before-completion` (github.com/obra/superpowers),
+   `security-audit` (github.com/cloudflare/security-audit-skill, modo orientación). Descartadas: `using-superpowers`
+   (manda invocar skills siempre; choca con mínimo contexto) y ponytail (se solapa con Karpathy). Decisión de Carlos:
+   catálogo general, activación por proyecto; disponibles, no instaladas en el CLI.
+0b. **SK.2** (GO 2026-11-06, falta spec): cada skill declara su fase (plan/diseño/código/revisión/seguridad) y la
+   tarea recibe la de su fase; hoy `pickAutoSkill` elige una o ninguna (`chat.ts`). **SK.3** (GO): perfil
+   "¿sabes programar?" en el onboarding; si no, el orquestador pregunta primero (`grill-me`) y revisión y seguridad
+   corren siempre. Motivo (evaluación del cerebro): el método funciona con quien sabe código; un no programador no
+   pide cada fase.
+0c. **Desacople del método personal**, después de SK.1–3 (GO de Carlos): reescribir `AGENTS.md`, hooks `.claude/`
+   (`brain-no-code.js:16`, `subagent-budget.js:156`, `context-budget.js:30`), `docs/roadmaps/` y fixtures sin
+   `agent-method`/`delegate`/Sol/Luna/vault; plan y tabla en `docs/specs/LIMPIEZA-2.md` § 2. Las reglas personales que
+   valga la pena conservar pasan a skills y perfil del producto. El candado ya está hecho (DEV.1).
+0d. Mutación: sigue nocturna (`Mutation Shards`, cron `0 3 * * *` UTC). Propuesto a Carlos, sin GO: el arranque de
+   sesión muestra el resultado de la última corrida nocturna (verde/rojo, duración, módulos que bajaron). ODD
+   descartado (sin definición estable; solo eval-driven tiene respaldo, arXiv 2411.13768).
 1. CI.55 fase 2 hecha: el gate sigue el reintento y guarda el rollout de Codex por intento. Espera su próximo
    fallo: leer `codexRollouts` de `role-task-missing-output-attempt-<n>.json` (nota `gate-role-task retried`).
 2. **`Mutation Shards`** (CI.61): corrida 42006593533 debajo de 150 min. Si una posterior pasa 150, reabrir CI.61.
@@ -50,6 +58,10 @@ Arranque: `bun run agent:preflight -- --item <ID> --agent claude`. Lista viva: `
 - Texto visible nuevo en TSX exige una línea `Texto visible: "<texto>" (por qué no basta un ícono)` en el ítem.
 
 ## Anotado, sin ítem (abrir ítem solo si Carlos lo pide; los intermitentes, también si se repiten)
+
+- Visto 2026-11-06: `session-status.test.ts` ("lee cada transcript como máximo una vez") timeout de 5 s en
+  `test:coverage` bajo carga; aislado 3/3. El repo no registra `writer-lock release` en SessionEnd (lo hace el hook
+  global; sin él el candado vence a los 45 min). Menú del clip en Dev tapa el título del estado vacío (aceptado).
 
 - Visto 2026-11-05: `chat-retry-report` falló 2 veces por el timeout de 30 s esperando el primer turno de Codex
   (`waitForResponse` sin timeout propio); en esa captura el mismo párrafo de Codex salió dos veces (posible stream
