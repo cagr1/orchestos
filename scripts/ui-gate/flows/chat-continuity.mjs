@@ -9,9 +9,22 @@ function runJson(source) {
   return JSON.parse(execFileSync('bun', ['-e', source], { encoding: 'utf8' }))
 }
 
-async function sendTurn(page, composer, message) {
+async function waitForComposerReady(page) {
+  const button = page.getByRole('button', { name: 'Send message', exact: true }).last()
+  const startedAt = Date.now()
+  const deadline = startedAt + 30_000
+  while (Date.now() < deadline) {
+    if (await button.isEnabled().catch(() => false)) return Date.now() - startedAt
+    await page.waitForTimeout(100)
+  }
+  throw new Error(`composer stayed busy ${Date.now() - startedAt} ms`)
+}
+
+async function sendTurn(page, composer, message, note) {
   await composer.waitFor({ state: 'visible', timeout: 30_000 })
   await composer.fill(message)
+  const readyMs = await waitForComposerReady(page)
+  note('composer ready', `enabled after ${readyMs} ms`)
   const responsePromise = page.waitForResponse(
     (res) => res.request().method() === 'POST' && new URL(res.url()).pathname === '/api/chat',
     { timeout: 180_000 },
@@ -85,6 +98,7 @@ export default async function chatContinuity({
   api,
   step,
   shot,
+  note,
   visible,
   cleanup,
   databasePath,
@@ -138,9 +152,10 @@ export default async function chatContinuity({
     page,
     claudeComposer,
     `Remember this code for later: ${sentinel}. Reply only OK.`,
+    note,
   )
   await reopenSession(page, api, project, claudeSession)
-  const claudeQuestion = await sendTurn(page, page.locator('textarea').last(), question)
+  const claudeQuestion = await sendTurn(page, page.locator('textarea').last(), question, note)
   const claudeCapture = readFileSync(
     join(captureDir, `chat-cli-input-${claudeSession.id}.txt`),
     'utf8',
@@ -161,9 +176,14 @@ export default async function chatContinuity({
 
   const codexSession = await startChat(page, 'Codex', basename(projectRoot))
   const codexComposer = page.locator('textarea').last()
-  await sendTurn(page, codexComposer, `Remember this code for later: ${sentinel}. Reply only OK.`)
+  await sendTurn(
+    page,
+    codexComposer,
+    `Remember this code for later: ${sentinel}. Reply only OK.`,
+    note,
+  )
   await reopenSession(page, api, project, codexSession)
-  const codexAnswer = await sendTurn(page, page.locator('textarea').last(), question)
+  const codexAnswer = await sendTurn(page, page.locator('textarea').last(), question, note)
   const resumedCapture = readFileSync(
     join(captureDir, `chat-cli-input-${codexSession.id}.txt`),
     'utf8',
@@ -186,7 +206,7 @@ export default async function chatContinuity({
   `)
   if (updated.changes !== 1)
     throw new Error(`Could not replace Codex thread id for ${codexSession.id}`)
-  const afterExpiry = await sendTurn(page, page.locator('textarea').last(), question)
+  const afterExpiry = await sendTurn(page, page.locator('textarea').last(), question, note)
   const expiredCapture = readFileSync(
     join(captureDir, `chat-cli-input-${codexSession.id}.txt`),
     'utf8',

@@ -39,6 +39,17 @@ async function waitForTaskExitPending(api, projectId, taskId) {
   return task
 }
 
+async function waitForComposerReady(page) {
+  const button = page.getByRole('button', { name: 'Send message', exact: true }).last()
+  const startedAt = Date.now()
+  const deadline = startedAt + 30_000
+  while (Date.now() < deadline) {
+    if (await button.isEnabled().catch(() => false)) return
+    await page.waitForTimeout(100)
+  }
+  throw new Error(`composer stayed busy ${Date.now() - startedAt} ms`)
+}
+
 function retryReasonFromTasksYaml(projectRoot, task) {
   if (!task?.id) return undefined
   const yaml = readFileSync(join(projectRoot, 'tasks.yaml'), 'utf8')
@@ -187,6 +198,7 @@ export default async function chatTurnDetails({
       { timeout: 180_000 },
     )
     await composer.fill(message)
+    await waitForComposerReady(page)
     await composer.press('Enter')
     const response = await responsePromise
     observedResponse = true
@@ -275,6 +287,7 @@ export default async function chatTurnDetails({
     'Modifica README.md para añadir al final la línea "gate UI.13.4c". La única ruta de salida es README.md.'
   const beforeHeldTaskIds = new Set((await tasksFor(api, project.id)).map((task) => task.id))
   await composer.fill(heldPrompt)
+  await waitForComposerReady(page)
   await composer.press('Enter')
   const taskCard = page.locator('[data-task-state="held"]')
   const heldCardVisible = await visible(taskCard, 180_000)
@@ -321,6 +334,7 @@ export default async function chatTurnDetails({
 
   const beforeSecondHeldTaskIds = new Set((await tasksFor(api, project.id)).map((task) => task.id))
   await composer.fill(heldPrompt)
+  await waitForComposerReady(page)
   await composer.press('Enter')
   const secondCardVisible = await visible(taskCard, 180_000)
   if (!secondCardVisible) {

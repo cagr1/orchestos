@@ -180,6 +180,14 @@
       "closedDate": null
     },
     {
+      "id": "CI.65",
+      "sprint": "Fase 2 — Producto mínimo para entrega",
+      "block": "Abiertos — fiabilidad de los gates y documentación",
+      "title": "`chat-continuity` rojo tras SK.1: bloquea el push",
+      "status": "done",
+      "closedDate": null
+    },
+    {
       "id": "CI.19",
       "sprint": "Fase 2 — Producto mínimo para entrega",
       "block": "Abiertos — fiabilidad de los gates y documentación",

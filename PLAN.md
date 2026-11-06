@@ -313,6 +313,17 @@ Cerrada. Todos sus ítems están archivados en `docs/done/` (ver "Cerrados — e
   Texto visible: "GitHub URL of a SKILL.md or folder" (rótulo del campo: dice qué URL acepta)
   Texto visible: "Project" · "Library" · "Built-in" (origen por fila: sin él no se sabe cuál gana)
   Texto visible: "Use in this project" (rótulo del switch: sin texto, el switch es ambiguo)
+- [x] **CI.65 — `chat-continuity` rojo tras SK.1: bloquea el push.** (visto 2026-11-06, pre-push de `c222bfc5`) Falló
+  2 de 2 en el paso de thread de Codex expirado (el POST no deja `[chat-turn] received`); aislado, el diálogo "New
+  chat" no ofreció Claude. El push previo `296bfbb6` pasó.
+  Causa (r2): no es SK.1 (`296bfbb6` también falla en secuencia) ni Codex: tras un turno la UI sigue `busy` unos
+  cientos de ms y el composer descarta el Enter (`AgentComposer.tsx:441`); el gate pulsaba Enter sin esperar "Send".
+  Arreglo en el gate: `sendTurn` espera "Send message" habilitado (tope 30 s; si no, "composer stayed busy N ms") y
+  anota los ms; mismo patrón en `chat-followup-task`, `chat-task-undo`, `chat-turn-details`. "New chat" sin Claude no
+  se reprodujo (descartado). Gates del cerebro: `chat-streaming` 27/27, `codex-live` 15/15, `chat-continuity` 8/8 en
+  secuencia (busy máx. 227 ms; ejecutor: 2 secuencias verdes, máx. 536 ms; `test:coverage` 2362/0).
+  Gate en vivo: navegador real (Playwright), `docs/done/evidence/CI.65-live.json`
+  Ejecutado por: codex gpt-6.1-sol (criterio r1, r2) + gpt-6-luna (mecanico r3) · Spec: docs/specs/CI.65.md
 - [ ] **CI.19 — El `git commit` del fixture falla a veces en el andamiaje de los ui-gates.** Visto 1 vez en
   `qa-negative` (2026-10-11, 1 de 9): `Command failed: git … commit -qm task fixture`, sin motivo porque el helper
   `run` usa `stdio: 'ignore'`. `qa-negative` ya reporta stdout/stderr y exit; los otros 20 flows con el mismo helper no.

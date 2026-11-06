@@ -7,6 +7,17 @@ import { run, writeGateRoles } from '../lib.mjs'
 
 const FILE = 'notas/seguimiento.md'
 
+async function waitForComposerReady(page) {
+  const button = page.getByRole('button', { name: 'Send message', exact: true }).last()
+  const startedAt = Date.now()
+  const deadline = startedAt + 30_000
+  while (Date.now() < deadline) {
+    if (await button.isEnabled().catch(() => false)) return
+    await page.waitForTimeout(100)
+  }
+  throw new Error(`composer stayed busy ${Date.now() - startedAt} ms`)
+}
+
 async function tasksFor(api, projectId) {
   const response = await api('/api/tasks', { headers: { 'x-orchestos-project-id': projectId } })
   return Array.isArray(response.data?.tasks) ? response.data.tasks : []
@@ -20,6 +31,7 @@ async function sendMessage({ page, composer, text, step, shot }) {
     { timeout: 180_000 },
   )
   await composer.fill(text)
+  await waitForComposerReady(page)
   await composer.press('Enter')
   let response
   try {
