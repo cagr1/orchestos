@@ -132,6 +132,24 @@ export async function chooseProject(): Promise<ProjectItem | null> {
   return body.cancelled ? null : mapProjectRow(body)
 }
 
+export async function cloneProject(url: string, parentDir: string): Promise<ProjectItem> {
+  const response = await fetch('/api/projects/clone', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ url, parentDir }),
+  })
+  const body = (await response.json()) as ProjectRow & { error?: string }
+  if (!response.ok) throw new Error(body.error || `Request failed (${response.status})`)
+  return mapProjectRow(body)
+}
+
+export async function cloneLocation(choose = false): Promise<string | null> {
+  const response = await fetch('/api/projects/clone-location', { method: choose ? 'POST' : 'GET' })
+  const body = (await response.json()) as { parentDir?: string; error?: string }
+  if (!response.ok) throw new Error(body.error || `Request failed (${response.status})`)
+  return body.parentDir ?? null
+}
+
 export async function deleteProject(projectId: string): Promise<void> {
   const response = await fetch(`/api/projects/${encodeURIComponent(projectId)}`, {
     method: 'DELETE',

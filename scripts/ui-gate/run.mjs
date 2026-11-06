@@ -50,6 +50,7 @@ function startDashboard(port) {
       ORCHESTOS_CLAUDE_STATUSLINE_HOME: statuslineHome,
       ORCHESTOS_CLAUDE_USAGE_LIVE: '0',
       ORCHESTOS_OPENROUTER_TEST_URL: 'http://127.0.0.1:9/',
+      ORCHESTOS_TEST_PROJECT_CLONE_FILE: '1',
     },
     stdio: ['ignore', dashboardLogFd, dashboardLogFd],
   })

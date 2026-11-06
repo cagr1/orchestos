@@ -51,7 +51,9 @@ import {
 } from './api/tasks'
 import { mergeOptimisticAttachments } from './components/chat/mergeAttachments'
 import { OrchestChatView } from './components/chat/OrchestChatView'
+import { CloneProjectDialog } from './components/common/CloneProjectDialog'
 import { CommandPalette } from './components/common/CommandPalette'
+import type { ProjectAddAction } from './components/common/ProjectAddButton'
 import { DevDiffPanel } from './components/dev/DevDiffPanel'
 import { DevFilePanel } from './components/dev/DevFilePanel'
 import { DevSessionTabs } from './components/dev/DevSessionTabs'
@@ -899,7 +901,12 @@ export default function App() {
 
   // Restore session from history to sidebar
   // Project creation
-  const handleNewProject = async () => {
+  const [showCloneProject, setShowCloneProject] = useState(false)
+  const handleNewProject = async (action: ProjectAddAction) => {
+    if (action === 'clone') {
+      setShowCloneProject(true)
+      return
+    }
     setProjectError(null)
     try {
       const project = await chooseProject()
@@ -1544,8 +1551,8 @@ export default function App() {
             projects={projectsWithApprovals(projects, currentProject?.id, tasks)}
             activeProjectId={activeProjectId}
             onSelectProject={handleSelectProject}
-            onNewProject={() => {
-              void handleNewProject()
+            onNewProject={(action) => {
+              void handleNewProject(action)
             }}
             onOpenSettings={() => handleOpenSettings(undefined, 'tasks')}
             onOpenProjectSettings={handleOpenProjectSettings}
@@ -1702,6 +1709,9 @@ export default function App() {
                 projects={projects}
                 activeProjectId={activeProjectId}
                 onSelectProject={handleSelectProject}
+                onAddProject={(action) => {
+                  void handleNewProject(action)
+                }}
                 currentTheme={theme}
                 onSelectTheme={setTheme}
                 language={language}
@@ -1770,6 +1780,16 @@ export default function App() {
         onToggleTerminal={mode === 'dev' ? handleOpenTerminal : undefined}
         terminalOpen={activeDevTab?.type === 'terminal'}
       />
+      {showCloneProject && (
+        <CloneProjectDialog
+          projectPath={currentProject?.path}
+          onClose={() => setShowCloneProject(false)}
+          onCloned={async (project) => {
+            setProjects(await listProjects())
+            setActiveProjectId(project.id)
+          }}
+        />
+      )}
       {/* Global Command Palette (⌘K) with fully functional handlers */}
       <CommandPalette
         isOpen={isCommandPaletteOpen}

@@ -23,6 +23,7 @@ import {
 import { findExplorerFiles } from '../../api/explorer'
 import type { ApprovalMode, ChatAttachment } from '../../types/orchestos'
 import { FileThumbnail } from '../ui/file-thumbnail'
+import { ActionMenuButton } from './ActionMenuButton'
 import { ContextRing } from './ContextRing'
 import { ProviderLogo } from './ProviderLogos'
 
@@ -905,15 +906,37 @@ export const AgentComposer: React.FC<AgentComposerProps> = ({
               className="hidden"
               multiple
             />
-            <button
-              type="button"
-              onClick={() => fileInputRef.current?.click()}
+            <ActionMenuButton
+              label="Attach file"
+              menuLabel="Attach files"
               className="p-1 rounded-control text-app-muted hover:text-app hover:bg-app-elevated/60 transition-colors"
-              title="Attach files or documentation"
-              aria-label="Attach file"
+              options={[
+                { label: 'Upload from computer', action: () => fileInputRef.current?.click() },
+                ...(projectId
+                  ? [
+                      {
+                        label: 'File from project',
+                        action: () => {
+                          const start = textareaRef.current?.selectionStart ?? inputText.length
+                          const end = textareaRef.current?.selectionEnd ?? start
+                          const inserted = `${start > 0 && !/\s/.test(inputText[start - 1]) ? ' ' : ''}@`
+                          const text = inputText.slice(0, start) + inserted + inputText.slice(end)
+                          const cursor = start + inserted.length
+                          setIsShellMode(false)
+                          setInputText(text)
+                          setReferenceToken(fileReferenceToken(text, cursor))
+                          requestAnimationFrame(() => {
+                            textareaRef.current?.focus()
+                            textareaRef.current?.setSelectionRange(cursor, cursor)
+                          })
+                        },
+                      },
+                    ]
+                  : []),
+              ]}
             >
               <Paperclip className="w-3.5 h-3.5" />
-            </button>
+            </ActionMenuButton>
 
             {/* Kept structurally for template fidelity; the session header owns CLI identity. */}
             {false && (

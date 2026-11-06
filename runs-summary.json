@@ -1,7 +1,37 @@
 {
-  "exported_at": "2026-11-06T00:57:01.293Z",
+  "exported_at": "2026-11-06T01:03:55.580Z",
   "total_runs": 20,
   "runs": [
+    {
+      "id": "b949719f-27db-4d6d-a0ec-46f1889601d3",
+      "task_class": "gate:ui.64-live:doc",
+      "model": "openai/gpt-6-luna",
+      "provider": "codex",
+      "status": "done",
+      "qa_verdict": "pass",
+      "qa_reason": "README.md contains the required line.",
+      "files_blocked": [],
+      "checks_failed": 0,
+      "usd_cost": 0.0012479000000000001,
+      "elapsed_ms": 16295,
+      "tokens": 6359,
+      "created_at": "2026-11-06T01:02:40.581Z"
+    },
+    {
+      "id": "48b4fe10-75e4-4680-914a-1832aa8fc774",
+      "task_class": "gate:ui.64-live:doc",
+      "model": "openai/gpt-6-luna",
+      "provider": "codex",
+      "status": "done",
+      "qa_verdict": "pass",
+      "qa_reason": "README.md contains the required line.",
+      "files_blocked": [],
+      "checks_failed": 0,
+      "usd_cost": 0.00109276,
+      "elapsed_ms": 17571,
+      "tokens": 6238,
+      "created_at": "2026-11-06T00:59:03.822Z"
+    },
     {
       "id": "c05fbaac-5e8b-4c67-98df-55c837220a61",
       "task_class": "gate:ui.64-live:doc",
@@ -271,43 +301,13 @@
       "elapsed_ms": 16197,
       "tokens": 3426,
       "created_at": "2026-11-05T22:12:09.462Z"
-    },
-    {
-      "id": "b9dddac8-9f4c-4138-876b-d54df14a356e",
-      "task_class": "gate:run.1-r2-ready-composer:implement",
-      "model": "gpt-6-luna",
-      "provider": "codex",
-      "status": "done",
-      "qa_verdict": "skipped",
-      "qa_reason": "Sin revisión LLM y sin checks: nada verificó esta tarea",
-      "files_blocked": [],
-      "checks_failed": 0,
-      "usd_cost": 0.0013318,
-      "elapsed_ms": 13912,
-      "tokens": 8618,
-      "created_at": "2026-11-05T22:11:37.703Z"
-    },
-    {
-      "id": "2c835f85-252a-44bc-a911-00c130a8f819",
-      "task_class": "gate:run.1-r2-ready-composer:implement",
-      "model": "gpt-6-luna",
-      "provider": "codex",
-      "status": "failed",
-      "qa_verdict": "fail",
-      "qa_reason": "check failed: bunx tsc --noEmit exit 2 (expected 0)\n--- stdout (tail) ---\nbroken.ts(1,7): error TS2322: Type 'string' is not assignable to type 'number'.\n",
-      "files_blocked": [],
-      "checks_failed": 1,
-      "usd_cost": 0.0013323999999999999,
-      "elapsed_ms": 11392,
-      "tokens": 8584,
-      "created_at": "2026-11-05T22:10:49.282Z"
     }
   ],
   "stats": {
-    "failed": 5,
+    "failed": 4,
     "blocked": 0,
-    "done": 15,
-    "qa_failed": 5,
-    "total_cost_usd": "0.0197"
+    "done": 16,
+    "qa_failed": 4,
+    "total_cost_usd": "0.0194"
   }
 }

@@ -81,6 +81,7 @@ import type {
   SpecItem,
   TaskItem,
 } from '../../types/orchestos'
+import { type ProjectAddAction, ProjectAddButton } from '../common/ProjectAddButton'
 import { ProviderLogo } from '../common/ProviderLogos'
 import { statusLabel } from '../common/StatusBadge'
 import { EmptyState } from '../common/ViewStateFeedback'
@@ -478,7 +479,7 @@ interface OrchestSettingsViewProps {
   onOpenChat?: () => void
   onPurgeProjectData?: (projectId: string) => void | Promise<void>
   onResetOrchestos?: () => void
-  onAddProject?: () => void
+  onAddProject?: (action: ProjectAddAction) => void
   projectTabsLoading?: boolean
   projectTabsError?: string | null
 }
@@ -1665,16 +1666,7 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
             <div className="space-y-0.5 pt-1">
               <div className="text-[11px] font-semibold text-app-muted px-2 mb-1 flex items-center justify-between">
                 <span>Projects</span>
-                {onAddProject && (
-                  <button
-                    type="button"
-                    onClick={onAddProject}
-                    className="text-app-muted hover:text-app p-0.5"
-                    title="Add project"
-                  >
-                    <Plus className="w-3 h-3" />
-                  </button>
-                )}
+                {onAddProject && <ProjectAddButton onSelect={onAddProject} />}
               </div>
 
               {projects.length === 0 ? (

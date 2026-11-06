@@ -222,13 +222,25 @@ Cerrada. Todos sus ítems están archivados en `docs/done/` (ver "Cerrados — e
   capturas guardadas sin sentido") Limpieza manual ya hecha: 1932 carpetas `ui-gate-*` (384 MB) y 50 imágenes
   versionadas de `docs/done/evidence/`, que `.gitignore` ahora excluye. Falta el mecanismo para que no se repita.
   Spec: docs/specs/CI.62.md
-- [ ] **UI.64 — El (+) de proyecto y el de adjuntar abren un menú, no una acción directa.** (pedido de Carlos
+- [x] **UI.64 — El (+) de proyecto y el de adjuntar abren un menú, no una acción directa.** (pedido de Carlos
   2026-11-05) "+ Add project" ofrece clonar desde URL como Orca, T3 y MonoCode. Adjuntar archivo en Chat y Dev hoy
   abre directo el selector del sistema; debe abrir antes un menú.
   Decisión (2026-11-05): adjuntar = "Subir desde la computadora" + "Archivo del proyecto"; clonar = URL + carpeta de
   destino elegible (por defecto la que contiene los proyectos), registra y activa. Referencias leídas (bundle de Orca, código de T3): ambas abren directo el selector al
   adjuntar; el menú del clip es decisión propia. MonoCode sin verificar (binario Tauri).
-  Spec: docs/specs/UI.64.md
+  Hecho: el (+) de proyecto, en la barra lateral y en Settings, abre un menú con "Open folder" y "Clone from URL".
+  El diálogo pide Git URL y Clone location, por defecto la carpeta padre del proyecto activo, con "Choose folder"
+  nativo y vista previa de la ruta final. `POST /api/projects/clone`: `git clone -- <url> <destino>` sin shell,
+  solo https, ssh y git@ (`file://` solo con el flag de test que pone `ui-gate/run.mjs`), timeout de 45 s, destino
+  exclusivo, borra solo lo que creó y registra y activa el clon. El clip abre "Upload from computer" y "File from
+  project", que reusa el selector de `@`. Gates del cerebro: tsc, lint, `test:coverage` 2315/0,
+  `project-add-menu` 12/12, `project-tabs` 40/40, `smoke` 7/7.
+  Gate en vivo: navegador real (Playwright), `docs/done/evidence/UI.64-live.json`
+  Revisión: Opus (handler de clonar leído completo; capturas del menú, del diálogo y del clip mirados).
+  Anotado: el menú del clip se superpone al borde del composer.
+  Texto visible: "Clone from URL" · "Enter the Git URL and choose where to clone it." (el diálogo dice qué pide, como Orca)
+  Texto visible: "Git URL" · "Clone location" · "Choose folder" · "Cancel" (rótulos de campos y botones de un formulario)
+  Ejecutado por: codex gpt-6.1-sol (criterio r1) + gpt-6-luna (mecanico r2)
 - [ ] **CI.19 — El `git commit` del fixture falla a veces en el andamiaje de los ui-gates.** Visto 1 vez en
   `qa-negative` (2026-10-11, 1 de 9): `Command failed: git … commit -qm task fixture`, sin motivo porque el helper
   `run` usa `stdio: 'ignore'`. `qa-negative` ya reporta stdout/stderr y exit; los otros 20 flows con el mismo helper no.

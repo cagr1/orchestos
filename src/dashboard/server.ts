@@ -64,6 +64,8 @@ import {
 } from './handlers/project.ts'
 import {
   handleApiProjectChoose,
+  handleApiProjectClone,
+  handleApiProjectCloneLocation,
   handleApiProjectDelete,
   handleApiProjectPurge,
   handleApiProjects,
@@ -368,6 +370,9 @@ export async function route(req: Request, port: number): Promise<Response> {
   if (method === 'POST' && url.pathname === '/api/projects/choose') {
     return handleApiProjectChoose()
   }
+  if (method === 'POST' && url.pathname === '/api/projects/clone') return handleApiProjectClone(req)
+  if ((method === 'GET' || method === 'POST') && url.pathname === '/api/projects/clone-location')
+    return handleApiProjectCloneLocation(method === 'POST')
   if (method === 'GET' && url.pathname === '/api/project/context') {
     return withDashboardProject(req, (project) => handleApiProjectContextGet(project.root))
   }

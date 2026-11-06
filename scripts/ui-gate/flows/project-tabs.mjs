@@ -246,13 +246,14 @@ export default async function projectTabs({
   await page.route('**/api/projects/choose', chooseProjectRoute)
   try {
     await page.getByRole('button', { name: 'Add or Upload Project', exact: true }).click()
+    await page.getByRole('menuitem', { name: 'Open folder', exact: true }).click()
     await delay(1_000)
     const dialogVisible = await page
       .getByRole('dialog')
       .isVisible()
       .catch(() => false)
     await step(
-      'add project opens folder picker without modal',
+      'Open folder opens folder picker without modal',
       chooseProjectCalls === 1 && !dialogVisible,
       `POST /api/projects/choose calls=${chooseProjectCalls}; dialog visible=${dialogVisible}`,
     )

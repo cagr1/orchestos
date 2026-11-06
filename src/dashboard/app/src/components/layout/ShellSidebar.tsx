@@ -17,6 +17,7 @@ import {
 import type React from 'react'
 import { useState } from 'react'
 import type { AppMode, ChatThread, ProjectItem } from '../../types/orchestos'
+import { type ProjectAddAction, ProjectAddButton } from '../common/ProjectAddButton'
 import { ProviderLogo } from '../common/ProviderLogos'
 import { ResizableAside } from '../common/ResizableAside'
 import { DeleteProjectModal } from './DeleteProjectModal'
@@ -33,7 +34,7 @@ interface ShellSidebarProps {
   projects: ProjectItem[]
   activeProjectId: string
   onSelectProject: (id: string) => void
-  onNewProject?: () => void
+  onNewProject?: (action: ProjectAddAction) => void
   onOpenSettings?: () => void
   onOpenProjectSettings?: (projectId: string) => void
   onDeleteProject?: (projectId: string) => void
@@ -213,15 +214,10 @@ export const ShellSidebar: React.FC<ShellSidebarProps> = ({
         <div className="flex-1 flex flex-col overflow-hidden">
           <div className="px-3 pt-3 pb-2 flex items-center justify-between">
             <span className="px-2 text-[11px] font-semibold text-app-muted">Projects</span>
-            <button
-              type="button"
-              onClick={() => onNewProject?.()}
-              className="p-1 rounded-control text-app-muted hover:text-app hover:bg-app-surface transition-colors"
-              title="Add or Upload Project"
-              aria-label="Add or Upload Project"
-            >
-              <Plus className="w-4 h-4" />
-            </button>
+            <ProjectAddButton
+              label="Add or Upload Project"
+              onSelect={(action) => onNewProject?.(action)}
+            />
           </div>
 
           <div className="flex-1 overflow-y-auto px-2 py-1 space-y-1">
