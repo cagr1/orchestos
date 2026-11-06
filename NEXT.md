@@ -9,14 +9,15 @@ Arranque: `bun run agent:preflight -- --item <ID> --agent claude`. Lista viva: `
 0. Hecho 2026-11-06: CI.55 fase 2 `bb92b483`; CI.63 `fe602898`; CI.64 `0e6fdac7`; UI.65 `aafee2ce`; limpieza
    `735bf403` (307 archivos, 3,2 MB); regla de push cada 2 commits `1e69a1d2`; DEV.1 `a557f107` (candado en
    `scripts/writer-lock.mjs`); SK.1 `c222bfc5` (biblioteca `~/.orchestos/skills/`, activación por proyecto, "Add
-   skill"); CI.65 `4d7d6e62` (gates de chat esperan "Send" habilitado). **Primer paso al retomar**: confirmar que el
-   push de `a557f107..4d7d6e62` salió (`git status` → no "ahead"); si no, mirar `/tmp/push6.log` o re-empujar.
-0a. **Siguiente: cargar el set curado** en la biblioteca con "Add skill" (Settings → proyecto → Skills), ya
-   importado `karpathy-guidelines`: `grill-me` y `to-spec` (github.com/mattpocock/skills), `impeccable`
-   (github.com/pbakaus/impeccable), `tdd` (mattpocock), `verification-before-completion` (github.com/obra/superpowers),
-   `security-audit` (github.com/cloudflare/security-audit-skill, modo orientación). Descartadas: `using-superpowers`
-   (manda invocar skills siempre; choca con mínimo contexto) y ponytail (se solapa con Karpathy). Decisión de Carlos:
-   catálogo general, activación por proyecto; disponibles, no instaladas en el CLI.
+   skill"); CI.65 `4d7d6e62` (gates de chat esperan "Send" habilitado). Push confirmado.
+0a. Hecho 2026-11-06: set curado en `~/.orchestos/skills/` (apagado por defecto; se enciende por proyecto):
+   `karpathy-guidelines`, `grilling`, `to-spec`, `tdd`, `impeccable`, `verification-before-completion`,
+   `security-audit`. `grill-me` se quitó: solo dice "Call the Skill tool with grilling"; se importó `grilling`, que
+   trae el contenido. En el repo OrchestOS la `verification-before-completion` propia (`skills/`) gana a la de la
+   biblioteca, como manda la precedencia. **Límite visto**: el import no trae archivos auxiliares; `impeccable`
+   remite a 33 `reference/*.md`, `security-audit` a 4 y `tdd` a 2. Si SK.2 las usa en serio, sumar import de
+   auxiliares (anotado, sin ítem). README sync: el repo no dejaba a Actions crear PRs (activado); rama por run
+   `f4d4a63e`; PR #4 abierto para Carlos.
 0b. **SK.2** (GO 2026-11-06, falta spec): cada skill declara su fase (plan/diseño/código/revisión/seguridad) y la
    tarea recibe la de su fase; hoy `pickAutoSkill` elige una o ninguna (`chat.ts`). **SK.3** (GO): perfil
    "¿sabes programar?" en el onboarding; si no, el orquestador pregunta primero (`grill-me`) y revisión y seguridad
