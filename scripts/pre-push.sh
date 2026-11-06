@@ -104,7 +104,7 @@ ui_flows=(smoke plan-doc project-delete usage-bar text-sweep chat-turn-details t
 ui_paths='^(src/dashboard/|scripts/ui-gate/|src/run/)'
 ui_required=0
 chat_required=0
-chat_paths='^(src/dashboard/handlers/chat|src/dashboard/chat-cli-models\.ts|src/dashboard/app/src/App\.tsx|src/dashboard/app/src/components/chat/|src/dashboard/app/src/api/chat|src/dashboard/app/src/components/common/AgentComposer|src/run/executors/|scripts/ui-gate/flows/(chat-streaming|codex-live|chat-continuity)\.mjs)'
+chat_paths='^(src/dashboard/handlers/chat|src/dashboard/(chat-|default-chat-)[^/]*\.ts|src/dashboard/app/src/App\.tsx|src/dashboard/app/src/components/chat/|src/dashboard/app/src/api/chat|src/dashboard/app/src/components/common/AgentComposer|src/dashboard/app/src/components/thread/|src/run/executors/|scripts/ui-gate/flows/(chat-streaming|codex-live|chat-continuity)\.mjs)'
 for ref_line in "${push_refs[@]}"; do
   read -r local_ref local_sha remote_ref remote_sha <<<"$ref_line"
   [[ -n "$local_sha" ]] || continue

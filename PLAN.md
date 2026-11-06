@@ -259,6 +259,13 @@ Cerrada. Todos sus ítems están archivados en `docs/done/` (ver "Cerrados — e
   Gate en vivo: navegador real (Playwright), `docs/done/evidence/CI.63-live.json`
   Revisión: Opus (diff de Sol leído completo).
   Ejecutado por: codex gpt-6.1-sol (criterio r1, r2)
+- [x] **CI.64 — El pre-push no reconoce como "cambio de chat" `src/dashboard/chat-live.ts` ni el hilo.** (visto
+  2026-11-06 al subir CI.63: "sin cambios de chat; omitidos" con `chat-live.ts` cambiado; los gates de chat los corrió
+  el cerebro a mano) `chat_paths` (`scripts/pre-push.sh:107`) solo lista `chat-cli-models.ts`; faltan
+  `chat-live.ts`, `default-chat-agent.ts` y `src/dashboard/app/src/components/thread/`.
+  Hecho: `chat_paths` cubre `src/dashboard/(chat-|default-chat-)*.ts` y el hilo. Gate del cerebro: sondeo de la regex
+  (5 rutas de chat coinciden, `server.ts` y Settings no), `bash -n`, hook instalado idéntico a la fuente.
+  Ejecutado por: codex gpt-6-luna (mecanico)
 - [ ] **UI.65 — Acabados de la tarjeta de tarea y del menú del clip.** (pedido de Carlos 2026-11-06) Anotados en
   RUN.1 y UI.64: "Interrupted" sale dos veces en la tarjeta interrumpida (`TaskCard.tsx:263` y `:276`); `pending` con
   reintento muestra el resumen y no el diagnóstico (sin causa aislada: `task-report.ts:73` sí lo arma); el menú del
