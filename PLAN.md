@@ -113,7 +113,7 @@ Cerrada. Todos sus ítems están archivados en `docs/done/` (ver "Cerrados — e
   `--model <modelo>#<variante>`; parser intacto (`part.type` sigue `step-finish`). Gates del cerebro: tsc, lint,
   `test:coverage` 2243/0. Gate en vivo: inferencia real con los args del chat, `docs/done/evidence/OC.3-live.json`.
   Revisión: Opus.
-  Ejecutado por: codex gpt-6-luna (mecanico r1) · Spec: docs/specs/OC.3.md
+  Ejecutado por: codex gpt-6-luna (mecanico r1)
 - [x] **OC.4 — El adaptador HTTP de aprobaciones migra a la API v2 de OpenCode.** (abierto 2026-11-03) Cambiaron
   banner, `/api/session`, prompt, modelo y permisos (`src/run/executors/opencode-server.ts`). Hecho: rutas `/api`,
   envoltura `data`, reglas `{action,resource,effect}`, variante dentro de `model`, `decision` once/reject (nunca always),
@@ -122,7 +122,7 @@ Cerrada. Todos sus ítems están archivados en `docs/done/` (ver "Cerrados — e
   Gate en vivo: `opencode serve` real, edición aprobada crea el archivo con costo y tokens; shell rechazado falla la
   tarea; sin servidores huérfanos (`docs/done/evidence/OC.4-live.json`).
   Revisión: Opus (diff de Sol leído completo).
-  Ejecutado por: codex gpt-6.1-sol (criterio) + gpt-6-luna (mecanico r1) · Spec: docs/specs/OC.4.md
+  Ejecutado por: codex gpt-6.1-sol (criterio) + gpt-6-luna (mecanico r1)
 - [x] **ONB.1 — El primer arranque usa una CLI instalada, no OpenRouter.** (abierto 2026-11-04, GO de Carlos) Clon
   limpio: `setup` exigía `OPENROUTER_API_KEY`, el chat nacía en `api` con `typesafe/jev-router` (precio -1 ordenado
   primero) rotulado "ChatGPT" y el primer mensaje fallaba.
@@ -134,7 +134,7 @@ Cerrada. Todos sus ítems están archivados en `docs/done/` (ver "Cerrados — e
   Gate en vivo: navegador real (Playwright), `docs/done/evidence/ONB.1-live.json` (`ORCHESTOS_HOME` vacío → "Message Claude…",
   primer mensaje respondido por la CLI en 2,4 s, sin error). Sin probar en vivo: el caso sin ninguna CLI (tests).
   Revisión: Opus (diff de Sol leído completo).
-  Ejecutado por: codex gpt-6.1-sol (criterio r1) · Spec: docs/specs/ONB.1.md
+  Ejecutado por: codex gpt-6.1-sol (criterio r1)
 - [x] **ONB.2 — Model routing propone la CLI detectada para los roles vacíos.** (abierto 2026-11-04, GO de Carlos,
   opción 1) Clon limpio: los cuatro roles nacen sin asignar y la primera tarea falla con "Rol 'executor' sin asignar";
   el error no lleva a Settings. Detectar no es decidir: se propone, Carlos confirma con un clic y guarda.
@@ -149,7 +149,7 @@ Cerrada. Todos sus ítems están archivados en `docs/done/` (ver "Cerrados — e
   guardar → los 4 roles en `claude`/`claude-opus-5-5`; el botón desaparece). Captura mirada a ojo.
   Anotado: con una sola CLI el Reviewer queda igual que el Executor (la UI ya avisa "errors may correlate").
   Revisión: Opus (diff de Sol leído completo; r1 de Luna verificado en la captura).
-  Ejecutado por: codex gpt-6.1-sol (criterio) + luna (mecanico r1) · Spec: docs/specs/ONB.2.md
+  Ejecutado por: codex gpt-6.1-sol (criterio) + luna (mecanico r1)
 - [x] **CI.61 — `Mutation Shards`: `executors-routing` vuelve a pasar las 3 h.** (abierto 2026-11-04) Corrida
   `41811181197`: shard cancelado a 180 min (11:09 → 14:10); los otros 9 verdes. Duración 77 min (2026-10-27) →
   151 (2026-11-03) → 180+. Muta `cli-registry.ts` (496 líneas, 46 tests) y otros 6 archivos (~506 líneas, hasta
@@ -159,7 +159,7 @@ Cerrada. Todos sus ítems están archivados en `docs/done/` (ver "Cerrados — e
   2273/0 (los 6 fallos del ejecutor eran de su sandbox: EADDRINUSE y EPERM en `~/.ssh`). La duración real se ve en
   la próxima corrida nocturna; si `-routing` sigue sobre 150 min, se reabre.
   Revisión: Opus (diff leído completo).
-  Ejecutado por: luna (mecanico) · Spec: docs/specs/CI.61.md
+  Ejecutado por: luna (mecanico)
 - [x] **UI.63 — El popover de cuotas muestra los créditos de reinicio de Codex.** (abierto 2026-11-04, GO de Carlos)
   `account/rateLimits/read` ya devuelve `rateLimitResetCredits {availableCount, credits[{status, expiresAt, title}]}`
   (en vivo hoy: 3 disponibles, "Full reset (Weekly + 5 hr)") y OrchestOS lo descarta. Solo se muestra; gastar un
@@ -172,7 +172,7 @@ Cerrada. Todos sus ítems están archivados en `docs/done/` (ver "Cerrados — e
   Gate en vivo: navegador real (Playwright), `docs/done/evidence/UI.63-live.json`; `ui:gate usage-bar` 22/22 repetido
   por el cerebro con Codex real; captura mirada a ojo: "Reset credits 3 · expires in 1d".
   Revisión: Opus (diff de Sol leído completo; r1 de Luna verificado).
-  Ejecutado por: codex gpt-6.1-sol (criterio) + luna (mecanico r1) · Spec: docs/specs/UI.63.md
+  Ejecutado por: codex gpt-6.1-sol (criterio) + luna (mecanico r1)
 - [x] **DOC.9 — `bun run readme:sync`: el README se actualiza solo con datos computables.** (GO de Carlos
   2026-11-05) Bloques marcados (CLIs, número de tests) reescritos sin LLM; un workflow de los viernes abre un PR.
   Hecho: `scripts/readme-sync.ts` (bloques `readme-sync:clis` desde `KNOWN_CLIS` y `readme-sync:tests` desde la salida
@@ -233,7 +233,7 @@ Cerrada. Todos sus ítems están archivados en `docs/done/` (ver "Cerrados — e
   `failed (exit N): <stdout+stderr>`. Gates (cerebro): `plan-doc` 16/16, `project-tabs` 39/39, `model-routing` 18/18;
   `test:coverage` 2012/0 (ejecutor). Sigue abierto hasta el próximo fallo: leer el motivo y escribir la fase 2.
   Gate en vivo: navegador real (Playwright), `docs/done/evidence/CI.19-live.json`
-  Ejecutado por: claude sonnet (criterio-alt; Sol sin cupo de 5 h) · Spec: docs/specs/CI.19.md
+  Ejecutado por: claude sonnet (criterio-alt; Sol sin cupo de 5 h)
   Bucle aislado 2026-11-03 (en serie, sin carga): `qa-negative` 3/3 verde, sin reproducir. Los fallos vistos fueron en
   el pre-push (con carga); próximo intento: repetir bajo carga.
   Bajo carga 2026-11-05 (secuencia del pre-push, 16 flows, con `test:coverage` en paralelo): verde, sin reproducir.
@@ -245,7 +245,6 @@ Cerrada. Todos sus ítems están archivados en `docs/done/` (ver "Cerrados — e
   bisección no prueba que sea UI.58. Sospecha (opinión de LLM): una actualización tardía del estado del chat pisa
   la selección. Fase 1: que el fallo deje evidencia (modelo del chat en API antes/después del clic, requests entre
   clic y reapertura, captura).
-  Spec: docs/specs/CI.57.md
   Fase 1 hecha: si el paso falla, guarda `composer-picker-model-missing.json` y su captura en el `runDir` (red
   `/api/chat*` y `/api/config*` con ms desde el clic, sesión antes/después/al reabrir, botones marcados, esfuerzos
   visibles, estado del botón). Contraprueba forzada con todas las partes (Sol; `lastModel` de la sesión es `null` antes
@@ -261,7 +260,6 @@ Cerrada. Todos sus ítems están archivados en `docs/done/` (ver "Cerrados — e
   `waitForTaskFinished` (`tasks.mjs:39`) lo toma como fin. Aislado pasa 43/43 justo después. El lote no tocó tareas.
   Evidencia: `docs/done/evidence/CI.55-prepush-fail.log`. Falta: que el próximo fallo deje la salida del CLI de esa
   corrida (stdout/stderr o el log del run) para distinguir modelo, cuota o sandbox.
-  Spec: docs/specs/CI.55.md
   Fase 1 hecha: si el paso falla, guarda `role-task-missing-output.json` en el `runDir` del gate con la tarea, las
   filas de run con su detalle (`result`, `executorReply` completo, archivos, checks), las líneas `[cli-spawn]` del
   `dashboard.log` y el estado git/worktrees con `ROLE.md`; el detalle del paso lleva un resumen y la ruta. Contraprueba
@@ -279,7 +277,6 @@ Cerrada. Todos sus ítems están archivados en `docs/done/` (ver "Cerrados — e
 - [ ] **CI.54 — `codex-live`: la burbuja del usuario a veces no aparece en 2 s.** (abierto 2026-11-02)
   Visto 1 de 3 (2026-11-02, "turn 1 user message appears before completion"); el pre-push reintenta y lo oculta.
   Fase 1: que el fallo deje evidencia (captura, DOM, composer, timeline, log); fase 2: causa con esa evidencia.
-  Spec: docs/specs/CI.54.md
   Fase 1 hecha: si la burbuja falta a los 2 s, el paso guarda `turn1-bubble-missing.png` y un JSON con burbujas,
   cola del hilo, composer, botón, timeline, status del POST, `[chat-turn]` y a qué ms apareció (sigue hasta 15 s).
   Contraprueba forzada (filtro inexistente) con la evidencia completa; corrida normal 14/14 (Sol y cerebro). Abierto
