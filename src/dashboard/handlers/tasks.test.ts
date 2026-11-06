@@ -216,6 +216,37 @@ describe('dashboard task rows lastRunAt (UI.26.3)', () => {
     }
   })
 
+  test('phaseSkills contains only applied ids from the linked run and handles legacy or malformed JSON', () => {
+    const runId = `run-phases-${crypto.randomUUID()}`
+    db.run(
+      `INSERT INTO runs (id, prompt, task_class, model, provider, status, created_at) VALUES (?, 'p', 'fix', 'm', 'x', 'done', 'now')`,
+      [runId],
+    )
+    try {
+      const root = fixture(runId)
+      for (const [json, expected] of [
+        [
+          JSON.stringify([
+            { id: 'tdd', applied: true },
+            { id: 'omitted', applied: false },
+          ]),
+          ['tdd'],
+        ],
+        [null, []],
+        ['invalid', []],
+        ['{}', []],
+        ['[null, {"applied":true}]', []],
+      ] as const) {
+        db.run('UPDATE runs SET phase_skills_json = ? WHERE id = ?', [json, runId])
+        expect(loadTaskRows(root)[0]?.phaseSkills).toEqual([...expected])
+      }
+      expect(loadTaskRows(fixture(null))[0]?.phaseSkills).toEqual([])
+      expect(loadTaskRows(fixture('missing'))[0]?.phaseSkills).toEqual([])
+    } finally {
+      db.run('DELETE FROM runs WHERE id = ?', [runId])
+    }
+  })
+
   test('sin run_id, o con un run inexistente, lastRunAt es null', async () => {
     const noRun = fixture(null)
     expect(loadTaskRows(noRun)[0]?.lastRunAt).toBeNull()

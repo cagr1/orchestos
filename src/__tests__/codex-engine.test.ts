@@ -205,6 +205,7 @@ function buildCtx(worktree: Worktree, task: Task, model = 'openai/gpt-5.4'): Run
     cliEffort: task.cli_effort,
     task,
     skillInstructions: '',
+    phaseSkills: [],
     effectiveContext: '',
     contextSource: 'AGENTS.md',
     contextTokens: 0,

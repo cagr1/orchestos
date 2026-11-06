@@ -91,6 +91,7 @@ import {
 } from './handlers/setup.ts'
 import {
   handleApiSkillEnabled,
+  handleApiSkillPhases,
   handleApiSkillsBuild,
   handleApiSkillsCreate,
   handleApiSkillsCurate,
@@ -325,6 +326,11 @@ export async function route(req: Request, port: number): Promise<Response> {
     if (!req.headers.get('x-orchestos-project-id'))
       return errorResponse('Project header is required', 400)
     return withDashboardProject(req, (project) => handleApiSkillEnabled(req, url, project.root))
+  }
+  if (method === 'PUT' && /^\/api\/skills\/[^/]+\/phases$/.test(url.pathname)) {
+    if (!req.headers.get('x-orchestos-project-id'))
+      return errorResponse('Project header is required', 400)
+    return withDashboardProject(req, (project) => handleApiSkillPhases(req, url, project.root))
   }
   if (method === 'GET' && url.pathname === '/api/skills') {
     return withDashboardProject(req, (project) => handleApiSkillsList(project.root, project.id))

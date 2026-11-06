@@ -188,6 +188,14 @@
       "closedDate": null
     },
     {
+      "id": "SK.2",
+      "sprint": "Fase 2 — Producto mínimo para entrega",
+      "block": "Abiertos — fiabilidad de los gates y documentación",
+      "title": "Cada tarea recibe las skills de su fase, no solo una",
+      "status": "done",
+      "closedDate": null
+    },
+    {
       "id": "CI.19",
       "sprint": "Fase 2 — Producto mínimo para entrega",
       "block": "Abiertos — fiabilidad de los gates y documentación",

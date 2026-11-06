@@ -24,6 +24,7 @@ describe('tasks API mapping', () => {
               status: 'pending',
               retryReason: null,
               skill: null,
+              phaseSkills: ['tdd'],
               assignedAgent: 'codex',
               assignedModel: 'gpt-5.6-luna',
               retryCount: 1,
@@ -48,6 +49,7 @@ describe('tasks API mapping', () => {
         tasks: [
           {
             id: 'build-app',
+            phaseSkills: ['tdd'],
             output: ['dist/app.js'],
             outputSlice: ['dist/app.js'],
             assignedAgent: 'codex · gpt-5.6-luna',

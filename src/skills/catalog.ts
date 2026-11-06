@@ -1,12 +1,15 @@
 import { basename } from 'path'
 import type { TaskClass } from '../router/classify.ts'
+import type { Task } from '../tasks/schema.ts'
 import type { SkillActivationMode, SkillDef } from './registry.ts'
 import {
   listProSkillFiles,
   listSkillFiles,
   listSkillFilesWithOrigin,
   loadSkill,
+  resolveEnabledSkillPath,
 } from './registry.ts'
+import { buildSections } from './targets/_shared.ts'
 
 /**
  * O.2 (Bloque O, 2026-08-03) — catálogo de skills compartido.
@@ -175,4 +178,53 @@ export function resolveGates(
     }
   }
   return out
+}
+
+/** Automatic execution skills; review-only gates remain in the QA path. */
+export function resolvePhaseSkills(taskText: string, phase: TaskClass, root = process.cwd()) {
+  return resolveGates(taskText, phase, root).filter(
+    ({ skill }) => !isReviewOnlyGate(skill.activation),
+  )
+}
+
+export const SKILL_GUIDELINES_MAX_CHARS = 48_000
+
+export interface PhaseSkillEvaluation {
+  id: string
+  applied: boolean
+  reason: string
+}
+
+/** Shared by middleware and the standalone prompt builder. The primary is always included. */
+export function buildSkillInstructions(
+  task: Pick<Task, 'skill' | 'description'>,
+  phase: TaskClass,
+  root = process.cwd(),
+): { text: string; phaseSkills: PhaseSkillEvaluation[] } {
+  const render = (skill: SkillDef) =>
+    `\n## SKILL GUIDELINES: ${skill.name}\n${buildSections(skill).join('\n\n')}\n`
+  let text = ''
+  let primaryId: string | undefined
+  if (task.skill) {
+    try {
+      const skill = loadSkill(resolveEnabledSkillPath(task.skill, root))
+      if (!isReviewOnlyGate(skill.activation)) {
+        text = render(skill)
+        primaryId = skill.id
+      }
+    } catch {
+      // Missing or invalid primary skills keep the existing empty fallback.
+    }
+  }
+  const phaseSkills = resolvePhaseSkills(task.description, phase, root).map((evaluation) => {
+    const { skill, applied, reason } = evaluation
+    if (!applied || skill.id === primaryId) return { id: skill.id, applied, reason }
+    const block = render(skill)
+    if (text.length + block.length > SKILL_GUIDELINES_MAX_CHARS) {
+      return { id: skill.id, applied: false, reason: 'omitted: skill context budget (48000 chars)' }
+    }
+    text += block
+    return { id: skill.id, applied: true, reason }
+  })
+  return { text, phaseSkills }
 }

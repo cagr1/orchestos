@@ -39,6 +39,8 @@ export interface RunRecord {
   commit_sha?: string | null
   reverted_sha?: string | null
   reverted_at?: string | null
+  /** SK.2: execution phase skills and omitted candidates; NULL when empty. */
+  phase_skills_json?: string | null
   /** O.3: JSON [{id, candidate, applied, reason}] — NULL si el run nunca llegó al stage de QA. */
   skill_gates_json: string | null
   status: 'done' | 'blocked' | 'failed'
@@ -123,9 +125,9 @@ export function insertRun(r: InsertRunRecord): string {
       files_read, read_audit_json, qa_criteria_json,
       snapshot_before, snapshot_after, qa_verdict, qa_reason, qa_model, checks_json,
       constitution_rules, context_source, context_tokens, embed_hits, context_warnings_json,
-      cost_breakdown_json, file_diffs, skill_gates_json,
+      cost_breakdown_json, file_diffs, skill_gates_json, phase_skills_json,
       status, input_tokens, cache_read_tokens, cache_write_tokens, output_tokens, usd_cost, elapsed_ms, result, created_at, cli_session_id, executor_reply, context_used_tokens, context_window_tokens, commit_sha, commit_base_sha
-    ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
+    ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
     [
       id,
       scrub(r.project_id),
@@ -156,6 +158,7 @@ export function insertRun(r: InsertRunRecord): string {
       scrub(r.cost_breakdown_json) ?? null,
       scrub(r.file_diffs) ?? null,
       scrub(r.skill_gates_json) ?? null,
+      scrub(r.phase_skills_json) ?? null,
       r.status,
       r.input_tokens,
       r.cache_read_tokens ?? 0,

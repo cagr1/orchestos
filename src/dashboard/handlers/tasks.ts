@@ -104,6 +104,24 @@ function lastRunAt(runId: string | null | undefined): string | null {
   return row?.created_at ?? null
 }
 
+function phaseSkillsForRun(runId: string | null | undefined): string[] {
+  if (!runId) return []
+  const row = db
+    .query<{ phase_skills_json: string | null }, [string]>(
+      'SELECT phase_skills_json FROM runs WHERE id = ?',
+    )
+    .get(runId)
+  try {
+    const evaluations: unknown = JSON.parse(row?.phase_skills_json ?? '[]')
+    if (!Array.isArray(evaluations)) return []
+    return evaluations
+      .filter((entry) => entry?.applied === true && typeof entry.id === 'string')
+      .map((entry) => entry.id)
+  } catch {
+    return []
+  }
+}
+
 /** Fila de /api/tasks; la comparten `loadTaskRows` y `handleApiTasks`. */
 function buildTaskRow(
   t: ReturnType<typeof loadTasks>['tasks'][number],
@@ -125,6 +143,7 @@ function buildTaskRow(
     pendingApprovals: approvalRunId ? pendingApprovals(approvalRunId).length : 0,
     sessionId: t.status === 'running' ? (getTaskRunWatch(root, t.id)?.session_id ?? null) : null,
     lastRunAt: lastRunAt(t.run_id),
+    phaseSkills: phaseSkillsForRun(t.run_id),
     engine: t.engine ?? null,
     output: t.output,
     dependsOn: t.depends_on,

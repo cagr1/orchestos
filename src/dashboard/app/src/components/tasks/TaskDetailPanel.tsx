@@ -73,6 +73,9 @@ export function TaskDetailPanel({
   }, [onClose])
 
   const title = taskTitle(task)
+  const skillIds = [
+    ...new Set([task.skill, ...(task.phaseSkills ?? [])].filter((id): id is string => !!id)),
+  ]
   const lastRun = task.lastRunAt ? new Date(task.lastRunAt) : null
   const showDescription = task.description.trim() !== '' && task.description !== title
   const criteria = task.acceptance_criteria ?? []
@@ -115,9 +118,9 @@ export function TaskDetailPanel({
           <Property icon={Cpu} label="Engine">
             {task.engine}
           </Property>
-          {task.skill ? (
-            <Property icon={Sparkles} label="Skill">
-              {task.skill}
+          {skillIds.length ? (
+            <Property icon={Sparkles} label={skillIds.length === 1 ? 'Skill' : 'Skills'}>
+              {skillIds.join(' · ')}
             </Property>
           ) : null}
           <Property icon={GitBranch} label="Depends on">

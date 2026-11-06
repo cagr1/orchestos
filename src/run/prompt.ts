@@ -1,8 +1,7 @@
 import { existsSync, readFileSync } from 'fs'
 import { join } from 'path'
-import { isReviewOnlyGate } from '../skills/catalog.ts'
-import { loadSkill, resolveEnabledSkillPath } from '../skills/registry.ts'
-import { buildSections } from '../skills/targets/_shared.ts'
+import { classifyTask } from '../router/classify.ts'
+import { buildSkillInstructions } from '../skills/catalog.ts'
 import type { Task } from '../tasks/schema.ts'
 
 export interface BuiltPrompt {
@@ -24,7 +23,7 @@ export function buildPrompt(
   previousFailure?: string,
   roadmapInstructions?: string,
 ): BuiltPrompt {
-  const guidelines = skillGuidelines ?? loadSkillGuidelines(task.skill, projectRoot)
+  const guidelines = skillGuidelines ?? loadSkillGuidelines(task, projectRoot)
 
   const system = [
     contextText || '# Project context\nNo AGENTS.md found.',
@@ -60,19 +59,6 @@ export function buildPrompt(
   return { system, userContent }
 }
 
-// N.4.5 (Mes 25, 2026-07-31) — usa buildSections(), el mismo renderer que
-// compila las skills para Claude Code/Cursor/OpenAI. Antes este helper
-// duplicaba `skill.instructions` a mano y nunca incluía iron_law /
-// common_rationalizations / red_flags (N.1-N.3) — el endurecimiento llegaba
-// a herramientas externas pero nunca al ejecutor propio de OrchestOS.
-function loadSkillGuidelines(skillId?: string, root = process.cwd()): string {
-  if (!skillId) return ''
-
-  try {
-    const skill = loadSkill(resolveEnabledSkillPath(skillId, root))
-    if (isReviewOnlyGate(skill.activation)) return ''
-    return `\n## SKILL GUIDELINES: ${skill.name}\n${buildSections(skill).join('\n\n')}\n`
-  } catch {
-    return ''
-  }
+function loadSkillGuidelines(task: Task, root = process.cwd()): string {
+  return buildSkillInstructions(task, task.task_class ?? classifyTask(task.description), root).text
 }

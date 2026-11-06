@@ -1,3 +1,4 @@
+import type { TaskClass } from '../../../../router/classify'
 import type { InstinctItem, MemoryItem, SkillItem, SpecItem, TaskItem } from '../types/orchestos'
 
 async function request<T>(path: string, projectId: string, init?: RequestInit): Promise<T> {
@@ -173,5 +174,17 @@ export async function enableLibrarySkill(
     method: 'PUT',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ enabled }),
+  })
+}
+
+export async function setLibrarySkillPhases(
+  projectId: string,
+  id: string,
+  phases: TaskClass[],
+): Promise<void> {
+  await request(`/api/skills/${encodeURIComponent(id)}/phases`, projectId, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ phases }),
   })
 }

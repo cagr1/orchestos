@@ -2,6 +2,7 @@ import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'no
 import { createServer } from 'node:http'
 import { tmpdir } from 'node:os'
 import { basename, dirname, join } from 'node:path'
+import { parse } from 'yaml'
 import { run, writeGateRoles } from '../lib.mjs'
 
 export default async function skillsLibrary({
@@ -126,6 +127,43 @@ export default async function skillsLibrary({
   await step('activation survives reload', await row.getByRole('switch').isChecked())
   await row.scrollIntoViewIfNeeded()
   await shot('skills-library-list')
+  const setPhase = async (label) => {
+    const response = page.waitForResponse(
+      (response) =>
+        response.url().endsWith('/api/skills/gate-library-skill/phases') &&
+        response.request().method() === 'PUT',
+    )
+    await row.getByRole('button', { name: label, exact: true }).click()
+    const result = await response
+    await step(`phase ${label} endpoint succeeds`, result.ok(), await result.text())
+    await page.waitForFunction(() => !document.querySelector('[data-skill-row] button:disabled'))
+  }
+  await setPhase('Build')
+  await setPhase('Fix')
+  const activation = parse(readFileSync(libraryFile, 'utf8')).activation
+  await step(
+    'phase YAML persisted',
+    activation?.mode === 'automatic' &&
+      JSON.stringify(activation.phases) === JSON.stringify(['implement', 'fix']),
+    JSON.stringify(activation),
+  )
+  await openSkills()
+  await step(
+    'phase chips survive reload',
+    (await row.getByRole('button', { name: 'Build', exact: true }).getAttribute('aria-pressed')) ===
+      'true' &&
+      (await row.getByRole('button', { name: 'Fix', exact: true }).getAttribute('aria-pressed')) ===
+        'true',
+  )
+  await row.scrollIntoViewIfNeeded()
+  await shot('skills-library-phases')
+  await setPhase('Build')
+  await setPhase('Fix')
+  await step(
+    'empty phases remove activation',
+    !('activation' in parse(readFileSync(libraryFile, 'utf8'))),
+  )
+
   await row.getByRole('switch').uncheck()
   await page.waitForFunction(async (id) => {
     const response = await fetch('/api/skills', { headers: { 'x-orchestos-project-id': id } })

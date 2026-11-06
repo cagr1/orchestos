@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react'
 import { flushSync } from 'react-dom'
+import type { TaskClass } from '../../../router/classify'
 import {
   archiveSession,
   attachTurnDetails,
@@ -40,6 +41,7 @@ import {
   listSpecs,
   rejectInstinct,
   resolveMemoryConflict,
+  setLibrarySkillPhases,
 } from './api/projectTabs'
 import { getRun, getRunApprovals, listRuns, type PendingApproval } from './api/runs'
 import { pollProjectAndThreadTasks } from './api/taskPolling'
@@ -1461,6 +1463,11 @@ export default function App() {
     await enableLibrarySkill(currentProject.id, id, enabled)
     await reloadTabs()
   }
+  const handleSetLibrarySkillPhases = async (id: string, phases: TaskClass[]) => {
+    if (!currentProject) throw new Error('Select a project')
+    await setLibrarySkillPhases(currentProject.id, id, phases)
+    await reloadTabs()
+  }
   const handleCompileSkill = async (id: string) => {
     if (currentProject) {
       const result = await compileSkill(currentProject.id, id)
@@ -1752,6 +1759,7 @@ export default function App() {
                 onCompileSkill={handleCompileSkill}
                 onAddLibrarySkill={handleAddLibrarySkill}
                 onEnableLibrarySkill={handleEnableLibrarySkill}
+                onSetLibrarySkillPhases={handleSetLibrarySkillPhases}
                 onApproveInstinct={handleApproveInstinct}
                 onRejectInstinct={handleRejectInstinct}
                 onAddInstinct={handleAddInstinct}

@@ -27,6 +27,7 @@
 import type { ContextWarning } from '../hooks/context-monitor.ts'
 import type { ProviderClient } from '../providers/index.ts'
 import type { TaskClass } from '../router/classify.ts'
+import type { PhaseSkillEvaluation } from '../skills/catalog.ts'
 import type { Task } from '../tasks/schema.ts'
 import type { HarnessOpts } from './harness.ts'
 import type { BuiltPrompt } from './prompt.ts'
@@ -85,7 +86,9 @@ export interface RunContext {
   task: Task
 
   // --- skill-route ---
-  /** Instrucciones compiladas de la skill activa; '' si no hay skill */
+  /** Applied and omitted automatic execution skills for this phase. */
+  phaseSkills: PhaseSkillEvaluation[]
+  /** Instrucciones compiladas de las skills activas; '' si no hay skill */
   skillInstructions: string
 
   /** Roadmaps aplicables, seleccionados por el perfil efectivo del proyecto. */
@@ -131,6 +134,7 @@ export function createRunContext(opts: HarnessOpts): RunContext {
     provider: null as unknown as ProviderClient,
     task: opts.task,
     skillInstructions: '',
+    phaseSkills: [],
     roadmapInstructions: '',
     roadmapBlockReason: null,
     effectiveContext: opts.contextText,

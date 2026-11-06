@@ -5,6 +5,7 @@ export interface TaskRowResponse {
   description: string
   status: TaskStatus
   retryReason: string | null
+  phaseSkills: string[]
   skill: string | null
   assignedAgent: string | null
   assignedModel: string | null
@@ -45,6 +46,7 @@ function mapTask(row: TaskRowResponse): TaskItem {
     sessionId: row.sessionId ?? null,
     lastRunAt: row.lastRunAt ?? null,
     skill: row.skill,
+    phaseSkills: row.phaseSkills ?? [],
     engine: row.engine || 'single-shot',
   }
 }
