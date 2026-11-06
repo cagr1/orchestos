@@ -16,11 +16,8 @@ Arranque: `bun run agent:preflight -- --item <ID> --agent claude`. Lista viva: `
 2. **Esperan su próximo fallo** (leer el JSON y escribir la fase 2). Todos dejan evidencia en el `runDir` del gate
    (`$TMPDIR/ui-gate-<pid>/`): CI.55 `role-task-missing-output.json`; CI.57 `composer-picker-model-missing.json`;
    CI.54 `turn1-bubble-missing.json`; CI.19, el motivo en el detalle del paso.
-3. **Pausa 2026-11-05 (pedido de Carlos)**: UI.64 quedó a medias SIN commitear (ejecutor criterio detenido; diff
-   en App.tsx, projects.ts, AgentComposer, ShellSidebar, Settings, handlers/projects.ts, server.ts + 4 archivos nuevos);
-   revisar o relanzar `delegate criterio docs/specs/UI.64.md`. Push de 3 commits (RUN.2, RUN.1, NEXT) detenido: pendiente.
-   Siguiente: UI.64. Después: spec de la fase 2 de CI.55 (hallazgos en PLAN.md).
-   Hecho 2026-11-05: DOC.9 + DOC.9.1 (readme:sync), RUN.2 (notice en run_steps), RUN.1 (diagnóstico sin Retry).
+3. **Siguiente**: spec de la fase 2 de CI.55 (hallazgos en PLAN.md). Hecho 2026-11-05: DOC.9, RUN.1, RUN.2, UI.64,
+   CI.62 y la poda de specs y capturas.
 4. Cualquier CLI corre tareas sin código (Settings → Providers → "CLIs propios"). Un adaptador rico para un CLI nuevo
    sigue siendo `KNOWN_CLIS` + `registerTaskEngine`, y lo prueba el cerebro, no Carlos.
 

@@ -1,14 +1,50 @@
 import { describe, expect, test } from 'bun:test'
-import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import {
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  utimesSync,
+  writeFileSync,
+} from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { parse as yamlParse, stringify as yamlStringify } from 'yaml'
 
-const { describeFlowError, formatResult, lintFlowSource, run, writeGateRoles } = await import(
-  './lib.mjs'
-)
+const { cleanOldUiGateDirs, describeFlowError, formatResult, lintFlowSource, run, writeGateRoles } =
+  await import('./lib.mjs')
 
 describe('ui gate pure helpers', () => {
+  test('removes only ui-gate directories older than the age limit', () => {
+    const tmp = mkdtempSync(join(tmpdir(), 'ui-gate-clean-'))
+    const oldDir = join(tmp, 'ui-gate-old')
+    const recentDir = join(tmp, 'ui-gate-recent')
+    const unrelatedDir = join(tmp, 'other-old')
+    const now = Date.now()
+    try {
+      for (const dir of [oldDir, recentDir, unrelatedDir]) mkdirSync(dir)
+      utimesSync(oldDir, new Date(now - 25 * 60 * 60 * 1000), new Date(now - 25 * 60 * 60 * 1000))
+      utimesSync(
+        recentDir,
+        new Date(now - 23 * 60 * 60 * 1000),
+        new Date(now - 23 * 60 * 60 * 1000),
+      )
+      utimesSync(
+        unrelatedDir,
+        new Date(now - 25 * 60 * 60 * 1000),
+        new Date(now - 25 * 60 * 60 * 1000),
+      )
+
+      expect(cleanOldUiGateDirs(tmp, now, 24 * 60 * 60 * 1000)).toBe(1)
+      expect(existsSync(oldDir)).toBe(false)
+      expect(existsSync(recentDir)).toBe(true)
+      expect(existsSync(unrelatedDir)).toBe(true)
+    } finally {
+      rmSync(tmp, { recursive: true, force: true })
+    }
+  })
+
   test('run reports exit code and output of a failing command', () => {
     const tmp = mkdtempSync(join(tmpdir(), 'ui-gate-run-'))
     try {

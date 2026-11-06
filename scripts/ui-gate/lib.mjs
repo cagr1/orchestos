@@ -1,9 +1,29 @@
 import { execFileSync } from 'node:child_process'
-import { existsSync, readFileSync, writeFileSync } from 'node:fs'
+import { existsSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { parse as yamlParse, stringify as yamlStringify } from 'yaml'
 
 const GATE_ROLES = ['orchestrator', 'executor', 'reviewer', 'auxiliary']
+
+export function cleanOldUiGateDirs(tmpdir, now, maxAgeMs) {
+  let cleaned = 0
+  let entries
+  try {
+    entries = readdirSync(tmpdir, { withFileTypes: true })
+  } catch {
+    return cleaned
+  }
+  for (const entry of entries) {
+    if (!entry.isDirectory() || !entry.name.startsWith('ui-gate-')) continue
+    const dir = join(tmpdir, entry.name)
+    try {
+      if (now - statSync(dir).mtimeMs <= maxAgeMs) continue
+      rmSync(dir, { recursive: true, force: true })
+      cleaned++
+    } catch {}
+  }
+  return cleaned
+}
 
 export function stripAnsi(text) {
   return text.replace(/\u001b\[[0-9;]*m/g, '')

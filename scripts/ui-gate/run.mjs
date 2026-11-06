@@ -9,9 +9,17 @@ import path from 'node:path'
 import { setTimeout as delay } from 'node:timers/promises'
 import { pathToFileURL } from 'node:url'
 import { chromium } from 'playwright'
-import { describeFlowError, formatResult, lintFlowSource, stripAnsi } from './lib.mjs'
+import {
+  cleanOldUiGateDirs,
+  describeFlowError,
+  formatResult,
+  lintFlowSource,
+  stripAnsi,
+} from './lib.mjs'
 
 const flows = process.argv.slice(2)
+const cleanedRunDirs = cleanOldUiGateDirs(os.tmpdir(), Date.now(), 24 * 60 * 60 * 1000)
+if (cleanedRunDirs > 0) process.stdout.write(`cleaned ${cleanedRunDirs} old ui-gate dirs\n`)
 const runDir = path.join(os.tmpdir(), `ui-gate-${process.pid}`)
 const home = process.env.ORCHESTOS_GATE_EVIDENCE_HOME || path.join(runDir, 'home')
 const databasePath = path.join(home, '.orchestos', 'db.sqlite')
