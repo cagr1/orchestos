@@ -164,6 +164,22 @@
       "closedDate": null
     },
     {
+      "id": "DEV.1",
+      "sprint": "Fase 2 — Producto mínimo para entrega",
+      "block": "Abiertos — fiabilidad de los gates y documentación",
+      "title": "El candado \"un árbol, un escritor\" vive en el repo",
+      "status": "done",
+      "closedDate": null
+    },
+    {
+      "id": "SK.1",
+      "sprint": "Fase 2 — Producto mínimo para entrega",
+      "block": "Abiertos — fiabilidad de los gates y documentación",
+      "title": "Biblioteca de skills general, activación por proyecto y \"Add skill\" en Settings",
+      "status": "open",
+      "closedDate": null
+    },
+    {
       "id": "CI.19",
       "sprint": "Fase 2 — Producto mínimo para entrega",
       "block": "Abiertos — fiabilidad de los gates y documentación",

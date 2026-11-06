@@ -114,9 +114,9 @@ Reglas vigentes, una por línea. Texto anterior e incidentes que las motivaron:
 
 ## Un árbol, un escritor
 
-- `~/.agent-method/hooks/writer-lock.js` (estado: `status`; puedo escribir: `check`). Codex interactivo reclama antes
-  de editar con `writer-lock.js claim codex`. El pre-commit rechaza el commit si el candado es de otro. Candado de una
-  sesión cerrada: `release`; vence solo tras 45 min sin escrituras.
+- `bun run writer-lock status|check` (estado / puedo escribir). Codex interactivo reclama antes de editar con
+  `bun run writer-lock claim <nombre>`. El pre-commit rechaza el commit si el candado es de otro. Candado de una
+  sesión cerrada: `bun run writer-lock release`; vence solo tras 45 min sin escrituras.
 
 ## Invariantes de arquitectura
 

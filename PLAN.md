@@ -279,6 +279,26 @@ Cerrada. Todos sus ítems están archivados en `docs/done/` (ver "Cerrados — e
   Revisión: Opus (diff leído; capturas del clip antes/después en Chat y Dev, tarjeta fallida e interrumpida mirados).
   Ejecutado por: codex gpt-6.1-sol (criterio) · Spec: docs/specs/UI.65.md
   Texto visible: "The task runner stopped before it finished" (un ícono no dice que el runner se cortó antes de terminar)
+- [x] **DEV.1 — El candado "un árbol, un escritor" vive en el repo.** (GO de Carlos 2026-11-06) Hoy el pre-commit
+  solo lo comprueba si existe `~/.agent-method/hooks/writer-lock.js` (`scripts/pre-commit.sh:25-34`); en otra máquina
+  no protege.
+  Hecho: `scripts/writer-lock.mjs` (copia del candado con el mismo archivo `.git/agent-writer.lock`, convive con el
+  hook global) + 28 tests; el pre-commit lo comprueba siempre; `.claude/settings.json` lo registra como PreToolUse;
+  `bun run writer-lock status|check|claim|release`; `AGENTS.md` § Un árbol, un escritor apunta ahí. Gates del cerebro:
+  contraprueba con HOME temporal sin `.agent-method` (ajeno 1, propio 0, vencido 0), test 28/0; ejecutor:
+  `test:coverage` 2347/0. Anotado: el repo no registra `release` en SessionEnd (lo hace el hook global; sin él,
+  el candado vence a los 45 min).
+  Ejecutado por: codex gpt-6.1-sol (criterio) · Spec: docs/specs/DEV.1.md
+- [ ] **SK.1 — Biblioteca de skills general, activación por proyecto y "Add skill" en Settings.** (GO de Carlos
+  2026-11-06) Las skills no se instalan en el CLI: quedan disponibles en `~/.orchestos/skills/` y cada proyecto elige
+  cuáles usa; la del proyecto gana. Hoy importar por URL existe solo por API y no acepta `SKILL.md`. Siguen SK.2
+  (skill por fase: plan/diseño/código/revisión/seguridad) y SK.3 (perfil "¿sabes programar?"). Set curado inicial:
+  `karpathy-guidelines`, `grill-me`/`to-spec` (mattpocock), `impeccable`, `tdd`, `verification-before-completion`
+  (superpowers), `security-audit` (Cloudflare, modo orientación). Spec: `docs/specs/SK.1.md`.
+  Texto visible: "Add skill" · "Add" (botón y acción: un ícono "+" solo no dice qué agrega)
+  Texto visible: "GitHub URL of a SKILL.md or folder" (el campo debe decir qué URL acepta)
+  Texto visible: "Project" · "Library" · "Built-in" (origen de cada skill; sin él no se sabe cuál gana)
+  Texto visible: "Use in this project" (el switch sin rótulo es ambiguo)
 - [ ] **CI.19 — El `git commit` del fixture falla a veces en el andamiaje de los ui-gates.** Visto 1 vez en
   `qa-negative` (2026-10-11, 1 de 9): `Command failed: git … commit -qm task fixture`, sin motivo porque el helper
   `run` usa `stdio: 'ignore'`. `qa-negative` ya reporta stdout/stderr y exit; los otros 20 flows con el mismo helper no.

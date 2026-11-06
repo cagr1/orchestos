@@ -24,13 +24,10 @@ bun run hooks:check
 
 # 2026-10-20 AT.18 — Codex interactivo no tiene PreToolUse; el incidente AT.15 arrastró
 # archivos de CI.17 desde el índice compartido, así que el commit comprueba el candado del árbol.
-writer_lock="$HOME/.agent-method/hooks/writer-lock.js"
-if [ -f "$writer_lock" ]; then
-  echo "🔒 Verificando candado de un escritor por árbol..."
-  if ! node "$writer_lock" check "$PWD"; then
-    echo "✗ Commit rechazado: otro agente tiene el candado de este árbol (AGENTS.md § Un árbol, un escritor)." >&2
-    exit 1
-  fi
+echo "🔒 Verificando candado de un escritor por árbol..."
+if ! node scripts/writer-lock.mjs check "$PWD"; then
+  echo "✗ Commit rechazado: otro agente tiene el candado de este árbol (AGENTS.md § Un árbol, un escritor)." >&2
+  exit 1
 fi
 
 echo "🔍 Running pre-commit typecheck..."
