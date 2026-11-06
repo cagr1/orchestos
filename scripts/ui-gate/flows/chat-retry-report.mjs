@@ -1,5 +1,5 @@
 import { execFileSync } from 'node:child_process'
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { basename, join } from 'node:path'
 import { setTimeout as delay } from 'node:timers/promises'
@@ -32,7 +32,7 @@ async function messagesFor(api, projectId, sessionId, taskId) {
   )
 }
 
-export default async function chatRetryReport({ page, api, step, shot, visible, cleanup }) {
+export default async function chatRetryReport({ page, api, step, shot, visible, cleanup, runDir }) {
   const projectRoot = mkdtempSync(join(tmpdir(), 'orchestos-ui-erp-4-9-'))
   writeFileSync(join(projectRoot, 'README.md'), '# ERP.4.9\n')
   writeFileSync(join(projectRoot, '.gitignore'), '.orchestos/\nnode_modules/\n')
@@ -123,16 +123,58 @@ export default async function chatRetryReport({ page, api, step, shot, visible, 
   const sessions = await api(`/api/chat/sessions?project=${encodeURIComponent(project.id)}`)
   const session = (Array.isArray(sessions.data) ? sessions.data : [])[0]
   if (!session) throw new Error('temporary chat session was not found')
+  async function checkAssistantParagraphs(turn) {
+    const bubble = page.locator('div.prose').last()
+    const text = await bubble.innerText()
+    const paragraphs = text
+      .split(/\n\s*\n/)
+      .map((paragraph) => paragraph.trim())
+      .filter((paragraph) => paragraph.length >= 40)
+    const duplicates = paragraphs.filter(
+      (paragraph, index) => paragraphs.indexOf(paragraph) < index,
+    )
+    let evidencePath
+    if (duplicates.length > 0) {
+      evidencePath = join(runDir, `assistant-duplicate-paragraph-turn${turn}.json`)
+      const messages = await api(`/api/chat/sessions/${encodeURIComponent(session.id)}/messages`, {
+        headers: { 'x-orchestos-project-id': project.id },
+      })
+      writeFileSync(
+        evidencePath,
+        JSON.stringify(
+          {
+            turn,
+            text,
+            innerHTML: await bubble.innerHTML(),
+            duplicates,
+            messages,
+            chatTurnLines: readFileSync(join(runDir, 'dashboard.log'), 'utf8')
+              .split('\n')
+              .filter((line) => line.includes('[chat-turn]')),
+          },
+          null,
+          2,
+        ),
+      )
+    }
+    await step(
+      'assistant reply has no duplicated paragraph',
+      duplicates.length === 0,
+      `turn=${turn} paragraphs=${paragraphs.length} duplicates=${duplicates.length}${evidencePath ? ` evidence=${evidencePath}` : ''}`,
+    )
+  }
   const composer = page.locator('textarea').last()
   const heldPrompt =
     'Modifica nota.ts para añadir al final la línea "export const gate = 1". La única ruta de salida es nota.ts.'
   const beforeIds = new Set((await tasksFor(api, project.id)).map((task) => task.id))
   const firstTurn = page.waitForResponse(
     (response) => response.request().method() === 'POST' && /\/api\/chat$/.test(response.url()),
+    { timeout: 180_000 },
   )
   await composer.fill(heldPrompt)
   await page.getByRole('button', { name: 'Send message', exact: true }).click()
   await (await firstTurn).finished()
+  await checkAssistantParagraphs(1)
   const taskCard = page.locator('[data-task-state="held"]').first()
   const heldCardVisible = await visible(taskCard, 180_000)
   await step('held task card visible', heldCardVisible, 'held task rendered')
@@ -255,12 +297,14 @@ export default async function chatRetryReport({ page, api, step, shot, visible, 
   const knownIds = new Set((await tasksFor(api, project.id)).map((item) => item.id))
   const secondTurn = page.waitForResponse(
     (response) => response.request().method() === 'POST' && /\/api\/chat$/.test(response.url()),
+    { timeout: 180_000 },
   )
   await composer.fill(
     'Modifica nota.ts para añadir al final la línea "export const sucio = 2". La única ruta de salida es nota.ts.',
   )
   await page.getByRole('button', { name: 'Send message', exact: true }).click()
   await (await secondTurn).finished()
+  await checkAssistantParagraphs(2)
   const secondCard = page.locator('[data-task-state="held"]').last()
   const secondCardVisible = await visible(secondCard, 180_000)
   await step('second held task card visible', secondCardVisible, 'held task rendered')

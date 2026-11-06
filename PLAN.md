@@ -244,6 +244,26 @@ Cerrada. Todos sus ítems están archivados en `docs/done/` (ver "Cerrados — e
   Texto visible: "Clone from URL" · "Enter the Git URL and choose where to clone it." (el diálogo dice qué pide, como Orca)
   Texto visible: "Git URL" · "Clone location" · "Choose folder" · "Cancel" (rótulos de campos y botones de un formulario)
   Ejecutado por: codex gpt-6.1-sol (criterio r1) + gpt-6-luna (mecanico r2)
+- [x] **CI.63 — `chat-retry-report`: el primer turno de Codex no cabe en 30 s y un párrafo salió dos veces.**
+  (pedido de Carlos 2026-11-06) Visto 2026-11-05: falló 2 veces en `waitForResponse` del POST `/api/chat`
+  (`chat-retry-report.mjs:130` y `:256`), que usa el timeout por defecto de Playwright (30 s) mientras la tarjeta
+  espera 180 s. En una captura el mismo párrafo de Codex salió dos veces en la respuesta.
+  Hecho: timeouts de 180 s y paso `assistant reply has no duplicated paragraph` (guarda DOM, mensajes y
+  `[chat-turn]` si falla). El paso reprodujo el duplicado en la corrida del cerebro: el mensaje persistido traía el
+  párrafo una vez, el texto en vivo dos (`docs/done/evidence/CI.63/assistant-duplicate-paragraph-turn1.json`).
+  Causa: `replaceLiveText` (`src/dashboard/chat-live.ts`), compartido por Codex y Claude, reconciliaba el texto final
+  de un mensaje contra todo el turno; tras una herramienta, el segundo mensaje quedaba duplicado. Ahora cada final
+  reemplaza solo los deltas de su mensaje; test rojo→verde para ambos CLIs. Gates del cerebro: tsc,
+  `test:coverage` 2317/0, `chat-retry-report` 25/25, `chat-streaming` 27/27, `codex-live` 15/15
+  (`gate:evidence` `CI.63-chat-live`).
+  Gate en vivo: navegador real (Playwright), `docs/done/evidence/CI.63-live.json`
+  Revisión: Opus (diff de Sol leído completo).
+  Ejecutado por: codex gpt-6.1-sol (criterio r1, r2)
+- [ ] **UI.65 — Acabados de la tarjeta de tarea y del menú del clip.** (pedido de Carlos 2026-11-06) Anotados en
+  RUN.1 y UI.64: "Interrupted" sale dos veces en la tarjeta interrumpida (`TaskCard.tsx:263` y `:276`); `pending` con
+  reintento muestra el resumen y no el diagnóstico (sin causa aislada: `task-report.ts:73` sí lo arma); el menú del
+  clip se superpone al borde del composer (`AgentComposer.tsx`). Spec: `docs/specs/UI.65.md`.
+  Texto visible: "The task runner stopped before it finished" (reemplaza al anterior sin repetir el rótulo)
 - [ ] **CI.19 — El `git commit` del fixture falla a veces en el andamiaje de los ui-gates.** Visto 1 vez en
   `qa-negative` (2026-10-11, 1 de 9): `Command failed: git … commit -qm task fixture`, sin motivo porque el helper
   `run` usa `stdio: 'ignore'`. `qa-negative` ya reporta stdout/stderr y exit; los otros 20 flows con el mismo helper no.

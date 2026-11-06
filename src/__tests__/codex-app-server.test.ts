@@ -7,6 +7,12 @@ import { join } from 'node:path'
 import { PassThrough } from 'node:stream'
 import type { TimelineTurn } from '../dashboard/app/src/api/chat.ts'
 import { livePhase } from '../dashboard/app/src/components/thread/thinking.ts'
+import {
+  appendLiveText,
+  clearLiveText,
+  getLiveText,
+  replaceLiveText,
+} from '../dashboard/chat-live.ts'
 import { codexMcpThreadConfig, taskProposalFromStep } from '../mcp/adapters.ts'
 import { CliFailure } from '../run/executors/cli-failure.ts'
 import {
@@ -56,6 +62,72 @@ function store() {
 }
 
 describe('Codex app-server', () => {
+  test('completed agent messages do not repeat streamed text around a tool call', async () => {
+    const sessionId = 'codex-live-tool-regression'
+    const first = 'Voy a consultar el estado del proyecto antes de crear la tarea solicitada.'
+    const second = 'He enviado la tarea para añadir la línea solicitada al archivo del proyecto.'
+    let tools = 0
+    const server = new CodexAppServer({
+      binary: 'fake',
+      env: {},
+      store: store().api,
+      spawnProcess: () =>
+        fakeProcess((request, stdout) => {
+          if (request.method === 'initialize') reply(stdout, request, {})
+          if (request.method === 'thread/start') reply(stdout, request, { thread: { id: 't' } })
+          if (request.method !== 'turn/start') return
+          reply(stdout, request, { turn: { id: 'u' } })
+          queueMicrotask(() => {
+            const send = (method: string, params: Record<string, unknown>) =>
+              stdout.write(
+                `${JSON.stringify({ method, params: { threadId: 't', turnId: 'u', ...params } })}\n`,
+              )
+            for (const [id, text] of [
+              ['a', first],
+              ['b', second],
+            ] as const) {
+              send('item/started', { item: { id, type: 'agentMessage' } })
+              send('item/agentMessage/delta', { itemId: id, delta: text.slice(0, 20) })
+              send('item/agentMessage/delta', { itemId: id, delta: text.slice(20) })
+              send('item/completed', { item: { id, type: 'agentMessage', text } })
+              if (id === 'a')
+                send('item/completed', {
+                  item: {
+                    id: 'tool',
+                    type: 'mcpToolCall',
+                    server: 'orchestos',
+                    tool: 'create_task',
+                    arguments: { description: 'Add the requested line' },
+                    status: 'completed',
+                  },
+                })
+            }
+            send('turn/completed', { turn: { id: 'u', status: 'completed' } })
+          })
+        }),
+    })
+    try {
+      const result = await server.turn({
+        sessionId,
+        cwd: '/p',
+        systemPrompt: '',
+        message: 'create the task',
+        timeoutMs: 1000,
+        onDelta: (delta) => appendLiveText(sessionId, 'u', delta),
+        onStep: (step) => {
+          if (step.type === 'text' && step.detail) replaceLiveText(sessionId, 'u', step.detail)
+          if (step.type === 'tool_use') tools++
+        },
+      })
+      expect(tools).toBe(1)
+      expect(result.text).toBe(`${first}\n\n${second}`)
+      expect(getLiveText(sessionId)?.text).toBe(result.text)
+    } finally {
+      server.kill()
+      clearLiveText(sessionId, 'u')
+    }
+  })
+
   test('Stop interrupts from turn/started even before the turn/start reply arrives', async () => {
     const controller = new AbortController()
     let interrupted = false

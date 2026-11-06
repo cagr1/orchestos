@@ -20,6 +20,25 @@ describe('chat live text buffer', () => {
     expect(getLiveText('messages')?.text).toBe('first\n\nsecond')
   })
 
+  it.each(['codex', 'claude'])(
+    '%s final messages reconcile only their own deltas after a tool call',
+    (cli) => {
+      const session = `tool-${cli}`
+      const first = 'Voy a consultar el estado y la tarea disponible antes de hacer cambios.'
+      const second = 'He enviado la tarea para añadir la línea solicitada al archivo del proyecto.'
+      appendLiveText(session, 'turn-1', first)
+      replaceLiveText(session, 'turn-1', first)
+      // Tool steps do not write to the text buffer. Codex separates message items;
+      // Claude emits the next text block without a separator.
+      const separator = cli === 'codex' ? '\n\n' : ''
+      appendLiveText(session, 'turn-1', separator + second.slice(0, 20))
+      appendLiveText(session, 'turn-1', second.slice(20))
+      replaceLiveText(session, 'turn-1', second)
+      expect(getLiveText(session)?.text).toBe(`${first}\n\n${second}`)
+      clearLiveText(session, 'turn-1')
+    },
+  )
+
   it('clearLiveText removes only the matching active turn', () => {
     replaceLiveText('clear', 'turn-1', 'old')
     clearLiveText('clear', 'wrong-turn')
