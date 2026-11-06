@@ -11,6 +11,7 @@ describe('project tabs API mapping', () => {
         JSON.stringify([
           {
             id: 'skill-a',
+            phases: ['implement', 'fix'],
             name: 'A',
             description: 'real',
             language: 'TypeScript',
@@ -26,6 +27,7 @@ describe('project tabs API mapping', () => {
       await expect(listSkills('project-1')).resolves.toEqual([
         {
           id: 'skill-a',
+          phases: ['implement', 'fix'],
           name: 'A',
           description: 'real',
           language: 'TypeScript',

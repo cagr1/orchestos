@@ -44,6 +44,7 @@
 import type { AgentChoice } from '../config/schema.ts'
 import type { ChatSessionMode } from '../db/chat-sessions.ts'
 import type { PlanItemStatus } from '../db/plan-items.ts'
+import type { TaskClass } from '../router/classify.ts'
 
 export interface PlanItemRow {
   id: string
@@ -270,6 +271,7 @@ export interface DiagnoseRow {
 // ── /api/tasks ────────────────────────────────────────────────────────────────
 
 export interface TaskRow {
+  phaseSkills: string[]
   id: string
   description: string
   status: string // 'pending' | 'running' | 'done' | 'failed' | 'failed_permanent' | 'blocked'
@@ -457,6 +459,7 @@ export interface ApiKeyValidationResponse {
 // ── /api/skills ────────────────────────────────────────────────────────────────
 
 export interface SkillRow {
+  phases: TaskClass[]
   enabled: boolean
   origin: 'project' | 'user-library' | 'built-in'
   id: string

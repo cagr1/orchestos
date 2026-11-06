@@ -1,4 +1,4 @@
-import { existsSync, mkdirSync, readFileSync, unlinkSync, writeFileSync } from 'fs'
+import { existsSync, mkdirSync, readFileSync, renameSync, unlinkSync, writeFileSync } from 'fs'
 import { dirname, join } from 'path'
 import { loadOrcheConfig } from '../../config/load.ts'
 import type { getProvider } from '../../providers/index.ts'
@@ -19,6 +19,7 @@ import {
   setSkillEnabled,
   validateSkill,
 } from '../../skills/registry.ts'
+import { isTaskClass } from '../../tasks/schema.ts'
 
 // Mutable reference for test injection — same pattern as run-graph.ts __setRunGraphForTests.
 // Bun's mock.module() on a shared provider module would leak across test files; this
@@ -67,6 +68,7 @@ function handleApiSkillsList(root = process.cwd(), projectId: string | null = nu
         const s = loadSkill(f)
         skills.push({
           id: s.id,
+          phases: s.activation?.mode === 'automatic' ? (s.activation.phases ?? []) : [],
           origin,
           enabled: origin !== 'user-library' || getEnabledSkillIds(root).has(s.id),
           name: s.name,
@@ -372,6 +374,47 @@ async function handleApiSkillEnabled(
       return errorResponse('Library skill not found', 404)
     setSkillEnabled(id, body.enabled, root)
     return jsonResponse({ ok: true, id, enabled: body.enabled })
+  } catch (error: any) {
+    return errorResponse(error.message, 400)
+  }
+}
+
+async function handleApiSkillPhases(
+  req: Request,
+  url: URL,
+  root = process.cwd(),
+): Promise<Response> {
+  const id = url.pathname.match(/^\/api\/skills\/([a-z0-9]+(?:-[a-z0-9]+)*)\/phases$/)?.[1]
+  if (!id) return errorResponse('Invalid skill id', 400)
+  try {
+    const body = await req.json()
+    if (
+      !Array.isArray(body?.phases) ||
+      !body.phases.every(isTaskClass) ||
+      new Set(body.phases).size !== body.phases.length
+    )
+      return errorResponse('phases must contain unique task classes', 400)
+    const entry = listSkillFilesWithOrigin(root).find(
+      ({ path, origin }) => origin === 'user-library' && loadSkill(path).id === id,
+    )
+    if (!entry) return errorResponse('Library skill not found', 404)
+    const skill = loadSkill(entry.path)
+    if (body.phases.length) {
+      skill.activation = {
+        mode: 'automatic',
+        phases: body.phases,
+        ...(skill.activation?.triggers ? { triggers: skill.activation.triggers } : {}),
+      }
+    } else delete skill.activation
+    const validated = validateSkill(skill as unknown as Record<string, unknown>, entry.path)
+    const temp = `${entry.path}.${crypto.randomUUID()}.tmp`
+    try {
+      writeFileSync(temp, stringify(validated, { lineWidth: 120 }), 'utf8')
+      renameSync(temp, entry.path)
+    } finally {
+      if (existsSync(temp)) unlinkSync(temp)
+    }
+    return jsonResponse({ ok: true, id, phases: body.phases })
   } catch (error: any) {
     return errorResponse(error.message, 400)
   }
@@ -712,6 +755,7 @@ export {
   __resetChatForTests,
   __setChatForTests,
   handleApiSkillEnabled,
+  handleApiSkillPhases,
   handleApiSkillsBuild,
   handleApiSkillsCreate,
   handleApiSkillsCurate,

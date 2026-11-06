@@ -7,6 +7,7 @@ import { pickAutoSkill } from '../dashboard/handlers/chat.ts'
 import {
   __setLibraryUrlCheckForTests,
   handleApiSkillEnabled,
+  handleApiSkillPhases,
   handleApiSkillsLibrary,
   handleApiSkillsList,
 } from '../dashboard/handlers/skills.ts'
@@ -15,10 +16,12 @@ import type { RunContext } from '../run/middleware.ts'
 import { skillRoute } from '../run/middlewares/skill-route.ts'
 import { buildPrompt } from '../run/prompt.ts'
 import {
+  buildSkillInstructions,
   isKnownSkillId,
   listAllSkillCandidates,
   renderSkillCatalog,
   resolveGates,
+  resolvePhaseSkills,
 } from '../skills/catalog.ts'
 import { convertSkillMarkdown, skillMarkdownUrl } from '../skills/markdown-import.ts'
 import {
@@ -305,5 +308,151 @@ describe('library endpoints', () => {
       ).status,
     ).toBe(404)
     expect((await route(request({ enabled: true }, url.pathname, 'PUT'), 4242)).status).toBe(400)
+  })
+})
+
+describe('SK.2 library phase configuration', () => {
+  test('persists validated phases, preserves triggers, reloads and clears activation', async () => {
+    const path = seed()
+    writeFileSync(
+      path,
+      stringify({ ...loadSkill(path), activation: { mode: 'suggest', triggers: ['testing'] } }),
+    )
+    const url = new URL('http://localhost/api/skills/library-test/phases')
+    const call = (phases: unknown) =>
+      handleApiSkillPhases(request({ phases }, url.pathname, 'PUT'), url, root)
+    expect((await call(['implement', 'fix'])).status).toBe(200)
+    expect(loadSkill(path).activation).toEqual({
+      mode: 'automatic',
+      phases: ['implement', 'fix'],
+      triggers: ['testing'],
+    })
+    expect(
+      (await handleApiSkillsList(root).json()).find((s: { id: string }) => s.id === 'library-test')
+        .phases,
+    ).toEqual(['implement', 'fix'])
+    expect((await call([])).status).toBe(200)
+    expect(loadSkill(path).activation).toBeUndefined()
+    expect(
+      (await handleApiSkillsList(root).json()).find((s: { id: string }) => s.id === 'library-test')
+        .phases,
+    ).toEqual([])
+  })
+  test('rejects invalid/duplicate phases, non-library origins, invalid ids and unscoped routing', async () => {
+    seed()
+    const url = new URL('http://localhost/api/skills/library-test/phases')
+    for (const phases of [['build'], ['fix', 'fix'], null, 'fix', [5]]) {
+      expect(
+        (await handleApiSkillPhases(request({ phases }, url.pathname, 'PUT'), url, root)).status,
+      ).toBe(400)
+    }
+    for (const id of ['missing', 'tdd-enforcer']) {
+      const url = new URL(`http://localhost/api/skills/${id}/phases`)
+      expect(
+        (await handleApiSkillPhases(request({ phases: ['fix'] }, url.pathname, 'PUT'), url, root))
+          .status,
+      ).toBe(404)
+    }
+    seed('library-test', join(root, 'skills'))
+    expect(
+      (await handleApiSkillPhases(request({ phases: ['fix'] }, url.pathname, 'PUT'), url, root))
+        .status,
+    ).toBe(404)
+    const invalid = new URL('http://localhost/api/skills/INVALID/phases')
+    expect(
+      (await handleApiSkillPhases(request({ phases: [] }, invalid.pathname, 'PUT'), invalid, root))
+        .status,
+    ).toBe(400)
+    expect((await route(request({ phases: [] }, url.pathname, 'PUT'), 4242)).status).toBe(400)
+  })
+})
+
+describe('SK.2 execution phase instructions', () => {
+  function phaseSkill(id: string, phases: string[], instructions = id, triggers?: string[]) {
+    const path = seed(id)
+    writeFileSync(
+      path,
+      stringify({
+        ...loadSkill(path),
+        name: id,
+        instructions,
+        activation: { mode: 'automatic', phases, triggers },
+      }),
+    )
+    setSkillEnabled(id, true, root)
+  }
+  test('resolves in catalog order, respects triggers and excludes review-only gates', () => {
+    phaseSkill('phase-a', ['implement', 'review'])
+    phaseSkill('phase-b', ['implement', 'review'], 'b', ['authentication'])
+    phaseSkill('phase-qa', ['review'])
+    const phases = resolvePhaseSkills('add authentication', 'review', root)
+    expect(phases.map(({ skill }) => skill.id)).toEqual(['phase-a', 'phase-b'])
+    expect(phases.every((s) => s.applied)).toBe(true)
+    expect(
+      resolvePhaseSkills('other', 'implement', root).find((s) => s.skill.id === 'phase-b'),
+    ).toMatchObject({
+      applied: false,
+      reason: 'ningún trigger coincidió con la descripción de la tarea',
+    })
+  })
+  test('combines primary and two phase skills, deduplicates, omits over-budget and disabled skills', () => {
+    phaseSkill('phase-a', ['implement'], 'a'.repeat(16000))
+    phaseSkill('phase-b', ['implement'], 'b'.repeat(16000))
+    phaseSkill('phase-c', ['implement'], 'c'.repeat(16000))
+    const primary = seed('primary')
+    writeFileSync(primary, stringify({ ...loadSkill(primary), instructions: 'primary body' }))
+    setSkillEnabled('primary', true, root)
+    const result = buildSkillInstructions(
+      { skill: 'primary', description: 'test' },
+      'implement',
+      root,
+    )
+    expect(result.text.indexOf('primary body')).toBeLessThan(
+      result.text.indexOf('SKILL GUIDELINES: phase-a'),
+    )
+    expect(result.text).toContain('SKILL GUIDELINES: phase-b')
+    expect(result.text).not.toContain('SKILL GUIDELINES: phase-c')
+    expect(result.phaseSkills.find((s) => s.id === 'phase-c')).toEqual({
+      id: 'phase-c',
+      applied: false,
+      reason: 'omitted: skill context budget (48000 chars)',
+    })
+    const deduped = buildSkillInstructions(
+      { skill: 'phase-a', description: 'test' },
+      'implement',
+      root,
+    )
+    expect(deduped.text.split('SKILL GUIDELINES: phase-a')).toHaveLength(2)
+    setSkillEnabled('phase-b', false, root)
+    expect(
+      buildSkillInstructions({ description: 'test' }, 'implement', root).phaseSkills.some(
+        (s) => s.id === 'phase-b',
+      ),
+    ).toBe(false)
+  })
+  test('middleware and standalone prompts use task fix versus doc classification', async () => {
+    phaseSkill('fix-skill', ['fix'])
+    phaseSkill('doc-skill', ['doc'])
+    const task = {
+      description: 'test',
+      task_class: 'fix',
+      input: [],
+      output: ['out.txt'],
+    } as unknown as Task
+    expect(buildPrompt(task, '', root).system).toContain('SKILL GUIDELINES: fix-skill')
+    expect(buildPrompt(task, '', root).system).not.toContain('SKILL GUIDELINES: doc-skill')
+    task.task_class = 'doc'
+    expect(buildPrompt(task, '', root).system).toContain('SKILL GUIDELINES: doc-skill')
+    const ctx = { task, taskClass: 'fix', opts: { projectRoot: root } } as RunContext
+    await skillRoute(ctx, async () => {})
+    expect(ctx.skillInstructions).toContain('SKILL GUIDELINES: fix-skill')
+    expect(ctx.phaseSkills).toContainEqual({
+      id: 'fix-skill',
+      applied: true,
+      reason: 'sin triggers declarados — aplica siempre en esta fase',
+    })
+    expect(
+      buildPrompt({ ...task, task_class: undefined, description: 'Fix bug' }, '', root).system,
+    ).toContain('SKILL GUIDELINES: fix-skill')
   })
 })

@@ -356,6 +356,23 @@ Cerrada. Todos sus ítems están archivados en `docs/done/` (ver "Cerrados — e
   secuencia (busy máx. 227 ms; ejecutor: 2 secuencias verdes, máx. 536 ms; `test:coverage` 2362/0).
   Gate en vivo: navegador real (Playwright), `docs/done/evidence/CI.65-live.json`
   Ejecutado por: codex gpt-6.1-sol (criterio r1, r2) + gpt-6-luna (mecanico r3) · Spec: docs/specs/CI.65.md
+- [x] **SK.2 — Cada tarea recibe las skills de su fase, no solo una.** (GO de Carlos 2026-11-06) Hoy el ejecutor
+  recibe una sola skill (`task.skill`, elegida por `pickAutoSkill`) y las fases (`activation.phases`) solo se usan en
+  QA (`resolveGates(…, 'review')`, `harness.ts:785`). Las skills de la biblioteca llegan sin fase, así que nunca se
+  aplican solas. SK.2: la fila de una skill de biblioteca permite elegir en qué fases aplica (Plan, Build, Fix,
+  Review, Docs = `TaskClass`); el ejecutor recibe la skill principal más las automáticas de la fase de la tarea, con
+  tope de contexto; el run registra cuáles aplicó y el detalle de la tarea las muestra.
+  Hecho: `PUT /api/skills/<id>/phases` escribe `activation: {mode: automatic, phases}` en el YAML de la biblioteca
+  (vacío la quita); `buildSkillInstructions` (`catalog.ts`) es la única vía para `skillRoute` y `prompt.ts`: principal
+  + automáticas de la fase (sin gates review-only), tope 48 000 caracteres con razón de omisión; migración 36
+  `runs.phase_skills_json`; el detalle de la tarea muestra "Skills" con los ids. Proyectos existentes sin cambio
+  (ninguna incluida es `automatic` fuera de `review`). Gates del cerebro: `test:coverage` 2369/0, `skills-library`
+  16/16, `tasks` 43/43 (`gate:evidence` `SK.2-skills-library`); captura de chips mirada.
+  Gate en vivo: navegador real (Playwright), `docs/done/evidence/SK.2-live.json`
+  Revisión: Opus (diff de catalog, skill-route, prompt, harness, migración, handlers y SkillsView leído).
+  Ejecutado por: codex gpt-6.1-sol (criterio r1 frenó por contradicción del spec con `AGENTS.md:101`, r2) · Spec: docs/specs/SK.2.md
+  Texto visible: "Applies in" · "Plan" · "Build" · "Fix" · "Review" · "Docs" (chips de fase: un ícono no dice en qué fase aplica)
+  Texto visible: "Skills" (rótulo plural cuando la tarea recibió varias)
 - [ ] **CI.19 — El `git commit` del fixture falla a veces en el andamiaje de los ui-gates.** Visto 1 vez en
   `qa-negative` (2026-10-11, 1 de 9): `Command failed: git … commit -qm task fixture`, sin motivo porque el helper
   `run` usa `stdio: 'ignore'`. `qa-negative` ya reporta stdout/stderr y exit; los otros 20 flows con el mismo helper no.

@@ -519,3 +519,14 @@ inyecta un fallo de INSERT, verifica el log y comprueba la corrida terminada y e
 persistida del proyecto que ejecuta la tarea. No cambia precios, límites de contexto ni veredictos de QA.
 **Reversibilidad/evidencia**: cambio de un argumento; pruebas y gates registrados en
 `docs/done/evidence/SK.1-live.json`. Sin commit por instrucción del usuario.
+
+---
+
+## 2026-11-06 — Codex (ejecutor SK.2)
+
+**Regla tocada**: `src/run/harness.ts`, persistencia de skills de fase.
+**Clasificación**: RESPETÓ
+**Por qué**: añade `phase_skills_json` a los siete registros de run, desde `ctx.phaseSkills`.
+No altera precios, max_tokens, decisiones de QA ni la elección de la skill principal.
+**Reversibilidad/evidencia**: diff SK.2 sin commit; gates y resultados en
+`docs/done/evidence/SK.2-live.json`. Sin commit por instrucción del usuario.

@@ -2,6 +2,7 @@ import { Cpu, Search } from 'lucide-react'
 import type React from 'react'
 import { useState } from 'react'
 import { Button } from '@/components/ui/button'
+import type { TaskClass } from '../../../../../router/classify'
 import type { SkillItem } from '../../types/orchestos'
 import { EmptyState } from '../common/ViewStateFeedback'
 
@@ -9,8 +10,17 @@ interface SkillsViewProps {
   skills: SkillItem[]
   onAddLibrarySkill?: (url: string) => Promise<{ warnings: string[] }>
   onEnableLibrarySkill?: (id: string, enabled: boolean) => Promise<void>
+  onSetLibrarySkillPhases?: (id: string, phases: TaskClass[]) => Promise<void>
   onCompileSkill: (skillId: string) => Promise<{ paths: string[] }>
 }
+
+const PHASES = [
+  ['plan', 'Plan'],
+  ['implement', 'Build'],
+  ['fix', 'Fix'],
+  ['review', 'Review'],
+  ['doc', 'Docs'],
+] as const
 
 const ROW_BORDER = 'border-[color:color-mix(in_srgb,var(--app-border)_50%,transparent)]'
 
@@ -19,6 +29,7 @@ export const SkillsView: React.FC<SkillsViewProps> = ({
   onCompileSkill,
   onAddLibrarySkill,
   onEnableLibrarySkill,
+  onSetLibrarySkillPhases,
 }) => {
   const [showAdd, setShowAdd] = useState(false)
   const [url, setUrl] = useState('')
@@ -26,6 +37,7 @@ export const SkillsView: React.FC<SkillsViewProps> = ({
   const [warnings, setWarnings] = useState<string[]>([])
   const [saving, setSaving] = useState(false)
   const [pendingEnabled, setPendingEnabled] = useState<Record<string, boolean>>({})
+  const [pendingPhases, setPendingPhases] = useState<Record<string, TaskClass[]>>({})
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedLanguage, setSelectedLanguage] = useState<string>('all')
   const [compileResults, setCompileResults] = useState<Record<string, string>>({})
@@ -270,6 +282,53 @@ export const SkillsView: React.FC<SkillsViewProps> = ({
                     Recompile
                   </Button>
                 </div>
+                {skill.origin === 'user-library' && (
+                  <div className="mt-2 flex items-center gap-2 pl-[18px] text-xs text-app-muted">
+                    <span>Applies in</span>
+                    {PHASES.map(([phase, label]) => {
+                      const phases = pendingPhases[skill.id] ?? skill.phases ?? []
+                      const pressed = phases.includes(phase)
+                      return (
+                        <button
+                          key={phase}
+                          type="button"
+                          aria-pressed={pressed}
+                          disabled={saving || !onSetLibrarySkillPhases}
+                          className={`inline-flex h-7 shrink-0 items-center gap-2 rounded-control px-2 text-[12.5px] font-medium transition-colors disabled:opacity-50 ${
+                            pressed
+                              ? 'bg-app-elevated text-app'
+                              : 'text-app-muted hover:bg-app-elevated hover:text-app'
+                          }`}
+                          onClick={async () => {
+                            const nextPhases = pressed
+                              ? phases.filter((value) => value !== phase)
+                              : [...phases, phase]
+                            setPendingPhases((previous) => ({
+                              ...previous,
+                              [skill.id]: nextPhases,
+                            }))
+                            setSaving(true)
+                            setError('')
+                            try {
+                              await onSetLibrarySkillPhases?.(skill.id, nextPhases)
+                            } catch (error) {
+                              setError(error instanceof Error ? error.message : String(error))
+                            } finally {
+                              setPendingPhases((previous) => {
+                                const next = { ...previous }
+                                delete next[skill.id]
+                                return next
+                              })
+                              setSaving(false)
+                            }
+                          }}
+                        >
+                          {label}
+                        </button>
+                      )
+                    })}
+                  </div>
+                )}
                 <p className="mt-1 max-w-prose pl-[18px] text-xs leading-relaxed text-app-muted">
                   {skill.description}
                 </p>

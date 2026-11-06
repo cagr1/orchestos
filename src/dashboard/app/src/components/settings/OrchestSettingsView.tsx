@@ -39,6 +39,7 @@ import { Card, CardAction, CardContent, CardHeader, CardTitle } from '@/componen
 import { usePrefersReducedMotion } from '@/hooks/use-prefers-reduced-motion'
 import { KEYBINDINGS, matchesKeybinding } from '@/lib/keybindings'
 import { spring } from '@/lib/springs'
+import type { TaskClass } from '../../../../../router/classify'
 import { getDefaultChatAgent } from '../../api/chat'
 import type {
   ConfigResponse,
@@ -468,6 +469,7 @@ interface OrchestSettingsViewProps {
   onToggleSkill?: (id: string) => void
   onAddLibrarySkill?: (url: string) => Promise<{ warnings: string[] }>
   onEnableLibrarySkill?: (id: string, enabled: boolean) => Promise<void>
+  onSetLibrarySkillPhases?: (id: string, phases: TaskClass[]) => Promise<void>
   onCompileSkill?: (skillId: string) => Promise<{ paths: string[] }>
   onTeachInstinct?: (when: string, then: string) => void
   onApproveInstinct?: (id: string) => void
@@ -517,6 +519,7 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
   onCompileSkill,
   onAddLibrarySkill,
   onEnableLibrarySkill,
+  onSetLibrarySkillPhases,
   onTeachInstinct,
   onApproveInstinct,
   onRejectInstinct,
@@ -3588,6 +3591,7 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
                     skills={skills}
                     onAddLibrarySkill={onAddLibrarySkill}
                     onEnableLibrarySkill={onEnableLibrarySkill}
+                    onSetLibrarySkillPhases={onSetLibrarySkillPhases}
                     onCompileSkill={onCompileSkill || (async () => ({ paths: [] }))}
                   />
                 )}

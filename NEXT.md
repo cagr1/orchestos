@@ -18,11 +18,13 @@ Arranque: `bun run agent:preflight -- --item <ID> --agent claude`. Lista viva: `
    remite a 33 `reference/*.md`, `security-audit` a 4 y `tdd` a 2. Si SK.2 las usa en serio, sumar import de
    auxiliares (anotado, sin ítem). README sync: el repo no dejaba a Actions crear PRs (activado); rama por run
    `f4d4a63e`; PR #4 abierto para Carlos.
-0b. **SK.2** (GO 2026-11-06, falta spec): cada skill declara su fase (plan/diseño/código/revisión/seguridad) y la
-   tarea recibe la de su fase; hoy `pickAutoSkill` elige una o ninguna (`chat.ts`). **SK.3** (GO): perfil
-   "¿sabes programar?" en el onboarding; si no, el orquestador pregunta primero (`grill-me`) y revisión y seguridad
-   corren siempre. Motivo (evaluación del cerebro): el método funciona con quien sabe código; un no programador no
-   pide cada fase.
+0b. SK.2 hecho `7e7da8a5`: chips "Applies in" por skill de biblioteca; el ejecutor recibe principal + automáticas
+   de su fase (tope 48k); `runs.phase_skills_json` (migración 36). El set curado de `~/.orchestos/skills/` aún no
+   tiene fases: asignarlas es parte de SK.3 (defaults del perfil no programador). Ojo: una de biblioteca marcada solo
+   "Review" entra a QA como gate (`resolveGates`), y `security-audit` pesa 22 KB.
+   **Siguiente: SK.3** (GO): perfil "¿sabes programar?" en el onboarding; si no, el orquestador pregunta primero
+   (`grilling`) y revisión y seguridad corren siempre. Motivo: el método funciona con quien sabe código; un no
+   programador no pide cada fase. Falta spec.
 0c. **Desacople del método personal**, después de SK.1–3 (GO de Carlos): reescribir `AGENTS.md`, hooks `.claude/`
    (`brain-no-code.js:16`, `subagent-budget.js:156`, `context-budget.js:30`), `docs/roadmaps/` y fixtures sin
    `agent-method`/`delegate`/Sol/Luna/vault; plan y tabla en `docs/specs/LIMPIEZA-2.md` § 2. Las reglas personales que

@@ -1,3 +1,4 @@
+import type { TaskClass } from '../../../../router/classify'
 import type { CliNotice } from '../../../../run/executors/cli-failure'
 export type ApprovalMode = 'supervised' | 'auto-edit' | 'full'
 
@@ -24,6 +25,7 @@ export interface TaskItem {
   pendingApprovals?: number
   sessionId?: string | null
   lastRunAt?: string | null
+  phaseSkills?: string[]
   skill?: string | null
   engine: ExecutionEngine
   costUsd?: number | null
@@ -160,6 +162,7 @@ export interface MemoryItem {
 }
 
 export interface SkillItem {
+  phases: TaskClass[]
   id: string
   name: string
   language: string

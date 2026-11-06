@@ -1188,6 +1188,19 @@ export const FUTURE_MIGRATIONS: readonly SchemaMigrationStep[] = [
         throw new Error('Migration 35 did not enable run step notices')
     },
   },
+  {
+    version: 36,
+    name: 'run-phase-skills',
+    precondition: () => {},
+    apply: (database) => {
+      database.exec('ALTER TABLE runs ADD COLUMN phase_skills_json TEXT')
+    },
+    postcondition: (database) => {
+      const columns = database.query<{ name: string }, []>('PRAGMA table_info(runs)').all()
+      if (!columns.some((column) => column.name === 'phase_skills_json'))
+        throw new Error('Migration 36 did not add phase_skills_json')
+    },
+  },
 ]
 
 function appliedVersions(database: Database): Set<number> {
