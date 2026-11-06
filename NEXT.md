@@ -1,4 +1,4 @@
-# NEXT — handoff 2026-11-05 (ONB.1/ONB.2 arranque por CLI, UI.63, CI.61; CI.19, CI.54, CI.55, CI.57 esperan fallo)
+# NEXT — handoff 2026-11-05 (DOC.9, RUN.1, RUN.2, UI.64, CI.62; CI.55 con fase 2 por escribir)
 
 Un solo presente: orden y trampas vivas del lote. Lo cerrado vive en `docs/done/bloque-*.md` y git; las reglas, en
 `AGENTS.md`. Versión anterior completa: `docs/done/poda-instrucciones-2026-11-03.md` (histórico).
@@ -6,18 +6,16 @@ Arranque: `bun run agent:preflight -- --item <ID> --agent claude`. Lista viva: `
 
 ## Orden
 
-0. Hecho 2026-11-04 (todo empujado, pre-push verde): ONB.1 `daa4b8e4` (el chat arranca en una CLI con sesión, no
-   OpenRouter); licencia MIT `58ffe912`; ONB.2 `4a611d6d` (Model routing propone la CLI detectada con "Use <CLI> for
-   unassigned roles"; el error de rol vacío lleva a Model routing); CI.61 `8ec9b071` (shard `executors-routing`
-   partido en `-routing` + `-routing-c`); UI.63 `e67b7dff` ("Reset credits" de Codex en el popover de cuotas).
-   Descripción del repo en GitHub publicada (CLIs, APIs y LLMs locales).
-1. **`Mutation Shards`** (CI.61): corrida 42006593533 (`e67b7dff`): `executors-routing` 43 min y `-routing-c` 109 min,
-   debajo de 150. Si una corrida posterior pasa 150 min, reabrir CI.61 con la duración medida.
-2. **Esperan su próximo fallo** (leer el JSON y escribir la fase 2). Todos dejan evidencia en el `runDir` del gate
-   (`$TMPDIR/ui-gate-<pid>/`): CI.55 `role-task-missing-output.json`; CI.57 `composer-picker-model-missing.json`;
-   CI.54 `turn1-bubble-missing.json`; CI.19, el motivo en el detalle del paso.
-3. **Siguiente**: spec de la fase 2 de CI.55 (hallazgos en PLAN.md). Hecho 2026-11-05: DOC.9, RUN.1, RUN.2, UI.64,
-   CI.62 y la poda de specs y capturas.
+0. Hecho 2026-11-05 (todo empujado, pre-push verde): DOC.9 `1fba1673` + DOC.9.1 `9692bf2c` (`readme:sync` y PR de
+   los viernes); RUN.2 `77975857` (`notice` de Codex en `run_steps`; antes tumbaba el runner); RUN.1 `6bce134f`
+   (tarjeta fallida con diagnóstico, sin `Retry`; interrupción con "Resume"); UI.64 `985f0730` ((+) de proyecto con
+   "Clone from URL"; clip con menú); CI.62 `eec3bc8a` (`ui:gate` borra `runDir` de más de 24 h); poda de specs
+   `04b2303b` y de capturas versionadas `912b693b`. Settings: revisión pestaña por pestaña cerrada por ahora.
+1. **CI.55 fase 2** (siguiente): escribir spec con los dos hallazgos de `PLAN.md` (Codex dice no tener herramienta de
+   edición con `workspace-write`; `waitForTaskFinished` toma `pending` con reintento como fin).
+2. **`Mutation Shards`** (CI.61): corrida 42006593533 debajo de 150 min. Si una posterior pasa 150, reabrir CI.61.
+3. **Esperan su próximo fallo**: CI.57 `composer-picker-model-missing.json`; CI.54 `turn1-bubble-missing.json`; CI.19,
+   el motivo en el detalle del paso. Leer el JSON el mismo día: CI.62 borra el `runDir` a las 24 h.
 4. Cualquier CLI corre tareas sin código (Settings → Providers → "CLIs propios"). Un adaptador rico para un CLI nuevo
    sigue siendo `KNOWN_CLIS` + `registerTaskEngine`, y lo prueba el cerebro, no Carlos.
 
@@ -43,6 +41,10 @@ Arranque: `bun run agent:preflight -- --item <ID> --agent claude`. Lista viva: `
 
 ## Anotado, sin ítem (abrir ítem solo si Carlos lo pide; los intermitentes, también si se repiten)
 
+- Visto 2026-11-05: `chat-retry-report` falló 2 veces por el timeout de 30 s esperando el primer turno de Codex
+  (`waitForResponse` sin timeout propio); en esa captura el mismo párrafo de Codex salió dos veces (posible stream
+  duplicado, sin verificar). Acabados: el menú del clip tapa el borde del composer; "Interrupted" sale dos veces en la
+  tarjeta; `pending` con reintento muestra el resumen, no el diagnóstico.
 - Sin evidencia de cierre: el revisor elige su ventana cortando en el primer tramo que no cabe; TRUST.7.1 sin gate
   vivo del caso de residuos; `elapsed_ms` no cuenta el cuelgue de Codex y `effort` del rol quizá no llega a
   `cli_effort`; reemplazar el prompt base del CLI (punto 8 de AT.13); "Executor reply" de Contract sin mirar a ojo;
