@@ -75,6 +75,11 @@ Cerrada. Todos sus ítems están archivados en `docs/done/` (ver "Cerrados — e
 
 ### Abiertos — fiabilidad de los gates y documentación
 
+- [x] **UI.66 — Quitar `orchestos / master` del header superior.** (Carlos, 2026-11-06: "no tiene sentido") El
+  breadcrumb proyecto/rama de `ShellHeader.tsx` no aportaba; se borra el bloque y las props `activeProjectName` /
+  `activeBranch` que le pasaba `App.tsx`. Gates del cerebro: `tsc --noEmit` y `build:app` verdes.
+  Gate en vivo: navegador real (panel del navegador, dashboard en :4299), `docs/done/evidence/UI.66-live.json`
+  Ejecutado por: claude opus 5.5
 - [x] **OC.1 — La terminal de Dev lanza OpenCode con `--standalone`.** (abierto 2026-11-03, GO de Carlos al plan
   OC.1–OC.4) Con OpenCode 2.2.5 y el servicio compartido desincronizado, la TUI sale a los ~20 s.
   Hecho: `resolveOpenCodeCommand` devuelve `[binary, '--standalone']` (servidor privado por pestaña).

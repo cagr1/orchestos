@@ -1532,7 +1532,7 @@ export default function App() {
           {projectError}
         </div>
       )}
-      {/* Top Shell Header with single panel toggle and clean breadcrumb (status pill removed as requested) */}
+      {/* Top Shell Header */}
       <ShellHeader
         onOpenCommandPalette={() => setIsCommandPaletteOpen(true)}
         onToggleLeftSidebar={
@@ -1542,8 +1542,6 @@ export default function App() {
           mode === 'dev' ? () => setIsRightInspectorOpen(!isRightInspectorOpen) : undefined
         }
         isRightInspectorOpen={isRightInspectorOpen}
-        activeProjectName={currentProject?.name}
-        activeBranch={currentProject?.branch}
       />
 
       {/* Main App Workspace Layout */}

@@ -1,4 +1,4 @@
-import { FolderGit2, PanelLeft, PanelRight, Search } from 'lucide-react'
+import { PanelLeft, PanelRight, Search } from 'lucide-react'
 import type React from 'react'
 
 interface ShellHeaderProps {
@@ -6,8 +6,6 @@ interface ShellHeaderProps {
   onToggleLeftSidebar?: () => void
   onToggleRightInspector?: () => void
   isRightInspectorOpen?: boolean
-  activeProjectName?: string
-  activeBranch?: string
 }
 
 export const ShellHeader: React.FC<ShellHeaderProps> = ({
@@ -15,8 +13,6 @@ export const ShellHeader: React.FC<ShellHeaderProps> = ({
   onToggleLeftSidebar,
   onToggleRightInspector,
   isRightInspectorOpen = true,
-  activeProjectName = 'orchestos',
-  activeBranch = 'master',
 }) => {
   return (
     <header
@@ -55,14 +51,6 @@ export const ShellHeader: React.FC<ShellHeaderProps> = ({
             </button>
           )}
         </div>
-      </div>
-
-      {/* Middle: Subtle project breadcrumb (kept exactly as requested) */}
-      <div className="hidden sm:flex items-center gap-2 text-[12.5px] text-app-muted">
-        <FolderGit2 className="w-3.5 h-3.5 text-app-muted" />
-        <span className="text-app font-medium">{activeProjectName}</span>
-        <span className="text-app-muted/60">/</span>
-        <span className="text-app-muted">{activeBranch}</span>
       </div>
 
       {/* Right: Only single toggle button for right inspector (status indicator removed as requested) */}

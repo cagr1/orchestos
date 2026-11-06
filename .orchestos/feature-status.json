@@ -4,6 +4,14 @@
   "note": "Derivado, no editar a mano — bun run plan:status regenera.",
   "items": [
     {
+      "id": "UI.66",
+      "sprint": "Fase 2 — Producto mínimo para entrega",
+      "block": "Abiertos — fiabilidad de los gates y documentación",
+      "title": "Quitar `orchestos / master` del header superior",
+      "status": "done",
+      "closedDate": null
+    },
+    {
       "id": "OC.1",
       "sprint": "Fase 2 — Producto mínimo para entrega",
       "block": "Abiertos — fiabilidad de los gates y documentación",
