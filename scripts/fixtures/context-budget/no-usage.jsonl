@@ -1,2 +1,0 @@
-{"type":"user","message":{"content":"hello"}}
-{"type":"assistant","message":{"model":"claude-opus-5","content":"answer"}}
