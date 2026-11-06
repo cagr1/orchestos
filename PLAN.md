@@ -80,6 +80,15 @@ Cerrada. Todos sus ítems están archivados en `docs/done/` (ver "Cerrados — e
   `activeBranch` que le pasaba `App.tsx`. Gates del cerebro: `tsc --noEmit` y `build:app` verdes.
   Gate en vivo: navegador real (panel del navegador, dashboard en :4299), `docs/done/evidence/UI.66-live.json`
   Ejecutado por: claude opus 5.5
+- [x] **UI.67 — Tabs de Dev: `+` pegado a la última tab y desborde con muchas tabs.** (Carlos, 2026-11-06: el `+`
+  quedaba en el borde derecho y "solo me deja abrir 2") Causa: no había tope; la lista ocupaba todo el ancho
+  (`flex-1`) y empujaba el `+` al borde, y desde la tercera tab desbordaba sin barra visible, así que las nuevas
+  quedaban fuera de vista. Arreglo en `DevSessionTabs.tsx`: la lista mide lo que ocupan sus tabs y el `+` va justo
+  después; con desborde las tabs se encogen hasta 128 px, luego hay scroll horizontal (rueda vertical incluida), sin
+  barra, con fundido en el borde que esconde tabs. Gates del cerebro: `tsc --noEmit`, `build:app`,
+  `dev-session-tabs` 47/47 y `shell-look` 75/75 (`gate:evidence` `UI.67-dev-tabs`).
+  Gate en vivo: navegador real (panel del navegador, 10 tabs abiertas en :4299), `docs/done/evidence/UI.67-live.json`
+  Ejecutado por: claude opus 5.5
 - [x] **OC.1 — La terminal de Dev lanza OpenCode con `--standalone`.** (abierto 2026-11-03, GO de Carlos al plan
   OC.1–OC.4) Con OpenCode 2.2.5 y el servicio compartido desincronizado, la TUI sale a los ~20 s.
   Hecho: `resolveOpenCodeCommand` devuelve `[binary, '--standalone']` (servidor privado por pestaña).

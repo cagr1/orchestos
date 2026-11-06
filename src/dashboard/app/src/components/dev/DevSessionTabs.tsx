@@ -1,5 +1,5 @@
 import { FileCode, FileText, GitCompare, Loader2, Plus, SquareTerminal, X } from 'lucide-react'
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { type CliModelCatalog, getCliModels } from '../../api/chat'
 import { getConfig } from '../../api/settings'
@@ -77,11 +77,33 @@ export function DevSessionTabs({
       localStorage.setItem(`orchestos-dev-agent:${projectId}`, used)
     }
   }, [state.activeId, state.tabs, agents, projectId])
+  const [hidden, setHidden] = useState({ left: false, right: false })
+  const measure = useCallback(() => {
+    const list = tablistRef.current
+    if (!list) return
+    const left = list.scrollLeft > 1
+    const right = list.scrollLeft + list.clientWidth < list.scrollWidth - 1
+    setHidden((prev) => (prev.left === left && prev.right === right ? prev : { left, right }))
+  }, [])
+  useEffect(() => {
+    const list = tablistRef.current
+    if (!list) return
+    const resize = new ResizeObserver(measure)
+    resize.observe(list)
+    const children = new MutationObserver(measure)
+    children.observe(list, { childList: true })
+    measure()
+    return () => {
+      resize.disconnect()
+      children.disconnect()
+    }
+  }, [measure])
   useEffect(() => {
     tablistRef.current
       ?.querySelector<HTMLElement>('[aria-selected="true"]')
       ?.scrollIntoView({ inline: 'nearest', block: 'nearest' })
   }, [state.activeId])
+  const fade = `linear-gradient(to right, ${hidden.left ? 'transparent' : '#000'}, #000 24px, #000 calc(100% - 24px), ${hidden.right ? 'transparent' : '#000'})`
   const options = [...catalogs].sort(
     (a, b) => Number(b.id === lastAgent) - Number(a.id === lastAgent),
   )
@@ -122,7 +144,13 @@ export function DevSessionTabs({
         role="tablist"
         aria-label="Open Dev tabs"
         ref={tablistRef}
-        className="flex min-w-0 flex-1 items-center gap-1 overflow-x-auto"
+        onWheel={(event) => {
+          if (Math.abs(event.deltaY) > Math.abs(event.deltaX))
+            event.currentTarget.scrollLeft += event.deltaY
+        }}
+        onScroll={measure}
+        style={{ maskImage: fade, WebkitMaskImage: fade }}
+        className="flex min-w-0 items-center gap-1 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
       >
         {state.tabs.map((tab) => {
           const session =
@@ -138,7 +166,7 @@ export function DevSessionTabs({
           return (
             <div
               key={tab.id}
-              className={`group relative flex w-56 min-w-24 shrink items-center rounded-lg ${state.activeId === tab.id ? 'bg-app-surface text-app' : 'text-app-muted hover:bg-app-hover hover:text-app'}`}
+              className={`group relative flex w-56 min-w-32 shrink items-center rounded-lg ${state.activeId === tab.id ? 'bg-app-surface text-app' : 'text-app-muted hover:bg-app-hover hover:text-app'}`}
             >
               <button
                 type="button"
