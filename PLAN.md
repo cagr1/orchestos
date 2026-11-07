@@ -73,6 +73,24 @@ Cerrada. Todos sus ítems están archivados en `docs/done/` (ver "Cerrados — e
 
 ## Fase 2 — Producto mínimo para entrega
 
+### ADE — editar archivos y Settings tomados de Orca, T3 Code y MonoCode (GO de Carlos 2026-11-07)
+
+Propuesta y comparación con las tres referencias: `docs/specs/ADE-PLAN.md`. Uno a uno, en orden.
+
+- [ ] **ADE.1 — Editar archivos desde el explorer.** (Carlos, 2026-11-07: "no puedo editarlos") Hoy
+  `DevFilePanel.tsx` solo muestra y la API solo lee. CodeMirror 6, ⌘S, punto de "sin guardar" en el tab,
+  `PUT /api/explorer/file` confinado a la raíz, conflicto "Conservar el mío / Recargar" si el disco cambió.
+  Spec: `docs/specs/ADE.1.md`.
+- [ ] **ADE.2 — Settings → Editor: auto-guardado, ajuste de línea, tamaño de fuente.** Depende de ADE.1.
+- [ ] **ADE.3 — Atajos reales: registro central de comandos, de 2 a ~20.**
+- [ ] **ADE.4 — Reasignar atajos grabando las teclas (MonoCode).** Depende de ADE.3.
+- [ ] **ADE.5 — Settings → Chat: Enter o ⌘Enter, escribir mientras el agente trabaja, confirmar archivar/borrar.**
+- [ ] **ADE.6 — Notificaciones: tarea terminada o esperando respuesta.**
+- [ ] **ADE.7 — Apariencia 2: escala de la interfaz, archivos ignorados por git, diff para daltónicos.**
+- [ ] **ADE.8 — Diff por defecto: unificado o lado a lado, espacios, árbol.**
+- [ ] **ADE.9 — Terminal: fuente, tamaño, cursor, scrollback.**
+- [ ] **ADE.10 — Por proyecto: nombre e ícono, script al crear worktree, rama base.**
+
 ### Abiertos — fiabilidad de los gates y documentación
 
 - [x] **UI.66 — Quitar `orchestos / master` del header superior.** (Carlos, 2026-11-06: "no tiene sentido") El

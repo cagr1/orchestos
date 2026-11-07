@@ -4,6 +4,86 @@
   "note": "Derivado, no editar a mano — bun run plan:status regenera.",
   "items": [
     {
+      "id": "ADE.1",
+      "sprint": "Fase 2 — Producto mínimo para entrega",
+      "block": "ADE — editar archivos y Settings tomados de Orca, T3 Code y MonoCode (GO de Carlos 2026-11-07)",
+      "title": "Editar archivos desde el explorer",
+      "status": "open",
+      "closedDate": null
+    },
+    {
+      "id": "ADE.2",
+      "sprint": "Fase 2 — Producto mínimo para entrega",
+      "block": "ADE — editar archivos y Settings tomados de Orca, T3 Code y MonoCode (GO de Carlos 2026-11-07)",
+      "title": "Settings → Editor: auto-guardado, ajuste de línea, tamaño de fuente",
+      "status": "open",
+      "closedDate": null
+    },
+    {
+      "id": "ADE.3",
+      "sprint": "Fase 2 — Producto mínimo para entrega",
+      "block": "ADE — editar archivos y Settings tomados de Orca, T3 Code y MonoCode (GO de Carlos 2026-11-07)",
+      "title": "Atajos reales: registro central de comandos, de 2 a ~20",
+      "status": "open",
+      "closedDate": null
+    },
+    {
+      "id": "ADE.4",
+      "sprint": "Fase 2 — Producto mínimo para entrega",
+      "block": "ADE — editar archivos y Settings tomados de Orca, T3 Code y MonoCode (GO de Carlos 2026-11-07)",
+      "title": "Reasignar atajos grabando las teclas (MonoCode)",
+      "status": "open",
+      "closedDate": null
+    },
+    {
+      "id": "ADE.5",
+      "sprint": "Fase 2 — Producto mínimo para entrega",
+      "block": "ADE — editar archivos y Settings tomados de Orca, T3 Code y MonoCode (GO de Carlos 2026-11-07)",
+      "title": "Settings → Chat: Enter o ⌘Enter, escribir mientras el agente trabaja, confirmar archivar/borrar",
+      "status": "open",
+      "closedDate": null
+    },
+    {
+      "id": "ADE.6",
+      "sprint": "Fase 2 — Producto mínimo para entrega",
+      "block": "ADE — editar archivos y Settings tomados de Orca, T3 Code y MonoCode (GO de Carlos 2026-11-07)",
+      "title": "Notificaciones: tarea terminada o esperando respuesta",
+      "status": "open",
+      "closedDate": null
+    },
+    {
+      "id": "ADE.7",
+      "sprint": "Fase 2 — Producto mínimo para entrega",
+      "block": "ADE — editar archivos y Settings tomados de Orca, T3 Code y MonoCode (GO de Carlos 2026-11-07)",
+      "title": "Apariencia 2: escala de la interfaz, archivos ignorados por git, diff para daltónicos",
+      "status": "open",
+      "closedDate": null
+    },
+    {
+      "id": "ADE.8",
+      "sprint": "Fase 2 — Producto mínimo para entrega",
+      "block": "ADE — editar archivos y Settings tomados de Orca, T3 Code y MonoCode (GO de Carlos 2026-11-07)",
+      "title": "Diff por defecto: unificado o lado a lado, espacios, árbol",
+      "status": "open",
+      "closedDate": null
+    },
+    {
+      "id": "ADE.9",
+      "sprint": "Fase 2 — Producto mínimo para entrega",
+      "block": "ADE — editar archivos y Settings tomados de Orca, T3 Code y MonoCode (GO de Carlos 2026-11-07)",
+      "title": "Terminal: fuente, tamaño, cursor, scrollback",
+      "status": "open",
+      "closedDate": null
+    },
+    {
+      "id": "ADE.10",
+      "sprint": "Fase 2 — Producto mínimo para entrega",
+      "block": "ADE — editar archivos y Settings tomados de Orca, T3 Code y MonoCode (GO de Carlos 2026-11-07)",
+      "title": "Por proyecto: nombre e ícono, script al crear worktree, rama base",
+      "status": "open",
+      "closedDate": null
+    },
+    {
       "id": "UI.66",
       "sprint": "Fase 2 — Producto mínimo para entrega",
       "block": "Abiertos — fiabilidad de los gates y documentación",
