@@ -240,7 +240,7 @@
       "sprint": "Fase 2 — Producto mínimo para entrega",
       "block": "Abiertos — fiabilidad de los gates y documentación",
       "title": "El pre-push desde un worktree commitea los fixtures de los tests en la rama del worktree",
-      "status": "open",
+      "status": "done",
       "closedDate": null
     },
     {

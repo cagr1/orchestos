@@ -59,6 +59,9 @@ if command -v node >/dev/null 2>&1; then
   ln -s "$(command -v node)" "$ci_bin/node"
 fi
 
+# CI.67: evitar que la suite herede el repositorio del hook en fixtures git temporales.
+unset GIT_DIR GIT_WORK_TREE GIT_INDEX_FILE GIT_PREFIX GIT_COMMON_DIR GIT_OBJECT_DIRECTORY GIT_ALTERNATE_OBJECT_DIRECTORIES
+
 # A clean HOME and minimal PATH reproduce CI; useConfigOnly prevents Mac Git from inferring
 # an identity the Linux runner lacks, after three Mac-green/CI-red streaks.
 printf '[user]\n\tuseConfigOnly = true\n' > "$ci_home/.gitconfig"

@@ -381,11 +381,18 @@ Cerrada. Todos sus ítems están archivados en `docs/done/` (ver "Cerrados — e
   `listSkillFilesWithOrigin`. Gates del cerebro: `skill-library` 20/0, `typecheck`, `lint`, `test:coverage` 2368/0.
   Revisión: Opus (diff leído).
   Ejecutado por: codex gpt-6-luna (mecanico) · Spec: docs/specs/CI.66.md (borrado)
-- [ ] **CI.67 — El pre-push desde un worktree commitea los fixtures de los tests en la rama del worktree.** (visto
+- [x] **CI.67 — El pre-push desde un worktree commitea los fixtures de los tests en la rama del worktree.** (visto
   2026-11-06: 13 commits de fixture `51613edb..e0fde66c` subieron a master, revertidos en `85379e95`) Desde un
   worktree, git exporta `GIT_DIR` a los hooks (verificado en un repo temporal); `scripts/pre-push.sh:76` corre
   `test:coverage` con ese entorno y cada `git commit` de fixture escribe en el repo real. Desde el checkout principal
-  git no exporta `GIT_DIR`, por eso no se vio antes. Spec: docs/specs/CI.67.md
+  git no exporta `GIT_DIR`, por eso no se vio antes.
+  Hecho: `scripts/pre-push.sh` hace `unset GIT_DIR GIT_WORK_TREE GIT_INDEX_FILE …` antes del worktree temporal y la
+  suite; `scripts/pre-push-git-env.test.ts` fija que la línea limpia el entorno y va antes. Contraprueba del cerebro
+  (repo temporal + worktree + push a remoto bare, hook que commitea en un temporal): sin `unset` la rama del worktree
+  recibe el commit `leak`; con `unset`, no. Gates del cerebro: `bash -n`, `lint`, `test:coverage` 2370/0 (el
+  ejecutor no pudo correrla: `EPERM`/`EADDRINUSE` del sandbox).
+  Revisión: Opus (diff leído).
+  Ejecutado por: codex gpt-6-luna (mecanico) · Spec: docs/specs/CI.67.md (borrado)
 - [ ] **CI.19 — El `git commit` del fixture falla a veces en el andamiaje de los ui-gates.** Visto 1 vez en
   `qa-negative` (2026-10-11, 1 de 9): `Command failed: git … commit -qm task fixture`, sin motivo porque el helper
   `run` usa `stdio: 'ignore'`. `qa-negative` ya reporta stdout/stderr y exit; los otros 20 flows con el mismo helper no.
