@@ -91,7 +91,16 @@ Propuesta y comparación con las tres referencias: `docs/specs/ADE-PLAN.md`. Uno
   Gate en vivo: navegador real (Playwright), `docs/done/evidence/ADE.1-live.json` y `docs/done/evidence/ADE.1/`
   Ejecutado por: codex gpt-6.1-sol (criterio) + gpt-6-luna (mecanico, 2 correcciones) · Spec: docs/specs/ADE.1.md
   Texto visible: "Unsaved", "Changed on disk", "Keep mine", "Reload", "Discard unsaved changes to <name>?", "Cancel", "Discard", "Loading…" (ya existía, cambia de línea), "Binary file — not shown", "File too large to open (<N> KB)" (estado y decisiones que un ícono no explica)
-- [ ] **ADE.2 — Settings → Editor: auto-guardado, ajuste de línea, tamaño de fuente.** Depende de ADE.1. Spec: `docs/specs/ADE.2.md`.
+- [x] **ADE.2 — Settings → Editor: auto-guardado, ajuste de línea, tamaño de fuente.** Hecho: sección Editor en
+  Settings → App (Auto save Off/After delay 500–10000 ms, Word wrap, Font size 10–24), preferencias por dispositivo
+  en `localStorage` (`lib/editor-settings.ts`, defaults de VS Code: el editor queda igual que antes), cambios sin
+  recrear el editor (`Compartment`); el auto-guardado no corre con un conflicto abierto. Revisión `qa`: un guardado
+  pedido durante otro en vuelo se perdía (quedaba "Unsaved" para siempre); hermano con ⌘S; ambos se encadenan.
+  Gates del cerebro: `tsc --noEmit`, `editor-settings` 4/4, `build:app`, sonda de consola sin `pageerror`,
+  `dev-file-edit` 22/22 y `dev-session-tabs` 50/50 (`gate:evidence` `ADE.2-editor-settings`).
+  Gate en vivo: navegador real (Playwright), `docs/done/evidence/ADE.2/ui-gate-result.json` y capturas en `docs/done/evidence/ADE.2/`
+  Ejecutado por: codex gpt-6-luna (mecanico) · Spec: docs/specs/ADE.2.md
+  Texto visible: "Editor", "Auto save", "Off", "After delay", "Auto save delay", "Word wrap", "On", "Font size" (rótulos de preferencias: un ícono no dice qué ajusta)
 - [ ] **ADE.3 — Atajos reales: registro central de comandos, de 2 a ~20.**
 - [ ] **ADE.4 — Reasignar atajos grabando las teclas (MonoCode).** Depende de ADE.3.
 - [ ] **ADE.5 — Settings → Chat: Enter o ⌘Enter, escribir mientras el agente trabaja, confirmar archivar/borrar.**

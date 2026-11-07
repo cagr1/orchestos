@@ -11,7 +11,7 @@ import {
   syntaxHighlighting,
 } from '@codemirror/language'
 import { search, searchKeymap } from '@codemirror/search'
-import { EditorState } from '@codemirror/state'
+import { Compartment, EditorState } from '@codemirror/state'
 import {
   drawSelection,
   EditorView,
@@ -21,6 +21,7 @@ import {
 } from '@codemirror/view'
 import { tags } from '@lezer/highlight'
 import { useEffect, useRef } from 'react'
+import { useEditorSettings } from '@/lib/editor-settings'
 
 function language(path: string) {
   switch (path.split('.').pop()?.toLowerCase()) {
@@ -48,7 +49,7 @@ function language(path: string) {
 
 const theme = EditorView.theme({
   '&': { height: '100%', color: 'var(--app-text)', backgroundColor: 'var(--app-bg)' },
-  '.cm-scroller': { fontFamily: 'inherit', fontSize: '12px', lineHeight: '24px', overflow: 'auto' },
+  '.cm-scroller': { fontFamily: 'inherit', overflow: 'auto' },
   '.cm-content': { caretColor: 'var(--app-accent)', padding: '12px 0' },
   '.cm-cursor, .cm-dropCursor': { borderLeftColor: 'var(--app-accent)' },
   '.cm-gutters': {
@@ -107,8 +108,14 @@ export function CodeEditor({
   const initial = useRef(value)
   initial.current = value
   const external = useRef(false)
+  const settings = useEditorSettings()
+  const settingsRef = useRef(settings)
+  settingsRef.current = settings
+  const wrapCompartment = useRef(new Compartment())
+  const fontCompartment = useRef(new Compartment())
   useEffect(() => {
     if (!host.current) return
+    const initialSettings = settingsRef.current
     const editor = new EditorView({
       parent: host.current,
       state: EditorState.create({
@@ -123,6 +130,16 @@ export function CodeEditor({
           search(),
           language(path),
           theme,
+          wrapCompartment.current.of(initialSettings.wordWrap ? EditorView.lineWrapping : []),
+          fontCompartment.current.of(
+            EditorView.theme({
+              '.cm-scroller': {
+                fontSize: `${initialSettings.fontSize}px`,
+                lineHeight: `${initialSettings.fontSize * 2}px`,
+              },
+              '.cm-content': { fontSize: `${initialSettings.fontSize}px` },
+            }),
+          ),
           syntaxHighlighting(highlighting),
           EditorView.contentAttributes.of({ 'aria-label': path }),
           keymap.of([
@@ -152,6 +169,24 @@ export function CodeEditor({
       view.current = null
     }
   }, [path])
+  useEffect(() => {
+    const editor = view.current
+    if (!editor) return
+    editor.dispatch({
+      effects: [
+        wrapCompartment.current.reconfigure(settings.wordWrap ? EditorView.lineWrapping : []),
+        fontCompartment.current.reconfigure(
+          EditorView.theme({
+            '.cm-scroller': {
+              fontSize: `${settings.fontSize}px`,
+              lineHeight: `${settings.fontSize * 2}px`,
+            },
+            '.cm-content': { fontSize: `${settings.fontSize}px` },
+          }),
+        ),
+      ],
+    })
+  }, [settings.wordWrap, settings.fontSize])
   useEffect(() => {
     const editor = view.current
     if (!editor || editor.state.doc.toString() === value) return

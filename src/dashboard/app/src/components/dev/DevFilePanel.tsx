@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, useSyncExternalStore } from 'react'
 import { getExplorerFile, saveExplorerFile } from '../../api/explorer'
+import { useEditorSettings } from '../../lib/editor-settings'
 import { ThreadMarkdown } from '../thread/ThreadMarkdown'
 import { CodeEditor } from './CodeEditor'
 import {
@@ -26,6 +27,8 @@ export function DevFilePanel({
 }) {
   useSyncExternalStore(subscribe, getSnapshot)
   const buffer = getBuffer(projectId, path)
+  const draft = buffer?.draft
+  const editorSettings = useEditorSettings()
   const [file, setFile] = useState<{ path: string; data?: DiskFile; error?: string } | null>(null)
   const [sourcePaths, setSourcePaths] = useState<Record<string, boolean>>({})
   const [conflicts, setConflicts] = useState<Record<string, Conflict | undefined>>({})
@@ -34,6 +37,7 @@ export function DevFilePanel({
   closeRef.current = onClose
   const request = useRef(0)
   const saving = useRef(new Set<string>())
+  const pendingSave = useRef(new Set<string>())
   const id = `${projectId}:${path}`
   const conflict = conflicts[id]
   const dirty = isDirty(projectId, path)
@@ -86,10 +90,15 @@ export function DevFilePanel({
 
   const save = async (expectedMtimeMs?: number) => {
     const current = getBuffer(projectId, path)
-    if (!current || saving.current.has(id)) return
+    if (!current) return
+    if (saving.current.has(id)) {
+      pendingSave.current.add(id)
+      return
+    }
     saving.current.add(id)
     ++request.current
     const content = current.draft
+    let conflictOpened = false
     setErrors((previous) => ({ ...previous, [id]: undefined }))
     try {
       const result = await saveExplorerFile(
@@ -98,8 +107,10 @@ export function DevFilePanel({
         expectedMtimeMs ?? current.mtimeMs,
         projectId,
       )
-      if (result.conflict) setConflicts((previous) => ({ ...previous, [id]: result }))
-      else {
+      if (result.conflict) {
+        conflictOpened = true
+        setConflicts((previous) => ({ ...previous, [id]: result }))
+      } else {
         markSaved(projectId, path, content, result.mtimeMs)
         setConflicts((previous) => ({ ...previous, [id]: undefined }))
       }
@@ -110,8 +121,30 @@ export function DevFilePanel({
       }))
     } finally {
       saving.current.delete(id)
+      const retry = pendingSave.current.delete(id)
+      if (retry && isDirty(projectId, path) && !conflictOpened && !conflicts[id])
+        void saveRef.current()
     }
   }
+  const saveRef = useRef(save)
+  saveRef.current = save
+
+  useEffect(() => {
+    if (editorSettings.autoSave !== 'afterDelay' || !dirty || conflict) return
+    const timer = window.setTimeout(() => {
+      if (getBuffer(projectId, path)?.draft === draft && isDirty(projectId, path) && !conflict)
+        void saveRef.current()
+    }, editorSettings.autoSaveDelayMs)
+    return () => window.clearTimeout(timer)
+  }, [
+    draft,
+    conflict,
+    dirty,
+    editorSettings.autoSave,
+    editorSettings.autoSaveDelayMs,
+    path,
+    projectId,
+  ])
 
   const disk = file?.path === path ? file.data : undefined
   const error = errors[id] ?? (file?.path === path ? file.error : undefined)

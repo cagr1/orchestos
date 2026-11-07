@@ -11,6 +11,7 @@ import {
   Cpu,
   DollarSign,
   FileCheck,
+  FileCode,
   FolderClosed,
   Globe,
   Kanban,
@@ -37,6 +38,7 @@ import { PageHeader } from '@/components/layout/page'
 import { Button } from '@/components/ui/button'
 import { Card, CardAction, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { usePrefersReducedMotion } from '@/hooks/use-prefers-reduced-motion'
+import { useEditorSettings, writeEditorSettings } from '@/lib/editor-settings'
 import { KEYBINDINGS, matchesKeybinding } from '@/lib/keybindings'
 import { spring } from '@/lib/springs'
 import type { TaskClass } from '../../../../../router/classify'
@@ -189,6 +191,30 @@ type SettingsSearchEntry = {
 }
 
 const SETTINGS_SEARCH_INDEX: SettingsSearchEntry[] = [
+  {
+    id: 'editor-auto-save',
+    section: 'editor',
+    label: { en: 'Auto save', es: 'Guardado automático' },
+    keywords: ['save', 'autosave', 'guardar', 'editor'],
+  },
+  {
+    id: 'editor-auto-save-delay',
+    section: 'editor',
+    label: { en: 'Auto save delay', es: 'Demora del guardado automático' },
+    keywords: ['save', 'autosave', 'guardar', 'delay', 'editor'],
+  },
+  {
+    id: 'editor-word-wrap',
+    section: 'editor',
+    label: { en: 'Word wrap', es: 'Ajuste de línea' },
+    keywords: ['wrap', 'ajuste', 'editor'],
+  },
+  {
+    id: 'editor-font-size',
+    section: 'editor',
+    label: { en: 'Font size', es: 'Tamaño de fuente' },
+    keywords: ['font', 'fuente', 'editor'],
+  },
   {
     id: 'executor-clis',
     section: 'providers',
@@ -538,6 +564,7 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
   projectTabsError = null,
 }) => {
   const [activeSection, setActiveSection] = useState<SettingsSection>(initialSection)
+  const editorSettings = useEditorSettings()
   const profile = useUserProfile()
   const [activeProjectTab, setActiveProjectTab] = useState<ProjectSubTab>(initialProjectTab)
   const [selectedProjectId, setSelectedProjectId] = useState<string>(
@@ -1616,6 +1643,7 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
                   { id: 'general', label: 'General', icon: SettingsIcon },
                   { id: 'appearance', label: 'Appearance', icon: Palette },
                   { id: 'keybindings', label: 'Keybindings', icon: Keyboard },
+                  { id: 'editor', label: 'Editor', icon: FileCode },
                 ],
               },
               {
@@ -1859,6 +1887,58 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
                   ))}
                 </tbody>
               </table>
+            </SettingsGroup>
+          </SettingsPage>
+        )}
+
+        {activeSection === 'editor' && (
+          <SettingsPage title="Editor">
+            <SettingsGroup>
+              <SettingsRow data-settings-anchor="editor-auto-save" label="Auto save">
+                <SettingsSegmented
+                  value={editorSettings.autoSave}
+                  onChange={(autoSave) => writeEditorSettings({ autoSave })}
+                  ariaLabel="Auto save"
+                  options={[
+                    { value: 'off', label: 'Off' },
+                    { value: 'afterDelay', label: 'After delay' },
+                  ]}
+                />
+              </SettingsRow>
+              {editorSettings.autoSave === 'afterDelay' && (
+                <SettingsRow data-settings-anchor="editor-auto-save-delay" label="Auto save delay">
+                  <SettingsStepper
+                    value={editorSettings.autoSaveDelayMs}
+                    onChange={(autoSaveDelayMs) => writeEditorSettings({ autoSaveDelayMs })}
+                    min={500}
+                    max={10000}
+                    step={500}
+                    unit="ms"
+                    ariaLabel="Auto save delay"
+                  />
+                </SettingsRow>
+              )}
+              <SettingsRow data-settings-anchor="editor-word-wrap" label="Word wrap">
+                <SettingsSegmented
+                  value={editorSettings.wordWrap ? 'on' : 'off'}
+                  onChange={(value) => writeEditorSettings({ wordWrap: value === 'on' })}
+                  ariaLabel="Word wrap"
+                  options={[
+                    { value: 'off', label: 'Off' },
+                    { value: 'on', label: 'On' },
+                  ]}
+                />
+              </SettingsRow>
+              <SettingsRow data-settings-anchor="editor-font-size" label="Font size">
+                <SettingsStepper
+                  value={editorSettings.fontSize}
+                  onChange={(fontSize) => writeEditorSettings({ fontSize })}
+                  min={10}
+                  max={24}
+                  unit="px"
+                  ariaLabel="Font size"
+                />
+              </SettingsRow>
             </SettingsGroup>
           </SettingsPage>
         )}

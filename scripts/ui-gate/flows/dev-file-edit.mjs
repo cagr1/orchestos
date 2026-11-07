@@ -259,5 +259,150 @@ export default async function devFileEdit({
     .waitFor()
   await step('oversize file explains why no editor is shown', (await editor.count()) === 0)
   await shot('too-large')
+
+  await page.getByRole('button', { name: 'Settings', exact: true }).click()
+  const sidebar = page.locator('aside').filter({
+    has: page.getByRole('button', { name: 'Back to app', exact: true }),
+  })
+  await sidebar.getByRole('button', { name: 'Editor', exact: true }).click()
+  const wrapRow = page.locator('[data-settings-anchor="editor-word-wrap"]')
+  const fontRow = page.locator('[data-settings-anchor="editor-font-size"]')
+  await wrapRow.getByRole('radio', { name: 'On', exact: true }).click()
+  await fontRow.getByRole('button', { name: 'Increase Font size', exact: true }).click()
+  await fontRow.getByRole('button', { name: 'Increase Font size', exact: true }).click()
+  await fontRow.getByRole('button', { name: 'Increase Font size', exact: true }).click()
+  await fontRow.getByRole('button', { name: 'Increase Font size', exact: true }).click()
+  await sidebar.getByRole('button', { name: 'Back to app', exact: true }).click()
+  await page.getByRole('button', { name: 'Dev', exact: true }).click()
+  await tree('notes.txt').click()
+  await assertText('Disk wins stale save')
+  const longLine = 'a long editor line with several words '.repeat(12)
+  await text(longLine)
+  await page.waitForFunction(
+    () =>
+      getComputedStyle(document.querySelector('[data-file-editor] .cm-content')).fontSize ===
+      '16px',
+  )
+  await step(
+    'word wrap and 16px font apply to the live editor',
+    (await page
+      .locator('[data-file-editor] .cm-scroller')
+      .evaluate((el) => el.scrollWidth <= el.clientWidth)) &&
+      (await page
+        .locator('[data-file-editor] .cm-content')
+        .evaluate((el) => getComputedStyle(el).fontSize)) === '16px',
+  )
+  await shot('editor-word-wrap')
+
+  await page.getByRole('button', { name: 'Settings', exact: true }).click()
+  await sidebar.getByRole('button', { name: 'Editor', exact: true }).click()
+  const autoSaveRow = page.locator('[data-settings-anchor="editor-auto-save"]')
+  await autoSaveRow.getByRole('radio', { name: 'After delay', exact: true }).click()
+  const delayRow = page.locator('[data-settings-anchor="editor-auto-save-delay"]')
+  while (!(await delayRow.innerText()).includes('500'))
+    await delayRow.getByRole('button', { name: 'Decrease Auto save delay', exact: true }).click()
+  await shot('editor-settings')
+  await sidebar.getByRole('button', { name: 'Back to app', exact: true }).click()
+  await page.getByRole('button', { name: 'Dev', exact: true }).click()
+  await tree('notes.txt').click()
+  await page.waitForFunction(
+    (prefix) =>
+      document.querySelector('[data-file-editor] .cm-content')?.textContent?.startsWith(prefix),
+    longLine.slice(0, 40),
+  )
+  await text('Automatically saved')
+  await dirty.waitFor({ state: 'detached', timeout: 3000 })
+  await step(
+    '500ms auto save writes the draft without the shortcut',
+    readFileSync(join(root, 'notes.txt'), 'utf8') === 'Automatically saved',
+  )
+
+  let delayedPut = true
+  await page.route('**/api/explorer/file', async (route) => {
+    if (route.request().method() === 'PUT' && delayedPut) {
+      delayedPut = false
+      await new Promise((resolve) => setTimeout(resolve, 1500))
+    }
+    await route.continue()
+  })
+  await text('First automatic save')
+  const automaticPut = page.waitForRequest(
+    (request) => request.url().endsWith('/api/explorer/file') && request.method() === 'PUT',
+  )
+  await automaticPut
+  await text('Latest automatic save')
+  await dirty.waitFor({ state: 'detached', timeout: 5000 })
+  await step(
+    'automatic save retries the latest draft after a slow PUT',
+    readFileSync(join(root, 'notes.txt'), 'utf8') === 'Latest automatic save',
+  )
+  await page.unroute('**/api/explorer/file')
+
+  await page.getByRole('button', { name: 'Settings', exact: true }).click()
+  await sidebar.getByRole('button', { name: 'Editor', exact: true }).click()
+  await autoSaveRow.getByRole('radio', { name: 'Off', exact: true }).click()
+  await sidebar.getByRole('button', { name: 'Back to app', exact: true }).click()
+  await page.getByRole('button', { name: 'Dev', exact: true }).click()
+  await tree('notes.txt').click()
+  await page.waitForFunction(
+    () =>
+      document.querySelector('[data-file-editor] .cm-content')?.textContent ===
+      'Latest automatic save',
+  )
+  delayedPut = true
+  await page.route('**/api/explorer/file', async (route) => {
+    if (route.request().method() === 'PUT' && delayedPut) {
+      delayedPut = false
+      await new Promise((resolve) => setTimeout(resolve, 1500))
+    }
+    await route.continue()
+  })
+  await text('First shortcut save')
+  const shortcutPut = page.waitForRequest(
+    (request) => request.url().endsWith('/api/explorer/file') && request.method() === 'PUT',
+  )
+  await page.keyboard.press('ControlOrMeta+s')
+  await shortcutPut
+  await text('Latest shortcut save')
+  await page.keyboard.press('ControlOrMeta+s')
+  await dirty.waitFor({ state: 'detached', timeout: 5000 })
+  await step(
+    'save shortcut retries the latest draft after a slow PUT',
+    readFileSync(join(root, 'notes.txt'), 'utf8') === 'Latest shortcut save',
+  )
+  await page.unroute('**/api/explorer/file')
+  await page.getByRole('button', { name: 'Settings', exact: true }).click()
+  await sidebar.getByRole('button', { name: 'Editor', exact: true }).click()
+  await autoSaveRow.getByRole('radio', { name: 'After delay', exact: true }).click()
+  await sidebar.getByRole('button', { name: 'Back to app', exact: true }).click()
+  await page.getByRole('button', { name: 'Dev', exact: true }).click()
+  await tree('notes.txt').click()
+  await page.waitForFunction(
+    () =>
+      document.querySelector('[data-file-editor] .cm-content')?.textContent ===
+      'Latest shortcut save',
+  )
+
+  await text('Conflict must not autosave')
+  changeDisk('External content wins')
+  await focus()
+  await conflict.waitFor()
+  await page.waitForTimeout(700)
+  await step(
+    'auto save waits for the user while a conflict is open',
+    (await dirty.count()) === 1 &&
+      readFileSync(join(root, 'notes.txt'), 'utf8') === 'External content wins',
+  )
+  await conflict.getByRole('button', { name: 'Reload', exact: true }).click()
+  await assertText('External content wins')
+
+  await page.getByRole('button', { name: 'Settings', exact: true }).click()
+  await sidebar.getByRole('button', { name: 'Editor', exact: true }).click()
+  while ((await delayRow.innerText()).includes('500'))
+    await delayRow.getByRole('button', { name: 'Increase Auto save delay', exact: true }).click()
+  await autoSaveRow.getByRole('radio', { name: 'Off', exact: true }).click()
+  await wrapRow.getByRole('radio', { name: 'Off', exact: true }).click()
+  for (let size = 16; size > 12; size -= 1)
+    await fontRow.getByRole('button', { name: 'Decrease Font size', exact: true }).click()
   await step('0 console errors', consoleErrors().length === 0, consoleErrors().join('; ') || 'none')
 }
