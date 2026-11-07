@@ -74,3 +74,14 @@ Los `title` de la tabla (nombres de comandos: un ícono no dice qué hace cada a
   "Gemini", y con los atajos visibles. Capturas por paso.
 - Gates: `bunx tsc --noEmit`, `bun run build:app`, `bun run test:coverage`,
   `bun run gate:evidence -- --label ADE.3-keybindings -- bun run ui:gate keybindings dev-session-tabs`.
+
+## Referencias actualizadas tras ADE.1/ADE.2 (2026-11-07; prevalecen sobre las líneas de arriba)
+
+- `App.tsx`: `closeDevTab` :148 (ya pide confirmación si el tab está sucio: `close-tab` debe llamarlo a él, no a
+  `closeSessionTab`), `handleOpenFile` :159 (lo usa Go to file), `handleOpenTerminal` :530 y su listener Ctrl+`
+  :534-543, `handleModeChange` :885, `handleOpenSettings` :908, toggle del sidebar :1580, panel derecho :1583,
+  `onSelect` de los tabs Dev :1671.
+- "New chat": el estado del selector vive local en `ShellSidebar.tsx:78` (`isNewChatAgentModalOpen`), abierto en
+  :127. Para `new-chat`, `ShellSidebar` recibe una prop nueva `newChatSignal: number`; un efecto abre el selector
+  cuando el número sube. App la incrementa al disparar el comando (si está en Dev, primero `handleModeChange('chat')`).
+- Settings → Editor (ADE.2) existe: el registro no toca sus filas.
