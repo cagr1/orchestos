@@ -1,4 +1,4 @@
-# NEXT — handoff 2026-11-07 (CI.66, CI.67, SK.3, UI.70; sigue el desacople)
+# NEXT — handoff 2026-11-07 (bloque ADE: ADE.1–3 y CI.68 cerrados; sigue ADE.4)
 
 Un solo presente: orden y trampas vivas del lote. Lo cerrado vive en `docs/done/bloque-*.md` y git; las reglas, en
 `AGENTS.md`. Versión anterior completa: `docs/done/poda-instrucciones-2026-11-03.md` (histórico).
@@ -6,48 +6,25 @@ Arranque: `bun run agent:preflight -- --item <ID> --agent claude`. Lista viva: `
 
 ## Orden
 
-0. Hecho 2026-11-06: CI.55 fase 2 `bb92b483`; CI.63 `fe602898`; CI.64 `0e6fdac7`; UI.65 `aafee2ce`; limpieza
-   `735bf403` (307 archivos, 3,2 MB); regla de push cada 2 commits `1e69a1d2`; DEV.1 `a557f107` (candado en
-   `scripts/writer-lock.mjs`); SK.1 `c222bfc5` (biblioteca `~/.orchestos/skills/`, activación por proyecto, "Add
-   skill"); CI.65 `4d7d6e62` (gates de chat esperan "Send" habilitado). Push confirmado.
-0a. Hecho 2026-11-06: set curado en `~/.orchestos/skills/` (apagado por defecto; se enciende por proyecto):
-   `karpathy-guidelines`, `grilling`, `to-spec`, `tdd`, `impeccable`, `verification-before-completion`,
-   `security-audit`. `grill-me` se quitó: solo dice "Call the Skill tool with grilling"; se importó `grilling`, que
-   trae el contenido. En el repo OrchestOS la `verification-before-completion` propia (`skills/`) gana a la de la
-   biblioteca, como manda la precedencia. **Límite visto**: el import no trae archivos auxiliares; `impeccable`
-   remite a 33 `reference/*.md`, `security-audit` a 4 y `tdd` a 2. Si SK.2 las usa en serio, sumar import de
-   auxiliares (anotado, sin ítem). README sync: el repo no dejaba a Actions crear PRs (activado); rama por run
-   `f4d4a63e`; PR #4 abierto para Carlos.
-0b. SK.2 hecho `7e7da8a5`: chips "Applies in" por skill de biblioteca; el ejecutor recibe principal + automáticas
-   de su fase (tope 48k); `runs.phase_skills_json` (migración 36). El set curado de `~/.orchestos/skills/` aún no
-   tiene fases: asignarlas es parte de SK.3 (defaults del perfil no programador). Ojo: una de biblioteca marcada solo
-   "Review" entra a QA como gate (`resolveGates`), y `security-audit` pesa 22 KB.
-   SK.3 (hecho 2026-11-07): perfil "¿sabes programar?" en el onboarding; si no, el orquestador pregunta primero
-   (`grilling`) y revisión y seguridad corren siempre. Motivo: el método funciona con quien sabe código; un no
-   programador no pide cada fase. Falta spec.
-0b2. Hecho 2026-11-07: UI.66–69 venían de una sesión perdida en el worktree `ui-fixes`; su push filtró 13 commits de
-   fixtures (revertidos `85379e95`). Causa CI.67 `85f09c44`: desde un worktree git exporta `GIT_DIR` a los hooks y la
-   suite lo heredaba. CI rojo desde SK.2 → CI.66 `f149cba9` (orden de `readdirSync`). SK.3 `d132e976` (perfil
-   global `~/.orchestos/profile.json`, tarjeta en Chat vacío, "no programa" → `grilling` en el chat, revisor
-   forzado y `security-audit`). UI.70 `7bfb7199` (íconos Material Icon Theme en árbol, diff y tabs). Worktree
-   `ui-fixes` borrado. Tauri y caché de Safari anotados en `IDEAS.md` #41 (sin ítem). Falta anotar en `IDEAS.md` el
-   "navegador propio" cuando Carlos diga qué espera de él.
-   **Ojo**: tras traer cambios de UI, `bun run build:app` + reiniciar el dashboard; Safari puede servir `main.js`
-   viejo (Cmd+Option+R) hasta que se haga el arreglo `?v=<hash>`.
-0c. **Desacople del método personal**, después de SK.1–3 (GO de Carlos): reescribir `AGENTS.md`, hooks `.claude/`
-   (`brain-no-code.js:16`, `subagent-budget.js:156`, `context-budget.js:30`), `docs/roadmaps/` y fixtures sin
-   `agent-method`/`delegate`/Sol/Luna/vault; plan y tabla en `docs/specs/LIMPIEZA-2.md` § 2. Las reglas personales que
-   valga la pena conservar pasan a skills y perfil del producto. El candado ya está hecho (DEV.1).
-0d. Mutación: sigue nocturna (`Mutation Shards`, cron `0 3 * * *` UTC). Propuesto a Carlos, sin GO: el arranque de
-   sesión muestra el resultado de la última corrida nocturna (verde/rojo, duración, módulos que bajaron). ODD
-   descartado (sin definición estable; solo eval-driven tiene respaldo, arXiv 2411.13768).
-1. CI.55 fase 2 hecha: el gate sigue el reintento y guarda el rollout de Codex por intento. Espera su próximo
-   fallo: leer `codexRollouts` de `role-task-missing-output-attempt-<n>.json` (nota `gate-role-task retried`).
-2. **`Mutation Shards`** (CI.61): corrida 42006593533 debajo de 150 min. Si una posterior pasa 150, reabrir CI.61.
-3. **Esperan su próximo fallo**: CI.57 `composer-picker-model-missing.json`; CI.54 `turn1-bubble-missing.json`; CI.19,
-   el motivo en el detalle del paso. Leer el JSON el mismo día: CI.62 borra el `runDir` a las 24 h.
-4. Cualquier CLI corre tareas sin código (Settings → Providers → "CLIs propios"). Un adaptador rico para un CLI nuevo
-   sigue siendo `KNOWN_CLIS` + `registerTaskEngine`, y lo prueba el cerebro, no Carlos.
+0. Hecho 2026-11-07 (bloque ADE, GO de Carlos; propuesta y comparación con Orca/T3/MonoCode en
+   `docs/specs/ADE-PLAN.md`): plan `15f8630b`; ADE.1 `8c56a98f` (editar archivos: CodeMirror, ⌘S, conflicto con el
+   disco, `PUT /api/explorer/file`); ADE.2 `0104b2bf` (Settings → Editor); ADE.3 `59150637` (14 atajos desde
+   `lib/keybindings.ts`, Go to file ⌘P, paleta sin acciones del prototipo); CI.68 `7ad5c745` (gate `model-routing`
+   espera la sugerencia). Antes, el mismo día: CI.66 `f149cba9`, CI.67 `85f09c44`, SK.3 `d132e976`, UI.70 `7bfb7199`.
+1. **ADE.4** — reasignar atajos grabando teclas. Spec listo y commiteado: `docs/specs/ADE.4.md`.
+   Rol `criterio`. Luego ADE.5 → ADE.10 en orden (`PLAN.md` § ADE),
+   uno a uno, spec por ítem con rutas sacadas de grep del mismo turno.
+2. **Desacople del método personal** (GO de Carlos, después de SK.1–3; ahora en cola tras el bloque ADE salvo que
+   Carlos diga otra cosa): reescribir `AGENTS.md`, hooks `.claude/` (`brain-no-code.js:16`, `subagent-budget.js:156`,
+   `context-budget.js:30`), `docs/roadmaps/` y fixtures sin `agent-method`/`delegate`/Sol/Luna/vault; plan en
+   `docs/specs/LIMPIEZA-2.md` § 2.
+3. Mutación nocturna: la corrida 42361144282 (rojo) fue sobre `85379e9`, antes de CI.66; confirmar que la de esta
+   noche sale verde. Propuesto a Carlos, sin GO: mostrar al arrancar el resultado de la última corrida.
+4. **Esperan su próximo fallo**: CI.57 `composer-picker-model-missing.json`; CI.54 `turn1-bubble-missing.json`; CI.19;
+   CI.55 (`role-task-missing-output-attempt-<n>.json`). Leer el JSON el mismo día: CI.62 borra el `runDir` a las 24 h.
+5. SK.3 sin spec; "navegador propio" sin anotar en `IDEAS.md` hasta que Carlos diga qué espera de él.
+   **Ojo**: tras cambios de UI, `bun run build:app`; el dashboard lee `dist/` del disco, así que un build roto deja
+   en blanco también el dashboard de Carlos (:4242) — probar la carga antes de seguir.
 
 ## Trampas vivas (las que no están en `AGENTS.md`)
 
@@ -71,6 +48,14 @@ Arranque: `bun run agent:preflight -- --item <ID> --agent claude`. Lista viva: `
 - Un ítem `[x]` ya reconciliado no se puede reescribir antes de su commit ("Could not prove a closing commit SHA"):
   pasarlo a `[ ]`, `plan:reconcile`, volver a `[x]`, `plan:reconcile`.
 - Texto visible nuevo en TSX exige una línea `Texto visible: "<texto>" (por qué no basta un ícono)` en el ítem.
+- Sonda de carga tras cada `build:app` de UI: `node --input-type=module - http://localhost:4242/ < probe.mjs`
+  (Playwright, imprime `pageerror`; el script vivió en `/tmp/ade-ref/probe.mjs`). Un `tags.X` inexistente de
+  `@lezer/highlight` pasa `tsc` (índice abierto) y deja la app en blanco.
+- `ui:text-gate` también exige declarar textos que solo cambiaron de línea ("Loading…" en ADE.1).
+- Evidencia: `docs/done/evidence/**/*.png` está en `.gitignore`; el plan-gate exige citar un `.json` del ítem.
+- `git commit -- $VAR` en zsh no separa palabras: usar `xargs` o `${=VAR}`.
+- `qa-negative` depende de que Claude escriba a propósito una salida incorrecta: falló 1 vez en el pre-push
+  (2026-11-07) y pasó 26/26 aislado.
 
 ## Anotado, sin ítem (abrir ítem solo si Carlos lo pide; los intermitentes, también si se repiten)
 
