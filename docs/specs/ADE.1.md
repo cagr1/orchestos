@@ -63,7 +63,10 @@ path (DevFilePanel.tsx:57): lo editado se perdería al cambiar de tab.
    `markSaved(content, mtimeMs)`, `replaceFromDisk(content, mtimeMs)`, `drop(projectId, path)`.
 9. `DevFilePanel.tsx`: carga a buffer si no existe (si existe, usa el buffer y no pisa el draft); el código fuente
    (`FileSource` y la vista Source del markdown) pasa a `CodeEditor`. El markdown sigue abriendo en Preview y
-   "Source" es el editor. Binario o `tooLarge` siguen como hoy, en solo lectura, con su mensaje actual.
+   "Source" es el editor. Binario o `tooLarge`: hoy `getExplorerFile` (api/explorer.ts:52) descarta esos campos
+   y el panel muestra vacío (bug). `getExplorerFile` devuelve `binary`, `tooLarge` y `sizeBytes`; el panel, sin
+   editor, muestra un texto centrado `text-app-muted`: "Binary file — not shown" o "File too large to open
+   (<N> KB)" (N = `Math.round(sizeBytes / 1024)`), con `data-file-unavailable`.
    Al ganar foco la ventana (`focus` / `visibilitychange`) y al activar el tab, re-pide el archivo:
    - sin cambios propios y `mtimeMs` distinto → `replaceFromDisk` (recarga sola);
    - con cambios propios y `mtimeMs` distinto → barra arriba del editor: "Changed on disk" + botones
@@ -85,7 +88,8 @@ path (DevFilePanel.tsx:57): lo editado se perdería al cambiar de tab.
 ## Texto visible nuevo (va al ítem en PLAN.md como `Texto visible:`)
 
 "Unsaved" (estado que un ícono solo no explica en el footer), "Changed on disk", "Keep mine", "Reload" (decisión
-del usuario, necesita palabras), "Discard unsaved changes to <name>?" (confirmación destructiva).
+del usuario, necesita palabras), "Discard unsaved changes to <name>?" (confirmación destructiva), "Binary file —
+not shown" y "File too large to open (<N> KB)" (antes el panel quedaba vacío sin explicar por qué).
 
 ## Qué NO tocar
 
