@@ -101,7 +101,20 @@ Propuesta y comparación con las tres referencias: `docs/specs/ADE-PLAN.md`. Uno
   Gate en vivo: navegador real (Playwright), `docs/done/evidence/ADE.2/ui-gate-result.json` y capturas en `docs/done/evidence/ADE.2/`
   Ejecutado por: codex gpt-6-luna (mecanico) · Spec: docs/specs/ADE.2.md
   Texto visible: "Editor", "Auto save", "Off", "After delay", "Auto save delay", "Word wrap", "On", "Font size" (rótulos de preferencias: un ícono no dice qué ajusta)
-- [ ] **ADE.3 — Atajos reales: registro central de comandos, de 2 a ~20.**
+- [x] **ADE.3 — Atajos reales: registro central de comandos, de 2 a ~20.** Hecho: `lib/keybindings.ts` es el
+  registro único (14 comandos: paleta, Go to file ⌘P, Settings ⌘,, Chat/Dev Alt+1/2, New chat Alt+N, sidebar ⌘B,
+  panel derecho ⌘⌥B, terminal Ctrl+`, cerrar/siguiente/anterior tab Alt+W/]/[, Stop Esc con turno corriendo); un
+  listener global en `App.tsx` que respeta modales, menús e inputs; ningún atajo choca con ⌘W/⌘T/⌘N/⌘1–9 del
+  navegador. Nuevo `GoToFileDialog.tsx` (con íconos de UI.70). La paleta sale del registro con sus atajos; se
+  borraron sus acciones del prototipo ("Claude 3.7 Sonnet", "Gemini 2.5 Pro", "OrchestOS CLI v0.12"). Revisión
+  del cerebro: en Linux/Windows la terminal perdía Ctrl+K/P/B frente a App (ahora solo pasan Ctrl+` y ⌘, regla
+  única `reachesAppFromTerminal`); acabados de la paleta (atajos alineados, sin subtítulo repetido).
+  Gates del cerebro: `tsc --noEmit`, `keybindings` 10/10, `build:app`, sonda de consola sin `pageerror`, ui-gates
+  `keybindings` 27/27, `dev-terminal` 16/16, `dev-session-tabs` 50/50, `settings-pages` 29/29 (`gate:evidence`
+  `ADE.3-keybindings`).
+  Gate en vivo: navegador real (Playwright), `docs/done/evidence/ADE.3/ui-gate-result.json` y `docs/done/evidence/ADE.3-live.json`
+  Ejecutado por: codex gpt-6.1-sol (criterio) + gpt-6-luna (mecanico, acabados) · Spec: docs/specs/ADE.3.md
+  Texto visible: "Command palette", "Search settings", "Go to file", "Open settings", "Switch to Chat", "Switch to Dev", "New chat", "Toggle sidebar", "Toggle right panel", "New terminal", "Close tab", "Next tab", "Previous tab", "Stop", "Go to <vista>", "Run next task", "Type a command…", "Go to file…", "Esc to close", "No matches" (nombres de comandos: un ícono no dice qué hace cada atajo)
 - [ ] **ADE.4 — Reasignar atajos grabando las teclas (MonoCode).** Depende de ADE.3.
 - [ ] **ADE.5 — Settings → Chat: Enter o ⌘Enter, escribir mientras el agente trabaja, confirmar archivar/borrar.**
 - [ ] **ADE.6 — Notificaciones: tarea terminada o esperando respuesta.**

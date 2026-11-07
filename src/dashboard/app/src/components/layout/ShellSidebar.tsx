@@ -15,7 +15,7 @@ import {
   X,
 } from 'lucide-react'
 import type React from 'react'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import type { AppMode, ChatThread, ProjectItem } from '../../types/orchestos'
 import { type ProjectAddAction, ProjectAddButton } from '../common/ProjectAddButton'
 import { ProviderLogo } from '../common/ProviderLogos'
@@ -24,6 +24,7 @@ import { DeleteProjectModal } from './DeleteProjectModal'
 import { NewAgentSelectorModal } from './NewAgentSelectorModal'
 
 interface ShellSidebarProps {
+  newChatSignal: number
   mode: AppMode
   onChangeMode: (mode: AppMode) => void
   threads: ChatThread[]
@@ -45,6 +46,7 @@ interface ShellSidebarProps {
 }
 
 export const ShellSidebar: React.FC<ShellSidebarProps> = ({
+  newChatSignal,
   mode,
   onChangeMode,
   threads,
@@ -76,6 +78,10 @@ export const ShellSidebar: React.FC<ShellSidebarProps> = ({
   const [projectToDelete, setProjectToDelete] = useState<ProjectItem | null>(null)
   const [activeMenuProjectId, setActiveMenuProjectId] = useState<string | null>(null)
   const [isNewChatAgentModalOpen, setIsNewChatAgentModalOpen] = useState(false)
+
+  useEffect(() => {
+    if (newChatSignal > 0) setIsNewChatAgentModalOpen(true)
+  }, [newChatSignal])
 
   const toggleProjectExpand = (id: string) => {
     setExpandedProjects((prev) => ({ ...prev, [id]: !prev[id] }))

@@ -1,170 +1,74 @@
-import {
-  Activity,
-  ArrowRight,
-  Brain,
-  Cpu,
-  Database,
-  FileCheck,
-  FolderGit2,
-  Kanban,
-  MessageSquareCode,
-  Play,
-  Search,
-  Sparkles,
-  X,
-} from 'lucide-react'
+import { ArrowRight, Play, Search, X } from 'lucide-react'
 import type React from 'react'
-import { useEffect, useState } from 'react'
-import { matchesKeybinding } from '@/lib/keybindings'
+import { useState } from 'react'
+import { type CommandId, KEYBINDINGS, matchesKeybinding } from '@/lib/keybindings'
 import type { NavigationTab } from '../../types/orchestos'
 
 interface CommandPaletteProps {
   isOpen: boolean
+  isSettings: boolean
   onClose: () => void
-  onOpen?: () => void
+  onCommand: (id: CommandId) => void
   onSelectTab: (tab: NavigationTab) => void
   onRunNextTask: () => void
-  onSelectModel: (model: string) => void
 }
 
 export const CommandPalette: React.FC<CommandPaletteProps> = ({
   isOpen,
+  isSettings,
   onClose,
-  onOpen,
+  onCommand,
   onSelectTab,
   onRunNextTask,
-  onSelectModel,
 }) => {
   const [query, setQuery] = useState('')
 
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (matchesKeybinding(e, 'command-palette')) {
-        e.preventDefault()
-        if (isOpen) {
-          onClose()
-        } else {
-          onOpen?.()
-        }
-      }
-      if (e.key === 'Escape' && isOpen) {
-        onClose()
-      }
-    }
-    window.addEventListener('keydown', handleKeyDown)
-    return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [isOpen, onClose, onOpen])
-
   if (!isOpen) return null
 
+  const navigation: { id: NavigationTab; title: string }[] = [
+    { id: 'threads', title: 'Chat' },
+    { id: 'plan', title: 'Plan' },
+    { id: 'runs', title: 'Runs' },
+    { id: 'specs', title: 'Specs' },
+    { id: 'instincts', title: 'Instincts' },
+    { id: 'memory', title: 'Memory' },
+    { id: 'skills', title: 'Skills' },
+    { id: 'context', title: 'Graph' },
+  ]
   const actions = [
-    {
-      id: 'tab_threads',
-      title: 'Jump to AI Threads & Agent Traces',
-      category: 'Navigation',
-      icon: MessageSquareCode,
+    ...KEYBINDINGS.filter(
+      (binding) =>
+        binding.id !== 'command-palette' && (binding.id !== 'settings-search' || isSettings),
+    ).map((binding) => ({
+      id: binding.id,
+      title: binding.title,
+      keys: binding.keys,
+      category: binding.when,
+      icon: ArrowRight,
       run: () => {
-        onSelectTab('threads')
+        onClose()
+        onCommand(binding.id)
+      },
+    })),
+    ...navigation.map((view) => ({
+      id: `tab_${view.id}`,
+      title: `Go to ${view.title}`,
+      keys: [] as string[],
+      category: 'Navigation',
+      icon: ArrowRight,
+      run: () => {
+        onSelectTab(view.id)
         onClose()
       },
-    },
-    {
-      id: 'tab_plan',
-      title: 'Jump to Plan Board (tasks.yaml DAG)',
-      category: 'Navigation',
-      icon: Kanban,
-      run: () => {
-        onSelectTab('plan')
-        onClose()
-      },
-    },
-    {
-      id: 'tab_runs',
-      title: 'Jump to Runs & Evidence (SQLite Telemetry)',
-      category: 'Navigation',
-      icon: Activity,
-      run: () => {
-        onSelectTab('runs')
-        onClose()
-      },
-    },
-    {
-      id: 'tab_specs',
-      title: 'Jump to Spec-Driven Gates (WHEN/THEN)',
-      category: 'Navigation',
-      icon: FileCheck,
-      run: () => {
-        onSelectTab('specs')
-        onClose()
-      },
-    },
-    {
-      id: 'tab_instincts',
-      title: 'Jump to Learned Instincts',
-      category: 'Navigation',
-      icon: Brain,
-      run: () => {
-        onSelectTab('instincts')
-        onClose()
-      },
-    },
-    {
-      id: 'tab_memory',
-      title: 'Jump to Memory Matrix & Conflict Resolver',
-      category: 'Navigation',
-      icon: Database,
-      run: () => {
-        onSelectTab('memory')
-        onClose()
-      },
-    },
-    {
-      id: 'tab_skills',
-      title: 'Jump to Skills Engine (36 Languages)',
-      category: 'Navigation',
-      icon: Cpu,
-      run: () => {
-        onSelectTab('skills')
-        onClose()
-      },
-    },
-    {
-      id: 'tab_context',
-      title: 'Jump to Project Context & Rules',
-      category: 'Navigation',
-      icon: FolderGit2,
-      run: () => {
-        onSelectTab('context')
-        onClose()
-      },
-    },
+    })),
     {
       id: 'action_run_task',
-      title: 'Execute next pending task in isolated sandbox worktree',
+      title: 'Run next task',
+      keys: [] as string[],
       category: 'Actions',
       icon: Play,
       run: () => {
         onRunNextTask()
-        onClose()
-      },
-    },
-    {
-      id: 'model_claude',
-      title: 'Switch active model to Claude 3.7 Sonnet',
-      category: 'Model Provider',
-      icon: Sparkles,
-      run: () => {
-        onSelectModel('claude-3-7-sonnet')
-        onClose()
-      },
-    },
-    {
-      id: 'model_gemini',
-      title: 'Switch active model to Gemini 2.5 Pro (1M Context)',
-      category: 'Model Provider',
-      icon: Sparkles,
-      run: () => {
-        onSelectModel('gemini-2.5-pro')
         onClose()
       },
     },
@@ -177,21 +81,32 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
   )
 
   return (
-    <div className="fixed inset-0 z-50 flex items-start justify-center pt-20 bg-black/70 backdrop-blur-sm animate-in fade-in duration-150">
-      <div className="w-full max-w-xl bg-zinc-900 border border-zinc-700/70 rounded-2xl shadow-2xl overflow-hidden ring-1 ring-white/10">
-        <div className="p-3 border-b border-zinc-800 flex items-center gap-3">
-          <Search className="w-4 h-4 text-zinc-400" />
+    <div
+      role="dialog"
+      aria-modal="true"
+      aria-label="Command palette"
+      onKeyDown={(event) => {
+        if (event.key === 'Escape' || matchesKeybinding(event.nativeEvent, 'command-palette')) {
+          event.preventDefault()
+          onClose()
+        }
+      }}
+      className="fixed inset-0 z-50 flex items-start justify-center bg-black/70 pt-20 backdrop-blur-sm animate-in fade-in duration-150"
+    >
+      <div className="w-full max-w-xl overflow-hidden rounded-2xl border border-app bg-app-surface shadow-2xl">
+        <div className="flex items-center gap-3 border-b border-app p-3">
+          <Search className="h-4 w-4 text-app-muted" />
           <input
             autoFocus
             type="text"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Type a command, search screen, or execute task..."
-            className="flex-1 bg-transparent text-sm text-zinc-100 placeholder-zinc-500 focus:outline-none"
+            placeholder="Type a command…"
+            className="flex-1 bg-transparent text-sm text-app placeholder:text-app-muted focus:outline-none"
           />
           <button
             onClick={onClose}
-            className="p-1 rounded text-zinc-500 hover:text-zinc-300 hover:bg-zinc-800"
+            className="rounded p-1 text-app-muted hover:bg-app-elevated hover:text-app"
           >
             <X className="w-4 h-4" />
           </button>
@@ -199,7 +114,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
 
         <div className="max-h-96 overflow-y-auto p-2 space-y-1">
           {filtered.length === 0 ? (
-            <div className="p-6 text-center text-xs text-zinc-500">No matching commands found.</div>
+            <div className="p-6 text-center text-xs text-app-muted">No matches</div>
           ) : (
             filtered.map((item) => {
               const Icon = item.icon
@@ -207,29 +122,34 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
                 <button
                   key={item.id}
                   onClick={item.run}
-                  className="w-full flex items-center justify-between p-2.5 rounded-lg text-xs text-left hover:bg-zinc-800/80 text-zinc-200 transition-colors group"
+                  className="group flex w-full items-center rounded-lg p-2.5 text-left text-xs text-app transition-colors hover:bg-app-elevated"
                 >
                   <div className="flex items-center gap-2.5">
-                    <div className="p-1.5 rounded-md bg-zinc-800 group-hover:bg-zinc-700 text-zinc-300">
+                    <div className="rounded-md bg-app-elevated p-1.5 text-app-muted">
                       <Icon className="w-3.5 h-3.5" />
                     </div>
                     <div>
-                      <div className="font-medium text-zinc-200 group-hover:text-white">
-                        {item.title}
-                      </div>
-                      <div className="text-[10px] text-zinc-500">{item.category}</div>
+                      <div className="font-medium">{item.title}</div>
                     </div>
                   </div>
-                  <ArrowRight className="w-3.5 h-3.5 text-zinc-600 group-hover:text-zinc-300 group-hover:translate-x-0.5 transition-transform" />
+                  <span className="ml-auto inline-flex items-center gap-1">
+                    {item.keys.map((key) => (
+                      <kbd
+                        key={key}
+                        className="rounded border border-app bg-app-elevated px-1.5 py-0.5 font-mono text-xs"
+                      >
+                        {key}
+                      </kbd>
+                    ))}
+                  </span>
                 </button>
               )
             })
           )}
         </div>
 
-        <div className="p-2 border-t border-zinc-800 bg-zinc-950/60 flex items-center justify-between text-[11px] text-zinc-500">
-          <span>Navigate with ⌘K · Esc to close</span>
-          <span className="font-mono">OrchestOS CLI v0.12</span>
+        <div className="flex items-center border-t border-app p-2 text-[11px] text-app-muted">
+          <span>Esc to close</span>
         </div>
       </div>
     </div>

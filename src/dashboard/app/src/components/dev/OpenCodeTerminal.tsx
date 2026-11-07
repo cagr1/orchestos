@@ -2,6 +2,7 @@ import { FitAddon } from '@xterm/addon-fit'
 import { Terminal } from '@xterm/xterm'
 import { Loader2, RotateCcw } from 'lucide-react'
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { KEYBINDINGS, reachesAppFromTerminal } from '../../lib/keybindings'
 import '@xterm/xterm/css/xterm.css'
 
 type Props = {
@@ -51,10 +52,13 @@ export function OpenCodeTerminal({ projectId, kind = 'opencode' }: Props) {
     })
     const fit = new FitAddon()
     terminal.loadAddon(fit)
-    if (isShell)
-      terminal.attachCustomKeyEventHandler(
-        (event) => !(event.ctrlKey && (event.code === 'Backquote' || event.key === '`')),
-      )
+    // Keep control keys in xterm, except the new-terminal shortcut.
+    terminal.attachCustomKeyEventHandler(
+      (event) =>
+        !KEYBINDINGS.some(
+          (binding) => binding.match(event) && reachesAppFromTerminal(binding, event),
+        ),
+    )
     terminal.open(host)
     const viewport = host.querySelector<HTMLElement>('.xterm-viewport')
     if (viewport) viewport.style.backgroundColor = getTerminalTheme().background

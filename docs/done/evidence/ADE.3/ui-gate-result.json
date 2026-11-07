@@ -1,0 +1,691 @@
+[
+  {
+    "flujo": "keybindings",
+    "pass": true,
+    "steps": [
+      {
+        "nombre": "Alt+2 enters Dev",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "primary P searches project files",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "open modal blocks global mode shortcuts",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "Enter opens src/index.ts in a tab",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "Alt+] selects the next tab circularly",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "Alt+[ selects the previous tab",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "Alt+W closes the file tab",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "terminal focus keeps Alt+1 in Dev",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "primary B hides sidebar with eligible focus",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "primary B restores sidebar",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "primary Alt B hides right panel",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "primary Alt B restores right panel",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "Settings lists all 14 commands with platform keys",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "primary K belongs to Settings in Settings",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "palette uses real commands with shortcuts and no prototype models",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "Go to Chat opens Chat",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "Go to Plan opens its Settings view",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "Go to Runs opens its Settings view",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "Go to Specs opens its Settings view",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "Go to Instincts opens its Settings view",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "Go to Memory opens its Settings view",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "Go to Skills opens its Settings view",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "Go to Graph opens its Settings view",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "Go to file from Chat enters Dev and opens file",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "Alt N leaves Dev and opens the New chat selector",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "agent selector blocks global commands",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "0 console errors",
+        "ok": true,
+        "detalle": "none"
+      }
+    ],
+    "notes": [],
+    "errores": [],
+    "capturas": [
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-55889/keybindings/mode-dev.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-55889/keybindings/go-to-file.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-55889/keybindings/opened-file.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-55889/keybindings/next-tab.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-55889/keybindings/previous-tab.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-55889/keybindings/closed-tab.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-55889/keybindings/terminal-focus.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-55889/keybindings/sidebar-hidden.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-55889/keybindings/sidebar-visible.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-55889/keybindings/right-panel-hidden.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-55889/keybindings/right-panel-visible.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-55889/keybindings/settings-keybindings.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-55889/keybindings/command-palette.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-55889/keybindings/navigation-chat.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-55889/keybindings/navigation-plan.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-55889/keybindings/navigation-runs.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-55889/keybindings/navigation-specs.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-55889/keybindings/navigation-instincts.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-55889/keybindings/navigation-memory.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-55889/keybindings/navigation-skills.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-55889/keybindings/navigation-graph.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-55889/keybindings/file-from-chat.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-55889/keybindings/new-chat-selector.png"
+    ]
+  },
+  {
+    "flujo": "dev-terminal",
+    "pass": true,
+    "steps": [
+      {
+        "nombre": "Chat no muestra el botón Terminal",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "Dev muestra el botón Terminal",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "Terminal abre como pestaña activa central",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "Terminal ocupa todo el espacio bajo las pestañas",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "al abrir, el foco está en el PTY y echo produce salida",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "Ctrl+` mantiene la misma pestaña activa sin duplicarla",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "otra pestaña oculta la terminal sin desmontarla",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "Ctrl+` reactiva la misma terminal y conserva la salida",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "el PTY sigue vivo después de cambiar de pestaña",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "cambiar de pestaña conserva el mismo socket",
+        "ok": true,
+        "detalle": "{\"before\":2,\"after\":2,\"closed\":false}"
+      },
+      {
+        "nombre": "exit ofrece el icono Reabrir",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "tras Reabrir, el PTY vuelve a responder",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "otra salida ofrece Reabrir",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "Enter reabre la terminal y el PTY vuelve a responder",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "cerrar la pestaña cierra el socket del PTY",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "cerrar la pestaña desmonta la terminal",
+        "ok": true,
+        "detalle": "ok"
+      }
+    ],
+    "notes": [],
+    "errores": [],
+    "capturas": [
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-55889/dev-terminal/dev-terminal.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-55889/dev-terminal/dev-terminal-return.png"
+    ]
+  },
+  {
+    "flujo": "dev-session-tabs",
+    "pass": true,
+    "steps": [
+      {
+        "nombre": "reload starts in Chat",
+        "ok": true,
+        "detalle": "Dev tabs absent after reload"
+      },
+      {
+        "nombre": "entering Dev restores last session without saved tabs",
+        "ok": true,
+        "detalle": "remembered Alpha active, no New session"
+      },
+      {
+        "nombre": "running session tab shows the accent spinner",
+        "ok": true,
+        "detalle": "Alpha spinner is visible while its session is running"
+      },
+      {
+        "nombre": "finished session timeline clears its tab spinner",
+        "ok": true,
+        "detalle": "Alpha spinner clears when its active timeline reports pending false"
+      },
+      {
+        "nombre": "sidebar opens ordered sessions and existing tabs do not duplicate",
+        "ok": true,
+        "detalle": "Alpha, Beta"
+      },
+      {
+        "nombre": "Dev response shares Chat markdown and highlights code",
+        "ok": true,
+        "detalle": "heading, two list items and highlighted TypeScript tokens"
+      },
+      {
+        "nombre": "explorer uses Material icons for exact filenames and folders",
+        "ok": true,
+        "detalle": "package.json: nodejs.svg; src: folder-src.svg; both SVGs loaded"
+      },
+      {
+        "nombre": "expanded folder uses its open Material icon",
+        "ok": true,
+        "detalle": "src: folder-src-open.svg"
+      },
+      {
+        "nombre": "file tab shares the explorer icon",
+        "ok": true,
+        "detalle": "package.json tab: nodejs.svg"
+      },
+      {
+        "nombre": "Files dims and italicizes git ignored entries but keeps tracked files unmarked",
+        "ok": true,
+        "detalle": "ignored.txt visible at opacity 0.5 and italic; tracked README.md normal"
+      },
+      {
+        "nombre": "file opens italic preview in the shared row and occupies full center",
+        "ok": true,
+        "detalle": "session remains a tab; file only content at full width"
+      },
+      {
+        "nombre": "session tab restores full center chat",
+        "ok": true,
+        "detalle": "file viewer absent, composer visible"
+      },
+      {
+        "nombre": "Dev composer shows its task approval mode",
+        "ok": true,
+        "detalle": "selector visible"
+      },
+      {
+        "nombre": "changing Dev approval mode updates the composer button",
+        "ok": true,
+        "detalle": "Supervised"
+      },
+      {
+        "nombre": "opening another file replaces only preview with numbered colored source",
+        "ok": true,
+        "detalle": "two sessions plus context.json preview; code colored"
+      },
+      {
+        "nombre": "tree double click pins file",
+        "ok": true,
+        "detalle": "fixed code tab"
+      },
+      {
+        "nombre": "Markdown Source keeps numbered literal source",
+        "ok": true,
+        "detalle": "literal Markdown source"
+      },
+      {
+        "nombre": "reload starts in Chat",
+        "ok": true,
+        "detalle": "Dev tabs absent after reload"
+      },
+      {
+        "nombre": "reload restores mixed tab order and active fixed file",
+        "ok": true,
+        "detalle": "Alpha, Beta, context.json, README.md active"
+      },
+      {
+        "nombre": "closing active file selects its left neighbour",
+        "ok": true,
+        "detalle": "context.json active"
+      },
+      {
+        "nombre": "closing session selects right neighbour without deleting session",
+        "ok": true,
+        "detalle": "Beta active; Alpha remains in API"
+      },
+      {
+        "nombre": "plus opens usable agents including OpenCode with last used agent preselected",
+        "ok": true,
+        "detalle": "Claude\nCodex\nOpenCode"
+      },
+      {
+        "nombre": "Escape closes menu without creating a tab",
+        "ok": true,
+        "detalle": "tab count unchanged"
+      },
+      {
+        "nombre": "Enter creates with last used Claude and its unassigned CLI default",
+        "ok": true,
+        "detalle": "What should we work on in orchestos-dev-tabs-uYOOTa?\nCLI default\nSupervised"
+      },
+      {
+        "nombre": "New session exposes the task approval mode selector",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "arrow keys move the preselected agent",
+        "ok": true,
+        "detalle": "Codex selected"
+      },
+      {
+        "nombre": "plus appends centered New session using configured orchestrator model and effort",
+        "ok": true,
+        "detalle": "What should we work on in orchestos-dev-tabs-uYOOTa?\nGPT-6-Luna · medium\nSupervised"
+      },
+      {
+        "nombre": "chosen Codex becomes first and preselected",
+        "ok": true,
+        "detalle": "Codex\nClaude\nOpenCode"
+      },
+      {
+        "nombre": "click outside closes without creating",
+        "ok": true,
+        "detalle": "three tabs remain"
+      },
+      {
+        "nombre": "reload starts in Chat",
+        "ok": true,
+        "detalle": "Dev tabs absent after reload"
+      },
+      {
+        "nombre": "reload restores active New session alongside sessions and fixed files",
+        "ok": true,
+        "detalle": "Beta, context.json, New session"
+      },
+      {
+        "nombre": "reload starts in Chat",
+        "ok": true,
+        "detalle": "Dev tabs absent after reload"
+      },
+      {
+        "nombre": "restoration removes dead session ids",
+        "ok": true,
+        "detalle": "dead id removed"
+      },
+      {
+        "nombre": "reload starts in Chat",
+        "ok": true,
+        "detalle": "Dev tabs absent after reload"
+      },
+      {
+        "nombre": "plus stays visible with eight open tabs",
+        "ok": true,
+        "detalle": "{\"x\":1016,\"y\":47.5,\"width\":32,\"height\":32}"
+      },
+      {
+        "nombre": "visible plus opens the new session menu",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "newly created active tab scrolls into view",
+        "ok": true,
+        "detalle": "{\"x\":884,\"y\":49.796875,\"width\":128,\"height\":27.390625}"
+      },
+      {
+        "nombre": "session polling leaves manually scrolled tabs in place",
+        "ok": true,
+        "detalle": "scrollLeft 0 → 0"
+      },
+      {
+        "nombre": "OpenCode creates a session directly and mounts a live terminal",
+        "ok": true,
+        "detalle": "{\"id\":\"7159d1c8-0b46-4b64-b256-a2bbb2053966\",\"projectId\":\"9e15c999cd8ac873\",\"agent\":\"opencode\",\"mode\":\"code\",\"title\":\"OpenCode\",\"createdAt\":\"2026-11-07T21:43:15.767Z\",\"updatedAt\":\"2026-11-07T21:43:15.767Z\",\"archivedAt\":null,\"running\":false,\"hasPersistentWork\":false,\"lastPersistentTaskId\":null,\"lastModel\":null,\"lastEffort\":null,\"readBoundaryWarning\":\"No hay un contrato verificado de frontera de lectura para este CLI.\"}"
+      },
+      {
+        "nombre": "OpenCode counts as last used agent",
+        "ok": true,
+        "detalle": "OpenCode\nClaude\nCodex"
+      },
+      {
+        "nombre": "Diff click opens an italic selected patch at full center with colored numbered lines",
+        "ok": true,
+        "detalle": "README.md (diff)\nOpen file\n@@ -1 +1 @@\n1\n-# Dev session tabs\n1\n+# Updated diff heading"
+      },
+      {
+        "nombre": "another diff replaces the preview",
+        "ok": true,
+        "detalle": "notes.txt preview replaces README.md"
+      },
+      {
+        "nombre": "Diff double click pins the patch",
+        "ok": true,
+        "detalle": "fixed README.md diff"
+      },
+      {
+        "nombre": "Open file opens a distinct fixed normal file tab",
+        "ok": true,
+        "detalle": "file:README.md and diff:README.md coexist"
+      },
+      {
+        "nombre": "reactivating diff reloads changed working tree",
+        "ok": true,
+        "detalle": "README.md (diff)\nOpen file\n@@ -1 +1 @@\n1\n-# Dev session tabs\n1\n+# Refreshed working tree"
+      },
+      {
+        "nombre": "reload starts in Chat",
+        "ok": true,
+        "detalle": "Dev tabs absent after reload"
+      },
+      {
+        "nombre": "reload restores active fixed diff beside the normal file",
+        "ok": true,
+        "detalle": "fixed diff restored"
+      },
+      {
+        "nombre": "deleted file diff disables Open file",
+        "ok": true,
+        "detalle": "deleted notes.txt"
+      },
+      {
+        "nombre": "patch failure is visible inside the center tab",
+        "ok": true,
+        "detalle": "same error as inspector"
+      },
+      {
+        "nombre": "0 console errors",
+        "ok": true,
+        "detalle": "none"
+      }
+    ],
+    "notes": [],
+    "errores": [],
+    "capturas": [
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-55889/dev-session-tabs/session-tabs.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-55889/dev-session-tabs/file-icons-tree.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-55889/dev-session-tabs/file-markdown-preview.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-55889/dev-session-tabs/file-highlighted-code.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-55889/dev-session-tabs/file-markdown-source.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-55889/dev-session-tabs/new-session-agent-menu.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-55889/dev-session-tabs/new-session.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-55889/dev-session-tabs/eight-session-tabs-plus-visible.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-55889/dev-session-tabs/opencode-terminal-starting.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-55889/dev-session-tabs/opencode-terminal-tab.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-55889/dev-session-tabs/diff-center-preview.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-55889/dev-session-tabs/diff-center-pinned.png"
+    ]
+  },
+  {
+    "flujo": "settings-pages",
+    "pass": true,
+    "steps": [
+      {
+        "nombre": "Language lives in General without a navigation entry",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "language saves instantly and survives reload",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "language search highlights its General row",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "Appearance has four themes",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "theme OrchestOS is available",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "theme Graphite is available",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "theme Carbon is available",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "theme Light is available",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "chosen theme persists after reload",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "Keybindings has one row per registry entry",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "registered shortcut command-palette",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "registered shortcut settings-search",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "registered shortcut go-to-file",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "registered shortcut open-settings",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "registered shortcut mode-chat",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "registered shortcut mode-dev",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "registered shortcut new-chat",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "registered shortcut toggle-sidebar",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "registered shortcut toggle-right-panel",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "registered shortcut new-terminal",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "registered shortcut close-tab",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "registered shortcut next-tab",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "registered shortcut previous-tab",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "registered shortcut stop-turn",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "command filter leaves exactly its matching row",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "key filter matches the registered shortcuts",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "unmatched filter has zero rows and keeps page usable",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "clearing the filter restores all rows",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "registered Settings shortcut opens search",
+        "ok": true,
+        "detalle": "ok"
+      }
+    ],
+    "notes": [],
+    "errores": [],
+    "capturas": [
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-55889/settings-pages/appearance.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-55889/settings-pages/keybindings.png"
+    ]
+  }
+]

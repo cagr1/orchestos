@@ -81,13 +81,19 @@ export default async function settingsPages({ page, api, step, shot, cleanup }) 
       { encoding: 'utf8' },
     ),
   )
+  const primaryKey = await page.evaluate(() => (/Mac/.test(navigator.platform) ? '⌘' : 'Ctrl'))
+  for (const binding of registry) {
+    binding.keys = binding.keys.map((key) =>
+      binding.id !== 'new-terminal' && (key === 'Ctrl' || key === '⌘') ? primaryKey : key,
+    )
+  }
   const rows = page.locator('[data-keybinding]')
   await step('Keybindings has one row per registry entry', (await rows.count()) === registry.length)
   for (const binding of registry) {
     const row = page.locator(`[data-keybinding="${binding.id}"]`)
     await step(
       `registered shortcut ${binding.id}`,
-      (await row.innerText()).includes(binding.command) &&
+      (await row.innerText()).includes(binding.title) &&
         (await row.innerText()).includes(binding.when) &&
         JSON.stringify(await row.locator('kbd').allTextContents()) === JSON.stringify(binding.keys),
     )
@@ -99,10 +105,10 @@ export default async function settingsPages({ page, api, step, shot, cleanup }) 
     (await rows.count()) === 1 &&
       (await rows.first().getAttribute('data-keybinding')) === 'command-palette',
   )
-  await search.fill('Cmd/Ctrl')
+  await search.fill(primaryKey)
   await step(
     'key filter matches the registered shortcuts',
-    (await rows.count()) === registry.length,
+    (await rows.count()) === registry.filter((binding) => binding.keys.includes(primaryKey)).length,
   )
   await search.fill('no-such-shortcut-SET5')
   await step(

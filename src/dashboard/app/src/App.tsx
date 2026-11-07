@@ -71,6 +71,7 @@ import {
   subscribe,
 } from './components/dev/file-buffers'
 import { openFileTab, openPathTab } from './components/dev/file-tabs'
+import { GoToFileDialog } from './components/dev/GoToFileDialog'
 import { OpenCodeTerminal } from './components/dev/OpenCodeTerminal'
 import { type HistorySession, OrcaRightInspector } from './components/dev/OrcaRightInspector'
 import { OrchestDevWorkspace } from './components/dev/OrchestDevWorkspace'
@@ -95,6 +96,8 @@ import {
   type SettingsSection,
 } from './components/settings/OrchestSettingsView'
 import { projectsWithApprovals, threadsWithApprovals } from './components/thread/taskCards'
+import { stopActiveChatTurn } from './hooks/useStopChatTurn'
+import { type CommandId, KEYBINDINGS, reachesAppFromTerminal } from './lib/keybindings'
 import { activeAfterLoad, mergeLoadedThreads, threadPendingForSend } from './lib/merge-threads'
 import type {
   AppMode,
@@ -124,6 +127,9 @@ export default function App() {
   const [previousMode, setPreviousMode] = useState<AppMode>('chat')
 
   const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState<boolean>(false)
+  const [isGoToFileOpen, setIsGoToFileOpen] = useState(false)
+  const [newChatSignal, setNewChatSignal] = useState(0)
+  const [settingsSearchSignal, setSettingsSearchSignal] = useState(0)
   const [isLeftSidebarOpen, setIsLeftSidebarOpen] = useState<boolean>(true)
   const [isRightInspectorOpen, setIsRightInspectorOpen] = useState<boolean>(true)
 
@@ -531,18 +537,6 @@ export default function App() {
     if (currentProject) updateDevTabs(currentProject.id, openTerminalTab)
   }
 
-  useEffect(() => {
-    if (mode !== 'dev' || !currentProject) return
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (event.ctrlKey && !event.metaKey && !event.altKey && event.code === 'Backquote') {
-        event.preventDefault()
-        updateDevTabs(currentProject.id, openTerminalTab)
-      }
-    }
-    window.addEventListener('keydown', onKeyDown)
-    return () => window.removeEventListener('keydown', onKeyDown)
-  }, [mode, currentProject?.id])
-
   const activeThread = threads.find((t) => t.id === activeThreadId)
   const hasRunningTasks = tasks.some((task) => task.status === 'running')
   const activeThreadTasks =
@@ -906,6 +900,7 @@ export default function App() {
   }
 
   const handleOpenSettings = (section?: SettingsSection, tab: ProjectSubTab = 'tasks') => {
+    setSettingsSearchSignal(0)
     setPreviousMode(mode === 'settings' ? 'dev' : mode)
     setSettingsSection(section || (currentProject ? `project_${currentProject.id}` : 'general'))
     setSettingsProjectTab(tab)
@@ -1549,16 +1544,112 @@ export default function App() {
         context: 'graph',
       }
       const targetTab = validSubTabs[tab] || 'tasks'
-      handleOpenSettings('projects', targetTab)
+      handleOpenSettings(currentProject ? `project_${currentProject.id}` : 'general', targetTab)
     }
   }
 
-  const handleCommandPaletteSelectModel = (modelName: string) => {
-    // Apply selected model across active chat thread
-    setThreads((prev) =>
-      prev.map((t) => (t.id === activeThreadId ? { ...t, agent: modelName } : t)),
-    )
+  const selectDevTab = (id: string) => {
+    const tab = activeDevTabs.tabs.find((tab) => tab.id === id)
+    if (tab?.type === 'session') void handleSelectAgent(id, activeProjectId)
+    else updateDevTabs(activeProjectId, (tabs) => ({ ...tabs, activeId: id }))
   }
+
+  const executeCommand = (id: CommandId): boolean => {
+    const binding = KEYBINDINGS.find((binding) => binding.id === id)!
+    if (binding.when === 'Dev' && (mode !== 'dev' || !currentProject)) return false
+    switch (id) {
+      case 'command-palette':
+        setIsCommandPaletteOpen(true)
+        break
+      case 'settings-search':
+        if (mode !== 'settings') handleOpenSettings()
+        setSettingsSearchSignal((value) => value + 1)
+        break
+      case 'go-to-file':
+        if (!currentProject) return false
+        setIsGoToFileOpen(true)
+        break
+      case 'open-settings':
+        handleOpenSettings()
+        break
+      case 'mode-chat':
+        handleModeChange('chat')
+        break
+      case 'mode-dev':
+        handleModeChange('dev')
+        break
+      case 'new-chat':
+        if (mode !== 'chat') handleModeChange('chat')
+        setIsLeftSidebarOpen(true)
+        setNewChatSignal((value) => value + 1)
+        break
+      case 'toggle-sidebar':
+        if (mode === 'settings') return false
+        setIsLeftSidebarOpen((open) => !open)
+        break
+      case 'toggle-right-panel':
+        if (mode !== 'dev') return false
+        setIsRightInspectorOpen((open) => !open)
+        break
+      case 'new-terminal':
+        handleOpenTerminal()
+        break
+      case 'close-tab':
+        if (!activeDevTab) return false
+        closeDevTab(activeProjectId, activeDevTab.id)
+        break
+      case 'next-tab':
+      case 'previous-tab': {
+        const { tabs, activeId } = activeDevTabs
+        if (!tabs.length) return false
+        const index = tabs.findIndex((tab) => tab.id === activeId)
+        selectDevTab(tabs[(index + (id === 'next-tab' ? 1 : -1) + tabs.length) % tabs.length].id)
+        break
+      }
+      case 'stop-turn':
+        return mode !== 'settings' && stopActiveChatTurn()
+    }
+    return true
+  }
+
+  // Bubble after local menus and inputs have had the opportunity to consume the key.
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.defaultPrevented || event.isComposing) return
+      const modal = '[role="dialog"], [aria-modal="true"], dialog[open]'
+      if (
+        document.querySelector(modal) ||
+        event.composedPath().some((node) => node instanceof Element && node.matches(modal))
+      )
+        return
+      const target = event.target instanceof Element ? event.target : null
+      const terminal = !!target?.closest('.xterm')
+      for (const binding of KEYBINDINGS) {
+        if (binding.id === 'command-palette' && mode === 'settings') continue
+        if (binding.id === 'settings-search' && mode !== 'settings') continue
+        if (!binding.match(event)) continue
+        if (terminal && !reachesAppFromTerminal(binding, event)) return
+        if (binding.id === 'stop-turn') {
+          const menu = '[role="menu"], [role="listbox"]'
+          if (
+            document.querySelector(menu) ||
+            event.composedPath().some((node) => node instanceof Element && node.matches(menu))
+          )
+            return
+          const input = target?.closest('input, textarea, [contenteditable="true"]')
+          const text =
+            input instanceof HTMLInputElement || input instanceof HTMLTextAreaElement
+              ? input.value
+              : input?.textContent
+          if (terminal || text) return
+        }
+        if (executeCommand(binding.id)) event.preventDefault()
+        return
+      }
+    }
+    window.addEventListener('keydown', onKeyDown)
+    return () => window.removeEventListener('keydown', onKeyDown)
+  })
 
   return (
     <div
@@ -1588,8 +1679,9 @@ export default function App() {
       {/* Main App Workspace Layout */}
       <div data-shell-workspace className="flex-1 flex overflow-hidden">
         {/* Left Sidebar: ONLY shown in Chat and Dev modes (Hidden in Settings for full-screen mode, Requirement 7) */}
-        {mode !== 'settings' && isLeftSidebarOpen && (
+        <div className={mode !== 'settings' && isLeftSidebarOpen ? 'flex shrink-0' : 'hidden'}>
           <ShellSidebar
+            newChatSignal={newChatSignal}
             mode={mode}
             onChangeMode={handleModeChange}
             threads={threadsWithApprovals(threads, [
@@ -1614,7 +1706,7 @@ export default function App() {
             onDeleteProject={handleDeleteProject}
             onCreateAgentInProject={handleCreateAgentInProject}
           />
-        )}
+        </div>
 
         {/* Panel: everything right of the sidebar, a lighter surface under the header */}
         <div
@@ -1668,11 +1760,7 @@ export default function App() {
                   runningSessionIds={runningSessionIds}
                   dirtyFileTabs={dirtyFileTabs}
                   projectId={activeProjectId}
-                  onSelect={(id) => {
-                    const tab = activeDevTabs.tabs.find((tab) => tab.id === id)
-                    if (tab?.type === 'session') void handleSelectAgent(id, activeProjectId)
-                    else updateDevTabs(activeProjectId, (tabs) => ({ ...tabs, activeId: id }))
-                  }}
+                  onSelect={selectDevTab}
                   onPin={(request) =>
                     updateDevTabs(activeProjectId, (tabs) => openPathTab(tabs, request))
                   }
@@ -1752,6 +1840,8 @@ export default function App() {
             {/* VIEW 3: SETTINGS (Full screen mode without sidebar, hosts project tasks, runs, specs, etc.) */}
             {mode === 'settings' && (
               <OrchestSettingsView
+                key={`${settingsSection}:${settingsProjectTab}`}
+                settingsSearchSignal={settingsSearchSignal}
                 onBackToApp={() => setMode(previousMode || 'dev')}
                 projects={projects}
                 activeProjectId={activeProjectId}
@@ -1852,15 +1942,27 @@ export default function App() {
           )
         }}
       />
+      {isGoToFileOpen && currentProject && (
+        <GoToFileDialog
+          projectId={currentProject.id}
+          onClose={() => setIsGoToFileOpen(false)}
+          onOpenFile={(path) => {
+            // Entering Dev must not restore tabs over the selected file.
+            handleModeChange('dev')
+            handleOpenFile(path, { pin: true })
+            setIsGoToFileOpen(false)
+          }}
+        />
+      )}
       {/* Global Command Palette (⌘K) with fully functional handlers */}
       <CommandPalette
         isOpen={isCommandPaletteOpen}
+        isSettings={mode === 'settings'}
         onClose={() => setIsCommandPaletteOpen(false)}
-        onOpen={mode !== 'settings' ? () => setIsCommandPaletteOpen(true) : undefined}
+        onCommand={executeCommand}
         onSelectTab={handleCommandPaletteSelectTab}
-        onSelectModel={handleCommandPaletteSelectModel}
         onRunNextTask={() => {
-          handleOpenSettings('projects', 'tasks')
+          handleOpenSettings(currentProject ? `project_${currentProject.id}` : 'general', 'tasks')
           void handleRunNextTask()
         }}
       />

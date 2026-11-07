@@ -1,5 +1,14 @@
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { stopChatTurn } from '../api/chat'
+
+let activeStop: (() => Promise<void>) | undefined
+
+/** Only the mounted Chat/Dev view registers a running turn. */
+export function stopActiveChatTurn(): boolean {
+  if (!activeStop) return false
+  void activeStop()
+  return true
+}
 
 /** Stop failures are deliberately silent: the running response remains usable. */
 export function useStopChatTurn(
@@ -25,5 +34,11 @@ export function useStopChatTurn(
           }
         }
       : undefined
+  useEffect(() => {
+    activeStop = onStop
+    return () => {
+      if (activeStop === onStop) activeStop = undefined
+    }
+  }, [onStop])
   return { onStop, stopping: busy && key !== null && stoppingTurn === key }
 }

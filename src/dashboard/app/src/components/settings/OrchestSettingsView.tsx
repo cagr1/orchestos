@@ -39,7 +39,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardAction, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { usePrefersReducedMotion } from '@/hooks/use-prefers-reduced-motion'
 import { useEditorSettings, writeEditorSettings } from '@/lib/editor-settings'
-import { KEYBINDINGS, matchesKeybinding } from '@/lib/keybindings'
+import { KEYBINDINGS } from '@/lib/keybindings'
 import { spring } from '@/lib/springs'
 import type { TaskClass } from '../../../../../router/classify'
 import { getDefaultChatAgent } from '../../api/chat'
@@ -475,6 +475,7 @@ interface OrchestSettingsViewProps {
   onSelectTheme: (theme: string) => void
   language: 'en' | 'es'
   onSelectLanguage: (lang: 'en' | 'es') => void
+  settingsSearchSignal?: number
   initialSection?: SettingsSection
   initialRunId?: string
   initialProjectTab?: ProjectSubTab
@@ -524,6 +525,7 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
   onSelectTheme,
   language,
   onSelectLanguage,
+  settingsSearchSignal = 0,
   initialSection = 'general',
   initialProjectTab = 'tasks',
   initialRunId,
@@ -792,15 +794,8 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
   }, [])
 
   useEffect(() => {
-    const shortcut = (event: KeyboardEvent) => {
-      if (matchesKeybinding(event, 'settings-search', true)) {
-        event.preventDefault()
-        openSettingsSearch()
-      }
-    }
-    window.addEventListener('keydown', shortcut)
-    return () => window.removeEventListener('keydown', shortcut)
-  }, [openSettingsSearch])
+    if (settingsSearchSignal > 0) openSettingsSearch()
+  }, [settingsSearchSignal, openSettingsSearch])
 
   useEffect(() => {
     if (paletteOpen) paletteInputRef.current?.focus()
@@ -1860,16 +1855,16 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
                 </thead>
                 <tbody>
                   {KEYBINDINGS.filter((binding) =>
-                    normalizeSettingsSearch(
-                      `${binding.command} ${binding.keys.join('+')}`,
-                    ).includes(normalizeSettingsSearch(keybindingQuery.trim())),
+                    normalizeSettingsSearch(`${binding.title} ${binding.keys.join('+')}`).includes(
+                      normalizeSettingsSearch(keybindingQuery.trim()),
+                    ),
                   ).map((binding) => (
                     <tr
                       key={binding.id}
                       data-keybinding={binding.id}
                       className="border-t border-app"
                     >
-                      <td className="px-4 py-3">{binding.command}</td>
+                      <td className="px-4 py-3">{binding.title}</td>
                       <td className="px-4 py-3">
                         <span className="inline-flex items-center gap-1">
                           {binding.keys.map((key) => (
