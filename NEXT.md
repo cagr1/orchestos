@@ -65,6 +65,9 @@ Arranque: `bun run agent:preflight -- --item <ID> --agent claude`. Lista viva: `
   de un test de `~/.agent-method` copia a `<tmp>/method/hooks/` y corre desde `<tmp>`.
 - Spec o doc con comandos de escritura dentro de un heredoc de Bash dispara `brain-no-code`: usar Write/Edit.
 - `.gitignore:55` ignora `.github/workflows/`: un workflow nuevo se suma con `git add -f`.
+- La línea `Ejecutado por: … · Spec: docs/specs/<ID>.md` debe terminar en `.md` (sin "(borrado)"): si no, el
+  plan-gate falla con "Procedencia <ID>: commit must delete…".
+- Push desde un worktree solo después de CI.67 (`85f09c44`); antes, la suite commiteaba fixtures en la rama.
 - Un ítem `[x]` ya reconciliado no se puede reescribir antes de su commit ("Could not prove a closing commit SHA"):
   pasarlo a `[ ]`, `plan:reconcile`, volver a `[x]`, `plan:reconcile`.
 - Texto visible nuevo en TSX exige una línea `Texto visible: "<texto>" (por qué no basta un ícono)` en el ítem.
