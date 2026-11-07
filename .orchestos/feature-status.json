@@ -232,6 +232,14 @@
       "sprint": "Fase 2 — Producto mínimo para entrega",
       "block": "Abiertos — fiabilidad de los gates y documentación",
       "title": "Perfil \"¿sabes programar?\": si el usuario no programa, el producto pregunta, revisa y audita solo",
+      "status": "done",
+      "closedDate": null
+    },
+    {
+      "id": "UI.70",
+      "sprint": "Fase 2 — Producto mínimo para entrega",
+      "block": "Abiertos — fiabilidad de los gates y documentación",
+      "title": "Íconos por tipo de archivo y carpeta en el explorer, como VS Code",
       "status": "open",
       "closedDate": null
     },

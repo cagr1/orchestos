@@ -1,7 +1,8 @@
 import { afterAll, afterEach, beforeAll, describe, expect, it, spyOn } from 'bun:test'
-import { mkdtempSync, rmSync } from 'fs'
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'fs'
 import { tmpdir } from 'os'
 import { join } from 'path'
+import { stringify } from 'yaml'
 import { DEFAULT_CONFIG } from '../config/schema.ts'
 import { db } from '../db/sqlite.ts'
 import { calcCost } from '../router/pricing.ts'
@@ -119,11 +120,17 @@ function baseTask(overrides: Partial<Task> = {}): Task {
   }
 }
 
-async function callRunTask(task: ReturnType<typeof baseTask>, dir: string, modelOverride?: string) {
+async function callRunTask(
+  task: ReturnType<typeof baseTask>,
+  dir: string,
+  modelOverride?: string,
+  codes: boolean | null = null,
+) {
   const { runTask } = await import('../run/harness.ts')
   const { RunLogger } = await import('../run/logger.ts')
   const log = new RunLogger(dir, task.id)
   return runTask({
+    readProfile: () => ({ codes }),
     projectRoot: dir,
     contextText: '',
     task,
@@ -407,6 +414,81 @@ describe('ERP.5.1 — el revisor LLM corre solo con criterios o un gate de revis
       const result = await callRunTask(task, dir)
       expect(result.status).toBe('done')
       expect(calls.length).toBe(2)
+    } finally {
+      rmSync(dir, { recursive: true, force: true })
+    }
+  })
+})
+
+describe('SK.3 profile requires review and security', () => {
+  for (const installed of [false, true]) {
+    it(`false reviews without criteria; security-audit installed=${installed}`, async () => {
+      process.env.OPENROUTER_API_KEY = ['test', 'profile', 'key'].join('-')
+      const calls = installMockFetch([
+        () => openRouterResponse('<<<FILE:out.txt>>>\nhello\n<<<ENDFILE>>>'),
+        () => openRouterResponse(JSON.stringify({ verdict: 'pass', reason: 'reviewed' })),
+      ])
+      const dir = tmpDir()
+      const originalHome = process.env.ORCHESTOS_HOME
+      process.env.ORCHESTOS_HOME = dir
+      try {
+        if (installed) {
+          const library = join(dir, '.orchestos', 'skills')
+          mkdirSync(library, { recursive: true })
+          writeFileSync(
+            join(library, 'security-audit.yaml'),
+            stringify({
+              id: 'security-audit',
+              version: '1.0.0',
+              name: 'Security audit',
+              description: 'Profile security audit',
+              instructions: 'PROFILE SECURITY INSTRUCTIONS',
+              targets: ['openai'],
+            }),
+          )
+        }
+        const result = await callRunTask(baseTask(), dir, undefined, false)
+        expect(result.status).toBe('done')
+        expect(result.qaVerdict).toBe('pass')
+        expect(calls).toHaveLength(2)
+        expect(
+          calls[1]!.messages
+            .map((message) => message.content)
+            .join('\n')
+            .includes('PROFILE SECURITY INSTRUCTIONS'),
+        ).toBe(installed)
+        const { getRun } = await import('../db/runs.ts')
+        const gates = JSON.parse(getRun(result.runId)!.skill_gates_json!)
+        expect(gates.filter((gate: { id: string }) => gate.id === 'security-audit')).toEqual([
+          expect.objectContaining({
+            id: 'security-audit',
+            applied: installed,
+            reason: installed ? 'perfil: el usuario no programa' : 'no instalada',
+          }),
+        ])
+      } finally {
+        if (originalHome === undefined) delete process.env.ORCHESTOS_HOME
+        else process.env.ORCHESTOS_HOME = originalHome
+        rmSync(dir, { recursive: true, force: true })
+      }
+    })
+  }
+
+  it('true keeps review skipped without criteria and does not add the profile gate', async () => {
+    process.env.OPENROUTER_API_KEY = ['test', 'profile', 'key'].join('-')
+    const calls = installMockFetch([
+      () => openRouterResponse('<<<FILE:out.txt>>>\nhello\n<<<ENDFILE>>>'),
+    ])
+    const dir = tmpDir()
+    try {
+      const result = await callRunTask(baseTask(), dir, undefined, true)
+      expect(result.status).toBe('done')
+      expect(result.qaVerdict).toBe('skipped')
+      expect(calls).toHaveLength(1)
+      const { getRun } = await import('../db/runs.ts')
+      expect(JSON.parse(getRun(result.runId)!.skill_gates_json!)).not.toContainEqual(
+        expect.objectContaining({ id: 'security-audit' }),
+      )
     } finally {
       rmSync(dir, { recursive: true, force: true })
     }

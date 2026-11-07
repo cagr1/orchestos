@@ -8,6 +8,7 @@ import {
   listSkillFilesWithOrigin,
   loadSkill,
   resolveEnabledSkillPath,
+  resolveSkillPath,
 } from './registry.ts'
 import { buildSections } from './targets/_shared.ts'
 
@@ -32,6 +33,15 @@ interface SkillCandidateInfo {
   /** Ausente = la skill no declaró `activation` (contrato O.0). */
   mode?: SkillActivationMode
   phases?: TaskClass[]
+}
+
+/** Profile defaults use installed skills even when the project has not enabled them. */
+export function loadInstalledSkill(id: string, root = process.cwd()): SkillDef | undefined {
+  try {
+    return loadSkill(resolveSkillPath(id, root))
+  } catch {
+    return undefined
+  }
 }
 
 /** A library override also shadows a Pro fallback while it is disabled. */

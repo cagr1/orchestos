@@ -19,6 +19,7 @@
 import { randomUUID } from 'node:crypto'
 import { loadOrcheConfig, RoleUnassignedError } from '../config/load.ts'
 import type { OrcheConfig } from '../config/schema.ts'
+import { readUserProfile } from '../config/user-profile.ts'
 import { estimateTokens } from '../context/compress.ts'
 import { getProject } from '../db/projects.ts'
 import { clearRunSteps, insertRunStep } from '../db/run-steps.ts'
@@ -36,7 +37,7 @@ import {
 } from '../router/model-catalog.ts'
 import { knownCost } from '../router/pricing.ts'
 import { clientFromAssignment, roleClient } from '../router/role-runner.ts'
-import { resolveGates } from '../skills/catalog.ts'
+import { loadInstalledSkill, resolveGates } from '../skills/catalog.ts'
 import { loadSpec } from '../spec/store.ts'
 import type { Task } from '../tasks/schema.ts'
 import { createApprovalRun, finishApprovalRun } from './approvals.ts'
@@ -76,6 +77,7 @@ import { costBreakdownToJson } from './transcript-parser.ts'
 // -- public types --------------------------------------------------------------
 
 export interface HarnessOpts {
+  readProfile?: typeof readUserProfile
   /** Ruta absoluta al proyecto objetivo */
   projectRoot: string
   /** Contenido de AGENTS.md + context.json renderizado como texto (de loadContext) */
@@ -788,22 +790,36 @@ export async function runTask(opts: HarnessOpts): Promise<TaskResult> {
     // Registrados en el run (`skill_gates_json`) para distinguir "ninguna aplicaba"
     // de "el selector falló en silencio" — hoy indistinguibles con el escalar `skill_id`.
     const gateEvaluations = resolveGates(ctx.task.description, 'review', projectRoot)
-    const gatesJson = gateEvaluations.length
-      ? JSON.stringify(
-          gateEvaluations.map((g) => ({
-            id: g.skill.id,
-            candidate: g.candidate,
-            applied: g.applied,
-            reason: g.reason,
-          })),
-        )
-      : null
-    const appliedGateSkills = gateEvaluations.filter((g) => g.applied).map((g) => g.skill)
+    const userDoesNotCode = (opts.readProfile ?? readUserProfile)().codes === false
+    const securitySkill = userDoesNotCode
+      ? loadInstalledSkill('security-audit', projectRoot)
+      : undefined
+    const gateRecords = gateEvaluations
+      .filter((g) => !userDoesNotCode || g.skill.id !== 'security-audit')
+      .map((g) => ({
+        id: g.skill.id,
+        candidate: g.candidate,
+        applied: g.applied,
+        reason: g.reason,
+      }))
+    if (userDoesNotCode)
+      gateRecords.push({
+        id: 'security-audit',
+        candidate: !!securitySkill,
+        applied: !!securitySkill,
+        reason: securitySkill ? 'perfil: el usuario no programa' : 'no instalada',
+      })
+    const gatesJson = gateRecords.length ? JSON.stringify(gateRecords) : null
+    const appliedGateSkills = gateEvaluations
+      .filter((g) => g.applied && (!userDoesNotCode || g.skill.id !== 'security-audit'))
+      .map((g) => g.skill)
+    if (securitySkill) appliedGateSkills.push(securitySkill)
 
     const qaJudge = { provider: reviewer.provider, model: reviewer.model }
     // ERP.5.1 — el revisor LLM corre solo si hay algo concreto que revisar: criterios de aceptación
     // declarados o un gate de revisión aplicado. Si no, registrar que el juez no corrió.
     const runsReviewer =
+      userDoesNotCode ||
       (ctx.task.acceptance_criteria?.length ?? 0) > 0 ||
       appliedGateSkills.filter((s) => s.id !== 'qa-structured').length > 0
     let qa: Omit<Awaited<ReturnType<typeof runQA>>, 'model' | 'verdict'> & {

@@ -72,6 +72,7 @@ import {
   saveSettings,
 } from '../../api/settings'
 import { isTaskRunnable } from '../../api/tasks'
+import { useUserProfile } from '../../hooks/useUserProfile'
 import type {
   InstinctItem,
   MemoryItem,
@@ -537,6 +538,7 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
   projectTabsError = null,
 }) => {
   const [activeSection, setActiveSection] = useState<SettingsSection>(initialSection)
+  const profile = useUserProfile()
   const [activeProjectTab, setActiveProjectTab] = useState<ProjectSubTab>(initialProjectTab)
   const [selectedProjectId, setSelectedProjectId] = useState<string>(
     activeProjectId || projects[0]?.id || 'orchestos',
@@ -1733,6 +1735,22 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
                   ]}
                 />
               </SettingsRow>
+              <SettingsRow label="I write code">
+                <SettingsSegmented
+                  value={profile.codes === true ? 'yes' : profile.codes === false ? 'no' : ''}
+                  onChange={(value) => void profile.save(value === 'yes')}
+                  ariaLabel="I write code"
+                  options={[
+                    { value: 'yes', label: 'Yes' },
+                    { value: 'no', label: 'No' },
+                  ]}
+                />
+              </SettingsRow>
+              {profile.error && (
+                <p role="alert" className="text-sm text-rose-400">
+                  {profile.error}
+                </p>
+              )}
             </SettingsGroup>
           </SettingsPage>
         )}

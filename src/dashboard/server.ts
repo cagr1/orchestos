@@ -54,6 +54,7 @@ import {
   handleApiPlanPrepareClose,
 } from './handlers/plan.ts'
 import { handleApiPlanDoc } from './handlers/plan-doc.ts'
+import { handleApiProfileGet, handleApiProfilePut } from './handlers/profile.ts'
 import {
   handleApiNatural,
   handleApiProjectContextGet,
@@ -318,6 +319,9 @@ export async function route(req: Request, port: number): Promise<Response> {
       handleApiInstinctsSetConfidence(req, url, project.id),
     )
   }
+
+  if (method === 'GET' && url.pathname === '/api/profile') return handleApiProfileGet()
+  if (method === 'PUT' && url.pathname === '/api/profile') return handleApiProfilePut(req)
 
   if (method === 'POST' && url.pathname === '/api/skills/library') {
     return handleApiSkillsLibrary(req)

@@ -1,10 +1,12 @@
 import { motion, useReducedMotion } from 'motion/react'
+import type { ReactNode } from 'react'
 
 interface ThreadEmptyProps {
   title: string
+  children?: ReactNode
 }
 
-export function ThreadEmpty({ title }: ThreadEmptyProps) {
+export function ThreadEmpty({ title, children }: ThreadEmptyProps) {
   const reduced = useReducedMotion()
   return (
     <motion.div
@@ -15,6 +17,7 @@ export function ThreadEmpty({ title }: ThreadEmptyProps) {
       className="max-w-3xl lg:max-w-4xl mx-auto pt-16 text-left"
     >
       <h1 className="text-lg font-bold text-app tracking-tight">{title}</h1>
+      {children}
     </motion.div>
   )
 }

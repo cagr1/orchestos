@@ -7,6 +7,7 @@ import { buildChatSystemPrompt, rejectedSessionTasks } from '../../chat/chat-con
 import { extractTextFromImage } from '../../chat/ocr.ts'
 import { loadOrcheConfig } from '../../config/load.ts'
 import type { RoleAgent } from '../../config/schema.ts'
+import { readUserProfile } from '../../config/user-profile.ts'
 import { estimateTokens } from '../../context/compress.ts'
 import { refreshProjectContext } from '../../context/load.ts'
 import {
@@ -1422,6 +1423,8 @@ async function handleApiChat(
           )
         : undefined
     const systemPrompt = buildChatSystemPrompt({
+      userCodes: readUserProfile().codes,
+      projectRoot: root,
       tasks: hasProjectContext ? taskRows : undefined,
       rejectedTasks,
       taskCounts,

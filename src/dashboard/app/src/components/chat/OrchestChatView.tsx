@@ -2,6 +2,7 @@ import { Check, ChevronDown, ChevronUp, Copy, FileText } from 'lucide-react'
 import { AnimatePresence, MotionConfig, motion } from 'motion/react'
 import type React from 'react'
 import { useEffect, useRef, useState } from 'react'
+import { Button } from '@/components/ui/button'
 import { ChatMessage } from '@/components/ui/chat-message'
 import { FileThumbnail } from '@/components/ui/file-thumbnail'
 import type { CliNotice } from '../../../../../run/executors/cli-failure'
@@ -15,6 +16,7 @@ import type { PendingApproval } from '../../api/runs'
 import { type ConfigResponse, getConfig } from '../../api/settings'
 import { useStickToBottom } from '../../hooks/useStickToBottom'
 import { useStopChatTurn } from '../../hooks/useStopChatTurn'
+import { useUserProfile } from '../../hooks/useUserProfile'
 import type { ChatAttachment, ChatThread, SessionStatus, TaskItem } from '../../types/orchestos'
 import { AgentComposer, type CliId } from '../common/AgentComposer'
 import {
@@ -106,6 +108,7 @@ export const OrchestChatView: React.FC<OrchestChatViewProps> = ({
   const lastProjectId = useRef(thread?.projectId)
   const [liveTimeline, setLiveTimeline] = useState<TimelineResponse | null>(null)
   const [composerModel, setComposerModel] = useState('')
+  const profile = useUserProfile()
 
   useEffect(() => {
     let disposed = false
@@ -333,7 +336,35 @@ export const OrchestChatView: React.FC<OrchestChatViewProps> = ({
         <div ref={scrollContainerRef} className="flex-1 overflow-y-auto p-4 md:p-6 space-y-6">
           <div ref={contentRef}>
             {messages.length === 0 ? (
-              <ThreadEmpty title={projectName || 'Chat'} />
+              <ThreadEmpty title={projectName || 'Chat'}>
+                {profile.codes === null && (
+                  <div className="mt-4 rounded-card border border-app bg-app-surface p-4 space-y-3">
+                    <p className="text-sm font-medium text-app">Do you write code?</p>
+                    <div className="flex flex-wrap gap-2">
+                      <Button
+                        size="compact"
+                        disabled={profile.saving}
+                        onClick={() => void profile.save(true)}
+                      >
+                        I write code
+                      </Button>
+                      <Button
+                        size="compact"
+                        variant="secondary"
+                        disabled={profile.saving}
+                        onClick={() => void profile.save(false)}
+                      >
+                        I don't write code
+                      </Button>
+                    </div>
+                  </div>
+                )}
+                {profile.error && (
+                  <p role="alert" className="mt-2 text-sm text-rose-400">
+                    {profile.error}
+                  </p>
+                )}
+              </ThreadEmpty>
             ) : (
               <div
                 data-ff

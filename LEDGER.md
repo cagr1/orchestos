@@ -530,3 +530,16 @@ persistida del proyecto que ejecuta la tarea. No cambia precios, límites de con
 No altera precios, max_tokens, decisiones de QA ni la elección de la skill principal.
 **Reversibilidad/evidencia**: diff SK.2 sin commit; gates y resultados en
 `docs/done/evidence/SK.2-live.json`. Sin commit por instrucción del usuario.
+
+---
+
+## 2026-11-07 — Codex (ejecutor SK.3)
+
+**Regla tocada**: `src/run/harness.ts`, revisión y gate de seguridad por perfil global.
+**Clasificación**: RESPETÓ
+**Por qué**: con `codes: false` fuerza el revisor y añade `security-audit` desde el catálogo instalado,
+sin exigir activación por proyecto; registra la ausencia de la skill. La lectura del perfil es inyectable.
+No cambia `resolveGates`, `resolvePhaseSkills`, los límites de contexto ni el contrato de QA.
+**Reversibilidad/evidencia**: diff SK.3 sin commit; pruebas del harness verifican revisión sin criterios,
+instrucciones de seguridad y persistencia de `skill_gates_json`. Typecheck, lint, test:coverage y
+Playwright `user-profile` (8/8) pasan; resultados en `docs/done/evidence/SK.3-live.json`.

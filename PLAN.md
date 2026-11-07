@@ -373,6 +373,28 @@ Cerrada. Todos sus ítems están archivados en `docs/done/` (ver "Cerrados — e
   Ejecutado por: codex gpt-6.1-sol (criterio r1 frenó por contradicción del spec con `AGENTS.md:101`, r2) · Spec: docs/specs/SK.2.md
   Texto visible: "Applies in" · "Plan" · "Build" · "Fix" · "Review" · "Docs" (chips de fase: un ícono no dice en qué fase aplica)
   Texto visible: "Skills" (rótulo plural cuando la tarea recibió varias)
+- [x] **SK.3 — Perfil "¿sabes programar?": si el usuario no programa, el producto pregunta, revisa y audita solo.**
+  (GO de Carlos 2026-11-06; 2026-11-07: tarjeta en el Chat vacío, perfil global) Perfil en `~/.orchestos/profile.json`
+  con `GET`/`PUT /api/profile`; tarjeta "Do you write code?" en el Chat vacío y fila en Settings → General. Con "no":
+  el chat entrevista con `grilling` antes de `create_task`, el revisor corre siempre y `security-audit` entra como gate.
+  Hecho: `src/config/user-profile.ts` (lectura tolerante, escritura atómica), `handlers/profile.ts` (400 si `codes`
+  no es booleano; same-origin del router), hook `useUserProfile` sincroniza tarjeta y Settings; `chat-context.ts`
+  añade la sección "User profile:" con `grilling` cargada aunque el proyecto no la active (r2: antes caía bajo
+  "Project state:"); `harness.ts` con perfil "no" fuerza el revisor y registra `security-audit` en
+  `skill_gates_json` ("perfil: el usuario no programa" o "no instalada"); perfil inyectable en tests. Con
+  `true`/`null` el prompt y el QA quedan idénticos. Gates del cerebro: `typecheck`, `lint`, `test:coverage` 2381/0,
+  `user-profile` 8/8 (`gate:evidence` `SK.3-user-profile`), `chat-streaming` 27/27 y `codex-live` 15/15
+  (`SK.3-chat-live`); capturas de tarjeta y Settings miradas.
+  Gate en vivo: navegador real (Playwright), `docs/done/evidence/SK.3-live.json`
+  Revisión: Opus (diff de perfil, handler, chat-context, harness, catálogo y UI leído; defecto de sección hallado
+  y corregido en r2).
+  Ejecutado por: codex gpt-6.1-sol (criterio r1) + gpt-6-luna (mecanico r2) · Spec: docs/specs/SK.3.md
+  Texto visible: "Do you write code?" · "I write code" · "I don't write code" (la tarjeta pregunta una vez y se va)
+  Texto visible: "I write code" · "Yes" · "No" (fila de Settings → General para cambiarlo después)
+- [ ] **UI.70 — Íconos por tipo de archivo y carpeta en el explorer, como VS Code.** (Carlos 2026-11-07, visto en
+  MonoCode) Hoy `OrcaRightInspector.tsx:6-9` usa cuatro íconos genéricos de lucide (`FileCode`, `FileText`, `Folder`,
+  `FolderOpen`). Propuesta: subconjunto de Material Icon Theme (MIT) como SVG estáticos en `dist/` (no en `main.js`),
+  tabla extensión/nombre → ícono, genérico como respaldo; mismo ícono en tabs del editor y diff. Va después de SK.3.
 - [x] **CI.66 — CI rojo desde SK.2: el orden de skills depende del sistema de archivos.** (visto 2026-11-06, CI
   42307722525 y Mutation Shards 42361144282) `SK.2 execution phase instructions > combines primary and two phase
   skills…` espera `phase-a`, `phase-b` y omite `phase-c`; en Linux entró `phase-c`. Causa: `readdirSync` sin ordenar
