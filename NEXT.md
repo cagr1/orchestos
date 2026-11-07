@@ -22,7 +22,19 @@ Arranque: `bun run agent:preflight -- --item <ID> --agent claude`. Lista viva: `
    noche sale verde. Propuesto a Carlos, sin GO: mostrar al arrancar el resultado de la última corrida.
 4. **Esperan su próximo fallo**: CI.57 `composer-picker-model-missing.json`; CI.54 `turn1-bubble-missing.json`; CI.19;
    CI.55 (`role-task-missing-output-attempt-<n>.json`). Leer el JSON el mismo día: CI.62 borra el `runDir` a las 24 h.
-5. SK.3 sin spec; "navegador propio" sin anotar en `IDEAS.md` hasta que Carlos diga qué espera de él.
+5. Cabos sueltos de la sesión SK.1/SK.2 (2026-11-06/07):
+   - PR #4 (README sync, conteo de tests) abierto: espera merge de Carlos. El workflow ya abre PRs (permiso activado,
+     rama por run `f4d4a63e`).
+   - Set curado en `~/.orchestos/skills/` sin fases: `tdd`, `karpathy-guidelines`, `verification-before-completion`,
+     `impeccable` no aplican solas hasta marcar sus chips "Applies in" (SK.2). Propuesta: Build+Fix para las tres
+     primeras; `impeccable` sin fase (solo tareas de UI) hasta que haya triggers. Decide Carlos.
+   - El import de `SKILL.md` no trae auxiliares: `impeccable` remite a 33 `reference/*.md`, `security-audit` a 4,
+     `tdd` a 2. Anotado, sin ítem.
+   - "Thought" en el chat repetiría la respuesta (Carlos, 2026-11-06). Sin reproducir: en `~/.orchestos/db.sqlite`
+     los pasos `reasoning` de Claude llegan vacíos y los de Codex son resúmenes cortos; "Thought" solo muestra pasos
+     `reasoning` (`app/src/api/chat.ts:279`). Carlos iba a verlo en Claude Desktop; sin rastro en git. Necesita un
+     caso (agente, modelo, captura) antes de abrir ítem.
+6. "navegador propio" sin anotar en `IDEAS.md` hasta que Carlos diga qué espera de él.
    **Ojo**: tras cambios de UI, `bun run build:app`; el dashboard lee `dist/` del disco, así que un build roto deja
    en blanco también el dashboard de Carlos (:4242) — probar la carga antes de seguir.
 
