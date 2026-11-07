@@ -1,4 +1,4 @@
-# NEXT — handoff 2026-11-06 (DEV.1, SK.1, CI.65; siguen el set curado de skills, SK.2, SK.3 y el desacople)
+# NEXT — handoff 2026-11-07 (CI.66, CI.67, SK.3, UI.70; sigue el desacople)
 
 Un solo presente: orden y trampas vivas del lote. Lo cerrado vive en `docs/done/bloque-*.md` y git; las reglas, en
 `AGENTS.md`. Versión anterior completa: `docs/done/poda-instrucciones-2026-11-03.md` (histórico).
@@ -22,9 +22,18 @@ Arranque: `bun run agent:preflight -- --item <ID> --agent claude`. Lista viva: `
    de su fase (tope 48k); `runs.phase_skills_json` (migración 36). El set curado de `~/.orchestos/skills/` aún no
    tiene fases: asignarlas es parte de SK.3 (defaults del perfil no programador). Ojo: una de biblioteca marcada solo
    "Review" entra a QA como gate (`resolveGates`), y `security-audit` pesa 22 KB.
-   **Siguiente: SK.3** (GO): perfil "¿sabes programar?" en el onboarding; si no, el orquestador pregunta primero
+   SK.3 (hecho 2026-11-07): perfil "¿sabes programar?" en el onboarding; si no, el orquestador pregunta primero
    (`grilling`) y revisión y seguridad corren siempre. Motivo: el método funciona con quien sabe código; un no
    programador no pide cada fase. Falta spec.
+0b2. Hecho 2026-11-07: UI.66–69 venían de una sesión perdida en el worktree `ui-fixes`; su push filtró 13 commits de
+   fixtures (revertidos `85379e95`). Causa CI.67 `85f09c44`: desde un worktree git exporta `GIT_DIR` a los hooks y la
+   suite lo heredaba. CI rojo desde SK.2 → CI.66 `f149cba9` (orden de `readdirSync`). SK.3 `d132e976` (perfil
+   global `~/.orchestos/profile.json`, tarjeta en Chat vacío, "no programa" → `grilling` en el chat, revisor
+   forzado y `security-audit`). UI.70 `7bfb7199` (íconos Material Icon Theme en árbol, diff y tabs). Worktree
+   `ui-fixes` borrado. Tauri y caché de Safari anotados en `IDEAS.md` #41 (sin ítem). Falta anotar en `IDEAS.md` el
+   "navegador propio" cuando Carlos diga qué espera de él.
+   **Ojo**: tras traer cambios de UI, `bun run build:app` + reiniciar el dashboard; Safari puede servir `main.js`
+   viejo (Cmd+Option+R) hasta que se haga el arreglo `?v=<hash>`.
 0c. **Desacople del método personal**, después de SK.1–3 (GO de Carlos): reescribir `AGENTS.md`, hooks `.claude/`
    (`brain-no-code.js:16`, `subagent-budget.js:156`, `context-budget.js:30`), `docs/roadmaps/` y fixtures sin
    `agent-method`/`delegate`/Sol/Luna/vault; plan y tabla en `docs/specs/LIMPIEZA-2.md` § 2. Las reglas personales que
