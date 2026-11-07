@@ -373,6 +373,19 @@ Cerrada. Todos sus ítems están archivados en `docs/done/` (ver "Cerrados — e
   Ejecutado por: codex gpt-6.1-sol (criterio r1 frenó por contradicción del spec con `AGENTS.md:101`, r2) · Spec: docs/specs/SK.2.md
   Texto visible: "Applies in" · "Plan" · "Build" · "Fix" · "Review" · "Docs" (chips de fase: un ícono no dice en qué fase aplica)
   Texto visible: "Skills" (rótulo plural cuando la tarea recibió varias)
+- [x] **CI.66 — CI rojo desde SK.2: el orden de skills depende del sistema de archivos.** (visto 2026-11-06, CI
+  42307722525 y Mutation Shards 42361144282) `SK.2 execution phase instructions > combines primary and two phase
+  skills…` espera `phase-a`, `phase-b` y omite `phase-c`; en Linux entró `phase-c`. Causa: `readdirSync` sin ordenar
+  en `src/skills/registry.ts:123` y `:272`; APFS devuelve alfabético, ext4 no.
+  Hecho: ambos recorridos usan `readdirSync(dir).sort()`; test nuevo fija orden alfabético por id en
+  `listSkillFilesWithOrigin`. Gates del cerebro: `skill-library` 20/0, `typecheck`, `lint`, `test:coverage` 2368/0.
+  Revisión: Opus (diff leído).
+  Ejecutado por: codex gpt-6-luna (mecanico) · Spec: docs/specs/CI.66.md (borrado)
+- [ ] **CI.67 — El pre-push desde un worktree commitea los fixtures de los tests en la rama del worktree.** (visto
+  2026-11-06: 13 commits de fixture `51613edb..e0fde66c` subieron a master, revertidos en `85379e95`) Desde un
+  worktree, git exporta `GIT_DIR` a los hooks (verificado en un repo temporal); `scripts/pre-push.sh:76` corre
+  `test:coverage` con ese entorno y cada `git commit` de fixture escribe en el repo real. Desde el checkout principal
+  git no exporta `GIT_DIR`, por eso no se vio antes. Spec: docs/specs/CI.67.md
 - [ ] **CI.19 — El `git commit` del fixture falla a veces en el andamiaje de los ui-gates.** Visto 1 vez en
   `qa-negative` (2026-10-11, 1 de 9): `Command failed: git … commit -qm task fixture`, sin motivo porque el helper
   `run` usa `stdio: 'ignore'`. `qa-negative` ya reporta stdout/stderr y exit; los otros 20 flows con el mismo helper no.

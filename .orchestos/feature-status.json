@@ -228,6 +228,22 @@
       "closedDate": null
     },
     {
+      "id": "CI.66",
+      "sprint": "Fase 2 — Producto mínimo para entrega",
+      "block": "Abiertos — fiabilidad de los gates y documentación",
+      "title": "CI rojo desde SK.2: el orden de skills depende del sistema de archivos",
+      "status": "done",
+      "closedDate": null
+    },
+    {
+      "id": "CI.67",
+      "sprint": "Fase 2 — Producto mínimo para entrega",
+      "block": "Abiertos — fiabilidad de los gates y documentación",
+      "title": "El pre-push desde un worktree commitea los fixtures de los tests en la rama del worktree",
+      "status": "open",
+      "closedDate": null
+    },
+    {
       "id": "CI.19",
       "sprint": "Fase 2 — Producto mínimo para entrega",
       "block": "Abiertos — fiabilidad de los gates y documentación",

@@ -120,7 +120,7 @@ function mergeSkillDirs(ownDir: string, installDir: string): string[] {
   for (const dir of [installDir, ownDir]) {
     // ownDir segundo: pisa al central
     if (!existsSync(dir)) continue
-    for (const f of readdirSync(dir)) {
+    for (const f of readdirSync(dir).sort()) {
       if (!f.endsWith('.yaml') && !f.endsWith('.yml')) continue
       byName.set(f, join(dir, f))
     }
@@ -269,7 +269,7 @@ export function listSkillFilesWithOrigin(
     [getSkillsDir(root), 'project'],
   ] as const) {
     if (!existsSync(dir)) continue
-    for (const file of readdirSync(dir)) {
+    for (const file of readdirSync(dir).sort()) {
       if (!/\.ya?ml$/.test(file)) continue
       byId.set(basename(file).replace(/\.ya?ml$/, ''), { path: join(dir, file), origin })
     }

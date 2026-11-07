@@ -144,6 +144,22 @@ describe('SKILL.md conversion', () => {
 })
 
 describe('project activation and precedence', () => {
+  test('lists skills in alphabetical id order regardless of creation order', () => {
+    const projectSkills = join(root, 'skills')
+    seed('zebra', projectSkills)
+    seed('alpha', projectSkills)
+    seed('middle', projectSkills)
+
+    const ids = listSkillFilesWithOrigin(root)
+      .filter(({ origin }) => origin === 'project')
+      .map(({ path }) =>
+        path
+          .split('/')
+          .at(-1)
+          ?.replace(/\.ya?ml$/, ''),
+      )
+    expect(ids).toEqual([...ids].sort())
+  })
   test('library is off by default, excluded from selection, and enabled independently per project', () => {
     const path = seed()
     expect(listSkillFilesWithOrigin(root)).toContainEqual({ path, origin: 'user-library' })
