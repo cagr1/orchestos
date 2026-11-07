@@ -69,7 +69,7 @@ _(`#6` graduó a Bloque AA el 2026-08-15. `#31`, `#35` y `#50` fueron ABSORBIDAS
 
 1. `#8` Micrófono/dictado.
 2. `#28` Terminal real embebido.
-4. `#41` App Electron distribuible.
+4. `#41` App de escritorio distribuible (Electron o Tauri; ver actualización 2026-11-07).
 5. `#42` Auto-repair dirigido.
 6. `#57` Cuota semanal de suscripciones CLI.
 7. `#60` Extracción a nivel de función/símbolo en `graph/` propio (tree-sitter).
@@ -523,6 +523,22 @@ como su propio hito.
 para un instalable real firmado** en las 3 plataformas (empotrar el binario Bun compilado + firma/
 notarización + auto-update). Candidato a hito propio post-estable, con doc de diseño previo
 (decidir camino A vs B, y si el binario Bun se compila en CI por plataforma).
+
+**Actualización 2026-11-07 — Tauri como alternativa a Electron** (Carlos preguntó si conviene Electron o
+reescribir en Rust/Go para ganar velocidad):
+- Ni Electron ni Rust/Go aceleran la app: la espera dominante es el CLI del modelo, no Bun. Reescribir el backend
+  queda descartado. Antes de cualquier cambio por velocidad, medir qué se siente lento (carga inicial, vista, chat).
+- **Tauri** usa el WebView del sistema (WebKit en Mac = motor de Safari) en vez de traer Chromium: app de ~5–10 MB
+  contra ~150 MB. La UI React se carga tal cual; el backend va como *sidecar* (`bun build --compile`, el mismo
+  camino A de arriba). No hace falta escribir Rust; solo tener `rustup` para compilar.
+- Costos: cada rareza de Safari aparece en la app; firma/notarización (Apple Developer 99 USD/año) solo para
+  distribuir; el sidecar debe resolver el PATH real de `claude`/`codex` (una app del Dock no hereda el del shell).
+- **Prerrequisito**: la UI tiene que verse y actualizarse bien en Safari. Visto 2026-11-07: Safari mostró un
+  `main.js` viejo tras `build:app` (Brave no). El servidor manda `Cache-Control: no-cache` sin `ETag` ni
+  `Last-Modified` y la URL es fija (`/app/dist/main.js`, `src/dashboard/http.ts:62`). Arreglo propuesto: el HTML
+  pide `main.js?v=<hash del build>` / `main.css?v=…`.
+- Orden propuesto: después de SK.3 y del desacople; primero el arreglo de caché + repaso de la UI en Safari, luego
+  un prototipo Tauri solo Mac en una rama.
 
 ### 42. Auto-repair dirigido tras `failed_permanent` — cerrar el lazo diagnose→reparación
 
