@@ -1,10 +1,20 @@
 import { spawnSync } from 'node:child_process'
-import { type Dirent, readdirSync, readFileSync, statSync } from 'node:fs'
+import {
+  chmodSync,
+  type Dirent,
+  readdirSync,
+  readFileSync,
+  realpathSync,
+  renameSync,
+  rmSync,
+  statSync,
+  writeFileSync,
+} from 'node:fs'
 import { join, relative, resolve, sep } from 'node:path'
 import { errorResponse, jsonResponse } from '../http.ts'
 
 // v0.13 seed — panel derecho (header redesign, Mes 21 tardío). Explorador
-// read-only del proyecto: un nivel por request (patrón VS Code, evita leer
+// del proyecto: lee y edita archivos existentes, un nivel por request (evita leer
 // el árbol completo de una vez — proyectos grandes tendrían miles de nodos).
 const IGNORE_DIRS = new Set(['node_modules', '.git', 'dist', '.next', 'coverage'])
 const MAX_FILE_BYTES = 200_000
@@ -103,6 +113,7 @@ function handleApiExplorerFile(url: URL, root: string): Response {
       tooLarge: true,
       binary: false,
       sizeBytes: stat.size,
+      mtimeMs: stat.mtimeMs,
     })
   }
 
@@ -110,9 +121,81 @@ function handleApiExplorerFile(url: URL, root: string): Response {
   // Sniff heurístico de binario: un null byte en los primeros bytes casi
   // nunca aparece en texto real (mismo criterio que `file`/git).
   const isBinary = buf.subarray(0, 8000).includes(0)
-  if (isBinary) return jsonResponse({ path: rel, content: '', tooLarge: false, binary: true })
+  if (isBinary)
+    return jsonResponse({
+      path: rel,
+      content: '',
+      tooLarge: false,
+      binary: true,
+      mtimeMs: stat.mtimeMs,
+      sizeBytes: stat.size,
+    })
 
-  return jsonResponse({ path: rel, content: buf.toString('utf-8'), tooLarge: false, binary: false })
+  return jsonResponse({
+    path: rel,
+    content: buf.toString('utf-8'),
+    tooLarge: false,
+    binary: false,
+    mtimeMs: stat.mtimeMs,
+    sizeBytes: stat.size,
+  })
 }
 
-export { handleApiExplorerFile, handleApiExplorerTree }
+async function handleApiExplorerWrite(req: Request, root: string): Promise<Response> {
+  let body: unknown
+  try {
+    body = await req.json()
+  } catch {
+    return errorResponse('Invalid body', 400)
+  }
+  if (!body || typeof body !== 'object' || Array.isArray(body))
+    return errorResponse('Invalid body', 400)
+  const { path, content, expectedMtimeMs } = body as Record<string, unknown>
+  if (
+    typeof path !== 'string' ||
+    !path.trim() ||
+    typeof content !== 'string' ||
+    typeof expectedMtimeMs !== 'number' ||
+    !Number.isFinite(expectedMtimeMs)
+  )
+    return errorResponse('Invalid body', 400)
+  const target = safeResolve(root, path)
+  if (!target || path.split(sep).includes('.git')) return errorResponse('Invalid path', 400)
+  if (Buffer.byteLength(content) > MAX_FILE_BYTES) return errorResponse('File too large', 413)
+
+  let stat: ReturnType<typeof statSync>
+  let realTarget: string
+  try {
+    const realRoot = realpathSync(root)
+    realTarget = realpathSync(target)
+    if (
+      (realTarget !== realRoot && !realTarget.startsWith(realRoot + sep)) ||
+      relative(realRoot, realTarget).split(sep).includes('.git')
+    )
+      return errorResponse('Invalid path', 400)
+    stat = statSync(target)
+  } catch {
+    return errorResponse('Not found', 404)
+  }
+  if (!stat.isFile()) return errorResponse('Not a file', 400)
+  const tmp = `${realTarget}.orchestos-tmp-${process.pid}-${Date.now()}`
+  try {
+    const current = readFileSync(realTarget)
+    if (current.subarray(0, 8000).includes(0)) return errorResponse('Binary file', 400)
+    if (Math.abs(stat.mtimeMs - expectedMtimeMs) > 1)
+      return jsonResponse(
+        { error: 'conflict', mtimeMs: stat.mtimeMs, content: current.toString('utf-8') },
+        409,
+      )
+    writeFileSync(tmp, content)
+    chmodSync(tmp, stat.mode)
+    renameSync(tmp, realTarget)
+    return jsonResponse({ path, mtimeMs: statSync(realTarget).mtimeMs })
+  } catch (error) {
+    return errorResponse(error instanceof Error ? error.message : 'Unable to save file', 500)
+  } finally {
+    rmSync(tmp, { force: true })
+  }
+}
+
+export { handleApiExplorerFile, handleApiExplorerTree, handleApiExplorerWrite }

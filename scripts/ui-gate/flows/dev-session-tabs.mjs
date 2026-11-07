@@ -274,17 +274,22 @@ for (const probe of [systemCliDiscoveryProbe, systemCliHealthProbe]) {
     await permissionMode.innerText(),
   )
   await treeFile('context.json').click()
-  await panel.locator('.hljs-attr').first().waitFor()
+  await panel
+    .locator('.cm-content span')
+    .filter({ hasText: /^"version"$/ })
+    .first()
+    .waitFor()
   await step(
     'opening another file replaces only preview with numbered colored source',
     (await fileTab('README.md').count()) === 0 &&
       (await tabs.getByRole('tab').count()) === 3 &&
-      (await visible(panel.locator('[data-line-numbers]'))) &&
+      (await visible(panel.locator('.cm-lineNumbers'))) &&
       (await panel
-        .locator('.hljs-attr')
+        .locator('.cm-content span')
+        .filter({ hasText: /^"version"$/ })
         .first()
         .evaluate(
-          (el) => getComputedStyle(el).color !== getComputedStyle(el.closest('pre')).color,
+          (el) => getComputedStyle(el).color !== getComputedStyle(el.closest('.cm-content')).color,
         )),
     'two sessions plus context.json preview; code colored',
   )
@@ -301,7 +306,9 @@ for (const probe of [systemCliDiscoveryProbe, systemCliHealthProbe]) {
   await panel.getByRole('button', { name: 'Source', exact: true }).click()
   await step(
     'Markdown Source keeps numbered literal source',
-    (await panel.locator('[data-file-source] code').innerText()).includes('# Dev session tabs'),
+    (await panel.locator('[data-file-editor] .cm-content').innerText()).includes(
+      '# Dev session tabs',
+    ),
     'literal Markdown source',
   )
   await shot('file-markdown-source')
@@ -323,7 +330,7 @@ for (const probe of [systemCliDiscoveryProbe, systemCliHealthProbe]) {
   )
   await fileTab('README.md').hover()
   await page.getByRole('button', { name: 'Close file tab README.md', exact: true }).click()
-  await panel.locator('[data-file-source]').waitFor()
+  await panel.locator('[data-file-editor]').waitFor()
   await step(
     'closing active file selects its left neighbour',
     (await fileTab('context.json').getAttribute('aria-selected')) === 'true',

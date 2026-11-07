@@ -16,6 +16,8 @@ interface ExplorerFileResponse {
   content: string
   tooLarge: boolean
   binary: boolean
+  mtimeMs: number
+  sizeBytes: number
 }
 
 async function request<T>(path: string, projectId: string, signal?: AbortSignal): Promise<T> {
@@ -49,7 +51,10 @@ function formatBytes(bytes: number): string {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
 }
 
-export async function getExplorerFile(path: string, projectId: string): Promise<FileNode> {
+export async function getExplorerFile(
+  path: string,
+  projectId: string,
+): Promise<FileNode & ExplorerFileResponse> {
   const data = await request<ExplorerFileResponse>(
     `/api/explorer/file?path=${encodeURIComponent(path)}`,
     projectId,
@@ -59,7 +64,32 @@ export async function getExplorerFile(path: string, projectId: string): Promise<
     path: data.path,
     isDir: false,
     content: data.content,
+    mtimeMs: data.mtimeMs,
+    binary: data.binary,
+    tooLarge: data.tooLarge,
+    sizeBytes: data.sizeBytes,
   }
+}
+
+export async function saveExplorerFile(
+  path: string,
+  content: string,
+  expectedMtimeMs: number,
+  projectId: string,
+): Promise<
+  | { conflict: false; path: string; mtimeMs: number }
+  | { conflict: true; mtimeMs: number; content: string }
+> {
+  const response = await fetch('/api/explorer/file', {
+    method: 'PUT',
+    headers: { 'x-orchestos-project-id': projectId, 'content-type': 'application/json' },
+    body: JSON.stringify({ path, content, expectedMtimeMs }),
+  })
+  const data = await response.json()
+  if (response.status === 409)
+    return { conflict: true, mtimeMs: data.mtimeMs, content: data.content }
+  if (!response.ok) throw new Error(data.error || `Request failed (${response.status})`)
+  return { conflict: false, path: data.path, mtimeMs: data.mtimeMs }
 }
 
 /** Same name search as Files, loading nested folders through its project-scoped tree API. */

@@ -20,6 +20,7 @@ export function DevSessionTabs({
   onNew,
   onPin,
   runningSessionIds,
+  dirtyFileTabs,
 }: {
   agents: AgentItem[]
   state: SessionTabs
@@ -29,6 +30,7 @@ export function DevSessionTabs({
   onNew: (action: ReturnType<typeof devSessionAction>) => void
   onPin: (request: OpenPathRequest) => void
   runningSessionIds: Set<string>
+  dirtyFileTabs: Set<string>
 }) {
   const [agent, setAgent] = useState('')
   useEffect(() => {
@@ -174,6 +176,7 @@ export function DevSessionTabs({
                 role="tab"
                 aria-selected={state.activeId === tab.id}
                 data-session-tab={tab.type === 'session' ? tab.id : undefined}
+                data-dirty={tab.type === 'file' && dirtyFileTabs.has(tab.id) ? '' : undefined}
                 data-file-tab={tab.type === 'file' ? tab.path : undefined}
                 data-diff-tab={tab.type === 'diff' ? tab.path : undefined}
                 data-terminal-tab={tab.type === 'terminal' ? tab.id : undefined}
@@ -208,6 +211,14 @@ export function DevSessionTabs({
                 )}
                 <span className="min-w-0 flex-1 truncate">{title}</span>
               </button>
+              {tab.type === 'file' && dirtyFileTabs.has(tab.id) && (
+                <span
+                  aria-hidden="true"
+                  className="absolute right-2 text-app-muted group-hover:hidden group-focus-within:hidden"
+                >
+                  ●
+                </span>
+              )}
               <button
                 type="button"
                 aria-label={

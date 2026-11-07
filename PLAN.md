@@ -77,10 +77,20 @@ Cerrada. Todos sus ítems están archivados en `docs/done/` (ver "Cerrados — e
 
 Propuesta y comparación con las tres referencias: `docs/specs/ADE-PLAN.md`. Uno a uno, en orden.
 
-- [ ] **ADE.1 — Editar archivos desde el explorer.** (Carlos, 2026-11-07: "no puedo editarlos") Hoy
-  `DevFilePanel.tsx` solo muestra y la API solo lee. CodeMirror 6, ⌘S, punto de "sin guardar" en el tab,
-  `PUT /api/explorer/file` confinado a la raíz, conflicto "Conservar el mío / Recargar" si el disco cambió.
-  Spec: `docs/specs/ADE.1.md`.
+- [x] **ADE.1 — Editar archivos desde el explorer.** (Carlos, 2026-11-07: "no puedo editarlos") Antes
+  `DevFilePanel.tsx` solo mostraba y la API solo leía. Hecho: CodeMirror 6 (`CodeEditor.tsx`), ⌘S, buffers por
+  archivo que sobreviven al cambio de tab (`file-buffers.ts`), punto de "sin guardar" en el tab, modal al cerrar
+  sucio, aviso al salir; `PUT /api/explorer/file` confinado a la raíz real (symlinks, `.git`, binarios, 413,
+  escritura atómica sobre el destino real, conserva el modo); conflicto "Keep mine / Reload" si el disco cambió,
+  recarga sola sin cambios propios. Hermano: binarios y archivos grandes se veían vacíos; ahora lo dicen.
+  Revisión del cerebro: 2 defectos devueltos (colores de sintaxis todos iguales; el guardado rompía symlinks) y
+  la corrección dejó la app en blanco (`tags.title` inexistente en `@lezer/highlight`), visto con mi sonda de
+  consola en :4242 y arreglado en el mismo ítem. `main.js` 2,07 → 2,65 MB (CodeMirror).
+  Gates del cerebro: `tsc --noEmit`, `explorer-write` + `file-buffers` 11/11, `build:app`, `dev-file-edit` 17/17 y
+  `dev-session-tabs` 50/50 (`gate:evidence` `ADE.1-dev-file-edit`).
+  Gate en vivo: navegador real (Playwright), `docs/done/evidence/ADE.1-live.json` y `docs/done/evidence/ADE.1/`
+  Ejecutado por: codex gpt-6.1-sol (criterio) + gpt-6-luna (mecanico, 2 correcciones) · Spec: docs/specs/ADE.1.md
+  Texto visible: "Unsaved", "Changed on disk", "Keep mine", "Reload", "Discard unsaved changes to <name>?", "Cancel", "Discard", "Loading…" (ya existía, cambia de línea), "Binary file — not shown", "File too large to open (<N> KB)" (estado y decisiones que un ícono no explica)
 - [ ] **ADE.2 — Settings → Editor: auto-guardado, ajuste de línea, tamaño de fuente.** Depende de ADE.1.
 - [ ] **ADE.3 — Atajos reales: registro central de comandos, de 2 a ~20.**
 - [ ] **ADE.4 — Reasignar atajos grabando las teclas (MonoCode).** Depende de ADE.3.

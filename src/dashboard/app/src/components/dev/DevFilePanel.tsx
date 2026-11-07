@@ -1,39 +1,19 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
-import { getExplorerFile } from '../../api/explorer'
-import hljs, { LANGUAGES, TOKEN_CLASSES } from '../../lib/highlight'
+import { useEffect, useRef, useState, useSyncExternalStore } from 'react'
+import { getExplorerFile, saveExplorerFile } from '../../api/explorer'
 import { ThreadMarkdown } from '../thread/ThreadMarkdown'
+import { CodeEditor } from './CodeEditor'
+import {
+  getBuffer,
+  getSnapshot,
+  isDirty,
+  markSaved,
+  replaceFromDisk,
+  setDraft,
+  subscribe,
+} from './file-buffers'
 
-function FileSource({ path, content }: { path: string; content: string }) {
-  const extension = path.split('.').pop()?.toLowerCase() ?? ''
-  const language = Object.hasOwn(LANGUAGES, extension) ? LANGUAGES[extension] : undefined
-  const highlighted = useMemo(
-    () => (language ? hljs.highlight(content, { language }).value : null),
-    [content, language],
-  )
-  return (
-    <div data-file-source className="flex min-h-full min-w-max font-mono text-xs leading-6 p-3">
-      <pre
-        data-line-numbers
-        aria-hidden="true"
-        className="select-none pr-4 text-right text-app-muted border-r border-app mr-4"
-      >
-        {content
-          .split('\n')
-          .map((_, index) => index + 1)
-          .join('\n')}
-      </pre>
-      <pre className={`text-app ${TOKEN_CLASSES}`}>
-        {highlighted === null ? (
-          <code>{content}</code>
-        ) : (
-          // highlight.js escapes source text before emitting its own token spans.
-          // biome-ignore lint/security/noDangerouslySetInnerHtml: HTML comes only from highlight.js escaping this source.
-          <code dangerouslySetInnerHTML={{ __html: highlighted }} />
-        )}
-      </pre>
-    </div>
-  )
-}
+type DiskFile = Awaited<ReturnType<typeof getExplorerFile>>
+type Conflict = { content: string; mtimeMs: number }
 
 export function DevFilePanel({
   projectId,
@@ -44,47 +24,116 @@ export function DevFilePanel({
   path: string
   onClose: (path: string) => void
 }) {
-  const [files, setFiles] = useState<Record<string, { content?: string; error?: string }>>({})
+  useSyncExternalStore(subscribe, getSnapshot)
+  const buffer = getBuffer(projectId, path)
+  const [file, setFile] = useState<{ path: string; data?: DiskFile; error?: string } | null>(null)
   const [sourcePaths, setSourcePaths] = useState<Record<string, boolean>>({})
+  const [conflicts, setConflicts] = useState<Record<string, Conflict | undefined>>({})
+  const [errors, setErrors] = useState<Record<string, string | undefined>>({})
   const closeRef = useRef(onClose)
   closeRef.current = onClose
-  const paths = JSON.stringify([path])
+  const request = useRef(0)
+  const saving = useRef(new Set<string>())
+  const id = `${projectId}:${path}`
+  const conflict = conflicts[id]
+  const dirty = isDirty(projectId, path)
+
   useEffect(() => {
     let cancelled = false
-    setFiles({})
-    for (const path of JSON.parse(paths) as string[]) {
-      void getExplorerFile(path, projectId)
-        .then((file) => {
-          if (!cancelled) setFiles((prev) => ({ ...prev, [path]: { content: file.content ?? '' } }))
-        })
-        .catch((error) => {
-          if (cancelled) return
-          const message = error instanceof Error ? error.message : 'Unable to open file.'
-          if (/Request failed \((404|400)\)/.test(message)) closeRef.current(path)
-          else setFiles((prev) => ({ ...prev, [path]: { error: message } }))
-        })
+    if (!getBuffer(projectId, path)) {
+      setErrors((previous) => ({ ...previous, [id]: undefined }))
+      setConflicts((previous) => ({ ...previous, [id]: undefined }))
     }
+    const refresh = async () => {
+      const sequence = ++request.current
+      try {
+        const data = await getExplorerFile(path, projectId)
+        if (cancelled || sequence !== request.current) return
+        setFile({ path, data })
+        if (data.binary || data.tooLarge) return
+        const current = getBuffer(projectId, path)
+        if (!current || (!isDirty(projectId, path) && current.mtimeMs !== data.mtimeMs)) {
+          replaceFromDisk(projectId, path, data.content ?? '', data.mtimeMs)
+          setConflicts((previous) => ({ ...previous, [id]: undefined }))
+        } else if (current.mtimeMs !== data.mtimeMs) {
+          setConflicts((previous) => ({
+            ...previous,
+            [id]: { content: data.content ?? '', mtimeMs: data.mtimeMs },
+          }))
+        } else {
+          setConflicts((previous) => ({ ...previous, [id]: undefined }))
+        }
+      } catch (error) {
+        if (cancelled || sequence !== request.current) return
+        const message = error instanceof Error ? error.message : 'Unable to open file.'
+        if (/Request failed \((404|400)\)/.test(message) && !isDirty(projectId, path))
+          closeRef.current(path)
+        else setFile({ path, error: message })
+      }
+    }
+    void refresh()
+    const onVisible = () => {
+      if (document.visibilityState === 'visible') void refresh()
+    }
+    window.addEventListener('focus', refresh)
+    document.addEventListener('visibilitychange', onVisible)
     return () => {
       cancelled = true
+      window.removeEventListener('focus', refresh)
+      document.removeEventListener('visibilitychange', onVisible)
     }
-  }, [projectId, paths])
-  const file = path ? files[path] : undefined
-  const isMarkdown = /\.(md|markdown)$/i.test(path ?? '')
-  const source = !!sourcePaths[path ?? '']
+  }, [projectId, path, id])
+
+  const save = async (expectedMtimeMs?: number) => {
+    const current = getBuffer(projectId, path)
+    if (!current || saving.current.has(id)) return
+    saving.current.add(id)
+    ++request.current
+    const content = current.draft
+    setErrors((previous) => ({ ...previous, [id]: undefined }))
+    try {
+      const result = await saveExplorerFile(
+        path,
+        content,
+        expectedMtimeMs ?? current.mtimeMs,
+        projectId,
+      )
+      if (result.conflict) setConflicts((previous) => ({ ...previous, [id]: result }))
+      else {
+        markSaved(projectId, path, content, result.mtimeMs)
+        setConflicts((previous) => ({ ...previous, [id]: undefined }))
+      }
+    } catch (error) {
+      setErrors((previous) => ({
+        ...previous,
+        [id]: error instanceof Error ? error.message : 'Unable to save file.',
+      }))
+    } finally {
+      saving.current.delete(id)
+    }
+  }
+
+  const disk = file?.path === path ? file.data : undefined
+  const error = errors[id] ?? (file?.path === path ? file.error : undefined)
+  const unavailable = disk?.binary || disk?.tooLarge
+  const isMarkdown = /\.(md|markdown)$/i.test(path)
+  const source = !!sourcePaths[path]
   return (
     <section
       data-dev-file-panel
       aria-label="File viewer"
       className="flex flex-col flex-1 min-w-0 overflow-hidden bg-app-bg"
     >
-      {isMarkdown && path && (
+      {isMarkdown && !unavailable && (
         <div className="flex justify-end gap-1 p-1 border-b border-app">
           {['Preview', 'Source'].map((label) => (
             <button
               key={label}
               type="button"
               aria-pressed={source === (label === 'Source')}
-              onClick={() => setSourcePaths((prev) => ({ ...prev, [path]: label === 'Source' }))}
+              onClick={() =>
+                setSourcePaths((previous) => ({ ...previous, [path]: label === 'Source' }))
+              }
               className={`px-2 py-1 text-xs rounded-control ${source === (label === 'Source') ? 'bg-app-surface text-app-accent' : 'text-app-muted hover:text-app'}`}
             >
               {label}
@@ -92,26 +141,69 @@ export function DevFilePanel({
           ))}
         </div>
       )}
+      {conflict && (
+        <div
+          data-file-conflict
+          className="flex items-center gap-2 px-3 py-2 border-b border-app text-xs text-app"
+        >
+          <span className="flex-1">Changed on disk</span>
+          <button
+            type="button"
+            className="px-2 py-1 text-app-accent"
+            onClick={() => void save(conflict.mtimeMs)}
+          >
+            Keep mine
+          </button>
+          <button
+            type="button"
+            className="px-2 py-1 text-app-accent"
+            onClick={() => {
+              replaceFromDisk(projectId, path, conflict.content, conflict.mtimeMs)
+              setConflicts((previous) => ({ ...previous, [id]: undefined }))
+            }}
+          >
+            Reload
+          </button>
+        </div>
+      )}
+      {error && (
+        <p role="alert" className="p-3 text-xs text-app-error">
+          {error}
+        </p>
+      )}
       <div className="flex-1 min-h-0 overflow-auto">
-        {!file ? (
-          <p className="p-3 text-xs text-app-muted">Loading…</p>
-        ) : file.error ? (
-          <p role="alert" className="p-3 text-xs text-app-error">
-            {file.error}
-          </p>
+        {unavailable ? (
+          <div
+            data-file-unavailable
+            className="flex h-full items-center justify-center text-xs text-app-muted"
+          >
+            {disk.binary
+              ? 'Binary file — not shown'
+              : `File too large to open (${Math.round(disk.sizeBytes / 1024)} KB)`}
+          </div>
+        ) : !buffer ? (
+          !error && <p className="p-3 text-xs text-app-muted">Loading…</p>
         ) : isMarkdown && !source ? (
           <div data-file-markdown className="p-4 text-sm text-app">
-            <ThreadMarkdown text={file.content ?? ''} streaming={false} />
+            <ThreadMarkdown text={buffer.draft} streaming={false} />
           </div>
         ) : (
-          <FileSource path={path ?? ''} content={file.content ?? ''} />
+          <CodeEditor
+            key={path}
+            path={path}
+            value={buffer.draft}
+            onChange={(text) => setDraft(projectId, path, text)}
+            onSave={() => void save()}
+          />
         )}
       </div>
       <footer
+        data-file-dirty={dirty ? '' : undefined}
         className="shrink-0 border-t border-app px-3 py-1 text-xs text-app-muted font-mono truncate"
-        title={path ?? ''}
+        title={path}
       >
         {path}
+        {dirty && <span className="ml-3">Unsaved</span>}
       </footer>
     </section>
   )

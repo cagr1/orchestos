@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react'
+import React, { useCallback, useEffect, useRef, useState, useSyncExternalStore } from 'react'
 import { flushSync } from 'react-dom'
 import type { TaskClass } from '../../../router/classify'
 import {
@@ -61,6 +61,15 @@ import type { ProjectAddAction } from './components/common/ProjectAddButton'
 import { DevDiffPanel } from './components/dev/DevDiffPanel'
 import { DevFilePanel } from './components/dev/DevFilePanel'
 import { DevSessionTabs } from './components/dev/DevSessionTabs'
+import { DiscardChangesModal } from './components/dev/DiscardChangesModal'
+import {
+  dirtyPaths,
+  drop,
+  getSnapshot,
+  hasDirtyBuffers,
+  isDirty,
+  subscribe,
+} from './components/dev/file-buffers'
 import { openFileTab, openPathTab } from './components/dev/file-tabs'
 import { OpenCodeTerminal } from './components/dev/OpenCodeTerminal'
 import { type HistorySession, OrcaRightInspector } from './components/dev/OrcaRightInspector'
@@ -124,6 +133,26 @@ export default function App() {
   const [activeProjectId, setActiveProjectId] = useState<string>('')
   const [diffRevision, setDiffRevision] = useState(0)
   const [devTabs, setDevTabs] = useState(readSessionTabs)
+  useSyncExternalStore(subscribe, getSnapshot)
+  const dirtyFileTabs = new Set([...dirtyPaths(activeProjectId)].map((path) => `file:${path}`))
+  const [discardTab, setDiscardTab] = useState<{ projectId: string; path: string } | null>(null)
+  useEffect(() => {
+    const beforeUnload = (event: BeforeUnloadEvent) => {
+      if (!hasDirtyBuffers()) return
+      event.preventDefault()
+      event.returnValue = ''
+    }
+    window.addEventListener('beforeunload', beforeUnload)
+    return () => window.removeEventListener('beforeunload', beforeUnload)
+  }, [])
+  const closeDevTab = (projectId: string, id: string) => {
+    if (id.startsWith('file:') && isDirty(projectId, id.slice(5))) {
+      setDiscardTab({ projectId, path: id.slice(5) })
+      return
+    }
+    if (id.startsWith('file:')) drop(projectId, id.slice(5))
+    updateDevTabs(projectId, (tabs) => closeSessionTab(tabs, id))
+  }
   const activeDevTabs = devTabs[activeProjectId] ?? emptySessionTabs()
   const activeDevTab = activeDevTabs.tabs.find((tab) => tab.id === activeDevTabs.activeId)
   const activeAgentId = activeDevTab?.type === 'session' ? activeDevTab.id : null
@@ -137,7 +166,12 @@ export default function App() {
   ) => {
     setDevTabs((current) => ({
       ...current,
-      [projectId]: update(current[projectId] ?? emptySessionTabs()),
+      [projectId]: update({
+        ...(current[projectId] ?? emptySessionTabs()),
+        tabs: (current[projectId]?.tabs ?? []).map((tab) =>
+          tab.type === 'file' && isDirty(projectId, tab.path) ? { ...tab, pinned: true } : tab,
+        ),
+      }),
     }))
   }
   useEffect(() => {
@@ -1632,6 +1666,7 @@ export default function App() {
                   agents={currentProject?.agents ?? []}
                   state={activeDevTabs}
                   runningSessionIds={runningSessionIds}
+                  dirtyFileTabs={dirtyFileTabs}
                   projectId={activeProjectId}
                   onSelect={(id) => {
                     const tab = activeDevTabs.tabs.find((tab) => tab.id === id)
@@ -1641,9 +1676,7 @@ export default function App() {
                   onPin={(request) =>
                     updateDevTabs(activeProjectId, (tabs) => openPathTab(tabs, request))
                   }
-                  onClose={(id) =>
-                    updateDevTabs(activeProjectId, (tabs) => closeSessionTab(tabs, id))
-                  }
+                  onClose={(id) => closeDevTab(activeProjectId, id)}
                   onNew={(action) => {
                     if (action.kind === 'create-session') {
                       handleCreateAgentInProject(activeProjectId, action.agent, '', 'OpenCode')
@@ -1667,11 +1700,7 @@ export default function App() {
                     key={activeProjectId}
                     projectId={activeProjectId}
                     path={activeDevTab.path}
-                    onClose={(path) =>
-                      updateDevTabs(activeProjectId, (tabs) =>
-                        closeSessionTab(tabs, `file:${path}`),
-                      )
-                    }
+                    onClose={(path) => closeDevTab(activeProjectId, `file:${path}`)}
                   />
                 ) : activeDevTab &&
                   activeDevTab.type !== 'terminal' &&
@@ -1811,6 +1840,18 @@ export default function App() {
           }}
         />
       )}
+      <DiscardChangesModal
+        isOpen={!!discardTab}
+        fileName={discardTab?.path.split('/').pop() ?? ''}
+        onClose={() => setDiscardTab(null)}
+        onConfirm={() => {
+          if (!discardTab) return
+          drop(discardTab.projectId, discardTab.path)
+          updateDevTabs(discardTab.projectId, (tabs) =>
+            closeSessionTab(tabs, `file:${discardTab.path}`),
+          )
+        }}
+      />
       {/* Global Command Palette (⌘K) with fully functional handlers */}
       <CommandPalette
         isOpen={isCommandPaletteOpen}

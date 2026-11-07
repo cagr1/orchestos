@@ -28,7 +28,11 @@ import {
 } from './handlers/chat-sessions.ts'
 import { handleApiClisGet, handleApiClisSet } from './handlers/clis.ts'
 import { handleApiConfigGet, handleApiConfigInit, handleApiConfigSet } from './handlers/config.ts'
-import { handleApiExplorerFile, handleApiExplorerTree } from './handlers/explorer.ts'
+import {
+  handleApiExplorerFile,
+  handleApiExplorerTree,
+  handleApiExplorerWrite,
+} from './handlers/explorer.ts'
 import { handleApiGitChanges, handleApiGitDiff } from './handlers/git-changes.ts'
 import {
   handleApiInstincts,
@@ -580,6 +584,9 @@ export async function route(req: Request, port: number): Promise<Response> {
   }
   if (method === 'GET' && url.pathname === '/api/explorer/file') {
     return withDashboardProject(req, (project) => handleApiExplorerFile(url, project.root))
+  }
+  if (method === 'PUT' && url.pathname === '/api/explorer/file') {
+    return withDashboardProject(req, (project) => handleApiExplorerWrite(req, project.root))
   }
 
   if (method === 'GET') {
