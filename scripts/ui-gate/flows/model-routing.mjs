@@ -158,7 +158,17 @@ export default async function modelRouting({ page, api, step, shot, cleanup, exp
     name: `Use ${suggestedName} for unassigned roles`,
     exact: true,
   })
-  await step('installed CLI is proposed for unassigned roles', await suggestionButton.isVisible())
+  let suggestionVisible = true
+  let suggestionDetail = ''
+  try {
+    await suggestionButton.waitFor({ state: 'visible', timeout: 10_000 })
+  } catch {
+    suggestionVisible = false
+    suggestionDetail = JSON.stringify({
+      visibleRoleButtons: await cards.locator('button:visible').allInnerTexts(),
+    })
+  }
+  await step('installed CLI is proposed for unassigned roles', suggestionVisible, suggestionDetail)
   await shot('roles-suggestion')
   await suggestionButton.click()
   await saveConfigAndWait()
@@ -256,10 +266,9 @@ export default async function modelRouting({ page, api, step, shot, cleanup, exp
       JSON.stringify({ height: menuBox?.height, viewportHeight, scrolls: menuScrolls }),
     )
     await search.fill('no-model-can-match')
-    await step(
-      'model search shows the empty state',
-      await reviewerCard.getByText('No models match').isVisible(),
-    )
+    const emptyState = reviewerCard.getByText('No models match')
+    await emptyState.waitFor({ state: 'visible' })
+    await step('model search shows the empty state', await emptyState.isVisible())
     await search.fill(variantModel.id)
     const matchingModelCount = await menu.getByRole('button').count()
     const matchingModelVisible = await menu.locator(`button[title="${variantModel.id}"]`).count()
@@ -275,12 +284,21 @@ export default async function modelRouting({ page, api, step, shot, cleanup, exp
     )
     await search.press('ArrowDown')
     await search.press('Enter')
+    const reviewerEffort = reviewerCard.getByLabel('Reviewer effort')
+    await reviewerEffort.waitFor({ state: 'visible' })
     await step(
       'keyboard selection opens effort for a variant model',
-      await reviewerCard.getByLabel('Reviewer effort').isVisible(),
+      await reviewerEffort.isVisible(),
       JSON.stringify({ model: variantModel.id, efforts: variantModel.efforts }),
     )
-    await reviewerCard.getByLabel('Reviewer effort').click()
+    await reviewerEffort.click()
+    await Promise.all(
+      variantModel.efforts.map((effort) =>
+        page.getByRole('button', { name: effort, exact: true }).last().waitFor({
+          state: 'visible',
+        }),
+      ),
+    )
     await step(
       'effort menu contains only this model variants',
       (
@@ -324,6 +342,11 @@ export default async function modelRouting({ page, api, step, shot, cleanup, exp
       config.roleAssignments[role]?.model === 'gpt-6-luna' &&
       config.roleAssignments[role]?.effort === 'medium',
   )
+  const reviewerWarning = page.getByText(
+    'Same agent and model as Executor: errors may correlate.',
+    { exact: true },
+  )
+  await reviewerWarning.waitFor({ state: 'visible' })
   await step(
     'role assignments persist and reviewer warning appears',
     roleAssignmentsPersisted &&
@@ -342,9 +365,7 @@ export default async function modelRouting({ page, api, step, shot, cleanup, exp
           }),
         )
       ).every(Boolean) &&
-      (await page
-        .getByText('Same agent and model as Executor: errors may correlate.', { exact: true })
-        .isVisible()) &&
+      (await reviewerWarning.count()) > 0 &&
       !(await page.getByText('Source: defaults', { exact: true }).count()),
     JSON.stringify({
       roleAssignments: config.roleAssignments,

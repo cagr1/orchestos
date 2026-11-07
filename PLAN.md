@@ -474,6 +474,13 @@ Propuesta y comparación con las tres referencias: `docs/specs/ADE-PLAN.md`. Uno
   ejecutor no pudo correrla: `EPERM`/`EADDRINUSE` del sandbox).
   Revisión: Opus (diff leído).
   Ejecutado por: codex gpt-6-luna (mecanico) · Spec: docs/specs/CI.67.md (borrado)
+- [x] **CI.68 — `model-routing`: "Use <CLI> for unassigned roles" se mira sin esperar.** (abierto 2026-11-07)
+  Frenó el push de ADE.3 en el pre-push; aislado pasa 24/24. Causa: `model-routing.mjs:161` usaba `isVisible()`
+  inmediato sobre un botón que aparece tras cargar el catálogo. Hecho: espera hasta 10 s y, si falla, el detalle
+  lista los botones visibles de roles; mismo patrón en los hermanos del archivo (estado vacío, esfuerzo del
+  revisor, aviso de correlación). Verde 3 veces seguidas y con `test:coverage` en paralelo.
+  Gate en vivo: navegador real (Playwright), `docs/done/evidence/CI.68/ui-gate-result.json`
+  Ejecutado por: codex gpt-6-luna (mecanico) · Spec: docs/specs/CI.68.md
 - [ ] **CI.19 — El `git commit` del fixture falla a veces en el andamiaje de los ui-gates.** Visto 1 vez en
   `qa-negative` (2026-10-11, 1 de 9): `Command failed: git … commit -qm task fixture`, sin motivo porque el helper
   `run` usa `stdio: 'ignore'`. `qa-negative` ya reporta stdout/stderr y exit; los otros 20 flows con el mismo helper no.
