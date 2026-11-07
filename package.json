@@ -79,6 +79,7 @@
     "bun-plugin-tailwind": "^0.1.2",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
+    "material-icon-theme": "5.40.0",
     "playwright": "^1.63.0",
     "tailwind-merge": "^3.6.0",
     "tailwindcss": "^4.3.3",

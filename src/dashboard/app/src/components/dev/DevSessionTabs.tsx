@@ -1,4 +1,4 @@
-import { FileCode, FileText, GitCompare, Loader2, Plus, SquareTerminal, X } from 'lucide-react'
+import { GitCompare, Loader2, Plus, SquareTerminal, X } from 'lucide-react'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { type CliModelCatalog, getCliModels } from '../../api/chat'
@@ -6,6 +6,7 @@ import { getConfig } from '../../api/settings'
 import type { AgentItem } from '../../types/orchestos'
 import { cliDisplayName } from '../common/AgentComposer'
 import { ProviderLogo } from '../common/ProviderLogos'
+import { FileIcon } from '../ui/file-icon'
 import type { OpenPathRequest } from './file-tabs'
 import { devSessionAction, isFunctionalDevCli } from './new-session-agent'
 import type { SessionTabs } from './session-tabs'
@@ -190,11 +191,11 @@ export function DevSessionTabs({
                 ) : tab.type === 'diff' ? (
                   <GitCompare size={14} className="text-app-accent" />
                 ) : tab.type === 'file' ? (
-                  tab.path.endsWith('.md') ? (
-                    <FileText size={14} className="text-amber-400/80" />
-                  ) : (
-                    <FileCode size={14} className="text-sky-400/80" />
-                  )
+                  <FileIcon
+                    name={tab.path.split('/').pop() ?? tab.path}
+                    kind="file"
+                    className="w-3.5 h-3.5 shrink-0"
+                  />
                 ) : tab.type === 'session' && runningSessionIds.has(tab.id) ? (
                   <span role="img" title="Running" aria-label="Running" className="shrink-0">
                     <Loader2 size={14} className="animate-spin text-app-accent" />

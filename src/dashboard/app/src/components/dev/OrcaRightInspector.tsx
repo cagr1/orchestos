@@ -3,9 +3,6 @@ import {
   ChevronRight,
   Clock,
   Ellipsis,
-  FileCode,
-  FileText,
-  Folder,
   FolderOpen,
   GitCompare,
   History,
@@ -27,6 +24,7 @@ import { type GitChange, getGitChanges } from '../../api/git'
 import type { FileNode, ProjectItem } from '../../types/orchestos'
 import { ProviderLogo } from '../common/ProviderLogos'
 import { ResizableAside } from '../common/ResizableAside'
+import { FileIcon } from '../ui/file-icon'
 import type { OpenPathRequest } from './file-tabs'
 
 export function attachExplorerChildren(
@@ -290,18 +288,17 @@ export const OrcaRightInspector: React.FC<OrcaRightInspectorProps> = ({
                     ) : (
                       <ChevronRight className="w-3.5 h-3.5 text-app-muted flex-shrink-0" />
                     )}
-                    <Folder
-                      className={`w-3.5 h-3.5 flex-shrink-0 ${isExpanded ? 'text-app-accent' : 'text-app-muted'}`}
+                    <FileIcon
+                      name={node.name}
+                      kind="folder"
+                      expanded={isExpanded}
+                      className="w-3.5 h-3.5 flex-shrink-0"
                     />
                   </>
                 ) : (
                   <>
                     <span className="w-3.5" />
-                    {node.name.endsWith('.md') ? (
-                      <FileText className="w-3.5 h-3.5 text-amber-400/80 flex-shrink-0" />
-                    ) : (
-                      <FileCode className="w-3.5 h-3.5 text-sky-400/80 flex-shrink-0" />
-                    )}
+                    <FileIcon name={node.name} kind="file" className="w-3.5 h-3.5 flex-shrink-0" />
                   </>
                 )}
                 <span className="truncate">{node.name}</span>
@@ -528,7 +525,11 @@ export const OrcaRightInspector: React.FC<OrcaRightInspectorProps> = ({
                     selected={activeDiffPath === file.path}
                     onOpen={onOpenDiff}
                   >
-                    <FileCode className="w-3.5 h-3.5 flex-shrink-0 text-app-muted" />
+                    <FileIcon
+                      name={name ?? file.path}
+                      kind="file"
+                      className="w-3.5 h-3.5 flex-shrink-0"
+                    />
                     <span className="text-app truncate">{name}</span>
                     <span className="text-app-muted truncate flex-1">{parts.join('/')}</span>
                     <span className="font-mono text-emerald-400 flex-shrink-0">

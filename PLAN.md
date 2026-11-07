@@ -391,10 +391,19 @@ Cerrada. Todos sus ítems están archivados en `docs/done/` (ver "Cerrados — e
   Ejecutado por: codex gpt-6.1-sol (criterio r1) + gpt-6-luna (mecanico r2) · Spec: docs/specs/SK.3.md
   Texto visible: "Do you write code?" · "I write code" · "I don't write code" (la tarjeta pregunta una vez y se va)
   Texto visible: "I write code" · "Yes" · "No" (fila de Settings → General para cambiarlo después)
-- [ ] **UI.70 — Íconos por tipo de archivo y carpeta en el explorer, como VS Code.** (Carlos 2026-11-07, visto en
+- [x] **UI.70 — Íconos por tipo de archivo y carpeta en el explorer, como VS Code.** (Carlos 2026-11-07, visto en
   MonoCode) Hoy `OrcaRightInspector.tsx:6-9` usa cuatro íconos genéricos de lucide (`FileCode`, `FileText`, `Folder`,
   `FolderOpen`). Propuesta: subconjunto de Material Icon Theme (MIT) como SVG estáticos en `dist/` (no en `main.js`),
   tabla extensión/nombre → ícono, genérico como respaldo; mismo ícono en tabs del editor y diff. Va después de SK.3.
+  Hecho: `build:app` genera `dist/file-icons/manifest.json` desde `generateManifest()` (extensiones, nombres de
+  archivo y carpeta, ya resueltos a SVG) y copia los 1130 SVG referenciados + `LICENSE` (4,9 MB fuera de `main.js`);
+  resolver puro `lib/file-icons.ts` (nombre exacto → extensión compuesta más larga → default); `useFileIcons` hace un
+  solo fetch; `FileIcon` cae al lucide de antes sin manifest. Aplicado en árbol, lista del diff y tabs de archivo.
+  Gates del cerebro: `build:app`, `typecheck`, `lint`, `test:coverage` 2386/0, `dev-session-tabs` 50/50
+  (`gate:evidence` `UI.70-dev-session-tabs`); captura del árbol mirada.
+  Gate en vivo: navegador real (Playwright), `docs/done/evidence/UI.70-live.json`
+  Revisión: Opus (diff de build, resolver, hook, componente y usos leído).
+  Ejecutado por: codex gpt-6.1-sol (criterio) · Spec: docs/specs/UI.70.md
 - [x] **CI.66 — CI rojo desde SK.2: el orden de skills depende del sistema de archivos.** (visto 2026-11-06, CI
   42307722525 y Mutation Shards 42361144282) `SK.2 execution phase instructions > combines primary and two phase
   skills…` espera `phase-a`, `phase-b` y omite `phase-c`; en Linux entró `phase-c`. Causa: `readdirSync` sin ordenar

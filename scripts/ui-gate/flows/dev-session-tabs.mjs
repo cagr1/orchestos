@@ -1,4 +1,4 @@
-import { mkdtempSync, rmSync, unlinkSync, writeFileSync } from 'node:fs'
+import { mkdirSync, mkdtempSync, rmSync, unlinkSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { basename, join, resolve } from 'node:path'
 import { run, writeGateRoles } from '../lib.mjs'
@@ -52,10 +52,13 @@ for (const probe of [systemCliDiscoveryProbe, systemCliHealthProbe]) {
   await restartDashboard()
   writeFileSync(join(root, 'README.md'), '# Dev session tabs\n')
   writeFileSync(join(root, 'notes.txt'), 'Preview only\n')
+  writeFileSync(join(root, 'package.json'), '{}\n')
+  mkdirSync(join(root, 'src'))
+  writeFileSync(join(root, 'src', 'index.ts'), 'export {}\n')
   writeFileSync(join(root, '.gitignore'), 'ignored.txt\n')
   writeFileSync(join(root, 'ignored.txt'), 'Ignored but visible\n')
   run('git', ['init', '-q'], root)
-  run('git', ['add', 'README.md', 'notes.txt', '.gitignore'], root)
+  run('git', ['add', 'README.md', 'notes.txt', '.gitignore', 'package.json', 'src'], root)
   run(
     'git',
     [
@@ -189,6 +192,39 @@ for (const probe of [systemCliDiscoveryProbe, systemCliHealthProbe]) {
   )
   await shot('session-tabs')
   await page.screenshot({ path: '/tmp/UI.52-dev-markdown.png' })
+  const packageIcon = treeFile('package.json').locator('img[src$="nodejs.svg"]')
+  const srcFolder = page.getByRole('button', { name: 'src', exact: true })
+  const srcIcon = srcFolder.locator('img[src$="folder-src.svg"]')
+  await packageIcon.waitFor()
+  await srcIcon.waitFor()
+  await Promise.all([
+    packageIcon.evaluate((img) => img.decode()),
+    srcIcon.evaluate((img) => img.decode()),
+  ])
+  await step(
+    'explorer uses Material icons for exact filenames and folders',
+    (await visible(packageIcon)) &&
+      (await visible(srcIcon)) &&
+      (await packageIcon.evaluate((img) => img.complete && img.naturalWidth > 0)) &&
+      (await srcIcon.evaluate((img) => img.complete && img.naturalWidth > 0)),
+    'package.json: nodejs.svg; src: folder-src.svg; both SVGs loaded',
+  )
+  await shot('file-icons-tree')
+  await srcFolder.click()
+  await srcFolder.locator('img[src$="folder-src-open.svg"]').waitFor()
+  await step(
+    'expanded folder uses its open Material icon',
+    await visible(srcFolder.locator('img[src$="folder-src-open.svg"]')),
+    'src: folder-src-open.svg',
+  )
+  await srcFolder.click()
+  await treeFile('package.json').click()
+  await fileTab('package.json').locator('img[src$="nodejs.svg"]').waitFor()
+  await step(
+    'file tab shares the explorer icon',
+    await visible(fileTab('package.json').locator('img[src$="nodejs.svg"]')),
+    'package.json tab: nodejs.svg',
+  )
   await treeFile('README.md').click()
   await step(
     'Files dims and italicizes git ignored entries but keeps tracked files unmarked',
