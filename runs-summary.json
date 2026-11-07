@@ -1,7 +1,52 @@
 {
-  "exported_at": "2026-11-07T19:46:14.934Z",
+  "exported_at": "2026-11-07T20:19:31.416Z",
   "total_runs": 20,
   "runs": [
+    {
+      "id": "58c6c87d-5d68-4fca-b549-d634a9a42071",
+      "task_class": "gate:ade.1-qa-negative-rerun:implement",
+      "model": "openai/gpt-6-luna",
+      "provider": "codex",
+      "status": "failed",
+      "qa_verdict": "fail",
+      "qa_reason": "nota.txt contains ROJO, but the criterion requires AZUL.",
+      "files_blocked": [],
+      "checks_failed": 0,
+      "usd_cost": 0.0012214,
+      "elapsed_ms": 14548,
+      "tokens": 7582,
+      "created_at": "2026-11-07T20:07:19.096Z"
+    },
+    {
+      "id": "8cd1a810-f809-4688-9c2a-6909f2063331",
+      "task_class": "gate:ade.1-qa-negative-rerun:implement",
+      "model": "anthropic/haiku",
+      "provider": "claude",
+      "status": "done",
+      "qa_verdict": "pass",
+      "qa_reason": "claude.txt contains the required line, and the reported exact-line check passed.",
+      "files_blocked": [],
+      "checks_failed": 0,
+      "usd_cost": 0.0016609200000000002,
+      "elapsed_ms": 10686,
+      "tokens": 3942,
+      "created_at": "2026-11-07T20:07:03.033Z"
+    },
+    {
+      "id": "d013bc7a-1201-41e4-86d0-3450ac3ea454",
+      "task_class": "gate:ade.1-qa-negative-rerun:implement",
+      "model": "openai/gpt-6-luna",
+      "provider": "codex",
+      "status": "done",
+      "qa_verdict": "pass",
+      "qa_reason": "ok.txt contains the required line, and the declared grep check passed.",
+      "files_blocked": [],
+      "checks_failed": 0,
+      "usd_cost": 0.0017591,
+      "elapsed_ms": 17513,
+      "tokens": 11455,
+      "created_at": "2026-11-07T20:06:50.135Z"
+    },
     {
       "id": "4d3f3b8d-2a08-45c8-a21c-b0889e3278bf",
       "task_class": "gate:sk.2-skills-library:implement",
@@ -256,58 +301,13 @@
       "elapsed_ms": 21084,
       "tokens": 7505,
       "created_at": "2026-11-06T14:05:57.542Z"
-    },
-    {
-      "id": "623db520-c93a-42b8-9a26-bf4224db52e7",
-      "task_class": "gate:ci.63-chat-retry-report:implement",
-      "model": "gpt-6-luna",
-      "provider": "codex",
-      "status": "failed",
-      "qa_verdict": "fail",
-      "qa_reason": "check failed: bunx tsc --noEmit exit 2 (expected 0)\n--- stdout (tail) ---\nbroken.ts(1,7): error TS2322: Type 'string' is not assignable to type 'number'.\n",
-      "files_blocked": [],
-      "checks_failed": 1,
-      "usd_cost": 0.0009815,
-      "elapsed_ms": 19072,
-      "tokens": 4751,
-      "created_at": "2026-11-06T14:05:11.316Z"
-    },
-    {
-      "id": "b46baec7-363a-4d1e-95b2-2190fe805881",
-      "task_class": "gate:ci.55-fase2-tasks:implement",
-      "model": "openai/gpt-6-luna",
-      "provider": "codex",
-      "status": "failed",
-      "qa_verdict": "fail",
-      "qa_reason": "check failed: bun -e 'console.error(\"TRUST1-MARKER\"),process.exit(1)' exit 1 (expected 0)\n--- stderr (tail) ---\nTRUST1-MARKER\n",
-      "files_blocked": [],
-      "checks_failed": 1,
-      "usd_cost": 0.0004215,
-      "elapsed_ms": 5467,
-      "tokens": 2983,
-      "created_at": "2026-11-06T02:08:33.158Z"
-    },
-    {
-      "id": "c788c97e-70d5-45d6-84b5-45a317339612",
-      "task_class": "gate:ci.55-fase2-tasks:implement",
-      "model": "gpt-6-luna",
-      "provider": "codex",
-      "status": "done",
-      "qa_verdict": "skipped",
-      "qa_reason": "Sin revisión LLM y sin checks: nada verificó esta tarea",
-      "files_blocked": [],
-      "checks_failed": 0,
-      "usd_cost": 0.0009101000000000001,
-      "elapsed_ms": 8468,
-      "tokens": 6161,
-      "created_at": "2026-11-06T02:08:25.521Z"
     }
   ],
   "stats": {
-    "failed": 7,
+    "failed": 6,
     "blocked": 0,
-    "done": 13,
-    "qa_failed": 7,
-    "total_cost_usd": "0.0220"
+    "done": 14,
+    "qa_failed": 6,
+    "total_cost_usd": "0.0243"
   }
 }

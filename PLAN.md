@@ -91,7 +91,7 @@ Propuesta y comparación con las tres referencias: `docs/specs/ADE-PLAN.md`. Uno
   Gate en vivo: navegador real (Playwright), `docs/done/evidence/ADE.1-live.json` y `docs/done/evidence/ADE.1/`
   Ejecutado por: codex gpt-6.1-sol (criterio) + gpt-6-luna (mecanico, 2 correcciones) · Spec: docs/specs/ADE.1.md
   Texto visible: "Unsaved", "Changed on disk", "Keep mine", "Reload", "Discard unsaved changes to <name>?", "Cancel", "Discard", "Loading…" (ya existía, cambia de línea), "Binary file — not shown", "File too large to open (<N> KB)" (estado y decisiones que un ícono no explica)
-- [ ] **ADE.2 — Settings → Editor: auto-guardado, ajuste de línea, tamaño de fuente.** Depende de ADE.1.
+- [ ] **ADE.2 — Settings → Editor: auto-guardado, ajuste de línea, tamaño de fuente.** Depende de ADE.1. Spec: `docs/specs/ADE.2.md`.
 - [ ] **ADE.3 — Atajos reales: registro central de comandos, de 2 a ~20.**
 - [ ] **ADE.4 — Reasignar atajos grabando las teclas (MonoCode).** Depende de ADE.3.
 - [ ] **ADE.5 — Settings → Chat: Enter o ⌘Enter, escribir mientras el agente trabaja, confirmar archivar/borrar.**
