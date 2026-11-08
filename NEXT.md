@@ -1,4 +1,4 @@
-# NEXT — handoff 2026-11-08 (bloque ADE y CI.70 cerrados; sigue el desacople del método personal)
+# NEXT — handoff 2026-11-08 (bloque ADE, CI.70 y CI.71 cerrados; lote terminado)
 
 Un solo presente: orden y trampas vivas del lote. Lo cerrado vive en `docs/done/bloque-*.md` y git; las reglas, en
 `AGENTS.md`. Versión anterior completa: `docs/done/poda-instrucciones-2026-11-03.md` (histórico).
@@ -22,12 +22,10 @@ Arranque: `bun run agent:preflight -- --item <ID> --agent claude`. Lista viva: `
 1b. Hecho CI.70 (GO de Carlos 2026-11-08): cada prueba corre una vez (`AGENTS.md` § Gates); pre-push sin flujos;
    todos los flujos a las 01:30 en local, resultado en el startup-guard. Mañana: leer el aviso de arranque y resolver
    lo rojo/flaky antes del siguiente ítem. Primera corrida completa: noche del 2026-11-08 (duración aún sin medir).
-2. **Desacople del método personal** (GO de Carlos, después de SK.1–3; ahora en cola tras el bloque ADE salvo que
-   Carlos diga otra cosa): reescribir `AGENTS.md`, hooks `.claude/` (`brain-no-code.js:16`, `subagent-budget.js:156`,
-   `context-budget.js:30`), `docs/roadmaps/` y fixtures sin `agent-method`/`delegate`/Sol/Luna/vault; plan en
-   `docs/specs/LIMPIEZA-2.md` § 2.
-3. Mutación nocturna: la del 2026-11-08 (42469416136, sobre `82ea836`) tuvo 4 shards rojos por 504 de GitHub al bajar
-   Bun en `setup-bun` (infra, no código); re-run de los fallidos lanzado, sin resultado al cerrar: mirarlo. Propuesto a Carlos, sin GO: mostrar al arrancar el resultado de la última corrida.
+2. Hecho CI.71 `51a8e03d` (desacople del método personal, `docs/specs/LIMPIEZA-2.md` § 2): reglas, hooks, roadmaps y
+   fixtures sin `~/.agent-method`, alias de modelos ni vault. Se quedan a propósito: `delegate` en
+   `scripts/writer-lock.mjs`, aislamiento de `~/.claude` en `qa-negative`/`cli-registry`, historia en `IDEAS.md`/`docs/done/`.
+3. Mutación 42469416136: el re-run terminó verde (todos los shards). Desde CI.70 no se vigila en sesión.
 4. **Esperan su próximo fallo**: CI.69 (`usage-bar`, Enter sin envío; ver ítem); CI.57 `composer-picker-model-missing.json`; CI.54 `turn1-bubble-missing.json`; CI.19;
    CI.55 (`role-task-missing-output-attempt-<n>.json`). Leer el JSON el mismo día: CI.62 borra el `runDir` a las 24 h.
 5. Cabos sueltos de la sesión SK.1/SK.2 (2026-11-06/07):
