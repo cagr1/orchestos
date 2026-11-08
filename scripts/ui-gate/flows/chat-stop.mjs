@@ -145,7 +145,7 @@ export default async function chatStop({ page, api, step, shot, visible, cleanup
       `turn=${live.live.turnId}; partial=${live.live.text.length}`,
     )
 
-    // Enter must leave the in-flight response running.
+    // Enter queues a draft without interrupting the in-flight response.
     const composer = page.locator('textarea').last()
     await composer.fill('This draft must not interrupt or send')
     let extraPosts = 0
@@ -161,11 +161,13 @@ export default async function chatStop({ page, api, step, shot, visible, cleanup
     await page.waitForTimeout(400)
     page.off('request', countPost)
     await step(
-      `${view}: Enter while busy neither sends nor stops`,
+      `${view}: Enter while busy queues without concurrent POST or Stop`,
       extraPosts === 0 &&
+        (await page.locator('[data-queued-message]').count()) === 1 &&
         (await page.getByRole('button', { name: 'Stop response', exact: true }).isEnabled()),
       `posts=${extraPosts}`,
     )
+    await page.getByRole('button', { name: 'Remove queued message', exact: true }).click()
     await composer.fill('')
 
     // Observe transient Stopping in the browser even if the CLI aborts between two polls.

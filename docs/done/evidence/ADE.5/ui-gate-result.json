@@ -1,0 +1,627 @@
+[
+  {
+    "flujo": "chat-settings",
+    "pass": true,
+    "steps": [
+      {
+        "nombre": "Settings Chat shows its four rows",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "send key persists after reload",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "Enter inserts newline in modifier mode without POST",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "modifier Enter sends",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "busy sends queue locally and clear the textarea",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "two retained queue messages send in order after each preceding turn, without 409",
+        "ok": true,
+        "detalle": "{\"posts\":[{\"sessionId\":\"539ad5ec-66ff-47db-9b2f-ed12225a5962\",\"history\":[],\"message\":\"Responde únicamente: primero\",\"requestKey\":\"c61de565-8d77-4e74-a9cf-854cbc20ae3f\",\"approvalMode\":\"auto-edit\",\"agent\":\"claude\",\"model\":\"claude-haiku-5-5\",\"effort\":\"low\"},{\"sessionId\":\"539ad5ec-66ff-47db-9b2f-ed12225a5962\",\"history\":[],\"message\":\"Cuenta del 1 al 300 en palabras, un número por línea, sin usar herramientas ni escribir archivos.\",\"requestKey\":\"dc646c8f-5977-4aeb-9e32-2de6a3e50d25\",\"approvalMode\":\"auto-edit\",\"agent\":\"claude\",\"model\":\"claude-haiku-5-5\",\"effort\":\"low\"},{\"sessionId\":\"539ad5ec-66ff-47db-9b2f-ed12225a5962\",\"history\":[],\"message\":\"Responde únicamente: encolado\",\"requestKey\":\"0d543634-7472-4acd-932f-d472e248efd3\",\"approvalMode\":\"auto-edit\",\"agent\":\"claude\",\"model\":\"claude-haiku-5-5\",\"effort\":\"low\"},{\"sessionId\":\"539ad5ec-66ff-47db-9b2f-ed12225a5962\",\"history\":[],\"message\":\"Responde únicamente: segundo encolado\",\"requestKey\":\"87ca9f95-79d1-4598-b455-b4b356d15ac1\",\"approvalMode\":\"auto-edit\",\"agent\":\"claude\",\"model\":\"claude-haiku-5-5\",\"effort\":\"low\"}],\"responses\":[{\"ok\":true,\"status\":200},{\"ok\":true,\"status\":200},{\"ok\":true,\"status\":200},{\"ok\":true,\"status\":200}],\"concurrent\":false}"
+      },
+      {
+        "nombre": "queued message used its original thread",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "both queued user bubbles appear",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "Stop and send stops first turn then sends the queue",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "confirmation initially focuses Cancel",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "Cancel preserves chat",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "Delete confirms mutation",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "new thread keeps its queued message visible",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "new thread drains into the same session after its first turn",
+        "ok": true,
+        "detalle": "{\"posts\":[{\"sessionId\":\"c0451557-ba2a-4dd8-9ff1-eb9c0eb3c1c7\",\"history\":[],\"message\":\"Cuenta del 1 al 300 en palabras, un número por línea, sin usar herramientas ni escribir archivos.\",\"requestKey\":\"7e36f611-4165-483e-89e5-36df0c2acb59\",\"approvalMode\":\"auto-edit\",\"agent\":\"claude\",\"model\":\"claude-haiku-5-5\",\"effort\":\"low\"},{\"sessionId\":\"c0451557-ba2a-4dd8-9ff1-eb9c0eb3c1c7\",\"history\":[],\"message\":\"Responde únicamente: encolado en hilo nuevo\",\"requestKey\":\"ad845eae-6808-4053-adb1-4373bd12e363\",\"approvalMode\":\"auto-edit\",\"agent\":\"claude\",\"model\":\"claude-haiku-5-5\",\"effort\":\"low\"}],\"responses\":[{\"ok\":true,\"status\":200},{\"ok\":true,\"status\":200}],\"concurrent\":false}"
+      },
+      {
+        "nombre": "new thread queued user bubble appears",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "Don't ask again skips the next confirmation",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "Close agent asks before archiving",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "Escape cancels archive",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "Enter confirms archive",
+        "ok": true,
+        "detalle": "ok"
+      }
+    ],
+    "notes": [],
+    "errores": [],
+    "capturas": [
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-78313/chat-settings/settings-chat.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-78313/chat-settings/queued-message.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-78313/chat-settings/delete-confirmation.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-78313/chat-settings/new-thread-queued-message.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-78313/chat-settings/new-thread-queue-completed.png"
+    ]
+  },
+  {
+    "flujo": "chat-stop",
+    "pass": true,
+    "steps": [
+      {
+        "nombre": "Chat: live text before Stop",
+        "ok": true,
+        "detalle": "turn=5880624a-e0d5-44da-9415-bbc1208c7f22; partial=33"
+      },
+      {
+        "nombre": "Chat: Enter while busy queues without concurrent POST or Stop",
+        "ok": true,
+        "detalle": "posts=0"
+      },
+      {
+        "nombre": "Chat: Stop sends the current turnId",
+        "ok": true,
+        "detalle": "5880624a-e0d5-44da-9415-bbc1208c7f22"
+      },
+      {
+        "nombre": "Chat: POST completes as stopped",
+        "ok": true,
+        "detalle": "{\"text\":\"uno\\ndos\\ntres\\ncuatro\\ncinco\\nseis\\nsiete\\nocho\\nnueve\\ndiez\\nonce\\ndoce\\ntrece\\ncatorce\\nquince\\ndieciséis\\ndiecisiete\\ndieciocho\\ndiecinueve\\nveinte\\nveintiuno\\nveintidós\\nveintitrés\\nvein"
+      },
+      {
+        "nombre": "Chat: Stopping was visible and disabled",
+        "ok": true,
+        "detalle": "MutationObserver sampled stopping button"
+      },
+      {
+        "nombre": "Chat: stopped mark visible",
+        "ok": true,
+        "detalle": "Respuesta detenida"
+      },
+      {
+        "nombre": "Chat: persisted partial is stopped",
+        "ok": true,
+        "detalle": "length=428"
+      },
+      {
+        "nombre": "Chat: partial does not grow for 5 s",
+        "ok": true,
+        "detalle": "partial=428"
+      },
+      {
+        "nombre": "Chat: cancelled Claude session cannot resume",
+        "ok": true,
+        "detalle": "{\"session\":{\"claude_session_id\":null},\"turns\":[{\"status\":\"cancelled\"}]}"
+      },
+      {
+        "nombre": "Chat: second turn in same session completes normally",
+        "ok": true,
+        "detalle": "{\"body\":{\"text\":\"listo\",\"model\":\"claude-haiku-5-5 via Claude Code CLI (effort: low)\",\"readAudit\":{\"version\":1,\"source\":\"claude-stream\",\"coverage\":\"explicit-tools-only\",\"completeness\":\"complete\",\"tools\":[\"Read\",\"Grep\",\"Glob\"],\"limitations\":[\"implicit-reads-not-observed\",\"search-file-set-not-observed\"],\"issues\":[],\"operations\":[]},\"taskSuggestion\":{\"isTask\":false,\"reason\":\"\"},\"autoTask\":null,\"autoTaskSkipped\":false},\"state\":{\"session\":{\"claude_session_id\":\"5e0695cd-4a7d-4b18-9528-60af718d7d27\"},\"turns\":[{\"status\":\"cancelled\"},{\"status\":\"completed\"}]}}"
+      },
+      {
+        "nombre": "Chat: second answer appears in thread",
+        "ok": true,
+        "detalle": "second response rendered"
+      },
+      {
+        "nombre": "Dev: live text before Stop",
+        "ok": true,
+        "detalle": "turn=ad6dd902-cbea-47c4-a665-ccbb5ec6c75a; partial=5"
+      },
+      {
+        "nombre": "Dev: Enter while busy queues without concurrent POST or Stop",
+        "ok": true,
+        "detalle": "posts=0"
+      },
+      {
+        "nombre": "Dev: Stop sends the current turnId",
+        "ok": true,
+        "detalle": "ad6dd902-cbea-47c4-a665-ccbb5ec6c75a"
+      },
+      {
+        "nombre": "Dev: POST completes as stopped",
+        "ok": true,
+        "detalle": "{\"text\":\"uno\\ndos\\ntres\\ncuatro\\ncinco\\nseis\\nsiete\\nocho\\nnueve\\ndiez\\nonce\\ndoce\\ntrece\\ncatorce\\nquince\\ndieciséis\\ndiecisiete\\ndieciocho\\ndiecinueve\\nveinte\\nveintiuno\\nveintidós\\nveintitrés\\nvein"
+      },
+      {
+        "nombre": "Dev: Stopping was visible and disabled",
+        "ok": true,
+        "detalle": "MutationObserver sampled stopping button"
+      },
+      {
+        "nombre": "Dev: stopped mark visible",
+        "ok": true,
+        "detalle": "Respuesta detenida"
+      },
+      {
+        "nombre": "Dev: persisted partial is stopped",
+        "ok": true,
+        "detalle": "length=302"
+      },
+      {
+        "nombre": "Dev: partial does not grow for 5 s",
+        "ok": true,
+        "detalle": "partial=302"
+      },
+      {
+        "nombre": "Dev: cancelled Claude session cannot resume",
+        "ok": true,
+        "detalle": "{\"session\":{\"claude_session_id\":null},\"turns\":[{\"status\":\"cancelled\"}]}"
+      },
+      {
+        "nombre": "Dev: second turn in same session completes normally",
+        "ok": true,
+        "detalle": "{\"body\":{\"text\":\"listo\",\"model\":\"claude-haiku-5-5 via Claude Code CLI (effort: high)\",\"readAudit\":{\"version\":1,\"source\":\"claude-stream\",\"coverage\":\"explicit-tools-only\",\"completeness\":\"complete\",\"tools\":[\"Read\",\"Grep\",\"Glob\"],\"limitations\":[\"implicit-reads-not-observed\",\"search-file-set-not-observed\"],\"issues\":[],\"operations\":[]},\"taskSuggestion\":{\"isTask\":false,\"reason\":\"\"},\"autoTask\":null,\"autoTaskSkipped\":false},\"state\":{\"session\":{\"claude_session_id\":\"5daea833-15c2-43eb-a058-f123d508f933\"},\"turns\":[{\"status\":\"cancelled\"},{\"status\":\"completed\"}]}}"
+      },
+      {
+        "nombre": "Dev: second answer appears in thread",
+        "ok": true,
+        "detalle": "second response rendered"
+      }
+    ],
+    "notes": [],
+    "errores": [],
+    "capturas": [
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-78313/chat-stop/chat-stopped.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-78313/chat-stop/chat-second-turn.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-78313/chat-stop/dev-stopped.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-78313/chat-stop/dev-second-turn.png"
+    ]
+  },
+  {
+    "flujo": "chat-streaming",
+    "pass": true,
+    "steps": [
+      {
+        "nombre": "temporary project visible",
+        "ok": true,
+        "detalle": "orchestos-ui-mr-1-d4-rFBpR2"
+      },
+      {
+        "nombre": "Claude option available",
+        "ok": true,
+        "detalle": "Start New Chat with Agent\nConversation Topic or Title (Optional)\nProject\nNo projectorchestos-ui-mr-1-d4-rFBpR2\nSelect Agent / Engine\nClaude Code\nCodex\nCancel\nStart Chat"
+      },
+      {
+        "nombre": "first assistant text appears before completion",
+        "ok": true,
+        "detalle": "t_first=4840 ms; t_done=7519 ms"
+      },
+      {
+        "nombre": "visible text grows at least twice before completion",
+        "ok": true,
+        "detalle": "7 growth updates (rAF); poll saw 7"
+      },
+      {
+        "nombre": "live bubble stays at the bottom",
+        "ok": true,
+        "detalle": "8 growth measurements; remained at bottom: true"
+      },
+      {
+        "nombre": "captured screenshot during active turn",
+        "ok": true,
+        "detalle": "chat-text-visible-mid-turn"
+      },
+      {
+        "nombre": "working-indicator-names-phase",
+        "ok": true,
+        "detalle": "indicator text: \"Thinking 0 s\""
+      },
+      {
+        "nombre": "working-indicator-gone",
+        "ok": true,
+        "detalle": "indicator removed after 256 ms"
+      },
+      {
+        "nombre": "one assistant bubble matches persisted response",
+        "ok": true,
+        "detalle": "bubbles=1; persisted=1; visible=uno dos tres cuatro cinco seis siete ocho nueve diez once doce trece catorce qui"
+      },
+      {
+        "nombre": "new messages enter with data-entered=animate",
+        "ok": true,
+        "detalle": "animated kinds=user,assistant; events=[{\"id\":1,\"position\":0,\"kind\":\"user\"},{\"id\":2,\"position\":1,\"kind\":\"assistant\"}]"
+      },
+      {
+        "nombre": "no message animates its entrance twice",
+        "ok": true,
+        "detalle": "events=[{\"id\":1,\"position\":0,\"kind\":\"user\"},{\"id\":2,\"position\":1,\"kind\":\"assistant\"}]"
+      },
+      {
+        "nombre": "context ring reflects thread",
+        "ok": true,
+        "detalle": "used=7148, window=1000000, pct=0.7148"
+      },
+      {
+        "nombre": "context ring recalculates on model change",
+        "ok": true,
+        "detalle": "model=claude-haiku-4-5-20251001, expected pct=3.5740000000000003, ring=Context window usage: 3.5740000000000003%"
+      },
+      {
+        "nombre": "Chat composer empty during sampled turn",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "Chat DOM order during sampled turn is previous assistant, user, live assistant",
+        "ok": true,
+        "detalle": "{\"liveCount\":1,\"order\":[\"Escribe los números del 1 al 120 en palabras, uno \",\"uno dos tres cuatro cinco seis siete ocho nueve di\",\"Escribe los números del 41 al 80 en palabras, uno \",\"cuarenta y uno cuarenta y dos cuarenta\"]}"
+      },
+      {
+        "nombre": "Chat turn 2 was sampled while pending",
+        "ok": true,
+        "detalle": "1 long turn(s) sent; pending composer and live DOM order sampled"
+      },
+      {
+        "nombre": "Chat bubbles alternate for every sent turn",
+        "ok": true,
+        "detalle": "[\"Escribe los números del 1 al 120 en palabras, uno \",\"uno dos tres cuatro cinco seis siete ocho nueve di\",\"Escribe los números del 41 al 80 en palabras, uno \",\"cuarenta y uno cuarenta y dos cuarenta y tres cuar\"]"
+      },
+      {
+        "nombre": "Chat user bubbles contain no agent text or step markup",
+        "ok": true,
+        "detalle": "user bubbles=2"
+      },
+      {
+        "nombre": "Chat exchange order remains correct after reload",
+        "ok": true,
+        "detalle": "messages=4"
+      },
+      {
+        "nombre": "thread-font-inter",
+        "ok": true,
+        "detalle": "font-family=\"Inter Variable\", system-ui, -apple-system, \"system-ui\", \"Segoe UI\", Roboto, \"Noto Sans\", Ubuntu, Cantarell, \"Helvetica Neue\", sans-serif"
+      },
+      {
+        "nombre": "thread-body-14px",
+        "ok": true,
+        "detalle": "font-size=14px"
+      },
+      {
+        "nombre": "thread-assistant-unboxed",
+        "ok": true,
+        "detalle": "ancestors=[{\"backgroundColor\":\"rgba(0, 0, 0, 0)\",\"borderTopWidth\":\"0px\",\"boxShadow\":\"none\"},{\"backgroundColor\":\"rgba(0, 0, 0, 0)\",\"borderTopWidth\":\"0px\",\"boxShadow\":\"none\"},{\"backgroundColor\":\"rgba(0, 0, 0, 0)\",\"borderTopWidth\":\"0px\",\"boxShadow\":\"none\"}]"
+      },
+      {
+        "nombre": "thread-user-bubble-visible",
+        "ok": true,
+        "detalle": "bubble={\"found\":true,\"backgroundColor\":\"oklab(0.249498 -0.00229985 -0.0147313)\",\"opaque\":true,\"userBubbleL\":20.537404286089497,\"backgroundL\":12.733002212579532,\"difference\":7.804402073509966}"
+      },
+      {
+        "nombre": "thread-no-decoration",
+        "ok": true,
+        "detalle": "animate-ping=0, gradients=0, bot-icons=0, user-icons=0"
+      },
+      {
+        "nombre": "after reload every message is static",
+        "ok": true,
+        "detalle": "modes=[\"static\",\"static\",\"static\",\"static\"]"
+      },
+      {
+        "nombre": "reduced motion: response arrives with opacity 1 and no transform within 100 ms",
+        "ok": true,
+        "detalle": "samples=[{\"kind\":\"user\",\"opacity\":\"1\",\"transform\":\"none\"},{\"kind\":\"assistant\",\"opacity\":\"1\",\"transform\":\"none\"}]"
+      },
+      {
+        "nombre": "Dev renders text during generation before completion",
+        "ok": true,
+        "detalle": "t_first=1600 ms; t_done=2482 ms; visible=Uno, dos, tres, cuatro, cinco."
+      }
+    ],
+    "notes": [],
+    "errores": [],
+    "capturas": [
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-78313/chat-streaming/chat-text-visible-mid-turn.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-78313/chat-streaming/thread-hierarchy.png"
+    ]
+  },
+  {
+    "flujo": "codex-live",
+    "pass": true,
+    "steps": [
+      {
+        "nombre": "temporary project visible",
+        "ok": true,
+        "detalle": "orchestos-ui-codex-live-0AUiX4"
+      },
+      {
+        "nombre": "Codex agent available",
+        "ok": true,
+        "detalle": "Codex option"
+      },
+      {
+        "nombre": "turn 1 user message appears before completion",
+        "ok": true,
+        "detalle": "20 ms after send"
+      },
+      {
+        "nombre": "turn 1 streams multiple visible text updates",
+        "ok": true,
+        "detalle": "6 distinct non-empty samples before completion; sessionId=96a44905-dc76-4215-b7ed-29fafb54d841; threadId=01a1b8c2-be46-7170-b6dd-5796ad531f0d; first delta=4629 ms; complete=6301 ms; deltas=84; backend window=1672 ms"
+      },
+      {
+        "nombre": "turn 1 working indicator stops after completion",
+        "ok": true,
+        "detalle": "0 working indicators remain"
+      },
+      {
+        "nombre": "turn 2 DOM order is assistant 1, user 2, live assistant 2 while generating",
+        "ok": true,
+        "detalle": "[\"Remember the word ZEBRA-2PZ6Z7LC. Reply in ten sho\",\"Mangoes grow on trees in warm climates.\\n\\nThey are \",\"What word did I ask you to remember? Start with it\",\"ZEBRA-2PZ6Z7LC\\n\\nMangoes are tropical fruit that gr\"]; first answer=Mangoes grow on trees in warm climates. They are known as tropical fruit. Ripe m"
+      },
+      {
+        "nombre": "turn 2 remembers the word from turn 1",
+        "ok": true,
+        "detalle": "ZEBRA-2PZ6Z7LC\n\nMangoes are tropical fruit that grow on trees in warm climates.\n\nTheir juicy flesh can taste sweet and fragrant when ripe.\n\nEnjoy mangoes fresh, in smoothies, or with a squeeze of lime."
+      },
+      {
+        "nombre": "turn 2 working indicator stops after completion",
+        "ok": true,
+        "detalle": "0 working indicators remain"
+      },
+      {
+        "nombre": "both exchanges remain visible in order after turn 2",
+        "ok": true,
+        "detalle": "user bubbles=2; assistant bubbles=2; first answer=Mangoes grow on trees in warm climates. They are known as tropical fruit. Ripe m"
+      },
+      {
+        "nombre": "timeline DOM alternates user 1, assistant 1, user 2, assistant 2",
+        "ok": true,
+        "detalle": "indices=[0,1,2,3]; secondMidTurn=true; [\"Remember the word ZEBRA-2PZ6Z7LC. Reply in ten sho\",\"Mangoes grow on trees in warm climates.\\n\\nThey are \",\"What word did I ask you to remember? Start with it\",\"ZEBRA-2PZ6Z7LC\\n\\nMangoes are tropical fruit that gr\"]"
+      },
+      {
+        "nombre": "user bubbles contain no agent markup or response text",
+        "ok": true,
+        "detalle": "2 user bubbles checked; first answer=Mangoes grow on trees in warm climates. They are known as tropical fruit. Ripe m"
+      },
+      {
+        "nombre": "timeline DOM alternates user 1, assistant 1, user 2, assistant 2 after reload",
+        "ok": true,
+        "detalle": "indices=[0,1,2,3]; secondMidTurn=true; user bubbles=2; assistant bubbles=2; [\"Remember the word ZEBRA-2PZ6Z7LC. Reply in ten sho\",\"Mangoes grow on trees in warm climates.\\n\\nThey are \",\"What word did I ask you to remember? Start with it\",\"ZEBRA-2PZ6Z7LC\\n\\nMangoes are tropical fruit that gr\"]"
+      },
+      {
+        "nombre": "turn 2 reuses the same Codex thread",
+        "ok": true,
+        "detalle": "{\"turn1\":6474,\"turn2\":2182,\"sessionId\":\"96a44905-dc76-4215-b7ed-29fafb54d841\",\"firstThreadId\":\"01a1b8c2-be46-7170-b6dd-5796ad531f0d\",\"secondThreadId\":\"01a1b8c2-be46-7170-b6dd-5796ad531f0d\",\"codexTurn\":[{\"event\":\"received\",\"sessionId\":\"96a44905-dc76-4215-b7ed-29fafb54d841\",\"agent\":\"codex\",\"model\":\"gpt-6-luna\",\"messageChars\":78,\"source\":\"chat-turn\"},{\"event\":\"thread-start\",\"threadId\":\"01a1b8c2-be46-7170-b6dd-5796ad531f0d\",\"ms\":1623,\"source\":\"codex-turn\"},{\"event\":\"turn-start\",\"threadId\":\"01a1b8c2-be46-7170-b6dd-5796ad531f0d\",\"ms\":1636,\"source\":\"codex-turn\"},{\"event\":\"thread/status/changed\",\"threadId\":\"01a1b8c2-be46-7170-b6dd-5796ad531f0d\",\"ms\":1680,\"status\":{\"type\":\"active\",\"activeFlags\":[]},\"source\":\"codex-turn\"},{\"event\":\"first-delta\",\"threadId\":\"01a1b8c2-be46-7170-b6dd-5796ad531f0d\",\"ms\":4629,\"source\":\"codex-turn\"},{\"event\":\"thread/status/changed\",\"threadId\":\"01a1b8c2-be46-7170-b6dd-5796ad531f0d\",\"ms\":6301,\"status\":{\"type\":\"idle\"},\"source\":\"codex-turn\"},{\"event\":\"turn-completed\",\"threadId\":\"01a1b8c2-be46-7170-b6dd-5796ad531f0d\",\"ms\":6301,\"notifications\":{\"thread/started\":1,\"mcpServer/startupStatus/updated\":4,\"thread/status/changed\":2,\"turn/started\":1,\"item/started\":2,\"item/completed\":2,\"item/agentMessage/delta\":84,\"thread/tokenUsage/updated\":1,\"account/rateLimits/updated\":1,\"turn/completed\":1},\"dropped\":{\"no-state\":2},\"stdoutBytes\":28681,\"stderrBytes\":0,\"source\":\"codex-turn\"},{\"event\":\"received\",\"sessionId\":\"96a44905-dc76-4215-b7ed-29fafb54d841\",\"agent\":\"codex\",\"model\":\"gpt-6-luna\",\"messageChars\":99,\"source\":\"chat-turn\"},{\"event\":\"turn-start\",\"threadId\":\"01a1b8c2-be46-7170-b6dd-5796ad531f0d\",\"ms\":11,\"source\":\"codex-turn\"},{\"event\":\"thread/status/changed\",\"threadId\":\"01a1b8c2-be46-7170-b6dd-5796ad531f0d\",\"ms\":20,\"status\":{\"type\":\"active\",\"activeFlags\":[]},\"source\":\"codex-turn\"},{\"event\":\"first-delta\",\"threadId\":\"01a1b8c2-be46-7170-b6dd-5796ad531f0d\",\"ms\":1008,\"source\":\"codex-turn\"},{\"event\":\"thread/status/changed\",\"threadId\":\"01a1b8c2-be46-7170-b6dd-5796ad531f0d\",\"ms\":2013,\"status\":{\"type\":\"idle\"},\"source\":\"codex-turn\"},{\"event\":\"turn-completed\",\"threadId\":\"01a1b8c2-be46-7170-b6dd-5796ad531f0d\",\"ms\":2013,\"notifications\":{\"thread/status/changed\":2,\"turn/started\":1,\"item/started\":2,\"item/completed\":2,\"item/agentMessage/delta\":52,\"thread/tokenUsage/updated\":1,\"account/rateLimits/updated\":1,\"turn/completed\":1},\"dropped\":{\"no-state\":1},\"stdoutBytes\":17993,\"stderrBytes\":0,\"source\":\"codex-turn\"}]}"
+      },
+      {
+        "nombre": "project chat runs are recorded with provider=codex",
+        "ok": true,
+        "detalle": "[{\"provider\":\"codex\",\"model\":\"gpt-6-luna\"},{\"provider\":\"codex\",\"model\":\"gpt-6-luna\"}]"
+      },
+      {
+        "nombre": "project chat runs use the configured orchestrator model",
+        "ok": true,
+        "detalle": "expected=gpt-6-luna; records=[{\"provider\":\"codex\",\"model\":\"gpt-6-luna\"},{\"provider\":\"codex\",\"model\":\"gpt-6-luna\"}]"
+      }
+    ],
+    "notes": [],
+    "errores": [],
+    "capturas": [
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-78313/codex-live/codex-live-turn-one.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-78313/codex-live/codex-live-turn-two.png"
+    ]
+  },
+  {
+    "flujo": "settings-pages",
+    "pass": true,
+    "steps": [
+      {
+        "nombre": "Language lives in General without a navigation entry",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "language saves instantly and survives reload",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "language search highlights its General row",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "Appearance has four themes",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "theme OrchestOS is available",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "theme Graphite is available",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "theme Carbon is available",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "theme Light is available",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "chosen theme persists after reload",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "Keybindings has one row per registry entry",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "registered shortcut command-palette",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "registered shortcut settings-search",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "registered shortcut go-to-file",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "registered shortcut open-settings",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "registered shortcut mode-chat",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "registered shortcut mode-dev",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "registered shortcut new-chat",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "registered shortcut toggle-sidebar",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "registered shortcut toggle-right-panel",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "registered shortcut new-terminal",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "registered shortcut close-tab",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "registered shortcut next-tab",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "registered shortcut previous-tab",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "registered shortcut stop-turn",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "command filter leaves exactly its matching row",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "key filter matches the registered shortcuts",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "unmatched filter has zero rows and keeps page usable",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "clearing the filter restores all rows",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "registered Settings shortcut opens search",
+        "ok": true,
+        "detalle": "ok"
+      }
+    ],
+    "notes": [],
+    "errores": [],
+    "capturas": [
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-78313/settings-pages/appearance.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-78313/settings-pages/keybindings.png"
+    ]
+  }
+]

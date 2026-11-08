@@ -127,7 +127,17 @@ Propuesta y comparación con las tres referencias: `docs/specs/ADE-PLAN.md`. Uno
   dev-terminal 16/16, settings-pages 29/29. Revisión: Opus (diff leído).
   Gate en vivo: navegador real (Playwright), `docs/done/evidence/ADE.4/ui-gate-result.json` y `docs/done/evidence/ADE.4-live.json`.
   Ejecutado por: codex gpt-6.1-sol (criterio) · Specs: docs/specs/ADE.4.md, docs/specs/ADE.4-esc.md
-- [ ] **ADE.5 — Settings → Chat: Enter o ⌘Enter, escribir mientras el agente trabaja, confirmar archivar/borrar.**
+- [x] **ADE.5 — Settings → Chat: Enter o ⌘Enter, escribir mientras el agente trabaja, confirmar archivar/borrar.**
+  Hecho: Settings → Chat (`lib/chat-settings.ts`, `orchestos-chat`): enviar con Enter o ⌘Enter; con turno activo,
+  "Queue message" (por defecto: cola por hilo sobre el composer, sale sola al terminar cada turno, uno por turno,
+  quitable) o "Stop and send"; confirmación antes de borrar un chat / entrada de History y de archivar un agente
+  (`ConfirmDialog.tsx`, "Don't ask again"). `chat-stop` cambió: Enter con turno activo ya no es no-op, encola.
+  Riesgos revisados por el cerebro y probados en gate: dos encolados salen en orden sin 409; hilo nuevo conserva su
+  cola. Gates del cerebro: `tsc`, 4 tests, `ui:gate chat-settings` 3/3 PASS 19/19; `gate:evidence` chat-settings
+  19/19, chat-stop 22/22, chat-streaming 27/27, codex-live 15/15, settings-pages 29/29. Revisión: Opus (diff leído).
+  Gate en vivo: navegador real (Playwright), `docs/done/evidence/ADE.5/ui-gate-result.json` y `docs/done/evidence/ADE.5-live.json`.
+  Texto visible: "Chat" · "Send with" · "Enter" · "⌘ Enter" · "Ctrl Enter" · "While the agent is working" · "Queue message" · "Stop and send" · "Confirm before deleting a chat" · "Confirm before archiving an agent" · "Queued" · "Delete this chat?" · "Delete" · "Archive this agent?" · "It moves to History; you can restore it." · "Archive" · "Cancel" · "Don't ask again" (opciones y confirmaciones; un ícono no las explica)
+  Ejecutado por: codex gpt-6.1-sol (criterio, + corrección ADE.5-cola) · Spec: docs/specs/ADE.5.md
 - [ ] **ADE.6 — Notificaciones: tarea terminada o esperando respuesta.**
 - [ ] **ADE.7 — Apariencia 2: escala de la interfaz, archivos ignorados por git, diff para daltónicos.**
 - [ ] **ADE.8 — Diff por defecto: unificado o lado a lado, espacios, árbol.**

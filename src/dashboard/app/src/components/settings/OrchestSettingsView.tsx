@@ -18,6 +18,7 @@ import {
   Key,
   Keyboard,
   Layers,
+  MessageSquare,
   Palette,
   Pencil,
   Plus,
@@ -38,6 +39,7 @@ import { PageHeader } from '@/components/layout/page'
 import { Button } from '@/components/ui/button'
 import { Card, CardAction, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { usePrefersReducedMotion } from '@/hooks/use-prefers-reduced-motion'
+import { isMacPlatform, useChatSettings, writeChatSettings } from '@/lib/chat-settings'
 import { useEditorSettings, writeEditorSettings } from '@/lib/editor-settings'
 import {
   type Chord,
@@ -202,6 +204,30 @@ type SettingsSearchEntry = {
 }
 
 const SETTINGS_SEARCH_INDEX: SettingsSearchEntry[] = [
+  {
+    id: 'chat-send-key',
+    section: 'chat',
+    label: { en: 'Send with', es: 'Send with' },
+    keywords: ['enter', 'chat', 'send'],
+  },
+  {
+    id: 'chat-while-running',
+    section: 'chat',
+    label: { en: 'While the agent is working', es: 'While the agent is working' },
+    keywords: ['queue', 'stop', 'chat'],
+  },
+  {
+    id: 'chat-confirm-delete',
+    section: 'chat',
+    label: { en: 'Confirm before deleting a chat', es: 'Confirm before deleting a chat' },
+    keywords: ['delete', 'confirm', 'chat'],
+  },
+  {
+    id: 'chat-confirm-archive',
+    section: 'chat',
+    label: { en: 'Confirm before archiving an agent', es: 'Confirm before archiving an agent' },
+    keywords: ['archive', 'confirm', 'chat'],
+  },
   {
     id: 'editor-auto-save',
     section: 'editor',
@@ -578,6 +604,7 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
 }) => {
   const [activeSection, setActiveSection] = useState<SettingsSection>(initialSection)
   const editorSettings = useEditorSettings()
+  const chatSettings = useChatSettings()
   const profile = useUserProfile()
   const [activeProjectTab, setActiveProjectTab] = useState<ProjectSubTab>(initialProjectTab)
   const [selectedProjectId, setSelectedProjectId] = useState<string>(
@@ -1712,6 +1739,7 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
                   { id: 'appearance', label: 'Appearance', icon: Palette },
                   { id: 'keybindings', label: 'Keybindings', icon: Keyboard },
                   { id: 'editor', label: 'Editor', icon: FileCode },
+                  { id: 'chat', label: 'Chat', icon: MessageSquare },
                 ],
               },
               {
@@ -2021,6 +2049,72 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
                   ))}
                 </tbody>
               </table>
+            </SettingsGroup>
+          </SettingsPage>
+        )}
+
+        {activeSection === 'chat' && (
+          <SettingsPage title="Chat">
+            <SettingsGroup>
+              <SettingsRow
+                data-settings-anchor="chat-send-key"
+                label="Send with"
+                description={
+                  chatSettings.sendKey === 'enter'
+                    ? 'Shift+Enter inserts a new line.'
+                    : 'Enter inserts a new line.'
+                }
+              >
+                <SettingsSegmented
+                  value={chatSettings.sendKey}
+                  onChange={(sendKey) => writeChatSettings({ sendKey })}
+                  ariaLabel="Send with"
+                  options={[
+                    { value: 'enter', label: 'Enter' },
+                    { value: 'mod-enter', label: isMacPlatform() ? '⌘ Enter' : 'Ctrl Enter' },
+                  ]}
+                />
+              </SettingsRow>
+              <SettingsRow
+                data-settings-anchor="chat-while-running"
+                label="While the agent is working"
+              >
+                <SettingsSegmented
+                  value={chatSettings.whileRunning}
+                  onChange={(whileRunning) => writeChatSettings({ whileRunning })}
+                  ariaLabel="While the agent is working"
+                  options={[
+                    { value: 'queue', label: 'Queue message' },
+                    { value: 'stop-and-send', label: 'Stop and send' },
+                  ]}
+                />
+              </SettingsRow>
+              {(
+                [
+                  {
+                    key: 'confirmDelete',
+                    anchor: 'chat-confirm-delete',
+                    label: 'Confirm before deleting a chat',
+                  },
+                  {
+                    key: 'confirmArchive',
+                    anchor: 'chat-confirm-archive',
+                    label: 'Confirm before archiving an agent',
+                  },
+                ] as const
+              ).map(({ key, anchor, label }) => (
+                <SettingsRow key={key} data-settings-anchor={anchor} label={label}>
+                  <input
+                    type="checkbox"
+                    role="switch"
+                    aria-label={label}
+                    aria-checked={chatSettings[key]}
+                    checked={chatSettings[key]}
+                    onChange={(event) => writeChatSettings({ [key]: event.target.checked })}
+                    className="relative h-5 w-9 shrink-0 cursor-pointer appearance-none rounded-full bg-app-elevated transition-colors after:absolute after:left-0.5 after:top-0.5 after:size-4 after:rounded-full after:bg-app-muted after:transition-transform checked:bg-blue-500 checked:after:translate-x-4 checked:after:bg-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 disabled:cursor-default disabled:opacity-50"
+                  />
+                </SettingsRow>
+              ))}
             </SettingsGroup>
           </SettingsPage>
         )}

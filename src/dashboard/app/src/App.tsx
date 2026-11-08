@@ -57,6 +57,7 @@ import { mergeOptimisticAttachments } from './components/chat/mergeAttachments'
 import { OrchestChatView } from './components/chat/OrchestChatView'
 import { CloneProjectDialog } from './components/common/CloneProjectDialog'
 import { CommandPalette } from './components/common/CommandPalette'
+import { ConfirmDialog } from './components/common/ConfirmDialog'
 import type { ProjectAddAction } from './components/common/ProjectAddButton'
 import { DevDiffPanel } from './components/dev/DevDiffPanel'
 import { DevFilePanel } from './components/dev/DevFilePanel'
@@ -97,6 +98,8 @@ import {
 } from './components/settings/OrchestSettingsView'
 import { projectsWithApprovals, threadsWithApprovals } from './components/thread/taskCards'
 import { stopActiveChatTurn } from './hooks/useStopChatTurn'
+import { discardChatQueue } from './lib/chat-queue'
+import { readChatSettings, writeChatSettings } from './lib/chat-settings'
 import {
   type CommandId,
   KEYBINDINGS,
@@ -958,23 +961,35 @@ export default function App() {
     }
   }
 
-  const handleCloseAgent = async (agentId: string) => {
-    try {
-      await archiveSession(agentId, projectForSession(agentId))
-      setDevTabs((current) =>
-        Object.fromEntries(
-          Object.entries(current).map(([projectId, tabs]) => [
-            projectId,
-            closeSessionTab(tabs, agentId),
-          ]),
-        ),
-      )
-      setProjects(await listProjects())
-      await reloadHistory()
-    } catch {
-      // Keep the agent visible when the archive request fails.
-    }
+  const [confirmation, setConfirmation] = useState<{
+    kind: 'delete' | 'archive'
+    action: () => unknown
+  } | null>(null)
+  const confirmThen = (kind: 'delete' | 'archive', action: () => unknown) => {
+    const settings = readChatSettings()
+    if (kind === 'delete' ? settings.confirmDelete : settings.confirmArchive)
+      setConfirmation({ kind, action })
+    else void action()
   }
+
+  const handleCloseAgent = (agentId: string) =>
+    confirmThen('archive', async () => {
+      try {
+        await archiveSession(agentId, projectForSession(agentId))
+        setDevTabs((current) =>
+          Object.fromEntries(
+            Object.entries(current).map(([projectId, tabs]) => [
+              projectId,
+              closeSessionTab(tabs, agentId),
+            ]),
+          ),
+        )
+        setProjects(await listProjects())
+        await reloadHistory()
+      } catch {
+        // Keep the agent visible when the archive request fails.
+      }
+    })
 
   const handleRestoreAgent = async (session: HistorySession) => {
     try {
@@ -986,14 +1001,16 @@ export default function App() {
     }
   }
 
-  const handleDeleteHistorySession = async (sessionId: string, projectId?: string | null) => {
-    try {
-      await deleteSession(sessionId, projectId ?? projectForSession(sessionId))
-      await reloadHistory()
-    } catch {
-      // Keep the history entry visible when the delete request fails.
-    }
-  }
+  const handleDeleteHistorySession = (sessionId: string, projectId?: string | null) =>
+    confirmThen('delete', async () => {
+      try {
+        await deleteSession(sessionId, projectId ?? projectForSession(sessionId))
+        discardChatQueue(sessionId)
+        await reloadHistory()
+      } catch {
+        // Keep the history entry visible when the delete request fails.
+      }
+    })
 
   const handleDeleteProject = async (projectId: string) => {
     purgingProjectIds.current.add(projectId)
@@ -1116,18 +1133,20 @@ export default function App() {
     setMode('chat')
   }
 
-  const handleDeleteChat = async (id: string) => {
-    try {
-      await deleteSession(id, projectForSession(id))
-      setThreads((prev) => {
-        const remaining = prev.filter((thread) => thread.id !== id)
-        if (activeThreadId === id) setActiveThreadId(remaining[0]?.id || '')
-        return remaining
-      })
-    } catch {
-      // Keep the server-backed row visible when the API rejects the mutation.
-    }
-  }
+  const handleDeleteChat = (id: string) =>
+    confirmThen('delete', async () => {
+      try {
+        await deleteSession(id, projectForSession(id))
+        discardChatQueue(id)
+        setThreads((prev) => {
+          const remaining = prev.filter((thread) => thread.id !== id)
+          if (activeThreadId === id) setActiveThreadId(remaining[0]?.id || '')
+          return remaining
+        })
+      } catch {
+        // Keep the server-backed row visible when the API rejects the mutation.
+      }
+    })
 
   const handleRenameChat = async (id: string) => {
     const thread = threads.find((item) => item.id === id)
@@ -1662,6 +1681,26 @@ export default function App() {
       data-theme={theme}
       className="h-screen w-screen flex flex-col bg-app-bg text-app font-sans overflow-hidden select-none"
     >
+      {confirmation && (
+        <ConfirmDialog
+          title={confirmation.kind === 'delete' ? 'Delete this chat?' : 'Archive this agent?'}
+          body={
+            confirmation.kind === 'archive' ? 'It moves to History; you can restore it.' : undefined
+          }
+          confirmLabel={confirmation.kind === 'delete' ? 'Delete' : 'Archive'}
+          onCancel={() => setConfirmation(null)}
+          onConfirm={(dontAskAgain) => {
+            if (dontAskAgain)
+              writeChatSettings(
+                confirmation.kind === 'delete'
+                  ? { confirmDelete: false }
+                  : { confirmArchive: false },
+              )
+            setConfirmation(null)
+            void confirmation.action()
+          }}
+        />
+      )}
       {projectError && (
         <div
           role="alert"

@@ -398,6 +398,7 @@ export const OrchestDevWorkspace: React.FC<OrchestDevWorkspaceProps> = ({
     isShellCmd?: boolean,
     approvalMode?: ApprovalMode,
   ) => {
+    let sent = true
     if (!isShellCmd) {
       const sentAt = Date.now()
       // El servidor no persiste adjuntos: el hilo los recuerda por contenido del mensaje.
@@ -413,9 +414,11 @@ export const OrchestDevWorkspace: React.FC<OrchestDevWorkspaceProps> = ({
           effort,
           approvalMode,
         )
+        sent = !!accepted
         setSessionStatus(accepted ? 'done' : 'failed')
         if (!accepted) setPendingUserMessage(null)
       } catch {
+        sent = false
         setSessionStatus('failed')
         setPendingUserMessage(null)
       }
@@ -429,6 +432,7 @@ export const OrchestDevWorkspace: React.FC<OrchestDevWorkspaceProps> = ({
     }
 
     stickToBottom()
+    return sent
   }
 
   if (!activeAgent) {

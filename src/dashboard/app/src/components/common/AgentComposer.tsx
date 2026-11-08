@@ -21,6 +21,17 @@ import {
   uploadChatFile,
 } from '../../api/chat'
 import { findExplorerFiles } from '../../api/explorer'
+import {
+  chatQueueDeleted,
+  chatQueueSending,
+  lockChatQueue,
+  type QueuedMessage,
+  readChatQueue,
+  subscribeChatQueue,
+  unlockChatQueue,
+  writeChatQueue,
+} from '../../lib/chat-queue'
+import { isMacPlatform, sendIntent, useChatSettings } from '../../lib/chat-settings'
 import type { ApprovalMode, ChatAttachment } from '../../types/orchestos'
 import { FileThumbnail } from '../ui/file-thumbnail'
 import { ActionMenuButton } from './ActionMenuButton'
@@ -181,6 +192,12 @@ export const AgentComposer: React.FC<AgentComposerProps> = ({
   onSelectionChange,
   className = '',
 }) => {
+  const chatSettings = useChatSettings()
+  const queueThread = contextSessionId ?? `new:${projectId ?? 'workspace'}`
+  const currentQueueThread = useRef(queueThread)
+  currentQueueThread.current = queueThread
+  const queuedMessages = useSyncExternalStore(subscribeChatQueue, () => readChatQueue(queueThread))
+  const [sending, setSending] = useState(false)
   const context = useSyncExternalStore(subscribeSessionContext, () =>
     getCachedSessionContext(contextSessionId),
   )
@@ -423,7 +440,19 @@ export const AgentComposer: React.FC<AgentComposerProps> = ({
       return
     }
 
-    if (e.key === 'Enter' && !e.shiftKey) {
+    if (
+      sendIntent(
+        {
+          key: e.key,
+          shiftKey: e.shiftKey,
+          metaKey: e.metaKey,
+          ctrlKey: e.ctrlKey,
+          isComposing: e.nativeEvent.isComposing,
+        },
+        chatSettings.sendKey,
+        isMacPlatform(),
+      ) === 'send'
+    ) {
       e.preventDefault()
       handleSend()
     } else if (e.key === 'Escape') {
@@ -438,7 +467,7 @@ export const AgentComposer: React.FC<AgentComposerProps> = ({
   const hasSendableAttachments = attachments.some((att) => att.status !== 'error')
 
   const handleSend = async () => {
-    if (busy || orchestratorLoading || (!inputText.trim() && !hasSendableAttachments)) return
+    if (orchestratorLoading || (!inputText.trim() && !hasSendableAttachments)) return
     if (attachments.some((att) => att.status === 'uploading')) return
     if (!isShellMode && isLoadingModels) {
       // CI.25 — antes el Enter se descartaba sin rastro mientras cargaban los modelos (p. ej.
@@ -471,23 +500,63 @@ export const AgentComposer: React.FC<AgentComposerProps> = ({
     setShowSlashMenu(false)
     setIsShellMode(false)
 
+    const message: QueuedMessage = {
+      id: crypto.randomUUID(),
+      content,
+      attachments: previousAttachments,
+      cli: activeCli,
+      model: effectiveSelectedModel,
+      effort: effortSteps.includes(selectedEffort) ? selectedEffort : undefined,
+      isShellCmd: isShellMode,
+      approvalMode: hasProject ? approvalMode : undefined,
+    }
+    if (busy || chatQueueSending(queueThread)) {
+      writeChatQueue(queueThread, [...readChatQueue(queueThread), message])
+      if (busy && chatSettings.whileRunning === 'stop-and-send' && onStop && !stopping)
+        void onStop().catch(() => {})
+      return
+    }
+    await transmit(message, queueThread)
+  }
+
+  const transmit = async (message: QueuedMessage, thread: string) => {
+    lockChatQueue(thread)
+    setSending(true)
     const accepted = await sendComposerDraft(() =>
       onSendMessage(
-        content,
-        previousAttachments.length > 0 ? previousAttachments : undefined,
-        activeCli,
-        effectiveSelectedModel,
-        effortSteps.includes(selectedEffort) ? selectedEffort : undefined,
-        isShellMode,
-        hasProject ? approvalMode : undefined,
+        message.content,
+        message.attachments.length ? message.attachments : undefined,
+        message.cli,
+        message.model,
+        message.effort,
+        message.isShellCmd,
+        message.approvalMode,
       ),
     )
-    if (!accepted) {
-      setInputText((current) => current || content)
-      setAttachments((current) => (current.length > 0 ? current : previousAttachments))
-      setIsShellMode(isShellMode)
+    if (!accepted && !chatQueueDeleted(thread)) {
+      writeChatQueue(thread, [{ ...message, failed: true }, ...readChatQueue(thread)])
     }
+    unlockChatQueue(thread)
+    setSending(false)
   }
+
+  useEffect(() => {
+    const first = queuedMessages[0]
+    if (!first || chatQueueDeleted(queueThread)) return
+    if (first.failed) {
+      setInputText((current) => (current ? `${first.content}\n${current}` : first.content))
+      setAttachments((current) => [...first.attachments, ...current])
+      setIsShellMode(first.isShellCmd)
+      writeChatQueue(queueThread, readChatQueue(queueThread).slice(1))
+      return
+    }
+    if (busy || sending || chatQueueSending(queueThread) || orchestratorLoading || isLoadingModels)
+      return
+    // A selected thread owns its callback; never drain another thread through this closure.
+    if (currentQueueThread.current !== queueThread) return
+    writeChatQueue(queueThread, readChatQueue(queueThread).slice(1))
+    void transmit(first, queueThread)
+  })
 
   const handleSelectSlashCommand = (cmd: string) => {
     if (cmd === '/model') {
@@ -592,6 +661,31 @@ export const AgentComposer: React.FC<AgentComposerProps> = ({
 
   return (
     <div className={`relative w-full ${className}`}>
+      {queuedMessages.map((message) => (
+        <div
+          key={message.id}
+          data-queued-message
+          className="flex items-center gap-2 mb-2 px-3 py-2 rounded-control bg-app-surface border border-app text-xs text-app-muted"
+        >
+          <span>Queued</span>
+          <span className="min-w-0 flex-1 truncate">
+            {message.content || message.attachments.map((attachment) => attachment.name).join(', ')}
+          </span>
+          <button
+            type="button"
+            aria-label="Remove queued message"
+            className="p-1 rounded-control hover:bg-app-elevated hover:text-app"
+            onClick={() =>
+              writeChatQueue(
+                queueThread,
+                readChatQueue(queueThread).filter((item) => item.id !== message.id),
+              )
+            }
+          >
+            <X className="w-3.5 h-3.5" />
+          </button>
+        </div>
+      ))}
       {referenceToken && projectId && (
         <div
           role="listbox"
