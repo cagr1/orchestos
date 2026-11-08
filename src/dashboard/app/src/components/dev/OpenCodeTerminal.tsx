@@ -19,6 +19,9 @@ export function OpenCodeTerminal({ projectId, kind = 'opencode' }: Props) {
   const hostRef = useRef<HTMLDivElement>(null)
   const socketRef = useRef<WebSocket | null>(null)
   const terminalRef = useRef<Terminal | null>(null)
+  const resizeRef = useRef<(() => void) | null>(null)
+  const uiScaleRef = useRef(uiScale)
+  uiScaleRef.current = uiScale
   const [attempt, setAttempt] = useState(0)
   const [state, setState] = useState<'connecting' | 'connected' | 'error' | 'exited'>('connecting')
   const [message, setMessage] = useState('')
@@ -46,8 +49,10 @@ export function OpenCodeTerminal({ projectId, kind = 'opencode' }: Props) {
         cursor: styles.getPropertyValue('--app-accent').trim() || '#8b5cf6',
       }
     }
+    const settings = readTerminalSettings()
     const terminal = new Terminal({
-      ...readTerminalSettings(),
+      ...settings,
+      fontSize: Math.round(settings.fontSize * uiScaleRef.current),
       convertEol: false,
       theme: getTerminalTheme(),
     })
@@ -125,8 +130,12 @@ export function OpenCodeTerminal({ projectId, kind = 'opencode' }: Props) {
           JSON.stringify({ type: 'resize', cols: terminal.cols, rows: terminal.rows }),
         )
     }
+    resizeRef.current = resize
     const unsubscribeSettings = subscribeTerminalSettings(() => {
-      Object.assign(terminal.options, readTerminalSettings())
+      const settings = readTerminalSettings()
+      Object.assign(terminal.options, settings, {
+        fontSize: Math.round(settings.fontSize * uiScaleRef.current),
+      })
       resize()
     })
     const observer = new ResizeObserver(resize)
@@ -149,8 +158,15 @@ export function OpenCodeTerminal({ projectId, kind = 'opencode' }: Props) {
       socketRef.current = null
       terminal.dispose()
       terminalRef.current = null
+      resizeRef.current = null
     }
   }, [projectId, attempt, isShell, reopen])
+
+  useEffect(() => {
+    if (!terminalRef.current) return
+    terminalRef.current.options.fontSize = Math.round(readTerminalSettings().fontSize * uiScale)
+    resizeRef.current?.()
+  }, [uiScale])
 
   return (
     <section

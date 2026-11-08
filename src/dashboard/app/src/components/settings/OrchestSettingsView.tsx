@@ -823,6 +823,7 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
   const [recording, setRecording] = useState<CommandId | null>(null)
   const [recordError, setRecordError] = useState('')
   const [chordConflict, setChordConflict] = useState<{ id: CommandId; chord: Chord } | null>(null)
+  const replaceChordRef = useRef<HTMLButtonElement>(null)
   const stopRecording = useCallback(() => {
     setRecording(null)
     setRecordError('')
@@ -834,8 +835,20 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
   }, [activeSection, stopRecording])
 
   useEffect(() => {
+    if (chordConflict) replaceChordRef.current?.focus()
+  }, [chordConflict])
+
+  useEffect(() => {
     if (!recording) return
     const onKeyDown = (event: KeyboardEvent) => {
+      if (chordConflict) {
+        if (event.code === 'Escape') {
+          event.preventDefault()
+          event.stopPropagation()
+          stopRecording()
+        }
+        return
+      }
       event.preventDefault()
       event.stopPropagation()
       if (event.code === 'Escape' && recording !== 'stop-turn') {
@@ -871,7 +884,7 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
       window.removeEventListener('keydown', onKeyDown, { capture: true })
       window.removeEventListener('pointerdown', onPointerDown, { capture: true })
     }
-  }, [recording, stopRecording])
+  }, [recording, chordConflict, stopRecording])
 
   const [paletteOpen, setPaletteOpen] = useState(false)
   const [searchIndex, setSearchIndex] = useState(0)
@@ -2305,6 +2318,7 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
                               {KEYBINDINGS.find((entry) => entry.id === chordConflict.id)!.title}
                             </span>
                             <button
+                              ref={replaceChordRef}
                               type="button"
                               onClick={() => {
                                 setChord(chordConflict.id, null)

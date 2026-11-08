@@ -198,6 +198,18 @@ Propuesta y comparación con las tres referencias: `docs/specs/ADE-PLAN.md`. Uno
   Gate en vivo: navegador real (Playwright), `docs/done/evidence/ADE.10/ui-gate-result.json` y `docs/done/evidence/ADE.10-live.json`.
   Texto visible: "General" · "Name" · "Icon" · "Base branch" · "Current branch" · "Setup script" · "Runs in the new worktree folder after creation and linking node_modules." (ajustes del proyecto; la ayuda dice cuándo y dónde corre el script, un ícono no lo explica)
   Ejecutado por: codex gpt-6.1-sol (criterio) · Spec: docs/specs/ADE.10.md
+- [x] **ADE.11 — Tres detalles del ADE: zoom en la terminal, "Replace" por teclado, atajos por letra.** (hallados al
+  cerrar ADE.3/ADE.7) A 125 % de UI el texto de la terminal no crece (`OpenCodeTerminal.tsx:165` cancela el zoom y la
+  fuente no compensa); con un choque de atajos, Tab/Enter quedan capturados por la grabación
+  (`OrchestSettingsView.tsx:838`) y "Replace" solo se alcanza con el ratón; los atajos de letra matchean por
+  `event.code` (`keybindings.ts:41`), así que en AZERTY/Dvorak ⌘P no es la tecla con "P".
+  Hecho: la fuente de xterm = elegida × escala de UI (al crear, al cambiar ajustes y al cambiar la escala, sin
+  reconectar); con choque, la grabación suelta el teclado, el foco va a "Replace" y Escape cancela; letras, `=` y `-`
+  matchean por `event.key` (dígitos, ⌥ en Mac y teclas especiales siguen por posición).
+  Gates del cerebro: `typecheck`, `keybindings.test.ts` 21/0, `keybindings` 43/43, `terminal-settings` 16/16.
+  Revisión: Opus (diff leído).
+  Gate en vivo: Playwright `keybindings` 43/43, `docs/done/evidence/ADE.11-live.json`.
+  Ejecutado por: codex gpt-6.1-sol (criterio) · Spec: docs/specs/ADE.11.md
 
 ### Abiertos — fiabilidad de los gates y documentación
 

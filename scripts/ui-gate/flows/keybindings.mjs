@@ -287,7 +287,25 @@ export default async function keybindings({
     (await row('go-to-file').innerText()).includes('Used by Toggle sidebar'),
   )
   await shot('conflict')
-  await row('go-to-file').getByRole('button', { name: 'Replace', exact: true }).click()
+  const replace = row('go-to-file').getByRole('button', { name: 'Replace', exact: true })
+  await step(
+    'conflict focuses Replace',
+    await replace.evaluate((el) => el === document.activeElement),
+  )
+  await press('Tab')
+  await step(
+    'Tab reaches Cancel during a conflict',
+    await row('go-to-file')
+      .getByRole('button', { name: 'Cancel', exact: true })
+      .evaluate((el) => el === document.activeElement),
+  )
+  await press('Shift+Tab')
+  await press('Enter')
+  await step(
+    'keyboard Replace applies the recorded chord',
+    (await row('go-to-file').locator('kbd').allTextContents()).join(' ') === display &&
+      (await replace.count()) === 0,
+  )
   await step(
     'replace disables prior command',
     (await record('toggle-sidebar').innerText()) === 'Disabled',

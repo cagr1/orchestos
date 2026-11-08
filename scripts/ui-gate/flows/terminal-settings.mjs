@@ -205,9 +205,29 @@ export default async function terminalSettings({
         .locator('[data-settings-anchor="terminal-scrollback"] [data-settings-highlight]')
         .count()) === 1,
     )
+    const beforeScale = await measure()
     await sidebar.getByRole('button', { name: 'Appearance', exact: true }).click()
     await other.getByRole('combobox', { name: 'Interface scale', exact: true }).selectOption('1.25')
     await page.waitForFunction(() => document.documentElement.style.zoom === '1.25')
+    await page.waitForFunction(
+      (height) =>
+        document.querySelector('.xterm-rows > div').getBoundingClientRect().height > height,
+      beforeScale.height,
+    )
+    const afterScale = await measure()
+    await step(
+      '125 percent UI scale increases terminal row height without reconnecting',
+      afterScale.height > beforeScale.height &&
+        sockets.length === initialSockets &&
+        !sockets.at(-1).closed,
+      JSON.stringify({ beforeScale, afterScale }),
+    )
+    await sidebar.getByRole('button', { name: 'Terminal', exact: true }).click()
+    await step(
+      'Terminal settings retain the chosen font size at 125 percent',
+      (await other.getByRole('spinbutton', { name: 'Font size', exact: true }).inputValue()) ===
+        '16',
+    )
     await panel.locator('.xterm-helper-textarea').focus()
     await page.keyboard.type("printf '\\033[2J\\033[HADE9-selection-0123456789'")
     await page.keyboard.press('Enter')

@@ -36,9 +36,16 @@ export function chordKeys(value: Chord): string[] {
   ]
 }
 
+function codeFromEvent(event: KeyEvent): string {
+  if (/^[a-z]$/i.test(event.key)) return `Key${event.key.toUpperCase()}`
+  if (event.key === '=') return 'Equal'
+  if (event.key === '-') return 'Minus'
+  return event.code
+}
+
 function matchesChord(event: KeyEvent, value: Chord): boolean {
   return (
-    event.code === value.code &&
+    codeFromEvent(event) === value.code &&
     !!event.metaKey === (value.primary && isMacPlatform()) &&
     !!event.ctrlKey === (value.ctrl || (value.primary && !isMacPlatform())) &&
     !!event.altKey === value.alt &&
@@ -199,7 +206,7 @@ export function chordFromEvent(event: KeyEvent): Chord | null {
     /^(Meta|Control|Alt|Shift)(Left|Right)?$/.test(event.code)
   )
     return null
-  return chord(event.code, {
+  return chord(codeFromEvent(event), {
     primary: isMacPlatform() ? !!event.metaKey : !!event.ctrlKey,
     ctrl: isMacPlatform() && !!event.ctrlKey,
     alt: !!event.altKey,

@@ -132,7 +132,7 @@ for (const host of ['MacIntel', 'Linux x86_64', 'Win32']) {
       expect(binding.match({ ...shortcut, key: 'x', code: 'KeyX' })).toBe(false)
       if (shortcut.altKey) {
         expect(binding.match({ ...shortcut, key: '≠' })).toBe(true)
-        expect(binding.match({ ...shortcut, code: 'KeyX' })).toBe(false)
+        expect(binding.match({ ...shortcut, key: '≠', code: 'KeyX' })).toBe(false)
       }
     }
     expect(KEYBINDINGS.find((binding) => binding.id === 'command-palette')!.keys).toEqual([
@@ -324,4 +324,38 @@ test('zoom matches native event properties inherited from KeyboardEvent', () => 
   expect(matchesKeybinding(Object.create(event({ code: 'Equal', metaKey: true })), 'zoom-in')).toBe(
     true,
   )
+})
+
+
+test('letter chords follow Dvorak and AZERTY characters when matching and recording', () => {
+  platform('MacIntel')
+  const dvorak = event({ key: 'p', code: 'KeyR', metaKey: true })
+  expect(matchesKeybinding(dvorak, 'go-to-file')).toBe(true)
+  expect(chordFromEvent(dvorak)?.code).toBe('KeyP')
+  setChord('toggle-sidebar', { ...chordFromEvent(dvorak)!, code: 'KeyR' })
+  expect(matchesKeybinding(dvorak, 'toggle-sidebar')).toBe(false)
+  const azerty = event({ key: 'A', code: 'KeyQ', metaKey: true })
+  expect(chordFromEvent(azerty)?.code).toBe('KeyA')
+  setChord('toggle-sidebar', chordFromEvent(azerty)!)
+  expect(matchesKeybinding(azerty, 'toggle-sidebar')).toBe(true)
+  expect(matchesKeybinding(event({ key: 'q', code: 'KeyA', metaKey: true }), 'toggle-sidebar')).toBe(false)
+})
+
+test('Mac Option symbols keep physical codes when matching and recording', () => {
+  platform('MacIntel')
+  const option = event({ key: '∫', code: 'KeyB', metaKey: true, altKey: true })
+  expect(chordFromEvent(option)?.code).toBe('KeyB')
+  expect(matchesKeybinding(option, 'toggle-right-panel')).toBe(true)
+})
+
+test('equals and minus characters normalize while shifted plus keeps the Equal alias', () => {
+  platform('MacIntel')
+  for (const [key, code, id] of [['=', 'Equal', 'zoom-in'], ['-', 'Minus', 'zoom-out']] as const) {
+    const shortcut = event({ key, code: 'Slash', metaKey: true })
+    expect(chordFromEvent(shortcut)?.code).toBe(code)
+    expect(matchesKeybinding(shortcut, id)).toBe(true)
+  }
+  const plus = event({ key: '+', code: 'Equal', metaKey: true, shiftKey: true })
+  expect(chordFromEvent(plus)).toEqual({ primary: true, ctrl: false, alt: false, shift: true, code: 'Equal' })
+  expect(matchesKeybinding(plus, 'zoom-in')).toBe(true)
 })
