@@ -1,4 +1,4 @@
-# NEXT — handoff 2026-11-07 (bloque ADE: ADE.1–6 y CI.68 cerrados; sigue ADE.7)
+# NEXT — handoff 2026-11-08 (bloque ADE cerrado: ADE.1–10; pendiente GO de Carlos sobre pruebas repetidas)
 
 Un solo presente: orden y trampas vivas del lote. Lo cerrado vive en `docs/done/bloque-*.md` y git; las reglas, en
 `AGENTS.md`. Versión anterior completa: `docs/done/poda-instrucciones-2026-11-03.md` (histórico).
@@ -11,22 +11,26 @@ Arranque: `bun run agent:preflight -- --item <ID> --agent claude`. Lista viva: `
    disco, `PUT /api/explorer/file`); ADE.2 `0104b2bf` (Settings → Editor); ADE.3 `59150637` (14 atajos desde
    `lib/keybindings.ts`, Go to file ⌘P, paleta sin acciones del prototipo); CI.68 `7ad5c745` (gate `model-routing`
    espera la sugerencia). Antes, el mismo día: CI.66 `f149cba9`, CI.67 `85f09c44`, SK.3 `d132e976`, UI.70 `7bfb7199`.
-1. Hecho 2026-11-07 (tarde): ADE.4 `9fd00b9f` (atajos grabando teclas; de paso, Esc del buscador de Settings ya no
-   depende del foco), ADE.5 `e369e260` (Settings → Chat: Enter/⌘Enter, cola o "Stop and send", confirmaciones),
-   ADE.6 `46902e01` (notificaciones + sonido; poll de `listSessions` 5 s solo con algo trabajando).
-   Sigue **ADE.7** → ADE.10 en orden (`PLAN.md` § ADE), uno a uno, spec por ítem con rutas sacadas de grep del mismo
-   turno. Rol `criterio`; el cerebro corre cada `ui:gate` nuevo 3 veces antes de cerrar (el de ADE.4 salió verde
-   en el reporte del ejecutor y rojo 2 de 3 en el cerebro).
+1. Hecho 2026-11-07/08: ADE.4 `9fd00b9f`, ADE.5 `e369e260`, ADE.6 `46902e01`, ADE.7 `2e9aae2d` (escala UI ⌘= ⌘- ⌘0,
+   ocultar ignorados por git, diff daltónico), ADE.8 `1355590c` (unificado/lado a lado, espacios, Changes en árbol),
+   ADE.9 `4ad5dd8e` (Settings → Terminal), ADE.10 `3aeec278` (nombre, ícono, rama base, script de setup por proyecto;
+   merge-back sin mover el checkout). Bloque ADE completo.
    Decidido por el cerebro, Carlos puede revertir: cola por defecto "Queue message"; clic en notificación abre Dev
-   solo si el hilo es pestaña de Dev abierta. Pendiente menor sin ítem: "Replace" (choque de atajos) no se activa por
-   teclado mientras graba; los atajos matchean por tecla física (`event.code`), no por carácter (AZERTY/Dvorak).
+   solo si el hilo es pestaña de Dev abierta; ajustes de proyecto en la DB local, no en el config del repo.
+   Pendientes menores sin ítem: "Replace" (choque de atajos) no se activa por teclado mientras graba; los atajos
+   matchean por `event.code` (AZERTY/Dvorak); la terminal cancela el `zoom` de UI (a 125 % su texto no crece).
+1b. **Propuesto a Carlos 2026-11-08, sin GO** (tras "pasamos más tiempo en pruebas que en código"): ejecutor solo con
+   tests del ítem + su gate nuevo (sin `test:coverage` por ítem); cerebro con el gate nuevo 1 vez + afectados;
+   pre-push solo `tsc` + lint + suite, y los `ui:gate` a un workflow nocturno, con lo rojo resuelto a la mañana
+   antes de seguir. Paralelo de agentes: no por ahora (decisión 2026-07-31; ADE.7–10 tocaron todos
+   `OrchestSettingsView.tsx`). Con GO: tocar `AGENTS.md`, `scripts/pre-push.sh` (:130–147), workflow nuevo.
 2. **Desacople del método personal** (GO de Carlos, después de SK.1–3; ahora en cola tras el bloque ADE salvo que
    Carlos diga otra cosa): reescribir `AGENTS.md`, hooks `.claude/` (`brain-no-code.js:16`, `subagent-budget.js:156`,
    `context-budget.js:30`), `docs/roadmaps/` y fixtures sin `agent-method`/`delegate`/Sol/Luna/vault; plan en
    `docs/specs/LIMPIEZA-2.md` § 2.
-3. Mutación nocturna: la corrida 42361144282 (rojo) fue sobre `85379e9`, antes de CI.66; confirmar que la de esta
-   noche sale verde. Propuesto a Carlos, sin GO: mostrar al arrancar el resultado de la última corrida.
-4. **Esperan su próximo fallo**: CI.57 `composer-picker-model-missing.json`; CI.54 `turn1-bubble-missing.json`; CI.19;
+3. Mutación nocturna: la del 2026-11-08 (42469416136, sobre `82ea836`) tuvo 4 shards rojos por 504 de GitHub al bajar
+   Bun en `setup-bun` (infra, no código); re-run de los fallidos lanzado, sin resultado al cerrar: mirarlo. Propuesto a Carlos, sin GO: mostrar al arrancar el resultado de la última corrida.
+4. **Esperan su próximo fallo**: CI.69 (`usage-bar`, Enter sin envío; ver ítem); CI.57 `composer-picker-model-missing.json`; CI.54 `turn1-bubble-missing.json`; CI.19;
    CI.55 (`role-task-missing-output-attempt-<n>.json`). Leer el JSON el mismo día: CI.62 borra el `runDir` a las 24 h.
 5. Cabos sueltos de la sesión SK.1/SK.2 (2026-11-06/07):
    - PR #4 (README sync, conteo de tests) abierto: espera merge de Carlos. El workflow ya abre PRs (permiso activado,
