@@ -24,13 +24,19 @@ function untrackedLines(root: string, path: string): number {
   }
 }
 
-export function handleApiGitChanges(root: string): Response {
+export function handleApiGitChanges(root: string, url?: URL): Response {
   const status = git(root, ['status', '--porcelain=v1', '-z', '--untracked-files=all'])
   if (status.exitCode !== 0) return jsonResponse({ branch: null, files: [] })
   const branch =
     git(root, ['symbolic-ref', '--short', '-q', 'HEAD']).stdout.toString().trim() || null
   const hasHead = git(root, ['rev-parse', '--verify', 'HEAD']).exitCode === 0
-  const records = git(root, ['diff', ...(hasHead ? ['HEAD'] : ['--cached']), '--numstat', '-z'])
+  const records = git(root, [
+    'diff',
+    ...(url?.searchParams.get('ignoreWhitespace') === '1' ? ['-w'] : []),
+    ...(hasHead ? ['HEAD'] : ['--cached']),
+    '--numstat',
+    '-z',
+  ])
     .stdout.toString()
     .split('\0')
   const counts = new Map<string, { additions: number; deletions: number }>()
@@ -88,11 +94,12 @@ export function handleApiGitDiff(url: URL, root: string): Response {
     .split('\0')
     .includes(path)
   const hasHead = git(root, ['rev-parse', '--verify', 'HEAD']).exitCode === 0
+  const whitespace = url.searchParams.get('ignoreWhitespace') === '1' ? ['-w'] : []
   const result = git(
     root,
     untracked
-      ? ['diff', '--no-index', '--', '/dev/null', path]
-      : ['diff', ...(hasHead ? ['HEAD'] : ['--cached']), '--', path],
+      ? ['diff', ...whitespace, '--no-index', '--', '/dev/null', path]
+      : ['diff', ...whitespace, ...(hasHead ? ['HEAD'] : ['--cached']), '--', path],
   )
   const patch =
     result.stdout.length > 200_000

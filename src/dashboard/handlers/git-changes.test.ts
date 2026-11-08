@@ -113,3 +113,44 @@ describe('git changes', () => {
     expect(Buffer.byteLength(data.patch)).toBeLessThan(200_100)
   })
 })
+
+test('whitespace query filters tracked patch and numstat, preserving defaults and content changes', async () => {
+  write('spaces.txt', 'hello world\n')
+  write('content.txt', 'before\n')
+  commit()
+  write('spaces.txt', 'hello   world   \n')
+  write('content.txt', 'after\n')
+  const url = new URL('http://localhost/api/git/changes?ignoreWhitespace=1')
+  expect((await diff('spaces.txt').json()).patch).toContain('-hello world')
+  expect(
+    (
+      await handleApiGitDiff(
+        new URL('http://localhost/api/git/diff?path=spaces.txt&ignoreWhitespace=1'),
+        root,
+      ).json()
+    ).patch,
+  ).toBe('')
+  const normal = (await handleApiGitChanges(root).json()).files
+  const ignored = (await handleApiGitChanges(root, url).json()).files
+  expect(normal.find((file: { path: string }) => file.path === 'spaces.txt')).toMatchObject({
+    additions: 1,
+    deletions: 1,
+  })
+  expect(ignored.find((file: { path: string }) => file.path === 'spaces.txt')).toMatchObject({
+    additions: 0,
+    deletions: 0,
+  })
+  expect(ignored.find((file: { path: string }) => file.path === 'content.txt')).toMatchObject({
+    additions: 1,
+    deletions: 1,
+  })
+  write('untracked.txt', 'new content\n')
+  expect(
+    (
+      await handleApiGitDiff(
+        new URL('http://localhost/api/git/diff?path=untracked.txt&ignoreWhitespace=1'),
+        root,
+      ).json()
+    ).patch,
+  ).toContain('+new content')
+})

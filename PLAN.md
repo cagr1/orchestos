@@ -160,7 +160,17 @@ Propuesta y comparación con las tres referencias: `docs/specs/ADE-PLAN.md`. Uno
   Gate en vivo: navegador real (Playwright), `docs/done/evidence/ADE.7/ui-gate-result.json` y `docs/done/evidence/ADE.7-live.json`.
   Texto visible: "Interface scale" · "Reset" · "Show git-ignored files" · "Diff colors" · "Default" · "Color-blind friendly" · "Zoom in" · "Zoom out" · "Reset zoom" (etiquetas de ajustes y atajos; un ícono no dice qué controla cada fila)
   Ejecutado por: codex gpt-6.1-sol (criterio) · Spec: docs/specs/ADE.7.md
-- [ ] **ADE.8 — Diff por defecto: unificado o lado a lado, espacios, árbol.**
+- [x] **ADE.8 — Diff por defecto: unificado o lado a lado, espacios, árbol.** Hecho: `lib/diff-settings.ts`
+  (`orchestos-diff`) con vista, espacios, layout de Changes y carpetas abiertas; `ignoreWhitespace=1` añade `-w` a
+  `/api/git/diff` (también `--no-index`) y al numstat de `/api/git/changes`, sin el parámetro idéntico a antes.
+  `DevDiffPanel`: vista lado a lado (`splitDiffRows`, empareja rachas `-`/`+` por hunk) con paleta daltónica, y
+  toggles por panel en el header iniciados desde los ajustes. Changes como árbol con carpetas compactadas, toggle en
+  la cabecera. Settings → Editor: grupo de 4 filas + búsqueda. Diff del timeline y TaskCard siguen unificados.
+  Gates del cerebro: `tsc`, 46 tests, `build:app`, `ui:gate diff-view` 3/3 PASS 19/19, appearance 23/23,
+  dev-session-tabs 50/50, settings-pages 32/32. Revisión: Opus (diff leído).
+  Gate en vivo: navegador real (Playwright), `docs/done/evidence/ADE.8/ui-gate-result.json` y `docs/done/evidence/ADE.8-live.json`.
+  Texto visible: "Diff view" · "Unified" · "Split" · "Ignore whitespace" · "Changes layout" · "List" · "Tree" · "Expand folders" · "Open file" (filas de ajustes; en el visor y en Changes son íconos con aria-label; "Open file" ya existía, solo se movió dentro del grupo del header)
+  Ejecutado por: codex gpt-6.1-sol (criterio) · Spec: docs/specs/ADE.8.md
 - [ ] **ADE.9 — Terminal: fuente, tamaño, cursor, scrollback.**
 - [ ] **ADE.10 — Por proyecto: nombre e ícono, script al crear worktree, rama base.**
 

@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test'
 import type { FileNode } from '../../types/orchestos'
-import { attachExplorerChildren, foldersToLoad } from './OrcaRightInspector'
+import { attachExplorerChildren, buildChangesTree, foldersToLoad } from './OrcaRightInspector'
 
 describe('OrcaRightInspector file tree', () => {
   test('loads folder entries into the matching node without mutating the root', async () => {
@@ -62,4 +62,16 @@ describe('OrcaRightInspector file tree', () => {
     ])
     expect(foldersToLoad(withNestedChildren, expanded)).toEqual([])
   })
+})
+
+test('changes tree compacts folder chains without swallowing branching folders or root files', () => {
+  const files = ['src/dashboard/app/a.ts', 'src/dashboard/app/nested/b.ts', 'README.md'].map(
+    (path) => ({ path, status: 'M' as const, additions: 1, deletions: 1 }),
+  )
+  const tree = buildChangesTree(files)
+  expect(tree.map((node) => node.name)).toEqual(['src/dashboard/app', 'README.md'])
+  expect(tree[0]?.children.map((node) => node.name)).toEqual(['nested', 'a.ts'])
+  expect(tree[0]?.children[0]?.children[0]?.file).toBe(files[1])
+  expect(tree[1]?.file).toBe(files[2])
+  expect(buildChangesTree([])).toEqual([])
 })

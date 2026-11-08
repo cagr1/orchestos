@@ -1,5 +1,5 @@
 import { expect, test } from 'bun:test'
-import { numberedDiffLines } from './DevDiffPanel'
+import { numberedDiffLines, splitDiffRows } from './DevDiffPanel'
 import { type OpenPathRequest, openFileTab, openPathTab } from './file-tabs'
 import { DiffFileButton } from './OrcaRightInspector'
 import { emptySessionTabs, persistedDevTabs, restoreSessionTabs } from './session-tabs'
@@ -57,4 +57,42 @@ test('non-text patches retain git explanations without invented line numbers', (
       'diff --git a/image b/image\nindex aaa..bbb 100644\nBinary files a/image and b/image differ\n',
     ),
   ).toEqual([{ text: 'Binary files a/image and b/image differ', oldLine: null, newLine: null }])
+})
+
+test('split pairs unequal replacement runs and duplicates context with both numbers', () => {
+  expect(splitDiffRows('@@ -2,3 +2,4 @@\n same\n-old\n-gone\n+new\n+extra\n+last\n')).toEqual([
+    { header: '@@ -2,3 +2,4 @@' },
+    {
+      left: { text: ' same', oldLine: 2, newLine: 2 },
+      right: { text: ' same', oldLine: 2, newLine: 2 },
+    },
+    {
+      left: { text: '-old', oldLine: 3, newLine: null },
+      right: { text: '+new', oldLine: null, newLine: 3 },
+    },
+    {
+      left: { text: '-gone', oldLine: 4, newLine: null },
+      right: { text: '+extra', oldLine: null, newLine: 4 },
+    },
+    { left: null, right: { text: '+last', oldLine: null, newLine: 5 } },
+  ])
+})
+
+test('split handles additions, deletions, multiple hunks and rename-only metadata', () => {
+  expect(splitDiffRows('@@ -0,0 +1 @@\n+new\n@@ -7 +8,0 @@\n-old\n')).toEqual([
+    { header: '@@ -0,0 +1 @@' },
+    { left: null, right: { text: '+new', oldLine: null, newLine: 1 } },
+    { header: '@@ -7 +8,0 @@' },
+    { left: { text: '-old', oldLine: 7, newLine: null }, right: null },
+  ])
+  expect(
+    splitDiffRows(
+      'diff --git a/old b/new\nsimilarity index 100%\nrename from old\nrename to new\n',
+    ),
+  ).toEqual([
+    { header: 'similarity index 100%' },
+    { header: 'rename from old' },
+    { header: 'rename to new' },
+  ])
+  expect(splitDiffRows('')).toEqual([])
 })

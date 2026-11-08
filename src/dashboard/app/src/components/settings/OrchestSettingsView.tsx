@@ -48,6 +48,7 @@ import {
 } from '@/lib/appearance-settings'
 import { deliverAttention } from '@/lib/attention-delivery'
 import { isMacPlatform, useChatSettings, writeChatSettings } from '@/lib/chat-settings'
+import { useDiffSettings, writeDiffSettings } from '@/lib/diff-settings'
 import { useEditorSettings, writeEditorSettings } from '@/lib/editor-settings'
 import {
   type Chord,
@@ -247,6 +248,70 @@ const SETTINGS_SEARCH_INDEX: SettingsSearchEntry[] = [
     section: 'chat',
     label: { en: 'Confirm before archiving an agent', es: 'Confirm before archiving an agent' },
     keywords: ['archive', 'confirm', 'chat'],
+  },
+  {
+    id: 'diff-view',
+    section: 'editor',
+    label: { en: 'Diff view', es: 'Diff view' },
+    keywords: [
+      'diff',
+      'side by side',
+      'split',
+      'unified',
+      'whitespace',
+      'espacios',
+      'tree',
+      'árbol',
+      'carpetas',
+    ],
+  },
+  {
+    id: 'diff-ignore-whitespace',
+    section: 'editor',
+    label: { en: 'Ignore whitespace', es: 'Ignore whitespace' },
+    keywords: [
+      'diff',
+      'side by side',
+      'split',
+      'unified',
+      'whitespace',
+      'espacios',
+      'tree',
+      'árbol',
+      'carpetas',
+    ],
+  },
+  {
+    id: 'changes-layout',
+    section: 'editor',
+    label: { en: 'Changes layout', es: 'Changes layout' },
+    keywords: [
+      'diff',
+      'side by side',
+      'split',
+      'unified',
+      'whitespace',
+      'espacios',
+      'tree',
+      'árbol',
+      'carpetas',
+    ],
+  },
+  {
+    id: 'diff-expand-folders',
+    section: 'editor',
+    label: { en: 'Expand folders', es: 'Expand folders' },
+    keywords: [
+      'diff',
+      'side by side',
+      'split',
+      'unified',
+      'whitespace',
+      'espacios',
+      'tree',
+      'árbol',
+      'carpetas',
+    ],
   },
   {
     id: 'editor-auto-save',
@@ -643,6 +708,7 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
   const [activeSection, setActiveSection] = useState<SettingsSection>(initialSection)
   const appearanceSettings = useAppearanceSettings()
   const editorSettings = useEditorSettings()
+  const diffSettings = useDiffSettings()
   const notificationSettings = useNotificationSettings()
   const [notificationPermission, setNotificationPermission] = useState(() =>
     typeof Notification === 'undefined' ? 'unsupported' : Notification.permission,
@@ -2321,6 +2387,55 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
                   max={24}
                   unit="px"
                   ariaLabel="Font size"
+                />
+              </SettingsRow>
+            </SettingsGroup>
+            <SettingsGroup>
+              <SettingsRow data-settings-anchor="diff-view" label="Diff view">
+                <SettingsSegmented
+                  value={diffSettings.view}
+                  onChange={(view) => writeDiffSettings({ view })}
+                  ariaLabel="Diff view"
+                  options={[
+                    { value: 'unified', label: 'Unified' },
+                    { value: 'split', label: 'Split' },
+                  ]}
+                />
+              </SettingsRow>
+              <SettingsRow data-settings-anchor="diff-ignore-whitespace" label="Ignore whitespace">
+                <input
+                  type="checkbox"
+                  role="switch"
+                  aria-label="Ignore whitespace"
+                  aria-checked={diffSettings.ignoreWhitespace}
+                  checked={diffSettings.ignoreWhitespace}
+                  onChange={(event) =>
+                    writeDiffSettings({ ignoreWhitespace: event.target.checked })
+                  }
+                  className="relative h-5 w-9 shrink-0 cursor-pointer appearance-none rounded-full bg-app-elevated transition-colors after:absolute after:left-0.5 after:top-0.5 after:size-4 after:rounded-full after:bg-app-muted after:transition-transform checked:bg-blue-500 checked:after:translate-x-4 checked:after:bg-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 disabled:cursor-default disabled:opacity-50"
+                />
+              </SettingsRow>
+              <SettingsRow data-settings-anchor="changes-layout" label="Changes layout">
+                <SettingsSegmented
+                  value={diffSettings.changesLayout}
+                  onChange={(changesLayout) => writeDiffSettings({ changesLayout })}
+                  ariaLabel="Changes layout"
+                  options={[
+                    { value: 'list', label: 'List' },
+                    { value: 'tree', label: 'Tree' },
+                  ]}
+                />
+              </SettingsRow>
+              <SettingsRow data-settings-anchor="diff-expand-folders" label="Expand folders">
+                <input
+                  type="checkbox"
+                  role="switch"
+                  aria-label="Expand folders"
+                  aria-checked={diffSettings.foldersExpanded}
+                  checked={diffSettings.foldersExpanded}
+                  disabled={diffSettings.changesLayout === 'list'}
+                  onChange={(event) => writeDiffSettings({ foldersExpanded: event.target.checked })}
+                  className="relative h-5 w-9 shrink-0 cursor-pointer appearance-none rounded-full bg-app-elevated transition-colors after:absolute after:left-0.5 after:top-0.5 after:size-4 after:rounded-full after:bg-app-muted after:transition-transform checked:bg-blue-500 checked:after:translate-x-4 checked:after:bg-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 disabled:cursor-default disabled:opacity-50"
                 />
               </SettingsRow>
             </SettingsGroup>

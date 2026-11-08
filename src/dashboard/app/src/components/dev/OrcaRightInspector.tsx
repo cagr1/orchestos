@@ -6,6 +6,8 @@ import {
   FolderOpen,
   GitCompare,
   History,
+  List,
+  ListTree,
   MessageSquare,
   MoreHorizontal,
   RefreshCw,
@@ -22,6 +24,7 @@ import { useEffect, useRef, useState } from 'react'
 import { getExplorerTree } from '../../api/explorer'
 import { type GitChange, getGitChanges } from '../../api/git'
 import { useAppearanceSettings } from '../../lib/appearance-settings'
+import { useDiffSettings } from '../../lib/diff-settings'
 import type { FileNode, ProjectItem } from '../../types/orchestos'
 import { ProviderLogo } from '../common/ProviderLogos'
 import { ResizableAside } from '../common/ResizableAside'
@@ -57,6 +60,42 @@ export function foldersToLoad(tree: FileNode[], expanded: Record<string, boolean
   return openPaths
     .filter((path) => folders.has(path) && !folders.get(path)?.children)
     .sort((left, right) => left.split('/').length - right.split('/').length)
+}
+
+export type ChangeTreeNode = {
+  name: string
+  path: string
+  file?: GitChange
+  children: ChangeTreeNode[]
+}
+
+export function buildChangesTree(files: GitChange[]): ChangeTreeNode[] {
+  const roots: ChangeTreeNode[] = []
+  for (const file of files) {
+    const parts = file.path.split('/')
+    let nodes = roots
+    parts.forEach((name, index) => {
+      const path = parts.slice(0, index + 1).join('/')
+      let node = nodes.find((entry) => entry.path === path)
+      if (!node) {
+        node = { name, path, children: [], ...(index === parts.length - 1 ? { file } : {}) }
+        nodes.push(node)
+      }
+      nodes = node.children
+    })
+  }
+  const compact = (nodes: ChangeTreeNode[]): ChangeTreeNode[] =>
+    nodes
+      .map((original) => {
+        let node = { ...original }
+        while (!node.file && node.children.length === 1 && !node.children[0]!.file) {
+          const child = node.children[0]!
+          node = { ...child, name: `${node.name}/${child.name}` }
+        }
+        return { ...node, children: compact(node.children) }
+      })
+      .sort((a, b) => Number(!!a.file) - Number(!!b.file) || a.name.localeCompare(b.name))
+  return compact(roots)
 }
 
 export interface HistorySession {
@@ -115,6 +154,11 @@ export const OrcaRightInspector: React.FC<OrcaRightInspectorProps> = ({
   onOpenFile,
 }) => {
   const { showGitIgnored } = useAppearanceSettings()
+  const diffSettings = useDiffSettings()
+  const [changesLayout, setChangesLayout] = useState(diffSettings.changesLayout)
+  const [changeFolders, setChangeFolders] = useState<Record<string, boolean>>({})
+  useEffect(() => setChangesLayout(diffSettings.changesLayout), [diffSettings.changesLayout])
+  useEffect(() => setChangeFolders({}), [diffSettings.foldersExpanded, currentProject.id])
   const [activeTab, setActiveTab] = useState<'files' | 'diff' | 'history'>('files')
   const [expandedFolders, setExpandedFolders] = useState<Record<string, boolean>>({})
   const [searchQuery, setSearchQuery] = useState('')
@@ -190,7 +234,7 @@ export const OrcaRightInspector: React.FC<OrcaRightInspectorProps> = ({
     let cancelled = false
     const load = async () => {
       try {
-        const data = await getGitChanges(currentProject.id)
+        const data = await getGitChanges(currentProject.id, diffSettings.ignoreWhitespace)
         if (!cancelled) {
           setGitFiles(data.files)
           setGitError(false)
@@ -206,7 +250,7 @@ export const OrcaRightInspector: React.FC<OrcaRightInspectorProps> = ({
       cancelled = true
       window.clearInterval(timer)
     }
-  }, [activeTab, currentProject.id, refresh])
+  }, [activeTab, currentProject.id, refresh, diffSettings.ignoreWhitespace])
 
   // History Tab specific states
   const [historyScope, setHistoryScope] = useState<'workspace' | 'project' | 'all'>('workspace')
@@ -326,6 +370,78 @@ export const OrcaRightInspector: React.FC<OrcaRightInspectorProps> = ({
         )
       })
   }
+
+  const renderChangeFile = (file: GitChange) => {
+    const parts = file.path.split('/')
+    const name = parts.pop()
+    const statusColor =
+      file.status === 'M'
+        ? 'text-app-warning'
+        : file.status === 'D'
+          ? 'text-app-error [[data-diff-palette=colorblind]_&]:text-orange-400'
+          : file.status === 'R'
+            ? 'text-app-accent'
+            : 'text-emerald-400 [[data-diff-palette=colorblind]_&]:text-sky-400'
+    return (
+      <div key={file.path}>
+        <DiffFileButton
+          path={file.path}
+          selected={activeDiffPath === file.path}
+          onOpen={onOpenDiff}
+        >
+          <FileIcon name={name ?? file.path} kind="file" className="w-3.5 h-3.5 flex-shrink-0" />
+          <span className="text-app truncate">{name}</span>
+          <span className="text-app-muted truncate flex-1">{parts.join('/')}</span>
+          <span className="font-mono text-emerald-400 flex-shrink-0 [[data-diff-palette=colorblind]_&]:text-sky-400">
+            +{file.additions}
+          </span>
+          <span className="font-mono text-app-error flex-shrink-0 [[data-diff-palette=colorblind]_&]:text-orange-400">
+            −{file.deletions}
+          </span>
+          <span className={`font-mono flex-shrink-0 ${statusColor}`}>{file.status}</span>
+        </DiffFileButton>
+      </div>
+    )
+  }
+
+  const renderChangesTree = (nodes: ChangeTreeNode[], depth = 0): React.ReactNode =>
+    nodes.map((node) => {
+      if (node.file)
+        return (
+          <div key={node.path} style={{ paddingLeft: `${depth * 14}px` }}>
+            {renderChangeFile(node.file)}
+          </div>
+        )
+      const expanded = changeFolders[node.path] ?? diffSettings.foldersExpanded
+      return (
+        <div key={node.path}>
+          <button
+            type="button"
+            data-changes-folder={node.path}
+            aria-expanded={expanded}
+            onClick={() =>
+              setChangeFolders((previous) => ({ ...previous, [node.path]: !expanded }))
+            }
+            style={{ paddingLeft: `${depth * 14 + 10}px` }}
+            className="w-full flex items-center gap-1.5 py-1 px-2 rounded-control text-xs text-left text-app-muted hover:text-app hover:bg-app-surface/50"
+          >
+            {expanded ? (
+              <ChevronDown className="w-3.5 h-3.5 shrink-0" />
+            ) : (
+              <ChevronRight className="w-3.5 h-3.5 shrink-0" />
+            )}
+            <FileIcon
+              name={node.name}
+              kind="folder"
+              expanded={expanded}
+              className="w-3.5 h-3.5 shrink-0"
+            />
+            <span className="truncate">{node.name}</span>
+          </button>
+          {expanded && renderChangesTree(node.children, depth + 1)}
+        </div>
+      )
+    })
 
   return (
     <ResizableAside
@@ -494,14 +610,30 @@ export const OrcaRightInspector: React.FC<OrcaRightInspectorProps> = ({
                 {gitFiles.length}
               </span>
             </div>
-            <button
-              type="button"
-              aria-label="Refresh git changes"
-              onClick={() => setRefresh((value) => value + 1)}
-              className="p-1 text-app-muted hover:text-app rounded-control"
-            >
-              <RotateCw className="w-3.5 h-3.5" />
-            </button>
+            <div className="flex items-center gap-1">
+              <button
+                type="button"
+                aria-label="Changes layout"
+                title={changesLayout === 'list' ? 'Tree' : 'List'}
+                aria-pressed={changesLayout === 'tree'}
+                onClick={() => setChangesLayout((value) => (value === 'list' ? 'tree' : 'list'))}
+                className="p-1 text-app-muted hover:text-app rounded-control"
+              >
+                {changesLayout === 'list' ? (
+                  <ListTree className="w-3.5 h-3.5" />
+                ) : (
+                  <List className="w-3.5 h-3.5" />
+                )}
+              </button>
+              <button
+                type="button"
+                aria-label="Refresh git changes"
+                onClick={() => setRefresh((value) => value + 1)}
+                className="p-1 text-app-muted hover:text-app rounded-control"
+              >
+                <RotateCw className="w-3.5 h-3.5" />
+              </button>
+            </div>
           </div>
           <div className="flex-1 overflow-y-auto p-1">
             {gitError && (
@@ -510,42 +642,9 @@ export const OrcaRightInspector: React.FC<OrcaRightInspectorProps> = ({
             {!gitError && gitFiles.length === 0 && (
               <div className="p-3 text-xs text-app-muted">No changes</div>
             )}
-            {gitFiles.map((file) => {
-              const parts = file.path.split('/')
-              const name = parts.pop()
-              const statusColor =
-                file.status === 'M'
-                  ? 'text-app-warning'
-                  : file.status === 'D'
-                    ? 'text-app-error [[data-diff-palette=colorblind]_&]:text-orange-400'
-                    : file.status === 'R'
-                      ? 'text-app-accent'
-                      : 'text-emerald-400 [[data-diff-palette=colorblind]_&]:text-sky-400'
-              return (
-                <div key={file.path}>
-                  <DiffFileButton
-                    path={file.path}
-                    selected={activeDiffPath === file.path}
-                    onOpen={onOpenDiff}
-                  >
-                    <FileIcon
-                      name={name ?? file.path}
-                      kind="file"
-                      className="w-3.5 h-3.5 flex-shrink-0"
-                    />
-                    <span className="text-app truncate">{name}</span>
-                    <span className="text-app-muted truncate flex-1">{parts.join('/')}</span>
-                    <span className="font-mono text-emerald-400 flex-shrink-0 [[data-diff-palette=colorblind]_&]:text-sky-400">
-                      +{file.additions}
-                    </span>
-                    <span className="font-mono text-app-error flex-shrink-0 [[data-diff-palette=colorblind]_&]:text-orange-400">
-                      −{file.deletions}
-                    </span>
-                    <span className={`font-mono flex-shrink-0 ${statusColor}`}>{file.status}</span>
-                  </DiffFileButton>
-                </div>
-              )
-            })}
+            {changesLayout === 'list'
+              ? gitFiles.map(renderChangeFile)
+              : renderChangesTree(buildChangesTree(gitFiles))}
           </div>
         </div>
       )}

@@ -574,7 +574,7 @@ export async function route(req: Request, port: number): Promise<Response> {
     return withDashboardProject(req, (project) => handleApiConfigSet(req, project.root))
   }
   if (method === 'GET' && url.pathname === '/api/git/changes') {
-    return withDashboardProject(req, (project) => handleApiGitChanges(project.root))
+    return withDashboardProject(req, (project) => handleApiGitChanges(project.root, url))
   }
   if (method === 'GET' && url.pathname === '/api/git/diff') {
     return withDashboardProject(req, (project) => handleApiGitDiff(url, project.root))
