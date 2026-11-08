@@ -11,9 +11,15 @@ Arranque: `bun run agent:preflight -- --item <ID> --agent claude`. Lista viva: `
    disco, `PUT /api/explorer/file`); ADE.2 `0104b2bf` (Settings → Editor); ADE.3 `59150637` (14 atajos desde
    `lib/keybindings.ts`, Go to file ⌘P, paleta sin acciones del prototipo); CI.68 `7ad5c745` (gate `model-routing`
    espera la sugerencia). Antes, el mismo día: CI.66 `f149cba9`, CI.67 `85f09c44`, SK.3 `d132e976`, UI.70 `7bfb7199`.
-1. ADE.4 hecho (`9fd00b9f`, atajos grabando teclas). ADE.5 hecho (Settings → Chat: tecla de envío, cola o
-   detener-y-enviar, confirmaciones). ADE.6 hecho (notificaciones + sonido). Sigue **ADE.7** → ADE.10 en orden (`PLAN.md` § ADE),
-   uno a uno, spec por ítem con rutas sacadas de grep del mismo turno.
+1. Hecho 2026-11-07 (tarde): ADE.4 `9fd00b9f` (atajos grabando teclas; de paso, Esc del buscador de Settings ya no
+   depende del foco), ADE.5 `e369e260` (Settings → Chat: Enter/⌘Enter, cola o "Stop and send", confirmaciones),
+   ADE.6 `46902e01` (notificaciones + sonido; poll de `listSessions` 5 s solo con algo trabajando).
+   Sigue **ADE.7** → ADE.10 en orden (`PLAN.md` § ADE), uno a uno, spec por ítem con rutas sacadas de grep del mismo
+   turno. Rol `criterio`; el cerebro corre cada `ui:gate` nuevo 3 veces antes de cerrar (el de ADE.4 salió verde
+   en el reporte del ejecutor y rojo 2 de 3 en el cerebro).
+   Decidido por el cerebro, Carlos puede revertir: cola por defecto "Queue message"; clic en notificación abre Dev
+   solo si el hilo es pestaña de Dev abierta. Pendiente menor sin ítem: "Replace" (choque de atajos) no se activa por
+   teclado mientras graba; los atajos matchean por tecla física (`event.code`), no por carácter (AZERTY/Dvorak).
 2. **Desacople del método personal** (GO de Carlos, después de SK.1–3; ahora en cola tras el bloque ADE salvo que
    Carlos diga otra cosa): reescribir `AGENTS.md`, hooks `.claude/` (`brain-no-code.js:16`, `subagent-budget.js:156`,
    `context-budget.js:30`), `docs/roadmaps/` y fixtures sin `agent-method`/`delegate`/Sol/Luna/vault; plan en
