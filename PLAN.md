@@ -138,7 +138,16 @@ Propuesta y comparación con las tres referencias: `docs/specs/ADE-PLAN.md`. Uno
   Gate en vivo: navegador real (Playwright), `docs/done/evidence/ADE.5/ui-gate-result.json` y `docs/done/evidence/ADE.5-live.json`.
   Texto visible: "Chat" · "Send with" · "Enter" · "⌘ Enter" · "Ctrl Enter" · "While the agent is working" · "Queue message" · "Stop and send" · "Confirm before deleting a chat" · "Confirm before archiving an agent" · "Queued" · "Delete this chat?" · "Delete" · "Archive this agent?" · "It moves to History; you can restore it." · "Archive" · "Cancel" · "Don't ask again" (opciones y confirmaciones; un ícono no las explica)
   Ejecutado por: codex gpt-6.1-sol (criterio, + corrección ADE.5-cola) · Spec: docs/specs/ADE.5.md
-- [ ] **ADE.6 — Notificaciones: tarea terminada o esperando respuesta.**
+- [x] **ADE.6 — Notificaciones: tarea terminada o esperando respuesta.** Hecho: notificación del sistema + tono Web
+  Audio (sin assets) cuando un agente termina, falla o pide aprobación y la ventana no está a la vista. Detección por
+  transiciones (`lib/attention-events.ts`, nunca por estados ya presentes al cargar), un evento por clave. Los hilos no
+  abiertos no se actualizaban: poll de `listSessions` cada 5 s solo mientras algo trabaja o espera, sin backend nuevo.
+  Clic → Dev si el hilo es pestaña de Dev abierta, si no Chat. Settings → Notifications: 3 switches, permiso, Test.
+  Gates del cerebro: `tsc`, 8 tests, `ui:gate notifications` 3/3 PASS 10/10; `gate:evidence` notifications 10/10,
+  chat-settings 19/19, settings-pages 29/29, smoke 7/7. Revisión: Opus (diff leído).
+  Gate en vivo: navegador real (Playwright), `docs/done/evidence/ADE.6/ui-gate-result.json` y `docs/done/evidence/ADE.6-live.json`.
+  Texto visible: "Notifications" · "When an agent finishes" · "When an agent needs your input" · "Play a sound" · "Allow notifications" · "Blocked in the browser" · "Test" · "Finished" · "Failed" · "Needs your approval" (permiso y contenido de la notificación; un ícono no los explica)
+  Ejecutado por: codex gpt-6.1-sol (criterio) · Spec: docs/specs/ADE.6.md
 - [ ] **ADE.7 — Apariencia 2: escala de la interfaz, archivos ignorados por git, diff para daltónicos.**
 - [ ] **ADE.8 — Diff por defecto: unificado o lado a lado, espacios, árbol.**
 - [ ] **ADE.9 — Terminal: fuente, tamaño, cursor, scrollback.**

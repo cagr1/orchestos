@@ -2,6 +2,7 @@ import {
   Activity,
   AlertTriangle,
   ArrowLeft,
+  Bell,
   Bot,
   Brain,
   Check,
@@ -39,6 +40,7 @@ import { PageHeader } from '@/components/layout/page'
 import { Button } from '@/components/ui/button'
 import { Card, CardAction, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { usePrefersReducedMotion } from '@/hooks/use-prefers-reduced-motion'
+import { deliverAttention } from '@/lib/attention-delivery'
 import { isMacPlatform, useChatSettings, writeChatSettings } from '@/lib/chat-settings'
 import { useEditorSettings, writeEditorSettings } from '@/lib/editor-settings'
 import {
@@ -53,6 +55,7 @@ import {
   useKeybindings,
   validateChord,
 } from '@/lib/keybindings'
+import { useNotificationSettings, writeNotificationSettings } from '@/lib/notification-settings'
 import { spring } from '@/lib/springs'
 import type { TaskClass } from '../../../../../router/classify'
 import { getDefaultChatAgent } from '../../api/chat'
@@ -204,6 +207,17 @@ type SettingsSearchEntry = {
 }
 
 const SETTINGS_SEARCH_INDEX: SettingsSearchEntry[] = [
+  ...[
+    ['turnFinished', 'When an agent finishes'],
+    ['needsInput', 'When an agent needs your input'],
+    ['sound', 'Play a sound'],
+    ['permission', 'Allow notifications'],
+  ].map(([key, label]) => ({
+    id: `notifications-${key}`,
+    section: 'notifications',
+    label: { en: label!, es: label! },
+    keywords: ['notifications', 'sound', 'approval', 'permission'],
+  })),
   {
     id: 'chat-send-key',
     section: 'chat',
@@ -604,6 +618,10 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
 }) => {
   const [activeSection, setActiveSection] = useState<SettingsSection>(initialSection)
   const editorSettings = useEditorSettings()
+  const notificationSettings = useNotificationSettings()
+  const [notificationPermission, setNotificationPermission] = useState(() =>
+    typeof Notification === 'undefined' ? 'unsupported' : Notification.permission,
+  )
   const chatSettings = useChatSettings()
   const profile = useUserProfile()
   const [activeProjectTab, setActiveProjectTab] = useState<ProjectSubTab>(initialProjectTab)
@@ -1740,6 +1758,7 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
                   { id: 'keybindings', label: 'Keybindings', icon: Keyboard },
                   { id: 'editor', label: 'Editor', icon: FileCode },
                   { id: 'chat', label: 'Chat', icon: MessageSquare },
+                  { id: 'notifications', label: 'Notifications', icon: Bell },
                 ],
               },
               {
@@ -2049,6 +2068,68 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
                   ))}
                 </tbody>
               </table>
+            </SettingsGroup>
+          </SettingsPage>
+        )}
+
+        {activeSection === 'notifications' && (
+          <SettingsPage title="Notifications">
+            <SettingsGroup>
+              {(
+                [
+                  ['turnFinished', 'When an agent finishes'],
+                  ['needsInput', 'When an agent needs your input'],
+                  ['sound', 'Play a sound'],
+                ] as const
+              ).map(([key, label]) => (
+                <SettingsRow key={key} data-settings-anchor={`notifications-${key}`} label={label}>
+                  <input
+                    type="checkbox"
+                    role="switch"
+                    aria-label={label}
+                    aria-checked={notificationSettings[key]}
+                    checked={notificationSettings[key]}
+                    onChange={(event) => writeNotificationSettings({ [key]: event.target.checked })}
+                    className="relative h-5 w-9 shrink-0 cursor-pointer appearance-none rounded-full bg-app-elevated transition-colors after:absolute after:left-0.5 after:top-0.5 after:size-4 after:rounded-full after:bg-app-muted after:transition-transform checked:bg-blue-500 checked:after:translate-x-4 checked:after:bg-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 disabled:cursor-default disabled:opacity-50"
+                  />
+                </SettingsRow>
+              ))}
+              <SettingsRow
+                data-settings-anchor="notifications-permission"
+                label="Notifications"
+                description={
+                  notificationPermission === 'denied'
+                    ? 'Blocked in the browser'
+                    : notificationPermission
+                }
+              >
+                {notificationPermission === 'default' && (
+                  <Button
+                    onClick={() =>
+                      void Notification.requestPermission().then(setNotificationPermission)
+                    }
+                  >
+                    Allow notifications
+                  </Button>
+                )}
+                <Button
+                  onClick={() =>
+                    deliverAttention(
+                      {
+                        key: 'test',
+                        threadId: 'test',
+                        title: 'Notifications',
+                        type: 'turnFinished',
+                        body: 'Finished',
+                      },
+                      notificationSettings.sound,
+                      () => undefined,
+                    )
+                  }
+                >
+                  Test
+                </Button>
+              </SettingsRow>
             </SettingsGroup>
           </SettingsPage>
         )}

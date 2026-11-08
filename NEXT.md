@@ -1,4 +1,4 @@
-# NEXT — handoff 2026-11-07 (bloque ADE: ADE.1–5 y CI.68 cerrados; sigue ADE.6)
+# NEXT — handoff 2026-11-07 (bloque ADE: ADE.1–6 y CI.68 cerrados; sigue ADE.7)
 
 Un solo presente: orden y trampas vivas del lote. Lo cerrado vive en `docs/done/bloque-*.md` y git; las reglas, en
 `AGENTS.md`. Versión anterior completa: `docs/done/poda-instrucciones-2026-11-03.md` (histórico).
@@ -12,7 +12,7 @@ Arranque: `bun run agent:preflight -- --item <ID> --agent claude`. Lista viva: `
    `lib/keybindings.ts`, Go to file ⌘P, paleta sin acciones del prototipo); CI.68 `7ad5c745` (gate `model-routing`
    espera la sugerencia). Antes, el mismo día: CI.66 `f149cba9`, CI.67 `85f09c44`, SK.3 `d132e976`, UI.70 `7bfb7199`.
 1. ADE.4 hecho (`9fd00b9f`, atajos grabando teclas). ADE.5 hecho (Settings → Chat: tecla de envío, cola o
-   detener-y-enviar, confirmaciones). Sigue **ADE.6** → ADE.10 en orden (`PLAN.md` § ADE),
+   detener-y-enviar, confirmaciones). ADE.6 hecho (notificaciones + sonido). Sigue **ADE.7** → ADE.10 en orden (`PLAN.md` § ADE),
    uno a uno, spec por ítem con rutas sacadas de grep del mismo turno.
 2. **Desacople del método personal** (GO de Carlos, después de SK.1–3; ahora en cola tras el bloque ADE salvo que
    Carlos diga otra cosa): reescribir `AGENTS.md`, hooks `.claude/` (`brain-no-code.js:16`, `subagent-budget.js:156`,

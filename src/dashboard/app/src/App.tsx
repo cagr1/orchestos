@@ -97,6 +97,7 @@ import {
   type SettingsSection,
 } from './components/settings/OrchestSettingsView'
 import { projectsWithApprovals, threadsWithApprovals } from './components/thread/taskCards'
+import { useAttentionNotifications } from './hooks/useAttentionNotifications'
 import { stopActiveChatTurn } from './hooks/useStopChatTurn'
 import { discardChatQueue } from './lib/chat-queue'
 import { readChatSettings, writeChatSettings } from './lib/chat-settings'
@@ -287,7 +288,10 @@ export default function App() {
   const [instincts, setInstincts] = useState<InstinctItem[]>([])
   const [memories, setMemories] = useState<MemoryItem[]>([])
   const [threads, setThreads] = useState<ChatThread[]>([])
+  const [attentionSessionsProject, setAttentionSessionsProject] = useState<string | null>()
+  const [attentionTasksProject, setAttentionTasksProject] = useState<string>()
   const [runningSessionIds, setRunningSessionIds] = useState<Set<string>>(() => new Set())
+  const failedSessionIds = useRef(new Set<string>())
   const locallyRunningSessionIds = useRef<Set<string>>(new Set())
   const handleDevTimelinePending = useCallback((sessionId: string, pending: boolean) => {
     if (pending || locallyRunningSessionIds.current.has(sessionId)) return
@@ -441,6 +445,7 @@ export default function App() {
           return next
         })
         setThreads((current) => mergeLoadedThreads(current, initial, visibleProjectId))
+        setAttentionSessionsProject(visibleProjectId)
         setActiveThreadId((current) =>
           activeAfterLoad(
             current,
@@ -773,6 +778,7 @@ export default function App() {
       .then((result) => {
         if (disposed) return
         setTasks(result.tasks)
+        setAttentionTasksProject(currentProject.id)
         setTaskError(result.error || null)
       })
       .catch((error) => {
@@ -940,6 +946,53 @@ export default function App() {
     }
     setMode('dev')
   }
+
+  useAttentionNotifications({
+    ready:
+      attentionSessionsProject === (currentProject?.id ?? null) &&
+      attentionTasksProject === currentProject?.id,
+    threads,
+    runningIds: runningSessionIds,
+    failedIds: failedSessionIds.current,
+    projectId: currentProject?.id ?? null,
+    taskSources: [
+      { projectId: currentProject?.id, tasks },
+      ...(threadTasks && threadTasks.projectId !== currentProject?.id ? [threadTasks] : []),
+    ],
+    approvals,
+    onSessions: (sessions) => {
+      setThreads((current) =>
+        current.map((thread) => {
+          const session = sessions.find((item) => item.id === thread.id)
+          return session
+            ? { ...thread, running: session.running, updatedAt: session.updatedAt }
+            : thread
+        }),
+      )
+      setRunningSessionIds((current) => {
+        const next = new Set(current)
+        for (const session of sessions) {
+          if (session.running) next.add(session.id)
+          else if (!locallyRunningSessionIds.current.has(session.id)) next.delete(session.id)
+        }
+        return next
+      })
+    },
+    onOpen: (thread) => {
+      if (
+        thread.projectId &&
+        devTabs[thread.projectId]?.tabs.some(
+          (tab) => tab.type === 'session' && tab.id === thread.id,
+        )
+      ) {
+        void handleSelectAgent(thread.id, thread.projectId)
+      } else {
+        if (thread.projectId) setActiveProjectId(thread.projectId)
+        setActiveThreadId(thread.id)
+        setMode('chat')
+      }
+    },
+  })
 
   // Restore session from history to sidebar
   // Project creation
@@ -1279,6 +1332,7 @@ export default function App() {
         thread.id === threadId ? { ...thread, messages: [...thread.messages, optimistic] } : thread,
       ),
     )
+    failedSessionIds.current.delete(threadId)
     locallyRunningSessionIds.current.add(threadId)
     setRunningSessionIds((current) => new Set(current).add(threadId))
     return sendMessage({
@@ -1317,6 +1371,7 @@ export default function App() {
         return true
       })
       .catch(async (error) => {
+        failedSessionIds.current.add(threadId)
         if (error.notice) {
           const messages = await loadThreadMessages(threadId, thread?.projectId)
           if (
