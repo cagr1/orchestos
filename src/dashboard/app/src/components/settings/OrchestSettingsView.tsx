@@ -39,7 +39,18 @@ import { Button } from '@/components/ui/button'
 import { Card, CardAction, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { usePrefersReducedMotion } from '@/hooks/use-prefers-reduced-motion'
 import { useEditorSettings, writeEditorSettings } from '@/lib/editor-settings'
-import { KEYBINDINGS } from '@/lib/keybindings'
+import {
+  type Chord,
+  type CommandId,
+  chordFromEvent,
+  effectiveChord,
+  KEYBINDINGS,
+  resetAllChords,
+  resetChord,
+  setChord,
+  useKeybindings,
+  validateChord,
+} from '@/lib/keybindings'
 import { spring } from '@/lib/springs'
 import type { TaskClass } from '../../../../../router/classify'
 import { getDefaultChatAgent } from '../../api/chat'
@@ -574,6 +585,60 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
   )
   const [searchQuery, setSearchQuery] = useState('')
   const [keybindingQuery, setKeybindingQuery] = useState('')
+  const chordOverrides = useKeybindings()
+  const [recording, setRecording] = useState<CommandId | null>(null)
+  const [recordError, setRecordError] = useState('')
+  const [chordConflict, setChordConflict] = useState<{ id: CommandId; chord: Chord } | null>(null)
+  const stopRecording = useCallback(() => {
+    setRecording(null)
+    setRecordError('')
+    setChordConflict(null)
+  }, [])
+
+  useEffect(() => {
+    if (activeSection !== 'keybindings') stopRecording()
+  }, [activeSection, stopRecording])
+
+  useEffect(() => {
+    if (!recording) return
+    const onKeyDown = (event: KeyboardEvent) => {
+      event.preventDefault()
+      event.stopPropagation()
+      if (event.code === 'Escape' && recording !== 'stop-turn') {
+        stopRecording()
+        return
+      }
+      if (event.code === 'Delete' || event.code === 'Backspace') {
+        setChord(recording, null)
+        stopRecording()
+        return
+      }
+      const value = chordFromEvent(event)
+      if (!value) return
+      const validation = validateChord(recording, value)
+      setRecordError(validation.error ?? '')
+      setChordConflict(
+        validation.conflictWith ? { id: validation.conflictWith, chord: value } : null,
+      )
+      if (validation.error || validation.conflictWith) return
+      setChord(recording, value)
+      stopRecording()
+    }
+    const onPointerDown = (event: PointerEvent) => {
+      if (
+        !(event.target instanceof Element) ||
+        !event.target.closest(`[data-keybinding="${recording}"]`)
+      )
+        stopRecording()
+    }
+    window.addEventListener('keydown', onKeyDown, { capture: true })
+    window.addEventListener('pointerdown', onPointerDown, { capture: true })
+    return () => {
+      window.removeEventListener('keydown', onKeyDown, { capture: true })
+      window.removeEventListener('pointerdown', onPointerDown, { capture: true })
+    }
+  }, [recording, stopRecording])
+
   const [paletteOpen, setPaletteOpen] = useState(false)
   const [searchIndex, setSearchIndex] = useState(0)
   const [searchDestination, setSearchDestination] = useState<SettingsSearchEntry | null>(null)
@@ -796,6 +861,17 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
   useEffect(() => {
     if (settingsSearchSignal > 0) openSettingsSearch()
   }, [settingsSearchSignal, openSettingsSearch])
+
+  useEffect(() => {
+    if (!paletteOpen) return
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key !== 'Escape') return
+      event.preventDefault()
+      closeSettingsSearch()
+    }
+    window.addEventListener('keydown', onKeyDown)
+    return () => window.removeEventListener('keydown', onKeyDown)
+  }, [paletteOpen, closeSettingsSearch])
 
   useEffect(() => {
     if (paletteOpen) paletteInputRef.current?.focus()
@@ -1453,10 +1529,6 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
               aria-label={language === 'es' ? 'Buscar configuración' : 'Search settings'}
               className="relative isolate w-full max-w-xl"
               onKeyDown={(event) => {
-                if (event.key === 'Escape') {
-                  event.preventDefault()
-                  closeSettingsSearch()
-                }
                 if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
                   event.preventDefault()
                   setSearchIndex((current) =>
@@ -1498,6 +1570,7 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
                   <Search aria-hidden className="h-4 w-4 text-app-muted" />
                   <input
                     ref={paletteInputRef}
+                    autoFocus
                     type="text"
                     role="combobox"
                     aria-label={language === 'es' ? 'Buscar configuración' : 'Search settings'}
@@ -1830,14 +1903,27 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
 
         {activeSection === 'keybindings' && (
           <SettingsPage title="Keybindings">
-            <input
-              type="search"
-              aria-label={language === 'es' ? 'Buscar atajos' : 'Search keybindings'}
-              placeholder={language === 'es' ? 'Buscar atajos...' : 'Search keybindings...'}
-              value={keybindingQuery}
-              onChange={(event) => setKeybindingQuery(event.target.value)}
-              className="w-full rounded-control border border-app bg-app-bg px-3 py-2 text-sm outline-none focus-visible:ring-1 focus-visible:ring-app-accent"
-            />
+            <div className="flex items-center gap-3">
+              <input
+                type="search"
+                aria-label={language === 'es' ? 'Buscar atajos' : 'Search keybindings'}
+                placeholder={language === 'es' ? 'Buscar atajos...' : 'Search keybindings...'}
+                value={keybindingQuery}
+                onChange={(event) => setKeybindingQuery(event.target.value)}
+                className="w-full rounded-control border border-app bg-app-bg px-3 py-2 text-sm outline-none focus-visible:ring-1 focus-visible:ring-app-accent"
+              />
+              {Object.keys(chordOverrides).length > 0 && (
+                <Button
+                  variant="secondary"
+                  onClick={() => {
+                    resetAllChords()
+                    stopRecording()
+                  }}
+                >
+                  Reset all
+                </Button>
+              )}
+            </div>
             <SettingsGroup>
               <table className="w-full text-left text-[13px]" data-keybindings>
                 <thead className="text-app-muted">
@@ -1866,16 +1952,69 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
                     >
                       <td className="px-4 py-3">{binding.title}</td>
                       <td className="px-4 py-3">
-                        <span className="inline-flex items-center gap-1">
-                          {binding.keys.map((key) => (
-                            <kbd
-                              key={key}
-                              className="rounded border border-app bg-app-elevated px-1.5 py-0.5 font-mono text-xs"
+                        <button
+                          type="button"
+                          data-keybinding-record
+                          aria-label={binding.title}
+                          aria-live="polite"
+                          className="inline-flex items-center gap-1 rounded-control focus-visible:ring-1 focus-visible:ring-app-accent"
+                          onClick={() => {
+                            setRecordError('')
+                            setChordConflict(null)
+                            setRecording(binding.id)
+                          }}
+                        >
+                          {recording === binding.id
+                            ? 'Press keys…'
+                            : effectiveChord(binding.id) === null
+                              ? 'Disabled'
+                              : binding.keys.map((key) => (
+                                  <kbd
+                                    key={key}
+                                    className="rounded border border-app bg-app-elevated px-1.5 py-0.5 font-mono text-xs"
+                                  >
+                                    {key}
+                                  </kbd>
+                                ))}
+                        </button>
+                        {Object.hasOwn(chordOverrides, binding.id) && (
+                          <button
+                            type="button"
+                            className="ml-3 text-app-muted hover:text-app"
+                            onClick={() => {
+                              resetChord(binding.id)
+                              stopRecording()
+                            }}
+                          >
+                            Reset
+                          </button>
+                        )}
+                        {recording === binding.id && recordError && (
+                          <div className="mt-2 text-app-error" role="alert">
+                            {recordError}
+                          </div>
+                        )}
+                        {recording === binding.id && chordConflict && (
+                          <div className="mt-2 flex items-center gap-3">
+                            <span>
+                              Used by{' '}
+                              {KEYBINDINGS.find((entry) => entry.id === chordConflict.id)!.title}
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setChord(chordConflict.id, null)
+                                setChord(binding.id, chordConflict.chord)
+                                stopRecording()
+                              }}
                             >
-                              {key}
-                            </kbd>
-                          ))}
-                        </span>
+                              Replace
+                            </button>
+                            <button type="button" onClick={stopRecording}>
+                              Cancel
+                            </button>
+                          </div>
+                        )}
                       </td>
                       <td className="px-4 py-3 text-app-muted">{binding.when}</td>
                     </tr>

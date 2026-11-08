@@ -1,7 +1,13 @@
 import { ArrowRight, Play, Search, X } from 'lucide-react'
 import type React from 'react'
 import { useState } from 'react'
-import { type CommandId, KEYBINDINGS, matchesKeybinding } from '@/lib/keybindings'
+import {
+  type CommandId,
+  effectiveChord,
+  KEYBINDINGS,
+  matchesKeybinding,
+  useKeybindings,
+} from '@/lib/keybindings'
 import type { NavigationTab } from '../../types/orchestos'
 
 interface CommandPaletteProps {
@@ -21,6 +27,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
   onSelectTab,
   onRunNextTask,
 }) => {
+  useKeybindings()
   const [query, setQuery] = useState('')
 
   if (!isOpen) return null
@@ -38,7 +45,9 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
   const actions = [
     ...KEYBINDINGS.filter(
       (binding) =>
-        binding.id !== 'command-palette' && (binding.id !== 'settings-search' || isSettings),
+        effectiveChord(binding.id) !== null &&
+        binding.id !== 'command-palette' &&
+        (binding.id !== 'settings-search' || isSettings),
     ).map((binding) => ({
       id: binding.id,
       title: binding.title,

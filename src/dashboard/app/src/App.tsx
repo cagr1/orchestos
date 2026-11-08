@@ -97,7 +97,12 @@ import {
 } from './components/settings/OrchestSettingsView'
 import { projectsWithApprovals, threadsWithApprovals } from './components/thread/taskCards'
 import { stopActiveChatTurn } from './hooks/useStopChatTurn'
-import { type CommandId, KEYBINDINGS, reachesAppFromTerminal } from './lib/keybindings'
+import {
+  type CommandId,
+  KEYBINDINGS,
+  reachesAppFromTerminal,
+  useKeybindings,
+} from './lib/keybindings'
 import { activeAfterLoad, mergeLoadedThreads, threadPendingForSend } from './lib/merge-threads'
 import type {
   AppMode,
@@ -116,6 +121,7 @@ import type {
 } from './types/orchestos'
 
 export default function App() {
+  useKeybindings()
   const [theme, setTheme] = useState<string>(() => {
     try {
       return localStorage.getItem('orchestos-theme') || 'orchestos'

@@ -115,7 +115,18 @@ Propuesta y comparación con las tres referencias: `docs/specs/ADE-PLAN.md`. Uno
   Gate en vivo: navegador real (Playwright), `docs/done/evidence/ADE.3/ui-gate-result.json` y `docs/done/evidence/ADE.3-live.json`
   Ejecutado por: codex gpt-6.1-sol (criterio) + gpt-6-luna (mecanico, acabados) · Spec: docs/specs/ADE.3.md
   Texto visible: "Command palette", "Search settings", "Go to file", "Open settings", "Switch to Chat", "Switch to Dev", "New chat", "Toggle sidebar", "Toggle right panel", "New terminal", "Close tab", "Next tab", "Previous tab", "Stop", "Go to <vista>", "Run next task", "Type a command…", "Go to file…", "Esc to close", "No matches" (nombres de comandos: un ícono no dice qué hace cada atajo)
-- [ ] **ADE.4 — Reasignar atajos grabando las teclas (MonoCode).** Depende de ADE.3.
+- [x] **ADE.4 — Reasignar atajos grabando las teclas (MonoCode).** Hecho: la combinación es un dato (`Chord`) con
+  override por dispositivo en `localStorage` `orchestos-keybindings`; clic en la celda graba ("Press keys…"), Delete
+  desactiva, choque por `when` con "Used by <title>" + Replace/Cancel, reservadas del navegador rechazadas, Reset por
+  fila y Reset all. App, paleta y terminal usan el chord efectivo. Los atajos ahora matchean por tecla física
+  (`event.code`), no por carácter. De paso: Esc del buscador de Settings dependía del foco (gate `keybindings` rojo 2
+  de 3; foco en un `BUTTON` al pulsar Esc); ahora listener en `window` mientras está abierto + `autoFocus`.
+  Pendiente menor: "Replace" no se activa por teclado mientras graba.
+  Texto visible: "Press keys…" · "Disabled" · "Add a modifier" · "Reserved by the browser" · "Used by" · "Replace" · "Cancel" · "Reset" · "Reset all" (estados y decisiones de la grabación; un ícono no los explica)
+  Gates del cerebro: `tsc`, 16 tests, `ui:gate keybindings` 3/3 PASS 40/40 + `gate:evidence` keybindings 40/40,
+  dev-terminal 16/16, settings-pages 29/29. Revisión: Opus (diff leído).
+  Gate en vivo: navegador real (Playwright), `docs/done/evidence/ADE.4/ui-gate-result.json` y `docs/done/evidence/ADE.4-live.json`.
+  Ejecutado por: codex gpt-6.1-sol (criterio) · Specs: docs/specs/ADE.4.md, docs/specs/ADE.4-esc.md
 - [ ] **ADE.5 — Settings → Chat: Enter o ⌘Enter, escribir mientras el agente trabaja, confirmar archivar/borrar.**
 - [ ] **ADE.6 — Notificaciones: tarea terminada o esperando respuesta.**
 - [ ] **ADE.7 — Apariencia 2: escala de la interfaz, archivos ignorados por git, diff para daltónicos.**

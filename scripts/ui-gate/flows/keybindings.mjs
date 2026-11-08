@@ -147,8 +147,32 @@ export default async function keybindings({
   await press(`${primary}+k`)
   const settingsSearch = page.getByRole('dialog', { name: 'Search settings', exact: true })
   await step('primary K belongs to Settings in Settings', await visible(settingsSearch))
+  const describeActiveElement = () =>
+    page.evaluate(() => {
+      const element = document.activeElement
+      return element
+        ? {
+            tag: element.tagName,
+            ariaLabel: element.getAttribute('aria-label'),
+            data: Object.fromEntries(
+              element
+                .getAttributeNames()
+                .filter((name) => name.startsWith('data-'))
+                .map((name) => [name, element.getAttribute(name)]),
+            ),
+          }
+        : null
+    })
+  const activeElementAtEscape = await describeActiveElement()
   await press('Escape')
-  await settingsSearch.waitFor({ state: 'detached' })
+  try {
+    await settingsSearch.waitFor({ state: 'detached' })
+  } catch (error) {
+    const activeElement = await describeActiveElement()
+    throw new Error(
+      `Search settings Escape failed: document.activeElement=${JSON.stringify(activeElement)}; activeElementAtEscape=${JSON.stringify(activeElementAtEscape)}; ${error.message}`,
+    )
+  }
   await press('Alt+2')
   await tabs.waitFor()
   await press(`${primary}+k`)
@@ -228,5 +252,91 @@ export default async function keybindings({
     (await dialog.count()) === 0 && (await visible(agentSelector)),
   )
   await agentSelector.getByRole('button', { name: 'Close modal', exact: true }).click()
+
+  await press(`${primary}+,`)
+  await page.getByRole('button', { name: 'Keybindings', exact: true }).click()
+  const row = (id) => page.locator(`[data-keybinding="${id}"]`)
+  const record = (id) => row(id).locator('[data-keybinding-record]')
+  const reassign = `${primary}+Shift+e`
+  await record('toggle-sidebar').click()
+  await step(
+    'click begins recording',
+    (await record('toggle-sidebar').innerText()) === 'Press keys…',
+  )
+  await shot('recording')
+  await press(reassign)
+  const display = primary === 'Meta' ? '⌘ ⇧ E' : 'Ctrl Shift E'
+  await step(
+    'recorded chord displayed',
+    (await row('toggle-sidebar').locator('kbd').allTextContents()).join(' ') === display,
+  )
+  await press('Alt+2')
+  await tabs.waitFor()
+  await press(reassign)
+  await step('reassigned chord hides sidebar', await hidden(sidebar))
+  await press(`${primary}+b`)
+  await step('old chord no longer toggles sidebar', await hidden(sidebar))
+  await press(reassign)
+  await step('reassigned chord restores sidebar', await visible(sidebar))
+  await press(`${primary}+,`)
+  await page.getByRole('button', { name: 'Keybindings', exact: true }).click()
+  await record('go-to-file').click()
+  await press(reassign)
+  await step(
+    'overlapping chord reports conflict',
+    (await row('go-to-file').innerText()).includes('Used by Toggle sidebar'),
+  )
+  await shot('conflict')
+  await row('go-to-file').getByRole('button', { name: 'Replace', exact: true }).click()
+  await step(
+    'replace disables prior command',
+    (await record('toggle-sidebar').innerText()) === 'Disabled',
+  )
+  await record('go-to-file').click()
+  await press(`${primary}+w`)
+  await step(
+    'browser chord rejected while recording',
+    (await row('go-to-file').getByRole('alert').innerText()) === 'Reserved by the browser' &&
+      (await record('go-to-file').innerText()) === 'Press keys…',
+  )
+  await shot('reserved')
+  await press('Escape')
+  await record('new-chat').click()
+  await press('Delete')
+  await step('Delete disables new chat', (await record('new-chat').innerText()) === 'Disabled')
+  await press('Alt+2')
+  await press('Alt+n')
+  await step(
+    'disabled Alt N does nothing',
+    (await agentSelector.count()) === 0 && (await visible(tabs)),
+  )
+  await press(`${primary}+,`)
+  await page.getByRole('button', { name: 'Keybindings', exact: true }).click()
+  await page.reload()
+  await page.getByRole('button', { name: 'Dev', exact: true }).waitFor()
+  await press(`${primary}+,`)
+  await page.getByRole('button', { name: 'Keybindings', exact: true }).click()
+  await record('go-to-file').waitFor()
+  await step(
+    'reload preserves overrides',
+    (await record('new-chat').innerText()) === 'Disabled' &&
+      (await record('toggle-sidebar').innerText()) === 'Disabled' &&
+      (await row('go-to-file').locator('kbd').allTextContents()).join(' ') === display,
+  )
+  await page.getByRole('button', { name: 'Reset all', exact: true }).click()
+  await step(
+    'Reset all restores defaults and removes overrides',
+    (await row('toggle-sidebar').locator('kbd').allTextContents()).join(' ') ===
+      `${primary === 'Meta' ? '⌘' : 'Ctrl'} B` &&
+      (await page.getByRole('button', { name: 'Reset all', exact: true }).count()) === 0 &&
+      (await page.evaluate(
+        () => Object.keys(JSON.parse(localStorage.getItem('orchestos-keybindings'))).length === 0,
+      )),
+  )
+  await press('Alt+2')
+  await press(`${primary}+b`)
+  await step('default primary B works after Reset all', await hidden(sidebar))
+  await press(`${primary}+b`)
+  await shot('defaults-restored')
   await step('0 console errors', consoleErrors().length === 0, consoleErrors().join('; ') || 'none')
 }
