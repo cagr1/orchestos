@@ -24,14 +24,12 @@ la nueva categoría y conserva su historial.
 
 _(`#1` graduado a PLAN.md § Sprint 25 / Bloque N el 2026-07-30)_
 
-1. `#69` Files del inspector: las carpetas no se expanden (bug, 2026-09-24).
 
 ### Bajo
 
 _(vacía — `#2` graduado a PLAN.md § Sprint 26 / Bloque Q el 2026-08-06; `#3` a Bloque R el 2026-08-06;
 `#5` a Bloque S el 2026-08-06; `#19` a Bloque T el 2026-08-06; `#40` a Bloque U el 2026-08-07; `#46`
 a Bloque V el 2026-08-08; `#58` a Bloque W el 2026-08-08 — categoría Bajo completa, Sprint 26 cierra)_
-2. `#59` Etiquetar `code_edges` con `EXTRACTED`/`INFERRED` en `graph/` propio.
 3. `#61` Baseline de warnings de Biome pendiente de limpiar.
 4. `#62` Falso negativo silencioso del parser de `PLAN.md` (título en 2 líneas).
 5. `#63` Recalibrar el umbral del hook de contexto: 60% llega en el turno más caro.
@@ -49,15 +47,11 @@ Bajo-medio en curso, Sprint 27)_
 ### Medio
 
 1. `#7` Brainstorming socrático.
-2. `#14` Notificaciones en segundo plano.
 3. `#16` Escala honesta de DB, `input[]` y `cli.ts`.
 4. `#25` Agente automático de documentación.
 5. `#26` Spec Kit.
-6. `#29` Impulsar `topic_key` en sub-tasks.
 7. `#34` `orchestos audit`.
-8. `#47` Auto-split por tamaño estimado.
 9. `#55-B` models.dev como fallback del catálogo (fuera de OpenRouter).
-10. `#70` Changes en vivo estilo VS Code (Source Control + color en Files).
 11. `#71` Vista de evals: pass@k por corrida y comparación entre corridas.
 12. `#72` Instinto propuesto desde un par fallo→pass de la misma tarea.
 13. `#73` Abrir el dashboard desde el móvil u otra máquina (pairing por token).
@@ -68,19 +62,14 @@ _(`#6` graduó a Bloque AA el 2026-08-15. `#31`, `#35` y `#50` fueron ABSORBIDAS
 ### Medio-alto
 
 1. `#8` Micrófono/dictado.
-2. `#28` Terminal real embebido.
 4. `#41` App de escritorio distribuible (Electron o Tauri; ver actualización 2026-11-07).
 5. `#42` Auto-repair dirigido.
-6. `#57` Cuota semanal de suscripciones CLI.
-7. `#60` Extracción a nivel de función/símbolo en `graph/` propio (tree-sitter).
 8. `#45` Visibilidad de gasto real — API vs CLI (movida desde Medio el 2026-08-18; va **antes**
    que `#57`, que depende de su paso 0).
 
 ### Alto
 
 1. `#10` Cliente MCP.
-2. `#11` KuzuDB.
-4. `#43` Panel derecho como IDE embebido.
 5. `#52` Lenguaje visual premium completo.
 6. `#56` Workspace multiagente paralelo.
 7. `#54` Mutation testing — adopción como gate del producto (el spike ya se graduó a PLAN.md § Bloque K / K.5).
@@ -89,6 +78,12 @@ _(`#6` graduó a Bloque AA el 2026-08-15. `#31`, `#35` y `#50` fueron ABSORBIDAS
 
 ### Reconciliadas y fuera del backlog
 
+- **Auditoría 2026-11-08** (código, no texto; `analizar` + cerebro). HECHAS: `#69` (hijos al expandir,
+  `OrcaRightInspector.tsx:37`), `#70` (Changes del working tree + color, ADE.4–8), `#28` (xterm, `terminal.ts`),
+  `#43` (editor y diff en el panel, ADE.1–10), `#14` (ADE.6, `attention-delivery.ts:40`), `#57`
+  (`session-status.ts:239`). OBSOLETAS: `#59`, `#60`, `#11` (grafo retirado en ERP.5.3, `f4dc6531`); `#29`, `#47`
+  (sub-tareas y auto-split retirados, `1b6eebbb`). PARCIALES, siguen en su categoría: `#63` (umbral 40 %/250k ya
+  ajustado en AT.16; falta medir `cache_read`), `#7`, `#25`, `#45`, `#52`, `#54`, `#56`, `#65`.
 - `#27`, `#32` y `#36`: graduadas a PLAN y cerradas según DONE/PLAN.
 - `#39`: **REABIERTO (2026-07-31) — el índice decía "cerrada en G.4.2/G.4.2b" y es impreciso.**
   G.4.2 cerró solo la mitad: **detección** (`cli-registry.ts`, `KNOWN_CLIS`). La otra mitad del
