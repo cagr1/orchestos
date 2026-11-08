@@ -36,6 +36,7 @@ export default async function settingsShell({ page, api, step, shot, cleanup, ex
     'General',
     'Appearance',
     'Keybindings',
+    'Terminal',
     'Providers',
     'Model routing',
     'Executor',

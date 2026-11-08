@@ -2,7 +2,9 @@ import { FitAddon } from '@xterm/addon-fit'
 import { Terminal } from '@xterm/xterm'
 import { Loader2, RotateCcw } from 'lucide-react'
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { useAppearanceSettings } from '../../lib/appearance-settings'
 import { KEYBINDINGS, reachesAppFromTerminal } from '../../lib/keybindings'
+import { readTerminalSettings, subscribeTerminalSettings } from '../../lib/terminal-settings'
 import '@xterm/xterm/css/xterm.css'
 
 type Props = {
@@ -12,6 +14,7 @@ type Props = {
 }
 
 export function OpenCodeTerminal({ projectId, kind = 'opencode' }: Props) {
+  const { uiScale } = useAppearanceSettings()
   const isShell = kind === 'shell'
   const hostRef = useRef<HTMLDivElement>(null)
   const socketRef = useRef<WebSocket | null>(null)
@@ -44,9 +47,7 @@ export function OpenCodeTerminal({ projectId, kind = 'opencode' }: Props) {
       }
     }
     const terminal = new Terminal({
-      fontFamily: '"Fira Code", monospace',
-      fontSize: 13,
-      cursorBlink: true,
+      ...readTerminalSettings(),
       convertEol: false,
       theme: getTerminalTheme(),
     })
@@ -116,14 +117,19 @@ export function OpenCodeTerminal({ projectId, kind = 'opencode' }: Props) {
       if (socketRef.current?.readyState === WebSocket.OPEN)
         socketRef.current.send(JSON.stringify({ type: 'input', data }))
     })
-    const observer = new ResizeObserver(() => {
+    const resize = () => {
       if (!host.clientWidth || !host.clientHeight) return
       fit.fit()
       if (socketRef.current?.readyState === WebSocket.OPEN)
         socketRef.current.send(
           JSON.stringify({ type: 'resize', cols: terminal.cols, rows: terminal.rows }),
         )
+    }
+    const unsubscribeSettings = subscribeTerminalSettings(() => {
+      Object.assign(terminal.options, readTerminalSettings())
+      resize()
     })
+    const observer = new ResizeObserver(resize)
     observer.observe(host)
     const themeHost = host.closest('[data-theme]')
     const themeObserver = new MutationObserver(() => {
@@ -135,6 +141,7 @@ export function OpenCodeTerminal({ projectId, kind = 'opencode' }: Props) {
     if (themeHost)
       themeObserver.observe(themeHost, { attributes: true, attributeFilter: ['data-theme'] })
     return () => {
+      unsubscribeSettings()
       observer.disconnect()
       themeObserver.disconnect()
       input.dispose()
@@ -151,7 +158,12 @@ export function OpenCodeTerminal({ projectId, kind = 'opencode' }: Props) {
       aria-label={isShell ? 'Project terminal' : 'OpenCode terminal'}
     >
       <div className="relative flex-1 min-h-0 p-2">
-        <div ref={hostRef} className="h-full min-h-0" />
+        {/* xterm mouse coordinates use unscaled CSS cells; cancel the ancestor zoom here. */}
+        <div
+          ref={hostRef}
+          className="min-h-0"
+          style={{ zoom: 1 / uiScale, width: `${uiScale * 100}%`, height: `${uiScale * 100}%` }}
+        />
         {!hasOutput && state !== 'error' && state !== 'exited' && (
           <div className="absolute inset-0 z-10 flex items-center justify-center text-[var(--app-text-muted)]">
             <Loader2

@@ -171,7 +171,17 @@ Propuesta y comparación con las tres referencias: `docs/specs/ADE-PLAN.md`. Uno
   Gate en vivo: navegador real (Playwright), `docs/done/evidence/ADE.8/ui-gate-result.json` y `docs/done/evidence/ADE.8-live.json`.
   Texto visible: "Diff view" · "Unified" · "Split" · "Ignore whitespace" · "Changes layout" · "List" · "Tree" · "Expand folders" · "Open file" (filas de ajustes; en el visor y en Changes son íconos con aria-label; "Open file" ya existía, solo se movió dentro del grupo del header)
   Ejecutado por: codex gpt-6.1-sol (criterio) · Spec: docs/specs/ADE.8.md
-- [ ] **ADE.9 — Terminal: fuente, tamaño, cursor, scrollback.**
+- [x] **ADE.9 — Terminal: fuente, tamaño, cursor, scrollback.** Hecho: `lib/terminal-settings.ts`
+  (`orchestos-terminal`; defaults = los de antes: Fira Code 13, bloque con parpadeo, scrollback 1000). La terminal
+  aplica cambios en vivo sobre `terminal.options` + `fit` + resize al servidor, sin reconectar el WebSocket. El
+  contenedor de xterm cancela el `zoom` de ADE.7 para que el mouse caiga en la celda correcta (selección verificada
+  a 125 %); efecto: el texto de la terminal no crece con la escala de UI (pendiente menor, sin ítem). Settings →
+  Terminal: sección nueva con 6 filas + búsqueda; `settings-shell` la cuenta.
+  Gates del cerebro: `tsc`, 4 tests, `build:app`, `ui:gate terminal-settings` 3/3 PASS 14/14, dev-terminal 16/16,
+  settings-shell 22/22, settings-pages 32/32, appearance 23/23. Revisión: Opus (diff leído).
+  Gate en vivo: navegador real (Playwright), `docs/done/evidence/ADE.9/ui-gate-result.json` y `docs/done/evidence/ADE.9-live.json`.
+  Texto visible: "Terminal" · "Font family" · "Font size" · "Line height" · "Cursor style" · "Block" · "Bar" · "Underline" · "Cursor blink" · "Scrollback" (filas de ajustes; un ícono no dice qué controla cada una)
+  Ejecutado por: codex gpt-6.1-sol (criterio) · Spec: docs/specs/ADE.9.md
 - [ ] **ADE.10 — Por proyecto: nombre e ícono, script al crear worktree, rama base.**
 
 ### Abiertos — fiabilidad de los gates y documentación
@@ -545,6 +555,13 @@ Propuesta y comparación con las tres referencias: `docs/specs/ADE-PLAN.md`. Uno
   el pre-push (con carga); próximo intento: repetir bajo carga.
   Bajo carga 2026-11-05 (secuencia del pre-push, 16 flows, con `test:coverage` en paralelo): verde, sin reproducir.
   Sigue esperando el fallo.
+- [ ] **CI.69 — `usage-bar`: a veces el Enter del composer no envía el turno.** (abierto 2026-11-08) Falló en el
+  pre-push de ADE.7/8 (`2e9aae2d`, `1355590c`): `page.waitForResponse` 180 s sin `POST /api/chat`
+  (`usage-bar.mjs:309`). Captura: picker de modelo abierto (Luna · medium) y el texto sigue en la caja, así que
+  `handleSend` (`AgentComposer.tsx:468`) salió temprano (`orchestratorLoading`, `isLoadingModels` →
+  `sendWhenReadyRef`, o catálogo vacío) o el Enter no llegó. Aislado pasó 2/2. Corrió en paralelo con los gates del
+  ejecutor de ADE.9 (carga). Mismo terreno que CI.57 (elegir modelo de Codex). Fase 1: que el fallo deje evidencia
+  (valor del textarea, picker abierto, `isLoadingModels`/catálogo, requests tras Enter).
 - [ ] **CI.57 — `composer-picker`: a veces elegir otro modelo de Codex en Chat no queda aplicado.** (abierto
   2026-11-03) Falló 4 seguidas (pre-push del lote UI.57/58, 2 aisladas, una en worktree de `82820986`) en `Codex
   effort levels remain available` (`composer-picker.mjs:75-87`): tras clic en GPT-6.1-Sol el selector sigue en

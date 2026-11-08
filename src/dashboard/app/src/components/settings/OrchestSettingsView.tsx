@@ -64,6 +64,7 @@ import {
 } from '@/lib/keybindings'
 import { useNotificationSettings, writeNotificationSettings } from '@/lib/notification-settings'
 import { spring } from '@/lib/springs'
+import { useTerminalSettings, writeTerminalSettings } from '@/lib/terminal-settings'
 import type { TaskClass } from '../../../../../router/classify'
 import { getDefaultChatAgent } from '../../api/chat'
 import type {
@@ -311,6 +312,96 @@ const SETTINGS_SEARCH_INDEX: SettingsSearchEntry[] = [
       'tree',
       'árbol',
       'carpetas',
+    ],
+  },
+  {
+    id: 'terminal-font-family',
+    section: 'terminal',
+    label: { en: 'Font family', es: 'Font family' },
+    keywords: [
+      'terminal',
+      'fuente',
+      'font',
+      'tamaño',
+      'cursor',
+      'scrollback',
+      'historial',
+      'líneas',
+    ],
+  },
+  {
+    id: 'terminal-font-size',
+    section: 'terminal',
+    label: { en: 'Font size', es: 'Font size' },
+    keywords: [
+      'terminal',
+      'fuente',
+      'font',
+      'tamaño',
+      'cursor',
+      'scrollback',
+      'historial',
+      'líneas',
+    ],
+  },
+  {
+    id: 'terminal-line-height',
+    section: 'terminal',
+    label: { en: 'Line height', es: 'Line height' },
+    keywords: [
+      'terminal',
+      'fuente',
+      'font',
+      'tamaño',
+      'cursor',
+      'scrollback',
+      'historial',
+      'líneas',
+    ],
+  },
+  {
+    id: 'terminal-cursor-style',
+    section: 'terminal',
+    label: { en: 'Cursor style', es: 'Cursor style' },
+    keywords: [
+      'terminal',
+      'fuente',
+      'font',
+      'tamaño',
+      'cursor',
+      'scrollback',
+      'historial',
+      'líneas',
+    ],
+  },
+  {
+    id: 'terminal-cursor-blink',
+    section: 'terminal',
+    label: { en: 'Cursor blink', es: 'Cursor blink' },
+    keywords: [
+      'terminal',
+      'fuente',
+      'font',
+      'tamaño',
+      'cursor',
+      'scrollback',
+      'historial',
+      'líneas',
+    ],
+  },
+  {
+    id: 'terminal-scrollback',
+    section: 'terminal',
+    label: { en: 'Scrollback', es: 'Scrollback' },
+    keywords: [
+      'terminal',
+      'fuente',
+      'font',
+      'tamaño',
+      'cursor',
+      'scrollback',
+      'historial',
+      'líneas',
     ],
   },
   {
@@ -707,6 +798,8 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
 }) => {
   const [activeSection, setActiveSection] = useState<SettingsSection>(initialSection)
   const appearanceSettings = useAppearanceSettings()
+  const terminalSettings = useTerminalSettings()
+  const [terminalFontDraft, setTerminalFontDraft] = useState<string | null>(null)
   const editorSettings = useEditorSettings()
   const diffSettings = useDiffSettings()
   const notificationSettings = useNotificationSettings()
@@ -1847,6 +1940,7 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
                   { id: 'general', label: 'General', icon: SettingsIcon },
                   { id: 'appearance', label: 'Appearance', icon: Palette },
                   { id: 'keybindings', label: 'Keybindings', icon: Keyboard },
+                  { id: 'terminal', label: 'Terminal', icon: Terminal },
                   { id: 'editor', label: 'Editor', icon: FileCode },
                   { id: 'chat', label: 'Chat', icon: MessageSquare },
                   { id: 'notifications', label: 'Notifications', icon: Bell },
@@ -2337,6 +2431,96 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
                   />
                 </SettingsRow>
               ))}
+            </SettingsGroup>
+          </SettingsPage>
+        )}
+
+        {activeSection === 'terminal' && (
+          <SettingsPage title="Terminal">
+            <SettingsGroup>
+              <SettingsRow data-settings-anchor="terminal-font-family" label="Font family">
+                <input
+                  aria-label="Font family"
+                  type="text"
+                  maxLength={200}
+                  className="rounded-control bg-app-surface px-2 py-1 text-sm text-app"
+                  value={terminalFontDraft ?? terminalSettings.fontFamily}
+                  onChange={(event) => setTerminalFontDraft(event.target.value)}
+                  onBlur={(event) => {
+                    writeTerminalSettings({ fontFamily: event.target.value })
+                    setTerminalFontDraft(null)
+                  }}
+                  onKeyDown={(event) => {
+                    if (event.key === 'Enter') event.currentTarget.blur()
+                  }}
+                />
+              </SettingsRow>
+              {(
+                [
+                  {
+                    key: 'fontSize',
+                    anchor: 'font-size',
+                    label: 'Font size',
+                    min: 10,
+                    max: 24,
+                    step: 1,
+                  },
+                  {
+                    key: 'lineHeight',
+                    anchor: 'line-height',
+                    label: 'Line height',
+                    min: 1,
+                    max: 2,
+                    step: 0.1,
+                  },
+                  {
+                    key: 'scrollback',
+                    anchor: 'scrollback',
+                    label: 'Scrollback',
+                    min: 100,
+                    max: 100000,
+                    step: 1,
+                  },
+                ] as const
+              ).map(({ key, anchor, label, min, max, step }) => (
+                <SettingsRow key={key} data-settings-anchor={`terminal-${anchor}`} label={label}>
+                  <input
+                    type="number"
+                    aria-label={label}
+                    min={min}
+                    max={max}
+                    step={step}
+                    className="w-24 rounded-control bg-app-surface px-2 py-1 text-sm text-app"
+                    value={terminalSettings[key]}
+                    onChange={(event) =>
+                      writeTerminalSettings({ [key]: event.target.valueAsNumber })
+                    }
+                  />
+                </SettingsRow>
+              ))}
+              <SettingsRow data-settings-anchor="terminal-cursor-style" label="Cursor style">
+                <SettingsSegmented
+                  value={terminalSettings.cursorStyle}
+                  onChange={(cursorStyle) => writeTerminalSettings({ cursorStyle })}
+                  ariaLabel="Cursor style"
+                  options={[
+                    { value: 'block', label: 'Block' },
+                    { value: 'bar', label: 'Bar' },
+                    { value: 'underline', label: 'Underline' },
+                  ]}
+                />
+              </SettingsRow>
+              <SettingsRow data-settings-anchor="terminal-cursor-blink" label="Cursor blink">
+                <input
+                  type="checkbox"
+                  role="switch"
+                  aria-label="Cursor blink"
+                  checked={terminalSettings.cursorBlink}
+                  aria-checked={terminalSettings.cursorBlink}
+                  onChange={(event) => writeTerminalSettings({ cursorBlink: event.target.checked })}
+                  className="relative h-5 w-9 shrink-0 cursor-pointer appearance-none rounded-full bg-app-elevated transition-colors after:absolute after:left-0.5 after:top-0.5 after:size-4 after:rounded-full after:bg-app-muted after:transition-transform checked:bg-blue-500 checked:after:translate-x-4 checked:after:bg-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2"
+                />
+              </SettingsRow>
             </SettingsGroup>
           </SettingsPage>
         )}

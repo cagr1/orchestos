@@ -1,0 +1,84 @@
+[
+  {
+    "flujo": "terminal-settings",
+    "pass": true,
+    "steps": [
+      {
+        "nombre": "Chat no muestra el botón Terminal",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "Dev muestra el botón Terminal",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "Terminal abre como pestaña activa central",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "Terminal ocupa todo el espacio bajo las pestañas",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "al abrir, el foco está en el PTY y echo produce salida",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "font size updates live, refits rows and preserves socket and output",
+        "ok": true,
+        "detalle": "{\"before\":{\"height\":15,\"count\":58,\"width\":765,\"font\":\"\\\"Fira Code\\\", monospace\"},\"after\":{\"height\":21,\"count\":41,\"width\":768,\"font\":\"\\\"Fira Code\\\", monospace\"}}"
+      },
+      {
+        "nombre": "bar cursor stops blinking",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "line height updates mounted terminal",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "font family reaches the mounted xterm",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "scrollback discards line 1 after 300 lines",
+        "ok": true,
+        "detalle": "ADE9-171\nADE9-172\nADE9-173\nADE9-174\nADE9-175\nADE9-176\nADE9-177\nADE9-178\nADE9-179\nADE9-180\nADE9-181\nADE9-182\nADE9-183\nADE9-184\nADE9-185\nADE9-186\nADE9-187\nADE9-188\nADE9-189\nADE9-190\nADE9-191\nADE9-192\nADE9-193\nADE9-194\nADE9-195\nADE9-196\nADE9-197\nADE9-198\nADE9-199\nADE9-200\nADE9-201\nADE9-202\nADE9-203\nADE9-204\nADE9-205\nADE9-206\nADE9-207\nADE9-208\nADE9-209\nADE9-210\nADE9-211\nADE9-212\nADE9-213\nADE9-214\nADE9-215\nADE9-216\nADE9-217\nADE9-218\nADE9-219\nADE9-220\nADE9-221\nADE9-222\nADE9-223\nADE9-224\nADE9-225\nADE9-226\nADE9-227\nADE9-228\nADE9-229\nADE9-230\nADE9-231\nADE9-232\nADE9-233\nADE9-234\nADE9-235\nADE9-236\nADE9-237\nADE9-238\nADE9-239\nADE9-240\nADE9-241\nADE9-242\nADE9-243\nADE9-244\nADE9-245\nADE9-246\nADE9-247\nADE9-248\nADE9-249\nADE9-250\nADE9-251\nADE9-252\nADE9-253\nADE9-254\nADE9-255\nADE9-256\nADE9-257\nADE9-258\nADE9-259\nADE9-260\nADE9-261\nADE9-262\nADE9-263\nADE9-264\nADE9-265\nADE9-266\nADE9-267\nADE9-268\nADE9-269\nADE9-270\nADE9-271\nADE9-272\nADE9-273\nADE9-274\nADE9-275\nADE9-276\nADE9-277\nADE9-278\nADE9-279\nADE9-280\nADE9-281\nADE9-282\nADE9-283\nADE9-284\nADE9-285\nADE9-286\nADE9-287\nADE9-288\nADE9-289\nADE9-290\nADE9-291\nADE9-292\nADE9-293\nADE9-294\nADE9-295\nADE9-296\nADE9-297\nADE9-298\nADE9-299\nADE9-300\n%                                                                               \ncarlosgallardo@192 orchestos-ui-termsettings-8D5tAC % "
+      },
+      {
+        "nombre": "search reaches scrollback row",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "mouse selects correct cells at 125 percent",
+        "ok": true,
+        "detalle": "ADE9-selection"
+      },
+      {
+        "nombre": "font family persists after reload",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "dashboard has no pageerrors",
+        "ok": true,
+        "detalle": "ok"
+      }
+    ],
+    "notes": [],
+    "errores": [],
+    "capturas": [
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-67315/terminal-settings/dev-terminal.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-67315/terminal-settings/terminal-settings-125.png"
+    ]
+  }
+]

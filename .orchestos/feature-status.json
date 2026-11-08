@@ -72,7 +72,7 @@
       "sprint": "Fase 2 — Producto mínimo para entrega",
       "block": "ADE — editar archivos y Settings tomados de Orca, T3 Code y MonoCode (GO de Carlos 2026-11-07)",
       "title": "Terminal: fuente, tamaño, cursor, scrollback",
-      "status": "open",
+      "status": "done",
       "closedDate": null
     },
     {
@@ -352,6 +352,14 @@
       "sprint": "Fase 2 — Producto mínimo para entrega",
       "block": "Abiertos — fiabilidad de los gates y documentación",
       "title": "El `git commit` del fixture falla a veces en el andamiaje de los ui-gates",
+      "status": "open",
+      "closedDate": null
+    },
+    {
+      "id": "CI.69",
+      "sprint": "Fase 2 — Producto mínimo para entrega",
+      "block": "Abiertos — fiabilidad de los gates y documentación",
+      "title": "`usage-bar`: a veces el Enter del composer no envía el turno",
       "status": "open",
       "closedDate": null
     },
