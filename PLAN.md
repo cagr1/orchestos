@@ -148,7 +148,18 @@ Propuesta y comparación con las tres referencias: `docs/specs/ADE-PLAN.md`. Uno
   Gate en vivo: navegador real (Playwright), `docs/done/evidence/ADE.6/ui-gate-result.json` y `docs/done/evidence/ADE.6-live.json`.
   Texto visible: "Notifications" · "When an agent finishes" · "When an agent needs your input" · "Play a sound" · "Allow notifications" · "Blocked in the browser" · "Test" · "Finished" · "Failed" · "Needs your approval" (permiso y contenido de la notificación; un ícono no los explica)
   Ejecutado por: codex gpt-6.1-sol (criterio) · Spec: docs/specs/ADE.6.md
-- [ ] **ADE.7 — Apariencia 2: escala de la interfaz, archivos ignorados por git, diff para daltónicos.**
+- [x] **ADE.7 — Apariencia 2: escala de la interfaz, archivos ignorados por git, diff para daltónicos.** Hecho:
+  `lib/appearance-settings.ts` (`orchestos-appearance`): escala 80–150 % por CSS `zoom` en `<html>` (navegador puro,
+  sin Electron) con ⌘= / ⌘- / ⌘0 reasignables y `preventDefault` sobre el zoom nativo; el explorer oculta en vivo los
+  nodos `ignored` (el handler ya los marcaba) si se apaga el switch; paleta daltónica azul/naranja vía
+  `data-diff-palette` en `<html>` y variantes arbitrarias de Tailwind, sin tocar `styles.css`, en DevDiffPanel,
+  timeline de Dev, TaskCard, conteos del inspector y RunsEvidenceView. Settings → Appearance: 3 filas + búsqueda.
+  Gates del cerebro: `tsc`, 23 tests, `build:app`, `ui:gate appearance` 3/3 PASS 23/23 (incluye paleta ⌘K centrada a
+  125 % y 80 %), settings-pages 32/32, dev-file-edit 22/22, dev-session-tabs 50/50, keybindings 40/40. Revisión:
+  Opus (diff leído). El explorer no tiene menú contextual: esa comprobación del spec no aplicaba.
+  Gate en vivo: navegador real (Playwright), `docs/done/evidence/ADE.7/ui-gate-result.json` y `docs/done/evidence/ADE.7-live.json`.
+  Texto visible: "Interface scale" · "Reset" · "Show git-ignored files" · "Diff colors" · "Default" · "Color-blind friendly" · "Zoom in" · "Zoom out" · "Reset zoom" (etiquetas de ajustes y atajos; un ícono no dice qué controla cada fila)
+  Ejecutado por: codex gpt-6.1-sol (criterio) · Spec: docs/specs/ADE.7.md
 - [ ] **ADE.8 — Diff por defecto: unificado o lado a lado, espacios, árbol.**
 - [ ] **ADE.9 — Terminal: fuente, tamaño, cursor, scrollback.**
 - [ ] **ADE.10 — Por proyecto: nombre e ícono, script al crear worktree, rama base.**

@@ -21,6 +21,7 @@ import type React from 'react'
 import { useEffect, useRef, useState } from 'react'
 import { getExplorerTree } from '../../api/explorer'
 import { type GitChange, getGitChanges } from '../../api/git'
+import { useAppearanceSettings } from '../../lib/appearance-settings'
 import type { FileNode, ProjectItem } from '../../types/orchestos'
 import { ProviderLogo } from '../common/ProviderLogos'
 import { ResizableAside } from '../common/ResizableAside'
@@ -113,6 +114,7 @@ export const OrcaRightInspector: React.FC<OrcaRightInspectorProps> = ({
   onDiffRefresh,
   onOpenFile,
 }) => {
+  const { showGitIgnored } = useAppearanceSettings()
   const [activeTab, setActiveTab] = useState<'files' | 'diff' | 'history'>('files')
   const [expandedFolders, setExpandedFolders] = useState<Record<string, boolean>>({})
   const [searchQuery, setSearchQuery] = useState('')
@@ -250,6 +252,7 @@ export const OrcaRightInspector: React.FC<OrcaRightInspectorProps> = ({
   const renderTree = (nodes: FileNode[], depth = 0) => {
     return nodes
       .filter((node) => {
+        if (!showGitIgnored && node.ignored) return false
         if (!searchQuery) return true
         return node.name.toLowerCase().includes(searchQuery.toLowerCase())
       })
@@ -514,10 +517,10 @@ export const OrcaRightInspector: React.FC<OrcaRightInspectorProps> = ({
                 file.status === 'M'
                   ? 'text-app-warning'
                   : file.status === 'D'
-                    ? 'text-app-error'
+                    ? 'text-app-error [[data-diff-palette=colorblind]_&]:text-orange-400'
                     : file.status === 'R'
                       ? 'text-app-accent'
-                      : 'text-emerald-400'
+                      : 'text-emerald-400 [[data-diff-palette=colorblind]_&]:text-sky-400'
               return (
                 <div key={file.path}>
                   <DiffFileButton
@@ -532,10 +535,10 @@ export const OrcaRightInspector: React.FC<OrcaRightInspectorProps> = ({
                     />
                     <span className="text-app truncate">{name}</span>
                     <span className="text-app-muted truncate flex-1">{parts.join('/')}</span>
-                    <span className="font-mono text-emerald-400 flex-shrink-0">
+                    <span className="font-mono text-emerald-400 flex-shrink-0 [[data-diff-palette=colorblind]_&]:text-sky-400">
                       +{file.additions}
                     </span>
-                    <span className="font-mono text-app-error flex-shrink-0">
+                    <span className="font-mono text-app-error flex-shrink-0 [[data-diff-palette=colorblind]_&]:text-orange-400">
                       −{file.deletions}
                     </span>
                     <span className={`font-mono flex-shrink-0 ${statusColor}`}>{file.status}</span>

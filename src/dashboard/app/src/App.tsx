@@ -99,6 +99,13 @@ import {
 import { projectsWithApprovals, threadsWithApprovals } from './components/thread/taskCards'
 import { useAttentionNotifications } from './hooks/useAttentionNotifications'
 import { stopActiveChatTurn } from './hooks/useStopChatTurn'
+import {
+  readAppearanceSettings,
+  resetScale,
+  stepScale,
+  useAppearanceSettings,
+  writeAppearanceSettings,
+} from './lib/appearance-settings'
 import { discardChatQueue } from './lib/chat-queue'
 import { readChatSettings, writeChatSettings } from './lib/chat-settings'
 import {
@@ -126,6 +133,7 @@ import type {
 
 export default function App() {
   useKeybindings()
+  const { uiScale } = useAppearanceSettings()
   const [theme, setTheme] = useState<string>(() => {
     try {
       return localStorage.getItem('orchestos-theme') || 'orchestos'
@@ -1638,6 +1646,15 @@ export default function App() {
     const binding = KEYBINDINGS.find((binding) => binding.id === id)!
     if (binding.when === 'Dev' && (mode !== 'dev' || !currentProject)) return false
     switch (id) {
+      case 'zoom-in':
+      case 'zoom-out':
+        writeAppearanceSettings({
+          uiScale: stepScale(readAppearanceSettings().uiScale, id === 'zoom-in' ? 1 : -1),
+        })
+        break
+      case 'zoom-reset':
+        writeAppearanceSettings({ uiScale: resetScale() })
+        break
       case 'command-palette':
         setIsCommandPaletteOpen(true)
         break
@@ -1734,6 +1751,7 @@ export default function App() {
   return (
     <div
       data-theme={theme}
+      style={{ width: `calc(100vw / ${uiScale})`, height: `calc(100vh / ${uiScale})` }}
       className="h-screen w-screen flex flex-col bg-app-bg text-app font-sans overflow-hidden select-none"
     >
       {confirmation && (

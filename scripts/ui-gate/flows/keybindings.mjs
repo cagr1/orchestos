@@ -136,10 +136,10 @@ export default async function keybindings({
   await page.locator('[data-dev-session-tabs] [role="tab"][aria-selected="true"]').click()
   await press(`${primary}+,`)
   await page.getByRole('button', { name: 'Keybindings', exact: true }).click()
-  await page.locator('[data-keybinding]').nth(13).waitFor()
+  await page.locator('[data-keybinding]').nth(16).waitFor()
   await step(
-    'Settings lists all 14 commands with platform keys',
-    (await page.locator('[data-keybinding]').count()) === 14 &&
+    'Settings lists all 17 commands with platform keys',
+    (await page.locator('[data-keybinding]').count()) === 17 &&
       (await page.locator('[data-keybinding="go-to-file"] kbd').allTextContents()).join(' ') ===
         `${primary === 'Meta' ? '⌘' : 'Ctrl'} P`,
   )

@@ -234,7 +234,12 @@ export const RunsEvidenceView: React.FC<RunsEvidenceViewProps> = ({
                     <div className="px-3 py-2 bg-app-elevated border-b border-app flex items-center justify-between font-mono">
                       <span className="text-app font-medium">{diff.filePath}</span>
                       <span className="text-emerald-400">
-                        +{diff.additions} -{diff.deletions}
+                        <span className="[[data-diff-palette=colorblind]_&]:text-sky-400">
+                          +{diff.additions}
+                        </span>{' '}
+                        <span className="[[data-diff-palette=colorblind]_&]:text-orange-400">
+                          -{diff.deletions}
+                        </span>
                       </span>
                     </div>
                     <pre className="p-3 bg-app-bg font-mono text-xs text-app overflow-x-auto leading-relaxed">

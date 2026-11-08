@@ -86,7 +86,7 @@ export function DevDiffPanel({
                 key={index}
                 data-diff-added={line.text.startsWith('+') || undefined}
                 data-diff-removed={line.text.startsWith('-') || undefined}
-                className={`flex px-2 ${line.text.startsWith('+') ? 'bg-emerald-500/10 text-emerald-400' : line.text.startsWith('-') ? 'bg-red-500/10 text-app-error' : line.text.startsWith('@@') ? 'text-app-accent' : ''}`}
+                className={`flex px-2 ${line.text.startsWith('+') ? 'bg-emerald-500/10 [[data-diff-palette=colorblind]_&]:bg-sky-500/10 text-emerald-400 [[data-diff-palette=colorblind]_&]:text-sky-400' : line.text.startsWith('-') ? 'bg-red-500/10 [[data-diff-palette=colorblind]_&]:bg-orange-500/10 text-app-error [[data-diff-palette=colorblind]_&]:text-orange-400' : line.text.startsWith('@@') ? 'text-app-accent' : ''}`}
               >
                 <span
                   aria-hidden="true"

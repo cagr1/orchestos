@@ -9,6 +9,7 @@ import interLatin from '@fontsource-variable/inter/files/inter-latin-opsz-normal
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import App from './App.tsx'
+import { readAppearanceSettings, subscribeAppearanceSettings } from './lib/appearance-settings'
 import './index.css'
 
 const fontFaceStyles = `
@@ -25,6 +26,14 @@ const fontFaceStyles = `
 document.head.appendChild(
   Object.assign(document.createElement('style'), { textContent: fontFaceStyles }),
 )
+
+function applyAppearance() {
+  const settings = readAppearanceSettings()
+  document.documentElement.style.zoom = String(settings.uiScale)
+  document.documentElement.dataset.diffPalette = settings.diffPalette
+}
+applyAppearance()
+subscribeAppearanceSettings(applyAppearance)
 
 const params = new URLSearchParams(window.location.search)
 const themes = ['orchestos', 'graphite', 'carbon', 'light']

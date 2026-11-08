@@ -1,0 +1,151 @@
+[
+  {
+    "flujo": "appearance",
+    "pass": true,
+    "steps": [
+      {
+        "nombre": "git-ignored file is visible and dimmed by default",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "zoom in prevents native browser zoom",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "zoom out uses the previous supported step",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "US Command/Control plus alias increases scale",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "zoom reset returns to 100 percent",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "interface scale survives reload",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "Appearance selector reflects persisted scale",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "zoom search reaches its appearance control",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "gitignore search reaches its appearance control",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "ignored toggle updates mounted explorer across tabs without refetch",
+        "ok": true,
+        "detalle": "explorer requests: 0"
+      },
+      {
+        "nombre": "reenabling ignored files restores the cached nodes",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "hidden git-ignored preference survives reload",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "default diff additions stay green",
+        "ok": true,
+        "detalle": "{\"added\":\"oklch(0.765 0.177 163.223)\",\"removed\":\"rgb(244, 63, 94)\",\"bg\":\"oklab(0.696 -0.162114 0.0511765 / 0.1)\"}"
+      },
+      {
+        "nombre": "colorblind diff uses blue additions and orange deletions",
+        "ok": true,
+        "detalle": "{\"added\":\"oklch(0.746 0.16 232.661)\",\"removed\":\"oklch(0.75 0.183 55.934)\",\"bg\":\"oklab(0.685 -0.0912435 -0.142252 / 0.1)\"}"
+      },
+      {
+        "nombre": "diff palette persists on html after reload",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "switching back restores default diff colors",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "workspace fits viewport at scale 1.25",
+        "ok": true,
+        "detalle": "{\"x\":0,\"y\":0,\"width\":1440,\"height\":1000}"
+      },
+      {
+        "nombre": "composer picker stays inside viewport at 1.25",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "command palette centers inside viewport at 1.25",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "workspace fits viewport at scale 0.8",
+        "ok": true,
+        "detalle": "{\"x\":0,\"y\":0,\"width\":1440,\"height\":1000}"
+      },
+      {
+        "nombre": "composer picker stays inside viewport at 0.8",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "command palette centers inside viewport at 0.8",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "dashboard loads without pageerrors",
+        "ok": true,
+        "detalle": "none"
+      }
+    ],
+    "notes": [
+      {
+        "nombre": "ignored live update",
+        "detalle": "opening shared-storage browser popup"
+      },
+      {
+        "nombre": "ignored live update",
+        "detalle": "popup loaded"
+      },
+      {
+        "nombre": "ignored live update",
+        "detalle": "appearance controls ready"
+      },
+      {
+        "nombre": "diff palette",
+        "detalle": "diff fixture visible"
+      }
+    ],
+    "errores": [],
+    "capturas": [
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-82113/appearance/colorblind-diff.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-82113/appearance/appearance-1.25.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-82113/appearance/picker-1.25.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-82113/appearance/palette-1.25.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-82113/appearance/appearance-0.8.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-82113/appearance/picker-0.8.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-82113/appearance/palette-0.8.png"
+    ]
+  }
+]

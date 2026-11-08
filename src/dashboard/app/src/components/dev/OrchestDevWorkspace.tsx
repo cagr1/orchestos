@@ -734,8 +734,12 @@ export const OrchestDevWorkspace: React.FC<OrchestDevWorkspaceProps> = ({
                     <span className="font-mono text-app text-xs truncate">{editStep?.target}</span>
                   </div>
                   <div className="flex items-center gap-2 flex-shrink-0 font-mono text-xs">
-                    <span className="text-emerald-400 font-medium">+{editStep?.added ?? 0}</span>
-                    <span className="text-rose-400 font-medium">−{editStep?.removed ?? 0}</span>
+                    <span className="text-emerald-400 [[data-diff-palette=colorblind]_&]:text-sky-400 font-medium">
+                      +{editStep?.added ?? 0}
+                    </span>
+                    <span className="text-rose-400 [[data-diff-palette=colorblind]_&]:text-orange-400 font-medium">
+                      −{editStep?.removed ?? 0}
+                    </span>
                     {isEditExpanded ? (
                       <ChevronDown className="w-3.5 h-3.5 text-app-muted" />
                     ) : (
@@ -762,12 +766,14 @@ export const OrchestDevWorkspace: React.FC<OrchestDevWorkspaceProps> = ({
                         return (
                           <div
                             key={idx}
-                            className="px-3 py-0.5 bg-rose-950/30 text-rose-300 flex items-center gap-3"
+                            className="px-3 py-0.5 bg-rose-950/30 [[data-diff-palette=colorblind]_&]:bg-orange-950/30 text-rose-300 [[data-diff-palette=colorblind]_&]:text-orange-300 flex items-center gap-3"
                           >
-                            <span className="w-6 text-right text-rose-500/60 select-none text-[10px]">
+                            <span className="w-6 text-right text-rose-500/60 [[data-diff-palette=colorblind]_&]:text-orange-500/60 select-none text-[10px]">
                               {line.oldLineNumber}
                             </span>
-                            <span className="select-none text-rose-400 font-bold">-</span>
+                            <span className="select-none text-rose-400 [[data-diff-palette=colorblind]_&]:text-orange-400 font-bold">
+                              -
+                            </span>
                             <span className="flex-1 whitespace-pre">{line.text.slice(1)}</span>
                           </div>
                         )
@@ -776,12 +782,14 @@ export const OrchestDevWorkspace: React.FC<OrchestDevWorkspaceProps> = ({
                         return (
                           <div
                             key={idx}
-                            className="px-3 py-0.5 bg-emerald-950/30 text-emerald-300 flex items-center gap-3"
+                            className="px-3 py-0.5 bg-emerald-950/30 [[data-diff-palette=colorblind]_&]:bg-sky-950/30 text-emerald-300 [[data-diff-palette=colorblind]_&]:text-sky-300 flex items-center gap-3"
                           >
-                            <span className="w-6 text-right text-emerald-500/60 select-none text-[10px]">
+                            <span className="w-6 text-right text-emerald-500/60 [[data-diff-palette=colorblind]_&]:text-sky-500/60 select-none text-[10px]">
                               {line.newLineNumber}
                             </span>
-                            <span className="select-none text-emerald-400 font-bold">+</span>
+                            <span className="select-none text-emerald-400 [[data-diff-palette=colorblind]_&]:text-sky-400 font-bold">
+                              +
+                            </span>
                             <span className="flex-1 whitespace-pre">{line.text.slice(1)}</span>
                           </div>
                         )

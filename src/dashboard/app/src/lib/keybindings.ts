@@ -15,6 +15,8 @@ function chord(code: string, modifiers: Partial<Omit<Chord, 'code'>> = {}): Chor
 export function chordKeys(value: Chord): string[] {
   const mac = isMacPlatform()
   const names: Record<string, string> = {
+    Equal: '=',
+    Minus: '-',
     Comma: ',',
     Backquote: '`',
     BracketLeft: '[',
@@ -61,12 +63,30 @@ function command<const Id extends string>(
     },
     match(event: KeyEvent): boolean {
       const value = effectiveChord(id as CommandId)
-      return value !== null && matchesChord(event, value)
+      return (
+        value !== null &&
+        matchesChord(
+          id === 'zoom-in' && value.code === 'Equal' && !value.shift
+            ? {
+                key: event.key,
+                code: event.code,
+                metaKey: event.metaKey,
+                ctrlKey: event.ctrlKey,
+                altKey: event.altKey,
+                shiftKey: false,
+              }
+            : event,
+          value,
+        )
+      )
     },
   }
 }
 
 export const KEYBINDINGS = [
+  command('zoom-in', 'Zoom in', chord('Equal', { primary: true }), 'App'),
+  command('zoom-out', 'Zoom out', chord('Minus', { primary: true }), 'App'),
+  command('zoom-reset', 'Reset zoom', chord('Digit0', { primary: true }), 'App'),
   command('command-palette', 'Command palette', chord('KeyK', { primary: true }), 'App'),
   command('settings-search', 'Search settings', chord('KeyK', { primary: true }), 'Settings'),
   command('go-to-file', 'Go to file', chord('KeyP', { primary: true }), 'App'),

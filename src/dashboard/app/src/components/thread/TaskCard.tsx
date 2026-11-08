@@ -94,7 +94,12 @@ function TaskDiff({ diff }: { diff: FileDiffEntry }) {
         <span className="text-app font-medium">{diff.filePath || diff.path}</span>
         {diff.additions !== undefined || diff.deletions !== undefined ? (
           <span className="text-emerald-400">
-            +{diff.additions ?? 0} -{diff.deletions ?? 0}
+            <span className="[[data-diff-palette=colorblind]_&]:text-sky-400">
+              +{diff.additions ?? 0}
+            </span>{' '}
+            <span className="[[data-diff-palette=colorblind]_&]:text-orange-400">
+              -{diff.deletions ?? 0}
+            </span>
           </span>
         ) : null}
       </div>

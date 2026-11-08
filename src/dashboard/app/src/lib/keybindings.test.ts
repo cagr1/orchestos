@@ -53,6 +53,9 @@ const event = (overrides: Partial<KeyboardEvent> = {}) => ({
 })
 
 const physical: Record<string, [string, string]> = {
+  'zoom-in': ['=', 'Equal'],
+  'zoom-out': ['-', 'Minus'],
+  'zoom-reset': ['0', 'Digit0'],
   'command-palette': ['k', 'KeyK'],
   'settings-search': ['k', 'KeyK'],
   'go-to-file': ['p', 'KeyP'],
@@ -102,10 +105,10 @@ test('terminal allows Command+K on Mac and keeps Ctrl+K', () => {
   )
 })
 
-test('14 unique commands, unique chords within each context', () => {
-  expect(KEYBINDINGS).toHaveLength(14)
-  expect(new Set(KEYBINDINGS.map((entry) => entry.id)).size).toBe(14)
-  expect(new Set(KEYBINDINGS.map((entry) => `${entry.when}:${entry.keys.join('+')}`)).size).toBe(14)
+test('17 unique commands, unique chords within each context', () => {
+  expect(KEYBINDINGS).toHaveLength(17)
+  expect(new Set(KEYBINDINGS.map((entry) => entry.id)).size).toBe(17)
+  expect(new Set(KEYBINDINGS.map((entry) => `${entry.when}:${entry.keys.join('+')}`)).size).toBe(17)
 })
 
 for (const host of ['MacIntel', 'Linux x86_64', 'Win32']) {
@@ -122,7 +125,7 @@ for (const host of ['MacIntel', 'Linux x86_64', 'Win32']) {
       })
       expect(binding.match(shortcut)).toBe(true)
       expect(matchesKeybinding(shortcut, binding.id)).toBe(true)
-      expect(binding.match({ ...shortcut, shiftKey: true })).toBe(false)
+      expect(binding.match({ ...shortcut, shiftKey: true })).toBe(binding.id === 'zoom-in')
       expect(binding.match({ ...shortcut, metaKey: !shortcut.metaKey })).toBe(false)
       expect(binding.match({ ...shortcut, ctrlKey: !shortcut.ctrlKey })).toBe(false)
       expect(binding.match({ ...shortcut, altKey: !shortcut.altKey })).toBe(false)
@@ -132,7 +135,10 @@ for (const host of ['MacIntel', 'Linux x86_64', 'Win32']) {
         expect(binding.match({ ...shortcut, code: 'KeyX' })).toBe(false)
       }
     }
-    expect(KEYBINDINGS[0].keys).toEqual([host === 'MacIntel' ? '⌘' : 'Ctrl', 'K'])
+    expect(KEYBINDINGS.find((binding) => binding.id === 'command-palette')!.keys).toEqual([
+      host === 'MacIntel' ? '⌘' : 'Ctrl',
+      'K',
+    ])
   })
 
   test(`browser-owned shortcuts stay untouched on ${host}`, () => {
@@ -293,4 +299,29 @@ test('physical code matches independently of keyboard layout, and key labels cov
     'Shift',
     'E',
   ])
+})
+
+test('zoom plus alias follows physical Equal and respects overrides', () => {
+  platform('MacIntel')
+  expect(
+    matchesKeybinding(event({ code: 'Equal', key: '+', metaKey: true, shiftKey: true }), 'zoom-in'),
+  ).toBe(true)
+  setChord('zoom-in', chordFromEvent(event({ code: 'KeyE', metaKey: true }))!)
+  expect(
+    matchesKeybinding(event({ code: 'Equal', metaKey: true, shiftKey: true }), 'zoom-in'),
+  ).toBe(false)
+  expect(matchesKeybinding(event({ code: 'KeyE', metaKey: true, shiftKey: true }), 'zoom-in')).toBe(
+    false,
+  )
+})
+
+test('zoom matches native event properties inherited from KeyboardEvent', () => {
+  platform('MacIntel')
+  const nativeLike = Object.create(
+    event({ code: 'Equal', key: '+', metaKey: true, shiftKey: true }),
+  )
+  expect(matchesKeybinding(nativeLike, 'zoom-in')).toBe(true)
+  expect(matchesKeybinding(Object.create(event({ code: 'Equal', metaKey: true })), 'zoom-in')).toBe(
+    true,
+  )
 })

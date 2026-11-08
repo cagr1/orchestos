@@ -40,6 +40,12 @@ import { PageHeader } from '@/components/layout/page'
 import { Button } from '@/components/ui/button'
 import { Card, CardAction, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { usePrefersReducedMotion } from '@/hooks/use-prefers-reduced-motion'
+import {
+  resetScale,
+  UI_SCALES,
+  useAppearanceSettings,
+  writeAppearanceSettings,
+} from '@/lib/appearance-settings'
 import { deliverAttention } from '@/lib/attention-delivery'
 import { isMacPlatform, useChatSettings, writeChatSettings } from '@/lib/chat-settings'
 import { useEditorSettings, writeEditorSettings } from '@/lib/editor-settings'
@@ -271,6 +277,24 @@ const SETTINGS_SEARCH_INDEX: SettingsSearchEntry[] = [
     section: 'providers',
     label: { en: 'Custom CLIs', es: 'CLIs propios' },
     keywords: ['cli', 'custom', 'terminal', 'gemini', 'aider'],
+  },
+  {
+    id: 'interface-scale',
+    section: 'appearance',
+    label: { en: 'Interface scale', es: 'Interface scale' },
+    keywords: ['zoom', 'escala', 'tamaño', 'scale'],
+  },
+  {
+    id: 'show-git-ignored',
+    section: 'appearance',
+    label: { en: 'Show git-ignored files', es: 'Show git-ignored files' },
+    keywords: ['gitignore', 'ignored', 'ocultos', 'explorer'],
+  },
+  {
+    id: 'diff-colors',
+    section: 'appearance',
+    label: { en: 'Diff colors', es: 'Diff colors' },
+    keywords: ['daltónico', 'colorblind', 'accessibility'],
   },
   {
     id: 'theme-orchestos',
@@ -617,6 +641,7 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
   projectTabsError = null,
 }) => {
   const [activeSection, setActiveSection] = useState<SettingsSection>(initialSection)
+  const appearanceSettings = useAppearanceSettings()
   const editorSettings = useEditorSettings()
   const notificationSettings = useNotificationSettings()
   const [notificationPermission, setNotificationPermission] = useState(() =>
@@ -1945,6 +1970,56 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
                 )
               })}
             </div>
+            <SettingsGroup>
+              <SettingsRow label="Interface scale" data-settings-anchor="interface-scale">
+                <select
+                  aria-label="Interface scale"
+                  value={appearanceSettings.uiScale}
+                  onChange={(event) =>
+                    writeAppearanceSettings({ uiScale: Number(event.target.value) })
+                  }
+                  className="rounded-control border border-app bg-app-bg px-3 py-1.5 text-sm"
+                >
+                  {UI_SCALES.map((scale) => (
+                    <option key={scale} value={scale}>
+                      {Math.round(scale * 100)}%
+                    </option>
+                  ))}
+                </select>
+                <Button
+                  variant="secondary"
+                  onClick={() => writeAppearanceSettings({ uiScale: resetScale() })}
+                >
+                  Reset
+                </Button>
+              </SettingsRow>
+              <SettingsRow label="Show git-ignored files" data-settings-anchor="show-git-ignored">
+                <input
+                  type="checkbox"
+                  role="switch"
+                  aria-label="Show git-ignored files"
+                  aria-checked={appearanceSettings.showGitIgnored}
+                  checked={appearanceSettings.showGitIgnored}
+                  onChange={(event) =>
+                    writeAppearanceSettings({ showGitIgnored: event.target.checked })
+                  }
+                  className="relative h-5 w-9 shrink-0 cursor-pointer appearance-none rounded-full bg-app-elevated transition-colors after:absolute after:left-0.5 after:top-0.5 after:size-4 after:rounded-full after:bg-app-muted after:transition-transform checked:bg-blue-500 checked:after:translate-x-4 checked:after:bg-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 disabled:cursor-default disabled:opacity-50"
+                />
+              </SettingsRow>
+              <SettingsRow label="Diff colors" data-settings-anchor="diff-colors">
+                <SettingsSegmented
+                  value={appearanceSettings.diffPalette}
+                  onChange={(value) =>
+                    writeAppearanceSettings({ diffPalette: value as 'default' | 'colorblind' })
+                  }
+                  ariaLabel="Diff colors"
+                  options={[
+                    { value: 'default', label: 'Default' },
+                    { value: 'colorblind', label: 'Color-blind friendly' },
+                  ]}
+                />
+              </SettingsRow>
+            </SettingsGroup>
           </SettingsPage>
         )}
 
