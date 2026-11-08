@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>Label</key>
+  <string>dev.cagr1.orchestos.nightly-ui-gates</string>
+  <key>ProgramArguments</key>
+  <array>
+    <string>/Users/carlosgallardo/.bun/bin/bun</string>
+    <string>run</string>
+    <string>nightly:run</string>
+  </array>
+  <key>WorkingDirectory</key>
+  <string>/Users/carlosgallardo/Projects/projects/orchestos</string>
+  <key>EnvironmentVariables</key>
+  <dict>
+    <key>PATH</key>
+    <string>/Users/carlosgallardo/.bun/bin:/Users/carlosgallardo/.local/bin:/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin</string>
+    <key>HOME</key>
+    <string>/Users/carlosgallardo</string>
+    <key>ORCHESTOS_CLAUDE_USAGE_LIVE</key>
+    <string>0</string>
+  </dict>
+  <key>StartCalendarInterval</key>
+  <dict>
+    <key>Hour</key>
+    <integer>1</integer>
+    <key>Minute</key>
+    <integer>30</integer>
+  </dict>
+  <key>StandardOutPath</key>
+  <string>/Users/carlosgallardo/.orchestos/nightly/launchd.log</string>
+  <key>StandardErrorPath</key>
+  <string>/Users/carlosgallardo/.orchestos/nightly/launchd.log</string>
+</dict>
+</plist>

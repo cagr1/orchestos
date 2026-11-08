@@ -76,6 +76,13 @@ while IFS= read -r dependency_dir; do
   ln -s "$dependency_dir" "$tree/$relative_dir"
 done < <(find "$repo_root" -type d -name node_modules -prune -print)
 
+typecheck_log="$log_dir/typecheck.log"
+if ! (cd "$tree" && bun run typecheck) >"$typecheck_log" 2>&1; then
+  cat "$typecheck_log"
+  echo "❌ pre-push: typecheck falla. Push abortado. Log completo: $typecheck_log"
+  exit 1
+fi
+
 if ! (cd "$tree" && env HOME="$ci_home" GIT_CONFIG_GLOBAL="$ci_home/.gitconfig" GIT_CONFIG_NOSYSTEM=1 PATH="$ci_bin:/usr/bin:/bin:/usr/sbin:/sbin" bun run test:coverage) >"$log_file" 2>&1; then
   echo ""
   echo "❌ pre-push: esto mismo va a fallar en CI. Push abortado."
@@ -102,60 +109,12 @@ fi
 
 tail -n 6 "$lint_log"
 
-# CI.10/CI.9.5: los flujos con modelo real corren automáticamente cuando cambia el chat.
-ui_flows=(skills-library smoke plan-doc project-delete usage-bar text-sweep chat-turn-details tasks runs-graph qa-negative restart-mid-run project-tabs project-add-menu model-routing composer-picker chat-roles chat-context)
-ui_paths='^(src/dashboard/|scripts/ui-gate/|src/run/)'
-ui_required=0
-chat_required=0
-chat_paths='^(src/dashboard/handlers/chat|src/dashboard/(chat-|default-chat-)[^/]*\.ts|src/dashboard/app/src/App\.tsx|src/dashboard/app/src/components/chat/|src/dashboard/app/src/api/chat|src/dashboard/app/src/components/common/AgentComposer|src/dashboard/app/src/components/thread/|src/run/executors/|scripts/ui-gate/flows/(chat-streaming|codex-live|chat-continuity)\.mjs)'
-for ref_line in "${push_refs[@]}"; do
-  read -r local_ref local_sha remote_ref remote_sha <<<"$ref_line"
-  [[ -n "$local_sha" ]] || continue
-  if [[ "$remote_sha" =~ ^0+$ ]]; then
-    base_sha="$(git merge-base "$local_sha" origin/master 2>/dev/null || true)"
-  else
-    base_sha="$remote_sha"
-  fi
-  [[ -n "$base_sha" ]] || continue
-  changed_paths="$(git diff --name-only "$base_sha" "$local_sha")"
-  if grep -Eq "$ui_paths" <<<"$changed_paths"; then
-    ui_required=1
-  fi
-  if grep -Eq "$chat_paths" <<<"$changed_paths"; then chat_required=1; fi
-done
-
-if (( ui_required )); then
-  ui_log="$log_dir/ui-gate.log"
-  echo "🧭 pre-push: cambios de dashboard/run detectados; corriendo ${#ui_flows[@]} ui-gates..."
-  if ! bun run ui:gate "${ui_flows[@]}" >"$ui_log" 2>&1; then
-    echo "❌ pre-push: ui-gates fallaron. Push abortado."
-    tail -n 100 "$ui_log"
-    echo "   Log completo: $ui_log"
-    exit 1
-  fi
-  tail -n 15 "$ui_log"
-else
-  echo "⏭️ pre-push: sin cambios en src/dashboard/, scripts/ui-gate/ ni src/run/; ui-gates omitidos."
-fi
-
-if (( chat_required )); then
-  chat_log="$log_dir/chat-gate.log"
-  echo "💬 pre-push: cambios de chat detectados; corriendo chat-streaming, codex-live y chat-continuity..."
-  if ! bun run ui:gate chat-streaming codex-live chat-continuity >"$chat_log" 2>&1; then
-    echo "⚠️ pre-push: falló el chat-gate; reintentando una vez (latencia de modelo real)."
-    chat_retry_log="$log_dir/chat-gate-retry.log"
-    if ! bun run ui:gate chat-streaming codex-live chat-continuity >"$chat_retry_log" 2>&1; then
-      echo "❌ pre-push: chat-gates fallaron dos veces. Push abortado."
-      tail -n 100 "$chat_retry_log"
-      echo "   Log completo: $chat_retry_log"
-      exit 1
-    fi
-    tail -n 15 "$chat_retry_log"
-  else
-    tail -n 15 "$chat_log"
-  fi
-else
-  echo "⏭️ pre-push: sin cambios de chat; chat-streaming y codex-live omitidos."
-fi
-
 echo "✅ pre-push: verde. CI debería coincidir. Log completo: $log_file"
+nightly_summary="$(bun -e '
+  const path = require("node:path").join(require("node:os").homedir(), ".orchestos/nightly/ui-gates-latest.json");
+  try {
+    const r = JSON.parse(require("node:fs").readFileSync(path, "utf8"));
+    console.log(`${r.passed}/${r.total} passed, ${r.flaky.length} flaky, ${r.failed.length} failed (${r.sha.slice(0, 7)}, ${r.finishedAt})`);
+  } catch { console.log("sin resultado disponible"); }
+')"
+echo "ℹ️ pre-push: ui-gates corren de noche (scripts/nightly-ui-gates.ts); último resultado: $nightly_summary"

@@ -570,6 +570,18 @@ Propuesta y comparación con las tres referencias: `docs/specs/ADE-PLAN.md`. Uno
   el pre-push (con carga); próximo intento: repetir bajo carga.
   Bajo carga 2026-11-05 (secuencia del pre-push, 16 flows, con `test:coverage` en paralelo): verde, sin reproducir.
   Sigue esperando el fallo.
+- [x] **CI.70 — Los ui-gates salen del pre-push a una corrida nocturna local.** (Carlos, 2026-11-08: "pasamos más
+  tiempo en pruebas que en código… no quiero que se corra 3 veces… que esto no vuelva a pasar") Hecho: pre-push =
+  typecheck + `test:coverage` + lint, sin flujos. `scripts/nightly-ui-gates.ts` corre todos los flujos (excepto
+  `opencode-terminal` sin binario) sobre `origin/master` en `~/.orchestos/nightly/worktree`, uno por uno, reintento
+  único que separa `flaky` de `failed`, evidencia copiada a `~/.orchestos/nightly/<fecha>/`, 7 días. LaunchAgent
+  `dev.cagr1.orchestos.nightly-ui-gates` 01:30 (`bun run nightly:install`, instalado). El startup-guard avisa rojos,
+  flaky o "sin corrida en 36 h". Local y no en GitHub: los flujos con modelo real usan los CLI con sesión de Carlos.
+  Reglas: `AGENTS.md` § Gates ("cada prueba corre una vez"), `CLAUDE.md` § Hooks.
+  Gates del cerebro: `tsc`, 25 tests (nightly + guard), `bash -n`, `plutil -lint`, `ui-gates-latest.json` de la
+  corrida real (smoke + plan-doc, 2/2, worktree limpio), `launchctl print` cargado. Revisión: Opus (diff leído).
+  Gate en vivo: corrida real del script nocturno, `docs/done/evidence/CI.70-live.json`.
+  Ejecutado por: codex gpt-6.1-sol (criterio) · Spec: docs/specs/CI.70.md
 - [ ] **CI.69 — `usage-bar`: a veces el Enter del composer no envía el turno.** (abierto 2026-11-08) Falló en el
   pre-push de ADE.7/8 (`2e9aae2d`, `1355590c`): `page.waitForResponse` 180 s sin `POST /api/chat`
   (`usage-bar.mjs:309`). Captura: picker de modelo abierto (Luna · medium) y el texto sigue en la caja, así que

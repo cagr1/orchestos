@@ -1,4 +1,4 @@
-# NEXT — handoff 2026-11-08 (bloque ADE cerrado: ADE.1–10; pendiente GO de Carlos sobre pruebas repetidas)
+# NEXT — handoff 2026-11-08 (bloque ADE y CI.70 cerrados; sigue el desacople del método personal)
 
 Un solo presente: orden y trampas vivas del lote. Lo cerrado vive en `docs/done/bloque-*.md` y git; las reglas, en
 `AGENTS.md`. Versión anterior completa: `docs/done/poda-instrucciones-2026-11-03.md` (histórico).
@@ -19,11 +19,9 @@ Arranque: `bun run agent:preflight -- --item <ID> --agent claude`. Lista viva: `
    solo si el hilo es pestaña de Dev abierta; ajustes de proyecto en la DB local, no en el config del repo.
    Pendientes menores sin ítem: "Replace" (choque de atajos) no se activa por teclado mientras graba; los atajos
    matchean por `event.code` (AZERTY/Dvorak); la terminal cancela el `zoom` de UI (a 125 % su texto no crece).
-1b. **Propuesto a Carlos 2026-11-08, sin GO** (tras "pasamos más tiempo en pruebas que en código"): ejecutor solo con
-   tests del ítem + su gate nuevo (sin `test:coverage` por ítem); cerebro con el gate nuevo 1 vez + afectados;
-   pre-push solo `tsc` + lint + suite, y los `ui:gate` a un workflow nocturno, con lo rojo resuelto a la mañana
-   antes de seguir. Paralelo de agentes: no por ahora (decisión 2026-07-31; ADE.7–10 tocaron todos
-   `OrchestSettingsView.tsx`). Con GO: tocar `AGENTS.md`, `scripts/pre-push.sh` (:130–147), workflow nuevo.
+1b. Hecho CI.70 (GO de Carlos 2026-11-08): cada prueba corre una vez (`AGENTS.md` § Gates); pre-push sin flujos;
+   todos los flujos a las 01:30 en local, resultado en el startup-guard. Mañana: leer el aviso de arranque y resolver
+   lo rojo/flaky antes del siguiente ítem. Primera corrida completa: noche del 2026-11-08 (duración aún sin medir).
 2. **Desacople del método personal** (GO de Carlos, después de SK.1–3; ahora en cola tras el bloque ADE salvo que
    Carlos diga otra cosa): reescribir `AGENTS.md`, hooks `.claude/` (`brain-no-code.js:16`, `subagent-budget.js:156`,
    `context-budget.js:30`), `docs/roadmaps/` y fixtures sin `agent-method`/`delegate`/Sol/Luna/vault; plan en

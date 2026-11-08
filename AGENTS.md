@@ -73,6 +73,13 @@ Reglas vigentes, una por línea. Texto anterior e incidentes que las motivaron:
 
 ## Gates y tests
 
+- **Cada prueba corre una vez** (Carlos, 2026-11-08: "pasamos más tiempo en pruebas que en código… no quiero que
+  se corra 3 veces"). Ejecutor: tests del ítem + su flujo nuevo, sin `test:coverage` ni otros flujos. Cerebro: el
+  flujo nuevo **1 vez** + los flujos que cubren los archivos tocados. Pre-push: `tsc`, lint y `test:coverage`. Todos
+  los flujos: de noche (`scripts/nightly-ui-gates.ts`, CI.70); lo rojo o intermitente de la noche se resuelve a la
+  mañana antes del siguiente ítem. Un flujo que falla una vez y pasa al repetir no se repite tres veces: se abre ítem
+  CI con su evidencia. La mutación y los nocturnos se leen al arrancar (startup-guard), no se siguen durante la
+  sesión. Antes: el cerebro corría cada flujo nuevo 3 veces (desde ADE.4) y el pre-push 17 flujos + chat.
 - Verificar con el comando de CI (`bun run test:coverage`), nunca `bun test` a secas. Flaky bajo carga
   (`chat-sessions`, `context-adapters`): repetir en frío antes de culpar al diff.
 - Gate en vivo con home temporal: `bun run gate:evidence -- --label <gate-id> -- <comando>`. Migra la DB durable antes
@@ -81,16 +88,16 @@ Reglas vigentes, una por línea. Texto anterior e incidentes que las motivaron:
   borran junto con su carpeta. No se versionan imágenes; `.gitignore` las excluye de `docs/done/evidence/`, donde va
   solo el `result.json` o el log. Antes la regla decía "nunca borrar el temporal a mano"; así se juntaron 1938
   carpetas (384 MB) y 50 imágenes versionadas.
-- `ui:gate` sin lista de flujos no corre nada (lista del pre-push en `scripts/pre-push.sh`). Tras tocar flujos:
+- `ui:gate` sin lista de flujos no corre nada (lista nocturna en `scripts/nightly-ui-gates.ts`). Tras tocar flujos:
   `bunx biome lint --only=correctness/noUndeclaredVariables scripts/ui-gate/flows`.
 - Flujos: `page.reload` tras registrar el proyecto; ausencia con `ctx.hidden()` o `count() === 0` (`visible()` espera
   15 s); todo `api()` con scope manda `x-orchestos-project-id` o `?project=none` (sin él escribe en este repo); fin de
   turno = respuesta de `POST /api/chat`; todo flujo borra lo que siembra, y el cerebro lo comprueba con una consulta
   propia a la DB o la API.
-- Un cambio de marco (hooks, gates, harness, arnés de tests) se cierra con la batería completa del pre-push
-  (`test:coverage` + todos los flujos de `scripts/pre-push.sh`), no con una selección.
+- Un cambio de marco (hooks, gates, harness, arnés de tests) se cierra con `test:coverage` + `bun run nightly:run`
+  (todos los flujos), una vez.
 - Cambiar un texto que emite el producto (UI, API, CLI, mensajes de error) = `rg "<texto viejo>"` en `src/`,
-  `scripts/ui-gate/` y tests, y `test:coverage` completo antes de cerrar. Cambiar la forma de una respuesta de API = grepear los fixtures
+  `scripts/ui-gate/` y tests; la suite completa la corre el pre-push. Cambiar la forma de una respuesta de API = grepear los fixtures
   `JSON.stringify` de `app/src/api/*.test.ts` (no están tipados).
 - Todo arnés con dashboard de prueba pone `ORCHESTOS_CLAUDE_USAGE_LIVE=0`. Los ui-gates recompilan el `dist/`
   compartido que sirve el dashboard real (4242): avisar a Carlos antes de que mire.

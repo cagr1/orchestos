@@ -33,10 +33,10 @@ Nunca `git config user.email|user.name`, ni `--local`/`--global` salvo pedido ex
 
 `bun run hooks:install` instala ambos. pre-commit (`scripts/pre-commit.sh`): `tsc --noEmit`, `security:secrets`,
 `ledger:gate`, export de `runs-summary.json`, y aborta si el hook difiere de su fuente. pre-push (`scripts/pre-push.sh`):
-`bun run test:coverage`; si cambia el chat (`src/dashboard/handlers/chat*`, chat del front, `src/run/executors/`) corre
-también `chat-streaming` y `codex-live`. Al cerrar un ítem de chat:
-`bun run gate:evidence -- --label <ítem>-chat-live -- bun run ui:gate chat-streaming codex-live`. Gates en vivo con home
-temporal: `bun run gate:evidence -- --label <gate-id> -- <comando>` (`AGENTS.md` § "Gates y tests").
+`tsc`, lint y `bun run test:coverage`. Los `ui:gate` (todos, chat incluido) corren de noche en local
+(`scripts/nightly-ui-gates.ts`, `bun run nightly:install`); el resultado lo muestra el startup-guard. Antes (hasta
+2026-11-08) el pre-push corría 17 flujos + chat-gates. Gates en vivo con home temporal:
+`bun run gate:evidence -- --label <gate-id> -- <comando>` (`AGENTS.md` § "Gates y tests").
 
 ## Verificar contra CI, no contra tu máquina
 

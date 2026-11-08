@@ -28,6 +28,8 @@
     "test:coverage": "bun run scripts/check-coverage.ts",
     "readme:sync": "bun run scripts/readme-sync.ts",
     "ui:fidelity:jsx": "node scripts/ui-fidelity/check-jsx.mjs /Users/carlosgallardo/Projects/screens/orchestos-ai-agent-dashboard/src/components/dev/OrchestDevWorkspace.tsx src/dashboard/app/src/components/dev/OrchestDevWorkspace.tsx && node scripts/ui-fidelity/check-jsx.mjs /Users/carlosgallardo/Projects/screens/orchestos-ai-agent-dashboard/src/components/layout/ShellStatusBar.tsx src/dashboard/app/src/components/layout/ShellStatusBar.tsx && node scripts/ui-fidelity/check-css.mjs",
+    "nightly:run": "bun run scripts/nightly-ui-gates.ts",
+    "nightly:install": "bash scripts/install-nightly.sh",
     "ui:gate": "node scripts/ui-gate/run.mjs",
     "gate:all": "bun run typecheck && bun run lint && bun run test:coverage && bun run build:app && bun run ui:fidelity:jsx",
     "check": "tsc --noEmit",

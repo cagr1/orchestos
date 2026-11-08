@@ -74,6 +74,18 @@ function makeFixtures(opts: {
   )
   writeFileSync(join(root, 'CLAUDE.md'), 'x'.repeat(100))
 
+  mkdirSync(join(home, '.orchestos/nightly'), { recursive: true })
+  writeFileSync(
+    join(home, '.orchestos/nightly/ui-gates-latest.json'),
+    JSON.stringify({
+      finishedAt: new Date().toISOString(),
+      sha: 'abcdef123',
+      passed: 2,
+      total: 2,
+      failed: [],
+      flaky: [],
+    }),
+  )
   return { home, root }
 }
 
@@ -318,5 +330,39 @@ describe('startup-guard hook', () => {
     expect(result.status).toBe(0)
     expect(result.stderr).toBe('')
     expect(result.stdout).not.toContain('Actions:')
+  })
+})
+
+describe('ui-gates nocturnos al arrancar', () => {
+  it('avisa por archivo ausente, corrupto o corrida de más de 36 horas', () => {
+    for (const content of [
+      null,
+      '{ invalid',
+      JSON.stringify({ finishedAt: new Date(Date.now() - 37 * 3600000).toISOString() }),
+    ]) {
+      const { home, root } = makeFixtures({})
+      const path = join(home, '.orchestos/nightly/ui-gates-latest.json')
+      if (content === null) rmSync(path)
+      else writeFileSync(path, content)
+      expect(runHook(home, root).stdout).toContain('ui-gates nocturnos: sin corrida en 36 h')
+    }
+  })
+  it('separa rojos y flaky con SHA y evidencia sin superar ocho líneas', () => {
+    const { home, root } = makeFixtures({})
+    const path = join(home, '.orchestos/nightly/ui-gates-latest.json')
+    writeFileSync(
+      path,
+      JSON.stringify({
+        finishedAt: new Date().toISOString(),
+        sha: '123456789',
+        failed: [{ flow: 'smoke' }],
+        flaky: [{ flow: 'plan-doc' }],
+      }),
+    )
+    const output = runHook(home, root).stdout
+    expect(output).toContain('1 rojos (smoke) en 1234567')
+    expect(output).toContain('1 flaky (plan-doc) en 1234567')
+    expect(output).toContain(`evidencia: ${path}`)
+    expect(output.trim().split('\n').length).toBeLessThanOrEqual(8)
   })
 })

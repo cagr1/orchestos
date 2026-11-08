@@ -278,6 +278,27 @@ async function checkActions(findings) {
   }
 }
 
+function checkNightlyUiGates(findings) {
+  const path = resolve(HOME, '.orchestos/nightly/ui-gates-latest.json')
+  const result = readJson(path)
+  const finished = Date.parse(result?.finishedAt)
+  if (!Number.isFinite(finished) || Date.now() - finished > 36 * 60 * 60 * 1000) {
+    findings.push('ui-gates nocturnos: sin corrida en 36 h')
+  }
+  if (!result) return
+  for (const [key, label] of [
+    ['failed', 'rojos'],
+    ['flaky', 'flaky'],
+  ]) {
+    if (Array.isArray(result[key]) && result[key].length > 0) {
+      const flows = result[key].map((entry) => entry?.flow).join(', ')
+      findings.push(
+        `ui-gates nocturnos: ${result[key].length} ${label} (${flows}) en ${String(result.sha ?? 'unknown').slice(0, 7)} — evidencia: ${path}`,
+      )
+    }
+  }
+}
+
 async function main() {
   const findings = []
   checkConnectorDrift(findings)
@@ -288,6 +309,7 @@ async function main() {
   }
   checkStartupWeight(findings)
   const configFindings = findings.length
+  checkNightlyUiGates(findings)
   await checkActions(findings)
 
   if (findings.length === 0) return
