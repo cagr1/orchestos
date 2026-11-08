@@ -210,6 +210,13 @@ Propuesta y comparación con las tres referencias: `docs/specs/ADE-PLAN.md`. Uno
   Revisión: Opus (diff leído).
   Gate en vivo: Playwright `keybindings` 43/43, `docs/done/evidence/ADE.11-live.json`.
   Ejecutado por: codex gpt-6.1-sol (criterio) · Spec: docs/specs/ADE.11.md
+- [x] **LIMP.4 — Evidencia de ítems cerrados fuera del árbol.** (GO de Carlos 2026-11-08, `docs/specs/LIMPIEZA-2.md`
+  § 1) Regla: en `docs/done/evidence/` queda solo lo que cita un ítem abierto de `PLAN.md` o `NEXT.md`; lo de ítems
+  `[x]` vive en git (su commit de cierre lo tuvo staged, que es lo único que exige `check-live-gate.ts:61`). Borrados
+  45 de 51 (1,5 MB); quedan CI.19, CI.55 y el conductor de ERP.4. Además, 10 capturas ignoradas por git borradas del
+  disco. Ningún código lee `docs/done/evidence/` (grep en `src`, `scripts`, `tests`, `.claude`, `.github`).
+  Prueba en worktree temporal con la lista borrada: `ledger:gate` exit 0, reconcile con rollback 50 ítems, `tsc` exit 0.
+  Ejecutado por: codex gpt-6.1-sol (analizar) + Opus (borrado) · Spec: docs/specs/LIMPIEZA-2.md
 
 ### Abiertos — fiabilidad de los gates y documentación
 

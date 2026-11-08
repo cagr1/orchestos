@@ -92,6 +92,14 @@
       "closedDate": null
     },
     {
+      "id": "LIMP.4",
+      "sprint": "Fase 2 — Producto mínimo para entrega",
+      "block": "ADE — editar archivos y Settings tomados de Orca, T3 Code y MonoCode (GO de Carlos 2026-11-07)",
+      "title": "Evidencia de ítems cerrados fuera del árbol",
+      "status": "done",
+      "closedDate": null
+    },
+    {
       "id": "UI.66",
       "sprint": "Fase 2 — Producto mínimo para entrega",
       "block": "Abiertos — fiabilidad de los gates y documentación",
