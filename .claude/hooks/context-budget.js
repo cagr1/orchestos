@@ -27,8 +27,8 @@ function main(inputText) {
   // BUG-H.7.3-a (hallado por el gate 🔍 del 2026-09-03): `printWarning` estaba
   // fuera de este guard y por eso avisaba en CADA turno desde el 60%, dejando a
   // `critical` sin comportamiento propio y gastando contexto por turno — el mal
-  // exacto que este hook existe para evitar (~/.claude/CLAUDE.md § Costo de
-  // contexto, punto 4). `warn` avisa una sola vez por sesión; solo `critical`
+  // exacto que este hook existe para evitar (AGENTS.md § Ciclo de un ítem). `warn`
+  // avisa una sola vez por sesión; solo `critical`
   // repite en cada turno.
   const firstTimeThisSession = readState()?.sessionId !== sessionId
   if (firstTimeThisSession && !writeHandoff(transcriptPath, sessionId)) return

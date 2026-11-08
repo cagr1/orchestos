@@ -1,13 +1,12 @@
 ---
-source: MemoriesMD/wiki/roadmaps/qa-seguridad.md
 state: known
 imported: 2026-07-29
 ---
 
 # Roadmap de disciplina — QA y Seguridad
 
-Estado global: `known`. El vault agrupa QA, seguridad web y seguridad de API porque forman el gate
-previo a shippear; este documento no afirma que un proyecto concreto ya cumpla estos controles.
+Estado global: `known`. Este documento agrupa QA, seguridad web y seguridad de API porque forman el gate
+previo a shippear; no afirma que un proyecto concreto ya cumpla estos controles.
 
 ## Núcleo QA — estado: known
 

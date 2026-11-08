@@ -1,5 +1,4 @@
 ---
-source: MemoriesMD/wiki/roadmaps/architecture.md
 state: known
 imported: 2026-07-29
 ---

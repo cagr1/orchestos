@@ -126,8 +126,8 @@ test('solo reconoce git y delegate en posición de comando', () => {
   const dir = repo()
   runHook(dir, 'A', 'Edit', { file_path: path.join(dir, 'a') })
   for (const command of [
-    'cat method/bin/delegate',
-    'bash -n method/bin/delegate',
+    'cat bin/delegate',
+    'bash -n bin/delegate',
     'grep -n "git commit" README.md',
     'echo "delegate mecanico x"',
   ]) {
@@ -137,7 +137,7 @@ test('solo reconoce git y delegate en posición de comando', () => {
   for (const command of [
     'FOO=1 git commit -m x',
     'git status && git add .',
-    '~/.agent-method/bin/delegate mecanico spec.md',
+    '~/bin/delegate mecanico spec.md',
   ]) {
     assert.match(runHook(dir, 'B', 'Bash', { command }).stdout, /"permissionDecision":"deny"/)
   }

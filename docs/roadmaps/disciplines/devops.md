@@ -1,5 +1,4 @@
 ---
-source: MemoriesMD/wiki/roadmaps/devops.md
 state: known
 imported: 2026-07-29
 ---

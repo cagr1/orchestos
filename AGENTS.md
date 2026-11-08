@@ -1,8 +1,7 @@
 # OrchestOS — Instrucciones para cualquier LLM (Codex, Claude, DeepSeek, OpenCode)
 
 Reglas vigentes, una por línea. Texto anterior e incidentes que las motivaron:
-`docs/done/poda-instrucciones-2026-11-03.md` (histórico). Método general de agentes: `~/.codex/AGENTS.md` /
-`~/.claude/CLAUDE.md`. Recetas y trampas puntuales (no cargadas): `docs/reference/gotchas.md`.
+`docs/done/poda-instrucciones-2026-11-03.md` (histórico). Recetas y trampas puntuales (no cargadas): `docs/reference/gotchas.md`.
 
 ## Regla cero
 
@@ -34,8 +33,8 @@ Reglas vigentes, una por línea. Texto anterior e incidentes que las motivaron:
   se verifica, qué hacer si falta un dato), delega, verifica con comandos propios y cierra. No escribe código de
   producto (`src/`, `tests/`, `scripts/`, `.claude/hooks/`); sí `PLAN.md`, `NEXT.md`, `AGENTS.md`, `CLAUDE.md`,
   `CONTEXT.md`, `docs/`. En Claude Code lo bloquea `.claude/hooks/brain-no-code.js`; en Codex rige este texto.
-- Delegar por rol: `~/.agent-method/bin/delegate <rol> <spec>`; modelos y alias (Luna, Terra, Sol, Astra = modelos de
-  Codex) solo en `~/.agent-method/roster.conf`. La dificultad cambia el ejecutor, nunca quién escribe.
+- Delegar: el ejecutor es otro modelo (otro CLI o un subagente) que recibe solo el spec. Qué modelo hace cada rol es
+  configuración del operador, no de este repo. La dificultad cambia el ejecutor, nunca quién escribe.
 - Ejecutor: implementa y corre sus tests; no commitea ni toca `PLAN.md`/`NEXT.md`. Su reporte y su `exit 0` no son
   evidencia: el cerebro lee el diff completo, corre `bun run typecheck` (dos tsconfig), audita los `step()` de cada
   flujo y revisa `.orchestos/active-item.json` (scope estrecho → borrarlo al cerrar).
@@ -44,19 +43,19 @@ Reglas vigentes, una por línea. Texto anterior e incidentes que las motivaron:
   JSON); si hay cambios previos sin commitear, nombrarlos; pide `bun run lint` del repo entero con exit 0, no solo
   Biome de lo tocado.
 - Un contrato de CLI externo (flags, salida) lo prueba el cerebro en vivo y lo pega en el spec como "verificado; no
-  invoques": `delegate` le prohíbe al ejecutor correr otros CLIs.
+  invoques": el ejecutor no corre otros CLIs.
 - Ronda de corrección = spec propio (`docs/specs/<ID>-rN.md`), no un anexo. Ítem ya `[x]`: reabrir (`[ ]` + reconcile)
   antes de delegar.
 - Cierre = un commit: código + `[x]` + evidencia + `Ejecutado por: … · Spec: docs/specs/<ID>.md` (la línea termina en
   la ruta) + `Gate en vivo:` citando un `.json`/`.log` staged si toca dashboard/config + borrado del spec. El spec no se
   commitea aparte (`scripts/plan-gate.ts` acepta uno nunca commiteado).
-- Evidencia de ejecutor: solo `docs/done/evidence/<ID>-live.json`; las carpetas `<ID>/` con logs que deja Sol se
+- Evidencia de ejecutor: solo `docs/done/evidence/<ID>-live.json`; las carpetas `<ID>/` con logs que deje el ejecutor se
   borran antes del commit.
-- Trabajo de `criterio-alt` (Sonnet) cerrado sin revisor de otro proveedor: decirlo en el commit y en el reporte.
+- Trabajo cerrado sin revisor de otro proveedor (ejecutor y cerebro del mismo): decirlo en el commit y en el reporte.
 - Un caso de campo se fecha contra el commit del arreglo antes de presentarlo como evidencia.
 - La evidencia del ítem cerrado va a `docs/done/bloque-<PREFIJO>.md`; `PLAN.md` guarda solo lo abierto.
 - `NEXT.md` se toca solo al cerrar o cortar un lote: orden y trampas vivas, no historia.
-- Frontera de seguridad (sandbox, permisos, rutas, ejecución): se cierra solo tras `delegate qa` sin hallazgos altos.
+- Frontera de seguridad (sandbox, permisos, rutas, ejecución): se cierra solo tras la revisión de un modelo de otro proveedor sin hallazgos altos.
   Preferir fallar cerrado a listas de prohibidos.
 - Texto visible nuevo de UI: declararlo en `Texto visible:` del ítem con por qué no basta un ícono (`ui:text-gate`).
 

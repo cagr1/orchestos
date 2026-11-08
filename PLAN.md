@@ -582,6 +582,21 @@ Propuesta y comparación con las tres referencias: `docs/specs/ADE-PLAN.md`. Uno
   corrida real (smoke + plan-doc, 2/2, worktree limpio), `launchctl print` cargado. Revisión: Opus (diff leído).
   Gate en vivo: corrida real del script nocturno, `docs/done/evidence/CI.70-live.json`.
   Ejecutado por: codex gpt-6.1-sol (criterio) · Spec: docs/specs/CI.70.md
+- [x] **CI.71 — El repo no depende del método personal de Carlos.** (GO de Carlos; plan en
+  `docs/specs/LIMPIEZA-2.md` § 2) Las reglas del repo nombran rutas y alias de `~/.agent-method` (`delegate`,
+  `roster.conf`, Sol/Luna/`criterio-alt`) y el vault `MemoriesMD`; quien clone el repo no tiene nada de eso. Cada
+  referencia queda como regla propia con texto neutral. Se quedan a propósito: el reconocimiento de comandos
+  `delegate` en `scripts/writer-lock.mjs` (genérico por nombre; quitarlo dejaría a una segunda sesión lanzar un
+  ejecutor), `qa-negative.mjs` y `cli-registry.test.ts` (prueban aislamiento del `~/.claude` del host, producto),
+  `tasks.yaml` y `PLAN.md`/`docs/done/` (registro histórico).
+  Hecho: `AGENTS.md` (delegar = otro modelo con solo el spec; el modelo por rol es config del operador; sin alias ni
+  `criterio-alt`), mensajes de `brain-no-code.js` y `subagent-budget.js`, comentario de `context-budget.js`, rutas
+  neutrales en `writer-lock.test.ts`, `source: MemoriesMD/…` fuera de `docs/roadmaps/disciplines/` y fixtures,
+  `docs/roadmaps/README.md`, `gotchas.md`, `CTX-GUARD.md`, dato de ejemplo `MemoriesMD` → `notes`. Qué se pierde: el
+  rastro de origen de los roadmaps (vivía en el vault, no en el repo). `IDEAS.md` conserva menciones de origen.
+  Gates del cerebro: `typecheck`, hooks + roadmap 69/0; ejecutor: writer-lock 28/0, lint exit 0.
+  Gate en vivo: Playwright `project-tabs` 40/40 (sidebar con el dato renombrado), `docs/done/evidence/CI.71-live.json`.
+  Ejecutado por: codex (mecanico) · Spec: docs/specs/CI.71.md
 - [ ] **CI.69 — `usage-bar`: a veces el Enter del composer no envía el turno.** (abierto 2026-11-08) Falló en el
   pre-push de ADE.7/8 (`2e9aae2d`, `1355590c`): `page.waitForResponse` 180 s sin `POST /api/chat`
   (`usage-bar.mjs:309`). Captura: picker de modelo abierto (Luna · medium) y el texto sigue en la caja, así que

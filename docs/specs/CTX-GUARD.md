@@ -103,7 +103,7 @@ tocar el `~/.claude.json` real:
 
 `PLAN.md`, `src/**`, `scripts/**`, `.claude/hooks/context-budget.js`,
 `.claude/hooks/session-resume.js`, `AGENTS.md`, `CLAUDE.md`, cualquier archivo de
-`~/Projects/MemoriesMD`, y `~/.claude/settings.json`. No borrar ni reordenar las claves
+carpetas fuera del repo, y `~/.claude/settings.json`. No borrar ni reordenar las claves
 ya existentes de `.claude/settings.json`.
 
 ## Gates de cierre

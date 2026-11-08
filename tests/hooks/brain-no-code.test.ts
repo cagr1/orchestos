@@ -46,7 +46,7 @@ describe('brain-no-code hook', () => {
     const root = mkdtempSync(join(tmpdir(), 'brain-guard-root-'))
     const result = runHook(tool('Edit', { file_path: join(root, 'src/a.ts') }), root)
     expect(result.status).toBe(0)
-    expect(result.stdout).toContain('~/.agent-method/bin/delegate <rol>')
+    expect(result.stdout).toContain('delega su ejecución a otro modelo')
     expect(result.stdout).not.toContain('Luna')
     expect(result.stdout).not.toContain('Sonnet')
     expect(result.stdout).not.toContain('ORCHESTOS_ROLE=executor')

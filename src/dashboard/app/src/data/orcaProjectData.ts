@@ -33,8 +33,8 @@ export const INITIAL_PROJECTS: ProjectItem[] = [
     ],
   },
   {
-    id: 'memories_md',
-    name: 'MemoriesMD',
+    id: 'notes',
+    name: 'notes',
     branch: 'main',
     isPrimary: true,
     filesCount: 86,

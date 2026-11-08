@@ -45,6 +45,5 @@ trabajo toca el tema; las reglas generales viven en `AGENTS.md`.
   solo sobre lo no empujado.
 - Limpieza de artefactos versionados (H.1.4): verificar referencias y retirarlos del índice (`git rm --cached`), no del
   disco.
-- El push del vault (`MemoriesMD`) se decide en el vault, no desde este repo.
 - Specs de recorte o de estados: nombrar los estados intermedios rechazados y el algoritmo completo, incluido el caso
   sin saltos.

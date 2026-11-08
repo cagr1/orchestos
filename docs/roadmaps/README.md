@@ -10,9 +10,9 @@ documento decide **cómo** ese conocimiento entra a OrchestOS sin volverse una s
 verdad ni documentación aspiracional sin verificar.
 
 **Corrección de eje (M.0-R1)**: el diseño original (§1-§2 de abajo) trataba "lenguaje" como el
-segundo eje principal. La evidencia real dice otra cosa: Carlos ya alimentó el vault privado
-(`MemoriesMD`) con roadmaps por **disciplina/rol** (frontend, backend, QA-seguridad —
-`wiki/roadmaps/*.md`, anclados en `areas/professional/*` existentes), mientras el conocimiento por
+segundo eje principal. La evidencia real dice otra cosa: Carlos ya tenía en sus notas
+roadmaps por **disciplina/rol** (frontend, backend, QA-seguridad —
+anclados en áreas profesionales existentes), mientras el conocimiento por
 lenguaje (TypeScript, ASP.NET Core, Node.js, Android/iOS...) sigue crudo y sin destilar en
 `Clippings/`. Disciplina es el eje que realmente se está construyendo primero; lenguaje pasa a ser
 un eje secundario y más angosto (ver §9).
@@ -66,9 +66,7 @@ testing, etc. no se redefinen por lenguaje).
 2. **Disciplina/rol** (`disciplines/<disciplina>.md`) — **eje principal**: qué significa hacer bien
    backend, frontend, QA/seguridad, arquitectura, DevOps o agentes — auth, caching, testing,
    performance, diseño de sistemas, operación y seguridad
-   recurrente. Espejo directo de `wiki/roadmaps/<disciplina>.md` en el vault (`MemoriesMD`), promovido
-   vía `/knowledge-promote` — el vault es la fuente autoral, este archivo es la versión anclada a
-   este repo.
+   recurrente. Este archivo es la fuente.
 3. **Lenguaje/ecosistema** (`languages/<lenguaje>.md`) — **eje secundario, acotado a propósito**:
    solo lo que cambia por lenguaje dentro de una disciplina ya cubierta — `cargo` vs `go.mod` vs
    `package.json`, ownership vs GC, goroutines vs async/await. No repite auth/testing/caching; eso
@@ -170,7 +168,7 @@ contenido — nunca texto suelto sin estado.
 - No se conecta todavía a skills/prompts/QA (eso es M.4).
 - No se trata `roadmap.sh` como fuente ejecutable — solo fue la inspiración inicial de Carlos; el
   contenido real de cada perfil se verifica contra este repo, esta disciplina y este lenguaje, no se
-  copia de ahí ni del vault sin pasar por `/knowledge-promote`.
+  copia de ahí sin verificarlo.
 
 ## 9. M.0-R1 — historial de la revisión (2026-07-29)
 
@@ -180,8 +178,8 @@ eje principal (backend/frontend/qa-seguridad/devops) y `languages/<lenguaje>.md`
 adicional, más angosta, que solo cubre entorno/toolchain/idiomas dentro de una disciplina ya
 definida — no duplica auth/testing/caching/arquitectura, eso vive en la disciplina.
 
-**Por qué**: evidencia real, no preferencia estética. Carlos alimentó primero el vault
-(`MemoriesMD/wiki/roadmaps/{frontend,backend,qa-seguridad}.md`) organizado por disciplina, anclado
+**Por qué**: evidencia real, no preferencia estética. Carlos escribió primero roadmaps
+de frontend, backend y QA-seguridad organizados por disciplina, anclado
 en áreas profesionales que ya existían (`design-frontend`, `software-quality`; backend se ancló en
 `agent-engineering` a falta de área propia). El conocimiento por lenguaje (TypeScript, ASP.NET
 Core, Node.js, Android/iOS, Software Architect) sigue crudo en `Clippings/`, sin destilar. El
@@ -191,7 +189,7 @@ diseño debe seguir el trabajo real, no al revés.
 contrato roadmap↔skill↔checks (§6), y la regla de evidencia por sección (comando + salida real para
 `verified`) siguen exactamente iguales — la corrección es solo de eje, no de rigor.
 
-**Promoción realizada en M.2 (2026-07-29)**: se promovieron los seis roadmaps organizados en el vault
+**Promoción realizada en M.2 (2026-07-29)**: se promovieron los seis roadmaps por disciplina
 (`backend`, `frontend`, `qa-seguridad`, `architecture`, `devops`, `ai-agents`) a
 `docs/roadmaps/disciplines/`. Cada sección conserva estado `known` hasta verificarse contra un
 proyecto real; no se promovieron perfiles de lenguaje ni se conectaron todavía skills/QA.

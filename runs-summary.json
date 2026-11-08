@@ -1,7 +1,22 @@
 {
-  "exported_at": "2026-11-08T17:12:42.744Z",
+  "exported_at": "2026-11-08T18:44:08.244Z",
   "total_runs": 20,
   "runs": [
+    {
+      "id": "c61272a6-4860-4ed4-8d78-551501b3c2bf",
+      "task_class": "gate:ci.71:doc",
+      "model": "openai/gpt-6-luna",
+      "provider": "codex",
+      "status": "done",
+      "qa_verdict": "pass",
+      "qa_reason": "README.md contains the required line.",
+      "files_blocked": [],
+      "checks_failed": 0,
+      "usd_cost": 0.0014085599999999999,
+      "elapsed_ms": 17307,
+      "tokens": 7872,
+      "created_at": "2026-11-08T18:41:39.711Z"
+    },
     {
       "id": "ui-chat-context-seed-1794156442245",
       "task_class": "gate:ade.10-full-ui:implement",
@@ -286,21 +301,6 @@
       "elapsed_ms": 20109,
       "tokens": 7362,
       "created_at": "2026-11-07T22:01:12.418Z"
-    },
-    {
-      "id": "19912fa7-fff7-4036-9e00-960ab5562b50",
-      "task_class": "gate:ci.68-model-routing:doc",
-      "model": "gpt-6-luna",
-      "provider": "codex",
-      "status": "done",
-      "qa_verdict": "pass",
-      "qa_reason": "README.md contains the required line.",
-      "files_blocked": [],
-      "checks_failed": 0,
-      "usd_cost": 0.00135986,
-      "elapsed_ms": 17247,
-      "tokens": 7333,
-      "created_at": "2026-11-07T22:00:15.970Z"
     }
   ],
   "stats": {
@@ -308,6 +308,6 @@
     "blocked": 0,
     "done": 17,
     "qa_failed": 4,
-    "total_cost_usd": "0.0214"
+    "total_cost_usd": "0.0215"
   }
 }

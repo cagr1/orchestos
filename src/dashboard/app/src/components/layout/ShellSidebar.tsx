@@ -69,7 +69,7 @@ export const ShellSidebar: React.FC<ShellSidebarProps> = ({
   const [chatSearch, setChatSearch] = useState('')
   const [expandedProjects, setExpandedProjects] = useState<Record<string, boolean>>({
     orchestos: true,
-    memories_md: true,
+    notes: true,
     sala_despecho: true,
   })
 

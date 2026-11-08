@@ -1022,8 +1022,7 @@ jerarquía, "nunca gradient-text genérico") — evita lo peor, pero no da DIREC
 Lusion no comparten reglas, comparten un lenguaje visual específico y deliberado (tipografía,
 ritmo, motion, densidad) que ningún checklist genérico produce por sí solo.
 
-**Conexión con el propio vault de Carlos**: `helmcode.com` (de su lista) YA está documentado en
-`MemoriesMD/wiki/concepts/design-systems-md.md` — caso real de diseñar con Claude Code sin tocar
+**Conexión con las notas de Carlos**: `helmcode.com` (de su lista) YA estaba documentado como caso real de diseñar con Claude Code sin tocar
 Figma usando `design.md`/`brandbook.md` + `tokens.css` como **criterio externalizado que el agente
 lee antes de construir**. Es literalmente el mecanismo que resuelve esto — ya estaba documentado,
 no hay que inventarlo.
@@ -1102,8 +1101,7 @@ guía completa.
 
 ### 54. Mutation testing — la métrica anti-trampa para los tests que escriben los agentes
 
-**Origen**: 2026-07-27, consulta al vault sobre mutation testing / coverage gate
-(`MemoriesMD/outputs/2026-07-27-mutation-testing-coverage-gate-qa-ejecutando.md`, skill
+**Origen**: 2026-07-27, consulta sobre mutation testing / coverage gate (skill
 `github.com/V3RNE42/mutation-testing-skill`). El coverage gate que salió de la misma consulta ya
 está accionado en PLAN.md § Bloque J; **esto es lo otro, y no es lo mismo.**
 

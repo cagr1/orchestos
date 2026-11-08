@@ -1,12 +1,11 @@
 ---
-source: MemoriesMD/wiki/roadmaps/frontend.md
 state: known
 imported: 2026-07-29
 ---
 
 # Roadmap de disciplina — Frontend
 
-Estado global: `known`. Contenido promovido desde el vault; debe verificarse contra el proyecto real.
+Estado global: `known`. Debe verificarse contra el proyecto real.
 
 ## Núcleo no negociable — estado: known
 

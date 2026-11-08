@@ -1,12 +1,11 @@
 ---
-source: MemoriesMD/wiki/roadmaps/backend.md
 state: known
 imported: 2026-07-29
 ---
 
 # Roadmap de disciplina — Backend
 
-Estado global: `known`. Este contenido fue destilado en el vault y todavía debe verificarse contra
+Estado global: `known`. Este contenido todavía debe verificarse contra
 el proyecto concreto antes de convertirse en un gate automático.
 
 ## Qué cubre
