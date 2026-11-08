@@ -1,4 +1,4 @@
-# NEXT — handoff 2026-11-08 (bloque ADE, CI.70 y CI.71 cerrados; lote terminado)
+# NEXT — handoff 2026-11-08 (bloque ADE, CI.70, CI.71, ADE.11 y LIMP.4 cerrados; lote terminado)
 
 Un solo presente: orden y trampas vivas del lote. Lo cerrado vive en `docs/done/bloque-*.md` y git; las reglas, en
 `AGENTS.md`. Versión anterior completa: `docs/done/poda-instrucciones-2026-11-03.md` (histórico).
@@ -17,14 +17,14 @@ Arranque: `bun run agent:preflight -- --item <ID> --agent claude`. Lista viva: `
    merge-back sin mover el checkout). Bloque ADE completo.
    Decidido por el cerebro, Carlos puede revertir: cola por defecto "Queue message"; clic en notificación abre Dev
    solo si el hilo es pestaña de Dev abierta; ajustes de proyecto en la DB local, no en el config del repo.
-   Pendientes menores sin ítem: "Replace" (choque de atajos) no se activa por teclado mientras graba; los atajos
-   matchean por `event.code` (AZERTY/Dvorak); la terminal cancela el `zoom` de UI (a 125 % su texto no crece).
 1b. Hecho CI.70 (GO de Carlos 2026-11-08): cada prueba corre una vez (`AGENTS.md` § Gates); pre-push sin flujos;
    todos los flujos a las 01:30 en local, resultado en el startup-guard. Mañana: leer el aviso de arranque y resolver
    lo rojo/flaky antes del siguiente ítem. Primera corrida completa: noche del 2026-11-08 (duración aún sin medir).
-2. Hecho CI.71 `51a8e03d` (desacople del método personal, `docs/specs/LIMPIEZA-2.md` § 2): reglas, hooks, roadmaps y
+2. Hecho CI.71 `51a8e03d` (desacople del método personal, `LIMPIEZA-2` § 2, borrado; en git): reglas, hooks, roadmaps y
    fixtures sin `~/.agent-method`, alias de modelos ni vault. Se quedan a propósito: `delegate` en
    `scripts/writer-lock.mjs`, aislamiento de `~/.claude` en `qa-negative`/`cli-registry`, historia en `IDEAS.md`/`docs/done/`.
+2b. Hecho ADE.11 `4631c4fd` (terminal escala con la UI, "Replace" por teclado, atajos de letra por carácter) y LIMP.4
+   `09445a3a` (evidencia de ítems cerrados fuera del árbol; queda solo la de ítems abiertos). LIMPIEZA-2 completo.
 3. Mutación 42469416136: el re-run terminó verde (todos los shards). Desde CI.70 no se vigila en sesión.
 4. **Esperan su próximo fallo**: CI.69 (`usage-bar`, Enter sin envío; ver ítem); CI.57 `composer-picker-model-missing.json`; CI.54 `turn1-bubble-missing.json`; CI.19;
    CI.55 (`role-task-missing-output-attempt-<n>.json`). Leer el JSON el mismo día: CI.62 borra el `runDir` a las 24 h.
