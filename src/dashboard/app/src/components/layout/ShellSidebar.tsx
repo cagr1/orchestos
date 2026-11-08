@@ -5,7 +5,6 @@ import {
   CircleAlert,
   Code2,
   Ellipsis,
-  FolderClosed,
   Loader2,
   MessageSquare,
   Plus,
@@ -18,6 +17,7 @@ import type React from 'react'
 import { useEffect, useState } from 'react'
 import type { AppMode, ChatThread, ProjectItem } from '../../types/orchestos'
 import { type ProjectAddAction, ProjectAddButton } from '../common/ProjectAddButton'
+import { ProjectIcon } from '../common/ProjectIcon'
 import { ProviderLogo } from '../common/ProviderLogos'
 import { ResizableAside } from '../common/ResizableAside'
 import { DeleteProjectModal } from './DeleteProjectModal'
@@ -244,7 +244,10 @@ export const ShellSidebar: React.FC<ShellSidebarProps> = ({
                       className="flex items-center gap-2 min-w-0 flex-1 text-left"
                       title={`Toggle ${proj.name} agents`}
                     >
-                      <FolderClosed className="w-4 h-4 flex-shrink-0 text-app-muted" />
+                      <ProjectIcon
+                        name={proj.icon}
+                        className="w-4 h-4 flex-shrink-0 text-app-muted"
+                      />
                       <span className="truncate" title={proj.name}>
                         {proj.name}
                       </span>

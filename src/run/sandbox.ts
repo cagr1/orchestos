@@ -45,7 +45,12 @@ export function git(
   }
 }
 
-export function createWorktree(taskId: string, baseBranch: string, projectRoot: string): Worktree {
+export function createWorktree(
+  taskId: string,
+  baseBranch: string,
+  projectRoot: string,
+  setupScript?: string | null,
+): Worktree {
   const timestamp = Date.now()
   const sanitizedTaskId = taskId.replace(/[^a-z0-9-]/gi, '_').toLowerCase()
   const branch = `orchestos/${sanitizedTaskId}/${timestamp}`
@@ -126,6 +131,41 @@ export function createWorktree(taskId: string, baseBranch: string, projectRoot: 
     }
   }
 
+  if (setupScript?.trim()) {
+    try {
+      // Merge stderr into stdout so the diagnostic preserves execution order.
+      const result = Bun.spawnSync(
+        [
+          'sh',
+          '-c',
+          `exec 2>&1
+${setupScript}`,
+        ],
+        {
+          cwd: worktreeDir,
+          env: {
+            ...process.env,
+            ORCHESTOS_WORKTREE: worktreeDir,
+            ORCHESTOS_PROJECT_ROOT: projectRoot,
+          },
+          stdout: 'pipe',
+          stderr: 'pipe',
+          timeout: 10 * 60 * 1000,
+          killSignal: 'SIGKILL',
+        },
+      )
+      if (result.exitCode !== 0) {
+        const output = result.stdout.toString().trim().split('\n').slice(-20).join('\n')
+        throw new Error(
+          `Worktree setup script failed (${result.exitedDueToTimeout ? 'timeout after 10 minutes' : `exit ${result.exitCode}`}):\n${output}`,
+        )
+      }
+    } catch (error) {
+      cleanup()
+      throw error
+    }
+  }
+
   return { path: worktreeDir, branch, baseBranch, projectRoot, cleanup }
 }
 
@@ -183,76 +223,65 @@ function mergeWorktreeBackLocked(
   // `bun run typecheck` fallando de forma transitoria), `git merge` lo
   // rechazaría con "your local changes would be overwritten" — el error real
   // reproducido en vivo que E.5/E.6 no cubrían. Best-effort, nunca bloquea.
-  git(['checkout', '--', 'runs-summary.json'], worktree.projectRoot)
+  const currentBranch = git(['symbolic-ref', '--quiet', '--short', 'HEAD'], worktree.projectRoot)
+  const baseCheckedOut =
+    currentBranch.exitCode === 0 && currentBranch.stdout === worktree.baseBranch
+  if (baseCheckedOut) git(['checkout', '--', 'runs-summary.json'], worktree.projectRoot)
+  const headBefore = git(['rev-parse', worktree.baseBranch], worktree.projectRoot).stdout
+  const advanceBase = () =>
+    git(
+      baseCheckedOut
+        ? ['merge', '--ff-only', worktree.branch]
+        : ['fetch', '.', `${worktree.branch}:${worktree.baseBranch}`],
+      worktree.projectRoot,
+    )
 
-  // switch to baseBranch in the main repo and merge
-  const checkout = git(['checkout', worktree.baseBranch], worktree.projectRoot)
-  if (checkout.exitCode !== 0)
-    throw new Error(`git checkout ${worktree.baseBranch} failed: ${checkout.stderr}`)
+  if (strategy === 'squash' && !baseCheckedOut) {
+    // Rebase before squashing so concurrent base changes stay in the result tree.
+    const rebase = git(['rebase', worktree.baseBranch], worktree.path)
+    if (rebase.exitCode !== 0) throw new Error(`git rebase before squash failed: ${rebase.stderr}`)
+    const reset = git(['reset', '--soft', worktree.baseBranch], worktree.path)
+    if (reset.exitCode !== 0) throw new Error(`git reset (squash) failed: ${reset.stderr}`)
+    if (git(['diff', '--cached', '--quiet'], worktree.path).exitCode !== 0) {
+      const commit = git(
+        ['commit', '-m', message ?? `orchestos: squashed changes from ${worktree.branch}`],
+        worktree.path,
+      )
+      if (commit.exitCode !== 0) throw new Error(`git commit (squash) failed: ${commit.stderr}`)
+    }
+  }
 
-  const headBefore = git(['rev-parse', 'HEAD'], worktree.projectRoot).stdout
-
-  if (strategy === 'commit') {
-    const merge = git(['merge', '--ff-only', worktree.branch], worktree.projectRoot)
+  if (strategy === 'commit' || !baseCheckedOut) {
+    const merge = advanceBase()
     if (merge.exitCode !== 0) {
-      // S23.0.1 — --ff-only failed, likely base branch diverged.
-      // Attempt rebase + retry before giving up.
       const rebase = git(['rebase', worktree.baseBranch], worktree.path)
-      if (rebase.exitCode === 0) {
-        const retry = git(['checkout', worktree.baseBranch], worktree.projectRoot)
-        if (retry.exitCode !== 0)
-          throw new Error(
-            `git checkout ${worktree.baseBranch} failed after rebase: ${retry.stderr}`,
-          )
-        const retryMerge = git(['merge', '--ff-only', worktree.branch], worktree.projectRoot)
-        if (retryMerge.exitCode !== 0) {
-          // Mes 22/E.7 — antes esto descartaba retryMerge.stderr por completo:
-          // el fallo era indiagnosticable a distancia (reproducido 4+ veces con
-          // E.5/E.6 ya activos sin poder confirmar si era timing o un conflicto
-          // real de contenido). Ahora el mensaje real de git queda en el error.
-          throw new Error(
-            `git merge ${worktree.branch} failed after rebase — retry ff-only said: ${retryMerge.stderr || '(sin stderr)'}\n` +
-              `(primer intento ff-only: ${merge.stderr || '(sin stderr)'})\n` +
-              `Fix manually:\n` +
-              `  cd ${worktree.path}\n` +
-              `  git rebase --abort  # if needed\n` +
-              `  git checkout ${worktree.baseBranch}\n` +
-              `  git merge ${worktree.branch}\n` +
-              `  git branch -D ${worktree.branch}\n` +
-              `  git worktree remove --force ${worktree.path}`,
-          )
-        }
-      } else {
-        // rebase failed — give clear manual instructions
+      if (rebase.exitCode !== 0)
         throw new Error(
           `git merge --ff-only and rebase both failed for branch ${worktree.branch}. ` +
-            `Fix manually:\n` +
-            `  cd ${worktree.path}\n` +
-            `  git rebase --abort  # if in-progress\n` +
-            `  # resolve conflicts manually, then:\n` +
-            `  git checkout ${worktree.baseBranch}\n` +
-            `  git merge ${worktree.branch}\n` +
-            `  git branch -D ${worktree.branch}\n` +
-            `  git worktree remove --force ${worktree.path}\n` +
-            `Rebase error: ${rebase.stderr}`,
+            `Resolve in ${worktree.path}; rebase error: ${rebase.stderr}`,
         )
-      }
+      const retry = advanceBase()
+      if (retry.exitCode !== 0)
+        throw new Error(
+          `git merge ${worktree.branch} failed after rebase — retry ff-only said: ${retry.stderr}\n` +
+            `(primer intento ff-only: ${merge.stderr})`,
+        )
     }
-  } else if (strategy === 'squash') {
+  } else {
     const merge = git(['merge', '--squash', worktree.branch], worktree.projectRoot)
     if (merge.exitCode !== 0)
       throw new Error(`git merge --squash ${worktree.branch} failed: ${merge.stderr}`)
-
-    if (hasChanges) {
-      const commitMsg = message ?? `orchestos: squashed changes from ${worktree.branch}`
-      const commitSquash = git(['commit', '-m', commitMsg], worktree.projectRoot)
-      if (commitSquash.exitCode !== 0)
-        throw new Error(`git commit (squash) failed: ${commitSquash.stderr}`)
+    if (git(['diff', '--cached', '--quiet'], worktree.projectRoot).exitCode !== 0) {
+      const commit = git(
+        ['commit', '-m', message ?? `orchestos: squashed changes from ${worktree.branch}`],
+        worktree.projectRoot,
+      )
+      if (commit.exitCode !== 0) throw new Error(`git commit (squash) failed: ${commit.stderr}`)
     }
   }
 
   // ERP.7.2a — el SHA se toma después del ff/rebase/squash: el rebase cambia el commit original.
-  const headAfter = git(['rev-parse', 'HEAD'], worktree.projectRoot).stdout
+  const headAfter = git(['rev-parse', worktree.baseBranch], worktree.projectRoot).stdout
   worktree.mergedBaseSha = headBefore
   worktree.cleanup()
   return headAfter && headAfter !== headBefore ? headAfter : null

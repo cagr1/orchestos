@@ -290,6 +290,10 @@ export interface AgentSession {
 export type AgentItem = AgentSession
 
 export interface ProjectItem {
+  displayName?: string | null
+  icon?: string | null
+  baseBranch?: string | null
+  setupScript?: string | null
   id: string
   name: string
   branch?: string

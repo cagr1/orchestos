@@ -182,7 +182,22 @@ Propuesta y comparación con las tres referencias: `docs/specs/ADE-PLAN.md`. Uno
   Gate en vivo: navegador real (Playwright), `docs/done/evidence/ADE.9/ui-gate-result.json` y `docs/done/evidence/ADE.9-live.json`.
   Texto visible: "Terminal" · "Font family" · "Font size" · "Line height" · "Cursor style" · "Block" · "Bar" · "Underline" · "Cursor blink" · "Scrollback" (filas de ajustes; un ícono no dice qué controla cada una)
   Ejecutado por: codex gpt-6.1-sol (criterio) · Spec: docs/specs/ADE.9.md
-- [ ] **ADE.10 — Por proyecto: nombre e ícono, script al crear worktree, rama base.**
+- [x] **ADE.10 — Por proyecto: nombre e ícono, script al crear worktree, rama base.** Hecho: los 4 ajustes en la
+  DB local (migración: `display_name`, `icon`, `base_branch`, `setup_script` en `projects`), nunca en el config del
+  repo: un script versionado correría solo con clonar un repo ajeno. `PATCH /api/projects/:id` valida (rama existente,
+  ícono del set, límites). La rama base se resuelve en un solo lugar, `resolveSandboxMode` (cli, graph-runner y
+  harness coherentes; si ya no existe, warning y rama actual). Merge-back sin mover el checkout del usuario: si la
+  base no es la rama checkout, `git fetch . <wt>:<base>` (fast-forward), con rebase y reintento; `squash` aplasta en
+  el worktree. Script de setup tras crear el worktree, `cwd` = worktree, timeout 10 min; fallo → limpia y error con
+  las últimas 20 líneas. Front: nombre e ícono propagados desde `listProjects`; Settings del proyecto abre en la
+  pestaña nueva "General". El ejecutor se detuvo 2 veces por huecos del spec (call sites que fijaban la rama;
+  `squash` sin checkout); se ampliaron. El error de merge fallido perdió los pasos manuales (conserva stderr).
+  Gates del cerebro: `tsc`, 58 tests, `build:app`, `ui:gate project-settings` 3/3 PASS 6/6, project-tabs 40/40,
+  tasks 43/43, settings-pages 32/32. Rama base y setup verificados en integración del harness (worktree real, merge a
+  `develop` con `main` intacta), no en UI. Revisión: Opus (diff leído).
+  Gate en vivo: navegador real (Playwright), `docs/done/evidence/ADE.10/ui-gate-result.json` y `docs/done/evidence/ADE.10-live.json`.
+  Texto visible: "General" · "Name" · "Icon" · "Base branch" · "Current branch" · "Setup script" · "Runs in the new worktree folder after creation and linking node_modules." (ajustes del proyecto; la ayuda dice cuándo y dónde corre el script, un ícono no lo explica)
+  Ejecutado por: codex gpt-6.1-sol (criterio) · Spec: docs/specs/ADE.10.md
 
 ### Abiertos — fiabilidad de los gates y documentación
 

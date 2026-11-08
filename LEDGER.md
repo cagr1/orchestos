@@ -543,3 +543,17 @@ No cambia `resolveGates`, `resolvePhaseSkills`, los límites de contexto ni el c
 **Reversibilidad/evidencia**: diff SK.3 sin commit; pruebas del harness verifican revisión sin criterios,
 instrucciones de seguridad y persistencia de `skill_gates_json`. Typecheck, lint, test:coverage y
 Playwright `user-profile` (8/8) pasan; resultados en `docs/done/evidence/SK.3-live.json`.
+
+---
+
+## 2026-11-08 — Codex (ejecutor ADE.10)
+
+**Regla tocada**: `src/run/harness.ts`, creación del sandbox por tarea.
+**Clasificación**: RESPETÓ
+**Por qué**: la rama configurada se resuelve en `resolveSandboxMode`; el harness pasa el script local de
+setup a `createWorktree`, sin cambiar la derivación de contexto/max_tokens ni el contrato de QA. El merge
+avanza la base configurada sin cambiar la rama checkout del usuario.
+**Reversibilidad/evidencia**: diff ADE.10 sin commit; integración del harness con proveedor simulado,
+worktree real, setup, checks y merge a `develop` con `main` intacta; tests de limpieza ante fallo y timeout.
+Typecheck, lint completo y Playwright `project-settings project-tabs tasks settings-pages` pasan.
+Resultados: `docs/done/evidence/ADE.10-live.json`.

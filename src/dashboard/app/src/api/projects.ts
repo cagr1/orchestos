@@ -4,6 +4,10 @@ import { getConfig } from './settings'
 export interface ProjectRow {
   id: string
   path: string
+  displayName?: string | null
+  icon?: string | null
+  baseBranch?: string | null
+  setupScript?: string | null
   stackProfile: string
   lastUpdated: string
   branch?: string
@@ -52,7 +56,11 @@ export function timeSince(updatedAt: string, now: number = Date.now()): string {
 export function mapProjectRow(row: ProjectRow, agents: AgentSession[] = []): ProjectItem {
   return {
     id: row.id,
-    name: basename(row.path),
+    name: row.displayName ?? basename(row.path),
+    ...(row.displayName !== undefined ? { displayName: row.displayName } : {}),
+    ...(row.icon !== undefined ? { icon: row.icon } : {}),
+    ...(row.baseBranch !== undefined ? { baseBranch: row.baseBranch } : {}),
+    ...(row.setupScript !== undefined ? { setupScript: row.setupScript } : {}),
     ...(row.branch ? { branch: row.branch } : {}),
     path: row.path,
     filesCount: 0,
@@ -164,4 +172,28 @@ export async function purgeProjectData(projectId: string): Promise<void> {
   })
   const body = (await response.json().catch(() => null)) as { error?: string } | null
   if (!response.ok) throw new Error(body?.error || `Request failed (${response.status})`)
+}
+
+export type ProjectSettingsPatch = Partial<
+  Pick<ProjectRow, 'displayName' | 'icon' | 'baseBranch' | 'setupScript'>
+>
+
+export async function patchProject(
+  projectId: string,
+  settings: ProjectSettingsPatch,
+): Promise<ProjectItem> {
+  const response = await fetch(`/api/projects/${encodeURIComponent(projectId)}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(settings),
+  })
+  const body = (await response.json()) as ProjectRow & { error?: string }
+  if (!response.ok) throw new Error(body.error || `Request failed (${response.status})`)
+  return mapProjectRow(body)
+}
+
+export async function projectBranches(projectId: string): Promise<string[]> {
+  return (
+    await request<{ branches: string[] }>(`/api/projects/${encodeURIComponent(projectId)}/branches`)
+  ).branches
 }

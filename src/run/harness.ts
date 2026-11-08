@@ -182,9 +182,10 @@ export async function runTask(opts: HarnessOpts): Promise<TaskResult> {
       const p = sandboxMode
         ? { mode: sandboxMode, branch: sandboxBranch ?? null, warnings: [] as string[] }
         : resolveSandboxMode(projectRoot)
+      const project = getProject(projectRoot)
       const wt =
         p.mode === 'worktree' && p.branch && t.id
-          ? createWorktree(t.id, p.branch, projectRoot)
+          ? createWorktree(t.id, p.branch, projectRoot, project?.setup_script)
           : null
       return { policy: p, worktree: wt }
     })

@@ -16,6 +16,27 @@ describe('projects API mappings', () => {
     })
   })
 
+  test('maps local settings and falls back to the basename when cleared', () => {
+    const row = {
+      id: 'p1',
+      path: '/work/alpha',
+      stackProfile: 'ts',
+      lastUpdated: 'now',
+      displayName: 'Renamed',
+      icon: 'Rocket',
+      baseBranch: 'develop',
+      setupScript: 'echo ok',
+    }
+    expect(mapProjectRow(row)).toMatchObject({
+      name: 'Renamed',
+      displayName: 'Renamed',
+      icon: 'Rocket',
+      baseBranch: 'develop',
+      setupScript: 'echo ok',
+    })
+    expect(mapProjectRow({ ...row, displayName: null }).name).toBe('alpha')
+  })
+
   test('maps pending sessions to active agents and completed sessions to checks', () => {
     const session = {
       id: 's1',

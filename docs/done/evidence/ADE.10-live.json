@@ -1,0 +1,950 @@
+{
+  "item": "ADE.10",
+  "status": "implemented-uncommitted",
+  "timestamp": "2026-11-08T16:50:13.793268+00:00",
+  "baseCommit": "4ad5dd8ef79fab78264366ce55b550d5f7ab99d0",
+  "implementationIncludesAuthorizedPriorPartialDiff": true,
+  "committed": false,
+  "planEdited": false,
+  "delegated": false,
+  "coverage": {
+    "command": "bun run test:coverage",
+    "exitCode": 0,
+    "testsPassed": 2464,
+    "testsFailed": 0,
+    "functionsPercent": 80.92,
+    "linesPercent": 68.21,
+    "rawSummary": [
+      "src/dashboard/__tests__/csrf-origin.test.ts:",
+      "",
+      " 2464 pass",
+      " 0 fail",
+      " 10259 expect() calls",
+      "Ran 2464 tests across 263 files. [286.36s]",
+      "coverage gate: functions 80.92% (required 69.00%)",
+      "coverage gate: lines 68.21% (required 57.00%)"
+    ]
+  },
+  "focusedTests": {
+    "passed": 66,
+    "failed": 0,
+    "files": 7,
+    "rawSummary": [
+      "",
+      " 66 pass",
+      " 0 fail",
+      " 264 expect() calls",
+      "Ran 66 tests across 7 files. [34.38s]"
+    ]
+  },
+  "primaryBrowserResults": [
+    {
+      "flujo": "project-settings",
+      "pass": true,
+      "steps": [
+        {
+          "nombre": "sidebar name and icon update without reload",
+          "ok": true,
+          "detalle": "ok"
+        },
+        {
+          "nombre": "project fields persist after reload",
+          "ok": true,
+          "detalle": "ok"
+        },
+        {
+          "nombre": "validation error is inline and previous value persists",
+          "ok": true,
+          "detalle": "ok"
+        },
+        {
+          "nombre": "clearing name restores basename in sidebar",
+          "ok": true,
+          "detalle": "ok"
+        },
+        {
+          "nombre": "cleared settings persist as null",
+          "ok": true,
+          "detalle": "ok"
+        },
+        {
+          "nombre": "dashboard has no pageerrors",
+          "ok": true,
+          "detalle": "ok"
+        }
+      ],
+      "notes": [
+        {
+          "nombre": "worktree execution coverage",
+          "detalle": "projects-settings.test.ts + sandbox-setup.test.ts: configured base, setup success/failure, cleanup and merge checkout preservation"
+        }
+      ],
+      "errores": []
+    },
+    {
+      "flujo": "project-tabs",
+      "pass": true,
+      "steps": [
+        {
+          "nombre": "Open folder opens folder picker without modal",
+          "ok": true,
+          "detalle": "POST /api/projects/choose calls=1; dialog visible=false"
+        },
+        {
+          "nombre": "temporary project visible",
+          "ok": true,
+          "detalle": "project visible in sidebar"
+        },
+        {
+          "nombre": "project settings visible",
+          "ok": true,
+          "detalle": "settings heading"
+        },
+        {
+          "nombre": "loading indicator gone after tasks load",
+          "ok": true,
+          "detalle": "count=0"
+        },
+        {
+          "nombre": "specs empty state visible",
+          "ok": true,
+          "detalle": "empty project has no specs"
+        },
+        {
+          "nombre": "specs empty no page error",
+          "ok": true,
+          "detalle": "none"
+        },
+        {
+          "nombre": "real memory visible",
+          "ok": true,
+          "detalle": "seeded DB memory"
+        },
+        {
+          "nombre": "mock memory absent",
+          "ok": true,
+          "detalle": "no mock data"
+        },
+        {
+          "nombre": "memory conflict resolved",
+          "ok": true,
+          "detalle": "open conflicts: 0"
+        },
+        {
+          "nombre": "authoritative memory persisted and visible",
+          "ok": true,
+          "detalle": "content of entry A matches the resolved API value"
+        },
+        {
+          "nombre": "memory no palette",
+          "ok": true,
+          "detalle": "ninguna (con memoria sembrada)"
+        },
+        {
+          "nombre": "memory content aligned with header",
+          "ok": true,
+          "detalle": "left offset=0px"
+        },
+        {
+          "nombre": "real spec visible",
+          "ok": true,
+          "detalle": "seeded markdown spec"
+        },
+        {
+          "nombre": "mock specs absent",
+          "ok": true,
+          "detalle": "no mock data"
+        },
+        {
+          "nombre": "spec approved",
+          "ok": true,
+          "detalle": "API status approved"
+        },
+        {
+          "nombre": "spec lint updates API and row",
+          "ok": true,
+          "detalle": "Lint: pass (0); response findings=0; before=pass/0"
+        },
+        {
+          "nombre": "specs no palette",
+          "ok": true,
+          "detalle": "ninguna (con spec sembrado)"
+        },
+        {
+          "nombre": "specs content aligned with header",
+          "ok": true,
+          "detalle": "left offset=0px"
+        },
+        {
+          "nombre": "real skills listed",
+          "ok": true,
+          "detalle": "API skills=17"
+        },
+        {
+          "nombre": "compile response visible",
+          "ok": true,
+          "detalle": "success response rendered in the skill row"
+        },
+        {
+          "nombre": "mock skills absent",
+          "ok": true,
+          "detalle": "no mock data"
+        },
+        {
+          "nombre": "skills no palette",
+          "ok": true,
+          "detalle": "ninguna (con skills sembradas)"
+        },
+        {
+          "nombre": "skills content aligned with header",
+          "ok": true,
+          "detalle": "left offset=0px"
+        },
+        {
+          "nombre": "graph no palette",
+          "ok": true,
+          "detalle": "ninguna en CONTEXT"
+        },
+        {
+          "nombre": "graph content aligned with header",
+          "ok": true,
+          "detalle": "left offset=0px"
+        },
+        {
+          "nombre": "tab roots transparent (memory/specs/skills/graph)",
+          "ok": true,
+          "detalle": "memory=rgba(0, 0, 0, 0); specs=rgba(0, 0, 0, 0); skills=rgba(0, 0, 0, 0); graph=rgba(0, 0, 0, 0)"
+        },
+        {
+          "nombre": "mock instincts absent",
+          "ok": true,
+          "detalle": "no mock data"
+        },
+        {
+          "nombre": "instinct review visible",
+          "ok": true,
+          "detalle": "unverified instinct"
+        },
+        {
+          "nombre": "instinct approved",
+          "ok": true,
+          "detalle": "API verified"
+        },
+        {
+          "nombre": "manual instinct added",
+          "ok": true,
+          "detalle": "new API row"
+        },
+        {
+          "nombre": "instincts no palette",
+          "ok": true,
+          "detalle": "ninguna (con instincts sembrados)"
+        },
+        {
+          "nombre": "mock plan absent",
+          "ok": true,
+          "detalle": "no mock data"
+        },
+        {
+          "nombre": "plan board fills the view",
+          "ok": true,
+          "detalle": "danger zone top=972 scroller bottom=972"
+        },
+        {
+          "nombre": "plan no palette",
+          "ok": true,
+          "detalle": "ninguna en Kanban ni Table"
+        },
+        {
+          "nombre": "tab roots transparent",
+          "ok": true,
+          "detalle": "plan=rgba(0, 0, 0, 0); instincts=rgba(0, 0, 0, 0)"
+        },
+        {
+          "nombre": "explain fields visible as readable UI",
+          "ok": true,
+          "detalle": "GET /explain fields rendered inside the template block"
+        },
+        {
+          "nombre": "explain has no [object Object]",
+          "ok": true,
+          "detalle": "opened Explain modal contains no stringified object values"
+        },
+        {
+          "nombre": "task run finishes and badge changes without reload",
+          "ok": true,
+          "detalle": "status=done; retryCount/runId changed or terminal status observed"
+        },
+        {
+          "nombre": "Plan has no manual task creation button",
+          "ok": true,
+          "detalle": "Add task button absent"
+        },
+        {
+          "nombre": "0 console errors",
+          "ok": true,
+          "detalle": "none"
+        }
+      ],
+      "notes": [],
+      "errores": []
+    },
+    {
+      "flujo": "tasks",
+      "pass": true,
+      "steps": [
+        {
+          "nombre": "temporary project visible",
+          "ok": true,
+          "detalle": "project visible in sidebar"
+        },
+        {
+          "nombre": "project settings visible",
+          "ok": true,
+          "detalle": "project settings heading visible"
+        },
+        {
+          "nombre": "task id gate-first-task visible",
+          "ok": true,
+          "detalle": "real tasks.yaml id"
+        },
+        {
+          "nombre": "task id gate-dependent-task visible",
+          "ok": true,
+          "detalle": "real tasks.yaml id"
+        },
+        {
+          "nombre": "task id gate-failed-task visible",
+          "ok": true,
+          "detalle": "real tasks.yaml id"
+        },
+        {
+          "nombre": "real output visible",
+          "ok": true,
+          "detalle": "output boundary from tasks.yaml, in the task detail"
+        },
+        {
+          "nombre": "mock task absent",
+          "ok": true,
+          "detalle": "no initialMockTasks id rendered"
+        },
+        {
+          "nombre": "task created without model shows the Executor role agent and model",
+          "ok": true,
+          "detalle": "expected=codex · gpt-6-luna from fixture orchestos.config.yaml"
+        },
+        {
+          "nombre": "created task yaml has no hardcoded provider executor",
+          "ok": true,
+          "detalle": "tasks.yaml entry for gate-role-task has no executor: openrouter|anthropic|openai"
+        },
+        {
+          "nombre": "failed task offers its own Run button",
+          "ok": true,
+          "detalle": "visible=true enabled=true"
+        },
+        {
+          "nombre": "task with unfinished dependency has no Run button",
+          "ok": true,
+          "detalle": "button count=0"
+        },
+        {
+          "nombre": "Run Next Task enabled",
+          "ok": true,
+          "detalle": "first task has no unfinished dependency"
+        },
+        {
+          "nombre": "Run Next Task disabled while running",
+          "ok": true,
+          "detalle": "running task prevents a second run"
+        },
+        {
+          "nombre": "first task was posted",
+          "ok": true,
+          "detalle": "status=pending"
+        },
+        {
+          "nombre": "dependent task remains pending before first finishes",
+          "ok": true,
+          "detalle": "dependency prevents the second task from running"
+        },
+        {
+          "nombre": "final status badge is visible without reload",
+          "ok": true,
+          "detalle": "StatusBadge text=DONE"
+        },
+        {
+          "nombre": "badge leaves Pending without page reload",
+          "ok": true,
+          "detalle": "status=done"
+        },
+        {
+          "nombre": "UI and API agree on final task state",
+          "ok": true,
+          "detalle": "status=done"
+        },
+        {
+          "nombre": "completed Codex run API includes the executor reply",
+          "ok": true,
+          "detalle": "{\"id\":\"d6611c1d-3e8a-4a7e-8c90-6ec02a190b9a\",\"projectId\":\"2f6ed8a086bdc94c\",\"taskId\":\"gate-first-task\",\"prompt\":\"Append the line \\\"Gate ran.\\\" at the end of README.md\",\"allowedOutputs\":[\"README.md\"],\"filesAttempted\":[\"README.md\"],\"filesAuthorized\":[\"README.md\"],\"filesBlocked\":[],\"checks\":[],\"status\":\"done\",\"qaVerdict\":\"pass\",\"qaReason\":\"README.md contains the requested line.\",\"result\":\"1 file(s) written\",\"executorReply\":\"Appended `Gate ran.` to `README.md`. Stopped without running Git commands.\",\"qaModel\":\"gpt-6-luna\",\"qaCriteria\":[{\"text\":\"README.md contains the line: Gate ran.\",\"pass\":true,\"evidence\":{\"file\":\"README.md\",\"excerpt\":\"Gate ran.\"}}],\"model\":\"openai/gpt-6-luna\",\"provider\":\"codex\",\"readAudit\":{\"version\":1,\"source\":\"uninstrumented\",\"coverage\":\"none\",\"completeness\":\"unknown\",\"tools\":[],\"limitations\":[\"transport-not-instrumented\",\"implicit-reads-not-observed\"],\"issues\":[],\"operations\":[]},\"skillId\":null,\"inputTokens\":7414,\"outputTokens\":217,\"costUsd\":0.0012287799999999998,\"costSource\":\"estimated\",\"costBreakdown\":[{\"label\":\"codex (exec)\",\"model\":\"openai/gpt-6-luna\",\"inputTokens\":3774,\"outputTokens\":165,\"costUsd\":0.0007235799999999999,\"binary\":\"codex\",\"args\":[\"exec\",\"<contract>\",\"--json\",\"--sandbox\",\"workspace-write\",\"--color\",\"never\",\"-c\",\"model_reasoning_summary=auto\",\"-m\",\"gpt-6-luna\",\"-c\",\"model_reasoning_effort=medium\"]},{\"label\":\"reviewer\",\"model\":\"gpt-6-luna\",\"inputTokens\":3640,\"outputTokens\":52,\"costUsd\":0.0005051999999999999}],\"contextWarnings\":[],\"engine\":\"codex\",\"iterations\":1,\"fileDiffs\":[{\"path\":\"README.md\",\"status\":\"modified\",\"diff\":\"Index: README.md\\n===================================================================\\n--- README.md\\n+++ README.md\\n@@ -1,1 +1,2 @@\\n # UI.13.2d\\n+Gate ran.\\n\",\"additions\":1,\"deletions\":0}],\"commitSha\":\"7c739fa06b48e4c9c0b9a6c7e8c77502cc9583c5\",\"revertedSha\":null,\"revertedAt\":null,\"skillGates\":[{\"id\":\"qa-structured\",\"candidate\":true,\"applied\":true,\"reason\":\"sin triggers declarados — aplica siempre en esta fase\"},{\"id\":\"security-review\",\"candidate\":true,\"applied\":false,\"reason\":\"ningún trigger coincidió con la descripción de la tarea\"}],\"elapsedMs\":14880,\"createdAt\":\"2026-11-08T16:37:32.929Z\"}"
+        },
+        {
+          "nombre": "completed Codex run Contract shows the unverified executor report",
+          "ok": true,
+          "detalle": "executorReply=Appended `Gate ran.` to `README.md`. Stopped without running Git commands."
+        },
+        {
+          "nombre": "completed task memory is returned by the project API",
+          "ok": true,
+          "detalle": "topicKey=task/gate-first-task content=Task gate-first-task — done\nAppend the line \"Gate ran.\" at the end of README.md\nFiles: README.md\nQA: pass — README.md contains the requested line.\nModel: codex/openai/gpt-6-luna · attempts 1"
+        },
+        {
+          "nombre": "completed task memory is visible in project Settings Memory",
+          "ok": true,
+          "detalle": "Memory view contains task/gate-first-task and QA: pass"
+        },
+        {
+          "nombre": "first task final state is committed in tasks.yaml",
+          "ok": true,
+          "detalle": "porcelain=\"\" subject=chore(tasks): gate-first-task done"
+        },
+        {
+          "nombre": "failed task relaunched by id ran",
+          "ok": true,
+          "detalle": "runId=8d6e11d3-1804-4ac4-bf8c-2d3f1c268365 previous=missing"
+        },
+        {
+          "nombre": "relaunched task reaches done",
+          "ok": true,
+          "detalle": "status=done"
+        },
+        {
+          "nombre": "relaunched task final state is committed in tasks.yaml",
+          "ok": true,
+          "detalle": "porcelain=\"\" subject=chore(tasks): gate-failed-task done"
+        },
+        {
+          "nombre": "relaunch did not start the dependent task",
+          "ok": true,
+          "detalle": "status=pending runId=missing"
+        },
+        {
+          "nombre": "task rows flat",
+          "ok": true,
+          "detalle": "[{\"height\":40,\"borderTop\":\"0px\",\"shadow\":\"none\"},{\"height\":40,\"borderTop\":\"0px\",\"shadow\":\"none\"},{\"height\":40,\"borderTop\":\"0px\",\"shadow\":\"none\"},{\"height\":40,\"borderTop\":\"0px\",\"shadow\":\"none\"},{\"height\":40,\"borderTop\":\"0px\",\"shadow\":\"none\"}]"
+        },
+        {
+          "nombre": "task list header aligned",
+          "ok": true,
+          "detalle": "{\"text\":\"IDTaskAgentStatus\",\"headerCells\":{\"id\":{\"left\":310,\"right\":422},\"title\":{\"left\":434,\"right\":1052},\"meta\":{\"left\":1064,\"right\":1272},\"status\":{\"left\":1284,\"right\":1404}},\"rowCells\":{\"id\":{\"left\":310,\"right\":422},\"title\":{\"left\":434,\"right\":1052},\"meta\":{\"left\":1064,\"right\":1272},\"status\":{\"left\":1284,\"right\":1404}}}"
+        },
+        {
+          "nombre": "no palette in tasks tab",
+          "ok": true,
+          "detalle": "ninguna"
+        },
+        {
+          "nombre": "task detail opens",
+          "ok": true,
+          "detalle": "detail shows the task id"
+        },
+        {
+          "nombre": "task detail closes with Esc",
+          "ok": true,
+          "detalle": "detail count=0"
+        },
+        {
+          "nombre": "no duplicated description",
+          "ok": true,
+          "detalle": "occurrences=1 line=\"Inspect the first task result.\""
+        },
+        {
+          "nombre": "task without criteria completes with skipped QA",
+          "ok": true,
+          "detalle": "{\"id\":\"gate-role-task\",\"description\":\"Create ROLE.md containing exactly one line: ROLE-GATE.\",\"status\":\"done\",\"retryReason\":null,\"skill\":null,\"assignedAgent\":\"codex\",\"assignedModel\":\"gpt-6-luna\",\"retryCount\":0,\"qaVerdict\":\"skipped\",\"runId\":\"bee7f8c6-29db-4452-b84f-9c6b89847168\",\"pendingApprovals\":0,\"sessionId\":null,\"lastRunAt\":\"2026-11-08T16:38:06.343Z\",\"phaseSkills\":[],\"engine\":null,\"output\":[\"ROLE.md\"],\"dependsOn\":[],\"acceptanceCriteria\":[],\"executorModel\":null}"
+        },
+        {
+          "nombre": "task without criteria persists skipped verdict and no checks",
+          "ok": true,
+          "detalle": "{\"id\":\"bee7f8c6-29db-4452-b84f-9c6b89847168\",\"projectId\":\"2f6ed8a086bdc94c\",\"taskId\":\"gate-role-task\",\"prompt\":\"Create ROLE.md containing exactly one line: ROLE-GATE.\",\"allowedOutputs\":[\"ROLE.md\"],\"filesAttempted\":[\"ROLE.md\"],\"filesAuthorized\":[\"ROLE.md\"],\"filesBlocked\":[],\"checks\":[],\"status\":\"done\",\"qaVerdict\":\"skipped\",\"qaReason\":\"Sin revisión LLM y sin checks: nada verificó esta tarea\",\"result\":\"1 file(s) written\",\"executorReply\":\"Created `ROLE.md` containing exactly `ROLE-GATE`.\",\"qaModel\":null,\"qaCriteria\":[],\"model\":\"gpt-6-luna\",\"provider\":\"codex\",\"readAudit\":{\"version\":1,\"source\":\"uninstrumented\",\"coverage\":\"none\",\"completeness\":\"unknown\",\"tools\":[],\"limitations\":[\"transport-not-instrumented\",\"implicit-reads-not-observed\"],\"issues\":[],\"operations\":[]},\"skillId\":null,\"inputTokens\":3745,\"outputTokens\":96,\"costUsd\":0.0006849,\"costSource\":\"estimated\",\"costBreakdown\":[{\"label\":\"codex (exec)\",\"model\":\"gpt-6-luna\",\"inputTokens\":3745,\"outputTokens\":96,\"costUsd\":0.0006849,\"binary\":\"codex\",\"args\":[\"exec\",\"<contract>\",\"--json\",\"--sandbox\",\"workspace-write\",\"--color\",\"never\",\"-c\",\"model_reasoning_summary=auto\",\"-m\",\"gpt-6-luna\",\"-c\",\"model_reasoning_effort=medium\"]}],\"contextWarnings\":[],\"engine\":\"codex\",\"iterations\":1,\"fileDiffs\":[{\"path\":\"ROLE.md\",\"status\":\"added\",\"diff\":\"Index: ROLE.md\\n===================================================================\\n--- ROLE.md\\n+++ ROLE.md\\n@@ -0,0 +1,1 @@\\n+ROLE-GATE\\n\",\"additions\":1,\"deletions\":0}],\"commitSha\":\"518f6af3a34637d9d6e87073ba5d2c1e8215841b\",\"revertedSha\":null,\"revertedAt\":null,\"skillGates\":[{\"id\":\"qa-structured\",\"candidate\":true,\"applied\":true,\"reason\":\"sin triggers declarados — aplica siempre en esta fase\"},{\"id\":\"security-review\",\"candidate\":true,\"applied\":false,\"reason\":\"ningún trigger coincidió con la descripción de la tarea\"}],\"elapsedMs\":7416,\"createdAt\":\"2026-11-08T16:38:06.343Z\"}"
+        },
+        {
+          "nombre": "unverified task has warning badge and no QA pass",
+          "ok": true,
+          "detalle": "bee7f8c6-29db-4452-b84f-9c6b89847168\tgate-role-taskCreate ROLE.md containing exactly one line: ROLE-GATE.\tgpt-6-luna\t1m\t$0.0007\tSin verificar\tInspect"
+        },
+        {
+          "nombre": "unverified run detail has no QA pass",
+          "ok": true,
+          "detalle": "detail shows Sin verificar"
+        },
+        {
+          "nombre": "unverified run shows warning without failure symbols",
+          "ok": true,
+          "detalle": "Nada verificó este run; no ✗"
+        },
+        {
+          "nombre": "skipped QA explains that nothing verified the task",
+          "ok": true,
+          "detalle": "QA: no corrió and reason visible"
+        },
+        {
+          "nombre": "check stderr persisted in retry_reason",
+          "ok": true,
+          "detalle": "{\"api\":{\"id\":\"gate-check-failure\",\"description\":\"Leave the existing TRUST.txt unchanged. Do not create or edit any files.\",\"status\":\"pending\",\"retryReason\":\"check failed: bun -e 'console.error(\\\"TRUST1-MARKER\\\"),process.exit(1)' exit 1 (expected 0)\\n--- stderr (tail) ---\\nTRUST1-MARKER\\n\",\"skill\":null,\"assignedAgent\":\"codex\",\"assignedModel\":\"openai/gpt-6-luna\",\"retryCount\":1,\"qaVerdict\":\"fail\",\"runId\":null,\"pendingApprovals\":0,\"sessionId\":null,\"lastRunAt\":null,\"phaseSkills\":[],\"engine\":\"codex\",\"output\":[\"TRUST.txt\"],\"dependsOn\":[],\"acceptanceCriteria\":[],\"executorModel\":\"openai/gpt-6-luna\"},\"persisted\":{\"id\":\"gate-check-failure\",\"description\":\"Leave the existing TRUST.txt unchanged. Do not create or edit any files.\",\"executor\":\"openrouter\",\"executor_model\":\"openai/gpt-6-luna\",\"engine\":\"codex\",\"cli_effort\":\"medium\",\"input\":[],\"output\":[\"TRUST.txt\"],\"checks\":[{\"cmd\":\"bun -e 'console.error(\\\"TRUST1-MARKER\\\"),process.exit(1)'\"}],\"depends_on\":[],\"status\":\"pending\",\"retry_count\":1,\"retry_reason\":\"check failed: bun -e 'console.error(\\\"TRUST1-MARKER\\\"),process.exit(1)' exit 1 (expected 0)\\n--- stderr (tail) ---\\nTRUST1-MARKER\\n\",\"qa_verdict\":\"fail\"}}"
+        },
+        {
+          "nombre": "check stderr visible in task failure reason",
+          "ok": true,
+          "detalle": "gate-check-failure\nLeave the existing TRUST.txt unchanged. Do not create or edit any files.\nStatus\nPENDING\nAgent\ncodex · openai/gpt-6-luna\nEngine\ncodex\nDepends on\nNone\nOutputs\n[TRUST.txt]\nAttempts\n1/3\n\nAttempt 1/3 failed: check failed: bun -e 'console.error(\"TRUST1-MARKER\"),process.exit(1)' exit 1 (expected 0)\n--- stderr (tail) ---\nTRUST1-MARKER\n"
+        },
+        {
+          "nombre": "check stderr visible under failed check in Runs",
+          "ok": true,
+          "detalle": "TRUST1-MARKER\n"
+        },
+        {
+          "nombre": "failed check is measured without a judge verdict",
+          "ok": true,
+          "detalle": "Medido with TRUST1-MARKER; no QA verdict or judge opinion"
+        }
+      ],
+      "notes": [],
+      "errores": []
+    },
+    {
+      "flujo": "settings-pages",
+      "pass": true,
+      "steps": [
+        {
+          "nombre": "Language lives in General without a navigation entry",
+          "ok": true,
+          "detalle": "ok"
+        },
+        {
+          "nombre": "language saves instantly and survives reload",
+          "ok": true,
+          "detalle": "ok"
+        },
+        {
+          "nombre": "language search highlights its General row",
+          "ok": true,
+          "detalle": "ok"
+        },
+        {
+          "nombre": "Appearance has four themes",
+          "ok": true,
+          "detalle": "ok"
+        },
+        {
+          "nombre": "theme OrchestOS is available",
+          "ok": true,
+          "detalle": "ok"
+        },
+        {
+          "nombre": "theme Graphite is available",
+          "ok": true,
+          "detalle": "ok"
+        },
+        {
+          "nombre": "theme Carbon is available",
+          "ok": true,
+          "detalle": "ok"
+        },
+        {
+          "nombre": "theme Light is available",
+          "ok": true,
+          "detalle": "ok"
+        },
+        {
+          "nombre": "chosen theme persists after reload",
+          "ok": true,
+          "detalle": "ok"
+        },
+        {
+          "nombre": "Keybindings has one row per registry entry",
+          "ok": true,
+          "detalle": "ok"
+        },
+        {
+          "nombre": "registered shortcut zoom-in",
+          "ok": true,
+          "detalle": "ok"
+        },
+        {
+          "nombre": "registered shortcut zoom-out",
+          "ok": true,
+          "detalle": "ok"
+        },
+        {
+          "nombre": "registered shortcut zoom-reset",
+          "ok": true,
+          "detalle": "ok"
+        },
+        {
+          "nombre": "registered shortcut command-palette",
+          "ok": true,
+          "detalle": "ok"
+        },
+        {
+          "nombre": "registered shortcut settings-search",
+          "ok": true,
+          "detalle": "ok"
+        },
+        {
+          "nombre": "registered shortcut go-to-file",
+          "ok": true,
+          "detalle": "ok"
+        },
+        {
+          "nombre": "registered shortcut open-settings",
+          "ok": true,
+          "detalle": "ok"
+        },
+        {
+          "nombre": "registered shortcut mode-chat",
+          "ok": true,
+          "detalle": "ok"
+        },
+        {
+          "nombre": "registered shortcut mode-dev",
+          "ok": true,
+          "detalle": "ok"
+        },
+        {
+          "nombre": "registered shortcut new-chat",
+          "ok": true,
+          "detalle": "ok"
+        },
+        {
+          "nombre": "registered shortcut toggle-sidebar",
+          "ok": true,
+          "detalle": "ok"
+        },
+        {
+          "nombre": "registered shortcut toggle-right-panel",
+          "ok": true,
+          "detalle": "ok"
+        },
+        {
+          "nombre": "registered shortcut new-terminal",
+          "ok": true,
+          "detalle": "ok"
+        },
+        {
+          "nombre": "registered shortcut close-tab",
+          "ok": true,
+          "detalle": "ok"
+        },
+        {
+          "nombre": "registered shortcut next-tab",
+          "ok": true,
+          "detalle": "ok"
+        },
+        {
+          "nombre": "registered shortcut previous-tab",
+          "ok": true,
+          "detalle": "ok"
+        },
+        {
+          "nombre": "registered shortcut stop-turn",
+          "ok": true,
+          "detalle": "ok"
+        },
+        {
+          "nombre": "command filter leaves exactly its matching row",
+          "ok": true,
+          "detalle": "ok"
+        },
+        {
+          "nombre": "key filter matches the registered shortcuts",
+          "ok": true,
+          "detalle": "ok"
+        },
+        {
+          "nombre": "unmatched filter has zero rows and keeps page usable",
+          "ok": true,
+          "detalle": "ok"
+        },
+        {
+          "nombre": "clearing the filter restores all rows",
+          "ok": true,
+          "detalle": "ok"
+        },
+        {
+          "nombre": "registered Settings shortcut opens search",
+          "ok": true,
+          "detalle": "ok"
+        }
+      ],
+      "notes": [],
+      "errores": []
+    }
+  ],
+  "prePushBrowserSummary": [
+    {
+      "flow": "skills-library",
+      "pass": true,
+      "passedSteps": 16,
+      "totalSteps": 16,
+      "errors": []
+    },
+    {
+      "flow": "smoke",
+      "pass": true,
+      "passedSteps": 7,
+      "totalSteps": 7,
+      "errors": []
+    },
+    {
+      "flow": "plan-doc",
+      "pass": true,
+      "passedSteps": 16,
+      "totalSteps": 16,
+      "errors": []
+    },
+    {
+      "flow": "project-delete",
+      "pass": true,
+      "passedSteps": 12,
+      "totalSteps": 12,
+      "errors": []
+    },
+    {
+      "flow": "usage-bar",
+      "pass": true,
+      "passedSteps": 22,
+      "totalSteps": 22,
+      "errors": []
+    },
+    {
+      "flow": "text-sweep",
+      "pass": true,
+      "passedSteps": 10,
+      "totalSteps": 10,
+      "errors": []
+    },
+    {
+      "flow": "chat-turn-details",
+      "pass": true,
+      "passedSteps": 29,
+      "totalSteps": 29,
+      "errors": []
+    },
+    {
+      "flow": "tasks",
+      "pass": true,
+      "passedSteps": 43,
+      "totalSteps": 43,
+      "errors": []
+    },
+    {
+      "flow": "runs-graph",
+      "pass": true,
+      "passedSteps": 15,
+      "totalSteps": 15,
+      "errors": []
+    },
+    {
+      "flow": "qa-negative",
+      "pass": true,
+      "passedSteps": 26,
+      "totalSteps": 26,
+      "errors": []
+    },
+    {
+      "flow": "restart-mid-run",
+      "pass": true,
+      "passedSteps": 31,
+      "totalSteps": 31,
+      "errors": []
+    },
+    {
+      "flow": "project-tabs",
+      "pass": true,
+      "passedSteps": 40,
+      "totalSteps": 40,
+      "errors": []
+    },
+    {
+      "flow": "project-add-menu",
+      "pass": true,
+      "passedSteps": 14,
+      "totalSteps": 14,
+      "errors": []
+    },
+    {
+      "flow": "model-routing",
+      "pass": true,
+      "passedSteps": 24,
+      "totalSteps": 24,
+      "errors": []
+    },
+    {
+      "flow": "composer-picker",
+      "pass": true,
+      "passedSteps": 11,
+      "totalSteps": 11,
+      "errors": []
+    },
+    {
+      "flow": "chat-roles",
+      "pass": true,
+      "passedSteps": 12,
+      "totalSteps": 12,
+      "errors": []
+    },
+    {
+      "flow": "chat-context",
+      "pass": true,
+      "passedSteps": 5,
+      "totalSteps": 5,
+      "errors": []
+    }
+  ],
+  "chatBrowserSummary": [
+    {
+      "flow": "chat-streaming",
+      "pass": true,
+      "passedSteps": 27,
+      "totalSteps": 27,
+      "errors": []
+    },
+    {
+      "flow": "codex-live",
+      "pass": true,
+      "passedSteps": 15,
+      "totalSteps": 15,
+      "errors": []
+    },
+    {
+      "flow": "chat-continuity",
+      "pass": true,
+      "passedSteps": 8,
+      "totalSteps": 8,
+      "errors": []
+    }
+  ],
+  "gateCommands": [
+    {
+      "command": "node ~/.agent-method/hooks/writer-lock.js check",
+      "exitCode": 0,
+      "rawOutput": "writer-check.log"
+    },
+    {
+      "command": "bun run agent:preflight -- --item ADE.10 --agent codex",
+      "exitCode": 0,
+      "rawOutput": "preflight.log"
+    },
+    {
+      "command": "bunx tsc --noEmit (baseline)",
+      "exitCode": 0,
+      "rawOutput": "baseline-tsc.log"
+    },
+    {
+      "command": "bun run test:coverage (baseline dentro del sandbox)",
+      "exitCode": 1,
+      "rawOutput": "baseline-coverage.log"
+    },
+    {
+      "command": "bun run typecheck",
+      "exitCode": 0,
+      "rawOutput": "typecheck-final.log"
+    },
+    {
+      "command": "bun test --coverage src/__tests__/migration.test.ts src/__tests__/sandbox-setup.test.ts src/__tests__/sandbox-policy.test.ts src/__tests__/sandbox-node-modules.test.ts src/dashboard/__tests__/projects-settings.test.ts src/dashboard/app/src/api/projects.test.ts tests/run/sandbox.test.ts",
+      "exitCode": 0,
+      "rawOutput": "targeted-final.log"
+    },
+    {
+      "command": "bun run lint (primer intento: imports pendientes)",
+      "exitCode": 1,
+      "rawOutput": "lint.log"
+    },
+    {
+      "command": "bun run lint (final)",
+      "exitCode": 0,
+      "rawOutput": "lint-final.log"
+    },
+    {
+      "command": "bunx biome lint --only=correctness/noUndeclaredVariables scripts/ui-gate/flows",
+      "exitCode": 0,
+      "rawOutput": "flow-lint.log"
+    },
+    {
+      "command": "bun run build:app",
+      "exitCode": 0,
+      "rawOutput": "build.log"
+    },
+    {
+      "command": "bun test --coverage src/__tests__/sandbox-setup.test.ts tests/run/sandbox.test.ts",
+      "exitCode": 0,
+      "rawOutput": "merge-final.log"
+    },
+    {
+      "command": "bun test --coverage src/dashboard/__tests__/projects-settings.test.ts (primer intento integración: checks sin shell)",
+      "exitCode": 1,
+      "rawOutput": "harness-final.log"
+    },
+    {
+      "command": "bun test --coverage src/dashboard/__tests__/projects-settings.test.ts (checks separados)",
+      "exitCode": 0,
+      "rawOutput": "harness-final-2.log"
+    },
+    {
+      "command": "bun run test:coverage (fuera del sandbox)",
+      "exitCode": 0,
+      "rawOutput": "coverage.log"
+    },
+    {
+      "command": "bun run gate:evidence -- --label ade.10-project-settings -- bun run ui:gate project-settings project-tabs tasks settings-pages",
+      "exitCode": 0,
+      "rawOutput": "ui.log"
+    },
+    {
+      "command": "bun run test:coverage (árbol final, fuera del sandbox)",
+      "exitCode": 0,
+      "rawOutput": "coverage-final.log"
+    },
+    {
+      "command": "bun run gate:evidence -- --label ade.10-full-ui -- bun run ui:gate skills-library smoke plan-doc project-delete usage-bar text-sweep chat-turn-details tasks runs-graph qa-negative restart-mid-run project-tabs project-add-menu model-routing composer-picker chat-roles chat-context",
+      "exitCode": 0,
+      "rawOutput": "full-ui.log"
+    },
+    {
+      "command": "bun run gate:evidence -- --label ade.10-chat-regression -- bun run ui:gate chat-streaming codex-live chat-continuity",
+      "exitCode": 0,
+      "rawOutput": "chat-ui.log"
+    },
+    {
+      "command": "git diff --check",
+      "exitCode": 0,
+      "rawOutput": "diff-check.log"
+    }
+  ],
+  "rawOutputsDirectory": "/private/tmp/ADE.10-continuacion",
+  "rawBrowserOutput": {
+    "ui.log": "$ bun run scripts/run-evidence-gate.ts --label \"ade.10-project-settings\" -- bun run ui:gate project-settings project-tabs tasks settings-pages\n[gate:evidence] isolated home: /var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/orchestos-evidence-ade.10-project-settings-NW4PjL\n[gate:evidence] durable home: /Users/carlosgallardo\n$ node scripts/ui-gate/run.mjs project-settings project-tabs tasks settings-pages\n$ bun run scripts/build-app.ts\n✓ build:app → src/dashboard/app/dist/ (main.js, main.css, main.js.map, fira-code-latin-400-normal.woff2, fira-code-latin-500-normal.woff2, fira-code-latin-600-normal.woff2, fira-code-latin-ext-400-normal.woff2, fira-code-latin-ext-500-normal.woff2, fira-code-latin-ext-600-normal.woff2, inter-latin-ext-opsz-normal.woff2, inter-latin-opsz-normal.woff2, chatgpt.svg, claude.svg, deepseek.svg, gemini.svg, grok.svg, kimi.svg, ollama-icon.svg, opencode.svg) en 936ms\nNOTE project-settings: worktree execution coverage: projects-settings.test.ts + sandbox-setup.test.ts: configured base, setup success/failure, cleanup and merge checkout preservation\nPASS project-settings 6/6\nPASS project-tabs 40/40\nPASS tasks 43/43\nPASS settings-pages 32/32\nEVIDENCE /var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-31887/result.json\n[gate:evidence] evidence: 5 exported, 0 duplicate(s)\n",
+    "full-ui.log": "$ bun run scripts/run-evidence-gate.ts --label \"ade.10-full-ui\" -- bun run ui:gate skills-library smoke plan-doc project-delete usage-bar text-sweep chat-turn-details tasks runs-graph qa-negative restart-mid-run project-tabs project-add-menu model-routing composer-picker chat-roles chat-context\n[gate:evidence] isolated home: /var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/orchestos-evidence-ade.10-full-ui-R50PoT\n[gate:evidence] durable home: /Users/carlosgallardo\n$ node scripts/ui-gate/run.mjs skills-library smoke plan-doc project-delete usage-bar text-sweep chat-turn-details tasks runs-graph qa-negative restart-mid-run project-tabs project-add-menu model-routing composer-picker chat-roles chat-context\n$ bun run scripts/build-app.ts\n✓ build:app → src/dashboard/app/dist/ (main.js, main.css, main.js.map, fira-code-latin-400-normal.woff2, fira-code-latin-500-normal.woff2, fira-code-latin-600-normal.woff2, fira-code-latin-ext-400-normal.woff2, fira-code-latin-ext-500-normal.woff2, fira-code-latin-ext-600-normal.woff2, inter-latin-ext-opsz-normal.woff2, inter-latin-opsz-normal.woff2, chatgpt.svg, claude.svg, deepseek.svg, gemini.svg, grok.svg, kimi.svg, ollama-icon.svg, opencode.svg) en 648ms\nPASS skills-library 16/16\nPASS smoke 7/7\nPASS plan-doc 16/16\nPASS project-delete 12/12\nPASS usage-bar 22/22\nPASS text-sweep 10/10\nNOTE chat-turn-details: reasoning optional: reasoning: 0 pasos del CLI\nPASS chat-turn-details 29/29\nPASS tasks 43/43\nPASS runs-graph 15/15\nPASS qa-negative 26/26\nPASS restart-mid-run 31/31\nPASS project-tabs 40/40\nPASS project-add-menu 14/14\nPASS model-routing 24/24\nPASS composer-picker 11/11\nPASS chat-roles 12/12\nPASS chat-context 5/5\nEVIDENCE /var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-535/result.json\n[gate:evidence] evidence: 13 exported, 0 duplicate(s)\n",
+    "chat-ui.log": "$ bun run scripts/run-evidence-gate.ts --label \"ade.10-chat-regression\" -- bun run ui:gate chat-streaming codex-live chat-continuity\n[gate:evidence] isolated home: /var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/orchestos-evidence-ade.10-chat-regression-88Nwda\n[gate:evidence] durable home: /Users/carlosgallardo\n$ node scripts/ui-gate/run.mjs chat-streaming codex-live chat-continuity\n$ bun run scripts/build-app.ts\n✓ build:app → src/dashboard/app/dist/ (main.js, main.css, main.js.map, fira-code-latin-400-normal.woff2, fira-code-latin-500-normal.woff2, fira-code-latin-600-normal.woff2, fira-code-latin-ext-400-normal.woff2, fira-code-latin-ext-500-normal.woff2, fira-code-latin-ext-600-normal.woff2, inter-latin-ext-opsz-normal.woff2, inter-latin-opsz-normal.woff2, chatgpt.svg, claude.svg, deepseek.svg, gemini.svg, grok.svg, kimi.svg, ollama-icon.svg, opencode.svg) en 685ms\nPASS chat-streaming 27/27\nPASS codex-live 15/15\nNOTE chat-continuity: composer ready: enabled after 2 ms\nNOTE chat-continuity: composer ready: enabled after 528 ms\nNOTE chat-continuity: composer ready: enabled after 2 ms\nNOTE chat-continuity: composer ready: enabled after 530 ms\nNOTE chat-continuity: composer ready: enabled after 3 ms\nPASS chat-continuity 8/8\nEVIDENCE /var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-45175/result.json\n[gate:evidence] evidence: 0 exported, 0 duplicate(s)\n"
+  },
+  "visualInspection": {
+    "view": "Settings → Project → General",
+    "observed": "Name input, selected Rocket icon, develop base branch and monospaced setup textarea render correctly.",
+    "imageVersioned": false
+  },
+  "coverageScope": {
+    "browser": "Name/icon update sidebar without reload; four fields persist after reload; clearing resets defaults; 400 validation error is inline; zero pageerrors.",
+    "integration": "Real runTask with mocked API response, real worktree/setup/checks/merge into develop, main and HEAD preserved. Explicit branch override, missing-base warning/fallback, setup failure diagnostics, timeout and cleanup tested.",
+    "limitation": "Task execution with configured base/setup and the setup failure were verified in integration, not by launching that task from the browser."
+  },
+  "unchangedCallSites": {
+    "hardening": "Explicit baseBranch argument; no production callers of createWorktreeWithRetry found.",
+    "evals": "Own baseBranch remains unchanged."
+  },
+  "failedAttemptsPreserved": [
+    "baseline-coverage.log (sandbox restrictions and integration timeout under load)",
+    "lint.log (six import organization errors, corrected)",
+    "harness-final.log (checks used shell conjunctions; replaced with separate checks)"
+  ]
+}

@@ -1201,6 +1201,28 @@ export const FUTURE_MIGRATIONS: readonly SchemaMigrationStep[] = [
         throw new Error('Migration 36 did not add phase_skills_json')
     },
   },
+  {
+    version: 37,
+    name: 'local-project-settings',
+    precondition: (database) => {
+      if (
+        !database
+          .query("SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'projects'")
+          .get()
+      )
+        throw new Error('Migration 37 requires projects table')
+    },
+    apply: (database) => {
+      for (const column of ['display_name', 'icon', 'base_branch', 'setup_script'])
+        database.exec(`ALTER TABLE projects ADD COLUMN ${column} TEXT`)
+    },
+    postcondition: (database) => {
+      const columns = database.query<{ name: string }, []>('PRAGMA table_info(projects)').all()
+      for (const name of ['display_name', 'icon', 'base_branch', 'setup_script'])
+        if (!columns.some((column) => column.name === name))
+          throw new Error(`Migration 37 did not add projects.${name}`)
+    },
+  },
 ]
 
 function appliedVersions(database: Database): Set<number> {

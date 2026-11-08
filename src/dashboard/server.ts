@@ -68,10 +68,12 @@ import {
   handleApiProjectSummary,
 } from './handlers/project.ts'
 import {
+  handleApiProjectBranches,
   handleApiProjectChoose,
   handleApiProjectClone,
   handleApiProjectCloneLocation,
   handleApiProjectDelete,
+  handleApiProjectPatch,
   handleApiProjectPurge,
   handleApiProjects,
 } from './handlers/projects.ts'
@@ -385,6 +387,10 @@ export async function route(req: Request, port: number): Promise<Response> {
   if (method === 'GET' && url.pathname === '/api/projects') {
     return handleApiProjects()
   }
+  if (method === 'PATCH' && url.pathname.match(/^\/api\/projects\/[^/]+$/))
+    return handleApiProjectPatch(req, url)
+  if (method === 'GET' && url.pathname.match(/^\/api\/projects\/[^/]+\/branches$/))
+    return handleApiProjectBranches(url)
   if (method === 'POST' && url.pathname.match(/^\/api\/projects\/[^/]+\/purge$/)) {
     return handleApiProjectPurge(url)
   }

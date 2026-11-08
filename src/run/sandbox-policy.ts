@@ -1,5 +1,6 @@
 import { existsSync } from 'fs'
 import { join } from 'path'
+import { getProject } from '../db/projects.ts'
 import { git } from './sandbox.ts'
 
 export type SandboxMode = 'worktree' | 'cwd'
@@ -109,6 +110,18 @@ export function resolveSandboxMode(
       `Uncommitted changes in ${projectRoot}. Worktree sandbox requires a clean working tree.\n` +
         `Either commit or stash before running with sandbox:\n${fileList}${suffix}`,
       dirtyFiles,
+    )
+  }
+
+  const configured = getProject(projectRoot)?.base_branch
+  if (configured) {
+    const check = git(
+      ['rev-parse', '--verify', '--end-of-options', `refs/heads/${configured}`],
+      projectRoot,
+    )
+    if (check.exitCode === 0) return { mode: 'worktree', warnings, branch: configured }
+    warnings.push(
+      `Configured base branch "${configured}" no longer exists — falling back to current branch`,
     )
   }
 

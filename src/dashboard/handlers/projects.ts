@@ -1,7 +1,15 @@
 import { lstatSync, mkdirSync, realpathSync, rmSync, statSync } from 'node:fs'
 import { homedir } from 'node:os'
 import { join, resolve } from 'node:path'
-import { deleteProject, getProjectById, listProjects, purgeProject } from '../../db/projects.ts'
+import {
+  deleteProject,
+  getProjectById,
+  listProjects,
+  type ProjectSettings,
+  purgeProject,
+  type ProjectRow as StoredProjectRow,
+  updateProjectSettings,
+} from '../../db/projects.ts'
 import { ensureProject } from '../../projects/ensure.ts'
 import { errorResponse, jsonResponse } from '../http.ts'
 import type { ProjectRow } from '../types.ts'
@@ -21,14 +29,52 @@ export function currentBranch(root: string): string | undefined {
 }
 
 export function handleApiProjects(): Response {
-  const rows: ProjectRow[] = listProjects().map((project) => ({
-    id: project.id,
-    path: project.path,
-    stackProfile: project.stack_profile,
-    lastUpdated: project.last_updated,
-    branch: currentBranch(project.path),
-  }))
+  const rows = listProjects().map((project) => publicProjectRow(project))
   return jsonResponse(rows)
+}
+
+export async function handleApiProjectPatch(req: Request, url: URL): Promise<Response> {
+  const id = decodeURIComponent(url.pathname.slice('/api/projects/'.length))
+  const project = getProjectById(id)
+  if (!project || project.removed_at) return errorResponse('Project not found', 404)
+  try {
+    const body: unknown = await req.json()
+    if (!body || typeof body !== 'object' || Array.isArray(body))
+      return errorResponse('Invalid project settings', 400)
+    const fields = {
+      displayName: 'display_name',
+      icon: 'icon',
+      baseBranch: 'base_branch',
+      setupScript: 'setup_script',
+    } as const
+    const partial: Partial<ProjectSettings> = {}
+    for (const [key, value] of Object.entries(body)) {
+      if (!Object.hasOwn(fields, key)) return errorResponse(`Unknown project setting: ${key}`, 400)
+      if (value !== null && typeof value !== 'string')
+        return errorResponse(`${key} must be a string or null`, 400)
+      partial[fields[key as keyof typeof fields]] = value
+    }
+    const updated = updateProjectSettings(id, partial)
+    return updated
+      ? jsonResponse(publicProjectRow(updated))
+      : errorResponse('Project not found', 404)
+  } catch (error) {
+    return errorResponse(error instanceof Error ? error.message : String(error), 400)
+  }
+}
+
+export function handleApiProjectBranches(url: URL): Response {
+  const id = decodeURIComponent(url.pathname.slice('/api/projects/'.length, -'/branches'.length))
+  const project = getProjectById(id)
+  if (!project || project.removed_at) return errorResponse('Project not found', 404)
+  const result = Bun.spawnSync(
+    ['git', '-C', project.path, 'for-each-ref', '--format=%(refname:short)', 'refs/heads/'],
+    { stdout: 'pipe', stderr: 'ignore' },
+  )
+  return jsonResponse({
+    branches:
+      result.exitCode === 0 ? result.stdout.toString().trim().split('\n').filter(Boolean) : [],
+  })
 }
 
 export function handleApiProjectDelete(url: URL): Response {
@@ -48,12 +94,7 @@ type ChooseProjectFolder = () => Promise<string | null>
 type PlatformProbe = () => NodeJS.Platform
 
 function publicProjectRow(
-  project: {
-    id: string
-    path: string
-    stack_profile: string
-    last_updated: string
-  },
+  project: StoredProjectRow,
   branch: (root: string) => string | undefined = currentBranch,
 ): ProjectRow {
   return {
@@ -62,6 +103,10 @@ function publicProjectRow(
     stackProfile: project.stack_profile,
     lastUpdated: project.last_updated,
     branch: branch(project.path),
+    displayName: project.display_name,
+    icon: project.icon,
+    baseBranch: project.base_branch,
+    setupScript: project.setup_script,
   }
 }
 

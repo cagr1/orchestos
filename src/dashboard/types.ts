@@ -121,6 +121,10 @@ export interface ChatMessageRow {
 export interface ProjectRow {
   id: string
   path: string
+  displayName?: string | null
+  icon?: string | null
+  baseBranch?: string | null
+  setupScript?: string | null
   stackProfile: string
   lastUpdated: string
   branch?: string

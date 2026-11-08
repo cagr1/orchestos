@@ -13,7 +13,6 @@ import {
   DollarSign,
   FileCheck,
   FileCode,
-  FolderClosed,
   Globe,
   Kanban,
   Key,
@@ -110,6 +109,7 @@ import type {
   TaskItem,
 } from '../../types/orchestos'
 import { type ProjectAddAction, ProjectAddButton } from '../common/ProjectAddButton'
+import { ProjectIcon } from '../common/ProjectIcon'
 import { ProviderLogo } from '../common/ProviderLogos'
 import { statusLabel } from '../common/StatusBadge'
 import { EmptyState } from '../common/ViewStateFeedback'
@@ -122,6 +122,7 @@ import { RunsEvidenceView } from '../runs/RunsEvidenceView'
 import { SkillsView } from '../skills/SkillsView'
 import { SpecsView } from '../specs/SpecsView'
 import { TASK_STATUS_DOT, TaskDetailPanel, taskTitle } from '../tasks/TaskDetailPanel'
+import { ProjectGeneralSettings } from './ProjectGeneralSettings'
 import {
   SettingsGroup,
   SettingsPage,
@@ -212,6 +213,7 @@ type SettingsSearchEntry = {
   section: SettingsSection
   label: { en: string; es: string }
   keywords: string[]
+  projectTab?: ProjectSubTab
 }
 
 const SETTINGS_SEARCH_INDEX: SettingsSearchEntry[] = [
@@ -688,6 +690,7 @@ const normalizeSettingsSearch = (text: string) =>
     .toLowerCase()
 
 export type ProjectSubTab =
+  | 'general'
   | 'tasks'
   | 'runs'
   | 'graph'
@@ -700,6 +703,7 @@ export type ProjectSubTab =
 interface OrchestSettingsViewProps {
   onBackToApp: () => void
   projects: ProjectItem[]
+  onProjectUpdated?: (project: ProjectItem) => void
   activeProjectId: string
   onSelectProject: (id: string) => void
   currentTheme: string
@@ -750,6 +754,7 @@ interface OrchestSettingsViewProps {
 export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
   onBackToApp,
   projects,
+  onProjectUpdated,
   activeProjectId,
   onSelectProject,
   currentTheme,
@@ -758,7 +763,7 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
   onSelectLanguage,
   settingsSearchSignal = 0,
   initialSection = 'general',
-  initialProjectTab = 'tasks',
+  initialProjectTab = 'general',
   initialRunId,
   tasks,
   taskError,
@@ -1050,12 +1055,27 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
     : 'Checking prerequisites…'
   const searchResults = [
     ...SETTINGS_SEARCH_INDEX,
-    ...projects.map((project) => ({
-      id: `project_${project.id}`,
-      section: `project_${project.id}`,
-      label: { en: project.name, es: project.name },
-      keywords: ['project', 'proyecto'],
-    })),
+    ...projects.flatMap((project): SettingsSearchEntry[] => [
+      {
+        id: `project_${project.id}`,
+        section: `project_${project.id}`,
+        label: { en: project.name, es: project.name },
+        keywords: ['project', 'proyecto'],
+        projectTab: 'general',
+      },
+      ...[
+        ['name', 'Name', 'nombre'],
+        ['icon', 'Icon', 'icono'],
+        ['branch', 'Base branch', 'rama'],
+        ['script', 'Setup script', 'script'],
+      ].map(([field, label, keyword]) => ({
+        id: `project_${project.id}_${field}`,
+        section: `project_${project.id}`,
+        label: { en: `${project.name} · ${label}`, es: `${project.name} · ${label}` },
+        keywords: ['project', 'proyecto', keyword],
+        projectTab: 'general' as const,
+      })),
+    ]),
   ]
     .map((entry) =>
       entry.id === 'health'
@@ -1148,6 +1168,7 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
       const id = entry.section.slice('project_'.length)
       setSelectedProjectId(id)
       onSelectProject(id)
+      setActiveProjectTab(entry.projectTab ?? 'general')
     }
     setActiveSection(entry.section)
     setSearchDestination({ ...entry })
@@ -1728,7 +1749,8 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
         if (
           event.key === 'Enter' &&
           (event.target instanceof HTMLInputElement ||
-            event.target instanceof HTMLTextAreaElement) &&
+            (event.target instanceof HTMLTextAreaElement &&
+              !event.target.closest('[data-project-general]'))) &&
           !event.target.closest('[role=dialog]') &&
           !event.shiftKey
         ) {
@@ -2024,7 +2046,7 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
                       }`}
                     >
                       {isCurrent && navHighlight}
-                      <FolderClosed className="w-4 h-4 text-app-muted flex-shrink-0" />
+                      <ProjectIcon name={p.icon} className="w-4 h-4 text-app-muted flex-shrink-0" />
                       <span className="truncate">{p.name}</span>
                     </button>
                   )
@@ -4187,6 +4209,7 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
               <div className="flex items-center gap-1 overflow-x-auto">
                 {(
                   [
+                    { id: 'general', label: 'General', icon: SettingsIcon },
                     { id: 'tasks', label: 'Tasks', icon: Kanban },
                     { id: 'runs', label: 'Runs', icon: Activity },
                     { id: 'graph', label: 'Graph', icon: Layers },
@@ -4228,6 +4251,13 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
                   >
                     {projectTabsError ?? 'Loading project data…'}
                   </div>
+                )}
+                {activeProjectTab === 'general' && (
+                  <ProjectGeneralSettings
+                    key={selectedProject.id}
+                    project={selectedProject}
+                    onUpdated={(project) => onProjectUpdated?.(project)}
+                  />
                 )}
                 {/* TAB: Tasks */}
                 {activeProjectTab === 'tasks' && (

@@ -922,7 +922,7 @@ export default function App() {
     setMode(newMode)
   }
 
-  const handleOpenSettings = (section?: SettingsSection, tab: ProjectSubTab = 'tasks') => {
+  const handleOpenSettings = (section?: SettingsSection, tab: ProjectSubTab = 'general') => {
     setSettingsSearchSignal(0)
     setPreviousMode(mode === 'settings' ? 'dev' : mode)
     setSettingsSection(section || (currentProject ? `project_${currentProject.id}` : 'general'))
@@ -932,7 +932,7 @@ export default function App() {
 
   const handleOpenProjectSettings = (projectId: string) => {
     setActiveProjectId(projectId)
-    handleOpenSettings(`project_${projectId}`, 'tasks')
+    handleOpenSettings(`project_${projectId}`, 'general')
   }
 
   // Agent selection and launch in Dev mode
@@ -1962,6 +1962,15 @@ export default function App() {
                 settingsSearchSignal={settingsSearchSignal}
                 onBackToApp={() => setMode(previousMode || 'dev')}
                 projects={projects}
+                onProjectUpdated={(updated) =>
+                  setProjects((rows) =>
+                    rows.map((project) =>
+                      project.id === updated.id
+                        ? { ...project, ...updated, agents: project.agents }
+                        : project,
+                    ),
+                  )
+                }
                 activeProjectId={activeProjectId}
                 onSelectProject={handleSelectProject}
                 onAddProject={(action) => {
