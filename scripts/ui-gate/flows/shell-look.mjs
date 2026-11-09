@@ -19,7 +19,17 @@ async function inspect(page, panelSelector) {
       const sidebars = [...document.querySelectorAll('aside')].filter(visible)
       const header = document.querySelector('header')
       const panel =
-        panelSelector === 'main' ? document.querySelector('main') : sidebars[0]?.nextElementSibling
+        panelSelector === 'main'
+          ? document.querySelector('main')
+          : (() => {
+              let node = document.querySelector('[data-composer-region]')
+              while (node) {
+                const background = getComputedStyle(node).backgroundColor
+                if (background !== 'rgba(0, 0, 0, 0)' && background !== 'transparent') return node
+                node = node.parentElement
+              }
+              return null
+            })()
       const isActive = (row) => {
         const c = row.classList
         return (
@@ -864,7 +874,7 @@ export default async function shellLook({
   )
   // UI.27.3 — the same separator supports both sides, persistence, limits and keyboard input.
   const resize = async (side, delta) => {
-    const separator = page.locator(`[data-resizable-aside="${side}"] [role="separator"]`)
+    const separator = page.locator(`[data-resizable-aside="${side}"] hr[aria-label^="Resize"]`)
     const box = await separator.boundingBox()
     if (!box) throw new Error(`Missing ${side} separator`)
     await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2)
@@ -885,7 +895,7 @@ export default async function shellLook({
     ['left', 256, 64, 200, 420],
     ['right', 384, -80, 280, 640],
   ]) {
-    const separator = page.locator(`[data-resizable-aside="${side}"] [role="separator"]`)
+    const separator = page.locator(`[data-resizable-aside="${side}"] hr[aria-label^="Resize"]`)
     await separator.dblclick()
     const capture = await resize(side, delta)
     const changed = await asideWidth(side)
@@ -935,12 +945,13 @@ export default async function shellLook({
     .evaluate((el) => el.getBoundingClientRect().width)
   await step('resizing preserves 360px central thread', centerWidth >= 359, String(centerWidth))
   for (const side of ['left', 'right'])
-    await page.locator(`[data-resizable-aside="${side}"] [role="separator"]`).dblclick()
+    await page.locator(`[data-resizable-aside="${side}"] hr[aria-label^="Resize"]`).dblclick()
   await page.getByRole('button', { name: 'Toggle Navigation Sidebar', exact: true }).click()
   await step(
     'collapsed navigation has no resize handle',
-    (await page.locator('[data-resizable-aside="left"] [role="separator"]').count()) === 0,
-    'left separator unmounted',
+    (await page.locator('[data-resizable-aside="left"] hr[aria-label^="Resize"]').isVisible()) ===
+      false,
+    'left separator hidden',
   )
   await page.getByRole('button', { name: 'Toggle Navigation Sidebar', exact: true }).click()
   // Reopening the sidebar remounts it with projects collapsed.
