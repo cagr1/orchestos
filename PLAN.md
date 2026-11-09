@@ -140,6 +140,17 @@ Esperan su próximo fallo; el diagnóstico de cada uno está en su ítem.
   Bajo carga 2026-11-05 (secuencia del pre-push, 16 flows, con `test:coverage` en paralelo): verde, sin reproducir.
   Sigue esperando el fallo.
 
+- [ ] **CI.81 — La corrida nocturna de ui-gates registró sus proyectos de prueba en el `~/.orchestos` real.**
+  (abierto 2026-11-09) El dashboard de Carlos tenía 80 proyectos: 78 eran fixtures `orchestos-ui-*` en carpetas
+  temporales; 61 nacieron entre las 02:33 y las 08:33 del 2026-11-09 (`last_updated` 12:11Z, misma hora que la
+  corrida nocturna sobre `d32a935`), 16 apuntaban a carpetas ya borradas y cada carga de la UI pedía
+  `/api/config` por proyecto (149 peticiones, 410 por cada carpeta inexistente). Uno (14:21) lo dejó el runner de
+  diagnóstico de CI.78 corrido sin `ORCHESTOS_HOME`. Las corridas manuales de `ui:gate` del mismo día no dejaron
+  nada. Limpieza hecha con `POST /api/projects/<id>/purge` (copia previa de la DB en `/tmp/ci78/`); quedan 2
+  proyectos. Falta: ver si la corrida nocturna con el código actual (después de CI.72) sigue filtrando — contar
+  proyectos `orchestos-ui-*` en `~/.orchestos/db.sqlite` tras la corrida del 2026-11-10 — y, si filtra, cortar la
+  causa en `scripts/nightly-ui-gates.ts`/`scripts/ui-gate/run.mjs`.
+
 ## Decisiones pendientes de Carlos
 
 - Estados de sesión `ended` con **resume/fork** (§C.3) — PI y Codex los tienen; OrchestOS no (anotado en UI.8;

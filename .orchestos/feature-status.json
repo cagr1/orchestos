@@ -50,6 +50,14 @@
       "title": "`codex-live`: la burbuja del usuario a veces no aparece en 2 s",
       "status": "open",
       "closedDate": null
+    },
+    {
+      "id": "CI.81",
+      "sprint": "Abiertos — fiabilidad de los gates",
+      "block": null,
+      "title": "La corrida nocturna de ui-gates registró sus proyectos de prueba en el `~/.orchestos` real",
+      "status": "open",
+      "closedDate": null
     }
   ]
 }
