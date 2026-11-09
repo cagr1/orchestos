@@ -1,5 +1,5 @@
 import { AlertTriangle, Trash2, X } from 'lucide-react'
-import { useEffect, useRef } from 'react'
+import { useLayoutEffect, useRef } from 'react'
 
 interface DiscardChangesModalProps {
   isOpen: boolean
@@ -15,7 +15,7 @@ export function DiscardChangesModal({
   onConfirm,
 }: DiscardChangesModalProps) {
   const cancel = useRef<HTMLButtonElement>(null)
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (!isOpen) return
     const previous = document.activeElement as HTMLElement | null
     cancel.current?.focus()

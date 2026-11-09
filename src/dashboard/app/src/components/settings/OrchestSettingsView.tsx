@@ -33,7 +33,7 @@ import {
   Zap,
 } from 'lucide-react'
 import { AnimatePresence, animate, motion } from 'motion/react'
-import React, { useCallback, useEffect, useRef, useState } from 'react'
+import React, { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { PageHeader } from '@/components/layout/page'
 import { Button } from '@/components/ui/button'
@@ -838,7 +838,7 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
     if (chordConflict) replaceChordRef.current?.focus()
   }, [chordConflict])
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (!recording) return
     const onKeyDown = (event: KeyboardEvent) => {
       if (chordConflict) {
@@ -1124,7 +1124,7 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
     if (settingsSearchSignal > 0) openSettingsSearch()
   }, [settingsSearchSignal, openSettingsSearch])
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (!paletteOpen) return
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key !== 'Escape') return

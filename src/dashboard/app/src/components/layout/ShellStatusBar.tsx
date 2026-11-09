@@ -1,6 +1,6 @@
 import { RefreshCw, SquareTerminal } from 'lucide-react'
 import type React from 'react'
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import type { SessionStatus } from '../../types/orchestos'
 import { ProviderLogo } from '../common/ProviderLogos'
 
@@ -136,7 +136,7 @@ export const ShellStatusBar: React.FC<ShellStatusBarProps> = ({
   const quotas = mapQuotas(status)
 
   // Close floating panel on outside click and Escape key
-  useEffect(() => {
+  useLayoutEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
         setActiveCliId(null)

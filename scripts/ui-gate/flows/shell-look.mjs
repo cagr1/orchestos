@@ -315,8 +315,8 @@ export default async function shellLook({
   const shortcut = process.platform === 'darwin' ? 'Meta+k' : 'Control+k'
   await page.keyboard.press(shortcut)
   const shortcutOpens = await visible(palette)
-  const generalCommandPalette = page.getByRole('textbox', {
-    name: 'Type a command, search screen, or execute task...',
+  const generalCommandPalette = page.getByRole('dialog', {
+    name: 'Command palette',
     exact: true,
   })
   const generalCountWhileOpen = await generalCommandPalette.count()
@@ -1134,8 +1134,8 @@ export default async function shellLook({
   await shot('chat-context-window')
   await page.keyboard.press('Tab')
 
-  const commandPalette = page.getByRole('textbox', {
-    name: 'Type a command, search screen, or execute task...',
+  const commandPalette = page.getByRole('dialog', {
+    name: 'Command palette',
     exact: true,
   })
   const commandPaletteShortcut = process.platform === 'darwin' ? 'Meta+k' : 'Control+k'

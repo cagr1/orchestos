@@ -1,4 +1,4 @@
-# NEXT — handoff 2026-11-09 (CI.72–77 y CI.79 cerrados; CI.78 en curso)
+# NEXT — handoff 2026-11-09 (CI.72–79 cerrados)
 
 Un solo presente: orden y trampas vivas del lote. Lo cerrado vive en `docs/done/bloque-*.md` y git; las reglas, en
 `AGENTS.md`. Versión anterior completa: `docs/done/poda-instrucciones-2026-11-03.md` (histórico).
@@ -32,9 +32,9 @@ Arranque: `bun run agent:preflight -- --item <ID> --agent claude`. Lista viva: `
    Decide Carlos: los 378 avisos de producto (`any` 137, `!` 90, deps de hooks 48, a11y ~60) cambian código real.
 2d. Hecho 2026-11-09 (tarde): CI.75 `678c23e5` (48 deps de hooks), CI.77 `27c3378f` (58 avisos a11y), CI.79
    `62c2bf34` (adjuntos de Dev se perdían: el composer se desmontaba al hidratar la sesión). Abiertos: CI.76
-   (`notifications` sin Claude en el diálogo, flaky) y **CI.78 en curso** — `shell-look` al día salvo ⌘K en Settings
-   (ver ítem; spec de rondas en `docs/specs/CI.78.md`, sigue con la ronda 5: diagnosticar ⌘K).
-   Siguiente tras CI.78: tope de `any`/`!` en el lint (137/90, que no suba) y después Carlos elige producto o el mes
+   (`notifications` sin Claude en el diálogo, flaky). CI.78 hecho: `shell-look` 75/75; el Escape justo tras abrir
+   un overlay se perdía (listener en `useEffect`) → `useLayoutEffect` en 5 sitios.
+   Siguiente: tope de `any`/`!` en el lint (137/90, que no suba) y después Carlos elige producto o el mes
    de uso real. Biome: 282 avisos restantes.
 3. Mutación 42469416136: el re-run terminó verde (todos los shards). Desde CI.70 no se vigila en sesión.
 4. **Esperan su próximo fallo**: CI.69 (`usage-bar`, Enter sin envío; ver ítem); CI.57 `composer-picker-model-missing.json`; CI.54 `turn1-bubble-missing.json`; CI.19;

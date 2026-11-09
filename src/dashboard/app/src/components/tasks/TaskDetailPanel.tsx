@@ -12,7 +12,7 @@ import {
   X,
 } from 'lucide-react'
 import { motion, useReducedMotion } from 'motion/react'
-import { type ReactNode, useEffect } from 'react'
+import { type ReactNode, useLayoutEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { spring } from '@/lib/springs'
 import type { TaskItem } from '../../types/orchestos'
@@ -64,7 +64,7 @@ export function TaskDetailPanel({
 }) {
   const reduceMotion = useReducedMotion() ?? false
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     const onKey = (event: KeyboardEvent) => {
       if (event.key === 'Escape') onClose()
     }

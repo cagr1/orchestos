@@ -688,16 +688,22 @@ Propuesta y comparación con las tres referencias: `docs/specs/ADE-PLAN.md`. Uno
   Gate en vivo: Playwright `settings-pages` 32/32, `docs/done/evidence/CI.77-live.json`.
   Texto visible: "Trigger Pattern" · "Project" · "Select Agent / Engine" (ya existían; solo cambian de `label` a `label` asociado o `div`, el texto no es nuevo)
   Ejecutado por: codex gpt-6.1-sol (criterio) + codex (mecanico, r2) · Spec: docs/specs/CI.77.md
-- [ ] **CI.78 — `shell-look` rojo en master: "panel lighter than chrome: panel=null".** (abierto 2026-11-09)
+- [x] **CI.78 — `shell-look` rojo en master: "panel lighter than chrome: panel=null".** (abierto 2026-11-09)
   Falla igual en `origin/master` (`678c23e5`) y en la corrida nocturna del 2026-11-09: el flujo no encuentra el panel
   del chat que mide (`panel=null`). Probable selector que cambió con UI reciente, o un cambio real del layout.
   Evidencia: `docs/done/evidence/CI.78-shell-look-fail.json`.
-  Avance 2026-11-09 (flujo, sin producto): el panel se mide desde `data-composer-region` (OK: `rgb(14,19,32)` vs
-  `rgb(8,12,20)`); el separador de `ResizableAside` (ahora `<hr>`, CI.77) se busca por `hr[aria-label^="Resize"]`;
-  el sidebar colapsado se oculta (`App.tsx:1817`, no se desmonta) → el paso comprueba que no es visible. **Falla
-  ahora** "settings palette shortcut: Meta+k" (`shell-look.mjs:315-324`): en Settings ⌘K no abre la búsqueda de
-  Settings. Sospechas: ADE.11 (`codeFromEvent`) o el doble binding `command-palette`/`settings-search` sobre `KeyK`
-  (`keybindings.ts:97-98`, `App.tsx:1742-1743`). Spec de rondas: `docs/specs/CI.78.md`.
+  Hecho (flujo): el panel se mide desde `data-composer-region`; el separador de `ResizableAside` (`<hr>` desde CI.77)
+  se busca por `hr[aria-label^="Resize"]`; con el sidebar colapsado (oculto, no desmontado, `App.tsx:1817`) se
+  comprueba que no es visible; la paleta general se busca como `dialog` "Command palette" (el nombre del input
+  cambió en ADE.3 y el conteo en Settings daba verde falso).
+  Causa del "⌘K en Settings" (producto): ⌘K sí abría; el Escape pulsado justo tras montar el diálogo se perdía
+  porque el listener se registraba en `useEffect` (tras el paint). Diagnóstico con un runner instrumentado sobre el
+  flujo real: Escape a 7 ms del montaje, sin manejador. Arreglo: `useLayoutEffect` en ese listener y en sus
+  hermanos (grabador de atajos, `TaskDetailPanel`, `ShellStatusBar`, `DiscardChangesModal`).
+  Gates del cerebro: `tsc`, lint, Playwright `shell-look` 75/75 (antes FAIL), `keybindings` 43/43,
+  `dev-file-edit` 22/22. Revisión `qa`: sin defectos.
+  Gate en vivo: Playwright `shell-look` 75/75, `docs/done/evidence/CI.78-live.json`.
+  Ejecutado por: codex (mecanico, r1–r6) · Spec: docs/specs/CI.78.md
 - [x] **CI.79 — `chat-attachments` rojo en master: "Dev: both attachments reach ready: []".** (abierto 2026-11-09)
   Falla igual en `origin/master` (`678c23e5`): en Dev ningún adjunto llega a `ready`. Puede ser el flujo o una
   regresión real de adjuntos en el composer de Dev.
