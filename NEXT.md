@@ -33,7 +33,7 @@ Arranque: `bun run agent:preflight -- --item <ID> --agent claude`. Lista viva: `
 2d. Hecho 2026-11-09 (tarde): CI.75 `678c23e5` (48 deps de hooks), CI.77 `27c3378f` (58 avisos a11y), CI.79
    `62c2bf34` (adjuntos de Dev se perdían: el composer se desmontaba al hidratar la sesión). Abiertos: CI.76
    (`notifications` sin Claude en el diálogo, flaky) y **CI.78 en curso** — `shell-look` al día salvo ⌘K en Settings
-   (ver ítem; spec de rondas `docs/specs/CI.78.md` sin commitear, sigue con la ronda 5: diagnosticar ⌘K).
+   (ver ítem; spec de rondas en `docs/specs/CI.78.md`, sigue con la ronda 5: diagnosticar ⌘K).
    Siguiente tras CI.78: tope de `any`/`!` en el lint (137/90, que no suba) y después Carlos elige producto o el mes
    de uso real. Biome: 282 avisos restantes.
 3. Mutación 42469416136: el re-run terminó verde (todos los shards). Desde CI.70 no se vigila en sesión.
