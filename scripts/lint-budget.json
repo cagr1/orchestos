@@ -1,0 +1,11 @@
+{
+  "lint/complexity/noThisInStatic": 1,
+  "lint/correctness/noUnusedFunctionParameters": 13,
+  "lint/correctness/noUnusedVariables": 6,
+  "lint/style/noNonNullAssertion": 90,
+  "lint/suspicious/noArrayIndexKey": 18,
+  "lint/suspicious/noConfusingVoidType": 2,
+  "lint/suspicious/noExplicitAny": 137,
+  "lint/suspicious/noGlobalIsNan": 2,
+  "lint/suspicious/noImplicitAnyLet": 13
+}

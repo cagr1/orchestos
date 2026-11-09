@@ -34,7 +34,8 @@ Arranque: `bun run agent:preflight -- --item <ID> --agent claude`. Lista viva: `
    `62c2bf34` (adjuntos de Dev se perdían: el composer se desmontaba al hidratar la sesión). Abiertos: CI.76
    (`notifications` sin Claude en el diálogo, flaky). CI.78 hecho: `shell-look` 75/75; el Escape justo tras abrir
    un overlay se perdía (listener en `useEffect`) → `useLayoutEffect` en 5 sitios.
-   Siguiente: tope de `any`/`!` en el lint (137/90, que no suba) y después Carlos elige producto o el mes
+   CI.80 hecho: el lint falla si sube el conteo de avisos de alguna regla (`scripts/lint-budget.json`).
+   Siguiente: Carlos elige producto o el mes
    de uso real. Biome: 282 avisos restantes.
 3. Mutación 42469416136: el re-run terminó verde (todos los shards). Desde CI.70 no se vigila en sesión.
 4. **Esperan su próximo fallo**: CI.69 (`usage-bar`, Enter sin envío; ver ítem); CI.57 `composer-picker-model-missing.json`; CI.54 `turn1-bubble-missing.json`; CI.19;

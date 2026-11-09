@@ -717,6 +717,15 @@ Propuesta y comparación con las tres referencias: `docs/specs/ADE-PLAN.md`. Uno
   Gate en vivo: Playwright `chat-attachments` 14/14, `docs/done/evidence/CI.79-live.json`.
   Texto visible: "What should we work on in" (ya existía; solo se movió dentro del mismo componente)
   Ejecutado por: codex gpt-6.1-sol (criterio) · Spec: docs/specs/CI.79.md
+- [x] **CI.80 — Los avisos de Biome no suben: tope por regla que solo baja.** (abierto 2026-11-09, siguiente de NEXT)
+  Tras CI.74 `bun run lint` da 282 avisos (`any` 137, `!` 90, `noArrayIndexKey` 18, …) y sale con exit 0: uno
+  nuevo pasa sin que nadie lo vea.
+  Hecho: `bun run lint` (CI y pre-push) = `biome check .` + `scripts/lint-budget.ts`, que cuenta los avisos por regla
+  y los compara con `scripts/lint-budget.json` (9 reglas, 282): falla si una sube o aparece una regla nueva; si
+  baja, pide bajar el tope.
+  Gates del cerebro: `tsc`, `bun test scripts/lint-budget.test.ts` 5/5, `bun run lint` exit 0
+  (`✓ lint-budget: 282 avisos, ninguna regla sube`). Contraprueba del ejecutor (tope de `any` a 136 → exit 1).
+  Ejecutado por: codex (mecanico) · Spec: docs/specs/CI.80.md
 - [ ] **CI.69 — `usage-bar`: a veces el Enter del composer no envía el turno.** (abierto 2026-11-08) Falló en el
   pre-push de ADE.7/8 (`2e9aae2d`, `1355590c`): `page.waitForResponse` 180 s sin `POST /api/chat`
   (`usage-bar.mjs:309`). Captura: picker de modelo abierto (Luna · medium) y el texto sigue en la caja, así que
