@@ -818,7 +818,9 @@ export const OrcaRightInspector: React.FC<OrcaRightInspectorProps> = ({
                           {/* Ellipsis menu dropdown */}
                           {isMenuOpen && (
                             <>
-                              <div
+                              <button
+                                type="button"
+                                aria-label="Close menu"
                                 className="fixed inset-0 z-30"
                                 onClick={() => setActiveHistoryMenuId(null)}
                               />

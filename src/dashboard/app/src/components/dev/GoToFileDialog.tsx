@@ -37,6 +37,7 @@ export function GoToFileDialog({
   }, [query, projectId])
 
   return (
+    // biome-ignore lint/a11y/noNoninteractiveElementInteractions: Captura navegación y Escape del buscador; dialog nativo cambiaría el comportamiento modal.
     <div
       data-go-to-file
       role="dialog"
@@ -64,6 +65,7 @@ export function GoToFileDialog({
         <div className="flex items-center gap-3 border-b border-app p-3">
           <Search className="h-4 w-4 text-app-muted" />
           <input
+            // biome-ignore lint/a11y/noAutofocus: El buscador o diálogo recién abierto debe enfocar su campo inicial.
             autoFocus
             value={query}
             onChange={(event) => setQuery(event.target.value)}
@@ -73,6 +75,7 @@ export function GoToFileDialog({
             className="flex-1 bg-transparent text-sm text-app placeholder:text-app-muted focus:outline-none"
           />
           <button
+            type="button"
             onClick={onClose}
             aria-label="Close"
             className="rounded p-1 text-app-muted hover:bg-app-elevated hover:text-app"
@@ -92,6 +95,7 @@ export function GoToFileDialog({
           )}
           {files.map((path, index) => (
             <button
+              type="button"
               id={`go-to-file-${index}`}
               key={path}
               role="option"

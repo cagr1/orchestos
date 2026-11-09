@@ -98,6 +98,7 @@ export function SettingsSegmented<T extends string>({
       {options.map((opt) => {
         const active = opt.value === value
         return (
+          // biome-ignore lint/a11y/useSemanticElements: radio ARIA sobre button; la selección y aria-checked son el contrato de Settings y de los gates
           <button
             key={opt.value}
             type="button"
@@ -145,7 +146,7 @@ export function SettingsStepper({
 }) {
   const clamp = (n: number) => Math.min(max ?? Infinity, Math.max(min, n))
   return (
-    <div role="group" aria-label={ariaLabel} className="flex items-center gap-1">
+    <fieldset aria-label={ariaLabel} className="min-w-0 flex items-center gap-1">
       <Button
         variant="ghost"
         size="icon-compact"
@@ -168,7 +169,7 @@ export function SettingsStepper({
       >
         <Plus />
       </Button>
-    </div>
+    </fieldset>
   )
 }
 

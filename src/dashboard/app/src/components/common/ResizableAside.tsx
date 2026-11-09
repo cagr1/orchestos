@@ -89,45 +89,47 @@ export function ResizableAside({
       style={{ width: renderedWidth }}
     >
       <div
-        role="separator"
-        tabIndex={0}
-        aria-label={side === 'left' ? 'Resize navigation sidebar' : 'Resize workspace inspector'}
-        aria-orientation="vertical"
-        aria-valuenow={renderedWidth}
-        aria-valuemin={min}
-        aria-valuemax={availableMax}
         className={`absolute top-0 bottom-0 w-1.5 z-30 cursor-col-resize touch-none outline-none group ${side === 'left' ? '-right-[3px]' : '-left-[3px]'}`}
-        onDoubleClick={() => changeWidth(initial)}
-        onKeyDown={(event) => {
-          if (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight') return
-          event.preventDefault()
-          const direction = (event.key === 'ArrowRight' ? 1 : -1) * (side === 'left' ? 1 : -1)
-          changeWidth(renderedWidth + direction * 16)
-        }}
-        onPointerDown={(event) => {
-          if (event.button !== 0) return
-          event.preventDefault()
-          event.currentTarget.focus()
-          event.currentTarget.setPointerCapture(event.pointerId)
-          drag.current = { x: event.clientX, width: renderedWidth }
-          setDragging(true)
-        }}
-        onPointerMove={(event) => {
-          if (!drag.current) return
-          changeWidth(
-            drag.current.width + (event.clientX - drag.current.x) * (side === 'left' ? 1 : -1),
-          )
-        }}
-        onPointerUp={(event) => {
-          if (event.currentTarget.hasPointerCapture(event.pointerId))
-            event.currentTarget.releasePointerCapture(event.pointerId)
-          stopDragging()
-        }}
-        onPointerCancel={stopDragging}
-        onLostPointerCapture={stopDragging}
       >
+        <hr
+          className="absolute inset-0 m-0 h-full w-full border-0 outline-none"
+          tabIndex={0}
+          aria-label={side === 'left' ? 'Resize navigation sidebar' : 'Resize workspace inspector'}
+          aria-orientation="vertical"
+          aria-valuenow={renderedWidth}
+          aria-valuemin={min}
+          aria-valuemax={availableMax}
+          onDoubleClick={() => changeWidth(initial)}
+          onKeyDown={(event) => {
+            if (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight') return
+            event.preventDefault()
+            const direction = (event.key === 'ArrowRight' ? 1 : -1) * (side === 'left' ? 1 : -1)
+            changeWidth(renderedWidth + direction * 16)
+          }}
+          onPointerDown={(event) => {
+            if (event.button !== 0) return
+            event.preventDefault()
+            event.currentTarget.focus()
+            event.currentTarget.setPointerCapture(event.pointerId)
+            drag.current = { x: event.clientX, width: renderedWidth }
+            setDragging(true)
+          }}
+          onPointerMove={(event) => {
+            if (!drag.current) return
+            changeWidth(
+              drag.current.width + (event.clientX - drag.current.x) * (side === 'left' ? 1 : -1),
+            )
+          }}
+          onPointerUp={(event) => {
+            if (event.currentTarget.hasPointerCapture(event.pointerId))
+              event.currentTarget.releasePointerCapture(event.pointerId)
+            stopDragging()
+          }}
+          onPointerCancel={stopDragging}
+          onLostPointerCapture={stopDragging}
+        />
         <span
-          className={`absolute inset-y-0 left-1/2 w-px -translate-x-1/2 group-hover:bg-app-accent group-focus-visible:bg-app-accent ${dragging ? 'bg-app-accent' : ''}`}
+          className={`pointer-events-none absolute inset-y-0 left-1/2 w-px -translate-x-1/2 group-hover:bg-app-accent group-focus-within:bg-app-accent ${dragging ? 'bg-app-accent' : ''}`}
         />
       </div>
       {children}

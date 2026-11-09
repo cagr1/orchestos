@@ -672,6 +672,29 @@ Propuesta y comparación con las tres referencias: `docs/specs/ADE-PLAN.md`. Uno
   (`NewAgentSelectorModal.tsx:48`, `server.ts:561`). Al repetir pasó 10/10. Evidencia:
   `docs/done/evidence/CI.76-notifications-claude-missing.json`. Fase 1: que el fallo deje la respuesta de
   `executor-modes` y la razón por la que Claude salió no disponible.
+- [x] **CI.77 — Los 58 avisos de accesibilidad de Biome.** (GO de Carlos 2026-11-09) Elementos con clic sin teclado
+  (`noNoninteractiveElementInteractions` 14, `noStaticElementInteractions` 6, `useKeyWithClickEvents` 3), etiquetas
+  sin control (7), botones sin `type` (6), `useSemanticElements` (6), SVG sin título (8, los íconos de proveedores),
+  `autoFocus` (4) y 4 sueltos; 26 archivos, la mayoría en `settings/`, `common/` y `layout/`.
+  Hecho: 58 → 0. `type="button"` donde faltaba; backdrops de menú (`ShellSidebar`, `OrcaRightInspector`) → `button`;
+  labels asociados con `htmlFor`/`id` o pasados a `div` si titulan un grupo; `fieldset` para grupos de controles;
+  `hr` nativo para el borde redimensionable (mismos handlers, sin borde); `<title>` en los 8 SVG de proveedores;
+  `biome-ignore` con razón donde el handler no es una acción (drop de archivos, tooltip, foco de diálogos).
+  Ronda 2: el segmentado de Settings vuelve a `button role="radio"` (el radio nativo perdía `aria-checked`, que es
+  el contrato de Settings y de los gates; `settings-pages` falló por eso).
+  Gates del cerebro: build, Playwright `settings-pages` 32/32 (tras r2), `appearance` 23/23, `diff-view` 19/19,
+  `project-tabs` 40/40, `plan-doc` 16/16, `keybindings` 43/43. `shell-look` y `chat-attachments` fallan igual en
+  `origin/master` → CI.78, CI.79.
+  Gate en vivo: Playwright `settings-pages` 32/32, `docs/done/evidence/CI.77-live.json`.
+  Texto visible: "Trigger Pattern" · "Project" · "Select Agent / Engine" (ya existían; solo cambian de `label` a `label` asociado o `div`, el texto no es nuevo)
+  Ejecutado por: codex gpt-6.1-sol (criterio) + codex (mecanico, r2) · Spec: docs/specs/CI.77.md
+- [ ] **CI.78 — `shell-look` rojo en master: "panel lighter than chrome: panel=null".** (abierto 2026-11-09)
+  Falla igual en `origin/master` (`678c23e5`) y en la corrida nocturna del 2026-11-09: el flujo no encuentra el panel
+  del chat que mide (`panel=null`). Probable selector que cambió con UI reciente, o un cambio real del layout.
+  Evidencia: `docs/done/evidence/CI.78-shell-look-fail.json`.
+- [ ] **CI.79 — `chat-attachments` rojo en master: "Dev: both attachments reach ready: []".** (abierto 2026-11-09)
+  Falla igual en `origin/master` (`678c23e5`): en Dev ningún adjunto llega a `ready`. Puede ser el flujo o una
+  regresión real de adjuntos en el composer de Dev. Evidencia: `docs/done/evidence/CI.79-chat-attachments-fail.json`.
 - [ ] **CI.69 — `usage-bar`: a veces el Enter del composer no envía el turno.** (abierto 2026-11-08) Falló en el
   pre-push de ADE.7/8 (`2e9aae2d`, `1355590c`): `page.waitForResponse` 180 s sin `POST /api/chat`
   (`usage-bar.mjs:309`). Captura: picker de modelo abierto (Luna · medium) y el texto sigue en la caja, así que

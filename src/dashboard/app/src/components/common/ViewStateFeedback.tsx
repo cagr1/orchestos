@@ -73,6 +73,7 @@ export const ErrorState: React.FC<ErrorStateProps> = ({ message, onRetry }) => {
       <p className="text-app-muted mb-4">{message}</p>
       {onRetry && (
         <button
+          type="button"
           onClick={onRetry}
           className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-control bg-app-elevated border border-app text-app hover:bg-app-surface transition-colors"
         >

@@ -90,6 +90,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
   )
 
   return (
+    // biome-ignore lint/a11y/noNoninteractiveElementInteractions: Captura Escape y el atajo de cierre de la paleta; dialog nativo cambiaría el comportamiento modal.
     <div
       role="dialog"
       aria-modal="true"
@@ -106,6 +107,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
         <div className="flex items-center gap-3 border-b border-app p-3">
           <Search className="h-4 w-4 text-app-muted" />
           <input
+            // biome-ignore lint/a11y/noAutofocus: El buscador o diálogo recién abierto debe enfocar su campo inicial.
             autoFocus
             type="text"
             value={query}
@@ -114,6 +116,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
             className="flex-1 bg-transparent text-sm text-app placeholder:text-app-muted focus:outline-none"
           />
           <button
+            type="button"
             onClick={onClose}
             className="rounded p-1 text-app-muted hover:bg-app-elevated hover:text-app"
           >
@@ -129,6 +132,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
               const Icon = item.icon
               return (
                 <button
+                  type="button"
                   key={item.id}
                   onClick={item.run}
                   className="group flex w-full items-center rounded-lg p-2.5 text-left text-xs text-app transition-colors hover:bg-app-elevated"

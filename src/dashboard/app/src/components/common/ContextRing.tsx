@@ -50,12 +50,15 @@ export const ContextRing: React.FC<ContextRingProps> = ({
   }
 
   return (
+    // biome-ignore lint/a11y/noNoninteractiveElementInteractions: Hover y foco muestran información de contexto; no es una acción por clic.
     <div
+      role="note"
       className={`relative inline-flex items-center gap-1.5 cursor-default select-none ${className}`}
       onMouseEnter={() => setShowPopover(true)}
       onMouseLeave={() => setShowPopover(false)}
       onFocus={() => setShowPopover(true)}
       onBlur={() => setShowPopover(false)}
+      // biome-ignore lint/a11y/noNoninteractiveTabindex: El foco permite consultar el tooltip con teclado sin convertir el indicador en acción.
       tabIndex={0}
       aria-label={`Context window usage: ${clamped}%`}
     >

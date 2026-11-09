@@ -130,11 +130,13 @@ export const NewAgentSelectorModal: React.FC<NewAgentSelectorModalProps> = ({
 
         <form onSubmit={handleSubmit} className="space-y-3.5 text-xs">
           <div>
-            <label className="block text-app-muted mb-1 font-medium">
+            <label htmlFor="new-agent-title" className="block text-app-muted mb-1 font-medium">
               {isChatMode ? 'Conversation Topic or Title (Optional)' : 'Session / Task Objective'}
             </label>
             <input
+              id="new-agent-title"
               type="text"
+              // biome-ignore lint/a11y/noAutofocus: El buscador o diálogo recién abierto debe enfocar su campo inicial.
               autoFocus
               value={agentTitle}
               onChange={(e) => setAgentTitle(e.target.value)}
@@ -149,7 +151,7 @@ export const NewAgentSelectorModal: React.FC<NewAgentSelectorModalProps> = ({
 
           {isChatMode && (
             <div>
-              <label className="block text-app-muted mb-1.5 font-medium">Project</label>
+              <div className="block text-app-muted mb-1.5 font-medium">Project</div>
               <div className="space-y-1.5 max-h-40 overflow-y-auto pr-1">
                 <button
                   type="button"
@@ -181,7 +183,7 @@ export const NewAgentSelectorModal: React.FC<NewAgentSelectorModalProps> = ({
           )}
 
           <div>
-            <label className="block text-app-muted mb-1.5 font-medium">Select Agent / Engine</label>
+            <div className="block text-app-muted mb-1.5 font-medium">Select Agent / Engine</div>
             <div className="space-y-1.5 max-h-56 overflow-y-auto pr-1">
               {modes.map((opt) => {
                 const isSelected = selectedCli === opt.id

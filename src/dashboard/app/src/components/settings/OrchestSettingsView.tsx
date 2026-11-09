@@ -1788,6 +1788,7 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
               if (event.target === event.currentTarget) closeSettingsSearch()
             }}
           >
+            {/* biome-ignore lint/a11y/noNoninteractiveElementInteractions: Captura navegación y foco del buscador; dialog nativo cambiaría el comportamiento modal. */}
             <div
               ref={paletteRef}
               role="dialog"
@@ -1836,6 +1837,7 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
                   <Search aria-hidden className="h-4 w-4 text-app-muted" />
                   <input
                     ref={paletteInputRef}
+                    // biome-ignore lint/a11y/noAutofocus: El buscador o diálogo recién abierto debe enfocar su campo inicial.
                     autoFocus
                     type="text"
                     role="combobox"
@@ -1868,6 +1870,14 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
                       key={entry.id}
                       id={`settings-result-${index}`}
                       role="option"
+                      tabIndex={0}
+                      onKeyDown={(event) => {
+                        if (event.key === 'Enter' || event.key === ' ') {
+                          event.preventDefault()
+                          event.stopPropagation()
+                          chooseSettingsResult(entry)
+                        }
+                      }}
                       aria-selected={searchIndex === index}
                       data-settings-result={entry.id}
                       data-settings-result-index={index}
@@ -2908,10 +2918,15 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
                             ['modelsText', language === 'es' ? 'Modelos' : 'Models'],
                           ] as const
                         ).map(([field, label]) => (
-                          <label key={field} className="flex flex-col gap-2 text-xs text-app-muted">
+                          <label
+                            key={field}
+                            htmlFor={`custom-cli-${index}-${field}`}
+                            className="flex flex-col gap-2 text-xs text-app-muted"
+                          >
                             {label}
                             {field === 'argsText' || field === 'modelArgsText' ? (
                               <textarea
+                                id={`custom-cli-${index}-${field}`}
                                 aria-label={label}
                                 value={cli[field]}
                                 rows={4}
@@ -2922,6 +2937,7 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
                               />
                             ) : (
                               <input
+                                id={`custom-cli-${index}-${field}`}
                                 aria-label={label}
                                 value={cli[field]}
                                 disabled={
@@ -3155,6 +3171,7 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
                           className="overflow-hidden"
                         >
                           {editing ? (
+                            // biome-ignore lint/a11y/noNoninteractiveElementInteractions: Captura Escape de los controles para cancelar la edición; el formulario no es una acción por clic.
                             <form
                               data-api-key-form
                               className="flex flex-wrap items-center gap-2"
@@ -3406,6 +3423,7 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
                         <ChevronDown className="w-3.5 h-3.5 text-app-muted" />
                       </button>
                       {activeComboboxRole === key && (
+                        // biome-ignore lint/a11y/noNoninteractiveElementInteractions: Captura navegación y Escape de los controles del selector; dialog nativo cambiaría su comportamiento.
                         <div
                           role="dialog"
                           aria-label={`${label} model selector`}
@@ -4032,6 +4050,8 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
                       )
                     })}
                   </div>
+                  {/* biome-ignore lint/a11y/noNoninteractiveElementInteractions: MouseLeave oculta el tooltip del heatmap; no es una acción por clic. */}
+                  {/* biome-ignore lint/a11y/noStaticElementInteractions: MouseLeave oculta el tooltip del heatmap; no es una acción por clic. */}
                   <div
                     key={`${dailyActivityTotal}-${dailyActivityCells.at(-1)?.dateKey}`}
                     data-heatmap-grid

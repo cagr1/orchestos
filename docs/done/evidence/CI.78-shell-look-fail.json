@@ -1,0 +1,120 @@
+[
+  {
+    "flujo": "shell-look",
+    "pass": false,
+    "steps": [
+      {
+        "nombre": "chat: sidebar present",
+        "ok": true,
+        "detalle": "1 aside"
+      },
+      {
+        "nombre": "chat: sidebar rows flat",
+        "ok": true,
+        "detalle": "sin borde ni sombra"
+      },
+      {
+        "nombre": "chat: nav icons one tone",
+        "ok": true,
+        "detalle": "rgb(148, 163, 184)"
+      },
+      {
+        "nombre": "chat: sidebar divider and flat header",
+        "ok": true,
+        "detalle": "aside border-right=1 header border-bottom=0"
+      },
+      {
+        "nombre": "chat: panel lighter than chrome",
+        "ok": false,
+        "detalle": "panel=null sidebar=rgb(8, 12, 20)"
+      },
+      {
+        "nombre": "chat: no palette classes in chrome",
+        "ok": true,
+        "detalle": "ninguna"
+      },
+      {
+        "nombre": "settings: sidebar present",
+        "ok": true,
+        "detalle": "1 aside"
+      },
+      {
+        "nombre": "settings: sidebar rows flat",
+        "ok": true,
+        "detalle": "sin borde ni sombra"
+      },
+      {
+        "nombre": "settings: nav icons one tone",
+        "ok": true,
+        "detalle": "rgb(148, 163, 184)"
+      },
+      {
+        "nombre": "settings: sidebar divider and flat header",
+        "ok": true,
+        "detalle": "aside border-right=0 header border-bottom=0"
+      },
+      {
+        "nombre": "settings: panel lighter than chrome",
+        "ok": true,
+        "detalle": "panel=rgb(14, 19, 32) sidebar=rgb(8, 12, 20)"
+      },
+      {
+        "nombre": "settings: no palette classes in chrome",
+        "ok": true,
+        "detalle": "ninguna"
+      },
+      {
+        "nombre": "settings palette text not stretched",
+        "ok": true,
+        "detalle": "{\"settled\":{\"input\":18,\"option\":34},\"samples\":[{\"ms\":60,\"input\":18,\"option\":34},{\"ms\":120,\"input\":18,\"option\":34},{\"ms\":200,\"input\":18,\"option\":34}]}"
+      },
+      {
+        "nombre": "settings palette opaque",
+        "ok": true,
+        "detalle": "rgb(14, 19, 32); alpha=1"
+      },
+      {
+        "nombre": "settings palette opens",
+        "ok": true,
+        "detalle": "{\"searchBox\":{\"x\":14,\"y\":102,\"width\":228,\"height\":28},\"paletteBox\":{\"x\":432,\"y\":229,\"width\":576,\"height\":542}}"
+      },
+      {
+        "nombre": "settings palette finds",
+        "ok": true,
+        "detalle": "first=Ollama Local; no results for zzzz"
+      },
+      {
+        "nombre": "settings palette closes clean",
+        "ok": true,
+        "detalle": "{\"searchBox\":{\"x\":14,\"y\":102,\"width\":228,\"height\":28},\"restoredBox\":{\"x\":14,\"y\":102,\"width\":228,\"height\":28},\"remainingDialogs\":0,\"remainingBackdrops\":0,\"sidebarNavigation\":16,\"navigationVisibility\":[true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true]}"
+      },
+      {
+        "nombre": "settings palette navigates",
+        "ok": true,
+        "detalle": "{\"row\":{\"x\":281,\"y\":129.95819091796875,\"width\":1134,\"height\":52,\"top\":129.95819091796875,\"right\":1415,\"bottom\":181.95819091796875,\"left\":281},\"viewport\":{\"width\":1440,\"height\":1000}}"
+      },
+      {
+        "nombre": "settings palette shortcut",
+        "ok": false,
+        "detalle": "Meta+k"
+      },
+      {
+        "nombre": "settings shortcut does not open the general command palette",
+        "ok": true,
+        "detalle": "general palette count while settings shortcut is open=0"
+      }
+    ],
+    "notes": [],
+    "errores": [
+      "locator.click: Timeout 30000ms exceeded. [waiting for getByRole('button', { name: 'General', exact: true })]"
+    ],
+    "capturas": [
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-47527/shell-look/shell-chat.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-47527/shell-look/shell-settings.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-47527/shell-look/settings-palette.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-47527/shell-look/settings-highlight.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-47527/shell-look/failure.png"
+    ],
+    "errorDetalle": "locator.click: Timeout 30000ms exceeded.\nCall log:\n  - waiting for getByRole('button', { name: 'General', exact: true })\n    - locator resolved to <button type=\"button\" class=\"relative isolate w-full flex h-7 items-center gap-2 px-2 rounded-control text-left text-[12.5px] font-medium transition-colors text-app-muted hover:text-app hover:bg-app-surface\">…</button>\n  - attempting click action\n    2 × waiting for element to be visible, enabled and stable\n      - element is visible, enabled and stable\n      - scrolling into view if needed\n      - done scrolling\n      - <div data-settings-search-backdrop=\"true\" class=\"fixed inset-0 z-50 flex items-center justify-center bg-app-bg/60 p-6\">…</div> intercepts pointer events\n    - retrying click action\n    - waiting 20ms\n    2 × waiting for element to be visible, enabled and stable\n      - element is visible, enabled and stable\n      - scrolling into view if needed\n      - done scrolling\n      - <div data-settings-search-backdrop=\"true\" class=\"fixed inset-0 z-50 flex items-center justify-center bg-app-bg/60 p-6\">…</div> intercepts pointer events\n    - retrying click action\n      - waiting 100ms\n    58 × waiting for element to be visible, enabled and stable\n       - element is visible, enabled and stable\n       - scrolling into view if needed\n       - done scrolling\n       - <div data-settings-search-backdrop=\"true\" class=\"fixed inset-0 z-50 flex items-center justify-center bg-app-bg/60 p-6\">…</div> intercepts pointer events\n     - retrying click action\n       - waiting 500ms\n"
+  }
+]

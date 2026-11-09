@@ -94,6 +94,7 @@ export function ListRow({
     }
   }
   return (
+    // biome-ignore lint/a11y/useSemanticElements: La fila contiene controles en trailing; un button crearía controles interactivos anidados.
     <div
       {...rest}
       data-list-row
@@ -127,6 +128,7 @@ export function ListRow({
       </span>
       {
         // biome-ignore lint/a11y/noStaticElementInteractions: contiene los controles de la fila; solo detiene la propagación
+        // biome-ignore lint/a11y/noNoninteractiveElementInteractions: Solo detiene la propagación de clic y teclado desde los controles de la fila.
         <div
           data-col="status"
           className="flex w-[7.5rem] shrink-0 items-center justify-end gap-2 whitespace-nowrap"

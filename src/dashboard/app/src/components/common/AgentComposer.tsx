@@ -743,6 +743,7 @@ export const AgentComposer: React.FC<AgentComposerProps> = ({
 
       {/* Model & Effort Unified Dropdown */}
       {showDropdown && (
+        // biome-ignore lint/a11y/noNoninteractiveElementInteractions: Captura navegación y Escape de los controles del selector; no es una acción por clic.
         <div
           ref={dropdownRef}
           role="dialog"
@@ -860,6 +861,8 @@ export const AgentComposer: React.FC<AgentComposerProps> = ({
       )}
 
       {/* Main Composer Box */}
+      {/* biome-ignore lint/a11y/noNoninteractiveElementInteractions: Zona de arrastre de archivos que contiene controles; no es una acción por clic. */}
+      {/* biome-ignore lint/a11y/noStaticElementInteractions: Zona de arrastre de archivos que contiene controles; no es una acción por clic. */}
       <div
         ref={composerRef}
         className={`relative rounded-card border bg-app-surface focus-within:border-app-accent/80 transition-all flex flex-col p-2.5 shadow-xs ${
@@ -1090,6 +1093,8 @@ export const AgentComposer: React.FC<AgentComposerProps> = ({
               )}
             </div>
             {hasProject && (
+              // biome-ignore lint/a11y/noStaticElementInteractions: Captura Escape de los controles para cerrar el menú; no es una acción por clic.
+              // biome-ignore lint/a11y/noNoninteractiveElementInteractions: Captura Escape de los controles para cerrar el menú; no es una acción por clic.
               <div
                 ref={approvalMenuRef}
                 className="relative"

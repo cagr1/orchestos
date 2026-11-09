@@ -23,6 +23,7 @@ export function ConfirmDialog({
     return () => previous?.focus()
   }, [])
   return (
+    // biome-ignore lint/a11y/noNoninteractiveElementInteractions: Captura Enter, Escape y foco de los controles; dialog nativo cambiaría el comportamiento modal.
     <div
       role="dialog"
       aria-modal="true"

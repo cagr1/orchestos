@@ -444,6 +444,7 @@ export const PlanBoardView: React.FC<PlanBoardViewProps> = ({
                 </h3>
               </div>
               <button
+                type="button"
                 onClick={() => setExplainModalTask(null)}
                 className="text-app-muted hover:text-app p-1"
               >

@@ -1,7 +1,22 @@
 {
-  "exported_at": "2026-11-09T15:00:27.895Z",
+  "exported_at": "2026-11-09T15:26:14.354Z",
   "total_runs": 20,
   "runs": [
+    {
+      "id": "a85ee11b-6b68-451f-80c9-4a20f4bae9d6",
+      "task_class": "gate:ci.77:doc",
+      "model": "openai/gpt-6-luna",
+      "provider": "codex",
+      "status": "done",
+      "qa_verdict": "pass",
+      "qa_reason": "README.md contains the required line.",
+      "files_blocked": [],
+      "checks_failed": 0,
+      "usd_cost": 0.00167448,
+      "elapsed_ms": 38308,
+      "tokens": 10744,
+      "created_at": "2026-11-09T15:14:50.559Z"
+    },
     {
       "id": "aecc84e5-74cb-41df-8e61-126fe04862bc",
       "task_class": "gate:ci.75:implement",
@@ -286,28 +301,13 @@
       "elapsed_ms": 14593,
       "tokens": 7126,
       "created_at": "2026-11-08T16:42:19.533Z"
-    },
-    {
-      "id": "cd9811db-f577-42ef-8ecd-4f7acb21c4e8",
-      "task_class": "gate:ade.10-project-settings:implement",
-      "model": "openai/gpt-6-luna",
-      "provider": "codex",
-      "status": "failed",
-      "qa_verdict": "fail",
-      "qa_reason": "check failed: bun -e 'console.error(\"TRUST1-MARKER\"),process.exit(1)' exit 1 (expected 0)\n--- stderr (tail) ---\nTRUST1-MARKER\n",
-      "files_blocked": [],
-      "checks_failed": 1,
-      "usd_cost": 0.00046849999999999995,
-      "elapsed_ms": 4794,
-      "tokens": 3453,
-      "created_at": "2026-11-08T16:38:14.338Z"
     }
   ],
   "stats": {
-    "failed": 4,
+    "failed": 3,
     "blocked": 0,
-    "done": 16,
-    "qa_failed": 5,
-    "total_cost_usd": "0.0216"
+    "done": 17,
+    "qa_failed": 4,
+    "total_cost_usd": "0.0228"
   }
 }

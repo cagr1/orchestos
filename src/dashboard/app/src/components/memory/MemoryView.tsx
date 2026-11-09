@@ -195,10 +195,11 @@ export const MemoryView: React.FC<MemoryViewProps> = ({ memories, onResolveConfl
               </div>
 
               <div>
-                <label className="mb-1 block font-semibold text-app">
+                <label htmlFor="memory-resolution" className="mb-1 block font-semibold text-app">
                   Synthesized Authoritative Standard
                 </label>
                 <textarea
+                  id="memory-resolution"
                   required
                   rows={3}
                   value={resolvedText}

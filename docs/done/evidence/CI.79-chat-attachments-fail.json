@@ -1,0 +1,86 @@
+[
+  {
+    "flujo": "chat-attachments",
+    "pass": false,
+    "steps": [
+      {
+        "nombre": "temporary project visible",
+        "ok": true,
+        "detalle": "orchestos-ui-chat-attachments-nMpYTw"
+      },
+      {
+        "nombre": "Codex agent available",
+        "ok": true,
+        "detalle": "Codex option"
+      },
+      {
+        "nombre": "Dev: both attachments reach ready",
+        "ok": false,
+        "detalle": "[]"
+      },
+      {
+        "nombre": "Dev: Send is enabled with ready attachments",
+        "ok": true,
+        "detalle": "enabled"
+      },
+      {
+        "nombre": "Dev: 2 uploads observed",
+        "ok": true,
+        "detalle": "2 POST /api/chat/upload"
+      },
+      {
+        "nombre": "Dev: POST /api/chat carries 2 server fileIds",
+        "ok": false,
+        "detalle": "[]"
+      },
+      {
+        "nombre": "Dev: answer contains the token and the image word",
+        "ok": false,
+        "detalle": "token=ATT-F9BBBF48 word=MARBLE COMPASS; answer=i can't see the attached text file or image in this chat. please attach them again, and i'll read the reference code and the two words."
+      },
+      {
+        "nombre": "Dev: sent message keeps 2 attachments, image thumbnail loaded, after the turn",
+        "ok": false,
+        "detalle": "{\"names\":[],\"imageLoaded\":false}"
+      },
+      {
+        "nombre": "Chat: both attachments reach ready",
+        "ok": true,
+        "detalle": "[\"ready\",\"ready\"]"
+      },
+      {
+        "nombre": "Chat: Send is enabled with ready attachments",
+        "ok": true,
+        "detalle": "enabled"
+      },
+      {
+        "nombre": "Chat: 2 uploads observed",
+        "ok": true,
+        "detalle": "2 POST /api/chat/upload"
+      },
+      {
+        "nombre": "Chat: POST /api/chat carries 2 server fileIds",
+        "ok": true,
+        "detalle": "[\"b297e927-0f86-4677-bb56-c7e6c3bacd23\",\"1c2f5db7-fbba-46bb-bfa7-0f38a2cc1d3e\"]"
+      },
+      {
+        "nombre": "Chat: answer contains the token and the image word",
+        "ok": true,
+        "detalle": "token=ATT-1AC772D2 word=FALCON WALRUS; answer=att-1ac772d2 — falcon walrus"
+      },
+      {
+        "nombre": "Chat: sent message keeps 2 attachments, image thumbnail loaded, after the turn",
+        "ok": true,
+        "detalle": "{\"names\":[\"token.txt\",\"word.png\"],\"imageLoaded\":true}"
+      }
+    ],
+    "notes": [],
+    "errores": [],
+    "capturas": [
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-49235/chat-attachments/chat-attachments-composer-Dev.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-49235/chat-attachments/chat-attachments-thread-Dev.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-49235/chat-attachments/chat-attachments-composer-Chat.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-49235/chat-attachments/chat-attachments-thread-Chat.png"
+    ]
+  }
+]

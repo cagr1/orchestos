@@ -114,10 +114,9 @@ export function DevDiffPanel({
           {path} (diff)
         </span>
         <div className="flex items-center gap-1">
-          <div
-            role="group"
+          <fieldset
             aria-label="Diff view"
-            className="flex rounded-control border border-app"
+            className="min-w-0 flex rounded-control border border-app"
           >
             {(['unified', 'split'] as const).map((mode) => {
               const Icon = mode === 'unified' ? Rows3 : Columns2
@@ -136,7 +135,7 @@ export function DevDiffPanel({
                 </button>
               )
             })}
-          </div>
+          </fieldset>
           <button
             type="button"
             aria-label="Ignore whitespace"

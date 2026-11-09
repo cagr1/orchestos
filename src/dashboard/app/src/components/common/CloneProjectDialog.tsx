@@ -106,7 +106,7 @@ export function CloneProjectDialog({
             Choose folder
           </button>
         </div>
-        <p className="break-all text-app-muted" aria-label="Clone destination">
+        <p role="note" className="break-all text-app-muted" aria-label="Clone destination">
           {parentDir.replace(/\/$/, '')}/{name}
         </p>
         {error && (

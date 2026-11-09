@@ -428,6 +428,30 @@
       "closedDate": null
     },
     {
+      "id": "CI.77",
+      "sprint": "Fase 2 — Producto mínimo para entrega",
+      "block": "Abiertos — fiabilidad de los gates y documentación",
+      "title": "Los 58 avisos de accesibilidad de Biome",
+      "status": "done",
+      "closedDate": null
+    },
+    {
+      "id": "CI.78",
+      "sprint": "Fase 2 — Producto mínimo para entrega",
+      "block": "Abiertos — fiabilidad de los gates y documentación",
+      "title": "`shell-look` rojo en master: \"panel lighter than chrome: panel=null\"",
+      "status": "open",
+      "closedDate": null
+    },
+    {
+      "id": "CI.79",
+      "sprint": "Fase 2 — Producto mínimo para entrega",
+      "block": "Abiertos — fiabilidad de los gates y documentación",
+      "title": "`chat-attachments` rojo en master: \"Dev: both attachments reach ready: []\"",
+      "status": "open",
+      "closedDate": null
+    },
+    {
       "id": "CI.69",
       "sprint": "Fase 2 — Producto mínimo para entrega",
       "block": "Abiertos — fiabilidad de los gates y documentación",

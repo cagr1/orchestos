@@ -163,6 +163,7 @@ export const ShellSidebar: React.FC<ShellSidebarProps> = ({
               filteredThreads.map((thread) => {
                 const isActive = thread.id === activeThreadId
                 return (
+                  // biome-ignore lint/a11y/useSemanticElements: La fila contiene el botón de borrar; un button crearía botones anidados.
                   <div
                     key={thread.id}
                     data-thread-id={thread.id}
@@ -314,7 +315,9 @@ export const ShellSidebar: React.FC<ShellSidebarProps> = ({
                   {/* Ellipsis Menu Dropdown: only Project Settings & Delete Project */}
                   {isMenuOpen && (
                     <>
-                      <div
+                      <button
+                        type="button"
+                        aria-label="Close menu"
                         className="fixed inset-0 z-30"
                         onClick={() => setActiveMenuProjectId(null)}
                       />

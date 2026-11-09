@@ -215,8 +215,11 @@ export const InstinctsView: React.FC<InstinctsViewProps> = ({
 
             <div className="space-y-3 text-xs">
               <div>
-                <label className="block text-app font-semibold mb-1">Trigger Pattern</label>
+                <label htmlFor="instinct-trigger" className="block text-app font-semibold mb-1">
+                  Trigger Pattern
+                </label>
                 <input
+                  id="instinct-trigger"
                   type="text"
                   required
                   placeholder="e.g. LLM generates test file without async await"
@@ -227,10 +230,11 @@ export const InstinctsView: React.FC<InstinctsViewProps> = ({
               </div>
 
               <div>
-                <label className="block text-app font-semibold mb-1">
+                <label htmlFor="instinct-action" className="block text-app font-semibold mb-1">
                   Learned Action / Behavior to Enforce
                 </label>
                 <textarea
+                  id="instinct-action"
                   required
                   rows={3}
                   placeholder="e.g. Automatically import describe and it from 'bun:test' and structure test cases with explicit timeouts"
