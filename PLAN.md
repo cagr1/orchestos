@@ -616,6 +616,20 @@ Propuesta y comparación con las tres referencias: `docs/specs/ADE-PLAN.md`. Uno
   Gates del cerebro: `typecheck`, hooks + roadmap 69/0; ejecutor: writer-lock 28/0, lint exit 0.
   Gate en vivo: Playwright `project-tabs` 40/40 (sidebar con el dato renombrado), `docs/done/evidence/CI.71-live.json`.
   Ejecutado por: codex (mecanico) · Spec: docs/specs/CI.71.md
+- [x] **CI.72 — La corrida nocturna de ui-gates no encuentra `node`: 45 de 49 rojos en 5 h 40 min.** (2026-11-09,
+  primera corrida completa sobre `d32a9356`) El PATH del LaunchAgent está fijo en el plist
+  (`scripts/launchd/dev.cagr1.orchestos.nightly-ui-gates.plist:18`) y no incluye `node`, que vive en nvm. Sin él
+  los fixtures no se registran ("temporary project was not registered") y cada flujo espera su timeout y reintenta.
+  Reproducido con `env -i` y el PATH del plist: `project-tabs` FAIL; mismo PATH + el bin de nvm: PASS 40/40.
+  Hecho: el plist lleva un marcador y `install-nightly.sh` arma el PATH al instalar, en el orden del PATH de quien
+  instala (sin `node_modules/.bin`), con los dirs de `bun node git claude codex opencode`; sin `bun`/`node`/`git` no
+  instala. Si falta uno al correr, la corrida no arranca: publica `preparationError` en `ui-gates-latest.json`, que
+  muestran el startup-guard y el pre-push. Reinstalado: los 6 binarios del LaunchAgent resuelven igual que en el
+  shell (`diff` vacío). Rondas: r1 pre-push (mecanico), r2 `node_modules/.bin` (mecanico), r3 orden fallido
+  (mecanico) → r4 (criterio).
+  Gates del cerebro: `typecheck`, nightly + startup-guard 29/0, `bash -n`, `plutil -lint`, `project-tabs` 40/40
+  con `env -i` y el PATH del plist instalado (antes FAIL). La corrida completa se verá esta noche.
+  Ejecutado por: codex gpt-6.1-sol (criterio) · Spec: docs/specs/CI.72.md
 - [ ] **CI.69 — `usage-bar`: a veces el Enter del composer no envía el turno.** (abierto 2026-11-08) Falló en el
   pre-push de ADE.7/8 (`2e9aae2d`, `1355590c`): `page.waitForResponse` 180 s sin `POST /api/chat`
   (`usage-bar.mjs:309`). Captura: picker de modelo abierto (Luna · medium) y el texto sigue en la caja, así que

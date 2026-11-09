@@ -114,7 +114,8 @@ nightly_summary="$(bun -e '
   const path = require("node:path").join(require("node:os").homedir(), ".orchestos/nightly/ui-gates-latest.json");
   try {
     const r = JSON.parse(require("node:fs").readFileSync(path, "utf8"));
-    console.log(`${r.passed}/${r.total} passed, ${r.flaky.length} flaky, ${r.failed.length} failed (${r.sha.slice(0, 7)}, ${r.finishedAt})`);
+    if (r.preparationError) console.log(`no corrieron — ${r.preparationError}`);
+    else console.log(`${r.passed}/${r.total} passed, ${r.flaky.length} flaky, ${r.failed.length} failed (${r.sha.slice(0, 7)}, ${r.finishedAt})`);
   } catch { console.log("sin resultado disponible"); }
 ')"
 echo "ℹ️ pre-push: ui-gates corren de noche (scripts/nightly-ui-gates.ts); último resultado: $nightly_summary"

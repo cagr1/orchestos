@@ -22,11 +22,12 @@ export interface Attempt {
 export interface NightlyResult {
   startedAt: string
   finishedAt: string
-  sha: string
+  sha: string | null
   total: number
   passed: number
   flaky: Array<{ flow: string; firstError: string; evidence: string[] }>
   failed: Array<{ flow: string; error: string; evidence: string[] }>
+  preparationError?: string
 }
 
 /** Only unavailable OpenCode is excluded: that flow requires the external binary. */
@@ -133,9 +134,28 @@ export function preserveFailure(output: string, target: string): string[] {
   return evidence
 }
 
-async function main() {
+function publishResult(base: string, archive: string, result: NightlyResult) {
+  const json = `${JSON.stringify(result, null, 2)}\n`
+  writeFileSync(join(archive, 'ui-gates.json'), json)
+  // Publish atomically so readers never see a half-written JSON.
+  const latest = join(base, 'ui-gates-latest.json')
+  const temporary = `${latest}.tmp`
+  writeFileSync(temporary, json)
+  renameSync(temporary, latest)
+  return json
+}
+
+export async function runNightly(
+  options: {
+    base?: string
+    which?: (binary: string) => string | null
+    command?: typeof command
+  } = {},
+) {
+  const startedAt = new Date().toISOString()
   const repo = resolve(import.meta.dir, '..')
-  const base = join(homedir(), '.orchestos/nightly')
+  const base = options.base ?? join(homedir(), '.orchestos/nightly')
+  const which = options.which ?? Bun.which
   const date = new Date().toISOString().slice(0, 10)
   const archive = join(base, date)
   const worktree = join(base, 'worktree')
@@ -156,7 +176,7 @@ async function main() {
   ])
     delete env[name]
   const run = (args: string[], cwd = worktree, overrides = env) =>
-    command(args, cwd, log, overrides)
+    (options.command ?? command)(args, cwd, log, overrides)
   const requireSuccess = async (args: string[], cwd = worktree, overrides = env) => {
     const result = await run(args, cwd, overrides)
     if (result.code !== 0) throw new Error(`${args.join(' ')}: exit ${result.code}`)
@@ -172,6 +192,12 @@ async function main() {
     let sha: string
     let flows: string[]
     try {
+      for (const binary of ['node', 'bun', 'git']) {
+        if (!which(binary))
+          throw new Error(
+            `falta ${binary} en el PATH del LaunchAgent; reinstalar con bun run nightly:install`,
+          )
+      }
       await requireSuccess(['git', 'fetch', 'origin', 'master'], repo)
       if (existsSync(worktree)) {
         const common = await requireSuccess([
@@ -217,11 +243,21 @@ async function main() {
         throw new Error('Uso: --flows smoke,plan-doc')
       const requested = args[1]?.split(',') ?? available
       if (requested.some((name) => !available.includes(name))) throw new Error('Flujo desconocido')
-      flows = selectFlows([...new Set(requested)], Boolean(Bun.which('opencode')))
+      flows = selectFlows([...new Set(requested)], Boolean(which('opencode')))
     } catch (error) {
-      appendFileSync(log, `Preparación fallida: ${String(error)}\n`)
-      process.exitCode = 1
-      return
+      const preparationError = error instanceof Error ? error.message : String(error)
+      appendFileSync(log, `Preparación fallida: ${preparationError}\n`)
+      publishResult(base, archive, {
+        startedAt,
+        finishedAt: new Date().toISOString(),
+        sha: null,
+        total: 0,
+        passed: 0,
+        flaky: [],
+        failed: [],
+        preparationError,
+      })
+      return false
     }
     const result = await runFlows(flows, sha, async (flow, attempt) => {
       const { code, output } = await run(['bun', 'run', 'ui:gate', flow])
@@ -229,25 +265,24 @@ async function main() {
         code === 0 ? [] : preserveFailure(output, join(archive, flow, `attempt-${attempt}`))
       return { ok: code === 0, error: code === 0 ? '' : output.trim(), evidence }
     })
-    const json = `${JSON.stringify(result, null, 2)}\n`
-    writeFileSync(join(archive, 'ui-gates.json'), json)
-    // Publish atomically so readers never see a half-written JSON.
-    const latest = join(base, 'ui-gates-latest.json')
-    const temporary = `${latest}.tmp`
-    writeFileSync(temporary, json)
-    renameSync(temporary, latest)
+    const json = publishResult(base, archive, result)
     for (const old of expiredDates(readdirSync(base), new Date())) {
       rmSync(join(base, old), { recursive: true, force: true })
     }
     console.log(json)
+    return true
   } finally {
     rmSync(lock, { recursive: true, force: true })
   }
 }
 
 if (import.meta.main) {
-  main().catch((error) => {
-    console.error(error)
-    process.exitCode = 1
-  })
+  runNightly()
+    .then((prepared) => {
+      if (!prepared) process.exitCode = 1
+    })
+    .catch((error) => {
+      console.error(error)
+      process.exitCode = 1
+    })
 }

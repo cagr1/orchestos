@@ -334,6 +334,29 @@ describe('startup-guard hook', () => {
 })
 
 describe('ui-gates nocturnos al arrancar', () => {
+  it('avisa cuando la preparación impidió correr los flujos', () => {
+    const { home, root } = makeFixtures({})
+    const message = 'falta node en el PATH del LaunchAgent; reinstalar con bun run nightly:install'
+    writeFileSync(
+      join(home, '.orchestos/nightly/ui-gates-latest.json'),
+      JSON.stringify({
+        startedAt: new Date().toISOString(),
+        finishedAt: new Date().toISOString(),
+        sha: null,
+        total: 0,
+        passed: 0,
+        failed: [],
+        flaky: [],
+        preparationError: message,
+      }),
+    )
+    const result = runHook(home, root)
+    expect(result.status).toBe(0)
+    expect(result.stdout.trim()).toBe(
+      `[startup-guard] hallazgos al arrancar:\n- ui-gates nocturnos: no corrieron — ${message}`,
+    )
+  })
+
   it('avisa por archivo ausente, corrupto o corrida de más de 36 horas', () => {
     for (const content of [
       null,

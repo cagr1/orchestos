@@ -281,6 +281,10 @@ async function checkActions(findings) {
 function checkNightlyUiGates(findings) {
   const path = resolve(HOME, '.orchestos/nightly/ui-gates-latest.json')
   const result = readJson(path)
+  if (result?.preparationError) {
+    findings.push(`ui-gates nocturnos: no corrieron — ${result.preparationError}`)
+    return
+  }
   const finished = Date.parse(result?.finishedAt)
   if (!Number.isFinite(finished) || Date.now() - finished > 36 * 60 * 60 * 1000) {
     findings.push('ui-gates nocturnos: sin corrida en 36 h')

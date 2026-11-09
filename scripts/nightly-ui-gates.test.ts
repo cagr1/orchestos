@@ -1,13 +1,54 @@
-import { afterEach, expect, test } from 'bun:test'
-import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import { afterEach, expect, mock, test } from 'bun:test'
+import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { expiredDates, preserveFailure, runFlows, selectFlows } from './nightly-ui-gates.ts'
+import {
+  expiredDates,
+  preserveFailure,
+  runFlows,
+  runNightly,
+  selectFlows,
+} from './nightly-ui-gates.ts'
 
 const roots: string[] = []
 afterEach(() => {
   for (const root of roots.splice(0)) rmSync(root, { recursive: true, force: true })
 })
+
+test.each(['node', 'bun', 'git'])(
+  'publishes preparationError when %s is missing, without running commands or flows',
+  async (missing) => {
+    const base = mkdtempSync(join(tmpdir(), 'nightly-preparation-'))
+    roots.push(base)
+    const command = mock(async () => ({ code: 0, output: '' }))
+    const prepared = await runNightly({
+      base,
+      which: (binary) => (binary === missing ? null : `/fixture/bin/${binary}`),
+      command,
+    })
+    expect(prepared).toBe(false)
+    expect(command).not.toHaveBeenCalled()
+    const json = readFileSync(join(base, 'ui-gates-latest.json'), 'utf8')
+    const result = JSON.parse(json)
+    expect(result).toEqual({
+      startedAt: expect.any(String),
+      finishedAt: expect.any(String),
+      sha: null,
+      total: 0,
+      passed: 0,
+      flaky: [],
+      failed: [],
+      preparationError: `falta ${missing} en el PATH del LaunchAgent; reinstalar con bun run nightly:install`,
+    })
+    expect(Number.isFinite(Date.parse(result.startedAt))).toBe(true)
+    expect(Date.parse(result.finishedAt)).toBeGreaterThanOrEqual(Date.parse(result.startedAt))
+    expect(readFileSync(join(base, result.startedAt.slice(0, 10), 'ui-gates.json'), 'utf8')).toBe(
+      json,
+    )
+    expect(existsSync(join(base, 'ui-gates-latest.json.tmp'))).toBe(false)
+    expect(existsSync(join(base, 'running'))).toBe(false)
+  },
+)
 
 test('runs each flow once, retries only failures and builds passed/flaky/failed JSON', async () => {
   const calls: string[] = []

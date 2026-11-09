@@ -15,7 +15,7 @@
   <key>EnvironmentVariables</key>
   <dict>
     <key>PATH</key>
-    <string>/Users/carlosgallardo/.bun/bin:/Users/carlosgallardo/.local/bin:/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin</string>
+    <string>__ORCHESTOS_NIGHTLY_PATH__</string>
     <key>HOME</key>
     <string>/Users/carlosgallardo</string>
     <key>ORCHESTOS_CLAUDE_USAGE_LIVE</key>
