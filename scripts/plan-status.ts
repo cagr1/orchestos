@@ -38,6 +38,14 @@ export interface PlanDocumentSegment {
 const ITEM_LINE_RE =
   /^- \[( |x)\] \*\*([A-Za-z0-9][A-Za-z0-9.'-]*) — (?:(?:🧠|⚡|🔍) )?(.+?)\.?\*\*(?:\s*\(cerrado (\d{4}-\d{2}-\d{2})[^)]*\))?/d
 
+export function findUnparsedPlanItemLines(plan: string): { line: number; text: string }[] {
+  return plan
+    .split('\n')
+    .flatMap((text, index) =>
+      /^- \[( |x)\] \*\*/.test(text) && !ITEM_LINE_RE.test(text) ? [{ line: index + 1, text }] : [],
+    )
+}
+
 /** Removes only a legacy header marker, preserving the rest of the source verbatim. */
 export function normalizePlanItemHeader(text: string): string {
   const match = text.match(ITEM_LINE_RE)

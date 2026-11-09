@@ -1,6 +1,7 @@
 import { existsSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import {
+  findUnparsedPlanItemLines,
   type PlanItemSource,
   parsePlanDocumentSegments,
   parsePlanItemSources,
@@ -72,6 +73,12 @@ interface ImportResult {
 
 function importSources(sources: PlanItemSource[], root: string, reconcile: boolean): ImportResult {
   const plan = readFileSync(join(root, 'PLAN.md'), 'utf-8')
+  const unparsed = findUnparsedPlanItemLines(plan)
+  if (unparsed.length > 0)
+    throw new Error(
+      'PLAN.md: ítem sin título parseable (el título debe abrir y cerrar ** en la misma línea):\n' +
+        unparsed.map(({ line, text }) => `  línea ${line}: ${text.slice(0, 100)}`).join('\n'),
+    )
   const segments = parsePlanDocumentSegments(plan)
   const roundTrip = segments.map((segment) => segment.text).join('')
   if (roundTrip !== plan) throw new Error('PLAN.md segment round-trip is not byte-exact')

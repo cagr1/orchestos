@@ -396,6 +396,14 @@
       "closedDate": null
     },
     {
+      "id": "CI.73",
+      "sprint": "Fase 2 — Producto mínimo para entrega",
+      "block": "Abiertos — fiabilidad de los gates y documentación",
+      "title": "Un ítem de `PLAN.md` cuyo título no se parsea desaparece sin aviso",
+      "status": "done",
+      "closedDate": null
+    },
+    {
       "id": "CI.69",
       "sprint": "Fase 2 — Producto mínimo para entrega",
       "block": "Abiertos — fiabilidad de los gates y documentación",

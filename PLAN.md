@@ -630,6 +630,15 @@ Propuesta y comparación con las tres referencias: `docs/specs/ADE-PLAN.md`. Uno
   Gates del cerebro: `typecheck`, nightly + startup-guard 29/0, `bash -n`, `plutil -lint`, `project-tabs` 40/40
   con `env -i` y el PATH del plist instalado (antes FAIL). La corrida completa se verá esta noche.
   Ejecutado por: codex gpt-6.1-sol (criterio) · Spec: docs/specs/CI.72.md
+- [x] **CI.73 — Un ítem de `PLAN.md` cuyo título no se parsea desaparece sin aviso.** (IDEAS `#62`, GO de Carlos
+  2026-11-09) `ITEM_LINE_RE` (`scripts/plan-status.ts:38`) exige que el título abra y cierre `**` en la misma línea;
+  si no, `parsePlanDocumentSegments` (`:141-145`) lo trata como prosa y el reconcile, `plan:render` y
+  `feature-status.json` lo omiten en silencio.
+  Hecho: `findUnparsedPlanItemLines` (`plan-status.ts`) devuelve las líneas `- [ ] **`/`- [x] **` que no casan; el
+  reconcile (`plan-import.ts`), el pre-commit (`plan-gate.ts`, sobre el PLAN staged) y `generate-feature-status.ts`
+  fallan con línea y texto. Regresión con el caso real de H.5.3; el `PLAN.md` actual da `[]`.
+  Gates del cerebro: `typecheck`, tests de `plan-status`/`plan-import`/`plan-gate`. Revisión: Opus (diff leído).
+  Ejecutado por: codex gpt-6.1-sol (criterio) · Spec: docs/specs/CI.73.md
 - [ ] **CI.69 — `usage-bar`: a veces el Enter del composer no envía el turno.** (abierto 2026-11-08) Falló en el
   pre-push de ADE.7/8 (`2e9aae2d`, `1355590c`): `page.waitForResponse` 180 s sin `POST /api/chat`
   (`usage-bar.mjs:309`). Captura: picker de modelo abierto (Luna · medium) y el texto sigue en la caja, así que

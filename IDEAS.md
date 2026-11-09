@@ -32,7 +32,6 @@ _(vacía — `#2` graduado a PLAN.md § Sprint 26 / Bloque Q el 2026-08-06; `#3`
 a Bloque V el 2026-08-08; `#58` a Bloque W el 2026-08-08 — categoría Bajo completa, Sprint 26 cierra)_
 3. `#61` Baseline de warnings de Biome pendiente de limpiar.
 4. `#62` Falso negativo silencioso del parser de `PLAN.md` (título en 2 líneas).
-5. `#63` Recalibrar el umbral del hook de contexto: 60% llega en el turno más caro.
 
 ### Bajo-medio
 
@@ -82,8 +81,12 @@ _(`#6` graduó a Bloque AA el 2026-08-15. `#31`, `#35` y `#50` fueron ABSORBIDAS
   `OrcaRightInspector.tsx:37`), `#70` (Changes del working tree + color, ADE.4–8), `#28` (xterm, `terminal.ts`),
   `#43` (editor y diff en el panel, ADE.1–10), `#14` (ADE.6, `attention-delivery.ts:40`), `#57`
   (`session-status.ts:239`). OBSOLETAS: `#59`, `#60`, `#11` (grafo retirado en ERP.5.3, `f4dc6531`); `#29`, `#47`
-  (sub-tareas y auto-split retirados, `1b6eebbb`). PARCIALES, siguen en su categoría: `#63` (umbral 40 %/250k ya
-  ajustado en AT.16; falta medir `cache_read`), `#7`, `#25`, `#45`, `#52`, `#54`, `#56`, `#65`.
+  (sub-tareas y auto-split retirados, `1b6eebbb`). PARCIALES, siguen en su categoría: `#7`, `#25`, `#45`, `#52`, `#54`, `#56`, `#65`.
+- `#63` cerrada 2026-11-09 con la medición que pedía (`analizar`, transcripciones de este proyecto, corte AT.16
+  `91687e4d`; 57 sesiones antes, 192 después; excluidas 13 compactadas, 6 sin `usage`, 8 de subagentes): sesiones
+  >400k 8,8 % → 0 %; >250k 10,5 % → 9,4 %; contexto del último turno p90 225k → 231k. `cache_read` por sesión subió
+  (mediana 0,61M → 1,03M) porque las sesiones son más largas (turnos, mediana 8 → 22,5). El aviso corta las
+  sesiones desbocadas; no se puede afirmar ahorro total. Sin cambio de umbral.
 - `#27`, `#32` y `#36`: graduadas a PLAN y cerradas según DONE/PLAN.
 - `#39`: **REABIERTO (2026-07-31) — el índice decía "cerrada en G.4.2/G.4.2b" y es impreciso.**
   G.4.2 cerró solo la mitad: **detección** (`cli-registry.ts`, `KNOWN_CLIS`). La otra mitad del

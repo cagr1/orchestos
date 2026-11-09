@@ -53,6 +53,27 @@ function scenarioScript(setup: string): string {
   `
 }
 
+it('rejects split titles from the staged PLAN.md even without a closing transition', async () => {
+  for (const checked of [' ', 'x']) {
+    const text = `- [${checked}] **H.5.3 — 🔍 Primera corrida medida ${'larga '.repeat(20)}`
+    const other = '- [ ] **H.5.4 — Otro título sin cierre'
+    const plan = `## H\n${text}\n  real.**\n${other}\n`
+    const { code, out, err } = await runScenario(
+      scenarioScript(`
+        write('PLAN.md', ${JSON.stringify(plan)})
+        git(['add', 'PLAN.md'])
+        // A healthy working copy must not hide the malformed staged blob.
+        write('PLAN.md', '- [ ] **H.5.3 — Título sano.**')
+      `),
+    )
+    expect(code, err).toBe(0)
+    expect(JSON.parse(out).threw).toBe(
+      'PLAN.md: ítem sin título parseable (el título debe abrir y cerrar ** en la misma línea):\n' +
+        `  línea 2: ${text.slice(0, 100)}\n  línea 4: ${other}`,
+    )
+  }
+})
+
 it('accepts a close whose evidence lives in docs/done/ with a fresh Ejecutado por line', async () => {
   const { code, out, err } = await runScenario(
     scenarioScript(`

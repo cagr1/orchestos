@@ -7,10 +7,20 @@
  */
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
-import { parsePlanFeatureStatus, serializeFeatureStatus } from './plan-status.ts'
+import {
+  findUnparsedPlanItemLines,
+  parsePlanFeatureStatus,
+  serializeFeatureStatus,
+} from './plan-status.ts'
 
 export function generateFeatureStatus(root: string): string {
   const plan = readFileSync(join(root, 'PLAN.md'), 'utf-8')
+  const unparsed = findUnparsedPlanItemLines(plan)
+  if (unparsed.length > 0)
+    throw new Error(
+      'PLAN.md: ítem sin título parseable (el título debe abrir y cerrar ** en la misma línea):\n' +
+        unparsed.map(({ line, text }) => `  línea ${line}: ${text.slice(0, 100)}`).join('\n'),
+    )
   const items = parsePlanFeatureStatus(plan)
   const outPath = join(root, '.orchestos', 'feature-status.json')
   mkdirSync(dirname(outPath), { recursive: true })

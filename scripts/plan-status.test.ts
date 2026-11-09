@@ -3,6 +3,7 @@ import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import {
+  findUnparsedPlanItemLines,
   normalizePlanItemHeader,
   parsePlanFeatureStatus,
   serializeFeatureStatus,
@@ -25,6 +26,32 @@ const SAMPLE = `
 
 - [x] **SÍ — Sprint 27 cerrado (2026-08-13), parcial por diseño**
 `
+
+describe('findUnparsedPlanItemLines', () => {
+  test('detecta el título de H.5.3 partido en dos líneas, abierto o cerrado', () => {
+    for (const checked of [' ', 'x']) {
+      const text = `- [${checked}] **H.5.3 — 🔍 Primera corrida medida`
+      const plan = `## Bloque H\n\n${text}\n  real.**\n`
+      expect(findUnparsedPlanItemLines(plan)).toEqual([{ line: 3, text }])
+    }
+  })
+
+  test('devuelve todos los casos sin recortar el texto y omite prosa e ítems indentados', () => {
+    const first = '- [ ] **H.5.3 — ' + 'Título largo '.repeat(12)
+    const second = '- [x] **H.5.4 — Otro título sin cierre'
+    expect(findUnparsedPlanItemLines(`${first}\n  - [ ] **Anidado\nProsa **\n${second}`)).toEqual([
+      { line: 1, text: first },
+      { line: 4, text: second },
+    ])
+  })
+
+  test('un plan sano y el PLAN.md actual no contienen ítems sin parsear', () => {
+    expect(findUnparsedPlanItemLines('## H\n- [ ] **H.5.3 — Título.**\n')).toEqual([])
+    expect(
+      findUnparsedPlanItemLines(readFileSync(join(import.meta.dir, '../PLAN.md'), 'utf-8')),
+    ).toEqual([])
+  })
+})
 
 describe('parsePlanFeatureStatus', () => {
   test('parsea IDs con guion y apóstrofe desde un fixture temporal', () => {

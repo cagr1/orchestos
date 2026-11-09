@@ -3,6 +3,7 @@ import { execFileSync } from 'node:child_process'
 import { existsSync } from 'node:fs'
 import { posix } from 'node:path'
 import {
+  findUnparsedPlanItemLines,
   parsePlanDocumentSegments,
   parsePlanFeatureStatus,
   parsePlanItemSources,
@@ -143,10 +144,16 @@ export function closedPlanItemIds(diff: string): string[] {
 }
 
 export function checkProvenance(): void {
+  const stagedPlan = git(['show', ':PLAN.md'])
+  const unparsed = findUnparsedPlanItemLines(stagedPlan)
+  if (unparsed.length > 0)
+    throw new Error(
+      'PLAN.md: ítem sin título parseable (el título debe abrir y cerrar ** en la misma línea):\n' +
+        unparsed.map(({ line, text }) => `  línea ${line}: ${text.slice(0, 100)}`).join('\n'),
+    )
   const diff = git(['diff', '--cached', '-U0', '--', 'PLAN.md'])
   const closed = closedPlanItemIds(diff)
   if (closed.length === 0) return
-  const stagedPlan = git(['show', ':PLAN.md'])
   const segments = parsePlanDocumentSegments(stagedPlan)
   const sources = new Map(parsePlanItemSources(stagedPlan).map((item) => [item.id, item]))
   const deletedSpecs = new Set(

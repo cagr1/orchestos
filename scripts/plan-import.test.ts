@@ -3,6 +3,60 @@ import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'nod
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 
+test('reconcile rechaza el título partido de H.5.3 antes de modificar la DB', async () => {
+  const home = mkdtempSync(join(tmpdir(), 'orchestos-plan-import-unparsed-'))
+  const fixture = mkdtempSync(join(tmpdir(), 'orchestos-plan-import-unparsed-fixture-'))
+  try {
+    const proc = Bun.spawn(
+      [
+        'bun',
+        '-e',
+        `
+          const { expect } = await import('bun:test')
+          const { writeFileSync } = await import('node:fs')
+          const { join } = await import('node:path')
+          const { runMigrations } = await import('./src/db/migrate.ts')
+          const { importPlan } = await import('./scripts/plan-import.ts')
+          const { db } = await import('./src/db/sqlite.ts')
+          runMigrations()
+          const root = process.env.PLAN_IMPORT_FIXTURE_ROOT
+          writeFileSync(join(root, 'PLAN.md'), '- [ ] **H.5.3 — Primera corrida medida real.**\\n')
+          importPlan(root, true)
+          const before = db.query('SELECT * FROM plan_items').all()
+          const segmentsBefore = db.query('SELECT * FROM plan_doc_segments').all()
+          for (const checked of [' ', 'x']) {
+            const text = '- [' + checked + '] **H.5.3 — 🔍 Primera corrida medida ' + 'larga '.repeat(20)
+            const other = '- [ ] **H.5.4 — Otro título sin cierre'
+            writeFileSync(join(root, 'PLAN.md'), '## H\\n' + text + '\\n  real.**\\n' + other + '\\n')
+            expect(() => importPlan(root, true)).toThrow(
+              'PLAN.md: ítem sin título parseable (el título debe abrir y cerrar ** en la misma línea):\\n' +
+              '  línea 2: ' + text.slice(0, 100) + '\\n  línea 4: ' + other
+            )
+            expect(db.query('SELECT * FROM plan_items').all()).toEqual(before)
+            expect(db.query('SELECT * FROM plan_doc_segments').all()).toEqual(segmentsBefore)
+          }
+          db.close()
+        `,
+      ],
+      {
+        cwd: process.cwd(),
+        env: { ...process.env, ORCHESTOS_HOME: home, PLAN_IMPORT_FIXTURE_ROOT: fixture },
+        stdout: 'pipe',
+        stderr: 'pipe',
+      },
+    )
+    const [exitCode, , stderr] = await Promise.all([
+      proc.exited,
+      new Response(proc.stdout).text(),
+      new Response(proc.stderr).text(),
+    ])
+    expect(exitCode, stderr).toBe(0)
+  } finally {
+    rmSync(home, { recursive: true, force: true })
+    rmSync(fixture, { recursive: true, force: true })
+  }
+})
+
 test('imports every parsed plan item into an isolated database with literal bodies', async () => {
   const home = mkdtempSync(join(tmpdir(), 'orchestos-plan-import-'))
   const fixture = mkdtempSync(join(tmpdir(), 'orchestos-plan-import-fixture-'))
