@@ -179,6 +179,7 @@ export const OrchestChatView: React.FC<OrchestChatViewProps> = ({
   useEffect(() => {
     if (sessionId) markEntered(sessionId, messages, messagesLoaded)
   }, [sessionId, messages, messagesLoaded])
+  // biome-ignore lint/correctness/useExhaustiveDependencies: nuevos mensajes invalidan el contexto compartido del composer.
   useEffect(() => {
     if (!sessionId || !projectExists) return
     const controller = new AbortController()

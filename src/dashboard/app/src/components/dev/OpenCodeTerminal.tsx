@@ -38,6 +38,7 @@ export function OpenCodeTerminal({ projectId, kind = 'opencode' }: Props) {
     setAttempt((value) => value + 1)
   }, [])
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: attempt fuerza una nueva conexión al reabrir la terminal.
   useEffect(() => {
     const host = hostRef.current
     if (!host) return

@@ -16,7 +16,7 @@ import {
   Upload,
 } from 'lucide-react'
 import type React from 'react'
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { getExplorerTree } from '../../api/explorer'
 import { type GitChange, getGitChanges } from '../../api/git'
 import { useAppearanceSettings } from '../../lib/appearance-settings'
@@ -154,6 +154,7 @@ export const OrcaRightInspector: React.FC<OrcaRightInspectorProps> = ({
   const [changesLayout, setChangesLayout] = useState(diffSettings.changesLayout)
   const [changeFolders, setChangeFolders] = useState<Record<string, boolean>>({})
   useEffect(() => setChangesLayout(diffSettings.changesLayout), [diffSettings.changesLayout])
+  // biome-ignore lint/correctness/useExhaustiveDependencies: cambiar de proyecto o expansión predeterminada reinicia las carpetas del diff.
   useEffect(() => setChangeFolders({}), [diffSettings.foldersExpanded, currentProject.id])
   const [activeTab, setActiveTab] = useState<'files' | 'diff' | 'history'>('files')
   const [expandedFolders, setExpandedFolders] = useState<Record<string, boolean>>({})
@@ -167,8 +168,8 @@ export const OrcaRightInspector: React.FC<OrcaRightInspectorProps> = ({
   const currentProjectId = useRef(currentProject.id)
   currentProjectId.current = currentProject.id
 
-  const loadTree = () => {
-    const projectId = currentProject.id
+  const projectId = currentProject.id
+  const loadTree = useCallback(() => {
     const request = ++treeRequest.current
     void getExplorerTree('', projectId)
       .then((tree) => {
@@ -182,11 +183,11 @@ export const OrcaRightInspector: React.FC<OrcaRightInspectorProps> = ({
           setTreeError(error instanceof Error ? error.message : 'Unable to load files.')
         }
       })
-  }
+  }, [projectId])
 
   useEffect(() => {
     loadTree()
-  }, [currentProject.id])
+  }, [loadTree])
 
   useEffect(() => {
     const projectId = currentProject.id
@@ -221,10 +222,12 @@ export const OrcaRightInspector: React.FC<OrcaRightInspectorProps> = ({
   const refreshRef = useRef(onDiffRefresh)
   refreshRef.current = onDiffRefresh
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: cambiar de proyecto descarta los cambios git del proyecto anterior.
   useEffect(() => {
     setGitFiles([])
   }, [currentProject.id])
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: refresh fuerza la lectura al pulsar Refresh git changes.
   useEffect(() => {
     if (activeTab !== 'diff') return
     let cancelled = false

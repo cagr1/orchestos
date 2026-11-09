@@ -412,6 +412,22 @@
       "closedDate": null
     },
     {
+      "id": "CI.75",
+      "sprint": "Fase 2 — Producto mínimo para entrega",
+      "block": "Abiertos — fiabilidad de los gates y documentación",
+      "title": "Las 48 dependencias de hooks de React que Biome marca",
+      "status": "done",
+      "closedDate": null
+    },
+    {
+      "id": "CI.76",
+      "sprint": "Fase 2 — Producto mínimo para entrega",
+      "block": "Abiertos — fiabilidad de los gates y documentación",
+      "title": "`notifications`: a veces el diálogo \"Launch Agent\" no lista Claude",
+      "status": "open",
+      "closedDate": null
+    },
+    {
       "id": "CI.69",
       "sprint": "Fase 2 — Producto mínimo para entrega",
       "block": "Abiertos — fiabilidad de los gates y documentación",

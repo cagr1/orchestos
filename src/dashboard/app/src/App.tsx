@@ -342,101 +342,110 @@ export default function App() {
     new Map<string, Array<{ content: string; attachments: ChatAttachment[] }>>(),
   )
 
-  const loadThreadMessages = async (sessionId: string, projectId?: string | null) => {
-    const messages = await loadThreadMessagesRaw(sessionId, projectId)
-    return [...(sentAttachments.current.get(sessionId) ?? [])]
-      .reverse()
-      .reduce((merged, entry) => mergeOptimisticAttachments(merged, entry), messages)
-  }
-
-  const loadThreadMessagesRaw = async (sessionId: string, projectId?: string | null) => {
-    if (projectId && purgingProjectIds.current.has(projectId)) return []
-    const controller = new AbortController()
-    if (projectId) {
-      const controllers = projectHydrationControllers.current.get(projectId) ?? new Set()
-      controllers.add(controller)
-      projectHydrationControllers.current.set(projectId, controllers)
-    }
-    let settled: [
-      PromiseSettledResult<ChatMessageRow[]>,
-      PromiseSettledResult<TimelineResponse>,
-      PromiseSettledResult<ProjectTaskRow[]>,
-    ]
-    try {
-      const reads = Promise.allSettled([
-        getSessionMessages(sessionId, projectId ?? null, controller.signal),
-        getTimeline(sessionId, projectId ?? null, controller.signal),
-        getProjectTasks(projectId, controller.signal),
-      ])
+  const loadThreadMessagesRaw = useCallback(
+    async (sessionId: string, projectId?: string | null) => {
+      if (projectId && purgingProjectIds.current.has(projectId)) return []
+      const controller = new AbortController()
       if (projectId) {
-        const pending = projectHydrationReads.current.get(projectId) ?? new Set()
-        pending.add(reads)
-        projectHydrationReads.current.set(projectId, pending)
+        const controllers = projectHydrationControllers.current.get(projectId) ?? new Set()
+        controllers.add(controller)
+        projectHydrationControllers.current.set(projectId, controllers)
       }
+      let settled: [
+        PromiseSettledResult<ChatMessageRow[]>,
+        PromiseSettledResult<TimelineResponse>,
+        PromiseSettledResult<ProjectTaskRow[]>,
+      ]
       try {
-        settled = await reads
+        const reads = Promise.allSettled([
+          getSessionMessages(sessionId, projectId ?? null, controller.signal),
+          getTimeline(sessionId, projectId ?? null, controller.signal),
+          getProjectTasks(projectId, controller.signal),
+        ])
+        if (projectId) {
+          const pending = projectHydrationReads.current.get(projectId) ?? new Set()
+          pending.add(reads)
+          projectHydrationReads.current.set(projectId, pending)
+        }
+        try {
+          settled = await reads
+        } finally {
+          if (projectId) {
+            const pending = projectHydrationReads.current.get(projectId)
+            pending?.delete(reads)
+            if (pending?.size === 0) projectHydrationReads.current.delete(projectId)
+          }
+        }
       } finally {
         if (projectId) {
-          const pending = projectHydrationReads.current.get(projectId)
-          pending?.delete(reads)
-          if (pending?.size === 0) projectHydrationReads.current.delete(projectId)
+          const controllers = projectHydrationControllers.current.get(projectId)
+          controllers?.delete(controller)
+          if (controllers?.size === 0) projectHydrationControllers.current.delete(projectId)
         }
       }
-    } finally {
-      if (projectId) {
-        const controllers = projectHydrationControllers.current.get(projectId)
-        controllers?.delete(controller)
-        if (controllers?.size === 0) projectHydrationControllers.current.delete(projectId)
-      }
-    }
-    if (controller.signal.aborted) return []
-    const [messagesResult, timelineResult, tasksResult] = settled
-    if (messagesResult.status !== 'fulfilled') throw messagesResult.reason
-    const rows = messagesResult.value
-    const baseMessages = rows.map(mapMessage)
-    if (timelineResult.status !== 'fulfilled' || tasksResult.status !== 'fulfilled')
-      return baseMessages
-    const detailed = attachTurnDetails(baseMessages, rows, timelineResult.value)
-    const pendingTasks = new Map(
-      tasksResult.value.filter((task) => task.status === 'pending').map((task) => [task.id, task]),
-    )
-    const taskById = new Map(tasksResult.value.map((task) => [task.id, task]))
-    return detailed.map((named) => {
-      const row = rows.find((candidate) => String(candidate.id) === named.id)
-      let message = named
-      if (row?.taskId) {
-        const known = taskById.get(row.taskId)
-        const hasLaterReport = rows.some(
-          (other) => other.taskId === row.taskId && other.taskReport && other.id > row.id,
-        )
-        message = {
-          ...named,
-          taskDescription: known?.description,
-          ...(!known && !hasLaterReport && !named.taskReport ? { taskDeleted: true } : {}),
-        }
-      }
-      if (!message.taskHeld || !row?.taskId) return message
-      const task = pendingTasks.get(row.taskId)
-      // Una pending con motivo ya fue lanzada (fallo o bloqueo por árbol sucio).
-      if (task?.status === 'pending' && task.retryReason?.trim())
-        return { ...message, taskHeld: false, proposedTask: undefined }
-      // ERP.4.13: ya se lanzó (hay un reporte posterior de la misma tarea): la acción vive en el último reporte
-      const launched = rows.some(
-        (later) => later.id > row.id && later.taskId === row.taskId && later.taskReport,
+      if (controller.signal.aborted) return []
+      const [messagesResult, timelineResult, tasksResult] = settled
+      if (messagesResult.status !== 'fulfilled') throw messagesResult.reason
+      const rows = messagesResult.value
+      const baseMessages = rows.map(mapMessage)
+      if (timelineResult.status !== 'fulfilled' || tasksResult.status !== 'fulfilled')
+        return baseMessages
+      const detailed = attachTurnDetails(baseMessages, rows, timelineResult.value)
+      const pendingTasks = new Map(
+        tasksResult.value
+          .filter((task) => task.status === 'pending')
+          .map((task) => [task.id, task]),
       )
-      if (launched) return { ...message, taskHeld: false, proposedTask: undefined }
-      if (!task) return { ...message, taskHeld: false, proposedTask: undefined }
-      return {
-        ...message,
-        proposedTask: {
-          id: task.id,
-          description: task.description,
-          output: row.existingFiles.length ? row.existingFiles : (task.output ?? []),
-        },
-      }
-    })
-  }
+      const taskById = new Map(tasksResult.value.map((task) => [task.id, task]))
+      return detailed.map((named) => {
+        const row = rows.find((candidate) => String(candidate.id) === named.id)
+        let message = named
+        if (row?.taskId) {
+          const known = taskById.get(row.taskId)
+          const hasLaterReport = rows.some(
+            (other) => other.taskId === row.taskId && other.taskReport && other.id > row.id,
+          )
+          message = {
+            ...named,
+            taskDescription: known?.description,
+            ...(!known && !hasLaterReport && !named.taskReport ? { taskDeleted: true } : {}),
+          }
+        }
+        if (!message.taskHeld || !row?.taskId) return message
+        const task = pendingTasks.get(row.taskId)
+        // Una pending con motivo ya fue lanzada (fallo o bloqueo por árbol sucio).
+        if (task?.status === 'pending' && task.retryReason?.trim())
+          return { ...message, taskHeld: false, proposedTask: undefined }
+        // ERP.4.13: ya se lanzó (hay un reporte posterior de la misma tarea): la acción vive en el último reporte
+        const launched = rows.some(
+          (later) => later.id > row.id && later.taskId === row.taskId && later.taskReport,
+        )
+        if (launched) return { ...message, taskHeld: false, proposedTask: undefined }
+        if (!task) return { ...message, taskHeld: false, proposedTask: undefined }
+        return {
+          ...message,
+          proposedTask: {
+            id: task.id,
+            description: task.description,
+            output: row.existingFiles.length ? row.existingFiles : (task.output ?? []),
+          },
+        }
+      })
+    },
+    [],
+  )
 
+  const loadThreadMessages = useCallback(
+    async (sessionId: string, projectId?: string | null) => {
+      const messages = await loadThreadMessagesRaw(sessionId, projectId)
+      return [...(sentAttachments.current.get(sessionId) ?? [])]
+        .reverse()
+        .reduce((merged, entry) => mergeOptimisticAttachments(merged, entry), messages)
+    },
+    [loadThreadMessagesRaw],
+  )
+
+  // biome-ignore lint/correctness/useExhaustiveDependencies: cambiar de modo vuelve a hidratar las sesiones visibles.
   useEffect(() => {
     let disposed = false
     const visibleProjectId = activeProjectId || projects[0]?.id || null
@@ -494,7 +503,7 @@ export default function App() {
     return () => {
       disposed = true
     }
-  }, [activeProjectId, projects, mode])
+  }, [activeProjectId, projects, mode, loadThreadMessages])
 
   useEffect(() => {
     let disposed = false
@@ -551,9 +560,11 @@ export default function App() {
     return () => {
       disposed = true
     }
-  }, [])
+  }, [loadThreadMessages])
 
   const currentProject = projects.find((p) => p.id === activeProjectId) || projects[0]
+
+  const currentProjectId = currentProject?.id
 
   const handleOpenTerminal = () => {
     if (currentProject) updateDevTabs(currentProject.id, openTerminalTab)
@@ -564,20 +575,23 @@ export default function App() {
   const activeThreadTasks =
     threadTasks?.projectId === activeThread?.projectId ? (threadTasks?.tasks ?? []) : []
   const hasRunningThreadTasks = activeThreadTasks.some((task) => task.status === 'running')
+  const pollThreadId = activeThread?.id
+  const activeThreadProjectId = activeThread?.projectId
+  const activeThreadMessages = activeThread?.messages
   useEffect(() => {
-    if (!currentProject) return
-    const localCountOf = (thread: ChatThread, taskId: string) =>
-      thread.messages.filter((other) => other.taskId === taskId).length
+    if (!currentProjectId) return
+    const localCountOf = (taskId: string) =>
+      (activeThreadMessages ?? []).filter((other) => other.taskId === taskId).length
     const awaiting = [
       ...new Set(
-        (activeThread?.messages ?? [])
+        (activeThreadMessages ?? [])
           .filter((message) => message.role === 'assistant' && message.taskId && !message.taskHeld)
           .map((message) => message.taskId as string),
       ),
     ].filter(
       (taskId) =>
         !reportedTaskIds.current.has(
-          `${activeThread?.id}:${taskId}:${activeThread ? localCountOf(activeThread, taskId) : 0}`,
+          `${pollThreadId}:${taskId}:${pollThreadId ? localCountOf(taskId) : 0}`,
         ),
     )
     if (!awaiting.length && !hasRunningTasks && !hasRunningThreadTasks) return
@@ -587,11 +601,11 @@ export default function App() {
       if (polling) return
       polling = true
       try {
-        const result = await pollProjectAndThreadTasks(currentProject.id, activeThread?.projectId)
+        const result = await pollProjectAndThreadTasks(currentProjectId, activeThreadProjectId)
         if (disposed) return
         const tasks = result.threadTasks
         setTasks(result.projectTasks)
-        setThreadTasks({ projectId: activeThread?.projectId, tasks })
+        setThreadTasks({ projectId: activeThreadProjectId, tasks })
         const byRun: Record<string, PendingApproval[]> = {}
         await Promise.all(
           tasks
@@ -599,16 +613,16 @@ export default function App() {
               (task) => task.status === 'running' && task.runId && (task.pendingApprovals ?? 0) > 0,
             )
             .map(async (task) => {
-              byRun[task.runId!] = await getRunApprovals(task.runId!, activeThread?.projectId)
+              byRun[task.runId!] = await getRunApprovals(task.runId!, activeThreadProjectId)
             }),
         )
         if (disposed) return
-        setApprovals({ projectId: activeThread?.projectId, byRun })
+        setApprovals({ projectId: activeThreadProjectId, byRun })
         for (const taskId of awaiting) {
-          if (disposed || !activeThread) return
+          if (disposed || !pollThreadId) return
           const task = tasks.find((item) => item.id === taskId)
-          const localCount = localCountOf(activeThread, taskId)
-          const runKey = `${activeThread.id}:${taskId}`
+          const localCount = localCountOf(taskId)
+          const runKey = `${pollThreadId}:${taskId}`
           const key = `${runKey}:${localCount}`
           const action = decideTaskPollAction({
             task,
@@ -625,7 +639,7 @@ export default function App() {
             completedTaskPollAttempts.current.delete(key)
             continue
           }
-          const messages = await loadThreadMessages(activeThread.id, activeThread.projectId)
+          const messages = await loadThreadMessages(pollThreadId, activeThreadProjectId)
           if (disposed) return
           const outcome = resolveTaskReportPoll({
             localCount,
@@ -642,7 +656,7 @@ export default function App() {
           if (outcome.merge) {
             setThreads((prev) =>
               prev.map((thread) =>
-                thread.id === activeThread.id
+                thread.id === pollThreadId
                   ? {
                       ...thread,
                       messages: [
@@ -671,12 +685,13 @@ export default function App() {
       window.clearInterval(timer)
     }
   }, [
-    activeThread?.id,
-    activeThread?.projectId,
-    activeThread?.messages,
-    currentProject?.id,
+    pollThreadId,
+    activeThreadProjectId,
+    activeThreadMessages,
+    currentProjectId,
     hasRunningTasks,
     hasRunningThreadTasks,
+    loadThreadMessages,
   ])
   const activeAgent = currentProject?.agents.find((a) => a.id === activeAgentId) || null
   const projectForSession = (id: string) => {
@@ -691,7 +706,7 @@ export default function App() {
     localStorage.setItem('orchestos-last-project', projectId)
   }
 
-  const reloadHistory = async () => {
+  const reloadHistory = useCallback(async () => {
     const archived = await listArchivedSessions()
     const projectNames = new Map(projects.map((project) => [project.id, project.name]))
     const loaded = await Promise.all(
@@ -723,19 +738,19 @@ export default function App() {
       }),
     )
     setHistorySessions(loaded)
-  }
+  }, [projects, loadThreadMessages])
 
   useEffect(() => {
     if (projects.length) void reloadHistory().catch(() => setHistorySessions([]))
-  }, [projects])
+  }, [projects, reloadHistory])
 
   useEffect(() => {
-    if (!currentProject) {
+    if (!currentProjectId) {
       setRuns([])
       return
     }
     let disposed = false
-    void listRuns(currentProject.id)
+    void listRuns(currentProjectId)
       .then((loaded) => {
         if (!disposed) setRuns(loaded)
       })
@@ -745,16 +760,16 @@ export default function App() {
     return () => {
       disposed = true
     }
-  }, [currentProject?.id])
+  }, [currentProjectId])
 
   useEffect(() => {
-    if (!currentProject) {
+    if (!currentProjectId) {
       setProjectContext(null)
       return
     }
     let disposed = false
     setProjectContext(null)
-    void getProjectContext(currentProject.id)
+    void getProjectContext(currentProjectId)
       .then((context) => {
         if (!disposed) setProjectContext(context)
       })
@@ -764,29 +779,30 @@ export default function App() {
     return () => {
       disposed = true
     }
-  }, [currentProject?.id])
+  }, [currentProjectId])
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: cambiar de modo refresca las tareas del proyecto.
   useEffect(() => {
-    if (!currentProject) {
+    if (!currentProjectId) {
       setTasks([])
       setTaskError(null)
       return
     }
-    if (purgingProjectIds.current.has(currentProject.id)) return
+    if (purgingProjectIds.current.has(currentProjectId)) return
     let disposed = false
     const controller = new AbortController()
-    const controllers = projectHydrationControllers.current.get(currentProject.id) ?? new Set()
+    const controllers = projectHydrationControllers.current.get(currentProjectId) ?? new Set()
     controllers.add(controller)
-    projectHydrationControllers.current.set(currentProject.id, controllers)
-    const taskRead = listTasks(currentProject.id, controller.signal)
-    const pendingReads = projectHydrationReads.current.get(currentProject.id) ?? new Set()
+    projectHydrationControllers.current.set(currentProjectId, controllers)
+    const taskRead = listTasks(currentProjectId, controller.signal)
+    const pendingReads = projectHydrationReads.current.get(currentProjectId) ?? new Set()
     pendingReads.add(taskRead)
-    projectHydrationReads.current.set(currentProject.id, pendingReads)
+    projectHydrationReads.current.set(currentProjectId, pendingReads)
     void taskRead
       .then((result) => {
         if (disposed) return
         setTasks(result.tasks)
-        setAttentionTasksProject(currentProject.id)
+        setAttentionTasksProject(currentProjectId)
         setTaskError(result.error || null)
       })
       .catch((error) => {
@@ -798,16 +814,16 @@ export default function App() {
     return () => {
       disposed = true
       controller.abort()
-      const active = projectHydrationControllers.current.get(currentProject.id)
+      const active = projectHydrationControllers.current.get(currentProjectId)
       active?.delete(controller)
-      if (active?.size === 0) projectHydrationControllers.current.delete(currentProject.id)
-      const pending = projectHydrationReads.current.get(currentProject.id)
+      if (active?.size === 0) projectHydrationControllers.current.delete(currentProjectId)
+      const pending = projectHydrationReads.current.get(currentProjectId)
       pending?.delete(taskRead)
-      if (pending?.size === 0) projectHydrationReads.current.delete(currentProject.id)
+      if (pending?.size === 0) projectHydrationReads.current.delete(currentProjectId)
     }
-  }, [mode, currentProject?.id])
+  }, [mode, currentProjectId])
 
-  const refreshProjectTabs = async (projectId: string) => {
+  const refreshProjectTabs = useCallback(async (projectId: string) => {
     if (purgingProjectIds.current.has(projectId)) return
     // Registrada como hidratación del proyecto: el purge la aborta antes de borrar (si no, 404 tras el purge).
     const controller = new AbortController()
@@ -842,27 +858,28 @@ export default function App() {
       if (controllers.size === 0) projectHydrationControllers.current.delete(projectId)
       setProjectTabsLoading(false)
     }
-  }
+  }, [])
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: cambiar de modo refresca Memory, Specs, Skills e Instincts.
   useEffect(() => {
-    if (currentProject) void refreshProjectTabs(currentProject.id)
+    if (currentProjectId) void refreshProjectTabs(currentProjectId)
     else {
       setMemories([])
       setSpecs([])
       setSkills([])
       setInstincts([])
     }
-  }, [mode, currentProject?.id])
+  }, [mode, currentProjectId, refreshProjectTabs])
 
-  const refreshUsage = async () => {
-    if (!currentProject) return
+  const refreshUsage = useCallback(async () => {
+    if (!currentProjectId) return
     usageAbortRef.current?.abort()
     const controller = new AbortController()
     usageAbortRef.current = controller
     setRefreshingUsage(true)
     try {
       const response = await fetch('/api/session/status', {
-        headers: { 'x-orchestos-project-id': currentProject.id },
+        headers: { 'x-orchestos-project-id': currentProjectId },
         signal: controller.signal,
       })
       if (!response.ok) throw new Error(String(response.status))
@@ -881,10 +898,10 @@ export default function App() {
         setRefreshingUsage(false)
       }
     }
-  }
+  }, [currentProjectId])
 
   useEffect(() => {
-    if (!currentProject) return
+    if (!currentProjectId) return
     void refreshUsage()
     const timer = window.setInterval(() => void refreshUsage(), 60_000)
     const onVisibilityChange = () => {
@@ -896,7 +913,7 @@ export default function App() {
       document.removeEventListener('visibilitychange', onVisibilityChange)
       usageAbortRef.current?.abort()
     }
-  }, [currentProject?.id])
+  }, [currentProjectId, refreshUsage])
 
   // Mode change handler that tracks previous mode
   const handleModeChange = (newMode: AppMode) => {

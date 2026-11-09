@@ -41,6 +41,7 @@ export function useAttentionNotifications(input: Input) {
     waiting ||
     input.threads.some((thread) => thread.status === 'waiting_approval')
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: cambiar de proyecto cancela el poll anterior antes de entregar sesiones al proyecto nuevo.
   useEffect(() => {
     if (!shouldPoll) return
     let disposed = false

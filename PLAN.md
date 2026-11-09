@@ -650,6 +650,28 @@ Propuesta y comparación con las tres referencias: `docs/specs/ADE-PLAN.md`. Uno
   Gates del cerebro: `typecheck`, `lint` exit 0, diff revisado (solo forma); suite completa en el pre-push.
   Gate en vivo: Playwright `settings-pages` 32/32 tras el build, `docs/done/evidence/CI.74-live.json`.
   Ejecutado por: codex (mecanico) · Spec: docs/specs/CI.74.md
+- [x] **CI.75 — Las 48 dependencias de hooks de React que Biome marca.** (resto de CI.74, GO de Carlos 2026-11-09)
+  `useExhaustiveDependencies`: 29 en `App.tsx`, 7 en `OrchestSettingsView.tsx`, 5 en `OrcaRightInspector.tsx`, 7 en
+  otros. 16 sobran, 13 son más específicas que lo capturado, 19 faltan (`currentProject` ×6,
+  `loadThreadMessages` ×3…). Una dependencia faltante es un cierre viejo posible (bug); una de más, un efecto que
+  corre de más.
+  Hecho: 48 → 0. `App.tsx`: `loadThreadMessages`, `reloadHistory`, `refreshProjectTabs` y `refreshUsage` pasan a
+  `useCallback` (solo refs y setters, sin estado capturado; revisado por el cerebro) y los efectos capturan el ID en
+  vez del objeto; `OrchestSettingsView` usa el scope efectivo `configProjectId`; los disparadores intencionales
+  (cambio de modo, revisión del diff, `attempt` de la terminal…) quedan con `biome-ignore` y su razón. El ejecutor
+  no encontró un cierre viejo observable (ningún BUG).
+  Gates del cerebro: `typecheck`, build, Playwright `project-tabs` 40/40, `settings-pages` 32/32, `chat-continuity`
+  8/8, `dev-session-tabs` 50/50, `diff-view` 19/19, `tasks` 43/43; `notifications` falló 1 vez (Claude ausente del
+  diálogo de agente, ruta no tocada) y pasó 10/10 al repetir → CI.76.
+  Gate en vivo: Playwright `project-tabs` 40/40, `docs/done/evidence/CI.75-live.json`.
+  Ejecutado por: codex gpt-6.1-sol (criterio) · Spec: docs/specs/CI.75.md
+- [ ] **CI.76 — `notifications`: a veces el diálogo "Launch Agent" no lista Claude.** (abierto 2026-11-09) En la
+  corrida de CI.75 el paso que abre un agente en Dev esperó 30 s `getByRole('dialog').getByRole('button', { name:
+  /Claude/ })` (`notifications.mjs:303`): el diálogo mostraba solo Codex y opencode, aunque Claude había respondido
+  3 turnos de chat segundos antes en la misma corrida. La lista sale de `GET /api/system/executor-modes`
+  (`NewAgentSelectorModal.tsx:48`, `server.ts:561`). Al repetir pasó 10/10. Evidencia:
+  `docs/done/evidence/CI.76-notifications-claude-missing.json`. Fase 1: que el fallo deje la respuesta de
+  `executor-modes` y la razón por la que Claude salió no disponible.
 - [ ] **CI.69 — `usage-bar`: a veces el Enter del composer no envía el turno.** (abierto 2026-11-08) Falló en el
   pre-push de ADE.7/8 (`2e9aae2d`, `1355590c`): `page.waitForResponse` 180 s sin `POST /api/chat`
   (`usage-bar.mjs:309`). Captura: picker de modelo abierto (Luna · medium) y el texto sigue en la caja, así que

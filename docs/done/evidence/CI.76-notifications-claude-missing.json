@@ -1,0 +1,93 @@
+[
+  {
+    "flujo": "notifications",
+    "pass": false,
+    "steps": [
+      {
+        "nombre": "Notifications exposes three switches and permission",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "permission request and Test exercise browser notification and audio",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "real background chat emits exactly one notification and tone with the thread title",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "focused chat emits neither notification nor sound",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "disabled completion type suppresses both channels",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "pending approval emits once with two tones",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "notification click opens its original Chat thread",
+        "ok": true,
+        "detalle": "ok"
+      }
+    ],
+    "notes": [
+      {
+        "nombre": "opening notifications settings",
+        "detalle": ""
+      },
+      {
+        "nombre": "sending chat turn",
+        "detalle": ""
+      },
+      {
+        "nombre": "chat response finished",
+        "detalle": "200"
+      },
+      {
+        "nombre": "sending chat turn",
+        "detalle": ""
+      },
+      {
+        "nombre": "chat response finished",
+        "detalle": "200"
+      },
+      {
+        "nombre": "opening notifications settings",
+        "detalle": ""
+      },
+      {
+        "nombre": "sending chat turn",
+        "detalle": ""
+      },
+      {
+        "nombre": "chat response finished",
+        "detalle": "200"
+      },
+      {
+        "nombre": "opening notifications settings",
+        "detalle": ""
+      },
+      {
+        "nombre": "opening notifications settings",
+        "detalle": ""
+      }
+    ],
+    "errores": [
+      "locator.click: Timeout 30000ms exceeded. [waiting for getByRole('dialog').getByRole('button', { name: /Claude/ }).first()]"
+    ],
+    "capturas": [
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-19046/notifications/notifications-settings.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-19046/notifications/failure.png"
+    ],
+    "errorDetalle": "locator.click: Timeout 30000ms exceeded.\nCall log:\n  - waiting for getByRole('dialog').getByRole('button', { name: /Claude/ }).first()\n"
+  }
+]

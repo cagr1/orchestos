@@ -80,6 +80,7 @@ export function DevDiffPanel({
   useEffect(() => setIgnoreWhitespace(settings.ignoreWhitespace), [settings.ignoreWhitespace])
   const [result, setResult] = useState<{ patch: string; deleted: boolean } | null>(null)
   const [error, setError] = useState(false)
+  // biome-ignore lint/correctness/useExhaustiveDependencies: revision invalida el diff cuando el inspector detecta cambios en disco.
   useEffect(() => {
     let cancelled = false
     void Promise.all([

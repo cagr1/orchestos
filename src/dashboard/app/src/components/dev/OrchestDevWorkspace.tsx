@@ -257,6 +257,7 @@ export const OrchestDevWorkspace: React.FC<OrchestDevWorkspaceProps> = ({
     sentAt: number
   } | null>(null)
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: cambiar de agente descarta el mensaje optimista y reinicia el estado local.
   useEffect(() => {
     setPendingUserMessage(null)
     setSessionStatus('done')
@@ -294,6 +295,7 @@ export const OrchestDevWorkspace: React.FC<OrchestDevWorkspaceProps> = ({
     }
   }, [activeAgent?.id, activeAgent?.projectId, sessionStatus, timeline?.pending, onTimelinePending])
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: los mensajes nuevos invalidan el contexto compartido del composer.
   useEffect(() => {
     // The fetch fills the shared cache that the composer ring reads.
     if (!activeAgent?.id) return

@@ -101,6 +101,7 @@ export function DevSessionTabs({
       children.disconnect()
     }
   }, [measure])
+  // biome-ignore lint/correctness/useExhaustiveDependencies: la pestaña seleccionada debe entrar en el viewport al cambiar activeId.
   useEffect(() => {
     tablistRef.current
       ?.querySelector<HTMLElement>('[aria-selected="true"]')

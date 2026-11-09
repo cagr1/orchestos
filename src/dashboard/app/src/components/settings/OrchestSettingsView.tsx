@@ -1375,7 +1375,7 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
       disposed = true
       controller.abort()
     }
-  }, [activeProjectId, projects])
+  }, [configProjectId])
 
   const refreshSettings = async () => {
     const [settings, nextConfig] = await Promise.all([getSettings(), getConfig(configProjectId)])
@@ -1551,6 +1551,7 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
     return () => window.clearTimeout(timer)
   })
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: descartar borradores solo al navegar; baseline y validadores cambian durante la edición y el guardado, cuando no deben descartarse.
   useEffect(() => {
     // Navigating away discards incomplete local entries without a prompt.
     if (activeSection !== 'model_routing') {
@@ -1620,6 +1621,7 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
     return cells
   }, [language, usage])
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: al cambiar la cantidad de celdas hay que volver al extremo reciente del calendario.
   React.useEffect(() => {
     if (activeSection !== 'usage') return
     const element = activityScrollRef.current
