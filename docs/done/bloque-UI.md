@@ -1056,3 +1056,101 @@ En todos: `prefers-reduced-motion` = cambios instantáneos o fundidos cortos.
   Ejecutado por: gpt-6.1-sol (rol `criterio`) · Spec: docs/specs/UI.29.md (borrado). Revisión: Opus (diff + vivo).
   Gate en vivo: navegador real (Playwright), `docs/done/evidence/UI.29-live.json` — `shell-look` 76/76,
   `chat-streaming` 27/27 (Sol: 3/3 rondas).
+
+- [x] **UI.66 — Quitar `orchestos / master` del header superior.** (Carlos, 2026-11-06: "no tiene sentido") El
+  breadcrumb proyecto/rama de `ShellHeader.tsx` no aportaba; se borra el bloque y las props `activeProjectName` /
+  `activeBranch` que le pasaba `App.tsx`. Gates del cerebro: `tsc --noEmit` y `build:app` verdes.
+  Gate en vivo: navegador real (panel del navegador, dashboard en :4299), `docs/done/evidence/UI.66-live.json`
+  Ejecutado por: claude opus 5.5
+
+- [x] **UI.67 — Tabs de Dev: `+` pegado a la última tab y desborde con muchas tabs.** (Carlos, 2026-11-06: el `+`
+  quedaba en el borde derecho y "solo me deja abrir 2") Causa: no había tope; la lista ocupaba todo el ancho
+  (`flex-1`) y empujaba el `+` al borde, y desde la tercera tab desbordaba sin barra visible, así que las nuevas
+  quedaban fuera de vista. Arreglo en `DevSessionTabs.tsx`: la lista mide lo que ocupan sus tabs y el `+` va justo
+  después; con desborde las tabs se encogen hasta 128 px, luego hay scroll horizontal (rueda vertical incluida), sin
+  barra, con fundido en el borde que esconde tabs. Gates del cerebro: `tsc --noEmit`, `build:app`,
+  `dev-session-tabs` 47/47 y `shell-look` 75/75 (`gate:evidence` `UI.67-dev-tabs`).
+  Gate en vivo: navegador real (panel del navegador, 10 tabs abiertas en :4299), `docs/done/evidence/UI.67-live.json`
+  Ejecutado por: claude opus 5.5
+
+- [x] **UI.68 — Chat vacío sin la línea "agente · modelo".** (Carlos, 2026-11-06: "texto innecesario") Bajo el
+  nombre del proyecto se repetía p. ej. "Codex · gpt-6.1-sol", que el composer ya muestra. `ThreadEmpty` queda solo
+  con el título; se borran `cliName`, `chatClis` y su `getCliModels`, que solo existían para esa línea.
+  Hermano hallado: `thread-states` estaba rojo en `master` (`a2666db3`) desde RUN.1, que quitó Retry de la tarjeta
+  fallida a propósito pero no actualizó el gate; ahora el gate exige que Retry no esté.
+  Gates del cerebro: `tsc --noEmit`, `build:app`, `thread-states` 311/311, `chat-streaming` 27/27, `codex-live`
+  15/15 (`gate:evidence` `UI.68-chat-live`).
+  Gate en vivo: navegador real (panel del navegador, chat nuevo en :4299), `docs/done/evidence/UI.68-live.json`
+  Ejecutado por: claude opus 5.5
+  Texto visible: "OrchestOS" (título de ejemplo del chat vacío en la hoja de estados; ya existía, solo pierde el subtítulo)
+
+- [x] **UI.69 — Restaurar el logo "S" en el header y el favicon.** (Carlos, 2026-11-06: eligió su logo original, la
+  "S" geométrica borrada en `ff090e38`, frente a la marca de red con degradado) Hecho: `BrandMark.tsx` con los 4
+  trazos de `AnimatedLogoDark.svg` sin animación y en `currentColor`; el header lo muestra a 16 px antes de
+  "Orchest OS"; el favicon pasa de la "O" celeste a la S clara sobre fondo oscuro. Trazos comparados uno a uno con
+  el original (componente y favicon: iguales). Gates del cerebro: `tsc --noEmit`, `build:app`, `shell-look` 75/75
+  (`gate:evidence` `UI.69-shell-look`).
+  Gate en vivo: navegador real (panel del navegador, header en :4299), `docs/done/evidence/UI.69-live.json`
+  Ejecutado por: codex gpt-6-luna (mecanico) · Spec: docs/specs/UI.69.md
+
+- [x] **UI.63 — El popover de cuotas muestra los créditos de reinicio de Codex.** (abierto 2026-11-04, GO de Carlos)
+  `account/rateLimits/read` ya devuelve `rateLimitResetCredits {availableCount, credits[{status, expiresAt, title}]}`
+  (en vivo hoy: 3 disponibles, "Full reset (Weekly + 5 hr)") y OrchestOS lo descarta. Solo se muestra; gastar un
+  crédito (`account/rateLimitResetCredit/consume`) es irreversible y queda fuera.
+  Texto visible: "Reset credits" en el popover (un número suelto no dice qué es) y la expiración del más próximo.
+  Hecho: `parseCodexResetCredits` en `scripts/context-adapters.ts` (cuenta y vencimiento más próximo; sin `id` ni
+  `description`); `rateLimits.resetCredits` en `/api/session/status` solo para Codex; fila "Reset credits N · expires
+  in Nd" en el popover, solo con créditos > 0. r1: el número no hereda el color de la cuota semanal. Gates del cerebro:
+  tsc, lint, `test:coverage` 2287/0.
+  Gate en vivo: navegador real (Playwright), `docs/done/evidence/UI.63-live.json`; `ui:gate usage-bar` 22/22 repetido
+  por el cerebro con Codex real; captura mirada a ojo: "Reset credits 3 · expires in 1d".
+  Revisión: Opus (diff de Sol leído completo; r1 de Luna verificado).
+  Ejecutado por: codex gpt-6.1-sol (criterio) + luna (mecanico r1)
+
+- [x] **UI.64 — El (+) de proyecto y el de adjuntar abren un menú, no una acción directa.** (pedido de Carlos
+  2026-11-05) "+ Add project" ofrece clonar desde URL como Orca, T3 y MonoCode. Adjuntar archivo en Chat y Dev hoy
+  abre directo el selector del sistema; debe abrir antes un menú.
+  Decisión (2026-11-05): adjuntar = "Subir desde la computadora" + "Archivo del proyecto"; clonar = URL + carpeta de
+  destino elegible (por defecto la que contiene los proyectos), registra y activa. Referencias leídas (bundle de Orca, código de T3): ambas abren directo el selector al
+  adjuntar; el menú del clip es decisión propia. MonoCode sin verificar (binario Tauri).
+  Hecho: el (+) de proyecto, en la barra lateral y en Settings, abre un menú con "Open folder" y "Clone from URL".
+  El diálogo pide Git URL y Clone location, por defecto la carpeta padre del proyecto activo, con "Choose folder"
+  nativo y vista previa de la ruta final. `POST /api/projects/clone`: `git clone -- <url> <destino>` sin shell,
+  solo https, ssh y git@ (`file://` solo con el flag de test que pone `ui-gate/run.mjs`), timeout de 45 s, destino
+  exclusivo, borra solo lo que creó y registra y activa el clon. El clip abre "Upload from computer" y "File from
+  project", que reusa el selector de `@`. Gates del cerebro: tsc, lint, `test:coverage` 2315/0,
+  `project-add-menu` 12/12, `project-tabs` 40/40, `smoke` 7/7.
+  Gate en vivo: navegador real (Playwright), `docs/done/evidence/UI.64-live.json`
+  Revisión: Opus (handler de clonar leído completo; capturas del menú, del diálogo y del clip mirados).
+  Anotado: el menú del clip se superpone al borde del composer.
+  Texto visible: "Clone from URL" · "Enter the Git URL and choose where to clone it." (el diálogo dice qué pide, como Orca)
+  Texto visible: "Git URL" · "Clone location" · "Choose folder" · "Cancel" (rótulos de campos y botones de un formulario)
+  Ejecutado por: codex gpt-6.1-sol (criterio r1) + gpt-6-luna (mecanico r2)
+
+- [x] **UI.65 — Acabados de la tarjeta de tarea y del menú del clip.** (pedido de Carlos 2026-11-06) Anotados en
+  RUN.1 y UI.64: "Interrupted" sale dos veces en la tarjeta interrumpida (`TaskCard.tsx:263` y `:276`); `pending` con
+  reintento muestra el resumen y no el diagnóstico (sin causa aislada: `task-report.ts:73` sí lo arma); el menú del
+  clip se superpone al borde del composer (`AgentComposer.tsx`).
+  Hecho: la tarjeta interrumpida dice "Interrupted" una vez; el menú del clip se ancla al composer
+  (`ActionMenuButton` con `anchorRef`, `bottom-full`) y ya no pisa su borde en Chat ni Dev; paso nuevo
+  `failed attempt shows diagnosis` en `chat-retry-report`: el intento 1/3 muestra el diagnóstico (no reprodujo el
+  resumen visto en RUN.1; probable mensaje persistido antes de RUN.1, sin confirmar). Gates del cerebro: tsc, lint,
+  `chat-retry-report` 26/26, `restart-mid-run` 31/31, `project-add-menu` 14/14 (`gate:evidence` `UI.65-live`).
+  Gate en vivo: navegador real (Playwright), `docs/done/evidence/UI.65-live.json`
+  Revisión: Opus (diff leído; capturas del clip antes/después en Chat y Dev, tarjeta fallida e interrumpida mirados).
+  Ejecutado por: codex gpt-6.1-sol (criterio) · Spec: docs/specs/UI.65.md
+  Texto visible: "The task runner stopped before it finished" (un ícono no dice que el runner se cortó antes de terminar)
+
+- [x] **UI.70 — Íconos por tipo de archivo y carpeta en el explorer, como VS Code.** (Carlos 2026-11-07, visto en
+  MonoCode) Hoy `OrcaRightInspector.tsx:6-9` usa cuatro íconos genéricos de lucide (`FileCode`, `FileText`, `Folder`,
+  `FolderOpen`). Propuesta: subconjunto de Material Icon Theme (MIT) como SVG estáticos en `dist/` (no en `main.js`),
+  tabla extensión/nombre → ícono, genérico como respaldo; mismo ícono en tabs del editor y diff. Va después de SK.3.
+  Hecho: `build:app` genera `dist/file-icons/manifest.json` desde `generateManifest()` (extensiones, nombres de
+  archivo y carpeta, ya resueltos a SVG) y copia los 1130 SVG referenciados + `LICENSE` (4,9 MB fuera de `main.js`);
+  resolver puro `lib/file-icons.ts` (nombre exacto → extensión compuesta más larga → default); `useFileIcons` hace un
+  solo fetch; `FileIcon` cae al lucide de antes sin manifest. Aplicado en árbol, lista del diff y tabs de archivo.
+  Gates del cerebro: `build:app`, `typecheck`, `lint`, `test:coverage` 2386/0, `dev-session-tabs` 50/50
+  (`gate:evidence` `UI.70-dev-session-tabs`); captura del árbol mirada.
+  Gate en vivo: navegador real (Playwright), `docs/done/evidence/UI.70-live.json`
+  Revisión: Opus (diff de build, resolver, hook, componente y usos leído).
+  Ejecutado por: codex gpt-6.1-sol (criterio) · Spec: docs/specs/UI.70.md

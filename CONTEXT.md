@@ -14,16 +14,18 @@ Ver `AGENTS.md` § "Invariantes de arquitectura permanentes" — QA, roadmap, co
 Movidos ahí el 2026-08-17 porque `orchestos context update` sobreescribe este archivo por completo
 y no debe ser la fuente de nada permanente.
 
-### Estado vigente (2026-10-22, DOC.4)
+### Estado vigente (2026-11-09; base DOC.4 del 2026-10-22)
 
-Fuente de lo activo: `PLAN.md` (§ Rumbo, y 5 ítems abiertos) y `NEXT.md`. Lo cerrado, con evidencia, en
-`docs/done/bloque-<PREFIJO>.md` (DOC.4 archivó 133 ítems el 2026-10-22). Las notas "Estado estable" de abajo
+Fuente de lo activo: `PLAN.md` (§ Rumbo, y 6 ítems abiertos) y `NEXT.md`. Lo cerrado, con evidencia, en
+`docs/done/bloque-<PREFIJO>.md` (DOC.4 archivó 133 ítems el 2026-10-22; la limpieza del 2026-11-09, 55 más). Las notas "Estado estable" de abajo
 conservan su fecha y, donde una frase quedó superada, lo dice la línea "Superado:".
 
 - **Producto.** R.8 (recorrido útil) y el piloto ERP.4–ERP.7 cerrados; veredicto de Carlos sobre ERP.4 (2026-10-13):
   "sirve, pero todavía no solo". Interfaz: UI.24 (hilo premium), UI.25 (Settings con la familia), UI.26 (forma de
   Gr8r) y UI.27 (icono del agente, títulos sin "Agente:", anillo de contexto en la barra superior, asides
-  redimensionables) cerrados. El tema por defecto no cambia.
+  redimensionables) cerrados. El tema por defecto no cambia. Bloque ADE (2026-11-07/09) cerrado: editar archivos
+  desde el explorer, atajos desde `lib/keybindings.ts`, Settings → Editor y Terminal, ajustes por proyecto
+  (`docs/done/bloque-ADE.md`). Fase 2 sin ítems de producto abiertos; Fase 3 cerrada.
 - **Las tareas las decide el cerebro desde el chat** (Carlos, 4.ª vez, 2026-10-22). Ninguna vista invita a crearlas a
   mano: UI.28 quitó "Create First Task" de Settings → Tasks y "Add task" + el modal "Append to tasks.yaml" de Plan.
 - **Permisos de Codex (CI.32.c, decisión de Carlos 2026-10-22).** En auto-edit, la tarea Codex corre con su sandbox
@@ -36,7 +38,9 @@ conservan su fecha y, donde una frase quedó superada, lo dice la línea "Supera
   `retry_reason` + `retry_count+1` y termina (`src/cli.ts:1343`); no reintenta solo (eso es del `graph-runner`).
   `waitForTaskRun` (`api/chat.ts`) y `runTask` (`api/tasks.ts`) comparan contra la foto previa al POST y terminan con
   `Retry scheduled: <motivo>`.
-- **Fiabilidad.** Abiertos CI.11, CI.18, CI.19, CI.23 (intermitentes del pre-push). `chat-streaming` (CI.35) compara
+- **Fiabilidad.** Abiertos CI.19, CI.54, CI.55, CI.57, CI.69, CI.76 (intermitentes de los ui-gates). Desde CI.70 los
+  ui-gates corren de noche (`scripts/nightly-ui-gates.ts`, resultado en el startup-guard) y el pre-push corre `tsc`,
+  lint y `test:coverage`; el lint falla si sube el conteo de avisos de una regla (CI.80, `scripts/lint-budget.json`). `chat-streaming` (CI.35) compara
   palabras y no Markdown crudo: el DOM renderizado no trae marcadores de lista ni cercas de código. `RunLogger.write`
   (CI.36) nunca tumba la corrida. Estado real de CI: `gh run list --workflow CI`. Chequeo de tipos completo:
   `bun run typecheck`; `bunx tsc --noEmit` de la raíz excluye `src/dashboard/app`.

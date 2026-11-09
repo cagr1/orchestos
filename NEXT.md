@@ -1,4 +1,4 @@
-# NEXT — handoff 2026-11-09 (CI.72–79 cerrados)
+# NEXT — handoff 2026-11-09 (Fase 2 sin producto abierto; decide Carlos)
 
 Un solo presente: orden y trampas vivas del lote. Lo cerrado vive en `docs/done/bloque-*.md` y git; las reglas, en
 `AGENTS.md`. Versión anterior completa: `docs/done/poda-instrucciones-2026-11-03.md` (histórico).
@@ -6,43 +6,17 @@ Arranque: `bun run agent:preflight -- --item <ID> --agent claude`. Lista viva: `
 
 ## Orden
 
-0. Hecho 2026-11-07 (bloque ADE, GO de Carlos; propuesta y comparación con Orca/T3/MonoCode en
-   `docs/specs/ADE-PLAN.md`): plan `15f8630b`; ADE.1 `8c56a98f` (editar archivos: CodeMirror, ⌘S, conflicto con el
-   disco, `PUT /api/explorer/file`); ADE.2 `0104b2bf` (Settings → Editor); ADE.3 `59150637` (14 atajos desde
-   `lib/keybindings.ts`, Go to file ⌘P, paleta sin acciones del prototipo); CI.68 `7ad5c745` (gate `model-routing`
-   espera la sugerencia). Antes, el mismo día: CI.66 `f149cba9`, CI.67 `85f09c44`, SK.3 `d132e976`, UI.70 `7bfb7199`.
-1. Hecho 2026-11-07/08: ADE.4 `9fd00b9f`, ADE.5 `e369e260`, ADE.6 `46902e01`, ADE.7 `2e9aae2d` (escala UI ⌘= ⌘- ⌘0,
-   ocultar ignorados por git, diff daltónico), ADE.8 `1355590c` (unificado/lado a lado, espacios, Changes en árbol),
-   ADE.9 `4ad5dd8e` (Settings → Terminal), ADE.10 `3aeec278` (nombre, ícono, rama base, script de setup por proyecto;
-   merge-back sin mover el checkout). Bloque ADE completo.
-   Decidido por el cerebro, Carlos puede revertir: cola por defecto "Queue message"; clic en notificación abre Dev
-   solo si el hilo es pestaña de Dev abierta; ajustes de proyecto en la DB local, no en el config del repo.
-1b. Hecho CI.70 (GO de Carlos 2026-11-08): cada prueba corre una vez (`AGENTS.md` § Gates); pre-push sin flujos;
-   todos los flujos a las 01:30 en local, resultado en el startup-guard. Mañana: leer el aviso de arranque y resolver
-   lo rojo/flaky antes del siguiente ítem. Primera corrida completa: noche del 2026-11-08 (duración aún sin medir).
-2. Hecho CI.71 `51a8e03d` (desacople del método personal, `LIMPIEZA-2` § 2, borrado; en git): reglas, hooks, roadmaps y
-   fixtures sin `~/.agent-method`, alias de modelos ni vault. Se quedan a propósito: `delegate` en
-   `scripts/writer-lock.mjs`, aislamiento de `~/.claude` en `qa-negative`/`cli-registry`, historia en `IDEAS.md`/`docs/done/`.
-2b. Hecho ADE.11 `4631c4fd` (terminal escala con la UI, "Replace" por teclado, atajos de letra por carácter) y LIMP.4
-   `09445a3a` (evidencia de ítems cerrados fuera del árbol; queda solo la de ítems abiertos). LIMPIEZA-2 completo.
-2c. Hecho 2026-11-09: CI.72 `971b3c04` (la corrida nocturna no tenía `node` de nvm: 45/49 rojos; el instalador
-   hereda el PATH del usuario y la corrida no arranca si falta un binario), auditoría de `IDEAS.md` `73247216`
-   (6 hechas, 5 obsoletas fuera; quedan 21), CI.73 `333e1f86` (#62), #63 medido y cerrado, CI.74 `38b787db` (#61:
-   1.078+382 avisos → 388). **Primera corrida nocturna válida: noche del 2026-11-09**; leer el aviso de arranque.
-   Decide Carlos: los 378 avisos de producto (`any` 137, `!` 90, deps de hooks 48, a11y ~60) cambian código real.
-2d. Hecho 2026-11-09 (tarde): CI.75 `678c23e5` (48 deps de hooks), CI.77 `27c3378f` (58 avisos a11y), CI.79
-   `62c2bf34` (adjuntos de Dev se perdían: el composer se desmontaba al hidratar la sesión). Abiertos: CI.76
-   (`notifications` sin Claude en el diálogo, flaky). CI.78 hecho: `shell-look` 75/75; el Escape justo tras abrir
-   un overlay se perdía (listener en `useEffect`) → `useLayoutEffect` en 5 sitios.
-   CI.80 hecho: el lint falla si sube el conteo de avisos de alguna regla (`scripts/lint-budget.json`).
-   Siguiente: Carlos elige producto o el mes
-   de uso real. Biome: 282 avisos restantes.
-3. Mutación 42469416136: el re-run terminó verde (todos los shards). Desde CI.70 no se vigila en sesión.
-4. **Esperan su próximo fallo**: CI.69 (`usage-bar`, Enter sin envío; ver ítem); CI.57 `composer-picker-model-missing.json`; CI.54 `turn1-bubble-missing.json`; CI.19;
-   CI.55 (`role-task-missing-output-attempt-<n>.json`). Leer el JSON el mismo día: CI.62 borra el `runDir` a las 24 h.
+1. **Siguiente: decide Carlos** — otro bloque de producto o el mes de uso real. Fase 2 sin ítems de producto
+   abiertos; Fase 3 cerrada (`PLAN.md` § Rumbo).
+2. Primera corrida nocturna válida de los ui-gates: noche del 2026-11-09 (CI.70/CI.72). Al arrancar, leer el aviso
+   del startup-guard y resolver lo rojo antes del siguiente ítem. Los 45 rojos de `d32a935` son de antes de CI.72.
+3. **Esperan su próximo fallo** (`PLAN.md` § Abiertos): CI.76 (`notifications`); CI.69 (`usage-bar`); CI.57
+   `composer-picker-model-missing.json`; CI.54 `turn1-bubble-missing.json`; CI.19; CI.55
+   (`role-task-missing-output-attempt-<n>.json`). Leer el JSON el mismo día: CI.62 borra el `runDir` a las 24 h.
+4. Biome: 282 avisos, con tope por regla (`scripts/lint-budget.json`, CI.80): solo bajan. Los de producto (`any`
+   137, `!` 90) cambian código real; bajarlos lo decide Carlos.
 5. Cabos sueltos de la sesión SK.1/SK.2 (2026-11-06/07):
-   - PR #4 (README sync, conteo de tests) abierto: espera merge de Carlos. El workflow ya abre PRs (permiso activado,
-     rama por run `f4d4a63e`).
+   - PR #4 (README sync, conteo de tests) abierto: espera merge de Carlos.
    - Set curado en `~/.orchestos/skills/` sin fases: `tdd`, `karpathy-guidelines`, `verification-before-completion`,
      `impeccable` no aplican solas hasta marcar sus chips "Applies in" (SK.2). Propuesta: Build+Fix para las tres
      primeras; `impeccable` sin fase (solo tareas de UI) hasta que haya triggers. Decide Carlos.
@@ -50,11 +24,15 @@ Arranque: `bun run agent:preflight -- --item <ID> --agent claude`. Lista viva: `
      `tdd` a 2. Anotado, sin ítem.
    - "Thought" en el chat repetiría la respuesta (Carlos, 2026-11-06). Sin reproducir: en `~/.orchestos/db.sqlite`
      los pasos `reasoning` de Claude llegan vacíos y los de Codex son resúmenes cortos; "Thought" solo muestra pasos
-     `reasoning` (`app/src/api/chat.ts:279`). Carlos iba a verlo en Claude Desktop; sin rastro en git. Necesita un
-     caso (agente, modelo, captura) antes de abrir ítem.
+     `reasoning` (`app/src/api/chat.ts:279`). Necesita un caso (agente, modelo, captura) antes de abrir ítem.
 6. "navegador propio" sin anotar en `IDEAS.md` hasta que Carlos diga qué espera de él.
-   **Ojo**: tras cambios de UI, `bun run build:app`; el dashboard lee `dist/` del disco, así que un build roto deja
-   en blanco también el dashboard de Carlos (:4242) — probar la carga antes de seguir.
+
+**Ojo**: tras cambios de UI, `bun run build:app`; el dashboard lee `dist/` del disco, así que un build roto deja en
+blanco también el dashboard de Carlos (:4242) — probar la carga antes de seguir.
+
+Cerrado del 2026-11-07 al 09 (detalle en `docs/done/bloque-*.md` y git): bloque ADE completo (ADE.1–11), CI.66–80
+salvo CI.69/CI.76, SK.3, UI.70, LIMP.4, auditoría de `IDEAS.md` (`73247216`) y limpieza de `PLAN.md` (rumbo viejo en
+`docs/done/plan-historico-2026-11-09.md`).
 
 ## Trampas vivas (las que no están en `AGENTS.md`)
 
@@ -119,6 +97,8 @@ Arranque: `bun run agent:preflight -- --item <ID> --agent claude`. Lista viva: `
 
 ## Decisiones de Carlos vigentes
 
+- Decidido por el cerebro en ADE, Carlos puede revertir: cola por defecto "Queue message"; clic en notificación
+  abre Dev solo si el hilo es pestaña de Dev abierta; ajustes de proyecto en la DB local, no en el config del repo.
 - Revisión de Settings pestaña por pestaña: cerrada por ahora (Carlos, 2026-11-05).
 - Nada hardcodeado en quién ejecutó una tarea: lo dice la config.
 - Memory = entrada mecánica por tarea terminada, sin LLM.

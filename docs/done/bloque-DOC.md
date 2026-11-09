@@ -186,3 +186,44 @@ pila de cambios sin commitear. `--force` sigue requiriendo pedido explícito.
   "Protocolo de delegación" se conserva porque lo cita `brain-no-code.js`.
   Evidencia (cerebro): clasificación sección por sección de Sol (`analizar`, solo lectura) con referencias al código.
   Ejecutado por: claude opus (cerebro; documentos de reglas).
+
+- [x] **LIMP.4 — Evidencia de ítems cerrados fuera del árbol.** (GO de Carlos 2026-11-08, `docs/specs/LIMPIEZA-2.md`
+  § 1) Regla: en `docs/done/evidence/` queda solo lo que cita un ítem abierto de `PLAN.md` o `NEXT.md`; lo de ítems
+  `[x]` vive en git (su commit de cierre lo tuvo staged, que es lo único que exige `check-live-gate.ts:61`). Borrados
+  45 de 51 (1,5 MB); quedan CI.19, CI.55 y el conductor de ERP.4. Además, 10 capturas ignoradas por git borradas del
+  disco. Ningún código lee `docs/done/evidence/` (grep en `src`, `scripts`, `tests`, `.claude`, `.github`).
+  Prueba en worktree temporal con la lista borrada: `ledger:gate` exit 0, reconcile con rollback 50 ítems, `tsc` exit 0.
+  Ejecutado por: codex gpt-6.1-sol (analizar) + Opus (borrado) · Spec: docs/specs/LIMPIEZA-2.md
+
+- [x] **DOC.7 — Fuera los marcadores de delegación de los ítems del plan.** (abierto 2026-11-03, decisión de Carlos
+  2026-10-13 reafirmada hoy) El rol sale del roster; el marcador era formato parseado (regex, columna con CHECK).
+  Hecho: formato `- [ ] **ID — título.**`; `plan-status.ts` acepta el marcador legado pero nunca lo emite; migración 34
+  quita `plan_items.delegation` (DB real migrada); `next`, `handoff`, `plan-doc`, tipos y tests sin el campo;
+  `AGENTS.md` y `docs/agent-work-protocol.md` sin marcador; los 10 ítems de `PLAN.md` sin él. `docs/done/` intacto.
+  Gates del cerebro: tsc, `test:coverage` 2243/0, `plan-render --check` 0, `next` lista `ID — título`.
+  Gate en vivo: navegador real (Playwright), `docs/done/evidence/DOC.7-live.json` (`plan-doc` 16/16).
+  Ejecutado por: codex gpt-6.1-sol (criterio r1) · revisión Opus
+
+- [x] **DOC.8 — Vuelven las reglas vivas que DOC.6 retiró.** (abierto 2026-11-03, GO de Carlos tras la auditoría de
+  Sol: 36 reglas sin respaldo y 7 de significado cambiado) Hecho: `AGENTS.md` recupera las generales (no duplicar ítem
+  tomado, no improvisar gobierno, control computable, lint completo, contrato CLI lo prueba el cerebro, evidencia solo
+  `<ID>-live.json`, aviso de `criterio-alt`, fecha de caso de campo, limpieza comprobada por consulta, batería completa
+  en cambio de marco, texto emitido, roadmap determinista, costo QA, `CONTEXT.md` derivado); 23 recetas en
+  `docs/reference/gotchas.md` (no cargado); `NEXT.md` recupera seguimientos, alcance de Settings y "abrir solo si Carlos
+  lo pide". `knownCost` sale de decisiones pendientes: solo entra con `usd` `undefined` (`harness.ts:835`).
+  Ejecutado por: claude opus-5.5 (cerebro, solo docs)
+
+- [x] **DOC.9 — `bun run readme:sync`: el README se actualiza solo con datos computables.** (GO de Carlos
+  2026-11-05) Bloques marcados (CLIs, número de tests) reescritos sin LLM; un workflow de los viernes abre un PR.
+  Hecho: `scripts/readme-sync.ts` (bloques `readme-sync:clis` desde `KNOWN_CLIS` y `readme-sync:tests` desde la salida
+  de `test:coverage`, stdout+stderr; con fallos no escribe), `--check`, `--from-log`; workflow
+  `.github/workflows/readme-sync.yml` (viernes 12:00 UTC + manual, PR si cambia, uno abierto a la vez). Gates del
+  cerebro: `test:coverage` 2295/0, `readme:sync` real → 2296 (suma el test de r2), `--check` exit 0, lint y tsc.
+  qa (Sol) r1: 2 P1 (resumen en stderr, `tee` sin stderr) confirmados y corregidos en r2. `actionlint` no instalado.
+  Ejecutado por: codex gpt-6-luna (mecanico r1, r2) · revisión qa codex gpt-6.1-sol
+
+- [x] **DOC.9.1 — El test de `readme-sync` no depende del `README.md` real.** (regresión de DOC.9, 2026-11-05) El
+  pre-push de `52879bd5` falló: el test fija 2295 y lee el README real, que ya dice 2296.
+  Hecho: `syncReadme` recibe la ruta del README; el test usa un README de fixture en `mkdtempSync`. Gates del
+  cerebro: test 10/0 con el README real alterado a mano (restaurado), lint, tsc.
+  Ejecutado por: codex gpt-6-luna (mecanico)

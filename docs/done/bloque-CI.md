@@ -1219,3 +1219,228 @@ Por eso UI.1 es un gate de abortar real, y por eso el orden es shell→pantallas
   typecheck, lint y `ui:fidelity:jsx` limpios.
   Gate en vivo: navegador real (Playwright), `docs/done/evidence/CI.38-live.json`.
   Ejecutado por: codex gpt-6-luna (mecanico) · Spec: docs/specs/CI.38.md
+
+- [x] **CI.61 — `Mutation Shards`: `executors-routing` vuelve a pasar las 3 h.** (abierto 2026-11-04) Corrida
+  `41811181197`: shard cancelado a 180 min (11:09 → 14:10); los otros 9 verdes. Duración 77 min (2026-10-27) →
+  151 (2026-11-03) → 180+. Muta `cli-registry.ts` (496 líneas, 46 tests) y otros 6 archivos (~506 líneas, hasta
+  51 tests). Se parte en dos: `executors-routing` = `cli-registry.ts`; `executors-routing-c` = el resto.
+  Hecho: `stryker.run-executors-routing-c.config.mjs`, exclusión en `-routing`, script en `package.json`, matriz del
+  workflow y prueba de particiones. Gates del cerebro: `mutation-test-shard.test.ts` 9/0, lint, `test:coverage`
+  2273/0 (los 6 fallos del ejecutor eran de su sandbox: EADDRINUSE y EPERM en `~/.ssh`). La duración real se ve en
+  la próxima corrida nocturna; si `-routing` sigue sobre 150 min, se reabre.
+  Revisión: Opus (diff leído completo).
+  Ejecutado por: luna (mecanico)
+
+- [x] **CI.62 — `ui:gate` borra al arrancar los `runDir` de más de 24 h.** (pedido de Carlos 2026-11-05: "no quiero
+  capturas guardadas sin sentido") Limpieza manual ya hecha: 1932 carpetas `ui-gate-*` (384 MB) y 50 imágenes
+  versionadas de `docs/done/evidence/`, que `.gitignore` ahora excluye. Falta el mecanismo para que no se repita.
+  Hecho: `cleanOldUiGateDirs` (`scripts/ui-gate/lib.mjs`) borra al arrancar los `ui-gate-*` de más de 24 h;
+  `project-add-menu` entra en la lista del pre-push. Gates del cerebro: `run.test.ts` 13/0, lint, `ui:gate smoke`
+  7/7 con un `ui-gate-x-old` de fixture borrado ("cleaned 1 old ui-gate dirs").
+  Ejecutado por: codex gpt-6-luna (mecanico)
+
+- [x] **CI.63 — `chat-retry-report`: el primer turno de Codex no cabe en 30 s y un párrafo salió dos veces.**
+  (pedido de Carlos 2026-11-06) Visto 2026-11-05: falló 2 veces en `waitForResponse` del POST `/api/chat`
+  (`chat-retry-report.mjs:130` y `:256`), que usa el timeout por defecto de Playwright (30 s) mientras la tarjeta
+  espera 180 s. En una captura el mismo párrafo de Codex salió dos veces en la respuesta.
+  Hecho: timeouts de 180 s y paso `assistant reply has no duplicated paragraph` (guarda DOM, mensajes y
+  `[chat-turn]` si falla). El paso reprodujo el duplicado en la corrida del cerebro: el mensaje persistido traía el
+  párrafo una vez, el texto en vivo dos (`docs/done/evidence/CI.63/assistant-duplicate-paragraph-turn1.json`).
+  Causa: `replaceLiveText` (`src/dashboard/chat-live.ts`), compartido por Codex y Claude, reconciliaba el texto final
+  de un mensaje contra todo el turno; tras una herramienta, el segundo mensaje quedaba duplicado. Ahora cada final
+  reemplaza solo los deltas de su mensaje; test rojo→verde para ambos CLIs. Gates del cerebro: tsc,
+  `test:coverage` 2317/0, `chat-retry-report` 25/25, `chat-streaming` 27/27, `codex-live` 15/15
+  (`gate:evidence` `CI.63-chat-live`).
+  Gate en vivo: navegador real (Playwright), `docs/done/evidence/CI.63-live.json`
+  Revisión: Opus (diff de Sol leído completo).
+  Ejecutado por: codex gpt-6.1-sol (criterio r1, r2)
+
+- [x] **CI.64 — El pre-push no reconoce como "cambio de chat" `src/dashboard/chat-live.ts` ni el hilo.** (visto
+  2026-11-06 al subir CI.63: "sin cambios de chat; omitidos" con `chat-live.ts` cambiado; los gates de chat los corrió
+  el cerebro a mano) `chat_paths` (`scripts/pre-push.sh:107`) solo lista `chat-cli-models.ts`; faltan
+  `chat-live.ts`, `default-chat-agent.ts` y `src/dashboard/app/src/components/thread/`.
+  Hecho: `chat_paths` cubre `src/dashboard/(chat-|default-chat-)*.ts` y el hilo. Gate del cerebro: sondeo de la regex
+  (5 rutas de chat coinciden, `server.ts` y Settings no), `bash -n`, hook instalado idéntico a la fuente.
+  Ejecutado por: codex gpt-6-luna (mecanico)
+
+- [x] **CI.65 — `chat-continuity` rojo tras SK.1: bloquea el push.** (visto 2026-11-06, pre-push de `c222bfc5`) Falló
+  2 de 2 en el paso de thread de Codex expirado (el POST no deja `[chat-turn] received`); aislado, el diálogo "New
+  chat" no ofreció Claude. El push previo `296bfbb6` pasó.
+  Causa (r2): no es SK.1 (`296bfbb6` también falla en secuencia) ni Codex: tras un turno la UI sigue `busy` unos
+  cientos de ms y el composer descarta el Enter (`AgentComposer.tsx:441`); el gate pulsaba Enter sin esperar "Send".
+  Arreglo en el gate: `sendTurn` espera "Send message" habilitado (tope 30 s; si no, "composer stayed busy N ms") y
+  anota los ms; mismo patrón en `chat-followup-task`, `chat-task-undo`, `chat-turn-details`. "New chat" sin Claude no
+  se reprodujo (descartado). Gates del cerebro: `chat-streaming` 27/27, `codex-live` 15/15, `chat-continuity` 8/8 en
+  secuencia (busy máx. 227 ms; ejecutor: 2 secuencias verdes, máx. 536 ms; `test:coverage` 2362/0).
+  Gate en vivo: navegador real (Playwright), `docs/done/evidence/CI.65-live.json`
+  Ejecutado por: codex gpt-6.1-sol (criterio r1, r2) + gpt-6-luna (mecanico r3) · Spec: docs/specs/CI.65.md
+
+- [x] **CI.66 — CI rojo desde SK.2: el orden de skills depende del sistema de archivos.** (visto 2026-11-06, CI
+  42307722525 y Mutation Shards 42361144282) `SK.2 execution phase instructions > combines primary and two phase
+  skills…` espera `phase-a`, `phase-b` y omite `phase-c`; en Linux entró `phase-c`. Causa: `readdirSync` sin ordenar
+  en `src/skills/registry.ts:123` y `:272`; APFS devuelve alfabético, ext4 no.
+  Hecho: ambos recorridos usan `readdirSync(dir).sort()`; test nuevo fija orden alfabético por id en
+  `listSkillFilesWithOrigin`. Gates del cerebro: `skill-library` 20/0, `typecheck`, `lint`, `test:coverage` 2368/0.
+  Revisión: Opus (diff leído).
+  Ejecutado por: codex gpt-6-luna (mecanico) · Spec: docs/specs/CI.66.md (borrado)
+
+- [x] **CI.67 — El pre-push desde un worktree commitea los fixtures de los tests en la rama del worktree.** (visto
+  2026-11-06: 13 commits de fixture `51613edb..e0fde66c` subieron a master, revertidos en `85379e95`) Desde un
+  worktree, git exporta `GIT_DIR` a los hooks (verificado en un repo temporal); `scripts/pre-push.sh:76` corre
+  `test:coverage` con ese entorno y cada `git commit` de fixture escribe en el repo real. Desde el checkout principal
+  git no exporta `GIT_DIR`, por eso no se vio antes.
+  Hecho: `scripts/pre-push.sh` hace `unset GIT_DIR GIT_WORK_TREE GIT_INDEX_FILE …` antes del worktree temporal y la
+  suite; `scripts/pre-push-git-env.test.ts` fija que la línea limpia el entorno y va antes. Contraprueba del cerebro
+  (repo temporal + worktree + push a remoto bare, hook que commitea en un temporal): sin `unset` la rama del worktree
+  recibe el commit `leak`; con `unset`, no. Gates del cerebro: `bash -n`, `lint`, `test:coverage` 2370/0 (el
+  ejecutor no pudo correrla: `EPERM`/`EADDRINUSE` del sandbox).
+  Revisión: Opus (diff leído).
+  Ejecutado por: codex gpt-6-luna (mecanico) · Spec: docs/specs/CI.67.md (borrado)
+
+- [x] **CI.68 — `model-routing`: "Use <CLI> for unassigned roles" se mira sin esperar.** (abierto 2026-11-07)
+  Frenó el push de ADE.3 en el pre-push; aislado pasa 24/24. Causa: `model-routing.mjs:161` usaba `isVisible()`
+  inmediato sobre un botón que aparece tras cargar el catálogo. Hecho: espera hasta 10 s y, si falla, el detalle
+  lista los botones visibles de roles; mismo patrón en los hermanos del archivo (estado vacío, esfuerzo del
+  revisor, aviso de correlación). Verde 3 veces seguidas y con `test:coverage` en paralelo.
+  Gate en vivo: navegador real (Playwright), `docs/done/evidence/CI.68/ui-gate-result.json`
+  Ejecutado por: codex gpt-6-luna (mecanico) · Spec: docs/specs/CI.68.md
+
+- [x] **CI.70 — Los ui-gates salen del pre-push a una corrida nocturna local.** (Carlos, 2026-11-08: "pasamos más
+  tiempo en pruebas que en código… no quiero que se corra 3 veces… que esto no vuelva a pasar") Hecho: pre-push =
+  typecheck + `test:coverage` + lint, sin flujos. `scripts/nightly-ui-gates.ts` corre todos los flujos (excepto
+  `opencode-terminal` sin binario) sobre `origin/master` en `~/.orchestos/nightly/worktree`, uno por uno, reintento
+  único que separa `flaky` de `failed`, evidencia copiada a `~/.orchestos/nightly/<fecha>/`, 7 días. LaunchAgent
+  `dev.cagr1.orchestos.nightly-ui-gates` 01:30 (`bun run nightly:install`, instalado). El startup-guard avisa rojos,
+  flaky o "sin corrida en 36 h". Local y no en GitHub: los flujos con modelo real usan los CLI con sesión de Carlos.
+  Reglas: `AGENTS.md` § Gates ("cada prueba corre una vez"), `CLAUDE.md` § Hooks.
+  Gates del cerebro: `tsc`, 25 tests (nightly + guard), `bash -n`, `plutil -lint`, `ui-gates-latest.json` de la
+  corrida real (smoke + plan-doc, 2/2, worktree limpio), `launchctl print` cargado. Revisión: Opus (diff leído).
+  Gate en vivo: corrida real del script nocturno, `docs/done/evidence/CI.70-live.json`.
+  Ejecutado por: codex gpt-6.1-sol (criterio) · Spec: docs/specs/CI.70.md
+
+- [x] **CI.71 — El repo no depende del método personal de Carlos.** (GO de Carlos; plan en
+  `docs/specs/LIMPIEZA-2.md` § 2) Las reglas del repo nombran rutas y alias de `~/.agent-method` (`delegate`,
+  `roster.conf`, Sol/Luna/`criterio-alt`) y el vault `MemoriesMD`; quien clone el repo no tiene nada de eso. Cada
+  referencia queda como regla propia con texto neutral. Se quedan a propósito: el reconocimiento de comandos
+  `delegate` en `scripts/writer-lock.mjs` (genérico por nombre; quitarlo dejaría a una segunda sesión lanzar un
+  ejecutor), `qa-negative.mjs` y `cli-registry.test.ts` (prueban aislamiento del `~/.claude` del host, producto),
+  `tasks.yaml` y `PLAN.md`/`docs/done/` (registro histórico).
+  Hecho: `AGENTS.md` (delegar = otro modelo con solo el spec; el modelo por rol es config del operador; sin alias ni
+  `criterio-alt`), mensajes de `brain-no-code.js` y `subagent-budget.js`, comentario de `context-budget.js`, rutas
+  neutrales en `writer-lock.test.ts`, `source: MemoriesMD/…` fuera de `docs/roadmaps/disciplines/` y fixtures,
+  `docs/roadmaps/README.md`, `gotchas.md`, `CTX-GUARD.md`, dato de ejemplo `MemoriesMD` → `notes`. Qué se pierde: el
+  rastro de origen de los roadmaps (vivía en el vault, no en el repo). `IDEAS.md` conserva menciones de origen.
+  Gates del cerebro: `typecheck`, hooks + roadmap 69/0; ejecutor: writer-lock 28/0, lint exit 0.
+  Gate en vivo: Playwright `project-tabs` 40/40 (sidebar con el dato renombrado), `docs/done/evidence/CI.71-live.json`.
+  Ejecutado por: codex (mecanico) · Spec: docs/specs/CI.71.md
+
+- [x] **CI.72 — La corrida nocturna de ui-gates no encuentra `node`: 45 de 49 rojos en 5 h 40 min.** (2026-11-09,
+  primera corrida completa sobre `d32a9356`) El PATH del LaunchAgent está fijo en el plist
+  (`scripts/launchd/dev.cagr1.orchestos.nightly-ui-gates.plist:18`) y no incluye `node`, que vive en nvm. Sin él
+  los fixtures no se registran ("temporary project was not registered") y cada flujo espera su timeout y reintenta.
+  Reproducido con `env -i` y el PATH del plist: `project-tabs` FAIL; mismo PATH + el bin de nvm: PASS 40/40.
+  Hecho: el plist lleva un marcador y `install-nightly.sh` arma el PATH al instalar, en el orden del PATH de quien
+  instala (sin `node_modules/.bin`), con los dirs de `bun node git claude codex opencode`; sin `bun`/`node`/`git` no
+  instala. Si falta uno al correr, la corrida no arranca: publica `preparationError` en `ui-gates-latest.json`, que
+  muestran el startup-guard y el pre-push. Reinstalado: los 6 binarios del LaunchAgent resuelven igual que en el
+  shell (`diff` vacío). Rondas: r1 pre-push (mecanico), r2 `node_modules/.bin` (mecanico), r3 orden fallido
+  (mecanico) → r4 (criterio).
+  Gates del cerebro: `typecheck`, nightly + startup-guard 29/0, `bash -n`, `plutil -lint`, `project-tabs` 40/40
+  con `env -i` y el PATH del plist instalado (antes FAIL). La corrida completa se verá esta noche.
+  Ejecutado por: codex gpt-6.1-sol (criterio) · Spec: docs/specs/CI.72.md
+
+- [x] **CI.73 — Un ítem de `PLAN.md` cuyo título no se parsea desaparece sin aviso.** (IDEAS `#62`, GO de Carlos
+  2026-11-09) `ITEM_LINE_RE` (`scripts/plan-status.ts:38`) exige que el título abra y cierre `**` en la misma línea;
+  si no, `parsePlanDocumentSegments` (`:141-145`) lo trata como prosa y el reconcile, `plan:render` y
+  `feature-status.json` lo omiten en silencio.
+  Hecho: `findUnparsedPlanItemLines` (`plan-status.ts`) devuelve las líneas `- [ ] **`/`- [x] **` que no casan; el
+  reconcile (`plan-import.ts`), el pre-commit (`plan-gate.ts`, sobre el PLAN staged) y `generate-feature-status.ts`
+  fallan con línea y texto. Regresión con el caso real de H.5.3; el `PLAN.md` actual da `[]`.
+  Gates del cerebro: `typecheck`, tests de `plan-status`/`plan-import`/`plan-gate`. Revisión: Opus (diff leído).
+  Ejecutado por: codex gpt-6.1-sol (criterio) · Spec: docs/specs/CI.73.md
+
+- [x] **CI.74 — Los avisos de Biome vuelven a significar algo.** (IDEAS `#61`, GO de Carlos 2026-11-09) `bun run lint`
+  da 1.078 warnings y 382 infos: un aviso nuevo no se ve. 719 están en tests (`!` y `any`, normales ahí); 314 son
+  `node:` en imports y 57 plantillas (autofix seguro); en producto quedan `!`, `any`, 48 `useExhaustiveDependencies`
+  y ~60 de a11y.
+  Hecho (sin cambio de comportamiento): override en `biome.json` que apaga `noNonNullAssertion`/`noExplicitAny` en
+  tests; fixes mecánicos limitados por regla (`node:`, plantillas, `?.`, claves literales, radix, imports sin uso)
+  en 154 archivos. 1.078 warnings + 382 infos → 388 warnings + 0 infos; 378 en producto: `any` 137, `!` 90,
+  `useExhaustiveDependencies` 48, a11y ~60. Ese resto cambia código real y queda para decisión de Carlos.
+  Gates del cerebro: `typecheck`, `lint` exit 0, diff revisado (solo forma); suite completa en el pre-push.
+  Gate en vivo: Playwright `settings-pages` 32/32 tras el build, `docs/done/evidence/CI.74-live.json`.
+  Ejecutado por: codex (mecanico) · Spec: docs/specs/CI.74.md
+
+- [x] **CI.75 — Las 48 dependencias de hooks de React que Biome marca.** (resto de CI.74, GO de Carlos 2026-11-09)
+  `useExhaustiveDependencies`: 29 en `App.tsx`, 7 en `OrchestSettingsView.tsx`, 5 en `OrcaRightInspector.tsx`, 7 en
+  otros. 16 sobran, 13 son más específicas que lo capturado, 19 faltan (`currentProject` ×6,
+  `loadThreadMessages` ×3…). Una dependencia faltante es un cierre viejo posible (bug); una de más, un efecto que
+  corre de más.
+  Hecho: 48 → 0. `App.tsx`: `loadThreadMessages`, `reloadHistory`, `refreshProjectTabs` y `refreshUsage` pasan a
+  `useCallback` (solo refs y setters, sin estado capturado; revisado por el cerebro) y los efectos capturan el ID en
+  vez del objeto; `OrchestSettingsView` usa el scope efectivo `configProjectId`; los disparadores intencionales
+  (cambio de modo, revisión del diff, `attempt` de la terminal…) quedan con `biome-ignore` y su razón. El ejecutor
+  no encontró un cierre viejo observable (ningún BUG).
+  Gates del cerebro: `typecheck`, build, Playwright `project-tabs` 40/40, `settings-pages` 32/32, `chat-continuity`
+  8/8, `dev-session-tabs` 50/50, `diff-view` 19/19, `tasks` 43/43; `notifications` falló 1 vez (Claude ausente del
+  diálogo de agente, ruta no tocada) y pasó 10/10 al repetir → CI.76.
+  Gate en vivo: Playwright `project-tabs` 40/40, `docs/done/evidence/CI.75-live.json`.
+  Ejecutado por: codex gpt-6.1-sol (criterio) · Spec: docs/specs/CI.75.md
+
+- [x] **CI.77 — Los 58 avisos de accesibilidad de Biome.** (GO de Carlos 2026-11-09) Elementos con clic sin teclado
+  (`noNoninteractiveElementInteractions` 14, `noStaticElementInteractions` 6, `useKeyWithClickEvents` 3), etiquetas
+  sin control (7), botones sin `type` (6), `useSemanticElements` (6), SVG sin título (8, los íconos de proveedores),
+  `autoFocus` (4) y 4 sueltos; 26 archivos, la mayoría en `settings/`, `common/` y `layout/`.
+  Hecho: 58 → 0. `type="button"` donde faltaba; backdrops de menú (`ShellSidebar`, `OrcaRightInspector`) → `button`;
+  labels asociados con `htmlFor`/`id` o pasados a `div` si titulan un grupo; `fieldset` para grupos de controles;
+  `hr` nativo para el borde redimensionable (mismos handlers, sin borde); `<title>` en los 8 SVG de proveedores;
+  `biome-ignore` con razón donde el handler no es una acción (drop de archivos, tooltip, foco de diálogos).
+  Ronda 2: el segmentado de Settings vuelve a `button role="radio"` (el radio nativo perdía `aria-checked`, que es
+  el contrato de Settings y de los gates; `settings-pages` falló por eso).
+  Gates del cerebro: build, Playwright `settings-pages` 32/32 (tras r2), `appearance` 23/23, `diff-view` 19/19,
+  `project-tabs` 40/40, `plan-doc` 16/16, `keybindings` 43/43. `shell-look` y `chat-attachments` fallan igual en
+  `origin/master` → CI.78, CI.79.
+  Gate en vivo: Playwright `settings-pages` 32/32, `docs/done/evidence/CI.77-live.json`.
+  Texto visible: "Trigger Pattern" · "Project" · "Select Agent / Engine" (ya existían; solo cambian de `label` a `label` asociado o `div`, el texto no es nuevo)
+  Ejecutado por: codex gpt-6.1-sol (criterio) + codex (mecanico, r2) · Spec: docs/specs/CI.77.md
+
+- [x] **CI.78 — `shell-look` rojo en master: "panel lighter than chrome: panel=null".** (abierto 2026-11-09)
+  Falla igual en `origin/master` (`678c23e5`) y en la corrida nocturna del 2026-11-09: el flujo no encuentra el panel
+  del chat que mide (`panel=null`). Probable selector que cambió con UI reciente, o un cambio real del layout.
+  Evidencia: `docs/done/evidence/CI.78-shell-look-fail.json`.
+  Hecho (flujo): el panel se mide desde `data-composer-region`; el separador de `ResizableAside` (`<hr>` desde CI.77)
+  se busca por `hr[aria-label^="Resize"]`; con el sidebar colapsado (oculto, no desmontado, `App.tsx:1817`) se
+  comprueba que no es visible; la paleta general se busca como `dialog` "Command palette" (el nombre del input
+  cambió en ADE.3 y el conteo en Settings daba verde falso).
+  Causa del "⌘K en Settings" (producto): ⌘K sí abría; el Escape pulsado justo tras montar el diálogo se perdía
+  porque el listener se registraba en `useEffect` (tras el paint). Diagnóstico con un runner instrumentado sobre el
+  flujo real: Escape a 7 ms del montaje, sin manejador. Arreglo: `useLayoutEffect` en ese listener y en sus
+  hermanos (grabador de atajos, `TaskDetailPanel`, `ShellStatusBar`, `DiscardChangesModal`).
+  Gates del cerebro: `tsc`, lint, Playwright `shell-look` 75/75 (antes FAIL), `keybindings` 43/43,
+  `dev-file-edit` 22/22. Revisión `qa`: sin defectos.
+  Gate en vivo: Playwright `shell-look` 75/75, `docs/done/evidence/CI.78-live.json`.
+  Ejecutado por: codex (mecanico, r1–r6) · Spec: docs/specs/CI.78.md
+
+- [x] **CI.79 — `chat-attachments` rojo en master: "Dev: both attachments reach ready: []".** (abierto 2026-11-09)
+  Falla igual en `origin/master` (`678c23e5`): en Dev ningún adjunto llega a `ready`. Puede ser el flujo o una
+  regresión real de adjuntos en el composer de Dev.
+  Causa: `App.tsx:1174` selecciona la sesión antes de hidratar sus agentes; `OrchestDevWorkspace` cambiaba de árbol
+  (rama `!activeAgent` con su propio `AgentComposer`) y desmontaba el composer con los chips y sus `fileId`. Ya
+  fallaba antes de CI.75 con otros síntomas (`38b787db`, `8ea8a1bc`); el flujo no estaba en el pre-push.
+  Hecho: un solo `AgentComposer` montado en ambos estados; la sesión nueva conserva su aspecto (el `h1` dentro de
+  `data-composer-region`, ronda 2). Test nuevo `OrchestDevWorkspace.test.ts` (2 → 2 chips con su `fileId`).
+  Gates del cerebro: build, Playwright `chat-attachments` 14/14 (antes FAIL), `dev-session-tabs` 50/50,
+  `dev-file-edit` 22/22.
+  Gate en vivo: Playwright `chat-attachments` 14/14, `docs/done/evidence/CI.79-live.json`.
+  Texto visible: "What should we work on in" (ya existía; solo se movió dentro del mismo componente)
+  Ejecutado por: codex gpt-6.1-sol (criterio) · Spec: docs/specs/CI.79.md
+
+- [x] **CI.80 — Los avisos de Biome no suben: tope por regla que solo baja.** (abierto 2026-11-09, siguiente de NEXT)
+  Tras CI.74 `bun run lint` da 282 avisos (`any` 137, `!` 90, `noArrayIndexKey` 18, …) y sale con exit 0: uno
+  nuevo pasa sin que nadie lo vea.
+  Hecho: `bun run lint` (CI y pre-push) = `biome check .` + `scripts/lint-budget.ts`, que cuenta los avisos por regla
+  y los compara con `scripts/lint-budget.json` (9 reglas, 282): falla si una sube o aparece una regla nueva; si
+  baja, pide bajar el tope.
+  Gates del cerebro: `tsc`, `bun test scripts/lint-budget.test.ts` 5/5, `bun run lint` exit 0
+  (`✓ lint-budget: 282 avisos, ninguna regla sube`). Contraprueba del ejecutor (tope de `any` a 136 → exit 1).
+  Ejecutado por: codex (mecanico) · Spec: docs/specs/CI.80.md
