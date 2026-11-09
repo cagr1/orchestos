@@ -46,7 +46,7 @@ describe('capCheckOutput', () => {
   })
 
   it('preserves the tail where errors typically live, unlike a head-only cap', () => {
-    const text = 'noise'.repeat(1000) + 'FATAL ERROR AT THE END'
+    const text = `${'noise'.repeat(1000)}FATAL ERROR AT THE END`
     const result = capCheckOutput(text, 200)
     expect(result).toContain('FATAL ERROR AT THE END')
   })

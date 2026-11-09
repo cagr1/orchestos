@@ -1,5 +1,5 @@
-import { existsSync, readFileSync } from 'fs'
-import { join } from 'path'
+import { existsSync, readFileSync } from 'node:fs'
+import { join } from 'node:path'
 import {
   buildRoadmapProfile,
   type RoadmapProfile,
@@ -62,7 +62,7 @@ export async function loadRoadmapContext(
   const profilePath = 'docs/roadmaps/project-profile.md'
   const profileText = readBounded(root, profilePath, MAX_PROFILE_CHARS)
   if (profileText) {
-    sections.push('\n### Perfil efectivo del proyecto\n' + profileText)
+    sections.push(`\n### Perfil efectivo del proyecto\n${profileText}`)
   }
 
   const docs = [

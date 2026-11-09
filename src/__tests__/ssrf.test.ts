@@ -79,7 +79,7 @@ const mockLookup: (
       { address: '93.184.216.34', family: 4 },
     ]
   if (hostname === 'internal6.example.com') return [{ address: '::ffff:10.0.0.1', family: 6 }]
-  throw new Error('ENOTFOUND ' + hostname)
+  throw new Error(`ENOTFOUND ${hostname}`)
 }
 
 describe('checkSsrSafe — direct IP/localhost', () => {

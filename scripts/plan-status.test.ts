@@ -37,7 +37,7 @@ describe('findUnparsedPlanItemLines', () => {
   })
 
   test('devuelve todos los casos sin recortar el texto y omite prosa e ítems indentados', () => {
-    const first = '- [ ] **H.5.3 — ' + 'Título largo '.repeat(12)
+    const first = `- [ ] **H.5.3 — ${'Título largo '.repeat(12)}`
     const second = '- [x] **H.5.4 — Otro título sin cierre'
     expect(findUnparsedPlanItemLines(`${first}\n  - [ ] **Anidado\nProsa **\n${second}`)).toEqual([
       { line: 1, text: first },

@@ -1,5 +1,5 @@
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'fs'
-import { dirname, isAbsolute, resolve } from 'path'
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
+import { dirname, isAbsolute, resolve } from 'node:path'
 
 const COMMENT = '# OrchestOS runtime artifacts'
 const ENTRIES = ['/runs/*.log', '/.orchestos/agent-home/', '/.orchestos/skills.json']

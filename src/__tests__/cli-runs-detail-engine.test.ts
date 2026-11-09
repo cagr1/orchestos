@@ -38,7 +38,7 @@ afterAll(() => {
 
 function makeRow(overrides: Partial<RunRecord> = {}): RunRecord {
   const base: RunRecord = {
-    id: 'g4-rd-' + Math.random().toString(36).slice(2, 10),
+    id: `g4-rd-${Math.random().toString(36).slice(2, 10)}`,
     project_id: null,
     prompt: 'G.4 printRunDetail test',
     task_class: 'implement',

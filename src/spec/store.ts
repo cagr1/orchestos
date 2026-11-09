@@ -5,8 +5,8 @@
  * Frontmatter is YAML, body is the markdown after the closing --- delimiter.
  */
 
-import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 'fs'
-import { join } from 'path'
+import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs'
+import { join } from 'node:path'
 import { parse as parseYaml, stringify as yamlStringify } from 'yaml'
 
 export interface CapabilitiesContract {

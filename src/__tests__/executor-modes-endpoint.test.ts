@@ -9,9 +9,9 @@
  * [[reference-bun-mock-module-gotcha]]).
  */
 import { afterEach, describe, expect, it } from 'bun:test'
-import { mkdtempSync, rmSync } from 'fs'
-import { tmpdir } from 'os'
-import { join } from 'path'
+import { mkdtempSync, rmSync } from 'node:fs'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
 import { loadOrcheConfig } from '../config/load.ts'
 import { handleApiSystemExecutorModes } from '../dashboard/handlers/tasks.ts'
 import { KNOWN_CLIS } from '../run/executors/cli-registry.ts'

@@ -14,10 +14,10 @@
  * Sin dependencias — solo APIs nativas (Bun tiene `crypto`, `fs`, `os`, `path`).
  */
 
-import { createHash } from 'crypto'
-import { mkdirSync, unlinkSync, writeFileSync } from 'fs'
-import { tmpdir } from 'os'
-import { basename, extname, join } from 'path'
+import { createHash } from 'node:crypto'
+import { mkdirSync, unlinkSync, writeFileSync } from 'node:fs'
+import { tmpdir } from 'node:os'
+import { basename, extname, join } from 'node:path'
 import type { Check } from '../tasks/schema.ts'
 
 interface ExtractedScript {

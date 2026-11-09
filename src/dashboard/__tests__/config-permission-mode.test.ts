@@ -1,8 +1,8 @@
 /** UI.8.6 — `permissionMode` por proyecto: GET lo devuelve, PUT lo valida y lo escribe en el YAML. */
 import { afterAll, describe, expect, it } from 'bun:test'
-import { mkdtempSync, readFileSync, rmSync } from 'fs'
-import { tmpdir } from 'os'
-import { join } from 'path'
+import { mkdtempSync, readFileSync, rmSync } from 'node:fs'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
 import { handleApiConfigGet, handleApiConfigInit, handleApiConfigSet } from '../handlers/config.ts'
 
 const root = mkdtempSync(join(tmpdir(), 'config-permission-mode-'))

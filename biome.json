@@ -39,6 +39,25 @@
   },
   "overrides": [
     {
+      "includes": [
+        "src/__tests__/**",
+        "**/*.test.ts",
+        "**/*.test.tsx",
+        "tests/**",
+        "scripts/**/*.test.ts"
+      ],
+      "linter": {
+        "rules": {
+          "style": {
+            "noNonNullAssertion": "off"
+          },
+          "suspicious": {
+            "noExplicitAny": "off"
+          }
+        }
+      }
+    },
+    {
       "includes": ["src/dashboard/app/src/**"],
       "linter": {
         "rules": {

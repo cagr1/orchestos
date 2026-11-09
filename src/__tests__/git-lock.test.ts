@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'bun:test'
-import { existsSync, mkdtempSync, rmSync, writeFileSync } from 'fs'
-import { tmpdir } from 'os'
-import { join } from 'path'
+import { existsSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
 import { withGitLock } from '../run/git-lock.ts'
 
 // Mes 22/E.5 — el lock existe para serializar procesos SEPARADOS (dashboard
@@ -57,7 +57,7 @@ describe('git-lock', () => {
       const procB = spawnWorker('B')
       await Promise.all([procA.exited, procB.exited])
 
-      const lines = require('fs').readFileSync(resultsFile, 'utf-8').trim().split('\n')
+      const lines = require('node:fs').readFileSync(resultsFile, 'utf-8').trim().split('\n')
       const events = lines.map((l: string) => JSON.parse(l)) as {
         label: string
         kind: string
@@ -87,12 +87,12 @@ describe('git-lock', () => {
     try {
       const lockDir = join(dir, '.orchestos')
       const lockFile = join(lockDir, 'git.lock')
-      require('fs').mkdirSync(lockDir, { recursive: true })
+      require('node:fs').mkdirSync(lockDir, { recursive: true })
       writeFileSync(lockFile, '')
       // Retrocede el mtime más allá de STALE_LOCK_MS (60s) — simula un
       // proceso dueño que murió sin liberar el lock.
       const old = new Date(Date.now() - 120_000)
-      require('fs').utimesSync(lockFile, old, old)
+      require('node:fs').utimesSync(lockFile, old, old)
 
       const result = withGitLock(dir, () => 'recovered')
       expect(result).toBe('recovered')

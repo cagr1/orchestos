@@ -1,8 +1,8 @@
 import { Database } from 'bun:sqlite'
 import { afterEach, describe, expect, it } from 'bun:test'
-import { existsSync, mkdtempSync, readdirSync, rmSync, writeFileSync } from 'fs'
-import { tmpdir } from 'os'
-import { join } from 'path'
+import { existsSync, mkdtempSync, readdirSync, rmSync, writeFileSync } from 'node:fs'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
 import {
   databasePathForHome,
   exportRunEvidence,

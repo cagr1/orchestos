@@ -9,8 +9,8 @@
  * Returns a fully resolved OrcheConfig — callers never deal with missing fields.
  */
 
-import { existsSync, readFileSync } from 'fs'
-import { join } from 'path'
+import { existsSync, readFileSync } from 'node:fs'
+import { join } from 'node:path'
 import { parse } from 'yaml'
 import { taskAgentIds } from '../router/engine-cascade.ts'
 import { allClis, configuredClis } from '../run/executors/cli-registry.ts'

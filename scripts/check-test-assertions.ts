@@ -1,4 +1,4 @@
-import { readFileSync } from 'fs'
+import { readFileSync } from 'node:fs'
 
 /** K.3 — textual, deliberately cheap assertion detection for generated tests. */
 export function countTestAssertions(content: string): number {

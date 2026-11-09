@@ -1,7 +1,7 @@
 import { Database } from 'bun:sqlite'
-import { existsSync, mkdirSync } from 'fs'
-import { homedir } from 'os'
-import { join } from 'path'
+import { existsSync, mkdirSync } from 'node:fs'
+import { homedir } from 'node:os'
+import { join } from 'node:path'
 
 // ORCHESTOS_HOME permite aislar la persistencia en tests y entornos controlados.
 // En uso normal conserva ~/.orchestos como ubicación estable del usuario.

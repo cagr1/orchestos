@@ -1,5 +1,5 @@
-import { existsSync, writeFileSync } from 'fs'
-import { join } from 'path'
+import { existsSync, writeFileSync } from 'node:fs'
+import { join } from 'node:path'
 import { parseDocument, stringify as yamlStringify } from 'yaml'
 import {
   agentChoices,

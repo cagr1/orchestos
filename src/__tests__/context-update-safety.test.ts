@@ -6,9 +6,9 @@
  * contaminar la DB del usuario durante el caso explícito de --force.
  */
 import { describe, expect, it } from 'bun:test'
-import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'fs'
-import { tmpdir } from 'os'
-import { join } from 'path'
+import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
 
 const repoRoot = process.cwd()
 const cliPath = join(repoRoot, 'src', 'cli.ts')

@@ -25,16 +25,16 @@
  * test, así que el repo real del orchestos no aparece en este test.
  */
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'bun:test'
-import { mkdtempSync, readdirSync, realpathSync, rmSync } from 'fs'
-import { tmpdir } from 'os'
-import { join } from 'path'
+import { mkdtempSync, readdirSync, realpathSync, rmSync } from 'node:fs'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
 
 const { route } = await import('../server.ts')
 const { db } = await import('../../db/sqlite.ts')
 
 // `hashPath` no está exportado de db/projects.ts (es interno). Lo replicamos
 // acá para el cleanup: `createHash('sha1').update(path).digest('hex').slice(0, 16)`.
-import { createHash } from 'crypto'
+import { createHash } from 'node:crypto'
 
 function hashPath(p: string): string {
   return createHash('sha1').update(p).digest('hex').slice(0, 16)

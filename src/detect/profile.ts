@@ -1,5 +1,5 @@
-import { existsSync } from 'fs'
-import { join } from 'path'
+import { existsSync } from 'node:fs'
+import { join } from 'node:path'
 import type { StackProfile } from '../generators/agents-md.ts'
 import { readConventions } from './conventions.ts'
 import { detectLanguages } from './languages.ts'

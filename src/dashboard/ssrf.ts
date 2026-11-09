@@ -1,4 +1,4 @@
-import { lookup } from 'dns/promises'
+import { lookup } from 'node:dns/promises'
 
 // Wrapper to normalize dns/promises return type (LookupAddress[] | LookupAddress → array)
 async function defaultLookup(

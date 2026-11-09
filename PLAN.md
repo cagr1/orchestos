@@ -639,6 +639,17 @@ Propuesta y comparación con las tres referencias: `docs/specs/ADE-PLAN.md`. Uno
   fallan con línea y texto. Regresión con el caso real de H.5.3; el `PLAN.md` actual da `[]`.
   Gates del cerebro: `typecheck`, tests de `plan-status`/`plan-import`/`plan-gate`. Revisión: Opus (diff leído).
   Ejecutado por: codex gpt-6.1-sol (criterio) · Spec: docs/specs/CI.73.md
+- [x] **CI.74 — Los avisos de Biome vuelven a significar algo.** (IDEAS `#61`, GO de Carlos 2026-11-09) `bun run lint`
+  da 1.078 warnings y 382 infos: un aviso nuevo no se ve. 719 están en tests (`!` y `any`, normales ahí); 314 son
+  `node:` en imports y 57 plantillas (autofix seguro); en producto quedan `!`, `any`, 48 `useExhaustiveDependencies`
+  y ~60 de a11y.
+  Hecho (sin cambio de comportamiento): override en `biome.json` que apaga `noNonNullAssertion`/`noExplicitAny` en
+  tests; fixes mecánicos limitados por regla (`node:`, plantillas, `?.`, claves literales, radix, imports sin uso)
+  en 154 archivos. 1.078 warnings + 382 infos → 388 warnings + 0 infos; 378 en producto: `any` 137, `!` 90,
+  `useExhaustiveDependencies` 48, a11y ~60. Ese resto cambia código real y queda para decisión de Carlos.
+  Gates del cerebro: `typecheck`, `lint` exit 0, diff revisado (solo forma); suite completa en el pre-push.
+  Gate en vivo: Playwright `settings-pages` 32/32 tras el build, `docs/done/evidence/CI.74-live.json`.
+  Ejecutado por: codex (mecanico) · Spec: docs/specs/CI.74.md
 - [ ] **CI.69 — `usage-bar`: a veces el Enter del composer no envía el turno.** (abierto 2026-11-08) Falló en el
   pre-push de ADE.7/8 (`2e9aae2d`, `1355590c`): `page.waitForResponse` 180 s sin `POST /api/chat`
   (`usage-bar.mjs:309`). Captura: picker de modelo abierto (Luna · medium) y el texto sigue en la caja, así que

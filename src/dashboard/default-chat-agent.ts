@@ -36,7 +36,7 @@ export async function readDefaultChatAgent(
   if (configAgent) return configAgent
   const clis = (deps.detect ?? detectInstalledClis)()
   const health = await (deps.health ?? readCliHealth)()
-  const key = deps.key ?? (() => readEnv()['OPENROUTER_API_KEY'] || process.env.OPENROUTER_API_KEY)
+  const key = deps.key ?? (() => readEnv().OPENROUTER_API_KEY || process.env.OPENROUTER_API_KEY)
   return resolveDefaultChatAgent({
     configAgent,
     clis: clis.map((cli) => ({

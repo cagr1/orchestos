@@ -11,9 +11,9 @@
  */
 
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from 'bun:test'
-import { existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'fs'
-import { tmpdir } from 'os'
-import { join } from 'path'
+import { existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
 import { _resetCatalog, ensureCatalogLoaded } from '../router/model-catalog.ts'
 import {
   buildCodexArgs,
@@ -212,7 +212,7 @@ function buildCtx(worktree: Worktree, task: Task, model = 'openai/gpt-5.4'): Run
     effectiveRoot: worktree.path,
     worktree,
     instinctBlock: '',
-    prompt: { system: '', userContent: 'Task: ' + task.description },
+    prompt: { system: '', userContent: `Task: ${task.description}` },
     contextWarnings: [],
   }
 }
@@ -232,7 +232,7 @@ afterEach(() => {
 
 // JSONL real (probado en vivo el 2026-07-27 con `codex exec --json` contra un git repo temporal).
 function jsonl(...events: object[]): string {
-  return events.map((e) => JSON.stringify(e)).join('\n') + '\n'
+  return `${events.map((e) => JSON.stringify(e)).join('\n')}\n`
 }
 
 const turnCompleted = (input: number, output: number) => ({

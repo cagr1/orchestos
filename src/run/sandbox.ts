@@ -1,5 +1,5 @@
-import { existsSync, mkdirSync, symlinkSync } from 'fs'
-import { join } from 'path'
+import { existsSync, mkdirSync, symlinkSync } from 'node:fs'
+import { join } from 'node:path'
 import { withGitLock } from './git-lock.ts'
 
 export interface Worktree {

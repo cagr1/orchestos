@@ -1,4 +1,4 @@
-import { basename } from 'path'
+import { basename } from 'node:path'
 import type { TaskClass } from '../router/classify.ts'
 import type { Task } from '../tasks/schema.ts'
 import type { SkillActivationMode, SkillDef } from './registry.ts'
@@ -109,7 +109,7 @@ export function renderSkillCatalog(candidates?: SkillCandidateInfo[]): string {
   return list
     .map(
       (s) =>
-        `- ${s.id}: ${s.description.slice(0, 200)}${s.whenToUse.length ? ' — Use when: ' + s.whenToUse.join('; ') : ''}`,
+        `- ${s.id}: ${s.description.slice(0, 200)}${s.whenToUse.length ? ` — Use when: ${s.whenToUse.join('; ')}` : ''}`,
     )
     .join('\n')
 }
@@ -154,8 +154,8 @@ export function resolveGates(
       continue
     }
     const activation = skill.activation
-    if (!activation || activation.mode !== 'automatic') continue
-    if (!activation.phases || !activation.phases.includes(phase)) continue
+    if (activation?.mode !== 'automatic') continue
+    if (!activation.phases?.includes(phase)) continue
 
     const triggers = activation.triggers
     if (!triggers || triggers.length === 0) {

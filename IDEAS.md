@@ -27,11 +27,10 @@ _(`#1` graduado a PLAN.md § Sprint 25 / Bloque N el 2026-07-30)_
 
 ### Bajo
 
+_(`#62` graduó a CI.73 y `#61` a CI.74 el 2026-11-09)_
 _(vacía — `#2` graduado a PLAN.md § Sprint 26 / Bloque Q el 2026-08-06; `#3` a Bloque R el 2026-08-06;
 `#5` a Bloque S el 2026-08-06; `#19` a Bloque T el 2026-08-06; `#40` a Bloque U el 2026-08-07; `#46`
 a Bloque V el 2026-08-08; `#58` a Bloque W el 2026-08-08 — categoría Bajo completa, Sprint 26 cierra)_
-3. `#61` Baseline de warnings de Biome pendiente de limpiar.
-4. `#62` Falso negativo silencioso del parser de `PLAN.md` (título en 2 líneas).
 
 ### Bajo-medio
 

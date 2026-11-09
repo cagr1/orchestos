@@ -1,6 +1,6 @@
+import { createHash } from 'node:crypto'
 import { realpathSync } from 'node:fs'
 import { resolve } from 'node:path'
-import { createHash } from 'crypto'
 import type { StackProfile } from '../generators/agents-md.ts'
 import { PROJECT_ICONS } from '../projects/settings.ts'
 import { db } from './sqlite.ts'

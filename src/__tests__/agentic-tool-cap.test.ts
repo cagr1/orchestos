@@ -10,9 +10,9 @@
  * contenido crudo (decenas de miles de chars).
  */
 import { afterEach, describe, expect, it } from 'bun:test'
-import { mkdtempSync, rmSync, writeFileSync } from 'fs'
-import { tmpdir } from 'os'
-import { join } from 'path'
+import { mkdtempSync, rmSync, writeFileSync } from 'node:fs'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
 import { estimateTokens } from '../context/compress.ts'
 import { contextWindowFor } from '../router/model-catalog.ts'
 import type { Task } from '../tasks/schema.ts'

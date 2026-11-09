@@ -18,7 +18,7 @@
  * dinero (decisión Carlos 2026-07-02, ver docs/done/design/executor-engine-design.md §3).
  */
 
-import { existsSync, readdirSync, readFileSync, statSync } from 'fs'
+import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs'
 import {
   createToolRouter,
   runToolLoop,

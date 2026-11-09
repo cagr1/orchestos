@@ -557,3 +557,14 @@ avanza la base configurada sin cambiar la rama checkout del usuario.
 worktree real, setup, checks y merge a `develop` con `main` intacta; tests de limpieza ante fallo y timeout.
 Typecheck, lint completo y Playwright `project-settings project-tabs tasks settings-pages` pasan.
 Resultados: `docs/done/evidence/ADE.10-live.json`.
+
+---
+
+## 2026-11-09 — Codex (ejecutor CI.74)
+
+**Regla tocada**: archivos protegidos (`src/run/*`, `src/router/*`, entre otros) solo en forma: imports `node:`,
+plantillas de texto, `?.` equivalente, claves literales, radix, imports sin uso.
+**Clasificación**: RESPETÓ
+**Por qué**: fixes de Biome limitados por regla (`--only`); ninguna lógica, contrato ni derivación cambia.
+**Reversibilidad/evidencia**: diff CI.74 revisado por el cerebro (solo forma); `typecheck` y `lint` exit 0; suite
+completa en el pre-push.

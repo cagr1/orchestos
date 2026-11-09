@@ -3,9 +3,9 @@
  */
 
 import { beforeEach, describe, expect, it } from 'bun:test'
-import { existsSync, mkdirSync } from 'fs'
-import { tmpdir } from 'os'
-import { join } from 'path'
+import { existsSync, mkdirSync } from 'node:fs'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
 import { archiveSpec } from '../spec/archive.ts'
 import type { Spec } from '../spec/store.ts'
 import { listSpecs, saveSpec, specPath } from '../spec/store.ts'
@@ -74,7 +74,7 @@ describe('archiveSpec', () => {
 
     const datePrefix = new Date().toISOString().slice(0, 10)
     const archiveDir = join(root, '.orchestos/specs/archive')
-    const { readFileSync } = require('fs')
+    const { readFileSync } = require('node:fs')
     const archivedContent = readFileSync(join(archiveDir, `${datePrefix}-refactor-db.md`), 'utf-8')
     expect(archivedContent).toContain('status: archived')
     expect(archivedContent).toContain('archivedAt:')

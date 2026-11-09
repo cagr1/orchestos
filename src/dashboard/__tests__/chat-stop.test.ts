@@ -229,7 +229,7 @@ test(
     const sql = db.query("SELECT sql FROM sqlite_master WHERE name = 'chat_turns'").get().sql
     const indexes = db.query("SELECT sql FROM sqlite_master WHERE type = 'index' AND tbl_name = 'chat_turns' AND sql IS NOT NULL ORDER BY name").all()
     db.exec('PRAGMA foreign_keys = OFF')
-    db.exec(sql.replace(/CREATE TABLE [\"\x60]?chat_turns[\"\x60]?/i, 'CREATE TABLE old_turns').replace(",'cancelled'", ''))
+    db.exec(sql.replace(/CREATE TABLE ["\x60]?chat_turns["\x60]?/i, 'CREATE TABLE old_turns').replace(",'cancelled'", ''))
     db.exec('INSERT INTO old_turns SELECT * FROM chat_turns; DROP TABLE chat_turns; ALTER TABLE old_turns RENAME TO chat_turns')
     for (const row of indexes) db.exec(row.sql)
     db.exec('DELETE FROM schema_migrations WHERE version = 33; PRAGMA foreign_keys = ON')

@@ -13,9 +13,9 @@
  * ~/.orchestos/db.sqlite or ~/.orchestos/config.yaml.
  */
 import { afterAll, beforeEach, describe, expect, it } from 'bun:test'
-import { mkdtempSync, rmSync, writeFileSync } from 'fs'
-import { tmpdir } from 'os'
-import { join } from 'path'
+import { mkdtempSync, rmSync, writeFileSync } from 'node:fs'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
 import { stringify as yamlStringify } from 'yaml'
 import type { GraphRunOpts, GraphRunResult } from '../../run/graph-runner.ts'
 

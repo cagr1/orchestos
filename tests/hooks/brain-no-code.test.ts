@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'bun:test'
-import { spawnSync } from 'child_process'
-import { mkdtempSync, rmSync } from 'fs'
-import { tmpdir } from 'os'
-import { join, resolve } from 'path'
+import { spawnSync } from 'node:child_process'
+import { mkdtempSync, rmSync } from 'node:fs'
+import { tmpdir } from 'node:os'
+import { join, resolve } from 'node:path'
 
 const HOOK_PATH = resolve(import.meta.dir, '../../.claude/hooks/brain-no-code.js')
 

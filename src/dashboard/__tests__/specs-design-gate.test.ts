@@ -5,9 +5,9 @@
  * el root seleccionado).
  */
 import { afterAll, beforeEach, describe, expect, it } from 'bun:test'
-import { mkdirSync, mkdtempSync, rmSync } from 'fs'
-import { tmpdir } from 'os'
-import { join } from 'path'
+import { mkdirSync, mkdtempSync, rmSync } from 'node:fs'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
 
 const { route } = await import('../server.ts')
 const { loadSpec, saveSpec } = await import('../../spec/store.ts')

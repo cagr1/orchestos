@@ -14,8 +14,8 @@
  *   codex      — no tool-call API surface
  */
 
-import { existsSync, readFileSync } from 'fs'
-import { join } from 'path'
+import { existsSync, readFileSync } from 'node:fs'
+import { join } from 'node:path'
 import { orchestosDir } from '../config/orchestos-home.ts'
 import { estimateTokens } from '../context/compress.ts'
 import { catalogSupportsTools, DEFAULT_MAX_OUTPUT_TOKENS } from '../router/model-catalog.ts'

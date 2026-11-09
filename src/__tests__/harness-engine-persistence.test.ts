@@ -10,9 +10,9 @@
  * persistida. No mockeamos módulos.
  */
 import { afterAll, afterEach, beforeAll, describe, expect, it, spyOn } from 'bun:test'
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'fs'
-import { tmpdir } from 'os'
-import { join } from 'path'
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
 import { DEFAULT_CONFIG } from '../config/schema.ts'
 import { db } from '../db/sqlite.ts'
 import { _resetCatalog } from '../router/model-catalog.ts'

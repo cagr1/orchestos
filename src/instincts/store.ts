@@ -5,7 +5,7 @@
  * Uses the same bun:sqlite pattern as src/db/memory.ts and src/db/runs.ts.
  */
 
-import { randomUUID } from 'crypto'
+import { randomUUID } from 'node:crypto'
 import { db } from '../db/sqlite.ts'
 import {
   APPLY_THRESHOLD,

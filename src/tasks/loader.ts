@@ -1,4 +1,4 @@
-import { createHash } from 'crypto'
+import { createHash } from 'node:crypto'
 import {
   closeSync,
   existsSync,
@@ -9,8 +9,8 @@ import {
   renameSync,
   unlinkSync,
   writeFileSync,
-} from 'fs'
-import { dirname, join } from 'path'
+} from 'node:fs'
+import { dirname, join } from 'node:path'
 import { parse, stringify } from 'yaml'
 import { isProcessAlive, withFileLock } from '../run/file-lock.ts'
 import { type Task, type TasksFile, validateTasksFile } from './schema.ts'

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'bun:test'
-import { appendFileSync, mkdtempSync, rmSync, writeFileSync } from 'fs'
-import { tmpdir } from 'os'
-import { join } from 'path'
+import { appendFileSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
 import { git } from '../run/sandbox.ts'
 import { DirtyTreeError, listDirtyFiles, resolveSandboxMode } from '../run/sandbox-policy.ts'
 

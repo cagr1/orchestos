@@ -26,7 +26,7 @@ export function replaceLiveText(sessionId: string, turnId: string, text: string)
   }
   const accumulated = current?.turnId === turnId ? current.text.trimEnd() : ''
   if (accumulated && text.startsWith(accumulated)) liveText.set(sessionId, { turnId, text })
-  else if (accumulated && accumulated.startsWith(text)) return
+  else if (accumulated?.startsWith(text)) return
   else liveText.set(sessionId, { turnId, text: accumulated ? `${accumulated}\n\n${text}` : text })
 }
 

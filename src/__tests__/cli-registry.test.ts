@@ -12,9 +12,9 @@ import {
   readFileSync,
   rmSync,
   writeFileSync,
-} from 'fs'
-import { tmpdir } from 'os'
-import { join } from 'path'
+} from 'node:fs'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
 import {
   _resetCliCapabilityCache,
   detectInstalledClis,

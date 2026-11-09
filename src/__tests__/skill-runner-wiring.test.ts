@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, test } from 'bun:test'
-import { existsSync, rmSync, writeFileSync } from 'fs'
-import { join } from 'path'
+import { existsSync, rmSync, writeFileSync } from 'node:fs'
+import { join } from 'node:path'
 import type { RunContext } from '../run/middleware.ts'
 import { skillRoute } from '../run/middlewares/skill-route.ts'
 import { buildPrompt } from '../run/prompt.ts'

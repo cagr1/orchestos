@@ -219,7 +219,7 @@ describe('runQA and parseVerdict', () => {
     for (const raw of [
       JSON.stringify([object]),
       JSON.stringify(JSON.stringify(object)),
-      '```json\n' + JSON.stringify([object]) + '\n```',
+      `\`\`\`json\n${JSON.stringify([object])}\n\`\`\``,
     ]) {
       const result = await runQA({
         description: 'Validate response shape',
@@ -237,11 +237,11 @@ describe('runQA and parseVerdict', () => {
   it('R.3 rejects truncated wrappers and extra payloads instead of extracting inner JSON', async () => {
     const valid = JSON.stringify({ verdict: 'pass', reason: 'looks good' })
     for (const raw of [
-      '[' + valid,
-      valid + ',',
-      'explanation ' + valid,
-      '```json\n' + valid + '\n``` trailing',
-      valid + '\n' + valid,
+      `[${valid}`,
+      `${valid},`,
+      `explanation ${valid}`,
+      `\`\`\`json\n${valid}\n\`\`\` trailing`,
+      `${valid}\n${valid}`,
     ]) {
       const result = await runQA({
         description: 'Validate whole response',

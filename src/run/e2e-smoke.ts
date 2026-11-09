@@ -8,8 +8,8 @@
  * Exit 1 = any failure (prints reason).
  */
 
-import { existsSync, readFileSync, rmSync } from 'fs'
-import { join, resolve } from 'path'
+import { existsSync, readFileSync, rmSync } from 'node:fs'
+import { join, resolve } from 'node:path'
 import { loadTasks } from '../tasks/loader.ts'
 import { runTask } from './harness.ts'
 import { RunLogger } from './logger.ts'

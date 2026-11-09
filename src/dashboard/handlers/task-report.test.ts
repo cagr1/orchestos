@@ -221,7 +221,7 @@ it('task reports persist requested and effective approval modes with registry CL
   ]) {
     const { root, session, taskId, projectId } = setup('done')
     const path = join(root, 'tasks.yaml')
-    writeFileSync(path, readFileSync(path, 'utf8') + '    approvalMode: auto-edit\n')
+    writeFileSync(path, `${readFileSync(path, 'utf8')}    approvalMode: auto-edit\n`)
     addRun(taskId, 'done', projectId, 'done', provider)
     reportTaskOutcome(root, session.id, taskId, projectId)
     expect(listChatMessages(session.id)[0]?.taskReport).toMatchObject({

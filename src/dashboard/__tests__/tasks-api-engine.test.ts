@@ -9,9 +9,9 @@
  * se necesita acá — no tocamos el graph runner.
  */
 import { afterAll, beforeEach, describe, expect, it } from 'bun:test'
-import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'fs'
-import { tmpdir } from 'os'
-import { join } from 'path'
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
 import { stringify as yamlStringify } from 'yaml'
 
 const { route } = await import('../server.ts')

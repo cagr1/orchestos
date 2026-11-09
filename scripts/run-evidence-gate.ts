@@ -8,9 +8,9 @@
  * temporary home is deliberately preserved so evidence is not destroyed.
  */
 import { Database } from 'bun:sqlite'
-import { existsSync, mkdtempSync, rmSync } from 'fs'
-import { homedir, tmpdir } from 'os'
-import { join, resolve } from 'path'
+import { existsSync, mkdtempSync, rmSync } from 'node:fs'
+import { homedir, tmpdir } from 'node:os'
+import { join, resolve } from 'node:path'
 
 export interface ExportResult {
   discovered: number

@@ -9,9 +9,9 @@
  * try/finally que SIEMPRE restaura el cwd — incluso si el assert falla.
  */
 import { afterEach, describe, expect, it } from 'bun:test'
-import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'fs'
-import { tmpdir } from 'os'
-import { join } from 'path'
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
 import { parse as parseYaml } from 'yaml'
 import { loadOrcheConfig } from '../config/load.ts'
 import { handleApiConfigSet } from '../dashboard/handlers/config.ts'
@@ -131,7 +131,7 @@ describe('handleApiConfigSet — agent', () => {
       process.chdir(dir)
       writeFileSync(
         join(dir, 'orchestos.config.yaml'),
-        [
+        `${[
           '# fixture legacy: no debe migrarse por un PUT ajeno',
           'config_version: 1',
           'executor_mode: cli-claude',
@@ -139,7 +139,7 @@ describe('handleApiConfigSet — agent', () => {
           'customField: preserve-me',
           'models:',
           '  default: { provider: openrouter, model: old-model }',
-        ].join('\n') + '\n',
+        ].join('\n')}\n`,
         'utf8',
       )
 
@@ -165,13 +165,13 @@ describe('handleApiConfigSet — agent', () => {
       process.chdir(dir)
       writeFileSync(
         join(dir, 'orchestos.config.yaml'),
-        [
+        `${[
           'config_version: 1',
           'executor_mode: cli-claude',
           'executorEngine: external',
           'models:',
           '  default: { provider: openrouter, model: old-model }',
-        ].join('\n') + '\n',
+        ].join('\n')}\n`,
         'utf8',
       )
 

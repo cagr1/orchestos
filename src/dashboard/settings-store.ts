@@ -1,5 +1,5 @@
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'fs'
-import { join } from 'path'
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
+import { join } from 'node:path'
 import { orchestosHome } from '../config/orchestos-home.ts'
 
 /**
@@ -48,7 +48,7 @@ function parseEnvFile(text: string): Record<string, string> {
 function maskKey(v: string): string {
   if (!v) return ''
   if (v.length <= 8) return '••••••••'
-  return v.slice(0, 6) + '••••' + v.slice(-4)
+  return `${v.slice(0, 6)}••••${v.slice(-4)}`
 }
 
 function readEnv(): Record<string, string> {
@@ -61,10 +61,9 @@ function readEnv(): Record<string, string> {
 
 function writeEnv(data: Record<string, string>): void {
   mkdirSync(join(envHome(), '.orchestos'), { recursive: true })
-  const content =
-    Object.entries(data)
-      .map(([k, v]) => `${k}=${v}`)
-      .join('\n') + '\n'
+  const content = `${Object.entries(data)
+    .map(([k, v]) => `${k}=${v}`)
+    .join('\n')}\n`
   writeFileSync(envFilePath(), content, 'utf-8')
 }
 

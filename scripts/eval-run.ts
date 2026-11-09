@@ -29,7 +29,7 @@ function parseCliEffort(value: string | undefined, engine?: TaskEngine): CliEffo
   const levels = engine
     ? CLI_EFFORT_LEVELS[engine as keyof typeof CLI_EFFORT_LEVELS]
     : CLI_EFFORT_LEVELS.external
-  if (!levels || !levels.includes(value as never)) {
+  if (!levels?.includes(value as never)) {
     const engineLabel = engine ?? 'external (default for backwards compatibility)'
     throw new InvalidArgumentError(
       `cli-effort must be one of: ${levels?.join(', ') ?? 'no declared levels'} for engine ${engineLabel}`,

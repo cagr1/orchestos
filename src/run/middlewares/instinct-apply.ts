@@ -20,7 +20,7 @@ export const instinctApply: MiddlewareFn<RunContext> = async (ctx, next) => {
   } catch {}
   const applicable = listApplicable(projectId)
   if (applicable.length > 0) {
-    ctx.instinctBlock = '\n## INSTINCTS\n' + applicable.map((i) => `- ${i.action}`).join('\n')
+    ctx.instinctBlock = `\n## INSTINCTS\n${applicable.map((i) => `- ${i.action}`).join('\n')}`
   }
   await next()
 }

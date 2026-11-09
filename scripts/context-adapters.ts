@@ -342,7 +342,7 @@ export async function readCodexRateLimitsLive(
       stderr: 'ignore',
     })
     const request = (id: number, method: string, params?: Record<string, unknown>) =>
-      JSON.stringify({ jsonrpc: '2.0', id, method, ...(params ? { params } : {}) }) + '\n'
+      `${JSON.stringify({ jsonrpc: '2.0', id, method, ...(params ? { params } : {}) })}\n`
     const stdin = processHandle.stdin as Bun.FileSink
     const stdout = processHandle.stdout as ReadableStream<Uint8Array>
     await stdin.write(
@@ -351,7 +351,7 @@ export async function readCodexRateLimitsLive(
         capabilities: {},
       }),
     )
-    await stdin.write(JSON.stringify({ jsonrpc: '2.0', method: 'initialized', params: {} }) + '\n')
+    await stdin.write(`${JSON.stringify({ jsonrpc: '2.0', method: 'initialized', params: {} })}\n`)
     await stdin.write(request(2, 'account/rateLimits/read'))
 
     const reader = stdout.getReader()

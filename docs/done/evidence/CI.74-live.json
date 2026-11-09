@@ -1,0 +1,174 @@
+[
+  {
+    "flujo": "settings-pages",
+    "pass": true,
+    "steps": [
+      {
+        "nombre": "Language lives in General without a navigation entry",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "language saves instantly and survives reload",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "language search highlights its General row",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "Appearance has four themes",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "theme OrchestOS is available",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "theme Graphite is available",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "theme Carbon is available",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "theme Light is available",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "chosen theme persists after reload",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "Keybindings has one row per registry entry",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "registered shortcut zoom-in",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "registered shortcut zoom-out",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "registered shortcut zoom-reset",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "registered shortcut command-palette",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "registered shortcut settings-search",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "registered shortcut go-to-file",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "registered shortcut open-settings",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "registered shortcut mode-chat",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "registered shortcut mode-dev",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "registered shortcut new-chat",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "registered shortcut toggle-sidebar",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "registered shortcut toggle-right-panel",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "registered shortcut new-terminal",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "registered shortcut close-tab",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "registered shortcut next-tab",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "registered shortcut previous-tab",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "registered shortcut stop-turn",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "command filter leaves exactly its matching row",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "key filter matches the registered shortcuts",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "unmatched filter has zero rows and keeps page usable",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "clearing the filter restores all rows",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "registered Settings shortcut opens search",
+        "ok": true,
+        "detalle": "ok"
+      }
+    ],
+    "notes": [],
+    "errores": [],
+    "capturas": [
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-92338/settings-pages/appearance.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-92338/settings-pages/keybindings.png"
+    ]
+  }
+]

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'bun:test'
-import { chmodSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'fs'
-import { tmpdir } from 'os'
-import { join } from 'path'
+import { chmodSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
 import { resolveChatCost } from '../handlers/chat.ts'
 
 // CC.1-D1 — este archivo prueba el WIRING (agente → transporte correcto),
@@ -375,7 +375,7 @@ describe('CC.2 — chat sessions backend', () => {
       process.stdout.write(JSON.stringify({ emptyModelStatus: emptyModelResponse.status, emptyModelRunCount, statuses: [sessionResponse.status, zeroResponse.status, estimatedResponse.status, unknownResponse.status], rows, api }))
       db.close()
     `,
-      { PATH: process.cwd() + '/scripts/fixtures:' + NO_CLI_PATH },
+      { PATH: `${process.cwd()}/scripts/fixtures:${NO_CLI_PATH}` },
     )
 
     expect(result.emptyModelStatus).toBe(200)

@@ -1,4 +1,4 @@
-import { createWriteStream } from 'fs'
+import { createWriteStream } from 'node:fs'
 import PDFDocument from 'pdfkit'
 import type { RunRecord } from '../db/runs.ts'
 import type { StackProfile } from './agents-md.ts'

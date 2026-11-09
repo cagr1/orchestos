@@ -6,8 +6,8 @@
  * Investigates existing specs before suggesting modified/removed.
  */
 
-import { existsSync, readFileSync } from 'fs'
-import { join } from 'path'
+import { existsSync, readFileSync } from 'node:fs'
+import { join } from 'node:path'
 import { loadOrcheConfig } from '../config/load.ts'
 import { roleClient } from '../router/role-runner.ts'
 import { type CapabilitiesContract, listSpecs } from './store.ts'

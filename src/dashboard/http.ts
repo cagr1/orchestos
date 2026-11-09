@@ -1,6 +1,6 @@
-import { existsSync, readFileSync, realpathSync } from 'fs'
-import { extname, join, sep } from 'path'
-import { fileURLToPath } from 'url'
+import { existsSync, readFileSync, realpathSync } from 'node:fs'
+import { extname, join, sep } from 'node:path'
+import { fileURLToPath } from 'node:url'
 import { redactSensitive } from '../security/secrets.ts'
 
 const MIME: Record<string, string> = {
@@ -32,7 +32,7 @@ function serveFrom(root: string, rel: string, headers?: HeadersInit): Response {
   let candidate = join(root, rel)
 
   if (!existsSync(candidate) && !extname(rel)) {
-    candidate = join(root, rel + '.html')
+    candidate = join(root, `${rel}.html`)
   }
   if (!existsSync(candidate)) {
     return new Response('Not found', { status: 404 })

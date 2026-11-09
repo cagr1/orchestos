@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'bun:test'
-import { join } from 'path'
+import { join } from 'node:path'
 import { detectLanguages, detectPrimaryLanguage, SUPPORTED_LANGUAGES } from '../detect/languages.ts'
 
 const FIXTURES = join(import.meta.dir, 'fixtures', 'languages')

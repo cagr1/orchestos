@@ -71,6 +71,6 @@ const report = {
   limits: 'Eight synthetic operations; implicit reads and crash durability not verified',
 }
 mkdirSync(dirname(output), { recursive: true })
-writeFileSync(output, JSON.stringify(report, null, 2) + '\n')
+writeFileSync(output, `${JSON.stringify(report, null, 2)}\n`)
 db.close()
 console.log(`PASS: 8 persisted outcomes correlated; 1 successful direct read; report ${output}`)

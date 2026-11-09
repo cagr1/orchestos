@@ -1,6 +1,6 @@
 import { afterAll, describe, expect, it } from 'bun:test'
-import { mkdirSync, rmSync } from 'fs'
-import { join } from 'path'
+import { mkdirSync, rmSync } from 'node:fs'
+import { join } from 'node:path'
 import { db } from '../db/sqlite.ts'
 import { listSpecs, loadSpec, type Spec, saveSpec } from '../spec/store.ts'
 import { validateSpec } from '../spec/validate.ts'
@@ -21,7 +21,7 @@ function tmpDir(): string {
     import.meta.dir,
     '..',
     '..',
-    '.tmp-spec-test-' + Math.random().toString(36).slice(2),
+    `.tmp-spec-test-${Math.random().toString(36).slice(2)}`,
   )
   mkdirSync(dir, { recursive: true })
   return dir

@@ -8,8 +8,8 @@
  * `spec list` hides archived specs by default; `--all` shows them.
  */
 
-import { existsSync, mkdirSync, readdirSync, unlinkSync, writeFileSync } from 'fs'
-import { join } from 'path'
+import { existsSync, mkdirSync, readdirSync, unlinkSync, writeFileSync } from 'node:fs'
+import { join } from 'node:path'
 import { loadSpec, specPath } from './store.ts'
 
 const SPECS_DIR = '.orchestos/specs'

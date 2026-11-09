@@ -4,9 +4,9 @@ import { applyCliSearchPath } from './run/executors/cli-discovery.ts'
 
 applyCliSearchPath()
 
+import { existsSync, readFileSync, writeFileSync } from 'node:fs'
+import { join, resolve } from 'node:path'
 import { Command } from 'commander'
-import { existsSync, readFileSync, writeFileSync } from 'fs'
-import { join, resolve } from 'path'
 import { diagnoseTask } from './agents/diagnose.ts'
 import { resolveDashboardPaths } from './cli-dashboard-paths.ts'
 import { registerSkillCurateImportCommands } from './cli-skill-curate.ts'
@@ -259,7 +259,7 @@ roadmap
     console.log('Lenguajes:')
     for (const l of profile.languageProfiles)
       console.log(
-        `  ${l.language.padEnd(14)} ${String(l.pct + '%').padEnd(5)} ${l.state.padEnd(10)} ${l.evidence}`,
+        `  ${l.language.padEnd(14)} ${String(`${l.pct}%`).padEnd(5)} ${l.state.padEnd(10)} ${l.evidence}`,
       )
     console.log('')
     const missing = [
@@ -421,7 +421,7 @@ skill
     const cols = 4
     const padded = SUPPORTED_LANGUAGES.map((l) => l.padEnd(20))
     for (let i = 0; i < padded.length; i += cols) {
-      console.log('  ' + padded.slice(i, i + cols).join(''))
+      console.log(`  ${padded.slice(i, i + cols).join('')}`)
     }
     console.log(`\n  Total: ${SUPPORTED_LANGUAGES.length} languages`)
     console.log('\n  Missing a language? Use: orchestos skill scaffold --language <name>')
@@ -854,7 +854,7 @@ program
       if (opts.analyze) {
         const { groupRunsByOutcome, analyzeRunPatterns } = await import('./analyze/patterns.ts')
         const { proposeInstinctsFromPatterns } = await import('./analyze/propose.ts')
-        const n = parseInt(opts.last ?? '20')
+        const n = parseInt(opts.last ?? '20', 10)
         const rows = listRuns(n)
         if (rows.length < 3) {
           console.log('[runs analyze] Not enough runs to analyze (need at least 3).')
@@ -891,7 +891,7 @@ program
         return
       }
 
-      const rows = listRuns(parseInt(opts.limit))
+      const rows = listRuns(parseInt(opts.limit, 10))
       if (rows.length === 0) {
         console.log('[runs] No runs yet.')
         return
@@ -1057,12 +1057,12 @@ task
       totalCost += cost
       const qa = t.qa_verdict ?? '-'
       console.log(
-        `  ${t.id.padEnd(22)} ${t.status.padEnd(18)} ${String(t.retry_count).padEnd(6)} ${qa.padEnd(6)} ${('$' + cost.toFixed(5)).padStart(10)}`,
+        `  ${t.id.padEnd(22)} ${t.status.padEnd(18)} ${String(t.retry_count).padEnd(6)} ${qa.padEnd(6)} ${(`$${cost.toFixed(5)}`).padStart(10)}`,
       )
     }
     console.log(`  ${'─'.repeat(head.length - 2)}`)
     console.log(
-      `  ${'total'.padEnd(22)} ${''.padEnd(18)} ${''.padEnd(6)} ${''.padEnd(6)} ${('$' + totalCost.toFixed(5)).padStart(10)}`,
+      `  ${'total'.padEnd(22)} ${''.padEnd(18)} ${''.padEnd(6)} ${''.padEnd(6)} ${(`$${totalCost.toFixed(5)}`).padStart(10)}`,
     )
     console.log()
   })
@@ -1206,7 +1206,7 @@ task
         // check dependencies
         for (const dep of t.depends_on) {
           const depTask = file.tasks.find((x) => x.id === dep)
-          if (!depTask || depTask.status !== 'done') {
+          if (depTask?.status !== 'done') {
             const log = new RunLogger(root, taskId)
             log.blocked(dep)
             console.error(
@@ -1650,7 +1650,7 @@ spec
         s.frontmatter.status = 'draft'
         delete s.frontmatter.approvedAt
         if (capabilities) s.frontmatter.capabilities = capabilities
-        s.body = body + '\n'
+        s.body = `${body}\n`
         saveSpec(root, s)
         const capInfo = capabilities
           ? ` (added:${capabilities.added.length} modified:${capabilities.modified.length} removed:${capabilities.removed.length})`
@@ -1814,7 +1814,7 @@ instinct
     )
     for (const r of rows) {
       const trigger =
-        r.trigger.length > COL_TRIGGER - 3 ? r.trigger.slice(0, COL_TRIGGER - 3) + '...' : r.trigger
+        r.trigger.length > COL_TRIGGER - 3 ? `${r.trigger.slice(0, COL_TRIGGER - 3)}...` : r.trigger
       console.log(
         `  ${r.id.padEnd(COL_ID)} ${trigger.padEnd(COL_TRIGGER)} ${r.confidence.toFixed(2).padEnd(10)} ${r.source.padEnd(8)} ${String(r.verified).padEnd(8)}`,
       )
@@ -1846,9 +1846,9 @@ instinct
     )
     for (const r of rows) {
       const trigger =
-        r.trigger.length > COL_TRIGGER - 3 ? r.trigger.slice(0, COL_TRIGGER - 3) + '...' : r.trigger
+        r.trigger.length > COL_TRIGGER - 3 ? `${r.trigger.slice(0, COL_TRIGGER - 3)}...` : r.trigger
       const action =
-        r.action.length > COL_ACTION - 3 ? r.action.slice(0, COL_ACTION - 3) + '...' : r.action
+        r.action.length > COL_ACTION - 3 ? `${r.action.slice(0, COL_ACTION - 3)}...` : r.action
       console.log(
         `  ${r.id.padEnd(COL_ID)} ${trigger.padEnd(COL_TRIGGER)} ${action.padEnd(COL_ACTION)} ${r.confidence.toFixed(2).padEnd(10)}`,
       )
@@ -2133,7 +2133,7 @@ program
   .option('--port <n>', 'Port to listen on', '4242')
   .action(async (opts: { port?: string }) => {
     const { startServer } = await import('./dashboard/server.ts')
-    const port = parseInt(opts.port ?? '4242')
+    const port = parseInt(opts.port ?? '4242', 10)
 
     // I3: Auto-run bun install if lockfile exists but node_modules missing
     const { packageRoot, uiBundle } = resolveDashboardPaths(import.meta.url)
@@ -2233,7 +2233,7 @@ async function runClarifyMode(
   orcheConfig: import('./config/schema.ts').OrcheConfig,
   orcheConfigFound: boolean,
 ): Promise<void> {
-  const { createInterface } = await import('readline')
+  const { createInterface } = await import('node:readline')
   const file = loadTasks(root)
   const t = file.tasks.find((x) => x.id === taskId)
   if (!t) {

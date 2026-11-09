@@ -1,5 +1,5 @@
-import { existsSync, readFileSync } from 'fs'
-import { join } from 'path'
+import { existsSync, readFileSync } from 'node:fs'
+import { join } from 'node:path'
 import { classifyTask } from '../router/classify.ts'
 import { buildSkillInstructions } from '../skills/catalog.ts'
 import type { Task } from '../tasks/schema.ts'
@@ -52,7 +52,7 @@ export function buildPrompt(
     const truncated =
       previousFailure.length <= 2000
         ? previousFailure
-        : head + '\n…\n' + previousFailure.slice(-(2000 - head.length - 3))
+        : `${head}\n…\n${previousFailure.slice(-(2000 - head.length - 3))}`
     userContent += `\n## PREVIOUS ATTEMPT FAILED\nThe last attempt at this task failed for this reason:\n${truncated}\nFix the cause described above. Do not repeat the same mistake.`
   }
 

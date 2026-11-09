@@ -161,7 +161,7 @@ export async function runTask(opts: HarnessOpts): Promise<TaskResult> {
     // (resolveSandboxMode lanza "Uncommitted changes..." en ese caso).
     if (orcheConfig?.requireSpec) {
       const spec = loadSpec(projectRoot, t.id)
-      if (!spec || spec.frontmatter.status !== 'approved') {
+      if (spec?.frontmatter.status !== 'approved') {
         throw new Error(
           `Task '${t.id}' requires an approved spec. Run: orchestos spec approve ${t.id}`,
         )

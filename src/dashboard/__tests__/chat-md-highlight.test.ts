@@ -35,15 +35,15 @@ function buildHighlightIndex(st: any): Map<string, { type: string; id: string; n
     if (!needle || typeof needle !== 'string' || needle.length < 2) return
     if (!idx.has(needle)) idx.set(needle, meta)
   }
-  for (const t of (st && st.tasks) || []) {
-    if (t && t.id) add(t.id, { type: 'task', id: t.id })
+  for (const t of st?.tasks || []) {
+    if (t?.id) add(t.id, { type: 'task', id: t.id })
   }
-  for (const m of (st && st.orModels) || []) {
-    if (m && m.id) add(m.id, { type: 'model', id: m.id, name: m.name || m.id })
-    if (m && m.name && m.name !== m.id) add(m.name, { type: 'model', id: m.id, name: m.name })
+  for (const m of st?.orModels || []) {
+    if (m?.id) add(m.id, { type: 'model', id: m.id, name: m.name || m.id })
+    if (m?.name && m.name !== m.id) add(m.name, { type: 'model', id: m.id, name: m.name })
   }
-  for (const m of (st && st.localModels) || []) {
-    const id = typeof m === 'string' ? m : m && m.id
+  for (const m of st?.localModels || []) {
+    const id = typeof m === 'string' ? m : m?.id
     if (id) add(id, { type: 'model', id, name: id })
   }
   return idx

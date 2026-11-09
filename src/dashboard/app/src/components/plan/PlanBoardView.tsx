@@ -2,7 +2,6 @@ import {
   Check,
   FileCode,
   FileText,
-  Filter,
   HelpCircle,
   Kanban,
   List,

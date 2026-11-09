@@ -728,6 +728,6 @@ export function startServer(
 }
 
 if (import.meta.main) {
-  const port = parseInt(process.env.PORT ?? String(DEFAULT_PORT))
+  const port = parseInt(process.env.PORT ?? String(DEFAULT_PORT), 10)
   startServer(port)
 }

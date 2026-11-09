@@ -1,6 +1,6 @@
-import { existsSync, readFileSync } from 'fs'
+import { existsSync, readFileSync } from 'node:fs'
+import { join } from 'node:path'
 import { glob } from 'glob'
-import { join } from 'path'
 import { parse } from 'yaml'
 import { type Conventions, readConventions } from './conventions.ts'
 import { detectLanguages, type LangStat } from './languages.ts'

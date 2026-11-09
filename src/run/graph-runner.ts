@@ -402,7 +402,7 @@ async function executeSingleTask(
 
   for (const dep of t.depends_on) {
     const depTask = initialFile.tasks.find((x) => x.id === dep)
-    if (!depTask || depTask.status !== 'done') {
+    if (depTask?.status !== 'done') {
       new RunLogger(projectRoot, taskId).blocked(dep)
       persist(taskId, {
         status: 'blocked',

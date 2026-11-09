@@ -3,9 +3,9 @@
  * (A1-A6, F3, /api/skills/curate, G pro pack).
  */
 import { afterAll, afterEach, describe, expect, it, mock } from 'bun:test'
-import { existsSync, mkdirSync, mkdtempSync, rmSync, unlinkSync, writeFileSync } from 'fs'
-import { tmpdir } from 'os'
-import { join } from 'path'
+import { existsSync, mkdirSync, mkdtempSync, rmSync, unlinkSync, writeFileSync } from 'node:fs'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
 import { db } from '../../db/sqlite.ts'
 import type { ChatResponse } from '../../providers/openrouter.ts'
 import { getProSkillPath, getSkillPath } from '../../skills/registry.ts'

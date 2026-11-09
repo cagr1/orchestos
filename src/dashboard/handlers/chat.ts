@@ -1,7 +1,7 @@
-import { createHash, randomUUID } from 'crypto'
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'fs'
-import { tmpdir } from 'os'
-import { join, relative } from 'path'
+import { createHash, randomUUID } from 'node:crypto'
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import { tmpdir } from 'node:os'
+import { join, relative } from 'node:path'
 import { writeChatImages } from '../../chat/attachment-files.ts'
 import { buildChatSystemPrompt, rejectedSessionTasks } from '../../chat/chat-context.ts'
 import { extractTextFromImage } from '../../chat/ocr.ts'
@@ -308,7 +308,7 @@ export async function readOpenRouterChatModels(
   }
   const apiKey = (() => {
     try {
-      return readEnv()['OPENROUTER_API_KEY'] || process.env.OPENROUTER_API_KEY || ''
+      return readEnv().OPENROUTER_API_KEY || process.env.OPENROUTER_API_KEY || ''
     } catch {
       return ''
     }
@@ -490,15 +490,15 @@ export async function executeSearchMemory(
           )
           .all(ftsQuery)
 
-    if (rows.length === 0) return '[No memory entries found for "' + query + '"]'
+    if (rows.length === 0) return `[No memory entries found for "${query}"]`
 
-    const header = '[Memory search results for "' + query + '"]\n\n'
+    const header = `[Memory search results for "${query}"]\n\n`
     // A.3: cap defensivo — un hit con content muy largo o N hits consecutivos
     // no debe comerse la ventana de contexto del chat.
     return capToolOutput(
       untrustedContent(
         'memory-search',
-        header + rows.map((r) => '[' + r.scope + '] ' + r.topic_key + ': ' + r.content).join('\n'),
+        header + rows.map((r) => `[${r.scope}] ${r.topic_key}: ${r.content}`).join('\n'),
       ),
     )
   } catch (e: any) {
@@ -1480,7 +1480,7 @@ async function handleApiChat(
     for (const f of attachedFiles) {
       if (f.type !== 'image') {
         const label = f.filename.toLowerCase().endsWith('.pdf') ? 'PDF' : 'File'
-        textBlocks.push(untrustedContent(`${label}:${f.filename}`, f.content) + '\n\n')
+        textBlocks.push(`${untrustedContent(`${label}:${f.filename}`, f.content)}\n\n`)
         continue
       }
       if (cliImages) {
@@ -1500,7 +1500,7 @@ async function handleApiChat(
         // el texto extraído de una imagen subida por el usuario no es confiable,
         // nunca debe leerse como instrucción.
         textBlocks.push(
-          untrustedContent(`OCR:${f.filename}`, ocrText || '(no text detected in image)') + '\n\n',
+          `${untrustedContent(`OCR:${f.filename}`, ocrText || '(no text detected in image)')}\n\n`,
         )
         ocrUsed.push(f.filename)
       } catch {

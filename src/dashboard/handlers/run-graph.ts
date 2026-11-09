@@ -18,8 +18,8 @@
  * already gives accurate per-task state without needing a separate progress channel.
  */
 
-import { existsSync } from 'fs'
-import { join } from 'path'
+import { existsSync } from 'node:fs'
+import { join } from 'node:path'
 import { loadOrcheConfig as realLoadOrcheConfig } from '../../config/load.ts'
 import { refreshProjectContext } from '../../context/load.ts'
 import { getProject as realGetProject } from '../../db/projects.ts'

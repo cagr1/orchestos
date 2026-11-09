@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'bun:test'
-import { existsSync, mkdtempSync, rmSync } from 'fs'
-import { tmpdir } from 'os'
-import { join } from 'path'
+import { existsSync, mkdtempSync, rmSync } from 'node:fs'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
 
 describe('sqlite path isolation', () => {
   it('ORCHESTOS_HOME dirige la DB a una raíz aislada en un proceso nuevo', async () => {

@@ -7,9 +7,9 @@
  * en Mes 20/C.1 — `:` donde iba `+` en `<script>`).
  */
 import { afterEach, describe, expect, it } from 'bun:test'
-import { mkdirSync, mkdtempSync, rmSync, unlinkSync, writeFileSync } from 'fs'
-import { tmpdir } from 'os'
-import { join } from 'path'
+import { mkdirSync, mkdtempSync, rmSync, unlinkSync, writeFileSync } from 'node:fs'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
 import { type CheckResult, defaultChecksFor, formatCheckFailure, runChecks } from '../run/checks.ts'
 import { cleanupJsCheckTemp, jsCheckTempPath } from '../run/html-script-check.ts'
 import { RunLogger } from '../run/logger.ts'
@@ -389,7 +389,7 @@ describe('formatCheckFailure — TRUST.1', () => {
   })
   it('bounds long commands and streams, prioritizing the stderr tail', () => {
     const text = formatCheckFailure(
-      { ...result, cmd: 'C'.repeat(1000), stderr: 'noise\n'.repeat(1000) + 'TRUST1-MARKER' },
+      { ...result, cmd: 'C'.repeat(1000), stderr: `${'noise\n'.repeat(1000)}TRUST1-MARKER` },
       7,
     )
     expect(text.length).toBe(1800)
@@ -401,7 +401,7 @@ describe('formatCheckFailure — TRUST.1', () => {
   })
   it('keeps stdout tail when stderr is empty and omits empty streams', () => {
     expect(
-      formatCheckFailure({ ...result, stderr: '', stdout: 'S'.repeat(3000) + 'END' }, 0),
+      formatCheckFailure({ ...result, stderr: '', stdout: `${'S'.repeat(3000)}END` }, 0),
     ).toEndWith('END')
     expect(formatCheckFailure({ ...result, stderr: '', stdout: '' }, 0)).toBe(
       'check failed: test output exit 2 (expected 0)',

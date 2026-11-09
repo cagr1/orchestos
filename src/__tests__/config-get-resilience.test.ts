@@ -6,9 +6,9 @@
  * del repo durante la suite.
  */
 import { afterEach, describe, expect, it } from 'bun:test'
-import { mkdtempSync, rmSync, writeFileSync } from 'fs'
-import { tmpdir } from 'os'
-import { join } from 'path'
+import { mkdtempSync, rmSync, writeFileSync } from 'node:fs'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
 import { handleApiConfigGet } from '../dashboard/handlers/config.ts'
 
 const originalCwd = process.cwd()

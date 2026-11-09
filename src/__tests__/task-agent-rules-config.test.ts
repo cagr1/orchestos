@@ -5,9 +5,9 @@
  * carga del config entero ni infiere un `agent` inválido desde basura YAML.
  */
 import { afterEach, describe, expect, it } from 'bun:test'
-import { mkdtempSync, rmSync, writeFileSync } from 'fs'
-import { tmpdir } from 'os'
-import { join } from 'path'
+import { mkdtempSync, rmSync, writeFileSync } from 'node:fs'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
 import { loadOrcheConfig } from '../config/load.ts'
 
 const dirs: string[] = []

@@ -30,9 +30,9 @@
  */
 
 import { afterEach, beforeEach, describe, expect, it } from 'bun:test'
-import { mkdtempSync, rmSync, writeFileSync } from 'fs'
-import { tmpdir } from 'os'
-import { join } from 'path'
+import { mkdtempSync, rmSync, writeFileSync } from 'node:fs'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
 import { ExecutorExternalError, externalEngine } from '../run/executors/external.ts'
 import type { RunContext } from '../run/middleware.ts'
 import { createWorktree, git, type Worktree } from '../run/sandbox.ts'
@@ -128,7 +128,7 @@ function makeMockProc(
 // stdout se arman igual que antes (campos total_cost_usd/usage/num_turns)
 // pero envueltos como línea de evento `result`.
 function mockResultLine(fields: Record<string, unknown>): string {
-  return JSON.stringify({ type: 'result', ...fields }) + '\n'
+  return `${JSON.stringify({ type: 'result', ...fields })}\n`
 }
 
 const spawnCalls: MockSpawnCall[] = []
@@ -216,7 +216,7 @@ function buildCtx(worktree: Worktree, task: Task): RunContext {
     effectiveRoot: worktree.path,
     worktree,
     instinctBlock: '',
-    prompt: { system: '', userContent: 'Task: ' + task.description },
+    prompt: { system: '', userContent: `Task: ${task.description}` },
     contextWarnings: [],
   }
 }
@@ -704,7 +704,7 @@ describe('B.3 — externalEngine (claude-code subprocess)', () => {
     // con la regla existente "existsSync(full) → continue" para borrados.
     // Si el directorio tiene contenido, git lo reporta como paths
     // individuales (siguiente test cubre ese caso).
-    const { mkdirSync } = await import('fs')
+    const { mkdirSync } = await import('node:fs')
     const root = makeGitRepo()
     const wt = createWorktree('b4-empty-dir', 'main', root)
     trackWorktree(wt)
@@ -743,7 +743,7 @@ describe('B.3 — externalEngine (claude-code subprocess)', () => {
     // Antes del fix este test crasheaba con EISDIR porque ademas de
     // `sub/inner.txt` git tambien reportaba `sub/` (depende de la version
     // de git, pero defensivamente lo testeamos).
-    const { mkdirSync } = await import('fs')
+    const { mkdirSync } = await import('node:fs')
     const root = makeGitRepo()
     const wt = createWorktree('b4-dir-with-file', 'main', root)
     trackWorktree(wt)

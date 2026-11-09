@@ -1,5 +1,5 @@
-import { existsSync, mkdirSync, readFileSync, renameSync, unlinkSync, writeFileSync } from 'fs'
-import { dirname, join } from 'path'
+import { existsSync, mkdirSync, readFileSync, renameSync, unlinkSync, writeFileSync } from 'node:fs'
+import { dirname, join } from 'node:path'
 import { loadOrcheConfig } from '../../config/load.ts'
 import type { getProvider } from '../../providers/index.ts'
 import type { ChatMessage, ChatResponse } from '../../providers/openrouter.ts'
@@ -76,7 +76,7 @@ function handleApiSkillsList(root = process.cwd(), projectId: string | null = nu
           version: s.version,
           targets: [...s.targets],
           instructionSummary:
-            s.instructions.length > 100 ? s.instructions.slice(0, 100) + '...' : s.instructions,
+            s.instructions.length > 100 ? `${s.instructions.slice(0, 100)}...` : s.instructions,
           language: Object.keys(s.language_targets ?? {})[0] ?? 'General',
           verifierCommand:
             s.verifiers?.[0] ?? Object.values(s.language_targets ?? {})[0]?.verifiers?.[0] ?? '—',
@@ -98,7 +98,7 @@ function handleApiSkillsList(root = process.cwd(), projectId: string | null = nu
 
 function handleApiSkillsGet(url: URL, root = process.cwd()): Response {
   const m = url.pathname.match(/^\/api\/skills\/([^/]+)$/)
-  if (!m || !m[1]) return errorResponse('Missing skill id', 400)
+  if (!m?.[1]) return errorResponse('Missing skill id', 400)
   const id: string = m[1]
   const path = resolveSkillPath(id, root)
   if (!existsSync(path)) return errorResponse('Skill not found', 404)
@@ -112,7 +112,7 @@ function handleApiSkillsGet(url: URL, root = process.cwd()): Response {
 
 function handleApiSkillsExport(url: URL, root = process.cwd()): Response {
   const m = url.pathname.match(/^\/api\/skills\/([^/]+)\/export$/)
-  if (!m || !m[1]) return errorResponse('Missing skill id', 400)
+  if (!m?.[1]) return errorResponse('Missing skill id', 400)
   const id: string = m[1]
   const path = resolveSkillPath(id, root)
   if (!existsSync(path)) return errorResponse('Skill not found', 404)
@@ -163,7 +163,7 @@ async function handleApiSkillsUpdate(
   root = process.cwd(),
 ): Promise<Response> {
   const m = url.pathname.match(/^\/api\/skills\/([^/]+)$/)
-  if (!m || !m[1]) return errorResponse('Missing skill id', 400)
+  if (!m?.[1]) return errorResponse('Missing skill id', 400)
   const id: string = m[1]
   // O.1 — existe si está en el proyecto O centralizada, pero se escribe SIEMPRE
   // en el proyecto: editar una skill centralizada desde otro repo crea una
@@ -195,7 +195,7 @@ async function handleApiSkillsDelete(
   root = process.cwd(),
 ): Promise<Response> {
   const m = url.pathname.match(/^\/api\/skills\/([^/]+)$/)
-  if (!m || !m[1]) return errorResponse('Missing skill id', 400)
+  if (!m?.[1]) return errorResponse('Missing skill id', 400)
   const id: string = m[1]
   // O.1 — borrar SOLO toca el proyecto, nunca la instalación de OrchestOS: si
   // la skill resuelve únicamente contra la carpeta central, borrarla desde este
@@ -231,7 +231,7 @@ async function handleApiSkillsDelete(
 
 function handleApiSkillsBuild(url: URL, root = process.cwd()): Response {
   const m = url.pathname.match(/^\/api\/skills\/([^/]+)\/build$/)
-  if (!m || !m[1]) return errorResponse('Missing skill id', 400)
+  if (!m?.[1]) return errorResponse('Missing skill id', 400)
   const id: string = m[1]
   const path = resolveSkillPath(id, root)
   if (!existsSync(path)) return errorResponse('Skill not found', 404)
@@ -274,7 +274,7 @@ function handleApiSkillsProList(root = process.cwd()): Response {
 
 function handleApiSkillsProImport(url: URL, root = process.cwd()): Response {
   const m = url.pathname.match(/^\/api\/skills\/pro\/([^/]+)\/import$/)
-  if (!m || !m[1]) return errorResponse('Missing skill id', 400)
+  if (!m?.[1]) return errorResponse('Missing skill id', 400)
   const id: string = m[1]
 
   const proPath = resolveProSkillPath(id, root)
@@ -591,7 +591,7 @@ async function handleApiSkillsRegistryImport(
   root = process.cwd(),
 ): Promise<Response> {
   const m = url.pathname.match(/^\/api\/skills\/registry\/([^/]+)\/import$/)
-  if (!m || !m[1]) return errorResponse('Missing skill id', 400)
+  if (!m?.[1]) return errorResponse('Missing skill id', 400)
   const id: string = m[1]
 
   const targetPath = getSkillPath(id, root)

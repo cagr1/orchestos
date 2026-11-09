@@ -3,8 +3,8 @@
 // Gobernanza de este repo, no feature de OrchestOS-el-producto — corre cuando Carlos
 // quiere ver la tabla, nunca en vivo dentro del dashboard (mismo criterio que F.1/F.2).
 
-import { existsSync, readFileSync } from 'fs'
-import { resolve } from 'path'
+import { existsSync, readFileSync } from 'node:fs'
+import { resolve } from 'node:path'
 
 export interface LedgerEntry {
   when: string

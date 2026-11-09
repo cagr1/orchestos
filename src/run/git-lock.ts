@@ -1,4 +1,4 @@
-import { join } from 'path'
+import { join } from 'node:path'
 import { withFileLock } from './file-lock.ts'
 
 export function withGitLock<T>(projectRoot: string, fn: () => T): T {

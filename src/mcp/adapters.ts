@@ -39,7 +39,7 @@ export interface McpOffer {
 
 /** Clave estable del conjunto ofrecido; el hilo de Codex se reabre si cambia (herramientas o raíz). */
 export function mcpOfferKey(offer: McpOffer | undefined): string {
-  return offer && offer.tools.length ? `${offer.root}\0${[...offer.tools].sort().join(',')}` : ''
+  return offer?.tools.length ? `${offer.root}\0${[...offer.tools].sort().join(',')}` : ''
 }
 
 export function orchestosMcpServerCommand(offer: McpOffer): { command: string; args: string[] } {

@@ -9,9 +9,9 @@
  */
 
 import { afterEach, beforeEach, describe, expect, it } from 'bun:test'
-import { mkdtempSync, rmSync, writeFileSync } from 'fs'
-import { tmpdir } from 'os'
-import { join } from 'path'
+import { mkdtempSync, rmSync, writeFileSync } from 'node:fs'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
 import { _resetOpencodeCatalog, registerNativeOpencodeModels } from '../router/opencode-catalog.ts'
 import {
   buildOpencodeChatArgs,
@@ -176,7 +176,7 @@ function buildCtx(worktree: Worktree, task: Task): RunContext {
     effectiveRoot: worktree.path,
     worktree,
     instinctBlock: '',
-    prompt: { system: '', userContent: 'Task: ' + task.description },
+    prompt: { system: '', userContent: `Task: ${task.description}` },
     contextWarnings: [],
   }
 }
@@ -196,7 +196,7 @@ afterEach(() => {
 
 // NDJSON real (probado en vivo el 2026-07-20 con `opencode run --format json --auto`).
 function ndjson(...events: object[]): string {
-  return events.map((e) => JSON.stringify(e)).join('\n') + '\n'
+  return `${events.map((e) => JSON.stringify(e)).join('\n')}\n`
 }
 
 const stepFinish = (cost: number, input: number, output: number) => ({

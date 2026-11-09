@@ -1,5 +1,5 @@
-import { existsSync } from 'fs'
-import { join } from 'path'
+import { existsSync } from 'node:fs'
+import { join } from 'node:path'
 import { getProject } from '../../db/projects.ts'
 import { DB_PATH, db } from '../../db/sqlite.ts'
 import { listInstincts } from '../../instincts/store.ts'
@@ -24,8 +24,8 @@ async function handleApiSettingsGet(root: string): Promise<Response> {
     const v = parsed[k] ?? process.env[k] ?? ''
     result[k] = { set: !!v, masked: v ? maskKey(v) : '' }
   }
-  result['_envFile'] = { set: existsSync(envFilePath()), masked: envFilePath() }
-  result['_cwd'] = { set: true, masked: root }
+  result._envFile = { set: existsSync(envFilePath()), masked: envFilePath() }
+  result._cwd = { set: true, masked: root }
 
   try {
     const controller = new AbortController()
@@ -35,15 +35,15 @@ async function handleApiSettingsGet(root: string): Promise<Response> {
     if (res.ok) {
       const data = (await res.json()) as { models?: { name: string }[] }
       const count = (data.models || []).length
-      result['_ollama'] = {
+      result._ollama = {
         set: true,
         masked: `localhost:11434 — ${count} model${count !== 1 ? 's' : ''} detected`,
       }
     } else {
-      result['_ollama'] = { set: false, masked: '' }
+      result._ollama = { set: false, masked: '' }
     }
   } catch {
-    result['_ollama'] = { set: false, masked: '' }
+    result._ollama = { set: false, masked: '' }
   }
 
   return jsonResponse(result)

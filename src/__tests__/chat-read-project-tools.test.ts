@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'bun:test'
-import { mkdtempSync, rmSync, symlinkSync, writeFileSync } from 'fs'
-import { tmpdir } from 'os'
-import { join, resolve } from 'path'
+import { mkdtempSync, rmSync, symlinkSync, writeFileSync } from 'node:fs'
+import { tmpdir } from 'node:os'
+import { join, resolve } from 'node:path'
 import {
   executeReadFile,
   executeReadIdeas,

@@ -1,5 +1,5 @@
-import { existsSync, realpathSync, statSync } from 'fs'
-import { resolve } from 'path'
+import { existsSync, realpathSync, statSync } from 'node:fs'
+import { resolve } from 'node:path'
 import { getProject, getProjectById } from '../db/projects.ts'
 
 const PROJECT_ID_HEADER = 'x-orchestos-project-id'

@@ -1,4 +1,4 @@
-import { join } from 'path'
+import { join } from 'node:path'
 import { archiveSpec, deleteArchivedSpec } from '../../spec/archive.ts'
 import { lintSpec } from '../../spec/lint.ts'
 import { listSpecs, loadSpec, saveSpec } from '../../spec/store.ts'

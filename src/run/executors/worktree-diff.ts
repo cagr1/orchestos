@@ -9,7 +9,7 @@
  * comentario de `readWorktreeDiff` abajo) entre dos executors.
  */
 
-import { existsSync, readFileSync, statSync } from 'fs'
+import { existsSync, readFileSync, statSync } from 'node:fs'
 import { normalizeRelPath, resolveProjectPath } from '../path-policy.ts'
 
 function parseGitStatusPorcelain(stdout: string): string[] {

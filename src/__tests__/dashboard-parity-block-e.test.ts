@@ -26,7 +26,7 @@ afterAll(() => {
   )
   if (insertedMemoryIds.length > 0) {
     db.run(
-      'DELETE FROM memory_entries WHERE id IN (' + insertedMemoryIds.map(() => '?').join(',') + ')',
+      `DELETE FROM memory_entries WHERE id IN (${insertedMemoryIds.map(() => '?').join(',')})`,
       insertedMemoryIds,
     )
   }

@@ -28,9 +28,9 @@ import {
   readFileSync,
   rmSync,
   writeFileSync,
-} from 'fs'
-import { tmpdir } from 'os'
-import { join } from 'path'
+} from 'node:fs'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
 import { defaultChecksFor } from '../run/checks.ts'
 import { readWorktreeDiff } from '../run/executors/worktree-diff.ts'
 import { createWorktree, git, mergeWorktreeBack } from '../run/sandbox.ts'

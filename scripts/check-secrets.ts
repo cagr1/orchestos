@@ -1,5 +1,5 @@
 #!/usr/bin/env bun
-import { readFileSync } from 'fs'
+import { readFileSync } from 'node:fs'
 import { findSecrets } from '../src/security/secrets.ts'
 
 function runGitDiff(staged: boolean): string {

@@ -1,4 +1,4 @@
-import { randomUUID } from 'crypto'
+import { randomUUID } from 'node:crypto'
 import { appendChatExchange } from './chat-sessions.ts'
 import { insertRun } from './runs.ts'
 import { db } from './sqlite.ts'

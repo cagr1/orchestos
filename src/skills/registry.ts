@@ -1,5 +1,12 @@
-import { existsSync, mkdirSync, readdirSync, readFileSync, renameSync, writeFileSync } from 'fs'
-import { basename, join } from 'path'
+import {
+  existsSync,
+  mkdirSync,
+  readdirSync,
+  readFileSync,
+  renameSync,
+  writeFileSync,
+} from 'node:fs'
+import { basename, join } from 'node:path'
 import { parse } from 'yaml'
 import { orchestosDir } from '../config/orchestos-home.ts'
 import type { TaskClass } from '../router/classify.ts'
@@ -254,7 +261,7 @@ export function setSkillEnabled(id: string, enabled: boolean, root = process.cwd
   mkdirSync(dir, { recursive: true })
   const path = join(dir, 'skills.json')
   const temp = `${path}.${crypto.randomUUID()}.tmp`
-  writeFileSync(temp, JSON.stringify({ enabled: [...ids] }, null, 2) + '\n')
+  writeFileSync(temp, `${JSON.stringify({ enabled: [...ids] }, null, 2)}\n`)
   renameSync(temp, path)
 }
 

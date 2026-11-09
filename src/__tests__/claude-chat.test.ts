@@ -87,7 +87,7 @@ function overrideBunSpawn(proc: MockProc) {
 }
 
 function streamOf(...events: object[]): string {
-  return events.map((e) => JSON.stringify(e)).join('\n') + '\n'
+  return `${events.map((e) => JSON.stringify(e)).join('\n')}\n`
 }
 
 const assistantText = (text: string) => ({
@@ -406,7 +406,7 @@ describe('runClaudeChat (CC.1)', () => {
     expect((await runClaudeChat('/tmp/project', 'sys', 'msg', 5000)).readAudit.completeness).toBe(
       'complete',
     )
-    overrideBunSpawn(makeMockProc('broken\n' + JSON.stringify(resultEvent({ usage: {} }))))
+    overrideBunSpawn(makeMockProc(`broken\n${JSON.stringify(resultEvent({ usage: {} }))}`))
     const partial = await runClaudeChat('/tmp/project', 'sys', 'msg', 5000)
     expect(partial.filesRead).toBeNull()
     expect(partial.readAudit.issues).toContain('malformed-json')

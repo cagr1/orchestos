@@ -1,5 +1,5 @@
-import { existsSync, lstatSync, realpathSync } from 'fs'
-import { isAbsolute, relative, resolve } from 'path'
+import { existsSync, lstatSync, realpathSync } from 'node:fs'
+import { isAbsolute, relative, resolve } from 'node:path'
 
 export class PathPolicyError extends Error {}
 

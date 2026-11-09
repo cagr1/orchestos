@@ -91,7 +91,7 @@ export function printGraphSummary(
       skipped_circuit_breaker: 'skipped',
     }
     console.log(
-      `  ${indent}${e.id.padEnd(COL_ID - indent.length)} ${outLabel[e.outcome].padEnd(COL_OUT)} ${('$' + e.usd_cost.toFixed(5)).padStart(COL_COST)} ${rcStr.padStart(COL_RET)} ${tokStr.padStart(COL_TOK)} ${String(e.elapsed_ms).padStart(COL_MS)}`,
+      `  ${indent}${e.id.padEnd(COL_ID - indent.length)} ${outLabel[e.outcome].padEnd(COL_OUT)} ${(`$${e.usd_cost.toFixed(5)}`).padStart(COL_COST)} ${rcStr.padStart(COL_RET)} ${tokStr.padStart(COL_TOK)} ${String(e.elapsed_ms).padStart(COL_MS)}`,
     )
     if (e.error) console.log(`  ${indent}${' '.repeat(COL_ID - indent.length)}   └─ ${e.error}`)
   }

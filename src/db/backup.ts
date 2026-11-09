@@ -1,7 +1,7 @@
 import { Database } from 'bun:sqlite'
-import { randomUUID } from 'crypto'
-import { chmodSync, copyFileSync, existsSync, mkdirSync, renameSync, statSync } from 'fs'
-import { dirname } from 'path'
+import { randomUUID } from 'node:crypto'
+import { chmodSync, copyFileSync, existsSync, mkdirSync, renameSync, statSync } from 'node:fs'
+import { dirname } from 'node:path'
 import { db } from './sqlite.ts'
 
 export interface DatabaseBackup {

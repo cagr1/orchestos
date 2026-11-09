@@ -1,4 +1,4 @@
-import { Check, ChevronDown, ChevronUp, Copy, FileText } from 'lucide-react'
+import { Check, Copy, FileText } from 'lucide-react'
 import { AnimatePresence, MotionConfig, motion } from 'motion/react'
 import type React from 'react'
 import { useEffect, useRef, useState } from 'react'

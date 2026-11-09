@@ -1,4 +1,4 @@
-import { randomUUID } from 'crypto'
+import { randomUUID } from 'node:crypto'
 import { redactSensitive } from '../security/secrets.ts'
 import { db } from './sqlite.ts'
 

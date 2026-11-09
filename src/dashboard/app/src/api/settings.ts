@@ -1,5 +1,3 @@
-import type { ChatModelOption } from './chat'
-
 export interface SettingsKeyInfo {
   set: boolean
   masked: string

@@ -96,11 +96,11 @@ describe('run-steps', () => {
 
   it('task_id distinto no se mezcla (seq es por task, no global)', () => {
     clearRunSteps(TASK_ID)
-    clearRunSteps(TASK_ID + '-other')
+    clearRunSteps(`${TASK_ID}-other`)
     insertRunStep(TASK_ID, { type: 'text', label: 'x' })
-    insertRunStep(TASK_ID + '-other', { type: 'text', label: 'y' })
+    insertRunStep(`${TASK_ID}-other`, { type: 'text', label: 'y' })
     expect(getRunSteps(TASK_ID)).toHaveLength(1)
-    expect(getRunSteps(TASK_ID + '-other')).toHaveLength(1)
-    db.run('DELETE FROM run_steps WHERE task_id = ?', [TASK_ID + '-other'])
+    expect(getRunSteps(`${TASK_ID}-other`)).toHaveLength(1)
+    db.run('DELETE FROM run_steps WHERE task_id = ?', [`${TASK_ID}-other`])
   })
 })
