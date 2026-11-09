@@ -1,4 +1,4 @@
-# NEXT — handoff 2026-11-09 (CI.72–74 cerrados; backlog de IDEAS auditado)
+# NEXT — handoff 2026-11-09 (CI.72–77 y CI.79 cerrados; CI.78 en curso)
 
 Un solo presente: orden y trampas vivas del lote. Lo cerrado vive en `docs/done/bloque-*.md` y git; las reglas, en
 `AGENTS.md`. Versión anterior completa: `docs/done/poda-instrucciones-2026-11-03.md` (histórico).
@@ -30,6 +30,12 @@ Arranque: `bun run agent:preflight -- --item <ID> --agent claude`. Lista viva: `
    (6 hechas, 5 obsoletas fuera; quedan 21), CI.73 `333e1f86` (#62), #63 medido y cerrado, CI.74 `38b787db` (#61:
    1.078+382 avisos → 388). **Primera corrida nocturna válida: noche del 2026-11-09**; leer el aviso de arranque.
    Decide Carlos: los 378 avisos de producto (`any` 137, `!` 90, deps de hooks 48, a11y ~60) cambian código real.
+2d. Hecho 2026-11-09 (tarde): CI.75 `678c23e5` (48 deps de hooks), CI.77 `27c3378f` (58 avisos a11y), CI.79
+   `62c2bf34` (adjuntos de Dev se perdían: el composer se desmontaba al hidratar la sesión). Abiertos: CI.76
+   (`notifications` sin Claude en el diálogo, flaky) y **CI.78 en curso** — `shell-look` al día salvo ⌘K en Settings
+   (ver ítem; spec de rondas `docs/specs/CI.78.md` sin commitear, sigue con la ronda 5: diagnosticar ⌘K).
+   Siguiente tras CI.78: tope de `any`/`!` en el lint (137/90, que no suba) y después Carlos elige producto o el mes
+   de uso real. Biome: 282 avisos restantes.
 3. Mutación 42469416136: el re-run terminó verde (todos los shards). Desde CI.70 no se vigila en sesión.
 4. **Esperan su próximo fallo**: CI.69 (`usage-bar`, Enter sin envío; ver ítem); CI.57 `composer-picker-model-missing.json`; CI.54 `turn1-bubble-missing.json`; CI.19;
    CI.55 (`role-task-missing-output-attempt-<n>.json`). Leer el JSON el mismo día: CI.62 borra el `runDir` a las 24 h.
