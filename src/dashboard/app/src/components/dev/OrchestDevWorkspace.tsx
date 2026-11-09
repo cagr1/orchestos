@@ -437,33 +437,6 @@ export const OrchestDevWorkspace: React.FC<OrchestDevWorkspaceProps> = ({
     return sent
   }
 
-  if (!activeAgent) {
-    return (
-      <main
-        data-dev-new-session
-        className="flex-1 flex flex-col items-center justify-center p-8 bg-app-bg text-app overflow-hidden"
-      >
-        <div data-composer-region className="w-full max-w-3xl lg:max-w-4xl space-y-4">
-          <h1 className="text-lg font-bold text-app text-center">
-            What should we work on in {activeProject.name}?
-          </h1>
-          <AgentComposer
-            onSendMessage={handleSendMessage}
-            hasProject={!!activeProject.id}
-            projectId={activeProject.id}
-            defaultCli={(newSessionAgent ?? orchestrator?.agent ?? cliId) as CliId}
-            defaultModel={orchestrator?.model}
-            useCliDefaultModel={!!newSessionAgent && !orchestrator?.model}
-            defaultEffort={orchestrator?.effort}
-            orchestratorLoading={orchestrator === undefined}
-            orchestratorAssigned={!!orchestrator}
-            onSlashCommand={onSlashCommand}
-          />
-        </div>
-      </main>
-    )
-  }
-
   const effectiveSessionStatus = apiSessionStatus?.clis.some((cli) => cli.available)
     ? sessionStatus
     : sessionStatus
@@ -999,29 +972,51 @@ export const OrchestDevWorkspace: React.FC<OrchestDevWorkspaceProps> = ({
   }
 
   return (
-    <main className="flex-1 flex flex-col h-full bg-app-bg text-app overflow-hidden relative select-none">
+    <main
+      data-dev-new-session={!activeAgent ? '' : undefined}
+      className={`flex-1 flex flex-col bg-app-bg text-app overflow-hidden ${activeAgent ? 'h-full relative select-none' : 'items-center justify-center p-8'}`}
+    >
       {/* 1. TIMELINE (Centered, same max width as Chat) */}
-      <div ref={timelineContainerRef} className="flex-1 overflow-y-auto p-4 md:p-6 space-y-4">
+      <div
+        ref={timelineContainerRef}
+        className={activeAgent ? 'flex-1 overflow-y-auto p-4 md:p-6 space-y-4' : 'hidden'}
+      >
         <div ref={timelineContentRef} className="max-w-3xl lg:max-w-4xl mx-auto space-y-3">
-          {exchanges.map(DevExchange)}
+          {activeAgent && exchanges.map(DevExchange)}
         </div>
       </div>
 
       {/* 2. COMPOSER (Chat and Dev share it) */}
-      <div data-composer-region className="p-3 bg-app-bg flex-shrink-0">
+      {/* Keep the composer mounted while a selected session hydrates: uploads belong to its draft. */}
+      <div
+        data-composer-region
+        className={
+          activeAgent ? 'p-3 bg-app-bg flex-shrink-0' : 'w-full max-w-3xl lg:max-w-4xl space-y-4'
+        }
+      >
+        {!activeAgent && (
+          <h1 className="text-lg font-bold text-app text-center">
+            What should we work on in {activeProject.name}?
+          </h1>
+        )}
         <div className="max-w-3xl lg:max-w-4xl mx-auto">
           <AgentComposer
             onSendMessage={handleSendMessage}
-            hasProject={!!activeAgent.projectId}
-            projectId={activeAgent.projectId ?? undefined}
+            hasProject={!!(activeAgent ? activeAgent.projectId : activeProject.id)}
+            projectId={(activeAgent ? activeAgent.projectId : activeProject.id) ?? undefined}
             busy={isWorking}
             onStop={stop.onStop}
             stopping={stop.stopping}
-            contextSessionId={activeAgent.id}
-            defaultCli={cliId}
-            defaultModel={activeAgent.model}
-            defaultEffort={activeAgent.effort}
-            lockedCli={activeAgent.agent as CliId | undefined}
+            contextSessionId={activeAgent?.id}
+            defaultCli={
+              activeAgent ? cliId : ((newSessionAgent ?? orchestrator?.agent ?? cliId) as CliId)
+            }
+            defaultModel={activeAgent ? activeAgent.model : orchestrator?.model}
+            defaultEffort={activeAgent ? activeAgent.effort : orchestrator?.effort}
+            lockedCli={activeAgent?.agent as CliId | undefined}
+            useCliDefaultModel={!activeAgent && !!newSessionAgent && !orchestrator?.model}
+            orchestratorLoading={!activeAgent && orchestrator === undefined}
+            orchestratorAssigned={!!activeAgent || !!orchestrator}
             onSlashCommand={onSlashCommand}
           />
         </div>

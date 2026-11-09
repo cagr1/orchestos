@@ -1,0 +1,86 @@
+[
+  {
+    "flujo": "chat-attachments",
+    "pass": true,
+    "steps": [
+      {
+        "nombre": "temporary project visible",
+        "ok": true,
+        "detalle": "orchestos-ui-chat-attachments-koeMt0"
+      },
+      {
+        "nombre": "Codex agent available",
+        "ok": true,
+        "detalle": "Codex option"
+      },
+      {
+        "nombre": "Dev: both attachments reach ready",
+        "ok": true,
+        "detalle": "[\"ready\",\"ready\"]"
+      },
+      {
+        "nombre": "Dev: Send is enabled with ready attachments",
+        "ok": true,
+        "detalle": "enabled"
+      },
+      {
+        "nombre": "Dev: 2 uploads observed",
+        "ok": true,
+        "detalle": "2 POST /api/chat/upload"
+      },
+      {
+        "nombre": "Dev: POST /api/chat carries 2 server fileIds",
+        "ok": true,
+        "detalle": "[\"c2fe41cb-aeb3-4915-8eaf-b7a7820fbaef\",\"370fa775-24df-4ad4-94e5-eec878cd4ab6\"]"
+      },
+      {
+        "nombre": "Dev: answer contains the token and the image word",
+        "ok": true,
+        "detalle": "token=ATT-E06AD21C word=TURBINE MARBLE; answer=att-e06ad21c — turbine marble"
+      },
+      {
+        "nombre": "Dev: sent message keeps 2 attachments, image thumbnail loaded, after the turn",
+        "ok": true,
+        "detalle": "{\"names\":[\"token.txt\",\"word.png\"],\"imageLoaded\":true}"
+      },
+      {
+        "nombre": "Chat: both attachments reach ready",
+        "ok": true,
+        "detalle": "[\"ready\",\"ready\"]"
+      },
+      {
+        "nombre": "Chat: Send is enabled with ready attachments",
+        "ok": true,
+        "detalle": "enabled"
+      },
+      {
+        "nombre": "Chat: 2 uploads observed",
+        "ok": true,
+        "detalle": "2 POST /api/chat/upload"
+      },
+      {
+        "nombre": "Chat: POST /api/chat carries 2 server fileIds",
+        "ok": true,
+        "detalle": "[\"b1421bd8-8300-4f89-be0b-6d3bf3afbc3c\",\"9d5ebd3c-57d1-4311-8d20-15a173a15567\"]"
+      },
+      {
+        "nombre": "Chat: answer contains the token and the image word",
+        "ok": true,
+        "detalle": "token=ATT-63A840D0 word=TURBINE VIOLIN; answer=att-63a840d0 — turbine violin"
+      },
+      {
+        "nombre": "Chat: sent message keeps 2 attachments, image thumbnail loaded, after the turn",
+        "ok": true,
+        "detalle": "{\"names\":[\"token.txt\",\"word.png\"],\"imageLoaded\":true}"
+      }
+    ],
+    "notes": [],
+    "errores": [],
+    "capturas": [
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-90253/chat-attachments/chat-attachments-composer-Dev.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-90253/chat-attachments/chat-attachments-thread-Dev.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-90253/chat-attachments/chat-attachments-composer-Chat.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-90253/chat-attachments/chat-attachments-thread-Chat.png"
+    ]
+  }
+]

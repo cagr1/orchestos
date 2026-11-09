@@ -692,9 +692,25 @@ Propuesta y comparación con las tres referencias: `docs/specs/ADE-PLAN.md`. Uno
   Falla igual en `origin/master` (`678c23e5`) y en la corrida nocturna del 2026-11-09: el flujo no encuentra el panel
   del chat que mide (`panel=null`). Probable selector que cambió con UI reciente, o un cambio real del layout.
   Evidencia: `docs/done/evidence/CI.78-shell-look-fail.json`.
-- [ ] **CI.79 — `chat-attachments` rojo en master: "Dev: both attachments reach ready: []".** (abierto 2026-11-09)
+  Avance 2026-11-09 (flujo, sin producto): el panel se mide desde `data-composer-region` (OK: `rgb(14,19,32)` vs
+  `rgb(8,12,20)`); el separador de `ResizableAside` (ahora `<hr>`, CI.77) se busca por `hr[aria-label^="Resize"]`;
+  el sidebar colapsado se oculta (`App.tsx:1817`, no se desmonta) → el paso comprueba que no es visible. **Falla
+  ahora** "settings palette shortcut: Meta+k" (`shell-look.mjs:315-324`): en Settings ⌘K no abre la búsqueda de
+  Settings. Sospechas: ADE.11 (`codeFromEvent`) o el doble binding `command-palette`/`settings-search` sobre `KeyK`
+  (`keybindings.ts:97-98`, `App.tsx:1742-1743`). Spec de rondas: `docs/specs/CI.78.md`.
+- [x] **CI.79 — `chat-attachments` rojo en master: "Dev: both attachments reach ready: []".** (abierto 2026-11-09)
   Falla igual en `origin/master` (`678c23e5`): en Dev ningún adjunto llega a `ready`. Puede ser el flujo o una
-  regresión real de adjuntos en el composer de Dev. Evidencia: `docs/done/evidence/CI.79-chat-attachments-fail.json`.
+  regresión real de adjuntos en el composer de Dev.
+  Causa: `App.tsx:1174` selecciona la sesión antes de hidratar sus agentes; `OrchestDevWorkspace` cambiaba de árbol
+  (rama `!activeAgent` con su propio `AgentComposer`) y desmontaba el composer con los chips y sus `fileId`. Ya
+  fallaba antes de CI.75 con otros síntomas (`38b787db`, `8ea8a1bc`); el flujo no estaba en el pre-push.
+  Hecho: un solo `AgentComposer` montado en ambos estados; la sesión nueva conserva su aspecto (el `h1` dentro de
+  `data-composer-region`, ronda 2). Test nuevo `OrchestDevWorkspace.test.ts` (2 → 2 chips con su `fileId`).
+  Gates del cerebro: build, Playwright `chat-attachments` 14/14 (antes FAIL), `dev-session-tabs` 50/50,
+  `dev-file-edit` 22/22.
+  Gate en vivo: Playwright `chat-attachments` 14/14, `docs/done/evidence/CI.79-live.json`.
+  Texto visible: "What should we work on in" (ya existía; solo se movió dentro del mismo componente)
+  Ejecutado por: codex gpt-6.1-sol (criterio) · Spec: docs/specs/CI.79.md
 - [ ] **CI.69 — `usage-bar`: a veces el Enter del composer no envía el turno.** (abierto 2026-11-08) Falló en el
   pre-push de ADE.7/8 (`2e9aae2d`, `1355590c`): `page.waitForResponse` 180 s sin `POST /api/chat`
   (`usage-bar.mjs:309`). Captura: picker de modelo abierto (Luna · medium) y el texto sigue en la caja, así que
