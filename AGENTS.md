@@ -19,7 +19,8 @@ Reglas vigentes, una por línea. Texto anterior e incidentes que las motivaron:
 - Identidad: nunca `git config user.email|user.name` ni `--local`/`--global` salvo pedido explícito. Correcta:
   `cagr1` / `cagr_14@hotmail.com`.
 - Sin `--no-verify`, sin `push --force`, sin crear ni borrar ramas remotas sin confirmación.
-- Push normal autorizado: `git push origin master` cada 2-3 commits. El pre-push (~13 min) va en segundo plano.
+- Push normal autorizado: `git push origin master` tras cada commit (Carlos, 2026-11-10; antes cada 2-3). El
+  pre-push va en segundo plano.
 - Commits por rutas explícitas; antes, `git status --short` para ver los `??` nuevos del ejecutor. Excepción: dos
   ítems sin commitear en el mismo archivo → guardar el parche de cada uno y commitear con `git apply --cached` +
   `git commit` sin rutas.
