@@ -63,6 +63,12 @@ import {
   taskEngineById,
 } from './executors/task-engines.ts'
 import type { ExecutorEngine, ExecutorOutcome } from './executors/types.ts'
+import {
+  isHostToolingArtifact,
+  listCommittedWorktreePaths,
+  listWorktreeChanges,
+  worktreeForkPoint,
+} from './executors/worktree-diff.ts'
 import { withGitLock } from './git-lock.ts'
 import type { RunLogger } from './logger.ts'
 import { createChain, createRunContext, type RunContext } from './middleware.ts'
@@ -533,12 +539,49 @@ export async function runTask(opts: HarnessOpts): Promise<TaskResult> {
     const breakdownJson = outcome ? costBreakdownToJson(outcome.costByIteration) : null
 
     // -- contract enforcement --------------------------------------------------
+    let worktreeBlocked: string[] = []
+    let worktreeViolation = false
     let contractResult: ReturnType<typeof enforceContract>
     try {
       contractResult = enforceContract(ctx.effectiveRoot, parsed, ctx.task.output)
+      if (worktree) {
+        const forkPoint = worktreeForkPoint(worktree.path)
+        worktreeViolation = true
+        if (!forkPoint) {
+          worktreeBlocked = ['fork-point: missing']
+          throw new Error('fork-point: missing')
+        }
+        const allowed = ctx.task.output.map(normalizeRelPath)
+        const setupArtifacts = new Set(worktree.setupArtifacts)
+        const committed = new Set(listCommittedWorktreePaths(worktree.path, forkPoint))
+        const changes = new Map(
+          listWorktreeChanges(worktree.path, forkPoint).map((change) => [change.path, change]),
+        )
+        // A working-file revert must not hide an undeclared committed path.
+        for (const path of committed) {
+          if (!changes.has(path)) changes.set(path, { path, deleted: false })
+        }
+        const violations = [...changes.values()].filter(({ path }) => {
+          const normalized = normalizeRelPath(path)
+          return (
+            !allowed.includes(normalized) &&
+            (committed.has(path) ||
+              (!setupArtifacts.has(normalized) && !isHostToolingArtifact(normalized, allowed)))
+          )
+        })
+        worktreeBlocked = violations.map(({ path }) => normalizeRelPath(path))
+        if (violations.length) {
+          throw new Error(
+            `CONTRACT VIOLATION — worktree changes outside declared outputs: ${violations.map(({ path, deleted }) => `${deleted ? 'deleted: ' : ''}${path}`).join(', ')}`,
+          )
+        }
+        worktreeViolation = false
+      }
     } catch (e: any) {
       const attempted = parsed.files.map((f) => f.path)
-      const blocked = attempted.filter((p) => !ctx.task.output.includes(p))
+      const blocked = [
+        ...new Set([...attempted.filter((p) => !ctx.task.output.includes(p)), ...worktreeBlocked]),
+      ]
       log.contractViolation(blocked)
       const runId = insertRun({
         ...(approvalRunStarted ? { id: approvalRunId } : {}),
@@ -578,7 +621,7 @@ export async function runTask(opts: HarnessOpts): Promise<TaskResult> {
       return {
         status: 'failed',
         runId,
-        retryReason: `contract violation: ${blocked.join(', ')}`,
+        retryReason: `contract violation: ${worktreeViolation ? e.message : blocked.join(', ')}`,
         filesWritten: [],
         filesBlocked: blocked,
         cost: {
@@ -985,6 +1028,7 @@ export async function runTask(opts: HarnessOpts): Promise<TaskResult> {
         worktree,
         'commit',
         `orchestos(${ctx.task.id}): ${ctx.task.description.slice(0, 72)}`,
+        ctx.task.output,
       )
       commitBaseSha = commitSha ? (worktree.mergedBaseSha ?? null) : null
       worktree = null

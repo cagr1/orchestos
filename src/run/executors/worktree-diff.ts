@@ -12,51 +12,88 @@
 import { existsSync, readFileSync, statSync } from 'node:fs'
 import { normalizeRelPath, resolveProjectPath } from '../path-policy.ts'
 
-function parseGitStatusPorcelain(stdout: string): string[] {
-  if (!stdout) return []
-  // stdout SIN trim global (ver gitStatusRawStdout) — cada línea conserva su
-  // ancho de columna fijo "XY path", donde X/Y pueden ser un espacio literal
-  // (ej. " M path" = modificado sin stage).
-  return stdout
-    .replace(/\n+$/, '')
-    .split('\n')
-    .filter(Boolean)
-    .map((line) => {
-      // formato: "XY path" o "XY old -> new" para renames — nos quedamos con el path final
-      const rest = line.slice(3)
-      const arrow = rest.indexOf(' -> ')
-      return arrow >= 0 ? rest.slice(arrow + 4) : rest
-    })
+/** Read NUL-delimited git output without trimming path whitespace. */
+function gitPaths(root: string, args: string[]): string[] {
+  const proc = Bun.spawnSync(['git', ...args], {
+    cwd: root,
+    env: { ...process.env, GIT_OPTIONAL_LOCKS: '0' },
+  })
+  if (proc.exitCode !== 0)
+    throw new Error(`git ${args[0]} failed: ${proc.stderr.toString().trim()}`)
+  return proc.stdout.toString().split('\0').filter(Boolean)
 }
 
-/**
- * Hallazgo real en vivo (D.1, 2026-07-05): el `git()` compartido de
- * sandbox.ts hace `.trim()` sobre TODO el stdout — eso se come el espacio
- * inicial de la PRIMERA línea cuando esa línea es una modificación sin stage
- * (" M path" → "M path"), corrompiendo el offset fijo `slice(3)` de arriba:
- * "M src/foo.ts" queda "rc/foo.ts" tras el slice, un path que no existe →
- * `existsSync` lo descarta silenciosamente. El gate D.1 corrió con dinero
- * real dos veces y Claude Code editó exactamente lo pedido las dos veces —
- * pero `readWorktreeDiff` reportaba `files: []` igual, disparando "missing
- * declared output" en el harness. `sandbox-policy.ts` no lo sufre porque solo
- * usa el flag para un mensaje de warning (cosmético); acá el offset fijo lo
- * convierte en un bug de correctitud real. Fix: spawn directo sin el trim
- * global, solo recortando el/los newline(s) finales.
- */
-function gitStatusRawStdout(cwd: string): string {
-  // T (Mes 26, IDEAS #19, 2026-08-06) — `createWorktree()` symlinkea
-  // `node_modules` para que `defaultChecksFor()` deje de perder tsc/bun test
-  // en worktrees frescos. Un `.gitignore` con `node_modules/` (con slash) NO
-  // matchea un symlink — solo directorios reales — así que sin este pathspec
-  // el symlink aparecería como `?? node_modules` y `readWorktreeDiff()`
-  // intentaría leerlo como si fuera output del engine. Verificado en vivo con
-  // un fixture real: sin el pathspec, `node_modules` sale en el status pese
-  // al `.gitignore`; con él, desaparece del todo.
-  const proc = Bun.spawnSync(
-    ['git', 'status', '--porcelain', '-uall', '--', '.', ':!node_modules'],
-    { cwd },
+export function worktreeForkPoint(root: string): string | null {
+  const branch = Bun.spawnSync(['git', 'symbolic-ref', '--short', 'HEAD'], { cwd: root })
+  if (branch.exitCode !== 0) return null
+  const fork = Bun.spawnSync(
+    ['git', 'config', '--get', `branch.${branch.stdout.toString().trim()}.orchestosForkPoint`],
+    { cwd: root },
   )
-  return proc.stdout.toString()
+  return fork.exitCode === 0 ? fork.stdout.toString().trim() || null : null
+}
+
+export function worktreeSetupArtifacts(root: string): string[] {
+  const branch = Bun.spawnSync(['git', 'symbolic-ref', '--short', 'HEAD'], { cwd: root })
+  if (branch.exitCode !== 0) return []
+  const artifacts = Bun.spawnSync(
+    [
+      'git',
+      'config',
+      '-z',
+      '--get-all',
+      `branch.${branch.stdout.toString().trim()}.orchestosSetupArtifact`,
+    ],
+    { cwd: root },
+  )
+  return artifacts.exitCode === 0 ? artifacts.stdout.toString().split('\0').filter(Boolean) : []
+}
+
+export function listCommittedWorktreePaths(root: string, forkPoint: string): string[] {
+  return gitPaths(root, [
+    'diff',
+    '--name-only',
+    '-z',
+    '--no-renames',
+    forkPoint,
+    'HEAD',
+    '--',
+    '.',
+    ':!node_modules',
+  ])
+}
+
+export function listWorktreeChanges(
+  root: string,
+  forkPoint: string,
+): { path: string; deleted: boolean }[] {
+  const entries = gitPaths(root, [
+    'diff',
+    '--name-status',
+    '-z',
+    '--no-renames',
+    forkPoint,
+    '--',
+    '.',
+    ':!node_modules',
+  ])
+  const changes = new Map<string, { path: string; deleted: boolean }>()
+  for (let i = 0; i < entries.length; i += 2) {
+    const status = entries[i]
+    const path = entries[i + 1]
+    if (path !== undefined) changes.set(path, { path, deleted: status === 'D' })
+  }
+  for (const path of gitPaths(root, [
+    'ls-files',
+    '--others',
+    '--exclude-standard',
+    '-z',
+    '--',
+    '.',
+    ':!node_modules',
+  ]))
+    changes.set(path, { path, deleted: false })
+  return [...changes.values()]
 }
 
 /**
@@ -85,7 +122,10 @@ const HOST_TOOLING_PREFIXES = [
   '.aider/',
 ] as const
 
-function isHostToolingArtifact(relPath: string, declaredOutputs: readonly string[]): boolean {
+export function isHostToolingArtifact(
+  relPath: string,
+  declaredOutputs: readonly string[],
+): boolean {
   if (declaredOutputs.includes(relPath)) return false // la tarea lo pidió explícitamente
   if (relPath === '.DS_Store' || relPath.endsWith('/.DS_Store')) return true
   return HOST_TOOLING_PREFIXES.some((prefix) => relPath.startsWith(prefix))
@@ -95,16 +135,13 @@ export function readWorktreeDiff(
   effectiveRoot: string,
   declaredOutputs: readonly string[] = [],
 ): { path: string; content: string }[] {
-  // B.4 — `-uall` (--untracked-files=all): sin este flag, git status --porcelain colapsa
-  // un directorio untracked con contenido en una sola entrada `?? sub/`, ignorando los
-  // archivos internos. Eso rompería la decisión d de B.1 ("diff completo, sin filtrar")
-  // para el caso realista de Claude Code creando sub/inner.txt. Con -uall git emite
-  // entradas individuales para cada archivo Y para el dir, y el isFile() de abajo filtra
-  // el dir sin perder los archivos.
-  const paths = parseGitStatusPorcelain(gitStatusRawStdout(effectiveRoot))
+  const paths = listWorktreeChanges(effectiveRoot, worktreeForkPoint(effectiveRoot) ?? 'HEAD')
+  const outputs = declaredOutputs.map(normalizeRelPath)
+  const setupArtifacts = new Set(worktreeSetupArtifacts(effectiveRoot))
   const files: { path: string; content: string }[] = []
-  for (const p of paths) {
-    const normalized = normalizeRelPath(p)
+  for (const { path } of paths) {
+    const normalized = normalizeRelPath(path)
+    if (setupArtifacts.has(normalized) && !outputs.includes(normalized)) continue
     // BB.5 — ruido del tooling del host: se descarta ANTES de resolver el path, para
     // que no llegue nunca al contrato como "archivo escrito no autorizado".
     if (isHostToolingArtifact(normalized, declaredOutputs)) continue

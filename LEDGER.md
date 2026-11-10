@@ -568,3 +568,35 @@ plantillas de texto, `?.` equivalente, claves literales, radix, imports sin uso.
 **Por qué**: fixes de Biome limitados por regla (`--only`); ninguna lógica, contrato ni derivación cambia.
 **Reversibilidad/evidencia**: diff CI.74 revisado por el cerebro (solo forma); `typecheck` y `lint` exit 0; suite
 completa en el pre-push.
+
+---
+
+## 2026-11-10 — Codex (ejecutor AUD.1)
+
+**Regla tocada**: `src/run/harness.ts`, puerta del contrato antes de checks y QA.
+**Clasificación**: RESPETÓ
+**Por qué**: comprueba cambios del worktree contra su punto de bifurcación, incluidos borrados y rutas
+commiteadas; el merge recibe los outputs declarados. No cambia la derivación de contexto/max_tokens,
+`enforceContract`, los cuatro ejecutores ni el contrato de QA.
+**Reversibilidad/evidencia**: diff AUD.1 sin commit; repositorios temporales reales verifican rechazo de
+borrados y commits no declarados, exclusión de tooling y staging ajenos, rutas con espacios/no ASCII,
+escritura posterior al contrato y limpieza del punto de bifurcación. Resultados y comandos en
+`docs/done/evidence/AUD.1-live.json`. Revisión independiente pendiente del cerebro.
+
+Corrida anterior: 2504 pass / 1 fail ante `projects-settings.test.ts:152`; la cuarta ampliación
+del spec permite artefactos del setup sin commitear. Se aplicó sin cambiar esa aserción.
+Contraprueba de continuidad: `readWorktreeDiff` incluye `.setup-ran` en los archivos de los
+ejecutores CLI y `enforceContract` lo rechaza antes de la nueva puerta. Se detuvo la implementación
+sin elegir una excepción adicional no definida en el spec. Salida cruda y gates en la evidencia JSON.
+Gates de continuidad: TypeScript y lint exit 0 (282 avisos existentes); suite completa fuera del
+sandbox: 2507 pass, 0 fail; cobertura funciones 79,87 %, líneas 66,78 %. AUD.1 sigue abierto por
+el caso de setup con ejecutores CLI no cubierto por el spec; revisión independiente pendiente.
+
+Quinta ampliación del spec: se persisten los artefactos del setup en la config de la rama y
+`readWorktreeDiff` los excluye salvo output declarado. Un test nuevo con git real cubre lectura,
+ruta con espacios, inclusión explícita y limpieza de esa config; resuelve la contraprueba anterior
+sin tocar `enforceContract` ni los ejecutores. Gates y salida cruda de esta continuación en
+`docs/done/evidence/AUD.1-live.json`; revisión independiente pendiente del cerebro.
+Gates finales de la quinta ampliación: TypeScript y lint exit 0 (282 avisos existentes);
+suite completa fuera del sandbox: 2508 pass, 0 fail, 10521 aserciones; cobertura funciones
+79,87 %, líneas 66,80 %. Sin commit ni cambios en el plan; revisión independiente pendiente.

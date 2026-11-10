@@ -1,0 +1,346 @@
+{
+  "item": "AUD.1",
+  "status": "implemented-gates-passed-independent-review-pending",
+  "executor": "Codex",
+  "spec": "docs/specs/AUD.1.md",
+  "preExistingChanges": ["docs/specs/AUD.1.md"],
+  "gates": [
+    {
+      "phase": "baseline",
+      "command": "bunx tsc --noEmit",
+      "exitCode": 0,
+      "rawOutputFile": null,
+      "result": "No output"
+    },
+    {
+      "phase": "baseline",
+      "command": "bun test --coverage src/__tests__/sandbox-setup.test.ts src/__tests__/sandbox-node-modules.test.ts src/__tests__/run-revert.test.ts",
+      "exitCode": 0,
+      "rawOutputFile": "/tmp/AUD.1-baseline-tests.log",
+      "result": "31 pass, 0 fail"
+    },
+    {
+      "phase": "first implementation",
+      "command": "bunx tsc --noEmit",
+      "exitCode": 2,
+      "rawOutputFile": "/tmp/AUD.1-typecheck.log",
+      "result": "Corrected fetch cast and three existing merge fixture calls"
+    },
+    {
+      "phase": "first implementation",
+      "command": "bun test --coverage src/__tests__/worktree-contract.test.ts",
+      "exitCode": 1,
+      "rawOutputFile": "/tmp/AUD.1-tests.log",
+      "result": "10 pass, 1 fail; late-write mock corrected"
+    },
+    {
+      "phase": "corrected implementation",
+      "command": "bun test --coverage src/__tests__/worktree-contract.test.ts",
+      "exitCode": 0,
+      "rawOutputFile": "/tmp/AUD.1-tests-corrected.log",
+      "result": "11 pass, 0 fail; late-write case subsequently strengthened to require reviewer invocation"
+    },
+    {
+      "phase": "final implementation",
+      "command": "bun test --coverage src/__tests__/worktree-contract.test.ts --test-name-pattern 'written by QA'",
+      "exitCode": 0,
+      "rawOutputFile": "/tmp/AUD.1-late-write.log",
+      "result": "1 pass, 10 filtered out, 0 fail; explicitly asserts one late write"
+    },
+    {
+      "phase": "final implementation",
+      "command": "bunx tsc --noEmit",
+      "exitCode": 0,
+      "rawOutputFile": "/tmp/AUD.1-typecheck-final.log",
+      "result": "No output"
+    },
+    {
+      "phase": "implementation",
+      "command": "bun run lint",
+      "exitCode": 0,
+      "rawOutputFile": "/tmp/AUD.1-lint.log",
+      "result": "282 warnings, no rule increases"
+    },
+    {
+      "phase": "final implementation, outside sandbox",
+      "command": "bun run test:coverage",
+      "exitCode": 1,
+      "rawOutputFile": "/tmp/AUD.1-coverage.log",
+      "result": "2504 pass, 1 fail, 10486 assertions, 267 files; coverage thresholds not evaluated because a test failed"
+    },
+    {
+      "phase": "final evidence",
+      "command": "bun run lint",
+      "exitCode": 0,
+      "rawOutputFile": "/tmp/AUD.1-lint-final.log",
+      "result": "282 warnings, no rule increases"
+    },
+    {
+      "phase": "final diff",
+      "command": "git diff --check",
+      "exitCode": 0,
+      "rawOutputFile": "/tmp/AUD.1-diff-check.log",
+      "result": "No output"
+    }
+  ],
+  "verification": {
+    "effectiveRoot": "harness assigns worktree.path at creation; no subsequent reassignment found in harness or middlewares",
+    "newTests": 14,
+    "existingAssertionsChanged": false,
+    "independentReview": "pending; executor did not delegate",
+    "existingSettingsAssertion": "Passed unchanged in the full coverage suite; CLI setup path remains blocked as reproduced separately"
+  },
+  "notModified": [
+    "PLAN.md",
+    "NEXT.md",
+    "src/run/contract.ts",
+    "HOST_TOOLING_PREFIXES",
+    "four executors",
+    "runs-summary.json"
+  ],
+  "committed": false,
+  "previousBlocker": {
+    "file": "src/dashboard/__tests__/projects-settings.test.ts",
+    "setupLine": 137,
+    "outputLine": 140,
+    "assertionLine": 152,
+    "actual": "contract violation: CONTRACT VIOLATION — worktree changes outside declared outputs: .setup-ran",
+    "explanation": "The configured setup script creates .setup-ran outside task.output, while the existing assertion requires done. Spec explicitly requires stopping without changing a conflicting assertion. No exception or assertion change applied."
+  },
+  "continuation": {
+    "specSection": "Cuarta parada (2026-11-10): artefactos del setup script",
+    "preExistingChanges": [
+      "LEDGER.md",
+      "docs/specs/AUD.1.md",
+      "src/__tests__/run-revert.test.ts",
+      "src/__tests__/sandbox-node-modules.test.ts",
+      "src/__tests__/sandbox-setup.test.ts",
+      "src/run/executors/worktree-diff.ts",
+      "src/run/harness.ts",
+      "src/run/sandbox.ts",
+      "tests/run/sandbox.test.ts",
+      "docs/done/evidence/AUD.1-live.json",
+      "src/__tests__/worktree-contract.test.ts"
+    ],
+    "implemented": [
+      "Worktree.setupArtifacts records normalized paths after successful setup; empty without setup",
+      "Harness allows uncommitted setup artifacts outside outputs and blocks committed setup artifacts",
+      "Added setup artifact success and committed-artifact rejection tests; existing assertions preserved"
+    ],
+    "writerLockCheck": {
+      "command": "node ~/.agent-method/hooks/writer-lock.js check",
+      "exitCode": 0,
+      "output": ""
+    },
+    "preflight": {
+      "command": "bun run agent:preflight -- --item AUD.1 --agent codex",
+      "exitCode": 0
+    },
+    "gates": [
+      {
+        "command": "bunx tsc --noEmit",
+        "phase": "baseline",
+        "exitCode": 0,
+        "rawOutputFile": "/tmp/AUD.1-r4-baseline-typecheck.log"
+      },
+      {
+        "command": "bunx tsc --noEmit",
+        "phase": "implementation",
+        "exitCode": 2,
+        "rawOutputFile": "/tmp/AUD.1-r4-typecheck.log",
+        "correction": "Capture setup artifacts in a Set before the filter callback to preserve TypeScript null narrowing"
+      },
+      {
+        "command": "bunx tsc --noEmit",
+        "phase": "corrected implementation",
+        "exitCode": 0,
+        "rawOutputFile": "/tmp/AUD.1-r4-typecheck-corrected.log"
+      },
+      {
+        "command": "bun run lint",
+        "exitCode": 0,
+        "rawOutputFile": "/tmp/AUD.1-r4-lint.log",
+        "result": "282 existing warnings; no rule increase"
+      },
+      {
+        "command": "git diff --check",
+        "exitCode": 0,
+        "rawOutputFile": "/tmp/AUD.1-r4-diff-check.log"
+      },
+      {
+        "command": "bun run test:coverage",
+        "phase": "outside sandbox",
+        "exitCode": 0,
+        "rawOutputFile": "/tmp/AUD.1-r4-coverage.log",
+        "result": "2507 pass, 0 fail, 10510 assertions, 267 files; functions 79.87%, lines 66.78%"
+      },
+      {
+        "command": "bun run lint",
+        "phase": "final",
+        "exitCode": 0,
+        "rawOutputFile": "/tmp/AUD.1-r4-lint-final.log",
+        "result": "282 existing warnings; no rule increase"
+      },
+      {
+        "command": "git diff --check",
+        "phase": "final",
+        "exitCode": 0,
+        "rawOutputFile": "/tmp/AUD.1-r4-diff-check-final.log"
+      }
+    ],
+    "rawLogFiles": [
+      "/tmp/AUD.1-r4-baseline-typecheck.log",
+      "/tmp/AUD.1-r4-coverage.log",
+      "/tmp/AUD.1-r4-diff-check-final.log",
+      "/tmp/AUD.1-r4-diff-check.log",
+      "/tmp/AUD.1-r4-evidence-format.log",
+      "/tmp/AUD.1-r4-format-corrected.log",
+      "/tmp/AUD.1-r4-format.log",
+      "/tmp/AUD.1-r4-lint-final.log",
+      "/tmp/AUD.1-r4-lint.log",
+      "/tmp/AUD.1-r4-setup-probe.log",
+      "/tmp/AUD.1-r4-typecheck-corrected.log",
+      "/tmp/AUD.1-r4-typecheck.log"
+    ],
+    "diffFile": "/tmp/AUD.1-r4.diff"
+  },
+  "resolvedBlocker": {
+    "file": "src/run/harness.ts",
+    "line": 547,
+    "explanation": "enforceContract runs before the new worktree gate. CLI engines populate outcome.files using readWorktreeDiff, which still includes uncommitted setup artifacts such as .setup-ran. enforceContract rejects them before the setupArtifacts exception can run. The closed spec does not define filtering at this earlier boundary and prohibits changes to enforceContract and the four executors. No additional behavior chosen.",
+    "probeRawOutputFile": "/tmp/AUD.1-r4-setup-probe.log",
+    "probeRawOutput": "{\"setupArtifacts\":[\".setup-ran\"],\"executorFilePaths\":[\".setup-ran\",\"out.txt\"]}\nCONTRACT VIOLATION — LLM attempted to write files outside declared outputs:\n  ✗ .setup-ran\nAllowed: out.txt\n",
+    "probeExitCode": 0,
+    "externalAgentCLIsInvoked": false
+  },
+  "continuation5": {
+    "specSection": "Quinta parada (2026-11-10): readWorktreeDiff también debe excluirlos",
+    "implemented": [
+      "createWorktree persists normalized setup artifact paths in branch config; persistence failure triggers existing cleanup",
+      "worktreeSetupArtifacts reads all configured paths with NUL delimiters and returns [] when missing",
+      "readWorktreeDiff excludes setup artifacts unless declared as outputs",
+      "New real-git test covers multiple artifacts, a path with spaces, declared artifact inclusion, and config cleanup"
+    ],
+    "writerLockCheck": {
+      "command": "node ~/.agent-method/hooks/writer-lock.js check",
+      "exitCode": 0,
+      "rawOutput": ""
+    },
+    "preflight": {
+      "command": "bun run agent:preflight -- --item AUD.1 --agent codex",
+      "exitCode": 0
+    },
+    "gates": [
+      {
+        "phase": "baseline",
+        "command": "bunx tsc --noEmit",
+        "exitCode": 0,
+        "rawOutputFile": "/tmp/AUD.1-r5-baseline-typecheck.log"
+      },
+      {
+        "phase": "implementation",
+        "command": "bunx tsc --noEmit",
+        "exitCode": 0,
+        "rawOutputFile": "/tmp/AUD.1-r5-typecheck.log"
+      },
+      {
+        "phase": "implementation",
+        "command": "bun run lint",
+        "exitCode": 0,
+        "rawOutputFile": "/tmp/AUD.1-r5-lint.log",
+        "result": "282 existing warnings; no rule increase"
+      },
+      {
+        "phase": "outside sandbox",
+        "command": "bun run test:coverage",
+        "exitCode": 0,
+        "rawOutputFile": "/tmp/AUD.1-r5-coverage.log",
+        "result": "2508 pass, 0 fail, 10521 assertions, 267 files; functions 79.87%, lines 66.80%"
+      },
+      {
+        "phase": "final diff",
+        "command": "git diff --check",
+        "exitCode": 0,
+        "rawOutputFile": "/tmp/AUD.1-r5-diff-check.log"
+      }
+    ],
+    "diffFile": "/tmp/AUD.1-r5.diff",
+    "committed": false,
+    "planEdited": false,
+    "externalAgentCLIsInvoked": false,
+    "independentReview": "pending with the supervising session"
+  },
+  "continuation6": {
+    "specSection": "Revisión qa (2026-11-10) — dos defectos del diff actual",
+    "implemented": [
+      "Stage declared paths with git --literal-pathspecs; preserve existing index-lock retry behavior",
+      "Reset excluded tracked changes and clean excluded untracked files before rebase/ff/squash, preserving node_modules",
+      "Add real-git regressions for literal out*.txt with late outside.txt, and tracked tooling changes with an advanced base"
+    ],
+    "writerLockCheck": {
+      "command": "node ~/.agent-method/hooks/writer-lock.js check",
+      "exitCode": 0,
+      "rawOutput": ""
+    },
+    "preflight": {
+      "command": "bun run agent:preflight -- --item AUD.1 --agent codex",
+      "exitCode": 0
+    },
+    "gates": [
+      {
+        "phase": "baseline",
+        "command": "bunx tsc --noEmit",
+        "exitCode": 0,
+        "rawOutputFile": "/tmp/AUD.1-baseline-tsc.log"
+      },
+      {
+        "phase": "baseline",
+        "command": "bun test --coverage src/__tests__/worktree-contract.test.ts",
+        "exitCode": 0,
+        "rawOutputFile": "/tmp/AUD.1-r6-baseline-tests.log",
+        "result": "14 pass, 0 fail"
+      },
+      {
+        "command": "bunx tsc --noEmit",
+        "exitCode": 0,
+        "rawOutputFile": "/tmp/AUD.1-r6-typecheck.log"
+      },
+      {
+        "command": "bun run lint",
+        "exitCode": 0,
+        "rawOutputFile": "/tmp/AUD.1-r6-lint.log",
+        "result": "282 existing warnings; no rule increase"
+      },
+      {
+        "phase": "outside sandbox",
+        "command": "bun run test:coverage",
+        "exitCode": 0,
+        "rawOutputFile": "/tmp/AUD.1-r6-coverage.log",
+        "result": "2510 pass, 0 fail, 10551 assertions, 267 files; functions 79.87%, lines 66.81%"
+      },
+      {
+        "command": "git diff --check",
+        "exitCode": 0,
+        "rawOutputFile": "/tmp/AUD.1-r6-diff-check.log"
+      }
+    ],
+    "preExistingChanges": [
+      "LEDGER.md",
+      "docs/specs/AUD.1.md",
+      "src/__tests__/run-revert.test.ts",
+      "src/__tests__/sandbox-node-modules.test.ts",
+      "src/__tests__/sandbox-setup.test.ts",
+      "src/run/executors/worktree-diff.ts",
+      "src/run/harness.ts",
+      "src/run/sandbox.ts",
+      "tests/run/sandbox.test.ts",
+      "docs/done/evidence/AUD.1-live.json",
+      "src/__tests__/worktree-contract.test.ts"
+    ],
+    "diffFile": "/tmp/AUD.1-r6.diff",
+    "planEdited": false,
+    "committed": false,
+    "externalAgentCLIsInvoked": false,
+    "independentReview": "pending with the supervising session"
+  }
+}

@@ -210,7 +210,7 @@ Esperan su próximo fallo; el diagnóstico de cada uno está en su ítem.
 Hallazgos de una auditoría del código, cada cita verificada en lectura el 2026-11-10. Ninguno implementado. Sin fase ni
 prioridad hasta que Carlos las asigne.
 
-- [ ] **AUD.1 — El contrato se puede saltar con borrados, prefijos de tooling y rutas raras.**
+- [x] **AUD.1 — El contrato se puede saltar con borrados, prefijos de tooling y rutas raras.**
   (abierto 2026-11-10) Llegan a la rama base sin pasar por él. `readWorktreeDiff` alimenta al contrato desde `git status --porcelain -uall`
   (`worktree-diff.ts:56`) y descarta (a) archivos borrados, `if (!existsSync(full)) continue` (`worktree-diff.ts:117`);
   (b) todo lo que empiece por `.impeccable/`, `.claude/`, `.codex/`, `.opencode/`, `.cursor/`, `.aider/` o termine en
@@ -222,6 +222,18 @@ prioridad hasta que Carlos las asigne.
   capa (QA, checks) cubre los borrados. Verificación: test con fixture git real que demuestre que lo commiteado en el
   merge es exactamente el conjunto que el contrato aprobó: un borrado no declarado, un `.claude/hooks/x` no declarado y
   un archivo `con espacio.txt` no declarado hacen fallar la tarea o quedan fuera del commit.
+  Hecho: puerta del harness tras `enforceContract` con `listWorktreeChanges` contra el punto de bifurcación
+  (`branch.<rama>.orchestosForkPoint`, guardado por `createWorktree`): cubre commits del worktree, staged, borrados y
+  rutas con espacios (`-z`). Tooling sin commitear y artefactos del `setup_script` (`orchestosSetupArtifact`) = ruido;
+  commiteados = violación. `mergeWorktreeBack` exige las rutas declaradas, rechaza lo commiteado no declarado, agrega
+  solo lo declarado con `--literal-pathspecs` y descarta lo excluido antes del rebase. Los commits del worktree se
+  conservan (estrategia `commit` intacta). `readWorktreeDiff` omite los artefactos del setup (antes los ejecutores CLI
+  fallaban el contrato con cualquier `setup_script` que creara archivos).
+  Gates del cerebro: `tsc`, `lint` (282, sin subir), `test:coverage` 2508 pass / 0 fail, 58/58 en los 6 archivos
+  tocados. Revisión `qa` (otro proveedor): P1 pathspec glob y P2 rebase bloqueado por lo excluido → corregidos, con
+  tests (`worktree-contract.test.ts:348`, `:362`). El spec se amplió 5 veces por casos que no cubría.
+  Evidencia: `docs/done/evidence/AUD.1-live.json`.
+  Ejecutado por: codex (criterio) · Spec: docs/specs/AUD.1.md
 
 - [ ] **AUD.2 — El producto ejecuta `git checkout -- runs-summary.json` en cualquier proyecto del usuario.**
   (abierto 2026-11-10) Es un arreglo específico de este repo (el hook que exporta `runs-summary.json`) metido en el

@@ -132,7 +132,10 @@ describe('merge back preserves the user checkout', () => {
           git(['add', 'first.txt'], worktree.path)
           expect(git(['commit', '-m', 'first'], worktree.path).exitCode).toBe(0)
           writeFileSync(join(worktree.path, 'second.txt'), 'second')
-          const merged = mergeWorktreeBack(worktree, strategy, 'settings fixture')
+          const merged = mergeWorktreeBack(worktree, strategy, 'settings fixture', [
+            'first.txt',
+            'second.txt',
+          ])
           expect(merged).toBe(git(['rev-parse', 'develop'], root).stdout)
           expect(worktree.mergedBaseSha).toBe(baseBefore)
           expect(git(['show', 'develop:first.txt'], root).stdout).toBe('first')
@@ -172,7 +175,7 @@ describe('merge back preserves the user checkout', () => {
       const main = git(['rev-parse', 'HEAD'], root).stdout
       const baseBefore = git(['rev-parse', 'develop'], root).stdout
       writeFileSync(join(worktree.path, 'task.txt'), 'task')
-      expect(mergeWorktreeBack(worktree, 'commit')).toBeTruthy()
+      expect(mergeWorktreeBack(worktree, 'commit', undefined, ['task.txt'])).toBeTruthy()
       expect(worktree.mergedBaseSha).toBe(baseBefore)
       expect(git(['show', 'develop:task.txt'], root).stdout).toBe('task')
       expect(git(['show', 'develop:base.txt'], root).stdout).toBe('base')

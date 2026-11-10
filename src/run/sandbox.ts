@@ -1,12 +1,20 @@
 import { existsSync, mkdirSync, symlinkSync } from 'node:fs'
 import { join } from 'node:path'
+import {
+  listCommittedWorktreePaths,
+  listWorktreeChanges,
+  worktreeForkPoint,
+} from './executors/worktree-diff.ts'
 import { withGitLock } from './git-lock.ts'
+import { normalizeRelPath } from './path-policy.ts'
 
 export interface Worktree {
   path: string
   branch: string
   baseBranch: string
   projectRoot: string
+  /** Paths produced by the successful setup, before the executor runs. */
+  setupArtifacts: string[]
   /** HEAD of the base branch immediately before the successful merge. */
   mergedBaseSha?: string
   cleanup: () => void
@@ -20,7 +28,8 @@ export function git(
 ): { exitCode: number; stdout: string; stderr: string } {
   // Each add/commit waits at most 2 s for another process's index lock (4 s per
   // add + commit pair). Never remove a lock or retry unrelated failures/hooks.
-  const retryIndexLock = args[0] === 'add' || args[0] === 'commit'
+  const command = args[0] === '--literal-pathspecs' ? args[1] : args[0]
+  const retryIndexLock = command === 'add' || command === 'commit'
   const deadline = performance.now() + 2_000
   const env =
     args[0] === 'status' || args[0] === 'diff'
@@ -81,6 +90,16 @@ export function createWorktree(
     throw new Error(`Failed to create branch "${branch}": ${branchResult.stderr}`)
   }
 
+  const forkSha = git(['rev-parse', baseBranch], projectRoot)
+  const forkConfig =
+    forkSha.exitCode === 0
+      ? git(['config', `branch.${branch}.orchestosForkPoint`, forkSha.stdout], projectRoot)
+      : forkSha
+  if (forkConfig.exitCode !== 0) {
+    git(['branch', '-D', '--', branch], projectRoot)
+    throw new Error(`Failed to persist worktree fork point: ${forkConfig.stderr}`)
+  }
+
   // create worktree
   const wtResult = git(['worktree', 'add', '--', worktreeDir, branch], projectRoot)
   if (wtResult.exitCode !== 0) {
@@ -131,6 +150,7 @@ export function createWorktree(
     }
   }
 
+  let setupArtifacts: string[] = []
   if (setupScript?.trim()) {
     try {
       // Merge stderr into stdout so the diagnostic preserves execution order.
@@ -160,26 +180,46 @@ ${setupScript}`,
           `Worktree setup script failed (${result.exitedDueToTimeout ? 'timeout after 10 minutes' : `exit ${result.exitCode}`}):\n${output}`,
         )
       }
+      setupArtifacts = listWorktreeChanges(worktreeDir, forkSha.stdout).map(({ path }) =>
+        normalizeRelPath(path),
+      )
+      for (const path of setupArtifacts) {
+        const config = git(
+          ['config', '--add', `branch.${branch}.orchestosSetupArtifact`, path],
+          projectRoot,
+        )
+        if (config.exitCode !== 0) {
+          throw new Error(`Failed to persist worktree setup artifact: ${config.stderr}`)
+        }
+      }
     } catch (error) {
       cleanup()
       throw error
     }
   }
 
-  return { path: worktreeDir, branch, baseBranch, projectRoot, cleanup }
+  return { path: worktreeDir, branch, baseBranch, projectRoot, setupArtifacts, cleanup }
 }
 
 // Mes 22/E.5 — toda esta función toca `worktree.projectRoot` (checkout, merge,
 // worktree remove, branch -D) — el mismo repo/working-dir que los auto-commits
 // de tasks.yaml (D.5/D.7) y que OTRO merge-back concurrente. `withGitLock`
 // serializa contra ambos (ver git-lock.ts para la causa raíz que esto cierra).
+export function mergeWorktreeBack(worktree: Worktree, strategy: 'discard', message?: string): null
+export function mergeWorktreeBack(
+  worktree: Worktree,
+  strategy: Exclude<MergeStrategy, 'discard'>,
+  message: string | undefined,
+  paths: string[],
+): string | null
 export function mergeWorktreeBack(
   worktree: Worktree,
   strategy: MergeStrategy,
   message?: string,
+  paths?: string[],
 ): string | null {
   return withGitLock(worktree.projectRoot, () =>
-    mergeWorktreeBackLocked(worktree, strategy, message),
+    mergeWorktreeBackLocked(worktree, strategy, message, paths),
   )
 }
 
@@ -187,22 +227,29 @@ function mergeWorktreeBackLocked(
   worktree: Worktree,
   strategy: MergeStrategy,
   message?: string,
+  paths?: string[],
 ): string | null {
   if (strategy === 'discard') {
     worktree.cleanup()
     return null
   }
 
-  // T (Mes 26, IDEAS #19, 2026-08-06) — mismo motivo que worktree-diff.ts: sin
-  // el pathspec, el symlink de `node_modules` que `createWorktree()` agrega
-  // sale como `??` en el status pese al `.gitignore` (el patrón con slash no
-  // matchea un symlink), y el `git add -A` de abajo lo commitearía al branch
-  // real — un side effect serio, no cosmético.
-  const hasChanges =
-    git(['status', '--porcelain', '--', '.', ':!node_modules'], worktree.path).stdout.length > 0
+  if (!paths) throw new Error('Declared paths are required to merge a worktree')
+  const forkPoint = worktreeForkPoint(worktree.path)
+  if (!forkPoint) throw new Error('fork-point: missing')
+  const allowed = new Set(paths.map(normalizeRelPath))
+  const committed = listCommittedWorktreePaths(worktree.path, forkPoint)
+  const undeclared = committed.filter((path) => !allowed.has(normalizeRelPath(path)))
+  if (undeclared.length) throw new Error(`committed undeclared: ${undeclared.join(', ')}`)
 
-  if (hasChanges) {
-    const add = git(['add', '-A', '--', '.', ':!node_modules'], worktree.path)
+  // Clear pre-existing staging without rewriting commits or working files.
+  const reset = git(['reset', '-q'], worktree.path)
+  if (reset.exitCode !== 0) throw new Error(`git reset failed in worktree: ${reset.stderr}`)
+  const intersection = listWorktreeChanges(worktree.path, 'HEAD')
+    .map(({ path }) => path)
+    .filter((path) => allowed.has(normalizeRelPath(path)))
+  if (intersection.length) {
+    const add = git(['--literal-pathspecs', 'add', '-A', '--', ...intersection], worktree.path)
     if (add.exitCode !== 0) throw new Error(`git add failed in worktree: ${add.stderr}`)
 
     const commitMsg = message ?? `orchestos: changes from ${worktree.branch}`
@@ -214,6 +261,14 @@ function mergeWorktreeBackLocked(
       }
     }
   }
+
+  // Excluded tracked changes must not block rebase; preserve the dependency symlink.
+  const cleanReset = git(['reset', '--hard', '-q', 'HEAD'], worktree.path)
+  if (cleanReset.exitCode !== 0)
+    throw new Error(`git reset excluded changes failed in worktree: ${cleanReset.stderr}`)
+  const clean = git(['clean', '-fdq', '--', '.', ':!node_modules'], worktree.path)
+  if (clean.exitCode !== 0)
+    throw new Error(`git clean excluded changes failed in worktree: ${clean.stderr}`)
 
   // Mes 22/E.9 — descarte defensivo del mismo archivo que resolveSandboxMode()
   // ya descarta al empezar la corrida (sandbox-policy.ts). Entre ese momento y

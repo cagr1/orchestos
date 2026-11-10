@@ -54,7 +54,7 @@ function makeRepo(): string {
 function applyTask(root: string, taskId: string, file: string, content: string): string | null {
   const wt = createWorktree(taskId, 'master', root)
   writeFileSync(join(wt.path, file), content)
-  return mergeWorktreeBack(wt, 'commit', `orchestos(${taskId}): cambio`)
+  return mergeWorktreeBack(wt, 'commit', `orchestos(${taskId}): cambio`, [file])
 }
 
 function addRun(
@@ -117,7 +117,7 @@ describe('commit_sha al aplicar una tarea (ERP.7.2a)', () => {
     writeFileSync(join(root, 'c.txt'), 'otro\n')
     git(['add', 'c.txt'], root)
     git(['commit', '-m', 'avance de la rama'], root)
-    const sha = mergeWorktreeBack(wt, 'commit', 'orchestos(t-rebase): cambio')
+    const sha = mergeWorktreeBack(wt, 'commit', 'orchestos(t-rebase): cambio', ['b.txt'])
     expect(sha).toBe(head(root))
     expect(git(['log', '-1', '--format=%s'], root).stdout).toBe('orchestos(t-rebase): cambio')
     expect(git(['log', '-2', '--format=%s'], root).stdout).toContain('avance de la rama')
@@ -126,7 +126,7 @@ describe('commit_sha al aplicar una tarea (ERP.7.2a)', () => {
   test('sin cambios devuelve null', () => {
     const root = makeRepo()
     const wt = createWorktree('t-null', 'master', root)
-    expect(mergeWorktreeBack(wt, 'commit', 'orchestos(t-null): nada')).toBeNull()
+    expect(mergeWorktreeBack(wt, 'commit', 'orchestos(t-null): nada', [])).toBeNull()
   })
 })
 
@@ -205,7 +205,7 @@ describe('POST /api/runs/:id/revert (ERP.7.2a)', () => {
         wt.path,
       ).exitCode,
     ).toBe(0)
-    const sha = mergeWorktreeBack(wt, 'commit')
+    const sha = mergeWorktreeBack(wt, 'commit', undefined, ['first.txt', 'second.txt'])
     const id = addRun(P, 't-multi', sha, 'done', undefined, wt.mergedBaseSha)
     expect(revert(id, P, root).status).toBe(200)
     expect(existsSync(join(root, 'first.txt'))).toBe(false)
@@ -299,7 +299,7 @@ describe('POST /api/runs/:id/revert (ERP.7.2a)', () => {
       ).exitCode,
     ).toBe(0)
     const base = head(root)
-    const sha = mergeWorktreeBack(wt, 'commit')
+    const sha = mergeWorktreeBack(wt, 'commit', undefined, ['first.txt', 'second.txt'])
     expect(wt.mergedBaseSha).toBe(base)
     const id = addRun(P, 't-multi-rebase', sha, 'done', undefined, wt.mergedBaseSha)
     expect(getRun(id)!.commit_base_sha).toBe(base)

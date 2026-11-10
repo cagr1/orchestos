@@ -123,7 +123,7 @@ describe('mergeWorktreeBack — el symlink de node_modules nunca se commitea al 
     try {
       wt = createWorktree('t19-merge', 'main', dir)
       writeFileSync(join(wt.path, 'real-output.txt'), 'hola')
-      mergeWorktreeBack(wt, 'commit', 'test commit')
+      mergeWorktreeBack(wt, 'commit', 'test commit', ['real-output.txt'])
       wt = undefined // ya limpiado por el merge
 
       const show = git(['show', '--stat', 'HEAD'], dir)
@@ -144,7 +144,7 @@ describe('mergeWorktreeBack — el symlink de node_modules nunca se commitea al 
     try {
       wt = createWorktree('t19-merge-empty', 'main', dir)
       const before = git(['rev-parse', 'HEAD'], dir).stdout
-      mergeWorktreeBack(wt, 'commit', 'should not happen')
+      mergeWorktreeBack(wt, 'commit', 'should not happen', [])
       wt = undefined
       const after = git(['rev-parse', 'HEAD'], dir).stdout
       expect(after).toBe(before)

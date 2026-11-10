@@ -87,7 +87,7 @@ describe('mergeWorktreeBack — commit', () => {
     const wt = createWorktree('commit-task', 'main', root)
     writeFileSync(join(wt.path, 'output.txt'), 'hello from worktree')
 
-    mergeWorktreeBack(wt, 'commit', 'test: add output.txt')
+    mergeWorktreeBack(wt, 'commit', 'test: add output.txt', ['output.txt'])
 
     // worktree removed
     expect(existsSync(wt.path)).toBe(false)
@@ -106,7 +106,7 @@ describe('mergeWorktreeBack — commit', () => {
 
     const wt = createWorktree('no-change-task', 'main', root)
     // no files written
-    mergeWorktreeBack(wt, 'commit', 'test: no changes')
+    mergeWorktreeBack(wt, 'commit', 'test: no changes', [])
 
     expect(existsSync(wt.path)).toBe(false)
     // base branch still on main, no error
@@ -125,7 +125,7 @@ describe('mergeWorktreeBack — squash', () => {
     writeFileSync(join(wt.path, 'a.txt'), 'A')
     writeFileSync(join(wt.path, 'b.txt'), 'B')
 
-    mergeWorktreeBack(wt, 'squash', 'test: squashed')
+    mergeWorktreeBack(wt, 'squash', 'test: squashed', ['a.txt', 'b.txt'])
 
     expect(existsSync(wt.path)).toBe(false)
     expect(existsSync(join(root, 'a.txt'))).toBe(true)
