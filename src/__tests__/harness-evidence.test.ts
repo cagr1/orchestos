@@ -125,6 +125,7 @@ async function callRunTask(
   dir: string,
   modelOverride?: string,
   codes: boolean | null = null,
+  requireSpec = false,
 ) {
   const { runTask } = await import('../run/harness.ts')
   const { RunLogger } = await import('../run/logger.ts')
@@ -139,6 +140,7 @@ async function callRunTask(
     sandboxMode: 'cwd',
     orcheConfig: {
       ...DEFAULT_CONFIG,
+      requireSpec,
       roles: {
         executor: { agent: 'api', provider: 'openrouter', model: 'mock/model' },
         reviewer: { agent: 'api', provider: 'openrouter', model: 'mock/reviewer' },
@@ -161,6 +163,55 @@ async function assertRowForFailure(
   const haystack = `${row!.result ?? ''} ${row!.qa_reason ?? ''}`
   expect(haystack).toContain(expectedSubstring)
 }
+
+describe('AUD.3 — una excepción inesperada deja una fila de run', () => {
+  it('persiste el fallo del gate de spec antes de crear RunContext', async () => {
+    const dir = tmpDir()
+    try {
+      const task = baseTask()
+      const result = await callRunTask(task, dir, undefined, null, true)
+      expect(result.status).toBe('failed')
+      expect(result.runId).not.toBe('')
+      const { getRun } = await import('../db/runs.ts')
+      const row = getRun(result.runId)
+      expect(row).not.toBeNull()
+      expect(row!.status).toBe('failed')
+      expect(row!.task_id).toBe(task.id)
+      expect(row!.result).toContain('requires an approved spec')
+      expect(row!.model).toBe('unknown')
+    } finally {
+      rmSync(dir, { recursive: true, force: true })
+    }
+  })
+
+  it('persiste el modelo resuelto si el middleware chain lanza', async () => {
+    const middleware = await import('../run/middleware.ts')
+    const chainSpy = spyOn(middleware, 'createChain').mockImplementation((() => ({
+      use() {
+        return this
+      },
+      async run() {
+        throw new Error('boom')
+      },
+    })) as typeof middleware.createChain)
+    const dir = tmpDir()
+    try {
+      const task = baseTask()
+      const result = await callRunTask(task, dir)
+      expect(result.status).toBe('failed')
+      expect(result.runId).not.toBe('')
+      const { getRun } = await import('../db/runs.ts')
+      const row = getRun(result.runId)
+      expect(row).not.toBeNull()
+      expect(row!.status).toBe('failed')
+      expect(row!.result).toContain('boom')
+      expect(row!.model).toBe('mock/model')
+    } finally {
+      chainSpy.mockRestore()
+      rmSync(dir, { recursive: true, force: true })
+    }
+  })
+})
 
 describe('F3.3 — every failure path leaves a row in runs and a non-empty runId', () => {
   it('F3.1 LLM call catch: provider that throws inserts a row with the error message', async () => {

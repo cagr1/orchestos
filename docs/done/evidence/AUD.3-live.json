@@ -1,0 +1,11 @@
+[
+  {
+    "id": "98fc506a-87a4-446e-b9e9-92d3a2cceb7e",
+    "status": "failed",
+    "task_id": "live-aud3",
+    "model": "unknown",
+    "provider": "unknown",
+    "result": "unexpected: Reviewer role is unassigned — assign it in Settings → Model routing",
+    "created_at": "2026-11-10T18:27:28.503Z"
+  }
+]

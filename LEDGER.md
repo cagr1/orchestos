@@ -600,3 +600,10 @@ sin tocar `enforceContract` ni los ejecutores. Gates y salida cruda de esta cont
 Gates finales de la quinta ampliación: TypeScript y lint exit 0 (282 avisos existentes);
 suite completa fuera del sandbox: 2508 pass, 0 fail, 10521 aserciones; cobertura funciones
 79,87 %, líneas 66,80 %. Sin commit ni cambios en el plan; revisión independiente pendiente.
+
+## 2026-11-10 — Codex (ejecutor AUD.3), revisado por Claude Opus 5.5
+
+**Regla tocada**: `src/run/harness.ts`, `catch` general de `runTask`.
+**Clasificación**: RESPETÓ
+**Por qué**: solo añade la fila `failed` del catch general (y la marca `runInserted` tras los `insertRun`
+existentes). No toca la derivación de contexto/max_tokens ni ningún camino de fallo con fila propia.

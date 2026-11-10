@@ -156,6 +156,8 @@ export async function runTask(opts: HarnessOpts): Promise<TaskResult> {
 
   let worktree: Worktree | null = null
   let effectiveRoot = projectRoot
+  let failureCtx: RunContext | null = null
+  let runInserted = false
 
   try {
     // -- spec gate ---------------------------------------------------------------
@@ -207,6 +209,7 @@ export async function runTask(opts: HarnessOpts): Promise<TaskResult> {
 
     // -- enrichment chain (S31) ------------------------------------------------
     const ctx = createRunContext(opts)
+    failureCtx = ctx
     ctx.effectiveRoot = effectiveRoot
     ctx.worktree = worktree
 
@@ -478,6 +481,7 @@ export async function runTask(opts: HarnessOpts): Promise<TaskResult> {
           elapsed_ms: elapsed,
           result: e.message,
         })
+        runInserted = true
         return {
           status: 'failed',
           runId,
@@ -525,6 +529,7 @@ export async function runTask(opts: HarnessOpts): Promise<TaskResult> {
         elapsed_ms: elapsedLLM,
         result: e.message,
       })
+      runInserted = true
       return {
         status: 'failed',
         runId,
@@ -618,6 +623,7 @@ export async function runTask(opts: HarnessOpts): Promise<TaskResult> {
         elapsed_ms: elapsed,
         result: e.message,
       })
+      runInserted = true
       return {
         status: 'failed',
         runId,
@@ -690,6 +696,7 @@ export async function runTask(opts: HarnessOpts): Promise<TaskResult> {
         elapsed_ms: elapsedMissing,
         result: `${reason} — reverted ${contractResult.written.length} file(s)`,
       })
+      runInserted = true
       log.qaFail(reason, ctx.task.retry_count + 1, MAX_RETRIES)
       const missingExhausted = ctx.task.retry_count + 1 >= MAX_RETRIES
       return {
@@ -801,6 +808,7 @@ export async function runTask(opts: HarnessOpts): Promise<TaskResult> {
           elapsed_ms: elapsedCheck,
           result: `check fail — reverted ${contractResult.written.length} file(s)`,
         })
+        runInserted = true
         log.qaFail(reason, ctx.task.retry_count + 1, MAX_RETRIES)
         // D3 follow-up: this unconditionally returned 'retry' regardless of how many
         // times the task had already failed — a persistently failing check (e.g. tsc
@@ -980,6 +988,7 @@ export async function runTask(opts: HarnessOpts): Promise<TaskResult> {
         elapsed_ms: totalElapsed,
         result: `QA fail - reverted ${contractResult.written.length} file(s)`,
       })
+      runInserted = true
 
       if (newStatus === 'failed_permanent') {
         log.failedPermanent(qa.reason)
@@ -1082,6 +1091,7 @@ export async function runTask(opts: HarnessOpts): Promise<TaskResult> {
       elapsed_ms: totalElapsed,
       result: `${contractResult.written.length} file(s) written`,
     })
+    runInserted = true
 
     if (qa.verdict === 'pass') log.qaPass(qa.reason)
     else log.info(`QA:skipped  ${qa.reason}`)
@@ -1106,9 +1116,46 @@ export async function runTask(opts: HarnessOpts): Promise<TaskResult> {
     // S9.4 - catch-all: cualquier excepcion no prevista -> status failed, nunca lanza
     const elapsed = Math.round(performance.now() - t0)
     log.error(`unexpected error: ${e.message}`)
+    let runId = ''
+    // Ya existe una fila de esta corrida; evitar duplicarla si algo posterior falló.
+    if (!runInserted) {
+      try {
+        runId = insertRun({
+          ...(approvalRunStarted ? { id: approvalRunId } : {}),
+          project_id: runProjectId,
+          prompt: t.description,
+          task_class: failureCtx?.taskClass || t.task_class || classifyTask(t.description),
+          model: failureCtx?.model || modelOverride || 'unknown',
+          provider: failureCtx?.provider?.name || 'unknown',
+          skill_id: t.skill ?? null,
+          task_id: t.id,
+          allowed_outputs: JSON.stringify(t.output ?? []),
+          files_attempted: null,
+          files_authorized: null,
+          files_blocked: null,
+          snapshot_before: null,
+          snapshot_after: null,
+          qa_verdict: null,
+          qa_reason: null,
+          context_source: failureCtx?.contextSource ?? null,
+          context_tokens: failureCtx?.contextTokens ?? null,
+          context_warnings_json: null,
+          status: 'failed',
+          input_tokens: 0,
+          output_tokens: 0,
+          usd_cost: 0,
+          elapsed_ms: elapsed,
+          result: `unexpected: ${e.message}`,
+        })
+        runInserted = true
+      } catch (insertError) {
+        const message = insertError instanceof Error ? insertError.message : String(insertError)
+        log.error(`failed to persist unexpected run: ${message}`)
+      }
+    }
     return {
       status: 'failed',
-      runId: '',
+      runId,
       retryReason: `unexpected: ${e.message}`,
       filesWritten: [],
       filesBlocked: [],

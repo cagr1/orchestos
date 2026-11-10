@@ -8,9 +8,9 @@ Arranque: `bun run agent:preflight -- --item <ID> --agent claude`. Lista viva: `
 
 1. **Siguiente: lote de auditoría** (GO de Carlos 2026-11-10 para AUD.1 y AUD.2; antes: "decide Carlos — otro bloque
    de producto o el mes de uso real"). Informe y dirección por ítem: `docs/auditoria-2026-11-10.md`.
-   - AUD.1 y AUD.2 cerrados. Antes de delegar cada uno, el cerebro comprueba con grep su lista de "no verificado" y
+   - AUD.1, AUD.2 y AUD.3 cerrados. Antes de delegar cada uno, el cerebro comprueba con grep su lista de "no verificado" y
      lee entero el módulo que toca y sus tests (AUD.1: 5 enmiendas; AUD.2: 3, todas por casos borde de rutas de git).
-   - **Siguiente**, en este orden y con spec nuevo cada uno: AUD.3, AUD.4, AUD.7, AUD.5, AUD.10, AUD.8, AUD.9, AUD.6.
+   - **Siguiente**, en este orden y con spec nuevo cada uno: AUD.4, AUD.7, AUD.5, AUD.10, AUD.8, AUD.9, AUD.6.
      AUD.4 y AUD.7 cambian comportamiento central: plan corto y GO de Carlos antes de delegar.
    - Decisiones de Carlos pendientes: adoptar el tamaño por reanudabilidad de ODD en el proceso; qué ideas de
      `IDEAS.md` entran al cierre (propuesta en el informe); Tauri (recomendado) o Electron, después de AUD.7.
@@ -88,6 +88,10 @@ salvo CI.69/CI.76, SK.3, UI.70, LIMP.4, auditoría de `IDEAS.md` (`73247216`) y 
 
 ## Anotado, sin ítem (abrir ítem solo si Carlos lo pide; los intermitentes, también si se repiten)
 
+- Visto en la prueba en vivo de AUD.3 (2026-11-10): `requireSpec` existe en `OrcheConfig` (`schema.ts:98`) y el
+  harness lo consulta (`harness.ts:170`), pero `mergeWithDefaults` (`config/load.ts`) no lo copia del yaml: declararlo
+  en `orchestos.config.yaml` no tiene efecto. Misma clase que el `sandbox` de AUD.2. Revisar qué otros campos del tipo
+  se pierden igual antes de abrir ítem.
 - AUD.2, hallazgo P2 de `qa` sin corregir: un derivado sin trackear dentro de un directorio nuevo (`?? build/`) no se
   reconoce y bloquea el sandbox con `DirtyTreeError`. Falla hacia el lado seguro y ya pasaba antes. Arreglo probable:
   `--untracked-files=all` en `sandbox-policy.ts`, pero cambia la lista de "sucios" que ve la UI; decidirlo antes.

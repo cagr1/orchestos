@@ -256,11 +256,19 @@ prioridad hasta que Carlos las asigne.
   yaml, sin control en Settings por decisión del spec, así que no hay superficie que abrir en el dashboard.
   Ejecutado por: codex (mecanico) · Spec: docs/specs/AUD.2.md
 
-- [ ] **AUD.3 — Una excepción inesperada en el harness no deja fila de run.** (abierto 2026-11-10) El `catch` general
+- [x] **AUD.3 — Una excepción inesperada en el harness no deja fila de run.** (abierto 2026-11-10) El `catch` general
   de `runTask` (`harness.ts:1061-1074`) devuelve `status: 'failed'`, `runId: ''` y `retryReason: unexpected: …` sin
   llamar a `insertRun` (los demás caminos sí lo hacen: `harness.ts:441`, `490`, `543`, `615`, `725`, `900`). La UI y el
   historial no ven ese fallo: rompe "o el porqué del fallo". Verificación: test que fuerce una excepción tras el inicio
   de la corrida y compruebe que existe una fila `runs` `failed` con el motivo.
+  Hecho: el `catch` general inserta una fila `failed` con `result: unexpected: …` y devuelve su `runId`, salvo que la
+  corrida ya tuviera fila (`runInserted`, marcado tras los 7 `insertRun`); el `insertRun` del catch no lanza. Sin
+  `RunContext` o sin routing, `model`/`provider` = `unknown`. Tests: throw antes de `createRunContext` (gate de spec)
+  y dentro de la cadena (`harness-evidence.test.ts`). Prueba en vivo por CLI con home temporal: tarea sin Reviewer
+  asignado → fila `failed` con el motivo, `docs/done/evidence/AUD.3-live.json`. Gates del cerebro: `tsc`, `lint`
+  (282, sin subir; la 1.ª versión lo subía y se corrigió), `test:coverage` 2516 pass / 0 fail. Revisión `qa`: sin
+  defectos. La prueba en vivo destapó `model = ''` (corregido) y que `requireSpec` del yaml no se lee (anotado).
+  Ejecutado por: codex (mecanico) · Spec: docs/specs/AUD.3.md
 
 - [ ] **AUD.4 — El fallo no se guarda como causa clasificada y las piezas de diagnóstico no llegan a la UI.**
   (abierto 2026-11-10) (a) La tabla `runs` no tiene columna de tipo de fallo (`migrate.ts:1320-1340` y los
