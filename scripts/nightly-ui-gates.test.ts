@@ -1,9 +1,10 @@
 import { afterEach, expect, mock, test } from 'bun:test'
-import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import {
   expiredDates,
+  parseSleeps,
   preserveFailure,
   runFlows,
   runNightly,
@@ -47,6 +48,78 @@ test.each(['node', 'bun', 'git'])(
     )
     expect(existsSync(join(base, 'ui-gates-latest.json.tmp'))).toBe(false)
     expect(existsSync(join(base, 'running'))).toBe(false)
+  },
+)
+
+test('parseSleeps accepts only Sleep events in the inclusive time range', () => {
+  const lines = [
+    '2026-11-10 08:03:21 -0500 Sleep               Entering Sleep state due to Maintenance Sleep',
+    '2026-11-10 08:03:22 -0500 DarkWake            DarkWake to FullWake',
+    '2026-11-10 08:03:23 -0500 Assertions          PID 11324(chrome-headless-shell) Created assertion',
+    '2026-11-10 08:03:24 -0500 Wake                Wake from Deep Idle',
+    '2026-11-10 08:03:25 -0500 Sleep               Entering Sleep state',
+    'not a dated Sleep line',
+    '2026-11-10 08:03:26 -0500 DarkWake            Sleep is mentioned, but this is not Sleep',
+  ]
+  const log = lines.join('\n')
+  const expected = lines.filter((_, index) => index === 0 || index === 4)
+  expect(
+    parseSleeps(log, new Date('2026-11-10T13:03:21Z'), new Date('2026-11-10T13:03:25Z')),
+  ).toEqual(expected)
+})
+
+test('releases keep-awake after preparation failure', async () => {
+  const base = mkdtempSync(join(tmpdir(), 'nightly-keep-awake-failure-'))
+  roots.push(base)
+  const release = mock(() => {})
+  const prepared = await runNightly({
+    base,
+    keepAwake: () => release,
+    which: () => '/fixture/bin/tool',
+    command: mock(async () => ({ code: 1, output: 'fetch failed' })),
+  })
+  expect(prepared).toBe(false)
+  expect(release).toHaveBeenCalledTimes(1)
+  expect(existsSync(join(base, 'running'))).toBe(false)
+})
+
+test.each([{ sleepLog: '', hasSleeps: false }, { hasSleeps: true }])(
+  'publishes sleeps only when an in-range Sleep event exists',
+  async ({ hasSleeps }) => {
+    const base = mkdtempSync(join(tmpdir(), 'nightly-sleeps-'))
+    roots.push(base)
+    const release = mock(() => {})
+    let boundary = 0
+    const command = mock(async (args: string[]) => {
+      if (args[0] === 'git' && args[1] === 'worktree' && args[2] === 'add') {
+        const flowDir = join(base, 'worktree/scripts/ui-gate/flows')
+        mkdirSync(flowDir, { recursive: true })
+        writeFileSync(join(flowDir, 'smoke.mjs'), '')
+        return { code: 0, output: '' }
+      }
+      if (args[0] === 'git' && args[1] === 'rev-parse') return { code: 0, output: 'abc123' }
+      if (args[0] === 'bun' && args[1] === 'run' && args[2] === 'ui:gate') {
+        boundary = Math.ceil(Date.now() / 1000) * 1000
+        while (Date.now() <= boundary) await new Promise((resolve) => setTimeout(resolve, 10))
+      }
+      return { code: 0, output: '' }
+    })
+    const prepared = await runNightly({
+      base,
+      keepAwake: () => release,
+      sleepLog: () => {
+        if (!hasSleeps) return ''
+        const date = new Date(boundary).toISOString()
+        return `${date.slice(0, 10)} ${date.slice(11, 19)} +0000 Sleep               Entering Sleep state`
+      },
+      which: () => '/fixture/bin/tool',
+      command: command as never,
+    })
+    expect(prepared).toBe(true)
+    expect(release).toHaveBeenCalledTimes(1)
+    const result = JSON.parse(readFileSync(join(base, 'ui-gates-latest.json'), 'utf8'))
+    expect('sleeps' in result).toBe(hasSleeps)
+    if (hasSleeps) expect(result.sleeps).toHaveLength(1)
   },
 )
 

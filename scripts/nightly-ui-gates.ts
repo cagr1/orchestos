@@ -1,4 +1,4 @@
-import { spawn } from 'node:child_process'
+import { spawn, spawnSync } from 'node:child_process'
 import {
   appendFileSync,
   cpSync,
@@ -28,6 +28,45 @@ export interface NightlyResult {
   flaky: Array<{ flow: string; firstError: string; evidence: string[] }>
   failed: Array<{ flow: string; error: string; evidence: string[] }>
   preparationError?: string
+  sleeps?: string[]
+}
+
+export function parseSleeps(log: string, start: Date, end: Date): string[] {
+  return log.split(/\r?\n/).filter((line) => {
+    const fields = line.split(/[\t ]+/)
+    if (
+      fields.length < 4 ||
+      !/^\d{4}-\d{2}-\d{2}$/.test(fields[0] ?? '') ||
+      !/^\d{2}:\d{2}:\d{2}$/.test(fields[1] ?? '') ||
+      !/^[+-]\d{4}$/.test(fields[2] ?? '') ||
+      fields[3] !== 'Sleep'
+    )
+      return false
+    const offset = fields[2] as string
+    const timestamp = new Date(`${fields[0]}T${fields[1]}${offset.slice(0, 3)}:${offset.slice(3)}`)
+    return Number.isFinite(timestamp.getTime()) && timestamp >= start && timestamp <= end
+  })
+}
+
+function defaultKeepAwake(): () => void {
+  if (!existsSync('/usr/bin/caffeinate')) return () => {}
+  const child = spawn('/usr/bin/caffeinate', ['-i', '-s', '-w', String(process.pid)], {
+    stdio: 'ignore',
+  })
+  return () => child.kill()
+}
+
+function defaultSleepLog(): string {
+  if (!existsSync('/usr/bin/pmset')) return ''
+  try {
+    const result = spawnSync('/usr/bin/pmset', ['-g', 'log'], {
+      encoding: 'utf8',
+      maxBuffer: 64 * 1024 * 1024,
+    })
+    return result.status === 0 && !result.error ? (result.stdout ?? '') : ''
+  } catch {
+    return ''
+  }
 }
 
 /** Only unavailable OpenCode is excluded: that flow requires the external binary. */
@@ -150,6 +189,8 @@ export async function runNightly(
     base?: string
     which?: (binary: string) => string | null
     command?: typeof command
+    keepAwake?: () => () => void
+    sleepLog?: () => string
   } = {},
 ) {
   const startedAt = new Date().toISOString()
@@ -188,7 +229,9 @@ export async function runNightly(
   } catch {
     throw new Error(`No se pudo preparar el worktree: corrida ya activa (${lock})`)
   }
+  let releaseKeepAwake: (() => void) | undefined
   try {
+    releaseKeepAwake = (options.keepAwake ?? defaultKeepAwake)()
     let sha: string
     let flows: string[]
     try {
@@ -265,6 +308,12 @@ export async function runNightly(
         code === 0 ? [] : preserveFailure(output, join(archive, flow, `attempt-${attempt}`))
       return { ok: code === 0, error: code === 0 ? '' : output.trim(), evidence }
     })
+    const sleeps = parseSleeps(
+      (options.sleepLog ?? defaultSleepLog)(),
+      new Date(result.startedAt),
+      new Date(result.finishedAt),
+    )
+    if (sleeps.length > 0) result.sleeps = sleeps
     const json = publishResult(base, archive, result)
     for (const old of expiredDates(readdirSync(base), new Date())) {
       rmSync(join(base, old), { recursive: true, force: true })
@@ -272,6 +321,7 @@ export async function runNightly(
     console.log(json)
     return true
   } finally {
+    releaseKeepAwake?.()
     rmSync(lock, { recursive: true, force: true })
   }
 }

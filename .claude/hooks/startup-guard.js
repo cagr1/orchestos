@@ -290,6 +290,12 @@ function checkNightlyUiGates(findings) {
     findings.push('ui-gates nocturnos: sin corrida en 36 h')
   }
   if (!result) return
+  if (Array.isArray(result.sleeps) && result.sleeps.length > 0) {
+    findings.push(
+      `ui-gates nocturnos: corrida inválida en ${String(result.sha ?? 'unknown').slice(0, 7)} — el Mac durmió ${result.sleeps.length} veces durante la corrida; sus rojos no cuentan (dejarlo enchufado y con la tapa abierta) — evidencia: ${path}`,
+    )
+    return
+  }
   for (const [key, label] of [
     ['failed', 'rojos'],
     ['flaky', 'flaky'],

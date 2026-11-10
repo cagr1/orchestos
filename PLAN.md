@@ -159,6 +159,29 @@ Esperan su próximo fallo; el diagnóstico de cada uno está en su ítem.
   (p. ej. el runner de diagnóstico de CI.78 que no llevaba `ORCHESTOS_HOME`, ver arriba), cae en el `~/.orchestos`
   real. Hipótesis, no verificada como causa de la fuga del 2026-11-09. Verificación del arreglo: tras la corrida
   nocturna, 0 proyectos `orchestos-ui-*` nuevos en `~/.orchestos/db.sqlite`; y que `run` pase `env` explícito.
+  Visto 2026-11-10: tras la corrida nocturna sobre `a3c6648` (50 flows), `~/.orchestos/db.sqlite` tiene 5 proyectos;
+  los 2 `orchestos-ui-*` son del 2026-09-24. 0 nuevos. Falta solo que `run` pase `env` explícito.
+
+- [x] **CI.82 — La nocturna corre con el Mac dormido y reporta sus timeouts como rojos.** (abierto 2026-11-10)
+  La corrida sobre `a3c6648` duró 01:40–08:50 en batería; `pmset -g log` muestra un `Sleep` cada ~16 min. 13 rojos y
+  3 flaky, casi todos timeouts (`build:app` de `auto-flow`: 917135 ms), publicados por el startup-guard como reales.
+  Hecho: `runNightly` mantiene `caffeinate -i -s -w <pid>` durante la corrida y guarda en `sleeps` las líneas `Sleep`
+  de `pmset -g log` dentro de `[startedAt, finishedAt]`; el startup-guard reporta esa corrida como inválida en vez de
+  listar rojos. En batería con la tapa cerrada el Mac duerme igual: la corrida queda marcada, no salvada.
+  Gates del cerebro: sonda con el log real (7 MB) → 32 `Sleep` en la corrida del 2026-11-10 (la 1.ª entrega devolvía
+  0 por `ENOBUFS` del `maxBuffer` de 1 MB; corregido); `bun test scripts/nightly-ui-gates.test.ts` 12/12;
+  `bun run test:coverage` 2492 pass / 0 fail; guard con JSON de prueba → "corrida inválida en a3c6648 — el Mac durmió
+  2 veces…". Revisión `qa`: test de publicación intermitente (truncado a segundos) → fixture en el borde de segundo.
+  Ejecutado por: codex (mecanico) · Spec: docs/specs/CI.82.md
+  Repetidos despierto (2026-11-10, una vez): `appearance` y `opencode-terminal` verdes; `providers`,
+  `project-isolation` y `terminal-settings` rojos deterministas (CI.83).
+
+- [ ] **CI.83 — `providers`, `project-isolation` y `terminal-settings` rojos por deriva del gate.** (abierto
+  2026-11-10) Settings abre en la página del proyecto con dos botones "General" (`providers.mjs:97`); la UI dice
+  `Project`/`Library` y el gate espera `Proyecto`/`Biblioteca` (`project-isolation.mjs:289-290`); tras subir la
+  fuente, el refit parte `echo ui58-focus` entre filas y `waitEcho` (`terminal-settings.mjs:89-98`) ya no cuenta dos
+  apariciones (diagnóstico de `analizar`, reproducido con el xterm instalado; socket y buffer intactos).
+  Spec: `docs/specs/CI.83.md`.
 
 ## Abiertos — auditoría 2026-11-10
 
