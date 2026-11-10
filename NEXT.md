@@ -8,8 +8,9 @@ Arranque: `bun run agent:preflight -- --item <ID> --agent claude`. Lista viva: `
 
 1. **Siguiente: lote de auditoría** (GO de Carlos 2026-11-10 para AUD.1 y AUD.2; antes: "decide Carlos — otro bloque
    de producto o el mes de uso real"). Informe y dirección por ítem: `docs/auditoria-2026-11-10.md`.
-   - AUD.1 → `docs/specs/AUD.1.md` (`criterio`), luego AUD.2 → `docs/specs/AUD.2.md` (`mecanico`). Specs cerrados,
-     con su lista de "no verificado": el ejecutor la comprueba primero.
+   - AUD.1 cerrado (`7c9269d4`). **Siguiente: AUD.2** → `docs/specs/AUD.2.md` (`mecanico`, revisión `qa`). Antes de
+     delegar, el cerebro comprueba con grep su lista de "no verificado" y lee entero el módulo que toca y sus tests
+     (AUD.1 necesitó 5 enmiendas de spec por no hacerlo).
    - Después, en este orden y con spec nuevo cada uno: AUD.3, AUD.4, AUD.7, AUD.5, AUD.10, AUD.8, AUD.9, AUD.6.
      AUD.4 y AUD.7 cambian comportamiento central: plan corto y GO de Carlos antes de delegar.
    - Decisiones de Carlos pendientes: adoptar el tamaño por reanudabilidad de ODD en el proceso; qué ideas de
@@ -72,6 +73,9 @@ salvo CI.69/CI.76, SK.3, UI.70, LIMP.4, auditoría de `IDEAS.md` (`73247216`) y 
   `@lezer/highlight` pasa `tsc` (índice abierto) y deja la app en blanco.
 - `ui:text-gate` también exige declarar textos que solo cambiaron de línea ("Loading…" en ADE.1).
 - Evidencia: `docs/done/evidence/**/*.png` está en `.gitignore`; el plan-gate exige citar un `.json` del ítem.
+- Cerrar la pestaña en Orca no mata la sesión de Claude: el proceso sigue vivo bajo `Orca Helper` (uno llevaba 8
+  días) y retiene el candado de escritura. Salir con `/exit` antes de cerrar la pestaña; huérfanos:
+  `ps -axo pid,etime,command | grep '[c]laude'`.
 - `git commit -- $VAR` en zsh no separa palabras: usar `xargs` o `${=VAR}`.
 - `qa-negative` depende de que Claude escriba a propósito una salida incorrecta: falló 1 vez en el pre-push
   (2026-11-07) y pasó 26/26 aislado.
