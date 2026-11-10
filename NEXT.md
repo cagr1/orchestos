@@ -1,4 +1,4 @@
-# NEXT — handoff 2026-11-09 (Fase 2 sin producto abierto; decide Carlos)
+# NEXT — handoff 2026-11-10 (lote de auditoría AUD.1–AUD.10; GO para AUD.1 y AUD.2)
 
 Un solo presente: orden y trampas vivas del lote. Lo cerrado vive en `docs/done/bloque-*.md` y git; las reglas, en
 `AGENTS.md`. Versión anterior completa: `docs/done/poda-instrucciones-2026-11-03.md` (histórico).
@@ -6,8 +6,15 @@ Arranque: `bun run agent:preflight -- --item <ID> --agent claude`. Lista viva: `
 
 ## Orden
 
-1. **Siguiente: decide Carlos** — otro bloque de producto o el mes de uso real. Fase 2 sin ítems de producto
-   abiertos; Fase 3 cerrada (`PLAN.md` § Rumbo).
+1. **Siguiente: lote de auditoría** (GO de Carlos 2026-11-10 para AUD.1 y AUD.2; antes: "decide Carlos — otro bloque
+   de producto o el mes de uso real"). Informe y dirección por ítem: `docs/auditoria-2026-11-10.md`.
+   - AUD.1 → `docs/specs/AUD.1.md` (`criterio`), luego AUD.2 → `docs/specs/AUD.2.md` (`mecanico`). Specs cerrados,
+     con su lista de "no verificado": el ejecutor la comprueba primero.
+   - Después, en este orden y con spec nuevo cada uno: AUD.3, AUD.4, AUD.7, AUD.5, AUD.10, AUD.8, AUD.9, AUD.6.
+     AUD.4 y AUD.7 cambian comportamiento central: plan corto y GO de Carlos antes de delegar.
+   - Decisiones de Carlos pendientes: adoptar el tamaño por reanudabilidad de ODD en el proceso; qué ideas de
+     `IDEAS.md` entran al cierre (propuesta en el informe); Tauri (recomendado) o Electron, después de AUD.7.
+   - Cupo: la auditoría gastó ~35 % del cupo de 5 h. No relanzar agentes de lectura: la evidencia ya está escrita.
 2. Primera corrida nocturna válida de los ui-gates: noche del 2026-11-09 (CI.70/CI.72). Al arrancar, leer el aviso
    del startup-guard y resolver lo rojo antes del siguiente ítem. Los 45 rojos de `d32a935` son de antes de CI.72.
 3. **Esperan su próximo fallo** (`PLAN.md` § Abiertos): CI.76 (`notifications`); CI.69 (`usage-bar`); CI.57
