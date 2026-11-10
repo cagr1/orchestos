@@ -108,6 +108,25 @@ export default async function terminalSettings({
   await page.keyboard.type('echo ui58-focus')
   await page.keyboard.press('Enter')
   await step('al abrir, el foco está en el PTY y echo produce salida', await waitEcho('ui58-focus'))
+  const checkScreenBounds = async (scale) => {
+    const bounds = await panel.evaluate((el) => {
+      const panel = el.getBoundingClientRect().toJSON()
+      const screen = el.querySelector('.xterm-screen').getBoundingClientRect().toJSON()
+      return { panel, screen }
+    })
+    const { panel: area, screen } = bounds
+    await step(
+      `terminal screen fits panel at ${scale} percent`,
+      screen.width > 0 &&
+        screen.height > 0 &&
+        screen.left >= area.left - 2 &&
+        screen.top >= area.top - 2 &&
+        screen.right <= area.right + 2 &&
+        screen.bottom <= area.bottom + 2,
+      JSON.stringify(bounds),
+    )
+  }
+  await checkScreenBounds(100)
   await shot('dev-terminal')
   const selectedText = () =>
     panel.locator('.xterm').evaluate((el) => {
@@ -223,6 +242,7 @@ export default async function terminalSettings({
       beforeScale.height,
     )
     const afterScale = await measure()
+    await checkScreenBounds(125)
     await step(
       '125 percent UI scale increases terminal row height without reconnecting',
       afterScale.height > beforeScale.height &&
@@ -253,14 +273,40 @@ export default async function terminalSettings({
       range.setEnd(node, 1)
       return range.getBoundingClientRect().width
     })
-    await page.mouse.move(box.x + cell * 0.1, box.y + box.height / 2)
-    await page.mouse.down()
-    await page.mouse.move(box.x + cell * 14.1, box.y + box.height / 2, { steps: 15 })
-    await page.mouse.up()
+    const points = {
+      start: { x: box.x + cell * 0.1, y: box.y + box.height / 2 },
+      end: { x: box.x + cell * 14.1, y: box.y + box.height / 2 },
+    }
+    const hits = await panel.locator('.xterm').evaluate(
+      (el, points) =>
+        Object.fromEntries(
+          Object.entries(points).map(([name, point]) => {
+            const hit = document.elementFromPoint(point.x, point.y)
+            return [
+              name,
+              { inside: hit !== null && el.contains(hit), target: hit?.className ?? null },
+            ]
+          }),
+        ),
+      points,
+    )
+    const inside = hits.start.inside && hits.end.inside
+    await step(
+      'mouse drag endpoints hit xterm at 125 percent',
+      inside,
+      JSON.stringify({ points, hits }),
+    )
+    if (inside) {
+      await page.mouse.move(points.start.x, points.start.y)
+      await page.mouse.down()
+      await page.mouse.move(points.end.x, points.end.y, { steps: 15 })
+      await page.mouse.up()
+    }
+    const selection = await selectedText()
     await step(
       'mouse selects correct cells at 125 percent',
-      (await selectedText()) === 'ADE9-selection',
-      await selectedText(),
+      inside && selection === 'ADE9-selection',
+      JSON.stringify({ selection, points, hits }),
     )
     await shot('terminal-settings-125')
     await sidebar.getByRole('button', { name: 'Terminal', exact: true }).click()

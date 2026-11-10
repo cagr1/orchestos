@@ -175,11 +175,13 @@ export function OpenCodeTerminal({ projectId, kind = 'opencode' }: Props) {
       aria-label={isShell ? 'Project terminal' : 'OpenCode terminal'}
     >
       <div className="relative flex-1 min-h-0 p-2">
-        {/* xterm mouse coordinates use unscaled CSS cells; cancel the ancestor zoom here. */}
+        {/* xterm mouse coordinates use unscaled CSS cells; cancel the ancestor zoom here.
+            Chromium resolves percentages against the parent at this zoom, so 100% already
+            fills its content box; multiplying by uiScale would overflow the panel. */}
         <div
           ref={hostRef}
           className="min-h-0"
-          style={{ zoom: 1 / uiScale, width: `${uiScale * 100}%`, height: `${uiScale * 100}%` }}
+          style={{ zoom: 1 / uiScale, width: '100%', height: '100%' }}
         />
         {!hasOutput && state !== 'error' && state !== 'exited' && (
           <div className="absolute inset-0 z-10 flex items-center justify-center text-[var(--app-text-muted)]">

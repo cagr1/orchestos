@@ -188,7 +188,7 @@ Esperan su próximo fallo; el diagnóstico de cada uno está en su ítem.
   Evidencia: `docs/done/evidence/CI.83-live.json`.
   Ejecutado por: codex (mecanico) · Spec: docs/specs/CI.83.md
 
-- [ ] **CI.84 — `terminal-settings`: al 125 % de escala, arrastrar el mouse no selecciona texto.** (abierto
+- [x] **CI.84 — `terminal-settings`: al 125 % de escala, arrastrar el mouse no selecciona texto.** (abierto
   2026-11-10) Visible tras CI.83: el paso "mouse selects correct cells at 125 percent"
   (`terminal-settings.mjs:239-264`, de ADE.11 `4631c4fd`) devuelve selección vacía (`detalle: failed`; evidencia
   `ui-gate-26363/result.json`). La evidencia de ADE.11 no registra ese paso. Después tocaron `components/dev/`:
@@ -196,6 +196,14 @@ Esperan su próximo fallo; el diagnóstico de cada uno está en su ítem.
   fuera de `.xterm` (`mousedown` en `x=259` sobre la barra lateral, o en `y=-31`), y además el producto desborda: al
   125 % el host de xterm mide 775×1050 en un panel de 640×860 (`OpenCodeTerminal.tsx:182`, `zoom 1/s` +
   `width/height s·100%`, desde ADE.9 `4ad5dd8e`) → filas y prompt recortados. Spec: `docs/specs/CI.84.md`.
+  Hecho: el host de xterm va a `width/height 100%` conservando `zoom: 1/uiScale` (Chromium ya resuelve el `%` contra
+  el padre). El gate suma "terminal screen fits panel" al 100 % y 125 %, y comprueba con `elementFromPoint` que el
+  arrastre empieza y termina dentro de `.xterm` antes de exigir la selección.
+  Gates del cerebro: `terminal-settings` 19/19 (al 125 %: panel 640×860, `.xterm-screen` 600×816; selección
+  `ADE9-selection`), `dev-terminal` 16/16, `tsc`, `lint`. Revisión: el cerebro (otro proveedor) leyó el diff: el gate
+  queda más estricto.
+  Gate en vivo: Playwright `terminal-settings` 19/19 y `dev-terminal` 16/16, `docs/done/evidence/CI.84-live.json`.
+  Ejecutado por: codex (criterio) · Spec: docs/specs/CI.84.md
 
 ## Abiertos — auditoría 2026-11-10
 

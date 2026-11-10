@@ -1,0 +1,34 @@
+{
+  "item": "CI.84",
+  "date": "2026-11-10",
+  "runner": "cerebro",
+  "gates": {
+    "terminal-settings": {
+      "pass": true,
+      "steps": 19,
+      "measures": [
+        {
+          "step": "terminal screen fits panel at 100 percent",
+          "detail": "{\"panel\":{\"x\":256,\"y\":84,\"width\":800,\"height\":888,\"top\":84,\"right\":1056,\"bottom\":972,\"left\":256},\"screen\":{\"x\":264,\"y\":92,\"width\":765,\"height\":870,\"top\":92,\"right\":1029,\"bottom\":962,\"left\":264}}"
+        },
+        {
+          "step": "terminal screen fits panel at 125 percent",
+          "detail": "{\"panel\":{\"x\":320,\"y\":105,\"width\":640,\"height\":860,\"top\":105,\"right\":960,\"bottom\":965,\"left\":320},\"screen\":{\"x\":330,\"y\":115,\"width\":600,\"height\":816,\"top\":115,\"right\":930,\"bottom\":931,\"left\":330}}"
+        },
+        {
+          "step": "mouse drag endpoints hit xterm at 125 percent",
+          "detail": "{\"points\":{\"start\":{\"x\":331.2015625,\"y\":132},\"end\":{\"x\":499.4203125,\"y\":132}},\"hits\":{\"start\":{\"inside\":true,\"target\":\"xterm-screen\"},\"end\":{\"inside\":true,\"target\":\"xterm-screen\"}}}"
+        },
+        {
+          "step": "mouse selects correct cells at 125 percent",
+          "detail": "{\"selection\":\"ADE9-selection\",\"points\":{\"start\":{\"x\":331.2015625,\"y\":132},\"end\":{\"x\":499.4203125,\"y\":132}},\"hits\":{\"start\":{\"inside\":true,\"target\":\"xterm-screen\"},\"end\":{\"inside\":true,\"target\":\"xterm-screen\"}}}"
+        }
+      ]
+    },
+    "dev-terminal": {
+      "pass": true,
+      "steps": 16,
+      "measures": []
+    }
+  }
+}
