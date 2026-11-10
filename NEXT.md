@@ -15,8 +15,12 @@ Arranque: `bun run agent:preflight -- --item <ID> --agent claude`. Lista viva: `
    - Decisiones de Carlos pendientes: adoptar el tamaño por reanudabilidad de ODD en el proceso; qué ideas de
      `IDEAS.md` entran al cierre (propuesta en el informe); Tauri (recomendado) o Electron, después de AUD.7.
    - Cupo: la auditoría gastó ~35 % del cupo de 5 h. No relanzar agentes de lectura: la evidencia ya está escrita.
-2. Primera corrida nocturna válida de los ui-gates: noche del 2026-11-09 (CI.70/CI.72). Al arrancar, leer el aviso
-   del startup-guard y resolver lo rojo antes del siguiente ítem. Los 45 rojos de `d32a935` son de antes de CI.72.
+2. Ui-gates nocturnos: la corrida del 2026-11-10 (`a3c6648`) no vale, el Mac durmió en batería toda la noche (CI.82:
+   ahora `caffeinate` y el guard marca "corrida inválida"). Repetidos despierto: 2 eran del sueño, 3 eran deriva del
+   gate (CI.83) y uno destapó un desborde real de la terminal al 125 % (CI.84). Sin repetir todavía: `auto-flow`,
+   `chat-*` (attachments, context, followup-task, permissions, readonly-shell, retry-report) y los 3 flaky;
+   `chat-timeout` es AUD.9. Para que la corrida cuente: Mac enchufado y con la tapa abierta. Al arrancar, leer el
+   aviso del startup-guard y resolver lo rojo antes del siguiente ítem.
 3. **Esperan su próximo fallo** (`PLAN.md` § Abiertos): CI.76 (`notifications`); CI.69 (`usage-bar`); CI.57
    `composer-picker-model-missing.json`; CI.54 `turn1-bubble-missing.json`; CI.19; CI.55
    (`role-task-missing-output-attempt-<n>.json`). Leer el JSON el mismo día: CI.62 borra el `runDir` a las 24 h.
