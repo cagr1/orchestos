@@ -45,8 +45,19 @@ Tests con repo git temporal e identidad propia:
 
 Gates: `bunx tsc --noEmit`, `bun run lint`, `bun run test:coverage`.
 
-## No verificado al escribir el spec
+## Verificado por el cerebro (2026-11-10, tras AUD.1)
 
-- Que `loadOrcheConfig(projectPath)` lea el `orchestos.config.yaml` del proyecto y no solo el de `~/.orchestos`. Si no
-  lo lee, parar y reportar: la decisión de dónde vive el campo cambia.
-- Que `loadOrcheConfig` sea barato de llamar en los cuatro sitios; si no lo es, leer una vez y pasar la lista.
+- `loadOrcheConfig(projectPath)` (`src/config/load.ts:42`) lee primero `<proyecto>/orchestos.config.yaml`; si no
+  existe, cae al global `~/.orchestos/config.yaml`. Un `derivedFiles` global aplica entonces a los proyectos sin yaml
+  propio: aceptado (declararlo es explícito).
+- **`mergeWithDefaults` (`load.ts` ~70) arma el objeto campo por campo**: un `sandbox` en el yaml se pierde. Añadir
+  `sandbox: parseSandboxConfig(raw.sandbox)` (array de strings o `undefined`; cualquier otra forma → `undefined`),
+  junto a `agentic`/`external`. También en `DEFAULT_CONFIG` si el tipo lo exige.
+- Coste: lee 1–2 yaml del disco y `configuredClis()` (otro yaml), sin spawns. Llamarlo una vez por función.
+- El sitio de `sandbox.ts` está ahora en la **línea 284** (`if (baseCheckedOut) git(['checkout', '--',
+  'runs-summary.json'], …)`), comentario en 273-280. Con lista vacía no se ejecuta ningún checkout; con lista, un
+  solo `git checkout -- <rutas…>` con `worktree.projectRoot`.
+- `sandbox-policy.ts`: filtro de `listDirtyFiles` en 50-52, `checkout` en 94, filtro regex de `status` en 99.
+- `src/__tests__/sandbox-policy.test.ts` crea repos temporales sin yaml (fixture en 15-25): los tests de 69, 93 y
+  169 dependen del descarte implícito. Su fixture debe escribir `orchestos.config.yaml` con
+  `sandbox: { derivedFiles: [runs-summary.json] }` y commitearlo; el de 115 (`.bak`) se conserva igual.
