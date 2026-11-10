@@ -286,8 +286,8 @@ export default async function projectIsolation({
   }
 
   for (const [label, root, ownLabel, otherLabel, skillOrigin] of [
-    ['Alfa', rootA, 'Alfa', 'Beta', 'Proyecto'],
-    ['Beta', rootB, 'Beta', 'Alfa', 'Biblioteca'],
+    ['Alfa', rootA, 'Alfa', 'Beta', 'Project'],
+    ['Beta', rootB, 'Beta', 'Alfa', 'Built-in'],
   ]) {
     await openProjectSettings(root)
     const tab = (name) => page.getByRole('button', { name, exact: true })

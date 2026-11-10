@@ -94,7 +94,10 @@ Object.assign(systemProviderProbe, discovery, { env: { ...process.env, CODEX_HOM
     await page.getByRole('button', { name: basename(root), exact: true }).click()
     const started = Date.now()
     await page.getByRole('button', { name: 'Settings', exact: true }).click()
-    await page.getByRole('button', { name: section, exact: true }).click()
+    const sidebar = page
+      .locator('aside')
+      .filter({ has: page.getByRole('button', { name: 'Back to app', exact: true }) })
+    await sidebar.getByRole('button', { name: section, exact: true }).click()
     await page.getByText('Loading live settings…', { exact: true }).waitFor({ state: 'hidden' })
     return Date.now() - started
   }

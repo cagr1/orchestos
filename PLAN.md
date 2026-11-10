@@ -176,12 +176,26 @@ Esperan su próximo fallo; el diagnóstico de cada uno está en su ítem.
   Repetidos despierto (2026-11-10, una vez): `appearance` y `opencode-terminal` verdes; `providers`,
   `project-isolation` y `terminal-settings` rojos deterministas (CI.83).
 
-- [ ] **CI.83 — `providers`, `project-isolation` y `terminal-settings` rojos por deriva del gate.** (abierto
+- [x] **CI.83 — `providers`, `project-isolation` y `terminal-settings` rojos por deriva del gate.** (abierto
   2026-11-10) Settings abre en la página del proyecto con dos botones "General" (`providers.mjs:97`); la UI dice
   `Project`/`Library` y el gate espera `Proyecto`/`Biblioteca` (`project-isolation.mjs:289-290`); tras subir la
   fuente, el refit parte `echo ui58-focus` entre filas y `waitEcho` (`terminal-settings.mjs:89-98`) ya no cuenta dos
   apariciones (diagnóstico de `analizar`, reproducido con el xterm instalado; socket y buffer intactos).
-  Spec: `docs/specs/CI.83.md`.
+  Hecho: clics de Settings acotados al menú lateral (`providers`, y el hermano latente en `shell-look`); orígenes
+  `Project`/`Built-in` (SK.1 renombró `library` → `built-in`); `waitOutputLine` exige la línea de salida exacta.
+  Gates del cerebro (una vez cada uno, Mac despierto): `providers` 12/12, `shell-look` 75/75, `project-isolation`
+  14/14; `terminal-settings` pasa el refit y cae después en el paso del mouse al 125 % (CI.84).
+  Evidencia: `docs/done/evidence/CI.83-live.json`.
+  Ejecutado por: codex (mecanico) · Spec: docs/specs/CI.83.md
+
+- [ ] **CI.84 — `terminal-settings`: al 125 % de escala, arrastrar el mouse no selecciona texto.** (abierto
+  2026-11-10) Visible tras CI.83: el paso "mouse selects correct cells at 125 percent"
+  (`terminal-settings.mjs:239-264`, de ADE.11 `4631c4fd`) devuelve selección vacía (`detalle: failed`; evidencia
+  `ui-gate-26363/result.json`). La evidencia de ADE.11 no registra ese paso. Después tocaron `components/dev/`:
+  CI.74, CI.75 (dependencias de hooks), CI.77, CI.79, CI.78. Diagnóstico (`analizar`, 2026-11-10): el gate arrastra
+  fuera de `.xterm` (`mousedown` en `x=259` sobre la barra lateral, o en `y=-31`), y además el producto desborda: al
+  125 % el host de xterm mide 775×1050 en un panel de 640×860 (`OpenCodeTerminal.tsx:182`, `zoom 1/s` +
+  `width/height s·100%`, desde ADE.9 `4ad5dd8e`) → filas y prompt recortados. Spec: `docs/specs/CI.84.md`.
 
 ## Abiertos — auditoría 2026-11-10
 

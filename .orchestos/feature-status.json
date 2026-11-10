@@ -72,6 +72,14 @@
       "sprint": "Abiertos — fiabilidad de los gates",
       "block": null,
       "title": "`providers`, `project-isolation` y `terminal-settings` rojos por deriva del gate",
+      "status": "done",
+      "closedDate": null
+    },
+    {
+      "id": "CI.84",
+      "sprint": "Abiertos — fiabilidad de los gates",
+      "block": null,
+      "title": "`terminal-settings`: al 125 % de escala, arrastrar el mouse no selecciona texto",
       "status": "open",
       "closedDate": null
     },

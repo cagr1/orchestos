@@ -1,0 +1,27 @@
+{
+  "item": "CI.83",
+  "date": "2026-11-10",
+  "runner": "cerebro",
+  "gates": {
+    "providers": {
+      "pass": true,
+      "steps": 12,
+      "failed": []
+    },
+    "shell-look": {
+      "pass": true,
+      "steps": 75,
+      "failed": []
+    },
+    "project-isolation": {
+      "pass": true,
+      "steps": 14,
+      "failed": []
+    },
+    "terminal-settings": {
+      "pass": false,
+      "steps": 16,
+      "failed": ["mouse selects correct cells at 125 percent"]
+    }
+  }
+}

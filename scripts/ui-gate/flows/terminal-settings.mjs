@@ -97,6 +97,14 @@ export default async function terminalSettings({
     }
     return false
   }
+  const waitOutputLine = async (needle) => {
+    for (let i = 0; i < 20; i++) {
+      const lines = (await rows.innerText().catch(() => '')).split('\n')
+      if (lines.some((line) => line.trim() === needle)) return true
+      await page.waitForTimeout(250)
+    }
+    return false
+  }
   await page.keyboard.type('echo ui58-focus')
   await page.keyboard.press('Enter')
   await step('al abrir, el foco está en el PTY y echo produce salida', await waitEcho('ui58-focus'))
@@ -145,7 +153,7 @@ export default async function terminalSettings({
         after.count < before.count &&
         sockets.length === initialSockets &&
         !sockets.at(-1).closed &&
-        (await waitEcho('ui58-focus')),
+        (await waitOutputLine('ui58-focus')),
       JSON.stringify({ before, after }),
     )
     await other.getByRole('radio', { name: 'Bar', exact: true }).click()

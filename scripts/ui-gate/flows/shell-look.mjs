@@ -327,11 +327,14 @@ export default async function shellLook({
     generalCountWhileOpen === 0,
     `general palette count while settings shortcut is open=${generalCountWhileOpen}`,
   )
-  await page.getByRole('button', { name: 'General', exact: true }).click()
+  const settingsSidebar = page
+    .locator('aside')
+    .filter({ has: page.getByRole('button', { name: 'Back to app', exact: true }) })
+  await settingsSidebar.getByRole('button', { name: 'General', exact: true }).click()
   await step(
     'settings nav slides',
     (await page.locator('[data-settings-nav-active]').count()) === 1 &&
-      (await page
+      (await settingsSidebar
         .getByRole('button', { name: 'General', exact: true })
         .locator('[data-settings-nav-active]')
         .count()) === 1,
