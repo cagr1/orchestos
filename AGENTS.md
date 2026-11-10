@@ -133,7 +133,7 @@ Reglas vigentes, una por línea. Texto anterior e incidentes que las motivaron:
   `roadmap check` es determinista: ninguna heurística marca `detected` sin señal real del filesystem o el código.
   Ampliar sus límites a proyectos externos reales espera decisión de Carlos.
 - Costo del revisor QA: lo reporta el adaptador en `ChatResponse.usd`; `null` = sin precio → `—`. Nunca ramas de
-  precio por marca en `harness.ts`. `knownCost` (`src/run/harness.ts:835`) solo entra si el adaptador no informa
+  precio por marca en `harness.ts`. `knownCost` (`src/run/harness.ts:867`; import en `:38`; antes decía `:835`, 2026-11-10) solo entra si el adaptador no informa
   (`undefined`).
 - Skill: un campo de `skills/*.yaml` llega al LLM solo si está en `SkillDef`, `validateSkill()`
   (`src/skills/registry.ts`) y `buildSections()` (`src/skills/targets/_shared.ts`, único renderer; su orden es

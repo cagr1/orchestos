@@ -26,10 +26,14 @@ cuál pesa más.)_
 
 ## Estado de implementación
 
-La brújula sigue vigente, pero el producto todavía está en desarrollo activo. El plan actual es
-Sprint 30: la fiabilidad del recorrido completo sigue abierta en R.6–R.8 y la convergencia de la
-experiencia Chat | Workspace sigue abierta en UI.8.1–UI.8.6. Esta visión no implica que el
-producto esté listo para presentarse como solución externa terminada.
+La brújula sigue vigente, pero el producto todavía está en desarrollo activo. El plan actual es la Fase 2 de
+`PLAN.md`: R.6–R.8 están cerrados (2026-09-09, 2026-10-02, 2026-10-15) y la convergencia Chat | Workspace
+(UI.8.1–UI.8.6) quedó cerrada o retirada; siguen abiertos los ítems de fiabilidad de los gates y la auditoría del
+2026-11-10. Esta visión no implica que el producto esté listo para presentarse como solución externa terminada.
+
+> Antes (hasta 2026-11-10): "El plan actual es Sprint 30: la fiabilidad del recorrido completo sigue abierta en
+> R.6–R.8 y la convergencia de la experiencia Chat | Workspace sigue abierta en UI.8.1–UI.8.6."
+> Contraste: `docs/done/bloque-R.md`, `docs/done/sprint-30.md`, `docs/done/bloque-UI.md`, `docs/done/retirados.md`.
 
 **Alternativas en juego:**
 - Ángulo acceso: *"Dirigir agentes que programan, sin saber programar."*

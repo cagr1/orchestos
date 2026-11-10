@@ -22,11 +22,16 @@ por qué y cuánto costó sin salir del navegador.
 
 ## Estado actual
 
-El plan activo está en Sprint 30. El núcleo de ejecución, contratos, checks, QA, memoria, costos y
-persistencia de Chat ya existe y se verifica con la suite y gates reales. Siguen abiertos los
-huecos de fiabilidad del recorrido completo (R.6–R.8) y la consolidación visual/operativa de
-Chat | Workspace (UI.8.1–UI.8.6). Por eso este documento describe la dirección del producto, no
-un estado de disponibilidad comercial completa.
+El plan activo está en la Fase 2 de `PLAN.md` (producto mínimo para entrega); lo abierto ahora son los ítems de
+fiabilidad de los gates y la auditoría del 2026-11-10. El núcleo de ejecución, contratos, checks, QA, memoria,
+costos y persistencia de Chat ya existe y se verifica con la suite y gates reales. R.6 (cerrado 2026-09-09), R.7
+(2026-10-02) y R.8 (2026-10-15) están cerrados, y UI.8.1–UI.8.3 y UI.8.6 también; UI.8.4 y UI.8.5 se retiraron
+(superados por UI.13/UI.14). Por eso este documento describe la dirección del producto, no un estado de
+disponibilidad comercial completa.
+
+> Antes (hasta 2026-11-10): "El plan activo está en Sprint 30. … Siguen abiertos los huecos de fiabilidad del
+> recorrido completo (R.6–R.8) y la consolidación visual/operativa de Chat | Workspace (UI.8.1–UI.8.6)."
+> Contraste: `docs/done/bloque-R.md`, `docs/done/sprint-30.md`, `docs/done/bloque-UI.md`, `docs/done/retirados.md`.
 
 ## Brand Personality
 

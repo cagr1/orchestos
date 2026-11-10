@@ -96,6 +96,13 @@ _(`#6` graduó a Bloque AA el 2026-08-15. `#31`, `#35` y `#50` fueron ABSORBIDAS
   como tier `cli`; `opencode`/`codex`/`kimi` quedan documentados a propósito como pendientes. Ver
   cuerpo del ítem #39 más abajo, corregido con el diseño validado de Orca (registro +
   `promptInjectionMode`).
+  **Nota 2026-11-10 (estado real verificado en código; el veredicto REABIERTO no se toca, lo decide el dueño):**
+  la evidencia de arriba ya no vale. `kimi` y `glm` están en `KNOWN_CLIS` (`src/run/executors/cli-registry.ts:93-200`,
+  `kimi` en `:171`); `ExecutorMode` ya no existe en `src/config/schema.ts` (solo se nombra en un comentario) y
+  `AgentChoice` es un string abierto (`schema.ts:40`); `configuredClis()` (`cli-registry.ts:203-238`) lee `clis:` de la
+  config global (`id`, `label`, `command`, `args`, `modelArgs`, `timeoutMs`, `models`), el equivalente de
+  `extra_clis`/"Add custom agent". Único pendiente confirmado: `promptInjectionMode` (grep vacío en `src/`).
+  Sin verificar: si `src/router/engine-cascade.ts` sigue con Claude Code como único tier `cli`.
 - `#44`: cascada de selección cerrada en el Bloque G.
 - `#49`: visibilidad en vivo cerrada en G.3.
 - `#55-A`: catálogo `models.dev` para opencode cerrado en G.4.5.
@@ -536,6 +543,27 @@ reescribir en Rust/Go para ganar velocidad):
   pide `main.js?v=<hash del build>` / `main.css?v=…`.
 - Orden propuesto: después de SK.3 y del desacople; primero el arreglo de caché + repaso de la UI en Safari, luego
   un prototipo Tauri solo Mac en una rama.
+
+**Nota 2026-11-10 — premisas ya falsas y prerrequisitos verificados (no cambia el veredicto ni la prioridad; la
+decisión es del dueño).** Premisas superadas del texto original de arriba, que se conserva por historial:
+- "frontend vanilla JS estático" (y "Cero reescritura del frontend"): el frontend es React compilado
+  (`src/dashboard/app/`, servido desde `dist/`), no vanilla.
+- "el sidecar debe resolver el PATH real de `claude`/`codex`": ya se resuelve en
+  `src/run/executors/cli-discovery.ts:14-60` (login shell + `~/.local/bin`, `~/.bun/bin`, `/opt/homebrew/bin`,
+  `/usr/local/bin`, `~/.opencode/bin`). Lo que falta es comprobarlo desde una app lanzada del Dock.
+- La referencia `http.ts:62` de la actualización 2026-11-07 hoy es `http.ts:63` (y `:73` para `index.html`).
+
+Prerrequisitos verificados, comunes a Electron y a Tauri (el sidecar compilado con `bun build --compile` rompe todos):
+1. Seis sitios se re-lanzan con `process.execPath run <fuente .ts>`, que en un binario compilado no es `bun`:
+   `src/dashboard/handlers/project.ts:49`, `handlers/tasks.ts:390`, `handlers/specs.ts:27`, `src/run/checks.ts:48`,
+   `src/run/executors/external.ts:231-233` (servidor MCP) y `src/mcp/adapters.ts:32,47`.
+2. El Worker de `src/usage/cli-transcripts.ts:15` carga `cli-transcripts-worker.ts` por URL de fuente.
+3. El dashboard se sirve desde disco (`APP_DIR`, `src/dashboard/http.ts:20`), no embebido.
+4. Al arrancar, `orchestos dashboard` ejecuta `bun install` si falta `node_modules` y `bun run build:app` si falta el
+   bundle (`src/cli.ts:2138-2163`).
+5. Caché `no-cache` sin `ETag` ni hash en la URL (`http.ts:63,73`): el problema de Safari ya anotado.
+6. El servidor no exige token (AUD.7 en `PLAN.md`).
+7. Los ui-gates solo corren en Chromium (`scripts/ui-gate/run.mjs:222`); no hay cobertura de WebKit (AUD.9).
 
 ### 42. Auto-repair dirigido tras `failed_permanent` — cerrar el lazo diagnose→reparación
 
@@ -1003,6 +1031,11 @@ menos sentido. Encaja mejor DESPUÉS de #50, no antes — verificado que #50 sig
 (2026-08-12).
 
 **Esfuerzo restante**: bajo — solo rebobinar; depende de #50.
+
+**Nota 2026-11-10 (verificado en código, sin cambiar el veredicto):** la dependencia de #50 ya está resuelta. Las
+sesiones de chat persisten en SQLite: `chat_sessions` y `chat_messages` (`src/db/migrate.ts:35` y `:47-58`, creadas
+por la migración 2); #50 figura absorbida por PLAN.md § Sprint 29 (índice de este archivo, línea 57). Lo que falta de
+#51 sigue siendo la decisión de comportamiento (truncar vs. editar-y-reenviar) y el ícono.
 
 ### 52. Nivel "premium de verdad" — de "no se ve genérico" a un lenguaje visual deliberado
 
@@ -1593,6 +1626,20 @@ Disparada por Carlos al mencionar "ODD (organic drive development)" de "gentli-a
 proyecto real es **Gentleman-Programming/gentle-ai** (https://github.com/Gentleman-Programming/gentle-ai,
 ≈6.9k ★) y su doc lo llama **Organic RDD — Receipt-Driven Development**
 (`docs/architecture/organic-rdd.md`); "Organic Driven Development" aparece solo en PRs recientes.
+
+**Corrección 2026-11-10 (leído de la fuente: README, `docs/usage.md` § ODD, `docs/architecture/organic-rdd.md`).**
+Antes esta nota trataba ODD y RDD como lo mismo; son dos capas:
+- **ODD** = método de trabajo, guía para el agente (no CLI ni motor de estado). Tamaño por reanudabilidad: chico
+  si se retoma con el pedido + `git diff` → inline, sin subagentes ni documento. Grande → un solo
+  `odd/tasks/<feature>.md` con `## Specs` (`S#` con las frases textuales del usuario, criterios, checks),
+  `## Tasks` (ID, `S#`, ruta, commit) y `## Log` (pedido original literal). Los ejecutores reciben la referencia
+  y su `S#`, nunca una paráfrasis; la verificación da veredicto por spec. Se delega solo con motivo nombrado
+  (exploración, escritores paralelos disjuntos, respaldo de contexto). Test primero si hay test determinista.
+- **RDD** = capa de revisión aparte y opcional: congela el candidato exacto, profundidad por riesgo (0/1/4 lentes),
+  una corrección acotada, no decide la entrega.
+- Robable para el producto, sin ítem: veredicto por spec con frases literales (hoy sin criterios el QA se salta) y
+  congelar el candidato antes del merge (ver AUD.1 en `PLAN.md`). Para el proceso: la regla de tamaño choca con
+  "el cerebro no toma el teclado"; decide Carlos. No leídos: `the-organic-rdd-story.md` ni el plan de recuperación.
 No es un nombre vacío: es un CLI en Go con contratos por proveedor y memoria persistente. Flujo:
 decide inline (1–3 archivos) o delegado (4+ archivos/2+ escrituras) → si RDD está activo, abre una
 **transacción inmutable** que congela árbol, riesgo y alcance → revisión con 0/1/4 "lentes" según

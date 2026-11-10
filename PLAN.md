@@ -22,6 +22,8 @@ está en una fase no se abre sin GO de Carlos.
 - **Fase 3 — Correr dentro de OrchestOS igual que el CLI directo:** todos sus ítems nombrados (AT.11, AT.13,
   AT.19–21, CX.6, ERP.5–7, H.7.2c, H.7.3) están cerrados.
 - **Siguiente:** decide Carlos — otro bloque de producto o el mes de uso real.
+- **Fuera de fase (2026-11-10):** la auditoría abrió AUD.1–AUD.10 (§ "Abiertos — auditoría"). Ninguno tiene fase ni
+  prioridad: las asigna Carlos. Antes de esta nota, el Rumbo no los mencionaba.
 
 Rumbo y notas anteriores: `docs/done/plan-historico-2026-11-09.md` (histórico).
 
@@ -150,6 +152,107 @@ Esperan su próximo fallo; el diagnóstico de cada uno está en su ítem.
   proyectos. Falta: ver si la corrida nocturna con el código actual (después de CI.72) sigue filtrando — contar
   proyectos `orchestos-ui-*` en `~/.orchestos/db.sqlite` tras la corrida del 2026-11-10 — y, si filtra, cortar la
   causa en `scripts/nightly-ui-gates.ts`/`scripts/ui-gate/run.mjs`.
+  Ampliado 2026-11-10 (auditoría, sin causa probada): `run.mjs:391` propaga el home temporal mutando
+  `process.env.ORCHESTOS_HOME` del proceso del runner; el hijo del dashboard sí recibe `ORCHESTOS_HOME` explícito
+  (`run.mjs:68`), pero `run` de `scripts/ui-gate/lib.mjs:79-81` usa `execFileSync` sin `env` y hereda lo que tenga el
+  proceso en ese momento. Cualquier subproceso lanzado antes de la línea 391, o por un camino que no pase `env`
+  (p. ej. el runner de diagnóstico de CI.78 que no llevaba `ORCHESTOS_HOME`, ver arriba), cae en el `~/.orchestos`
+  real. Hipótesis, no verificada como causa de la fuga del 2026-11-09. Verificación del arreglo: tras la corrida
+  nocturna, 0 proyectos `orchestos-ui-*` nuevos en `~/.orchestos/db.sqlite`; y que `run` pase `env` explícito.
+
+## Abiertos — auditoría 2026-11-10
+
+Hallazgos de una auditoría del código, cada cita verificada en lectura el 2026-11-10. Ninguno implementado. Sin fase ni
+prioridad hasta que Carlos las asigne.
+
+- [ ] **AUD.1 — El contrato se puede saltar con borrados, prefijos de tooling y rutas raras.**
+  (abierto 2026-11-10) Llegan a la rama base sin pasar por él. `readWorktreeDiff` alimenta al contrato desde `git status --porcelain -uall`
+  (`worktree-diff.ts:56`) y descarta (a) archivos borrados, `if (!existsSync(full)) continue` (`worktree-diff.ts:117`);
+  (b) todo lo que empiece por `.impeccable/`, `.claude/`, `.codex/`, `.opencode/`, `.cursor/`, `.aider/` o termine en
+  `.DS_Store` salvo que la tarea lo declare en `output[]` (`worktree-diff.ts:79-92`); (c) rutas con espacios o no ASCII:
+  se parsea sin `-z` (`parseGitStatusPorcelain`, `worktree-diff.ts:15-29`), git las entrecomilla, `resolveProjectPath` /
+  `existsSync` no encuentran la ruta con comillas y cae en (a). Pero el merge hace `git add -A -- . :!node_modules`
+  (`sandbox.ts:205`): todo eso se commitea en la rama de la tarea y se integra a la base. Los 3 executors que usan
+  `readWorktreeDiff` (`generic-cli.ts:64`, `opencode.ts:362`, `external.ts:754`) lo comparten. No verificado: si otra
+  capa (QA, checks) cubre los borrados. Verificación: test con fixture git real que demuestre que lo commiteado en el
+  merge es exactamente el conjunto que el contrato aprobó: un borrado no declarado, un `.claude/hooks/x` no declarado y
+  un archivo `con espacio.txt` no declarado hacen fallar la tarea o quedan fuera del commit.
+
+- [ ] **AUD.2 — El producto ejecuta `git checkout -- runs-summary.json` en cualquier proyecto del usuario.**
+  (abierto 2026-11-10) Es un arreglo específico de este repo (el hook que exporta `runs-summary.json`) metido en el
+  producto: `sandbox-policy.ts:94` lo hace al empezar la corrida y `sandbox.ts:229` antes del merge (solo si la base
+  está en el checkout); `sandbox-policy.ts:50` además lo excluye del listado de cambios sucios. En un proyecto ajeno con
+  un `runs-summary.json` propio, se descartan sus cambios sin avisar. Verificación: test con un proyecto que tenga un
+  `runs-summary.json` tracked y modificado: tras la corrida sigue modificado; el comportamiento actual queda detrás de
+  una señal del propio repo (config o detección de `scripts/export-runs-summary.ts`).
+
+- [ ] **AUD.3 — Una excepción inesperada en el harness no deja fila de run.** (abierto 2026-11-10) El `catch` general
+  de `runTask` (`harness.ts:1061-1074`) devuelve `status: 'failed'`, `runId: ''` y `retryReason: unexpected: …` sin
+  llamar a `insertRun` (los demás caminos sí lo hacen: `harness.ts:441`, `490`, `543`, `615`, `725`, `900`). La UI y el
+  historial no ven ese fallo: rompe "o el porqué del fallo". Verificación: test que fuerce una excepción tras el inicio
+  de la corrida y compruebe que existe una fila `runs` `failed` con el motivo.
+
+- [ ] **AUD.4 — El fallo no se guarda como causa clasificada y las piezas de diagnóstico no llegan a la UI.**
+  (abierto 2026-11-10) (a) La tabla `runs` no tiene columna de tipo de fallo (`migrate.ts:1320-1340` y los
+  `ALTER TABLE runs` posteriores; solo `result`, `qa_reason`, `executor_reply`). (b) El clasificador determinista
+  `src/run/executors/cli-failure.ts` lo usan los adaptadores de chat y el executor externo para generar avisos
+  (`CliNotice`: `external.ts:2`, `chat-adapters.ts:11`, `codex-app-server.ts:10`, `step-event.ts:1`), no se persiste por
+  run. (c) `src/agents/diagnose.ts` clasifica con LLM y describe `parse_error` como "could not be parsed as valid JSON"
+  (`diagnose.ts:47`), pero el contrato usa delimitadores `<<<FILE:…>>>` (`contract.ts:37-41`, error en `contract.ts:55`).
+  (d) `GET /api/tasks/:id/diagnose` y `POST /api/run/graph` existen (`server.ts:283`, `296`) y nada en
+  `src/dashboard/app/src` los llama (el `diagnose?:` de `types/orchestos.ts:111` es solo un campo de tipo). Verificación:
+  migración numerada con la causa clasificada; el clasificador determinista rellena la columna; la descripción de
+  `parse_error` coincide con el contrato; la UI muestra la causa de un run fallido.
+
+- [ ] **AUD.5 — Tras cada tarea `done` por CLI, una llamada LLM oculta sobre los runs de todos los proyectos.**
+  (abierto 2026-11-10) En `orchestos task run` (`cli.ts:1303-1331`), al terminar `done` se lee `listRuns(20)`
+  (`runs.ts:197-207`, sin filtro de proyecto) y, con 3 o más, `analyzeRunPatterns` hace una llamada al rol Auxiliar
+  (`analyze/patterns.ts:144-150`) y puede crear propuestas de instinto. Gasto no declarado en `LIMITATIONS.md` y mezcla
+  de proyectos en el análisis. Verificación: o se quita del camino de la tarea (queda en `--analyze`, `cli.ts:855`), o
+  se filtra por proyecto y se declara en el resumen del run; test que cuente las llamadas al LLM de una tarea `done`.
+
+- [ ] **AUD.6 — Los motores matan solo al hijo directo, no al grupo de procesos.** (abierto 2026-11-10)
+  `external.ts:329-339` y `397` (`proc.kill('SIGTERM')`/`SIGKILL`), `opencode-server.ts:293-296` y `dashboard/terminal.ts:86-90`
+  no lanzan `detached` ni matan `-pid`; solo `mcp/readonly.ts:619-624` mata el grupo (`process.kill(-proc.pid)`, lanzado
+  con `detached: true`, `readonly.ts:652`). No verificado en vivo: si los CLIs de agente dejan nietos vivos tras un
+  timeout o abort. Verificación: fixture con un CLI falso que lance un nieto; tras abortar la tarea no queda ese PID.
+
+- [ ] **AUD.7 — Servidor local sin token: cualquier proceso local puede lanzar agentes.** (abierto 2026-11-10)
+  `isSameOrigin` devuelve `true` si la petición no trae `Origin` (`http.ts:95-107`); solo se aplica a POST/PUT/PATCH/
+  DELETE (`server.ts:177-182`); los GET no se comprueban y no hay chequeo de `Host` (rebinding de DNS). El servidor
+  escucha en `127.0.0.1` (`server.ts:615`), lo que cubre la red pero no a otros procesos del usuario ni a páginas de
+  otros puertos en GET. Es además prerrequisito de cualquier empaquetado desktop (IDEAS #41). Verificación: token por
+  arranque exigido en `/api/*` (o `Host` + `Origin` obligatorios), test de petición sin credencial = 403.
+
+- [ ] **AUD.8 — Código y endpoints sin uso.** (abierto 2026-11-10) Módulos que nada importa fuera de `src/__tests__/`
+  (grep del 2026-11-10 en `src/`, `scripts/`, `package.json`): `src/db/backup.ts` (`db-backup.test.ts`),
+  `src/db/retention.ts` (`retention.test.ts`; `LIMITATIONS.md` ya lo decía) y `src/agents/hardening.ts` (ni siquiera
+  un test lo importa). Endpoints servidos por `server.ts` que nada de `src/dashboard/app/src` llama: `/api/run/graph`
+  (`server.ts:296`), `/api/instincts/propose` (`320`), `/api/runs/analyze` (`211`), `/api/skills/curate` (`377`),
+  `/api/skills/pro` (`356`), `/api/project/context/regenerate` (`412`), `/api/tasks/init` (`261`); además
+  `scripts/ui-gate/flows/project-tabs.mjs:207` sí llama `/api/instincts/propose`. Verificación: por cada pieza, o se
+  cablea a una interfaz, o se borra con su test y el grep queda vacío.
+
+- [ ] **AUD.9 — ui-gates: `chat-timeout` rojo permanente en la nocturna y cobertura solo en Chromium.**
+  (abierto 2026-11-10) (a) `chat-timeout.mjs:5-6` lanza error si `ORCHESTOS_CHAT_TURN_TIMEOUT_MS !== '4000'`; ninguna
+  parte del repo la fija (grep: solo el flow y `handlers/chat.ts:1669`); `nightly-ui-gates.ts` ejecuta todos los flows
+  de `scripts/ui-gate/flows` (`:238-246`) con `env` sin esa variable (`:165`) y `run.mjs:62-68` solo hereda
+  `process.env`. Inferido por lectura, no confirmado en el resultado de una corrida nocturna. (b) Todos los gates usan
+  `chromium.launch()` (`run.mjs:222`); Safari/WebKit no se prueba (relevante para IDEAS #41, Tauri). (c) Lo del home
+  temporal está en CI.81 (ampliado). Verificación: la nocturna deja `chat-timeout` verde sin intervención (el flow o
+  el runner fijan el valor); decisión de Carlos sobre añadir WebKit.
+
+- [ ] **AUD.10 — Mutación: `harness.ts` y `contract.ts` no están en ningún shard de la nocturna.** (abierto 2026-11-10)
+  `.github/workflows/mutation-nightly.yml:20-40` corre 11 shards (`executors-engines`, `-engines-b`, `-routing`,
+  `-routing-b`, `-routing-c`, `-codex-server`, `-codex-server-b`, `-codex-server-c`, `-codex-engines`,
+  `runtime-boundaries`, `context-routing`) y ninguna de sus configs nombra `harness.ts` ni `contract.ts` (grep en
+  `stryker*.config.mjs`). Solo `stryker.run.config.mjs` los cubre con el glob `src/run/**/*.ts`, y el workflow no la
+  usa. Configs en la raíz que el workflow no ejecuta: `stryker.config.mjs` (`qa.ts`), `stryker.checks.config.mjs`,
+  `stryker.sandbox-policy.config.mjs`, `stryker.graph-runner.config.mjs`, `stryker.run.config.mjs`,
+  `stryker.run-executors.config.mjs`, `stryker.run-executors-codex.config.mjs` (los scripts `mutation:*` existen en
+  `package.json:54-71`). No verificado: si alguna se corre a mano o desde otro workflow (`ci.yml` no menciona
+  mutación). Verificación: un shard nuevo para `harness.ts`/`contract.ts` en el workflow, o la decisión escrita de
+  dejarlos fuera con su motivo.
 
 ## Decisiones pendientes de Carlos
 

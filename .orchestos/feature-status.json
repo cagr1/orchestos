@@ -58,6 +58,86 @@
       "title": "La corrida nocturna de ui-gates registró sus proyectos de prueba en el `~/.orchestos` real",
       "status": "open",
       "closedDate": null
+    },
+    {
+      "id": "AUD.1",
+      "sprint": "Abiertos — auditoría 2026-11-10",
+      "block": null,
+      "title": "El contrato se puede saltar con borrados, prefijos de tooling y rutas raras",
+      "status": "open",
+      "closedDate": null
+    },
+    {
+      "id": "AUD.2",
+      "sprint": "Abiertos — auditoría 2026-11-10",
+      "block": null,
+      "title": "El producto ejecuta `git checkout -- runs-summary.json` en cualquier proyecto del usuario",
+      "status": "open",
+      "closedDate": null
+    },
+    {
+      "id": "AUD.3",
+      "sprint": "Abiertos — auditoría 2026-11-10",
+      "block": null,
+      "title": "Una excepción inesperada en el harness no deja fila de run",
+      "status": "open",
+      "closedDate": null
+    },
+    {
+      "id": "AUD.4",
+      "sprint": "Abiertos — auditoría 2026-11-10",
+      "block": null,
+      "title": "El fallo no se guarda como causa clasificada y las piezas de diagnóstico no llegan a la UI",
+      "status": "open",
+      "closedDate": null
+    },
+    {
+      "id": "AUD.5",
+      "sprint": "Abiertos — auditoría 2026-11-10",
+      "block": null,
+      "title": "Tras cada tarea `done` por CLI, una llamada LLM oculta sobre los runs de todos los proyectos",
+      "status": "open",
+      "closedDate": null
+    },
+    {
+      "id": "AUD.6",
+      "sprint": "Abiertos — auditoría 2026-11-10",
+      "block": null,
+      "title": "Los motores matan solo al hijo directo, no al grupo de procesos",
+      "status": "open",
+      "closedDate": null
+    },
+    {
+      "id": "AUD.7",
+      "sprint": "Abiertos — auditoría 2026-11-10",
+      "block": null,
+      "title": "Servidor local sin token: cualquier proceso local puede lanzar agentes",
+      "status": "open",
+      "closedDate": null
+    },
+    {
+      "id": "AUD.8",
+      "sprint": "Abiertos — auditoría 2026-11-10",
+      "block": null,
+      "title": "Código y endpoints sin uso",
+      "status": "open",
+      "closedDate": null
+    },
+    {
+      "id": "AUD.9",
+      "sprint": "Abiertos — auditoría 2026-11-10",
+      "block": null,
+      "title": "ui-gates: `chat-timeout` rojo permanente en la nocturna y cobertura solo en Chromium",
+      "status": "open",
+      "closedDate": null
+    },
+    {
+      "id": "AUD.10",
+      "sprint": "Abiertos — auditoría 2026-11-10",
+      "block": null,
+      "title": "Mutación: `harness.ts` y `contract.ts` no están en ningún shard de la nocturna",
+      "status": "open",
+      "closedDate": null
     }
   ]
 }
