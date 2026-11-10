@@ -96,7 +96,7 @@
       "sprint": "Abiertos — auditoría 2026-11-10",
       "block": null,
       "title": "El producto ejecuta `git checkout -- runs-summary.json` en cualquier proyecto del usuario",
-      "status": "open",
+      "status": "done",
       "closedDate": null
     },
     {

@@ -8,10 +8,9 @@ Arranque: `bun run agent:preflight -- --item <ID> --agent claude`. Lista viva: `
 
 1. **Siguiente: lote de auditoría** (GO de Carlos 2026-11-10 para AUD.1 y AUD.2; antes: "decide Carlos — otro bloque
    de producto o el mes de uso real"). Informe y dirección por ítem: `docs/auditoria-2026-11-10.md`.
-   - AUD.1 cerrado (`7c9269d4`). **Siguiente: AUD.2** → `docs/specs/AUD.2.md` (`mecanico`, revisión `qa`). Antes de
-     delegar, el cerebro comprueba con grep su lista de "no verificado" y lee entero el módulo que toca y sus tests
-     (AUD.1 necesitó 5 enmiendas de spec por no hacerlo).
-   - Después, en este orden y con spec nuevo cada uno: AUD.3, AUD.4, AUD.7, AUD.5, AUD.10, AUD.8, AUD.9, AUD.6.
+   - AUD.1 y AUD.2 cerrados. Antes de delegar cada uno, el cerebro comprueba con grep su lista de "no verificado" y
+     lee entero el módulo que toca y sus tests (AUD.1: 5 enmiendas; AUD.2: 3, todas por casos borde de rutas de git).
+   - **Siguiente**, en este orden y con spec nuevo cada uno: AUD.3, AUD.4, AUD.7, AUD.5, AUD.10, AUD.8, AUD.9, AUD.6.
      AUD.4 y AUD.7 cambian comportamiento central: plan corto y GO de Carlos antes de delegar.
    - Decisiones de Carlos pendientes: adoptar el tamaño por reanudabilidad de ODD en el proceso; qué ideas de
      `IDEAS.md` entran al cierre (propuesta en el informe); Tauri (recomendado) o Electron, después de AUD.7.
@@ -88,6 +87,12 @@ salvo CI.69/CI.76, SK.3, UI.70, LIMP.4, auditoría de `IDEAS.md` (`73247216`) y 
   (2026-11-07) y pasó 26/26 aislado.
 
 ## Anotado, sin ítem (abrir ítem solo si Carlos lo pide; los intermitentes, también si se repiten)
+
+- AUD.2, hallazgo P2 de `qa` sin corregir: un derivado sin trackear dentro de un directorio nuevo (`?? build/`) no se
+  reconoce y bloquea el sandbox con `DirtyTreeError`. Falla hacia el lado seguro y ya pasaba antes. Arreglo probable:
+  `--untracked-files=all` en `sandbox-policy.ts`, pero cambia la lista de "sucios" que ve la UI; decidirlo antes.
+- **Repetido 2026-11-10** (2.ª vez; toca abrir ítem al terminar el lote AUD): el timeout de `session-status.test.ts`
+  de abajo, en `test:coverage` con el diff de AUD.2; la corrida siguiente, 0 fallos.
 
 - Visto 2026-11-06: `session-status.test.ts` ("lee cada transcript como máximo una vez") timeout de 5 s en
   `test:coverage` bajo carga; aislado 3/3. El repo no registra `writer-lock release` en SessionEnd (lo hace el hook

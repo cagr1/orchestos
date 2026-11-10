@@ -235,13 +235,26 @@ prioridad hasta que Carlos las asigne.
   Evidencia: `docs/done/evidence/AUD.1-live.json`.
   Ejecutado por: codex (criterio) · Spec: docs/specs/AUD.1.md
 
-- [ ] **AUD.2 — El producto ejecuta `git checkout -- runs-summary.json` en cualquier proyecto del usuario.**
+- [x] **AUD.2 — El producto ejecuta `git checkout -- runs-summary.json` en cualquier proyecto del usuario.**
   (abierto 2026-11-10) Es un arreglo específico de este repo (el hook que exporta `runs-summary.json`) metido en el
   producto: `sandbox-policy.ts:94` lo hace al empezar la corrida y `sandbox.ts:229` antes del merge (solo si la base
   está en el checkout); `sandbox-policy.ts:50` además lo excluye del listado de cambios sucios. En un proyecto ajeno con
   un `runs-summary.json` propio, se descartan sus cambios sin avisar. Verificación: test con un proyecto que tenga un
   `runs-summary.json` tracked y modificado: tras la corrida sigue modificado; el comportamiento actual queda detrás de
   una señal del propio repo (config o detección de `scripts/export-runs-summary.ts`).
+  Hecho: campo `sandbox.derivedFiles` en `orchestos.config.yaml` (por defecto vacío; este repo declara
+  `runs-summary.json`). Rutas validadas una vez en `parseSandboxConfig` (`load.ts`), literales, sin `.`/`..`/absolutas.
+  `discardDerivedFiles` solo hace `checkout` de un archivo trackeado exacto (`ls-files -z` = la ruta), uno por uno; el
+  chequeo de "sucio" parsea `status --porcelain -z`. Ningún literal `runs-summary` en `src` fuera de tests/comentarios.
+  Gates del cerebro: `tsc`, `lint` (282, sin subir), `test:coverage` 2514 pass / 0 fail. Revisión `qa` (otro
+  proveedor), 3 rondas: P1 directorio declarado descartaba todo, P1 doble normalización `%xx`, P2 rutas
+  entrecomilladas → corregidos con test; slice(3) de la 1.ª línea y checkout múltiple que fallaba entero → los vio el
+  cerebro. Queda (anotado en `NEXT.md`, falla hacia el lado seguro): un derivado sin trackear dentro de un directorio
+  nuevo bloquea el sandbox (`?? build/`).
+  Gate en vivo: sin navegador, clones reales del repo `docs/done/evidence/AUD.2-live.json`
+  (declarado → `worktree` y limpio; no declarado → `DirtyTreeError` y el cambio se conserva). El campo vive solo en el
+  yaml, sin control en Settings por decisión del spec, así que no hay superficie que abrir en el dashboard.
+  Ejecutado por: codex (mecanico) · Spec: docs/specs/AUD.2.md
 
 - [ ] **AUD.3 — Una excepción inesperada en el harness no deja fila de run.** (abierto 2026-11-10) El `catch` general
   de `runTask` (`harness.ts:1061-1074`) devuelve `status: 'failed'`, `runId: ''` y `retryReason: unexpected: …` sin

@@ -10,7 +10,7 @@
  */
 
 import { existsSync, readFileSync } from 'node:fs'
-import { join } from 'node:path'
+import { isAbsolute, join } from 'node:path'
 import { parse } from 'yaml'
 import { taskAgentIds } from '../router/engine-cascade.ts'
 import { allClis, configuredClis } from '../run/executors/cli-registry.ts'
@@ -99,7 +99,31 @@ function mergeWithDefaults(raw: Record<string, unknown>): OrcheConfig {
     apiMode: resolveApiMode(raw),
     agentic: parseAgenticConfig(raw.agentic),
     external: parseExternalConfig(raw.external),
+    sandbox: parseSandboxConfig(raw.sandbox),
     permissionMode: raw.permissionMode === 'manual' ? 'manual' : undefined,
+  }
+}
+
+function parseSandboxConfig(value: unknown): OrcheConfig['sandbox'] {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return undefined
+  const derivedFiles = (value as Record<string, unknown>).derivedFiles
+  if (!Array.isArray(derivedFiles) || !derivedFiles.every((path) => typeof path === 'string'))
+    return undefined
+  return {
+    derivedFiles: derivedFiles.flatMap((entry) => {
+      const path = entry.startsWith('./') ? entry.slice(2) : entry
+      const segments = path.split('/')
+      if (
+        !path ||
+        path === '.' ||
+        path.endsWith('/') ||
+        path.includes('\\') ||
+        isAbsolute(path) ||
+        segments.some((segment) => !segment || segment === '.' || segment === '..')
+      )
+        return []
+      return [path]
+    }),
   }
 }
 

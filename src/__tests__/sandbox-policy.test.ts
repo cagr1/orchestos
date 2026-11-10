@@ -1,5 +1,12 @@
 import { describe, expect, it } from 'bun:test'
-import { appendFileSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
+import {
+  appendFileSync,
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { git } from '../run/sandbox.ts'
@@ -11,11 +18,15 @@ import { DirtyTreeError, listDirtyFiles, resolveSandboxMode } from '../run/sandb
 // bastaba, dejaba el archivo genuinamente sucio en disco, lo que rompía un
 // `git merge` más tarde). Test con un repo git REAL, no mocks — la garantía
 // que importa es sobre el estado real del working dir después de la llamada.
-function initRepo(): string {
+function initRepo(derivedFiles: string[] | null = ['runs-summary.json']): string {
   const dir = mkdtempSync(join(tmpdir(), 'orchestos-sandboxpolicy-'))
   git(['init', '-b', 'master'], dir)
   git(['config', 'user.email', 'test@test.com'], dir)
   git(['config', 'user.name', 'test'], dir)
+  writeFileSync(
+    join(dir, 'orchestos.config.yaml'),
+    JSON.stringify(derivedFiles ? { sandbox: { derivedFiles } } : {}),
+  )
   writeFileSync(
     join(dir, 'runs-summary.json'),
     JSON.stringify({ exported_at: '2026-01-01T00:00:00Z', total_runs: 0 }),
@@ -85,6 +96,88 @@ describe('resolveSandboxMode — runs-summary.json (E.1/E.9)', () => {
       // de nuestra regla de "ignóralo") lo rechazaría si sigue sucio.
       const statusAfter = git(['status', '--porcelain'], dir)
       expect(statusAfter.stdout).toBe('')
+    } finally {
+      rmSync(dir, { recursive: true, force: true })
+    }
+  })
+
+  it('descarta cada archivo derivado aunque otra entrada declarada no exista', () => {
+    const dir = initRepo(['runs-summary.json', 'no-existe.json'])
+    try {
+      writeFileSync(join(dir, 'runs-summary.json'), '{"changed":true}\n')
+
+      expect(() => resolveSandboxMode(dir)).not.toThrow()
+      expect(git(['status', '--porcelain'], dir).stdout).toBe('')
+    } finally {
+      rmSync(dir, { recursive: true, force: true })
+    }
+  })
+
+  it('no descarta archivos bajo una entrada derivada que sea un directorio', () => {
+    for (const derivedFiles of [['src'], ['.']]) {
+      const dir = initRepo(derivedFiles)
+      try {
+        mkdirSync(join(dir, 'src'))
+        writeFileSync(join(dir, 'src', 'user.txt'), 'original\n')
+        git(['add', 'src/user.txt'], dir)
+        git(['commit', '-m', 'add user file'], dir)
+        writeFileSync(join(dir, 'src', 'user.txt'), 'modified\n')
+
+        expect(() => resolveSandboxMode(dir)).toThrow(/src\/user\.txt/)
+        expect(readFileSync(join(dir, 'src', 'user.txt'), 'utf8')).toBe('modified\n')
+      } finally {
+        rmSync(dir, { recursive: true, force: true })
+      }
+    }
+  })
+
+  it('preserves and reports runs-summary.json when the project does not declare it as derived', () => {
+    const dir = initRepo(null)
+    try {
+      writeFileSync(join(dir, 'runs-summary.json'), '{"changed":true}\n')
+
+      expect(() => resolveSandboxMode(dir)).toThrow(/runs-summary\.json/)
+      expect(git(['status', '--porcelain'], dir).stdout).toContain('runs-summary.json')
+      expect(listDirtyFiles(dir)).toContain('runs-summary.json')
+    } finally {
+      rmSync(dir, { recursive: true, force: true })
+    }
+  })
+
+  it('ignores invalid traversal and absolute derived-file entries', () => {
+    const dir = initRepo(['../runs-summary.json', join(tmpdir(), 'runs-summary.json')])
+    try {
+      writeFileSync(join(dir, 'runs-summary.json'), '{"changed":true}\n')
+
+      expect(() => resolveSandboxMode(dir)).toThrow(/runs-summary\.json/)
+      expect(git(['status', '--porcelain'], dir).stdout).toContain('runs-summary.json')
+    } finally {
+      rmSync(dir, { recursive: true, force: true })
+    }
+  })
+
+  it('does not decode percent-encoded derived paths a second time', () => {
+    const dir = initRepo(['%25252541.txt'])
+    try {
+      writeFileSync(join(dir, 'A.txt'), 'original\n')
+      git(['add', 'A.txt'], dir)
+      git(['commit', '-m', 'add A'], dir)
+      writeFileSync(join(dir, 'A.txt'), 'modified\n')
+
+      expect(() => resolveSandboxMode(dir)).toThrow(/A\.txt/)
+      expect(readFileSync(join(dir, 'A.txt'), 'utf8')).toBe('modified\n')
+    } finally {
+      rmSync(dir, { recursive: true, force: true })
+    }
+  })
+
+  it('matches untracked non-ASCII derived paths with core.quotePath enabled', () => {
+    const dir = initRepo(['generado-ñ.json'])
+    try {
+      git(['config', 'core.quotePath', 'true'], dir)
+      writeFileSync(join(dir, 'generado-ñ.json'), '{"generated":true}\n')
+
+      expect(() => resolveSandboxMode(dir)).not.toThrow()
     } finally {
       rmSync(dir, { recursive: true, force: true })
     }

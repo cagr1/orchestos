@@ -7,6 +7,7 @@ import {
 } from './executors/worktree-diff.ts'
 import { withGitLock } from './git-lock.ts'
 import { normalizeRelPath } from './path-policy.ts'
+import { derivedFilesFor, discardDerivedFiles } from './sandbox-policy.ts'
 
 export interface Worktree {
   path: string
@@ -270,10 +271,10 @@ function mergeWorktreeBackLocked(
   if (clean.exitCode !== 0)
     throw new Error(`git clean excluded changes failed in worktree: ${clean.stderr}`)
 
-  // Mes 22/E.9 — descarte defensivo del mismo archivo que resolveSandboxMode()
+  // Mes 22/E.9 — descarte defensivo de los archivos derivados declarados, como resolveSandboxMode()
   // ya descarta al empezar la corrida (sandbox-policy.ts). Entre ese momento y
   // este merge pasa la ventana LARGA sin lock (LLM + QA + checks) — si algo
-  // dejó runs-summary.json sucio en projectRoot durante esa ventana (ej. un
+  // dejó un archivo derivado declarado sucio en projectRoot durante esa ventana (ej. un
   // hook de OTRO commit que falló a mitad de camino, típicamente por
   // `bun run typecheck` fallando de forma transitoria), `git merge` lo
   // rechazaría con "your local changes would be overwritten" — el error real
@@ -281,7 +282,10 @@ function mergeWorktreeBackLocked(
   const currentBranch = git(['symbolic-ref', '--quiet', '--short', 'HEAD'], worktree.projectRoot)
   const baseCheckedOut =
     currentBranch.exitCode === 0 && currentBranch.stdout === worktree.baseBranch
-  if (baseCheckedOut) git(['checkout', '--', 'runs-summary.json'], worktree.projectRoot)
+  if (baseCheckedOut) {
+    const derivedFiles = derivedFilesFor(worktree.projectRoot)
+    discardDerivedFiles(worktree.projectRoot, derivedFiles)
+  }
   const headBefore = git(['rev-parse', worktree.baseBranch], worktree.projectRoot).stdout
   const advanceBase = () =>
     git(

@@ -1,5 +1,6 @@
 import { existsSync } from 'node:fs'
 import { join } from 'node:path'
+import { loadOrcheConfig } from '../config/load.ts'
 import { getProject } from '../db/projects.ts'
 import { git } from './sandbox.ts'
 
@@ -25,30 +26,63 @@ export class DirtyTreeError extends Error {
 }
 
 /**
- * Rutas relativas con cambios sin commitear (incluye no seguidos), salvo `runs-summary.json`.
+ * Rutas relativas con cambios sin commitear (incluye no seguidos), salvo archivos derivados declarados.
  * Parseo con `-z`: un rename aporta origen y destino.
  */
+export function derivedFilesFor(projectRoot: string): string[] {
+  return loadOrcheConfig(projectRoot).sandbox?.derivedFiles ?? []
+}
+
+/** Discard only an exact tracked file; git checkout on a directory is recursive. */
+export function discardDerivedFiles(projectRoot: string, files: string[]): void {
+  for (const path of files) {
+    if (!path || path === '.') continue
+    const tracked = Bun.spawnSync(
+      ['git', '--literal-pathspecs', 'ls-files', '-z', '--full-name', '--', path],
+      { cwd: projectRoot, stdout: 'pipe', stderr: 'pipe' },
+    )
+    if (tracked.exitCode !== 0 || tracked.stdout.toString() !== `${path}\0`) continue
+    git(['--literal-pathspecs', 'checkout', '--', path], projectRoot)
+  }
+}
+
 export function listDirtyFiles(projectRoot: string, strict = false): string[] {
+  return listDirtyFilesWithDerived(projectRoot, strict, derivedFilesFor(projectRoot))
+}
+
+function listDirtyFilesWithDerived(
+  projectRoot: string,
+  strict: boolean,
+  derivedFiles: string[],
+): string[] {
   // spawn directo: `git()` recorta el stdout y comería el espacio inicial de ` M ruta`
   const proc = Bun.spawnSync(['git', 'status', '--porcelain', '-z'], { cwd: projectRoot })
   if (proc.exitCode !== 0) {
     if (strict) throw new Error(proc.stderr.toString().trim() || 'git status failed')
     return []
   }
-  const entries = proc.stdout.toString().split('\0')
-  const files: string[] = []
-  for (let i = 0; i < entries.length; i++) {
-    const entry = entries[i]
-    if (!entry || entry.length < 4) continue
-    files.push(entry.slice(3))
-    if (entry[0] === 'R' || entry[0] === 'C' || entry[1] === 'R' || entry[1] === 'C') {
-      const origin = entries[++i]
-      if (origin) files.push(origin)
-    }
-  }
-  return files.filter(
-    (file) => file !== 'runs-summary.json' && !file.endsWith('/runs-summary.json'),
+  const entries = parsePorcelainStatus(proc.stdout.toString())
+  const derived = new Set(derivedFiles)
+  return entries.flatMap(({ path, originalPath }) =>
+    [path, ...(originalPath ? [originalPath] : [])].filter((file) => !derived.has(file)),
   )
+}
+
+function parsePorcelainStatus(
+  output: string,
+): Array<{ flag: string; path: string; originalPath?: string }> {
+  const fields = output.split('\0')
+  const entries: Array<{ flag: string; path: string; originalPath?: string }> = []
+  for (let i = 0; i < fields.length; i++) {
+    const raw = fields[i]
+    if (!raw || raw.length < 4) continue
+    const flag = raw.slice(0, 2)
+    const path = raw.slice(3)
+    const renamed = flag.includes('R') || flag.includes('C')
+    const originalPath = renamed ? fields[++i] : undefined
+    entries.push({ flag, path, ...(originalPath ? { originalPath } : {}) })
+  }
+  return entries
 }
 
 export function resolveSandboxMode(
@@ -71,7 +105,7 @@ export function resolveSandboxMode(
   }
 
   // check for uncommitted changes (only relevant for worktree mode)
-  // D.5 follow-up (Mes 22, 2026-07-16) — runs-summary.json lleva
+  // D.5 follow-up (Mes 22, 2026-07-16) — los archivos derivados declarados llevan
   // `exported_at: new Date().toISOString()` (scripts/export-runs-summary.ts)
   // y se regenera en CADA `git commit` vía el hook pre-commit — incluso los
   // que no lo tocan a propósito. Eso lo deja "sucio" con solo el timestamp
@@ -91,21 +125,22 @@ export function resolveSandboxMode(
   // antes de que cualquier otra operación de git (incluido un merge futuro)
   // lo encuentre. Best-effort — si el archivo no existe o el checkout falla
   // por cualquier motivo, seguimos con la lógica de abajo igual.
-  git(['checkout', '--', 'runs-summary.json'], projectRoot)
-  const status = git(['status', '--porcelain'], projectRoot)
-  const dirtyFiles = listDirtyFiles(projectRoot)
-  const relevantLines = status.stdout
-    .split('\n')
-    .filter((l) => l.trim().length > 0 && !/\bruns-summary\.json$/.test(l))
-  if (status.exitCode === 0 && relevantLines.length > 0) {
-    const fileList = relevantLines
+  const derivedFiles = derivedFilesFor(projectRoot)
+  discardDerivedFiles(projectRoot, derivedFiles)
+  const status = Bun.spawnSync(['git', 'status', '--porcelain', '-z'], { cwd: projectRoot })
+  const parsedStatus = parsePorcelainStatus(status.stdout.toString())
+  const dirtyFiles = listDirtyFilesWithDerived(projectRoot, false, derivedFiles)
+  const derivedSet = new Set(derivedFiles)
+  const relevantEntries = parsedStatus.filter(
+    ({ path, originalPath }) =>
+      !derivedSet.has(path) || (originalPath && !derivedSet.has(originalPath)),
+  )
+  if (status.exitCode === 0 && relevantEntries.length > 0) {
+    const fileList = relevantEntries
       .slice(0, 10)
-      .map((l) => {
-        const [flag, ...rest] = l.trim().split(/\s+/)
-        return `  ${flag} ${rest.join(' ')}`
-      })
+      .map(({ flag, path }) => `  ${flag} ${path}`)
       .join('\n')
-    const suffix = relevantLines.length > 10 ? '\n  ... and more' : ''
+    const suffix = relevantEntries.length > 10 ? '\n  ... and more' : ''
     throw new DirtyTreeError(
       `Uncommitted changes in ${projectRoot}. Worktree sandbox requires a clean working tree.\n` +
         `Either commit or stash before running with sandbox:\n${fileList}${suffix}`,

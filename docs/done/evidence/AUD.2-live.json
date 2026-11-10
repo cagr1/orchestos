@@ -1,0 +1,14 @@
+{
+  "at": "2026-11-10T18:09:40.571Z",
+  "head": "56c6138e",
+  "declarado": {
+    "result": "mode=worktree",
+    "statusAfter": "",
+    "dirty": []
+  },
+  "no_declarado": {
+    "result": "throws DirtyTreeError",
+    "statusAfter": "M runs-summary.json",
+    "dirty": ["runs-summary.json"]
+  }
+}
