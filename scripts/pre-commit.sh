@@ -36,6 +36,9 @@ bun run typecheck
 echo "🔐 Verificando secretos en cambios staged..."
 bun run security:secrets
 
+echo "🚪 Verificando presupuesto de parseo sin validar..."
+bun run scripts/boundary-budget.ts
+
 echo "🎨 Verificando Biome en archivos staged..."
 biome_files=()
 while IFS= read -r -d '' file; do

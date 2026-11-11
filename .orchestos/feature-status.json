@@ -184,7 +184,7 @@
       "sprint": "Abiertos — auditoría 2026-11-10",
       "block": null,
       "title": "Sellar la validación de entradas externas: una puerta con Zod y un gate que solo deja bajar",
-      "status": "open",
+      "status": "done",
       "closedDate": null
     },
     {

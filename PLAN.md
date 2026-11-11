@@ -349,10 +349,18 @@ prioridad hasta que Carlos las asigne.
   `.claude/hooks/` siguen bloqueados; las rutas se normalizan (`src/../.claude/hooks/x` → bloqueado). Evidencia:
   `tests/hooks/brain-no-code.test.ts` 23 pass; `qa` (Sol) encontró `replace_all` y `../` sin tope, corregidos y
   re-verificados por el cerebro reproduciendo sus payloads (deny) y un edit chico en `src/` (allow).
-- [ ] **AUD.18 — Sellar la validación de entradas externas: una puerta con Zod y un gate que solo deja bajar.**
-  (abierto 2026-11-11, GO de Carlos) `src/boundary/` con `readBody`, `parseLlmJson`, `loadConfig` sobre esquemas Zod;
-  gate en pre-commit que cuenta `JSON.parse(`, `.json()` de request y `parse(` de YAML fuera de `src/boundary/` contra
-  un presupuesto que solo baja (hoy 112). Verificación: un call site nuevo sin esquema hace fallar el commit.
+- [x] **AUD.18 — Sellar la validación de entradas externas: una puerta con Zod y un gate que solo deja bajar.**
+  (abierto y cerrado 2026-11-11, GO de Carlos) `src/boundary/index.ts` (`check`, `parseJson`, `parseYamlText`,
+  `readBody`, `badRequest`, `timeoutMs`; nunca lanza) sobre Zod 4.6.7, ya dependencia directa. Gate
+  `scripts/boundary-budget.ts` en pre-commit: cuenta sobre el AST de TypeScript las llamadas a `JSON.parse`, `.json()`
+  y `parse` de `yaml` (alias y namespace incluidos) fuera de `src/boundary/`, contra `scripts/boundary-budget.json`
+  (63/64/13 = 140), que solo baja. Evidencia: 14 tests (boundary + gate); contraprueba `JSON.parse('1')` → exit 1;
+  `bun run test:coverage` 2569 pass 0 fail. `qa` (Sol) halló 1 P1 (un transform que lanza escapaba) y 4 P2 de
+  evasión del contador por regex; el P1 lo arregló el cerebro (fix chico, AT.22) con test, y el contador pasó a AST;
+  el cerebro reprodujo los 10 casos de evasión. No cubre: alias de la función (`const p = JSON.parse; p(x)`). La
+  migración de los 140 sitios va con AUD.12–AUD.17: cada ítem baja el presupuesto.
+  Ejecutado por: gpt-6-luna (mecanico); fix del P1 Claude Opus 5.5 (cerebro) · Spec: docs/specs/AUD.18.md
+  **Fuera de scope declarado:** `PLAN.md` registra el cierre y `.orchestos/feature-status.json` lo refleja.
 - [ ] **AUD.12 — Timeouts e iteraciones de config sin tope: un valor grande mata el run al instante o lo deja sin fin.**
   (abierto 2026-11-11) `setTimeout` con más de 2^31−1 ms, negativo o NaN dispara a 1 ms (reproducido en Bun). Entradas:
   `src/config/load.ts:298-302` (`external.timeoutMs`, solo `typeof`), `src/dashboard/handlers/config.ts:304-310` y
