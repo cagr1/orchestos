@@ -397,6 +397,62 @@ prioridad hasta que Carlos las asigne.
   (`src/mcp/server.ts:125,232`, `codex-app-server.ts:173-177`); precios de OpenRouter sin rango
   (`src/router/model-catalog.ts:166-172`).
 
+### Abiertos — auditoría 2026-11-11
+
+Segunda auditoría, completa (`docs/auditoria-2026-11-11.md`: evidencia `archivo:línea` por ítem, qué se contrastó y
+qué no). Cada ítem es una clase de falla con varios sitios; el spec comprueba antes los marcados "sin contrastar".
+
+- [ ] **AUD.19 — Aislamiento entre proyectos: datos de un proyecto se leen, mezclan o borran desde otro.** (abierto
+  2026-11-11) `db/reset.ts:16` borra los runs de todos; `db/run-steps.ts:69-80` identifica pasos solo por `task_id`;
+  `handlers/project.ts:340` y `context/compress.ts:45` usan runs globales; `skills/compile.ts:8` y
+  `handlers/specs.ts:26-37` asumen que el proyecto es el cwd/OrchestOS; `server.ts:166` da el cwd a `project=none`;
+  `App.tsx:1053,845,1505` pierde o cruza el proyecto. Verificación: test con dos proyectos y el mismo id de tarea por
+  cada sitio; `project=none` rechaza rutas de proyecto.
+- [ ] **AUD.20 — Pérdida de datos del usuario: escrituras que pisan sin resguardo.** (abierto 2026-11-11)
+  `detect`/`init` sobrescriben `AGENTS.md` (`cli.ts:84,104`, `handlers/project.ts:71`); `spec/store.ts:57-63` escribe
+  en la ruta que diga el id del frontmatter (`../../README`); `spec/archive.ts:44-48,66,77` pisa, borra por sufijo y
+  pierde campos; escritura parcial del contrato en cwd (`contract.ts:103`); PUT de config sin serializar
+  (`handlers/config.ts:326,402`). Verificación: test por caso; el archivo previo se conserva o se pide confirmación.
+- [ ] **AUD.21 — Ejecución de tareas: errores aceptados como éxito y límites que no se aplican.** (abierto 2026-11-11)
+  `dryRun` después de crear worktree y correr `setup_script` (`harness.ts:190-197` vs `:283`); sandbox explícito sin
+  rama corre en el cwd (`graph-runner.ts:472`, `harness.ts:196`); `is_error` de Claude sin mirar en tareas
+  (`external.ts:733-755`); `task run --id` sale 0 al fallar (`cli.ts:1401`); `retry_count`, `--all` y límites del
+  grafo (`cli.ts:1359,1411`, `graph-runner.ts:160,211,428,546`). Verificación: test por caso con CLI falso.
+- [ ] **AUD.22 — Procesos, streams y sesiones de motor.** (abierto 2026-11-11) `opencode.ts:174-216` no drena
+  `stderr`; timeouts sin SIGKILL (`codex.ts:199`, `external.ts:337`, `opencode.ts:182`, `checks.ts:225`); el `exit`
+  de un app-server viejo rompe el nuevo (`codex-app-server.ts:142,1089`); quitar todas las herramientas no recrea el
+  hilo de Codex (`codex-app-server.ts:746-751`). Va junto con AUD.6. Verificación: CLI falso que llena `stderr`, que
+  ignora SIGTERM y que cambia de herramientas entre turnos.
+- [ ] **AUD.23 — Seguridad: confinamiento por symlink y redacción de secretos.** (abierto 2026-11-11)
+  `handlers/explorer.ts:44-48,120` confina lecturas solo por texto de ruta; `security/secrets.ts:47-50` no redacta un
+  secreto que contenga `test`/`example`; `scripts/check-secrets.ts:19-26` no ve claves multilínea;
+  `spawn-trace.ts:8-10,57` registra argumentos cortos y `stderr` crudos. Verificación: test con symlink hacia fuera →
+  403; secreto con `test` dentro → redactado; PEM staged → gate rojo.
+- [ ] **AUD.24 — Chat: turnos que quedan pendientes o no se pueden guardar.** (abierto 2026-11-11) Lease de 150 s sin
+  renovar (`db/chat-turns.ts:45`, `handlers/chat.ts:1015`, sin contrastar la renovación); error antes del `catch`
+  interno (`chat.ts:1944`); repetir un turno fallido da 500 (`chat.ts:1051`); adjunto ausente descartado en silencio
+  (`chat.ts:1304`); recarga durante un turno pierde la actividad (`OrchestChatView.tsx:88`). Verificación: turno de
+  más de 150 s con CLI falso queda guardado; ui-gate de recarga a mitad de turno.
+- [ ] **AUD.25 — UI que no hace lo que muestra.** (abierto 2026-11-11) `!comando` no ejecuta en Dev
+  (`OrchestDevWorkspace.tsx:432`, `App.tsx` no pasa `onRunCommand`) ni en Chat (`OrchestChatView.tsx:310`); el kanban
+  no tiene columna `failed` (`PlanBoardView.tsx:98-104`); `purgingProjectIds` no se limpia al terminar bien
+  (`App.tsx:1094-1143`); regla "Executor model" inválida (`OrchestSettingsView.tsx:1048,3727`); búsqueda del
+  inspector (`OrcaRightInspector.tsx:297,576`). Verificación: en vivo en el dashboard, un step de ui-gate por caso.
+- [ ] **AUD.26 — Gates que no pueden fallar.** (abierto 2026-11-11) `check-coverage.ts:14-16` da 100 % a un LCOV
+  vacío; `check-test-assertions.ts:5` cuenta `expect(` en comentarios; `check-scope-lock.ts:48` ignora eliminaciones;
+  `nightly-ui-gates.ts:322,228` sale 0 con todo rojo y su candado no se recupera; `adversarial-review.ts:775,796`
+  avanza el SHA tras un fallo de infraestructura. Verificación: test rojo por cada caso antes del arreglo.
+- [ ] **AUD.27 — Código sin uso (amplía AUD.8).** (abierto 2026-11-11) `src/index.ts` y `"module"` de `package.json`;
+  `app/src/data/orcaProjectData.ts`; 5 scripts sin invocador; 77 exports y 104 tipos sin importador (`knip`); bloque
+  `{false && …}` en `AgentComposer.tsx:1042`; tablas `orchestration_*` y `planner_model` sin consumidor;
+  `buildCodexPrompt` duplicado; rama `/legacy` de `http.ts:58`. Verificación: `knip` con la config del informe baja a
+  0 archivos y exports de backend sin uso; `tsc` y suite verdes.
+- [ ] **AUD.28 — Funciones que mezclan responsabilidades: cortar las cinco más grandes.** (abierto 2026-11-11)
+  `runTask`, `handleApiChat`, `route`, `App` y `OrchestSettingsView`: 1045, 1122, 430, 1982 y 3843 líneas; cortes con nombres y rangos en el
+  informe. Mover sin cambiar comportamiento, un corte por commit. Necesita GO de Carlos (cambio grande; en los
+  componentes del prototipo choca con la comparación 1:1). Verificación: ninguna función de `src/run` ni de
+  `handlers/` sobre 300 líneas; suite y ui-gates del área verdes antes y después.
+
 ## Decisiones pendientes de Carlos
 
 - Estados de sesión `ended` con **resume/fork** (§C.3) — PI y Codex los tienen; OrchestOS no (anotado en UI.8;

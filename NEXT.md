@@ -15,7 +15,13 @@ Arranque: `bun run agent:preflight -- --item <ID> --agent claude`. Lista viva: `
      lo permite) y AUD.18 (`src/boundary/` con Zod + gate `boundary-budget` en pre-commit, 140 parseos, solo baja)
      cerrados. Abiertos AUD.12–17 (migrar esos parseos; AUD.13 es seguridad): van después de AUD.7 y bajan el
      presupuesto. Parseo nuevo de datos externos → `src/boundary`, o el commit no entra.
-   - **Siguiente**, en este orden y con spec nuevo cada uno: AUD.7, AUD.5, AUD.10, AUD.8, AUD.9, AUD.6.
+   - 2026-11-11, segunda auditoría completa (`docs/auditoria-2026-11-11.md`): abre AUD.19–AUD.28. Cuatro clases
+     nuevas además de la validación: aislamiento entre proyectos (AUD.19), pérdida de datos (AUD.20), resultados
+     aceptados que no debían (AUD.21, AUD.26) y ciclo de vida de procesos y turnos (AUD.22, AUD.24). Orden propuesto,
+     a confirmar por Carlos: AUD.20 y AUD.19 (dañan datos del usuario) → AUD.7 → AUD.23 + AUD.13 → AUD.21 → AUD.22 +
+     AUD.6 → AUD.24 → AUD.25 → AUD.26 → AUD.12–17 → AUD.27 + AUD.8 → AUD.28 (pide GO). Lo no marcado ✔ en el informe
+     se comprueba al escribir el spec. No relanzar los auditores: su salida literal está en los anexos.
+   - **Siguiente** (orden anterior a la segunda auditoría), en este orden y con spec nuevo cada uno: AUD.7, AUD.5, AUD.10, AUD.8, AUD.9, AUD.6.
      AUD.7 cambia comportamiento central: plan corto y GO de Carlos antes de delegar.
    - Decisiones de Carlos pendientes: adoptar el tamaño por reanudabilidad de ODD en el proceso; qué ideas de
      `IDEAS.md` entran al cierre (propuesta en el informe); Tauri (recomendado) o Electron, después de AUD.7.

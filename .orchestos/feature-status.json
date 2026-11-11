@@ -234,6 +234,86 @@
       "title": "Bodies y archivos con tipo incorrecto dan 500 en vez de 400; `.env` admite saltos de línea",
       "status": "open",
       "closedDate": null
+    },
+    {
+      "id": "AUD.19",
+      "sprint": "Abiertos — auditoría 2026-11-10",
+      "block": "Abiertos — auditoría 2026-11-11",
+      "title": "Aislamiento entre proyectos: datos de un proyecto se leen, mezclan o borran desde otro",
+      "status": "open",
+      "closedDate": null
+    },
+    {
+      "id": "AUD.20",
+      "sprint": "Abiertos — auditoría 2026-11-10",
+      "block": "Abiertos — auditoría 2026-11-11",
+      "title": "Pérdida de datos del usuario: escrituras que pisan sin resguardo",
+      "status": "open",
+      "closedDate": null
+    },
+    {
+      "id": "AUD.21",
+      "sprint": "Abiertos — auditoría 2026-11-10",
+      "block": "Abiertos — auditoría 2026-11-11",
+      "title": "Ejecución de tareas: errores aceptados como éxito y límites que no se aplican",
+      "status": "open",
+      "closedDate": null
+    },
+    {
+      "id": "AUD.22",
+      "sprint": "Abiertos — auditoría 2026-11-10",
+      "block": "Abiertos — auditoría 2026-11-11",
+      "title": "Procesos, streams y sesiones de motor",
+      "status": "open",
+      "closedDate": null
+    },
+    {
+      "id": "AUD.23",
+      "sprint": "Abiertos — auditoría 2026-11-10",
+      "block": "Abiertos — auditoría 2026-11-11",
+      "title": "Seguridad: confinamiento por symlink y redacción de secretos",
+      "status": "open",
+      "closedDate": null
+    },
+    {
+      "id": "AUD.24",
+      "sprint": "Abiertos — auditoría 2026-11-10",
+      "block": "Abiertos — auditoría 2026-11-11",
+      "title": "Chat: turnos que quedan pendientes o no se pueden guardar",
+      "status": "open",
+      "closedDate": null
+    },
+    {
+      "id": "AUD.25",
+      "sprint": "Abiertos — auditoría 2026-11-10",
+      "block": "Abiertos — auditoría 2026-11-11",
+      "title": "UI que no hace lo que muestra",
+      "status": "open",
+      "closedDate": null
+    },
+    {
+      "id": "AUD.26",
+      "sprint": "Abiertos — auditoría 2026-11-10",
+      "block": "Abiertos — auditoría 2026-11-11",
+      "title": "Gates que no pueden fallar",
+      "status": "open",
+      "closedDate": null
+    },
+    {
+      "id": "AUD.27",
+      "sprint": "Abiertos — auditoría 2026-11-10",
+      "block": "Abiertos — auditoría 2026-11-11",
+      "title": "Código sin uso (amplía AUD.8)",
+      "status": "open",
+      "closedDate": null
+    },
+    {
+      "id": "AUD.28",
+      "sprint": "Abiertos — auditoría 2026-11-10",
+      "block": "Abiertos — auditoría 2026-11-11",
+      "title": "Funciones que mezclan responsabilidades: cortar las cinco más grandes",
+      "status": "open",
+      "closedDate": null
     }
   ]
 }
