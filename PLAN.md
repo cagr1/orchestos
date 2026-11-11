@@ -343,6 +343,16 @@ prioridad hasta que Carlos las asigne.
   `src/__tests__/tasks-schema-strict.test.ts` 22 pass; `bun run test:coverage` 2545 pass 0 fail; los 6 `tasks.yaml`
   reales de la máquina cargan igual antes y después; `qa` (Sol): sin defectos. La auditoría de los demás validadores
   abrió AUD.12–AUD.17 (lectura de un subagente; 1–5 contrastados por el cerebro en el código).
+- [x] **AT.22 — El cerebro hace fixes chicos él mismo; el hook solo bloquea los grandes.** (abierto y cerrado
+  2026-11-11, pedido de Carlos: "si son fixes pequeños los hagas tú") `.claude/hooks/brain-no-code.js` deja pasar
+  `Edit`/`MultiEdit` en `src/`, `tests/`, `scripts/` de hasta 20 líneas por llamada; `Write`, Bash, `replace_all` y
+  `.claude/hooks/` siguen bloqueados; las rutas se normalizan (`src/../.claude/hooks/x` → bloqueado). Evidencia:
+  `tests/hooks/brain-no-code.test.ts` 23 pass; `qa` (Sol) encontró `replace_all` y `../` sin tope, corregidos y
+  re-verificados por el cerebro reproduciendo sus payloads (deny) y un edit chico en `src/` (allow).
+- [ ] **AUD.18 — Sellar la validación de entradas externas: una puerta con Zod y un gate que solo deja bajar.**
+  (abierto 2026-11-11, GO de Carlos) `src/boundary/` con `readBody`, `parseLlmJson`, `loadConfig` sobre esquemas Zod;
+  gate en pre-commit que cuenta `JSON.parse(`, `.json()` de request y `parse(` de YAML fuera de `src/boundary/` contra
+  un presupuesto que solo baja (hoy 112). Verificación: un call site nuevo sin esquema hace fallar el commit.
 - [ ] **AUD.12 — Timeouts e iteraciones de config sin tope: un valor grande mata el run al instante o lo deja sin fin.**
   (abierto 2026-11-11) `setTimeout` con más de 2^31−1 ms, negativo o NaN dispara a 1 ms (reproducido en Bun). Entradas:
   `src/config/load.ts:298-302` (`external.timeoutMs`, solo `typeof`), `src/dashboard/handlers/config.ts:304-310` y

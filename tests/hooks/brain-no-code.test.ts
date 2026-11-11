@@ -26,7 +26,7 @@ function runHook(
   return result
 }
 
-function tool(tool_name: string, tool_input: Record<string, string>) {
+function tool(tool_name: string, tool_input: Record<string, unknown>) {
   return { tool_name, tool_input }
 }
 
@@ -40,6 +40,134 @@ describe('brain-no-code hook', () => {
   it('deny Edit a src/', () => {
     const root = mkdtempSync(join(tmpdir(), 'brain-guard-root-'))
     expectDenied(tool('Edit', { file_path: join(root, 'src/a.ts') }), root)
+  })
+
+  it('allows a 20-line Edit fix', () => {
+    const root = mkdtempSync(join(tmpdir(), 'brain-guard-root-'))
+    const result = runHook(
+      tool('Edit', {
+        file_path: join(root, 'src/a.ts'),
+        old_string: 'old',
+        new_string: Array(20).fill('line').join('\n'),
+      }),
+      root,
+    )
+    expect(result.stdout.trim()).toBe('')
+  })
+
+  it('denies an Edit over 20 lines and explains the size limit', () => {
+    const root = mkdtempSync(join(tmpdir(), 'brain-guard-root-'))
+    const result = runHook(
+      tool('Edit', {
+        file_path: join(root, 'src/a.ts'),
+        old_string: 'old',
+        new_string: Array(21).fill('line').join('\n'),
+      }),
+      root,
+    )
+    expect(result.stdout).toContain('permissionDecision":"deny')
+    expect(result.stdout).toContain('fix chico')
+  })
+
+  it('denies a small Edit to the guard itself', () => {
+    const root = mkdtempSync(join(tmpdir(), 'brain-guard-root-'))
+    expectDenied(
+      tool('Edit', {
+        file_path: join(root, '.claude/hooks/h.js'),
+        old_string: 'a',
+        new_string: 'b',
+      }),
+      root,
+    )
+  })
+
+  it('always denies Write to code', () => {
+    const root = mkdtempSync(join(tmpdir(), 'brain-guard-root-'))
+    expectDenied(tool('Write', { file_path: join(root, 'src/a.ts'), content: 'x' }), root)
+  })
+
+  it('allows a MultiEdit totaling 20 lines', () => {
+    const root = mkdtempSync(join(tmpdir(), 'brain-guard-root-'))
+    const result = runHook(
+      tool('MultiEdit', {
+        file_path: join(root, 'scripts/x.ts'),
+        edits: [
+          { old_string: 'x', new_string: Array(10).fill('x').join('\n') },
+          { old_string: 'x', new_string: Array(10).fill('x').join('\n') },
+        ],
+      }),
+      root,
+    )
+    expect(result.stdout.trim()).toBe('')
+  })
+
+  it('denies a MultiEdit totaling more than 20 lines', () => {
+    const root = mkdtempSync(join(tmpdir(), 'brain-guard-root-'))
+    const result = runHook(
+      tool('MultiEdit', {
+        file_path: join(root, 'scripts/x.ts'),
+        edits: [
+          { old_string: 'x', new_string: Array(11).fill('x').join('\n') },
+          { old_string: 'x', new_string: Array(11).fill('x').join('\n') },
+        ],
+      }),
+      root,
+    )
+    expect(result.stdout).toContain('permissionDecision":"deny')
+    expect(result.stdout).toContain('fix chico')
+  })
+
+  it('denies a MultiEdit without edits', () => {
+    const root = mkdtempSync(join(tmpdir(), 'brain-guard-root-'))
+    expectDenied(tool('MultiEdit', { file_path: join(root, 'scripts/x.ts') }), root)
+  })
+
+  it('denies Edit with replace_all even when the replacement is small', () => {
+    const root = mkdtempSync(join(tmpdir(), 'brain-guard-root-'))
+    const result = runHook(
+      tool('Edit', {
+        file_path: join(root, 'src/a.ts'),
+        old_string: 'a',
+        new_string: 'b',
+        replace_all: true,
+      }),
+      root,
+    )
+    expect(result.stdout).toContain('permissionDecision":"deny')
+    expect(result.stdout).toContain('fix chico')
+  })
+
+  it('denies Edit paths normalized into the guard directory', () => {
+    const root = mkdtempSync(join(tmpdir(), 'brain-guard-root-'))
+    expectDenied(
+      tool('Edit', {
+        file_path: `${root}/src/../.claude/hooks/x.js`,
+        old_string: 'a',
+        new_string: 'b',
+      }),
+      root,
+    )
+    expectDenied(
+      tool('Edit', {
+        file_path: `${root}/.orchestos/worktrees/t/src/../.claude/hooks/h.js`,
+        old_string: 'a',
+        new_string: 'b',
+      }),
+      root,
+    )
+  })
+
+  it('allows Edit paths normalized into a code directory', () => {
+    const root = mkdtempSync(join(tmpdir(), 'brain-guard-root-'))
+    const result = runHook(
+      tool('Edit', {
+        file_path: `${root}/src/../src/a.ts`,
+        old_string: 'a',
+        new_string: 'b',
+      }),
+      root,
+    )
+    expect(result.stdout.trim()).toBe('')
   })
 
   it('names the delegate role without naming models', () => {

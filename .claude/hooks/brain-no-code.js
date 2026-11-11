@@ -1,17 +1,18 @@
 #!/usr/bin/env node
 /**
- * Hook `PreToolUse`: impide que el cerebro de Claude Code escriba código.
+ * Hook `PreToolUse`: impide que el cerebro escriba código salvo fixes chicos (AT.22).
  * El ejecutor explícito queda permitido y cualquier error falla abierto.
  *
  * Spec: docs/specs/AT.1.md.
  */
 import { readFileSync } from 'node:fs'
-import { dirname, isAbsolute, relative, resolve } from 'node:path'
+import { dirname, isAbsolute, posix, relative, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 const ROOT =
   process.env.BRAIN_GUARD_ROOT || resolve(dirname(fileURLToPath(import.meta.url)), '../..')
 const CODE_PREFIXES = ['src/', 'tests/', 'scripts/', '.claude/hooks/']
+const SMALL_FIX_MAX_LINES = 20
 const MESSAGE_PREFIX =
   'Cerebro no escribe código (AGENTS.md § Protocolo de delegación): escribe el spec en docs/specs/<ID>.md y delega su ejecución a otro modelo. Ruta:'
 
@@ -20,9 +21,11 @@ function relativePath(filePath) {
 
   let result = isAbsolute(filePath) ? relative(ROOT, filePath) : filePath
   result = result.replaceAll('\\', '/').replace(/^\.\//, '')
+  result = posix.normalize(result)
 
   const worktreePrefix = /^\.orchestos\/worktrees\/[^/]+\//
   if (worktreePrefix.test(result)) result = result.replace(worktreePrefix, '')
+  result = posix.normalize(result)
 
   return result
 }
@@ -34,6 +37,30 @@ function isCodePath(filePath) {
     !result.startsWith('..') &&
     CODE_PREFIXES.some((prefix) => result.startsWith(prefix))
   )
+}
+
+function lineCount(value) {
+  if (typeof value !== 'string') return null
+  return value === '' ? 0 : value.split('\n').length
+}
+
+function editSize(edit) {
+  if (edit?.replace_all === true) return null
+  const oldLines = lineCount(edit?.old_string)
+  const newLines = lineCount(edit?.new_string)
+  if (oldLines === null || newLines === null) return null
+  return Math.max(oldLines, newLines)
+}
+
+function multiEditSize(edits) {
+  if (!Array.isArray(edits) || edits.length === 0) return null
+  let total = 0
+  for (const edit of edits) {
+    const size = editSize(edit)
+    if (size === null) return null
+    total += size
+  }
+  return total
 }
 
 function cleanToken(token) {
@@ -99,7 +126,12 @@ function shouldDeny(input) {
 
   if (toolName === 'Edit' || toolName === 'Write' || toolName === 'MultiEdit') {
     const path = relativePath(toolInput.file_path)
-    return path && isCodePath(toolInput.file_path) ? path : null
+    if (!path || !isCodePath(toolInput.file_path)) return null
+    if (toolName === 'Write') return { path }
+    const size = toolName === 'Edit' ? editSize(toolInput) : multiEditSize(toolInput.edits)
+    if (size === null || size > SMALL_FIX_MAX_LINES) return { path, sizeDenied: true }
+    if (path.startsWith('.claude/hooks/')) return { path }
+    return null
   }
   if (toolName === 'NotebookEdit') {
     const path = relativePath(toolInput.notebook_path)
@@ -123,15 +155,16 @@ function shouldDeny(input) {
 
 function main() {
   const input = JSON.parse(readFileSync(0, 'utf8'))
-  const path = shouldDeny(input)
-  if (!path) return
+  const result = shouldDeny(input)
+  if (!result) return
+  const denial = typeof result === 'string' ? { path: result } : result
 
   console.log(
     JSON.stringify({
       hookSpecificOutput: {
         hookEventName: 'PreToolUse',
         permissionDecision: 'deny',
-        permissionDecisionReason: `${MESSAGE_PREFIX} ${path}`,
+        permissionDecisionReason: `${MESSAGE_PREFIX} ${denial.path}${denial.sizeDenied && (input.tool_name === 'Edit' || input.tool_name === 'MultiEdit') ? ' (fix chico: Edit de hasta 20 líneas sí se permite)' : ''}`,
       },
     }),
   )

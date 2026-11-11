@@ -32,8 +32,12 @@ Reglas vigentes, una por línea. Texto anterior e incidentes que las motivaron:
 
 - Cerebro: abre el ítem en `PLAN.md`, escribe `docs/specs/<ID>.md` (qué, dónde `archivo:línea`, qué no tocar, cómo
   se verifica, qué hacer si falta un dato), delega, verifica con comandos propios y cierra. No escribe código de
-  producto (`src/`, `tests/`, `scripts/`, `.claude/hooks/`); sí `PLAN.md`, `NEXT.md`, `AGENTS.md`, `CLAUDE.md`,
-  `CONTEXT.md`, `docs/`. En Claude Code lo bloquea `.claude/hooks/brain-no-code.js`; en Codex rige este texto.
+  producto (`src/`, `tests/`, `scripts/`, `.claude/hooks/`) salvo **fixes chicos**: si el spec saldría más largo
+  que el diff o el archivo ya está en contexto, lo edita él (hasta 20 líneas por edición, nunca `.claude/hooks/`) y
+  `qa` (otro proveedor) revisa el diff. Sí escribe `PLAN.md`, `NEXT.md`, `AGENTS.md`, `CLAUDE.md`, `CONTEXT.md`,
+  `docs/`. En Claude Code lo hace cumplir `.claude/hooks/brain-no-code.js` (AT.22); en Codex rige este texto.
+  Historial: hasta 2026-11-11 el cerebro no escribía nada de código; Carlos sumó la excepción el 2026-11-10 en las
+  reglas globales y el 2026-11-11 aquí, porque delegar un fix de pocas líneas costaba más que hacerlo.
 - Delegar: el ejecutor es otro modelo (otro CLI o un subagente) que recibe solo el spec. Qué modelo hace cada rol es
   configuración del operador, no de este repo. La dificultad cambia el ejecutor, nunca quién escribe.
 - Ejecutor: implementa y corre sus tests; no commitea ni toca `PLAN.md`/`NEXT.md`. Su reporte y su `exit 0` no son
