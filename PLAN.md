@@ -337,6 +337,47 @@ prioridad hasta que Carlos las asigne.
   `package.json:54-71`). No verificado: si alguna se corre a mano o desde otro workflow (`ci.yml` no menciona
   mutación). Verificación: un shard nuevo para `harness.ts`/`contract.ts` en el workflow, o la decisión escrita de
   dejarlos fuera con su motivo.
+- [x] **AUD.11 — Validación a mano de `tasks.yaml` deja pasar valores inválidos.** (abierto y cerrado 2026-11-11)
+  `src/tasks/schema.ts`: `output`/`input`/`depends_on` revisan cada elemento, `status`/`qa_verdict` el conjunto,
+  `timeout_ms`/`expect_exit` exigen entero en rango, raíz no-mapping da error propio. Evidencia:
+  `src/__tests__/tasks-schema-strict.test.ts` 22 pass; `bun run test:coverage` 2545 pass 0 fail; los 6 `tasks.yaml`
+  reales de la máquina cargan igual antes y después; `qa` (Sol): sin defectos. La auditoría de los demás validadores
+  abrió AUD.12–AUD.17 (lectura de un subagente; 1–5 contrastados por el cerebro en el código).
+- [ ] **AUD.12 — Timeouts e iteraciones de config sin tope: un valor grande mata el run al instante o lo deja sin fin.**
+  (abierto 2026-11-11) `setTimeout` con más de 2^31−1 ms, negativo o NaN dispara a 1 ms (reproducido en Bun). Entradas:
+  `src/config/load.ts:298-302` (`external.timeoutMs`, solo `typeof`), `src/dashboard/handlers/config.ts:304-310` y
+  `:380-386` (`externalTimeoutMinutes`, sin tope), `src/run/executors/cli-registry.ts:257-263`; destino
+  `src/run/executors/external.ts:337-340`, `generic-cli.ts:26,40`. `agentic.maxIterations` (`load.ts:290-294`,
+  `config.ts:297-303`) acepta `.inf`/`1e12`/`0`/`2.5` y es la única cota del loop (`src/providers/tool-call.ts:642`).
+  Verificación: entero en rango en carga y en PUT, test por borde.
+- [ ] **AUD.13 — Seguridad: aprobación automática de comandos "read-only" de Codex sin mirar la ruta.** (abierto
+  2026-11-11) `src/run/executors/codex-approval.ts:54-66` marca `readOnly` solo por `commandActions[].type` y un regex;
+  no cruza `cwd` ni la ruta de cada acción con `projectRoot`, y `src/run/approvals.ts:49` aprueba solo en `supervised`
+  (p. ej. `cat ~/.ssh/id_rsa`). Igual en `src/run/executors/opencode-approval.ts:18-22`: entradas de `metadata.files` sin
+  `file` se descartan. No verificado: que Codex clasifique así ese comando. Verificación: test con ruta fuera del
+  proyecto → pide aprobación.
+- [ ] **AUD.14 — Salidas de LLM sin validar tumban el run.** (abierto 2026-11-11) `JSON.parse(tc.function.arguments)`
+  sin `try` y `data.choices[0]` sin comprobar (`src/providers/tool-call.ts:216-220`, `:581-586`,
+  `src/providers/openrouter.ts:118-124`); input de herramientas casteado en `src/run/executors/agentic.ts:194-200`
+  (`write_file` sin `path` → `TypeError` en `path-policy.ts:21`, run abortado); borrador del planner
+  (`src/dashboard/handlers/project.ts:268-283`); `frequency` declarada por el LLM en `src/analyze/patterns.ts:181-186`;
+  campos de streams de CLI (`external.ts:612-623`, `opencode.ts:141-146`, `codex.ts:276-287`). Verificación: el error
+  vuelve al modelo como resultado de herramienta, no aborta el run.
+- [ ] **AUD.15 — `effort` y `roles.*.agent` sin comprobar contra el conjunto permitido.** (abierto 2026-11-11)
+  `src/dashboard/handlers/chat.ts:1380-1385` (`chatEffortLevelsForAgent` existe en `:157` y nadie lo llama),
+  `tasks.ts:307-308`, `config.ts:188,231`; `src/config/load.ts:162-165` castea `obj.agent as RoleAgent`. Falla tarde, en
+  la CLI, a veces tras crear el worktree.
+- [ ] **AUD.16 — Skills: `validateSkill` devuelve el objeto crudo y el id de la URL no se cruza con el del contenido.**
+  (abierto 2026-11-11) `src/skills/registry.ts:138-226` (`when_to_use: "x"` → `.map is not a function` en
+  `src/skills/targets/_shared.ts:15`, rompe el prompt de QA); `src/dashboard/handlers/skills.ts:160-186`, `:593-622`;
+  índice del registry casteado en `src/skills/fetch.ts:47-48,73`; el import ignora `review.status: rejected`.
+- [ ] **AUD.17 — Bodies y archivos con tipo incorrecto dan 500 en vez de 400; `.env` admite saltos de línea.**
+  (abierto 2026-11-11) `POST /api/settings` (`src/dashboard/handlers/setup.ts:172-186` → `settings-store.ts:62-66`)
+  escribe `"x\nOPENROUTER_API_KEY=…"` como línea nueva en `~/.orchestos/.env`. Resto: casts `as T` en `tasks.ts:276-295`,
+  `instincts.ts:58-62,84-88,117`, `specs.ts:12-16`, `chat.ts:142-145,253,876`; body `null` en `run-graph.ts:75`,
+  `system.ts:8`, `skills.ts:217`; `package.json.name` no string (`src/detect/manifest.ts:20`); línea JSON-RPC `null`
+  (`src/mcp/server.ts:125,232`, `codex-app-server.ts:173-177`); precios de OpenRouter sin rango
+  (`src/router/model-catalog.ts:166-172`).
 
 ## Decisiones pendientes de Carlos
 

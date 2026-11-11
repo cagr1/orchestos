@@ -8,7 +8,16 @@ export function isTaskClass(value: unknown): value is TaskClass {
   return typeof value === 'string' && (TASK_CLASSES as readonly string[]).includes(value)
 }
 
-export type TaskStatus = 'pending' | 'running' | 'done' | 'failed' | 'failed_permanent' | 'blocked'
+const TASK_STATUSES = [
+  'pending',
+  'running',
+  'done',
+  'failed',
+  'failed_permanent',
+  'blocked',
+] as const
+export type TaskStatus = (typeof TASK_STATUSES)[number]
+const QA_VERDICTS = ['pass', 'fail', 'skipped'] as const
 export type TaskExecutor = 'openrouter' | 'anthropic' | 'openai' | 'codex'
 // B.2 — 'external' es la tercera implementación de ExecutorEngine (B.1, docs/done/design/external-executor-design.md).
 // Lanza el subproceso `claude -p` dentro del worktree; el harness aplica enforceContract post-hoc
@@ -84,6 +93,7 @@ export function validateTask(t: unknown, index: number): Task {
   if (!task.description || typeof task.description !== 'string') err('missing "description"')
   if (!Array.isArray(task.output) || (task.output as unknown[]).length === 0)
     err('"output" must be a non-empty array — this is the contract')
+  const output = validateStringArray(task.output, 'output', err) as string[]
 
   const executor = validateExecutor(task.executor, err)
 
@@ -98,15 +108,15 @@ export function validateTask(t: unknown, index: number): Task {
     approvalMode: validateApprovalMode(task.approvalMode, err),
     cli_effort: validateCliEffort(task.cli_effort, task.engine, err),
     task_class: validateTaskClass(task.task_class, err),
-    input: Array.isArray(task.input) ? (task.input as string[]) : [],
-    output: task.output as string[],
+    input: validateStringArray(optionalList(task.input), 'input', err) ?? [],
+    output,
     acceptance_criteria: validateStringArray(task.acceptance_criteria, 'acceptance_criteria', err),
     checks: validateChecks(task.checks, err),
-    depends_on: Array.isArray(task.depends_on) ? (task.depends_on as string[]) : [],
-    status: (task.status as TaskStatus) ?? 'pending',
+    depends_on: validateStringArray(optionalList(task.depends_on), 'depends_on', err) ?? [],
+    status: validateMember(task.status, TASK_STATUSES, 'status', err) ?? 'pending',
     retry_count: typeof task.retry_count === 'number' ? task.retry_count : 0,
     retry_reason: typeof task.retry_reason === 'string' ? task.retry_reason : undefined,
-    qa_verdict: task.qa_verdict as 'pass' | 'fail' | 'skipped' | undefined,
+    qa_verdict: validateMember(task.qa_verdict, QA_VERDICTS, 'qa_verdict', err),
     run_id: typeof task.run_id === 'string' ? task.run_id : undefined,
   }
 }
@@ -163,6 +173,37 @@ function validateStringArray(
   return strings as string[]
 }
 
+/** `null` en YAML (`input:` vacío) equivale a no declarar la lista. */
+function optionalList(value: unknown): unknown {
+  return value === null ? undefined : value
+}
+
+function validateMember<T extends string>(
+  value: unknown,
+  allowed: readonly T[],
+  field: string,
+  err: (msg: string) => never,
+): T | undefined {
+  if (value === undefined || value === null) return undefined
+  if (typeof value !== 'string' || !(allowed as readonly string[]).includes(value)) {
+    err(`unknown ${field} '${String(value)}' — allowed: ${allowed.join(', ')}`)
+  }
+  return value as T
+}
+
+function validateCheckNumber(
+  value: unknown,
+  field: string,
+  min: number,
+  err: (msg: string) => never,
+): number | undefined {
+  if (value === undefined) return undefined
+  if (typeof value !== 'number' || !Number.isInteger(value) || value < min) {
+    err(`"${field}" must be an integer >= ${min}`)
+  }
+  return value
+}
+
 function validateChecks(value: unknown, err: (msg: string) => never): Check[] | undefined {
   if (value === undefined) return undefined
   if (!Array.isArray(value)) err('"checks" must be an array')
@@ -179,17 +220,11 @@ function validateChecks(value: unknown, err: (msg: string) => never): Check[] | 
     if (check.cwd !== undefined && typeof check.cwd !== 'string') {
       err(`"checks[${i}].cwd" must be a string`)
     }
-    if (check.timeout_ms !== undefined && typeof check.timeout_ms !== 'number') {
-      err(`"checks[${i}].timeout_ms" must be a number`)
-    }
-    if (check.expect_exit !== undefined && typeof check.expect_exit !== 'number') {
-      err(`"checks[${i}].expect_exit" must be a number`)
-    }
     return {
       cmd: check.cmd.trim(),
       cwd: typeof check.cwd === 'string' ? check.cwd : undefined,
-      timeout_ms: typeof check.timeout_ms === 'number' ? check.timeout_ms : undefined,
-      expect_exit: typeof check.expect_exit === 'number' ? check.expect_exit : undefined,
+      timeout_ms: validateCheckNumber(check.timeout_ms, `checks[${i}].timeout_ms`, 1, err),
+      expect_exit: validateCheckNumber(check.expect_exit, `checks[${i}].expect_exit`, 0, err),
     }
   })
 }
@@ -206,6 +241,9 @@ function validateCheckCommand(cmd: string, field: string, err: (msg: string) => 
 }
 
 export function validateTasksFile(raw: unknown): TasksFile {
+  if (typeof raw !== 'object' || raw === null || Array.isArray(raw)) {
+    throw new Error('tasks.yaml: root must be a mapping')
+  }
   const f = raw as Record<string, unknown>
   if (!f.project || typeof f.project !== 'string') throw new Error('tasks.yaml: missing "project"')
   if (!Array.isArray(f.tasks)) throw new Error('tasks.yaml: missing "tasks" array')

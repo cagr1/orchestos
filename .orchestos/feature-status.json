@@ -162,6 +162,62 @@
       "title": "Mutación: `harness.ts` y `contract.ts` no están en ningún shard de la nocturna",
       "status": "open",
       "closedDate": null
+    },
+    {
+      "id": "AUD.11",
+      "sprint": "Abiertos — auditoría 2026-11-10",
+      "block": null,
+      "title": "Validación a mano de `tasks.yaml` deja pasar valores inválidos",
+      "status": "done",
+      "closedDate": null
+    },
+    {
+      "id": "AUD.12",
+      "sprint": "Abiertos — auditoría 2026-11-10",
+      "block": null,
+      "title": "Timeouts e iteraciones de config sin tope: un valor grande mata el run al instante o lo deja sin fin",
+      "status": "open",
+      "closedDate": null
+    },
+    {
+      "id": "AUD.13",
+      "sprint": "Abiertos — auditoría 2026-11-10",
+      "block": null,
+      "title": "Seguridad: aprobación automática de comandos \"read-only\" de Codex sin mirar la ruta",
+      "status": "open",
+      "closedDate": null
+    },
+    {
+      "id": "AUD.14",
+      "sprint": "Abiertos — auditoría 2026-11-10",
+      "block": null,
+      "title": "Salidas de LLM sin validar tumban el run",
+      "status": "open",
+      "closedDate": null
+    },
+    {
+      "id": "AUD.15",
+      "sprint": "Abiertos — auditoría 2026-11-10",
+      "block": null,
+      "title": "`effort` y `roles.*.agent` sin comprobar contra el conjunto permitido",
+      "status": "open",
+      "closedDate": null
+    },
+    {
+      "id": "AUD.16",
+      "sprint": "Abiertos — auditoría 2026-11-10",
+      "block": null,
+      "title": "Skills: `validateSkill` devuelve el objeto crudo y el id de la URL no se cruza con el del contenido",
+      "status": "open",
+      "closedDate": null
+    },
+    {
+      "id": "AUD.17",
+      "sprint": "Abiertos — auditoría 2026-11-10",
+      "block": null,
+      "title": "Bodies y archivos con tipo incorrecto dan 500 en vez de 400; `.env` admite saltos de línea",
+      "status": "open",
+      "closedDate": null
     }
   ]
 }
