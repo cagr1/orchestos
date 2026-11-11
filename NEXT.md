@@ -11,6 +11,10 @@ Arranque: `bun run agent:preflight -- --item <ID> --agent claude`. Lista viva: `
    - AUD.1, AUD.2 y AUD.3 cerrados. Antes de delegar cada uno, el cerebro comprueba con grep su lista de "no verificado" y
      lee entero el módulo que toca y sus tests (AUD.1: 5 enmiendas; AUD.2: 3, todas por casos borde de rutas de git).
    - AUD.4 cerrado 2026-11-11 (`runs.failure_kind` + chip en hilo y Runs; evidencia en `PLAN.md`).
+   - 2026-11-11, sesión aparte: AUD.11 (tasks.yaml estricto), AT.22 (el cerebro hace fixes de ≤20 líneas; el hook
+     lo permite) y AUD.18 (`src/boundary/` con Zod + gate `boundary-budget` en pre-commit, 140 parseos, solo baja)
+     cerrados. Abiertos AUD.12–17 (migrar esos parseos; AUD.13 es seguridad): van después de AUD.7 y bajan el
+     presupuesto. Parseo nuevo de datos externos → `src/boundary`, o el commit no entra.
    - **Siguiente**, en este orden y con spec nuevo cada uno: AUD.7, AUD.5, AUD.10, AUD.8, AUD.9, AUD.6.
      AUD.7 cambia comportamiento central: plan corto y GO de Carlos antes de delegar.
    - Decisiones de Carlos pendientes: adoptar el tamaño por reanudabilidad de ODD en el proceso; qué ideas de
