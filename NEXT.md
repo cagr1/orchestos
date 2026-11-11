@@ -22,7 +22,15 @@ Arranque: `bun run agent:preflight -- --item <ID> --agent claude`. Lista viva: `
      AUD.20 → AUD.19 → AUD.7 → AUD.23 + AUD.13 → AUD.21 + AUD.5 → AUD.22 + AUD.6 → AUD.24 → AUD.25 →
      AUD.26 + AUD.9 → AUD.12, 14–17 → AUD.27 + AUD.8 → AUD.10 → AUD.28. Antes: AUD.7, AUD.5, AUD.10, AUD.8, AUD.9,
      AUD.6 (orden de la primera auditoría).
-     - Ningún ítem tiene spec escrito: el primer paso es el de AUD.20. Lo no marcado ✔ en el informe se comprueba
+     - **EN PAUSA (2026-11-11): AUD.20 a medias, código SIN commitear en el árbol de este Mac.** Hecho: spec
+       `docs/specs/AUD.20.md` aplicado por Sol (9 puntos, 2586 tests verdes según él) + 3 fixes del cerebro
+       (`specPath` acepta el mismo id que `validateTaskId` salvo `..`; detect con body vacío → 409; temporal de config
+       se borra antes de escribir). qa (`docs/specs/AUD.20-qa.md`) halló 5 defectos → `docs/specs/AUD.20-fix.md`;
+       su ejecución se cortó a mitad (puede haber cambios parciales). Retomar: `git diff --stat`, relanzar
+       `delegate criterio docs/specs/AUD.20-fix.md`, gates propios (`tsc`, `lint`, `test:coverage`), qa del diff
+       final, commit por rutas con (ojo: el `req.json()` de `handleApiProjectDetect` rompe `boundary-budget`
+       65 > 64; pasarlo por `src/boundary` con Zod) `Ejecutado por: gpt-6.1-sol + claude-opus-5-5`, borrar los 3 specs.
+     - Tras AUD.20, el siguiente es AUD.19; ningún otro ítem tiene spec escrito. Lo no marcado ✔ en el informe se comprueba
        con grep al escribirlo. No relanzar los auditores: su salida literal está en los anexos.
      - AUD.7 y AUD.28 cambian comportamiento central: plan corto y GO de Carlos antes de delegar. AUD.28 no tiene GO.
      - Sin leer en la auditoría: `components/ui/*` por dentro, `scripts/ui-gate`, `tests/`.
