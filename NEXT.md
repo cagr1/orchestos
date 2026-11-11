@@ -23,7 +23,10 @@ Arranque: `bun run agent:preflight -- --item <ID> --agent claude`. Lista viva: `
    gate desfasado de la UI, no producto roto. Propuestas a decidir: (a) medir avance en ítems de producto cerrados,
    no en commits; (b) rojo nocturno = producto roto → primero; gate desfasado → lote semanal; (c) cada lote alterna
    producto con CI/AUD. Ya aplicado: push tras cada commit (`74e43672`).
-2. Ui-gates nocturnos: la corrida del 2026-11-10 (`a3c6648`) no vale, el Mac durmió en batería toda la noche (CI.82:
+2. Ui-gates nocturnos: la del 2026-11-11 (`089302a`) tampoco vale: durmió en batería hasta las 08:16 pese a
+   `caffeinate` (36 eventos, `sleeps` del JSON) — sin enchufe y tapa abierta no hay corrida válida. Despierto:
+   `chat-timeout` = AUD.9; `opencode-terminal` falló 2/2 al despertar y pasó 13/13 repetido (flaky, sin ítem);
+   `chat-retry-report` pasó 27/27 dos veces en el día. La corrida del 2026-11-10 (`a3c6648`) no vale, el Mac durmió en batería toda la noche (CI.82:
    ahora `caffeinate` y el guard marca "corrida inválida"). Repetidos despierto: 2 eran del sueño, 3 eran deriva del
    gate (CI.83) y uno destapó un desborde real de la terminal al 125 % (CI.84). Sin repetir todavía: `auto-flow`,
    `chat-*` (attachments, context, followup-task, permissions, readonly-shell, retry-report) y los 3 flaky;
