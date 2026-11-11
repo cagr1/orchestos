@@ -1,6 +1,7 @@
 import { Activity, AlertCircle, ArrowLeft, CheckCircle2, ChevronRight, Search } from 'lucide-react'
 import type React from 'react'
 import { useEffect, useState } from 'react'
+import { failureKindLabels } from '../../lib/failureKind'
 import type { RunItem } from '../../types/orchestos'
 import { StatusBadge } from '../common/StatusBadge'
 import { EmptyState, ErrorState, SkeletonView } from '../common/ViewStateFeedback'
@@ -71,7 +72,7 @@ export const RunsEvidenceView: React.FC<RunsEvidenceViewProps> = ({
     const matchesStatus =
       statusFilter === 'all' ||
       (statusFilter === 'passed' && run.qaVerdict === 'pass') ||
-      (statusFilter === 'failed' && run.qaVerdict === 'fail')
+      (statusFilter === 'failed' && (run.status !== 'done' || run.qaVerdict === 'fail'))
     return matchesSearch && matchesStatus
   })
 
@@ -101,6 +102,11 @@ export const RunsEvidenceView: React.FC<RunsEvidenceViewProps> = ({
           <div className="flex items-center gap-2">
             <span className="font-mono text-xs font-semibold text-app">{selectedRun.id}</span>
             <RunQaBadge run={selectedRun} />
+            {selectedRun.failureKind && selectedRun.failureKind !== 'qa' && (
+              <span data-failure-kind={selectedRun.failureKind}>
+                <StatusBadge status="failed" label={failureKindLabels[selectedRun.failureKind]} />
+              </span>
+            )}
           </div>
         </div>
 
@@ -481,6 +487,11 @@ export const RunsEvidenceView: React.FC<RunsEvidenceViewProps> = ({
                   </td>
                   <td className="px-3 whitespace-nowrap">
                     <RunQaBadge run={run} />
+                    {run.failureKind && run.failureKind !== 'qa' && (
+                      <span data-failure-kind={run.failureKind}>
+                        <StatusBadge status="failed" label={failureKindLabels[run.failureKind]} />
+                      </span>
+                    )}
                   </td>
                   <td className="px-3 text-right whitespace-nowrap">
                     <span className="text-app-muted group-hover:text-app text-xs inline-flex items-center gap-1 font-medium">

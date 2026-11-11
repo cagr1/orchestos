@@ -17,6 +17,7 @@ interface RunRow {
     stdout?: string
   }>
   status: RunItem['status']
+  failureKind: RunItem['failureKind']
   qaVerdict: RunItem['qaVerdict']
   qaReason?: string | null
   result?: string | null
@@ -71,6 +72,7 @@ export function mapRunRow(row: RunRow): RunItem {
     taskId: row.taskId || '',
     taskDescription: row.prompt?.split(/\r?\n/, 1)[0] || row.taskId || '—',
     status: row.status,
+    failureKind: row.failureKind ?? null,
     qaVerdict: row.qaVerdict,
     qaModel: row.qaModel ?? null,
     ...(row.status !== 'done' && row.result ? { failureReason: row.result } : {}),

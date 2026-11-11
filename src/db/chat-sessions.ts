@@ -1,5 +1,6 @@
 import { randomUUID } from 'node:crypto'
 import type { AgentChoice } from '../config/schema.ts'
+import { isRunFailureKind, type RunFailureKind } from './runs.ts'
 import { db } from './sqlite.ts'
 
 export type ChatSessionMode = 'chat' | 'code'
@@ -37,6 +38,7 @@ interface StoredChatMessage {
 
 /** Datos estructurados de un reporte de fin de tarea. */
 export interface TaskDiagnosis {
+  kind?: RunFailureKind
   cause?: string
   failedCheck?: { command: string; output?: string }
   qaReasons?: string[]
@@ -106,6 +108,7 @@ function parseTaskDiagnosis(value: unknown): TaskDiagnosis | undefined {
   if (!value || typeof value !== 'object') return undefined
   const raw = value as Record<string, unknown>
   const diagnosis: TaskDiagnosis = {}
+  if (isRunFailureKind(raw.kind)) diagnosis.kind = raw.kind
   for (const key of ['cause', 'executorReport', 'runId'] as const) {
     if (typeof raw[key] === 'string') diagnosis[key] = raw[key]
   }

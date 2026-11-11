@@ -10,6 +10,7 @@ export interface TaskRowResponse {
   assignedAgent: string | null
   assignedModel: string | null
   retryCount: number
+  failureKind: TaskItem['failureKind']
   qaVerdict: 'pass' | 'fail' | 'skipped' | null
   runId: string | null
   pendingApprovals: number
@@ -40,6 +41,7 @@ function mapTask(row: TaskRowResponse): TaskItem {
     acceptance_criteria: row.acceptanceCriteria,
     retryCount: row.retryCount,
     retryReason: row.retryReason,
+    failureKind: row.failureKind ?? null,
     qaVerdict: row.qaVerdict,
     runId: row.runId,
     pendingApprovals: row.pendingApprovals ?? 0,

@@ -263,3 +263,43 @@ describe('diagnoseTask - data privacy', () => {
     expect(lastChatBody).toContain('[REDACTED:provider-key]')
   })
 })
+
+describe('AUD.4 deterministic diagnosis', () => {
+  it('uses the stored check kind without calling the provider', async () => {
+    let calls = 0
+    globalThis.fetch = (async () => {
+      calls++
+      throw new Error('provider must not be used')
+    }) as unknown as typeof fetch
+    try {
+      const result = await diagnoseTask('t1-fail', testRoot, undefined, mockLoadTasks, () => [
+        { ...mockRuns[0], failure_kind: 'check' },
+      ])
+      expect(result).toMatchObject({
+        pattern: 'deterministic_check',
+        confidence: 'high',
+        usdCost: 0,
+        details: mockRuns[0].result,
+      })
+      expect(calls).toBe(0)
+    } finally {
+      globalThis.fetch = originalFetch
+    }
+  })
+  it('keeps the LLM path for an unclassified legacy run', async () => {
+    mockChatFetch(
+      JSON.stringify({
+        pattern: 'unknown',
+        confidence: 'low',
+        suggestion: 'Retry',
+        details: 'legacy',
+      }),
+    )
+    lastChatBody = ''
+    const result = await diagnoseTask('t1-fail', testRoot, undefined, mockLoadTasks, () => [
+      { ...mockRuns[0], failure_kind: null },
+    ])
+    expect(lastChatBody).toContain('FAILURE PATTERNS')
+    expect(result.details).toBe('legacy')
+  })
+})

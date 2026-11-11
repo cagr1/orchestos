@@ -4,9 +4,11 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { stringify } from 'yaml'
 import { DEFAULT_CONFIG } from '../config/schema.ts'
+import type { RunFailureKind } from '../db/runs.ts'
 import { db } from '../db/sqlite.ts'
 import { calcCost } from '../router/pricing.ts'
 import * as roleRunner from '../router/role-runner.ts'
+import { CliFailure } from '../run/executors/cli-failure.ts'
 import { buildPrompt, previousFailureForTask } from '../run/prompt.ts'
 import { parseCostBreakdownJson } from '../run/transcript-parser.ts'
 import { loadTasks, saveTasks, updateTaskStatus } from '../tasks/loader.ts'
@@ -153,12 +155,14 @@ async function assertRowForFailure(
   task: ReturnType<typeof baseTask>,
   result: Awaited<ReturnType<typeof callRunTask>>,
   expectedSubstring: string,
+  expectedKind?: RunFailureKind,
 ) {
   expect(result.runId).not.toBe('')
   expect(result.runId.length).toBeGreaterThan(0)
   const { getRun } = await import('../db/runs.ts')
   const row = getRun(result.runId)
   expect(row).not.toBeNull()
+  if (expectedKind) expect(row!.failure_kind).toBe(expectedKind)
   expect(row!.task_id).toBe(task.id)
   const haystack = `${row!.result ?? ''} ${row!.qa_reason ?? ''}`
   expect(haystack).toContain(expectedSubstring)
@@ -175,6 +179,7 @@ describe('AUD.3 — una excepción inesperada deja una fila de run', () => {
       const { getRun } = await import('../db/runs.ts')
       const row = getRun(result.runId)
       expect(row).not.toBeNull()
+      expect(row!.failure_kind).toBe('unexpected')
       expect(row!.status).toBe('failed')
       expect(row!.task_id).toBe(task.id)
       expect(row!.result).toContain('requires an approved spec')
@@ -203,6 +208,7 @@ describe('AUD.3 — una excepción inesperada deja una fila de run', () => {
       const { getRun } = await import('../db/runs.ts')
       const row = getRun(result.runId)
       expect(row).not.toBeNull()
+      expect(row!.failure_kind).toBe('unexpected')
       expect(row!.status).toBe('failed')
       expect(row!.result).toContain('boom')
       expect(row!.model).toBe('mock/model')
@@ -214,6 +220,19 @@ describe('AUD.3 — una excepción inesperada deja una fila de run', () => {
 })
 
 describe('F3.3 — every failure path leaves a row in runs and a non-empty runId', () => {
+  it('persists a provider CliFailure quota kind', async () => {
+    process.env.OPENROUTER_API_KEY = ['test', 'quota', 'key'].join('-')
+    installMockFetch([() => new CliFailure({ kind: 'quota', message: 'quota exhausted' })])
+    const dir = tmpDir()
+    try {
+      const task = baseTask()
+      const result = await callRunTask(task, dir)
+      await assertRowForFailure(task, result, 'quota exhausted', 'quota')
+    } finally {
+      rmSync(dir, { recursive: true, force: true })
+    }
+  })
+
   it('F3.1 LLM call catch: provider that throws inserts a row with the error message', async () => {
     process.env.OPENROUTER_API_KEY = 'sk-test-or-key'
     installMockFetch([() => new Error('test provider boom 401')])
@@ -223,7 +242,7 @@ describe('F3.3 — every failure path leaves a row in runs and a non-empty runId
       const task = baseTask()
       const result = await callRunTask(task, dir)
       expect(result.status).toBe('failed')
-      await assertRowForFailure(task, result, 'test provider boom 401')
+      await assertRowForFailure(task, result, 'test provider boom 401', 'auth')
     } finally {
       rmSync(dir, { recursive: true, force: true })
     }
@@ -238,7 +257,7 @@ describe('F3.3 — every failure path leaves a row in runs and a non-empty runId
       const task = baseTask()
       const result = await callRunTask(task, dir)
       expect(result.status).toBe('failed')
-      await assertRowForFailure(task, result, 'No <<<FILE:...>>>')
+      await assertRowForFailure(task, result, 'No <<<FILE:...>>>', 'parse')
     } finally {
       rmSync(dir, { recursive: true, force: true })
     }
@@ -253,7 +272,7 @@ describe('F3.3 — every failure path leaves a row in runs and a non-empty runId
       const task = baseTask({ output: ['out.txt'] })
       const result = await callRunTask(task, dir)
       expect(result.status).toBe('failed')
-      await assertRowForFailure(task, result, 'CONTRACT VIOLATION')
+      await assertRowForFailure(task, result, 'CONTRACT VIOLATION', 'contract')
       const { getRun } = await import('../db/runs.ts')
       expect(getRun(result.runId)!.status).toBe('blocked')
     } finally {
@@ -270,7 +289,12 @@ describe('F3.3 — every failure path leaves a row in runs and a non-empty runId
       const task = baseTask({ output: ['out-a.txt', 'out-b.txt'] })
       const result = await callRunTask(task, dir)
       expect(result.status).toMatch(/^(failed|retry)$/)
-      await assertRowForFailure(task, result, 'missing declared output(s): out-b.txt')
+      await assertRowForFailure(
+        task,
+        result,
+        'missing declared output(s): out-b.txt',
+        'output_missing',
+      )
     } finally {
       rmSync(dir, { recursive: true, force: true })
     }
@@ -285,7 +309,7 @@ describe('F3.3 — every failure path leaves a row in runs and a non-empty runId
       const task = baseTask({ output: ['out.txt'], checks: [{ cmd: 'false' }] })
       const result = await callRunTask(task, dir)
       expect(result.status).toMatch(/^(failed|retry)$/)
-      await assertRowForFailure(task, result, 'check failed: false exit 1')
+      await assertRowForFailure(task, result, 'check failed: false exit 1', 'check')
     } finally {
       rmSync(dir, { recursive: true, force: true })
     }
@@ -346,6 +370,7 @@ describe('F3.3 — every failure path leaves a row in runs and a non-empty runId
       await assertRowForFailure(task, result, 'QA fail')
       const { getRun } = await import('../db/runs.ts')
       const row = getRun(result.runId)!
+      expect(row.failure_kind).toBe('qa')
       expect(row.qa_verdict).toBe('fail')
       expect(row.qa_reason).toBe('qa fail test reason')
       expect(result.retryReason).toBe(`Opinión del juez QA (${row.qa_model}): qa fail test reason`)
@@ -367,7 +392,12 @@ describe('F3.3 — every failure path leaves a row in runs and a non-empty runId
       const task = baseTask({ output: ['out-a.txt', 'out-b.txt'] })
       const result = await callRunTask(task, dir)
       expect(result.status).toMatch(/^(failed|retry)$/)
-      await assertRowForFailure(task, result, 'missing declared output(s): out-b.txt')
+      await assertRowForFailure(
+        task,
+        result,
+        'missing declared output(s): out-b.txt',
+        'output_missing',
+      )
       const { getRun } = await import('../db/runs.ts')
       const row = getRun(result.runId)!
       const resultText = `${row.result ?? ''} ${row.qa_reason ?? ''}`
@@ -398,6 +428,7 @@ describe('ERP.5.1 — el revisor LLM corre solo con criterios o un gate de revis
       const { getRun } = await import('../db/runs.ts')
       const row = getRun(result.runId)!
       expect(result.qaVerdict).toBe('skipped')
+      expect(row.failure_kind).toBeNull()
       expect(row.qa_verdict).toBe('skipped')
       expect(row.qa_model).toBeNull()
       expect(row.qa_reason).toBe('Sin revisión LLM y sin checks: nada verificó esta tarea')
@@ -426,6 +457,7 @@ describe('ERP.5.1 — el revisor LLM corre solo con criterios o un gate de revis
       expect(calls).toHaveLength(1)
       const { getRun } = await import('../db/runs.ts')
       const row = getRun(result.runId)!
+      expect(row.failure_kind).toBeNull()
       expect(row.qa_verdict).toBe('skipped')
       expect(row.qa_reason).toBe(result.qaReason!)
       expect(JSON.parse(row.checks_json!)).toEqual([

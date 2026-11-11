@@ -10,17 +10,9 @@ Arranque: `bun run agent:preflight -- --item <ID> --agent claude`. Lista viva: `
    de producto o el mes de uso real"). Informe y dirección por ítem: `docs/auditoria-2026-11-10.md`.
    - AUD.1, AUD.2 y AUD.3 cerrados. Antes de delegar cada uno, el cerebro comprueba con grep su lista de "no verificado" y
      lee entero el módulo que toca y sus tests (AUD.1: 5 enmiendas; AUD.2: 3, todas por casos borde de rutas de git).
-   - **AUD.4 — falta el GO de Carlos para este plan** (sesión 2026-11-10, cortada al salir Carlos). Borrador:
-     columna `runs.failure_kind` (migración numerada, null = done); cada uno de los 7 `insertRun` de `harness.ts`
-     la rellena: `parse`, `contract`, `output_missing`, `check`, `qa`, `unexpected` y, para la llamada al
-     proveedor, el `CliNoticeKind` de `classifyCliFailure` (`cli-failure.ts:20`: quota, rate-limit, auth, network,
-     overloaded, invalid-model, no-response, process-exit, timeout, unknown); la vista del run fallido muestra la
-     causa; `diagnose.ts:47` describe `parse_error` con los delimitadores `<<<FILE:…>>>` y deja de clasificar con
-     LLM lo que ya trae `failure_kind`. Fuera: borrar `/api/tasks/:id/diagnose` y `/api/run/graph` (va en AUD.8).
-     Pendiente antes del spec: decidir dónde se ve la causa en la UI (recomendado: chip en la fila de la tarea y en
-     la evidencia del run) y leer qué componente muestra hoy el run fallido.
-   - **Siguiente**, en este orden y con spec nuevo cada uno: AUD.4, AUD.7, AUD.5, AUD.10, AUD.8, AUD.9, AUD.6.
-     AUD.4 y AUD.7 cambian comportamiento central: plan corto y GO de Carlos antes de delegar.
+   - AUD.4 cerrado 2026-11-11 (`runs.failure_kind` + chip en hilo y Runs; evidencia en `PLAN.md`).
+   - **Siguiente**, en este orden y con spec nuevo cada uno: AUD.7, AUD.5, AUD.10, AUD.8, AUD.9, AUD.6.
+     AUD.7 cambia comportamiento central: plan corto y GO de Carlos antes de delegar.
    - Decisiones de Carlos pendientes: adoptar el tamaño por reanudabilidad de ODD en el proceso; qué ideas de
      `IDEAS.md` entran al cierre (propuesta en el informe); Tauri (recomendado) o Electron, después de AUD.7.
    - Cupo: la auditoría gastó ~35 % del cupo de 5 h. No relanzar agentes de lectura: la evidencia ya está escrita.

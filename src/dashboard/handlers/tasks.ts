@@ -7,6 +7,7 @@ import type { AgentChoice } from '../../config/schema.ts'
 import { getChatSession } from '../../db/chat-sessions.ts'
 import { getProject } from '../../db/projects.ts'
 import { getRunSteps } from '../../db/run-steps.ts'
+import { getRun } from '../../db/runs.ts'
 import { db } from '../../db/sqlite.ts'
 import { getTaskRunWatch, upsertTaskRunWatch } from '../../db/task-run-watch.ts'
 import { autoRoute, describeTaskExecutor, formatRoute } from '../../router/auto-route.ts'
@@ -139,6 +140,7 @@ function buildTaskRow(
     ...assignedExecutor(t, cfg),
     retryCount: t.retry_count,
     qaVerdict: t.qa_verdict ?? null,
+    failureKind: (t.run_id ? getRun(t.run_id)?.failure_kind : null) ?? null,
     runId: approvalRunId ?? t.run_id ?? null,
     pendingApprovals: approvalRunId ? pendingApprovals(approvalRunId).length : 0,
     sessionId: t.status === 'running' ? (getTaskRunWatch(root, t.id)?.session_id ?? null) : null,

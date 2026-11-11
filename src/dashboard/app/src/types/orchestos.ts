@@ -1,3 +1,4 @@
+import type { RunFailureKind } from '../../../../db/runs'
 import type { TaskClass } from '../../../../router/classify'
 import type { CliNotice } from '../../../../run/executors/cli-failure'
 export type ApprovalMode = 'supervised' | 'auto-edit' | 'full'
@@ -20,6 +21,7 @@ export interface TaskItem {
   acceptance_criteria: string[]
   retryCount: number
   retryReason?: string | null
+  failureKind?: RunFailureKind | null
   qaVerdict?: QaVerdict
   runId?: string | null
   pendingApprovals?: number
@@ -80,6 +82,7 @@ export interface RunItem {
   taskId: string
   taskDescription: string
   status: 'done' | 'blocked' | 'failed'
+  failureKind: RunFailureKind | null
   qaVerdict: QaVerdict
   qaModel?: string | null
   failureReason?: string
@@ -226,6 +229,7 @@ export interface ChatMessage {
   // ERP.4.13 — datos estructurados de un reporte de fin de tarea
   taskReport?: {
     diagnosis?: {
+      kind?: RunFailureKind
       cause?: string
       failedCheck?: { command: string; output?: string }
       qaReasons?: string[]

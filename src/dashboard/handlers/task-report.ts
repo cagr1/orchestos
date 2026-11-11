@@ -73,6 +73,7 @@ function buildTaskReportData(
   const diagnosis =
     !interrupted && (status === 'failed' || (status === 'pending' && task?.retry_count))
       ? {
+          ...(run?.failure_kind ? { kind: run.failure_kind } : {}),
           ...(cause ? { cause: bounded(cause, 2048) } : {}),
           ...(failedCheck
             ? {

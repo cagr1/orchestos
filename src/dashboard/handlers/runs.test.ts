@@ -88,6 +88,7 @@ describe('runRecordToRow', () => {
 
   test('exposes real evidence and tolerates malformed JSON columns', () => {
     const row = runRecordToRow({
+      failure_kind: 'check',
       id: 'run-1',
       project_id: 'project-1',
       prompt: 'Implement feature\nwith more detail',

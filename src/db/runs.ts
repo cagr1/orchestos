@@ -1,8 +1,42 @@
 import { randomUUID } from 'node:crypto'
+import type { CliNoticeKind } from '../run/executors/cli-failure.ts'
 import { redactSensitive } from '../security/secrets.ts'
 import { db } from './sqlite.ts'
 
+export type RunFailureKind =
+  | 'parse'
+  | 'contract'
+  | 'output_missing'
+  | 'check'
+  | 'qa'
+  | 'unexpected'
+  | Exclude<CliNoticeKind, 'retrying'>
+
+export const RUN_FAILURE_KINDS = [
+  'parse',
+  'contract',
+  'output_missing',
+  'check',
+  'qa',
+  'unexpected',
+  'quota',
+  'rate-limit',
+  'auth',
+  'network',
+  'overloaded',
+  'invalid-model',
+  'no-response',
+  'process-exit',
+  'timeout',
+  'unknown',
+] as const satisfies readonly RunFailureKind[]
+
+export function isRunFailureKind(value: unknown): value is RunFailureKind {
+  return RUN_FAILURE_KINDS.some((kind) => kind === value)
+}
+
 export interface RunRecord {
+  failure_kind: RunFailureKind | null
   id: string
   project_id: string | null
   prompt: string
@@ -62,6 +96,7 @@ export interface RunRecord {
 
 type InsertRunRecord = Omit<
   RunRecord,
+  | 'failure_kind'
   | 'id'
   | 'cache_read_tokens'
   | 'cache_write_tokens'
@@ -83,6 +118,7 @@ type InsertRunRecord = Omit<
   | 'reverted_sha'
   | 'reverted_at'
 > & {
+  failure_kind?: RunFailureKind | null
   id?: string
   files_read?: string | null
   qa_model?: string | null
@@ -126,8 +162,8 @@ export function insertRun(r: InsertRunRecord): string {
       snapshot_before, snapshot_after, qa_verdict, qa_reason, qa_model, checks_json,
       constitution_rules, context_source, context_tokens, embed_hits, context_warnings_json,
       cost_breakdown_json, file_diffs, skill_gates_json, phase_skills_json,
-      status, input_tokens, cache_read_tokens, cache_write_tokens, output_tokens, usd_cost, elapsed_ms, result, created_at, cli_session_id, executor_reply, context_used_tokens, context_window_tokens, commit_sha, commit_base_sha
-    ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
+      status, input_tokens, cache_read_tokens, cache_write_tokens, output_tokens, usd_cost, elapsed_ms, result, created_at, cli_session_id, executor_reply, context_used_tokens, context_window_tokens, commit_sha, commit_base_sha, failure_kind
+    ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
     [
       id,
       scrub(r.project_id),
@@ -174,6 +210,7 @@ export function insertRun(r: InsertRunRecord): string {
       r.context_window_tokens ?? null,
       r.commit_sha ?? null,
       r.commit_base_sha ?? null,
+      r.failure_kind ?? null,
     ],
   )
   return id

@@ -15,8 +15,10 @@ import {
   ThinkingStepsContent,
   ThinkingStepsHeader,
 } from '@/components/ui/thinking-steps'
+import { failureKindLabels } from '@/lib/failureKind'
 import { cn } from '@/lib/utils'
 import type { FileDiffEntry, RunItem } from '@/types/orchestos'
+import { StatusBadge } from '../common/StatusBadge'
 import { createApprovalAnswers } from './approvalAnswers'
 import { ThreadMarkdown } from './ThreadMarkdown'
 import {
@@ -281,6 +283,11 @@ export function TaskCard({
         )}
         {diagnosis && (
           <div data-task-diagnosis className="space-y-2 text-xs text-app-muted">
+            {diagnosis.kind && (
+              <span data-failure-kind={diagnosis.kind}>
+                <StatusBadge status="failed" label={failureKindLabels[diagnosis.kind]} />
+              </span>
+            )}
             {diagnosis.cause && (
               <p className="whitespace-pre-wrap break-words text-app-error">
                 {diagnosis.failedCheck ? diagnosis.cause.split('\n')[0] : diagnosis.cause}

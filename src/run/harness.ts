@@ -69,6 +69,7 @@ import {
   listWorktreeChanges,
   worktreeForkPoint,
 } from './executors/worktree-diff.ts'
+import { providerFailureKind } from './failure-kind.ts'
 import { withGitLock } from './git-lock.ts'
 import type { RunLogger } from './logger.ts'
 import { createChain, createRunContext, type RunContext } from './middleware.ts'
@@ -448,6 +449,7 @@ export async function runTask(opts: HarnessOpts): Promise<TaskResult> {
         elapsed = Math.round(performance.now() - t0)
         log.error(`parse error: ${e.message}`)
         const runId = insertRun({
+          failure_kind: 'parse',
           ...(approvalRunStarted ? { id: approvalRunId } : {}),
           project_id: runProjectId,
           cli_session_id: outcome?.cliSessionId ?? null,
@@ -498,6 +500,7 @@ export async function runTask(opts: HarnessOpts): Promise<TaskResult> {
       const elapsedLLM = Math.round(performance.now() - t0)
       log.error(`LLM call failed: ${e.message}`)
       const runId = insertRun({
+        failure_kind: providerFailureKind(e),
         ...(approvalRunStarted ? { id: approvalRunId } : {}),
         project_id: runProjectId,
         cli_session_id: outcome?.cliSessionId ?? null,
@@ -589,6 +592,7 @@ export async function runTask(opts: HarnessOpts): Promise<TaskResult> {
       ]
       log.contractViolation(blocked)
       const runId = insertRun({
+        failure_kind: 'contract',
         ...(approvalRunStarted ? { id: approvalRunId } : {}),
         project_id: runProjectId,
         cli_session_id: outcome?.cliSessionId ?? null,
@@ -662,6 +666,7 @@ export async function runTask(opts: HarnessOpts): Promise<TaskResult> {
       const reason = `missing declared output(s): ${missingOutputs.join(', ')}`
       const elapsedMissing = Math.round(performance.now() - t0)
       const runId = insertRun({
+        failure_kind: 'output_missing',
         ...(approvalRunStarted ? { id: approvalRunId } : {}),
         project_id: runProjectId,
         cli_session_id: outcome?.cliSessionId ?? null,
@@ -773,6 +778,7 @@ export async function runTask(opts: HarnessOpts): Promise<TaskResult> {
         const reason = formatCheckFailure(firstFail, expectedExit)
         const elapsedCheck = Math.round(performance.now() - t0)
         const runId = insertRun({
+          failure_kind: 'check',
           ...(approvalRunStarted ? { id: approvalRunId } : {}),
           project_id: runProjectId,
           cli_session_id: outcome?.cliSessionId ?? null,
@@ -949,6 +955,7 @@ export async function runTask(opts: HarnessOpts): Promise<TaskResult> {
       const rejectedDiffs = computeFileDiffs(beforeContent, contractResult.written)
 
       const runId = insertRun({
+        failure_kind: 'qa',
         ...(approvalRunStarted ? { id: approvalRunId } : {}),
         project_id: runProjectId,
         cli_session_id: outcome?.cliSessionId ?? null,
@@ -1121,6 +1128,7 @@ export async function runTask(opts: HarnessOpts): Promise<TaskResult> {
     if (!runInserted) {
       try {
         runId = insertRun({
+          failure_kind: 'unexpected',
           ...(approvalRunStarted ? { id: approvalRunId } : {}),
           project_id: runProjectId,
           prompt: t.description,

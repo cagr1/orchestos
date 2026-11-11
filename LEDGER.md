@@ -607,3 +607,11 @@ suite completa fuera del sandbox: 2508 pass, 0 fail, 10521 aserciones; cobertura
 **Clasificación**: RESPETÓ
 **Por qué**: solo añade la fila `failed` del catch general (y la marca `runInserted` tras los `insertRun`
 existentes). No toca la derivación de contexto/max_tokens ni ningún camino de fallo con fila propia.
+
+
+## 2026-11-11 — Codex (ejecutor AUD.4)
+
+**Regla tocada**: `src/run/harness.ts`, clasificación persistida de fallos.
+**Clasificación**: RESPETÓ
+**Por qué**: añade `failure_kind` a los siete caminos fallidos existentes; el éxito conserva null.
+No modifica la derivación de contexto/max_tokens, los detalles del error ni el contrato de QA.

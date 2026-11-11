@@ -270,7 +270,7 @@ prioridad hasta que Carlos las asigne.
   defectos. La prueba en vivo destapó `model = ''` (corregido) y que `requireSpec` del yaml no se lee (anotado).
   Ejecutado por: codex (mecanico) · Spec: docs/specs/AUD.3.md
 
-- [ ] **AUD.4 — El fallo no se guarda como causa clasificada y las piezas de diagnóstico no llegan a la UI.**
+- [x] **AUD.4 — El fallo no se guarda como causa clasificada y las piezas de diagnóstico no llegan a la UI.**
   (abierto 2026-11-10) (a) La tabla `runs` no tiene columna de tipo de fallo (`migrate.ts:1320-1340` y los
   `ALTER TABLE runs` posteriores; solo `result`, `qa_reason`, `executor_reply`). (b) El clasificador determinista
   `src/run/executors/cli-failure.ts` lo usan los adaptadores de chat y el executor externo para generar avisos
@@ -281,6 +281,12 @@ prioridad hasta que Carlos las asigne.
   `src/dashboard/app/src` los llama (el `diagnose?:` de `types/orchestos.ts:111` es solo un campo de tipo). Verificación:
   migración numerada con la causa clasificada; el clasificador determinista rellena la columna; la descripción de
   `parse_error` coincide con el contrato; la UI muestra la causa de un run fallido.
+  **Cerrado 2026-11-11**: migración 38 `runs.failure_kind`, los 7 caminos de fallo de `harness.ts` la rellenan
+  (`src/run/failure-kind.ts` para el proveedor), chip en la tarjeta del hilo y en Runs, `diagnoseTask` sin LLM cuando
+  hay causa. Evidencia: `docs/done/evidence/AUD.4-live.json` (ui:gate `chat-retry-report` 27/27 con step AUD.4;
+  `test:coverage` 2523/0). (d) queda para AUD.8.
+  Gate en vivo: navegador (Playwright, `ui:gate chat-retry-report` 27/27), `docs/done/evidence/AUD.4-live.json`.
+  Ejecutado por: codex gpt-6.1-sol (criterio) + gpt-6-luna (mecanico, enmienda 2) · Spec: docs/specs/AUD.4.md
 
 - [ ] **AUD.5 — Tras cada tarea `done` por CLI, una llamada LLM oculta sobre los runs de todos los proyectos.**
   (abierto 2026-11-10) En `orchestos task run` (`cli.ts:1303-1331`), al terminar `done` se lee `listRuns(20)`

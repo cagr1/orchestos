@@ -10,7 +10,11 @@
  */
 
 import { loadOrcheConfig } from '../config/load.ts'
-import { type RunRecord, listRunsByTaskId as realListRunsByTaskId } from '../db/runs.ts'
+import {
+  type RunFailureKind,
+  type RunRecord,
+  listRunsByTaskId as realListRunsByTaskId,
+} from '../db/runs.ts'
 import { calcCost } from '../router/pricing.ts'
 import { clientFromAssignment, roleClient } from '../router/role-runner.ts'
 import { redactSensitive } from '../security/secrets.ts'
@@ -41,10 +45,29 @@ export interface DiagnoseResult {
   lastErrorResult?: string
 }
 
+const FAILURE_SUGGESTIONS = {
+  parse: 'Return each output in a <<<FILE:path>>>...<<<ENDFILE>>> block.',
+  contract: 'Restrict edits to the declared output paths.',
+  output_missing: 'Create every declared output before completing the task.',
+  check: 'Fix the failing deterministic check using its recorded output.',
+  qa: 'Address the failed acceptance criterion before retrying.',
+  unexpected: 'Inspect the internal error and fix the failing operation before retrying.',
+  quota: 'Restore provider usage credits before retrying.',
+  'rate-limit': 'Wait for the provider rate limit to reset before retrying.',
+  auth: 'Sign in to the provider again before retrying.',
+  network: 'Restore the network connection before retrying.',
+  overloaded: 'Wait for provider capacity before retrying.',
+  'invalid-model': 'Select a model available to the configured provider.',
+  'no-response': 'Check provider availability before retrying.',
+  'process-exit': 'Inspect the CLI exit details and fix the process failure.',
+  timeout: 'Check the provider response time and adjust the timeout before retrying.',
+  unknown: 'Read the recorded provider error and resolve it before retrying.',
+} satisfies Record<RunFailureKind, string>
+
 const PATTERNS_DESCRIPTION = `
 - deterministic_check: A check (shell command) failed repeatedly. The task output doesn't meet a deterministic condition.
 - qa_specific_criterion: The LLM's output failed a specific acceptance criterion in QA review, not a general issue.
-- parse_error: The LLM response could not be parsed as valid JSON. The model may be returning markdown, prose, or malformed JSON.
+- parse_error: The LLM response did not contain the expected <<<FILE:...>>>...<<<ENDFILE>>> blocks.
 - rate_limit: The LLM provider returned a rate limit error, 429 status, or token quota exceeded.
 - scope_creep: The task is too large — too many files, too much code, or vague description that causes the LLM to produce partial/broken output.
 - unknown: None of the above patterns clearly match.
@@ -162,6 +185,30 @@ export async function diagnoseTask(
   const lastErrorResult = runs.find((r) => r.status === 'failed' || r.status === 'blocked')?.result
     ? redactSensitive(runs.find((r) => r.status === 'failed' || r.status === 'blocked')!.result!)
     : undefined
+
+  const failedRun = runs.find((run) => run.status === 'failed' || run.status === 'blocked')
+  if (failedRun?.failure_kind) {
+    const kind = failedRun.failure_kind
+    const pattern: FailurePattern =
+      kind === 'check'
+        ? 'deterministic_check'
+        : kind === 'qa'
+          ? 'qa_specific_criterion'
+          : kind === 'parse'
+            ? 'parse_error'
+            : kind === 'rate-limit' || kind === 'quota'
+              ? 'rate_limit'
+              : 'unknown'
+    return {
+      taskId,
+      pattern,
+      confidence: 'high',
+      usdCost: 0,
+      details: lastErrorResult ?? '',
+      lastErrorResult,
+      suggestion: FAILURE_SUGGESTIONS[kind],
+    }
+  }
 
   const client = modelOverride
     ? clientFromAssignment('auxiliary', { agent: 'api', model: modelOverride }, { cwd: root })

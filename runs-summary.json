@@ -1,7 +1,37 @@
 {
-  "exported_at": "2026-11-10T18:32:34.113Z",
+  "exported_at": "2026-11-11T13:51:28.068Z",
   "total_runs": 20,
   "runs": [
+    {
+      "id": "6c5cf6de-44d3-4eef-af9e-809367da265f",
+      "task_class": "gate:aud.4-chat-retry-report:implement",
+      "model": "gpt-6-luna",
+      "provider": "codex",
+      "status": "done",
+      "qa_verdict": "pass",
+      "qa_reason": "La última línea de nota.ts coincide exactamente con el texto solicitado.",
+      "files_blocked": [],
+      "checks_failed": 0,
+      "usd_cost": 0.00191194,
+      "elapsed_ms": 17206,
+      "tokens": 12917,
+      "created_at": "2026-11-11T13:43:39.672Z"
+    },
+    {
+      "id": "5b260b6f-5124-4a85-99a4-5dba485e05e2",
+      "task_class": "gate:aud.4-chat-retry-report:implement",
+      "model": "gpt-6-luna",
+      "provider": "codex",
+      "status": "failed",
+      "qa_verdict": "fail",
+      "qa_reason": "check failed: bunx tsc --noEmit exit 2 (expected 0)\n--- stdout (tail) ---\nbroken.ts(1,7): error TS2322: Type 'string' is not assignable to type 'number'.\n",
+      "files_blocked": [],
+      "checks_failed": 1,
+      "usd_cost": 0.0013931199999999999,
+      "elapsed_ms": 9559,
+      "tokens": 9480,
+      "created_at": "2026-11-11T13:42:56.493Z"
+    },
     {
       "id": "a85ee11b-6b68-451f-80c9-4a20f4bae9d6",
       "task_class": "gate:ci.77:doc",
@@ -271,43 +301,13 @@
       "elapsed_ms": 10089,
       "tokens": 4248,
       "created_at": "2026-11-08T16:43:00.138Z"
-    },
-    {
-      "id": "d6e532cb-ebe3-4948-948a-ec86681564dc",
-      "task_class": "gate:ade.10-full-ui:implement",
-      "model": "openai/gpt-6-luna",
-      "provider": "codex",
-      "status": "done",
-      "qa_verdict": "pass",
-      "qa_reason": "NOTES.md contains the required line.",
-      "files_blocked": [],
-      "checks_failed": 0,
-      "usd_cost": 0.0012216,
-      "elapsed_ms": 15182,
-      "tokens": 7580,
-      "created_at": "2026-11-08T16:42:42.870Z"
-    },
-    {
-      "id": "0c16cd69-355c-4db0-9717-0354b655ae2c",
-      "task_class": "gate:ade.10-full-ui:doc",
-      "model": "openai/gpt-6-luna",
-      "provider": "codex",
-      "status": "done",
-      "qa_verdict": "pass",
-      "qa_reason": "README.md contains the requested line.",
-      "files_blocked": [],
-      "checks_failed": 0,
-      "usd_cost": 0.00119628,
-      "elapsed_ms": 14593,
-      "tokens": 7126,
-      "created_at": "2026-11-08T16:42:19.533Z"
     }
   ],
   "stats": {
-    "failed": 3,
+    "failed": 4,
     "blocked": 0,
-    "done": 17,
-    "qa_failed": 4,
-    "total_cost_usd": "0.0228"
+    "done": 16,
+    "qa_failed": 5,
+    "total_cost_usd": "0.0237"
   }
 }

@@ -1,3 +1,4 @@
+import type { RunFailureKind } from '../db/runs.ts'
 /**
  * src/dashboard/types.ts — S36.1
  *
@@ -212,6 +213,7 @@ export interface RunRow {
   id: string
   taskId: string | null
   status: 'done' | 'blocked' | 'failed'
+  failureKind: RunFailureKind | null
   qaVerdict: 'pass' | 'fail' | 'skipped' | null
   qaReason: string | null
   /** ERP.4.8 — `runs.result` (motivo del fallo/bloqueo). */
@@ -285,6 +287,7 @@ export interface TaskRow {
   assignedAgent: string | null
   assignedModel: string | null
   retryCount: number
+  failureKind: RunFailureKind | null
   qaVerdict: 'pass' | 'fail' | 'skipped' | null
   pendingApprovals: number
   sessionId: string | null

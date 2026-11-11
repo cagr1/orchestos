@@ -86,6 +86,19 @@ function addRun(
 }
 
 describe('reportTaskOutcome', () => {
+  it('persists diagnosis.kind and restores it in chat history', () => {
+    const { root, session, taskId, projectId } = setup('failed', 'check failed')
+    const runId = addRun(taskId, 'check failed', projectId, 'failed')
+    db.run('UPDATE runs SET failure_kind = ? WHERE id = ?', ['check', runId])
+    reportTaskOutcome(root, session.id, taskId, projectId)
+    expect(listChatMessages(session.id)[0]?.taskReport?.diagnosis?.kind).toBe('check')
+    db.run('UPDATE chat_messages SET task_report = ? WHERE session_id = ?', [
+      JSON.stringify({ outcome: 'failed', diagnosis: { kind: 'retrying', cause: 'still here' } }),
+      session.id,
+    ])
+    expect(listChatMessages(session.id)[0]?.taskReport?.diagnosis).toEqual({ cause: 'still here' })
+  })
+
   it('persiste done con proveedor/modelo y recorta el resumen a 300 caracteres', () => {
     const { root, session, taskId, projectId } = setup('done')
     addRun(taskId, 'x'.repeat(350), projectId)

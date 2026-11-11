@@ -1223,6 +1223,19 @@ export const FUTURE_MIGRATIONS: readonly SchemaMigrationStep[] = [
           throw new Error(`Migration 37 did not add projects.${name}`)
     },
   },
+  {
+    version: 38,
+    name: 'run-failure-kind',
+    precondition: () => {},
+    apply: (database) => {
+      database.exec('ALTER TABLE runs ADD COLUMN failure_kind TEXT')
+    },
+    postcondition: (database) => {
+      const columns = database.query<{ name: string }, []>('PRAGMA table_info(runs)').all()
+      if (!columns.some((column) => column.name === 'failure_kind'))
+        throw new Error('Migration 38 did not add failure_kind')
+    },
+  },
 ]
 
 function appliedVersions(database: Database): Set<number> {

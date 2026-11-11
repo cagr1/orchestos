@@ -1,3 +1,4 @@
+import type { RunFailureKind } from '../../../../db/runs'
 import type { CliNotice } from '../../../../run/executors/cli-failure'
 import { thoughtMs } from '../components/thread/thinking'
 import type {
@@ -38,6 +39,7 @@ export interface ChatMessageRow {
   stopped?: boolean
   taskReport?: {
     diagnosis?: {
+      kind?: RunFailureKind
       cause?: string
       failedCheck?: { command: string; output?: string }
       qaReasons?: string[]

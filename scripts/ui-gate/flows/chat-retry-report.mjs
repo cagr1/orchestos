@@ -277,6 +277,14 @@ export default async function chatRetryReport({ page, api, step, shot, visible, 
       ),
     JSON.stringify(diagnosis),
   )
+  const classifiedCause = diagnosisBlock.locator('[data-failure-kind="check"]')
+  await step(
+    'failed attempt shows its classified cause (AUD.4)',
+    diagnosis?.kind === 'check' &&
+      (await visible(classifiedCause)) &&
+      /check failed/i.test(await classifiedCause.innerText()),
+    JSON.stringify({ kind: diagnosis?.kind, classifiedCause: await classifiedCause.innerText() }),
+  )
   await step(
     'failed attempt has no Retry or Resume action',
     (await failedReport.getByRole('button', { name: /^(Retry|Resume)$/ }).count()) === 0,
