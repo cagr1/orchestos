@@ -200,6 +200,39 @@ Regla: mover sin cambiar comportamiento, un corte por commit, con la suite y el 
 "prototipo = plantilla, `cp` + gate de className" en los componentes copiados del prototipo: decide Carlos si el
 corte de `App`/`OrchestSettingsView` vale perder la comparación 1:1 con el prototipo.
 
+### Lectura E — lo que A–D dejaron fuera (añadida el mismo día)
+
+Al cerrar se comprobó que ~11.200 líneas de producto no estaban en el alcance de ningún auditor. E leyó el backend
+restante (`src/run/*` fuera de executors, `ssrf.ts`, `settings-store.ts`, `ownership.ts`, `memory/judge.ts`…) y las
+vistas restantes del front. Sus hallazgos se reparten en los ítems existentes:
+
+- AUD.23 (seguridad):
+  - ✔ `src/run/path-policy.ts:63-72` — recorre con `existsSync`, que da `false` para un symlink colgante: un output
+    enlazado a un archivo exterior que aún no existe pasa la política y `contract.ts:103` lo crea fuera.
+  - ✔ `src/run/approvals.ts:30-34` — misma causa: `withinProject=true` y auto-aprobación en `auto-edit` (`:51`).
+  - ✔ `src/run/approvals.ts:54` — el permiso "siempre" de un comando no incluye el `cwd`.
+  - ✔ `src/run/prompt.ts:43-47` — lee `task.input` con `join(projectRoot, file)` sin `resolveProjectPath`:
+    `../privado.txt` va al proveedor.
+  - ✔ `src/dashboard/settings-store.ts:62-67` — `~/.orchestos/.env` se crea sin modo 0600.
+  - ✔ `src/dashboard/ssrf.ts:105-110` — una IPv4 pública retorna antes del chequeo de puerto (`:112`). Sin contrastar:
+    `:125` valida DNS y `fetch` vuelve a resolver (rebinding).
+- AUD.22: ✔ `src/run/file-lock.ts:77-84` — dos procesos ven al dueño muerto; el segundo `unlink` borra el candado
+  que el primero acaba de tomar.
+- AUD.25 (UI):
+  - ✔ `components/common/ConfirmDialog.tsx:38-42` — Enter confirma aunque el foco esté en "Cancel": Enter sobre
+    Cancel en "Delete this chat?" borra.
+  - `InstinctsView.tsx:33`, `MemoryView.tsx:42` — cierran el formulario sin esperar el guardado: si falla, se pierde
+    lo escrito.
+  - `src/run/html-script-check.ts:143` — concatena `<script type="module">` independientes y rechaza HTML válido.
+- AUD.27: `SpecsView.tsx:24` recibe `onDraftSpec` y no lo usa; `ViewStateFeedback.tsx:46` ignora `type`.
+- AUD.28: cortes de `SkillsView`, `InstinctsView`, `MemoryView`, `SpecsView`, `CommandPalette` en el anexo F.
+
+Sin evasión encontrada (E): traversal y rutas absolutas en `path-policy.ts`, `read-audit.ts`, correlación de
+aprobaciones, `ownership.ts`, IPv4 decimal e IPv6 privado en `ssrf.ts`.
+
+**Sigue sin leer**: el interior de `components/ui/*` (~4.500 líneas, copias de librería), `scripts/ui-gate/**`,
+`scripts/ui-fidelity/**`, `tests/**` (~20.000 líneas) y los tests de `src/` fuera de la muestra de 25.
+
 ## Anexos — salida literal de los auditores
 
 ### Anexo A — servidor y handlers
@@ -656,6 +689,103 @@ corte de `App`/`OrchestSettingsView` vale perder la comparación 1:1 con el prot
     No leído: scripts/*.test.ts; restantes tests de src/db/, src/tasks/, src/detect/, src/usage/, src/evals/ y src/plan/; 
     restantes src/__tests__/; handlers del dashboard salvo los dos enumerados, de los que solo contrasté referencias 
     puntuales.
+
+### Anexo F — lectura E (backend y vistas restantes)
+
+    [P1] [falla] src/dashboard/app/src/components/common/ConfirmDialog.tsx:38 — Enter confirma incluso con «Cancel» 
+    enfocado — abrir «Delete this chat?» y pulsar Enter → ejecuta el borrado — respetar el botón enfocado y su activación 
+    nativa.
+    [P1] [seguridad] src/run/path-policy.ts:65 — existsSync omite symlinks colgantes — output «escape.txt» enlazado a un 
+    archivo exterior todavía inexistente → pasa la validación y writeFileSync crea el destino exterior 
+    (src/run/contract.ts:103) — inspeccionar enlaces con lstat aunque su destino no exista.
+    [P1] [seguridad] src/run/approvals.ts:31 — la canonicalización también omite symlinks colgantes — enlace dentro del 
+    proyecto hacia un archivo exterior inexistente → withinProject=true y autoaprobación en auto-edit 
+    (src/run/approvals.ts:51) — rechazar enlaces colgantes al recorrer la ruta.
+    [P1] [seguridad] src/run/approvals.ts:54 — el permiso persistente identifica comandos sin incluir cwd — aprobar 
+    siempre «rm informe.txt» en un directorio y repetirlo desde otro → reutiliza la autorización; Codex entrega cwd 
+    separado de commandKey (src/run/executors/codex-approval.ts:59) — incluir el cwd canónico en la identidad autorizada.
+    [P1] [seguridad] src/run/prompt.ts:44 — lee inputs sin aplicar la política de rutas — input «../privado.txt» o un 
+    symlink exterior → incorpora su contenido al mensaje enviado al proveedor — resolver cada input mediante 
+    resolveProjectPath antes de leerlo.
+    [P1] [falla] src/run/file-lock.ts:81 — recuperar un candado elimina la ruta sin comprobar que siga siendo el archivo 
+    inspeccionado — dos procesos detectan dueño muerto; uno adquiere el reemplazo y el otro lo elimina → escritores 
+    simultáneos — serializar la recuperación y verificar la identidad del candado.
+    [P1] [seguridad] src/dashboard/ssrf.ts:125 — valida DNS sin fijar la dirección usada por fetch — dominio que resuelve 
+    primero a IP pública y después a privada → conexión interna; el consumidor vuelve a resolver al descargar 
+    (src/dashboard/handlers/skills.ts:441) — conectar exclusivamente a una IP previamente validada.
+    [P1] [seguridad] src/dashboard/settings-store.ts:67 — crea el archivo de claves sin permisos restrictivos explícitos 
+    — con umask 022, un .env nuevo queda legible por otros usuarios locales — crear directorio y archivo con permisos 
+    0700/0600.
+    [P2] [seguridad] src/dashboard/ssrf.ts:109 — las IPv4 públicas retornan antes de validar el puerto — 
+    https://8.8.8.8:8443/ → admitida pese al control de puertos de src/dashboard/ssrf.ts:112 — comprobar el puerto antes 
+    de cualquier retorno satisfactorio.
+    [P2] [falla] src/run/html-script-check.ts:143 — concatena scripts que tienen ámbitos independientes — dos script 
+    type="module" válidos con «const x» → el check recibe una declaración duplicada y rechaza el HTML — comprobar cada 
+    bloque por separado respetando su tipo.
+    [P2] [falla] src/dashboard/app/src/components/instincts/InstinctsView.tsx:33 — descarta el formulario sin esperar el 
+    guardado — falla la petición asíncrona de src/dashboard/app/src/App.tsx:1627 → desaparecen los textos introducidos — 
+    esperar el resultado y conservar el formulario ante errores.
+    [P2] [falla] src/dashboard/app/src/components/memory/MemoryView.tsx:42 — cierra la resolución sin esperar su 
+    persistencia — rechaza la petición de src/dashboard/app/src/App.tsx:1585 → se pierde la resolución escrita — cerrar 
+    únicamente tras guardar y mostrar el error.
+    [P3] [muerto] src/dashboard/app/src/components/specs/SpecsView.tsx:24 — recibe onDraftSpec pero nunca lo utiliza — el 
+    consumidor entrega el callback y ninguna acción lo invoca — retirar la prop y su cableado.
+    [P3] [muerto] src/dashboard/app/src/components/common/ViewStateFeedback.tsx:46 — ignora el parámetro type — 
+    type="table" produce exactamente el mismo esqueleto que "list" — eliminar el parámetro o implementar sus variantes.
+    [P3] [arquitectura] src/dashboard/app/src/components/skills/SkillsView.tsx:27 — mezcla filtros, importación, 
+    compilación y configuración por fila — incorporar una operación exige tocar el componente completo — extraer 
+    SkillsFilters (45–116), AddSkillDialog (129–187) y SkillRow con sus mutaciones (203–352).
+    [P3] [arquitectura] src/dashboard/app/src/components/instincts/InstinctsView.tsx:15 — mezcla selección, tarjetas y 
+    alta — cambiar el guardado afecta al componente que presenta toda la lista — extraer InstinctCard (92–190) y 
+    AddInstinctDialog (195–269), incluyendo handleAddSubmit (30–37).
+    [P3] [arquitectura] src/dashboard/app/src/components/memory/MemoryView.tsx:16 — mezcla búsqueda, presentación y 
+    resolución — modificar la persistencia obliga a intervenir también la vista de consulta — extraer MemoryList 
+    (111–155) y MemoryResolutionDialog (159–229), trasladando los manejadores de resolución (30–43).
+    [P3] [arquitectura] src/dashboard/app/src/components/specs/SpecsView.tsx:21 — mezcla búsqueda/selección con detalle y 
+    acciones — cambiar la navegación obliga a recorrer también la presentación del contrato — extraer SpecsList (41–94) y 
+    SpecDetail (97–168).
+    [P3] [arquitectura] src/dashboard/app/src/components/common/CommandPalette.tsx:22 — mezcla catálogo, ejecución, 
+    filtrado y diálogo — añadir comandos obliga a modificar el renderizador — extraer buildPaletteActions (35–84) y 
+    PaletteDialog (92–169), conservando estado y filtrado en el contenedor.
+    Controles sin otra evasión encontrada: normalización, traversal y rutas absolutas en src/run/path-policy.ts:21,28; 
+    symlinks existentes exteriores en src/run/path-policy.ts:73; cwd en src/run/path-policy.ts:86; filtrado de entorno en 
+    src/run/path-policy.ts:98. Persistencia inválida, IDs/resultados duplicados, límites y terminal ausente en 
+    src/run/read-audit.ts:42,123,151,165; su cobertura excluye lecturas implícitas explícitamente en 
+    src/run/read-audit.ts:182. Correlación de aprobación/run y cierre de pendientes en src/run/approvals.ts:88,138. 
+    Adquisición mediante enlace y liberación por token en src/run/file-lock.ts:64,107. Selección registrada y comparación 
+    de pertenencia en src/dashboard/ownership.ts:12,19. Esquema, credenciales, mayúsculas, IPv4 decimal normalizada y 
+    rangos IPv6 privados en src/dashboard/ssrf.ts:90,92,94,105,69; redirects bloqueados en los consumidores 
+    src/dashboard/handlers/chat.ts:408 y src/dashboard/handlers/skills.ts:441. No comprobé explotaciones en vivo.
+    Leído entero: src/run/qa.ts:1; src/run/read-audit.ts:1; src/run/approvals.ts:1; src/run/path-policy.ts:1; 
+    src/run/file-lock.ts:1; src/run/permissions.ts:1; src/run/middleware.ts:1; src/run/middlewares/context-inject.ts:1; 
+    src/run/middlewares/index.ts:1; src/run/middlewares/instinct-apply.ts:1; src/run/middlewares/roadmap-context.ts:1; 
+    src/run/middlewares/skill-route.ts:1; src/run/html-script-check.ts:1; src/run/commit-tasks-yaml.ts:1; 
+    src/run/git-exclude.ts:1; src/run/transcript-parser.ts:1; src/run/tool-output-cap.ts:1; src/run/prompt.ts:1; 
+    src/run/logger.ts:1; src/run/failure-kind.ts:1; src/run/graph-summary.ts:1; src/run/e2e-smoke.ts:1; 
+    src/dashboard/ssrf.ts:1; src/dashboard/settings-store.ts:1; src/dashboard/project-context.ts:1; 
+    src/dashboard/ownership.ts:1; src/dashboard/default-chat-agent.ts:1; src/dashboard/chat-live.ts:1; 
+    src/dashboard/llm/clients.ts:1; src/dashboard/prompts/curator.ts:1; src/memory/judge.ts:1; src/roadmaps/context.ts:1; 
+    src/cli-skill-curate.ts:1; src/cli-skill-fetch.ts:1; src/cli-dashboard-paths.ts:1; src/boundary/index.ts:1; 
+    src/dashboard/app/src/components/skills/SkillsView.tsx:1; 
+    src/dashboard/app/src/components/instincts/InstinctsView.tsx:1; 
+    src/dashboard/app/src/components/memory/MemoryView.tsx:1; src/dashboard/app/src/components/specs/SpecsView.tsx:1; 
+    src/dashboard/app/src/components/tasks/TaskDetailPanel.tsx:1; 
+    src/dashboard/app/src/components/context/ContextView.tsx:1; 
+    src/dashboard/app/src/components/settings/primitives.tsx:1; 
+    src/dashboard/app/src/components/settings/ProjectGeneralSettings.tsx:1; 
+    src/dashboard/app/src/components/settings/routing-roles.ts:1; 
+    src/dashboard/app/src/components/common/ActionMenuButton.tsx:1; 
+    src/dashboard/app/src/components/common/CloneProjectDialog.tsx:1; 
+    src/dashboard/app/src/components/common/CommandPalette.tsx:1; 
+    src/dashboard/app/src/components/common/ConfirmDialog.tsx:1; 
+    src/dashboard/app/src/components/common/ContextRing.tsx:1; 
+    src/dashboard/app/src/components/common/ProjectAddButton.tsx:1; 
+    src/dashboard/app/src/components/common/ProjectIcon.tsx:1; 
+    src/dashboard/app/src/components/common/ProviderLogos.tsx:1; 
+    src/dashboard/app/src/components/common/ResizableAside.tsx:1; 
+    src/dashboard/app/src/components/common/StatusBadge.tsx:1; 
+    src/dashboard/app/src/components/common/ViewStateFeedback.tsx:1; src/dashboard/app/src/main.tsx:1.
+    No leído: ninguno del alcance asignado; AgentComposer estaba excluido expresamente en /private/tmp/aud2/E.md:34.
 
 ### Anexo E — funciones de 80+ líneas (líneas, ramas, archivo:línea, nombre)
 

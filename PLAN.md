@@ -421,12 +421,14 @@ qué no). Cada ítem es una clase de falla con varios sitios; el spec comprueba 
 - [ ] **AUD.22 — Procesos, streams y sesiones de motor.** (abierto 2026-11-11) `opencode.ts:174-216` no drena
   `stderr`; timeouts sin SIGKILL (`codex.ts:199`, `external.ts:337`, `opencode.ts:182`, `checks.ts:225`); el `exit`
   de un app-server viejo rompe el nuevo (`codex-app-server.ts:142,1089`); quitar todas las herramientas no recrea el
-  hilo de Codex (`codex-app-server.ts:746-751`). Va junto con AUD.6. Verificación: CLI falso que llena `stderr`, que
+  hilo de Codex (`codex-app-server.ts:746-751`); carrera al recuperar el candado (`file-lock.ts:77-84`). Va junto con AUD.6. Verificación: CLI falso que llena `stderr`, que
   ignora SIGTERM y que cambia de herramientas entre turnos.
 - [ ] **AUD.23 — Seguridad: confinamiento por symlink y redacción de secretos.** (abierto 2026-11-11)
   `handlers/explorer.ts:44-48,120` confina lecturas solo por texto de ruta; `security/secrets.ts:47-50` no redacta un
   secreto que contenga `test`/`example`; `scripts/check-secrets.ts:19-26` no ve claves multilínea;
-  `spawn-trace.ts:8-10,57` registra argumentos cortos y `stderr` crudos. Verificación: test con symlink hacia fuera →
+  `spawn-trace.ts:8-10,57` registra argumentos cortos y `stderr` crudos; symlink colgante pasa `path-policy.ts:63-72` y
+  `approvals.ts:30-34`; `prompt.ts:43-47` lee inputs sin política de rutas; permiso "siempre" sin `cwd`
+  (`approvals.ts:54`); `.env` sin 0600 (`settings-store.ts:62-67`); puerto sin validar en IPv4 (`ssrf.ts:105-112`). Verificación: test con symlink hacia fuera →
   403; secreto con `test` dentro → redactado; PEM staged → gate rojo.
 - [ ] **AUD.24 — Chat: turnos que quedan pendientes o no se pueden guardar.** (abierto 2026-11-11) Lease de 150 s sin
   renovar (`db/chat-turns.ts:45`, `handlers/chat.ts:1015`, sin contrastar la renovación); error antes del `catch`
@@ -436,7 +438,8 @@ qué no). Cada ítem es una clase de falla con varios sitios; el spec comprueba 
 - [ ] **AUD.25 — UI que no hace lo que muestra.** (abierto 2026-11-11) `!comando` no ejecuta en Dev
   (`OrchestDevWorkspace.tsx:432`, `App.tsx` no pasa `onRunCommand`) ni en Chat (`OrchestChatView.tsx:310`); el kanban
   no tiene columna `failed` (`PlanBoardView.tsx:98-104`); `purgingProjectIds` no se limpia al terminar bien
-  (`App.tsx:1094-1143`); regla "Executor model" inválida (`OrchestSettingsView.tsx:1048,3727`); búsqueda del
+  (`App.tsx:1094-1143`); regla "Executor model" inválida (`OrchestSettingsView.tsx:1048,3727`); Enter confirma con el foco en Cancel
+  (`ConfirmDialog.tsx:38-42`); búsqueda del
   inspector (`OrcaRightInspector.tsx:297,576`). Verificación: en vivo en el dashboard, un step de ui-gate por caso.
 - [ ] **AUD.26 — Gates que no pueden fallar.** (abierto 2026-11-11) `check-coverage.ts:14-16` da 100 % a un LCOV
   vacío; `check-test-assertions.ts:5` cuenta `expect(` en comentarios; `check-scope-lock.ts:48` ignora eliminaciones;

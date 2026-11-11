@@ -20,7 +20,7 @@ Arranque: `bun run agent:preflight -- --item <ID> --agent claude`. Lista viva: `
      aceptados que no debían (AUD.21, AUD.26) y ciclo de vida de procesos y turnos (AUD.22, AUD.24). Orden propuesto,
      a confirmar por Carlos: AUD.20 y AUD.19 (dañan datos del usuario) → AUD.7 → AUD.23 + AUD.13 → AUD.21 → AUD.22 +
      AUD.6 → AUD.24 → AUD.25 → AUD.26 → AUD.12–17 → AUD.27 + AUD.8 → AUD.28 (pide GO). Lo no marcado ✔ en el informe
-     se comprueba al escribir el spec. No relanzar los auditores: su salida literal está en los anexos.
+     se comprueba al escribir el spec. Sin leer: `components/ui/*` por dentro, `scripts/ui-gate`, `tests/`. No relanzar los auditores: su salida literal está en los anexos.
    - **Siguiente** (orden anterior a la segunda auditoría), en este orden y con spec nuevo cada uno: AUD.7, AUD.5, AUD.10, AUD.8, AUD.9, AUD.6.
      AUD.7 cambia comportamiento central: plan corto y GO de Carlos antes de delegar.
    - Decisiones de Carlos pendientes: adoptar el tamaño por reanudabilidad de ODD en el proceso; qué ideas de
