@@ -17,12 +17,15 @@ Arranque: `bun run agent:preflight -- --item <ID> --agent claude`. Lista viva: `
      presupuesto. Parseo nuevo de datos externos → `src/boundary`, o el commit no entra.
    - 2026-11-11, segunda auditoría completa (`docs/auditoria-2026-11-11.md`): abre AUD.19–AUD.28. Cuatro clases
      nuevas además de la validación: aislamiento entre proyectos (AUD.19), pérdida de datos (AUD.20), resultados
-     aceptados que no debían (AUD.21, AUD.26) y ciclo de vida de procesos y turnos (AUD.22, AUD.24). Orden propuesto,
-     a confirmar por Carlos: AUD.20 y AUD.19 (dañan datos del usuario) → AUD.7 → AUD.23 + AUD.13 → AUD.21 → AUD.22 +
-     AUD.6 → AUD.24 → AUD.25 → AUD.26 → AUD.12–17 → AUD.27 + AUD.8 → AUD.28 (pide GO). Lo no marcado ✔ en el informe
-     se comprueba al escribir el spec. Sin leer: `components/ui/*` por dentro, `scripts/ui-gate`, `tests/`. No relanzar los auditores: su salida literal está en los anexos.
-   - **Siguiente** (orden anterior a la segunda auditoría), en este orden y con spec nuevo cada uno: AUD.7, AUD.5, AUD.10, AUD.8, AUD.9, AUD.6.
-     AUD.7 cambia comportamiento central: plan corto y GO de Carlos antes de delegar.
+     aceptados que no debían (AUD.21, AUD.26) y ciclo de vida de procesos y turnos (AUD.22, AUD.24).
+   - **Siguiente — orden vigente** (Carlos, 2026-11-11: "comenzar según tu orden"), con spec nuevo cada uno:
+     AUD.20 → AUD.19 → AUD.7 → AUD.23 + AUD.13 → AUD.21 + AUD.5 → AUD.22 + AUD.6 → AUD.24 → AUD.25 →
+     AUD.26 + AUD.9 → AUD.12, 14–17 → AUD.27 + AUD.8 → AUD.10 → AUD.28. Antes: AUD.7, AUD.5, AUD.10, AUD.8, AUD.9,
+     AUD.6 (orden de la primera auditoría).
+     - Ningún ítem tiene spec escrito: el primer paso es el de AUD.20. Lo no marcado ✔ en el informe se comprueba
+       con grep al escribirlo. No relanzar los auditores: su salida literal está en los anexos.
+     - AUD.7 y AUD.28 cambian comportamiento central: plan corto y GO de Carlos antes de delegar. AUD.28 no tiene GO.
+     - Sin leer en la auditoría: `components/ui/*` por dentro, `scripts/ui-gate`, `tests/`.
    - Decisiones de Carlos pendientes: adoptar el tamaño por reanudabilidad de ODD en el proceso; qué ideas de
      `IDEAS.md` entran al cierre (propuesta en el informe); Tauri (recomendado) o Electron, después de AUD.7.
    - Cupo: la auditoría gastó ~35 % del cupo de 5 h. No relanzar agentes de lectura: la evidencia ya está escrita.
