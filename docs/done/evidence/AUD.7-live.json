@@ -1,0 +1,50 @@
+{
+  "item": "AUD.7",
+  "at": "2026-11-12",
+  "by": "claude-opus-5-5 (cerebro)",
+  "liveGate": {
+    "script": "/tmp/aud7-live/live.sh: dashboard real puerto 4321, home aislado, navegador Playwright",
+    "result": {
+      "tokenFileMode": "600",
+      "printedUrlHasToken": true,
+      "api_no_token": 401,
+      "api_bad_token": 401,
+      "api_good_token": 200,
+      "api_evil_host": 403,
+      "api_evil_origin": 403,
+      "html_no_token": 200,
+      "browser": {
+        "noToken": {
+          "screen": 1,
+          "bad": []
+        },
+        "withToken": {
+          "hashCleared": true,
+          "buttons": 15,
+          "tokenScreen": 0,
+          "bad": []
+        },
+        "reloadWithoutHash": {
+          "buttons": 15,
+          "tokenScreen": 0
+        },
+        "ws": {
+          "withoutT": "error",
+          "withT": "open"
+        }
+      }
+    }
+  },
+  "uiGates": {
+    "command": "node scripts/ui-gate/run.mjs smoke dev-terminal user-profile",
+    "result": ["PASS smoke 7/7", "PASS dev-terminal 16/16", "PASS user-profile 8/8"]
+  },
+  "qa": {
+    "round1": "P2 pegar la URL con token en una pestaña bloqueada no recupera (solo cambia el hash) -> corregido por el cerebro: hashchange con t recarga; test falla sin el arreglo."
+  },
+  "foundAndFixed": [
+    "Pantalla 'Dashboard token required' no centrada (flex-1 sin altura) -> h-screen; captura revisada.",
+    "Regresión de AUD.19 (01b3648a): GET /api/health, /api/settings, /api/setup y /api/system/executor-modes exigían proyecto; con cwd sin registrar el runner de ui-gates no arrancaba (health timeout). Lecturas globales: requireProject quitado; test en aud19-project-isolation falla sin el arreglo."
+  ],
+  "tokenDesign": "persistente en ~/.orchestos/dashboard-token (600) para sobrevivir reinicios; override ORCHESTOS_DASHBOARD_TOKEN; rotar = borrar el archivo"
+}

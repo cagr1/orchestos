@@ -11,6 +11,7 @@
  *      app en localhost:<otro-puerto> como si fuera el propio dashboard).
  */
 import { describe, expect, it } from 'bun:test'
+import { loadOrCreateDashboardToken } from '../auth-token.ts'
 import { startServer } from '../server.ts'
 
 const { route } = await import('../server.ts')
@@ -39,7 +40,11 @@ describe('L.2 — bind a loopback (no exposición accidental)', () => {
     try {
       const response = await fetch(`${url}/api/__origin-port-probe`, {
         method: 'POST',
-        headers: { Origin: url, 'Content-Type': 'application/json' },
+        headers: {
+          'x-orchestos-token': loadOrCreateDashboardToken(),
+          Origin: url,
+          'Content-Type': 'application/json',
+        },
         body: '{}',
       })
       expect(response.status).not.toBe(403)

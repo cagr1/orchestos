@@ -25,9 +25,12 @@ Arranque: `bun run agent:preflight -- --item <ID> --agent claude`. Lista viva: `
      - AUD.20 cerrado 2026-11-11 (`1b06897b`; evidencia en `PLAN.md` y `docs/done/evidence/AUD.20-live.json`).
      - AUD.19 cerrado 2026-11-11 (evidencia en `PLAN.md` y `docs/done/evidence/AUD.19-live.json`). Queda sin gate
        en vivo: las carreras de cambio de proyecto de `App.tsx`.
-     - Siguiente: AUD.7 (plan corto + GO de Carlos); ningún otro ítem tiene spec escrito. Lo no marcado ✔ en el informe se comprueba
+     - AUD.7 cerrado 2026-11-12 (token persistente + `guardRequest`; evidencia `docs/done/evidence/AUD.7-live.json`).
+       Desde aquí el dashboard se abre con la URL `#t=` que imprime `orchestos dashboard`; scripts que llamen a `/api`
+       mandan `x-orchestos-token` (archivo o `ORCHESTOS_DASHBOARD_TOKEN`).
+     - Siguiente: AUD.23 + AUD.13; ningún otro ítem tiene spec escrito. Lo no marcado ✔ en el informe se comprueba
        con grep al escribirlo. No relanzar los auditores: su salida literal está en los anexos.
-     - AUD.7 y AUD.28 cambian comportamiento central: plan corto y GO de Carlos antes de delegar. AUD.28 no tiene GO.
+     - AUD.28 cambia comportamiento central: plan corto y GO de Carlos antes de delegar; no tiene GO.
      - Sin leer en la auditoría: `components/ui/*` por dentro, `scripts/ui-gate`, `tests/`.
    - Decisiones de Carlos pendientes: adoptar el tamaño por reanudabilidad de ODD en el proceso; qué ideas de
      `IDEAS.md` entran al cierre (propuesta en el informe); Tauri (recomendado) o Electron, después de AUD.7.

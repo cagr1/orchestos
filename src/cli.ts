@@ -2195,7 +2195,9 @@ program
     }
 
     const { url } = startServer(port)
-    console.log(`[dashboard] Open ${url} in your browser`)
+    console.log(
+      `[dashboard] Open ${url}/#t=${encodeURIComponent(loadOrCreateDashboardToken())} in your browser`,
+    )
     await new Promise(() => {}) // keep process alive
   })
 
@@ -2207,6 +2209,7 @@ if (import.meta.main) {
 }
 
 // ── helpers ───────────────────────────────────────────────────────────────────
+import { loadOrCreateDashboardToken } from './dashboard/auth-token.ts'
 import { printGraphSummary } from './run/graph-summary.ts'
 
 function explainTaskRun(root: string, taskId: string) {

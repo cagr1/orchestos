@@ -1,5 +1,6 @@
 import type { Command } from 'commander'
 import { stringify as yamlStringify } from 'yaml'
+import { loadOrCreateDashboardToken } from './dashboard/auth-token.ts'
 import type { MutationResult, SkillCurateResponse, SkillImportResponse } from './dashboard/types.ts'
 
 export const DASHBOARD_URL = process.env.ORCHESTOS_API_URL || 'http://localhost:4242'
@@ -7,7 +8,10 @@ export const DASHBOARD_URL = process.env.ORCHESTOS_API_URL || 'http://localhost:
 async function callDashboardApi(path: string, body: unknown): Promise<Response> {
   const resp = await fetch(`${DASHBOARD_URL}${path}`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: {
+      'Content-Type': 'application/json',
+      'x-orchestos-token': loadOrCreateDashboardToken(),
+    },
     body: JSON.stringify(body),
   })
   return resp

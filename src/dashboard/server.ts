@@ -3,6 +3,7 @@ import { resolve } from 'node:path'
 import { getChatSession } from '../db/chat-sessions.ts'
 import { applyCliSearchPath } from '../run/executors/cli-discovery.ts'
 import { stopCodexAppServers } from '../run/executors/codex-app-server.ts'
+import { guardRequest, loadOrCreateDashboardToken } from './auth-token.ts'
 import {
   handleApiChat,
   handleApiChatCliModels,
@@ -632,19 +633,14 @@ export async function route(req: Request, port: number): Promise<Response> {
     return withDashboardProject(req, (project) => handleApiMemoryBulkDelete(req, project.id))
   }
   if (method === 'GET' && url.pathname === '/api/settings') {
-    return withDashboardProject(req, (project) => handleApiSettingsGet(project.root), {
-      requireProject: true,
-    })
+    // Lecturas globales/diagnóstico: sin proyecto registrado siguen respondiendo (onboarding, ui-gates).
+    return withDashboardProject(req, (project) => handleApiSettingsGet(project.root))
   }
   if (method === 'GET' && url.pathname === '/api/setup') {
-    return withDashboardProject(req, (project) => handleApiSetup(project.root), {
-      requireProject: true,
-    })
+    return withDashboardProject(req, (project) => handleApiSetup(project.root))
   }
   if (method === 'GET' && url.pathname === '/api/health') {
-    return withDashboardProject(req, (project) => handleApiHealth(project.root), {
-      requireProject: true,
-    })
+    return withDashboardProject(req, (project) => handleApiHealth(project.root))
   }
   if (method === 'GET' && url.pathname === '/api/providers/local') {
     return handleApiProvidersLocal()
@@ -666,9 +662,7 @@ export async function route(req: Request, port: number): Promise<Response> {
     return handleApiSystemEnginesExternalAvailability()
   }
   if (method === 'GET' && url.pathname === '/api/system/executor-modes') {
-    return withDashboardProject(req, (project) => handleApiSystemExecutorModes(project.root), {
-      requireProject: true,
-    })
+    return withDashboardProject(req, (project) => handleApiSystemExecutorModes(project.root))
   }
   if (method === 'GET' && url.pathname === '/api/config') {
     // Lectura sin proyecto permitida: el chat general lee roles/modelos (OrchestChatView).
@@ -735,6 +729,7 @@ export function startServer(
   terminalCommand?: string[],
 ): { server: any; url: string } {
   applyCliSearchPath()
+  const dashboardToken = loadOrCreateDashboardToken()
   const terminalSessions = new WeakMap<object, ReturnType<typeof createTerminalSession>>()
   const server = Bun.serve<TerminalSocketData>({
     port,
@@ -746,6 +741,8 @@ export function startServer(
     // even though the handler keeps running and completes the work server-side.
     idleTimeout: 60,
     fetch: async (req, server) => {
+      const denied = guardRequest(req, server.port ?? port, dashboardToken)
+      if (denied) return denied
       const url = new URL(req.url)
       if (url.pathname !== '/api/terminal') return route(req, server.port ?? port)
       if (req.method !== 'GET') return errorResponse('Method not allowed', 405)

@@ -136,7 +136,7 @@
       "sprint": "Abiertos — auditoría 2026-11-10",
       "block": null,
       "title": "Servidor local sin token: cualquier proceso local puede lanzar agentes",
-      "status": "open",
+      "status": "done",
       "closedDate": null
     },
     {

@@ -216,6 +216,8 @@ test('AUD.19 project=none rejects filesystem routes without touching server cwd'
   assert.equal(reset.status,400)
   const tasksResponse = await request('/api/tasks?project=none','GET',undefined,null)
   assert.deepEqual(await tasksResponse.json(), {exists:false,tasks:[]})
+  for (const path of ['/api/health','/api/settings','/api/setup','/api/system/executor-modes','/api/config'])
+    assert.equal((await request(path + '?project=none','GET',undefined,null)).status, 200, path)
 `))
 
 test('AUD.19 skill build writes only to the requested root', () =>

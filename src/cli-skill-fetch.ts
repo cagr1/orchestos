@@ -1,14 +1,21 @@
 import type { Command } from 'commander'
 import { DASHBOARD_URL } from './cli-skill-curate.ts'
+import { loadOrCreateDashboardToken } from './dashboard/auth-token.ts'
 import type { RegistryImportResponse, RegistryListResponse } from './dashboard/types.ts'
 
 async function callDashboardGet(path: string): Promise<Response> {
-  const resp = await fetch(`${DASHBOARD_URL}${path}`, { method: 'GET' })
+  const resp = await fetch(`${DASHBOARD_URL}${path}`, {
+    method: 'GET',
+    headers: { 'x-orchestos-token': loadOrCreateDashboardToken() },
+  })
   return resp
 }
 
 async function callDashboardPost(path: string): Promise<Response> {
-  const resp = await fetch(`${DASHBOARD_URL}${path}`, { method: 'POST' })
+  const resp = await fetch(`${DASHBOARD_URL}${path}`, {
+    method: 'POST',
+    headers: { 'x-orchestos-token': loadOrCreateDashboardToken() },
+  })
   return resp
 }
 

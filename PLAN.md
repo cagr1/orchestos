@@ -301,7 +301,21 @@ prioridad hasta que Carlos las asigne.
   con `detached: true`, `readonly.ts:652`). No verificado en vivo: si los CLIs de agente dejan nietos vivos tras un
   timeout o abort. Verificación: fixture con un CLI falso que lance un nieto; tras abortar la tarea no queda ese PID.
 
-- [ ] **AUD.7 — Servidor local sin token: cualquier proceso local puede lanzar agentes.** (abierto 2026-11-10)
+- [x] **AUD.7 — Servidor local sin token: cualquier proceso local puede lanzar agentes.** (abierto 2026-11-10,
+  cerrado 2026-11-12; GO de Carlos 2026-11-12) Cierre: `guardRequest` en el `fetch` de `startServer`, antes de
+  `route()`: `Host`/`Origin` locales (403) y token en `/api/*` (401; el WebSocket de terminal lo lleva en `t`).
+  Token persistente en `~/.orchestos/dashboard-token` (600), no por arranque: un reinicio no invalida la pestaña;
+  rotar = borrar el archivo. La UI lo toma de `#t=` (URL que imprime `orchestos dashboard`), lo guarda en
+  `localStorage` y lo agrega a cada fetch `/api/`; sin token, pantalla "Dashboard token required". Runner de
+  ui-gates, `skill curate/fetch` y tests con servidor real lo pasan. qa: P2 (pegar la URL en pestaña bloqueada no
+  recuperaba) → corregido + test. Visto y corregido: regresión de AUD.19, cuatro GET globales (`health`, `settings`,
+  `setup`, `executor-modes`) exigían proyecto y el runner de ui-gates no arrancaba.
+  Texto visible: "Dashboard token required" (identifica la credencial que falta; un ícono no explica el bloqueo).
+  Texto visible: "Run orchestos dashboard and open the URL printed in the terminal." (el paso para recuperar acceso).
+  Gates: tsc (server y app), lint, `build:app`, `test:coverage` 2612/0; ui-gates smoke, dev-terminal, user-profile.
+  Gate en vivo: dashboard real con navegador Playwright y home aislado `docs/done/evidence/AUD.7-live.json`
+  (sin token 401, Host/Origin ajenos 403, UI con `#t=` carga y limpia el hash, recarga sin hash sigue, WS sin `t` falla).
+  Ejecutado por: gpt-6.1-sol (criterio) + claude-opus-5-5 (fixes chicos) · Spec: docs/specs/AUD.7.md
   `isSameOrigin` devuelve `true` si la petición no trae `Origin` (`http.ts:95-107`); solo se aplica a POST/PUT/PATCH/
   DELETE (`server.ts:177-182`); los GET no se comprueban y no hay chequeo de `Host` (rebinding de DNS). El servidor
   escucha en `127.0.0.1` (`server.ts:615`), lo que cubre la red pero no a otros procesos del usuario ni a páginas de

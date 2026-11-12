@@ -4,6 +4,7 @@ import { createServer } from 'node:net'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { db } from '../db/sqlite.ts'
+import { loadOrCreateDashboardToken } from './auth-token.ts'
 import { startServer } from './server.ts'
 
 const servers: Array<{ stop: (force?: boolean) => void }> = []
@@ -58,7 +59,10 @@ describe.skipIf(portProbe === null)('terminal WebSocket origin boundary', () => 
         socket = new TerminalWebSocket(
           `ws://127.0.0.1:${server.port}/api/terminal?project=aud19-terminal`,
           {
-            headers: { origin: `http://127.0.0.1:${server.port}` },
+            headers: {
+              'x-orchestos-token': loadOrCreateDashboardToken(),
+              origin: `http://127.0.0.1:${server.port}`,
+            },
           },
         )
         socket.onmessage = (event) => {
@@ -82,7 +86,9 @@ describe.skipIf(portProbe === null)('terminal WebSocket origin boundary', () => 
     if (port === null) throw new Error('Loopback listener became unavailable')
     const { server } = startServer(port, ['sh'])
     servers.push(server)
-    const response = await fetch(`http://127.0.0.1:${server.port}/api/terminal`)
+    const response = await fetch(`http://127.0.0.1:${server.port}/api/terminal`, {
+      headers: { 'x-orchestos-token': loadOrCreateDashboardToken() },
+    })
     expect(response.status).toBe(403)
   })
 
@@ -92,7 +98,10 @@ describe.skipIf(portProbe === null)('terminal WebSocket origin boundary', () => 
     const { server } = startServer(port, ['sh'])
     servers.push(server)
     const response = await fetch(`http://127.0.0.1:${server.port}/api/terminal`, {
-      headers: { origin: 'http://localhost:3000' },
+      headers: {
+        'x-orchestos-token': loadOrCreateDashboardToken(),
+        origin: 'http://localhost:3000',
+      },
     })
     expect(response.status).toBe(403)
   })
@@ -103,7 +112,10 @@ describe.skipIf(portProbe === null)('terminal WebSocket origin boundary', () => 
     const { server } = startServer(port, ['sh'])
     servers.push(server)
     const response = await fetch(`http://127.0.0.1:${server.port}/api/terminal?kind=bogus`, {
-      headers: { origin: `http://127.0.0.1:${server.port}` },
+      headers: {
+        'x-orchestos-token': loadOrCreateDashboardToken(),
+        origin: `http://127.0.0.1:${server.port}`,
+      },
     })
     expect(response.status).toBe(400)
   })

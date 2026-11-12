@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 
 import { execFileSync, spawn } from 'node:child_process'
+import { randomBytes } from 'node:crypto'
 import fs from 'node:fs'
 import fsp from 'node:fs/promises'
 import net from 'node:net'
@@ -16,6 +17,9 @@ import {
   lintFlowSource,
   stripAnsi,
 } from './lib.mjs'
+
+const dashboardToken = randomBytes(32).toString('hex')
+const tokenHeaders = { 'x-orchestos-token': dashboardToken }
 
 const flows = process.argv.slice(2)
 const cleanedRunDirs = cleanOldUiGateDirs(os.tmpdir(), Date.now(), 24 * 60 * 60 * 1000)
@@ -66,6 +70,7 @@ function startDashboard(port) {
       env: {
         ...process.env,
         ORCHESTOS_HOME: home,
+        ORCHESTOS_DASHBOARD_TOKEN: dashboardToken,
         ORCHESTOS_GATE_CAPTURE_DIR: captureDir,
         ORCHESTOS_CLAUDE_STATUSLINE_HOME: statuslineHome,
         ORCHESTOS_CLAUDE_USAGE_LIVE: '0',
@@ -147,7 +152,7 @@ for (const signal of ['SIGINT', 'SIGTERM']) {
 }
 
 async function removeOrphanedUiProjects(base) {
-  const response = await fetch(`${base}/api/projects`)
+  const response = await fetch(`${base}/api/projects`, { headers: tokenHeaders })
   if (!response.ok) return
   const projects = await response.json()
   const tempRoot = path.resolve(os.tmpdir())
@@ -155,7 +160,10 @@ async function removeOrphanedUiProjects(base) {
   for (const project of Array.isArray(projects) ? projects : []) {
     const projectPath = typeof project.path === 'string' ? path.resolve(project.path) : ''
     if (!projectPath.startsWith(prefix)) continue
-    await fetch(`${base}/api/projects/${encodeURIComponent(project.id)}/purge`, { method: 'POST' })
+    await fetch(`${base}/api/projects/${encodeURIComponent(project.id)}/purge`, {
+      method: 'POST',
+      headers: tokenHeaders,
+    })
     await fsp.rm(projectPath, { recursive: true, force: true })
   }
 }
@@ -164,7 +172,7 @@ async function waitForHealth(base) {
   const deadline = Date.now() + 30_000
   while (Date.now() < deadline) {
     try {
-      const response = await fetch(`${base}/api/health`)
+      const response = await fetch(`${base}/api/health`, { headers: tokenHeaders })
       if (response.status === 200) return true
     } catch {}
     await delay(250)
@@ -173,7 +181,7 @@ async function waitForHealth(base) {
 }
 
 async function preserveCodexHome(base) {
-  const response = await fetch(`${base}/api/projects`)
+  const response = await fetch(`${base}/api/projects`, { headers: tokenHeaders })
   if (!response.ok) throw new Error(`projects returned HTTP ${response.status}`)
   const projects = await response.json()
   const prefix = `${path.resolve(os.tmpdir())}${path.sep}orchestos-ui-`
@@ -243,7 +251,12 @@ async function runFlow(name, base, port) {
       api: async (apiPath, init = {}) => {
         const response = await fetch(`${base}${apiPath}`, {
           ...init,
-          headers: { ...(init.headers || {}), Origin: base, Accept: 'application/json' },
+          headers: {
+            ...(init.headers || {}),
+            ...tokenHeaders,
+            Origin: base,
+            Accept: 'application/json',
+          },
         })
         const text = await response.text()
         let data = null
@@ -300,7 +313,7 @@ async function runFlow(name, base, port) {
         expectedHttpErrors.push(pattern instanceof RegExp ? pattern : new RegExp(pattern)),
     }
 
-    await page.goto(`${base}/`, { waitUntil: 'domcontentloaded' })
+    await page.goto(`${base}/#t=${dashboardToken}`, { waitUntil: 'domcontentloaded' })
     await flow.default(ctx)
     result.errores.push(...unexpectedErrors)
     result.pass = result.steps.every((step) => step.ok) && result.errores.length === 0

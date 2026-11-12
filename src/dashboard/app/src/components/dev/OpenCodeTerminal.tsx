@@ -3,6 +3,7 @@ import { Terminal } from '@xterm/xterm'
 import { Loader2, RotateCcw } from 'lucide-react'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useAppearanceSettings } from '../../lib/appearance-settings'
+import { readDashboardToken } from '../../lib/dashboard-token'
 import { KEYBINDINGS, reachesAppFromTerminal } from '../../lib/keybindings'
 import { readTerminalSettings, subscribeTerminalSettings } from '../../lib/terminal-settings'
 import '@xterm/xterm/css/xterm.css'
@@ -75,7 +76,7 @@ export function OpenCodeTerminal({ projectId, kind = 'opencode' }: Props) {
       if (host.clientWidth > 0 && host.clientHeight > 0) fit.fit()
       const protocol = location.protocol === 'https:' ? 'wss:' : 'ws:'
       const socket = new WebSocket(
-        `${protocol}//${location.host}/api/terminal?project=${encodeURIComponent(projectId)}${isShell ? '&kind=shell' : ''}&cols=${terminal.cols}&rows=${terminal.rows}`,
+        `${protocol}//${location.host}/api/terminal?project=${encodeURIComponent(projectId)}${isShell ? '&kind=shell' : ''}&t=${encodeURIComponent(readDashboardToken())}&cols=${terminal.cols}&rows=${terminal.rows}`,
       )
       socket.binaryType = 'arraybuffer'
       socketRef.current = socket
