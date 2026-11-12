@@ -40,11 +40,13 @@ Arranque: `bun run agent:preflight -- --item <ID> --agent claude`. Lista viva: `
        renueva; recargar a mitad de turno conserva Stop y actividad.
      - AUD.25 cerrado 2026-11-12 (`556238cc`; evidencia `docs/done/evidence/AUD.25-ui-result.json`). `!cmd` en Dev va al PTY;
        búsqueda por contenido en `GET /api/explorer/search`.
-     - AUD.26 cerrado 2026-11-12 (evidencia `docs/done/evidence/AUD.26-chat-timeout-brain.json`); de AUD.9 queda
+     - AUD.26 cerrado 2026-11-12 (`681b74ef`; evidencia `docs/done/evidence/AUD.26-chat-timeout-brain.json`); de AUD.9 queda
        confirmar `chat-timeout` verde en la próxima nocturna válida y la decisión de WebKit (Carlos). La nocturna ya
        sale 1 con flujos rojos y recupera su candado si el proceso murió.
-     - AUD.12 + AUD.15 cerrados 2026-11-12 (rangos en `src/boundary/config-limits.ts`; `effort` sin validar por decisión
+     - AUD.12 + AUD.15 cerrados 2026-11-12 (`18b99a66`; rangos en `src/boundary/config-limits.ts`; `effort` sin validar por decisión
        de Carlos). Trampa: el destino de un timeout solo valida el rango técnico de `setTimeout`, el chat usa cortos.
+     - Trampas nuevas: el hook deja al cerebro un Edit de ≤20 líneas (no vía Bash); un ítem cerrado junto con otro
+       necesita su propia línea `Ejecutado por: … · Spec: docs/specs/<ID>.md` o el plan gate lo rechaza.
      - Siguiente: AUD.14, AUD.16, AUD.17 (migrar parseos a `src/boundary`); ningún ítem tiene spec escrito. Lo no marcado ✔ en el informe se comprueba
        con grep al escribirlo.
      - Trampas del cierre (vistas en AUD.24/25): `plan:reconcile` dos veces con el ítem ya `[x]` falla ("Could not
