@@ -75,14 +75,7 @@ export function redactSensitive(text: string): string {
   let redacted = text
   for (const detector of DETECTORS) {
     detector.pattern.lastIndex = 0
-    redacted = redacted.replace(detector.pattern, (...args: unknown[]) => {
-      const full = String(args[0])
-      const captures = args
-        .slice(1, -2)
-        .map((value) => (typeof value === 'string' ? value : undefined))
-      const credential = detector.kind === 'credential-assignment' ? (captures[0] ?? full) : full
-      return isPlaceholder(credential) ? full : `[REDACTED:${detector.kind}]`
-    })
+    redacted = redacted.replace(detector.pattern, `[REDACTED:${detector.kind}]`)
   }
   return redacted
 }

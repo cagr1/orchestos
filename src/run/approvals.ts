@@ -1,8 +1,9 @@
 import { randomUUID } from 'node:crypto'
-import { existsSync, realpathSync } from 'node:fs'
-import { dirname, isAbsolute, relative, resolve } from 'node:path'
+import { homedir } from 'node:os'
+import { isAbsolute, sep } from 'node:path'
 import { db } from '../db/sqlite.ts'
 import { isProcessAlive } from './file-lock.ts'
+import { realPathWithin } from './path-policy.ts'
 
 export type ApprovalMode = 'supervised' | 'auto-edit' | 'full'
 export type ApprovalDecision = 'approve' | 'reject' | 'approve-always'
@@ -27,14 +28,9 @@ export interface PendingApproval extends ApprovalRequest {
 /** Resolve existing ancestors too: a new file beneath a symlink must not inherit a grant. */
 export function approvalPathWithin(projectRoot: string, path: string, cwd = projectRoot): boolean {
   try {
-    const canonical = (value: string): string => {
-      if (existsSync(value)) return realpathSync(value)
-      const parent = dirname(value)
-      if (parent === value) throw new Error('No existing ancestor')
-      return resolve(canonical(parent), relative(parent, value))
-    }
-    const rel = relative(canonical(resolve(projectRoot)), canonical(resolve(cwd, path)))
-    return rel !== '..' && !rel.startsWith('../') && !isAbsolute(rel)
+    const expanded = path === '~' || path.startsWith('~/') ? homedir() + path.slice(1) : path
+    if (path.startsWith('~') && expanded === path) return false
+    return realPathWithin(projectRoot, isAbsolute(expanded) ? expanded : `${cwd}${sep}${expanded}`)
   } catch {
     return false
   }
@@ -46,6 +42,7 @@ export function decideApproval(
   alwaysGranted: ReadonlySet<string>,
 ): 'auto-approve' | 'ask' {
   if (mode === 'full') return 'auto-approve'
+  if (request.kind === 'command' && request.withinProject !== true) return 'ask'
   if (request.kind === 'command' && request.readOnly === true) return 'auto-approve'
   if (request.kind === 'edit')
     return request.withinProject === true && (mode === 'auto-edit' || alwaysGranted.has('edit'))

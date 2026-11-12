@@ -18,10 +18,24 @@ function trackedPaths(): string[] {
 
 function scanDiff(diff: string): Array<{ line: string; kind: string }> {
   const findings: Array<{ line: string; kind: string }> = []
+  let block: string[] = []
+  const flush = () => {
+    if (block.length > 1) {
+      for (const finding of findSecrets(block.join('\n'))) {
+        if (finding.kind === 'private-key') findings.push({ line: '+block', kind: finding.kind })
+      }
+    }
+    block = []
+  }
   for (const line of diff.split('\n')) {
-    if (!line.startsWith('+') || line.startsWith('+++')) continue
+    if (!line.startsWith('+') || line.startsWith('+++')) {
+      flush()
+      continue
+    }
+    block.push(line.slice(1))
     for (const finding of findSecrets(line.slice(1))) findings.push({ line, kind: finding.kind })
   }
+  flush()
   return findings
 }
 

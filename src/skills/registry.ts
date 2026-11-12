@@ -11,6 +11,7 @@ import { parse } from 'yaml'
 import { orchestosDir } from '../config/orchestos-home.ts'
 import type { TaskClass } from '../router/classify.ts'
 import { excludeRuntimeArtifacts } from '../run/git-exclude.ts'
+import { PathPolicyError, realPathWithin } from '../run/path-policy.ts'
 
 export type SkillTarget = 'claude' | 'cursor' | 'openai'
 
@@ -276,9 +277,14 @@ export function listSkillFilesWithOrigin(
     [getSkillsDir(root), 'project'],
   ] as const) {
     if (!existsSync(dir)) continue
+    if (origin === 'project' && !realPathWithin(root, dir))
+      throw new PathPolicyError('Skill directory escapes project root')
     for (const file of readdirSync(dir).sort()) {
       if (!/\.ya?ml$/.test(file)) continue
-      byId.set(basename(file).replace(/\.ya?ml$/, ''), { path: join(dir, file), origin })
+      const path = join(dir, file)
+      if (origin === 'project' && !realPathWithin(root, path))
+        throw new PathPolicyError('Skill path escapes project root')
+      byId.set(basename(file).replace(/\.ya?ml$/, ''), { path, origin })
     }
   }
   return [...byId.values()]

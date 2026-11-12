@@ -28,7 +28,8 @@ Arranque: `bun run agent:preflight -- --item <ID> --agent claude`. Lista viva: `
      - AUD.7 cerrado 2026-11-12 (token persistente + `guardRequest`; evidencia `docs/done/evidence/AUD.7-live.json`).
        Desde aquí el dashboard se abre con la URL `#t=` que imprime `orchestos dashboard`; scripts que llamen a `/api`
        mandan `x-orchestos-token` (archivo o `ORCHESTOS_DASHBOARD_TOKEN`).
-     - Siguiente: AUD.23 + AUD.13; ningún otro ítem tiene spec escrito. Lo no marcado ✔ en el informe se comprueba
+     - AUD.23 + AUD.13 cerrados 2026-11-12 (evidencia `docs/done/evidence/AUD.23-live.json`).
+     - Siguiente: AUD.21 + AUD.5; ningún otro ítem tiene spec escrito. Lo no marcado ✔ en el informe se comprueba
        con grep al escribirlo. No relanzar los auditores: su salida literal está en los anexos.
      - AUD.28 cambia comportamiento central: plan corto y GO de Carlos antes de delegar; no tiene GO.
      - Sin leer en la auditoría: `components/ui/*` por dentro, `scripts/ui-gate`, `tests/`.
@@ -111,6 +112,8 @@ salvo CI.69/CI.76, SK.3, UI.70, LIMP.4, auditoría de `IDEAS.md` (`73247216`) y 
 - Cerrar la pestaña en Orca no mata la sesión de Claude: el proceso sigue vivo bajo `Orca Helper` (uno llevaba 8
   días) y retiene el candado de escritura. Salir con `/exit` antes de cerrar la pestaña; huérfanos:
   `ps -axo pid,etime,command | grep '[c]laude'`.
+- Dos ítems con un solo spec nunca commiteado: el plan-gate solo acepta un spec compartido que estuvo en la historia;
+  el segundo ítem declara `Spec: docs/specs/<su ID>.md` (inexistente) y nombra el compartido en el texto.
 - `git commit -- $VAR` en zsh no separa palabras: usar `xargs` o `${=VAR}`.
 - `qa-negative` depende de que Claude escriba a propósito una salida incorrecta: falló 1 vez en el pre-push
   (2026-11-07) y pasó 26/26 aislado.

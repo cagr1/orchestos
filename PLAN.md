@@ -382,7 +382,13 @@ prioridad hasta que Carlos las asigne.
   `src/run/executors/external.ts:337-340`, `generic-cli.ts:26,40`. `agentic.maxIterations` (`load.ts:290-294`,
   `config.ts:297-303`) acepta `.inf`/`1e12`/`0`/`2.5` y es la única cota del loop (`src/providers/tool-call.ts:642`).
   Verificación: entero en rango en carga y en PUT, test por borde.
-- [ ] **AUD.13 — Seguridad: aprobación automática de comandos "read-only" de Codex sin mirar la ruta.** (abierto
+- [x] **AUD.13 — Seguridad: aprobación automática de comandos "read-only" de Codex sin mirar la ruta.** (cerrado
+  2026-11-12 junto con AUD.23, mismo diff y evidencia `docs/done/evidence/AUD.23-live.json`) Cierre: `readOnly` exige
+  `cwd`, `commandActions[].path` y rutas del comando dentro del proyecto; opciones con ruta, comillas o cualquier `$`
+  → se pregunta (lista permitida de caracteres: sin `$ \ {} [] * ? ~`); el permiso "siempre" no aplica con `cwd` fuera; OpenCode con una entrada sin `file` → se pregunta.
+  Spec compartido con AUD.23 (`docs/specs/AUD.23.md`, nunca commiteado).
+  Ejecutado por: gpt-6.1-sol (criterio) + claude-opus-5-5 (fixes chicos) · Spec: docs/specs/AUD.13.md
+  (abierto
   2026-11-11) `src/run/executors/codex-approval.ts:54-66` marca `readOnly` solo por `commandActions[].type` y un regex;
   no cruza `cwd` ni la ruta de cada acción con `projectRoot`, y `src/run/approvals.ts:49` aprueba solo en `supervised`
   (p. ej. `cat ~/.ssh/id_rsa`). Igual en `src/run/executors/opencode-approval.ts:18-22`: entradas de `metadata.files` sin
@@ -457,7 +463,19 @@ qué no). Cada ítem es una clase de falla con varios sitios; el spec comprueba 
   de un app-server viejo rompe el nuevo (`codex-app-server.ts:142,1089`); quitar todas las herramientas no recrea el
   hilo de Codex (`codex-app-server.ts:746-751`); carrera al recuperar el candado (`file-lock.ts:77-84`). Va junto con AUD.6. Verificación: CLI falso que llena `stderr`, que
   ignora SIGTERM y que cambia de herramientas entre turnos.
-- [ ] **AUD.23 — Seguridad: confinamiento por symlink y redacción de secretos.** (abierto 2026-11-11)
+- [x] **AUD.23 — Seguridad: confinamiento por symlink y redacción de secretos.** (abierto 2026-11-11, cerrado
+  2026-11-12 junto con AUD.13) Cierre: `realPathWithin` resuelve symlinks segmento a segmento (colgantes y encadenados
+  con `..`) y lo usan explorer, git diff, specs, skills, `task.input` del prompt, `approvalPathWithin` y
+  `resolveProjectPath`; symlink roto no tumba el listado; `redactSensitive` sin excepción de placeholder; PEM
+  multilínea staged → `check-secrets` rojo; `spawn-trace` redacta args y stderr; `.env` 600 y atómico; puerto no
+  estándar bloqueado también en IPv4. Fuera: destino de clon (lo elige el usuario; AUD.7 exige token). qa: 4 vueltas,
+  5 P1 corregidos (symlink encadenado, `--file=/ruta`, comillas/`$HOME`, `\/etc`, comodines): la regla de Codex pasó a
+  lista permitida de caracteres + realpath de cada argumento. Residual aceptado: `-fleak.txt` con symlink preexistente. Gates: tsc, lint, `test:coverage` 2635/0
+  (+ tests afectados 100/0 tras las correcciones). Sin probar en vivo: las aprobaciones (requieren un turno de Codex
+  real; cubiertas por tests con el código real del adaptador).
+  Gate en vivo: dashboard real por HTTP con home aislado y symlinks hacia fuera, sin navegador (ninguna pantalla nueva) `docs/done/evidence/AUD.23-live.json`
+  (árbol 200 con symlink roto, archivo/carpeta/git diff por symlink → 403 sin filtrar contenido).
+  Ejecutado por: gpt-6.1-sol (criterio) + claude-opus-5-5 (fixes chicos) · Spec: docs/specs/AUD.23.md
   `handlers/explorer.ts:44-48,120` confina lecturas solo por texto de ruta; `security/secrets.ts:47-50` no redacta un
   secreto que contenga `test`/`example`; `scripts/check-secrets.ts:19-26` no ve claves multilínea;
   `spawn-trace.ts:8-10,57` registra argumentos cortos y `stderr` crudos; symlink colgante pasa `path-policy.ts:63-72` y

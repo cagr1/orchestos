@@ -1,0 +1,113 @@
+{
+  "items": ["AUD.23", "AUD.13"],
+  "baseCommit": "c9c0fac6ec562f530dea7261b370663da207d88f",
+  "executor": "Codex (modelo no expuesto por el entorno)",
+  "regressionBefore": {
+    "pass": 0,
+    "fail": 23,
+    "log": "/tmp/AUD.23-red.log"
+  },
+  "regressionAfter": {
+    "pass": 23,
+    "fail": 0,
+    "log": "/tmp/AUD.23-green.log"
+  },
+  "gates": [
+    {
+      "command": "bunx tsc --noEmit",
+      "exitCode": 0,
+      "log": "/tmp/AUD.23-baseline-tsc.log"
+    },
+    {
+      "command": "bun test --coverage src/__tests__/path-policy.test.ts src/__tests__/secrets.test.ts src/__tests__/ssrf.test.ts src/__tests__/prompt.test.ts src/__tests__/skill-registry.test.ts src/dashboard/handlers/git-changes.test.ts src/dashboard/__tests__/explorer-ignored.test.ts",
+      "exitCode": 0,
+      "log": "/tmp/AUD.23-baseline-tests.log"
+    },
+    {
+      "command": "bun test --coverage src/__tests__/aud23-security.test.ts (before production changes)",
+      "exitCode": 1,
+      "log": "/tmp/AUD.23-red.log"
+    },
+    {
+      "command": "bun test --coverage src/__tests__/aud23-security.test.ts",
+      "exitCode": 0,
+      "log": "/tmp/AUD.23-green.log"
+    },
+    {
+      "command": "bunx tsc --noEmit",
+      "exitCode": 0,
+      "log": "/tmp/AUD.23-tsc.log"
+    },
+    {
+      "command": "bun test --coverage [12 affected test files; initial run before updating existing expectations]",
+      "exitCode": 1,
+      "log": "/tmp/AUD.23-targeted.log"
+    },
+    {
+      "command": "bun run lint (initial; import ordering error)",
+      "exitCode": 1,
+      "log": "/tmp/AUD.23-lint.log"
+    },
+    {
+      "command": "bun run lint",
+      "exitCode": 0,
+      "log": "/tmp/AUD.23-lint-final.log"
+    },
+    {
+      "command": "bun run test:coverage (outside sandbox)",
+      "exitCode": 0,
+      "log": "/tmp/AUD.23-coverage.log"
+    },
+    {
+      "command": "bun run agent:handoff",
+      "exitCode": 0,
+      "log": "/tmp/AUD.23-handoff.log"
+    }
+  ],
+  "coverage": {
+    "pass": 2637,
+    "fail": 0,
+    "functionsPercent": 80.23,
+    "linesPercent": 67.22
+  },
+  "rawGateOutputs": "/tmp/AUD.23-gates.json",
+  "scopeNote": "getSkillPath y sus consumidores de escritura revisados no usan resolveProjectPath; sin cambios, según el spec.",
+  "review": "No se hizo revisión independiente: este turno es solo de ejecución. No se ejecutaron security:gate ni gates de navegador; los gates corridos son los del spec.",
+  "committed": false,
+  "planEdited": false,
+  "liveGate": {
+    "by": "claude-opus-5-5 (cerebro)",
+    "at": "2026-11-12",
+    "script": "/tmp/aud23-live/live.sh: dashboard real puerto 4325, home aislado, token, symlinks leak.txt/outdir hacia fuera y broken colgante",
+    "result": {
+      "tree_root": {
+        "status": 200,
+        "entries": ["AGENTS.md", "broken", "context.json", "f.txt", "leak.txt", "outdir"]
+      },
+      "file_symlink_outside": {
+        "status": 403,
+        "leaked": false
+      },
+      "tree_symlink_dir_outside": {
+        "status": 403
+      },
+      "git_diff_symlink_outside": {
+        "status": 403,
+        "leaked": false
+      }
+    }
+  },
+  "qa": {
+    "round1": "2 P1: symlink encadenado con .. (inner/../safe) escapaba realPathWithin; --file=/etc/passwd autoaprobado -> corregidos por criterio (docs/specs/AUD.23-fix1.md), 8 contrapruebas",
+    "round2": "P1 comillas/$HOME en opciones (--file=\"$HOME/.ssh/id_rsa\") -> corregido por el cerebro: palabra de shell completa + cualquier $ no es readOnly; 3 de 4 tests nuevos fallan sin el arreglo (el 4.º ya lo cubría la regla previa)",
+    "round3": "P1 \\/etc/passwd escapado -> cerebro: lista PERMITIDA de caracteres en lugar de bloqueo; además todo argumento pasa por approvalPathWithin (realpath) y el valor tras '=' en opciones (cat leak.txt con symlink fuera -> ask)",
+    "round4": "P1 comodines (cat leak.tx?) se expanden tras la comprobación -> cerebro: * y ? fuera de la lista permitida; contrapruebas fallan sin el arreglo",
+    "residualAccepted": "opción corta pegada a un symlink preexistente del proyecto (-fleak.txt): exige que el symlink ya exista; crearlo pide aprobación"
+  },
+  "brainGates": {
+    "tsc": 0,
+    "lint": 0,
+    "test:coverage": "2635/0 (diff inicial); tras fix1 tsc + 100/0 en tests afectados; pre-push corre la suite completa",
+    "afterRound4": "tsc 0; aud23-security + action-approvals 78/0; pre-push corre test:coverage completo"
+  }
+}

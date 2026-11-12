@@ -2,11 +2,13 @@
 // Un turno que no responde debe dejar: quién, con qué entorno, cuánto tardó el primer byte,
 // cómo terminó y qué dijo stderr. Sin el prompt: los args largos se reemplazan por su tamaño.
 
+import { redactSensitive } from '../../security/secrets.ts'
+
 const ENV_KEYS = ['HOME', 'CLAUDE_CONFIG_DIR', 'CODEX_HOME', 'ORCHESTOS_HOME'] as const
 const STDERR_TAIL_LINES = 8
 
 export function redactSpawnArgs(args: string[]): string[] {
-  return args.map((arg) => (arg.length > 160 ? `<${arg.length} chars>` : arg))
+  return args.map((arg) => (arg.length > 160 ? `<${arg.length} chars>` : redactSensitive(arg)))
 }
 
 export function tailLines(text: string, lines = STDERR_TAIL_LINES): string {
@@ -54,7 +56,7 @@ export function startSpawnTrace(
           totalMs: Date.now() - startedAt,
           exitCode,
           timedOut,
-          stderrTail: tailLines(stderr),
+          stderrTail: tailLines(redactSensitive(stderr)),
         })}`,
       )
     },

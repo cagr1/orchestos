@@ -86,11 +86,13 @@ test('Bash identity is exact including whitespace and shell operators; unknown t
     kind: 'command',
     commandKey: command,
     readOnly: false,
+    withinProject: true,
     detail: { command, cwd: root },
   })
   expect(claudeApprovalRequest({ tool_name: 'Unknown', input: { x: 1 } }, root)).toEqual({
     kind: 'command',
     readOnly: false,
+    withinProject: true,
     detail: { command: 'Unknown {"x":1}', cwd: root },
   })
 })

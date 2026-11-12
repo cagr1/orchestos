@@ -36,6 +36,7 @@ const command: ApprovalRequest = {
   kind: 'command',
   detail: { command: 'bun test' },
   commandKey: 'bun test',
+  withinProject: true,
 }
 const edit = (withinProject: boolean): ApprovalRequest => ({
   kind: 'edit',
@@ -49,15 +50,17 @@ for (const mode of ['full', 'auto-edit', 'supervised'] as const) {
     for (const withinProject of [true, false]) {
       for (const always of [true, false]) {
         test(`policy ${mode} ${kind} inside=${withinProject} always=${always}`, () => {
-          const request = kind === 'edit' ? edit(withinProject) : command
+          const request = kind === 'edit' ? edit(withinProject) : { ...command, withinProject }
           const grants = new Set(always ? ['edit', 'command:bun test'] : [])
           const allowed =
             mode === 'full' ||
-            (kind === 'edit' ? withinProject && (mode === 'auto-edit' || always) : always)
+            (kind === 'edit'
+              ? withinProject && (mode === 'auto-edit' || always)
+              : withinProject && always)
           expect(decideApproval(mode, request, grants)).toBe(allowed ? 'auto-approve' : 'ask')
           if (kind === 'command')
             expect(decideApproval(mode, { ...request, readOnly: true }, new Set())).toBe(
-              'auto-approve',
+              mode === 'full' || withinProject ? 'auto-approve' : 'ask',
             )
         })
       }
@@ -182,7 +185,7 @@ test('classification and patch paths use verified Codex event shapes, including 
     expect(
       codexApprovalRequest(
         'item/commandExecution/requestApproval',
-        { command: "/bin/zsh -lc 'cat a'", commandActions: [{ type }] },
+        { command: "/bin/zsh -lc 'cat a'", commandActions: [{ type, path: 'a' }] },
         null,
         '/tmp',
       ).readOnly,
@@ -259,7 +262,7 @@ test('command grants and read-only auto-approval use the complete shell command'
   ).toBe('ask')
   expect(decision("/bin/zsh -lc 'bun test && curl example.invalid'", read)).toBe('ask')
   expect(request("/bin/zsh -lc 'cat a; rm b'", [{ type: 'read' }]).readOnly).toBe(false)
-  expect(decision("/bin/zsh -lc 'cat a'", [{ type: 'read' }])).toBe('auto-approve')
+  expect(decision("/bin/zsh -lc 'cat a'", [{ type: 'read', path: 'a' }])).toBe('auto-approve')
   expect(decision("/bin/zsh -lc 'rg foo | head'", [{ type: 'read' }])).toBe('ask')
 })
 

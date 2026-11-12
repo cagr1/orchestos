@@ -11,6 +11,7 @@ import {
   writeFileSync,
 } from 'node:fs'
 import { join, relative, resolve, sep } from 'node:path'
+import { realPathWithin } from '../../run/path-policy.ts'
 import { errorResponse, jsonResponse } from '../http.ts'
 
 // v0.13 seed — panel derecho (header redesign, Mes 21 tardío). Explorador
@@ -43,7 +44,7 @@ const gitIgnoreProbe: ExplorerIgnoreProbe = (root, paths) => {
 // Evita path traversal (../../etc) — el resuelto debe quedar dentro de root.
 function safeResolve(root: string, rel: string): string | null {
   const target = resolve(root, rel || '.')
-  if (target !== root && !target.startsWith(root + sep)) return null
+  if (!realPathWithin(root, target)) return null
   return target
 }
 
@@ -54,7 +55,7 @@ function handleApiExplorerTree(
 ): Response {
   const rel = url.searchParams.get('path') || ''
   const target = safeResolve(root, rel)
-  if (!target) return errorResponse('Invalid path', 400)
+  if (!target) return errorResponse('Invalid path', 403)
 
   let dirents: Dirent<string>[]
   try {
@@ -70,7 +71,14 @@ function handleApiExplorerTree(
       path: relative(root, join(target, e.name)).split(sep).join('/'),
       type: e.isDirectory() ? ('dir' as const) : ('file' as const),
       ignored: false,
-      size: e.isDirectory() ? undefined : statSync(join(target, e.name)).size,
+      size: (() => {
+        if (e.isDirectory() || !realPathWithin(root, join(target, e.name))) return undefined
+        try {
+          return statSync(join(target, e.name)).size
+        } catch {
+          return undefined
+        }
+      })(),
     }))
     .sort((a, b) => (a.type === b.type ? a.name.localeCompare(b.name) : a.type === 'dir' ? -1 : 1))
 
@@ -97,7 +105,7 @@ function handleApiExplorerFile(url: URL, root: string): Response {
   const rel = url.searchParams.get('path')
   if (!rel) return errorResponse('Missing path', 400)
   const target = safeResolve(root, rel)
-  if (!target) return errorResponse('Invalid path', 400)
+  if (!target) return errorResponse('Invalid path', 403)
 
   let stat: ReturnType<typeof statSync>
   try {

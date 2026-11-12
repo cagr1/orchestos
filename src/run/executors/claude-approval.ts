@@ -43,11 +43,13 @@ export function claudeApprovalRequest(
       detail: { command: input.command, cwd: projectRoot },
       commandKey: input.command,
       readOnly: false,
+      withinProject: approvalPathWithin(projectRoot, projectRoot),
     }
   }
   return {
     kind: 'command',
     detail: { command: `${tool_name} ${JSON.stringify(input)}`, cwd: projectRoot },
     readOnly: false,
+    withinProject: approvalPathWithin(projectRoot, projectRoot),
   }
 }

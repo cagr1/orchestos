@@ -54,15 +54,41 @@ export function codexApprovalRequest(
   }
   const actions = params.commandActions
   const unwrappedCommand = unwrapCodexShellCommand(params.command)
+  const cwd = params.cwd ?? projectRoot
+  const withinProject = typeof cwd === 'string' && approvalPathWithin(projectRoot, cwd)
+  // Palabra de shell completa: `--file="x"` es UNA palabra; se quitan todas sus comillas.
+  const tokens = unwrappedCommand?.match(/(?:"[^"]*"|'[^']*'|[^\s"'])+/g) ?? []
+  const pathsWithin = tokens.every((token) => {
+    const value = token.replace(/["']/g, '')
+    if (value.startsWith('-')) {
+      if (value.includes('/') || value.includes('~')) return false
+      const eq = value.indexOf('=')
+      return eq < 0 || approvalPathWithin(projectRoot, value.slice(eq + 1), cwd)
+    }
+    // Todo argumento se resuelve con realpath: `cat leak.txt` con leak.txt → symlink hacia fuera pregunta.
+    return approvalPathWithin(projectRoot, value, cwd)
+  })
   return {
     kind: 'command',
+    withinProject,
     detail: { command: params.command ?? undefined, cwd: params.cwd ?? undefined },
     commandKey: codexCommandKey(params.command),
     readOnly:
       Array.isArray(actions) &&
       actions.length > 0 &&
-      actions.every((action: any) => ['read', 'search', 'listFiles'].includes(action.type)) &&
+      withinProject &&
+      actions.every(
+        (action: any) =>
+          action &&
+          ['read', 'search', 'listFiles'].includes(action.type) &&
+          (action.type !== 'read' || (typeof action.path === 'string' && action.path.length > 0)) &&
+          (action.path === undefined ||
+            (typeof action.path === 'string' && approvalPathWithin(projectRoot, action.path, cwd))),
+      ) &&
+      pathsWithin &&
       unwrappedCommand !== undefined &&
-      !/[;&|><`]|\$\(|\n/.test(unwrappedCommand),
+      // Lista permitida, no de bloqueo: `$`, `\`, `{}`, `[]`, `*?`, `~`, `;|&<>` y no-ASCII expanden o
+      // escapan rutas en el shell (\/etc, $HOME, {/etc,x}, leak.tx?); con cualquiera de ellos se pregunta.
+      /^[\w\-./ =:,@+"']*$/.test(unwrappedCommand),
   }
 }

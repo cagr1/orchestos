@@ -33,7 +33,9 @@ export function opencodeApprovalRequest(
             : 'OpenCode did not provide the content of this change.',
       },
       withinProject:
-        files.length > 0 && files.every((file) => approvalPathWithin(projectRoot, file)),
+        entries.every((entry) => typeof entry?.file === 'string' && entry.file.trim().length > 0) &&
+        files.length > 0 &&
+        files.every((file) => approvalPathWithin(projectRoot, file)),
     }
   }
   if (['shell', 'bash'].includes(input.action) && input.resources.length === 1) {
@@ -42,11 +44,13 @@ export function opencodeApprovalRequest(
       detail: { command: input.resources[0]!, cwd: projectRoot },
       commandKey: input.resources[0]!,
       readOnly: false,
+      withinProject: approvalPathWithin(projectRoot, projectRoot),
     }
   }
   return {
     kind: 'command',
     detail: { command: `${input.action} ${input.resources.join(' ')}`, cwd: projectRoot },
     readOnly: false,
+    withinProject: approvalPathWithin(projectRoot, projectRoot),
   }
 }

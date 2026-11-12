@@ -8,6 +8,7 @@
 import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { parse as parseYaml, stringify as yamlStringify } from 'yaml'
+import { PathPolicyError, realPathWithin } from '../run/path-policy.ts'
 
 const SPEC_ID_RE = /^[A-Za-z0-9_.\-']{1,64}$/
 
@@ -47,7 +48,9 @@ export function specPath(root: string, taskId: string): string {
   // specs ya creadas; sin `/` ni `..` el id no puede salir de .orchestos/specs.
   if (!SPEC_ID_RE.test(taskId) || taskId.includes('..'))
     throw new Error(`Invalid spec id: ${taskId}`)
-  return join(root, SPECS_DIR, `${taskId}.md`)
+  const path = join(root, SPECS_DIR, `${taskId}.md`)
+  if (!realPathWithin(root, path)) throw new PathPolicyError('Spec path escapes project root')
+  return path
 }
 
 /** Load a spec by task id. Returns null if the file does not exist. */
@@ -78,9 +81,11 @@ export function listSpecs(root: string, includeArchived = false): Spec[] {
   const specs: Spec[] = []
 
   // Active specs in the root specs dir
+  if (!realPathWithin(root, dir)) throw new PathPolicyError('Spec directory escapes project root')
   const files = readdirSync(dir).filter((f) => f.endsWith('.md'))
   for (const file of files) {
     try {
+      if (!realPathWithin(root, join(dir, file))) continue
       const text = readFileSync(join(dir, file), 'utf-8')
       specs.push(parseSpec(text))
     } catch {
@@ -92,9 +97,10 @@ export function listSpecs(root: string, includeArchived = false): Spec[] {
 
   // Also load archived specs from archive subdirectory
   const archiveDir = join(dir, 'archive')
-  if (existsSync(archiveDir)) {
+  if (existsSync(archiveDir) && realPathWithin(root, archiveDir)) {
     for (const file of readdirSync(archiveDir).filter((f) => f.endsWith('.md'))) {
       try {
+        if (!realPathWithin(root, join(archiveDir, file))) continue
         const text = readFileSync(join(archiveDir, file), 'utf-8')
         specs.push(parseSpec(text))
       } catch {

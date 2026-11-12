@@ -1,8 +1,8 @@
 import { existsSync, readFileSync } from 'node:fs'
-import { join } from 'node:path'
 import { classifyTask } from '../router/classify.ts'
 import { buildSkillInstructions } from '../skills/catalog.ts'
 import type { Task } from '../tasks/schema.ts'
+import { PathPolicyError, resolveProjectPath } from './path-policy.ts'
 
 export interface BuiltPrompt {
   system: string
@@ -41,7 +41,14 @@ export function buildPrompt(
 
   let userContent = `Task: ${task.description}\n`
   for (const file of task.input) {
-    const fullPath = join(projectRoot, file)
+    let fullPath: string
+    try {
+      fullPath = resolveProjectPath(projectRoot, file, 'read')
+    } catch (error) {
+      if (!(error instanceof PathPolicyError)) throw error
+      userContent += `\nWarning: skipped unsafe input ${file}\n`
+      continue
+    }
     if (existsSync(fullPath)) {
       userContent += `\n### ${file}\n\`\`\`\n${readFileSync(fullPath, 'utf-8')}\n\`\`\`\n`
     }

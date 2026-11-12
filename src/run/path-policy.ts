@@ -1,5 +1,5 @@
-import { existsSync, lstatSync, realpathSync } from 'node:fs'
-import { isAbsolute, relative, resolve } from 'node:path'
+import { existsSync, lstatSync, readlinkSync, realpathSync } from 'node:fs'
+import { dirname, isAbsolute, join, parse, relative, resolve, sep } from 'node:path'
 
 export class PathPolicyError extends Error {}
 
@@ -49,6 +49,44 @@ export function realRoot(root: string): string {
   return realpathSync.native(resolve(root))
 }
 
+/** Resolve every existing component, including dangling symlinks; missing suffixes stay lexical. */
+export function realPathWithin(root: string, target: string): boolean {
+  let links = 0
+  function canonical(input: string, base = realpathSync.native(process.cwd())): string {
+    let actual = isAbsolute(input) ? parse(input).root : base
+    const segments = input.slice(isAbsolute(input) ? actual.length : 0).split(sep)
+    for (const [index, segment] of segments.entries()) {
+      if (!segment || segment === '.') continue
+      if (segment === '..') {
+        actual = dirname(actual)
+        continue
+      }
+      const candidate = join(actual, segment)
+      let stat: ReturnType<typeof lstatSync>
+      try {
+        stat = lstatSync(candidate)
+      } catch (error) {
+        if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
+          return resolve(candidate, ...segments.slice(index + 1))
+        }
+        throw error
+      }
+      if (stat.isSymbolicLink()) {
+        if (++links > 40) throw new PathPolicyError('too many symbolic links')
+        actual = canonical(readlinkSync(candidate), actual)
+      } else {
+        actual = candidate
+      }
+    }
+    return actual
+  }
+  try {
+    return isWithin(realRoot(root), canonical(target))
+  } catch {
+    return false
+  }
+}
+
 /** Resolve a project path and verify its existing parent chain is in-root. */
 export function resolveProjectPath(
   root: string,
@@ -62,15 +100,21 @@ export function resolveProjectPath(
 
   let existing = lexical
   while (existing !== rootReal) {
-    if (existsSync(existing)) {
-      if (operation === 'write' && lstatSync(existing).isSymbolicLink()) {
+    let stat: ReturnType<typeof lstatSync> | undefined
+    try {
+      stat = lstatSync(existing)
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error
+    }
+    if (stat) {
+      if (operation === 'write' && stat.isSymbolicLink()) {
         throw new PathPolicyError(`refusing to write through symlink: ${input}`)
       }
       break
     }
     existing = resolve(existing, '..')
   }
-  if (!isWithin(rootReal, realpathSync.native(existing))) {
+  if (!realPathWithin(rootReal, lexical)) {
     throw new PathPolicyError(`path crosses a symlink outside project root: ${input}`)
   }
   if (existsSync(lexical)) {

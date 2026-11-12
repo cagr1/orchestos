@@ -172,6 +172,7 @@ describe('OpenCode permission mapping', () => {
       detail: { command, cwd },
       commandKey: command,
       readOnly: false,
+      withinProject: true,
     })
   })
   it('unknown permissions have no reusable identity', () => {
@@ -179,6 +180,7 @@ describe('OpenCode permission mapping', () => {
       kind: 'command',
       detail: { command: 'network mkdir *', cwd },
       readOnly: false,
+      withinProject: true,
     })
   })
 })
@@ -588,7 +590,7 @@ it('maps multiple file patches and only reuses a single shell resource', () => {
     cwd,
   )
   expect(request.detail).toEqual({ files: ['a', 'b'], diff: '+a\n+b' })
-  expect(request.withinProject).toBe(true)
+  expect(request.withinProject).toBe(false)
   expect(
     opencodeApprovalRequest(permission('edit', ['fallback'], { files: [{ file: '' }] }), cwd).detail
       .files,

@@ -1,5 +1,6 @@
 import { readFileSync, statSync } from 'node:fs'
-import { resolve, sep } from 'node:path'
+import { resolve } from 'node:path'
+import { realPathWithin } from '../../run/path-policy.ts'
 import { errorResponse, jsonResponse } from '../http.ts'
 
 function git(root: string, args: string[]) {
@@ -14,7 +15,7 @@ function git(root: string, args: string[]) {
 function untrackedLines(root: string, path: string): number {
   try {
     const target = resolve(root, path)
-    if (statSync(target).size > 1_000_000) return 0
+    if (!realPathWithin(root, target) || statSync(target).size > 1_000_000) return 0
     const data = readFileSync(target)
     if (data.includes(0) || !data.length) return 0
     const text = data.toString('utf8')
@@ -88,7 +89,7 @@ export function handleApiGitDiff(url: URL, root: string): Response {
   const path = url.searchParams.get('path')
   if (!path) return errorResponse('Missing path', 400)
   const target = resolve(root, path)
-  if (target !== root && !target.startsWith(root + sep)) return errorResponse('Invalid path', 400)
+  if (!realPathWithin(root, target)) return errorResponse('Invalid path', 403)
   const untracked = git(root, ['ls-files', '--others', '--exclude-standard', '-z', '--', path])
     .stdout.toString()
     .split('\0')

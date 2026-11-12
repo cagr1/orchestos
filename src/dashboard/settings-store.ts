@@ -1,4 +1,12 @@
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
+import {
+  chmodSync,
+  existsSync,
+  mkdirSync,
+  readFileSync,
+  renameSync,
+  rmSync,
+  writeFileSync,
+} from 'node:fs'
 import { join } from 'node:path'
 import { orchestosHome } from '../config/orchestos-home.ts'
 
@@ -64,7 +72,15 @@ function writeEnv(data: Record<string, string>): void {
   const content = `${Object.entries(data)
     .map(([k, v]) => `${k}=${v}`)
     .join('\n')}\n`
-  writeFileSync(envFilePath(), content, 'utf-8')
+  const path = envFilePath()
+  const temporary = `${path}.${crypto.randomUUID()}.tmp`
+  try {
+    writeFileSync(temporary, content, { encoding: 'utf-8', mode: 0o600, flag: 'wx' })
+    chmodSync(temporary, 0o600)
+    renameSync(temporary, path)
+  } finally {
+    rmSync(temporary, { force: true })
+  }
 }
 
 export { envFilePath, maskKey, readEnv, SETTINGS_KEYS, writeEnv }

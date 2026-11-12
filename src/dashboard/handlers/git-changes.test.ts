@@ -95,9 +95,9 @@ describe('git changes', () => {
   })
 
   test('rejects missing and outside paths', () => {
-    expect(diff('../outside').status).toBe(400)
-    expect(diff(`${root}-outside/file`).status).toBe(400)
-    expect(diff('/etc/passwd').status).toBe(400)
+    expect(diff('../outside').status).toBe(403)
+    expect(diff(`${root}-outside/file`).status).toBe(403)
+    expect(diff('/etc/passwd').status).toBe(403)
     expect(diff('').status).toBe(400)
   })
 

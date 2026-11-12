@@ -106,11 +106,12 @@ export async function checkSsrSafe(parsed: URL, lookupFn?: LookupFn): Promise<st
     if (isPrivateIP(hostname)) {
       return `[SSRF blocked: cannot fetch from private IP range — ${parsed.hostname}]`
     }
-    return null
   }
 
   if (parsed.port && parsed.port !== '80' && parsed.port !== '443')
     return `[SSRF blocked: non-standard port ${parsed.port} is not allowed]`
+
+  if (isIPv4) return null
 
   if (hostname.endsWith('.local') || hostname.endsWith('.localhost')) {
     return `[SSRF blocked: cannot fetch from local/reserved domain — ${parsed.hostname}]`
