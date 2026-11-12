@@ -36,13 +36,17 @@ Arranque: `bun run agent:preflight -- --item <ID> --agent claude`. Lista viva: `
        al Auxiliar tras `done` y sale 1 si la tarea no queda `done`.
      - AUD.22 + AUD.6 cerrados 2026-11-12 (`adb93357`; evidencia `docs/done/evidence/AUD.22-live.json`). Los motores se lanzan
        como grupo (`src/run/process-tree.ts`): todo spawn nuevo de un CLI de agente pasa por `spawnTree`.
-     - AUD.24 cerrado 2026-11-12 (evidencia `docs/done/evidence/AUD.24-chat-stop-result.json`). El lease del turno se
+     - AUD.24 cerrado 2026-11-12 (`8f9e0fe2`; evidencia `docs/done/evidence/AUD.24-chat-stop-result.json`). El lease del turno se
        renueva; recargar a mitad de turno conserva Stop y actividad.
-     - AUD.25 cerrado 2026-11-12 (evidencia `docs/done/evidence/AUD.25-ui-result.json`). `!cmd` en Dev va al PTY;
+     - AUD.25 cerrado 2026-11-12 (`556238cc`; evidencia `docs/done/evidence/AUD.25-ui-result.json`). `!cmd` en Dev va al PTY;
        búsqueda por contenido en `GET /api/explorer/search`.
-     - Siguiente: AUD.26 + AUD.9; ningún otro ítem tiene spec escrito.
-Lo no marcado ✔ en el informe se comprueba
-       con grep al escribirlo. No relanzar los auditores: su salida literal está en los anexos.
+     - Siguiente: AUD.26 + AUD.9; ningún otro ítem tiene spec escrito. Lo no marcado ✔ en el informe se comprueba
+       con grep al escribirlo.
+     - Trampas del cierre (vistas en AUD.24/25): `plan:reconcile` dos veces con el ítem ya `[x]` falla ("Could not
+       prove a closing commit SHA"): poner `[ ]`, reconciliar, volver a `[x]`, reconciliar. La línea `Gate en vivo:`
+       lleva la cita del `.json` en la MISMA línea. Etiquetas visibles nuevas (aunque repitan existentes) van en
+       `Texto visible:` del ítem. Los ui-gates del ejecutor suelen fallar por el localizador, no por el producto:
+       mirar la captura antes de culpar al código. No relanzar los auditores: su salida literal está en los anexos.
      - AUD.28 cambia comportamiento central: plan corto y GO de Carlos antes de delegar; no tiene GO.
      - Sin leer en la auditoría: `components/ui/*` por dentro, `scripts/ui-gate`, `tests/`.
    - Decisiones de Carlos pendientes: adoptar el tamaño por reanudabilidad de ODD en el proceso; qué ideas de
