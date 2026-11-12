@@ -10,6 +10,7 @@ import {
 } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
+import { runInNewContext } from 'node:vm'
 import { parse as yamlParse, stringify as yamlStringify } from 'yaml'
 
 const { cleanOldUiGateDirs, describeFlowError, formatResult, lintFlowSource, run, writeGateRoles } =
@@ -170,4 +171,28 @@ describe('ui gate pure helpers', () => {
       rmSync(projectRoot, { recursive: true, force: true })
     }
   })
+})
+
+const source = readFileSync(new URL('./run.mjs', import.meta.url), 'utf8')
+const configuration = source.slice(
+  source.indexOf('const flows ='),
+  source.indexOf('const cleanedRunDirs ='),
+)
+
+test('AUD.26 configures chat-timeout before starting dashboard without shell env', () => {
+  const process = { argv: ['node', 'runner', 'chat-timeout'], env: {} }
+  runInNewContext(configuration, { process })
+  expect(process.env).toEqual({ ORCHESTOS_CHAT_TURN_TIMEOUT_MS: '4000' })
+})
+test('AUD.26 rejects chat-timeout mixed with other flows', () => {
+  expect(() =>
+    runInNewContext(configuration, {
+      process: { argv: ['node', 'runner', 'chat-timeout', 'smoke'], env: {} },
+    }),
+  ).toThrow('chat-timeout corre solo: acorta el timeout de turno para todos')
+})
+test('AUD.26 leaves other flows timeout unchanged', () => {
+  const process = { argv: ['node', 'runner', 'smoke'], env: {} }
+  runInNewContext(configuration, { process })
+  expect(process.env).toEqual({})
 })

@@ -389,3 +389,32 @@ describe('Codex reset credits', () => {
     })
   })
 })
+
+test('AUD.26 cancels every read timeout without real binaries', async () => {
+  const spawn = spyOn(Bun, 'spawn').mockImplementation((() => ({
+    stdin: { write: async () => 0 },
+    stdout: new ReadableStream({
+      start(controller) {
+        controller.enqueue(new TextEncoder().encode('ignored\n'))
+        controller.enqueue(
+          new TextEncoder().encode('{"result":{"rateLimits":{"primary":{"usedPercent":12}}}}\n'),
+        )
+        controller.close()
+      },
+    }),
+    kill: () => {},
+  })) as unknown as typeof Bun.spawn)
+  const clear = spyOn(globalThis, 'clearTimeout')
+  const timer = spyOn(globalThis, 'setTimeout')
+  try {
+    expect(await readCodexRateLimitsLive({ timeoutMs: 100 })).toMatchObject({
+      windows: [{ usedPct: 12 }],
+    })
+    expect(timer.mock.results.length).toBeGreaterThan(0)
+    for (const call of timer.mock.results) expect(clear).toHaveBeenCalledWith(call.value)
+  } finally {
+    spawn.mockRestore()
+    clear.mockRestore()
+    timer.mockRestore()
+  }
+})

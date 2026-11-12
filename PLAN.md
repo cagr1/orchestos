@@ -342,6 +342,8 @@ prioridad hasta que Carlos las asigne.
   `chromium.launch()` (`run.mjs:222`); Safari/WebKit no se prueba (relevante para IDEAS #41, Tauri). (c) Lo del home
   temporal está en CI.81 (ampliado). Verificación: la nocturna deja `chat-timeout` verde sin intervención (el flow o
   el runner fijan el valor); decisión de Carlos sobre añadir WebKit.
+  2026-11-12: (a) hecho en AUD.26 (`run.mjs` fija la variable; `chat-timeout` 9/9 en vivo). Falta confirmarlo en la
+  próxima nocturna válida y (b) WebKit, decisión de Carlos.
 
 - [ ] **AUD.10 — Mutación: `harness.ts` y `contract.ts` no están en ningún shard de la nocturna.** (abierto 2026-11-10)
   `.github/workflows/mutation-nightly.yml:20-40` corre 11 shards (`executors-engines`, `-engines-b`, `-routing`,
@@ -539,10 +541,22 @@ qué no). Cada ítem es una clase de falla con varios sitios; el spec comprueba 
   Texto visible: "Bash" y "Copy output" (las mismas etiquetas que ya tenía la fila de comando, ahora una por comando).
   Gate en vivo: navegador Playwright, `aud25-ui` 14/14 y `project-delete` 12/12, `docs/done/evidence/AUD.25-ui-result.json`.
   Ejecutado por: gpt-6.1-sol (criterio, 2 tandas) + claude-opus-5-5 (fixes de revisión) · Spec: docs/specs/AUD.25.md
-- [ ] **AUD.26 — Gates que no pueden fallar.** (abierto 2026-11-11) `check-coverage.ts:14-16` da 100 % a un LCOV
+- [x] **AUD.26 — Gates que no pueden fallar.** (abierto 2026-11-11, cerrado 2026-11-12) `check-coverage.ts:14-16` da 100 % a un LCOV
   vacío; `check-test-assertions.ts:5` cuenta `expect(` en comentarios; `check-scope-lock.ts:48` ignora eliminaciones;
   `nightly-ui-gates.ts:322,228` sale 0 con todo rojo y su candado no se recupera; `adversarial-review.ts:775,796`
   avanza el SHA tras un fallo de infraestructura. Verificación: test rojo por cada caso antes del arreglo.
+  Cierre: `evaluateCoverage` rechaza LCOV sin líneas o sin funciones; las aserciones se cuentan tras quitar
+  comentarios y literales (escáner de un paso); scope-lock usa `--no-renames` sin filtro (borrados y origen de
+  renombres); la nocturna sale 1 con algún flujo rojo y su candado guarda el PID y se recupera si el proceso murió;
+  la revisión adversarial no avanza el SHA ni escribe `REVIEW.md` si un hallazgo acabó en `infrastructure-error` o
+  `timeout` (todo o nada, sin duplicados); `context-adapters.ts` cancela el timer de cada lectura. Más AUD.9(a):
+  `run.mjs` fija `ORCHESTOS_CHAT_TURN_TIMEOUT_MS=4000` cuando corre `chat-timeout` (solo; mezclado, error).
+  Hallado al verificar: el flow exigía exactamente "2 s" pero el contador cuenta desde el envío y el aviso llega con
+  `turn/started` (2,9 s en una corrida): carrera. Ahora comprueba que el contador sube entre dos lecturas.
+  Gates: tsc, lint, test:coverage 2720/0; 20 tests nuevos rojos contra el código anterior; qa 2 vueltas (1 P2
+  corregido: contador congelado pasaba).
+  Gate en vivo: navegador Playwright, `chat-timeout` 9/9 sin la variable en el shell, `docs/done/evidence/AUD.26-chat-timeout-brain.json`.
+  Ejecutado por: gpt-6.1-sol (criterio) + claude-opus-5-5 (fix del flow) · Spec: docs/specs/AUD.26.md
 - [ ] **AUD.27 — Código sin uso (amplía AUD.8).** (abierto 2026-11-11) `src/index.ts` y `"module"` de `package.json`;
   `app/src/data/orcaProjectData.ts`; 5 scripts sin invocador; 77 exports y 104 tipos sin importador (`knip`); bloque
   `{false && …}` en `AgentComposer.tsx:1042`; tablas `orchestration_*` y `planner_model` sin consumidor;

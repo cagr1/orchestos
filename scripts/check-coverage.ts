@@ -64,6 +64,19 @@ export const THRESHOLDS = {
   lines: 0.57,
 } as const
 
+export function evaluateCoverage(summary: CoverageSummary): { ok: boolean; reasons: string[] } {
+  if (summary.linesFound === 0 || summary.functionsFound === 0) {
+    return { ok: false, reasons: ['coverage gate failed: LCOV vacío — no se midió nada'] }
+  }
+  const ok =
+    summary.functionsPercent / 100 >= THRESHOLDS.functions &&
+    summary.linesPercent / 100 >= THRESHOLDS.lines
+  return {
+    ok,
+    reasons: ok ? [] : ['coverage gate failed: aggregate coverage is below the ratchet'],
+  }
+}
+
 function runCoverageGate(): void {
   const coverageDir = mkdtempSync(join(tmpdir(), 'orchestos-coverage-'))
 
@@ -85,8 +98,7 @@ function runCoverageGate(): void {
 
     const lcov = readFileSync(join(coverageDir, 'lcov.info'), 'utf8')
     const summary = parseLcovSummary(lcov)
-    const functionsOk = summary.functionsPercent / 100 >= THRESHOLDS.functions
-    const linesOk = summary.linesPercent / 100 >= THRESHOLDS.lines
+    const evaluation = evaluateCoverage(summary)
 
     console.log(
       `coverage gate: functions ${summary.functionsPercent.toFixed(2)}% (required ${(THRESHOLDS.functions * 100).toFixed(2)}%)`,
@@ -95,8 +107,8 @@ function runCoverageGate(): void {
       `coverage gate: lines ${summary.linesPercent.toFixed(2)}% (required ${(THRESHOLDS.lines * 100).toFixed(2)}%)`,
     )
 
-    if (!functionsOk || !linesOk) {
-      console.error('coverage gate failed: aggregate coverage is below the ratchet')
+    if (!evaluation.ok) {
+      for (const reason of evaluation.reasons) console.error(reason)
       process.exitCode = 1
     }
   } finally {

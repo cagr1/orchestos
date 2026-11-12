@@ -45,7 +45,7 @@ export function main(root = process.cwd()): number {
     return 0
   }
 
-  const names = runCommand(['git', 'diff', '--cached', '--name-only', '--diff-filter=ACMR'], root)
+  const names = runCommand(['git', 'diff', '--cached', '--name-only', '--no-renames'], root)
   if (names.exitCode !== 0) {
     console.error(names.stderr.trim())
     return 1

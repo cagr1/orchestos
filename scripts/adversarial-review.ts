@@ -656,6 +656,7 @@ export async function main(
   // sin gastar una segunda corrida real de codex con un modelo distinto.
   expectedModel = REVIEWER_MODEL,
   codexRunner: CodexRunner = runCodexStreaming,
+  findingRunner: typeof runFindingTest = runFindingTest,
 ): Promise<number> {
   const head = run(['git', 'rev-parse', 'HEAD'], root)
   if (head.exitCode !== 0) {
@@ -770,8 +771,10 @@ export async function main(
   }
 
   const entries: string[] = []
+  let unverified = 0
   for (const finding of findings) {
-    const result = await runFindingTest(root, finding)
+    const result = await findingRunner(root, finding)
+    if (result.reason === 'infrastructure-error' || result.reason === 'timeout') unverified++
     if (!result.survived || !result.evidencePath) {
       log(`descartado (${result.reason}): ${finding.summary}`)
       continue
@@ -785,6 +788,12 @@ export async function main(
         verification.actualModel ?? REVIEWER_MODEL,
       ),
     )
+  }
+
+  if (unverified > 0) {
+    log(`no se avanza el SHA: ${unverified} hallazgo(s) sin verificar por fallo de infraestructura`)
+    log('no se escribe REVIEW.md: corrida todo o nada para evitar duplicados al reintentar')
+    return 1
   }
 
   if (skippedEntry && window.skipped) {

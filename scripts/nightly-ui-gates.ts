@@ -224,10 +224,34 @@ export async function runNightly(
     return result.output.trim()
   }
   const lock = join(base, 'running')
-  try {
+  const acquireLock = () => {
     mkdirSync(lock)
-  } catch {
-    throw new Error(`No se pudo preparar el worktree: corrida ya activa (${lock})`)
+    writeFileSync(join(lock, 'pid'), String(process.pid))
+  }
+  try {
+    acquireLock()
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code !== 'EEXIST') throw error
+    let pid: number | null = null
+    try {
+      const value = Number(readFileSync(join(lock, 'pid'), 'utf8').trim())
+      if (Number.isSafeInteger(value) && value > 0) pid = value
+    } catch (readError) {
+      if ((readError as NodeJS.ErrnoException).code !== 'ENOENT') throw readError
+    }
+    let alive = pid !== null
+    if (pid !== null) {
+      try {
+        process.kill(pid, 0)
+      } catch (probeError) {
+        if ((probeError as NodeJS.ErrnoException).code === 'ESRCH') alive = false
+        else if ((probeError as NodeJS.ErrnoException).code !== 'EPERM') throw probeError
+      }
+    }
+    if (alive) throw new Error(`No se pudo preparar el worktree: corrida ya activa (${lock})`)
+    rmSync(lock, { recursive: true, force: true })
+    appendFileSync(log, `candado huérfano de PID ${pid ?? 'desconocido'} recuperado\n`)
+    acquireLock()
   }
   let releaseKeepAwake: (() => void) | undefined
   try {
@@ -300,7 +324,7 @@ export async function runNightly(
         failed: [],
         preparationError,
       })
-      return false
+      return { prepared: false, failed: 0 }
     }
     const result = await runFlows(flows, sha, async (flow, attempt) => {
       const { code, output } = await run(['bun', 'run', 'ui:gate', flow])
@@ -319,7 +343,7 @@ export async function runNightly(
       rmSync(join(base, old), { recursive: true, force: true })
     }
     console.log(json)
-    return true
+    return { prepared: true, failed: result.failed.length }
   } finally {
     releaseKeepAwake?.()
     rmSync(lock, { recursive: true, force: true })
@@ -328,8 +352,8 @@ export async function runNightly(
 
 if (import.meta.main) {
   runNightly()
-    .then((prepared) => {
-      if (!prepared) process.exitCode = 1
+    .then(({ prepared, failed }) => {
+      if (!prepared || failed > 0) process.exitCode = 1
     })
     .catch((error) => {
       console.error(error)

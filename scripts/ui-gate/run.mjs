@@ -22,6 +22,11 @@ const dashboardToken = randomBytes(32).toString('hex')
 const tokenHeaders = { 'x-orchestos-token': dashboardToken }
 
 const flows = process.argv.slice(2)
+if (flows.includes('chat-timeout')) {
+  if (flows.length !== 1)
+    throw new Error('chat-timeout corre solo: acorta el timeout de turno para todos')
+  process.env.ORCHESTOS_CHAT_TURN_TIMEOUT_MS = '4000'
+}
 const cleanedRunDirs = cleanOldUiGateDirs(os.tmpdir(), Date.now(), 24 * 60 * 60 * 1000)
 if (cleanedRunDirs > 0) process.stdout.write(`cleaned ${cleanedRunDirs} old ui-gate dirs\n`)
 const runDir = path.join(os.tmpdir(), `ui-gate-${process.pid}`)

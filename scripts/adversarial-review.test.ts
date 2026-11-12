@@ -622,3 +622,52 @@ describe('adversarial review — fail closed', () => {
     }
   })
 })
+
+test.each(['infrastructure-error', 'timeout'] as const)(
+  'AUD.26 does not advance SHA or duplicate confirmed entries after %s',
+  async (reason) => {
+    const root = temp('adversarial-aud26-')
+    mkdirSync(join(root, 'scripts'))
+    writeFileSync(join(root, 'scripts/adversarial-review-prompt.md'), '{{DIFF}}')
+    const sessions = join(root, 'sessions')
+    mkdirSync(sessions)
+    writeFileSync(
+      join(sessions, 'rollout-aud26.jsonl'),
+      '{"type":"turn_context","payload":{"model":"gpt-5.6-sol"}}\n',
+    )
+    saveState(root, { lastReviewedSha: 'old' })
+    const run: RunCommand = (args) => ({
+      exitCode: 0,
+      stdout: args[1] === 'rev-parse' ? 'head' : 'diff',
+      stderr: '',
+    })
+    const runner: CodexRunner = async () => ({
+      exitCode: 0,
+      timedOut: false,
+      stderr: '',
+      stdout: [
+        JSON.stringify({ type: 'thread.started', thread_id: 'aud26' }),
+        JSON.stringify({
+          type: 'item.completed',
+          item: {
+            type: 'agent_message',
+            text: JSON.stringify([finding, { ...finding, summary: 'unverified' }]),
+          },
+        }),
+      ].join('\n'),
+    })
+    const findingRunner: typeof runFindingTest = async (_root, item) => ({
+      survived: item.summary !== 'unverified',
+      evidencePath: 'evidence.check.ts',
+      outcomePath: 'result.json',
+      reason: item.summary === 'unverified' ? reason : 'assertion-failed',
+      stdout: '',
+      stderr: '',
+    })
+    for (let attempt = 0; attempt < 2; attempt++) {
+      expect(await main(root, run, sessions, 'gpt-5.6-sol', runner, findingRunner)).toBe(1)
+      expect(loadState(root)).toEqual({ lastReviewedSha: 'old' })
+      expect(existsSync(join(root, REVIEW_MD))).toBe(false)
+    }
+  },
+)

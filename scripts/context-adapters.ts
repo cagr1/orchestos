@@ -359,12 +359,13 @@ export async function readCodexRateLimitsLive(
     let buffer = ''
     while (Date.now() < deadline) {
       const remaining = Math.max(1, deadline - Date.now())
+      let timer: ReturnType<typeof setTimeout> | undefined
       const next = await Promise.race([
         reader.read(),
-        new Promise<ReadableStreamReadResult<Uint8Array> | null>((resolve) =>
-          setTimeout(() => resolve(null), remaining),
-        ),
-      ])
+        new Promise<ReadableStreamReadResult<Uint8Array> | null>((resolve) => {
+          timer = setTimeout(() => resolve(null), remaining)
+        }),
+      ]).finally(() => clearTimeout(timer))
       if (!next || next.done) break
       buffer += new TextDecoder().decode(next.value)
       const lines = buffer.split('\n')

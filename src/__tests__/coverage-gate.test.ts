@@ -31,3 +31,27 @@ end_of_record
     expect(parseLcovSummary('').linesPercent).toBe(100)
   })
 })
+
+describe('evaluateCoverage', () => {
+  it('AUD.26 rejects LCOV with either metric empty', async () => {
+    const coverage = await import('../../scripts/check-coverage.ts')
+    for (const lcov of ['', 'FNF:1\nFNH:1', 'LF:1\nLH:1']) {
+      expect(coverage.evaluateCoverage(coverage.parseLcovSummary(lcov))).toEqual({
+        ok: false,
+        reasons: ['coverage gate failed: LCOV vacío — no se midió nada'],
+      })
+    }
+  })
+  it('AUD.26 applies the unchanged ratchet to measured coverage', async () => {
+    const coverage = await import('../../scripts/check-coverage.ts')
+    expect(
+      coverage.evaluateCoverage(coverage.parseLcovSummary('FNF:100\nFNH:69\nLF:100\nLH:57')).ok,
+    ).toBe(true)
+    expect(
+      coverage.evaluateCoverage(coverage.parseLcovSummary('FNF:100\nFNH:68\nLF:100\nLH:57')).ok,
+    ).toBe(false)
+    expect(
+      coverage.evaluateCoverage(coverage.parseLcovSummary('FNF:100\nFNH:69\nLF:100\nLH:56')).ok,
+    ).toBe(false)
+  })
+})

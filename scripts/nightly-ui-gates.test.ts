@@ -27,7 +27,7 @@ test.each(['node', 'bun', 'git'])(
       which: (binary) => (binary === missing ? null : `/fixture/bin/${binary}`),
       command,
     })
-    expect(prepared).toBe(false)
+    expect(prepared).toEqual({ prepared: false, failed: 0 })
     expect(command).not.toHaveBeenCalled()
     const json = readFileSync(join(base, 'ui-gates-latest.json'), 'utf8')
     const result = JSON.parse(json)
@@ -78,7 +78,7 @@ test('releases keep-awake after preparation failure', async () => {
     which: () => '/fixture/bin/tool',
     command: mock(async () => ({ code: 1, output: 'fetch failed' })),
   })
-  expect(prepared).toBe(false)
+  expect(prepared).toEqual({ prepared: false, failed: 0 })
   expect(release).toHaveBeenCalledTimes(1)
   expect(existsSync(join(base, 'running'))).toBe(false)
 })
@@ -115,7 +115,7 @@ test.each([{ sleepLog: '', hasSleeps: false }, { hasSleeps: true }])(
       which: () => '/fixture/bin/tool',
       command: command as never,
     })
-    expect(prepared).toBe(true)
+    expect(prepared).toEqual({ prepared: true, failed: 0 })
     expect(release).toHaveBeenCalledTimes(1)
     const result = JSON.parse(readFileSync(join(base, 'ui-gates-latest.json'), 'utf8'))
     expect('sleeps' in result).toBe(hasSleeps)
@@ -220,4 +220,52 @@ test('archives result and captures so they survive runDir cleanup, without copyi
   rmSync(shot)
   expect(JSON.parse(readFileSync(join(destination, 'result.json'), 'utf8'))[0].pass).toBe(false)
   expect(readFileSync(join(destination, '0-0-failure.png'), 'utf8')).toBe('screenshot')
+})
+
+function nightlyFixture() {
+  const base = mkdtempSync(join(tmpdir(), 'nightly-aud26-'))
+  roots.push(base)
+  return {
+    base,
+    which: () => '/fixture/bin/tool',
+    keepAwake: () => () => {},
+    sleepLog: () => '',
+    command: async (args: string[]) => {
+      if (args[1] === 'worktree' && args[2] === 'add') {
+        const dir = join(base, 'worktree/scripts/ui-gate/flows')
+        mkdirSync(dir, { recursive: true })
+        writeFileSync(join(dir, 'smoke.mjs'), '')
+      }
+      return { code: args[2] === 'ui:gate' ? 1 : 0, output: args[1] === 'rev-parse' ? 'sha' : '' }
+    },
+  }
+}
+
+test('AUD.26 reports prepared but failed when every flow is red', async () => {
+  expect(await runNightly(nightlyFixture())).toEqual({ prepared: true, failed: 1 })
+})
+
+test('AUD.26 recovers a dead PID lock and records recovery', async () => {
+  const options = nightlyFixture()
+  const child = Bun.spawn(['true'])
+  await child.exited
+  mkdirSync(join(options.base, 'running'))
+  writeFileSync(join(options.base, 'running/pid'), String(child.pid))
+  expect(await runNightly(options)).toEqual({ prepared: true, failed: 1 })
+  const log = join(options.base, new Date().toISOString().slice(0, 10), 'ui-gates.log')
+  expect(readFileSync(log, 'utf8')).toContain(`candado huérfano de PID ${child.pid} recuperado`)
+})
+
+test('AUD.26 recovers a lock with no PID', async () => {
+  const options = nightlyFixture()
+  mkdirSync(join(options.base, 'running'))
+  expect(await runNightly(options)).toEqual({ prepared: true, failed: 1 })
+})
+
+test('AUD.26 keeps a live PID lock', async () => {
+  const options = nightlyFixture()
+  mkdirSync(join(options.base, 'running'))
+  writeFileSync(join(options.base, 'running/pid'), String(process.pid))
+  await expect(runNightly(options)).rejects.toThrow('corrida ya activa')
+  expect(readFileSync(join(options.base, 'running/pid'), 'utf8')).toBe(String(process.pid))
 })

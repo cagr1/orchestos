@@ -28,14 +28,26 @@ export default async function chatTimeout(ctx) {
   await page.getByRole('button', { name: 'Send message', exact: true }).last().click()
   const waiting = page
     .locator('[data-thread-working]')
-    .filter({ hasText: /Request sent to .* — no response yet, no error reported by Codex\s+2 s/ })
+    // The counter runs from send; the notice arrives with turn/started, whose latency varies.
+    .filter({
+      hasText: /Request sent to .* — no response yet, no error reported by Codex\s+[1-9]\d* s/,
+    })
   await waiting.waitFor({ state: 'visible', timeout: 30000 })
-  await step(
-    'live no-response counter reaches two seconds',
-    /Codex\s+2 s/.test(await waiting.innerText()) && !/\d+s ago/.test(await waiting.innerText()),
-    await waiting.innerText(),
-  )
+  const seconds = async () =>
+    Number(/Codex\s+(\d+) s/.exec(await waiting.innerText({ timeout: 500 }))?.[1] ?? NaN)
+  const first = await seconds()
+  const firstText = await waiting.innerText()
   await shot('timeout-waiting')
+  let later = first
+  for (let i = 0; i < 15 && !(later > first); i++) {
+    await page.waitForTimeout(100)
+    later = await seconds().catch(() => NaN)
+  }
+  await step(
+    'live no-response counter is visible and counting seconds',
+    later > first && !/\d+s ago/.test(firstText),
+    `${firstText} → ${later} s`,
+  )
   const response = await completed
   const body = await response.json()
   await step(
