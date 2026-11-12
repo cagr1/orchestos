@@ -5,6 +5,7 @@ import type { Check } from '../tasks/schema.ts'
 import { jsSyntaxCheckForHtmlFile, jsSyntaxCheckForJsFile } from './html-script-check.ts'
 import type { RunLogger } from './logger.ts'
 import { PathPolicyError, resolveProjectCwd, safeChildEnv } from './path-policy.ts'
+import { spawnTree, terminateTree } from './process-tree.ts'
 
 const DEFAULT_TIMEOUT_MS = 60_000
 const OUTPUT_LIMIT = 2_000
@@ -215,7 +216,7 @@ export async function runOneCheck(check: Check, projectRoot: string): Promise<Ch
 
   let timedOut = false
   try {
-    const proc = Bun.spawn([command, ...args], {
+    const proc = spawnTree([command, ...args], {
       cwd,
       env: safeChildEnv(),
       stdout: 'pipe',
@@ -224,7 +225,7 @@ export async function runOneCheck(check: Check, projectRoot: string): Promise<Ch
 
     const timer = setTimeout(() => {
       timedOut = true
-      proc.kill()
+      void terminateTree(proc)
     }, timeoutMs)
 
     const [exitCode, stdout, stderr] = await Promise.all([

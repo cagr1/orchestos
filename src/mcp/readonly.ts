@@ -1,3 +1,4 @@
+import { killTree } from '../run/process-tree.ts'
 /**
  * src/mcp/readonly.ts — AT.21
  *
@@ -616,15 +617,6 @@ async function readCapped(
   }
 }
 
-/** Mata el proceso y su grupo (hijos incluidos); el grupo existe porque se lanza `detached`. */
-function killTree(proc: ReturnType<typeof Bun.spawn>): void {
-  try {
-    process.kill(-proc.pid, 'SIGKILL')
-  } catch {
-    proc.kill('SIGKILL')
-  }
-}
-
 type Captured = {
   text: string
   stdout: string
@@ -664,7 +656,7 @@ async function execCapped(
   const err = { bytes: 0, chunks: [] as Uint8Array[], truncated: false }
   const outReader = (proc.stdout as ReadableStream<Uint8Array>).getReader()
   const errReader = (proc.stderr as ReadableStream<Uint8Array>).getReader()
-  const kill = () => killTree(proc)
+  const kill = () => killTree(proc, 'SIGKILL')
   let timer: ReturnType<typeof setTimeout> | undefined
   const timeout = new Promise<'timeout'>((resolveTimeout) => {
     timer = setTimeout(() => resolveTimeout('timeout'), Math.max(1, timeoutMs))
@@ -678,7 +670,7 @@ async function execCapped(
   clearTimeout(timer)
   const timedOut = winner === 'timeout'
   if (timedOut) {
-    killTree(proc)
+    killTree(proc, 'SIGKILL')
     outReader.cancel().catch(() => {})
     errReader.cancel().catch(() => {})
   }

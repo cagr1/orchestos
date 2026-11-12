@@ -74,23 +74,27 @@ export function withFileLock<T>(path: string, fn: () => T, options: FileLockOpti
       }
     }
     try {
+      const observed = readFileSync(path, 'utf8')
       const age = Date.now() - statSync(path).mtimeMs
       const owner = ownerIsAlive(path)
-      if (age > pollIntervalMs && owner === false) {
+      if ((age > pollIntervalMs && owner === false) || (age > staleMs && owner === null)) {
+        const recoveryPath = `${path}.recover`
+        const recoveryTemp = `${path}.${process.pid}.${randomUUID()}.tmp`
+        writeFileSync(recoveryTemp, token)
+        let recovering = false
         try {
-          unlinkSync(path)
-        } catch {
-          /* another process recovered it */
+          try {
+            linkSync(recoveryTemp, recoveryPath)
+            recovering = true
+          } catch (error) {
+            if ((error as NodeJS.ErrnoException).code !== 'EEXIST') throw error
+            if (Date.now() - statSync(recoveryPath).mtimeMs > staleMs) unlinkSync(recoveryPath)
+          }
+          if (recovering && readFileSync(path, 'utf8') === observed) unlinkSync(path)
+        } finally {
+          unlinkSync(recoveryTemp)
+          if (recovering && readFileSync(recoveryPath, 'utf8') === token) unlinkSync(recoveryPath)
         }
-        continue
-      }
-      if (age > staleMs && owner === null) {
-        try {
-          unlinkSync(path)
-        } catch {
-          /* another process recovered it */
-        }
-        continue
       }
     } catch {
       /* Lock disappeared while inspecting it; retry acquisition. */

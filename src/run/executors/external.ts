@@ -1,3 +1,4 @@
+import { spawnTree, terminateTree } from '../process-tree.ts'
 import { whichCli } from './cli-discovery.ts'
 import { CliFailure, claudeFailureKind, cliFailureNotice } from './cli-failure.ts'
 /**
@@ -301,7 +302,7 @@ async function runClaudeCode(
   signal?.throwIfAborted()
   const env = safeChildEnv()
   if (approvalTimeout) env.MCP_TOOL_TIMEOUT = String(30 * 60 * 1000)
-  const proc = Bun.spawn([binary, ...args], {
+  const proc = spawnTree([binary, ...args], {
     cwd,
     env,
     stdin: 'pipe',
@@ -319,24 +320,15 @@ async function runClaudeCode(
   proc.stdin.write(userPrompt)
   proc.stdin.end()
 
-  let exited = false
-  let killTimer: ReturnType<typeof setTimeout> | undefined
-  void proc.exited.then(() => {
-    exited = true
-    if (killTimer) clearTimeout(killTimer)
-  })
   const abort = () => {
-    proc.kill('SIGTERM')
-    killTimer = setTimeout(() => {
-      if (!exited) proc.kill('SIGKILL')
-    }, 2_000)
+    void terminateTree(proc)
   }
   signal?.addEventListener('abort', abort, { once: true })
   if (signal?.aborted) abort()
   let timedOut = false
   const timer = setTimeout(() => {
     timedOut = true
-    proc.kill('SIGTERM')
+    void terminateTree(proc)
   }, timeoutMs)
 
   const reader = proc.stdout.getReader()
@@ -394,13 +386,12 @@ async function runClaudeCode(
     if (timedOut) audit.issue('timeout')
   } catch (error) {
     audit.issue('stream-interrupted')
-    proc.kill('SIGTERM')
+    await terminateTree(proc)
     throw error
   } finally {
     reader.releaseLock()
     clearTimeout(timer)
     signal?.removeEventListener('abort', abort)
-    if (exited && killTimer) clearTimeout(killTimer)
   }
   signal?.throwIfAborted()
   return { stdout, timedOut, resultLine, lastAssistant, readAudit: audit.finish(), apiError }

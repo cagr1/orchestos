@@ -1,3 +1,4 @@
+import { spawnTree, terminateTree } from '../process-tree.ts'
 import { whichCli } from './cli-discovery.ts'
 /**
  * src/run/executors/opencode.ts — G.5
@@ -171,17 +172,18 @@ async function runOpencode(
   timeoutMs: number,
   onStep?: (event: ExecutorStepEvent) => void,
 ): Promise<{ stdout: string; timedOut: boolean }> {
-  const proc = Bun.spawn([OPENCODE_BINARY, ...args], {
+  const proc = spawnTree([OPENCODE_BINARY, ...args], {
     cwd,
     env: safeChildEnv(),
     stdout: 'pipe',
     stderr: 'pipe',
   })
 
+  const stderrDone = new Response(proc.stderr).text().catch(() => {})
   let timedOut = false
   const timer = setTimeout(() => {
     timedOut = true
-    proc.kill('SIGTERM')
+    void terminateTree(proc)
   }, timeoutMs)
 
   const reader = proc.stdout.getReader()
@@ -204,16 +206,21 @@ async function runOpencode(
           const evt = JSON.parse(line)
           for (const step of opencodeEventToStep(evt)) onStep(step)
         } catch {
-          // línea parcial/corrupta — no aborta el resto del stream
+          // línea parcial/corrupta o fallo al mostrar un paso: no aborta la corrida
         }
       }
     }
+    await proc.exited
+    await stderrDone
+    clearTimeout(timer)
+  } catch (error) {
+    clearTimeout(timer)
+    await terminateTree(proc)
+    throw error
   } finally {
+    clearTimeout(timer)
     reader.releaseLock()
   }
-
-  await proc.exited
-  clearTimeout(timer)
 
   return { stdout, timedOut }
 }

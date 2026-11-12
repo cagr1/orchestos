@@ -296,11 +296,13 @@ prioridad hasta que Carlos las asigne.
   se filtra por proyecto y se declara en el resumen del run; test que cuente las llamadas al LLM de una tarea `done`.
   Sin delegación: se ejecutó dentro del spec de AUD.21 (caso 9); evidencia y ejecutor en AUD.21.
 
-- [ ] **AUD.6 — Los motores matan solo al hijo directo, no al grupo de procesos.** (abierto 2026-11-10)
+- [x] **AUD.6 — Los motores matan solo al hijo directo, no al grupo de procesos.** (abierto 2026-11-10, cerrado
+  2026-11-12 junto con AUD.22; cierre en AUD.22)
   `external.ts:329-339` y `397` (`proc.kill('SIGTERM')`/`SIGKILL`), `opencode-server.ts:293-296` y `dashboard/terminal.ts:86-90`
   no lanzan `detached` ni matan `-pid`; solo `mcp/readonly.ts:619-624` mata el grupo (`process.kill(-proc.pid)`, lanzado
   con `detached: true`, `readonly.ts:652`). No verificado en vivo: si los CLIs de agente dejan nietos vivos tras un
   timeout o abort. Verificación: fixture con un CLI falso que lance un nieto; tras abortar la tarea no queda ese PID.
+  Sin delegación: se ejecutó dentro del spec de AUD.22; evidencia y ejecutor en AUD.22.
 
 - [x] **AUD.7 — Servidor local sin token: cualquier proceso local puede lanzar agentes.** (abierto 2026-11-10,
   cerrado 2026-11-12; GO de Carlos 2026-11-12) Cierre: `guardRequest` en el `fetch` de `startServer`, antes de
@@ -469,11 +471,21 @@ qué no). Cada ítem es una clase de falla con varios sitios; el spec comprueba 
   afectados 43/0 corridos por el cerebro. Gate en vivo: sin navegador (ninguna pantalla), CLI real con home y repo
   temporales, `docs/done/evidence/AUD.21-live.json`.
   Ejecutado por: codex gpt-6.1-sol (criterio), diff revisado por claude-opus-5-5 · Spec: docs/specs/AUD.21.md
-- [ ] **AUD.22 — Procesos, streams y sesiones de motor.** (abierto 2026-11-11) `opencode.ts:174-216` no drena
+- [x] **AUD.22 — Procesos, streams y sesiones de motor.** (abierto 2026-11-11, cerrado 2026-11-12 con AUD.6) `opencode.ts:174-216` no drena
   `stderr`; timeouts sin SIGKILL (`codex.ts:199`, `external.ts:337`, `opencode.ts:182`, `checks.ts:225`); el `exit`
   de un app-server viejo rompe el nuevo (`codex-app-server.ts:142,1089`); quitar todas las herramientas no recrea el
   hilo de Codex (`codex-app-server.ts:746-751`); carrera al recuperar el candado (`file-lock.ts:77-84`). Va junto con AUD.6. Verificación: CLI falso que llena `stderr`, que
   ignora SIGTERM y que cambia de herramientas entre turnos.
+  Cierre: `src/run/process-tree.ts` (`spawnTree` detached, `killTree` al grupo, `terminateTree` SIGTERM→SIGKILL a
+  los 2 s también a nietos tras salir el líder, `killAllTrees` en la parada del dashboard y en `exit`) en claude,
+  codex, opencode, checks, `opencode serve`, terminal, readonly y app-server; opencode drena stderr; error leyendo
+  stdout termina proceso y timer (un fallo de `onStep` sigue sin abortar); el `exit` de un app-server viejo no toca
+  al nuevo; quitar las herramientas reemplaza el hilo; el candado se recupera bajo `.recover` con token releído.
+  Fuera: ruta `exec` de codex, sondas `--version` síncronas, spawn fallido de la terminal, caché del OCR. Gates: tsc,
+  lint, `test:coverage` 2686/0. qa: 3 vueltas, 1 P2 corregido (nieto vivo si Bun salía antes del plazo). Gate en
+  vivo: sin navegador, procesos reales con CLIs falsos, `docs/done/evidence/AUD.22-live.json`. Sin probar en vivo:
+  cerrar una terminal real del dashboard con un nieto dentro.
+  Ejecutado por: codex gpt-6.1-sol (criterio) + mecanico (enmienda) + claude-opus-5-5 (fixes chicos) · Spec: docs/specs/AUD.22.md
 - [x] **AUD.23 — Seguridad: confinamiento por symlink y redacción de secretos.** (abierto 2026-11-11, cerrado
   2026-11-12 junto con AUD.13) Cierre: `realPathWithin` resuelve symlinks segmento a segmento (colgantes y encadenados
   con `..`) y lo usan explorer, git diff, specs, skills, `task.input` del prompt, `approvalPathWithin` y

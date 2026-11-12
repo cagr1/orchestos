@@ -62,6 +62,83 @@ function store() {
 }
 
 describe('Codex app-server', () => {
+  test('AUD.22: late exit and error from a stopped child cannot break its replacement', async () => {
+    const children: ReturnType<typeof fakeProcess>[] = []
+    const server = new CodexAppServer({
+      binary: 'fake',
+      env: {},
+      store: store().api,
+      spawnProcess: () => {
+        const child = fakeProcess((request, stdout) => {
+          if (request.method === 'initialize') reply(stdout, request, {})
+        })
+        child.kill = () => true
+        children.push(child)
+        return child
+      },
+    })
+    try {
+      await (server as any).ensureReady()
+      server.kill()
+      await (server as any).ensureReady()
+      const pending = (server as any).request('test', {}, 1000)
+      const rejection = pending.catch((error: Error) => error)
+      children[0].emit('error', new Error('old child error'))
+      children[0].emit('exit', 0, null)
+      const id = (server as any).nextId - 1
+      reply(children[1].stdout, { id }, { ok: true })
+      expect(await rejection).toEqual({ ok: true })
+      expect((server as any).child).toBe(children[1])
+    } finally {
+      server.kill()
+    }
+  })
+
+  test('AUD.22: removing all tools starts a replacement thread without config', async () => {
+    const calls: any[] = []
+    let starts = 0
+    const server = new CodexAppServer({
+      binary: 'fake',
+      env: {},
+      store: store().api,
+      spawnProcess: () =>
+        fakeProcess((request, stdout) => {
+          calls.push(request)
+          if (request.method === 'initialize') reply(stdout, request, {})
+          if (request.method === 'thread/start')
+            reply(stdout, request, { thread: { id: `tools-${++starts}` } })
+          if (request.method === 'turn/start') {
+            reply(stdout, request, { turn: { id: 'u' } })
+            queueMicrotask(() =>
+              stdout.write(
+                `${JSON.stringify({ method: 'turn/completed', params: { threadId: request.params.threadId, turn: { id: 'u', status: 'completed' } } })}\n`,
+              ),
+            )
+          }
+        }),
+    })
+    try {
+      const base = {
+        sessionId: 's',
+        cwd: '/p',
+        systemPrompt: '',
+        message: 'hello',
+        timeoutMs: 1000,
+      }
+      await server.turn({
+        ...base,
+        threadConfig: codexMcpThreadConfig({ tools: ['create_task'], root: '/p' }),
+      })
+      const result = await server.turn(base)
+      const requests = calls.filter((call) => call.method === 'thread/start')
+      expect(requests).toHaveLength(2)
+      expect(requests[1].params.config).toBeUndefined()
+      expect((server as any).toolOffered.get(result.threadId)).toBe('')
+    } finally {
+      server.kill()
+    }
+  })
+
   test('completed agent messages do not repeat streamed text around a tool call', async () => {
     const sessionId = 'codex-live-tool-regression'
     const first = 'Voy a consultar el estado del proyecto antes de crear la tarea solicitada.'

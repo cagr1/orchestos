@@ -128,7 +128,7 @@
       "sprint": "Abiertos — auditoría 2026-11-10",
       "block": null,
       "title": "Los motores matan solo al hijo directo, no al grupo de procesos",
-      "status": "open",
+      "status": "done",
       "closedDate": null
     },
     {
@@ -264,7 +264,7 @@
       "sprint": "Abiertos — auditoría 2026-11-10",
       "block": "Abiertos — auditoría 2026-11-11",
       "title": "Procesos, streams y sesiones de motor",
-      "status": "open",
+      "status": "done",
       "closedDate": null
     },
     {

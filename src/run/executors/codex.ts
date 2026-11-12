@@ -1,3 +1,4 @@
+import { spawnTree, terminateTree } from '../process-tree.ts'
 import { whichCli } from './cli-discovery.ts'
 /**
  * src/run/executors/codex.ts — G.4.2b
@@ -179,7 +180,7 @@ async function runCodex(
   onStep?: (event: ExecutorStepEvent) => void,
   env: Record<string, string> = safeChildEnv(),
 ): Promise<{ stdout: string; timedOut: boolean }> {
-  const proc = Bun.spawn([CODEX_BINARY, ...args], {
+  const proc = spawnTree([CODEX_BINARY, ...args], {
     cwd,
     env,
     stdin: 'ignore',
@@ -198,7 +199,7 @@ async function runCodex(
   let timedOut = false
   const timer = setTimeout(() => {
     timedOut = true
-    proc.kill('SIGTERM')
+    void terminateTree(proc)
   }, timeoutMs)
 
   const reader = proc.stdout.getReader()
@@ -222,18 +223,22 @@ async function runCodex(
           const evt = JSON.parse(line)
           for (const step of codexEventToStep(evt)) onStep(step)
         } catch {
-          // línea parcial/corrupta o log no-JSON (ej. warnings de rmcp) — no aborta el stream
+          // línea parcial/corrupta, log no-JSON o fallo al mostrar un paso: no aborta la corrida
         }
       }
     }
+    const exitCode = await proc.exited
+    clearTimeout(timer)
+    await stderrDone
+    trace.end(exitCode, stderrText, timedOut)
+  } catch (error) {
+    clearTimeout(timer)
+    await terminateTree(proc)
+    throw error
   } finally {
+    clearTimeout(timer)
     reader.releaseLock()
   }
-
-  const exitCode = await proc.exited
-  clearTimeout(timer)
-  await stderrDone
-  trace.end(exitCode, stderrText, timedOut)
 
   return { stdout, timedOut }
 }

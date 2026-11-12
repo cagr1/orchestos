@@ -119,13 +119,14 @@ export class CodexAppServer {
   constructor(private readonly options: CodexAppServerOptions) {
     this.spawnProcess =
       options.spawnProcess ??
-      ((binary, env) => spawn(binary, ['app-server'], { env, stdio: 'pipe' }))
+      ((binary, env) => spawn(binary, ['app-server'], { env, stdio: 'pipe', detached: true }))
   }
 
   private async ensureReady(): Promise<void> {
     if (this.child && this.ready) return this.ready
     this.resumed.clear()
-    this.child = this.spawnProcess(this.options.binary, this.options.env)
+    const thatChild = this.spawnProcess(this.options.binary, this.options.env)
+    this.child = thatChild
     this.child.stderr.on('data', (chunk) => {
       for (const state of this.turns.values())
         state.diagnostics.stderrBytes += Buffer.byteLength(chunk)
@@ -136,10 +137,12 @@ export class CodexAppServer {
     })
     this.reader = createInterface({ input: this.child.stdout })
     this.reader.on('line', (line) => this.receive(line))
-    this.child.on('error', (error) =>
-      this.failAll(new CodexAppServerError(`app-server spawn failed: ${error.message}`, true)),
-    )
+    this.child.on('error', (error) => {
+      if (this.child !== thatChild) return
+      this.failAll(new CodexAppServerError(`app-server spawn failed: ${error.message}`, true))
+    })
     this.child.on('exit', (code, signal) => {
+      if (this.child !== thatChild) return
       this.failAll(
         new CodexAppServerError(`app-server exited (${code ?? signal ?? 'unknown'})`, true),
       )
@@ -744,12 +747,7 @@ export class CodexAppServer {
         // proceso NO aplica `config`. Si el turno necesita un conjunto de herramientas (o una raíz) distinto del
         // del hilo (p. ej. modo `chat` → `code`), se abre un hilo nuevo con la transcripción.
         const openedWith = this.toolOffered.get(threadId)
-        if (
-          this.resumed.has(threadId) &&
-          input.threadConfig &&
-          openedWith !== undefined &&
-          openedWith !== offerKey
-        ) {
+        if (this.resumed.has(threadId) && openedWith !== undefined && openedWith !== offerKey) {
           await startReplacement(
             input.transcript
               ? 'Codex thread restarted to change its tools (earlier turns were resent)'
@@ -1087,7 +1085,24 @@ export class CodexAppServer {
     this.reader?.close()
     this.reader = null
     if (this.child) {
-      this.child.kill('SIGTERM')
+      const child = this.child
+      const kill = (signal: NodeJS.Signals) => {
+        try {
+          if (child.pid === undefined) child.kill(signal)
+          else process.kill(-child.pid, signal)
+        } catch (error) {
+          if ((error as NodeJS.ErrnoException).code !== 'ESRCH') throw error
+          child.kill(signal)
+        }
+      }
+      kill('SIGTERM')
+      if (child.exitCode === null && child.signalCode === null) {
+        const timer = setTimeout(() => {
+          if (child.exitCode === null && child.signalCode === null) kill('SIGKILL')
+        }, 2000)
+        timer.unref()
+        child.once('exit', () => clearTimeout(timer))
+      }
       this.child = null
     }
     this.ready = null

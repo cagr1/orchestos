@@ -1,4 +1,4 @@
-# NEXT — handoff 2026-11-12 (lote de auditoría AUD.19–28; siguiente AUD.22 + AUD.6)
+# NEXT — handoff 2026-11-12 (lote de auditoría AUD.19–28; siguiente AUD.24)
 
 Un solo presente: orden y trampas vivas del lote. Lo cerrado vive en `docs/done/bloque-*.md` y git; las reglas, en
 `AGENTS.md`. Versión anterior completa: `docs/done/poda-instrucciones-2026-11-03.md` (histórico).
@@ -34,7 +34,9 @@ Arranque: `bun run agent:preflight -- --item <ID> --agent claude`. Lista viva: `
        corregida en `c9c0fac6` (smoke, dev-terminal, user-profile pasan). Mirar la próxima corrida antes de seguir.
      - AUD.21 + AUD.5 cerrados 2026-11-12 (evidencia `docs/done/evidence/AUD.21-live.json`). `task run` ya no llama
        al Auxiliar tras `done` y sale 1 si la tarea no queda `done`.
-     - Siguiente: AUD.22 + AUD.6; ningún otro ítem tiene spec escrito. Lo no marcado ✔ en el informe se comprueba
+     - AUD.22 + AUD.6 cerrados 2026-11-12 (evidencia `docs/done/evidence/AUD.22-live.json`). Los motores se lanzan
+       como grupo (`src/run/process-tree.ts`): todo spawn nuevo de un CLI de agente pasa por `spawnTree`.
+     - Siguiente: AUD.24; ningún otro ítem tiene spec escrito. Lo no marcado ✔ en el informe se comprueba
        con grep al escribirlo. No relanzar los auditores: su salida literal está en los anexos.
      - AUD.28 cambia comportamiento central: plan corto y GO de Carlos antes de delegar; no tiene GO.
      - Sin leer en la auditoría: `components/ui/*` por dentro, `scripts/ui-gate`, `tests/`.

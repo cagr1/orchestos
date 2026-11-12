@@ -1,0 +1,33 @@
+{
+  "item": "AUD.22",
+  "related_item": "AUD.6",
+  "date": "2026-11-12",
+  "mode": "sin navegador (ninguna pantalla nueva): procesos y señales reales del SO con CLIs falsos en PATH; sin mocks del kill",
+  "red_before_fix": {
+    "engines_vs_HEAD": "8 fail / 1 pass (timeouts de claude, codex, opencode y checks; abort; reemplazo del hilo del app-server). Reporte del ejecutor: /tmp/AUD.22-report.md",
+    "file_lock_vs_HEAD": "enter/enter/exit/exit (dos dentro a la vez)",
+    "grandchild_after_bun_exit": "copia de process-tree.ts sin el bucle de terminatingGroups: nieto VIVO; con el arreglo: muerto (cerebro)",
+    "not_red": "opencode con 1 MB a stderr también pasa en HEAD; el drenaje queda, sin rojo demostrado"
+  },
+  "gates": {
+    "tsc": "exit 0",
+    "lint": "exit 0, 282 avisos, ninguna regla sube",
+    "test_coverage": "2686 pass, 2 skip, 0 fail (corrida del cerebro tras la última edición de código; el test solo se formateó después)",
+    "affected": "claude-chat, process-tree, aud22-processes, aud22-file-lock, codex-app-server: 79 pass / 0 fail"
+  },
+  "review": [
+    {
+      "by": "claude-opus-5-5",
+      "on": "diff de Sol",
+      "result": "onStep que lanzaba pasó a abortar la corrida (no pedido): revertido al comportamiento previo"
+    },
+    { "by": "qa (codex)", "on": "revert de onStep", "result": "sin defectos" },
+    {
+      "by": "qa (codex)",
+      "on": "terminateTree tras enmienda",
+      "result": "P2: si Bun sale antes de graceMs el nieto sobrevive → corregido con terminatingGroups"
+    },
+    { "by": "qa (codex)", "on": "corrección del P2", "result": "sin defectos" }
+  ],
+  "not_verified_live": "cierre de una terminal real del dashboard con un nieto dentro"
+}

@@ -1,6 +1,7 @@
 import { randomBytes } from 'node:crypto'
 import type { ApprovalAdapter } from '../approvals.ts'
 import { safeChildEnv } from '../path-policy.ts'
+import { spawnTree, terminateTree } from '../process-tree.ts'
 import { type OpencodePermission, opencodeApprovalRequest } from './opencode-approval.ts'
 import { type ExecutorStepEvent, opencodeEventToStep } from './step-event.ts'
 
@@ -78,6 +79,7 @@ export function opencodeMessagesToStream(messages: SessionMessage[]): string {
 }
 
 interface ServerProcess {
+  pid?: number
   stdout: ReadableStream<Uint8Array>
   stderr: ReadableStream<Uint8Array>
   exited: Promise<number>
@@ -104,7 +106,7 @@ export interface OpencodeServerProbe {
 
 const defaultProbe: OpencodeServerProbe = {
   spawn: (binary, cwd, env) =>
-    Bun.spawn([binary, 'serve', '--port', '0', '--hostname', '127.0.0.1'], {
+    spawnTree([binary, 'serve', '--port', '0', '--hostname', '127.0.0.1'], {
       cwd,
       env,
       stdout: 'pipe',
@@ -127,7 +129,6 @@ export async function runOpencodeServer(
   )
   let proc: ServerProcess | undefined
   let stopped = false
-  let killTimer: ReturnType<typeof setTimeout> | undefined
   const aborted = new Promise<never>((_, reject) => {
     const fail = () => reject(controller.signal.reason)
     controller.signal.addEventListener('abort', fail, { once: true })
@@ -145,7 +146,6 @@ export async function runOpencodeServer(
     })
     const exited = proc.exited.then((code) => {
       stopped = true
-      if (killTimer) clearTimeout(killTimer)
       if (!controller.signal.aborted)
         controller.abort(new Error(`OpenCode server exited (${code})`))
     })
@@ -290,13 +290,7 @@ export async function runOpencodeServer(
     input.signal?.removeEventListener('abort', cancel)
     if (!controller.signal.aborted) controller.abort(new Error('OpenCode task finished'))
     if (proc && !stopped) {
-      proc.kill('SIGTERM')
-      const child = proc
-      killTimer = setTimeout(() => {
-        if (!stopped) child.kill('SIGKILL')
-      }, 1000)
-      await proc.exited
-      clearTimeout(killTimer)
+      await terminateTree(proc)
     }
   }
 }

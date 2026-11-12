@@ -1,5 +1,6 @@
 import { existsSync, realpathSync, statSync } from 'node:fs'
 import { whichCli } from '../run/executors/cli-discovery.ts'
+import { killTree } from '../run/process-tree.ts'
 
 type TerminalOptions = {
   cwd: string
@@ -83,11 +84,11 @@ export function createTerminalSession(options: TerminalOptions): TerminalSession
       if (closing) return closing
       closing = (async () => {
         if (!exited) {
-          child.kill('SIGTERM')
+          killTree(child, 'SIGTERM')
           await Promise.race([
             child.exited,
             Bun.sleep(2000).then(() => {
-              if (!exited) child.kill('SIGKILL')
+              if (!exited) killTree(child, 'SIGKILL')
             }),
           ])
           if (!exited) await child.exited

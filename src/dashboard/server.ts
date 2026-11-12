@@ -3,6 +3,7 @@ import { resolve } from 'node:path'
 import { getChatSession } from '../db/chat-sessions.ts'
 import { applyCliSearchPath } from '../run/executors/cli-discovery.ts'
 import { stopCodexAppServers } from '../run/executors/codex-app-server.ts'
+import { killAllTrees } from '../run/process-tree.ts'
 import { guardRequest, loadOrCreateDashboardToken } from './auth-token.ts'
 import {
   handleApiChat,
@@ -840,6 +841,7 @@ export function startServer(
       process.off('SIGINT', onSignal)
       process.off('SIGTERM', onSignal)
       stopCodexAppServers()
+      killAllTrees()
       void stopTerminalSessions()
     }
     return stop(...args)
