@@ -17,6 +17,7 @@ import { mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { stringify as yamlStringify } from 'yaml'
+import { db } from '../../db/sqlite.ts'
 import type { GraphRunOpts, GraphRunResult } from '../../run/graph-runner.ts'
 
 const { route } = await import('../server.ts')
@@ -32,6 +33,13 @@ const PORT = 4242
 const originalCwd = process.cwd()
 const tmpDir = mkdtempSync(join(tmpdir(), 'run-graph-api-'))
 process.chdir(tmpDir)
+db.run('INSERT INTO projects (id,path,stack_profile,agents_md,last_updated) VALUES (?,?,?,?,?)', [
+  'aud19-fixture-run-graph-api',
+  process.cwd(),
+  '{}',
+  '',
+  new Date().toISOString(),
+])
 
 const TASK_T1 = {
   id: 't1',
@@ -55,6 +63,7 @@ function writeTasksYaml(tasks: Record<string, unknown>[]): void {
 afterAll(() => {
   __resetRunGraphForTests()
   __resetDepsForTests()
+  db.run("DELETE FROM projects WHERE id = 'aud19-fixture-run-graph-api'")
   process.chdir(originalCwd)
   rmSync(tmpDir, { recursive: true, force: true })
 })
@@ -62,7 +71,10 @@ afterAll(() => {
 function req(method: string, path: string, body?: unknown): Request {
   return new Request(`http://localhost:${PORT}${path}`, {
     method,
-    headers: { 'Content-Type': 'application/json' },
+    headers: {
+      'Content-Type': 'application/json',
+      'x-orchestos-project-id': 'aud19-fixture-run-graph-api',
+    },
     body: body !== undefined ? JSON.stringify(body) : undefined,
   })
 }

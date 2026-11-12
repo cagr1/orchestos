@@ -3,6 +3,7 @@ import { mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { createServer } from 'node:net'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
+import { db } from '../db/sqlite.ts'
 import { startServer } from './server.ts'
 
 const servers: Array<{ stop: (force?: boolean) => void }> = []
@@ -39,6 +40,10 @@ describe.skipIf(portProbe === null)('terminal WebSocket origin boundary', () => 
     writeFileSync(script, '#!/bin/sh\nprintf "# updated binary\\n" >> "$0"\nexit 0\n', {
       mode: 0o755,
     })
+    db.run(
+      'INSERT INTO projects (id,path,stack_profile,agents_md,last_updated) VALUES (?,?,?,?,?)',
+      ['aud19-terminal', root, '{}', '', new Date().toISOString()],
+    )
     let socket: WebSocket | undefined
     try {
       const port = await availablePort()
@@ -50,9 +55,12 @@ describe.skipIf(portProbe === null)('terminal WebSocket origin boundary', () => 
         new (url: string, options: Bun.WebSocketOptions): WebSocket
       }
       const result = await new Promise<unknown>((resolve, reject) => {
-        socket = new TerminalWebSocket(`ws://127.0.0.1:${server.port}/api/terminal`, {
-          headers: { origin: `http://127.0.0.1:${server.port}` },
-        })
+        socket = new TerminalWebSocket(
+          `ws://127.0.0.1:${server.port}/api/terminal?project=aud19-terminal`,
+          {
+            headers: { origin: `http://127.0.0.1:${server.port}` },
+          },
+        )
         socket.onmessage = (event) => {
           if (typeof event.data !== 'string') return
           const payload = JSON.parse(event.data)
@@ -64,6 +72,7 @@ describe.skipIf(portProbe === null)('terminal WebSocket origin boundary', () => 
       expect(result).toEqual({ type: 'exit', code: 0, binaryChanged: true })
     } finally {
       socket?.close()
+      db.run("DELETE FROM projects WHERE id = 'aud19-terminal'")
       rmSync(root, { recursive: true, force: true })
     }
   })

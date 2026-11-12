@@ -4,8 +4,8 @@ import { isAbsolute, join, relative } from 'node:path'
 import { readBody, z } from '../../boundary/index.ts'
 import { loadOrcheConfig } from '../../config/load.ts'
 import { refreshProjectContext } from '../../context/load.ts'
-import { upsertProject } from '../../db/projects.ts'
-import { listRuns } from '../../db/runs.ts'
+import { getProject, upsertProject } from '../../db/projects.ts'
+import { listRunsByProjectId } from '../../db/runs.ts'
 import { buildProfile } from '../../detect/profile.ts'
 import { generateAgentsMd } from '../../generators/agents-md.ts'
 import { generateContextJson } from '../../generators/context-json.ts'
@@ -337,7 +337,7 @@ async function handleApiNatural(req: Request, root = process.cwd()): Promise<Res
 // v0.12 D.1.c — equivalente de `orchestos summary [path]` para el dashboard.
 // Mismo flujo que el CLI: buildProfile → generateAgentsMd → upsertProject
 // (persiste el proyecto en DB, igual que el CLI; no es destructivo sobre
-// archivos en disco, solo refresca el registro de DB) → listRuns(10) →
+// archivos en disco, solo refresca el registro de DB) → runs del proyecto →
 // generateSummaryPdf. Se escribe a un tmp file (no al project root) para
 // evitar dejar un PDF en el working dir que el usuario no pidió persistir
 // — el CLI escribe al root por diseño (es un comando explícito de export);
@@ -347,7 +347,9 @@ async function handleApiProjectSummary(root: string): Promise<Response> {
   const profile = await buildProfile(root)
   const agentsMd = generateAgentsMd(profile)
   upsertProject(root, profile, agentsMd)
-  const recentRuns = listRuns(10)
+  const projectId = getProject(root)?.id
+  if (!projectId) return errorResponse('project required', 400)
+  const recentRuns = listRunsByProjectId(projectId, 10)
 
   const tmpPath = join(tmpdir(), `orchestos-summary-${process.pid}-${Date.now()}.pdf`)
   try {

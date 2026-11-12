@@ -2,13 +2,18 @@ import { resetTestData } from '../../db/reset.ts'
 import { findClaudeBinary } from '../../run/executors/external.ts'
 import { errorResponse, jsonResponse } from '../http.ts'
 
-async function handleApiSystemReset(req: Request, root: string): Promise<Response> {
+async function handleApiSystemReset(
+  req: Request,
+  root: string,
+  projectId: string | null,
+): Promise<Response> {
+  if (!projectId) return errorResponse('project required', 400)
   let body: { confirm?: boolean } = {}
   try {
     body = (await req.json()) as { confirm?: boolean }
   } catch {}
   if (body.confirm !== true) return errorResponse('confirm:true required', 400)
-  const summary = resetTestData(root)
+  const summary = resetTestData(root, projectId)
   return jsonResponse({ ok: true, ...summary })
 }
 

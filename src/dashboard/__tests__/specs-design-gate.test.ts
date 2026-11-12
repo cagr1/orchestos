@@ -8,6 +8,7 @@ import { afterAll, beforeEach, describe, expect, it } from 'bun:test'
 import { mkdirSync, mkdtempSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
+import { db } from '../../db/sqlite.ts'
 
 const { route } = await import('../server.ts')
 const { loadSpec, saveSpec } = await import('../../spec/store.ts')
@@ -16,16 +17,27 @@ const PORT = 4242
 const originalCwd = process.cwd()
 const tmpDir = mkdtempSync(join(tmpdir(), 'specs-design-gate-'))
 process.chdir(tmpDir)
+db.run('INSERT INTO projects (id,path,stack_profile,agents_md,last_updated) VALUES (?,?,?,?,?)', [
+  'aud19-fixture-specs-design-gate',
+  process.cwd(),
+  '{}',
+  '',
+  new Date().toISOString(),
+])
 
 function req(method: string, path: string, body?: unknown): Request {
   return new Request(`http://localhost:${PORT}${path}`, {
     method,
-    headers: { 'Content-Type': 'application/json' },
+    headers: {
+      'Content-Type': 'application/json',
+      'x-orchestos-project-id': 'aud19-fixture-specs-design-gate',
+    },
     body: body !== undefined ? JSON.stringify(body) : undefined,
   })
 }
 
 afterAll(() => {
+  db.run("DELETE FROM projects WHERE id = 'aud19-fixture-specs-design-gate'")
   process.chdir(originalCwd)
   rmSync(tmpDir, { recursive: true, force: true })
 })

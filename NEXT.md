@@ -23,7 +23,9 @@ Arranque: `bun run agent:preflight -- --item <ID> --agent claude`. Lista viva: `
      AUD.26 + AUD.9 → AUD.12, 14–17 → AUD.27 + AUD.8 → AUD.10 → AUD.28. Antes: AUD.7, AUD.5, AUD.10, AUD.8, AUD.9,
      AUD.6 (orden de la primera auditoría).
      - AUD.20 cerrado 2026-11-11 (`1b06897b`; evidencia en `PLAN.md` y `docs/done/evidence/AUD.20-live.json`).
-     - Siguiente: AUD.19; ningún otro ítem tiene spec escrito. Lo no marcado ✔ en el informe se comprueba
+     - AUD.19 cerrado 2026-11-11 (evidencia en `PLAN.md` y `docs/done/evidence/AUD.19-live.json`). Queda sin gate
+       en vivo: las carreras de cambio de proyecto de `App.tsx`.
+     - Siguiente: AUD.7 (plan corto + GO de Carlos); ningún otro ítem tiene spec escrito. Lo no marcado ✔ en el informe se comprueba
        con grep al escribirlo. No relanzar los auditores: su salida literal está en los anexos.
      - AUD.7 y AUD.28 cambian comportamiento central: plan corto y GO de Carlos antes de delegar. AUD.28 no tiene GO.
      - Sin leer en la auditoría: `components/ui/*` por dentro, `scripts/ui-gate`, `tests/`.

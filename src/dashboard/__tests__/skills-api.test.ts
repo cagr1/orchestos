@@ -49,7 +49,7 @@ function req(method: string, path: string, body?: unknown): Request {
     method,
     headers: {
       'Content-Type': 'application/json',
-      ...(path === '/api/skills/curate' ? { 'x-orchestos-project-id': 'skills-api-test' } : {}),
+      'x-orchestos-project-id': 'skills-api-test',
     },
     body: body !== undefined ? JSON.stringify(body) : undefined,
   })
@@ -222,9 +222,9 @@ const TEMP_SKILL = {
 }
 
 function cleanupTempSkill(): void {
-  const path = getSkillPath(TEMP_ID)
+  const path = getSkillPath(TEMP_ID, projectRoot)
   if (existsSync(path)) unlinkSync(path)
-  const distPath = `dist/skills/claude/${TEMP_ID}.md`
+  const distPath = join(projectRoot, 'dist/skills/claude', `${TEMP_ID}.md`)
   if (existsSync(distPath)) rmSync(distPath)
 }
 
@@ -243,7 +243,7 @@ describe('POST /api/skills (A3)', () => {
     expect(res.status).toBe(200)
     expect(body.ok).toBe(true)
     expect(body.id).toBe(TEMP_ID)
-    expect(existsSync(getSkillPath(TEMP_ID))).toBe(true)
+    expect(existsSync(getSkillPath(TEMP_ID, projectRoot))).toBe(true)
   })
 
   it('409 when the skill already exists', async () => {
@@ -314,7 +314,7 @@ describe('DELETE /api/skills/:id (A5)', () => {
 
     expect(res.status).toBe(200)
     expect(body.ok).toBe(true)
-    expect(existsSync(getSkillPath(TEMP_ID))).toBe(false)
+    expect(existsSync(getSkillPath(TEMP_ID, projectRoot))).toBe(false)
   })
 
   it('404 for an unknown skill id', async () => {
@@ -341,7 +341,7 @@ describe('POST /api/skills/pro/:id/import', () => {
   const PRO_ID = 'perf-profile'
 
   afterEach(() => {
-    const path = getSkillPath(PRO_ID)
+    const path = getSkillPath(PRO_ID, projectRoot)
     if (existsSync(path)) unlinkSync(path)
   })
 
@@ -352,7 +352,7 @@ describe('POST /api/skills/pro/:id/import', () => {
     expect(res.status).toBe(200)
     expect(body.ok).toBe(true)
     expect(body.id).toBe(PRO_ID)
-    expect(existsSync(getSkillPath(PRO_ID))).toBe(true)
+    expect(existsSync(getSkillPath(PRO_ID, projectRoot))).toBe(true)
   })
 
   it('409 when already imported', async () => {

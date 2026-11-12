@@ -295,10 +295,12 @@ export function deleteRun(id: string): boolean {
   })()
 }
 
-export function listRunsByTaskId(taskId: string): RunRecord[] {
+export function listRunsByTaskId(taskId: string, projectId: string | null): RunRecord[] {
   return db
-    .query<RunRecord, string>('SELECT * FROM runs WHERE task_id = ? ORDER BY created_at DESC')
-    .all(taskId)
+    .query<RunRecord, [string, string | null]>(
+      'SELECT * FROM runs WHERE task_id = ? AND project_id IS ? ORDER BY created_at DESC',
+    )
+    .all(taskId, projectId)
 }
 
 export function updateRunCost(id: string, usdCost: number, costBreakdownJson: string | null): void {

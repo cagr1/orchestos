@@ -26,7 +26,7 @@ async function handleApiSpecsDraft(req: Request, root: string): Promise<Response
   const args = [
     process.execPath,
     'run',
-    join(root, 'src/cli.ts'),
+    join(import.meta.dir, '../../cli.ts'),
     'spec',
     'draft',
     '--description',
@@ -34,7 +34,10 @@ async function handleApiSpecsDraft(req: Request, root: string): Promise<Response
   ]
   if (body.design === true) args.push('--design')
   args.push('--', taskId)
-  Bun.spawn(args, { cwd: root, stdout: 'inherit', stderr: 'inherit' })
+  const child = Bun.spawn(args, { cwd: root, stdout: 'ignore', stderr: 'pipe' })
+  const [exitCode, stderr] = await Promise.all([child.exited, new Response(child.stderr).text()])
+  if (exitCode !== 0) return errorResponse(stderr.trim() || `spec draft exited ${exitCode}`, 500)
+  if (!loadSpec(root, taskId)) return errorResponse('spec draft did not write a spec', 500)
   return jsonResponse({ ok: true, taskId })
 }
 

@@ -491,6 +491,9 @@ function launchTask(
       return jsonResponse({ error: error.message, code: 'role_unassigned' }, 400)
     throw error
   }
+  const session = typeof body.sessionId === 'string' ? getChatSession(body.sessionId) : null
+  if (body.sessionId && (!session || session.project_id !== (projectId ?? null)))
+    return errorResponse('Session does not belong to project', 400)
   const taskResult = mutateTasks(root, (file) => {
     const task = file.tasks.find((t: any) => t.id === id)
     if (!task) return false
@@ -503,7 +506,6 @@ function launchTask(
     return true
   })
   if (!taskResult) return errorResponse('Task not found', 404)
-  const session = typeof body.sessionId === 'string' ? getChatSession(body.sessionId) : null
   spawnTaskRun(root, id, model, projectId, session?.id)
   return jsonResponse({ ok: true, id })
 }
@@ -530,6 +532,9 @@ async function handleApiTasksCommitRun(
   if (!existsSync(join(root, 'tasks.yaml'))) return errorResponse('tasks.yaml not found', 404)
   if (!loadTasks(root).tasks.some((task) => task.id === id))
     return errorResponse('Task not found', 404)
+  const session = body.sessionId ? getChatSession(body.sessionId) : null
+  if (body.sessionId && (!session || session.project_id !== (projectId ?? null)))
+    return errorResponse('Session does not belong to project', 400)
   const files = body.files
   if (!Array.isArray(files) || files.length === 0 || !files.every((f) => typeof f === 'string'))
     return errorResponse('files must be a non-empty array of paths', 400)
@@ -552,7 +557,11 @@ async function handleApiTasksCommitRun(
  * `?since=<seq>` devuelve solo lo nuevo desde el último seq visto por el
  * cliente; sin el param, devuelve todo lo que haya (retomar una pestaña).
  */
-async function handleApiTasksSteps(url: URL, root = process.cwd()): Promise<Response> {
+async function handleApiTasksSteps(
+  url: URL,
+  root = process.cwd(),
+  projectId: string | null = null,
+): Promise<Response> {
   const raw = decodeURIComponent(url.pathname.split('/')[3] ?? '')
   const id = validateTaskId(raw)
   if (!id) return errorResponse('Missing or invalid task id', 400)
@@ -560,7 +569,7 @@ async function handleApiTasksSteps(url: URL, root = process.cwd()): Promise<Resp
   const file = loadTasks(root)
   if (!file?.tasks.some((task) => task.id === id)) return errorResponse('Task not found', 404)
   const since = Number(url.searchParams.get('since') ?? '0') || 0
-  const steps = getRunSteps(id, since)
+  const steps = getRunSteps(id, since, projectId)
   return jsonResponse({ steps })
 }
 

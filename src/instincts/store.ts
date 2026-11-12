@@ -162,7 +162,7 @@ export function approveInstinct(id: string): boolean {
   const existing = getInstinct(id)
   if (!existing) return false
 
-  const newConfidence = Math.min(existing.confidence + 0.1, 1.0)
+  const newConfidence = Math.min(Math.max(existing.confidence + 0.1, APPLY_THRESHOLD), 1.0)
   db.run('UPDATE instincts SET verified = 1, confidence = ? WHERE id = ?', [newConfidence, id])
   return true
 }

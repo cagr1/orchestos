@@ -409,7 +409,7 @@ export async function runTask(opts: HarnessOpts): Promise<TaskResult> {
       // arrancar (evita que el dashboard muestre steps viejos si se relanza),
       // y persiste cada evento en vivo vía onStep. Solo external/opencode lo
       // usan (ver comentario de tipos.ts) — single-shot/agentic lo ignoran.
-      clearRunSteps(ctx.task.id)
+      clearRunSteps(ctx.task.id, runProjectId)
       const policy = actionApprovalPolicy(requestedEngine, t.approvalMode)
       ctx.task = { ...ctx.task, approvalMode: policy.approvalMode }
       const approvals =
@@ -424,7 +424,7 @@ export async function runTask(opts: HarnessOpts): Promise<TaskResult> {
         timeoutMs: externalTimeoutMs,
         onStep: (event) => {
           try {
-            insertRunStep(ctx.task.id, event)
+            insertRunStep(ctx.task.id, event, runProjectId)
           } catch (error) {
             console.error('Failed to persist run step', {
               task_id: ctx.task.id,

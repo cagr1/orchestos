@@ -10,6 +10,7 @@
  */
 
 import { loadOrcheConfig } from '../config/load.ts'
+import { getProject } from '../db/projects.ts'
 import {
   type RunFailureKind,
   type RunRecord,
@@ -23,7 +24,7 @@ import { loadTasks as realLoadTasks } from '../tasks/loader.ts'
 type LoadTasksFn = (root: string) => {
   tasks: Array<{ id: string; description: string; retry_reason?: string }>
 }
-type ListRunsByTaskIdFn = (taskId: string) => RunRecord[]
+type ListRunsByTaskIdFn = (taskId: string, projectId: string | null) => RunRecord[]
 
 export type FailurePattern =
   | 'deterministic_check'
@@ -157,7 +158,7 @@ export async function diagnoseTask(
   const task = file.tasks.find((t: { id: string }) => t.id === taskId)
   if (!task) throw new Error(`Task "${taskId}" not found in tasks.yaml`)
 
-  const runs = listRuns_(taskId).slice(0, 3)
+  const runs = listRuns_(taskId, getProject(root)?.id ?? null).slice(0, 3)
   if (runs.length === 0) {
     // Bug real (2026-07-16): un fallo en mergeWorktreeBack() DESPUÉS de que
     // QA ya pasó (harness.ts, camino de éxito) lanza antes de insertRun() —

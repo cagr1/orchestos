@@ -238,7 +238,7 @@ function handleApiSkillsBuild(url: URL, root = process.cwd()): Response {
 
   try {
     const skill = loadSkill(path)
-    const paths = compileSkill(skill)
+    const paths = compileSkill(skill, undefined, undefined, root)
     return jsonResponse({ ok: true, paths, skillId: id } satisfies SkillBuildResponse)
   } catch (e: any) {
     return jsonResponse(

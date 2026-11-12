@@ -21,6 +21,7 @@ import { afterAll, describe, expect, it } from 'bun:test'
 import { mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
+import { db } from '../../db/sqlite.ts'
 
 const { route } = await import('../server.ts')
 const { chatEffortLevelsForAgent } = await import('../handlers/chat.ts')
@@ -29,14 +30,25 @@ const PORT = 4242
 const originalCwd = process.cwd()
 const tmpDir = mkdtempSync(join(tmpdir(), 'config-executor-mode-'))
 process.chdir(tmpDir)
+db.run('INSERT INTO projects (id,path,stack_profile,agents_md,last_updated) VALUES (?,?,?,?,?)', [
+  'aud19-fixture-config-executor-mode',
+  process.cwd(),
+  '{}',
+  '',
+  new Date().toISOString(),
+])
 
 afterAll(() => {
+  db.run("DELETE FROM projects WHERE id = 'aud19-fixture-config-executor-mode'")
   process.chdir(originalCwd)
   rmSync(tmpDir, { recursive: true, force: true })
 })
 
 function req(method: string, path: string): Request {
-  return new Request(`http://localhost:${PORT}${path}`, { method })
+  return new Request(`http://localhost:${PORT}${path}`, {
+    method,
+    headers: { 'x-orchestos-project-id': 'aud19-fixture-config-executor-mode' },
+  })
 }
 
 describe('GET /api/config — agent (CC.1b bugfix)', () => {
@@ -93,7 +105,10 @@ describe('GET /api/config — agent (CC.1b bugfix)', () => {
       route(
         new Request(`http://localhost:${PORT}/api/config`, {
           method: 'PUT',
-          headers: { 'content-type': 'application/json' },
+          headers: {
+            'content-type': 'application/json',
+            'x-orchestos-project-id': 'aud19-fixture-config-executor-mode',
+          },
           body: JSON.stringify({ taskAgentRules: value }),
         }),
         PORT,

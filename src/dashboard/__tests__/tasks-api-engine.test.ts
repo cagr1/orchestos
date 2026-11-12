@@ -13,6 +13,7 @@ import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { stringify as yamlStringify } from 'yaml'
+import { db } from '../../db/sqlite.ts'
 
 const { route } = await import('../server.ts')
 
@@ -20,6 +21,13 @@ const PORT = 4242
 const originalCwd = process.cwd()
 const tmpDir = mkdtempSync(join(tmpdir(), 'tasks-api-engine-'))
 process.chdir(tmpDir)
+db.run('INSERT INTO projects (id,path,stack_profile,agents_md,last_updated) VALUES (?,?,?,?,?)', [
+  'aud19-fixture-tasks-api-engine',
+  process.cwd(),
+  '{}',
+  '',
+  new Date().toISOString(),
+])
 
 function writeTasksYaml(tasks: Record<string, unknown>[]): void {
   writeFileSync(
@@ -30,6 +38,7 @@ function writeTasksYaml(tasks: Record<string, unknown>[]): void {
 }
 
 afterAll(() => {
+  db.run("DELETE FROM projects WHERE id = 'aud19-fixture-tasks-api-engine'")
   process.chdir(originalCwd)
   rmSync(tmpDir, { recursive: true, force: true })
 })
@@ -42,7 +51,10 @@ beforeEach(() => {
 function req(method: string, path: string, body?: unknown): Request {
   return new Request(`http://localhost:${PORT}${path}`, {
     method,
-    headers: { 'Content-Type': 'application/json' },
+    headers: {
+      'Content-Type': 'application/json',
+      'x-orchestos-project-id': 'aud19-fixture-tasks-api-engine',
+    },
     body: body !== undefined ? JSON.stringify(body) : undefined,
   })
 }

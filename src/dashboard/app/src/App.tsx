@@ -565,6 +565,8 @@ export default function App() {
   const currentProject = projects.find((p) => p.id === activeProjectId) || projects[0]
 
   const currentProjectId = currentProject?.id
+  const currentProjectIdRef = useRef(currentProjectId)
+  currentProjectIdRef.current = currentProjectId
 
   const handleOpenTerminal = () => {
     if (currentProject) updateDevTabs(currentProject.id, openTerminalTab)
@@ -824,7 +826,8 @@ export default function App() {
   }, [mode, currentProjectId])
 
   const refreshProjectTabs = useCallback(async (projectId: string) => {
-    if (purgingProjectIds.current.has(projectId)) return
+    if (purgingProjectIds.current.has(projectId) || currentProjectIdRef.current !== projectId)
+      return
     // Registrada como hidratación del proyecto: el purge la aborta antes de borrar (si no, 404 tras el purge).
     const controller = new AbortController()
     const controllers = projectHydrationControllers.current.get(projectId) ?? new Set()
@@ -843,20 +846,20 @@ export default function App() {
     projectHydrationReads.current.set(projectId, pending)
     try {
       const [nextMemory, nextSpecs, nextSkills, nextInstincts] = await reads
-      if (controller.signal.aborted) return
+      if (controller.signal.aborted || currentProjectIdRef.current !== projectId) return
       setMemories(nextMemory)
       setSpecs(nextSpecs)
       setSkills(nextSkills)
       setInstincts(nextInstincts)
     } catch (error) {
-      if (!controller.signal.aborted)
+      if (!controller.signal.aborted && currentProjectIdRef.current === projectId)
         setProjectTabsError(error instanceof Error ? error.message : String(error))
     } finally {
       pending.delete(reads)
       if (pending.size === 0) projectHydrationReads.current.delete(projectId)
       controllers.delete(controller)
       if (controllers.size === 0) projectHydrationControllers.current.delete(projectId)
-      setProjectTabsLoading(false)
+      if (currentProjectIdRef.current === projectId) setProjectTabsLoading(false)
     }
   }, [])
 
@@ -1050,10 +1053,10 @@ export default function App() {
     else void action()
   }
 
-  const handleCloseAgent = (agentId: string) =>
+  const handleCloseAgent = (agentId: string, projectId?: string) =>
     confirmThen('archive', async () => {
       try {
-        await archiveSession(agentId, projectForSession(agentId))
+        await archiveSession(agentId, projectId ?? projectForSession(agentId))
         setDevTabs((current) =>
           Object.fromEntries(
             Object.entries(current).map(([projectId, tabs]) => [
@@ -1499,31 +1502,38 @@ export default function App() {
 
   const handleRunTask = async (taskId: string) => {
     if (!currentProject || runningTaskId) return
+    const projectId = currentProject.id
+    const isCurrentProject = () => currentProjectIdRef.current === projectId
     setTaskRunError(null)
     setRunningTaskId(taskId)
     try {
-      await runTask(taskId, currentProject.id, (loaded) => {
+      await runTask(taskId, projectId, (loaded) => {
+        if (!isCurrentProject()) return
         setTasks(loaded)
         setTaskError(null)
       })
-      await reloadTabs()
+      if (isCurrentProject()) await refreshProjectTabs(projectId)
     } catch (error) {
+      if (!isCurrentProject()) return
       setTaskRunError({
         message: error instanceof Error ? error.message : String(error),
         code: error instanceof TaskRunError ? error.code : undefined,
       })
-      await listTasks(currentProject.id)
+      await listTasks(projectId)
         .then((result) => {
+          if (!isCurrentProject()) return
           setTasks(result.tasks)
           setTaskError(result.error || null)
         })
         .catch(() => undefined)
     } finally {
       setRunningTaskId(null)
-      await listRuns(currentProject.id)
-        .then(setRuns)
+      await listRuns(projectId)
+        .then((result) => {
+          if (isCurrentProject()) setRuns(result)
+        })
         .catch(() => undefined)
-      await refreshUsage()
+      if (isCurrentProject()) await refreshUsage()
     }
   }
 

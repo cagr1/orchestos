@@ -1126,7 +1126,7 @@ async function handleApiChat(
       if (signal?.aborted) return
       if (activeTurnId && session) clearLiveText(session.id, activeTurnId)
       const provider = params.provider ?? 'openrouter'
-      const projectId = session?.project_id ?? project.id
+      const projectId = session ? session.project_id : project.id
       const runInput = params.readAudit
         ? {
             project_id: projectId,
@@ -1328,10 +1328,10 @@ async function handleApiChat(
     const qaReasons: Record<string, string> = {}
     for (const task of taskRows.filter((t) => t.qa_verdict === 'fail')) {
       const row = db
-        .query<{ qa_reason: string | null }, [string]>(
-          'SELECT qa_reason FROM runs WHERE task_id = ? ORDER BY created_at DESC LIMIT 1',
+        .query<{ qa_reason: string | null }, [string, string | null]>(
+          'SELECT qa_reason FROM runs WHERE task_id = ? AND project_id IS ? ORDER BY created_at DESC LIMIT 1',
         )
-        .get(task.id)
+        .get(task.id, project.id ?? null)
       const reason = row?.qa_reason || task.retry_reason
       if (reason) qaReasons[task.id] = reason
     }
@@ -1551,7 +1551,7 @@ async function handleApiChat(
       const canonicalModel = params.canonicalModel ?? resultLabel
       const cost = chatCost(canonicalModel, inputTokens, outputTokens, params.reportedUsd)
       const readAudit = params.readAudit ?? uninstrumentedReadAudit()
-      const projectId = session?.project_id ?? project.id
+      const projectId = session ? session.project_id : project.id
       const held = Boolean(autoTask && 'held' in autoTask && autoTask.held)
       const runInput = {
         project_id: projectId,

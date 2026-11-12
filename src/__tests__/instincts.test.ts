@@ -349,7 +349,7 @@ describe('store — approveInstinct', () => {
 
     const loaded = getInstinct(inserted.id)
     expect(loaded!.verified).toBe(true)
-    expect(loaded!.confidence).toBe(0.7) // 0.6 + 0.1
+    expect(loaded!.confidence).toBe(APPLY_THRESHOLD) // approval makes it applicable
     deleteInstinct(inserted.id)
   })
 
@@ -483,7 +483,7 @@ describe('approve + reject end-to-end', () => {
 
     const loaded = getInstinct(inst.id)
     expect(loaded!.verified).toBe(true)
-    expect(loaded!.confidence).toBe(0.7)
+    expect(loaded!.confidence).toBe(APPLY_THRESHOLD)
     deleteInstinct(inst.id)
   })
 

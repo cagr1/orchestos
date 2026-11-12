@@ -1236,6 +1236,22 @@ export const FUTURE_MIGRATIONS: readonly SchemaMigrationStep[] = [
         throw new Error('Migration 38 did not add failure_kind')
     },
   },
+  {
+    version: 39,
+    name: 'project-owned-run-steps',
+    precondition: () => {},
+    apply: (database) => {
+      database.exec('ALTER TABLE run_steps ADD COLUMN project_id TEXT')
+      database.exec(
+        'CREATE INDEX idx_run_steps_project_task_seq ON run_steps(project_id, task_id, seq)',
+      )
+    },
+    postcondition: (database) => {
+      const columns = database.query<{ name: string }, []>('PRAGMA table_info(run_steps)').all()
+      if (!columns.some((column) => column.name === 'project_id'))
+        throw new Error('Migration 39 did not add run_steps.project_id')
+    },
+  },
 ]
 
 function appliedVersions(database: Database): Set<number> {

@@ -30,7 +30,7 @@ describe('dashboard task run project binding', () => {
 })
 
 describe('dashboard task run session reporting', () => {
-  test('ignora sessionId desconocido y responde ok sin lanzar un CLI real', async () => {
+  test('rechaza sessionId desconocido sin lanzar un CLI real', async () => {
     const root = mkdtempSync(join(tmpdir(), 'orchestos-task-run-session-'))
     roots.push(root)
     writeFileSync(
@@ -68,8 +68,8 @@ describe('dashboard task run session reporting', () => {
         new URL('http://localhost/api/tasks/task-test/run'),
         root,
       )
-      expect(response.status).toBe(200)
-      expect(await response.json()).toMatchObject({ ok: true })
+      expect(response.status).toBe(400)
+      expect(await response.json()).toMatchObject({ error: 'Session does not belong to project' })
     } finally {
       Bun.spawn = originalSpawn
     }

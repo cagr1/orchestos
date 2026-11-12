@@ -123,7 +123,7 @@ describe('project ownership', () => {
     expect(result.archivedIds).toContain(result.expectedB)
     expect(result.foreignReads).toEqual([404, 404, 404, 404, 404, 404])
     expect(result.chatPost).toBe(404)
-    expect(result.noProjectSteps).toBe(404)
+    expect(result.noProjectSteps).toBe(400)
     expect(result.bTitle).toBe('B sentinel')
     expect(result.bMessageCount).toBe(2)
   })

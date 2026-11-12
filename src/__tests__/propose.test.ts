@@ -124,7 +124,7 @@ describe('proposeInstinctsFromPatterns — dedup', () => {
 // ── S34.5: approve ────────────────────────────────────────────────────────────
 
 describe('approveInstinct', () => {
-  it('sets verified=true and boosts confidence by 0.1', () => {
+  it('sets verified=true and raises confidence to the application threshold', () => {
     const inst = insertInstinct({ trigger: 'approve-test', action: 'do it', ...AUTO_DEFAULTS })
     createdIds.push(inst.id)
     expect(inst.verified).toBe(false)
@@ -135,7 +135,7 @@ describe('approveInstinct', () => {
 
     const loaded = getInstinct(inst.id)!
     expect(loaded.verified).toBe(true)
-    expect(loaded.confidence).toBeCloseTo(0.7)
+    expect(loaded.confidence).toBeCloseTo(APPLY_THRESHOLD)
   })
 
   it('approved instinct with confidence >= APPLY_THRESHOLD is auto-applicable', () => {

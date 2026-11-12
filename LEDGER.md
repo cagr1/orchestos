@@ -615,3 +615,11 @@ existentes). No toca la derivación de contexto/max_tokens ni ningún camino de 
 **Clasificación**: RESPETÓ
 **Por qué**: añade `failure_kind` a los siete caminos fallidos existentes; el éxito conserva null.
 No modifica la derivación de contexto/max_tokens, los detalles del error ni el contrato de QA.
+
+
+## 2026-11-11 — Codex (ejecutor AUD.19)
+
+**Regla tocada**: `src/run/harness.ts`, persistencia de pasos del ejecutor.
+**Clasificación**: RESPETÓ
+**Por qué**: pasa `runProjectId` a la limpieza e inserción de pasos para aislar tareas con el mismo ID.
+No modifica contexto/max_tokens, el contrato de QA ni la ejecución de los pasos.

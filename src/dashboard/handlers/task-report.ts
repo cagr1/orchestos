@@ -56,7 +56,7 @@ function buildTaskReportData(
       data: { outcome: status, dirtyFiles: listDirtyFiles(root) },
     }
   }
-  const runs = listRunsByTaskId(taskId)
+  const runs = listRunsByTaskId(taskId, projectId ?? null)
   // Sin identidad de proyecto, ningún run puede respaldar este reporte.
   const run = projectId ? (runs.find((item) => item.project_id === projectId) ?? null) : null
   const interrupted = status === 'failed' && task?.retry_reason === INTERRUPTED_REASON

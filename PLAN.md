@@ -402,8 +402,19 @@ prioridad hasta que Carlos las asigne.
 Segunda auditoría, completa (`docs/auditoria-2026-11-11.md`: evidencia `archivo:línea` por ítem, qué se contrastó y
 qué no). Cada ítem es una clase de falla con varios sitios; el spec comprueba antes los marcados "sin contrastar".
 
-- [ ] **AUD.19 — Aislamiento entre proyectos: datos de un proyecto se leen, mezclan o borran desde otro.** (abierto
-  2026-11-11) `db/reset.ts:16` borra los runs de todos; `db/run-steps.ts:69-80` identifica pasos solo por `task_id`;
+- [x] **AUD.19 — Aislamiento entre proyectos: datos de un proyecto se leen, mezclan o borran desde otro.** (abierto y
+  cerrado 2026-11-11) Cierre: reset, `run_steps` (migración 39, filas viejas con `project_id` null), costes, PDF,
+  `CONTEXT.md`, reporte de tarea, sesión general, skills/specs y instintos, por proyecto; `requireProject` en las rutas
+  de archivos/procesos (lista en la evidencia); `App.tsx` conserva el proyecto al cerrar agente, en pestañas y en Run.
+  qa vuelta 1: `qa_reason` del chat solo por `task_id` → corregido + test. Vuelta 2: `/api/providers` sin proyecto
+  lanza la sonda de la CLI sin `cwd` → descartado (sonda global, igual con proyecto). Visto en vivo y corregido: con
+  cero proyectos `GET /api/config` daba 400 al cargar; GET config/providers no exigen proyecto (solo lectura).
+  Gates: tsc, lint, `test:coverage` 2603/0; los 12 tests nuevos fallan sin el arreglo. Sin probar a ojo: las tres
+  carreras de cambio de proyecto de `App.tsx` (cubiertas por el diff, no por gate en vivo).
+  Gate en vivo: dashboard real con navegador Playwright y home aislado, dos proyectos `docs/done/evidence/AUD.19-live.json`
+  (`project=none` 400 sin escribir en el cwd, reset de B conserva A, UI carga sin pageerror ni 4xx/5xx).
+  Ejecutado por: gpt-6.1-sol (criterio) + claude-opus-5-5 (fixes chicos) · Spec: docs/specs/AUD.19.md
+  `db/reset.ts:16` borra los runs de todos; `db/run-steps.ts:69-80` identifica pasos solo por `task_id`;
   `handlers/project.ts:340` y `context/compress.ts:45` usan runs globales; `skills/compile.ts:8` y
   `handlers/specs.ts:26-37` asumen que el proyecto es el cwd/OrchestOS; `server.ts:166` da el cwd a `project=none`;
   `App.tsx:1053,845,1505` pierde o cruza el proyecto. Verificación: test con dos proyectos y el mismo id de tarea por

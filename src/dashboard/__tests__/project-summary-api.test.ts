@@ -57,10 +57,20 @@ process.chdir(tmpDir)
 // exista antes de que el handler haga upsertProject.
 beforeAll(() => {
   runMigrations()
+  db.run('INSERT INTO projects (id,path,stack_profile,agents_md,last_updated) VALUES (?,?,?,?,?)', [
+    hashPath(tmpDirReal),
+    tmpDirReal,
+    '{}',
+    '',
+    new Date().toISOString(),
+  ])
 })
 
 function req(method: string, path: string): Request {
-  return new Request(`http://localhost:${PORT}${path}`, { method })
+  return new Request(`http://localhost:${PORT}${path}`, {
+    method,
+    headers: { 'x-orchestos-project-id': hashPath(tmpDirReal) },
+  })
 }
 
 /** Cuenta archivos en `os.tmpdir()` que matchean `orchestos-summary-*`. Usado

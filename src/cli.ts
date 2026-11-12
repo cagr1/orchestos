@@ -11,6 +11,7 @@ import { diagnoseTask } from './agents/diagnose.ts'
 import { resolveDashboardPaths } from './cli-dashboard-paths.ts'
 import { registerSkillCurateImportCommands } from './cli-skill-curate.ts'
 import { registerSkillFetchCommands } from './cli-skill-fetch.ts'
+import { resolveRole } from './config/load.ts'
 import { orchestosDir } from './config/orchestos-home.ts'
 import { buildContextMd, estimateTokens } from './context/compress.ts'
 import { refreshProjectContext } from './context/load.ts'
@@ -386,7 +387,12 @@ skill
     for (const f of files) {
       try {
         const s = loadSkill(f)
-        const written = compileSkill(s, targetFilter ? [targetFilter] : undefined, detectedLanguage)
+        const written = compileSkill(
+          s,
+          targetFilter ? [targetFilter] : undefined,
+          detectedLanguage,
+          process.cwd(),
+        )
         for (const p of written) console.log(`  [ok] ${p}`)
         total += written.length
       } catch (e: any) {
@@ -621,7 +627,12 @@ program
 
       // 1. Classify + resolve model
       const taskClass = classifyTask(opts.task)
-      const runClient = roleClient(loadOrcheConfig(root), 'executor', { cwd: root })
+      const runConfig = loadOrcheConfig(root)
+      const runClient = roleClient(runConfig, 'executor', { cwd: root })
+      const runProvider =
+        runClient.agent === 'api'
+          ? (resolveRole(runConfig, 'executor').provider ?? 'openrouter')
+          : runClient.agent
       const model = runClient.model
 
       // 2. Build system prompt
@@ -701,11 +712,11 @@ program
       } catch (e: any) {
         const elapsed = Math.round(performance.now() - t0)
         insertRun({
-          project_id: null,
+          project_id: getProject(root)?.id ?? null,
           prompt: opts.task,
           task_class: taskClass,
           model,
-          provider: 'openrouter',
+          provider: runProvider,
           skill_id: opts.skill ?? null,
           task_id: null,
           allowed_outputs: JSON.stringify(allowedPaths),
@@ -736,11 +747,11 @@ program
         parsed = parseLLMResponse(llmResponse.text)
       } catch (e: any) {
         insertRun({
-          project_id: null,
+          project_id: getProject(root)?.id ?? null,
           prompt: opts.task,
           task_class: taskClass,
           model,
-          provider: 'openrouter',
+          provider: runProvider,
           skill_id: opts.skill ?? null,
           task_id: null,
           allowed_outputs: JSON.stringify(allowedPaths),
@@ -770,11 +781,11 @@ program
         const attempted = parsed.files.map((f) => f.path)
         const blocked = attempted.filter((p) => !allowedPaths.includes(p))
         insertRun({
-          project_id: null,
+          project_id: getProject(root)?.id ?? null,
           prompt: opts.task,
           task_class: taskClass,
           model,
-          provider: 'openrouter',
+          provider: runProvider,
           skill_id: opts.skill ?? null,
           task_id: null,
           allowed_outputs: JSON.stringify(allowedPaths),
@@ -799,11 +810,11 @@ program
 
       // 8. Persist run with evidence
       insertRun({
-        project_id: null,
+        project_id: getProject(root)?.id ?? null,
         prompt: opts.task,
         task_class: taskClass,
         model,
-        provider: 'openrouter',
+        provider: runProvider,
         skill_id: opts.skill ?? null,
         task_id: null,
         allowed_outputs: JSON.stringify(allowedPaths),
@@ -1067,7 +1078,9 @@ task
     for (const t of file.tasks) {
       let cost = 0
       try {
-        const rows = listRunsByTaskId(t.id) as Array<{ usd_cost: number }>
+        const rows = listRunsByTaskId(t.id, getProject(root)?.id ?? null) as Array<{
+          usd_cost: number
+        }>
         cost = rows.reduce((a, r) => a + (r.usd_cost ?? 0), 0)
       } catch {
         /* no runs yet */
@@ -1293,7 +1306,7 @@ task
           const taskProjectId = project?.id ?? getProject(root)?.id
           let latestRun: ReturnType<typeof listRunsByTaskId>[number] | undefined
           try {
-            latestRun = listRunsByTaskId(taskId)[0]
+            latestRun = listRunsByTaskId(taskId, taskProjectId ?? null)[0]
           } catch (error) {
             console.error(`[task-memory] Could not read latest run for ${taskId}:`, error)
           }
@@ -1383,7 +1396,7 @@ task
           const taskProjectId = project?.id ?? getProject(root)?.id
           let latestRun: ReturnType<typeof listRunsByTaskId>[number] | undefined
           try {
-            latestRun = listRunsByTaskId(taskId)[0]
+            latestRun = listRunsByTaskId(taskId, taskProjectId ?? null)[0]
           } catch (error) {
             console.error(`[task-memory] Could not read latest run for ${taskId}:`, error)
           }
@@ -1925,6 +1938,7 @@ instinct
     const result = insertInstinct({
       trigger: opts.trigger,
       action: opts.action,
+      projectId: getProject(resolve('.'))?.id ?? null,
       confidence: AUTO_DEFAULTS.confidence,
       source: AUTO_DEFAULTS.source,
       verified: AUTO_DEFAULTS.verified,
@@ -2136,7 +2150,7 @@ program
       process.exit(1)
     }
     const root = resolve('.')
-    const summary = resetTestData(root)
+    const summary = resetTestData(root, getProject(root)?.id)
     console.log(
       `[reset] Deleted ${summary.runsDeleted} run(s), ${summary.instinctsDeleted} unverified instinct(s), reset ${summary.tasksReset} task(s) to pending.`,
     )

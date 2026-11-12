@@ -146,20 +146,19 @@ import {
 import { handleApiUsage } from './handlers/usage.ts'
 import { errorResponse, isSameOrigin, jsonResponse, serveStatic } from './http.ts'
 import { ownsRow, requestScope } from './ownership.ts'
-import {
-  type DashboardProjectContext,
-  DashboardProjectError,
-  resolveDashboardProject,
-} from './project-context.ts'
+import { type DashboardProjectContext, DashboardProjectError } from './project-context.ts'
 import { createTerminalSession, resolveShellCommand, stopTerminalSessions } from './terminal.ts'
 import { DEFAULT_PORT } from './types.ts'
 
 async function withDashboardProject(
   req: Request,
   handler: (project: DashboardProjectContext) => Response | Promise<Response>,
+  options: { requireProject?: boolean } = {},
 ): Promise<Response> {
   try {
     const scope = requestScope(req)
+    if (options.requireProject && scope.kind === 'none')
+      return errorResponse('project required', 400)
     const context =
       scope.kind === 'project'
         ? { id: scope.id, root: scope.root, source: 'request' as const }
@@ -218,86 +217,126 @@ export async function route(req: Request, port: number): Promise<Response> {
     return handleApiUsage()
   }
   if (method === 'GET' && url.pathname === '/api/session/status') {
-    return withDashboardProject(req, (project) => handleApiSessionStatus(project.root))
+    return withDashboardProject(req, (project) => handleApiSessionStatus(project.root), {
+      requireProject: true,
+    })
   }
   if (method === 'GET' && url.pathname === '/api/plan') {
-    return withDashboardProject(req, (project) =>
-      project.root === realpathSync(resolve('.'))
-        ? handleApiPlan(project.root)
-        : jsonResponse({ items: [], unavailable: 'plan-not-per-project' }),
+    return withDashboardProject(
+      req,
+      (project) =>
+        project.root === realpathSync(resolve('.'))
+          ? handleApiPlan(project.root)
+          : jsonResponse({ items: [], unavailable: 'plan-not-per-project' }),
+      { requireProject: true },
     )
   }
   if (method === 'GET' && url.pathname === '/api/plan/doc') {
-    return withDashboardProject(req, (project) => handleApiPlanDoc(project.root))
+    return withDashboardProject(req, (project) => handleApiPlanDoc(project.root), {
+      requireProject: true,
+    })
   }
   if (method === 'PUT' && /^\/api\/plan\/items\/[^/]+\/dependencies$/.test(url.pathname)) {
-    return withDashboardProject(req, (project) =>
-      project.root === realpathSync(resolve('.'))
-        ? handleApiPlanDependencies(req, project.root)
-        : errorResponse('Plan per project is not available yet', 409),
+    return withDashboardProject(
+      req,
+      (project) =>
+        project.root === realpathSync(resolve('.'))
+          ? handleApiPlanDependencies(req, project.root)
+          : errorResponse('Plan per project is not available yet', 409),
+      { requireProject: true },
     )
   }
   if (method === 'POST' && /^\/api\/plan\/items\/[^/]+\/prepare-close$/.test(url.pathname)) {
-    return withDashboardProject(req, (project) =>
-      project.root === realpathSync(resolve('.'))
-        ? handleApiPlanPrepareClose(req, project.root)
-        : errorResponse('Plan per project is not available yet', 409),
+    return withDashboardProject(
+      req,
+      (project) =>
+        project.root === realpathSync(resolve('.'))
+          ? handleApiPlanPrepareClose(req, project.root)
+          : errorResponse('Plan per project is not available yet', 409),
+      { requireProject: true },
     )
   }
   if (method === 'DELETE' && url.pathname.match(/^\/api\/runs\/[^/]+$/)) {
     return withDashboardProject(req, (project) => handleApiRunsDelete(url, project.id))
   }
   if (method === 'POST' && /^\/api\/runs\/[^/]+\/revert$/.test(url.pathname)) {
-    return withDashboardProject(req, (project) => handleApiRunsRevert(url, project))
+    return withDashboardProject(req, (project) => handleApiRunsRevert(url, project), {
+      requireProject: true,
+    })
   }
   if (method === 'POST' && url.pathname === '/api/runs/bulk-delete') {
     return withDashboardProject(req, (project) => handleApiRunsBulkDelete(req, project.id))
   }
   if (method === 'GET' && url.pathname === '/api/tasks') {
-    return withDashboardProject(req, (project) => handleApiTasks(project.root))
+    return withDashboardProject(req, (project) =>
+      project.id ? handleApiTasks(project.root) : jsonResponse({ exists: false, tasks: [] }),
+    )
   }
   // v0.12 / Bloque D.1.a — ruta literal DEBE ir antes de los regex `/api/tasks/[^/]+/...`
   // para que `init` no sea interpretado como un task id.
   if (method === 'POST' && url.pathname === '/api/tasks/init') {
-    return withDashboardProject(req, (project) => handleApiTasksInit(project.root))
+    return withDashboardProject(req, (project) => handleApiTasksInit(project.root), {
+      requireProject: true,
+    })
   }
   if (method === 'POST' && url.pathname === '/api/tasks') {
-    return withDashboardProject(req, (project) => handleApiTasksCreate(req, project.root))
+    return withDashboardProject(req, (project) => handleApiTasksCreate(req, project.root), {
+      requireProject: true,
+    })
   }
   if (method === 'POST' && url.pathname.match(/^\/api\/tasks\/[^/]+\/run$/)) {
-    return withDashboardProject(req, (project) =>
-      handleApiTasksRun(req, url, project.root, req.headers.get('x-orchestos-project-id')),
+    return withDashboardProject(
+      req,
+      (project) => handleApiTasksRun(req, url, project.root, project.id),
+      { requireProject: true },
     )
   }
   if (method === 'POST' && url.pathname.match(/^\/api\/tasks\/[^/]+\/commit-run$/)) {
-    return withDashboardProject(req, (project) =>
-      handleApiTasksCommitRun(req, url, project.root, req.headers.get('x-orchestos-project-id')),
+    return withDashboardProject(
+      req,
+      (project) => handleApiTasksCommitRun(req, url, project.root, project.id),
+      { requireProject: true },
     )
   }
   if (method === 'DELETE' && url.pathname.match(/^\/api\/tasks\/[^/]+$/)) {
-    return withDashboardProject(req, (project) => handleApiTasksDelete(url, project.root))
+    return withDashboardProject(req, (project) => handleApiTasksDelete(url, project.root), {
+      requireProject: true,
+    })
   }
   if (method === 'POST' && url.pathname === '/api/tasks/bulk-delete') {
-    return withDashboardProject(req, (project) => handleApiTasksBulkDelete(req, project.root))
+    return withDashboardProject(req, (project) => handleApiTasksBulkDelete(req, project.root), {
+      requireProject: true,
+    })
   }
   if (method === 'GET' && url.pathname.match(/^\/api\/tasks\/[^/]+\/diagnose$/)) {
-    return withDashboardProject(req, (project) => handleApiTasksDiagnose(url, project.root))
+    return withDashboardProject(req, (project) => handleApiTasksDiagnose(url, project.root), {
+      requireProject: true,
+    })
   }
   if (method === 'GET' && url.pathname.match(/^\/api\/tasks\/[^/]+\/explain$/)) {
-    return withDashboardProject(req, (project) => handleApiTasksExplain(url, project.root))
+    return withDashboardProject(req, (project) => handleApiTasksExplain(url, project.root), {
+      requireProject: true,
+    })
   }
   if (method === 'GET' && url.pathname.match(/^\/api\/tasks\/[^/]+\/steps$/)) {
-    return withDashboardProject(req, (project) =>
-      project.id === null
-        ? errorResponse('Task not found', 404)
-        : handleApiTasksSteps(url, project.root),
+    return withDashboardProject(
+      req,
+      (project) =>
+        project.id === null
+          ? errorResponse('Task not found', 404)
+          : handleApiTasksSteps(url, project.root, project.id),
+      { requireProject: true },
     )
   }
   if (method === 'POST' && url.pathname === '/api/run/graph') {
-    return withDashboardProject(req, (project) => handleApiRunGraph(req, project.root))
+    return withDashboardProject(req, (project) => handleApiRunGraph(req, project.root), {
+      requireProject: true,
+    })
   }
   if (method === 'GET' && url.pathname === '/api/run/graph/status') {
-    return withDashboardProject(req, (project) => handleApiRunGraphStatus(project.root))
+    return withDashboardProject(req, (project) => handleApiRunGraphStatus(project.root), {
+      requireProject: true,
+    })
   }
   if (method === 'GET' && url.pathname === '/api/instincts') {
     return withDashboardProject(req, (project) => handleApiInstincts(project.id))
@@ -335,53 +374,81 @@ export async function route(req: Request, port: number): Promise<Response> {
   if (method === 'PUT' && /^\/api\/skills\/[^/]+\/enabled$/.test(url.pathname)) {
     if (!req.headers.get('x-orchestos-project-id'))
       return errorResponse('Project header is required', 400)
-    return withDashboardProject(req, (project) => handleApiSkillEnabled(req, url, project.root))
+    return withDashboardProject(req, (project) => handleApiSkillEnabled(req, url, project.root), {
+      requireProject: true,
+    })
   }
   if (method === 'PUT' && /^\/api\/skills\/[^/]+\/phases$/.test(url.pathname)) {
     if (!req.headers.get('x-orchestos-project-id'))
       return errorResponse('Project header is required', 400)
-    return withDashboardProject(req, (project) => handleApiSkillPhases(req, url, project.root))
+    return withDashboardProject(req, (project) => handleApiSkillPhases(req, url, project.root), {
+      requireProject: true,
+    })
   }
   if (method === 'GET' && url.pathname === '/api/skills') {
-    return withDashboardProject(req, (project) => handleApiSkillsList(project.root, project.id))
+    return withDashboardProject(req, (project) => handleApiSkillsList(project.root, project.id), {
+      requireProject: true,
+    })
   }
   if (method === 'GET' && url.pathname === '/api/skills/registry') {
     return handleApiSkillsRegistryList()
   }
   if (method === 'POST' && url.pathname.match(/^\/api\/skills\/registry\/([^/]+)\/import$/)) {
-    return withDashboardProject(req, (project) =>
-      handleApiSkillsRegistryImport(req, url, project.root),
+    return withDashboardProject(
+      req,
+      (project) => handleApiSkillsRegistryImport(req, url, project.root),
+      { requireProject: true },
     )
   }
   if (method === 'GET' && url.pathname === '/api/skills/pro') {
-    return withDashboardProject(req, (project) => handleApiSkillsProList(project.root))
+    return withDashboardProject(req, (project) => handleApiSkillsProList(project.root), {
+      requireProject: true,
+    })
   }
   if (method === 'GET' && url.pathname.match(/^\/api\/skills\/([^/]+)$/)) {
-    return withDashboardProject(req, (project) => handleApiSkillsGet(url, project.root))
+    return withDashboardProject(req, (project) => handleApiSkillsGet(url, project.root), {
+      requireProject: true,
+    })
   }
   if (method === 'GET' && url.pathname.match(/^\/api\/skills\/([^/]+)\/export$/)) {
-    return withDashboardProject(req, (project) => handleApiSkillsExport(url, project.root))
+    return withDashboardProject(req, (project) => handleApiSkillsExport(url, project.root), {
+      requireProject: true,
+    })
   }
   if (method === 'POST' && url.pathname === '/api/skills') {
-    return withDashboardProject(req, (project) => handleApiSkillsCreate(req, project.root))
+    return withDashboardProject(req, (project) => handleApiSkillsCreate(req, project.root), {
+      requireProject: true,
+    })
   }
   if (method === 'PUT' && url.pathname.match(/^\/api\/skills\/([^/]+)$/)) {
-    return withDashboardProject(req, (project) => handleApiSkillsUpdate(req, url, project.root))
+    return withDashboardProject(req, (project) => handleApiSkillsUpdate(req, url, project.root), {
+      requireProject: true,
+    })
   }
   if (method === 'DELETE' && url.pathname.match(/^\/api\/skills\/([^/]+)$/)) {
-    return withDashboardProject(req, (project) => handleApiSkillsDelete(req, url, project.root))
+    return withDashboardProject(req, (project) => handleApiSkillsDelete(req, url, project.root), {
+      requireProject: true,
+    })
   }
   if (method === 'POST' && url.pathname.match(/^\/api\/skills\/([^/]+)\/build$/)) {
-    return withDashboardProject(req, (project) => handleApiSkillsBuild(url, project.root))
+    return withDashboardProject(req, (project) => handleApiSkillsBuild(url, project.root), {
+      requireProject: true,
+    })
   }
   if (method === 'POST' && url.pathname === '/api/skills/curate') {
-    return withDashboardProject(req, (project) => handleApiSkillsCurate(req, project.root))
+    return withDashboardProject(req, (project) => handleApiSkillsCurate(req, project.root), {
+      requireProject: true,
+    })
   }
   if (method === 'POST' && url.pathname === '/api/skills/import') {
-    return withDashboardProject(req, (project) => handleApiSkillsImport(req, project.root))
+    return withDashboardProject(req, (project) => handleApiSkillsImport(req, project.root), {
+      requireProject: true,
+    })
   }
   if (method === 'POST' && url.pathname.match(/^\/api\/skills\/pro\/([^/]+)\/import$/)) {
-    return withDashboardProject(req, (project) => handleApiSkillsProImport(url, project.root))
+    return withDashboardProject(req, (project) => handleApiSkillsProImport(url, project.root), {
+      requireProject: true,
+    })
   }
 
   if (method === 'GET' && url.pathname === '/api/projects') {
@@ -404,24 +471,36 @@ export async function route(req: Request, port: number): Promise<Response> {
   if ((method === 'GET' || method === 'POST') && url.pathname === '/api/projects/clone-location')
     return handleApiProjectCloneLocation(method === 'POST')
   if (method === 'GET' && url.pathname === '/api/project/context') {
-    return withDashboardProject(req, (project) => handleApiProjectContextGet(project.root))
+    return withDashboardProject(req, (project) => handleApiProjectContextGet(project.root), {
+      requireProject: true,
+    })
   }
   if (method === 'GET' && url.pathname === '/api/project/git') {
-    return withDashboardProject(req, (project) => handleApiProjectGit(project.root))
+    return withDashboardProject(req, (project) => handleApiProjectGit(project.root), {
+      requireProject: true,
+    })
   }
   if (method === 'POST' && url.pathname === '/api/project/context/regenerate') {
-    return withDashboardProject(req, (project) => handleApiProjectContextRegenerate(project.root))
+    return withDashboardProject(req, (project) => handleApiProjectContextRegenerate(project.root), {
+      requireProject: true,
+    })
   }
   if (method === 'POST' && url.pathname === '/api/project/detect') {
-    return withDashboardProject(req, (project) => handleApiProjectDetect(project.root, req))
+    return withDashboardProject(req, (project) => handleApiProjectDetect(project.root, req), {
+      requireProject: true,
+    })
   }
   // v0.12 D.1.c — ruta literal DEBE ir antes del catch-all GET→serveStatic
   // de abajo (sirve un PDF binario, no HTML estático).
   if (method === 'GET' && url.pathname === '/api/project/summary') {
-    return withDashboardProject(req, (project) => handleApiProjectSummary(project.root))
+    return withDashboardProject(req, (project) => handleApiProjectSummary(project.root), {
+      requireProject: true,
+    })
   }
   if (method === 'POST' && url.pathname === '/api/natural') {
-    return withDashboardProject(req, (project) => handleApiNatural(req, project.root))
+    return withDashboardProject(req, (project) => handleApiNatural(req, project.root), {
+      requireProject: true,
+    })
   }
   if (method === 'GET' && url.pathname === '/api/chat/models') {
     return handleApiChatModels()
@@ -487,35 +566,53 @@ export async function route(req: Request, port: number): Promise<Response> {
     return handleApiChatTaskBarEvents()
   }
   if (method === 'GET' && url.pathname === '/api/specs') {
-    return withDashboardProject(req, (project) => handleApiSpecs(project.root))
+    return withDashboardProject(req, (project) => handleApiSpecs(project.root), {
+      requireProject: true,
+    })
   }
   if (method === 'POST' && url.pathname === '/api/specs/draft') {
-    return withDashboardProject(req, (project) => handleApiSpecsDraft(req, project.root))
+    return withDashboardProject(req, (project) => handleApiSpecsDraft(req, project.root), {
+      requireProject: true,
+    })
   }
   // v0.12 Bloque A — DEBE ir antes del /^\/api\/specs\/[^/]+$/ genérico de abajo
   // (handleApiSpecsCreate): sin id con slash, ese regex también matchea
   // "/api/specs/bulk-delete" y se comería esta ruta.
   if (method === 'POST' && url.pathname === '/api/specs/bulk-delete') {
-    return withDashboardProject(req, (project) => handleApiSpecsBulkDelete(req, project.root))
+    return withDashboardProject(req, (project) => handleApiSpecsBulkDelete(req, project.root), {
+      requireProject: true,
+    })
   }
   if (method === 'POST' && /^\/api\/specs\/[^/]+$/.test(url.pathname)) {
-    return withDashboardProject(req, (project) => handleApiSpecsCreate(req, project.root))
+    return withDashboardProject(req, (project) => handleApiSpecsCreate(req, project.root), {
+      requireProject: true,
+    })
   }
   // AA.4 (IDEAS #6) — ruta propia junto al resto de approve/lint/archive.
   if (method === 'POST' && url.pathname.endsWith('/approve-design')) {
-    return withDashboardProject(req, (project) => handleApiSpecsApproveDesign(req, project.root))
+    return withDashboardProject(req, (project) => handleApiSpecsApproveDesign(req, project.root), {
+      requireProject: true,
+    })
   }
   if (method === 'POST' && url.pathname.endsWith('/approve')) {
-    return withDashboardProject(req, (project) => handleApiSpecsApprove(req, project.root))
+    return withDashboardProject(req, (project) => handleApiSpecsApprove(req, project.root), {
+      requireProject: true,
+    })
   }
   if (method === 'GET' && url.pathname.endsWith('/lint')) {
-    return withDashboardProject(req, (project) => handleApiSpecsLint(req, project.root))
+    return withDashboardProject(req, (project) => handleApiSpecsLint(req, project.root), {
+      requireProject: true,
+    })
   }
   if (method === 'POST' && url.pathname.endsWith('/archive')) {
-    return withDashboardProject(req, (project) => handleApiSpecsArchive(req, project.root))
+    return withDashboardProject(req, (project) => handleApiSpecsArchive(req, project.root), {
+      requireProject: true,
+    })
   }
   if (method === 'DELETE' && /^\/api\/specs\/[^/]+$/.test(url.pathname)) {
-    return withDashboardProject(req, (project) => handleApiSpecsDelete(req, project.root))
+    return withDashboardProject(req, (project) => handleApiSpecsDelete(req, project.root), {
+      requireProject: true,
+    })
   }
   if (method === 'GET' && url.pathname === '/api/memory/conflicts') {
     return withDashboardProject(req, (project) => handleApiMemoryConflicts(url, project.id))
@@ -535,13 +632,19 @@ export async function route(req: Request, port: number): Promise<Response> {
     return withDashboardProject(req, (project) => handleApiMemoryBulkDelete(req, project.id))
   }
   if (method === 'GET' && url.pathname === '/api/settings') {
-    return withDashboardProject(req, (project) => handleApiSettingsGet(project.root))
+    return withDashboardProject(req, (project) => handleApiSettingsGet(project.root), {
+      requireProject: true,
+    })
   }
   if (method === 'GET' && url.pathname === '/api/setup') {
-    return withDashboardProject(req, (project) => handleApiSetup(project.root))
+    return withDashboardProject(req, (project) => handleApiSetup(project.root), {
+      requireProject: true,
+    })
   }
   if (method === 'GET' && url.pathname === '/api/health') {
-    return withDashboardProject(req, (project) => handleApiHealth(project.root))
+    return withDashboardProject(req, (project) => handleApiHealth(project.root), {
+      requireProject: true,
+    })
   }
   if (method === 'GET' && url.pathname === '/api/providers/local') {
     return handleApiProvidersLocal()
@@ -553,15 +656,22 @@ export async function route(req: Request, port: number): Promise<Response> {
     return handleApiSettingsPost(req)
   }
   if (method === 'POST' && url.pathname === '/api/system/reset') {
-    return withDashboardProject(req, (project) => handleApiSystemReset(req, project.root))
+    return withDashboardProject(
+      req,
+      (project) => handleApiSystemReset(req, project.root, project.id),
+      { requireProject: true },
+    )
   }
   if (method === 'GET' && url.pathname === '/api/system/engines/external/availability') {
     return handleApiSystemEnginesExternalAvailability()
   }
   if (method === 'GET' && url.pathname === '/api/system/executor-modes') {
-    return withDashboardProject(req, (project) => handleApiSystemExecutorModes(project.root))
+    return withDashboardProject(req, (project) => handleApiSystemExecutorModes(project.root), {
+      requireProject: true,
+    })
   }
   if (method === 'GET' && url.pathname === '/api/config') {
+    // Lectura sin proyecto permitida: el chat general lee roles/modelos (OrchestChatView).
     return withDashboardProject(req, (project) => handleApiConfigGet(project.root))
   }
   if (method === 'GET' && url.pathname === '/api/providers') {
@@ -571,28 +681,44 @@ export async function route(req: Request, port: number): Promise<Response> {
     return handleApiClisGet()
   }
   if (method === 'PUT' && url.pathname === '/api/clis') {
-    return withDashboardProject(req, (project) => handleApiClisSet(req, project.root))
+    return withDashboardProject(req, (project) => handleApiClisSet(req, project.root), {
+      requireProject: true,
+    })
   }
   if (method === 'POST' && url.pathname === '/api/config/init') {
-    return withDashboardProject(req, (project) => handleApiConfigInit(project.root))
+    return withDashboardProject(req, (project) => handleApiConfigInit(project.root), {
+      requireProject: true,
+    })
   }
   if (method === 'PUT' && url.pathname === '/api/config') {
-    return withDashboardProject(req, (project) => handleApiConfigSet(req, project.root))
+    return withDashboardProject(req, (project) => handleApiConfigSet(req, project.root), {
+      requireProject: true,
+    })
   }
   if (method === 'GET' && url.pathname === '/api/git/changes') {
-    return withDashboardProject(req, (project) => handleApiGitChanges(project.root, url))
+    return withDashboardProject(req, (project) => handleApiGitChanges(project.root, url), {
+      requireProject: true,
+    })
   }
   if (method === 'GET' && url.pathname === '/api/git/diff') {
-    return withDashboardProject(req, (project) => handleApiGitDiff(url, project.root))
+    return withDashboardProject(req, (project) => handleApiGitDiff(url, project.root), {
+      requireProject: true,
+    })
   }
   if (method === 'GET' && url.pathname === '/api/explorer/tree') {
-    return withDashboardProject(req, (project) => handleApiExplorerTree(url, project.root))
+    return withDashboardProject(req, (project) => handleApiExplorerTree(url, project.root), {
+      requireProject: true,
+    })
   }
   if (method === 'GET' && url.pathname === '/api/explorer/file') {
-    return withDashboardProject(req, (project) => handleApiExplorerFile(url, project.root))
+    return withDashboardProject(req, (project) => handleApiExplorerFile(url, project.root), {
+      requireProject: true,
+    })
   }
   if (method === 'PUT' && url.pathname === '/api/explorer/file') {
-    return withDashboardProject(req, (project) => handleApiExplorerWrite(req, project.root))
+    return withDashboardProject(req, (project) => handleApiExplorerWrite(req, project.root), {
+      requireProject: true,
+    })
   }
 
   if (method === 'GET') {
@@ -629,7 +755,9 @@ export function startServer(
       if (kind !== 'opencode' && kind !== 'shell')
         return errorResponse('Unknown terminal kind', 400)
       try {
-        const project = resolveDashboardProject(req)
+        const scope = requestScope(req)
+        if (scope.kind === 'none') return errorResponse('project required', 400)
+        const project = scope
         const cols = Number(url.searchParams.get('cols') ?? 80)
         const rows = Number(url.searchParams.get('rows') ?? 24)
         const upgraded = server.upgrade(req, { data: { cwd: project.root, cols, rows, kind } })

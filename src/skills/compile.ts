@@ -5,8 +5,6 @@ import { compileClaude } from './targets/claude.ts'
 import { compileCursor } from './targets/cursor.ts'
 import { compileOpenAI } from './targets/openai.ts'
 
-const DIST_DIR = join(process.cwd(), 'dist', 'skills')
-
 const EXT: Record<SkillTarget, string> = {
   claude: '.md',
   cursor: '.mdc',
@@ -23,6 +21,7 @@ export function compileSkill(
   skill: SkillDef,
   targets?: SkillTarget[],
   detectedLanguage?: string,
+  root = process.cwd(),
 ): string[] {
   const toCompile = targets ?? skill.targets
   const written: string[] = []
@@ -32,7 +31,7 @@ export function compileSkill(
       console.warn(`[skill] ${skill.id} does not declare target "${target}" — skipping`)
       continue
     }
-    const outDir = join(DIST_DIR, target)
+    const outDir = join(root, 'dist', 'skills', target)
     mkdirSync(outDir, { recursive: true })
     const content = COMPILERS[target](skill, detectedLanguage)
     const outPath = join(outDir, `${skill.id}${EXT[target]}`)

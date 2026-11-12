@@ -169,14 +169,15 @@ async function execConsoleCommand(req: Request, url: URL): Promise<Response> {
 export function handleApiChatSessionConsole(url: URL): Response {
   const id = sessionIdFromUrl(url)
   if (!id) return errorResponse('Invalid session id', 400)
-  if (!getChatSession(id)) return errorResponse('Chat session not found', 404)
+  const session = getChatSession(id)
+  if (!session) return errorResponse('Chat session not found', 404)
 
   const lines: ConsoleLine[] = []
   for (const turn of listChatTurns(id)) {
     lines.push({ at: turn.created_at, kind: 'turn', text: `[turn] ${turn.status}` })
     if (turn.error) lines.push({ at: turn.updated_at, kind: 'error', text: turn.error })
     if (turn.task_id) {
-      for (const step of getRunSteps(turn.task_id)) {
+      for (const step of getRunSteps(turn.task_id, 0, session.project_id)) {
         let text = `[tool] ${step.label}`
         if (step.type === 'text') text = `[text] ${step.detail || step.label}`
         if (step.type === 'notice') text = `[notice] ${step.label}`

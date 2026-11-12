@@ -1,5 +1,5 @@
 import { getProject } from '../db/projects.ts'
-import { listRuns } from '../db/runs.ts'
+import { listContextRuns } from '../db/runs.ts'
 
 interface ContextMdResult {
   content: string
@@ -42,7 +42,7 @@ export function buildContextMd(projectPath: string): ContextMdResult | null {
   }
 
   // -- recent runs (last 5) --
-  const recentRuns = listRuns(5)
+  const recentRuns = listContextRuns(project.id, 5)
   if (recentRuns.length > 0) {
     lines.push('### Recent runs')
     for (const r of recentRuns) {
