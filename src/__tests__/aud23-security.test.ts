@@ -62,7 +62,7 @@ for (const [label, command, actions] of [
   ['quoted file option', 'rg needle --file="/etc/passwd"', [{ type: 'search' }]],
   ['quoted relative file option', 'rg needle --file="src/patterns"', [{ type: 'search' }]],
   ['variable expansion', 'cat $HOME/.ssh/id_rsa', [{ type: 'search' }]],
-  ['braced variable', 'rg needle "${HOME}"', [{ type: 'search' }]],
+  ['braced variable', `rg needle "$${'{'}HOME}"`, [{ type: 'search' }]],
   ['escaped absolute path', 'rg root \\/etc/passwd', [{ type: 'search' }]],
   ['brace expansion', 'cat {/etc/passwd,README.md}', [{ type: 'search' }]],
 ] as const) {
