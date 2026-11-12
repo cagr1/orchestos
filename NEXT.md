@@ -42,6 +42,9 @@ Arranque: `bun run agent:preflight -- --item <ID> --agent claude`. Lista viva: `
        (11 puntos; decisión tomada: `!comando` en Dev va al tab terminal del proyecto, en Chat se quita el modo shell).
        Delegado a `criterio`; al cortar ya había editado 17 archivos (app, `handlers/explorer.ts`, `server.ts`,
        `html-script-check.ts`, `scaffold.ts`, `_shared.ts`, `cli-transcripts-reader.ts`) y escribía los ui-gates.
+       El ejecutor se detuvo por límite de cupo de Codex (se libera 13:29) a mitad de la búsqueda por contenido,
+       `checks.ts`/`html-script-check` y `src/dashboard/__tests__/aud25-ui.test.ts`: el árbol puede no compilar.
+       Si Codex sigue sin cupo, relanzar con `criterio-alt` (regla del roster).
        Al retomar: (1) `git status` y `git diff --stat` — los cambios sin commitear SON de AUD.25, no ajenos;
        (2) relanzar `delegate criterio docs/specs/AUD.25.md` con la nota "continúa: el árbol ya tiene parte hecha;
        revisa cada punto del spec, completa lo que falte, tests y ui-gates"; (3) el cerebro lee el diff, corre tsc,
