@@ -1,4 +1,4 @@
-# NEXT — handoff 2026-11-12 (lote de auditoría AUD.19–28; siguiente AUD.14, 16, 17)
+# NEXT — handoff 2026-11-12 (rumbo nuevo: uso normal → uso real → Windows → Tauri; siguiente AUD.14)
 
 Un solo presente: orden y trampas vivas del lote. Lo cerrado vive en `docs/done/bloque-*.md` y git; las reglas, en
 `AGENTS.md`. Versión anterior completa: `docs/done/poda-instrucciones-2026-11-03.md` (histórico).
@@ -6,70 +6,38 @@ Arranque: `bun run agent:preflight -- --item <ID> --agent claude`. Lista viva: `
 
 ## Orden
 
-1. **Siguiente: lote de auditoría** (GO de Carlos 2026-11-10 para AUD.1 y AUD.2; antes: "decide Carlos — otro bloque
-   de producto o el mes de uso real"). Informe y dirección por ítem: `docs/auditoria-2026-11-10.md`.
-   - AUD.1, AUD.2 y AUD.3 cerrados. Antes de delegar cada uno, el cerebro comprueba con grep su lista de "no verificado" y
-     lee entero el módulo que toca y sus tests (AUD.1: 5 enmiendas; AUD.2: 3, todas por casos borde de rutas de git).
-   - AUD.4 cerrado 2026-11-11 (`runs.failure_kind` + chip en hilo y Runs; evidencia en `PLAN.md`).
-   - 2026-11-11, sesión aparte: AUD.11 (tasks.yaml estricto), AT.22 (el cerebro hace fixes de ≤20 líneas; el hook
-     lo permite) y AUD.18 (`src/boundary/` con Zod + gate `boundary-budget` en pre-commit, 140 parseos, solo baja)
-     cerrados. Abiertos AUD.12–17 (migrar esos parseos; AUD.13 es seguridad): van después de AUD.7 y bajan el
-     presupuesto. Parseo nuevo de datos externos → `src/boundary`, o el commit no entra.
-   - 2026-11-11, segunda auditoría completa (`docs/auditoria-2026-11-11.md`): abre AUD.19–AUD.28. Cuatro clases
-     nuevas además de la validación: aislamiento entre proyectos (AUD.19), pérdida de datos (AUD.20), resultados
-     aceptados que no debían (AUD.21, AUD.26) y ciclo de vida de procesos y turnos (AUD.22, AUD.24).
-   - **Siguiente — orden vigente** (Carlos, 2026-11-11: "comenzar según tu orden"), con spec nuevo cada uno:
-     AUD.20 → AUD.19 → AUD.7 → AUD.23 + AUD.13 → AUD.21 + AUD.5 → AUD.22 + AUD.6 → AUD.24 → AUD.25 →
-     AUD.26 + AUD.9 → AUD.12, 14–17 → AUD.27 + AUD.8 → AUD.10 → AUD.28. Antes: AUD.7, AUD.5, AUD.10, AUD.8, AUD.9,
-     AUD.6 (orden de la primera auditoría).
-     - AUD.20 cerrado 2026-11-11 (`1b06897b`; evidencia en `PLAN.md` y `docs/done/evidence/AUD.20-live.json`).
-     - AUD.19 cerrado 2026-11-11 (`01b3648a`; evidencia en `PLAN.md` y `docs/done/evidence/AUD.19-live.json`). Queda sin gate
-       en vivo: las carreras de cambio de proyecto de `App.tsx`.
-     - AUD.7 cerrado 2026-11-12 (`c9c0fac6`; token persistente + `guardRequest`; evidencia `docs/done/evidence/AUD.7-live.json`).
-       Desde aquí el dashboard se abre con la URL `#t=` que imprime `orchestos dashboard`; scripts que llamen a `/api`
-       mandan `x-orchestos-token` (archivo o `ORCHESTOS_DASHBOARD_TOKEN`).
-     - AUD.23 + AUD.13 cerrados 2026-11-12 (`08df6053`, `73345523`; evidencia `docs/done/evidence/AUD.23-live.json`).
-       Residual aceptado: opción corta pegada a un symlink preexistente (`-fleak.txt`) en la regla readOnly de Codex.
-     - Nocturna de ui-gates 2026-11-12 sobre `01b3648`: 0/50 por la regresión de AUD.19 (`/api/health` exigía proyecto),
-       corregida en `c9c0fac6` (smoke, dev-terminal, user-profile pasan). Mirar la próxima corrida antes de seguir.
-     - AUD.21 + AUD.5 cerrados 2026-11-12 (`26358263`; evidencia `docs/done/evidence/AUD.21-live.json`). `task run` ya no llama
-       al Auxiliar tras `done` y sale 1 si la tarea no queda `done`.
-     - AUD.22 + AUD.6 cerrados 2026-11-12 (`adb93357`; evidencia `docs/done/evidence/AUD.22-live.json`). Los motores se lanzan
-       como grupo (`src/run/process-tree.ts`): todo spawn nuevo de un CLI de agente pasa por `spawnTree`.
-     - AUD.24 cerrado 2026-11-12 (`8f9e0fe2`; evidencia `docs/done/evidence/AUD.24-chat-stop-result.json`). El lease del turno se
-       renueva; recargar a mitad de turno conserva Stop y actividad.
-     - AUD.25 cerrado 2026-11-12 (`556238cc`; evidencia `docs/done/evidence/AUD.25-ui-result.json`). `!cmd` en Dev va al PTY;
-       búsqueda por contenido en `GET /api/explorer/search`.
-     - AUD.26 cerrado 2026-11-12 (`681b74ef`; evidencia `docs/done/evidence/AUD.26-chat-timeout-brain.json`); de AUD.9 queda
-       confirmar `chat-timeout` verde en la próxima nocturna válida y la decisión de WebKit (Carlos). La nocturna ya
-       sale 1 con flujos rojos y recupera su candado si el proceso murió.
-     - AUD.12 + AUD.15 cerrados 2026-11-12 (`18b99a66`; rangos en `src/boundary/config-limits.ts`; `effort` sin validar por decisión
-       de Carlos). Trampa: el destino de un timeout solo valida el rango técnico de `setTimeout`, el chat usa cortos.
-     - Trampas nuevas: el hook deja al cerebro un Edit de ≤20 líneas (no vía Bash); un ítem cerrado junto con otro
-       necesita su propia línea `Ejecutado por: … · Spec: docs/specs/<ID>.md` o el plan gate lo rechaza.
-     - Siguiente: AUD.14, AUD.16, AUD.17 (migrar parseos a `src/boundary`); ningún ítem tiene spec escrito. Lo no marcado ✔ en el informe se comprueba
-       con grep al escribirlo.
-     - Trampas del cierre (vistas en AUD.24/25): `plan:reconcile` dos veces con el ítem ya `[x]` falla ("Could not
-       prove a closing commit SHA"): poner `[ ]`, reconciliar, volver a `[x]`, reconciliar. La línea `Gate en vivo:`
-       lleva la cita del `.json` en la MISMA línea. Etiquetas visibles nuevas (aunque repitan existentes) van en
-       `Texto visible:` del ítem. Los ui-gates del ejecutor suelen fallar por el localizador, no por el producto:
-       mirar la captura antes de culpar al código. No relanzar los auditores: su salida literal está en los anexos.
-     - AUD.28 cambia comportamiento central: plan corto y GO de Carlos antes de delegar; no tiene GO.
-     - Sin leer en la auditoría: `components/ui/*` por dentro, `scripts/ui-gate`, `tests/`.
-   - Decisiones de Carlos pendientes: adoptar el tamaño por reanudabilidad de ODD en el proceso; qué ideas de
-     `IDEAS.md` entran al cierre (propuesta en el informe); Tauri (recomendado) o Electron, después de AUD.7.
-   - Cupo: la auditoría gastó ~35 % del cupo de 5 h. No relanzar agentes de lectura: la evidencia ya está escrita.
-1a. **Primero tras el lote AUD (Carlos, 2026-11-12): SES.1** — cerrar una sesión de verdad: archivar detiene el
-   turno en curso y la X del tab deja de parecer un cierre. Detalle en `PLAN.md` § "Abiertos — ciclo de vida de
-   sesiones".
-1b. **Después del lote AUD (Carlos, 2026-11-10: "primero lo pendiente y luego esto")** — ritmo de entrega. Medido
-   el 2026-11-10: pre-commit 5 s, pre-push 124 s, CI ~2 min verde; los hooks no son la causa. Desde el 2026-11-08,
-   2 de ~30 commits fueron de producto (ADE.11, CI.79); el resto CI.72–84, AUD y 22 `docs(NEXT)` en la semana; la
-   cola lista no tiene ítem de producto. Causa: cada rojo de la nocturna se vuelve CI.\* prioritario y muchos son
-   gate desfasado de la UI, no producto roto. Propuestas a decidir: (a) medir avance en ítems de producto cerrados,
-   no en commits; (b) rojo nocturno = producto roto → primero; gate desfasado → lote semanal; (c) cada lote alterna
-   producto con CI/AUD. Ya aplicado: push tras cada commit (`74e43672`).
-2. Ui-gates nocturnos: la del 2026-11-11 (`089302a`) tampoco vale: durmió en batería hasta las 08:16 pese a
+Rumbo de Carlos del 2026-11-12 (`PLAN.md` § Rumbo): uso normal → uso real → Windows → Tauri. Antes: lote de
+auditoría AUD.1–AUD.28 en el orden de la segunda auditoría; lo cerrado está en `docs/done/bloque-AUD.md`.
+
+1. **Etapa 1 — lo que rompe el uso normal**: AUD.14 → AUD.17 → AUD.16 → SES.1.
+   - AUD.14: spec listo en `docs/specs/AUD.14.md` (sin commitear, como manda el plan-gate). Falta delegar y verificar.
+   - AUD.17 y AUD.16: sin spec ni informe aparte (salieron de la lectura de un subagente): cada cita del ítem se
+     comprueba con grep al escribirlo. Cada uno migra sus parseos a `src/boundary` y baja `scripts/boundary-budget.json`.
+   - SES.1: diseño en el ítem. Cruza UI, sesiones y procesos: plan corto antes de delegar.
+2. **Etapa 2 — uso real**: Carlos trabaja en OrchestOS en vez de Orca. Lo que reporte se abre como ítem con su
+   evidencia y va primero. No se revisan pantallas por iniciativa propia.
+3. **Etapa 3 — Windows**: WIN.1, fase 1 = prueba de humo. Nada se arregla antes de verla fallar.
+4. **Etapa 4 — Tauri** (decidido, `IDEAS.md` #41). Se gradúa al plan al abrir la etapa.
+5. **Aparcados, no se toman** (`docs/done/aparcados-2026-11-12.md`): CI.19, CI.54, CI.55, CI.57, CI.69, CI.76, CI.81,
+   AUD.8, AUD.9, AUD.10, AUD.27, AUD.28. Si uno de esos gates falla, se lee su JSON el mismo día (CI.62 borra el
+   `runDir` a las 24 h) y se reabre solo si es producto roto.
+6. **Decisión pendiente de Carlos, con recomendación del cerebro**: pausar la nocturna de ui-gates y la mutación
+   mientras dure la etapa 2. Hoy `AGENTS.md` § "Gates y tests" manda resolver cada rojo nocturno antes del siguiente
+   ítem; medido el 2026-11-10, desde el 2026-11-08 solo 2 de ~30 commits fueron de producto porque cada rojo se volvía
+   un CI.\* prioritario y muchos eran gate desfasado, no producto roto. Sin GO, la regla sigue vigente. Otras
+   pendientes: tamaño por reanudabilidad de ODD; qué ideas de `IDEAS.md` entran al cierre.
+7. Lo que dejó el lote AUD y sigue vivo:
+   - El dashboard se abre con la URL `#t=` que imprime `orchestos dashboard`; scripts que llamen a `/api` mandan
+     `x-orchestos-token` (archivo `~/.orchestos/dashboard-token` o `ORCHESTOS_DASHBOARD_TOKEN`).
+   - Todo spawn nuevo de un CLI de agente pasa por `spawnTree` (`src/run/process-tree.ts`). Parseo nuevo de datos
+     externos → `src/boundary`, o el commit no entra. Rangos de config en `src/boundary/config-limits.ts`.
+   - Sin gate en vivo: las carreras de cambio de proyecto de `App.tsx` (AUD.19). Residual aceptado: opción corta
+     pegada a un symlink preexistente (`-fleak.txt`) en la regla readOnly de Codex (AUD.13).
+   - Un ítem cerrado junto con otro necesita su propia línea `Ejecutado por: … · Spec: docs/specs/<ID>.md`. Los
+     ui-gates del ejecutor suelen fallar por el localizador, no por el producto: mirar la captura antes de culpar al
+     código. No relanzar los auditores: su salida literal está en los anexos de los informes.
+   - Sin leer en la auditoría: `components/ui/*` por dentro, `scripts/ui-gate`, `tests/`.
+8. Ui-gates nocturnos: la del 2026-11-11 (`089302a`) tampoco vale: durmió en batería hasta las 08:16 pese a
    `caffeinate` (36 eventos, `sleeps` del JSON) — sin enchufe y tapa abierta no hay corrida válida. Despierto:
    `chat-timeout` = AUD.9; `opencode-terminal` falló 2/2 al despertar y pasó 13/13 repetido (flaky, sin ítem);
    `chat-retry-report` pasó 27/27 dos veces en el día. La corrida del 2026-11-10 (`a3c6648`) no vale, el Mac durmió en batería toda la noche (CI.82:
@@ -78,12 +46,9 @@ Arranque: `bun run agent:preflight -- --item <ID> --agent claude`. Lista viva: `
    `chat-*` (attachments, context, followup-task, permissions, readonly-shell, retry-report) y los 3 flaky;
    `chat-timeout` es AUD.9. Para que la corrida cuente: Mac enchufado y con la tapa abierta. Al arrancar, leer el
    aviso del startup-guard y resolver lo rojo antes del siguiente ítem.
-3. **Esperan su próximo fallo** (`PLAN.md` § Abiertos): CI.76 (`notifications`); CI.69 (`usage-bar`); CI.57
-   `composer-picker-model-missing.json`; CI.54 `turn1-bubble-missing.json`; CI.19; CI.55
-   (`role-task-missing-output-attempt-<n>.json`). Leer el JSON el mismo día: CI.62 borra el `runDir` a las 24 h.
-4. Biome: 282 avisos, con tope por regla (`scripts/lint-budget.json`, CI.80): solo bajan. Los de producto (`any`
+9. Biome: 282 avisos, con tope por regla (`scripts/lint-budget.json`, CI.80): solo bajan. Los de producto (`any`
    137, `!` 90) cambian código real; bajarlos lo decide Carlos.
-5. Cabos sueltos de la sesión SK.1/SK.2 (2026-11-06/07):
+10. Cabos sueltos de la sesión SK.1/SK.2 (2026-11-06/07):
    - PR #4 (README sync, conteo de tests) abierto: espera merge de Carlos.
    - Set curado en `~/.orchestos/skills/` sin fases: `tdd`, `karpathy-guidelines`, `verification-before-completion`,
      `impeccable` no aplican solas hasta marcar sus chips "Applies in" (SK.2). Propuesta: Build+Fix para las tres
@@ -93,7 +58,7 @@ Arranque: `bun run agent:preflight -- --item <ID> --agent claude`. Lista viva: `
    - "Thought" en el chat repetiría la respuesta (Carlos, 2026-11-06). Sin reproducir: en `~/.orchestos/db.sqlite`
      los pasos `reasoning` de Claude llegan vacíos y los de Codex son resúmenes cortos; "Thought" solo muestra pasos
      `reasoning` (`app/src/api/chat.ts:279`). Necesita un caso (agente, modelo, captura) antes de abrir ítem.
-6. "navegador propio" sin anotar en `IDEAS.md` hasta que Carlos diga qué espera de él.
+11. "navegador propio" sin anotar en `IDEAS.md` hasta que Carlos diga qué espera de él.
 
 **Trampas de cierre** (2026-11-12): `delegate qa` exige un archivo de spec (en `/tmp` vale), no texto suelto; el
 plan-gate pide la línea `Ejecutado por: … · Spec: docs/specs/<ID>.md` o `Sin delegación: <motivo>` en cada `[x]`;

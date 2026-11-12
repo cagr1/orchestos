@@ -83,3 +83,21 @@ igual que hoy, lo que se corta es que el **producto** lo herede por accidente.
   solo; no abrir ítem salvo decisión explícita.
 - Todo el gobierno del repo está en español con README en inglés. Decisión de producto, no
   defecto — no tocar sin que Carlos lo pida.
+
+## Rumbo vigente del 2026-11-09 al 2026-11-12 (histórico)
+
+Reemplazado el 2026-11-12 por el rumbo "uso normal → uso real → Windows → Tauri" de `PLAN.md`.
+
+Orden de Carlos (2026-09-22): *"Terminar interfaz, luego producto mínimo para entrega y luego corregir"*. Lo que no
+está en una fase no se abre sin GO de Carlos.
+
+- **Fase 1 — Terminar la interfaz:** cerrada.
+- **Fase 2 — Producto mínimo para entrega:** en curso. Sus bloques de producto están cerrados (el último, ADE, el
+  2026-11-09); quedan abiertos solo los ítems de fiabilidad de abajo.
+- **Fase 3 — Correr dentro de OrchestOS igual que el CLI directo:** todos sus ítems nombrados (AT.11, AT.13,
+  AT.19–21, CX.6, ERP.5–7, H.7.2c, H.7.3) están cerrados.
+- **Siguiente:** decide Carlos — otro bloque de producto o el mes de uso real.
+- **Fuera de fase (2026-11-10):** la auditoría abrió AUD.1–AUD.10 (§ "Abiertos — auditoría"). Ninguno tiene fase ni
+  prioridad: las asigna Carlos. Antes de esta nota, el Rumbo no los mencionaba.
+
+Rumbo y notas anteriores: `docs/done/plan-historico-2026-11-09.md` (histórico).

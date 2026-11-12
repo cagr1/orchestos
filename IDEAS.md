@@ -60,7 +60,7 @@ _(`#6` graduó a Bloque AA el 2026-08-15. `#31`, `#35` y `#50` fueron ABSORBIDAS
 ### Medio-alto
 
 1. `#8` Micrófono/dictado.
-4. `#41` App de escritorio distribuible (Electron o Tauri; ver actualización 2026-11-07).
+4. `#41` App de escritorio distribuible (Tauri, decidido 2026-11-12; es la etapa 4 de `PLAN.md` § Rumbo).
 5. `#42` Auto-repair dirigido.
 8. `#45` Visibilidad de gasto real — API vs CLI (movida desde Medio el 2026-08-18; va **antes**
    que `#57`, que depende de su paso 0).
@@ -543,6 +543,10 @@ reescribir en Rust/Go para ganar velocidad):
   pide `main.js?v=<hash del build>` / `main.css?v=…`.
 - Orden propuesto: después de SK.3 y del desacople; primero el arreglo de caché + repaso de la UI en Safari, luego
   un prototipo Tauri solo Mac en una rama.
+
+**Decisión 2026-11-12 (Carlos): Tauri**, no Electron ("pasar todo a Tauri"). Es la etapa 4 de `PLAN.md` § Rumbo,
+después del uso real y de Windows (WIN.1); esta sección se gradúa al plan cuando se abra la etapa. Antes: sin
+decidir entre Electron y Tauri.
 
 **Nota 2026-11-10 — premisas ya falsas y prerrequisitos verificados (no cambia el veredicto ni la prioridad; la
 decisión es del dueño).** Premisas superadas del texto original de arriba, que se conserva por historial:

@@ -25,7 +25,7 @@ conservan su fecha y, donde una frase quedó superada, lo dice la línea "Supera
   Gr8r) y UI.27 (icono del agente, títulos sin "Agente:", anillo de contexto en la barra superior, asides
   redimensionables) cerrados. El tema por defecto no cambia. Bloque ADE (2026-11-07/09) cerrado: editar archivos
   desde el explorer, atajos desde `lib/keybindings.ts`, Settings → Editor y Terminal, ajustes por proyecto
-  (`docs/done/bloque-ADE.md`). Fase 2 sin ítems de producto abiertos; Fase 3 cerrada.
+  (`docs/done/bloque-ADE.md`). Fase 2 sin ítems de producto abiertos; Fase 3 cerrada. Rumbo desde el 2026-11-12 (`PLAN.md` § Rumbo): lo que rompe el uso normal, uso real por Carlos, Windows y Tauri; auditoría cerrada en `docs/done/bloque-AUD.md`.
 - **Las tareas las decide el cerebro desde el chat** (Carlos, 4.ª vez, 2026-10-22). Ninguna vista invita a crearlas a
   mano: UI.28 quitó "Create First Task" de Settings → Tasks y "Add task" + el modal "Append to tasks.yaml" de Plan.
 - **Permisos de Codex (CI.32.c, decisión de Carlos 2026-10-22).** En auto-edit, la tarea Codex corre con su sandbox

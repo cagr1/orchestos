@@ -590,3 +590,10 @@ y `PLAN.md` queda sin ítems de método** (decisión de Carlos, 2026-10-11).
   corregidos por Luna: espera de la fila de Runs, navegación sobrante, 400 esperado sin declarar.
   Gate en vivo: navegador real (Playwright) `custom-cli` 13/13, `tasks` 43/43, `model-routing` 18/18, `docs/done/evidence/AT.11.3-live.json`
   Ejecutado por: codex gpt-6.1-sol (criterio) + gpt-6-luna (mecanico, anexos) · Spec: docs/specs/AT.11.3.md
+
+- [x] **AT.22 — El cerebro hace fixes chicos él mismo; el hook solo bloquea los grandes.** (abierto y cerrado
+  2026-11-11, pedido de Carlos: "si son fixes pequeños los hagas tú") `.claude/hooks/brain-no-code.js` deja pasar
+  `Edit`/`MultiEdit` en `src/`, `tests/`, `scripts/` de hasta 20 líneas por llamada; `Write`, Bash, `replace_all` y
+  `.claude/hooks/` siguen bloqueados; las rutas se normalizan (`src/../.claude/hooks/x` → bloqueado). Evidencia:
+  `tests/hooks/brain-no-code.test.ts` 23 pass; `qa` (Sol) encontró `replace_all` y `../` sin tope, corregidos y
+  re-verificados por el cerebro reproduciendo sus payloads (deny) y un edit chico en `src/` (allow).

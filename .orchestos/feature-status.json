@@ -4,322 +4,42 @@
   "note": "Derivado, no editar a mano — bun run plan:status regenera.",
   "items": [
     {
-      "id": "CI.19",
-      "sprint": "Abiertos — fiabilidad de los gates",
-      "block": null,
-      "title": "El `git commit` del fixture falla a veces en el andamiaje de los ui-gates",
-      "status": "open",
-      "closedDate": null
-    },
-    {
-      "id": "CI.76",
-      "sprint": "Abiertos — fiabilidad de los gates",
-      "block": null,
-      "title": "`notifications`: a veces el diálogo \"Launch Agent\" no lista Claude",
-      "status": "open",
-      "closedDate": null
-    },
-    {
-      "id": "CI.69",
-      "sprint": "Abiertos — fiabilidad de los gates",
-      "block": null,
-      "title": "`usage-bar`: a veces el Enter del composer no envía el turno",
-      "status": "open",
-      "closedDate": null
-    },
-    {
-      "id": "CI.57",
-      "sprint": "Abiertos — fiabilidad de los gates",
-      "block": null,
-      "title": "`composer-picker`: a veces elegir otro modelo de Codex en Chat no queda aplicado",
-      "status": "open",
-      "closedDate": null
-    },
-    {
-      "id": "CI.55",
-      "sprint": "Abiertos — fiabilidad de los gates",
-      "block": null,
-      "title": "`tasks`: la tarea real `gate-role-task` a veces no deja `ROLE.md` en el primer intento",
-      "status": "open",
-      "closedDate": null
-    },
-    {
-      "id": "CI.54",
-      "sprint": "Abiertos — fiabilidad de los gates",
-      "block": null,
-      "title": "`codex-live`: la burbuja del usuario a veces no aparece en 2 s",
-      "status": "open",
-      "closedDate": null
-    },
-    {
-      "id": "CI.81",
-      "sprint": "Abiertos — fiabilidad de los gates",
-      "block": null,
-      "title": "La corrida nocturna de ui-gates registró sus proyectos de prueba en el `~/.orchestos` real",
-      "status": "open",
-      "closedDate": null
-    },
-    {
-      "id": "CI.82",
-      "sprint": "Abiertos — fiabilidad de los gates",
-      "block": null,
-      "title": "La nocturna corre con el Mac dormido y reporta sus timeouts como rojos",
-      "status": "done",
-      "closedDate": null
-    },
-    {
-      "id": "CI.83",
-      "sprint": "Abiertos — fiabilidad de los gates",
-      "block": null,
-      "title": "`providers`, `project-isolation` y `terminal-settings` rojos por deriva del gate",
-      "status": "done",
-      "closedDate": null
-    },
-    {
-      "id": "CI.84",
-      "sprint": "Abiertos — fiabilidad de los gates",
-      "block": null,
-      "title": "`terminal-settings`: al 125 % de escala, arrastrar el mouse no selecciona texto",
-      "status": "done",
-      "closedDate": null
-    },
-    {
-      "id": "AUD.1",
-      "sprint": "Abiertos — auditoría 2026-11-10",
-      "block": null,
-      "title": "El contrato se puede saltar con borrados, prefijos de tooling y rutas raras",
-      "status": "done",
-      "closedDate": null
-    },
-    {
-      "id": "AUD.2",
-      "sprint": "Abiertos — auditoría 2026-11-10",
-      "block": null,
-      "title": "El producto ejecuta `git checkout -- runs-summary.json` en cualquier proyecto del usuario",
-      "status": "done",
-      "closedDate": null
-    },
-    {
-      "id": "AUD.3",
-      "sprint": "Abiertos — auditoría 2026-11-10",
-      "block": null,
-      "title": "Una excepción inesperada en el harness no deja fila de run",
-      "status": "done",
-      "closedDate": null
-    },
-    {
-      "id": "AUD.4",
-      "sprint": "Abiertos — auditoría 2026-11-10",
-      "block": null,
-      "title": "El fallo no se guarda como causa clasificada y las piezas de diagnóstico no llegan a la UI",
-      "status": "done",
-      "closedDate": null
-    },
-    {
-      "id": "AUD.5",
-      "sprint": "Abiertos — auditoría 2026-11-10",
-      "block": null,
-      "title": "Tras cada tarea `done` por CLI, una llamada LLM oculta sobre los runs de todos los proyectos",
-      "status": "done",
-      "closedDate": null
-    },
-    {
-      "id": "AUD.6",
-      "sprint": "Abiertos — auditoría 2026-11-10",
-      "block": null,
-      "title": "Los motores matan solo al hijo directo, no al grupo de procesos",
-      "status": "done",
-      "closedDate": null
-    },
-    {
-      "id": "AUD.7",
-      "sprint": "Abiertos — auditoría 2026-11-10",
-      "block": null,
-      "title": "Servidor local sin token: cualquier proceso local puede lanzar agentes",
-      "status": "done",
-      "closedDate": null
-    },
-    {
-      "id": "AUD.8",
-      "sprint": "Abiertos — auditoría 2026-11-10",
-      "block": null,
-      "title": "Código y endpoints sin uso",
-      "status": "open",
-      "closedDate": null
-    },
-    {
-      "id": "AUD.9",
-      "sprint": "Abiertos — auditoría 2026-11-10",
-      "block": null,
-      "title": "ui-gates: `chat-timeout` rojo permanente en la nocturna y cobertura solo en Chromium",
-      "status": "open",
-      "closedDate": null
-    },
-    {
-      "id": "AUD.10",
-      "sprint": "Abiertos — auditoría 2026-11-10",
-      "block": null,
-      "title": "Mutación: `harness.ts` y `contract.ts` no están en ningún shard de la nocturna",
-      "status": "open",
-      "closedDate": null
-    },
-    {
-      "id": "AUD.11",
-      "sprint": "Abiertos — auditoría 2026-11-10",
-      "block": null,
-      "title": "Validación a mano de `tasks.yaml` deja pasar valores inválidos",
-      "status": "done",
-      "closedDate": null
-    },
-    {
-      "id": "AT.22",
-      "sprint": "Abiertos — auditoría 2026-11-10",
-      "block": null,
-      "title": "El cerebro hace fixes chicos él mismo; el hook solo bloquea los grandes",
-      "status": "done",
-      "closedDate": null
-    },
-    {
-      "id": "AUD.18",
-      "sprint": "Abiertos — auditoría 2026-11-10",
-      "block": null,
-      "title": "Sellar la validación de entradas externas: una puerta con Zod y un gate que solo deja bajar",
-      "status": "done",
-      "closedDate": null
-    },
-    {
-      "id": "AUD.12",
-      "sprint": "Abiertos — auditoría 2026-11-10",
-      "block": null,
-      "title": "Timeouts e iteraciones de config sin tope: un valor grande mata el run al instante o lo deja sin fin",
-      "status": "done",
-      "closedDate": null
-    },
-    {
-      "id": "AUD.13",
-      "sprint": "Abiertos — auditoría 2026-11-10",
-      "block": null,
-      "title": "Seguridad: aprobación automática de comandos \"read-only\" de Codex sin mirar la ruta",
-      "status": "done",
-      "closedDate": null
-    },
-    {
       "id": "AUD.14",
-      "sprint": "Abiertos — auditoría 2026-11-10",
+      "sprint": "Etapa 1 — lo que rompe el uso normal",
       "block": null,
       "title": "Salidas de LLM sin validar tumban el run",
       "status": "open",
       "closedDate": null
     },
     {
-      "id": "AUD.15",
-      "sprint": "Abiertos — auditoría 2026-11-10",
-      "block": null,
-      "title": "`effort` y `roles.*.agent` sin comprobar contra el conjunto permitido",
-      "status": "done",
-      "closedDate": null
-    },
-    {
-      "id": "AUD.16",
-      "sprint": "Abiertos — auditoría 2026-11-10",
-      "block": null,
-      "title": "Skills: `validateSkill` devuelve el objeto crudo y el id de la URL no se cruza con el del contenido",
-      "status": "open",
-      "closedDate": null
-    },
-    {
       "id": "AUD.17",
-      "sprint": "Abiertos — auditoría 2026-11-10",
+      "sprint": "Etapa 1 — lo que rompe el uso normal",
       "block": null,
       "title": "Bodies y archivos con tipo incorrecto dan 500 en vez de 400; `.env` admite saltos de línea",
       "status": "open",
       "closedDate": null
     },
     {
-      "id": "AUD.19",
-      "sprint": "Abiertos — auditoría 2026-11-10",
-      "block": "Abiertos — auditoría 2026-11-11",
-      "title": "Aislamiento entre proyectos: datos de un proyecto se leen, mezclan o borran desde otro",
-      "status": "done",
-      "closedDate": null
-    },
-    {
-      "id": "AUD.20",
-      "sprint": "Abiertos — auditoría 2026-11-10",
-      "block": "Abiertos — auditoría 2026-11-11",
-      "title": "Pérdida de datos del usuario: escrituras que pisan sin resguardo",
-      "status": "done",
-      "closedDate": null
-    },
-    {
-      "id": "AUD.21",
-      "sprint": "Abiertos — auditoría 2026-11-10",
-      "block": "Abiertos — auditoría 2026-11-11",
-      "title": "Ejecución de tareas: errores aceptados como éxito y límites que no se aplican",
-      "status": "done",
-      "closedDate": null
-    },
-    {
-      "id": "AUD.22",
-      "sprint": "Abiertos — auditoría 2026-11-10",
-      "block": "Abiertos — auditoría 2026-11-11",
-      "title": "Procesos, streams y sesiones de motor",
-      "status": "done",
-      "closedDate": null
-    },
-    {
-      "id": "AUD.23",
-      "sprint": "Abiertos — auditoría 2026-11-10",
-      "block": "Abiertos — auditoría 2026-11-11",
-      "title": "Seguridad: confinamiento por symlink y redacción de secretos",
-      "status": "done",
-      "closedDate": null
-    },
-    {
-      "id": "AUD.24",
-      "sprint": "Abiertos — auditoría 2026-11-10",
-      "block": "Abiertos — auditoría 2026-11-11",
-      "title": "Chat: turnos que quedan pendientes o no se pueden guardar",
-      "status": "done",
-      "closedDate": null
-    },
-    {
-      "id": "AUD.25",
-      "sprint": "Abiertos — auditoría 2026-11-10",
-      "block": "Abiertos — auditoría 2026-11-11",
-      "title": "UI que no hace lo que muestra",
-      "status": "done",
-      "closedDate": null
-    },
-    {
-      "id": "AUD.26",
-      "sprint": "Abiertos — auditoría 2026-11-10",
-      "block": "Abiertos — auditoría 2026-11-11",
-      "title": "Gates que no pueden fallar",
-      "status": "done",
-      "closedDate": null
-    },
-    {
-      "id": "AUD.27",
-      "sprint": "Abiertos — auditoría 2026-11-10",
-      "block": "Abiertos — auditoría 2026-11-11",
-      "title": "Código sin uso (amplía AUD.8)",
-      "status": "open",
-      "closedDate": null
-    },
-    {
-      "id": "AUD.28",
-      "sprint": "Abiertos — auditoría 2026-11-10",
-      "block": "Abiertos — auditoría 2026-11-11",
-      "title": "Funciones que mezclan responsabilidades: cortar las cinco más grandes",
+      "id": "AUD.16",
+      "sprint": "Etapa 1 — lo que rompe el uso normal",
+      "block": null,
+      "title": "Skills: `validateSkill` devuelve el objeto crudo y el id de la URL no se cruza con el del contenido",
       "status": "open",
       "closedDate": null
     },
     {
       "id": "SES.1",
-      "sprint": "Abiertos — auditoría 2026-11-10",
-      "block": "Abiertos — ciclo de vida de sesiones",
+      "sprint": "Etapa 1 — lo que rompe el uso normal",
+      "block": null,
       "title": "Cerrar una sesión de verdad",
+      "status": "open",
+      "closedDate": null
+    },
+    {
+      "id": "WIN.1",
+      "sprint": "Etapa 3 — Windows",
+      "block": null,
+      "title": "Prueba de humo en Windows: instalar, arrancar el dashboard, un turno de chat y una tarea",
       "status": "open",
       "closedDate": null
     }

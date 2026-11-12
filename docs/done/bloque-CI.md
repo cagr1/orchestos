@@ -1444,3 +1444,46 @@ Por eso UI.1 es un gate de abortar real, y por eso el orden es shell→pantallas
   Gates del cerebro: `tsc`, `bun test scripts/lint-budget.test.ts` 5/5, `bun run lint` exit 0
   (`✓ lint-budget: 282 avisos, ninguna regla sube`). Contraprueba del ejecutor (tope de `any` a 136 → exit 1).
   Ejecutado por: codex (mecanico) · Spec: docs/specs/CI.80.md
+
+- [x] **CI.82 — La nocturna corre con el Mac dormido y reporta sus timeouts como rojos.** (abierto 2026-11-10)
+  La corrida sobre `a3c6648` duró 01:40–08:50 en batería; `pmset -g log` muestra un `Sleep` cada ~16 min. 13 rojos y
+  3 flaky, casi todos timeouts (`build:app` de `auto-flow`: 917135 ms), publicados por el startup-guard como reales.
+  Hecho: `runNightly` mantiene `caffeinate -i -s -w <pid>` durante la corrida y guarda en `sleeps` las líneas `Sleep`
+  de `pmset -g log` dentro de `[startedAt, finishedAt]`; el startup-guard reporta esa corrida como inválida en vez de
+  listar rojos. En batería con la tapa cerrada el Mac duerme igual: la corrida queda marcada, no salvada.
+  Gates del cerebro: sonda con el log real (7 MB) → 32 `Sleep` en la corrida del 2026-11-10 (la 1.ª entrega devolvía
+  0 por `ENOBUFS` del `maxBuffer` de 1 MB; corregido); `bun test scripts/nightly-ui-gates.test.ts` 12/12;
+  `bun run test:coverage` 2492 pass / 0 fail; guard con JSON de prueba → "corrida inválida en a3c6648 — el Mac durmió
+  2 veces…". Revisión `qa`: test de publicación intermitente (truncado a segundos) → fixture en el borde de segundo.
+  Ejecutado por: codex (mecanico) · Spec: docs/specs/CI.82.md
+  Repetidos despierto (2026-11-10, una vez): `appearance` y `opencode-terminal` verdes; `providers`,
+  `project-isolation` y `terminal-settings` rojos deterministas (CI.83).
+
+- [x] **CI.83 — `providers`, `project-isolation` y `terminal-settings` rojos por deriva del gate.** (abierto
+  2026-11-10) Settings abre en la página del proyecto con dos botones "General" (`providers.mjs:97`); la UI dice
+  `Project`/`Library` y el gate espera `Proyecto`/`Biblioteca` (`project-isolation.mjs:289-290`); tras subir la
+  fuente, el refit parte `echo ui58-focus` entre filas y `waitEcho` (`terminal-settings.mjs:89-98`) ya no cuenta dos
+  apariciones (diagnóstico de `analizar`, reproducido con el xterm instalado; socket y buffer intactos).
+  Hecho: clics de Settings acotados al menú lateral (`providers`, y el hermano latente en `shell-look`); orígenes
+  `Project`/`Built-in` (SK.1 renombró `library` → `built-in`); `waitOutputLine` exige la línea de salida exacta.
+  Gates del cerebro (una vez cada uno, Mac despierto): `providers` 12/12, `shell-look` 75/75, `project-isolation`
+  14/14; `terminal-settings` pasa el refit y cae después en el paso del mouse al 125 % (CI.84).
+  Evidencia: `docs/done/evidence/CI.83-live.json`.
+  Ejecutado por: codex (mecanico) · Spec: docs/specs/CI.83.md
+
+- [x] **CI.84 — `terminal-settings`: al 125 % de escala, arrastrar el mouse no selecciona texto.** (abierto
+  2026-11-10) Visible tras CI.83: el paso "mouse selects correct cells at 125 percent"
+  (`terminal-settings.mjs:239-264`, de ADE.11 `4631c4fd`) devuelve selección vacía (`detalle: failed`; evidencia
+  `ui-gate-26363/result.json`). La evidencia de ADE.11 no registra ese paso. Después tocaron `components/dev/`:
+  CI.74, CI.75 (dependencias de hooks), CI.77, CI.79, CI.78. Diagnóstico (`analizar`, 2026-11-10): el gate arrastra
+  fuera de `.xterm` (`mousedown` en `x=259` sobre la barra lateral, o en `y=-31`), y además el producto desborda: al
+  125 % el host de xterm mide 775×1050 en un panel de 640×860 (`OpenCodeTerminal.tsx:182`, `zoom 1/s` +
+  `width/height s·100%`, desde ADE.9 `4ad5dd8e`) → filas y prompt recortados. Spec: `docs/specs/CI.84.md`.
+  Hecho: el host de xterm va a `width/height 100%` conservando `zoom: 1/uiScale` (Chromium ya resuelve el `%` contra
+  el padre). El gate suma "terminal screen fits panel" al 100 % y 125 %, y comprueba con `elementFromPoint` que el
+  arrastre empieza y termina dentro de `.xterm` antes de exigir la selección.
+  Gates del cerebro: `terminal-settings` 19/19 (al 125 %: panel 640×860, `.xterm-screen` 600×816; selección
+  `ADE9-selection`), `dev-terminal` 16/16, `tsc`, `lint`. Revisión: el cerebro (otro proveedor) leyó el diff: el gate
+  queda más estricto.
+  Gate en vivo: Playwright `terminal-settings` 19/19 y `dev-terminal` 16/16, `docs/done/evidence/CI.84-live.json`.
+  Ejecutado por: codex (criterio) · Spec: docs/specs/CI.84.md
