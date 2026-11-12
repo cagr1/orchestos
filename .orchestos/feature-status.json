@@ -192,7 +192,7 @@
       "sprint": "Abiertos — auditoría 2026-11-10",
       "block": null,
       "title": "Timeouts e iteraciones de config sin tope: un valor grande mata el run al instante o lo deja sin fin",
-      "status": "open",
+      "status": "done",
       "closedDate": null
     },
     {
@@ -216,7 +216,7 @@
       "sprint": "Abiertos — auditoría 2026-11-10",
       "block": null,
       "title": "`effort` y `roles.*.agent` sin comprobar contra el conjunto permitido",
-      "status": "open",
+      "status": "done",
       "closedDate": null
     },
     {

@@ -103,6 +103,17 @@ export default async function settingsShell({ page, api, step, shot, cleanup, ex
       (await api('/api/config', { headers })).data.externalTimeoutMinutes === before + 5,
   )
   await page.unroute('**/api/config')
+  // AUD.12 — the timeout is capped at 24 h in the API and in the stepper.
+  const put = { method: 'PUT', headers: { ...headers, 'Content-Type': 'application/json' } }
+  const over = await api('/api/config', { ...put, body: '{"externalTimeoutMinutes":1441}' })
+  const atCap = await api('/api/config', { ...put, body: '{"externalTimeoutMinutes":1440}' })
+  await open()
+  await sidebar.getByRole('button', { name: 'Executor', exact: true }).click()
+  await step(
+    'timeout above 24 h is rejected and the stepper stops at 1440',
+    over.status === 400 && atCap.ok && (await increase.isDisabled()),
+    `${over.status} ${JSON.stringify(over.data)} · ${await row.innerText()}`,
+  )
   await sidebar.getByRole('button', { name: 'Model routing', exact: true }).click()
   await page.getByRole('button', { name: /Task rules/ }).click()
   await page.getByRole('button', { name: 'Add rule', exact: true }).click()

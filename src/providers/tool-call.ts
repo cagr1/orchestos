@@ -1,3 +1,5 @@
+import { MaxIterationsSchema } from '../boundary/config-limits.ts'
+import { check } from '../boundary/index.ts'
 /**
  * S23.1/S23.2 — Provider tool-calling layer
  *
@@ -624,7 +626,8 @@ export async function runToolLoop(
     onText?: (text: string) => void
   },
 ): Promise<ToolLoopResult> {
-  const maxTurns = opts.maxTurns ?? 3
+  const iterations = check(MaxIterationsSchema, opts.maxTurns)
+  const maxTurns = iterations.ok ? iterations.data : 3
   const executed: ToolLoopResult['toolCallsExecuted'] = []
   let totalInputTokens = 0
   let totalOutputTokens = 0

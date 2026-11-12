@@ -1,3 +1,4 @@
+import { safeTimeoutMs } from '../../boundary/config-limits.ts'
 import { spawnTree, terminateTree } from '../process-tree.ts'
 import { whichCli } from './cli-discovery.ts'
 import { CliFailure, claudeFailureKind, cliFailureNotice } from './cli-failure.ts'
@@ -326,10 +327,13 @@ async function runClaudeCode(
   signal?.addEventListener('abort', abort, { once: true })
   if (signal?.aborted) abort()
   let timedOut = false
-  const timer = setTimeout(() => {
-    timedOut = true
-    void terminateTree(proc)
-  }, timeoutMs)
+  const timer = setTimeout(
+    () => {
+      timedOut = true
+      void terminateTree(proc)
+    },
+    safeTimeoutMs(timeoutMs, DEFAULT_TIMEOUT_MS),
+  )
 
   const reader = proc.stdout.getReader()
   const decoder = new TextDecoder()

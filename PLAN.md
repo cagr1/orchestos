@@ -380,13 +380,21 @@ prioridad hasta que Carlos las asigne.
   migración de los 140 sitios va con AUD.12–AUD.17: cada ítem baja el presupuesto.
   Ejecutado por: gpt-6-luna (mecanico); fix del P1 Claude Opus 5.5 (cerebro) · Spec: docs/specs/AUD.18.md
   **Fuera de scope declarado:** `PLAN.md` registra el cierre y `.orchestos/feature-status.json` lo refleja.
-- [ ] **AUD.12 — Timeouts e iteraciones de config sin tope: un valor grande mata el run al instante o lo deja sin fin.**
-  (abierto 2026-11-11) `setTimeout` con más de 2^31−1 ms, negativo o NaN dispara a 1 ms (reproducido en Bun). Entradas:
+- [x] **AUD.12 — Timeouts e iteraciones de config sin tope: un valor grande mata el run al instante o lo deja sin fin.**
+  (abierto 2026-11-11, cerrado 2026-11-12) `setTimeout` con más de 2^31−1 ms, negativo o NaN dispara a 1 ms (reproducido en Bun). Entradas:
   `src/config/load.ts:298-302` (`external.timeoutMs`, solo `typeof`), `src/dashboard/handlers/config.ts:304-310` y
   `:380-386` (`externalTimeoutMinutes`, sin tope), `src/run/executors/cli-registry.ts:257-263`; destino
   `src/run/executors/external.ts:337-340`, `generic-cli.ts:26,40`. `agentic.maxIterations` (`load.ts:290-294`,
   `config.ts:297-303`) acepta `.inf`/`1e12`/`0`/`2.5` y es la única cota del loop (`src/providers/tool-call.ts:642`).
   Verificación: entero en rango en carga y en PUT, test por borde.
+  Cierre (junto con AUD.15): `src/boundary/config-limits.ts` define los rangos de producto — timeout 60 s–24 h
+  (1–1440 min), `maxIterations` 1–100 — y los aplica la carga YAML (fuera de rango → default con aviso), el PUT
+  (400 con el rango) y `cli-registry`; los steppers de Settings llevan `max`. En el destino (`external.ts`,
+  `generic-cli.ts`) `safeTimeoutMs` solo protege el rango técnico de `setTimeout` (1..2^31−1): el chat usa timeouts
+  cortos legítimos (corrección del spec tras la 2.ª tanda; el ejecutor había espiado `setTimeout` en tests).
+  Gates: tsc, lint, test:coverage 2782/0; qa sin defectos.
+  Gate en vivo: navegador Playwright, `settings-shell` 23/23 (PUT 1441 → 400, stepper deshabilitado en 1440), `docs/done/evidence/AUD.12-settings-shell.json`.
+  Ejecutado por: gpt-6.1-sol (criterio, 3 tandas) + claude-opus-5-5 (paso del ui-gate) · Spec: docs/specs/AUD.12.md
 - [x] **AUD.13 — Seguridad: aprobación automática de comandos "read-only" de Codex sin mirar la ruta.** (cerrado
   2026-11-12 junto con AUD.23, mismo diff y evidencia `docs/done/evidence/AUD.23-live.json`) Cierre: `readOnly` exige
   `cwd`, `commandActions[].path` y rutas del comando dentro del proyecto; opciones con ruta, comillas o cualquier `$`
@@ -406,10 +414,16 @@ prioridad hasta que Carlos las asigne.
   (`src/dashboard/handlers/project.ts:268-283`); `frequency` declarada por el LLM en `src/analyze/patterns.ts:181-186`;
   campos de streams de CLI (`external.ts:612-623`, `opencode.ts:141-146`, `codex.ts:276-287`). Verificación: el error
   vuelve al modelo como resultado de herramienta, no aborta el run.
-- [ ] **AUD.15 — `effort` y `roles.*.agent` sin comprobar contra el conjunto permitido.** (abierto 2026-11-11)
+- [x] **AUD.15 — `effort` y `roles.*.agent` sin comprobar contra el conjunto permitido.** (abierto 2026-11-11, cerrado 2026-11-12)
   `src/dashboard/handlers/chat.ts:1380-1385` (`chatEffortLevelsForAgent` existe en `:157` y nadie lo llama),
   `tasks.ts:307-308`, `config.ts:188,231`; `src/config/load.ts:162-165` castea `obj.agent as RoleAgent`. Falla tarde, en
   la CLI, a veces tras crear el worktree.
+  Cierre: `roles.*.agent` fuera de `BUILTIN_ROLE_AGENTS` (`claude`, `codex`, `opencode`, `api`) + CLIs configurados →
+  ignorado con aviso en la carga; constante sin DB (importar `roleAgentIds()` abría la DB y rompía LIMP.3) y test
+  anti-deriva contra `roleAgentIds()`. `effort` **no se valida**: decisión de Carlos 2026-09-22 (el nivel lo elige el
+  usuario; OrchestOS no rechaza ninguno por engine). Mismo diff, gates y evidencia que AUD.12.
+  Spec compartido con AUD.12 (`docs/specs/AUD.12.md`, nunca commiteado).
+  Ejecutado por: gpt-6.1-sol (criterio) + claude-opus-5-5 (paso del ui-gate) · Spec: docs/specs/AUD.15.md
 - [ ] **AUD.16 — Skills: `validateSkill` devuelve el objeto crudo y el id de la URL no se cruza con el del contenido.**
   (abierto 2026-11-11) `src/skills/registry.ts:138-226` (`when_to_use: "x"` → `.map is not a function` en
   `src/skills/targets/_shared.ts:15`, rompe el prompt de QA); `src/dashboard/handlers/skills.ts:160-186`, `:593-622`;

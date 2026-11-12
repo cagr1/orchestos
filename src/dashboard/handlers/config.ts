@@ -1,6 +1,8 @@
 import { chmodSync, existsSync, renameSync, rmSync, statSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { parseDocument, stringify as yamlStringify } from 'yaml'
+import { MaxIterationsSchema, TimeoutMinutesSchema } from '../../boundary/config-limits.ts'
+import { check } from '../../boundary/index.ts'
 import {
   agentChoices,
   isAgentChoice,
@@ -164,6 +166,12 @@ async function setConfig(req: Request, root: string): Promise<Response> {
   } catch {
     return errorResponse('Invalid JSON', 400)
   }
+  const iterations = check(MaxIterationsSchema, body.agenticMaxIterations)
+  if (body.agenticMaxIterations !== undefined && !iterations.ok)
+    return errorResponse('agenticMaxIterations debe ser un entero entre 1 y 100', 400)
+  const timeoutMinutes = check(TimeoutMinutesSchema, body.externalTimeoutMinutes)
+  if (body.externalTimeoutMinutes !== undefined && !timeoutMinutes.ok)
+    return errorResponse('externalTimeoutMinutes debe ser un entero entre 1 y 1440', 400)
   if (body.roles !== undefined && typeof body.roles !== 'object')
     return errorResponse('roles must be an object', 400)
   if (body.agent !== undefined && body.agent !== null && !isAgentChoice(body.agent)) {
@@ -308,19 +316,11 @@ async function setConfig(req: Request, root: string): Promise<Response> {
   if (typeof body.apiMode === 'string' && (API_MODES as readonly string[]).includes(body.apiMode)) {
     newConfig.apiMode = body.apiMode as OrcheConfig['apiMode']
   }
-  if (
-    typeof body.agenticMaxIterations === 'number' &&
-    Number.isFinite(body.agenticMaxIterations) &&
-    body.agenticMaxIterations > 0
-  ) {
-    newConfig.agentic = { maxIterations: Math.round(body.agenticMaxIterations) }
+  if (iterations.ok) {
+    newConfig.agentic = { maxIterations: iterations.data }
   }
-  if (
-    typeof body.externalTimeoutMinutes === 'number' &&
-    Number.isFinite(body.externalTimeoutMinutes) &&
-    body.externalTimeoutMinutes > 0
-  ) {
-    newConfig.external = { timeoutMs: Math.round(body.externalTimeoutMinutes * 60000) }
+  if (timeoutMinutes.ok) {
+    newConfig.external = { timeoutMs: timeoutMinutes.data * 60000 }
   }
   if (body.agent === null) {
     delete newConfig.agent
@@ -384,19 +384,11 @@ async function setConfig(req: Request, root: string): Promise<Response> {
           if (legacyEngine === 'single-shot' || legacyEngine === 'agentic')
             document.delete('executorEngine')
         }
-        if (
-          typeof body.agenticMaxIterations === 'number' &&
-          Number.isFinite(body.agenticMaxIterations) &&
-          body.agenticMaxIterations > 0
-        ) {
-          document.setIn(['agentic', 'maxIterations'], Math.round(body.agenticMaxIterations))
+        if (iterations.ok) {
+          document.setIn(['agentic', 'maxIterations'], iterations.data)
         }
-        if (
-          typeof body.externalTimeoutMinutes === 'number' &&
-          Number.isFinite(body.externalTimeoutMinutes) &&
-          body.externalTimeoutMinutes > 0
-        ) {
-          document.setIn(['external', 'timeoutMs'], Math.round(body.externalTimeoutMinutes * 60000))
+        if (timeoutMinutes.ok) {
+          document.setIn(['external', 'timeoutMs'], timeoutMinutes.data * 60000)
         }
         if (body.agent === null || body.agent !== undefined) {
           if (body.agent === null) document.delete('agent')

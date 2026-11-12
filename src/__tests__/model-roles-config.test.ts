@@ -62,7 +62,7 @@ describe('model roles config', () => {
       rmSync(root, { recursive: true, force: true })
     }
   })
-  it('explicit role wins and accepts any non-empty agent id', () => {
+  it('explicit role wins and rejects unknown agent ids', () => {
     const root = temp()
     try {
       writeFileSync(
@@ -71,7 +71,7 @@ describe('model roles config', () => {
       )
       const roles = loadOrcheConfig(root).roles
       expect(roles.executor).toEqual({ agent: 'codex', model: 'gpt-6-luna', effort: 'medium' })
-      expect(roles.reviewer).toEqual({ agent: 'foo', model: 'bad' })
+      expect(roles.reviewer).toBeUndefined()
     } finally {
       rmSync(root, { recursive: true, force: true })
     }

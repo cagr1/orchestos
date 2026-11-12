@@ -1,4 +1,5 @@
 import { spawn } from 'node:child_process'
+import { safeTimeoutMs } from '../../boundary/config-limits.ts'
 import type { CustomCliConfig } from '../../config/schema.ts'
 import { safeChildEnv } from '../path-policy.ts'
 import { buildCliTaskPrompt } from './task-prompt.ts'
@@ -23,7 +24,7 @@ export function genericCliEngine(cli: CustomCliConfig): ExecutorEngine {
       const promptInArgs = templates.some((arg) => arg.includes('{prompt}'))
       const args = templates.map((arg) => arg.replaceAll('{prompt}', prompt))
       const display = templates.map((arg) => arg.replaceAll('{prompt}', '<contract>'))
-      const timeoutMs = cli.timeoutMs ?? opts.timeoutMs ?? 20 * 60 * 1000
+      const timeoutMs = safeTimeoutMs(cli.timeoutMs ?? opts.timeoutMs, 20 * 60 * 1000)
       const stdout = await new Promise<string>((resolve, reject) => {
         const proc = spawn(cli.command, args, {
           cwd: ctx.effectiveRoot,

@@ -3877,6 +3877,7 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
                   ariaLabel="timeout"
                   value={timeoutMinutes}
                   min={1}
+                  max={1440}
                   step={5}
                   unit="min"
                   onChange={(nextVal) => {
@@ -3911,6 +3912,7 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
                     ariaLabel="iterations"
                     value={maxIterations}
                     min={1}
+                    max={100}
                     onChange={(nextVal) => {
                       setMaxIterations(nextVal)
                     }}

@@ -1,4 +1,4 @@
-# NEXT — handoff 2026-11-12 (lote de auditoría AUD.19–28; siguiente AUD.12, 14–17)
+# NEXT — handoff 2026-11-12 (lote de auditoría AUD.19–28; siguiente AUD.14, 16, 17)
 
 Un solo presente: orden y trampas vivas del lote. Lo cerrado vive en `docs/done/bloque-*.md` y git; las reglas, en
 `AGENTS.md`. Versión anterior completa: `docs/done/poda-instrucciones-2026-11-03.md` (histórico).
@@ -43,7 +43,9 @@ Arranque: `bun run agent:preflight -- --item <ID> --agent claude`. Lista viva: `
      - AUD.26 cerrado 2026-11-12 (evidencia `docs/done/evidence/AUD.26-chat-timeout-brain.json`); de AUD.9 queda
        confirmar `chat-timeout` verde en la próxima nocturna válida y la decisión de WebKit (Carlos). La nocturna ya
        sale 1 con flujos rojos y recupera su candado si el proceso murió.
-     - Siguiente: AUD.12, 14–17 (migrar parseos a `src/boundary`); ningún ítem tiene spec escrito. Lo no marcado ✔ en el informe se comprueba
+     - AUD.12 + AUD.15 cerrados 2026-11-12 (rangos en `src/boundary/config-limits.ts`; `effort` sin validar por decisión
+       de Carlos). Trampa: el destino de un timeout solo valida el rango técnico de `setTimeout`, el chat usa cortos.
+     - Siguiente: AUD.14, AUD.16, AUD.17 (migrar parseos a `src/boundary`); ningún ítem tiene spec escrito. Lo no marcado ✔ en el informe se comprueba
        con grep al escribirlo.
      - Trampas del cierre (vistas en AUD.24/25): `plan:reconcile` dos veces con el ítem ya `[x]` falla ("Could not
        prove a closing commit SHA"): poner `[ ]`, reconciliar, volver a `[x]`, reconciliar. La línea `Gate en vivo:`

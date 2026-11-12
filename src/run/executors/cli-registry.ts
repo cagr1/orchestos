@@ -29,6 +29,8 @@ import {
 import { homedir } from 'node:os'
 import { join } from 'node:path'
 import { parse } from 'yaml'
+import { TimeoutMsSchema } from '../../boundary/config-limits.ts'
+import { check } from '../../boundary/index.ts'
 import { orchestosDir } from '../../config/orchestos-home.ts'
 import type { CustomCliConfig } from '../../config/schema.ts'
 import { excludeRuntimeArtifacts } from '../git-exclude.ts'
@@ -254,13 +256,8 @@ export function customCliValidationError(
   for (const key of ['args', 'modelArgs', 'models'] as const)
     if ((key === 'args' || value[key] !== undefined) && !strings(value[key]))
       return `.${key} debe ser una lista de textos`
-  if (
-    value.timeoutMs !== undefined &&
-    (typeof value.timeoutMs !== 'number' ||
-      !Number.isFinite(value.timeoutMs) ||
-      value.timeoutMs <= 0)
-  )
-    return '.timeoutMs debe ser un número positivo'
+  if (value.timeoutMs !== undefined && !check(TimeoutMsSchema, value.timeoutMs).ok)
+    return '.timeoutMs debe ser un entero entre 60000 y 86400000'
   return null
 }
 

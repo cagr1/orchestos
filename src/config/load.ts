@@ -12,6 +12,12 @@
 import { existsSync, readFileSync } from 'node:fs'
 import { isAbsolute, join } from 'node:path'
 import { parse } from 'yaml'
+import {
+  BUILTIN_ROLE_AGENTS,
+  MaxIterationsSchema,
+  TimeoutMsSchema,
+} from '../boundary/config-limits.ts'
+import { check } from '../boundary/index.ts'
 import { taskAgentIds } from '../router/engine-cascade.ts'
 import { allClis, configuredClis } from '../run/executors/cli-registry.ts'
 import { orchestosDir } from './orchestos-home.ts'
@@ -142,6 +148,7 @@ function resolveRoles(raw: Record<string, unknown>): Partial<Record<RoleName, Ro
     executor: 'executor_heavy',
     reviewer: 'qa',
   }
+  const allowedAgents = [...BUILTIN_ROLE_AGENTS, ...configuredClis().map((cli) => cli.id)]
   for (const name of ROLE_NAMES) {
     if (Object.hasOwn(explicit, name)) {
       const value = explicit[name]
@@ -157,6 +164,10 @@ function resolveRoles(raw: Record<string, unknown>): Partial<Record<RoleName, Ro
         !obj.model.trim()
       ) {
         warnIgnored(`roles.${name}`, value, ['{ agent, model }'])
+        continue
+      }
+      if (!allowedAgents.includes(obj.agent)) {
+        warnIgnored(`roles.${name}`, obj.agent, allowedAgents)
         continue
       }
       const assignment: RoleAssignment = {
@@ -290,7 +301,10 @@ function resolveApiMode(raw: Record<string, unknown>): 'single-shot' | 'agentic'
 function parseAgenticConfig(v: unknown): { maxIterations?: number } | undefined {
   if (typeof v !== 'object' || v === null || Array.isArray(v)) return undefined
   const obj = v as Record<string, unknown>
-  return { maxIterations: typeof obj.maxIterations === 'number' ? obj.maxIterations : undefined }
+  if (obj.maxIterations === undefined) return {}
+  const result = check(MaxIterationsSchema, obj.maxIterations)
+  if (!result.ok) warnIgnored('agentic.maxIterations', obj.maxIterations, ['entero entre 1 y 100'])
+  return { maxIterations: result.ok ? result.data : undefined }
 }
 
 // B.2 — mirror of parseAgenticConfig. Mismo principio: cualquier tipo incorrecto → undefined, sin throw,
@@ -298,7 +312,11 @@ function parseAgenticConfig(v: unknown): { maxIterations?: number } | undefined 
 function parseExternalConfig(v: unknown): { timeoutMs?: number } | undefined {
   if (typeof v !== 'object' || v === null || Array.isArray(v)) return undefined
   const obj = v as Record<string, unknown>
-  return { timeoutMs: typeof obj.timeoutMs === 'number' ? obj.timeoutMs : undefined }
+  if (obj.timeoutMs === undefined) return {}
+  const result = check(TimeoutMsSchema, obj.timeoutMs)
+  if (!result.ok)
+    warnIgnored('external.timeoutMs', obj.timeoutMs, ['entero entre 60000 y 86400000'])
+  return { timeoutMs: result.ok ? result.data : undefined }
 }
 
 /**
