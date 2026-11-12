@@ -22,7 +22,7 @@ Arranque: `bun run agent:preflight -- --item <ID> --agent claude`. Lista viva: `
      AUD.20 → AUD.19 → AUD.7 → AUD.23 + AUD.13 → AUD.21 + AUD.5 → AUD.22 + AUD.6 → AUD.24 → AUD.25 →
      AUD.26 + AUD.9 → AUD.12, 14–17 → AUD.27 + AUD.8 → AUD.10 → AUD.28. Antes: AUD.7, AUD.5, AUD.10, AUD.8, AUD.9,
      AUD.6 (orden de la primera auditoría).
-     - AUD.20 cerrado 2026-11-11 (evidencia en `PLAN.md`).
+     - AUD.20 cerrado 2026-11-11 (`1b06897b`; evidencia en `PLAN.md` y `docs/done/evidence/AUD.20-live.json`).
      - Siguiente: AUD.19; ningún otro ítem tiene spec escrito. Lo no marcado ✔ en el informe se comprueba
        con grep al escribirlo. No relanzar los auditores: su salida literal está en los anexos.
      - AUD.7 y AUD.28 cambian comportamiento central: plan corto y GO de Carlos antes de delegar. AUD.28 no tiene GO.
@@ -72,6 +72,12 @@ salvo CI.69/CI.76, SK.3, UI.70, LIMP.4, auditoría de `IDEAS.md` (`73247216`) y 
 
 ## Trampas vivas (las que no están en `AGENTS.md`)
 
+- `plan:reconcile` marca el ítem `[x]` en la DB con SHA provisional; si después cambias su texto y reconcilias
+  otra vez falla ("Could not prove a closing commit SHA"): pasar el ítem a `[ ]`, reconciliar, volver a `[x]`,
+  reconciliar. El cierre exige además la línea `Ejecutado por:` en el ítem.
+- `agent:live-gate`: la ruta de evidencia en backticks va en la MISMA línea que `Gate en vivo:` (con
+  navegador/browser/Playwright en ella), y el archivo staged en el mismo commit.
+- El hook del cerebro permite `Edit` de ≤20 líneas en `src/`; Bash/heredoc y `Write` sobre `src/` se bloquean.
 - `delegate` le prohíbe al ejecutor editar `PLAN.md`/`NEXT.md`: un ítem que solo mueve texto del plan lo hace el
   cerebro (DOC.5).
 - `delegate <rol>` exige ruta a un archivo de spec; `leer` e `investigar` aceptan la pregunta directa.
