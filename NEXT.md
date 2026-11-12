@@ -1,4 +1,4 @@
-# NEXT — handoff 2026-11-10 (lote de auditoría AUD.1–AUD.10; GO para AUD.1 y AUD.2)
+# NEXT — handoff 2026-11-12 (lote de auditoría AUD.19–28; siguiente AUD.21 + AUD.5)
 
 Un solo presente: orden y trampas vivas del lote. Lo cerrado vive en `docs/done/bloque-*.md` y git; las reglas, en
 `AGENTS.md`. Versión anterior completa: `docs/done/poda-instrucciones-2026-11-03.md` (histórico).
@@ -23,12 +23,15 @@ Arranque: `bun run agent:preflight -- --item <ID> --agent claude`. Lista viva: `
      AUD.26 + AUD.9 → AUD.12, 14–17 → AUD.27 + AUD.8 → AUD.10 → AUD.28. Antes: AUD.7, AUD.5, AUD.10, AUD.8, AUD.9,
      AUD.6 (orden de la primera auditoría).
      - AUD.20 cerrado 2026-11-11 (`1b06897b`; evidencia en `PLAN.md` y `docs/done/evidence/AUD.20-live.json`).
-     - AUD.19 cerrado 2026-11-11 (evidencia en `PLAN.md` y `docs/done/evidence/AUD.19-live.json`). Queda sin gate
+     - AUD.19 cerrado 2026-11-11 (`01b3648a`; evidencia en `PLAN.md` y `docs/done/evidence/AUD.19-live.json`). Queda sin gate
        en vivo: las carreras de cambio de proyecto de `App.tsx`.
-     - AUD.7 cerrado 2026-11-12 (token persistente + `guardRequest`; evidencia `docs/done/evidence/AUD.7-live.json`).
+     - AUD.7 cerrado 2026-11-12 (`c9c0fac6`; token persistente + `guardRequest`; evidencia `docs/done/evidence/AUD.7-live.json`).
        Desde aquí el dashboard se abre con la URL `#t=` que imprime `orchestos dashboard`; scripts que llamen a `/api`
        mandan `x-orchestos-token` (archivo o `ORCHESTOS_DASHBOARD_TOKEN`).
-     - AUD.23 + AUD.13 cerrados 2026-11-12 (evidencia `docs/done/evidence/AUD.23-live.json`).
+     - AUD.23 + AUD.13 cerrados 2026-11-12 (`08df6053`, `73345523`; evidencia `docs/done/evidence/AUD.23-live.json`).
+       Residual aceptado: opción corta pegada a un symlink preexistente (`-fleak.txt`) en la regla readOnly de Codex.
+     - Nocturna de ui-gates 2026-11-12 sobre `01b3648`: 0/50 por la regresión de AUD.19 (`/api/health` exigía proyecto),
+       corregida en `c9c0fac6` (smoke, dev-terminal, user-profile pasan). Mirar la próxima corrida antes de seguir.
      - Siguiente: AUD.21 + AUD.5; ningún otro ítem tiene spec escrito. Lo no marcado ✔ en el informe se comprueba
        con grep al escribirlo. No relanzar los auditores: su salida literal está en los anexos.
      - AUD.28 cambia comportamiento central: plan corto y GO de Carlos antes de delegar; no tiene GO.
