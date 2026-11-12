@@ -1,4 +1,4 @@
-import { existsSync, writeFileSync } from 'node:fs'
+import { chmodSync, existsSync, renameSync, rmSync, statSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { parseDocument, stringify as yamlStringify } from 'yaml'
 import {
@@ -131,7 +131,21 @@ export async function handleApiConfigInit(root = process.cwd()): Promise<Respons
 // pero ya con los roles elegidos en vez del scaffold default). Siempre asume
 // provider 'openrouter' — igual que el resto del selector de modelos en la
 // app (chat, composer de tareas, diagnose), ninguno expone otros providers.
+const configWrites = new Map<string, Promise<unknown>>()
+
 export async function handleApiConfigSet(req: Request, root = process.cwd()): Promise<Response> {
+  const configPath = join(root, 'orchestos.config.yaml')
+  const previous = configWrites.get(configPath) ?? Promise.resolve()
+  const pending = previous.catch(() => {}).then(() => setConfig(req, root))
+  configWrites.set(configPath, pending)
+  try {
+    return await pending
+  } finally {
+    if (configWrites.get(configPath) === pending) configWrites.delete(configPath)
+  }
+}
+
+async function setConfig(req: Request, root: string): Promise<Response> {
   let body: {
     roles?: Record<string, string>
     apiMode?: string
@@ -399,6 +413,14 @@ export async function handleApiConfigSet(req: Request, root = process.cwd()): Pr
       // validated, fully resolved configuration instead of failing silently.
     }
   }
-  writeFileSync(configPath, output, 'utf8')
+  const temporary = `${configPath}.orchestos-tmp-${process.pid}`
+  rmSync(temporary, { force: true })
+  try {
+    writeFileSync(temporary, output, { encoding: 'utf8', flag: 'wx' })
+    if (existsSync(configPath)) chmodSync(temporary, statSync(configPath).mode & 0o7777)
+    renameSync(temporary, configPath)
+  } finally {
+    rmSync(temporary, { force: true })
+  }
   return jsonResponse({ ok: true })
 }

@@ -139,3 +139,33 @@ describe('resolveConflict', () => {
     expect(row!.resolved_at).not.toBeNull()
   })
 })
+
+it('AUD.20 resolves the matched conflict when called with an entry id', () => {
+  const a = upsertMemory(TEST_PROJECT, 'aud20-a', 'Old')
+  const b = upsertMemory(TEST_PROJECT, 'aud20-b', 'New')
+  const id = insertConflict(a.id, b.id, 'supersedes', 'high')
+  expect(resolveConflict(a.id)).toBe(true)
+  expect(
+    db
+      .query<{ resolved_at: string | null }, [string]>(
+        'SELECT resolved_at FROM memory_conflicts WHERE id = ?',
+      )
+      .get(id)?.resolved_at,
+  ).not.toBeNull()
+})
+
+it('AUD.20 deletes memory conflicts with foreign keys enabled', async () => {
+  const { deleteMemoryEntry } = await import('../db/memory.ts')
+  const prior = db.query<{ foreign_keys: number }, []>('PRAGMA foreign_keys').get()!.foreign_keys
+  db.exec('PRAGMA foreign_keys = ON')
+  try {
+    const a = upsertMemory(TEST_PROJECT, 'aud20-delete-a', 'A')
+    const b = upsertMemory(TEST_PROJECT, 'aud20-delete-b', 'B')
+    const conflict = insertConflict(a.id, b.id, 'related', 'low')
+    expect(deleteMemoryEntry(b.id)).toBe(true)
+    expect(db.query('SELECT id FROM memory_conflicts WHERE id = ?').get(conflict)).toBeNull()
+    expect(deleteMemoryEntry(a.id)).toBe(true)
+  } finally {
+    db.exec(`PRAGMA foreign_keys = ${prior}`)
+  }
+})

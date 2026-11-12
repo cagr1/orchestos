@@ -2,6 +2,8 @@ import type { TaskClass } from '../router/classify.ts'
 import type { ApprovalMode } from '../run/approvals.ts'
 import { validTaskEngineIds } from '../run/executors/task-engines.ts'
 
+export const TASK_ID_RE = /^[a-z0-9]+(-[a-z0-9]+)*$/
+
 const TASK_CLASSES: readonly TaskClass[] = ['plan', 'implement', 'fix', 'review', 'doc']
 
 export function isTaskClass(value: unknown): value is TaskClass {
@@ -88,8 +90,7 @@ export function validateTask(t: unknown, index: number): Task {
   const task = t as Record<string, unknown>
 
   if (!task.id || typeof task.id !== 'string') err('missing "id"')
-  if (!/^[a-z0-9]+(-[a-z0-9]+)*$/.test(task.id as string))
-    err(`id must be kebab-case, got: ${task.id}`)
+  if (!TASK_ID_RE.test(task.id as string)) err(`id must be kebab-case, got: ${task.id}`)
   if (!task.description || typeof task.description !== 'string') err('missing "description"')
   if (!Array.isArray(task.output) || (task.output as unknown[]).length === 0)
     err('"output" must be a non-empty array — this is the contract')

@@ -65,7 +65,7 @@ function reconcileRow(
   try {
     task = loadTasks(row.root).tasks.find((item) => item.id === row.task_id)
   } catch {
-    task = undefined
+    return 'watching'
   }
   if (!task) {
     deleteTaskRunWatch(row)

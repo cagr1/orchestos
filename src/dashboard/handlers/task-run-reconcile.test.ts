@@ -264,3 +264,57 @@ describe('commandIsRunnerOf', () => {
     expect(commandIsRunnerOf('task run --id task-1 --model x', 'task-1')).toBe(true)
   })
 })
+
+it('AUD.20 unreadable tasks keep the watch and polling alive', () => {
+  const { root } = setup('running')
+  writeFileSync(join(root, 'tasks.yaml'), 'tasks: [invalid')
+  let scheduled = false
+  const handle = reconcileTaskRuns({
+    probe: dead,
+    schedule: () => {
+      scheduled = true
+      return { stop() {} }
+    },
+  })
+  try {
+    expect(watching(root)).toHaveLength(1)
+    expect(scheduled).toBe(true)
+  } finally {
+    handle.stop()
+  }
+})
+
+it('AUD.20 deleting a run clears required trials and nullable turn references with foreign keys on', async () => {
+  const { deleteRun } = await import('../../db/runs.ts')
+  const prior = db.query<{ foreign_keys: number }, []>('PRAGMA foreign_keys').get()!.foreign_keys
+  const id = randomUUID()
+  const session = createChatSession({ agent: 'api' }).id
+  const turn = randomUUID()
+  db.exec('PRAGMA foreign_keys = ON')
+  try {
+    db.run(
+      "INSERT INTO runs (id, prompt, task_class, model, provider, status, created_at) VALUES (?, 'test', 'test', 'mock', 'mock', 'done', 'now')",
+      [id],
+    )
+    db.run(
+      "INSERT INTO eval_trials (run_id, eval_task_id, trial_index, batch_id, config_json, passed, created_at) VALUES (?, 'test', 0, 'test', '{}', 1, 'now')",
+      [id],
+    )
+    db.run(
+      "INSERT INTO chat_turns (id, session_id, request_key, input_fingerprint, status, run_id, created_at, updated_at) VALUES (?, ?, 'aud20', 'test', 'completed', ?, 'now', 'now')",
+      [turn, session, id],
+    )
+    expect(deleteRun(id)).toBe(true)
+    expect(db.query('SELECT id FROM eval_trials WHERE run_id = ?').all(id)).toHaveLength(0)
+    expect(
+      db
+        .query<{ run_id: string | null }, [string]>('SELECT run_id FROM chat_turns WHERE id = ?')
+        .get(turn)?.run_id,
+    ).toBeNull()
+  } finally {
+    db.run('DELETE FROM eval_trials WHERE run_id = ?', [id])
+    deleteChatSession(session)
+    db.run('DELETE FROM runs WHERE id = ?', [id])
+    db.exec(`PRAGMA foreign_keys = ${prior}`)
+  }
+})

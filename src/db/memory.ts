@@ -115,8 +115,10 @@ export function upsertMemory(
 
 // I.8 (Mes 18) — Memory (entries) no tenía forma de borrar registros desde el dashboard.
 export function deleteMemoryEntry(id: string): boolean {
-  const result = db.run('DELETE FROM memory_entries WHERE id = ?', [id])
-  return result.changes > 0
+  return db.transaction(() => {
+    db.run('DELETE FROM memory_conflicts WHERE entry_a_id = ? OR entry_b_id = ?', [id, id])
+    return db.run('DELETE FROM memory_entries WHERE id = ?', [id]).changes > 0
+  })()
 }
 
 export function getMemory(projectId: string, topicKey: string): MemoryEntry | null {
@@ -191,13 +193,16 @@ export function resolveConflict(id: string, content?: string, projectId?: string
   const conflict =
     projectId === undefined
       ? db
-          .query<{ entry_a_id: string }, [string, string, string]>(
-            'SELECT entry_a_id FROM memory_conflicts WHERE (id = ? OR entry_a_id = ? OR entry_b_id = ?) AND resolved_at IS NULL',
+          .query<{ id: string; entry_a_id: string }, [string, string, string]>(
+            'SELECT id, entry_a_id FROM memory_conflicts WHERE (id = ? OR entry_a_id = ? OR entry_b_id = ?) AND resolved_at IS NULL',
           )
           .get(id, id, id)
       : db
-          .query<{ entry_a_id: string }, [string, string, string, string | null, string | null]>(
-            "SELECT c.entry_a_id FROM memory_conflicts c JOIN memory_entries ea ON ea.id=c.entry_a_id WHERE (c.id = ? OR c.entry_a_id = ? OR c.entry_b_id = ?) AND c.resolved_at IS NULL AND ((? IS NULL AND ea.scope = 'global') OR ea.project_id = ?)",
+          .query<
+            { id: string; entry_a_id: string },
+            [string, string, string, string | null, string | null]
+          >(
+            "SELECT c.id, c.entry_a_id FROM memory_conflicts c JOIN memory_entries ea ON ea.id=c.entry_a_id WHERE (c.id = ? OR c.entry_a_id = ? OR c.entry_b_id = ?) AND c.resolved_at IS NULL AND ((? IS NULL AND ea.scope = 'global') OR ea.project_id = ?)",
           )
           .get(id, id, id, projectId, projectId)
   if (!conflict) return false
@@ -210,7 +215,7 @@ export function resolveConflict(id: string, content?: string, projectId?: string
   }
   const result = db.run(
     'UPDATE memory_conflicts SET resolved_at = ? WHERE id = ? AND resolved_at IS NULL',
-    [now, id],
+    [now, conflict.id],
   )
   return result.changes > 0
 }

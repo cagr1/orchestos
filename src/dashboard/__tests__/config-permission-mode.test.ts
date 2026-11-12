@@ -1,6 +1,6 @@
 /** UI.8.6 — `permissionMode` por proyecto: GET lo devuelve, PUT lo valida y lo escribe en el YAML. */
 import { afterAll, describe, expect, it } from 'bun:test'
-import { mkdtempSync, readFileSync, rmSync } from 'node:fs'
+import { chmodSync, mkdtempSync, readFileSync, rmSync, statSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { handleApiConfigGet, handleApiConfigInit, handleApiConfigSet } from '../handlers/config.ts'
@@ -36,4 +36,26 @@ describe('permissionMode', () => {
       'permissionMode',
     )
   })
+})
+
+it('AUD.20 concurrent config updates preserve both fields', async () => {
+  await handleApiConfigInit(root)
+  const responses = await Promise.all([
+    put({ permissionMode: 'manual' }),
+    put({ roleAssignments: { executor: { agent: 'codex', model: 'gpt-5' } } }),
+  ])
+  expect(responses.map((r) => r.status)).toEqual([200, 200])
+  const { parse } = await import('yaml')
+  const config = parse(readFileSync(join(root, 'orchestos.config.yaml'), 'utf8'))
+  expect(config.permissionMode).toBe('manual')
+  expect(config.roles.executor).toEqual({ agent: 'codex', model: 'gpt-5' })
+})
+
+it('AUD.20-fix config updates preserve private destination permissions', async () => {
+  const path = join(root, 'orchestos.config.yaml')
+  await handleApiConfigInit(root)
+  chmodSync(path, 0o600)
+  expect((await put({ permissionMode: 'manual' })).status).toBe(200)
+  expect(readFileSync(path, 'utf8')).toContain('permissionMode: manual')
+  expect(statSync(path).mode & 0o7777).toBe(0o600)
 })

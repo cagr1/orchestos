@@ -408,11 +408,20 @@ qué no). Cada ítem es una clase de falla con varios sitios; el spec comprueba 
   `handlers/specs.ts:26-37` asumen que el proyecto es el cwd/OrchestOS; `server.ts:166` da el cwd a `project=none`;
   `App.tsx:1053,845,1505` pierde o cruza el proyecto. Verificación: test con dos proyectos y el mismo id de tarea por
   cada sitio; `project=none` rechaza rutas de proyecto.
-- [ ] **AUD.20 — Pérdida de datos del usuario: escrituras que pisan sin resguardo.** (abierto 2026-11-11)
+- [x] **AUD.20 — Pérdida de datos del usuario: escrituras que pisan sin resguardo.** (abierto y cerrado 2026-11-11)
+  Cierre: 9 casos + 3 vueltas de qa (8 defectos corregidos: temporales ajenos/propios, rollback y limpieza que no
+  tapan el error, permisos tras rename, versión de archivo `~N`, `..` en `validateTaskId`, detect por `readBody`).
+  `specPath` acepta el mismo id que el dashboard salvo `..`. Gates: tsc, lint, `test:coverage` 2592/0; los tests
+  nuevos fallan sin el arreglo. Queda: el YAML inválido de config se sigue reemplazando entero (`config.ts`, fuera
+  de alcance).
   `detect`/`init` sobrescriben `AGENTS.md` (`cli.ts:84,104`, `handlers/project.ts:71`); `spec/store.ts:57-63` escribe
   en la ruta que diga el id del frontmatter (`../../README`); `spec/archive.ts:44-48,66,77` pisa, borra por sufijo y
   pierde campos; escritura parcial del contrato en cwd (`contract.ts:103`); PUT de config sin serializar
   (`handlers/config.ts:326,402`). Verificación: test por caso; el archivo previo se conserva o se pide confirmación.
+  Gate en vivo: sin navegador, dashboard real por HTTP `docs/done/evidence/AUD.20-live.json` (home aislado; ninguna
+  pantalla usa estas rutas): detect sin force 409 y AGENTS.md intacto; spec `foo..bar` 400; dos PUT de config
+  simultáneos conservan ambos campos y el modo 600.
+  Ejecutado por: gpt-6.1-sol (criterio) + mecanico + claude-opus-5-5 (fixes chicos)
 - [ ] **AUD.21 — Ejecución de tareas: errores aceptados como éxito y límites que no se aplican.** (abierto 2026-11-11)
   `dryRun` después de crear worktree y correr `setup_script` (`harness.ts:190-197` vs `:283`); sandbox explícito sin
   rama corre en el cwd (`graph-runner.ts:472`, `harness.ts:196`); `is_error` de Claude sin mirar en tareas

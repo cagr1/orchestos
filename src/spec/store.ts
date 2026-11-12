@@ -9,6 +9,8 @@ import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 
 import { join } from 'node:path'
 import { parse as parseYaml, stringify as yamlStringify } from 'yaml'
 
+const SPEC_ID_RE = /^[A-Za-z0-9_.\-']{1,64}$/
+
 export interface CapabilitiesContract {
   added: string[]
   modified: string[]
@@ -41,6 +43,10 @@ const SPECS_DIR = '.orchestos/specs'
 
 /** Returns the absolute path for a given task spec file. */
 export function specPath(root: string, taskId: string): string {
+  // Mismo conjunto que acepta el dashboard (`http.ts` validateTaskId) para no dejar inaccesibles
+  // specs ya creadas; sin `/` ni `..` el id no puede salir de .orchestos/specs.
+  if (!SPEC_ID_RE.test(taskId) || taskId.includes('..'))
+    throw new Error(`Invalid spec id: ${taskId}`)
   return join(root, SPECS_DIR, `${taskId}.md`)
 }
 
@@ -55,10 +61,9 @@ export function loadSpec(root: string, taskId: string): Spec | null {
 
 /** Serialize and write a spec to disk. Creates directories as needed. */
 export function saveSpec(root: string, spec: Spec): void {
+  const filePath = specPath(root, spec.frontmatter.id)
   const dir = join(root, SPECS_DIR)
   if (!existsSync(dir)) mkdirSync(dir, { recursive: true })
-
-  const filePath = specPath(root, spec.frontmatter.id)
   writeFileSync(filePath, serializeSpec(spec), 'utf-8')
 }
 
@@ -143,7 +148,7 @@ function parseSpec(text: string): Spec {
   return { frontmatter, body }
 }
 
-function serializeSpec(spec: Spec): string {
+export function serializeSpec(spec: Spec): string {
   const fm: Record<string, unknown> = {
     id: spec.frontmatter.id,
     status: spec.frontmatter.status,
@@ -171,4 +176,18 @@ function serializeSpec(spec: Spec): string {
 function toStringArray(val: unknown): string[] {
   if (!Array.isArray(val)) return []
   return val.filter((v) => typeof v === 'string') as string[]
+}
+
+/** A regenerated draft needs fresh approval and capabilities from this draft only. */
+export function redraftFrontmatter(
+  original: SpecFrontmatter,
+  capabilities?: CapabilitiesContract,
+): SpecFrontmatter {
+  const frontmatter = { ...original, status: 'draft' as const }
+  delete frontmatter.approvedAt
+  if (frontmatter.design === 'approved') frontmatter.design = 'pending'
+  delete frontmatter.designApprovedAt
+  if (capabilities) frontmatter.capabilities = capabilities
+  else delete frontmatter.capabilities
+  return frontmatter
 }

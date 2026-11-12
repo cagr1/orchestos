@@ -1,5 +1,14 @@
-import { createHash } from 'node:crypto'
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
+import { createHash, randomUUID } from 'node:crypto'
+import {
+  chmodSync,
+  existsSync,
+  mkdirSync,
+  readFileSync,
+  renameSync,
+  statSync,
+  unlinkSync,
+  writeFileSync,
+} from 'node:fs'
 import { dirname, join } from 'node:path'
 import { normalizeRelPath, resolveProjectPath } from './path-policy.ts'
 
@@ -96,12 +105,66 @@ export function enforceContract(
   }
 
   const written: FileChange[] = []
-  for (const file of response.files) {
-    const normalizedPath = normalizeRelPath(file.path)
-    const fullPath = resolveProjectPath(root, normalizedPath, 'write')
-    mkdirSync(dirname(fullPath), { recursive: true })
-    writeFileSync(fullPath, file.content, 'utf-8')
-    written.push({ path: normalizedPath, content: file.content })
+  const staged: {
+    destination: string
+    temporary: string
+    previous: Buffer | null
+    created: boolean
+  }[] = []
+  let committed = 0
+  try {
+    for (const file of response.files) {
+      const normalizedPath = normalizeRelPath(file.path)
+      const destination = resolveProjectPath(root, normalizedPath, 'write')
+      mkdirSync(dirname(destination), { recursive: true })
+      const temporary = `${destination}.orchestos-tmp-${randomUUID()}`
+      const previous = existsSync(destination) ? readFileSync(destination) : null
+      const entry = { destination, temporary, previous, created: false }
+      staged.push(entry)
+      try {
+        writeFileSync(temporary, file.content, { encoding: 'utf-8', flag: 'wx' })
+      } catch (error) {
+        // Nombre con UUID: solo EEXIST significa que el archivo es ajeno; cualquier otro fallo
+        // (p. ej. ENOSPC a mitad) puede haber dejado nuestro temporal creado.
+        if ((error as NodeJS.ErrnoException).code !== 'EEXIST') entry.created = true
+        throw error
+      }
+      entry.created = true
+      written.push({ path: normalizedPath, content: file.content })
+    }
+    for (const file of staged) {
+      if (existsSync(file.destination)) {
+        chmodSync(file.temporary, statSync(file.destination).mode & 0o7777)
+      }
+      renameSync(file.temporary, file.destination)
+      committed += 1
+    }
+  } catch (error) {
+    const failedRestores: string[] = []
+    for (const file of staged.slice(0, committed).reverse()) {
+      try {
+        if (file.previous === null) unlinkSync(file.destination)
+        else writeFileSync(file.destination, file.previous)
+      } catch {
+        failedRestores.push(file.destination)
+      }
+    }
+    if (failedRestores.length > 0) {
+      const message = error instanceof Error ? error.message : String(error)
+      throw new Error(`${message} (rollback incompleto: ${failedRestores.join(', ')})`, {
+        cause: error,
+      })
+    }
+    throw error
+  } finally {
+    for (const file of staged) {
+      // La limpieza nunca tapa el error del commit/rollback ni deja de intentar los demás.
+      try {
+        if (file.created && existsSync(file.temporary)) unlinkSync(file.temporary)
+      } catch {
+        /* temporal huérfano: no reemplaza el error original */
+      }
+    }
   }
 
   return { filesAttempted: attempted, filesAuthorized: authorized, filesBlocked: blocked, written }

@@ -1,6 +1,7 @@
 import { existsSync, readFileSync, realpathSync, unlinkSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { isAbsolute, join, relative } from 'node:path'
+import { readBody, z } from '../../boundary/index.ts'
 import { loadOrcheConfig } from '../../config/load.ts'
 import { refreshProjectContext } from '../../context/load.ts'
 import { upsertProject } from '../../db/projects.ts'
@@ -63,7 +64,16 @@ function handleApiProjectContextRegenerate(root: string): Response {
 
 // E.8 (Mes 18, paridad CLI↔Dashboard) — equivalente de `orchestos detect [path]`:
 // dry-run, regenera AGENTS.md + context.json sobre el proyecto actual sin tocar la DB.
-async function handleApiProjectDetect(root: string): Promise<Response> {
+async function handleApiProjectDetect(root: string, req?: Request): Promise<Response> {
+  let force = false
+  if (req) {
+    const body = await readBody(z.object({ force: z.boolean().optional() }), req)
+    force = body.ok && body.data.force === true
+  }
+  const path = join(root, 'AGENTS.md')
+  if (existsSync(path) && !force) {
+    return jsonResponse({ ok: false, error: 'AGENTS.md exists', path }, 409)
+  }
   const t0 = performance.now()
   const profile = await buildProfile(root)
   const agentsMd = generateAgentsMd(profile)

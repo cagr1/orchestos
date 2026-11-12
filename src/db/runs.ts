@@ -288,8 +288,11 @@ export function getRun(id: string): RunRecord | null {
 
 // I.8 (Mes 18) — Runs no tenía forma de borrar registros viejos desde el dashboard.
 export function deleteRun(id: string): boolean {
-  const result = db.run('DELETE FROM runs WHERE id = ?', [id])
-  return result.changes > 0
+  return db.transaction(() => {
+    db.run('DELETE FROM eval_trials WHERE run_id = ?', [id])
+    db.run('UPDATE chat_turns SET run_id = NULL WHERE run_id = ?', [id])
+    return db.run('DELETE FROM runs WHERE id = ?', [id]).changes > 0
+  })()
 }
 
 export function listRunsByTaskId(taskId: string): RunRecord[] {

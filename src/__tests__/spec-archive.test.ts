@@ -132,3 +132,25 @@ describe('listSpecs with archived', () => {
     expect(listSpecs(root, true)).toHaveLength(0)
   })
 })
+
+it('AUD.20 repeated archives preserve every version and all metadata', () => {
+  const root = tmpRoot()
+  const original = makeSpec('archive-safe')
+  original.frontmatter.capabilities = { added: ['feature'], modified: ['old'], removed: ['gone'] }
+  original.frontmatter.design = 'approved'
+  original.frontmatter.designApprovedAt = '2026-11-11T00:00:00Z'
+  saveSpec(root, original)
+  const first = archiveSpec(root, 'archive-safe')
+  saveSpec(root, { ...original, body: 'second version' })
+  const second = archiveSpec(root, 'archive-safe')
+  expect(second.archivedPath).not.toBe(first.archivedPath)
+  const archived = listSpecs(root, true)
+  expect(archived).toHaveLength(2)
+  expect(archived.map((s) => s.body)).toContain(original.body)
+  expect(archived.map((s) => s.body)).toContain('second version')
+  for (const spec of archived) {
+    expect(spec.frontmatter.capabilities).toEqual(original.frontmatter.capabilities)
+    expect(spec.frontmatter.design).toBe('approved')
+    expect(spec.frontmatter.designApprovedAt).toBe(original.frontmatter.designApprovedAt)
+  }
+})

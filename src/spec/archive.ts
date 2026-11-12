@@ -10,7 +10,7 @@
 
 import { existsSync, mkdirSync, readdirSync, unlinkSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
-import { loadSpec, specPath } from './store.ts'
+import { loadSpec, serializeSpec, specPath } from './store.ts'
 
 const SPECS_DIR = '.orchestos/specs'
 const ARCHIVE_DIR = `${SPECS_DIR}/archive`
@@ -33,7 +33,7 @@ export function archiveSpec(root: string, taskId: string): ArchiveResult {
   const archivedAt = new Date().toISOString()
   const datePrefix = archivedAt.slice(0, 10) // YYYY-MM-DD
   const archiveDir = join(root, ARCHIVE_DIR)
-  const archiveFile = join(archiveDir, `${datePrefix}-${taskId}.md`)
+  let archiveFile = join(archiveDir, `${datePrefix}-${taskId}.md`)
 
   if (!existsSync(archiveDir)) mkdirSync(archiveDir, { recursive: true })
 
@@ -43,9 +43,18 @@ export function archiveSpec(root: string, taskId: string): ArchiveResult {
 
   // Write to archive location using saveSpec-compatible serialization
   // We write directly because saveSpec uses the task id, not the date-prefix filename.
-  const { serializeSpecRaw } = _internals
-  const content = serializeSpecRaw(spec)
-  writeFileSync(archiveFile, content, 'utf-8')
+  const content = serializeSpec(spec)
+  let version = 1
+  while (true) {
+    try {
+      writeFileSync(archiveFile, content, { encoding: 'utf-8', flag: 'wx' })
+      break
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code !== 'EEXIST') throw error
+      version += 1
+      archiveFile = join(archiveDir, `${datePrefix}-${taskId}~${version}.md`)
+    }
+  }
 
   // Remove the original file
   const original = specPath(root, taskId)
@@ -63,27 +72,9 @@ export function archiveSpec(root: string, taskId: string): ArchiveResult {
 export function deleteArchivedSpec(root: string, taskId: string): boolean {
   const archiveDir = join(root, ARCHIVE_DIR)
   if (!existsSync(archiveDir)) return false
-  const match = readdirSync(archiveDir).find((f) => f.endsWith(`-${taskId}.md`))
-  if (!match) return false
-  unlinkSync(join(archiveDir, match))
-  return true
-}
-
-// Exposed for testing — raw serialization shared with store.ts logic
-import { stringify as yamlStringify } from 'yaml'
-import type { Spec } from './store.ts'
-
-const _internals = {
-  serializeSpecRaw(spec: Spec): string {
-    const fm: Record<string, unknown> = {
-      id: spec.frontmatter.id,
-      status: spec.frontmatter.status,
-      createdAt: spec.frontmatter.createdAt,
-      clarify: spec.frontmatter.clarify,
-    }
-    if (spec.frontmatter.approvedAt) fm.approvedAt = spec.frontmatter.approvedAt
-    if (spec.frontmatter.archivedAt) fm.archivedAt = spec.frontmatter.archivedAt
-    const yamlText = yamlStringify(fm).trimEnd()
-    return `---\n${yamlText}\n---\n${spec.body}`
-  },
+  const escapedId = taskId.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+  const pattern = new RegExp(`^\\d{4}-\\d{2}-\\d{2}-${escapedId}(~\\d+)?\\.md$`)
+  const matches = readdirSync(archiveDir).filter((file) => pattern.test(file))
+  for (const file of matches) unlinkSync(join(archiveDir, file))
+  return matches.length > 0
 }

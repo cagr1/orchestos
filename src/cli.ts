@@ -75,8 +75,18 @@ program
 program
   .command('detect [path]')
   .description('Detect stack and generate AGENTS.md + context.json (dry-run, no DB)')
-  .action(async (targetPath?: string) => {
+  .option('--force', 'Overwrite an existing AGENTS.md after explicit confirmation')
+  .action(async (targetPath?: string, opts?: { force?: boolean }) => {
     const root = resolve(targetPath ?? '.')
+    const agentsPath = join(root, 'AGENTS.md')
+    if (existsSync(agentsPath) && !opts?.force) {
+      console.error(`[detect] AGENTS.md already exists at ${agentsPath}. Refusing to overwrite it.`)
+      console.error(
+        '[detect] Re-run with --force only if replacing its manual rules is intentional.',
+      )
+      process.exitCode = 1
+      return
+    }
     const t0 = performance.now()
     const profile = await buildProfile(root)
     const agentsMd = generateAgentsMd(profile)
@@ -96,8 +106,16 @@ program
   .command('init [path]')
   .description('Detect stack, write AGENTS.md + context.json, and save to DB')
   .option('--pdf', 'Also generate a PDF summary')
-  .action(async (targetPath?: string, opts?: { pdf?: boolean }) => {
+  .option('--force', 'Overwrite an existing AGENTS.md after explicit confirmation')
+  .action(async (targetPath?: string, opts?: { pdf?: boolean; force?: boolean }) => {
     const root = resolve(targetPath ?? '.')
+    const agentsPath = join(root, 'AGENTS.md')
+    if (existsSync(agentsPath) && !opts?.force) {
+      console.error(`[init] AGENTS.md already exists at ${agentsPath}. Refusing to overwrite it.`)
+      console.error('[init] Re-run with --force only if replacing its manual rules is intentional.')
+      process.exitCode = 1
+      return
+    }
     const t0 = performance.now()
     const profile = await buildProfile(root)
     const agentsMd = generateAgentsMd(profile)
@@ -1449,7 +1467,7 @@ task
 
 import { draftSpec as draftSpecBody } from './spec/draft.ts'
 // ── spec ──────────────────────────────────────────────────────────────────────
-import { listSpecs, loadSpec, saveSpec, specPath } from './spec/store.ts'
+import { listSpecs, loadSpec, redraftFrontmatter, saveSpec, specPath } from './spec/store.ts'
 import { validateSpec } from './spec/validate.ts'
 
 const spec = program.command('spec').description('Manage task specs (Spec-Driven workflow)')
@@ -1647,9 +1665,7 @@ spec
         const { body, capabilities } = await draftSpecBody(root, taskId, opts.description, {
           design: s.frontmatter.design === 'pending',
         })
-        s.frontmatter.status = 'draft'
-        delete s.frontmatter.approvedAt
-        if (capabilities) s.frontmatter.capabilities = capabilities
+        s.frontmatter = redraftFrontmatter(s.frontmatter, capabilities)
         s.body = `${body}\n`
         saveSpec(root, s)
         const capInfo = capabilities

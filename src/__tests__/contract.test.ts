@@ -1,5 +1,17 @@
-import { afterEach, beforeEach, describe, expect, it } from 'bun:test'
-import { existsSync, mkdtempSync, readFileSync, rmSync } from 'node:fs'
+import { afterEach, beforeEach, describe, expect, it, spyOn } from 'bun:test'
+import * as crypto from 'node:crypto'
+import * as fs from 'node:fs'
+import {
+  chmodSync,
+  existsSync,
+  mkdtempSync,
+  readdirSync,
+  readFileSync,
+  realpathSync,
+  rmSync,
+  statSync,
+  writeFileSync,
+} from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { enforceContract, parseLLMResponse } from '../run/contract.ts'
@@ -7,7 +19,7 @@ import { enforceContract, parseLLMResponse } from '../run/contract.ts'
 let TMP_ROOT: string
 
 beforeEach(() => {
-  TMP_ROOT = mkdtempSync(join(tmpdir(), 'orchestos-contract-'))
+  TMP_ROOT = realpathSync(mkdtempSync(join(tmpdir(), 'orchestos-contract-')))
 })
 
 afterEach(() => {
@@ -178,4 +190,145 @@ describe('enforceContract — path normalization (F4.3)', () => {
   it('contract with "./src/a.ts" authorizes LLM "src/a.ts" (both sides normalize to the same)', () => {
     expectAuthorizedAt('src/a.ts', './src/a.ts', 'src/a.ts')
   })
+})
+
+it('AUD.20 a staging failure leaves every destination intact and removes temporaries', () => {
+  writeFileSync(join(TMP_ROOT, 'first.txt'), 'original')
+  writeFileSync(join(TMP_ROOT, 'blocked'), 'regular file')
+  expect(() =>
+    enforceContract(
+      TMP_ROOT,
+      {
+        files: [
+          { path: 'first.txt', content: 'changed' },
+          { path: 'blocked/second.txt', content: 'second' },
+        ],
+      },
+      ['first.txt', 'blocked/second.txt'],
+    ),
+  ).toThrow()
+  expect(readFileSync(join(TMP_ROOT, 'first.txt'), 'utf8')).toBe('original')
+  expect(readdirSync(TMP_ROOT).sort()).toEqual(['blocked', 'first.txt'])
+})
+
+it('AUD.20-fix preserves foreign temporaries after an exclusive-create failure', () => {
+  const id = '00000000-0000-4000-8000-000000000000'
+  const legacy = join(TMP_ROOT, `first.txt.orchestos-tmp-${process.pid}-0`)
+  const foreign = join(TMP_ROOT, `first.txt.orchestos-tmp-${id}`)
+  writeFileSync(legacy, 'foreign legacy')
+  writeFileSync(foreign, 'foreign uuid')
+  const uuid = spyOn(crypto, 'randomUUID').mockReturnValue(id)
+  try {
+    expect(() =>
+      enforceContract(TMP_ROOT, { files: [{ path: 'first.txt', content: 'new' }] }, ['first.txt']),
+    ).toThrow()
+    expect(readFileSync(legacy, 'utf8')).toBe('foreign legacy')
+    expect(readFileSync(foreign, 'utf8')).toBe('foreign uuid')
+  } finally {
+    uuid.mockRestore()
+  }
+})
+
+it('AUD.20-fix attempts every rollback and preserves the original error as cause', () => {
+  for (const name of ['a', 'b', 'c']) writeFileSync(join(TMP_ROOT, name), `old ${name}`)
+  const rename = fs.renameSync
+  const write = fs.writeFileSync
+  const original = new Error('injected commit failure')
+  const renameSpy = spyOn(fs, 'renameSync').mockImplementation((from, to) => {
+    if (to === join(TMP_ROOT, 'c')) throw original
+    return rename(from, to)
+  })
+  const writeSpy = spyOn(fs, 'writeFileSync').mockImplementation((path, data, options) => {
+    if (path === join(TMP_ROOT, 'b')) throw new Error('injected rollback failure')
+    return write(path, data, options)
+  })
+  let caught: unknown
+  try {
+    enforceContract(
+      TMP_ROOT,
+      { files: ['a', 'b', 'c'].map((path) => ({ path, content: 'new' })) },
+      ['a', 'b', 'c'],
+    )
+  } catch (error) {
+    caught = error
+  } finally {
+    renameSpy.mockRestore()
+    writeSpy.mockRestore()
+  }
+  expect(caught).toBeInstanceOf(Error)
+  expect((caught as Error).message).toContain('injected commit failure')
+  expect((caught as Error).message).toContain(`rollback incompleto: ${join(TMP_ROOT, 'b')}`)
+  expect((caught as Error).cause).toBe(original)
+  expect(readFileSync(join(TMP_ROOT, 'a'), 'utf8')).toBe('old a')
+  expect(readFileSync(join(TMP_ROOT, 'b'), 'utf8')).toBe('new')
+  expect(readFileSync(join(TMP_ROOT, 'c'), 'utf8')).toBe('old c')
+  expect(readdirSync(TMP_ROOT).sort()).toEqual(['a', 'b', 'c'])
+})
+
+it('AUD.20-fix preserves executable destination permissions', () => {
+  const destination = join(TMP_ROOT, 'script.sh')
+  writeFileSync(destination, 'old')
+  chmodSync(destination, 0o755)
+  enforceContract(TMP_ROOT, { files: [{ path: 'script.sh', content: 'new' }] }, ['script.sh'])
+  expect(readFileSync(destination, 'utf8')).toBe('new')
+  expect(statSync(destination).mode & 0o7777).toBe(0o755)
+})
+
+it('AUD.20-fix cleans a temporary after a partial write failure', () => {
+  writeFileSync(join(TMP_ROOT, 'a'), 'old a')
+  const write = fs.writeFileSync
+  const original = Object.assign(new Error('disk full'), { code: 'ENOSPC' })
+  const writeSpy = spyOn(fs, 'writeFileSync').mockImplementation((path, data, options) => {
+    if (String(path).includes('.orchestos-tmp-')) {
+      write(path, 'partial', options)
+      throw original
+    }
+    return write(path, data, options)
+  })
+  try {
+    expect(() =>
+      enforceContract(TMP_ROOT, { files: [{ path: 'a', content: 'new a' }] }, ['a']),
+    ).toThrow(original)
+    expect(readFileSync(join(TMP_ROOT, 'a'), 'utf8')).toBe('old a')
+    expect(readdirSync(TMP_ROOT)).toEqual(['a'])
+  } finally {
+    writeSpy.mockRestore()
+  }
+})
+
+it('AUD.20-fix attempts every temporary cleanup without replacing the original error', () => {
+  const original = new Error('rename failed')
+  const renameSpy = spyOn(fs, 'renameSync').mockImplementation(() => {
+    throw original
+  })
+  const unlink = fs.unlinkSync
+  let unlinkCalls = 0
+  const unlinkSpy = spyOn(fs, 'unlinkSync').mockImplementation((path) => {
+    unlinkCalls += 1
+    if (unlinkCalls === 1) throw new Error('cleanup failed')
+    return unlink(path)
+  })
+  let caught: unknown
+  try {
+    enforceContract(
+      TMP_ROOT,
+      {
+        files: [
+          { path: 'a', content: 'new a' },
+          { path: 'b', content: 'new b' },
+        ],
+      },
+      ['a', 'b'],
+    )
+  } catch (error) {
+    caught = error
+  } finally {
+    renameSpy.mockRestore()
+    unlinkSpy.mockRestore()
+  }
+  expect(caught).toBe(original)
+  expect(unlinkCalls).toBe(2)
+  const leftovers = readdirSync(TMP_ROOT)
+  expect(leftovers).toHaveLength(1)
+  expect(leftovers[0]).toContain('.orchestos-tmp-')
 })

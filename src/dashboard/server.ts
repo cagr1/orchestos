@@ -413,7 +413,7 @@ export async function route(req: Request, port: number): Promise<Response> {
     return withDashboardProject(req, (project) => handleApiProjectContextRegenerate(project.root))
   }
   if (method === 'POST' && url.pathname === '/api/project/detect') {
-    return withDashboardProject(req, (project) => handleApiProjectDetect(project.root))
+    return withDashboardProject(req, (project) => handleApiProjectDetect(project.root, req))
   }
   // v0.12 D.1.c — ruta literal DEBE ir antes del catch-all GET→serveStatic
   // de abajo (sirve un PDF binario, no HTML estático).

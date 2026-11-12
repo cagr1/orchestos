@@ -1,5 +1,5 @@
 import { afterAll, describe, expect, it } from 'bun:test'
-import { mkdirSync, rmSync } from 'node:fs'
+import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { db } from '../db/sqlite.ts'
 import { listSpecs, loadSpec, type Spec, saveSpec } from '../spec/store.ts'
@@ -460,4 +460,40 @@ describe('harness spec gate', () => {
       rmSync(dir, { recursive: true, force: true })
     }
   })
+})
+
+it('AUD.20 rejects escaping spec ids before creating directories or modifying files', () => {
+  const root = tmpDir()
+  try {
+    writeFileSync(join(root, 'README.md'), 'keep')
+    expect(() => saveSpec(root, makeSpec({ id: '../../README' }))).toThrow(
+      'Invalid spec id: ../../README',
+    )
+    expect(readFileSync(join(root, 'README.md'), 'utf8')).toBe('keep')
+    expect(readdirSync(root)).toEqual(['README.md'])
+    expect(existsSync(join(root, '.orchestos'))).toBe(false)
+    expect(() => loadSpec(root, '../x')).toThrow('Invalid spec id: ../x')
+  } finally {
+    rmSync(root, { recursive: true, force: true })
+  }
+})
+
+it('AUD.20 redrafting clears stale approvals and absent capabilities', async () => {
+  const { redraftFrontmatter } = await import('../spec/store.ts')
+  const original = makeSpec({
+    status: 'approved',
+    approvedAt: 'old',
+    design: 'approved',
+    designApprovedAt: 'old',
+    capabilities: { added: ['old'], modified: [], removed: [] },
+  })
+  const fresh = redraftFrontmatter(original.frontmatter)
+  expect(fresh.status).toBe('draft')
+  expect(fresh.design).toBe('pending')
+  expect(fresh.approvedAt).toBeUndefined()
+  expect(fresh.designApprovedAt).toBeUndefined()
+  expect(fresh.capabilities).toBeUndefined()
+  expect(original.frontmatter.status).toBe('approved')
+  const caps = { added: ['new'], modified: [], removed: [] }
+  expect(redraftFrontmatter(original.frontmatter, caps).capabilities).toEqual(caps)
 })

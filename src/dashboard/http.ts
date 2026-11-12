@@ -111,7 +111,7 @@ const TASK_ID_RE = /^[A-Za-z0-9_.\-']{1,64}$/
 
 function validateTaskId(id: string): string | null {
   const t = id.trim()
-  if (!t || !TASK_ID_RE.test(t) || t.startsWith('-')) return null
+  if (!t || !TASK_ID_RE.test(t) || t.startsWith('-') || t.includes('..')) return null
   return t
 }
 

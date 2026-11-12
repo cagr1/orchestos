@@ -1,0 +1,17 @@
+{
+  "at": "2026-11-12T00:12:07.626Z",
+  "detect_without_force": {
+    "status": 409,
+    "agentsMdPreserved": true
+  },
+  "spec_id_with_dotdot": {
+    "status": 400
+  },
+  "config_init": 200,
+  "concurrent_config_puts": {
+    "statuses": [200, 200],
+    "hasPermissionMode": true,
+    "hasExecutorCodex": true,
+    "mode": "600"
+  }
+}
