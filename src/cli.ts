@@ -19,7 +19,12 @@ import { listConflicts, resolveConflict } from './db/memory.ts'
 import { runMigrations } from './db/migrate.ts'
 import { getProject, listProjects, upsertProject } from './db/projects.ts'
 import { resetTestData } from './db/reset.ts'
-import { insertRun, listRunsByTaskId } from './db/runs.ts'
+import {
+  insertRun,
+  listRunsByProjectId,
+  listRunsByTaskId,
+  listRunsWithoutProjectId,
+} from './db/runs.ts'
 import { recordTaskMemory } from './db/task-memory.ts'
 import { detectPrimaryLanguage } from './detect/languages.ts'
 import { buildProfile } from './detect/profile.ts'
@@ -884,7 +889,8 @@ program
         const { groupRunsByOutcome, analyzeRunPatterns } = await import('./analyze/patterns.ts')
         const { proposeInstinctsFromPatterns } = await import('./analyze/propose.ts')
         const n = parseInt(opts.last ?? '20', 10)
-        const rows = listRuns(n)
+        const projectId = getProject(resolve('.'))?.id
+        const rows = projectId ? listRunsByProjectId(projectId, n) : listRunsWithoutProjectId(n)
         if (rows.length < 3) {
           console.log('[runs analyze] Not enough runs to analyze (need at least 3).')
           return
@@ -1330,38 +1336,6 @@ task
             `  tokens: ${result.cost.inputTokens}/${result.cost.outputTokens} · $${result.cost.usd.toFixed(5)} · ${result.elapsedMs}ms`,
           )
 
-          // S30.4 — S34.6: background pattern analysis + instinct proposals after completion
-          const { listRuns: listRunsForAnalyze } = require('./db/runs.ts')
-          const recentRuns = listRunsForAnalyze(20)
-          if (recentRuns.length >= 3) {
-            const { groupRunsByOutcome, analyzeRunPatterns } = await import('./analyze/patterns.ts')
-            const { proposeInstinctsFromPatterns } = await import('./analyze/propose.ts')
-            const groups = groupRunsByOutcome(recentRuns)
-            try {
-              const suggestions = await analyzeRunPatterns(groups)
-              if (suggestions.length > 0) {
-                console.log(`\n[runs analyze] ${suggestions.length} recurring pattern(s) detected:`)
-                for (const s of suggestions) {
-                  console.log(`  [${s.confidence.toUpperCase()}] ${s.pattern}: ${s.fix_hint}`)
-                }
-              }
-              const proposals = proposeInstinctsFromPatterns(
-                suggestions,
-                getProject(resolve('.'))?.id ?? null,
-              )
-              if (proposals.length > 0) {
-                console.log(
-                  `\n  ${proposals.length} instinct proposal(s) created (review with: orchestos instinct review):`,
-                )
-                for (const p of proposals) {
-                  console.log(`    [${p.confidence.toFixed(2)}] ${p.trigger}`)
-                }
-              }
-            } catch {
-              /* best-effort — never block the task result */
-            }
-          }
-
           return 'done'
         }
 
@@ -1386,11 +1360,18 @@ task
           return 'blocked'
         }
 
+        if (result.status === 'blocked') {
+          updateTaskStatus(root, taskId, { status: 'blocked', retry_reason: result.retryReason })
+          console.error(`[task] ⊘ ${taskId} blocked — ${result.retryReason}`)
+          return 'blocked'
+        }
+
         // failed
         const isPermanent = t.retry_count + 1 >= MAX_RETRIES
         updateTaskStatus(root, taskId, {
           status: isPermanent ? 'failed_permanent' : 'failed',
           retry_reason: result.retryReason,
+          retry_count: t.retry_count + 1,
         })
         if (isPermanent) {
           const taskProjectId = project?.id ?? getProject(root)?.id
@@ -1430,19 +1411,28 @@ task
       }
 
       if (opts?.id) {
-        await executeTask(opts.id)
+        if ((await executeTask(opts.id)) !== 'done') process.exitCode = 1
         return
       }
 
       if (opts?.all) {
         let iterations = 0
         const MAX = 20
-        while (iterations++ < MAX) {
+        while (iterations < MAX) {
+          iterations++
           const file = loadTasks(root)
           const pending = file.tasks.filter((t) => t.status === 'pending')
           if (pending.length === 0) {
-            console.log('\n[task] All tasks done ✓')
-            break
+            const unfinished = file.tasks.filter((t) => t.status !== 'done')
+            if (unfinished.length === 0) {
+              console.log('\n[task] All tasks done ✓')
+            } else {
+              console.error(
+                `\n[task] Unfinished tasks: ${unfinished.map((t) => `${t.id} (${t.status})`).join(', ')}`,
+              )
+              process.exitCode = 1
+            }
+            return
           }
 
           // find next executable (no unresolved deps)
@@ -1452,14 +1442,21 @@ task
           if (!next) {
             const blocked = pending.map((t) => t.id).join(', ')
             console.error(`\n[task] No executable tasks — blocked: ${blocked}`)
-            break
+            process.exitCode = 1
+            return
           }
           const result = await executeTask(next.id)
-          if (result === 'failed') {
-            console.error('[task] Stopping — task failed')
-            break
+          if (result === 'failed' || result === 'blocked') {
+            console.error(`[task] Stopping — task ${result}`)
+            process.exitCode = 1
+            return
           }
         }
+        const pending = loadTasks(root).tasks.filter((t) => t.status === 'pending')
+        console.error(
+          `\n[task] Iteration limit reached (${MAX}) — pending: ${pending.map((t) => t.id).join(', ') || 'none'}`,
+        )
+        process.exitCode = 1
         return
       }
 

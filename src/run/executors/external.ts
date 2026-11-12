@@ -691,10 +691,11 @@ export const externalEngine: ExecutorEngine = {
     const configHome = provisionCliConfigHome(ctx.opts.projectRoot, 'claude')
 
     let timedOut: boolean
+    let apiError: string | undefined
     let resultLine: string | undefined
     let lastAssistant: LastAssistantUsage | undefined
     try {
-      ;({ timedOut, resultLine, lastAssistant } = await runClaudeCode(
+      ;({ timedOut, resultLine, lastAssistant, apiError } = await runClaudeCode(
         ctx.effectiveRoot,
         buildClaudeArgs(
           systemPrompt,
@@ -735,6 +736,22 @@ export const externalEngine: ExecutorEngine = {
     } catch {
       throw new ExecutorExternalError(
         'claude code result event was not valid JSON — cost unknown, not reported as $0',
+      )
+    }
+
+    if (parsed.is_error === true || parsed.terminal_reason === 'api_error' || apiError) {
+      throw new ExecutorExternalError(
+        new CliFailure(
+          cliFailureNotice(
+            parsed.result?.trim() ||
+              parsed.errors?.join('; ') ||
+              apiError ||
+              'Claude Code reported an API error',
+            'Claude Code CLI',
+            ctx.model,
+            apiError ? claudeFailureKind(apiError) : undefined,
+          ),
+        ).message,
       )
     }
 

@@ -1,0 +1,71 @@
+{
+  "item": "AUD.21",
+  "related_item": "AUD.5",
+  "executor": "Codex",
+  "spec": "docs/specs/AUD.21.md",
+  "status": "closed",
+  "gates": {
+    "typecheck": {
+      "command": "bunx tsc --noEmit",
+      "exit_code": 0,
+      "raw_log": "/tmp/AUD.21-typecheck-final-r2.log"
+    },
+    "lint": {
+      "command": "bun run lint",
+      "exit_code": 0,
+      "warnings": 282,
+      "raw_log": "/tmp/AUD.21-lint-final-r2.log"
+    },
+    "coverage": {
+      "command": "bun run test:coverage",
+      "exit_code": 0,
+      "pass": 2672,
+      "fail": 0,
+      "files": 276,
+      "functions_percent": 80.23,
+      "lines_percent": 67.28,
+      "raw_log": "/tmp/AUD.21-coverage-r1.log"
+    },
+    "affected_settings": {
+      "command": "bun test src/dashboard/__tests__/projects-settings.test.ts",
+      "exit_code": 0,
+      "pass": 5,
+      "fail": 0,
+      "raw_log": "/tmp/AUD.21-project-settings.log"
+    }
+  },
+  "live_gate": {
+    "mode": "CLI real, ORCHESTOS_HOME y repo temporales, sin navegador (ninguna pantalla nueva)",
+    "cases": [
+      {
+        "cmd": "task run --id nope",
+        "exit": 1,
+        "out": "[task] Task \"nope\" not found"
+      },
+      {
+        "cmd": "task run --all (a done, b failed_permanent)",
+        "exit": 1,
+        "out": "[task] Unfinished tasks: b (failed_permanent)"
+      },
+      {
+        "cmd": "runs --analyze (proyecto sin runs propios)",
+        "out": "Not enough runs to analyze (need at least 3)."
+      }
+    ]
+  },
+  "notes": [
+    "Cambio previo: docs/specs/AUD.21.md sin seguimiento; no modificado.",
+    "La primera cobertura dio 2671 pass y 1 fail: projects-settings usaba dryRun para ejecutar setup. Se ajustaron dos llamadas a dryRun:false manteniendo los asserts y la API falsa; el test afectado y la segunda cobertura pasan.",
+    "CliFailure convierte cliFailureNotice a texto igual que el chat; ExecutorExternalError recibe ese texto. No se cambió el camino de chat.",
+    "Sin delegación, commits ni edición de PLAN.md/NEXT.md."
+  ],
+  "raw_outputs": "/tmp/AUD.21-gates.txt",
+  "diff": "/tmp/AUD.21.diff",
+  "brain_review": {
+    "reviewer": "claude-opus-5-5",
+    "date": "2026-11-12",
+    "diff_read": true,
+    "affected_tests": "43 pass / 0 fail (aud21-task-execution, graph-runner, projects-settings)",
+    "tsc": "exit 0"
+  }
+}

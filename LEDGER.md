@@ -623,3 +623,15 @@ No modifica la derivación de contexto/max_tokens, los detalles del error ni el 
 **Clasificación**: RESPETÓ
 **Por qué**: pasa `runProjectId` a la limpieza e inserción de pasos para aislar tareas con el mismo ID.
 No modifica contexto/max_tokens, el contrato de QA ni la ejecución de los pasos.
+
+
+## 2026-11-12 — Codex (ejecutor AUD.21)
+
+**Regla tocada**: `src/run/harness.ts`, protegido por la derivación de `max_tokens`.
+**Clasificación**: RESPETÓ.
+**Por qué**: AUD.21 evita resolver sandbox y crear worktree en `dryRun`; conserva el cálculo de
+`maxTokens`, `contextWindow` y la selección de presupuestos sin cambios.
+**Reversibilidad/evidencia**: diff de AUD.21 y test `dryRun creates neither a worktree nor the setup
+marker, even on a dirty repo` en `src/__tests__/aud21-task-execution.test.ts`; `bunx tsc --noEmit` y
+`bun run lint` con exit 0; `bun run test:coverage`: 2672 pass, 0 fail. Evidencia:
+`docs/done/evidence/AUD.21-live.json` (el gate en vivo queda al cerebro según el spec).

@@ -188,9 +188,11 @@ export async function runTask(opts: HarnessOpts): Promise<TaskResult> {
     // bloquea esta sección corta (chequeo + creación de worktree), no la
     // corrida completa — el LLM/QA/checks corren SIN el lock tomado.
     const { policy, worktree: createdWorktree } = withGitLock(projectRoot, () => {
-      const p = sandboxMode
-        ? { mode: sandboxMode, branch: sandboxBranch ?? null, warnings: [] as string[] }
-        : resolveSandboxMode(projectRoot)
+      const p = dryRun
+        ? { mode: 'cwd' as const, branch: null, warnings: [] as string[] }
+        : sandboxMode
+          ? { mode: sandboxMode, branch: sandboxBranch ?? null, warnings: [] as string[] }
+          : resolveSandboxMode(projectRoot)
       const project = getProject(projectRoot)
       const wt =
         p.mode === 'worktree' && p.branch && t.id

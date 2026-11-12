@@ -151,20 +151,24 @@ export async function runGraph(opts: GraphRunOpts): Promise<GraphRunResult> {
 
   const startedAt = Date.now()
 
+  const limitReason = (extraCost: number): string | undefined => {
+    if (maxMinutes != null && (Date.now() - startedAt) / 60_000 >= maxMinutes) {
+      return `wall-clock limit reached (${maxMinutes} min)`
+    }
+    if (maxCost != null && totalCost + extraCost >= maxCost) {
+      return `cost limit reached ($${maxCost.toFixed(4)})`
+    }
+    return undefined
+  }
+
   for (let iteration = 0; iteration < GRAPH_MAX_ITERATIONS; iteration++) {
     // ── Circuit breaker (A4) — pre-iteration checks ──────────────────────
     // AR.4: `maxCost && ...` / `maxMinutes && ...` trataba 0 como "sin límite"
     // por truthiness — pasar --max-cost 0 ("no gastar nada") invertía la
     // intención del usuario y dejaba gastar sin tope. `!= null` distingue
     // "no se pasó el flag" de "se pasó 0".
-    if (maxMinutes != null && (Date.now() - startedAt) / 60_000 >= maxMinutes) {
-      circuitBreakReason = `wall-clock limit reached (${maxMinutes} min)`
-      break
-    }
-    if (maxCost != null && totalCost >= maxCost) {
-      circuitBreakReason = `cost limit reached ($${maxCost.toFixed(4)})`
-      break
-    }
+    circuitBreakReason = limitReason(0)
+    if (circuitBreakReason) break
 
     // ── Load current state from tasks.yaml ───────────────────────────────
     const file = loadTasksFn(projectRoot)
@@ -209,6 +213,8 @@ export async function runGraph(opts: GraphRunOpts): Promise<GraphRunResult> {
 
     // ── Execute each ready task ──────────────────────────────────────────
     for (const task of ready) {
+      circuitBreakReason = limitReason(0)
+      if (circuitBreakReason) break
       if (blockedAncestors.has(task.id)) continue
 
       const t0 = performance.now()
@@ -227,6 +233,7 @@ export async function runGraph(opts: GraphRunOpts): Promise<GraphRunResult> {
           loadTasksFn,
           updateTaskStatusFn,
           commitTasksYamlFn,
+          limitReason,
         },
         requeuedForRateLimit,
         blockedAncestors,
@@ -238,6 +245,11 @@ export async function runGraph(opts: GraphRunOpts): Promise<GraphRunResult> {
       totalInputTokens += entry.tokens.input
       totalOutputTokens += entry.tokens.output
       totalMs += entry.elapsed_ms
+
+      if (entry.outcome === 'skipped_circuit_breaker') {
+        circuitBreakReason = entry.error
+        break
+      }
 
       if (entry.outcome === 'failed_permanent') {
         console.error(`[graph] ✗ ${task.id} failed permanently — branch blocked`)
@@ -341,6 +353,7 @@ async function executeSingleTask(
     loadTasksFn: typeof loadTasksReal
     updateTaskStatusFn: typeof updateTaskStatusReal
     commitTasksYamlFn: typeof commitTasksYamlReal
+    limitReason: (extraCost: number) => string | undefined
   },
   requeuedForRateLimit: Set<string>,
   blockedAncestors: Set<string>,
@@ -358,6 +371,7 @@ async function executeSingleTask(
     loadTasksFn,
     updateTaskStatusFn,
     commitTasksYamlFn,
+    limitReason,
   } = ctx
   const taskId = task.id
   const persist = (id: string, patch: Parameters<typeof updateTaskStatusFn>[2]): void => {
@@ -426,6 +440,18 @@ async function executeSingleTask(
   // rate_limit diagnosis resets retry_count to 0 and starts a fresh cycle
   // (design.md §2 — at most one requeue per task).
   for (let attempt = 0; attempt < MAX_RETRIES * 2 + 1; attempt++) {
+    const reason = limitReason(accCost)
+    if (reason) {
+      persist(taskId, { status: 'pending' })
+      return {
+        id: taskId,
+        outcome: 'skipped_circuit_breaker',
+        error: reason,
+        usd_cost: accCost,
+        tokens: { input: accInput, output: accOutput },
+        elapsed_ms: 0,
+      }
+    }
     const currentFile = loadTasksFn(projectRoot)
     const currentTask = currentFile.tasks.find((x) => x.id === taskId)
     if (!currentTask) {
@@ -468,9 +494,7 @@ async function executeSingleTask(
     // which would otherwise hit the same self-inflicted dirty tree a second time.
     let policy: ReturnType<typeof resolveSandboxMode>
     try {
-      policy = sandboxMode
-        ? { mode: sandboxMode, branch: null, warnings: [] }
-        : resolveSandboxMode(projectRoot)
+      policy = resolveSandboxMode(projectRoot, sandboxMode)
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err)
       new RunLogger(projectRoot, taskId).error(message)
@@ -543,7 +567,7 @@ async function executeSingleTask(
     // a tener más contexto en el próximo intento), así que no se reintenta ni se
     // gasta una llamada de diagnose. 'blocked' evita que el loop principal la
     // vuelva a tomar como 'ready' en la siguiente iteración (ver filtro arriba).
-    if (harnessResult.status === 'pending') {
+    if (harnessResult.status === 'pending' || harnessResult.status === 'blocked') {
       persist(taskId, {
         status: 'blocked',
         retry_reason: harnessResult.retryReason,

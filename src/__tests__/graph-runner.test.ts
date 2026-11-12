@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it, mock } from 'bun:test'
+import { afterEach, beforeEach, describe, expect, it, mock, spyOn } from 'bun:test'
 import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
@@ -160,6 +160,66 @@ describe('runGraph (D1)', () => {
         /* ok */
       }
     }
+  })
+
+  it('AUD.21 resolves a branch for explicit worktree sandbox', async () => {
+    writeTasks(tmpDir, [makeTask('a')])
+    for (const args of [
+      ['init'],
+      ['add', 'tasks.yaml'],
+      ['-c', 'user.name=t', '-c', 'user.email=t@t', 'commit', '-m', 'fixture'],
+    ]) {
+      expect(Bun.spawnSync(['git', ...args], { cwd: tmpDir }).exitCode).toBe(0)
+    }
+    runTaskMock.mockImplementation(async () => doneResult('a'))
+    await runGraph(makeOpts(tmpDir, { sandboxMode: 'worktree' }))
+    expect(runTaskMock).toHaveBeenCalledTimes(1)
+    expect(runTaskMock.mock.calls[0]?.[0].sandboxMode).toBe('worktree')
+    expect(runTaskMock.mock.calls[0]?.[0].sandboxBranch).toBeTruthy()
+  })
+
+  it('AUD.21 checks accumulated cost before each retry', async () => {
+    writeTasks(tmpDir, [makeTask('a')])
+    runTaskMock.mockImplementation(async () => ({
+      ...retryResult('a'),
+      cost: { inputTokens: 7, outputTokens: 3, usd: 1 },
+    }))
+    const result = await runGraph(makeOpts(tmpDir, { maxCost: 1.5 }))
+    expect(runTaskMock).toHaveBeenCalledTimes(2)
+    expect(diagnoseTaskMock).not.toHaveBeenCalled()
+    expect(result.aggregated_cost).toBe(2)
+    expect(result.circuit_break_reason).toBe('cost limit reached ($1.5000)')
+    expect(result.tasks[0]?.outcome).toBe('skipped_circuit_breaker')
+    expect(fakeLoadTasks(tmpDir).tasks[0].status).toBe('pending')
+  })
+
+  it('AUD.21 checks wall-clock before the next ready task', async () => {
+    writeTasks(tmpDir, [makeTask('a'), makeTask('b')])
+    let now = Date.now()
+    const clock = spyOn(Date, 'now').mockImplementation(() => now)
+    try {
+      runTaskMock.mockImplementation(async () => {
+        now += 60_001
+        return doneResult('a')
+      })
+      const result = await runGraph(makeOpts(tmpDir, { maxMinutes: 1 }))
+      expect(runTaskMock).toHaveBeenCalledTimes(1)
+      expect(result.circuit_break_reason).toBe('wall-clock limit reached (1 min)')
+      expect(fakeLoadTasks(tmpDir).tasks[1].status).toBe('pending')
+      expect(result.tasks.find((t) => t.id === 'b')?.outcome).toBe('skipped_circuit_breaker')
+    } finally {
+      clock.mockRestore()
+    }
+  })
+
+  it('AUD.21 preserves blocked without retries or diagnosis', async () => {
+    writeTasks(tmpDir, [makeTask('a')])
+    runTaskMock.mockImplementation(async () => ({ ...pendingResult('a'), status: 'blocked' }))
+    const result = await runGraph(makeOpts(tmpDir))
+    expect(runTaskMock).toHaveBeenCalledTimes(1)
+    expect(diagnoseTaskMock).not.toHaveBeenCalled()
+    expect(result.tasks[0]).toMatchObject({ outcome: 'blocked', error: 'context insufficient' })
+    expect(fakeLoadTasks(tmpDir).tasks[0]).toMatchObject({ status: 'blocked', retry_count: 0 })
   })
 
   // ── Happy path ─────────────────────────────────────────────────────────────

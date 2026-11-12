@@ -120,7 +120,7 @@
       "sprint": "Abiertos — auditoría 2026-11-10",
       "block": null,
       "title": "Tras cada tarea `done` por CLI, una llamada LLM oculta sobre los runs de todos los proyectos",
-      "status": "open",
+      "status": "done",
       "closedDate": null
     },
     {
@@ -256,7 +256,7 @@
       "sprint": "Abiertos — auditoría 2026-11-10",
       "block": "Abiertos — auditoría 2026-11-11",
       "title": "Ejecución de tareas: errores aceptados como éxito y límites que no se aplican",
-      "status": "open",
+      "status": "done",
       "closedDate": null
     },
     {

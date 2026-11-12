@@ -288,12 +288,13 @@ prioridad hasta que Carlos las asigne.
   Gate en vivo: navegador (Playwright, `ui:gate chat-retry-report` 27/27), `docs/done/evidence/AUD.4-live.json`.
   Ejecutado por: codex gpt-6.1-sol (criterio) + gpt-6-luna (mecanico, enmienda 2) · Spec: docs/specs/AUD.4.md
 
-- [ ] **AUD.5 — Tras cada tarea `done` por CLI, una llamada LLM oculta sobre los runs de todos los proyectos.**
-  (abierto 2026-11-10) En `orchestos task run` (`cli.ts:1303-1331`), al terminar `done` se lee `listRuns(20)`
+- [x] **AUD.5 — Tras cada tarea `done` por CLI, una llamada LLM oculta sobre los runs de todos los proyectos.**
+  (abierto 2026-11-10, cerrado 2026-11-12 junto con AUD.21; cierre en AUD.21) En `orchestos task run` (`cli.ts:1303-1331`), al terminar `done` se lee `listRuns(20)`
   (`runs.ts:197-207`, sin filtro de proyecto) y, con 3 o más, `analyzeRunPatterns` hace una llamada al rol Auxiliar
   (`analyze/patterns.ts:144-150`) y puede crear propuestas de instinto. Gasto no declarado en `LIMITATIONS.md` y mezcla
   de proyectos en el análisis. Verificación: o se quita del camino de la tarea (queda en `--analyze`, `cli.ts:855`), o
   se filtra por proyecto y se declara en el resumen del run; test que cuente las llamadas al LLM de una tarea `done`.
+  Sin delegación: se ejecutó dentro del spec de AUD.21 (caso 9); evidencia y ejecutor en AUD.21.
 
 - [ ] **AUD.6 — Los motores matan solo al hijo directo, no al grupo de procesos.** (abierto 2026-11-10)
   `external.ts:329-339` y `397` (`proc.kill('SIGTERM')`/`SIGKILL`), `opencode-server.ts:293-296` y `dashboard/terminal.ts:86-90`
@@ -453,11 +454,21 @@ qué no). Cada ítem es una clase de falla con varios sitios; el spec comprueba 
   pantalla usa estas rutas): detect sin force 409 y AGENTS.md intacto; spec `foo..bar` 400; dos PUT de config
   simultáneos conservan ambos campos y el modo 600.
   Ejecutado por: gpt-6.1-sol (criterio) + mecanico + claude-opus-5-5 (fixes chicos)
-- [ ] **AUD.21 — Ejecución de tareas: errores aceptados como éxito y límites que no se aplican.** (abierto 2026-11-11)
+- [x] **AUD.21 — Ejecución de tareas: errores aceptados como éxito y límites que no se aplican.** (abierto 2026-11-11,
+  cerrado 2026-11-12 con AUD.5)
   `dryRun` después de crear worktree y correr `setup_script` (`harness.ts:190-197` vs `:283`); sandbox explícito sin
   rama corre en el cwd (`graph-runner.ts:472`, `harness.ts:196`); `is_error` de Claude sin mirar en tareas
   (`external.ts:733-755`); `task run --id` sale 0 al fallar (`cli.ts:1401`); `retry_count`, `--all` y límites del
   grafo (`cli.ts:1359,1411`, `graph-runner.ts:160,211,428,546`). Verificación: test por caso con CLI falso.
+  Cierre: `dryRun` sin sandbox ni worktree; el grafo resuelve rama con `resolveSandboxMode(root, mode)`; `is_error`/
+  `api_error` de Claude falla la tarea; `task run --id` sale 1 si no es `done` (id inexistente incluido); los fallos
+  suben `retry_count`; `--all` lista lo no `done`, avisa el tope de 20 y para en `blocked`; límites de costo y tiempo
+  antes de cada intento y cada tarea (`skipped_circuit_breaker`); `blocked` del harness sin reintento ni diagnose.
+  AUD.5: borrada la llamada al Auxiliar tras `done`; `runs --analyze` filtra por proyecto como el dashboard. Fuera:
+  `agentic.ts`, `providers/codex.ts`, `tool-call.ts` (resto del anexo). Gates: tsc, lint, `test:coverage` 2672/0;
+  afectados 43/0 corridos por el cerebro. Gate en vivo: sin navegador (ninguna pantalla), CLI real con home y repo
+  temporales, `docs/done/evidence/AUD.21-live.json`.
+  Ejecutado por: codex gpt-6.1-sol (criterio), diff revisado por claude-opus-5-5 · Spec: docs/specs/AUD.21.md
 - [ ] **AUD.22 — Procesos, streams y sesiones de motor.** (abierto 2026-11-11) `opencode.ts:174-216` no drena
   `stderr`; timeouts sin SIGKILL (`codex.ts:199`, `external.ts:337`, `opencode.ts:182`, `checks.ts:225`); el `exit`
   de un app-server viejo rompe el nuevo (`codex-app-server.ts:142,1089`); quitar todas las herramientas no recrea el
