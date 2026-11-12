@@ -32,9 +32,9 @@ Arranque: `bun run agent:preflight -- --item <ID> --agent claude`. Lista viva: `
        Residual aceptado: opción corta pegada a un symlink preexistente (`-fleak.txt`) en la regla readOnly de Codex.
      - Nocturna de ui-gates 2026-11-12 sobre `01b3648`: 0/50 por la regresión de AUD.19 (`/api/health` exigía proyecto),
        corregida en `c9c0fac6` (smoke, dev-terminal, user-profile pasan). Mirar la próxima corrida antes de seguir.
-     - AUD.21 + AUD.5 cerrados 2026-11-12 (evidencia `docs/done/evidence/AUD.21-live.json`). `task run` ya no llama
+     - AUD.21 + AUD.5 cerrados 2026-11-12 (`26358263`; evidencia `docs/done/evidence/AUD.21-live.json`). `task run` ya no llama
        al Auxiliar tras `done` y sale 1 si la tarea no queda `done`.
-     - AUD.22 + AUD.6 cerrados 2026-11-12 (evidencia `docs/done/evidence/AUD.22-live.json`). Los motores se lanzan
+     - AUD.22 + AUD.6 cerrados 2026-11-12 (`adb93357`; evidencia `docs/done/evidence/AUD.22-live.json`). Los motores se lanzan
        como grupo (`src/run/process-tree.ts`): todo spawn nuevo de un CLI de agente pasa por `spawnTree`.
      - Siguiente: AUD.24; ningún otro ítem tiene spec escrito. Lo no marcado ✔ en el informe se comprueba
        con grep al escribirlo. No relanzar los auditores: su salida literal está en los anexos.
@@ -78,6 +78,11 @@ Arranque: `bun run agent:preflight -- --item <ID> --agent claude`. Lista viva: `
      los pasos `reasoning` de Claude llegan vacíos y los de Codex son resúmenes cortos; "Thought" solo muestra pasos
      `reasoning` (`app/src/api/chat.ts:279`). Necesita un caso (agente, modelo, captura) antes de abrir ítem.
 6. "navegador propio" sin anotar en `IDEAS.md` hasta que Carlos diga qué espera de él.
+
+**Trampas de cierre** (2026-11-12): `delegate qa` exige un archivo de spec (en `/tmp` vale), no texto suelto; el
+plan-gate pide la línea `Ejecutado por: … · Spec: docs/specs/<ID>.md` o `Sin delegación: <motivo>` en cada `[x]`;
+el hook deja al cerebro editar código solo de a ≤20 líneas por `Edit` (ni `sed`/heredoc sobre `src/`); `mecanico`
+puede reescribir el spec que recibe — no fiarse de él como registro.
 
 **Ojo**: tras cambios de UI, `bun run build:app`; el dashboard lee `dist/` del disco, así que un build roto deja en
 blanco también el dashboard de Carlos (:4242) — probar la carga antes de seguir.
