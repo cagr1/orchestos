@@ -513,10 +513,15 @@ qué no). Cada ítem es una clase de falla con varios sitios; el spec comprueba 
 - [ ] **SES.1 — Cerrar una sesión de verdad.** (abierto 2026-11-12; Carlos: va justo después del lote AUD) La X del
   tab (`App.tsx:172`, `closeDevTab`) solo quita el tab de la UI: la sesión sigue activa y su turno corriendo. Archivar
   (`handlers/chat-sessions.ts:551`, `handleApiChatSessionArchive`) marca `archived` sin detener el turno en curso: el
-  CLI queda vivo y la sesión desaparece del sidebar. Borrar ya rechaza con turno activo (409). Arreglo: archivar
-  detiene antes el turno activo (`stopChatTurn`; matar el grupo de procesos depende de AUD.6); la X del tab muestra
-  que la sesión sigue viva (indicador de corriendo, o aviso al cerrar un tab con turno en curso). Verificación: test
-  que archiva una sesión con turno en curso y comprueba que no queda proceso vivo; prueba en vivo en el dashboard.
+  CLI queda vivo y la sesión desaparece del sidebar. Borrar ya rechaza con turno activo (409). Diseño (patrón de
+  JetBrains "Terminate / Disconnect", VS Code `confirmOnKill`, tmux detach/kill): **tab = vista, sesión = proceso**.
+  (1) Cerrar un tab ocioso: se cierra sin preguntar. (2) Cerrar un tab con turno en curso: diálogo "Detener y cerrar"
+  / "Dejar corriendo" / "Cancelar", con "recordar" en Settings. (3) Sesiones en segundo plano: punto de "corriendo"
+  en el sidebar y contador en la barra; al terminar, aviso. (4) Archivar = detener turno (`stopChatTurn`, grupo de
+  procesos completo vía AUD.6) + archivar, nunca sin detener. (5) Cerrar la app o el dashboard con turnos vivos:
+  aviso con la lista. (6) Al arrancar, turnos huérfanos (proceso muerto, turno `pending`) se marcan y se ofrecen
+  reanudar. Verificación: test que archiva con turno en curso y comprueba que no queda proceso; test del diálogo
+  por estado del tab; prueba en vivo en el dashboard de los tres caminos (ocioso, detener, dejar corriendo).
 
 ## Decisiones pendientes de Carlos
 
