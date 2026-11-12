@@ -301,6 +301,8 @@ export default function App() {
   const [runningSessionIds, setRunningSessionIds] = useState<Set<string>>(() => new Set())
   const failedSessionIds = useRef(new Set<string>())
   const locallyRunningSessionIds = useRef<Set<string>>(new Set())
+  // Sube en cada envío local; settleChatTurn descarta lecturas que empezaron antes.
+  const localSendGeneration = useRef<Map<string, number>>(new Map())
   const handleDevTimelinePending = useCallback((sessionId: string, pending: boolean) => {
     if (pending || locallyRunningSessionIds.current.has(sessionId)) return
     setRunningSessionIds((current) => {
@@ -443,6 +445,34 @@ export default function App() {
         .reduce((merged, entry) => mergeOptimisticAttachments(merged, entry), messages)
     },
     [loadThreadMessagesRaw],
+  )
+
+  const settleChatTurn = useCallback(
+    async (
+      sessionId: string,
+      projectId?: string | null,
+      attempt = 0,
+      generation = localSendGeneration.current.get(sessionId) ?? 0,
+    ): Promise<void> => {
+      let messages: Awaited<ReturnType<typeof loadThreadMessages>>
+      try {
+        messages = await loadThreadMessages(sessionId, projectId)
+      } catch (error) {
+        // El hilo ya pasó a running:false: ningún poll lo vuelve a pedir, así que se reintenta aquí.
+        if (attempt >= 3) throw error
+        await new Promise((resolve) => window.setTimeout(resolve, 1000 * 2 ** attempt))
+        return settleChatTurn(sessionId, projectId, attempt + 1, generation)
+      }
+      // Hubo un envío nuevo desde que empezó esta lectura (en curso o ya terminado): su propia
+      // recarga es más nueva; aplicar esta pisaría su turno.
+      if ((localSendGeneration.current.get(sessionId) ?? 0) !== generation) return
+      setThreads((current) =>
+        current.map((thread) =>
+          thread.id === sessionId ? { ...thread, messages, running: false } : thread,
+        ),
+      )
+    },
+    [loadThreadMessages],
   )
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: cambiar de modo vuelve a hidratar las sesiones visibles.
@@ -989,6 +1019,17 @@ export default function App() {
     ],
     approvals,
     onSessions: (sessions) => {
+      // Un turno retomado tras recargar puede terminar sin que lo vea el timeline: recargar sus mensajes aquí.
+      for (const thread of threadsRef.current) {
+        const session = sessions.find((item) => item.id === thread.id)
+        if (
+          thread.running &&
+          session &&
+          !session.running &&
+          !locallyRunningSessionIds.current.has(thread.id)
+        )
+          void settleChatTurn(thread.id, thread.projectId).catch(() => {})
+      }
       setThreads((current) =>
         current.map((thread) => {
           const session = sessions.find((item) => item.id === thread.id)
@@ -1362,6 +1403,7 @@ export default function App() {
     )
     failedSessionIds.current.delete(threadId)
     locallyRunningSessionIds.current.add(threadId)
+    localSendGeneration.current.set(threadId, (localSendGeneration.current.get(threadId) ?? 0) + 1)
     setRunningSessionIds((current) => new Set(current).add(threadId))
     return sendMessage({
       sessionId: threadId,
@@ -1374,19 +1416,22 @@ export default function App() {
       approvalMode,
     })
       .then(async () => {
-        const messages = await loadThreadMessages(threadId, thread?.projectId)
         const firstMessageTitle = thread?.messages.length === 0 ? content.slice(0, 40) : undefined
-        setThreads((prev) =>
-          prev.map((thread) =>
-            thread.id === threadId
-              ? {
-                  ...thread,
-                  messages,
-                  title: firstMessageTitle || thread.title,
-                }
-              : thread,
-          ),
-        )
+        const reload = async () => {
+          const messages = await loadThreadMessages(threadId, thread?.projectId)
+          setThreads((prev) =>
+            prev.map((item) =>
+              item.id === threadId
+                ? { ...item, messages, running: false, title: firstMessageTitle || item.title }
+                : item,
+            ),
+          )
+        }
+        try {
+          await reload()
+        } catch {
+          window.setTimeout(() => void reload().catch(() => {}), 1000)
+        }
         if (firstMessageTitle) {
           void renameSession(threadId, firstMessageTitle, thread?.projectId ?? null).catch(
             () => undefined,
@@ -1878,6 +1923,10 @@ export default function App() {
                     (!deletingProjectIds.has(activeThread.projectId) &&
                       projects.some((project) => project.id === activeThread.projectId))
                   }
+                  onTurnSettled={() => {
+                    if (activeThread)
+                      void settleChatTurn(activeThread.id, activeThread.projectId).catch(() => {})
+                  }}
                   onSendMessage={handleSendMessage}
                   onApproveHeldTask={handleApproveHeldTask}
                   onViewEvidence={async (runId) => {

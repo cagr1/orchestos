@@ -262,5 +262,36 @@ export default async function chatStop({ page, api, step, shot, visible, cleanup
       'second response rendered',
     )
     await shot(`${view.toLowerCase()}-second-turn`)
+    if (view === 'Chat') {
+      const resumed = await send(
+        page,
+        'Cuenta del 1 al 300 en palabras, un número por línea, sin usar herramientas ni escribir archivos.',
+      )
+      // Reload disconnects the original request; completion is observed through the durable timeline.
+      void resumed.response.catch(() => null)
+      const resumedPath = `/api/chat/sessions/${encodeURIComponent(resumed.sessionId)}`
+      await waitFor(async () => (await api(`${resumedPath}/timeline`, { headers })).data?.pending)
+      await page.reload({ waitUntil: 'domcontentloaded' })
+      await step(
+        'Chat: reload restores Stop and working state',
+        await visible(page.getByRole('button', { name: 'Stop response', exact: true })),
+        `session=${resumed.sessionId}`,
+      )
+      await waitFor(async () => !(await api(`${resumedPath}/timeline`, { headers })).data?.pending)
+      const saved = await api(`${resumedPath}/messages`, { headers })
+      const answer = saved.data?.filter((message) => message.role === 'assistant').at(-1)
+      await waitFor(async () =>
+        (await page.locator('div.prose').allInnerTexts()).some(
+          (text) => answer?.content && text.trim() === answer.content.trim(),
+        ),
+      )
+      await step(
+        'Chat: recovered turn completes and its persisted answer appears',
+        Boolean(answer?.content) &&
+          sessionState(databasePath, resumed.sessionId).turns.at(-1)?.status === 'completed',
+        `saved=${answer?.content?.length}`,
+      )
+      await shot('chat-reloaded-completed')
+    }
   }
 }

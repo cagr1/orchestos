@@ -128,6 +128,23 @@ export function beginTurn(input: BeginTurnInput): BeginTurnResult {
   return claim.immediate()
 }
 
+export function renewTurnLease(turnId: string, owner: string, leaseMs = DEFAULT_LEASE_MS): boolean {
+  const now = new Date()
+  return (
+    db.run(
+      `UPDATE chat_turns SET owner_expires_at = ?, updated_at = ?
+     WHERE id = ? AND owner = ? AND status = 'pending' AND owner_expires_at > ?`,
+      [
+        new Date(now.getTime() + leaseMs).toISOString(),
+        now.toISOString(),
+        turnId,
+        owner,
+        now.toISOString(),
+      ],
+    ).changes === 1
+  )
+}
+
 interface CommitTurnSuccessInput {
   turnId: string
   owner: string

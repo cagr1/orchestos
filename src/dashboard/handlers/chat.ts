@@ -24,6 +24,7 @@ import {
   commitTurnSuccess,
   getActiveTurn,
   parseTurnEnvelope,
+  renewTurnLease,
   requireTurnOwner,
   reserveTurnTask,
 } from '../../db/chat-turns.ts'
@@ -163,6 +164,13 @@ export function chatEffortLevelsForAgent(agent: string | undefined): readonly st
 // dashboard obtiene un owner distinto, así un proceso que murió a mitad de un
 // turno nunca puede confundirse con el que lo reclama después de expirar.
 const CHAT_TURN_OWNER = randomUUID()
+let chatTurnLeaseMs = 150_000
+let chatTurnRenewMs = chatTurnLeaseMs / 5
+
+export function setChatTurnLeaseForTests(leaseMs: number, renewMs: number): void {
+  chatTurnLeaseMs = leaseMs
+  chatTurnRenewMs = renewMs
+}
 
 const MAX_FILE_BYTES = 10 * 1024 * 1024
 const FILE_TTL_MS = 30 * 60 * 1000
@@ -997,6 +1005,7 @@ async function handleApiChat(
   // decisión de darle turno también es la Fase 2 (ver PLAN.md R.5, punto 12).
   let activeTurnId: string | null = null
   let signal: AbortSignal | undefined
+  let leaseTimer: ReturnType<typeof setInterval> | undefined
   if (session) {
     const requestKey =
       typeof body.requestKey === 'string' && body.requestKey.trim()
@@ -1018,6 +1027,7 @@ async function handleApiChat(
       requestKey,
       inputFingerprint,
       owner: CHAT_TURN_OWNER,
+      leaseMs: chatTurnLeaseMs,
     })
     if (claim.kind === 'conflict') {
       return errorResponse('requestKey was already used with different message content', 409)
@@ -1045,6 +1055,16 @@ async function handleApiChat(
       return errorResponse('A response for this request is already being generated', 409)
     }
     if (claim.kind === 'duplicate-result') {
+      if (claim.turn.status === 'failed') {
+        return jsonResponse(
+          {
+            error: claim.turn.error ?? 'This request already failed',
+            replayed: true,
+            message: 'Send a new message to retry.',
+          },
+          409,
+        )
+      }
       // Reintento de una petición ya resuelta: replay del envelope guardado,
       // nunca una segunda llamada al proveedor (eso duplicaría costo/efectos).
       const envelope = parseTurnEnvelope(claim.turn) as Record<string, unknown> | null
@@ -1052,10 +1072,22 @@ async function handleApiChat(
       return errorResponse('Stored response for this request could not be replayed', 500)
     }
     activeTurnId = claim.turn.id
-    signal = registerChatTurn(session.id, activeTurnId)
   }
 
   try {
+    if (session && activeTurnId) {
+      signal = registerChatTurn(session.id, activeTurnId)
+      const turnId = activeTurnId
+      leaseTimer = setInterval(() => {
+        try {
+          if (renewTurnLease(turnId, CHAT_TURN_OWNER, chatTurnLeaseMs)) return
+        } catch (error) {
+          console.warn('[chat] lease renewal failed', error)
+        }
+        clearInterval(leaseTimer)
+        console.warn('[chat] stopped renewing turn lease', turnId)
+      }, chatTurnRenewMs)
+    }
     let chatStepSeq = 0
     const persistedNotices = new Set<string>()
     // AT.20 — la fuente de verdad de "crear tarea" es la llamada a `create_task` en el stream del CLI.
@@ -1302,6 +1334,12 @@ async function handleApiChat(
     if (Array.isArray(body.fileIds) && body.fileIds.length > 0) {
       pruneExpiredFiles()
       attachedFiles = body.fileIds.map((id) => fileStore.get(id)).filter((f): f is FileEntry => !!f)
+      const missing = body.fileIds.length - attachedFiles.length
+      if (missing) {
+        const error = `Attachment expired or not found: ${missing} file(s). Attach them again.`
+        finishTurnFailure({ error })
+        return errorResponse(error, 400)
+      }
     }
 
     let taskRows: any[] = []
@@ -1941,7 +1979,20 @@ async function handleApiChat(
       return errorResponse(`Chat failed: ${message}`, 502)
     }
   } catch (error) {
-    if (!signal?.aborted || !session || !activeTurnId) throw error
+    if (!signal?.aborted) {
+      const detail = error instanceof Error ? error.message : String(error)
+      const failure = `Chat failed: ${detail}`
+      if (session && activeTurnId) {
+        clearLiveText(session.id, activeTurnId)
+        try {
+          commitTurnFailure({ turnId: activeTurnId, owner: CHAT_TURN_OWNER, error: failure })
+        } catch (commitError) {
+          console.warn('[chat] could not persist turn failure', commitError)
+        }
+      }
+      return errorResponse(failure, 500)
+    }
+    if (!session || !activeTurnId) throw error
     if (session.agent === 'claude') clearClaudeChatSession(session.id)
     const live = getLiveText(session.id)
     const text = live?.turnId === activeTurnId ? live.text : ''
@@ -1956,6 +2007,7 @@ async function handleApiChat(
     clearLiveText(session.id, activeTurnId)
     return jsonResponse({ text, model, stopped: true })
   } finally {
+    clearInterval(leaseTimer)
     if (session && activeTurnId) unregisterChatTurn(session.id, activeTurnId)
   }
 }

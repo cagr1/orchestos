@@ -248,3 +248,123 @@ test(
   },
   ISOLATED_TIMEOUT_MS,
 )
+
+const aud24Fixture = `
+  const { mkdirSync, writeFileSync } = await import('node:fs')
+  const root = process.env.ORCHESTOS_HOME + '/project'
+  mkdirSync(root)
+  writeFileSync(root + '/orchestos.config.yaml', 'roles:\\n  orchestrator: { agent: api, provider: openrouter, model: mock/model }\\n')
+  writeFileSync(root + '/tasks.yaml', 'version: 1\\nproject: fixture\\ntasks: []\\n')
+  db.run('INSERT INTO projects (id,path,stack_profile,agents_md,last_updated) VALUES (?,?,?,?,?)', ['fixture', root, '{}', '', new Date().toISOString()])
+  db.run('UPDATE chat_sessions SET project_id = ?, mode = ? WHERE id = ?', ['fixture', 'code', session.id])
+  const { cliChatAdapterFor } = await import('./src/run/executors/chat-adapters.ts')
+  let calls = 0
+  cliChatAdapterFor('codex').runTurn = async () => {
+    calls++
+    await Bun.sleep(900)
+    return { text: 'durable answer', inputTokens: 1, outputTokens: 1, model: 'fake', resultLabel: 'fake', readAudit: { kind: 'uninstrumented' } }
+  }
+  const request = (extra = {}) => new Request('http://localhost/api/chat', { method: 'POST', body: JSON.stringify({ sessionId: session.id, message: 'question', requestKey: 'aud24', model: 'gpt-6-luna', ...extra }) })
+`
+
+test(
+  'AUD.24 renews a short lease throughout a long provider call',
+  async () => {
+    const result = await isolated(
+      aud24Fixture +
+        `
+    const { handleApiChat, setChatTurnLeaseForTests } = await import('./src/dashboard/handlers/chat.ts')
+    setChatTurnLeaseForTests(300, 50)
+    const response = await handleApiChat(request())
+    console.log(JSON.stringify({ status: response.status, body: await response.json(), turn: turns.getLastTurn(session.id), messages: sessions.listChatMessages(session.id), calls }))
+  `,
+    )
+    expect(result.status).toBe(200)
+    expect(result.turn.status).toBe('completed')
+    expect(result.messages[1].content).toBe('durable answer')
+    expect(result.calls).toBe(1)
+  },
+  ISOLATED_TIMEOUT_MS,
+)
+
+test(
+  'AUD.24 context failure resolves the claimed turn before the inner catch',
+  async () => {
+    const result = await isolated(
+      aud24Fixture +
+        `
+    const { mock } = await import('bun:test')
+    const context = await import('./src/context/load.ts')
+    mock.module('./src/context/load.ts', () => ({ ...context, refreshProjectContext: async () => { throw new Error('context fixture failed') } }))
+    const { handleApiChat } = await import('./src/dashboard/handlers/chat.ts')
+    const response = await handleApiChat(request())
+    console.log(JSON.stringify({ status: response.status, body: await response.json(), turn: turns.getLastTurn(session.id), calls }))
+  `,
+    )
+    expect(result.status).toBe(500)
+    expect(result.body.error).toBe('Chat failed: context fixture failed')
+    expect(result.turn.status).toBe('failed')
+    expect(result.calls).toBe(0)
+  },
+  ISOLATED_TIMEOUT_MS,
+)
+
+test(
+  'AUD.24 failed request replays as 409 without repeating the provider',
+  async () => {
+    const result = await isolated(
+      aud24Fixture +
+        `
+    cliChatAdapterFor('codex').runTurn = async () => { calls++; throw new Error('provider fixture failed') }
+    const { handleApiChat } = await import('./src/dashboard/handlers/chat.ts')
+    await handleApiChat(request())
+    const error = turns.getLastTurn(session.id).error
+    const response = await handleApiChat(request())
+    console.log(JSON.stringify({ status: response.status, body: await response.json(), error, calls }))
+  `,
+    )
+    expect(result.status).toBe(409)
+    expect(result.body).toMatchObject({ error: result.error, replayed: true })
+    expect(result.calls).toBe(1)
+  },
+  ISOLATED_TIMEOUT_MS,
+)
+
+test(
+  'AUD.24 missing attachment fails before calling the provider',
+  async () => {
+    const result = await isolated(
+      aud24Fixture +
+        `
+    const { handleApiChat } = await import('./src/dashboard/handlers/chat.ts')
+    const response = await handleApiChat(request({ fileIds: ['expired-file'] }))
+    console.log(JSON.stringify({ status: response.status, body: await response.json(), turn: turns.getLastTurn(session.id), calls }))
+  `,
+    )
+    expect(result.status).toBe(400)
+    expect(result.body.error).toBe('Attachment expired or not found: 1 file(s). Attach them again.')
+    expect(result.turn.status).toBe('failed')
+    expect(result.calls).toBe(0)
+  },
+  ISOLATED_TIMEOUT_MS,
+)
+
+test(
+  'AUD.24 registration failure resolves the new turn',
+  async () => {
+    const result = await isolated(
+      aud24Fixture +
+        `
+    registry.registerChatTurn(session.id, 'older-local-turn')
+    const { handleApiChat } = await import('./src/dashboard/handlers/chat.ts')
+    const response = await handleApiChat(request())
+    registry.unregisterChatTurn(session.id, 'older-local-turn')
+    console.log(JSON.stringify({ status: response.status, turn: turns.getLastTurn(session.id), calls }))
+  `,
+    )
+    expect(result.status).toBe(500)
+    expect(result.turn.status).toBe('failed')
+    expect(result.calls).toBe(0)
+  },
+  ISOLATED_TIMEOUT_MS,
+)

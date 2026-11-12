@@ -346,3 +346,33 @@ describe('R.5 — durable chat turns', () => {
     expect(result).toEqual({ empty: false, worked: true, last: 'task-newer' })
   })
 })
+
+it('AUD.24 renews only a pending lease with a live matching owner', async () => {
+  const result = await runIsolated(`
+    const { runMigrations } = await import('./src/db/migrate.ts')
+    const { createChatSession } = await import('./src/db/chat-sessions.ts')
+    const { beginTurn, renewTurnLease, getTurn, commitTurnFailure } = await import('./src/db/chat-turns.ts')
+    const { db } = await import('./src/db/sqlite.ts')
+    runMigrations()
+    const session = createChatSession({ agent: 'codex' })
+    const turn = beginTurn({ sessionId: session.id, projectId: null, requestKey: 'renew', inputFingerprint: 'fp', owner: 'worker', leaseMs: 10000 }).turn
+    const wrongOwner = renewTurnLease(turn.id, 'other', 20000)
+    const renewed = renewTurnLease(turn.id, 'worker', 20000)
+    const extended = getTurn(turn.id).owner_expires_at > turn.owner_expires_at
+    db.run('UPDATE chat_turns SET owner_expires_at = ? WHERE id = ?', ['2000-01-01T00:00:00.000Z', turn.id])
+    const expired = renewTurnLease(turn.id, 'worker')
+    const expiry = getTurn(turn.id).owner_expires_at
+    db.run('UPDATE chat_turns SET owner_expires_at = ? WHERE id = ?', ['2099-01-01T00:00:00.000Z', turn.id])
+    commitTurnFailure({ turnId: turn.id, owner: 'worker', error: 'done' })
+    const finalized = renewTurnLease(turn.id, 'worker')
+    console.log(JSON.stringify({ wrongOwner, renewed, extended, expired, expiry, finalized }))
+  `)
+  expect(result).toEqual({
+    wrongOwner: false,
+    renewed: true,
+    extended: true,
+    expired: false,
+    expiry: '2000-01-01T00:00:00.000Z',
+    finalized: false,
+  })
+})

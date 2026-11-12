@@ -58,6 +58,7 @@ interface OrchestChatViewProps {
   onCommitRunTask?: (taskId: string, files: string[]) => void | Promise<void>
   sessionStatus?: SessionStatus | null
   onSlashCommand?: (command: string, argument?: string) => void
+  onTurnSettled?: () => void
   onOpenRouting?: () => void
 }
 
@@ -80,12 +81,17 @@ export const OrchestChatView: React.FC<OrchestChatViewProps> = ({
   sessionStatus,
   onSlashCommand,
   onOpenRouting,
+  onTurnSettled,
 }) => {
   const scrollContainerRef = useRef<HTMLDivElement>(null)
   const contentRef = useRef<HTMLDivElement>(null)
   const { stickToBottom } = useStickToBottom(scrollContainerRef, contentRef)
   const [copiedMessageId, setCopiedMessageId] = useState<string | null>(null)
   const [isWorking, setIsWorking] = useState(false)
+  const working = isWorking || thread?.running === true
+  // Ref: el padre pasa una flecha nueva en cada render y no debe reiniciar el poll.
+  const onTurnSettledRef = useRef(onTurnSettled)
+  onTurnSettledRef.current = onTurnSettled
   const sendLock = useRef(false)
   const [taskActionErrors, setTaskActionErrors] = useState<Record<string, string>>({})
   const [reportActionErrors, setReportActionErrors] = useState<Record<string, string>>({})
@@ -198,7 +204,7 @@ export const OrchestChatView: React.FC<OrchestChatViewProps> = ({
   useEffect(() => stickToBottom(), [sessionId, stickToBottom])
 
   useEffect(() => {
-    if (!isWorking || !sessionId || !projectExists) {
+    if (!working || !sessionId || !projectExists) {
       setLiveTimeline(null)
       return
     }
@@ -209,7 +215,9 @@ export const OrchestChatView: React.FC<OrchestChatViewProps> = ({
       controller = new AbortController()
       void getTimeline(sessionId, thread?.projectId ?? null, controller.signal)
         .then((timeline) => {
-          if (!disposed) setLiveTimeline(timeline)
+          if (disposed) return
+          setLiveTimeline(timeline)
+          if (!isWorking && !timeline.pending) onTurnSettledRef.current?.()
         })
         .catch(() => {})
     }
@@ -220,7 +228,7 @@ export const OrchestChatView: React.FC<OrchestChatViewProps> = ({
       controller?.abort()
       window.clearInterval(timer)
     }
-  }, [isWorking, sessionId, thread?.projectId, projectExists])
+  }, [working, isWorking, sessionId, thread?.projectId, projectExists])
   const liveText = liveTimeline?.live?.text ?? ''
   const liveMode = useRef<EntranceMode | null>(null)
   if (!liveText) liveMode.current = null
@@ -242,19 +250,19 @@ export const OrchestChatView: React.FC<OrchestChatViewProps> = ({
   const stop = useStopChatTurn(
     sessionId,
     liveTurn?.status === 'pending' ? liveTurn.id : undefined,
-    isWorking,
+    working,
     thread?.projectId ?? null,
   )
   const [workStartedAt, setWorkStartedAt] = useState(0)
   const [nowMs, setNowMs] = useState(0)
   useEffect(() => {
-    if (!isWorking) return
+    if (!working) return
     const start = Date.now()
     setWorkStartedAt(start)
     setNowMs(start)
     const timer = window.setInterval(() => setNowMs(Date.now()), 1000)
     return () => window.clearInterval(timer)
-  }, [isWorking])
+  }, [working])
   const [defaultAgent, setDefaultAgent] = useState<string | null | undefined>(undefined)
   useEffect(() => {
     let disposed = false
@@ -546,7 +554,7 @@ export const OrchestChatView: React.FC<OrchestChatViewProps> = ({
                       </ChatMessage>
                     )
                   })}
-                {isWorking && liveText && (
+                {working && liveText && (
                   <ChatMessage
                     key="live"
                     from="assistant"
@@ -560,7 +568,7 @@ export const OrchestChatView: React.FC<OrchestChatViewProps> = ({
                   </ChatMessage>
                 )}
                 <AnimatePresence initial={false}>
-                  {isWorking && (
+                  {working && (
                     <motion.div
                       key="thinking"
                       initial={{ opacity: 0 }}
@@ -615,7 +623,7 @@ export const OrchestChatView: React.FC<OrchestChatViewProps> = ({
               orchestratorLoading={
                 orchestrator === undefined || (!thread && defaultAgent === undefined)
               }
-              busy={isWorking}
+              busy={working}
               onStop={stop.onStop}
               stopping={stop.stopping}
               onOpenRouting={onOpenRouting}

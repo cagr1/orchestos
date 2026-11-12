@@ -505,11 +505,21 @@ qué no). Cada ítem es una clase de falla con varios sitios; el spec comprueba 
   `approvals.ts:30-34`; `prompt.ts:43-47` lee inputs sin política de rutas; permiso "siempre" sin `cwd`
   (`approvals.ts:54`); `.env` sin 0600 (`settings-store.ts:62-67`); puerto sin validar en IPv4 (`ssrf.ts:105-112`). Verificación: test con symlink hacia fuera →
   403; secreto con `test` dentro → redactado; PEM staged → gate rojo.
-- [ ] **AUD.24 — Chat: turnos que quedan pendientes o no se pueden guardar.** (abierto 2026-11-11) Lease de 150 s sin
+- [x] **AUD.24 — Chat: turnos que quedan pendientes o no se pueden guardar.** (abierto 2026-11-11, cerrado 2026-11-12) Lease de 150 s sin
   renovar (`db/chat-turns.ts:45`, `handlers/chat.ts:1015`, sin contrastar la renovación); error antes del `catch`
   interno (`chat.ts:1944`); repetir un turno fallido da 500 (`chat.ts:1051`); adjunto ausente descartado en silencio
   (`chat.ts:1304`); recarga durante un turno pierde la actividad (`OrchestChatView.tsx:88`). Verificación: turno de
   más de 150 s con CLI falso queda guardado; ui-gate de recarga a mitad de turno.
+  Cierre: `renewTurnLease` (no resucita un lease vencido) renovado cada lease/5 mientras vive el turno;
+  `registerChatTurn` dentro del `try` y el `catch` externo marca `failed` (500) en vez de dejar `pending`; `requestKey`
+  de un turno `failed` → 409 con el error guardado; adjunto ausente → 400 y turno `failed` antes del proveedor;
+  `OrchestChatView` trabaja con `isWorking || thread.running` (Stop y actividad tras recargar) y `settleChatTurn`
+  (`App.tsx`) recarga el hilo al terminar, con reintento 1/2/4 s y generación por envío local; POST correcto + GET
+  fallido ya no restaura el borrador. También en AUD.24 (informe): `App.tsx:1374,1427`. Gates: tsc, lint,
+  test:coverage 2693/0; qa 4 vueltas (3 P2 de la recarga corregidos); `docs/done/evidence/AUD.24-live.json`.
+  Gate en vivo: navegador Playwright, `chat-stop` 24/24, `docs/done/evidence/AUD.24-chat-stop-result.json`.
+  Con Claude real: recargar a mitad de turno devuelve Stop y la respuesta queda guardada.
+  Ejecutado por: gpt-6.1-sol (criterio) + claude-opus-5-5 (fixes de revisión) · Spec: docs/specs/AUD.24.md
 - [ ] **AUD.25 — UI que no hace lo que muestra.** (abierto 2026-11-11) `!comando` no ejecuta en Dev
   (`OrchestDevWorkspace.tsx:432`, `App.tsx` no pasa `onRunCommand`) ni en Chat (`OrchestChatView.tsx:310`); el kanban
   no tiene columna `failed` (`PlanBoardView.tsx:98-104`); `purgingProjectIds` no se limpia al terminar bien

@@ -1,0 +1,137 @@
+[
+  {
+    "flujo": "chat-stop",
+    "pass": true,
+    "steps": [
+      {
+        "nombre": "Chat: live text before Stop",
+        "ok": true,
+        "detalle": "turn=93eb0175-b584-4cda-a177-8f5afc5da9f8; partial=11"
+      },
+      {
+        "nombre": "Chat: Enter while busy queues without concurrent POST or Stop",
+        "ok": true,
+        "detalle": "posts=0"
+      },
+      {
+        "nombre": "Chat: Stop sends the current turnId",
+        "ok": true,
+        "detalle": "93eb0175-b584-4cda-a177-8f5afc5da9f8"
+      },
+      {
+        "nombre": "Chat: POST completes as stopped",
+        "ok": true,
+        "detalle": "{\"text\":\"1 uno\\n2 dos\\n3 tres\\n4 cuatro\\n5 cinco\\n6 seis\\n7 siete\\n8 ocho\\n9 nueve\\n10 diez\\n11 once\\n12 doce\\n13 trece\\n14 catorce\\n15 quince\\n16 dieciséis\\n17 diecisiete\\n18 dieciocho\\n19 diecinueve"
+      },
+      {
+        "nombre": "Chat: Stopping was visible and disabled",
+        "ok": true,
+        "detalle": "MutationObserver sampled stopping button"
+      },
+      {
+        "nombre": "Chat: stopped mark visible",
+        "ok": true,
+        "detalle": "Respuesta detenida"
+      },
+      {
+        "nombre": "Chat: persisted partial is stopped",
+        "ok": true,
+        "detalle": "length=567"
+      },
+      {
+        "nombre": "Chat: partial does not grow for 5 s",
+        "ok": true,
+        "detalle": "partial=567"
+      },
+      {
+        "nombre": "Chat: cancelled Claude session cannot resume",
+        "ok": true,
+        "detalle": "{\"session\":{\"claude_session_id\":null},\"turns\":[{\"status\":\"cancelled\"}]}"
+      },
+      {
+        "nombre": "Chat: second turn in same session completes normally",
+        "ok": true,
+        "detalle": "{\"body\":{\"text\":\"listo\",\"model\":\"claude-haiku-5-5 via Claude Code CLI (effort: low)\",\"readAudit\":{\"version\":1,\"source\":\"claude-stream\",\"coverage\":\"explicit-tools-only\",\"completeness\":\"complete\",\"tools\":[\"Read\",\"Grep\",\"Glob\"],\"limitations\":[\"implicit-reads-not-observed\",\"search-file-set-not-observed\"],\"issues\":[],\"operations\":[]},\"taskSuggestion\":{\"isTask\":false,\"reason\":\"\"},\"autoTask\":null,\"autoTaskSkipped\":false},\"state\":{\"session\":{\"claude_session_id\":\"5dca1527-f1dc-4905-b4ba-895673eccc53\"},\"turns\":[{\"status\":\"cancelled\"},{\"status\":\"completed\"}]}}"
+      },
+      {
+        "nombre": "Chat: second answer appears in thread",
+        "ok": true,
+        "detalle": "second response rendered"
+      },
+      {
+        "nombre": "Chat: reload restores Stop and working state",
+        "ok": true,
+        "detalle": "session=031eea8f-e1f4-4967-a84d-5a9269da43a2"
+      },
+      {
+        "nombre": "Chat: recovered turn completes and its persisted answer appears",
+        "ok": true,
+        "detalle": "saved=6874"
+      },
+      {
+        "nombre": "Dev: live text before Stop",
+        "ok": true,
+        "detalle": "turn=01865ae9-abe1-4b5d-9ba7-42dba0e0ab40; partial=57"
+      },
+      {
+        "nombre": "Dev: Enter while busy queues without concurrent POST or Stop",
+        "ok": true,
+        "detalle": "posts=0"
+      },
+      {
+        "nombre": "Dev: Stop sends the current turnId",
+        "ok": true,
+        "detalle": "01865ae9-abe1-4b5d-9ba7-42dba0e0ab40"
+      },
+      {
+        "nombre": "Dev: POST completes as stopped",
+        "ok": true,
+        "detalle": "{\"text\":\"uno\\ndos\\ntres\\ncuatro\\ncinco\\nseis\\nsiete\\nocho\\nnueve\\ndiez\\nonce\\ndoce\\ntrece\\ncatorce\\nquince\\ndieciséis\\ndiecisiete\\ndieciocho\\ndiecinueve\\nveinte\\nveintiuno\\nveintidós\\nveintitrés\\nvein"
+      },
+      {
+        "nombre": "Dev: Stopping was visible and disabled",
+        "ok": true,
+        "detalle": "MutationObserver sampled stopping button"
+      },
+      {
+        "nombre": "Dev: stopped mark visible",
+        "ok": true,
+        "detalle": "Respuesta detenida"
+      },
+      {
+        "nombre": "Dev: persisted partial is stopped",
+        "ok": true,
+        "detalle": "length=392"
+      },
+      {
+        "nombre": "Dev: partial does not grow for 5 s",
+        "ok": true,
+        "detalle": "partial=392"
+      },
+      {
+        "nombre": "Dev: cancelled Claude session cannot resume",
+        "ok": true,
+        "detalle": "{\"session\":{\"claude_session_id\":null},\"turns\":[{\"status\":\"cancelled\"}]}"
+      },
+      {
+        "nombre": "Dev: second turn in same session completes normally",
+        "ok": true,
+        "detalle": "{\"body\":{\"text\":\"listo\",\"model\":\"claude-haiku-5-5 via Claude Code CLI (effort: high)\",\"readAudit\":{\"version\":1,\"source\":\"claude-stream\",\"coverage\":\"explicit-tools-only\",\"completeness\":\"complete\",\"tools\":[\"Read\",\"Grep\",\"Glob\"],\"limitations\":[\"implicit-reads-not-observed\",\"search-file-set-not-observed\"],\"issues\":[],\"operations\":[]},\"taskSuggestion\":{\"isTask\":false,\"reason\":\"\"},\"autoTask\":null,\"autoTaskSkipped\":false},\"state\":{\"session\":{\"claude_session_id\":\"d59dfeee-fbf0-441f-959b-27712181a073\"},\"turns\":[{\"status\":\"cancelled\"},{\"status\":\"completed\"}]}}"
+      },
+      {
+        "nombre": "Dev: second answer appears in thread",
+        "ok": true,
+        "detalle": "second response rendered"
+      }
+    ],
+    "notes": [],
+    "errores": [],
+    "capturas": [
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-61593/chat-stop/chat-stopped.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-61593/chat-stop/chat-second-turn.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-61593/chat-stop/chat-reloaded-completed.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-61593/chat-stop/dev-stopped.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-61593/chat-stop/dev-second-turn.png"
+    ]
+  }
+]
