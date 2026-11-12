@@ -314,6 +314,14 @@
       "title": "Funciones que mezclan responsabilidades: cortar las cinco más grandes",
       "status": "open",
       "closedDate": null
+    },
+    {
+      "id": "SES.1",
+      "sprint": "Abiertos — auditoría 2026-11-10",
+      "block": "Abiertos — ciclo de vida de sesiones",
+      "title": "Cerrar una sesión de verdad",
+      "status": "open",
+      "closedDate": null
     }
   ]
 }

@@ -39,6 +39,9 @@ Arranque: `bun run agent:preflight -- --item <ID> --agent claude`. Lista viva: `
    - Decisiones de Carlos pendientes: adoptar el tamaño por reanudabilidad de ODD en el proceso; qué ideas de
      `IDEAS.md` entran al cierre (propuesta en el informe); Tauri (recomendado) o Electron, después de AUD.7.
    - Cupo: la auditoría gastó ~35 % del cupo de 5 h. No relanzar agentes de lectura: la evidencia ya está escrita.
+1a. **Primero tras el lote AUD (Carlos, 2026-11-12): SES.1** — cerrar una sesión de verdad: archivar detiene el
+   turno en curso y la X del tab deja de parecer un cierre. Detalle en `PLAN.md` § "Abiertos — ciclo de vida de
+   sesiones".
 1b. **Después del lote AUD (Carlos, 2026-11-10: "primero lo pendiente y luego esto")** — ritmo de entrega. Medido
    el 2026-11-10: pre-commit 5 s, pre-push 124 s, CI ~2 min verde; los hooks no son la causa. Desde el 2026-11-08,
    2 de ~30 commits fueron de producto (ADE.11, CI.79); el resto CI.72–84, AUD y 22 `docs(NEXT)` en la semana; la

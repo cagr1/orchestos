@@ -508,6 +508,16 @@ qué no). Cada ítem es una clase de falla con varios sitios; el spec comprueba 
   componentes del prototipo choca con la comparación 1:1). Verificación: ninguna función de `src/run` ni de
   `handlers/` sobre 300 líneas; suite y ui-gates del área verdes antes y después.
 
+### Abiertos — ciclo de vida de sesiones
+
+- [ ] **SES.1 — Cerrar una sesión de verdad.** (abierto 2026-11-12; Carlos: va justo después del lote AUD) La X del
+  tab (`App.tsx:172`, `closeDevTab`) solo quita el tab de la UI: la sesión sigue activa y su turno corriendo. Archivar
+  (`handlers/chat-sessions.ts:551`, `handleApiChatSessionArchive`) marca `archived` sin detener el turno en curso: el
+  CLI queda vivo y la sesión desaparece del sidebar. Borrar ya rechaza con turno activo (409). Arreglo: archivar
+  detiene antes el turno activo (`stopChatTurn`; matar el grupo de procesos depende de AUD.6); la X del tab muestra
+  que la sesión sigue viva (indicador de corriendo, o aviso al cerrar un tab con turno en curso). Verificación: test
+  que archiva una sesión con turno en curso y comprueba que no queda proceso vivo; prueba en vivo en el dashboard.
+
 ## Decisiones pendientes de Carlos
 
 - Estados de sesión `ended` con **resume/fork** (§C.3) — PI y Codex los tienen; OrchestOS no (anotado en UI.8;
