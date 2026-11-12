@@ -12,7 +12,7 @@ import {
   X,
 } from 'lucide-react'
 import type React from 'react'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { getPlanDoc, type PlanDocResponse } from '../../api/planDoc'
 import type { TaskItem, TaskStatus } from '../../types/orchestos'
@@ -95,11 +95,32 @@ export const PlanBoardView: React.FC<PlanBoardViewProps> = ({
     return matchesSearch && matchesSprint
   })
 
+  // Solo la última petición escribe: una respuesta tardía de otra tarea no pisa el modal actual.
+  const explainRequest = useRef(0)
+  const loadExplain = async (task: TaskItem) => {
+    const request = ++explainRequest.current
+    setExplainModalTask(task)
+    setExplainResult(null)
+    setExplainError(null)
+    setExplaining(true)
+    try {
+      const result = await onExplainTask(task.id)
+      if (request !== explainRequest.current) return
+      setExplainResult(result && typeof result === 'object' ? result : null)
+    } catch (error) {
+      if (request !== explainRequest.current) return
+      setExplainError(error instanceof Error ? error.message : String(error))
+    } finally {
+      if (request === explainRequest.current) setExplaining(false)
+    }
+  }
+
   const columns: { id: TaskStatus; title: string; dot: string }[] = [
     { id: 'pending', title: 'Pending / Backlog', dot: 'bg-app-muted' },
     { id: 'running', title: 'Sandboxed Running', dot: 'bg-app-accent' },
     { id: 'blocked', title: 'Blocked by DAG', dot: 'bg-app-warning' },
     { id: 'done', title: 'Verified & Done', dot: 'bg-app-success' },
+    { id: 'failed', title: 'Failed', dot: 'bg-app-error' },
     { id: 'failed_permanent', title: 'Failed Permanent (3x)', dot: 'bg-app-error' },
   ]
 
@@ -108,6 +129,7 @@ export const PlanBoardView: React.FC<PlanBoardViewProps> = ({
     running: 'bg-app-accent',
     blocked: 'bg-app-warning',
     done: 'bg-app-success',
+    failed: 'bg-app-error',
     failed_permanent: 'bg-app-error',
   }
 
@@ -310,7 +332,7 @@ export const PlanBoardView: React.FC<PlanBoardViewProps> = ({
                               <Button
                                 variant="ghost"
                                 size="compact"
-                                onClick={() => setExplainModalTask(task)}
+                                onClick={() => void loadExplain(task)}
                                 title="Explain dry-run execution plan"
                               >
                                 Plan
@@ -393,26 +415,7 @@ export const PlanBoardView: React.FC<PlanBoardViewProps> = ({
                     </td>
                     <td className="px-3 text-right">
                       <div className="flex items-center justify-end gap-1.5">
-                        <Button
-                          variant="ghost"
-                          size="compact"
-                          onClick={async () => {
-                            setExplainModalTask(t)
-                            setExplainResult(null)
-                            setExplainError(null)
-                            setExplaining(true)
-                            try {
-                              const result = await onExplainTask(t.id)
-                              setExplainResult(result && typeof result === 'object' ? result : null)
-                            } catch (error) {
-                              setExplainError(
-                                error instanceof Error ? error.message : String(error),
-                              )
-                            } finally {
-                              setExplaining(false)
-                            }
-                          }}
-                        >
+                        <Button variant="ghost" size="compact" onClick={() => void loadExplain(t)}>
                           Dry-Run
                         </Button>
                         {t.status !== 'done' && (

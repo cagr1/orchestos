@@ -86,3 +86,16 @@ describe('scaffoldSkillYaml', () => {
     }
   })
 })
+
+it('scaffold language guidance reaches the renderer using detected literal language names', async () => {
+  const { buildSections } = await import('../skills/targets/_shared.ts')
+  for (const language of ['TypeScript', 'C#', 'Visual Basic']) {
+    const skill = parseYaml(scaffoldSkillYaml(language))
+    const sections = buildSections(skill, language)
+    const languageGuidance = sections.slice(sections.indexOf('## Language-specific guidance'))
+    expect(languageGuidance.join('\n')).not.toContain('run your test suite')
+    expect(languageGuidance.join('\n')).toContain(
+      language === 'TypeScript' ? 'bun test' : 'dotnet test',
+    )
+  }
+})

@@ -112,3 +112,16 @@ export async function findExplorerFiles(
   }
   return files
 }
+
+export async function searchExplorerContents(
+  query: string,
+  projectId: string,
+  signal?: AbortSignal,
+): Promise<FileNode[]> {
+  const data = await request<{ paths: string[] }>(
+    `/api/explorer/search?q=${encodeURIComponent(query)}`,
+    projectId,
+    signal,
+  )
+  return data.paths.map((path) => ({ name: path, path, isDir: false }))
+}

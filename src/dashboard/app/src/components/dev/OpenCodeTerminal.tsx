@@ -12,9 +12,28 @@ type Props = {
   projectId: string
   /** `shell` abre la shell del usuario; por defecto OpenCode. */
   kind?: 'opencode' | 'shell'
+  pendingInput?: { id: string; data: string }[]
+  onInputConsumed?: (id: string) => void
 }
 
-export function OpenCodeTerminal({ projectId, kind = 'opencode' }: Props) {
+export function OpenCodeTerminal({
+  projectId,
+  kind = 'opencode',
+  pendingInput,
+  onInputConsumed,
+}: Props) {
+  const inputRef = useRef({ pendingInput, onInputConsumed })
+  inputRef.current = { pendingInput, onInputConsumed }
+  const sentInputs = useRef(new Set<string>())
+  const flushInput = useCallback((socket: WebSocket) => {
+    if (socket.readyState !== WebSocket.OPEN) return
+    for (const input of inputRef.current.pendingInput ?? []) {
+      if (sentInputs.current.has(input.id)) continue
+      socket.send(JSON.stringify({ type: 'input', data: input.data }))
+      sentInputs.current.add(input.id)
+      inputRef.current.onInputConsumed?.(input.id)
+    }
+  }, [])
   const { uiScale } = useAppearanceSettings()
   const isShell = kind === 'shell'
   const hostRef = useRef<HTMLDivElement>(null)
@@ -80,7 +99,10 @@ export function OpenCodeTerminal({ projectId, kind = 'opencode' }: Props) {
       )
       socket.binaryType = 'arraybuffer'
       socketRef.current = socket
-      socket.onopen = () => setState('connected')
+      socket.onopen = () => {
+        setState('connected')
+        flushInput(socket)
+      }
       socket.onmessage = (event) => {
         if (event.data instanceof ArrayBuffer) {
           setHasOutput(true)
@@ -162,7 +184,14 @@ export function OpenCodeTerminal({ projectId, kind = 'opencode' }: Props) {
       terminalRef.current = null
       resizeRef.current = null
     }
-  }, [projectId, attempt, isShell, reopen])
+  }, [projectId, attempt, isShell, reopen, flushInput])
+
+  useEffect(() => {
+    if (!pendingInput?.some((input) => !sentInputs.current.has(input.id))) return
+    // Shell terminada o caída: reabrir; `onopen` envía lo pendiente.
+    if (stateRef.current === 'exited' || stateRef.current === 'error') reopen()
+    else if (socketRef.current) flushInput(socketRef.current)
+  }, [pendingInput, flushInput, reopen])
 
   useEffect(() => {
     if (!terminalRef.current) return

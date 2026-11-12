@@ -1,4 +1,4 @@
-# NEXT — handoff 2026-11-12 (lote de auditoría AUD.19–28; AUD.25 en curso)
+# NEXT — handoff 2026-11-12 (lote de auditoría AUD.19–28; siguiente AUD.26)
 
 Un solo presente: orden y trampas vivas del lote. Lo cerrado vive en `docs/done/bloque-*.md` y git; las reglas, en
 `AGENTS.md`. Versión anterior completa: `docs/done/poda-instrucciones-2026-11-03.md` (histórico).
@@ -38,22 +38,10 @@ Arranque: `bun run agent:preflight -- --item <ID> --agent claude`. Lista viva: `
        como grupo (`src/run/process-tree.ts`): todo spawn nuevo de un CLI de agente pasa por `spawnTree`.
      - AUD.24 cerrado 2026-11-12 (evidencia `docs/done/evidence/AUD.24-chat-stop-result.json`). El lease del turno se
        renueva; recargar a mitad de turno conserva Stop y actividad.
-     - **AUD.25 EN CURSO (2026-11-12, sesión cortada a mitad de la ejecución).** Spec `docs/specs/AUD.25.md`
-       (11 puntos; decisión tomada: `!comando` en Dev va al tab terminal del proyecto, en Chat se quita el modo shell).
-       Delegado a `criterio`; al cortar ya había editado 17 archivos (app, `handlers/explorer.ts`, `server.ts`,
-       `html-script-check.ts`, `scaffold.ts`, `_shared.ts`, `cli-transcripts-reader.ts`) y escribía los ui-gates.
-       El ejecutor se detuvo por límite de cupo de Codex (se libera 13:29) a mitad de la búsqueda por contenido,
-       `checks.ts`/`html-script-check` y `src/dashboard/__tests__/aud25-ui.test.ts`: el árbol puede no compilar.
-       Si Codex sigue sin cupo, relanzar con `criterio-alt` (regla del roster).
-       Al retomar: (1) `git status` y `git diff --stat` — los cambios sin commitear SON de AUD.25, no ajenos;
-       (2) relanzar `delegate criterio docs/specs/AUD.25.md` con la nota "continúa: el árbol ya tiene parte hecha;
-       revisa cada punto del spec, completa lo que falte, tests y ui-gates"; (3) el cerebro lee el diff, corre tsc,
-       lint, `test:coverage` y los ui-gates en vivo con `gate:evidence`; (4) `qa` sobre el diff; (5) cierre en
-       `PLAN.md` con línea `Gate en vivo: navegador Playwright … \`<evidencia>.json\`` en UNA línea y
-       `Ejecutado por: … · Spec: docs/specs/AUD.25.md`, borrar el spec, commit por rutas, push.
-       Trampa de cierre vista en AUD.24: si `plan:reconcile` se corre dos veces con el ítem ya `[x]`, falla
-       ("Could not prove a closing commit SHA"): poner `[ ]`, reconciliar, volver a `[x]`, reconciliar.
-     - Después de AUD.25: AUD.26 + AUD.9. Lo no marcado ✔ en el informe se comprueba
+     - AUD.25 cerrado 2026-11-12 (evidencia `docs/done/evidence/AUD.25-ui-result.json`). `!cmd` en Dev va al PTY;
+       búsqueda por contenido en `GET /api/explorer/search`.
+     - Siguiente: AUD.26 + AUD.9; ningún otro ítem tiene spec escrito.
+Lo no marcado ✔ en el informe se comprueba
        con grep al escribirlo. No relanzar los auditores: su salida literal está en los anexos.
      - AUD.28 cambia comportamiento central: plan corto y GO de Carlos antes de delegar; no tiene GO.
      - Sin leer en la auditoría: `components/ui/*` por dentro, `scripts/ui-gate`, `tests/`.

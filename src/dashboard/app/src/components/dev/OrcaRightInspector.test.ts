@@ -75,3 +75,16 @@ test('changes tree compacts folder chains without swallowing branching folders o
   expect(tree[1]?.file).toBe(files[2])
   expect(buildChangesTree([])).toEqual([])
 })
+
+test('name search preserves and expands an ancestor whose descendant matches', async () => {
+  const { matchesExplorerName } = await import('./OrcaRightInspector')
+  const parent: FileNode = {
+    name: 'src',
+    path: 'src',
+    isDir: true,
+    children: [{ name: 'needle.ts', path: 'src/needle.ts', isDir: false }],
+  }
+  expect(matchesExplorerName(parent, 'NEEDLE')).toBe(true)
+  expect(matchesExplorerName(parent, 'absent')).toBe(false)
+  expect(matchesExplorerName(parent, 'src')).toBe(true)
+})

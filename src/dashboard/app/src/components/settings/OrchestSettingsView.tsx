@@ -198,6 +198,17 @@ function formatRunTime(iso: string): string {
     : new Intl.DateTimeFormat('en', { month: 'short', day: 'numeric' }).format(date)
 }
 
+export function validRoutingRule(
+  rule: { match: { output?: string[]; skill?: string }; agent: string; model?: string },
+  executorAgent?: string,
+): boolean {
+  return Boolean(
+    (rule.match.output?.length || rule.match.skill?.trim()) &&
+      rule.agent &&
+      (rule.model?.trim() || rule.agent === executorAgent),
+  )
+}
+
 export type SettingsSection =
   | 'general'
   | 'health'
@@ -1045,10 +1056,7 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
   const textEditing = useRef(false)
   const [, commitText] = useState(0)
   const reduceActivityMotion = usePrefersReducedMotion()
-  const validRule = (rule: RoutingRule) =>
-    Boolean(
-      (rule.match.output?.length || rule.match.skill?.trim()) && rule.agent && rule.model?.trim(),
-    )
+  const validRule = (rule: RoutingRule) => validRoutingRule(rule, routingRoles.executor?.agent)
   const validCli = (cli: CliDraft, index: number) =>
     /^[a-z0-9][a-z0-9-]*$/.test(cli.id) &&
     Boolean(cli.label.trim() && cli.command.trim()) &&
@@ -1253,6 +1261,7 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
   // A config request for a project being purged must never reach the server after the
   // purge: the effect's in-flight request is aborted on confirm and the id is excluded.
   const purgingProjectId = React.useRef<string | null>(null)
+  const [purgingGeneralId, setPurgingGeneralId] = useState<string | null>(null)
   const configRequest = React.useRef<AbortController | null>(null)
   const configProjectId =
     activeProjectId !== purgingProjectId.current &&
@@ -4288,7 +4297,7 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
                     {projectTabsError ?? 'Loading project data…'}
                   </div>
                 )}
-                {activeProjectTab === 'general' && (
+                {activeProjectTab === 'general' && purgingGeneralId !== selectedProject.id && (
                   <ProjectGeneralSettings
                     key={selectedProject.id}
                     project={selectedProject}
@@ -4520,8 +4529,11 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
                   const purgedId = selectedProject.id
                   purgingProjectId.current = purgedId
                   configRequest.current?.abort()
+                  // Desmontar General cancela su lectura de ramas, que tras la purga sería un 404.
+                  setPurgingGeneralId(purgedId)
                   void Promise.resolve(onPurgeProjectData?.(purgedId)).finally(() => {
                     if (purgingProjectId.current === purgedId) purgingProjectId.current = null
+                    setPurgingGeneralId((current) => (current === purgedId ? null : current))
                   })
                   setShowPurgeConfirm(false)
                 }}

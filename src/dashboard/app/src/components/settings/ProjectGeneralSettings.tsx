@@ -25,7 +25,9 @@ export function ProjectGeneralSettings({
       .pop() ?? project.name
   useEffect(() => {
     let disposed = false
-    projectBranches(project.id)
+    // Abortar al desmontar: una purga en curso borra el proyecto y la respuesta tardía sería un 404.
+    const controller = new AbortController()
+    projectBranches(project.id, controller.signal)
       .then((rows) => {
         if (!disposed) setBranches(rows)
       })
@@ -34,6 +36,7 @@ export function ProjectGeneralSettings({
       })
     return () => {
       disposed = true
+      controller.abort()
     }
   }, [project.id])
   const save = (field: keyof ProjectSettingsPatch, value: string | null) => {

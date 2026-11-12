@@ -1,4 +1,5 @@
 import { SUPPORTED_LANGUAGES } from '../detect/languages.ts'
+import { normalizeLanguageTarget } from './targets/_shared.ts'
 
 interface LangProfile {
   testCmd?: string
@@ -192,7 +193,7 @@ examples:
     input: "Add a ${safeLang} function that validates email format"
     output: "Implement the function, write a test, run the test suite (${testCmd.replace(/"/g, '')}), confirm green."
 language_targets:
-  ${language.toLowerCase().replace(/[^a-z0-9]/g, '')}:
+  ${normalizeLanguageTarget(language)}:
     verifiers:
 ${verifiers.map((v) => `      - ${yamlItem(v)}`).join('\n')}
     anti_patterns:

@@ -15,12 +15,13 @@
  */
 
 import { createHash } from 'node:crypto'
-import { mkdirSync, unlinkSync, writeFileSync } from 'node:fs'
+import { mkdirSync, readdirSync, unlinkSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { basename, extname, join } from 'node:path'
 import type { Check } from '../tasks/schema.ts'
 
 interface ExtractedScript {
+  module: boolean
   /** JS code exactly as it appears between the `<script>` and `</script>` tags */
   code: string
   /** 1-indexed start line in the original HTML — útil para que el mensaje de error sea trazable */
@@ -87,7 +88,12 @@ export function extractInlineScripts(html: string): ExtractedScript[] {
     const code = html.slice(tagEnd, closeMatch.index)
     const startLine = lineNumberAt(html, tagEnd)
     const endLine = lineNumberAt(html, closeMatch.index)
-    result.push({ code, startLine, endLine })
+    result.push({
+      code,
+      startLine,
+      endLine,
+      module: parseScriptAttributes(attrs ?? '').type === 'module',
+    })
     SCRIPT_OPEN_RE.lastIndex = closeMatch.index + closeMatch[0].length
   }
   return result
@@ -128,7 +134,7 @@ export function jsSyntaxCheckForJsFile(jsAbsPath: string, timeoutMs = 15_000): C
 
 /**
  * Construye un Check de `node --check <abs-tmp-path>` para los scripts inline de un `.html`.
- * Escribe los scripts concatenados a un archivo temp en `os.tmpdir()`. Devuelve `null` si
+ * Verifica cada script en su propio contexto sintáctico. Devuelve `null` si
  * el HTML no tiene scripts inline (no se chequea nada — sin ruido). No verifica la existencia
  * del `.html` — eso lo gatea el caller.
  */
@@ -136,24 +142,27 @@ export function jsSyntaxCheckForHtmlFile(
   htmlAbsPath: string,
   htmlContent: string,
   options: { tmpDir?: string; timeoutMs?: number } = {},
-): { check: Check; tempPath: string } | null {
+): { checks: Check[]; tempPath: string } | null {
   const scripts = extractInlineScripts(htmlContent)
   if (scripts.length === 0) return null
 
-  const code = scripts.map((s) => s.code).join('\n\n')
   const tempDir = options.tmpDir ?? tmpdir()
   mkdirSync(tempDir, { recursive: true })
+  cleanupJsCheckTemp(htmlAbsPath, tempDir)
   const tempPath = jsCheckTempPath(htmlAbsPath, tempDir)
-  writeFileSync(tempPath, code, 'utf-8')
-
-  return {
-    check: {
-      cmd: `node --check ${quote(tempPath)}`,
+  const checks = scripts.map((script, index): Check => {
+    const path =
+      index === 0 && !script.module
+        ? tempPath
+        : `${tempPath}.${index}.${script.module ? 'mjs' : 'cjs'}`
+    writeFileSync(path, script.code, 'utf-8')
+    return {
+      cmd: `node --check ${quote(path)}`,
       timeout_ms: options.timeoutMs ?? 15_000,
       trusted: true,
-    },
-    tempPath,
-  }
+    }
+  })
+  return { checks, tempPath }
 }
 
 /** Quoting seguro para un argumento de shell — `node --check <path>` no interpreta
@@ -165,10 +174,23 @@ function quote(p: string): string {
 
 /** Borra el archivo temp asociado al source — útil en cleanup de tests. */
 export function cleanupJsCheckTemp(sourceAbsPath: string, tmpDir: string = tmpdir()): boolean {
+  const path = jsCheckTempPath(sourceAbsPath, tmpDir)
+  let removed = false
   try {
-    unlinkSync(jsCheckTempPath(sourceAbsPath, tmpDir))
-    return true
+    for (const name of readdirSync(tmpDir)) {
+      if (
+        name !== basename(path) &&
+        !(
+          name.startsWith(`${basename(path)}.`) &&
+          /^\d+\.(?:mjs|cjs)$/.test(name.slice(basename(path).length + 1))
+        )
+      )
+        continue
+      unlinkSync(join(tmpDir, name))
+      removed = true
+    }
   } catch {
-    return false
+    /* Absent temporary directory. */
   }
+  return removed
 }

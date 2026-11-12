@@ -520,12 +520,25 @@ qué no). Cada ítem es una clase de falla con varios sitios; el spec comprueba 
   Gate en vivo: navegador Playwright, `chat-stop` 24/24, `docs/done/evidence/AUD.24-chat-stop-result.json`.
   Con Claude real: recargar a mitad de turno devuelve Stop y la respuesta queda guardada.
   Ejecutado por: gpt-6.1-sol (criterio) + claude-opus-5-5 (fixes de revisión) · Spec: docs/specs/AUD.24.md
-- [ ] **AUD.25 — UI que no hace lo que muestra.** (abierto 2026-11-11) `!comando` no ejecuta en Dev
+- [x] **AUD.25 — UI que no hace lo que muestra.** (abierto 2026-11-11, cerrado 2026-11-12) `!comando` no ejecuta en Dev
   (`OrchestDevWorkspace.tsx:432`, `App.tsx` no pasa `onRunCommand`) ni en Chat (`OrchestChatView.tsx:310`); el kanban
   no tiene columna `failed` (`PlanBoardView.tsx:98-104`); `purgingProjectIds` no se limpia al terminar bien
   (`App.tsx:1094-1143`); regla "Executor model" inválida (`OrchestSettingsView.tsx:1048,3727`); Enter confirma con el foco en Cancel
   (`ConfirmDialog.tsx:38-42`); búsqueda del
   inspector (`OrcaRightInspector.tsx:297,576`). Verificación: en vivo en el dashboard, un step de ui-gate por caso.
+  Cierre: `!cmd` en Dev se escribe en el PTY del tab terminal (lo reabre si la shell terminó); en Chat `!` es texto;
+  columna `failed` en el kanban; "Plan" pide y limpia su resultado (solo escribe la última petición); la purga limpia
+  `purgingProjectIds` en `finally`; "Executor model" válido para el agente Ejecutor; Enter sobre un botón no confirma;
+  el árbol muestra carpetas con descendientes que coinciden y "contents" usa `GET /api/explorer/search` (`git grep`
+  sin shell, tope 200, 5 s); Dev muestra todas las lecturas, ediciones y comandos; Instincts/Memory esperan el
+  guardado; subidas abortadas al desmontar; del informe: consumo Codex por evento, cada `<script type="module">`
+  por separado, clave de lenguaje normalizada en scaffold. Hallado al verificar (ya existía): tras purgar, `/branches`
+  en vuelo daba 404; General se desmonta durante la purga y aborta la petición. Gates: tsc, lint,
+  test:coverage 2706/0; qa 4 vueltas (4 P2 corregidos). Punto 4 en vivo solo "purga correcta": re-añadir el
+  proyecto exige el selector nativo de carpetas; el set lo cubre el test unitario.
+  Texto visible: "Bash" y "Copy output" (las mismas etiquetas que ya tenía la fila de comando, ahora una por comando).
+  Gate en vivo: navegador Playwright, `aud25-ui` 14/14 y `project-delete` 12/12, `docs/done/evidence/AUD.25-ui-result.json`.
+  Ejecutado por: gpt-6.1-sol (criterio, 2 tandas) + claude-opus-5-5 (fixes de revisión) · Spec: docs/specs/AUD.25.md
 - [ ] **AUD.26 — Gates que no pueden fallar.** (abierto 2026-11-11) `check-coverage.ts:14-16` da 100 % a un LCOV
   vacío; `check-test-assertions.ts:5` cuenta `expect(` en comentarios; `check-scope-lock.ts:48` ignora eliminaciones;
   `nightly-ui-gates.ts:322,228` sale 0 con todo rojo y su candado no se recupera; `adversarial-review.ts:775,796`

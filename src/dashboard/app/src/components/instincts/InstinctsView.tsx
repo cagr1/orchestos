@@ -9,7 +9,7 @@ interface InstinctsViewProps {
   instincts: InstinctItem[]
   onApproveInstinct: (id: string) => void
   onRejectInstinct: (id: string) => void
-  onAddInstinct: (trigger: string, action: string) => void
+  onAddInstinct: (trigger: string, action: string) => void | Promise<void>
 }
 
 export const InstinctsView: React.FC<InstinctsViewProps> = ({
@@ -22,18 +22,29 @@ export const InstinctsView: React.FC<InstinctsViewProps> = ({
   const [showAddModal, setShowAddModal] = useState(false)
   const [newTrigger, setNewTrigger] = useState('')
   const [newAction, setNewAction] = useState('')
+  const [saveError, setSaveError] = useState<string | null>(null)
+  const [saving, setSaving] = useState(false)
 
   const unverified = instincts.filter((i) => !i.verified)
 
   const displayedInstincts = tab === 'review' ? unverified : instincts
 
-  const handleAddSubmit = (e: React.FormEvent) => {
+  const handleAddSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!newTrigger || !newAction) return
-    onAddInstinct(newTrigger.trim(), newAction.trim())
-    setNewTrigger('')
-    setNewAction('')
-    setShowAddModal(false)
+    if (saving) return
+    setSaving(true)
+    setSaveError(null)
+    try {
+      await onAddInstinct(newTrigger.trim(), newAction.trim())
+      setNewTrigger('')
+      setNewAction('')
+      setShowAddModal(false)
+    } catch (error) {
+      setSaveError(error instanceof Error ? error.message : String(error))
+    } finally {
+      setSaving(false)
+    }
   }
 
   const tabButton = (active: boolean) =>
@@ -199,6 +210,11 @@ export const InstinctsView: React.FC<InstinctsViewProps> = ({
             onSubmit={handleAddSubmit}
             className="w-full max-w-lg bg-app-surface border border-[color:color-mix(in_srgb,var(--app-border)_50%,transparent)] rounded-card p-5 space-y-4"
           >
+            {saveError && (
+              <p role="alert" className="text-xs text-app-error">
+                {saveError}
+              </p>
+            )}
             <div className="flex items-center justify-between border-b border-[color:color-mix(in_srgb,var(--app-border)_50%,transparent)] pb-3">
               <h3 className="font-bold text-sm text-app flex items-center gap-2">
                 <Brain className="w-4 h-4 text-app-muted" />
@@ -259,7 +275,7 @@ export const InstinctsView: React.FC<InstinctsViewProps> = ({
                 Cancel
               </Button>
               <SettingsPrimaryAction>
-                <Button type="submit" size="compact">
+                <Button type="submit" disabled={saving} size="compact">
                   Register Instinct
                 </Button>
               </SettingsPrimaryAction>

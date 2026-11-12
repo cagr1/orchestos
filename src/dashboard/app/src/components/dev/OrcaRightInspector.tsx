@@ -17,7 +17,7 @@ import {
 } from 'lucide-react'
 import type React from 'react'
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { getExplorerTree } from '../../api/explorer'
+import { getExplorerTree, searchExplorerContents } from '../../api/explorer'
 import { type GitChange, getGitChanges } from '../../api/git'
 import { useAppearanceSettings } from '../../lib/appearance-settings'
 import { useDiffSettings } from '../../lib/diff-settings'
@@ -38,6 +38,23 @@ export function attachExplorerChildren(
       : node.children
         ? { ...node, children: attachExplorerChildren(node.children, path, children) }
         : node,
+  )
+}
+
+function allExplorerFolders(nodes: FileNode[]): Record<string, boolean> {
+  return Object.assign(
+    {},
+    ...nodes.map((node) => ({
+      ...(node.isDir ? { [node.path]: true } : {}),
+      ...allExplorerFolders(node.children ?? []),
+    })),
+  )
+}
+
+export function matchesExplorerName(node: FileNode, query: string): boolean {
+  return (
+    node.name.toLowerCase().includes(query.toLowerCase()) ||
+    !!node.children?.some((child) => matchesExplorerName(child, query))
   )
 }
 
@@ -160,6 +177,8 @@ export const OrcaRightInspector: React.FC<OrcaRightInspectorProps> = ({
   const [expandedFolders, setExpandedFolders] = useState<Record<string, boolean>>({})
   const [searchQuery, setSearchQuery] = useState('')
   const [searchMode, setSearchMode] = useState<'names' | 'contents'>('names')
+  const [contentResults, setContentResults] = useState<FileNode[]>([])
+  const [contentError, setContentError] = useState<string | null>(null)
   const [fileTree, setFileTree] = useState<FileNode[]>([])
   const [treeError, setTreeError] = useState<string | null>(null)
   const [loadingFolders, setLoadingFolders] = useState<Record<string, boolean>>({})
@@ -191,7 +210,10 @@ export const OrcaRightInspector: React.FC<OrcaRightInspectorProps> = ({
 
   useEffect(() => {
     const projectId = currentProject.id
-    for (const path of foldersToLoad(fileTree, expandedFolders)) {
+    for (const path of foldersToLoad(
+      fileTree,
+      searchQuery && searchMode === 'names' ? allExplorerFolders(fileTree) : expandedFolders,
+    )) {
       const requestKey = `${projectId}:${path}`
       if (foldersInFlight.current.has(requestKey)) continue
       foldersInFlight.current.add(requestKey)
@@ -214,7 +236,28 @@ export const OrcaRightInspector: React.FC<OrcaRightInspectorProps> = ({
           }
         })
     }
-  }, [fileTree, expandedFolders, currentProject.id])
+  }, [fileTree, expandedFolders, currentProject.id, searchQuery, searchMode])
+
+  useEffect(() => {
+    setContentResults([])
+    setContentError(null)
+    if (searchMode !== 'contents' || searchQuery.trim().length < 2) return
+    const controller = new AbortController()
+    const timer = setTimeout(() => {
+      void searchExplorerContents(searchQuery, projectId, controller.signal)
+        .then((files) => {
+          if (!controller.signal.aborted) setContentResults(files)
+        })
+        .catch((error) => {
+          if (!controller.signal.aborted)
+            setContentError(error instanceof Error ? error.message : String(error))
+        })
+    }, 200)
+    return () => {
+      clearTimeout(timer)
+      controller.abort()
+    }
+  }, [projectId, searchQuery, searchMode])
 
   const [gitFiles, setGitFiles] = useState<GitChange[]>([])
   const [gitError, setGitError] = useState(false)
@@ -296,12 +339,12 @@ export const OrcaRightInspector: React.FC<OrcaRightInspectorProps> = ({
     return nodes
       .filter((node) => {
         if (!showGitIgnored && node.ignored) return false
-        if (!searchQuery) return true
-        return node.name.toLowerCase().includes(searchQuery.toLowerCase())
+        if (!searchQuery || searchMode === 'contents') return true
+        return matchesExplorerName(node, searchQuery)
       })
       .map((node) => {
         const isFolder = node.isDir
-        const isExpanded = !!expandedFolders[node.path]
+        const isExpanded = !!searchQuery || !!expandedFolders[node.path]
         const isSelected = activeFilePath === node.path
 
         return (
@@ -590,10 +633,12 @@ export const OrcaRightInspector: React.FC<OrcaRightInspectorProps> = ({
 
           {/* Tree View */}
           <div className="flex-1 overflow-y-auto p-1 font-mono text-xs">
-            {treeError ? (
-              <div className="p-2 text-xs text-rose-400">{treeError}</div>
+            {contentError || treeError ? (
+              <div role="alert" className="p-2 text-xs text-rose-400">
+                {contentError || treeError}
+              </div>
             ) : (
-              renderTree(fileTree)
+              renderTree(searchMode === 'contents' && searchQuery ? contentResults : fileTree)
             )}
           </div>
         </div>

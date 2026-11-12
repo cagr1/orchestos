@@ -209,3 +209,49 @@ describe('readCliTranscriptUsage', () => {
     })
   })
 })
+
+it('attributes Codex deltas to each event day and active model, deduplicating repeated totals and files', async () => {
+  const { root, agentHome } = fixture()
+  const sessions = join(agentHome, '.codex', 'sessions')
+  mkdirSync(sessions, { recursive: true })
+  const count = (
+    timestamp: string,
+    input_tokens: number,
+    cached_input_tokens: number,
+    output_tokens: number,
+  ) => ({
+    timestamp,
+    payload: {
+      type: 'token_count',
+      info: { total_token_usage: { input_tokens, cached_input_tokens, output_tokens } },
+    },
+  })
+  const transcript = [
+    { type: 'session_meta', payload: { id: 'cross-day', cwd: root } },
+    { type: 'turn_context', payload: { model: 'first-model' } },
+    count('2026-10-03T12:00:00Z', 100, 20, 10),
+    count('2026-10-03T12:01:00Z', 100, 20, 10),
+    { type: 'turn_context', payload: { model: 'second-model' } },
+    count('2026-10-04T12:00:00Z', 160, 40, 25),
+  ]
+    .map((row) => JSON.stringify(row))
+    .join('\n')
+  writeFileSync(join(sessions, 'rollout-a.jsonl'), transcript)
+  writeFileSync(join(sessions, 'rollout-copy.jsonl'), transcript)
+  const rows = await readCliTranscriptUsage([root], agentHome)
+  expect(rows).toHaveLength(2)
+  expect(rows[0]).toMatchObject({
+    date: '2026-10-03',
+    model: 'first-model',
+    inputTokens: 80,
+    cacheReadTokens: 20,
+    outputTokens: 10,
+  })
+  expect(rows[1]).toMatchObject({
+    date: '2026-10-04',
+    model: 'second-model',
+    inputTokens: 40,
+    cacheReadTokens: 20,
+    outputTokens: 15,
+  })
+})

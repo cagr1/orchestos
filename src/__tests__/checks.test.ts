@@ -408,3 +408,39 @@ describe('formatCheckFailure — TRUST.1', () => {
     )
   })
 })
+
+it('AUD.25 checks inline modules independently, allowing duplicate bindings and top level await', async () => {
+  const root = makeRoot(true)
+  const path = join(root, 'modules.html')
+  trackHtmlTemp(path)
+  writeFileSync(
+    path,
+    '<script type="module">const value = await Promise.resolve(1); export { value };</script><script type="module">const value = 2; export { value };</script>',
+  )
+  const checks = defaultChecksFor(['modules.html'], root).filter((check) =>
+    check.cmd.startsWith('node --check '),
+  )
+  const results = await runChecks(checks, root, new RunLogger(root, 'aud25-modules'))
+  expect(results).toHaveLength(2)
+  expect(results.every((result) => result.exitCode === 0)).toBe(true)
+  cleanupJsCheckTemp(path)
+})
+
+it('AUD.25 syntax errors in a later script still fail the HTML check', async () => {
+  const root = makeRoot(true)
+  const path = join(root, 'later-broken.html')
+  trackHtmlTemp(path)
+  writeFileSync(
+    path,
+    '<script>const value = 1;</script><script type="module">const value = :;</script>',
+  )
+  const checks = defaultChecksFor(['later-broken.html'], root).filter((check) =>
+    check.cmd.startsWith('node --check '),
+  )
+  const results = await runChecks(checks, root, new RunLogger(root, 'aud25-broken'))
+  expect(results).toHaveLength(2)
+  expect(results[0]?.exitCode).toBe(0)
+  expect(results[1]?.exitCode).not.toBe(0)
+  expect(results[1]?.stderr).toContain('SyntaxError')
+  cleanupJsCheckTemp(path)
+})

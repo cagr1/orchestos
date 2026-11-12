@@ -35,7 +35,7 @@ export function ConfirmDialog({
           event.stopPropagation()
           onCancel()
         }
-        if (event.key === 'Enter') {
+        if (event.key === 'Enter' && !(event.target as HTMLElement).closest('button')) {
           event.preventDefault()
           event.stopPropagation()
           onConfirm(dontAskAgain)

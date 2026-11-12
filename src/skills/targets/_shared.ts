@@ -1,5 +1,8 @@
 import type { SkillDef } from '../registry.ts'
 
+export const normalizeLanguageTarget = (language: string): string =>
+  language.toLowerCase().replace(/[^a-z0-9]/g, '')
+
 export function buildSections(skill: SkillDef, detectedLanguage?: string): string[] {
   const sections: string[] = []
 
@@ -54,7 +57,10 @@ export function buildSections(skill: SkillDef, detectedLanguage?: string): strin
   }
 
   if (skill.language_targets && detectedLanguage) {
-    const langTarget = skill.language_targets[detectedLanguage] ?? skill.language_targets.default
+    const langTarget =
+      skill.language_targets[detectedLanguage] ??
+      skill.language_targets[normalizeLanguageTarget(detectedLanguage)] ??
+      skill.language_targets.default
     if (langTarget) {
       sections.push('## Language-specific guidance')
       if (langTarget.verifiers?.length) {

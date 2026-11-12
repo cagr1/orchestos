@@ -455,7 +455,7 @@ export const OrchestDevWorkspace: React.FC<OrchestDevWorkspaceProps> = ({
     const thoughtStep = steps.find((step) => step.type === 'text' && step.detail)
     const readSteps = steps.filter((step) => step.tool?.toLowerCase() === 'read' && step.target)
     const searchSteps = steps.filter((step) => step.tool?.toLowerCase().includes('search'))
-    const editStep = steps.find((step) =>
+    const editSteps = steps.filter((step) =>
       ['edit', 'write'].includes(step.tool?.toLowerCase() ?? ''),
     )
     const cliCommands = steps
@@ -470,14 +470,8 @@ export const OrchestDevWorkspace: React.FC<OrchestDevWorkspaceProps> = ({
         createdAt: step.createdAt,
       }))
     const allCommands = [...exchange.commands, ...cliCommands]
-    const failedCommand = allCommands.find((command) => command.exitCode !== 0)
-    const passedCommand = allCommands.find((command) => command.exitCode === 0)
-    const failingBashOutput = failedCommand
-      ? [failedCommand.cmd, failedCommand.stdout, failedCommand.stderr].filter(Boolean).join('\n')
-      : ''
-    const passingBashOutput = passedCommand
-      ? [passedCommand.cmd, passedCommand.stdout, passedCommand.stderr].filter(Boolean).join('\n')
-      : ''
+    const failedCommands = allCommands.filter((command) => command.exitCode !== 0)
+    const passedCommands = allCommands.filter((command) => command.exitCode === 0)
     const hasRealTurn = Boolean(
       exchangeUserMessage ||
         exchange.assistantMessage ||
@@ -618,22 +612,15 @@ export const OrchestDevWorkspace: React.FC<OrchestDevWorkspaceProps> = ({
                 </button>
 
                 {isReadFilesExpanded && (
-                  <div className="mt-1 mb-2 ml-5 p-2 rounded-control bg-app-surface/50 border border-app/60 font-mono text-[11px] text-app-muted space-y-1.5">
-                    {readSteps[0] && (
-                      <div className="flex items-center justify-between py-0.5">
-                        <span className="text-app">{readSteps[0].target}</span>
+                  <div className="mt-1 mb-2 ml-5 p-2 rounded-control bg-app-surface/50 border border-app/60 font-mono text-[11px] text-app-muted space-y-1.5 max-h-48 overflow-y-auto">
+                    {readSteps.map((step) => (
+                      <div
+                        key={step.seq}
+                        className="flex items-center justify-between py-0.5 border-t border-app/40"
+                      >
+                        <span className="text-app">{step.target}</span>
                       </div>
-                    )}
-                    {readSteps[1] && (
-                      <div className="flex items-center justify-between py-0.5 border-t border-app/40">
-                        <span className="text-app">{readSteps[1].target}</span>
-                      </div>
-                    )}
-                    {readSteps[2] && (
-                      <div className="flex items-center justify-between py-0.5 border-t border-app/40">
-                        <span className="text-app">{readSteps[2].target}</span>
-                      </div>
-                    )}
+                    ))}
                   </div>
                 )}
               </div>
@@ -696,8 +683,8 @@ export const OrchestDevWorkspace: React.FC<OrchestDevWorkspaceProps> = ({
             )}
 
             {/* 4. Edit: target and line counts */}
-            {editStep && (
-              <div className="text-xs">
+            {editSteps.map((editStep) => (
+              <div key={editStep.seq} className="text-xs">
                 <button
                   type="button"
                   onClick={() => setIsEditExpanded(!isEditExpanded)}
@@ -790,105 +777,123 @@ export const OrchestDevWorkspace: React.FC<OrchestDevWorkspaceProps> = ({
                   </div>
                 )}
               </div>
-            )}
+            ))}
 
             {/* 5. Failing Bash: command output and exit state */}
-            {failedCommand && (
-              <div className="text-xs">
-                <button
-                  type="button"
-                  onClick={() => setIsFailingBashExpanded(!isFailingBashExpanded)}
-                  className="h-8 w-full flex items-center justify-between px-2 rounded-control hover:bg-app-surface/60 transition-colors cursor-pointer"
-                >
-                  <div className="flex items-center gap-2 min-w-0">
-                    <Terminal className="w-3.5 h-3.5 text-app-muted flex-shrink-0" />
-                    <span className="font-mono text-app-muted text-xs">Bash</span>
-                    <span className="font-mono text-app text-xs truncate">
-                      {failedCommand?.cmd}
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-2 flex-shrink-0">
-                    <X className="w-3.5 h-3.5 text-rose-500" />
-                    {isFailingBashExpanded ? (
-                      <ChevronDown className="w-3.5 h-3.5 text-app-muted" />
-                    ) : (
-                      <ChevronRight className="w-3.5 h-3.5 text-app-muted" />
-                    )}
-                  </div>
-                </button>
-
-                {/* Expanded Bash -> mono output, max height, scroll, copy icon */}
-                {isFailingBashExpanded && (
-                  <div className="mt-1 mb-2 ml-5 relative rounded-control border border-app bg-[#0c1017] p-3 font-mono text-[11px]">
-                    <button
-                      type="button"
-                      onClick={() => handleCopyBash(failingBashOutput, 'fail')}
-                      className="absolute top-2 right-2 p-1 rounded-control text-app-muted hover:text-app bg-app-surface/40 hover:bg-app-surface transition-colors"
-                      title="Copy output"
-                      aria-label="Copy output"
-                    >
-                      {copiedFail ? (
-                        <Check className="w-3.5 h-3.5 text-emerald-400" />
+            {failedCommands.map((failedCommand) => {
+              const failingBashOutput = [
+                failedCommand.cmd,
+                failedCommand.stdout,
+                failedCommand.stderr,
+              ]
+                .filter(Boolean)
+                .join('\n')
+              return (
+                <div key={failedCommand.id} className="text-xs">
+                  <button
+                    type="button"
+                    onClick={() => setIsFailingBashExpanded(!isFailingBashExpanded)}
+                    className="h-8 w-full flex items-center justify-between px-2 rounded-control hover:bg-app-surface/60 transition-colors cursor-pointer"
+                  >
+                    <div className="flex items-center gap-2 min-w-0">
+                      <Terminal className="w-3.5 h-3.5 text-app-muted flex-shrink-0" />
+                      <span className="font-mono text-app-muted text-xs">Bash</span>
+                      <span className="font-mono text-app text-xs truncate">
+                        {failedCommand?.cmd}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-2 flex-shrink-0">
+                      <X className="w-3.5 h-3.5 text-rose-500" />
+                      {isFailingBashExpanded ? (
+                        <ChevronDown className="w-3.5 h-3.5 text-app-muted" />
                       ) : (
-                        <Copy className="w-3.5 h-3.5" />
+                        <ChevronRight className="w-3.5 h-3.5 text-app-muted" />
                       )}
-                    </button>
-                    <pre className="text-rose-300 leading-relaxed overflow-x-auto max-h-48 whitespace-pre">
-                      {failingBashOutput}
-                    </pre>
-                  </div>
-                )}
-              </div>
-            )}
+                    </div>
+                  </button>
+
+                  {/* Expanded Bash -> mono output, max height, scroll, copy icon */}
+                  {isFailingBashExpanded && (
+                    <div className="mt-1 mb-2 ml-5 relative rounded-control border border-app bg-[#0c1017] p-3 font-mono text-[11px]">
+                      <button
+                        type="button"
+                        onClick={() => handleCopyBash(failingBashOutput, 'fail')}
+                        className="absolute top-2 right-2 p-1 rounded-control text-app-muted hover:text-app bg-app-surface/40 hover:bg-app-surface transition-colors"
+                        title="Copy output"
+                        aria-label="Copy output"
+                      >
+                        {copiedFail ? (
+                          <Check className="w-3.5 h-3.5 text-emerald-400" />
+                        ) : (
+                          <Copy className="w-3.5 h-3.5" />
+                        )}
+                      </button>
+                      <pre className="text-rose-300 leading-relaxed overflow-x-auto max-h-48 whitespace-pre">
+                        {failingBashOutput}
+                      </pre>
+                    </div>
+                  )}
+                </div>
+              )
+            })}
 
             {/* 6. Passing Bash: command output and exit state */}
-            {passedCommand && (
-              <div className="text-xs">
-                <button
-                  type="button"
-                  onClick={() => setIsPassingBashExpanded(!isPassingBashExpanded)}
-                  className="h-8 w-full flex items-center justify-between px-2 rounded-control hover:bg-app-surface/60 transition-colors cursor-pointer"
-                >
-                  <div className="flex items-center gap-2 min-w-0">
-                    <Terminal className="w-3.5 h-3.5 text-app-muted flex-shrink-0" />
-                    <span className="font-mono text-app-muted text-xs">Bash</span>
-                    <span className="font-mono text-app text-xs truncate">
-                      {passedCommand?.cmd}
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-2 flex-shrink-0">
-                    <Check className="w-3.5 h-3.5 text-emerald-400" />
-                    {isPassingBashExpanded ? (
-                      <ChevronDown className="w-3.5 h-3.5 text-app-muted" />
-                    ) : (
-                      <ChevronRight className="w-3.5 h-3.5 text-app-muted" />
-                    )}
-                  </div>
-                </button>
-
-                {/* Expanded Bash -> mono output, max height, scroll, copy icon */}
-                {isPassingBashExpanded && (
-                  <div className="mt-1 mb-2 ml-5 relative rounded-control border border-app bg-[#0c1017] p-3 font-mono text-[11px]">
-                    <button
-                      type="button"
-                      onClick={() => handleCopyBash(passingBashOutput, 'pass')}
-                      className="absolute top-2 right-2 p-1 rounded-control text-app-muted hover:text-app bg-app-surface/40 hover:bg-app-surface transition-colors"
-                      title="Copy output"
-                      aria-label="Copy output"
-                    >
-                      {copiedPass ? (
-                        <Check className="w-3.5 h-3.5 text-emerald-400" />
+            {passedCommands.map((passedCommand) => {
+              const passingBashOutput = [
+                passedCommand.cmd,
+                passedCommand.stdout,
+                passedCommand.stderr,
+              ]
+                .filter(Boolean)
+                .join('\n')
+              return (
+                <div key={passedCommand.id} className="text-xs">
+                  <button
+                    type="button"
+                    onClick={() => setIsPassingBashExpanded(!isPassingBashExpanded)}
+                    className="h-8 w-full flex items-center justify-between px-2 rounded-control hover:bg-app-surface/60 transition-colors cursor-pointer"
+                  >
+                    <div className="flex items-center gap-2 min-w-0">
+                      <Terminal className="w-3.5 h-3.5 text-app-muted flex-shrink-0" />
+                      <span className="font-mono text-app-muted text-xs">Bash</span>
+                      <span className="font-mono text-app text-xs truncate">
+                        {passedCommand?.cmd}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-2 flex-shrink-0">
+                      <Check className="w-3.5 h-3.5 text-emerald-400" />
+                      {isPassingBashExpanded ? (
+                        <ChevronDown className="w-3.5 h-3.5 text-app-muted" />
                       ) : (
-                        <Copy className="w-3.5 h-3.5" />
+                        <ChevronRight className="w-3.5 h-3.5 text-app-muted" />
                       )}
-                    </button>
-                    <pre className="text-emerald-300 leading-relaxed overflow-x-auto max-h-48 whitespace-pre">
-                      {passingBashOutput}
-                    </pre>
-                  </div>
-                )}
-              </div>
-            )}
+                    </div>
+                  </button>
+
+                  {/* Expanded Bash -> mono output, max height, scroll, copy icon */}
+                  {isPassingBashExpanded && (
+                    <div className="mt-1 mb-2 ml-5 relative rounded-control border border-app bg-[#0c1017] p-3 font-mono text-[11px]">
+                      <button
+                        type="button"
+                        onClick={() => handleCopyBash(passingBashOutput, 'pass')}
+                        className="absolute top-2 right-2 p-1 rounded-control text-app-muted hover:text-app bg-app-surface/40 hover:bg-app-surface transition-colors"
+                        title="Copy output"
+                        aria-label="Copy output"
+                      >
+                        {copiedPass ? (
+                          <Check className="w-3.5 h-3.5 text-emerald-400" />
+                        ) : (
+                          <Copy className="w-3.5 h-3.5" />
+                        )}
+                      </button>
+                      <pre className="text-emerald-300 leading-relaxed overflow-x-auto max-h-48 whitespace-pre">
+                        {passingBashOutput}
+                      </pre>
+                    </div>
+                  )}
+                </div>
+              )
+            })}
           </div>
         )}
 
@@ -1001,6 +1006,7 @@ export const OrchestDevWorkspace: React.FC<OrchestDevWorkspaceProps> = ({
         )}
         <div className="max-w-3xl lg:max-w-4xl mx-auto">
           <AgentComposer
+            shellMode
             onSendMessage={handleSendMessage}
             hasProject={!!(activeAgent ? activeAgent.projectId : activeProject.id)}
             projectId={(activeAgent ? activeAgent.projectId : activeProject.id) ?? undefined}

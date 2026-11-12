@@ -29,8 +29,12 @@ export interface TurnStatus {
   kind: 'none' | 'pending' | 'failed' | 'interrupted'
 }
 
-async function request<T>(path: string, headers: HeadersInit = {}): Promise<T> {
-  const response = await fetch(path, { headers })
+async function request<T>(
+  path: string,
+  headers: HeadersInit = {},
+  signal?: AbortSignal,
+): Promise<T> {
+  const response = await fetch(path, { headers, signal })
   const body = (await response.json().catch(() => null)) as { error?: string } | T | null
   if (!response.ok) {
     const message =
@@ -192,8 +196,12 @@ export async function patchProject(
   return mapProjectRow(body)
 }
 
-export async function projectBranches(projectId: string): Promise<string[]> {
+export async function projectBranches(projectId: string, signal?: AbortSignal): Promise<string[]> {
   return (
-    await request<{ branches: string[] }>(`/api/projects/${encodeURIComponent(projectId)}/branches`)
+    await request<{ branches: string[] }>(
+      `/api/projects/${encodeURIComponent(projectId)}/branches`,
+      {},
+      signal,
+    )
   ).branches
 }

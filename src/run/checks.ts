@@ -118,7 +118,7 @@ export function defaultChecksFor(output: string[], effectiveRoot: string): Check
       try {
         const content = readFileSync(abs, 'utf-8')
         const built = jsSyntaxCheckForHtmlFile(abs, content, { timeoutMs: JS_CHECK_TIMEOUT_MS })
-        if (built) checks.push(built.check)
+        if (built) checks.push(...built.checks)
       } catch {
         // Permisos o lectura parcial — pasamos; el contrato es la red principal.
       }

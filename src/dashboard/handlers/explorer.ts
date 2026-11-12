@@ -1,4 +1,4 @@
-import { spawnSync } from 'node:child_process'
+import { spawn, spawnSync } from 'node:child_process'
 import {
   chmodSync,
   type Dirent,
@@ -206,4 +206,78 @@ async function handleApiExplorerWrite(req: Request, root: string): Promise<Respo
   }
 }
 
-export { handleApiExplorerFile, handleApiExplorerTree, handleApiExplorerWrite }
+export type ExplorerSearchProbe = (root: string, query: string) => Promise<string[]>
+
+const gitContentSearch: ExplorerSearchProbe = (root, query) =>
+  new Promise((resolve, reject) => {
+    const child = spawn('git', ['grep', '-l', '-I', '-F', '-z', '--', query, '.'], {
+      cwd: root,
+      stdio: ['ignore', 'pipe', 'pipe'],
+      windowsHide: true,
+    })
+    const paths: string[] = []
+    let pending = ''
+    let bytes = 0
+    let capped = false
+    const timer = setTimeout(() => {
+      child.kill()
+      reject(new Error('Search timed out'))
+    }, 5000)
+    child.stdout.setEncoding('utf8')
+    child.stdout.on('data', (chunk: string) => {
+      bytes += Buffer.byteLength(chunk)
+      pending += chunk
+      let end: number
+      while ((end = pending.indexOf('\0')) !== -1 && paths.length < 200) {
+        paths.push(pending.slice(0, end))
+        pending = pending.slice(end + 1)
+      }
+      if (paths.length >= 200 || bytes > 1_000_000) {
+        capped = true
+        child.kill()
+      }
+    })
+    child.on('error', (error) => {
+      clearTimeout(timer)
+      reject(error)
+    })
+    child.on('close', (code) => {
+      clearTimeout(timer)
+      if (code === 0 || code === 1 || capped) resolve(paths)
+      else reject(new Error('Unable to search project files'))
+    })
+  })
+
+async function handleApiExplorerSearch(
+  url: URL,
+  root: string,
+  probe: ExplorerSearchProbe = gitContentSearch,
+): Promise<Response> {
+  const query = url.searchParams.get('q') ?? ''
+  if (query.trim().length < 2) return errorResponse('Query must contain at least 2 characters', 400)
+  try {
+    const paths = await probe(root, query)
+    return jsonResponse({
+      paths: paths
+        .filter((path) => {
+          const target = safeResolve(root, path)
+          if (!target || path.split('/').includes('.git')) return false
+          try {
+            return statSync(target).isFile()
+          } catch {
+            return false
+          }
+        })
+        .slice(0, 200),
+    })
+  } catch (error) {
+    return errorResponse(error instanceof Error ? error.message : 'Unable to search files', 500)
+  }
+}
+
+export {
+  handleApiExplorerFile,
+  handleApiExplorerSearch,
+  handleApiExplorerTree,
+  handleApiExplorerWrite,
+}

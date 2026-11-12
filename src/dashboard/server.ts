@@ -32,6 +32,7 @@ import { handleApiClisGet, handleApiClisSet } from './handlers/clis.ts'
 import { handleApiConfigGet, handleApiConfigInit, handleApiConfigSet } from './handlers/config.ts'
 import {
   handleApiExplorerFile,
+  handleApiExplorerSearch,
   handleApiExplorerTree,
   handleApiExplorerWrite,
 } from './handlers/explorer.ts'
@@ -697,6 +698,11 @@ export async function route(req: Request, port: number): Promise<Response> {
   }
   if (method === 'GET' && url.pathname === '/api/git/diff') {
     return withDashboardProject(req, (project) => handleApiGitDiff(url, project.root), {
+      requireProject: true,
+    })
+  }
+  if (method === 'GET' && url.pathname === '/api/explorer/search') {
+    return withDashboardProject(req, (project) => handleApiExplorerSearch(url, project.root), {
       requireProject: true,
     })
   }

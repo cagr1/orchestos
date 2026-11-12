@@ -598,6 +598,22 @@ export default function App() {
   const currentProjectIdRef = useRef(currentProjectId)
   currentProjectIdRef.current = currentProjectId
 
+  const [terminalInputs, setTerminalInputs] = useState<
+    { id: string; projectId: string; data: string }[]
+  >([])
+  const handleRunCommand = (command: string) => {
+    if (!currentProject) return
+    setTerminalInputs((pending) => [
+      ...pending,
+      {
+        id: crypto.randomUUID(),
+        projectId: currentProject.id,
+        data: `${command}\r`,
+      },
+    ])
+    updateDevTabs(currentProject.id, openTerminalTab)
+  }
+
   const handleOpenTerminal = () => {
     if (currentProject) updateDevTabs(currentProject.id, openTerminalTab)
   }
@@ -1184,9 +1200,9 @@ export default function App() {
       setMode(previousMode || 'dev')
       await reloadHistory()
     } catch {
-      purgingProjectIds.current.delete(projectId)
       // Keep the project settings visible when the purge request fails.
     } finally {
+      purgingProjectIds.current.delete(projectId)
       setDeletingProjectIds((current) => {
         const next = new Set(current)
         next.delete(projectId)
@@ -1997,6 +2013,7 @@ export default function App() {
                     onCloseAgent={handleCloseAgent}
                     onSendMessage={handleDevSendMessage}
                     onTimelinePending={handleDevTimelinePending}
+                    onRunCommand={handleRunCommand}
                     sessionStatus={sessionStatus}
                     onSlashCommand={handleSlashCommand}
                   />
@@ -2024,6 +2041,18 @@ export default function App() {
                         <OpenCodeTerminal
                           projectId={currentProject.id}
                           kind={isShell ? 'shell' : 'opencode'}
+                          pendingInput={
+                            isShell
+                              ? terminalInputs.filter(
+                                  (input) => input.projectId === currentProject.id,
+                                )
+                              : undefined
+                          }
+                          onInputConsumed={(id) =>
+                            setTerminalInputs((pending) =>
+                              pending.filter((input) => input.id !== id),
+                            )
+                          }
                         />
                       </div>
                     )

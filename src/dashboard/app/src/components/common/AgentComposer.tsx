@@ -152,6 +152,7 @@ export interface AgentComposerProps {
     isShellCmd?: boolean,
     approvalMode?: ApprovalMode,
   ) => unknown
+  shellMode?: boolean
   projectId?: string
   hasProject?: boolean
   contextSessionId?: string
@@ -174,6 +175,7 @@ export interface AgentComposerProps {
 
 export const AgentComposer: React.FC<AgentComposerProps> = ({
   onSendMessage,
+  shellMode = false,
   hasProject = false,
   projectId,
   contextSessionId,
@@ -280,6 +282,13 @@ export const AgentComposer: React.FC<AgentComposerProps> = ({
   const [attachError, setAttachError] = useState<string | null>(null)
   const [dragging, setDragging] = useState(false)
   const uploadControllers = useRef(new Map<string, AbortController>())
+  useEffect(() => {
+    const controllers = uploadControllers.current
+    return () => {
+      for (const controller of controllers.values()) controller.abort()
+      controllers.clear()
+    }
+  }, [])
 
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const composerRef = useRef<HTMLDivElement>(null)
@@ -377,7 +386,7 @@ export const AgentComposer: React.FC<AgentComposerProps> = ({
     const val = e.target.value
 
     // Check for ! shell prefix
-    if (!isShellMode && val === '!') {
+    if (shellMode && !isShellMode && val === '!') {
       setIsShellMode(true)
       setReferenceToken(null)
       setInputText('')

@@ -10,13 +10,15 @@ const LINE = 'border-[color:color-mix(in_srgb,var(--app-border)_50%,transparent)
 
 interface MemoryViewProps {
   memories: MemoryItem[]
-  onResolveConflict: (id: string, resolvedContent: string) => void
+  onResolveConflict: (id: string, resolvedContent: string) => void | Promise<void>
 }
 
 export const MemoryView: React.FC<MemoryViewProps> = ({ memories, onResolveConflict }) => {
   const [searchQuery, setSearchQuery] = useState('')
   const [resolvingItem, setResolvingItem] = useState<MemoryItem | null>(null)
   const [resolvedText, setResolvedText] = useState('')
+  const [saveError, setSaveError] = useState<string | null>(null)
+  const [saving, setSaving] = useState(false)
 
   const conflicts = memories.filter((m) => m.hasConflict)
 
@@ -32,14 +34,23 @@ export const MemoryView: React.FC<MemoryViewProps> = ({ memories, onResolveConfl
     setResolvedText(item.content)
   }
 
-  const handleResolveSubmit = (e: React.FormEvent) => {
+  const handleResolveSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!resolvingItem || !resolvedText) return
-    onResolveConflict(
-      resolvingItem.conflictDetails?.conflictId ?? resolvingItem.id,
-      resolvedText.trim(),
-    )
-    setResolvingItem(null)
+    if (saving) return
+    setSaving(true)
+    setSaveError(null)
+    try {
+      await onResolveConflict(
+        resolvingItem.conflictDetails?.conflictId ?? resolvingItem.id,
+        resolvedText.trim(),
+      )
+      setResolvingItem(null)
+    } catch (error) {
+      setSaveError(error instanceof Error ? error.message : String(error))
+    } finally {
+      setSaving(false)
+    }
   }
 
   return (
@@ -163,6 +174,11 @@ export const MemoryView: React.FC<MemoryViewProps> = ({ memories, onResolveConfl
             onSubmit={handleResolveSubmit}
             className="w-full max-w-xl space-y-4 rounded-card bg-app-elevated p-5 shadow-2xl"
           >
+            {saveError && (
+              <p role="alert" className="text-xs text-app-error">
+                {saveError}
+              </p>
+            )}
             <div className={`flex items-center justify-between border-b pb-3 ${LINE}`}>
               <h3 className="flex items-center gap-2 text-sm font-semibold text-app">
                 <GitMerge className="h-4 w-4 text-app-muted" />
@@ -219,7 +235,7 @@ export const MemoryView: React.FC<MemoryViewProps> = ({ memories, onResolveConfl
                 Cancel
               </Button>
               <SettingsPrimaryAction>
-                <Button type="submit" size="compact">
+                <Button type="submit" disabled={saving} size="compact">
                   Commit Authoritative Resolution
                 </Button>
               </SettingsPrimaryAction>

@@ -112,8 +112,9 @@ function parseClaude(content: string): CliTranscriptUsage[] {
 function parseCodex(content: string, roots: string[]): CliTranscriptUsage[] {
   let sessionId: string | undefined
   let model: string | undefined
-  let latest: { date: string; usage: Record<string, unknown> } | undefined
   let cwd: unknown
+  let previous: Record<string, unknown> = {}
+  const rows: CliTranscriptUsage[] = []
   for (const line of content.split('\n')) {
     try {
       const entry = object(JSON.parse(line))
@@ -125,33 +126,36 @@ function parseCodex(content: string, roots: string[]): CliTranscriptUsage[] {
       }
       if (entry.type === 'turn_context' && payload && typeof payload.model === 'string')
         model = payload.model
-      if (payload?.type === 'token_count') {
-        const info = object(payload.info)
-        const usage = object(info?.total_token_usage)
-        const date = dateOf(entry.timestamp)
-        if (usage && date) latest = { date, usage }
-      }
+      if (payload?.type !== 'token_count') continue
+      const info = object(payload.info)
+      const usage = object(info?.total_token_usage)
+      const date = dateOf(entry.timestamp)
+      if (!usage) continue
+      const delta = (key: string) =>
+        Math.max(0, nonNegative(usage[key]) - nonNegative(previous[key]))
+      const cacheReadTokens = delta('cached_input_tokens')
+      const inputTokens = Math.max(0, delta('input_tokens') - cacheReadTokens)
+      const cacheWriteTokens = delta('cache_write_input_tokens')
+      const outputTokens = delta('output_tokens')
+      previous = usage
+      if (!sessionId || !model || !date || !belongsToProject(cwd, roots)) continue
+      if (!inputTokens && !cacheReadTokens && !cacheWriteTokens && !outputTokens) continue
+      rows.push({
+        date,
+        provider: 'codex',
+        model,
+        sessionId,
+        inputTokens,
+        cacheReadTokens,
+        cacheWriteTokens,
+        cacheWrite1hTokens: 0,
+        outputTokens,
+      })
     } catch {
       // Ignore malformed or partial JSONL records.
     }
   }
-  if (!sessionId || !model || !latest || !belongsToProject(cwd, roots)) return []
-  const usage = latest.usage
-  const cacheReadTokens = nonNegative(usage.cached_input_tokens)
-  const cacheWriteTokens = nonNegative(usage.cache_write_input_tokens)
-  return [
-    {
-      date: latest.date,
-      provider: 'codex',
-      model,
-      sessionId,
-      inputTokens: Math.max(0, nonNegative(usage.input_tokens) - cacheReadTokens),
-      cacheReadTokens,
-      cacheWriteTokens,
-      cacheWrite1hTokens: 0,
-      outputTokens: nonNegative(usage.output_tokens),
-    },
-  ]
+  return rows
 }
 
 export async function readCliTranscriptUsage(
@@ -226,20 +230,21 @@ export async function readCliTranscriptUsage(
   )
   const aggregated = new Map<string, CliTranscriptUsage>()
   const seenCodexSessions = new Set<string>()
-  for (const row of rows.flat()) {
-    if (row.provider === 'codex') {
-      if (seenCodexSessions.has(row.sessionId)) continue
-      seenCodexSessions.add(row.sessionId)
-    }
-    const key = `${row.date}\u0000${row.provider}\u0000${row.sessionId}\u0000${row.model}`
-    const current = aggregated.get(key)
-    if (!current) aggregated.set(key, { ...row })
-    else {
-      current.inputTokens += row.inputTokens
-      current.cacheReadTokens += row.cacheReadTokens
-      current.cacheWriteTokens += row.cacheWriteTokens
-      current.cacheWrite1hTokens += row.cacheWrite1hTokens
-      current.outputTokens += row.outputTokens
+  for (const fileRows of rows) {
+    const codexSession = fileRows.find((row) => row.provider === 'codex')?.sessionId
+    if (codexSession && seenCodexSessions.has(codexSession)) continue
+    if (codexSession) seenCodexSessions.add(codexSession)
+    for (const row of fileRows) {
+      const key = `${row.date}\u0000${row.provider}\u0000${row.sessionId}\u0000${row.model}`
+      const current = aggregated.get(key)
+      if (!current) aggregated.set(key, { ...row })
+      else {
+        current.inputTokens += row.inputTokens
+        current.cacheReadTokens += row.cacheReadTokens
+        current.cacheWriteTokens += row.cacheWriteTokens
+        current.cacheWrite1hTokens += row.cacheWrite1hTokens
+        current.outputTokens += row.outputTokens
+      }
     }
   }
   return [...aggregated.values()]
