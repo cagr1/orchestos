@@ -4,6 +4,14 @@
   "note": "Derivado, no editar a mano — bun run plan:status regenera.",
   "items": [
     {
+      "id": "USO.3",
+      "sprint": "Etapa 2 — Uso real",
+      "block": null,
+      "title": "Peticiones de sobra, modelos que no existen y borde del sidebar",
+      "status": "done",
+      "closedDate": null
+    },
+    {
       "id": "LRN.1",
       "sprint": "Etapa 2 — Uso real",
       "block": null,

@@ -71,8 +71,11 @@ export function parseCodexModelsCache(raw: string): CliModelOption[] {
         slug?: unknown
         display_name?: unknown
         supported_reasoning_levels?: unknown
+        visibility?: unknown
       }
       if (typeof model.slug !== 'string' || !model.slug) return []
+      // USO.3: Codex marca `hide` lo que su propio selector no ofrece (p. ej. gpt-reserve).
+      if (model.visibility === 'hide') return []
       const efforts = Array.isArray(model.supported_reasoning_levels)
         ? model.supported_reasoning_levels.flatMap((level) => {
             if (!level || typeof level !== 'object') return []
@@ -147,13 +150,9 @@ export function parseClaudeModelCatalog(raw: string): CliModelOption[] {
       const overflow = model.section === 'overflow'
       return [{ id: model.id, name, short: name, overflow }]
     })
+    // USO.3: una sola lista, principales arriba; Carlos no quiere un grupo "Older".
     return [...options.filter((m) => !m.overflow), ...options.filter((m) => m.overflow)].map(
-      ({ id, name, short, overflow }) => ({
-        id,
-        name,
-        short,
-        ...(overflow ? { group: 'Older' } : {}),
-      }),
+      ({ id, name, short }) => ({ id, name, short }),
     )
   } catch {
     return []
@@ -204,10 +203,9 @@ export function readClaudeModelIds(home: string): CliModelOption[] {
     // No statusLine payload is a valid no-data state.
   }
   const catalog = readClaudeCatalogModels(home)
-  const known = new Set(catalog.map((model) => model.id))
-  const history = formatClaudeModelIds([...ids]).filter((model) => !known.has(model.id))
-  if (!catalog.length) return history
-  return [...catalog, ...history.map((model) => ({ ...model, group: 'Older' }))]
+  // USO.3: con catálogo manda Claude Code; el historial solo cubre su ausencia.
+  if (catalog.length) return catalog
+  return formatClaudeModelIds([...ids])
 }
 
 export function parseOpencodeModels(raw: string): CliModelOption[] {

@@ -18,8 +18,18 @@ export const ShellHeader: React.FC<ShellHeaderProps> = ({
   return (
     <header
       data-shell-header
-      className="h-11 bg-app-bg px-3.5 flex items-center justify-between select-none text-app flex-shrink-0 z-20"
+      className="relative h-11 bg-app-bg px-3.5 flex items-center justify-between select-none text-app flex-shrink-0 z-20"
     >
+      <span
+        aria-hidden
+        className="pointer-events-none absolute inset-y-0 border-l border-app"
+        style={{ left: 'calc(var(--shell-aside-left, 0px) - 1px)' }}
+      />
+      <span
+        aria-hidden
+        className="pointer-events-none absolute inset-y-0 border-r border-app"
+        style={{ right: 'calc(var(--shell-aside-right, 0px) - 1px)' }}
+      />
       {/* Left: Brand + Search + Sidebar Toggle */}
       <div className="flex items-center gap-3">
         <div className="flex items-center gap-1.5 text-[13px] font-semibold tracking-tight text-app cursor-pointer select-none">

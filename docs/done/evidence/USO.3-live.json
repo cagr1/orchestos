@@ -1,0 +1,12 @@
+{
+  "item": "USO.3",
+  "date": "2026-11-13",
+  "live": "Navegador integrado (Claude desktop) contra `bun run src/cli.ts dashboard --port 4242` real, medido con performance.getEntriesByType('resource'). Antes: cambio Chat->Dev 40 llamadas /api (config x4, cli-models x4, tasks x4, timeline x8), Dev quieto 20 timeline en 20 s, consola con aviso de React DevTools. Despues: cambio Chat->Dev 28 llamadas (config x2, cli-models x2), Dev quieto 4 timeline en 20 s, sin aviso de React DevTools en dist/main.js. Selector Codex sin GPT-Reserve; selector Claude sin grupo OLDER (Opus 5.5, Sonnet 5.5, Fable 5.2, Haiku 5.5, Fable 5.1, Haiku 4.5, Sonnet 5, Opus 5, Fable 5...). --shell-aside-left 256px y --shell-aside-right 384px; bordes del sidebar y del inspector llegan al borde superior en Chat y Dev.",
+  "gates": [
+    "bunx tsc --noEmit: 0 errores",
+    "biome check de los 7 archivos: 0 errores (14 avisos previos)",
+    "bun test src/dashboard: 737 pass / 0 fail",
+    "bun run build:app: ok"
+  ],
+  "review": "qa (Codex, Sol): sin defectos"
+}

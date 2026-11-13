@@ -660,7 +660,7 @@ export default function App() {
     let disposed = false
     let polling = false
     const poll = async () => {
-      if (polling) return
+      if (polling || document.hidden) return
       polling = true
       try {
         const result = await pollProjectAndThreadTasks(currentProjectId, activeThreadProjectId)
@@ -740,7 +740,11 @@ export default function App() {
         polling = false
       }
     }
-    const timer = window.setInterval(() => void poll(), 1_000)
+    // USO.3: 1 s solo con una tarea corriendo; una que espera turno se consulta cada 5 s.
+    const timer = window.setInterval(
+      () => void poll(),
+      hasRunningTasks || hasRunningThreadTasks ? 1_000 : 5_000,
+    )
     void poll()
     return () => {
       disposed = true

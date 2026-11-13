@@ -23,6 +23,8 @@ async function build(): Promise<boolean> {
     loader: { '.woff': 'file', '.woff2': 'file' },
     naming: { entry: '[name].[ext]', chunk: '[name]-[hash].[ext]', asset: '[name].[ext]' },
     plugins: [tailwind],
+    // USO.3: sin esto sale React de desarrollo y StrictMode duplica cada carga de la UI servida.
+    define: { 'process.env.NODE_ENV': JSON.stringify(watch ? 'development' : 'production') },
   })
 
   if (!result.success) {

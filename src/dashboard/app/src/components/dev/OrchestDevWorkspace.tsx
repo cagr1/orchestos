@@ -271,6 +271,7 @@ export const OrchestDevWorkspace: React.FC<OrchestDevWorkspaceProps> = ({
     let disposed = false
     const controllers = new Set<AbortController>()
     const refreshTimeline = () => {
+      if (document.hidden) return Promise.resolve()
       const controller = new AbortController()
       controllers.add(controller)
       return getTimeline(activeAgent.id, activeAgent.projectId ?? null, controller.signal)
@@ -286,7 +287,8 @@ export const OrchestDevWorkspace: React.FC<OrchestDevWorkspaceProps> = ({
         .finally(() => controllers.delete(controller))
     }
     void refreshTimeline()
-    const pollInterval = sessionStatus === 'working' || timeline?.pending ? 300 : 1000
+    // USO.3: quieta basta cada 5 s; un turno en curso sigue a 300 ms.
+    const pollInterval = sessionStatus === 'working' || timeline?.pending ? 300 : 5000
     const timer = window.setInterval(() => void refreshTimeline(), pollInterval)
     return () => {
       disposed = true

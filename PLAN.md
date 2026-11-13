@@ -62,6 +62,14 @@ Lo que Carlos reporte usando OrchestOS se abre aquí con su evidencia y va prime
 esta etapa: `docs/done/bloque-AUD.md` (AUD.16, AUD.17), `docs/done/bloque-SES.md`, `docs/done/bloque-USO.md`,
 `docs/done/bloque-LRN.md`.
 
+- [x] **USO.3 — Peticiones de sobra, modelos que no existen y borde del sidebar.** Gate en vivo: navegador contra el dashboard real, `docs/done/evidence/USO.3-live.json`: un cambio Chat→Dev bajó de ~40 a 28 llamadas `/api`; Dev quieto, de 20 a 4 en 20 s; los selectores ya no muestran `GPT-Reserve` ni el grupo `OLDER`; los bordes del sidebar y del inspector llegan hasta arriba. (reportado por Carlos 2026-11-13)
+  Causas: `scripts/build-app.ts` no definía `NODE_ENV` y se servía React de desarrollo, cuyo StrictMode duplica cada
+  carga; la línea de tiempo de Dev se pedía cada 1 s aunque estuviera quieta (ahora 5 s, 300 ms con turno en curso)
+  y las tareas cada 1 s aunque ninguna corriera (ahora 5 s); nada se sondea con la pestaña oculta. Codex marca
+  `gpt-reserve` con `visibility: "hide"` y el parser lo ignoraba; Claude sumaba un grupo `Older` y modelos del
+  historial que Claude Code ya no ofrece (decisión de Carlos: una sola lista del catálogo). Tests en
+  `chat-cli-models.test.ts`; `bun test src/dashboard` 737/737.
+  Ejecutado por: claude-opus-5-5 (fix chico) · revisión qa: sin defectos
 - [ ] **LRN.1 — OrchestOS aprende de los errores.** (abierto 2026-11-13; GO de Carlos a D1–D6; va después de SES.1 y
   no bloquea el uso real) Diseño: `docs/specs/LRN-1-opinion-fable.md`. Decisiones: D1 alcance por proyecto, global
   solo por promoción manual; D2 tope 1.000 tokens o 15 lecciones; D3 proponer ante firma repetida ≥2, par

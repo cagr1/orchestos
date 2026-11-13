@@ -117,6 +117,8 @@ describe('UI.14 round 5 CLI model catalogs', () => {
               display_name: 'GPT-6-Astra',
               supported_reasoning_levels: [{ effort: 'low' }, { effort: 'high' }],
             },
+            // USO.3: lo que Codex oculta en su selector no llega al nuestro.
+            { slug: 'gpt-reserve', display_name: 'GPT-Reserve', visibility: 'hide' },
           ],
         }),
       ),
@@ -388,17 +390,17 @@ const claudeFixture = claudeCatalog('cc', 100, [
 ])
 
 describe('MOD.1 Claude model catalog from the CLI source', () => {
-  test('parses names with version, main before overflow', () => {
+  test('parses names with version, main before overflow, one list without an Older group', () => {
     expect(parseClaudeModelCatalog(claudeFixture)).toEqual([
       { id: 'claude-opus-5-5', name: 'Opus 5.5', short: 'Opus 5.5' },
       { id: 'claude-sonnet-5-5', name: 'Sonnet 5.5', short: 'Sonnet 5.5' },
-      { id: 'claude-haiku-4-5-20251001', name: 'Haiku 4.5', short: 'Haiku 4.5', group: 'Older' },
+      { id: 'claude-haiku-4-5-20251001', name: 'Haiku 4.5', short: 'Haiku 4.5' },
     ])
     expect(parseClaudeModelCatalog('{oops')).toEqual([])
     expect(parseClaudeModelCatalog('{}')).toEqual([])
   })
 
-  test('readClaudeModelIds uses the newest cc catalog and appends unknown history', () => {
+  test('readClaudeModelIds uses the newest cc catalog and ignores history the catalog no longer offers', () => {
     const home = mkdtempSync(join(tmpdir(), 'mod1-'))
     try {
       const dir = join(home, '.claude', 'cache', 'model-catalog')
@@ -421,9 +423,8 @@ describe('MOD.1 Claude model catalog from the CLI source', () => {
         'claude-opus-5-5',
         'claude-sonnet-5-5',
         'claude-haiku-4-5-20251001',
-        'claude-fable-4',
       ])
-      expect(models.at(-1)?.group).toBe('Older')
+      expect(models.some((model) => model.group)).toBe(false)
     } finally {
       rmSync(home, { recursive: true, force: true })
     }
