@@ -1,4 +1,4 @@
-# NEXT — handoff 2026-11-12 (rumbo nuevo: uso normal → uso real → Windows → Tauri; siguiente SES.1)
+# NEXT — handoff 2026-11-13 (rumbo nuevo: uso normal → uso real → Windows → Tauri; siguiente SES.1)
 
 Un solo presente: orden y trampas vivas del lote. Lo cerrado vive en `docs/done/bloque-*.md` y git; las reglas, en
 `AGENTS.md`. Versión anterior completa: `docs/done/poda-instrucciones-2026-11-03.md` (histórico).
@@ -9,8 +9,19 @@ Arranque: `bun run agent:preflight -- --item <ID> --agent claude`. Lista viva: `
 Rumbo de Carlos del 2026-11-12 (`PLAN.md` § Rumbo): uso normal → uso real → Windows → Tauri. Antes: lote de
 auditoría AUD.1–AUD.28 en el orden de la segunda auditoría; lo cerrado está en `docs/done/bloque-AUD.md`.
 
-1. **Etapa 1 — lo que rompe el uso normal**: SES.1 (AUD.14, AUD.17 y AUD.16 cerrados 2026-11-13; AUD.17 y AUD.16 siguen como `[x]` en PLAN.md hasta la poda).
-   - SES.1: diseño en el ítem. Cruza UI, sesiones y procesos: plan corto antes de delegar.
+1. **Etapa 1 — lo que rompe el uso normal**: SES.1. Cerrados el 2026-11-13: AUD.14 `1afab0dc`, AUD.17 `e963f4e8`,
+   AUD.16 `b4e350fa`. AUD.17 y AUD.16 siguen como `[x]` en PLAN.md hasta la poda (el live-gate exige el `[x]` con
+   "Gate en vivo: navegador … `<evidencia>`" en la MISMA línea, dentro del diff de PLAN.md del commit).
+   - SES.1: **esperando GO de Carlos** al plan propuesto el 2026-11-13, en tres ítems y en este orden:
+     a) archivar = detener turno + archivar; verificar si `stopChatTurn` (`chat-turn-registry.ts:16`, solo aborta un
+        `AbortController`) llega a `terminateTree`; si no, que mate el árbol. Test: archivar con turno vivo → sin proceso.
+     b) X de tab (`App.tsx:172`): ocioso cierra; con turno, diálogo Detener y cerrar / Dejar corriendo / Cancelar, con
+        "recordar" como `confirmArchive` (`lib/chat-settings.ts:6-14`); punto en sidebar + contador; aviso al terminar
+        vía `useAttentionNotifications`.
+     c) `beforeunload` (`App.tsx:163-170`, hoy solo buffers) y apagado con turnos vivos → aviso con lista; al
+        arrancar, turnos `pending` con proceso muerto → marcados y ofrecidos a reanudar (sin reanudar solos).
+     Estado actual leído por `leer`: `runningSessionIds` (`App.tsx:301`), spinner en `DevSessionTabs.tsx:203`, stop en
+     `POST /api/chat/sessions/:id/stop`, borrado 409 por `hasActiveTurn` (`db/chat-turns.ts:294`).
 2. **Etapa 2 — uso real**: Carlos trabaja en OrchestOS en vez de Orca. Lo que reporte se abre como ítem con su
    evidencia y va primero. No se revisan pantallas por iniciativa propia.
 3. **Etapa 3 — Windows**: WIN.1, fase 1 = prueba de humo. Nada se arregla antes de verla fallar.
@@ -76,6 +87,11 @@ salvo CI.69/CI.76, SK.3, UI.70, LIMP.4, auditoría de `IDEAS.md` (`73247216`) y 
   reconciliar. El cierre exige además la línea `Ejecutado por:` en el ítem.
 - `agent:live-gate`: la ruta de evidencia en backticks va en la MISMA línea que `Gate en vivo:` (con
   navegador/browser/Playwright en ella), y el archivo staged en el mismo commit.
+- PLAN.md se renderiza desde la DB: tras editarlo a mano, `bun run plan:reconcile` antes del commit (si no, el
+  pre-commit falla en `plan-render --check`). Al cerrar con spec nunca commiteado, el commit imprime
+  `pathspec 'docs/specs/<ID>.md' did not match`: es inofensivo, el commit entra.
+- Tocar `src/router/model-catalog.ts` (y demás de `.claude/protected-rules.json`) exige entrada nueva en `LEDGER.md`
+  en el mismo commit.
 - El hook del cerebro permite `Edit` de ≤20 líneas en `src/`; Bash/heredoc y `Write` sobre `src/` se bloquean.
 - `delegate` le prohíbe al ejecutor editar `PLAN.md`/`NEXT.md`: un ítem que solo mueve texto del plan lo hace el
   cerebro (DOC.5).
