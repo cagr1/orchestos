@@ -1,5 +1,8 @@
 import { describe, expect, test } from 'bun:test'
-import { validateSkill } from '../skills/registry.ts'
+import { readdirSync, readFileSync } from 'node:fs'
+import { join } from 'node:path'
+import { parse } from 'yaml'
+import { loadSkill, validateSkill } from '../skills/registry.ts'
 
 function baseSkill(overrides: Record<string, unknown> = {}) {
   return {
@@ -174,5 +177,44 @@ describe('validateSkill — activation contract (O.0)', () => {
         'test.yaml',
       ),
     ).toThrow(/activation\.phases/)
+  })
+})
+
+describe('AUD.16 — validated skill projection', () => {
+  for (const [field, value] of [
+    ['when_to_use', 'x'],
+    ['inputs_required', [1]],
+    ['verifiers', 'x'],
+    ['anti_patterns', [false]],
+    ['examples', [{ input: 1 }]],
+    ['examples', [{ input: 'a', output: 'b' }]],
+    ['source', 'x'],
+    ['source', { url: 'x' }],
+    ['language_targets', { ts: { verifiers: 'x' } }],
+  ] as const) {
+    test(`rejects malformed ${field}: ${JSON.stringify(value)}`, () => {
+      expect(() => validateSkill(baseSkill({ [field]: value }), 'test.yaml')).toThrow(field)
+    })
+  }
+  test('returns a fresh object without unknown fields, including nested fields', () => {
+    const raw = baseSkill({
+      extra: 1,
+      source: { url: 'x', fetchedAt: 'y', extra: 1 },
+      activation: { mode: 'suggest', extra: 1 },
+    })
+    const skill = validateSkill(raw, 'test.yaml')
+    expect(skill).not.toBe(raw)
+    expect(skill).not.toHaveProperty('extra')
+    expect(skill.source).toEqual({ url: 'x', fetchedAt: 'y' })
+    expect(skill.activation).toEqual({ mode: 'suggest' })
+  })
+  test('all bundled YAML skills load with identical content', () => {
+    const dir = join(import.meta.dir, '../../skills')
+    const files = readdirSync(dir).filter((file) => file.endsWith('.yaml'))
+    expect(files.length).toBeGreaterThan(0)
+    for (const file of files) {
+      const path = join(dir, file)
+      expect(loadSkill(path)).toEqual(parse(readFileSync(path, 'utf8')))
+    }
   })
 })

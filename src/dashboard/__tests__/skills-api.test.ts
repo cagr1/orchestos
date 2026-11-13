@@ -3,9 +3,18 @@
  * (A1-A6, F3, /api/skills/curate, G pro pack).
  */
 import { afterAll, afterEach, describe, expect, it, mock } from 'bun:test'
-import { existsSync, mkdirSync, mkdtempSync, rmSync, unlinkSync, writeFileSync } from 'node:fs'
+import {
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  unlinkSync,
+  writeFileSync,
+} from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
+import { parse, stringify } from 'yaml'
 import { db } from '../../db/sqlite.ts'
 import type { ChatResponse } from '../../providers/openrouter.ts'
 import { getProSkillPath, getSkillPath } from '../../skills/registry.ts'
@@ -365,5 +374,161 @@ describe('POST /api/skills/pro/:id/import', () => {
     const res = await route(req('POST', `/api/skills/pro/does-not-exist/import`), PORT)
     expect(res.status).toBe(404)
     expect(existsSync(getProSkillPath('does-not-exist'))).toBe(false)
+  })
+})
+
+describe('AUD.16 — skill identity and registry boundary', () => {
+  const originalFetch = globalThis.fetch
+  afterEach(() => {
+    globalThis.fetch = originalFetch
+  })
+
+  function registryFetch(entries: Record<string, unknown>, content = stringify(VALID_SKILL)) {
+    const calls: string[] = []
+    globalThis.fetch = (async (input: string | URL | Request) => {
+      const url = String(input)
+      calls.push(url)
+      return new Response(
+        url.endsWith('index.json') ? JSON.stringify({ skills: entries }) : content,
+      )
+    }) as unknown as typeof fetch
+    return calls
+  }
+  const entry = { source: 'test/repo', files: ['SKILL.md'], bundleHash: 'hash' }
+
+  it('PUT rejects a mismatched id without writing and defaults a missing id to the URL', async () => {
+    const path = getSkillPath('aud-update', projectRoot)
+    mkdirSync(join(projectRoot, 'skills'), { recursive: true })
+    const original = stringify({ ...VALID_SKILL, id: 'aud-update' })
+    writeFileSync(path, original)
+    const res = await route(
+      req('PUT', '/api/skills/aud-update', { ...VALID_SKILL, id: 'other' }),
+      PORT,
+    )
+    expect(res.status).toBe(400)
+    expect(await res.json()).toEqual({
+      error: 'skill id "other" does not match URL id "aud-update"',
+    })
+    expect(readFileSync(path, 'utf8')).toBe(original)
+    const { id: _id, ...body } = VALID_SKILL
+    const updated = await route(req('PUT', '/api/skills/aud-update', body), PORT)
+    expect(updated.status).toBe(200)
+    expect(parse(readFileSync(path, 'utf8')).id).toBe('aud-update')
+  })
+
+  it('imports direct content under the URL id and removes unknown fields', async () => {
+    registryFetch({ 'aud-direct': entry }, stringify({ ...VALID_SKILL, extra: 1 }))
+    const res = await route(req('POST', '/api/skills/registry/aud-direct/import'), PORT)
+    expect(res.status).toBe(200)
+    expect(parse(readFileSync(getSkillPath('aud-direct', projectRoot), 'utf8'))).toEqual({
+      ...VALID_SKILL,
+      id: 'aud-direct',
+    })
+  })
+
+  it('imports normalized content under the URL id before validation', async () => {
+    registryFetch({ 'aud-normalized': entry }, '# Markdown requiring normalization')
+    mockChat.mockImplementationOnce(async () => ({
+      text: JSON.stringify({ ...VALID_SKILL, id: 'INVALID ID!', extra: 1 }),
+      inputTokens: 0,
+      outputTokens: 0,
+      model: 'mock',
+    }))
+    const res = await route(req('POST', '/api/skills/registry/aud-normalized/import'), PORT)
+    expect(res.status).toBe(200)
+    expect(parse(readFileSync(getSkillPath('aud-normalized', projectRoot), 'utf8'))).toEqual({
+      ...VALID_SKILL,
+      id: 'aud-normalized',
+    })
+  })
+
+  for (const [id, entries, status, error] of [
+    [
+      'aud-rejected',
+      { 'aud-rejected': { ...entry, review: { status: 'rejected' } } },
+      409,
+      'Skill was rejected by registry review',
+    ],
+    ['aud-missing', {}, 404, 'Skill not found in registry'],
+  ] as const) {
+    it(`blocks ${id} before fetching content or writing`, async () => {
+      const calls = registryFetch(entries)
+      const res = await route(req('POST', `/api/skills/registry/${id}/import`), PORT)
+      expect(res.status).toBe(status)
+      expect(await res.json()).toEqual({ error })
+      expect(calls).toHaveLength(1)
+      expect(existsSync(getSkillPath(id, projectRoot))).toBe(false)
+    })
+  }
+
+  it('rejects invalid URL ids before fetching', async () => {
+    const calls = registryFetch({})
+    const res = await route(req('POST', '/api/skills/registry/Bad_ID/import'), PORT)
+    expect(res.status).toBe(400)
+    expect(await res.json()).toEqual({ error: 'invalid skill id' })
+    expect(calls).toHaveLength(0)
+  })
+
+  it('skips invalid index entries and hides rejected skills', async () => {
+    registryFetch({
+      valid: entry,
+      broken: { source: 'x', bundleHash: 'h' },
+      rejected: { ...entry, review: { status: 'rejected' } },
+    })
+    const res = await route(req('GET', '/api/skills/registry'), PORT)
+    expect(res.status).toBe(200)
+    const data = await res.json()
+    expect(data.skills.map((skill: { id: string }) => skill.id)).toEqual(['valid'])
+  })
+
+  it('reports an invalid index shape as a registry error', async () => {
+    globalThis.fetch = (async () => new Response('{}')) as unknown as typeof fetch
+    const res = await route(req('POST', '/api/skills/registry/aud-bad-index/import'), PORT)
+    expect(res.status).toBe(502)
+    expect(await res.json()).toEqual({
+      error: 'Failed to fetch skill from registry: registry index has an unexpected shape',
+    })
+  })
+
+  it('reports index network failure without writing', async () => {
+    globalThis.fetch = (async () => {
+      throw new Error('network unavailable')
+    }) as unknown as typeof fetch
+    const res = await route(req('POST', '/api/skills/registry/aud-network/import'), PORT)
+    expect(res.status).toBe(502)
+    expect(await res.json()).toEqual({
+      error: 'Failed to fetch skill from registry: network unavailable',
+    })
+    expect(existsSync(getSkillPath('aud-network', projectRoot))).toBe(false)
+  })
+
+  it('returns projected skills from direct and normalized imports and the curator', async () => {
+    const draft = { ...VALID_SKILL, extra: 1 }
+    const direct = await route(
+      req('POST', '/api/skills/import', { type: 'yaml', yaml: stringify(draft) }),
+      PORT,
+    )
+    expect(direct.status).toBe(200)
+    expect((await direct.json()).skill).toEqual(VALID_SKILL)
+    for (const path of ['/api/skills/import', '/api/skills/curate']) {
+      mockChat.mockImplementationOnce(async () => ({
+        text: JSON.stringify(draft),
+        inputTokens: 0,
+        outputTokens: 0,
+        model: 'mock',
+      }))
+      const res = await route(
+        req(
+          'POST',
+          path,
+          path.endsWith('import')
+            ? { type: 'yaml', yaml: 'id: incomplete' }
+            : { text: 'test skill' },
+        ),
+        PORT,
+      )
+      expect(res.status).toBe(200)
+      expect((await res.json()).skill).toEqual(VALID_SKILL)
+    }
   })
 })

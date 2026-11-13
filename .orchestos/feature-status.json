@@ -16,7 +16,7 @@
       "sprint": "Etapa 1 — lo que rompe el uso normal",
       "block": null,
       "title": "Skills: `validateSkill` devuelve el objeto crudo y el id de la URL no se cruza con el del contenido",
-      "status": "open",
+      "status": "done",
       "closedDate": null
     },
     {

@@ -1,29 +1,19 @@
+import { check, parseJson, z } from '../boundary/index.ts'
+
 // ── autoskills registry (skills.sh curated index via midudev/autoskills) ──────
 
 const REGISTRY_INDEX_URL = 'https://cdn.jsdelivr.net/npm/autoskills/skills-registry/index.json'
 const REGISTRY_RAW_BASE =
   'https://raw.githubusercontent.com/midudev/autoskills/main/packages/autoskills/skills-registry'
 
-interface AutoskillsIndex {
-  version: number
-  generatedAt: string
-  skills: Record<string, AutoskillsSkillEntry>
-}
-
-interface AutoskillsSkillEntry {
-  source: string
-  skillPath: string
-  commitSha: string
-  files: string[]
-  sha256: Record<string, string>
-  bundleHash: string
-  review: {
-    status: string
-    flags: string[]
-    summary: string
-    model: string
-  }
-}
+const indexSchema = z.object({ skills: z.record(z.string(), z.unknown()) })
+const entrySchema = z.object({
+  source: z.string(),
+  files: z.array(z.string()),
+  bundleHash: z.string(),
+  review: z.object({ status: z.string() }).optional(),
+})
+type AutoskillsSkillEntry = z.infer<typeof entrySchema>
 
 interface RegistrySkillItem {
   id: string
@@ -44,8 +34,18 @@ async function fetchRegistryIndex(): Promise<Record<string, AutoskillsSkillEntry
   if (!response.ok) {
     throw new Error(`Failed to fetch registry index: HTTP ${response.status}`)
   }
-  const data = (await response.json()) as AutoskillsIndex
-  return data.skills
+  const data = parseJson(indexSchema, await response.text())
+  if (!data.ok) throw new Error('registry index has an unexpected shape')
+  const skills: Record<string, AutoskillsSkillEntry> = Object.create(null)
+  for (const [id, raw] of Object.entries(data.data.skills)) {
+    const entry = check(entrySchema, raw)
+    if (entry.ok) skills[id] = entry.data
+  }
+  return skills
+}
+
+export async function fetchRegistryEntry(id: string): Promise<AutoskillsSkillEntry | undefined> {
+  return (await fetchRegistryIndex())[id]
 }
 
 /**

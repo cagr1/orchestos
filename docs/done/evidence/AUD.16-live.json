@@ -1,0 +1,19 @@
+{
+  "item": "AUD.16",
+  "date": "2026-11-13",
+  "target": "dashboard real localhost:4242 reiniciado con el código del ítem, curl con x-orchestos-token",
+  "checks": [
+    {
+      "req": "PUT /api/skills/diagnose con id other-skill",
+      "status": 400,
+      "body": "{\"error\":\"skill id \\\"other-skill\\\" does not match URL id \\\"diagnose\\\"\"}",
+      "note": "skills/diagnose.yaml sin cambio; skills/other-skill.yaml no existe"
+    },
+    {
+      "req": "POST /api/skills/registry/Bad_Id/import",
+      "status": 400,
+      "body": "{\"error\":\"invalid skill id\"}"
+    },
+    { "req": "GET /api/skills", "status": 200 }
+  ]
+}

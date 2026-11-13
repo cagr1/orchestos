@@ -45,7 +45,11 @@ function auxiliaryClient(root: string) {
 
 import { parse, stringify } from 'yaml'
 import { db } from '../../db/sqlite.ts'
-import { fetchRegistryList, fetchRegistrySkillContent } from '../../skills/fetch.ts'
+import {
+  fetchRegistryEntry,
+  fetchRegistryList,
+  fetchRegistrySkillContent,
+} from '../../skills/fetch.ts'
 import { errorResponse, jsonResponse } from '../http.ts'
 import { CURATOR_SYSTEM, IMPORT_SYSTEM } from '../prompts/curator.ts'
 import { checkSsrSafe } from '../ssrf.ts'
@@ -180,7 +184,9 @@ async function handleApiSkillsUpdate(
   }
 
   try {
-    const validated = validateSkill(body, `api:${id}`)
+    if (body.id !== undefined && body.id !== id)
+      return errorResponse(`skill id "${body.id}" does not match URL id "${id}"`, 400)
+    const validated = validateSkill({ ...body, id }, `api:${id}`)
     const yaml = stringify(validated, { lineWidth: 120 })
     mkdirSync(dirname(path), { recursive: true })
     writeFileSync(path, yaml, 'utf-8')
@@ -476,10 +482,10 @@ async function handleApiSkillsImport(req: Request, root = process.cwd()): Promis
   }
 
   try {
-    validateSkill(parsed, 'import')
+    const validated = validateSkill(parsed, 'import')
     return jsonResponse({
       ok: true,
-      skill: parsed,
+      skill: { ...validated },
       normalized: false,
       warnings: [],
       iterations: 0,
@@ -494,6 +500,7 @@ async function normalizeImport(
   error: string,
   sourceDesc: string,
   root: string,
+  registryId?: string,
 ): Promise<Response> {
   const MAX_RETRIES = 2
   let lastError = error
@@ -537,10 +544,13 @@ async function normalizeImport(
     }
 
     try {
-      validateSkill(draft, 'import')
+      const validated = validateSkill(
+        registryId === undefined ? draft : { ...draft, id: registryId },
+        'import',
+      )
       return jsonResponse({
         ok: true,
-        skill: draft,
+        skill: { ...validated },
         normalized: true,
         warnings: [`Original ${sourceDesc} had issues: ${error}. Fixed by AI curator.`],
         iterations: attempt + 1,
@@ -598,12 +608,17 @@ async function handleApiSkillsRegistryImport(
   const m = url.pathname.match(/^\/api\/skills\/registry\/([^/]+)\/import$/)
   if (!m?.[1]) return errorResponse('Missing skill id', 400)
   const id: string = m[1]
+  if (!/^[a-z0-9]+(-[a-z0-9]+)*$/.test(id)) return errorResponse('invalid skill id', 400)
 
   const targetPath = getSkillPath(id, root)
   if (existsSync(targetPath)) return errorResponse('Skill already exists', 409)
 
   let rawContent: string
   try {
+    const entry = await fetchRegistryEntry(id)
+    if (!entry) return errorResponse('Skill not found in registry', 404)
+    if (entry.review?.status === 'rejected')
+      return errorResponse('Skill was rejected by registry review', 409)
     rawContent = await fetchRegistrySkillContent(id)
   } catch (e: any) {
     return errorResponse(`Failed to fetch skill from registry: ${e.message}`, 502)
@@ -613,16 +628,10 @@ async function handleApiSkillsRegistryImport(
   let parsed: Record<string, unknown>
   try {
     parsed = parse(rawContent) as Record<string, unknown>
-    if (typeof parsed.id === 'string') {
-      parsed.id = parsed.id
-        .toLowerCase()
-        .replace(/[^a-z0-9-]/g, '-')
-        .replace(/-+/g, '-')
-        .replace(/^-|-$/g, '')
-    }
-    validateSkill(parsed, `registry:${id}`)
+    parsed.id = id
+    const validated = validateSkill(parsed, `registry:${id}`)
     // Valid as-is — save directly
-    const yaml = stringify(parsed, { lineWidth: 120 })
+    const yaml = stringify(validated, { lineWidth: 120 })
     mkdirSync(dirname(targetPath), { recursive: true })
     writeFileSync(targetPath, yaml, 'utf-8')
     return jsonResponse({
@@ -640,6 +649,7 @@ async function handleApiSkillsRegistryImport(
     'SKILL.md format — needs SkillDef conversion',
     `Registry: ${id}`,
     root,
+    id,
   ).then(async (resp) => {
     const data = (await resp.json()) as {
       ok: boolean
@@ -650,7 +660,8 @@ async function handleApiSkillsRegistryImport(
       iterations: number
     }
     if (data.ok && data.skill) {
-      const yaml = stringify(data.skill, { lineWidth: 120 })
+      const validated = validateSkill({ ...data.skill, id }, `registry:${id}`)
+      const yaml = stringify(validated, { lineWidth: 120 })
       mkdirSync(dirname(targetPath), { recursive: true })
       writeFileSync(targetPath, yaml, 'utf-8')
       return jsonResponse({
@@ -724,10 +735,10 @@ async function handleApiSkillsCurate(req: Request, root = process.cwd()): Promis
     }
 
     try {
-      validateSkill(draft, 'curate')
+      const validated = validateSkill(draft, 'curate')
       return jsonResponse({
         ok: true,
-        skill: draft,
+        skill: { ...validated },
         iterations: attempt + 1,
       } satisfies SkillCurateResponse)
     } catch (e: any) {

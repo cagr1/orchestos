@@ -8,6 +8,7 @@ import {
 } from 'node:fs'
 import { basename, join } from 'node:path'
 import { parse } from 'yaml'
+import { check, z } from '../boundary/index.ts'
 import { orchestosDir } from '../config/orchestos-home.ts'
 import type { TaskClass } from '../router/classify.ts'
 import { excludeRuntimeArtifacts } from '../run/git-exclude.ts'
@@ -137,7 +138,7 @@ function mergeSkillDirs(ownDir: string, installDir: string): string[] {
 }
 
 export function validateSkill(raw: Record<string, unknown>, filePath: string): SkillDef {
-  const err = (msg: string) => {
+  const err = (msg: string): never => {
     throw new Error(`[skill:${filePath}] ${msg}`)
   }
 
@@ -224,7 +225,61 @@ export function validateSkill(raw: Record<string, unknown>, filePath: string): S
     }
   }
 
-  return raw as unknown as SkillDef
+  const optional = check(
+    z.object({
+      when_to_use: z.array(z.string()).optional(),
+      inputs_required: z.array(z.string()).optional(),
+      verifiers: z.array(z.string()).optional(),
+      anti_patterns: z.array(z.string()).optional(),
+      examples: z
+        .array(z.object({ title: z.string(), input: z.string(), output: z.string() }))
+        .optional(),
+      language_targets: z
+        .record(
+          z.string(),
+          z.object({
+            verifiers: z.array(z.string()).optional(),
+            anti_patterns: z.array(z.string()).optional(),
+          }),
+        )
+        .optional(),
+      source: z.object({ url: z.string(), fetchedAt: z.string() }).optional(),
+    }),
+    raw,
+  )
+  if (!optional.ok) return err(optional.error)
+  const fields = optional.data
+  const activation = raw.activation as SkillActivation | undefined
+  return {
+    id: raw.id as string,
+    version: raw.version as string,
+    name: raw.name as string,
+    description: raw.description as string,
+    instructions: raw.instructions as string,
+    targets: [...(raw.targets as SkillTarget[])],
+    ...(fields.when_to_use !== undefined && { when_to_use: fields.when_to_use }),
+    ...(fields.inputs_required !== undefined && { inputs_required: fields.inputs_required }),
+    ...(fields.verifiers !== undefined && { verifiers: fields.verifiers }),
+    ...(fields.anti_patterns !== undefined && { anti_patterns: fields.anti_patterns }),
+    ...(fields.examples !== undefined && { examples: fields.examples }),
+    ...(fields.language_targets !== undefined && { language_targets: fields.language_targets }),
+    ...(raw.allowed_tools !== undefined && { allowed_tools: [...(raw.allowed_tools as string[])] }),
+    ...(raw.iron_law !== undefined && { iron_law: raw.iron_law as string }),
+    ...(raw.common_rationalizations !== undefined && {
+      common_rationalizations: (raw.common_rationalizations as SkillRationalization[]).map(
+        ({ excuse, refutation }) => ({ excuse, refutation }),
+      ),
+    }),
+    ...(raw.red_flags !== undefined && { red_flags: [...(raw.red_flags as string[])] }),
+    ...(activation !== undefined && {
+      activation: {
+        mode: activation.mode,
+        ...(activation.triggers !== undefined && { triggers: [...activation.triggers] }),
+        ...(activation.phases !== undefined && { phases: [...activation.phases] }),
+      },
+    }),
+    ...(fields.source !== undefined && { source: fields.source }),
+  }
 }
 
 export function loadSkill(filePath: string): SkillDef {

@@ -80,10 +80,19 @@ subagente, sin informe aparte): cada cita se comprueba con grep al escribir el s
   Además `curl` contra el dashboard real, `docs/done/evidence/AUD.17-live.json` (`.env` intacto).
   Ejecutado por: gpt-6.1-sol (criterio) · Spec: docs/specs/AUD.17.md
 
-- [ ] **AUD.16 — Skills: `validateSkill` devuelve el objeto crudo y el id de la URL no se cruza con el del contenido.**
-  (abierto 2026-11-11) `src/skills/registry.ts:138-226` (`when_to_use: "x"` → `.map is not a function` en
+- [x] **AUD.16 — Skills: `validateSkill` devuelve el objeto crudo y el id de la URL no se cruza con el del contenido.**
+  (abierto 2026-11-11, cerrado 2026-11-13) `src/skills/registry.ts:138-226` (`when_to_use: "x"` → `.map is not a function` en
   `src/skills/targets/_shared.ts:15`, rompe el prompt de QA); `src/dashboard/handlers/skills.ts:160-186`, `:593-622`;
   índice del registry casteado en `src/skills/fetch.ts:47-48,73`; el import ignora `review.status: rejected`.
+  Cierre: `validateSkill` valida además `when_to_use`, `inputs_required`, `verifiers`, `anti_patterns`, `examples`
+  (`title`/`input`/`output`), `language_targets` y `source`, y devuelve un objeto nuevo sin campos desconocidos; import,
+  normalización, registry import y curate usan ese resultado. `PUT /api/skills/:id` con otro `id` → 400; registry
+  import fija el id del contenido al de la URL (kebab-case o 400), consulta el índice (ausente 404, `rejected` 409);
+  índice validado, entradas inválidas omitidas. `boundary-budget` response-json 43 → 42.
+  Gates: tsc, lint, test:coverage 2875/0; diff leído entero por el cerebro (otro proveedor).
+  Gate en vivo: navegador Playwright, `skills-library` 16/16 con HOME temporal, `docs/done/evidence/AUD.16-skills-library.json`.
+  Además `curl` contra el dashboard real (id distinto → 400, archivo intacto), `docs/done/evidence/AUD.16-live.json`.
+  Ejecutado por: gpt-6.1-sol (criterio) · Spec: docs/specs/AUD.16.md
 
 - [ ] **SES.1 — Cerrar una sesión de verdad.** (abierto 2026-11-12; Carlos: va justo después del lote AUD) La X del
   tab (`App.tsx:172`, `closeDevTab`) solo quita el tab de la UI: la sesión sigue activa y su turno corriendo. Archivar

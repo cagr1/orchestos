@@ -1,0 +1,95 @@
+[
+  {
+    "flujo": "skills-library",
+    "pass": true,
+    "steps": [
+      {
+        "nombre": "Add skill dialog visible",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "library endpoint imports SKILL.md and reports omitted link",
+        "ok": true,
+        "detalle": "{\"ok\":true,\"id\":\"gate-library-skill\",\"skill\":{\"id\":\"gate-library-skill\",\"version\":\"1.0.0\",\"name\":\"Gate Library Skill\",\"description\":\"Use when verifying skill activation.\",\"instructions\":\"# Fixture instructions\\nRead [guide](references/guide.md).\",\"targets\":[\"claude\",\"openai\"],\"source\":{\"url\":\"http://127.0.0.1:53698/\",\"fetchedAt\":\"2026-11-13T14:14:09.226Z\"}},\"warnings\":[\"Auxiliary file was not imported: references/guide.md\"]}"
+      },
+      {
+        "nombre": "Library origin appears",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "library skill is initially off",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "API reports library disabled",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "toggle endpoint succeeds",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "activation persisted on disk",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "activation survives reload",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "phase Build endpoint succeeds",
+        "ok": true,
+        "detalle": "{\"ok\":true,\"id\":\"gate-library-skill\",\"phases\":[\"implement\"]}"
+      },
+      {
+        "nombre": "phase Fix endpoint succeeds",
+        "ok": true,
+        "detalle": "{\"ok\":true,\"id\":\"gate-library-skill\",\"phases\":[\"implement\",\"fix\"]}"
+      },
+      {
+        "nombre": "phase YAML persisted",
+        "ok": true,
+        "detalle": "{\"mode\":\"automatic\",\"phases\":[\"implement\",\"fix\"]}"
+      },
+      {
+        "nombre": "phase chips survive reload",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "phase Build endpoint succeeds",
+        "ok": true,
+        "detalle": "{\"ok\":true,\"id\":\"gate-library-skill\",\"phases\":[\"fix\"]}"
+      },
+      {
+        "nombre": "phase Fix endpoint succeeds",
+        "ok": true,
+        "detalle": "{\"ok\":true,\"id\":\"gate-library-skill\",\"phases\":[]}"
+      },
+      {
+        "nombre": "empty phases remove activation",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "deactivation persisted",
+        "ok": true,
+        "detalle": "ok"
+      }
+    ],
+    "notes": [],
+    "errores": [],
+    "capturas": [
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-28091/skills-library/skills-library-dialog.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-28091/skills-library/skills-library-list.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-28091/skills-library/skills-library-phases.png"
+    ]
+  }
+]
