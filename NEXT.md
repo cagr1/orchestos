@@ -34,6 +34,11 @@ auditoría AUD.1–AUD.28 en el orden de la segunda auditoría; lo cerrado está
    ítem; medido el 2026-11-10, desde el 2026-11-08 solo 2 de ~30 commits fueron de producto porque cada rojo se volvía
    un CI.\* prioritario y muchos eran gate desfasado, no producto roto. Sin GO, la regla sigue vigente. Otras
    pendientes: tamaño por reanudabilidad de ODD; qué ideas de `IDEAS.md` entran al cierre.
+   - **Aprendizaje de errores (propuesto 2026-11-13, espera GO, va después de SES.1)**: hoy los instincts solo entran a
+     tareas (`run/middlewares/instinct-apply.ts`), no al chat; nada se propone solo (`runs analyze` manual, rol
+     auxiliary en `analyze/patterns.ts:144`). Diseño propuesto según investigación (Copilot memory, ACE, ExpeL): fallo →
+     auxiliar propone lección atómica con cita → Carlos aprueba en la vista Instincts → inyección por relevancia con
+     tope de tokens (chat y tareas) → caduca sin uso o si la cita ya no existe; exporta a `AGENTS.md` para todos los CLI.
 7. Lo que dejó el lote AUD y sigue vivo:
    - El dashboard se abre con la URL `#t=` que imprime `orchestos dashboard`; scripts que llamen a `/api` mandan
      `x-orchestos-token` (archivo `~/.orchestos/dashboard-token` o `ORCHESTOS_DASHBOARD_TOKEN`).
