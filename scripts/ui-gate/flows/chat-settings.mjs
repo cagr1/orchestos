@@ -75,8 +75,8 @@ export default async function chatSettings({ page, api, step, shot, visible, hid
     page.getByRole('button', { name: /^(Back to app|Volver a la app)$/ }).click()
   await settings()
   await step(
-    'Settings Chat shows its four rows',
-    (await page.locator('[data-settings-page] [data-settings-row]').count()) === 4,
+    'Settings Chat shows its five rows',
+    (await page.locator('[data-settings-page] [data-settings-row]').count()) === 5,
   )
   const modLabel = await page.evaluate(() =>
     /Mac/.test(navigator.platform) ? '⌘ Enter' : 'Ctrl Enter',
@@ -327,6 +327,6 @@ export default async function chatSettings({ page, api, step, shot, visible, hid
       response.request().method() === 'POST' &&
       new URL(response.url()).pathname.endsWith('/archive'),
   )
-  await page.getByRole('dialog').press('Enter')
+  await archive.getByRole('button', { name: 'Archive', exact: true }).press('Enter')
   await step('Enter confirms archive', (await archived).ok())
 }

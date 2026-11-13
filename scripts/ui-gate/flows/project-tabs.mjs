@@ -141,7 +141,7 @@ export default async function projectTabs({
 }) {
   const projectRoot = mkdtempSync(join(tmpdir(), 'orchestos-ui-13-2f-'))
   writeFileSync(join(projectRoot, 'README.md'), '# UI.13.2f\n')
-  writeFileSync(join(projectRoot, '.gitignore'), '.orchestos/\n')
+  writeFileSync(join(projectRoot, '.gitignore'), '.orchestos/\ndist/\n')
   run('git', ['init', '-q'], projectRoot)
   run('git', ['add', 'README.md', '.gitignore'], projectRoot)
   run(
@@ -171,7 +171,7 @@ export default async function projectTabs({
           {
             id: 'gate-tabs-task',
             description: 'Append Gate ran. to README.md',
-            executor_model: 'openai/gpt-6-luna',
+            executor_model: 'gpt-6-luna',
             engine: 'codex',
             cli_effort: 'medium',
             input: ['README.md'],

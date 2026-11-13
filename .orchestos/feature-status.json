@@ -68,6 +68,14 @@
       "closedDate": null
     },
     {
+      "id": "USO.1",
+      "sprint": "Etapa 1 — lo que rompe el uso normal",
+      "block": null,
+      "title": "Tres flujos de UI rojos reproducidos antes del uso real",
+      "status": "done",
+      "closedDate": null
+    },
+    {
       "id": "LRN.1b",
       "sprint": "Etapa 1 — lo que rompe el uso normal",
       "block": null,

@@ -1027,7 +1027,7 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
     setHiddenClis(next)
     setVisibilitySaving(true)
     try {
-      await saveHiddenClis(next)
+      await saveHiddenClis(next, configProjectId)
     } catch (error) {
       setHiddenClis(previous)
       showToast(error instanceof Error ? error.message : 'Could not save visibility', 'error')

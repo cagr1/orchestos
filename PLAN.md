@@ -142,6 +142,14 @@ subagente, sin informe aparte): cada cita se comprueba con grep al escribir el s
   `evidence_json`, `injected_count`, `last_injected_at` y `runs.instinct_ids_json` (los ids viajan en
   `ctx.instinctIds` y se persisten en los ocho caminos de `insertRun`). Tests 231/231; `docs/done/evidence/LRN.1a-live.json`.
   Ejecutado por: gpt-6.1-sol (criterio) · Spec: docs/specs/LRN.1a.md
+- [x] **USO.1 — Tres flujos de UI rojos reproducidos antes del uso real.** Gate en vivo: navegador Playwright, `chat-settings`, `project-tabs` y `providers` verdes con `gate:evidence` (labels `USO.1-<flujo>`), diagnóstico en `docs/done/evidence/USO.1-live.json`.
+  `providers`: producto roto, ocultar un CLI no mandaba el proyecto (`api/settings.ts:285`), test en `clis.test.ts`.
+  `chat-settings`: gate desfasado, 5 filas tras SES.1b y Enter en el diálogo activa Cancel (foco seguro).
+  `project-tabs`: gate desfasado, `dist/` sin ignorar bloqueaba el sandbox del fixture. Los otros 9 rojos de la
+  nocturna inválida pasaron al re-correrlos con la máquina despierta.
+  Ejecutado por: gpt-6.1-sol (criterio) · Spec: docs/specs/USO.1.md
+  Fuera de scope declarado: `scripts/ui-gate/flows/*.mjs` (gates desfasados) y `docs/done/evidence/USO.1-live.json`.
+
 - [ ] **LRN.1b — El chat recibe lecciones y puede proponerlas (F1).**
   Bloque de lecciones en el prompt del chat con el mismo tope; acción "recordar" y herramienta `propose_lesson`;
   la vista Instincts muestra cita, porqué y uso, y permite editar antes de aprobar.

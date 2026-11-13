@@ -282,6 +282,8 @@ export async function getProviders(
   })
 }
 
-export async function saveHiddenClis(hiddenClis: string[]): Promise<void> {
-  await request('/api/clis', jsonInit('PUT', { hiddenClis }))
+export async function saveHiddenClis(hiddenClis: string[], projectId?: string): Promise<void> {
+  const init = jsonInit('PUT', { hiddenClis })
+  if (projectId) init.headers = { ...init.headers, 'x-orchestos-project-id': projectId }
+  await request('/api/clis', init)
 }

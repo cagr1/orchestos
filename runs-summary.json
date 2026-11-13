@@ -1,7 +1,22 @@
 {
-  "exported_at": "2026-11-13T16:24:14.046Z",
+  "exported_at": "2026-11-13T16:35:31.970Z",
   "total_runs": 20,
   "runs": [
+    {
+      "id": "bbb237d8-29fe-4c77-b8ec-393010528462",
+      "task_class": "gate:uso.1-project-tabs:doc",
+      "model": "gpt-6-luna",
+      "provider": "codex",
+      "status": "done",
+      "qa_verdict": "pass",
+      "qa_reason": "README.md contains the requested line.",
+      "files_blocked": [],
+      "checks_failed": 0,
+      "usd_cost": 0.00135506,
+      "elapsed_ms": 26716,
+      "tokens": 7341,
+      "created_at": "2026-11-13T16:34:20.339Z"
+    },
     {
       "id": "e372dfef-9b28-499d-bee5-fe1df6767c84",
       "task_class": "gate:rerun-chat-followup-task:implement",
@@ -286,21 +301,6 @@
       "elapsed_ms": 13526,
       "tokens": 7019,
       "created_at": "2026-11-08T16:44:33.942Z"
-    },
-    {
-      "id": "8349f84f-0908-487b-b7b2-e30911825fc8",
-      "task_class": "gate:ade.10-full-ui:implement",
-      "model": "anthropic/haiku",
-      "provider": "claude",
-      "status": "done",
-      "qa_verdict": "pass",
-      "qa_reason": "claude.txt contains the required line.",
-      "files_blocked": [],
-      "checks_failed": 0,
-      "usd_cost": 0.0016969799999999998,
-      "elapsed_ms": 12143,
-      "tokens": 4002,
-      "created_at": "2026-11-08T16:44:18.584Z"
     }
   ],
   "stats": {
@@ -308,6 +308,6 @@
     "blocked": 0,
     "done": 17,
     "qa_failed": 4,
-    "total_cost_usd": "0.8874"
+    "total_cost_usd": "0.8871"
   }
 }

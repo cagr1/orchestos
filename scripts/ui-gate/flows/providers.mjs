@@ -76,7 +76,7 @@ Object.assign(systemProviderProbe, discovery, { env: { ...process.env, CODEX_HOM
       await api('/api/clis', {
         method: 'PUT',
         body: JSON.stringify({ hiddenClis: visibility }),
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', 'x-orchestos-project-id': project.id },
       })
       await api(`/api/projects/${encodeURIComponent(project.id)}/purge`, {
         method: 'POST',
