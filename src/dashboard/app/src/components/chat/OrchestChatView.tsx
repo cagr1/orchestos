@@ -348,7 +348,10 @@ export const OrchestChatView: React.FC<OrchestChatViewProps> = ({
     <MotionConfig reducedMotion="user">
       <div className="flex-1 flex flex-col h-full text-app overflow-hidden relative select-none">
         {/* Scrollable messages container */}
-        <div ref={scrollContainerRef} className="flex-1 overflow-y-auto p-4 md:p-6 space-y-6">
+        <div
+          ref={scrollContainerRef}
+          className="flex-1 overflow-y-auto p-4 md:p-6 space-y-6 [mask-image:linear-gradient(to_bottom,transparent,#000_32px)]"
+        >
           <div ref={contentRef}>
             {messages.length === 0 ? (
               <ThreadEmpty title={projectName || 'Chat'}>

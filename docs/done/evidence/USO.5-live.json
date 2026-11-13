@@ -1,0 +1,10 @@
+{
+  "item": "USO.5",
+  "date": "2026-11-13",
+  "live": "Navegador integrado (Claude desktop) contra `bun run src/cli.ts dashboard --port 4242` real tras build:app: en Chat y en Dev, con el hilo 'que es esto?' desplazado, el texto se desvanece en los 32 px superiores bajo el divisor de la barra; el resto del hilo se ve igual. main.css contiene la regla mask-image.",
+  "gates": [
+    "bunx tsc -p src/dashboard/app/tsconfig.json --noEmit: 0 errores",
+    "bun run build:app: ok"
+  ],
+  "review": "dos clases Tailwind (mask-image) en los contenedores de scroll; sin lógica nueva"
+}

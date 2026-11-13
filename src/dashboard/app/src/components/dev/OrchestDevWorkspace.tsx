@@ -986,7 +986,11 @@ export const OrchestDevWorkspace: React.FC<OrchestDevWorkspaceProps> = ({
       {/* 1. TIMELINE (Centered, same max width as Chat) */}
       <div
         ref={timelineContainerRef}
-        className={activeAgent ? 'flex-1 overflow-y-auto p-4 md:p-6 space-y-4' : 'hidden'}
+        className={
+          activeAgent
+            ? 'flex-1 overflow-y-auto p-4 md:p-6 space-y-4 [mask-image:linear-gradient(to_bottom,transparent,#000_32px)]'
+            : 'hidden'
+        }
       >
         <div ref={timelineContentRef} className="max-w-3xl lg:max-w-4xl mx-auto space-y-3">
           {activeAgent && exchanges.map(DevExchange)}

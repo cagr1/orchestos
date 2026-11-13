@@ -73,6 +73,9 @@ esta etapa: `docs/done/bloque-AUD.md` (AUD.16, AUD.17), `docs/done/bloque-SES.md
 - [x] **USO.4 — Divisor bajo la barra superior en vez de bordes hasta arriba.** Gate en vivo: navegador contra el dashboard real, `docs/done/evidence/USO.4-live.json`. (pedido de Carlos 2026-11-13: los bordes hasta arriba de USO.3 se veían mal)
   `ShellHeader.tsx` lleva `border-b border-app`; se retira la prolongación con `--shell-aside-*` de USO.3.
   Ejecutado por: claude-opus-5-5 (fix chico)
+- [x] **USO.5 — El hilo se desvanece arriba al desplazarse, en Chat y Dev.** Gate en vivo: navegador contra el dashboard real, `docs/done/evidence/USO.5-live.json`. (pedido de Carlos 2026-11-13: el texto chocaba con el divisor de la barra)
+  `OrchestChatView.tsx` y `OrchestDevWorkspace.tsx`: `mask-image` de transparente a opaco en 32 px.
+  Ejecutado por: claude-opus-5-5 (fix chico)
 - [ ] **LRN.1 — OrchestOS aprende de los errores.** (abierto 2026-11-13; GO de Carlos a D1–D6; va después de SES.1 y
   no bloquea el uso real) Diseño: `docs/specs/LRN-1-opinion-fable.md`. Decisiones: D1 alcance por proyecto, global
   solo por promoción manual; D2 tope 1.000 tokens o 15 lecciones; D3 proponer ante firma repetida ≥2, par

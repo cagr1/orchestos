@@ -20,6 +20,14 @@
       "closedDate": null
     },
     {
+      "id": "USO.5",
+      "sprint": "Etapa 2 — Uso real",
+      "block": null,
+      "title": "El hilo se desvanece arriba al desplazarse, en Chat y Dev",
+      "status": "done",
+      "closedDate": null
+    },
+    {
       "id": "LRN.1",
       "sprint": "Etapa 2 — Uso real",
       "block": null,
