@@ -138,6 +138,8 @@ export interface SpecItem {
 }
 
 export interface InstinctItem {
+  status: 'active' | 'review' | 'retired'
+  statusChangedAt: string | null
   why?: string | null
   evidence?: { runId?: string; turnId?: string; ref?: string } | null
   injectedCount?: number

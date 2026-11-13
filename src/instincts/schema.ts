@@ -25,6 +25,8 @@
 
 // ── types ──────────────────────────────────────────────────────────────────
 
+export type InstinctStatus = 'active' | 'review' | 'retired'
+
 export type InstinctSource = 'manual' | 'auto'
 
 export interface InstinctEvidence {
@@ -34,6 +36,8 @@ export interface InstinctEvidence {
 }
 
 export interface InstinctDef {
+  status: InstinctStatus
+  statusChangedAt: string | null
   id: string
   trigger: string
   action: string
@@ -133,6 +137,10 @@ export function validateInstinct(raw: unknown): InstinctDef {
     throw new InstinctValidationError("source must be 'manual' or 'auto'")
   }
 
+  const status = obj.status ?? 'active'
+  if (status !== 'active' && status !== 'review' && status !== 'retired')
+    throw new InstinctValidationError("status must be 'active', 'review' or 'retired'")
+
   const verified = Boolean(obj.verified)
 
   const created_at = String(obj.created_at ?? '')
@@ -141,6 +149,8 @@ export function validateInstinct(raw: unknown): InstinctDef {
 
   return {
     ...validateLessonFields(obj),
+    status,
+    statusChangedAt: typeof obj.statusChangedAt === 'string' ? obj.statusChangedAt : null,
     injectedCount: Number(obj.injectedCount ?? 0),
     lastInjectedAt: typeof obj.lastInjectedAt === 'string' ? obj.lastInjectedAt : null,
     id,

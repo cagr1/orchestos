@@ -12,6 +12,8 @@ import type { RunFailureKind } from '../db/runs.ts'
  *   GET  /api/instincts             → InstinctRow[]
  *   POST /api/instincts/:id/approve → MutationResult
  *   POST /api/instincts/:id/reject  → MutationResult
+ *   POST /api/instincts/:id/status  → MutationResult
+ *   POST /api/instincts/:id/graduate → { ok, path, added, created }
  *   GET  /api/specs                 → SpecRow[]
  *   GET  /api/memory                → MemoryRow[]
  *   GET  /api/tasks/:id/diagnose   → DiagnoseRow
@@ -321,6 +323,8 @@ export type GraphRunStatusResponse =
 // ── /api/instincts ────────────────────────────────────────────────────────────
 
 export interface InstinctRow {
+  status: 'active' | 'review' | 'retired'
+  statusChangedAt: string | null
   why?: string | null
   evidence?: { runId?: string; turnId?: string; ref?: string } | null
   injectedCount: number

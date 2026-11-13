@@ -1299,6 +1299,32 @@ export const FUTURE_MIGRATIONS: readonly SchemaMigrationStep[] = [
       }
     },
   },
+  {
+    version: 42,
+    name: 'lesson-lifecycle',
+    precondition: () => {},
+    apply: (database) => {
+      for (const [name, definition] of [
+        ['status', "TEXT NOT NULL DEFAULT 'active' CHECK(status IN ('active','review','retired'))"],
+        ['status_changed_at', 'TEXT'],
+      ]) {
+        const columns = database.query<{ name: string }, []>('PRAGMA table_info(instincts)').all()
+        if (!columns.some((column) => column.name === name))
+          database.exec(`ALTER TABLE instincts ADD COLUMN ${name} ${definition}`)
+      }
+      // Usage is only recorded since migration 41: the 60-day staleness clock starts now,
+      // otherwise every pre-existing lesson would drop to review on the first list.
+      database.run('UPDATE instincts SET status_changed_at = ? WHERE status_changed_at IS NULL', [
+        new Date().toISOString(),
+      ])
+    },
+    postcondition: (database) => {
+      const columns = database.query<{ name: string }, []>('PRAGMA table_info(instincts)').all()
+      for (const name of ['status', 'status_changed_at'])
+        if (!columns.some((column) => column.name === name))
+          throw new Error(`Migration 42 did not add instincts.${name}`)
+    },
+  },
 ]
 
 function appliedVersions(database: Database): Set<number> {

@@ -1,0 +1,106 @@
+[
+  {
+    "flujo": "lessons",
+    "pass": true,
+    "steps": [
+      {
+        "nombre": "temporary project visible",
+        "ok": true,
+        "detalle": "project in Dev sidebar"
+      },
+      {
+        "nombre": "chat composer visible",
+        "ok": true,
+        "detalle": "composer after Start Chat"
+      },
+      {
+        "nombre": "chat request sent and assistant reply visible",
+        "ok": true,
+        "detalle": "Lesson noted."
+      },
+      {
+        "nombre": "chat tool call stores an unverified auto lesson with turn evidence",
+        "ok": true,
+        "detalle": "{\"status\":\"active\",\"statusChangedAt\":null,\"id\":\"fbbf7d08-f5d8-45aa-b1ba-0d6f3a7538ba\",\"projectId\":\"30f01002c74a4422\",\"trigger\":\"gate trigger auto\",\"action\":\"gate action auto\",\"confidence\":0.6,\"source\":\"auto\",\"verified\":false,\"createdAt\":\"2026-11-13T21:09:15.879Z\",\"why\":\"gate why\",\"evidence\":{\"turnId\":\"0d8748a1-9862-4ced-9acd-09a70afda47d\"},\"injectedCount\":0,\"lastInjectedAt\":null,\"usagesCount\":0}"
+      },
+      {
+        "nombre": "Remember opens with assistant text prefilled in Do",
+        "ok": true,
+        "detalle": "Lesson noted."
+      },
+      {
+        "nombre": "manual lesson is verified and persisted",
+        "ok": true,
+        "detalle": "{\"status\":\"active\",\"statusChangedAt\":null,\"id\":\"583ba5d2-c2bd-4a2f-bc6c-9063f9fd1139\",\"projectId\":\"30f01002c74a4422\",\"trigger\":\"gate trigger manual\",\"action\":\"Lesson noted.\",\"confidence\":1,\"source\":\"manual\",\"verified\":true,\"createdAt\":\"2026-11-13T21:09:16.265Z\",\"why\":\"\",\"evidence\":{\"ref\":\"d7fae313-c68d-4f9c-a94b-30529c9c8bb9:2\"},\"injectedCount\":0,\"lastInjectedAt\":null,\"usagesCount\":0}"
+      },
+      {
+        "nombre": "duplicate trigger reports error and keeps Remember dialog open",
+        "ok": true,
+        "detalle": "A lesson with this trigger already exists"
+      },
+      {
+        "nombre": "auto lesson card shows why, evidence citation and injected status",
+        "ok": true,
+        "detalle": "fbbf7d08-f5d8-45aa-b1ba-0d6f3a7538ba\nauto\npending review\nConfidence\n60%\nTrigger\ngate trigger auto\nLearned Action\ngate action auto\nWhy\ngate why\n\nturnId: 0d8748a1-9862-4ced-9acd-09a70afda47d\n\nInjected 0 times\nEdit\nApprove (+0.10)\nReject"
+      },
+      {
+        "nombre": "edited action is visible and confirmed by API",
+        "ok": true,
+        "detalle": "{\"status\":\"active\",\"statusChangedAt\":null,\"id\":\"fbbf7d08-f5d8-45aa-b1ba-0d6f3a7538ba\",\"projectId\":\"30f01002c74a4422\",\"trigger\":\"gate trigger auto\",\"action\":\"gate action edited\",\"confidence\":0.6,\"source\":\"auto\",\"verified\":false,\"createdAt\":\"2026-11-13T21:09:15.879Z\",\"why\":\"gate why\",\"evidence\":{\"turnId\":\"0d8748a1-9862-4ced-9acd-09a70afda47d\"},\"injectedCount\":0,\"lastInjectedAt\":null,\"usagesCount\":0}"
+      },
+      {
+        "nombre": "chat request sent and assistant reply visible",
+        "ok": true,
+        "detalle": "Lesson noted."
+      },
+      {
+        "nombre": "second turn receives saved lesson in Claude system prompt",
+        "ok": true,
+        "detalle": "## Lessons\nLessons learned in this project. Apply them when they fit.\n- When gate trigger manual: Lesson noted.\nWhen the user corrects you, call `propose_lesson` with what to do ne"
+      },
+      {
+        "nombre": "stale lesson appears in Review with Keep and Retire",
+        "ok": true,
+        "detalle": "Unused for 60 days\n53437d97-1248-4606-afa5-3f3d7bded5e5\nmanual\nverified\nConfidence\n100%\nTrigger\ngate stale lesson\nLearned Action\ngate stale action\nInjected 0 times · 61 days ago\nKeep\nRetire\nEdit"
+      },
+      {
+        "nombre": "Keep removes lesson from Review and persists active status",
+        "ok": true,
+        "detalle": "[{\"status\":\"active\",\"statusChangedAt\":null,\"id\":\"583ba5d2-c2bd-4a2f-bc6c-9063f9fd1139\",\"projectId\":\"30f01002c74a4422\",\"trigger\":\"gate trigger manual\",\"action\":\"Lesson noted.\",\"confidence\":1,\"source\":\"manual\",\"verified\":true,\"createdAt\":\"2026-11-13T21:09:16.265Z\",\"why\":\"\",\"evidence\":{\"ref\":\"d7fae313-c68d-4f9c-a94b-30529c9c8bb9:2\"},\"injectedCount\":1,\"lastInjectedAt\":\"2026-11-13T21:09:22.059Z\",\"usagesCount\":0},{\"status\":\"active\",\"statusChangedAt\":\"2026-11-13T21:09:24.003Z\",\"id\":\"53437d97-1248-4606-afa5-3f3d7bded5e5\",\"projectId\":\"30f01002c74a4422\",\"trigger\":\"gate stale lesson\",\"action\":\"gate stale action\",\"confidence\":1,\"source\":\"manual\",\"verified\":true,\"createdAt\":\"2026-09-13T21:09:22.378Z\",\"why\":null,\"evidence\":null,\"injectedCount\":0,\"lastInjectedAt\":\"2026-09-13T21:09:22.378Z\",\"usagesCount\":0},{\"status\":\"active\",\"statusChangedAt\":null,\"id\":\"fbbf7d08-f5d8-45aa-b1ba-0d6f3a7538ba\",\"projectId\":\"30f01002c74a4422\",\"trigger\":\"gate trigger auto\",\"action\":\"gate action edited\",\"confidence\":0.6,\"source\":\"auto\",\"verified\":false,\"createdAt\":\"2026-11-13T21:09:15.879Z\",\"why\":\"gate why\",\"evidence\":{\"turnId\":\"0d8748a1-9862-4ced-9acd-09a70afda47d\"},\"injectedCount\":0,\"lastInjectedAt\":null,\"usagesCount\":0}]"
+      },
+      {
+        "nombre": "graduation dialog previews path and added line",
+        "ok": true,
+        "detalle": "Add to AGENTS.md\n\n/private/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/orchestos-ui-lessons-dbB4o6/project/AGENTS.md\n\n+ - When gate trigger manual: Lesson noted.\nCancel\nAdd"
+      },
+      {
+        "nombre": "Cancel leaves AGENTS.md unchanged",
+        "ok": true,
+        "detalle": "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/orchestos-ui-lessons-dbB4o6/project/AGENTS.md"
+      },
+      {
+        "nombre": "Add writes delimited block and retires the persisted lesson",
+        "ok": true,
+        "detalle": "# AGENTS.md — unknown\n\n## Stack\n- Runtime: unknown\n- Framework: unknown\n- Languages: unknown\n\n## Conventions\n- No convention files detected\n\n## Useful commands\n- No scripts detected\n\n## Notes for AI agents\n- Edit only files explicitly requested.\n- Match existing code style — do not reformat unrelated code.\n- Do not introduce new dependencies without asking.\n- Do not run destructive commands (drop tables, delete files, git reset --hard) without explicit confirmation.\n\n<!-- orchestos:lessons:start -->\n## Lessons learned\n- When gate trigger manual: Lesson noted.\n<!-- orchestos:lessons:end -->\n"
+      },
+      {
+        "nombre": "chat request sent and assistant reply visible",
+        "ok": true,
+        "detalle": "Lesson noted."
+      },
+      {
+        "nombre": "next turn injects active lesson and excludes the retired lesson",
+        "ok": true,
+        "detalle": "Lessons learned in this project. Apply them when they fit.\n- When gate stale lesson: gate stale action\nWhen the user corrects you, call `propose_lesson` with what to do next time.\n--restricted\n--strict-mcp-config\n--tools\nRead,Glob,Grep\n--settings\n/private/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/orchestos-ui-lessons-dbB4o6/project/.orchestos/agent-home/claude/settings.json\n--add-dir\n/private/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/orchestos-ui-lessons-dbB4o6/project\n--mcp-config\n{\"mcpServers\":{\"orchestos\":{\"command\":\"/Users/carlosgallardo/Projects/projects/orchestos/node_modules/bun/bin/bun.exe\",\"args\":[\"/Users/carlosgallardo/Projects/projects/orchestos/src/mcp/server.ts\",\"--tools\",\"create_task,run_readonly,propose_lesson\",\"--root\",\"/private/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/orchestos-ui-lessons-dbB4o6/project\"]}}}\n--allowedTools\nmcp__orchestos__create_task\nmcp__orchestos__run_readonly\nmcp__orchestos__propose_lesson\n--model\nclaude-opus-5-5\n--effort\nmedium\n"
+      }
+    ],
+    "notes": [],
+    "errores": [],
+    "capturas": [
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-31831/lessons/lessons-instinct-card.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-31831/lessons/lessons-stale-review.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-31831/lessons/lessons-graduation-preview.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-31831/lessons/lessons-retired.png"
+    ]
+  }
+]

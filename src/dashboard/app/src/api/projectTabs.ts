@@ -141,6 +141,41 @@ export async function updateInstinct(
 export async function rejectInstinct(projectId: string, id: string): Promise<void> {
   await request(`/api/instincts/${encodeURIComponent(id)}/reject`, projectId, { method: 'POST' })
 }
+export interface GraduationPreview {
+  ok: boolean
+  path: string
+  added: string[]
+  created: boolean
+}
+
+export async function setInstinctStatus(
+  projectId: string,
+  id: string,
+  status: 'active' | 'retired',
+): Promise<void> {
+  await request(`/api/instincts/${encodeURIComponent(id)}/status`, projectId, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ status }),
+  })
+}
+
+export async function previewGraduation(projectId: string, id: string): Promise<GraduationPreview> {
+  return request(`/api/instincts/${encodeURIComponent(id)}/graduate`, projectId, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({}),
+  })
+}
+
+export async function graduateInstinct(projectId: string, id: string): Promise<GraduationPreview> {
+  return request(`/api/instincts/${encodeURIComponent(id)}/graduate`, projectId, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ confirm: true }),
+  })
+}
+
 export async function addInstinct(
   projectId: string,
   trigger: string,

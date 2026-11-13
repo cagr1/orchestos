@@ -748,6 +748,9 @@ interface OrchestSettingsViewProps {
   onTeachInstinct?: (when: string, then: string) => void
   onApproveInstinct?: (id: string) => void
   onRejectInstinct?: (id: string) => void
+  onSetInstinctStatus?: (id: string, status: 'active' | 'retired') => Promise<void>
+  onPreviewGraduation?: (id: string) => Promise<import('../../api/projectTabs').GraduationPreview>
+  onGraduateInstinct?: (id: string) => Promise<import('../../api/projectTabs').GraduationPreview>
   onUpdateInstinct?: (
     id: string,
     fields: { trigger: string; action: string; why: string },
@@ -803,6 +806,9 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
   onTeachInstinct,
   onApproveInstinct,
   onRejectInstinct,
+  onSetInstinctStatus,
+  onPreviewGraduation,
+  onGraduateInstinct,
   onAddInstinct,
   onUpdateInstinct,
   onRunTask,
@@ -4480,6 +4486,9 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
                     instincts={instincts}
                     onApproveInstinct={onApproveInstinct || (() => {})}
                     onRejectInstinct={onRejectInstinct || (() => {})}
+                    onSetInstinctStatus={onSetInstinctStatus}
+                    onPreviewGraduation={onPreviewGraduation}
+                    onGraduateInstinct={onGraduateInstinct}
                     onAddInstinct={onAddInstinct || (() => {})}
                     onUpdateInstinct={onUpdateInstinct}
                   />

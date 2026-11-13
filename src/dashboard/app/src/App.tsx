@@ -35,13 +35,16 @@ import {
   draftSpec,
   enableLibrarySkill,
   explainTask,
+  graduateInstinct,
   lintSpec,
   listInstincts,
   listMemory,
   listSkills,
   listSpecs,
+  previewGraduation,
   rejectInstinct,
   resolveMemoryConflict,
+  setInstinctStatus,
   setLibrarySkillPhases,
   updateInstinct,
 } from './api/projectTabs'
@@ -1704,6 +1707,21 @@ export default function App() {
       await reloadTabs()
     }
   }
+  const handleSetInstinctStatus = async (id: string, status: 'active' | 'retired') => {
+    if (!currentProject) return
+    await setInstinctStatus(currentProject.id, id, status)
+    await reloadTabs()
+  }
+  const handlePreviewGraduation = async (id: string) => {
+    if (!currentProject) throw new Error('project required')
+    return previewGraduation(currentProject.id, id)
+  }
+  const handleGraduateInstinct = async (id: string) => {
+    if (!currentProject) throw new Error('project required')
+    const result = await graduateInstinct(currentProject.id, id)
+    await reloadTabs()
+    return result
+  }
   const handleUpdateInstinct = async (
     id: string,
     fields: { trigger: string; action: string; why: string },
@@ -2168,6 +2186,9 @@ export default function App() {
                 onSetLibrarySkillPhases={handleSetLibrarySkillPhases}
                 onApproveInstinct={handleApproveInstinct}
                 onRejectInstinct={handleRejectInstinct}
+                onSetInstinctStatus={handleSetInstinctStatus}
+                onPreviewGraduation={handlePreviewGraduation}
+                onGraduateInstinct={handleGraduateInstinct}
                 onAddInstinct={handleAddInstinct}
                 onUpdateInstinct={handleUpdateInstinct}
                 onRunTask={(id) => void handleRunTask(id)}

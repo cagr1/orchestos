@@ -1,3 +1,4 @@
+import { execFileSync } from 'node:child_process'
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { basename, join, resolve } from 'node:path'
@@ -53,6 +54,7 @@ export default async function lessons({
   cleanup,
   restartDashboard,
   expectHttpError,
+  databasePath,
 }) {
   const root = mkdtempSync(join(tmpdir(), 'orchestos-ui-lessons-'))
   const claude = join(root, 'claude')
@@ -65,7 +67,7 @@ case "$1" in
 auth) echo '{"loggedIn":true,"authMethod":"fixture"}'; exit 0;;
 esac
 turn=1
-if [ -f ${JSON.stringify(join(root, 'turn-1.args'))} ]; then turn=2; fi
+while [ -f ${JSON.stringify(join(root, 'turn-'))}"$turn".args ]; do turn=$((turn + 1)); done
 printf '%s\\n' "$@" > ${JSON.stringify(join(root, 'turn-'))}"$turn".args
 cat > ${JSON.stringify(join(root, 'turn-'))}"$turn".stdin
 if [ "$turn" = 1 ]; then
@@ -231,9 +233,7 @@ for (const probe of [systemCliDiscoveryProbe, systemCliHealthProbe]) {
 
   await page.keyboard.press('Alt+1')
   await composer.waitFor({ state: 'visible', timeout: 15_000 })
-  await composer.fill('Use the saved lesson.')
-  await waitForComposerReady(page)
-  await composer.press('Enter')
+  await sendMessage({ page, composer, text: 'Use the saved lesson.', step })
   const secondArgsPath = join(root, 'turn-2.args')
   const secondTurnDeadline = Date.now() + 180_000
   while (!existsSync(secondArgsPath) && Date.now() < secondTurnDeadline)
@@ -248,5 +248,100 @@ for (const probe of [systemCliDiscoveryProbe, systemCliHealthProbe]) {
           capturedArgs.indexOf('## Lessons') + 180,
         )
       : capturedArgs.slice(0, 500),
+  )
+
+  const staleResponse = await api(`/api/instincts?project=${encodeURIComponent(project.id)}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ trigger: 'gate stale lesson', action: 'gate stale action' }),
+  })
+  if (!staleResponse.ok)
+    throw new Error(`stale lesson seed failed: ${JSON.stringify(staleResponse)}`)
+  const staleId = staleResponse.data.id
+  const old = new Date(Date.now() - 61 * 86400000).toISOString()
+  execFileSync(
+    'bun',
+    [
+      '-e',
+      `
+    import { Database } from 'bun:sqlite'
+    const db = new Database(${JSON.stringify(databasePath)})
+    db.run('UPDATE instincts SET created_at = ?, last_injected_at = ? WHERE id = ?',
+      [${JSON.stringify(old)}, ${JSON.stringify(old)}, ${JSON.stringify(staleId)}])
+    db.close()
+  `,
+    ],
+    { encoding: 'utf8' },
+  )
+  await page.getByRole('button', { name: 'Settings', exact: true }).click()
+  await page.getByRole('button', { name: 'Instincts', exact: true }).click()
+  await page.getByRole('button', { name: 'Review Proposals', exact: true }).click()
+  const staleCard = page
+    .locator('[data-instincts-view] .max-w-5xl > div')
+    .filter({ hasText: 'gate stale lesson' })
+  await step(
+    'stale lesson appears in Review with Keep and Retire',
+    (await visible(staleCard.getByText('Unused for 60 days', { exact: true }))) &&
+      (await visible(staleCard.getByRole('button', { name: 'Keep', exact: true }))) &&
+      (await visible(staleCard.getByRole('button', { name: 'Retire', exact: true }))),
+    await staleCard.innerText(),
+  )
+  await shot('lessons-stale-review')
+  await staleCard.getByRole('button', { name: 'Keep', exact: true }).click()
+  await staleCard.waitFor({ state: 'detached' })
+  response = await instinctsFor(api, project.id)
+  await step(
+    'Keep removes lesson from Review and persists active status',
+    (response.data ?? []).find((item) => item.id === staleId)?.status === 'active',
+    JSON.stringify(response.data),
+  )
+  await page.getByRole('button', { name: /^Active Instincts/ }).click()
+  const manualCard = page
+    .locator('[data-instincts-view] .max-w-5xl > div')
+    .filter({ hasText: 'gate trigger manual' })
+  await manualCard.getByRole('button', { name: 'Add to AGENTS.md', exact: true }).click()
+  const graduation = page.getByRole('dialog', { name: 'Add to AGENTS.md', exact: true })
+  const agentsPath = join(projectRoot, 'AGENTS.md')
+  const beforeGraduation = existsSync(agentsPath) ? readFileSync(agentsPath, 'utf8') : null
+  const diffLine = '+ - When gate trigger manual: Lesson noted.'
+  const previewText = await graduation.innerText()
+  await step(
+    'graduation dialog previews path and added line',
+    previewText.includes(agentsPath) && previewText.includes(diffLine),
+    previewText,
+  )
+  await shot('lessons-graduation-preview')
+  await graduation.getByRole('button', { name: 'Cancel', exact: true }).click()
+  await step(
+    'Cancel leaves AGENTS.md unchanged',
+    (existsSync(agentsPath) ? readFileSync(agentsPath, 'utf8') : null) === beforeGraduation,
+    agentsPath,
+  )
+  await manualCard.getByRole('button', { name: 'Add to AGENTS.md', exact: true }).click()
+  await graduation.getByRole('button', { name: 'Add', exact: true }).click()
+  await graduation.waitFor({ state: 'detached' })
+  await manualCard.getByText('Retired', { exact: true }).waitFor({ state: 'visible' })
+  const agents = readFileSync(agentsPath, 'utf8')
+  response = await instinctsFor(api, project.id)
+  await step(
+    'Add writes delimited block and retires the persisted lesson',
+    agents.includes(
+      '<!-- orchestos:lessons:start -->\n## Lessons learned\n- When gate trigger manual: Lesson noted.\n<!-- orchestos:lessons:end -->',
+    ) &&
+      (response.data ?? []).find((item) => item.id === manualLesson.id)?.status === 'retired' &&
+      (await manualCard.getByRole('button').count()) === 0,
+    agents,
+  )
+  await shot('lessons-retired')
+  await page.keyboard.press('Alt+1')
+  await composer.waitFor({ state: 'visible', timeout: 15_000 })
+  await sendMessage({ page, composer, text: 'Check lessons after graduation.', step })
+  const thirdArgs = readFileSync(join(root, 'turn-3.args'), 'utf8')
+  const lessonsSection = thirdArgs.match(/## Lessons\n([\s\S]*?)(?=\n## |$)/)?.[1] ?? ''
+  await step(
+    'next turn injects active lesson and excludes the retired lesson',
+    lessonsSection.includes('When gate stale lesson') &&
+      !lessonsSection.includes('When gate trigger manual'),
+    lessonsSection,
   )
 }

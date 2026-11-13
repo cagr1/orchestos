@@ -164,6 +164,18 @@ subagente, sin informe aparte): cada cita se comprueba con grep al escribir el s
   Ejecutado por: gpt-6.1-sol (criterio) + gpt-6-luna (mecanico: addenda, gate `lessons`, contador) · Spec: docs/specs/LRN.1b.md
   Texto visible: "Remember", "When", "Do", "Why", "Save", "Cancel", "Edit", "Injected N times", "A lesson with this trigger already exists"; reindentados sin cambio: "Copy", "Learned Action", "Approve (+0.10)", "Reject", "Active in middleware chain" — guardar una lección necesita decir cuándo aplica y qué hacer; un ícono solo no lo distingue de copiar.
 
+- [x] **LRN.1c — Ciclo de vida de lecciones y graduación a AGENTS.md (F3).** Gate en vivo: navegador Playwright, `lessons` 18/18 (lección de hace 61 días en Review → Keep la saca; "Add to AGENTS.md" muestra el diff → Cancel no escribe → Add escribe el bloque y la retira; el turno siguiente no la inyecta), `docs/done/evidence/LRN.1c-live.json`. (GO de Carlos 2026-11-13: "continúa")
+  Migración 42: `instincts.status` (`active|review|retired`) y `status_changed_at`; `listApplicable` solo `active`;
+  `sweepStaleLessons` (60 días sin actividad → `review`, nunca borra) al listar. `POST /api/instincts/:id/status` y
+  `/graduate` (vista previa sin `confirm`; recalcula desde el archivo, rechaza symlink y lecciones globales). Desvío
+  del spec, a propósito: la migración fija `status_changed_at` al migrar, porque el uso solo se registra desde la 41;
+  sin eso toda lección vieja caería a `review` al abrir la vista. qa (Codex) halló que un marcador citado en una
+  lección desplazaba el bloque: los marcadores ahora cuentan solo como línea completa (test en
+  `lesson-lifecycle.test.ts`). Fuera: cita rota (la cita es un mensaje de chat) y recurrencia (necesita la firma de
+  F2). F2 espera datos de F0 (D6).
+  Ejecutado por: gpt-6.1-sol (criterio) + claude-opus-5-5 (fix chico: migración y marcadores) · Spec: docs/specs/LRN.1c.md
+  Texto visible: "Unused for 60 days", "Keep", "Retire", "Add to AGENTS.md", "Add", "Cancel", "Creates AGENTS.md", "Retired"; reindentados sin cambio: "Edit", "Approve (+0.10)", "Reject", "Active in middleware chain" — conservar, retirar y escribir en un archivo del usuario son tres salidas distintas; un ícono no las distingue.
+
 ## Etapa 3 — Windows
 
 - [ ] **WIN.1 — Prueba de humo en Windows: instalar, arrancar el dashboard, un turno de chat y una tarea.**

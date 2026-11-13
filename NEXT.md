@@ -19,8 +19,8 @@ auditoría AUD.1–AUD.28 en el orden de la segunda auditoría; lo cerrado está
    Cerrados en esta sesión: USO.2 `78b53643` (el dashboard abre sin `#t=`: el token va en un meta del HTML, se
    borró la pantalla "Dashboard token required", `orchestos dashboard` abre el navegador, `--no-open`) y LRN.1b
    `a6122e4e` (F1: `## Lessons` en el prompt del chat, `propose_lesson`, Remember, edición en Instincts; gate
-   `lessons`). **Siguiente: lo que Carlos reporte usando OrchestOS.** LRN.1 sigue abierto solo con F2 y F3, fuera
-   del lote D6: tomarlos pide GO de Carlos. WIN.1 necesita una máquina Windows.
+   `lessons`). **Siguiente: lo que Carlos reporte usando OrchestOS.** LRN.1c (F3: caducidad a `review` y graduar a
+   `AGENTS.md`) cerrado el 2026-11-13; LRN.1 queda abierto solo con F2, que espera datos de F0 (D6). WIN.1 necesita una máquina Windows.
    Trampas: el ejecutor Codex no corre ui-gates (no puede invocar CLIs): los corre el cerebro con
    `bun run gate:evidence -- --label <ID>-<flujo> -- bun run ui:gate -- <flujo>`; un gate que cuenta filas de Settings
    se rompe al sumar una fila (pasó con SES.1b); `boundary-budget` rechaza `JSON.parse` nuevo, usar `parseJson` de

@@ -45,9 +45,11 @@ import {
   handleApiInstinctsBulkDelete,
   handleApiInstinctsCreate,
   handleApiInstinctsDelete,
+  handleApiInstinctsGraduate,
   handleApiInstinctsPropose,
   handleApiInstinctsReject,
   handleApiInstinctsSetConfidence,
+  handleApiInstinctsStatus,
   handleApiInstinctsUpdate,
 } from './handlers/instincts.ts'
 import {
@@ -355,6 +357,16 @@ export async function route(req: Request, port: number): Promise<Response> {
   }
   if (method === 'POST' && url.pathname.match(/^\/api\/instincts\/([^/]+)\/reject$/)) {
     return withDashboardProject(req, (project) => handleApiInstinctsReject(url, project.id))
+  }
+  if (method === 'POST' && /^\/api\/instincts\/[^/]+\/status$/.test(url.pathname)) {
+    return withDashboardProject(req, (project) => handleApiInstinctsStatus(req, url, project.id))
+  }
+  if (method === 'POST' && /^\/api\/instincts\/[^/]+\/graduate$/.test(url.pathname)) {
+    return withDashboardProject(
+      req,
+      (project) => handleApiInstinctsGraduate(req, url, project.root, project.id),
+      { requireProject: true },
+    )
   }
   if (method === 'PATCH' && url.pathname.match(/^\/api\/instincts\/[^/]+$/)) {
     return withDashboardProject(req, (project) => handleApiInstinctsUpdate(req, url, project.id))

@@ -92,6 +92,14 @@
       "closedDate": null
     },
     {
+      "id": "LRN.1c",
+      "sprint": "Etapa 1 — lo que rompe el uso normal",
+      "block": null,
+      "title": "Ciclo de vida de lecciones y graduación a AGENTS.md (F3)",
+      "status": "done",
+      "closedDate": null
+    },
+    {
       "id": "WIN.1",
       "sprint": "Etapa 3 — Windows",
       "block": null,

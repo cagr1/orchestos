@@ -2,6 +2,7 @@ import { Brain, Plus, ThumbsDown, ThumbsUp, X } from 'lucide-react'
 import type React from 'react'
 import { useState } from 'react'
 import { Button } from '@/components/ui/button'
+import type { GraduationPreview } from '../../api/projectTabs'
 import type { InstinctItem } from '../../types/orchestos'
 import { SettingsPrimaryAction } from '../settings/primitives'
 
@@ -18,6 +19,9 @@ interface InstinctsViewProps {
   instincts: InstinctItem[]
   onApproveInstinct: (id: string) => void
   onRejectInstinct: (id: string) => void
+  onSetInstinctStatus?: (id: string, status: 'active' | 'retired') => Promise<void>
+  onPreviewGraduation?: (id: string) => Promise<GraduationPreview>
+  onGraduateInstinct?: (id: string) => Promise<GraduationPreview>
   onUpdateInstinct?: (
     id: string,
     fields: { trigger: string; action: string; why: string },
@@ -29,9 +33,24 @@ export const InstinctsView: React.FC<InstinctsViewProps> = ({
   instincts,
   onApproveInstinct,
   onRejectInstinct,
+  onSetInstinctStatus,
+  onPreviewGraduation,
+  onGraduateInstinct,
   onAddInstinct,
   onUpdateInstinct,
 }) => {
+  const lifecycleAction = async (action: () => Promise<void>) => {
+    if (lifecycleSaving) return
+    setLifecycleSaving(true)
+    setLifecycleError(null)
+    try {
+      await action()
+    } catch (error) {
+      setLifecycleError(error instanceof Error ? error.message : String(error))
+    } finally {
+      setLifecycleSaving(false)
+    }
+  }
   const [tab, setTab] = useState<'all' | 'review'>('all')
   const [showAddModal, setShowAddModal] = useState(false)
   const [newTrigger, setNewTrigger] = useState('')
@@ -47,6 +66,10 @@ export const InstinctsView: React.FC<InstinctsViewProps> = ({
   } | null>(null)
   const [editError, setEditError] = useState<string | null>(null)
   const [editSaving, setEditSaving] = useState(false)
+  // Lifecycle state goes after the original hooks: aud25-ui.test.ts drives the add form by hook index.
+  const [graduation, setGraduation] = useState<(GraduationPreview & { id: string }) | null>(null)
+  const [lifecycleError, setLifecycleError] = useState<string | null>(null)
+  const [lifecycleSaving, setLifecycleSaving] = useState(false)
   const saveEdit = async () => {
     if (!editing || !onUpdateInstinct || editSaving) return
     setEditSaving(true)
@@ -65,7 +88,7 @@ export const InstinctsView: React.FC<InstinctsViewProps> = ({
     }
   }
 
-  const unverified = instincts.filter((i) => !i.verified)
+  const unverified = instincts.filter((i) => !i.verified || i.status === 'review')
 
   const displayedInstincts = tab === 'review' ? unverified : instincts
 
@@ -132,6 +155,11 @@ export const InstinctsView: React.FC<InstinctsViewProps> = ({
         </SettingsPrimaryAction>
       </div>
 
+      {lifecycleError && (
+        <p role="alert" className="text-xs text-app-error">
+          {lifecycleError}
+        </p>
+      )}
       {/* Instincts Grid */}
       <div className="flex-1 overflow-y-auto px-6 pb-6">
         <div className="max-w-5xl mx-auto space-y-3">
@@ -141,7 +169,16 @@ export const InstinctsView: React.FC<InstinctsViewProps> = ({
             </div>
           ) : (
             displayedInstincts.map((instinct) => (
-              <div key={instinct.id} className="p-4 rounded-card bg-app-elevated space-y-3">
+              <div
+                key={instinct.id}
+                className={`p-4 rounded-card bg-app-elevated space-y-3 ${instinct.status === 'retired' ? 'opacity-50' : ''}`}
+              >
+                {instinct.status === 'review' && (
+                  <span className="text-[11px] text-app-muted">Unused for 60 days</span>
+                )}
+                {instinct.status === 'retired' && (
+                  <span className="text-[11px] text-app-muted">Retired</span>
+                )}
                 <div className="flex items-start justify-between gap-4">
                   <div className="flex min-w-0 items-center gap-2 text-xs">
                     <Brain className="w-4 h-4 shrink-0 text-app-muted" />
@@ -280,51 +317,97 @@ export const InstinctsView: React.FC<InstinctsViewProps> = ({
                     )}
                   </span>
 
-                  <div className="flex items-center gap-2">
-                    {onUpdateInstinct && editing?.id !== instinct.id && (
-                      <Button
-                        size="compact"
-                        variant="ghost"
-                        onClick={() => {
-                          setEditing({
-                            id: instinct.id,
-                            trigger: instinct.trigger,
-                            action: instinct.action,
-                            why: instinct.why ?? '',
-                          })
-                          setEditError(null)
-                        }}
-                      >
-                        Edit
-                      </Button>
-                    )}
-                    {!instinct.verified ? (
-                      <div className="flex items-center gap-2">
-                        <SettingsPrimaryAction>
+                  {instinct.status !== 'retired' && (
+                    <div className="flex items-center gap-2">
+                      {instinct.status === 'review' && onSetInstinctStatus && (
+                        <>
                           <Button
                             size="compact"
-                            leadingIcon={ThumbsUp}
-                            onClick={() => onApproveInstinct(instinct.id)}
+                            disabled={lifecycleSaving}
+                            onClick={() =>
+                              void lifecycleAction(async () => {
+                                await onSetInstinctStatus(instinct.id, 'active')
+                              })
+                            }
                           >
-                            Approve (+0.10)
+                            Keep
                           </Button>
-                        </SettingsPrimaryAction>
+                          <Button
+                            size="compact"
+                            variant="ghost"
+                            disabled={lifecycleSaving}
+                            onClick={() =>
+                              void lifecycleAction(async () => {
+                                await onSetInstinctStatus(instinct.id, 'retired')
+                              })
+                            }
+                          >
+                            Retire
+                          </Button>
+                        </>
+                      )}
+                      {instinct.verified &&
+                        instinct.status === 'active' &&
+                        instinct.projectId != null &&
+                        onPreviewGraduation && (
+                          <Button
+                            size="compact"
+                            disabled={lifecycleSaving}
+                            onClick={() =>
+                              void lifecycleAction(async () => {
+                                const preview = await onPreviewGraduation(instinct.id)
+                                setGraduation({ ...preview, id: instinct.id })
+                              })
+                            }
+                          >
+                            Add to AGENTS.md
+                          </Button>
+                        )}
+                      {onUpdateInstinct && editing?.id !== instinct.id && (
                         <Button
-                          variant="ghost"
                           size="compact"
-                          leadingIcon={ThumbsDown}
-                          className="text-app-error"
-                          onClick={() => onRejectInstinct(instinct.id)}
+                          variant="ghost"
+                          onClick={() => {
+                            setEditing({
+                              id: instinct.id,
+                              trigger: instinct.trigger,
+                              action: instinct.action,
+                              why: instinct.why ?? '',
+                            })
+                            setEditError(null)
+                          }}
                         >
-                          Reject
+                          Edit
                         </Button>
-                      </div>
-                    ) : (
-                      <div className="flex items-center gap-1 text-[11px] text-app-muted">
-                        <span>Active in middleware chain</span>
-                      </div>
-                    )}
-                  </div>
+                      )}
+                      {!instinct.verified ? (
+                        <div className="flex items-center gap-2">
+                          <SettingsPrimaryAction>
+                            <Button
+                              size="compact"
+                              leadingIcon={ThumbsUp}
+                              onClick={() => onApproveInstinct(instinct.id)}
+                            >
+                              Approve (+0.10)
+                            </Button>
+                          </SettingsPrimaryAction>
+                          <Button
+                            variant="ghost"
+                            size="compact"
+                            leadingIcon={ThumbsDown}
+                            className="text-app-error"
+                            onClick={() => onRejectInstinct(instinct.id)}
+                          >
+                            Reject
+                          </Button>
+                        </div>
+                      ) : instinct.status === 'active' ? (
+                        <div className="flex items-center gap-1 text-[11px] text-app-muted">
+                          <span>Active in middleware chain</span>
+                        </div>
+                      ) : null}
+                    </div>
+                  )}
                 </div>
               </div>
             ))
@@ -332,6 +415,54 @@ export const InstinctsView: React.FC<InstinctsViewProps> = ({
         </div>
       </div>
 
+      {graduation && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-label="Add to AGENTS.md"
+            className="w-full max-w-lg bg-app-surface rounded-card p-5 space-y-4"
+          >
+            <h3 className="font-bold text-sm text-app">Add to AGENTS.md</h3>
+            <p className="text-xs text-app-muted break-all">{graduation.path}</p>
+            {graduation.created && <p className="text-xs text-app-muted">Creates AGENTS.md</p>}
+            <pre className="p-3 rounded-card bg-app-elevated text-xs text-app-success whitespace-pre-wrap">
+              {graduation.added.map((line) => `+ ${line}`).join('\n')}
+            </pre>
+            {lifecycleError && (
+              <p role="alert" className="text-xs text-app-error">
+                {lifecycleError}
+              </p>
+            )}
+            <div className="flex justify-end gap-2">
+              <Button
+                size="compact"
+                variant="ghost"
+                disabled={lifecycleSaving}
+                onClick={() => {
+                  setGraduation(null)
+                  setLifecycleError(null)
+                }}
+              >
+                Cancel
+              </Button>
+              <Button
+                size="compact"
+                disabled={lifecycleSaving || !onGraduateInstinct}
+                onClick={() =>
+                  void lifecycleAction(async () => {
+                    if (!onGraduateInstinct) return
+                    await onGraduateInstinct(graduation.id)
+                    setGraduation(null)
+                  })
+                }
+              >
+                Add
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
       {/* Add Manual Instinct Modal */}
       {showAddModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">

@@ -13,12 +13,14 @@ import {
   type InsertInstinctDef,
   type InstinctDef,
   type InstinctSource,
+  type InstinctStatus,
   recalculateVerified,
   type UpdateInstinctDef,
   validateInsert,
   validateInstinct,
 } from './schema.ts'
 
+export const LESSON_STALE_DAYS = 60
 export const LESSON_MAX_COUNT = 15
 export const LESSON_MAX_CHARS = 4000
 
@@ -59,6 +61,8 @@ export function insertInstinct(data: InsertInstinctDef): InstinctDef {
     ...validated,
     project_id: data.projectId ?? null,
     created_at: now,
+    status: 'active',
+    statusChangedAt: null,
     injectedCount: 0,
     lastInjectedAt: null,
   }
@@ -212,7 +216,7 @@ export function deleteInstinct(id: string): boolean {
 export function listApplicable(projectId: string | null = null): InstinctDef[] {
   const rows = db
     .query<InstinctDefRow, [number, string | null]>(
-      `SELECT * FROM instincts WHERE verified = 1 AND confidence >= ?
+      `SELECT * FROM instincts WHERE verified = 1 AND status = 'active' AND confidence >= ?
        AND (project_id IS NULL OR project_id = ?)
        ORDER BY (project_id IS NOT NULL) DESC, confidence DESC, created_at DESC`,
     )
@@ -247,6 +251,29 @@ export function listUnverified(): InstinctDef[] {
   return listInstincts({ verified: false })
 }
 
+export function setInstinctStatus(
+  id: string,
+  status: 'active' | 'retired',
+  now = new Date(),
+): boolean {
+  const result = db.run('UPDATE instincts SET status = ?, status_changed_at = ? WHERE id = ?', [
+    status,
+    now.toISOString(),
+    id,
+  ])
+  return result.changes > 0
+}
+
+export function sweepStaleLessons(now = new Date(), days = LESSON_STALE_DAYS): number {
+  const cutoff = new Date(now.getTime() - days * 86400000).toISOString()
+  return db.run(
+    `UPDATE instincts SET status = 'review', status_changed_at = ?
+     WHERE verified = 1 AND status = 'active'
+     AND MAX(COALESCE(last_injected_at, ''), COALESCE(status_changed_at, ''), created_at) < ?`,
+    [now.toISOString(), cutoff],
+  ).changes
+}
+
 // ── internal helpers ─────────────────────────────────────────────────────────
 
 interface InstinctDefRow {
@@ -261,11 +288,15 @@ interface InstinctDefRow {
   why: string | null
   evidence_json: string | null
   injected_count: number
+  status: InstinctStatus
+  status_changed_at: string | null
   last_injected_at: string | null
 }
 
 function rowToDef(row: InstinctDefRow): InstinctDef {
   const def: InstinctDef = {
+    status: row.status,
+    statusChangedAt: row.status_changed_at,
     id: row.id,
     trigger: row.trigger,
     action: row.action,

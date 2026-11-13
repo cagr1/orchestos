@@ -1,11 +1,14 @@
 import { badRequest, readBody, z } from '../../boundary/index.ts'
 import { db } from '../../db/sqlite.ts'
+import { GraduationSymlinkError, graduateLesson } from '../../instincts/graduate.ts'
 import { AUTO_DEFAULTS, MANUAL_DEFAULTS } from '../../instincts/schema.ts'
 import {
   approveInstinct,
   deleteInstinct,
   insertInstinct,
   listInstincts,
+  setInstinctStatus,
+  sweepStaleLessons,
   updateConfidence,
   updateInstinct,
 } from '../../instincts/store.ts'
@@ -47,8 +50,11 @@ function instinctMutationError(error: unknown): Response {
 }
 
 function handleApiInstincts(projectId: string | null = null): Response {
+  sweepStaleLessons()
   const all = listInstincts({ projectId })
   const rows: InstinctRow[] = all.map((i) => ({
+    status: i.status,
+    statusChangedAt: i.statusChangedAt,
     id: i.id,
     projectId: i.project_id,
     trigger: i.trigger,
@@ -87,6 +93,45 @@ function handleApiInstinctsReject(url: URL, projectId: string | null = null): Re
   const ok = row ? deleteInstinct(id) : false
   const result: MutationResult = ok ? { ok: true } : { ok: false, error: 'Instinct not found' }
   return jsonResponse(result, ok ? 200 : 404)
+}
+
+async function handleApiInstinctsStatus(
+  req: Request,
+  url: URL,
+  projectId: string | null = null,
+): Promise<Response> {
+  const parsed = await readBody(z.object({ status: z.enum(['active', 'retired']) }), req)
+  if (!parsed.ok) return badRequest(parsed.error)
+  const row = listInstincts({ projectId }).find((item) => item.id === url.pathname.split('/')[3])
+  if (!row) return errorResponse('Instinct not found', 404)
+  setInstinctStatus(row.id, parsed.data.status)
+  return jsonResponse({ ok: true })
+}
+
+async function handleApiInstinctsGraduate(
+  req: Request,
+  url: URL,
+  root: string,
+  projectId: string | null = null,
+): Promise<Response> {
+  if (!projectId) return errorResponse('project required', 400)
+  const row = listInstincts({ projectId }).find((item) => item.id === url.pathname.split('/')[3])
+  if (!row) return errorResponse('Instinct not found', 404)
+  if (row.project_id === null) return errorResponse('Global lessons cannot be graduated', 400)
+  if (row.status === 'retired' || !row.verified)
+    return errorResponse('Lesson must be verified and not retired', 409)
+  const parsed = await readBody(z.object({ confirm: z.boolean().optional() }), req)
+  if (!parsed.ok) return badRequest(parsed.error)
+  try {
+    const { path, added, created } = graduateLesson(root, row, {
+      write: parsed.data.confirm === true,
+    })
+    if (parsed.data.confirm === true) setInstinctStatus(row.id, 'retired')
+    return jsonResponse({ ok: true, path, added, created })
+  } catch (error) {
+    if (error instanceof GraduationSymlinkError) return errorResponse(error.message, 409)
+    throw error
+  }
 }
 
 async function handleApiInstinctsCreate(
@@ -229,8 +274,10 @@ export {
   handleApiInstinctsBulkDelete,
   handleApiInstinctsCreate,
   handleApiInstinctsDelete,
+  handleApiInstinctsGraduate,
   handleApiInstinctsPropose,
   handleApiInstinctsReject,
   handleApiInstinctsSetConfidence,
+  handleApiInstinctsStatus,
   handleApiInstinctsUpdate,
 }
