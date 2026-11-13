@@ -1,0 +1,7 @@
+{
+  "item": "USO.4",
+  "date": "2026-11-13",
+  "live": "Navegador integrado (Claude desktop) contra `bun run src/cli.ts dashboard --port 4242` real tras build:app: en Dev la barra superior tiene borde inferior de lado a lado; los bordes del sidebar y del inspector arrancan debajo de ella y ya no cruzan la barra.",
+  "gates": ["bunx tsc --noEmit: 0 errores", "bun run build:app: ok"],
+  "review": "cambio de una clase y reversión de la prolongación de USO.3; sin lógica nueva"
+}

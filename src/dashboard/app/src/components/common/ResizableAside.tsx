@@ -65,22 +65,6 @@ export function ResizableAside({
     }
   }, [side, min, max])
 
-  // USO.3: la barra superior prolonga el borde de cada aside hasta arriba; oculto mide 0 y la línea sale de pantalla.
-  useEffect(() => {
-    const element = aside.current
-    if (!element) return
-    const property = `--shell-aside-${side}`
-    const root = document.documentElement.style
-    const publish = () => root.setProperty(property, `${element.getBoundingClientRect().width}px`)
-    const observer = new ResizeObserver(publish)
-    observer.observe(element)
-    publish()
-    return () => {
-      observer.disconnect()
-      root.removeProperty(property)
-    }
-  }, [side])
-
   useEffect(() => {
     if (!dragging) return
     const { userSelect, cursor } = document.body.style

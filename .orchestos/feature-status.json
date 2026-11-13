@@ -12,6 +12,14 @@
       "closedDate": null
     },
     {
+      "id": "USO.4",
+      "sprint": "Etapa 2 — Uso real",
+      "block": null,
+      "title": "Divisor bajo la barra superior en vez de bordes hasta arriba",
+      "status": "done",
+      "closedDate": null
+    },
+    {
       "id": "LRN.1",
       "sprint": "Etapa 2 — Uso real",
       "block": null,
