@@ -177,6 +177,10 @@ subagente, sin informe aparte): cada cita se comprueba con grep al escribir el s
   un CLI y correr una tarea; guardar la salida de cada paso que falle. Fase 2: un ítem `WIN.n` por fallo, primero lo
   que impide arrancar. Nada se arregla a ciegas antes de la fase 1. Si lo roto es mucho, publicar "macOS/Linux;
   Windows experimental" lo decide Carlos.
+  2026-11-13: confirmado por lectura que la terminal integrada no abre en Windows: usa `$SHELL`, `/bin/zsh` o
+  `/bin/sh` como respaldo (`dashboard/terminal.ts:36-39`). La detección de CLIs debería funcionar: arma el PATH con
+  `delimiter` y omite el login shell si no hay `$SHELL` (`run/executors/cli-discovery.ts:31-43`). La fase 1 la corre
+  Carlos con Claude en su máquina Windows; al cerrar, un job `windows-latest` con `bun run test:coverage` en CI.
 
 ## Decisiones pendientes de Carlos
 
