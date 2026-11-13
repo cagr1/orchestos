@@ -1,4 +1,4 @@
-# NEXT — handoff 2026-11-13 (etapa 1 cerrada; Carlos empieza el uso real; siguiente LRN.1b)
+# NEXT — handoff 2026-11-13 (uso real en curso; USO.2 y LRN.1b cerrados; lote F0+F1 de lecciones completo)
 
 Un solo presente: orden y trampas vivas del lote. Lo cerrado vive en `docs/done/bloque-*.md` y git; las reglas, en
 `AGENTS.md`. Versión anterior completa: `docs/done/poda-instrucciones-2026-11-03.md` (histórico).
@@ -16,7 +16,11 @@ auditoría AUD.1–AUD.28 en el orden de la segunda auditoría; lo cerrado está
 2. **Etapa 2 — uso real (ahora)**: Carlos trabaja en OrchestOS en vez de Orca. Lo que reporte se abre como ítem con su
    evidencia y va primero. Cerrados antes de empezar: USO.1 `6d5e420e` (los 12 rojos de la nocturna inválida: 9 eran
    sueño del Mac, 2 gates desfasados, 1 producto roto en `providers`) y LRN.1a `202dce5d` (F0 de lecciones).
-   **Siguiente: LRN.1b** (F1: chat recibe y propone lecciones; diseño en `docs/specs/LRN-1-opinion-fable.md` § 4).
+   Cerrados en esta sesión: USO.2 `78b53643` (el dashboard abre sin `#t=`: el token va en un meta del HTML, se
+   borró la pantalla "Dashboard token required", `orchestos dashboard` abre el navegador, `--no-open`) y LRN.1b
+   `a6122e4e` (F1: `## Lessons` en el prompt del chat, `propose_lesson`, Remember, edición en Instincts; gate
+   `lessons`). **Siguiente: lo que Carlos reporte usando OrchestOS.** LRN.1 sigue abierto solo con F2 y F3, fuera
+   del lote D6: tomarlos pide GO de Carlos. WIN.1 necesita una máquina Windows.
    Trampas: el ejecutor Codex no corre ui-gates (no puede invocar CLIs): los corre el cerebro con
    `bun run gate:evidence -- --label <ID>-<flujo> -- bun run ui:gate -- <flujo>`; un gate que cuenta filas de Settings
    se rompe al sumar una fila (pasó con SES.1b); `boundary-budget` rechaza `JSON.parse` nuevo, usar `parseJson` de
@@ -38,8 +42,9 @@ auditoría AUD.1–AUD.28 en el orden de la segunda auditoría; lo cerrado está
      tope de tokens (chat y tareas) → caduca sin uso o si la cita ya no existe; exporta a `AGENTS.md` para todos los CLI.
      Opinión de Fable 5.2: `docs/specs/LRN-1-opinion-fable.md` (fases F0–F3, decisiones D1–D6 con recomendación).
 7. Lo que dejó el lote AUD y sigue vivo:
-   - El dashboard se abre con la URL `#t=` que imprime `orchestos dashboard`; scripts que llamen a `/api` mandan
-     `x-orchestos-token` (archivo `~/.orchestos/dashboard-token` o `ORCHESTOS_DASHBOARD_TOKEN`).
+   - El dashboard abre en cualquier URL local: el servidor inyecta el token en el HTML (USO.2). Los scripts que
+     llamen a `/api` mandan `x-orchestos-token` (archivo `~/.orchestos/dashboard-token` o
+     `ORCHESTOS_DASHBOARD_TOKEN`).
    - Todo spawn nuevo de un CLI de agente pasa por `spawnTree` (`src/run/process-tree.ts`). Parseo nuevo de datos
      externos → `src/boundary`, o el commit no entra. Rangos de config en `src/boundary/config-limits.ts`.
    - Sin gate en vivo: las carreras de cambio de proyecto de `App.tsx` (AUD.19). Residual aceptado: opción corta
@@ -57,8 +62,9 @@ auditoría AUD.1–AUD.28 en el orden de la segunda auditoría; lo cerrado está
    `chat-*` (attachments, context, followup-task, permissions, readonly-shell, retry-report) y los 3 flaky;
    `chat-timeout` es AUD.9. Para que la corrida cuente: Mac enchufado y con la tapa abierta. Al arrancar, leer el
    aviso del startup-guard y resolver lo rojo antes del siguiente ítem.
-9. Biome: 282 avisos, con tope por regla (`scripts/lint-budget.json`, CI.80): solo bajan. Los de producto (`any`
-   137, `!` 90) cambian código real; bajarlos lo decide Carlos.
+9. Biome: ~280 avisos, con tope por regla (`scripts/lint-budget.json`, CI.80): solo bajan. Los de producto (`any`
+   135 reales con tope 137, `!` 90) cambian código real; bajarlos lo decide Carlos. Ajustar el tope de `any` a 135 es
+   un cambio en `scripts/`, que el hook le niega al cerebro: va delegado.
 10. Cabos sueltos de la sesión SK.1/SK.2 (2026-11-06/07):
    - PR #4 (README sync, conteo de tests) abierto: espera merge de Carlos.
    - Set curado en `~/.orchestos/skills/` sin fases: `tdd`, `karpathy-guidelines`, `verification-before-completion`,
@@ -73,8 +79,14 @@ auditoría AUD.1–AUD.28 en el orden de la segunda auditoría; lo cerrado está
 
 **Trampas de cierre** (2026-11-12): `delegate qa` exige un archivo de spec (en `/tmp` vale), no texto suelto; el
 plan-gate pide la línea `Ejecutado por: … · Spec: docs/specs/<ID>.md` o `Sin delegación: <motivo>` en cada `[x]`;
-el hook deja al cerebro editar código solo de a ≤20 líneas por `Edit` (ni `sed`/heredoc sobre `src/`); `mecanico`
-puede reescribir el spec que recibe — no fiarse de él como registro.
+el hook deja al cerebro editar código solo de a ≤20 líneas por `Edit` (ni `sed`/heredoc sobre `src/` ni
+`scripts/`); `mecanico` puede reescribir el spec que recibe, así que no sirve como registro. Delegar un addendum
+con el spec entero hace que el ejecutor rehaga o se pierda: un ajuste chico va en su propio spec
+(`docs/specs/<ID>-fix.md`), y si el árbol trae el diff sin commitear del mismo ítem, el spec debe decir que es suyo
+(si no, el ejecutor se niega por "cambios ajenos"). Los CLI de chat falsos de los ui-gates siguen el patrón de
+`scripts/ui-gate/flows/lessons.mjs` y `dev-session-tabs.mjs` (binario en un temporal + preload sobre
+`systemCliDiscoveryProbe`/`systemCliHealthProbe` + `restartDashboard`); `chat-followup-task.mjs` usa un CLI
+real. Los fallos `EADDRINUSE`/`EPERM` del ejecutor en `test:coverage` son de su sandbox: se re-corre fuera.
 
 **Ojo**: tras cambios de UI, `bun run build:app`; el dashboard lee `dist/` del disco, así que un build roto deja en
 blanco también el dashboard de Carlos (:4242) — probar la carga antes de seguir.
