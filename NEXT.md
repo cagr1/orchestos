@@ -1,4 +1,4 @@
-# NEXT — handoff 2026-11-13 (rumbo nuevo: uso normal → uso real → Windows → Tauri; siguiente SES.1)
+# NEXT — handoff 2026-11-13 (etapa 1 cerrada; siguiente: uso real de Carlos + LRN.1 F0+F1)
 
 Un solo presente: orden y trampas vivas del lote. Lo cerrado vive en `docs/done/bloque-*.md` y git; las reglas, en
 `AGENTS.md`. Versión anterior completa: `docs/done/poda-instrucciones-2026-11-03.md` (histórico).
@@ -9,20 +9,11 @@ Arranque: `bun run agent:preflight -- --item <ID> --agent claude`. Lista viva: `
 Rumbo de Carlos del 2026-11-12 (`PLAN.md` § Rumbo): uso normal → uso real → Windows → Tauri. Antes: lote de
 auditoría AUD.1–AUD.28 en el orden de la segunda auditoría; lo cerrado está en `docs/done/bloque-AUD.md`.
 
-1. **Etapa 1 — lo que rompe el uso normal**: SES.1. Cerrados el 2026-11-13: AUD.14 `1afab0dc`, AUD.17 `e963f4e8`,
-   AUD.16 `b4e350fa`. AUD.17 y AUD.16 siguen como `[x]` en PLAN.md hasta la poda (el live-gate exige el `[x]` con
-   "Gate en vivo: navegador … `<evidencia>`" en la MISMA línea, dentro del diff de PLAN.md del commit).
-   - SES.1: **esperando GO de Carlos** al plan propuesto el 2026-11-13, en tres ítems y en este orden:
-     a) archivar = detener turno + archivar; verificar si `stopChatTurn` (`chat-turn-registry.ts:16`, solo aborta un
-        `AbortController`) llega a `terminateTree`; si no, que mate el árbol. Test: archivar con turno vivo → sin proceso.
-     b) X de tab (`App.tsx:172`): ocioso cierra; con turno, diálogo Detener y cerrar / Dejar corriendo / Cancelar, con
-        "recordar" como `confirmArchive` (`lib/chat-settings.ts:6-14`); punto en sidebar + contador; aviso al terminar
-        vía `useAttentionNotifications`.
-     c) `beforeunload` (`App.tsx:163-170`, hoy solo buffers) y apagado con turnos vivos → aviso con lista; al
-        arrancar, turnos `pending` con proceso muerto → marcados y ofrecidos a reanudar (sin reanudar solos).
-     Estado actual leído por `leer`: `runningSessionIds` (`App.tsx:301`), spinner en `DevSessionTabs.tsx:203`, stop en
-     `POST /api/chat/sessions/:id/stop`, borrado 409 por `hasActiveTurn` (`db/chat-turns.ts:294`).
-2. **Etapa 2 — uso real**: Carlos trabaja en OrchestOS en vez de Orca. Lo que reporte se abre como ítem con su
+1. **Etapa 1 — cerrada 2026-11-13**: AUD.14, AUD.17, AUD.16 y SES.1 (a `58c67af0`, b `eea3f797`, c `c76a0ed5`).
+   Trampas que dejó: el preflight solo ve ítems sin sangría (`scripts/agent-governance.ts:37`); cerrar un ítem exige
+   `Ejecutado por: … · Spec: docs/specs/<ID>.md` y, si `plan:reconcile` ya lo marcó done antes del commit, reabrirlo,
+   reconciliar y cerrarlo de nuevo; esperas de tests de procesos ≥4 s (las de 1 s tumbaron el pre-push con carga).
+2. **Etapa 2 — uso real (ahora)**: Carlos trabaja en OrchestOS en vez de Orca. En paralelo, LRN.1 F0+F1 (GO D1–D6). Lo que reporte se abre como ítem con su
    evidencia y va primero. No se revisan pantallas por iniciativa propia.
 3. **Etapa 3 — Windows**: WIN.1, fase 1 = prueba de humo. Nada se arregla antes de verla fallar.
 4. **Etapa 4 — Tauri** (decidido, `IDEAS.md` #41). Se gradúa al plan al abrir la etapa.
