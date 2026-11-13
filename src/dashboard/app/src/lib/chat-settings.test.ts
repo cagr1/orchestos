@@ -36,6 +36,7 @@ test('defaults match the specified chat behavior', () => {
   expect(readChatSettings()).toEqual({
     sendKey: 'enter',
     whileRunning: 'queue',
+    closeRunningTab: 'ask',
     confirmDelete: true,
     confirmArchive: true,
   })
@@ -59,6 +60,14 @@ test('invalid JSON and fields fall back to defaults', () => {
   expect(readChatSettings()).toEqual(DEFAULT_CHAT_SETTINGS)
 })
 
+test('close running tab preference defaults to ask and normalizes supported values', () => {
+  installWindow()
+  for (const value of ['stop', 'keep', 'unknown']) {
+    values.set('orchestos-chat', JSON.stringify({ closeRunningTab: value }))
+    expect(readChatSettings().closeRunningTab).toBe(value === 'stop' || value === 'keep' ? value : 'ask')
+  }
+})
+
 test('write merges preferences and persists them', () => {
   installWindow()
   let notifications = 0
@@ -70,6 +79,7 @@ test('write merges preferences and persists them', () => {
     ...DEFAULT_CHAT_SETTINGS,
     sendKey: 'mod-enter',
     whileRunning: 'stop-and-send',
+    closeRunningTab: 'ask',
     confirmDelete: false,
   })
   expect(notifications).toBe(2)
@@ -77,6 +87,7 @@ test('write merges preferences and persists them', () => {
     ...DEFAULT_CHAT_SETTINGS,
     sendKey: 'mod-enter',
     whileRunning: 'stop-and-send',
+    closeRunningTab: 'ask',
     confirmDelete: false,
   })
 })

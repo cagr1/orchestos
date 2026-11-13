@@ -21,6 +21,7 @@ import {
   restoreSession,
   runProjectTask,
   sendMessage,
+  stopActiveChatTurn as stopActiveChatSession,
   type TimelineResponse,
 } from './api/chat'
 import { getProjectContext } from './api/project'
@@ -160,6 +161,7 @@ export default function App() {
   useSyncExternalStore(subscribe, getSnapshot)
   const dirtyFileTabs = new Set([...dirtyPaths(activeProjectId)].map((path) => `file:${path}`))
   const [discardTab, setDiscardTab] = useState<{ projectId: string; path: string } | null>(null)
+  const [closeRunning, setCloseRunning] = useState<{ projectId: string; id: string } | null>(null)
   useEffect(() => {
     const beforeUnload = (event: BeforeUnloadEvent) => {
       if (!hasDirtyBuffers()) return
@@ -169,14 +171,6 @@ export default function App() {
     window.addEventListener('beforeunload', beforeUnload)
     return () => window.removeEventListener('beforeunload', beforeUnload)
   }, [])
-  const closeDevTab = (projectId: string, id: string) => {
-    if (id.startsWith('file:') && isDirty(projectId, id.slice(5))) {
-      setDiscardTab({ projectId, path: id.slice(5) })
-      return
-    }
-    if (id.startsWith('file:')) drop(projectId, id.slice(5))
-    updateDevTabs(projectId, (tabs) => closeSessionTab(tabs, id))
-  }
   const activeDevTabs = devTabs[activeProjectId] ?? emptySessionTabs()
   const activeDevTab = activeDevTabs.tabs.find((tab) => tab.id === activeDevTabs.activeId)
   const activeAgentId = activeDevTab?.type === 'session' ? activeDevTab.id : null
@@ -299,6 +293,22 @@ export default function App() {
   const [attentionSessionsProject, setAttentionSessionsProject] = useState<string | null>()
   const [attentionTasksProject, setAttentionTasksProject] = useState<string>()
   const [runningSessionIds, setRunningSessionIds] = useState<Set<string>>(() => new Set())
+  const closeDevTab = (projectId: string, id: string) => {
+    if (id.startsWith('file:') && isDirty(projectId, id.slice(5))) {
+      setDiscardTab({ projectId, path: id.slice(5) })
+      return
+    }
+    if (id.startsWith('file:')) drop(projectId, id.slice(5))
+    if (!id.startsWith('file:') && runningSessionIds.has(id)) {
+      const preference = readChatSettings().closeRunningTab
+      if (preference === 'stop') void stopActiveChatSession(id, projectId)
+      else if (preference === 'ask') {
+        setCloseRunning({ projectId, id })
+        return
+      }
+    }
+    updateDevTabs(projectId, (tabs) => closeSessionTab(tabs, id))
+  }
   const failedSessionIds = useRef(new Set<string>())
   const locallyRunningSessionIds = useRef<Set<string>>(new Set())
   // Sube en cada envío local; settleChatTurn descarta lecturas que empezaron antes.
@@ -1862,6 +1872,26 @@ export default function App() {
           }}
         />
       )}
+      {closeRunning && (
+        <ConfirmDialog
+          title="Stop this agent?"
+          body="It's still working. Keep it running and find it in the sidebar."
+          confirmLabel="Stop and close"
+          secondaryLabel="Keep running"
+          onCancel={() => setCloseRunning(null)}
+          onConfirm={(dontAskAgain) => {
+            if (dontAskAgain) writeChatSettings({ closeRunningTab: 'stop' })
+            void stopActiveChatSession(closeRunning.id, closeRunning.projectId)
+            updateDevTabs(closeRunning.projectId, (tabs) => closeSessionTab(tabs, closeRunning.id))
+            setCloseRunning(null)
+          }}
+          onSecondary={(dontAskAgain) => {
+            if (dontAskAgain) writeChatSettings({ closeRunningTab: 'keep' })
+            updateDevTabs(closeRunning.projectId, (tabs) => closeSessionTab(tabs, closeRunning.id))
+            setCloseRunning(null)
+          }}
+        />
+      )}
       {projectError && (
         <div
           role="alert"
@@ -1898,7 +1928,25 @@ export default function App() {
             onSelectThread={setActiveThreadId}
             onNewChat={handleNewChat}
             onDeleteChat={handleDeleteChat}
-            projects={projectsWithApprovals(projects, currentProject?.id, tasks)}
+            projects={projectsWithApprovals(
+              projects.map((project) => ({
+                ...project,
+                agents: project.agents.map((agent) =>
+                  project.id === currentProject?.id
+                    ? {
+                        ...agent,
+                        status: runningSessionIds.has(agent.id)
+                          ? 'active'
+                          : agent.status === 'active'
+                            ? 'completed'
+                            : agent.status,
+                      }
+                    : agent,
+                ),
+              })),
+              currentProject?.id,
+              tasks,
+            )}
             activeProjectId={activeProjectId}
             onSelectProject={handleSelectProject}
             onNewProject={(action) => {

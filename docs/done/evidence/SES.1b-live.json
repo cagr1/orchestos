@@ -1,0 +1,69 @@
+[
+  {
+    "flujo": "dev-tab-close-running",
+    "pass": true,
+    "steps": [
+      {
+        "nombre": "Idle: X closes without a dialog",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "Keep working: real turn is pending with a visible tab spinner",
+        "ok": true,
+        "detalle": "[{\"id\":\"e43ad83c-2922-4acd-bb17-28a01b8e509c\",\"status\":\"pending\"}]"
+      },
+      {
+        "nombre": "Working: X opens all three choices",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "Cancel: tab and turn remain",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "Keep running: tab closes, sidebar Working and pending DB turn remain",
+        "ok": true,
+        "detalle": "[{\"id\":\"e43ad83c-2922-4acd-bb17-28a01b8e509c\",\"status\":\"pending\"}]"
+      },
+      {
+        "nombre": "Keep running: explicit API cleanup cancels the turn",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "Stop working: real turn is pending with a visible tab spinner",
+        "ok": true,
+        "detalle": "[{\"id\":\"0b93f035-fb92-42a0-88c4-8d3eeba10fd5\",\"status\":\"pending\"}]"
+      },
+      {
+        "nombre": "Stop and close: tab closes and DB turn is cancelled within 15 s",
+        "ok": true,
+        "detalle": "elapsed=636 ms; turns=[{\"id\":\"0b93f035-fb92-42a0-88c4-8d3eeba10fd5\",\"status\":\"cancelled\"}]"
+      },
+      {
+        "nombre": "Stop and close: sidebar no longer shows Working",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "Settings: Closing a working agent's tab offers Ask / Stop it / Keep running",
+        "ok": true,
+        "detalle": "ok"
+      }
+    ],
+    "notes": [],
+    "errores": [],
+    "capturas": [
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-49439/dev-tab-close-running/idle-closed.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-49439/dev-tab-close-running/working-close-dialog.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-49439/dev-tab-close-running/cancel-keeps-tab.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-49439/dev-tab-close-running/keep-running-sidebar.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-49439/dev-tab-close-running/stop-and-close-dialog.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-49439/dev-tab-close-running/stopped-and-closed.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-49439/dev-tab-close-running/settings-close-working-tab.png"
+    ]
+  }
+]

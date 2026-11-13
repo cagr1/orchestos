@@ -472,6 +472,19 @@ export async function stopChatTurn(
   )
 }
 
+export async function stopActiveChatTurn(
+  sessionId: string,
+  projectId: string | null = null,
+): Promise<void> {
+  await request(
+    scopedSessionPath(`/api/chat/sessions/${encodeURIComponent(sessionId)}/stop`, projectId),
+    {
+      ...jsonInit('POST', {}),
+      headers: { ...sessionScope(projectId).headers, 'Content-Type': 'application/json' },
+    },
+  )
+}
+
 export interface SessionContextResponse {
   used: number | null
   window: number | null

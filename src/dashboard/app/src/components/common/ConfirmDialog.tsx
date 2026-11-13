@@ -6,12 +6,16 @@ export function ConfirmDialog({
   confirmLabel,
   onCancel,
   onConfirm,
+  secondaryLabel,
+  onSecondary,
 }: {
   title: string
   body?: string
   confirmLabel: string
   onCancel: () => void
   onConfirm: (dontAskAgain: boolean) => void
+  secondaryLabel?: string
+  onSecondary?: (dontAskAgain: boolean) => void
 }) {
   const id = useId()
   const cancel = useRef<HTMLButtonElement>(null)
@@ -80,6 +84,15 @@ export function ConfirmDialog({
           >
             Cancel
           </button>
+          {secondaryLabel && onSecondary && (
+            <button
+              type="button"
+              onClick={() => onSecondary(dontAskAgain)}
+              className="px-3 py-1.5 rounded-control text-app-muted hover:text-app hover:bg-app-elevated transition-colors text-xs"
+            >
+              {secondaryLabel}
+            </button>
+          )}
           <button
             type="button"
             onClick={() => onConfirm(dontAskAgain)}

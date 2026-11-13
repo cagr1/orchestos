@@ -572,7 +572,11 @@ export async function handleApiChatSessionStop(req: Request, url: URL): Promise<
     body && typeof body === 'object' && !Array.isArray(body)
       ? (body as { turnId?: unknown }).turnId
       : undefined
-  if (typeof turnId !== 'string' || !turnId.trim()) return errorResponse('turnId is required', 400)
+  if (typeof turnId !== 'string' || !turnId.trim()) {
+    return stopActiveChatTurn(id)
+      ? jsonResponse({ status: 'stopping' }, 202)
+      : jsonResponse({ status: 'idle' })
+  }
   const turn = getTurn(turnId)
   if (!turn || turn.session_id !== id) return errorResponse('Chat turn not found', 404)
   if (stopChatTurn(id, turnId)) return jsonResponse({ status: 'stopping' }, 202)

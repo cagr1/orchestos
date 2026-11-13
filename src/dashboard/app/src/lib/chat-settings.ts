@@ -3,6 +3,7 @@ import { useSyncExternalStore } from 'react'
 export type ChatSettings = {
   sendKey: 'enter' | 'mod-enter'
   whileRunning: 'queue' | 'stop-and-send'
+  closeRunningTab: 'ask' | 'stop' | 'keep'
   confirmDelete: boolean
   confirmArchive: boolean
 }
@@ -10,6 +11,7 @@ export type ChatSettings = {
 export const DEFAULT_CHAT_SETTINGS: ChatSettings = {
   sendKey: 'enter',
   whileRunning: 'queue',
+  closeRunningTab: 'ask',
   confirmDelete: true,
   confirmArchive: true,
 }
@@ -30,6 +32,10 @@ function parseSettings(raw: string | null): ChatSettings {
     return {
       sendKey: record.sendKey === 'mod-enter' ? 'mod-enter' : 'enter',
       whileRunning: record.whileRunning === 'stop-and-send' ? 'stop-and-send' : 'queue',
+      closeRunningTab:
+        record.closeRunningTab === 'stop' || record.closeRunningTab === 'keep'
+          ? record.closeRunningTab
+          : 'ask',
       confirmDelete: typeof record.confirmDelete === 'boolean' ? record.confirmDelete : true,
       confirmArchive: typeof record.confirmArchive === 'boolean' ? record.confirmArchive : true,
     }

@@ -112,8 +112,14 @@ subagente, sin informe aparte): cada cita se comprueba con grep al escribir el s
   protocolo) ya recibe la señal y mata el grupo de procesos. Tests: chat-stop + aud22-processes + codex-engine 44/44
   dos veces. Revisión qa (Sol) halló el hermano de Codex. Ejecutado por: gpt-6-luna (mecanico)
   Fuera de scope declarado: `src/run/executors/codex.ts` y `src/__tests__/aud22-processes.test.ts` (hermano hallado por qa).
-- [ ] **SES.1b — X del tab con turno vivo: diálogo Detener y cerrar / Dejar corriendo / Cancelar.**
-  Puntos 1–3 de SES.1: ocioso cierra; con turno, diálogo con "recordar"; punto en sidebar, contador y aviso al terminar.
+- [x] **SES.1b — X del tab con turno vivo: diálogo Detener y cerrar / Dejar corriendo / Cancelar.** Gate en vivo: navegador Playwright, `dev-tab-close-running` 10/10 (ocioso, cancelar, dejar corriendo, detener en 636 ms), `docs/done/evidence/SES.1b-live.json`.
+  Ocioso cierra; con turno, diálogo con "no volver a preguntar" y ajuste en Settings (`closeRunningTab`). `POST /stop`
+  sin `turnId` detiene el turno activo. El gate halló que el sidebar seguía en "Working" tras detener: el estado del
+  agente ahora sale de `runningSessionIds` (servidor). Sin contador nuevo: spinner del sidebar y notificación ya
+  cubren el punto 3.
+  Ejecutado por: gpt-6-luna (mecanico) + gpt-6.1-sol (criterio, gate y fix del sidebar) · Spec: docs/specs/SES.1b.md
+  Texto visible: "Stop this agent?", "It's still working. Keep it running and find it in the sidebar.", "Stop and close", "Keep running", "Closing a working agent's tab", "Ask", "Stop it" — una decisión con tres salidas necesita palabras; un ícono no distingue detener de dejar corriendo.
+  Fuera de scope declarado: `scripts/ui-gate/flows/dev-tab-close-running.mjs` y `docs/done/evidence/SES.1b-live.json` (gate en vivo).
 - [ ] **SES.1c — Aviso al cerrar con turnos vivos y turnos huérfanos al arrancar.**
   Puntos 5–6 de SES.1: `beforeunload` y apagado avisan con la lista; turnos `pending` huérfanos se ofrecen reanudar.
 

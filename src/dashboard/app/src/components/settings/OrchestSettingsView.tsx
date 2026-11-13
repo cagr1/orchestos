@@ -2462,6 +2462,21 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
                   ]}
                 />
               </SettingsRow>
+              <SettingsRow
+                data-settings-anchor="chat-close-running"
+                label="Closing a working agent's tab"
+              >
+                <SettingsSegmented
+                  value={chatSettings.closeRunningTab}
+                  onChange={(closeRunningTab) => writeChatSettings({ closeRunningTab })}
+                  ariaLabel="Closing a working agent's tab"
+                  options={[
+                    { value: 'ask', label: 'Ask' },
+                    { value: 'stop', label: 'Stop it' },
+                    { value: 'keep', label: 'Keep running' },
+                  ]}
+                />
+              </SettingsRow>
               {(
                 [
                   {

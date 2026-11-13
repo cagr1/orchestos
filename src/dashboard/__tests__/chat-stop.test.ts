@@ -26,7 +26,7 @@ async function isolated(body: string): Promise<any> {
       const session = sessions.createChatSession({ agent: 'codex' })
       const stop = (turnId, id = session.id) => {
         const url = new URL('http://localhost/api/chat/sessions/' + id + '/stop')
-        return handleApiChatSessionStop(new Request(url, { method: 'POST', body: JSON.stringify({ turnId }) }), url)
+        return handleApiChatSessionStop(new Request(url, { method: 'POST', body: JSON.stringify(turnId ? { turnId } : {}) }), url)
       }
       ${body}
       db.close()
@@ -45,6 +45,26 @@ async function isolated(body: string): Promise<any> {
     rmSync(home, { recursive: true, force: true })
   }
 }
+
+test(
+  'stop without a turn id stops the active turn or reports idle',
+  async () => {
+    const result = await isolated(`
+    const turn = turns.beginTurn({ sessionId: session.id, projectId: null, requestKey: 'key', inputFingerprint: 'fp', owner: 'worker' }).turn
+    const signal = registry.registerChatTurn(session.id, turn.id)
+    const active = await stop()
+    registry.unregisterChatTurn(session.id, turn.id)
+    const idle = await stop()
+    console.log(JSON.stringify({ active: [active.status, await active.json()], aborted: signal.aborted, idle: [idle.status, await idle.json()] }))
+  `)
+    expect(result).toEqual({
+      active: [202, { status: 'stopping' }],
+      aborted: true,
+      idle: [200, { status: 'idle' }],
+    })
+  },
+  ISOLATED_TIMEOUT_MS,
+)
 
 test(
   'Stop is idempotent, scopes the turn to its session and replays cancelled results',
