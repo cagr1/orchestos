@@ -39,6 +39,7 @@ auditoría AUD.1–AUD.28 en el orden de la segunda auditoría; lo cerrado está
      auxiliary en `analyze/patterns.ts:144`). Diseño propuesto según investigación (Copilot memory, ACE, ExpeL): fallo →
      auxiliar propone lección atómica con cita → Carlos aprueba en la vista Instincts → inyección por relevancia con
      tope de tokens (chat y tareas) → caduca sin uso o si la cita ya no existe; exporta a `AGENTS.md` para todos los CLI.
+     Opinión de Fable 5.2: `docs/specs/LRN-1-opinion-fable.md` (fases F0–F3, decisiones D1–D6 con recomendación).
 7. Lo que dejó el lote AUD y sigue vivo:
    - El dashboard se abre con la URL `#t=` que imprime `orchestos dashboard`; scripts que llamen a `/api` mandan
      `x-orchestos-token` (archivo `~/.orchestos/dashboard-token` o `ORCHESTOS_DASHBOARD_TOKEN`).
