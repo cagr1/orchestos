@@ -1,0 +1,10 @@
+{
+  "item": "USO.6",
+  "date": "2026-11-13",
+  "live": "Navegador integrado (Claude desktop) contra `bun run src/cli.ts dashboard --port 4242` real tras build:app: en Dev el hilo 'que es esto?' (Codex, sin pasos reasoning) ya no muestra el bloque Thought que copiaba la respuesta; la respuesta se ve una sola vez.",
+  "gates": [
+    "bunx tsc -p src/dashboard/app/tsconfig.json --noEmit: 0 errores",
+    "bun run build:app: ok"
+  ],
+  "review": "cambio de selección de pasos en un componente; sin cambio de servidor"
+}

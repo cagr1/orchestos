@@ -454,7 +454,16 @@ export const OrchestDevWorkspace: React.FC<OrchestDevWorkspaceProps> = ({
         }
       : exchangeUserMessage
     const steps = exchange.steps
-    const thoughtStep = steps.find((step) => step.type === 'text' && step.detail)
+    // USO.6: el pensamiento son los pasos `reasoning`; los `text` son la respuesta y la repetían.
+    const reasoningSteps = steps.filter((step) => step.type === 'reasoning' && step.detail?.trim())
+    const thoughtStep = reasoningSteps.length
+      ? {
+          detail: reasoningSteps
+            .map((step) => (step.detail as string).replace(/^\*\*(.*?)\*\*$/s, '$1'))
+            .join('\n\n'),
+          durationMs: reasoningSteps.reduce((total, step) => total + (step.durationMs ?? 0), 0),
+        }
+      : undefined
     const readSteps = steps.filter((step) => step.tool?.toLowerCase() === 'read' && step.target)
     const searchSteps = steps.filter((step) => step.tool?.toLowerCase().includes('search'))
     const editSteps = steps.filter((step) =>
@@ -582,10 +591,7 @@ export const OrchestDevWorkspace: React.FC<OrchestDevWorkspaceProps> = ({
 
                 {isThoughtExpanded && (
                   <div className="mt-1 mb-2 ml-5 p-3 rounded-control bg-app-surface/50 border border-app/60 font-mono text-[11px] text-app-muted space-y-1.5 leading-relaxed">
-                    <div>{thoughtStep.detail}</div>
-                    {false && <div>{thoughtStep.detail}</div>}
-                    {false && <div>{thoughtStep.detail}</div>}
-                    {false && <div>{thoughtStep.detail}</div>}
+                    <div className="whitespace-pre-wrap">{thoughtStep.detail}</div>
                   </div>
                 )}
               </div>
