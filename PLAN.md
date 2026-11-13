@@ -106,6 +106,22 @@ subagente, sin informe aparte): cada cita se comprueba con grep al escribir el s
   aviso con la lista. (6) Al arrancar, turnos huérfanos (proceso muerto, turno `pending`) se marcan y se ofrecen
   reanudar. Verificación: test que archiva con turno en curso y comprueba que no queda proceso; test del diálogo
   por estado del tab; prueba en vivo en el dashboard de los tres caminos (ocioso, detener, dejar corriendo).
+  GO de Carlos 2026-11-13 al plan a/b/c, en este orden:
+- [x] **SES.1a — Archivar detiene el turno vivo.**
+  Archivar aborta el turno registrado (`stopActiveChatTurn`); `codex exec` (sin sesión y fallback por error de
+  protocolo) ya recibe la señal y mata el grupo de procesos. Tests: chat-stop + aud22-processes + codex-engine 44/44
+  dos veces. Revisión qa (Sol) halló el hermano de Codex. Ejecutado por: gpt-6-luna (mecanico)
+  Fuera de scope declarado: `src/run/executors/codex.ts` y `src/__tests__/aud22-processes.test.ts` (hermano hallado por qa).
+- [ ] **SES.1b — X del tab con turno vivo: diálogo Detener y cerrar / Dejar corriendo / Cancelar.**
+  Puntos 1–3 de SES.1: ocioso cierra; con turno, diálogo con "recordar"; punto en sidebar, contador y aviso al terminar.
+- [ ] **SES.1c — Aviso al cerrar con turnos vivos y turnos huérfanos al arrancar.**
+  Puntos 5–6 de SES.1: `beforeunload` y apagado avisan con la lista; turnos `pending` huérfanos se ofrecen reanudar.
+
+- [ ] **LRN.1 — OrchestOS aprende de los errores.** (abierto 2026-11-13; GO de Carlos a D1–D6; va después de SES.1 y
+  no bloquea el uso real) Diseño: `docs/specs/LRN-1-opinion-fable.md`. Decisiones: D1 alcance por proyecto, global
+  solo por promoción manual; D2 tope 1.000 tokens o 15 lecciones; D3 proponer ante firma repetida ≥2, par
+  fallo→arreglo o corrección explícita en chat; D4 graduación a `AGENTS.md` manual con diff; D5 60 días sin uso →
+  `review`, nunca borrado; D6 primer lote F0+F1 (cimientos sin LLM + chat recibe y propone).
 
 ## Etapa 3 — Windows
 

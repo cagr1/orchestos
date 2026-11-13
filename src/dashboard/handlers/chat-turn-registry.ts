@@ -21,6 +21,12 @@ export function stopChatTurn(sessionId: string, turnId: string): boolean {
   return true
 }
 
+/** SES.1 — detiene el turno vivo de la sesión, sea cual sea su id (archivar nunca deja un CLI corriendo). */
+export function stopActiveChatTurn(sessionId: string): boolean {
+  const turn = activeTurns.get(sessionId)
+  return turn ? stopChatTurn(sessionId, turn.turnId) : false
+}
+
 export function unregisterChatTurn(sessionId: string, turnId: string): void {
   if (activeTurns.get(sessionId)?.turnId === turnId) activeTurns.delete(sessionId)
 }

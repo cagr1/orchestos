@@ -21,7 +21,7 @@ async function isolated(body: string): Promise<any> {
       const sessions = await import('./src/db/chat-sessions.ts')
       const turns = await import('./src/db/chat-turns.ts')
       const registry = await import('./src/dashboard/handlers/chat-turn-registry.ts')
-      const { handleApiChatSessionStop, handleApiChatSessionMessages } = await import('./src/dashboard/handlers/chat-sessions.ts')
+      const { handleApiChatSessionStop, handleApiChatSessionMessages, handleApiChatSessionArchive } = await import('./src/dashboard/handlers/chat-sessions.ts')
       const { db } = await import('./src/db/sqlite.ts')
       const session = sessions.createChatSession({ agent: 'codex' })
       const stop = (turnId, id = session.id) => {
@@ -365,6 +365,22 @@ test(
     expect(result.status).toBe(500)
     expect(result.turn.status).toBe('failed')
     expect(result.calls).toBe(0)
+  },
+  ISOLATED_TIMEOUT_MS,
+)
+
+test(
+  'Archive stops the running turn before archiving (SES.1)',
+  async () => {
+    const result = await isolated(`
+    const turn = turns.beginTurn({ sessionId: session.id, projectId: null, requestKey: 'k', inputFingerprint: 'fp', owner: 'w' }).turn
+    const signal = registry.registerChatTurn(session.id, turn.id)
+    const res = handleApiChatSessionArchive(new URL('http://localhost/api/chat/sessions/' + session.id + '/archive'))
+    const idle = sessions.createChatSession({ agent: 'codex' })
+    const idleRes = handleApiChatSessionArchive(new URL('http://localhost/api/chat/sessions/' + idle.id + '/archive'))
+    console.log(JSON.stringify({ status: res.status, aborted: signal.aborted, idle: idleRes.status }))
+  `)
+    expect(result).toEqual({ status: 200, aborted: true, idle: 200 })
   },
   ISOLATED_TIMEOUT_MS,
 )

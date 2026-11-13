@@ -180,6 +180,7 @@ async function runCodex(
   timeoutMs: number,
   onStep?: (event: ExecutorStepEvent) => void,
   env: Record<string, string> = safeChildEnv(),
+  signal?: AbortSignal,
 ): Promise<{ stdout: string; timedOut: boolean }> {
   const proc = spawnTree([CODEX_BINARY, ...args], {
     cwd,
@@ -202,6 +203,9 @@ async function runCodex(
     timedOut = true
     void terminateTree(proc)
   }, timeoutMs)
+  const abort = () => void terminateTree(proc)
+  signal?.addEventListener('abort', abort, { once: true })
+  if (signal?.aborted) abort()
 
   const reader = proc.stdout.getReader()
   const decoder = new TextDecoder()
@@ -232,12 +236,14 @@ async function runCodex(
     clearTimeout(timer)
     await stderrDone
     trace.end(exitCode, stderrText, timedOut)
+    signal?.throwIfAborted()
   } catch (error) {
     clearTimeout(timer)
     await terminateTree(proc)
     throw error
   } finally {
     clearTimeout(timer)
+    signal?.removeEventListener('abort', abort)
     reader.releaseLock()
   }
 
@@ -423,6 +429,7 @@ async function runCodexChatExec(
   projectRoot?: string,
   imagePaths: string[] = [],
   mcpOffer?: McpOffer,
+  signal?: AbortSignal,
 ): Promise<CodexChatResult> {
   if (!findCodexBinary()) {
     throw new ExecutorCodexError(codexUnavailableMessage(process.env.PATH))
@@ -448,8 +455,10 @@ async function runCodexChatExec(
       timeoutMs,
       onStep,
       buildCodexChatEnv(configHome.path),
+      signal,
     ))
   } catch (e: any) {
+    if (signal?.aborted) throw e
     throw new ExecutorCodexError(`failed to spawn codex: ${e.message}`)
   }
 
@@ -524,6 +533,7 @@ export async function runCodexChat(
       projectRoot,
       imagePaths,
       mcpOffer,
+      signal,
     )
   if (!findCodexBinary()) throw new ExecutorCodexError(codexUnavailableMessage(process.env.PATH))
   if (model && !orchestosModelToCodexModel(model))
@@ -613,6 +623,7 @@ export async function runCodexChat(
         undefined,
         imagePaths,
         mcpOffer,
+        signal,
       )
     }
     throw error

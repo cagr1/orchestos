@@ -39,7 +39,7 @@ import {
 } from '../project-context.ts'
 import type { ChatMessageRow, ChatSessionRow } from '../types.ts'
 
-import { stopChatTurn } from './chat-turn-registry.ts'
+import { stopActiveChatTurn, stopChatTurn } from './chat-turn-registry.ts'
 
 const MODES = new Set<ChatSessionMode>(['chat', 'code'])
 const TITLE_MAX_LENGTH = 160
@@ -551,6 +551,8 @@ export function handleApiChatSessionDelete(url: URL): Response {
 export function handleApiChatSessionArchive(url: URL, restore = false): Response {
   const id = sessionIdFromUrl(url)
   if (!id) return errorResponse('Invalid session id', 400)
+  // SES.1 — archivar = detener + archivar: el abort llega a terminateTree del executor.
+  if (!restore) stopActiveChatTurn(id)
   const updated = restore ? restoreChatSession(id) : archiveChatSession(id)
   return updated
     ? jsonResponse(toSessionRow(updated))

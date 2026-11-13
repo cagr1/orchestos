@@ -100,14 +100,43 @@ test('external: AbortSignal kills the entire process group', async () => {
     undefined,
     controller.signal,
   )
-  for (let i = 0; i < 100 && !existsSync(join(dir, 'grandchild')); i++) await Bun.sleep(10)
+  for (let i = 0; i < 400 && !existsSync(join(dir, 'grandchild')); i++) await Bun.sleep(10)
+  expect(existsSync(join(dir, 'grandchild'))).toBe(true)
   watchdog.refresh()
   const abortedAt = Date.now()
   controller.abort()
   await expect(running).rejects.toThrow()
   expect(Date.now() - abortedAt).toBeLessThan(3000)
   await noPids()
-})
+}, 6000)
+test('codex exec: AbortSignal kills the entire process group', async () => {
+  cli('codex', 'echo $$ > child\n/bin/sleep 300 &\necho $! > grandchild\nwait')
+  const controller = new AbortController()
+  const running = runCodexChat(
+    dir,
+    '',
+    'hello',
+    4000,
+    undefined,
+    undefined,
+    undefined,
+    undefined,
+    undefined,
+    undefined,
+    undefined,
+    [],
+    undefined,
+    controller.signal,
+  )
+  for (let i = 0; i < 400 && !existsSync(join(dir, 'grandchild')); i++) await Bun.sleep(10)
+  expect(existsSync(join(dir, 'grandchild'))).toBe(true)
+  watchdog.refresh()
+  const abortedAt = Date.now()
+  controller.abort()
+  await expect(running).rejects.toThrow()
+  expect(Date.now() - abortedAt).toBeLessThan(3000)
+  await noPids()
+}, 6000)
 test('opencode drains more than a pipe buffer of stderr', async () => {
   cli(
     'opencode',

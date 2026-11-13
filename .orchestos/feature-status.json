@@ -28,6 +28,38 @@
       "closedDate": null
     },
     {
+      "id": "SES.1a",
+      "sprint": "Etapa 1 — lo que rompe el uso normal",
+      "block": null,
+      "title": "Archivar detiene el turno vivo",
+      "status": "done",
+      "closedDate": null
+    },
+    {
+      "id": "SES.1b",
+      "sprint": "Etapa 1 — lo que rompe el uso normal",
+      "block": null,
+      "title": "X del tab con turno vivo: diálogo Detener y cerrar / Dejar corriendo / Cancelar",
+      "status": "open",
+      "closedDate": null
+    },
+    {
+      "id": "SES.1c",
+      "sprint": "Etapa 1 — lo que rompe el uso normal",
+      "block": null,
+      "title": "Aviso al cerrar con turnos vivos y turnos huérfanos al arrancar",
+      "status": "open",
+      "closedDate": null
+    },
+    {
+      "id": "LRN.1",
+      "sprint": "Etapa 1 — lo que rompe el uso normal",
+      "block": null,
+      "title": "OrchestOS aprende de los errores",
+      "status": "open",
+      "closedDate": null
+    },
+    {
       "id": "WIN.1",
       "sprint": "Etapa 3 — Windows",
       "block": null,
