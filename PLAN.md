@@ -62,13 +62,23 @@ En este orden. AUD.14, AUD.17 y AUD.16 salieron de la revisión de validadores d
 subagente, sin informe aparte): cada cita se comprueba con grep al escribir el spec. Cada uno migra sus parseos a
 `src/boundary` y baja `scripts/boundary-budget.json`.
 
-- [ ] **AUD.17 — Bodies y archivos con tipo incorrecto dan 500 en vez de 400; `.env` admite saltos de línea.**
-  (abierto 2026-11-11) `POST /api/settings` (`src/dashboard/handlers/setup.ts:172-186` → `settings-store.ts:62-66`)
+- [x] **AUD.17 — Bodies y archivos con tipo incorrecto dan 500 en vez de 400; `.env` admite saltos de línea.**
+  (abierto 2026-11-11, cerrado 2026-11-13) `POST /api/settings` (`src/dashboard/handlers/setup.ts:172-186` → `settings-store.ts:62-66`)
   escribe `"x\nOPENROUTER_API_KEY=…"` como línea nueva en `~/.orchestos/.env`. Resto: casts `as T` en `tasks.ts:276-295`,
   `instincts.ts:58-62,84-88,117`, `specs.ts:12-16`, `chat.ts:142-145,253,876`; body `null` en `run-graph.ts:75`,
   `system.ts:8`, `skills.ts:217`; `package.json.name` no string (`src/detect/manifest.ts:20`); línea JSON-RPC `null`
   (`src/mcp/server.ts:125,232`, `codex-app-server.ts:173-177`); precios de OpenRouter sin rango
   (`src/router/model-catalog.ts:166-172`).
+  Cierre: bodies de settings, tasks (create/run/commit-run/bulk-delete), instincts, specs, chat, run-graph,
+  system/reset y skills delete pasan por `readBody` con schema → 400 con causa; se conservan los mensajes 400
+  previos. Settings rechaza valores con `\r`/`\n` y `writeEnv` también (defensa). `manifest.ts` acepta solo `name`
+  texto; MCP responde `-32600` a mensajes no-objeto; codex-app-server trata `null` como respuesta inválida; precios
+  negativos de OpenRouter = desconocido. `boundary-budget` 58/59 → 55/43.
+  Gates: tsc, lint, test:coverage 2854/0; diff leído entero por el cerebro (otro proveedor).
+  Gate en vivo: navegador Playwright, `settings-shell` 24/24 con HOME temporal, `docs/done/evidence/AUD.17-settings-shell.json`.
+  Paso nuevo: key con salto de línea → 400 y keys intactas, key válida se guarda, tarea con `description: 5` → 400.
+  Además `curl` contra el dashboard real, `docs/done/evidence/AUD.17-live.json` (`.env` intacto).
+  Ejecutado por: gpt-6.1-sol (criterio) · Spec: docs/specs/AUD.17.md
 
 - [ ] **AUD.16 — Skills: `validateSkill` devuelve el objeto crudo y el id de la URL no se cruza con el del contenido.**
   (abierto 2026-11-11) `src/skills/registry.ts:138-226` (`when_to_use: "x"` → `.map is not a function` en

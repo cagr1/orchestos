@@ -114,6 +114,29 @@ export default async function settingsShell({ page, api, step, shot, cleanup, ex
     over.status === 400 && atCap.ok && (await increase.isDisabled()),
     `${over.status} ${JSON.stringify(over.data)} · ${await row.innerText()}`,
   )
+  // AUD.17 — a key with a line break never reaches .env; a valid key still saves; wrong types are 400.
+  const post = { method: 'POST', headers: { ...headers, 'Content-Type': 'application/json' } }
+  const keys = async () => JSON.stringify((await api('/api/settings', { headers })).data)
+  const keysBefore = await keys()
+  const bad = { OPENAI_API_KEY: 'sk-aud17\nANTHROPIC_API_KEY=injected' }
+  const injected = await api('/api/settings', { ...post, body: JSON.stringify(bad) })
+  const unchanged = (await keys()) === keysBefore
+  cleanup(() => api('/api/settings', { ...post, body: '{"OPENAI_API_KEY":""}' }))
+  const savedKey = await api('/api/settings', {
+    ...post,
+    body: '{"OPENAI_API_KEY":"sk-aud17-ui-0000"}',
+  })
+  const masked = (await api('/api/settings', { headers })).data.OPENAI_API_KEY?.masked
+  const badTask = await api('/api/tasks', { ...post, body: '{"description":5,"output":["x"]}' })
+  await step(
+    'API key with a line break is rejected and a valid key still saves',
+    injected.status === 400 &&
+      unchanged &&
+      savedKey.ok &&
+      masked === 'sk-aud••••0000' &&
+      badTask.status === 400,
+    `${injected.status} ${JSON.stringify(injected.data)} · ${savedKey.status} ${masked} · ${badTask.status}`,
+  )
   await sidebar.getByRole('button', { name: 'Model routing', exact: true }).click()
   await page.getByRole('button', { name: /Task rules/ }).click()
   await page.getByRole('button', { name: 'Add rule', exact: true }).click()

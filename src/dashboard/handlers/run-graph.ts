@@ -1,3 +1,4 @@
+import { badRequest, readBody, z } from '../../boundary/index.ts'
 /**
  * src/dashboard/handlers/run-graph.ts
  *
@@ -70,12 +71,12 @@ async function handleApiRunGraph(req: Request, root: string): Promise<Response> 
     return errorResponse('tasks.yaml not found — run: orchestos task init', 404)
   }
 
-  let body: { maxCost?: unknown; maxMinutes?: unknown } = {}
-  try {
-    body = (await req.json()) as { maxCost?: unknown; maxMinutes?: unknown }
-  } catch {
-    /* no body — defaults apply */
-  }
+  const parsed = await readBody(
+    z.object({ maxCost: z.number().optional(), maxMinutes: z.number().optional() }),
+    req,
+  )
+  if (!parsed.ok && parsed.error !== 'invalid JSON body') return badRequest(parsed.error)
+  const body = parsed.ok ? parsed.data : {}
   const maxCost = typeof body.maxCost === 'number' ? body.maxCost : undefined
   const maxMinutes = typeof body.maxMinutes === 'number' ? body.maxMinutes : undefined
 

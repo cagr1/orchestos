@@ -8,7 +8,7 @@
       "sprint": "Etapa 1 — lo que rompe el uso normal",
       "block": null,
       "title": "Bodies y archivos con tipo incorrecto dan 500 en vez de 400; `.env` admite saltos de línea",
-      "status": "open",
+      "status": "done",
       "closedDate": null
     },
     {

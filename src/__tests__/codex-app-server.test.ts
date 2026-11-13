@@ -1474,3 +1474,28 @@ for (const scenario of [
     }
   })
 }
+
+for (const line of ['null', '[]', '5', '"text"']) {
+  test(`AUD.17: app-server rejects non-object response ${line} through failAll`, async () => {
+    const server = new CodexAppServer({
+      binary: 'fake',
+      env: {},
+      store: store().api,
+      spawnProcess: () =>
+        fakeProcess((request, stdout) => {
+          if (request.method === 'initialize') reply(stdout, request, {})
+          else stdout.write(`${line}\n`)
+        }),
+    })
+    try {
+      await (server as any).ensureReady()
+      const error = await (server as any).request('test', {}, 1000).catch((error: Error) => error)
+      expect(error).toBeInstanceOf(Error)
+      expect(error.message).toBe('invalid JSON-RPC response')
+      expect(error.protocol).toBe(true)
+      expect(error).not.toBeInstanceOf(TypeError)
+    } finally {
+      server.kill()
+    }
+  })
+}

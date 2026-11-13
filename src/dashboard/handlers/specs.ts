@@ -1,4 +1,5 @@
 import { join } from 'node:path'
+import { badRequest, readBody, z } from '../../boundary/index.ts'
 import { archiveSpec, deleteArchivedSpec } from '../../spec/archive.ts'
 import { lintSpec } from '../../spec/lint.ts'
 import { listSpecs, loadSpec, saveSpec } from '../../spec/store.ts'
@@ -7,12 +8,17 @@ import { errorResponse, jsonResponse, validateTaskId } from '../http.ts'
 import type { SpecLintStatus, SpecRow } from '../types.ts'
 
 async function handleApiSpecsDraft(req: Request, root: string): Promise<Response> {
-  let body: { taskId: string; description: string; design?: boolean }
-  try {
-    body = (await req.json()) as { taskId: string; description: string; design?: boolean }
-  } catch {
-    return errorResponse('Invalid JSON', 400)
-  }
+  const parsed = await readBody(
+    z.object({
+      taskId: z.string().optional(),
+      description: z.string().optional(),
+      design: z.boolean().optional(),
+    }),
+    req,
+  )
+  if (!parsed.ok)
+    return badRequest(parsed.error === 'invalid JSON body' ? 'Invalid JSON' : parsed.error)
+  const body = parsed.data
   const taskId = validateTaskId(body.taskId ?? '')
   if (!taskId || !body.description?.trim()) {
     return errorResponse(
@@ -82,13 +88,13 @@ async function handleApiSpecsCreate(req: Request, root: string): Promise<Respons
   if (existing) return errorResponse(`Spec ya existe para "${taskId}"`, 409)
   // AA.4 (IDEAS #6) — body opcional: sin body o `{}`, comportamiento idéntico al de
   // siempre (spec simple). Mismo criterio de "ausente = sin cambio" que el CLI.
-  let design = false
-  try {
-    const body = (await req.json()) as { design?: boolean }
-    design = body?.design === true
-  } catch {
-    /* sin body o JSON inválido — spec simple, no es un error */
-  }
+  const parsed = await readBody(
+    z.object({ design: z.boolean().optional() }),
+    req.body === null ? new Request(req, { body: '{}' }) : req,
+  )
+  if (!parsed.ok)
+    return badRequest(parsed.error === 'invalid JSON body' ? 'Invalid JSON' : parsed.error)
+  const design = parsed.data.design === true
   const designSection = design ? `## Design\n<placeholder>\n\n` : ''
   saveSpec(root, {
     frontmatter: {
@@ -178,12 +184,16 @@ function handleApiSpecsDelete(req: Request, root: string): Response {
 // v0.12 Bloque A — borrado en lote de specs ARCHIVADAS (mismo alcance que
 // handleApiSpecsDelete — deleteArchivedSpec nunca toca drafts/approved activos).
 async function handleApiSpecsBulkDelete(req: Request, root: string): Promise<Response> {
-  let body: { ids?: unknown }
-  try {
-    body = (await req.json()) as { ids?: unknown }
-  } catch {
-    return errorResponse('Invalid JSON', 400)
-  }
+  const parsed = await readBody(z.object({ ids: z.array(z.string()).optional() }), req)
+  if (!parsed.ok)
+    return badRequest(
+      parsed.error === 'invalid JSON body'
+        ? 'Invalid JSON'
+        : parsed.error.startsWith('ids:')
+          ? 'ids must be a non-empty array'
+          : parsed.error,
+    )
+  const body = parsed.data
   if (!Array.isArray(body.ids) || body.ids.length === 0)
     return errorResponse('ids must be a non-empty array', 400)
   const ids = body.ids.filter((id): id is string => typeof id === 'string')

@@ -2,6 +2,7 @@ import { createHash, randomUUID } from 'node:crypto'
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join, relative } from 'node:path'
+import { badRequest, readBody, z } from '../../boundary/index.ts'
 import { writeChatImages } from '../../chat/attachment-files.ts'
 import { buildChatSystemPrompt, rejectedSessionTasks } from '../../chat/chat-context.ts'
 import { extractTextFromImage } from '../../chat/ocr.ts'
@@ -850,30 +851,28 @@ async function handleApiChat(
   fallbackProject?: DashboardProjectContext,
 ): Promise<Response> {
   const turnStartedAt = Date.now()
-  let parsed: unknown
-  try {
-    parsed = await req.json()
-  } catch {
-    return errorResponse('Invalid JSON', 400)
+  const parsed = await readBody(
+    z.object({
+      history: z.array(z.object({ role: z.string(), content: z.string() })).optional(),
+      message: z.string().optional(),
+      fileIds: z.array(z.string()).optional(),
+      model: z.string().optional(),
+      effort: z.string().optional(),
+      approvalMode: z.unknown().optional(),
+      agent: z.string().optional(),
+      sessionId: z.string().optional(),
+      requestKey: z.string().optional(),
+    }),
+    req,
+  )
+  if (!parsed.ok) {
+    if (parsed.error === 'invalid JSON body') return badRequest('Invalid JSON')
+    if (parsed.error.startsWith('(root):')) return badRequest('JSON body must be an object')
+    if (parsed.error.startsWith('sessionId:'))
+      return badRequest('sessionId must be a non-empty string')
+    return badRequest(parsed.error)
   }
-  if (typeof parsed !== 'object' || parsed === null || Array.isArray(parsed)) {
-    return errorResponse('JSON body must be an object', 400)
-  }
-  const body = parsed as {
-    history: { role: string; content: string }[]
-    message: string
-    fileIds?: string[]
-    model?: string
-    effort?: string
-    approvalMode?: unknown
-    agent?: string
-    sessionId?: string
-    // R.5 — el frontend todavía no la persiste ni reenvía (Fase 2, fuera de
-    // este ítem); si no viene, se genera una nueva por request, así que cada
-    // POST se trata como turno propio — sin protección de reintento real
-    // hasta que el cliente la sostenga entre reintentos de la misma petición.
-    requestKey?: string
-  }
+  const body = parsed.data
   if (
     body.approvalMode !== undefined &&
     !['full', 'auto-edit', 'supervised'].includes(body.approvalMode as string)

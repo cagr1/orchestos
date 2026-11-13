@@ -2,6 +2,7 @@ import { existsSync } from 'node:fs'
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { diagnoseTask } from '../../agents/diagnose.ts'
+import { badRequest, readBody, z } from '../../boundary/index.ts'
 import { loadOrcheConfig, RoleUnassignedError, resolveRole } from '../../config/load.ts'
 import type { AgentChoice } from '../../config/schema.ts'
 import { getChatSession } from '../../db/chat-sessions.ts'
@@ -414,12 +415,30 @@ function spawnTaskRun(
 }
 
 async function handleApiTasksCreate(req: Request, root: string): Promise<Response> {
-  let body: CreateTaskParams
-  try {
-    body = (await req.json()) as CreateTaskParams
-  } catch {
-    return errorResponse('Invalid JSON', 400)
+  const parsed = await readBody(
+    z.object({
+      id: z.string().optional(),
+      description: z.string().default(''),
+      output: z.array(z.string()).optional(),
+      acceptance_criteria: z.array(z.string()).optional(),
+      executor: z.string().optional(),
+      executor_model: z.string().optional(),
+      engine: z.string().optional(),
+      cli_effort: z.string().optional(),
+      approvalMode: z.string().optional(),
+      task_class: z.string().optional(),
+      skill: z.string().optional(),
+    }),
+    req,
+  )
+  if (!parsed.ok) {
+    if (parsed.error === 'invalid JSON body') return badRequest('Invalid JSON')
+    if (parsed.error.startsWith('output:'))
+      return badRequest('"output" must be a non-empty array — this is the contract')
+    if (parsed.error.startsWith('approvalMode:')) return badRequest('unknown approvalMode')
+    return badRequest(parsed.error)
   }
+  const body = parsed.data
   // I.3 (Mes 30) — mismo principio que D.7 en el chat (chat.ts): si quien crea
   // la tarea no fijó NI engine NI executor_model, se resuelve declarativamente
   // (reglas de proyecto → agent de config → cascada E.16) en vez de caer en
@@ -461,12 +480,16 @@ async function handleApiTasksRun(
   const raw = decodeURIComponent(url.pathname.split('/')[3] ?? '')
   const id = validateTaskId(raw)
   if (!id) return errorResponse('Missing or invalid task id', 400)
-  let body: { model?: string; clarification?: string; sessionId?: string } = {}
-  try {
-    body = (await req.json()) as { model?: string; clarification?: string; sessionId?: string }
-  } catch {
-    /* body opcional */
-  }
+  const parsed = await readBody(
+    z.object({
+      model: z.string().optional(),
+      clarification: z.string().optional(),
+      sessionId: z.string().optional(),
+    }),
+    req,
+  )
+  if (!parsed.ok && parsed.error !== 'invalid JSON body') return badRequest(parsed.error)
+  const body = parsed.ok ? parsed.data : {}
   return launchTask(root, id, body, projectId)
 }
 
@@ -523,12 +546,19 @@ async function handleApiTasksCommitRun(
   const raw = decodeURIComponent(url.pathname.split('/')[3] ?? '')
   const id = validateTaskId(raw)
   if (!id) return errorResponse('Missing or invalid task id', 400)
-  let body: { files?: unknown; sessionId?: string } = {}
-  try {
-    body = (await req.json()) as { files?: unknown; sessionId?: string }
-  } catch {
-    return errorResponse('Invalid JSON body', 400)
-  }
+  const parsed = await readBody(
+    z.object({ files: z.array(z.string()).optional(), sessionId: z.string().optional() }),
+    req,
+  )
+  if (!parsed.ok)
+    return badRequest(
+      parsed.error === 'invalid JSON body'
+        ? 'Invalid JSON body'
+        : parsed.error.startsWith('files:')
+          ? 'files must be a non-empty array of paths'
+          : parsed.error,
+    )
+  const body = parsed.data
   if (!existsSync(join(root, 'tasks.yaml'))) return errorResponse('tasks.yaml not found', 404)
   if (!loadTasks(root).tasks.some((task) => task.id === id))
     return errorResponse('Task not found', 404)
@@ -596,12 +626,16 @@ function handleApiTasksDelete(url: URL, root: string): Response {
 // archivo — se filtra una sola vez y se guarda una sola vez, en vez de N
 // llamadas a saveTasks() (N reescrituras completas del YAML).
 async function handleApiTasksBulkDelete(req: Request, root: string): Promise<Response> {
-  let body: { ids?: unknown }
-  try {
-    body = (await req.json()) as { ids?: unknown }
-  } catch {
-    return errorResponse('Invalid JSON', 400)
-  }
+  const parsed = await readBody(z.object({ ids: z.array(z.string()).optional() }), req)
+  if (!parsed.ok)
+    return badRequest(
+      parsed.error === 'invalid JSON body'
+        ? 'Invalid JSON'
+        : parsed.error.startsWith('ids:')
+          ? 'ids must be a non-empty array'
+          : parsed.error,
+    )
+  const body = parsed.data
   if (!Array.isArray(body.ids) || body.ids.length === 0)
     return errorResponse('ids must be a non-empty array', 400)
   const ids = new Set(body.ids.filter((id): id is string => typeof id === 'string'))

@@ -1,5 +1,6 @@
 import { existsSync } from 'node:fs'
 import { join } from 'node:path'
+import { badRequest, readBody, z } from '../../boundary/index.ts'
 import { getProject } from '../../db/projects.ts'
 import { DB_PATH, db } from '../../db/sqlite.ts'
 import { listInstincts } from '../../instincts/store.ts'
@@ -169,15 +170,17 @@ function handleApiSetup(root: string): Response {
 }
 
 async function handleApiSettingsPost(req: Request): Promise<Response> {
-  let body: Record<string, string>
-  try {
-    body = (await req.json()) as Record<string, string>
-  } catch {
-    return errorResponse('Invalid JSON', 400)
-  }
+  const parsed = await readBody(
+    z.object(Object.fromEntries(SETTINGS_KEYS.map((key) => [key, z.string().optional()]))),
+    req,
+  )
+  if (!parsed.ok)
+    return badRequest(parsed.error === 'invalid JSON body' ? 'Invalid JSON' : parsed.error)
+  const body = parsed.data
   const current = readEnv()
   for (const k of SETTINGS_KEYS) {
     const v = body[k]
+    if (v !== undefined && /[\r\n]/.test(v)) return badRequest(`${k} must be a single line`)
     if (v !== undefined && v !== '' && !v.includes('••')) {
       current[k] = v
     } else if (v === '' && current[k]) {

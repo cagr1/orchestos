@@ -1,5 +1,6 @@
 import { existsSync, mkdirSync, readFileSync, renameSync, unlinkSync, writeFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
+import { badRequest, readBody, z } from '../../boundary/index.ts'
 import { loadOrcheConfig } from '../../config/load.ts'
 import type { getProvider } from '../../providers/index.ts'
 import type { ChatMessage, ChatResponse } from '../../providers/openrouter.ts'
@@ -212,12 +213,16 @@ async function handleApiSkillsDelete(
     return errorResponse('Skill not found', 404)
   }
 
-  let body: { confirm?: boolean }
-  try {
-    body = (await req.json()) as { confirm?: boolean }
-  } catch {
-    return errorResponse('Invalid JSON', 400)
-  }
+  const parsed = await readBody(z.object({ confirm: z.boolean().optional() }), req)
+  if (!parsed.ok)
+    return badRequest(
+      parsed.error === 'invalid JSON body'
+        ? 'Invalid JSON'
+        : parsed.error.startsWith('confirm:')
+          ? 'Confirmation required — send { confirm: true }'
+          : parsed.error,
+    )
+  const body = parsed.data
   if (body.confirm !== true)
     return errorResponse('Confirmation required — send { confirm: true }', 400)
 

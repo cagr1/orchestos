@@ -15,7 +15,7 @@ import {
   type TaskProposal,
   taskProposalFromStep,
 } from './adapters.ts'
-import { CREATE_TASK_RESPONSE, parseCreateTaskArgs } from './server.ts'
+import { CREATE_TASK_RESPONSE, parseCreateTaskArgs, runMcpServer } from './server.ts'
 
 const SERVER = join(import.meta.dir, 'server.ts')
 
@@ -355,4 +355,23 @@ describe('AT.21 fila del hilo', () => {
     expect(readonlyCommandTarget('mcp__orchestos__create_task', { argv: ['x'] })).toBeUndefined()
     expect(readonlyCommandTarget('mcp__orchestos__run_readonly', { argv: [1] })).toBeUndefined()
   })
+})
+
+test('AUD.17: non-object JSON-RPC messages fail and the next line is served', async () => {
+  const replies: object[] = []
+  async function* input() {
+    yield 'null\n[]\n5\n"text"\n{bad}\n{"jsonrpc":"2.0","id":1,"method":"ping"}\n'
+  }
+  await runMcpServer({ tools: [], root: process.cwd() }, input(), (line) =>
+    replies.push(JSON.parse(line)),
+  )
+  expect(replies).toEqual([
+    ...Array.from({ length: 4 }, () => ({
+      jsonrpc: '2.0',
+      id: null,
+      error: { code: -32600, message: 'Invalid Request' },
+    })),
+    { jsonrpc: '2.0', id: null, error: { code: -32700, message: 'Parse error' } },
+    { jsonrpc: '2.0', id: 1, result: {} },
+  ])
 })

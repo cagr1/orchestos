@@ -1,4 +1,4 @@
-# NEXT — handoff 2026-11-12 (rumbo nuevo: uso normal → uso real → Windows → Tauri; siguiente AUD.17)
+# NEXT — handoff 2026-11-12 (rumbo nuevo: uso normal → uso real → Windows → Tauri; siguiente AUD.16)
 
 Un solo presente: orden y trampas vivas del lote. Lo cerrado vive en `docs/done/bloque-*.md` y git; las reglas, en
 `AGENTS.md`. Versión anterior completa: `docs/done/poda-instrucciones-2026-11-03.md` (histórico).
@@ -9,8 +9,7 @@ Arranque: `bun run agent:preflight -- --item <ID> --agent claude`. Lista viva: `
 Rumbo de Carlos del 2026-11-12 (`PLAN.md` § Rumbo): uso normal → uso real → Windows → Tauri. Antes: lote de
 auditoría AUD.1–AUD.28 en el orden de la segunda auditoría; lo cerrado está en `docs/done/bloque-AUD.md`.
 
-1. **Etapa 1 — lo que rompe el uso normal**: AUD.17 → AUD.16 → SES.1 (AUD.14 cerrado 2026-11-13).
-   - AUD.17: spec listo en `docs/specs/AUD.17.md` (sin commitear). Falta delegar y verificar; lleva gate en vivo con `curl`.
+1. **Etapa 1 — lo que rompe el uso normal**: AUD.16 → SES.1 (AUD.14 y AUD.17 cerrados 2026-11-13).
    - AUD.16: sin spec ni informe aparte (salieron de la lectura de un subagente): cada cita del ítem se
      comprueba con grep al escribirlo. Cada uno migra sus parseos a `src/boundary` y baja `scripts/boundary-budget.json`.
    - SES.1: diseño en el ítem. Cruza UI, sesiones y procesos: plan corto antes de delegar.

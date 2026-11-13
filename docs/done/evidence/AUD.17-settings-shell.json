@@ -1,0 +1,133 @@
+[
+  {
+    "flujo": "settings-shell",
+    "pass": true,
+    "steps": [
+      {
+        "nombre": "navigation group App",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "navigation group Agents",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "navigation group Observe",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "navigation group Protect",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "navigation group Projects",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "General has an icon and title only",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "Appearance has an icon and title only",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "Keybindings has an icon and title only",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "Terminal has an icon and title only",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "Providers has an icon and title only",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "Model routing has an icon and title only",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "Executor has an icon and title only",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "API keys has an icon and title only",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "Health has an icon and title only",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "Usage has an icon and title only",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "Danger zone has an icon and title only",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "timeout saves immediately",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "timeout survives reload",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "search highlights the matching Timeout row",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "save error shows reason and restores timeout",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "timeout above 24 h is rejected and the stepper stops at 1440",
+        "ok": true,
+        "detalle": "400 {\"error\":\"externalTimeoutMinutes debe ser un entero entre 1 y 1440\"} · Timeout\nStop the CLI if it runs longer than this\n1440min"
+      },
+      {
+        "nombre": "API key with a line break is rejected and a valid key still saves",
+        "ok": true,
+        "detalle": "400 {\"error\":\"OPENAI_API_KEY must be a single line\"} · 200 sk-aud••••0000 · 400"
+      },
+      {
+        "nombre": "leaving an incomplete rule discards only its local draft",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "global save bar is absent",
+        "ok": true,
+        "detalle": "ok"
+      }
+    ],
+    "notes": [],
+    "errores": [],
+    "capturas": [
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-30479/settings-shell/settings-timeout-highlight.png"
+    ]
+  }
+]

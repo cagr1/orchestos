@@ -1,6 +1,7 @@
 import { existsSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { glob } from 'glob'
+import { check, parseJson, z } from '../boundary/index.ts'
 
 export interface Manifest {
   name: string
@@ -16,17 +17,24 @@ export function readManifest(root: string): Manifest {
   const pkgPath = join(root, 'package.json')
   if (existsSync(pkgPath)) {
     try {
-      const pkg = JSON.parse(readFileSync(pkgPath, 'utf-8'))
-      result.name = pkg.name ?? 'unknown'
+      const parsed = parseJson(
+        z.object({ name: z.unknown().optional() }).passthrough(),
+        readFileSync(pkgPath, 'utf-8'),
+      )
+      if (!parsed.ok) throw new Error(parsed.error)
+      const pkg = parsed.data
+      const name = check(
+        z.string().refine((value) => value.trim().length > 0),
+        pkg.name,
+      )
+      result.name = name.ok ? name.data : 'unknown'
       result.runtime =
         existsSync(join(root, 'bun.lock')) || existsSync(join(root, 'bun.lockb'))
           ? 'Bun'
           : 'Node.js'
-      const allDeps = Object.keys({
-        ...pkg.dependencies,
-        ...pkg.devDependencies,
-        ...pkg.peerDependencies,
-      })
+      const allDeps = Object.keys(
+        Object.assign({}, pkg.dependencies, pkg.devDependencies, pkg.peerDependencies),
+      )
       result.deps = allDeps
 
       if (allDeps.includes('next')) result.framework = 'Next.js'

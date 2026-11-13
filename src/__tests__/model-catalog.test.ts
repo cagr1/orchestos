@@ -409,3 +409,30 @@ describe('model-catalog', () => {
     }
   })
 })
+
+it('AUD.17: negative prices are unknown and cache prices are omitted', async () => {
+  globalThis.fetch = (async () =>
+    new Response(
+      JSON.stringify({
+        data: [
+          {
+            id: 'aud17/variable',
+            context_length: 1000,
+            pricing: {
+              prompt: '-1',
+              completion: '-1',
+              input_cache_read: '-1',
+              input_cache_write: '-1',
+              input_cache_write_1h: '-1',
+            },
+          },
+        ],
+      }),
+    )) as unknown as typeof fetch
+  await ensureCatalogLoaded({ apiKey: 'fixture', force: true })
+  const cache = JSON.parse(readFileSync(join(home, '.orchestos', 'cache', 'models.json'), 'utf8'))
+  expect(cache.models['aud17/variable']).toMatchObject({ priceIn: 0, priceOut: 0 })
+  for (const key of ['priceCacheRead', 'priceCacheWrite', 'priceCacheWrite1h']) {
+    expect(cache.models['aud17/variable']).not.toHaveProperty(key)
+  }
+})

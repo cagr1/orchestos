@@ -1,3 +1,4 @@
+import { badRequest, readBody, z } from '../../boundary/index.ts'
 import { db } from '../../db/sqlite.ts'
 import { AUTO_DEFAULTS, MANUAL_DEFAULTS } from '../../instincts/schema.ts'
 import {
@@ -53,12 +54,13 @@ async function handleApiInstinctsCreate(
   req: Request,
   projectId: string | null = null,
 ): Promise<Response> {
-  let body: { trigger: string; action: string }
-  try {
-    body = (await req.json()) as { trigger: string; action: string }
-  } catch {
-    return errorResponse('Invalid JSON', 400)
-  }
+  const parsed = await readBody(
+    z.object({ trigger: z.string().optional(), action: z.string().optional() }),
+    req,
+  )
+  if (!parsed.ok)
+    return badRequest(parsed.error === 'invalid JSON body' ? 'Invalid JSON' : parsed.error)
+  const body = parsed.data
   if (!body.trigger?.trim() || !body.action?.trim()) {
     return errorResponse('trigger and action are required', 400)
   }
@@ -79,12 +81,13 @@ async function handleApiInstinctsPropose(
   req: Request,
   projectId: string | null = null,
 ): Promise<Response> {
-  let body: { trigger: string; action: string }
-  try {
-    body = (await req.json()) as { trigger: string; action: string }
-  } catch {
-    return errorResponse('Invalid JSON', 400)
-  }
+  const parsed = await readBody(
+    z.object({ trigger: z.string().optional(), action: z.string().optional() }),
+    req,
+  )
+  if (!parsed.ok)
+    return badRequest(parsed.error === 'invalid JSON body' ? 'Invalid JSON' : parsed.error)
+  const body = parsed.data
   if (!body.trigger?.trim() || !body.action?.trim()) {
     return errorResponse('trigger and action are required', 400)
   }
@@ -108,13 +111,17 @@ async function handleApiInstinctsSetConfidence(
 ): Promise<Response> {
   const id = url.pathname.split('/')[3]
   if (!id) return errorResponse('Missing instinct id', 400)
-  let body: { confidence: number }
-  try {
-    body = (await req.json()) as { confidence: number }
-  } catch {
-    return errorResponse('Invalid JSON', 400)
-  }
-  const val = Number(body.confidence)
+  const parsed = await readBody(z.object({ confidence: z.number().finite().min(0).max(1) }), req)
+  if (!parsed.ok)
+    return badRequest(
+      parsed.error === 'invalid JSON body'
+        ? 'Invalid JSON'
+        : parsed.error.startsWith('confidence:')
+          ? 'confidence must be a number between 0 and 1'
+          : parsed.error,
+    )
+  const body = parsed.data
+  const val = body.confidence
   if (isNaN(val) || val < 0 || val > 1)
     return errorResponse('confidence must be a number between 0 and 1', 400)
   const row = listInstincts({ projectId }).find((item) => item.id === id)
@@ -141,12 +148,16 @@ async function handleApiInstinctsBulkDelete(
   req: Request,
   projectId: string | null = null,
 ): Promise<Response> {
-  let body: { ids?: unknown }
-  try {
-    body = (await req.json()) as { ids?: unknown }
-  } catch {
-    return errorResponse('Invalid JSON', 400)
-  }
+  const parsed = await readBody(z.object({ ids: z.array(z.string()).optional() }), req)
+  if (!parsed.ok)
+    return badRequest(
+      parsed.error === 'invalid JSON body'
+        ? 'Invalid JSON'
+        : parsed.error.startsWith('ids:')
+          ? 'ids must be a non-empty array'
+          : parsed.error,
+    )
+  const body = parsed.data
   if (!Array.isArray(body.ids) || body.ids.length === 0)
     return errorResponse('ids must be a non-empty array', 400)
   const ids = body.ids.filter((id): id is string => typeof id === 'string')

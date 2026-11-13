@@ -1,3 +1,4 @@
+import { badRequest, readBody, z } from '../../boundary/index.ts'
 import { resetTestData } from '../../db/reset.ts'
 import { findClaudeBinary } from '../../run/executors/external.ts'
 import { errorResponse, jsonResponse } from '../http.ts'
@@ -8,10 +9,16 @@ async function handleApiSystemReset(
   projectId: string | null,
 ): Promise<Response> {
   if (!projectId) return errorResponse('project required', 400)
-  let body: { confirm?: boolean } = {}
-  try {
-    body = (await req.json()) as { confirm?: boolean }
-  } catch {}
+  const parsed = await readBody(z.object({ confirm: z.boolean().optional() }), req)
+  if (!parsed.ok)
+    return badRequest(
+      parsed.error === 'invalid JSON body'
+        ? 'confirm:true required'
+        : parsed.error.startsWith('confirm:')
+          ? 'confirm:true required'
+          : parsed.error,
+    )
+  const body = parsed.data
   if (body.confirm !== true) return errorResponse('confirm:true required', 400)
   const summary = resetTestData(root, projectId)
   return jsonResponse({ ok: true, ...summary })

@@ -1,0 +1,46 @@
+{
+  "item": "AUD.17",
+  "date": "2026-11-13",
+  "target": "dashboard real localhost:4242 reiniciado con el código del ítem, curl con x-orchestos-token",
+  "checks": [
+    {
+      "req": "POST /api/settings {\"OPENROUTER_API_KEY\":\"a\\nANTHROPIC_API_KEY=b\"}",
+      "status": 400,
+      "body": "{\"error\":\"OPENROUTER_API_KEY must be a single line\"}"
+    },
+    {
+      "req": "POST /api/settings {\"OPENROUTER_API_KEY\":5}",
+      "status": 400,
+      "body": "{\"error\":\"OPENROUTER_API_KEY: Invalid input: expected string, received number\"}"
+    },
+    {
+      "req": "POST /api/settings null",
+      "status": 400,
+      "body": "{\"error\":\"(root): Invalid input: expected object, received null\"}"
+    },
+    { "req": "shasum ~/.orchestos/.env antes/después de los tres", "result": "sin cambio" },
+    {
+      "req": "POST /api/settings {}",
+      "status": 200,
+      "body": "{\"ok\":true}",
+      "note": ".env sin cambio"
+    },
+    { "req": "GET /api/settings", "status": 200 },
+    {
+      "req": "POST /api/tasks {\"description\":5,\"output\":[\"x\"]}",
+      "status": 400,
+      "body": "{\"error\":\"description: Invalid input: expected string, received number\"}"
+    },
+    {
+      "req": "POST /api/instincts {\"trigger\":[],\"action\":\"x\"}",
+      "status": 400,
+      "body": "{\"error\":\"trigger: Invalid input: expected string, received array\"}"
+    },
+    {
+      "req": "POST /api/system/reset null",
+      "status": 400,
+      "body": "{\"error\":\"(root): Invalid input: expected object, received null\"}"
+    }
+  ],
+  "notVerified": "guardar una key nueva desde la pantalla de Settings con navegador: no se hizo para no tocar el .env real; cubierto por setup-api-key.test.ts y POST {} en vivo"
+}

@@ -1,3 +1,4 @@
+import { check, parseJson, z } from '../boundary/index.ts'
 /**
  * src/mcp/server.ts — AT.20
  *
@@ -227,16 +228,21 @@ export async function runMcpServer(
   let buffer = ''
   const flush = async (line: string) => {
     if (!line.trim()) return
-    let message: JsonRpcRequest
-    try {
-      message = JSON.parse(line)
-    } catch {
+    const parsed = parseJson(z.unknown(), line)
+    if (!parsed.ok) {
       write(
         `${JSON.stringify({ jsonrpc: '2.0', id: null, error: { code: -32700, message: 'Parse error' } })}\n`,
       )
       return
     }
-    const response = await handleMcpMessage(message, options)
+    const message = check(z.object({}).passthrough(), parsed.data)
+    if (!message.ok) {
+      write(
+        `${JSON.stringify({ jsonrpc: '2.0', id: null, error: { code: -32600, message: 'Invalid Request' } })}\n`,
+      )
+      return
+    }
+    const response = await handleMcpMessage(message.data as JsonRpcRequest, options)
     if (response) write(`${JSON.stringify(response)}\n`)
   }
   for await (const chunk of input) {

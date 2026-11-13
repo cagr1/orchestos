@@ -4,6 +4,7 @@ import { createHash } from 'node:crypto'
 import { mkdirSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { createInterface } from 'node:readline'
+import { parseJson, z } from '../../boundary/index.ts'
 import { redactSensitive } from '../../security/secrets.ts'
 import type { ApprovalAdapter } from '../approvals.ts'
 import { decideApproval } from '../approvals.ts'
@@ -171,13 +172,12 @@ export class CodexAppServer {
   }
 
   private receive(line: string): void {
-    let message: JsonRpcMessage
-    try {
-      message = JSON.parse(line)
-    } catch {
+    const parsed = parseJson(z.object({}).passthrough(), line)
+    if (!parsed.ok) {
       this.failAll(new CodexAppServerError('invalid JSON-RPC response', true))
       return
     }
+    const message = parsed.data as JsonRpcMessage
     if (message.id !== undefined && message.method) {
       const state = this.taskApprovals.get(message.params?.threadId)
       const supported =

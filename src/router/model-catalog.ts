@@ -168,15 +168,18 @@ async function fetchFromOpenRouter(apiKey?: string): Promise<Record<string, Mode
       m.pricing?.completion !== undefined ? Number(m.pricing.completion) * 1_000_000 : 0
     models[m.id] = {
       contextLength: typeof m.context_length === 'number' ? m.context_length : 0,
-      priceIn: Number.isFinite(rawPriceIn) ? rawPriceIn : 0,
-      priceOut: Number.isFinite(rawPriceOut) ? rawPriceOut : 0,
-      ...(Number.isFinite(Number(m.pricing?.input_cache_read))
+      priceIn: Number.isFinite(rawPriceIn) && rawPriceIn >= 0 ? rawPriceIn : 0,
+      priceOut: Number.isFinite(rawPriceOut) && rawPriceOut >= 0 ? rawPriceOut : 0,
+      ...(Number.isFinite(Number(m.pricing?.input_cache_read)) &&
+      Number(m.pricing?.input_cache_read) >= 0
         ? { priceCacheRead: Number(m.pricing?.input_cache_read) * 1_000_000 }
         : {}),
-      ...(Number.isFinite(Number(m.pricing?.input_cache_write))
+      ...(Number.isFinite(Number(m.pricing?.input_cache_write)) &&
+      Number(m.pricing?.input_cache_write) >= 0
         ? { priceCacheWrite: Number(m.pricing?.input_cache_write) * 1_000_000 }
         : {}),
-      ...(Number.isFinite(Number(m.pricing?.input_cache_write_1h))
+      ...(Number.isFinite(Number(m.pricing?.input_cache_write_1h)) &&
+      Number(m.pricing?.input_cache_write_1h) >= 0
         ? { priceCacheWrite1h: Number(m.pricing?.input_cache_write_1h) * 1_000_000 }
         : {}),
       supportsReasoning:

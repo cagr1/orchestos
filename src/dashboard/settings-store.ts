@@ -68,6 +68,11 @@ function readEnv(): Record<string, string> {
 }
 
 function writeEnv(data: Record<string, string>): void {
+  for (const [key, value] of Object.entries(data)) {
+    if (/[\r\n]/.test(key) || /[\r\n]/.test(value)) {
+      throw new Error(`${key} must be a single line`)
+    }
+  }
   mkdirSync(join(envHome(), '.orchestos'), { recursive: true })
   const content = `${Object.entries(data)
     .map(([k, v]) => `${k}=${v}`)

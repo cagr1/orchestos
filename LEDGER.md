@@ -635,3 +635,13 @@ No modifica contexto/max_tokens, el contrato de QA ni la ejecución de los pasos
 marker, even on a dirty repo` en `src/__tests__/aud21-task-execution.test.ts`; `bunx tsc --noEmit` y
 `bun run lint` con exit 0; `bun run test:coverage`: 2672 pass, 0 fail. Evidencia:
 `docs/done/evidence/AUD.21-live.json` (el gate en vivo queda al cerebro según el spec).
+
+## 2026-11-13 — gpt-6.1-sol (ejecutor AUD.17), revisado por claude-opus-5-5
+
+**Regla tocada**: `src/router/model-catalog.ts`, protegido por `[[feedback-context-no-max-tokens]]`.
+**Clasificación**: RESPETÓ.
+**Por qué**: AUD.17 solo trata los precios negativos de OpenRouter (`"-1"` = precio variable) como
+desconocidos: `priceIn`/`priceOut` = 0 y `priceCache*` omitidos. No toca `knownMaxOutputTokensFor()`,
+`contextLength` ni la derivación de `max_tokens`.
+**Reversibilidad/evidencia**: test de precio negativo en `src/__tests__/model-catalog.test.ts`;
+`bun run test:coverage` 2854 pass, 0 fail; `docs/done/evidence/AUD.17-live.json`.
