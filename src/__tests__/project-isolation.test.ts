@@ -25,7 +25,7 @@ async function runWithTemporaryHome(script: string): Promise<Record<string, unkn
 }
 
 describe('project ownership', () => {
-  it('resolves scope and keeps instincts project-local in a temporary database', async () => {
+  it('resolves scope and applies project and global instincts in a temporary database', async () => {
     const result = await runWithTemporaryHome(`
       const { mkdirSync } = await import('node:fs')
       const { join } = await import('node:path')
@@ -53,7 +53,7 @@ describe('project ownership', () => {
         scopeProject: a.id, scopeNone: none.kind, ownsA: ownsRow(a, aId), rejectsB: !ownsRow(a, bId),
         visibleA: instincts.listInstincts({ projectId: aId }).map((row) => row.id).sort(),
         expectedVisibleA: [ia.id, old.id].sort(), applicableA: instincts.listApplicable(aId).map((row) => row.id),
-        applicableB: instincts.listApplicable(bId).map((row) => row.id), applicableNone: instincts.listApplicable(null),
+        applicableB: instincts.listApplicable(bId).map((row) => row.id), applicableNone: instincts.listApplicable(null).map((row) => row.id), expectedGlobal: old.id,
         expectedA: ia.id, expectedB: ib.id, historicalProject: old.project_id,
       }))
       db.close()
@@ -63,9 +63,9 @@ describe('project ownership', () => {
     expect(result.ownsA).toBe(true)
     expect(result.rejectsB).toBe(true)
     expect(result.visibleA).toEqual(result.expectedVisibleA)
-    expect(result.applicableA).toEqual([result.expectedA])
-    expect(result.applicableB).toEqual([result.expectedB])
-    expect(result.applicableNone).toEqual([])
+    expect(result.applicableA).toEqual([result.expectedA, result.expectedGlobal])
+    expect(result.applicableB).toEqual([result.expectedB, result.expectedGlobal])
+    expect(result.applicableNone).toEqual([result.expectedGlobal])
     expect(result.historicalProject).toBeNull()
   })
 

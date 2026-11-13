@@ -5,6 +5,7 @@
 import { afterAll, beforeAll, describe, expect, it } from 'bun:test'
 import type { PatternSuggestion } from '../analyze/patterns.ts'
 import { PATTERN_FREQUENCY_THRESHOLD, proposeInstinctsFromPatterns } from '../analyze/propose.ts'
+import { db } from '../db/sqlite.ts'
 import {
   APPLY_THRESHOLD,
   InstinctValidationError,
@@ -112,6 +113,19 @@ describe('validateInsert', () => {
     expect(result.confidence).toBe(0.9)
   })
 
+  it('validates optional lesson metadata', () => {
+    expect(validateInsert(validInsert({ why: null, evidence: null }))).toMatchObject({
+      why: null,
+      evidence: null,
+    })
+    expect(
+      validateInsert(validInsert({ why: 'reason', evidence: { ref: 'file:1' } })),
+    ).toMatchObject({ why: 'reason', evidence: { ref: 'file:1' } })
+    expect(() => validateInsert(validInsert({ why: 1 }))).toThrow(/why/)
+    expect(() => validateInsert(validInsert({ evidence: [] }))).toThrow(/evidence/)
+    expect(() => validateInsert(validInsert({ evidence: { runId: 1 } }))).toThrow(/runId/)
+  })
+
   it('throws for null', () => {
     expect(() => validateInsert(null)).toThrow(InstinctValidationError)
   })
@@ -193,6 +207,19 @@ describe('store — insert and get', () => {
 
   it('returns null for non-existent id', () => {
     expect(getInstinct('non-existent-id')).toBeNull()
+  })
+
+  it('returns null evidence for corrupt evidence JSON', () => {
+    const inserted = insertInstinct({
+      trigger: 'Corrupt evidence test',
+      action: 'Ignore corrupt evidence',
+      confidence: 0.8,
+      source: 'manual',
+      verified: false,
+    })
+    db.run('UPDATE instincts SET evidence_json = ? WHERE id = ?', ['{', inserted.id])
+    expect(getInstinct(inserted.id)?.evidence).toBeNull()
+    deleteInstinct(inserted.id)
   })
 
   it('delete removes an instinct', () => {
@@ -283,10 +310,11 @@ describe('store — list', () => {
     expect(ours.length).toBe(2) // A (0.9) and D (0.95)
   })
 
-  it('listApplicable excludes ownerless historical instincts', () => {
+  it('listApplicable includes verified global instincts above the threshold', () => {
     const applicable = listApplicable()
     const ours = applicable.filter((s) => s.trigger.startsWith('ListTest'))
-    expect(ours.length).toBe(0)
+    expect(ours.length).toBe(1)
+    expect(ours[0]?.trigger).toBe('ListTest A')
   })
 
   it('listUnverified returns only unverified instincts', () => {

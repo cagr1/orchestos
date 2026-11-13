@@ -1270,6 +1270,35 @@ export const FUTURE_MIGRATIONS: readonly SchemaMigrationStep[] = [
           throw new Error(`Migration 40 did not add chat_turns.${name}`)
     },
   },
+  {
+    version: 41,
+    name: 'lesson-evidence-and-usage',
+    precondition: () => {},
+    apply: (database) => {
+      for (const [table, name, definition] of [
+        ['instincts', 'why', 'TEXT'],
+        ['instincts', 'evidence_json', 'TEXT'],
+        ['instincts', 'injected_count', 'INTEGER NOT NULL DEFAULT 0'],
+        ['instincts', 'last_injected_at', 'TEXT'],
+        ['runs', 'instinct_ids_json', 'TEXT'],
+      ]) {
+        const columns = database.query<{ name: string }, []>(`PRAGMA table_info(${table})`).all()
+        if (!columns.some((column) => column.name === name))
+          database.exec(`ALTER TABLE ${table} ADD COLUMN ${name} ${definition}`)
+      }
+    },
+    postcondition: (database) => {
+      for (const [table, names] of [
+        ['instincts', ['why', 'evidence_json', 'injected_count', 'last_injected_at']],
+        ['runs', ['instinct_ids_json']],
+      ] as const) {
+        const columns = database.query<{ name: string }, []>(`PRAGMA table_info(${table})`).all()
+        for (const name of names)
+          if (!columns.some((column) => column.name === name))
+            throw new Error(`Migration 41 did not add ${table}.${name}`)
+      }
+    },
+  },
 ]
 
 function appliedVersions(database: Database): Set<number> {

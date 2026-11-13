@@ -27,6 +27,12 @@
 
 export type InstinctSource = 'manual' | 'auto'
 
+export interface InstinctEvidence {
+  runId?: string
+  turnId?: string
+  ref?: string
+}
+
 export interface InstinctDef {
   id: string
   trigger: string
@@ -36,6 +42,10 @@ export interface InstinctDef {
   verified: boolean
   created_at: string
   project_id: string | null
+  why?: string | null
+  evidence?: InstinctEvidence | null
+  readonly injectedCount: number
+  readonly lastInjectedAt: string | null
 }
 
 /** Fields required to create a new instinct (id and created_at are generated). */
@@ -46,10 +56,14 @@ export interface InsertInstinctDef {
   source: InstinctSource
   verified: boolean
   projectId?: string | null
+  why?: string | null
+  evidence?: InstinctEvidence | null
 }
 
 /** Fields that can be updated on an existing instinct. */
 export interface UpdateInstinctDef {
+  why?: string | null
+  evidence?: InstinctEvidence | null
   trigger?: string
   action?: string
   confidence?: number
@@ -63,6 +77,27 @@ export class InstinctValidationError extends Error {
   constructor(message: string) {
     super(message)
     this.name = 'InstinctValidationError'
+  }
+}
+
+function validateLessonFields(obj: Record<string, unknown>): {
+  why?: string | null
+  evidence?: InstinctEvidence | null
+} {
+  if (obj.why != null && typeof obj.why !== 'string')
+    throw new InstinctValidationError('why must be a string or null')
+  if (obj.evidence != null) {
+    if (typeof obj.evidence !== 'object' || Array.isArray(obj.evidence))
+      throw new InstinctValidationError('evidence must be an object or null')
+    const evidence = obj.evidence as Record<string, unknown>
+    for (const key of ['runId', 'turnId', 'ref']) {
+      if (evidence[key] !== undefined && typeof evidence[key] !== 'string')
+        throw new InstinctValidationError(`evidence.${key} must be a string`)
+    }
+  }
+  return {
+    why: obj.why as string | null | undefined,
+    evidence: obj.evidence as InstinctEvidence | null | undefined,
   }
 }
 
@@ -105,6 +140,9 @@ export function validateInstinct(raw: unknown): InstinctDef {
     throw new InstinctValidationError('created_at is required and must be a non-empty string')
 
   return {
+    ...validateLessonFields(obj),
+    injectedCount: Number(obj.injectedCount ?? 0),
+    lastInjectedAt: typeof obj.lastInjectedAt === 'string' ? obj.lastInjectedAt : null,
     id,
     trigger,
     action,
@@ -146,7 +184,14 @@ export function validateInsert(raw: unknown): InsertInstinctDef {
 
   const verified = Boolean(obj.verified)
 
-  return { trigger, action, confidence, source: source as InstinctSource, verified }
+  return {
+    ...validateLessonFields(obj),
+    trigger,
+    action,
+    confidence,
+    source: source as InstinctSource,
+    verified,
+  }
 }
 
 // ── thresholds ─────────────────────────────────────────────────────────────

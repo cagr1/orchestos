@@ -8,7 +8,7 @@
 
 import { realpathSync } from 'node:fs'
 import { getProject } from '../../db/projects.ts'
-import { listApplicable } from '../../instincts/store.ts'
+import { listApplicable, recordInjected } from '../../instincts/store.ts'
 import type { MiddlewareFn, RunContext } from '../middleware.ts'
 
 export const instinctApply: MiddlewareFn<RunContext> = async (ctx, next) => {
@@ -19,8 +19,10 @@ export const instinctApply: MiddlewareFn<RunContext> = async (ctx, next) => {
     projectId = getProject(realpathSync(ctx.opts.projectRoot))?.id ?? null
   } catch {}
   const applicable = listApplicable(projectId)
+  ctx.instinctIds = applicable.map((i) => i.id)
   if (applicable.length > 0) {
     ctx.instinctBlock = `\n## INSTINCTS\n${applicable.map((i) => `- ${i.action}`).join('\n')}`
   }
+  recordInjected(ctx.instinctIds)
   await next()
 }

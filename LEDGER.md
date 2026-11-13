@@ -645,3 +645,11 @@ desconocidos: `priceIn`/`priceOut` = 0 y `priceCache*` omitidos. No toca `knownM
 `contextLength` ni la derivación de `max_tokens`.
 **Reversibilidad/evidencia**: test de precio negativo en `src/__tests__/model-catalog.test.ts`;
 `bun run test:coverage` 2854 pass, 0 fail; `docs/done/evidence/AUD.17-live.json`.
+
+
+## 2026-11-13 — Codex (ejecutor LRN.1a)
+
+**Regla tocada**: `src/run/harness.ts`, persistencia de runs.
+**Clasificación**: RESPETÓ.
+**Por qué**: persiste los IDs de lecciones seleccionadas por el middleware en cada salida que crea
+un run; conserva la derivación de contexto/max_tokens y el contrato de QA.

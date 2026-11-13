@@ -109,7 +109,9 @@ export interface RunContext {
   worktree: Worktree | null
 
   // --- instinct-apply (S33) ---
-  /** Bloque de instincts verificados inyectado en el system prompt; '' hasta S33 */
+  /** IDs seleccionados antes de crear la fila del run. */
+  instinctIds?: string[]
+  /** Bloque de instincts verificados inyectado en el system prompt. */
   instinctBlock: string
 
   // --- prompt-build ---
@@ -143,6 +145,7 @@ export function createRunContext(opts: HarnessOpts): RunContext {
     effectiveRoot: opts.projectRoot,
     worktree: null,
     instinctBlock: '',
+    instinctIds: [],
     prompt: { system: '', userContent: '' },
     contextWarnings: [],
   }

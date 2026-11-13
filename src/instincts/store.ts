@@ -6,6 +6,7 @@
  */
 
 import { randomUUID } from 'node:crypto'
+import { parseJson, z } from '../boundary/index.ts'
 import { db } from '../db/sqlite.ts'
 import {
   APPLY_THRESHOLD,
@@ -18,6 +19,15 @@ import {
   validateInstinct,
 } from './schema.ts'
 
+export const LESSON_MAX_COUNT = 15
+export const LESSON_MAX_CHARS = 4000
+
+const instinctEvidenceSchema = z.object({
+  runId: z.string().optional(),
+  turnId: z.string().optional(),
+  ref: z.string().optional(),
+})
+
 /**
  * Insert a new instinct. Generates id and created_at automatically.
  * Returns the inserted InstinctDef.
@@ -28,8 +38,8 @@ export function insertInstinct(data: InsertInstinctDef): InstinctDef {
   const now = new Date().toISOString()
 
   db.run(
-    `INSERT INTO instincts (id, trigger, action, confidence, source, verified, created_at, project_id)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+    `INSERT INTO instincts (id, trigger, action, confidence, source, verified, created_at, project_id, why, evidence_json)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     [
       id,
       validated.trigger,
@@ -39,10 +49,19 @@ export function insertInstinct(data: InsertInstinctDef): InstinctDef {
       validated.verified ? 1 : 0,
       now,
       data.projectId ?? null,
+      validated.why ?? null,
+      validated.evidence == null ? null : JSON.stringify(validated.evidence),
     ],
   )
 
-  return { id, ...validated, project_id: data.projectId ?? null, created_at: now }
+  return {
+    id,
+    ...validated,
+    project_id: data.projectId ?? null,
+    created_at: now,
+    injectedCount: 0,
+    lastInjectedAt: null,
+  }
 }
 
 /**
@@ -119,6 +138,8 @@ export function updateInstinct(id: string, data: UpdateInstinctDef): boolean {
   const existing = getInstinct(id)
   if (!existing) return false
 
+  validateInstinct({ ...existing, ...data })
+
   const sets: string[] = []
   const params: any[] = []
 
@@ -145,6 +166,15 @@ export function updateInstinct(id: string, data: UpdateInstinctDef): boolean {
   if (data.source !== undefined) {
     sets.push('source = ?')
     params.push(data.source)
+  }
+
+  if (data.why !== undefined) {
+    sets.push('why = ?')
+    params.push(data.why)
+  }
+  if (data.evidence !== undefined) {
+    sets.push('evidence_json = ?')
+    params.push(data.evidence === null ? null : JSON.stringify(data.evidence))
   }
 
   if (sets.length === 0) return true
@@ -180,13 +210,34 @@ export function deleteInstinct(id: string): boolean {
  * verified = true AND confidence >= APPLY_THRESHOLD
  */
 export function listApplicable(projectId: string | null = null): InstinctDef[] {
-  if (!projectId) return []
-  return db
-    .query<InstinctDefRow, [number, number, string]>(
-      'SELECT * FROM instincts WHERE verified = ? AND confidence >= ? AND project_id = ? ORDER BY confidence DESC, created_at DESC',
+  const rows = db
+    .query<InstinctDefRow, [number, string | null]>(
+      `SELECT * FROM instincts WHERE verified = 1 AND confidence >= ?
+       AND (project_id IS NULL OR project_id = ?)
+       ORDER BY (project_id IS NOT NULL) DESC, confidence DESC, created_at DESC`,
     )
-    .all(1, APPLY_THRESHOLD, projectId)
-    .map(rowToDef)
+    .all(APPLY_THRESHOLD, projectId)
+  const selected: InstinctDef[] = []
+  let chars = 0
+  for (const row of rows) {
+    if (selected.length >= LESSON_MAX_COUNT || chars + row.action.length > LESSON_MAX_CHARS) break
+    selected.push(rowToDef(row))
+    chars += row.action.length
+  }
+  return selected
+}
+
+/** Record one injection per selected lesson atomically. */
+export function recordInjected(ids: string[]): void {
+  const now = new Date().toISOString()
+  db.transaction(() => {
+    for (const id of new Set(ids)) {
+      db.run(
+        'UPDATE instincts SET injected_count = injected_count + 1, last_injected_at = ? WHERE id = ?',
+        [now, id],
+      )
+    }
+  })()
 }
 
 /**
@@ -207,6 +258,10 @@ interface InstinctDefRow {
   verified: number
   created_at: string
   project_id: string | null
+  why: string | null
+  evidence_json: string | null
+  injected_count: number
+  last_injected_at: string | null
 }
 
 function rowToDef(row: InstinctDefRow): InstinctDef {
@@ -219,6 +274,15 @@ function rowToDef(row: InstinctDefRow): InstinctDef {
     verified: row.verified === 1,
     created_at: row.created_at,
     project_id: row.project_id ?? null,
+    why: row.why ?? null,
+    evidence:
+      row.evidence_json == null
+        ? null
+        : ((parsed) => (parsed.ok ? parsed.data : null))(
+            parseJson(instinctEvidenceSchema, row.evidence_json),
+          ),
+    injectedCount: row.injected_count,
+    lastInjectedAt: row.last_injected_at,
   }
   return validateInstinct(def)
 }

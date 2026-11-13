@@ -1,7 +1,52 @@
 {
-  "exported_at": "2026-11-13T16:05:38.933Z",
+  "exported_at": "2026-11-13T16:24:14.046Z",
   "total_runs": 20,
   "runs": [
+    {
+      "id": "e372dfef-9b28-499d-bee5-fe1df6767c84",
+      "task_class": "gate:rerun-chat-followup-task:implement",
+      "model": "gpt-6-luna",
+      "provider": "codex",
+      "status": "done",
+      "qa_verdict": "pass",
+      "qa_reason": "El archivo contiene una sola línea con el texto exacto solicitado.",
+      "files_blocked": [],
+      "checks_failed": 0,
+      "usd_cost": 0.001679,
+      "elapsed_ms": 18549,
+      "tokens": 12378,
+      "created_at": "2026-11-13T16:16:06.239Z"
+    },
+    {
+      "id": "209e32ac-1305-4db4-ba8a-78fd43781683",
+      "task_class": "gate:rerun-auto-flow:implement",
+      "model": "gpt-6-luna",
+      "provider": "codex",
+      "status": "done",
+      "qa_verdict": "skipped",
+      "qa_reason": "Sin revisión LLM y sin checks: nada verificó esta tarea",
+      "files_blocked": [],
+      "checks_failed": 0,
+      "usd_cost": 0.00099826,
+      "elapsed_ms": 12004,
+      "tokens": 5117,
+      "created_at": "2026-11-13T16:14:34.090Z"
+    },
+    {
+      "id": "cf9c61da-d14c-4033-9ed3-e8e3c977731b",
+      "task_class": "gate:rerun-auto-flow:implement",
+      "model": "haiku",
+      "provider": "claude",
+      "status": "done",
+      "qa_verdict": "skipped",
+      "qa_reason": "Sin revisión LLM y sin checks: nada verificó esta tarea",
+      "files_blocked": [],
+      "checks_failed": 0,
+      "usd_cost": 0.00102347,
+      "elapsed_ms": 5220,
+      "tokens": 268,
+      "created_at": "2026-11-13T16:13:59.634Z"
+    },
     {
       "id": "3bb146c0-0243-4cca-9458-5a69f5bc1519",
       "task_class": "chat",
@@ -256,58 +301,13 @@
       "elapsed_ms": 12143,
       "tokens": 4002,
       "created_at": "2026-11-08T16:44:18.584Z"
-    },
-    {
-      "id": "2667e0c9-5127-46da-9e02-fd384508e8ae",
-      "task_class": "gate:ade.10-full-ui:implement",
-      "model": "openai/gpt-6-luna",
-      "provider": "codex",
-      "status": "done",
-      "qa_verdict": "pass",
-      "qa_reason": "ok.txt contains the required line VERDE.",
-      "files_blocked": [],
-      "checks_failed": 0,
-      "usd_cost": 0.0012480999999999998,
-      "elapsed_ms": 20303,
-      "tokens": 7665,
-      "created_at": "2026-11-08T16:44:03.758Z"
-    },
-    {
-      "id": "08fe3ecf-0fde-41cd-8792-5b4f59b85410",
-      "task_class": "gate:ade.10-full-ui:doc",
-      "model": "openai/gpt-6-luna",
-      "provider": "codex",
-      "status": "done",
-      "qa_verdict": "pass",
-      "qa_reason": "README.md contains the requested line.",
-      "files_blocked": [],
-      "checks_failed": 0,
-      "usd_cost": 0.0017081799999999997,
-      "elapsed_ms": 17512,
-      "tokens": 11181,
-      "created_at": "2026-11-08T16:43:33.526Z"
-    },
-    {
-      "id": "bf6a0cbc-ed41-45d9-a9d5-c6613caf8c5c",
-      "task_class": "gate:ade.10-full-ui:implement",
-      "model": "openai/gpt-6-luna",
-      "provider": "codex",
-      "status": "failed",
-      "qa_verdict": "fail",
-      "qa_reason": "check failed: bun -e 'console.error(\"TRUST1-MARKER\"),process.exit(1)' exit 1 (expected 0)\n--- stderr (tail) ---\nTRUST1-MARKER\n",
-      "files_blocked": [],
-      "checks_failed": 1,
-      "usd_cost": 0.0005193,
-      "elapsed_ms": 4943,
-      "tokens": 3973,
-      "created_at": "2026-11-08T16:43:07.643Z"
     }
   ],
   "stats": {
-    "failed": 4,
+    "failed": 3,
     "blocked": 0,
-    "done": 16,
-    "qa_failed": 5,
-    "total_cost_usd": "0.8872"
+    "done": 17,
+    "qa_failed": 4,
+    "total_cost_usd": "0.8874"
   }
 }

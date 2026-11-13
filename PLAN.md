@@ -137,6 +137,14 @@ subagente, sin informe aparte): cada cita se comprueba con grep al escribir el s
   solo por promoción manual; D2 tope 1.000 tokens o 15 lecciones; D3 proponer ante firma repetida ≥2, par
   fallo→arreglo o corrección explícita en chat; D4 graduación a `AGENTS.md` manual con diff; D5 60 días sin uso →
   `review`, nunca borrado; D6 primer lote F0+F1 (cimientos sin LLM + chat recibe y propone).
+- [x] **LRN.1a — Cimientos de lecciones sin LLM (F0).**
+  Globales aplicadas, tope D2 en `listApplicable` (15 lecciones o 4.000 caracteres), columnas `why`,
+  `evidence_json`, `injected_count`, `last_injected_at` y `runs.instinct_ids_json` (los ids viajan en
+  `ctx.instinctIds` y se persisten en los ocho caminos de `insertRun`). Tests 231/231; `docs/done/evidence/LRN.1a-live.json`.
+  Ejecutado por: gpt-6.1-sol (criterio) · Spec: docs/specs/LRN.1a.md
+- [ ] **LRN.1b — El chat recibe lecciones y puede proponerlas (F1).**
+  Bloque de lecciones en el prompt del chat con el mismo tope; acción "recordar" y herramienta `propose_lesson`;
+  la vista Instincts muestra cita, porqué y uso, y permite editar antes de aprobar.
 
 ## Etapa 3 — Windows
 
