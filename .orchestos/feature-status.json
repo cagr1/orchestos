@@ -24,7 +24,7 @@
       "sprint": "Etapa 1 — lo que rompe el uso normal",
       "block": null,
       "title": "Cerrar una sesión de verdad",
-      "status": "open",
+      "status": "done",
       "closedDate": null
     },
     {
@@ -48,7 +48,7 @@
       "sprint": "Etapa 1 — lo que rompe el uso normal",
       "block": null,
       "title": "Aviso al cerrar con turnos vivos y turnos huérfanos al arrancar",
-      "status": "open",
+      "status": "done",
       "closedDate": null
     },
     {

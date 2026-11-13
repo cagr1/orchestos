@@ -17,6 +17,8 @@ interface ChatTurnRecord {
   run_id: string | null
   response_envelope_json: string | null
   error: string | null
+  user_content: string | null
+  has_attachments: number
   // Reserved BEFORE task creation. Survives failure/interruption so an
   // ambiguous outcome remains identifiable without automatically retrying it.
   task_id: string | null
@@ -30,6 +32,8 @@ interface BeginTurnInput {
   requestKey: string
   inputFingerprint: string
   owner: string
+  userContent?: string
+  hasAttachments?: boolean
   // Bounded ownership; expiry fences writes and never authorizes a retry.
   leaseMs?: number
 }
@@ -101,8 +105,9 @@ export function beginTurn(input: BeginTurnInput): BeginTurnResult {
     const inserted = db.run(
       `INSERT OR IGNORE INTO chat_turns (
         id, session_id, project_id, request_key, input_fingerprint, status,
-        owner, owner_expires_at, run_id, response_envelope_json, error, created_at, updated_at
-      ) VALUES (?, ?, ?, ?, ?, 'pending', ?, ?, NULL, NULL, NULL, ?, ?)`,
+        owner, owner_expires_at, run_id, response_envelope_json, error, created_at, updated_at,
+        user_content, has_attachments
+      ) VALUES (?, ?, ?, ?, ?, 'pending', ?, ?, NULL, NULL, NULL, ?, ?, ?, ?)`,
       [
         id,
         input.sessionId,
@@ -113,6 +118,8 @@ export function beginTurn(input: BeginTurnInput): BeginTurnResult {
         expiresAt,
         nowIso,
         nowIso,
+        input.userContent ?? null,
+        input.hasAttachments ? 1 : 0,
       ],
     )
     if (inserted.changes === 1) {
@@ -288,6 +295,25 @@ export function reserveTurnTask(turnId: string, owner: string): string {
 
 export function getTurn(turnId: string): ChatTurnRecord | null {
   return getTurnRecord(turnId)
+}
+
+/** Only expired leases are evidence of an orphan: owners are UUIDs, not PIDs. */
+export function reconcileChatTurns(): number {
+  const now = new Date().toISOString()
+  return db.run(
+    `UPDATE chat_turns SET status = 'interrupted', updated_at = ?
+     WHERE status = 'pending' AND (owner_expires_at IS NULL OR owner_expires_at <= ?)`,
+    [now, now],
+  ).changes
+}
+
+export function interruptChatTurn(turnId: string): boolean {
+  return (
+    db.run(
+      "UPDATE chat_turns SET status = 'interrupted', updated_at = ? WHERE id = ? AND status = 'pending'",
+      [new Date().toISOString(), turnId],
+    ).changes === 1
+  )
 }
 
 /**

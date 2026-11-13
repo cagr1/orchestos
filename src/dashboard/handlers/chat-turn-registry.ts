@@ -1,3 +1,6 @@
+import { getChatSession } from '../../db/chat-sessions.ts'
+import { interruptChatTurn } from '../../db/chat-turns.ts'
+
 interface ActiveChatTurn {
   turnId: string
   controller: AbortController
@@ -5,6 +8,14 @@ interface ActiveChatTurn {
 }
 
 const activeTurns = new Map<string, ActiveChatTurn>()
+
+export function interruptActiveChatTurns(): void {
+  for (const [sessionId, turn] of activeTurns) {
+    interruptChatTurn(turn.turnId)
+    turn.controller.abort()
+    console.log(`[dashboard] Stopped chat turn: ${getChatSession(sessionId)?.title ?? sessionId}`)
+  }
+}
 
 export function registerChatTurn(sessionId: string, turnId: string): AbortSignal {
   if (activeTurns.has(sessionId)) throw new Error('Chat session already registered')

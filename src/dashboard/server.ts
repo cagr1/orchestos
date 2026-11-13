@@ -1,6 +1,7 @@
 import { realpathSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { getChatSession } from '../db/chat-sessions.ts'
+import { reconcileChatTurns } from '../db/chat-turns.ts'
 import { applyCliSearchPath } from '../run/executors/cli-discovery.ts'
 import { stopCodexAppServers } from '../run/executors/codex-app-server.ts'
 import { killAllTrees } from '../run/process-tree.ts'
@@ -28,6 +29,7 @@ import {
   handleApiChatSessionTimeline,
   handleApiChatSessionTurnStatus,
 } from './handlers/chat-sessions.ts'
+import { interruptActiveChatTurns } from './handlers/chat-turn-registry.ts'
 import { handleApiClisGet, handleApiClisSet } from './handlers/clis.ts'
 import { handleApiConfigGet, handleApiConfigInit, handleApiConfigSet } from './handlers/config.ts'
 import {
@@ -834,6 +836,7 @@ export function startServer(
   // R.8.4 — cierra los reportes de runs que el reinicio anterior dejó a medias.
   let taskRunReconcile: { stop(): void } | null = null
   try {
+    reconcileChatTurns()
     taskRunReconcile = reconcileTaskRuns()
   } catch (error) {
     console.error('[dashboard] Could not reconcile task runs', error)
@@ -846,6 +849,7 @@ export function startServer(
       taskRunReconcile?.stop()
       process.off('SIGINT', onSignal)
       process.off('SIGTERM', onSignal)
+      interruptActiveChatTurns()
       stopCodexAppServers()
       killAllTrees()
       void stopTerminalSessions()

@@ -1011,7 +1011,10 @@ describe('CC.2 — chat sessions backend', () => {
       status: 200,
       body: { kind: 'pending', turnId: result.pendingTurnId, requestKey: 'pending-key' },
     })
-    expect(result.expired).toEqual({ status: 200, body: { kind: 'interrupted' } })
+    expect(result.expired).toEqual({
+      status: 200,
+      body: { kind: 'interrupted', userContent: null, hasAttachments: false },
+    })
     expect(result.failed).toEqual({
       status: 200,
       body: { kind: 'failed', error: 'provider unavailable exactly' },

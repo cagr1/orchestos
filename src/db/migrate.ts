@@ -1252,6 +1252,24 @@ export const FUTURE_MIGRATIONS: readonly SchemaMigrationStep[] = [
         throw new Error('Migration 39 did not add run_steps.project_id')
     },
   },
+  {
+    version: 40,
+    name: 'chat-turn-resume-content',
+    precondition: () => {},
+    apply: (database) => {
+      // Historical fixtures can record migration 5 without a chat_turns table.
+      if (!database.query('PRAGMA table_info(chat_turns)').all().length) return
+      database.exec('ALTER TABLE chat_turns ADD COLUMN user_content TEXT')
+      database.exec('ALTER TABLE chat_turns ADD COLUMN has_attachments INTEGER NOT NULL DEFAULT 0')
+    },
+    postcondition: (database) => {
+      const columns = database.query<{ name: string }, []>('PRAGMA table_info(chat_turns)').all()
+      if (!columns.length) return
+      for (const name of ['user_content', 'has_attachments'])
+        if (!columns.some((column) => column.name === name))
+          throw new Error(`Migration 40 did not add chat_turns.${name}`)
+    },
+  },
 ]
 
 function appliedVersions(database: Database): Set<number> {

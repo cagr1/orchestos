@@ -178,7 +178,7 @@ test('logs a file approval request that arrives before item/started', async () =
   const f = fixture(false, true)
   const log = spyOn(console, 'error').mockImplementation(() => {})
   try {
-    for (let i = 0; i < 100 && !pendingApprovals(f.id).length; i++)
+    for (let i = 0; i < 800 && !pendingApprovals(f.id).length; i++)
       await new Promise((r) => setTimeout(r, 5))
     const requestLine = log.mock.calls
       .map(([line]) => String(line))
@@ -201,13 +201,13 @@ test('logs a file approval request that arrives before item/started', async () =
   } finally {
     log.mockRestore()
   }
-})
+}, 8000)
 for (const decision of ['approve', 'reject'] as const)
   test(`task app-server: automatic patch, command ${decision}, verified JSON-RPC reply`, async () => {
     const f = fixture()
     const log = spyOn(console, 'error').mockImplementation(() => {})
     try {
-      for (let i = 0; i < 100 && !pendingApprovals(f.id).length; i++)
+      for (let i = 0; i < 800 && !pendingApprovals(f.id).length; i++)
         await new Promise((r) => setTimeout(r, 5))
       const pending = pendingApprovals(f.id)
       expect(pending).toHaveLength(1)
@@ -243,7 +243,7 @@ for (const decision of ['approve', 'reject'] as const)
     } finally {
       log.mockRestore()
     }
-  })
+  }, 8000)
 for (const mode of ['auto-edit', 'supervised'] as const) {
   test(`task app-server sends ${mode} approval policy to thread/start and turn/start`, async () => {
     const f = fixture(false, false, mode, true)

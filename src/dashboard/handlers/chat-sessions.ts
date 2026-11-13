@@ -465,32 +465,36 @@ type ChatTurnStatusRow =
   | { kind: 'none' }
   | { kind: 'pending'; turnId: string; requestKey: string }
   | { kind: 'failed'; error: string | null }
-  | { kind: 'interrupted' }
+  | { kind: 'interrupted'; userContent: string | null; hasAttachments: boolean }
 
 // R.5 (decisión 11) — al montar/recargar una sesión, el cliente pregunta acá
 // si hay un turno en curso o si el último terminó failed/interrupted sin
 // que nadie lo haya visto. 'completed' no aplica: ya está en chat_messages,
-// que es lo que fetchChatSession() ya trae. No reconstruye el texto original
-// del usuario (decisión 5 solo guarda el fingerprint, no el mensaje) — el
-// cliente muestra un estado genérico, nunca contenido inventado.
+// que es lo que fetchChatSession() ya trae. SES.1c persiste el texto original
+// para ofrecer un nuevo turno explícito; los adjuntos deben adjuntarse otra vez.
 export function handleApiChatSessionTurnStatus(url: URL): Response {
   const id = sessionIdFromUrl(url)
   if (!id) return errorResponse('Invalid session id', 400)
   if (!getChatSession(id)) return errorResponse('Chat session not found', 404)
   const turn = getLastTurn(id)
   if (!turn) return jsonResponse({ kind: 'none' } satisfies ChatTurnStatusRow)
+  const interrupted = () =>
+    jsonResponse({
+      kind: 'interrupted',
+      userContent: turn.user_content,
+      hasAttachments: turn.has_attachments === 1,
+    } satisfies ChatTurnStatusRow)
   if (turn.status === 'completed') return jsonResponse({ kind: 'none' } satisfies ChatTurnStatusRow)
   if (turn.status === 'failed') {
     return jsonResponse({ kind: 'failed', error: turn.error } satisfies ChatTurnStatusRow)
   }
   if (turn.status === 'interrupted') {
-    return jsonResponse({ kind: 'interrupted' } satisfies ChatTurnStatusRow)
+    return interrupted()
   }
   // status === 'pending': lease vencido y nadie lo reclamó todavía es, para
-  // el cliente, indistinguible de interrupted — beginTurn() lo reconciliará
-  // recién cuando alguien mande el próximo mensaje, no antes.
+  // el cliente, indistinguible de interrupted; el arranque y beginTurn lo reconcilian.
   const leaseExpired = !turn.owner_expires_at || turn.owner_expires_at < new Date().toISOString()
-  if (leaseExpired) return jsonResponse({ kind: 'interrupted' } satisfies ChatTurnStatusRow)
+  if (leaseExpired) return interrupted()
   return jsonResponse({
     kind: 'pending',
     turnId: turn.id,

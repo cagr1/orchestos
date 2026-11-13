@@ -47,6 +47,52 @@ async function isolated(body: string): Promise<any> {
 }
 
 test(
+  'SES.1c reconciles expired leases without interrupting another live owner',
+  async () => {
+    const result = await isolated(`
+    const input = { sessionId: session.id, projectId: null, requestKey: 'expired', inputFingerprint: 'fp', owner: 'dead-owner', userContent: 'original', hasAttachments: true }
+    const expired = turns.beginTurn({ ...input, leaseMs: -1 }).turn
+    const other = sessions.createChatSession({ agent: 'codex' })
+    const live = turns.beginTurn({ ...input, sessionId: other.id, requestKey: 'live', owner: 'other-process' }).turn
+    const count = turns.reconcileChatTurns()
+    console.log(JSON.stringify({ count, expired: turns.getTurn(expired.id), live: turns.getTurn(live.id) }))
+  `)
+    expect(result.count).toBe(1)
+    expect(result.expired).toMatchObject({
+      status: 'interrupted',
+      user_content: 'original',
+      has_attachments: 1,
+    })
+    expect(result.live.status).toBe('pending')
+  },
+  ISOLATED_TIMEOUT_MS,
+)
+
+test(
+  'SES.1c shutdown marks registered turns before abort and reports their titles',
+  async () => {
+    const result = await isolated(`
+    const turn = turns.beginTurn({ sessionId: session.id, projectId: null, requestKey: 'shutdown', inputFingerprint: 'fp', owner: 'worker' }).turn
+    const signal = registry.registerChatTurn(session.id, turn.id)
+    let atAbort
+    signal.addEventListener('abort', () => atAbort = turns.getTurn(turn.id).status)
+    const logs = []
+    const log = console.log
+    console.log = text => logs.push(text)
+    registry.interruptActiveChatTurns()
+    console.log = log
+    registry.unregisterChatTurn(session.id, turn.id)
+    console.log(JSON.stringify({ status: turns.getTurn(turn.id).status, aborted: signal.aborted, atAbort, logs, title: sessions.getChatSession(session.id).title }))
+  `)
+    expect(result.status).toBe('interrupted')
+    expect(result.aborted).toBe(true)
+    expect(result.atAbort).toBe('interrupted')
+    expect(result.logs).toEqual([`[dashboard] Stopped chat turn: ${result.title}`])
+  },
+  ISOLATED_TIMEOUT_MS,
+)
+
+test(
   'stop without a turn id stops the active turn or reports idle',
   async () => {
     const result = await isolated(`

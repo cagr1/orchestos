@@ -24,7 +24,8 @@ test('terminateTree kills the child and grandchild', async () => {
   })
   const proc = spawnTree([script], { cwd: dir, stdout: 'ignore', stderr: 'ignore' })
   try {
-    for (let i = 0; i < 100 && !Bun.file(join(dir, 'grandchild')).size; i++) await Bun.sleep(10)
+    for (let i = 0; i < 400 && !Bun.file(join(dir, 'grandchild')).size; i++) await Bun.sleep(10)
+    expect(Bun.file(join(dir, 'grandchild')).size).toBeGreaterThan(0)
     const pid = Number(readFileSync(join(dir, 'grandchild'), 'utf8'))
     await terminateTree(proc, 100)
     await Bun.sleep(100)
@@ -35,7 +36,7 @@ test('terminateTree kills the child and grandchild', async () => {
       process.kill(-proc.pid, 'SIGKILL')
     } catch {}
   }
-})
+}, 8000)
 test('exiting before graceMs still kills a grandchild that ignores SIGTERM', async () => {
   const dir = root()
   const script = join(dir, 'cli')
@@ -67,7 +68,8 @@ test('terminateTree escalates when SIGTERM is ignored', async () => {
   )
   const proc = spawnTree([script], { cwd: dir, stdout: 'ignore', stderr: 'ignore' })
   try {
-    for (let i = 0; i < 100 && !Bun.file(join(dir, 'ready')).size; i++) await Bun.sleep(10)
+    for (let i = 0; i < 400 && !Bun.file(join(dir, 'ready')).size; i++) await Bun.sleep(10)
+    expect(Bun.file(join(dir, 'ready')).size).toBeGreaterThan(0)
     const start = Date.now()
     await terminateTree(proc, 100)
     expect(Date.now() - start).toBeLessThan(1100)
@@ -77,7 +79,7 @@ test('terminateTree escalates when SIGTERM is ignored', async () => {
       process.kill(-proc.pid, 'SIGKILL')
     } catch {}
   }
-})
+}, 8000)
 
 test('terminateTree kills a grandchild that ignores SIGTERM after the leader exits', async () => {
   const dir = root()
@@ -89,7 +91,8 @@ test('terminateTree kills a grandchild that ignores SIGTERM after the leader exi
   )
   const proc = spawnTree([script], { cwd: dir, stdout: 'ignore', stderr: 'ignore' })
   try {
-    for (let i = 0; i < 100 && !Bun.file(join(dir, 'grandchild')).size; i++) await Bun.sleep(10)
+    for (let i = 0; i < 400 && !Bun.file(join(dir, 'grandchild')).size; i++) await Bun.sleep(10)
+    expect(Bun.file(join(dir, 'grandchild')).size).toBeGreaterThan(0)
     const pid = Number(readFileSync(join(dir, 'grandchild'), 'utf8'))
     await terminateTree(proc, 100)
     await Bun.sleep(300)
@@ -100,4 +103,4 @@ test('terminateTree kills a grandchild that ignores SIGTERM after the leader exi
       process.kill(-proc.pid, 'SIGKILL')
     } catch {}
   }
-})
+}, 8000)

@@ -24,6 +24,7 @@ import {
   commitTurnFailure,
   commitTurnSuccess,
   getActiveTurn,
+  getTurn,
   parseTurnEnvelope,
   renewTurnLease,
   requireTurnOwner,
@@ -1027,6 +1028,8 @@ async function handleApiChat(
       inputFingerprint,
       owner: CHAT_TURN_OWNER,
       leaseMs: chatTurnLeaseMs,
+      userContent: message,
+      hasAttachments: Array.isArray(body.fileIds) && body.fileIds.length > 0,
     })
     if (claim.kind === 'conflict') {
       return errorResponse('requestKey was already used with different message content', 409)
@@ -1993,6 +1996,10 @@ async function handleApiChat(
     }
     if (!session || !activeTurnId) throw error
     if (session.agent === 'claude') clearClaudeChatSession(session.id)
+    if (getTurn(activeTurnId)?.status === 'interrupted') {
+      clearLiveText(session.id, activeTurnId)
+      return jsonResponse({ interrupted: true })
+    }
     const live = getLiveText(session.id)
     const text = live?.turnId === activeTurnId ? live.text : ''
     const model = body.model?.trim() || chatAssignment?.model || chatAgent || 'unknown'

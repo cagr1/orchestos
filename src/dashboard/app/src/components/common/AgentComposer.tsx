@@ -33,6 +33,7 @@ import {
 } from '../../lib/chat-queue'
 import { isMacPlatform, sendIntent, useChatSettings } from '../../lib/chat-settings'
 import type { ApprovalMode, ChatAttachment } from '../../types/orchestos'
+import { Button } from '../ui/button'
 import { FileThumbnail } from '../ui/file-thumbnail'
 import { ActionMenuButton } from './ActionMenuButton'
 import { ContextRing } from './ContextRing'
@@ -231,6 +232,26 @@ export const AgentComposer: React.FC<AgentComposerProps> = ({
   }, [lockedCli, defaultCli, defaultModel, defaultEffort, useCliDefaultModel])
 
   const [inputText, setInputText] = useState('')
+  const [interrupted, setInterrupted] = useState<{
+    userContent: string | null
+    hasAttachments: boolean
+  } | null>(null)
+  useEffect(() => {
+    setInterrupted(null)
+    if (!contextSessionId || busy) return
+    const controller = new AbortController()
+    const query = projectId ? '' : '?project=none'
+    void fetch(`/api/chat/sessions/${encodeURIComponent(contextSessionId)}/turn-status${query}`, {
+      headers: projectId ? { 'x-orchestos-project-id': projectId } : {},
+      signal: controller.signal,
+    })
+      .then(async (response) => (response.ok ? response.json() : null))
+      .then((status) => {
+        if (!controller.signal.aborted && status?.kind === 'interrupted') setInterrupted(status)
+      })
+      .catch(() => {})
+    return () => controller.abort()
+  }, [contextSessionId, projectId, busy])
   const [referenceToken, setReferenceToken] = useState<ReturnType<typeof fileReferenceToken>>(null)
   const [referenceFiles, setReferenceFiles] = useState<string[]>([])
   const [referenceError, setReferenceError] = useState(false)
@@ -670,6 +691,49 @@ export const AgentComposer: React.FC<AgentComposerProps> = ({
 
   return (
     <div className={`relative w-full ${className}`}>
+      {interrupted && (
+        <div
+          role="status"
+          className="mb-2 rounded-card border border-app bg-app-surface p-4 space-y-3"
+        >
+          <p className="text-xs text-app-muted">The last turn was interrupted.</p>
+          {interrupted.hasAttachments && interrupted.userContent !== null && (
+            <p className="text-xs text-app-muted">Attach the files again before sending.</p>
+          )}
+          {interrupted.userContent !== null && (
+            <Button
+              variant="primary"
+              leadingIcon={RotateCw}
+              disabled={busy || sending || orchestratorLoading || isLoadingModels}
+              onClick={() => {
+                const { userContent, hasAttachments } = interrupted
+                if (userContent === null) return
+                setInterrupted(null)
+                if (hasAttachments) {
+                  setInputText(userContent)
+                  textareaRef.current?.focus()
+                } else {
+                  void transmit(
+                    {
+                      id: crypto.randomUUID(),
+                      content: userContent,
+                      attachments: [],
+                      cli: activeCli,
+                      model: effectiveSelectedModel,
+                      effort: effortSteps.includes(selectedEffort) ? selectedEffort : undefined,
+                      isShellCmd: false,
+                      approvalMode: hasProject ? approvalMode : undefined,
+                    },
+                    queueThread,
+                  )
+                }
+              }}
+            >
+              {interrupted.hasAttachments ? 'Restore message' : 'Resume'}
+            </Button>
+          )}
+        </div>
+      )}
       {queuedMessages.map((message) => (
         <div
           key={message.id}

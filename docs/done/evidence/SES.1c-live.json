@@ -1,0 +1,44 @@
+[
+  {
+    "flujo": "chat-restart-interrupted",
+    "pass": true,
+    "steps": [
+      {
+        "nombre": "real turn is pending with streamed text",
+        "ok": true,
+        "detalle": "{\"id\":\"23ce05b3-d4ea-4940-9a4a-1d44457148a1\",\"request_key\":\"d51b553d-0097-4af6-acf7-afbcf720577b\",\"user_content\":\"Cuenta del 1 al 1000 en palabras, un número por línea, sin usar herramientas ni escribir archivos.\",\"has_attachments\":0,\"status\":\"pending\"}"
+      },
+      {
+        "nombre": "SIGTERM marks the turn interrupted without waiting for lease expiry",
+        "ok": true,
+        "detalle": "{\"after\":{\"id\":\"23ce05b3-d4ea-4940-9a4a-1d44457148a1\",\"request_key\":\"d51b553d-0097-4af6-acf7-afbcf720577b\",\"user_content\":\"Cuenta del 1 al 1000 en palabras, un número por línea, sin usar herramientas ni escribir archivos.\",\"has_attachments\":0,\"status\":\"interrupted\"},\"elapsed\":1091}"
+      },
+      {
+        "nombre": "thread shows interruption and Resume",
+        "ok": true,
+        "detalle": "d864cef7-f045-4bdd-a3c4-4c0d33a65e0c"
+      },
+      {
+        "nombre": "restart never resends automatically",
+        "ok": true,
+        "detalle": "{\"session\":{\"claude_session_id\":null},\"turns\":[{\"id\":\"23ce05b3-d4ea-4940-9a4a-1d44457148a1\",\"request_key\":\"d51b553d-0097-4af6-acf7-afbcf720577b\",\"user_content\":\"Cuenta del 1 al 1000 en palabras, un número por línea, sin usar herramientas ni escribir archivos.\",\"has_attachments\":0,\"status\":\"interrupted\"}]}"
+      },
+      {
+        "nombre": "Resume sends original text with a new request key and turn",
+        "ok": true,
+        "detalle": "{\"sent\":{\"sessionId\":\"d864cef7-f045-4bdd-a3c4-4c0d33a65e0c\",\"history\":[],\"message\":\"Cuenta del 1 al 1000 en palabras, un número por línea, sin usar herramientas ni escribir archivos.\",\"requestKey\":\"2f897a5a-40bc-4b4d-b61b-1c45c30535f4\",\"approvalMode\":\"auto-edit\",\"agent\":\"claude\",\"model\":\"claude-opus-5-5\",\"effort\":\"low\"},\"resumed\":{\"id\":\"79f7c48c-a8d2-4708-b8c8-0f22f5fa7881\",\"request_key\":\"2f897a5a-40bc-4b4d-b61b-1c45c30535f4\",\"user_content\":\"Cuenta del 1 al 1000 en palabras, un número por línea, sin usar herramientas ni escribir archivos.\",\"has_attachments\":0,\"status\":\"pending\"}}"
+      },
+      {
+        "nombre": "resumed POST settles after Stop",
+        "ok": true,
+        "detalle": "{\"text\":\"\",\"model\":\"claude-opus-5-5\",\"stopped\":true}"
+      }
+    ],
+    "notes": [],
+    "errores": [],
+    "capturas": [
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-76920/chat-restart-interrupted/chat-restart-interrupted.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-76920/chat-restart-interrupted/chat-restart-resumed.png"
+    ]
+  }
+]
