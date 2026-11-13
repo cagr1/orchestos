@@ -2,7 +2,7 @@
 
 Informes con la evidencia `archivo:línea` de cada ítem: `docs/auditoria-2026-11-10.md` (AUD.1–AUD.10) y
 `docs/auditoria-2026-11-11.md` (AUD.19–AUD.28: cada ítem es una clase de falla con varios sitios). AUD.11–AUD.18
-salieron de la revisión de validadores del 2026-11-11. Abiertos en `PLAN.md`: AUD.14, AUD.16, AUD.17. Aparcados sin
+salieron de la revisión de validadores del 2026-11-11. Todos cerrados desde 2026-11-13. Aparcados sin
 hacer: `docs/done/aparcados-2026-11-12.md` (AUD.8, AUD.9, AUD.10, AUD.27, AUD.28).
 
 - [x] **AUD.1 — El contrato se puede saltar con borrados, prefijos de tooling y rutas raras.**
@@ -334,3 +334,35 @@ hacer: `docs/done/aparcados-2026-11-12.md` (AUD.8, AUD.9, AUD.10, AUD.27, AUD.28
   sin tumbar nada, y tocar `src/dashboard` exigía gate con navegador. Sin gate en vivo: no toca dashboard ni config.
   Gates: tsc, lint, test:coverage 2804/0; diff leído entero por el cerebro (otro proveedor).
   Ejecutado por: gpt-6.1-sol (criterio) · Spec: docs/specs/AUD.14.md
+
+- [x] **AUD.17 — Bodies y archivos con tipo incorrecto dan 500 en vez de 400; `.env` admite saltos de línea.**
+  (abierto 2026-11-11, cerrado 2026-11-13) `POST /api/settings` (`src/dashboard/handlers/setup.ts:172-186` → `settings-store.ts:62-66`)
+  escribe `"x\nOPENROUTER_API_KEY=…"` como línea nueva en `~/.orchestos/.env`. Resto: casts `as T` en `tasks.ts:276-295`,
+  `instincts.ts:58-62,84-88,117`, `specs.ts:12-16`, `chat.ts:142-145,253,876`; body `null` en `run-graph.ts:75`,
+  `system.ts:8`, `skills.ts:217`; `package.json.name` no string (`src/detect/manifest.ts:20`); línea JSON-RPC `null`
+  (`src/mcp/server.ts:125,232`, `codex-app-server.ts:173-177`); precios de OpenRouter sin rango
+  (`src/router/model-catalog.ts:166-172`).
+  Cierre: bodies de settings, tasks (create/run/commit-run/bulk-delete), instincts, specs, chat, run-graph,
+  system/reset y skills delete pasan por `readBody` con schema → 400 con causa; se conservan los mensajes 400
+  previos. Settings rechaza valores con `\r`/`\n` y `writeEnv` también (defensa). `manifest.ts` acepta solo `name`
+  texto; MCP responde `-32600` a mensajes no-objeto; codex-app-server trata `null` como respuesta inválida; precios
+  negativos de OpenRouter = desconocido. `boundary-budget` 58/59 → 55/43.
+  Gates: tsc, lint, test:coverage 2854/0; diff leído entero por el cerebro (otro proveedor).
+  Gate en vivo: navegador Playwright, `settings-shell` 24/24 con HOME temporal, `docs/done/evidence/AUD.17-settings-shell.json`.
+  Paso nuevo: key con salto de línea → 400 y keys intactas, key válida se guarda, tarea con `description: 5` → 400.
+  Además `curl` contra el dashboard real, `docs/done/evidence/AUD.17-live.json` (`.env` intacto).
+  Ejecutado por: gpt-6.1-sol (criterio) · Spec: docs/specs/AUD.17.md
+
+- [x] **AUD.16 — Skills: `validateSkill` devuelve el objeto crudo y el id de la URL no se cruza con el del contenido.**
+  (abierto 2026-11-11, cerrado 2026-11-13) `src/skills/registry.ts:138-226` (`when_to_use: "x"` → `.map is not a function` en
+  `src/skills/targets/_shared.ts:15`, rompe el prompt de QA); `src/dashboard/handlers/skills.ts:160-186`, `:593-622`;
+  índice del registry casteado en `src/skills/fetch.ts:47-48,73`; el import ignora `review.status: rejected`.
+  Cierre: `validateSkill` valida además `when_to_use`, `inputs_required`, `verifiers`, `anti_patterns`, `examples`
+  (`title`/`input`/`output`), `language_targets` y `source`, y devuelve un objeto nuevo sin campos desconocidos; import,
+  normalización, registry import y curate usan ese resultado. `PUT /api/skills/:id` con otro `id` → 400; registry
+  import fija el id del contenido al de la URL (kebab-case o 400), consulta el índice (ausente 404, `rejected` 409);
+  índice validado, entradas inválidas omitidas. `boundary-budget` response-json 43 → 42.
+  Gates: tsc, lint, test:coverage 2875/0; diff leído entero por el cerebro (otro proveedor).
+  Gate en vivo: navegador Playwright, `skills-library` 16/16 con HOME temporal, `docs/done/evidence/AUD.16-skills-library.json`.
+  Además `curl` contra el dashboard real (id distinto → 400, archivo intacto), `docs/done/evidence/AUD.16-live.json`.
+  Ejecutado por: gpt-6.1-sol (criterio) · Spec: docs/specs/AUD.16.md

@@ -4,99 +4,11 @@
   "note": "Derivado, no editar a mano — bun run plan:status regenera.",
   "items": [
     {
-      "id": "AUD.17",
-      "sprint": "Etapa 1 — lo que rompe el uso normal",
-      "block": null,
-      "title": "Bodies y archivos con tipo incorrecto dan 500 en vez de 400; `.env` admite saltos de línea",
-      "status": "done",
-      "closedDate": null
-    },
-    {
-      "id": "AUD.16",
-      "sprint": "Etapa 1 — lo que rompe el uso normal",
-      "block": null,
-      "title": "Skills: `validateSkill` devuelve el objeto crudo y el id de la URL no se cruza con el del contenido",
-      "status": "done",
-      "closedDate": null
-    },
-    {
-      "id": "SES.1",
-      "sprint": "Etapa 1 — lo que rompe el uso normal",
-      "block": null,
-      "title": "Cerrar una sesión de verdad",
-      "status": "done",
-      "closedDate": null
-    },
-    {
-      "id": "SES.1a",
-      "sprint": "Etapa 1 — lo que rompe el uso normal",
-      "block": null,
-      "title": "Archivar detiene el turno vivo",
-      "status": "done",
-      "closedDate": null
-    },
-    {
-      "id": "SES.1b",
-      "sprint": "Etapa 1 — lo que rompe el uso normal",
-      "block": null,
-      "title": "X del tab con turno vivo: diálogo Detener y cerrar / Dejar corriendo / Cancelar",
-      "status": "done",
-      "closedDate": null
-    },
-    {
-      "id": "SES.1c",
-      "sprint": "Etapa 1 — lo que rompe el uso normal",
-      "block": null,
-      "title": "Aviso al cerrar con turnos vivos y turnos huérfanos al arrancar",
-      "status": "done",
-      "closedDate": null
-    },
-    {
       "id": "LRN.1",
-      "sprint": "Etapa 1 — lo que rompe el uso normal",
+      "sprint": "Etapa 2 — Uso real",
       "block": null,
       "title": "OrchestOS aprende de los errores",
       "status": "open",
-      "closedDate": null
-    },
-    {
-      "id": "LRN.1a",
-      "sprint": "Etapa 1 — lo que rompe el uso normal",
-      "block": null,
-      "title": "Cimientos de lecciones sin LLM (F0)",
-      "status": "done",
-      "closedDate": null
-    },
-    {
-      "id": "USO.1",
-      "sprint": "Etapa 1 — lo que rompe el uso normal",
-      "block": null,
-      "title": "Tres flujos de UI rojos reproducidos antes del uso real",
-      "status": "done",
-      "closedDate": null
-    },
-    {
-      "id": "USO.2",
-      "sprint": "Etapa 1 — lo que rompe el uso normal",
-      "block": null,
-      "title": "El dashboard abre sin token en la URL",
-      "status": "done",
-      "closedDate": null
-    },
-    {
-      "id": "LRN.1b",
-      "sprint": "Etapa 1 — lo que rompe el uso normal",
-      "block": null,
-      "title": "El chat recibe lecciones y puede proponerlas (F1)",
-      "status": "done",
-      "closedDate": null
-    },
-    {
-      "id": "LRN.1c",
-      "sprint": "Etapa 1 — lo que rompe el uso normal",
-      "block": null,
-      "title": "Ciclo de vida de lecciones y graduación a AGENTS.md (F3)",
-      "status": "done",
       "closedDate": null
     },
     {

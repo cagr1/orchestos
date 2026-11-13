@@ -3,7 +3,7 @@ type: execution-plan
 project: orchestos
 created: 2026-05-26
 owner: Carlos Gallardo
-status: etapa-1--uso-normal
+status: etapa-2--uso-real
 ---
 
 # OrchestOS — Plan activo
@@ -18,8 +18,8 @@ probarlo yo mismo y darme cuenta de mis errores y luego corregir esos huecos de 
 Tauri"*. Motivo: meses sin feedback de uso; de los últimos 200 commits, 94 eran de CI, auditoría, gates o tests y 46
 `feat`. Lo que no está en una etapa no se abre sin GO de Carlos.
 
-- **Etapa 1 — Lo que rompe el uso normal:** AUD.14 → AUD.17 → AUD.16 → SES.1 (§ "Etapa 1"). En curso.
-- **Etapa 2 — Uso real:** Carlos trabaja en OrchestOS en vez de Orca. Cada fallo o hueco que encuentre se abre como
+- **Etapa 1 — Lo que rompe el uso normal:** AUD.14 → AUD.17 → AUD.16 → SES.1. Cerrada 2026-11-13.
+- **Etapa 2 — Uso real (en curso):** Carlos trabaja en OrchestOS en vez de Orca. Cada fallo o hueco que encuentre se abre como
   ítem con su evidencia y va antes que cualquier pendiente. Los huecos de la interfaz salen de ese uso, no de revisar
   pantallas.
 - **Etapa 3 — Windows:** WIN.1 (§ "Etapa 3"). Primero la prueba de humo; después un ítem por fallo.
@@ -56,125 +56,19 @@ recortarle contexto, herramientas o criterio al modelo que piensa. El ahorro sal
 el trabajo* (delegar al ejecutor, que gasta su propio contexto y su propio cupo — medido: 145,664
 tokens de Luna que nunca entraron en el contexto del cerebro), no de podar al cerebro.
 
-## Etapa 1 — lo que rompe el uso normal
+## Etapa 2 — Uso real
 
-En este orden. AUD.14, AUD.17 y AUD.16 salieron de la revisión de validadores del 2026-11-11 (lectura de un
-subagente, sin informe aparte): cada cita se comprueba con grep al escribir el spec. Cada uno migra sus parseos a
-`src/boundary` y baja `scripts/boundary-budget.json`.
-
-- [x] **AUD.17 — Bodies y archivos con tipo incorrecto dan 500 en vez de 400; `.env` admite saltos de línea.**
-  (abierto 2026-11-11, cerrado 2026-11-13) `POST /api/settings` (`src/dashboard/handlers/setup.ts:172-186` → `settings-store.ts:62-66`)
-  escribe `"x\nOPENROUTER_API_KEY=…"` como línea nueva en `~/.orchestos/.env`. Resto: casts `as T` en `tasks.ts:276-295`,
-  `instincts.ts:58-62,84-88,117`, `specs.ts:12-16`, `chat.ts:142-145,253,876`; body `null` en `run-graph.ts:75`,
-  `system.ts:8`, `skills.ts:217`; `package.json.name` no string (`src/detect/manifest.ts:20`); línea JSON-RPC `null`
-  (`src/mcp/server.ts:125,232`, `codex-app-server.ts:173-177`); precios de OpenRouter sin rango
-  (`src/router/model-catalog.ts:166-172`).
-  Cierre: bodies de settings, tasks (create/run/commit-run/bulk-delete), instincts, specs, chat, run-graph,
-  system/reset y skills delete pasan por `readBody` con schema → 400 con causa; se conservan los mensajes 400
-  previos. Settings rechaza valores con `\r`/`\n` y `writeEnv` también (defensa). `manifest.ts` acepta solo `name`
-  texto; MCP responde `-32600` a mensajes no-objeto; codex-app-server trata `null` como respuesta inválida; precios
-  negativos de OpenRouter = desconocido. `boundary-budget` 58/59 → 55/43.
-  Gates: tsc, lint, test:coverage 2854/0; diff leído entero por el cerebro (otro proveedor).
-  Gate en vivo: navegador Playwright, `settings-shell` 24/24 con HOME temporal, `docs/done/evidence/AUD.17-settings-shell.json`.
-  Paso nuevo: key con salto de línea → 400 y keys intactas, key válida se guarda, tarea con `description: 5` → 400.
-  Además `curl` contra el dashboard real, `docs/done/evidence/AUD.17-live.json` (`.env` intacto).
-  Ejecutado por: gpt-6.1-sol (criterio) · Spec: docs/specs/AUD.17.md
-
-- [x] **AUD.16 — Skills: `validateSkill` devuelve el objeto crudo y el id de la URL no se cruza con el del contenido.**
-  (abierto 2026-11-11, cerrado 2026-11-13) `src/skills/registry.ts:138-226` (`when_to_use: "x"` → `.map is not a function` en
-  `src/skills/targets/_shared.ts:15`, rompe el prompt de QA); `src/dashboard/handlers/skills.ts:160-186`, `:593-622`;
-  índice del registry casteado en `src/skills/fetch.ts:47-48,73`; el import ignora `review.status: rejected`.
-  Cierre: `validateSkill` valida además `when_to_use`, `inputs_required`, `verifiers`, `anti_patterns`, `examples`
-  (`title`/`input`/`output`), `language_targets` y `source`, y devuelve un objeto nuevo sin campos desconocidos; import,
-  normalización, registry import y curate usan ese resultado. `PUT /api/skills/:id` con otro `id` → 400; registry
-  import fija el id del contenido al de la URL (kebab-case o 400), consulta el índice (ausente 404, `rejected` 409);
-  índice validado, entradas inválidas omitidas. `boundary-budget` response-json 43 → 42.
-  Gates: tsc, lint, test:coverage 2875/0; diff leído entero por el cerebro (otro proveedor).
-  Gate en vivo: navegador Playwright, `skills-library` 16/16 con HOME temporal, `docs/done/evidence/AUD.16-skills-library.json`.
-  Además `curl` contra el dashboard real (id distinto → 400, archivo intacto), `docs/done/evidence/AUD.16-live.json`.
-  Ejecutado por: gpt-6.1-sol (criterio) · Spec: docs/specs/AUD.16.md
-
-- [x] **SES.1 — Cerrar una sesión de verdad.** (abierto 2026-11-12; Carlos: va justo después del lote AUD) La X del
-  tab (`App.tsx:172`, `closeDevTab`) solo quita el tab de la UI: la sesión sigue activa y su turno corriendo. Archivar
-  (`handlers/chat-sessions.ts:551`, `handleApiChatSessionArchive`) marca `archived` sin detener el turno en curso: el
-  CLI queda vivo y la sesión desaparece del sidebar. Borrar ya rechaza con turno activo (409). Diseño (patrón de
-  JetBrains "Terminate / Disconnect", VS Code `confirmOnKill`, tmux detach/kill): **tab = vista, sesión = proceso**.
-  (1) Cerrar un tab ocioso: se cierra sin preguntar. (2) Cerrar un tab con turno en curso: diálogo "Detener y cerrar"
-  / "Dejar corriendo" / "Cancelar", con "recordar" en Settings. (3) Sesiones en segundo plano: punto de "corriendo"
-  en el sidebar y contador en la barra; al terminar, aviso. (4) Archivar = detener turno (`stopChatTurn`, grupo de
-  procesos completo vía AUD.6) + archivar, nunca sin detener. (5) Cerrar la app o el dashboard con turnos vivos:
-  aviso con la lista. (6) Al arrancar, turnos huérfanos (proceso muerto, turno `pending`) se marcan y se ofrecen
-  reanudar. Verificación: test que archiva con turno en curso y comprueba que no queda proceso; test del diálogo
-  por estado del tab; prueba en vivo en el dashboard de los tres caminos (ocioso, detener, dejar corriendo).
-  Sin delegación: padre cerrado por sus hijos SES.1a–c, cada uno con su spec y evidencia.
-  GO de Carlos 2026-11-13 al plan a/b/c, en este orden:
-- [x] **SES.1a — Archivar detiene el turno vivo.**
-  Archivar aborta el turno registrado (`stopActiveChatTurn`); `codex exec` (sin sesión y fallback por error de
-  protocolo) ya recibe la señal y mata el grupo de procesos. Tests: chat-stop + aud22-processes + codex-engine 44/44
-  dos veces. Revisión qa (Sol) halló el hermano de Codex. Ejecutado por: gpt-6-luna (mecanico)
-  Fuera de scope declarado: `src/run/executors/codex.ts` y `src/__tests__/aud22-processes.test.ts` (hermano hallado por qa).
-- [x] **SES.1b — X del tab con turno vivo: diálogo Detener y cerrar / Dejar corriendo / Cancelar.** Gate en vivo: navegador Playwright, `dev-tab-close-running` 10/10 (ocioso, cancelar, dejar corriendo, detener en 636 ms), `docs/done/evidence/SES.1b-live.json`.
-  Ocioso cierra; con turno, diálogo con "no volver a preguntar" y ajuste en Settings (`closeRunningTab`). `POST /stop`
-  sin `turnId` detiene el turno activo. El gate halló que el sidebar seguía en "Working" tras detener: el estado del
-  agente ahora sale de `runningSessionIds` (servidor). Sin contador nuevo: spinner del sidebar y notificación ya
-  cubren el punto 3.
-  Ejecutado por: gpt-6-luna (mecanico) + gpt-6.1-sol (criterio, gate y fix del sidebar) · Spec: docs/specs/SES.1b.md
-  Texto visible: "Stop this agent?", "It's still working. Keep it running and find it in the sidebar.", "Stop and close", "Keep running", "Closing a working agent's tab", "Ask", "Stop it" — una decisión con tres salidas necesita palabras; un ícono no distingue detener de dejar corriendo.
-  Fuera de scope declarado: `scripts/ui-gate/flows/dev-tab-close-running.mjs` y `docs/done/evidence/SES.1b-live.json` (gate en vivo).
-- [x] **SES.1c — Aviso al cerrar con turnos vivos y turnos huérfanos al arrancar.** Gate en vivo: navegador Playwright, `chat-restart-interrupted` 6/6 (turno real → SIGTERM → `interrupted` en 1.091 ms → aviso y Resume crean turno nuevo), `docs/done/evidence/SES.1c-live.json`.
-  Ctrl+C del dashboard marca `interrupted` los turnos vivos y lista en la terminal cuáles detuvo; al arrancar,
-  `reconcileChatTurns` marca los `pending` con lease vencido (owner es UUID, sin pid: tras un crash tardan ≤150 s).
-  El texto del usuario se guarda en `chat_turns.user_content` (+ `has_attachments`); el composer ofrece Resume, o
-  Restore message si había adjuntos; turnos históricos sin texto, solo aviso. Cerrar el navegador no avisa: el turno
-  sigue en el servidor y no se pierde nada. Tests de procesos con esperas de 4 s (el pre-push de SES.1b falló por
-  `process-tree.test.ts:27`, mismo defecto que SES.1a).
-  Ejecutado por: gpt-6.1-sol (criterio) + gpt-6-luna (mecanico, esperas) · Spec: docs/specs/SES.1c.md
-  Texto visible: "The last turn was interrupted.", "Resume", "Restore message", "Attach the files again before sending." — el estado y la acción no se infieren de un ícono; Resume reenvía y Restore solo rellena.
-  Fuera de scope declarado: `scripts/ui-gate/flows/chat-restart-interrupted.mjs`, `docs/done/evidence/SES.1c-live.json`, `src/run/process-tree.test.ts`, `src/__tests__/codex-task-approvals.test.ts` (gate en vivo y esperas que tumbaron el pre-push).
+Lo que Carlos reporte usando OrchestOS se abre aquí con su evidencia y va primero. Cerrados de la etapa 1 y de
+esta etapa: `docs/done/bloque-AUD.md` (AUD.16, AUD.17), `docs/done/bloque-SES.md`, `docs/done/bloque-USO.md`,
+`docs/done/bloque-LRN.md`.
 
 - [ ] **LRN.1 — OrchestOS aprende de los errores.** (abierto 2026-11-13; GO de Carlos a D1–D6; va después de SES.1 y
   no bloquea el uso real) Diseño: `docs/specs/LRN-1-opinion-fable.md`. Decisiones: D1 alcance por proyecto, global
   solo por promoción manual; D2 tope 1.000 tokens o 15 lecciones; D3 proponer ante firma repetida ≥2, par
   fallo→arreglo o corrección explícita en chat; D4 graduación a `AGENTS.md` manual con diff; D5 60 días sin uso →
   `review`, nunca borrado; D6 primer lote F0+F1 (cimientos sin LLM + chat recibe y propone).
-- [x] **LRN.1a — Cimientos de lecciones sin LLM (F0).**
-  Globales aplicadas, tope D2 en `listApplicable` (15 lecciones o 4.000 caracteres), columnas `why`,
-  `evidence_json`, `injected_count`, `last_injected_at` y `runs.instinct_ids_json` (los ids viajan en
-  `ctx.instinctIds` y se persisten en los ocho caminos de `insertRun`). Tests 231/231; `docs/done/evidence/LRN.1a-live.json`.
-  Ejecutado por: gpt-6.1-sol (criterio) · Spec: docs/specs/LRN.1a.md
-- [x] **USO.1 — Tres flujos de UI rojos reproducidos antes del uso real.** Gate en vivo: navegador Playwright, `chat-settings`, `project-tabs` y `providers` verdes con `gate:evidence` (labels `USO.1-<flujo>`), diagnóstico en `docs/done/evidence/USO.1-live.json`.
-  `providers`: producto roto, ocultar un CLI no mandaba el proyecto (`api/settings.ts:285`), test en `clis.test.ts`.
-  `chat-settings`: gate desfasado, 5 filas tras SES.1b y Enter en el diálogo activa Cancel (foco seguro).
-  `project-tabs`: gate desfasado, `dist/` sin ignorar bloqueaba el sandbox del fixture. Los otros 9 rojos de la
-  nocturna inválida pasaron al re-correrlos con la máquina despierta.
-  Ejecutado por: gpt-6.1-sol (criterio) · Spec: docs/specs/USO.1.md
-  Fuera de scope declarado: `scripts/ui-gate/flows/*.mjs` (gates desfasados) y `docs/done/evidence/USO.1-live.json`.
-
-- [x] **USO.2 — El dashboard abre sin token en la URL.** Gate en vivo: navegador Playwright en `localhost` sin `#t=`, Chat renderizado y 16 llamadas `/api` sin 401; `smoke` 7/7 y `dev-terminal` 16/16, `docs/done/evidence/USO.2-live.json`. (reportado por Carlos 2026-11-13, GO al arreglo)
-  AUD.7 (`c9c0fac6`) exige el token en `/api/*` y la UI solo lo obtenía de `#t=`: abrir `localhost:4242` a mano,
-  desde un marcador u otro navegador mostraba "Dashboard token required". El servidor inyecta el token en el HTML
-  (mismo origen + chequeo de Host), la pantalla se borra y `orchestos dashboard` abre el navegador.
-  Ejecutado por: gpt-6-luna (mecanico) · revisión qa: sin defectos · Spec: docs/specs/USO.2.md
-
-- [x] **LRN.1b — El chat recibe lecciones y puede proponerlas (F1).** Gate en vivo: navegador Playwright, `lessons` 10/10 con CLI falso (propose_lesson → propuesta auto con turnId; Remember → manual verificada; duplicado → error; Edit; segundo turno recibe `## Lessons`), `docs/done/evidence/LRN.1b-live.json`.
-  Bloque `## Lessons` en el prompt del chat (`listApplicable`, mismo tope), `recordInjected` solo si el turno llega
-  al modelo. Herramienta `propose_lesson` (MCP y API) solo con proyecto, máximo 3 por turno; trigger duplicado se
-  omite sin romper el turno y responde 409 en create/PATCH. Acción Remember por mensaje; `PATCH /api/instincts/:id`;
-  la tarjeta muestra why, cita y uso, y permite editar. qa (Codex) halló el conteo en turnos 422; corregido.
-  Ejecutado por: gpt-6.1-sol (criterio) + gpt-6-luna (mecanico: addenda, gate `lessons`, contador) · Spec: docs/specs/LRN.1b.md
-  Texto visible: "Remember", "When", "Do", "Why", "Save", "Cancel", "Edit", "Injected N times", "A lesson with this trigger already exists"; reindentados sin cambio: "Copy", "Learned Action", "Approve (+0.10)", "Reject", "Active in middleware chain" — guardar una lección necesita decir cuándo aplica y qué hacer; un ícono solo no lo distingue de copiar.
-
-- [x] **LRN.1c — Ciclo de vida de lecciones y graduación a AGENTS.md (F3).** Gate en vivo: navegador Playwright, `lessons` 18/18 (lección de hace 61 días en Review → Keep la saca; "Add to AGENTS.md" muestra el diff → Cancel no escribe → Add escribe el bloque y la retira; el turno siguiente no la inyecta), `docs/done/evidence/LRN.1c-live.json`. (GO de Carlos 2026-11-13: "continúa")
-  Migración 42: `instincts.status` (`active|review|retired`) y `status_changed_at`; `listApplicable` solo `active`;
-  `sweepStaleLessons` (60 días sin actividad → `review`, nunca borra) al listar. `POST /api/instincts/:id/status` y
-  `/graduate` (vista previa sin `confirm`; recalcula desde el archivo, rechaza symlink y lecciones globales). Desvío
-  del spec, a propósito: la migración fija `status_changed_at` al migrar, porque el uso solo se registra desde la 41;
-  sin eso toda lección vieja caería a `review` al abrir la vista. qa (Codex) halló que un marcador citado en una
-  lección desplazaba el bloque: los marcadores ahora cuentan solo como línea completa (test en
-  `lesson-lifecycle.test.ts`). Fuera: cita rota (la cita es un mensaje de chat) y recurrencia (necesita la firma de
-  F2). F2 espera datos de F0 (D6).
-  Ejecutado por: gpt-6.1-sol (criterio) + claude-opus-5-5 (fix chico: migración y marcadores) · Spec: docs/specs/LRN.1c.md
-  Texto visible: "Unused for 60 days", "Keep", "Retire", "Add to AGENTS.md", "Add", "Cancel", "Creates AGENTS.md", "Retired"; reindentados sin cambio: "Edit", "Approve (+0.10)", "Reject", "Active in middleware chain" — conservar, retirar y escribir en un archivo del usuario son tres salidas distintas; un ícono no las distingue.
+  Hechos: F0 (LRN.1a), F1 (LRN.1b), F3 (LRN.1c), en `docs/done/bloque-LRN.md`. Falta F2 (propuesta automática desde
+  tareas), que espera datos de uso de F0.
 
 ## Etapa 3 — Windows
 
@@ -228,6 +122,9 @@ AUD.10, AUD.27, AUD.28](docs/done/aparcados-2026-11-12.md)
 → [cerrados de OC](docs/done/bloque-OC.md)
 → [cerrados de ADE](docs/done/bloque-ADE.md)
 → [cerrados de AUD](docs/done/bloque-AUD.md)
+→ [cerrados de SES](docs/done/bloque-SES.md)
+→ [cerrados de USO](docs/done/bloque-USO.md)
+→ [cerrados de LRN](docs/done/bloque-LRN.md)
 → [cerrados de DEV](docs/done/bloque-DEV.md)
 → [cerrados de ONB](docs/done/bloque-ONB.md)
 → [cerrados de RUN](docs/done/bloque-RUN.md)
