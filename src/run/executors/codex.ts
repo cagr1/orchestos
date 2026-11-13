@@ -1,3 +1,4 @@
+import { check, z } from '../../boundary/index.ts'
 import { spawnTree, terminateTree } from '../process-tree.ts'
 import { whichCli } from './cli-discovery.ts'
 /**
@@ -255,6 +256,11 @@ interface CodexTurnCompleted {
   }
 }
 
+function finiteTokenCount(value: unknown): number {
+  const parsed = check(z.number(), value)
+  return parsed.ok ? parsed.data : 0
+}
+
 export function parseCodexStream(stdout: string): {
   inputTokens: number
   outputTokens: number
@@ -290,11 +296,12 @@ export function parseCodexStream(stdout: string): {
   return {
     inputTokens: Math.max(
       0,
-      (last.usage?.input_tokens ?? 0) - (last.usage?.cached_input_tokens ?? 0),
+      finiteTokenCount(last.usage?.input_tokens) -
+        finiteTokenCount(last.usage?.cached_input_tokens),
     ),
-    outputTokens: last.usage?.output_tokens ?? 0,
-    cacheReadTokens: last.usage?.cached_input_tokens ?? 0,
-    cacheWriteTokens: last.usage?.cache_write_input_tokens ?? 0,
+    outputTokens: finiteTokenCount(last.usage?.output_tokens),
+    cacheReadTokens: finiteTokenCount(last.usage?.cached_input_tokens),
+    cacheWriteTokens: finiteTokenCount(last.usage?.cache_write_input_tokens),
     threadId,
     finalText,
   }

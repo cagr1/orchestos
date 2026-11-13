@@ -1,5 +1,5 @@
 import { MaxIterationsSchema } from '../boundary/config-limits.ts'
-import { check } from '../boundary/index.ts'
+import { check, parseJson, z } from '../boundary/index.ts'
 /**
  * S23.1/S23.2 — Provider tool-calling layer
  *
@@ -74,6 +74,94 @@ export interface ToolCallResponse {
   outputTokens: number
 }
 
+const anthropicResponseSchema = z
+  .object({
+    content: z.array(
+      z
+        .object({
+          type: z.string(),
+          text: z.string().optional(),
+          id: z.string().optional(),
+          name: z.string().optional(),
+          input: z.unknown().optional(),
+        })
+        .passthrough(),
+    ),
+    usage: z
+      .object({ input_tokens: z.number().optional(), output_tokens: z.number().optional() })
+      .passthrough()
+      .optional(),
+  })
+  .passthrough()
+
+const openaiToolCallSchema = z
+  .object({
+    function: z.object({ name: z.string(), arguments: z.string() }).passthrough(),
+  })
+  .passthrough()
+const openaiUsageSchema = z
+  .object({
+    prompt_tokens: z.number().optional(),
+    completion_tokens: z.number().optional(),
+  })
+  .passthrough()
+  .optional()
+const openaiResponseSchema = z
+  .object({
+    choices: z.array(
+      z
+        .object({
+          message: z
+            .object({
+              tool_calls: z.array(openaiToolCallSchema).optional(),
+            })
+            .passthrough(),
+        })
+        .passthrough(),
+    ),
+    usage: openaiUsageSchema,
+  })
+  .passthrough()
+const openaiRoundSchema = openaiResponseSchema.extend({
+  choices: z.array(
+    z
+      .object({
+        message: z
+          .object({
+            content: z.string().nullable().optional(),
+            tool_calls: z.array(openaiToolCallSchema.extend({ id: z.string() })).optional(),
+          })
+          .passthrough(),
+      })
+      .passthrough(),
+  ),
+})
+const providerErrorSchema = z.object({ error: z.object({ message: z.string() }) })
+
+function parseProviderResponse<S extends z.ZodType>(
+  schema: S,
+  body: string,
+  provider: string,
+): z.infer<S> {
+  const parsed = parseJson(schema, body)
+  if (parsed.ok) return parsed.data
+  const cause = parseJson(providerErrorSchema, body)
+  throw new Error(
+    `${provider} returned an unexpected response: ${parsed.error}${cause.ok ? `; ${cause.data.error.message}` : ''}`,
+  )
+}
+
+function parseToolArguments(
+  raw: string,
+): { ok: true; input: Record<string, unknown> } | { ok: false; error: string } {
+  const parsed = parseJson(z.unknown(), raw.trim() ? raw : '{}')
+  if (!parsed.ok) return parsed
+  const object = check(z.record(z.string(), z.unknown()), parsed.data)
+  return object.ok
+    ? { ok: true, input: object.data }
+    : { ok: false, error: 'arguments must be a JSON object' }
+}
+
 // ---------------------------------------------------------------------------
 // API key loading (reuses same pattern as existing providers)
 // ---------------------------------------------------------------------------
@@ -140,10 +228,7 @@ async function anthropicCallWithTools(opts: {
     throw new Error(`Anthropic tool-call error ${res.status}: ${err}`)
   }
 
-  const data = (await res.json()) as {
-    content: Array<{ type: string; name?: string; input?: unknown }>
-    usage?: { input_tokens?: number; output_tokens?: number }
-  }
+  const data = parseProviderResponse(anthropicResponseSchema, await res.text(), 'Anthropic')
 
   const calls: ToolCallResult[] = data.content
     .filter((c) => c.type === 'tool_use' && typeof c.name === 'string')
@@ -206,20 +291,16 @@ async function openaiCallWithTools(opts: {
     throw new Error(`OpenAI tool-call error ${res.status}: ${err}`)
   }
 
-  const data = (await res.json()) as {
-    choices: Array<{
-      message: {
-        tool_calls?: Array<{ function: { name: string; arguments: string } }>
-      }
-    }>
-    usage?: { prompt_tokens?: number; completion_tokens?: number }
-  }
-
+  const data = parseProviderResponse(
+    openaiResponseSchema,
+    await res.text(),
+    baseUrl.includes('openrouter') ? 'OpenRouter' : 'OpenAI',
+  )
   const rawCalls = data.choices[0]?.message?.tool_calls ?? []
-  const calls: ToolCallResult[] = rawCalls.map((tc) => ({
-    toolName: tc.function.name,
-    input: JSON.parse(tc.function.arguments),
-  }))
+  const calls: ToolCallResult[] = rawCalls.flatMap((tc) => {
+    const parsed = parseToolArguments(tc.function.arguments)
+    return parsed.ok ? [{ toolName: tc.function.name, input: parsed.input }] : []
+  })
 
   return {
     calls,
@@ -401,11 +482,18 @@ export function createToolRouter(handlers: Record<string, ToolExecutor>): ToolEx
   return async (toolName, input, callId) => {
     const handler = handlers[toolName]
     if (!handler) return `[Error: unknown tool "${toolName}"]`
-    return handler(toolName, input, callId)
+    try {
+      return await handler(toolName, input, callId)
+    } catch (error) {
+      if ((error instanceof Error || error instanceof DOMException) && error.name === 'AbortError')
+        throw error
+      return `[Error: tool "${toolName}" failed: ${error instanceof Error ? error.message : String(error)}]`
+    }
   }
 }
 
 interface RawToolUse {
+  inputError?: string
   id: string
   name: string
   input: unknown
@@ -454,10 +542,7 @@ async function anthropicRound(
     throw new Error(`Anthropic tool-call error ${res.status}: ${err}`)
   }
 
-  const data = (await res.json()) as {
-    content: Array<{ type: string; text?: string; id?: string; name?: string; input?: unknown }>
-    usage?: { input_tokens?: number; output_tokens?: number }
-  }
+  const data = parseProviderResponse(anthropicResponseSchema, await res.text(), 'Anthropic')
 
   const text = data.content
     .filter((c) => c.type === 'text')
@@ -564,28 +649,23 @@ async function openaiRound(
     throw new Error(`OpenAI tool-call error ${res.status}: ${err}`)
   }
 
-  const data = (await res.json()) as {
-    choices: Array<{
-      message: {
-        content?: string | null
-        tool_calls?: Array<{
-          id: string
-          type: string
-          function: { name: string; arguments: string }
-        }>
-      }
-    }>
-    usage?: { prompt_tokens?: number; completion_tokens?: number }
-  }
-
+  const data = parseProviderResponse(
+    openaiRoundSchema,
+    await res.text(),
+    provider === 'openai' ? 'OpenAI' : 'OpenRouter',
+  )
   const message = data.choices[0]?.message
   const text = message?.content ?? ''
   const rawCalls = message?.tool_calls ?? []
-  const toolUses: RawToolUse[] = rawCalls.map((tc) => ({
-    id: tc.id,
-    name: tc.function.name,
-    input: JSON.parse(tc.function.arguments),
-  }))
+  const toolUses: RawToolUse[] = rawCalls.map((tc) => {
+    const parsed = parseToolArguments(tc.function.arguments)
+    return {
+      id: tc.id,
+      name: tc.function.name,
+      input: parsed.ok ? parsed.input : undefined,
+      ...(parsed.ok ? {} : { inputError: parsed.error }),
+    }
+  })
 
   return {
     text,
@@ -695,8 +775,10 @@ export async function runToolLoop(
 
     for (const tu of result.toolUses) {
       opts.signal?.throwIfAborted()
-      const toolResult = await opts.executeTool(tu.name, tu.input, tu.id)
-      executed.push({ name: tu.name, input: tu.input })
+      const toolResult = tu.inputError
+        ? `[Error: invalid arguments for tool "${tu.name}": ${tu.inputError}. Send the arguments as a valid JSON object.]`
+        : await opts.executeTool(tu.name, tu.input, tu.id)
+      if (!tu.inputError) executed.push({ name: tu.name, input: tu.input })
 
       if (provider === 'anthropic') {
         history.push({

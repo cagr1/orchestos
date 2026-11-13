@@ -482,3 +482,25 @@ describe('G.5 — opencodeEngine (opencode subprocess)', () => {
     expect(orchestosModelToOpencodeModel(undefined)).toBeUndefined()
   })
 })
+
+describe('AUD.14 — malformed OpenCode metrics', () => {
+  it('ignores null events and sums only finite numeric metrics', async () => {
+    const root = makeGitRepo()
+    const wt = createWorktree('aud14-opencode', 'main', root)
+    trackWorktree(wt)
+    overrideBunSpawn(
+      installMockSpawn(
+        'null\n{"type":"step_finish","part":{"type":"step-finish","cost":"0.5","tokens":{"input":"8","output":1e999}}}\n' +
+          ndjson(stepFinish(0.25, 4, 2)),
+      ),
+    )
+    const result = await opencodeEngine.run(buildCtx(wt, baseTask()), {
+      maxTokens: 4096,
+      maxIterations: 3,
+    })
+    expect(result.usd).toBe(0.25)
+    expect(result.inputTokens).toBe(4)
+    expect(result.outputTokens).toBe(2)
+    expect(result.iterations).toBe(2)
+  })
+})

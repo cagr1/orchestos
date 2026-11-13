@@ -307,3 +307,33 @@ describe('Q.2 — el prompt agéntico exige evidencia, no autoevaluación', () =
     }
   })
 })
+
+describe('AUD.14 — invalid tool input', () => {
+  it.each([{}, { path: 5, content: 'x' }])(
+    'rejects invalid write_file input %j and continues',
+    async (input) => {
+      process.env.OPENROUTER_API_KEY = ['test', 'key'].join('-')
+      const histories: Array<{ messages: Array<{ role: string; content: string }> }> = []
+      globalThis.fetch = (async (_url, init) => {
+        histories.push(JSON.parse(String(init?.body)))
+        return histories.length === 1
+          ? toolCallResponse([{ name: 'write_file', args: input }])
+          : textResponse('finished')
+      }) as typeof fetch
+      const dir = tmpDir()
+      try {
+        const { agenticEngine } = await import('../run/executors/agentic.ts')
+        const ctx = await buildCtx(dir, baseTask())
+        const result = await agenticEngine.run(ctx, { maxTokens: 4096, maxIterations: 3 })
+        expect(result.files).toEqual([])
+        expect(result.iterations).toBe(2)
+        expect(histories[1]!.messages.find((entry) => entry.role === 'tool')!.content).toContain(
+          '[Error: invalid input for write_file:',
+        )
+        expect((await import('node:fs')).existsSync(join(dir, 'out.txt'))).toBe(false)
+      } finally {
+        rmSync(dir, { recursive: true, force: true })
+      }
+    },
+  )
+})

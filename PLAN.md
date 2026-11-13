@@ -62,14 +62,6 @@ En este orden. AUD.14, AUD.17 y AUD.16 salieron de la revisión de validadores d
 subagente, sin informe aparte): cada cita se comprueba con grep al escribir el spec. Cada uno migra sus parseos a
 `src/boundary` y baja `scripts/boundary-budget.json`.
 
-- [ ] **AUD.14 — Salidas de LLM sin validar tumban el run.** (abierto 2026-11-11) `JSON.parse(tc.function.arguments)`
-  sin `try` y `data.choices[0]` sin comprobar (`src/providers/tool-call.ts:216-220`, `:581-586`,
-  `src/providers/openrouter.ts:118-124`); input de herramientas casteado en `src/run/executors/agentic.ts:194-200`
-  (`write_file` sin `path` → `TypeError` en `path-policy.ts:21`, run abortado); borrador del planner
-  (`src/dashboard/handlers/project.ts:268-283`); `frequency` declarada por el LLM en `src/analyze/patterns.ts:181-186`;
-  campos de streams de CLI (`external.ts:612-623`, `opencode.ts:141-146`, `codex.ts:276-287`). Verificación: el error
-  vuelve al modelo como resultado de herramienta, no aborta el run.
-
 - [ ] **AUD.17 — Bodies y archivos con tipo incorrecto dan 500 en vez de 400; `.env` admite saltos de línea.**
   (abierto 2026-11-11) `POST /api/settings` (`src/dashboard/handlers/setup.ts:172-186` → `settings-store.ts:62-66`)
   escribe `"x\nOPENROUTER_API_KEY=…"` como línea nueva en `~/.orchestos/.env`. Resto: casts `as T` en `tasks.ts:276-295`,

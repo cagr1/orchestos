@@ -183,7 +183,13 @@ export function parsePatternSuggestions(raw: string): PatternSuggestion[] {
     if (typeof i.pattern !== 'string' || typeof i.fix_hint !== 'string') continue
     results.push({
       pattern: i.pattern,
-      frequency: typeof i.frequency === 'number' ? i.frequency : 0,
+      frequency:
+        typeof i.frequency === 'number' &&
+        Number.isFinite(i.frequency) &&
+        Number.isInteger(i.frequency) &&
+        i.frequency >= 0
+          ? i.frequency
+          : 0,
       fix_hint: i.fix_hint,
       confidence: ['high', 'medium', 'low'].includes(i.confidence as string)
         ? (i.confidence as 'high' | 'medium' | 'low')

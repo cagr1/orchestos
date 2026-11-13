@@ -1,3 +1,4 @@
+import { check, z } from '../../boundary/index.ts'
 /**
  * src/run/executors/agentic.ts — G.3
  *
@@ -190,14 +191,36 @@ export const agenticEngine: ExecutorEngine = {
       )
     }
 
+    function validatedTool<S extends z.ZodType>(
+      name: string,
+      schema: S,
+      run: (input: z.infer<S>) => string | Promise<string>,
+    ): ToolExecutor {
+      return async (_name, input) => {
+        const parsed = check(schema, input)
+        return parsed.ok ? run(parsed.data) : `[Error: invalid input for ${name}: ${parsed.error}]`
+      }
+    }
+    const pathSchema = z.string().refine((value) => value.trim().length > 0, 'must not be empty')
     const executeTool: ToolExecutor = createToolRouter({
-      read_file: async (_name, input) => readFile((input as { path: string }).path),
-      write_file: async (_name, input) => {
-        const i = input as { path: string; content: string }
-        return writeFile(i.path, i.content)
-      },
-      list_dir: async (_name, input) => listDir((input as { path?: string }).path ?? '.'),
-      run_check: async (_name, input) => runCheck((input as { cmd: string }).cmd),
+      read_file: validatedTool('read_file', z.object({ path: pathSchema }), (i) =>
+        readFile(i.path),
+      ),
+      write_file: validatedTool(
+        'write_file',
+        z.object({ path: pathSchema, content: z.string() }),
+        (i) => writeFile(i.path, i.content),
+      ),
+      list_dir: validatedTool('list_dir', z.object({ path: z.string().optional() }), (i) =>
+        listDir(i.path ?? '.'),
+      ),
+      run_check: validatedTool(
+        'run_check',
+        z.object({
+          cmd: z.string().refine((value) => value.trim().length > 0, 'must not be empty'),
+        }),
+        (i) => runCheck(i.cmd),
+      ),
     })
 
     const toolInstructions = [

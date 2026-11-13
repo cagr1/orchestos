@@ -1,5 +1,6 @@
 import { existsSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
+import { parseJson, z } from '../boundary/index.ts'
 import { orchestosDir } from '../config/orchestos-home.ts'
 
 export interface ChatMessage {
@@ -115,11 +116,36 @@ export async function chat(opts: {
     throw new Error(`OpenRouter error ${res.status}: ${err}`)
   }
 
-  const data = (await res.json()) as {
-    choices: Array<{ message: { content: string } }>
-    usage: { prompt_tokens: number; completion_tokens: number }
-    model: string
+  const bodyText = await res.text()
+  const parsed = parseJson(
+    z
+      .object({
+        choices: z.array(
+          z
+            .object({
+              message: z.object({ content: z.string().nullable().optional() }).passthrough(),
+            })
+            .passthrough(),
+        ),
+        usage: z
+          .object({
+            prompt_tokens: z.number().optional(),
+            completion_tokens: z.number().optional(),
+          })
+          .passthrough()
+          .optional(),
+        model: z.string().optional(),
+      })
+      .passthrough(),
+    bodyText,
+  )
+  if (!parsed.ok) {
+    const cause = parseJson(z.object({ error: z.object({ message: z.string() }) }), bodyText)
+    throw new Error(
+      `OpenRouter returned an unexpected response: ${parsed.error}${cause.ok ? `; ${cause.data.error.message}` : ''}`,
+    )
   }
+  const data = parsed.data
 
   const text = data.choices[0]?.message?.content ?? ''
   return {

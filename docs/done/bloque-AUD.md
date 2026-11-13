@@ -317,3 +317,20 @@ hacer: `docs/done/aparcados-2026-11-12.md` (AUD.8, AUD.9, AUD.10, AUD.27, AUD.28
   corregido: contador congelado pasaba).
   Gate en vivo: navegador Playwright, `chat-timeout` 9/9 sin la variable en el shell, `docs/done/evidence/AUD.26-chat-timeout-brain.json`.
   Ejecutado por: gpt-6.1-sol (criterio) + claude-opus-5-5 (fix del flow) · Spec: docs/specs/AUD.26.md
+
+- [x] **AUD.14 — Salidas de LLM sin validar tumban el run.** (abierto 2026-11-11, cerrado 2026-11-13) `JSON.parse(tc.function.arguments)`
+  sin `try` y `data.choices[0]` sin comprobar (`src/providers/tool-call.ts:216-220`, `:581-586`,
+  `src/providers/openrouter.ts:118-124`); input de herramientas casteado en `src/run/executors/agentic.ts:194-200`
+  (`write_file` sin `path` → `TypeError` en `path-policy.ts:21`, run abortado); borrador del planner
+  (`src/dashboard/handlers/project.ts:268-283`); `frequency` declarada por el LLM en `src/analyze/patterns.ts:181-186`;
+  campos de streams de CLI (`external.ts:612-623`, `opencode.ts:141-146`, `codex.ts:276-287`). Verificación: el error
+  vuelve al modelo como resultado de herramienta, no aborta el run.
+  Cierre: argumentos de herramienta con JSON roto o no-objeto vuelven al modelo como `[Error: invalid arguments…]`
+  sin ejecutar (`parseToolArguments`, `tool-call.ts`); las cinco respuestas de proveedor pasan por `parseJson` con
+  schema mínimo y lanzan `<Proveedor> returned an unexpected response: …` con el `error.message` del cuerpo; input
+  de las herramientas agénticas validado por schema; `createToolRouter` convierte excepciones en resultado de error
+  (relanza `AbortError`); resultado de Claude, eventos de OpenCode y tokens de Codex validados; `frequency` entero
+  ≥ 0. `boundary-budget` 63/64 → 58/59. Fuera: el borrador del planner (`handlers/project.ts:278`) ya responde 502
+  sin tumbar nada, y tocar `src/dashboard` exigía gate con navegador. Sin gate en vivo: no toca dashboard ni config.
+  Gates: tsc, lint, test:coverage 2804/0; diff leído entero por el cerebro (otro proveedor).
+  Ejecutado por: gpt-6.1-sol (criterio) · Spec: docs/specs/AUD.14.md

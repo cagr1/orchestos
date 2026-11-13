@@ -1,4 +1,5 @@
 import { safeTimeoutMs } from '../../boundary/config-limits.ts'
+import { parseJson, z } from '../../boundary/index.ts'
 import { spawnTree, terminateTree } from '../process-tree.ts'
 import { whichCli } from './cli-discovery.ts'
 import { CliFailure, claudeFailureKind, cliFailureNotice } from './cli-failure.ts'
@@ -96,6 +97,35 @@ interface ClaudeCodeJson {
    *  reporta acá, keyed por el nombre canónico real (ej. "claude-sonnet-5"). */
   modelUsage?: Record<string, { canonicalModel?: string; contextWindow?: number }>
 }
+
+const claudeCodeSchema = z
+  .object({
+    session_id: z.string().optional(),
+    result: z.string().optional(),
+    is_error: z.boolean().optional(),
+    terminal_reason: z.string().optional(),
+    errors: z.array(z.string()).optional(),
+    usage: z
+      .object({
+        input_tokens: z.number().optional(),
+        output_tokens: z.number().optional(),
+        cache_read_input_tokens: z.number().optional(),
+        cache_creation_input_tokens: z.number().optional(),
+      })
+      .passthrough()
+      .optional(),
+    total_cost_usd: z.number().optional(),
+    num_turns: z.number().optional(),
+    modelUsage: z
+      .record(
+        z.string(),
+        z
+          .object({ canonicalModel: z.string().optional(), contextWindow: z.number().optional() })
+          .passthrough(),
+      )
+      .optional(),
+  })
+  .passthrough()
 
 /** CX.6 — uso de la ÚLTIMA llamada al modelo del turno (mensaje `assistant`), no el acumulado de `result`. */
 interface LastAssistantUsage {
@@ -599,7 +629,9 @@ export async function runClaudeChat(
   }
   let parsed: ClaudeCodeJson
   try {
-    parsed = JSON.parse(resultLine)
+    const result = parseJson(claudeCodeSchema, resultLine)
+    if (!result.ok) throw new Error(result.error)
+    parsed = result.data
   } catch {
     throw new ExecutorExternalError('claude code result event was not valid JSON')
   }
@@ -727,7 +759,9 @@ export const externalEngine: ExecutorEngine = {
       )
     }
     try {
-      parsed = JSON.parse(resultLine)
+      const result = parseJson(claudeCodeSchema, resultLine)
+      if (!result.ok) throw new Error(result.error)
+      parsed = result.data
     } catch {
       throw new ExecutorExternalError(
         'claude code result event was not valid JSON — cost unknown, not reported as $0',

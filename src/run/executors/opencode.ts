@@ -1,3 +1,4 @@
+import { check, parseJson, z } from '../../boundary/index.ts'
 import { spawnTree, terminateTree } from '../process-tree.ts'
 import { whichCli } from './cli-discovery.ts'
 /**
@@ -108,15 +109,16 @@ async function supportedVariant(
 
 // -- NDJSON parsing --------------------------------------------------------
 
-interface OpencodeStepFinishPart {
-  type: 'step-finish'
-  cost?: number
-  tokens?: { input?: number; output?: number }
-}
-
-interface OpencodeEvent {
-  type: string
-  part?: { type?: string } & Partial<OpencodeStepFinishPart>
+const opencodeEventSchema = z.object({ part: z.unknown().optional() }).passthrough()
+const opencodePartSchema = z.object({
+  type: z.string(),
+  cost: z.unknown().optional(),
+  tokens: z.unknown().optional(),
+})
+const tokensSchema = z.object({ input: z.unknown().optional(), output: z.unknown().optional() })
+function finiteNumber(value: unknown): number {
+  const parsed = check(z.number(), value)
+  return parsed.ok ? parsed.data : 0
 }
 
 function parseOpencodeStream(stdout: string): {
@@ -133,18 +135,18 @@ function parseOpencodeStream(stdout: string): {
   for (const line of stdout.split('\n')) {
     const trimmed = line.trim()
     if (!trimmed) continue
-    let evt: OpencodeEvent
-    try {
-      evt = JSON.parse(trimmed) as OpencodeEvent
-    } catch {
-      continue // línea parcial/ruido — no aborta el parseo del resto del stream
-    }
-    if (evt.part?.type === 'step-finish') {
+    const evt = parseJson(opencodeEventSchema, trimmed)
+    if (!evt.ok) continue
+    const part = check(opencodePartSchema, evt.data.part)
+    if (part.ok && part.data.type === 'step-finish') {
       sawStepFinish = true
       steps++
-      usd += evt.part.cost ?? 0
-      inputTokens += evt.part.tokens?.input ?? 0
-      outputTokens += evt.part.tokens?.output ?? 0
+      usd += finiteNumber(part.data.cost)
+      const tokens = check(tokensSchema, part.data.tokens)
+      if (tokens.ok) {
+        inputTokens += finiteNumber(tokens.data.input)
+        outputTokens += finiteNumber(tokens.data.output)
+      }
     }
   }
   if (!sawStepFinish) {

@@ -1086,3 +1086,18 @@ it('ERP.7.1d1 — task approvals require the harness adapter; spawn and displaye
     displayed,
   )
 })
+
+describe('AUD.14 — malformed Claude results', () => {
+  it.each(['null\n', '{"type":"result","is_error":true,"errors":"texto"}\n'])(
+    'rejects %s as ExecutorExternalError',
+    async (stdout) => {
+      const root = makeGitRepo()
+      const wt = createWorktree('aud14-claude', 'main', root)
+      trackWorktree(wt)
+      overrideBunSpawn(installMockSpawn(stdout))
+      await expect(
+        externalEngine.run(buildCtx(wt, baseTask()), { maxTokens: 4096, maxIterations: 3 }),
+      ).rejects.toBeInstanceOf(ExecutorExternalError)
+    },
+  )
+})

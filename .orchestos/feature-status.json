@@ -4,14 +4,6 @@
   "note": "Derivado, no editar a mano — bun run plan:status regenera.",
   "items": [
     {
-      "id": "AUD.14",
-      "sprint": "Etapa 1 — lo que rompe el uso normal",
-      "block": null,
-      "title": "Salidas de LLM sin validar tumban el run",
-      "status": "open",
-      "closedDate": null
-    },
-    {
       "id": "AUD.17",
       "sprint": "Etapa 1 — lo que rompe el uso normal",
       "block": null,
