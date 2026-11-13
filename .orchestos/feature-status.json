@@ -76,6 +76,14 @@
       "closedDate": null
     },
     {
+      "id": "USO.2",
+      "sprint": "Etapa 1 — lo que rompe el uso normal",
+      "block": null,
+      "title": "El dashboard abre sin token en la URL",
+      "status": "done",
+      "closedDate": null
+    },
+    {
       "id": "LRN.1b",
       "sprint": "Etapa 1 — lo que rompe el uso normal",
       "block": null,

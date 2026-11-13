@@ -1,0 +1,14 @@
+{
+  "item": "USO.2",
+  "date": "2026-11-13",
+  "live": "Playwright contra `orchestos dashboard --port 4299 --no-open` con ORCHESTOS_HOME temporal: abrir http://localhost:4299/ sin #t= -> Chat renderizado, 'Dashboard token required' 0, meta orchestos-token 1, 16 llamadas /api sin 401; carga nueva con #t=stale -> hash quitado, sin bloqueo.",
+  "gates": [
+    "bunx tsc --noEmit: 0 errores",
+    "bun run lint: lint-budget sin subir",
+    "bun test auth-token + dashboard-token + server-terminal + csrf-origin: 23 pass / 0 fail",
+    "bun run build:app: ok",
+    "gate:evidence USO.2-smoke: PASS 7/7",
+    "gate:evidence USO.2-dev-terminal: PASS 16/16 (WebSocket con token)"
+  ],
+  "review": "qa (Codex, otro proveedor): sin defectos"
+}

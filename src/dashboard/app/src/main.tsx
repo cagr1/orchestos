@@ -7,13 +7,10 @@ import firaLatinExt500 from '@fontsource/fira-code/files/fira-code-latin-ext-500
 import firaLatinExt600 from '@fontsource/fira-code/files/fira-code-latin-ext-600-normal.woff2'
 import interLatinExt from '@fontsource-variable/inter/files/inter-latin-ext-opsz-normal.woff2'
 import interLatin from '@fontsource-variable/inter/files/inter-latin-opsz-normal.woff2'
-import { KeyRound } from 'lucide-react'
-import { type ReactNode, StrictMode, useEffect, useState } from 'react'
+import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import App from './App.tsx'
-import { EmptyState } from './components/common/ViewStateFeedback'
 import { readAppearanceSettings, subscribeAppearanceSettings } from './lib/appearance-settings'
-import { readDashboardToken, TOKEN_REQUIRED_EVENT } from './lib/dashboard-token'
 import './index.css'
 
 const fontFaceStyles = `
@@ -48,43 +45,19 @@ if (threadStates) {
   document.documentElement.setAttribute('data-theme', themes.includes(theme) ? theme : 'orchestos')
 }
 
-function DashboardAccess({ children }: { children: ReactNode }) {
-  const [missing, setMissing] = useState(() => !readDashboardToken())
-  useEffect(() => {
-    const requireToken = () => setMissing(true)
-    window.addEventListener(TOKEN_REQUIRED_EVENT, requireToken)
-    return () => window.removeEventListener(TOKEN_REQUIRED_EVENT, requireToken)
-  }, [])
-  if (missing)
-    return (
-      <div className="flex h-screen items-center justify-center overflow-hidden">
-        <EmptyState
-          icon={KeyRound}
-          title="Dashboard token required"
-          description="Run orchestos dashboard and open the URL printed in the terminal."
-        />
-      </div>
-    )
-  return children
-}
-
 const root = createRoot(document.getElementById('root') as HTMLElement)
 
 if (threadStates) {
   const { default: ThreadStatesSheet } = await import('./components/thread/ThreadStatesSheet.tsx')
   root.render(
     <StrictMode>
-      <DashboardAccess>
-        <ThreadStatesSheet />
-      </DashboardAccess>
+      <ThreadStatesSheet />
     </StrictMode>,
   )
 } else {
   root.render(
     <StrictMode>
-      <DashboardAccess>
-        <App />
-      </DashboardAccess>
+      <App />
     </StrictMode>,
   )
 }

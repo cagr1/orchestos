@@ -23,6 +23,21 @@ export function loadOrCreateDashboardToken(): string {
   }
 }
 
+export async function withPageToken(response: Response, token: string): Promise<Response> {
+  if (!response.headers.get('content-type')?.startsWith('text/html')) return response
+  const html = await response.text()
+  const safeToken = token.replace(/[^A-Za-z0-9._~-]/g, '')
+  const body = html.replace(
+    '<head>',
+    `<head>\n    <meta name="orchestos-token" content="${safeToken}" />`,
+  )
+  // Same-origin and Host checks keep other websites from reading this; same-user processes could already read the token file.
+  const headers = new Headers(response.headers)
+  headers.set('Cache-Control', 'no-store')
+  headers.delete('content-length')
+  return new Response(body, { status: response.status, statusText: response.statusText, headers })
+}
+
 export function guardRequest(req: Request, port: number, token: string): Response | null {
   const hosts = [`127.0.0.1:${port}`, `localhost:${port}`]
   if (!hosts.includes(req.headers.get('host') ?? ''))

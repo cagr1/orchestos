@@ -150,6 +150,12 @@ subagente, sin informe aparte): cada cita se comprueba con grep al escribir el s
   Ejecutado por: gpt-6.1-sol (criterio) · Spec: docs/specs/USO.1.md
   Fuera de scope declarado: `scripts/ui-gate/flows/*.mjs` (gates desfasados) y `docs/done/evidence/USO.1-live.json`.
 
+- [x] **USO.2 — El dashboard abre sin token en la URL.** Gate en vivo: navegador Playwright en `localhost` sin `#t=`, Chat renderizado y 16 llamadas `/api` sin 401; `smoke` 7/7 y `dev-terminal` 16/16, `docs/done/evidence/USO.2-live.json`. (reportado por Carlos 2026-11-13, GO al arreglo)
+  AUD.7 (`c9c0fac6`) exige el token en `/api/*` y la UI solo lo obtenía de `#t=`: abrir `localhost:4242` a mano,
+  desde un marcador u otro navegador mostraba "Dashboard token required". El servidor inyecta el token en el HTML
+  (mismo origen + chequeo de Host), la pantalla se borra y `orchestos dashboard` abre el navegador.
+  Ejecutado por: gpt-6-luna (mecanico) · revisión qa: sin defectos · Spec: docs/specs/USO.2.md
+
 - [ ] **LRN.1b — El chat recibe lecciones y puede proponerlas (F1).**
   Bloque de lecciones en el prompt del chat con el mismo tope; acción "recordar" y herramienta `propose_lesson`;
   la vista Instincts muestra cita, porqué y uso, y permite editar antes de aprobar.

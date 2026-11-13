@@ -2158,7 +2158,8 @@ program
   .command('dashboard')
   .description('Start the local dashboard server')
   .option('--port <n>', 'Port to listen on', '4242')
-  .action(async (opts: { port?: string }) => {
+  .option('--no-open', 'Do not open the dashboard in a browser')
+  .action(async (opts: { port?: string; open?: boolean }) => {
     const { startServer } = await import('./dashboard/server.ts')
     const port = parseInt(opts.port ?? '4242', 10)
 
@@ -2192,9 +2193,18 @@ program
     }
 
     const { url } = startServer(port)
-    console.log(
-      `[dashboard] Open ${url}/#t=${encodeURIComponent(loadOrCreateDashboardToken())} in your browser`,
-    )
+    console.log(`[dashboard] Open ${url} in your browser`)
+    if (process.stdout.isTTY && opts.open !== false) {
+      const command =
+        process.platform === 'darwin'
+          ? ['open', url]
+          : process.platform === 'win32'
+            ? ['cmd', '/c', 'start', '', url]
+            : ['xdg-open', url]
+      try {
+        Bun.spawn(command, { stdio: ['ignore', 'ignore', 'ignore'] })
+      } catch {}
+    }
     await new Promise(() => {}) // keep process alive
   })
 
@@ -2206,7 +2216,6 @@ if (import.meta.main) {
 }
 
 // ── helpers ───────────────────────────────────────────────────────────────────
-import { loadOrCreateDashboardToken } from './dashboard/auth-token.ts'
 import { printGraphSummary } from './run/graph-summary.ts'
 
 function explainTaskRun(root: string, taskId: string) {

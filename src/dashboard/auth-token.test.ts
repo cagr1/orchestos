@@ -3,13 +3,29 @@ import { mkdtempSync, readFileSync, rmSync, statSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { db } from '../db/sqlite.ts'
-import { loadOrCreateDashboardToken } from './auth-token.ts'
+import { loadOrCreateDashboardToken, withPageToken } from './auth-token.ts'
 import { startServer } from './server.ts'
 
 const servers: ReturnType<typeof startServer>['server'][] = []
 const roots: string[] = []
 const originalHome = process.env.ORCHESTOS_HOME
 const originalToken = process.env.ORCHESTOS_DASHBOARD_TOKEN
+
+test('withPageToken injects a non-cacheable meta token into HTML and preserves JSON responses', async () => {
+  const html = await withPageToken(
+    new Response('<html><head><title>Dashboard</title></head></html>', {
+      headers: { 'content-type': 'text/html; charset=utf-8', 'content-length': '53' },
+    }),
+    'token/with unsafe chars',
+  )
+  expect(await html.text()).toContain(
+    '<meta name="orchestos-token" content="tokenwithunsafechars" />',
+  )
+  expect(html.headers.get('cache-control')).toBe('no-store')
+  expect(html.headers.has('content-length')).toBe(false)
+  const json = Response.json({ ok: true })
+  expect(await withPageToken(json, 'secret')).toBe(json)
+})
 
 afterEach(() => {
   for (const server of servers.splice(0)) server.stop(true)

@@ -5,7 +5,7 @@ import { reconcileChatTurns } from '../db/chat-turns.ts'
 import { applyCliSearchPath } from '../run/executors/cli-discovery.ts'
 import { stopCodexAppServers } from '../run/executors/codex-app-server.ts'
 import { killAllTrees } from '../run/process-tree.ts'
-import { guardRequest, loadOrCreateDashboardToken } from './auth-token.ts'
+import { guardRequest, loadOrCreateDashboardToken, withPageToken } from './auth-token.ts'
 import {
   handleApiChat,
   handleApiChatCliModels,
@@ -753,7 +753,8 @@ export function startServer(
       const denied = guardRequest(req, server.port ?? port, dashboardToken)
       if (denied) return denied
       const url = new URL(req.url)
-      if (url.pathname !== '/api/terminal') return route(req, server.port ?? port)
+      if (url.pathname !== '/api/terminal')
+        return withPageToken(await route(req, server.port ?? port), dashboardToken)
       if (req.method !== 'GET') return errorResponse('Method not allowed', 405)
       const origin = req.headers.get('origin')
       if (!origin || !isSameOrigin(req, server.port ?? port)) return errorResponse('Forbidden', 403)

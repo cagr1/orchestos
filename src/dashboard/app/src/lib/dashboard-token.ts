@@ -1,9 +1,7 @@
-const STORAGE_KEY = 'orchestos.dashboardToken'
-export const TOKEN_REQUIRED_EVENT = 'orchestos:dashboard-token-required'
 const installed = new WeakSet<Window>()
 
 export function readDashboardToken(): string {
-  return window.localStorage.getItem(STORAGE_KEY) ?? ''
+  return window.document?.querySelector('meta[name="orchestos-token"]')?.getAttribute('content') ?? ''
 }
 
 export function installDashboardToken(): void {
@@ -12,7 +10,6 @@ export function installDashboardToken(): void {
   const params = new URLSearchParams(window.location.hash.slice(1))
   const token = params.get('t')
   if (token) {
-    window.localStorage.setItem(STORAGE_KEY, token)
     params.delete('t')
     const hash = params.toString()
     window.history.replaceState(
@@ -21,10 +18,7 @@ export function installDashboardToken(): void {
       `${window.location.pathname}${window.location.search}${hash ? `#${hash}` : ''}`,
     )
   }
-  // Pegar la URL con token en una pestaña abierta solo cambia el hash: recargar para tomarlo al arrancar.
-  window.addEventListener('hashchange', () => {
-    if (new URLSearchParams(window.location.hash.slice(1)).get('t')) window.location.reload()
-  })
+  window.localStorage.removeItem('orchestos.dashboardToken')
   const originalFetch = window.fetch.bind(window)
   window.fetch = Object.assign(async (input: RequestInfo | URL, init?: RequestInit) => {
     const url = new URL(input instanceof Request ? input.url : String(input), window.location.href)
@@ -35,13 +29,16 @@ export function installDashboardToken(): void {
     )
     headers.set('x-orchestos-token', readDashboardToken())
     const response = await originalFetch(input, { ...init, headers })
+    if (response.ok) window.sessionStorage.removeItem('orchestos.tokenReload')
     if (response.status === 401) {
       const body = await response
         .clone()
         .json()
         .catch(() => null)
-      if (body?.error === 'dashboard token required')
-        window.dispatchEvent(new Event(TOKEN_REQUIRED_EVENT))
+      if (body?.error === 'dashboard token required' && !window.sessionStorage.getItem('orchestos.tokenReload')) {
+        window.sessionStorage.setItem('orchestos.tokenReload', '1')
+        window.location.reload()
+      }
     }
     return response
   }, window.fetch)
