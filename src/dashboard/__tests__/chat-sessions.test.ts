@@ -54,7 +54,7 @@ printf '%s\\n' '{"type":"item.completed","item":{"type":"agent_message","text":"
       env.PATH = `${bin}:${NO_CLI_PATH}`
       delete env.FAKE_CODEX
     }
-    if (env.FAKE_CLAUDE) {
+    if (env.FAKE_CLAUDE || env.FAKE_LESSONS) {
       // AT.20 — claude falso: `--help` declara --restricted y el stream trae la llamada MCP real
       // (misma forma que src/mcp/__fixtures__/claude-create-task-assistant.json).
       const bin = join(home, 'bin')
@@ -62,21 +62,28 @@ printf '%s\\n' '{"type":"item.completed","item":{"type":"agent_message","text":"
       const assistant = JSON.stringify({
         type: 'assistant',
         message: {
-          content: [
-            { type: 'text', text: 'Task proposed.' },
-            {
-              type: 'tool_use',
-              id: 'toolu_fake',
-              name: 'mcp__orchestos__create_task',
-              input: JSON.parse(env.FAKE_CLAUDE),
-            },
-          ],
+          content: env.FAKE_LESSONS
+            ? JSON.parse(env.FAKE_LESSONS).map((input: unknown, index: number) => ({
+                type: 'tool_use',
+                id: `lesson-${index}`,
+                name: 'mcp__orchestos__propose_lesson',
+                input,
+              }))
+            : [
+                { type: 'text', text: 'Task proposed.' },
+                {
+                  type: 'tool_use',
+                  id: 'toolu_fake',
+                  name: 'mcp__orchestos__create_task',
+                  input: JSON.parse(env.FAKE_CLAUDE!),
+                },
+              ],
         },
       })
       const result = JSON.stringify({
         type: 'result',
-        subtype: 'success',
-        is_error: false,
+        subtype: env.FAKE_LESSON_FAIL ? 'error_during_execution' : 'success',
+        is_error: !!env.FAKE_LESSON_FAIL,
         result: 'Task proposed.',
         session_id: 'fake-session',
         usage: { input_tokens: 10, output_tokens: 5 },
@@ -85,6 +92,7 @@ printf '%s\\n' '{"type":"item.completed","item":{"type":"agent_message","text":"
       })
       const fakeClaude = `#!/bin/sh
 if [ "$1" = --help ]; then printf '  --restricted  fake\\n'; exit 0; fi
+printf '%s\\n' "$@" > "$ORCHESTOS_HOME/fake-claude-args.txt"
 cat >/dev/null
 printf '%s\\n' '${assistant}' '${result}'
 `
@@ -92,6 +100,8 @@ printf '%s\\n' '${assistant}' '${result}'
       chmodSync(join(bin, 'claude'), 0o755)
       env.PATH = `${bin}:${env.PATH}`
       delete env.FAKE_CLAUDE
+      delete env.FAKE_LESSONS
+      delete env.FAKE_LESSON_FAIL
     }
     const proc = Bun.spawn(['bun', '-e', body], {
       cwd: process.cwd(),
@@ -1369,3 +1379,155 @@ describe('CC.2 — chat sessions backend', () => {
     expect(result).toMatchObject({ turnId: expect.any(String), text: 'visible text' })
   })
 })
+
+describe('LRN.1b chat lesson proposals', () => {
+  const proposal = {
+    trigger: 'when corrected',
+    action: 'apply the correction',
+    why: 'avoid repeating mistakes',
+  }
+  const setup = String.raw`
+    const { mkdirSync, writeFileSync, readFileSync } = await import('node:fs')
+    const { join } = await import('node:path')
+    const home = process.env.ORCHESTOS_HOME
+    const root = join(home, 'lesson-project')
+    mkdirSync(root, { recursive: true })
+    writeFileSync(join(root, 'orchestos.config.yaml'), 'roles:\n  orchestrator: { agent: api, model: deepseek/deepseek-v4-flash, provider: openrouter }\n')
+    const { runMigrations } = await import('./src/db/migrate.ts')
+    const { db } = await import('./src/db/sqlite.ts')
+    const { createChatSession } = await import('./src/db/chat-sessions.ts')
+    const { handleApiChat } = await import('./src/dashboard/handlers/chat.ts')
+    const { insertInstinct, listInstincts, getInstinct } = await import('./src/instincts/store.ts')
+    const { MANUAL_DEFAULTS } = await import('./src/instincts/schema.ts')
+    runMigrations()
+    db.run('INSERT INTO projects (id, path, stack_profile, agents_md, last_updated) VALUES (?, ?, ?, ?, ?)', ['lesson-project', root, '{}', '', new Date().toISOString()])
+    const send = (session, requestKey) => handleApiChat(new Request('http://localhost/api/chat', { method: 'POST', body: JSON.stringify({ sessionId: session.id, message: 'That was a mistake; remember the fix', model: 'claude-sonnet-5', requestKey }) }))
+  `
+  it('stores three valid auto proposals with turn evidence, and counts injection once despite replay', async () => {
+    const result = await runIsolated(
+      setup +
+        String.raw`
+      const seed = insertInstinct({ projectId: 'lesson-project', trigger: 'existing trigger', action: 'existing lesson', ...MANUAL_DEFAULTS })
+      const session = createChatSession({ projectId: 'lesson-project', agent: 'claude', mode: 'chat' })
+      const first = await send(session, 'lesson-key')
+      const payload = await first.json()
+      const replay = await send(session, 'lesson-key')
+      const rows = listInstincts({ projectId: 'lesson-project' })
+      const turn = db.query('SELECT id FROM chat_turns WHERE session_id = ?').get(session.id)
+      process.stdout.write(JSON.stringify({ status: first.status, payload, replay: replay.status, seed: getInstinct(seed.id), proposals: rows.filter(row => row.source === 'auto'), turnId: turn.id, args: readFileSync(join(home, 'fake-claude-args.txt'), 'utf8') }))
+      db.close()
+    `,
+      {
+        FAKE_LESSONS: JSON.stringify([
+          {},
+          ...Array.from({ length: 5 }, (_, i) => ({
+            ...proposal,
+            trigger: `correction ${i}`,
+            action: `fix ${i}`,
+          })),
+        ]),
+      },
+    )
+    expect(result.status, JSON.stringify(result.payload)).toBe(200)
+    expect(result.replay).toBe(200)
+    expect(result.proposals).toHaveLength(3)
+    for (const row of result.proposals as Record<string, unknown>[])
+      expect(row).toMatchObject({
+        project_id: 'lesson-project',
+        source: 'auto',
+        verified: false,
+        why: proposal.why,
+        evidence: { turnId: result.turnId },
+      })
+    expect((result.proposals as Array<{ action: string }>).map((row) => row.action)).toEqual(
+      expect.arrayContaining(['fix 0', 'fix 1', 'fix 2']),
+    )
+    expect(result.seed).toMatchObject({ injectedCount: 1, lastInjectedAt: expect.any(String) })
+    expect(String(result.args)).toContain('propose_lesson')
+    expect(String(result.args)).toContain('- When existing trigger: existing lesson')
+  }, 15000)
+  it('general chat does not offer or persist proposals', async () => {
+    const result = await runIsolated(
+      setup +
+        String.raw`
+      const session = createChatSession({ projectId: null, agent: 'claude' })
+      const response = await send(session, 'general-key')
+      process.stdout.write(JSON.stringify({ status: response.status, payload: await response.json(), proposals: listInstincts({ projectId: null }), args: readFileSync(join(home, 'fake-claude-args.txt'), 'utf8') }))
+      db.close()
+    `,
+      { FAKE_LESSONS: JSON.stringify([proposal]) },
+    )
+    expect(result.status, JSON.stringify(result.payload)).toBe(200)
+    expect(result.proposals).toEqual([])
+    expect(String(result.args)).not.toContain('propose_lesson')
+  }, 15000)
+  it('failed turns discard collected proposals', async () => {
+    const result = await runIsolated(
+      setup +
+        String.raw`
+      const session = createChatSession({ projectId: 'lesson-project', agent: 'claude' })
+      const response = await send(session, 'failed-key')
+      process.stdout.write(JSON.stringify({ status: response.status, payload: await response.json(), proposals: listInstincts({ projectId: 'lesson-project' }) }))
+      db.close()
+    `,
+      { FAKE_LESSONS: JSON.stringify([proposal]), FAKE_LESSON_FAIL: '1' },
+    )
+    expect(Number(result.status)).toBeGreaterThanOrEqual(400)
+    expect(result.proposals).toEqual([])
+  }, 15000)
+  it('duplicate proposal triggers do not fail the turn or create another row', async () => {
+    const result = await runIsolated(
+      setup +
+        String.raw`
+      insertInstinct({ projectId: 'lesson-project', trigger: 'when corrected', action: 'existing lesson', ...MANUAL_DEFAULTS })
+      const session = createChatSession({ projectId: 'lesson-project', agent: 'claude' })
+      const response = await send(session, 'duplicate-key')
+      process.stdout.write(JSON.stringify({ status: response.status, proposals: listInstincts({ projectId: 'lesson-project' }).filter(row => row.source === 'auto') }))
+      db.close()
+    `,
+      { FAKE_LESSONS: JSON.stringify([proposal]) },
+    )
+    expect(result.status, JSON.stringify(result)).toBe(200)
+    expect(result.proposals).toEqual([])
+  }, 15000)
+})
+
+it('LRN.1b records API lesson injection only after the context budget passes', async () => {
+  const result = await runIsolated(String.raw`
+    const { mkdirSync, writeFileSync } = await import('node:fs')
+    const { join } = await import('node:path')
+    const home = process.env.ORCHESTOS_HOME
+    const root = join(home, 'lesson-budget-project')
+    mkdirSync(root, { recursive: true })
+    writeFileSync(join(home, '.orchestos', 'cache', 'models.json'), JSON.stringify({ schemaVersion: 2, fetchedAt: Date.now(), models: { 'deepseek/deepseek-v4-flash': { contextLength: 64000, priceIn: 0, priceOut: 0, supportsReasoning: false, supportsTools: false, maxOutputTokens: 8192, supportsVision: false } } }))
+    writeFileSync(join(root, 'orchestos.config.yaml'), 'roles:\n  orchestrator: { agent: api, model: deepseek/deepseek-v4-flash, provider: openrouter }\n  auxiliary: { agent: api, model: deepseek/deepseek-v4-flash, provider: openrouter }\n')
+    const { runMigrations } = await import('./src/db/migrate.ts')
+    const { db } = await import('./src/db/sqlite.ts')
+    const { createChatSession } = await import('./src/db/chat-sessions.ts')
+    const { handleApiChat } = await import('./src/dashboard/handlers/chat.ts')
+    const { insertInstinct, getInstinct } = await import('./src/instincts/store.ts')
+    const { MANUAL_DEFAULTS } = await import('./src/instincts/schema.ts')
+    runMigrations()
+    db.run('INSERT INTO projects (id, path, stack_profile, agents_md, last_updated) VALUES (?, ?, ?, ?, ?)', ['lesson-budget-project', root, '{}', '', new Date().toISOString()])
+    const lesson = insertInstinct({ projectId: 'lesson-budget-project', trigger: 'budget test', action: 'remember', ...MANUAL_DEFAULTS })
+    const session = createChatSession({ projectId: 'lesson-budget-project', agent: 'api', mode: 'chat' })
+    let providerCalls = 0
+    globalThis.fetch = async () => {
+      providerCalls++
+      return new Response(JSON.stringify({ choices: [{ message: { content: 'ok' } }], usage: { prompt_tokens: 10, completion_tokens: 5 }, model: 'deepseek/deepseek-v4-flash' }), { status: 200 })
+    }
+    const send = (message, requestKey) => handleApiChat(new Request('http://localhost/api/chat', { method: 'POST', body: JSON.stringify({ sessionId: session.id, message, requestKey }) }))
+    const rejected = await send('x'.repeat(300000), 'lesson-over-budget')
+    const afterRejected = getInstinct(lesson.id).injectedCount
+    const accepted = await send('hello', 'lesson-within-budget')
+    process.stdout.write(JSON.stringify({ rejected: rejected.status, afterRejected, accepted: accepted.status, afterAccepted: getInstinct(lesson.id).injectedCount, providerCalls }))
+    db.close()
+  `)
+  expect(result).toEqual({
+    rejected: 422,
+    afterRejected: 0,
+    accepted: 200,
+    afterAccepted: 1,
+    providerCalls: 1,
+  })
+}, 15000)

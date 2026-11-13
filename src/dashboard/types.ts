@@ -321,6 +321,10 @@ export type GraphRunStatusResponse =
 // ── /api/instincts ────────────────────────────────────────────────────────────
 
 export interface InstinctRow {
+  why?: string | null
+  evidence?: { runId?: string; turnId?: string; ref?: string } | null
+  injectedCount: number
+  lastInjectedAt: string | null
   projectId: string | null
   id: string
   trigger: string

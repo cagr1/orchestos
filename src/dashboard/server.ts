@@ -48,6 +48,7 @@ import {
   handleApiInstinctsPropose,
   handleApiInstinctsReject,
   handleApiInstinctsSetConfidence,
+  handleApiInstinctsUpdate,
 } from './handlers/instincts.ts'
 import {
   handleApiMemory,
@@ -354,6 +355,9 @@ export async function route(req: Request, port: number): Promise<Response> {
   }
   if (method === 'POST' && url.pathname.match(/^\/api\/instincts\/([^/]+)\/reject$/)) {
     return withDashboardProject(req, (project) => handleApiInstinctsReject(url, project.id))
+  }
+  if (method === 'PATCH' && url.pathname.match(/^\/api\/instincts\/[^/]+$/)) {
+    return withDashboardProject(req, (project) => handleApiInstinctsUpdate(req, url, project.id))
   }
   if (method === 'DELETE' && url.pathname.match(/^\/api\/instincts\/[^/]+$/)) {
     return withDashboardProject(req, (project) => handleApiInstinctsDelete(url, project.id))

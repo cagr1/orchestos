@@ -33,15 +33,19 @@ import {
 import type { MemoryEntry } from '../../db/memory.ts'
 import { insertRun, listContextRuns } from '../../db/runs.ts'
 import { db } from '../../db/sqlite.ts'
+import { AUTO_DEFAULTS } from '../../instincts/schema.ts'
+import { insertInstinct, listApplicable, recordInjected } from '../../instincts/store.ts'
 import {
   createTaskApiTool,
+  lessonProposalFromStep,
   type McpOffer,
+  proposeLessonApiTool,
   runReadonlyApiTool,
   type TaskProposal,
   taskProposalFromStep,
 } from '../../mcp/adapters.ts'
 import { RUN_READONLY_TOOL } from '../../mcp/readonly.ts'
-import { CREATE_TASK_TOOL } from '../../mcp/server.ts'
+import { CREATE_TASK_TOOL, type LessonProposal, PROPOSE_LESSON_TOOL } from '../../mcp/server.ts'
 import {
   createToolRouter,
   FETCH_URL_TOOL,
@@ -1094,6 +1098,11 @@ async function handleApiChat(
     const persistedNotices = new Set<string>()
     // AT.20 — la fuente de verdad de "crear tarea" es la llamada a `create_task` en el stream del CLI.
     let taskProposal: TaskProposal | null = null
+    const lessonProposals: Array<Extract<LessonProposal, { ok: true }>> = []
+    const collectLessonProposal = (proposal: LessonProposal | null): void => {
+      if (hasProjectContext && project.id && proposal?.ok && lessonProposals.length < 3)
+        lessonProposals.push(proposal)
+    }
     const activeToolMeta = new Map<string, { tool: string; target?: string }>()
     const persistChatStep = (step: ExecutorStepEvent): void => {
       if (signal?.aborted) return
@@ -1113,6 +1122,7 @@ async function handleApiChat(
         persistedNotices.add(key)
       }
       taskProposal ??= taskProposalFromStep(step)
+      collectLessonProposal(lessonProposalFromStep(step))
       if (!activeTurnId || !session) return
       const related = step.toolUseId ? activeToolMeta.get(step.toolUseId) : undefined
       if (step.type === 'tool_use' && step.toolUseId && step.label !== 'tool_result') {
@@ -1440,6 +1450,7 @@ async function handleApiChat(
     const offeredTools = [
       ...(taskToolOffered ? [CREATE_TASK_TOOL] : []),
       ...(readonlyOffered ? [RUN_READONLY_TOOL] : []),
+      ...(readonlyOffered && project.id ? [PROPOSE_LESSON_TOOL] : []),
     ]
     const mcpOffer: McpOffer | undefined =
       cliAdapter && offeredTools.length ? { tools: offeredTools, root } : undefined
@@ -1462,6 +1473,7 @@ async function handleApiChat(
             taskRows.map((t) => t.id),
           )
         : undefined
+    const lessons = listApplicable(hasProjectContext ? project.id : null)
     const systemPrompt = buildChatSystemPrompt({
       userCodes: readUserProfile().codes,
       projectRoot: root,
@@ -1471,6 +1483,7 @@ async function handleApiChat(
       runs: recentRuns,
       qaReasons,
       memory: memoryRows,
+      lessons,
       specs: specRows,
       projectFiles,
       projectProfile: projectContext?.profile,
@@ -1637,53 +1650,72 @@ async function handleApiChat(
         elapsed_ms: Date.now() - turnStartedAt,
         result: responseText,
       }
-      if (activeTurnId && session) {
-        commitTurnSuccess({
-          turnId: activeTurnId,
-          owner: CHAT_TURN_OWNER,
-          run: runInput,
-          userContent: message,
-          assistantContent: responseText,
-          model: resultLabel,
-          taskId: autoTask && 'id' in autoTask ? autoTask.id : null,
-          ocrUsed,
-          taskHeld: held,
-          existingFiles:
-            autoTask && 'existingFiles' in autoTask ? autoTask.existingFiles : undefined,
-          envelope: {
-            text: responseText,
+      db.transaction(() => {
+        if (activeTurnId && session) {
+          commitTurnSuccess({
+            turnId: activeTurnId,
+            owner: CHAT_TURN_OWNER,
+            run: runInput,
+            userContent: message,
+            assistantContent: responseText,
             model: resultLabel,
-            ocrUsed: ocrUsed.length ? ocrUsed : undefined,
-            taskSuggestion: taskSuggestion.isTask
-              ? { isTask: true, reason: taskSuggestion.reason }
-              : { isTask: false, reason: '' },
-            autoTask,
-            autoTaskSkipped,
-            readAudit: params.readAudit,
-            readBoundaryWarning: params.readBoundaryWarning ?? undefined,
-          },
-        })
-      } else {
-        logChatRun(
-          message,
-          canonicalModel,
-          inputTokens,
-          outputTokens,
-          projectId,
-          responseText,
-          readAudit,
-          provider,
-          'done',
-          params.reportedUsd,
-          contextTokens,
-          params.cacheReadTokens ?? 0,
-          params.cacheWriteTokens ?? 0,
-          Date.now() - turnStartedAt,
-          params.cliSessionId,
-          params.contextUsed,
-          params.contextWindow,
-        )
-      }
+            taskId: autoTask && 'id' in autoTask ? autoTask.id : null,
+            ocrUsed,
+            taskHeld: held,
+            existingFiles:
+              autoTask && 'existingFiles' in autoTask ? autoTask.existingFiles : undefined,
+            envelope: {
+              text: responseText,
+              model: resultLabel,
+              ocrUsed: ocrUsed.length ? ocrUsed : undefined,
+              taskSuggestion: taskSuggestion.isTask
+                ? { isTask: true, reason: taskSuggestion.reason }
+                : { isTask: false, reason: '' },
+              autoTask,
+              autoTaskSkipped,
+              readAudit: params.readAudit,
+              readBoundaryWarning: params.readBoundaryWarning ?? undefined,
+            },
+          })
+        } else {
+          logChatRun(
+            message,
+            canonicalModel,
+            inputTokens,
+            outputTokens,
+            projectId,
+            responseText,
+            readAudit,
+            provider,
+            'done',
+            params.reportedUsd,
+            contextTokens,
+            params.cacheReadTokens ?? 0,
+            params.cacheWriteTokens ?? 0,
+            Date.now() - turnStartedAt,
+            params.cliSessionId,
+            params.contextUsed,
+            params.contextWindow,
+          )
+        }
+        if (hasProjectContext) {
+          for (const proposal of lessonProposals) {
+            try {
+              insertInstinct({
+                projectId,
+                trigger: proposal.trigger,
+                action: proposal.action,
+                why: proposal.why,
+                evidence: activeTurnId ? { turnId: activeTurnId } : undefined,
+                ...AUTO_DEFAULTS,
+              })
+            } catch (error) {
+              if (!(error instanceof Error && error.message.includes('UNIQUE')))
+                console.warn('Could not save proposed lesson', error)
+            }
+          }
+        }
+      })()
     }
 
     messages.push({
@@ -1701,6 +1733,7 @@ async function handleApiChat(
           ? null
           : mkdtempSync(join(tmpdir(), 'orchestos-chat-'))
         try {
+          recordInjected(lessons.map((lesson) => lesson.id))
           const result = await cliAdapter.runTurn({
             cwd: isolatedCwd ?? root,
             system: systemPrompt,
@@ -1858,6 +1891,7 @@ async function handleApiChat(
         finishTurnFailure({ error: contextError, model })
         return errorResponse(contextError, 422)
       }
+      recordInjected(lessons.map((lesson) => lesson.id))
       // Mes 22/E.1 — mismo fix que harness.ts: `knownMaxOutputTokensFor` (0 =
       // desconocido) en vez de `maxOutputTokensFor` (que colapsa 0→8192 y topaba
       // toda respuesta a 8192). Base = `available` (contextWindow − prompt);
@@ -1875,6 +1909,9 @@ async function handleApiChat(
               taskProposal = proposal
             })
           : null
+        const lessonTool = offeredTools.includes(PROPOSE_LESSON_TOOL)
+          ? proposeLessonApiTool(collectLessonProposal)
+          : null
         const result = await runToolLoop('openrouter', model, {
           system: systemPrompt,
           messages,
@@ -1887,10 +1924,12 @@ async function handleApiChat(
             READ_FILE_TOOL,
             ...(createTaskTool ? [createTaskTool.tool] : []),
             readonlyTool.tool,
+            ...(lessonTool ? [lessonTool.tool] : []),
           ],
           executeTool: createToolRouter({
             ...(createTaskTool ? { [createTaskTool.tool.name]: createTaskTool.execute } : {}),
             [readonlyTool.tool.name]: readonlyTool.execute,
+            ...(lessonTool ? { [lessonTool.tool.name]: lessonTool.execute } : {}),
             fetch_url: (name, input) => executeFetchUrl(name, input, undefined, signal),
             search_memory: (name, input) => executeSearchMemory(name, input, project.id),
             read_plan: auditedReader,

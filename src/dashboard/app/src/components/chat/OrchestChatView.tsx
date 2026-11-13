@@ -1,4 +1,4 @@
-import { Check, Copy, FileText } from 'lucide-react'
+import { BookmarkPlus, Check, Copy, FileText } from 'lucide-react'
 import { AnimatePresence, MotionConfig, motion } from 'motion/react'
 import type React from 'react'
 import { useEffect, useRef, useState } from 'react'
@@ -36,6 +36,7 @@ import { ThreadThinking } from '../thread/ThreadThinking'
 import { ThreadTools } from '../thread/ThreadTools'
 import { buildTaskCards } from '../thread/taskCards'
 import { formatElapsed, livePhase } from '../thread/thinking'
+import { RememberDialog } from './RememberDialog'
 
 interface OrchestChatViewProps {
   tasks?: TaskItem[]
@@ -86,6 +87,11 @@ export const OrchestChatView: React.FC<OrchestChatViewProps> = ({
   const scrollContainerRef = useRef<HTMLDivElement>(null)
   const contentRef = useRef<HTMLDivElement>(null)
   const { stickToBottom } = useStickToBottom(scrollContainerRef, contentRef)
+  const [rememberMessage, setRememberMessage] = useState<{
+    id: string
+    content: string
+    sessionId: string
+  } | null>(null)
   const [copiedMessageId, setCopiedMessageId] = useState<string | null>(null)
   const [isWorking, setIsWorking] = useState(false)
   const working = isWorking || thread?.running === true
@@ -396,19 +402,38 @@ export const OrchestChatView: React.FC<OrchestChatViewProps> = ({
                           layout={false}
                           className="max-w-2xl select-text"
                           actions={
-                            <button
-                              type="button"
-                              onClick={() => void copyMessage(msg.id, msg.content)}
-                              className="p-1 rounded-control text-app-muted hover:text-app transition-colors"
-                              title="Copy"
-                              aria-label="Copy"
-                            >
-                              {copiedMessageId === msg.id ? (
-                                <Check className="w-3 h-3" />
-                              ) : (
-                                <Copy className="w-3 h-3" />
+                            <>
+                              <button
+                                type="button"
+                                onClick={() => void copyMessage(msg.id, msg.content)}
+                                className="p-1 rounded-control text-app-muted hover:text-app transition-colors"
+                                title="Copy"
+                                aria-label="Copy"
+                              >
+                                {copiedMessageId === msg.id ? (
+                                  <Check className="w-3 h-3" />
+                                ) : (
+                                  <Copy className="w-3 h-3" />
+                                )}
+                              </button>
+                              {thread?.projectId && projectExists && (
+                                <button
+                                  type="button"
+                                  title="Remember"
+                                  aria-label="Remember"
+                                  className="p-1 rounded-control text-app-muted hover:text-app transition-colors"
+                                  onClick={() =>
+                                    setRememberMessage({
+                                      id: msg.id,
+                                      content: msg.content,
+                                      sessionId: thread.id,
+                                    })
+                                  }
+                                >
+                                  <BookmarkPlus className="w-3 h-3" />
+                                </button>
                               )}
-                            </button>
+                            </>
                           }
                         >
                           {/* Attachments if any */}
@@ -454,19 +479,38 @@ export const OrchestChatView: React.FC<OrchestChatViewProps> = ({
                         layout={false}
                         className="max-w-full w-full select-text"
                         actions={
-                          <button
-                            type="button"
-                            onClick={() => void copyMessage(msg.id, msg.content)}
-                            className="p-1 rounded-control text-app-muted hover:text-app transition-colors"
-                            title="Copy"
-                            aria-label="Copy"
-                          >
-                            {copiedMessageId === msg.id ? (
-                              <Check className="w-3 h-3" />
-                            ) : (
-                              <Copy className="w-3 h-3" />
+                          <>
+                            <button
+                              type="button"
+                              onClick={() => void copyMessage(msg.id, msg.content)}
+                              className="p-1 rounded-control text-app-muted hover:text-app transition-colors"
+                              title="Copy"
+                              aria-label="Copy"
+                            >
+                              {copiedMessageId === msg.id ? (
+                                <Check className="w-3 h-3" />
+                              ) : (
+                                <Copy className="w-3 h-3" />
+                              )}
+                            </button>
+                            {thread?.projectId && projectExists && (
+                              <button
+                                type="button"
+                                title="Remember"
+                                aria-label="Remember"
+                                className="p-1 rounded-control text-app-muted hover:text-app transition-colors"
+                                onClick={() =>
+                                  setRememberMessage({
+                                    id: msg.id,
+                                    content: msg.content,
+                                    sessionId: thread.id,
+                                  })
+                                }
+                              >
+                                <BookmarkPlus className="w-3 h-3" />
+                              </button>
                             )}
-                          </button>
+                          </>
                         }
                       >
                         {((msg.reasoning?.length ?? 0) > 0 || (msg.notices?.length ?? 0) > 0) && (
@@ -633,6 +677,19 @@ export const OrchestChatView: React.FC<OrchestChatViewProps> = ({
           </div>
         </div>
       </div>
+      {rememberMessage &&
+        rememberMessage.sessionId === sessionId &&
+        thread?.projectId &&
+        sessionId && (
+          <RememberDialog
+            key={`${sessionId}:${rememberMessage.id}`}
+            projectId={thread.projectId}
+            sessionId={sessionId}
+            messageId={rememberMessage.id}
+            content={rememberMessage.content}
+            onClose={() => setRememberMessage(null)}
+          />
+        )}
     </MotionConfig>
   )
 }

@@ -30,6 +30,40 @@ export const CREATE_TASK_TOOL = 'create_task'
 export const CREATE_TASK_RESPONSE =
   "Task proposal received. OrchestOS will attempt to create it and either request a run or hold it for the user's approval; you will not see the result in this turn. Do not tell the user it is done."
 
+export const PROPOSE_LESSON_TOOL = 'propose_lesson'
+export const PROPOSE_LESSON_DESCRIPTION =
+  'Propose a lesson OrchestOS should remember for future chats and tasks in this project. Call it when the user corrects you or a mistake and its fix become clear. The user approves it before it applies.'
+export const PROPOSE_LESSON_RESPONSE =
+  'Lesson proposed. The user reviews it in Instincts before it applies.'
+export const PROPOSE_LESSON_SCHEMA = {
+  type: 'object',
+  properties: {
+    trigger: { type: 'string', maxLength: 500 },
+    action: { type: 'string', maxLength: 500 },
+    why: { type: 'string', maxLength: 1000 },
+  },
+  required: ['trigger', 'action', 'why'],
+  additionalProperties: false,
+} as const
+
+export type LessonProposal =
+  | { ok: true; trigger: string; action: string; why: string }
+  | { ok: false; error: string }
+
+export function parseProposeLessonArgs(input: unknown): LessonProposal {
+  const parsed = check(
+    z
+      .object({
+        trigger: z.string().trim().min(1).max(500),
+        action: z.string().trim().min(1).max(500),
+        why: z.string().trim().min(1).max(1000),
+      })
+      .strict(),
+    input,
+  )
+  return parsed.ok ? { ok: true, ...parsed.data } : { ok: false, error: parsed.error }
+}
+
 export interface CreateTaskArgs {
   title: string
   description: string
@@ -162,6 +196,15 @@ export async function handleMcpMessage(
                 },
               ]
             : []),
+          ...(options.tools.includes(PROPOSE_LESSON_TOOL)
+            ? [
+                {
+                  name: PROPOSE_LESSON_TOOL,
+                  description: PROPOSE_LESSON_DESCRIPTION,
+                  inputSchema: PROPOSE_LESSON_SCHEMA,
+                },
+              ]
+            : []),
           ...(options.tools.includes(RUN_READONLY_TOOL)
             ? [
                 {
@@ -210,6 +253,10 @@ export async function handleMcpMessage(
       if (name === RUN_READONLY_TOOL) {
         const out = await runReadonly(message.params?.arguments, options.root)
         return text(out.text, out.isError)
+      }
+      if (name === PROPOSE_LESSON_TOOL) {
+        const parsed = parseProposeLessonArgs(message.params?.arguments)
+        return parsed.ok ? text(PROPOSE_LESSON_RESPONSE, false) : text(parsed.error, true)
       }
       const parsed = parseCreateTaskArgs(message.params?.arguments)
       return parsed.ok ? text(CREATE_TASK_RESPONSE, false) : text(parsed.error, true)

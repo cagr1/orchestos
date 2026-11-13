@@ -177,3 +177,33 @@ describe('chat system context', () => {
     expect(displayRunModel('openai/gpt-5.4', 'openrouter')).toBe('openrouter · openai/gpt-5.4')
   })
 })
+
+describe('chat lessons', () => {
+  it('renders lessons after Memory and before Specs, omitting an empty block', () => {
+    const base = {
+      autoTaskInstruction: '',
+      memory: [{ scope: 'project', topic_key: 'facts', content: 'memory fact' }],
+      specs: [{ id: 'spec', status: 'draft' }],
+    }
+    for (const lessons of [undefined, []])
+      expect(buildChatSystemPrompt({ ...base, lessons })).not.toContain('## Lessons')
+    const prompt = buildChatSystemPrompt({
+      ...base,
+      lessons: [{ id: 'lesson', trigger: 'corrected', action: 'remember' }],
+    })
+    expect(prompt).toContain(
+      '## Lessons\nLessons learned in this project. Apply them when they fit.\n- When corrected: remember',
+    )
+    expect(prompt.indexOf('Memory (')).toBeLessThan(prompt.indexOf('## Lessons'))
+    expect(prompt.indexOf('## Lessons')).toBeLessThan(prompt.indexOf('Specs ('))
+  })
+  it('asks to propose lessons only when the tool is offered', () => {
+    const line = 'When the user corrects you, call `propose_lesson` with what to do next time.'
+    expect(
+      buildChatSystemPrompt({ autoTaskInstruction: '', offeredTools: ['propose_lesson'] }),
+    ).toContain(line)
+    expect(
+      buildChatSystemPrompt({ autoTaskInstruction: '', offeredTools: ['create_task'] }),
+    ).not.toContain(line)
+  })
+})

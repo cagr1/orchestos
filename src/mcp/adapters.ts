@@ -14,6 +14,7 @@
  */
 
 import { join } from 'node:path'
+import { parseJson, z } from '../boundary/index.ts'
 import type { ToolDef, ToolExecutor } from '../providers/tool-call.ts'
 import type { ExecutorStepEvent } from '../run/executors/step-event.ts'
 import { RUN_READONLY_TOOL, readonlyToolDefinition, runReadonly } from './readonly.ts'
@@ -22,12 +23,20 @@ import {
   CREATE_TASK_SCHEMA,
   CREATE_TASK_TOOL,
   type CreateTaskArgs,
+  type LessonProposal,
   MCP_SERVER_NAME,
+  PROPOSE_LESSON_DESCRIPTION,
+  PROPOSE_LESSON_RESPONSE,
+  PROPOSE_LESSON_SCHEMA,
+  PROPOSE_LESSON_TOOL,
   parseCreateTaskArgs,
+  parseProposeLessonArgs,
 } from './server.ts'
 
 export const CREATE_TASK_STEP_LABEL = `mcp__${MCP_SERVER_NAME}__${CREATE_TASK_TOOL}`
 export const RUN_READONLY_STEP_LABEL = `mcp__${MCP_SERVER_NAME}__${RUN_READONLY_TOOL}`
+
+export const PROPOSE_LESSON_STEP_LABEL = `mcp__${MCP_SERVER_NAME}__${PROPOSE_LESSON_TOOL}`
 
 const SERVER_PATH = join(import.meta.dir, 'server.ts')
 
@@ -130,6 +139,32 @@ export function runReadonlyApiTool(root: string): { tool: ToolDef; execute: Tool
     execute: async (_name, input) => {
       const out = await runReadonly(input, root)
       return out.isError ? `[Error: ${out.text}]` : out.text
+    },
+  }
+}
+
+export function lessonProposalFromStep(step: ExecutorStepEvent): LessonProposal | null {
+  if (step.type !== 'tool_use' || step.label !== PROPOSE_LESSON_STEP_LABEL) return null
+  const parsed = parseJson(z.unknown(), step.detail ?? '')
+  return parsed.ok
+    ? parseProposeLessonArgs(parsed.data)
+    : { ok: false, error: 'propose_lesson arguments were not valid JSON' }
+}
+
+export function proposeLessonApiTool(onProposal: (proposal: LessonProposal) => void): {
+  tool: ToolDef
+  execute: ToolExecutor
+} {
+  return {
+    tool: {
+      name: PROPOSE_LESSON_TOOL,
+      description: PROPOSE_LESSON_DESCRIPTION,
+      input_schema: PROPOSE_LESSON_SCHEMA as unknown as ToolDef['input_schema'],
+    },
+    execute: async (_name, input) => {
+      const parsed = parseProposeLessonArgs(input)
+      onProposal(parsed)
+      return parsed.ok ? PROPOSE_LESSON_RESPONSE : `[Error: ${parsed.error}]`
     },
   }
 }

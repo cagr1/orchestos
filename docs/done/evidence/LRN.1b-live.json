@@ -1,0 +1,14 @@
+{
+  "item": "LRN.1b",
+  "date": "2026-11-13",
+  "live": "gate:evidence LRN.1b-lessons -> ui:gate lessons PASS 10/10 (dashboard real, navegador Playwright, CLI claude falso por preload): propose_lesson del stream crea lección auto sin verificar con turnId; Remember prellena Do y guarda manual verificada; trigger duplicado muestra error y el diálogo sigue abierto; la tarjeta muestra why, cita e 'Injected N times'; Edit guarda y la API lo confirma; el segundo turno recibe '## Lessons' en el prompt.",
+  "gates": [
+    "bunx tsc --noEmit: 0",
+    "bun run lint: exit 0",
+    "bun run build:app: ok",
+    "bun run test:coverage: 2902 pass / 0 fail (antes de los addenda G y el fix del contador)",
+    "tests del ítem (instinct-lessons, chat-sessions, mcp/server, chat-context): 65 pass / 0 fail"
+  ],
+  "review": "Diff de Sol (criterio) leído por el cerebro. qa (Codex) halló un P2: recordInjected contaba turnos que devolvían 422 sin llegar al modelo; corregido (addendum G) con test.",
+  "decisions": "Trigger duplicado (índice UNIQUE por proyecto): la propuesta automática se omite sin romper el turno; create/PATCH responden 409. Contador viejo 'Injected into N agent prompts' (runs.skill_id) quitado de la tarjeta: duplicaba el contador real."
+}

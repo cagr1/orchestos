@@ -12,10 +12,19 @@ import {
   codexExecMcpArgs,
   codexMcpThreadConfig,
   createTaskApiTool,
+  lessonProposalFromStep,
+  PROPOSE_LESSON_STEP_LABEL,
+  proposeLessonApiTool,
   type TaskProposal,
   taskProposalFromStep,
 } from './adapters.ts'
-import { CREATE_TASK_RESPONSE, parseCreateTaskArgs, runMcpServer } from './server.ts'
+import {
+  CREATE_TASK_RESPONSE,
+  PROPOSE_LESSON_RESPONSE,
+  parseCreateTaskArgs,
+  parseProposeLessonArgs,
+  runMcpServer,
+} from './server.ts'
 
 const SERVER = join(import.meta.dir, 'server.ts')
 
@@ -374,4 +383,61 @@ test('AUD.17: non-object JSON-RPC messages fail and the next line is served', as
     { jsonrpc: '2.0', id: null, error: { code: -32700, message: 'Parse error' } },
     { jsonrpc: '2.0', id: 1, result: {} },
   ])
+})
+
+describe('propose_lesson', () => {
+  const args = { trigger: 'a correction', action: 'apply the fix', why: 'avoid repeating it' }
+  test('stdio lists only the offered tool and validates calls', async () => {
+    const requests = [
+      { id: 1, method: 'tools/list' },
+      { id: 2, method: 'tools/call', params: { name: 'propose_lesson', arguments: args } },
+      {
+        id: 3,
+        method: 'tools/call',
+        params: { name: 'propose_lesson', arguments: { ...args, why: 5 } },
+      },
+    ]
+    const [list, valid, invalid] = await talk(['--tools', 'propose_lesson'], requests)
+    expect(list.result.tools.map((tool: { name: string }) => tool.name)).toEqual(['propose_lesson'])
+    expect(list.result.tools[0].inputSchema.required).toEqual(['trigger', 'action', 'why'])
+    expect(valid.result).toEqual({
+      content: [{ type: 'text', text: PROPOSE_LESSON_RESPONSE }],
+      isError: false,
+    })
+    expect(invalid.result.isError).toBe(true)
+    const [without, denied] = await talk(['--tools', 'create_task'], requests)
+    expect(without.result.tools.map((tool: { name: string }) => tool.name)).toEqual(['create_task'])
+    expect(denied.error.code).toBe(-32602)
+  })
+  test('requires all fields and enforces their lengths', () => {
+    expect(parseProposeLessonArgs(args)).toEqual({ ok: true, ...args })
+    for (const input of [
+      null,
+      [],
+      {},
+      { ...args, trigger: '' },
+      { ...args, action: 'x'.repeat(501) },
+      { ...args, trigger: 'x'.repeat(501) },
+      { ...args, why: 'x'.repeat(1001) },
+    ])
+      expect(parseProposeLessonArgs(input).ok).toBe(false)
+  })
+  test('adapters recognize only lesson tool steps, rejecting invalid JSON and arguments', async () => {
+    const step = {
+      type: 'tool_use' as const,
+      label: PROPOSE_LESSON_STEP_LABEL,
+      detail: JSON.stringify(args),
+    }
+    expect(lessonProposalFromStep(step)).toEqual({ ok: true, ...args })
+    expect(lessonProposalFromStep({ ...step, detail: '{' })).toMatchObject({ ok: false })
+    expect(lessonProposalFromStep({ ...step, detail: '{}' })).toMatchObject({ ok: false })
+    expect(lessonProposalFromStep({ ...step, label: 'another_tool' })).toBeNull()
+    expect(lessonProposalFromStep({ ...step, type: 'text' })).toBeNull()
+    const proposals: unknown[] = []
+    const tool = proposeLessonApiTool((proposal) => proposals.push(proposal))
+    expect(tool.tool.name).toBe('propose_lesson')
+    expect(await tool.execute('propose_lesson', args)).toBe(PROPOSE_LESSON_RESPONSE)
+    expect(await tool.execute('propose_lesson', {})).toStartWith('[Error:')
+    expect(proposals).toEqual([{ ok: true, ...args }, expect.objectContaining({ ok: false })])
+  })
 })

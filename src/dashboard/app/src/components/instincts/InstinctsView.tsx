@@ -5,10 +5,23 @@ import { Button } from '@/components/ui/button'
 import type { InstinctItem } from '../../types/orchestos'
 import { SettingsPrimaryAction } from '../settings/primitives'
 
+function relativeInjectionDate(date: string): string {
+  const seconds = Math.round((Date.parse(date) - Date.now()) / 1000)
+  const format = new Intl.RelativeTimeFormat('en', { numeric: 'auto' })
+  if (Math.abs(seconds) < 60) return format.format(seconds, 'second')
+  if (Math.abs(seconds) < 3600) return format.format(Math.round(seconds / 60), 'minute')
+  if (Math.abs(seconds) < 86400) return format.format(Math.round(seconds / 3600), 'hour')
+  return format.format(Math.round(seconds / 86400), 'day')
+}
+
 interface InstinctsViewProps {
   instincts: InstinctItem[]
   onApproveInstinct: (id: string) => void
   onRejectInstinct: (id: string) => void
+  onUpdateInstinct?: (
+    id: string,
+    fields: { trigger: string; action: string; why: string },
+  ) => Promise<void>
   onAddInstinct: (trigger: string, action: string) => void | Promise<void>
 }
 
@@ -17,6 +30,7 @@ export const InstinctsView: React.FC<InstinctsViewProps> = ({
   onApproveInstinct,
   onRejectInstinct,
   onAddInstinct,
+  onUpdateInstinct,
 }) => {
   const [tab, setTab] = useState<'all' | 'review'>('all')
   const [showAddModal, setShowAddModal] = useState(false)
@@ -24,6 +38,32 @@ export const InstinctsView: React.FC<InstinctsViewProps> = ({
   const [newAction, setNewAction] = useState('')
   const [saveError, setSaveError] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
+
+  const [editing, setEditing] = useState<{
+    id: string
+    trigger: string
+    action: string
+    why: string
+  } | null>(null)
+  const [editError, setEditError] = useState<string | null>(null)
+  const [editSaving, setEditSaving] = useState(false)
+  const saveEdit = async () => {
+    if (!editing || !onUpdateInstinct || editSaving) return
+    setEditSaving(true)
+    setEditError(null)
+    try {
+      await onUpdateInstinct(editing.id, {
+        trigger: editing.trigger.trim(),
+        action: editing.action.trim(),
+        why: editing.why.trim(),
+      })
+      setEditing(null)
+    } catch (error) {
+      setEditError(error instanceof Error ? error.message : String(error))
+    } finally {
+      setEditSaving(false)
+    }
+  }
 
   const unverified = instincts.filter((i) => !i.verified)
 
@@ -148,54 +188,143 @@ export const InstinctsView: React.FC<InstinctsViewProps> = ({
                 </div>
 
                 {/* Trigger & Action */}
-                <div className="space-y-2">
-                  <div className="flex items-start gap-3">
-                    <span className="w-28 shrink-0 text-[11px] font-semibold text-app-muted">
-                      Trigger
-                    </span>
-                    <span className="text-[13px] text-app">{instinct.trigger}</span>
-                  </div>
+                {editing?.id === instinct.id ? (
+                  <form
+                    className="space-y-2"
+                    onSubmit={(event) => {
+                      event.preventDefault()
+                      void saveEdit()
+                    }}
+                  >
+                    {(['trigger', 'action', 'why'] as const).map((field) => (
+                      <label key={field} className="block text-xs text-app-muted">
+                        {field === 'trigger'
+                          ? 'Trigger'
+                          : field === 'action'
+                            ? 'Learned Action'
+                            : 'Why'}
+                        <textarea
+                          required={field !== 'why'}
+                          maxLength={field === 'why' ? 1000 : 500}
+                          value={editing[field]}
+                          onChange={(event) =>
+                            setEditing({ ...editing, [field]: event.target.value })
+                          }
+                          className="w-full bg-app-elevated rounded-control p-2 text-app text-xs focus:outline-none"
+                        />
+                      </label>
+                    ))}
+                    {editError && (
+                      <p role="alert" className="text-xs text-app-error">
+                        {editError}
+                      </p>
+                    )}
+                    <div className="flex items-center gap-2">
+                      <Button
+                        type="submit"
+                        size="compact"
+                        disabled={editSaving || !editing.trigger.trim() || !editing.action.trim()}
+                      >
+                        Save
+                      </Button>
+                      <Button
+                        type="button"
+                        size="compact"
+                        variant="ghost"
+                        disabled={editSaving}
+                        onClick={() => setEditing(null)}
+                      >
+                        Cancel
+                      </Button>
+                    </div>
+                  </form>
+                ) : (
+                  <div className="space-y-2">
+                    <div className="flex items-start gap-3">
+                      <span className="w-28 shrink-0 text-[11px] font-semibold text-app-muted">
+                        Trigger
+                      </span>
+                      <span className="text-[13px] text-app">{instinct.trigger}</span>
+                    </div>
 
-                  <div className="flex items-start gap-3">
-                    <span className="w-28 shrink-0 text-[11px] font-semibold text-app-muted">
-                      Learned Action
-                    </span>
-                    <span className="text-[13px] text-app">{instinct.action}</span>
+                    <div className="flex items-start gap-3">
+                      <span className="w-28 shrink-0 text-[11px] font-semibold text-app-muted">
+                        Learned Action
+                      </span>
+                      <span className="text-[13px] text-app">{instinct.action}</span>
+                    </div>
+                    {instinct.why && (
+                      <div className="flex items-start gap-3">
+                        <span className="w-28 shrink-0 text-[11px] font-semibold text-app-muted">
+                          Why
+                        </span>
+                        <span className="text-[13px] text-app">{instinct.why}</span>
+                      </div>
+                    )}
                   </div>
-                </div>
+                )}
+                {instinct.evidence && (
+                  <p className="text-[11px] text-app-muted">
+                    {Object.entries(instinct.evidence)
+                      .map(([key, value]) => `${key}: ${value}`)
+                      .join(' · ')}
+                  </p>
+                )}
 
                 {/* Footer and Controls */}
                 <div className="flex items-center justify-between text-xs">
                   <span className="text-[11px] text-app-muted">
-                    Injected into {instinct.usagesCount} agent prompts
+                    Injected {instinct.injectedCount ?? 0} times
+                    {instinct.lastInjectedAt && (
+                      <> · {relativeInjectionDate(instinct.lastInjectedAt)}</>
+                    )}
                   </span>
 
-                  {!instinct.verified ? (
-                    <div className="flex items-center gap-2">
-                      <SettingsPrimaryAction>
-                        <Button
-                          size="compact"
-                          leadingIcon={ThumbsUp}
-                          onClick={() => onApproveInstinct(instinct.id)}
-                        >
-                          Approve (+0.10)
-                        </Button>
-                      </SettingsPrimaryAction>
+                  <div className="flex items-center gap-2">
+                    {onUpdateInstinct && editing?.id !== instinct.id && (
                       <Button
-                        variant="ghost"
                         size="compact"
-                        leadingIcon={ThumbsDown}
-                        className="text-app-error"
-                        onClick={() => onRejectInstinct(instinct.id)}
+                        variant="ghost"
+                        onClick={() => {
+                          setEditing({
+                            id: instinct.id,
+                            trigger: instinct.trigger,
+                            action: instinct.action,
+                            why: instinct.why ?? '',
+                          })
+                          setEditError(null)
+                        }}
                       >
-                        Reject
+                        Edit
                       </Button>
-                    </div>
-                  ) : (
-                    <div className="flex items-center gap-1 text-[11px] text-app-muted">
-                      <span>Active in middleware chain</span>
-                    </div>
-                  )}
+                    )}
+                    {!instinct.verified ? (
+                      <div className="flex items-center gap-2">
+                        <SettingsPrimaryAction>
+                          <Button
+                            size="compact"
+                            leadingIcon={ThumbsUp}
+                            onClick={() => onApproveInstinct(instinct.id)}
+                          >
+                            Approve (+0.10)
+                          </Button>
+                        </SettingsPrimaryAction>
+                        <Button
+                          variant="ghost"
+                          size="compact"
+                          leadingIcon={ThumbsDown}
+                          className="text-app-error"
+                          onClick={() => onRejectInstinct(instinct.id)}
+                        >
+                          Reject
+                        </Button>
+                      </div>
+                    ) : (
+                      <div className="flex items-center gap-1 text-[11px] text-app-muted">
+                        <span>Active in middleware chain</span>
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
             ))

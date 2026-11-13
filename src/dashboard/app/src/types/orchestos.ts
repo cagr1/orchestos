@@ -138,6 +138,10 @@ export interface SpecItem {
 }
 
 export interface InstinctItem {
+  why?: string | null
+  evidence?: { runId?: string; turnId?: string; ref?: string } | null
+  injectedCount?: number
+  lastInjectedAt?: string | null
   id: string
   trigger: string
   action: string

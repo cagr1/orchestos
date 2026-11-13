@@ -156,9 +156,13 @@ subagente, sin informe aparte): cada cita se comprueba con grep al escribir el s
   (mismo origen + chequeo de Host), la pantalla se borra y `orchestos dashboard` abre el navegador.
   Ejecutado por: gpt-6-luna (mecanico) · revisión qa: sin defectos · Spec: docs/specs/USO.2.md
 
-- [ ] **LRN.1b — El chat recibe lecciones y puede proponerlas (F1).**
-  Bloque de lecciones en el prompt del chat con el mismo tope; acción "recordar" y herramienta `propose_lesson`;
-  la vista Instincts muestra cita, porqué y uso, y permite editar antes de aprobar.
+- [x] **LRN.1b — El chat recibe lecciones y puede proponerlas (F1).** Gate en vivo: navegador Playwright, `lessons` 10/10 con CLI falso (propose_lesson → propuesta auto con turnId; Remember → manual verificada; duplicado → error; Edit; segundo turno recibe `## Lessons`), `docs/done/evidence/LRN.1b-live.json`.
+  Bloque `## Lessons` en el prompt del chat (`listApplicable`, mismo tope), `recordInjected` solo si el turno llega
+  al modelo. Herramienta `propose_lesson` (MCP y API) solo con proyecto, máximo 3 por turno; trigger duplicado se
+  omite sin romper el turno y responde 409 en create/PATCH. Acción Remember por mensaje; `PATCH /api/instincts/:id`;
+  la tarjeta muestra why, cita y uso, y permite editar. qa (Codex) halló el conteo en turnos 422; corregido.
+  Ejecutado por: gpt-6.1-sol (criterio) + gpt-6-luna (mecanico: addenda, gate `lessons`, contador) · Spec: docs/specs/LRN.1b.md
+  Texto visible: "Remember", "When", "Do", "Why", "Save", "Cancel", "Edit", "Injected N times", "A lesson with this trigger already exists"; reindentados sin cambio: "Copy", "Learned Action", "Approve (+0.10)", "Reject", "Active in middleware chain" — guardar una lección necesita decir cuándo aplica y qué hacer; un ícono solo no lo distingue de copiar.
 
 ## Etapa 3 — Windows
 

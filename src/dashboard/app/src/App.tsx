@@ -43,6 +43,7 @@ import {
   rejectInstinct,
   resolveMemoryConflict,
   setLibrarySkillPhases,
+  updateInstinct,
 } from './api/projectTabs'
 import { getRun, getRunApprovals, listRuns, type PendingApproval } from './api/runs'
 import { pollProjectAndThreadTasks } from './api/taskPolling'
@@ -1703,6 +1704,14 @@ export default function App() {
       await reloadTabs()
     }
   }
+  const handleUpdateInstinct = async (
+    id: string,
+    fields: { trigger: string; action: string; why: string },
+  ) => {
+    if (!currentProject) return
+    await updateInstinct(currentProject.id, id, fields)
+    await reloadTabs()
+  }
   const handleAddInstinct = async (trigger: string, action: string) => {
     if (currentProject) {
       await addInstinct(currentProject.id, trigger, action)
@@ -2160,6 +2169,7 @@ export default function App() {
                 onApproveInstinct={handleApproveInstinct}
                 onRejectInstinct={handleRejectInstinct}
                 onAddInstinct={handleAddInstinct}
+                onUpdateInstinct={handleUpdateInstinct}
                 onRunTask={(id) => void handleRunTask(id)}
                 onExplainTask={handleExplainTask}
                 projectTabsLoading={projectTabsLoading}

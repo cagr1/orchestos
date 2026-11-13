@@ -7,9 +7,44 @@ import {
   insertInstinct,
   listInstincts,
   updateConfidence,
+  updateInstinct,
 } from '../../instincts/store.ts'
 import { errorResponse, jsonResponse } from '../http.ts'
 import type { InstinctRow, MutationResult } from '../types.ts'
+
+const lessonFields = {
+  trigger: z
+    .string()
+    .trim()
+    .min(1)
+    .transform((value) => value.slice(0, 500))
+    .optional(),
+  action: z
+    .string()
+    .trim()
+    .min(1)
+    .transform((value) => value.slice(0, 500))
+    .optional(),
+  why: z
+    .string()
+    .trim()
+    .transform((value) => value.slice(0, 1000))
+    .optional(),
+}
+const evidenceSchema = z
+  .object({
+    runId: z.string().max(200).optional(),
+    turnId: z.string().max(200).optional(),
+    ref: z.string().max(200).optional(),
+  })
+  .optional()
+
+function instinctMutationError(error: unknown): Response {
+  const message = error instanceof Error ? error.message : String(error)
+  return message.includes('UNIQUE')
+    ? errorResponse('A lesson with this trigger already exists', 409)
+    : errorResponse(message, 400)
+}
 
 function handleApiInstincts(projectId: string | null = null): Response {
   const all = listInstincts({ projectId })
@@ -22,6 +57,10 @@ function handleApiInstincts(projectId: string | null = null): Response {
     source: i.source,
     verified: i.verified,
     createdAt: i.created_at,
+    why: i.why,
+    evidence: i.evidence,
+    injectedCount: i.injectedCount,
+    lastInjectedAt: i.lastInjectedAt,
     usagesCount:
       db
         .query<{ count: number }, [string]>('SELECT COUNT(*) AS count FROM runs WHERE skill_id = ?')
@@ -54,10 +93,7 @@ async function handleApiInstinctsCreate(
   req: Request,
   projectId: string | null = null,
 ): Promise<Response> {
-  const parsed = await readBody(
-    z.object({ trigger: z.string().optional(), action: z.string().optional() }),
-    req,
-  )
+  const parsed = await readBody(z.object({ ...lessonFields, evidence: evidenceSchema }), req)
   if (!parsed.ok)
     return badRequest(parsed.error === 'invalid JSON body' ? 'Invalid JSON' : parsed.error)
   const body = parsed.data
@@ -69,11 +105,13 @@ async function handleApiInstinctsCreate(
       projectId,
       trigger: body.trigger.trim().slice(0, 500),
       action: body.action.trim().slice(0, 500),
+      why: body.why,
+      evidence: body.evidence,
       ...MANUAL_DEFAULTS,
     })
     return jsonResponse({ ok: true, id: instinct.id })
-  } catch (e: any) {
-    return errorResponse(e.message, 400)
+  } catch (error) {
+    return instinctMutationError(error)
   }
 }
 
@@ -81,10 +119,7 @@ async function handleApiInstinctsPropose(
   req: Request,
   projectId: string | null = null,
 ): Promise<Response> {
-  const parsed = await readBody(
-    z.object({ trigger: z.string().optional(), action: z.string().optional() }),
-    req,
-  )
+  const parsed = await readBody(z.object({ ...lessonFields, evidence: evidenceSchema }), req)
   if (!parsed.ok)
     return badRequest(parsed.error === 'invalid JSON body' ? 'Invalid JSON' : parsed.error)
   const body = parsed.data
@@ -96,11 +131,32 @@ async function handleApiInstinctsPropose(
       projectId,
       trigger: body.trigger.trim().slice(0, 500),
       action: body.action.trim().slice(0, 500),
+      why: body.why,
+      evidence: body.evidence,
       ...AUTO_DEFAULTS,
     })
     return jsonResponse({ ok: true, id: instinct.id })
-  } catch (e: any) {
-    return errorResponse(e.message, 400)
+  } catch (error) {
+    return instinctMutationError(error)
+  }
+}
+
+async function handleApiInstinctsUpdate(
+  req: Request,
+  url: URL,
+  projectId: string | null = null,
+): Promise<Response> {
+  const id = url.pathname.split('/')[3]
+  const row = listInstincts({ projectId }).find((item) => item.id === id)
+  if (!row) return errorResponse('Instinct not found', 404)
+  const parsed = await readBody(z.object(lessonFields), req)
+  if (!parsed.ok)
+    return badRequest(parsed.error === 'invalid JSON body' ? 'Invalid JSON' : parsed.error)
+  try {
+    updateInstinct(row.id, parsed.data)
+    return jsonResponse({ ok: true })
+  } catch (error) {
+    return instinctMutationError(error)
   }
 }
 
@@ -176,4 +232,5 @@ export {
   handleApiInstinctsPropose,
   handleApiInstinctsReject,
   handleApiInstinctsSetConfidence,
+  handleApiInstinctsUpdate,
 }

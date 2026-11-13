@@ -29,6 +29,7 @@ interface ChatPromptInput {
   }>
   qaReasons?: Record<string, string | null>
   memory?: Array<{ scope: string; topic_key: string; content: string }>
+  lessons?: Array<{ id: string; trigger: string; action: string }>
   specs?: Array<{ id: string; status: string }>
   projectFiles?: string[]
   projectProfile?: StackProfile
@@ -224,6 +225,12 @@ export function buildChatSystemPrompt(input: ChatPromptInput): string {
     for (const m of input.memory)
       lines.push(`  - [${m.scope}] ${m.topic_key}: ${m.content.slice(0, 120)}`)
   }
+  if (input.lessons?.length) {
+    lines.push('\n## Lessons', 'Lessons learned in this project. Apply them when they fit.')
+    for (const lesson of input.lessons) lines.push(`- When ${lesson.trigger}: ${lesson.action}`)
+  }
+  if (input.offeredTools?.includes('propose_lesson'))
+    lines.push('When the user corrects you, call `propose_lesson` with what to do next time.')
   if (input.specs?.length) {
     lines.push(`\nSpecs (${input.specs.length}):`)
     for (const s of input.specs) lines.push(`  - ${s.id} [${s.status}]`)

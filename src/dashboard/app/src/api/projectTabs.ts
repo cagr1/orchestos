@@ -127,6 +127,17 @@ export async function listInstincts(
 export async function approveInstinct(projectId: string, id: string): Promise<void> {
   await request(`/api/instincts/${encodeURIComponent(id)}/approve`, projectId, { method: 'POST' })
 }
+export async function updateInstinct(
+  projectId: string,
+  id: string,
+  fields: { trigger?: string; action?: string; why?: string },
+): Promise<void> {
+  await request(`/api/instincts/${encodeURIComponent(id)}`, projectId, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(fields),
+  })
+}
 export async function rejectInstinct(projectId: string, id: string): Promise<void> {
   await request(`/api/instincts/${encodeURIComponent(id)}/reject`, projectId, { method: 'POST' })
 }
@@ -134,11 +145,12 @@ export async function addInstinct(
   projectId: string,
   trigger: string,
   action: string,
+  details?: { why?: string; evidence?: { turnId?: string; ref?: string } },
 ): Promise<void> {
   await request('/api/instincts', projectId, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ trigger, action }),
+    body: JSON.stringify({ trigger, action, ...details }),
   })
 }
 

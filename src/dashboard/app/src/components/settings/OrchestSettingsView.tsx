@@ -748,6 +748,10 @@ interface OrchestSettingsViewProps {
   onTeachInstinct?: (when: string, then: string) => void
   onApproveInstinct?: (id: string) => void
   onRejectInstinct?: (id: string) => void
+  onUpdateInstinct?: (
+    id: string,
+    fields: { trigger: string; action: string; why: string },
+  ) => Promise<void>
   onAddInstinct?: (trigger: string, action: string) => void
   onRunTask?: (taskId: string) => void
   onExplainTask?: (taskId: string) => void | Promise<Record<string, unknown> | void>
@@ -800,6 +804,7 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
   onApproveInstinct,
   onRejectInstinct,
   onAddInstinct,
+  onUpdateInstinct,
   onRunTask,
   onExplainTask,
   onRunNextTask,
@@ -4476,6 +4481,7 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
                     onApproveInstinct={onApproveInstinct || (() => {})}
                     onRejectInstinct={onRejectInstinct || (() => {})}
                     onAddInstinct={onAddInstinct || (() => {})}
+                    onUpdateInstinct={onUpdateInstinct}
                   />
                 )}
 

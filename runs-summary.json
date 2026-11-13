@@ -1,7 +1,37 @@
 {
-  "exported_at": "2026-11-13T16:58:06.058Z",
+  "exported_at": "2026-11-13T18:24:49.561Z",
   "total_runs": 20,
   "runs": [
+    {
+      "id": "43602b66-47a8-4835-acbd-d5abbd918bc7",
+      "task_class": "chat",
+      "model": "gpt-reserve",
+      "provider": "codex",
+      "status": "done",
+      "qa_verdict": null,
+      "qa_reason": null,
+      "files_blocked": [],
+      "checks_failed": 0,
+      "usd_cost": 0,
+      "elapsed_ms": 3026,
+      "tokens": 1772,
+      "created_at": "2026-11-13T17:43:11.099Z"
+    },
+    {
+      "id": "9b7e25b2-ca91-491f-ab0b-992744684d33",
+      "task_class": "chat",
+      "model": "gpt-reserve",
+      "provider": "codex",
+      "status": "done",
+      "qa_verdict": null,
+      "qa_reason": null,
+      "files_blocked": [],
+      "checks_failed": 0,
+      "usd_cost": 0,
+      "elapsed_ms": 6052,
+      "tokens": 6447,
+      "created_at": "2026-11-13T17:42:45.751Z"
+    },
     {
       "id": "bbb237d8-29fe-4c77-b8ec-393010528462",
       "task_class": "gate:uso.1-project-tabs:doc",
@@ -271,43 +301,13 @@
       "elapsed_ms": 15181,
       "tokens": 7323,
       "created_at": "2026-11-08T16:45:49.459Z"
-    },
-    {
-      "id": "2168b313-f39a-49a9-9d35-b0b8dc4afe26",
-      "task_class": "gate:ade.10-full-ui:implement",
-      "model": "openai/gpt-6-luna",
-      "provider": "codex",
-      "status": "done",
-      "qa_verdict": "skipped",
-      "qa_reason": "Sin revisión LLM y sin checks: nada verificó esta tarea",
-      "files_blocked": [],
-      "checks_failed": 0,
-      "usd_cost": 0.0010046999999999999,
-      "elapsed_ms": 10363,
-      "tokens": 7115,
-      "created_at": "2026-11-08T16:44:53.817Z"
-    },
-    {
-      "id": "b3db4512-71f6-4e3e-9ad3-94cd42bfed7d",
-      "task_class": "gate:ade.10-full-ui:implement",
-      "model": "openai/gpt-6-luna",
-      "provider": "codex",
-      "status": "failed",
-      "qa_verdict": "fail",
-      "qa_reason": "nota.txt contains ROJO, not the required AZUL line.",
-      "files_blocked": [],
-      "checks_failed": 0,
-      "usd_cost": 0.0011671,
-      "elapsed_ms": 13526,
-      "tokens": 7019,
-      "created_at": "2026-11-08T16:44:33.942Z"
     }
   ],
   "stats": {
-    "failed": 3,
+    "failed": 2,
     "blocked": 0,
-    "done": 17,
-    "qa_failed": 4,
-    "total_cost_usd": "0.8871"
+    "done": 18,
+    "qa_failed": 3,
+    "total_cost_usd": "0.8849"
   }
 }
