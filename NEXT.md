@@ -1,4 +1,4 @@
-# NEXT — handoff 2026-11-13 (etapa 1 cerrada; siguiente: uso real de Carlos + LRN.1 F0+F1)
+# NEXT — handoff 2026-11-13 (etapa 1 cerrada; Carlos empieza el uso real; siguiente LRN.1b)
 
 Un solo presente: orden y trampas vivas del lote. Lo cerrado vive en `docs/done/bloque-*.md` y git; las reglas, en
 `AGENTS.md`. Versión anterior completa: `docs/done/poda-instrucciones-2026-11-03.md` (histórico).
@@ -13,8 +13,14 @@ auditoría AUD.1–AUD.28 en el orden de la segunda auditoría; lo cerrado está
    Trampas que dejó: el preflight solo ve ítems sin sangría (`scripts/agent-governance.ts:37`); cerrar un ítem exige
    `Ejecutado por: … · Spec: docs/specs/<ID>.md` y, si `plan:reconcile` ya lo marcó done antes del commit, reabrirlo,
    reconciliar y cerrarlo de nuevo; esperas de tests de procesos ≥4 s (las de 1 s tumbaron el pre-push con carga).
-2. **Etapa 2 — uso real (ahora)**: Carlos trabaja en OrchestOS en vez de Orca. En paralelo, LRN.1 F0+F1 (GO D1–D6). Lo que reporte se abre como ítem con su
-   evidencia y va primero. No se revisan pantallas por iniciativa propia.
+2. **Etapa 2 — uso real (ahora)**: Carlos trabaja en OrchestOS en vez de Orca. Lo que reporte se abre como ítem con su
+   evidencia y va primero. Cerrados antes de empezar: USO.1 `6d5e420e` (los 12 rojos de la nocturna inválida: 9 eran
+   sueño del Mac, 2 gates desfasados, 1 producto roto en `providers`) y LRN.1a `202dce5d` (F0 de lecciones).
+   **Siguiente: LRN.1b** (F1: chat recibe y propone lecciones; diseño en `docs/specs/LRN-1-opinion-fable.md` § 4).
+   Trampas: el ejecutor Codex no corre ui-gates (no puede invocar CLIs): los corre el cerebro con
+   `bun run gate:evidence -- --label <ID>-<flujo> -- bun run ui:gate -- <flujo>`; un gate que cuenta filas de Settings
+   se rompe al sumar una fila (pasó con SES.1b); `boundary-budget` rechaza `JSON.parse` nuevo, usar `parseJson` de
+   `src/boundary`. Re-correr la nocturna con `caffeinate` o el Mac enchufado. No se revisan pantallas por iniciativa propia.
 3. **Etapa 3 — Windows**: WIN.1, fase 1 = prueba de humo. Nada se arregla antes de verla fallar.
 4. **Etapa 4 — Tauri** (decidido, `IDEAS.md` #41). Se gradúa al plan al abrir la etapa.
 5. **Aparcados, no se toman** (`docs/done/aparcados-2026-11-12.md`): CI.19, CI.54, CI.55, CI.57, CI.69, CI.76, CI.81,
