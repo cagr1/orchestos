@@ -101,6 +101,16 @@ esta etapa: `docs/done/bloque-AUD.md` (AUD.16, AUD.17), `docs/done/bloque-SES.md
   así; evidencia y tests en `docs/done/evidence/USO.9-live.json`. mtime tolerante (`transcriptMtime`) y
   `void refresh().catch`. Tests nuevos en `session-status.test.ts`.
   Ejecutado por: gpt-6-luna · Spec: docs/specs/USO.9.md
+- [ ] **USO.10 — El Chat no tiene proyecto: conversa, no toca Dev.** (Carlos 2026-11-13: escribió un pedido de cambios
+  en el Chat y casi creó tareas sobre OrchestOS; GO al plan) New chat ligaba cada chat al proyecto activo en modo
+  `code`. Spec: `docs/specs/USO.10.md`.
+- [ ] **USO.11 — El Chat investiga en la web y entrega documentos, como Claude Desktop.** (Carlos 2026-11-13, GO) Carpeta
+  propia por chat que se conserva y tarjeta de archivo en el hilo; búsqueda web en los CLI que la soporten. Va
+  después de USO.10.
+- [ ] **USO.12 — El borrador del composer se pierde al cambiar de pestaña.** (lo propuso el chat de Carlos como tarea,
+  2026-11-13; sacada de `tasks.yaml` por USO.10) Spec: `docs/specs/USO.12.md`.
+- [ ] **MSG.1 — Una sesión propone un mensaje a otra del mismo proyecto.** (GO de Carlos 2026-11-13; venía como tarea
+  del chat, sacada de `tasks.yaml`) Primero la spec; pedido completo en `docs/specs/MSG.1.md`.
 - [ ] **LRN.1 — OrchestOS aprende de los errores.** (abierto 2026-11-13; GO de Carlos a D1–D6; va después de SES.1 y
   no bloquea el uso real) Diseño: `docs/specs/LRN-1-opinion-fable.md`. Decisiones: D1 alcance por proyecto, global
   solo por promoción manual; D2 tope 1.000 tokens o 15 lecciones; D3 proponer ante firma repetida ≥2, par

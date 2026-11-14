@@ -60,6 +60,38 @@
       "closedDate": null
     },
     {
+      "id": "USO.10",
+      "sprint": "Etapa 2 — Uso real",
+      "block": null,
+      "title": "El Chat no tiene proyecto: conversa, no toca Dev",
+      "status": "open",
+      "closedDate": null
+    },
+    {
+      "id": "USO.11",
+      "sprint": "Etapa 2 — Uso real",
+      "block": null,
+      "title": "El Chat investiga en la web y entrega documentos, como Claude Desktop",
+      "status": "open",
+      "closedDate": null
+    },
+    {
+      "id": "USO.12",
+      "sprint": "Etapa 2 — Uso real",
+      "block": null,
+      "title": "El borrador del composer se pierde al cambiar de pestaña",
+      "status": "open",
+      "closedDate": null
+    },
+    {
+      "id": "MSG.1",
+      "sprint": "Etapa 2 — Uso real",
+      "block": null,
+      "title": "Una sesión propone un mensaje a otra del mismo proyecto",
+      "status": "open",
+      "closedDate": null
+    },
+    {
       "id": "LRN.1",
       "sprint": "Etapa 2 — Uso real",
       "block": null,

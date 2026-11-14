@@ -1,4 +1,4 @@
-# NEXT — handoff 2026-11-13, tarde (uso real en curso; USO.3–USO.6 y ACT.1 cerrados)
+# NEXT — handoff 2026-11-13, noche (uso real; USO.8 y USO.9 cerrados, USO.10 a medias)
 
 Un solo presente: orden y trampas vivas del lote. Lo cerrado vive en `docs/done/bloque-*.md` y git; las reglas, en
 `AGENTS.md`. Versión anterior completa: `docs/done/poda-instrucciones-2026-11-03.md` (histórico).
@@ -23,12 +23,27 @@ auditoría AUD.1–AUD.28 en el orden de la segunda auditoría; lo cerrado está
    `build-app.ts` sin `NODE_ENV`; sondeo de 1 s en Dev y tareas; `gpt-reserve` oculto por Codex; Claude sin grupo
    `OLDER`), USO.4 `705e205a` (divisor bajo la barra superior), USO.5 `6b1e0805` (desvanecido arriba del hilo),
    USO.6 `0cb8f2f9` ("Thought" de Dev repetía la respuesta) y ACT.1 `0b5cc0dd` (vista de actividad como Claude
-   Code en Chat y Dev: `components/thread/activity.ts` + `TurnActivity.tsx`). **Siguiente**: USO.8 (al cargar se
-   piden ~36 líneas de tiempo, una por sesión del historial); luego lo que Carlos reporte. `tasks.yaml` tiene staged
-   dos tareas `pending` que creó el chat de Carlos (`chat-7ad67f02…`: borrador del composer que se pierde al cambiar
-   de tab; `chat-c608f987…`): no son del cerebro, no se commitean sin que Carlos las mire. LRN.1c (F3: caducidad a `review` y graduar a
-   `AGENTS.md`) cerrado el 2026-11-13; LRN.1 queda abierto solo con F2, que espera datos de F0 (D6). WIN.1 necesita una máquina Windows.
-   Trampas: el ejecutor Codex no corre ui-gates (no puede invocar CLIs): los corre el cerebro con
+   Code en Chat y Dev: `components/thread/activity.ts` + `TurnActivity.tsx`). Noche: USO.8 `7d2ecc20` (al cargar solo se pide la línea de tiempo del hilo abierto) y USO.9 `3d79153b` (el
+   dashboard se caía si un transcript se borraba al leer el estado). **Push sin pre-push** durante esta etapa
+   (`CLAUDE.md`, `100097d5`). **En curso: USO.10** (el Chat no tiene proyecto; spec `docs/specs/USO.10.md`, partes 1
+   y 2). Código en el árbol **sin commitear** (24+ archivos, `git status`): hecho por `criterio` + arreglo del cerebro
+   (`App.tsx:2160`, `approvals?.`; Dev quedaba en negro). Verificado en vivo: el Chat abre sin chats de proyecto, un
+   pedido de cambio responde "hazlo desde Dev", la sesión queda `project_id NULL, mode chat`, `tasks.yaml` intacto;
+   Dev pinta `TaskCard`. Tests `src/dashboard` verdes. **Falta**: los 7 ui-gates migrados a Dev
+   (`chat-turn-details`, `chat-followup-task`, `auto-flow`, `chat-permissions`, `chat-retry-report`, `chat-roles`,
+   `chat-task-undo`) fallan por localizadores pensados para la vista Chat: `locator('aside')` resuelve 2 elementos,
+   `div.prose` no existe en Dev, el explorador de Dev muestra `tasks.yaml` (choca con `implementationLeaks` de
+   auto-flow), `chat-permissions` espera un `waitForFunction` de Chat, `chat-retry-report` la tarea relanzada queda
+   `pending`. Evidencia: `/var/folders/.../ui-gate-38847…46975/result.json`. Siguiente paso: abrir cada `result.json`
+   y su captura, separar localizador de producto, corregir (spec a `criterio` si son varios), correr los 7, cerrar
+   USO.10 con un commit. Luego, en orden: USO.11 (web y documentos en el Chat; incluye borrar la fila "Orchestrator
+   unassigned… Model routing" de `AgentComposer.tsx:1256`, pedido de Carlos), USO.12 (borrador del composer, spec
+   lista), MSG.1 (escribir la spec). Las 2 tareas que el chat dejó en `tasks.yaml` se sacaron y viven como
+   `docs/specs/USO.12.md` y `docs/specs/MSG.1.md`. LRN.1 queda abierto solo con F2 (espera datos de F0, D6). WIN.1
+   necesita una máquina Windows.
+   Trampas: cerrar un ítem sin delegación exige una línea propia `Sin delegación: <motivo>`, y la de
+   `Ejecutado por: … · Spec: docs/specs/<ID>.md` debe terminar en `.md` (regex de `scripts/plan-gate.ts:173`). Codex no
+   protege contra `null` lo que el Chat sí protegía al portar código entre vistas: mirar Dev en vivo. El ejecutor Codex no corre ui-gates (no puede invocar CLIs): los corre el cerebro con
    `bun run gate:evidence -- --label <ID>-<flujo> -- bun run ui:gate -- <flujo>`; un gate que cuenta filas de Settings
    se rompe al sumar una fila (pasó con SES.1b); `boundary-budget` rechaza `JSON.parse` nuevo, usar `parseJson` de
    `src/boundary` — salvo en la UI: importar `src/boundary` desde `app/src` mete zod y yaml al bundle (+430 KB,
