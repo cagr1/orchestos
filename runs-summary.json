@@ -1,7 +1,52 @@
 {
-  "exported_at": "2026-11-14T15:34:21.283Z",
+  "exported_at": "2026-11-14T16:00:48.047Z",
   "total_runs": 20,
   "runs": [
+    {
+      "id": "5ee1f58e-0c6c-4b0e-a3c5-daa6881b9b24",
+      "task_class": "chat",
+      "model": "gpt-6.1-sol",
+      "provider": "codex",
+      "status": "done",
+      "qa_verdict": null,
+      "qa_reason": null,
+      "files_blocked": [],
+      "checks_failed": 0,
+      "usd_cost": 0.0344208,
+      "elapsed_ms": 20949,
+      "tokens": 12192,
+      "created_at": "2026-11-14T15:52:17.668Z"
+    },
+    {
+      "id": "d8f38e39-17ba-43c6-b8c5-524258796233",
+      "task_class": "chat",
+      "model": "claude-opus-5-5",
+      "provider": "claude",
+      "status": "done",
+      "qa_verdict": null,
+      "qa_reason": null,
+      "files_blocked": [],
+      "checks_failed": 0,
+      "usd_cost": 0.0895928,
+      "elapsed_ms": 20544,
+      "tokens": 1153,
+      "created_at": "2026-11-14T15:50:50.756Z"
+    },
+    {
+      "id": "a6724b30-bb0d-4b1f-902a-18eacf9c7976",
+      "task_class": "chat",
+      "model": "claude-opus-5-5",
+      "provider": "claude",
+      "status": "done",
+      "qa_verdict": null,
+      "qa_reason": null,
+      "files_blocked": [],
+      "checks_failed": 0,
+      "usd_cost": 0.0743664,
+      "elapsed_ms": 8129,
+      "tokens": 551,
+      "created_at": "2026-11-14T15:49:16.821Z"
+    },
     {
       "id": "fc903537-87d3-4515-a9d9-5cb5df1b4c01",
       "task_class": "chat",
@@ -256,51 +301,6 @@
       "elapsed_ms": 12924,
       "tokens": 8346,
       "created_at": "2026-11-13T23:54:30.569Z"
-    },
-    {
-      "id": "ddde5d32-5c54-42d8-83cb-70ec5d452570",
-      "task_class": "chat",
-      "model": "claude-opus-5-5",
-      "provider": "claude",
-      "status": "done",
-      "qa_verdict": null,
-      "qa_reason": null,
-      "files_blocked": [],
-      "checks_failed": 0,
-      "usd_cost": 0.13258999999999999,
-      "elapsed_ms": 18893,
-      "tokens": 1717,
-      "created_at": "2026-11-13T23:54:22.495Z"
-    },
-    {
-      "id": "2f58e47a-68cd-40a7-b116-808f8badb272",
-      "task_class": "chat",
-      "model": "claude-opus-5-5",
-      "provider": "claude",
-      "status": "done",
-      "qa_verdict": null,
-      "qa_reason": null,
-      "files_blocked": [],
-      "checks_failed": 0,
-      "usd_cost": 0.7087588,
-      "elapsed_ms": 40381,
-      "tokens": 3609,
-      "created_at": "2026-11-13T23:53:04.244Z"
-    },
-    {
-      "id": "603f65f1-f8c5-47f7-b3ee-77ca10f40b69",
-      "task_class": "chat",
-      "model": "claude-opus-5-5",
-      "provider": "claude",
-      "status": "done",
-      "qa_verdict": null,
-      "qa_reason": null,
-      "files_blocked": [],
-      "checks_failed": 0,
-      "usd_cost": 0.5395344,
-      "elapsed_ms": 25880,
-      "tokens": 2245,
-      "created_at": "2026-11-13T23:49:49.511Z"
     }
   ],
   "stats": {
@@ -308,6 +308,6 @@
     "blocked": 0,
     "done": 17,
     "qa_failed": 3,
-    "total_cost_usd": "1.9602"
+    "total_cost_usd": "0.7777"
   }
 }

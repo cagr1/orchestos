@@ -665,6 +665,7 @@ export class CodexAppServer {
   }
 
   async turn(input: {
+    generalChat?: boolean
     sessionId: string
     cwd: string
     systemPrompt: string
@@ -707,7 +708,7 @@ export class CodexAppServer {
       if (!threadId) {
         const result = await this.request('thread/start', {
           cwd: input.cwd,
-          sandbox: 'read-only',
+          sandbox: input.generalChat ? 'workspace-write' : 'read-only',
           approvalPolicy: 'never',
           model: input.model,
           developerInstructions: input.systemPrompt,
@@ -725,7 +726,7 @@ export class CodexAppServer {
         const startReplacement = async (stepLabel: string) => {
           const started = await this.request('thread/start', {
             cwd: input.cwd,
-            sandbox: 'read-only',
+            sandbox: input.generalChat ? 'workspace-write' : 'read-only',
             approvalPolicy: 'never',
             model: input.model,
             developerInstructions: input.systemPrompt,
@@ -759,7 +760,7 @@ export class CodexAppServer {
               threadId,
               cwd: input.cwd,
               excludeTurns: true,
-              sandbox: 'read-only',
+              sandbox: input.generalChat ? 'workspace-write' : 'read-only',
               approvalPolicy: 'never',
               model: input.model,
               ...(input.threadConfig ? { config: input.threadConfig } : {}),
@@ -860,7 +861,9 @@ export class CodexAppServer {
             model: input.model,
             effort: input.effort,
             approvalPolicy: 'never',
-            sandboxPolicy: { type: 'readOnly', networkAccess: false },
+            sandboxPolicy: input.generalChat
+              ? { type: 'workspaceWrite', writableRoots: [input.cwd], networkAccess: false }
+              : { type: 'readOnly', networkAccess: false },
           },
           15_000,
           () => this.logTurn('turn-start', threadId, startedAt),

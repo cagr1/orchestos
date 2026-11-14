@@ -540,7 +540,7 @@ export async function runCodexChat(
     throw new ExecutorCodexError(codexCostUnmeasurableMessage(model))
 
   const chatSession = getChatSession(sessionId)
-  const isGeneralSession = chatSession?.project_id == null
+  const isGeneralSession = chatSession?.project_id === null
   const generalConfigHome = generalChatConfigHome()
   const configHome = provisionCliConfigHome(
     projectRoot ?? cwd,
@@ -561,6 +561,7 @@ export async function runCodexChat(
   const notifyStep = (step: ExecutorStepEvent) => onChatStep?.(step)
   try {
     const result = await server.turn({
+      generalChat: isGeneralSession,
       sessionId,
       cwd,
       systemPrompt,
@@ -569,8 +570,15 @@ export async function runCodexChat(
       transcript,
       model: orchestosModelToCodexModel(model),
       effort: cliEffort,
-      threadConfig: mcpOffer?.tools.length ? codexMcpThreadConfig(mcpOffer) : undefined,
-      offerKey: mcpOfferKey(mcpOffer),
+      // Native web_search does not require command sandbox network access.
+      threadConfig: isGeneralSession
+        ? { ...(mcpOffer?.tools.length ? codexMcpThreadConfig(mcpOffer) : {}), web_search: 'live' }
+        : mcpOffer?.tools.length
+          ? codexMcpThreadConfig(mcpOffer)
+          : undefined,
+      offerKey: isGeneralSession
+        ? `general:${cwd}:${mcpOfferKey(mcpOffer)}`
+        : mcpOfferKey(mcpOffer),
       timeoutMs,
       signal,
       onDelta: onTextDelta,

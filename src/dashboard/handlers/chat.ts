@@ -5,6 +5,12 @@ import { join, relative } from 'node:path'
 import { badRequest, readBody, z } from '../../boundary/index.ts'
 import { writeChatImages } from '../../chat/attachment-files.ts'
 import { buildChatSystemPrompt, rejectedSessionTasks } from '../../chat/chat-context.ts'
+import {
+  type ChatDocument,
+  changedChatDocuments,
+  chatDirectory,
+  snapshotChatDocuments,
+} from '../../chat/documents.ts'
 import { extractTextFromImage } from '../../chat/ocr.ts'
 import { loadOrcheConfig } from '../../config/load.ts'
 import type { RoleAgent } from '../../config/schema.ts'
@@ -135,7 +141,7 @@ export function buildAutoTaskInstruction({
   permissionMode?: 'yolo' | 'manual'
 }): string {
   if (!hasProjectContext)
-    return 'If the user asks you to build or modify files, say plainly that this chat has no associated project; creating or modifying project files must be done in Dev.'
+    return 'This chat has no associated project; creating or modifying project files must be done in Dev.'
   if (mode === 'chat')
     return 'If the user asks you to build or modify files, say plainly that this Chat mode is read-only and they must switch to Code mode.'
   if (!taskToolOffered)
@@ -928,6 +934,9 @@ async function handleApiChat(
   }
   let root = project.root
   let isolatedCwd: string | null = null
+  const generalSession = session?.project_id === null
+  let documentsBefore = new Map<string, string>()
+  let documents: ChatDocument[] | undefined
 
   // H.9.2 — el agente elegido puede no tener una frontera real de lectura;
   // en ese caso el chat de proyecto continúa y comunica un aviso.
@@ -1085,7 +1094,10 @@ async function handleApiChat(
   }
 
   try {
-    if (!hasProjectContext) {
+    if (generalSession) {
+      root = chatDirectory(session.id, true)
+      documentsBefore = snapshotChatDocuments(root)
+    } else if (!hasProjectContext) {
       isolatedCwd = mkdtempSync(join(tmpdir(), 'orchestos-chat-'))
       root = isolatedCwd
     }
@@ -1486,6 +1498,8 @@ async function handleApiChat(
         : undefined
     const lessons = listApplicable(hasProjectContext ? project.id : null)
     const systemPrompt = buildChatSystemPrompt({
+      documentDirectory:
+        generalSession && (chatAgent === 'claude' || chatAgent === 'codex') ? root : undefined,
       userCodes: readUserProfile().codes,
       projectRoot: root,
       tasks: hasProjectContext ? taskRows : undefined,
@@ -1537,8 +1551,12 @@ async function handleApiChat(
     // `localImage`, Claude `--add-dir` + ruta en el prompt), fuera del proyecto;
     // si no se pudo escribir, cae a OCR como siempre.
     const cliImages = cliAdapter
-      ? writeChatImages(attachedFiles.filter((f) => f.type === 'image').map((f) => f.content))
+      ? writeChatImages(
+          attachedFiles.filter((f) => f.type === 'image').map((f) => f.content),
+          generalSession ? root : undefined,
+        )
       : null
+    if (generalSession) documentsBefore = snapshotChatDocuments(root)
     const cliImagePaths: string[] = []
     let cliImageIndex = 0
     for (const f of attachedFiles) {
@@ -1613,6 +1631,7 @@ async function handleApiChat(
         provider = 'openrouter',
       } = params
       const canonicalModel = params.canonicalModel ?? resultLabel
+      if (generalSession) documents = changedChatDocuments(root, documentsBefore)
       const cost = chatCost(canonicalModel, inputTokens, outputTokens, params.reportedUsd)
       const readAudit = params.readAudit ?? uninstrumentedReadAudit()
       const projectId = session ? session.project_id : project.id
@@ -1676,6 +1695,7 @@ async function handleApiChat(
             existingFiles:
               autoTask && 'existingFiles' in autoTask ? autoTask.existingFiles : undefined,
             envelope: {
+              ...(documents ? { documents } : {}),
               text: responseText,
               model: resultLabel,
               ocrUsed: ocrUsed.length ? ocrUsed : undefined,
@@ -1753,6 +1773,7 @@ async function handleApiChat(
             model,
             effort: cliEffort,
             hasProjectContext,
+            generalChat: generalSession,
             sessionId: session?.id,
             historyLength: rawHistory.length,
             transcript,
@@ -1786,6 +1807,7 @@ async function handleApiChat(
           result.afterSuccess?.()
           return jsonResponse({
             text: responseText,
+            ...(documents ? { documents } : {}),
             model: result.resultLabel,
             ...(result.responseReadAudit ? { readAudit: result.responseReadAudit } : {}),
             ocrUsed: ocrUsed.length ? ocrUsed : undefined,

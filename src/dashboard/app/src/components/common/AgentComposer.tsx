@@ -162,13 +162,11 @@ export interface AgentComposerProps {
   defaultModel?: string
   defaultEffort?: EffortLevel
   lockedCli?: CliId
-  orchestratorAssigned?: boolean
   /** ERP.4.14: la config de roles aún se lee; ni aviso ni envío hasta saberlo. */
   orchestratorLoading?: boolean
   busy?: boolean
   onStop?: () => Promise<void>
   stopping?: boolean
-  onOpenRouting?: () => void
   onSlashCommand?: (command: string, argument?: string) => void
   onSelectionChange?: (cli: CliId, model: string) => void
   className?: string
@@ -185,12 +183,10 @@ export const AgentComposer: React.FC<AgentComposerProps> = ({
   useCliDefaultModel = false,
   defaultEffort = 'high',
   lockedCli,
-  orchestratorAssigned = true,
   orchestratorLoading = false,
   busy = false,
   onStop,
   stopping = false,
-  onOpenRouting,
   onSlashCommand,
   onSelectionChange,
   className = '',
@@ -1242,27 +1238,11 @@ export const AgentComposer: React.FC<AgentComposerProps> = ({
                 (!inputText.trim() && !hasSendableAttachments) ||
                 (!isShellMode && !modelsReady) ||
                 orchestratorLoading ||
-                attachments.some((att) => att.status === 'uploading') ||
-                !orchestratorAssigned
+                attachments.some((att) => att.status === 'uploading')
               }
             />
           </div>
         </div>
-        {!orchestratorLoading && !orchestratorAssigned && (
-          <div
-            className="flex items-center justify-between gap-3 pt-2 text-xs text-app-muted"
-            role="status"
-          >
-            <span>Orchestrator unassigned. Choose an agent or assign one in Model routing.</span>
-            <button
-              type="button"
-              onClick={onOpenRouting}
-              className="text-app-accent hover:underline underline-offset-2"
-            >
-              Model routing
-            </button>
-          </div>
-        )}
       </div>
     </div>
   )

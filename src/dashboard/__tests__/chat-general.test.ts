@@ -18,12 +18,13 @@ test('USO.10 general and unscoped turns isolate CLI/API cwd and use global confi
         String.raw`
       const assert = (await import('node:assert/strict')).default
       const { mock } = await import('bun:test')
-      const { mkdirSync, writeFileSync, readFileSync, existsSync } = await import('node:fs')
+      const { mkdirSync, writeFileSync, readFileSync, existsSync, realpathSync } = await import('node:fs')
       const { join } = await import('node:path')
       const { orchestosDir } = await import('./src/config/orchestos-home.ts')
       const { runMigrations } = await import('./src/db/migrate.ts')
       const { db } = await import('./src/db/sqlite.ts')
       const { createChatSession } = await import('./src/db/chat-sessions.ts')
+      const { chatDirectory } = await import('./src/chat/documents.ts')
       const { cliChatAdapterFor } = await import('./src/run/executors/chat-adapters.ts')
       const { readCliModelCatalogsCached } = await import('./src/dashboard/chat-cli-models.ts')
       const { uninstrumentedReadAudit } = await import('./src/run/read-audit.ts')
@@ -40,7 +41,7 @@ test('USO.10 general and unscoped turns isolate CLI/API cwd and use global confi
         }
       }))
       const { handleApiChat } = await import('./src/dashboard/handlers/chat.ts')
-      const { handleApiChatSessionsCreate, handleApiChatSessionExec } = await import('./src/dashboard/handlers/chat-sessions.ts')
+      const { handleApiChatSessionsCreate, handleApiChatSessionExec, handleApiChatSessionMessages } = await import('./src/dashboard/handlers/chat-sessions.ts')
       const { handleApiConfigGet } = await import('./src/dashboard/handlers/config.ts')
       const { requestScope } = await import('./src/dashboard/ownership.ts')
       runMigrations()
@@ -55,7 +56,8 @@ test('USO.10 general and unscoped turns isolate CLI/API cwd and use global confi
       writeFileSync(configPath, 'roles:\n  orchestrator: { agent: codex, model: gpt-6-luna }\n')
       const cliInputs = []
       cliChatAdapterFor('codex').runTurn = async input => {
-        cliInputs.push({ cwd: input.cwd, exists: existsSync(input.cwd), context: input.hasProjectContext, tools: input.mcpOffer, system: input.system })
+        cliInputs.push({ cwd: input.cwd, exists: existsSync(input.cwd), context: input.hasProjectContext, tools: input.mcpOffer, system: input.system, general: input.generalChat })
+        if (input.generalChat) writeFileSync(join(input.cwd, 'report.md'), '# Delivered document')
         input.onStep({ type: 'tool_use', label: 'mcp__orchestos__open_in_dev', detail: '{}' })
         input.onStep({ type: 'tool_use', label: 'mcp__orchestos__create_task', detail: JSON.stringify({ description: 'Must not execute', outputs: ['leaked.txt'] }) })
         return { text: 'Use Dev for project files', resultLabel: 'fixture', inputTokens: 1, outputTokens: 1, readAudit: uninstrumentedReadAudit() }
@@ -86,9 +88,12 @@ test('USO.10 general and unscoped turns isolate CLI/API cwd and use global confi
       assert.equal(response.status, 200, JSON.stringify(await response.json()))
       for (const input of [...cliInputs, ...apiInputs]) {
         assert.notEqual(input.cwd, root)
-        assert.ok(input.cwd.includes('orchestos-chat-'))
         assert.ok(input.exists)
-        assert.equal(existsSync(input.cwd), false)
+        if (input.cwd.includes('orchestos-chat-')) assert.equal(existsSync(input.cwd), false)
+        else {
+          assert.ok(input.cwd.startsWith(realpathSync(join(orchestosDir(), 'chats'))))
+          assert.equal(existsSync(input.cwd), true)
+        }
         assert.equal(input.system.includes(root), false)
         assert.ok(input.system.includes('must be done in Dev'))
       }
@@ -97,9 +102,14 @@ test('USO.10 general and unscoped turns isolate CLI/API cwd and use global confi
         assert.deepEqual(input.tools.tools, ['open_in_dev'])
         assert.equal(input.tools.root, input.cwd)
       }
+      assert.equal(cliInputs[0].cwd, chatDirectory(general.id))
+      assert.ok(cliInputs[0].system.includes('search and read the web'))
+      assert.ok(cliInputs[0].system.includes('create or edit documents'))
+      const rows = await handleApiChatSessionMessages(new URL('http://localhost/api/chat/sessions/' + general.id + '/messages')).json()
+      assert.deepEqual(rows.at(-1).documents, [{ name: 'report.md', path: 'report.md', size: 20 }])
       assert.equal(apiInputs[0].assignment.model, 'general/model')
       assert.equal(readFileSync(join(root, 'tasks.yaml'), 'utf8'), tasks)
-      console.log(JSON.stringify({ cliTurns: cliInputs.length, apiTurns: apiInputs.length, isolatedAndCleaned: true, globalConfig: true, noTasks: true, execDenied: denied.status }))
+      console.log(JSON.stringify({ cliTurns: cliInputs.length, apiTurns: apiInputs.length, isolationAndPersistence: true, globalConfig: true, noTasks: true, execDenied: denied.status }))
       db.close()
       `,
       ],
@@ -118,7 +128,7 @@ test('USO.10 general and unscoped turns isolate CLI/API cwd and use global confi
     expect(JSON.parse(stdout)).toEqual({
       cliTurns: 3,
       apiTurns: 1,
-      isolatedAndCleaned: true,
+      isolationAndPersistence: true,
       globalConfig: true,
       noTasks: true,
       execDenied: 403,

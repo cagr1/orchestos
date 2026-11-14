@@ -41,6 +41,7 @@ export interface CliRoleResult {
 }
 
 export interface CliTurnInput extends CliRoleInput {
+  generalChat?: boolean
   signal?: AbortSignal
   hasProjectContext: boolean
   sessionId?: string
@@ -172,6 +173,7 @@ registerCliChatAdapter('claude', {
           resume,
           i.mcpOffer,
           i.signal,
+          i.generalChat,
         )
       let result: Awaited<ReturnType<typeof runTurn>>
       try {

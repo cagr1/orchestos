@@ -1,0 +1,27 @@
+{
+  "item": "USO.11",
+  "date": "2026-11-14",
+  "executor": "gpt-6.1-sol (criterio); arreglos chicos del cerebro (Opus 5.5)",
+  "liveUiVerified": true,
+  "probes": [
+    "claude 2.1.325 --restricted --tools …Write: Write fuera del directorio del chat bloqueado, dentro creado",
+    "claude -p con acceptEdits rechazaba WebSearch/WebFetch; con --allowedTools WebSearch,WebFetch busca y escribe",
+    "codex 0.167.2 app-server: web_search = 'live' por config de thread/start (schema Config.web_search)"
+  ],
+  "live": [
+    "Chat general Claude Code: buscó en la web (Searched 1 time, Fetched 1 page), escribió bun.md, tarjeta 'bun.md 577 B' bajo la respuesta; Download → GET /api/chat/sessions/<id>/files?path=bun.md 200",
+    "Chat general Codex (gpt-6.1-sol): web + bun.md, tarjeta 'bun.md 265 B'",
+    "La fila 'Orchestrator unassigned… Model routing' ya no aparece en el composer",
+    "Borrar las sesiones elimina ~/.orchestos/chats/<id>/ (carpeta vacía tras borrar)"
+  ],
+  "fixesFoundLive": [
+    "Claude: --allowedTools WebSearch,WebFetch en chat general",
+    "Botón de la tarjeta 'Abrir' → 'Download' (descarga; UI en inglés)"
+  ],
+  "qa": [
+    "1ª: un archivo ilegible bloqueaba el chat (snapshot lanzaba) → cae a stat y se salta directorios ilegibles; test nuevo",
+    "2ª: sin defectos"
+  ],
+  "tests": "tsc x2 verde; bun test src/dashboard src/chat src/mcp src/run/executors src/__tests__: 2461 pass, 0 fail",
+  "notes": ["Sin 'Mostrar en Finder': no había mecanismo de revelar en el servidor; solo descarga"]
+}

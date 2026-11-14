@@ -93,6 +93,7 @@ export interface ChatSessionRow {
 }
 
 export interface ChatMessageRow {
+  documents?: import('../chat/documents.ts').ChatDocument[]
   id: number
   sessionId: string
   role: 'user' | 'assistant'

@@ -24,8 +24,8 @@ export interface ChatImageDir {
  * UI.24.6a — escribe las imágenes del turno en un directorio temporal FUERA del
  * proyecto, para pasarlas al CLI como archivo. Quien llama borra con `cleanup()`.
  */
-export function writeChatImages(dataUrls: string[]): ChatImageDir {
-  const dir = mkdtempSync(join(tmpdir(), 'orchestos-chat-att-'))
+export function writeChatImages(dataUrls: string[], parent = tmpdir()): ChatImageDir {
+  const dir = mkdtempSync(join(parent, 'orchestos-chat-att-'))
   const paths = dataUrls.map((url, i) => {
     const decoded = decodeImageDataUrl(url)
     if (!decoded) return null

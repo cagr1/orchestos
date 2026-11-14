@@ -800,7 +800,6 @@ export const OrchestDevWorkspace: React.FC<OrchestDevWorkspaceProps> = ({
             lockedCli={activeAgent?.agent as CliId | undefined}
             useCliDefaultModel={!activeAgent && !!newSessionAgent && !orchestrator?.model}
             orchestratorLoading={!activeAgent && orchestrator === undefined}
-            orchestratorAssigned={!!activeAgent || !!orchestrator}
             onSlashCommand={onSlashCommand}
           />
         </div>

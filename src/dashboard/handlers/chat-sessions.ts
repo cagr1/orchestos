@@ -1,4 +1,11 @@
+import { readFileSync } from 'node:fs'
+import { basename } from 'node:path'
 import { contextWindowFor } from '../../../scripts/context-budget.ts'
+import {
+  documentsFromEnvelope,
+  removeChatDirectory,
+  resolveChatDocument,
+} from '../../chat/documents.ts'
 import { loadOrcheConfig } from '../../config/load.ts'
 import {
   archiveChatSession,
@@ -78,7 +85,12 @@ function toSessionRow(row: ChatSessionRecord): ChatSessionRow {
 }
 
 function toMessageRow(row: ChatMessageRecord): ChatMessageRow {
+  const documents =
+    row.role === 'assistant' && row.turn_id
+      ? documentsFromEnvelope(getTurn(row.turn_id)?.response_envelope_json ?? null)
+      : undefined
   return {
+    ...(documents ? { documents } : {}),
     id: row.id,
     sessionId: row.session_id,
     role: row.role,
@@ -561,9 +573,34 @@ export function handleApiChatSessionDelete(url: URL): Response {
   if (hasActiveTurn(id)) {
     return errorResponse('Cannot delete a conversation with a response in progress', 409)
   }
+  const session = getChatSession(id)
+  if (session?.project_id === null) removeChatDirectory(id)
   return deleteChatSession(id)
     ? jsonResponse({ ok: true })
     : errorResponse('Chat session not found', 404)
+}
+
+export function handleApiChatDocument(url: URL): Response {
+  const match = url.pathname.match(/^\/api\/chat\/sessions\/([^/]+)\/files$/)
+  if (!match?.[1]) return errorResponse('Invalid session id', 400)
+  try {
+    const id = decodeURIComponent(match[1])
+    const session = getChatSession(id)
+    if (!session || session.project_id !== null) return errorResponse('Chat session not found', 404)
+    const path = resolveChatDocument(id, url.searchParams.get('path') ?? '')
+    // Serve as a download: generated HTML/SVG must not execute in the dashboard origin.
+    return new Response(readFileSync(path), {
+      headers: {
+        'Content-Type': 'application/octet-stream',
+        'Content-Disposition': `attachment; filename*=UTF-8''${encodeURIComponent(basename(path))}`,
+        'X-Content-Type-Options': 'nosniff',
+        'Cache-Control': 'no-store',
+        'Content-Security-Policy': "sandbox; default-src 'none'",
+      },
+    })
+  } catch {
+    return errorResponse('Document not found or outside chat folder', 404)
+  }
 }
 
 export function handleApiChatSessionArchive(url: URL, restore = false): Response {

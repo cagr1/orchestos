@@ -199,6 +199,7 @@ export interface ProjectContext {
 }
 
 export interface ChatMessage {
+  documents?: { name: string; path: string; size: number }[]
   id: string
   stopped?: boolean
   taskId?: string

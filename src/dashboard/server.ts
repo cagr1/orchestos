@@ -16,6 +16,7 @@ import {
   handleApiChatUpload,
 } from './handlers/chat.ts'
 import {
+  handleApiChatDocument,
   handleApiChatSessionArchive,
   handleApiChatSessionConsole,
   handleApiChatSessionContext,
@@ -541,6 +542,9 @@ export async function route(req: Request, port: number): Promise<Response> {
   }
   if (method === 'GET' && url.pathname === '/api/chat/sessions') {
     return handleApiChatSessionsList(req)
+  }
+  if (method === 'GET' && /^\/api\/chat\/sessions\/[^/]+\/files$/.test(url.pathname)) {
+    return handleApiChatDocument(url)
   }
   if (
     method === 'POST' &&

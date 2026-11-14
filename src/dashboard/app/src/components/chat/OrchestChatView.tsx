@@ -7,6 +7,7 @@ import { ChatMessage } from '@/components/ui/chat-message'
 import { FileThumbnail } from '@/components/ui/file-thumbnail'
 import type { CliNotice } from '../../../../../run/executors/cli-failure'
 import {
+  downloadChatDocument,
   getDefaultChatAgent,
   getSessionContext,
   getTimeline,
@@ -62,7 +63,6 @@ interface OrchestChatViewProps {
   onSlashCommand?: (command: string, argument?: string) => void
   onTurnSettled?: () => void
   onOpenDev?: () => void
-  onOpenRouting?: () => void
 }
 
 // Se lee en cada render: el hook de motion no reacciona a un cambio de la preferencia en caliente.
@@ -83,7 +83,6 @@ export const OrchestChatView: React.FC<OrchestChatViewProps> = ({
   onCommitRunTask,
   sessionStatus,
   onSlashCommand,
-  onOpenRouting,
   onOpenDev,
   onTurnSettled,
 }) => {
@@ -96,6 +95,7 @@ export const OrchestChatView: React.FC<OrchestChatViewProps> = ({
     sessionId: string
   } | null>(null)
   const [copiedMessageId, setCopiedMessageId] = useState<string | null>(null)
+  const [documentError, setDocumentError] = useState<string | null>(null)
   const [isWorking, setIsWorking] = useState(false)
   const working = isWorking || thread?.running === true
   // Ref: el padre pasa una flecha nueva en cada render y no debe reiniciar el poll.
@@ -539,6 +539,42 @@ export const OrchestChatView: React.FC<OrchestChatViewProps> = ({
                             streaming={false}
                           />
                         )}
+                        {msg.documents && msg.documents.length > 0 && thread && (
+                          <div className="flex flex-wrap gap-2 mt-3">
+                            {msg.documents.map((file) => (
+                              <div
+                                key={file.path}
+                                className="flex items-center gap-3 p-3 rounded-control border border-app bg-app-bg"
+                              >
+                                <FileText className="w-4 h-4 text-app-accent" />
+                                <div className="min-w-0">
+                                  <div className="text-sm text-app truncate">{file.name}</div>
+                                  <div className="text-xs text-app-muted">
+                                    {file.size.toLocaleString()} B
+                                  </div>
+                                </div>
+                                <Button
+                                  size="compact"
+                                  variant="secondary"
+                                  onClick={() => {
+                                    setDocumentError(null)
+                                    void downloadChatDocument(
+                                      thread.id,
+                                      file.path,
+                                      file.name,
+                                    ).catch((error: unknown) => {
+                                      setDocumentError(
+                                        error instanceof Error ? error.message : String(error),
+                                      )
+                                    })
+                                  }}
+                                >
+                                  Download
+                                </Button>
+                              </div>
+                            ))}
+                          </div>
+                        )}
                         {onOpenDev && turnOffersOpenDev(msg.steps) && (
                           <Button size="compact" variant="secondary" onClick={onOpenDev}>
                             Open in Dev
@@ -678,6 +714,11 @@ export const OrchestChatView: React.FC<OrchestChatViewProps> = ({
         </div>
 
         {/* Shared Composer (Nothing under composer: no status line) */}
+        {documentError && (
+          <div role="alert" className="px-3 text-sm text-app-muted">
+            {documentError}
+          </div>
+        )}
         <div
           data-composer-region
           data-permission-mode={thread?.projectId ? permissions?.mode : undefined}
@@ -692,14 +733,12 @@ export const OrchestChatView: React.FC<OrchestChatViewProps> = ({
               defaultModel={initialModel}
               defaultEffort={initialEffort}
               defaultCli={cliId}
-              orchestratorAssigned={!!orchestrator}
               orchestratorLoading={
                 orchestrator === undefined || (!thread && defaultAgent === undefined)
               }
               busy={working}
               onStop={stop.onStop}
               stopping={stop.stopping}
-              onOpenRouting={onOpenRouting}
               onSlashCommand={onSlashCommand}
               onSelectionChange={(_cli, model) => setComposerModel(model)}
             />

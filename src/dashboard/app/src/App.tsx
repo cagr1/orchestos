@@ -2123,7 +2123,6 @@ export default function App() {
                   sessionStatus={sessionStatus}
                   onSlashCommand={handleSlashCommand}
                   onOpenDev={() => handleModeChange('dev')}
-                  onOpenRouting={() => handleOpenSettings('model_routing')}
                 />
               )}
 

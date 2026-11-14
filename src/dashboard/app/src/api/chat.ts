@@ -26,6 +26,7 @@ export interface ChatSessionRow {
 }
 
 export interface ChatMessageRow {
+  documents?: { name: string; path: string; size: number }[]
   id: number
   sessionId: string
   role: 'user' | 'assistant'
@@ -103,6 +104,7 @@ export interface CliModelCatalog {
 }
 
 export interface ChatSendResponse {
+  documents?: { name: string; path: string; size: number }[]
   text: string
   stopped?: boolean
   model?: string
@@ -238,6 +240,7 @@ export function toTimestamp(value: string): string {
 
 export function mapMessage(row: ChatMessageRow): ChatMessage {
   return {
+    documents: row.documents,
     id: String(row.id),
     taskId: row.taskId ?? undefined,
     role: row.role,
@@ -704,6 +707,23 @@ export async function sendMessage(options: ChatSendOptions): Promise<ChatSendRes
 
 export function getDefaultChatAgent(): Promise<{ agent: string | null }> {
   return request<{ agent: string | null }>('/api/chat/default-agent')
+}
+
+export async function downloadChatDocument(
+  sessionId: string,
+  path: string,
+  name: string,
+): Promise<void> {
+  const response = await fetch(
+    `/api/chat/sessions/${encodeURIComponent(sessionId)}/files?path=${encodeURIComponent(path)}&project=none`,
+  )
+  if (!response.ok) throw new Error(`Request failed (${response.status})`)
+  const url = URL.createObjectURL(await response.blob())
+  const link = document.createElement('a')
+  link.href = url
+  link.download = name
+  link.click()
+  window.setTimeout(() => URL.revokeObjectURL(url), 1000)
 }
 
 export function getCliModels(): Promise<CliModelCatalog[]> {

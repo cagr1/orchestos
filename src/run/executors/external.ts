@@ -23,8 +23,10 @@ import { CliFailure, claudeFailureKind, cliFailureNotice } from './cli-failure.t
  */
 
 import { realpathSync } from 'node:fs'
+import { homedir } from 'node:os'
 import { join } from 'node:path'
 import { recordClaudeRateLimitEvent } from '../../../scripts/session-status.ts'
+import { orchestosDir } from '../../config/orchestos-home.ts'
 import { claudeMcpArgs, type McpOffer } from '../../mcp/adapters.ts'
 import type { ApprovalAdapter } from '../approvals.ts'
 import { safeChildEnv } from '../path-policy.ts'
@@ -480,6 +482,7 @@ export const CLAUDE_CLI_EFFORTS = ['low', 'medium', 'high', 'xhigh', 'max'] as c
  */
 export const CLAUDE_CHAT_BOUNDARY_FLAGS = ['--restricted', '--strict-mcp-config'] as const
 export const CLAUDE_CHAT_TOOLS = 'Read,Glob,Grep'
+export const CLAUDE_GENERAL_CHAT_TOOLS = 'Read,Glob,Grep,Write,Edit,WebSearch,WebFetch'
 
 export function buildClaudeChatArgs(
   systemPrompt: string,
@@ -490,6 +493,7 @@ export function buildClaudeChatArgs(
   attachmentsDir?: string,
   resumeSessionId?: string,
   mcpOffer?: McpOffer,
+  generalChat = false,
 ): string[] {
   const args = [
     '-p',
@@ -501,14 +505,17 @@ export function buildClaudeChatArgs(
     systemPrompt,
     ...CLAUDE_CHAT_BOUNDARY_FLAGS,
     '--tools',
-    CLAUDE_CHAT_TOOLS,
+    generalChat ? CLAUDE_GENERAL_CHAT_TOOLS : CLAUDE_CHAT_TOOLS,
     '--settings',
     settingsPath,
     '--add-dir',
     projectRoot,
   ]
+  // `-p` denies tools that need a prompt: acceptEdits covers Write/Edit, not web tools (probed 2.1.325).
+  if (generalChat)
+    args.push('--permission-mode', 'acceptEdits', '--allowedTools', 'WebSearch,WebFetch')
   // UI.24.6a — directorio temporal de imágenes adjuntas del turno: lectura solamente.
-  if (attachmentsDir) args.push('--add-dir', attachmentsDir)
+  if (attachmentsDir && !generalChat) args.push('--add-dir', attachmentsDir)
   if (resumeSessionId) args.push('--resume', resumeSessionId)
   // AT.20/AT.21 — va en cada invocación, también al retomar con --resume.
   if (mcpOffer?.tools.length) args.push(...claudeMcpArgs(mcpOffer))
@@ -556,6 +563,7 @@ export async function runClaudeChat(
   resumeSessionId?: string,
   mcpOffer?: McpOffer,
   signal?: AbortSignal,
+  generalChat = false,
 ): Promise<ClaudeChatResult> {
   const found = findClaudeBinary()
   if (!found) {
@@ -578,7 +586,14 @@ export async function runClaudeChat(
   let resultLine: string | undefined
   let lastAssistant: LastAssistantUsage | undefined
   const audit = new ClaudeReadAudit()
-  const configHome = provisionCliConfigHome(cwd, 'claude')
+  const configHome = generalChat
+    ? provisionCliConfigHome(
+        cwd,
+        'claude',
+        homedir(),
+        join(orchestosDir(), 'general-chat', 'claude'),
+      )
+    : provisionCliConfigHome(cwd, 'claude')
   const cliModel = orchestosModelToCliModel(model)
   if (model && !cliModel) {
     throw new ExecutorExternalError(`Claude Code no reconoce el modelo solicitado: ${model}`)
@@ -595,6 +610,7 @@ export async function runClaudeChat(
         attachmentsDir,
         resumeSessionId,
         mcpOffer,
+        generalChat,
       ),
       userMessage,
       timeoutMs,

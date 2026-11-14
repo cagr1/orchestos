@@ -110,9 +110,15 @@ esta etapa: `docs/done/bloque-AUD.md` (AUD.16, AUD.17), `docs/done/bloque-SES.md
   Gate en vivo: navegador y Playwright (7 ui-gates) — `docs/done/evidence/USO.10-live.json`.
   Texto visible: "Open in Dev" (botón de acción bajo la respuesta: un ícono solo no dice adónde lleva)
   Ejecutado por: gpt-6.1-sol · Spec: docs/specs/USO.10.md
-- [ ] **USO.11 — El Chat investiga en la web y entrega documentos, como Claude Desktop.** (Carlos 2026-11-13, GO) Carpeta
+- [x] **USO.11 — El Chat investiga en la web y entrega documentos, como Claude Desktop.** (Carlos 2026-11-13, GO) Carpeta
   propia por chat que se conserva y tarjeta de archivo en el hilo; búsqueda web en los CLI que la soporten. Va
-  después de USO.10.
+  después de USO.10. Hecho: `~/.orchestos/chats/<id>/` como cwd del chat general (se borra con la sesión);
+  Claude con Write/Edit/WebSearch/WebFetch confinados por `--restricted`; Codex `workspace-write` en esa carpeta y
+  `web_search: live`; tarjetas de archivo con Download; sin la fila "Orchestrator unassigned". qa (gpt-6.1-sol): 2
+  pasadas, la última sin defectos.
+  Gate en vivo: navegador (Claude y Codex reales) — `docs/done/evidence/USO.11-live.json`.
+  Texto visible: "Download" (botón de la tarjeta de archivo: un ícono solo no dice que descarga)
+  Ejecutado por: gpt-6.1-sol · Spec: docs/specs/USO.11.md
 - [ ] **USO.12 — El borrador del composer se pierde al cambiar de pestaña.** (lo propuso el chat de Carlos como tarea,
   2026-11-13; sacada de `tasks.yaml` por USO.10) Spec: `docs/specs/USO.12.md`.
 - [ ] **MSG.1 — Una sesión propone un mensaje a otra del mismo proyecto.** (GO de Carlos 2026-11-13; venía como tarea
