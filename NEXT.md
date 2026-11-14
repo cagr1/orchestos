@@ -1,4 +1,4 @@
-# NEXT — handoff 2026-11-13, noche (uso real; USO.8–USO.12 cerrados)
+# NEXT — handoff 2026-11-14 (uso real; USO.8–USO.12 cerrados; sigue MSG.1)
 
 Un solo presente: orden y trampas vivas del lote. Lo cerrado vive en `docs/done/bloque-*.md` y git; las reglas, en
 `AGENTS.md`. Versión anterior completa: `docs/done/poda-instrucciones-2026-11-03.md` (histórico).
@@ -25,12 +25,19 @@ auditoría AUD.1–AUD.28 en el orden de la segunda auditoría; lo cerrado está
    USO.6 `0cb8f2f9` ("Thought" de Dev repetía la respuesta) y ACT.1 `0b5cc0dd` (vista de actividad como Claude
    Code en Chat y Dev: `components/thread/activity.ts` + `TurnActivity.tsx`). Noche: USO.8 `7d2ecc20` (al cargar solo se pide la línea de tiempo del hilo abierto) y USO.9 `3d79153b` (el
    dashboard se caía si un transcript se borraba al leer el estado). **Push sin pre-push** durante esta etapa
-   (`CLAUDE.md`, `100097d5`). USO.10–USO.12 cerrados (evidencia en `docs/done/evidence/`). Orden: MSG.1 (escribir la spec). Las 2 tareas que el chat dejó en `tasks.yaml` se sacaron y viven como
-   `docs/specs/USO.12.md` y `docs/specs/MSG.1.md`. LRN.1 queda abierto solo con F2 (espera datos de F0, D6). WIN.1
+   (`CLAUDE.md`, `100097d5`). 2026-11-14: USO.10 `8537462f` (Chat sin proyecto, "Open in Dev", tarjetas de tarea en Dev), CI rojo por un
+   fixture de AUD.19 `5f70058f`, USO.11 `7f330150` (web y documentos en el Chat: `~/.orchestos/chats/<id>/`,
+   tarjeta Download), USO.12 `ce7686b1` (borrador del composer por hilo). Evidencia en `docs/done/evidence/`.
+   **Siguiente: MSG.1** — escribir la spec desde `docs/specs/MSG.1.md` (borrador que dejó el chat) antes de delegar.
+   Anotado sin abrir ítem: varias pestañas "new" de Dev del mismo proyecto comparten borrador (USO.12);
+   `src/run/logger.ts:16` escribe `runs/` en la raíz del proyecto (previo). LRN.1 queda abierto solo con F2 (espera datos de F0, D6). WIN.1
    necesita una máquina Windows.
-   Trampas: un ui-gate de Dev que escribe justo tras `Launch Agent` debe esperar la fila del agente
-   (`aside[data-resizable-aside="left"] [data-thread-id]`): el borrador de la pestaña nueva se pierde al cambiar (USO.12).
-   Cerrar un ítem sin delegación exige una línea propia `Sin delegación: <motivo>`, y la de
+   Trampas: el ejecutor Codex no puede invocar `claude`/`codex`: las sondas de CLI las hace el cerebro y van al spec.
+   Claude `-p`: `acceptEdits` no cubre WebSearch/WebFetch (hace falta `--allowedTools`). El hook bloquea al cerebro
+   editar `src/` por Bash; Edit sí pasa (fix chico + `qa`). Cerrar un ítem de dashboard exige en el mismo commit
+   `Gate en vivo: navegador|Playwright — \`<evidencia>\`` en UNA línea y `Texto visible: "<texto>"` para texto JSX
+   nuevo; si `plan:reconcile` ya lo marcó, reabrir → reconciliar → cerrar → reconciliar. Tests de chat general:
+   su config va en `<ORCHESTOS_HOME>/.orchestos/config.yaml`, no en la carpeta. Cerrar un ítem sin delegación exige una línea propia `Sin delegación: <motivo>`, y la de
    `Ejecutado por: … · Spec: docs/specs/<ID>.md` debe terminar en `.md` (regex de `scripts/plan-gate.ts:173`). Codex no
    protege contra `null` lo que el Chat sí protegía al portar código entre vistas: mirar Dev en vivo. El ejecutor Codex no corre ui-gates (no puede invocar CLIs): los corre el cerebro con
    `bun run gate:evidence -- --label <ID>-<flujo> -- bun run ui:gate -- <flujo>`; un gate que cuenta filas de Settings
