@@ -1,5 +1,6 @@
 import { PanelLeft, PanelRight, Search } from 'lucide-react'
 import type React from 'react'
+import { Tooltip } from '@/components/ui/tooltip'
 import { BrandMark } from './BrandMark'
 
 interface ShellHeaderProps {
@@ -30,27 +31,29 @@ export const ShellHeader: React.FC<ShellHeaderProps> = ({
 
         <div className="flex items-center gap-1 ml-1">
           {/* Quick search button */}
-          <button
-            type="button"
-            onClick={onOpenCommandPalette}
-            className="p-1.5 rounded-control text-app-muted hover:text-app hover:bg-app-surface transition-colors"
-            title="Search tasks, runs, specs (⌘K)"
-            aria-label="Open Command Palette"
-          >
-            <Search className="w-3.5 h-3.5" />
-          </button>
+          <Tooltip content="Search tasks, runs, specs (⌘K)">
+            <button
+              type="button"
+              onClick={onOpenCommandPalette}
+              className="p-1.5 rounded-control text-app-muted hover:text-app hover:bg-app-surface transition-colors"
+              aria-label="Open Command Palette"
+            >
+              <Search className="w-3.5 h-3.5" />
+            </button>
+          </Tooltip>
 
           {/* Toggle left sidebar button */}
           {onToggleLeftSidebar && (
-            <button
-              type="button"
-              onClick={onToggleLeftSidebar}
-              className="p-1.5 rounded-control text-app-muted hover:text-app hover:bg-app-surface transition-colors"
-              title="Toggle Navigation Sidebar"
-              aria-label="Toggle Navigation Sidebar"
-            >
-              <PanelLeft className="w-3.5 h-3.5" />
-            </button>
+            <Tooltip content="Toggle Navigation Sidebar">
+              <button
+                type="button"
+                onClick={onToggleLeftSidebar}
+                className="p-1.5 rounded-control text-app-muted hover:text-app hover:bg-app-surface transition-colors"
+                aria-label="Toggle Navigation Sidebar"
+              >
+                <PanelLeft className="w-3.5 h-3.5" />
+              </button>
+            </Tooltip>
           )}
         </div>
       </div>
@@ -58,19 +61,20 @@ export const ShellHeader: React.FC<ShellHeaderProps> = ({
       {/* Right: Only single toggle button for right inspector (status indicator removed as requested) */}
       <div className="flex items-center gap-2">
         {onToggleRightInspector && (
-          <button
-            type="button"
-            onClick={onToggleRightInspector}
-            className={`p-1.5 rounded-control transition-colors ${
-              isRightInspectorOpen
-                ? 'text-app bg-app-surface'
-                : 'text-app-muted hover:text-app hover:bg-app-surface'
-            }`}
-            title="Toggle Right Workspace Panel"
-            aria-label="Toggle Right Workspace Panel"
-          >
-            <PanelRight className="w-3.5 h-3.5" />
-          </button>
+          <Tooltip content="Toggle Right Workspace Panel">
+            <button
+              type="button"
+              onClick={onToggleRightInspector}
+              className={`p-1.5 rounded-control transition-colors ${
+                isRightInspectorOpen
+                  ? 'text-app bg-app-surface'
+                  : 'text-app-muted hover:text-app hover:bg-app-surface'
+              }`}
+              aria-label="Toggle Right Workspace Panel"
+            >
+              <PanelRight className="w-3.5 h-3.5" />
+            </button>
+          </Tooltip>
         )}
       </div>
     </header>

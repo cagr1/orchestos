@@ -1,0 +1,18 @@
+{
+  "item": "USO.14",
+  "date": "2026-11-14",
+  "executor": "gpt-6.1-sol (criterio: USO.14, -fix, -fix2, -fix3); gpt-6-luna (mecanico) se negó 2 veces sin cambios; ajustes de gates por el cerebro (Opus 5.5)",
+  "liveUiVerified": true,
+  "live": [
+    "Dashboard real :4242, vista ?view=thread-states&theme=carbon: hover sobre 'Copy task id' muestra el tooltip Radix con el id (11111111-aaaa-4bbb-8ccc-000000000001), con fondo del tema y look shadcn; sin tooltip nativo duplicado",
+    "ui-gate thread-states 311/311 con los 4 temas (orchestos, graphite, carbon, light): el tooltip de cada tarjeta muestra su id"
+  ],
+  "gates": {
+    "tsc": "backend y app: exit 0",
+    "lint": "0 errores; lint-budget sin subidas; noNonNullAssertion 88 → 87",
+    "test:coverage": "2955 pass, 0 fail (corrida de criterio tras fix3: 2955 pass, 0 fail)",
+    "ui-gates PASS": "appearance 23/23, thread-states 311/311, settings-pages 32/32, auto-flow 33/33, chat-retry-report 27/27, chat-turn-details 29/29, dev-tab-close-running 10/10, model-routing 24/24, project-isolation 14/14",
+    "ui-gates FAIL previos (fallan igual en 089e9ba7, sin USO.14)": "shell-look (logos de filas de Chat), chat-context, chat-continuity, chat-readonly-shell, chat-settings, chat-stop, chat-streaming, composer-picker, notifications, text-sweep, usage-bar → ítem USO.15"
+  },
+  "qa": "gpt-6.1-sol, 2 pasadas: P2 aria-label en botones con texto visible (corregido en fix3, 15 retirados); P2 selector de appearance (corregido por el cerebro)"
+}

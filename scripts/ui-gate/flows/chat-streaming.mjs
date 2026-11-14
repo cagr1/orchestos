@@ -121,7 +121,9 @@ const findBubble = (entries, text) => {
 }
 
 async function selectHaiku(page, visible) {
-  const modelControl = page.locator('button[title="Select model and reasoning effort"]').last()
+  const modelControl = page
+    .locator('[data-composer-region] button.font-mono:not([aria-label])')
+    .last()
   if (!(await visible(modelControl, 15_000))) throw new Error('composer model control not visible')
   await modelControl.click()
   const haiku = page.getByRole('button', { name: /haiku/i }).first()
@@ -426,14 +428,24 @@ export default async function chatStreaming({ page, api, step, shot, visible, cl
       ? `used=${firstContext.used}, window=${firstContext.window}, pct=${firstContext.pct}`
       : 'thread context or visible ring did not report positive usage',
   )
-  const modelControl = page.locator('button[title="Select model and reasoning effort"]').last()
+  const modelControl = page
+    .locator('[data-composer-region] button.font-mono:not([aria-label])')
+    .last()
   const currentModel = firstContext?.model
   await modelControl.click()
-  const options = page.locator('button[title]')
+  const modelCatalogs = (await api('/api/chat/cli-models')).data ?? []
+  const models = modelCatalogs.flatMap((catalog) => catalog.models)
+  const options = page
+    .getByRole('dialog', { name: 'Model and effort selector' })
+    .locator('.overflow-y-auto button')
+  const optionModel = async (option) => {
+    const name = (await option.locator('span').first().innerText()).trim()
+    return models.find((model) => model.name === name)?.id
+  }
   const candidates = []
   for (let index = 0; index < (await options.count()); index++) {
     const option = options.nth(index)
-    const model = await option.getAttribute('title')
+    const model = await optionModel(option)
     if (!model || model === 'Select model and reasoning effort' || model === currentModel) continue
     const candidate = await api(`${contextUrl}?model=${encodeURIComponent(model)}`, contextHeaders)
     if (
@@ -480,7 +492,7 @@ export default async function chatStreaming({ page, api, step, shot, visible, cl
     let originalModelOption = null
     for (let index = 0; index < (await options.count()); index++) {
       const option = options.nth(index)
-      if ((await option.getAttribute('title')) === currentModel) {
+      if ((await optionModel(option)) === currentModel) {
         originalModelOption = option
         break
       }

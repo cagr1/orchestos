@@ -1,6 +1,7 @@
 import { GitCompare, Loader2, Plus, SquareTerminal, X } from 'lucide-react'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
+import { Tooltip } from '@/components/ui/tooltip'
 import { type CliModelCatalog, getCliModels } from '../../api/chat'
 import { getConfig } from '../../api/settings'
 import type { AgentItem } from '../../types/orchestos'
@@ -172,46 +173,93 @@ export function DevSessionTabs({
               key={tab.id}
               className={`group relative flex w-56 min-w-32 shrink items-center rounded-lg ${state.activeId === tab.id ? 'bg-app-surface text-app' : 'text-app-muted hover:bg-app-hover hover:text-app'}`}
             >
-              <button
-                type="button"
-                role="tab"
-                aria-selected={state.activeId === tab.id}
-                data-session-tab={tab.type === 'session' ? tab.id : undefined}
-                data-dirty={tab.type === 'file' && dirtyFileTabs.has(tab.id) ? '' : undefined}
-                data-file-tab={tab.type === 'file' ? tab.path : undefined}
-                data-diff-tab={tab.type === 'diff' ? tab.path : undefined}
-                data-terminal-tab={tab.type === 'terminal' ? tab.id : undefined}
-                data-new-session-tab={tab.type === 'new' ? tab.id : undefined}
-                title={tab.type === 'file' || tab.type === 'diff' ? tab.path : title}
-                onClick={() => onSelect(tab.id)}
-                onDoubleClick={() => {
-                  if (tab.type === 'file' || tab.type === 'diff')
-                    onPin({ kind: tab.type, path: tab.path, pin: true })
-                }}
-                className={`flex min-w-0 flex-1 items-center gap-2 px-3 py-1.5 pr-8 text-left text-xs whitespace-nowrap ${(tab.type === 'file' || tab.type === 'diff') && !tab.pinned ? 'italic' : ''}`}
-              >
-                {tab.type === 'terminal' ? (
-                  <SquareTerminal size={14} />
-                ) : tab.type === 'diff' ? (
-                  <GitCompare size={14} className="text-app-accent" />
-                ) : tab.type === 'file' ? (
-                  <FileIcon
-                    name={tab.path.split('/').pop() ?? tab.path}
-                    kind="file"
-                    className="w-3.5 h-3.5 shrink-0"
-                  />
-                ) : tab.type === 'session' && runningSessionIds.has(tab.id) ? (
-                  <span role="img" title="Running" aria-label="Running" className="shrink-0">
-                    <Loader2 size={14} className="animate-spin text-app-accent" />
-                  </span>
-                ) : (
-                  <ProviderLogo
-                    id={session?.agent || (tab.type === 'new' ? tab.agent : '') || agent}
-                    size={14}
-                  />
-                )}
-                <span className="min-w-0 flex-1 truncate">{title}</span>
-              </button>
+              {(tab.type === 'file' || tab.type === 'diff' ? tab.path : title) ? (
+                <Tooltip content={tab.type === 'file' || tab.type === 'diff' ? tab.path : title}>
+                  <button
+                    type="button"
+                    role="tab"
+                    aria-selected={state.activeId === tab.id}
+                    data-session-tab={tab.type === 'session' ? tab.id : undefined}
+                    data-dirty={tab.type === 'file' && dirtyFileTabs.has(tab.id) ? '' : undefined}
+                    data-file-tab={tab.type === 'file' ? tab.path : undefined}
+                    data-diff-tab={tab.type === 'diff' ? tab.path : undefined}
+                    data-terminal-tab={tab.type === 'terminal' ? tab.id : undefined}
+                    data-new-session-tab={tab.type === 'new' ? tab.id : undefined}
+                    onClick={() => onSelect(tab.id)}
+                    onDoubleClick={() => {
+                      if (tab.type === 'file' || tab.type === 'diff')
+                        onPin({ kind: tab.type, path: tab.path, pin: true })
+                    }}
+                    className={`flex min-w-0 flex-1 items-center gap-2 px-3 py-1.5 pr-8 text-left text-xs whitespace-nowrap ${(tab.type === 'file' || tab.type === 'diff') && !tab.pinned ? 'italic' : ''}`}
+                  >
+                    {tab.type === 'terminal' ? (
+                      <SquareTerminal size={14} />
+                    ) : tab.type === 'diff' ? (
+                      <GitCompare size={14} className="text-app-accent" />
+                    ) : tab.type === 'file' ? (
+                      <FileIcon
+                        name={tab.path.split('/').pop() ?? tab.path}
+                        kind="file"
+                        className="w-3.5 h-3.5 shrink-0"
+                      />
+                    ) : tab.type === 'session' && runningSessionIds.has(tab.id) ? (
+                      <Tooltip content="Running">
+                        <span role="img" aria-label="Running" className="shrink-0">
+                          <Loader2 size={14} className="animate-spin text-app-accent" />
+                        </span>
+                      </Tooltip>
+                    ) : (
+                      <ProviderLogo
+                        id={session?.agent || (tab.type === 'new' ? tab.agent : '') || agent}
+                        size={14}
+                      />
+                    )}
+                    <span className="min-w-0 flex-1 truncate">{title}</span>
+                  </button>
+                </Tooltip>
+              ) : (
+                <button
+                  type="button"
+                  role="tab"
+                  aria-selected={state.activeId === tab.id}
+                  data-session-tab={tab.type === 'session' ? tab.id : undefined}
+                  data-dirty={tab.type === 'file' && dirtyFileTabs.has(tab.id) ? '' : undefined}
+                  data-file-tab={tab.type === 'file' ? tab.path : undefined}
+                  data-diff-tab={tab.type === 'diff' ? tab.path : undefined}
+                  data-terminal-tab={tab.type === 'terminal' ? tab.id : undefined}
+                  data-new-session-tab={tab.type === 'new' ? tab.id : undefined}
+                  onClick={() => onSelect(tab.id)}
+                  onDoubleClick={() => {
+                    if (tab.type === 'file' || tab.type === 'diff')
+                      onPin({ kind: tab.type, path: tab.path, pin: true })
+                  }}
+                  className={`flex min-w-0 flex-1 items-center gap-2 px-3 py-1.5 pr-8 text-left text-xs whitespace-nowrap ${(tab.type === 'file' || tab.type === 'diff') && !tab.pinned ? 'italic' : ''}`}
+                >
+                  {tab.type === 'terminal' ? (
+                    <SquareTerminal size={14} />
+                  ) : tab.type === 'diff' ? (
+                    <GitCompare size={14} className="text-app-accent" />
+                  ) : tab.type === 'file' ? (
+                    <FileIcon
+                      name={tab.path.split('/').pop() ?? tab.path}
+                      kind="file"
+                      className="w-3.5 h-3.5 shrink-0"
+                    />
+                  ) : tab.type === 'session' && runningSessionIds.has(tab.id) ? (
+                    <Tooltip content="Running">
+                      <span role="img" aria-label="Running" className="shrink-0">
+                        <Loader2 size={14} className="animate-spin text-app-accent" />
+                      </span>
+                    </Tooltip>
+                  ) : (
+                    <ProviderLogo
+                      id={session?.agent || (tab.type === 'new' ? tab.agent : '') || agent}
+                      size={14}
+                    />
+                  )}
+                  <span className="min-w-0 flex-1 truncate">{title}</span>
+                </button>
+              )}
               {tab.type === 'file' && dirtyFileTabs.has(tab.id) && (
                 <span
                   aria-hidden="true"

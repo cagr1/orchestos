@@ -2,6 +2,7 @@ import { FitAddon } from '@xterm/addon-fit'
 import { Terminal } from '@xterm/xterm'
 import { Loader2, RotateCcw } from 'lucide-react'
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { Tooltip } from '@/components/ui/tooltip'
 import { useAppearanceSettings } from '../../lib/appearance-settings'
 import { readDashboardToken } from '../../lib/dashboard-token'
 import { KEYBINDINGS, reachesAppFromTerminal } from '../../lib/keybindings'
@@ -226,15 +227,16 @@ export function OpenCodeTerminal({
         {(state === 'error' || state === 'exited') && (
           <div className="absolute inset-0 z-10 flex items-center justify-center gap-3 text-sm text-[var(--app-text-muted)]">
             {state === 'error' && <span role="alert">{message}</span>}
-            <button
-              type="button"
-              onClick={reopen}
-              className="text-[var(--app-accent)]"
-              aria-label="Reabrir"
-              title="Reabrir"
-            >
-              <RotateCcw size={16} />
-            </button>
+            <Tooltip content="Reabrir">
+              <button
+                type="button"
+                onClick={reopen}
+                className="text-[var(--app-accent)]"
+                aria-label="Reabrir"
+              >
+                <RotateCcw size={16} />
+              </button>
+            </Tooltip>
           </div>
         )}
       </div>

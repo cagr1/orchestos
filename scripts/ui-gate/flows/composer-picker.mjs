@@ -66,7 +66,9 @@ export default async function composerPicker({ page, api, step, shot, visible, c
   const codex = catalogs?.find((catalog) => catalog.id === 'codex')
   const codexModel = codex?.models.find((model) => model.efforts?.length)
   if (!codexModel) throw new Error('Codex catalog must provide a model with effort levels')
-  const codexControl = page.locator('button[title="Select model and reasoning effort"]').last()
+  const codexControl = page
+    .locator('[data-composer-region] button.font-mono:not([aria-label])')
+    .last()
   await codexControl.click()
   const selector = page.getByRole('dialog', { name: 'Model and effort selector' })
   const codexSearch = selector.getByLabel('Search models')
@@ -155,7 +157,7 @@ export default async function composerPicker({ page, api, step, shot, visible, c
     const modelButtons = await codexModelList.getByRole('button').evaluateAll((buttons) =>
       buttons.map((button) => ({
         name: button.textContent,
-        model: button.title,
+        model: button.textContent,
         ariaChecked: button.getAttribute('aria-checked'),
         checkVisible: [...button.querySelectorAll('svg.lucide-check')].some(
           (check) => check.getClientRects().length > 0,

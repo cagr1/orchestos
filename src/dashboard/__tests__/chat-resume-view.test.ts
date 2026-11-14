@@ -53,7 +53,7 @@ test('AUD.24 running thread renders Stop and polls the timeline without a local 
       })
     }
     visit(tree)
-    const html = renderToStaticMarkup(react.createElement(ComposerSubmitButton, { busy: composer.props.busy, onStop: composer.props.onStop, stopping: false, hasDraft: false, sendDisabled: true, onSend() {} }))
+    const html = renderToStaticMarkup(ComposerSubmitButton({ busy: composer.props.busy, onStop: composer.props.onStop, stopping: false, hasDraft: false, sendDisabled: true, onSend() {} }).props.children)
     pending = false
     const finalCleanups = effects.map(effect => effect())
     await new Promise(resolve => setImmediate(resolve))

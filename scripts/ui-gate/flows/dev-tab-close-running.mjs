@@ -156,7 +156,7 @@ export default async function devTabCloseRunning({
 
   const start = async (session) => {
     await tab(session).click()
-    await page.locator('button[title="Select model and reasoning effort"]').last().click()
+    await page.locator('[data-composer-region] button.font-mono:not([aria-label])').last().click()
     await page.getByRole('button', { name: /haiku/i }).first().click()
     await page.keyboard.press('Escape')
     await page

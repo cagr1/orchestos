@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from 'react'
 import { flushSync } from 'react-dom'
+import { TooltipProvider } from '@/components/ui/tooltip'
 import type { TaskClass } from '../../../router/classify'
 import {
   archiveSession,
@@ -1982,218 +1983,152 @@ export default function App() {
       style={{ width: `calc(100vw / ${uiScale})`, height: `calc(100vh / ${uiScale})` }}
       className="h-screen w-screen flex flex-col bg-app-bg text-app font-sans overflow-hidden select-none"
     >
-      {confirmation && (
-        <ConfirmDialog
-          title={confirmation.kind === 'delete' ? 'Delete this chat?' : 'Archive this agent?'}
-          body={
-            confirmation.kind === 'archive' ? 'It moves to History; you can restore it.' : undefined
-          }
-          confirmLabel={confirmation.kind === 'delete' ? 'Delete' : 'Archive'}
-          onCancel={() => setConfirmation(null)}
-          onConfirm={(dontAskAgain) => {
-            if (dontAskAgain)
-              writeChatSettings(
-                confirmation.kind === 'delete'
-                  ? { confirmDelete: false }
-                  : { confirmArchive: false },
-              )
-            setConfirmation(null)
-            void confirmation.action()
-          }}
-        />
-      )}
-      {closeRunning && (
-        <ConfirmDialog
-          title="Stop this agent?"
-          body="It's still working. Keep it running and find it in the sidebar."
-          confirmLabel="Stop and close"
-          secondaryLabel="Keep running"
-          onCancel={() => setCloseRunning(null)}
-          onConfirm={(dontAskAgain) => {
-            if (dontAskAgain) writeChatSettings({ closeRunningTab: 'stop' })
-            void stopActiveChatSession(closeRunning.id, closeRunning.projectId)
-            updateDevTabs(closeRunning.projectId, (tabs) => closeSessionTab(tabs, closeRunning.id))
-            setCloseRunning(null)
-          }}
-          onSecondary={(dontAskAgain) => {
-            if (dontAskAgain) writeChatSettings({ closeRunningTab: 'keep' })
-            updateDevTabs(closeRunning.projectId, (tabs) => closeSessionTab(tabs, closeRunning.id))
-            setCloseRunning(null)
-          }}
-        />
-      )}
-      {projectError && (
-        <div
-          role="alert"
-          className="fixed right-4 top-12 z-[60] max-w-sm rounded-control border border-app-error/60 bg-app-surface px-3 py-2 text-xs text-app shadow-2xl"
-        >
-          {projectError}
-        </div>
-      )}
-      {/* Top Shell Header */}
-      <ShellHeader
-        onOpenCommandPalette={() => setIsCommandPaletteOpen(true)}
-        onToggleLeftSidebar={
-          mode !== 'settings' ? () => setIsLeftSidebarOpen(!isLeftSidebarOpen) : undefined
-        }
-        onToggleRightInspector={
-          mode === 'dev' ? () => setIsRightInspectorOpen(!isRightInspectorOpen) : undefined
-        }
-        isRightInspectorOpen={isRightInspectorOpen}
-      />
-
-      {/* Main App Workspace Layout */}
-      <div data-shell-workspace className="flex-1 flex overflow-hidden">
-        {/* Left Sidebar: ONLY shown in Chat and Dev modes (Hidden in Settings for full-screen mode, Requirement 7) */}
-        <div className={mode !== 'settings' && isLeftSidebarOpen ? 'flex shrink-0' : 'hidden'}>
-          <ShellSidebar
-            newChatSignal={newChatSignal}
-            mode={mode}
-            onChangeMode={handleModeChange}
-            threads={threadsWithApprovals(threads, [
-              { projectId: currentProject?.id, tasks },
-              { projectId: activeThread?.projectId, tasks: activeThreadTasks },
-            ])}
-            activeThreadId={activeThreadId}
-            onSelectThread={setActiveThreadId}
-            onNewChat={handleNewChat}
-            onDeleteChat={handleDeleteChat}
-            projects={projectsWithApprovals(
-              projects.map((project) => ({
-                ...project,
-                agents: project.agents.map((agent) =>
-                  project.id === currentProject?.id
-                    ? {
-                        ...agent,
-                        status: runningSessionIds.has(agent.id)
-                          ? 'active'
-                          : agent.status === 'active'
-                            ? 'completed'
-                            : agent.status,
-                      }
-                    : agent,
-                ),
-              })),
-              currentProject?.id,
-              tasks,
-            )}
-            activeProjectId={activeProjectId}
-            onSelectProject={handleSelectProject}
-            onNewProject={(action) => {
-              void handleNewProject(action)
+      <TooltipProvider>
+        {confirmation && (
+          <ConfirmDialog
+            title={confirmation.kind === 'delete' ? 'Delete this chat?' : 'Archive this agent?'}
+            body={
+              confirmation.kind === 'archive'
+                ? 'It moves to History; you can restore it.'
+                : undefined
+            }
+            confirmLabel={confirmation.kind === 'delete' ? 'Delete' : 'Archive'}
+            onCancel={() => setConfirmation(null)}
+            onConfirm={(dontAskAgain) => {
+              if (dontAskAgain)
+                writeChatSettings(
+                  confirmation.kind === 'delete'
+                    ? { confirmDelete: false }
+                    : { confirmArchive: false },
+                )
+              setConfirmation(null)
+              void confirmation.action()
             }}
-            onOpenSettings={() => handleOpenSettings(undefined, 'tasks')}
-            onOpenProjectSettings={handleOpenProjectSettings}
-            activeAgentId={activeAgentId}
-            onSelectAgent={handleSelectAgent}
-            onCloseAgent={handleCloseAgent}
-            onDeleteProject={handleDeleteProject}
-            onCreateAgentInProject={handleCreateAgentInProject}
           />
-        </div>
+        )}
+        {closeRunning && (
+          <ConfirmDialog
+            title="Stop this agent?"
+            body="It's still working. Keep it running and find it in the sidebar."
+            confirmLabel="Stop and close"
+            secondaryLabel="Keep running"
+            onCancel={() => setCloseRunning(null)}
+            onConfirm={(dontAskAgain) => {
+              if (dontAskAgain) writeChatSettings({ closeRunningTab: 'stop' })
+              void stopActiveChatSession(closeRunning.id, closeRunning.projectId)
+              updateDevTabs(closeRunning.projectId, (tabs) =>
+                closeSessionTab(tabs, closeRunning.id),
+              )
+              setCloseRunning(null)
+            }}
+            onSecondary={(dontAskAgain) => {
+              if (dontAskAgain) writeChatSettings({ closeRunningTab: 'keep' })
+              updateDevTabs(closeRunning.projectId, (tabs) =>
+                closeSessionTab(tabs, closeRunning.id),
+              )
+              setCloseRunning(null)
+            }}
+          />
+        )}
+        {projectError && (
+          <div
+            role="alert"
+            className="fixed right-4 top-12 z-[60] max-w-sm rounded-control border border-app-error/60 bg-app-surface px-3 py-2 text-xs text-app shadow-2xl"
+          >
+            {projectError}
+          </div>
+        )}
+        {/* Top Shell Header */}
+        <ShellHeader
+          onOpenCommandPalette={() => setIsCommandPaletteOpen(true)}
+          onToggleLeftSidebar={
+            mode !== 'settings' ? () => setIsLeftSidebarOpen(!isLeftSidebarOpen) : undefined
+          }
+          onToggleRightInspector={
+            mode === 'dev' ? () => setIsRightInspectorOpen(!isRightInspectorOpen) : undefined
+          }
+          isRightInspectorOpen={isRightInspectorOpen}
+        />
 
-        {/* Panel: everything right of the sidebar, a lighter surface under the header */}
-        <div
-          className={`flex-1 flex overflow-hidden ${
-            mode === 'settings' ? '' : 'bg-app-surface rounded-tl-[10px]'
-          }`}
-        >
-          {/* Center Canvas / Views */}
-          <div className="flex-1 min-w-[360px] flex overflow-hidden">
-            {/* VIEW 1: CHAT */}
-            {mode === 'chat' &&
-              (!activeThread?.projectId || !deletingProjectIds.has(activeThread.projectId)) && (
-                <OrchestChatView
-                  thread={activeThread}
-                  tasks={[]}
-                  approvals={{}}
-                  projectName={
-                    projects.find((project) => project.id === activeThread?.projectId)?.name
-                  }
-                  projectExists={
-                    !activeThread?.projectId ||
-                    (!deletingProjectIds.has(activeThread.projectId) &&
-                      projects.some((project) => project.id === activeThread.projectId))
-                  }
-                  onTurnSettled={() => {
-                    if (activeThread)
-                      void settleChatTurn(activeThread.id, activeThread.projectId).catch(() => {})
-                  }}
-                  onSendMessage={handleSendMessage}
-                  onApproveHeldTask={handleApproveHeldTask}
-                  onViewEvidence={async (runId) => {
-                    if (!activeThread?.projectId) return
-                    const evidence = await getRun(runId, activeThread.projectId)
-                    setRuns((current) => [evidence, ...current.filter((run) => run.id !== runId)])
-                    setEvidenceRunId(runId)
-                    handleOpenSettings(`project_${activeThread.projectId}`, 'runs')
-                  }}
-                  onRetryTask={handleApproveHeldTask}
-                  onCommitRunTask={handleCommitRunTask}
-                  onRejectHeldTask={handleRejectHeldTask}
-                  sessionStatus={sessionStatus}
-                  onSlashCommand={handleSlashCommand}
-                  onOpenDev={() => handleModeChange('dev')}
-                />
+        {/* Main App Workspace Layout */}
+        <div data-shell-workspace className="flex-1 flex overflow-hidden">
+          {/* Left Sidebar: ONLY shown in Chat and Dev modes (Hidden in Settings for full-screen mode, Requirement 7) */}
+          <div className={mode !== 'settings' && isLeftSidebarOpen ? 'flex shrink-0' : 'hidden'}>
+            <ShellSidebar
+              newChatSignal={newChatSignal}
+              mode={mode}
+              onChangeMode={handleModeChange}
+              threads={threadsWithApprovals(threads, [
+                { projectId: currentProject?.id, tasks },
+                { projectId: activeThread?.projectId, tasks: activeThreadTasks },
+              ])}
+              activeThreadId={activeThreadId}
+              onSelectThread={setActiveThreadId}
+              onNewChat={handleNewChat}
+              onDeleteChat={handleDeleteChat}
+              projects={projectsWithApprovals(
+                projects.map((project) => ({
+                  ...project,
+                  agents: project.agents.map((agent) =>
+                    project.id === currentProject?.id
+                      ? {
+                          ...agent,
+                          status: runningSessionIds.has(agent.id)
+                            ? 'active'
+                            : agent.status === 'active'
+                              ? 'completed'
+                              : agent.status,
+                        }
+                      : agent,
+                  ),
+                })),
+                currentProject?.id,
+                tasks,
               )}
+              activeProjectId={activeProjectId}
+              onSelectProject={handleSelectProject}
+              onNewProject={(action) => {
+                void handleNewProject(action)
+              }}
+              onOpenSettings={() => handleOpenSettings(undefined, 'tasks')}
+              onOpenProjectSettings={handleOpenProjectSettings}
+              activeAgentId={activeAgentId}
+              onSelectAgent={handleSelectAgent}
+              onCloseAgent={handleCloseAgent}
+              onDeleteProject={handleDeleteProject}
+              onCreateAgentInProject={handleCreateAgentInProject}
+            />
+          </div>
 
-            {/* VIEW 2: DEV WORKSPACE */}
-            {mode === 'dev' && (
-              <div className="flex-1 min-w-0 flex flex-col overflow-hidden">
-                <DevSessionTabs
-                  agents={currentProject?.agents ?? []}
-                  state={activeDevTabs}
-                  runningSessionIds={runningSessionIds}
-                  dirtyFileTabs={dirtyFileTabs}
-                  projectId={activeProjectId}
-                  onSelect={selectDevTab}
-                  onPin={(request) =>
-                    updateDevTabs(activeProjectId, (tabs) => openPathTab(tabs, request))
-                  }
-                  onClose={(id) => closeDevTab(activeProjectId, id)}
-                  onNew={(action) => {
-                    if (action.kind === 'create-session') {
-                      handleCreateAgentInProject(activeProjectId, action.agent, '', 'OpenCode')
-                    } else {
-                      updateDevTabs(activeProjectId, (tabs) =>
-                        openNewTab(tabs, undefined, action.agent),
-                      )
+          {/* Panel: everything right of the sidebar, a lighter surface under the header */}
+          <div
+            className={`flex-1 flex overflow-hidden ${
+              mode === 'settings' ? '' : 'bg-app-surface rounded-tl-[10px]'
+            }`}
+          >
+            {/* Center Canvas / Views */}
+            <div className="flex-1 min-w-[360px] flex overflow-hidden">
+              {/* VIEW 1: CHAT */}
+              {mode === 'chat' &&
+                (!activeThread?.projectId || !deletingProjectIds.has(activeThread.projectId)) && (
+                  <OrchestChatView
+                    thread={activeThread}
+                    tasks={[]}
+                    approvals={{}}
+                    projectName={
+                      projects.find((project) => project.id === activeThread?.projectId)?.name
                     }
-                  }}
-                />
-                {activeDevTab?.type === 'diff' ? (
-                  <DevDiffPanel
-                    key={`${activeProjectId}:${activeDevTab.path}`}
-                    projectId={activeProjectId}
-                    path={activeDevTab.path}
-                    revision={diffRevision}
-                    onOpenFile={handleOpenFile}
-                  />
-                ) : activeDevTab?.type === 'file' ? (
-                  <DevFilePanel
-                    key={activeProjectId}
-                    projectId={activeProjectId}
-                    path={activeDevTab.path}
-                    onClose={(path) => closeDevTab(activeProjectId, `file:${path}`)}
-                  />
-                ) : activeDevTab &&
-                  activeDevTab.type !== 'terminal' &&
-                  activeAgent?.agent !== 'opencode' &&
-                  currentProject &&
-                  !deletingProjectIds.has(currentProject.id) ? (
-                  <OrchestDevWorkspace
-                    key={activeDevTab?.id ?? activeProjectId}
-                    activeProject={currentProject}
-                    activeAgent={activeAgent}
-                    messages={activeThread?.messages ?? []}
-                    tasks={activeThreadTasks}
-                    approvals={
-                      approvals?.projectId === activeThread?.projectId ? approvals?.byRun : {}
+                    projectExists={
+                      !activeThread?.projectId ||
+                      (!deletingProjectIds.has(activeThread.projectId) &&
+                        projects.some((project) => project.id === activeThread.projectId))
                     }
+                    onTurnSettled={() => {
+                      if (activeThread)
+                        void settleChatTurn(activeThread.id, activeThread.projectId).catch(() => {})
+                    }}
+                    onSendMessage={handleSendMessage}
                     onApproveHeldTask={handleApproveHeldTask}
-                    onRejectHeldTask={handleRejectHeldTask}
-                    onRetryTask={handleApproveHeldTask}
-                    onCommitRunTask={handleCommitRunTask}
                     onViewEvidence={async (runId) => {
                       if (!activeThread?.projectId) return
                       const evidence = await getRun(runId, activeThread.projectId)
@@ -2201,199 +2136,276 @@ export default function App() {
                       setEvidenceRunId(runId)
                       handleOpenSettings(`project_${activeThread.projectId}`, 'runs')
                     }}
-                    newSessionAgent={activeDevTab.type === 'new' ? activeDevTab.agent : undefined}
-                    onCloseAgent={handleCloseAgent}
-                    onSendMessage={handleDevSendMessage}
-                    onTimelinePending={handleDevTimelinePending}
-                    onRunCommand={handleRunCommand}
+                    onRetryTask={handleApproveHeldTask}
+                    onCommitRunTask={handleCommitRunTask}
+                    onRejectHeldTask={handleRejectHeldTask}
                     sessionStatus={sessionStatus}
                     onSlashCommand={handleSlashCommand}
+                    onOpenDev={() => handleModeChange('dev')}
                   />
-                ) : null}
-                {currentProject &&
-                  activeDevTabs.tabs.map((tab) => {
-                    const isShell = tab.type === 'terminal'
-                    if (
-                      !isShell &&
-                      !(
-                        tab.type === 'session' &&
-                        currentProject.agents.some(
-                          (agent) => agent.id === tab.id && agent.agent === 'opencode',
+                )}
+
+              {/* VIEW 2: DEV WORKSPACE */}
+              {mode === 'dev' && (
+                <div className="flex-1 min-w-0 flex flex-col overflow-hidden">
+                  <DevSessionTabs
+                    agents={currentProject?.agents ?? []}
+                    state={activeDevTabs}
+                    runningSessionIds={runningSessionIds}
+                    dirtyFileTabs={dirtyFileTabs}
+                    projectId={activeProjectId}
+                    onSelect={selectDevTab}
+                    onPin={(request) =>
+                      updateDevTabs(activeProjectId, (tabs) => openPathTab(tabs, request))
+                    }
+                    onClose={(id) => closeDevTab(activeProjectId, id)}
+                    onNew={(action) => {
+                      if (action.kind === 'create-session') {
+                        handleCreateAgentInProject(activeProjectId, action.agent, '', 'OpenCode')
+                      } else {
+                        updateDevTabs(activeProjectId, (tabs) =>
+                          openNewTab(tabs, undefined, action.agent),
+                        )
+                      }
+                    }}
+                  />
+                  {activeDevTab?.type === 'diff' ? (
+                    <DevDiffPanel
+                      key={`${activeProjectId}:${activeDevTab.path}`}
+                      projectId={activeProjectId}
+                      path={activeDevTab.path}
+                      revision={diffRevision}
+                      onOpenFile={handleOpenFile}
+                    />
+                  ) : activeDevTab?.type === 'file' ? (
+                    <DevFilePanel
+                      key={activeProjectId}
+                      projectId={activeProjectId}
+                      path={activeDevTab.path}
+                      onClose={(path) => closeDevTab(activeProjectId, `file:${path}`)}
+                    />
+                  ) : activeDevTab &&
+                    activeDevTab.type !== 'terminal' &&
+                    activeAgent?.agent !== 'opencode' &&
+                    currentProject &&
+                    !deletingProjectIds.has(currentProject.id) ? (
+                    <OrchestDevWorkspace
+                      key={activeDevTab?.id ?? activeProjectId}
+                      activeProject={currentProject}
+                      activeAgent={activeAgent}
+                      messages={activeThread?.messages ?? []}
+                      tasks={activeThreadTasks}
+                      approvals={
+                        approvals?.projectId === activeThread?.projectId ? approvals?.byRun : {}
+                      }
+                      onApproveHeldTask={handleApproveHeldTask}
+                      onRejectHeldTask={handleRejectHeldTask}
+                      onRetryTask={handleApproveHeldTask}
+                      onCommitRunTask={handleCommitRunTask}
+                      onViewEvidence={async (runId) => {
+                        if (!activeThread?.projectId) return
+                        const evidence = await getRun(runId, activeThread.projectId)
+                        setRuns((current) => [
+                          evidence,
+                          ...current.filter((run) => run.id !== runId),
+                        ])
+                        setEvidenceRunId(runId)
+                        handleOpenSettings(`project_${activeThread.projectId}`, 'runs')
+                      }}
+                      newSessionAgent={activeDevTab.type === 'new' ? activeDevTab.agent : undefined}
+                      onCloseAgent={handleCloseAgent}
+                      onSendMessage={handleDevSendMessage}
+                      onTimelinePending={handleDevTimelinePending}
+                      onRunCommand={handleRunCommand}
+                      sessionStatus={sessionStatus}
+                      onSlashCommand={handleSlashCommand}
+                    />
+                  ) : null}
+                  {currentProject &&
+                    activeDevTabs.tabs.map((tab) => {
+                      const isShell = tab.type === 'terminal'
+                      if (
+                        !isShell &&
+                        !(
+                          tab.type === 'session' &&
+                          currentProject.agents.some(
+                            (agent) => agent.id === tab.id && agent.agent === 'opencode',
+                          )
                         )
                       )
-                    )
-                      return null
-                    return (
-                      <div
-                        key={tab.id}
-                        hidden={tab.id !== activeDevTabs.activeId}
-                        data-dev-terminal={isShell ? '' : undefined}
-                        className="flex-1 min-h-0 min-w-0 overflow-hidden"
-                      >
-                        <OpenCodeTerminal
-                          projectId={currentProject.id}
-                          kind={isShell ? 'shell' : 'opencode'}
-                          pendingInput={
-                            isShell
-                              ? terminalInputs.filter(
-                                  (input) => input.projectId === currentProject.id,
-                                )
-                              : undefined
-                          }
-                          onInputConsumed={(id) =>
-                            setTerminalInputs((pending) =>
-                              pending.filter((input) => input.id !== id),
-                            )
-                          }
-                        />
-                      </div>
-                    )
-                  })}
-              </div>
-            )}
+                        return null
+                      return (
+                        <div
+                          key={tab.id}
+                          hidden={tab.id !== activeDevTabs.activeId}
+                          data-dev-terminal={isShell ? '' : undefined}
+                          className="flex-1 min-h-0 min-w-0 overflow-hidden"
+                        >
+                          <OpenCodeTerminal
+                            projectId={currentProject.id}
+                            kind={isShell ? 'shell' : 'opencode'}
+                            pendingInput={
+                              isShell
+                                ? terminalInputs.filter(
+                                    (input) => input.projectId === currentProject.id,
+                                  )
+                                : undefined
+                            }
+                            onInputConsumed={(id) =>
+                              setTerminalInputs((pending) =>
+                                pending.filter((input) => input.id !== id),
+                              )
+                            }
+                          />
+                        </div>
+                      )
+                    })}
+                </div>
+              )}
 
-            {/* VIEW 3: SETTINGS (Full screen mode without sidebar, hosts project tasks, runs, specs, etc.) */}
-            {mode === 'settings' && (
-              <OrchestSettingsView
-                key={`${settingsSection}:${settingsProjectTab}`}
-                settingsSearchSignal={settingsSearchSignal}
-                onBackToApp={() => setMode(previousMode || 'dev')}
+              {/* VIEW 3: SETTINGS (Full screen mode without sidebar, hosts project tasks, runs, specs, etc.) */}
+              {mode === 'settings' && (
+                <OrchestSettingsView
+                  key={`${settingsSection}:${settingsProjectTab}`}
+                  settingsSearchSignal={settingsSearchSignal}
+                  onBackToApp={() => setMode(previousMode || 'dev')}
+                  projects={projects}
+                  onProjectUpdated={(updated) =>
+                    setProjects((rows) =>
+                      rows.map((project) =>
+                        project.id === updated.id
+                          ? { ...project, ...updated, agents: project.agents }
+                          : project,
+                      ),
+                    )
+                  }
+                  activeProjectId={activeProjectId}
+                  onSelectProject={handleSelectProject}
+                  onAddProject={(action) => {
+                    void handleNewProject(action)
+                  }}
+                  currentTheme={theme}
+                  onSelectTheme={setTheme}
+                  language={language}
+                  onSelectLanguage={setLanguage}
+                  initialSection={settingsSection}
+                  initialProjectTab={settingsProjectTab}
+                  initialRunId={evidenceRunId}
+                  tasks={tasks}
+                  taskError={taskRunError?.message || taskError}
+                  onOpenTaskRouting={
+                    taskRunError?.code === 'role_unassigned'
+                      ? () => handleOpenSettings('model_routing')
+                      : undefined
+                  }
+                  runs={runs}
+                  projectContext={projectContext}
+                  specs={specs}
+                  memories={memories}
+                  skills={skills}
+                  instincts={instincts}
+                  onApproveSpec={handleApproveSpec}
+                  onDraftSpec={handleDraftSpec}
+                  onLintSpec={handleLintSpec}
+                  onResolveConflict={handleResolveConflict}
+                  onCompileSkill={handleCompileSkill}
+                  onAddLibrarySkill={handleAddLibrarySkill}
+                  onEnableLibrarySkill={handleEnableLibrarySkill}
+                  onSetLibrarySkillPhases={handleSetLibrarySkillPhases}
+                  onApproveInstinct={handleApproveInstinct}
+                  onRejectInstinct={handleRejectInstinct}
+                  onSetInstinctStatus={handleSetInstinctStatus}
+                  onPreviewGraduation={handlePreviewGraduation}
+                  onGraduateInstinct={handleGraduateInstinct}
+                  onAddInstinct={handleAddInstinct}
+                  onUpdateInstinct={handleUpdateInstinct}
+                  onRunTask={(id) => void handleRunTask(id)}
+                  onExplainTask={handleExplainTask}
+                  projectTabsLoading={projectTabsLoading}
+                  projectTabsError={projectTabsError}
+                  onPurgeProjectData={handlePurgeProjectData}
+                  onResetOrchestos={handleResetOrchestos}
+                  onOpenChat={() => setMode('chat')}
+                  onRunNextTask={() => void handleRunNextTask()}
+                  canRunNextTask={Boolean(getRunnableTask(tasks)) && !runningTaskId}
+                  taskRunBusy={Boolean(runningTaskId)}
+                />
+              )}
+            </div>
+
+            {/* Right Inspector: ONLY available in Dev mode, toggleable via top header button */}
+            {mode === 'dev' && isRightInspectorOpen && currentProject && (
+              <OrcaRightInspector
+                currentProject={currentProject}
                 projects={projects}
-                onProjectUpdated={(updated) =>
-                  setProjects((rows) =>
-                    rows.map((project) =>
-                      project.id === updated.id
-                        ? { ...project, ...updated, agents: project.agents }
-                        : project,
-                    ),
-                  )
+                activeFilePath={activeDevTab?.type === 'file' ? activeDevTab.path : null}
+                activeDiffPath={activeDevTab?.type === 'diff' ? activeDevTab.path : null}
+                onOpenDiff={(request) =>
+                  updateDevTabs(activeProjectId, (tabs) => openPathTab(tabs, request))
                 }
-                activeProjectId={activeProjectId}
-                onSelectProject={handleSelectProject}
-                onAddProject={(action) => {
-                  void handleNewProject(action)
-                }}
-                currentTheme={theme}
-                onSelectTheme={setTheme}
-                language={language}
-                onSelectLanguage={setLanguage}
-                initialSection={settingsSection}
-                initialProjectTab={settingsProjectTab}
-                initialRunId={evidenceRunId}
-                tasks={tasks}
-                taskError={taskRunError?.message || taskError}
-                onOpenTaskRouting={
-                  taskRunError?.code === 'role_unassigned'
-                    ? () => handleOpenSettings('model_routing')
-                    : undefined
-                }
-                runs={runs}
-                projectContext={projectContext}
-                specs={specs}
-                memories={memories}
-                skills={skills}
-                instincts={instincts}
-                onApproveSpec={handleApproveSpec}
-                onDraftSpec={handleDraftSpec}
-                onLintSpec={handleLintSpec}
-                onResolveConflict={handleResolveConflict}
-                onCompileSkill={handleCompileSkill}
-                onAddLibrarySkill={handleAddLibrarySkill}
-                onEnableLibrarySkill={handleEnableLibrarySkill}
-                onSetLibrarySkillPhases={handleSetLibrarySkillPhases}
-                onApproveInstinct={handleApproveInstinct}
-                onRejectInstinct={handleRejectInstinct}
-                onSetInstinctStatus={handleSetInstinctStatus}
-                onPreviewGraduation={handlePreviewGraduation}
-                onGraduateInstinct={handleGraduateInstinct}
-                onAddInstinct={handleAddInstinct}
-                onUpdateInstinct={handleUpdateInstinct}
-                onRunTask={(id) => void handleRunTask(id)}
-                onExplainTask={handleExplainTask}
-                projectTabsLoading={projectTabsLoading}
-                projectTabsError={projectTabsError}
-                onPurgeProjectData={handlePurgeProjectData}
-                onResetOrchestos={handleResetOrchestos}
-                onOpenChat={() => setMode('chat')}
-                onRunNextTask={() => void handleRunNextTask()}
-                canRunNextTask={Boolean(getRunnableTask(tasks)) && !runningTaskId}
-                taskRunBusy={Boolean(runningTaskId)}
+                onDiffRefresh={() => setDiffRevision((value) => value + 1)}
+                onOpenFile={handleOpenFile}
+                historySessions={historySessions}
+                onRestoreAgentToSidebar={handleRestoreAgent}
+                onDeleteHistorySession={handleDeleteHistorySession}
               />
             )}
           </div>
-
-          {/* Right Inspector: ONLY available in Dev mode, toggleable via top header button */}
-          {mode === 'dev' && isRightInspectorOpen && currentProject && (
-            <OrcaRightInspector
-              currentProject={currentProject}
-              projects={projects}
-              activeFilePath={activeDevTab?.type === 'file' ? activeDevTab.path : null}
-              activeDiffPath={activeDevTab?.type === 'diff' ? activeDevTab.path : null}
-              onOpenDiff={(request) =>
-                updateDevTabs(activeProjectId, (tabs) => openPathTab(tabs, request))
-              }
-              onDiffRefresh={() => setDiffRevision((value) => value + 1)}
-              onOpenFile={handleOpenFile}
-              historySessions={historySessions}
-              onRestoreAgentToSidebar={handleRestoreAgent}
-              onDeleteHistorySession={handleDeleteHistorySession}
-            />
-          )}
         </div>
-      </div>
-      <ShellStatusBar
-        status={sessionStatus}
-        refreshing={refreshingUsage}
-        onRefresh={() => void refreshUsage()}
-        onToggleTerminal={mode === 'dev' ? handleOpenTerminal : undefined}
-        terminalOpen={activeDevTab?.type === 'terminal'}
-      />
-      {showCloneProject && (
-        <CloneProjectDialog
-          projectPath={currentProject?.path}
-          onClose={() => setShowCloneProject(false)}
-          onCloned={async (project) => {
-            setProjects(await listProjects())
-            setActiveProjectId(project.id)
+        <ShellStatusBar
+          status={sessionStatus}
+          refreshing={refreshingUsage}
+          onRefresh={() => void refreshUsage()}
+          onToggleTerminal={mode === 'dev' ? handleOpenTerminal : undefined}
+          terminalOpen={activeDevTab?.type === 'terminal'}
+        />
+        {showCloneProject && (
+          <CloneProjectDialog
+            projectPath={currentProject?.path}
+            onClose={() => setShowCloneProject(false)}
+            onCloned={async (project) => {
+              setProjects(await listProjects())
+              setActiveProjectId(project.id)
+            }}
+          />
+        )}
+        <DiscardChangesModal
+          isOpen={!!discardTab}
+          fileName={discardTab?.path.split('/').pop() ?? ''}
+          onClose={() => setDiscardTab(null)}
+          onConfirm={() => {
+            if (!discardTab) return
+            drop(discardTab.projectId, discardTab.path)
+            updateDevTabs(discardTab.projectId, (tabs) =>
+              closeSessionTab(tabs, `file:${discardTab.path}`),
+            )
           }}
         />
-      )}
-      <DiscardChangesModal
-        isOpen={!!discardTab}
-        fileName={discardTab?.path.split('/').pop() ?? ''}
-        onClose={() => setDiscardTab(null)}
-        onConfirm={() => {
-          if (!discardTab) return
-          drop(discardTab.projectId, discardTab.path)
-          updateDevTabs(discardTab.projectId, (tabs) =>
-            closeSessionTab(tabs, `file:${discardTab.path}`),
-          )
-        }}
-      />
-      {isGoToFileOpen && currentProject && (
-        <GoToFileDialog
-          projectId={currentProject.id}
-          onClose={() => setIsGoToFileOpen(false)}
-          onOpenFile={(path) => {
-            // Entering Dev must not restore tabs over the selected file.
-            handleModeChange('dev')
-            handleOpenFile(path, { pin: true })
-            setIsGoToFileOpen(false)
+        {isGoToFileOpen && currentProject && (
+          <GoToFileDialog
+            projectId={currentProject.id}
+            onClose={() => setIsGoToFileOpen(false)}
+            onOpenFile={(path) => {
+              // Entering Dev must not restore tabs over the selected file.
+              handleModeChange('dev')
+              handleOpenFile(path, { pin: true })
+              setIsGoToFileOpen(false)
+            }}
+          />
+        )}
+        {/* Global Command Palette (⌘K) with fully functional handlers */}
+        <CommandPalette
+          isOpen={isCommandPaletteOpen}
+          isSettings={mode === 'settings'}
+          onClose={() => setIsCommandPaletteOpen(false)}
+          onCommand={executeCommand}
+          onSelectTab={handleCommandPaletteSelectTab}
+          onRunNextTask={() => {
+            handleOpenSettings(currentProject ? `project_${currentProject.id}` : 'general', 'tasks')
+            void handleRunNextTask()
           }}
         />
-      )}
-      {/* Global Command Palette (⌘K) with fully functional handlers */}
-      <CommandPalette
-        isOpen={isCommandPaletteOpen}
-        isSettings={mode === 'settings'}
-        onClose={() => setIsCommandPaletteOpen(false)}
-        onCommand={executeCommand}
-        onSelectTab={handleCommandPaletteSelectTab}
-        onRunNextTask={() => {
-          handleOpenSettings(currentProject ? `project_${currentProject.id}` : 'general', 'tasks')
-          void handleRunNextTask()
-        }}
-      />
+      </TooltipProvider>
     </div>
   )
 }

@@ -2,6 +2,7 @@ import { Brain, Plus, ThumbsDown, ThumbsUp, X } from 'lucide-react'
 import type React from 'react'
 import { useState } from 'react'
 import { Button } from '@/components/ui/button'
+import { Tooltip } from '@/components/ui/tooltip'
 import type { GraduationPreview } from '../../api/projectTabs'
 import type { InstinctItem } from '../../types/orchestos'
 import { SettingsPrimaryAction } from '../settings/primitives'
@@ -182,12 +183,17 @@ export const InstinctsView: React.FC<InstinctsViewProps> = ({
                 <div className="flex items-start justify-between gap-4">
                   <div className="flex min-w-0 items-center gap-2 text-xs">
                     <Brain className="w-4 h-4 shrink-0 text-app-muted" />
-                    <span
-                      title={instinct.id}
-                      className="max-w-[10rem] truncate font-mono font-semibold text-app"
-                    >
-                      {instinct.id}
-                    </span>
+                    {instinct.id ? (
+                      <Tooltip content={instinct.id}>
+                        <span className="max-w-[10rem] truncate font-mono font-semibold text-app">
+                          {instinct.id}
+                        </span>
+                      </Tooltip>
+                    ) : (
+                      <span className="max-w-[10rem] truncate font-mono font-semibold text-app">
+                        {instinct.id}
+                      </span>
+                    )}
                     <span className="text-[11px] text-app-muted">
                       {instinct.source}
                       {instinct.projectId == null && (

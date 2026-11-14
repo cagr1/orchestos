@@ -267,13 +267,14 @@ export default async function appearance({
     await page.locator(`[data-session-tab="${session.data.id}"]`).click()
     await step(
       `workspace fits viewport at scale ${value}`,
-      await page.locator('[data-theme]').evaluate((el) => {
+      await page.locator('div[data-theme]').evaluate((el) => {
         const rect = el.getBoundingClientRect()
         return Math.abs(rect.width - innerWidth) < 2 && Math.abs(rect.height - innerHeight) < 2
       }),
-      JSON.stringify(await page.locator('[data-theme]').boundingBox()),
+      JSON.stringify(await page.locator('div[data-theme]').boundingBox()),
     )
-    const picker = page.getByTitle('Select model and reasoning effort', { exact: true })
+    // USO.14: el texto vive en el tooltip; el botón se nombra por su texto visible (mismo localizador que chat-stop).
+    const picker = page.locator('[data-composer-region] button.font-mono:not([aria-label])').last()
     await picker.click()
     await shot(`picker-${value}`)
     await step(

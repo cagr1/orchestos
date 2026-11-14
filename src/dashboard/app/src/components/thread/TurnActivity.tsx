@@ -5,6 +5,7 @@ import {
   ThinkingStepsContent,
   ThinkingStepsHeader,
 } from '@/components/ui/thinking-steps'
+import { Tooltip } from '@/components/ui/tooltip'
 import type { TimelineStep } from '../../api/chat'
 import { buildTurnActivity, summarizeTools, toolCategory, toolLabel } from './activity'
 import { ThreadMarkdown } from './ThreadMarkdown'
@@ -69,21 +70,26 @@ function ToolRow({ step }: { step: TimelineStep }) {
       className="flex min-w-0 flex-1 items-center gap-2 text-xs text-app-muted"
     >
       <Icon className="h-3.5 w-3.5 shrink-0 text-app-accent" />
-      <span className="min-w-0 flex-1 truncate font-mono" title={target}>
-        {target}
-      </span>
+      {target ? (
+        <Tooltip content={target}>
+          <span className="min-w-0 flex-1 truncate font-mono">{target}</span>
+        </Tooltip>
+      ) : (
+        <span className="min-w-0 flex-1 truncate font-mono">{target}</span>
+      )}
       {(step.durationMs ?? 0) >= 1000 && (
         <span className="shrink-0 tabular-nums">{formatDuration(step.durationMs)}</span>
       )}
       {failed && (
-        <span
-          className="flex shrink-0 items-center text-app-error"
-          title="Failed"
-          role="img"
-          aria-label="Failed"
-        >
-          <X className="h-3 w-3" />
-        </span>
+        <Tooltip content="Failed">
+          <span
+            className="flex shrink-0 items-center text-app-error"
+            role="img"
+            aria-label="Failed"
+          >
+            <X className="h-3 w-3" />
+          </span>
+        </Tooltip>
       )}
     </span>
   )

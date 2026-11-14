@@ -134,7 +134,7 @@ export default async function opencodeTerminal({ page, api, step, visible, clean
     carbonBackground,
   )
   await page
-    .locator('[data-theme]')
+    .locator('div[data-theme]')
     .evaluate((element) => element.setAttribute('data-theme', 'graphite'))
   await page.waitForFunction(
     () =>

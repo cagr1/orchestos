@@ -36,7 +36,7 @@ test('composer renders Send → Stop → Stopping, then Send after completion', 
   expect(stopping.match(/<button[^>]*aria-label="Stopping response"[^>]*>/)?.[0]).toContain(
     'disabled',
   )
-  expect(stopping).toContain('Deteniendo…')
+  expect(stopping).toContain('aria-label="Stopping response"')
   expect(render(false, true)).toContain('aria-label="Send message"')
 })
 
@@ -68,12 +68,16 @@ test('Stop click calls the endpoint with the current turn rather than sending a 
         sends++
       },
     }
-    const button = ComposerSubmitButton(props)
+    const button = ComposerSubmitButton(props).props.children
     await button.props.onClick()
     expect(received).toEqual({ turnId: 'current-turn' })
     expect(sends).toBe(0)
-    expect(ComposerSubmitButton({ ...props, stopping: true }).props.disabled).toBe(true)
-    expect(ComposerSubmitButton({ ...props, onStop: undefined }).props.disabled).toBe(true)
+    expect(ComposerSubmitButton({ ...props, stopping: true }).props.children.props.disabled).toBe(
+      true,
+    )
+    expect(
+      ComposerSubmitButton({ ...props, onStop: undefined }).props.children.props.disabled,
+    ).toBe(true)
   } finally {
     globalThis.fetch = originalFetch
   }

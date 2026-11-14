@@ -17,6 +17,7 @@ import {
 } from 'lucide-react'
 import type React from 'react'
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { Tooltip } from '@/components/ui/tooltip'
 import { getExplorerTree, searchExplorerContents } from '../../api/explorer'
 import { type GitChange, getGitChanges } from '../../api/git'
 import { useAppearanceSettings } from '../../lib/appearance-settings'
@@ -496,44 +497,47 @@ export const OrcaRightInspector: React.FC<OrcaRightInspectorProps> = ({
         className="h-10 border-b border-app px-2 flex items-center justify-between bg-app-surface/40 flex-shrink-0"
       >
         <div className="flex items-center gap-1 w-full justify-between">
-          <button
-            type="button"
-            onClick={() => setActiveTab('files')}
-            className={`app-tab-btn ${
-              activeTab === 'files' ? 'app-tab-btn-active' : 'app-tab-btn-inactive'
-            }`}
-            title="Project File Explorer"
-            aria-label="Files"
-          >
-            <FolderOpen className="w-3.5 h-3.5 text-app-accent" />
-            <span>Files</span>
-          </button>
+          <Tooltip content="Project File Explorer">
+            <button
+              type="button"
+              onClick={() => setActiveTab('files')}
+              className={`app-tab-btn ${
+                activeTab === 'files' ? 'app-tab-btn-active' : 'app-tab-btn-inactive'
+              }`}
+              aria-label="Files"
+            >
+              <FolderOpen className="w-3.5 h-3.5 text-app-accent" />
+              <span>Files</span>
+            </button>
+          </Tooltip>
 
-          <button
-            type="button"
-            onClick={() => setActiveTab('diff')}
-            className={`app-tab-btn ${
-              activeTab === 'diff' ? 'app-tab-btn-active' : 'app-tab-btn-inactive'
-            }`}
-            title="Git Worktree Diff"
-            aria-label="Diff"
-          >
-            <GitCompare className="w-3.5 h-3.5 text-emerald-400" />
-            <span>Diff</span>
-          </button>
+          <Tooltip content="Git Worktree Diff">
+            <button
+              type="button"
+              onClick={() => setActiveTab('diff')}
+              className={`app-tab-btn ${
+                activeTab === 'diff' ? 'app-tab-btn-active' : 'app-tab-btn-inactive'
+              }`}
+              aria-label="Diff"
+            >
+              <GitCompare className="w-3.5 h-3.5 text-emerald-400" />
+              <span>Diff</span>
+            </button>
+          </Tooltip>
 
-          <button
-            type="button"
-            onClick={() => setActiveTab('history')}
-            className={`app-tab-btn ${
-              activeTab === 'history' ? 'app-tab-btn-active' : 'app-tab-btn-inactive'
-            }`}
-            title="Agent History"
-            aria-label="History"
-          >
-            <History className="w-3.5 h-3.5 text-amber-400" />
-            <span>History</span>
-          </button>
+          <Tooltip content="Agent History">
+            <button
+              type="button"
+              onClick={() => setActiveTab('history')}
+              className={`app-tab-btn ${
+                activeTab === 'history' ? 'app-tab-btn-active' : 'app-tab-btn-inactive'
+              }`}
+              aria-label="History"
+            >
+              <History className="w-3.5 h-3.5 text-amber-400" />
+              <span>History</span>
+            </button>
+          </Tooltip>
         </div>
       </div>
 
@@ -552,40 +556,43 @@ export const OrcaRightInspector: React.FC<OrcaRightInspectorProps> = ({
             </div>
 
             <div className="flex items-center gap-1">
-              <label
-                className="p-1 text-app-muted hover:text-app hover:bg-app-surface rounded-control cursor-pointer transition-colors"
-                title="Upload folder or files"
-                aria-label="Upload files"
-              >
-                <Upload className="w-3.5 h-3.5" />
-                <input
-                  type="file"
-                  multiple
-                  className="hidden"
-                  onChange={(e) => {
-                    if (e.target.files && onUploadFiles) {
-                      onUploadFiles(e.target.files)
-                    }
-                  }}
-                />
-              </label>
-              <button
-                type="button"
-                onClick={loadTree}
-                className="p-1 text-app-muted hover:text-app hover:bg-app-surface rounded-control transition-colors"
-                title="Refresh tree"
-                aria-label="Refresh file tree"
-              >
-                <RefreshCw className="w-3.5 h-3.5" />
-              </button>
-              <button
-                type="button"
-                className="p-1 text-app-muted hover:text-app hover:bg-app-surface rounded-control transition-colors"
-                title="More options"
-                aria-label="More file options"
-              >
-                <MoreHorizontal className="w-3.5 h-3.5" />
-              </button>
+              <Tooltip content="Upload folder or files">
+                <label
+                  className="p-1 text-app-muted hover:text-app hover:bg-app-surface rounded-control cursor-pointer transition-colors"
+                  aria-label="Upload files"
+                >
+                  <Upload className="w-3.5 h-3.5" />
+                  <input
+                    type="file"
+                    multiple
+                    className="hidden"
+                    onChange={(e) => {
+                      if (e.target.files && onUploadFiles) {
+                        onUploadFiles(e.target.files)
+                      }
+                    }}
+                  />
+                </label>
+              </Tooltip>
+              <Tooltip content="Refresh tree">
+                <button
+                  type="button"
+                  onClick={loadTree}
+                  className="p-1 text-app-muted hover:text-app hover:bg-app-surface rounded-control transition-colors"
+                  aria-label="Refresh file tree"
+                >
+                  <RefreshCw className="w-3.5 h-3.5" />
+                </button>
+              </Tooltip>
+              <Tooltip content="More options">
+                <button
+                  type="button"
+                  className="p-1 text-app-muted hover:text-app hover:bg-app-surface rounded-control transition-colors"
+                  aria-label="More file options"
+                >
+                  <MoreHorizontal className="w-3.5 h-3.5" />
+                </button>
+              </Tooltip>
             </div>
           </div>
 
@@ -601,32 +608,34 @@ export const OrcaRightInspector: React.FC<OrcaRightInspectorProps> = ({
                 className="w-full pl-8 pr-14 py-1 text-xs bg-app-surface border border-app rounded-control focus:border-app-accent focus:outline-hidden text-app placeholder:text-app-muted font-mono"
               />
               <div className="absolute right-1.5 flex items-center gap-0.5">
-                <button
-                  type="button"
-                  onClick={() => setSearchMode('names')}
-                  className={`px-1 py-0.5 text-[10px] font-mono rounded-control transition-colors ${
-                    searchMode === 'names'
-                      ? 'bg-app-elevated text-app font-bold border border-app shadow-2xs'
-                      : 'text-app-muted hover:text-app'
-                  }`}
-                  title="Search file names (Aa)"
-                  aria-label="Search file names"
-                >
-                  Aa
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setSearchMode('contents')}
-                  className={`px-1 py-0.5 text-[10px] font-mono rounded-control transition-colors ${
-                    searchMode === 'contents'
-                      ? 'bg-app-elevated text-app font-bold border border-app shadow-2xs'
-                      : 'text-app-muted hover:text-app'
-                  }`}
-                  title="Search file contents ({})"
-                  aria-label="Search file contents"
-                >
-                  {`{}`}
-                </button>
+                <Tooltip content="Search file names (Aa)">
+                  <button
+                    type="button"
+                    onClick={() => setSearchMode('names')}
+                    className={`px-1 py-0.5 text-[10px] font-mono rounded-control transition-colors ${
+                      searchMode === 'names'
+                        ? 'bg-app-elevated text-app font-bold border border-app shadow-2xs'
+                        : 'text-app-muted hover:text-app'
+                    }`}
+                    aria-label="Search file names"
+                  >
+                    Aa
+                  </button>
+                </Tooltip>
+                <Tooltip content="Search file contents ({})">
+                  <button
+                    type="button"
+                    onClick={() => setSearchMode('contents')}
+                    className={`px-1 py-0.5 text-[10px] font-mono rounded-control transition-colors ${
+                      searchMode === 'contents'
+                        ? 'bg-app-elevated text-app font-bold border border-app shadow-2xs'
+                        : 'text-app-muted hover:text-app'
+                    }`}
+                    aria-label="Search file contents"
+                  >
+                    {`{}`}
+                  </button>
+                </Tooltip>
               </div>
             </div>
           </div>
@@ -655,20 +664,21 @@ export const OrcaRightInspector: React.FC<OrcaRightInspectorProps> = ({
               </span>
             </div>
             <div className="flex items-center gap-1">
-              <button
-                type="button"
-                aria-label="Changes layout"
-                title={changesLayout === 'list' ? 'Tree' : 'List'}
-                aria-pressed={changesLayout === 'tree'}
-                onClick={() => setChangesLayout((value) => (value === 'list' ? 'tree' : 'list'))}
-                className="p-1 text-app-muted hover:text-app rounded-control"
-              >
-                {changesLayout === 'list' ? (
-                  <ListTree className="w-3.5 h-3.5" />
-                ) : (
-                  <List className="w-3.5 h-3.5" />
-                )}
-              </button>
+              <Tooltip content={changesLayout === 'list' ? 'Tree' : 'List'}>
+                <button
+                  type="button"
+                  aria-label="Changes layout"
+                  aria-pressed={changesLayout === 'tree'}
+                  onClick={() => setChangesLayout((value) => (value === 'list' ? 'tree' : 'list'))}
+                  className="p-1 text-app-muted hover:text-app rounded-control"
+                >
+                  {changesLayout === 'list' ? (
+                    <ListTree className="w-3.5 h-3.5" />
+                  ) : (
+                    <List className="w-3.5 h-3.5" />
+                  )}
+                </button>
+              </Tooltip>
               <button
                 type="button"
                 aria-label="Refresh git changes"
@@ -789,50 +799,62 @@ export const OrcaRightInspector: React.FC<OrcaRightInspectorProps> = ({
                                 id={session.cliId}
                                 className="w-3.5 h-3.5 flex-shrink-0"
                               />
-                              <span
-                                className="font-semibold text-app truncate"
-                                title={session.title}
-                              >
-                                {session.title}
-                              </span>
+                              {session.title ? (
+                                <Tooltip content={session.title}>
+                                  <span className="font-semibold text-app truncate">
+                                    {session.title}
+                                  </span>
+                                </Tooltip>
+                              ) : (
+                                <span className="font-semibold text-app truncate">
+                                  {session.title}
+                                </span>
+                              )}
                             </div>
 
                             <div className="flex items-center gap-1 flex-shrink-0">
-                              <button
-                                type="button"
-                                onClick={() => toggleSessionExpand(session.id)}
-                                className="p-1 rounded-control text-app-muted hover:text-app hover:bg-app-elevated transition-colors"
-                                title={isExpanded ? 'Collapse session' : 'Expand session'}
-                                aria-label="Toggle details"
-                              >
-                                {isExpanded ? (
-                                  <ChevronDown className="w-3 h-3" />
-                                ) : (
-                                  <ChevronRight className="w-3 h-3" />
-                                )}
-                              </button>
+                              <Tooltip content={isExpanded ? 'Collapse session' : 'Expand session'}>
+                                <button
+                                  type="button"
+                                  onClick={() => toggleSessionExpand(session.id)}
+                                  className="p-1 rounded-control text-app-muted hover:text-app hover:bg-app-elevated transition-colors"
+                                  aria-label="Toggle details"
+                                >
+                                  {isExpanded ? (
+                                    <ChevronDown className="w-3 h-3" />
+                                  ) : (
+                                    <ChevronRight className="w-3 h-3" />
+                                  )}
+                                </button>
+                              </Tooltip>
 
-                              <button
-                                type="button"
-                                onClick={() =>
-                                  setActiveHistoryMenuId(isMenuOpen ? null : session.id)
-                                }
-                                className="p-1 rounded-control text-app-muted hover:text-app hover:bg-app-elevated transition-colors"
-                                title="Session options"
-                                aria-label="Session options"
-                              >
-                                <Ellipsis className="w-3 h-3" />
-                              </button>
+                              <Tooltip content="Session options">
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    setActiveHistoryMenuId(isMenuOpen ? null : session.id)
+                                  }
+                                  className="p-1 rounded-control text-app-muted hover:text-app hover:bg-app-elevated transition-colors"
+                                  aria-label="Session options"
+                                >
+                                  <Ellipsis className="w-3 h-3" />
+                                </button>
+                              </Tooltip>
                             </div>
                           </div>
 
                           {/* Last line of the message */}
-                          <p
-                            className="text-xs text-app-muted font-mono truncate"
-                            title={session.lastMessage}
-                          >
-                            {session.lastMessage}
-                          </p>
+                          {session.lastMessage ? (
+                            <Tooltip content={session.lastMessage}>
+                              <p className="text-xs text-app-muted font-mono truncate">
+                                {session.lastMessage}
+                              </p>
+                            </Tooltip>
+                          ) : (
+                            <p className="text-xs text-app-muted font-mono truncate">
+                              {session.lastMessage}
+                            </p>
+                          )}
 
                           {/* Meta: message count, time ago, model */}
                           <div className="flex items-center justify-between text-xs text-app-muted pt-1 border-t border-app/60 font-mono">
@@ -841,12 +863,17 @@ export const OrcaRightInspector: React.FC<OrcaRightInspectorProps> = ({
                               <span>·</span>
                               <span>{session.timeAgo}</span>
                             </div>
-                            <span
-                              className="text-app-muted/90 truncate max-w-[110px]"
-                              title={session.model}
-                            >
-                              {session.model}
-                            </span>
+                            {session.model ? (
+                              <Tooltip content={session.model}>
+                                <span className="text-app-muted/90 truncate max-w-[110px]">
+                                  {session.model}
+                                </span>
+                              </Tooltip>
+                            ) : (
+                              <span className="text-app-muted/90 truncate max-w-[110px]">
+                                {session.model}
+                              </span>
+                            )}
                           </div>
 
                           {/* Expanded detail logs */}
@@ -924,10 +951,22 @@ export function DiffFileButton({
   onOpen: (request: OpenPathRequest) => void
   children?: React.ReactNode
 }) {
-  return (
+  return path ? (
+    <Tooltip content={path}>
+      <button
+        type="button"
+        data-diff-file={path}
+        aria-pressed={selected}
+        onClick={() => onOpen({ kind: 'diff', path, pin: false })}
+        onDoubleClick={() => onOpen({ kind: 'diff', path, pin: true })}
+        className={`w-full flex items-center gap-2 px-2 py-1 text-xs text-left hover:bg-app-surface rounded-control ${selected ? 'bg-app-surface' : ''}`}
+      >
+        {children}
+      </button>
+    </Tooltip>
+  ) : (
     <button
       type="button"
-      title={path}
       data-diff-file={path}
       aria-pressed={selected}
       onClick={() => onOpen({ kind: 'diff', path, pin: false })}

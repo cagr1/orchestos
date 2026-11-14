@@ -271,7 +271,10 @@ export default async function modelRouting({ page, api, step, shot, cleanup, exp
     await step('model search shows the empty state', await emptyState.isVisible())
     await search.fill(variantModel.id)
     const matchingModelCount = await menu.getByRole('button').count()
-    const matchingModelVisible = await menu.locator(`button[title="${variantModel.id}"]`).count()
+    const matchingModelVisible = await menu
+      .getByRole('button')
+      .filter({ hasText: variantModel.name })
+      .count()
     await step(
       'model search reduces results and keeps the requested model',
       matchingModelCount < initialModelCount && matchingModelVisible === 1,
@@ -329,7 +332,12 @@ export default async function modelRouting({ page, api, step, shot, cleanup, exp
     await page.getByRole('button', { name: 'codex', exact: true }).last().click()
     await card.getByLabel(`${role} model`, { exact: true }).click()
     await card.getByPlaceholder('Filter models...').fill('gpt-6-luna')
-    await card.locator('button[title="gpt-6-luna"]').click()
+    await card
+      .getByPlaceholder('Filter models...')
+      .locator('xpath=..')
+      .getByRole('button')
+      .filter({ hasText: /gpt-6-luna/i })
+      .click()
     await card.getByLabel(`${role} effort`).click()
     await page.getByRole('button', { name: 'medium', exact: true }).last().click()
   }

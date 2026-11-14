@@ -3,6 +3,7 @@ import type React from 'react'
 import { useState } from 'react'
 import { SettingsPrimaryAction } from '@/components/settings/primitives'
 import { Button } from '@/components/ui/button'
+import { Tooltip } from '@/components/ui/tooltip'
 import type { SpecItem } from '../../types/orchestos'
 import { EmptyState } from '../common/ViewStateFeedback'
 
@@ -70,10 +71,17 @@ export const SpecsView: React.FC<SpecsViewProps> = ({
                 }`}
               >
                 <div className="flex items-center gap-2">
-                  <span
-                    className={`h-1.5 w-1.5 shrink-0 rounded-full ${statusDot(spec.status)}`}
-                    title={spec.status}
-                  />
+                  {spec.status ? (
+                    <Tooltip content={spec.status}>
+                      <span
+                        className={`h-1.5 w-1.5 shrink-0 rounded-full ${statusDot(spec.status)}`}
+                      />
+                    </Tooltip>
+                  ) : (
+                    <span
+                      className={`h-1.5 w-1.5 shrink-0 rounded-full ${statusDot(spec.status)}`}
+                    />
+                  )}
                   <span className="font-mono text-[11px] text-app-muted">{spec.id}</span>
                 </div>
 

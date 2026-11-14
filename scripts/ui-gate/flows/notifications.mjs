@@ -150,7 +150,7 @@ export default async function notifications({
     .first()
     .click()
   await dialog.getByRole('button', { name: 'Start Chat', exact: true }).click()
-  await page.locator('button[title="Select model and reasoning effort"]').last().click()
+  await page.locator('[data-composer-region] button.font-mono:not([aria-label])').last().click()
   await page.getByRole('button', { name: /haiku/i }).first().click()
   await page.keyboard.press('Escape')
   const composer = page.locator('textarea').last()
@@ -163,7 +163,7 @@ export default async function notifications({
   let sessionId
   const turn = async () => {
     note('sending chat turn')
-    await page.locator('button[title="Select model and reasoning effort"]').last().click()
+    await page.locator('[data-composer-region] button.font-mono:not([aria-label])').last().click()
     await page.getByRole('button', { name: /haiku/i }).first().click()
     await page.keyboard.press('Escape')
     const response = page.waitForResponse(

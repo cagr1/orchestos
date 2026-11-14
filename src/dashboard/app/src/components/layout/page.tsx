@@ -1,4 +1,5 @@
 import type { CSSProperties, KeyboardEvent, ReactNode } from 'react'
+import { Tooltip } from '@/components/ui/tooltip'
 import { cn } from '@/lib/utils'
 
 export function PageHeader({
@@ -51,12 +52,11 @@ export function StatStrip({ items }: { items: StatStripItem[] }) {
       {items.map((item) => (
         <div key={item.label} data-stat-cell className="min-w-0 px-4 py-3.5">
           <div className="text-[12.5px] text-app-muted">{item.label}</div>
-          <div
-            title={String(item.value)}
-            className="truncate text-[22px] font-semibold tabular-nums text-app"
-          >
-            {item.value}
-          </div>
+          <Tooltip content={String(item.value)}>
+            <div className="truncate text-[22px] font-semibold tabular-nums text-app">
+              {item.value}
+            </div>
+          </Tooltip>
           {item.hint ? (
             <div className={cn('text-xs text-app-muted', item.tone && TONE[item.tone])}>
               {item.hint}
@@ -109,17 +109,35 @@ export function ListRow({
     >
       {leading}
       {id ? (
-        <span
-          data-col="id"
-          title={id}
-          className="w-[7rem] shrink-0 truncate font-mono text-[11px] text-app-muted"
-        >
-          {id}
-        </span>
+        id ? (
+          <Tooltip content={id}>
+            <span
+              data-col="id"
+              className="w-[7rem] shrink-0 truncate font-mono text-[11px] text-app-muted"
+            >
+              {id}
+            </span>
+          </Tooltip>
+        ) : (
+          <span
+            data-col="id"
+            className="w-[7rem] shrink-0 truncate font-mono text-[11px] text-app-muted"
+          >
+            {id}
+          </span>
+        )
       ) : null}
-      <span data-col="title" title={title} className="min-w-0 flex-1 truncate text-[13px] text-app">
-        {title}
-      </span>
+      {title ? (
+        <Tooltip content={title}>
+          <span data-col="title" className="min-w-0 flex-1 truncate text-[13px] text-app">
+            {title}
+          </span>
+        </Tooltip>
+      ) : (
+        <span data-col="title" className="min-w-0 flex-1 truncate text-[13px] text-app">
+          {title}
+        </span>
+      )}
       <span
         data-col="meta"
         className="w-[13rem] shrink-0 truncate whitespace-nowrap text-xs text-app-muted"

@@ -1,6 +1,7 @@
 import type { ReactNode, RefObject } from 'react'
 import { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
+import { Tooltip } from '@/components/ui/tooltip'
 
 export function ActionMenuButton({
   label,
@@ -47,26 +48,49 @@ export function ActionMenuButton({
   }, [menu])
   return (
     <>
-      <button
-        type="button"
-        ref={buttonRef}
-        aria-label={label}
-        title={label}
-        aria-haspopup="menu"
-        aria-expanded={!!menu}
-        className={className}
-        onClick={() => {
-          if (menu) return close()
-          const rect = buttonRef.current!.getBoundingClientRect()
-          setSelected(0)
-          setMenu({
-            left: Math.max(8, Math.min(rect.left, window.innerWidth - 232)),
-            top: rect.bottom + 90 < window.innerHeight ? rect.bottom + 4 : rect.top - 88,
-          })
-        }}
-      >
-        {children}
-      </button>
+      {label ? (
+        <Tooltip content={label}>
+          <button
+            type="button"
+            ref={buttonRef}
+            aria-label={label}
+            aria-haspopup="menu"
+            aria-expanded={!!menu}
+            className={className}
+            onClick={(event) => {
+              if (menu) return close()
+              const rect = event.currentTarget.getBoundingClientRect()
+              setSelected(0)
+              setMenu({
+                left: Math.max(8, Math.min(rect.left, window.innerWidth - 232)),
+                top: rect.bottom + 90 < window.innerHeight ? rect.bottom + 4 : rect.top - 88,
+              })
+            }}
+          >
+            {children}
+          </button>
+        </Tooltip>
+      ) : (
+        <button
+          type="button"
+          ref={buttonRef}
+          aria-label={label}
+          aria-haspopup="menu"
+          aria-expanded={!!menu}
+          className={className}
+          onClick={(event) => {
+            if (menu) return close()
+            const rect = event.currentTarget.getBoundingClientRect()
+            setSelected(0)
+            setMenu({
+              left: Math.max(8, Math.min(rect.left, window.innerWidth - 232)),
+              top: rect.bottom + 90 < window.innerHeight ? rect.bottom + 4 : rect.top - 88,
+            })
+          }}
+        >
+          {children}
+        </button>
+      )}
       {menu &&
         createPortal(
           <div

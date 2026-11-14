@@ -15,6 +15,7 @@ import {
   ThinkingStepsContent,
   ThinkingStepsHeader,
 } from '@/components/ui/thinking-steps'
+import { Tooltip } from '@/components/ui/tooltip'
 import { failureKindLabels } from '@/lib/failureKind'
 import { cn } from '@/lib/utils'
 import type { FileDiffEntry, RunItem } from '@/types/orchestos'
@@ -242,16 +243,29 @@ export function TaskCard({
         <span data-task-name className="text-sm font-semibold text-app">
           {name}
         </span>
-        <Button
-          variant="ghost"
-          size="compact"
-          aria-label="Copy task id"
-          title={card.taskId}
-          leadingIcon={copied ? Check : Copy}
-          onClick={() => void copyId()}
-        >
-          {null}
-        </Button>
+        {card.taskId ? (
+          <Tooltip content={card.taskId}>
+            <Button
+              variant="ghost"
+              size="compact"
+              aria-label="Copy task id"
+              leadingIcon={copied ? Check : Copy}
+              onClick={() => void copyId()}
+            >
+              {null}
+            </Button>
+          </Tooltip>
+        ) : (
+          <Button
+            variant="ghost"
+            size="compact"
+            aria-label="Copy task id"
+            leadingIcon={copied ? Check : Copy}
+            onClick={() => void copyId()}
+          >
+            {null}
+          </Button>
+        )}
       </div>
       {approvalModeNotice(last) && (
         <p className="text-xs text-app-muted">{approvalModeNotice(last)}</p>

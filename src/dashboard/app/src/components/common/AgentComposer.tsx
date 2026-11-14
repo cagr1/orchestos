@@ -12,6 +12,7 @@ import {
 } from 'lucide-react'
 import type React from 'react'
 import { Fragment, useEffect, useRef, useState, useSyncExternalStore } from 'react'
+import { Tooltip } from '@/components/ui/tooltip'
 import {
   type CliModelOption,
   getCachedSessionContext,
@@ -872,33 +873,63 @@ export const AgentComposer: React.FC<AgentComposerProps> = ({
                             {m.group}
                           </div>
                         )}
-                        <button
-                          type="button"
-                          title={m.id}
-                          onClick={() => {
-                            setSelectedModel(m.id)
-                            setSelectedEffort(
-                              m.efforts?.[0] ??
-                                (currentCliConfig.id === 'api'
-                                  ? (currentCliConfig.efforts[0] ?? '')
-                                  : ''),
-                            )
-                            setShowDropdown(false)
-                          }}
-                          className={`w-full flex items-center justify-between px-2 py-1.5 rounded-control text-left transition-colors ${
-                            isSelected
-                              ? 'bg-app-elevated text-app font-medium border border-app'
-                              : 'text-app-muted hover:text-app hover:bg-app-elevated/40'
-                          }`}
-                        >
-                          <span className="truncate">{m.name}</span>
-                          <span className="flex items-center gap-2 flex-shrink-0">
-                            {m.vendor && (
-                              <span className="text-[10px] text-app-muted">{m.vendor}</span>
-                            )}
-                            {isSelected && <Check className="w-3.5 h-3.5 text-app-accent" />}
-                          </span>
-                        </button>
+                        {m.id ? (
+                          <Tooltip content={m.id}>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setSelectedModel(m.id)
+                                setSelectedEffort(
+                                  m.efforts?.[0] ??
+                                    (currentCliConfig.id === 'api'
+                                      ? (currentCliConfig.efforts[0] ?? '')
+                                      : ''),
+                                )
+                                setShowDropdown(false)
+                              }}
+                              className={`w-full flex items-center justify-between px-2 py-1.5 rounded-control text-left transition-colors ${
+                                isSelected
+                                  ? 'bg-app-elevated text-app font-medium border border-app'
+                                  : 'text-app-muted hover:text-app hover:bg-app-elevated/40'
+                              }`}
+                            >
+                              <span className="truncate">{m.name}</span>
+                              <span className="flex items-center gap-2 flex-shrink-0">
+                                {m.vendor && (
+                                  <span className="text-[10px] text-app-muted">{m.vendor}</span>
+                                )}
+                                {isSelected && <Check className="w-3.5 h-3.5 text-app-accent" />}
+                              </span>
+                            </button>
+                          </Tooltip>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setSelectedModel(m.id)
+                              setSelectedEffort(
+                                m.efforts?.[0] ??
+                                  (currentCliConfig.id === 'api'
+                                    ? (currentCliConfig.efforts[0] ?? '')
+                                    : ''),
+                              )
+                              setShowDropdown(false)
+                            }}
+                            className={`w-full flex items-center justify-between px-2 py-1.5 rounded-control text-left transition-colors ${
+                              isSelected
+                                ? 'bg-app-elevated text-app font-medium border border-app'
+                                : 'text-app-muted hover:text-app hover:bg-app-elevated/40'
+                            }`}
+                          >
+                            <span className="truncate">{m.name}</span>
+                            <span className="flex items-center gap-2 flex-shrink-0">
+                              {m.vendor && (
+                                <span className="text-[10px] text-app-muted">{m.vendor}</span>
+                              )}
+                              {isSelected && <Check className="w-3.5 h-3.5 text-app-accent" />}
+                            </span>
+                          </button>
+                        )}
                       </Fragment>
                     )
                   })
@@ -973,53 +1004,100 @@ export const AgentComposer: React.FC<AgentComposerProps> = ({
         {/* Attachments list */}
         {attachments.length > 0 && (
           <div className="flex flex-wrap gap-2 pb-2">
-            {attachments.map((att) => (
-              <div
-                key={att.id}
-                data-attachment-name={att.name}
-                data-attachment-status={att.status}
-                className="relative flex items-center gap-2 max-w-[200px]"
-                title={att.error ?? att.name}
-              >
-                <div className="relative shrink-0">
-                  {att.file ? <FileThumbnail file={att.file} size={48} /> : null}
-                  {att.status === 'uploading' && (
-                    <div className="absolute inset-0 flex items-center justify-center rounded-control bg-app-bg/60">
-                      <Loader2 className="w-4 h-4 animate-spin text-app" />
+            {attachments.map((att) =>
+              (att.error ?? att.name) ? (
+                <Tooltip content={att.error ?? att.name} key={att.id}>
+                  <div
+                    data-attachment-name={att.name}
+                    data-attachment-status={att.status}
+                    className="relative flex items-center gap-2 max-w-[200px]"
+                  >
+                    <div className="relative shrink-0">
+                      {att.file ? <FileThumbnail file={att.file} size={48} /> : null}
+                      {att.status === 'uploading' && (
+                        <div className="absolute inset-0 flex items-center justify-center rounded-control bg-app-bg/60">
+                          <Loader2 className="w-4 h-4 animate-spin text-app" />
+                        </div>
+                      )}
+                      {att.status === 'error' && (
+                        <div className="absolute inset-0 flex items-center justify-center rounded-control bg-app-bg/70">
+                          <AlertCircle className="w-4 h-4 text-app-error" />
+                        </div>
+                      )}
                     </div>
-                  )}
-                  {att.status === 'error' && (
-                    <div className="absolute inset-0 flex items-center justify-center rounded-control bg-app-bg/70">
-                      <AlertCircle className="w-4 h-4 text-app-error" />
+                    <div className="min-w-0 flex flex-col text-[11px] font-mono">
+                      <span className="text-app truncate">{att.name}</span>
+                      {att.status === 'error' && (
+                        <span className="text-app-error truncate">{att.error}</span>
+                      )}
                     </div>
-                  )}
-                </div>
-                <div className="min-w-0 flex flex-col text-[11px] font-mono">
-                  <span className="text-app truncate">{att.name}</span>
+                    {att.status === 'error' && (
+                      <button
+                        type="button"
+                        onClick={() => retryAttachment(att.id)}
+                        className="text-app-muted hover:text-app"
+                        aria-label="Retry upload"
+                      >
+                        <RotateCw className="w-3 h-3" />
+                      </button>
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => removeAttachment(att.id)}
+                      className="text-app-muted hover:text-app"
+                      aria-label="Remove attachment"
+                    >
+                      <X className="w-3 h-3" />
+                    </button>
+                  </div>
+                </Tooltip>
+              ) : (
+                <div
+                  key={att.id}
+                  data-attachment-name={att.name}
+                  data-attachment-status={att.status}
+                  className="relative flex items-center gap-2 max-w-[200px]"
+                >
+                  <div className="relative shrink-0">
+                    {att.file ? <FileThumbnail file={att.file} size={48} /> : null}
+                    {att.status === 'uploading' && (
+                      <div className="absolute inset-0 flex items-center justify-center rounded-control bg-app-bg/60">
+                        <Loader2 className="w-4 h-4 animate-spin text-app" />
+                      </div>
+                    )}
+                    {att.status === 'error' && (
+                      <div className="absolute inset-0 flex items-center justify-center rounded-control bg-app-bg/70">
+                        <AlertCircle className="w-4 h-4 text-app-error" />
+                      </div>
+                    )}
+                  </div>
+                  <div className="min-w-0 flex flex-col text-[11px] font-mono">
+                    <span className="text-app truncate">{att.name}</span>
+                    {att.status === 'error' && (
+                      <span className="text-app-error truncate">{att.error}</span>
+                    )}
+                  </div>
                   {att.status === 'error' && (
-                    <span className="text-app-error truncate">{att.error}</span>
+                    <button
+                      type="button"
+                      onClick={() => retryAttachment(att.id)}
+                      className="text-app-muted hover:text-app"
+                      aria-label="Retry upload"
+                    >
+                      <RotateCw className="w-3 h-3" />
+                    </button>
                   )}
-                </div>
-                {att.status === 'error' && (
                   <button
                     type="button"
-                    onClick={() => retryAttachment(att.id)}
+                    onClick={() => removeAttachment(att.id)}
                     className="text-app-muted hover:text-app"
-                    aria-label="Retry upload"
+                    aria-label="Remove attachment"
                   >
-                    <RotateCw className="w-3 h-3" />
+                    <X className="w-3 h-3" />
                   </button>
-                )}
-                <button
-                  type="button"
-                  onClick={() => removeAttachment(att.id)}
-                  className="text-app-muted hover:text-app"
-                  aria-label="Remove attachment"
-                >
-                  <X className="w-3 h-3" />
-                </button>
-              </div>
-            ))}
+                </div>
+              ),
+            )}
           </div>
         )}
         {attachError && (
@@ -1125,7 +1203,24 @@ export const AgentComposer: React.FC<AgentComposerProps> = ({
               <div className="flex items-center gap-1 p-0.5 rounded-control bg-app-bg border border-app/60">
                 {availableClis.map((cli) => {
                   const isActive = cli.id === activeCli
-                  return (
+                  return cli.name ? (
+                    <Tooltip content={cli.name} key={cli.id}>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setActiveCli(cli.id)
+                        }}
+                        className={`p-1 rounded-control transition-all ${
+                          isActive
+                            ? 'bg-app-elevated border border-app text-app shadow-2xs'
+                            : 'text-app-muted hover:text-app hover:bg-app-elevated/40'
+                        }`}
+                        aria-label={cli.name}
+                      >
+                        <ProviderLogo id={cli.id} size={14} className="w-3.5 h-3.5 flex-shrink-0" />
+                      </button>
+                    </Tooltip>
+                  ) : (
                     <button
                       key={cli.id}
                       type="button"
@@ -1137,7 +1232,6 @@ export const AgentComposer: React.FC<AgentComposerProps> = ({
                           ? 'bg-app-elevated border border-app text-app shadow-2xs'
                           : 'text-app-muted hover:text-app hover:bg-app-elevated/40'
                       }`}
-                      title={cli.name}
                       aria-label={cli.name}
                     >
                       <ProviderLogo id={cli.id} size={14} className="w-3.5 h-3.5 flex-shrink-0" />
@@ -1149,25 +1243,26 @@ export const AgentComposer: React.FC<AgentComposerProps> = ({
 
             {/* Model and effort merged into one compact dropdown Sonnet 3.7 · High ▾ */}
             <div className="flex flex-col items-start">
-              <button
-                type="button"
-                onClick={() => {
-                  if (modelsReady) {
-                    setActiveModelIndex(0)
-                    setShowDropdown(!showDropdown)
-                  }
-                }}
-                disabled={!modelsReady}
-                className="flex items-center gap-1 px-2 py-1 rounded-control bg-app-bg border border-app/60 hover:border-app text-app text-[11px] font-mono transition-colors disabled:cursor-not-allowed disabled:text-app-muted"
-                title="Select model and reasoning effort"
-              >
-                <span>
-                  {isLoadingModels
-                    ? 'Loading models…'
-                    : `${shortModelLabel}${effortSteps.length && effortSteps.includes(selectedEffort) ? ` · ${selectedEffort}` : ''}`}
-                </span>
-                <ChevronDown className="w-3 h-3 text-app-muted" />
-              </button>
+              <Tooltip content="Select model and reasoning effort">
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (modelsReady) {
+                      setActiveModelIndex(0)
+                      setShowDropdown(!showDropdown)
+                    }
+                  }}
+                  disabled={!modelsReady}
+                  className="flex items-center gap-1 px-2 py-1 rounded-control bg-app-bg border border-app/60 hover:border-app text-app text-[11px] font-mono transition-colors disabled:cursor-not-allowed disabled:text-app-muted"
+                >
+                  <span>
+                    {isLoadingModels
+                      ? 'Loading models…'
+                      : `${shortModelLabel}${effortSteps.length && effortSteps.includes(selectedEffort) ? ` · ${selectedEffort}` : ''}`}
+                  </span>
+                  <ChevronDown className="w-3 h-3 text-app-muted" />
+                </button>
+              </Tooltip>
               {currentCliConfig.error && (
                 <div className="mt-1 max-w-56 text-[10px] text-app-muted">
                   {currentCliConfig.error}
@@ -1278,23 +1373,24 @@ export function ComposerSubmitButton({
 }) {
   const canStop = busy && !!onStop
   return (
-    <button
-      type="button"
-      onClick={canStop ? onStop : onSend}
-      disabled={canStop ? stopping : busy || sendDisabled}
-      className={`p-1.5 rounded-control flex items-center justify-center transition-all ${
-        canStop || hasDraft
-          ? 'bg-app-accent text-white hover:opacity-90 shadow-2xs'
-          : 'text-app-muted/40 cursor-not-allowed'
-      }`}
-      title={canStop ? (stopping ? 'Deteniendo…' : 'Detener') : 'Send message (Enter)'}
-      aria-label={canStop ? (stopping ? 'Stopping response' : 'Stop response') : 'Send message'}
-    >
-      {canStop ? (
-        <Square className="w-3.5 h-3.5 fill-current" />
-      ) : (
-        <ArrowUp className="w-3.5 h-3.5 stroke-[2.5]" />
-      )}
-    </button>
+    <Tooltip content={canStop ? (stopping ? 'Deteniendo…' : 'Detener') : 'Send message (Enter)'}>
+      <button
+        type="button"
+        onClick={canStop ? onStop : onSend}
+        disabled={canStop ? stopping : busy || sendDisabled}
+        className={`p-1.5 rounded-control flex items-center justify-center transition-all ${
+          canStop || hasDraft
+            ? 'bg-app-accent text-white hover:opacity-90 shadow-2xs'
+            : 'text-app-muted/40 cursor-not-allowed'
+        }`}
+        aria-label={canStop ? (stopping ? 'Stopping response' : 'Stop response') : 'Send message'}
+      >
+        {canStop ? (
+          <Square className="w-3.5 h-3.5 fill-current" />
+        ) : (
+          <ArrowUp className="w-3.5 h-3.5 stroke-[2.5]" />
+        )}
+      </button>
+    </Tooltip>
   )
 }

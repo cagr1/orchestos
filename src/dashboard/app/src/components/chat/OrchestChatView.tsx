@@ -5,6 +5,7 @@ import { useEffect, useRef, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { ChatMessage } from '@/components/ui/chat-message'
 import { FileThumbnail } from '@/components/ui/file-thumbnail'
+import { Tooltip } from '@/components/ui/tooltip'
 import type { CliNotice } from '../../../../../run/executors/cli-failure'
 import {
   downloadChatDocument,
@@ -408,35 +409,37 @@ export const OrchestChatView: React.FC<OrchestChatViewProps> = ({
                           className="max-w-2xl select-text"
                           actions={
                             <>
-                              <button
-                                type="button"
-                                onClick={() => void copyMessage(msg.id, msg.content)}
-                                className="p-1 rounded-control text-app-muted hover:text-app transition-colors"
-                                title="Copy"
-                                aria-label="Copy"
-                              >
-                                {copiedMessageId === msg.id ? (
-                                  <Check className="w-3 h-3" />
-                                ) : (
-                                  <Copy className="w-3 h-3" />
-                                )}
-                              </button>
-                              {thread?.projectId && projectExists && (
+                              <Tooltip content="Copy">
                                 <button
                                   type="button"
-                                  title="Remember"
-                                  aria-label="Remember"
+                                  onClick={() => void copyMessage(msg.id, msg.content)}
                                   className="p-1 rounded-control text-app-muted hover:text-app transition-colors"
-                                  onClick={() =>
-                                    setRememberMessage({
-                                      id: msg.id,
-                                      content: msg.content,
-                                      sessionId: thread.id,
-                                    })
-                                  }
+                                  aria-label="Copy"
                                 >
-                                  <BookmarkPlus className="w-3 h-3" />
+                                  {copiedMessageId === msg.id ? (
+                                    <Check className="w-3 h-3" />
+                                  ) : (
+                                    <Copy className="w-3 h-3" />
+                                  )}
                                 </button>
+                              </Tooltip>
+                              {thread?.projectId && projectExists && (
+                                <Tooltip content="Remember">
+                                  <button
+                                    type="button"
+                                    aria-label="Remember"
+                                    className="p-1 rounded-control text-app-muted hover:text-app transition-colors"
+                                    onClick={() =>
+                                      setRememberMessage({
+                                        id: msg.id,
+                                        content: msg.content,
+                                        sessionId: thread.id,
+                                      })
+                                    }
+                                  >
+                                    <BookmarkPlus className="w-3 h-3" />
+                                  </button>
+                                </Tooltip>
                               )}
                             </>
                           }
@@ -446,13 +449,17 @@ export const OrchestChatView: React.FC<OrchestChatViewProps> = ({
                             <div className="flex flex-wrap gap-1.5 mb-2">
                               {msg.attachments.map((att) =>
                                 att.file ? (
-                                  <div
-                                    key={att.id}
-                                    data-attachment-name={att.name}
-                                    title={att.name}
-                                  >
-                                    <FileThumbnail file={att.file} size={64} />
-                                  </div>
+                                  att.name ? (
+                                    <Tooltip content={att.name} key={att.id}>
+                                      <div data-attachment-name={att.name}>
+                                        <FileThumbnail file={att.file} size={64} />
+                                      </div>
+                                    </Tooltip>
+                                  ) : (
+                                    <div key={att.id} data-attachment-name={att.name}>
+                                      <FileThumbnail file={att.file} size={64} />
+                                    </div>
+                                  )
                                 ) : (
                                   <div
                                     key={att.id}
@@ -485,35 +492,37 @@ export const OrchestChatView: React.FC<OrchestChatViewProps> = ({
                         className="max-w-full w-full select-text"
                         actions={
                           <>
-                            <button
-                              type="button"
-                              onClick={() => void copyMessage(msg.id, msg.content)}
-                              className="p-1 rounded-control text-app-muted hover:text-app transition-colors"
-                              title="Copy"
-                              aria-label="Copy"
-                            >
-                              {copiedMessageId === msg.id ? (
-                                <Check className="w-3 h-3" />
-                              ) : (
-                                <Copy className="w-3 h-3" />
-                              )}
-                            </button>
-                            {thread?.projectId && projectExists && (
+                            <Tooltip content="Copy">
                               <button
                                 type="button"
-                                title="Remember"
-                                aria-label="Remember"
+                                onClick={() => void copyMessage(msg.id, msg.content)}
                                 className="p-1 rounded-control text-app-muted hover:text-app transition-colors"
-                                onClick={() =>
-                                  setRememberMessage({
-                                    id: msg.id,
-                                    content: msg.content,
-                                    sessionId: thread.id,
-                                  })
-                                }
+                                aria-label="Copy"
                               >
-                                <BookmarkPlus className="w-3 h-3" />
+                                {copiedMessageId === msg.id ? (
+                                  <Check className="w-3 h-3" />
+                                ) : (
+                                  <Copy className="w-3 h-3" />
+                                )}
                               </button>
+                            </Tooltip>
+                            {thread?.projectId && projectExists && (
+                              <Tooltip content="Remember">
+                                <button
+                                  type="button"
+                                  aria-label="Remember"
+                                  className="p-1 rounded-control text-app-muted hover:text-app transition-colors"
+                                  onClick={() =>
+                                    setRememberMessage({
+                                      id: msg.id,
+                                      content: msg.content,
+                                      sessionId: thread.id,
+                                    })
+                                  }
+                                >
+                                  <BookmarkPlus className="w-3 h-3" />
+                                </button>
+                              </Tooltip>
                             )}
                           </>
                         }

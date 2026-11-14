@@ -1,6 +1,7 @@
 import { Activity, AlertCircle, ArrowLeft, CheckCircle2, ChevronRight, Search } from 'lucide-react'
 import type React from 'react'
 import { useEffect, useState } from 'react'
+import { Tooltip } from '@/components/ui/tooltip'
 import { failureKindLabels } from '../../lib/failureKind'
 import type { RunItem } from '../../types/orchestos'
 import { StatusBadge } from '../common/StatusBadge'
@@ -463,19 +464,30 @@ export const RunsEvidenceView: React.FC<RunsEvidenceViewProps> = ({
                   }}
                   className="group h-10 border-b border-[color:color-mix(in_srgb,var(--app-border)_50%,transparent)] hover:bg-app-elevated cursor-pointer transition-colors"
                 >
-                  <td
-                    className="px-3 max-w-[10rem] truncate whitespace-nowrap font-mono text-app font-medium"
-                    title={run.id}
-                  >
-                    {run.id}
-                  </td>
-                  <td
-                    className="px-3 max-w-xs truncate whitespace-nowrap"
-                    title={run.taskDescription}
-                  >
-                    <span className="font-mono text-app-muted mr-1.5">{run.taskId}</span>
-                    <span>{run.taskDescription}</span>
-                  </td>
+                  {run.id ? (
+                    <Tooltip content={run.id}>
+                      <td className="px-3 max-w-[10rem] truncate whitespace-nowrap font-mono text-app font-medium">
+                        {run.id}
+                      </td>
+                    </Tooltip>
+                  ) : (
+                    <td className="px-3 max-w-[10rem] truncate whitespace-nowrap font-mono text-app font-medium">
+                      {run.id}
+                    </td>
+                  )}
+                  {run.taskDescription ? (
+                    <Tooltip content={run.taskDescription}>
+                      <td className="px-3 max-w-xs truncate whitespace-nowrap">
+                        <span className="font-mono text-app-muted mr-1.5">{run.taskId}</span>
+                        <span>{run.taskDescription}</span>
+                      </td>
+                    </Tooltip>
+                  ) : (
+                    <td className="px-3 max-w-xs truncate whitespace-nowrap">
+                      <span className="font-mono text-app-muted mr-1.5">{run.taskId}</span>
+                      <span>{run.taskDescription}</span>
+                    </td>
+                  )}
                   <td className="px-3 font-mono text-app-muted whitespace-nowrap">
                     {run.agentModel}
                   </td>

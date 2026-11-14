@@ -126,10 +126,10 @@ let explained = []
 const planProps = { tasks, projectId: 'fixture', onRunTask() {}, async onExplainTask(id) { explained.push(id); return { task: id } } }
 tree = render(PlanBoardView, planProps)
 if (!nodes(tree, node => node.props.children === 'failed-task').length) throw new Error('Failed task invisible')
-const plans = nodes(tree, node => node.props.title === 'Explain dry-run execution plan')
+const plans = nodes(tree, node => node.props.children === 'Plan')
 await plans[0].props.onClick()
 tree = render(PlanBoardView, planProps)
-await nodes(tree, node => node.props.title === 'Explain dry-run execution plan')[1].props.onClick()
+await nodes(tree, node => node.props.children === 'Plan')[1].props.onClick()
 if (explained.length !== 2 || states[7]?.task !== explained[1]) throw new Error('Kanban plan did not load current task')
 console.log('ConfirmDialog Cancel/Enter: PASS\nInstinct form reject/success: PASS\nMemory form reject: PASS\nExecutor model validation: PASS\nFailed column + per-task plan load: PASS')
 `,

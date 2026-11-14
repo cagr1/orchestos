@@ -153,7 +153,7 @@ export default async function chatTurnDetails({
   await codex.click()
   await page.getByRole('button', { name: 'Launch Agent', exact: true }).click()
 
-  const modelControl = page.locator('button[title="Select model and reasoning effort"]')
+  const modelControl = page.locator('[data-composer-region] button.font-mono:not([aria-label])')
   await step(
     'model and effort controls visible',
     await visible(modelControl),

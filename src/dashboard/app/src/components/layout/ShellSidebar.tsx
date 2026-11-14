@@ -15,6 +15,7 @@ import {
 } from 'lucide-react'
 import type React from 'react'
 import { useEffect, useState } from 'react'
+import { Tooltip } from '@/components/ui/tooltip'
 import type { AppMode, ChatThread, ProjectItem } from '../../types/orchestos'
 import { type ProjectAddAction, ProjectAddButton } from '../common/ProjectAddButton'
 import { ProjectIcon } from '../common/ProjectIcon'
@@ -183,29 +184,34 @@ export const ShellSidebar: React.FC<ShellSidebarProps> = ({
                   >
                     <div className="flex items-center gap-2 min-w-0 pr-2">
                       <ProviderLogo id={thread.agent} className="w-4 h-4 flex-shrink-0" />
-                      <span className="truncate" title={thread.title}>
-                        {thread.title}
-                      </span>
+                      {thread.title ? (
+                        <Tooltip content={thread.title} side="right">
+                          <span className="truncate">{thread.title}</span>
+                        </Tooltip>
+                      ) : (
+                        <span className="truncate">{thread.title}</span>
+                      )}
                     </div>
 
                     {thread.status === 'waiting_approval' && (
-                      <span className="text-xs text-app-warning" title="Waiting for your approval">
-                        Approval
-                      </span>
+                      <Tooltip content="Waiting for your approval" side="right">
+                        <span className="text-xs text-app-warning">Approval</span>
+                      </Tooltip>
                     )}
                     {onDeleteChat && (
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          onDeleteChat(thread.id)
-                        }}
-                        className="opacity-0 group-hover:opacity-100 text-app-muted hover:text-app-error p-0.5 transition-opacity"
-                        title="Delete chat"
-                        aria-label="Delete chat"
-                      >
-                        <Trash2 className="w-3 h-3" />
-                      </button>
+                      <Tooltip content="Delete chat" side="right">
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            onDeleteChat(thread.id)
+                          }}
+                          className="opacity-0 group-hover:opacity-100 text-app-muted hover:text-app-error p-0.5 transition-opacity"
+                          aria-label="Delete chat"
+                        >
+                          <Trash2 className="w-3 h-3" />
+                        </button>
+                      </Tooltip>
                     )}
                   </div>
                 )
@@ -235,23 +241,28 @@ export const ShellSidebar: React.FC<ShellSidebarProps> = ({
                 <div key={proj.id} className="space-y-0.5 relative">
                   {/* Project Row Button: Click only toggles expand/collapse */}
                   <div className="group relative flex h-7 items-center justify-between px-2 rounded-control text-[12.5px] font-medium text-app-muted transition-colors hover:bg-app-surface hover:text-app">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        onSelectProject(proj.id)
-                        toggleProjectExpand(proj.id)
-                      }}
-                      className="flex items-center gap-2 min-w-0 flex-1 text-left"
-                      title={`Toggle ${proj.name} agents`}
-                    >
-                      <ProjectIcon
-                        name={proj.icon}
-                        className="w-4 h-4 flex-shrink-0 text-app-muted"
-                      />
-                      <span className="truncate" title={proj.name}>
-                        {proj.name}
-                      </span>
-                    </button>
+                    <Tooltip content={`Toggle ${proj.name} agents`} side="right">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          onSelectProject(proj.id)
+                          toggleProjectExpand(proj.id)
+                        }}
+                        className="flex items-center gap-2 min-w-0 flex-1 text-left"
+                      >
+                        <ProjectIcon
+                          name={proj.icon}
+                          className="w-4 h-4 flex-shrink-0 text-app-muted"
+                        />
+                        {proj.name ? (
+                          <Tooltip content={proj.name} side="right">
+                            <span className="truncate">{proj.name}</span>
+                          </Tooltip>
+                        ) : (
+                          <span className="truncate">{proj.name}</span>
+                        )}
+                      </button>
+                    </Tooltip>
 
                     {/* Right side: Chip on normal, Action icons on hover */}
                     <div className="flex items-center relative ml-2">
@@ -263,50 +274,56 @@ export const ShellSidebar: React.FC<ShellSidebarProps> = ({
                       {/* 3 icons on hover: Chevron, Ellipsis, Plus */}
                       <div className="hidden group-hover:flex items-center gap-0.5">
                         {/* Chevron expand toggle */}
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation()
-                            toggleProjectExpand(proj.id)
-                          }}
-                          className="p-1 rounded-control text-app-muted hover:text-app hover:bg-app-elevated transition-colors"
-                          title={isExpanded ? 'Collapse agents' : 'Expand agents'}
-                          aria-label={isExpanded ? 'Collapse agents' : 'Expand agents'}
+                        <Tooltip
+                          content={isExpanded ? 'Collapse agents' : 'Expand agents'}
+                          side="right"
                         >
-                          {isExpanded ? (
-                            <ChevronDown className="w-3 h-3" />
-                          ) : (
-                            <ChevronRight className="w-3 h-3" />
-                          )}
-                        </button>
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              toggleProjectExpand(proj.id)
+                            }}
+                            className="p-1 rounded-control text-app-muted hover:text-app hover:bg-app-elevated transition-colors"
+                            aria-label={isExpanded ? 'Collapse agents' : 'Expand agents'}
+                          >
+                            {isExpanded ? (
+                              <ChevronDown className="w-3 h-3" />
+                            ) : (
+                              <ChevronRight className="w-3 h-3" />
+                            )}
+                          </button>
+                        </Tooltip>
 
                         {/* Ellipsis menu button */}
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation()
-                            setActiveMenuProjectId(isMenuOpen ? null : proj.id)
-                          }}
-                          className="p-1 rounded-control text-app-muted hover:text-app hover:bg-app-elevated transition-colors"
-                          title="Project actions"
-                          aria-label="Project actions"
-                        >
-                          <Ellipsis className="w-3 h-3" />
-                        </button>
+                        <Tooltip content="Project actions" side="right">
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              setActiveMenuProjectId(isMenuOpen ? null : proj.id)
+                            }}
+                            className="p-1 rounded-control text-app-muted hover:text-app hover:bg-app-elevated transition-colors"
+                            aria-label="Project actions"
+                          >
+                            <Ellipsis className="w-3 h-3" />
+                          </button>
+                        </Tooltip>
 
                         {/* Plus button to create new agent in this project */}
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation()
-                            setProjectForNewAgent(proj)
-                          }}
-                          className="p-1 rounded-control text-app-muted hover:text-app hover:bg-app-elevated transition-colors"
-                          title="Launch new agent"
-                          aria-label="Launch new agent"
-                        >
-                          <Plus className="w-3 h-3" />
-                        </button>
+                        <Tooltip content="Launch new agent" side="right">
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              setProjectForNewAgent(proj)
+                            }}
+                            className="p-1 rounded-control text-app-muted hover:text-app hover:bg-app-elevated transition-colors"
+                            aria-label="Launch new agent"
+                          >
+                            <Plus className="w-3 h-3" />
+                          </button>
+                        </Tooltip>
                       </div>
                     </div>
                   </div>
@@ -366,24 +383,45 @@ export const ShellSidebar: React.FC<ShellSidebarProps> = ({
                                 : 'text-app-muted hover:text-app hover:bg-app-surface'
                             }`}
                           >
-                            <button
-                              type="button"
-                              data-thread-id={ag.id}
-                              onClick={() => {
-                                if (onSelectAgent) {
-                                  onSelectAgent(ag.id, proj.id)
-                                }
-                              }}
-                              className="flex items-center gap-2 min-w-0 flex-1 text-left"
-                              title={ag.name}
-                            >
-                              <ProviderLogo
-                                id={ag.model || 'claude'}
-                                className="w-4 h-4 flex-shrink-0"
-                              />
+                            {ag.name ? (
+                              <Tooltip content={ag.name} side="right">
+                                <button
+                                  type="button"
+                                  data-thread-id={ag.id}
+                                  onClick={() => {
+                                    if (onSelectAgent) {
+                                      onSelectAgent(ag.id, proj.id)
+                                    }
+                                  }}
+                                  className="flex items-center gap-2 min-w-0 flex-1 text-left"
+                                >
+                                  <ProviderLogo
+                                    id={ag.model || 'claude'}
+                                    className="w-4 h-4 flex-shrink-0"
+                                  />
 
-                              <span className="truncate">{ag.name}</span>
-                            </button>
+                                  <span className="truncate">{ag.name}</span>
+                                </button>
+                              </Tooltip>
+                            ) : (
+                              <button
+                                type="button"
+                                data-thread-id={ag.id}
+                                onClick={() => {
+                                  if (onSelectAgent) {
+                                    onSelectAgent(ag.id, proj.id)
+                                  }
+                                }}
+                                className="flex items-center gap-2 min-w-0 flex-1 text-left"
+                              >
+                                <ProviderLogo
+                                  id={ag.model || 'claude'}
+                                  className="w-4 h-4 flex-shrink-0"
+                                />
+
+                                <span className="truncate">{ag.name}</span>
+                              </button>
+                            )}
 
                             {/* Relative time & Close button */}
                             <div className="flex items-center gap-1 ml-1 flex-shrink-0">
@@ -405,20 +443,21 @@ export const ShellSidebar: React.FC<ShellSidebarProps> = ({
                               </span>
 
                               {/* Close agent button on hover (moves to history) */}
-                              <button
-                                type="button"
-                                onClick={(e) => {
-                                  e.stopPropagation()
-                                  if (onCloseAgent) {
-                                    onCloseAgent(ag.id, proj.id)
-                                  }
-                                }}
-                                className="hidden group-hover:flex p-0.5 text-app-muted hover:text-app rounded-control"
-                                title="Close agent (archive to History)"
-                                aria-label="Close agent"
-                              >
-                                <X className="w-3 h-3" />
-                              </button>
+                              <Tooltip content="Close agent (archive to History)" side="right">
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.stopPropagation()
+                                    if (onCloseAgent) {
+                                      onCloseAgent(ag.id, proj.id)
+                                    }
+                                  }}
+                                  className="hidden group-hover:flex p-0.5 text-app-muted hover:text-app rounded-control"
+                                  aria-label="Close agent"
+                                >
+                                  <X className="w-3 h-3" />
+                                </button>
+                              </Tooltip>
                             </div>
                           </div>
                         )

@@ -121,7 +121,8 @@ export default async function shellLook({
     await step(
       `${view}: sidebar divider and flat header`,
       facts.sidebarBorderRight.every((w) => (view === 'chat' ? w > 0 : w === 0)) &&
-        facts.headerBorderBottom === 0,
+        // USO.4 (705e205a): divisor de 1 px bajo la barra superior, a propósito.
+        facts.headerBorderBottom === 1,
       `aside border-right=${facts.sidebarBorderRight.join(',')} header border-bottom=${facts.headerBorderBottom}`,
     )
     await step(
@@ -962,8 +963,8 @@ export default async function shellLook({
     await page.getByRole('button', { name: basename(projectRoot), exact: true }).click()
   await step(
     'Dev sidebar strips only matching agent prefix',
-    (await devAgentButton.getAttribute('title')) === devSession.title,
-    await devAgentButton.getAttribute('title'),
+    (await devAgentButton.innerText()).trim() === devSession.title,
+    await devAgentButton.innerText(),
   )
   await page.getByRole('button', { name: 'Chat', exact: true }).click()
   await page.locator('[data-composer-region]').waitFor({ state: 'visible' })
@@ -1070,9 +1071,7 @@ export default async function shellLook({
   await page.locator('[data-dev-session-tabs]').waitFor({ state: 'visible' })
   await page.getByRole('button', { name: 'Chat', exact: true }).click()
   await page.locator('aside [role="button"]').filter({ hasText: 'Chat with Codex' }).click()
-  const sidebarTitles = await page
-    .locator('aside [role="button"] span[title]')
-    .evaluateAll((spans) => spans.map((span) => span.getAttribute('title')))
+  const sidebarTitles = await page.locator('aside [data-thread-id] span.truncate').allTextContents()
   await step(
     'Chat sidebar removes Claude and Codex prefixes',
     sidebarTitles.includes('Chat with Codex') &&
@@ -1084,7 +1083,10 @@ export default async function shellLook({
   await chatSearch.fill('UI27 title fixture')
   await step(
     'chat search uses displayed title',
-    (await page.locator('aside [role="button"] span[title="UI27 title fixture"]').count()) === 1,
+    (await page
+      .locator('aside [data-thread-id]')
+      .getByText('UI27 title fixture', { exact: true })
+      .count()) === 1,
     'legacy Claude title found by normalized text',
   )
   await chatSearch.fill('')

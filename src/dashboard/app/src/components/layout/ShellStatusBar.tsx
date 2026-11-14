@@ -1,6 +1,7 @@
 import { RefreshCw, SquareTerminal } from 'lucide-react'
 import type React from 'react'
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
+import { Tooltip } from '@/components/ui/tooltip'
 import type { SessionStatus } from '../../types/orchestos'
 import { ProviderLogo } from '../common/ProviderLogos'
 
@@ -177,70 +178,75 @@ export const ShellStatusBar: React.FC<ShellStatusBarProps> = ({
           const tone = quotaTone(remaining)
 
           return (
-            <button
+            <Tooltip
+              content={`${cli.name}: ${hasData ? `${pct}% ${cli.quota5h === null ? 'weekly' : '5-hour'} quota used` : (cli.missingData ?? 'No quota limits reported')}${hasData && cli.missingData ? ` · ${cli.missingData}` : ''}${cli.wiringWarning ? ` · ${cli.wiringWarning}` : ''}`}
               key={cli.id}
-              type="button"
-              data-quota-cli={cli.id}
-              onClick={() => setActiveCliId(activeCliId === cli.id ? null : cli.id)}
-              className={`flex items-center gap-1.5 py-0.5 px-1 rounded-control transition-colors ${
-                activeCliId === cli.id
-                  ? 'bg-app-elevated border border-app text-app'
-                  : 'hover:bg-app-surface/60 text-app-muted hover:text-app'
-              }`}
-              title={`${cli.name}: ${hasData ? `${pct}% ${cli.quota5h === null ? 'weekly' : '5-hour'} quota used` : (cli.missingData ?? 'No quota limits reported')}${hasData && cli.missingData ? ` · ${cli.missingData}` : ''}${cli.wiringWarning ? ` · ${cli.wiringWarning}` : ''}`}
             >
-              <ProviderLogo id={cli.id} size={14} className="w-3.5 h-3.5 flex-shrink-0" />
-              <div className="w-12 h-1 bg-app-elevated rounded-pill overflow-hidden flex-shrink-0">
-                {hasData && (
-                  <div
-                    className={`h-full ${tone === 'error' ? 'bg-app-error' : tone === 'warning' ? 'bg-orange-500' : 'bg-emerald-400'} rounded-pill transition-all`}
-                    data-quota-tone={tone}
-                    style={{ width: `${pct}%` }}
-                  />
-                )}
-              </div>
-              <span
-                className={`text-[11px] ${tone === 'error' ? 'text-app-error' : tone === 'warning' ? 'text-orange-400' : 'text-app-muted'}`}
-                data-quota-tone={tone}
+              <button
+                type="button"
+                data-quota-cli={cli.id}
+                onClick={() => setActiveCliId(activeCliId === cli.id ? null : cli.id)}
+                className={`flex items-center gap-1.5 py-0.5 px-1 rounded-control transition-colors ${
+                  activeCliId === cli.id
+                    ? 'bg-app-elevated border border-app text-app'
+                    : 'hover:bg-app-surface/60 text-app-muted hover:text-app'
+                }`}
               >
-                {hasData ? `${pct}%` : '—'}
-              </span>
-              {cli.countdown5h && (
-                <span className="text-[11px] text-app-muted"> {cli.countdown5h}</span>
-              )}
-            </button>
+                <ProviderLogo id={cli.id} size={14} className="w-3.5 h-3.5 flex-shrink-0" />
+                <div className="w-12 h-1 bg-app-elevated rounded-pill overflow-hidden flex-shrink-0">
+                  {hasData && (
+                    <div
+                      className={`h-full ${tone === 'error' ? 'bg-app-error' : tone === 'warning' ? 'bg-orange-500' : 'bg-emerald-400'} rounded-pill transition-all`}
+                      data-quota-tone={tone}
+                      style={{ width: `${pct}%` }}
+                    />
+                  )}
+                </div>
+                <span
+                  className={`text-[11px] ${tone === 'error' ? 'text-app-error' : tone === 'warning' ? 'text-orange-400' : 'text-app-muted'}`}
+                  data-quota-tone={tone}
+                >
+                  {hasData ? `${pct}%` : '—'}
+                </span>
+                {cli.countdown5h && (
+                  <span className="text-[11px] text-app-muted"> {cli.countdown5h}</span>
+                )}
+              </button>
+            </Tooltip>
           )
         })}
         {quotas.length > 0 && onRefresh && (
-          <button
-            type="button"
-            onClick={onRefresh}
-            disabled={refreshing}
-            className="p-1 rounded-control text-app-muted hover:text-app hover:bg-app-surface/60 transition-colors disabled:opacity-50"
-            title="Refresh usage"
-            aria-label="Refresh usage"
-          >
-            <RefreshCw className={`w-3.5 h-3.5 ${refreshing ? 'animate-spin' : ''}`} />
-          </button>
+          <Tooltip content="Refresh usage">
+            <button
+              type="button"
+              onClick={onRefresh}
+              disabled={refreshing}
+              className="p-1 rounded-control text-app-muted hover:text-app hover:bg-app-surface/60 transition-colors disabled:opacity-50"
+              aria-label="Refresh usage"
+            >
+              <RefreshCw className={`w-3.5 h-3.5 ${refreshing ? 'animate-spin' : ''}`} />
+            </button>
+          </Tooltip>
         )}
       </div>
 
       {onToggleTerminal && (
-        <button
-          type="button"
-          data-terminal-toggle
-          onClick={onToggleTerminal}
-          aria-pressed={terminalOpen}
-          title="Terminal (Ctrl+`)"
-          className={`ml-auto flex items-center gap-1.5 py-0.5 px-1.5 rounded-control transition-colors ${
-            terminalOpen
-              ? 'bg-app-elevated border border-app text-app'
-              : 'hover:bg-app-surface/60 text-app-muted hover:text-app'
-          }`}
-        >
-          <SquareTerminal className="w-3.5 h-3.5" />
-          <span className="text-[11px]">Terminal</span>
-        </button>
+        <Tooltip content="Terminal (Ctrl+`)">
+          <button
+            type="button"
+            data-terminal-toggle
+            onClick={onToggleTerminal}
+            aria-pressed={terminalOpen}
+            className={`ml-auto flex items-center gap-1.5 py-0.5 px-1.5 rounded-control transition-colors ${
+              terminalOpen
+                ? 'bg-app-elevated border border-app text-app'
+                : 'hover:bg-app-surface/60 text-app-muted hover:text-app'
+            }`}
+          >
+            <SquareTerminal className="w-3.5 h-3.5" />
+            <span className="text-[11px]">Terminal</span>
+          </button>
+        </Tooltip>
       )}
 
       {/* Floating Detail Panel (above the bar, not clipped) */}

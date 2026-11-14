@@ -10,7 +10,7 @@ test('Diff list click previews and double click pins through the opener', () => 
     path: 'src/main.ts',
     selected: true,
     onOpen: (request) => requests.push(request),
-  })
+  }).props.children
   button.props.onClick()
   button.props.onDoubleClick()
   expect(requests).toEqual([

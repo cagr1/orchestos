@@ -140,9 +140,20 @@ esta etapa: `docs/done/bloque-AUD.md` (AUD.16, AUD.17), `docs/done/bloque-SES.md
   también lo pone en `document.documentElement`; el menú sale `#121215` con `carbon`. qa (gpt-6.1-sol): sin defectos.
   Gate en vivo: navegador — `docs/done/evidence/USO.13-live.json`.
   Sin delegación: fix chico de dos líneas en `App.tsx`, revisado por qa de otro proveedor
-- [ ] **USO.14 — Tooltips con look de shadcn en toda la app.** (Carlos 2026-11-14, GO a migrar todos) 104 `title=`
-  nativos en 26 archivos pasan al `Tooltip` de `components/ui/tooltip.tsx` (Radix). Spec: `docs/specs/USO.14.md`.
-  Va después de USO.13.
+- [x] **USO.14 — Tooltips con look de shadcn en toda la app.** (Carlos 2026-11-14, GO a migrar todos) Hecho: los
+  `title=` nativos de `src/dashboard/app/src` pasan al `Tooltip` de `components/ui/tooltip.tsx` (Radix) bajo un solo
+  `TooltipProvider`; `aria-label` solo en controles de ícono (qa: en botones con texto cambiaba su nombre accesible);
+  quedan como `title` solo las props de encabezado de componentes. Gates al día: selectores por `aria-label`,
+  `[data-theme]` → `div[data-theme]` (dos elementos desde USO.13), divisor de USO.4 en `shell-look`.
+  qa (gpt-6.1-sol): 2 pasadas, hallazgos corregidos. 11 ui-gates rojos fallan igual sin USO.14 (`089e9ba7`): USO.15.
+  Gate en vivo: navegador y Playwright (`thread-states` 311/311, 4 temas) — `docs/done/evidence/USO.14-live.json`.
+  Texto visible: "Stop this agent?", "(diff)", "Unsaved", "Files", "Diff", "History", "Aa", "Approval", "Terminal", "Plan" (textos existentes que solo cambiaron de línea al envolverlos en Tooltip)
+  Ejecutado por: gpt-6.1-sol · Spec: docs/specs/USO.14.md
+- [ ] **USO.15 — 11 ui-gates rojos previos a USO.14.** (visto 2026-11-14 al verificar USO.14; fallan igual en
+  `089e9ba7`) `shell-look` (logos de filas de Chat), `chat-context`, `chat-continuity`, `chat-readonly-shell`,
+  `chat-settings`, `chat-stop`, `chat-streaming`, `composer-picker`, `notifications`, `text-sweep`, `usage-bar`.
+  Sospecha: desfase con USO.10/USO.11 (Chat sin proyecto) y USO.3 (caché); separar gate desfasado de producto roto.
+  Evidencia: `docs/done/evidence/USO.14-live.json`.
 - [ ] **LRN.1 — OrchestOS aprende de los errores.** (abierto 2026-11-13; GO de Carlos a D1–D6; va después de SES.1 y
   no bloquea el uso real) Diseño: `docs/specs/LRN-1-opinion-fable.md`. Decisiones: D1 alcance por proyecto, global
   solo por promoción manual; D2 tope 1.000 tokens o 15 lecciones; D3 proponer ante firma repetida ≥2, par

@@ -64,7 +64,7 @@ export default async function settingsPages({ page, api, step, shot, cleanup }) 
   await sidebar.getByRole('button', { name: 'Appearance', exact: true }).click()
   await step(
     'chosen theme persists after reload',
-    (await page.locator('[data-theme]').getAttribute('data-theme')) === 'graphite' &&
+    (await page.locator('div[data-theme]').getAttribute('data-theme')) === 'graphite' &&
       (await page
         .locator('[data-settings-anchor="theme-graphite"] [aria-label="Active"]')
         .count()) === 1,

@@ -65,9 +65,7 @@ export default async function threadStates({ page, base, step, shot, visible, co
       !incompleteText.includes('**') && !incompleteText.includes('```'),
       `${themeName}: visible text ${JSON.stringify(incompleteText.slice(0, 80))}`,
     )
-    const copyButton = markdown
-      .locator('button[title*="opy" i], button[aria-label*="opy" i]')
-      .first()
+    const copyButton = markdown.locator('button[aria-label*="opy" i]').first()
     await step(
       `${themeName}-code-block-copy`,
       await visible(copyButton),
@@ -267,11 +265,24 @@ export default async function threadStates({ page, base, step, shot, visible, co
         `${themeName}: ${id} innerText has no task id`,
       )
       const copy = card.getByRole('button', { name: 'Copy task id' })
+      // Foco de teclado: Radix abre el tooltip sin depender de la trayectoria del puntero entre tarjetas.
+      await copy.focus()
+      // El tooltip de la tarjeta anterior puede seguir saliendo: se espera el que trae este id.
+      const tooltip = page.getByRole('tooltip').filter({ hasText: taskId ?? '' })
+      const shown = await tooltip
+        .waitFor({ state: 'visible', timeout: 5000 })
+        .then(() => true)
+        .catch(() => false)
       await step(
         `${themeName}-${id}-copy-id`,
-        (await copy.getAttribute('title')) === taskId,
-        `${themeName}: ${id} copy button title is the id`,
+        Boolean(taskId) && shown,
+        `${themeName}: ${id} copy button tooltip contains the id`,
       )
+      await copy.blur()
+      await page
+        .getByRole('tooltip')
+        .waitFor({ state: 'hidden', timeout: 5000 })
+        .catch(() => {})
       for (const action of expected.actions) {
         const inside = await card.getByRole('button', { name: action, exact: true }).count()
         const total = await section.getByRole('button', { name: action, exact: true }).count()

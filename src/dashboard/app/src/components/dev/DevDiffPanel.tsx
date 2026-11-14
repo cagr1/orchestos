@@ -1,5 +1,6 @@
 import { Columns2, Rows3, Space } from 'lucide-react'
 import { useEffect, useState } from 'react'
+import { Tooltip } from '@/components/ui/tooltip'
 import { getGitChanges, getGitDiff } from '../../api/git'
 import { useDiffSettings } from '../../lib/diff-settings'
 import { parseDiffPatch } from './OrcaRightInspector'
@@ -110,9 +111,13 @@ export function DevDiffPanel({
       className="flex flex-col flex-1 min-w-0 overflow-hidden bg-app-bg"
     >
       <header className="flex shrink-0 items-center justify-between gap-2 border-b border-app px-3 py-2 text-xs">
-        <span className="truncate text-app-muted" title={path}>
-          {path} (diff)
-        </span>
+        {path ? (
+          <Tooltip content={path}>
+            <span className="truncate text-app-muted">{path} (diff)</span>
+          </Tooltip>
+        ) : (
+          <span className="truncate text-app-muted">{path} (diff)</span>
+        )}
         <div className="flex items-center gap-1">
           <fieldset
             aria-label="Diff view"
@@ -121,12 +126,23 @@ export function DevDiffPanel({
             {(['unified', 'split'] as const).map((mode) => {
               const Icon = mode === 'unified' ? Rows3 : Columns2
               const label = mode === 'unified' ? 'Unified' : 'Split'
-              return (
+              return label ? (
+                <Tooltip content={label} key={mode}>
+                  <button
+                    type="button"
+                    aria-label={label}
+                    aria-pressed={view === mode}
+                    onClick={() => setView(mode)}
+                    className={`p-1 rounded-control ${view === mode ? 'bg-app-surface text-app' : 'text-app-muted hover:text-app'}`}
+                  >
+                    <Icon className="w-3.5 h-3.5" />
+                  </button>
+                </Tooltip>
+              ) : (
                 <button
                   key={mode}
                   type="button"
                   aria-label={label}
-                  title={label}
                   aria-pressed={view === mode}
                   onClick={() => setView(mode)}
                   className={`p-1 rounded-control ${view === mode ? 'bg-app-surface text-app' : 'text-app-muted hover:text-app'}`}
@@ -136,16 +152,17 @@ export function DevDiffPanel({
               )
             })}
           </fieldset>
-          <button
-            type="button"
-            aria-label="Ignore whitespace"
-            title="Ignore whitespace"
-            aria-pressed={ignoreWhitespace}
-            onClick={() => setIgnoreWhitespace((value) => !value)}
-            className={`p-1 rounded-control ${ignoreWhitespace ? 'bg-app-surface text-app' : 'text-app-muted hover:text-app'}`}
-          >
-            <Space className="w-3.5 h-3.5" />
-          </button>
+          <Tooltip content="Ignore whitespace">
+            <button
+              type="button"
+              aria-label="Ignore whitespace"
+              aria-pressed={ignoreWhitespace}
+              onClick={() => setIgnoreWhitespace((value) => !value)}
+              className={`p-1 rounded-control ${ignoreWhitespace ? 'bg-app-surface text-app' : 'text-app-muted hover:text-app'}`}
+            >
+              <Space className="w-3.5 h-3.5" />
+            </button>
+          </Tooltip>
           <button
             type="button"
             disabled={!result || result.deleted || error}

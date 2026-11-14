@@ -122,7 +122,9 @@ export default async function chatStop({ page, api, step, shot, visible, cleanup
     await dialog
       .getByRole('button', { name: view === 'Chat' ? 'Start Chat' : 'Launch Agent', exact: true })
       .click()
-    const modelControl = page.locator('button[title="Select model and reasoning effort"]').last()
+    const modelControl = page
+      .locator('[data-composer-region] button.font-mono:not([aria-label])')
+      .last()
     await modelControl.click()
     await page.getByRole('button', { name: /haiku/i }).first().click()
     await page.keyboard.press('Escape')

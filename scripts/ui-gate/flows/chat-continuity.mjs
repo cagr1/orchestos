@@ -73,7 +73,9 @@ async function startChat(page, agent, projectName) {
 }
 
 async function selectClaudeHaiku(page) {
-  const modelControl = page.locator('button[title="Select model and reasoning effort"]').last()
+  const modelControl = page
+    .locator('[data-composer-region] button.font-mono:not([aria-label])')
+    .last()
   await modelControl.waitFor({ state: 'visible', timeout: 15_000 })
   await modelControl.click()
   await page.getByRole('button', { name: /haiku/i }).first().click()

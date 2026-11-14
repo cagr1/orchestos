@@ -14,6 +14,7 @@ import {
 import type React from 'react'
 import { useEffect, useRef, useState } from 'react'
 import { Button } from '@/components/ui/button'
+import { Tooltip } from '@/components/ui/tooltip'
 import { getPlanDoc, type PlanDocResponse } from '../../api/planDoc'
 import type { TaskItem, TaskStatus } from '../../types/orchestos'
 import { SettingsPrimaryAction } from '../settings/primitives'
@@ -269,12 +270,17 @@ export const PlanBoardView: React.FC<PlanBoardViewProps> = ({
                       colTasks.map((task) => (
                         <div key={task.id} className="p-3 rounded-card bg-app-elevated space-y-2.5">
                           <div className="flex items-start justify-between gap-2">
-                            <span
-                              title={task.id}
-                              className="min-w-0 truncate font-mono text-[11px] text-app-muted"
-                            >
-                              {task.id}
-                            </span>
+                            {task.id ? (
+                              <Tooltip content={task.id}>
+                                <span className="min-w-0 truncate font-mono text-[11px] text-app-muted">
+                                  {task.id}
+                                </span>
+                              </Tooltip>
+                            ) : (
+                              <span className="min-w-0 truncate font-mono text-[11px] text-app-muted">
+                                {task.id}
+                              </span>
+                            )}
                             <div className="flex shrink-0 items-center gap-1.5 text-[11px]">
                               {(task.qaVerdict || (task.status === 'done' && !task.runId)) && (
                                 <TaskQaBadge task={task} />
@@ -329,14 +335,15 @@ export const PlanBoardView: React.FC<PlanBoardViewProps> = ({
                             </div>
 
                             <div className="flex items-center gap-1.5">
-                              <Button
-                                variant="ghost"
-                                size="compact"
-                                onClick={() => void loadExplain(task)}
-                                title="Explain dry-run execution plan"
-                              >
-                                Plan
-                              </Button>
+                              <Tooltip content="Explain dry-run execution plan">
+                                <Button
+                                  variant="ghost"
+                                  size="compact"
+                                  onClick={() => void loadExplain(task)}
+                                >
+                                  Plan
+                                </Button>
+                              </Tooltip>
                               {task.status !== 'done' && (
                                 <SettingsPrimaryAction>
                                   <Button
@@ -380,14 +387,24 @@ export const PlanBoardView: React.FC<PlanBoardViewProps> = ({
                     className={`h-10 whitespace-nowrap border-b ${lineClass} hover:bg-app-elevated`}
                   >
                     <td className="max-w-[10rem] px-3">
-                      <div title={t.id} className="truncate font-mono text-[11px] text-app-muted">
-                        {t.id}
-                      </div>
+                      {t.id ? (
+                        <Tooltip content={t.id}>
+                          <div className="truncate font-mono text-[11px] text-app-muted">
+                            {t.id}
+                          </div>
+                        </Tooltip>
+                      ) : (
+                        <div className="truncate font-mono text-[11px] text-app-muted">{t.id}</div>
+                      )}
                     </td>
                     <td className="max-w-md px-3">
-                      <div title={t.description} className="truncate text-[13px] text-app">
-                        {t.description}
-                      </div>
+                      {t.description ? (
+                        <Tooltip content={t.description}>
+                          <div className="truncate text-[13px] text-app">{t.description}</div>
+                        </Tooltip>
+                      ) : (
+                        <div className="truncate text-[13px] text-app">{t.description}</div>
+                      )}
                       {t.depends_on.length > 0 && (
                         <div className="truncate text-[11px] text-app-muted">
                           Depends on: {t.depends_on.join(', ')}

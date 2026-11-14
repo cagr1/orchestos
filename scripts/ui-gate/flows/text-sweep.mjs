@@ -81,7 +81,7 @@ export default async function textSweep({ page, api, step, visible, hidden, clea
   await codex.click()
   await page.getByRole('button', { name: 'Start Chat', exact: true }).click()
 
-  const modelControl = page.locator('button[title="Select model and reasoning effort"]')
+  const modelControl = page.locator('[data-composer-region] button.font-mono:not([aria-label])')
   await step('model selector visible', await visible(modelControl), 'composer model selector')
   if (!(await modelControl.isVisible())) return
   await modelControl.click()

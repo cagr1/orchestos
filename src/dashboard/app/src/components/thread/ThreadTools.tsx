@@ -4,6 +4,7 @@ import {
   ThinkingStepsContent,
   ThinkingStepsHeader,
 } from '@/components/ui/thinking-steps'
+import { Tooltip } from '@/components/ui/tooltip'
 import { cn } from '@/lib/utils'
 import type { ToolExecution } from '../../types/orchestos'
 import { formatDuration } from './thinking'
@@ -58,12 +59,17 @@ export function ThreadTools({ tools, defaultOpen = false }: ThreadToolsProps) {
                 className="flex min-w-0 flex-col gap-1"
               >
                 <div className="flex min-w-0 items-baseline gap-2">
-                  <span
-                    title={target || undefined}
-                    className="min-w-0 flex-1 truncate text-xs text-muted-foreground"
-                  >
-                    {target}
-                  </span>
+                  {target || undefined ? (
+                    <Tooltip content={target || undefined}>
+                      <span className="min-w-0 flex-1 truncate text-xs text-muted-foreground">
+                        {target}
+                      </span>
+                    </Tooltip>
+                  ) : (
+                    <span className="min-w-0 flex-1 truncate text-xs text-muted-foreground">
+                      {target}
+                    </span>
+                  )}
                   {tool.status === 'failed' && (
                     <span className="shrink-0 text-xs text-destructive">failed</span>
                   )}

@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, test } from 'bun:test'
-import { createElement } from 'react'
+import { Children, cloneElement, createElement, isValidElement, type ReactNode } from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
+import { Tooltip } from '@/components/ui/tooltip'
 import type { SessionStatus } from '../../types/orchestos'
 import {
   formatCountdown,
@@ -10,6 +11,26 @@ import {
   quotaTone,
   ShellStatusBar,
 } from './ShellStatusBar'
+
+// Inspect tooltip content before Radix portals it; SSR only includes the closed trigger.
+function renderStatusBar(status: SessionStatus) {
+  function exposeTooltips(node: ReactNode): ReactNode {
+    if (Array.isArray(node)) return Children.map(node, exposeTooltips)
+    if (!isValidElement<{ children?: ReactNode; content?: ReactNode }>(node)) return node
+    if (node.type === Tooltip) {
+      return createElement(
+        'div',
+        { 'data-tooltip': node.props.content },
+        exposeTooltips(node.props.children),
+      )
+    }
+    return cloneElement(node, {}, exposeTooltips(node.props.children))
+  }
+  // ShellStatusBar es síncrono: su tipo de retorno de FC admite Promise, pero aquí siempre es ReactNode.
+  return renderToStaticMarkup(
+    createElement(() => exposeTooltips(ShellStatusBar({ status }) as ReactNode)),
+  )
+}
 
 describe('quotaTone', () => {
   test.each([
@@ -101,7 +122,7 @@ describe('formatReset', () => {
             observedAt && observedAt !== 'invalid' ? 'no data since 1 h' : 'no data, date unknown',
         }),
       ])
-      const html = renderToStaticMarkup(createElement(ShellStatusBar, { status }))
+      const html = renderStatusBar(status)
       expect(html).toContain(
         observedAt && observedAt !== 'invalid' ? 'no data since 1 h' : 'no data, date unknown',
       )
@@ -143,7 +164,7 @@ describe('formatReset', () => {
       const quota = mapQuotas(status)[0]
       expect(quota?.quota5h).toBe(staleMinutes === 300 ? null : 90)
       expect(quota?.quotaWeekly).toBe(staleMinutes === 10080 ? null : 90)
-      const html = renderToStaticMarkup(createElement(ShellStatusBar, { status }))
+      const html = renderStatusBar(status)
       expect(html).toContain('>10%</span>')
       expect(html).toContain('style="width:10%"')
       expect(html).toContain(
@@ -180,9 +201,7 @@ describe('formatReset', () => {
       ],
     }
     expect(mapQuotas(status)[0]?.quota5h).toBe(100)
-    expect(renderToStaticMarkup(createElement(ShellStatusBar, { status }))).toContain(
-      'Claude statusLine is not routed through OrchestOS',
-    )
+    expect(renderStatusBar(status)).toContain('Claude statusLine is not routed through OrchestOS')
     const window = status.clis[0]?.rateLimits?.windows[0]
     if (!window) throw new Error('missing quota fixture')
     window.observedAt = new Date(now - 3_600_000).toISOString()
@@ -209,7 +228,7 @@ describe('formatReset', () => {
         },
       ],
     }
-    const html = renderToStaticMarkup(createElement(ShellStatusBar, { status }))
+    const html = renderStatusBar(status)
     expect(html).toContain('>—</span>')
     expect(html).toContain('Claude statusLine is not routed through OrchestOS')
     expect(html).not.toContain('no data since')
@@ -247,13 +266,13 @@ describe('formatReset', () => {
       ],
     }
     expect(mapQuotas(status)[0]?.resetWeekly).toBe('5D 14h')
-    const html = renderToStaticMarkup(createElement(ShellStatusBar, { status }))
+    const html = renderStatusBar(status)
     expect(html).toContain('>5%</span>')
-    expect(html).toContain('title="Codex: 5% 5-hour quota used"')
+    expect(html).toContain('data-tooltip="Codex: 5% 5-hour quota used"')
     expect(html).not.toContain('CLI Quotas')
   })
 
-  test('labels weekly quota in the bar title when the five-hour window is missing', () => {
+  test('labels weekly quota in the bar tooltip when the five-hour window is missing', () => {
     const status: SessionStatus = {
       available: true,
       clis: [
@@ -274,9 +293,7 @@ describe('formatReset', () => {
         },
       ],
     }
-    expect(renderToStaticMarkup(createElement(ShellStatusBar, { status }))).toContain(
-      'title="Claude Code: 45% weekly quota used"',
-    )
+    expect(renderStatusBar(status)).toContain('data-tooltip="Claude Code: 45% weekly quota used"')
   })
 })
 

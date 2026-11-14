@@ -103,7 +103,7 @@ export default async function chatSettings({ page, api, step, shot, visible, hid
       .first()
       .click()
     await dialog.getByRole('button', { name: 'Start Chat', exact: true }).click()
-    await page.locator('button[title="Select model and reasoning effort"]').last().click()
+    await page.locator('[data-composer-region] button.font-mono:not([aria-label])').last().click()
     await page.getByRole('button', { name: /haiku/i }).first().click()
     await page.keyboard.press('Escape')
   }
@@ -209,7 +209,7 @@ export default async function chatSettings({ page, api, step, shot, visible, hid
   await settings()
   await page.getByRole('radio', { name: 'Stop and send', exact: true }).click()
   await back()
-  await page.locator('button[title="Select model and reasoning effort"]').last().click()
+  await page.locator('[data-composer-region] button.font-mono:not([aria-label])').last().click()
   await page.getByRole('button', { name: /haiku/i }).first().click()
   await page.keyboard.press('Escape')
   await startLong()

@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react'
 import type { InboundSessionMessage } from '@/api/chat'
 import { ChatMessage } from '@/components/ui/chat-message'
 import { FileThumbnail } from '@/components/ui/file-thumbnail'
+import { Tooltip } from '@/components/ui/tooltip'
 import type { ChatMessageRow, TimelineStep, TimelineTurn } from '../../api/chat'
 import { getSessionContext, getTimeline, type TimelineResponse } from '../../api/chat'
 import type { PendingApproval } from '../../api/runs'
@@ -491,24 +492,25 @@ export const OrchestDevWorkspace: React.FC<OrchestDevWorkspaceProps> = ({
               })}
               actions={
                 exchangeUserMessage && visibleUserMessage === exchangeUserMessage ? (
-                  <button
-                    type="button"
-                    onClick={() =>
-                      void handleCopyMessage(
-                        exchangeUserMessage.id.toString(),
-                        exchangeUserMessage.content,
-                      )
-                    }
-                    className="p-1 rounded-control text-app-muted hover:text-app transition-colors"
-                    title="Copy"
-                    aria-label="Copy"
-                  >
-                    {copiedMessageId === exchangeUserMessage.id.toString() ? (
-                      <Check className="w-3 h-3" />
-                    ) : (
-                      <Copy className="w-3 h-3" />
-                    )}
-                  </button>
+                  <Tooltip content="Copy">
+                    <button
+                      type="button"
+                      onClick={() =>
+                        void handleCopyMessage(
+                          exchangeUserMessage.id.toString(),
+                          exchangeUserMessage.content,
+                        )
+                      }
+                      className="p-1 rounded-control text-app-muted hover:text-app transition-colors"
+                      aria-label="Copy"
+                    >
+                      {copiedMessageId === exchangeUserMessage.id.toString() ? (
+                        <Check className="w-3 h-3" />
+                      ) : (
+                        <Copy className="w-3 h-3" />
+                      )}
+                    </button>
+                  </Tooltip>
                 ) : undefined
               }
             >
@@ -516,9 +518,17 @@ export const OrchestDevWorkspace: React.FC<OrchestDevWorkspaceProps> = ({
                 <div className="flex flex-wrap gap-1.5 mb-2">
                   {sentAttachments.current.get(visibleUserMessage.content)?.map((att) =>
                     att.file ? (
-                      <div key={att.id} data-attachment-name={att.name} title={att.name}>
-                        <FileThumbnail file={att.file} size={64} />
-                      </div>
+                      att.name ? (
+                        <Tooltip content={att.name} key={att.id}>
+                          <div data-attachment-name={att.name}>
+                            <FileThumbnail file={att.file} size={64} />
+                          </div>
+                        </Tooltip>
+                      ) : (
+                        <div key={att.id} data-attachment-name={att.name}>
+                          <FileThumbnail file={att.file} size={64} />
+                        </div>
+                      )
                     ) : (
                       <div
                         key={att.id}
@@ -591,19 +601,20 @@ export const OrchestDevWorkspace: React.FC<OrchestDevWorkspaceProps> = ({
                   {/* Expanded Bash -> mono output, max height, scroll, copy icon */}
                   {isFailingBashExpanded && (
                     <div className="mt-1 mb-2 ml-5 relative rounded-control border border-app bg-[#0c1017] p-3 font-mono text-[11px]">
-                      <button
-                        type="button"
-                        onClick={() => handleCopyBash(failingBashOutput, 'fail')}
-                        className="absolute top-2 right-2 p-1 rounded-control text-app-muted hover:text-app bg-app-surface/40 hover:bg-app-surface transition-colors"
-                        title="Copy output"
-                        aria-label="Copy output"
-                      >
-                        {copiedFail ? (
-                          <Check className="w-3.5 h-3.5 text-emerald-400" />
-                        ) : (
-                          <Copy className="w-3.5 h-3.5" />
-                        )}
-                      </button>
+                      <Tooltip content="Copy output">
+                        <button
+                          type="button"
+                          onClick={() => handleCopyBash(failingBashOutput, 'fail')}
+                          className="absolute top-2 right-2 p-1 rounded-control text-app-muted hover:text-app bg-app-surface/40 hover:bg-app-surface transition-colors"
+                          aria-label="Copy output"
+                        >
+                          {copiedFail ? (
+                            <Check className="w-3.5 h-3.5 text-emerald-400" />
+                          ) : (
+                            <Copy className="w-3.5 h-3.5" />
+                          )}
+                        </button>
+                      </Tooltip>
                       <pre className="text-rose-300 leading-relaxed overflow-x-auto max-h-48 whitespace-pre">
                         {failingBashOutput}
                       </pre>
@@ -649,19 +660,20 @@ export const OrchestDevWorkspace: React.FC<OrchestDevWorkspaceProps> = ({
                   {/* Expanded Bash -> mono output, max height, scroll, copy icon */}
                   {isPassingBashExpanded && (
                     <div className="mt-1 mb-2 ml-5 relative rounded-control border border-app bg-[#0c1017] p-3 font-mono text-[11px]">
-                      <button
-                        type="button"
-                        onClick={() => handleCopyBash(passingBashOutput, 'pass')}
-                        className="absolute top-2 right-2 p-1 rounded-control text-app-muted hover:text-app bg-app-surface/40 hover:bg-app-surface transition-colors"
-                        title="Copy output"
-                        aria-label="Copy output"
-                      >
-                        {copiedPass ? (
-                          <Check className="w-3.5 h-3.5 text-emerald-400" />
-                        ) : (
-                          <Copy className="w-3.5 h-3.5" />
-                        )}
-                      </button>
+                      <Tooltip content="Copy output">
+                        <button
+                          type="button"
+                          onClick={() => handleCopyBash(passingBashOutput, 'pass')}
+                          className="absolute top-2 right-2 p-1 rounded-control text-app-muted hover:text-app bg-app-surface/40 hover:bg-app-surface transition-colors"
+                          aria-label="Copy output"
+                        >
+                          {copiedPass ? (
+                            <Check className="w-3.5 h-3.5 text-emerald-400" />
+                          ) : (
+                            <Copy className="w-3.5 h-3.5" />
+                          )}
+                        </button>
+                      </Tooltip>
                       <pre className="text-emerald-300 leading-relaxed overflow-x-auto max-h-48 whitespace-pre">
                         {passingBashOutput}
                       </pre>
@@ -711,21 +723,22 @@ export const OrchestDevWorkspace: React.FC<OrchestDevWorkspaceProps> = ({
             data-dev-assistant-message
             className="max-w-full w-full select-text"
             actions={
-              <button
-                type="button"
-                onClick={() => {
-                  if (assistantCopy) void handleCopyMessage(assistantCopy.id, assistantCopy.text)
-                }}
-                className="p-1 rounded-control text-app-muted hover:text-app hover:bg-app-elevated transition-colors"
-                title="Copy"
-                aria-label="Copy"
-              >
-                {assistantCopy && copiedMessageId === assistantCopy.id ? (
-                  <Check className="w-3 h-3" />
-                ) : (
-                  <Copy className="w-3 h-3" />
-                )}
-              </button>
+              <Tooltip content="Copy">
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (assistantCopy) void handleCopyMessage(assistantCopy.id, assistantCopy.text)
+                  }}
+                  className="p-1 rounded-control text-app-muted hover:text-app hover:bg-app-elevated transition-colors"
+                  aria-label="Copy"
+                >
+                  {assistantCopy && copiedMessageId === assistantCopy.id ? (
+                    <Check className="w-3 h-3" />
+                  ) : (
+                    <Copy className="w-3 h-3" />
+                  )}
+                </button>
+              </Tooltip>
             }
           >
             {visibleAssistantMessage && (

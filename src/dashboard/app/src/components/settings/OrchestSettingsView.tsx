@@ -38,6 +38,7 @@ import { createPortal } from 'react-dom'
 import { PageHeader } from '@/components/layout/page'
 import { Button } from '@/components/ui/button'
 import { Card, CardAction, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Tooltip } from '@/components/ui/tooltip'
 import { usePrefersReducedMotion } from '@/hooks/use-prefers-reduced-motion'
 import {
   resetScale,
@@ -2176,21 +2177,24 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
                     <CardContent>
                       {/* Color Swatch Preview */}
                       <div className="flex items-center gap-1.5">
-                        <span
-                          className="h-4 w-4 flex-shrink-0 rounded-full border border-app"
-                          style={{ backgroundColor: th.bgHex }}
-                          title="Canvas Background"
-                        />
-                        <span
-                          className="h-4 w-4 flex-shrink-0 rounded-full border border-app"
-                          style={{ backgroundColor: th.surfaceHex }}
-                          title="Surface"
-                        />
-                        <span
-                          className="h-4 w-4 flex-shrink-0 rounded-full border border-app"
-                          style={{ backgroundColor: th.accentHex }}
-                          title="Accent"
-                        />
+                        <Tooltip content="Canvas Background">
+                          <span
+                            className="h-4 w-4 flex-shrink-0 rounded-full border border-app"
+                            style={{ backgroundColor: th.bgHex }}
+                          />
+                        </Tooltip>
+                        <Tooltip content="Surface">
+                          <span
+                            className="h-4 w-4 flex-shrink-0 rounded-full border border-app"
+                            style={{ backgroundColor: th.surfaceHex }}
+                          />
+                        </Tooltip>
+                        <Tooltip content="Accent">
+                          <span
+                            className="h-4 w-4 flex-shrink-0 rounded-full border border-app"
+                            style={{ backgroundColor: th.accentHex }}
+                          />
+                        </Tooltip>
                       </div>
                     </CardContent>
                   </Card>
@@ -3508,30 +3512,58 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
                           {matchingModels.length === 0 && (
                             <div className="px-2 py-2 text-app-muted">No models match</div>
                           )}
-                          {matchingModels.map((model) => (
-                            <button
-                              key={model.id}
-                              type="button"
-                              title={model.id}
-                              className="block w-full text-left p-1.5 hover:bg-app-elevated text-app"
-                              onClick={() => {
-                                setRoutingRoles((current) => ({
-                                  ...current,
-                                  [key]: assignment
-                                    ? { ...assignment, model: model.id, effort: undefined }
-                                    : null,
-                                }))
-                                setActiveComboboxRole(null)
-                              }}
-                            >
-                              <span className="flex items-center justify-between gap-2">
-                                <span className="truncate">{model.name}</span>
-                                {model.vendor && (
-                                  <span className="text-app-muted text-[10px]">{model.vendor}</span>
-                                )}
-                              </span>
-                            </button>
-                          ))}
+                          {matchingModels.map((model) =>
+                            model.id ? (
+                              <Tooltip content={model.id} key={model.id}>
+                                <button
+                                  type="button"
+                                  className="block w-full text-left p-1.5 hover:bg-app-elevated text-app"
+                                  onClick={() => {
+                                    setRoutingRoles((current) => ({
+                                      ...current,
+                                      [key]: assignment
+                                        ? { ...assignment, model: model.id, effort: undefined }
+                                        : null,
+                                    }))
+                                    setActiveComboboxRole(null)
+                                  }}
+                                >
+                                  <span className="flex items-center justify-between gap-2">
+                                    <span className="truncate">{model.name}</span>
+                                    {model.vendor && (
+                                      <span className="text-app-muted text-[10px]">
+                                        {model.vendor}
+                                      </span>
+                                    )}
+                                  </span>
+                                </button>
+                              </Tooltip>
+                            ) : (
+                              <button
+                                key={model.id}
+                                type="button"
+                                className="block w-full text-left p-1.5 hover:bg-app-elevated text-app"
+                                onClick={() => {
+                                  setRoutingRoles((current) => ({
+                                    ...current,
+                                    [key]: assignment
+                                      ? { ...assignment, model: model.id, effort: undefined }
+                                      : null,
+                                  }))
+                                  setActiveComboboxRole(null)
+                                }}
+                              >
+                                <span className="flex items-center justify-between gap-2">
+                                  <span className="truncate">{model.name}</span>
+                                  {model.vendor && (
+                                    <span className="text-app-muted text-[10px]">
+                                      {model.vendor}
+                                    </span>
+                                  )}
+                                </span>
+                              </button>
+                            ),
+                          )}
                         </div>
                       )}
                     </div>

@@ -112,7 +112,7 @@ export default async function chatRetryReport({ page, api, step, shot, visible, 
   await codex.click()
   await page.getByRole('button', { name: 'Launch Agent', exact: true }).click()
 
-  const modelControl = page.locator('button[title="Select model and reasoning effort"]')
+  const modelControl = page.locator('[data-composer-region] button.font-mono:not([aria-label])')
   await modelControl.click()
   const model = page.getByRole('button', { name: /gpt-6-luna/i }).first()
   await step('select gpt-6-luna', await visible(model), 'model option visible')

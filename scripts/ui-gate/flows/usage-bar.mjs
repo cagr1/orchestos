@@ -104,7 +104,18 @@ export default async function usageBar({
     loaded && requests.length === 1 && initialHeaders['x-orchestos-project-id'] === project.id,
     `requests=${requests.length}, header=${initialHeaders['x-orchestos-project-id'] ?? 'missing'}, expected=${project.id}`,
   )
-  const claudeQuota = page.locator('footer button[title^="Claude"]')
+  const quotaTooltip = async (button) => {
+    await page.mouse.move(0, 0)
+    await page.getByRole('tooltip').waitFor({ state: 'hidden' })
+    await button.hover()
+    const tooltip = page.getByRole('tooltip')
+    await tooltip.waitFor({ state: 'visible' })
+    const text = await tooltip.textContent()
+    await page.mouse.move(0, 0)
+    await tooltip.waitFor({ state: 'hidden' })
+    return text
+  }
+  const claudeQuota = page.locator('footer button[data-quota-cli="claude"]')
   await step(
     'Claude quota uses newest session reading',
     await visible(claudeQuota.getByText('39%', { exact: true })),
@@ -121,17 +132,17 @@ export default async function usageBar({
   const eligible = (quotaStatus.data?.clis ?? []).filter((cli) => cli.functional && cli.quotaSource)
   const quotaTitles = await page
     .locator('footer button[data-quota-cli]')
-    .evaluateAll((buttons) => buttons.map((button) => button.title))
+    .evaluateAll((buttons) => buttons.map((button) => button.dataset.quotaCli))
   await step(
     'quota bar lists only functional CLIs with a declared quota source',
     eligible.length > 0 &&
       quotaTitles.length === eligible.length &&
-      eligible.every((cli) => quotaTitles.some((title) => title.startsWith(`${cli.label}:`))) &&
-      !quotaTitles.some((title) => /^opencode:/i.test(title)),
+      eligible.every((cli) => quotaTitles.includes(cli.id)) &&
+      !quotaTitles.includes('opencode'),
     JSON.stringify({ eligible: eligible.map((cli) => cli.id), quotaTitles }),
   )
   await shot('UI.46-quota-bar')
-  const codexQuota = page.locator('button[title^="Codex:"]')
+  const codexQuota = page.locator('button[data-quota-cli="codex"]')
   const resetCredits = quotaStatus.data?.clis?.find((cli) => cli.id === 'codex')?.rateLimits
     ?.resetCredits
   if (resetCredits?.available > 0) {
@@ -202,7 +213,7 @@ export default async function usageBar({
     writeStatusline(`quota-scenario-${scenarioSession}`, used)
     // The status endpoint intentionally serves cache entries for up to 10 seconds.
     await delay(10_500)
-    const claudeButton = page.locator('button[title^="Claude"]')
+    const claudeButton = page.locator('button[data-quota-cli="claude"]')
     const quotaElements = claudeButton.locator('[data-quota-tone]')
     const deadline = Date.now() + 30_000
     let clicks = 0
@@ -222,7 +233,7 @@ export default async function usageBar({
         .waitForFunction(
           (expected) => {
             const elements = document
-              .querySelector('button[title^="Claude"]')
+              .querySelector('button[data-quota-cli="claude"]')
               ?.querySelectorAll('[data-quota-tone]')
             return Boolean(
               elements?.length === 2 &&
@@ -257,7 +268,7 @@ export default async function usageBar({
   await refreshQuotaScenario(70, 'warning', 'bg-orange-500')
   await refreshQuotaScenario(90, 'error', 'bg-app-error')
 
-  await page.locator('button[title^="Claude"]').click()
+  await page.locator('button[data-quota-cli="claude"]').click()
   const fiveHourRow = page.locator('footer div.absolute div.space-y-3 > div.space-y-1').first()
   const popoverQuotaElements = fiveHourRow.locator('[data-quota-tone]')
   const popoverNumber = popoverQuotaElements.nth(0)
@@ -278,7 +289,7 @@ export default async function usageBar({
   }
   await refreshQuotaScenario(39, 'normal', null)
 
-  const codexTitleBeforeTurn = await codexQuota.getAttribute('title')
+  const codexTitleBeforeTurn = await quotaTooltip(codexQuota)
   await step(
     'Codex account quota is visible without a project session',
     /^Codex: \d+% 5-hour quota used$/.test(codexTitleBeforeTurn ?? ''),
@@ -294,7 +305,7 @@ export default async function usageBar({
   if (!(await codex.isVisible())) return
   await codex.click()
   await page.getByRole('button', { name: 'Start Chat', exact: true }).click()
-  const modelControl = page.locator('button[title="Select model and reasoning effort"]')
+  const modelControl = page.locator('[data-composer-region] button.font-mono:not([aria-label])')
   await modelControl.click()
   const model = page.getByRole('button', { name: /gpt-6-luna/i }).first()
   await step('Luna model visible', await visible(model), 'gpt-6-luna')
@@ -329,7 +340,7 @@ export default async function usageBar({
     `chatResponse=${Boolean(chatResponse)}, usage-bar-ok=${turnFinished}, refresh=${Boolean(refreshedAfterTurn)}, requests before=${requestsBeforeTurn}, after=${requests.length}, requestTimes=${requests.map((entry) => entry.observedAt).join(',')}, responseAt=${turnResponseAt}`,
   )
 
-  const codexTitleAfterTurn = await codexQuota.getAttribute('title')
+  const codexTitleAfterTurn = await quotaTooltip(codexQuota)
   await step(
     'Codex account quota remains visible after a real turn',
     /^Codex: \d+% 5-hour quota used$/.test(codexTitleAfterTurn ?? ''),
@@ -358,7 +369,7 @@ export default async function usageBar({
   )
   await refreshButton.click()
   await expiredRefreshAgain
-  const expiredClaudeTitle = await page.locator('button[title^="Claude"]').getAttribute('title')
+  const expiredClaudeTitle = await quotaTooltip(page.locator('button[data-quota-cli="claude"]'))
   await step(
     'an expired Claude window is shown as fully available',
     /0% 5-hour quota used$/.test(expiredClaudeTitle ?? ''),
@@ -386,10 +397,10 @@ export default async function usageBar({
   const staleResponse = await staleRefresh
   const stalePayload = await staleResponse.json()
   await page.waitForFunction(() =>
-    document.querySelector('button[title^="Claude"]')?.textContent?.includes('—'),
+    document.querySelector('button[data-quota-cli="claude"]')?.textContent?.includes('—'),
   )
-  const staleButton = page.locator('button[title^="Claude"]')
-  const staleTitle = await staleButton.getAttribute('title')
+  const staleButton = page.locator('button[data-quota-cli="claude"]')
+  const staleTitle = await quotaTooltip(staleButton)
   const staleClaude = stalePayload.clis?.find((cli) => cli.id === 'claude')
   const staleWindow = staleClaude?.rateLimits?.windows?.find((window) => window.id === 'five_hour')
   await step(

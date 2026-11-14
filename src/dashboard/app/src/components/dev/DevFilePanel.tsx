@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, useSyncExternalStore } from 'react'
+import { Tooltip } from '@/components/ui/tooltip'
 import { getExplorerFile, saveExplorerFile } from '../../api/explorer'
 import { useEditorSettings } from '../../lib/editor-settings'
 import { ThreadMarkdown } from '../thread/ThreadMarkdown'
@@ -230,14 +231,25 @@ export function DevFilePanel({
           />
         )}
       </div>
-      <footer
-        data-file-dirty={dirty ? '' : undefined}
-        className="shrink-0 border-t border-app px-3 py-1 text-xs text-app-muted font-mono truncate"
-        title={path}
-      >
-        {path}
-        {dirty && <span className="ml-3">Unsaved</span>}
-      </footer>
+      {path ? (
+        <Tooltip content={path}>
+          <footer
+            data-file-dirty={dirty ? '' : undefined}
+            className="shrink-0 border-t border-app px-3 py-1 text-xs text-app-muted font-mono truncate"
+          >
+            {path}
+            {dirty && <span className="ml-3">Unsaved</span>}
+          </footer>
+        </Tooltip>
+      ) : (
+        <footer
+          data-file-dirty={dirty ? '' : undefined}
+          className="shrink-0 border-t border-app px-3 py-1 text-xs text-app-muted font-mono truncate"
+        >
+          {path}
+          {dirty && <span className="ml-3">Unsaved</span>}
+        </footer>
+      )}
     </section>
   )
 }
