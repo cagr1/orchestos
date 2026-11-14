@@ -24,7 +24,8 @@ Nunca `git config user.email|user.name`, ni `--local`/`--global` salvo pedido ex
   activas y evidencia), `AGENTS.md`/`CLAUDE.md` (reglas), `CONTEXT.md` (arquitectura/estado). Al cambiar una regla se
   conserva su historial.
 - **Push automático:** `git push origin master` tras **cada commit**, sin pedirlo y sin importar lo chico que sea el
-  cambio; el pre-push va en segundo plano (Carlos, 2026-11-10: cada cambio queda en el repo). Antes: cada 2 commits
+  cambio. **Etapa de pruebas definitivas (Carlos, 2026-11-13): push con `--no-verify`, sin esperar el pre-push; los
+  tests van después.** Antes de eso: el pre-push va en segundo plano (Carlos, 2026-11-10: cada cambio queda en el repo). Antes: cada 2 commits
   (2026-11-06); antes aún "cada 2-3 commits, no durante debugging activo". Nunca `--force`.
 - **Plan antes de cambios grandes:** si toca varios módulos o redefine un comportamiento central, plan corto (alcance,
   pasos, qué queda fuera) y esperar GO de Carlos. Fixes de un archivo/función no lo necesitan.
