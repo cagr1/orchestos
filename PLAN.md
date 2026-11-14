@@ -101,9 +101,15 @@ esta etapa: `docs/done/bloque-AUD.md` (AUD.16, AUD.17), `docs/done/bloque-SES.md
   así; evidencia y tests en `docs/done/evidence/USO.9-live.json`. mtime tolerante (`transcriptMtime`) y
   `void refresh().catch`. Tests nuevos en `session-status.test.ts`.
   Ejecutado por: gpt-6-luna · Spec: docs/specs/USO.9.md
-- [ ] **USO.10 — El Chat no tiene proyecto: conversa, no toca Dev.** (Carlos 2026-11-13: escribió un pedido de cambios
+- [x] **USO.10 — El Chat no tiene proyecto: conversa, no toca Dev.** (Carlos 2026-11-13: escribió un pedido de cambios
   en el Chat y casi creó tareas sobre OrchestOS; GO al plan) New chat ligaba cada chat al proyecto activo en modo
-  `code`. Spec: `docs/specs/USO.10.md`.
+  `code`. Hecho: chats del Chat sin proyecto (cwd aislado, config global, sin tareas), botón "Open in Dev" (tool
+  `open_in_dev`, solo CLI), Dev pinta tarjetas de tarea; los 7 ui-gates de tareas migrados a Dev y verdes; arreglos
+  hallados por gates (carrera de envío tras Launch Agent, modo de permisos en el composer de Dev). Evidencia:
+  `docs/done/evidence/USO.10-live.json`. qa (gpt-6.1-sol): 3 pasadas, la última sin defectos.
+  Gate en vivo: navegador y Playwright (7 ui-gates) — `docs/done/evidence/USO.10-live.json`.
+  Texto visible: "Open in Dev" (botón de acción bajo la respuesta: un ícono solo no dice adónde lleva)
+  Ejecutado por: gpt-6.1-sol · Spec: docs/specs/USO.10.md
 - [ ] **USO.11 — El Chat investiga en la web y entrega documentos, como Claude Desktop.** (Carlos 2026-11-13, GO) Carpeta
   propia por chat que se conserva y tarjeta de archivo en el hilo; búsqueda web en los CLI que la soporten. Va
   después de USO.10.

@@ -364,7 +364,7 @@ describe('CC.2 — chat sessions backend', () => {
       mkdirSync(root, { recursive: true })
       mkdirSync(join(home, '.claude'), { recursive: true })
       writeFileSync(join(home, '.claude', 'stats-cache.json'), JSON.stringify({ modelUsage: { 'claude-sonnet-5': {} } }))
-      writeFileSync(join(root, 'orchestos.config.yaml'), 'roles:\\n  orchestrator: { agent: claude, model: claude-sonnet-5 }\\n  auxiliary: { agent: api, model: deepseek/deepseek-v4-flash, provider: openrouter }\\n')
+      writeFileSync(join(home, '.orchestos', 'config.yaml'), 'roles:\\n  orchestrator: { agent: claude, model: claude-sonnet-5 }\\n  auxiliary: { agent: api, model: deepseek/deepseek-v4-flash, provider: openrouter }\\n')
       const { runMigrations } = await import('./src/db/migrate.ts')
       const { db } = await import('./src/db/sqlite.ts')
       const { createChatSession } = await import('./src/db/chat-sessions.ts')
@@ -560,9 +560,8 @@ describe('CC.2 — chat sessions backend', () => {
       }),
     ])
     expect(result.invalidProjectStatus).toBe(404)
-    // H.9.2 — la sesión se crea, pero el binario ausente devuelve su error real
-    // cuando se intenta ejecutar el turno.
-    expect(result.sessionBoundStatus).toBe(502)
+    // USO.10 — a stale explicit project cannot authorize a session turn.
+    expect(result.sessionBoundStatus).toBe(404)
     expect(result.deleteStatus).toBe(200)
     expect(result.remainingMessages).toBe(0)
     expect(result.chatAllowsExecution).toBe(false)
@@ -686,7 +685,7 @@ describe('CC.2 — chat sessions backend', () => {
       }))
       const projectDir = join(home, 'empty-project')
       mkdirSync(projectDir, { recursive: true })
-      writeFileSync(join(projectDir, 'orchestos.config.yaml'), 'roles:\\n  orchestrator: { agent: api, model: deepseek/deepseek-v4-flash, provider: openrouter }\\n  auxiliary: { agent: api, model: deepseek/deepseek-v4-flash, provider: openrouter }\\n')
+      writeFileSync(join(home, '.orchestos', 'config.yaml'), 'roles:\\n  orchestrator: { agent: api, model: deepseek/deepseek-v4-flash, provider: openrouter }\\n  auxiliary: { agent: api, model: deepseek/deepseek-v4-flash, provider: openrouter }\\n')
 
       const { runMigrations } = await import('./src/db/migrate.ts')
       const { db } = await import('./src/db/sqlite.ts')
@@ -695,7 +694,7 @@ describe('CC.2 — chat sessions backend', () => {
       runMigrations()
       const session = createChatSession({ projectId: null, agent: 'api', mode: 'chat', title: 'Read only' })
       process.chdir(projectDir)
-      writeFileSync(join(projectDir, 'orchestos.config.yaml'), 'roles:\\n  orchestrator: { agent: api, model: deepseek/deepseek-v4-flash, provider: openrouter }\\n  auxiliary: { agent: api, model: deepseek/deepseek-v4-flash, provider: openrouter }\\n')
+      writeFileSync(join(home, '.orchestos', 'config.yaml'), 'roles:\\n  orchestrator: { agent: api, model: deepseek/deepseek-v4-flash, provider: openrouter }\\n  auxiliary: { agent: api, model: deepseek/deepseek-v4-flash, provider: openrouter }\\n')
 
       const requests = []
       let call = 0
@@ -758,6 +757,8 @@ describe('CC.2 — chat sessions backend', () => {
       const { createChatSession } = await import('./src/db/chat-sessions.ts')
       const { handleApiChat } = await import('./src/dashboard/handlers/chat.ts')
       runMigrations()
+      const { writeFileSync } = await import('node:fs')
+      writeFileSync(process.env.ORCHESTOS_HOME + '/.orchestos/config.yaml', 'roles:\\n  orchestrator: { agent: codex, model: gpt-6-luna }\\n')
       const session = createChatSession({ projectId: null, agent: 'codex', mode: 'chat' })
       const response = await handleApiChat(new Request('http://localhost/api/chat', {
         method: 'POST', body: JSON.stringify({ sessionId: session.id, model: 'gpt-6-luna', message: 'hello' })
@@ -830,7 +831,7 @@ describe('CC.2 — chat sessions backend', () => {
       writeFileSync(join(cacheDir, 'models.json'), JSON.stringify({ schemaVersion: 2, fetchedAt: Date.now(), models: {} }))
       const projectDir = join(home, 'opencode-orchestrator-project')
       mkdirSync(projectDir, { recursive: true })
-      writeFileSync(join(projectDir, 'orchestos.config.yaml'), 'roles:\\n  orchestrator: { agent: opencode, model: opencode/test }\\n')
+      writeFileSync(join(home, '.orchestos', 'config.yaml'), 'roles:\\n  orchestrator: { agent: opencode, model: opencode/test }\\n')
       const { runMigrations } = await import('./src/db/migrate.ts')
       const { db } = await import('./src/db/sqlite.ts')
       const { handleApiChat } = await import('./src/dashboard/handlers/chat.ts')
@@ -866,6 +867,9 @@ describe('CC.2 — chat sessions backend', () => {
       const serverRoot = join(home, 'real-server-project')
       mkdirSync(serverRoot, { recursive: true })
       writeFileSync(join(serverRoot, 'orchestos.config.yaml'), 'roles:\\n  orchestrator: { agent: api, model: deepseek/deepseek-v4-flash, provider: openrouter }\\n  auxiliary: { agent: api, model: deepseek/deepseek-v4-flash, provider: openrouter }\\n')
+      const { orchestosDir } = await import('./src/config/orchestos-home.ts')
+      mkdirSync(orchestosDir(), { recursive: true })
+      writeFileSync(join(orchestosDir(), 'config.yaml'), 'roles:\\n  orchestrator: { agent: api, model: deepseek/deepseek-v4-flash, provider: openrouter }\\n')
       const tasksPath = join(serverRoot, 'tasks.yaml')
       const originalTasks = 'version: 1\\ntasks:\\n  - id: existing-real-task\\n    description: Must remain unchanged\\n    output: []\\n    executor: openrouter\\n    status: pending\\n    retry_count: 0\\n'
       writeFileSync(tasksPath, originalTasks)
@@ -1062,7 +1066,7 @@ describe('CC.2 — chat sessions backend', () => {
             : 'unexpected chat call'
         return new Response(JSON.stringify({ choices: [{ message: { content } }], usage: { prompt_tokens: 10, completion_tokens: 5 }, model: body.model }), { status: 200 })
       }
-      const response = await handleApiChat(new Request('http://localhost/api/chat', { method: 'POST', body: JSON.stringify({ sessionId: session.id, message: 'Build README.md', model: 'claude-sonnet-5' }) }))
+      const response = await handleApiChat(new Request('http://localhost/api/chat?project=chat-role-task-project', { method: 'POST', body: JSON.stringify({ sessionId: session.id, message: 'Build README.md', model: 'claude-sonnet-5' }) }))
       const payload = await response.json()
       const tasksYaml = existsSync(join(root, 'tasks.yaml')) ? readFileSync(join(root, 'tasks.yaml'), 'utf8') : null
       process.stdout.write(JSON.stringify({ status: response.status, payload, tasksYaml, models: requests.map((request) => request.model) }))
@@ -1114,7 +1118,7 @@ describe('CC.2 — chat sessions backend', () => {
             : 'unexpected chat call'
         return new Response(JSON.stringify({ choices: [{ message: { content } }], usage: { prompt_tokens: 10, completion_tokens: 5 }, model: body.model }), { status: 200 })
       }
-      const response = await handleApiChat(new Request('http://localhost/api/chat', { method: 'POST', body: JSON.stringify({ sessionId: session.id, message: 'Build README.md', model: 'claude-sonnet-5' }) }))
+      const response = await handleApiChat(new Request('http://localhost/api/chat?project=chat-manual-task-project', { method: 'POST', body: JSON.stringify({ sessionId: session.id, message: 'Build README.md', model: 'claude-sonnet-5' }) }))
       const payload = await response.json()
       const tasksYaml = existsSync(join(root, 'tasks.yaml')) ? readFileSync(join(root, 'tasks.yaml'), 'utf8') : null
       process.stdout.write(JSON.stringify({ status: response.status, payload, tasksYaml, models: requests.map((request) => request.model) }))
@@ -1228,13 +1232,13 @@ describe('CC.2 — chat sessions backend', () => {
       }))
       const projectDir = join(home, 'legacy-chat-project')
       mkdirSync(projectDir, { recursive: true })
-      writeFileSync(join(projectDir, 'orchestos.config.yaml'), 'roles:\\n  orchestrator: { agent: api, model: deepseek/deepseek-v4-flash, provider: openrouter }\\n  auxiliary: { agent: api, model: deepseek/deepseek-v4-flash, provider: openrouter }\\n')
+      writeFileSync(join(home, '.orchestos', 'config.yaml'), 'roles:\\n  orchestrator: { agent: api, model: deepseek/deepseek-v4-flash, provider: openrouter }\\n  auxiliary: { agent: api, model: deepseek/deepseek-v4-flash, provider: openrouter }\\n')
       const { runMigrations } = await import('./src/db/migrate.ts')
       const { db } = await import('./src/db/sqlite.ts')
       const { handleApiChat } = await import('./src/dashboard/handlers/chat.ts')
       runMigrations()
       process.chdir(projectDir)
-      writeFileSync(join(projectDir, 'orchestos.config.yaml'), 'roles:\\n  orchestrator: { agent: api, model: deepseek/deepseek-v4-flash, provider: openrouter }\\n  auxiliary: { agent: api, model: deepseek/deepseek-v4-flash, provider: openrouter }\\n')
+      writeFileSync(join(home, '.orchestos', 'config.yaml'), 'roles:\\n  orchestrator: { agent: api, model: deepseek/deepseek-v4-flash, provider: openrouter }\\n  auxiliary: { agent: api, model: deepseek/deepseek-v4-flash, provider: openrouter }\\n')
       let calls = 0
       globalThis.fetch = async (_url, init) => {
         calls += 1
@@ -1393,6 +1397,7 @@ describe('LRN.1b chat lesson proposals', () => {
     const root = join(home, 'lesson-project')
     mkdirSync(root, { recursive: true })
     writeFileSync(join(root, 'orchestos.config.yaml'), 'roles:\n  orchestrator: { agent: api, model: deepseek/deepseek-v4-flash, provider: openrouter }\n')
+    writeFileSync(join(home, '.orchestos', 'config.yaml'), 'roles:\n  orchestrator: { agent: api, model: deepseek/deepseek-v4-flash, provider: openrouter }\n')
     const { runMigrations } = await import('./src/db/migrate.ts')
     const { db } = await import('./src/db/sqlite.ts')
     const { createChatSession } = await import('./src/db/chat-sessions.ts')
@@ -1401,7 +1406,7 @@ describe('LRN.1b chat lesson proposals', () => {
     const { MANUAL_DEFAULTS } = await import('./src/instincts/schema.ts')
     runMigrations()
     db.run('INSERT INTO projects (id, path, stack_profile, agents_md, last_updated) VALUES (?, ?, ?, ?, ?)', ['lesson-project', root, '{}', '', new Date().toISOString()])
-    const send = (session, requestKey) => handleApiChat(new Request('http://localhost/api/chat', { method: 'POST', body: JSON.stringify({ sessionId: session.id, message: 'That was a mistake; remember the fix', model: 'claude-sonnet-5', requestKey }) }))
+    const send = (session, requestKey) => handleApiChat(new Request('http://localhost/api/chat?project=' + (session.project_id ?? 'none'), { method: 'POST', body: JSON.stringify({ sessionId: session.id, message: 'That was a mistake; remember the fix', model: 'claude-sonnet-5', requestKey }) }))
   `
   it('stores three valid auto proposals with turn evidence, and counts injection once despite replay', async () => {
     const result = await runIsolated(
@@ -1443,6 +1448,7 @@ describe('LRN.1b chat lesson proposals', () => {
       expect.arrayContaining(['fix 0', 'fix 1', 'fix 2']),
     )
     expect(result.seed).toMatchObject({ injectedCount: 1, lastInjectedAt: expect.any(String) })
+    expect(String(result.args)).not.toContain('open_in_dev')
     expect(String(result.args)).toContain('propose_lesson')
     expect(String(result.args)).toContain('- When existing trigger: existing lesson')
   }, 15000)
@@ -1459,6 +1465,7 @@ describe('LRN.1b chat lesson proposals', () => {
     )
     expect(result.status, JSON.stringify(result.payload)).toBe(200)
     expect(result.proposals).toEqual([])
+    expect(String(result.args)).toContain('open_in_dev')
     expect(String(result.args)).not.toContain('propose_lesson')
   }, 15000)
   it('failed turns discard collected proposals', async () => {
@@ -1516,7 +1523,7 @@ it('LRN.1b records API lesson injection only after the context budget passes', a
       providerCalls++
       return new Response(JSON.stringify({ choices: [{ message: { content: 'ok' } }], usage: { prompt_tokens: 10, completion_tokens: 5 }, model: 'deepseek/deepseek-v4-flash' }), { status: 200 })
     }
-    const send = (message, requestKey) => handleApiChat(new Request('http://localhost/api/chat', { method: 'POST', body: JSON.stringify({ sessionId: session.id, message, requestKey }) }))
+    const send = (message, requestKey) => handleApiChat(new Request('http://localhost/api/chat?project=lesson-budget-project', { method: 'POST', body: JSON.stringify({ sessionId: session.id, message, requestKey }) }))
     const rejected = await send('x'.repeat(300000), 'lesson-over-budget')
     const afterRejected = getInstinct(lesson.id).injectedCount
     const accepted = await send('hello', 'lesson-within-budget')

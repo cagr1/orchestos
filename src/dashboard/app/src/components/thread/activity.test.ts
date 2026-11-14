@@ -1,6 +1,13 @@
 import { describe, expect, test } from 'bun:test'
 import type { TimelineStep } from '../../api/chat'
-import { answerText, buildTurnActivity, summarizeTools, toolCategory, toolLabel } from './activity'
+import {
+  answerText,
+  buildTurnActivity,
+  summarizeTools,
+  toolCategory,
+  toolLabel,
+  turnOffersOpenDev,
+} from './activity'
 
 function step(
   seq: number,
@@ -233,4 +240,12 @@ describe('turn activity', () => {
       'Ran 1 command, edited 1 file, read 1 file, searched 1 time, fetched 2 pages, used 2 tools',
     )
   })
+})
+
+test('Open in Dev button is offered only by a tool step, for CLI and API turns', () => {
+  expect(turnOffersOpenDev()).toBe(false)
+  expect(turnOffersOpenDev([step(1, 'text', { detail: 'open_in_dev' })])).toBe(false)
+  expect(turnOffersOpenDev([step(1, 'tool_use', { tool: 'create_task' })])).toBe(false)
+  for (const tool of ['open_in_dev', 'mcp__orchestos__open_in_dev'])
+    expect(turnOffersOpenDev([step(1, 'tool_use', { tool })])).toBe(true)
 })

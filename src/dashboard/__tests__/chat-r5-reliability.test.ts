@@ -66,7 +66,7 @@ printf '{"type":"result","subtype":"success","is_error":false,"result":"Task pro
         return new Response(JSON.stringify({ choices: [{ message: { content } }], usage: { prompt_tokens: 1, completion_tokens: 1 } }))
       }
       const session = createChatSession({ projectId: 'fixture', agent: 'api', mode: 'code' })
-      const request = (key, extra = {}) => handleApiChat(new Request('http://localhost/api/chat', { method: 'POST', body: JSON.stringify({ sessionId: session.id, message: 'fixture request', requestKey: key, ...extra, ...(viaClaude ? { model: 'claude-sonnet-5' } : {}) }) }))
+      const request = (key, extra = {}) => handleApiChat(new Request('http://localhost/api/chat?project=fixture', { method: 'POST', body: JSON.stringify({ sessionId: session.id, message: 'fixture request', requestKey: key, ...extra, ...(viaClaude ? { model: 'claude-sonnet-5' } : {}) }) }))
       ${body}
       db.close()
     `,

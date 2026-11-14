@@ -55,7 +55,6 @@ export const ShellSidebar: React.FC<ShellSidebarProps> = ({
   onNewChat,
   onDeleteChat,
   projects,
-  activeProjectId,
   onSelectProject,
   onNewProject,
   onOpenSettings,
@@ -87,8 +86,8 @@ export const ShellSidebar: React.FC<ShellSidebarProps> = ({
     setExpandedProjects((prev) => ({ ...prev, [id]: !prev[id] }))
   }
 
-  const filteredThreads = threads.filter((t) =>
-    t.title.toLowerCase().includes(chatSearch.toLowerCase()),
+  const filteredThreads = threads.filter(
+    (t) => !t.projectId && t.title.toLowerCase().includes(chatSearch.toLowerCase()),
   )
 
   return (
@@ -451,8 +450,6 @@ export const ShellSidebar: React.FC<ShellSidebarProps> = ({
         <NewAgentSelectorModal
           isOpen={isNewChatAgentModalOpen}
           isChatMode={true}
-          projectOptions={projects.map((project) => ({ id: project.id, name: project.name }))}
-          selectedProjectId={activeProjectId || projects[0]?.id || null}
           onClose={() => setIsNewChatAgentModalOpen(false)}
           onCreateAgent={(cliId, model, title, projectId) => {
             onNewChat(cliId, model, title, projectId)

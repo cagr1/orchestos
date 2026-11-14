@@ -140,7 +140,8 @@ test('AT.11 — public CLI registration drives session → turn → persistence 
         validateModel: (model, models) => model === 'fixture-model' && models.some(m => m.id === model) ? null : 'invalid fixture model',
         async runTurn(input) {
           turns++
-          turnInput = { model: input.model, effort: input.effort, sessionId: input.sessionId, message: input.message }
+          turnInput = { model: input.model, effort: input.effort, sessionId: input.sessionId, message: input.message, cwd: input.cwd, hasProjectContext: input.hasProjectContext, system: input.system, mcpOffer: input.mcpOffer }
+          if (input.cwd === process.cwd()) throw new Error('General chat inherited the repository cwd')
           input.onStep({ type: 'text', label: 'fixture step', detail: 'fixture reply' })
           input.onText('fixture reply')
           return { text: 'fixture reply', resultLabel: 'fixture-observed via Fixture CLI', model: 'fixture-observed',
@@ -166,6 +167,7 @@ test('AT.11 — public CLI registration drives session → turn → persistence 
       const root = { id: null, root: process.env.HOME, source: 'legacy-cwd' }
       const response = await handleApiChat(post('', { sessionId: session.id, agent: 'fixture-chat', model: 'fixture-model', effort: 'fixture-effort', message: 'hello fixture' }), root)
       const reply = await response.json()
+      const isolatedCwdRemoved = !(await import('node:fs')).existsSync(turnInput.cwd)
       const messages = listChatMessages(session.id)
       const timeline = await handleApiChatSessionTimeline(new URL('http://localhost/api/chat/sessions/' + session.id + '/timeline')).json()
       const run = db.query('SELECT provider, model, input_tokens, output_tokens, usd_cost, cli_session_id FROM runs WHERE task_class = ?').get('chat')
@@ -190,7 +192,7 @@ test('AT.11 — public CLI registration drives session → turn → persistence 
         noChatCreateStatus: noChatCreate.status, noChatCreateReply, terminalCreateStatus: terminalCreate.status,
         terminalSession, opencodeCreateStatus: opencodeCreate.status,
         opencodeSession, unknownCreateStatus: unknownCreate.status, unknownCreateReply,
-        unknownStatus: unknownResponse.status, unknownReply, opencodeStatus: opencodeResponse.status, opencodeReply, apiCalls }))
+        unknownStatus: unknownResponse.status, unknownReply, opencodeStatus: opencodeResponse.status, opencodeReply, apiCalls, isolatedCwdRemoved }))
       db.close()
     `,
       ],
@@ -226,6 +228,14 @@ test('AT.11 — public CLI registration drives session → turn → persistence 
       message: 'hello fixture',
     })
     expect(result.turnInput.sessionId).toBeString()
+    expect(result.turnInput.hasProjectContext).toBe(false)
+    expect(result.turnInput.cwd).toContain('orchestos-chat-')
+    expect(result.turnInput.system).toContain('must be done in Dev')
+    expect(result.turnInput.mcpOffer).toEqual({
+      tools: ['open_in_dev'],
+      root: result.turnInput.cwd,
+    })
+    expect(result.isolatedCwdRemoved).toBe(true)
     expect(result.efforts).toEqual(['fixture-effort'])
     expect(result.duplicateRegistrationRejected).toBe(true)
     expect(result.duplicateKeptOriginal).toBe(true)

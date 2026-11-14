@@ -154,7 +154,11 @@ import {
 import { handleApiUsage } from './handlers/usage.ts'
 import { errorResponse, isSameOrigin, jsonResponse, serveStatic } from './http.ts'
 import { ownsRow, requestScope } from './ownership.ts'
-import { type DashboardProjectContext, DashboardProjectError } from './project-context.ts'
+import {
+  type DashboardProjectContext,
+  DashboardProjectError,
+  isGeneralScopeRequest,
+} from './project-context.ts'
 import { createTerminalSession, resolveShellCommand, stopTerminalSessions } from './terminal.ts'
 import { DEFAULT_PORT } from './types.ts'
 
@@ -199,7 +203,7 @@ export async function route(req: Request, port: number): Promise<Response> {
   }
   if (sessionId) {
     try {
-      const scope = requestScope(req)
+      const scope = requestScope(req, false)
       const session = getChatSession(sessionId)
       if (!session || !ownsRow(scope, session.project_id))
         return errorResponse('Chat session not found', 404)
@@ -685,7 +689,8 @@ export async function route(req: Request, port: number): Promise<Response> {
     return withDashboardProject(req, (project) => handleApiSystemExecutorModes(project.root))
   }
   if (method === 'GET' && url.pathname === '/api/config') {
-    // Lectura sin proyecto permitida: el chat general lee roles/modelos (OrchestChatView).
+    if (isGeneralScopeRequest(req)) return handleApiConfigGet(null)
+    // Legacy cwd fallback remains only for unscoped config reads.
     return withDashboardProject(req, (project) => handleApiConfigGet(project.root))
   }
   if (method === 'GET' && url.pathname === '/api/providers') {

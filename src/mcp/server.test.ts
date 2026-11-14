@@ -13,6 +13,7 @@ import {
   codexMcpThreadConfig,
   createTaskApiTool,
   lessonProposalFromStep,
+  openInDevApiTool,
   PROPOSE_LESSON_STEP_LABEL,
   proposeLessonApiTool,
   type TaskProposal,
@@ -20,6 +21,7 @@ import {
 } from './adapters.ts'
 import {
   CREATE_TASK_RESPONSE,
+  handleMcpMessage,
   PROPOSE_LESSON_RESPONSE,
   parseCreateTaskArgs,
   parseProposeLessonArgs,
@@ -440,4 +442,23 @@ describe('propose_lesson', () => {
     expect(await tool.execute('propose_lesson', {})).toStartWith('[Error:')
     expect(proposals).toEqual([{ ok: true, ...args }, expect.objectContaining({ ok: false })])
   })
+})
+
+test('open_in_dev is opt-in and only offers navigation through MCP and API', async () => {
+  const options = { tools: ['open_in_dev'], root: '/unused' }
+  const list = (await handleMcpMessage({ id: 1, method: 'tools/list' }, options)) as any
+  expect(list.result.tools.map((tool: { name: string }) => tool.name)).toEqual(['open_in_dev'])
+  const request = { id: 2, method: 'tools/call', params: { name: 'open_in_dev', arguments: {} } }
+  const result = (await handleMcpMessage(request, options)) as any
+  expect(result.result.isError).toBe(false)
+  expect(result.result.content[0].text).toContain('Open in Dev')
+  const denied = (await handleMcpMessage(request, { ...options, tools: ['create_task'] })) as any
+  expect(denied.error.code).toBe(-32602)
+  let calls = 0
+  const api = openInDevApiTool(() => {
+    calls++
+  })
+  expect(api.tool.name).toBe('open_in_dev')
+  expect(await api.execute('open_in_dev', {})).toContain('Open in Dev')
+  expect(calls).toBe(1)
 })

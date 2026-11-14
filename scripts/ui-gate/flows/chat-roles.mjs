@@ -58,17 +58,29 @@ export default async function chatRoles({ page, api, step, shot, visible, cleanu
   )
   await shot('temporary-project-visible')
   if (await projectButton.isVisible()) await projectButton.click()
-  await page.getByRole('button', { name: 'Chat', exact: true }).click()
-  await page.getByRole('button', { name: 'New chat', exact: true }).click()
+  await page.getByRole('button', { name: 'Dev', exact: true }).click()
+  const launchProject = page.getByRole('button', { name: basename(projectRoot), exact: true })
+  await launchProject.hover()
+  await launchProject
+    .locator('..')
+    .getByRole('button', { name: 'Launch new agent', exact: true })
+    .click()
   const dialog = page.getByRole('dialog')
   const codexOption = dialog.getByRole('button', { name: /Codex/ }).first()
   await step(
-    'Orchestrator Codex selected by default',
+    'Codex available for Dev session',
     await visible(codexOption),
     `Codex option visible: ${await codexOption.innerText()}`,
   )
-  await shot('orchestrator-preselected')
-  await dialog.getByRole('button', { name: 'Start Chat', exact: true }).click()
+  await codexOption.click()
+  await shot('dev-agent-selected')
+  await dialog.getByRole('button', { name: 'Launch Agent', exact: true }).click()
+  // Typing before the launched agent's tab opens lands in the "new" tab's composer, which
+  // unmounts with its draft when the tab switches (USO.12). Wait for the agent tab first.
+  await page
+    .locator('aside[data-resizable-aside="left"] [data-thread-id]')
+    .first()
+    .waitFor({ state: 'visible', timeout: 30_000 })
 
   const composer = page.locator('textarea').last()
   // A turn counts as sent when its POST /api/chat response arrives and the reply is

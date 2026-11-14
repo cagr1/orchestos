@@ -139,14 +139,19 @@ export default async function chatTurnDetails({
   const projectButton = page.getByRole('button', { name: basename(projectRoot), exact: true })
   await step('select temporary project', await visible(projectButton), 'project visible in sidebar')
   if (await projectButton.isVisible()) await projectButton.click()
-  await page.getByRole('button', { name: 'Chat', exact: true }).click()
-  await page.getByRole('button', { name: 'New chat', exact: true }).click()
+  await page.getByRole('button', { name: 'Dev', exact: true }).click()
+  const launchProject = page.getByRole('button', { name: basename(projectRoot), exact: true })
+  await launchProject.hover()
+  await launchProject
+    .locator('..')
+    .getByRole('button', { name: 'Launch new agent', exact: true })
+    .click()
   const dialog = page.getByRole('dialog')
   const codex = dialog.getByRole('button', { name: /Codex/ }).first()
   await step('select Codex for new chat', await visible(codex), 'visible agent selector')
   if (!(await codex.isVisible())) return
   await codex.click()
-  await page.getByRole('button', { name: 'Start Chat', exact: true }).click()
+  await page.getByRole('button', { name: 'Launch Agent', exact: true }).click()
 
   const modelControl = page.locator('button[title="Select model and reasoning effort"]')
   await step(
@@ -259,7 +264,7 @@ export default async function chatTurnDetails({
       : 'sin ejecución de herramienta observada en el backend',
   )
   await step(
-    'new chat is linked to temporary project',
+    'Dev session is linked to temporary project',
     session.projectId === project.id && session.mode === 'code',
     `projectId=${session.projectId ?? 'null'}, mode=${session.mode ?? 'null'}`,
   )
@@ -270,7 +275,7 @@ export default async function chatTurnDetails({
     (turn.steps ?? []).filter((item) => item.type === 'reasoning' && item.detail),
   )
   if (reasoningSteps.length > 0) {
-    const reasoning = page.getByText(/^Reasoning \(/i).first()
+    const reasoning = page.getByText(/^Thought(?: for |$)/).first()
     await step('reasoning block exists', await visible(reasoning), 'reasoning rendered')
     const reasoningText = page.getByText(
       reasoningSteps[0].detail.replace(/^\*\*(.*?)\*\*$/s, '$1'),
@@ -401,7 +406,6 @@ export default async function chatTurnDetails({
     'project visible after reload',
   )
   if (await reloadedProjectButton.isVisible()) await reloadedProjectButton.click()
-  await page.getByRole('button', { name: 'Chat', exact: true }).click()
   const reloadedMessages = await api(
     `/api/chat/sessions/${encodeURIComponent(session.id)}/messages`,
     { headers: { 'x-orchestos-project-id': project.id } },
@@ -431,11 +435,11 @@ export default async function chatTurnDetails({
   )
   await shot('after-final-reload')
 
-  const sidebar = page.locator('aside')
+  const sidebar = page.locator('aside[data-resizable-aside="left"]')
   const sidebarText = await sidebar.innerText()
-  const reloadedThread = sidebar.getByText(/^Ejecuta el comando ls/).first()
+  const reloadedThread = sidebar.locator(`[data-thread-id="${session.id}"]`)
   await step(
-    'reload: project chat reachable from Chat list',
+    'reload: project session reachable from Dev list',
     await visible(reloadedThread, 30_000),
     `chat title visible; sidebar=${JSON.stringify(sidebarText)}`,
   )

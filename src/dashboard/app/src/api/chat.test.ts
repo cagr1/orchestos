@@ -74,11 +74,11 @@ describe('chat API mapping', () => {
     expect(sessionListQueries(null)).toEqual(['?project=none'])
   })
 
-  test('binds New chat to the visible project unless No project is explicit', () => {
-    expect(newChatProjectId('project-1')).toBe('project-1')
+  test('creates general chats regardless of the visible or selected Dev project', () => {
+    expect(newChatProjectId('project-1')).toBeNull()
     expect(newChatProjectId(undefined)).toBeNull()
     expect(newChatProjectId('project-1', null)).toBeNull()
-    expect(newChatProjectId('project-1', 'project-2')).toBe('project-2')
+    expect(newChatProjectId('project-1', 'project-2')).toBeNull()
   })
 
   test('runs an approved task until the server leaves pending', async () => {

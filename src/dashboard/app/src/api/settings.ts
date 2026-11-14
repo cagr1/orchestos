@@ -201,10 +201,15 @@ export async function getUsage(signal?: AbortSignal): Promise<UsageResponse> {
 }
 export async function getConfig(projectId?: string, signal?: AbortSignal): Promise<ConfigResponse> {
   return mapConfigResponse(
-    await request<ConfigResponse>('/api/config', {
-      ...(projectId ? { headers: { 'x-orchestos-project-id': projectId } } : {}),
-      signal,
-    }),
+    await request<ConfigResponse>(
+      projectId === 'none' ? '/api/config?project=none' : '/api/config',
+      {
+        ...(projectId && projectId !== 'none'
+          ? { headers: { 'x-orchestos-project-id': projectId } }
+          : {}),
+        signal,
+      },
+    ),
   )
 }
 export async function saveSettings(values: Record<string, string>): Promise<void> {

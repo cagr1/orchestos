@@ -5,6 +5,7 @@ import { ChatMessage } from '@/components/ui/chat-message'
 import { FileThumbnail } from '@/components/ui/file-thumbnail'
 import type { ChatMessageRow, TimelineStep, TimelineTurn } from '../../api/chat'
 import { getSessionContext, getTimeline, type TimelineResponse } from '../../api/chat'
+import type { PendingApproval } from '../../api/runs'
 import { type ConfigResponse, getConfig } from '../../api/settings'
 import { useStickToBottom } from '../../hooks/useStickToBottom'
 import { useStopChatTurn } from '../../hooks/useStopChatTurn'
@@ -14,18 +15,30 @@ import type {
   ApprovalMode,
   ChatAttachment,
   ProjectItem,
+  TaskItem,
+  ChatMessage as ThreadMessage,
 } from '../../types/orchestos'
 import { AgentComposer, type CliId } from '../common/AgentComposer'
 import { answerText } from '../thread/activity'
 import { StoppedResponse } from '../thread/StoppedResponse'
+import { TaskCard } from '../thread/TaskCard'
 import { ThreadMarkdown } from '../thread/ThreadMarkdown'
 import { TurnActivity } from '../thread/TurnActivity'
+import { buildTaskCards } from '../thread/taskCards'
 import { formatElapsed, parseDbTime } from '../thread/thinking'
 import { assistantCopyTarget } from './copy-target'
 import { resolveNewSessionAgent } from './new-session-agent'
 
 interface OrchestDevWorkspaceProps {
   activeProject: ProjectItem
+  messages?: ThreadMessage[]
+  tasks?: TaskItem[]
+  approvals?: Record<string, PendingApproval[]>
+  onApproveHeldTask?: (taskId: string) => void | Promise<void>
+  onRejectHeldTask?: (taskId: string) => void | Promise<void>
+  onRetryTask?: (taskId: string) => void | Promise<void>
+  onCommitRunTask?: (taskId: string, files: string[]) => void | Promise<void>
+  onViewEvidence?: (runId: string) => void | Promise<void>
   activeAgent?: AgentItem | null
   newSessionAgent?: string
   onCloseAgent?: (agentId: string) => void
@@ -130,6 +143,14 @@ function buildExchanges(timeline: TimelineResponse | null): DevExchangeData[] {
 
 export const OrchestDevWorkspace: React.FC<OrchestDevWorkspaceProps> = ({
   activeProject,
+  messages = [],
+  tasks = [],
+  approvals = {},
+  onApproveHeldTask,
+  onRejectHeldTask,
+  onRetryTask,
+  onCommitRunTask,
+  onViewEvidence,
   activeAgent,
   newSessionAgent,
   onRunCommand,
@@ -139,6 +160,7 @@ export const OrchestDevWorkspace: React.FC<OrchestDevWorkspaceProps> = ({
   onSlashCommand,
   sessionStatus: apiSessionStatus,
 }) => {
+  const [permissions, setPermissions] = useState<ConfigResponse['permissions']>(undefined)
   const [orchestrator, setOrchestrator] = useState<
     | NonNullable<ConfigResponse['roleAssignments']>[string]
     | undefined
@@ -147,15 +169,18 @@ export const OrchestDevWorkspace: React.FC<OrchestDevWorkspaceProps> = ({
   useEffect(() => {
     let disposed = false
     setOrchestrator(undefined)
+    setPermissions(undefined)
     const controller = new AbortController()
     void getConfig(activeProject.id, controller.signal)
       .then((config) => {
-        if (!disposed)
+        if (!disposed) {
+          setPermissions(config.permissions)
           setOrchestrator(
             newSessionAgent
               ? resolveNewSessionAgent(newSessionAgent, config.roleAssignments)
               : (config.roleAssignments?.orchestrator ?? null),
           )
+        }
       })
       .catch(() => {
         if (!disposed) setOrchestrator(null)
@@ -184,6 +209,22 @@ export const OrchestDevWorkspace: React.FC<OrchestDevWorkspaceProps> = ({
   // Abrir otro agente siempre lo muestra desde el final de su línea de tiempo.
   // biome-ignore lint/correctness/useExhaustiveDependencies: solo al cambiar de agente.
   useEffect(() => stickToBottom(), [activeAgent?.id, stickToBottom])
+  const [taskActionErrors, setTaskActionErrors] = useState<Record<string, string>>({})
+  const [busyTaskActions, setBusyTaskActions] = useState<Record<string, boolean>>({})
+  const taskCards = buildTaskCards(messages, busyTaskActions)
+  const runTaskAction = (key: string, action: () => void | Promise<void> | undefined) => {
+    setBusyTaskActions((previous) => ({ ...previous, [key]: true }))
+    setTaskActionErrors((previous) => ({ ...previous, [key]: '' }))
+    void Promise.resolve()
+      .then(action)
+      .catch((error: unknown) =>
+        setTaskActionErrors((previous) => ({
+          ...previous,
+          [key]: error instanceof Error ? error.message : String(error),
+        })),
+      )
+      .finally(() => setBusyTaskActions((previous) => ({ ...previous, [key]: false })))
+  }
   const [timeline, setTimeline] = useState<TimelineResponse | null>(null)
   const [pendingUserMessage, setPendingUserMessage] = useState<{
     content: string
@@ -401,10 +442,19 @@ export const OrchestDevWorkspace: React.FC<OrchestDevWorkspaceProps> = ({
         (isCurrentExchange && timeline?.pending),
     )
     // Lo intermedio ya está en la actividad; Codex emite su paso `text` al final, así que se filtra por contenido.
-    const visibleAssistantMessage =
+    const rawAssistantMessage =
       isCurrentExchange && timeline?.live?.text
         ? answerText(timeline.live.text, steps)
         : answerText(exchange.assistantMessage?.content ?? '', steps)
+    const messageId = String(exchange.assistantMessage?.id)
+    const card = [...taskCards.byTask.values()].find((item) => item.anchorId === messageId)
+    const visibleAssistantMessage = taskCards.hidden.has(messageId)
+      ? ''
+      : card
+        ? card.showAnchorText
+          ? card.anchorText
+          : ''
+        : rawAssistantMessage
     const assistantCopy = assistantCopyTarget(exchange, visibleAssistantMessage)
     return (
       <div key={exchange.id} className="space-y-3 pt-2">
@@ -687,6 +737,34 @@ export const OrchestDevWorkspace: React.FC<OrchestDevWorkspaceProps> = ({
       >
         <div ref={timelineContentRef} className="max-w-3xl lg:max-w-4xl mx-auto space-y-3">
           {activeAgent && exchanges.map(DevExchange)}
+          {activeAgent &&
+            [...taskCards.byTask.values()].map((card) => {
+              const task = tasks.find((item) => item.id === card.taskId)
+              return (
+                <TaskCard
+                  key={card.taskId}
+                  card={task?.status === 'running' ? { ...card, state: 'running' } : card}
+                  activeRunId={task?.runId}
+                  approvals={approvals[task?.runId ?? ''] ?? []}
+                  projectId={activeProject.id}
+                  error={taskActionErrors[card.actionKey]}
+                  busy={Boolean(busyTaskActions[card.actionKey])}
+                  onApprove={() =>
+                    runTaskAction(card.actionKey, () => onApproveHeldTask?.(card.taskId))
+                  }
+                  onReject={() =>
+                    runTaskAction(card.actionKey, () => onRejectHeldTask?.(card.taskId))
+                  }
+                  onRetry={() => runTaskAction(card.actionKey, () => onRetryTask?.(card.taskId))}
+                  onCommit={(files) =>
+                    runTaskAction(card.actionKey, () => onCommitRunTask?.(card.taskId, files))
+                  }
+                  onViewEvidence={(runId) =>
+                    runTaskAction(card.actionKey, () => onViewEvidence?.(runId))
+                  }
+                />
+              )
+            })}
         </div>
       </div>
 
@@ -694,6 +772,7 @@ export const OrchestDevWorkspace: React.FC<OrchestDevWorkspaceProps> = ({
       {/* Keep the composer mounted while a selected session hydrates: uploads belong to its draft. */}
       <div
         data-composer-region
+        data-permission-mode={permissions?.mode}
         className={
           activeAgent ? 'p-3 bg-app-bg flex-shrink-0' : 'w-full max-w-3xl lg:max-w-4xl space-y-4'
         }

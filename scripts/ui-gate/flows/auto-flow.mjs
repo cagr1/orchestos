@@ -71,14 +71,20 @@ async function sendMessage({ page, composer, text, step, shot }) {
   return reply
 }
 
-async function startChat(page, agentName, step, visible) {
-  await page.getByRole('button', { name: 'New chat', exact: true }).click()
+async function startChat(page, agentName, step, visible, projectRoot) {
+  await page.getByRole('button', { name: 'Dev', exact: true }).click()
+  const launchProject = page.getByRole('button', { name: basename(projectRoot), exact: true })
+  await launchProject.hover()
+  await launchProject
+    .locator('..')
+    .getByRole('button', { name: 'Launch new agent', exact: true })
+    .click()
   const dialog = page.getByRole('dialog')
   const agent = dialog.getByRole('button', { name: new RegExp(agentName, 'i') }).first()
   await step(`select ${agentName} for new chat`, await visible(agent), 'agent option visible')
   if (!(await agent.isVisible())) return false
   await agent.click()
-  await dialog.getByRole('button', { name: 'Start Chat', exact: true }).click()
+  await dialog.getByRole('button', { name: 'Launch Agent', exact: true }).click()
 
   const modelControl = page.locator('button[title="Select model and reasoning effort"]')
   await step(
@@ -296,7 +302,7 @@ export default async function autoFlow({ page, api, step, shot, visible, cleanup
   await page.getByRole('button', { name: 'Chat', exact: true }).waitFor({ state: 'visible' })
   await page.getByRole('button', { name: 'Chat', exact: true }).click()
   const beforeQuestionTasks = new Set((await tasksFor(api, projectId)).map((task) => task.id))
-  if (!(await startChat(page, 'Codex', step, visible))) return
+  if (!(await startChat(page, 'Codex', step, visible, projectRoot))) return
   const questionSessionResponse = await api(
     `/api/chat/sessions?project=${encodeURIComponent(projectId)}`,
   )
@@ -560,11 +566,7 @@ export default async function autoFlow({ page, api, step, shot, visible, cleanup
   })
   await reloadedProjectButton.waitFor({ state: 'visible', timeout: 30_000 })
   await reloadedProjectButton.click()
-  await page.getByRole('button', { name: 'Chat', exact: true }).click()
-  const questionThread = page
-    .locator('aside')
-    .getByText(/¿Qué es un DAG\?/i)
-    .first()
+  const questionThread = page.locator(`aside [data-thread-id="${questionSession.id}"]`)
   await questionThread.waitFor({ state: 'visible', timeout: 30_000 }).catch(() => undefined)
   if (await questionThread.isVisible().catch(() => false)) await questionThread.click()
   let recoveredTaskIds = []
@@ -601,7 +603,7 @@ export default async function autoFlow({ page, api, step, shot, visible, cleanup
     .innerText()
     .catch(() => '')
   const proseTexts = await page
-    .locator('div.prose')
+    .locator('div.prose, aside[data-resizable-aside="right"]')
     .allInnerTexts()
     .catch(() => [])
   const nonModelText = proseTexts.reduce((text, prose) => text.replace(prose, ''), chatText)

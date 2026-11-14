@@ -2,7 +2,7 @@ import { dashboardProjectFromId, resolveDashboardProject } from './project-conte
 
 type ProjectScope = { kind: 'project'; id: string; root: string } | { kind: 'none' }
 
-export function requestScope(req: Request): ProjectScope {
+export function requestScope(req: Request, allowLegacyCwd = true): ProjectScope {
   const url = new URL(req.url)
   const header = req.headers.get('x-orchestos-project-id')?.trim()
   const query = url.searchParams.get('project')?.trim()
@@ -12,6 +12,8 @@ export function requestScope(req: Request): ProjectScope {
     const project = dashboardProjectFromId(selected)
     return project.id ? { kind: 'project', id: project.id, root: project.root } : { kind: 'none' }
   }
+  // Chat authority never comes from the dashboard's startup directory.
+  if (!allowLegacyCwd) return { kind: 'none' }
   const project = resolveDashboardProject(req)
   return project.id ? { kind: 'project', id: project.id, root: project.root } : { kind: 'none' }
 }

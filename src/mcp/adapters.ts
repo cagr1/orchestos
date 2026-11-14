@@ -25,6 +25,10 @@ import {
   type CreateTaskArgs,
   type LessonProposal,
   MCP_SERVER_NAME,
+  OPEN_IN_DEV_DESCRIPTION,
+  OPEN_IN_DEV_RESPONSE,
+  OPEN_IN_DEV_SCHEMA,
+  OPEN_IN_DEV_TOOL,
   PROPOSE_LESSON_DESCRIPTION,
   PROPOSE_LESSON_RESPONSE,
   PROPOSE_LESSON_SCHEMA,
@@ -165,6 +169,20 @@ export function proposeLessonApiTool(onProposal: (proposal: LessonProposal) => v
       const parsed = parseProposeLessonArgs(input)
       onProposal(parsed)
       return parsed.ok ? PROPOSE_LESSON_RESPONSE : `[Error: ${parsed.error}]`
+    },
+  }
+}
+
+export function openInDevApiTool(onOpen: () => void): { tool: ToolDef; execute: ToolExecutor } {
+  return {
+    tool: {
+      name: OPEN_IN_DEV_TOOL,
+      description: OPEN_IN_DEV_DESCRIPTION,
+      input_schema: OPEN_IN_DEV_SCHEMA,
+    },
+    execute: async () => {
+      onOpen()
+      return OPEN_IN_DEV_RESPONSE
     },
   }
 }

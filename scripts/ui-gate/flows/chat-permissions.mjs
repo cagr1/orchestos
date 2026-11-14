@@ -69,14 +69,19 @@ export default async function chatPermissions({ page, api, step, shot, visible, 
   await page.getByRole('button', { name: 'Dev', exact: true }).click()
   const projectButton = page.getByRole('button', { name: basename(projectRoot), exact: true })
   if (await visible(projectButton)) await projectButton.click()
-  await page.getByRole('button', { name: 'Chat', exact: true }).click()
-  await page.getByRole('button', { name: 'New chat', exact: true }).click()
+  await page.getByRole('button', { name: 'Dev', exact: true }).click()
+  const launchProject = page.getByRole('button', { name: basename(projectRoot), exact: true })
+  await launchProject.hover()
+  await launchProject
+    .locator('..')
+    .getByRole('button', { name: 'Launch new agent', exact: true })
+    .click()
   const dialog = page.getByRole('dialog')
   const codex = dialog.getByRole('button', { name: /Codex/ }).first()
   await step('select Codex for new chat', await visible(codex), 'Codex option visible')
   if (!(await codex.isVisible())) return
   await codex.click()
-  await page.getByRole('button', { name: 'Start Chat', exact: true }).click()
+  await page.getByRole('button', { name: 'Launch Agent', exact: true }).click()
 
   // 1 — Yolo por defecto
   const composerRegion = page.locator('[data-composer-region]')
@@ -111,7 +116,6 @@ export default async function chatPermissions({ page, api, step, shot, visible, 
     yaml.split('\n').find((line) => line.includes('permissionMode')) ?? 'missing',
   )
   await page.getByRole('button', { name: /Back to app/ }).click()
-  await page.getByRole('button', { name: 'Chat', exact: true }).click()
   await visible(composerRegion, 30_000)
   const manualSnapshot = await composerModeSnapshot(page, 'manual')
   await step(

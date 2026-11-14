@@ -50,16 +50,26 @@ async function sendMessage({ page, composer, text, step, shot }) {
   return reply
 }
 
-async function startChat(page, agentName, step, visible) {
-  await page.getByRole('button', { name: 'New chat', exact: true }).click()
+async function startChat(page, agentName, step, visible, projectRoot) {
+  await page.getByRole('button', { name: 'Dev', exact: true }).click()
+  const launchProject = page.getByRole('button', { name: basename(projectRoot), exact: true })
+  await launchProject.hover()
+  await launchProject
+    .locator('..')
+    .getByRole('button', { name: 'Launch new agent', exact: true })
+    .click()
   const dialog = page.getByRole('dialog')
   const agent = dialog.getByRole('button', { name: new RegExp(agentName, 'i') }).first()
   await step(`select ${agentName} for new chat`, await visible(agent), 'agent option visible')
   if (!(await agent.isVisible())) return false
   await agent.click()
-  await dialog.getByRole('button', { name: 'Start Chat', exact: true }).click()
+  await dialog.getByRole('button', { name: 'Launch Agent', exact: true }).click()
   const composer = page.locator('textarea').last()
-  await step('composer visible', await visible(composer), 'chat composer visible after Start Chat')
+  await step(
+    'composer visible',
+    await visible(composer),
+    'chat composer visible after Launch Agent',
+  )
   return composer
 }
 
@@ -118,9 +128,8 @@ export default async function chatFollowupTaskFlow({ page, api, step, shot, visi
   await step('temporary project visible', await visible(projectButton), 'project in Dev sidebar')
   if (!(await projectButton.isVisible())) return
   await projectButton.click()
-  await page.getByRole('button', { name: 'Chat', exact: true }).click()
 
-  const composer = await startChat(page, 'Codex', step, visible)
+  const composer = await startChat(page, 'Codex', step, visible, projectRoot)
   if (!composer) return
 
   const before = new Set((await tasksFor(api, projectId)).map((task) => task.id))

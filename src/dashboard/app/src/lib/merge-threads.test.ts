@@ -58,6 +58,24 @@ describe('mergeLoadedThreads', () => {
 })
 
 describe('threadPendingForSend', () => {
+  test('Dev espera Launch Agent y conserva la sesión de proyecto al enviar antes de que se cree', async () => {
+    const created = { ...thread('dev-agent'), projectId: 'project-1' }
+    let resolveCreation!: (value: ChatThread) => void
+    const creating = new Promise<ChatThread>((resolve) => {
+      resolveCreation = resolve
+    })
+    let sent = false
+    const sending = threadPendingForSend('', creating).then((session) => {
+      sent = true
+      return session
+    })
+    await Promise.resolve()
+    expect(sent).toBe(false)
+    resolveCreation(created)
+    expect(await sending).toBe(created)
+    expect(sent).toBe(true)
+  })
+
   test('sin hilo activo espera el New chat en vuelo', async () => {
     const created = thread('codex-chat')
     expect(await threadPendingForSend('', Promise.resolve(created))).toBe(created)

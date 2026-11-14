@@ -30,20 +30,15 @@ export const NewAgentSelectorModal: React.FC<NewAgentSelectorModalProps> = ({
   isOpen,
   projectName = 'Workspace',
   isChatMode = false,
-  projectOptions = [],
-  selectedProjectId = null,
   onClose,
   onCreateAgent,
 }) => {
   const [selectedCli, setSelectedCli] = useState('claude')
   const [agentTitle, setAgentTitle] = useState('')
   const [modes, setModes] = useState<ExecutorMode[]>([])
-  const [chatProjectId, setChatProjectId] = useState<string | null>(selectedProjectId)
-  const selectedProjectExists = projectOptions.some((project) => project.id === selectedProjectId)
 
   useEffect(() => {
     if (!isOpen) return
-    setChatProjectId(selectedProjectId)
     let disposed = false
     const modesPromise = fetch('/api/system/executor-modes').then((response) => {
       if (!response.ok) throw new Error(String(response.status))
@@ -63,9 +58,8 @@ export const NewAgentSelectorModal: React.FC<NewAgentSelectorModalProps> = ({
       .catch(() => {
         if (!disposed) setModes([])
       })
-    const configProjectId = selectedProjectExists ? (selectedProjectId ?? undefined) : undefined
     if (isChatMode)
-      void getConfig(configProjectId)
+      void getConfig('none')
         .then((config) => {
           if (disposed) return
           const orchestrator = config.roleAssignments?.orchestrator
@@ -84,7 +78,7 @@ export const NewAgentSelectorModal: React.FC<NewAgentSelectorModalProps> = ({
     return () => {
       disposed = true
     }
-  }, [isOpen, selectedProjectId, isChatMode, selectedProjectExists])
+  }, [isOpen, isChatMode])
 
   const [chatModel, setChatModel] = useState('')
 
@@ -98,7 +92,7 @@ export const NewAgentSelectorModal: React.FC<NewAgentSelectorModalProps> = ({
       ? `Chat with ${opt.label}`
       : `Agent: ${opt.label} on ${projectName}`
     const finalTitle = agentTitle.trim() || defaultTitle
-    onCreateAgent(opt.id, chatModel, finalTitle, isChatMode ? chatProjectId : undefined)
+    onCreateAgent(opt.id, chatModel, finalTitle, isChatMode ? null : undefined)
     setAgentTitle('')
     onClose()
   }
@@ -148,39 +142,6 @@ export const NewAgentSelectorModal: React.FC<NewAgentSelectorModalProps> = ({
               className="w-full px-3 py-1.5 rounded-control bg-app-bg border border-app text-app focus:outline-hidden focus:border-app-accent text-xs"
             />
           </div>
-
-          {isChatMode && (
-            <div>
-              <div className="block text-app-muted mb-1.5 font-medium">Project</div>
-              <div className="space-y-1.5 max-h-40 overflow-y-auto pr-1">
-                <button
-                  type="button"
-                  onClick={() => setChatProjectId(null)}
-                  className={`w-full text-left p-2.5 rounded-card border transition-all ${
-                    chatProjectId === null
-                      ? 'bg-app-elevated border-app-accent text-app shadow-xs'
-                      : 'bg-app-bg border-app text-app-muted hover:border-app hover:text-app'
-                  }`}
-                >
-                  No project
-                </button>
-                {projectOptions.map((project) => (
-                  <button
-                    key={project.id}
-                    type="button"
-                    onClick={() => setChatProjectId(project.id)}
-                    className={`w-full text-left p-2.5 rounded-card border transition-all ${
-                      chatProjectId === project.id
-                        ? 'bg-app-elevated border-app-accent text-app shadow-xs'
-                        : 'bg-app-bg border-app text-app-muted hover:border-app hover:text-app'
-                    }`}
-                  >
-                    {project.name}
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
 
           <div>
             <div className="block text-app-muted mb-1.5 font-medium">Select Agent / Engine</div>

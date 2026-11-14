@@ -98,14 +98,19 @@ export default async function chatRetryReport({ page, api, step, shot, visible, 
   await page.getByRole('button', { name: 'Dev', exact: true }).click()
   const projectButton = page.getByRole('button', { name: basename(projectRoot), exact: true })
   if (await visible(projectButton)) await projectButton.click()
-  await page.getByRole('button', { name: 'Chat', exact: true }).click()
-  await page.getByRole('button', { name: 'New chat', exact: true }).click()
+  await page.getByRole('button', { name: 'Dev', exact: true }).click()
+  const launchProject = page.getByRole('button', { name: basename(projectRoot), exact: true })
+  await launchProject.hover()
+  await launchProject
+    .locator('..')
+    .getByRole('button', { name: 'Launch new agent', exact: true })
+    .click()
   const dialog = page.getByRole('dialog')
   const codex = dialog.getByRole('button', { name: /Codex/ }).first()
   await step('select Codex for new chat', await visible(codex), 'Codex option visible')
   if (!(await codex.isVisible())) return
   await codex.click()
-  await page.getByRole('button', { name: 'Start Chat', exact: true }).click()
+  await page.getByRole('button', { name: 'Launch Agent', exact: true }).click()
 
   const modelControl = page.locator('button[title="Select model and reasoning effort"]')
   await modelControl.click()
@@ -317,7 +322,6 @@ export default async function chatRetryReport({ page, api, step, shot, visible, 
     diagnosis?.runId ?? 'missing run',
   )
   await page.getByRole('button', { name: 'Back to app', exact: true }).click()
-  await page.getByRole('button', { name: 'Chat', exact: true }).click()
 
   // Tramo 2 — árbol sucio: la tarea queda pending y el hilo ofrece "Commit & Run".
   writeFileSync(join(projectRoot, 'sucio.txt'), 'sin commitear\n')

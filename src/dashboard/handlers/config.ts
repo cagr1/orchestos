@@ -9,6 +9,7 @@ import {
   loadOrcheConfig,
   scaffoldConfigYaml,
 } from '../../config/load.ts'
+import { orchestosDir } from '../../config/orchestos-home.ts'
 import {
   type AgentChoice,
   type OrcheConfig,
@@ -36,10 +37,11 @@ const ROLE_KEYS = ['planner', 'executor_heavy', 'executor_light', 'default', 'qa
 // E.9 (Mes 18, paridad CLI↔Dashboard) — equivalente de `orchestos config show`:
 // fuente activa (orchestos.config.yaml vs defaults), roles resueltos, y preview
 // de routing para tareas pendientes (mismo autoRoute() que usa el harness real).
-export async function handleApiConfigGet(root = process.cwd()): Promise<Response> {
-  const configPath = join(root, 'orchestos.config.yaml')
+export async function handleApiConfigGet(root: string | null = process.cwd()): Promise<Response> {
+  const configPath =
+    root === null ? join(orchestosDir(), 'config.yaml') : join(root, 'orchestos.config.yaml')
   const configFound = existsSync(configPath)
-  const cfg = loadOrcheConfig(root)
+  const cfg = loadOrcheConfig(root ?? undefined)
 
   const legacyModel = (name: 'planner' | 'executor_heavy' | 'executor_light' | 'default') => {
     const assignment = cfg.models[name]
@@ -60,7 +62,7 @@ export async function handleApiConfigGet(root = process.cwd()): Promise<Response
   // resiliencia que ya usa `handleApiTasks()` (dashboard/handlers/tasks.ts):
   // el preview de routing es un extra, nunca debe poder romper el config.
   let pendingRouting: Array<{ id: string; model: string; executor: string }> = []
-  if (tasksExist(root)) {
+  if (root !== null && tasksExist(root)) {
     try {
       const tasksFile = loadTasks(root)
       const pending = tasksFile.tasks.filter((t) => t.status === 'pending')

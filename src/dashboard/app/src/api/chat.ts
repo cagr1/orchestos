@@ -350,12 +350,12 @@ export function sessionListQueries(projectId: string | null): string[] {
   return [`?project=${encodeURIComponent(projectId)}`, '?project=none']
 }
 
-/** An explicit modal choice wins; otherwise New chat follows the visible header project. */
+/** Chat conversations never inherit the visible Dev project. */
 export function newChatProjectId(
-  visibleProjectId: string | null | undefined,
-  selectedProjectId?: string | null,
-): string | null {
-  return selectedProjectId === undefined ? visibleProjectId || null : selectedProjectId
+  _visibleProjectId?: string | null,
+  _selectedProjectId?: string | null,
+): null {
+  return null
 }
 
 export async function listArchivedSessions(project?: string): Promise<ChatSessionRow[]> {

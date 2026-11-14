@@ -124,6 +124,10 @@ async function execConsoleCommand(req: Request, url: URL): Promise<Response> {
   const session = getChatSession(id)
   if (!session) return errorResponse('Chat session not found', 404)
   if (!session.project_id) return errorResponse('Console commands require a project session', 400)
+  const selected =
+    req.headers.get('x-orchestos-project-id')?.trim() || url.searchParams.get('project')?.trim()
+  if (selected !== session.project_id)
+    return errorResponse('Console commands require an explicit project', 403)
 
   let parsed: unknown
   try {
@@ -228,7 +232,9 @@ export function handleApiChatSessionsList(req: Request): Response {
   }
   let projectId: string | null
   try {
-    projectId = resolveDashboardProject(req).id
+    const selected =
+      req.headers.get('x-orchestos-project-id')?.trim() || params.get('project')?.trim()
+    projectId = selected ? resolveDashboardProject(req).id : null
   } catch {
     projectId = null
   }
@@ -258,8 +264,16 @@ export async function handleApiChatSessionsCreate(
   ) {
     return errorResponse('projectId must be a string or null', 400)
   }
-  let selectedProject = fallbackProject
-  if (body.projectId === undefined && !selectedProject) {
+  const explicitProject =
+    req.headers.get('x-orchestos-project-id')?.trim() ||
+    new URL(req.url).searchParams.get('project')?.trim()
+  let selectedProject = explicitProject && explicitProject !== 'none' ? fallbackProject : undefined
+  if (
+    body.projectId === undefined &&
+    !selectedProject &&
+    explicitProject &&
+    explicitProject !== 'none'
+  ) {
     try {
       selectedProject = resolveDashboardProject(req)
     } catch (error) {

@@ -45,7 +45,12 @@ import {
   taskProposalFromStep,
 } from '../../mcp/adapters.ts'
 import { RUN_READONLY_TOOL } from '../../mcp/readonly.ts'
-import { CREATE_TASK_TOOL, type LessonProposal, PROPOSE_LESSON_TOOL } from '../../mcp/server.ts'
+import {
+  CREATE_TASK_TOOL,
+  type LessonProposal,
+  OPEN_IN_DEV_TOOL,
+  PROPOSE_LESSON_TOOL,
+} from '../../mcp/server.ts'
 import {
   createToolRouter,
   FETCH_URL_TOOL,
@@ -105,9 +110,6 @@ import { ollamaChat } from '../llm/clients.ts'
 import {
   type DashboardProjectContext,
   DashboardProjectError,
-  dashboardProjectFromId,
-  isGeneralScopeRequest,
-  legacyCwdProject,
   resolveDashboardProject,
 } from '../project-context.ts'
 import { readEnv } from '../settings-store.ts'
@@ -133,7 +135,7 @@ export function buildAutoTaskInstruction({
   permissionMode?: 'yolo' | 'manual'
 }): string {
   if (!hasProjectContext)
-    return 'If the user asks you to build or modify files, say plainly that this chat has no associated project and no task can be created here.'
+    return 'If the user asks you to build or modify files, say plainly that this chat has no associated project; creating or modifying project files must be done in Dev.'
   if (mode === 'chat')
     return 'If the user asks you to build or modify files, say plainly that this Chat mode is read-only and they must switch to Code mode.'
   if (!taskToolOffered)
@@ -853,7 +855,7 @@ export function pickAutoSkill(
 
 async function handleApiChat(
   req: Request,
-  fallbackProject?: DashboardProjectContext,
+  _fallbackProject?: DashboardProjectContext,
 ): Promise<Response> {
   const turnStartedAt = Date.now()
   const parsed = await readBody(
@@ -907,27 +909,29 @@ async function handleApiChat(
   }
   const session = body.sessionId ? getChatSession(body.sessionId.trim()) : null
   if (body.sessionId && !session) return errorResponse('Chat session not found', 404)
-  // CC.2a — una sesión persistida general no tiene autoridad sobre ningún
-  // proyecto, aunque `mode:code` permita ejecución en sesiones que sí están
-  // asociadas. Debe calcularse antes de autoTask: `project` puede ser el cwd
-  // legacy solo para sostener el transporte conversacional/config heredado,
-  // nunca para convertir ese fallback en destino de escritura o spawn.
-  const hasProjectContext = !session || session.project_id !== null
-  let project: DashboardProjectContext
+  // USO.10 — only a registered, explicit request selector authorizes project work.
+  // A persisted general session cannot gain authority from a project header.
+  const selector =
+    req.headers.get('x-orchestos-project-id')?.trim() ||
+    new URL(req.url).searchParams.get('project')?.trim()
+  const hasProjectContext = Boolean(selector && selector !== 'none') && session?.project_id !== null
+  let project: DashboardProjectContext = { id: null, root: '', source: 'legacy-cwd' }
   try {
-    project = session?.project_id
-      ? dashboardProjectFromId(session.project_id)
-      : (fallbackProject ??
-        (isGeneralScopeRequest(req) ? legacyCwdProject() : resolveDashboardProject(req)))
+    if (hasProjectContext) {
+      project = resolveDashboardProject(req)
+      if (session && session.project_id !== project.id)
+        return errorResponse('Chat session not found', 404)
+    }
   } catch (error) {
     if (error instanceof DashboardProjectError) return errorResponse(error.message, error.status)
     return errorResponse(error instanceof Error ? error.message : String(error), 500)
   }
-  const root = project.root
+  let root = project.root
+  let isolatedCwd: string | null = null
 
   // H.9.2 — el agente elegido puede no tener una frontera real de lectura;
   // en ese caso el chat de proyecto continúa y comunica un aviso.
-  const orcheConfig = loadOrcheConfig(root)
+  const orcheConfig = loadOrcheConfig(hasProjectContext ? root : undefined)
   const orchestratorAssignment = orcheConfig.roles.orchestrator
   const lastSessionAssistant = session
     ? listChatMessages(session.id)
@@ -1081,6 +1085,10 @@ async function handleApiChat(
   }
 
   try {
+    if (!hasProjectContext) {
+      isolatedCwd = mkdtempSync(join(tmpdir(), 'orchestos-chat-'))
+      root = isolatedCwd
+    }
     if (session && activeTurnId) {
       signal = registerChatTurn(session.id, activeTurnId)
       const turnId = activeTurnId
@@ -1448,6 +1456,9 @@ async function handleApiChat(
     const readonlyOffered =
       hasProjectContext && (!!cliAdapter || (!isOllama && supportsToolCalling('openrouter', model)))
     const offeredTools = [
+      // El bucle de herramientas API solo corre con proyecto: un chat general por API usa el
+      // cliente de su proveedor y no recibe herramientas (qa USO.10).
+      ...(!hasProjectContext && cliAdapter ? [OPEN_IN_DEV_TOOL] : []),
       ...(taskToolOffered ? [CREATE_TASK_TOOL] : []),
       ...(readonlyOffered ? [RUN_READONLY_TOOL] : []),
       ...(readonlyOffered && project.id ? [PROPOSE_LESSON_TOOL] : []),
@@ -1729,9 +1740,6 @@ async function handleApiChat(
     try {
       signal?.throwIfAborted()
       if (cliAdapter) {
-        const isolatedCwd = hasProjectContext
-          ? null
-          : mkdtempSync(join(tmpdir(), 'orchestos-chat-'))
         try {
           recordInjected(lessons.map((lesson) => lesson.id))
           const result = await cliAdapter.runTurn({
@@ -1817,7 +1825,7 @@ async function handleApiChat(
             502,
           )
         } finally {
-          if (isolatedCwd) rmSync(isolatedCwd, { recursive: true, force: true })
+          // The outer finally cleans the isolated cwd for every transport.
           cliImages?.cleanup()
         }
       }
@@ -1900,7 +1908,7 @@ async function handleApiChat(
       const clamped = providerRealCap > 0 ? Math.min(available, providerRealCap) : available
       const chatMaxTokens = clamped > 0 ? clamped : DEFAULT_MAX_OUTPUT_TOKENS
 
-      if (hasProjectContext && supportsToolCalling('openrouter', model)) {
+      if (hasProjectContext && !isOllama && supportsToolCalling('openrouter', model)) {
         const readCollector = new ReadAuditCollector('openrouter-local-tools')
         const auditedReader = createAuditedProjectReader(root, readCollector)
         const readonlyTool = runReadonlyApiTool(root)
@@ -1916,26 +1924,34 @@ async function handleApiChat(
           system: systemPrompt,
           messages,
           tools: [
-            FETCH_URL_TOOL,
-            SEARCH_MEMORY_TOOL,
-            READ_PLAN_TOOL,
-            READ_TASKS_TOOL,
-            READ_IDEAS_TOOL,
-            READ_FILE_TOOL,
+            ...(hasProjectContext
+              ? [
+                  FETCH_URL_TOOL,
+                  SEARCH_MEMORY_TOOL,
+                  READ_PLAN_TOOL,
+                  READ_TASKS_TOOL,
+                  READ_IDEAS_TOOL,
+                  READ_FILE_TOOL,
+                ]
+              : []),
             ...(createTaskTool ? [createTaskTool.tool] : []),
-            readonlyTool.tool,
+            ...(hasProjectContext ? [readonlyTool.tool] : []),
             ...(lessonTool ? [lessonTool.tool] : []),
           ],
           executeTool: createToolRouter({
             ...(createTaskTool ? { [createTaskTool.tool.name]: createTaskTool.execute } : {}),
-            [readonlyTool.tool.name]: readonlyTool.execute,
-            ...(lessonTool ? { [lessonTool.tool.name]: lessonTool.execute } : {}),
-            fetch_url: (name, input) => executeFetchUrl(name, input, undefined, signal),
-            search_memory: (name, input) => executeSearchMemory(name, input, project.id),
-            read_plan: auditedReader,
-            read_tasks: auditedReader,
-            read_ideas: auditedReader,
-            read_file: auditedReader,
+            ...(hasProjectContext
+              ? {
+                  [readonlyTool.tool.name]: readonlyTool.execute,
+                  ...(lessonTool ? { [lessonTool.tool.name]: lessonTool.execute } : {}),
+                  fetch_url: (name, input) => executeFetchUrl(name, input, undefined, signal),
+                  search_memory: (name, input) => executeSearchMemory(name, input, project.id),
+                  read_plan: auditedReader,
+                  read_tasks: auditedReader,
+                  read_ideas: auditedReader,
+                  read_file: auditedReader,
+                }
+              : {}),
           }),
           effort,
           maxTokens: chatMaxTokens,
@@ -2052,6 +2068,7 @@ async function handleApiChat(
     clearLiveText(session.id, activeTurnId)
     return jsonResponse({ text, model, stopped: true })
   } finally {
+    if (isolatedCwd) rmSync(isolatedCwd, { recursive: true, force: true })
     clearInterval(leaseTimer)
     if (session && activeTurnId) unregisterChatTurn(session.id, activeTurnId)
   }

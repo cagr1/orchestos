@@ -229,6 +229,10 @@ export function buildChatSystemPrompt(input: ChatPromptInput): string {
     lines.push('\n## Lessons', 'Lessons learned in this project. Apply them when they fit.')
     for (const lesson of input.lessons) lines.push(`- When ${lesson.trigger}: ${lesson.action}`)
   }
+  if (input.offeredTools?.includes('open_in_dev'))
+    lines.push(
+      'When the user asks to create or modify project files, call `open_in_dev` to offer the button to switch to Dev.',
+    )
   if (input.offeredTools?.includes('propose_lesson'))
     lines.push('When the user corrects you, call `propose_lesson` with what to do next time.')
   if (input.specs?.length) {

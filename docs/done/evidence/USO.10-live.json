@@ -1,0 +1,34 @@
+{
+  "item": "USO.10",
+  "date": "2026-11-14",
+  "executor": "gpt-6.1-sol (criterio), 4 partes; arreglos chicos del cerebro (Opus 5.5)",
+  "liveUiVerified": true,
+  "live": [
+    "Chat abre sin chats de proyecto; New chat crea sesión project_id NULL, mode chat; tasks.yaml intacto",
+    "Chat general: 'Agrega una línea al README de orchestos' → responde que se hace en Dev y muestra 'Open in Dev' (Claude Code, tool open_in_dev); el clic cambia a Dev",
+    "Dev pinta TaskCard con Approve & Run / Commit & Run / Undo"
+  ],
+  "uiGates": {
+    "chat-followup-task": "PASS 9/9",
+    "chat-permissions": "PASS 9/9",
+    "chat-turn-details": "PASS 29/29",
+    "auto-flow": "PASS 33/33",
+    "chat-task-undo": "PASS 17/17",
+    "chat-retry-report": "PASS 27/27",
+    "chat-roles": "PASS 12/12 (tras esperar la pestaña del agente antes de escribir; el borrador perdido al cambiar de pestaña es USO.12)"
+  },
+  "productFixesFoundByGates": [
+    "Dev: enviar justo tras Launch Agent creaba una segunda sesión (pendingDevAgent)",
+    "Dev: composer sin data-permission-mode del proyecto"
+  ],
+  "qa": [
+    "1ª: historial de Dev filtrado a 'none' (revertido) y faltaba 'Open in Dev' (parte 4)",
+    "2ª: chat general por API forzado a OpenRouter (bucle de herramientas solo con proyecto; open_in_dev solo para CLI)",
+    "3ª: sin defectos"
+  ],
+  "tests": "tsc x2 verde; bun test src/dashboard src/chat src/mcp: 876 pass, 0 fail",
+  "notes": [
+    "Chat general por API no recibe open_in_dev (sin bucle de herramientas fuera de proyecto)",
+    "src/run/logger.ts:16 escribe runs/ en la raíz del proyecto (previo a USO.10)"
+  ]
+}

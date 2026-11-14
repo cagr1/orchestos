@@ -175,7 +175,7 @@ for (const partial of ['', 'partial'])
       i.onText('late text must not be saved')
       return { text: 'late result', inputTokens: 1, outputTokens: 1, model: 'fake', resultLabel: 'fake', readAudit: { kind: 'uninstrumented' } }
     }
-    const response = await handleApiChat(new Request('http://localhost/api/chat', { method: 'POST', body: JSON.stringify({ sessionId: session.id, message: 'question', requestKey: 'stop', model: 'gpt-6-luna' }) }))
+    const response = await handleApiChat(new Request('http://localhost/api/chat?project=fixture', { method: 'POST', body: JSON.stringify({ sessionId: session.id, message: 'question', requestKey: 'stop', model: 'gpt-6-luna' }) }))
     const turn = turns.getLastTurn(session.id)
     console.log(JSON.stringify({ status: response.status, body: await response.json(), turn, messages: sessions.listChatMessages(session.id), first, second, calls, tasksUnchanged: readFileSync(root + '/tasks.yaml', 'utf8') === originalTasks, finalStop: (await stop(turn.id)).status }))
   `)
@@ -330,7 +330,7 @@ const aud24Fixture = `
     await Bun.sleep(900)
     return { text: 'durable answer', inputTokens: 1, outputTokens: 1, model: 'fake', resultLabel: 'fake', readAudit: { kind: 'uninstrumented' } }
   }
-  const request = (extra = {}) => new Request('http://localhost/api/chat', { method: 'POST', body: JSON.stringify({ sessionId: session.id, message: 'question', requestKey: 'aud24', model: 'gpt-6-luna', ...extra }) })
+  const request = (extra = {}) => new Request('http://localhost/api/chat?project=fixture', { method: 'POST', body: JSON.stringify({ sessionId: session.id, message: 'question', requestKey: 'aud24', model: 'gpt-6-luna', ...extra }) })
 `
 
 test(

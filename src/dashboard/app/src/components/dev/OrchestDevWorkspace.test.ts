@@ -2,8 +2,15 @@ import { expect, test } from 'bun:test'
 import { Children, createElement, isValidElement, type ReactElement, type ReactNode } from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { sendMessage } from '../../api/chat'
-import type { AgentItem, ChatAttachment, ProjectItem } from '../../types/orchestos'
+import type {
+  AgentItem,
+  ChatAttachment,
+  ChatMessage,
+  ProjectItem,
+  TaskItem,
+} from '../../types/orchestos'
 import { AgentComposer, type AgentComposerProps } from '../common/AgentComposer'
+import { TaskCard } from '../thread/TaskCard'
 import { OrchestDevWorkspace } from './OrchestDevWorkspace'
 
 type WorkspaceProps = Parameters<typeof OrchestDevWorkspace>[0]
@@ -118,4 +125,115 @@ test('Dev forwards both uploaded server IDs and approval controls through its se
   } finally {
     globalThis.fetch = originalFetch
   }
+})
+
+function cardsFromWorkspace(props: WorkspaceProps) {
+  let tree: ReactNode
+  function Capture() {
+    tree = OrchestDevWorkspace(props) as ReactElement
+    return null
+  }
+  renderToStaticMarkup(createElement(Capture))
+  const cards: ReactElement<Parameters<typeof TaskCard>[0]>[] = []
+  function visit(node: ReactNode) {
+    Children.forEach(node, (child) => {
+      if (!isValidElement<{ children?: ReactNode }>(child)) return
+      if (child.type === TaskCard) cards.push(child as ReactElement<Parameters<typeof TaskCard>[0]>)
+      else visit(child.props.children)
+    })
+  }
+  visit(tree)
+  return cards
+}
+
+const heldMessage: ChatMessage = {
+  id: '10',
+  role: 'assistant',
+  content: 'Created task',
+  timestamp: '12:00',
+  taskId: 'task-1',
+  taskHeld: true,
+  proposedTask: { id: 'task-1', description: 'Update the file', output: ['file.ts'] },
+}
+
+test('Dev renders a held task and forwards all task actions in its project', async () => {
+  const actions: unknown[][] = []
+  const cards = cardsFromWorkspace({
+    activeProject: project,
+    activeAgent: agent,
+    messages: [heldMessage],
+    onApproveHeldTask: (id) => {
+      actions.push(['approve', id])
+    },
+    onRejectHeldTask: (id) => {
+      actions.push(['reject', id])
+    },
+    onRetryTask: (id) => {
+      actions.push(['retry', id])
+    },
+    onCommitRunTask: (id, files) => {
+      actions.push(['commit', id, files])
+    },
+    onViewEvidence: (id) => {
+      actions.push(['evidence', id])
+    },
+  })
+  expect(cards).toHaveLength(1)
+  const { props } = cards[0]
+  expect(props.card).toMatchObject({
+    taskId: 'task-1',
+    state: 'held',
+    description: 'Update the file',
+  })
+  expect(props.projectId).toBe(project.id)
+  props.onApprove?.()
+  props.onReject?.()
+  props.onRetry?.()
+  props.onCommit?.(['file.ts'])
+  props.onViewEvidence?.('run-1')
+  await new Promise<void>((resolve) => queueMicrotask(resolve))
+  expect(actions).toEqual([
+    ['approve', 'task-1'],
+    ['reject', 'task-1'],
+    ['retry', 'task-1'],
+    ['commit', 'task-1', ['file.ts']],
+    ['evidence', 'run-1'],
+  ])
+})
+
+test('Dev follows running tasks, approvals and the latest report without duplicate cards', () => {
+  const report: ChatMessage = {
+    ...heldMessage,
+    id: '11',
+    taskHeld: false,
+    proposedTask: undefined,
+    taskReport: { outcome: 'failed', runId: 'run-1', dirtyFiles: ['file.ts'] },
+  }
+  const task = { id: 'task-1', status: 'running', runId: 'run-1', sessionId: agent.id } as TaskItem
+  const cards = cardsFromWorkspace({
+    activeProject: project,
+    activeAgent: agent,
+    messages: [heldMessage, report],
+    tasks: [task],
+    approvals: { 'run-1': [] },
+  })
+  expect(cards).toHaveLength(1)
+  expect(cards[0].props.card.state).toBe('running')
+  expect(cards[0].props.activeRunId).toBe('run-1')
+  expect(cards[0].props.approvals).toEqual([])
+  const finished = cardsFromWorkspace({
+    activeProject: project,
+    activeAgent: agent,
+    messages: [heldMessage, report],
+  })
+  expect(finished[0].props.card.state).toBe('failed')
+  expect(finished[0].props.card.reports).toHaveLength(1)
+  expect(
+    cardsFromWorkspace({
+      activeProject: project,
+      activeAgent: agent,
+      messages: [{ ...heldMessage, taskDeleted: true }],
+    }),
+  ).toHaveLength(0)
+  expect(cardsFromWorkspace({ activeProject: project, messages: [heldMessage] })).toHaveLength(0)
 })

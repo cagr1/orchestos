@@ -134,3 +134,11 @@ export function summarizeTools(summary: ToolSummary): string {
     .join(', ')
   return text.charAt(0).toUpperCase() + text.slice(1)
 }
+
+export function turnOffersOpenDev(steps: TimelineStep[] = []): boolean {
+  return steps.some(
+    (step) =>
+      step.type === 'tool_use' &&
+      (step.tool === 'open_in_dev' || step.tool === 'mcp__orchestos__open_in_dev'),
+  )
+}

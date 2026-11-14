@@ -332,6 +332,7 @@ export default function App() {
   const [activeThreadId, setActiveThreadId] = useState<string>('')
   const threadsRef = useRef<ChatThread[]>([])
   const pendingNewChat = useRef<Promise<ChatThread | null> | null>(null)
+  const pendingDevAgent = useRef<Promise<ChatThread | null> | null>(null)
   useEffect(() => {
     if (mode === 'dev') setActiveThreadId(activeAgentId || '')
   }, [mode, activeAgentId])
@@ -507,10 +508,9 @@ export default function App() {
     [loadThreadMessages],
   )
 
-  // biome-ignore lint/correctness/useExhaustiveDependencies: cambiar de modo vuelve a hidratar las sesiones visibles.
   useEffect(() => {
     let disposed = false
-    const visibleProjectId = activeProjectId || projects[0]?.id || null
+    const visibleProjectId = mode === 'chat' ? null : activeProjectId || projects[0]?.id || null
     void listSessions(visibleProjectId)
       .then(async (loaded) => {
         if (disposed) return
@@ -695,7 +695,11 @@ export default function App() {
     if (currentProject) updateDevTabs(currentProject.id, openTerminalTab)
   }
 
-  const activeThread = threads.find((t) => t.id === activeThreadId)
+  const activeThread = threads.find(
+    (t) =>
+      t.id === (mode === 'dev' ? activeAgentId : activeThreadId) &&
+      (mode !== 'chat' || !t.projectId),
+  )
   const hasRunningTasks = tasks.some((task) => task.status === 'running')
   const activeThreadTasks =
     threadTasks?.projectId === activeThread?.projectId ? (threadTasks?.tasks ?? []) : []
@@ -836,6 +840,7 @@ export default function App() {
   }
 
   const reloadHistory = useCallback(async () => {
+    // Solo lo consume el inspector de Dev (filtra por proyecto): trae todas las archivadas.
     const archived = await listArchivedSessions()
     const projectNames = new Map(projects.map((project) => [project.id, project.name]))
     const loaded = await Promise.all(
@@ -1311,7 +1316,10 @@ export default function App() {
     title: string,
   ) => {
     setProjectTabsError(null)
-    void createSession({ agent: cliId, projectId, title })
+    const creating = createSession({ agent: cliId, projectId, title })
+    const pending = creating.catch(() => null)
+    pendingDevAgent.current = pending
+    void creating
       .then(async (thread) => {
         setActiveProjectId(projectId)
         updateDevTabs(projectId, (tabs) => openSessionTab(tabs, thread.id))
@@ -1326,6 +1334,9 @@ export default function App() {
         setMode('dev')
       })
       .catch((error) => setProjectTabsError(error instanceof Error ? error.message : String(error)))
+      .finally(() => {
+        if (pendingDevAgent.current === pending) pendingDevAgent.current = null
+      })
   }
 
   // Chat actions
@@ -1333,11 +1344,11 @@ export default function App() {
     cliId?: string,
     _model?: string,
     title?: string,
-    selectedProjectId?: string | null,
+    _selectedProjectId?: string | null,
   ) => {
     const creating = createSession({
       ...(cliId ? { agent: cliId } : {}),
-      projectId: newChatProjectId(currentProject?.id, selectedProjectId),
+      projectId: newChatProjectId(),
       title,
     })
     pendingNewChat.current = creating.catch(() => null)
@@ -1419,12 +1430,24 @@ export default function App() {
     try {
       let thread = threadsRef.current.find((item) => item.id === activeAgentId)
       if (!activeAgentId) {
-        thread = await createSession({ ...(agent ? { agent } : {}), projectId: currentProject.id })
-        threadsRef.current = [thread, ...threadsRef.current]
-        setThreads((current) => [thread!, ...current])
+        const pending = pendingDevAgent.current
+        const pendingThread = await threadPendingForSend(activeAgentId, pending)
+        if (pending && !pendingThread) return false
+        const resolvedThread =
+          pendingThread ??
+          (await createSession({ ...(agent ? { agent } : {}), projectId: currentProject.id }))
+        thread = resolvedThread
+        threadsRef.current = [
+          resolvedThread,
+          ...threadsRef.current.filter((item) => item.id !== resolvedThread.id),
+        ]
+        setThreads((current) => [
+          resolvedThread,
+          ...current.filter((item) => item.id !== resolvedThread.id),
+        ])
         setActiveThreadId(thread.id)
         updateDevTabs(currentProject.id, (tabs) =>
-          convertNewTab(tabs, activeDevTab?.id ?? null, thread!.id),
+          convertNewTab(tabs, activeDevTab?.id ?? null, resolvedThread.id),
         )
         localStorage.setItem(
           'orchestos-last-dev',
@@ -2071,10 +2094,8 @@ export default function App() {
               (!activeThread?.projectId || !deletingProjectIds.has(activeThread.projectId)) && (
                 <OrchestChatView
                   thread={activeThread}
-                  tasks={activeThreadTasks}
-                  approvals={
-                    approvals?.projectId === activeThread?.projectId ? approvals?.byRun : undefined
-                  }
+                  tasks={[]}
+                  approvals={{}}
                   projectName={
                     projects.find((project) => project.id === activeThread?.projectId)?.name
                   }
@@ -2101,6 +2122,7 @@ export default function App() {
                   onRejectHeldTask={handleRejectHeldTask}
                   sessionStatus={sessionStatus}
                   onSlashCommand={handleSlashCommand}
+                  onOpenDev={() => handleModeChange('dev')}
                   onOpenRouting={() => handleOpenSettings('model_routing')}
                 />
               )}
@@ -2153,6 +2175,22 @@ export default function App() {
                     key={activeDevTab?.id ?? activeProjectId}
                     activeProject={currentProject}
                     activeAgent={activeAgent}
+                    messages={activeThread?.messages ?? []}
+                    tasks={activeThreadTasks}
+                    approvals={
+                      approvals?.projectId === activeThread?.projectId ? approvals?.byRun : {}
+                    }
+                    onApproveHeldTask={handleApproveHeldTask}
+                    onRejectHeldTask={handleRejectHeldTask}
+                    onRetryTask={handleApproveHeldTask}
+                    onCommitRunTask={handleCommitRunTask}
+                    onViewEvidence={async (runId) => {
+                      if (!activeThread?.projectId) return
+                      const evidence = await getRun(runId, activeThread.projectId)
+                      setRuns((current) => [evidence, ...current.filter((run) => run.id !== runId)])
+                      setEvidenceRunId(runId)
+                      handleOpenSettings(`project_${activeThread.projectId}`, 'runs')
+                    }}
                     newSessionAgent={activeDevTab.type === 'new' ? activeDevTab.agent : undefined}
                     onCloseAgent={handleCloseAgent}
                     onSendMessage={handleDevSendMessage}

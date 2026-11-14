@@ -30,6 +30,16 @@ export const CREATE_TASK_TOOL = 'create_task'
 export const CREATE_TASK_RESPONSE =
   "Task proposal received. OrchestOS will attempt to create it and either request a run or hold it for the user's approval; you will not see the result in this turn. Do not tell the user it is done."
 
+export const OPEN_IN_DEV_TOOL = 'open_in_dev'
+export const OPEN_IN_DEV_DESCRIPTION =
+  'Offer the user a button to open Dev when they ask to create or modify project files. This tool does not change files or create tasks.'
+export const OPEN_IN_DEV_RESPONSE = 'The response will offer an Open in Dev button.'
+export const OPEN_IN_DEV_SCHEMA = {
+  type: 'object',
+  properties: {},
+  additionalProperties: false,
+} as const
+
 export const PROPOSE_LESSON_TOOL = 'propose_lesson'
 export const PROPOSE_LESSON_DESCRIPTION =
   'Propose a lesson OrchestOS should remember for future chats and tasks in this project. Call it when the user corrects you or a mistake and its fix become clear. The user approves it before it applies.'
@@ -196,6 +206,15 @@ export async function handleMcpMessage(
                 },
               ]
             : []),
+          ...(options.tools.includes(OPEN_IN_DEV_TOOL)
+            ? [
+                {
+                  name: OPEN_IN_DEV_TOOL,
+                  description: OPEN_IN_DEV_DESCRIPTION,
+                  inputSchema: OPEN_IN_DEV_SCHEMA,
+                },
+              ]
+            : []),
           ...(options.tools.includes(PROPOSE_LESSON_TOOL)
             ? [
                 {
@@ -254,6 +273,7 @@ export async function handleMcpMessage(
         const out = await runReadonly(message.params?.arguments, options.root)
         return text(out.text, out.isError)
       }
+      if (name === OPEN_IN_DEV_TOOL) return text(OPEN_IN_DEV_RESPONSE, false)
       if (name === PROPOSE_LESSON_TOOL) {
         const parsed = parseProposeLessonArgs(message.params?.arguments)
         return parsed.ok ? text(PROPOSE_LESSON_RESPONSE, false) : text(parsed.error, true)

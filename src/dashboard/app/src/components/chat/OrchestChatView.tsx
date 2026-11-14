@@ -19,7 +19,7 @@ import { useStopChatTurn } from '../../hooks/useStopChatTurn'
 import { useUserProfile } from '../../hooks/useUserProfile'
 import type { ChatAttachment, ChatThread, SessionStatus, TaskItem } from '../../types/orchestos'
 import { AgentComposer, type CliId } from '../common/AgentComposer'
-import { answerText } from '../thread/activity'
+import { answerText, turnOffersOpenDev } from '../thread/activity'
 import {
   type EntranceMode,
   enterSession,
@@ -61,6 +61,7 @@ interface OrchestChatViewProps {
   sessionStatus?: SessionStatus | null
   onSlashCommand?: (command: string, argument?: string) => void
   onTurnSettled?: () => void
+  onOpenDev?: () => void
   onOpenRouting?: () => void
 }
 
@@ -83,6 +84,7 @@ export const OrchestChatView: React.FC<OrchestChatViewProps> = ({
   sessionStatus,
   onSlashCommand,
   onOpenRouting,
+  onOpenDev,
   onTurnSettled,
 }) => {
   const scrollContainerRef = useRef<HTMLDivElement>(null)
@@ -136,7 +138,7 @@ export const OrchestChatView: React.FC<OrchestChatViewProps> = ({
       return
     }
     const controller = new AbortController()
-    void getConfig(projectId ?? undefined, controller.signal)
+    void getConfig(projectId ?? 'none', controller.signal)
       .then((config) => {
         if (disposed) return
         setOrchestrator(config.roleAssignments?.orchestrator ?? null)
@@ -153,7 +155,7 @@ export const OrchestChatView: React.FC<OrchestChatViewProps> = ({
 
   const messages = thread?.messages || []
   // UI.24.5 — una tarjeta por tarea; los reportes posteriores la alimentan y no son burbujas
-  const taskCards = buildTaskCards(messages, busyReportActions)
+  const taskCards = buildTaskCards([], busyReportActions)
   const runReportAction = (messageId: string, action: () => void | Promise<void> | undefined) => {
     setBusyReportActions((prev) => ({ ...prev, [messageId]: true }))
     setReportActionErrors((prev) => {
@@ -536,6 +538,11 @@ export const OrchestChatView: React.FC<OrchestChatViewProps> = ({
                             )}
                             streaming={false}
                           />
+                        )}
+                        {onOpenDev && turnOffersOpenDev(msg.steps) && (
+                          <Button size="compact" variant="secondary" onClick={onOpenDev}>
+                            Open in Dev
+                          </Button>
                         )}
                         <StoppedResponse stopped={msg.stopped} />
                         {showCard && (
