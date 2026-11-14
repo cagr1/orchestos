@@ -26,6 +26,15 @@ export interface ChatSessionRow {
 }
 
 export interface ChatMessageRow {
+  sessionMessage?: {
+    id: string
+    toSessionId: string
+    toTitle: string
+    toAgent: string
+    content: string
+    status: 'pending' | 'approved' | 'discarded'
+  }
+
   documents?: { name: string; path: string; size: number }[]
   id: number
   sessionId: string
@@ -163,6 +172,15 @@ export interface TimelineTurn {
   steps: TimelineStep[]
 }
 
+export interface InboundSessionMessage {
+  kind: 'session-message'
+  id: string
+  at: string
+  fromTitle: string
+  fromAgent: string
+  content: string
+  consumed: boolean
+}
 export interface TimelineResponse {
   live: { turnId: string; text: string } | null
   turns: TimelineTurn[]
@@ -178,6 +196,7 @@ export interface TimelineResponse {
   }>
   pending: boolean
   events: Array<
+    | InboundSessionMessage
     | { kind: 'turn'; at: string; turnId: string }
     | { kind: 'step'; at: string; turnId: string; seq: number }
     | { kind: 'command'; at: string; id: number }
@@ -241,6 +260,7 @@ export function toTimestamp(value: string): string {
 export function mapMessage(row: ChatMessageRow): ChatMessage {
   return {
     documents: row.documents,
+    sessionMessage: row.sessionMessage,
     id: String(row.id),
     taskId: row.taskId ?? undefined,
     role: row.role,
@@ -728,4 +748,13 @@ export async function downloadChatDocument(
 
 export function getCliModels(): Promise<CliModelCatalog[]> {
   return request<CliModelCatalog[]>('/api/chat/cli-models')
+}
+
+export function decideSessionMessage(
+  id: string,
+  decision: 'approve' | 'discard',
+): Promise<{ status: 'approved' | 'discarded' }> {
+  return request(`/api/chat/session-messages/${encodeURIComponent(id)}/${decision}`, {
+    method: 'POST',
+  })
 }

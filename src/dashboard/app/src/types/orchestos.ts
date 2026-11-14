@@ -199,6 +199,15 @@ export interface ProjectContext {
 }
 
 export interface ChatMessage {
+  sessionMessage?: {
+    id: string
+    toSessionId: string
+    toTitle: string
+    toAgent: string
+    content: string
+    status: 'pending' | 'approved' | 'discarded'
+  }
+
   documents?: { name: string; path: string; size: number }[]
   id: string
   stopped?: boolean

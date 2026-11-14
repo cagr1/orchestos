@@ -30,6 +30,7 @@ import {
   noteLocalSend,
   noteStreamed,
 } from '../thread/entrance'
+import { SessionMessageCard } from '../thread/SessionMessageCard'
 import { StoppedResponse } from '../thread/StoppedResponse'
 import { TaskCard } from '../thread/TaskCard'
 import { ThreadEmpty } from '../thread/ThreadEmpty'
@@ -581,6 +582,12 @@ export const OrchestChatView: React.FC<OrchestChatViewProps> = ({
                           </Button>
                         )}
                         <StoppedResponse stopped={msg.stopped} />
+                        {msg.sessionMessage && (
+                          <SessionMessageCard
+                            key={msg.sessionMessage.id}
+                            message={msg.sessionMessage}
+                          />
+                        )}
                         {showCard && (
                           <TaskCard
                             card={

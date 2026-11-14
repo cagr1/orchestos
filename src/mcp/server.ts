@@ -74,6 +74,36 @@ export function parseProposeLessonArgs(input: unknown): LessonProposal {
   return parsed.ok ? { ok: true, ...parsed.data } : { ok: false, error: parsed.error }
 }
 
+export const MESSAGE_SESSION_TOOL = 'message_session'
+export const MESSAGE_SESSION_DESCRIPTION =
+  'Propose a message for another session of this project (listed under Sessions). The user approves it before it is delivered; it does not start a turn there.'
+export const MESSAGE_SESSION_RESPONSE =
+  'Message proposed. The user approves it before it reaches that session; you will not see a reply in this turn.'
+export const MESSAGE_SESSION_SCHEMA = {
+  type: 'object',
+  properties: {
+    session_id: { type: 'string', minLength: 1, maxLength: 100 },
+    content: { type: 'string', minLength: 1, maxLength: 4000 },
+  },
+  required: ['session_id', 'content'],
+  additionalProperties: false,
+} as const
+export type SessionMessageProposal =
+  | { ok: true; session_id: string; content: string }
+  | { ok: false; error: string }
+export function parseMessageSessionArgs(input: unknown): SessionMessageProposal {
+  const parsed = check(
+    z
+      .object({
+        session_id: z.string().trim().min(1).max(100),
+        content: z.string().trim().min(1).max(4000),
+      })
+      .strict(),
+    input,
+  )
+  return parsed.ok ? { ok: true, ...parsed.data } : { ok: false, error: parsed.error }
+}
+
 export interface CreateTaskArgs {
   title: string
   description: string
@@ -224,6 +254,15 @@ export async function handleMcpMessage(
                 },
               ]
             : []),
+          ...(options.tools.includes(MESSAGE_SESSION_TOOL)
+            ? [
+                {
+                  name: MESSAGE_SESSION_TOOL,
+                  description: MESSAGE_SESSION_DESCRIPTION,
+                  inputSchema: MESSAGE_SESSION_SCHEMA,
+                },
+              ]
+            : []),
           ...(options.tools.includes(RUN_READONLY_TOOL)
             ? [
                 {
@@ -272,6 +311,10 @@ export async function handleMcpMessage(
       if (name === RUN_READONLY_TOOL) {
         const out = await runReadonly(message.params?.arguments, options.root)
         return text(out.text, out.isError)
+      }
+      if (name === MESSAGE_SESSION_TOOL) {
+        const parsed = parseMessageSessionArgs(message.params?.arguments)
+        return parsed.ok ? text(MESSAGE_SESSION_RESPONSE, false) : text(parsed.error, true)
       }
       if (name === OPEN_IN_DEV_TOOL) return text(OPEN_IN_DEV_RESPONSE, false)
       if (name === PROPOSE_LESSON_TOOL) {

@@ -462,3 +462,45 @@ test('open_in_dev is opt-in and only offers navigation through MCP and API', asy
   expect(await api.execute('open_in_dev', {})).toContain('Open in Dev')
   expect(calls).toBe(1)
 })
+
+describe('MSG.1 message_session', () => {
+  test('opt-in list and call validate strict trimmed bounded arguments', async () => {
+    const { MESSAGE_SESSION_RESPONSE, parseMessageSessionArgs } = await import('./server.ts')
+    const args = { session_id: ' target ', content: ' review ' }
+    const requests = [
+      { id: 1, method: 'tools/list' },
+      ...[args, { ...args, content: 'x'.repeat(4001) }, { ...args, extra: true }].map(
+        (input, i) => ({
+          id: i + 2,
+          method: 'tools/call',
+          params: { name: 'message_session', arguments: input },
+        }),
+      ),
+    ]
+    const [list, valid, long, extra] = await talk(['--tools', 'message_session'], requests)
+    expect(list.result.tools.map((tool: { name: string }) => tool.name)).toEqual([
+      'message_session',
+    ])
+    expect(valid.result.content[0].text).toBe(MESSAGE_SESSION_RESPONSE)
+    expect(long.result.isError).toBe(true)
+    expect(extra.result.isError).toBe(true)
+    const [without, denied] = await talk(['--tools', 'propose_lesson'], requests)
+    expect(without.result.tools.map((tool: { name: string }) => tool.name)).not.toContain(
+      'message_session',
+    )
+    expect(denied.error.code).toBe(-32602)
+    expect(parseMessageSessionArgs(args)).toEqual({
+      ok: true,
+      session_id: 'target',
+      content: 'review',
+    })
+    for (const input of [
+      null,
+      {},
+      { ...args, session_id: ' ' },
+      { ...args, content: ' ' },
+      { ...args, session_id: 'x'.repeat(101) },
+    ])
+      expect(parseMessageSessionArgs(input).ok).toBe(false)
+  })
+})

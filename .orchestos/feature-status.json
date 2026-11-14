@@ -88,6 +88,22 @@
       "sprint": "Etapa 2 — Uso real",
       "block": null,
       "title": "Una sesión propone un mensaje a otra del mismo proyecto",
+      "status": "done",
+      "closedDate": null
+    },
+    {
+      "id": "USO.13",
+      "sprint": "Etapa 2 — Uso real",
+      "block": null,
+      "title": "Menús y tooltips flotantes no siguen el tema elegido",
+      "status": "open",
+      "closedDate": null
+    },
+    {
+      "id": "USO.14",
+      "sprint": "Etapa 2 — Uso real",
+      "block": null,
+      "title": "Tooltips con look de shadcn en toda la app",
       "status": "open",
       "closedDate": null
     },

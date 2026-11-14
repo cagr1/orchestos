@@ -30,6 +30,7 @@ interface ChatPromptInput {
   }>
   qaReasons?: Record<string, string | null>
   memory?: Array<{ scope: string; topic_key: string; content: string }>
+  sessions?: Array<{ id: string; title: string; agent: string; updatedAt: string }>
   lessons?: Array<{ id: string; trigger: string; action: string }>
   specs?: Array<{ id: string; status: string }>
   projectFiles?: string[]
@@ -236,6 +237,16 @@ export function buildChatSystemPrompt(input: ChatPromptInput): string {
     )
   if (input.offeredTools?.includes('propose_lesson'))
     lines.push('When the user corrects you, call `propose_lesson` with what to do next time.')
+  if (input.offeredTools?.includes('message_session')) {
+    lines.push('\nSessions in this project (other than this one):')
+    for (const session of (input.sessions ?? []).slice(0, 8))
+      lines.push(
+        `  - ${session.id} | ${session.title.slice(0, 60)} | ${session.agent} | ${localDate(new Date(session.updatedAt), tz)}`,
+      )
+    lines.push(
+      'When the user asks you to pass something to another session, call `message_session` with its id.',
+    )
+  }
   if (input.specs?.length) {
     lines.push(`\nSpecs (${input.specs.length}):`)
     for (const s of input.specs) lines.push(`  - ${s.id} [${s.status}]`)

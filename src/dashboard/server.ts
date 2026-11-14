@@ -29,6 +29,7 @@ import {
   handleApiChatSessionsList,
   handleApiChatSessionTimeline,
   handleApiChatSessionTurnStatus,
+  handleApiSessionMessageDecision,
 } from './handlers/chat-sessions.ts'
 import { interruptActiveChatTurns } from './handlers/chat-turn-registry.ts'
 import { handleApiClisGet, handleApiClisSet } from './handlers/clis.ts'
@@ -542,6 +543,12 @@ export async function route(req: Request, port: number): Promise<Response> {
   }
   if (method === 'GET' && url.pathname === '/api/chat/sessions') {
     return handleApiChatSessionsList(req)
+  }
+  if (
+    url.pathname.match(/^\/api\/chat\/session-messages\/[^/]+\/(approve|discard)$/) &&
+    req.method === 'POST'
+  ) {
+    return handleApiSessionMessageDecision(url)
   }
   if (method === 'GET' && /^\/api\/chat\/sessions\/[^/]+\/files$/.test(url.pathname)) {
     return handleApiChatDocument(url)

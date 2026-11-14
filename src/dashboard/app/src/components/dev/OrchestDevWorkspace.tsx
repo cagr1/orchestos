@@ -1,6 +1,7 @@
 import { Check, ChevronDown, ChevronRight, Copy, Terminal, X } from 'lucide-react'
 import type React from 'react'
 import { useEffect, useRef, useState } from 'react'
+import type { InboundSessionMessage } from '@/api/chat'
 import { ChatMessage } from '@/components/ui/chat-message'
 import { FileThumbnail } from '@/components/ui/file-thumbnail'
 import type { ChatMessageRow, TimelineStep, TimelineTurn } from '../../api/chat'
@@ -20,6 +21,7 @@ import type {
 } from '../../types/orchestos'
 import { AgentComposer, type CliId } from '../common/AgentComposer'
 import { answerText } from '../thread/activity'
+import { InboundSessionMessageBlock, SessionMessageCard } from '../thread/SessionMessageCard'
 import { StoppedResponse } from '../thread/StoppedResponse'
 import { TaskCard } from '../thread/TaskCard'
 import { ThreadMarkdown } from '../thread/ThreadMarkdown'
@@ -67,6 +69,7 @@ interface DevExchangeData {
   turn?: TimelineTurn
   steps: TimelineStep[]
   commands: TimelineResponse['commands']
+  inbound?: InboundSessionMessage
   optimistic?: boolean
 }
 
@@ -114,29 +117,44 @@ function buildExchanges(timeline: TimelineResponse | null): DevExchangeData[] {
         commands: [],
       })
   }
+  for (const event of timeline.events ?? []) {
+    if (event.kind === 'session-message')
+      exchanges.push({ id: `session-message-${event.id}`, inbound: event, steps: [], commands: [] })
+  }
   exchanges.sort((a, b) => {
-    const aAt = a.turn?.createdAt ?? a.userMessage?.createdAt ?? a.assistantMessage?.createdAt ?? ''
-    const bAt = b.turn?.createdAt ?? b.userMessage?.createdAt ?? b.assistantMessage?.createdAt ?? ''
+    const aAt =
+      a.inbound?.at ??
+      a.turn?.createdAt ??
+      a.userMessage?.createdAt ??
+      a.assistantMessage?.createdAt ??
+      ''
+    const bAt =
+      b.inbound?.at ??
+      b.turn?.createdAt ??
+      b.userMessage?.createdAt ??
+      b.assistantMessage?.createdAt ??
+      ''
     return Date.parse(aAt) - Date.parse(bAt)
   })
+  const commandExchanges = exchanges.filter((exchange) => !exchange.inbound)
   for (const command of timeline.commands) {
     const at = Date.parse(command.createdAt)
-    const first = exchanges[0]
+    const first = commandExchanges[0]
     const firstStart = Date.parse(first?.turn?.createdAt ?? first?.userMessage?.createdAt ?? '')
     const containing =
       at < firstStart
         ? first
-        : exchanges.find((exchange) => {
+        : commandExchanges.find((exchange) => {
             const start = Date.parse(
               exchange.turn?.createdAt ?? exchange.userMessage?.createdAt ?? '',
             )
-            const next = exchanges[exchanges.indexOf(exchange) + 1]
+            const next = commandExchanges[commandExchanges.indexOf(exchange) + 1]
             const end = next
               ? Date.parse(next.turn?.createdAt ?? next.userMessage?.createdAt ?? '')
               : Number.POSITIVE_INFINITY
             return Number.isFinite(at) && at >= start && at < end
           })
-    ;(containing ?? exchanges.at(-1))?.commands.push(command)
+    ;(containing ?? commandExchanges.at(-1))?.commands.push(command)
   }
   return exchanges
 }
@@ -421,6 +439,8 @@ export const OrchestDevWorkspace: React.FC<OrchestDevWorkspaceProps> = ({
     : sessionStatus
 
   function DevExchange(exchange: DevExchangeData) {
+    if (exchange.inbound)
+      return <InboundSessionMessageBlock key={exchange.id} message={exchange.inbound} />
     const isCurrentExchange =
       timeline?.live?.turnId === exchange.id || exchange.turn?.status === 'pending'
     const exchangeUserMessage = exchange.userMessage
@@ -737,6 +757,12 @@ export const OrchestDevWorkspace: React.FC<OrchestDevWorkspaceProps> = ({
       >
         <div ref={timelineContentRef} className="max-w-3xl lg:max-w-4xl mx-auto space-y-3">
           {activeAgent && exchanges.map(DevExchange)}
+          {activeAgent &&
+            timeline?.messages.map((row) =>
+              row.sessionMessage ? (
+                <SessionMessageCard key={row.sessionMessage.id} message={row.sessionMessage} />
+              ) : null,
+            )}
           {activeAgent &&
             [...taskCards.byTask.values()].map((card) => {
               const task = tasks.find((item) => item.id === card.taskId)

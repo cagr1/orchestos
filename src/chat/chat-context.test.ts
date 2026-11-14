@@ -207,3 +207,25 @@ describe('chat lessons', () => {
     ).not.toContain(line)
   })
 })
+
+it('MSG.1 sessions are offered only with message_session, capped at eight with short titles', () => {
+  const input = {
+    autoTaskInstruction: '',
+    timeZone: 'UTC',
+    sessions: Array.from({ length: 10 }, (_, i) => ({
+      id: `sibling-${i}`,
+      title: 't'.repeat(90),
+      agent: 'codex',
+      updatedAt: '2026-11-14T10:00:00Z',
+    })),
+  }
+  const without = buildChatSystemPrompt(input)
+  expect(without).not.toContain('Sessions in this project')
+  expect(without).not.toContain('call `message_session`')
+  const offered = buildChatSystemPrompt({ ...input, offeredTools: ['message_session'] })
+  expect(offered).toContain('Sessions in this project (other than this one):')
+  expect(offered).toContain('call `message_session` with its id')
+  expect(offered).toContain(`sibling-7 | ${'t'.repeat(60)} | codex |`)
+  expect(offered).not.toContain('sibling-8')
+  expect(offered).not.toContain('t'.repeat(61))
+})

@@ -125,8 +125,22 @@ esta etapa: `docs/done/bloque-AUD.md` (AUD.16, AUD.17), `docs/done/bloque-SES.md
   a la sesión creada. Límite anotado: varias pestañas "new" del mismo proyecto comparten borrador. qa (gpt-6.1-sol).
   Gate en vivo: navegador y Playwright (`chat-roles`) — `docs/done/evidence/USO.12-live.json`.
   Ejecutado por: gpt-6.1-sol · Spec: docs/specs/USO.12.md
-- [ ] **MSG.1 — Una sesión propone un mensaje a otra del mismo proyecto.** (GO de Carlos 2026-11-13; venía como tarea
-  del chat, sacada de `tasks.yaml`) Primero la spec; pedido completo en `docs/specs/MSG.1.md`.
+- [x] **MSG.1 — Una sesión propone un mensaje a otra del mismo proyecto.** (GO de Carlos 2026-11-13; venía como tarea
+  del chat, sacada de `tasks.yaml`) Hecho: herramienta `message_session` (MCP y API), lista de sesiones del proyecto en
+  el contexto, tabla `session_messages` (migración 43), tarjeta Approve/Discard en el origen, "Message from «…»" en el
+  destino sin lanzar turno; al siguiente turno del destino entra antepuesto en `<untrusted-data>` y se marca
+  consumido. Fuera de `chat_messages` para no romper la reanudación de Claude. qa (gpt-6.1-sol): escape de
+  `<untrusted-data>` (arreglado en `untrustedContent` para todos sus usos) y origen archivado; corregidos por el cerebro.
+  Gate en vivo: navegador (Claude y Codex reales en Dev) y Playwright (`session-message`) — `docs/done/evidence/MSG.1-live.json`.
+  Texto visible: "Message to «…»", "Message from «…»", "Approve", "Discard", "Sent", "Discarded", "Show more" (la tarjeta pide una decisión explícita y nombra la sesión; un ícono no lo dice)
+  Ejecutado por: gpt-6.1-sol · Spec: docs/specs/MSG.1.md
+- [ ] **USO.13 — Menús y tooltips flotantes no siguen el tema elegido.** (Carlos 2026-11-14, captura del menú "New
+  session agent" en azul `#0e1320` con tema oscuro) Causa: `data-theme` solo va en el `<div>` de `App.tsx:1979`; lo
+  montado en `body` por portal cae en `:root` = `orchestos` (`index.css:51-53`). Arreglo: reflejar el tema en
+  `document.documentElement`. Va después de MSG.1 (mismo árbol).
+- [ ] **USO.14 — Tooltips con look de shadcn en toda la app.** (Carlos 2026-11-14, GO a migrar todos) 104 `title=`
+  nativos en 26 archivos pasan al `Tooltip` de `components/ui/tooltip.tsx` (Radix). Spec: `docs/specs/USO.14.md`.
+  Va después de USO.13.
 - [ ] **LRN.1 — OrchestOS aprende de los errores.** (abierto 2026-11-13; GO de Carlos a D1–D6; va después de SES.1 y
   no bloquea el uso real) Diseño: `docs/specs/LRN-1-opinion-fable.md`. Decisiones: D1 alcance por proyecto, global
   solo por promoción manual; D2 tope 1.000 tokens o 15 lecciones; D3 proponer ante firma repetida ≥2, par

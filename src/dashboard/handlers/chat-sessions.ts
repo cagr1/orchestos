@@ -32,6 +32,13 @@ import {
 import { insertConsoleCommand, listConsoleCommands } from '../../db/console-commands.ts'
 import { getRunSteps } from '../../db/run-steps.ts'
 import { getRun } from '../../db/runs.ts'
+import {
+  approveSessionMessage,
+  discardSessionMessage,
+  listApprovedInbound,
+  listSessionMessagesForTurn,
+  SessionMessageError,
+} from '../../db/session-messages.ts'
 import { runOneCheck } from '../../run/checks.ts'
 import { cliChatAdapterFor } from '../../run/executors/chat-adapters.ts'
 import { KNOWN_CLIS } from '../../run/executors/cli-registry.ts'
@@ -89,7 +96,21 @@ function toMessageRow(row: ChatMessageRecord): ChatMessageRow {
     row.role === 'assistant' && row.turn_id
       ? documentsFromEnvelope(getTurn(row.turn_id)?.response_envelope_json ?? null)
       : undefined
+  const proposal =
+    row.role === 'assistant' && row.turn_id ? listSessionMessagesForTurn(row.turn_id)[0] : undefined
   return {
+    ...(proposal
+      ? {
+          sessionMessage: {
+            id: proposal.id,
+            toSessionId: proposal.to_session_id,
+            toTitle: proposal.toTitle,
+            toAgent: proposal.toAgent,
+            content: proposal.content,
+            status: proposal.status,
+          },
+        }
+      : {}),
     ...(documents ? { documents } : {}),
     id: row.id,
     sessionId: row.session_id,
@@ -370,7 +391,17 @@ export function handleApiChatSessionTimeline(url: URL): Response {
   const messages = listChatMessages(id).map(toMessageRow)
   const commands = listConsoleCommands(id)
   const steps = listChatTurnSteps(id)
+  const inbound = listApprovedInbound(id).map((row) => ({
+    kind: 'session-message' as const,
+    id: row.id,
+    at: row.decided_at ?? row.created_at,
+    fromTitle: row.fromTitle,
+    fromAgent: row.fromAgent,
+    content: row.content,
+    consumed: row.consumed_turn_id !== null,
+  }))
   const events = [
+    ...inbound,
     ...turns.map((turn) => ({ kind: 'turn' as const, at: turn.created_at, turnId: turn.id })),
     ...steps.map((step) => ({
       kind: 'step' as const,
@@ -636,4 +667,19 @@ export async function handleApiChatSessionStop(req: Request, url: URL): Promise<
   if (!turn || turn.session_id !== id) return errorResponse('Chat turn not found', 404)
   if (stopChatTurn(id, turnId)) return jsonResponse({ status: 'stopping' }, 202)
   return jsonResponse({ status: turn.status })
+}
+
+export function handleApiSessionMessageDecision(url: URL): Response {
+  const match = url.pathname.match(/^\/api\/chat\/session-messages\/([^/]+)\/(approve|discard)$/)
+  if (!match?.[1]) return errorResponse('Invalid session message id', 400)
+  try {
+    const row =
+      match[2] === 'approve'
+        ? approveSessionMessage(decodeURIComponent(match[1]))
+        : discardSessionMessage(decodeURIComponent(match[1]))
+    return jsonResponse({ id: row.id, status: row.status })
+  } catch (error) {
+    if (error instanceof SessionMessageError) return errorResponse(error.message, error.status)
+    throw error
+  }
 }

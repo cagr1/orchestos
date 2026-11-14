@@ -93,6 +93,15 @@ export interface ChatSessionRow {
 }
 
 export interface ChatMessageRow {
+  sessionMessage?: {
+    id: string
+    toSessionId: string
+    toTitle: string
+    toAgent: string
+    content: string
+    status: 'pending' | 'approved' | 'discarded'
+  }
+
   documents?: import('../chat/documents.ts').ChatDocument[]
   id: number
   sessionId: string

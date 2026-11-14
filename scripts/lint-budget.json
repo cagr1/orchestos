@@ -2,7 +2,7 @@
   "lint/complexity/noThisInStatic": 1,
   "lint/correctness/noUnusedFunctionParameters": 13,
   "lint/correctness/noUnusedVariables": 6,
-  "lint/style/noNonNullAssertion": 90,
+  "lint/style/noNonNullAssertion": 88,
   "lint/suspicious/noArrayIndexKey": 14,
   "lint/suspicious/noConfusingVoidType": 2,
   "lint/suspicious/noExplicitAny": 135,

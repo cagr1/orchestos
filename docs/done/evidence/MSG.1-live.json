@@ -1,0 +1,22 @@
+{
+  "item": "MSG.1",
+  "date": "2026-11-14",
+  "executor": "gpt-6.1-sol (criterio); aserción del ui-gate corregida por el cerebro (Opus 5.5)",
+  "liveUiVerified": true,
+  "live": [
+    "Dashboard real :4242 reiniciado (migración 43 aplicada en ~/.orchestos/db.sqlite), Dev, proyecto orchestos",
+    "Sesión Codex 'Sesión de prueba MSG.1' (GPT-6-Luna) responde 'listo'",
+    "Sesión Claude (Opus 5.5) recibe: 'Pásale a la sesión de Codex ... revisa el último commit'; llama mcp__orchestos__message_session y aparece la tarjeta 'Message to «Sesión de prueba MSG.1 (receptor). Respo»' con Approve / Discard",
+    "Approve → la tarjeta pasa a 'Sent'; el hilo de Codex muestra 'Message from «Pásale a la sesión de Codex \"Sesión de p»' y no arranca ningún turno (botón de envío en reposo)",
+    "Mensaje siguiente en Codex: 'Haz lo que te pidió la otra sesión' → Codex corre git y revisa 2b9a422b",
+    "Rollout de Codex .orchestos/agent-home/codex/sessions/2026/11/14/rollout-2026-11-14T12-27-12-01a1db19-....jsonl contiene <untrusted-data source=\"session-message:Pásale a la sesión de Codex Sesión de p\">",
+    "session_messages 608b8a63: status approved, decided_at 2026-11-14T17:27:49.657Z, consumed_turn_id no nulo"
+  ],
+  "gates": {
+    "tsc": "bunx tsc --noEmit y tsc del app: exit 0",
+    "lint": "bun run lint: 0 errores; tope noNonNullAssertion 90 → 88",
+    "test:coverage": "2951 pass, 2 skip, 0 fail; functions 80.56%, lines 67.43%",
+    "ui:gate session-message": "PASS 3/3 (gate:evidence MSG.1-session-message); primera corrida FAIL por aserción con el título inicial de la sesión de origen, que se renombra con su primer mensaje"
+  },
+  "residual": "El título de sesión se guarda recortado a 40 caracteres sin elipsis, y así sale en 'Message from «…»'."
+}

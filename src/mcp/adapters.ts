@@ -25,6 +25,10 @@ import {
   type CreateTaskArgs,
   type LessonProposal,
   MCP_SERVER_NAME,
+  MESSAGE_SESSION_DESCRIPTION,
+  MESSAGE_SESSION_RESPONSE,
+  MESSAGE_SESSION_SCHEMA,
+  MESSAGE_SESSION_TOOL,
   OPEN_IN_DEV_DESCRIPTION,
   OPEN_IN_DEV_RESPONSE,
   OPEN_IN_DEV_SCHEMA,
@@ -34,7 +38,9 @@ import {
   PROPOSE_LESSON_SCHEMA,
   PROPOSE_LESSON_TOOL,
   parseCreateTaskArgs,
+  parseMessageSessionArgs,
   parseProposeLessonArgs,
+  type SessionMessageProposal,
 } from './server.ts'
 
 export const CREATE_TASK_STEP_LABEL = `mcp__${MCP_SERVER_NAME}__${CREATE_TASK_TOOL}`
@@ -183,6 +189,34 @@ export function openInDevApiTool(onOpen: () => void): { tool: ToolDef; execute: 
     execute: async () => {
       onOpen()
       return OPEN_IN_DEV_RESPONSE
+    },
+  }
+}
+
+export const MESSAGE_SESSION_STEP_LABEL = `mcp__${MCP_SERVER_NAME}__${MESSAGE_SESSION_TOOL}`
+export function messageSessionProposalFromStep(
+  step: ExecutorStepEvent,
+): SessionMessageProposal | null {
+  if (step.type !== 'tool_use' || step.label !== MESSAGE_SESSION_STEP_LABEL) return null
+  const parsed = parseJson(z.unknown(), step.detail ?? '')
+  return parsed.ok
+    ? parseMessageSessionArgs(parsed.data)
+    : { ok: false, error: 'message_session arguments were not valid JSON' }
+}
+export function messageSessionApiTool(onProposal: (proposal: SessionMessageProposal) => void): {
+  tool: ToolDef
+  execute: ToolExecutor
+} {
+  return {
+    tool: {
+      name: MESSAGE_SESSION_TOOL,
+      description: MESSAGE_SESSION_DESCRIPTION,
+      input_schema: MESSAGE_SESSION_SCHEMA as unknown as ToolDef['input_schema'],
+    },
+    execute: async (_name, input) => {
+      const parsed = parseMessageSessionArgs(input)
+      onProposal(parsed)
+      return parsed.ok ? MESSAGE_SESSION_RESPONSE : `[Error: ${parsed.error}]`
     },
   }
 }

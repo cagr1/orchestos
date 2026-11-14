@@ -1325,6 +1325,49 @@ export const FUTURE_MIGRATIONS: readonly SchemaMigrationStep[] = [
           throw new Error(`Migration 42 did not add instincts.${name}`)
     },
   },
+  {
+    version: 43,
+    name: 'session-messages',
+    precondition: () => {},
+    apply: (database) => {
+      database.exec(`CREATE TABLE session_messages (
+        id TEXT PRIMARY KEY, project_id TEXT NOT NULL,
+        from_session_id TEXT NOT NULL REFERENCES chat_sessions(id) ON DELETE CASCADE,
+        from_turn_id TEXT,
+        to_session_id TEXT NOT NULL REFERENCES chat_sessions(id) ON DELETE CASCADE,
+        content TEXT NOT NULL,
+        status TEXT NOT NULL CHECK(status IN ('pending','approved','discarded')),
+        created_at TEXT NOT NULL, decided_at TEXT, consumed_turn_id TEXT
+      );
+      CREATE INDEX session_messages_from_turn ON session_messages(from_turn_id);
+      CREATE INDEX session_messages_inbound ON session_messages(to_session_id, status);`)
+    },
+    postcondition: (database) => {
+      const columns = database
+        .query<{ name: string }, []>('PRAGMA table_info(session_messages)')
+        .all()
+      for (const name of [
+        'id',
+        'project_id',
+        'from_session_id',
+        'from_turn_id',
+        'to_session_id',
+        'content',
+        'status',
+        'created_at',
+        'decided_at',
+        'consumed_turn_id',
+      ])
+        if (!columns.some((column) => column.name === name))
+          throw new Error(`Migration 43 did not add session_messages.${name}`)
+      const indexes = database
+        .query<{ name: string }, []>('PRAGMA index_list(session_messages)')
+        .all()
+      for (const name of ['session_messages_from_turn', 'session_messages_inbound'])
+        if (!indexes.some((index) => index.name === name))
+          throw new Error(`Migration 43 did not add ${name}`)
+    },
+  },
 ]
 
 function appliedVersions(database: Database): Set<number> {
