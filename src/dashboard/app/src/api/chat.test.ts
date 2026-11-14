@@ -354,6 +354,13 @@ describe('chat API mapping', () => {
       events: [],
     })
     expect(detailed[0]).toMatchObject({ reasoning: ['inspect repo'] })
+    expect(detailed[0]?.steps?.map((step) => step.seq)).toEqual([0, 1, 2])
+    expect(detailed[0]?.steps?.[2]).toMatchObject({
+      tool: 'command',
+      detail: 'ls missing',
+      output: 'nope',
+      exitCode: 1,
+    })
     expect(detailed[0]?.toolCalls).toEqual([
       {
         name: 'command',

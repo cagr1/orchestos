@@ -36,6 +36,22 @@
       "closedDate": null
     },
     {
+      "id": "ACT.1",
+      "sprint": "Etapa 2 — Uso real",
+      "block": null,
+      "title": "Vista de actividad del turno, como Claude Code, en Chat y Dev",
+      "status": "done",
+      "closedDate": null
+    },
+    {
+      "id": "USO.8",
+      "sprint": "Etapa 2 — Uso real",
+      "block": null,
+      "title": "Al cargar, el dashboard pide la línea de tiempo de ~36 sesiones a la vez",
+      "status": "open",
+      "closedDate": null
+    },
+    {
       "id": "LRN.1",
       "sprint": "Etapa 2 — Uso real",
       "block": null,

@@ -80,6 +80,16 @@ esta etapa: `docs/done/bloque-AUD.md` (AUD.16, AUD.17), `docs/done/bloque-SES.md
   `OrchestDevWorkspace.tsx` tomaba el primer paso `text` (la respuesta) como pensamiento; ahora junta los pasos
   `reasoning`, como el Chat, y sin ellos no hay fila Thought.
   Ejecutado por: claude-opus-5-5 (fix chico)
+- [x] **ACT.1 — Vista de actividad del turno, como Claude Code, en Chat y Dev.** Gate en vivo: navegador contra el dashboard real con turnos reales de Codex y Claude, `docs/done/evidence/ACT.1-live.json`. (GO de Carlos 2026-11-13)
+  `components/thread/activity.ts` (+ test) agrupa herramientas consecutivas ("Ran 3 commands, edited 2 files · +9 −2"),
+  intercala el texto intermedio y separa la respuesta (`answerText`); `TurnActivity.tsx` lo pinta, en vivo con el paso
+  en curso, "Thinking…"/"Writing…" y tiempo. Reemplaza `ThreadThinking`/`ThreadTools` del Chat y las filas planas de
+  Dev (−370 líneas). Fuera: miniaturas de imágenes.
+  Texto visible: "Failed" (tooltip y aria-label del ícono de fallo: el ícono solo no se anuncia al lector de pantalla)
+  Ejecutado por: gpt-6.1-sol (criterio) + claude-opus-5-5 (ajustes tras gate y qa) · revisión qa: 4 P2 corregidos
+- [ ] **USO.8 — Al cargar, el dashboard pide la línea de tiempo de ~36 sesiones a la vez.** (visto 2026-11-13 en el
+  gate de ACT.1: `performance` lista `/api/chat/sessions/<id>/timeline` para cada chat del historial) Medir quién lo
+  dispara y pedirla solo para el hilo abierto.
 - [ ] **LRN.1 — OrchestOS aprende de los errores.** (abierto 2026-11-13; GO de Carlos a D1–D6; va después de SES.1 y
   no bloquea el uso real) Diseño: `docs/specs/LRN-1-opinion-fable.md`. Decisiones: D1 alcance por proyecto, global
   solo por promoción manual; D2 tope 1.000 tokens o 15 lecciones; D3 proponer ante firma repetida ≥2, par

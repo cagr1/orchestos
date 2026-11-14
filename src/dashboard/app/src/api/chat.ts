@@ -297,6 +297,7 @@ export function attachTurnDetails(
       }))
     return {
       ...message,
+      steps,
       notices: steps.flatMap((step) =>
         step.notice && step.notice.kind !== 'no-response' ? [step.notice] : [],
       ),

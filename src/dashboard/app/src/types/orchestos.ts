@@ -1,6 +1,7 @@
 import type { RunFailureKind } from '../../../../db/runs'
 import type { TaskClass } from '../../../../router/classify'
 import type { CliNotice } from '../../../../run/executors/cli-failure'
+import type { TimelineStep } from '../api/chat'
 export type ApprovalMode = 'supervised' | 'auto-edit' | 'full'
 
 export type TaskStatus = 'pending' | 'running' | 'done' | 'failed' | 'failed_permanent' | 'blocked'
@@ -204,6 +205,7 @@ export interface ChatMessage {
   role: 'user' | 'assistant' | 'system'
   content: string
   timestamp: string
+  steps?: TimelineStep[]
   reasoning?: string[]
   notices?: CliNotice[]
   thoughtMs?: number

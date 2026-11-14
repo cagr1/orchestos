@@ -19,6 +19,7 @@ import { useStopChatTurn } from '../../hooks/useStopChatTurn'
 import { useUserProfile } from '../../hooks/useUserProfile'
 import type { ChatAttachment, ChatThread, SessionStatus, TaskItem } from '../../types/orchestos'
 import { AgentComposer, type CliId } from '../common/AgentComposer'
+import { answerText } from '../thread/activity'
 import {
   type EntranceMode,
   enterSession,
@@ -33,7 +34,7 @@ import { TaskCard } from '../thread/TaskCard'
 import { ThreadEmpty } from '../thread/ThreadEmpty'
 import { ThreadMarkdown } from '../thread/ThreadMarkdown'
 import { ThreadThinking } from '../thread/ThreadThinking'
-import { ThreadTools } from '../thread/ThreadTools'
+import { TurnActivity } from '../thread/TurnActivity'
 import { buildTaskCards } from '../thread/taskCards'
 import { formatElapsed, livePhase } from '../thread/thinking'
 import { RememberDialog } from './RememberDialog'
@@ -249,10 +250,8 @@ export const OrchestChatView: React.FC<OrchestChatViewProps> = ({
       ? liveTimeline.turns.find((turn) => turn.id === liveTurnId)
       : [...liveTimeline.turns].reverse().find((turn) => turn.status === 'pending')
     : undefined
-  const liveReasoning = (liveTurn?.steps ?? [])
-    .filter((step) => step.type === 'reasoning' && step.detail)
-    .sort((a, b) => a.seq - b.seq)
-    .map((step) => (step.detail as string).replace(/^\*\*(.*?)\*\*$/s, '$1'))
+  // La respuesta en vivo es lo que queda tras quitar los textos intermedios (Codex emite el paso al final).
+  const liveAnswer = answerText(liveText, liveTurn?.steps ?? [])
   const stop = useStopChatTurn(
     sessionId,
     liveTurn?.status === 'pending' ? liveTurn.id : undefined,
@@ -516,28 +515,25 @@ export const OrchestChatView: React.FC<OrchestChatViewProps> = ({
                           </>
                         }
                       >
-                        {((msg.reasoning?.length ?? 0) > 0 || (msg.notices?.length ?? 0) > 0) && (
+                        {msg.steps && msg.steps.length > 0 && (
                           <div className="mb-3 whitespace-normal">
-                            <ThreadThinking
-                              active={false}
-                              label={
-                                msg.thoughtMs === undefined
-                                  ? 'Thought'
-                                  : `Thought for ${formatElapsed(msg.thoughtMs)}`
-                              }
-                              steps={msg.reasoning ?? []}
-                              notices={msg.notices}
-                            />
+                            <TurnActivity steps={msg.steps} />
                           </div>
                         )}
-                        {msg.toolCalls && msg.toolCalls.length > 0 && (
-                          <div className="mb-3 whitespace-normal">
-                            <ThreadTools tools={msg.toolCalls} />
-                          </div>
+                        {(msg.notices?.length ?? 0) > 0 && (
+                          <ThreadThinking
+                            active={false}
+                            label=""
+                            steps={[]}
+                            notices={msg.notices}
+                          />
                         )}
                         {(!showCard || showCard.showAnchorText) && (
                           <ThreadMarkdown
-                            text={showCard ? showCard.anchorText : msg.content}
+                            text={answerText(
+                              showCard ? showCard.anchorText : msg.content,
+                              msg.steps ?? [],
+                            )}
                             streaming={false}
                           />
                         )}
@@ -601,19 +597,6 @@ export const OrchestChatView: React.FC<OrchestChatViewProps> = ({
                       </ChatMessage>
                     )
                   })}
-                {working && liveText && (
-                  <ChatMessage
-                    key="live"
-                    from="assistant"
-                    {...motionProps(liveMode.current ?? 'static')}
-                    data-entered={liveMode.current ?? 'static'}
-                    layout={false}
-                    aria-live="polite"
-                    className="max-w-full w-full select-text"
-                  >
-                    <ThreadMarkdown text={liveText} streaming />
-                  </ChatMessage>
-                )}
                 <AnimatePresence initial={false}>
                   {working && (
                     <motion.div
@@ -623,15 +606,51 @@ export const OrchestChatView: React.FC<OrchestChatViewProps> = ({
                       exit={{ opacity: 0 }}
                       transition={{ duration: 0.15 }}
                     >
-                      <ThreadThinking
-                        active
-                        label={livePhase(liveTurn, Boolean(liveText))}
-                        elapsed={formatElapsed(nowMs - workStartedAt)}
-                        steps={liveReasoning}
-                        notices={(liveTurn?.steps ?? []).flatMap((step) =>
-                          step.notice ? [step.notice] : [],
-                        )}
-                      />
+                      {liveTurn?.steps.some(
+                        (step) => step.type !== 'notice' && step.type !== 'step_finish',
+                      ) ? (
+                        <TurnActivity
+                          steps={liveTurn.steps}
+                          live={{ elapsed: formatElapsed(nowMs - workStartedAt) }}
+                        >
+                          {liveAnswer && (
+                            <ChatMessage
+                              key="live"
+                              from="assistant"
+                              {...motionProps(liveMode.current ?? 'static')}
+                              data-entered={liveMode.current ?? 'static'}
+                              layout={false}
+                              aria-live="polite"
+                              className="max-w-full w-full select-text"
+                            >
+                              <ThreadMarkdown text={liveAnswer} streaming />
+                            </ChatMessage>
+                          )}
+                        </TurnActivity>
+                      ) : (
+                        <>
+                          {/* Sin pasos (OpenRouter con herramientas) la respuesta en vivo igual se ve. */}
+                          {liveText && <ThreadMarkdown text={liveText} streaming />}
+                          <ThreadThinking
+                            active
+                            label={livePhase(liveTurn, Boolean(liveText))}
+                            elapsed={formatElapsed(nowMs - workStartedAt)}
+                            steps={[]}
+                          />
+                        </>
+                      )}
+                      {liveTurn?.steps.some(
+                        (step) => step.notice && step.notice.kind !== 'no-response',
+                      ) && (
+                        <ThreadThinking
+                          active={false}
+                          label=""
+                          steps={[]}
+                          notices={liveTurn.steps.flatMap((step) =>
+                            step.notice ? [step.notice] : [],
+                          )}
+                        />
+                      )}
                     </motion.div>
                   )}
                 </AnimatePresence>

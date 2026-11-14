@@ -1,16 +1,4 @@
-import {
-  Check,
-  ChevronDown,
-  ChevronRight,
-  Copy,
-  FilePen,
-  FileText,
-  Loader2,
-  Search,
-  Sparkles,
-  Terminal,
-  X,
-} from 'lucide-react'
+import { Check, ChevronDown, ChevronRight, Copy, Terminal, X } from 'lucide-react'
 import type React from 'react'
 import { useEffect, useRef, useState } from 'react'
 import { ChatMessage } from '@/components/ui/chat-message'
@@ -28,8 +16,11 @@ import type {
   ProjectItem,
 } from '../../types/orchestos'
 import { AgentComposer, type CliId } from '../common/AgentComposer'
+import { answerText } from '../thread/activity'
 import { StoppedResponse } from '../thread/StoppedResponse'
 import { ThreadMarkdown } from '../thread/ThreadMarkdown'
+import { TurnActivity } from '../thread/TurnActivity'
+import { formatElapsed, parseDbTime } from '../thread/thinking'
 import { assistantCopyTarget } from './copy-target'
 import { resolveNewSessionAgent } from './new-session-agent'
 
@@ -137,57 +128,6 @@ function buildExchanges(timeline: TimelineResponse | null): DevExchangeData[] {
   return exchanges
 }
 
-interface DiffLine {
-  type: 'add' | 'del' | 'context' | 'header'
-  oldLineNumber?: number
-  newLineNumber?: number
-  text: string
-}
-
-const INITIAL_DIFF_LINES: DiffLine[] = [] /* real diff lines are supplied by timeline steps */
-/*
-  {
-    type: 'header',
-    text: '@@ -42,7 +42,16 @@ export async function routeExecution(req: EngineRequest): Promise<RunResult> {',
-  },
-  { type: 'del', oldLineNumber: 42, text: '-  if (!req.model) {' },
-  { type: 'del', oldLineNumber: 43, text: "-    throw new Error('Target model not specified');" },
-  { type: 'del', oldLineNumber: 44, text: '-  }' },
-  { type: 'add', newLineNumber: 42, text: '+  if (!req.model) {' },
-  {
-    type: 'add',
-    newLineNumber: 43,
-    text: "+    throw new Error('Target model not specified in engine dispatch');",
-  },
-  { type: 'add', newLineNumber: 44, text: '+  }' },
-  { type: 'add', newLineNumber: 45, text: '+' },
-  { type: 'add', newLineNumber: 46, text: '+  // Enforce context window ceiling check' },
-  { type: 'add', newLineNumber: 47, text: '+  const maxContext = req.contextLimit ?? 200_000;' },
-  { type: 'add', newLineNumber: 48, text: '+  if (req.estimatedTokens > maxContext) {' },
-  {
-    type: 'add',
-    newLineNumber: 49,
-    text: '+    throw new ' + 'Context' + 'ExceededError(`Payload ${req.estimatedTokens} exceeds context' + 'Window ${maxContext}`);',
-  },
-  { type: 'add', newLineNumber: 50, text: '+  }' },
-  { type: 'add', newLineNumber: 51, text: '+' },
-  { type: 'add', newLineNumber: 52, text: '+  // Validate output slice against AST contract' },
-  {
-    type: 'add',
-    newLineNumber: 53,
-    text: '+  await assertContractSlices(req.taskContract, req.modifiedPaths);',
-  },
-  { type: 'context', oldLineNumber: 45, newLineNumber: 54, text: ' ' },
-  {
-    type: 'context',
-    oldLineNumber: 46,
-    newLineNumber: 55,
-    text: '   return executeInWorktree(req);',
-  },
-  { type: 'context', oldLineNumber: 47, newLineNumber: 56, text: ' }' },
-]
-*/
-
 export const OrchestDevWorkspace: React.FC<OrchestDevWorkspaceProps> = ({
   activeProject,
   activeAgent,
@@ -227,13 +167,6 @@ export const OrchestDevWorkspace: React.FC<OrchestDevWorkspaceProps> = ({
   }, [activeProject.id, newSessionAgent])
   // Session status state: amber pulsing dot when waiting for approval
   const [sessionStatus, setSessionStatus] = useState<SessionStatus>('done')
-  const [elapsedTime] = useState('')
-  const [currentStep, setCurrentStep] = useState('')
-
-  // Collapsed state is keyed by exchange so each turn retains its own disclosure state.
-  const [expandedExchanges, setExpandedExchanges] = useState<Record<string, string[]>>({})
-  const [isSearchExpanded, setIsSearchExpanded] = useState(false)
-  const [isEditExpanded, setIsEditExpanded] = useState(false)
   const [isFailingBashExpanded, setIsFailingBashExpanded] = useState(false)
   const [isPassingBashExpanded, setIsPassingBashExpanded] = useState(false)
 
@@ -316,6 +249,13 @@ export const OrchestDevWorkspace: React.FC<OrchestDevWorkspaceProps> = ({
   const exchanges = buildExchanges(timeline)
   const isWorking = sessionStatus === 'working' || timeline?.pending === true
   const pendingTurn = timeline?.turns.find((turn) => turn.status === 'pending')
+  const [nowMs, setNowMs] = useState(Date.now)
+  useEffect(() => {
+    if (!isWorking) return
+    setNowMs(Date.now())
+    const timer = window.setInterval(() => setNowMs(Date.now()), 1000)
+    return () => window.clearInterval(timer)
+  }, [isWorking])
   const stop = useStopChatTurn(
     activeAgent?.id,
     pendingTurn?.id,
@@ -358,17 +298,14 @@ export const OrchestDevWorkspace: React.FC<OrchestDevWorkspaceProps> = ({
   const handleApprove = () => {
     setApprovalState('approved')
     setSessionStatus('working')
-    setCurrentStep('Purging .cache/ast-index and rebuilding symbol graph...')
     setTimeout(() => {
       setSessionStatus('done')
-      setCurrentStep('All AST checks and acceptance criteria fulfilled')
     }, 1200)
   }
 
   const handleDeny = () => {
     setApprovalState('denied')
     setSessionStatus('failed')
-    setCurrentStep('Cache re-indexing denied by user')
   }
 
   const handleCopyBash = (text: string, type: 'fail' | 'pass') => {
@@ -429,7 +366,6 @@ export const OrchestDevWorkspace: React.FC<OrchestDevWorkspaceProps> = ({
     } else {
       setSessionStatus('working')
     }
-    setCurrentStep('')
 
     if (isShellCmd && onRunCommand) {
       onRunCommand(content)
@@ -444,7 +380,8 @@ export const OrchestDevWorkspace: React.FC<OrchestDevWorkspaceProps> = ({
     : sessionStatus
 
   function DevExchange(exchange: DevExchangeData) {
-    const isCurrentExchange = timeline?.live?.turnId === exchange.id
+    const isCurrentExchange =
+      timeline?.live?.turnId === exchange.id || exchange.turn?.status === 'pending'
     const exchangeUserMessage = exchange.userMessage
     const pendingForExchange = exchange.optimistic && pendingUserMessage
     const visibleUserMessage = pendingForExchange
@@ -454,35 +391,8 @@ export const OrchestDevWorkspace: React.FC<OrchestDevWorkspaceProps> = ({
         }
       : exchangeUserMessage
     const steps = exchange.steps
-    // USO.6: el pensamiento son los pasos `reasoning`; los `text` son la respuesta y la repetían.
-    const reasoningSteps = steps.filter((step) => step.type === 'reasoning' && step.detail?.trim())
-    const thoughtStep = reasoningSteps.length
-      ? {
-          detail: reasoningSteps
-            .map((step) => (step.detail as string).replace(/^\*\*(.*?)\*\*$/s, '$1'))
-            .join('\n\n'),
-          durationMs: reasoningSteps.reduce((total, step) => total + (step.durationMs ?? 0), 0),
-        }
-      : undefined
-    const readSteps = steps.filter((step) => step.tool?.toLowerCase() === 'read' && step.target)
-    const searchSteps = steps.filter((step) => step.tool?.toLowerCase().includes('search'))
-    const editSteps = steps.filter((step) =>
-      ['edit', 'write'].includes(step.tool?.toLowerCase() ?? ''),
-    )
-    const cliCommands = steps
-      .filter((step) => step.tool?.toLowerCase() === 'command' && step.detail)
-      .map((step, index) => ({
-        id: -(index + 1),
-        cmd: step.detail ?? '',
-        exitCode: step.exitCode ?? (step.ok === false ? 1 : 0),
-        stdout: step.output ?? '',
-        stderr: '',
-        elapsedMs: step.durationMs ?? 0,
-        createdAt: step.createdAt,
-      }))
-    const allCommands = [...exchange.commands, ...cliCommands]
-    const failedCommands = allCommands.filter((command) => command.exitCode !== 0)
-    const passedCommands = allCommands.filter((command) => command.exitCode === 0)
+    const failedCommands = exchange.commands.filter((command) => command.exitCode !== 0)
+    const passedCommands = exchange.commands.filter((command) => command.exitCode === 0)
     const hasRealTurn = Boolean(
       exchangeUserMessage ||
         exchange.assistantMessage ||
@@ -490,20 +400,12 @@ export const OrchestDevWorkspace: React.FC<OrchestDevWorkspaceProps> = ({
         exchange.commands.length ||
         (isCurrentExchange && timeline?.pending),
     )
+    // Lo intermedio ya está en la actividad; Codex emite su paso `text` al final, así que se filtra por contenido.
     const visibleAssistantMessage =
       isCurrentExchange && timeline?.live?.text
-        ? timeline.live.text
-        : (exchange.assistantMessage?.content ?? '')
+        ? answerText(timeline.live.text, steps)
+        : answerText(exchange.assistantMessage?.content ?? '', steps)
     const assistantCopy = assistantCopyTarget(exchange, visibleAssistantMessage)
-    const isThoughtExpanded = expandedExchanges[exchange.id]?.includes('thought') ?? false
-    const isReadFilesExpanded = expandedExchanges[exchange.id]?.includes('read') ?? false
-    const setExpanded = (key: string, expanded: boolean) =>
-      setExpandedExchanges((current) => {
-        const values = new Set(current[exchange.id] ?? [])
-        if (expanded) values.add(key)
-        else values.delete(key)
-        return { ...current, [exchange.id]: [...values] }
-      })
     return (
       <div key={exchange.id} className="space-y-3 pt-2">
         {/* USER MESSAGE: no avatar, no "You" label; time only on hover */}
@@ -567,225 +469,21 @@ export const OrchestDevWorkspace: React.FC<OrchestDevWorkspaceProps> = ({
         {/* AGENT TURN: FLAT 32px TOOL ROWS (no card borders) */}
         {hasRealTurn && (
           <div className="space-y-1">
-            {/* 1. Thought (collapsed; summary shows only when expanded) */}
-            {thoughtStep && (
-              <div className="text-xs">
-                <button
-                  type="button"
-                  onClick={() => setExpanded('thought', !isThoughtExpanded)}
-                  className="h-8 w-full flex items-center gap-2 px-2 rounded-control hover:bg-app-surface/60 transition-colors text-app-muted cursor-pointer"
-                >
-                  {isThoughtExpanded ? (
-                    <ChevronDown className="w-3.5 h-3.5 flex-shrink-0" />
-                  ) : (
-                    <ChevronRight className="w-3.5 h-3.5 flex-shrink-0" />
-                  )}
-                  <Sparkles className="w-3.5 h-3.5 text-app-accent flex-shrink-0" />
-                  <span className="font-mono text-[11px]">
-                    Thought
-                    {thoughtStep?.durationMs
-                      ? ` · ${Math.round(thoughtStep.durationMs / 1000)}s`
-                      : ''}
-                  </span>
-                </button>
-
-                {isThoughtExpanded && (
-                  <div className="mt-1 mb-2 ml-5 p-3 rounded-control bg-app-surface/50 border border-app/60 font-mono text-[11px] text-app-muted space-y-1.5 leading-relaxed">
-                    <div className="whitespace-pre-wrap">{thoughtStep.detail}</div>
-                  </div>
-                )}
-              </div>
-            )}
-
-            {/* 2. Read: consecutive reads collapse into one row */}
-            {readSteps.length > 0 && (
-              <div className="text-xs">
-                <button
-                  type="button"
-                  onClick={() => setExpanded('read', !isReadFilesExpanded)}
-                  className="h-8 w-full flex items-center justify-between px-2 rounded-control hover:bg-app-surface/60 transition-colors cursor-pointer"
-                >
-                  <div className="flex items-center gap-2 min-w-0">
-                    <FileText className="w-3.5 h-3.5 text-app-muted flex-shrink-0" />
-                    <span className="font-mono text-app-muted text-xs">Read</span>
-                    <span className="font-mono text-app text-xs truncate">
-                      {readSteps.length} {readSteps.length === 1 ? 'file' : 'files'}
-                    </span>
-                  </div>
-                  {isReadFilesExpanded ? (
-                    <ChevronDown className="w-3.5 h-3.5 text-app-muted flex-shrink-0" />
-                  ) : (
-                    <ChevronRight className="w-3.5 h-3.5 text-app-muted flex-shrink-0" />
-                  )}
-                </button>
-
-                {isReadFilesExpanded && (
-                  <div className="mt-1 mb-2 ml-5 p-2 rounded-control bg-app-surface/50 border border-app/60 font-mono text-[11px] text-app-muted space-y-1.5 max-h-48 overflow-y-auto">
-                    {readSteps.map((step) => (
-                      <div
-                        key={step.seq}
-                        className="flex items-center justify-between py-0.5 border-t border-app/40"
-                      >
-                        <span className="text-app">{step.target}</span>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            )}
-
-            {/* 3. Search: search results and count */}
-            {searchSteps.length > 0 && (
-              <div className="text-xs">
-                <button
-                  type="button"
-                  onClick={() => setIsSearchExpanded(!isSearchExpanded)}
-                  className="h-8 w-full flex items-center justify-between px-2 rounded-control hover:bg-app-surface/60 transition-colors cursor-pointer"
-                >
-                  <div className="flex items-center gap-2 min-w-0">
-                    <Search className="w-3.5 h-3.5 text-app-muted flex-shrink-0" />
-                    <span className="font-mono text-app-muted text-xs">Search</span>
-                    <span className="font-mono text-app text-xs truncate">
-                      {searchSteps[0]?.target ?? searchSteps[0]?.detail}
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-2 flex-shrink-0">
-                    <span className="font-mono text-xs text-app-muted">{searchSteps.length}</span>
-                    {isSearchExpanded ? (
-                      <ChevronDown className="w-3.5 h-3.5 text-app-muted" />
-                    ) : (
-                      <ChevronRight className="w-3.5 h-3.5 text-app-muted" />
-                    )}
-                  </div>
-                </button>
-
-                {isSearchExpanded && (
-                  <div className="mt-1 mb-2 ml-5 p-2 rounded-control bg-app-surface/50 border border-app/60 font-mono text-[11px] text-app-muted space-y-1">
-                    {searchSteps[0] && (
-                      <div className="flex items-center justify-between">
-                        <span className="text-app">
-                          {searchSteps[0].target ?? searchSteps[0].detail}
-                        </span>
-                        <span className="text-app-muted/70">{searchSteps[0].detail}</span>
-                      </div>
-                    )}
-                    {searchSteps[1] && (
-                      <div className="flex items-center justify-between border-t border-app/40 pt-1">
-                        <span className="text-app">
-                          {searchSteps[1].target ?? searchSteps[1].detail}
-                        </span>
-                        <span className="text-app-muted/70">{searchSteps[1].detail}</span>
-                      </div>
-                    )}
-                    {searchSteps[2] && (
-                      <div className="flex items-center justify-between border-t border-app/40 pt-1">
-                        <span className="text-app">
-                          {searchSteps[2].target ?? searchSteps[2].detail}
-                        </span>
-                        <span className="text-app-muted/70">{searchSteps[2].detail}</span>
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
-            )}
-
-            {/* 4. Edit: target and line counts */}
-            {editSteps.map((editStep) => (
-              <div key={editStep.seq} className="text-xs">
-                <button
-                  type="button"
-                  onClick={() => setIsEditExpanded(!isEditExpanded)}
-                  className="h-8 w-full flex items-center justify-between px-2 rounded-control hover:bg-app-surface/60 transition-colors cursor-pointer"
-                >
-                  <div className="flex items-center gap-2 min-w-0">
-                    <FilePen className="w-3.5 h-3.5 text-app-muted flex-shrink-0" />
-                    <span className="font-mono text-app-muted text-xs">Edit</span>
-                    <span className="font-mono text-app text-xs truncate">{editStep?.target}</span>
-                  </div>
-                  <div className="flex items-center gap-2 flex-shrink-0 font-mono text-xs">
-                    <span className="text-emerald-400 [[data-diff-palette=colorblind]_&]:text-sky-400 font-medium">
-                      +{editStep?.added ?? 0}
-                    </span>
-                    <span className="text-rose-400 [[data-diff-palette=colorblind]_&]:text-orange-400 font-medium">
-                      −{editStep?.removed ?? 0}
-                    </span>
-                    {isEditExpanded ? (
-                      <ChevronDown className="w-3.5 h-3.5 text-app-muted" />
-                    ) : (
-                      <ChevronRight className="w-3.5 h-3.5 text-app-muted" />
-                    )}
-                  </div>
-                </button>
-
-                {/* Expanded Edit -> inline colored diff */}
-                {isEditExpanded && (
-                  <div className="mt-1 mb-2 ml-5 rounded-control border border-app bg-[#0c1017] font-mono text-[11px] overflow-x-auto">
-                    {INITIAL_DIFF_LINES.map((line, idx) => {
-                      if (line.type === 'header') {
-                        return (
-                          <div
-                            key={idx}
-                            className="px-3 py-1 bg-app-elevated/40 text-app-muted text-[10px] select-none"
-                          >
-                            {line.text}
-                          </div>
-                        )
-                      }
-                      if (line.type === 'del') {
-                        return (
-                          <div
-                            key={idx}
-                            className="px-3 py-0.5 bg-rose-950/30 [[data-diff-palette=colorblind]_&]:bg-orange-950/30 text-rose-300 [[data-diff-palette=colorblind]_&]:text-orange-300 flex items-center gap-3"
-                          >
-                            <span className="w-6 text-right text-rose-500/60 [[data-diff-palette=colorblind]_&]:text-orange-500/60 select-none text-[10px]">
-                              {line.oldLineNumber}
-                            </span>
-                            <span className="select-none text-rose-400 [[data-diff-palette=colorblind]_&]:text-orange-400 font-bold">
-                              -
-                            </span>
-                            <span className="flex-1 whitespace-pre">{line.text.slice(1)}</span>
-                          </div>
-                        )
-                      }
-                      if (line.type === 'add') {
-                        return (
-                          <div
-                            key={idx}
-                            className="px-3 py-0.5 bg-emerald-950/30 [[data-diff-palette=colorblind]_&]:bg-sky-950/30 text-emerald-300 [[data-diff-palette=colorblind]_&]:text-sky-300 flex items-center gap-3"
-                          >
-                            <span className="w-6 text-right text-emerald-500/60 [[data-diff-palette=colorblind]_&]:text-sky-500/60 select-none text-[10px]">
-                              {line.newLineNumber}
-                            </span>
-                            <span className="select-none text-emerald-400 [[data-diff-palette=colorblind]_&]:text-sky-400 font-bold">
-                              +
-                            </span>
-                            <span className="flex-1 whitespace-pre">{line.text.slice(1)}</span>
-                          </div>
-                        )
-                      }
-                      return (
-                        <div
-                          key={idx}
-                          className="px-3 py-0.5 text-app-muted/80 flex items-center gap-3"
-                        >
-                          <span className="w-6 text-right text-app-muted/30 select-none text-[10px]">
-                            {line.newLineNumber}
-                          </span>
-                          <span className="select-none opacity-0"> </span>
-                          <span className="flex-1 whitespace-pre">{line.text}</span>
-                        </div>
-                      )
-                    })}
-                    {INITIAL_DIFF_LINES.length === 0 && (
-                      <pre className="p-3 text-app-muted whitespace-pre-wrap">
-                        {editStep.detail || editStep.output || 'No diff details recorded'}
-                      </pre>
-                    )}
-                  </div>
-                )}
-              </div>
-            ))}
+            <TurnActivity
+              steps={exchange.steps}
+              live={
+                exchange.turn?.status === 'pending' || (exchange.optimistic && isWorking)
+                  ? {
+                      elapsed: formatElapsed(
+                        nowMs -
+                          (exchange.turn
+                            ? parseDbTime(exchange.turn.createdAt)
+                            : (pendingUserMessage?.sentAt ?? nowMs)),
+                      ),
+                    }
+                  : undefined
+              }
+            />
 
             {/* 5. Failing Bash: command output and exit state */}
             {failedCommands.map((failedCommand) => {
@@ -968,17 +666,6 @@ export const OrchestDevWorkspace: React.FC<OrchestDevWorkspaceProps> = ({
             )}
             <StoppedResponse stopped={exchange.assistantMessage?.stopped} />
           </ChatMessage>
-        )}
-
-        {/* 9. WHILE RUNNING: one live row with subtle shimmer, current step and elapsed time */}
-        {isCurrentExchange && sessionStatus === 'working' && (
-          <div className="h-8 px-2.5 flex items-center justify-between text-xs font-mono text-app-muted bg-app-surface/40 rounded-control border border-app/40 animate-pulse">
-            <div className="flex items-center gap-2">
-              <Loader2 className="w-3.5 h-3.5 text-app-accent animate-spin" />
-              <span className="text-app">{currentStep}</span>
-            </div>
-            <span className="text-[11px] text-app-muted">{elapsedTime}</span>
-          </div>
         )}
       </div>
     )

@@ -1,0 +1,12 @@
+{
+  "item": "ACT.1",
+  "date": "2026-11-13",
+  "live": "Navegador integrado (Claude desktop) contra `bun run src/cli.ts dashboard --port 4242` real. Codex (gpt-6.1-sol) en Chat: 'Voy a leer…' intercalado, fila 'Ran 3 commands' expandible con `cat package.json`, `ls -1p scripts/` y el python real (no la carpeta), respuesta final una sola vez; segundo turno con `git log`: 'Ran 4 commands' y la respuesta escribiéndose en vivo tras los comandos. Claude (Opus 5.5, turno real de Carlos) en Chat y Dev: Thought / Searched 7 times / Read 2 files / Read 1 file, searched 1 time / texto intermedio / Used 1 tool; ese texto aparece 1 vez (antes 2). Dev pinta la misma actividad. Bundle 2,41 MB (sin zod/yaml).",
+  "gates": [
+    "bunx tsc --noEmit + tsc del app: 0 errores",
+    "bun run lint: lint-budget sin subir (topes bajados: noArrayIndexKey 14, noExplicitAny 135)",
+    "bun test src/dashboard: 748 pass / 0 fail",
+    "bun run build:app: ok"
+  ],
+  "review": "qa (Codex, Sol) dos rondas: 4 P2 (respuesta en vivo oculta sin pasos y tras herramientas con Codex, texto intermedio duplicado en vivo, answerText recortando la respuesta) corregidos y verificados en vivo"
+}
