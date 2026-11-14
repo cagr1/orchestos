@@ -1,4 +1,4 @@
-# NEXT — handoff 2026-11-13 (uso real en curso; USO.2 y LRN.1b cerrados; lote F0+F1 de lecciones completo)
+# NEXT — handoff 2026-11-13, tarde (uso real en curso; USO.3–USO.6 y ACT.1 cerrados)
 
 Un solo presente: orden y trampas vivas del lote. Lo cerrado vive en `docs/done/bloque-*.md` y git; las reglas, en
 `AGENTS.md`. Versión anterior completa: `docs/done/poda-instrucciones-2026-11-03.md` (histórico).
@@ -19,12 +19,20 @@ auditoría AUD.1–AUD.28 en el orden de la segunda auditoría; lo cerrado está
    Cerrados en esta sesión: USO.2 `78b53643` (el dashboard abre sin `#t=`: el token va en un meta del HTML, se
    borró la pantalla "Dashboard token required", `orchestos dashboard` abre el navegador, `--no-open`) y LRN.1b
    `a6122e4e` (F1: `## Lessons` en el prompt del chat, `propose_lesson`, Remember, edición en Instincts; gate
-   `lessons`). **Siguiente: lo que Carlos reporte usando OrchestOS.** LRN.1c (F3: caducidad a `review` y graduar a
+   `lessons`). Tarde del 2026-11-13, reportes de Carlos: USO.3 `8e11385d` (UI servida con React de desarrollo:
+   `build-app.ts` sin `NODE_ENV`; sondeo de 1 s en Dev y tareas; `gpt-reserve` oculto por Codex; Claude sin grupo
+   `OLDER`), USO.4 `705e205a` (divisor bajo la barra superior), USO.5 `6b1e0805` (desvanecido arriba del hilo),
+   USO.6 `0cb8f2f9` ("Thought" de Dev repetía la respuesta) y ACT.1 `0b5cc0dd` (vista de actividad como Claude
+   Code en Chat y Dev: `components/thread/activity.ts` + `TurnActivity.tsx`). **Siguiente**: USO.8 (al cargar se
+   piden ~36 líneas de tiempo, una por sesión del historial); luego lo que Carlos reporte. `tasks.yaml` tiene staged
+   dos tareas `pending` que creó el chat de Carlos (`chat-7ad67f02…`: borrador del composer que se pierde al cambiar
+   de tab; `chat-c608f987…`): no son del cerebro, no se commitean sin que Carlos las mire. LRN.1c (F3: caducidad a `review` y graduar a
    `AGENTS.md`) cerrado el 2026-11-13; LRN.1 queda abierto solo con F2, que espera datos de F0 (D6). WIN.1 necesita una máquina Windows.
    Trampas: el ejecutor Codex no corre ui-gates (no puede invocar CLIs): los corre el cerebro con
    `bun run gate:evidence -- --label <ID>-<flujo> -- bun run ui:gate -- <flujo>`; un gate que cuenta filas de Settings
    se rompe al sumar una fila (pasó con SES.1b); `boundary-budget` rechaza `JSON.parse` nuevo, usar `parseJson` de
-   `src/boundary`. Re-correr la nocturna con `caffeinate` o el Mac enchufado. No se revisan pantallas por iniciativa propia.
+   `src/boundary` — salvo en la UI: importar `src/boundary` desde `app/src` mete zod y yaml al bundle (+430 KB,
+   visto en ACT.1); allí `JSON.parse` con `try`. Re-correr la nocturna con `caffeinate` o el Mac enchufado. No se revisan pantallas por iniciativa propia.
 3. **Etapa 3 — Windows**: WIN.1, fase 1 = prueba de humo. Nada se arregla antes de verla fallar.
 4. **Etapa 4 — Tauri** (decidido, `IDEAS.md` #41). Se gradúa al plan al abrir la etapa.
 5. **Aparcados, no se toman** (`docs/done/aparcados-2026-11-12.md`): CI.19, CI.54, CI.55, CI.57, CI.69, CI.76, CI.81,
@@ -62,9 +70,8 @@ auditoría AUD.1–AUD.28 en el orden de la segunda auditoría; lo cerrado está
    `chat-*` (attachments, context, followup-task, permissions, readonly-shell, retry-report) y los 3 flaky;
    `chat-timeout` es AUD.9. Para que la corrida cuente: Mac enchufado y con la tapa abierta. Al arrancar, leer el
    aviso del startup-guard y resolver lo rojo antes del siguiente ítem.
-9. Biome: ~280 avisos, con tope por regla (`scripts/lint-budget.json`, CI.80): solo bajan. Los de producto (`any`
-   135 reales con tope 137, `!` 90) cambian código real; bajarlos lo decide Carlos. Ajustar el tope de `any` a 135 es
-   un cambio en `scripts/`, que el hook le niega al cerebro: va delegado.
+9. Biome: ~276 avisos, con tope por regla (`scripts/lint-budget.json`, CI.80): solo bajan (en ACT.1: `any` 135,
+   `noArrayIndexKey` 14). Los de producto (`any`, `!` 90) cambian código real; bajarlos lo decide Carlos.
 10. Cabos sueltos de la sesión SK.1/SK.2 (2026-11-06/07):
    - PR #4 (README sync, conteo de tests) abierto: espera merge de Carlos.
    - Set curado en `~/.orchestos/skills/` sin fases: `tdd`, `karpathy-guidelines`, `verification-before-completion`,
@@ -72,9 +79,6 @@ auditoría AUD.1–AUD.28 en el orden de la segunda auditoría; lo cerrado está
      primeras; `impeccable` sin fase (solo tareas de UI) hasta que haya triggers. Decide Carlos.
    - El import de `SKILL.md` no trae auxiliares: `impeccable` remite a 33 `reference/*.md`, `security-audit` a 4,
      `tdd` a 2. Anotado, sin ítem.
-   - "Thought" en el chat repetiría la respuesta (Carlos, 2026-11-06). Sin reproducir: en `~/.orchestos/db.sqlite`
-     los pasos `reasoning` de Claude llegan vacíos y los de Codex son resúmenes cortos; "Thought" solo muestra pasos
-     `reasoning` (`app/src/api/chat.ts:279`). Necesita un caso (agente, modelo, captura) antes de abrir ítem.
 11. "navegador propio" sin anotar en `IDEAS.md` hasta que Carlos diga qué espera de él.
 
 **Trampas de cierre** (2026-11-12): `delegate qa` exige un archivo de spec (en `/tmp` vale), no texto suelto; el
@@ -139,6 +143,12 @@ salvo CI.69/CI.76, SK.3, UI.70, LIMP.4, auditoría de `IDEAS.md` (`73247216`) y 
 - Dos ítems con un solo spec nunca commiteado: el plan-gate solo acepta un spec compartido que estuvo en la historia;
   el segundo ítem declara `Spec: docs/specs/<su ID>.md` (inexistente) y nombra el compartido en el texto.
 - `git commit -- $VAR` en zsh no separa palabras: usar `xargs` o `${=VAR}`.
+- Apagar el dashboard (:4242) mientras Carlos lo usa le deja la pestaña abierta sin datos: hilos vacíos y el
+  modelo guardado crudo en el composer (`gpt-reserve`). Si lo está usando, se deja arriba y se avisa.
+- `git commit --only -- <ruta>` y `--amend` no pasan `agent:live-gate` (mira lo staged, no el commit): para sumar un
+  arreglo a un commit sin subir, `git reset --soft HEAD~1` y recommitear por rutas.
+- `ui:text-gate` cuenta `title`/`aria-label` como texto visible; un `aria-label` en `<span>` exige `role="img"`
+  (lint `useAriaPropsSupportedByRole`, solo lo ve el pre-push si no se corre `bun run lint`).
 - `qa-negative` depende de que Claude escriba a propósito una salida incorrecta: falló 1 vez en el pre-push
   (2026-11-07) y pasó 26/26 aislado.
 
@@ -190,7 +200,7 @@ salvo CI.69/CI.76, SK.3, UI.70, LIMP.4, auditoría de `IDEAS.md` (`73247216`) y 
 - Nada hardcodeado en quién ejecutó una tarea: lo dice la config.
 - Memory = entrada mecánica por tarea terminada, sin LLM.
 - Árbol sucio = seguir bloqueando + tarea `pending` + "Commit & Run" en el hilo.
-- Peso de `main.js` (~1,9 MB) aceptado; no se reabre sin síntoma medido.
+- Peso de `main.js` (2,41 MB con React de producción, 2026-11-13) aceptado; no se reabre sin síntoma medido.
 
 ## Entorno
 
