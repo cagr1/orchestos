@@ -106,6 +106,14 @@ function readClaudeStatuslineFile(path: string): ClaudeStatuslineReading | null 
   }
 }
 
+function transcriptMtime(path: string): Date | null {
+  try {
+    return statSync(path).mtime
+  } catch {
+    return null
+  }
+}
+
 const STATUSLINE_SESSION_MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000
 
 function statuslineHome(
@@ -407,12 +415,13 @@ export async function readActiveSessionStatuses(
     await Promise.all(
       paths.map(async (transcriptPath) => ({
         transcriptPath,
+        mtime: transcriptMtime(transcriptPath),
         metrics: await readSessionMetrics(transcriptPath, adapters),
       })),
     )
   )
-    .filter((candidate) => candidate.metrics)
-    .sort((a, b) => statSync(b.transcriptPath).mtimeMs - statSync(a.transcriptPath).mtimeMs)
+    .filter((candidate) => candidate.metrics && candidate.mtime)
+    .sort((a, b) => (b.mtime?.getTime() ?? 0) - (a.mtime?.getTime() ?? 0))
 
   const selected = new Map<CliDetectionResult['id'], (typeof candidates)[number]>()
   for (const candidate of candidates) {
@@ -457,7 +466,7 @@ export async function readActiveSessionStatuses(
       observedAt:
         id === 'claude' && claudeStatusline
           ? claudeStatusline.observedAt
-          : statSync(candidate.transcriptPath).mtime.toISOString(),
+          : (candidate.mtime ?? new Date()).toISOString(),
       ...normalized,
     })
   }
@@ -534,7 +543,11 @@ export function discoverSessionTranscripts(projectRoot: string, agentHome = home
     nodir: true,
   }).filter((path) => transcriptDeclaresProject(path, root))
 
-  return [...claude, ...codex].sort((a, b) => statSync(b).mtimeMs - statSync(a).mtimeMs)
+  return [...claude, ...codex]
+    .map((path) => ({ path, mtime: transcriptMtime(path) }))
+    .filter((candidate) => candidate.mtime)
+    .sort((a, b) => (b.mtime?.getTime() ?? 0) - (a.mtime?.getTime() ?? 0))
+    .map((candidate) => candidate.path)
 }
 
 function transcriptDeclaresProject(path: string, projectRoot: string): boolean {

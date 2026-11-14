@@ -182,6 +182,56 @@ describe('H.7.5 — GET /api/session/status', () => {
     ).toBe(true)
   })
 
+  test('conserva la caché cuando falla un refresco en segundo plano', async () => {
+    const root = mkdtempSync(join(tmpdir(), 'orchestos-h75-cache-'))
+    roots.push(root)
+    process.env.ORCHESTOS_SESSION_TRANSCRIPT = join(root, 'cache.jsonl')
+    let calls = 0
+    const statuses = () => {
+      calls += 1
+      if (calls > 1) return Promise.reject(new Error('transcript disappeared'))
+      return Promise.resolve(quotaStatuses)
+    }
+    const deps = { health: async () => [], statuses }
+
+    expect((await handleApiSessionStatus(root, deps)).status).toBe(200)
+    const response = await handleApiSessionStatus(root, deps)
+    expect(response.status).toBe(200)
+    const body = (await response.json()) as { available: boolean }
+    expect(body.available).toBe(true)
+    expect(calls).toBe(2)
+  })
+
+  test('tolera que el transcript desaparezca durante la lectura de métricas', async () => {
+    const root = mkdtempSync(join(tmpdir(), 'orchestos-h75-race-'))
+    roots.push(root)
+    const transcript = join(root, 'race.jsonl')
+    writeFileSync(transcript, '{}\n')
+    const statuses = await readActiveSessionStatuses({
+      projectRoot: root,
+      transcriptPath: transcript,
+      agentHome: root,
+      detectClis: () => fixtureDetections,
+      adapters: [
+        {
+          id: 'codex',
+          thresholds: { warn: 60, critical: 65 },
+          read: async () => {
+            rmSync(transcript)
+            return { used: 60, window: 100, model: 'fixture' }
+          },
+        },
+      ],
+      readCodexRateLimits: async () => ({ windows: [], resetCredits: null }),
+    })
+
+    expect(statuses).toHaveLength(fixtureDetections.length)
+    expect(statuses.find((status) => status.id === 'codex')).toMatchObject({
+      available: true,
+      context: { source: 'codex', pct: 60 },
+    })
+  })
+
   test('lee la cuota de Claude desde el payload de statusLine', async () => {
     const root = mkdtempSync(join(tmpdir(), 'orchestos-h75-statusline-'))
     roots.push(root)

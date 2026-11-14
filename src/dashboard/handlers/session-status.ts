@@ -102,7 +102,8 @@ export async function handleApiSessionStatus(
         return respond(clis)
       }
     } else {
-      void refresh()
+      // Si falla en segundo plano, se conserva la caché.
+      void refresh().catch(() => {})
     }
     const clis = withFreshClaudeQuota(cached.clis)
     return respond(clis)

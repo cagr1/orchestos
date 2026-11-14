@@ -95,9 +95,12 @@ esta etapa: `docs/done/bloque-AUD.md` (AUD.16, AUD.17), `docs/done/bloque-SES.md
   activarse. Al cargar: timeline 38 → 2, tasks 39 → 3. De paso, `data-tool-step` vuelve a `TurnActivity` (ACT.1).
   Ejecutado por: claude-opus-5-5 · revisión qa: 3 P2 corregidos
   Sin delegación: fix chico del cerebro
-- [ ] **USO.9 — El dashboard se cae si un transcript se borra mientras lee el estado de sesión.** (visto 2026-11-13
+- [x] **USO.9 — El dashboard se cae si un transcript se borra mientras lee el estado de sesión.** (visto 2026-11-13
   verificando USO.8: `ENOENT stat …jsonl` en `scripts/session-status.ts:415`, rechazo sin `catch` en
-  `handlers/session-status.ts`, el proceso sale con código 1) Spec: `docs/specs/USO.9.md`.
+  `handlers/session-status.ts`, el proceso sale con código 1) Gate en vivo: navegador, el dashboard real se cayó
+  así; evidencia y tests en `docs/done/evidence/USO.9-live.json`. mtime tolerante (`transcriptMtime`) y
+  `void refresh().catch`. Tests nuevos en `session-status.test.ts`.
+  Ejecutado por: gpt-6-luna · Spec: docs/specs/USO.9.md
 - [ ] **LRN.1 — OrchestOS aprende de los errores.** (abierto 2026-11-13; GO de Carlos a D1–D6; va después de SES.1 y
   no bloquea el uso real) Diseño: `docs/specs/LRN-1-opinion-fable.md`. Decisiones: D1 alcance por proyecto, global
   solo por promoción manual; D2 tope 1.000 tokens o 15 lecciones; D3 proponer ante firma repetida ≥2, par

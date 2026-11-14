@@ -1,0 +1,10 @@
+{
+  "item": "USO.9",
+  "date": "2026-11-13",
+  "live": "Visto en vivo verificando USO.8: el dashboard en 4242 salió con código 1 por `ENOENT stat ~/.claude/projects/<clave>/<uuid>.jsonl` en scripts/session-status.ts:415 (transcript borrado entre listado y stat; rechazo sin catch en `void refresh()`).",
+  "gates": [
+    "bunx tsc --noEmit: 0 errores",
+    "bun test src/dashboard/__tests__/session-status.test.ts: 10 pass, 0 fail (2 nuevos: refresco en segundo plano que falla conserva la caché; transcript borrado durante la lectura)"
+  ],
+  "review": "ejecutor mecanico (Codex); qa (Codex): sin defectos; diff y gates verificados por el cerebro"
+}
