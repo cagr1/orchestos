@@ -1,0 +1,16 @@
+{
+  "item": "USO.12",
+  "date": "2026-11-14",
+  "executor": "gpt-6.1-sol (criterio); traspaso al lanzar agente movido a App por el cerebro (Opus 5.5)",
+  "liveUiVerified": true,
+  "live": [
+    "Chat: escribir 'borrador de prueba USO.12', cambiar a Dev y volver: el texto sigue",
+    "Recarga de la página: el borrador sigue (sessionStorage orchestos:composer-draft:<hilo>)",
+    "ui-gate chat-roles sin esperar la pestaña del agente: PASS 12/12 (el texto escrito durante Launch Agent llega a la sesión)"
+  ],
+  "qa": [
+    "1ª: el traspaso new:* → sesión se hacía en cualquier lanzamiento → ahora solo si el composer visible era el de new:<projectId>",
+    "2ª: varias pestañas 'new' del mismo proyecto comparten borrador (clave por proyecto, la misma que la cola) — anotado, no corregido: no pierde texto; arreglarlo toca las pestañas de Dev y la clave de la cola"
+  ],
+  "tests": "tsc app verde; bun test src/dashboard/app: 311 pass, 0 fail"
+}

@@ -1,4 +1,4 @@
-# NEXT — handoff 2026-11-13, noche (uso real; USO.8–USO.11 cerrados)
+# NEXT — handoff 2026-11-13, noche (uso real; USO.8–USO.12 cerrados)
 
 Un solo presente: orden y trampas vivas del lote. Lo cerrado vive en `docs/done/bloque-*.md` y git; las reglas, en
 `AGENTS.md`. Versión anterior completa: `docs/done/poda-instrucciones-2026-11-03.md` (histórico).
@@ -25,8 +25,7 @@ auditoría AUD.1–AUD.28 en el orden de la segunda auditoría; lo cerrado está
    USO.6 `0cb8f2f9` ("Thought" de Dev repetía la respuesta) y ACT.1 `0b5cc0dd` (vista de actividad como Claude
    Code en Chat y Dev: `components/thread/activity.ts` + `TurnActivity.tsx`). Noche: USO.8 `7d2ecc20` (al cargar solo se pide la línea de tiempo del hilo abierto) y USO.9 `3d79153b` (el
    dashboard se caía si un transcript se borraba al leer el estado). **Push sin pre-push** durante esta etapa
-   (`CLAUDE.md`, `100097d5`). USO.10 y USO.11 cerrados (evidencia en `docs/done/evidence/`). Orden: USO.12 (borrador del composer, spec
-   lista), MSG.1 (escribir la spec). Las 2 tareas que el chat dejó en `tasks.yaml` se sacaron y viven como
+   (`CLAUDE.md`, `100097d5`). USO.10–USO.12 cerrados (evidencia en `docs/done/evidence/`). Orden: MSG.1 (escribir la spec). Las 2 tareas que el chat dejó en `tasks.yaml` se sacaron y viven como
    `docs/specs/USO.12.md` y `docs/specs/MSG.1.md`. LRN.1 queda abierto solo con F2 (espera datos de F0, D6). WIN.1
    necesita una máquina Windows.
    Trampas: un ui-gate de Dev que escribe justo tras `Launch Agent` debe esperar la fila del agente

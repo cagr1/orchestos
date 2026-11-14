@@ -119,8 +119,12 @@ esta etapa: `docs/done/bloque-AUD.md` (AUD.16, AUD.17), `docs/done/bloque-SES.md
   Gate en vivo: navegador (Claude y Codex reales) — `docs/done/evidence/USO.11-live.json`.
   Texto visible: "Download" (botón de la tarjeta de archivo: un ícono solo no dice que descarga)
   Ejecutado por: gpt-6.1-sol · Spec: docs/specs/USO.11.md
-- [ ] **USO.12 — El borrador del composer se pierde al cambiar de pestaña.** (lo propuso el chat de Carlos como tarea,
-  2026-11-13; sacada de `tasks.yaml` por USO.10) Spec: `docs/specs/USO.12.md`.
+- [x] **USO.12 — El borrador del composer se pierde al cambiar de pestaña.** (lo propuso el chat de Carlos como tarea,
+  2026-11-13; sacada de `tasks.yaml` por USO.10) Hecho: borrador por hilo en `lib/composer-drafts.ts` (memoria +
+  sessionStorage), sobrevive a cambiar de vista/pestaña y a recargar; lo escrito en "new" durante Launch Agent pasa
+  a la sesión creada. Límite anotado: varias pestañas "new" del mismo proyecto comparten borrador. qa (gpt-6.1-sol).
+  Gate en vivo: navegador y Playwright (`chat-roles`) — `docs/done/evidence/USO.12-live.json`.
+  Ejecutado por: gpt-6.1-sol · Spec: docs/specs/USO.12.md
 - [ ] **MSG.1 — Una sesión propone un mensaje a otra del mismo proyecto.** (GO de Carlos 2026-11-13; venía como tarea
   del chat, sacada de `tasks.yaml`) Primero la spec; pedido completo en `docs/specs/MSG.1.md`.
 - [ ] **LRN.1 — OrchestOS aprende de los errores.** (abierto 2026-11-13; GO de Carlos a D1–D6; va después de SES.1 y

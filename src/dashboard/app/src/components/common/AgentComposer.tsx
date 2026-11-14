@@ -32,6 +32,11 @@ import {
   writeChatQueue,
 } from '../../lib/chat-queue'
 import { isMacPlatform, sendIntent, useChatSettings } from '../../lib/chat-settings'
+import {
+  readComposerDraft,
+  subscribeComposerDrafts,
+  writeComposerDraft,
+} from '../../lib/composer-drafts'
 import type { ApprovalMode, ChatAttachment } from '../../types/orchestos'
 import { Button } from '../ui/button'
 import { FileThumbnail } from '../ui/file-thumbnail'
@@ -227,7 +232,15 @@ export const AgentComposer: React.FC<AgentComposerProps> = ({
     setSelectedEffort(next.effort)
   }, [lockedCli, defaultCli, defaultModel, defaultEffort, useCliDefaultModel])
 
-  const [inputText, setInputText] = useState('')
+  const inputText = useSyncExternalStore(subscribeComposerDrafts, () =>
+    readComposerDraft(queueThread),
+  )
+  const setInputText = (value: React.SetStateAction<string>) => {
+    writeComposerDraft(
+      queueThread,
+      typeof value === 'function' ? value(readComposerDraft(queueThread)) : value,
+    )
+  }
   const [interrupted, setInterrupted] = useState<{
     userContent: string | null
     hasAttachments: boolean

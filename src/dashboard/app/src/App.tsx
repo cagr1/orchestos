@@ -113,6 +113,7 @@ import {
 } from './lib/appearance-settings'
 import { discardChatQueue } from './lib/chat-queue'
 import { readChatSettings, writeChatSettings } from './lib/chat-settings'
+import { moveComposerDraft } from './lib/composer-drafts'
 import {
   type CommandId,
   KEYBINDINGS,
@@ -1316,11 +1317,19 @@ export default function App() {
     title: string,
   ) => {
     setProjectTabsError(null)
+    // Solo si el composer a la vista era el de `new:<projectId>` (pestaña "new" o Dev sin pestaña activa):
+    // con una sesión abierta, el borrador de "new" no se mueve.
+    const launchedFromNewTab =
+      mode === 'dev' &&
+      activeProjectId === projectId &&
+      (!activeDevTab || activeDevTab.type === 'new')
     const creating = createSession({ agent: cliId, projectId, title })
     const pending = creating.catch(() => null)
     pendingDevAgent.current = pending
     void creating
       .then(async (thread) => {
+        // Lo escrito en la pestaña nueva mientras se lanzaba el agente pasa a su sesión (USO.12).
+        if (launchedFromNewTab) moveComposerDraft(`new:${projectId}`, thread.id)
         setActiveProjectId(projectId)
         updateDevTabs(projectId, (tabs) => openSessionTab(tabs, thread.id))
         localStorage.setItem(

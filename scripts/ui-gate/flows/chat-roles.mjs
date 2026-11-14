@@ -75,12 +75,8 @@ export default async function chatRoles({ page, api, step, shot, visible, cleanu
   await codexOption.click()
   await shot('dev-agent-selected')
   await dialog.getByRole('button', { name: 'Launch Agent', exact: true }).click()
-  // Typing before the launched agent's tab opens lands in the "new" tab's composer, which
-  // unmounts with its draft when the tab switches (USO.12). Wait for the agent tab first.
-  await page
-    .locator('aside[data-resizable-aside="left"] [data-thread-id]')
-    .first()
-    .waitFor({ state: 'visible', timeout: 30_000 })
+  // No wait for the agent tab: text typed in the "new" tab while the agent launches must
+  // reach the launched session (USO.12 moves the draft).
 
   const composer = page.locator('textarea').last()
   // A turn counts as sent when its POST /api/chat response arrives and the reply is
