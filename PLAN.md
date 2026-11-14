@@ -87,9 +87,17 @@ esta etapa: `docs/done/bloque-AUD.md` (AUD.16, AUD.17), `docs/done/bloque-SES.md
   Dev (−370 líneas). Fuera: miniaturas de imágenes.
   Texto visible: "Failed" (tooltip y aria-label del ícono de fallo: el ícono solo no se anuncia al lector de pantalla)
   Ejecutado por: gpt-6.1-sol (criterio) + claude-opus-5-5 (ajustes tras gate y qa) · revisión qa: 4 P2 corregidos
-- [ ] **USO.8 — Al cargar, el dashboard pide la línea de tiempo de ~36 sesiones a la vez.** (visto 2026-11-13 en el
+- [x] **USO.8 — Al cargar, el dashboard pide la línea de tiempo de ~36 sesiones a la vez.** (visto 2026-11-13 en el
   gate de ACT.1: `performance` lista `/api/chat/sessions/<id>/timeline` para cada chat del historial) Medir quién lo
-  dispara y pedirla solo para el hilo abierto.
+  dispara y pedirla solo para el hilo abierto. Gate en vivo: navegador contra el dashboard real, `docs/done/evidence/USO.8-live.json`.
+  `reloadHistory` (31 archivadas) y la hidratación de hilos visibles leían mensajes + timeline + tareas por sesión;
+  ahora leen solo mensajes (`loadThreadMessagesLight`, `detailsLoaded: false`) y el hilo abierto se completa al
+  activarse. Al cargar: timeline 38 → 2, tasks 39 → 3. De paso, `data-tool-step` vuelve a `TurnActivity` (ACT.1).
+  Ejecutado por: claude-opus-5-5 · revisión qa: 3 P2 corregidos
+  Sin delegación: fix chico del cerebro
+- [ ] **USO.9 — El dashboard se cae si un transcript se borra mientras lee el estado de sesión.** (visto 2026-11-13
+  verificando USO.8: `ENOENT stat …jsonl` en `scripts/session-status.ts:415`, rechazo sin `catch` en
+  `handlers/session-status.ts`, el proceso sale con código 1) Spec: `docs/specs/USO.9.md`.
 - [ ] **LRN.1 — OrchestOS aprende de los errores.** (abierto 2026-11-13; GO de Carlos a D1–D6; va después de SES.1 y
   no bloquea el uso real) Diseño: `docs/specs/LRN-1-opinion-fable.md`. Decisiones: D1 alcance por proyecto, global
   solo por promoción manual; D2 tope 1.000 tokens o 15 lecciones; D3 proponer ante firma repetida ≥2, par

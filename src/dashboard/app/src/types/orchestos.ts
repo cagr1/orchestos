@@ -338,6 +338,8 @@ export interface ChatThread {
   messages: ChatMessage[]
   /** `false` mientras los mensajes de la sesión aún se leen (UI.24.7). */
   messagesLoaded?: boolean
+  /** `false` si solo se leyeron los mensajes, sin línea de tiempo ni tareas: se completa al abrirlo (USO.8). */
+  detailsLoaded?: boolean
   running?: boolean
   projectId?: string | null
 }

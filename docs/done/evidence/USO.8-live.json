@@ -1,0 +1,11 @@
+{
+  "item": "USO.8",
+  "date": "2026-11-13",
+  "live": "Navegador integrado contra `bun run src/cli.ts dashboard --port 4242` real tras build:app, `performance` al cargar: antes 38 timeline, 38 messages, 39 tasks (31 sesiones archivadas por reloadHistory + hilos visibles); después 2 timeline (hilo abierto en Chat y pestaña recordada de Dev), 39 messages, 3 tasks. Al abrir otro hilo se piden su messages, timeline y tasks y se ven sus bloques de actividad.",
+  "gates": [
+    "bunx tsc --noEmit y -p src/dashboard/app: 0 errores",
+    "bun test src/dashboard/app: 300 pass, 0 fail",
+    "bun run gate:evidence -- --label USO.8-chat-turn-details -- bun run ui:gate -- chat-turn-details: PASS 29/29 (primero falló: ACT.1 había quitado data-tool-step del hilo; se restauró en TurnActivity.ToolRow)"
+  ],
+  "review": "qa (Codex) en 3 vueltas: lectura vieja pisaba mensajes nuevos, fallo de timeline marcado como completo, reintento pisaba un mensaje pending_; corregidos; tercera vuelta: sin defectos"
+}

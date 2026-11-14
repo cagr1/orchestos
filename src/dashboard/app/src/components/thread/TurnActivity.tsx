@@ -63,7 +63,11 @@ function ToolRow({ step }: { step: TimelineStep }) {
   const target = toolLabel(step)
   const failed = step.ok === false || (step.exitCode !== null && step.exitCode !== 0)
   const row = (
-    <span className="flex min-w-0 flex-1 items-center gap-2 text-xs text-app-muted">
+    <span
+      data-tool-step=""
+      data-tool-status={failed ? 'failed' : 'done'}
+      className="flex min-w-0 flex-1 items-center gap-2 text-xs text-app-muted"
+    >
       <Icon className="h-3.5 w-3.5 shrink-0 text-app-accent" />
       <span className="min-w-0 flex-1 truncate font-mono" title={target}>
         {target}

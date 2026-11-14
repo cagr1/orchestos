@@ -359,7 +359,7 @@ export default function App() {
   )
 
   const loadThreadMessagesRaw = useCallback(
-    async (sessionId: string, projectId?: string | null) => {
+    async (sessionId: string, projectId?: string | null, onIncomplete?: () => void) => {
       if (projectId && purgingProjectIds.current.has(projectId)) return []
       const controller = new AbortController()
       if (projectId) {
@@ -399,13 +399,18 @@ export default function App() {
           if (controllers?.size === 0) projectHydrationControllers.current.delete(projectId)
         }
       }
-      if (controller.signal.aborted) return []
+      if (controller.signal.aborted) {
+        onIncomplete?.()
+        return []
+      }
       const [messagesResult, timelineResult, tasksResult] = settled
       if (messagesResult.status !== 'fulfilled') throw messagesResult.reason
       const rows = messagesResult.value
       const baseMessages = rows.map(mapMessage)
-      if (timelineResult.status !== 'fulfilled' || tasksResult.status !== 'fulfilled')
+      if (timelineResult.status !== 'fulfilled' || tasksResult.status !== 'fulfilled') {
+        onIncomplete?.()
         return baseMessages
+      }
       const detailed = attachTurnDetails(baseMessages, rows, timelineResult.value)
       const pendingTasks = new Map(
         tasksResult.value
@@ -452,13 +457,26 @@ export default function App() {
   )
 
   const loadThreadMessages = useCallback(
-    async (sessionId: string, projectId?: string | null) => {
-      const messages = await loadThreadMessagesRaw(sessionId, projectId)
+    async (sessionId: string, projectId?: string | null, onIncomplete?: () => void) => {
+      const messages = await loadThreadMessagesRaw(sessionId, projectId, onIncomplete)
       return [...(sentAttachments.current.get(sessionId) ?? [])]
         .reverse()
         .reduce((merged, entry) => mergeOptimisticAttachments(merged, entry), messages)
     },
     [loadThreadMessagesRaw],
+  )
+
+  // USO.8: los hilos que no están abiertos y el historial solo leen mensajes; la línea de tiempo y las
+  // tareas se piden al abrir el hilo (antes: una por sesión al cargar, ~38).
+  const loadThreadMessagesLight = useCallback(
+    async (sessionId: string, projectId?: string | null) => {
+      if (projectId && purgingProjectIds.current.has(projectId)) return []
+      const messages = (await getSessionMessages(sessionId, projectId ?? null)).map(mapMessage)
+      return [...(sentAttachments.current.get(sessionId) ?? [])]
+        .reverse()
+        .reduce((merged, entry) => mergeOptimisticAttachments(merged, entry), messages)
+    },
+    [],
   )
 
   const settleChatTurn = useCallback(
@@ -517,8 +535,9 @@ export default function App() {
         const hydrated = await Promise.all(
           loaded.map(async (thread) => ({
             ...thread,
-            messages: await loadThreadMessages(thread.id, thread.projectId).catch(() => []),
+            messages: await loadThreadMessagesLight(thread.id, thread.projectId).catch(() => []),
             messagesLoaded: true,
+            detailsLoaded: false,
           })),
         )
         const activeTimelines = await Promise.all(
@@ -547,7 +566,7 @@ export default function App() {
     return () => {
       disposed = true
     }
-  }, [activeProjectId, projects, mode, loadThreadMessages])
+  }, [activeProjectId, projects, mode, loadThreadMessagesLight])
 
   useEffect(() => {
     let disposed = false
@@ -605,6 +624,50 @@ export default function App() {
       disposed = true
     }
   }, [loadThreadMessages])
+
+  // USO.8: el hilo abierto completa su línea de tiempo y tareas si solo tenía los mensajes.
+  const detailsInFlight = useRef(new Set<string>())
+  const [detailsRetry, setDetailsRetry] = useState(0)
+  const activeNeedsDetails = threads.find(
+    (thread) => thread.id === activeThreadId && thread.detailsLoaded === false,
+  )
+  // biome-ignore lint/correctness/useExhaustiveDependencies: detailsRetry relanza la lectura que quedó vieja.
+  useEffect(() => {
+    const target = activeNeedsDetails
+    if (!target || detailsInFlight.current.has(target.id)) return
+    // Con un envío en vuelo la lectura del servidor aún no lo trae: se espera a que asiente.
+    if (target.messages.some((message) => message.id.startsWith('pending_'))) return
+    detailsInFlight.current.add(target.id)
+    let complete = true
+    let stale = false
+    void loadThreadMessages(target.id, target.projectId, () => {
+      complete = false
+    })
+      .then((messages) => {
+        // Sin línea de tiempo o tareas se queda pendiente: se reintenta al volver a abrirlo.
+        if (!complete) return
+        // Los mensajes cambiaron mientras se leía (envío, sondeo): esta lectura es vieja.
+        const now = threadsRef.current.find((thread) => thread.id === target.id)
+        if (now?.messages !== target.messages) {
+          stale = now?.detailsLoaded === false
+          return
+        }
+        setThreads((current) =>
+          current.map((thread) =>
+            thread.id === target.id &&
+            thread.detailsLoaded === false &&
+            thread.messages === target.messages
+              ? { ...thread, messages, detailsLoaded: true }
+              : thread,
+          ),
+        )
+      })
+      .catch(() => {})
+      .finally(() => {
+        detailsInFlight.current.delete(target.id)
+        if (stale) setDetailsRetry((count) => count + 1)
+      })
+  }, [activeNeedsDetails, loadThreadMessages, detailsRetry])
 
   const currentProject = projects.find((p) => p.id === activeProjectId) || projects[0]
 
@@ -777,7 +840,9 @@ export default function App() {
     const projectNames = new Map(projects.map((project) => [project.id, project.name]))
     const loaded = await Promise.all(
       archived.map(async (session) => {
-        const messages = await loadThreadMessages(session.id, session.projectId).catch(() => [])
+        const messages = await loadThreadMessagesLight(session.id, session.projectId).catch(
+          () => [],
+        )
         const last = messages[messages.length - 1]
         const elapsed = Math.max(0, Date.now() - Date.parse(session.updatedAt))
         const minutes = Math.floor(elapsed / 60000)
@@ -804,7 +869,7 @@ export default function App() {
       }),
     )
     setHistorySessions(loaded)
-  }, [projects, loadThreadMessages])
+  }, [projects, loadThreadMessagesLight])
 
   useEffect(() => {
     if (projects.length) void reloadHistory().catch(() => setHistorySessions([]))
