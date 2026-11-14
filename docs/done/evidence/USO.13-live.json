@@ -1,0 +1,12 @@
+{
+  "item": "USO.13",
+  "date": "2026-11-14",
+  "executor": "cerebro (Opus 5.5), fix chico",
+  "liveUiVerified": true,
+  "live": [
+    "Dashboard real :4242 tras build:app, tema guardado 'carbon'",
+    "document.documentElement.dataset.theme = 'carbon' (antes sin atributo: :root = orchestos)",
+    "Menú 'New session agent' de Dev (portal en body): background rgb(18, 18, 21) = --app-surface de carbon #121215; antes rgb(14, 19, 32) = #0e1320 de orchestos (captura de Carlos)",
+    "border rgb(39, 39, 42)"
+  ]
+}

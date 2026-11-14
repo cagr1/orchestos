@@ -134,10 +134,12 @@ esta etapa: `docs/done/bloque-AUD.md` (AUD.16, AUD.17), `docs/done/bloque-SES.md
   Gate en vivo: navegador (Claude y Codex reales en Dev) y Playwright (`session-message`) — `docs/done/evidence/MSG.1-live.json`.
   Texto visible: "Message to «…»", "Message from «…»", "Approve", "Discard", "Sent", "Discarded", "Show more" (la tarjeta pide una decisión explícita y nombra la sesión; un ícono no lo dice)
   Ejecutado por: gpt-6.1-sol · Spec: docs/specs/MSG.1.md
-- [ ] **USO.13 — Menús y tooltips flotantes no siguen el tema elegido.** (Carlos 2026-11-14, captura del menú "New
+- [x] **USO.13 — Menús y tooltips flotantes no siguen el tema elegido.** (Carlos 2026-11-14, captura del menú "New
   session agent" en azul `#0e1320` con tema oscuro) Causa: `data-theme` solo va en el `<div>` de `App.tsx:1979`; lo
-  montado en `body` por portal cae en `:root` = `orchestos` (`index.css:51-53`). Arreglo: reflejar el tema en
-  `document.documentElement`. Va después de MSG.1 (mismo árbol).
+  montado en `body` por portal cae en `:root` = `orchestos` (`index.css:51-53`). Hecho: el efecto que guarda el tema
+  también lo pone en `document.documentElement`; el menú sale `#121215` con `carbon`. qa (gpt-6.1-sol): sin defectos.
+  Gate en vivo: navegador — `docs/done/evidence/USO.13-live.json`.
+  Sin delegación: fix chico de dos líneas en `App.tsx`, revisado por qa de otro proveedor
 - [ ] **USO.14 — Tooltips con look de shadcn en toda la app.** (Carlos 2026-11-14, GO a migrar todos) 104 `title=`
   nativos en 26 archivos pasan al `Tooltip` de `components/ui/tooltip.tsx` (Radix). Spec: `docs/specs/USO.14.md`.
   Va después de USO.13.

@@ -270,6 +270,8 @@ export default function App() {
 
   useEffect(() => {
     localStorage.setItem('orchestos-theme', theme)
+    // USO.13 — menús y tooltips van por portal a <body>, fuera del div con data-theme: el tema va también en <html>.
+    document.documentElement.setAttribute('data-theme', theme)
   }, [theme])
   useEffect(() => {
     localStorage.setItem('orchestos-language', language)
