@@ -106,12 +106,20 @@ export default async function usageBar({
   )
   const quotaTooltip = async (button) => {
     await page.mouse.move(0, 0)
-    await page.getByRole('tooltip').waitFor({ state: 'hidden' })
-    await button.hover()
-    const tooltip = page.getByRole('tooltip')
+    await page.keyboard.press('Escape')
+    await button.blur()
+    await button.focus()
+    await page.waitForFunction(
+      (element) => Boolean(element.getAttribute('aria-describedby')),
+      await button.elementHandle(),
+    )
+    const tooltipId = await button.getAttribute('aria-describedby')
+    if (!tooltipId) throw new Error('Quota button has no tooltip reference after focus')
+    const tooltip = page.locator(`[role="tooltip"][id="${tooltipId}"]`)
     await tooltip.waitFor({ state: 'visible' })
     const text = await tooltip.textContent()
-    await page.mouse.move(0, 0)
+    await page.keyboard.press('Escape')
+    await button.blur()
     await tooltip.waitFor({ state: 'hidden' })
     return text
   }
@@ -172,7 +180,7 @@ export default async function usageBar({
   })
   await step(
     'app shell and bundle disable browser caching',
-    cacheHeaders.shell?.includes('no-cache') === true &&
+    /no-(cache|store)/.test(cacheHeaders.shell ?? '') &&
       cacheHeaders.bundle?.includes('no-cache') === true,
     `shell=${cacheHeaders.shell ?? 'missing'}, bundle=${cacheHeaders.bundle ?? 'missing'}`,
   )

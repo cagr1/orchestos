@@ -1,8 +1,9 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { getTimeline, listSessions } from '../api/chat'
 import type { PendingApproval } from '../api/runs'
 import { deliverAttention } from '../lib/attention-delivery'
 import { type AttentionSnapshot, detectAttentionEvents } from '../lib/attention-events'
+import { mergeAttentionThreads } from '../lib/attention-threads'
 import { useNotificationSettings } from '../lib/notification-settings'
 import type { ChatThread, TaskItem } from '../types/orchestos'
 
@@ -32,6 +33,8 @@ export function useAttentionNotifications(input: Input) {
   const marks = useRef(new Map<string, string>())
   const sequence = useRef(0)
   const previousProject = useRef(input.projectId)
+  const watched = useRef<ChatThread[]>([])
+  const [polledSessions, setPolledSessions] = useState<ChatThread[]>([])
   const tasks = input.taskSources.flatMap((source) => source.tasks)
   const waiting = tasks.some(
     (task) => task.status === 'running' || (task.pendingApprovals ?? 0) > 0,
@@ -50,8 +53,13 @@ export function useAttentionNotifications(input: Input) {
       if (polling) return
       polling = true
       try {
-        const sessions = await listSessions(latest.current.projectId)
-        if (!disposed) latest.current.onSessions(sessions)
+        const projectId = latest.current.projectId
+        const scopes = projectId ? [null, projectId] : [null]
+        const sessions = (await Promise.all(scopes.map((scope) => listSessions(scope)))).flat()
+        if (!disposed) {
+          latest.current.onSessions(sessions)
+          setPolledSessions(sessions)
+        }
       } catch {
         // A failed read is not a completion transition.
       } finally {
@@ -70,10 +78,16 @@ export function useAttentionNotifications(input: Input) {
       previousProject.current = input.projectId
       previous.current = null
     }
+    watched.current = mergeAttentionThreads(
+      watched.current,
+      [...polledSessions, ...input.threads],
+      input.projectId,
+    )
     if (!input.ready) return
+    const threads = watched.current
     const snapshot: AttentionSnapshot = {
       settings,
-      threads: input.threads.map((thread) => {
+      threads: threads.map((thread) => {
         const working = input.runningIds.has(thread.id)
         const before = previous.current?.threads.find((item) => item.id === thread.id)
         if (working && !before?.working) marks.current.set(thread.id, String(++sequence.current))
@@ -103,7 +117,7 @@ export function useAttentionNotifications(input: Input) {
       }),
       tasks: input.taskSources.flatMap((source) =>
         source.tasks.flatMap((task) => {
-          const thread = input.threads.find(
+          const thread = threads.find(
             (thread) => thread.id === task.sessionId && thread.projectId === source.projectId,
           )
           return thread
@@ -125,7 +139,7 @@ export function useAttentionNotifications(input: Input) {
       if (delivered.current.has(event.key)) continue
       delivered.current.add(event.key)
       if (!document.hidden && document.hasFocus()) continue
-      const thread = input.threads.find((item) => item.id === event.threadId)
+      const thread = threads.find((item) => item.id === event.threadId)
       if (!thread) continue
       const send = async () => {
         if (event.type === 'turnFinished' && !event.key.includes(':task:')) {
@@ -138,5 +152,5 @@ export function useAttentionNotifications(input: Input) {
       }
       void send()
     }
-  }, [input, settings])
+  }, [input, settings, polledSessions])
 }

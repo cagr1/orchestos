@@ -12,6 +12,7 @@ export interface ClaudeResumeDecision {
 export function decideClaudeResume(input: {
   hasSession: boolean
   hasProjectContext: boolean
+  generalChat?: boolean
   stored: { sessionId: string | null; contextHash: string | null; messageCount: number | null }
   historyLength: number
   contextHash: string
@@ -19,7 +20,7 @@ export function decideClaudeResume(input: {
   const { stored } = input
   if (
     !input.hasSession ||
-    !input.hasProjectContext ||
+    (!input.hasProjectContext && !input.generalChat) ||
     !stored.sessionId ||
     stored.messageCount !== input.historyLength
   ) {

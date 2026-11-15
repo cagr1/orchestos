@@ -145,6 +145,7 @@ registerCliChatAdapter('claude', {
       const resumeDecision = decideClaudeResume({
         hasSession: !!i.sessionId,
         hasProjectContext: i.hasProjectContext,
+        generalChat: i.generalChat,
         stored: i.sessionId
           ? getClaudeChatSession(i.sessionId)
           : { sessionId: null, contextHash: null, messageCount: null },
@@ -195,7 +196,12 @@ registerCliChatAdapter('claude', {
         cliSessionId: result.sessionId,
         responseReadAudit: result.readAudit,
         afterSuccess: () => {
-          if (!i.signal?.aborted && i.sessionId && i.hasProjectContext && result.sessionId)
+          if (
+            !i.signal?.aborted &&
+            i.sessionId &&
+            (i.hasProjectContext || i.generalChat) &&
+            result.sessionId
+          )
             setClaudeChatSession(i.sessionId, result.sessionId, contextHash, i.historyLength + 2)
         },
       }

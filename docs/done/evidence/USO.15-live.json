@@ -1,0 +1,44 @@
+{
+  "item": "USO.15",
+  "date": "2026-11-15",
+  "executor": "gpt-6.1-sol (analizar: diagnóstico; criterio: ronda 1 gates, ronda 2 gates + producto); Opus 5.5: fix de ready en App.tsx, usage-bar no-store, revisión del diff",
+  "liveUiVerified": true,
+  "verdicts": {
+    "desfasados (USO.10, Chat sin proyecto)": [
+      "shell-look",
+      "chat-context",
+      "chat-settings",
+      "chat-streaming",
+      "text-sweep",
+      "chat-continuity (búsqueda)",
+      "composer-picker",
+      "chat-readonly-shell",
+      "usage-bar (USO.2 sirve no-store; tooltip Radix de USO.14)"
+    ],
+    "producto roto": [
+      "notifications: en Chat ready nunca era true (attentionSessionsProject=null vs proyecto) y al cambiar de modo se perdían los hilos del otro scope",
+      "chat-continuity/chat-stop: el Chat general no guardaba ni reanudaba la sesión nativa de Claude (decideClaudeResume exigía proyecto): reenviaba el transcript en cada turno"
+    ]
+  },
+  "gates": {
+    "ui-gates (gate:evidence, 2026-11-15)": {
+      "chat-context": "PASS 5/5",
+      "chat-continuity": "PASS 8/8",
+      "chat-readonly-shell": "PASS 5/5",
+      "chat-settings": "PASS 19/19",
+      "chat-stop": "PASS 24/24",
+      "chat-streaming": "PASS 27/27",
+      "composer-picker": "PASS 11/11",
+      "notifications": "PASS 10/10",
+      "shell-look": "PASS 75/75",
+      "text-sweep": "PASS 10/10",
+      "usage-bar": "PASS 22/22"
+    },
+    "tsc": "backend y app exit 0 (ejecutor)",
+    "lint": "exit 0, 273 avisos sin subida (ejecutor)",
+    "test:coverage": "ejecutor: 2957 pass, 1 fail intermitente run-revert.test.ts:268 (TRUST.7, timeout 5 s; pasa aislado con Bun 1.4.0); sin diff en ese test"
+  },
+  "notas": [
+    "Mutation Shards 43582890323 rojo: 'The hosted runner lost communication with the server' (infra de GitHub), no producto"
+  ]
+}

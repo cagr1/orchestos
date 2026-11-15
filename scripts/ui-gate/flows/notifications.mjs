@@ -106,7 +106,6 @@ export default async function notifications({
     if (!purged.ok) throw new Error(`Notifications fixture purge failed: ${purged.status}`)
     rmSync(projectRoot, { recursive: true, force: true, maxRetries: 10, retryDelay: 300 })
   })
-  const headers = { 'x-orchestos-project-id': project.id }
   await page.reload({ waitUntil: 'domcontentloaded' })
   await page.getByRole('button', { name: 'Dev', exact: true }).click()
   const projectRow = page.getByRole('button', { name: basename(projectRoot), exact: true })
@@ -143,13 +142,22 @@ export default async function notifications({
   await page.getByRole('button', { name: 'Chat', exact: true }).click()
   await page.getByRole('button', { name: 'New chat', exact: true }).click()
   const dialog = page.getByRole('dialog')
-  const option = dialog.getByRole('button', { name: basename(projectRoot), exact: true })
-  if (await option.isVisible()) await option.click()
   await dialog
     .getByRole('button', { name: /Claude/ })
     .first()
     .click()
+  const chatCreated = page.waitForResponse(
+    (response) =>
+      response.request().method() === 'POST' &&
+      new URL(response.url()).pathname === '/api/chat/sessions',
+  )
   await dialog.getByRole('button', { name: 'Start Chat', exact: true }).click()
+  const chatSession = await (await chatCreated).json()
+  cleanup(() =>
+    api(`/api/chat/sessions/${encodeURIComponent(chatSession.id)}?project=none`, {
+      method: 'DELETE',
+    }),
+  )
   await page.locator('[data-composer-region] button.font-mono:not([aria-label])').last().click()
   await page.getByRole('button', { name: /haiku/i }).first().click()
   await page.keyboard.press('Escape')
@@ -192,7 +200,7 @@ export default async function notifications({
       () => window.__attention.calls.length === 1 && window.__attention.tones.length === 1,
     ),
   )
-  const session = (await api('/api/chat/sessions', { headers })).data.find(
+  const session = (await api('/api/chat/sessions?project=none')).data.find(
     (item) => item.id === sessionId,
   )
   await step(

@@ -57,7 +57,6 @@ export default async function chatSettings({ page, api, step, shot, visible, hid
     if (!purged.ok) throw new Error(`Chat settings fixture purge failed: ${purged.status}`)
     rmSync(projectRoot, { recursive: true, force: true, maxRetries: 10, retryDelay: 300 })
   })
-  const headers = { 'x-orchestos-project-id': project.id }
   await page.reload({ waitUntil: 'domcontentloaded' })
   await page.getByRole('button', { name: 'Dev', exact: true }).click()
   const projectRow = page.getByRole('button', { name: basename(projectRoot), exact: true })
@@ -102,7 +101,18 @@ export default async function chatSettings({ page, api, step, shot, visible, hid
       .getByRole('button', { name: /Claude/ })
       .first()
       .click()
+    const created = page.waitForResponse(
+      (response) =>
+        response.request().method() === 'POST' &&
+        new URL(response.url()).pathname === '/api/chat/sessions',
+    )
     await dialog.getByRole('button', { name: 'Start Chat', exact: true }).click()
+    const session = await (await created).json()
+    cleanup(() =>
+      api(`/api/chat/sessions/${encodeURIComponent(session.id)}?project=none`, {
+        method: 'DELETE',
+      }),
+    )
     await page.locator('[data-composer-region] button.font-mono:not([aria-label])').last().click()
     await page.getByRole('button', { name: /haiku/i }).first().click()
     await page.keyboard.press('Escape')
@@ -146,7 +156,7 @@ export default async function chatSettings({ page, api, step, shot, visible, hid
   await waitFor(() => responses.length === 1)
   await step('modifier Enter sends', posts.length === 1 && responses[0].ok)
   const sessionId = posts[0].sessionId
-  const timelinePath = `/api/chat/sessions/${encodeURIComponent(sessionId)}/timeline`
+  const timelinePath = `/api/chat/sessions/${encodeURIComponent(sessionId)}/timeline?project=none`
   const long =
     'Cuenta del 1 al 300 en palabras, un número por línea, sin usar herramientas ni escribir archivos.'
   const startLong = async () => {
@@ -158,9 +168,7 @@ export default async function chatSettings({ page, api, step, shot, visible, hid
       30_000,
     )
     await composer.press(modKey)
-    await waitFor(
-      async () => posts.length > count && (await api(timelinePath, { headers })).data?.pending,
-    )
+    await waitFor(async () => posts.length > count && (await api(timelinePath)).data?.pending)
     await page
       .getByRole('button', { name: 'Stop response', exact: true })
       .waitFor({ state: 'visible' })
@@ -237,7 +245,7 @@ export default async function chatSettings({ page, api, step, shot, visible, hid
   await dialog.getByRole('button', { name: 'Cancel', exact: true }).click()
   await step(
     'Cancel preserves chat',
-    (await api(`/api/chat/sessions/${encodeURIComponent(sessionId)}/messages`, { headers })).ok,
+    (await api(`/api/chat/sessions/${encodeURIComponent(sessionId)}/messages?project=none`)).ok,
   )
   await page.getByRole('button', { name: 'Delete chat', exact: true }).first().click()
   await dialog.getByRole('checkbox', { name: "Don't ask again", exact: true }).check()

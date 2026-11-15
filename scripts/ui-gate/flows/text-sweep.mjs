@@ -79,7 +79,18 @@ export default async function textSweep({ page, api, step, visible, hidden, clea
   await step('Codex selector visible', await visible(codex), 'Codex option visible')
   if (!(await codex.isVisible())) return
   await codex.click()
+  const sessionResponse = page.waitForResponse(
+    (response) =>
+      response.request().method() === 'POST' &&
+      new URL(response.url()).pathname === '/api/chat/sessions',
+  )
   await page.getByRole('button', { name: 'Start Chat', exact: true }).click()
+  const createdSession = await (await sessionResponse).json()
+  cleanup(() =>
+    api(`/api/chat/sessions/${encodeURIComponent(createdSession.id)}?project=none`, {
+      method: 'DELETE',
+    }),
+  )
 
   const modelControl = page.locator('[data-composer-region] button.font-mono:not([aria-label])')
   await step('model selector visible', await visible(modelControl), 'composer model selector')
@@ -121,12 +132,12 @@ export default async function textSweep({ page, api, step, visible, hidden, clea
   let assistant
   for (let attempt = 0; attempt < 60 && !assistant; attempt++) {
     if (attempt) await new Promise((resolve) => setTimeout(resolve, 500))
-    const sessions = await api(`/api/chat/sessions?project=${encodeURIComponent(project.id)}`)
-    session = (Array.isArray(sessions.data) ? sessions.data : [])[0]
+    const sessions = await api('/api/chat/sessions?project=none')
+    session = (Array.isArray(sessions.data) ? sessions.data : []).find(
+      (item) => item.id === createdSession.id,
+    )
     const messages = session
-      ? await api(`/api/chat/sessions/${encodeURIComponent(session.id)}/messages`, {
-          headers: { 'x-orchestos-project-id': project.id },
-        })
+      ? await api(`/api/chat/sessions/${encodeURIComponent(session.id)}/messages?project=none`)
       : { data: [] }
     assistant = (Array.isArray(messages.data) ? messages.data : []).find(
       (message) => message.role === 'assistant',

@@ -966,7 +966,14 @@ export default async function shellLook({
     (await devAgentButton.innerText()).trim() === devSession.title,
     await devAgentButton.innerText(),
   )
+  const logoSession = await api('/api/chat/sessions?project=none', {
+    method: 'POST',
+    body: JSON.stringify({ projectId: null, agent: 'codex', title: 'UI27 Chat logo fixture' }),
+  })
+  if (!logoSession.ok) throw new Error(`Chat logo fixture creation failed: ${logoSession.status}`)
+  cleanup(() => api(`/api/chat/sessions/${logoSession.data.id}?project=none`, { method: 'DELETE' }))
   await page.getByRole('button', { name: 'Chat', exact: true }).click()
+  await page.locator(`[data-thread-id="${logoSession.data.id}"]`).waitFor({ state: 'visible' })
   await page.locator('[data-composer-region]').waitFor({ state: 'visible' })
   const chatComposerBorder = await page
     .locator('[data-composer-region]')
@@ -1014,7 +1021,6 @@ export default async function shellLook({
     openRouterLogo.generic && !openRouterLogo.chatgpt,
     JSON.stringify(openRouterLogo),
   )
-  await chatDialog.getByRole('button', { name: basename(projectRoot), exact: true }).click()
   await chatDialog.getByRole('button', { name: /Codex/ }).first().click()
   const contextSessionResponse = page.waitForResponse(
     (response) =>
@@ -1023,24 +1029,22 @@ export default async function shellLook({
   )
   await chatDialog.getByRole('button', { name: 'Start Chat', exact: true }).click()
   const contextSession = await (await contextSessionResponse).json()
-  await api(`/api/chat/sessions/${contextSession.id}`, {
+  cleanup(() => api(`/api/chat/sessions/${contextSession.id}?project=none`, { method: 'DELETE' }))
+  await api(`/api/chat/sessions/${contextSession.id}?project=none`, {
     method: 'PATCH',
-    headers: configHeaders,
     body: JSON.stringify({ title: 'Codex: Chat with Codex' }),
   })
-  const claudeTitle = await api('/api/chat/sessions', {
+  const claudeTitle = await api('/api/chat/sessions?project=none', {
     method: 'POST',
-    headers: configHeaders,
     body: JSON.stringify({
-      projectId: project.id,
+      projectId: null,
       agent: 'claude',
       title: 'Claude: UI27 title fixture',
     }),
   })
   cleanup(async () => {
-    await api(`/api/chat/sessions/${claudeTitle.data.id}`, {
+    await api(`/api/chat/sessions/${claudeTitle.data.id}?project=none`, {
       method: 'DELETE',
-      headers: configHeaders,
     })
   })
   execFileSync(
@@ -1055,7 +1059,7 @@ export default async function shellLook({
          db.run('INSERT INTO runs (id, project_id, prompt, task_class, model, provider, status, context_used_tokens, context_window_tokens, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
            [runId, process.argv[3], 'UI.27.2 context fixture', 'chat', 'gpt-6-luna', 'codex', 'done', 14661, 1000000, now])
          db.run('INSERT INTO chat_turns (id, session_id, project_id, request_key, input_fingerprint, status, run_id, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
-           [crypto.randomUUID(), process.argv[2], process.argv[3], runId, runId, 'completed', runId, now, now])
+           [crypto.randomUUID(), process.argv[2], null, runId, runId, 'completed', runId, now, now])
        } finally { db.close() }`,
       databasePath,
       contextSession.id,
@@ -1063,9 +1067,7 @@ export default async function shellLook({
     ],
     { stdio: 'pipe' },
   )
-  const context = await api(`/api/chat/sessions/${contextSession.id}/context`, {
-    headers: configHeaders,
-  })
+  const context = await api(`/api/chat/sessions/${contextSession.id}/context?project=none`)
   await page.reload({ waitUntil: 'domcontentloaded' })
   await page.getByRole('button', { name: 'Dev', exact: true }).click()
   await page.locator('[data-dev-session-tabs]').waitFor({ state: 'visible' })

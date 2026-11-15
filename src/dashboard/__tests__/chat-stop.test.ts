@@ -221,6 +221,39 @@ test(
 )
 
 test(
+  'general Claude chat saves its native session, resumes, then clears it on Stop',
+  async () => {
+    const result = await isolated(`
+    const { cliChatAdapterFor } = await import('./src/run/executors/chat-adapters.ts')
+    const adapter = cliChatAdapterFor('claude')
+    const calls = []
+    const input = { cwd: '/persistent/chat', system: 'general rules', message: 'question', timeout: 1000, model: 'fake', hasProjectContext: false, generalChat: true, sessionId: session.id, historyLength: 0, transcript: '', imagePaths: [], onStep() {}, onText() {}, deps: { claude: async (...args) => {
+      calls.push({ cwd: args[0], text: args[2], resume: args[9] ?? null, generalChat: args[12] })
+      return { text: 'answer', sessionId: 'native-general', inputTokens: 0, outputTokens: 0, model: 'fake' }
+    } } }
+    const first = await adapter.runTurn(input)
+    first.afterSuccess()
+    const saved = sessions.getClaudeChatSession(session.id)
+    const controller = new AbortController()
+    const second = await adapter.runTurn({ ...input, historyLength: 2, transcript: 'must not be resent', signal: controller.signal, deps: { claude: async (...args) => {
+      calls.push({ cwd: args[0], text: args[2], resume: args[9] ?? null, generalChat: args[12] })
+      controller.abort()
+      return { text: 'partial', sessionId: 'cancelled', inputTokens: 0, outputTokens: 0, model: 'fake' }
+    } } })
+    second.afterSuccess()
+    console.log(JSON.stringify({ saved, calls, stopped: sessions.getClaudeChatSession(session.id) }))
+  `)
+    expect(result.saved).toMatchObject({ sessionId: 'native-general', messageCount: 2 })
+    expect(result.calls).toEqual([
+      { cwd: '/persistent/chat', text: 'question', resume: null, generalChat: true },
+      { cwd: '/persistent/chat', text: 'question', resume: 'native-general', generalChat: true },
+    ])
+    expect(result.stopped.sessionId).toBeNull()
+  },
+  ISOLATED_TIMEOUT_MS,
+)
+
+test(
   'API fetch receives the turn signal; late create_task in tool response is never executed',
   async () => {
     const result = await isolated(`

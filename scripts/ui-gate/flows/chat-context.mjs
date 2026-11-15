@@ -59,11 +59,14 @@ async function waitForReply(page, replyIndex) {
 }
 
 async function startChat(page, agent, projectName) {
-  await page.getByRole('button', { name: 'Chat', exact: true }).click()
-  await page.getByRole('button', { name: 'New chat', exact: true }).click()
+  await page.getByRole('button', { name: 'Dev', exact: true }).click()
+  const projectRow = page.getByRole('button', { name: projectName, exact: true })
+  await projectRow.hover()
+  await projectRow
+    .locator('..')
+    .getByRole('button', { name: 'Launch new agent', exact: true })
+    .click()
   const dialog = page.getByRole('dialog')
-  const projectOption = dialog.getByRole('button', { name: projectName, exact: true })
-  if (await projectOption.isVisible()) await projectOption.click()
   const agentOption = dialog.getByRole('button', { name: new RegExp(agent, 'i') }).first()
   await agentOption.waitFor({ state: 'visible', timeout: 15_000 })
   await agentOption.click()
@@ -72,7 +75,7 @@ async function startChat(page, agent, projectName) {
       response.request().method() === 'POST' &&
       new URL(response.url()).pathname === '/api/chat/sessions',
   )
-  await dialog.getByRole('button', { name: 'Start Chat', exact: true }).click()
+  await dialog.getByRole('button', { name: 'Launch Agent', exact: true }).click()
   const response = await responsePromise
   const session = await response.json()
   if (session.agent !== agent.toLowerCase())

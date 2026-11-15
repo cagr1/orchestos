@@ -61,7 +61,17 @@ export default async function composerPicker({ page, api, step, shot, visible, c
   await step('Codex available for new chat', await visible(codexOption))
   if (!(await codexOption.isVisible())) return
   await codexOption.click()
+  const chatCreated = page.waitForResponse(
+    (response) =>
+      response.request().method() === 'POST' &&
+      new URL(response.url()).pathname === '/api/chat/sessions',
+  )
   await codexDialog.getByRole('button', { name: 'Start Chat', exact: true }).click()
+  const chatSession = await (await chatCreated).json()
+  const sessionId = chatSession.id
+  cleanup(() =>
+    api(`/api/chat/sessions/${encodeURIComponent(sessionId)}?project=none`, { method: 'DELETE' }),
+  )
   const catalogs = (await api('/api/chat/cli-models')).data
   const codex = catalogs?.find((catalog) => catalog.id === 'codex')
   const codexModel = codex?.models.find((model) => model.efforts?.length)
@@ -119,17 +129,11 @@ export default async function composerPicker({ page, api, step, shot, visible, c
     page.off('response', observeResponse)
   })
   const sessionSnapshots = []
-  let sessionId
   const snapshotSession = async (phase) => {
     const at = Date.now()
     try {
-      const response = await api('/api/chat/sessions', {
-        headers: { 'x-orchestos-project-id': projectId },
-      })
-      const session = (response.data ?? []).find((item) =>
-        sessionId ? item.id === sessionId : item.agent === 'codex',
-      )
-      sessionId ??= session?.id
+      const response = await api('/api/chat/sessions?project=none')
+      const session = (response.data ?? []).find((item) => item.id === sessionId)
       sessionSnapshots.push({ phase, at, status: response.status, session: session ?? null })
     } catch (error) {
       sessionSnapshots.push({ phase, at, error: String(error) })
@@ -222,7 +226,25 @@ export default async function composerPicker({ page, api, step, shot, visible, c
   )
   await shot('codex-efforts-preserved')
   await page.keyboard.press('Escape')
+  await page.getByRole('button', { name: 'Dev', exact: true }).click()
+  await projectButton.hover()
+  await projectButton
+    .locator('..')
+    .getByRole('button', { name: 'Launch new agent', exact: true })
+    .click()
+  const devDialog = page.getByRole('dialog')
+  await devDialog.getByRole('button', { name: /Codex/ }).first().click()
+  const devCreated = page.waitForResponse(
+    (response) =>
+      response.request().method() === 'POST' &&
+      new URL(response.url()).pathname === '/api/chat/sessions',
+  )
+  await devDialog.getByRole('button', { name: 'Launch Agent', exact: true }).click()
+  const devSession = await (await devCreated).json()
+  await page.locator(`[data-thread-id="${devSession.id}"]`).waitFor()
+  await page.locator(`[data-session-tab="${devSession.id}"][aria-selected="true"]`).waitFor()
   const composer = page.locator('textarea').last()
+  await composer.waitFor({ state: 'visible' })
   await composer.fill('@READ')
   const files = page.getByRole('listbox', { name: 'Project files' })
   await step(

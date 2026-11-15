@@ -1113,10 +1113,11 @@ export default function App() {
     setMode('dev')
   }
 
+  // Chat lista sesiones sin proyecto (USO.10): `ready` espera la lista del modo visible; el hook vigila ambos scopes.
+  const attentionScope = mode === 'chat' ? null : (currentProject?.id ?? null)
   useAttentionNotifications({
     ready:
-      attentionSessionsProject === (currentProject?.id ?? null) &&
-      attentionTasksProject === currentProject?.id,
+      attentionSessionsProject === attentionScope && attentionTasksProject === currentProject?.id,
     threads,
     runningIds: runningSessionIds,
     failedIds: failedSessionIds.current,

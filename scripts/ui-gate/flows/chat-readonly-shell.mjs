@@ -12,11 +12,16 @@ function runJson(source) {
 async function sendTurn(page, composer, message) {
   await composer.waitFor({ state: 'visible', timeout: 30_000 })
   await composer.fill(message)
+  const send = page.getByRole('button', { name: 'Send message', exact: true }).last()
+  await send.waitFor({ state: 'visible' })
+  await page.waitForFunction(() =>
+    document.querySelector('button[aria-label="Send message"]:not(:disabled)'),
+  )
   const responsePromise = page.waitForResponse(
     (res) => res.request().method() === 'POST' && new URL(res.url()).pathname === '/api/chat',
     { timeout: 180_000 },
   )
-  await composer.press('Enter')
+  await send.click()
   const response = await responsePromise
   if (!response.ok())
     throw new Error(
@@ -38,11 +43,14 @@ async function sendTurn(page, composer, message) {
 }
 
 async function startChat(page, agent, projectName) {
-  await page.getByRole('button', { name: 'Chat', exact: true }).click()
-  await page.getByRole('button', { name: 'New chat', exact: true }).click()
+  await page.getByRole('button', { name: 'Dev', exact: true }).click()
+  const projectRow = page.getByRole('button', { name: projectName, exact: true })
+  await projectRow.hover()
+  await projectRow
+    .locator('..')
+    .getByRole('button', { name: 'Launch new agent', exact: true })
+    .click()
   const dialog = page.getByRole('dialog')
-  const projectOption = dialog.getByRole('button', { name: projectName, exact: true })
-  if (await projectOption.isVisible()) await projectOption.click()
   await dialog
     .getByRole('button', { name: new RegExp(agent, 'i') })
     .first()
@@ -52,10 +60,13 @@ async function startChat(page, agent, projectName) {
       response.request().method() === 'POST' &&
       new URL(response.url()).pathname === '/api/chat/sessions',
   )
-  await dialog.getByRole('button', { name: 'Start Chat', exact: true }).click()
+  await dialog.getByRole('button', { name: 'Launch Agent', exact: true }).click()
   const session = await (await responsePromise).json()
   if (session.agent !== agent.toLowerCase())
     throw new Error(`Expected ${agent} session, received ${session.agent}`)
+  // The POST opens a tab before /api/projects hydrates its agent and composer.
+  await page.locator(`[data-thread-id="${session.id}"]`).waitFor()
+  await page.locator(`[data-session-tab="${session.id}"][aria-selected="true"]`).waitFor()
   return session
 }
 

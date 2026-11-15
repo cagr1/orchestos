@@ -149,11 +149,16 @@ esta etapa: `docs/done/bloque-AUD.md` (AUD.16, AUD.17), `docs/done/bloque-SES.md
   Gate en vivo: navegador y Playwright (`thread-states` 311/311, 4 temas) — `docs/done/evidence/USO.14-live.json`.
   Texto visible: "Stop this agent?", "(diff)", "Unsaved", "Files", "Diff", "History", "Aa", "Approval", "Terminal", "Plan" (textos existentes que solo cambiaron de línea al envolverlos en Tooltip)
   Ejecutado por: gpt-6.1-sol · Spec: docs/specs/USO.14.md
-- [ ] **USO.15 — 11 ui-gates rojos previos a USO.14.** (visto 2026-11-14 al verificar USO.14; fallan igual en
+- [x] **USO.15 — 11 ui-gates rojos previos a USO.14.** (visto 2026-11-14 al verificar USO.14; fallan igual en
   `089e9ba7`) `shell-look` (logos de filas de Chat), `chat-context`, `chat-continuity`, `chat-readonly-shell`,
   `chat-settings`, `chat-stop`, `chat-streaming`, `composer-picker`, `notifications`, `text-sweep`, `usage-bar`.
-  Sospecha: desfase con USO.10/USO.11 (Chat sin proyecto) y USO.3 (caché); separar gate desfasado de producto roto.
-  Evidencia: `docs/done/evidence/USO.14-live.json`.
+  Hecho: 9 gates desfasados por USO.10 (Chat sin proyecto: scope `?project=none`, lo de proyecto se prueba en Dev),
+  `usage-bar` acepta `no-store` (USO.2) y abre tooltips Radix con `focus()`. Dos productos rotos por USO.10: en Chat
+  las notificaciones nunca se activaban (`ready` comparaba `null` con el proyecto) y al cambiar de modo se perdían los
+  hilos del otro scope (`lib/attention-threads.ts`, el hook sondea Chat general y proyecto); el Chat general no
+  guardaba ni reanudaba la sesión nativa de Claude y reenviaba el transcript cada turno (`decideClaudeResume`).
+  Gate en vivo: Playwright (11 ui-gates, `gate:evidence`, todos PASS) — `docs/done/evidence/USO.15-live.json`.
+  Ejecutado por: gpt-6.1-sol · Spec: docs/specs/USO.15.md
 - [ ] **LRN.1 — OrchestOS aprende de los errores.** (abierto 2026-11-13; GO de Carlos a D1–D6; va después de SES.1 y
   no bloquea el uso real) Diseño: `docs/specs/LRN-1-opinion-fable.md`. Decisiones: D1 alcance por proyecto, global
   solo por promoción manual; D2 tope 1.000 tokens o 15 lecciones; D3 proponer ante firma repetida ≥2, par

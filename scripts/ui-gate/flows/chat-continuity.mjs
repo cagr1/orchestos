@@ -50,12 +50,10 @@ async function sendTurn(page, composer, message, note) {
   return { api: apiText, dom: domText }
 }
 
-async function startChat(page, agent, projectName) {
+async function startChat(page, agent) {
   await page.getByRole('button', { name: 'Chat', exact: true }).click()
   await page.getByRole('button', { name: 'New chat', exact: true }).click()
   const dialog = page.getByRole('dialog')
-  const projectOption = dialog.getByRole('button', { name: projectName, exact: true })
-  if (await projectOption.isVisible()) await projectOption.click()
   await dialog
     .getByRole('button', { name: new RegExp(agent, 'i') })
     .first()
@@ -82,16 +80,13 @@ async function selectClaudeHaiku(page) {
   await page.keyboard.press('Escape')
 }
 
-async function reopenSession(page, api, project, session) {
+async function reopenSession(page, api, session) {
   await page.reload({ waitUntil: 'domcontentloaded' })
-  await page.getByRole('button', { name: 'Dev', exact: true }).click()
-  const projectName = basename(project.path)
-  const sessions = await api(`/api/chat/sessions?project=${encodeURIComponent(project.id)}`)
+  await page.getByRole('button', { name: 'Chat', exact: true }).click()
+  const sessions = await api('/api/chat/sessions?project=none')
   const saved = (sessions.data ?? []).find((item) => item.id === session.id)
   if (!saved?.title) throw new Error(`Chat session missing after reload: ${session.id}`)
-  const projectButton = page.getByRole('button', { name: projectName, exact: true })
   const savedThread = page.locator(`[data-thread-id="${session.id}"]`)
-  if (!(await savedThread.isVisible().catch(() => false))) await projectButton.click()
   await savedThread.click()
 }
 
@@ -147,7 +142,12 @@ export default async function chatContinuity({
   const projectButton = page.getByRole('button', { name: basename(projectRoot), exact: true })
   await step('temporary project visible', await visible(projectButton), basename(projectRoot))
   await projectButton.click()
-  const claudeSession = await startChat(page, 'Claude', basename(projectRoot))
+  const claudeSession = await startChat(page, 'Claude')
+  cleanup(() =>
+    api(`/api/chat/sessions/${encodeURIComponent(claudeSession.id)}?project=none`, {
+      method: 'DELETE',
+    }),
+  )
   await selectClaudeHaiku(page)
   const claudeComposer = page.locator('textarea').last()
   const firstClaude = await sendTurn(
@@ -156,7 +156,7 @@ export default async function chatContinuity({
     `Remember this code for later: ${sentinel}. Reply only OK.`,
     note,
   )
-  await reopenSession(page, api, project, claudeSession)
+  await reopenSession(page, api, claudeSession)
   const claudeQuestion = await sendTurn(page, page.locator('textarea').last(), question, note)
   const claudeCapture = readFileSync(
     join(captureDir, `chat-cli-input-${claudeSession.id}.txt`),
@@ -176,7 +176,12 @@ export default async function chatContinuity({
   )
   await shot('chat-continuity-claude')
 
-  const codexSession = await startChat(page, 'Codex', basename(projectRoot))
+  const codexSession = await startChat(page, 'Codex')
+  cleanup(() =>
+    api(`/api/chat/sessions/${encodeURIComponent(codexSession.id)}?project=none`, {
+      method: 'DELETE',
+    }),
+  )
   const codexComposer = page.locator('textarea').last()
   await sendTurn(
     page,
@@ -184,7 +189,7 @@ export default async function chatContinuity({
     `Remember this code for later: ${sentinel}. Reply only OK.`,
     note,
   )
-  await reopenSession(page, api, project, codexSession)
+  await reopenSession(page, api, codexSession)
   const codexAnswer = await sendTurn(page, page.locator('textarea').last(), question, note)
   const resumedCapture = readFileSync(
     join(captureDir, `chat-cli-input-${codexSession.id}.txt`),
@@ -222,16 +227,14 @@ export default async function chatContinuity({
   )
   await shot('chat-continuity-codex-expired')
 
-  await reopenSession(page, api, project, codexSession)
-  const contextUrl = `/api/chat/sessions/${encodeURIComponent(codexSession.id)}/context`
+  await reopenSession(page, api, codexSession)
+  const contextUrl = `/api/chat/sessions/${encodeURIComponent(codexSession.id)}/context?project=none`
   const contextRing = page.locator('[aria-label^="Context window usage:"]').last()
   const deadline = Date.now() + 15_000
   let contextMatch = false
   let contextDetails = ''
   while (Date.now() < deadline) {
-    const context = await api(contextUrl, {
-      headers: { 'x-orchestos-project-id': project.id },
-    })
+    const context = await api(contextUrl)
     const label = await contextRing.getAttribute('aria-label')
     const shownPct = Number(label?.match(/^Context window usage: ([\d.]+)%$/)?.[1])
     const expectedPct = Number(context.data?.pct)
@@ -246,5 +249,5 @@ export default async function chatContinuity({
     }
     await page.waitForTimeout(250)
   }
-  await step('Dev context ring matches the open session', contextMatch, contextDetails)
+  await step('Chat context ring matches the open session', contextMatch, contextDetails)
 }

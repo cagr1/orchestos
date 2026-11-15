@@ -21,6 +21,17 @@ describe('decideClaudeResume (AT.19.1)', () => {
   it('retoma con context-update si el hash cambió', () => {
     expect(decideClaudeResume({ ...base, contextHash: 'h2' }).contextUpdate).toBe(true)
   })
+  it('retoma el chat general con directorio persistente sin autorizar un proyecto', () => {
+    expect(decideClaudeResume({ ...base, hasProjectContext: false, generalChat: true })).toEqual({
+      resume: 'sid',
+      includeTranscript: false,
+      contextUpdate: false,
+    })
+    expect(
+      decideClaudeResume({ ...base, hasProjectContext: false, generalChat: true, historyLength: 6 })
+        .resume,
+    ).toBeNull()
+  })
   it('no retoma si el conteo no coincide', () => {
     expect(decideClaudeResume({ ...base, historyLength: 6 })).toEqual({
       resume: null,

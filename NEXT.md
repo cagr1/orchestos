@@ -1,4 +1,4 @@
-# NEXT — handoff 2026-11-15 (uso real; MSG.1, USO.13, USO.14 cerrados; sigue USO.15)
+# NEXT — handoff 2026-11-15 (uso real; MSG.1, USO.13, USO.14, USO.15 cerrados)
 
 Un solo presente: orden y trampas vivas del lote. Lo cerrado vive en `docs/done/bloque-*.md` y git; las reglas, en
 `AGENTS.md`. Versión anterior completa: `docs/done/poda-instrucciones-2026-11-03.md` (histórico).
@@ -31,8 +31,10 @@ auditoría AUD.1–AUD.28 en el orden de la segunda auditoría; lo cerrado está
    2026-11-14/15: MSG.1 `911b0302` (`message_session`, tabla `session_messages`, tarjeta Approve/Discard, entrega sin
    turno, inbound en `<untrusted-data>`; `untrustedContent` ahora neutraliza marcas internas), USO.13 `089e9ba7`
    (tema también en `<html>` para portales), USO.14 `91388169` (tooltips Radix en toda la UI).
-   **Siguiente: USO.15** — 11 ui-gates rojos que fallan igual en `089e9ba7` (lista en `PLAN.md`); separar gate
-   desfasado de producto roto, empezar por los de Chat (USO.10/USO.11) y `usage-bar` (caché, USO.3).
+   USO.15 (2026-11-15): los 11 ui-gates en verde; 9 desfasados por USO.10, y 2 productos rotos arreglados
+   (notificaciones en Chat; el Chat general no reanudaba la sesión de Claude y reenviaba el transcript).
+   **Siguiente**: lo que reporte Carlos en uso real; si no hay, decidir entre LRN.1 F2 (espera datos) y WIN.1.
+   Flaky visto: `run-revert.test.ts:268` (TRUST.7) por timeout de 5 s con la suite cargada; pasa aislado.
    Pendiente de Carlos: cerrar en Dev las dos sesiones de prueba de MSG.1 ("Sesión de prueba MSG.1", "Pásale a la
    sesión…"); el endpoint de archivo solo acepta sesiones de Chat.
    Trampas nuevas: `mecanico` (Luna) se negó 2 veces sin cambios (leyó `NEXT.md` desfasado como "cambios ajenos"; creyó

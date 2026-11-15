@@ -211,6 +211,9 @@ export default async function chatStreaming({ page, api, step, shot, visible, cl
     throw new Error(`Chat creation did not complete: ${await chatDialog.innerText()}; ${error}`)
   }
   const session = await sessionResponse.json()
+  cleanup(() =>
+    api(`/api/chat/sessions/${encodeURIComponent(session.id)}?project=none`, { method: 'DELETE' }),
+  )
   if (session.agent !== 'claude')
     throw new Error(`Expected Claude session, received ${session.agent}`)
   await selectHaiku(page, visible)
@@ -255,9 +258,9 @@ export default async function chatStreaming({ page, api, step, shot, visible, cl
       }
     }
     const text = await visibleText()
-    const timeline = await api(`/api/chat/sessions/${encodeURIComponent(session.id)}/timeline`, {
-      headers: { 'x-orchestos-project-id': project.id },
-    })
+    const timeline = await api(
+      `/api/chat/sessions/${encodeURIComponent(session.id)}/timeline?project=none`,
+    )
     if (text && firstAt === null) firstAt = Date.now() - startedAt
     if (text.length > previousLength) {
       if (previousLength > 0) growthCount++
@@ -407,11 +410,10 @@ export default async function chatStreaming({ page, api, step, shot, visible, cl
       [...perPosition.values()].every((count) => count === 1),
     `events=${JSON.stringify(entrances.events)}`,
   )
-  const contextUrl = `/api/chat/sessions/${encodeURIComponent(session.id)}/context`
-  const contextHeaders = { headers: { 'x-orchestos-project-id': project.id } }
+  const contextUrl = `/api/chat/sessions/${encodeURIComponent(session.id)}/context?project=none`
   const ring = page.locator('[aria-label^="Context window usage:"]').last()
   const firstContext = await waitFor(async () => {
-    const result = await api(contextUrl, contextHeaders)
+    const result = await api(contextUrl)
     const label = await ring.getAttribute('aria-label')
     const shownPct = Number(label?.match(/^Context window usage: ([\d.]+)%$/)?.[1])
     return result.data?.pct > 0 &&
@@ -447,7 +449,7 @@ export default async function chatStreaming({ page, api, step, shot, visible, cl
     const option = options.nth(index)
     const model = await optionModel(option)
     if (!model || model === 'Select model and reasoning effort' || model === currentModel) continue
-    const candidate = await api(`${contextUrl}?model=${encodeURIComponent(model)}`, contextHeaders)
+    const candidate = await api(`${contextUrl}&model=${encodeURIComponent(model)}`)
     if (
       Number.isFinite(candidate.data?.pct) &&
       Math.min(100, candidate.data.pct) !== Math.min(100, firstContext?.pct ?? 0)
@@ -533,9 +535,9 @@ export default async function chatStreaming({ page, api, step, shot, visible, cl
     await sendTurn(page, composer, prompt)
     sampledChatPrompts.push(prompt)
     secondChatCompletion = await waitFor(async () => {
-      const timeline = await api(`/api/chat/sessions/${encodeURIComponent(session.id)}/timeline`, {
-        headers: { 'x-orchestos-project-id': project.id },
-      })
+      const timeline = await api(
+        `/api/chat/sessions/${encodeURIComponent(session.id)}/timeline?project=none`,
+      )
       if (timeline.data?.pending && !chatComposerMidTurnChecked) {
         chatComposerMidTurnChecked = true
         const composerValue = await composer.inputValue()

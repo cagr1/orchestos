@@ -96,13 +96,14 @@ export default async function chatStop({ page, api, step, shot, visible, cleanup
     if (!purged.ok) throw new Error(`Stop fixture purge failed: ${purged.status}`)
     rmSync(projectRoot, { recursive: true, force: true, maxRetries: 10, retryDelay: 300 })
   })
-  const headers = { 'x-orchestos-project-id': project.id }
   await page.reload({ waitUntil: 'domcontentloaded' })
   await page.getByRole('button', { name: 'Dev', exact: true }).click()
   const projectRow = page.getByRole('button', { name: basename(projectRoot), exact: true })
   await projectRow.click()
 
   for (const view of ['Chat', 'Dev']) {
+    const scope = view === 'Chat' ? '?project=none' : ''
+    const headers = view === 'Dev' ? { 'x-orchestos-project-id': project.id } : {}
     await page.getByRole('button', { name: view, exact: true }).click()
     if (view === 'Chat') {
       await page.getByRole('button', { name: 'New chat', exact: true }).click()
@@ -134,8 +135,14 @@ export default async function chatStop({ page, api, step, shot, visible, cleanup
       'Cuenta del 1 al 300 en palabras, un número por línea, sin usar herramientas ni escribir archivos.',
     )
     const path = `/api/chat/sessions/${encodeURIComponent(first.sessionId)}`
+    if (view === 'Chat')
+      cleanup(() =>
+        api(`/api/chat/sessions/${encodeURIComponent(first.sessionId)}?project=none`, {
+          method: 'DELETE',
+        }),
+      )
     const live = await waitFor(async () => {
-      const state = await api(`${path}/timeline`, { headers })
+      const state = await api(`${path}/timeline${scope}`, { headers })
       return state.data?.pending && state.data.live?.text ? state.data : null
     })
     const visiblePartial = await waitFor(async () =>
@@ -209,7 +216,7 @@ export default async function chatStop({ page, api, step, shot, visible, cleanup
     await step(`${view}: stopped mark visible`, await visible(mark), 'Respuesta detenida')
     const ready = page.getByRole('button', { name: 'Send message', exact: true }).last()
     await ready.waitFor()
-    const messages = await api(`${path}/messages`, { headers })
+    const messages = await api(`${path}/messages${scope}`, { headers })
     const stopped = messages.data?.find(
       (message) => message.role === 'assistant' && message.turnId === live.live.turnId,
     )
@@ -218,9 +225,20 @@ export default async function chatStop({ page, api, step, shot, visible, cleanup
       stopped?.stopped === true && stopped.content === body.text && stopped.content.length > 0,
       `length=${stopped?.content?.length}`,
     )
+    // The stopped marker can precede the final timeline render and the live bubble's exit.
+    // Start the stability window only after the DOM contains the persisted partial once.
+    const normalize = (text) => text.replace(/\s+/g, ' ').trim()
+    const assistantMessages = messages.data.filter((message) => message.role === 'assistant')
+    await waitFor(async () => {
+      const rendered = await page.locator('div.prose').allInnerTexts()
+      return (
+        rendered.length === assistantMessages.length &&
+        normalize(rendered.at(-1) ?? '') === normalize(stopped.content)
+      )
+    }, 30_000)
     const proseBefore = await page.locator('div.prose').allInnerTexts()
     await page.waitForTimeout(5000)
-    const after = await api(`${path}/messages`, { headers })
+    const after = await api(`${path}/messages${scope}`, { headers })
     const stoppedAfter = after.data?.find((message) => message.id === stopped?.id)
     await step(
       `${view}: partial does not grow for 5 s`,
@@ -241,7 +259,7 @@ export default async function chatStop({ page, api, step, shot, visible, cleanup
     const secondResponse = await second.response
     const secondBody = await secondResponse.json()
     await waitFor(async () => {
-      const timeline = await api(`${path}/timeline`, { headers })
+      const timeline = await api(`${path}/timeline${scope}`, { headers })
       return (
         !timeline.data?.pending &&
         timeline.data.messages.filter((message) => message.role === 'assistant').length === 2
@@ -272,15 +290,19 @@ export default async function chatStop({ page, api, step, shot, visible, cleanup
       // Reload disconnects the original request; completion is observed through the durable timeline.
       void resumed.response.catch(() => null)
       const resumedPath = `/api/chat/sessions/${encodeURIComponent(resumed.sessionId)}`
-      await waitFor(async () => (await api(`${resumedPath}/timeline`, { headers })).data?.pending)
+      await waitFor(
+        async () => (await api(`${resumedPath}/timeline${scope}`, { headers })).data?.pending,
+      )
       await page.reload({ waitUntil: 'domcontentloaded' })
       await step(
         'Chat: reload restores Stop and working state',
         await visible(page.getByRole('button', { name: 'Stop response', exact: true })),
         `session=${resumed.sessionId}`,
       )
-      await waitFor(async () => !(await api(`${resumedPath}/timeline`, { headers })).data?.pending)
-      const saved = await api(`${resumedPath}/messages`, { headers })
+      await waitFor(
+        async () => !(await api(`${resumedPath}/timeline${scope}`, { headers })).data?.pending,
+      )
+      const saved = await api(`${resumedPath}/messages${scope}`, { headers })
       const answer = saved.data?.filter((message) => message.role === 'assistant').at(-1)
       await waitFor(async () =>
         (await page.locator('div.prose').allInnerTexts()).some(
