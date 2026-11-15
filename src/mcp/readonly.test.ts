@@ -506,21 +506,25 @@ describe('run_readonly — config hostil del repo (ronda 3)', () => {
     expect(plan.ok).toBe(true)
   })
 
-  test('timeout: un hijo con streams abiertos no retrasa la respuesta', async () => {
-    const h = hostileRepo()
-    h.script('git', 'if [ "$1" = config ]; then exit 0; fi\nsleep 5 &\nsleep 5')
-    const savedPath = process.env.PATH
-    process.env.PATH = `${h.dir}:${savedPath}`
-    try {
-      const t0 = Date.now()
-      const res = await runReadonly({ argv: ['git', 'diff'] }, h.repo, 100)
-      expect(Date.now() - t0).toBeLessThan(1000)
-      expect(res.isError).toBe(true)
-      expect(res.text).toContain('[timed out after 0.1s]')
-    } finally {
-      process.env.PATH = savedPath
-    }
-  })
+  // Suplanta `git` con un script `#!/bin/sh` en el PATH (separador `:`): escenario POSIX.
+  test.skipIf(process.platform === 'win32')(
+    'timeout: un hijo con streams abiertos no retrasa la respuesta',
+    async () => {
+      const h = hostileRepo()
+      h.script('git', 'if [ "$1" = config ]; then exit 0; fi\nsleep 5 &\nsleep 5')
+      const savedPath = process.env.PATH
+      process.env.PATH = `${h.dir}:${savedPath}`
+      try {
+        const t0 = Date.now()
+        const res = await runReadonly({ argv: ['git', 'diff'] }, h.repo, 100)
+        expect(Date.now() - t0).toBeLessThan(1000)
+        expect(res.isError).toBe(true)
+        expect(res.text).toContain('[timed out after 0.1s]')
+      } finally {
+        process.env.PATH = savedPath
+      }
+    },
+  )
 
   // Ronda 5 — defensas estructurales
   test('flags de submódulo rechazados (y abreviaturas)', () => {
