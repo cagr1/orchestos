@@ -1,0 +1,100 @@
+name: Windows smoke
+
+# WIN.1 fase 1: prueba de humo en Windows sin máquina propia. Manual a propósito: mientras Windows no esté soportado,
+# un rojo aquí es la lista de trabajo, no un CI roto. Cada paso sigue aunque el anterior falle y deja su log.
+# Lo que necesita un CLI de agente con sesión (turno de chat, tarea) queda para la VM: el runner no tiene claude/codex.
+on:
+  workflow_dispatch:
+
+jobs:
+  smoke:
+    runs-on: windows-latest
+    timeout-minutes: 60
+    defaults:
+      run:
+        shell: pwsh
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+      - name: Logs dir
+        run: New-Item -ItemType Directory -Force "$env:RUNNER_TEMP/win1" | Out-Null
+
+      - name: 1 install.ps1 levanta el dashboard
+        id: install
+        continue-on-error: true
+        run: |
+          $log = "$env:RUNNER_TEMP/win1/1-install"
+          $p = Start-Process powershell -PassThru -NoNewWindow `
+            -ArgumentList '-ExecutionPolicy','Bypass','-File','install.ps1' `
+            -RedirectStandardOutput "$log.out.log" -RedirectStandardError "$log.err.log"
+          $up = $false
+          for ($i = 0; $i -lt 120 -and -not $p.HasExited; $i++) {
+            try { Invoke-WebRequest http://localhost:4242/ -UseBasicParsing -TimeoutSec 3 | Out-Null; $up = $true; break } catch { Start-Sleep 5 }
+          }
+          "exited=$($p.HasExited) exitCode=$($p.ExitCode) up=$up" | Tee-Object "$log.status.txt"
+          if ($up) {
+            $html = (Invoke-WebRequest http://localhost:4242/ -UseBasicParsing).Content
+            $tokenFile = Join-Path $HOME '.orchestos/dashboard-token'
+            $token = if (Test-Path $tokenFile) { (Get-Content $tokenFile -Raw).Trim() } else { '' }
+            "token-file=$(Test-Path $tokenFile) html-bytes=$($html.Length)" | Tee-Object -Append "$log.status.txt"
+            foreach ($path in '/api/projects', '/api/chat/sessions?project=none', '/api/session/status') {
+              try {
+                $r = Invoke-WebRequest "http://localhost:4242$path" -UseBasicParsing -Headers @{ 'x-orchestos-token' = $token }
+                "$path $($r.StatusCode) $($r.Content.Substring(0, [Math]::Min(300, $r.Content.Length)))" | Tee-Object -Append "$log.status.txt"
+              } catch { "$path FAIL $_" | Tee-Object -Append "$log.status.txt" }
+            }
+          }
+          Get-CimInstance Win32_Process -Filter "ParentProcessId=$($p.Id)" | ForEach-Object { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue }
+          Stop-Process -Id $p.Id -Force -ErrorAction SilentlyContinue
+          Get-Process bun -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
+          if (-not $up) { exit 1 }
+
+      - name: 2 db:migrate
+        id: migrate
+        continue-on-error: true
+        run: bun run db:migrate *> "$env:RUNNER_TEMP/win1/2-migrate.log"; $c = $LASTEXITCODE; Get-Content "$env:RUNNER_TEMP/win1/2-migrate.log" -Tail 30; exit $c
+
+      - name: 3 typecheck
+        id: typecheck
+        continue-on-error: true
+        run: bun run typecheck *> "$env:RUNNER_TEMP/win1/3-typecheck.log"; $c = $LASTEXITCODE; Get-Content "$env:RUNNER_TEMP/win1/3-typecheck.log" -Tail 30; exit $c
+
+      - name: 4 ui-gate smoke (navegador real contra el dashboard)
+        id: uigate
+        continue-on-error: true
+        run: |
+          bunx playwright install chromium *> "$env:RUNNER_TEMP/win1/4-playwright-install.log"
+          bun run ui:gate smoke *> "$env:RUNNER_TEMP/win1/4-ui-gate.log"; $c = $LASTEXITCODE
+          Get-Content "$env:RUNNER_TEMP/win1/4-ui-gate.log" -Tail 40
+          $ev = (Select-String -Path "$env:RUNNER_TEMP/win1/4-ui-gate.log" -Pattern '^EVIDENCE (.+)$' | Select-Object -Last 1)
+          if ($ev) { $dir = Split-Path $ev.Matches[0].Groups[1].Value; Copy-Item -Recurse $dir "$env:RUNNER_TEMP/win1/4-ui-gate-evidence" -ErrorAction SilentlyContinue }
+          exit $c
+
+      - name: 5 suite completa (lista de fallos POSIX)
+        id: tests
+        continue-on-error: true
+        run: |
+          bun test --timeout 20000 *> "$env:RUNNER_TEMP/win1/5-tests.log"; $c = $LASTEXITCODE
+          Select-String -Path "$env:RUNNER_TEMP/win1/5-tests.log" -Pattern '^\(fail\)' | ForEach-Object { $_.Line } | Set-Content "$env:RUNNER_TEMP/win1/5-tests-failed.txt"
+          Get-Content "$env:RUNNER_TEMP/win1/5-tests.log" -Tail 8
+          exit $c
+
+      - name: Resumen
+        if: always()
+        run: |
+          $s = @(
+            "install=${{ steps.install.outcome }}",
+            "migrate=${{ steps.migrate.outcome }}",
+            "typecheck=${{ steps.typecheck.outcome }}",
+            "ui-gate-smoke=${{ steps.uigate.outcome }}",
+            "tests=${{ steps.tests.outcome }}"
+          )
+          $s | Set-Content "$env:RUNNER_TEMP/win1/summary.txt"
+          $s | ForEach-Object { "- $_" } | Add-Content $env:GITHUB_STEP_SUMMARY
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: win1-smoke
+          path: ${{ runner.temp }}/win1
+          if-no-files-found: ignore
