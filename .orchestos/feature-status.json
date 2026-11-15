@@ -124,6 +124,14 @@
       "closedDate": null
     },
     {
+      "id": "MUT.1",
+      "sprint": "Etapa 2 — Uso real",
+      "block": null,
+      "title": "Shards de mutación pasan de 3 h",
+      "status": "open",
+      "closedDate": null
+    },
+    {
       "id": "WIN.1",
       "sprint": "Etapa 3 — Windows",
       "block": null,

@@ -34,10 +34,18 @@ jobs:
             command: mutation:run:executors-codex-server-b
           - shard: executors-codex-server-c
             command: mutation:run:executors-codex-server-c
+          - shard: executors-codex-server-d
+            command: mutation:run:executors-codex-server-d
+          - shard: executors-codex-server-e
+            command: mutation:run:executors-codex-server-e
           - shard: executors-codex-engines
             command: mutation:run:executors-codex-engines
-          - shard: runtime-boundaries
-            command: mutation:run:runtime-boundaries
+          - shard: executors-codex-engines-b
+            command: mutation:run:executors-codex-engines-b
+          - shard: runtime-boundaries-sandbox
+            command: mutation:run:runtime-boundaries-sandbox
+          - shard: runtime-boundaries-checks
+            command: mutation:run:runtime-boundaries-checks
           - shard: context-routing
             command: mutation:run:context-routing
     steps:

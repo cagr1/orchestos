@@ -166,6 +166,14 @@ esta etapa: `docs/done/bloque-AUD.md` (AUD.16, AUD.17), `docs/done/bloque-SES.md
   `review`, nunca borrado; D6 primer lote F0+F1 (cimientos sin LLM + chat recibe y propone).
   Hechos: F0 (LRN.1a), F1 (LRN.1b), F3 (LRN.1c), en `docs/done/bloque-LRN.md`. Falta F2 (propuesta automática desde
   tareas), que espera datos de uso de F0.
+- [ ] **MUT.1 — Shards de mutación pasan de 3 h.** (nocturnas 2026-11-14 y 2026-11-15 rojas) `runtime-boundaries`
+  (2h11 el 11-12), `executors-codex-engines` (2h30), `executors-codex-server-c` (2h35) y `-b` (2h53) crecieron con la
+  suite hasta el `timeout-minutes: 180`; uno además perdió el runner. Hecho: reparto por mutantes ejecutables medidos
+  en los reportes del 11-12: `runtime-boundaries` → `-sandbox` (467) y `-checks` (415); `codex-engines` → `codex.ts`
+  (239) y `-b` `external.ts` (307); `codex-app-server.ts` 346-fin → b 346-492 (182), c 493-645 (203), d 646-882
+  (159), e 883-fin (201). Los cortes en 492 y 882 no los cruza ningún mutante ejecutable (en 882 solo 2
+  `CompileError`). Test nuevo: los rangos cubren el archivo sin huecos ni solapes (verificado que falla con un hueco).
+  Falta: la nocturna del 2026-11-16 en verde con todos los shards bajo ~1h30.
 
 ## Etapa 3 — Windows
 

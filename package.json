@@ -66,8 +66,13 @@
     "mutation:run:executors-codex-server": "stryker run stryker.run-executors-codex-server.config.mjs",
     "mutation:run:executors-codex-server-b": "stryker run stryker.run-executors-codex-server-b.config.mjs",
     "mutation:run:executors-codex-server-c": "stryker run stryker.run-executors-codex-server-c.config.mjs",
+    "mutation:run:executors-codex-server-d": "stryker run stryker.run-executors-codex-server-d.config.mjs",
+    "mutation:run:executors-codex-server-e": "stryker run stryker.run-executors-codex-server-e.config.mjs",
     "mutation:run:executors-codex-engines": "stryker run stryker.run-executors-codex-engines.config.mjs",
+    "mutation:run:executors-codex-engines-b": "stryker run stryker.run-executors-codex-engines-b.config.mjs",
     "mutation:run:runtime-boundaries": "stryker run stryker.run-runtime-boundaries.config.mjs",
+    "mutation:run:runtime-boundaries-sandbox": "stryker run stryker.run-runtime-boundaries-sandbox.config.mjs",
+    "mutation:run:runtime-boundaries-checks": "stryker run stryker.run-runtime-boundaries-checks.config.mjs",
     "mutation:run:context-routing": "stryker run stryker.run-context-routing.config.mjs"
   },
   "devDependencies": {

@@ -6,6 +6,6 @@ export default {
     command:
       'bun run scripts/mutation-test-shard.ts stryker.run-executors-codex-server-c.config.mjs',
   },
-  // Cortar solo entre métodos: un mutante que cruza el corte se pierde (CI.46).
-  mutate: ['src/run/executors/codex-app-server.ts:646-99999'],
+  // Corte medido: ningún mutante ejecutable cruza la línea (CI.46, MUT.1).
+  mutate: ['src/run/executors/codex-app-server.ts:493-645'],
 }

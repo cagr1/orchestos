@@ -33,6 +33,8 @@ auditoría AUD.1–AUD.28 en el orden de la segunda auditoría; lo cerrado está
    (tema también en `<html>` para portales), USO.14 `91388169` (tooltips Radix en toda la UI).
    USO.15 (2026-11-15): los 11 ui-gates en verde; 9 desfasados por USO.10, y 2 productos rotos arreglados
    (notificaciones en Chat; el Chat general no reanudaba la sesión de Claude y reenviaba el transcript).
+   MUT.1 (2026-11-15): shards de mutación repartidos (11 → 15) porque 4 pasaban de 3 h. Revisar la nocturna del
+   2026-11-16 (`gh run list --workflow "Mutation Shards"`): todos verdes y bajo ~1h30 → cerrar MUT.1.
    **Siguiente**: lo que reporte Carlos en uso real; si no hay, WIN.6 (CLIs y procesos en Windows). WIN.2 (`a0882d84`), WIN.3 (`36531977`), WIN.4 (`ef88ae9f`) y WIN.5 (`8c228123`) cerrados: Windows 216 → 98 tests rojos.
    WIN.1 fase 1 corrida en CI (`windows-smoke.yml`, manual): instalador, dashboard, API, typecheck y ui-gate smoke
    pasan en Windows; 216 tests rojos repartidos en WIN.2–WIN.7. Falta turno de chat y tarea en la VM de Carlos.

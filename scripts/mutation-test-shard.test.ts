@@ -23,9 +23,13 @@ describe('selectMutationShardTests', () => {
         'executors-codex-server',
         'executors-codex-server-b',
         'executors-codex-server-c',
+        'executors-codex-server-d',
+        'executors-codex-server-e',
         'executors-codex-engines',
+        'executors-codex-engines-b',
       ],
     ],
+    ['runtime-boundaries', ['runtime-boundaries-sandbox', 'runtime-boundaries-checks']],
   ] as const) {
     test(`las particiones de ${parent} conservan todos los archivos y gates sin solaparse`, async () => {
       const root = resolve(import.meta.dir, '..')
@@ -57,13 +61,31 @@ describe('selectMutationShardTests', () => {
       }
       expect([...new Set(partitioned)].sort()).toEqual(original)
       const duplicates = partitioned.filter((path, index) => partitioned.indexOf(path) !== index)
+      // codex-app-server.ts se reparte por rangos de líneas en 5 shards: 4 repeticiones.
       expect(duplicates).toEqual(
-        parent === 'executors-codex'
-          ? ['src/run/executors/codex-app-server.ts', 'src/run/executors/codex-app-server.ts']
-          : [],
+        parent === 'executors-codex' ? Array(4).fill('src/run/executors/codex-app-server.ts') : [],
       )
     })
   }
+
+  test('los rangos de codex-app-server.ts cubren el archivo sin huecos ni solapes', async () => {
+    const root = resolve(import.meta.dir, '..')
+    const ranges: number[][] = []
+    for (const shard of ['', '-b', '-c', '-d', '-e']) {
+      const file = join(root, `stryker.run-executors-codex-server${shard}.config.mjs`)
+      for (const pattern of (await import(file)).default.mutate as string[]) {
+        const match = /^src\/run\/executors\/codex-app-server\.ts:(\d+)-(\d+)$/.exec(pattern)
+        if (match) ranges.push([Number(match[1]), Number(match[2])])
+      }
+    }
+    ranges.sort((a, b) => a[0]! - b[0]!)
+    expect(ranges.map(([start]) => start)).toEqual([
+      1,
+      ...ranges.slice(0, -1).map(([, end]) => end! + 1),
+    ])
+    const source = await Bun.file(join(root, 'src/run/executors/codex-app-server.ts')).text()
+    expect(ranges.at(-1)![1]).toBeGreaterThanOrEqual(source.split('\n').length)
+  })
 
   test('mutation test args include --bail', () => {
     expect(mutationTestArgs(['src/__tests__/example.test.ts'])).toContain('--bail')
