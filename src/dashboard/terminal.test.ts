@@ -22,9 +22,9 @@ describe('dashboard terminal sessions', () => {
         cwd: process.cwd(),
         cols: 80,
         rows: 24,
-        command: ['/bin/sh', '-c', 'exit 0'],
+        command: [process.execPath, '-e', 'process.exit(0)'],
         fingerprint: (path) => {
-          expect(path).toBe('/bin/sh')
+          expect(path).toBe(process.execPath)
           return calls++ === 0 ? before : after
         },
         onData: () => {},
@@ -34,6 +34,22 @@ describe('dashboard terminal sessions', () => {
     expect(result).toEqual({ code: 0, binaryChanged: changed })
     expect(calls).toBe(2)
   })
+
+  test('the platform shell (resolveShellCommand) runs commands in the PTY', async () => {
+    const exited = new Promise<number>((resolve) => {
+      const session = createTerminalSession({
+        cwd: process.cwd(),
+        cols: 80,
+        rows: 24,
+        command: resolveShellCommand(),
+        onData: () => {},
+        onExit: (code) => resolve(code),
+      })
+      // `exit` solo termina el proceso si el shell interpreta lo escrito (sh, zsh, PowerShell y cmd).
+      setTimeout(() => session.write('exit\r'), 500)
+    })
+    expect(await exited).toBe(0)
+  }, 15_000)
 
   test('writes input to the process and receives terminal output', async () => {
     const output: string[] = []
@@ -86,18 +102,30 @@ describe('dashboard terminal sessions', () => {
 })
 
 describe('resolveShellCommand', () => {
+  const posix = (env: Record<string, string>, exists: (p: string) => boolean) =>
+    resolveShellCommand(env, exists, 'darwin')
   test('usa $SHELL con -l cuando existe', () => {
-    expect(resolveShellCommand({ SHELL: '/bin/fish' }, () => true)).toEqual(['/bin/fish', '-l'])
+    expect(posix({ SHELL: '/bin/fish' }, () => true)).toEqual(['/bin/fish', '-l'])
   })
   test('sin $SHELL cae a /bin/zsh y luego /bin/sh', () => {
-    expect(resolveShellCommand({}, (p) => p === '/bin/zsh')).toEqual(['/bin/zsh', '-l'])
-    expect(resolveShellCommand({}, () => false)).toEqual(['/bin/sh', '-l'])
+    expect(posix({}, (p) => p === '/bin/zsh')).toEqual(['/bin/zsh', '-l'])
+    expect(posix({}, () => false)).toEqual(['/bin/sh', '-l'])
   })
   test('$SHELL inexistente o relativo se ignora', () => {
-    expect(resolveShellCommand({ SHELL: '/nope/sh' }, (p) => p === '/bin/zsh')).toEqual([
-      '/bin/zsh',
-      '-l',
-    ])
-    expect(resolveShellCommand({ SHELL: 'zsh' }, () => true)).toEqual(['/bin/zsh', '-l'])
+    expect(posix({ SHELL: '/nope/sh' }, (p) => p === '/bin/zsh')).toEqual(['/bin/zsh', '-l'])
+    expect(posix({ SHELL: 'zsh' }, () => true)).toEqual(['/bin/zsh', '-l'])
+  })
+  test('Windows: PowerShell 7, luego el de serie, luego COMSPEC', () => {
+    const win = (env: Record<string, string>, found: string | null) =>
+      resolveShellCommand(
+        env,
+        () => false,
+        'win32',
+        (bin) => (bin === found ? `C:\\${bin}.exe` : null),
+      )
+    expect(win({}, 'pwsh')).toEqual(['C:\\pwsh.exe', '-NoLogo'])
+    expect(win({}, 'powershell')).toEqual(['C:\\powershell.exe', '-NoLogo'])
+    expect(win({ COMSPEC: 'C:\\cmd.exe' }, null)).toEqual(['C:\\cmd.exe'])
+    expect(win({}, null)).toEqual(['cmd.exe'])
   })
 })

@@ -32,7 +32,14 @@ export function resolveOpenCodeCommand(
 export function resolveShellCommand(
   env: Record<string, string | undefined> = process.env,
   exists: (path: string) => boolean = (path) => existsSync(path),
+  platform: NodeJS.Platform = process.platform,
+  which: (name: string) => string | null = whichCli,
 ): string[] {
+  if (platform === 'win32') {
+    // Windows no tiene /bin/sh: PowerShell 7, luego el de serie, luego cmd.
+    const powershell = which('pwsh') ?? which('powershell')
+    return powershell ? [powershell, '-NoLogo'] : [env.COMSPEC || 'cmd.exe']
+  }
   const candidates = [env.SHELL, '/bin/zsh', '/bin/sh'].filter(
     (value): value is string => !!value && value.startsWith('/'),
   )

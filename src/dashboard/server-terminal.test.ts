@@ -35,51 +35,55 @@ async function availablePort(): Promise<number | null> {
 const portProbe = await availablePort()
 
 describe.skipIf(portProbe === null)('terminal WebSocket origin boundary', () => {
-  test('reports binaryChanged when the terminal executable rewrites itself', async () => {
-    const root = mkdtempSync(join(tmpdir(), 'orchestos-terminal-update-'))
-    const script = join(root, 'terminal.sh')
-    writeFileSync(script, '#!/bin/sh\nprintf "# updated binary\\n" >> "$0"\nexit 0\n', {
-      mode: 0o755,
-    })
-    db.run(
-      'INSERT INTO projects (id,path,stack_profile,agents_md,last_updated) VALUES (?,?,?,?,?)',
-      ['aud19-terminal', root, '{}', '', new Date().toISOString()],
-    )
-    let socket: WebSocket | undefined
-    try {
-      const port = await availablePort()
-      if (port === null) throw new Error('Loopback listener became unavailable')
-      const { server } = startServer(port, [script])
-      servers.push(server)
-      // lib.dom omits Bun's WebSocket constructor overload for custom headers.
-      const TerminalWebSocket = WebSocket as unknown as {
-        new (url: string, options: Bun.WebSocketOptions): WebSocket
-      }
-      const result = await new Promise<unknown>((resolve, reject) => {
-        socket = new TerminalWebSocket(
-          `ws://127.0.0.1:${server.port}/api/terminal?project=aud19-terminal`,
-          {
-            headers: {
-              'x-orchestos-token': loadOrCreateDashboardToken(),
-              origin: `http://127.0.0.1:${server.port}`,
-            },
-          },
-        )
-        socket.onmessage = (event) => {
-          if (typeof event.data !== 'string') return
-          const payload = JSON.parse(event.data)
-          if (payload.type === 'exit') resolve(payload)
-          if (payload.type === 'error') reject(new Error(payload.message))
-        }
-        socket.onerror = () => reject(new Error('Terminal WebSocket failed'))
+  // Ejecuta un script `#!/bin/sh`: escenario POSIX. La lógica de binaryChanged la cubre terminal.test.ts en todo SO.
+  test.skipIf(process.platform === 'win32')(
+    'reports binaryChanged when the terminal executable rewrites itself',
+    async () => {
+      const root = mkdtempSync(join(tmpdir(), 'orchestos-terminal-update-'))
+      const script = join(root, 'terminal.sh')
+      writeFileSync(script, '#!/bin/sh\nprintf "# updated binary\\n" >> "$0"\nexit 0\n', {
+        mode: 0o755,
       })
-      expect(result).toEqual({ type: 'exit', code: 0, binaryChanged: true })
-    } finally {
-      socket?.close()
-      db.run("DELETE FROM projects WHERE id = 'aud19-terminal'")
-      rmSync(root, { recursive: true, force: true })
-    }
-  })
+      db.run(
+        'INSERT INTO projects (id,path,stack_profile,agents_md,last_updated) VALUES (?,?,?,?,?)',
+        ['aud19-terminal', root, '{}', '', new Date().toISOString()],
+      )
+      let socket: WebSocket | undefined
+      try {
+        const port = await availablePort()
+        if (port === null) throw new Error('Loopback listener became unavailable')
+        const { server } = startServer(port, [script])
+        servers.push(server)
+        // lib.dom omits Bun's WebSocket constructor overload for custom headers.
+        const TerminalWebSocket = WebSocket as unknown as {
+          new (url: string, options: Bun.WebSocketOptions): WebSocket
+        }
+        const result = await new Promise<unknown>((resolve, reject) => {
+          socket = new TerminalWebSocket(
+            `ws://127.0.0.1:${server.port}/api/terminal?project=aud19-terminal`,
+            {
+              headers: {
+                'x-orchestos-token': loadOrCreateDashboardToken(),
+                origin: `http://127.0.0.1:${server.port}`,
+              },
+            },
+          )
+          socket.onmessage = (event) => {
+            if (typeof event.data !== 'string') return
+            const payload = JSON.parse(event.data)
+            if (payload.type === 'exit') resolve(payload)
+            if (payload.type === 'error') reject(new Error(payload.message))
+          }
+          socket.onerror = () => reject(new Error('Terminal WebSocket failed'))
+        })
+        expect(result).toEqual({ type: 'exit', code: 0, binaryChanged: true })
+      } finally {
+        socket?.close()
+        db.run("DELETE FROM projects WHERE id = 'aud19-terminal'")
+        rmSync(root, { recursive: true, force: true })
+      }
+    },
+  )
 
   test('rejects a request without Origin', async () => {
     const port = await availablePort()
