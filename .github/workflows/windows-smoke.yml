@@ -49,6 +49,15 @@ jobs:
           Get-Process bun -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
           if (-not $up) { exit 1 }
 
+      # Independiente del instalador: si install.ps1 falla, lo demás igual se prueba.
+      - name: 1b bun install y build:app
+        id: deps
+        continue-on-error: true
+        run: |
+          bun install *> "$env:RUNNER_TEMP/win1/1b-deps.log"; $c = $LASTEXITCODE
+          if ($c -eq 0) { bun run build:app *>> "$env:RUNNER_TEMP/win1/1b-deps.log"; $c = $LASTEXITCODE }
+          Get-Content "$env:RUNNER_TEMP/win1/1b-deps.log" -Tail 20; exit $c
+
       - name: 2 db:migrate
         id: migrate
         continue-on-error: true
@@ -84,6 +93,7 @@ jobs:
         run: |
           $s = @(
             "install=${{ steps.install.outcome }}",
+            "deps=${{ steps.deps.outcome }}",
             "migrate=${{ steps.migrate.outcome }}",
             "typecheck=${{ steps.typecheck.outcome }}",
             "ui-gate-smoke=${{ steps.uigate.outcome }}",

@@ -1,4 +1,4 @@
-#Requires -Version 5.1
+﻿#Requires -Version 5.1
 # OrchestOS Installer — Windows
 # Run: powershell -ExecutionPolicy Bypass -File install.ps1
 # Or double-click install.bat
