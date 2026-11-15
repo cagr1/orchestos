@@ -9,13 +9,16 @@ afterEach(() => {
   for (const root of roots.splice(0)) rmSync(root, { recursive: true, force: true })
 })
 
+// El salto de línea prueba la separación por NUL; Windows no admite `\n` en nombres de archivo.
+const ODD = process.platform === 'win32' ? 'ignored file.txt' : 'ignored\nfile.txt'
+
 function fixture() {
   const root = mkdtempSync(join(tmpdir(), 'explorer-ignored-'))
   roots.push(root)
   mkdirSync(join(root, 'runs'))
   writeFileSync(join(root, 'runs', 'output.txt'), 'output')
   writeFileSync(join(root, 'tracked.txt'), 'source')
-  writeFileSync(join(root, 'ignored\nfile.txt'), 'ignored')
+  writeFileSync(join(root, ODD), 'ignored')
   return root
 }
 
@@ -39,11 +42,11 @@ test('lists ignored files and folders with one root-scoped probe per level', asy
     body.entries.map(({ path, ignored }: { path: string; ignored: boolean }) => [path, ignored]),
   ).toEqual([
     ['runs', true],
-    ['ignored\nfile.txt', true],
+    [ODD, true],
     ['tracked.txt', false],
   ])
   expect(calls).toHaveLength(1)
-  expect(calls[0]).toEqual(['runs', 'ignored\nfile.txt', 'tracked.txt'])
+  expect(calls[0]).toEqual(['runs', ODD, 'tracked.txt'])
   const children = await handleApiExplorerTree(
     new URL('http://localhost/api/explorer/tree?path=runs'),
     root,

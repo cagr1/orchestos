@@ -102,6 +102,7 @@ export function readManifest(root: string): Manifest {
     cwd: root,
     maxDepth: 2,
     ignore: ['node_modules/**'],
+    posix: true,
   })
   if (csprojFiles.length > 0) {
     result.runtime = '.NET'

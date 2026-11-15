@@ -192,7 +192,8 @@ function findLanguageDocUnder(base: string, lang: string): string | undefined {
   const dir = join(base, 'docs', 'roadmaps', 'languages')
   if (!existsSync(dir)) return undefined
   const matches = glob.sync(`${slug}*.md`, { cwd: dir })
-  return matches[0] ? join('docs', 'roadmaps', 'languages', matches[0]) : undefined
+  // docPath llega al usuario: `/` en todo SO (join(base, docPath) lo acepta también en Windows).
+  return matches[0] ? `docs/roadmaps/languages/${matches[0]}` : undefined
 }
 
 function findLanguageDoc(root: string, lang: string): string | undefined {
@@ -204,7 +205,7 @@ function docExistsUnder(
   kind: 'disciplines' | 'languages',
   slug: string,
 ): string | undefined {
-  const rel = join('docs', 'roadmaps', kind, `${slug}.md`)
+  const rel = `docs/roadmaps/${kind}/${slug}.md`
   return existsSync(join(base, rel)) ? rel : undefined
 }
 
@@ -217,7 +218,11 @@ function docExists(
 }
 
 function findServerEntry(root: string): string | undefined {
-  const files = glob.sync('src/**/*.ts', { cwd: root, ignore: ['**/__tests__/**', '**/*.test.ts'] })
+  const files = glob.sync('src/**/*.ts', {
+    cwd: root,
+    ignore: ['**/__tests__/**', '**/*.test.ts'],
+    posix: true,
+  })
   for (const f of files) {
     try {
       const content = readFileSync(join(root, f), 'utf-8')

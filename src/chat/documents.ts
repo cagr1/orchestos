@@ -56,16 +56,15 @@ export function snapshotChatDocuments(root: string): Map<string, string> {
       const path = join(directory, entry.name)
       if (entry.isDirectory()) visit(path)
       else if (entry.isFile()) {
+        // La ruta va a la API y al historial: `/` en todo SO.
+        const key = relative(root, path).split(sep).join('/')
         // Content hash; an unreadable file falls back to size+mtime and never blocks the turn (qa USO.11).
         try {
-          result.set(
-            relative(root, path),
-            createHash('sha256').update(readFileSync(path)).digest('hex'),
-          )
+          result.set(key, createHash('sha256').update(readFileSync(path)).digest('hex'))
         } catch {
           try {
             const stat = lstatSync(path)
-            result.set(relative(root, path), `stat:${stat.size}:${stat.mtimeMs}`)
+            result.set(key, `stat:${stat.size}:${stat.mtimeMs}`)
           } catch {
             // Vanished between listing and stat: not a delivered document.
           }

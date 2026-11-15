@@ -1,6 +1,6 @@
 import { existsSync, readFileSync, realpathSync, unlinkSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
-import { isAbsolute, join, relative } from 'node:path'
+import { isAbsolute, join, relative, sep } from 'node:path'
 import { readBody, z } from '../../boundary/index.ts'
 import { loadOrcheConfig } from '../../config/load.ts'
 import { refreshProjectContext } from '../../context/load.ts'
@@ -193,8 +193,9 @@ export function extractMentionedPaths(input: string, root: string): string[] {
     try {
       const realCandidate = realpathSync(join(realRoot, candidate))
       const rel = relative(realRoot, realCandidate)
-      if (!rel || rel === '..' || rel.startsWith(`..${'/'.repeat(1)}`) || isAbsolute(rel)) continue
-      const normalized = rel.split('/').join('/')
+      if (!rel || rel === '..' || rel.startsWith(`..${sep}`) || isAbsolute(rel)) continue
+      // Salidas de tarea con `/` en todo SO: el contrato las compara con rutas de git.
+      const normalized = rel.split(sep).join('/')
       if (!seen.has(normalized)) {
         seen.add(normalized)
         paths.push(normalized)

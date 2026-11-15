@@ -58,7 +58,9 @@ test('saves atomically, returns the new mtime, and keeps executable mode', async
   expect(body).toEqual({ path: 'notes.txt', mtimeMs: mtime(root) })
   expect(body.mtimeMs).not.toBe(before.mtimeMs)
   expect(readFileSync(join(root, 'notes.txt'), 'utf8')).toBe('saved')
-  expect(statSync(join(root, 'notes.txt')).mode & 0o777).toBe(0o755)
+  // Windows no tiene bits de ejecución POSIX.
+  if (process.platform !== 'win32')
+    expect(statSync(join(root, 'notes.txt')).mode & 0o777).toBe(0o755)
   expect(readdirSync(root)).toEqual(['notes.txt'])
 })
 
