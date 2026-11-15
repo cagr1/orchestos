@@ -213,8 +213,15 @@ esta etapa: `docs/done/bloque-AUD.md` (AUD.16, AUD.17), `docs/done/bloque-SES.md
   Tests: nombre con `\n`, modo 0o755, `chmod 000` y `file:///opt` no aplican en Windows. windows-latest run
   43760228211: 0 fallos en el área, 131 → 119 en total. macOS `test:coverage` 2958/0.
   Sin delegación: fix chico de pocas líneas por archivo y tests, revisado por qa de otro proveedor
-- [ ] **WIN.5 — Shell de solo lectura (`run_readonly`) en Windows.** (WIN.1 fase 1) `mcp/readonly.test.ts` 14 fallos,
-  `aud23-security` 5. Sin él, el Chat no puede consultar git ni el proyecto.
+- [x] **WIN.5 — Shell de solo lectura (`run_readonly`) en Windows.** (WIN.1 fase 1) `mcp/readonly.test.ts` 14 fallos,
+  `aud23-security` 5. Sin él, el Chat no puede consultar git ni el proyecto. Hecho (`8c228123`, `1b6ccfb0`):
+  `readonly.ts` comparaba el toplevel de git (nombre largo) con `realpathSync` (nombre corto 8.3) y rechazaba todo git;
+  ahora `.native`. Seguridad: `realPathWithin` partía solo por `\`, así que `inner/../x` o `broken/child` escritos con
+  `/` saltaban la revisión de symlinks en Windows; ahora parte por ambos. `checks.ts` mezclaba nombres cortos y
+  largos y usaba `/` fijo. Tests: rutas con `/` en configs de git y printf (`\U` es escape); FIFO, PATH con `:` y
+  modo 0600 solo POSIX. windows-latest run 43765082382: 103 → 98 en total, 1 fallo restante en el área (el test de
+  PATH, saltado después). macOS `test:coverage` 2958/0. qa (gpt-6.1-sol): sin defectos, revisión superficial.
+  Sin delegación: fix chico de pocas líneas por archivo y tests, revisado por qa de otro proveedor
 - [ ] **WIN.6 — CLIs y procesos en Windows.** (WIN.1 fase 1) `providers` 13, `aud22-processes` 10, `chat-sessions` 8,
   `chat-r5-reliability` 6, `aud21-task-execution` 6, `generic-cli`, `process-tree`, `opencode/claude-task-approvals`,
   `cli-health`, `cli-search-path` ("Executable not found in $PATH": `.cmd`/`.exe` de npm). Confirmar en la VM con un
