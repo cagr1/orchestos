@@ -191,11 +191,13 @@ esta etapa: `docs/done/bloque-AUD.md` (AUD.16, AUD.17), `docs/done/bloque-SES.md
   Evidencia: `docs/done/evidence/WIN.1-ci.json`. Falta lo que pide un CLI con sesión (turno de chat y tarea): en la VM.
   Unos 30 archivos más con 1–5 fallos sueltos sin ítem: se re-corre el workflow tras WIN.2–WIN.4 (muchos comparten
   esas causas) y lo que quede se reparte.
-- [ ] **WIN.2 — Specs y Skills rechazan rutas válidas en Windows.** (WIN.1 fase 1) 39 fallos "Spec path / Skill
+- [x] **WIN.2 — Specs y Skills rechazan rutas válidas en Windows.** (WIN.1 fase 1) 39 fallos "Spec path / Skill
   directory escapes project root" (`spec/store.ts:52,84`, `skills/registry.ts:336,341`, vía `realPathWithin` de
-  `run/path-policy.ts:53`). Sospecha: rutas cortas 8.3 del temp (`RUNNER~1`) contra `realpathSync.native`, o
-  separadores. Tests: `spec-archive`, `specs-delete`, `specs-design-gate`, `skill-library`, `skill-central-resolution`,
-  `skill-middlewares`, `path-policy`. Va primero: deja sin Specs ni Skills a cualquier usuario de Windows.
+  `run/path-policy.ts:53`). Causa: `realRoot` resolvía la raíz al nombre largo y `canonical()` conservaba el corto 8.3
+  (`RUNNER~1`); ahora canoniza cada segmento con `realpathSync.native` (`a0882d84`). Tests: `path-policy` compara con
+  `.native`, `skill-library` usa `sep`. windows-latest (run 43733050121): 216 → 139 fallos, 0 "escapes project root";
+  los 2 que quedan en `path-policy` son de comandos (WIN.5). macOS `test:coverage` 2956/0. qa (gpt-6.1-sol): sin defectos.
+  Sin delegación: fix chico de una línea en `path-policy.ts` y tests, revisado por qa de otro proveedor
 - [ ] **WIN.3 — Terminal integrada no abre en Windows.** (WIN.1 fase 1) `uv_spawn ENOENT`: shell fijo POSIX
   (`dashboard/terminal.ts:36-39`). Tests: `terminal`, `server-terminal`. Arreglo esperado: `COMSPEC`/PowerShell en win32.
 - [ ] **WIN.4 — La API devuelve rutas con `\`.** (WIN.1 fase 1) `git-changes`, `explorer-search`, `explorer-ignored`,

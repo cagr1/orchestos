@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, test } from 'bun:test'
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
-import { join } from 'node:path'
+import { join, sep } from 'node:path'
 import { stringify } from 'yaml'
 import { pickAutoSkill } from '../dashboard/handlers/chat.ts'
 import {
@@ -230,16 +230,16 @@ describe('project activation and precedence', () => {
   test('project overrides library, which overrides built-in even when disabled', () => {
     const id = 'frontend-design'
     expect(
-      listSkillFilesWithOrigin(root).find(({ path }) => path.endsWith(`/${id}.yaml`))?.origin,
+      listSkillFilesWithOrigin(root).find(({ path }) => path.endsWith(`${sep}${id}.yaml`))?.origin,
     ).toBe('built-in')
     const library = seed(id)
     expect(resolveSkillPath(id, root)).toBe(library)
-    expect(listSkillFiles(root).some((path) => path.endsWith(`/${id}.yaml`))).toBe(false)
+    expect(listSkillFiles(root).some((path) => path.endsWith(`${sep}${id}.yaml`))).toBe(false)
     const project = seed(id, join(root, 'skills'))
     expect(resolveSkillPath(id, root)).toBe(project)
     expect(listSkillFiles(root)).toContain(project)
     expect(
-      listSkillFilesWithOrigin(root).filter(({ path }) => path.endsWith(`/${id}.yaml`)),
+      listSkillFilesWithOrigin(root).filter(({ path }) => path.endsWith(`${sep}${id}.yaml`)),
     ).toEqual([{ path: project, origin: 'project' }])
   })
   test('invalid activation state fails closed and selector descriptions stay at 200 characters', () => {

@@ -33,7 +33,7 @@ auditoría AUD.1–AUD.28 en el orden de la segunda auditoría; lo cerrado está
    (tema también en `<html>` para portales), USO.14 `91388169` (tooltips Radix en toda la UI).
    USO.15 (2026-11-15): los 11 ui-gates en verde; 9 desfasados por USO.10, y 2 productos rotos arreglados
    (notificaciones en Chat; el Chat general no reanudaba la sesión de Claude y reenviaba el transcript).
-   **Siguiente**: lo que reporte Carlos en uso real; si no hay, WIN.2 (Specs y Skills rechazan rutas en Windows).
+   **Siguiente**: lo que reporte Carlos en uso real; si no hay, WIN.3 (terminal integrada en Windows). WIN.2 cerrado (`a0882d84`): Windows 216 → 139 tests rojos.
    WIN.1 fase 1 corrida en CI (`windows-smoke.yml`, manual): instalador, dashboard, API, typecheck y ui-gate smoke
    pasan en Windows; 216 tests rojos repartidos en WIN.2–WIN.7. Falta turno de chat y tarea en la VM de Carlos.
    Re-correr tras cada WIN.n: `gh workflow run windows-smoke.yml` y bajar el artefacto `win1-smoke`.
