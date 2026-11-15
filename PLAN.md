@@ -198,8 +198,14 @@ esta etapa: `docs/done/bloque-AUD.md` (AUD.16, AUD.17), `docs/done/bloque-SES.md
   `.native`, `skill-library` usa `sep`. windows-latest (run 43733050121): 216 → 139 fallos, 0 "escapes project root";
   los 2 que quedan en `path-policy` son de comandos (WIN.5). macOS `test:coverage` 2956/0. qa (gpt-6.1-sol): sin defectos.
   Sin delegación: fix chico de una línea en `path-policy.ts` y tests, revisado por qa de otro proveedor
-- [ ] **WIN.3 — Terminal integrada no abre en Windows.** (WIN.1 fase 1) `uv_spawn ENOENT`: shell fijo POSIX
-  (`dashboard/terminal.ts:36-39`). Tests: `terminal`, `server-terminal`. Arreglo esperado: `COMSPEC`/PowerShell en win32.
+- [x] **WIN.3 — Terminal integrada no abre en Windows.** (WIN.1 fase 1) `uv_spawn ENOENT`: shell fijo POSIX
+  (`dashboard/terminal.ts:36-39`). Hecho (`36531977`, `8ee1af17`): en win32 `resolveShellCommand` usa `pwsh`, luego
+  `powershell`, luego `COMSPEC`/`cmd.exe`; `Bun.Terminal` (PTY) sí funciona en Windows. Test nuevo abre el shell real de
+  la plataforma en el PTY y exige `exit 7` tras escribir (qa P2: la versión con `exit` y código 0 daba falso positivo).
+  windows-latest run 43739021563: el test pasa con PowerShell, 0 fallos de terminal, 139 → 131 en total. El test del
+  script `#!/bin/sh` que se reescribe se salta en Windows. macOS `test:coverage` 2958/0. Sin verificar en la VM: la
+  terminal del dashboard con un usuario real.
+  Sin delegación: fix chico de 7 líneas en `terminal.ts` y tests, revisado por qa de otro proveedor
 - [ ] **WIN.4 — La API devuelve rutas con `\`.** (WIN.1 fase 1) `git-changes`, `explorer-search`, `explorer-ignored`,
   `explorer-write`: la UI y los tests esperan `/`. Normalizar en la frontera de la API.
 - [ ] **WIN.5 — Shell de solo lectura (`run_readonly`) en Windows.** (WIN.1 fase 1) `mcp/readonly.test.ts` 14 fallos,
