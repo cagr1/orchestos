@@ -36,19 +36,23 @@ describe('dashboard terminal sessions', () => {
   })
 
   test('the platform shell (resolveShellCommand) runs commands in the PTY', async () => {
-    const exited = new Promise<number>((resolve) => {
+    let written = false
+    const exited = new Promise<{ code: number; written: boolean }>((resolve) => {
       const session = createTerminalSession({
         cwd: process.cwd(),
         cols: 80,
         rows: 24,
         command: resolveShellCommand(),
         onData: () => {},
-        onExit: (code) => resolve(code),
+        onExit: (code) => resolve({ code, written }),
       })
-      // `exit` solo termina el proceso si el shell interpreta lo escrito (sh, zsh, PowerShell y cmd).
-      setTimeout(() => session.write('exit\r'), 500)
+      // `exit 7` solo da 7 si el shell interpreta lo escrito (sh, zsh, PowerShell y cmd lo respetan).
+      setTimeout(() => {
+        written = true
+        session.write('exit 7\r')
+      }, 500)
     })
-    expect(await exited).toBe(0)
+    expect(await exited).toEqual({ code: 7, written: true })
   }, 15_000)
 
   test('writes input to the process and receives terminal output', async () => {
