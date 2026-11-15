@@ -130,6 +130,54 @@
       "title": "Prueba de humo en Windows: instalar, arrancar el dashboard, un turno de chat y una tarea",
       "status": "open",
       "closedDate": null
+    },
+    {
+      "id": "WIN.2",
+      "sprint": "Etapa 3 — Windows",
+      "block": null,
+      "title": "Specs y Skills rechazan rutas válidas en Windows",
+      "status": "open",
+      "closedDate": null
+    },
+    {
+      "id": "WIN.3",
+      "sprint": "Etapa 3 — Windows",
+      "block": null,
+      "title": "Terminal integrada no abre en Windows",
+      "status": "open",
+      "closedDate": null
+    },
+    {
+      "id": "WIN.4",
+      "sprint": "Etapa 3 — Windows",
+      "block": null,
+      "title": "La API devuelve rutas con `\\`",
+      "status": "open",
+      "closedDate": null
+    },
+    {
+      "id": "WIN.5",
+      "sprint": "Etapa 3 — Windows",
+      "block": null,
+      "title": "Shell de solo lectura (`run_readonly`) en Windows",
+      "status": "open",
+      "closedDate": null
+    },
+    {
+      "id": "WIN.6",
+      "sprint": "Etapa 3 — Windows",
+      "block": null,
+      "title": "CLIs y procesos en Windows",
+      "status": "open",
+      "closedDate": null
+    },
+    {
+      "id": "WIN.7",
+      "sprint": "Etapa 3 — Windows",
+      "block": null,
+      "title": "Scripts de desarrollo en Windows",
+      "status": "open",
+      "closedDate": null
     }
   ]
 }

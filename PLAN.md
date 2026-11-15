@@ -184,6 +184,30 @@ esta etapa: `docs/done/bloque-AUD.md` (AUD.16, AUD.17), `docs/done/bloque-SES.md
   `/bin/sh` como respaldo (`dashboard/terminal.ts:36-39`). La detección de CLIs debería funcionar: arma el PATH con
   `delimiter` y omite el login shell si no hay `$SHELL` (`run/executors/cli-discovery.ts:31-43`). La fase 1 la corre
   Carlos con Claude en su máquina Windows; al cerrar, un job `windows-latest` con `bun run test:coverage` en CI.
+  2026-11-15, fase 1 en CI (Carlos aún sin Windows; hará una VM): workflow manual `.github/workflows/windows-smoke.yml`
+  (`gh workflow run windows-smoke.yml`, artefacto `win1-smoke`). Primera corrida: `install.ps1` no parseaba en
+  PowerShell 5.1 (UTF-8 sin BOM), arreglado en `d834f2b0`. Segunda: el instalador levanta el dashboard, la API
+  responde, typecheck y ui-gate `smoke` 7/7 pasan; `bun test` 2737 pass / 216 fail, agrupados en WIN.2–WIN.7.
+  Evidencia: `docs/done/evidence/WIN.1-ci.json`. Falta lo que pide un CLI con sesión (turno de chat y tarea): en la VM.
+  Unos 30 archivos más con 1–5 fallos sueltos sin ítem: se re-corre el workflow tras WIN.2–WIN.4 (muchos comparten
+  esas causas) y lo que quede se reparte.
+- [ ] **WIN.2 — Specs y Skills rechazan rutas válidas en Windows.** (WIN.1 fase 1) 39 fallos "Spec path / Skill
+  directory escapes project root" (`spec/store.ts:52,84`, `skills/registry.ts:336,341`, vía `realPathWithin` de
+  `run/path-policy.ts:53`). Sospecha: rutas cortas 8.3 del temp (`RUNNER~1`) contra `realpathSync.native`, o
+  separadores. Tests: `spec-archive`, `specs-delete`, `specs-design-gate`, `skill-library`, `skill-central-resolution`,
+  `skill-middlewares`, `path-policy`. Va primero: deja sin Specs ni Skills a cualquier usuario de Windows.
+- [ ] **WIN.3 — Terminal integrada no abre en Windows.** (WIN.1 fase 1) `uv_spawn ENOENT`: shell fijo POSIX
+  (`dashboard/terminal.ts:36-39`). Tests: `terminal`, `server-terminal`. Arreglo esperado: `COMSPEC`/PowerShell en win32.
+- [ ] **WIN.4 — La API devuelve rutas con `\`.** (WIN.1 fase 1) `git-changes`, `explorer-search`, `explorer-ignored`,
+  `explorer-write`: la UI y los tests esperan `/`. Normalizar en la frontera de la API.
+- [ ] **WIN.5 — Shell de solo lectura (`run_readonly`) en Windows.** (WIN.1 fase 1) `mcp/readonly.test.ts` 14 fallos,
+  `aud23-security` 5. Sin él, el Chat no puede consultar git ni el proyecto.
+- [ ] **WIN.6 — CLIs y procesos en Windows.** (WIN.1 fase 1) `providers` 13, `aud22-processes` 10, `chat-sessions` 8,
+  `chat-r5-reliability` 6, `aud21-task-execution` 6, `generic-cli`, `process-tree`, `opencode/claude-task-approvals`,
+  `cli-health`, `cli-search-path` ("Executable not found in $PATH": `.cmd`/`.exe` de npm). Confirmar en la VM con un
+  CLI real antes de arreglar lo que dependa del binario.
+- [ ] **WIN.7 — Scripts de desarrollo en Windows.** (WIN.1 fase 1, baja prioridad: no los usa el usuario final)
+  `adversarial-review`, `mutation-test-shard`, `startup-guard`, `session-status`, `context-adapters`.
 
 ## Decisiones pendientes de Carlos
 
