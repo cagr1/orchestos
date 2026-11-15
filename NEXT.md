@@ -1,4 +1,4 @@
-# NEXT — handoff 2026-11-14 (uso real; USO.8–USO.12 cerrados; sigue MSG.1)
+# NEXT — handoff 2026-11-15 (uso real; MSG.1, USO.13, USO.14 cerrados; sigue USO.15)
 
 Un solo presente: orden y trampas vivas del lote. Lo cerrado vive en `docs/done/bloque-*.md` y git; las reglas, en
 `AGENTS.md`. Versión anterior completa: `docs/done/poda-instrucciones-2026-11-03.md` (histórico).
@@ -28,7 +28,18 @@ auditoría AUD.1–AUD.28 en el orden de la segunda auditoría; lo cerrado está
    (`CLAUDE.md`, `100097d5`). 2026-11-14: USO.10 `8537462f` (Chat sin proyecto, "Open in Dev", tarjetas de tarea en Dev), CI rojo por un
    fixture de AUD.19 `5f70058f`, USO.11 `7f330150` (web y documentos en el Chat: `~/.orchestos/chats/<id>/`,
    tarjeta Download), USO.12 `ce7686b1` (borrador del composer por hilo). Evidencia en `docs/done/evidence/`.
-   **Siguiente: MSG.1** — escribir la spec desde `docs/specs/MSG.1.md` (borrador que dejó el chat) antes de delegar.
+   2026-11-14/15: MSG.1 `911b0302` (`message_session`, tabla `session_messages`, tarjeta Approve/Discard, entrega sin
+   turno, inbound en `<untrusted-data>`; `untrustedContent` ahora neutraliza marcas internas), USO.13 `089e9ba7`
+   (tema también en `<html>` para portales), USO.14 `91388169` (tooltips Radix en toda la UI).
+   **Siguiente: USO.15** — 11 ui-gates rojos que fallan igual en `089e9ba7` (lista en `PLAN.md`); separar gate
+   desfasado de producto roto, empezar por los de Chat (USO.10/USO.11) y `usage-bar` (caché, USO.3).
+   Pendiente de Carlos: cerrar en Dev las dos sesiones de prueba de MSG.1 ("Sesión de prueba MSG.1", "Pásale a la
+   sesión…"); el endpoint de archivo solo acepta sesiones de Chat.
+   Trampas nuevas: `mecanico` (Luna) se negó 2 veces sin cambios (leyó `NEXT.md` desfasado como "cambios ajenos"; creyó
+   que los gates reservados al cerebro le impedían implementar): el spec dice el estado del árbol y el alcance del
+   ejecutor. `aria-label` solo en controles de ícono (en botones con texto cambia su nombre accesible y rompe
+   `getByRole(name)`). Desde USO.13 hay dos `[data-theme]`: los gates usan `div[data-theme]`. Tooltips en gates: abrir
+   con `focus()`, no `hover()`. Títulos de sesión guardados a 40 caracteres sin elipsis (se ve en "Message from «…»").
    Anotado sin abrir ítem: varias pestañas "new" de Dev del mismo proyecto comparten borrador (USO.12);
    `src/run/logger.ts:16` escribe `runs/` en la raíz del proyecto (previo). LRN.1 queda abierto solo con F2 (espera datos de F0, D6). WIN.1
    necesita una máquina Windows.
