@@ -252,11 +252,13 @@ test('writeEnv creates and replaces .env atomically with mode 600', () => {
   try {
     writeEnv({ VALUE: 'first' })
     const path = envFilePath()
-    expect(statSync(path).mode & 0o777).toBe(0o600)
+    // Windows no tiene modo POSIX; ahí protege la ACL del perfil del usuario.
+    const posix = process.platform !== 'win32'
+    if (posix) expect(statSync(path).mode & 0o777).toBe(0o600)
     chmodSync(path, 0o644)
     const oldInode = statSync(path).ino
     writeEnv({ VALUE: 'second' })
-    expect(statSync(path).mode & 0o777).toBe(0o600)
+    if (posix) expect(statSync(path).mode & 0o777).toBe(0o600)
     expect(statSync(path).ino).not.toBe(oldInode)
     expect(readFileSync(path, 'utf8')).toBe('VALUE=second\n')
     expect(readdirSync(join(process.env.ORCHESTOS_HOME!, '.orchestos'))).toEqual(['.env'])

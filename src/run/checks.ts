@@ -1,6 +1,6 @@
 import { existsSync, readFileSync, realpathSync } from 'node:fs'
 import { homedir } from 'node:os'
-import { dirname, join, resolve } from 'node:path'
+import { basename, dirname, join, resolve, sep } from 'node:path'
 import type { Check } from '../tasks/schema.ts'
 import { jsSyntaxCheckForHtmlFile, jsSyntaxCheckForJsFile } from './html-script-check.ts'
 import type { RunLogger } from './logger.ts'
@@ -199,7 +199,7 @@ export async function runOneCheck(check: Check, projectRoot: string): Promise<Ch
   }
 
   if (!check.trusted) {
-    const realRoot = realpathSync(projectRoot)
+    const realRoot = realpathSync.native(projectRoot)
     for (const arg of args) {
       for (const value of pathValuesInArgument(arg)) {
         if (!looksLikePath(value)) continue
@@ -269,22 +269,23 @@ function resolveCommandPath(value: string, cwd: string): string {
   return resolve(cwd, value)
 }
 
+// .native en todo el archivo: como resolveProjectCwd, expande los nombres cortos 8.3 de Windows.
 function realPathOrResolved(path: string): string {
   try {
-    return realpathSync(path)
+    return realpathSync.native(path)
   } catch {
     let parent = dirname(path)
     try {
-      parent = realpathSync(parent)
+      parent = realpathSync.native(parent)
     } catch {
       return resolve(path)
     }
-    return resolve(parent, path.slice(path.lastIndexOf('/') + 1))
+    return resolve(parent, basename(path))
   }
 }
 
 function isWithinRoot(path: string, root: string): boolean {
-  return path === root || path.startsWith(`${root}/`)
+  return path === root || path.startsWith(`${root}${sep}`)
 }
 
 function splitCommand(cmd: string): string[] {

@@ -192,7 +192,8 @@ const LS_SAFE_SHORT = /^-[1aAdFhilpRrSstU]+$/
 
 function realpathOrAncestor(path: string): string {
   try {
-    return realpathSync(path)
+    // .native expande los nombres cortos 8.3 de Windows (RUNNER~1), como los devuelve git.
+    return realpathSync.native(path)
   } catch {
     const parent = dirname(path)
     if (parent === path) return path

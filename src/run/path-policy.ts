@@ -54,7 +54,10 @@ export function realPathWithin(root: string, target: string): boolean {
   let links = 0
   function canonical(input: string, base = realpathSync.native(process.cwd())): string {
     let actual = isAbsolute(input) ? parse(input).root : base
-    const segments = input.slice(isAbsolute(input) ? actual.length : 0).split(sep)
+    // Windows acepta `/` y `\`: partir solo por `sep` dejaba `inner/../x` sin revisar symlinks.
+    const segments = input
+      .slice(isAbsolute(input) ? actual.length : 0)
+      .split(sep === '\\' ? /[\\/]/ : sep)
     for (const [index, segment] of segments.entries()) {
       if (!segment || segment === '.') continue
       if (segment === '..') {
