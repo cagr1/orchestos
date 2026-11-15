@@ -27,6 +27,7 @@ let root: string
 let outside: string
 let sha: string
 const hasRg = !!Bun.which('rg')
+const posix = (path: string) => path.replaceAll('\\', '/')
 
 const git = (...args: string[]) =>
   Bun.spawnSync(
@@ -411,18 +412,19 @@ describe('run_readonly — config hostil del repo (ronda 3)', () => {
 
   /** Repo temporal con un commit; `script(name, body)` crea un ejecutable que toca el centinela. */
   function hostileRepo() {
-    const dir = realpathSync(mkdtempSync(join(tmpdir(), 'at21-host-')))
+    // Rutas con `/`: van dentro de configs de git y scripts sh, donde `\` es escape (Windows).
+    const dir = posix(realpathSync.native(mkdtempSync(join(tmpdir(), 'at21-host-'))))
     dirs.push(dir)
     const repo = join(dir, 'repo')
     mkdirSync(repo)
-    const sentinel = join(dir, 'PWNED')
+    const sentinel = posix(join(dir, 'PWNED'))
     const run = (...a: string[]) =>
       Bun.spawnSync(['git', '-c', 'user.name=t', '-c', 'user.email=t@t', ...a], { cwd: repo })
     const script = (name: string, body: string) => {
       const path = join(dir, name)
       writeFileSync(path, `#!/bin/sh\n${body}\n`)
       chmodSync(path, 0o755)
-      return path
+      return posix(path)
     }
     run('init', '-q')
     writeFileSync(join(repo, 'a.txt'), 'one\n')
@@ -598,7 +600,7 @@ describe('run_readonly — config hostil del repo (ronda 3)', () => {
     h.run('worktree', 'add', '-q', wt)
     const res = await readonly(wt, 'git', 'rev-parse', '--show-toplevel')
     expect(res.isError).toBe(false)
-    expect(res.text.trim()).toBe(realpathSync(wt))
+    expect(res.text.trim()).toBe(posix(realpathSync.native(wt)))
   })
 
   test('clave de ejecución sin neutralización cierra la llamada nombrándola', async () => {
@@ -619,17 +621,21 @@ describe('run_readonly — config hostil del repo (ronda 3)', () => {
     expect(res.isError).toBe(false)
   })
 
-  test('include.path a un FIFO: el plazo único corta el listado de config', async () => {
-    const h = hostileRepo()
-    const fifo = join(h.dir, 'fifo.cfg')
-    Bun.spawnSync(['mkfifo', fifo])
-    h.run('config', 'include.path', fifo)
-    const t0 = Date.now()
-    const res = await runReadonly({ argv: ['git', 'status'] }, h.repo, 300)
-    expect(Date.now() - t0).toBeLessThan(1500)
-    expect(res.isError).toBe(true)
-    expect(res.text).toContain('[timed out after 0.3s]')
-  })
+  // Windows no tiene mkfifo; el plazo único lo cubre también el test de timeout de arriba.
+  test.skipIf(process.platform === 'win32')(
+    'include.path a un FIFO: el plazo único corta el listado de config',
+    async () => {
+      const h = hostileRepo()
+      const fifo = join(h.dir, 'fifo.cfg')
+      Bun.spawnSync(['mkfifo', fifo])
+      h.run('config', 'include.path', fifo)
+      const t0 = Date.now()
+      const res = await runReadonly({ argv: ['git', 'status'] }, h.repo, 300)
+      expect(Date.now() - t0).toBeLessThan(1500)
+      expect(res.isError).toBe(true)
+      expect(res.text).toContain('[timed out after 0.3s]')
+    },
+  )
 
   // Ronda 6
   test('listado de config truncado (>1 MB de claves antes del filtro): rechaza, no ejecuta', async () => {

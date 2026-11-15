@@ -76,7 +76,9 @@ describe('path policy — traversal matrix', () => {
     const root = makeRoot()
     const marker = join(root, 'injected.txt')
     const logger = { error() {} } as any
-    const results = await runChecks([{ cmd: `printf 'safe; touch ${marker}'` }], root, logger)
+    // `/` en el formato: printf leería `\U` de una ruta de Windows como escape.
+    const shown = marker.replaceAll('\\', '/')
+    const results = await runChecks([{ cmd: `printf 'safe; touch ${shown}'` }], root, logger)
     expect(results[0]?.exitCode).toBe(0)
     expect(existsSync(marker)).toBe(false)
     expect(results[0]?.stdout).toContain('safe; touch')
