@@ -75,7 +75,8 @@ export function realPathWithin(root: string, target: string): boolean {
         if (++links > 40) throw new PathPolicyError('too many symbolic links')
         actual = canonical(readlinkSync(candidate), actual)
       } else {
-        actual = candidate
+        // Nombre real del segmento: en Windows deshace los nombres cortos 8.3 (`RUNNER~1`) y la caja, como `realRoot`.
+        actual = realpathSync.native(candidate)
       }
     }
     return actual

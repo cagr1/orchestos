@@ -66,9 +66,9 @@ describe('path policy — traversal matrix', () => {
   it('accepts a normal nested path and cwd only inside the project', () => {
     const root = makeRoot()
     expect(resolveProjectPath(root, 'src/new.txt', 'write')).toBe(
-      join(realpathSync(root), 'src', 'new.txt'),
+      join(realpathSync.native(root), 'src', 'new.txt'),
     )
-    expect(resolveProjectCwd(root, 'src')).toBe(join(realpathSync(root), 'src'))
+    expect(resolveProjectCwd(root, 'src')).toBe(join(realpathSync.native(root), 'src'))
     expect(() => resolveProjectCwd(root, '../')).toThrow(PathPolicyError)
   })
 
