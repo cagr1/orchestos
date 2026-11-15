@@ -51,20 +51,24 @@ test('USO.11 detects new/modified nested documents by content and ignores symlin
   }
 })
 
-test('USO.11 an unreadable document does not block the snapshot', () => {
-  const session = createChatSession({ agent: 'codex' })
-  const root = chatDirectory(session.id, true)
-  const locked = join(root, 'locked.txt')
-  try {
-    writeFileSync(locked, 'secret')
-    chmodSync(locked, 0o000)
-    const snapshot = snapshotChatDocuments(root)
-    expect(snapshot.get('locked.txt')).toStartWith('stat:6:')
-  } finally {
-    chmodSync(locked, 0o600)
-    handleApiChatSessionDelete(new URL(`http://localhost/api/chat/sessions/${session.id}`))
-  }
-})
+// chmod 000 no quita la lectura en Windows: el archivo sigue legible y el caso no se reproduce.
+test.skipIf(process.platform === 'win32')(
+  'USO.11 an unreadable document does not block the snapshot',
+  () => {
+    const session = createChatSession({ agent: 'codex' })
+    const root = chatDirectory(session.id, true)
+    const locked = join(root, 'locked.txt')
+    try {
+      writeFileSync(locked, 'secret')
+      chmodSync(locked, 0o000)
+      const snapshot = snapshotChatDocuments(root)
+      expect(snapshot.get('locked.txt')).toStartWith('stat:6:')
+    } finally {
+      chmodSync(locked, 0o600)
+      handleApiChatSessionDelete(new URL(`http://localhost/api/chat/sessions/${session.id}`))
+    }
+  },
+)
 
 test('USO.11 document endpoint confines paths/realpaths; archive preserves files and delete removes them', async () => {
   const session = createChatSession({ agent: 'claude' })

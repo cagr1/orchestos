@@ -180,7 +180,7 @@ describe('M.3 — perfiles de lenguaje (eje secundario, contra docs/roadmaps/lan
     const result = await profile(root)
     const ts = result.languageProfiles.find((l) => l.language === 'TypeScript')!
     expect(ts.state).toBe('known')
-    expect(ts.docPath).toBe(join('docs', 'roadmaps', 'languages', 'typescript-bun.md'))
+    expect(ts.docPath).toBe('docs/roadmaps/languages/typescript-bun.md')
   })
 
   it('missing cuando no hay doc de lenguaje todavía (ni local ni centralizado) — nunca inventa contenido', async () => {
@@ -205,7 +205,7 @@ describe('M.3 — perfiles de lenguaje (eje secundario, contra docs/roadmaps/lan
     const result = await profile(root)
     const ts = result.languageProfiles.find((l) => l.language === 'TypeScript')!
     expect(ts.state).toBe('known')
-    expect(ts.docPath).toBe(join('docs', 'roadmaps', 'languages', 'typescript-bun.md'))
+    expect(ts.docPath).toBe('docs/roadmaps/languages/typescript-bun.md')
   })
 
   it('proyecto políglota: registra cada lenguaje detectado, no reduce a uno primario', async () => {
