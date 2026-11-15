@@ -206,8 +206,13 @@ esta etapa: `docs/done/bloque-AUD.md` (AUD.16, AUD.17), `docs/done/bloque-SES.md
   script `#!/bin/sh` que se reescribe se salta en Windows. macOS `test:coverage` 2958/0. Sin verificar en la VM: la
   terminal del dashboard con un usuario real.
   Sin delegación: fix chico de 7 líneas en `terminal.ts` y tests, revisado por qa de otro proveedor
-- [ ] **WIN.4 — La API devuelve rutas con `\`.** (WIN.1 fase 1) `git-changes`, `explorer-search`, `explorer-ignored`,
-  `explorer-write`: la UI y los tests esperan `/`. Normalizar en la frontera de la API.
+- [x] **WIN.4 — La API devuelve rutas con `\`.** (WIN.1 fase 1) `git-changes` y `explorer-search` ya pasaban tras
+  WIN.2. Hecho (`ef88ae9f`, `71717f55`): rutas relativas al proyecto con `/` en salidas de borrador
+  (`fallbackDraftOutput`; el split por `/` era no-op y el chequeo de escape usaba `/`), `roadmap-profile`
+  (servidor custom y `docPath`), `manifest` (csproj, `glob` con `posix: true`) y documentos del chat (qa P2, hermanos).
+  Tests: nombre con `\n`, modo 0o755, `chmod 000` y `file:///opt` no aplican en Windows. windows-latest run
+  43760228211: 0 fallos en el área, 131 → 119 en total. macOS `test:coverage` 2958/0.
+  Sin delegación: fix chico de pocas líneas por archivo y tests, revisado por qa de otro proveedor
 - [ ] **WIN.5 — Shell de solo lectura (`run_readonly`) en Windows.** (WIN.1 fase 1) `mcp/readonly.test.ts` 14 fallos,
   `aud23-security` 5. Sin él, el Chat no puede consultar git ni el proyecto.
 - [ ] **WIN.6 — CLIs y procesos en Windows.** (WIN.1 fase 1) `providers` 13, `aud22-processes` 10, `chat-sessions` 8,
