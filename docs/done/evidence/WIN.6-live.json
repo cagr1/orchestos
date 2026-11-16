@@ -1,0 +1,18 @@
+{
+  "item": "WIN.6",
+  "date": "2026-11-16",
+  "machine": "PC Windows de Carlos, Chrome con Claude in Chrome, dashboard 127.0.0.1:4242 tras WIN.6a (610def85), WIN.6c (187ce3b3) y WIN.12 (5aaa123e)",
+  "chat": {
+    "model": "gpt-6.1-sol",
+    "sent": "Hola",
+    "reply": "¡Hola! ¿En qué te ayudo?",
+    "log": "[codex-turn] turn-completed ms=12796, item/agentMessage/delta=10, stderrBytes=0 (app-server: codex.cmd app-server)"
+  },
+  "dev": {
+    "project": "orchestos",
+    "model": "gpt-6-luna",
+    "sent": "Hola, responde solo: DEV-OK",
+    "reply": "DEV-OK"
+  },
+  "quota": "barra inferior con Claude 9% y Codex 9% visibles"
+}

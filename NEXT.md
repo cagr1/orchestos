@@ -53,8 +53,11 @@ auditoría AUD.1–AUD.28 en el orden de la segunda auditoría; lo cerrado está
    `.config/git/ignore: Permission denied`. **Llevar al Mac**: esa copia del vault tiene `raw/` con nombres
    inválidos en Windows y entradas `D` en el índice: **no commitear desde ahí**; aplicar los 3 cambios desde el Mac.
    Luna con `leer` en `low` a veces responde sin buscar. El ejecutor exige el ítem abierto en `PLAN.md` (preflight).
-   (b) **WIN.6a cerrado** (prompt de Codex por stdin; en vivo con `codex.cmd`). (c) **Siguiente: WIN.6b**
-   `app-server` con `Bun.spawn` (criterio, Sol), luego "Hola" a Codex en Dev en vivo.
+   (b) **WIN.6a, WIN.6c y WIN.12 cerrados**: Codex responde en Chat y en Dev en vivo (Chrome de Carlos); sin ventana
+   de cmd; el selector de carpeta sale delante. WIN.6b descartado (el `app-server` ya arranca). (c) **Siguiente**:
+   lo que reporte Carlos; luego lo que queda de WIN.6 (fixtures de test multiplataforma, OpenCode/`external` por
+   stdin, `generic-cli`) y reinstalar desde cero con `install.ps1` (WIN.1). Dashboard de Carlos: lo relanzó el
+   cerebro oculto con logs en `%TEMP%\orchestos-dash.log`.
    **WIN.6 (GO de Carlos 2026-11-16, como cerebro: spec → `delegate mecanico` → `qa`).** Diagnóstico en
    vivo: "Hola" a Codex en Dev no responde. `app-server` (spawn `node:child_process` de `codex.cmd`,
    `codex-app-server.ts:124`) da timeout en `initialize`; el respaldo `codex exec` pasa el prompt multilínea por argv y

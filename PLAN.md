@@ -242,6 +242,10 @@ esta etapa: `docs/done/bloque-AUD.md` (AUD.16, AUD.17), `docs/done/bloque-SES.md
   Windows, porque el prompt va en argv (`codex.ts:141`, `opencode.ts:75`, `external.ts`) y siempre trae esos
   caracteres; además argv de Windows tope 32 767 caracteres.
   Hecho (`09db2b15`): `killTree` usa `taskkill /T /F` en win32 y `codex-app-server` mata por `killTree`.
+  2026-11-16, en el Chrome de Carlos tras WIN.6a y WIN.6c (dashboard reiniciado): Codex responde en Chat ("Hola" →
+  "¡Hola! ¿En qué te ayudo?", `app-server`, turno 12,8 s) y en Dev (proyecto orchestos, GPT-6-Luna → "DEV-OK").
+  El `app-server` con `node:child_process` ya arranca: el timeout de `initialize` venía de `detached` (WIN.6c), no
+  hace falta pasarlo a `Bun.spawn` (WIN.6b descartado). Evidencia: `docs/done/evidence/WIN.6-live.json`.
   Falta (cambio de varios motores, espera GO): prompt por stdin donde el CLI lo acepte, o resolver el shim `.cmd` de
   npm a `node script.js`/`.exe`; lanzar con `Bun.spawn` en `codex-app-server` y `generic-cli`; fixtures de test
   multiplataforma (PATH con `delimiter`, CLIs falsos `.cmd`).
