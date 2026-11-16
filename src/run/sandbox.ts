@@ -23,9 +23,22 @@ export interface Worktree {
 
 type MergeStrategy = 'commit' | 'squash' | 'discard'
 
+/**
+ * WIN.14: in the task's own worktree OrchestOS commits as itself, never as the agent session that launched the
+ * dashboard: an inherited `CLAUDE_CODE_SESSION_ID` made the pre-commit writer lock reject the worktree its own
+ * executor holds ("otra sesión (codex)"). Only that commit uses it; base-repo commits keep the inherited identity.
+ */
+export function commitEnv(env: NodeJS.ProcessEnv): NodeJS.ProcessEnv {
+  const rest = { ...env }
+  for (const key of ['CLAUDE_CODE_SESSION_ID', 'AGENT_WRITER_TOKEN', 'AGENT_WRITER_NAME'])
+    delete rest[key]
+  return rest
+}
+
 export function git(
   args: string[],
   cwd: string,
+  envOverride?: NodeJS.ProcessEnv,
 ): { exitCode: number; stdout: string; stderr: string } {
   // Each add/commit waits at most 2 s for another process's index lock (4 s per
   // add + commit pair). Never remove a lock or retry unrelated failures/hooks.
@@ -35,7 +48,7 @@ export function git(
   const env =
     args[0] === 'status' || args[0] === 'diff'
       ? { ...process.env, GIT_OPTIONAL_LOCKS: '0' }
-      : process.env
+      : (envOverride ?? process.env)
   for (;;) {
     const proc = Bun.spawnSync(['git', ...args], { cwd, env })
     const result = {
@@ -254,7 +267,7 @@ function mergeWorktreeBackLocked(
     if (add.exitCode !== 0) throw new Error(`git add failed in worktree: ${add.stderr}`)
 
     const commitMsg = message ?? `orchestos: changes from ${worktree.branch}`
-    const commit = git(['commit', '-m', commitMsg], worktree.path)
+    const commit = git(['commit', '-m', commitMsg], worktree.path, commitEnv(process.env))
     if (commit.exitCode !== 0 && !commit.stderr.includes('nothing to commit')) {
       // allow empty commits — if nothing changed, skip
       if (!commit.stderr.includes('nothing to commit')) {
@@ -305,6 +318,7 @@ function mergeWorktreeBackLocked(
       const commit = git(
         ['commit', '-m', message ?? `orchestos: squashed changes from ${worktree.branch}`],
         worktree.path,
+        commitEnv(process.env),
       )
       if (commit.exitCode !== 0) throw new Error(`git commit (squash) failed: ${commit.stderr}`)
     }

@@ -1,4 +1,4 @@
-# NEXT — handoff 2026-11-16 (Windows en el PC de Carlos: WIN.14–WIN.17 y resto de WIN.6)
+# NEXT — handoff 2026-11-16 (Windows en el PC de Carlos: WIN.15–WIN.17 y resto de WIN.6)
 
 Un solo presente: orden y trampas vivas del lote. Lo cerrado vive en `docs/done/bloque-*.md` y git; las reglas, en
 `AGENTS.md`. Versión anterior completa: `docs/done/poda-instrucciones-2026-11-03.md` (histórico).
@@ -57,13 +57,10 @@ auditoría AUD.1–AUD.28 en el orden de la segunda auditoría; lo cerrado está
    de cmd; el selector de carpeta sale delante. WIN.6b descartado (el `app-server` ya arranca). (c) **Siguiente**:
    el orden de abajo. Dashboard del 4242: lo relanzó el cerebro sin variables `CLAUDE*` (PID 25868, sin log).
    **Revisión del 2026-11-16 (cerebro Fable, verificada): abiertos WIN.14–WIN.17.** Suite local: 114 rojos, no 98
-   (`docs/done/evidence/WIN.17-local.txt`). WIN.13 cerrado (Ollama en el Chat; 5 pasadas de qa).
-   **Orden:** `git pull --rebase` (remoto: `5315b80d`) → WIN.14 → WIN.15 (`sh` fijo) → WIN.16 (espacios) → WIN.17
-   (re-correr `windows-smoke.yml`) → resto de WIN.6. `tasks.yaml` (en el índice, evidencia de WIN.14) sin commitear.
-   **WIN.14, causa probable**: el dashboard del 4242 lo había relanzado el cerebro desde su shell y heredó
-   `CLAUDE_CODE_SESSION_ID`; `writer-lock.mjs:225-236` rechaza identidad ≠ `codex`, y `run/sandbox.ts` commitea con
-   `process.env` sin filtrar. Confirmar: reintentar la tarea con el dashboard ya limpio. Decidir: `sandbox.ts` limpia
-   esas variables al commitear (no es solo Windows: pasa con cualquier dashboard lanzado desde Claude Code).
+   (`docs/done/evidence/WIN.17-local.txt`). WIN.13 y WIN.14 cerrados.
+   **Orden:** WIN.15 (`sh` fijo) → WIN.16 (espacios) → WIN.17
+   (re-correr `windows-smoke.yml`) → resto de WIN.6. WIN.14 sin prueba en vivo: la tarea `chat-b9b3da84…` (`failed`)
+   es de USO.16 y reescribiría `NEXT.md` con un estado viejo: no reintentarla; la prueba va con la tarea en vivo de WIN.1.
    Visto y sin ítem (no daña): en Windows los `mode: 0o600`/`chmodSync` no aplican, así que el token del dashboard
    (`dashboard/auth-token.ts:18`), `settings-store.ts:83` y los respaldos de la BD (`db/backup.ts`) quedan con los
    permisos heredados de la carpeta del usuario; `terminateTree` en win32 mata con `taskkill /F` sin plazo de gracia

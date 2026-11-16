@@ -234,5 +234,21 @@ tasks:
       - NEXT.md indica que lo siguiente es USO.16 y luego USO.17
       - No se modificó ningún otro ítem del plan ni ningún archivo de código
     depends_on: []
-    status: pending
-    retry_count: 0
+    status: failed
+    retry_count: 1
+    retry_reason: >-
+      unexpected: git commit failed in worktree: 🧭 Verificando protocolo de agentes y hooks...
+
+      $ bun run scripts/agent-preflight.ts --hooks-only
+
+      ✓ Hooks instalados y sincronizados
+
+      🔒 Verificando candado de un escritor por árbol...
+
+      Un árbol, un escritor: otra sesión (codex, codex) escribe en E:/Carlos/Development
+      Tools/Proyectos/OrchestOS/orchestos/.orchestos/worktrees/chat-b9b3da84-ac0e-4821-92d6-0c0542930a7d-1794845588670
+      desde hace 2 min; último cambio hace 2 min. Trabaja en solo lectura, en otro repo, o espera. Si esa sesión ya
+      cerró: node ~/.agent-method/hooks/writer-lock.js release E:/Carlos/Development
+      Tools/Proyectos/OrchestOS/orchestos/.orchestos/worktrees/chat-b9b3da84-ac0e-4821-92d6-0c0542930a7d-1794845588670
+
+      ✗ Commit rechazado: otro agente tiene el candado de este árbol (AGENTS.md § Un árbol, un escritor).

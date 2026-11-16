@@ -324,14 +324,21 @@ esta etapa: `docs/done/bloque-AUD.md` (AUD.16, AUD.17), `docs/done/bloque-SES.md
   Gate en vivo: navegador de Carlos — chat Local nuevo, sin elegir modelo → "PRIMERO-OK"; `docs/done/evidence/WIN.13-live.json`
   Texto visible: "Ollama is not running or has no models. Start it and reload."
   Sin delegación: diagnóstico y cambio con el contexto ya leído; spec más largo que el diff.
-- [ ] **WIN.14 — Una tarea lanzada desde el dashboard no puede commitear: el candado la rechaza.** (revisión del
+- [x] **WIN.14 — Una tarea lanzada desde el dashboard no puede commitear: el candado la rechaza.** (revisión del
   cerebro, 2026-11-16) Tarea `chat-b9b3da84…` con Codex: el ejecutor tomó el candado del worktree
   (`.orchestos/worktrees/chat-b9b3da84…`, sesión `codex`) y el commit de OrchestOS en ese mismo worktree lo rechazó el
   pre-commit (`scripts/pre-commit.sh:28`, `writer-lock.mjs check`): "otra sesión (codex, codex) escribe … desde hace 2
-  min". Quedó `failed`, `retry_count: 1` en `tasks.yaml` (en el índice, sin commitear). Bloquea la tarea en vivo de
-  WIN.1. Sin diagnosticar: si en el Mac pasa igual (el candado del método se instaló aquí el 2026-11-16) y quién debe
-  ceder (el commit de OrchestOS con la identidad del ejecutor, o el pre-commit exento en `.orchestos/worktrees/`).
-  Primero reproducir y leer el candado; después decidir.
+  min". Quedó `failed`, `retry_count: 1` en `tasks.yaml`. Causa reproducida: el dashboard heredó
+  `CLAUDE_CODE_SESSION_ID` de la sesión de Claude Code que lo lanzó; `check` la toma como identidad y, al no ser
+  `codex`, rechaza (sin identidad pasa). No es solo Windows: pasa con cualquier dashboard lanzado desde Claude Code.
+  Hecho: los dos commits de OrchestOS dentro del worktree de la tarea (`commit` y `squash` con la base no activa) usan
+  `commitEnv` (`src/run/sandbox.ts`), sin `CLAUDE_CODE_SESSION_ID`/`AGENT_WRITER_*`; los del repo base siguen con el
+  env heredado. `sandbox-commit-env.test.ts`: 3 tests con el hook real del candado; los de `commit` y `squash` fallan
+  sin el arreglo con "otra sesión (codex, codex)". Suites de sandbox: los 2 rojos son los mismos en HEAD (WIN.15 y
+  `run-revert`). qa (gpt-6.1-sol): 1ª, quitar la identidad en todo commit rompía los del repo base → acotado al
+  worktree; 2ª, faltaba el commit `squash`; 3ª, sin defectos. Sin verificar en vivo: reintentar `chat-b9b3da84…`
+  reescribiría `NEXT.md` con un estado viejo; queda para la tarea en vivo de WIN.1.
+  Sin delegación: fix chico de un archivo con la causa reproducida en contexto.
 - [ ] **WIN.15 — El script de setup de worktrees usa `sh` fijo.** (revisión del cerebro, 2026-11-16)
   `run/sandbox.ts:160` lanza `sh -c`; en Windows sin Git Bash en el PATH da `Executable not found in $PATH: "sh"`
   (`sandbox-setup.test.ts`, 3 rojos). Un proyecto con setup script no puede preparar su worktree. Decidir: resolver el
