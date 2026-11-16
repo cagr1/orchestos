@@ -296,6 +296,30 @@
       "sprint": "Etapa 3 — Windows",
       "block": null,
       "title": "Rojos de Windows sin ítem",
+      "status": "done",
+      "closedDate": null
+    },
+    {
+      "id": "WIN.18",
+      "sprint": "Etapa 3 — Windows",
+      "block": null,
+      "title": "Tests con supuestos POSIX en Windows",
+      "status": "open",
+      "closedDate": null
+    },
+    {
+      "id": "WIN.19",
+      "sprint": "Etapa 3 — Windows",
+      "block": null,
+      "title": "CLIs falsos de los tests sin shim de Windows",
+      "status": "open",
+      "closedDate": null
+    },
+    {
+      "id": "WIN.20",
+      "sprint": "Etapa 3 — Windows",
+      "block": null,
+      "title": "Rojos de Windows que pueden ser producto",
       "status": "open",
       "closedDate": null
     }

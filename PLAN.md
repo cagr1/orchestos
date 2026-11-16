@@ -377,7 +377,7 @@ esta etapa: `docs/done/bloque-AUD.md` (AUD.16, AUD.17), `docs/done/bloque-SES.md
   la ruta trae comillas dobles). Fixtures de `checks.test.ts` sin `sleep`/`printf` y con ruta con espacio y
   apóstrofo: 35 pass / 0 fail en el PC de Carlos. Revisión: el cerebro (otro proveedor) leyó el diff, sin defectos.
   Ejecutado por: gpt-6.1-sol (3 rondas) · Spec: docs/specs/WIN.16.md
-- [ ] **WIN.17 — Rojos de Windows sin ítem.** (revisión del cerebro, 2026-11-16) `bun test` en el PC de Carlos, con
+- [x] **WIN.17 — Rojos de Windows sin ítem.** (revisión del cerebro, 2026-11-16) `bun test` en el PC de Carlos, con
   WIN.13 aún sin commitear en el árbol: 2847 pass / 114 fail / 15 errores (CI decía 98; lista en
   `docs/done/evidence/WIN.17-local.txt`). Con dueño: WIN.6
   (`providers` 12, `aud22-processes` 9, `process-tree` 4, `generic-cli` 3, `aud21` 3) y WIN.7 (~19). Sin dueño:
@@ -388,6 +388,26 @@ esta etapa: `docs/done/bloque-AUD.md` (AUD.16, AUD.17), `docs/done/bloque-SES.md
   `orchestos-home` 2, `db-backup`, `auth-token` (modo 600), `writer-lock`. Primero re-correr `windows-smoke.yml` para
   separar lo local (espacios, PATH sin `sh`) de lo de Windows; después repartir: producto roto → ítem propio, test
   POSIX → saltar o fixture.
+  Hecho: `windows-smoke` en CI sobre `0bc21da7` (tras WIN.13–16 y USO.17–18): instalador, migración, typecheck y
+  ui-gate smoke pasan; tests 2883 pass / 95 fail (antes 98). WIN.6 tiene 38 (`providers` 13, `aud22` 10, `aud21` 6,
+  `generic-cli` 5, `process-tree` 4); WIN.7, 21 (sus 5 scripts + `nightly-ui-gates` y `writer-lock`). Solo locales
+  (en CI pasan): `claude-statusline-tee`, `commit-tasks-yaml`, `path-policy`, `terminal`: espacios y PATH sin `sh` del
+  PC de Carlos. `run-revert` es el flaky conocido. Los 35 restantes se reparten en WIN.18–WIN.20.
+  Evidencia: `docs/done/evidence/WIN.17-ci.txt`.
+  Sin delegación: corrida de CI y reparto, sin cambio de código.
+- [ ] **WIN.18 — Tests con supuestos POSIX en Windows.** (WIN.17, 2026-11-16) Modos `0o600`/`0o755` que Windows
+  no aplica (`auth-token`, `db-backup`, `config-permission-mode`, `contract` "preserves executable destination
+  permissions") y rutas `/tmp/…` o XDG fijas (`orchestos-home` 2, `cli-health` OpenCode). Saltar en win32 o usar
+  `join`/`tmpdir`; no tocar producto. El riesgo real (token y BD con permisos heredados) sigue anotado en `NEXT.md`.
+- [ ] **WIN.19 — CLIs falsos de los tests sin shim de Windows.** (WIN.17, 2026-11-16) Los fixtures crean `claude` o
+  `codex` como script sin extensión y en Windows no se encuentran ("binary \"claude\" not found in PATH"):
+  `chat-sessions` 8 (incluye LRN.1b), `chat-r5-reliability` 6, `chat-adapters` 1, `cli-search-path` 1. Es el paso (4)
+  de WIN.6 (fixtures multiplataforma): un helper común que escriba `.cmd` en win32, no un arreglo por suite.
+- [ ] **WIN.20 — Rojos de Windows que pueden ser producto.** (WIN.17, 2026-11-16) Aislar antes de arreglar:
+  `context-update-safety` 3 (`--force` no reemplaza `AGENTS.md`), `action-approvals` 3 (clasificación de comandos y
+  diffs de Codex), `worktree-contract` 3 (uno es fixture: `out*.txt` no es un nombre válido en Windows; los otros dos,
+  merge con exclusiones y renombres), `contract` "attempts every rollback", `tasks-api-init` 1 (crear la primera
+  tarea sin init) y `usage-endpoint` 1 (agrupar por día local). Producto roto → arreglo con test; test POSIX → WIN.18.
 
 ## Decisiones pendientes de Carlos
 
