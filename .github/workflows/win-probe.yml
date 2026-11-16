@@ -10,7 +10,6 @@ jobs:
       - shell: bash
         run: |
           cat > probe.ts <<'EOF'
-          import { spawn } from 'node:child_process'
           import { mkdtempSync, writeFileSync } from 'node:fs'
           import { tmpdir } from 'node:os'
           import { join } from 'node:path'
@@ -20,31 +19,27 @@ jobs:
           const alive = (pid: number) => { try { process.kill(pid, 0); return true } catch (e) { return (e as NodeJS.ErrnoException).code ?? String(e) } }
           const cmd = join(dir, 'fake.cmd')
           writeFileSync(cmd, '@echo off\r\necho hola %1\r\n')
-          // node:child_process.spawn de un .cmd sin shell (codex-app-server, generic-cli)
-          await new Promise<void>((done) => {
-            try {
-              const p = spawn(cmd, ['x'], { stdio: 'pipe', shell: false })
-              let out = ''
-              p.stdout.on('data', (c) => { out += c })
-              p.on('error', (e) => { log('node spawn .cmd error', String(e)); done() })
-              p.on('exit', (code) => { log('node spawn .cmd exit', { code, out: out.trim() }); done() })
-            } catch (e) { log('node spawn .cmd threw', String(e)); done() }
-          })
+          // ¿Bun.spawn escapa bien argumentos hostiles hacia un .cmd? (BatBadBut)
+          const echo = join(dir, 'args.cmd')
+          writeFileSync(echo, `@echo off\r\n"${process.execPath}" -e "console.log(JSON.stringify(process.argv.slice(1)))" -- %*\r\n`)
+          const marker = join(dir, 'PWNED')
+          for (const arg of ['plain', 'a b', 'a" & echo x > "' + marker + '" & "', '%PATH%', 'x^y', 'a\\"b', 'línea\nnueva', '!x!']) {
+            const r = Bun.spawnSync([echo, arg], { stderr: 'pipe' })
+            log('arg ' + JSON.stringify(arg), { code: r.exitCode, out: r.stdout.toString().trim(), err: r.stderr.toString().trim().slice(0, 150) })
+          }
+          log('marker created', (await Bun.file(marker).exists()))
           // .cmd que lanza un nieto bun de larga vida; killTree debe matar los tres.
           const long = join(dir, 'long.cmd')
           writeFileSync(long, `@echo off\r\n"${process.execPath}" -e "console.log(process.pid);setTimeout(()=>{},60000)"\r\n`)
-          const p = spawnTree([long], { stdout: 'pipe', stderr: 'ignore' })
-          const grand = Number(new TextDecoder().decode((await p.stdout.getReader().read()).value).trim())
-          log('cmd tree pids', { wrapper: p.pid, grand })
+          const p = spawnTree([long], { stdout: 'pipe', stderr: 'pipe' })
+          const reader = p.stdout.getReader()
+          let text = ''
+          for (let i = 0; i < 20 && !/\d/.test(text); i++) { const { value, done } = await reader.read(); if (done) break; text += new TextDecoder().decode(value) }
+          const grand = Number(text.trim())
+          log('cmd tree pids', { wrapper: p.pid, grand, text })
           killTree(p, 'SIGTERM')
-          await Bun.sleep(500)
-          log('after killTree', { wrapper: alive(p.pid), grand: alive(grand) })
-          // Lo mismo con node:child_process (el camino de codex-app-server).
-          const n = spawn(long, [], { stdio: 'pipe', shell: false, detached: true })
-          n.on('error', (e) => log('node spawn long.cmd error', String(e)))
-          const g2 = await new Promise<number>((r) => { n.stdout?.once('data', (c) => r(Number(String(c).trim()))); setTimeout(() => r(0), 5000) })
-          log('node cmd tree pids', { wrapper: n.pid, grand: g2 })
-          if (n.pid) { killTree(n, 'SIGTERM'); await Bun.sleep(500); log('node after killTree', { wrapper: alive(n.pid), grand: g2 ? alive(g2) : 'n/a' }) }
+          await Bun.sleep(800)
+          log('after killTree', { wrapper: alive(p.pid), grand: grand ? alive(grand) : 'n/a' })
           process.exit(0)
           EOF
           bun install --frozen-lockfile >/dev/null
