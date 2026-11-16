@@ -245,6 +245,14 @@ esta etapa: `docs/done/bloque-AUD.md` (AUD.16, AUD.17), `docs/done/bloque-SES.md
   Falta (cambio de varios motores, espera GO): prompt por stdin donde el CLI lo acepte, o resolver el shim `.cmd` de
   npm a `node script.js`/`.exe`; lanzar con `Bun.spawn` en `codex-app-server` y `generic-cli`; fixtures de test
   multiplataforma (PATH con `delimiter`, CLIs falsos `.cmd`).
+- [x] **WIN.6a — Codex recibe el prompt por stdin (`codex exec … -`), nunca por argv.** (WIN.6, PC Windows de
+  Carlos, 2026-11-16) `cmd.exe` corta el prompt de `codex.cmd` en el primer salto de línea y pierde `--json`: "Hola"
+  a Codex en Dev queda sin respuesta. Hecho: `buildCodexArgs`/`buildCodexChatArgs` llevan `-` en lugar del prompt,
+  `runCodex` lo manda por stdin (tarea y chat), `providers/codex.ts` igual. En vivo con `codex.cmd` 0.160.1 y los
+  args reales: prompt multilínea con `" & % ^ !` → 4 líneas JSON y la respuesta pedida
+  (`docs/done/evidence/WIN.6a-live.json`). Suite del spec 59 pass / 2 fail (los 2 previos de Windows, ajenos a
+  Codex). qa (gpt-6.1-sol): sin defectos. Sigue WIN.6b (`app-server` con `Bun.spawn`) y el "Hola" en Dev.
+  Ejecutado por: gpt-6-luna · Spec: docs/specs/WIN.6a.md
 - [ ] **WIN.7 — Scripts de desarrollo en Windows.** (WIN.1 fase 1, baja prioridad: no los usa el usuario final)
   `adversarial-review`, `mutation-test-shard`, `startup-guard`, `session-status`, `context-adapters`.
 - [x] **WIN.8 — "Open folder" y "Clone from URL" solo funcionan en macOS.** (PC Windows de Carlos, 2026-11-16) El

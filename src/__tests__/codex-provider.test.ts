@@ -11,9 +11,18 @@ afterEach(() => {
   Bun.spawn = originalSpawn
 })
 
-function mockSpawn(calls: Array<{ cmd: string[]; env?: Record<string, string | undefined> }>) {
-  Bun.spawn = ((cmd: string[], opts?: { env?: Record<string, string | undefined> }) => {
-    calls.push({ cmd: cmd.slice(), env: opts?.env })
+function mockSpawn(
+  calls: Array<{
+    cmd: string[]
+    env?: Record<string, string | undefined>
+    stdin?: Blob | 'ignore'
+  }>,
+) {
+  Bun.spawn = ((
+    cmd: string[],
+    opts?: { env?: Record<string, string | undefined>; stdin?: Blob | 'ignore' },
+  ) => {
+    calls.push({ cmd: cmd.slice(), env: opts?.env, stdin: opts?.stdin })
     const text = (s: string) =>
       new ReadableStream<Uint8Array>({
         start(c) {
@@ -42,7 +51,11 @@ describe('providers/codex — R.8.5.1', () => {
   it('lanza codex exec con CODEX_HOME aislado en el home del proyecto', async () => {
     const root = mkdtempSync(join(tmpdir(), 'orchestos-codex-provider-'))
     try {
-      const calls: Array<{ cmd: string[]; env?: Record<string, string | undefined> }> = []
+      const calls: Array<{
+        cmd: string[]
+        env?: Record<string, string | undefined>
+        stdin?: Blob | 'ignore'
+      }> = []
       mockSpawn(calls)
       const res = await chat(
         { model: 'm', system: 's', messages: [{ role: 'user', content: 'q' }] },
@@ -51,6 +64,9 @@ describe('providers/codex — R.8.5.1', () => {
       const home = join(root, '.orchestos', 'agent-home', 'codex')
       expect(res.text).toBe('ok')
       expect(calls).toHaveLength(1)
+      expect(calls[0]!.cmd).toEqual(['codex', 'exec', '--json', '-'])
+      const stdin = calls[0]!.stdin
+      expect(stdin instanceof Blob ? await stdin.text() : stdin).toBe('s\n\n## user\nq')
       expect(calls[0]!.env?.CODEX_HOME).toBe(home)
       expect(existsSync(join(home, 'AGENTS.md'))).toBe(true)
     } finally {

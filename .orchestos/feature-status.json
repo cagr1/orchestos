@@ -180,6 +180,14 @@
       "closedDate": null
     },
     {
+      "id": "WIN.6a",
+      "sprint": "Etapa 3 — Windows",
+      "block": null,
+      "title": "Codex recibe el prompt por stdin (`codex exec … -`), nunca por argv",
+      "status": "done",
+      "closedDate": null
+    },
+    {
       "id": "WIN.7",
       "sprint": "Etapa 3 — Windows",
       "block": null,

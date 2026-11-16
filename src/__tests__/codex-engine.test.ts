@@ -267,6 +267,13 @@ describe('G.4.2b — codexEngine (codex subprocess)', () => {
     expect(buildCodexArgsDisplay()).toContain('model_reasoning_summary=auto')
     expect(buildCodexChatArgs('hello')).toContain('model_reasoning_summary=auto')
   })
+  it('envía prompts por stdin y no los expone en argv', () => {
+    const prompt = 'linea1\nlinea2 "x" & y'
+    for (const args of [buildCodexArgs(prompt), buildCodexChatArgs(prompt)]) {
+      expect(args).toContain('-')
+      expect(args.some((arg) => arg.includes('linea1'))).toBe(false)
+    }
+  })
   it('UI.24.6a — una imagen = un --image <ruta>; sin imágenes los args no cambian', () => {
     const base = buildCodexChatArgs('p', 'gpt-5.4', 'high')
     expect(buildCodexChatArgs('p', 'gpt-5.4', 'high', [])).toEqual(base)

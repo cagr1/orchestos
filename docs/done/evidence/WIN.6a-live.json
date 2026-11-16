@@ -1,0 +1,25 @@
+{
+  "item": "WIN.6a",
+  "date": "2026-11-16",
+  "machine": "PC Windows de Carlos (Windows 11, Bun 1.4.0, codex-cli 0.160.1 via codex.cmd)",
+  "probe": "Bun.spawn(['codex', ...buildCodexChatArgs(prompt)], { stdin: new Blob([prompt]) })",
+  "prompt": "Línea 1: responde exactamente WIN6A-OK y nada más.\nLínea 2 con \"comillas\" & ampersand % ^ !",
+  "args": [
+    "exec",
+    "-",
+    "--json",
+    "--sandbox",
+    "read-only",
+    "--color",
+    "never",
+    "--ignore-user-config",
+    "--skip-git-repo-check",
+    "-c",
+    "model_reasoning_summary=auto"
+  ],
+  "exit": 0,
+  "jsonLines": "4 of 4",
+  "lastAgentMessage": "{\"type\":\"item.completed\",\"item\":{\"id\":\"item_0\",\"type\":\"agent_message\",\"text\":\"WIN6A-OK\"}}",
+  "suite": "bun test codex-engine, mcp/server, codex-provider, run/executors: 59 pass / 2 fail (OpenCode XDG y applyCliSearchPath, previos de Windows)",
+  "qa": "gpt-6.1-sol (delegate qa, solo lectura): sin defectos"
+}

@@ -138,10 +138,10 @@ function buildCodexPrompt(ctx: Parameters<ExecutorEngine['run']>[0]): string {
     .join('\n\n')
 }
 
-export function buildCodexArgs(prompt: string, model?: string, cliEffort?: string): string[] {
+export function buildCodexArgs(_prompt: string, model?: string, cliEffort?: string): string[] {
   const args = [
     'exec',
-    prompt,
+    '-',
     '--json',
     '--sandbox',
     CODEX_TASK_SANDBOX,
@@ -181,11 +181,12 @@ async function runCodex(
   onStep?: (event: ExecutorStepEvent) => void,
   env: Record<string, string> = safeChildEnv(),
   signal?: AbortSignal,
+  input?: string,
 ): Promise<{ stdout: string; timedOut: boolean }> {
   const proc = spawnTree([CODEX_BINARY, ...args], {
     cwd,
     env,
-    stdin: 'ignore',
+    stdin: input === undefined ? 'ignore' : new Blob([input]),
     stdout: 'pipe',
     stderr: 'pipe',
   })
@@ -376,7 +377,7 @@ export async function readCodexRolloutContext(
 }
 
 export function buildCodexChatArgs(
-  prompt: string,
+  _prompt: string,
   model?: string,
   cliEffort?: string,
   imagePaths: string[] = [],
@@ -384,7 +385,7 @@ export function buildCodexChatArgs(
 ): string[] {
   const args = [
     'exec',
-    prompt,
+    '-',
     '--json',
     '--sandbox',
     'read-only',
@@ -456,6 +457,7 @@ async function runCodexChatExec(
       onStep,
       buildCodexChatEnv(configHome.path),
       signal,
+      prompt,
     ))
   } catch (e: any) {
     if (signal?.aborted) throw e
@@ -709,6 +711,8 @@ export const codexEngine: ExecutorEngine = {
           timeoutMs,
           opts.onStep,
           buildCodexChatEnv(configHome.path),
+          undefined,
+          prompt,
         ))
       } catch (e: any) {
         throw new ExecutorCodexError(`failed to spawn codex: ${e.message}`)

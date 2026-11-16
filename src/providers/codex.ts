@@ -23,8 +23,9 @@ export async function chat(
     homedir(),
     ctx.projectRoot ? undefined : generalChatConfigHome(),
   )
-  const proc = Bun.spawn(['codex', 'exec', '--json', prompt], {
+  const proc = Bun.spawn(['codex', 'exec', '--json', '-'], {
     env: buildCodexChatEnv(configHome.path),
+    stdin: new Blob([prompt]),
     stdout: 'pipe',
     stderr: 'pipe',
   })
