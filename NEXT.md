@@ -43,7 +43,19 @@ auditoría AUD.1–AUD.28 en el orden de la segunda auditoría; lo cerrado está
    (Open folder/Clone con selector nativo), WIN.9 (reconcile sin `ps`). Anotado WIN.11 (IA local: Ollama +
    `qwen2.5-coder:7b`). **En el Mac, tras el pull, una vez:** `bun run hooks:install` y `bun run plan:reconcile`
    (verificado con un clon simulado: pull fast-forward limpio, commit siguiente pasa).
-   **Siguiente: WIN.6 (GO de Carlos 2026-11-16, como cerebro: spec → `delegate mecanico` → `qa`).** Diagnóstico en
+   **Orden siguiente (Carlos: "Codex debe funcionar en cualquier máquina"; luego Tauri, primero Mac):**
+   (a) **`delegate` en Windows** (método en `~/.agent-method`, instalado con `--copy` desde `~/Projects/MemoriesMD`;
+   fuente `method/`). Ya arreglado en el vault sin commitear: `cygpath -w` del repo (con `E:/…` el sandbox de Codex
+   arrancaba en `C:\`). Falta: el guardián `guard/git` es bash y PowerShell dentro de Codex no lo ejecuta ("Acceso
+   denegado" en todo `git`) → añadir `guard/git.cmd`; y git ve "dubious ownership" porque el sandbox corre con otro
+   usuario → `safe.directory` en el entorno del ejecutor (`writer-lock.js check` dice "no es un repo git" por eso).
+   Ojo: esa copia del vault tiene `raw/` con nombres inválidos en Windows y entradas `D` en el índice: **no commitear
+   desde ahí** (borraría notas); el arreglo va por otra vía (commit desde el Mac o API). Luna con `leer` en `low` a
+   veces responde sin buscar.
+   (b) **WIN.6a** — spec listo en `docs/specs/WIN.6a.md` (sin commitear): prompt de Codex por stdin en
+   `buildCodexArgs`/`buildCodexChatArgs`/`providers/codex.ts`. Delegado una vez a `mecanico`: no aplicó nada por (a).
+   Baseline de su suite: 58 pass / 2 fail (Windows previos). (c) WIN.6b `app-server` (criterio, Sol).
+   **WIN.6 (GO de Carlos 2026-11-16, como cerebro: spec → `delegate mecanico` → `qa`).** Diagnóstico en
    vivo: "Hola" a Codex en Dev no responde. `app-server` (spawn `node:child_process` de `codex.cmd`,
    `codex-app-server.ts:124`) da timeout en `initialize`; el respaldo `codex exec` pasa el prompt multilínea por argv y
    `cmd.exe` lo corta en el primer `\n`, perdiendo también los flags siguientes (`--json`) → salida texto, respuesta
