@@ -188,6 +188,14 @@
       "closedDate": null
     },
     {
+      "id": "WIN.6c",
+      "sprint": "Etapa 3 — Windows",
+      "block": null,
+      "title": "Al escribir a Codex se abre una ventana de cmd",
+      "status": "done",
+      "closedDate": null
+    },
+    {
       "id": "WIN.7",
       "sprint": "Etapa 3 — Windows",
       "block": null,

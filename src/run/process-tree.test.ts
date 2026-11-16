@@ -2,7 +2,7 @@ import { afterEach, expect, test } from 'bun:test'
 import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { spawnTree, terminateTree } from './process-tree.ts'
+import { spawnTree, terminateTree, treeSpawnOptions } from './process-tree.ts'
 
 const roots: string[] = []
 afterEach(() => {
@@ -104,3 +104,9 @@ test('terminateTree kills a grandchild that ignores SIGTERM after the leader exi
     } catch {}
   }
 }, 8000)
+
+test('WIN.6c — en Windows no se lanza detached (abriría una consola visible) y se oculta la ventana', () => {
+  expect(treeSpawnOptions('win32')).toEqual({ detached: false, windowsHide: true })
+  expect(treeSpawnOptions('darwin')).toEqual({ detached: true })
+  expect(treeSpawnOptions('linux')).toEqual({ detached: true })
+})

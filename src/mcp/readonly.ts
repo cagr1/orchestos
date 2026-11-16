@@ -1,4 +1,4 @@
-import { killTree } from '../run/process-tree.ts'
+import { killTree, treeSpawnOptions } from '../run/process-tree.ts'
 /**
  * src/mcp/readonly.ts — AT.21
  *
@@ -642,7 +642,7 @@ async function execCapped(
       stdin: 'ignore',
       stdout: 'pipe',
       stderr: 'pipe',
-      detached: true,
+      ...treeSpawnOptions(),
     })
   } catch (e: any) {
     return {

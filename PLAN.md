@@ -253,6 +253,16 @@ esta etapa: `docs/done/bloque-AUD.md` (AUD.16, AUD.17), `docs/done/bloque-SES.md
   (`docs/done/evidence/WIN.6a-live.json`). Suite del spec 59 pass / 2 fail (los 2 previos de Windows, ajenos a
   Codex). qa (gpt-6.1-sol): sin defectos. Sigue WIN.6b (`app-server` con `Bun.spawn`) y el "Hola" en Dev.
   Ejecutado por: gpt-6-luna · Spec: docs/specs/WIN.6a.md
+- [x] **WIN.6c — Al escribir a Codex se abre una ventana de cmd.** (Carlos, PC Windows, 2026-11-16) `spawnTree`,
+  `run_readonly` y `codex-app-server` lanzan con `detached: true`; en Windows eso arranca sin consola y el nieto del
+  `.cmd` de npm (codex.cmd → node) crea una consola visible. Medido en vivo (el nieto consulta `GetConsoleWindow`
+  + `IsWindowVisible`): `detached` → visible, también con `windowsHide`; sin `detached` → sin ventana. Hecho:
+  `treeSpawnOptions()` en `process-tree.ts` (win32 `{ detached: false, windowsHide: true }`, POSIX `{ detached:
+  true }` sin cambio) en los 3 sitios; el árbol en Windows ya se mataba con `taskkill /T`. En vivo con `spawnTree` y un
+  shim `.cmd`: `visible=False`, `killTree` termina al instante. Suites 144 pass / 6 fail (los 6 previos: 4
+  `process-tree` con fixtures `sh`, iguales en HEAD, y 2 de PATH/OpenCode). qa (gpt-6.1-sol): sin defectos. Falta
+  verlo en Dev tras reiniciar el dashboard.
+  Sin delegación: fix chico de 4 archivos con el diagnóstico ya en contexto; spec más largo que el diff.
 - [ ] **WIN.7 — Scripts de desarrollo en Windows.** (WIN.1 fase 1, baja prioridad: no los usa el usuario final)
   `adversarial-review`, `mutation-test-shard`, `startup-guard`, `session-status`, `context-adapters`.
 - [x] **WIN.8 — "Open folder" y "Clone from URL" solo funcionan en macOS.** (PC Windows de Carlos, 2026-11-16) El

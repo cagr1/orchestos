@@ -6,12 +6,24 @@ interface TreeProcess {
 }
 const trees = new Set<TreeProcess>()
 
+/**
+ * POSIX: `detached` crea un grupo propio para matar el árbol con `kill(-pid)`.
+ * Windows: `detached` lanza sin consola y el nieto de un `.cmd` de npm (codex.cmd → node) abre una consola visible
+ * (medido en el PC de Carlos, WIN.6c). Allí el árbol se mata con `taskkill /T` y no hace falta el grupo.
+ */
+export function treeSpawnOptions(platform: NodeJS.Platform = process.platform): {
+  detached: boolean
+  windowsHide?: boolean
+} {
+  return platform === 'win32' ? { detached: false, windowsHide: true } : { detached: true }
+}
+
 export function spawnTree<
   const In extends SpawnOptions.Writable = 'ignore',
   const Out extends SpawnOptions.Readable = 'pipe',
   const Err extends SpawnOptions.Readable = 'inherit',
 >(argv: string[], opts: SpawnOptions.SpawnOptions<In, Out, Err>): Subprocess<In, Out, Err> {
-  const proc = Bun.spawn(argv, { ...opts, detached: true })
+  const proc = Bun.spawn(argv, { ...opts, ...treeSpawnOptions() })
   trees.add(proc)
   void proc.exited.then(() => trees.delete(proc))
   return proc

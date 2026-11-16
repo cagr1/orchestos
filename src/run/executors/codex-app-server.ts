@@ -8,7 +8,7 @@ import { parseJson, z } from '../../boundary/index.ts'
 import { redactSensitive } from '../../security/secrets.ts'
 import type { ApprovalAdapter } from '../approvals.ts'
 import { decideApproval } from '../approvals.ts'
-import { killTree } from '../process-tree.ts'
+import { killTree, treeSpawnOptions } from '../process-tree.ts'
 import { CliFailure, type CliNotice, classifyCliFailure, cliFailureNotice } from './cli-failure.ts'
 import { codexApprovalRequest } from './codex-approval.ts'
 import { type ExecutorStepEvent, readonlyCommandTarget } from './step-event.ts'
@@ -121,7 +121,8 @@ export class CodexAppServer {
   constructor(private readonly options: CodexAppServerOptions) {
     this.spawnProcess =
       options.spawnProcess ??
-      ((binary, env) => spawn(binary, ['app-server'], { env, stdio: 'pipe', detached: true }))
+      ((binary, env) =>
+        spawn(binary, ['app-server'], { env, stdio: 'pipe', ...treeSpawnOptions() }))
   }
 
   private async ensureReady(): Promise<void> {
