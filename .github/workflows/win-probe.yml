@@ -1,0 +1,50 @@
+name: win-probe (temporal WIN.6)
+# Sonda temporal: hechos de Bun en Windows (.cmd y árbol de procesos). Se borra al cerrar WIN.6.
+on: workflow_dispatch
+jobs:
+  probe:
+    runs-on: windows-latest
+    steps:
+      - uses: oven-sh/setup-bun@v2
+      - shell: bash
+        run: |
+          cat > probe.ts <<'EOF'
+          import { mkdtempSync, writeFileSync } from 'node:fs'
+          import { tmpdir } from 'node:os'
+          import { join } from 'node:path'
+          const dir = mkdtempSync(join(tmpdir(), 'probe-'))
+          const log = (k: string, v: unknown) => console.log(`PROBE ${k}: ${JSON.stringify(v)}`)
+          const cmd = join(dir, 'fake.cmd')
+          writeFileSync(cmd, '@echo off\r\necho hola %1\r\n')
+          log('which fake (PATH=dir)', Bun.which('fake', { PATH: dir }))
+          log('which npm', Bun.which('npm'))
+          for (const argv of [[cmd, 'x'], ['fake', 'x'], ['fake.cmd', 'x']]) {
+            try {
+              const p = Bun.spawnSync(argv, { cwd: dir, env: { ...process.env, PATH: `${dir};${process.env.PATH}` } })
+              log(`spawnSync ${argv[0]}`, { code: p.exitCode, out: p.stdout.toString().trim(), err: p.stderr.toString().trim().slice(0, 200) })
+            } catch (e) { log(`spawnSync ${argv[0]} threw`, String(e)) }
+          }
+          const npm = Bun.which('npm')
+          if (npm) { const p = Bun.spawnSync([npm, '--version']); log('spawn npm --version', { npm, code: p.exitCode, out: p.stdout.toString().trim() }) }
+          const tree = `const g=Bun.spawn([process.execPath,'-e','setTimeout(()=>{},60000)']);console.log(g.pid);setTimeout(()=>{},60000)`
+          const alive = (pid: number) => { try { process.kill(pid, 0); return true } catch (e) { return (e as NodeJS.ErrnoException).code ?? String(e) } }
+          const child = Bun.spawn([process.execPath, '-e', tree], { stdout: 'pipe', detached: true })
+          const grand = Number(new TextDecoder().decode((await child.stdout.getReader().read()).value).trim())
+          log('pids', { child: child.pid, grand })
+          try { process.kill(-child.pid, 'SIGTERM'); log('kill(-pid)', 'ok') } catch (e) { log('kill(-pid) threw', { code: (e as NodeJS.ErrnoException).code, msg: String(e) }) }
+          await Bun.sleep(300)
+          log('alive after kill(-pid)', { child: alive(child.pid), grand: alive(grand) })
+          const tk = Bun.spawnSync(['taskkill', '/PID', String(child.pid), '/T', '/F'])
+          log('taskkill /T /F', { code: tk.exitCode, out: tk.stdout.toString().trim().slice(0, 300) })
+          await Bun.sleep(500)
+          log('alive after taskkill', { child: alive(child.pid), grand: alive(grand) })
+          const c2 = Bun.spawn([process.execPath, '-e', tree], { stdout: 'pipe' })
+          const g2 = Number(new TextDecoder().decode((await c2.stdout.getReader().read()).value).trim())
+          c2.kill('SIGTERM')
+          await Bun.sleep(500)
+          log('proc.kill(SIGTERM) alive', { child: alive(c2.pid), grand: alive(g2), exit: c2.exitCode, signal: c2.signalCode })
+          Bun.spawnSync(['taskkill', '/PID', String(g2), '/F'])
+          try { process.kill(999999, 0) } catch (e) { log('kill(dead pid, 0)', { code: (e as NodeJS.ErrnoException).code, msg: String(e) }) }
+          process.exit(0)
+          EOF
+          bun run probe.ts
