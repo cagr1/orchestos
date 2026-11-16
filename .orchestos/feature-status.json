@@ -116,6 +116,22 @@
       "closedDate": null
     },
     {
+      "id": "USO.17",
+      "sprint": "Etapa 2 — Uso real",
+      "block": null,
+      "title": "Hora y copia completa de las respuestas en Chat y Dev",
+      "status": "open",
+      "closedDate": null
+    },
+    {
+      "id": "USO.18",
+      "sprint": "Etapa 2 — Uso real",
+      "block": null,
+      "title": "Mostrar fallos de los modelos en Chat y Dev",
+      "status": "open",
+      "closedDate": null
+    },
+    {
       "id": "LRN.1",
       "sprint": "Etapa 2 — Uso real",
       "block": null,
@@ -264,7 +280,7 @@
       "sprint": "Etapa 3 — Windows",
       "block": null,
       "title": "El script de setup de worktrees usa `sh` fijo",
-      "status": "open",
+      "status": "done",
       "closedDate": null
     },
     {

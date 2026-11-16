@@ -11,10 +11,17 @@ import {
 } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { createWorktree, git, mergeWorktreeBack } from '../run/sandbox.ts'
+import {
+  createWorktree,
+  git,
+  mergeWorktreeBack,
+  resolveSetupShell,
+  type SetupShellProbe,
+} from '../run/sandbox.ts'
 
-function fixture() {
-  const root = realpathSync(mkdtempSync(join(tmpdir(), 'orchestos-setup-')))
+function fixture(withSpaces = false) {
+  const prefix = withSpaces ? 'orchestos setup-' : 'orchestos-setup-'
+  const root = realpathSync(mkdtempSync(join(tmpdir(), prefix)))
   git(['init', '-b', 'main'], root)
   writeFileSync(join(root, 'README.md'), 'main\n')
   git(['add', '.'], root)
@@ -35,8 +42,8 @@ function fixture() {
 }
 
 describe('worktree setup script', () => {
-  it('runs in the worktree after node_modules is linked, with both root variables', () => {
-    const root = fixture()
+  it('runs in the worktree with both root variables and tolerates unavailable symlinks on Windows', () => {
+    const root = fixture(true)
     mkdirSync(join(root, 'node_modules'))
     let worktree
     try {
@@ -44,9 +51,12 @@ describe('worktree setup script', () => {
         'setup',
         'main',
         root,
-        'test -L node_modules && test "$PWD" = "$ORCHESTOS_WORKTREE" && printf "%s" "$ORCHESTOS_PROJECT_ROOT" > .setup-ran',
+        `${process.platform === 'win32' ? ':' : 'test -L node_modules'} && test "$PWD" = "$(cd "$ORCHESTOS_WORKTREE" && pwd)" && cp README.md .setup-copy && printf "%s" "$ORCHESTOS_PROJECT_ROOT" > .setup-ran`,
       )
       expect(readFileSync(join(worktree.path, '.setup-ran'), 'utf8')).toBe(root)
+      expect(readFileSync(join(worktree.path, '.setup-copy'), 'utf8')).toBe(
+        readFileSync(join(worktree.path, 'README.md'), 'utf8'),
+      )
       expect(existsSync(join(root, '.setup-ran'))).toBe(false)
     } finally {
       worktree?.cleanup()
@@ -93,10 +103,10 @@ describe('worktree setup script', () => {
       args: string[],
       options: Record<string, unknown>,
     ) => {
-      if (args[0] === 'sh') {
+      if (args[1] === '-c') {
         expect(options.timeout).toBe(600_000)
         expect(options.killSignal).toBe('SIGKILL')
-        return spawn(args, { ...options, timeout: 30 })
+        return spawn(args, { ...options, timeout: process.platform === 'win32' ? 500 : 30 })
       }
       return spawn(args, options)
     }) as typeof Bun.spawnSync)
@@ -110,6 +120,66 @@ describe('worktree setup script', () => {
       probe.mockRestore()
       rmSync(root, { recursive: true, force: true })
     }
+  })
+})
+
+describe('setup shell resolution', () => {
+  it('keeps the POSIX shell contract', () => {
+    const probe: SetupShellProbe = {
+      findShell: () => null,
+      gitExecPath: () => null,
+      exists: () => false,
+    }
+    expect(resolveSetupShell('.', probe, 'linux')).toBe('sh')
+  })
+
+  it('prefers an absolute sh.exe from PATH on Windows', () => {
+    const shell = 'C:\\Program Files\\Git\\usr\\bin\\sh.exe'
+    const probe: SetupShellProbe = {
+      findShell: () => shell,
+      gitExecPath: () => {
+        throw new Error('Git fallback should not run')
+      },
+      exists: (path) => path === shell,
+    }
+    expect(resolveSetupShell('.', probe, 'win32')).toBe(shell)
+  })
+
+  it('resolves Git for Windows sh.exe from git --exec-path without host PATH', () => {
+    const shell = 'C:\\Program Files\\Git\\usr\\bin\\sh.exe'
+    const probe: SetupShellProbe = {
+      findShell: () => null,
+      gitExecPath: () => 'C:\\Program Files\\Git\\mingw64\\libexec\\git-core',
+      exists: (path) => path === shell,
+    }
+    expect(resolveSetupShell('.', probe, 'win32')).toBe(shell)
+  })
+
+  it('rejects a relative git --exec-path result', () => {
+    const probe: SetupShellProbe = {
+      findShell: () => null,
+      gitExecPath: () => 'mingw64/libexec/git-core',
+      exists: () => true,
+    }
+    expect(() => resolveSetupShell('.', probe, 'win32')).toThrow(/Add sh\.exe.*PATH/)
+  })
+
+  it('rejects a PATH shell that is not an executable', () => {
+    const probe: SetupShellProbe = {
+      findShell: () => 'C:\\Program Files\\Git\\usr\\bin\\sh.cmd',
+      gitExecPath: () => 'relative/git-core',
+      exists: () => true,
+    }
+    expect(() => resolveSetupShell('.', probe, 'win32')).toThrow(/Add sh\.exe.*PATH/)
+  })
+
+  it('fails with an actionable message when Windows has no shell', () => {
+    const probe: SetupShellProbe = {
+      findShell: () => null,
+      gitExecPath: () => null,
+      exists: () => false,
+    }
+    expect(() => resolveSetupShell('.', probe, 'win32')).toThrow(/Add sh\.exe.*PATH/)
   })
 })
 

@@ -1,5 +1,5 @@
 import { existsSync, mkdirSync, symlinkSync } from 'node:fs'
-import { join } from 'node:path'
+import { delimiter, dirname, join, win32 } from 'node:path'
 import {
   listCommittedWorktreePaths,
   listWorktreeChanges,
@@ -22,6 +22,45 @@ export interface Worktree {
 }
 
 type MergeStrategy = 'commit' | 'squash' | 'discard'
+
+export interface SetupShellProbe {
+  findShell: () => string | null
+  gitExecPath: (projectRoot: string) => string | null
+  exists: (path: string) => boolean
+}
+
+export function resolveSetupShell(
+  projectRoot: string,
+  probe?: SetupShellProbe,
+  platform = process.platform,
+): string {
+  if (platform !== 'win32') return 'sh'
+  const findShell = probe?.findShell ?? (() => Bun.which('sh.exe'))
+  const gitExecPath =
+    probe?.gitExecPath ??
+    ((root) => {
+      const result = git(['--exec-path'], root)
+      return result.exitCode === 0 ? result.stdout : null
+    })
+  const exists = probe?.exists ?? existsSync
+  const fromPath = findShell()
+  if (
+    fromPath &&
+    win32.isAbsolute(fromPath) &&
+    fromPath.toLowerCase().endsWith('.exe') &&
+    exists(fromPath)
+  )
+    return fromPath
+
+  const execPath = gitExecPath(projectRoot)
+  if (execPath && win32.isAbsolute(execPath)) {
+    const fallback = win32.resolve(execPath, '../../../usr/bin/sh.exe')
+    if (exists(fallback)) return fallback
+  }
+  throw new Error(
+    'Unable to find sh.exe for worktree setup. Add sh.exe (for example, Git for Windows usr/bin) to PATH or install Git for Windows.',
+  )
+}
 
 /**
  * WIN.14: in the task's own worktree OrchestOS commits as itself, never as the agent session that launched the
@@ -168,20 +207,26 @@ export function createWorktree(
   if (setupScript?.trim()) {
     try {
       // Merge stderr into stdout so the diagnostic preserves execution order.
+      const shell = resolveSetupShell(projectRoot)
+      const env: NodeJS.ProcessEnv = {
+        ...process.env,
+        ORCHESTOS_WORKTREE: worktreeDir,
+        ORCHESTOS_PROJECT_ROOT: projectRoot,
+      }
+      if (process.platform === 'win32') {
+        const pathKey = Object.keys(env).find((key) => key.toUpperCase() === 'PATH') ?? 'PATH'
+        env[pathKey] = [dirname(shell), env[pathKey]].filter(Boolean).join(delimiter)
+      }
       const result = Bun.spawnSync(
         [
-          'sh',
+          shell,
           '-c',
           `exec 2>&1
 ${setupScript}`,
         ],
         {
           cwd: worktreeDir,
-          env: {
-            ...process.env,
-            ORCHESTOS_WORKTREE: worktreeDir,
-            ORCHESTOS_PROJECT_ROOT: projectRoot,
-          },
+          env,
           stdout: 'pipe',
           stderr: 'pipe',
           timeout: 10 * 60 * 1000,

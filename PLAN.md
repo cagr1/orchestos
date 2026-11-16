@@ -159,6 +159,18 @@ esta etapa: `docs/done/bloque-AUD.md` (AUD.16, AUD.17), `docs/done/bloque-SES.md
   guardaba ni reanudaba la sesión nativa de Claude y reenviaba el transcript cada turno (`decideClaudeResume`).
   Gate en vivo: Playwright (11 ui-gates, `gate:evidence`, todos PASS) — `docs/done/evidence/USO.15-live.json`.
   Ejecutado por: gpt-6.1-sol · Spec: docs/specs/USO.15.md
+- [ ] **USO.17 — Hora y copia completa de las respuestas en Chat y Dev.** (Carlos, 2026-11-16)
+  El navegador confirmó que el hover del asistente omite la hora. En Dev el botón puede copiar el texto persistido
+  aunque la respuesta visible provenga de otra fuente o esté más completa. Mostrar la hora real cuando exista y copiar
+  todo el Markdown de la respuesta visible. Verificar hora, hover y portapapeles en ambos modos.
+  Texto visible: hora de la respuesta al pasar el cursor, con el formato que ya usa el mensaje del usuario.
+  Gate en vivo: navegador interno en dashboard aislado, hora y portapapeles exacto en Chat y Dev — `docs/done/evidence/USO.17-live.json`.
+- [ ] **USO.18 — Mostrar fallos de los modelos en Chat y Dev.** (Carlos, 2026-11-16)
+  Claude devolvió `rate_limit` con `is_error: true` y texto de límite de cinco horas. Dev omite los avisos del turno
+  y descarta errores de envío. Las excepciones de Ollama y API salen sin aviso estructurado. Mostrar el fallo real,
+  persistirlo con el turno cuando exista y conservar el detalle redactado. Verificar cuota de Claude y fallo local/API.
+  Texto visible: el aviso existente de límite o fallo del proveedor y sus detalles. Un icono no explica cómo proceder.
+  Gate en vivo: navegador interno en dashboard aislado, fallo de Ollama real, fallo previo a la ejecución de Claude y fixture de cuota con salida real del CLI — `docs/done/evidence/USO.18-live.json`.
 - [ ] **LRN.1 — OrchestOS aprende de los errores.** (abierto 2026-11-13; GO de Carlos a D1–D6; va después de SES.1 y
   no bloquea el uso real) Diseño: `docs/specs/LRN-1-opinion-fable.md`. Decisiones: D1 alcance por proyecto, global
   solo por promoción manual; D2 tope 1.000 tokens o 15 lecciones; D3 proponer ante firma repetida ≥2, par
@@ -339,15 +351,25 @@ esta etapa: `docs/done/bloque-AUD.md` (AUD.16, AUD.17), `docs/done/bloque-SES.md
   worktree; 2ª, faltaba el commit `squash`; 3ª, sin defectos. Sin verificar en vivo: reintentar `chat-b9b3da84…`
   reescribiría `NEXT.md` con un estado viejo; queda para la tarea en vivo de WIN.1.
   Sin delegación: fix chico de un archivo con la causa reproducida en contexto.
-- [ ] **WIN.15 — El script de setup de worktrees usa `sh` fijo.** (revisión del cerebro, 2026-11-16)
+- [x] **WIN.15 — El script de setup de worktrees usa `sh` fijo.** (revisión del cerebro, 2026-11-16)
   `run/sandbox.ts:160` lanza `sh -c`; en Windows sin Git Bash en el PATH da `Executable not found in $PATH: "sh"`
   (`sandbox-setup.test.ts`, 3 rojos). Un proyecto con setup script no puede preparar su worktree. Decidir: resolver el
   `sh` de Git for Windows (como `guard/git.cmd` del método) o shell de plataforma como en WIN.3; POSIX sin cambio.
+  Hecho: `resolveSetupShell` (`src/run/sandbox.ts`) usa `sh.exe` del PATH o, si falta, el de Git for Windows
+  (`git --exec-path` → `usr/bin/sh.exe`) y antepone su carpeta al PATH del script; sin ninguno, error que dice qué
+  instalar. POSIX sigue con `sh`. `sandbox-setup.test.ts`: 14 pass / 0 fail en el PC de Carlos (antes 3 rojos).
+  Revisión: el cerebro (otro proveedor) leyó el diff, sin defectos.
+  Ejecutado por: gpt-6.1-sol · Spec: docs/specs/WIN.15.md
 - [ ] **WIN.16 — Rutas con espacios: el clon en `E:\Carlos\Development Tools\…` falla donde el CI no.** (revisión
   del cerebro, 2026-11-16) `checks.test.ts` da `Module not found "E:\Carlos\Development"`: algún comando parte la ruta
   por el espacio. Sin aislar si el corte está en el producto (`checks.ts`/`defaultChecksFor`) o en el fixture. El
   runner de CI no tiene espacios en la ruta, así que `windows-smoke` no lo ve. Primero aislar; si es producto, es
   prioridad (la carpeta de usuario de Windows suele llevar espacios).
+  Hecho: era producto. `defaultChecksFor` armaba `bun run <checker> <ruta>` y `bun test <ruta>` sin comillas y
+  `splitCommand` partía la ruta por el espacio; `commandArgument` (`src/run/checks.ts`) las entrecomilla (simples si
+  la ruta trae comillas dobles). Fixtures de `checks.test.ts` sin `sleep`/`printf` y con ruta con espacio y
+  apóstrofo: 35 pass / 0 fail en el PC de Carlos. Revisión: el cerebro (otro proveedor) leyó el diff, sin defectos.
+  Ejecutado por: gpt-6.1-sol · Spec: docs/specs/WIN.16.md
 - [ ] **WIN.17 — Rojos de Windows sin ítem.** (revisión del cerebro, 2026-11-16) `bun test` en el PC de Carlos, con
   WIN.13 aún sin commitear en el árbol: 2847 pass / 114 fail / 15 errores (CI decía 98; lista en
   `docs/done/evidence/WIN.17-local.txt`). Con dueño: WIN.6
