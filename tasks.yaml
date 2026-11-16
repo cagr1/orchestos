@@ -192,3 +192,44 @@ tasks:
     status: pending
     retry_count: 0
     retry_reason: "uncommitted changes: .orchestos/feature-status.json"
+  - id: chat-b9b3da84-ac0e-4821-92d6-0c0542930a7d
+    description: >-
+      Solo documentación del plan, sin tocar código. Añadir dos ítems abiertos (`- [ ]`) en PLAN.md, justo después de
+      USO.15 y con el mismo formato que los USO.* existentes (título en negrita, origen "(Carlos, PC Windows,
+      2026-11-16)", diagnóstico con rutas:línea). Actualizar el "**Siguiente**" de NEXT.md (Etapa 2) para que diga que
+      lo siguiente es USO.16 y luego USO.17. No cambiar nada más ni cerrar ítems.
+
+
+      USO.16 — Codex no muestra la actividad en vivo (Chat y Dev). Diagnóstico: el `app-server` solo emite pasos de
+      herramienta en `item/completed` (`src/run/executors/codex-app-server.ts:561-604`) e ignora `item/started` de
+      `commandExecution`, `mcpToolCall` y `fileChange`. Lo mismo ocurre en el respaldo `codex exec`: `codexEventToStep`
+      solo procesa `item.completed` (`src/run/executors/step-event.ts:337`). Por eso nunca aparece "Running `…`…" ni
+      "Reading…", y las herramientas salen ya terminadas. Claude sí lo hace: emite `tool_use` al empezar con `toolUseId`
+      y después un `tool_result` emparejado (`step-event.ts:178,192-196`). Arreglo propuesto: en `item/started` emitir
+      `tool_use` con `toolUseId = item.id` y `ok` sin definir (en curso); en `item/completed` emparejarlo como hace
+      Claude, sin duplicar la fila. Aplicarlo en el app-server y en `codex exec` (`item.started`). Además, el respaldo
+      `codex exec` no transmite texto (`onTextDelta` no se pasa, `src/run/executors/codex.ts:625`): anotarlo como parte
+      del ítem. Verificación en vivo: Codex en Dev (Windows) con un prompt que lea archivos muestra "Running…/Reading…"
+      mientras corre.
+
+
+      USO.17 — Agrupar la actividad del turno como Claude.ai. Diagnóstico: `buildTurnActivity`
+      (`src/dashboard/app/src/components/thread/activity.ts:65-118`) abre un segmento nuevo cada vez que se alterna
+      razonamiento↔herramientas. Un turno se ve como "Thought / Read 1 file / Thought / Read 2 files / Searched…", con
+      una fila por alternancia. Diseño propuesto: un solo bloque plegable por tramo de trabajo entre textos visibles. El
+      bloque solo se parte con texto intermedio visible. Encabezado con el resumen agregado ("Thought for 14s · read 3
+      files, searched 2 times"); dentro, la lista cronológica de razonamientos y herramientas. Mientras el turno está
+      vivo, el encabezado muestra el paso actual con shimmer y el tiempo. Afecta `activity.ts`, `TurnActivity.tsx` y sus
+      tests/ui-gates. Exige gate en vivo al cerrar.
+    output:
+      - PLAN.md
+      - NEXT.md
+    status: pending
+    retry_count: 0
+    acceptance_criteria:
+      - PLAN.md tiene USO.16 y USO.17 abiertos (`- [ ]`) inmediatamente después de USO.15, con el diagnóstico y las
+        rutas de la descripción
+      - NEXT.md indica que lo siguiente es USO.16 y luego USO.17
+      - No se modificó ningún otro ítem del plan ni ningún archivo de código
+    approvalMode: auto-edit
+    task_class: plan
