@@ -1478,8 +1478,6 @@ export default function App() {
         approvalMode,
         thread,
       )
-    } catch {
-      return false
     } finally {
       devSendLock.current = false
     }

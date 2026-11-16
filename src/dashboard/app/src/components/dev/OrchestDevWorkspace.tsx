@@ -26,6 +26,7 @@ import { InboundSessionMessageBlock, SessionMessageCard } from '../thread/Sessio
 import { StoppedResponse } from '../thread/StoppedResponse'
 import { TaskCard } from '../thread/TaskCard'
 import { ThreadMarkdown } from '../thread/ThreadMarkdown'
+import { ThreadThinking } from '../thread/ThreadThinking'
 import { TurnActivity } from '../thread/TurnActivity'
 import { buildTaskCards } from '../thread/taskCards'
 import { formatElapsed, parseDbTime } from '../thread/thinking'
@@ -245,6 +246,7 @@ export const OrchestDevWorkspace: React.FC<OrchestDevWorkspaceProps> = ({
       .finally(() => setBusyTaskActions((previous) => ({ ...previous, [key]: false })))
   }
   const [timeline, setTimeline] = useState<TimelineResponse | null>(null)
+  const [sendError, setSendError] = useState<{ message: string; sentAt: number } | null>(null)
   const [pendingUserMessage, setPendingUserMessage] = useState<{
     content: string
     sentAt: number
@@ -253,6 +255,7 @@ export const OrchestDevWorkspace: React.FC<OrchestDevWorkspaceProps> = ({
   // biome-ignore lint/correctness/useExhaustiveDependencies: cambiar de agente descarta el mensaje optimista y reinicia el estado local.
   useEffect(() => {
     setPendingUserMessage(null)
+    setSendError(null)
     setSessionStatus('done')
   }, [activeAgent?.id])
 
@@ -402,6 +405,7 @@ export const OrchestDevWorkspace: React.FC<OrchestDevWorkspaceProps> = ({
     let sent = true
     if (!isShellCmd) {
       const sentAt = Date.now()
+      setSendError(null)
       // El servidor no persiste adjuntos: el hilo los recuerda por contenido del mensaje.
       if (attachments?.length) sentAttachments.current.set(content, attachments)
       setPendingUserMessage({ content, sentAt })
@@ -418,7 +422,8 @@ export const OrchestDevWorkspace: React.FC<OrchestDevWorkspaceProps> = ({
         sent = !!accepted
         setSessionStatus(accepted ? 'done' : 'failed')
         if (!accepted) setPendingUserMessage(null)
-      } catch {
+      } catch (error) {
+        setSendError({ message: error instanceof Error ? error.message : String(error), sentAt })
         sent = false
         setSessionStatus('failed')
         setPendingUserMessage(null)
@@ -717,6 +722,15 @@ export const OrchestDevWorkspace: React.FC<OrchestDevWorkspaceProps> = ({
           </div>
         )}
 
+        {steps.some((step) => step.notice) && (
+          <ThreadThinking
+            active={false}
+            label=""
+            steps={[]}
+            notices={steps.flatMap((step) => (step.notice ? [step.notice] : []))}
+          />
+        )}
+
         {/* 8. FINAL ANSWER IN MARKDOWN */}
         {hasRealTurn && (visibleAssistantMessage || exchange.assistantMessage?.stopped) && (
           <ChatMessage
@@ -835,6 +849,21 @@ export const OrchestDevWorkspace: React.FC<OrchestDevWorkspaceProps> = ({
           </h1>
         )}
         <div className="max-w-3xl lg:max-w-4xl mx-auto">
+          {sendError &&
+            !timeline?.turns.some(
+              (turn) =>
+                turn.status === 'failed' &&
+                turn.steps.some(
+                  (step) =>
+                    step.notice &&
+                    step.notice.message === sendError.message &&
+                    parseDbTime(step.createdAt) >= sendError.sentAt,
+                ),
+            ) && (
+              <div className="text-sm text-app-error" role="alert">
+                {sendError.message}
+              </div>
+            )}
           <AgentComposer
             shellMode
             onSendMessage={handleSendMessage}

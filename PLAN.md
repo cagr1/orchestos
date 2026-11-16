@@ -168,12 +168,16 @@ esta etapa: `docs/done/bloque-AUD.md` (AUD.16, AUD.17), `docs/done/bloque-SES.md
   (`assistantCopyTarget` ya no prefiere el texto persistido) y ocultan Copy sin respuesta. Revisión: el cerebro.
   Gate en vivo: navegador interno en dashboard aislado (`gate:evidence uso17-uso18-final`), hora y portapapeles exacto en Chat y Dev — `docs/done/evidence/USO.17-live.json`.
   Ejecutado por: gpt-6.1-sol · Spec: docs/specs/USO.17.md
-- [ ] **USO.18 — Mostrar fallos de los modelos en Chat y Dev.** (Carlos, 2026-11-16)
+- [x] **USO.18 — Mostrar fallos de los modelos en Chat y Dev.** (Carlos, 2026-11-16)
   Claude devolvió `rate_limit` con `is_error: true` y texto de límite de cinco horas. Dev omite los avisos del turno
   y descarta errores de envío. Las excepciones de Ollama y API salen sin aviso estructurado. Mostrar el fallo real,
   persistirlo con el turno cuando exista y conservar el detalle redactado. Verificar cuota de Claude y fallo local/API.
   Texto visible: el aviso existente de límite o fallo del proveedor y sus detalles. Un icono no explica cómo proceder.
-  Gate en vivo: navegador interno en dashboard aislado, fallo de Ollama real, fallo previo a la ejecución de Claude y fixture de cuota con salida real del CLI — `docs/done/evidence/USO.18-live.json`.
+  Hecho: `claudeFailureKind` usa el texto del resultado (límite de 5 h → cuota); Chat API/Ollama persiste el
+  fallo como aviso del turno con detalle redactado (`finishModelFailure`, `handlers/chat.ts`); Dev muestra los avisos
+  del turno y el error de envío. Revisión: el cerebro.
+  Gate en vivo: navegador interno en dashboard aislado (`gate:evidence uso17-uso18-final`), fallo de Ollama real, fallo previo a la ejecución de Claude y fixture de cuota con salida real del CLI — `docs/done/evidence/USO.18-live.json`.
+  Ejecutado por: gpt-6.1-sol · Spec: docs/specs/USO.18.md
 - [ ] **LRN.1 — OrchestOS aprende de los errores.** (abierto 2026-11-13; GO de Carlos a D1–D6; va después de SES.1 y
   no bloquea el uso real) Diseño: `docs/specs/LRN-1-opinion-fable.md`. Decisiones: D1 alcance por proyecto, global
   solo por promoción manual; D2 tope 1.000 tokens o 15 lecciones; D3 proponer ante firma repetida ≥2, par

@@ -11,6 +11,9 @@ test.each([
   ['rate_limit', 'rate-limit'],
   ['usage limit reached', 'quota'],
   ['insufficient_quota 429', 'quota'],
+  ["You've hit your 5-hour limit · resets 3:50pm (America/Guayaquil)", 'quota'],
+  ["You've hit your weekly limit", 'quota'],
+  ['You have reached your 7-day rate_limit', 'rate-limit'],
   ['401 Unauthorized', 'auth'],
   ['403', 'auth'],
   ['Please log in', 'auth'],
@@ -20,8 +23,10 @@ test.each([
   ['login helper exited', 'process-exit'],
   ['ENOTFOUND example.test', 'network'],
   ['ECONNRESET', 'network'],
+  ['Unable to connect. Is the computer able to access the url?', 'network'],
   ['stream disconnected', 'network'],
   ['503', 'overloaded'],
+  ['Ollama error 404: model "uso18-modelo-inexistente" not found', 'invalid-model'],
   ['529 overloaded', 'overloaded'],
   ['model not found', 'invalid-model'],
   ['unsupported model', 'invalid-model'],
@@ -41,6 +46,19 @@ test('unknown failure preserves the original text', () => {
     message: 'opaque raw failure',
     detail: 'opaque raw failure',
   })
+})
+
+test('Claude result quota overrides rate_limit while retaining provider reset time', () => {
+  const detail = "You've hit your 5-hour limit · resets 3:50pm (America/Guayaquil)"
+  const kind = claudeFailureKind('rate_limit', detail)
+  expect(kind).toBe('quota')
+  expect(cliFailureNotice(detail, 'Claude Code CLI', 'sonnet', kind)).toEqual({
+    kind: 'quota',
+    message: 'Claude Code CLI usage limit reached.',
+    detail,
+  })
+  expect(claudeFailureKind('rate_limit', '429 Too many requests')).toBe('rate-limit')
+  expect(claudeFailureKind('authentication_failed', 'opaque failure')).toBe('auth')
 })
 
 test('Claude retry fixture retains attempt, cause and no-response duration', () => {

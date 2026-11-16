@@ -92,6 +92,7 @@ import {
 import { knownCost } from '../../router/pricing.ts'
 import { clientFromAssignment } from '../../router/role-runner.ts'
 import { cliChatAdapterFor } from '../../run/executors/chat-adapters.ts'
+import { type CliNotice, cliFailureNotice } from '../../run/executors/cli-failure.ts'
 import { readCliHealth } from '../../run/executors/cli-health.ts'
 import {
   type CliCapabilityProbe,
@@ -1291,6 +1292,23 @@ async function handleApiChat(
       }
     }
 
+    const finishModelFailure = (params: {
+      notice: CliNotice
+      model: string
+      provider: string
+      readAudit?: ReadAudit
+    }): Response => {
+      const notice = {
+        ...params.notice,
+        message: redactSensitive(params.notice.message),
+        detail:
+          params.notice.detail === undefined ? undefined : redactSensitive(params.notice.detail),
+      }
+      persistChatStep({ type: 'notice', label: notice.message, notice })
+      finishTurnFailure({ ...params, error: notice.message, persistExchange: true })
+      return jsonResponse({ error: notice.message, notice }, 502)
+    }
+
     if (!chatAgent || !chatAssignment?.model) {
       const error = 'Orchestrator role is unassigned — assign it in Settings → Model routing'
       finishTurnFailure({ error })
@@ -1841,6 +1859,7 @@ async function handleApiChat(
           : combinedText,
     })
 
+    let failedReadAudit: ReadAudit | undefined
     try {
       signal?.throwIfAborted()
       if (cliAdapter) {
@@ -1905,31 +1924,12 @@ async function handleApiChat(
         } catch (e: any) {
           if (signal?.aborted) throw e
           const failure = cliAdapter.failure(e, model)
-          if (failure.notice)
-            persistChatStep({ type: 'notice', label: failure.message, notice: failure.notice })
-          finishTurnFailure({
+          return finishModelFailure({
             ...failure.record,
-            error: failure.message,
-            persistExchange: Boolean(failure.notice),
+            notice: failure.notice ?? cliFailureNotice(failure.message, cliAdapter.label, model),
             model,
             provider: chatAgent,
           })
-          return jsonResponse(
-            {
-              error: redactSensitive(failure.message),
-              notice: failure.notice
-                ? {
-                    ...failure.notice,
-                    message: redactSensitive(failure.notice.message),
-                    detail:
-                      failure.notice.detail === undefined
-                        ? undefined
-                        : redactSensitive(failure.notice.detail),
-                  }
-                : undefined,
-            },
-            502,
-          )
         } finally {
           // The outer finally cleans the isolated cwd for every transport.
           cliImages?.cleanup()
@@ -2074,12 +2074,7 @@ async function handleApiChat(
               appendLiveText(session.id, activeTurnId, text)
           },
         }).catch((error) => {
-          finishTurnFailure({
-            error: 'Tool loop failed; read evidence incomplete',
-            model,
-            readAudit: readCollector.snapshot(false),
-            provider: 'openrouter',
-          })
+          failedReadAudit = readCollector.snapshot(false)
           throw error
         })
         const readAudit = readCollector.snapshot(true)
@@ -2144,9 +2139,20 @@ async function handleApiChat(
       // OpenRouter, que no tenía try/catch propio) deja evidencia igual, en
       // vez de un turno 'pending' huérfano que ningún proceso vuelve a tocar.
       if (signal?.aborted) throw e
-      const message = await resolveChatErrorMessage(e.message)
-      finishTurnFailure({ error: `Chat failed: ${message}` })
-      return errorResponse(`Chat failed: ${message}`, 502)
+      const detail = e instanceof Error ? e.message : String(e)
+      const message = await resolveChatErrorMessage(detail)
+      const notice = cliFailureNotice(detail, isOllama ? 'Ollama' : 'OpenRouter', model)
+      if (notice.kind === 'unknown' || message !== detail)
+        notice.message = `Chat failed: ${message}`
+      notice.detail = `${model}: ${message}`
+      if (isOllama && notice.kind === 'network')
+        notice.detail += '\nCheck that Ollama is running and its URL is reachable.'
+      return finishModelFailure({
+        notice,
+        model,
+        provider: isOllama ? 'ollama' : 'openrouter',
+        readAudit: failedReadAudit,
+      })
     }
   } catch (error) {
     if (!signal?.aborted) {

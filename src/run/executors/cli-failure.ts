@@ -18,7 +18,11 @@ export interface CliNotice {
 }
 
 export function classifyCliFailure(text: string): CliNoticeKind {
-  if (/quota|usage.?limit|out of usage|billing|credits|insufficient_quota/i.test(text))
+  if (
+    /quota|usage.?limit|out of usage|billing|credits|insufficient_quota|\b(?:\d+|five)[ -]hours? limit\b|\bweekly limit\b|\b(?:one[ -])?week(?:ly)?[ -]limit\b/i.test(
+      text,
+    )
+  )
     return 'quota'
   if (/\b429\b|rate.?limit/i.test(text)) return 'rate-limit'
   if (
@@ -27,11 +31,15 @@ export function classifyCliFailure(text: string): CliNoticeKind {
     )
   )
     return 'auth'
-  if (/ENOTFOUND|ECONNRESET|ECONNREFUSED|stream disconnected|network|fetch failed/i.test(text))
+  if (
+    /ENOTFOUND|ECONNRESET|ECONNREFUSED|stream disconnected|network|fetch failed|unable to connect/i.test(
+      text,
+    )
+  )
     return 'network'
   if (/\b503\b|\b529\b|overloaded|server_error/i.test(text)) return 'overloaded'
   if (
-    /model.?not.?found|unsupported model|invalid model|model.*(?:not available|does not exist|may not exist)/i.test(
+    /model.?not.?found|unsupported model|invalid model|model.*(?:not found|not available|does not exist|may not exist)/i.test(
       text,
     )
   )
@@ -52,7 +60,8 @@ const claudeKinds: Record<string, CliNoticeKind> = {
   max_output_tokens: 'unknown',
 }
 
-export function claudeFailureKind(error: string): CliNoticeKind {
+export function claudeFailureKind(error: string, resultText?: string): CliNoticeKind {
+  if (resultText && classifyCliFailure(resultText) === 'quota') return 'quota'
   return claudeKinds[error] ?? 'unknown'
 }
 

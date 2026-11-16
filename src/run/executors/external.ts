@@ -668,7 +668,7 @@ export async function runClaudeChat(
             'Claude Code reported an API error',
           'Claude Code CLI',
           model,
-          apiError ? claudeFailureKind(apiError) : undefined,
+          apiError ? claudeFailureKind(apiError, parsed.result) : undefined,
         ),
       ),
       { readAudit: audit.finish() },

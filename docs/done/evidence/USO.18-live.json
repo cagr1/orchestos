@@ -1,0 +1,31 @@
+{
+  "item": "USO.18",
+  "date": "2026-11-16",
+  "gate": "gate:evidence uso17-uso18-final, dashboard aislado y navegador interno",
+  "claudeDirect": {
+    "exitCode": 1,
+    "errorCode": "rate_limit",
+    "isError": true,
+    "result": "You've hit your 5-hour limit · resets 3:50pm (America/Guayaquil)"
+  },
+  "claudeDashboard": {
+    "actualTurn": "La sonda de --restricted no se completó. Dev mostró el error y lo conservó al recargar.",
+    "quotaFixture": "Dev mostró usage limit reached y la hora de reinicio en Details con el texto observado del CLI."
+  },
+  "ollama": {
+    "actualRequest": true,
+    "httpStatus": 502,
+    "noticeKind": "invalid-model",
+    "turnStatus": "failed",
+    "visibleAfterReload": true
+  },
+  "focusedTests": { "passed": 42, "failed": 0 },
+  "apiSetupRegression": "Un turno API sin ninguna credencial conserva la guía de configuración y el aviso del turno fallido.",
+  "relatedWindowsSuites": {
+    "passed": 21,
+    "failed": 6,
+    "allFailuresMatchedEarlierCoverageRun": true
+  },
+  "typecheck": "pass",
+  "lint": "pass"
+}
