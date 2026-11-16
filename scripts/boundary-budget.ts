@@ -9,7 +9,9 @@ type Counts = Record<string, number>
 
 const categories: Category[] = ['json-parse', 'response-json', 'yaml-parse']
 
-function isExcluded(path: string): boolean {
+function isExcluded(rawPath: string): boolean {
+  // WIN.7: Glob.scan devuelve `\` en Windows; sin normalizar, tests y la UI entraban al presupuesto.
+  const path = rawPath.replaceAll('\\', '/')
   return (
     path.startsWith('src/boundary/') ||
     path.includes('/__tests__/') ||

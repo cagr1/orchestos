@@ -186,6 +186,30 @@
       "title": "Scripts de desarrollo en Windows",
       "status": "open",
       "closedDate": null
+    },
+    {
+      "id": "WIN.8",
+      "sprint": "Etapa 3 — Windows",
+      "block": null,
+      "title": "\"Open folder\" y \"Clone from URL\" solo funcionan en macOS",
+      "status": "done",
+      "closedDate": null
+    },
+    {
+      "id": "WIN.10",
+      "sprint": "Etapa 3 — Windows",
+      "block": null,
+      "title": "Un clon en Windows rompe lint, PLAN y runs-summary",
+      "status": "done",
+      "closedDate": null
+    },
+    {
+      "id": "WIN.9",
+      "sprint": "Etapa 3 — Windows",
+      "block": null,
+      "title": "El reconcile de tareas usa `ps -o`, que no existe en Windows",
+      "status": "open",
+      "closedDate": null
     }
   ]
 }

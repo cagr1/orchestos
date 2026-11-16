@@ -21,6 +21,8 @@ describe('countBoundarySites', () => {
           'src/a/__tests__/b.ts',
           'src/a.test.ts',
           'src/dashboard/app/x.tsx',
+          'src\\a\\__tests__\\b.ts',
+          'src\\dashboard\\app\\x.tsx',
         ].map((path) => ({
           path,
           text: "JSON.parse(x); req.json(); import { parse } from 'yaml'; parse(x)",
