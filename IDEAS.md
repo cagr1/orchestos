@@ -53,6 +53,7 @@ Bajo-medio en curso, Sprint 27)_
 11. `#71` Vista de evals: pass@k por corrida y comparación entre corridas.
 12. `#72` Instinto propuesto desde un par fallo→pass de la misma tarea.
 13. `#73` Abrir el dashboard desde el móvil u otra máquina (pairing por token).
+14. `#74` Procesos y puertos huérfanos: registro persistente, barrido al arrancar y panel para matarlos.
 
 _(`#6` graduó a Bloque AA el 2026-08-15. `#31`, `#35` y `#50` fueron ABSORBIDAS por PLAN.md § Sprint 29
 (orquestador real) el 2026-08-16 — eran partes de un mismo eje estructural, no ideas sueltas.)_
@@ -1782,3 +1783,23 @@ citando los dos run ids; entra solo con aprobación humana, igual que hoy. Cero 
 tiene apps móviles. OrchestOS solo escucha en `127.0.0.1` y no tiene emparejamiento (`src/dashboard/server.ts:534`).
 Sirve para seguir y aprobar tareas largas lejos del Mac. Exponerlo exige auth real antes de tocar el bind. Prioridad
 de Carlos: después de que el núcleo funcione como debe. Evidencia: `docs/done/ERP.7.md` § Lo que T3 hace.
+
+### `#74` — Procesos y puertos huérfanos (2026-11-16, pedido de Carlos)
+
+**Medio.** Orca deja ver y matar procesos y puertos ocupados (según Carlos; no verificado aquí); Claude desktop no lo
+hace. Estado verificado de OrchestOS: limpia solo en salida ordenada — SIGINT/SIGTERM llaman `killAllTrees()`,
+`stopCodexAppServers()` y `stopTerminalSessions()` (`src/dashboard/server.ts:877-894`), y `process.once('exit')` mata
+los árboles (`src/run/process-tree.ts:86-91`). El registro `trees` vive en memoria: si el dashboard muere por crash,
+`kill -9`, cierre de la terminal o el Mac duerme y se reinicia, los hijos (CLIs, `app-server`, dev servers lanzados
+por un agente o en la terminal integrada) quedan vivos y con su puerto tomado. Tampoco hay manejo de `EADDRINUSE` al
+levantar el dashboard en su puerto fijo (`server.ts:901`).
+Propuesta, en tres piezas:
+1. **Registro persistente** de PID + hora de arranque + comando + puerto en `~/.orchestos/` al crear cada árbol; la
+   hora de arranque evita matar un PID reciclado.
+2. **Barrido al arrancar**: lo registrado que siga vivo y no tenga dueño se mata solo (es de OrchestOS); el
+   startup-guard lo informa en una línea.
+3. **Panel "Procesos y puertos"** por proyecto: puertos en escucha (`lsof -iTCP -sTCP:LISTEN` en Mac,
+   `netstat -ano` en Windows, detrás de una sonda inyectable) con botón Matar; lo propio sin confirmar, lo ajeno con
+   confirmación. Si el puerto del dashboard está tomado por otro OrchestOS, ofrecer reemplazarlo; si es ajeno, el
+   siguiente libre.
+Multiplataforma desde el inicio (WIN.6 ya mata árboles en Windows con `taskkill /T`).
