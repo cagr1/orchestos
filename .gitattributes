@@ -1,0 +1,10 @@
+# WIN.10: el árbol de trabajo es LF en todas las máquinas (Git para Windows convierte a CRLF por defecto y rompe
+# Biome, el parser de PLAN.md y los hooks). macOS/Linux ya eran LF: sin cambios allí.
+* text=auto eol=lf
+
+# Scripts de Windows: CRLF en el árbol de trabajo (cmd.exe lo necesita); en el repo siguen LF.
+*.bat text eol=crlf
+*.cmd text eol=crlf
+
+# Fixtures de detección de lenguajes: CRLF a propósito, se guardan tal cual.
+src/__tests__/fixtures/languages/** -text

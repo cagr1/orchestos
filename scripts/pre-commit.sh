@@ -111,6 +111,10 @@ bun run scope:check
 # carpeta) en la raíz de un worktree; en el repo principal es una carpeta.
 if [ -f .git ]; then
   echo "📊 (worktree — se omite el export de runs-summary, solo corre en el repo principal)"
+elif case "$(uname -s)" in MINGW* | MSYS* | CYGWIN*) true ;; *) false ;; esac; then
+  # WIN.10 (Carlos, 2026-11-16): cada máquina tiene su propia DB. El PC Windows es de pruebas; exportar desde ahí
+  # reemplazaba los runs del Mac en runs-summary.json (visto: runs `test-model` en lugar de los reales).
+  echo "📊 (Windows — se omite el export de runs-summary: la DB de esta máquina no es la del Mac)"
 else
   echo "📊 Exportando runs-summary para dreaming..."
   bun run dreaming:export
