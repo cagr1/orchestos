@@ -210,6 +210,14 @@
       "title": "El reconcile de tareas usa `ps -o`, que no existe en Windows",
       "status": "done",
       "closedDate": null
+    },
+    {
+      "id": "WIN.11",
+      "sprint": "Etapa 3 — Windows",
+      "block": null,
+      "title": "Probar OrchestOS con IA local (Ollama) en Windows",
+      "status": "open",
+      "closedDate": null
     }
   ]
 }

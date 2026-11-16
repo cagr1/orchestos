@@ -270,6 +270,12 @@ esta etapa: `docs/done/bloque-AUD.md` (AUD.16, AUD.17), `docs/done/bloque-SES.md
   sonda síncrona (señalado por qa). En vivo: runner falso en ruta con espacios → vivo `true`, otra tarea `false`,
   muerto `false`; ~0,5 s por sonda. qa (Codex): sin inyección. Gate en vivo: `docs/done/evidence/WIN.9-live.json`
   Sin delegación: fix chico de una función, revisado por qa de otro proveedor
+- [ ] **WIN.11 — Probar OrchestOS con IA local (Ollama) en Windows.** (Carlos, 2026-11-16: "si tengo una AI local
+  quiero ver qué tal funciona") En el PC Windows hay Ollama 0.9.0 con `qwen2.5-coder:7b`. OrchestOS ya tiene la sesión
+  de Chat de agente `local`, que exige un modelo `ollama/*` (`dashboard/handlers/chat.ts:1465`, cliente
+  `dashboard/llm/clients.ts`). Probar en vivo: (1) que el dashboard detecte Ollama y liste el modelo; (2) un turno de
+  Chat local (respuesta, latencia, que se guarde en la sesión); (3) si el rol lo permite, una tarea con el modelo
+  local. Anotar qué funciona y qué no (calidad de un 7B frente a Claude/Codex, tiempos); cada fallo, un ítem propio.
 
 ## Decisiones pendientes de Carlos
 
