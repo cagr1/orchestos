@@ -18,6 +18,16 @@ export function spawnTree<
 }
 
 export function killTree(proc: TreeProcess, signal: NodeJS.Signals): void {
+  if (process.platform === 'win32' && proc.pid !== undefined) {
+    // Windows no tiene grupos ni SIGTERM: `kill(-pid)` da ESRCH y `proc.kill` deja huérfano al node.exe que lanza un
+    // `.cmd` de npm. taskkill /T recorre el árbol por PID padre (medido en windows-latest, WIN.6).
+    const result = Bun.spawnSync(['taskkill', '/PID', String(proc.pid), '/T', '/F'], {
+      stdout: 'ignore',
+      stderr: 'ignore',
+    })
+    if (result.exitCode !== 0) proc.kill(signal)
+    return
+  }
   try {
     if (proc.pid === undefined) {
       proc.kill(signal)

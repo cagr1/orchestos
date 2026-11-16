@@ -8,6 +8,7 @@ import { parseJson, z } from '../../boundary/index.ts'
 import { redactSensitive } from '../../security/secrets.ts'
 import type { ApprovalAdapter } from '../approvals.ts'
 import { decideApproval } from '../approvals.ts'
+import { killTree } from '../process-tree.ts'
 import { CliFailure, type CliNotice, classifyCliFailure, cliFailureNotice } from './cli-failure.ts'
 import { codexApprovalRequest } from './codex-approval.ts'
 import { type ExecutorStepEvent, readonlyCommandTarget } from './step-event.ts'
@@ -1089,15 +1090,8 @@ export class CodexAppServer {
     this.reader = null
     if (this.child) {
       const child = this.child
-      const kill = (signal: NodeJS.Signals) => {
-        try {
-          if (child.pid === undefined) child.kill(signal)
-          else process.kill(-child.pid, signal)
-        } catch (error) {
-          if ((error as NodeJS.ErrnoException).code !== 'ESRCH') throw error
-          child.kill(signal)
-        }
-      }
+      // killTree: grupo POSIX o taskkill /T en Windows (codex.cmd → node → binario).
+      const kill = (signal: NodeJS.Signals) => killTree(child, signal)
       kill('SIGTERM')
       if (child.exitCode === null && child.signalCode === null) {
         const timer = setTimeout(() => {

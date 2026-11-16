@@ -5,46 +5,47 @@ jobs:
   probe:
     runs-on: windows-latest
     steps:
+      - uses: actions/checkout@v4
       - uses: oven-sh/setup-bun@v2
       - shell: bash
         run: |
           cat > probe.ts <<'EOF'
+          import { spawn } from 'node:child_process'
           import { mkdtempSync, writeFileSync } from 'node:fs'
           import { tmpdir } from 'node:os'
           import { join } from 'node:path'
+          import { killTree, spawnTree } from './src/run/process-tree.ts'
           const dir = mkdtempSync(join(tmpdir(), 'probe-'))
           const log = (k: string, v: unknown) => console.log(`PROBE ${k}: ${JSON.stringify(v)}`)
+          const alive = (pid: number) => { try { process.kill(pid, 0); return true } catch (e) { return (e as NodeJS.ErrnoException).code ?? String(e) } }
           const cmd = join(dir, 'fake.cmd')
           writeFileSync(cmd, '@echo off\r\necho hola %1\r\n')
-          log('which fake (PATH=dir)', Bun.which('fake', { PATH: dir }))
-          log('which npm', Bun.which('npm'))
-          for (const argv of [[cmd, 'x'], ['fake', 'x'], ['fake.cmd', 'x']]) {
+          // node:child_process.spawn de un .cmd sin shell (codex-app-server, generic-cli)
+          await new Promise<void>((done) => {
             try {
-              const p = Bun.spawnSync(argv, { cwd: dir, env: { ...process.env, PATH: `${dir};${process.env.PATH}` } })
-              log(`spawnSync ${argv[0]}`, { code: p.exitCode, out: p.stdout.toString().trim(), err: p.stderr.toString().trim().slice(0, 200) })
-            } catch (e) { log(`spawnSync ${argv[0]} threw`, String(e)) }
-          }
-          const npm = Bun.which('npm')
-          if (npm) { const p = Bun.spawnSync([npm, '--version']); log('spawn npm --version', { npm, code: p.exitCode, out: p.stdout.toString().trim() }) }
-          const tree = `const g=Bun.spawn([process.execPath,'-e','setTimeout(()=>{},60000)']);console.log(g.pid);setTimeout(()=>{},60000)`
-          const alive = (pid: number) => { try { process.kill(pid, 0); return true } catch (e) { return (e as NodeJS.ErrnoException).code ?? String(e) } }
-          const child = Bun.spawn([process.execPath, '-e', tree], { stdout: 'pipe', detached: true })
-          const grand = Number(new TextDecoder().decode((await child.stdout.getReader().read()).value).trim())
-          log('pids', { child: child.pid, grand })
-          try { process.kill(-child.pid, 'SIGTERM'); log('kill(-pid)', 'ok') } catch (e) { log('kill(-pid) threw', { code: (e as NodeJS.ErrnoException).code, msg: String(e) }) }
-          await Bun.sleep(300)
-          log('alive after kill(-pid)', { child: alive(child.pid), grand: alive(grand) })
-          const tk = Bun.spawnSync(['taskkill', '/PID', String(child.pid), '/T', '/F'])
-          log('taskkill /T /F', { code: tk.exitCode, out: tk.stdout.toString().trim().slice(0, 300) })
+              const p = spawn(cmd, ['x'], { stdio: 'pipe', shell: false })
+              let out = ''
+              p.stdout.on('data', (c) => { out += c })
+              p.on('error', (e) => { log('node spawn .cmd error', String(e)); done() })
+              p.on('exit', (code) => { log('node spawn .cmd exit', { code, out: out.trim() }); done() })
+            } catch (e) { log('node spawn .cmd threw', String(e)); done() }
+          })
+          // .cmd que lanza un nieto bun de larga vida; killTree debe matar los tres.
+          const long = join(dir, 'long.cmd')
+          writeFileSync(long, `@echo off\r\n"${process.execPath}" -e "console.log(process.pid);setTimeout(()=>{},60000)"\r\n`)
+          const p = spawnTree([long], { stdout: 'pipe', stderr: 'ignore' })
+          const grand = Number(new TextDecoder().decode((await p.stdout.getReader().read()).value).trim())
+          log('cmd tree pids', { wrapper: p.pid, grand })
+          killTree(p, 'SIGTERM')
           await Bun.sleep(500)
-          log('alive after taskkill', { child: alive(child.pid), grand: alive(grand) })
-          const c2 = Bun.spawn([process.execPath, '-e', tree], { stdout: 'pipe' })
-          const g2 = Number(new TextDecoder().decode((await c2.stdout.getReader().read()).value).trim())
-          c2.kill('SIGTERM')
-          await Bun.sleep(500)
-          log('proc.kill(SIGTERM) alive', { child: alive(c2.pid), grand: alive(g2), exit: c2.exitCode, signal: c2.signalCode })
-          Bun.spawnSync(['taskkill', '/PID', String(g2), '/F'])
-          try { process.kill(999999, 0) } catch (e) { log('kill(dead pid, 0)', { code: (e as NodeJS.ErrnoException).code, msg: String(e) }) }
+          log('after killTree', { wrapper: alive(p.pid), grand: alive(grand) })
+          // Lo mismo con node:child_process (el camino de codex-app-server).
+          const n = spawn(long, [], { stdio: 'pipe', shell: false, detached: true })
+          n.on('error', (e) => log('node spawn long.cmd error', String(e)))
+          const g2 = await new Promise<number>((r) => { n.stdout?.once('data', (c) => r(Number(String(c).trim()))); setTimeout(() => r(0), 5000) })
+          log('node cmd tree pids', { wrapper: n.pid, grand: g2 })
+          if (n.pid) { killTree(n, 'SIGTERM'); await Bun.sleep(500); log('node after killTree', { wrapper: alive(n.pid), grand: g2 ? alive(g2) : 'n/a' }) }
           process.exit(0)
           EOF
+          bun install --frozen-lockfile >/dev/null
           bun run probe.ts
