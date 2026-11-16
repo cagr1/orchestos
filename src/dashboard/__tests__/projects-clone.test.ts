@@ -57,7 +57,7 @@ describe('UI.64 clone project', () => {
     expect(result.rows).toHaveLength(3)
     for (const [index, name] of ['https-repo', 'ssh-repo', 'scp-repo'].entries()) {
       expect(result.results[index].body.path).toBe(result.calls[index].destination)
-      expect(result.results[index].body.path.endsWith(`/${name}`)).toBe(true)
+      expect(result.results[index].body.path).toMatch(new RegExp(`[\\\\/]${name}$`))
       expect(result.results[index].body.id).toBeString()
     }
   })

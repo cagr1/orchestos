@@ -67,8 +67,10 @@ describe('UI.9.4 — native dashboard project picker', () => {
       const failed = await handleApiProjectChoose(async () => { throw new Error('selector failed') }, () => 'darwin')
       let selectorCalled = false
       const unsupported = await handleApiProjectChoose(async () => { selectorCalled = true; return '/ignored' }, () => 'linux')
+      const windowsCancelled = await handleApiProjectChoose(async () => null, () => 'win32')
       const rows = handleApiProjects()
       process.stdout.write(JSON.stringify({
+        windowsCancelled: { status: windowsCancelled.status, body: await windowsCancelled.json() },
         cancelled: { status: cancelled.status, body: await cancelled.json() },
         failed: { status: failed.status, body: await failed.json() },
         unsupported: { status: unsupported.status, body: await unsupported.json() },
@@ -83,6 +85,8 @@ describe('UI.9.4 — native dashboard project picker', () => {
       body: { error: expect.stringContaining('selector failed') },
     })
     expect(result.unsupported).toMatchObject({ status: 501 })
+    // WIN.8: Windows has a native picker too; it reaches the selector instead of 501.
+    expect(result.windowsCancelled).toEqual({ status: 200, body: { cancelled: true } })
     expect(result.selectorCalled).toBe(false)
     expect(result.rows).toEqual([])
   })

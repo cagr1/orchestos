@@ -110,26 +110,44 @@ function publicProjectRow(
   }
 }
 
+// WIN.8: native Windows picker. Single quotes only; owner form keeps the dialog above the browser.
+const WINDOWS_PICKER_CANCELLED = 2
+const WINDOWS_FOLDER_PICKER = [
+  "$ErrorActionPreference = 'Stop'",
+  '[Console]::OutputEncoding = [System.Text.Encoding]::UTF8',
+  'Add-Type -AssemblyName System.Windows.Forms',
+  '$owner = New-Object System.Windows.Forms.Form -Property @{ TopMost = $true; ShowInTaskbar = $false }',
+  '$dialog = New-Object System.Windows.Forms.FolderBrowserDialog',
+  "$dialog.Description = 'Choose a project folder'",
+  '$result = $dialog.ShowDialog($owner)',
+  '$owner.Dispose()',
+  `if ($result -ne [System.Windows.Forms.DialogResult]::OK) { exit ${WINDOWS_PICKER_CANCELLED} }`,
+  '[Console]::Out.Write($dialog.SelectedPath)',
+].join('; ')
+const NATIVE_PICKER_PLATFORMS: readonly NodeJS.Platform[] = ['darwin', 'win32']
+const PICKER_UNAVAILABLE = 'Native folder selection is only available on macOS and Windows'
+
 /**
  * The native selector is the trust boundary: Bun.spawn receives fixed argv and
  * never shell mode or any path supplied by the browser.
  */
 async function nativeChooseProjectFolder(): Promise<string | null> {
-  const proc = Bun.spawn(
-    [
-      'osascript',
-      '-e',
-      'tell application "Finder" to activate\nPOSIX path of (choose folder with prompt "Choose a project folder")',
-    ],
-    { stdout: 'pipe', stderr: 'pipe' },
-  )
+  const windows = process.platform === 'win32'
+  const argv = windows
+    ? ['powershell.exe', '-NoProfile', '-STA', '-Command', WINDOWS_FOLDER_PICKER]
+    : [
+        'osascript',
+        '-e',
+        'tell application "Finder" to activate\nPOSIX path of (choose folder with prompt "Choose a project folder")',
+      ]
+  const proc = Bun.spawn(argv, { stdout: 'pipe', stderr: 'pipe' })
   const [exitCode, stdout, stderr] = await Promise.all([
     proc.exited,
     new Response(proc.stdout).text(),
     new Response(proc.stderr).text(),
   ])
   if (exitCode !== 0) {
-    if (/user canceled/i.test(stderr)) return null
+    if (windows ? exitCode === WINDOWS_PICKER_CANCELLED : /user canceled/i.test(stderr)) return null
     throw new Error(`Native folder selection failed: ${stderr.trim() || `exit ${exitCode}`}`)
   }
   const root = stdout.trim()
@@ -141,9 +159,7 @@ export async function handleApiProjectChoose(
   chooseProjectFolder: ChooseProjectFolder = nativeChooseProjectFolder,
   platform: PlatformProbe = () => process.platform,
 ): Promise<Response> {
-  if (platform() !== 'darwin') {
-    return errorResponse('Native folder selection is only available on macOS', 501)
-  }
+  if (!NATIVE_PICKER_PLATFORMS.includes(platform())) return errorResponse(PICKER_UNAVAILABLE, 501)
 
   try {
     const selected = await chooseProjectFolder()
@@ -164,8 +180,7 @@ export async function handleApiProjectCloneLocation(
   platform: PlatformProbe = () => process.platform,
 ): Promise<Response> {
   if (!choose) return jsonResponse({ parentDir: homedir() })
-  if (platform() !== 'darwin')
-    return errorResponse('Native folder selection is only available on macOS', 501)
+  if (!NATIVE_PICKER_PLATFORMS.includes(platform())) return errorResponse(PICKER_UNAVAILABLE, 501)
   try {
     const selected = await chooseFolder()
     if (selected === null) return jsonResponse({ cancelled: true })

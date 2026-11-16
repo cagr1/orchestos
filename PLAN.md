@@ -247,6 +247,26 @@ esta etapa: `docs/done/bloque-AUD.md` (AUD.16, AUD.17), `docs/done/bloque-SES.md
   multiplataforma (PATH con `delimiter`, CLIs falsos `.cmd`).
 - [ ] **WIN.7 — Scripts de desarrollo en Windows.** (WIN.1 fase 1, baja prioridad: no los usa el usuario final)
   `adversarial-review`, `mutation-test-shard`, `startup-guard`, `session-status`, `context-adapters`.
+- [x] **WIN.8 — "Open folder" y "Clone from URL" solo funcionan en macOS.** (PC Windows de Carlos, 2026-11-16) El
+  selector nativo es `osascript` (`dashboard/handlers/projects.ts:117`) y fuera de darwin responde 501 "Native folder
+  selection is only available on macOS": en Windows no hay forma de añadir un proyecto desde la UI (solo
+  `orchestos init <ruta>`). Hecho: en win32, `FolderBrowserDialog` por `powershell.exe -STA` con argv fijo (cancelar =
+  exit 2 → `{cancelled: true}`); darwin sin cambios; Linux sigue en 501. Test de clone esperaba `/` como separador.
+  En vivo en el PC de Carlos: Open folder → diálogo de Windows → proyecto registrado y visible en Dev. qa (Codex): sin
+  defectos. Gate en vivo: `docs/done/evidence/WIN.8-live.json`
+  Ejecutado por: claude-opus-5-5 · Spec: docs/specs/WIN.8.md
+- [x] **WIN.10 — Un clon en Windows rompe lint, PLAN y runs-summary.** (PC Windows de Carlos, 2026-11-16) Git para
+  Windows (`core.autocrlf=true`) dejaba el árbol en CRLF: Biome fallaba en todo el repo y `plan-status` no leía los
+  `## ` (`.` no casa `\r`), así que el pre-commit regeneraba `feature-status.json` con `sprint: null`. Además el
+  pre-commit exportaba `runs-summary.json` desde la DB local de Windows y reemplazaba los runs del Mac. Hecho:
+  `.gitattributes` (`eol=lf`; `.bat`/`.cmd` CRLF; fixtures de lenguajes `-text`, ya eran CRLF en el repo) y el
+  pre-commit omite el export en Windows (cada máquina tiene su DB). macOS sin cambios. En vivo: `bun run lint` del repo
+  en verde en Windows; `feature-status` regenerado sin `sprint: null`.
+  Ejecutado por: claude-opus-5-5
+- [ ] **WIN.9 — El reconcile de tareas usa `ps -o`, que no existe en Windows.** (PC Windows de Carlos, 2026-11-16)
+  `psRunnerProbe` (`dashboard/handlers/task-run-reconcile.ts:24`) da `false` siempre en Windows: tras reiniciar el
+  dashboard, un `task run` aún vivo se marca `failed: Interrupted`. Arreglo: en win32 leer la línea de comando del PID
+  con PowerShell (`Win32_Process.CommandLine`); POSIX sin cambios.
 
 ## Decisiones pendientes de Carlos
 
