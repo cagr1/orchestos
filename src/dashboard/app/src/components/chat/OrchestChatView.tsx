@@ -481,30 +481,37 @@ export const OrchestChatView: React.FC<OrchestChatViewProps> = ({
                     // Assistant message
                     const card = taskCards.byTask.get(msg.taskId ?? '')
                     const showCard = card?.anchorId === msg.id ? card : undefined
+                    const visibleAnswer =
+                      !showCard || showCard.showAnchorText
+                        ? answerText(showCard ? showCard.anchorText : msg.content, msg.steps ?? [])
+                        : ''
                     return (
                       <ChatMessage
                         key={msg.id}
                         from="assistant"
+                        time={msg.timestamp}
                         {...motionProps(entranceOf(msg.id))}
                         data-entered={entranceOf(msg.id)}
                         layout={false}
                         className="max-w-full w-full select-text"
                         actions={
                           <>
-                            <Tooltip content="Copy">
-                              <button
-                                type="button"
-                                onClick={() => void copyMessage(msg.id, msg.content)}
-                                className="p-1 rounded-control text-app-muted hover:text-app transition-colors"
-                                aria-label="Copy"
-                              >
-                                {copiedMessageId === msg.id ? (
-                                  <Check className="w-3 h-3" />
-                                ) : (
-                                  <Copy className="w-3 h-3" />
-                                )}
-                              </button>
-                            </Tooltip>
+                            {visibleAnswer && (
+                              <Tooltip content="Copy">
+                                <button
+                                  type="button"
+                                  onClick={() => void copyMessage(msg.id, visibleAnswer)}
+                                  className="p-1 rounded-control text-app-muted hover:text-app transition-colors"
+                                  aria-label="Copy"
+                                >
+                                  {copiedMessageId === msg.id ? (
+                                    <Check className="w-3 h-3" />
+                                  ) : (
+                                    <Copy className="w-3 h-3" />
+                                  )}
+                                </button>
+                              </Tooltip>
+                            )}
                             {thread?.projectId && projectExists && (
                               <Tooltip content="Remember">
                                 <button
@@ -539,15 +546,7 @@ export const OrchestChatView: React.FC<OrchestChatViewProps> = ({
                             notices={msg.notices}
                           />
                         )}
-                        {(!showCard || showCard.showAnchorText) && (
-                          <ThreadMarkdown
-                            text={answerText(
-                              showCard ? showCard.anchorText : msg.content,
-                              msg.steps ?? [],
-                            )}
-                            streaming={false}
-                          />
-                        )}
+                        {visibleAnswer && <ThreadMarkdown text={visibleAnswer} streaming={false} />}
                         {msg.documents && msg.documents.length > 0 && thread && (
                           <div className="flex flex-wrap gap-2 mt-3">
                             {msg.documents.map((file) => (

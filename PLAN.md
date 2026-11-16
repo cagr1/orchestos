@@ -159,12 +159,15 @@ esta etapa: `docs/done/bloque-AUD.md` (AUD.16, AUD.17), `docs/done/bloque-SES.md
   guardaba ni reanudaba la sesión nativa de Claude y reenviaba el transcript cada turno (`decideClaudeResume`).
   Gate en vivo: Playwright (11 ui-gates, `gate:evidence`, todos PASS) — `docs/done/evidence/USO.15-live.json`.
   Ejecutado por: gpt-6.1-sol · Spec: docs/specs/USO.15.md
-- [ ] **USO.17 — Hora y copia completa de las respuestas en Chat y Dev.** (Carlos, 2026-11-16)
+- [x] **USO.17 — Hora y copia completa de las respuestas en Chat y Dev.** (Carlos, 2026-11-16)
   El navegador confirmó que el hover del asistente omite la hora. En Dev el botón puede copiar el texto persistido
   aunque la respuesta visible provenga de otra fuente o esté más completa. Mostrar la hora real cuando exista y copiar
   todo el Markdown de la respuesta visible. Verificar hora, hover y portapapeles en ambos modos.
   Texto visible: hora de la respuesta al pasar el cursor, con el formato que ya usa el mensaje del usuario.
-  Gate en vivo: navegador interno en dashboard aislado, hora y portapapeles exacto en Chat y Dev — `docs/done/evidence/USO.17-live.json`.
+  Hecho: `ChatMessage` muestra `time` también en el asistente; Chat y Dev copian el Markdown visible
+  (`assistantCopyTarget` ya no prefiere el texto persistido) y ocultan Copy sin respuesta. Revisión: el cerebro.
+  Gate en vivo: navegador interno en dashboard aislado (`gate:evidence uso17-uso18-final`), hora y portapapeles exacto en Chat y Dev — `docs/done/evidence/USO.17-live.json`.
+  Ejecutado por: gpt-6.1-sol · Spec: docs/specs/USO.17.md
 - [ ] **USO.18 — Mostrar fallos de los modelos en Chat y Dev.** (Carlos, 2026-11-16)
   Claude devolvió `rate_limit` con `is_error: true` y texto de límite de cinco horas. Dev omite los avisos del turno
   y descarta errores de envío. Las excepciones de Ollama y API salen sin aviso estructurado. Mostrar el fallo real,

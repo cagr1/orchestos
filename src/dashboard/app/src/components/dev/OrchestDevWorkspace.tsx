@@ -477,6 +477,8 @@ export const OrchestDevWorkspace: React.FC<OrchestDevWorkspaceProps> = ({
           : ''
         : rawAssistantMessage
     const assistantCopy = assistantCopyTarget(exchange, visibleAssistantMessage)
+    const assistantTimestamp = exchange.assistantMessage?.createdAt
+    const parsedAssistantTime = assistantTimestamp ? parseDbTime(assistantTimestamp) : Number.NaN
     return (
       <div key={exchange.id} className="space-y-3 pt-2">
         {/* USER MESSAGE: no avatar, no "You" label; time only on hover */}
@@ -719,26 +721,37 @@ export const OrchestDevWorkspace: React.FC<OrchestDevWorkspaceProps> = ({
         {hasRealTurn && (visibleAssistantMessage || exchange.assistantMessage?.stopped) && (
           <ChatMessage
             from="assistant"
+            time={
+              Number.isFinite(parsedAssistantTime)
+                ? new Date(parsedAssistantTime).toLocaleTimeString([], {
+                    hour: '2-digit',
+                    minute: '2-digit',
+                  })
+                : undefined
+            }
             layout={false}
             data-dev-assistant-message
             className="max-w-full w-full select-text"
             actions={
-              <Tooltip content="Copy">
-                <button
-                  type="button"
-                  onClick={() => {
-                    if (assistantCopy) void handleCopyMessage(assistantCopy.id, assistantCopy.text)
-                  }}
-                  className="p-1 rounded-control text-app-muted hover:text-app hover:bg-app-elevated transition-colors"
-                  aria-label="Copy"
-                >
-                  {assistantCopy && copiedMessageId === assistantCopy.id ? (
-                    <Check className="w-3 h-3" />
-                  ) : (
-                    <Copy className="w-3 h-3" />
-                  )}
-                </button>
-              </Tooltip>
+              assistantCopy && (
+                <Tooltip content="Copy">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (assistantCopy)
+                        void handleCopyMessage(assistantCopy.id, assistantCopy.text)
+                    }}
+                    className="p-1 rounded-control text-app-muted hover:text-app hover:bg-app-elevated transition-colors"
+                    aria-label="Copy"
+                  >
+                    {assistantCopy && copiedMessageId === assistantCopy.id ? (
+                      <Check className="w-3 h-3" />
+                    ) : (
+                      <Copy className="w-3 h-3" />
+                    )}
+                  </button>
+                </Tooltip>
+              )
             }
           >
             {visibleAssistantMessage && (

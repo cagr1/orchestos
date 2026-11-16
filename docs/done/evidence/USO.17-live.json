@@ -1,0 +1,11 @@
+{
+  "item": "USO.17",
+  "date": "2026-11-16",
+  "gate": "gate:evidence uso17-uso18-final, dashboard aislado y navegador interno",
+  "checks": [
+    { "mode": "Chat", "hoverShowsAssistantTime": true, "clipboardMatchesFullMarkdown": true },
+    { "mode": "Dev", "hoverShowsAssistantTime": true, "clipboardMatchesFullMarkdown": true }
+  ],
+  "clipboardFixture": "Texto inicial, bloque de código TypeScript y línea final en negrita. Se comparó el contenido exacto del portapapeles.",
+  "regression": "La prueba enfocada de Dev cubre una respuesta visible más larga que la persistida."
+}

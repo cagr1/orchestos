@@ -8,11 +8,11 @@ describe('assistantCopyTarget', () => {
 
     expect(assistantCopyTarget(first, 'Visible first answer')).toEqual({
       id: '12',
-      text: 'First answer',
+      text: 'Visible first answer',
     })
     expect(assistantCopyTarget(second, 'Visible second answer')).toEqual({
       id: '13',
-      text: 'Second answer',
+      text: 'Visible second answer',
     })
   })
 
@@ -21,6 +21,16 @@ describe('assistantCopyTarget', () => {
       id: 'live-exchange-3',
       text: 'Live answer',
     })
+  })
+
+  test('copies the full visible multiline answer when persistence is shorter', () => {
+    const visible = 'Opening line\n```ts\nconst answer = 42\n```\nFinal line'
+    expect(
+      assistantCopyTarget(
+        { id: 'exchange-5', assistantMessage: { id: 15, content: 'Opening line' } },
+        visible,
+      ),
+    ).toEqual({ id: '15', text: visible })
   })
 
   test('returns null when there is no assistant answer to copy', () => {
