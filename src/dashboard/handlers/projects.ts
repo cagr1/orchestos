@@ -110,20 +110,32 @@ function publicProjectRow(
   }
 }
 
-// WIN.8: native Windows picker. Single quotes only; owner form keeps the dialog above the browser.
+// WIN.8: native Windows picker. WIN.12: the dashboard is a background process and Windows' foreground lock kept
+// the dialog behind the browser. The owner form must be shown (invisible, topmost) and a synthetic Alt keypress
+// lifts the lock before SetForegroundWindow (measured: without it the browser stays in front). The script travels
+// as -EncodedCommand, so no quoting reaches argv.
 const WINDOWS_PICKER_CANCELLED = 2
 const WINDOWS_FOLDER_PICKER = [
   "$ErrorActionPreference = 'Stop'",
   '[Console]::OutputEncoding = [System.Text.Encoding]::UTF8',
   'Add-Type -AssemblyName System.Windows.Forms',
-  '$owner = New-Object System.Windows.Forms.Form -Property @{ TopMost = $true; ShowInTaskbar = $false }',
+  `Add-Type -Name Fg -Namespace OrchestOS -MemberDefinition '[DllImport("user32.dll")] public static extern bool SetForegroundWindow(System.IntPtr h); [DllImport("user32.dll")] public static extern void keybd_event(byte k, byte s, uint f, System.UIntPtr e);'`,
+  "$owner = New-Object System.Windows.Forms.Form -Property @{ TopMost = $true; ShowInTaskbar = $false; Opacity = 0; FormBorderStyle = 'None'; StartPosition = 'CenterScreen'; Width = 1; Height = 1 }",
+  '$owner.Show()',
+  '[OrchestOS.Fg]::keybd_event(0x12, 0, 0, [UIntPtr]::Zero)',
+  '[OrchestOS.Fg]::keybd_event(0x12, 0, 2, [UIntPtr]::Zero)',
+  '[void][OrchestOS.Fg]::SetForegroundWindow($owner.Handle)',
+  '$owner.Activate()',
   '$dialog = New-Object System.Windows.Forms.FolderBrowserDialog',
   "$dialog.Description = 'Choose a project folder'",
   '$result = $dialog.ShowDialog($owner)',
   '$owner.Dispose()',
   `if ($result -ne [System.Windows.Forms.DialogResult]::OK) { exit ${WINDOWS_PICKER_CANCELLED} }`,
   '[Console]::Out.Write($dialog.SelectedPath)',
-].join('; ')
+].join('\n')
+const WINDOWS_FOLDER_PICKER_ENCODED = Buffer.from(WINDOWS_FOLDER_PICKER, 'utf16le').toString(
+  'base64',
+)
 const NATIVE_PICKER_PLATFORMS: readonly NodeJS.Platform[] = ['darwin', 'win32']
 const PICKER_UNAVAILABLE = 'Native folder selection is only available on macOS and Windows'
 
@@ -134,7 +146,7 @@ const PICKER_UNAVAILABLE = 'Native folder selection is only available on macOS a
 async function nativeChooseProjectFolder(): Promise<string | null> {
   const windows = process.platform === 'win32'
   const argv = windows
-    ? ['powershell.exe', '-NoProfile', '-STA', '-Command', WINDOWS_FOLDER_PICKER]
+    ? ['powershell.exe', '-NoProfile', '-STA', '-EncodedCommand', WINDOWS_FOLDER_PICKER_ENCODED]
     : [
         'osascript',
         '-e',

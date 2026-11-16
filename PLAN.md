@@ -294,6 +294,15 @@ esta etapa: `docs/done/bloque-AUD.md` (AUD.16, AUD.17), `docs/done/bloque-SES.md
   `dashboard/llm/clients.ts`). Probar en vivo: (1) que el dashboard detecte Ollama y liste el modelo; (2) un turno de
   Chat local (respuesta, latencia, que se guarde en la sesión); (3) si el rol lo permite, una tarea con el modelo
   local. Anotar qué funciona y qué no (calidad de un 7B frente a Claude/Codex, tiempos); cada fallo, un ítem propio.
+- [x] **WIN.12 — "Open folder" abre el selector detrás del navegador.** (Carlos, PC Windows, 2026-11-16) El
+  dashboard es un proceso en segundo plano y el bloqueo de primer plano de Windows deja el `FolderBrowserDialog`
+  detrás de Chrome; el formulario dueño `TopMost` de WIN.8 nunca se mostraba. Cada clic dejaba otro selector colgado
+  (había 4). Medido lanzando desde el dashboard: primer plano = Chrome. Hecho (`dashboard/handlers/projects.ts`): el
+  dueño se muestra invisible y `TopMost`, Alt simulado (`keybd_event`) levanta el bloqueo y `SetForegroundWindow`;
+  el script va por `-EncodedCommand`. En vivo en el Chrome de Carlos (Dev → + → Open folder): primer plano =
+  "Buscar carpeta". Tests de projects 8/0. qa (gpt-6.1-sol): sin defectos (ruta UTF-8 no ASCII comprobada).
+  Gate en vivo: Chrome de Carlos — `GetForegroundWindow` = "Buscar carpeta" tras pulsar Open folder
+  Sin delegación: fix chico de un archivo con el diagnóstico en contexto.
 
 ## Decisiones pendientes de Carlos
 

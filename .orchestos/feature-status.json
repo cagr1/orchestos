@@ -234,6 +234,14 @@
       "title": "Probar OrchestOS con IA local (Ollama) en Windows",
       "status": "open",
       "closedDate": null
+    },
+    {
+      "id": "WIN.12",
+      "sprint": "Etapa 3 — Windows",
+      "block": null,
+      "title": "\"Open folder\" abre el selector detrás del navegador",
+      "status": "done",
+      "closedDate": null
     }
   ]
 }
