@@ -307,6 +307,51 @@ esta etapa: `docs/done/bloque-AUD.md` (AUD.16, AUD.17), `docs/done/bloque-SES.md
   "Buscar carpeta". Tests de projects 8/0. qa (gpt-6.1-sol): sin defectos (ruta UTF-8 no ASCII comprobada).
   Gate en vivo: Chrome de Carlos — `GetForegroundWindow` = "Buscar carpeta" tras pulsar Open folder
   Sin delegación: fix chico de un archivo con el diagnóstico en contexto.
+- [x] **WIN.13 — El Chat no deja usar la IA local (Ollama) aunque esté instalada.** (Carlos, PC Windows,
+  2026-11-16) Ollama 0.9.0 con `qwen2.5-coder:7b` responde y `/api/providers/local` lo detecta, pero un chat
+  "Local (Ollama)" mostraba Claude: `OrchestChatView` cambiaba el agente `local` por el predeterminado y
+  `AgentComposer` nunca pedía los modelos locales. Hecho: el compositor añade "Local (Ollama)" con los `ollama/*`
+  detectados (`localCliConfig`); `OrchestChatView` ya no reemplaza `local`; el backend, si un chat local llega sin
+  modelo (primer mensaje tras New chat), usa el primero de Ollama (`firstOllamaModel`) antes de calcular la
+  asignación, sin tocar `body` (la huella del reintento no cambia); sin Ollama, el compositor dice por qué. qa
+  (gpt-6.1-sol): 1ª pasada, respaldo cortado por el guard "Orchestrator role is unassigned" y compositor mudo sin
+  Ollama; 2ª, huella del reintento alterada y "modelo local del orquestador ignorado" (no aplica: la config no admite
+  `local` como orquestador); 3ª, un chat local ya usado con el modelo B pasaba al primero de Ollama (ahora se
+  conserva el último `ollama/*` de la sesión). Corregidos, con `chat-local.test.ts` (cada caso falla sin su
+  arreglo; el 1º con 400); 4ª, al reabrir un chat local el compositor elegía el primer modelo y no el último
+  (`OrchestChatView` ahora pasa `lastModel` también a `local`; sin probar en vivo: solo hay un modelo instalado);
+  5ª, sin defectos. Suites de chat: los 10 fallos son los mismos en HEAD (Windows, previos).
+  Gate en vivo: navegador de Carlos — chat Local nuevo, sin elegir modelo → "PRIMERO-OK"; `docs/done/evidence/WIN.13-live.json`
+  Texto visible: "Ollama is not running or has no models. Start it and reload."
+  Sin delegación: diagnóstico y cambio con el contexto ya leído; spec más largo que el diff.
+- [ ] **WIN.14 — Una tarea lanzada desde el dashboard no puede commitear: el candado la rechaza.** (revisión del
+  cerebro, 2026-11-16) Tarea `chat-b9b3da84…` con Codex: el ejecutor tomó el candado del worktree
+  (`.orchestos/worktrees/chat-b9b3da84…`, sesión `codex`) y el commit de OrchestOS en ese mismo worktree lo rechazó el
+  pre-commit (`scripts/pre-commit.sh:28`, `writer-lock.mjs check`): "otra sesión (codex, codex) escribe … desde hace 2
+  min". Quedó `failed`, `retry_count: 1` en `tasks.yaml` (en el índice, sin commitear). Bloquea la tarea en vivo de
+  WIN.1. Sin diagnosticar: si en el Mac pasa igual (el candado del método se instaló aquí el 2026-11-16) y quién debe
+  ceder (el commit de OrchestOS con la identidad del ejecutor, o el pre-commit exento en `.orchestos/worktrees/`).
+  Primero reproducir y leer el candado; después decidir.
+- [ ] **WIN.15 — El script de setup de worktrees usa `sh` fijo.** (revisión del cerebro, 2026-11-16)
+  `run/sandbox.ts:160` lanza `sh -c`; en Windows sin Git Bash en el PATH da `Executable not found in $PATH: "sh"`
+  (`sandbox-setup.test.ts`, 3 rojos). Un proyecto con setup script no puede preparar su worktree. Decidir: resolver el
+  `sh` de Git for Windows (como `guard/git.cmd` del método) o shell de plataforma como en WIN.3; POSIX sin cambio.
+- [ ] **WIN.16 — Rutas con espacios: el clon en `E:\Carlos\Development Tools\…` falla donde el CI no.** (revisión
+  del cerebro, 2026-11-16) `checks.test.ts` da `Module not found "E:\Carlos\Development"`: algún comando parte la ruta
+  por el espacio. Sin aislar si el corte está en el producto (`checks.ts`/`defaultChecksFor`) o en el fixture. El
+  runner de CI no tiene espacios en la ruta, así que `windows-smoke` no lo ve. Primero aislar; si es producto, es
+  prioridad (la carpeta de usuario de Windows suele llevar espacios).
+- [ ] **WIN.17 — Rojos de Windows sin ítem.** (revisión del cerebro, 2026-11-16) `bun test` en el PC de Carlos, con
+  WIN.13 aún sin commitear en el árbol: 2847 pass / 114 fail / 15 errores (CI decía 98; lista en
+  `docs/done/evidence/WIN.17-local.txt`). Con dueño: WIN.6
+  (`providers` 12, `aud22-processes` 9, `process-tree` 4, `generic-cli` 3, `aud21` 3) y WIN.7 (~19). Sin dueño:
+  `worktree-contract` 7 y `commit-tasks-yaml` 7 (fixtures con `sh`/`chmod`; glob `out*.txt` sin expandir),
+  `claude-statusline-tee` 6 (carpeta `C:-Users-…`: `:` inválido en Windows; es el script de la statusLine en uso),
+  `chat-sessions` 6 (`EBUSY` al borrar la BD temporal; "Migration 10"), `checks` 4 (parte es WIN.16), `path-policy` 3
+  y `terminal` 2 (áreas cerradas en WIN.2/WIN.5 y WIN.3: comprobar si es regresión o solo local), `LRN.1b` 3,
+  `orchestos-home` 2, `db-backup`, `auth-token` (modo 600), `writer-lock`. Primero re-correr `windows-smoke.yml` para
+  separar lo local (espacios, PATH sin `sh`) de lo de Windows; después repartir: producto roto → ítem propio, test
+  POSIX → saltar o fixture.
 
 ## Decisiones pendientes de Carlos
 

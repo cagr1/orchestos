@@ -242,6 +242,46 @@
       "title": "\"Open folder\" abre el selector detrás del navegador",
       "status": "done",
       "closedDate": null
+    },
+    {
+      "id": "WIN.13",
+      "sprint": "Etapa 3 — Windows",
+      "block": null,
+      "title": "El Chat no deja usar la IA local (Ollama) aunque esté instalada",
+      "status": "done",
+      "closedDate": null
+    },
+    {
+      "id": "WIN.14",
+      "sprint": "Etapa 3 — Windows",
+      "block": null,
+      "title": "Una tarea lanzada desde el dashboard no puede commitear: el candado la rechaza",
+      "status": "open",
+      "closedDate": null
+    },
+    {
+      "id": "WIN.15",
+      "sprint": "Etapa 3 — Windows",
+      "block": null,
+      "title": "El script de setup de worktrees usa `sh` fijo",
+      "status": "open",
+      "closedDate": null
+    },
+    {
+      "id": "WIN.16",
+      "sprint": "Etapa 3 — Windows",
+      "block": null,
+      "title": "Rutas con espacios: el clon en `E:\\Carlos\\Development Tools\\…` falla donde el CI no",
+      "status": "open",
+      "closedDate": null
+    },
+    {
+      "id": "WIN.17",
+      "sprint": "Etapa 3 — Windows",
+      "block": null,
+      "title": "Rojos de Windows sin ítem",
+      "status": "open",
+      "closedDate": null
     }
   ]
 }

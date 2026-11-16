@@ -1,0 +1,27 @@
+{
+  "item": "WIN.13",
+  "date": "2026-11-16",
+  "machine": "PC Windows de Carlos, Chrome con Claude in Chrome, dashboard 127.0.0.1:4242 (relanzado sin variables CLAUDE*, con el build de la UI de WIN.13)",
+  "ollama": {
+    "version": "0.9.0",
+    "models": ["qwen2.5-coder:7b"],
+    "providersLocal": "{\"available\":true,\"models\":[{\"id\":\"ollama/qwen2.5-coder:7b\",\"size\":\"4.4 GB\"}]}"
+  },
+  "before": "New chat → Local (Ollama) → el compositor decía \"Message Claude...\" y el selector solo listaba modelos de Claude (Opus 5.5 … Sonnet 4.6)",
+  "after": [
+    {
+      "flow": "chat Local existente, modelo qwen2.5-coder:7b en el selector",
+      "composerPlaceholder": "Message Local (Ollama)...",
+      "sent": "Responde solo: LOCAL-OK",
+      "reply": "LOCAL-OK",
+      "latency": "~30-50 s (carga del 7B en local)"
+    },
+    {
+      "flow": "New chat → Local (Ollama) → Start Chat → primer mensaje sin tocar el selector (respaldo del backend)",
+      "sent": "Responde solo: PRIMERO-OK",
+      "reply": "PRIMERO-OK",
+      "latency": "~25-40 s"
+    }
+  ],
+  "notVerifiedLive": "aviso LOCAL_UNAVAILABLE con Ollama apagado (cubierto por AgentComposer.test.ts)"
+}

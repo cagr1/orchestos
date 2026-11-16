@@ -123,7 +123,7 @@ import {
   resolveChatErrorMessage,
 } from '../default-chat-agent.ts'
 import { errorResponse, jsonResponse } from '../http.ts'
-import { ollamaChat } from '../llm/clients.ts'
+import { firstOllamaModel, ollamaChat } from '../llm/clients.ts'
 import {
   type DashboardProjectContext,
   DashboardProjectError,
@@ -970,22 +970,36 @@ async function handleApiChat(
       }
     : undefined
   const chatAgent = body.agent ?? session?.agent ?? orchestratorAssignment?.agent
+  // WIN.13: a local chat's message may arrive without a model (New chat sends none): keep the session's last Ollama
+  // model, else use the first installed one (the orchestrator role cannot be `local`, so there is no configured
+  // local model to prefer). Resolved before the assignment and the "orchestrator unassigned" guard; `body` stays
+  // untouched so the request fingerprint, and with it an identical retry, does not change.
+  const localFallbackModel =
+    chatAgent === 'local' && !body.model?.trim()
+      ? sessionModel?.startsWith('ollama/')
+        ? sessionModel
+        : await firstOllamaModel()
+      : undefined
+  const assignmentAgent = body.agent ?? (localFallbackModel ? 'local' : undefined)
+  const assignmentModel = body.model || localFallbackModel
   const cliAdapter = cliChatAdapterFor(chatAgent)
   if (chatAgent && chatAgent !== 'api' && chatAgent !== 'local' && !cliAdapter?.chat)
     return errorResponse(cliAdapter?.reason ?? 'chat no soportado', 400)
-  const chatAssignment = body.agent
-    ? body.model
+  const chatAssignment = assignmentAgent
+    ? assignmentModel
       ? {
-          ...(body.agent === orchestratorAssignment?.agent ? resolvedOrchestratorAssignment : {}),
-          agent: body.agent as RoleAgent,
-          model: body.model,
+          ...(assignmentAgent === orchestratorAssignment?.agent
+            ? resolvedOrchestratorAssignment
+            : {}),
+          agent: assignmentAgent as RoleAgent,
+          model: assignmentModel,
           effort:
             body.effort ??
-            (body.agent === orchestratorAssignment?.agent
+            (assignmentAgent === orchestratorAssignment?.agent
               ? resolvedOrchestratorAssignment?.effort
               : undefined),
         }
-      : body.agent === orchestratorAssignment?.agent
+      : assignmentAgent === orchestratorAssignment?.agent
         ? resolvedOrchestratorAssignment
         : undefined
     : resolvedOrchestratorAssignment

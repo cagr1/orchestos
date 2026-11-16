@@ -286,8 +286,7 @@ export const OrchestChatView: React.FC<OrchestChatViewProps> = ({
       disposed = true
     }
   }, [])
-  const cliId: CliId =
-    thread?.agent && thread.agent !== 'local' ? thread.agent : (defaultAgent ?? 'api')
+  const cliId: CliId = thread?.agent ? thread.agent : (defaultAgent ?? 'api')
   const lastAssistant = [...messages].reverse().find((message) => message.role === 'assistant')
   const lastModel = lastAssistant?.model
     ?.replace(/\s+via\s+.+$/i, '')
@@ -296,7 +295,7 @@ export const OrchestChatView: React.FC<OrchestChatViewProps> = ({
   const sessionUsesOrchestrator = Boolean(orchestrator && thread?.agent === orchestrator.agent)
   const initialModel = sessionUsesOrchestrator
     ? orchestrator?.model
-    : cliId === 'api'
+    : cliId === 'api' || cliId === 'local'
       ? lastModel
       : undefined
   const initialEffort = sessionUsesOrchestrator

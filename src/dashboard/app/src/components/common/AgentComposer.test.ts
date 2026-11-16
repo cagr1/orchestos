@@ -8,6 +8,8 @@ import {
   ComposerSubmitButton,
   cliDisplayName,
   fileReferenceToken,
+  LOCAL_UNAVAILABLE,
+  localCliConfig,
   persistApprovalMode,
   readApprovalMode,
   selectionFromDefaults,
@@ -200,4 +202,25 @@ test('composer without a thread takes the backend default and honors an explicit
   expect(selectionFromDefaults(backendDefault.agent, undefined, 'medium', 'claude').cli).toBe(
     'claude',
   )
+})
+
+test('WIN.13 — Local (Ollama) lists the detected ollama/* models; no models, no entry', () => {
+  expect(localCliConfig([])).toBeNull()
+  const local = localCliConfig([{ id: 'ollama/qwen2.5-coder:7b' }, { id: 'ollama/llama3:8b' }])
+  expect(local?.id).toBe('local')
+  expect(local?.defaultModel).toBe('ollama/qwen2.5-coder:7b')
+  expect(local?.models.map((model) => [model.id, model.short])).toEqual([
+    ['ollama/qwen2.5-coder:7b', 'qwen2.5-coder:7b'],
+    ['ollama/llama3:8b', 'llama3:8b'],
+  ])
+  expect(cliDisplayName('local')).toBe('Local (Ollama)')
+})
+
+test('WIN.13 — a local chat without Ollama models says why instead of a silent, disabled composer', () => {
+  expect(localCliConfig([], 'local')).toMatchObject({
+    id: 'local',
+    models: [],
+    error: LOCAL_UNAVAILABLE,
+  })
+  expect(localCliConfig([], 'claude')).toBeNull()
 })

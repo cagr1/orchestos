@@ -22,6 +22,7 @@ import {
   uploadChatFile,
 } from '../../api/chat'
 import { findExplorerFiles } from '../../api/explorer'
+import { getLocalProvider } from '../../api/settings'
 import {
   chatQueueDeleted,
   chatQueueSending,
@@ -67,7 +68,41 @@ const CLIS: CliConfig[] = [
   { id: 'codex', name: 'Codex', defaultModel: '', models: [], efforts: [] },
   { id: 'deepseek', name: 'DeepSeek', defaultModel: '', models: [], efforts: [] },
   { id: 'gemini', name: 'Gemini', defaultModel: '', models: [], efforts: [] },
+  { id: 'local', name: 'Local (Ollama)', defaultModel: '', models: [], efforts: [] },
 ]
+
+export const LOCAL_UNAVAILABLE = 'Ollama is not running or has no models. Start it and reload.'
+
+/**
+ * WIN.13: the local agent offers the Ollama models the backend detects (`ollama/<name>`). Without models the
+ * entry only exists for a local chat, carrying the reason, so the composer never sits disabled and silent.
+ */
+export function localCliConfig(
+  models: Array<{ id: string }>,
+  sessionCli?: CliId,
+): CliConfig | null {
+  if (!models.length)
+    return sessionCli === 'local'
+      ? {
+          id: 'local',
+          name: 'Local (Ollama)',
+          defaultModel: '',
+          models: [],
+          efforts: [],
+          error: LOCAL_UNAVAILABLE,
+        }
+      : null
+  return {
+    id: 'local',
+    name: 'Local (Ollama)',
+    defaultModel: models[0].id,
+    models: models.map((model) => {
+      const name = model.id.replace(/^ollama\//, '')
+      return { id: model.id, name, short: name, vendor: 'ollama' }
+    }),
+    efforts: [],
+  }
+}
 
 export function cliDisplayName(id: string, label?: string): string {
   if (id === 'opencode') return 'OpenCode'
@@ -328,53 +363,59 @@ export const AgentComposer: React.FC<AgentComposerProps> = ({
 
   useEffect(() => {
     let disposed = false
-    void Promise.all([getChatModels().catch(() => []), getCliModels().catch(() => [])]).then(
-      ([models, cliCatalogs]) => {
-        if (disposed) return
-        const detected: CliConfig[] = cliCatalogs
-          .filter((catalog) => catalog.chat && catalog.installed)
-          .map((catalog) => ({
-            id: catalog.id,
-            name: cliDisplayName(catalog.id, catalog.label),
-            defaultModel: '',
-            models: catalog.models,
-            efforts: catalog.efforts,
-            error: catalog.error,
-          }))
-        const apiModels = models.map((model) => ({
-          id: model.id,
-          name: model.id,
-          short: model.name || model.id,
+    void Promise.all([
+      getChatModels().catch(() => []),
+      getCliModels().catch(() => []),
+      getLocalProvider()
+        .then((local) => (local.available ? local.models : []))
+        .catch(() => []),
+    ]).then(([models, cliCatalogs, localModels]) => {
+      if (disposed) return
+      const detected: CliConfig[] = cliCatalogs
+        .filter((catalog) => catalog.chat && catalog.installed)
+        .map((catalog) => ({
+          id: catalog.id,
+          name: cliDisplayName(catalog.id, catalog.label),
+          defaultModel: '',
+          models: catalog.models,
+          efforts: catalog.efforts,
+          error: catalog.error,
         }))
-        const next = apiModels.length
-          ? [
-              ...detected,
-              {
-                id: 'api' as const,
-                name: 'OpenRouter',
-                defaultModel: apiModels[0].name,
-                models: apiModels,
-                efforts: ['low', 'medium', 'high'],
-              },
-            ]
-          : detected
-        setAvailableClis(next)
-        const sessionCli = lockedCli ?? defaultCli
-        const sessionConfig = next.find((cli) => cli.id === sessionCli)
-        if (sessionConfig?.models.length && !useCliDefaultModel) {
-          setSelectedModel((current) =>
-            sessionConfig.models.some((model) => model.id === current)
-              ? current
-              : (sessionConfig.models[0]?.id ?? current),
-          )
-        }
-        setActiveCli((current) => {
-          if (lockedCli) return lockedCli
-          return next.some((cli) => cli.id === current) ? current : sessionCli
-        })
-        setIsLoadingModels(false)
-      },
-    )
+      const apiModels = models.map((model) => ({
+        id: model.id,
+        name: model.id,
+        short: model.name || model.id,
+      }))
+      const local = localCliConfig(localModels, lockedCli ?? defaultCli)
+      if (local) detected.push(local)
+      const next = apiModels.length
+        ? [
+            ...detected,
+            {
+              id: 'api' as const,
+              name: 'OpenRouter',
+              defaultModel: apiModels[0].name,
+              models: apiModels,
+              efforts: ['low', 'medium', 'high'],
+            },
+          ]
+        : detected
+      setAvailableClis(next)
+      const sessionCli = lockedCli ?? defaultCli
+      const sessionConfig = next.find((cli) => cli.id === sessionCli)
+      if (sessionConfig?.models.length && !useCliDefaultModel) {
+        setSelectedModel((current) =>
+          sessionConfig.models.some((model) => model.id === current)
+            ? current
+            : (sessionConfig.models[0]?.id ?? current),
+        )
+      }
+      setActiveCli((current) => {
+        if (lockedCli) return lockedCli
+        return next.some((cli) => cli.id === current) ? current : sessionCli
+      })
+      setIsLoadingModels(false)
+    })
     return () => {
       disposed = true
     }

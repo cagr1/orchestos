@@ -1,0 +1,159 @@
+WIN.17 — bun test en el PC Windows de Carlos, 2026-11-16, HEAD 6c5356b7 + WIN.13 sin commitear
+Ruta del clon con espacios (E:\Carlos\Development Tools\...); PATH de PowerShell sin sh. Bun 1.4.0.
+ 2847 pass
+ 8 skip
+ 114 fail
+ 15 errors
+Ran 2969 tests across 302 files. [501.99s]
+
+Fallos por archivo de test:
+     12 src/dashboard/handlers/providers.test.ts
+      9 src/__tests__/aud22-processes.test.ts
+      7 src/run/commit-tasks-yaml.test.ts
+      7 src/__tests__/worktree-contract.test.ts
+      6 src/dashboard/__tests__/chat-sessions.test.ts
+      6 scripts/mutation-test-shard.test.ts
+      6 scripts/claude-statusline-tee.test.ts
+      4 tests/hooks/startup-guard.test.ts
+      4 src/run/process-tree.test.ts
+      4 src/__tests__/checks.test.ts
+      4 scripts/adversarial-review.test.ts
+      3 src/__tests__/sandbox-setup.test.ts
+      3 src/__tests__/path-policy.test.ts
+      3 src/__tests__/generic-cli.test.ts
+      3 src/__tests__/aud21-task-execution.test.ts
+      3 scripts/session-status.test.ts
+      2 src/dashboard/terminal.test.ts
+      2 src/dashboard/__tests__/projects-settings.test.ts
+      2 src/__tests__/orchestos-home.test.ts
+      2 scripts/nightly-ui-gates.test.ts
+      2 scripts/context-adapters.test.ts
+      1 src/run/executors/cli-search-path.test.ts
+      1 src/run/executors/cli-health.test.ts
+      1 src/dashboard/auth-token.test.ts
+      1 src/dashboard/__tests__/tasks-api-init.test.ts
+      1 src/dashboard/__tests__/config-permission-mode.test.ts
+      1 src/dashboard/__tests__/chat-r5-reliability.test.ts
+      1 src/dashboard/__tests__/chat-adapters.test.ts
+      1 src/__tests__/usage-endpoint.test.ts
+      1 src/__tests__/run-revert.test.ts
+      1 src/__tests__/harness-evidence.test.ts
+      1 src/__tests__/db-backup.test.ts
+      1 src/__tests__/contract.test.ts
+      1 scripts/writer-lock.test.ts
+
+Tests que fallan:
+(fail) AT.11 — public CLI registration drives session → turn → persistence without API fallback
+(fail) AUD.1 worktree contract and merge paths > allows setup artifacts without merging them into the base
+(fail) AUD.1 worktree contract and merge paths > blocks a setup artifact committed by the executor
+(fail) AUD.1 worktree contract and merge paths > cleans excluded tracked changes before rebasing onto an advanced base
+(fail) AUD.1 worktree contract and merge paths > filters persisted setup artifacts from CLI diffs unless declared as outputs
+(fail) AUD.1 worktree contract and merge paths > lists rename source and destination, and stages declared deletions
+(fail) AUD.1 worktree contract and merge paths > stages a literal wildcard output without matching an undeclared late file
+(fail) AUD.20-fix config updates preserve private destination permissions
+(fail) AUD.20-fix preserves executable destination permissions
+(fail) AUD.21 + AUD.5 task execution with isolated fake CLIs > --all reports the iteration cap and the remaining pending task
+(fail) AUD.21 + AUD.5 task execution with isolated fake CLIs > Claude is_error with a cost fails the task and persists the API message
+(fail) AUD.21 + AUD.5 task execution with isolated fake CLIs > done does not invoke Auxiliary even with three prior runs
+(fail) AUD.26 recovers a dead PID lock and records recovery
+(fail) CC.2 — chat sessions backend > Manual permissions hold a chat task even when its output file does not exist yet (UI.8.6)
+(fail) CC.2 — chat sessions backend > POST /api/chat uses persisted history and never writes from Chat mode
+(fail) CC.2 — chat sessions backend > R.6 persiste el costo canónico del CLI en sesión y legacy, con procedencia real
+(fail) CC.2 — chat sessions backend > UI.13.4b persists console commands, applies runner boundaries and cascades on delete
+(fail) CC.2 — chat sessions backend > accepts three sequential Codex chat posts while Auxiliary routing is assigned between turns
+(fail) CC.2 — chat sessions backend > auto-created chat tasks defer model choice to the Executor role when no rule matches
+(fail) CC.2 — chat sessions backend > persists the visible app-server fallback step and returns Codex CLI output
+(fail) ERP.4.1 — crear la primera tarea sin init previo > crea tasks.yaml y persiste solo la tarea solicitada
+(fail) ERP.5.1 — el revisor LLM corre solo con criterios o un gate de revisión > sin criterios con checks verdes: conserva el conteo, comandos y evidencia sin declarar QA pass
+(fail) Edit de otra sesión deniega
+(fail) GET /api/usage > agrupa runs por el día local del dashboard en Guayaquil y UTC
+(fail) LRN.1b chat lesson proposals > failed turns discard collected proposals
+(fail) LRN.1b chat lesson proposals > general chat does not offer or persist proposals
+(fail) LRN.1b chat lesson proposals > stores three valid auto proposals with turn evidence, and counts injection once despite replay
+(fail) OpenCode respects XDG_DATA_HOME and HOME with a system home fallback
+(fail) POST /api/runs/:id/revert (ERP.7.2a) > revert limpio: restaura el archivo, crea el commit y guarda reverted_sha
+(fail) adversarial review — estado y rango > defaultSessionsRoot respeta CODEX_HOME y usa HOME cuando no está definido
+(fail) adversarial review — estado y rango > runCodexStreaming envía por stdin un prompt de 3 MB y cierra el stream
+(fail) adversarial review — estado y rango legacy > sandboxProfile canonicalizes HOME y sandboxRoot cuando son symlinks
+(fail) adversarial review — hallazgos y REVIEW.md > rechaza rutas absolutas, traversal, symlinks externos y destinos existentes
+(fail) app-server: kill followed by a new request survives the old CLI exit
+(fail) applyCliSearchPath > un CLI que solo vive en el PATH del login shell se lanza y se marca instalado
+(fail) archives result and captures so they survive runDir cleanup, without copying gate HOME
+(fail) caches for 30 seconds, refresh invalidates, and executor defaults remain project-specific
+(fail) chat persists approvalMode auto-edit by default on the created task
+(fail) chat persists approvalMode auto-edit on the created task
+(fail) chat persists approvalMode full on the created task
+(fail) chat persists approvalMode supervised on the created task
+(fail) checks: timeout kills the whole group even if TERM is ignored
+(fail) claude-statusline-tee > does not persist payloads without rate limits
+(fail) claude-statusline-tee > persists a session-specific atomic snapshot when Claude provides a session id
+(fail) claude-statusline-tee > persists rate limits and forwards the payload unchanged
+(fail) claude: timeout kills the whole group even if TERM is ignored
+(fail) codex exec: AbortSignal kills the entire process group
+(fail) codex: an onStep exception does not abort the run
+(fail) codex: timeout kills the whole group even if TERM is ignored
+(fail) commitTasksYaml diagnostics > commitPaths survives a transient index.lock during add
+(fail) commitTasksYaml diagnostics > commitPaths survives a transient index.lock during commit
+(fail) commitTasksYaml diagnostics > commitTasksYaml survives a transient index.lock during add
+(fail) commitTasksYaml diagnostics > commitTasksYaml survives a transient index.lock during commit
+(fail) commitTasksYaml diagnostics > logs when the git commit fails
+(fail) context adapters > lee cuotas del app-server cuando responde después de una demora
+(fail) context adapters > lee cuotas del app-server manteniendo stdin abierto tras initialized
+(fail) dashboard terminal sessions > stopTerminalSessions closes every live child
+(fail) dashboard terminal sessions > writes input to the process and receives terminal output
+(fail) database backup and privacy > creates a private, integrity-checkable snapshot
+(fail) defaultChecksFor > K.3: empty test file gets an assertion check that fails
+(fail) defaultChecksFor > K.3: test file with a real assertion passes the assertion check
+(fail) defaultChecksFor > runChecks marks a command timeout and kills the process
+(fail) defaultChecksFor > splitCommand preserves spaces inside single-quoted arguments
+(fail) detects login-shell binaries using the shared detector and includes all fallback directories
+(fail) exiting before graceMs still kills a grandchild that ignores SIGTERM
+(fail) exposes shared session health in /api/providers, keeps signed-out CLIs and refreshes auth explicitly
+(fail) external: AbortSignal kills the entire process group
+(fail) honors CODEX_HOME and handles malformed JWTs without inventing account details
+(fail) keeps an in-flight retry intact when refresh clears the cache
+(fail) loads trusted declarations afresh, exposes honest capabilities and validates the dynamic engine
+(fail) local project settings > the harness uses the configured base and setup, prioritizes an explicit branch and reports failure without leaking a worktree
+(fail) normalizes versions from the first output line, preserving lines without version tokens
+(fail) offers only default without modelArgs and the configured model catalog otherwise, never in chat
+(fail) opencode drains more than a pipe buffer of stderr
+(fail) opencode: an onStep exception does not abort the run
+(fail) opencode: timeout kills the whole group even if TERM is ignored
+(fail) orchestos-home > lee ORCHESTOS_HOME en cada llamada
+(fail) orchestos-home > usa ORCHESTOS_HOME para resolver .orchestos
+(fail) path policy — traversal matrix > confines command path arguments to the real project root
+(fail) path policy — traversal matrix > does not interpret command metacharacters as shell syntax
+(fail) path policy — traversal matrix > does not pass an arbitrary parent secret to a check process
+(fail) reads Claude and Codex identities from temporary HOME; response never includes auth tokens
+(fail) recognizes Codex API key authentication without exposing credentials or account details
+(fail) rejects an uncontrolled cwd, spawn failures, nonzero exits and timeouts
+(fail) rejects concurrent HTTP requests and replays committed results without provider calls
+(fail) reserves before YAML creation and never renames a colliding reservation
+(fail) retries a empty model catalog without refresh and caches healthy CLIs separately
+(fail) retries a error model catalog without refresh and caches healthy CLIs separately
+(fail) retries a throw model catalog without refresh and caches healthy CLIs separately
+(fail) selectMutationShardTests > las particiones de executors-codex conservan todos los archivos y gates sin solaparse
+(fail) selectMutationShardTests > mutationFiles procesa negaciones en orden y permite reincluir archivos
+(fail) selectMutationShardTests > mutationFiles resta archivos incluidos menos los patrones negados
+(fail) selectMutationShardTests > selector de shard incluye imports directos y transitivos, omite los que no alcanzan archivos mutados
+(fail) selectMutationShardTests > sigue aristas runtime de Bun y no tipos, comentarios ni snippets
+(fail) selectMutationShardTests > un puente de tipos corta la transitividad; preserva ciclos runtime, TSX y registros lazy
+(fail) sends the prompt to stdin and omits modelArgs for default
+(fail) session status > descubre Claude y Codex solo para el proyecto solicitado y ordena por mtime
+(fail) session status > diagnostica tee presente, ausente, inexistente y Orca solo sin cambiar settings
+(fail) session status > lee cada transcript como máximo una vez aunque no encuentre un CLI
+(fail) shares the default model catalog with concurrent providers and refresh without probing models
+(fail) shows invalid create_task arguments as an error and leaves tasks and runs untouched
+(fail) startup-guard hook > JSON corrupto: stdout vacío, exit 0
+(fail) startup-guard hook > config correcta: stdout vacío, exit 0
+(fail) startup-guard hook > omite skills de plugins sincronizados deshabilitados en enabledPlugins
+(fail) substitutes prompt and model literally, reads the actual diff and marks measurement unknown
+(fail) terminateTree escalates when SIGTERM is ignored
+(fail) terminateTree kills a grandchild that ignores SIGTERM after the leader exits
+(fail) terminateTree kills the child and grandchild
+(fail) token file has mode 600 and is reused across server restarts; env overrides it
+(fail) ui-gates nocturnos al arrancar > avisa cuando la preparación impidió correr los flujos
+(fail) uses Claude email fallback while session status comes from the CLI probe
+(fail) worktree setup script > enforces the ten-minute timeout and cleans up after termination
+(fail) worktree setup script > reports the last 20 output lines in order and removes the worktree and branch
+(fail) worktree setup script > runs in the worktree after node_modules is linked, with both root variables
