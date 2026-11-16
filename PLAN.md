@@ -234,6 +234,17 @@ esta etapa: `docs/done/bloque-AUD.md` (AUD.16, AUD.17), `docs/done/bloque-SES.md
   `chat-r5-reliability` 6, `aud21-task-execution` 6, `generic-cli`, `process-tree`, `opencode/claude-task-approvals`,
   `cli-health`, `cli-search-path` ("Executable not found in $PATH": `.cmd`/`.exe` de npm). Confirmar en la VM con un
   CLI real antes de arreglar lo que dependa del binario.
+  Sonda en windows-latest (`.github/workflows/win-probe.yml`, temporal; runs 43792978378, 43793248008, 43793499256):
+  `Bun.which`/`Bun.spawn` encuentran y lanzan `.cmd`; `node:child_process.spawn` de `.cmd` da `EINVAL` (rompe
+  `codex-app-server.ts:124` y `generic-cli.ts`); `kill(-pid)` da ESRCH y `proc.kill` deja huérfano al nieto, `taskkill
+  /T /F` mata el árbol; Bun **rechaza** (`ERR_INVALID_ARG_VALUE`) todo argumento con `" & % ^ !`, salto de línea, etc.
+  hacia un `.cmd`. Consecuencia: con Codex, OpenCode o Claude instalados por npm (`.cmd`) ninguna tarea arranca en
+  Windows, porque el prompt va en argv (`codex.ts:141`, `opencode.ts:75`, `external.ts`) y siempre trae esos
+  caracteres; además argv de Windows tope 32 767 caracteres.
+  Hecho (`09db2b15`): `killTree` usa `taskkill /T /F` en win32 y `codex-app-server` mata por `killTree`.
+  Falta (cambio de varios motores, espera GO): prompt por stdin donde el CLI lo acepte, o resolver el shim `.cmd` de
+  npm a `node script.js`/`.exe`; lanzar con `Bun.spawn` en `codex-app-server` y `generic-cli`; fixtures de test
+  multiplataforma (PATH con `delimiter`, CLIs falsos `.cmd`).
 - [ ] **WIN.7 — Scripts de desarrollo en Windows.** (WIN.1 fase 1, baja prioridad: no los usa el usuario final)
   `adversarial-review`, `mutation-test-shard`, `startup-guard`, `session-status`, `context-adapters`.
 
