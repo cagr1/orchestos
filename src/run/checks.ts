@@ -13,6 +13,12 @@ const TSC_TIMEOUT_MS = 120_000
 const JS_CHECK_TIMEOUT_MS = 15_000
 const TEST_ASSERTION_CHECK_TIMEOUT_MS = 15_000
 
+function commandArgument(value: string): string {
+  if (value.includes('"') && !value.includes("'")) return `'${value}'`
+  if (/\s|'/.test(value)) return `"${value}"`
+  return value
+}
+
 function commandAvailable(command: string, args: string[]): boolean {
   try {
     return Bun.spawnSync([command, ...args]).exitCode === 0
@@ -46,7 +52,7 @@ export function roadmapChecksFor(output: string[], effectiveRoot: string): Check
 function testAssertionCheckFor(path: string): Check {
   const checker = resolve(import.meta.dir, '../../scripts/check-test-assertions.ts')
   return {
-    cmd: `${process.execPath} run ${checker} ${JSON.stringify(path)}`,
+    cmd: `${commandArgument(process.execPath)} run ${commandArgument(checker)} ${commandArgument(path)}`,
     timeout_ms: TEST_ASSERTION_CHECK_TIMEOUT_MS,
     trusted: true,
   }
@@ -84,7 +90,7 @@ export function defaultChecksFor(output: string[], effectiveRoot: string): Check
     }
     for (const p of output) {
       if (p.endsWith('.test.ts') || p.endsWith('.test.tsx')) {
-        checks.push({ cmd: `bun test ${p}` })
+        checks.push({ cmd: `bun test ${commandArgument(p)}` })
       }
     }
   }

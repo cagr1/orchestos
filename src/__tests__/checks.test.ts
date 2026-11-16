@@ -91,17 +91,26 @@ describe('defaultChecksFor', () => {
 
   it('K.3: test file with a real assertion passes the assertion check', async () => {
     const root = makeRoot(true)
-    const testPath = join(root, 'real.test.ts')
+    const testPath = join(root, "real 'test.test.ts")
     writeFileSync(
       testPath,
       `import { expect, it } from 'bun:test'\nit('x', () => expect(1).toBe(1))\n`,
     )
-    const checks = defaultChecksFor(['real.test.ts'], root)
+    const checks = defaultChecksFor(["real 'test.test.ts"], root)
+    const bunTestCheck = checks.find((c) => c.cmd.startsWith('bun test '))
+    expect(bunTestCheck).toBeDefined()
+    expect(bunTestCheck!.cmd).toContain('"real \'test.test.ts"')
     const assertionCheck = checks.find((c) => c.cmd.includes('check-test-assertions'))
     expect(assertionCheck).toBeDefined()
 
     const results = await runChecks([assertionCheck!], root, new RunLogger(root, 'k3-real'))
     expect(results[0]?.exitCode).toBe(0)
+    const [bunTestResult] = await runChecks(
+      [bunTestCheck!],
+      root,
+      new RunLogger(root, 'k3-bun-test'),
+    )
+    expect(bunTestResult?.exitCode).toBe(0)
   })
 
   it('returns no checks for non-code output (e.g. markdown)', () => {
@@ -325,7 +334,7 @@ describe('defaultChecksFor', () => {
   it('runChecks marks a command timeout and kills the process', async () => {
     const root = makeRoot(false)
     const [result] = await runChecks(
-      [{ cmd: 'sleep 1', timeout_ms: 10 }],
+      [{ cmd: `"${process.execPath}" -e 'setTimeout(() => {}, 1000)'`, timeout_ms: 10 }],
       root,
       new RunLogger(root, 'timeout'),
     )
@@ -337,7 +346,7 @@ describe('defaultChecksFor', () => {
   it('runChecks keeps only the tail of oversized command output', async () => {
     const root = makeRoot(false)
     const [result] = await runChecks(
-      [{ cmd: `${process.execPath} -e "process.stdout.write('x'.repeat(2500))"` }],
+      [{ cmd: `"${process.execPath}" -e "process.stdout.write('x'.repeat(2500))"` }],
       root,
       new RunLogger(root, 'output-limit'),
     )
@@ -350,7 +359,11 @@ describe('defaultChecksFor', () => {
   it('splitCommand preserves spaces inside single-quoted arguments', async () => {
     const root = makeRoot(false)
     const [result] = await runChecks(
-      [{ cmd: "printf 'hello world'" }],
+      [
+        {
+          cmd: `"${process.execPath}" -e 'process.stdout.write(process.argv[1])' 'hello world'`,
+        },
+      ],
       root,
       new RunLogger(root, 'quoted-args'),
     )

@@ -360,7 +360,7 @@ esta etapa: `docs/done/bloque-AUD.md` (AUD.16, AUD.17), `docs/done/bloque-SES.md
   instalar. POSIX sigue con `sh`. `sandbox-setup.test.ts`: 14 pass / 0 fail en el PC de Carlos (antes 3 rojos).
   Revisión: el cerebro (otro proveedor) leyó el diff, sin defectos.
   Ejecutado por: gpt-6.1-sol · Spec: docs/specs/WIN.15.md
-- [ ] **WIN.16 — Rutas con espacios: el clon en `E:\Carlos\Development Tools\…` falla donde el CI no.** (revisión
+- [x] **WIN.16 — Rutas con espacios: el clon en `E:\Carlos\Development Tools\…` falla donde el CI no.** (revisión
   del cerebro, 2026-11-16) `checks.test.ts` da `Module not found "E:\Carlos\Development"`: algún comando parte la ruta
   por el espacio. Sin aislar si el corte está en el producto (`checks.ts`/`defaultChecksFor`) o en el fixture. El
   runner de CI no tiene espacios en la ruta, así que `windows-smoke` no lo ve. Primero aislar; si es producto, es
@@ -369,7 +369,7 @@ esta etapa: `docs/done/bloque-AUD.md` (AUD.16, AUD.17), `docs/done/bloque-SES.md
   `splitCommand` partía la ruta por el espacio; `commandArgument` (`src/run/checks.ts`) las entrecomilla (simples si
   la ruta trae comillas dobles). Fixtures de `checks.test.ts` sin `sleep`/`printf` y con ruta con espacio y
   apóstrofo: 35 pass / 0 fail en el PC de Carlos. Revisión: el cerebro (otro proveedor) leyó el diff, sin defectos.
-  Ejecutado por: gpt-6.1-sol · Spec: docs/specs/WIN.16.md
+  Ejecutado por: gpt-6.1-sol (3 rondas) · Spec: docs/specs/WIN.16.md
 - [ ] **WIN.17 — Rojos de Windows sin ítem.** (revisión del cerebro, 2026-11-16) `bun test` en el PC de Carlos, con
   WIN.13 aún sin commitear en el árbol: 2847 pass / 114 fail / 15 errores (CI decía 98; lista en
   `docs/done/evidence/WIN.17-local.txt`). Con dueño: WIN.6

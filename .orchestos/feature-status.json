@@ -288,7 +288,7 @@
       "sprint": "Etapa 3 — Windows",
       "block": null,
       "title": "Rutas con espacios: el clon en `E:\\Carlos\\Development Tools\\…` falla donde el CI no",
-      "status": "open",
+      "status": "done",
       "closedDate": null
     },
     {
