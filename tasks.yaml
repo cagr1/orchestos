@@ -221,15 +221,18 @@ tasks:
       files, searched 2 times"); dentro, la lista cronológica de razonamientos y herramientas. Mientras el turno está
       vivo, el encabezado muestra el paso actual con shimmer y el tiempo. Afecta `activity.ts`, `TurnActivity.tsx` y sus
       tests/ui-gates. Exige gate en vivo al cerrar.
+    executor: openrouter
+    approvalMode: auto-edit
+    task_class: plan
+    input: []
     output:
       - PLAN.md
       - NEXT.md
-    status: pending
-    retry_count: 0
     acceptance_criteria:
       - PLAN.md tiene USO.16 y USO.17 abiertos (`- [ ]`) inmediatamente después de USO.15, con el diagnóstico y las
         rutas de la descripción
       - NEXT.md indica que lo siguiente es USO.16 y luego USO.17
       - No se modificó ningún otro ítem del plan ni ningún archivo de código
-    approvalMode: auto-edit
-    task_class: plan
+    depends_on: []
+    status: pending
+    retry_count: 0
