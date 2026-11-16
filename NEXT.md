@@ -57,9 +57,9 @@ auditoría AUD.1–AUD.28 en el orden de la segunda auditoría; lo cerrado está
    de cmd; el selector de carpeta sale delante. WIN.6b descartado (el `app-server` ya arranca). (c) **Siguiente**:
    el orden de abajo. Dashboard del 4242: lo relanzó el cerebro sin variables `CLAUDE*` (PID 25868, sin log).
    **Revisión del 2026-11-16 (cerebro Fable, verificada): abiertos WIN.14–WIN.17.** Suite local: 114 rojos, no 98
-   (`docs/done/evidence/WIN.17-local.txt`). WIN.13 y WIN.14 cerrados.
-   **Orden:** WIN.15 (`sh` fijo) → WIN.16 (espacios) → WIN.17
-   (re-correr `windows-smoke.yml`) → resto de WIN.6. WIN.14 sin prueba en vivo: la tarea `chat-b9b3da84…` (`failed`)
+   (`docs/done/evidence/WIN.17-local.txt`). Cerrados WIN.13–WIN.17, USO.17 y USO.18; CI Windows: 95 rojos
+   (`docs/done/evidence/WIN.17-ci.txt`). **Orden:** resto de WIN.6 con WIN.19 (CLIs falsos con shim `.cmd`) → WIN.20
+   (aislar posibles productos rotos) → WIN.18 (tests POSIX) → WIN.7. Re-correr `windows-smoke.yml` tras cada uno. WIN.14 sin prueba en vivo: la tarea `chat-b9b3da84…` (`failed`)
    es de USO.16 y reescribiría `NEXT.md` con un estado viejo: no reintentarla; la prueba va con la tarea en vivo de WIN.1.
    Visto y sin ítem (no daña): en Windows los `mode: 0o600`/`chmodSync` no aplican, así que el token del dashboard
    (`dashboard/auth-token.ts:18`), `settings-store.ts:83` y los respaldos de la BD (`db/backup.ts`) quedan con los
