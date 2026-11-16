@@ -1,4 +1,4 @@
-# NEXT — handoff 2026-11-15 (uso real; MSG.1, USO.13, USO.14, USO.15 cerrados)
+# NEXT — handoff 2026-11-16 (Windows en el PC de Carlos: WIN.7–WIN.10 cerrados, sigue WIN.6)
 
 Un solo presente: orden y trampas vivas del lote. Lo cerrado vive en `docs/done/bloque-*.md` y git; las reglas, en
 `AGENTS.md`. Versión anterior completa: `docs/done/poda-instrucciones-2026-11-03.md` (histórico).
@@ -37,10 +37,24 @@ auditoría AUD.1–AUD.28 en el orden de la segunda auditoría; lo cerrado está
    2026-11-16 (`gh run list --workflow "Mutation Shards"`): todos verdes y bajo ~1h30 → cerrar MUT.1.
    **Siguiente**: lo que reporte Carlos en uso real. WIN.2 (`a0882d84`), WIN.3 (`36531977`), WIN.4 (`ef88ae9f`) y
    WIN.5 (`8c228123`) cerrados: Windows 216 → 98 tests rojos.
-   **Windows en pausa (Carlos, 2026-11-16) hasta tener su PC Windows.** Plan: en ese PC se clona el repo y se termina
-   lo que falta (WIN.6: lanzar CLIs de npm sin pasar el prompt por `.cmd` — propuesta en PLAN.md WIN.6 —, fixtures
-   multiplataforma, WIN.7); después se borra todo y se reinstala desde cero con `install.ps1` para WIN.1 (instalar,
-   dashboard, turno de chat, tarea con CLI real, terminal). Al cerrar WIN.6 borrar `.github/workflows/win-probe.yml`.
+   **Windows en curso en el PC de Carlos (2026-11-16, Etapa 3).** Clon en `E:\Carlos\Development Tools\Proyectos\
+   OrchestOS\orchestos`, Bun 1.4.0. Hechos y subidos: WIN.7 parcial (`boundary-budget` con rutas `\`), WIN.10
+   (`.gitattributes` LF; el pre-commit no exporta `runs-summary.json` en Windows: cada máquina tiene su DB), WIN.8
+   (Open folder/Clone con selector nativo), WIN.9 (reconcile sin `ps`). Anotado WIN.11 (IA local: Ollama +
+   `qwen2.5-coder:7b`). **En el Mac, tras el pull, una vez:** `bun run hooks:install` y `bun run plan:reconcile`
+   (verificado con un clon simulado: pull fast-forward limpio, commit siguiente pasa).
+   **Siguiente: WIN.6 (GO de Carlos 2026-11-16, como cerebro: spec → `delegate mecanico` → `qa`).** Diagnóstico en
+   vivo: "Hola" a Codex en Dev no responde. `app-server` (spawn `node:child_process` de `codex.cmd`,
+   `codex-app-server.ts:124`) da timeout en `initialize`; el respaldo `codex exec` pasa el prompt multilínea por argv y
+   `cmd.exe` lo corta en el primer `\n`, perdiendo también los flags siguientes (`--json`) → salida texto, respuesta
+   vacía. Con Bun 1.4.0 ya no hay `ERR_INVALID_ARG_VALUE`, pero el corte sigue. `codex exec … -` (prompt por stdin)
+   verificado en vivo: funciona con prompt largo. Plan: (1) codex exec por stdin; (2) app-server y `generic-cli` con
+   `Bun.spawn`; (3) OpenCode/`external` por stdin si el CLI lo acepta (probar en vivo antes); (4) fixtures de test
+   multiplataforma; (5) "Hola" a Codex en Dev en vivo. Claude (`claude.exe` nativo) ya responde en Chat.
+   Trampas de Windows: cerrar un ítem = `plan:reconcile` justo antes del commit (si "Could not prove a closing commit
+   SHA": `[ ]`, reconcile, `[x]`, reconcile); sin spec, línea `Sin delegación: <motivo>`; push con `--no-verify` en un
+   comando aparte (el clasificador lo pide aprobar). Al final: reinstalar desde cero con `install.ps1` para WIN.1.
+   Al cerrar WIN.6 borrar `.github/workflows/win-probe.yml`.
    WIN.1 fase 1 corrida en CI (`windows-smoke.yml`, manual): instalador, dashboard, API, typecheck y ui-gate smoke
    pasan en Windows; 216 tests rojos repartidos en WIN.2–WIN.7. Falta turno de chat y tarea en la VM de Carlos.
    Re-correr tras cada WIN.n: `gh workflow run windows-smoke.yml` y bajar el artefacto `win1-smoke`.
