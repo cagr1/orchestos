@@ -14,20 +14,37 @@ export const INTERRUPTED_REASON = 'Interrupted: the task runner stopped before t
 /** "Vivo" = el PID existe Y su línea de comando es `task run … --id <taskId>`. */
 export type RunnerProbe = (pid: number, taskId: string) => boolean
 
-const psRunnerProbe: RunnerProbe = (pid, taskId) => {
+export const psRunnerProbe: RunnerProbe = (pid, taskId) => {
   try {
     process.kill(pid, 0)
   } catch {
     return false
   }
   try {
-    const proc = Bun.spawnSync(['ps', '-o', 'command=', '-p', String(pid)])
-    if (proc.exitCode !== 0) return false
-    const command = proc.stdout.toString()
+    const command = processCommandLine(pid)
+    if (command === null) return false
     return command.includes('task run') && commandIsRunnerOf(command, taskId)
   } catch {
     return false
   }
+}
+
+/** WIN.9: `ps -o` no existe en Windows; allí la línea de comando sale de Win32_Process. */
+function processCommandLine(pid: number): string | null {
+  if (!Number.isSafeInteger(pid) || pid <= 0) return null
+  const argv =
+    process.platform === 'win32'
+      ? [
+          'powershell.exe',
+          '-NoProfile',
+          '-NonInteractive',
+          '-Command',
+          `(Get-CimInstance Win32_Process -Filter 'ProcessId=${pid}').CommandLine`,
+        ]
+      : ['ps', '-o', 'command=', '-p', String(pid)]
+  // Tope: la sonda corre síncrona en el servidor; PowerShell/CIM colgado no debe congelarlo.
+  const proc = Bun.spawnSync(argv, { timeout: 5_000 })
+  return proc.exitCode === 0 ? proc.stdout.toString() : null
 }
 
 export function commandIsRunnerOf(command: string, taskId: string): boolean {

@@ -1,0 +1,12 @@
+{
+  "item": "WIN.9",
+  "date": "2026-11-16",
+  "machine": "PC Windows 11 de Carlos (Bun 1.3.14)",
+  "live": "Antes: `ps -o command= -p <pid>` en Windows da 'ps: unknown option -- o' (o ENOENT sin Git Bash en el PATH) y psRunnerProbe devolvía false siempre: un task run vivo heredado tras reiniciar el dashboard se marcaba failed 'Interrupted'. Después: runner falso `bun run fake.ts task run \"E:\\Carlos\\Development Tools\\x\" --id T1` → probe(pid,'T1') true, probe(pid,'T10') false, probe(pid,'T') false, tras kill false. ~0,5 s por sonda (solo filas heredadas, cada 2 s).",
+  "gates": [
+    "bun run typecheck: 0 errores (dos tsconfig)",
+    "bun test src/dashboard/handlers/task-run-reconcile.test.ts: 18 pass, 0 fail",
+    "bunx biome check src/dashboard/handlers/task-run-reconcile.ts: limpio"
+  ],
+  "review": "cerebro (claude-opus-5-5) escribió el fix chico; qa (Codex, solo lectura): sin inyección (PID validado), POSIX intacto; señaló spawnSync sin timeout → añadido tope de 5 s"
+}

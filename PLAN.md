@@ -263,10 +263,13 @@ esta etapa: `docs/done/bloque-AUD.md` (AUD.16, AUD.17), `docs/done/bloque-SES.md
   pre-commit omite el export en Windows (cada máquina tiene su DB). macOS sin cambios. En vivo: `bun run lint` del repo
   en verde en Windows; `feature-status` regenerado sin `sprint: null`.
   Ejecutado por: claude-opus-5-5
-- [ ] **WIN.9 — El reconcile de tareas usa `ps -o`, que no existe en Windows.** (PC Windows de Carlos, 2026-11-16)
+- [x] **WIN.9 — El reconcile de tareas usa `ps -o`, que no existe en Windows.** (PC Windows de Carlos, 2026-11-16)
   `psRunnerProbe` (`dashboard/handlers/task-run-reconcile.ts:24`) da `false` siempre en Windows: tras reiniciar el
-  dashboard, un `task run` aún vivo se marca `failed: Interrupted`. Arreglo: en win32 leer la línea de comando del PID
-  con PowerShell (`Win32_Process.CommandLine`); POSIX sin cambios.
+  dashboard, un `task run` aún vivo se marca `failed: Interrupted`. Hecho: en win32 la línea de comando del PID sale de
+  `Get-CimInstance Win32_Process` (PID validado como entero antes de interpolar); POSIX sin cambios; tope de 5 s a la
+  sonda síncrona (señalado por qa). En vivo: runner falso en ruta con espacios → vivo `true`, otra tarea `false`,
+  muerto `false`; ~0,5 s por sonda. qa (Codex): sin inyección. Gate en vivo: `docs/done/evidence/WIN.9-live.json`
+  Sin delegación: fix chico de una función, revisado por qa de otro proveedor
 
 ## Decisiones pendientes de Carlos
 

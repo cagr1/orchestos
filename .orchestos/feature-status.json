@@ -208,7 +208,7 @@
       "sprint": "Etapa 3 — Windows",
       "block": null,
       "title": "El reconcile de tareas usa `ps -o`, que no existe en Windows",
-      "status": "open",
+      "status": "done",
       "closedDate": null
     }
   ]
