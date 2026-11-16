@@ -35,7 +35,12 @@ auditoría AUD.1–AUD.28 en el orden de la segunda auditoría; lo cerrado está
    (notificaciones en Chat; el Chat general no reanudaba la sesión de Claude y reenviaba el transcript).
    MUT.1 (2026-11-15): shards de mutación repartidos (11 → 15) porque 4 pasaban de 3 h. Revisar la nocturna del
    2026-11-16 (`gh run list --workflow "Mutation Shards"`): todos verdes y bajo ~1h30 → cerrar MUT.1.
-   **Siguiente**: lo que reporte Carlos en uso real; si no hay, WIN.6 (CLIs y procesos en Windows). WIN.2 (`a0882d84`), WIN.3 (`36531977`), WIN.4 (`ef88ae9f`) y WIN.5 (`8c228123`) cerrados: Windows 216 → 98 tests rojos.
+   **Siguiente**: lo que reporte Carlos en uso real. WIN.2 (`a0882d84`), WIN.3 (`36531977`), WIN.4 (`ef88ae9f`) y
+   WIN.5 (`8c228123`) cerrados: Windows 216 → 98 tests rojos.
+   **Windows en pausa (Carlos, 2026-11-16) hasta tener su PC Windows.** Plan: en ese PC se clona el repo y se termina
+   lo que falta (WIN.6: lanzar CLIs de npm sin pasar el prompt por `.cmd` — propuesta en PLAN.md WIN.6 —, fixtures
+   multiplataforma, WIN.7); después se borra todo y se reinstala desde cero con `install.ps1` para WIN.1 (instalar,
+   dashboard, turno de chat, tarea con CLI real, terminal). Al cerrar WIN.6 borrar `.github/workflows/win-probe.yml`.
    WIN.1 fase 1 corrida en CI (`windows-smoke.yml`, manual): instalador, dashboard, API, typecheck y ui-gate smoke
    pasan en Windows; 216 tests rojos repartidos en WIN.2–WIN.7. Falta turno de chat y tarea en la VM de Carlos.
    Re-correr tras cada WIN.n: `gh workflow run windows-smoke.yml` y bajar el artefacto `win1-smoke`.
