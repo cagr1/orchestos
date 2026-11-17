@@ -4,7 +4,7 @@ import { createHash } from 'node:crypto'
 import { mkdirSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { createInterface } from 'node:readline'
-import { parseJson, z } from '../../boundary/index.ts'
+import { check, parseJson, z } from '../../boundary/index.ts'
 import { redactSensitive } from '../../security/secrets.ts'
 import type { ApprovalAdapter } from '../approvals.ts'
 import { decideApproval } from '../approvals.ts'
@@ -21,6 +21,17 @@ type JsonRpcMessage = {
   error?: { code?: number; message?: string; data?: unknown }
 }
 type Child = ChildProcessWithoutNullStreams
+const skillsListSchema = z.object({
+  data: z.array(
+    z.object({
+      cwd: z.string(),
+      skills: z.array(
+        z.object({ name: z.string(), description: z.string(), enabled: z.boolean() }),
+      ),
+    }),
+  ),
+})
+
 type TurnDiagnostics = {
   notifications: Record<string, number>
   dropped: Record<string, number>
@@ -315,6 +326,13 @@ export class CodexAppServer {
         },
       )
     })
+  }
+
+  async listSkills(cwd: string) {
+    await this.ensureReady()
+    const result = check(skillsListSchema, await this.request('skills/list', { cwds: [cwd] }))
+    if (!result.ok) throw new CodexAppServerError(`Invalid skills/list response: ${result.error}`)
+    return result.data.data.find((entry) => entry.cwd === cwd)?.skills ?? []
   }
 
   async cliCommand(sessionId: string, name: string): Promise<void> {

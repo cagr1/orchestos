@@ -271,6 +271,12 @@ esta etapa: `docs/done/bloque-AUD.md` (AUD.16, AUD.17), `docs/done/bloque-SES.md
   Texto visible: "Loading…" (grupo del CLI en el menú `/`: la primera carga de Claude tarda ~5 s y un spinner solo no dice qué grupo falta)
   Gate en vivo: navegador del panel, `docs/done/evidence/CMD.1-live.json` (Dev Codex `/compact`, Dev Claude menú y `/context`, Chat bloqueado).
   Ejecutado por: gpt-6.1-sol (criterio) y gpt-6-luna (mecanico) · Spec: docs/specs/CMD.1.md
+- [x] **CMD.2 — Mostrar e invocar las skills de Codex desde Dev.** (cerrado 2026-11-17)
+  El menú CODEX lista `/compact` y las skills habilitadas del proyecto mediante `skills/list`. El composer envía
+  `/nombre argumentos` con la sintaxis de Codex `$nombre argumentos` y restaura el borrador si falla el envío.
+  Gate en vivo: Playwright, `docs/done/evidence/CMD.2-live.json` (5/5, app-server real, envío interceptado antes de iniciar el turno).
+  Typecheck, lint y 73 pruebas acotadas pasaron.
+  Ejecutado por: gpt-6.1-sol (criterio) · Spec: docs/specs/CMD.2.md
 - [ ] **USO.19 — En Chat, el primer mensaje de un chat nuevo se pierde.** (encontrado al verificar CMD.1, 2026-11-17)
   "New chat" → escribir → Enter: la sesión se crea con el título del mensaje pero con 0 mensajes y la vista queda
   vacía; en un chat que ya existe el envío funciona. Se reprodujo con texto normal y con el código de `master` sin

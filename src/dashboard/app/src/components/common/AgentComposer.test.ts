@@ -1,13 +1,14 @@
 import { describe, expect, test } from 'bun:test'
 import { createElement } from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
-import { getCliCommands, runCliCommand, stopChatTurn } from '../../api/chat'
+import { type CliCommand, getCliCommands, runCliCommand, stopChatTurn } from '../../api/chat'
 import { findExplorerFiles } from '../../api/explorer'
 import { StoppedResponse } from '../thread/StoppedResponse'
 import {
   ComposerCommandStatus,
   ComposerSubmitButton,
   cliDisplayName,
+  codexSkillPrompt,
   commandSourceLabel,
   fileReferenceToken,
   LOCAL_UNAVAILABLE,
@@ -307,6 +308,47 @@ test('CMD.1 RPC submit calls the scoped endpoint, preserves failures and leaves 
     }),
   ).rejects.toThrow('RPC failed')
   expect(calls.length).toBe(1)
+})
+
+test('CMD.2 composer offers Codex skills in Dev and converts only catalog matches', async () => {
+  const skill: CliCommand = {
+    name: 'Catalog-Probe',
+    description: 'Project skill',
+    cli: 'codex',
+    kind: 'prompt',
+    source: 'skill',
+  }
+  const compact: CliCommand = { ...skill, name: 'compact', kind: 'rpc', source: 'builtin' }
+  const claude: CliCommand = { ...skill, name: 'claude-skill', cli: 'claude' }
+  const commands = [skill, compact, claude]
+  expect(slashCommandGroups('/catalog', 'codex', commands)).toMatchObject([
+    { label: 'Codex', commands: [{ cmd: '/Catalog-Probe', label: 'Project skill' }] },
+  ])
+  expect(slashCommandGroups('/catalog', 'codex', commands, false, 'chat')).toEqual([])
+  expect(codexSkillPrompt('/catalog-probe  one\ttwo\nthree', commands)).toBe(
+    '$Catalog-Probe  one\ttwo\nthree',
+  )
+  expect(codexSkillPrompt('/Catalog-Probe', commands)).toBe('$Catalog-Probe')
+  for (const text of [
+    '/catalog',
+    '/Catalog-Probe-extra',
+    '/claude-skill args',
+    '/compact',
+    '/model',
+  ])
+    expect(codexSkillPrompt(text, commands)).toBeUndefined()
+  expect(await sendComposerCliCommand('/Catalog-Probe args', commands, undefined)).toBe(false)
+  expect(
+    await sendComposerCliCommand(
+      '/Catalog-Probe args',
+      commands,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      'chat',
+    ),
+  ).toBe(false)
 })
 
 test('CMD.1 loading keeps the CLI group visible while filtering a prefix', () => {

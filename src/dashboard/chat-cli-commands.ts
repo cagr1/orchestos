@@ -2,6 +2,7 @@ import { readFileSync } from 'node:fs'
 import { homedir } from 'node:os'
 import { basename, dirname, join, relative } from 'node:path'
 import { parseJson, parseYamlText, z } from '../boundary'
+import { listCodexChatSkills } from '../run/executors/codex.ts'
 import { findClaudeBinary } from '../run/executors/external.ts'
 import { safeChildEnv } from '../run/path-policy.ts'
 import { killTree, spawnTree } from '../run/process-tree.ts'
@@ -209,6 +210,7 @@ export const systemCliCommandProbe: CliCommandProbe = {
 export function createCliCommandReader(
   deps: {
     probe?: CliCommandProbe
+    listCodexSkills?: typeof listCodexChatSkills
     now?: () => number
     log?: (message: string) => void
     home?: string
@@ -219,7 +221,28 @@ export function createCliCommandReader(
   const log = deps.log ?? console.warn
   const cache = new Map<string, { expiresAt: number; commands: Promise<CliCommand[]> }>()
   return async (cli: string, cwd: string): Promise<CliCommand[]> => {
-    if (cli === 'codex') return CODEX_COMMANDS
+    if (cli === 'codex') {
+      try {
+        const skills = await (deps.listCodexSkills ?? listCodexChatSkills)(cwd)
+        // /review is reserved for its RPC integration.
+        const names = new Set([
+          ...ORCHESTOS_COMMAND_NAMES,
+          ...CODEX_COMMANDS.map((c) => c.name),
+          'review',
+        ])
+        const commands = [...CODEX_COMMANDS]
+        for (const { name, description, enabled } of skills) {
+          const key = name.toLowerCase()
+          if (!enabled || !/^[a-z0-9][a-z0-9_-]*$/i.test(name) || names.has(key)) continue
+          names.add(key)
+          commands.push({ name, description, cli: 'codex', kind: 'prompt', source: 'skill' })
+        }
+        return commands
+      } catch (error) {
+        log(`[cli-commands] ${error instanceof Error ? error.message : String(error)}`)
+        return CODEX_COMMANDS
+      }
+    }
     if (cli !== 'claude') return []
     const existing = cache.get(cwd)
     if (existing && existing.expiresAt > now()) return existing.commands

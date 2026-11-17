@@ -1,0 +1,36 @@
+[
+  {
+    "flujo": "dev-codex-skills",
+    "pass": true,
+    "steps": [
+      {
+        "nombre": "project catalog includes compact and the enabled fixture skill",
+        "ok": true,
+        "detalle": "[{\"name\":\"compact\",\"description\":\"Compact this conversation\",\"cli\":\"codex\",\"kind\":\"rpc\",\"source\":\"builtin\"},{\"name\":\"catalog-probe\",\"description\":\"A project skill for the Codex catalog gate\",\"cli\":\"codex\",\"kind\":\"prompt\",\"source\":\"skill\"}]"
+      },
+      {
+        "nombre": "Dev shows the skill in the CODEX group",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "selecting a skill inserts the slash command",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "ordinary POST uses the catalog name and preserves argument spacing",
+        "ok": true,
+        "detalle": "{\"message\":\"$catalog-probe  one two\",\"status\":422}"
+      },
+      {
+        "nombre": "a rejected send restores the original slash draft",
+        "ok": true,
+        "detalle": "ok"
+      }
+    ],
+    "notes": [],
+    "errores": [],
+    "capturas": []
+  }
+]

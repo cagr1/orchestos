@@ -188,6 +188,14 @@
       "closedDate": "2026-11-17"
     },
     {
+      "id": "CMD.2",
+      "sprint": "Etapa 2 — Uso real",
+      "block": null,
+      "title": "Mostrar e invocar las skills de Codex desde Dev",
+      "status": "done",
+      "closedDate": "2026-11-17"
+    },
+    {
       "id": "USO.19",
       "sprint": "Etapa 2 — Uso real",
       "block": null,

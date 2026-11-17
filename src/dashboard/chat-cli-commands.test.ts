@@ -61,6 +61,7 @@ test('discovery uses project cwd, coalesces requests, caches for five minutes pe
   const calls: unknown[] = []
   const read = createCliCommandReader({
     home: '/nonexistent-command-test-home',
+    listCodexSkills: async () => [],
     now: () => now,
     probe: {
       findBinary: () => '/fake/claude',
@@ -128,6 +129,15 @@ test('commands endpoint uses home for general chat and does not discover unsuppo
   )
   expect(response.status).toBe(200)
   expect(calls).toEqual([['claude', '/home/test']])
+  const generalCodex = await handleApiChatCliCommands(
+    new Request('http://localhost/api/chat/cli-commands?cli=codex'),
+    {
+      read: async () => {
+        throw new Error('must not discover Codex skills without a project')
+      },
+    },
+  )
+  expect(await generalCodex.json()).toMatchObject([{ name: 'compact', kind: 'rpc' }])
   const unsupported = await handleApiChatCliCommands(
     new Request('http://localhost/api/chat/cli-commands?cli=opencode'),
     {
@@ -137,6 +147,52 @@ test('commands endpoint uses home for general chat and does not discover unsuppo
     },
   )
   expect(await unsupported.json()).toEqual([])
+})
+
+test('CMD.2 Codex lists only enabled skills with valid names and keeps compact on failure', async () => {
+  const calls: string[] = []
+  const logs: string[] = []
+  const read = createCliCommandReader({
+    log: (message) => logs.push(message),
+    listCodexSkills: async (cwd) => {
+      calls.push(cwd)
+      if (cwd === '/unavailable') throw new Error('skills/list failed')
+      return [
+        { name: 'Catalog-Probe', description: 'Project skill', enabled: true },
+        ...[
+          'catalog-probe',
+          'model',
+          'Rename',
+          'usage',
+          'archive',
+          'Compact',
+          'review',
+          '',
+          '/nested',
+          'two words',
+          '_private',
+        ].map((name) => ({ name, description: 'Excluded', enabled: true })),
+        { name: 'disabled', description: 'Disabled', enabled: false },
+        { name: 'second', description: 'Second skill', enabled: true },
+      ]
+    },
+  })
+  const commands = await read('codex', '/project')
+  expect(commands).toMatchObject([
+    { name: 'compact', kind: 'rpc' },
+    {
+      name: 'Catalog-Probe',
+      description: 'Project skill',
+      cli: 'codex',
+      kind: 'prompt',
+      source: 'skill',
+    },
+    { name: 'second', description: 'Second skill' },
+  ])
+  expect(commands).toHaveLength(3)
+  expect(await read('codex', '/unavailable')).toEqual(commands.slice(0, 1))
+  expect(calls).toEqual(['/project', '/unavailable'])
+  expect(logs).toEqual(['[cli-commands] skills/list failed'])
 })
 
 test('Codex command endpoint returns 409 without persisted threadId; dispatches only supported commands', async () => {

@@ -116,7 +116,7 @@ import { untrustedContent } from '../../security/untrusted-content.ts'
 import { isReviewOnlyGate, listAllSkillCandidates } from '../../skills/catalog.ts'
 import { listSpecs } from '../../spec/store.ts'
 import { loadTasks } from '../../tasks/loader.ts'
-import { readCliCommands } from '../chat-cli-commands.ts'
+import { CODEX_COMMANDS, readCliCommands } from '../chat-cli-commands.ts'
 import { readCliModelCatalogsCached } from '../chat-cli-models.ts'
 import { appendLiveText, clearLiveText, getLiveText, replaceLiveText } from '../chat-live.ts'
 import {
@@ -423,8 +423,9 @@ export async function handleApiChatCliCommands(
   const url = new URL(req.url)
   const cli = url.searchParams.get('cli') ?? ''
   if (cli !== 'claude' && cli !== 'codex') return jsonResponse([])
+  const projectId = url.searchParams.get('projectId')
+  if (cli === 'codex' && !projectId) return jsonResponse(CODEX_COMMANDS)
   try {
-    const projectId = url.searchParams.get('projectId')
     const cwd = projectId ? dashboardProjectFromId(projectId).root : (deps.home ?? homedir())
     return jsonResponse(await (deps.read ?? readCliCommands)(cli, cwd))
   } catch (error) {

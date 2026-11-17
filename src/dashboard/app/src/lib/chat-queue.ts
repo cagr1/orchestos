@@ -4,6 +4,7 @@ export type QueuedMessage = {
   failed?: boolean
   id: string
   content: string
+  skillPrompt?: string
   attachments: ChatAttachment[]
   cli: string
   model: string

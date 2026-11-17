@@ -52,11 +52,7 @@ import { getCatalog } from '../../router/model-catalog.ts'
 import { knownCostWithCache } from '../../router/pricing.ts'
 import { safeChildEnv } from '../path-policy.ts'
 import { provisionCliConfigHome } from './cli-registry.ts'
-import {
-  CodexAppServer,
-  type CodexAppServerThreadStore,
-  getCodexAppServer,
-} from './codex-app-server.ts'
+import { CodexAppServer, getCodexAppServer } from './codex-app-server.ts'
 import { startSpawnTrace } from './spawn-trace.ts'
 import { codexEventToStep, type ExecutorStepEvent } from './step-event.ts'
 import type { ExecutorEngine, ExecutorOutcome } from './types.ts'
@@ -420,6 +416,25 @@ export function buildCodexChatEnv(configHomePath: string): Record<string, string
   return { ...safeChildEnv(), CODEX_HOME: configHomePath }
 }
 
+function codexChatAppServer(binary: string, projectRoot: string, isGeneralSession = false) {
+  const configHome = provisionCliConfigHome(
+    projectRoot,
+    'codex',
+    homedir(),
+    isGeneralSession ? generalChatConfigHome() : undefined,
+  )
+  return getCodexAppServer(configHome.path, binary, buildCodexChatEnv(configHome.path), {
+    get: getCodexChatThread,
+    set: setCodexChatThread,
+  })
+}
+
+export async function listCodexChatSkills(cwd: string) {
+  const binary = findCodexBinary()
+  if (!binary) throw new ExecutorCodexError(codexUnavailableMessage(process.env.PATH))
+  return codexChatAppServer(binary, cwd).listSkills(cwd)
+}
+
 async function runCodexChatExec(
   cwd: string,
   systemPrompt: string,
@@ -538,29 +553,14 @@ export async function runCodexChat(
       mcpOffer,
       signal,
     )
-  if (!findCodexBinary()) throw new ExecutorCodexError(codexUnavailableMessage(process.env.PATH))
+  const binary = findCodexBinary()
+  if (!binary) throw new ExecutorCodexError(codexUnavailableMessage(process.env.PATH))
   if (model && !orchestosModelToCodexModel(model))
     throw new ExecutorCodexError(codexCostUnmeasurableMessage(model))
 
   const chatSession = getChatSession(sessionId)
   const isGeneralSession = chatSession?.project_id === null
-  const generalConfigHome = generalChatConfigHome()
-  const configHome = provisionCliConfigHome(
-    projectRoot ?? cwd,
-    'codex',
-    homedir(),
-    isGeneralSession ? generalConfigHome : undefined,
-  )
-  const store: CodexAppServerThreadStore = {
-    get: (id) => getCodexChatThread(id),
-    set: (id, threadId, hash) => setCodexChatThread(id, threadId, hash),
-  }
-  const server = getCodexAppServer(
-    configHome.path,
-    findCodexBinary()!,
-    buildCodexChatEnv(configHome.path),
-    store,
-  )
+  const server = codexChatAppServer(binary, projectRoot ?? cwd, isGeneralSession)
   const notifyStep = (step: ExecutorStepEvent) => onChatStep?.(step)
   try {
     const result = await server.turn({
@@ -647,16 +647,7 @@ export async function runCodexChatCommand(sessionId: string, name: string): Prom
   const binary = findCodexBinary()
   if (!binary) throw new ExecutorCodexError(codexUnavailableMessage(process.env.PATH))
   const cwd = session.project_id ? dashboardProjectFromId(session.project_id).root : homedir()
-  const configHome = provisionCliConfigHome(
-    cwd,
-    'codex',
-    homedir(),
-    session.project_id === null ? generalChatConfigHome() : undefined,
-  )
-  const server = getCodexAppServer(configHome.path, binary, buildCodexChatEnv(configHome.path), {
-    get: getCodexChatThread,
-    set: setCodexChatThread,
-  })
+  const server = codexChatAppServer(binary, cwd, session.project_id === null)
   await server.cliCommand(sessionId, name)
 }
 

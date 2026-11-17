@@ -1500,6 +1500,42 @@ for (const line of ['null', '[]', '5', '"text"']) {
   })
 }
 
+test('CMD.2 skills/list requests the project cwd and validates the JSON-RPC result', async () => {
+  const calls: unknown[] = []
+  const skill = { name: 'probe', description: 'Project skill', enabled: true }
+  let result: unknown = {
+    data: [
+      { cwd: '/other', skills: [{ ...skill, name: 'other' }], errors: [] },
+      {
+        cwd: '/project',
+        skills: [{ ...skill, path: '/project/SKILL.md', scope: 'repo' }],
+        errors: [],
+      },
+    ],
+  }
+  const server = new CodexAppServer({
+    binary: 'fake',
+    env: {},
+    store: store().api,
+    spawnProcess: () =>
+      fakeProcess((request, stdout) => {
+        calls.push([request.method, request.params])
+        reply(stdout, request, request.method === 'initialize' ? {} : result)
+      }),
+  })
+  try {
+    expect(await server.listSkills('/project')).toEqual([skill])
+    expect(calls).toEqual([
+      ['initialize', expect.any(Object)],
+      ['skills/list', { cwds: ['/project'] }],
+    ])
+    result = { data: [{ cwd: '/project', skills: [{ ...skill, enabled: 'true' }] }] }
+    await expect(server.listSkills('/project')).rejects.toThrow('Invalid skills/list response')
+  } finally {
+    server.kill()
+  }
+})
+
 test('CMD.1 compact maps persisted thread to RPC, resumes after restart and never starts a text turn', async () => {
   const saved = store()
   saved.api.set('session', 'stored-thread', 'context')

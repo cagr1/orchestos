@@ -237,13 +237,30 @@ export function slashCommandGroups(
   ]
     .map((group) => ({
       ...group,
-      commands: group.commands.filter((command) => command.cmd.startsWith(text)),
+      commands: group.commands.filter((command) =>
+        cli === 'codex' && command.source === 'skill'
+          ? command.cmd.toLowerCase().startsWith(text.toLowerCase())
+          : command.cmd.startsWith(text),
+      ),
     }))
     .filter(
       (group) =>
         (mode === 'dev' || group.label === 'OrchestOS') &&
         (group.commands.length > 0 || group.loading),
     )
+}
+
+export function codexSkillPrompt(content: string, commands: CliCommand[]): string | undefined {
+  const name = content.match(/^\/([^\s]+)/)?.[1]
+  if (!name || SLASH_COMMANDS.some((own) => own.cmd === `/${name.toLowerCase()}`)) return
+  const skill = commands.find(
+    (command) =>
+      command.cli === 'codex' &&
+      command.kind === 'prompt' &&
+      command.source === 'skill' &&
+      command.name.toLowerCase() === name.toLowerCase(),
+  )
+  if (skill) return `$${skill.name}${content.slice(name.length + 1)}`
 }
 
 export async function sendComposerCliCommand(
@@ -262,6 +279,7 @@ export async function sendComposerCliCommand(
   )
   if (!content.startsWith('/') || !command) return false
   if (mode === 'chat') {
+    if (command.cli === 'codex' && command.source === 'skill') return false
     onComplete?.(
       language === 'es'
         ? 'Los comandos del CLI se usan en Dev'
@@ -739,6 +757,7 @@ export const AgentComposer: React.FC<AgentComposerProps> = ({
       }
     }
 
+    let skillPrompt: string | undefined
     if (
       !isShellMode &&
       content.startsWith('/') &&
@@ -751,7 +770,10 @@ export const AgentComposer: React.FC<AgentComposerProps> = ({
         const commands =
           cliCommands.cli === activeCli && cliCommands.projectId === projectId
             ? activeCommands
-            : await getCliCommands(activeCli, projectId)
+            : await getCliCommands(activeCli, projectId).catch((error) => {
+                if (activeCli !== 'codex') throw error
+                return []
+              })
         if (
           await sendComposerCliCommand(
             content,
@@ -768,6 +790,9 @@ export const AgentComposer: React.FC<AgentComposerProps> = ({
           setInputText('')
           setShowSlashMenu(false)
           return
+        }
+        if (activeCli === 'codex' && mode === 'dev') {
+          skillPrompt = codexSkillPrompt(content, commands)
         }
       } catch (error) {
         setAttachError(error instanceof Error ? error.message : String(error))
@@ -786,7 +811,8 @@ export const AgentComposer: React.FC<AgentComposerProps> = ({
 
     const message: QueuedMessage = {
       id: crypto.randomUUID(),
-      content,
+      content: skillPrompt === undefined ? content : inputText,
+      ...(skillPrompt === undefined ? {} : { skillPrompt }),
       attachments: previousAttachments,
       cli: activeCli,
       model: effectiveSelectedModel,
@@ -808,7 +834,7 @@ export const AgentComposer: React.FC<AgentComposerProps> = ({
     setSending(true)
     const accepted = await sendComposerDraft(() =>
       onSendMessage(
-        message.content,
+        message.skillPrompt ?? message.content,
         message.attachments.length ? message.attachments : undefined,
         message.cli,
         message.model,
