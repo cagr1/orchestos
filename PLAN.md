@@ -242,6 +242,11 @@ esta etapa: `docs/done/bloque-AUD.md` (AUD.16, AUD.17), `docs/done/bloque-SES.md
   Gate en vivo: navegador del panel, `docs/done/evidence/CHK.2-live.json` (sin aviso al arrancar; con `HEAD` movido
   por un commit vacío temporal, aviso a los 36 s; descartado no vuelve tras el sondeo). Revisión: claude-opus-5-5.
   Ejecutado por: gpt-6.1-sol (criterio) · Spec: docs/specs/CHK.2.md
+- [ ] **CMD.1 — Los comandos propios de cada CLI se usan desde el composer.** (Carlos, 2026-11-17) Hoy el menú `/`
+  del composer solo tiene 4 comandos de OrchestOS (`AgentComposer.tsx:181`) y cualquier otro `/x` va al CLI como
+  texto. Paso 1: sonda real con Claude (`claude -p`), Codex (`app-server`) y OpenCode (servidor HTTP) de qué comandos
+  se pueden listar y ejecutar en el modo en que OrchestOS los usa. Paso 2: decisión y spec (capa común + adaptador
+  por CLI, `feedback-deteccion-generica-no-por-cli`).
 - [ ] **LRN.2 — Una lección probada se gradúa a check, no solo a `AGENTS.md`.** (Carlos, 2026-11-17; mismo principio
   que CHK.1, aplicado al producto) LRN.1 gradúa lecciones a texto de `AGENTS.md`
   (`docs/specs/LRN-1-opinion-fable.md:79`). Agregar un segundo destino: si la firma del fallo es detectable en el diff

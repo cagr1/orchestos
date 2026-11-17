@@ -180,6 +180,14 @@
       "closedDate": "2026-11-17"
     },
     {
+      "id": "CMD.1",
+      "sprint": "Etapa 2 — Uso real",
+      "block": null,
+      "title": "Los comandos propios de cada CLI se usan desde el composer",
+      "status": "open",
+      "closedDate": null
+    },
+    {
       "id": "LRN.2",
       "sprint": "Etapa 2 — Uso real",
       "block": null,
