@@ -160,6 +160,22 @@
       "sprint": "Etapa 2 — Uso real",
       "block": null,
       "title": "Las correcciones repetidas pasan a checks, no a texto",
+      "status": "done",
+      "closedDate": "2026-11-17"
+    },
+    {
+      "id": "CHK.1c",
+      "sprint": "Etapa 2 — Uso real",
+      "block": null,
+      "title": "Lote 3: sin `<select>` nativo para modelos y `maxOutputTokensFor` sin llamadores",
+      "status": "done",
+      "closedDate": "2026-11-17"
+    },
+    {
+      "id": "CHK.2",
+      "sprint": "Etapa 2 — Uso real",
+      "block": null,
+      "title": "El dashboard muestra con qué commit arrancó y avisa si quedó viejo",
       "status": "open",
       "closedDate": null
     },

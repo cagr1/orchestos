@@ -2790,40 +2790,6 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
                           }
                         >
                           <div className="flex items-center gap-4">
-                            {routingRoles.executor?.agent === cli.id && (
-                              <label className="flex flex-col gap-1 text-xs text-app-muted">
-                                {language === 'es'
-                                  ? 'Modelo por defecto (Ejecutor)'
-                                  : 'Default model (Executor)'}
-                                <select
-                                  aria-label={
-                                    language === 'es'
-                                      ? 'Modelo por defecto (Ejecutor)'
-                                      : 'Default model (Executor)'
-                                  }
-                                  className="rounded-control border border-app bg-app-bg px-2 py-1 text-app"
-                                  value={routingRoles.executor.model}
-                                  disabled={settingsLoading || savingChanges}
-                                  onChange={(event) => {
-                                    const model = event.target.value
-                                    setRoutingRoles((current) => ({
-                                      ...current,
-                                      executor: current.executor
-                                        ? { agent: current.executor.agent, model }
-                                        : null,
-                                    }))
-                                  }}
-                                >
-                                  {[...new Set([routingRoles.executor.model, ...cli.models])].map(
-                                    (model) => (
-                                      <option key={model} value={model}>
-                                        {model}
-                                      </option>
-                                    ),
-                                  )}
-                                </select>
-                              </label>
-                            )}
                             <label className="flex items-center gap-2 text-xs text-app-muted">
                               {language === 'es' ? 'Mostrar en el picker' : 'Show in picker'}
                               <input

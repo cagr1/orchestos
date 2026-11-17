@@ -199,7 +199,7 @@ esta etapa: `docs/done/bloque-AUD.md` (AUD.16, AUD.17), `docs/done/bloque-SES.md
   p. ej. el CLI falso con `setInterval` de `generic-cli.test.ts:209`, que solo muere si el kill bajo mutación funciona.
   Spec: `docs/specs/MUT-2.md` — (A) muestreo de memoria y procesos en el log del job, (B) el fixture mata su propio
   CLI falso. El aislamiento por grupo de procesos en `mutation-test-shard.ts` espera la evidencia de (A).
-- [ ] **CHK.1 — Las correcciones repetidas pasan a checks, no a texto.** (Carlos, 2026-11-17; principio del equipo de
+- [x] **CHK.1 — Las correcciones repetidas pasan a checks, no a texto.** (cerrado 2026-11-17) (Carlos, 2026-11-17; principio del equipo de
   Grok Bot: cada error de un agente se vuelve regla de lint o test en vez de otra instrucción en `AGENTS.md`). Hoy hay
   ~50 memorias `feedback-*` que el agente debe leer y obedecer, sin nada que las haga cumplir; los checks que ya lo
   hacen son `check-test-assertions`, `check-ui-text`, `check-scope-lock`, `lint-budget`, `check-secrets`. Pasos:
@@ -222,6 +222,22 @@ esta etapa: `docs/done/bloque-AUD.md` (AUD.16, AUD.17), `docs/done/bloque-SES.md
   del repo. Sigue: lote 3 con (17) y las parciales. El live-gate ya no exige navegador si el diff de
   `src/dashboard`/`src/config` solo cambia comentarios (`onlyCommentChanges`, `scripts/agent-governance.ts`).
   Ejecutado por: gpt-6-luna (mecanico) y gpt-6.1-sol (criterio, live-gate) · qa: gpt-6.1-sol, sin defectos
+  Cierre: 7 reglas del inventario pasaron a check (3, 11, 5, 1, 15, 13, 4); (14) pasa a CHK.2; (2), (6), (8), (9),
+  (10), (17) y la mitad IDEAS de (11) quedan como texto (fuera del repo, parciales con tests propios o no mecánicas).
+  Sin delegación: cierre de padre; los lotes llevan su propio "Ejecutado por" arriba y en CHK.1c.
+- [x] **CHK.1c — Lote 3: sin `<select>` nativo para modelos y `maxOutputTokensFor` sin llamadores.** (cerrado 2026-11-17)
+  Regla (13) se violaba: `OrchestSettingsView.tsx` tenía un `<select>` nativo "Default model (Executor)" en la
+  tarjeta del CLI, duplicado del selector con búsqueda de «Model routing» (mismo `routingRoles.executor.model`);
+  borrado. `src/dashboard/__tests__/no-native-model-select.test.ts` falla ante un `<select>` de modelos en la app;
+  `src/__tests__/max-output-tokens-callers.test.ts` falla ante cualquier referencia a `maxOutputTokensFor` en
+  producción, alias incluidos (hallazgo de qa). Contrapruebas A y B exit 1.
+  Gate en vivo: navegador del panel, `docs/done/evidence/CHK.1c-live.json` (dashboard 4299 tras `build:app`):
+  sin `<select>` en Providers, "Show in picker" intacto, el modelo del Ejecutor se elige con "Filter models…".
+  Ejecutado por: gpt-6-luna (mecanico) · Spec: docs/specs/CHK.1c.md
+- [ ] **CHK.2 — El dashboard muestra con qué commit arrancó y avisa si quedó viejo.** (regla (14) del inventario de
+  CHK.1; memoria `feedback-reiniciar-dashboard-tras-cambio`: Bun no recarga en caliente y se probó más de una vez
+  contra un dashboard viejo) Hoy no expone hora de inicio ni commit. Hacer: la API del dashboard devuelve hora de
+  inicio y SHA de arranque; la UI avisa cuando `HEAD` del repo ya no es ese SHA. Spec antes de código.
 - [ ] **LRN.2 — Una lección probada se gradúa a check, no solo a `AGENTS.md`.** (Carlos, 2026-11-17; mismo principio
   que CHK.1, aplicado al producto) LRN.1 gradúa lecciones a texto de `AGENTS.md`
   (`docs/specs/LRN-1-opinion-fable.md:79`). Agregar un segundo destino: si la firma del fallo es detectable en el diff

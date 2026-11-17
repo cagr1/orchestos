@@ -1,0 +1,21 @@
+{
+  "item": "CHK.1c",
+  "date": "2026-11-17",
+  "machine": "Mac, navegador del panel de Claude Code, dashboard 127.0.0.1:4299 tras bun run build:app",
+  "before": {
+    "settings_providers_selects": ["Default model (Executor)"],
+    "note": "build anterior: <select> nativo de modelo en la tarjeta del CLI ejecutor"
+  },
+  "after": {
+    "settings_providers_selects": [],
+    "default_model_text_present": false,
+    "show_in_picker_labels": 3,
+    "model_routing_executor_buttons": ["Executor agent", "Executor model", "Executor effort"],
+    "executor_model_picker": "abre el selector con búsqueda 'Filter models...' y la lista GPT-6.1-Sol, GPT-6-Astra, GPT-6.1-Terra, GPT-6-Sol, GPT-6-Luna, GPT-5.5-Sol, GPT-5.6-Sol, GPT-5.6-Terra, GPT-5.6-Luna"
+  },
+  "tests": {
+    "no-native-model-select.test.ts + max-output-tokens-callers.test.ts": "4 pass / 0 fail",
+    "contraprueba_A": "reinsertar el bloque desde HEAD -> (fail) keeps native model selects out of the dashboard app, exit 1",
+    "contraprueba_B": "maxOutputTokensFor('x') en src/cli.ts -> (fail) keeps maxOutputTokensFor out of production call sites, exit 1"
+  }
+}
