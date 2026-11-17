@@ -277,6 +277,13 @@ esta etapa: `docs/done/bloque-AUD.md` (AUD.16, AUD.17), `docs/done/bloque-SES.md
   Gate en vivo: Playwright, `docs/done/evidence/CMD.2-live.json` (5/5, app-server real, envío interceptado antes de iniciar el turno).
   Typecheck, lint y 73 pruebas acotadas pasaron.
   Ejecutado por: gpt-6.1-sol (criterio) · Spec: docs/specs/CMD.2.md
+- [ ] **CMD.3 — `/cut` como comando propio de OrchestOS.** (Carlos, 2026-11-17: "agregar este comando a los
+  comandos de OrchestOS"; desarrollar en macOS, probar luego en Windows) Hoy `/cut` es un comando de Claude Code del
+  método (`~/.agent-method/commands/cut.md`): cierra el ítem en curso, reescribe `NEXT.md`, commitea por rutas,
+  sube y suelta el candado. En OrchestOS debe estar en el menú `/` del composer para cualquier CLI (no solo Claude),
+  como comando del producto, no del CLI. Antes del código: decidir si lo ejecuta el agente de la sesión con un prompt
+  fijo (genérico para cualquier LLM) o el servidor de forma mecánica (commit/push/handoff sin tokens), y qué hace con
+  `NEXT.md` en proyectos que no lo usan. Plan corto y GO de Carlos; probar en Windows dentro de la etapa 3.
 - [x] **USO.19 — En Chat, el primer mensaje de un chat nuevo se pierde.** (encontrado al verificar CMD.1, 2026-11-17)
   "New chat" → escribir → Enter: la sesión se crea con el título del mensaje pero con 0 mensajes y la vista queda
   vacía; en un chat que ya existe el envío funciona. Se reprodujo con texto normal y con el código de `master` sin

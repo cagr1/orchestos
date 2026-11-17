@@ -196,6 +196,14 @@
       "closedDate": "2026-11-17"
     },
     {
+      "id": "CMD.3",
+      "sprint": "Etapa 2 — Uso real",
+      "block": null,
+      "title": "`/cut` como comando propio de OrchestOS",
+      "status": "open",
+      "closedDate": null
+    },
+    {
       "id": "USO.19",
       "sprint": "Etapa 2 — Uso real",
       "block": null,

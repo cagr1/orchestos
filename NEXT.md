@@ -1,4 +1,4 @@
-# NEXT — handoff 2026-11-17 tarde (MUT.2 espera la nocturna; USO.19 primero)
+# NEXT — handoff 2026-11-17 noche (Carlos pasa a Windows: demo AgroTienda = WIN.1 real)
 
 Un solo presente: orden y trampas vivas del lote. Lo cerrado vive en `docs/done/bloque-*.md` y git; las reglas, en
 `AGENTS.md`. Versión anterior completa: `docs/done/poda-instrucciones-2026-11-03.md` (histórico).
@@ -6,38 +6,45 @@ Arranque: `bun run agent:preflight -- --item <ID> --agent claude`. Lista viva: `
 
 ## Sesión 2026-11-17 — empezar por aquí
 
-Cerrado/subido hoy: CHK.1 lotes 1–3 (`3527c3ca`, `5495b957`, `d39a62b1`; 7 reglas a check), CHK.2 `8f845bfa`
-(banner si `HEAD` cambió desde que arrancó el dashboard), CMD.1 `035b91c7` (comandos propios de Claude y Codex en
-el menú `/`, solo Dev, tooltip con descripción) y CMD.2 `910db5b1` (skills de Codex en Dev; lo hizo Sol en
-paralelo, revisado por el cerebro). Vault: `7b8e5fa` el candado de escritura se suelta al terminar el turno si el
-árbol quedó limpio y otra sesión lo toma si el dueño lleva 3 min quieto sin cambios.
+Cerrado/subido hoy: CHK.1 lotes 1–3 (`3527c3ca`, `5495b957`, `d39a62b1`), CHK.2 `8f845bfa`, CMD.1 `035b91c7`,
+CMD.2 `910db5b1`, **USO.19 `da045cb3`** (el texto del diálogo New chat en Chat es el primer mensaje; va a la cola
+del composer del hilo nuevo, que lo envía con su CLI/modelo cuando `activeCli` coincide con `lockedCli ?? defaultCli`)
+y **USO.20 F1 `a9a283d4`** (pestaña Preview en Dev: iframe con URL por proyecto, Reload, Open in browser; botón
+junto a Terminal; hecho por Sol, revisado por el cerebro). Abiertos hoy: USO.21 (F2: el agente ve la página con
+Playwright en el MCP de OrchestOS) y CMD.3 (`/cut` como comando de OrchestOS).
+
+Rumbo de Carlos: se va a Windows a construir la demo de e-commerce agropecuario (AgroTienda) con OrchestOS. Esa
+demo es el uso real y la prueba de humo WIN.1 a la vez: cada fallo se guarda con su salida y se abre como ítem WIN;
+lo que impide arrancar va primero. Esperado: la terminal integrada no abre (`dashboard/terminal.ts:36-39` usa
+`$SHELL`/`/bin/zsh`): el dev server en una consola aparte y su URL en Preview. Promocionar OrchestOS solo tras ~1
+semana de uso sin USO graves en flujos básicos, nocturnas verdes y "Windows experimental" declarado.
 
 Orden:
-1. **USO.19 — en Chat, el primer mensaje de un chat nuevo se pierde** (`PLAN.md` § USO.19). "New chat" → escribir
-   → Enter: la sesión se crea con el título pero 0 mensajes. Previo a CMD.1 (reproducido con `git stash`). Delegar
-   el diagnóstico y el arreglo a `criterio` (Sol) con test rojo y gate en vivo; crear chats de prueba y borrarlos
-   con `DELETE /api/chat/sessions/<id>`.
-2. **MUT.1 y MUT.2 — leer la nocturna** (`gh run list --workflow "Mutation Shards"`; la del 17-11, run
-   44075536272, seguía corriendo a las 18 h). Luego `gh run view <id> --log | grep '\[res\]'` por shard. Procesos o
-   RSS que crecen → aislar cada `bun test` y matar el árbol al salir en `scripts/mutation-test-shard.ts` (OpenCode y
-   Codex crean grupos propios con `detached: true`, `src/run/process-tree.ts:18,26`). Todo plano → otra causa.
-   Cerrar ambos con la nocturna verde. Spec: `docs/specs/MUT-2.md`.
-3. **Pendientes chicos**: bajar `lint/style/noNonNullAssertion` de 87 a 86 en `scripts/lint-budget.json` (sobró
-   uno tras CMD.2; el hook impide al cerebro tocar `scripts/`, va a `mecanico`). Tooltip del menú `/` claro frente a
-   la referencia oscura de Carlos: preguntar si lo quiere oscuro. Codex `/review` fuera de CMD.1 porque sus eventos
-   no llegan al hilo: ítem nuevo si Carlos lo pide.
-4. **Antes de Tauri** (opinión del cerebro, sin abrir en `PLAN.md`): cache-busting de `main.js?v=<hash>` y ui-gates
-   también en WebKit con Playwright; decide Tauri vs Electron con números.
-5. Lo de abajo (uso real y Windows), en su orden. LRN.1 F2 espera datos de uso; LRN.2 va después de F2.
+1. **Windows (en la máquina de Carlos)**: WIN.1 con la demo; luego WIN.18–WIN.20 y lo que salga.
+2. **MUT.1 y MUT.2 — leer la nocturna** desde cualquier máquina (`gh run list --workflow "Mutation Shards"`; la del
+   17-11, run 44075536272, seguía corriendo a las 22 h). `gh run view <id> --log | grep '\[res\]'` por shard.
+   Procesos o RSS que crecen → aislar cada `bun test` y matar el árbol al salir en `scripts/mutation-test-shard.ts`
+   (`src/run/process-tree.ts:18,26`). Todo plano → otra causa. Cerrar con la nocturna verde. Spec: `docs/specs/MUT-2.md`.
+3. **ui-gates nocturnos (solo Mac)**: la corrida previa es inválida por sueño del Mac; el Mac debe quedar enchufado
+   y despierto esa noche. Leer `~/.orchestos/nightly/ui-gates-latest.json`.
+4. **En macOS al volver**: CMD.3 (`/cut` en OrchestOS, plan y GO antes de código; luego probar en Windows) y
+   USO.21 tras usar Preview en la demo (decidir con Tauri vs Electron: Tauri usa WKWebView en macOS, no controlable
+   por Playwright; Electron sí permite que el agente vea la vista de Carlos).
+5. **Pendientes chicos**: `noNonNullAssertion` 87→86 en `scripts/lint-budget.json` (va a `mecanico`); tooltip del
+   menú `/` oscuro o claro (pregunta a Carlos); Codex `/review` solo si Carlos lo pide.
+6. **Antes de Tauri**: cache-busting de `main.js?v=<hash>` y ui-gates en WebKit; Tauri vs Electron con números.
+   Medido hoy: binario `bun build --compile src/cli.ts` 65 MB (60 de Bun), UI 7,6 MB sin sourcemap → Tauri ~80 MB,
+   Electron ~230–280 MB (estimado). MonoCode (42 MB) es Tauri 2 + backend Rust + React 19/Tailwind 4.
+7. Lo de abajo, en su orden. LRN.1 F2 espera datos de uso; LRN.2 va después de F2.
 
-Trampas nuevas: `delegate` en modo write exige un ítem ABIERTO en `PLAN.md` (preflight); para corregir un ítem ya
-marcado `[x]`, reabrirlo antes y cerrarlo después. Si el spec dice "los cambios sin commitear son de este ítem", el
-ejecutor sigue; si no, se detiene por solapamiento. El wrapper prohíbe al ejecutor invocar `claude`/`codex`: si son
-el objeto de una sonda, autorizarlo en el spec. Cerrar un ítem tras `plan:reconcile` da "Could not prove a closing
-commit SHA": reabrir, reconciliar, cerrar, reconciliar. La línea "Gate en vivo:" debe citar el archivo de evidencia
-en la MISMA línea. Texto visible nuevo en la UI exige "Texto visible:" en el ítem. `delegate qa` recibe un spec;
-`leer/analizar` devuelven el transcript entero (la respuesta va tras la última línea `codex`). El hook "cerebro no
-escribe código" bloquea también `scripts/` y comandos cuyo texto mencione `src/`.
+Trampas nuevas: `delegate` en modo write exige un ítem ABIERTO en `PLAN.md`. Cerrar un ítem: "Could not prove a
+closing commit SHA" → reabrir, reconciliar, cerrar, reconciliar, commitear. El gate de UI exige `[x]` y la línea
+"Gate en vivo:" (con "navegador"/"browser" y el archivo de evidencia) en el MISMO commit que el código, y
+"Texto visible:" como línea AÑADIDA en ese commit (no vale la de un commit previo). Un spec commiteado se borra en el
+commit de cierre; uno nunca commiteado se borra del disco y el ítem lleva "Sin delegación: <motivo>". Si Codex se
+queda sin cupo, la revisión espera; excepción del 2026-11-17 (solo esa vez, pedida por Carlos): subagente Sonnet.
+El hook "cerebro no escribe código" bloquea Bash que mencione `src/`, no la herramienta Edit. `leer/analizar`
+devuelven el transcript entero (la respuesta va tras la última línea `codex`).
 
 ## Orden
 
