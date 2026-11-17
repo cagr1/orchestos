@@ -204,6 +204,14 @@
       "closedDate": null
     },
     {
+      "id": "USO.20",
+      "sprint": "Etapa 2 — Uso real",
+      "block": null,
+      "title": "Dev no tiene navegador integrado para ver lo que construye el agente",
+      "status": "open",
+      "closedDate": null
+    },
+    {
       "id": "LRN.2",
       "sprint": "Etapa 2 — Uso real",
       "block": null,

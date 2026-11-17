@@ -292,6 +292,13 @@ esta etapa: `docs/done/bloque-AUD.md` (AUD.16, AUD.17), `docs/done/bloque-SES.md
   Texto visible: "First message (optional)", "Ask anything" (etiqueta y placeholder del campo de New chat en Chat)
   Ejecutado por: claude-opus-5-5
   Sin delegación: fix chico con el contexto ya leído; el spec solo sirvió para la revisión qa.
+- [ ] **USO.20 — Dev no tiene navegador integrado para ver lo que construye el agente.** (Carlos, 2026-11-17, al
+  empezar un e-commerce de demo para un cliente) Hoy no existe nada parecido: no hay iframe ni panel de vista previa
+  en `src/dashboard/app/src/components/dev/` y el ítem no está en `PLAN.md` ni en `IDEAS.md`. Orca y los ADE de
+  referencia lo traen. F1: panel "Preview" en Dev con barra de URL, recargar y abrir fuera, apuntando a
+  `localhost:<puerto>` del proyecto (iframe; detectar el puerto del dev server desde la terminal o pedirlo). F2: que
+  el agente lo lea (captura, consola, errores) con Playwright, para verificar sin pedirle nada a Carlos. Plan corto y
+  GO de Carlos antes de código; F2 solo tras usar F1.
 - [ ] **LRN.2 — Una lección probada se gradúa a check, no solo a `AGENTS.md`.** (Carlos, 2026-11-17; mismo principio
   que CHK.1, aplicado al producto) LRN.1 gradúa lecciones a texto de `AGENTS.md`
   (`docs/specs/LRN-1-opinion-fable.md:79`). Agregar un segundo destino: si la firma del fallo es detectable en el diff
