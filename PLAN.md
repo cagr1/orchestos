@@ -247,6 +247,19 @@ esta etapa: `docs/done/bloque-AUD.md` (AUD.16, AUD.17), `docs/done/bloque-SES.md
   texto. Paso 1: sonda real con Claude (`claude -p`), Codex (`app-server`) y OpenCode (servidor HTTP) de qué comandos
   se pueden listar y ejecutar en el modo en que OrchestOS los usa. Paso 2: decisión y spec (capa común + adaptador
   por CLI, `feedback-deteccion-generica-no-por-cli`).
+  2026-11-17, paso 1 hecho (sonda de gpt-6.1-sol, `docs/done/evidence/CMD.1-probe.md`; el cerebro verificó con login
+  real que `claude -p "/probe"` ejecuta un comando de `.claude/commands` → `PROBE-OK`, US$ 0,002 con Haiku):
+  - Claude: `stream-json` publica en `system/init` `slash_commands`, `skills` y `terminal_slash_commands`; el
+    `/nombre` va tal cual en el prompt. `/context` corre local sin costo.
+  - Codex `app-server`: no hay catálogo de comandos ni `prompts/list`; `/review` como texto no es el contrato. Hay
+    RPC `thread/compact/start` y `review/start`.
+  - OpenCode: `GET /api/command` lista (`init`, `review`, `goal`…) y `POST /api/session/{id}/command` ejecuta;
+    `POST /api/session/{id}/compact` compacta.
+  Decisión (cerebro): capa común `CliCommand {name, description, cli, kind: prompt|rpc}` + adaptador por CLI;
+  el menú `/` muestra los de OrchestOS y los del CLI activo, agrupados. Claude: descubre de `system/init` y manda
+  el texto. Codex: solo `/compact` y `/review` mapeados a su RPC; los prompts guardados quedan fuera hasta tener
+  contrato. OpenCode: descubre y ejecuta por su API. Los de terminal (`terminal_slash_commands`, `/login`) no se
+  muestran; si un nombre choca con uno de OrchestOS (`/model`, `/usage`, `/rename`, `/archive`), gana OrchestOS.
 - [ ] **LRN.2 — Una lección probada se gradúa a check, no solo a `AGENTS.md`.** (Carlos, 2026-11-17; mismo principio
   que CHK.1, aplicado al producto) LRN.1 gradúa lecciones a texto de `AGENTS.md`
   (`docs/specs/LRN-1-opinion-fable.md:79`). Agregar un segundo destino: si la firma del fallo es detectable en el diff
