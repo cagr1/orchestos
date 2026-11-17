@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, expect, it, spyOn } from 'bun:test'
 import { execFileSync } from 'node:child_process'
-import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { stringify } from 'yaml'
@@ -36,7 +36,12 @@ function context(model = 'default'): RunContext {
 }
 function script(source: string): string {
   const path = join(root, '.orchestos/fake-cli')
-  writeFileSync(path, `#!${process.execPath}\n${source}`, { mode: 0o755 })
+  const pidFile = join(root, '.orchestos/fake-cli.pids')
+  writeFileSync(
+    path,
+    `#!${process.execPath}\nimport { appendFileSync } from 'node:fs'\nappendFileSync(${JSON.stringify(pidFile)}, process.pid + '\\n')\n${source}`,
+    { mode: 0o755 },
+  )
   return path
 }
 beforeEach(() => {
@@ -63,6 +68,16 @@ beforeEach(() => {
   cli = { id: 'fixture-cli', label: 'Fixture CLI', command: script('process.exit(0)'), args: [] }
 })
 afterEach(() => {
+  const pidFile = join(root, '.orchestos/fake-cli.pids')
+  if (existsSync(pidFile)) {
+    for (const pid of readFileSync(pidFile, 'utf8').split('\n').filter(Boolean).map(Number)) {
+      try {
+        process.kill(pid, 'SIGKILL')
+      } catch (error) {
+        if ((error as NodeJS.ErrnoException).code !== 'ESRCH') throw error
+      }
+    }
+  }
   if (previousHome === undefined) delete process.env.ORCHESTOS_HOME
   else process.env.ORCHESTOS_HOME = previousHome
   rmSync(root, { recursive: true, force: true })

@@ -193,6 +193,12 @@ esta etapa: `docs/done/bloque-AUD.md` (AUD.16, AUD.17), `docs/done/bloque-SES.md
   (159), e 883-fin (201). Los cortes en 492 y 882 no los cruza ningún mutante ejecutable (en 882 solo 2
   `CompileError`). Test nuevo: los rangos cubren el archivo sin huecos ni solapes (verificado que falla con un hueco).
   Falta: la nocturna del 2026-11-16 en verde con todos los shards bajo ~1h30.
+- [ ] **MUT.2 — Shards de mutación: el runner se queda sin recursos.** (2026-11-17) La nocturna del 11-16 tuvo 3 de
+  15 shards rojos (`executors-routing-c`, `executors-engines-b`, `executors-codex-server-c`) por "runner lost
+  communication", no por timeout. Hipótesis de `analizar` (Sol), sin confirmar: procesos que sobreviven a un mutante,
+  p. ej. el CLI falso con `setInterval` de `generic-cli.test.ts:209`, que solo muere si el kill bajo mutación funciona.
+  Spec: `docs/specs/MUT-2.md` — (A) muestreo de memoria y procesos en el log del job, (B) el fixture mata su propio
+  CLI falso. El aislamiento por grupo de procesos en `mutation-test-shard.ts` espera la evidencia de (A).
 - [ ] **CHK.1 — Las correcciones repetidas pasan a checks, no a texto.** (Carlos, 2026-11-17; principio del equipo de
   Grok Bot: cada error de un agente se vuelve regla de lint o test en vez de otra instrucción en `AGENTS.md`). Hoy hay
   ~50 memorias `feedback-*` que el agente debe leer y obedecer, sin nada que las haga cumplir; los checks que ya lo

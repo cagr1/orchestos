@@ -53,7 +53,35 @@ jobs:
       - uses: oven-sh/setup-bun@v2
       - run: bun install --frozen-lockfile
       - run: bun run typecheck
-      - run: bun run ${{ matrix.command }}
+      - name: Mutation run (with resource sampler)
+        shell: bash
+        run: |
+          (
+            # GitHub runs bash with -e -o pipefail; SIGPIPE from `ps | head` must not end the sampler.
+            set +e +o pipefail
+            while true; do
+              sleep 60
+              mem=$(free -m | awk '/^Mem:/ {print $0}')
+              memory_pressure=$(awk '/^some / {print $0}' /proc/pressure/memory)
+              cpu_pressure=$(awk '/^some / {print $0}' /proc/pressure/cpu)
+              process_count=$(ps -e --no-headers | wc -l)
+              printf '[res] %s | %s | memory %s | cpu %s | processes %s\n' \
+                "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "$mem" "$memory_pressure" "$cpu_pressure" "$process_count"
+              ps -eo pid,ppid,pgid,etimes,rss,pcpu,args --sort=-rss | head -6 | \
+                cut -c1-120 | sed 's/^/[res] /'
+            done
+          ) &
+          sampler_pid=$!
+          bun run ${{ matrix.command }} &
+          command_pid=$!
+          if wait "$command_pid"; then
+            command_status=0
+          else
+            command_status=$?
+          fi
+          kill "$sampler_pid" 2>/dev/null || true
+          wait "$sampler_pid" 2>/dev/null || true
+          exit "$command_status"
       - name: Upload mutation report
         if: always()
         uses: actions/upload-artifact@v4
