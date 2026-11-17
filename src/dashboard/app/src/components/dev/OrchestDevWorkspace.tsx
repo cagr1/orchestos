@@ -34,6 +34,8 @@ import { assistantCopyTarget } from './copy-target'
 import { resolveNewSessionAgent } from './new-session-agent'
 
 interface OrchestDevWorkspaceProps {
+  mode?: 'chat' | 'dev'
+  language?: 'en' | 'es'
   activeProject: ProjectItem
   messages?: ThreadMessage[]
   tasks?: TaskItem[]
@@ -162,6 +164,8 @@ function buildExchanges(timeline: TimelineResponse | null): DevExchangeData[] {
 }
 
 export const OrchestDevWorkspace: React.FC<OrchestDevWorkspaceProps> = ({
+  mode = 'dev',
+  language = 'en',
   activeProject,
   messages = [],
   tasks = [],
@@ -865,6 +869,8 @@ export const OrchestDevWorkspace: React.FC<OrchestDevWorkspaceProps> = ({
               </div>
             )}
           <AgentComposer
+            mode={mode}
+            language={language}
             shellMode
             onSendMessage={handleSendMessage}
             hasProject={!!(activeAgent ? activeAgent.projectId : activeProject.id)}

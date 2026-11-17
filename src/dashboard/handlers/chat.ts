@@ -1,6 +1,6 @@
 import { createHash, randomUUID } from 'node:crypto'
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
-import { tmpdir } from 'node:os'
+import { homedir, tmpdir } from 'node:os'
 import { join, relative } from 'node:path'
 import { badRequest, readBody, z } from '../../boundary/index.ts'
 import { writeChatImages } from '../../chat/attachment-files.ts'
@@ -116,6 +116,7 @@ import { untrustedContent } from '../../security/untrusted-content.ts'
 import { isReviewOnlyGate, listAllSkillCandidates } from '../../skills/catalog.ts'
 import { listSpecs } from '../../spec/store.ts'
 import { loadTasks } from '../../tasks/loader.ts'
+import { readCliCommands } from '../chat-cli-commands.ts'
 import { readCliModelCatalogsCached } from '../chat-cli-models.ts'
 import { appendLiveText, clearLiveText, getLiveText, replaceLiveText } from '../chat-live.ts'
 import {
@@ -128,6 +129,7 @@ import { firstOllamaModel, ollamaChat } from '../llm/clients.ts'
 import {
   type DashboardProjectContext,
   DashboardProjectError,
+  dashboardProjectFromId,
   resolveDashboardProject,
 } from '../project-context.ts'
 import { readEnv } from '../settings-store.ts'
@@ -412,6 +414,24 @@ export async function handleApiChatCliModels(
       return { ...catalog, auth: state?.auth ?? 'unknown', functional: state?.functional ?? false }
     }),
   )
+}
+
+export async function handleApiChatCliCommands(
+  req: Request,
+  deps: { read?: typeof readCliCommands; home?: string } = {},
+): Promise<Response> {
+  const url = new URL(req.url)
+  const cli = url.searchParams.get('cli') ?? ''
+  if (cli !== 'claude' && cli !== 'codex') return jsonResponse([])
+  try {
+    const projectId = url.searchParams.get('projectId')
+    const cwd = projectId ? dashboardProjectFromId(projectId).root : (deps.home ?? homedir())
+    return jsonResponse(await (deps.read ?? readCliCommands)(cli, cwd))
+  } catch (error) {
+    if (error instanceof DashboardProjectError) return errorResponse(error.message, error.status)
+    console.warn('[cli-commands]', error)
+    return jsonResponse([])
+  }
 }
 
 export async function executeFetchUrl(

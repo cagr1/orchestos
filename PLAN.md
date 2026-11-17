@@ -242,7 +242,7 @@ esta etapa: `docs/done/bloque-AUD.md` (AUD.16, AUD.17), `docs/done/bloque-SES.md
   Gate en vivo: navegador del panel, `docs/done/evidence/CHK.2-live.json` (sin aviso al arrancar; con `HEAD` movido
   por un commit vacío temporal, aviso a los 36 s; descartado no vuelve tras el sondeo). Revisión: claude-opus-5-5.
   Ejecutado por: gpt-6.1-sol (criterio) · Spec: docs/specs/CHK.2.md
-- [ ] **CMD.1 — Los comandos propios de cada CLI se usan desde el composer.** (Carlos, 2026-11-17) Hoy el menú `/`
+- [x] **CMD.1 — Los comandos propios de cada CLI se usan desde el composer.** (cerrado 2026-11-17) (Carlos, 2026-11-17) Hoy el menú `/`
   del composer solo tiene 4 comandos de OrchestOS (`AgentComposer.tsx:181`) y cualquier otro `/x` va al CLI como
   texto. Paso 1: sonda real con Claude (`claude -p`), Codex (`app-server`) y OpenCode (servidor HTTP) de qué comandos
   se pueden listar y ejecutar en el modo en que OrchestOS los usa. Paso 2: decisión y spec (capa común + adaptador
@@ -260,6 +260,21 @@ esta etapa: `docs/done/bloque-AUD.md` (AUD.16, AUD.17), `docs/done/bloque-SES.md
   el texto. Codex: solo `/compact` y `/review` mapeados a su RPC; los prompts guardados quedan fuera hasta tener
   contrato. OpenCode: descubre y ejecuta por su API. Los de terminal (`terminal_slash_commands`, `/login`) no se
   muestran; si un nombre choca con uno de OrchestOS (`/model`, `/usage`, `/rename`, `/archive`), gana OrchestOS.
+  Hecho (paso 2): `GET /api/chat/cli-commands` (`src/dashboard/chat-cli-commands.ts`): Claude descubre con
+  `claude -p /context --no-session-persistence` (local, sin costo; caché 5 min) y toma descripciones del frontmatter
+  de comandos y skills (enlaces simbólicos incluidos) o de un mapa de internos; Codex: `/compact` →
+  `thread/compact/start` por `POST /api/chat/sessions/<id>/cli-command`. Cambios frente a la decisión: OpenCode
+  fuera (en Chat abre su propia ventana, donde sus comandos ya funcionan); `/review` de Codex fuera porque sus
+  eventos no llegan al streaming del hilo. Pedido de Carlos: comandos del CLI solo en Dev (en Chat se bloquean con
+  aviso), menú con altura máxima y descripción breve por comando. El aviso de resultado es efímero bajo el composer:
+  persistir un aviso exige un turno activo.
+  Texto visible: "Loading…" (grupo del CLI en el menú `/`: la primera carga de Claude tarda ~5 s y un spinner solo no dice qué grupo falta)
+  Gate en vivo: navegador del panel, `docs/done/evidence/CMD.1-live.json` (Dev Codex `/compact`, Dev Claude menú y `/context`, Chat bloqueado).
+  Ejecutado por: gpt-6.1-sol (criterio) y gpt-6-luna (mecanico) · Spec: docs/specs/CMD.1.md
+- [ ] **USO.19 — En Chat, el primer mensaje de un chat nuevo se pierde.** (encontrado al verificar CMD.1, 2026-11-17)
+  "New chat" → escribir → Enter: la sesión se crea con el título del mensaje pero con 0 mensajes y la vista queda
+  vacía; en un chat que ya existe el envío funciona. Se reprodujo con texto normal y con el código de `master` sin
+  CMD.1 (`git stash`), así que es previo. Evidencia: `docs/done/evidence/CMD.1-live.json` (`found_unrelated`).
 - [ ] **LRN.2 — Una lección probada se gradúa a check, no solo a `AGENTS.md`.** (Carlos, 2026-11-17; mismo principio
   que CHK.1, aplicado al producto) LRN.1 gradúa lecciones a texto de `AGENTS.md`
   (`docs/specs/LRN-1-opinion-fable.md:79`). Agregar un segundo destino: si la firma del fallo es detectable en el diff

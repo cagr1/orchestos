@@ -579,3 +579,12 @@ export interface MutationResult {
 // ── server config ─────────────────────────────────────────────────────────────
 
 export const DEFAULT_PORT = 4242
+
+export interface CliCommand {
+  source: 'builtin' | 'custom' | 'skill' | 'plugin'
+  plugin?: string
+  name: string
+  description: string
+  cli: 'claude' | 'codex'
+  kind: 'prompt' | 'rpc'
+}

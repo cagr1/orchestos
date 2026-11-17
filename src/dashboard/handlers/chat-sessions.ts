@@ -1,6 +1,7 @@
 import { readFileSync } from 'node:fs'
 import { basename } from 'node:path'
 import { contextWindowFor } from '../../../scripts/context-budget.ts'
+import { readBody, z } from '../../boundary/index.ts'
 import {
   documentsFromEnvelope,
   removeChatDirectory,
@@ -15,6 +16,7 @@ import {
   createChatSession,
   deleteChatSession,
   getChatSession,
+  getCodexChatThread,
   listChatMessages,
   listChatSessions,
   restoreChatSession,
@@ -42,6 +44,7 @@ import {
 import { runOneCheck } from '../../run/checks.ts'
 import { cliChatAdapterFor } from '../../run/executors/chat-adapters.ts'
 import { KNOWN_CLIS } from '../../run/executors/cli-registry.ts'
+import { runCodexChatCommand } from '../../run/executors/codex.ts'
 import { getLiveText } from '../chat-live.ts'
 import { type DefaultChatAgentDeps, readDefaultChatAgent } from '../default-chat-agent.ts'
 import { errorResponse, jsonResponse } from '../http.ts'
@@ -130,7 +133,7 @@ function toMessageRow(row: ChatMessageRecord): ChatMessageRow {
 
 function sessionIdFromUrl(url: URL): string | null {
   const match = url.pathname.match(
-    /^\/api\/chat\/sessions\/([^/]+)(?:\/messages|\/timeline|\/context|\/turn-status|\/stop|\/archive|\/restore|\/exec|\/console)?$/,
+    /^\/api\/chat\/sessions\/([^/]+)(?:\/messages|\/timeline|\/context|\/turn-status|\/stop|\/archive|\/restore|\/exec|\/console|\/cli-command)?$/,
   )
   if (!match?.[1]) return null
   try {
@@ -138,6 +141,34 @@ function sessionIdFromUrl(url: URL): string | null {
     return id && id.length <= 128 ? id : null
   } catch {
     return null
+  }
+}
+
+export async function handleApiChatSessionCliCommand(
+  req: Request,
+  url: URL,
+  deps: { execute?: typeof runCodexChatCommand } = {},
+): Promise<Response> {
+  const id = sessionIdFromUrl(url)
+  const session = id ? getChatSession(id) : null
+  if (!session || !id) return errorResponse('Chat session not found', 404)
+  const selected =
+    req.headers.get('x-orchestos-project-id')?.trim() || url.searchParams.get('project')?.trim()
+  if (selected !== (session.project_id ?? 'none'))
+    return errorResponse('Chat session scope mismatch', 403)
+  const parsed = await readBody(z.object({ name: z.unknown() }).passthrough(), req)
+  if (!parsed.ok) return errorResponse('Invalid JSON body', 400)
+  const { name } = parsed.data
+  if (session.agent !== 'codex' || name !== 'compact')
+    return errorResponse('Unsupported CLI command', 400)
+  if (!getCodexChatThread(id).threadId)
+    return errorResponse('No Codex thread. Start a conversation first.', 409)
+  if (hasActiveTurn(id)) return errorResponse('Chat session is busy', 409)
+  try {
+    await (deps.execute ?? runCodexChatCommand)(id, name)
+    return jsonResponse({ ok: true })
+  } catch (error) {
+    return errorResponse(error instanceof Error ? error.message : String(error), 502)
   }
 }
 

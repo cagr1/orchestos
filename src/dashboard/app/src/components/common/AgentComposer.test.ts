@@ -1,19 +1,23 @@
 import { describe, expect, test } from 'bun:test'
 import { createElement } from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
-import { stopChatTurn } from '../../api/chat'
+import { getCliCommands, runCliCommand, stopChatTurn } from '../../api/chat'
 import { findExplorerFiles } from '../../api/explorer'
 import { StoppedResponse } from '../thread/StoppedResponse'
 import {
+  ComposerCommandStatus,
   ComposerSubmitButton,
   cliDisplayName,
+  commandSourceLabel,
   fileReferenceToken,
   LOCAL_UNAVAILABLE,
   localCliConfig,
   persistApprovalMode,
   readApprovalMode,
   selectionFromDefaults,
+  sendComposerCliCommand,
   sendComposerDraft,
+  slashCommandGroups,
 } from './AgentComposer'
 
 test('composer renders Send → Stop → Stopping, then Send after completion', () => {
@@ -223,4 +227,268 @@ test('WIN.13 — a local chat without Ollama models says why instead of a silent
     error: LOCAL_UNAVAILABLE,
   })
   expect(localCliConfig([], 'claude')).toBeNull()
+})
+
+test('CMD.1 slash menu filters prefixes and groups active CLI commands; OrchestOS wins collisions', () => {
+  const commands = [
+    {
+      name: 'compact',
+      description: 'Compact this conversation',
+      cli: 'codex' as const,
+      kind: 'rpc' as const,
+      source: 'builtin' as const,
+    },
+    {
+      name: 'rename',
+      description: 'Collision',
+      cli: 'codex' as const,
+      kind: 'rpc' as const,
+      source: 'builtin' as const,
+    },
+    {
+      name: 'context',
+      description: '',
+      cli: 'claude' as const,
+      kind: 'prompt' as const,
+      source: 'builtin' as const,
+    },
+  ]
+  expect(
+    slashCommandGroups('/', 'codex', commands).map((group) => [
+      group.label,
+      group.commands.map((c) => c.cmd),
+    ]),
+  ).toEqual([
+    ['OrchestOS', ['/rename', '/usage', '/model', '/archive']],
+    ['Codex', ['/compact']],
+  ])
+  expect(
+    slashCommandGroups('/co', 'codex', commands).map((g) => g.commands.map((c) => c.cmd)),
+  ).toEqual([['/compact']])
+  expect(slashCommandGroups('/compact ', 'codex', commands)).toEqual([])
+  expect(slashCommandGroups('text /', 'codex', commands)).toEqual([])
+  expect(slashCommandGroups('/missing', 'codex', commands)).toEqual([])
+})
+
+test('CMD.1 RPC submit calls the scoped endpoint, preserves failures and leaves prompt commands as messages', async () => {
+  const commands = [
+    {
+      name: 'compact',
+      description: '',
+      cli: 'codex' as const,
+      kind: 'rpc' as const,
+      source: 'builtin' as const,
+    },
+  ]
+  const calls: unknown[] = []
+  const execute = async (...args: unknown[]) => {
+    calls.push(args)
+    return { ok: true }
+  }
+  expect(await sendComposerCliCommand('/compact', commands, 'session', 'project', execute)).toBe(
+    true,
+  )
+  expect(calls).toEqual([['session', 'compact', 'project']])
+  expect(
+    await sendComposerCliCommand(
+      '/probe args',
+      [{ name: 'probe', description: '', cli: 'claude', kind: 'prompt', source: 'builtin' }],
+      'session',
+      undefined,
+      execute,
+    ),
+  ).toBe(false)
+  await expect(
+    sendComposerCliCommand('/compact', commands, undefined, undefined, execute),
+  ).rejects.toThrow('Start a conversation')
+  await expect(
+    sendComposerCliCommand('/compact', commands, 'session', undefined, async () => {
+      throw new Error('RPC failed')
+    }),
+  ).rejects.toThrow('RPC failed')
+  expect(calls.length).toBe(1)
+})
+
+test('CMD.1 loading keeps the CLI group visible while filtering a prefix', () => {
+  expect(slashCommandGroups('/co', 'claude', [], true)).toEqual([
+    { label: 'Claude', commands: [], loading: true },
+  ])
+  expect(slashCommandGroups('/co', 'claude', [], false)).toEqual([])
+  expect(slashCommandGroups('/co ', 'claude', [], true)).toEqual([])
+})
+
+test('CMD.1 compact reports visible success only after RPC succeeds; server errors remain literal', async () => {
+  const originalFetch = globalThis.fetch
+  const statuses: string[] = []
+  const commands = [
+    {
+      name: 'compact',
+      description: '',
+      cli: 'codex' as const,
+      kind: 'rpc' as const,
+      source: 'builtin' as const,
+    },
+  ]
+  globalThis.fetch = (async () => Response.json({ ok: true })) as unknown as typeof fetch
+  try {
+    expect(
+      await sendComposerCliCommand(
+        '/compact',
+        commands,
+        'session',
+        undefined,
+        runCliCommand,
+        (message) => statuses.push(message),
+      ),
+    ).toBe(true)
+    expect(statuses).toEqual(['Conversation compacted'])
+    const markup = renderToStaticMarkup(
+      createElement(ComposerCommandStatus, { message: statuses[0] }),
+    )
+    expect(markup).toContain('role="status"')
+    expect(markup).toContain('Conversation compacted')
+    globalThis.fetch = (async () =>
+      Response.json(
+        { error: 'No Codex thread. Start a conversation first.' },
+        { status: 409 },
+      )) as unknown as typeof fetch
+    await expect(
+      sendComposerCliCommand('/compact', commands, 'session', undefined, runCliCommand, (message) =>
+        statuses.push(message),
+      ),
+    ).rejects.toThrow('No Codex thread. Start a conversation first.')
+    expect(statuses).toHaveLength(1)
+    expect(renderToStaticMarkup(createElement(ComposerCommandStatus, { message: null }))).toBe('')
+  } finally {
+    globalThis.fetch = originalFetch
+  }
+})
+
+test('CMD.1 API client discovers by CLI/project and sends RPC with the session scope', async () => {
+  const originalFetch = globalThis.fetch
+  const calls: Array<{ path: string; init?: RequestInit }> = []
+  globalThis.fetch = (async (path, init) => {
+    calls.push({ path: String(path), init })
+    return Response.json(init?.method === 'POST' ? { ok: true } : [])
+  }) as typeof fetch
+  try {
+    await getCliCommands('claude', 'project-a')
+    expect(calls[0]?.path).toBe('/api/chat/cli-commands?cli=claude&projectId=project-a')
+    await runCliCommand('session', 'compact', 'project-a')
+    expect(calls[1]?.path).toBe('/api/chat/sessions/session/cli-command')
+    expect(new Headers(calls[1]?.init?.headers).get('x-orchestos-project-id')).toBe('project-a')
+    expect(calls[1]?.init?.body).toBe(JSON.stringify({ name: 'compact' }))
+    await runCliCommand('session', 'compact')
+    expect(calls[2]?.path).toBe('/api/chat/sessions/session/cli-command?project=none')
+  } finally {
+    globalThis.fetch = originalFetch
+  }
+})
+
+test('CMD.1 Chat hides CLI groups even while loading and blocks prompt and RPC commands without execution', async () => {
+  const commands = [
+    {
+      name: 'compact',
+      description: 'Compact',
+      cli: 'codex' as const,
+      kind: 'rpc' as const,
+      source: 'builtin' as const,
+    },
+    {
+      name: 'probe',
+      description: 'Probe',
+      cli: 'claude' as const,
+      kind: 'prompt' as const,
+      source: 'builtin' as const,
+    },
+  ]
+  expect(slashCommandGroups('/', 'codex', commands, true, 'chat').map((g) => g.label)).toEqual([
+    'OrchestOS',
+  ])
+  expect(slashCommandGroups('/co', 'codex', commands, false, 'chat')).toEqual([])
+  const statuses: string[] = []
+  let executions = 0
+  for (const content of ['/compact', '/probe args']) {
+    expect(
+      await sendComposerCliCommand(
+        content,
+        commands,
+        undefined,
+        undefined,
+        async () => {
+          executions++
+          return { ok: true }
+        },
+        (message) => statuses.push(message),
+        'chat',
+      ),
+    ).toBe(true)
+  }
+  expect(executions).toBe(0)
+  expect(statuses).toEqual([
+    'CLI commands are available in Dev',
+    'CLI commands are available in Dev',
+  ])
+  expect(
+    await sendComposerCliCommand(
+      '/ordinary',
+      commands,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      'chat',
+    ),
+  ).toBe(false)
+})
+
+test('CMD.1 command statuses follow the selected Spanish language', async () => {
+  const commands = [
+    {
+      name: 'compact',
+      description: '',
+      cli: 'codex' as const,
+      kind: 'rpc' as const,
+      source: 'builtin' as const,
+    },
+  ]
+  const statuses: string[] = []
+  const execute = async () => ({ ok: true })
+  for (const mode of ['chat', 'dev'] as const) {
+    await sendComposerCliCommand(
+      '/compact',
+      commands,
+      'session',
+      undefined,
+      execute,
+      (message) => statuses.push(message),
+      mode,
+      'es',
+    )
+  }
+  expect(statuses).toEqual(['Los comandos del CLI se usan en Dev', 'Conversación compactada'])
+})
+
+test('CMD.1 source labels omit builtins and describe custom, skill and plugin origins', () => {
+  expect(commandSourceLabel({ source: 'builtin' })).toBe('')
+  expect(commandSourceLabel({ source: 'custom' })).toBe('Custom command')
+  expect(commandSourceLabel({ source: 'skill' })).toBe('Skill')
+  expect(commandSourceLabel({ source: 'plugin', plugin: 'tools' })).toBe('tools')
+  expect(commandSourceLabel({ source: 'plugin' })).toBe('')
+  const groups = slashCommandGroups('/', 'claude', [
+    {
+      name: 'audit',
+      description: 'Full audit description',
+      cli: 'claude',
+      kind: 'prompt',
+      source: 'plugin',
+      plugin: 'tools',
+    },
+  ])
+  expect(groups[0]?.commands.every((command) => command.source === 'builtin')).toBe(true)
+  expect(groups[1]?.commands[0]).toMatchObject({
+    label: 'Full audit description',
+    source: 'plugin',
+    plugin: 'tools',
+  })
 })

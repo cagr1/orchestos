@@ -9,6 +9,7 @@ import { killAllTrees } from '../run/process-tree.ts'
 import { guardRequest, loadOrCreateDashboardToken, withPageToken } from './auth-token.ts'
 import {
   handleApiChat,
+  handleApiChatCliCommands,
   handleApiChatCliModels,
   handleApiChatDefaultAgent,
   handleApiChatModels,
@@ -19,6 +20,7 @@ import {
 import {
   handleApiChatDocument,
   handleApiChatSessionArchive,
+  handleApiChatSessionCliCommand,
   handleApiChatSessionConsole,
   handleApiChatSessionContext,
   handleApiChatSessionDelete,
@@ -541,11 +543,17 @@ export async function route(
   if (method === 'GET' && url.pathname === '/api/chat/default-agent') {
     return handleApiChatDefaultAgent()
   }
+  if (method === 'GET' && url.pathname === '/api/chat/cli-commands') {
+    return handleApiChatCliCommands(req)
+  }
   if (method === 'GET' && url.pathname === '/api/chat/cli-models') {
     return handleApiChatCliModels()
   }
   if (method === 'GET' && url.pathname === '/api/models/catalog') {
     return handleApiModelCatalog()
+  }
+  if (method === 'POST' && /^\/api\/chat\/sessions\/[^/]+\/cli-command$/.test(url.pathname)) {
+    return handleApiChatSessionCliCommand(req, url)
   }
   if (method === 'GET' && url.pathname === '/api/chat/sessions') {
     return handleApiChatSessionsList(req)

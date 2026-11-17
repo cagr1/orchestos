@@ -1,4 +1,5 @@
 import { check, z } from '../../boundary/index.ts'
+import { dashboardProjectFromId } from '../../dashboard/project-context.ts'
 import { spawnTree, terminateTree } from '../process-tree.ts'
 import { whichCli } from './cli-discovery.ts'
 /**
@@ -638,6 +639,25 @@ export async function runCodexChat(
     }
     throw error
   }
+}
+
+export async function runCodexChatCommand(sessionId: string, name: string): Promise<void> {
+  const session = getChatSession(sessionId)
+  if (!session) throw new ExecutorCodexError('Chat session not found')
+  const binary = findCodexBinary()
+  if (!binary) throw new ExecutorCodexError(codexUnavailableMessage(process.env.PATH))
+  const cwd = session.project_id ? dashboardProjectFromId(session.project_id).root : homedir()
+  const configHome = provisionCliConfigHome(
+    cwd,
+    'codex',
+    homedir(),
+    session.project_id === null ? generalChatConfigHome() : undefined,
+  )
+  const server = getCodexAppServer(configHome.path, binary, buildCodexChatEnv(configHome.path), {
+    get: getCodexChatThread,
+    set: setCodexChatThread,
+  })
+  await server.cliCommand(sessionId, name)
 }
 
 export function generalChatConfigHome(): string {

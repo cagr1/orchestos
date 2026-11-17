@@ -317,6 +317,18 @@ export class CodexAppServer {
     })
   }
 
+  async cliCommand(sessionId: string, name: string): Promise<void> {
+    if (name !== 'compact') throw new Error('Unsupported Codex command')
+    const { threadId } = this.options.store.get(sessionId)
+    if (!threadId) throw new Error('No Codex thread. Start a conversation first.')
+    if (this.turns.has(threadId)) throw new Error('Codex thread is busy')
+    await this.ensureReady()
+    if (!this.resumed.has(threadId)) {
+      await this.request('thread/resume', { threadId })
+    }
+    await this.request('thread/compact/start', { threadId })
+  }
+
   private notify(method: string, params: unknown): void {
     this.child?.stdin.write(`${JSON.stringify({ jsonrpc: '2.0', method, params })}\n`)
   }

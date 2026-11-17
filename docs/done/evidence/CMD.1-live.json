@@ -1,0 +1,24 @@
+{
+  "item": "CMD.1",
+  "date": "2026-11-17",
+  "machine": "Mac, navegador del panel de Claude Code, dashboard 127.0.0.1:4299 tras bun run build:app",
+  "dev_codex": {
+    "menu": "grupos ORCHESTOS (/rename /usage /model /archive) y CODEX (/compact)",
+    "compact": "POST /api/chat/sessions/9087ecc7…/cli-command → 200; aviso 'Conversation compacted' bajo el composer (sesión de prueba MSG.1)"
+  },
+  "dev_claude": {
+    "menu": "grupos ORCHESTOS y CLAUDE, altura máxima con scroll, descripción de una línea por comando",
+    "filter": "'/co' → code-review, compact, config, context",
+    "descriptions": "/cut 'Close the batch cleanly — item, NEXT.md…' (leída del enlace simbólico ~/.claude/commands/cut.md); 7 de 32 con el respaldo 'Claude command'",
+    "context_executed": "/context en un hilo existente devolvió la tabla de uso de contexto de Claude (Messages, Free space, MCP tools)",
+    "discovery": "primera carga ~4,7 s (lanza claude -p /context --no-session-persistence), luego caché 5 min; sin internos con prefijo _",
+    "presentation": "como la referencia de Carlos: fila con solo el nombre + etiqueta de origen tenue ('Custom command' en /cut, 'Skill' en /design y /plugin-authoring); la descripción sale en un tooltip junto al ítem resaltado ('Close the batch cleanly — item, NEXT.md, commit, push, release the writer lock — so the user can /exit')"
+  },
+  "chat": {
+    "menu": "solo el grupo ORCHESTOS",
+    "blocked": "/context en Chat no se envía; aviso 'CLI commands are available in Dev'"
+  },
+  "found_unrelated": "En Chat, el primer mensaje de un chat nuevo se pierde (sesión creada con 0 mensajes); se reprodujo también con el código de master sin CMD.1 (git stash) → ítem aparte USO.19",
+  "cleanup": "4 chats de prueba borrados por DELETE /api/chat/sessions/<id>",
+  "tests": "chat-cli-commands, AgentComposer, codex-app-server: 70 pass / 0 fail; tsc, lint (273), css-budget, boundary-budget (110 sitios), build:app ok"
+}

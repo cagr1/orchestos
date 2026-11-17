@@ -1499,3 +1499,35 @@ for (const line of ['null', '[]', '5', '"text"']) {
     }
   })
 }
+
+test('CMD.1 compact maps persisted thread to RPC, resumes after restart and never starts a text turn', async () => {
+  const saved = store()
+  saved.api.set('session', 'stored-thread', 'context')
+  const server = new CodexAppServer({
+    binary: 'fake',
+    env: {},
+    store: saved.api,
+    spawnProcess: () => {
+      throw new Error('must use fake request')
+    },
+  })
+  const calls: unknown[] = []
+  const request = spyOn(server as any, 'request').mockImplementation(async (...args: unknown[]) => {
+    calls.push(args)
+    return {}
+  })
+  const ready = spyOn(server as any, 'ensureReady').mockResolvedValue(undefined)
+  try {
+    await server.cliCommand('session', 'compact')
+    expect(calls).toEqual([
+      ['thread/resume', { threadId: 'stored-thread' }],
+      ['thread/compact/start', { threadId: 'stored-thread' }],
+    ])
+    await expect(server.cliCommand('missing', 'compact')).rejects.toThrow('thread')
+    await expect(server.cliCommand('session', 'review')).rejects.toThrow('Unsupported')
+  } finally {
+    request.mockRestore()
+    ready.mockRestore()
+    server.kill()
+  }
+})

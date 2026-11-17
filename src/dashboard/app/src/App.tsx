@@ -2150,6 +2150,8 @@ export default function App() {
               {mode === 'chat' &&
                 (!activeThread?.projectId || !deletingProjectIds.has(activeThread.projectId)) && (
                   <OrchestChatView
+                    language={language}
+                    mode={mode}
                     thread={activeThread}
                     tasks={[]}
                     approvals={{}}
@@ -2228,6 +2230,8 @@ export default function App() {
                     currentProject &&
                     !deletingProjectIds.has(currentProject.id) ? (
                     <OrchestDevWorkspace
+                      language={language}
+                      mode={mode}
                       key={activeDevTab?.id ?? activeProjectId}
                       activeProject={currentProject}
                       activeAgent={activeAgent}

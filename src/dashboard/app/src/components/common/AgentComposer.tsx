@@ -14,10 +14,13 @@ import type React from 'react'
 import { Fragment, useEffect, useRef, useState, useSyncExternalStore } from 'react'
 import { Tooltip } from '@/components/ui/tooltip'
 import {
+  type CliCommand,
   type CliModelOption,
   getCachedSessionContext,
   getChatModels,
+  getCliCommands,
   getCliModels,
+  runCliCommand,
   subscribeSessionContext,
   uploadChatFile,
 } from '../../api/chat'
@@ -177,14 +180,113 @@ export async function sendComposerDraft(send: () => unknown): Promise<boolean> {
   }
 }
 
-const SLASH_COMMANDS: Array<{ cmd: string; label: string }> = [
-  { cmd: '/rename', label: 'Rename this conversation' },
-  { cmd: '/usage', label: 'Open CLI usage' },
-  { cmd: '/model', label: 'Choose model and effort' },
-  { cmd: '/archive', label: 'Archive this conversation' },
+interface SlashCommand {
+  cmd: string
+  label: string
+  source: CliCommand['source']
+  plugin?: string
+}
+
+export function commandSourceLabel(command: Pick<CliCommand, 'source' | 'plugin'>): string {
+  switch (command.source) {
+    case 'custom':
+      return 'Custom command'
+    case 'skill':
+      return 'Skill'
+    case 'plugin':
+      return command.plugin ?? ''
+    default:
+      return ''
+  }
+}
+
+const SLASH_COMMANDS: SlashCommand[] = [
+  { cmd: '/rename', label: 'Rename this conversation', source: 'builtin' },
+  { cmd: '/usage', label: 'Open CLI usage', source: 'builtin' },
+  { cmd: '/model', label: 'Choose model and effort', source: 'builtin' },
+  { cmd: '/archive', label: 'Archive this conversation', source: 'builtin' },
 ]
 
+export function slashCommandGroups(
+  text: string,
+  cli: string,
+  commands: CliCommand[],
+  loading = false,
+  mode: 'chat' | 'dev' = 'dev',
+) {
+  if (!/^\/[^\s]*$/.test(text)) return []
+  return [
+    { label: 'OrchestOS', commands: SLASH_COMMANDS },
+    {
+      label: cliDisplayName(cli),
+      ...(loading ? { loading: true } : {}),
+      commands: commands
+        .filter(
+          (command) =>
+            command.cli === cli && !SLASH_COMMANDS.some((own) => own.cmd === `/${command.name}`),
+        )
+        .map(
+          (command): SlashCommand => ({
+            cmd: `/${command.name}`,
+            label: command.description,
+            source: command.source,
+            plugin: command.plugin,
+          }),
+        ),
+    },
+  ]
+    .map((group) => ({
+      ...group,
+      commands: group.commands.filter((command) => command.cmd.startsWith(text)),
+    }))
+    .filter(
+      (group) =>
+        (mode === 'dev' || group.label === 'OrchestOS') &&
+        (group.commands.length > 0 || group.loading),
+    )
+}
+
+export async function sendComposerCliCommand(
+  content: string,
+  commands: CliCommand[],
+  sessionId: string | undefined,
+  projectId?: string,
+  execute = runCliCommand,
+  onComplete?: (message: string) => void,
+  mode: 'chat' | 'dev' = 'dev',
+  language: 'en' | 'es' = 'en',
+): Promise<boolean> {
+  const name = content.split(/\s+/)[0]?.slice(1)
+  const command = commands.find(
+    (command) => command.name === name && !SLASH_COMMANDS.some((own) => own.cmd === `/${name}`),
+  )
+  if (!content.startsWith('/') || !command) return false
+  if (mode === 'chat') {
+    onComplete?.(
+      language === 'es'
+        ? 'Los comandos del CLI se usan en Dev'
+        : 'CLI commands are available in Dev',
+    )
+    return true
+  }
+  if (command.kind !== 'rpc') return false
+  if (!sessionId) throw new Error('No Codex thread. Start a conversation first.')
+  await execute(sessionId, command.name, projectId)
+  onComplete?.(language === 'es' ? 'Conversación compactada' : 'Conversation compacted')
+  return true
+}
+
+export function ComposerCommandStatus({ message }: { message: string | null }) {
+  return message ? (
+    <div role="status" className="pt-2 text-[11px] text-app-muted">
+      {message}
+    </div>
+  ) : null
+}
+
 export interface AgentComposerProps {
+  mode?: 'chat' | 'dev'
+  language?: 'en' | 'es'
   onSendMessage: (
     content: string,
     attachments?: ChatAttachment[],
@@ -215,6 +317,8 @@ export interface AgentComposerProps {
 
 export const AgentComposer: React.FC<AgentComposerProps> = ({
   onSendMessage,
+  mode = 'chat',
+  language = 'en',
   shellMode = false,
   hasProject = false,
   projectId,
@@ -331,6 +435,54 @@ export const AgentComposer: React.FC<AgentComposerProps> = ({
   }, [referenceToken, projectId])
   const [isShellMode, setIsShellMode] = useState(false)
   const [showSlashMenu, setShowSlashMenu] = useState(false)
+  const [cliCommands, setCliCommands] = useState<{
+    cli: string
+    projectId?: string
+    commands: CliCommand[]
+  }>({ cli: '', commands: [] })
+  const activeCommands =
+    cliCommands.cli === activeCli && cliCommands.projectId === projectId ? cliCommands.commands : []
+  const commandsLoading = cliCommands.cli !== activeCli || cliCommands.projectId !== projectId
+  const slashGroups = slashCommandGroups(
+    inputText,
+    activeCli,
+    activeCommands,
+    commandsLoading,
+    mode,
+  )
+  const slashCommands = slashGroups.flatMap((group) => group.commands)
+  const [slashIndex, setSlashIndex] = useState(0)
+  const selectedSlashIndex = Math.min(slashIndex, slashCommands.length - 1)
+  const selectedSlashCommand = slashCommands[selectedSlashIndex]?.cmd
+  const selectedSlashRef = useRef<HTMLButtonElement>(null)
+  useEffect(() => {
+    if (showSlashMenu && selectedSlashCommand)
+      selectedSlashRef.current?.scrollIntoView({ block: 'nearest' })
+  }, [showSlashMenu, selectedSlashCommand])
+  useEffect(() => {
+    let cancelled = false
+    void getCliCommands(activeCli, projectId)
+      .then((commands) => {
+        if (!cancelled) setCliCommands({ cli: activeCli, projectId, commands })
+      })
+      .catch(() => {
+        if (!cancelled) setCliCommands({ cli: activeCli, projectId, commands: [] })
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [activeCli, projectId])
+  const [commandStatus, setCommandStatus] = useState<{
+    message: string
+    sessionId?: string
+    cli: string
+    projectId?: string
+  } | null>(null)
+  useEffect(() => {
+    if (!commandStatus) return
+    const timer = setTimeout(() => setCommandStatus(null), 4000)
+    return () => clearTimeout(timer)
+  }, [commandStatus])
   const [showDropdown, setShowDropdown] = useState(false)
   const [approvalMode, setApprovalMode] = useState<ApprovalMode>(() => readApprovalMode())
   const [showApprovalMenu, setShowApprovalMenu] = useState(false)
@@ -466,11 +618,8 @@ export const AgentComposer: React.FC<AgentComposerProps> = ({
       return
     }
 
-    if (val === '/') {
-      setShowSlashMenu(true)
-    } else if (!val.startsWith('/')) {
-      setShowSlashMenu(false)
-    }
+    setSlashIndex(0)
+    setShowSlashMenu(/^\/[^\s]*$/.test(val))
 
     setInputText(val)
     setReferenceToken(
@@ -513,6 +662,22 @@ export const AgentComposer: React.FC<AgentComposerProps> = ({
         e.preventDefault()
         if (referenceFiles[activeReferenceIndex])
           selectReference(referenceFiles[activeReferenceIndex])
+        return
+      }
+    }
+    if (showSlashMenu && slashCommands.length) {
+      if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+        e.preventDefault()
+        setSlashIndex(
+          (selectedSlashIndex + (e.key === 'ArrowDown' ? 1 : -1) + slashCommands.length) %
+            slashCommands.length,
+        )
+        return
+      }
+      if ((e.key === 'Enter' && !e.shiftKey && !e.nativeEvent.isComposing) || e.key === 'Tab') {
+        e.preventDefault()
+        setInputText(`${selectedSlashCommand} `)
+        setShowSlashMenu(false)
         return
       }
     }
@@ -571,6 +736,44 @@ export const AgentComposer: React.FC<AgentComposerProps> = ({
         setInputText('')
         setShowSlashMenu(false)
         return
+      }
+    }
+
+    if (
+      !isShellMode &&
+      content.startsWith('/') &&
+      (activeCli === 'codex' || activeCli === 'claude')
+    ) {
+      setSending(true)
+      setAttachError(null)
+      setCommandStatus(null)
+      try {
+        const commands =
+          cliCommands.cli === activeCli && cliCommands.projectId === projectId
+            ? activeCommands
+            : await getCliCommands(activeCli, projectId)
+        if (
+          await sendComposerCliCommand(
+            content,
+            commands,
+            contextSessionId,
+            projectId,
+            runCliCommand,
+            (message) =>
+              setCommandStatus({ message, sessionId: contextSessionId, cli: activeCli, projectId }),
+            mode,
+            language,
+          )
+        ) {
+          setInputText('')
+          setShowSlashMenu(false)
+          return
+        }
+      } catch (error) {
+        setAttachError(error instanceof Error ? error.message : String(error))
+        return
+      } finally {
+        setSending(false)
       }
     }
 
@@ -844,23 +1047,47 @@ export const AgentComposer: React.FC<AgentComposerProps> = ({
         </div>
       )}
       {/* Slash command autocomplete menu */}
-      {showSlashMenu && (
-        <div className="absolute left-3 bottom-full mb-2 w-80 rounded-card bg-app-surface border border-app shadow-2xl p-1 text-xs space-y-0.5 z-40 animate-in fade-in duration-100">
-          <div className="px-2 py-1 text-[10px] font-mono text-app-muted uppercase tracking-wider border-b border-app/60">
-            Commands
-          </div>
-          {SLASH_COMMANDS.map((item) => (
-            <button
-              key={item.cmd}
-              type="button"
-              onClick={() => handleSelectSlashCommand(item.cmd)}
-              className="w-full flex items-center justify-between px-2.5 py-1.5 rounded-control text-left hover:bg-app-elevated transition-colors group"
-            >
-              <span className="font-mono font-bold text-app-accent group-hover:text-app">
-                {item.cmd}
-              </span>
-              <span className="text-xs text-app-muted truncate pl-2">{item.label}</span>
-            </button>
+      {showSlashMenu && slashGroups.length > 0 && (
+        <div className="absolute left-3 bottom-full mb-2 w-80 max-h-64 overflow-y-auto rounded-card bg-app-surface border border-app shadow-2xl p-1 text-xs space-y-0.5 z-40 animate-in fade-in duration-100">
+          {slashGroups.map((group) => (
+            <Fragment key={group.label}>
+              <div className="px-2 py-1 text-[10px] font-mono text-app-muted uppercase tracking-wider border-b border-app/60">
+                {group.label}
+              </div>
+              {group.loading && (
+                <div role="status" className="px-2.5 py-1.5 text-app-muted">
+                  Loading…
+                </div>
+              )}
+              {group.commands.map((item) => (
+                <Tooltip
+                  key={item.cmd}
+                  content={item.label}
+                  side="right"
+                  forceOpen={item.cmd === selectedSlashCommand && Boolean(item.label)}
+                  className="w-64 whitespace-normal break-words"
+                >
+                  <button
+                    ref={item.cmd === selectedSlashCommand ? selectedSlashRef : undefined}
+                    type="button"
+                    onClick={() => handleSelectSlashCommand(item.cmd)}
+                    onMouseEnter={() =>
+                      setSlashIndex(slashCommands.findIndex((command) => command.cmd === item.cmd))
+                    }
+                    className={`w-full flex items-center justify-between px-2.5 py-1.5 rounded-control text-left hover:bg-app-elevated transition-colors group ${item.cmd === selectedSlashCommand ? 'bg-app-elevated' : ''}`}
+                  >
+                    <span className="shrink-0 font-mono font-bold text-app-accent group-hover:text-app">
+                      {item.cmd}
+                    </span>
+                    {commandSourceLabel(item) && (
+                      <span className="min-w-0 text-[10px] text-app-muted truncate pl-2">
+                        {commandSourceLabel(item)}
+                      </span>
+                    )}
+                  </button>
+                </Tooltip>
+              ))}
+            </Fragment>
           ))}
         </div>
       )}
@@ -1392,6 +1619,15 @@ export const AgentComposer: React.FC<AgentComposerProps> = ({
             />
           </div>
         </div>
+        <ComposerCommandStatus
+          message={
+            commandStatus?.sessionId === contextSessionId &&
+            commandStatus?.cli === activeCli &&
+            commandStatus?.projectId === projectId
+              ? commandStatus.message
+              : null
+          }
+        />
       </div>
     </div>
   )

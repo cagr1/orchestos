@@ -10,6 +10,15 @@ import type {
 } from '../types/orchestos'
 import { DIRTY_TREE_REASON_PREFIX } from './tasks'
 
+export interface CliCommand {
+  source: 'builtin' | 'custom' | 'skill' | 'plugin'
+  plugin?: string
+  name: string
+  description: string
+  cli: 'claude' | 'codex'
+  kind: 'prompt' | 'rpc'
+}
+
 export interface ChatSessionRow {
   id: string
   projectId: string | null
@@ -213,7 +222,13 @@ export interface ProjectTaskRow {
   output?: string[]
 }
 
-async function request<T>(path: string, init?: RequestInit): Promise<T> {
+type ResponseValidator<T> = (value: unknown) => value is T
+
+async function request<T>(
+  path: string,
+  init?: RequestInit,
+  validate?: ResponseValidator<T>,
+): Promise<T> {
   const response = await fetch(path, init)
   const body = (await response.json().catch(() => null)) as
     | { error?: string; notice?: CliNotice }
@@ -224,7 +239,27 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
     const notice = body && typeof body === 'object' && 'notice' in body ? body.notice : undefined
     throw Object.assign(new Error(message || `Request failed (${response.status})`), { notice })
   }
+  if (validate && !validate(body)) throw new Error('Invalid response body')
   return body as T
+}
+
+function isCliCommand(value: unknown): value is CliCommand {
+  if (!value || typeof value !== 'object') return false
+  const command = value as Record<string, unknown>
+  return (
+    typeof command.name === 'string' &&
+    typeof command.description === 'string' &&
+    (command.cli === 'claude' || command.cli === 'codex') &&
+    (command.kind === 'prompt' || command.kind === 'rpc')
+  )
+}
+
+function isCliCommandList(value: unknown): value is CliCommand[] {
+  return Array.isArray(value) && value.every(isCliCommand)
+}
+
+function isOkResponse(value: unknown): value is { ok: boolean } {
+  return !!value && typeof value === 'object' && typeof (value as { ok?: unknown }).ok === 'boolean'
 }
 
 function sessionScope(projectId: string | null | undefined): {
@@ -757,4 +792,25 @@ export function decideSessionMessage(
   return request(`/api/chat/session-messages/${encodeURIComponent(id)}/${decision}`, {
     method: 'POST',
   })
+}
+
+export function getCliCommands(cli: string, projectId?: string): Promise<CliCommand[]> {
+  const params = new URLSearchParams({ cli })
+  if (projectId) params.set('projectId', projectId)
+  return request<CliCommand[]>(`/api/chat/cli-commands?${params}`, undefined, isCliCommandList)
+}
+
+export function runCliCommand(
+  sessionId: string,
+  name: string,
+  projectId?: string,
+): Promise<{ ok: boolean }> {
+  return request(
+    scopedSessionPath(`/api/chat/sessions/${encodeURIComponent(sessionId)}/cli-command`, projectId),
+    {
+      ...jsonInit('POST', { name }),
+      headers: { ...sessionScope(projectId).headers, 'Content-Type': 'application/json' },
+    },
+    isOkResponse,
+  )
 }

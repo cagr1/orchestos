@@ -43,6 +43,8 @@ import { formatElapsed, livePhase } from '../thread/thinking'
 import { RememberDialog } from './RememberDialog'
 
 interface OrchestChatViewProps {
+  mode?: 'chat' | 'dev'
+  language?: 'en' | 'es'
   tasks?: TaskItem[]
   approvals?: Record<string, PendingApproval[]>
   thread?: ChatThread
@@ -72,6 +74,8 @@ const prefersReducedMotion = () =>
   typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
 
 export const OrchestChatView: React.FC<OrchestChatViewProps> = ({
+  mode = 'chat',
+  language = 'en',
   thread,
   tasks = [],
   approvals = {},
@@ -740,6 +744,8 @@ export const OrchestChatView: React.FC<OrchestChatViewProps> = ({
         >
           <div className="max-w-3xl lg:max-w-4xl mx-auto">
             <AgentComposer
+              mode={mode}
+              language={language}
               onSendMessage={handleSendFromComposer}
               hasProject={!!thread?.projectId}
               projectId={thread?.projectId ?? undefined}
