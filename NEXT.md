@@ -1,8 +1,39 @@
-# NEXT — handoff 2026-11-16 (Windows en el PC de Carlos: WIN.15–WIN.17 y resto de WIN.6)
+# NEXT — handoff 2026-11-17 (MUT.2 y CHK.1; después uso real y Windows)
 
 Un solo presente: orden y trampas vivas del lote. Lo cerrado vive en `docs/done/bloque-*.md` y git; las reglas, en
 `AGENTS.md`. Versión anterior completa: `docs/done/poda-instrucciones-2026-11-03.md` (histórico).
 Arranque: `bun run agent:preflight -- --item <ID> --agent claude`. Lista viva: `bun run next`.
+
+## Sesión 2026-11-17 — empezar por aquí
+
+Cerrado/subido: `c46bc4b5` CHK.1 y LRN.2 anotados en `PLAN.md` (errores repetidos → checks, no texto);
+`52c93ccb` MUT.2 (A) muestreo `[res]` de memoria/procesos en cada shard, (B) el fixture de `generic-cli` mata su CLI
+falso. Vault: `bb8638c` puesta al día de OrchestOS sep–nov (INS-2026-022…030) y `05cc238` handoff de las rutinas
+rotas (`~/Projects/MemoriesMD/NEXT.md`; lo lleva otra sesión en el vault, no aquí).
+
+Orden:
+1. **MUT.2 — leer la nocturna del 2026-11-17/18.** `gh run list --workflow "Mutation Shards"`, luego
+   `gh run view <id> --log | grep '\[res\]'` por shard. Procesos o RSS que crecen → aislar cada `bun test` en su
+   propio ámbito y matar el árbol al salir en `scripts/mutation-test-shard.ts` (ojo: OpenCode y Codex crean grupos
+   propios con `detached: true`, `src/run/process-tree.ts:18,26`; matar solo el grupo de `bun test` no basta). Todo
+   plano → otra causa (memoria de un solo proceso, CPU). Cerrar MUT.1 y MUT.2 cuando la nocturna esté verde. Spec:
+   `docs/specs/MUT-2.md` (se borra al cerrar). Sin verificar: la contraprueba de huérfanos (el sandbox de Codex niega
+   `ps`; el hook impide al cerebro tocar `src/`); hacerla con `criterio-alt` o a mano.
+2. **CHK.1 — spec del primer lote.** Inventario hecho (`leer`, 2026-11-17) de 17 reglas: sin check (1) styles.css
+   solo baja, (3) `mock.module(` en el proceso de test, (7) `delegate` con exit 0 y error, (11) `plan-gate`: padre
+   abierto con hijos `[x]` / ID en IDEAS y PLAN, (12) import corto de Tailwind, (14) dashboard expone hora de inicio
+   y commit, (15) nombre propio y 🧠⚡🔍, (17) tests que fijan conteos del repo; parciales (2) `check-jsx` no corre en
+   ningún gate, (4), (5) home siempre Chat, (6), (8), (9), (10), (13); cubierta (16). Verificado por el cerebro:
+   los `mock.module` de `chat-local`/`chat-resume-view` corren en subprocesos `-e` (el check debe permitirlo); la
+   regla (12) es del frontend vanilla retirado (`src/dashboard/app/src/index.css:1` usa el import corto a
+   propósito) → archivar la memoria `reference-tailwind-sin-preflight-orchestos`, no hacer check. Lote 1 sugerido:
+   (3), (11), (5); cada check con test rojo primero (INS-2026-026/027) y arranca observando antes de bloquear.
+   (7) vive en el vault (`method/bin/delegate`), no en este repo.
+3. Lo de abajo (uso real y Windows), en su orden.
+
+Trampas nuevas: `delegate qa` recibe un spec, no una pregunta; `delegate leer/analizar` devuelven el transcript
+entero de Codex: la respuesta es lo que sigue a la última línea `codex`. El hook "cerebro no escribe código"
+bloquea también ediciones temporales de `src/` para contrapruebas.
 
 ## Orden
 
@@ -33,8 +64,8 @@ auditoría AUD.1–AUD.28 en el orden de la segunda auditoría; lo cerrado está
    (tema también en `<html>` para portales), USO.14 `91388169` (tooltips Radix en toda la UI).
    USO.15 (2026-11-15): los 11 ui-gates en verde; 9 desfasados por USO.10, y 2 productos rotos arreglados
    (notificaciones en Chat; el Chat general no reanudaba la sesión de Claude y reenviaba el transcript).
-   MUT.1 (2026-11-15): shards de mutación repartidos (11 → 15) porque 4 pasaban de 3 h. Revisar la nocturna del
-   2026-11-16 (`gh run list --workflow "Mutation Shards"`): todos verdes y bajo ~1h30 → cerrar MUT.1.
+   MUT.1 (2026-11-15): shards de mutación repartidos (11 → 15) porque 4 pasaban de 3 h. La nocturna del 11-16 ya no
+   cayó por tiempo sino por runner sin recursos: sigue en MUT.2 (bloque 2026-11-17 de arriba).
    **Siguiente**: lo que reporte Carlos en uso real. WIN.2 (`a0882d84`), WIN.3 (`36531977`), WIN.4 (`ef88ae9f`) y
    WIN.5 (`8c228123`) cerrados: Windows 216 → 98 tests rojos.
    **Windows en curso en el PC de Carlos (2026-11-16, Etapa 3).** Clon en `E:\Carlos\Development Tools\Proyectos\
