@@ -25,6 +25,7 @@ import {
   stopActiveChatTurn as stopActiveChatSession,
   type TimelineResponse,
 } from './api/chat'
+import { type DashboardBuildResponse, getDashboardBuild, staleBuild } from './api/dashboardBuild'
 import { getProjectContext } from './api/project'
 import { chooseProject, deleteProject, listProjects, purgeProjectData } from './api/projects'
 import {
@@ -103,6 +104,7 @@ import {
   type SettingsSection,
 } from './components/settings/OrchestSettingsView'
 import { projectsWithApprovals, threadsWithApprovals } from './components/thread/taskCards'
+import { Banner } from './components/ui/banner'
 import { useAttentionNotifications } from './hooks/useAttentionNotifications'
 import { stopActiveChatTurn } from './hooks/useStopChatTurn'
 import {
@@ -255,6 +257,9 @@ export default function App() {
   })
   const [refreshingUsage, setRefreshingUsage] = useState(false)
   const usageAbortRef = useRef<AbortController | null>(null)
+  const [dashboardBuild, setDashboardBuild] = useState<DashboardBuildResponse | null>(null)
+  const [dismissedBuilds, setDismissedBuilds] = useState<Set<string>>(() => new Set())
+  const staleDashboard = dashboardBuild ? staleBuild(dashboardBuild) : null
   const [historySessions, setHistorySessions] = useState<HistorySession[]>([])
   const [projectError, setProjectError] = useState<string | null>(null)
 
@@ -1055,6 +1060,24 @@ export default function App() {
       usageAbortRef.current?.abort()
     }
   }, [currentProjectId, refreshUsage])
+
+  useEffect(() => {
+    const controller = new AbortController()
+    const refresh = async () => {
+      try {
+        const info = await getDashboardBuild(controller.signal)
+        if (!controller.signal.aborted) setDashboardBuild(info)
+      } catch {
+        // Keep the last successful build info when the dashboard is temporarily unavailable.
+      }
+    }
+    void refresh()
+    const timer = window.setInterval(() => void refresh(), 60_000)
+    return () => {
+      window.clearInterval(timer)
+      controller.abort()
+    }
+  }, [])
 
   // Mode change handler that tracks previous mode
   const handleModeChange = (newMode: AppMode) => {
@@ -1983,6 +2006,22 @@ export default function App() {
       className="h-screen w-screen flex flex-col bg-app-bg text-app font-sans overflow-hidden select-none"
     >
       <TooltipProvider>
+        {staleDashboard && dashboardBuild?.headCommit && (
+          <Banner
+            key={dashboardBuild.headCommit}
+            variant="fixed"
+            dismissible
+            open={!dismissedBuilds.has(dashboardBuild.headCommit)}
+            onDismiss={() => {
+              const commit = dashboardBuild.headCommit
+              if (commit) setDismissedBuilds((previous) => new Set(previous).add(commit))
+            }}
+          >
+            {language === 'es'
+              ? `OrchestOS cambió desde que arrancó este dashboard (${staleDashboard.from} → ${staleDashboard.to}). Reinícialo para ver los cambios.`
+              : `OrchestOS changed since this dashboard started (${staleDashboard.from} → ${staleDashboard.to}). Restart it to see the changes.`}
+          </Banner>
+        )}
         {confirmation && (
           <ConfirmDialog
             title={confirmation.kind === 'delete' ? 'Delete this chat?' : 'Archive this agent?'}

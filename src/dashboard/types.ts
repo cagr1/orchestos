@@ -435,6 +435,12 @@ export interface ChatUploadResponse {
   filename: string
 }
 
+export interface DashboardBuildResponse {
+  startedAt: string
+  startCommit: string | null
+  headCommit: string | null
+}
+
 // ── /api/health ───────────────────────────────────────────────────────────────
 // Single endpoint, 5 sections — one round-trip for the Control Center.
 

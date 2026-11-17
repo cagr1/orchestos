@@ -1,0 +1,23 @@
+{
+  "item": "CHK.2",
+  "date": "2026-11-17",
+  "machine": "Mac, navegador del panel de Claude Code, dashboard 127.0.0.1:4299 tras bun run build:app",
+  "start": {
+    "api_dashboard_build": {
+      "startedAt": "2026-11-17T16:52:16.953Z",
+      "startCommit": "d39a62b16a15613fd745c8dc6a9d18dd318bdc08",
+      "headCommit": "d39a62b16a15613fd745c8dc6a9d18dd318bdc08"
+    },
+    "banner": false
+  },
+  "after_head_moves": {
+    "how": "commit vacío temporal fc30f03b (git commit --allow-empty), deshecho después con git reset --soft HEAD~1; nunca subido",
+    "banner_after_seconds": 36,
+    "banner_text": "OrchestOS changed since this dashboard started (d39a62b → fc30f03). Restart it to see the changes."
+  },
+  "dismiss": {
+    "banner_gone_after_click": true,
+    "still_gone_after_next_60s_poll": true
+  },
+  "tests": "dashboard-build.test.ts + dashboardBuild.test.ts: 8 pass / 0 fail (con home-chat); tsc, lint (273 avisos, presupuesto), build:app ok"
+}

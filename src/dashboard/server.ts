@@ -1,5 +1,6 @@
 import { realpathSync } from 'node:fs'
 import { resolve } from 'node:path'
+import { resolveDashboardPaths } from '../cli-dashboard-paths.ts'
 import { getChatSession } from '../db/chat-sessions.ts'
 import { reconcileChatTurns } from '../db/chat-turns.ts'
 import { applyCliSearchPath } from '../run/executors/cli-discovery.ts'
@@ -34,6 +35,7 @@ import {
 import { interruptActiveChatTurns } from './handlers/chat-turn-registry.ts'
 import { handleApiClisGet, handleApiClisSet } from './handlers/clis.ts'
 import { handleApiConfigGet, handleApiConfigInit, handleApiConfigSet } from './handlers/config.ts'
+import { createDashboardBuildHandler } from './handlers/dashboard-build.ts'
 import {
   handleApiExplorerFile,
   handleApiExplorerSearch,
@@ -184,7 +186,11 @@ async function withDashboardProject(
   }
 }
 
-export async function route(req: Request, port: number): Promise<Response> {
+export async function route(
+  req: Request,
+  port: number,
+  dashboardBuild?: () => Response,
+): Promise<Response> {
   const url = new URL(req.url)
   const method = req.method
 
@@ -677,6 +683,9 @@ export async function route(req: Request, port: number): Promise<Response> {
   if (method === 'GET' && url.pathname === '/api/health') {
     return withDashboardProject(req, (project) => handleApiHealth(project.root))
   }
+  if (method === 'GET' && url.pathname === '/api/dashboard-build') {
+    return dashboardBuild ? dashboardBuild() : errorResponse('Dashboard not started', 503)
+  }
   if (method === 'GET' && url.pathname === '/api/providers/local') {
     return handleApiProvidersLocal()
   }
@@ -770,6 +779,8 @@ export function startServer(
   terminalCommand?: string[],
 ): { server: any; url: string } {
   applyCliSearchPath()
+  const { packageRoot } = resolveDashboardPaths(new URL('../cli.ts', import.meta.url).href)
+  const dashboardBuild = createDashboardBuildHandler(packageRoot)
   const dashboardToken = loadOrCreateDashboardToken()
   const terminalSessions = new WeakMap<object, ReturnType<typeof createTerminalSession>>()
   const server = Bun.serve<TerminalSocketData>({
@@ -786,7 +797,7 @@ export function startServer(
       if (denied) return denied
       const url = new URL(req.url)
       if (url.pathname !== '/api/terminal')
-        return withPageToken(await route(req, server.port ?? port), dashboardToken)
+        return withPageToken(await route(req, server.port ?? port, dashboardBuild), dashboardToken)
       if (req.method !== 'GET') return errorResponse('Method not allowed', 405)
       const origin = req.headers.get('origin')
       if (!origin || !isSameOrigin(req, server.port ?? port)) return errorResponse('Forbidden', 403)

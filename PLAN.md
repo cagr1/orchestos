@@ -234,10 +234,14 @@ esta etapa: `docs/done/bloque-AUD.md` (AUD.16, AUD.17), `docs/done/bloque-SES.md
   Gate en vivo: navegador del panel, `docs/done/evidence/CHK.1c-live.json` (dashboard 4299 tras `build:app`):
   sin `<select>` en Providers, "Show in picker" intacto, el modelo del Ejecutor se elige con "Filter models…".
   Ejecutado por: gpt-6-luna (mecanico) · Spec: docs/specs/CHK.1c.md
-- [ ] **CHK.2 — El dashboard muestra con qué commit arrancó y avisa si quedó viejo.** (regla (14) del inventario de
+- [x] **CHK.2 — El dashboard muestra con qué commit arrancó y avisa si quedó viejo.** (cerrado 2026-11-17) (regla (14) del inventario de
   CHK.1; memoria `feedback-reiniciar-dashboard-tras-cambio`: Bun no recarga en caliente y se probó más de una vez
-  contra un dashboard viejo) Hoy no expone hora de inicio ni commit. Hacer: la API del dashboard devuelve hora de
-  inicio y SHA de arranque; la UI avisa cuando `HEAD` del repo ya no es ese SHA. Spec antes de código.
+  contra un dashboard viejo) Hecho: `GET /api/dashboard-build` → `{ startedAt, startCommit, headCommit }`
+  (`src/dashboard/handlers/dashboard-build.ts`, sonda inyectable, `null` sin git); `App.tsx` lo consulta al cargar y
+  cada 60 s y muestra un `Banner` fijo si `HEAD` cambió; descartado no vuelve para ese commit.
+  Gate en vivo: navegador del panel, `docs/done/evidence/CHK.2-live.json` (sin aviso al arrancar; con `HEAD` movido
+  por un commit vacío temporal, aviso a los 36 s; descartado no vuelve tras el sondeo). Revisión: claude-opus-5-5.
+  Ejecutado por: gpt-6.1-sol (criterio) · Spec: docs/specs/CHK.2.md
 - [ ] **LRN.2 — Una lección probada se gradúa a check, no solo a `AGENTS.md`.** (Carlos, 2026-11-17; mismo principio
   que CHK.1, aplicado al producto) LRN.1 gradúa lecciones a texto de `AGENTS.md`
   (`docs/specs/LRN-1-opinion-fable.md:79`). Agregar un segundo destino: si la firma del fallo es detectable en el diff
