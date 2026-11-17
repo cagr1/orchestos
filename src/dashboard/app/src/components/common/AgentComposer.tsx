@@ -864,8 +864,22 @@ export const AgentComposer: React.FC<AgentComposerProps> = ({
       return
     // A selected thread owns its callback; never drain another thread through this closure.
     if (currentQueueThread.current !== queueThread) return
+    // Sin `cli` toma la selección del composer: esperar a que se resincronice con el hilo nuevo.
+    if (!first.cli && activeCli !== (lockedCli ?? defaultCli)) return
     writeChatQueue(queueThread, readChatQueue(queueThread).slice(1))
-    void transmit(first, queueThread)
+    // Un mensaje encolado sin CLI ni modelo (el primero de New chat, USO.19) sale con la selección
+    // de este composer, como si se hubiera escrito aquí.
+    void transmit(
+      first.cli
+        ? first
+        : {
+            ...first,
+            cli: activeCli,
+            model: effectiveSelectedModel,
+            effort: effortSteps.includes(selectedEffort) ? selectedEffort : undefined,
+          },
+      queueThread,
+    )
   })
 
   const handleSelectSlashCommand = (cmd: string) => {

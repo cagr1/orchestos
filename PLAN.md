@@ -277,10 +277,21 @@ esta etapa: `docs/done/bloque-AUD.md` (AUD.16, AUD.17), `docs/done/bloque-SES.md
   Gate en vivo: Playwright, `docs/done/evidence/CMD.2-live.json` (5/5, app-server real, envío interceptado antes de iniciar el turno).
   Typecheck, lint y 73 pruebas acotadas pasaron.
   Ejecutado por: gpt-6.1-sol (criterio) · Spec: docs/specs/CMD.2.md
-- [ ] **USO.19 — En Chat, el primer mensaje de un chat nuevo se pierde.** (encontrado al verificar CMD.1, 2026-11-17)
+- [x] **USO.19 — En Chat, el primer mensaje de un chat nuevo se pierde.** (encontrado al verificar CMD.1, 2026-11-17)
   "New chat" → escribir → Enter: la sesión se crea con el título del mensaje pero con 0 mensajes y la vista queda
   vacía; en un chat que ya existe el envío funciona. Se reprodujo con texto normal y con el código de `master` sin
   CMD.1 (`git stash`), así que es previo. Evidencia: `docs/done/evidence/CMD.1-live.json` (`found_unrelated`).
+  Causa: el diálogo New chat enfocaba su único campo ("Conversation Topic or Title", placeholder "ask a question");
+  lo escrito era el título. Arreglo: en Chat el campo es el primer mensaje; `handleNewChat` lo deja en la cola del
+  composer del hilo nuevo y el composer lo envía con su CLI, modelo y esfuerzo (un mensaje encolado sin `cli` toma
+  la selección del composer). Enviarlo desde `App` sin modelo daba 400 "Orchestrator role is unassigned". Dev igual.
+  qa (claude-sonnet, Codex sin cupo; excepción de Carlos solo esta vez): el composer no se remonta al cambiar de
+  hilo y el drenaje usaba el CLI y modelo del hilo anterior; ahora un mensaje sin `cli` espera a que `activeCli` sea
+  `lockedCli ?? defaultCli`. En vivo desde un chat Claude: New chat con Codex → POST con `agent: codex`.
+  Gate en vivo: navegador (browser pane), dashboard 4242 — New chat → "USO19 prueba: di solo ok" → Enter → user + "ok", título del mensaje; campo vacío → chat sin mensajes; `docs/done/evidence/USO.19-live.json`
+  Texto visible: "First message (optional)", "Ask anything" (etiqueta y placeholder del campo de New chat en Chat)
+  Ejecutado por: claude-opus-5-5
+  Sin delegación: fix chico con el contexto ya leído; el spec solo sirvió para la revisión qa.
 - [ ] **LRN.2 — Una lección probada se gradúa a check, no solo a `AGENTS.md`.** (Carlos, 2026-11-17; mismo principio
   que CHK.1, aplicado al producto) LRN.1 gradúa lecciones a texto de `AGENTS.md`
   (`docs/specs/LRN-1-opinion-fable.md:79`). Agregar un segundo destino: si la firma del fallo es detectable en el diff

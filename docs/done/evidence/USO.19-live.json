@@ -1,0 +1,35 @@
+{
+  "item": "USO.19",
+  "date": "2026-11-17",
+  "dashboard": "http://localhost:4242 (home real, chats de prueba borrados al terminar)",
+  "cause": "El diálogo New chat enfoca su único campo ('Conversation Topic or Title', placeholder 'ask a question'); lo escrito + Enter creaba el chat con ese texto como título y 0 mensajes.",
+  "before": {
+    "flow": "New chat → escribir 'di solo: ok' en el campo enfocado → Enter",
+    "session": {
+      "id": "32abb701-de07-4ea7-aa34-5da25ee17689",
+      "title": "di solo: ok",
+      "messages": 0
+    }
+  },
+  "first_attempt_rejected": "Enviar desde App con handleSendMessage sin modelo → POST /api/chat 400 'Orchestrator role is unassigned' cuando el rol no está asignado; se cambió a la cola del composer.",
+  "after": {
+    "flow": "New chat → escribir 'USO19 prueba: di solo ok' → Enter",
+    "session": {
+      "id": "f81fd640-ff96-4637-8620-04a755d13f44",
+      "title": "USO19 prueba: di solo ok",
+      "messages": [["user", "USO19 prueba: di solo ok"], ["assistant", "ok"]]
+    },
+    "empty_field": {
+      "id": "f15eee6c-0003-4c4c-b01d-4eee7b48be92",
+      "title": "Chat with Claude Code",
+      "messages": 0
+    }
+  },
+  "review_fix": {
+    "reviewer": "claude-sonnet (subagente; Codex sin cupo, excepción pedida por Carlos solo esta vez)",
+    "defect": "El composer no se remonta al cambiar de hilo: el drenaje usaba activeCli/modelo del hilo anterior.",
+    "fix": "Un mensaje encolado sin cli espera a que activeCli sea lockedCli ?? defaultCli.",
+    "live": "Con el chat Claude 'Hola' abierto → New chat con Codex → 'USO19 codex: di solo ok' → POST /api/chat {agent: codex, model: gpt-6.1-sol, effort: high}; sesión 80252162 borrada"
+  },
+  "not_verified": "Codex: cupo agotado ('Codex CLI usage limit reached'), el envío llegó al servidor pero sin respuesta; Dev 'Launch Agent' no cambia de comportamiento (mismo título) y no se probó en vivo."
+}

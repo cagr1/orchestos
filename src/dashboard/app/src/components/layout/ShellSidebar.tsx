@@ -31,7 +31,13 @@ interface ShellSidebarProps {
   threads: ChatThread[]
   activeThreadId: string
   onSelectThread: (id: string) => void
-  onNewChat: (cliId?: string, model?: string, title?: string, projectId?: string | null) => void
+  onNewChat: (
+    cliId?: string,
+    model?: string,
+    title?: string,
+    projectId?: string | null,
+    firstMessage?: string,
+  ) => void
   onDeleteChat?: (id: string) => void
   projects: ProjectItem[]
   activeProjectId: string
@@ -490,8 +496,8 @@ export const ShellSidebar: React.FC<ShellSidebarProps> = ({
           isOpen={isNewChatAgentModalOpen}
           isChatMode={true}
           onClose={() => setIsNewChatAgentModalOpen(false)}
-          onCreateAgent={(cliId, model, title, projectId) => {
-            onNewChat(cliId, model, title, projectId)
+          onCreateAgent={(cliId, model, title, projectId, firstMessage) => {
+            onNewChat(cliId, model, title, projectId, firstMessage)
             setIsNewChatAgentModalOpen(false)
           }}
         />

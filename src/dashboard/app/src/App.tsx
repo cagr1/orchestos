@@ -114,7 +114,7 @@ import {
   useAppearanceSettings,
   writeAppearanceSettings,
 } from './lib/appearance-settings'
-import { discardChatQueue } from './lib/chat-queue'
+import { discardChatQueue, writeChatQueue } from './lib/chat-queue'
 import { readChatSettings, writeChatSettings } from './lib/chat-settings'
 import { moveComposerDraft } from './lib/composer-drafts'
 import {
@@ -1381,6 +1381,7 @@ export default function App() {
     _model?: string,
     title?: string,
     _selectedProjectId?: string | null,
+    firstMessage?: string,
   ) => {
     const creating = createSession({
       ...(cliId ? { agent: cliId } : {}),
@@ -1388,8 +1389,9 @@ export default function App() {
       title,
     })
     pendingNewChat.current = creating.catch(() => null)
+    let newThread: ChatThread
     try {
-      const newThread = await creating
+      newThread = await creating
       threadsRef.current = [newThread, ...threadsRef.current]
       setThreads((prev) => [newThread, ...prev])
       setActiveThreadId(newThread.id)
@@ -1399,6 +1401,19 @@ export default function App() {
       pendingNewChat.current = null
     }
     setMode('chat')
+    // Lo escrito en el diálogo es el primer mensaje del chat (USO.19), no un título que se pierde.
+    // Va a la cola del composer del hilo nuevo, que lo envía con su modelo y esfuerzo.
+    if (firstMessage)
+      writeChatQueue(newThread.id, [
+        {
+          id: crypto.randomUUID(),
+          content: firstMessage,
+          attachments: [],
+          cli: '',
+          model: '',
+          isShellCmd: false,
+        },
+      ])
   }
 
   const handleDeleteChat = (id: string) =>

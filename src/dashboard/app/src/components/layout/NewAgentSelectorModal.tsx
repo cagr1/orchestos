@@ -23,6 +23,7 @@ interface NewAgentSelectorModalProps {
     modelName: string,
     title: string,
     projectId?: string | null,
+    firstMessage?: string,
   ) => void
 }
 
@@ -91,8 +92,10 @@ export const NewAgentSelectorModal: React.FC<NewAgentSelectorModalProps> = ({
     const defaultTitle = isChatMode
       ? `Chat with ${opt.label}`
       : `Agent: ${opt.label} on ${projectName}`
-    const finalTitle = agentTitle.trim() || defaultTitle
-    onCreateAgent(opt.id, chatModel, finalTitle, isChatMode ? null : undefined)
+    // En Chat el campo es el primer mensaje (USO.19): el título sale de ese mensaje al enviarlo.
+    const typed = agentTitle.trim()
+    if (isChatMode) onCreateAgent(opt.id, chatModel, defaultTitle, null, typed || undefined)
+    else onCreateAgent(opt.id, chatModel, typed || defaultTitle, undefined)
     setAgentTitle('')
     onClose()
   }
@@ -125,7 +128,7 @@ export const NewAgentSelectorModal: React.FC<NewAgentSelectorModalProps> = ({
         <form onSubmit={handleSubmit} className="space-y-3.5 text-xs">
           <div>
             <label htmlFor="new-agent-title" className="block text-app-muted mb-1 font-medium">
-              {isChatMode ? 'Conversation Topic or Title (Optional)' : 'Session / Task Objective'}
+              {isChatMode ? 'First message (optional)' : 'Session / Task Objective'}
             </label>
             <input
               id="new-agent-title"
@@ -136,7 +139,7 @@ export const NewAgentSelectorModal: React.FC<NewAgentSelectorModalProps> = ({
               onChange={(e) => setAgentTitle(e.target.value)}
               placeholder={
                 isChatMode
-                  ? 'e.g. Discuss microservice design or ask a question'
+                  ? 'Ask anything'
                   : 'e.g. Implement payment webhook verification or AST gate'
               }
               className="w-full px-3 py-1.5 rounded-control bg-app-bg border border-app text-app focus:outline-hidden focus:border-app-accent text-xs"
