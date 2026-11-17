@@ -299,6 +299,12 @@ esta etapa: `docs/done/bloque-AUD.md` (AUD.16, AUD.17), `docs/done/bloque-SES.md
   `localhost:<puerto>` del proyecto (iframe; detectar el puerto del dev server desde la terminal o pedirlo). F2: que
   el agente lo lea (captura, consola, errores) con Playwright, para verificar sin pedirle nada a Carlos. Plan corto y
   GO de Carlos antes de código; F2 solo tras usar F1.
+  2026-11-17: GO de Carlos para F1 ("hagamos de esta herramienta una maravilla"). Plan: pestaña Preview en Dev
+  (como la terminal: una sola, sigue montada al cambiar de pestaña), URL por proyecto en localStorage, solo
+  http/https, botón "Preview" en la barra de estado junto a Terminal. Fuera: servidor, MCP, Playwright y detección
+  del puerto. Spec: `docs/specs/USO.20.md`. Contexto: Tauri usa WKWebView en macOS (no controlable por Playwright),
+  así que F2 sigue necesitando Playwright aparte salvo Electron; decidirlo junto con Tauri vs Electron.
+  Texto visible: "Preview", "Reload", "Open in browser", "Enter an http:// or https:// URL", "Run your dev server in the terminal and enter its URL above"
 - [ ] **LRN.2 — Una lección probada se gradúa a check, no solo a `AGENTS.md`.** (Carlos, 2026-11-17; mismo principio
   que CHK.1, aplicado al producto) LRN.1 gradúa lecciones a texto de `AGENTS.md`
   (`docs/specs/LRN-1-opinion-fable.md:79`). Agregar un segundo destino: si la firma del fallo es detectable en el diff
