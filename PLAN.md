@@ -193,6 +193,19 @@ esta etapa: `docs/done/bloque-AUD.md` (AUD.16, AUD.17), `docs/done/bloque-SES.md
   (159), e 883-fin (201). Los cortes en 492 y 882 no los cruza ningún mutante ejecutable (en 882 solo 2
   `CompileError`). Test nuevo: los rangos cubren el archivo sin huecos ni solapes (verificado que falla con un hueco).
   Falta: la nocturna del 2026-11-16 en verde con todos los shards bajo ~1h30.
+- [ ] **CHK.1 — Las correcciones repetidas pasan a checks, no a texto.** (Carlos, 2026-11-17; principio del equipo de
+  Grok Bot: cada error de un agente se vuelve regla de lint o test en vez de otra instrucción en `AGENTS.md`). Hoy hay
+  ~50 memorias `feedback-*` que el agente debe leer y obedecer, sin nada que las haga cumplir; los checks que ya lo
+  hacen son `check-test-assertions`, `check-ui-text`, `check-scope-lock`, `lint-budget`, `check-secrets`. Pasos:
+  (1) clasificar cada `feedback-*` y regla de `CLAUDE.md`/`AGENTS.md` en verificable mecánicamente (diff, test, lint)
+  o de criterio; (2) las verificables → test o check en el pre-commit/pre-push, empezando por las que ya se rompieron
+  (p. ej. "home siempre Chat", roto 3 veces); (3) la memoria se borra cuando su check existe y falla al violarla.
+  Fuera: las de criterio siguen como texto. Hecho = conteo antes/después de memorias y un check por regla convertida.
+- [ ] **LRN.2 — Una lección probada se gradúa a check, no solo a `AGENTS.md`.** (Carlos, 2026-11-17; mismo principio
+  que CHK.1, aplicado al producto) LRN.1 gradúa lecciones a texto de `AGENTS.md`
+  (`docs/specs/LRN-1-opinion-fable.md:79`). Agregar un segundo destino: si la firma del fallo es detectable en el diff
+  o en un test, la graduación propone un test o regla de lint en el repo del usuario, con aprobación humana igual que
+  hoy. Va después de LRN.1 F2 (necesita firmas reales). Spec antes de código.
 
 ## Etapa 3 — Windows
 

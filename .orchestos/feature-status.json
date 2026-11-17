@@ -148,6 +148,22 @@
       "closedDate": null
     },
     {
+      "id": "CHK.1",
+      "sprint": "Etapa 2 — Uso real",
+      "block": null,
+      "title": "Las correcciones repetidas pasan a checks, no a texto",
+      "status": "open",
+      "closedDate": null
+    },
+    {
+      "id": "LRN.2",
+      "sprint": "Etapa 2 — Uso real",
+      "block": null,
+      "title": "Una lección probada se gradúa a check, no solo a `AGENTS.md`",
+      "status": "open",
+      "closedDate": null
+    },
+    {
       "id": "WIN.1",
       "sprint": "Etapa 3 — Windows",
       "block": null,
