@@ -1,4 +1,4 @@
-# NEXT — handoff 2026-11-17 (MUT.2 y CHK.1; después uso real y Windows)
+# NEXT — handoff 2026-11-17 tarde (MUT.2 espera la nocturna; USO.19 primero)
 
 Un solo presente: orden y trampas vivas del lote. Lo cerrado vive en `docs/done/bloque-*.md` y git; las reglas, en
 `AGENTS.md`. Versión anterior completa: `docs/done/poda-instrucciones-2026-11-03.md` (histórico).
@@ -6,37 +6,38 @@ Arranque: `bun run agent:preflight -- --item <ID> --agent claude`. Lista viva: `
 
 ## Sesión 2026-11-17 — empezar por aquí
 
-Cerrado/subido: `c46bc4b5` CHK.1 y LRN.2 anotados en `PLAN.md` (errores repetidos → checks, no texto);
-`52c93ccb` MUT.2 (A) muestreo `[res]` de memoria/procesos en cada shard, (B) el fixture de `generic-cli` mata su CLI
-falso. Vault: `bb8638c` puesta al día de OrchestOS sep–nov (INS-2026-022…030) y `05cc238` handoff de las rutinas
-rotas (`~/Projects/MemoriesMD/NEXT.md`; lo lleva otra sesión en el vault, no aquí).
+Cerrado/subido hoy: CHK.1 lotes 1–3 (`3527c3ca`, `5495b957`, `d39a62b1`; 7 reglas a check), CHK.2 `8f845bfa`
+(banner si `HEAD` cambió desde que arrancó el dashboard), CMD.1 `035b91c7` (comandos propios de Claude y Codex en
+el menú `/`, solo Dev, tooltip con descripción) y CMD.2 `910db5b1` (skills de Codex en Dev; lo hizo Sol en
+paralelo, revisado por el cerebro). Vault: `7b8e5fa` el candado de escritura se suelta al terminar el turno si el
+árbol quedó limpio y otra sesión lo toma si el dueño lleva 3 min quieto sin cambios.
 
 Orden:
-1. **MUT.2 — leer la nocturna del 2026-11-17/18.** `gh run list --workflow "Mutation Shards"`, luego
-   `gh run view <id> --log | grep '\[res\]'` por shard. Procesos o RSS que crecen → aislar cada `bun test` en su
-   propio ámbito y matar el árbol al salir en `scripts/mutation-test-shard.ts` (ojo: OpenCode y Codex crean grupos
-   propios con `detached: true`, `src/run/process-tree.ts:18,26`; matar solo el grupo de `bun test` no basta). Todo
-   plano → otra causa (memoria de un solo proceso, CPU). Cerrar MUT.1 y MUT.2 cuando la nocturna esté verde. Spec:
-   `docs/specs/MUT-2.md` (se borra al cerrar). Sin verificar: la contraprueba de huérfanos (el sandbox de Codex niega
-   `ps`; el hook impide al cerebro tocar `src/`); hacerla con `criterio-alt` o a mano.
-2. **CHK.1 — cerrado 2026-11-17** (7 reglas a check; detalle en `PLAN.md` § CHK.1 y CHK.1c). CHK.2 cerrado el
-   mismo día: el dashboard avisa con un banner si `HEAD` cambió desde que arrancó. Reparto: código con criterio → `criterio` (Sol), no el cerebro. Ese día también se arregló el candado de escritura en el vault (`7b8e5fa`): se suelta al
-   terminar el turno si el árbol quedó limpio, y otra sesión lo toma si el dueño lleva 3 min quieto sin cambios.
-   Inventario hecho (`leer`, 2026-11-17) de 17 reglas: sin check (1) styles.css
-   solo baja, (3) `mock.module(` en el proceso de test, (7) `delegate` con exit 0 y error, (11) `plan-gate`: padre
-   abierto con hijos `[x]` / ID en IDEAS y PLAN, (12) import corto de Tailwind, (14) dashboard expone hora de inicio
-   y commit, (15) nombre propio y 🧠⚡🔍, (17) tests que fijan conteos del repo; parciales (2) `check-jsx` no corre en
-   ningún gate, (4), (5) home siempre Chat, (6), (8), (9), (10), (13); cubierta (16). Verificado por el cerebro:
-   los `mock.module` de `chat-local`/`chat-resume-view` corren en subprocesos `-e` (el check debe permitirlo); la
-   regla (12) es del frontend vanilla retirado (`src/dashboard/app/src/index.css:1` usa el import corto a
-   propósito) → archivar la memoria `reference-tailwind-sin-preflight-orchestos`, no hacer check. Lote 1 sugerido:
-   (3), (11), (5); cada check con test rojo primero (INS-2026-026/027) y arranca observando antes de bloquear.
-   (7) vive en el vault (`method/bin/delegate`), no en este repo.
-3. Lo de abajo (uso real y Windows), en su orden.
+1. **USO.19 — en Chat, el primer mensaje de un chat nuevo se pierde** (`PLAN.md` § USO.19). "New chat" → escribir
+   → Enter: la sesión se crea con el título pero 0 mensajes. Previo a CMD.1 (reproducido con `git stash`). Delegar
+   el diagnóstico y el arreglo a `criterio` (Sol) con test rojo y gate en vivo; crear chats de prueba y borrarlos
+   con `DELETE /api/chat/sessions/<id>`.
+2. **MUT.1 y MUT.2 — leer la nocturna** (`gh run list --workflow "Mutation Shards"`; la del 17-11, run
+   44075536272, seguía corriendo a las 18 h). Luego `gh run view <id> --log | grep '\[res\]'` por shard. Procesos o
+   RSS que crecen → aislar cada `bun test` y matar el árbol al salir en `scripts/mutation-test-shard.ts` (OpenCode y
+   Codex crean grupos propios con `detached: true`, `src/run/process-tree.ts:18,26`). Todo plano → otra causa.
+   Cerrar ambos con la nocturna verde. Spec: `docs/specs/MUT-2.md`.
+3. **Pendientes chicos**: bajar `lint/style/noNonNullAssertion` de 87 a 86 en `scripts/lint-budget.json` (sobró
+   uno tras CMD.2; el hook impide al cerebro tocar `scripts/`, va a `mecanico`). Tooltip del menú `/` claro frente a
+   la referencia oscura de Carlos: preguntar si lo quiere oscuro. Codex `/review` fuera de CMD.1 porque sus eventos
+   no llegan al hilo: ítem nuevo si Carlos lo pide.
+4. **Antes de Tauri** (opinión del cerebro, sin abrir en `PLAN.md`): cache-busting de `main.js?v=<hash>` y ui-gates
+   también en WebKit con Playwright; decide Tauri vs Electron con números.
+5. Lo de abajo (uso real y Windows), en su orden. LRN.1 F2 espera datos de uso; LRN.2 va después de F2.
 
-Trampas nuevas: `delegate qa` recibe un spec, no una pregunta; `delegate leer/analizar` devuelven el transcript
-entero de Codex: la respuesta es lo que sigue a la última línea `codex`. El hook "cerebro no escribe código"
-bloquea también ediciones temporales de `src/` para contrapruebas.
+Trampas nuevas: `delegate` en modo write exige un ítem ABIERTO en `PLAN.md` (preflight); para corregir un ítem ya
+marcado `[x]`, reabrirlo antes y cerrarlo después. Si el spec dice "los cambios sin commitear son de este ítem", el
+ejecutor sigue; si no, se detiene por solapamiento. El wrapper prohíbe al ejecutor invocar `claude`/`codex`: si son
+el objeto de una sonda, autorizarlo en el spec. Cerrar un ítem tras `plan:reconcile` da "Could not prove a closing
+commit SHA": reabrir, reconciliar, cerrar, reconciliar. La línea "Gate en vivo:" debe citar el archivo de evidencia
+en la MISMA línea. Texto visible nuevo en la UI exige "Texto visible:" en el ítem. `delegate qa` recibe un spec;
+`leer/analizar` devuelven el transcript entero (la respuesta va tras la última línea `codex`). El hook "cerebro no
+escribe código" bloquea también `scripts/` y comandos cuyo texto mencione `src/`.
 
 ## Orden
 
