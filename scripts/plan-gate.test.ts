@@ -278,3 +278,21 @@ it('rejects its own spec when it was never committed but is still present on dis
   )
   expect(JSON.parse(out).threw).toMatch(/must be deleted from disk if it was never committed/)
 })
+
+it('finds open parents whose letter and dotted numeric children are all done', async () => {
+  const { parentsWithAllChildrenDone } = await import('./plan-gate.ts')
+  const plan = [
+    '- [ ] **P.1 — Parent.**',
+    '- [x] **P.1a — Letter child.**',
+    '- [x] **P.1.1 — Numeric child.**',
+    '- [ ] **Q.1 — Open child parent.**',
+    '- [x] **Q.1a — Done child.**',
+    '- [ ] **Q.1.1 — Open child.**',
+    '- [x] **R.1 — Done parent.**',
+    '- [x] **R.1a — Done child.**',
+    '- [ ] **S.1 — Parent without children.**',
+    '- [ ] **WIN.6 — Parent with unrelated numeric suffix.**',
+    '- [x] **WIN.60 — Not a child of WIN.6.**',
+  ].join('\n')
+  expect(parentsWithAllChildrenDone(plan)).toEqual([{ parent: 'P.1', children: ['P.1a', 'P.1.1'] }])
+})

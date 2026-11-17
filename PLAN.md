@@ -207,6 +207,14 @@ esta etapa: `docs/done/bloque-AUD.md` (AUD.16, AUD.17), `docs/done/bloque-SES.md
   o de criterio; (2) las verificables → test o check en el pre-commit/pre-push, empezando por las que ya se rompieron
   (p. ej. "home siempre Chat", roto 3 veces); (3) la memoria se borra cuando su check existe y falla al violarla.
   Fuera: las de criterio siguen como texto. Hecho = conteo antes/después de memorias y un check por regla convertida.
+  2026-11-17, lote 1 (reglas 3, 11, 5 del inventario de `NEXT.md`): `scripts/check-mock-module.ts` en el pre-commit
+  (AST de `typescript`; presupuesto `{}`: los 17 tests con `mock.module` ya lo corren en subprocesos `-e`, ninguno
+  nuevo en el proceso de test); `plan-gate` avisa padre abierto con todos sus hijos `[x]` (solo aviso: `WIN.6` lo es
+  con razón); `src/dashboard/__tests__/home-chat.test.ts` falla si un efecto de `App.tsx` cambia de modo fuera de
+  Chat. Contrapruebas A y C rojas, 24 tests. Memorias del índice 60 → 59; a `archive/`: home-Chat,
+  mock.module y Tailwind sin preflight (regla del frontend vanilla retirado). La mitad "ID en IDEAS y PLAN" de (11)
+  no es mecánica: queda como texto. Sigue: lote 2.
+  Ejecutado por: gpt-6-luna (mecanico) · qa: gpt-6.1-sol, 3 hallazgos corregidos
 - [ ] **LRN.2 — Una lección probada se gradúa a check, no solo a `AGENTS.md`.** (Carlos, 2026-11-17; mismo principio
   que CHK.1, aplicado al producto) LRN.1 gradúa lecciones a texto de `AGENTS.md`
   (`docs/specs/LRN-1-opinion-fable.md:79`). Agregar un segundo destino: si la firma del fallo es detectable en el diff

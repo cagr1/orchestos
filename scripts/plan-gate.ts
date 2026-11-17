@@ -143,6 +143,33 @@ export function closedPlanItemIds(diff: string): string[] {
   return [...deletedOpen].filter((id) => addedDone.has(id))
 }
 
+export function parentsWithAllChildrenDone(plan: string): { parent: string; children: string[] }[] {
+  const items = parsePlanFeatureStatus(plan)
+  const childrenByParent = new Map<string, string[]>()
+  for (const item of items) {
+    const parent = items.find(
+      (candidate) =>
+        (item.id.startsWith(`${candidate.id}.`) &&
+          /^\d+$/.test(item.id.slice(candidate.id.length + 1))) ||
+        (item.id.startsWith(candidate.id) && /^[a-z]$/.test(item.id.slice(candidate.id.length))),
+    )
+    if (!parent) continue
+    const children = childrenByParent.get(parent.id) ?? []
+    children.push(item.id)
+    childrenByParent.set(parent.id, children)
+  }
+  return items
+    .filter((item) => item.status === 'open')
+    .flatMap((parent) => {
+      const children = childrenByParent.get(parent.id) ?? []
+      if (children.length === 0) return []
+      const allDone = children.every(
+        (childId) => items.find((item) => item.id === childId)?.status === 'done',
+      )
+      return allDone ? [{ parent: parent.id, children }] : []
+    })
+}
+
 export function checkProvenance(): void {
   const stagedPlan = git(['show', ':PLAN.md'])
   const unparsed = findUnparsedPlanItemLines(stagedPlan)
@@ -222,6 +249,11 @@ if (import.meta.main) {
     runMigrations()
     checkSegmentStatuses(db)
     checkProvenance()
+    const stagedPlan = git(['show', ':PLAN.md'])
+    for (const { parent, children } of parentsWithAllChildrenDone(stagedPlan))
+      console.warn(
+        `⚠ plan gate: ${parent} abierto con todos sus hijos [x] (${children.join(', ')}): cerrarlo o abrir el hijo que falta`,
+      )
   } catch (error) {
     console.error(`✗ plan gate: ${error instanceof Error ? error.message : String(error)}`)
     process.exit(1)

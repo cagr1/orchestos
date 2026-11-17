@@ -19,7 +19,10 @@ Orden:
    plano → otra causa (memoria de un solo proceso, CPU). Cerrar MUT.1 y MUT.2 cuando la nocturna esté verde. Spec:
    `docs/specs/MUT-2.md` (se borra al cerrar). Sin verificar: la contraprueba de huérfanos (el sandbox de Codex niega
    `ps`; el hook impide al cerebro tocar `src/`); hacerla con `criterio-alt` o a mano.
-2. **CHK.1 — spec del primer lote.** Inventario hecho (`leer`, 2026-11-17) de 17 reglas: sin check (1) styles.css
+2. **CHK.1 — lote 1 hecho 2026-11-17** (reglas 3, 11, 5; detalle en `PLAN.md` § CHK.1). Sigue el lote 2 con las
+   restantes del inventario. Ese día también se arregló el candado de escritura en el vault (`7b8e5fa`): se suelta al
+   terminar el turno si el árbol quedó limpio, y otra sesión lo toma si el dueño lleva 3 min quieto sin cambios.
+   Inventario hecho (`leer`, 2026-11-17) de 17 reglas: sin check (1) styles.css
    solo baja, (3) `mock.module(` en el proceso de test, (7) `delegate` con exit 0 y error, (11) `plan-gate`: padre
    abierto con hijos `[x]` / ID en IDEAS y PLAN, (12) import corto de Tailwind, (14) dashboard expone hora de inicio
    y commit, (15) nombre propio y 🧠⚡🔍, (17) tests que fijan conteos del repo; parciales (2) `check-jsx` no corre en
