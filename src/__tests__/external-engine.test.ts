@@ -1001,7 +1001,7 @@ describe('B.3 — externalEngine (claude-code subprocess)', () => {
     }
   })
 
-  // E.15 (Mes 22, 2026-07-17) — bug real reportado por Carlos: ctx.model y
+  // E.15 (Mes 22, 2026-07-17) — bug real reportado por User: ctx.model y
   // task.cli_effort se resolvían pero nunca llegaban al subproceso real.
   it('E.15 — pasa --model (Anthropic, prefijo provider/ pelado) y --effort al subproceso claude', async () => {
     const root = makeGitRepo()

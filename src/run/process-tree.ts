@@ -9,7 +9,7 @@ const trees = new Set<TreeProcess>()
 /**
  * POSIX: `detached` crea un grupo propio para matar el árbol con `kill(-pid)`.
  * Windows: `detached` lanza sin consola y el nieto de un `.cmd` de npm (codex.cmd → node) abre una consola visible
- * (medido en el PC de Carlos, WIN.6c). Allí el árbol se mata con `taskkill /T` y no hace falta el grupo.
+ * (medido en el PC de User, WIN.6c). Allí el árbol se mata con `taskkill /T` y no hace falta el grupo.
  */
 export function treeSpawnOptions(platform: NodeJS.Platform = process.platform): {
   detached: boolean

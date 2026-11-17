@@ -215,6 +215,13 @@ esta etapa: `docs/done/bloque-AUD.md` (AUD.16, AUD.17), `docs/done/bloque-SES.md
   mock.module y Tailwind sin preflight (regla del frontend vanilla retirado). La mitad "ID en IDEAS y PLAN" de (11)
   no es mecánica: queda como texto. Sigue: lote 2.
   Ejecutado por: gpt-6-luna (mecanico) · qa: gpt-6.1-sol, 3 hallazgos corregidos
+  2026-11-17, lote 2 (reglas 1 y 15): `scripts/check-css-budget.ts` (el CSS rastreado no crece; `index.css` 455
+  líneas) y `scripts/check-proper-name.ts` (sin nombre propio en `src/`; 33 comentarios pasaron a `User`), ambos en el
+  pre-commit. Contrapruebas exit 1. Memorias sin cambio: las dos reglas guardan también criterio (copiar el
+  prototipo; qué se limpia fuera de `src/`). (2) `check-jsx` no es mecanizable en CI: compara contra el prototipo fuera
+  del repo. Sigue: lote 3 con (17) y las parciales. El live-gate ya no exige navegador si el diff de
+  `src/dashboard`/`src/config` solo cambia comentarios (`onlyCommentChanges`, `scripts/agent-governance.ts`).
+  Ejecutado por: gpt-6-luna (mecanico) y gpt-6.1-sol (criterio, live-gate) · qa: gpt-6.1-sol, sin defectos
 - [ ] **LRN.2 — Una lección probada se gradúa a check, no solo a `AGENTS.md`.** (Carlos, 2026-11-17; mismo principio
   que CHK.1, aplicado al producto) LRN.1 gradúa lecciones a texto de `AGENTS.md`
   (`docs/specs/LRN-1-opinion-fable.md:79`). Agregar un segundo destino: si la firma del fallo es detectable en el diff

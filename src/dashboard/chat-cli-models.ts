@@ -150,7 +150,7 @@ export function parseClaudeModelCatalog(raw: string): CliModelOption[] {
       const overflow = model.section === 'overflow'
       return [{ id: model.id, name, short: name, overflow }]
     })
-    // USO.3: una sola lista, principales arriba; Carlos no quiere un grupo "Older".
+    // USO.3: una sola lista, principales arriba; User no quiere un grupo "Older".
     return [...options.filter((m) => !m.overflow), ...options.filter((m) => m.overflow)].map(
       ({ id, name, short }) => ({ id, name, short }),
     )

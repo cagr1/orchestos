@@ -53,7 +53,7 @@ function loadApiKey(): string {
  * la cuenta. OpenRouter pre-autoriza contra el PEOR CASO (128,000 tokens ×
  * precio de salida), no contra el gasto real esperado — un usuario con
  * saldo modesto ($0.78) no podía correr NINGUNA tarea con un modelo caro
- * aunque la tarea real fuera a costar centavos. Carlos: "OrchestOS debe
+ * aunque la tarea real fuera a costar centavos. User: "OrchestOS debe
  * adaptarse al modelo que el usuario use", no asumir saldo ilimitado.
  * `parseAffordableTokens()` extrae el número real que el 402 de OpenRouter
  * ya reporta ("...can only afford 118057...") para reintentar UNA vez con

@@ -1,6 +1,7 @@
 import {
   citedEvidenceFiles,
   hasLiveGateEvidence,
+  onlyCommentChanges,
   requiresLiveGate,
   runCommand,
 } from './agent-governance.ts'
@@ -58,8 +59,31 @@ export function main(root = process.cwd()): number {
     .split('\n')
     .map((value) => value.trim())
     .filter(Boolean)
-  if (!requiresLiveGate(paths)) {
-    console.log('✓ Gate en vivo: no aplica al diff staged')
+  const added = runCommand(['git', 'diff', '--cached', '--name-only', '--diff-filter=A'], root)
+  if (added.exitCode !== 0) {
+    console.error(added.stderr.trim())
+    return 1
+  }
+  const addedPaths = new Set(added.stdout.split('\n'))
+  const gatePaths: string[] = []
+  for (const path of paths) {
+    if (!addedPaths.has(path) && /\.(?:ts|tsx|js|mjs)$/.test(path)) {
+      const diff = runCommand(['git', 'diff', '--cached', '--unified=0', '--', path], root)
+      if (diff.exitCode !== 0) {
+        console.error(diff.stderr.trim())
+        return 1
+      }
+      if (onlyCommentChanges(diff.stdout)) continue
+    }
+    gatePaths.push(path)
+  }
+  if (!requiresLiveGate(gatePaths)) {
+    const exemptedCount = paths.filter((path) => requiresLiveGate([path])).length
+    console.log(
+      exemptedCount > 0
+        ? `✓ Gate en vivo: no aplica (solo comentarios en ${exemptedCount} archivos)`
+        : '✓ Gate en vivo: no aplica al diff staged',
+    )
     return 0
   }
 

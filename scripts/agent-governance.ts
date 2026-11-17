@@ -64,6 +64,18 @@ export function checkHooks(root: string, run: RunCommand = runCommand): string[]
   return errors
 }
 
+export function onlyCommentChanges(unifiedDiff: string): boolean {
+  const changed = unifiedDiff
+    .split('\n')
+    .filter(
+      (line) =>
+        (line.startsWith('+') || line.startsWith('-')) &&
+        !line.startsWith('+++') &&
+        !line.startsWith('---'),
+    )
+  return changed.length > 0 && changed.every((line) => /^\s*(?:$|\/\/|\*|\/\*)/.test(line.slice(1)))
+}
+
 export function requiresLiveGate(paths: string[]): boolean {
   return paths.some((path) =>
     LIVE_GATE_PATHS.some((prefix) => path === prefix || path.startsWith(prefix)),

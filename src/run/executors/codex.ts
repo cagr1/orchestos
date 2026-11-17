@@ -318,7 +318,7 @@ export function parseCodexStream(stdout: string): {
 //
 // CC.1 (2026-08-16) bloqueaba `agent: codex` en el chat entero con un 422
 // ("no verified read-only transport") — decisión de implementación, no un
-// límite pedido por Carlos: en ese momento nadie había verificado si el
+// límite pedido por User: en ese momento nadie había verificado si el
 // binario tenía un flag real de solo-lectura equivalente a
 // `--allowedTools Read,Glob,Grep` de Claude. Sí lo tiene: `codex exec --help`
 // confirma `--sandbox <read-only|workspace-write|danger-full-access>`. Mismo

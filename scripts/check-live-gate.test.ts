@@ -6,7 +6,29 @@ import { execFileSync } from 'node:child_process'
 import { mkdirSync, mkdtempSync, rmSync, unlinkSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
+import { onlyCommentChanges } from './agent-governance.ts'
 import { main } from './check-live-gate.ts'
+
+it('recognizes comment-only diffs, including block comments and empty lines', () => {
+  expect(
+    onlyCommentChanges(
+      '--- a/file.ts\n+++ b/file.ts\n@@ -1,3 +1,3 @@\n-// old\n+// new\n- * old\n+ * new\n-\n+  \n+/* block\n+*/\n',
+    ),
+  ).toBe(true)
+})
+
+it('rejects code with a trailing comment', () => {
+  expect(onlyCommentChanges('-x = 1 // old\n+x = 1 // new\n')).toBe(false)
+})
+
+it('rejects empty diffs and diffs without changed lines', () => {
+  expect(onlyCommentChanges('')).toBe(false)
+  expect(onlyCommentChanges('--- a/file.ts\n+++ b/file.ts\n')).toBe(false)
+})
+
+it('rejects a mix of comments and code', () => {
+  expect(onlyCommentChanges('-// old\n+// new\n+const x = 1\n')).toBe(false)
+})
 
 const roots: string[] = []
 afterEach(() => {
@@ -52,6 +74,22 @@ function baseCommit(root: string): void {
   git(root, ['add', '-A'])
   git(root, ['commit', '-m', 'base'])
 }
+
+it('exempts comment-only changes to existing dashboard files', () => {
+  const root = makeRepo()
+  baseCommit(root)
+  write(root, 'src/dashboard/app/src/App.tsx', 'export default function App() {}\n// comment\n')
+  git(root, ['add', '-A'])
+  expect(main(root)).toBe(0)
+})
+
+it('does not exempt new dashboard files containing only comments', () => {
+  const root = makeRepo()
+  baseCommit(root)
+  write(root, 'src/dashboard/app/src/new.ts', '// comment\n')
+  git(root, ['add', '-A'])
+  expect(main(root)).toBe(1)
+})
 
 it('passes when the item closed inline in PLAN.md carries its own evidence', () => {
   const root = makeRepo()

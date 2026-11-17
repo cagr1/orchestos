@@ -42,6 +42,12 @@ bun run scripts/boundary-budget.ts
 echo "🧪 Verificando presupuesto de mock.module..."
 bun run scripts/check-mock-module.ts
 
+echo "🎨 Verificando presupuesto de CSS..."
+bun run scripts/check-css-budget.ts
+
+echo "🪪 Verificando nombre propio en src/..."
+bun run scripts/check-proper-name.ts
+
 echo "🎨 Verificando Biome en archivos staged..."
 biome_files=()
 while IFS= read -r -d '' file; do

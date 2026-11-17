@@ -322,7 +322,7 @@ export function maxOutputTokensFor(modelId: string): number {
  * preservando la distinción "tope real conocido" vs "sin info" que
  * `maxOutputTokensFor()` destruye al colapsar todo en 8192.
  *
- * Por qué existe: la regla de Carlos ([[feedback-context-no-max-tokens]],
+ * Por qué existe: la regla de User ([[feedback-context-no-max-tokens]],
  * 2026-06-30, "no reabrir") es que `max_tokens` se deriva de `contextWindow −
  * prompt`, NUNCA de un tope de catálogo poco confiable. El único uso legítimo
  * del tope de catálogo es un clamp de SEGURIDAD hacia abajo cuando el proveedor

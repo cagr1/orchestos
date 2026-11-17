@@ -8,7 +8,7 @@ import { type Manifest, readManifest } from './manifest.ts'
 
 /**
  * Las guías genéricas de `docs/roadmaps/{disciplines,languages}/` viven centralizadas en la
- * instalación de OrchestOS, no en cada proyecto gestionado (decisión Carlos, 2026-07-30) — un
+ * instalación de OrchestOS, no en cada proyecto gestionado (decisión User, 2026-07-30) — un
  * proyecto sin `docs/roadmaps/` propio igual debe poder resolver `state: 'known'`/`'detected'`
  * contra la guía central. Mismo constante que [[src/roadmaps/context.ts]] usa para leer el
  * contenido; acá se usa solo para decidir existencia.

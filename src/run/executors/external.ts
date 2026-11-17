@@ -94,7 +94,7 @@ interface ClaudeCodeJson {
   }
   total_cost_usd?: number
   num_turns?: number
-  /** Hallazgo real de Carlos (2026-08-17): pedir `--model sonnet` (alias) muestra
+  /** Hallazgo real de User (2026-08-17): pedir `--model sonnet` (alias) muestra
    *  "Sonnet" en la UI sin decir a qué versión concreta resolvió — el CLI SÍ lo
    *  reporta acá, keyed por el nombre canónico real (ej. "claude-sonnet-5"). */
   modelUsage?: Record<string, { canonicalModel?: string; contextWindow?: number }>
@@ -190,7 +190,7 @@ function buildSystemPrompt(ctx: Parameters<ExecutorEngine['run']>[0]): string {
  * no su contenido.
  */
 /**
- * E.15 (Mes 22, 2026-07-17) — bug real reportado por Carlos: `ctx.model` ya
+ * E.15 (Mes 22, 2026-07-17) — bug real reportado por User: `ctx.model` ya
  * se resolvía (executor_model / config role) y hasta se guardaba en el
  * registro de costo (`costByIteration[0].model` más abajo), pero nunca se
  * pasaba al subproceso real — `claude -p` corría siempre con el modelo por
@@ -435,7 +435,7 @@ async function runClaudeCode(
 
 // -- chat (CC.1, Mes 29) ----------------------------------------------------------
 //
-// Reporte real de Carlos (2026-08-16): eligió "Claude" como agente en
+// Reporte real de User (2026-08-16): eligió "Claude" como agente en
 // Settings y el chat siguió respondiendo por la API de OpenRouter — la config
 // no cambiaba nada ahí. Verificado en código: `handlers/chat.ts` llamaba
 // `runToolLoop('openrouter', ...)`/`openrouterChat(...)` sin mirar el agente
@@ -451,7 +451,7 @@ async function runClaudeCode(
 // aislamiento de filesystem. Corrección R.2-bis: --allowedTools solo aprueba
 // herramientas; la frontera usa --restricted y la lista excluyente --tools.
 //
-// Hallazgo real de Carlos (2026-08-16, mismo día): la primera versión de esto
+// Hallazgo real de User (2026-08-16, mismo día): la primera versión de esto
 // no pasaba `model` ni `effort` al binario — corría siempre con el default del
 // CLI y el label devuelto era genérico ("claude (cli default)"), sin decir qué
 // modelo/esfuerzo se usó de verdad. `claude --help` confirma 5 niveles reales
@@ -684,7 +684,7 @@ export async function runClaudeChat(
     cacheWriteTokens: parsed.usage?.cache_creation_input_tokens ?? 0,
     outputTokens: parsed.usage?.output_tokens ?? 0,
     usd: typeof parsed.total_cost_usd === 'number' ? parsed.total_cost_usd : null,
-    // Hallazgo real de Carlos: con un alias (`--model sonnet`) el pedido nunca
+    // Hallazgo real de User: con un alias (`--model sonnet`) el pedido nunca
     // dice la versión real que corrió. `resolvedCliModel()` lee el nombre
     // canónico que el propio CLI reporta en `modelUsage` (ej. "claude-sonnet-5")
     // — si por lo que sea el evento no lo trae, cae al valor pedido, nunca a

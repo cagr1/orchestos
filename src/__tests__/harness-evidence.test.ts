@@ -30,7 +30,7 @@ import type { Task } from '../tasks/schema.ts'
 // row-count assertions.
 //
 // IDEAS.md #20 (2026-07-05): this real DB is the SAME one the live dashboard
-// reads from — Carlos saw these fixture rows (task_id 'f3-3-evidence') show
+// reads from — User saw these fixture rows (task_id 'f3-3-evidence') show
 // up as fake "Recent Runs" every time someone ran `bun test` locally. afterAll
 // below deletes every row this file inserts so the dashboard stays clean.
 

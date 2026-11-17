@@ -1,6 +1,6 @@
 /**
  * CC.1b bugfix (2026-08-17) — GET /api/config nunca devolvía `executor_mode`.
- * Bug real encontrado por Carlos: reinició el dashboard varias veces y el
+ * Bug real encontrado por User: reinició el dashboard varias veces y el
  * selector de esfuerzo del chat seguía mostrando 3 niveles en vez de 5 —
  * `buildChatModelFx` (frontend) depende de este endpoint para saber el modo
  * activo, y ese campo faltaba en la respuesta desde siempre. El PUT (mismo

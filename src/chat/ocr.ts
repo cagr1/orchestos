@@ -5,7 +5,7 @@
  * soporta visión (ver docs/done/design/ocr-chat-design.md). Motor: tesseract.js
  * (Apache-2.0, wrapper WASM de Tesseract) — corre en el mismo proceso Bun,
  * sin GPU/Python/cuenta externa (decisión A.2, Baidu Cloud descartado por
- * Carlos por fricción de registro).
+ * User por fricción de registro).
  *
  * Un solo worker se crea una vez y se reusa entre requests — crear uno por
  * mensaje sería el costo de arranque (carga del modelo WASM) en cada llamada.

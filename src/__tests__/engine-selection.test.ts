@@ -60,7 +60,7 @@ beforeAll(() => {
 // IDEAS.md #20 (2026-07-05): callRunTask() escribe en la misma
 // ~/.orchestos/db.sqlite que usa el dashboard real — sin este cleanup, cada
 // `bun test` local deja filas fantasma (task_id 'g3-selection-test') visibles
-// en "Recent Runs" del dashboard que Carlos usa a diario.
+// en "Recent Runs" del dashboard que User usa a diario.
 //
 // Restaurar ORCHESTOS_HOME acá es igual de crítico: sin esto, cualquier archivo
 // de test que corra DESPUÉS de este en el mismo proceso de `bun test` y sea el
@@ -492,7 +492,7 @@ describe('H.8.1 — cli_effort por engine', () => {
 // Antes de BB.1, `executor_mode` (hoy `agent`) se leía en UN SOLO punto del
 // runtime (dashboard/handlers/chat.ts) — una tarea corrida por CLI o escrita
 // a mano en tasks.yaml lo ignoraba por completo, así que la config decía una
-// cosa y el sistema hacía otra en silencio (reporte real de Carlos, 2026-08-16).
+// cosa y el sistema hacía otra en silencio (reporte real de User, 2026-08-16).
 //
 // Mismo truco de verificación que el test de B.2 de arriba: `external` rechaza
 // sandbox 'cwd' con un error canónico, así que ver ESE error es la prueba de que

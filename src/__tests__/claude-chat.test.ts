@@ -1,6 +1,6 @@
 /**
  * CC.1 (Mes 29, 2026-08-16) — `runClaudeChat()`, el camino de chat vía Claude
- * Code CLI para `executor_mode: cli-claude`. Reporte real de Carlos: elegir
+ * Code CLI para `executor_mode: cli-claude`. Reporte real de User: elegir
  * "Claude" en Settings no cambiaba nada en el chat (seguía yendo por la API de
  * OpenRouter) — verificado en código que `handlers/chat.ts` nunca consultaba
  * `executor_mode` para la respuesta conversacional, solo para la tarea que el
@@ -463,7 +463,7 @@ describe('runClaudeChat (CC.1)', () => {
     expect(result.model).toBe('anthropic/claude-sonnet-5')
   })
 
-  // CC.D2 (2026-08-17) — hallazgo real de Carlos usando el picker de alias:
+  // CC.D2 (2026-08-17) — hallazgo real de User usando el picker de alias:
   // pedir "sonnet" (alias, resuelve a lo que sea la versión vigente) devolvía
   // el label "Sonnet" sin decir a qué versión concreta corrió — el request
   // nunca refleja la resolución real del CLI. `modelUsage` en el evento
@@ -557,7 +557,7 @@ describe('runClaudeChat (CC.1)', () => {
     expect(result.contextWindow).toBeNull()
   })
 
-  // CC.1b (2026-08-16) — hallazgo real de Carlos el mismo día del gate de CC.1:
+  // CC.1b (2026-08-16) — hallazgo real de User el mismo día del gate de CC.1:
   // la primera versión no pasaba effort al binario, ni lo devolvía en el label —
   // "muy genérico" (sic). Claude CLI acepta 5 niveles reales (claude --help),
   // no los 3 del selector pensado para el `reasoning` de OpenRouter.

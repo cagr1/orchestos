@@ -40,7 +40,7 @@ export interface RoleAssignment {
 export type AgentChoice = string
 
 /**
- * I.3 (Mes 30, 2026-09-04) — el requisito nuevo de Carlos: con varios proyectos
+ * I.3 (Mes 30, 2026-09-04) — el requisito nuevo de User: con varios proyectos
  * y varios CLIs, la asignación agente+modelo tiene que resolverse POR TAREA, no
  * solo por proyecto entero (`agent` de arriba). Esto es lo que el DAG mixto
  * Claude/Codex del dogfooding necesita ("la tarea 3 corre con Codex, la 7 con

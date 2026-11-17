@@ -2,7 +2,7 @@
  * src/run/executors/cli-registry.ts — G.4.2
  *
  * Detección GENÉRICA de CLIs instalados — registro de datos, no una función
- * `findXBinary()` por cada CLI (corrección de Carlos 2026-07-27: agregar un
+ * `findXBinary()` por cada CLI (corrección de User 2026-07-27: agregar un
  * CLI nuevo debe ser una entrada acá, no código nuevo en otro archivo).
  *
  * Detección es una capa separada de ejecución: un CLI puede aparecer
@@ -334,7 +334,7 @@ export function provisionCliConfigHome(
  * H.9.2 (reabierto 2026-09-06) — la frontera declarada en KNOWN_CLIS es una
  * INTENCIÓN; esto verifica si el binario instalado la sostiene de verdad.
  *
- * Motivo concreto, medido en la máquina de Carlos: convivían dos instalaciones
+ * Motivo concreto, medido en la máquina de User: convivían dos instalaciones
  * de Claude Code (2.1.234 en `~/.local/bin` sombreando a 2.1.263 de npm) y solo
  * una soporta `--restricted`. Asumir la capability por "el CLI se llama claude"
  * habría corrido el chat de proyecto SIN frontera y sin decirlo — exactamente el

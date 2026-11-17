@@ -698,7 +698,7 @@ program
       // 4. Call LLM
       await ensureCatalogLoaded()
       // Mes 22/E.1 — mismo patrón que harness.ts: base = contextWindow − prompt
-      // (decisión de Carlos, feedback-context-no-max-tokens), clamp de seguridad
+      // (decisión de User, feedback-context-no-max-tokens), clamp de seguridad
       // solo con tope real >0. `maxOutputTokensFor` (0→8192) truncaba a 8192.
       const runPromptTokens = estimateTokens(system) + estimateTokens(userContent)
       // Mes 22/E.4 — mismo margen que harness.ts/chat.ts: estimateTokens (chars/4)

@@ -347,7 +347,7 @@ export async function runTask(opts: HarnessOpts): Promise<TaskResult> {
         contextWarnings: ctx.contextWarnings,
       }
     }
-    // Base = `contextWindow − prompt` (decisión de Carlos 2026-06-30, "no reabrir":
+    // Base = `contextWindow − prompt` (decisión de User 2026-06-30, "no reabrir":
     // max_tokens NUNCA sale de un tope de catálogo poco confiable; ver
     // feedback-context-no-max-tokens). El único uso legítimo del tope de catálogo
     // es un clamp de SEGURIDAD hacia abajo cuando el proveedor SÍ publica un límite
@@ -366,7 +366,7 @@ export async function runTask(opts: HarnessOpts): Promise<TaskResult> {
     // the CLI engine; API assignments use apiMode. The top-level agent field no
     // longer selects task engines. Historical reason: BB.1 fixed the mismatch
     // where agent:claude affected chat-created tasks but not manual runs.
-    // Model selection stays independent from engine selection, per Carlos's rule.
+    // Model selection stays independent from engine selection, per User's rule.
     const routeEngine =
       requireTaskEngineForAgent(route?.agent)?.engineId ?? effectiveConfig.apiMode ?? 'single-shot'
     const requestedEngine = ctx.task.engine ?? routeEngine

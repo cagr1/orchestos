@@ -792,7 +792,7 @@ interface ChatTaskBarEventRow {
   created_at: string
 }
 
-// B.1 (Mes 18) — vista de solo lectura para que Carlos vea la evidencia sin
+// B.1 (Mes 18) — vista de solo lectura para que User vea la evidencia sin
 // pedirme que corra un query. Ver docs/done/design/chat-task-detection-design.md.
 export async function handleApiChatTaskBarEvents(): Promise<Response> {
   const events = db
@@ -912,7 +912,7 @@ async function handleApiChat(
     `[chat-turn] ${JSON.stringify({ event: 'received', sessionId: body.sessionId ?? null, agent: body.agent ?? null, model: body.model ?? null, messageChars: message.length })}`,
   )
 
-  // CC.1b (2026-08-16) — hallazgo real de Carlos el mismo día del gate de CC.1:
+  // CC.1b (2026-08-16) — hallazgo real de User el mismo día del gate de CC.1:
   // el selector de esfuerzo (3 niveles, pensado para el `reasoning` de OpenRouter)
   // no alcanza a Claude Code CLI, que acepta 5 niveles reales (`claude --help`:
   // low/medium/high/xhigh/max). `root`/`chatAgent` se calculan acá (temprano,

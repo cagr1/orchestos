@@ -653,3 +653,12 @@ desconocidos: `priceIn`/`priceOut` = 0 y `priceCache*` omitidos. No toca `knownM
 **Clasificación**: RESPETÓ.
 **Por qué**: persiste los IDs de lecciones seleccionadas por el middleware en cada salida que crea
 un run; conserva la derivación de contexto/max_tokens y el contrato de QA.
+
+---
+
+## 2026-11-17 11:27 America/Guayaquil — gpt-6-luna (ejecutor CHK.1 lote 2), revisado por claude-opus-5-5
+
+**Regla tocada**: [[feedback-context-no-max-tokens]] — `src/run/harness.ts` y `src/router/model-catalog.ts`.
+**Clasificación**: RESPETÓ.
+**Por qué**: solo cambia la palabra del nombre propio por `User` en dos comentarios (regla 15 de CHK.1); word-diff
+de `src/` confirma que no cambia código. La derivación de `max_tokens` queda intacta.

@@ -100,7 +100,7 @@ export async function handleApiConfigGet(root: string | null = process.cwd()): P
     // CC.D1 (2026-08-17) — `executorEngine` renombrado a `apiMode` (solo aplica
     // cuando `agent` es 'api'/ausente). `executor_mode` renombrado a `agent`.
     apiMode: cfg.apiMode ?? 'single-shot',
-    // CC.1b bugfix (2026-08-17) — hallazgo real de Carlos: bajó el server varias
+    // CC.1b bugfix (2026-08-17) — hallazgo real de User: bajó el server varias
     // veces y el selector de esfuerzo del chat seguía mostrando 3 niveles en vez
     // de 5. Causa real: este endpoint nunca devolvía la preferencia de agente —
     // el PUT (más abajo) sí la escribía al YAML, pero el GET no la leía de
@@ -128,7 +128,7 @@ export async function handleApiConfigInit(root = process.cwd()): Promise<Respons
   return jsonResponse({ ok: true, path: configPath })
 }
 
-// Fix real (2026-07-08): Carlos notó que la vista de roles en Settings era de
+// Fix real (2026-07-08): User notó que la vista de roles en Settings era de
 // solo lectura — ni la CLI (config init/show) ni el dashboard tenían forma de
 // CAMBIAR el modelo por rol, solo mostrarlo. Este endpoint escribe directo a
 // orchestos.config.yaml (lo crea si no existía, mismo efecto que config init

@@ -13,7 +13,7 @@ const MAX_TOTAL_CHARS = 26_000
 /**
  * Las guías genéricas (engineering-baseline/disciplines/languages) son conocimiento de OrchestOS,
  * no del proyecto que gestiona — viven centralizadas en la instalación de OrchestOS y no viajan
- * copiadas a cada proyecto nuevo (decisión Carlos, 2026-07-30, IDEAS #M). `project-profile.md` es
+ * copiadas a cada proyecto nuevo (decisión User, 2026-07-30, IDEAS #M). `project-profile.md` es
  * la única excepción: describe el repo detectado, así que sigue leyéndose solo desde `root` y
  * NUNCA cae al fallback (mostrar el perfil de OrchestOS en un proyecto ajeno sería activamente
  * engañoso, peor que no mostrar nada).

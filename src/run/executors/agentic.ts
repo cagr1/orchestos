@@ -16,7 +16,7 @@ import { check, z } from '../../boundary/index.ts'
  *
  * Terminación del loop: maxIterations es una garantía de terminación
  * (anti-loop-infinito), NO un tope de gasto — OrchestOS no pone techos de
- * dinero (decisión Carlos 2026-07-02, ver docs/done/design/executor-engine-design.md §3).
+ * dinero (decisión User 2026-07-02, ver docs/done/design/executor-engine-design.md §3).
  */
 
 import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs'

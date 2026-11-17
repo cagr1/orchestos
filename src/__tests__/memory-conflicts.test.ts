@@ -23,7 +23,7 @@ afterAll(() => {
   // I.6 (Mes 18) — este archivo dejaba ~16 filas de fixture (topic-a..topic-p,
   // "Alpha"/"Entry A content"/etc.) permanentes en memory_entries: no había
   // afterAll, a diferencia de memory_conflicts que sí se limpiaba. Eso hacía
-  // que el dashboard real de Carlos mostrara memory cards con contenido de
+  // que el dashboard real de User mostrara memory cards con contenido de
   // 1-2 palabras sin sentido, dando la falsa impresión de un bug de UI
   // (IDEAS.md #20 — no dejar filas de test en la DB real).
   db.run(
