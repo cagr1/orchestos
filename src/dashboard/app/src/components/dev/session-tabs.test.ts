@@ -5,6 +5,7 @@ import {
   convertNewTab,
   emptySessionTabs,
   openNewTab,
+  openPreviewTab,
   openSessionTab,
   openTerminalTab,
   persistedDevTabs,
@@ -68,6 +69,19 @@ describe('Unified Dev tabs', () => {
     expect(persistedDevTabs(openFileTab(fixed, 'preview')).tabs).toEqual(fixed.tabs)
     expect(persistedDevTabs(openSessionTab(fixed, 'a')).activeId).toBe('a')
   })
+})
+
+test('preview opens once, reactivates in place and is excluded from persistence', () => {
+  const initial = openSessionTab(emptySessionTabs(), 'session')
+  const preview = openPreviewTab(initial)
+  expect(preview.tabs[1].type).toBe('preview')
+  expect(preview.activeId).toStartWith('preview:')
+  const switched = openFileTab(preview, 'README.md', true)
+  expect(openPreviewTab(switched)).toEqual({ ...switched, activeId: preview.activeId })
+  expect(closeSessionTab(preview, preview.activeId!)).toEqual(initial)
+  expect(persistedDevTabs(preview)).toEqual(initial)
+  expect(restoreSessionTabs(preview, ['session'])).toEqual(initial)
+  expect(persistedDevTabs(openPreviewTab(emptySessionTabs()))).toEqual(emptySessionTabs())
 })
 
 test('new tabs retain independently chosen agents through persistence and restoration', () => {

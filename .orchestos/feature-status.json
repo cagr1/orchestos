@@ -208,6 +208,14 @@
       "sprint": "Etapa 2 — Uso real",
       "block": null,
       "title": "Dev no tiene navegador integrado para ver lo que construye el agente",
+      "status": "done",
+      "closedDate": null
+    },
+    {
+      "id": "USO.21",
+      "sprint": "Etapa 2 — Uso real",
+      "block": null,
+      "title": "El agente ve la app que construye (F2 de USO.20)",
       "status": "open",
       "closedDate": null
     },

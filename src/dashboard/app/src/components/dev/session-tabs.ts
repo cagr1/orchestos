@@ -1,6 +1,7 @@
 export type DevTab =
   | { type: 'session'; id: string }
   | { type: 'terminal'; id: string }
+  | { type: 'preview'; id: string }
   | { type: 'file' | 'diff'; id: string; path: string; pinned: boolean }
   | { type: 'new'; id: string; agent?: string }
 export interface SessionTabs {
@@ -22,6 +23,12 @@ export function openTerminalTab(state: SessionTabs): SessionTabs {
   if (existing) return { ...state, activeId: existing.id }
   const id = `terminal:${crypto.randomUUID()}`
   return { tabs: [...state.tabs, { type: 'terminal', id }], activeId: id }
+}
+export function openPreviewTab(state: SessionTabs): SessionTabs {
+  const existing = state.tabs.find((tab) => tab.type === 'preview')
+  if (existing) return { ...state, activeId: existing.id }
+  const id = `preview:${crypto.randomUUID()}`
+  return { tabs: [...state.tabs, { type: 'preview', id }], activeId: id }
 }
 export function openNewTab(
   state: SessionTabs,
@@ -50,7 +57,9 @@ export function closeSessionTab(state: SessionTabs, id: string): SessionTabs {
 export function persistedDevTabs(state: SessionTabs): SessionTabs {
   const tabs = state.tabs.filter(
     (tab) =>
-      tab.type !== 'terminal' && ((tab.type !== 'file' && tab.type !== 'diff') || tab.pinned),
+      tab.type !== 'terminal' &&
+      tab.type !== 'preview' &&
+      ((tab.type !== 'file' && tab.type !== 'diff') || tab.pinned),
   )
   return {
     tabs,

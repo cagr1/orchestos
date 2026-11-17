@@ -1,4 +1,4 @@
-import { RefreshCw, SquareTerminal } from 'lucide-react'
+import { Globe, RefreshCw, SquareTerminal } from 'lucide-react'
 import type React from 'react'
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { Tooltip } from '@/components/ui/tooltip'
@@ -113,6 +113,8 @@ interface ShellStatusBarProps {
   /** Presente solo en Dev: muestra el botón Terminal. */
   onToggleTerminal?: () => void
   terminalOpen?: boolean
+  onTogglePreview?: () => void
+  previewOpen?: boolean
 }
 
 export const ShellStatusBar: React.FC<ShellStatusBarProps> = ({
@@ -121,6 +123,8 @@ export const ShellStatusBar: React.FC<ShellStatusBarProps> = ({
   onRefresh,
   onToggleTerminal,
   terminalOpen = false,
+  onTogglePreview,
+  previewOpen = false,
 }) => {
   const [activeCliId, setActiveCliId] = useState<string | null>(null)
   const [status, setStatus] = useState<SessionStatus | null>(incomingStatus ?? null)
@@ -161,7 +165,7 @@ export const ShellStatusBar: React.FC<ShellStatusBarProps> = ({
     }
   }, [activeCliId])
 
-  if (quotas.length === 0 && !onToggleTerminal) return null
+  if (quotas.length === 0 && !onToggleTerminal && !onTogglePreview) return null
 
   const activeCli = quotas.find((c) => c.id === activeCliId)
   const fiveHourTone = quotaTone(activeCli?.quota5h ?? null)
@@ -230,6 +234,24 @@ export const ShellStatusBar: React.FC<ShellStatusBarProps> = ({
         )}
       </div>
 
+      {onTogglePreview && (
+        <Tooltip content="Preview">
+          <button
+            type="button"
+            data-preview-toggle
+            onClick={onTogglePreview}
+            aria-pressed={previewOpen}
+            className={`ml-auto flex items-center gap-1.5 py-0.5 px-1.5 rounded-control transition-colors ${
+              previewOpen
+                ? 'bg-app-elevated border border-app text-app'
+                : 'hover:bg-app-surface/60 text-app-muted hover:text-app'
+            }`}
+          >
+            <Globe className="w-3.5 h-3.5" />
+            <span className="text-[11px]">Preview</span>
+          </button>
+        </Tooltip>
+      )}
       {onToggleTerminal && (
         <Tooltip content="Terminal (Ctrl+`)">
           <button
@@ -237,7 +259,7 @@ export const ShellStatusBar: React.FC<ShellStatusBarProps> = ({
             data-terminal-toggle
             onClick={onToggleTerminal}
             aria-pressed={terminalOpen}
-            className={`ml-auto flex items-center gap-1.5 py-0.5 px-1.5 rounded-control transition-colors ${
+            className={`${onTogglePreview ? '' : 'ml-auto '}flex items-center gap-1.5 py-0.5 px-1.5 rounded-control transition-colors ${
               terminalOpen
                 ? 'bg-app-elevated border border-app text-app'
                 : 'hover:bg-app-surface/60 text-app-muted hover:text-app'

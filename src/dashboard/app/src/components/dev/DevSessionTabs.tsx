@@ -1,4 +1,4 @@
-import { GitCompare, Loader2, Plus, SquareTerminal, X } from 'lucide-react'
+import { GitCompare, Globe, Loader2, Plus, SquareTerminal, X } from 'lucide-react'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { Tooltip } from '@/components/ui/tooltip'
@@ -165,9 +165,11 @@ export function DevSessionTabs({
               ? `${tab.path.split('/').pop()}${tab.type === 'diff' ? ' (diff)' : ''}`
               : tab.type === 'terminal'
                 ? 'Terminal'
-                : tab.type === 'new'
-                  ? 'New session'
-                  : (session?.name ?? 'Session')
+                : tab.type === 'preview'
+                  ? 'Preview'
+                  : tab.type === 'new'
+                    ? 'New session'
+                    : (session?.name ?? 'Session')
           return (
             <div
               key={tab.id}
@@ -184,6 +186,7 @@ export function DevSessionTabs({
                     data-file-tab={tab.type === 'file' ? tab.path : undefined}
                     data-diff-tab={tab.type === 'diff' ? tab.path : undefined}
                     data-terminal-tab={tab.type === 'terminal' ? tab.id : undefined}
+                    data-preview-tab={tab.type === 'preview' ? tab.id : undefined}
                     data-new-session-tab={tab.type === 'new' ? tab.id : undefined}
                     onClick={() => onSelect(tab.id)}
                     onDoubleClick={() => {
@@ -194,6 +197,8 @@ export function DevSessionTabs({
                   >
                     {tab.type === 'terminal' ? (
                       <SquareTerminal size={14} />
+                    ) : tab.type === 'preview' ? (
+                      <Globe size={14} />
                     ) : tab.type === 'diff' ? (
                       <GitCompare size={14} className="text-app-accent" />
                     ) : tab.type === 'file' ? (
@@ -227,6 +232,7 @@ export function DevSessionTabs({
                   data-file-tab={tab.type === 'file' ? tab.path : undefined}
                   data-diff-tab={tab.type === 'diff' ? tab.path : undefined}
                   data-terminal-tab={tab.type === 'terminal' ? tab.id : undefined}
+                  data-preview-tab={tab.type === 'preview' ? tab.id : undefined}
                   data-new-session-tab={tab.type === 'new' ? tab.id : undefined}
                   onClick={() => onSelect(tab.id)}
                   onDoubleClick={() => {
@@ -237,6 +243,8 @@ export function DevSessionTabs({
                 >
                   {tab.type === 'terminal' ? (
                     <SquareTerminal size={14} />
+                  ) : tab.type === 'preview' ? (
+                    <Globe size={14} />
                   ) : tab.type === 'diff' ? (
                     <GitCompare size={14} className="text-app-accent" />
                   ) : tab.type === 'file' ? (

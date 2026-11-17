@@ -292,7 +292,7 @@ esta etapa: `docs/done/bloque-AUD.md` (AUD.16, AUD.17), `docs/done/bloque-SES.md
   Texto visible: "First message (optional)", "Ask anything" (etiqueta y placeholder del campo de New chat en Chat)
   Ejecutado por: claude-opus-5-5
   Sin delegación: fix chico con el contexto ya leído; el spec solo sirvió para la revisión qa.
-- [ ] **USO.20 — Dev no tiene navegador integrado para ver lo que construye el agente.** (Carlos, 2026-11-17, al
+- [x] **USO.20 — Dev no tiene navegador integrado para ver lo que construye el agente.** (Carlos, 2026-11-17, al
   empezar un e-commerce de demo para un cliente) Hoy no existe nada parecido: no hay iframe ni panel de vista previa
   en `src/dashboard/app/src/components/dev/` y el ítem no está en `PLAN.md` ni en `IDEAS.md`. Orca y los ADE de
   referencia lo traen. F1: panel "Preview" en Dev con barra de URL, recargar y abrir fuera, apuntando a
@@ -305,6 +305,18 @@ esta etapa: `docs/done/bloque-AUD.md` (AUD.16, AUD.17), `docs/done/bloque-SES.md
   del puerto. Spec: `docs/specs/USO.20.md`. Contexto: Tauri usa WKWebView en macOS (no controlable por Playwright),
   así que F2 sigue necesitando Playwright aparte salvo Electron; decidirlo junto con Tauri vs Electron.
   Texto visible: "Preview", "Reload", "Open in browser", "Enter an http:// or https:// URL", "Run your dev server in the terminal and enter its URL above"
+  Hecho F1: `session-tabs.ts` (`preview`, `openPreviewTab`, no se persiste), `preview-url.ts` (solo http/https),
+  `DevPreviewPanel.tsx`, pestaña con `Globe` en `DevSessionTabs.tsx`, botón en `ShellStatusBar.tsx`, montaje en
+  `App.tsx`. Tests: `session-tabs.test.ts`, `preview-url.test.ts` (fallan sin el cambio). Diff de Sol leído por el
+  cerebro (otro proveedor): acotado al spec, sin defectos. F2 pasa a USO.21. No probado: "Open in browser".
+  Gate en vivo: navegador (browser pane), dashboard 4242 con servidor de prueba en 5199 — carga, URL inválida, estado al cambiar de pestaña, Reload y URL guardada; `docs/done/evidence/USO.20-live.json`
+  Texto visible: "Preview" (pestaña y botón de la barra de estado, como "Terminal" al lado: un globo solo no dice que es la vista de la app), "http://localhost:3000" (placeholder: muestra el formato esperado), "Enter an http:// or https:// URL" y "Run your dev server in the terminal and enter its URL above" (error y estado vacío: un ícono no explica qué hacer)
+  Ejecutado por: gpt-6.1-sol · Spec: docs/specs/USO.20.md
+- [ ] **USO.21 — El agente ve la app que construye (F2 de USO.20).** (Carlos, 2026-11-17) Herramientas Playwright
+  en el MCP de OrchestOS (`src/mcp/server.ts`): captura, consola y clic sobre la URL de la pestaña Preview, con las
+  capturas visibles en el hilo; funciona con cualquier CLI que hable MCP. Playwright pasa de `devDependencies` a
+  dependencia y descarga Chromium al primer uso. Decidir junto con Tauri vs Electron (Electron permite que el
+  agente vea la misma vista que Carlos). Después de usar F1 en la demo; plan corto y GO antes de código.
 - [ ] **LRN.2 — Una lección probada se gradúa a check, no solo a `AGENTS.md`.** (Carlos, 2026-11-17; mismo principio
   que CHK.1, aplicado al producto) LRN.1 gradúa lecciones a texto de `AGENTS.md`
   (`docs/specs/LRN-1-opinion-fable.md:79`). Agregar un segundo destino: si la firma del fallo es detectable en el diff

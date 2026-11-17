@@ -1,7 +1,22 @@
 {
-  "exported_at": "2026-11-17T21:14:34.303Z",
+  "exported_at": "2026-11-17T21:21:37.178Z",
   "total_runs": 20,
   "runs": [
+    {
+      "id": "c074be2a-c91e-4a78-8e7a-8ff3cbfaf0e3",
+      "task_class": "chat",
+      "model": "claude-opus-5-5",
+      "provider": "claude",
+      "status": "done",
+      "qa_verdict": null,
+      "qa_reason": null,
+      "files_blocked": [],
+      "checks_failed": 0,
+      "usd_cost": 0.087168,
+      "elapsed_ms": 11492,
+      "tokens": 862,
+      "created_at": "2026-11-17T21:17:26.742Z"
+    },
     {
       "id": "91543e30-9df7-43dd-88e7-a0eb80e2e13f",
       "task_class": "chat",
@@ -286,21 +301,6 @@
       "elapsed_ms": 12321,
       "tokens": 8724,
       "created_at": "2026-11-14T18:47:54.193Z"
-    },
-    {
-      "id": "cea40a2c-56e4-4b37-9a02-66749d64950f",
-      "task_class": "gate:uso.14-auto-flow:implement",
-      "model": "haiku",
-      "provider": "claude",
-      "status": "done",
-      "qa_verdict": "pass",
-      "qa_reason": "El archivo contiene una sola línea con el texto exacto solicitado.",
-      "files_blocked": [],
-      "checks_failed": 0,
-      "usd_cost": 0.0014881900000000001,
-      "elapsed_ms": 10227,
-      "tokens": 3493,
-      "created_at": "2026-11-14T18:47:19.844Z"
     }
   ],
   "stats": {
@@ -308,6 +308,6 @@
     "blocked": 0,
     "done": 17,
     "qa_failed": 5,
-    "total_cost_usd": "0.1287"
+    "total_cost_usd": "0.2144"
   }
 }

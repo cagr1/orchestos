@@ -1,0 +1,34 @@
+{
+  "item": "USO.20 F1",
+  "date": "2026-11-17",
+  "dashboard": "http://localhost:4242, proyecto orchestos en Dev",
+  "fixture": "python3 -m http.server 5199 sirviendo una página 'AgroTienda demo' con botón y marca de tiempo (/tmp, borrada al terminar)",
+  "checks": [
+    {
+      "step": "Botón 'Preview' de la barra de estado en Dev",
+      "result": "abre la pestaña Preview con el estado vacío 'Run your dev server in the terminal and enter its URL above'"
+    },
+    {
+      "step": "URL 'javascript:alert(1)' + Enter",
+      "result": "no navega; alerta 'Enter an http:// or https:// URL'"
+    },
+    {
+      "step": "URL 'localhost:5199' + Enter",
+      "result": "normaliza a http://localhost:5199/ y carga la página en el iframe"
+    },
+    {
+      "step": "Clic en 'Comprar' dentro del iframe, cambiar a otra pestaña de Dev y volver",
+      "result": "conserva 'clicks: 1' (la pestaña sigue montada)"
+    },
+    {
+      "step": "Botón Reload",
+      "result": "la página se recarga: marca de tiempo nueva, contador reiniciado"
+    },
+    {
+      "step": "Recargar el dashboard y reabrir Preview",
+      "result": "la pestaña no se persiste; al reabrirla carga la URL guardada en localStorage 'orchestos-preview-url:73903c93c6bd19e0'"
+    }
+  ],
+  "gates_cerebro": "bunx tsc --noEmit y -p src/dashboard/app sin errores; bun test src/dashboard/app/src/components/dev/ 44 pass 0 fail; bun run build:app ok",
+  "not_verified": "'Open in browser' (abre una ventana nueva; no se probó en el panel); apps con X-Frame-Options/CSP frame-ancestors no cargan en el iframe (límite conocido de F1)."
+}

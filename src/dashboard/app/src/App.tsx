@@ -68,6 +68,7 @@ import { ConfirmDialog } from './components/common/ConfirmDialog'
 import type { ProjectAddAction } from './components/common/ProjectAddButton'
 import { DevDiffPanel } from './components/dev/DevDiffPanel'
 import { DevFilePanel } from './components/dev/DevFilePanel'
+import { DevPreviewPanel } from './components/dev/DevPreviewPanel'
 import { DevSessionTabs } from './components/dev/DevSessionTabs'
 import { DiscardChangesModal } from './components/dev/DiscardChangesModal'
 import {
@@ -88,6 +89,7 @@ import {
   convertNewTab,
   emptySessionTabs,
   openNewTab,
+  openPreviewTab,
   openSessionTab,
   openTerminalTab,
   persistedDevTabs,
@@ -234,9 +236,13 @@ export default function App() {
                 }
               })(),
             )
-            if (!live?.tabs.some((tab) => tab.type === 'terminal')) return restored
+            if (!live?.tabs.some((tab) => tab.type === 'terminal' || tab.type === 'preview'))
+              return restored
             const tabs = live.tabs.filter(
-              (tab) => tab.type === 'terminal' || restored.tabs.some((item) => item.id === tab.id),
+              (tab) =>
+                tab.type === 'terminal' ||
+                tab.type === 'preview' ||
+                restored.tabs.some((item) => item.id === tab.id),
             )
             return {
               tabs,
@@ -702,6 +708,9 @@ export default function App() {
 
   const handleOpenTerminal = () => {
     if (currentProject) updateDevTabs(currentProject.id, openTerminalTab)
+  }
+  const handleOpenPreview = () => {
+    if (currentProject) updateDevTabs(currentProject.id, openPreviewTab)
   }
 
   const activeThread = threads.find(
@@ -2241,6 +2250,7 @@ export default function App() {
                     />
                   ) : activeDevTab &&
                     activeDevTab.type !== 'terminal' &&
+                    activeDevTab.type !== 'preview' &&
                     activeAgent?.agent !== 'opencode' &&
                     currentProject &&
                     !deletingProjectIds.has(currentProject.id) ? (
@@ -2280,6 +2290,17 @@ export default function App() {
                   ) : null}
                   {currentProject &&
                     activeDevTabs.tabs.map((tab) => {
+                      if (tab.type === 'preview')
+                        return (
+                          <div
+                            key={tab.id}
+                            hidden={tab.id !== activeDevTabs.activeId}
+                            data-dev-preview=""
+                            className="flex-1 min-h-0 min-w-0 overflow-hidden flex flex-col"
+                          >
+                            <DevPreviewPanel projectId={currentProject.id} />
+                          </div>
+                        )
                       const isShell = tab.type === 'terminal'
                       if (
                         !isShell &&
@@ -2415,6 +2436,8 @@ export default function App() {
           onRefresh={() => void refreshUsage()}
           onToggleTerminal={mode === 'dev' ? handleOpenTerminal : undefined}
           terminalOpen={activeDevTab?.type === 'terminal'}
+          onTogglePreview={mode === 'dev' ? handleOpenPreview : undefined}
+          previewOpen={activeDevTab?.type === 'preview'}
         />
         {showCloneProject && (
           <CloneProjectDialog
