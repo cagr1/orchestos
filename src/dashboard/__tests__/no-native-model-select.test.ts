@@ -1,6 +1,7 @@
 import { expect, it } from 'bun:test'
 import { readdirSync, readFileSync } from 'node:fs'
 import { join, relative } from 'node:path'
+import { fileURLToPath } from 'node:url'
 import ts from 'typescript'
 
 function stringLiterals(node: ts.Node): string[] {
@@ -86,7 +87,7 @@ function tsxFiles(directory: string): string[] {
   })
 }
 
-const appRoot = new URL('../app/src/', import.meta.url).pathname
+const appRoot = fileURLToPath(new URL('../app/src/', import.meta.url))
 
 it('finds native model selects in literal attributes, expressions, and labels', () => {
   expect(findNativeModelSelects('<select aria-label="Default model">')).toHaveLength(1)

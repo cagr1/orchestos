@@ -171,8 +171,8 @@ test('OpenCode respects XDG_DATA_HOME and HOME with a system home fallback', asy
   await f.read(true)
   expect(paths).toEqual([
     join(homedir(), '.local/share/opencode/auth.json'),
-    '/custom-home/.local/share/opencode/auth.json',
-    '/custom-data/opencode/auth.json',
+    join('/custom-home', '.local/share/opencode/auth.json'),
+    join('/custom-data', 'opencode/auth.json'),
   ])
 })
 

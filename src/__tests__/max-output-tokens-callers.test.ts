@@ -1,6 +1,7 @@
 import { expect, it } from 'bun:test'
 import { readdirSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
+import { fileURLToPath } from 'node:url'
 import ts from 'typescript'
 
 export function findMaxOutputTokensCallers(source: string, fileName = 'fixture.ts'): string[] {
@@ -11,7 +12,7 @@ export function findMaxOutputTokensCallers(source: string, fileName = 'fixture.t
       ts.isIdentifier(node) &&
       node.text === 'maxOutputTokensFor' &&
       !(
-        fileName.endsWith('src/router/model-catalog.ts') &&
+        fileName.replaceAll('\\', '/').endsWith('src/router/model-catalog.ts') &&
         ts.isFunctionDeclaration(node.parent) &&
         node.parent.name === node
       )
@@ -32,7 +33,7 @@ function sourceFiles(directory: string): string[] {
   })
 }
 
-const srcRoot = new URL('../', import.meta.url).pathname
+const srcRoot = fileURLToPath(new URL('../', import.meta.url))
 
 it('finds calls and aliases but ignores comments', () => {
   expect(findMaxOutputTokensCallers("maxOutputTokensFor('x')")).toHaveLength(1)

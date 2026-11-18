@@ -120,7 +120,7 @@ test('terminal upgrade requires a token and accepts query authentication', async
   })
 })
 
-test('token file has mode 600 and is reused across server restarts; env overrides it', async () => {
+test('token file is private on POSIX and reused across server restarts; env overrides it', async () => {
   const root = mkdtempSync(join(tmpdir(), 'aud7-token-'))
   roots.push(root)
   process.env.ORCHESTOS_HOME = root
@@ -130,7 +130,7 @@ test('token file has mode 600 and is reused across server restarts; env override
   const path = join(root, '.orchestos', 'dashboard-token')
   const token = readFileSync(path, 'utf8')
   expect(token).toMatch(/^[a-f0-9]{64}$/)
-  expect(statSync(path).mode & 0o777).toBe(0o600)
+  if (process.platform !== 'win32') expect(statSync(path).mode & 0o777).toBe(0o600)
   first.server.stop(true)
   const second = startServer(0)
   servers.push(second.server)

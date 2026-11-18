@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it } from 'bun:test'
-import { homedir } from 'node:os'
+import { homedir, tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { orchestosDir, orchestosHome } from '../config/orchestos-home.ts'
 
@@ -12,8 +12,9 @@ afterEach(() => {
 
 describe('orchestos-home', () => {
   it('usa ORCHESTOS_HOME para resolver .orchestos', () => {
-    process.env.ORCHESTOS_HOME = '/tmp/orchestos-home-test'
-    expect(orchestosDir()).toBe('/tmp/orchestos-home-test/.orchestos')
+    const root = join(tmpdir(), 'orchestos-home-test')
+    process.env.ORCHESTOS_HOME = root
+    expect(orchestosDir()).toBe(join(root, '.orchestos'))
   })
 
   it('usa el home del usuario cuando ORCHESTOS_HOME no está definido', () => {
@@ -23,9 +24,11 @@ describe('orchestos-home', () => {
   })
 
   it('lee ORCHESTOS_HOME en cada llamada', () => {
-    process.env.ORCHESTOS_HOME = '/tmp/orchestos-home-first'
-    expect(orchestosDir()).toBe('/tmp/orchestos-home-first/.orchestos')
-    process.env.ORCHESTOS_HOME = '/tmp/orchestos-home-second'
-    expect(orchestosDir()).toBe('/tmp/orchestos-home-second/.orchestos')
+    const first = join(tmpdir(), 'orchestos-home-first')
+    const second = join(tmpdir(), 'orchestos-home-second')
+    process.env.ORCHESTOS_HOME = first
+    expect(orchestosDir()).toBe(join(first, '.orchestos'))
+    process.env.ORCHESTOS_HOME = second
+    expect(orchestosDir()).toBe(join(second, '.orchestos'))
   })
 })

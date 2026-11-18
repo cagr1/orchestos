@@ -54,8 +54,8 @@ it('AUD.20 concurrent config updates preserve both fields', async () => {
 it('AUD.20-fix config updates preserve private destination permissions', async () => {
   const path = join(root, 'orchestos.config.yaml')
   await handleApiConfigInit(root)
-  chmodSync(path, 0o600)
+  if (process.platform !== 'win32') chmodSync(path, 0o600)
   expect((await put({ permissionMode: 'manual' })).status).toBe(200)
   expect(readFileSync(path, 'utf8')).toContain('permissionMode: manual')
-  expect(statSync(path).mode & 0o7777).toBe(0o600)
+  if (process.platform !== 'win32') expect(statSync(path).mode & 0o7777).toBe(0o600)
 })

@@ -535,10 +535,8 @@ esta etapa: `docs/done/bloque-AUD.md` (AUD.16, AUD.17), `docs/done/bloque-SES.md
   PC de Carlos. `run-revert` es el flaky conocido. Los 35 restantes se reparten en WIN.18–WIN.20.
   Evidencia: `docs/done/evidence/WIN.17-ci.txt`.
   Sin delegación: corrida de CI y reparto, sin cambio de código.
-- [ ] **WIN.18 — Tests con supuestos POSIX en Windows.** (WIN.17, 2026-11-16) Modos `0o600`/`0o755` que Windows
-  no aplica (`auth-token`, `db-backup`, `config-permission-mode`, `contract` "preserves executable destination
-  permissions") y rutas `/tmp/…` o XDG fijas (`orchestos-home` 2, `cli-health` OpenCode). Saltar en win32 o usar
-  `join`/`tmpdir`; no tocar producto. El riesgo real (token y BD con permisos heredados) sigue anotado en `NEXT.md`.
+- [x] **WIN.18 — Tests con supuestos POSIX en Windows.** → [evidencia](docs/done/bloque-WIN.md#win18)
+  Sin delegación: ajustes chicos. QA con Codex sin hallazgos, sin revisión de otro proveedor.
 - [ ] **WIN.19 — CLIs falsos de los tests sin shim de Windows.** (WIN.17, 2026-11-16) Los fixtures crean `claude` o
   `codex` como script sin extensión y en Windows no se encuentran ("binary \"claude\" not found in PATH"):
   `chat-sessions` 8 (incluye LRN.1b), `chat-r5-reliability` 6, `chat-adapters` 1, `cli-search-path` 1. Es el paso (4)

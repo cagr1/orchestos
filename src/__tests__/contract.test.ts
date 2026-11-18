@@ -268,10 +268,10 @@ it('AUD.20-fix attempts every rollback and preserves the original error as cause
 it('AUD.20-fix preserves executable destination permissions', () => {
   const destination = join(TMP_ROOT, 'script.sh')
   writeFileSync(destination, 'old')
-  chmodSync(destination, 0o755)
+  if (process.platform !== 'win32') chmodSync(destination, 0o755)
   enforceContract(TMP_ROOT, { files: [{ path: 'script.sh', content: 'new' }] }, ['script.sh'])
   expect(readFileSync(destination, 'utf8')).toBe('new')
-  expect(statSync(destination).mode & 0o7777).toBe(0o755)
+  if (process.platform !== 'win32') expect(statSync(destination).mode & 0o7777).toBe(0o755)
 })
 
 it('AUD.20-fix cleans a temporary after a partial write failure', () => {
