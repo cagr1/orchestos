@@ -410,6 +410,14 @@
       "title": "Rojos de Windows que pueden ser producto",
       "status": "open",
       "closedDate": null
+    },
+    {
+      "id": "WIN.21",
+      "sprint": "Etapa 3 — Windows",
+      "block": null,
+      "title": "El menú de Claude pierde los metadatos de plugins en Windows",
+      "status": "done",
+      "closedDate": null
     }
   ]
 }

@@ -1,6 +1,6 @@
 import { readFileSync } from 'node:fs'
 import { homedir } from 'node:os'
-import { basename, dirname, join, relative } from 'node:path'
+import { basename, dirname, join, relative, sep } from 'node:path'
 import { parseJson, parseYamlText, z } from '../boundary'
 import { listCodexChatSkills } from '../run/executors/codex.ts'
 import { findClaudeBinary } from '../run/executors/external.ts'
@@ -136,7 +136,7 @@ function claudeDescriptions(cwd: string, home: string): Map<string, ClaudeComman
         try {
           const name =
             basename(file) === 'SKILL.md' ? basename(dirname(file)) : basename(file, '.md')
-          const parts = relative(root, join(root, file)).split('/')
+          const parts = relative(root, join(root, file)).split(sep)
           const category = parts.findIndex((part) => part === 'commands' || part === 'skills')
           // Cache layout: cache/<marketplace>/<plugin>/<version>/{commands,skills}/...
           const pluginName = plugin

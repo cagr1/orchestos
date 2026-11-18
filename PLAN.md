@@ -548,6 +548,7 @@ esta etapa: `docs/done/bloque-AUD.md` (AUD.16, AUD.17), `docs/done/bloque-SES.md
   diffs de Codex), `worktree-contract` 3 (uno es fixture: `out*.txt` no es un nombre válido en Windows; los otros dos,
   merge con exclusiones y renombres), `contract` "attempts every rollback", `tasks-api-init` 1 (crear la primera
   tarea sin init) y `usage-endpoint` 1 (agrupar por día local). Producto roto → arreglo con test; test POSIX → WIN.18.
+- [x] **WIN.21 — El menú de Claude pierde los metadatos de plugins en Windows.** → [evidencia](docs/done/bloque-WIN.md#win21)
 
 ## Decisiones pendientes de Carlos
 
