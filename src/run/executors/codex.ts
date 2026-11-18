@@ -180,7 +180,9 @@ async function runCodex(
   signal?: AbortSignal,
   input?: string,
 ): Promise<{ stdout: string; timedOut: boolean }> {
-  const proc = spawnTree([CODEX_BINARY, ...args], {
+  const binary = findCodexBinary()
+  if (!binary) throw new ExecutorCodexError(codexUnavailableMessage(env.PATH))
+  const proc = spawnTree([binary, ...args], {
     cwd,
     env,
     stdin: input === undefined ? 'ignore' : new Blob([input]),

@@ -2,6 +2,7 @@ import { existsSync, readdirSync, readFileSync } from 'node:fs'
 import { homedir } from 'node:os'
 import { registerNativeOpencodeModels } from '../router/opencode-catalog.ts'
 import { cliChatAdapterFor } from '../run/executors/chat-adapters.ts'
+import { whichCli } from '../run/executors/cli-discovery.ts'
 import { detectInstalledClis } from '../run/executors/cli-registry.ts'
 import { safeChildEnv } from '../run/path-policy.ts'
 
@@ -38,7 +39,8 @@ export const defaultRunner: CommandRunner = async (
   args,
   timeoutMs = CLI_CATALOG_TIMEOUT_MS,
 ) => {
-  const process = Bun.spawn([command, ...args], {
+  const binary = whichCli(command) ?? command
+  const child = Bun.spawn([binary, ...args], {
     env: safeChildEnv(),
     stdout: 'pipe',
     stderr: 'ignore',
@@ -46,10 +48,10 @@ export const defaultRunner: CommandRunner = async (
   let timer: ReturnType<typeof setTimeout> | undefined
   try {
     const result = await Promise.race([
-      Promise.all([new Response(process.stdout).text(), process.exited]),
+      Promise.all([new Response(child.stdout).text(), child.exited]),
       new Promise<never>((_, reject) => {
         timer = setTimeout(() => {
-          process.kill()
+          child.kill()
           reject(new Error(`${command} ${args.join(' ')} timed out after ${timeoutMs / 1000} s`))
         }, timeoutMs)
       }),
