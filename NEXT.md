@@ -20,7 +20,9 @@ lo que impide arrancar va primero. Esperado: la terminal integrada no abre (`das
 semana de uso sin USO graves en flujos básicos, nocturnas verdes y "Windows experimental" declarado.
 
 Orden:
-1. **Windows (en la máquina de Carlos)**: WIN.1 con la demo; luego WIN.18–WIN.20 y lo que salga.
+1. **Demo AgroTienda en macOS** (Carlos, 2026-11-18: mejor hardware): es el uso real de la Etapa 2; cada fallo se
+   abre como ítem USO con su evidencia y va primero. **Windows aparte**, en sesiones de corrección en esa máquina:
+   WIN.1 (prueba de humo propia, ya no la demo), luego WIN.18–WIN.20 y lo que salga.
 2. **MUT.1 y MUT.2 — leer la nocturna** desde cualquier máquina (`gh run list --workflow "Mutation Shards"`; la del
    17-11, run 44075536272, seguía corriendo a las 22 h). `gh run view <id> --log | grep '\[res\]'` por shard.
    Procesos o RSS que crecen → aislar cada `bun test` y matar el árbol al salir en `scripts/mutation-test-shard.ts`
