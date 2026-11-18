@@ -1,57 +1,65 @@
-# DREAMING.md — 2026-11-17
+# DREAMING.md — 2026-11-18
 
-> Análisis automático (scheduled task). `runs-summary.json` exportado 2026-11-17T15:23Z; último run 2026-11-15T16:01Z.
+> Análisis automático (scheduled task). `runs-summary.json` exportado 2026-11-17T21:58Z; último run 2026-11-17T21:17Z.
 
 ## Runs analizados
 - Total: 20 runs
-- Periodo: 2026-11-14T17:07:21Z → 2026-11-15T16:01:57Z
-- failed: 1 | blocked: 0 | done: 19 | qa_failed: 6
+- Periodo: 2026-11-14T18:47:54Z → 2026-11-17T21:17:26Z
+- failed: 3 | blocked: 0 | done: 17 | qa_failed: 5
 
-Distribución: 5 `chat` (uso real, claude-opus-5-5 y otros, 5/5 done, sin QA) y 15 runs con
-`task_class` `gate:*` (gates en vivo `uso.14`/`uso.15`). 10 de los 20 tienen `elapsed_ms: 0` y
-`tokens: 0`: son filas sembradas por fixture, no ejecuciones.
+Distribución: 8 `chat` (6 claude-opus-5-5 done, 2 gpt-6.1-sol failed) y 12 runs `gate:*`
+(gates en vivo `uso.14`/`uso.15`; 8 con `elapsed_ms: 0` y `tokens: 0`, filas sembradas por fixture).
 
 ## Patrones detectados
 
-### Los fallos de QA son semillas del gate `chat-context`, no fallos reales
-- Evidencia: los 5 `qa_verdict: fail` con modelo `codex (cli default model) via Codex CLI` tienen
-  id `ui-chat-context-seed-*`, `elapsed_ms: 0`, `tokens: 0`. Los inserta a propósito
-  `scripts/ui-gate/flows/chat-context.mjs:172-173` (`prompt 'fixture'`, `qa_reason` fijo).
-- Frecuencia: 5/20 runs; `gate:uso.14-chat-context:implement` 3/6 y `gate:uso.15-chat-context:implement`
-  2/4 marcados como fallo (≥ 50 %), y "Mismo modelo con fail en 3+ runs" se cumple — todo por las semillas.
-- qa_reason recurrente: "criterion 2 missing: README line absent" (5/5, texto literal del fixture).
+### Nuevo: chat con `gpt-6.1-sol` falla por cupo de Codex agotado
+- Evidencia: runs `7bfc4ed4` (2026-11-17T19:20Z, "di solo: ok") y `0260c4e9` (19:31Z, "USO19 codex:
+  di solo ok"), `task_class: chat`, provider `codex`, ~4-5 s, 0 tokens. En la DB local
+  (`~/.orchestos/db.sqlite`, lectura) `result = "Codex CLI usage limit reached."` y `failure_kind` vacío.
+- Frecuencia: 2/20 runs; 2/2 de `gpt-6.1-sol`; 2/8 del `task_class` chat (25 %, bajo el umbral del 50 %).
+- qa_reason recurrente: ninguna (chat no pasa por QA). El motivo solo está en `result`, que
+  `runs-summary.json` no exporta.
 
-### El único `failed` con check rojo también es de gate
-- Evidencia: run `a6f7c6f1`, `gate:uso.14-chat-retry-report:implement`, `gpt-6-luna`, `checks_failed: 1`,
-  `bunx tsc --noEmit` exit 2 sobre `broken.ts` (archivo roto a propósito por el flujo de reintento).
-- Frecuencia: 1/20; `checks_failed > 0` no es recurrente.
-- qa_reason recurrente: ninguna fuera de las semillas.
+### Los fallos de QA siguen siendo semillas del gate `chat-context` (sin cambio desde 2026-11-17)
+- Evidencia: los 5 `qa_verdict: fail` son `codex (cli default model) via Codex CLI`,
+  `gate:uso.14-chat-context:implement` (3) y `gate:uso.15-chat-context:implement` (2), `elapsed_ms: 0`.
+  Los inserta `scripts/ui-gate/flows/chat-context.mjs` como fixture.
+- Frecuencia: 5/20; ambos task_class `chat-context` al 50 % de fallo y "mismo modelo con fail en 3+"
+  se cumple — todo artificial.
+- qa_reason recurrente: "criterion 2 missing: README line absent" (5/5, texto del fixture).
 
-### Uso real sin señal
-- Los 5 runs `chat` están `done`, sin QA ni checks. Ningún run `implement` real en la ventana:
-  los criterios de este análisis no tienen datos de producción que evaluar.
+### `checks_failed > 0` no es recurrente
+- Evidencia: solo `a6f7c6f1` (`gate:uso.14-chat-retry-report:implement`, `gpt-6-luna`), `tsc` sobre
+  `broken.ts` roto a propósito por el flujo de reintento; el reintento siguiente pasó.
+- Frecuencia: 1/20.
 
 ## Propuestas
 
-### Propuesta 1 — Excluir runs de gate y semillas del resumen de Dreaming
-- Qué cambiar: `scripts/export-runs-summary.ts` (query `FROM runs ... LIMIT 20`): filtrar
-  `task_class NOT LIKE 'gate:%'` (o exportarlos aparte con un campo `source: 'gate'`), y descartar
-  filas con `prompt = 'fixture'`.
-- Por qué: 15/20 runs de esta ventana son gates y 6/6 qa_failed son artificiales; el análisis
-  nocturno detecta "patrones" que son el fixture funcionando. Mismo tipo de falso positivo que el
-  bug de `checks_failed` ya corregido en ese script.
+### Propuesta 1 — Clasificar el agotamiento de cupo como `failure_kind` propio
+- Qué cambiar: `src/db/runs.ts:6` (`RunFailureKind`) sumar `'quota'`; el camino de chat que guarda
+  el run (hoy deja `failure_kind` nulo) y `providerFailureKind` en `src/run/harness.ts:506` lo asignan
+  cuando el error es el de `src/run/executors/codex-app-server.ts:487` ("usage limit reached").
+- Por qué: 2/2 fallos reales de la ventana son cupo, no del modelo ni de la tarea; sin clasificación
+  cuentan como `failed` y el análisis no puede distinguirlos de un fallo de razonamiento. También
+  permite que la UI diga "cupo agotado, se renueva a las X" en vez de un fallo genérico.
 - Riesgo: bajo.
 
-### Propuesta 2 — Que los gates no escriban en la DB real del usuario
-- Qué cambiar: verificar por qué filas `gate:*` y `ui-chat-context-seed-*` llegan a la DB que lee
-  el pre-commit; los gates deberían correr con HOME temporal (`bun run gate:evidence`). Si la
-  etiqueta `gate:` es deliberada (gates en vivo sobre la DB real), la Propuesta 1 basta.
-- Por qué: las semillas de `chat-context.mjs` aparecen en `runs-summary.json` del repo. No verificado
-  qué camino las escribe en la DB real.
-- Riesgo: medio (toca el harness de gates).
+### Propuesta 2 — Exportar `failure_kind` (y el motivo corto) en `runs-summary.json`
+- Qué cambiar: `scripts/export-runs-summary.ts`, sumar `failure_kind` y las primeras ~120 chars de
+  `result` cuando `status = 'failed'`.
+- Por qué: hoy un `failed` de chat llega sin causa; este análisis tuvo que abrir la DB local, que
+  la corrida en la nube no tiene.
+- Riesgo: bajo (revisar que `result` no lleve secretos; truncado y solo en fallos).
+
+### Propuesta 3 — Excluir runs de gate y semillas del resumen (repite la Propuesta 1 de 2026-11-17, sin decidir)
+- Qué cambiar: `scripts/export-runs-summary.ts`, filtrar `task_class LIKE 'gate:%'` o marcarlos
+  `source: 'gate'`, y descartar `prompt = 'fixture'`.
+- Por qué: 12/20 runs y 5/5 qa_failed de esta ventana son gates; dos días seguidos de falsos patrones.
+- Riesgo: bajo.
 
 ## Decisión (llenar manualmente)
 - [ ] Aplicar propuesta 1
 - [ ] Aplicar propuesta 2
+- [ ] Aplicar propuesta 3
 - [ ] Ignorar
 - [ ] Requiere revisión
