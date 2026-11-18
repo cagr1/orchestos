@@ -440,7 +440,7 @@ describe('G.4.2b — codexEngine (codex subprocess)', () => {
 
     expect(spawnCalls).toHaveLength(1)
     expect(spawnCalls[0]!.cwd).toBe(wt.path)
-    expect(spawnCalls[0]!.cmd[0]).toBe('codex')
+    expect(spawnCalls[0]!.cmd[0]).toBe('/usr/local/bin/codex') // WIN.6: arranca el binario resuelto por Bun.which
     expect(spawnCalls[0]!.cmd).toContain('exec')
     expect(spawnCalls[0]!.cmd).toContain('--json')
     expect(spawnCalls[0]!.cmd).toContain('--sandbox')
