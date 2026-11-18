@@ -229,7 +229,7 @@ test('AT.11 — public CLI registration drives session → turn → persistence 
     })
     expect(result.turnInput.sessionId).toBeString()
     expect(result.turnInput.hasProjectContext).toBe(false)
-    expect(result.turnInput.cwd).toContain('/.orchestos/chats/')
+    expect(result.turnInput.cwd).toContain(join('.orchestos', 'chats'))
     expect(result.turnInput.system).toContain('must be done in Dev')
     expect(result.turnInput.mcpOffer).toEqual({
       tools: ['open_in_dev'],

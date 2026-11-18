@@ -1,7 +1,8 @@
 import { expect, it } from 'bun:test'
-import { chmodSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
+import { mkdirSync, mkdtempSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
-import { join } from 'node:path'
+import { delimiter, join } from 'node:path'
+import { createTestExecutable } from '../../__tests__/helpers/test-executable.ts'
 
 async function isolated(body: string): Promise<any> {
   const home = mkdtempSync(join(tmpdir(), 'orchestos-r5-test-'))
@@ -9,16 +10,23 @@ async function isolated(body: string): Promise<any> {
     // AT.20 — claude falso: la propuesta de tarea llega como la llamada MCP real a `create_task`
     // (forma de src/mcp/__fixtures__/claude-create-task-assistant.json); sin proposal.json solo responde texto.
     mkdirSync(join(home, 'bin'))
-    const fakeClaude = `#!/bin/sh
-if [ "$1" = --help ]; then printf '  --restricted  fake\\n'; exit 0; fi
-cat >/dev/null
-if [ -f "${home}/proposal.json" ]; then
-  printf '{"type":"assistant","message":{"content":[{"type":"text","text":"Task proposed."},{"type":"tool_use","id":"toolu_fake","name":"mcp__orchestos__create_task","input":%s}]}}\\n' "$(cat "${home}/proposal.json")"
-fi
-printf '{"type":"result","subtype":"success","is_error":false,"result":"Task proposed.","session_id":"fake-session","usage":{"input_tokens":1,"output_tokens":1},"total_cost_usd":0,"num_turns":1}\\n'
-`
-    writeFileSync(join(home, 'bin', 'claude'), fakeClaude)
-    chmodSync(join(home, 'bin', 'claude'), 0o755)
+    createTestExecutable(
+      join(home, 'bin'),
+      'claude',
+      `
+      import { existsSync, readFileSync } from 'node:fs'
+      if (Bun.argv[2] === '--help') { console.log('  --restricted  fake'); process.exit(0) }
+      for await (const _chunk of Bun.stdin.stream()) {}
+      if (existsSync(${JSON.stringify(join(home, 'proposal.json'))})) {
+        console.log(JSON.stringify({ type: 'assistant', message: { content: [
+          { type: 'text', text: 'Task proposed.' },
+          { type: 'tool_use', id: 'toolu_fake', name: 'mcp__orchestos__create_task', input: JSON.parse(readFileSync(${JSON.stringify(join(home, 'proposal.json'))}, 'utf8')) },
+        ] } }))
+      }
+      console.log(JSON.stringify({ type: 'result', subtype: 'success', is_error: false, result: 'Task proposed.', session_id: 'fake-session', usage: { input_tokens: 1, output_tokens: 1 }, total_cost_usd: 0, num_turns: 1 }))
+      `,
+      true,
+    )
     const child = Bun.spawn(
       [
         process.execPath,
@@ -76,7 +84,7 @@ printf '{"type":"result","subtype":"success","is_error":false,"result":"Task pro
           ...process.env,
           ORCHESTOS_HOME: home,
           OPENROUTER_API_KEY: 'test-key',
-          PATH: `${join(home, 'bin')}:${process.env.PATH}`,
+          PATH: [join(home, 'bin'), process.env.PATH].filter(Boolean).join(delimiter),
         },
         stdout: 'pipe',
         stderr: 'pipe',

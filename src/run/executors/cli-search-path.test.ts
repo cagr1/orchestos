@@ -1,7 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it } from 'bun:test'
-import { chmodSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
+import { mkdtempSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
+import { createTestExecutable } from '../../__tests__/helpers/test-executable.ts'
 import { defaultRunner } from '../../dashboard/chat-cli-models.ts'
 import { handleApiClisGet, handleApiClisSet } from '../../dashboard/handlers/clis.ts'
 import { applyCliSearchPath, type CliDiscoveryProbe, whichCli } from './cli-discovery.ts'
@@ -13,6 +14,7 @@ describe('applyCliSearchPath', () => {
   let originalPath: string | undefined
   let originalHome: string | undefined
   const command = 'fake-cli-set21'
+  let executablePath: string
 
   beforeEach(() => {
     dir = mkdtempSync(join(tmpdir(), 'set21-bin-'))
@@ -20,8 +22,7 @@ describe('applyCliSearchPath', () => {
     originalPath = process.env.PATH
     originalHome = process.env.ORCHESTOS_HOME
     process.env.ORCHESTOS_HOME = home
-    writeFileSync(join(dir, command), '#!/bin/sh\necho fake-ok\n')
-    chmodSync(join(dir, command), 0o755)
+    executablePath = createTestExecutable(dir, command, "console.log('fake-ok')")
   })
   afterEach(() => {
     process.env.PATH = originalPath
@@ -41,8 +42,10 @@ describe('applyCliSearchPath', () => {
     }
     applyCliSearchPath(probe)
 
-    expect(whichCli(command)).toBe(join(dir, command))
-    expect(await defaultRunner(command, [])).toEqual({ stdout: 'fake-ok\n', exitCode: 0 })
+    expect(whichCli(command)).toBe(executablePath)
+    const runnerResult = await defaultRunner(command, [])
+    expect(runnerResult.stdout.replace(/\r\n/g, '\n')).toBe('fake-ok\n')
+    expect(runnerResult.exitCode).toBe(0)
 
     await handleApiClisSet(
       new Request('http://localhost/api/clis', {

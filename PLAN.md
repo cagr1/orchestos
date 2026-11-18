@@ -537,10 +537,8 @@ esta etapa: `docs/done/bloque-AUD.md` (AUD.16, AUD.17), `docs/done/bloque-SES.md
   Sin delegación: corrida de CI y reparto, sin cambio de código.
 - [x] **WIN.18 — Tests con supuestos POSIX en Windows.** → [evidencia](docs/done/bloque-WIN.md#win18)
   Sin delegación: ajustes chicos. QA con Codex sin hallazgos, sin revisión de otro proveedor.
-- [ ] **WIN.19 — CLIs falsos de los tests sin shim de Windows.** (WIN.17, 2026-11-16) Los fixtures crean `claude` o
-  `codex` como script sin extensión y en Windows no se encuentran ("binary \"claude\" not found in PATH"):
-  `chat-sessions` 8 (incluye LRN.1b), `chat-r5-reliability` 6, `chat-adapters` 1, `cli-search-path` 1. Es el paso (4)
-  de WIN.6 (fixtures multiplataforma): un helper común que escriba `.cmd` en win32, no un arreglo por suite.
+- [x] **WIN.19 — CLIs falsos de los tests sin shim de Windows.** → [evidencia](docs/done/bloque-WIN.md#win19)
+  Ejecutado por: gpt-6-luna y Codex · Spec: docs/specs/WIN.19.md
 - [ ] **WIN.20 — Rojos de Windows que pueden ser producto.** (WIN.17, 2026-11-16) Aislar antes de arreglar:
   `context-update-safety` 3 (`--force` no reemplaza `AGENTS.md`), `action-approvals` 3 (clasificación de comandos y
   diffs de Codex), `worktree-contract` 3 (uno es fixture: `out*.txt` no es un nombre válido en Windows; los otros dos,

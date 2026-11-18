@@ -1,20 +1,29 @@
 import { describe, expect, it } from 'bun:test'
-import { chmodSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
-import { join } from 'node:path'
+import { delimiter, join } from 'node:path'
+import { createTestExecutable } from '../../__tests__/helpers/test-executable.ts'
 import { resolveChatCost } from '../handlers/chat.ts'
 
 // CC.1-D1 — este archivo prueba el WIRING (agente → transporte correcto),
 // nunca el binario real (eso ya lo cubre el gate en vivo de CC.5). Sin esto,
 // una máquina de dev con claude/codex/opencode instalados haría que los
 // tests que ejercitan esos agentes spawneen procesos reales y gasten cupo —
-// filtrar sus directorios de instalación conocidos del PATH del subproceso
+// filtrar los directorios que contienen esos ejecutables del PATH del subproceso
 // deja el resultado determinístico (siempre "binary not found") sin importar
 // el host, igual que ya pasa naturalmente en CI.
 const NO_CLI_PATH = (process.env.PATH ?? '')
-  .split(':')
-  .filter((dir) => !dir.includes('.local/bin') && !dir.includes('.opencode/bin'))
-  .join(':')
+  .split(delimiter)
+  .filter((dir) => {
+    const suffixes = process.platform === 'win32' ? ['', '.exe', '.cmd', '.bat', '.com'] : ['']
+    return (
+      dir &&
+      !['claude', 'codex', 'opencode'].some((cli) =>
+        suffixes.some((suffix) => existsSync(join(dir, cli + suffix))),
+      )
+    )
+  })
+  .join(delimiter)
 
 async function runIsolated(
   body: string,
@@ -37,7 +46,9 @@ async function runIsolated(
     const env: NodeJS.ProcessEnv = {
       ...process.env,
       HOME: home,
+      USERPROFILE: home,
       ORCHESTOS_HOME: home,
+      ORCHESTOS_CLI_SEARCH_PATH: '1',
       OPENROUTER_API_KEY: 'test-key',
       PATH: NO_CLI_PATH,
       ...extraEnv,
@@ -45,14 +56,28 @@ async function runIsolated(
     if (env.FAKE_CODEX) {
       const bin = join(home, 'bin')
       mkdirSync(bin, { recursive: true })
-      const fakeCodex = `#!/bin/sh
-if [ "$1" = app-server ]; then exit 1; fi
-printf '%s\\n' '{"type":"item.completed","item":{"type":"agent_message","text":"Codex reply"}}' '{"type":"turn.completed","usage":{"input_tokens":10,"output_tokens":5}}'
-`
-      writeFileSync(join(bin, 'codex'), Buffer.from(fakeCodex))
-      chmodSync(join(bin, 'codex'), 0o755)
-      env.PATH = `${bin}:${NO_CLI_PATH}`
+      createTestExecutable(
+        bin,
+        'codex',
+        `
+        if (Bun.argv[2] === 'app-server') process.exit(1)
+        console.log('{"type":"item.completed","item":{"type":"agent_message","text":"Codex reply"}}')
+        console.log('{"type":"turn.completed","usage":{"input_tokens":10,"output_tokens":5}}')
+      `,
+      )
+      env.PATH = [bin, NO_CLI_PATH].filter(Boolean).join(delimiter)
       delete env.FAKE_CODEX
+    }
+    if (env.FAKE_CLAUDE_R6) {
+      const bin = join(home, 'bin')
+      mkdirSync(bin, { recursive: true })
+      const source = readFileSync(
+        new URL('../../../scripts/fixtures/claude-r6.ts', import.meta.url),
+        'utf8',
+      )
+      createTestExecutable(bin, 'claude', source, true)
+      env.PATH = [bin, env.PATH].filter(Boolean).join(delimiter)
+      delete env.FAKE_CLAUDE_R6
     }
     if (env.FAKE_CLAUDE || env.FAKE_LESSONS) {
       // AT.20 — claude falso: `--help` declara --restricted y el stream trae la llamada MCP real
@@ -90,20 +115,25 @@ printf '%s\\n' '{"type":"item.completed","item":{"type":"agent_message","text":"
         total_cost_usd: 0,
         num_turns: 2,
       })
-      const fakeClaude = `#!/bin/sh
-if [ "$1" = --help ]; then printf '  --restricted  fake\\n'; exit 0; fi
-printf '%s\\n' "$@" > "$ORCHESTOS_HOME/fake-claude-args.txt"
-cat >/dev/null
-printf '%s\\n' '${assistant}' '${result}'
-`
-      writeFileSync(join(bin, 'claude'), Buffer.from(fakeClaude))
-      chmodSync(join(bin, 'claude'), 0o755)
-      env.PATH = `${bin}:${env.PATH}`
+      createTestExecutable(
+        bin,
+        'claude',
+        `
+        import { writeFileSync } from 'node:fs'
+        if (Bun.argv[2] === '--help') { console.log('  --restricted  fake'); process.exit(0) }
+        writeFileSync(process.env.ORCHESTOS_HOME + '/fake-claude-args.txt', Bun.argv.slice(2).join('\\n') + '\\n')
+        for await (const _chunk of Bun.stdin.stream()) {}
+        console.log(${JSON.stringify(assistant)})
+        console.log(${JSON.stringify(result)})
+      `,
+        true,
+      )
+      env.PATH = [bin, env.PATH].filter(Boolean).join(delimiter)
       delete env.FAKE_CLAUDE
       delete env.FAKE_LESSONS
       delete env.FAKE_LESSON_FAIL
     }
-    const proc = Bun.spawn(['bun', '-e', body], {
+    const proc = Bun.spawn([process.execPath, '-e', body], {
       cwd: process.cwd(),
       env,
       stdout: 'pipe',
@@ -385,7 +415,7 @@ describe('CC.2 — chat sessions backend', () => {
       process.stdout.write(JSON.stringify({ emptyModelStatus: emptyModelResponse.status, emptyModelRunCount, statuses: [sessionResponse.status, zeroResponse.status, estimatedResponse.status, unknownResponse.status], rows, api }))
       db.close()
     `,
-      { PATH: `${process.cwd()}/scripts/fixtures:${NO_CLI_PATH}` },
+      { FAKE_CLAUDE_R6: '1' },
     )
 
     expect(result.emptyModelStatus).toBe(200)

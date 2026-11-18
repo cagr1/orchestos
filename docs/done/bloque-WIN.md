@@ -19,3 +19,15 @@ se aplican en POSIX y los casos conservan sus demás comprobaciones de estado, c
 [Pruebas focalizadas](evidence/WIN.18-21-local.md).
 
 Sin delegación: ajustes chicos. QA con Codex sin hallazgos, sin revisión de otro proveedor.
+
+<a id="win19"></a>
+
+## WIN.19 — Fixtures de CLIs
+
+El helper común genera un `.cmd` para CLI genérico y Codex en Windows, y un `.exe` de prueba
+para Claude con argv multilínea. Los subprocesos de chat usan el separador de PATH del host
+y filtran las instalaciones reales. [Pruebas focalizadas](evidence/WIN.18-21-local.md).
+
+QA con Codex sin hallazgos. Revisión de otro proveedor pendiente.
+
+Ejecutado por: gpt-6-luna y Codex · Spec: docs/specs/WIN.19.md
