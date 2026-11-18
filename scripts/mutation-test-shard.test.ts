@@ -15,6 +15,7 @@ describe('selectMutationShardTests', () => {
         'executors-routing',
         'executors-routing-b',
         'executors-routing-c',
+        'executors-routing-d',
       ],
     ],
     [
