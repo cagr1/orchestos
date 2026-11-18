@@ -61,7 +61,7 @@ _(`#6` graduó a Bloque AA el 2026-08-15. `#31`, `#35` y `#50` fueron ABSORBIDAS
 ### Medio-alto
 
 1. `#8` Micrófono/dictado.
-4. `#41` App de escritorio distribuible (Tauri, decidido 2026-11-12; es la etapa 4 de `PLAN.md` § Rumbo).
+4. `#41` App de escritorio distribuible (Electron, decidido 2026-11-18; etapa 4 de `PLAN.md` § Rumbo).
 5. `#42` Auto-repair dirigido.
 8. `#45` Visibilidad de gasto real — API vs CLI (movida desde Medio el 2026-08-18; va **antes**
    que `#57`, que depende de su paso 0).
@@ -491,6 +491,10 @@ riesgo de ToS señalado arriba sigue aplicando igual, se generaliza con el alcan
 
 ### 41. Empaquetar OrchestOS como app de escritorio (Electron) — Mac, Linux y Windows
 
+**Decisión vigente (Carlos, 2026-11-18): Electron.** La etapa 4 empieza cuando Carlos confirme que OrchestOS
+ya funciona en el navegador. Primero se prueba la versión web, incluido el flujo de Preview con el agente (USO.21).
+El paso a escritorio queda pendiente en `PLAN.md` § Rumbo.
+
 **Origen**: Carlos (2026-07-13) — quiere OrchestOS como app de escritorio nativa para las 3
 plataformas, la misma forma de producto que Orca (Electron) y que ya usa en su stack (MusicKind es
 Electron). Pregunta explícita: ¿es un movimiento chico o difícil?
@@ -529,7 +533,7 @@ para un instalable real firmado** en las 3 plataformas (empotrar el binario Bun 
 notarización + auto-update). Candidato a hito propio post-estable, con doc de diseño previo
 (decidir camino A vs B, y si el binario Bun se compila en CI por plataforma).
 
-**Actualización 2026-11-07 — Tauri como alternativa a Electron** (Carlos preguntó si conviene Electron o
+**Histórico 2026-11-07 — Tauri como alternativa a Electron** (Carlos preguntó si conviene Electron o
 reescribir en Rust/Go para ganar velocidad):
 - Ni Electron ni Rust/Go aceleran la app: la espera dominante es el CLI del modelo, no Bun. Reescribir el backend
   queda descartado. Antes de cualquier cambio por velocidad, medir qué se siente lento (carga inicial, vista, chat).
@@ -545,9 +549,7 @@ reescribir en Rust/Go para ganar velocidad):
 - Orden propuesto: después de SK.3 y del desacople; primero el arreglo de caché + repaso de la UI en Safari, luego
   un prototipo Tauri solo Mac en una rama.
 
-**Decisión 2026-11-12 (Carlos): Tauri**, no Electron ("pasar todo a Tauri"). Es la etapa 4 de `PLAN.md` § Rumbo,
-después del uso real y de Windows (WIN.1); esta sección se gradúa al plan cuando se abra la etapa. Antes: sin
-decidir entre Electron y Tauri.
+**Decisión histórica 2026-11-12 (Carlos): Tauri** ("pasar todo a Tauri"). Sustituida por Electron el 2026-11-18.
 
 **Nota 2026-11-10 — premisas ya falsas y prerrequisitos verificados (no cambia el veredicto ni la prioridad; la
 decisión es del dueño).** Premisas superadas del texto original de arriba, que se conserva por historial:

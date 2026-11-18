@@ -30,13 +30,11 @@ Orden:
 3. **ui-gates nocturnos (solo Mac)**: la corrida previa es inválida por sueño del Mac; el Mac debe quedar enchufado
    y despierto esa noche. Leer `~/.orchestos/nightly/ui-gates-latest.json`.
 4. **En macOS al volver**: CMD.3 (`/cut` en OrchestOS, plan y GO antes de código; luego probar en Windows) y
-   USO.21 tras usar Preview en la demo (decidir con Tauri vs Electron: Tauri usa WKWebView en macOS, no controlable
-   por Playwright; Electron sí permite que el agente vea la vista de Carlos).
+   USO.21 tras usar Preview en la demo, con Playwright local en la versión web.
 5. **Pendientes chicos**: `noNonNullAssertion` 87→86 en `scripts/lint-budget.json` (va a `mecanico`); tooltip del
    menú `/` oscuro o claro (pregunta a Carlos); Codex `/review` solo si Carlos lo pide.
-6. **Antes de Tauri**: cache-busting de `main.js?v=<hash>` y ui-gates en WebKit; Tauri vs Electron con números.
-   Medido hoy: binario `bun build --compile src/cli.ts` 65 MB (60 de Bun), UI 7,6 MB sin sourcemap → Tauri ~80 MB,
-   Electron ~230–280 MB (estimado). MonoCode (42 MB) es Tauri 2 + backend Rust + React 19/Tailwind 4.
+6. **Electron, etapa 4**: iniciar el empaquetado cuando Carlos confirme que OrchestOS ya funciona en el navegador
+   (decisión del 2026-11-18). Al abrir la etapa, medir tamaño del paquete y RAM del prototipo (`IDEAS.md` #41).
 7. Lo de abajo, en su orden. LRN.1 F2 espera datos de uso; LRN.2 va después de F2.
 
 Trampas nuevas: `delegate` en modo write exige un ítem ABIERTO en `PLAN.md`. Cerrar un ítem: "Could not prove a
@@ -50,7 +48,7 @@ devuelven el transcript entero (la respuesta va tras la última línea `codex`).
 
 ## Orden
 
-Rumbo de Carlos del 2026-11-12 (`PLAN.md` § Rumbo): uso normal → uso real → Windows → Tauri. Antes: lote de
+Rumbo de Carlos, actualizado el 2026-11-18 (`PLAN.md` § Rumbo): uso normal → uso real en navegador → Windows → Electron. Antes: lote de
 auditoría AUD.1–AUD.28 en el orden de la segunda auditoría; lo cerrado está en `docs/done/bloque-AUD.md`.
 
 1. **Etapa 1 — cerrada 2026-11-13**: AUD.14, AUD.17, AUD.16 y SES.1 (a `58c67af0`, b `eea3f797`, c `c76a0ed5`).
@@ -87,7 +85,7 @@ auditoría AUD.1–AUD.28 en el orden de la segunda auditoría; lo cerrado está
    (Open folder/Clone con selector nativo), WIN.9 (reconcile sin `ps`). Anotado WIN.11 (IA local: Ollama +
    `qwen2.5-coder:7b`). **En el Mac, tras el pull, una vez:** `bun run hooks:install` y `bun run plan:reconcile`
    (verificado con un clon simulado: pull fast-forward limpio, commit siguiente pasa).
-   **Orden siguiente (Carlos: "Codex debe funcionar en cualquier máquina"; luego Tauri, primero Mac):**
+   **Orden siguiente (Carlos: "Codex debe funcionar en cualquier máquina"):**
    (a) **`delegate` en Windows — funciona (2026-11-16)**, arreglado en el vault `method/bin` y copiado a
    `~/.agent-method/bin`, **sin commitear en el vault**: `cygpath -w` del repo (con `E:/…` el sandbox de Codex
    arrancaba en `C:\`); `guard/git.cmd` nuevo (PowerShell no ejecuta el guardián bash sin extensión: "Acceso
@@ -150,7 +148,7 @@ auditoría AUD.1–AUD.28 en el orden de la segunda auditoría; lo cerrado está
    `src/boundary` — salvo en la UI: importar `src/boundary` desde `app/src` mete zod y yaml al bundle (+430 KB,
    visto en ACT.1); allí `JSON.parse` con `try`. Re-correr la nocturna con `caffeinate` o el Mac enchufado. No se revisan pantallas por iniciativa propia.
 3. **Etapa 3 — Windows**: WIN.1, fase 1 = prueba de humo. Nada se arregla antes de verla fallar.
-4. **Etapa 4 — Tauri** (decidido, `IDEAS.md` #41). Se gradúa al plan al abrir la etapa.
+4. **Etapa 4 — Electron** (`IDEAS.md` #41). Se gradúa al plan cuando Carlos confirme que la versión web funciona.
 5. **Aparcados, no se toman** (`docs/done/aparcados-2026-11-12.md`): CI.19, CI.54, CI.55, CI.57, CI.69, CI.76, CI.81,
    AUD.8, AUD.9, AUD.10, AUD.27, AUD.28. Si uno de esos gates falla, se lee su JSON el mismo día (CI.62 borra el
    `runDir` a las 24 h) y se reabre solo si es producto roto.

@@ -13,9 +13,9 @@ Ideas pendientes → ver [IDEAS.md](IDEAS.md).
 
 ## Rumbo
 
-Orden de Carlos (2026-11-12): *"comenzemos con los que realmente afectarían a OrchestOS su uso normal para comenzar a
-probarlo yo mismo y darme cuenta de mis errores y luego corregir esos huecos de Windows y por último pasar todo a
-Tauri"*. Motivo: meses sin feedback de uso; de los últimos 200 commits, 94 eran de CI, auditoría, gates o tests y 46
+Orden de Carlos (2026-11-12, actualizado el 2026-11-18): resolver lo que afecta el uso normal, probar OrchestOS en el
+navegador, corregir los huecos de Windows y pasar a escritorio cuando todo funcione en el navegador.
+Motivo original: meses sin feedback de uso; de los últimos 200 commits, 94 eran de CI, auditoría, gates o tests y 46
 `feat`. Lo que no está en una etapa no se abre sin GO de Carlos.
 
 - **Etapa 1 — Lo que rompe el uso normal:** AUD.14 → AUD.17 → AUD.16 → SES.1. Cerrada 2026-11-13.
@@ -23,8 +23,9 @@ Tauri"*. Motivo: meses sin feedback de uso; de los últimos 200 commits, 94 eran
   ítem con su evidencia y va antes que cualquier pendiente. Los huecos de la interfaz salen de ese uso, no de revisar
   pantallas.
 - **Etapa 3 — Windows:** WIN.1 (§ "Etapa 3"). Primero la prueba de humo; después un ítem por fallo.
-- **Etapa 4 — Tauri:** empaquetar como app de escritorio. Decidido Tauri y no Electron (Carlos, 2026-11-12: "pasar
-  todo a Tauri"). Hoy vive en `IDEAS.md` #41 con sus prerrequisitos; se gradúa a este plan al abrir la etapa.
+- **Etapa 4 — Electron:** empaquetar como app de escritorio cuando Carlos confirme que OrchestOS ya funciona en el
+  navegador. Decisión de Carlos del 2026-11-18, que sustituye la elección de Tauri del 2026-11-12.
+  El diseño y sus prerrequisitos viven en `IDEAS.md` #41; se gradúa a este plan al abrir la etapa.
 - **La auditoría no se reabre:** un ítem AUD o CI nuevo entra solo si sale de un fallo visto usando OrchestOS o deja el
   CI rojo. Lo que no rompe el uso normal quedó aparcado (§ "Aparcados").
 
@@ -313,8 +314,7 @@ esta etapa: `docs/done/bloque-AUD.md` (AUD.16, AUD.17), `docs/done/bloque-SES.md
   2026-11-17: GO de Carlos para F1 ("hagamos de esta herramienta una maravilla"). Plan: pestaña Preview en Dev
   (como la terminal: una sola, sigue montada al cambiar de pestaña), URL por proyecto en localStorage, solo
   http/https, botón "Preview" en la barra de estado junto a Terminal. Fuera: servidor, MCP, Playwright y detección
-  del puerto. Spec: `docs/specs/USO.20.md`. Contexto: Tauri usa WKWebView en macOS (no controlable por Playwright),
-  así que F2 sigue necesitando Playwright aparte salvo Electron; decidirlo junto con Tauri vs Electron.
+  del puerto. Spec: `docs/specs/USO.20.md`.
   Texto visible: "Preview", "Reload", "Open in browser", "Enter an http:// or https:// URL", "Run your dev server in the terminal and enter its URL above"
   Hecho F1: `session-tabs.ts` (`preview`, `openPreviewTab`, no se persiste), `preview-url.ts` (solo http/https),
   `DevPreviewPanel.tsx`, pestaña con `Globe` en `DevSessionTabs.tsx`, botón en `ShellStatusBar.tsx`, montaje en
@@ -325,9 +325,9 @@ esta etapa: `docs/done/bloque-AUD.md` (AUD.16, AUD.17), `docs/done/bloque-SES.md
   Ejecutado por: gpt-6.1-sol · Spec: docs/specs/USO.20.md
 - [ ] **USO.21 — El agente ve la app que construye (F2 de USO.20).** (Carlos, 2026-11-17) Herramientas Playwright
   en el MCP de OrchestOS (`src/mcp/server.ts`): captura, consola y clic sobre la URL de la pestaña Preview, con las
-  capturas visibles en el hilo; funciona con cualquier CLI que hable MCP. Playwright pasa de `devDependencies` a
-  dependencia y descarga Chromium al primer uso. Decidir junto con Tauri vs Electron (Electron permite que el
-  agente vea la misma vista que Carlos). Después de usar F1 en la demo; plan corto y GO antes de código.
+  capturas visibles en el hilo; funciona con cualquier CLI que hable MCP. Primero en la versión web: Playwright
+  pasa a dependencia y descarga Chromium al primer uso para abrir la URL en una sesión local separada. En la etapa
+  Electron se podrá evaluar el control de la vista embebida. Después de usar F1 en la demo; plan corto y GO antes de código.
 - [ ] **LRN.2 — Una lección probada se gradúa a check, no solo a `AGENTS.md`.** (Carlos, 2026-11-17; mismo principio
   que CHK.1, aplicado al producto) LRN.1 gradúa lecciones a texto de `AGENTS.md`
   (`docs/specs/LRN-1-opinion-fable.md:79`). Agregar un segundo destino: si la firma del fallo es detectable en el diff
