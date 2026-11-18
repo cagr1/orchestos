@@ -39,8 +39,9 @@ afterAll(() => {
 
 describe('GET /api/usage', () => {
   it('agrupa runs por el día local del dashboard en Guayaquil y UTC', async () => {
+    // El CRT de Windows interpreta TZ del fixture como una regla POSIX.
     for (const [tz, expected] of [
-      ['America/Guayaquil', '2026-10-21'],
+      [process.platform === 'win32' ? 'ECT5' : 'America/Guayaquil', '2026-10-21'],
       ['UTC', '2026-10-22'],
     ] as const) {
       const child = Bun.spawn(

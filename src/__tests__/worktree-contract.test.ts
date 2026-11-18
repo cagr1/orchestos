@@ -57,6 +57,7 @@ function fixture() {
   const root = mkdtempSync(join(tmpdir(), 'orchestos-aud1-'))
   roots.push(root)
   checkedGit(root, ['init', '-b', 'main'])
+  checkedGit(root, ['config', 'core.autocrlf', 'false'])
   // Production commits inherit identity only from this disposable repository.
   checkedGit(root, ['config', 'user.name', 'fixture'])
   checkedGit(root, ['config', 'user.email', 'fixture@example.invalid'])
@@ -344,14 +345,16 @@ describe('AUD.1 worktree contract and merge paths', () => {
   it('stages a literal wildcard output without matching an undeclared late file', () => {
     const root = fixture()
     const wt = createWorktree('literal-output', 'main', root)
+    const output = process.platform === 'win32' ? 'out[1].txt' : 'out*.txt'
+    const neighbor = process.platform === 'win32' ? 'out1.txt' : 'outside.txt'
     try {
-      write(wt.path, 'out*.txt')
+      write(wt.path, output)
       // Simulate a file written by a check after the early contract gate.
-      write(wt.path, 'outside.txt')
-      expect(mergeWorktreeBack(wt, 'commit', undefined, ['out*.txt'])).toBeTruthy()
-      expect(committedPaths(root)).toEqual(['out*.txt'])
-      expect(readFileSync(join(root, 'out*.txt'), 'utf8')).toBe('new\n')
-      expect(existsSync(join(root, 'outside.txt'))).toBe(false)
+      write(wt.path, neighbor)
+      expect(mergeWorktreeBack(wt, 'commit', undefined, [output])).toBeTruthy()
+      expect(committedPaths(root)).toEqual([output])
+      expect(readFileSync(join(root, output), 'utf8')).toBe('new\n')
+      expect(existsSync(join(root, neighbor))).toBe(false)
     } finally {
       if (existsSync(wt.path)) wt.cleanup()
     }

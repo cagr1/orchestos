@@ -19,7 +19,7 @@ import { enforceContract, parseLLMResponse } from '../run/contract.ts'
 let TMP_ROOT: string
 
 beforeEach(() => {
-  TMP_ROOT = realpathSync(mkdtempSync(join(tmpdir(), 'orchestos-contract-')))
+  TMP_ROOT = realpathSync.native(mkdtempSync(join(tmpdir(), 'orchestos-contract-')))
 })
 
 afterEach(() => {

@@ -25,7 +25,7 @@
 import { afterAll, beforeEach, describe, expect, it } from 'bun:test'
 import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
-import { join } from 'node:path'
+import { basename, join } from 'node:path'
 import { stringify as yamlStringify } from 'yaml'
 import { db } from '../../db/sqlite.ts'
 
@@ -250,7 +250,7 @@ describe('ERP.4.1 — crear la primera tarea sin init previo', () => {
     expect(postBody.id).toBe('first')
     expect(existsSync(join(tmpDir, 'tasks.yaml'))).toBe(true)
     const contents = readFileSync(join(tmpDir, 'tasks.yaml'), 'utf-8')
-    expect(contents).toContain(`project: ${tmpDir.split('/').pop()}`)
+    expect(contents).toContain(`project: ${basename(tmpDir)}`)
     expect(contents).toContain('id: first')
     expect(contents).not.toMatch(/id: t[12]-/)
     const list = await route(req('GET', '/api/tasks'), PORT)

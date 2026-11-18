@@ -408,6 +408,8 @@ esta etapa: `docs/done/bloque-AUD.md` (AUD.16, AUD.17), `docs/done/bloque-SES.md
   Falta (cambio de varios motores, espera GO): prompt por stdin donde el CLI lo acepte, o resolver el shim `.cmd` de
   npm a `node script.js`/`.exe`; lanzar con `Bun.spawn` en `codex-app-server` y `generic-cli`; fixtures de test
   multiplataforma (PATH con `delimiter`, CLIs falsos `.cmd`).
+  Avance del 2026-11-18: el launcher del catálogo y `codex exec` usan la ruta que detecta el PATH en ejecución.
+  Validado con shims de prueba en el clon Windows. Sigue pendiente Claude/OpenCode vía `.cmd`.
 - [x] **WIN.6a — Codex recibe el prompt por stdin (`codex exec … -`), nunca por argv.** (WIN.6, PC Windows de
   Carlos, 2026-11-16) `cmd.exe` corta el prompt de `codex.cmd` en el primer salto de línea y pierde `--json`: "Hola"
   a Codex en Dev queda sin respuesta. Hecho: `buildCodexArgs`/`buildCodexChatArgs` llevan `-` en lugar del prompt,
@@ -544,6 +546,9 @@ esta etapa: `docs/done/bloque-AUD.md` (AUD.16, AUD.17), `docs/done/bloque-SES.md
   diffs de Codex), `worktree-contract` 3 (uno es fixture: `out*.txt` no es un nombre válido en Windows; los otros dos,
   merge con exclusiones y renombres), `contract` "attempts every rollback", `tasks-api-init` 1 (crear la primera
   tarea sin init) y `usage-endpoint` 1 (agrupar por día local). Producto roto → arreglo con test; test POSIX → WIN.18.
+  Avance del 2026-11-18: fixtures de aprobación, worktree, rollback, primera tarea y zona horaria corregidos.
+  `context --force` pasa aislado y falló durante la cobertura base con exit 0 y sin escribir.
+  Falta reproducir esa diferencia. [Verificación focalizada](docs/done/evidence/WIN.18-21-local.md).
 - [x] **WIN.21 — El menú de Claude pierde los metadatos de plugins en Windows.** → [evidencia](docs/done/bloque-WIN.md#win21)
 
 ## Decisiones pendientes de Carlos

@@ -1,4 +1,4 @@
-# NEXT — handoff 2026-11-17 noche (Carlos pasa a Windows: demo AgroTienda = WIN.1 real)
+# NEXT — AgroTienda en macOS y correcciones de Windows
 
 Un solo presente: orden y trampas vivas del lote. Lo cerrado vive en `docs/done/bloque-*.md` y git; las reglas, en
 `AGENTS.md`. Versión anterior completa: `docs/done/poda-instrucciones-2026-11-03.md` (histórico).
@@ -13,16 +13,20 @@ y **USO.20 F1 `a9a283d4`** (pestaña Preview en Dev: iframe con URL por proyecto
 junto a Terminal; hecho por Sol, revisado por el cerebro). Abiertos hoy: USO.21 (F2: el agente ve la página con
 Playwright en el MCP de OrchestOS) y CMD.3 (`/cut` como comando de OrchestOS).
 
-Rumbo de Carlos: se va a Windows a construir la demo de e-commerce agropecuario (AgroTienda) con OrchestOS. Esa
-demo es el uso real y la prueba de humo WIN.1 a la vez: cada fallo se guarda con su salida y se abre como ítem WIN;
-lo que impide arrancar va primero. Esperado: la terminal integrada no abre (`dashboard/terminal.ts:36-39` usa
-`$SHELL`/`/bin/zsh`): el dev server en una consola aparte y su URL en Preview. Promocionar OrchestOS solo tras ~1
-semana de uso sin USO graves en flujos básicos, nocturnas verdes y "Windows experimental" declarado.
+La demo de e-commerce agropecuario (AgroTienda) y la prueba oficial las hace Carlos en macOS por el hardware.
+Este pase de Windows se dedica a las correcciones y sus pruebas focalizadas. WIN.1 queda como prueba de humo
+propia pendiente. Promocionar OrchestOS solo tras ~1 semana de uso sin USO graves en flujos básicos,
+nocturnas verdes y "Windows experimental" declarado.
+
+Windows, 2026-11-18: cerrados WIN.18, WIN.19 y WIN.21. WIN.6 ya usa la ruta detectada para Codex y el
+catálogo, y WIN.20 tiene corregidos los fixtures reproducidos. Pendientes en Windows: los shims de Claude
+y OpenCode (WIN.6), el fallo de `context --force` que solo se observó en la cobertura global (WIN.20),
+los scripts de desarrollo (WIN.7) y la prueba de humo propia (WIN.1). [Evidencia](docs/done/evidence/WIN.18-21-local.md).
 
 Orden:
 1. **Demo AgroTienda en macOS** (Carlos, 2026-11-18: mejor hardware): es el uso real de la Etapa 2; cada fallo se
    abre como ítem USO con su evidencia y va primero. **Windows aparte**, en sesiones de corrección en esa máquina:
-   WIN.1 (prueba de humo propia, ya no la demo), luego WIN.18–WIN.20 y lo que salga.
+   continuar los ítems WIN abiertos. WIN.1 queda para una sesión posterior.
 2. **MUT.1 y MUT.2 — leer la nocturna** desde cualquier máquina (`gh run list --workflow "Mutation Shards"`; la del
    17-11, run 44075536272, seguía corriendo a las 22 h). `gh run view <id> --log | grep '\[res\]'` por shard.
    Procesos o RSS que crecen → aislar cada `bun test` y matar el árbol al salir en `scripts/mutation-test-shard.ts`
@@ -100,8 +104,7 @@ auditoría AUD.1–AUD.28 en el orden de la segunda auditoría; lo cerrado está
    el orden de abajo. Dashboard del 4242: lo relanzó el cerebro sin variables `CLAUDE*` (PID 25868, sin log).
    **Revisión del 2026-11-16 (cerebro Fable, verificada): abiertos WIN.14–WIN.17.** Suite local: 114 rojos, no 98
    (`docs/done/evidence/WIN.17-local.txt`). Cerrados WIN.13–WIN.17, USO.17 y USO.18; CI Windows: 95 rojos
-   (`docs/done/evidence/WIN.17-ci.txt`). **Orden:** resto de WIN.6 con WIN.19 (CLIs falsos con shim `.cmd`) → WIN.20
-   (aislar posibles productos rotos) → WIN.18 (tests POSIX) → WIN.7. Re-correr `windows-smoke.yml` tras cada uno. WIN.14 sin prueba en vivo: la tarea `chat-b9b3da84…` (`failed`)
+   (`docs/done/evidence/WIN.17-ci.txt`). El orden vigente de Windows está arriba. WIN.14 sin prueba en vivo: la tarea `chat-b9b3da84…` (`failed`)
    es de USO.16 y reescribiría `NEXT.md` con un estado viejo: no reintentarla; la prueba va con la tarea en vivo de WIN.1.
    Visto y sin ítem (no daña): en Windows los `mode: 0o600`/`chmodSync` no aplican, así que el token del dashboard
    (`dashboard/auth-token.ts:18`), `settings-store.ts:83` y los respaldos de la BD (`db/backup.ts`) quedan con los

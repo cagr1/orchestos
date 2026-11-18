@@ -1,6 +1,6 @@
 import { afterAll, beforeAll, describe, expect, test } from 'bun:test'
 import { randomUUID } from 'node:crypto'
-import { mkdirSync, mkdtempSync, rmSync, symlinkSync } from 'node:fs'
+import { mkdirSync, mkdtempSync, realpathSync, rmSync, symlinkSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { handleApiRunApproval } from '../dashboard/handlers/runs.ts'
@@ -23,9 +23,11 @@ import { codexApprovalRequest, codexCommandKey } from '../run/executors/codex-ap
 import { validateTask } from '../tasks/schema.ts'
 
 const ids: string[] = []
+const approvalProjectRoot = realpathSync.native(mkdtempSync(join(tmpdir(), 'approval-project-')))
 beforeAll(() => runMigrations())
 afterAll(() => {
   for (const id of ids) db.run('DELETE FROM approval_runs WHERE id = ?', [id])
+  rmSync(approvalProjectRoot, { recursive: true, force: true })
 })
 function session(mode: ApprovalMode = 'supervised', projectId: string | null = null) {
   const id = randomUUID()
@@ -187,7 +189,7 @@ test('classification and patch paths use verified Codex event shapes, including 
         'item/commandExecution/requestApproval',
         { command: "/bin/zsh -lc 'cat a'", commandActions: [{ type, path: 'a' }] },
         null,
-        '/tmp',
+        approvalProjectRoot,
       ).readOnly,
     ).toBe(true)
   }
@@ -202,17 +204,18 @@ test('classification and patch paths use verified Codex event shapes, including 
         'item/commandExecution/requestApproval',
         { commandActions },
         null,
-        '/tmp',
+        approvalProjectRoot,
       ).readOnly,
     ).toBe(false)
   }
-  const root = mkdtempSync(join(tmpdir(), 'approval-path-'))
+  const root = realpathSync.native(mkdtempSync(join(tmpdir(), 'approval-path-')))
   try {
     mkdirSync(join(root, 'inside'))
-    symlinkSync(tmpdir(), join(root, 'escape'))
+    symlinkSync(tmpdir(), join(root, 'escape'), 'junction')
     expect(approvalPathWithin(root, 'inside/new.txt')).toBe(true)
     expect(approvalPathWithin(root, 'escape/new.txt')).toBe(false)
     expect(approvalPathWithin(root, '../outside')).toBe(false)
+    writeFileSync(join(root, 'a'), 'fixture')
     const request = codexApprovalRequest(
       'item/fileChange/requestApproval',
       {},
@@ -220,7 +223,7 @@ test('classification and patch paths use verified Codex event shapes, including 
         changes: [
           {
             path: join(root, 'a'),
-            kind: { type: 'update', move_path: '/outside' },
+            kind: { type: 'update', move_path: join(tmpdir(), '.') },
             diff: '-a\n+b',
           },
         ],
@@ -251,7 +254,7 @@ test('command grants and read-only auto-approval use the complete shell command'
       'item/commandExecution/requestApproval',
       { command, commandActions },
       null,
-      '/tmp',
+      approvalProjectRoot,
     )
   const decision = (command: string, actions: unknown) =>
     decideApproval('supervised', request(command, actions), grant)
@@ -288,7 +291,12 @@ test('approval POST retains the shared CSRF rejection before routing', async () 
 
 test('Codex warns for missing changes and for every file without a diff', () => {
   for (const item of [null, { changes: [] }]) {
-    const request = codexApprovalRequest('item/fileChange/requestApproval', {}, item, '/tmp')
+    const request = codexApprovalRequest(
+      'item/fileChange/requestApproval',
+      {},
+      item,
+      approvalProjectRoot,
+    )
     expect(request.detail.diff).toBe('Codex did not provide the content of this change.')
     expect(request.withinProject).toBe(false)
   }
@@ -302,7 +310,7 @@ test('Codex warns for missing changes and for every file without a diff', () => 
           { path: 'b', diff: '-before\n+after' },
         ],
       },
-      '/tmp',
+      approvalProjectRoot,
     )
     expect(request.detail.files).toEqual(['a', 'b'])
     expect(request.detail.diff).toBe(
