@@ -11,7 +11,8 @@ llevó `bun test` a 11,4 GB y el OOM tumba el runner; los logs de los shards mue
 IDEAS #75 `a596a717` (limpiar caché de los CLIs desde Settings), lint 87→86 `62f999e4`, **USO.22 `f4be44fd`** (tooltip
 del menú `/` oscuro), **USO.23 `2b8d1968`** (Dev con contraste de Chat; panel derecho 300 px, ancho guardado solo si
 el usuario lo cambia; Files sin peso), **USO.24 `f8ae0945`** (OpenCode se redibuja al cambiar el ancho: sesión propia
-del PTY + SIGWINCH directo), **USO.25 `77f72eed`** (pestaña OpenCode negra `#0a0a0a`). Gates `shell-look` 75/75 y
+del PTY + SIGWINCH directo), **USO.25 `77f72eed`** (pestaña OpenCode negra `#0a0a0a`), **USO.26 `5b7c0e9a`** (Browser/Terminal del pie solo iconos;
+tooltips sin zona de gracia de Radix; toggle del panel derecho sin fondo). Gates `shell-look` 75/75 y
 `opencode-terminal` 13/13 al día.
 Abierto: OpenCode avisa "Plugin failed" con `.opencode/plugin/context-budget.ts` del repo (sin revisar).
 
