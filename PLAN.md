@@ -294,6 +294,11 @@ esta etapa: `docs/done/bloque-AUD.md` (AUD.16, AUD.17), `docs/done/bloque-SES.md
   como comando del producto, no del CLI. Antes del código: decidir si lo ejecuta el agente de la sesión con un prompt
   fijo (genérico para cualquier LLM) o el servidor de forma mecánica (commit/push/handoff sin tokens), y qué hace con
   `NEXT.md` en proyectos que no lo usan. Plan corto y GO de Carlos; probar en Windows dentro de la etapa 3.
+  2026-11-19: GO de Carlos. Plan: `/cut` en el menú `/` de Dev (no en Chat). Mitad agente: un prompt fijo genérico
+  (de `~/.agent-method/commands/cut.md`) cierra el ítem, escribe el handoff (`NEXT.md` solo si el proyecto ya lo usa;
+  si no, el handoff es el último mensaje), commitea por rutas y sube. Mitad mecánica (servidor, sin tokens): comprueba
+  `git status` sin cambios y rama igual al remoto, suelta el candado y muestra una tarjeta con el resultado y el botón
+  "Continuar en sesión nueva" (pestaña Dev nueva que arranca desde el handoff). Spec: `docs/specs/CMD.3.md`.
 - [x] **USO.19 — En Chat, el primer mensaje de un chat nuevo se pierde.** (encontrado al verificar CMD.1, 2026-11-17)
   "New chat" → escribir → Enter: la sesión se crea con el título del mensaje pero con 0 mensajes y la vista queda
   vacía; en un chat que ya existe el envío funciona. Se reprodujo con texto normal y con el código de `master` sin
@@ -333,6 +338,11 @@ esta etapa: `docs/done/bloque-AUD.md` (AUD.16, AUD.17), `docs/done/bloque-SES.md
   capturas visibles en el hilo; funciona con cualquier CLI que hable MCP. Primero en la versión web: Playwright
   pasa a dependencia y descarga Chromium al primer uso para abrir la URL en una sesión local separada. En la etapa
   Electron se podrá evaluar el control de la vista embebida. Después de usar F1 en la demo; plan corto y GO antes de código.
+  2026-11-19: GO de Carlos ("GO, en ese orden": USO.21 y luego CMD.3), antes de la demo para que el agente vea AgroTienda.
+  Plan: herramientas MCP `preview_screenshot`, `preview_console`, `preview_click`, `preview_navigate` con Playwright y un
+  Chromium headless que vive lo que la sesión del CLI; URL por defecto = la de la pestaña Preview, guardada también en el
+  servidor por proyecto; solo `localhost`/`127.0.0.1`; capturas en la carpeta del chat y visibles en el hilo (tarjeta
+  de imagen nueva). Fuera: control de la vista embebida (Electron) y URLs remotas. Spec: `docs/specs/USO.21.md`.
 - [x] **USO.22 — El tooltip del menú `/` es oscuro como el menú.** (Carlos, 2026-11-19: "Oscuro") El tooltip de
   cada comando usaba los colores invertidos del `Tooltip` común (`bg-foreground`): blanco junto al menú oscuro. Ahora
   usa la superficie del menú (`bg-app-elevated text-app border border-app`, `AgentComposer.tsx:1107`): oscuro en los
