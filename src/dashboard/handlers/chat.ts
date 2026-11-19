@@ -5,6 +5,7 @@ import { join, relative } from 'node:path'
 import { badRequest, readBody, z } from '../../boundary/index.ts'
 import { writeChatImages } from '../../chat/attachment-files.ts'
 import { buildChatSystemPrompt, rejectedSessionTasks } from '../../chat/chat-context.ts'
+import { cutPrompt } from '../../chat/cut-prompt.ts'
 import {
   type ChatDocument,
   changedChatDocuments,
@@ -18,8 +19,10 @@ import { readUserProfile } from '../../config/user-profile.ts'
 import { estimateTokens } from '../../context/compress.ts'
 import { refreshProjectContext } from '../../context/load.ts'
 import {
+  appendCutReport,
   clearClaudeChatSession,
   getChatSession,
+  getClaudeChatSession,
   listChatMessages,
   listChatSessions,
   sessionAllowsTaskExecution,
@@ -121,6 +124,7 @@ import { loadTasks } from '../../tasks/loader.ts'
 import { CODEX_COMMANDS, readCliCommands } from '../chat-cli-commands.ts'
 import { readCliModelCatalogsCached } from '../chat-cli-models.ts'
 import { appendLiveText, clearLiveText, getLiveText, replaceLiveText } from '../chat-live.ts'
+import { cutBaseHead, cutCheck } from '../cut-check.ts'
 import {
   type DefaultChatAgentDeps,
   readDefaultChatAgent,
@@ -970,6 +974,12 @@ async function handleApiChat(
   let root = project.root
   let isolatedCwd: string | null = null
   const generalSession = session?.project_id === null
+  const isCut =
+    message === '/cut' &&
+    Boolean(session?.project_id && hasProjectContext) &&
+    session?.mode === 'code'
+  const baseHead = isCut ? cutBaseHead(root) : null
+  let cutReply = ''
   let documentsBefore = new Map<string, string>()
   let documents: ChatDocument[] | undefined
 
@@ -1596,6 +1606,7 @@ async function handleApiChat(
         : undefined
     const lessons = listApplicable(hasProjectContext ? project.id : null)
     const systemPrompt = buildChatSystemPrompt({
+      cut: isCut,
       documentDirectory:
         generalSession && (chatAgent === 'claude' || chatAgent === 'codex') ? root : undefined,
       userCodes: readUserProfile().codes,
@@ -1708,7 +1719,10 @@ async function handleApiChat(
           .join('\n') +
         '\n'
       : ''
-    const combinedText = inboundText + textBlocks.join('') + message
+    const combinedText =
+      inboundText +
+      textBlocks.join('') +
+      (isCut ? cutPrompt({ hasNextMd: existsSync(join(root, 'NEXT.md')) }) : message)
 
     // R.5 — reemplaza el par logChatRun()+persistResponse() (dos escrituras
     // separadas, sin garantía conjunta — el hallazgo central de R.5) por una
@@ -1733,6 +1747,7 @@ async function handleApiChat(
       contextUsed?: number | null
       contextWindow?: number | null
     }): void => {
+      cutReply = params.responseText
       signal?.throwIfAborted()
       if (activeTurnId && session) clearLiveText(session.id, activeTurnId)
       const {
@@ -1908,6 +1923,7 @@ async function handleApiChat(
             effort: cliEffort,
             hasProjectContext,
             generalChat: generalSession,
+            cut: isCut,
             sessionId: session?.id,
             historyLength: rawHistory.length,
             transcript,
@@ -2218,6 +2234,20 @@ async function handleApiChat(
     clearLiveText(session.id, activeTurnId)
     return jsonResponse({ text, model, stopped: true })
   } finally {
+    if (isCut && session && activeTurnId) {
+      try {
+        appendCutReport(
+          session.id,
+          cutCheck(
+            root,
+            chatAgent === 'claude' ? getClaudeChatSession(session.id).sessionId : undefined,
+            { baseHead, reply: cutReply },
+          ),
+        )
+      } catch (error) {
+        console.warn('[chat] could not check cut result', error)
+      }
+    }
     if (isolatedCwd) rmSync(isolatedCwd, { recursive: true, force: true })
     clearInterval(leaseTimer)
     if (session && activeTurnId) unregisterChatTurn(session.id, activeTurnId)

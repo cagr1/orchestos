@@ -31,8 +31,12 @@ test('USO.11 Claude general chat allows document/web tools without widening proj
   expect(general).not.toContain('Bash')
 })
 
-for (const generalChat of [false, true]) {
-  test(`USO.11 Codex ${generalChat ? 'general' : 'project'} thread/turn policy and config`, async () => {
+for (const [generalChat, cut] of [
+  [false, false],
+  [true, false],
+  [false, true],
+]) {
+  test(`USO.11 Codex ${generalChat ? 'general' : cut ? 'cut' : 'project'} thread/turn policy and config`, async () => {
     const calls: { method: string; params: Record<string, unknown> }[] = []
     const stdout = new PassThrough()
     const stdin = new PassThrough()
@@ -69,10 +73,20 @@ for (const generalChat of [false, true]) {
           )
       }
     })
+    let stored: { threadId: string | null; contextHash: string | null } = {
+      threadId: null,
+      contextHash: null,
+    }
     const server = new CodexAppServer({
       binary: 'fake',
       env: {},
-      store: { get: () => ({ threadId: null, contextHash: null }), set: () => {} },
+      gitDir: (cwd) => `${cwd}/.git`,
+      store: {
+        get: () => stored,
+        set: (_session, threadId, contextHash) => {
+          stored = { threadId, contextHash }
+        },
+      },
       spawnProcess: () =>
         child as unknown as import('node:child_process').ChildProcessWithoutNullStreams,
     })
@@ -84,6 +98,7 @@ for (const generalChat of [false, true]) {
         message: 'hello',
         timeoutMs: 1000,
         generalChat,
+        cut,
         threadConfig: generalChat ? { web_search: 'live' } : undefined,
       })
       const start = calls.find((call) => call.method === 'thread/start')!
@@ -91,11 +106,26 @@ for (const generalChat of [false, true]) {
       expect(start.params.config).toEqual(generalChat ? { web_search: 'live' } : undefined)
       const turn = calls.find((call) => call.method === 'turn/start')!
       expect(turn.params.sandboxPolicy).toEqual(
-        generalChat
-          ? { type: 'workspaceWrite', writableRoots: ['/chat'], networkAccess: false }
-          : { type: 'readOnly', networkAccess: false },
+        cut
+          ? { type: 'workspaceWrite', writableRoots: ['/chat', '/chat/.git'], networkAccess: true }
+          : generalChat
+            ? { type: 'workspaceWrite', writableRoots: ['/chat'], networkAccess: false }
+            : { type: 'readOnly', networkAccess: false },
       )
       expect(turn.params.approvalPolicy).toBe('never')
+      if (cut) {
+        await server.turn({
+          sessionId: 'session',
+          cwd: '/chat',
+          systemPrompt: '',
+          message: 'next',
+          timeoutMs: 1000,
+        })
+        const turns = calls.filter((call) => call.method === 'turn/start')
+        expect(turns).toHaveLength(2)
+        expect(turns[1]!.params.sandboxPolicy).toEqual({ type: 'readOnly', networkAccess: false })
+        expect(calls.filter((call) => call.method === 'thread/start')).toHaveLength(1)
+      }
     } finally {
       server.kill()
     }

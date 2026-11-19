@@ -69,6 +69,39 @@ function tempHome(): string {
 }
 
 describe('SQLite migrations', () => {
+  it('migration 44 adds cut_report to existing messages idempotently', async () => {
+    const home = tempHome()
+    try {
+      const result = await runMigrationProcess(
+        home,
+        `
+        const { runMigrations, applyMigrationSteps, FUTURE_MIGRATIONS } = await import('./src/db/migrate.ts')
+        const { db } = await import('./src/db/sqlite.ts')
+        const { createChatSession, appendChatExchange, appendCutReport, listChatMessages } = await import('./src/db/chat-sessions.ts')
+        runMigrations()
+        const session = createChatSession({ agent: 'codex' })
+        appendChatExchange({ sessionId: session.id, userContent: 'old', assistantContent: 'reply' })
+        db.exec('ALTER TABLE chat_messages DROP COLUMN cut_report')
+        db.exec('DELETE FROM schema_migrations WHERE version = 44')
+        applyMigrationSteps(FUTURE_MIGRATIONS)
+        runMigrations()
+        const report = { baseHead: null, dirty: [], dirtyTotal: 0, branch: 'main', upstream: null, ahead: null, behind: null, lock: 'none', handoff: 'next steps' }
+        appendCutReport(session.id, report)
+        const messages = listChatMessages(session.id)
+        process.stdout.write(JSON.stringify({ chatMessageColumns: db.query('PRAGMA table_info(chat_messages)').all().map(c => c.name), runCount: messages.length, evidence: db.query('SELECT version, name, applied_at FROM schema_migrations WHERE version = 44').all(), error: JSON.stringify(messages.at(-1).cutReport), legacyTaskIdDefault: db.query('SELECT cut_report FROM chat_messages ORDER BY id LIMIT 1').get().cut_report }))
+      `,
+      )
+      expect(result.chatMessageColumns).toContain('cut_report')
+      expect(result.runCount).toBe(3)
+      expect(result.evidence).toHaveLength(1)
+      expect(result.evidence?.[0]?.name).toBe('chat-cut-report')
+      expect(JSON.parse(result.error ?? '{}').handoff).toBe('next steps')
+      expect(result.legacyTaskIdDefault).toBeNull()
+    } finally {
+      rmSync(home, { recursive: true, force: true })
+    }
+  })
+
   it('migration 41 upgrades legacy lessons idempotently and persists selected IDs', async () => {
     const home = tempHome()
     try {
@@ -481,6 +514,7 @@ describe('SQLite migrations', () => {
         { version: 41, name: 'lesson-evidence-and-usage' },
         { version: 42, name: 'lesson-lifecycle' },
         { version: 43, name: 'session-messages' },
+        { version: 44, name: 'chat-cut-report' },
       ])
       expect(result.runsColumns).toEqual(
         expect.arrayContaining([
@@ -634,6 +668,7 @@ describe('SQLite migrations', () => {
         { version: 41, name: 'lesson-evidence-and-usage' },
         { version: 42, name: 'lesson-lifecycle' },
         { version: 43, name: 'session-messages' },
+        { version: 44, name: 'chat-cut-report' },
       ])
       expect(result.legacyTaskIdDefault).toBeNull()
     } finally {
@@ -707,7 +742,7 @@ describe('SQLite migrations', () => {
       expect(first.afterFirst.message).toBe('preserve this message')
       expect(first.afterFirst.v4).toBe('run-files-read')
       expect(first.afterFirst.v9Count).toBe(1)
-      expect(first.afterSecond).toEqual({ v9Count: 1, schemaCount: 43 })
+      expect(first.afterSecond).toEqual({ v9Count: 1, schemaCount: 44 })
     } finally {
       rmSync(home, { recursive: true, force: true })
     }
@@ -784,7 +819,7 @@ describe('SQLite migrations', () => {
 
       expect(result.runCount).toBe(1)
       expect(result.ftsTriggers).toBe(3)
-      expect(result.schemaCount).toBe(43)
+      expect(result.schemaCount).toBe(44)
     } finally {
       rmSync(home, { recursive: true, force: true })
     }
@@ -800,7 +835,7 @@ describe('SQLite migrations', () => {
         const { db } = await import('./src/db/sqlite.ts')
         runMigrations()
         const step = {
-          version: 44,
+          version: 45,
           name: 'migration-test-probe',
           precondition(database) {
             if (database.query("SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'runs'").get() === null) {
@@ -825,8 +860,8 @@ describe('SQLite migrations', () => {
       `,
       )
 
-      expect(result.evidence).toHaveLength(44)
-      expect(result.evidence?.[43]).toMatchObject({ version: 44, name: 'migration-test-probe' })
+      expect(result.evidence).toHaveLength(45)
+      expect(result.evidence?.[44]).toMatchObject({ version: 45, name: 'migration-test-probe' })
       expect(result.evidence?.[9]?.applied_at).toEqual(expect.any(String))
       expect(result.probeCount).toBe(1)
     } finally {
@@ -845,7 +880,7 @@ describe('SQLite migrations', () => {
         const { db } = await import('./src/db/sqlite.ts')
         runMigrations()
         const failedStep = {
-          version: 44,
+          version: 45,
           name: 'migration-test-failure',
           precondition() {},
           apply(database) {
@@ -860,7 +895,7 @@ describe('SQLite migrations', () => {
         db.close()
         const reopened = new Database(process.env.ORCHESTOS_HOME + '/.orchestos/db.sqlite')
         const failedTableCount = reopened.query("SELECT COUNT(*) AS count FROM sqlite_master WHERE type = 'table' AND name = 'migration_partial'").get().count
-        const failedVersionCount = reopened.query('SELECT COUNT(*) AS count FROM schema_migrations WHERE version = 44').get().count
+        const failedVersionCount = reopened.query('SELECT COUNT(*) AS count FROM schema_migrations WHERE version = 45').get().count
         process.stdout.write(JSON.stringify({ failedTableCount, failedVersionCount }))
         reopened.close()
       `,
@@ -883,7 +918,7 @@ describe('SQLite migrations', () => {
         const { db } = await import('./src/db/sqlite.ts')
         runMigrations()
         const preconditionFailure = {
-          version: 44,
+          version: 45,
           name: 'migration-test-precondition-failure',
           precondition() { throw new Error('injected precondition failure') },
           apply(database) { database.exec('CREATE TABLE migration_precondition_partial (id INTEGER PRIMARY KEY)') },
@@ -893,7 +928,7 @@ describe('SQLite migrations', () => {
         const preconditionTableCount = db.query("SELECT COUNT(*) AS count FROM sqlite_master WHERE type = 'table' AND name = 'migration_precondition_partial'").get().count
 
         const postconditionFailure = {
-          version: 44,
+          version: 45,
           name: 'migration-test-postcondition-failure',
           precondition() {},
           apply(database) { database.exec('CREATE TABLE migration_postcondition_partial (id INTEGER PRIMARY KEY)') },
@@ -903,7 +938,7 @@ describe('SQLite migrations', () => {
         const postconditionTableCount = db.query("SELECT COUNT(*) AS count FROM sqlite_master WHERE type = 'table' AND name = 'migration_postcondition_partial'").get().count
 
         const recoveryStep = {
-          version: 44,
+          version: 45,
           name: 'migration-test-recovery',
           precondition() {},
           apply(database) { database.exec('CREATE TABLE migration_recovery (id INTEGER PRIMARY KEY)') },
@@ -913,7 +948,7 @@ describe('SQLite migrations', () => {
         }
         applyMigrationSteps([...FUTURE_MIGRATIONS, recoveryStep])
         const recoveryCount = db.query("SELECT COUNT(*) AS count FROM sqlite_master WHERE type = 'table' AND name = 'migration_recovery'").get().count
-        const recoveryVersionCount = db.query('SELECT COUNT(*) AS count FROM schema_migrations WHERE version = 44').get().count
+        const recoveryVersionCount = db.query('SELECT COUNT(*) AS count FROM schema_migrations WHERE version = 45').get().count
         process.stdout.write(JSON.stringify({ preconditionTableCount, postconditionTableCount, recoveryCount, recoveryVersionCount }))
         db.close()
       `,

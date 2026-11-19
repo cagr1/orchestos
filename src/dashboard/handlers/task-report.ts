@@ -7,6 +7,7 @@ import { taskEngineForCli } from '../../run/executors/task-engines.ts'
 import { MAX_RETRIES } from '../../run/qa.ts'
 import { DIRTY_TREE_REASON_PREFIX, listDirtyFiles } from '../../run/sandbox-policy.ts'
 import { loadTasks } from '../../tasks/loader.ts'
+import { recheckCutAfterTask } from '../cut-recheck.ts'
 import { runRecordToRow } from './runs.ts'
 import { INTERRUPTED_REASON } from './task-run-reconcile.ts'
 
@@ -19,6 +20,7 @@ export function reportTaskOutcome(
   try {
     const report = buildTaskReportData(root, taskId, projectId)
     appendTaskReport(sessionId, taskId, report.content, report.data)
+    recheckCutAfterTask(sessionId, root)
   } catch (error) {
     console.error('Could not report task outcome', error)
   }
@@ -143,6 +145,7 @@ export function settleTaskRun(
       if (row.session_id) {
         const report = buildTaskReportData(row.root, row.task_id, row.project_id)
         appendReport(row.session_id, row.task_id, report.content, report.data)
+        recheckCutAfterTask(row.session_id, row.root)
       }
     }).immediate()
   } catch (error) {

@@ -330,18 +330,18 @@ test('CMD.1 discovery reads descriptions through symlinked Claude command direct
   mkdirSync(linkedCommands, { recursive: true })
   mkdirSync(join(home, '.claude'), { recursive: true })
   symlinkSync(linkedCommands, join(home, '.claude/commands'))
-  writeFileSync(join(linkedCommands, 'cut.md'), '---\ndescription: Cut a release\n---\nBody')
+  writeFileSync(join(linkedCommands, 'release.md'), '---\ndescription: Cut a release\n---\nBody')
   try {
     const read = createCliCommandReader({
       home,
       probe: {
         findBinary: () => 'fake',
-        run: async () => JSON.stringify({ ...init, slash_commands: ['cut'], skills: [] }),
+        run: async () => JSON.stringify({ ...init, slash_commands: ['release'], skills: [] }),
       },
     })
     expect(await read('claude', cwd)).toEqual([
       {
-        name: 'cut',
+        name: 'release',
         description: 'Cut a release',
         cli: 'claude',
         kind: 'prompt',
@@ -351,4 +351,14 @@ test('CMD.1 discovery reads descriptions through symlinked Claude command direct
   } finally {
     rmSync(root, { recursive: true, force: true })
   }
+})
+
+test('cut is reserved for OrchestOS and excluded from CLI discovery', async () => {
+  const { ORCHESTOS_COMMAND_NAMES } = await import('./chat-cli-commands')
+  expect(ORCHESTOS_COMMAND_NAMES.has('cut')).toBe(true)
+  expect(
+    parseClaudeCommands(
+      JSON.stringify({ type: 'system', subtype: 'init', slash_commands: ['cut'] }),
+    ),
+  ).toEqual([])
 })

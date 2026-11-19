@@ -62,6 +62,56 @@ function store() {
 }
 
 describe('Codex app-server', () => {
+  test('CMD.3: cut grants the absolute gitdir only for that turn and preserves thread rules', async () => {
+    const calls: any[] = []
+    const gitDir = (cwd: string) => {
+      expect(cwd).toBe('/project')
+      return '/git-metadata/worktrees/project'
+    }
+    const server = new CodexAppServer({
+      binary: 'fake',
+      env: {},
+      store: store().api,
+      gitDir,
+      spawnProcess: () =>
+        fakeProcess((request, stdout) => {
+          calls.push(request)
+          if (request.method === 'initialize') reply(stdout, request, {})
+          if (request.method === 'thread/start') reply(stdout, request, { thread: { id: 'cut' } })
+          if (request.method !== 'turn/start') return
+          reply(stdout, request, { turn: { id: 'turn' } })
+          queueMicrotask(() =>
+            stdout.write(
+              `${JSON.stringify({ method: 'turn/completed', params: { threadId: 'cut', turn: { id: 'turn', status: 'completed' } } })}\n`,
+            ),
+          )
+        }),
+    })
+    const turn = { sessionId: 's', cwd: '/project', timeoutMs: 1000 }
+    try {
+      await server.turn({ ...turn, systemPrompt: 'Create tasks', message: 'hello' })
+      await server.turn({ ...turn, systemPrompt: 'Close directly', message: '/cut', cut: true })
+      await server.turn({ ...turn, systemPrompt: 'Create tasks', message: 'hello again' })
+      const threads = calls.filter((call) => call.method === 'thread/start')
+      expect(threads).toHaveLength(1)
+      expect(threads[0].params.sandbox).toBe('read-only')
+      expect(threads[0].params.developerInstructions).toBe('Create tasks')
+      const turns = calls.filter((call) => call.method === 'turn/start')
+      expect(turns[0].params.sandboxPolicy).toEqual({ type: 'readOnly', networkAccess: false })
+      expect(turns[1].params.sandboxPolicy).toEqual({
+        type: 'workspaceWrite',
+        writableRoots: ['/project', '/git-metadata/worktrees/project'],
+        networkAccess: true,
+      })
+      expect(turns[1].params.input[0].text).toContain(
+        '<orchestos-context-update>\nClose directly\n</orchestos-context-update>',
+      )
+      expect(turns[2].params.sandboxPolicy).toEqual({ type: 'readOnly', networkAccess: false })
+    } finally {
+      server.kill()
+    }
+  })
+
   test.each([
     { content: [{ type: 'text', text: 'preview-shot:x.png' }] },
     {

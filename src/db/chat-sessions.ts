@@ -1,7 +1,22 @@
 import { randomUUID } from 'node:crypto'
+import { parseJson, z } from '../boundary/index.ts'
 import type { AgentChoice } from '../config/schema.ts'
+import type { CutReport } from '../dashboard/cut-check.ts'
 import { isRunFailureKind, type RunFailureKind } from './runs.ts'
 import { db } from './sqlite.ts'
+
+const cutReportSchema: z.ZodType<CutReport> = z.object({
+  baseHead: z.string().nullable(),
+  dirty: z.array(z.string()),
+  dirtyTotal: z.number(),
+  branch: z.string().nullable(),
+  upstream: z.string().nullable(),
+  ahead: z.number().nullable(),
+  behind: z.number().nullable(),
+  lock: z.enum(['released', 'held', 'held-by-other', 'none']),
+  handoff: z.string().nullable(),
+  checkFailed: z.boolean().optional(),
+})
 
 export type ChatSessionMode = 'chat' | 'code'
 
@@ -30,6 +45,7 @@ interface StoredChatMessage {
   task_held: number | null
   existing_files: string | null
   turn_id: string | null
+  cut_report: string | null
   // ERP.4.13 — JSON del reporte de fin de tarea (`TaskReportData`); null en mensajes normales
   task_report: string | null
   stopped?: number
@@ -66,11 +82,12 @@ export interface TaskReportData {
 export interface ChatMessageRecord
   extends Omit<
     StoredChatMessage,
-    'ocr_used' | 'task_held' | 'existing_files' | 'task_report' | 'stopped'
+    'ocr_used' | 'task_held' | 'existing_files' | 'task_report' | 'cut_report' | 'stopped'
   > {
   ocr_used: string[]
   task_held: boolean
   existing_files: string[]
+  cutReport?: CutReport
   taskReport?: TaskReportData
   stopped?: boolean
 }
@@ -173,8 +190,9 @@ function parseTaskReport(value: string | null): TaskReportData | undefined {
 }
 
 function mapMessage(row: StoredChatMessage): ChatMessageRecord {
-  const { task_report: taskReport, stopped, ...rest } = row
+  const { task_report: taskReport, cut_report: cutReport, stopped, ...rest } = row
   const parsedReport = parseTaskReport(taskReport)
+  const parsedCutReport = cutReport ? parseJson(cutReportSchema, cutReport) : undefined
   return {
     ...rest,
     ...(stopped ? { stopped: true } : {}),
@@ -182,6 +200,7 @@ function mapMessage(row: StoredChatMessage): ChatMessageRecord {
     task_held: row.task_held === 1,
     existing_files: parseStringArray(row.existing_files),
     ...(parsedReport ? { taskReport: parsedReport } : {}),
+    ...(parsedCutReport?.ok ? { cutReport: parsedCutReport.data } : {}),
   }
 }
 
@@ -448,6 +467,26 @@ export function appendTaskReport(
     db.run('UPDATE chat_sessions SET updated_at = ? WHERE id = ?', [now, sessionId])
   })
   insert()
+  return listChatMessages(sessionId).at(-1) ?? null
+}
+
+export function appendCutReport(sessionId: string, report: CutReport): ChatMessageRecord | null {
+  if (!getChatSession(sessionId)) return null
+  db.transaction(() => {
+    const now = new Date().toISOString()
+    const model =
+      db
+        .query<{ model: string | null }, [string]>(
+          "SELECT model FROM chat_messages WHERE session_id = ? AND role = 'assistant' AND model IS NOT NULL ORDER BY id DESC LIMIT 1",
+        )
+        .get(sessionId)?.model ?? null
+    db.run(
+      `INSERT INTO chat_messages (session_id, role, content, model, cut_report, created_at)
+       VALUES (?, 'assistant', '', ?, ?, ?)`,
+      [sessionId, model, JSON.stringify(report), now],
+    )
+    db.run('UPDATE chat_sessions SET updated_at = ? WHERE id = ?', [now, sessionId])
+  })()
   return listChatMessages(sessionId).at(-1) ?? null
 }
 

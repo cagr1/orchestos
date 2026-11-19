@@ -1,5 +1,6 @@
 import type { RunFailureKind } from '../../../../db/runs'
 import type { CliNotice } from '../../../../run/executors/cli-failure'
+import type { CutReport } from '../../../cut-check.ts'
 import { thoughtMs } from '../components/thread/thinking'
 import type {
   ApprovalMode,
@@ -56,6 +57,7 @@ export interface ChatMessageRow {
   existingFiles: string[]
   turnId?: string | null
   stopped?: boolean
+  cutReport?: CutReport
   taskReport?: {
     diagnosis?: {
       kind?: RunFailureKind
@@ -305,6 +307,7 @@ export function mapMessage(row: ChatMessageRow): ChatMessage {
     model: row.model ?? undefined,
     taskHeld: row.taskHeld || undefined,
     taskReport: row.taskReport,
+    cutReport: row.cutReport,
     proposedTask:
       row.taskHeld && row.taskId
         ? { id: row.taskId, description: row.content, output: row.existingFiles }

@@ -41,6 +41,7 @@ export interface CliRoleResult {
 }
 
 export interface CliTurnInput extends CliRoleInput {
+  cut?: boolean
   generalChat?: boolean
   signal?: AbortSignal
   hasProjectContext: boolean
@@ -175,6 +176,7 @@ registerCliChatAdapter('claude', {
           i.mcpOffer,
           i.signal,
           i.generalChat,
+          i.cut,
         )
       let result: Awaited<ReturnType<typeof runTurn>>
       try {
@@ -258,6 +260,7 @@ registerCliChatAdapter('codex', {
       i.imagePaths,
       i.mcpOffer,
       i.signal,
+      i.cut,
     )
     return {
       ...result,

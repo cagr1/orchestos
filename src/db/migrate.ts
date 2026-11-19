@@ -1368,6 +1368,26 @@ export const FUTURE_MIGRATIONS: readonly SchemaMigrationStep[] = [
           throw new Error(`Migration 43 did not add ${name}`)
     },
   },
+  {
+    version: 44,
+    name: 'chat-cut-report',
+    precondition: (database) => {
+      if (
+        !database
+          .query("SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'chat_messages'")
+          .get()
+      )
+        throw new Error('Migration 44 requires chat_messages table')
+    },
+    apply: (database) => {
+      database.exec('ALTER TABLE chat_messages ADD COLUMN cut_report TEXT')
+    },
+    postcondition: (database) => {
+      const columns = database.query<{ name: string }, []>('PRAGMA table_info(chat_messages)').all()
+      if (!columns.some((column) => column.name === 'cut_report'))
+        throw new Error('Migration 44 did not add chat_messages.cut_report')
+    },
+  },
 ]
 
 function appliedVersions(database: Database): Set<number> {

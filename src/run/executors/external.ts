@@ -494,6 +494,7 @@ export function buildClaudeChatArgs(
   resumeSessionId?: string,
   mcpOffer?: McpOffer,
   generalChat = false,
+  cut = false,
 ): string[] {
   const args = [
     '-p',
@@ -505,7 +506,11 @@ export function buildClaudeChatArgs(
     systemPrompt,
     ...CLAUDE_CHAT_BOUNDARY_FLAGS,
     '--tools',
-    generalChat ? CLAUDE_GENERAL_CHAT_TOOLS : CLAUDE_CHAT_TOOLS,
+    cut
+      ? 'Read,Glob,Grep,Edit,Write,Bash'
+      : generalChat
+        ? CLAUDE_GENERAL_CHAT_TOOLS
+        : CLAUDE_CHAT_TOOLS,
     '--settings',
     settingsPath,
     '--add-dir',
@@ -514,6 +519,17 @@ export function buildClaudeChatArgs(
   // `-p` denies tools that need a prompt: acceptEdits covers Write/Edit, not web tools (probed 2.1.325).
   if (generalChat)
     args.push('--permission-mode', 'acceptEdits', '--allowedTools', 'WebSearch,WebFetch')
+  if (cut)
+    args.push(
+      '--allowedTools',
+      [
+        ...['status', 'diff', 'log', 'rev-parse', 'add', 'commit', 'push'].map(
+          (command) => `Bash(git ${command}:*)`,
+        ),
+        'Edit(NEXT.md)',
+        'Write(NEXT.md)',
+      ].join(','),
+    )
   // UI.24.6a — directorio temporal de imágenes adjuntas del turno: lectura solamente.
   if (attachmentsDir && !generalChat) args.push('--add-dir', attachmentsDir)
   if (resumeSessionId) args.push('--resume', resumeSessionId)
@@ -564,6 +580,7 @@ export async function runClaudeChat(
   mcpOffer?: McpOffer,
   signal?: AbortSignal,
   generalChat = false,
+  cut = false,
 ): Promise<ClaudeChatResult> {
   const found = findClaudeBinary()
   if (!found) {
@@ -611,6 +628,7 @@ export async function runClaudeChat(
         resumeSessionId,
         mcpOffer,
         generalChat,
+        cut,
       ),
       userMessage,
       timeoutMs,

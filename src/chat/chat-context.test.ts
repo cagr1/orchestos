@@ -239,3 +239,41 @@ test('Preview prompt uses the tool names offered to the turn', () => {
     expect(buildChatSystemPrompt({ ...input, offeredTools: [] })).not.toContain('preview_')
   }
 })
+
+test('/cut replaces task-only rules for both CLI agents and preserves project context', () => {
+  for (const agent of ['claude', 'codex']) {
+    const input = {
+      agent,
+      autoTaskInstruction: 'You must create_task for changes. Never commit.',
+      userCodes: false,
+      modelLabel: 'fixture-model',
+      now: new Date('2026-11-19T12:00:00Z'),
+      timeZone: 'UTC',
+      projectFiles: ['AGENTS.md', 'NEXT.md'],
+      rejectedTasks: [{ id: 'old', description: 'Rejected task' }],
+      offeredTools: ['create_task', 'run_readonly'],
+    }
+    const normal = buildChatSystemPrompt(input)
+    expect(buildChatSystemPrompt({ ...input, cut: false })).toBe(normal)
+    expect(normal).toContain(input.autoTaskInstruction)
+    const cut = buildChatSystemPrompt({ ...input, cut: true })
+    expect(cut).not.toContain('create_task')
+    expect(cut).not.toContain('Never commit')
+    expect(cut).not.toContain('cannot edit files')
+    expect(cut).not.toContain('writes are blocked')
+    expect(cut).not.toContain('Use it, not your own shell')
+    expect(cut).toContain('git commit and git push')
+    expect(cut).toContain('edit or write only NEXT.md')
+    expect(cut).toContain('Do not create tasks in this turn')
+    for (const shared of [
+      'fixture-model',
+      'Now: 2026-11-19 12:00:00',
+      'AGENTS.md, NEXT.md',
+      'The user does not write code.',
+      'Rejected task',
+    ]) {
+      expect(normal).toContain(shared)
+      expect(cut).toContain(shared)
+    }
+  }
+})

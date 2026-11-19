@@ -1,6 +1,7 @@
 import type { RunFailureKind } from '../../../../db/runs'
 import type { TaskClass } from '../../../../router/classify'
 import type { CliNotice } from '../../../../run/executors/cli-failure'
+import type { CutReport } from '../../../cut-check.ts'
 import type { TimelineStep } from '../api/chat'
 export type ApprovalMode = 'supervised' | 'auto-edit' | 'full'
 
@@ -245,6 +246,7 @@ export interface ChatMessage {
     output: string[]
   }
   // ERP.4.13 — datos estructurados de un reporte de fin de tarea
+  cutReport?: CutReport
   taskReport?: {
     diagnosis?: {
       kind?: RunFailureKind

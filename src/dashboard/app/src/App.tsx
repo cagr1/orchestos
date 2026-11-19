@@ -116,7 +116,7 @@ import {
   useAppearanceSettings,
   writeAppearanceSettings,
 } from './lib/appearance-settings'
-import { discardChatQueue, writeChatQueue } from './lib/chat-queue'
+import { discardChatQueue, queueDevSessionMessage, writeChatQueue } from './lib/chat-queue'
 import { readChatSettings, writeChatSettings } from './lib/chat-settings'
 import { moveComposerDraft } from './lib/composer-drafts'
 import {
@@ -1351,6 +1351,8 @@ export default function App() {
     cliId: string,
     model: string,
     title: string,
+    firstMessage?: string,
+    effort?: string,
   ) => {
     setProjectTabsError(null)
     // Solo si el composer a la vista era el de `new:<projectId>` (pestaña "new" o Dev sin pestaña activa):
@@ -1364,6 +1366,7 @@ export default function App() {
     pendingDevAgent.current = pending
     void creating
       .then(async (thread) => {
+        if (firstMessage) queueDevSessionMessage(thread.id, firstMessage, cliId, model, effort)
         // Lo escrito en la pestaña nueva mientras se lanzaba el agente pasa a su sesión (USO.12).
         if (launchedFromNewTab) moveComposerDraft(`new:${projectId}`, thread.id)
         setActiveProjectId(projectId)
@@ -2286,6 +2289,17 @@ export default function App() {
                       onRunCommand={handleRunCommand}
                       sessionStatus={sessionStatus}
                       onSlashCommand={handleSlashCommand}
+                      onContinueSession={(message) => {
+                        if (!activeAgent) return
+                        handleCreateAgentInProject(
+                          currentProject.id,
+                          activeAgent.agent ?? '',
+                          activeAgent.model,
+                          'New conversation',
+                          message,
+                          activeAgent.effort,
+                        )
+                      }}
                     />
                   ) : null}
                   {currentProject &&

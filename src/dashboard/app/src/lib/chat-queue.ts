@@ -42,3 +42,15 @@ export function lockChatQueue(threadId: string) {
 export function unlockChatQueue(threadId: string) {
   sending.delete(threadId)
 }
+
+export function queueDevSessionMessage(
+  threadId: string,
+  content: string,
+  cli: string,
+  model: string,
+  effort?: string,
+) {
+  writeChatQueue(threadId, [
+    { id: crypto.randomUUID(), content, attachments: [], cli, model, effort, isShellCmd: false },
+  ])
+}

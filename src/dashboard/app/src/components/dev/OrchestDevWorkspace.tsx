@@ -22,13 +22,14 @@ import type {
 } from '../../types/orchestos'
 import { AgentComposer, type CliId } from '../common/AgentComposer'
 import { answerText } from '../thread/activity'
+import { CutReportCard, cutContinuation } from '../thread/CutReportCard'
 import { InboundSessionMessageBlock, SessionMessageCard } from '../thread/SessionMessageCard'
 import { StoppedResponse } from '../thread/StoppedResponse'
 import { TaskCard } from '../thread/TaskCard'
 import { ThreadMarkdown } from '../thread/ThreadMarkdown'
 import { ThreadThinking } from '../thread/ThreadThinking'
 import { TurnActivity } from '../thread/TurnActivity'
-import { buildTaskCards } from '../thread/taskCards'
+import { buildTaskCards, interleaveReportCards } from '../thread/taskCards'
 import { formatElapsed, parseDbTime } from '../thread/thinking'
 import { assistantCopyTarget } from './copy-target'
 import { resolveNewSessionAgent } from './new-session-agent'
@@ -61,6 +62,7 @@ interface OrchestDevWorkspaceProps {
   ) => void | Promise<boolean>
   onTimelinePending?: (sessionId: string, pending: boolean) => void
   sessionStatus?: ApiSessionStatus
+  onContinueSession?: (message: string) => void
   onSlashCommand?: (command: string, argument?: string) => void
 }
 
@@ -95,7 +97,7 @@ function buildExchanges(timeline: TimelineResponse | null): DevExchangeData[] {
     .sort((a, b) => Date.parse(a.turn?.createdAt ?? '') - Date.parse(b.turn?.createdAt ?? ''))
   const turnExchanges = new Map(exchanges.map((exchange) => [exchange.id, exchange]))
   const legacyMessages = timeline.messages.filter((message) => {
-    if (message.turnId) return false
+    if (message.turnId || message.cutReport) return false
     if (message.role !== 'user') return true
     const next = timeline.messages.find((candidate) => candidate.id === message.id + 1)
     const exchange =
@@ -182,6 +184,7 @@ export const OrchestDevWorkspace: React.FC<OrchestDevWorkspaceProps> = ({
   onSendMessage,
   onTimelinePending,
   onSlashCommand,
+  onContinueSession,
   sessionStatus: apiSessionStatus,
 }) => {
   const [permissions, setPermissions] = useState<ConfigResponse['permissions']>(undefined)
@@ -314,6 +317,7 @@ export const OrchestDevWorkspace: React.FC<OrchestDevWorkspaceProps> = ({
   }, [activeAgent?.id, activeAgent?.model, activeAgent?.projectId, timeline?.messages.length])
 
   const exchanges = buildExchanges(timeline)
+  const lastCutReportId = timeline?.messages.findLast((row) => row.cutReport)?.id
   const isWorking = sessionStatus === 'working' || timeline?.pending === true
   const pendingTurn = timeline?.turns.find((turn) => turn.status === 'pending')
   const [nowMs, setNowMs] = useState(Date.now)
@@ -801,7 +805,6 @@ export const OrchestDevWorkspace: React.FC<OrchestDevWorkspaceProps> = ({
         }
       >
         <div ref={timelineContentRef} className="max-w-3xl lg:max-w-4xl mx-auto space-y-3">
-          {activeAgent && exchanges.map(DevExchange)}
           {activeAgent &&
             timeline?.messages.map((row) =>
               row.sessionMessage ? (
@@ -809,7 +812,26 @@ export const OrchestDevWorkspace: React.FC<OrchestDevWorkspaceProps> = ({
               ) : null,
             )}
           {activeAgent &&
-            [...taskCards.byTask.values()].map((card) => {
+            interleaveReportCards(
+              exchanges.map((exchange) => ({
+                value: exchange,
+                messageId: exchange.assistantMessage?.id ?? exchange.userMessage?.id,
+                at: exchange.inbound?.at ?? exchange.turn?.createdAt,
+              })),
+              mode === 'dev' ? (timeline?.messages ?? messages) : messages,
+              taskCards,
+            ).map((entry) => {
+              if (entry.kind === 'exchange') return DevExchange(entry.value)
+              if (entry.kind === 'cut')
+                return mode === 'dev' ? (
+                  <CutReportCard
+                    key={`cut-${entry.id}`}
+                    report={entry.report}
+                    superseded={entry.id !== String(lastCutReportId)}
+                    onContinue={() => onContinueSession?.(cutContinuation(entry.report.handoff))}
+                  />
+                ) : null
+              const card = entry.card
               const task = tasks.find((item) => item.id === card.taskId)
               return (
                 <TaskCard

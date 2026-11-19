@@ -287,7 +287,7 @@ esta etapa: `docs/done/bloque-AUD.md` (AUD.16, AUD.17), `docs/done/bloque-SES.md
   Gate en vivo: Playwright, `docs/done/evidence/CMD.2-live.json` (5/5, app-server real, envío interceptado antes de iniciar el turno).
   Typecheck, lint y 73 pruebas acotadas pasaron.
   Ejecutado por: gpt-6.1-sol (criterio) · Spec: docs/specs/CMD.2.md
-- [ ] **CMD.3 — `/cut` como comando propio de OrchestOS.** (Carlos, 2026-11-17: "agregar este comando a los
+- [x] **CMD.3 — `/cut` como comando propio de OrchestOS.** (Carlos, 2026-11-17: "agregar este comando a los
   comandos de OrchestOS"; desarrollar en macOS, probar luego en Windows) Hoy `/cut` es un comando de Claude Code del
   método (`~/.agent-method/commands/cut.md`): cierra el ítem en curso, reescribe `NEXT.md`, commitea por rutas,
   sube y suelta el candado. En OrchestOS debe estar en el menú `/` del composer para cualquier CLI (no solo Claude),
@@ -299,6 +299,16 @@ esta etapa: `docs/done/bloque-AUD.md` (AUD.16, AUD.17), `docs/done/bloque-SES.md
   si no, el handoff es el último mensaje), commitea por rutas y sube. Mitad mecánica (servidor, sin tokens): comprueba
   `git status` sin cambios y rama igual al remoto, suelta el candado y muestra una tarjeta con el resultado y el botón
   "Continuar en sesión nueva" (pestaña Dev nueva que arranca desde el handoff). Spec: `docs/specs/CMD.3.md`.
+  2026-11-19 cerrado: en vivo el cierre por tarea no funcionaba (árbol sucio, "Commit & Run" commitea con
+  `chore(tasks)`); Carlos: el agente recibe git + NEXT.md solo en el turno `/cut` (Claude: `--allowedTools` git y
+  `Edit/Write(NEXT.md)`; Codex: sandbox con gitdir escribible y red solo en ese turno). Tarjeta se recomprueba al
+  cerrar una tarea; handoff contra el HEAD del inicio del turno; "Continue in new session" conserva modelo y esfuerzo.
+  Gate en vivo: navegador del app, `docs/done/evidence/CMD.3-live.json` — Claude, Codex app-server y Codex exec
+  cierran con commit+push y tarjeta "Session wrapped up". Gates: tsc, 201 tests, lint; `qa` 4 rondas; JSON.parse
+  validados con Zod.
+  Texto visible: "N uncommitted files" — la tarjeta reporta un estado de git que un ícono no cuenta.
+  Texto visible: "Continue in new session" — acción única de la tarjeta; un ícono solo no dice adónde lleva.
+  Ejecutado por: gpt-6.1-sol (criterio) · Spec borrado.
 - [x] **GOV.4 — El cerebro no gasta su cupo en trabajo que es de Codex.** (Carlos, 2026-11-19: "¿cómo evito que eso
   vuelva a pasar? ya sucedió una vez… quiero evidencia") Evidencia: la sesión de USO.21 (201 turnos de Opus, 36,3 M de
   contexto releído) gastó el 49 % en Bash del cerebro, 17 % en navegador, 8 % en sus Edit y solo 7 % en delegar;

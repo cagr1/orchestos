@@ -229,3 +229,45 @@ export function approvalModeNotice(
     ? `Full access: ${report.approvalCli} can't ask per action yet`
     : null
 }
+
+/** Report cards follow their message anchors, including cut reports between tasks. */
+export function orderedReportCards(
+  messages: { id: string | number; cutReport?: ChatMessage['cutReport'] }[],
+  tasks: TaskCards,
+): (
+  | { kind: 'cut'; id: string; report: NonNullable<ChatMessage['cutReport']> }
+  | { kind: 'task'; card: TaskCardData }
+)[] {
+  const anchors = new Map([...tasks.byTask.values()].map((card) => [card.anchorId, card]))
+  return messages.flatMap((message): ReturnType<typeof orderedReportCards> => {
+    if (message.cutReport)
+      return [{ kind: 'cut', id: String(message.id), report: message.cutReport }]
+    const card = anchors.get(String(message.id))
+    return card ? [{ kind: 'task', card }] : []
+  })
+}
+
+/** Interleave exchanges and report cards at their message positions, before later user turns. */
+export function interleaveReportCards<T>(
+  exchanges: { value: T; messageId?: string | number; at?: string }[],
+  messages: { id: string | number; createdAt?: string; cutReport?: ChatMessage['cutReport'] }[],
+  tasks: TaskCards,
+): ({ kind: 'exchange'; value: T } | ReturnType<typeof orderedReportCards>[number])[] {
+  const position = (id?: string | number, at?: string) => {
+    const index = messages.findIndex((message) => String(message.id) === String(id))
+    if (index >= 0) return index
+    const next = at
+      ? messages.findIndex((message) => Date.parse(message.createdAt ?? '') > Date.parse(at))
+      : -1
+    return next >= 0 ? next - 0.5 : messages.length
+  }
+  const entries = exchanges.map(({ value, messageId, at }) => ({
+    position: position(messageId, at),
+    entry: { kind: 'exchange' as const, value },
+  }))
+  const cards = orderedReportCards(messages, tasks).map((entry) => ({
+    position: position(entry.kind === 'cut' ? entry.id : entry.card.anchorId),
+    entry,
+  }))
+  return [...entries, ...cards].sort((a, b) => a.position - b.position).map(({ entry }) => entry)
+}

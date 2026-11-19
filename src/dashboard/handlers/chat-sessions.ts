@@ -126,6 +126,7 @@ function toMessageRow(row: ChatMessageRecord): ChatMessageRow {
     existingFiles: row.existing_files,
     turnId: row.turn_id,
     ...(row.stopped ? { stopped: true } : {}),
+    ...(row.cutReport ? { cutReport: row.cutReport } : {}),
     ...(row.taskReport ? { taskReport: row.taskReport } : {}),
     createdAt: row.created_at,
   }

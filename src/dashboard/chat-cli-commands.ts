@@ -8,7 +8,7 @@ import { safeChildEnv } from '../run/path-policy.ts'
 import { killTree, spawnTree } from '../run/process-tree.ts'
 import type { CliCommand } from './types.ts'
 
-export const ORCHESTOS_COMMAND_NAMES = new Set(['rename', 'usage', 'model', 'archive'])
+export const ORCHESTOS_COMMAND_NAMES = new Set(['rename', 'usage', 'model', 'archive', 'cut'])
 // review/start emits a turn outside the registered chat turn: its events are currently dropped.
 export const CODEX_COMMANDS: CliCommand[] = [
   {

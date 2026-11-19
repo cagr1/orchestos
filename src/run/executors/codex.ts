@@ -381,13 +381,14 @@ export function buildCodexChatArgs(
   cliEffort?: string,
   imagePaths: string[] = [],
   mcpOffer?: McpOffer,
+  cut = false,
 ): string[] {
   const args = [
     'exec',
     '-',
     '--json',
     '--sandbox',
-    'read-only',
+    cut ? 'workspace-write' : 'read-only',
     '--color',
     'never',
     '--ignore-user-config',
@@ -395,6 +396,7 @@ export function buildCodexChatArgs(
     '-c',
     'model_reasoning_summary=auto',
   ]
+  if (cut) args.push('-c', 'sandbox_workspace_write.network_access=true')
   if (model) args.push('-m', model)
   if (cliEffort) args.push('-c', `model_reasoning_effort=${cliEffort}`)
   // UI.24.6a — `codex exec -i, --image <FILE>...`; va tras el prompt, un flag por imagen.
@@ -449,6 +451,7 @@ async function runCodexChatExec(
   imagePaths: string[] = [],
   mcpOffer?: McpOffer,
   signal?: AbortSignal,
+  cut = false,
 ): Promise<CodexChatResult> {
   if (!findCodexBinary()) {
     throw new ExecutorCodexError(codexUnavailableMessage(process.env.PATH))
@@ -470,7 +473,7 @@ async function runCodexChatExec(
   try {
     ;({ stdout, timedOut } = await runCodex(
       cwd,
-      buildCodexChatArgs(prompt, codexModel, cliEffort, imagePaths, mcpOffer),
+      buildCodexChatArgs(prompt, codexModel, cliEffort, imagePaths, mcpOffer, cut),
       timeoutMs,
       onStep,
       buildCodexChatEnv(configHome.path),
@@ -539,6 +542,7 @@ export async function runCodexChat(
   imagePaths: string[] = [],
   mcpOffer?: McpOffer,
   signal?: AbortSignal,
+  cut = false,
 ): Promise<CodexChatResult> {
   signal?.throwIfAborted()
   if (!sessionId)
@@ -554,6 +558,7 @@ export async function runCodexChat(
       imagePaths,
       mcpOffer,
       signal,
+      cut,
     )
   const binary = findCodexBinary()
   if (!binary) throw new ExecutorCodexError(codexUnavailableMessage(process.env.PATH))
@@ -567,6 +572,7 @@ export async function runCodexChat(
   try {
     const result = await server.turn({
       generalChat: isGeneralSession,
+      cut,
       sessionId,
       cwd,
       systemPrompt,

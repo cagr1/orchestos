@@ -1,0 +1,21 @@
+{
+  "item": "CMD.3",
+  "date": "2026-11-19",
+  "machine": "Mac de Carlos, dashboard :4242, repo de prueba /tmp/cmd3-live/repo con remoto bare local",
+  "live": [
+    "Navegador (panel del app): /cut aparece en el menú / de Dev, grupo ORCHESTOS.",
+    "Claude (Opus 5.5): /cut → commits 3b8b0f6 (README.md) y 09da602 (NEXT.md) por ruta, push; tarjeta 'Session wrapped up'; git status limpio y main == origin/main.",
+    "Codex con hilo (app-server): primero falló .git/index.lock 'Operation not permitted' con workspaceWrite [cwd]; con el gitdir en writableRoots solo en el turno /cut → 510b76d, 1d793e5, push; 'Session wrapped up'.",
+    "Codex sesión nueva (exec): 3c7c0b8, a009c1e, push; 'Session wrapped up'.",
+    "Recomprobación: al cerrarse la tarea del primer diseño apareció una tarjeta nueva; tarjetas anteriores atenuadas, solo la última con 'Continue in new session'.",
+    "'Continue in new session' abre sesión Dev nueva con 'Continue. Start from NEXT.md.'."
+  ],
+  "descartado": "Primer diseño (cierre por tarea): la tarea no arranca con árbol sucio, 'Commit & Run' commitea con chore(tasks) y el ejecutor falla 'missing output'. Carlos: el agente recibe git y NEXT.md solo en el turno /cut.",
+  "gates": [
+    "bunx tsc --noEmit + tsc app: exit 0",
+    "bun test (12 archivos de CMD.3): 127 pass, 0 fail",
+    "bun run lint: exit 0",
+    "qa (Codex) cuatro rondas: 2 P2 + 1 P1 + 2 P2 + 1 P1 corregidos; P2 'exec sin gitdir' refutado en vivo"
+  ],
+  "ejecutado_por": "gpt-6.1-sol (criterio); verificación y pruebas en vivo: claude-opus-5-5 (cerebro)"
+}

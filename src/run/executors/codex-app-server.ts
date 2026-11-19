@@ -1,5 +1,5 @@
 import { Database } from 'bun:sqlite'
-import { type ChildProcessWithoutNullStreams, spawn } from 'node:child_process'
+import { type ChildProcessWithoutNullStreams, execFileSync, spawn } from 'node:child_process'
 import { createHash } from 'node:crypto'
 import { mkdirSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
@@ -69,6 +69,7 @@ interface CodexAppServerOptions {
   env: Record<string, string>
   store: CodexAppServerThreadStore
   spawnProcess?: (binary: string, env: Record<string, string>) => Child
+  gitDir?: (cwd: string) => string
 }
 
 /** Override de config que se pasa al hilo (AT.20/AT.21: servidor MCP con `create_task` y/o `run_readonly`). */
@@ -701,6 +702,7 @@ export class CodexAppServer {
 
   async turn(input: {
     generalChat?: boolean
+    cut?: boolean
     sessionId: string
     cwd: string
     systemPrompt: string
@@ -896,9 +898,24 @@ export class CodexAppServer {
             model: input.model,
             effort: input.effort,
             approvalPolicy: 'never',
-            sandboxPolicy: input.generalChat
-              ? { type: 'workspaceWrite', writableRoots: [input.cwd], networkAccess: false }
-              : { type: 'readOnly', networkAccess: false },
+            sandboxPolicy: input.cut
+              ? {
+                  type: 'workspaceWrite',
+                  writableRoots: [
+                    input.cwd,
+                    this.options.gitDir
+                      ? this.options.gitDir(input.cwd)
+                      : execFileSync('git', ['rev-parse', '--absolute-git-dir'], {
+                          cwd: input.cwd,
+                          env: this.options.env,
+                          encoding: 'utf8',
+                        }).trim(),
+                  ],
+                  networkAccess: true,
+                }
+              : input.generalChat
+                ? { type: 'workspaceWrite', writableRoots: [input.cwd], networkAccess: false }
+                : { type: 'readOnly', networkAccess: false },
           },
           15_000,
           () => this.logTurn('turn-start', threadId, startedAt),

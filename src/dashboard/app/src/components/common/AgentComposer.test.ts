@@ -260,7 +260,7 @@ test('CMD.1 slash menu filters prefixes and groups active CLI commands; OrchestO
       group.commands.map((c) => c.cmd),
     ]),
   ).toEqual([
-    ['OrchestOS', ['/rename', '/usage', '/model', '/archive']],
+    ['OrchestOS', ['/cut', '/rename', '/usage', '/model', '/archive']],
     ['Codex', ['/compact']],
   ])
   expect(
@@ -533,4 +533,15 @@ test('CMD.1 source labels omit builtins and describe custom, skill and plugin or
     source: 'plugin',
     plugin: 'tools',
   })
+})
+
+test('/cut belongs to OrchestOS in Dev and is absent in Chat', () => {
+  expect(slashCommandGroups('/cut', 'claude', [])[0]?.commands.map((c) => c.cmd)).toEqual(['/cut'])
+  expect(slashCommandGroups('/cut', 'codex', [])[0]?.commands.map((c) => c.cmd)).toEqual(['/cut'])
+  expect(slashCommandGroups('/cut', 'claude', [], false, 'chat')).toEqual([])
+  expect(
+    codexSkillPrompt('/cut', [
+      { name: 'cut', cli: 'codex', source: 'skill', description: 'CLI cut', kind: 'prompt' },
+    ]),
+  ).toBeUndefined()
 })

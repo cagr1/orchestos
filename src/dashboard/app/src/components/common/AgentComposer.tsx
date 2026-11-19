@@ -201,6 +201,7 @@ export function commandSourceLabel(command: Pick<CliCommand, 'source' | 'plugin'
 }
 
 const SLASH_COMMANDS: SlashCommand[] = [
+  { cmd: '/cut', label: 'Wrap up: hand off, commit and push', source: 'builtin' },
   { cmd: '/rename', label: 'Rename this conversation', source: 'builtin' },
   { cmd: '/usage', label: 'Open CLI usage', source: 'builtin' },
   { cmd: '/model', label: 'Choose model and effort', source: 'builtin' },
@@ -216,7 +217,10 @@ export function slashCommandGroups(
 ) {
   if (!/^\/[^\s]*$/.test(text)) return []
   return [
-    { label: 'OrchestOS', commands: SLASH_COMMANDS },
+    {
+      label: 'OrchestOS',
+      commands: SLASH_COMMANDS.filter((command) => mode === 'dev' || command.cmd !== '/cut'),
+    },
     {
       label: cliDisplayName(cli),
       ...(loading ? { loading: true } : {}),
@@ -745,7 +749,11 @@ export const AgentComposer: React.FC<AgentComposerProps> = ({
     setReferenceToken(null)
     if (content.startsWith('/')) {
       const [command, ...argument] = content.split(/\s+/)
-      if (SLASH_COMMANDS.some((item) => item.cmd === command)) {
+      if (command === '/cut' && mode === 'chat') {
+        setAttachError('/cut is available in Dev')
+        return
+      }
+      if (command !== '/cut' && SLASH_COMMANDS.some((item) => item.cmd === command)) {
         if (command === '/model') {
           setShowDropdown(true)
         } else {
@@ -761,6 +769,7 @@ export const AgentComposer: React.FC<AgentComposerProps> = ({
     if (
       !isShellMode &&
       content.startsWith('/') &&
+      content !== '/cut' &&
       (activeCli === 'codex' || activeCli === 'claude')
     ) {
       setSending(true)

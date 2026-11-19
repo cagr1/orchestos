@@ -1,4 +1,5 @@
 import type { RunFailureKind } from '../db/runs.ts'
+import type { CutReport } from './cut-check.ts'
 /**
  * src/dashboard/types.ts — S36.1
  *
@@ -116,6 +117,7 @@ export interface ChatMessageRow {
   existingFiles: string[]
   turnId: string | null
   // ERP.4.13 — datos estructurados de un reporte de fin de tarea (ausente en mensajes normales)
+  cutReport?: CutReport
   taskReport?: {
     outcome: string
     approvalMode?: 'supervised' | 'auto-edit' | 'full'

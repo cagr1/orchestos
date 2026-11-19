@@ -4,6 +4,8 @@ import {
   approvalBlocks,
   approvalModeNotice,
   buildTaskCards,
+  interleaveReportCards,
+  orderedReportCards,
   projectsWithApprovals,
   taskDetail,
   taskName,
@@ -332,4 +334,73 @@ test('task cards absorb system notices and keep the model text', () => {
     expect(card?.anchorText).toBe(claim)
     expect(card?.showAnchorText).toBe(true)
   }
+})
+
+test('task and cut report cards preserve the message order', () => {
+  const cutReport = {
+    baseHead: null,
+    dirty: [],
+    dirtyTotal: 0,
+    branch: 'main',
+    upstream: null,
+    ahead: 0,
+    behind: 0,
+    lock: 'none' as const,
+    handoff: null,
+  }
+  const messages = [
+    held('1', 'first'),
+    msg('2', { cutReport }),
+    held('3', 'second'),
+    msg('4', { cutReport }),
+  ]
+  const cards = orderedReportCards(messages, buildTaskCards(messages))
+  expect(cards.map((entry) => (entry.kind === 'cut' ? entry.id : entry.card.anchorId))).toEqual([
+    '1',
+    '2',
+    '3',
+    '4',
+  ])
+  expect(cards.map((entry) => entry.kind)).toEqual(['task', 'cut', 'task', 'cut'])
+})
+
+test('cut and task cards stay between their exchange and the next user turn', () => {
+  const cutReport = {
+    baseHead: null,
+    dirty: [],
+    dirtyTotal: 0,
+    branch: 'main',
+    upstream: null,
+    ahead: 0,
+    behind: 0,
+    lock: 'none' as const,
+    handoff: null,
+  }
+  const messages = [
+    msg('1', { role: 'user', content: '/cut' }),
+    msg('2', { content: 'Wrapped up' }),
+    msg('3', { cutReport }),
+    msg('4', { role: 'user', content: 'New request' }),
+    held('5', 'task'),
+    msg('6', { role: 'user', content: 'Another request' }),
+    msg('7', { content: 'Another answer' }),
+  ]
+  const entries = interleaveReportCards(
+    [
+      { value: 'cut exchange', messageId: '2' },
+      { value: 'new exchange', messageId: '5' },
+      { value: 'last exchange', messageId: '7' },
+      { value: 'live exchange' },
+    ],
+    messages,
+    buildTaskCards(messages),
+  )
+  expect(entries.map((entry) => (entry.kind === 'exchange' ? entry.value : entry.kind))).toEqual([
+    'cut exchange',
+    'cut',
+    'new exchange',
+    'task',
+    'last exchange',
+    'live exchange',
+  ])
 })
