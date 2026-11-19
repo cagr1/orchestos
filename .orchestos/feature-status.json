@@ -228,6 +228,14 @@
       "closedDate": null
     },
     {
+      "id": "USO.22",
+      "sprint": "Etapa 2 — Uso real",
+      "block": null,
+      "title": "El tooltip del menú `/` es oscuro como el menú",
+      "status": "done",
+      "closedDate": null
+    },
+    {
       "id": "LRN.2",
       "sprint": "Etapa 2 — Uso real",
       "block": null,

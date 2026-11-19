@@ -333,6 +333,13 @@ esta etapa: `docs/done/bloque-AUD.md` (AUD.16, AUD.17), `docs/done/bloque-SES.md
   capturas visibles en el hilo; funciona con cualquier CLI que hable MCP. Primero en la versión web: Playwright
   pasa a dependencia y descarga Chromium al primer uso para abrir la URL en una sesión local separada. En la etapa
   Electron se podrá evaluar el control de la vista embebida. Después de usar F1 en la demo; plan corto y GO antes de código.
+- [x] **USO.22 — El tooltip del menú `/` es oscuro como el menú.** (Carlos, 2026-11-19: "Oscuro") El tooltip de
+  cada comando usaba los colores invertidos del `Tooltip` común (`bg-foreground`): blanco junto al menú oscuro. Ahora
+  usa la superficie del menú (`bg-app-elevated text-app border border-app`, `AgentComposer.tsx:1107`): oscuro en los
+  tres temas oscuros, claro solo en `light`. Los demás tooltips de la app no cambian.
+  Gate en vivo: navegador del panel, Chat → `/` → tooltip de `/rename` con fondo rgb(21, 29, 48); `docs/done/evidence/USO.22-live.json`
+  Texto visible: "Rename this conversation"
+  Sin delegación: una línea de className, spec más largo que el diff.
 - [ ] **LRN.2 — Una lección probada se gradúa a check, no solo a `AGENTS.md`.** (Carlos, 2026-11-17; mismo principio
   que CHK.1, aplicado al producto) LRN.1 gradúa lecciones a texto de `AGENTS.md`
   (`docs/specs/LRN-1-opinion-fable.md:79`). Agregar un segundo destino: si la firma del fallo es detectable en el diff

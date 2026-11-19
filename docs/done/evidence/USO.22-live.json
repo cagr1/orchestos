@@ -1,0 +1,13 @@
+{
+  "item": "USO.22",
+  "date": "2026-11-19",
+  "where": "navegador del panel de Claude, dashboard local :4242, tema orchestos",
+  "steps": "Chat → composer → escribir '/' → tooltip del comando seleccionado (/rename)",
+  "tooltipText": "Rename this conversation",
+  "computed": {
+    "backgroundColor": "rgb(21, 29, 48)",
+    "color": "rgb(244, 244, 245)",
+    "border": "rgb(30, 41, 59) 1px"
+  },
+  "before": "bg-foreground/text-background: tooltip claro junto al menú oscuro en los temas oscuros"
+}

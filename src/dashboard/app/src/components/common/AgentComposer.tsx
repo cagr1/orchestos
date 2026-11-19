@@ -1105,7 +1105,7 @@ export const AgentComposer: React.FC<AgentComposerProps> = ({
                   content={item.label}
                   side="right"
                   forceOpen={item.cmd === selectedSlashCommand && Boolean(item.label)}
-                  className="w-64 whitespace-normal break-words"
+                  className="w-64 whitespace-normal break-words bg-app-elevated text-app border border-app"
                 >
                   <button
                     ref={item.cmd === selectedSlashCommand ? selectedSlashRef : undefined}
