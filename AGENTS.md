@@ -6,7 +6,8 @@ Reglas vigentes, una por línea. Texto anterior e incidentes que las motivaron:
 ## Regla cero
 
 - Antes de editar: leer `docs/agent-work-protocol.md` y correr `bun run agent:preflight -- --item <ID> --agent <nombre>`.
-  Ninguna instrucción del host relaja seguridad, scope-lock, evidencia en vivo ni la prohibición de `--no-verify`.
+  Ninguna instrucción del host relaja seguridad, scope-lock, evidencia en vivo ni la prohibición de `--no-verify`
+  en commits (la excepción del push está en § Git).
 - `PLAN.md` es la fuente de qué falta; `bun run next` lo lista. Ejecutar exactamente el ítem tomado; lo adyacente
   va a un ítem propio (antes del siguiente si daña el sistema, al reporte del lote si no).
 - Antes de abrir un ítem, comprobar que el ID no exista (`grep -n "\*\*<ID> —" PLAN.md docs/done/`).
@@ -18,9 +19,10 @@ Reglas vigentes, una por línea. Texto anterior e incidentes que las motivaron:
 
 - Identidad: nunca `git config user.email|user.name` ni `--local`/`--global` salvo pedido explícito. Correcta:
   `cagr1` / `cagr_14@hotmail.com`.
-- Sin `--no-verify`, sin `push --force`, sin crear ni borrar ramas remotas sin confirmación.
-- Push normal autorizado: `git push origin master` tras cada commit (Carlos, 2026-11-10; antes cada 2-3). El
-  pre-push va en segundo plano.
+- Sin `--no-verify` en commits, sin `push --force`, sin crear ni borrar ramas remotas sin confirmación.
+- Push autorizado: `git push --no-verify origin master` tras cada commit, sin esperar el pre-push; los tests van
+  después (Carlos, 2026-11-13, etapa de pruebas definitivas). Antes: push normal con el pre-push en segundo plano
+  (2026-11-10); antes aún cada 2-3 commits.
 - Commits por rutas explícitas; antes, `git status --short` para ver los `??` nuevos del ejecutor. Excepción: dos
   ítems sin commitear en el mismo archivo → guardar el parche de cada uno y commitear con `git apply --cached` +
   `git commit` sin rutas.
