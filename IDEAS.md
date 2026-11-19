@@ -32,6 +32,8 @@ _(vacía — `#2` graduado a PLAN.md § Sprint 26 / Bloque Q el 2026-08-06; `#3`
 `#5` a Bloque S el 2026-08-06; `#19` a Bloque T el 2026-08-06; `#40` a Bloque U el 2026-08-07; `#46`
 a Bloque V el 2026-08-08; `#58` a Bloque W el 2026-08-08 — categoría Bajo completa, Sprint 26 cierra)_
 
+1. `#75` Limpiar la caché de los CLIs desde Settings (solo caché, nunca sesiones).
+
 ### Bajo-medio
 
 1. `#4` Clasificador semántico para `clarify`.
@@ -1805,3 +1807,13 @@ Propuesta, en tres piezas:
    confirmación. Si el puerto del dashboard está tomado por otro OrchestOS, ofrecer reemplazarlo; si es ajeno, el
    siguiente libre.
 Multiplataforma desde el inicio (WIN.6 ya mata árboles en Windows con `taskkill /T`).
+
+### `#75` — Limpiar la caché de los CLIs desde Settings (2026-11-19, pedido de Carlos)
+
+**Bajo.** `.orchestos/agent-home/codex` pesa 131 MB por proyecto: `cache/remote_plugin_catalog/*.json` (74 MB,
+catálogo de plugins y conectores de OpenAI) y `plugins/cache/` (~25 MB de plantillas `.pptx`/`.docx`) que Codex baja
+solo porque OrchestOS le da un `CODEX_HOME` propio (`src/run/executors/cli-registry.ts:298`). OrchestOS no lee nada
+de ahí; su estado vive en su SQLite. Propuesta: en Settings del proyecto, tamaño de la carpeta y botón "Limpiar caché"
+que borra solo `cache/`, `plugins/cache/` y los logs. Nunca `sessions/`/`thread_history`/`state`: son los hilos que
+retoma `thread/resume` (`codex-app-server.ts:791`). Extra: si Codex permite no descargar el catálogo remoto,
+escribirlo en el config al crear la carpeta (no verificado). No afecta al desarrollo hoy.
