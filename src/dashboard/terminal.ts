@@ -1,6 +1,6 @@
 import { existsSync, realpathSync, statSync } from 'node:fs'
 import { whichCli } from '../run/executors/cli-discovery.ts'
-import { killTree } from '../run/process-tree.ts'
+import { killTree, treeSpawnOptions } from '../run/process-tree.ts'
 
 type TerminalOptions = {
   cwd: string
@@ -78,6 +78,9 @@ export function createTerminalSession(options: TerminalOptions): TerminalSession
     cwd: options.cwd,
     env: { ...process.env, TERM: 'xterm-256color', COLORTERM: 'truecolor' },
     terminal,
+    // POSIX: its own session makes the PTY its controlling terminal, so `resize` reaches it as SIGWINCH (without
+    // it OpenCode never redrew at the new width) and `killTree` can kill the whole group.
+    ...treeSpawnOptions(),
   })
   const session: TerminalSession = {
     pid: child.pid,
@@ -85,7 +88,16 @@ export function createTerminalSession(options: TerminalOptions): TerminalSession
       if (!exited) terminal.write(data)
     },
     resize(cols, rows) {
-      if (!exited) terminal.resize(clamp(cols, 2, 500, 80), clamp(rows, 2, 200, 24))
+      if (exited) return
+      terminal.resize(clamp(cols, 2, 500, 80), clamp(rows, 2, 200, 24))
+      // `opencode --standalone` drops the PTY as controlling terminal, so the kernel's SIGWINCH never reaches it
+      // (measured 2026-11-19: it kept drawing 80 columns in a 119-column xterm). Tell it directly.
+      if (process.platform !== 'win32')
+        try {
+          process.kill(child.pid, 'SIGWINCH')
+        } catch {
+          /* already gone */
+        }
     },
     close() {
       if (closing) return closing

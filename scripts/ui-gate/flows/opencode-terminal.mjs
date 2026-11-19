@@ -30,6 +30,21 @@ function opencodePids() {
   }
 }
 
+// pgrep sees every OpenCode on the machine, including one under a dashboard the user has open.
+function descendsFrom(pid, rootPid) {
+  for (let current = pid, hops = 0; current > 1 && hops < 32; hops++) {
+    if (current === rootPid) return true
+    try {
+      current = Number(
+        execFileSync('ps', ['-o', 'ppid=', '-p', String(current)], { encoding: 'utf8' }).trim(),
+      )
+    } catch {
+      return false
+    }
+  }
+  return false
+}
+
 function isProcessAlive(pid) {
   try {
     process.kill(pid, 0)
@@ -39,7 +54,15 @@ function isProcessAlive(pid) {
   }
 }
 
-export default async function opencodeTerminal({ page, api, step, visible, cleanup, shot }) {
+export default async function opencodeTerminal({
+  page,
+  api,
+  step,
+  visible,
+  cleanup,
+  shot,
+  dashboardPid,
+}) {
   const projectRoot = mkdtempSync(join(tmpdir(), 'orchestos-ui-opencode-'))
   const title = `AT.15 OpenCode ${Date.now()}`
   writeFileSync(join(projectRoot, 'README.md'), '# OpenCode terminal gate\n')
@@ -91,6 +114,8 @@ export default async function opencodeTerminal({ page, api, step, visible, clean
   if (!(await sessionLabel.isVisible().catch(() => false))) {
     await projectButton.click()
   }
+  // The project row shows its actions only on hover (the agent count otherwise).
+  await projectButton.hover()
   const launchAgentButton = page.getByRole('button', { name: 'Launch new agent', exact: true })
   if (await launchAgentButton.isVisible().catch(() => false)) {
     await launchAgentButton.click()
@@ -149,7 +174,9 @@ export default async function opencodeTerminal({ page, api, step, visible, clean
     graphiteBackground === 'rgb(22, 25, 32)',
     graphiteBackground,
   )
-  const spawned = [...opencodePids()].filter((pid) => !before.has(pid))
+  const spawned = [...opencodePids()].filter(
+    (pid) => !before.has(pid) && descendsFrom(pid, dashboardPid()),
+  )
   await step(
     'dashboard spawned an opencode process',
     spawned.length > 0,

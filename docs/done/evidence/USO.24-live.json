@@ -1,0 +1,16 @@
+{
+  "item": "USO.24",
+  "date": "2026-11-19",
+  "where": "navegador del panel de Claude, dashboard local :4242, pestaña OpenCode en Dev",
+  "before": { "xtermCols": 119, "opencodeDrawnCols": 80, "tty": "??", "pgid": "el del dashboard" },
+  "diagnosis": "Bun.Terminal.resize cambia el tamaño del PTY pero sin SIGWINCH: el proceso no tenía la PTY como terminal de control; opencode --standalone además se desprende de ella",
+  "after": {
+    "1500px": { "xtermCols": 119, "drawn": 117 },
+    "1600px": { "xtermCols": 132, "drawn": 130 },
+    "1000px": "redibuja angosto (ruta abreviada), captura"
+  },
+  "gates": {
+    "opencode-terminal": "PASS 13/13",
+    "terminal.test.ts": "15/15; el test de SIGWINCH falla sin el arreglo"
+  }
+}

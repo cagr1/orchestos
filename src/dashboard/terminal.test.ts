@@ -35,6 +35,25 @@ describe('dashboard terminal sessions', () => {
     expect(calls).toBe(2)
   })
 
+  test.skipIf(process.platform === 'win32')('resize reaches the program as SIGWINCH', async () => {
+    let output = ''
+    const session = createTerminalSession({
+      cwd: process.cwd(),
+      cols: 60,
+      rows: 20,
+      command: ['sh', '-c', 'trap "stty size" WINCH; echo ready; while :; do sleep 0.05; done'],
+      onData: (data) => {
+        output += new TextDecoder().decode(data)
+      },
+      onExit: () => {},
+    })
+    for (let i = 0; i < 100 && !output.includes('ready'); i++) await Bun.sleep(20)
+    session.resize(120, 40)
+    for (let i = 0; i < 100 && !output.includes('40 120'); i++) await Bun.sleep(20)
+    await session.close()
+    expect(output).toContain('40 120')
+  })
+
   test('the platform shell (resolveShellCommand) runs commands in the PTY', async () => {
     let written = false
     const exited = new Promise<{ code: number; written: boolean }>((resolve) => {

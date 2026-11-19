@@ -251,6 +251,8 @@ async function runFlow(name, base, port) {
       runDir,
       databasePath,
       restartDashboard: (whileStopped) => restartDashboard(base, port, whileStopped),
+      // PID of this gate's dashboard: lets a flow tell its own children from another dashboard's.
+      dashboardPid: () => dashboard?.pid,
       captureDir,
       statuslineHome,
       api: async (apiPath, init = {}) => {

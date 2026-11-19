@@ -350,6 +350,17 @@ esta etapa: `docs/done/bloque-AUD.md` (AUD.16, AUD.17), `docs/done/bloque-SES.md
   Gate en vivo: navegador del panel, Dev en temas orchestos y carbon; `docs/done/evidence/USO.23-live.json`
   Texto visible: "Files"
   Sin delegación: cambios de className y una constante, verificados en vivo y con `shell-look` 75/75.
+- [x] **USO.24 — OpenCode no crece al ensanchar la ventana.** (Carlos, 2026-11-19, probando OpenCode en Dev) xterm
+  tenía 119 columnas y OpenCode dibujaba 80. `Bun.Terminal.resize` cambia el tamaño del PTY pero el proceso no recibía
+  SIGWINCH: no tenía la PTY como terminal de control (corría en el grupo del dashboard) y `opencode --standalone` además
+  se desprende de ella. Hecho (`src/dashboard/terminal.ts`): el proceso arranca en sesión propia (`treeSpawnOptions`,
+  así `killTree` mata el grupo entero al cerrar) y `resize` le manda SIGWINCH directo. Test nuevo en
+  `terminal.test.ts` (falla sin el arreglo). Gate `opencode-terminal` 13/13: además de los colores de USO.23, hace
+  hover antes de "Launch new agent" y solo cuenta los OpenCode hijos de su propio dashboard (`ctx.dashboardPid`); antes
+  contaba los de un dashboard abierto en paralelo.
+  Gate en vivo: navegador del panel, OpenCode a 1500/1600/1000 px redibuja a 117/130 columnas y angosto; `docs/done/evidence/USO.24-live.json`
+  Texto visible: "OpenCode"
+  Sin delegación: diagnóstico en vivo y fix de pocas líneas con test que lo prueba.
 - [ ] **LRN.2 — Una lección probada se gradúa a check, no solo a `AGENTS.md`.** (Carlos, 2026-11-17; mismo principio
   que CHK.1, aplicado al producto) LRN.1 gradúa lecciones a texto de `AGENTS.md`
   (`docs/specs/LRN-1-opinion-fable.md:79`). Agregar un segundo destino: si la firma del fallo es detectable en el diff

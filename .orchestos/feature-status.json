@@ -244,6 +244,14 @@
       "closedDate": null
     },
     {
+      "id": "USO.24",
+      "sprint": "Etapa 2 — Uso real",
+      "block": null,
+      "title": "OpenCode no crece al ensanchar la ventana",
+      "status": "done",
+      "closedDate": null
+    },
+    {
       "id": "LRN.2",
       "sprint": "Etapa 2 — Uso real",
       "block": null,
