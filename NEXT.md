@@ -6,6 +6,16 @@ Arranque: `bun run agent:preflight -- --item <ID> --agent claude`. Lista viva: `
 
 ## Sesión 2026-11-19 — empezar por aquí
 
+Cerrado/subido al final: **CMD.3 `8a64178e`** (`/cut` en Dev: el agente cierra él mismo con git + NEXT.md solo en
+ese turno; tarjeta "Session wrapped up"/"Wrap-up incomplete" con recomprobación al cerrar tareas y "Continue in new
+session"). Vivo: Claude, Codex app-server y Codex exec; `docs/done/evidence/CMD.3-live.json`.
+Trampas CMD.3: el cierre por tarea no sirve (la tarea no arranca con árbol sucio; "Commit & Run" commitea con
+`chore(tasks)`); Codex app-server protege `.git` en workspaceWrite → hay que añadir el gitdir a `writableRoots`;
+`turn/start` no admite developer instructions (el system de `/cut` va como context-update); `delegate` no trabaja
+sobre un ítem ya `[x]`; cada edición de PLAN.md tras cerrar exige reabrir→reconcile→cerrar→reconcile; la línea
+"Gate en vivo:" debe citar el archivo de evidencia en la misma línea; texto JSX nuevo → `Texto visible:` en el ítem.
+Pendiente de Carlos: su cambio en `orchestos.config.yaml` (auxiliary `effort: medium`) sigue sin commitear.
+
 Cerrado/subido hoy (tarde): plugin OpenCode retirado `8a69bff3`; OpenCode lee `rules.md` por enlace
 (MemoriesMD `30e46c2`); `AGENTS.md` alineado con el push `--no-verify` y NEXT recortado `204fa663`; **USO.21
 `60e5c4dd`** (el agente ve la app por MCP: `preview_*` con Playwright, solo localhost, captura en el hilo, Claude y
@@ -45,9 +55,7 @@ Orden:
    crece entre muestras de 2 s o la causa es otra.
 3. **ui-gates nocturnos (solo Mac)**: la del 19-11 también inválida (batería y tapa cerrada: `caffeinate -i -s`
    no basta). El Mac debe quedar enchufado y con la tapa abierta. Leer `~/.orchestos/nightly/ui-gates-latest.json`.
-4. **CMD.3 — siguiente**: GO de Carlos (2026-11-19). Spec listo y verificado por grep: `docs/specs/CMD.3.md`.
-   Delegar a `criterio`, verificar en vivo en Dev con Claude y Codex sobre un repo de prueba (`/cut` → commit →
-   tarjeta → "Continue in new session") y `qa`. Probar en Windows en la etapa 3.
+4. **CMD.3 en Windows** (etapa 3): `/cut` con Claude y Codex sobre un repo de prueba con remoto.
 5. **Pendientes chicos**: Codex `/review` solo si Carlos lo pide.
 6. **Electron, etapa 4**: iniciar el empaquetado cuando Carlos confirme que OrchestOS ya funciona en el navegador
    (decisión del 2026-11-18). Al abrir la etapa, medir tamaño del paquete y RAM del prototipo (`IDEAS.md` #41).
