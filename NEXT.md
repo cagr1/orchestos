@@ -14,7 +14,7 @@ el usuario lo cambia; Files sin peso), **USO.24 `f8ae0945`** (OpenCode se redibu
 del PTY + SIGWINCH directo), **USO.25 `77f72eed`** (pestaña OpenCode negra `#0a0a0a`), **USO.26 `5b7c0e9a`** (Browser/Terminal del pie solo iconos;
 tooltips sin zona de gracia de Radix; toggle del panel derecho sin fondo). Gates `shell-look` 75/75 y
 `opencode-terminal` 13/13 al día.
-Abierto: OpenCode avisa "Plugin failed" con `.opencode/plugin/context-budget.ts` del repo (sin revisar).
+Plugin `.opencode/plugin/context-budget.ts` retirado: OpenCode 2.3 solo carga plugins v2 (`export default {id, setup}`), cuyo contexto no da eventos de sesión ni toasts; el aviso de contexto ya no corría y el plugin solo dejaba "Plugin failed".
 
 La demo de e-commerce agropecuario (AgroTienda) y la prueba oficial las hace Carlos en macOS por el hardware.
 Este pase de Windows se dedica a las correcciones y sus pruebas focalizadas. WIN.1 queda como prueba de humo
@@ -38,7 +38,7 @@ Orden:
    no basta). El Mac debe quedar enchufado y con la tapa abierta. Leer `~/.orchestos/nightly/ui-gates-latest.json`.
 4. **En macOS al volver**: CMD.3 (`/cut` en OrchestOS, plan y GO antes de código; luego probar en Windows) y
    USO.21 tras usar Preview en la demo, con Playwright local en la versión web.
-5. **Pendientes chicos**: plugin `context-budget.ts` que falla en OpenCode; Codex `/review` solo si Carlos lo pide.
+5. **Pendientes chicos**: Codex `/review` solo si Carlos lo pide.
 6. **Electron, etapa 4**: iniciar el empaquetado cuando Carlos confirme que OrchestOS ya funciona en el navegador
    (decisión del 2026-11-18). Al abrir la etapa, medir tamaño del paquete y RAM del prototipo (`IDEAS.md` #41).
 7. Lo de abajo, en su orden. LRN.1 F2 espera datos de uso; LRN.2 va después de F2.
