@@ -236,6 +236,14 @@
       "closedDate": null
     },
     {
+      "id": "USO.23",
+      "sprint": "Etapa 2 — Uso real",
+      "block": null,
+      "title": "Dev con el contraste de Chat y el centro más ancho",
+      "status": "done",
+      "closedDate": null
+    },
+    {
       "id": "LRN.2",
       "sprint": "Etapa 2 — Uso real",
       "block": null,

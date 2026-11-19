@@ -393,9 +393,6 @@ export const OrcaRightInspector: React.FC<OrcaRightInspectorProps> = ({
                 )}
                 <span className="truncate">{node.name}</span>
               </div>
-              {node.size && (
-                <span className="text-xs font-mono text-app-muted ml-2">{node.size}</span>
-              )}
             </button>
 
             {isFolder && isExpanded && loadingFolders[node.path] && (

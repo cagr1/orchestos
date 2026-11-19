@@ -66,7 +66,8 @@ export function OpenCodeTerminal({
     const getTerminalTheme = () => {
       const styles = getComputedStyle(host)
       return {
-        background: styles.getPropertyValue('--app-bg').trim() || '#111827',
+        // USO.23: the center of Dev is the lighter surface; the terminal sits on it, not on the dark frame.
+        background: styles.getPropertyValue('--app-surface').trim() || '#111827',
         foreground: styles.getPropertyValue('--app-text').trim() || '#e5e7eb',
         cursor: styles.getPropertyValue('--app-accent').trim() || '#8b5cf6',
       }

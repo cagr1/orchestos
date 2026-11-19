@@ -788,7 +788,7 @@ export const OrchestDevWorkspace: React.FC<OrchestDevWorkspaceProps> = ({
   return (
     <main
       data-dev-new-session={!activeAgent ? '' : undefined}
-      className={`flex-1 flex flex-col bg-app-bg text-app overflow-hidden ${activeAgent ? 'h-full relative select-none' : 'items-center justify-center p-8'}`}
+      className={`flex-1 flex flex-col text-app overflow-hidden ${activeAgent ? 'h-full relative select-none' : 'items-center justify-center p-8'}`}
     >
       {/* 1. TIMELINE (Centered, same max width as Chat) */}
       <div
@@ -843,9 +843,7 @@ export const OrchestDevWorkspace: React.FC<OrchestDevWorkspaceProps> = ({
       <div
         data-composer-region
         data-permission-mode={permissions?.mode}
-        className={
-          activeAgent ? 'p-3 bg-app-bg flex-shrink-0' : 'w-full max-w-3xl lg:max-w-4xl space-y-4'
-        }
+        className={activeAgent ? 'p-3 flex-shrink-0' : 'w-full max-w-3xl lg:max-w-4xl space-y-4'}
       >
         {!activeAgent && (
           <h1 className="text-lg font-bold text-app text-center">

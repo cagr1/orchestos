@@ -340,6 +340,16 @@ esta etapa: `docs/done/bloque-AUD.md` (AUD.16, AUD.17), `docs/done/bloque-SES.md
   Gate en vivo: navegador del panel, Chat → `/` → tooltip de `/rename` con fondo rgb(21, 29, 48); `docs/done/evidence/USO.22-live.json`
   Texto visible: "Rename this conversation"
   Sin delegación: una línea de className, spec más largo que el diff.
+- [x] **USO.23 — Dev con el contraste de Chat y el centro más ancho.** (Carlos, 2026-11-19) En Chat los laterales son
+  oscuros y el centro claro; en Dev todo era `bg-app-bg`. Hecho: el centro de Dev, su compositor y la terminal usan la
+  superficie clara (`OrchestDevWorkspace.tsx`, `OpenCodeTerminal.tsx` con `--app-surface`); el panel derecho arranca en
+  300 px (antes 384) y el ancho solo se guarda si el usuario lo cambia (clave `-v2`: antes cada primera carga guardaba el
+  valor por defecto y un `initial` nuevo nunca llegaba); el árbol de Files ya no muestra el peso de cada archivo.
+  Gates: `shell-look` al día (ancho 300; la fila hora + Copy de USO.17 se mide por su borde, estaba rojo desde el 16-11)
+  y `opencode-terminal` con los colores de superficie.
+  Gate en vivo: navegador del panel, Dev en temas orchestos y carbon; `docs/done/evidence/USO.23-live.json`
+  Texto visible: "Files"
+  Sin delegación: cambios de className y una constante, verificados en vivo y con `shell-look` 75/75.
 - [ ] **LRN.2 — Una lección probada se gradúa a check, no solo a `AGENTS.md`.** (Carlos, 2026-11-17; mismo principio
   que CHK.1, aplicado al producto) LRN.1 gradúa lecciones a texto de `AGENTS.md`
   (`docs/specs/LRN-1-opinion-fable.md:79`). Agregar un segundo destino: si la firma del fallo es detectable en el diff

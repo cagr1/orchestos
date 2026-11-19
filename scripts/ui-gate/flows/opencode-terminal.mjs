@@ -129,8 +129,8 @@ export default async function opencodeTerminal({ page, api, step, visible, clean
     .locator('.xterm-viewport')
     .evaluate((element) => getComputedStyle(element).backgroundColor)
   await step(
-    'OpenCode terminal inherits Carbon background',
-    carbonBackground === 'rgb(9, 9, 11)',
+    'OpenCode terminal sits on the Carbon surface',
+    carbonBackground === 'rgb(18, 18, 21)',
     carbonBackground,
   )
   await page
@@ -139,14 +139,14 @@ export default async function opencodeTerminal({ page, api, step, visible, clean
   await page.waitForFunction(
     () =>
       getComputedStyle(document.querySelector('.xterm-viewport')).backgroundColor ===
-      'rgb(15, 17, 21)',
+      'rgb(22, 25, 32)',
   )
   const graphiteBackground = await xterm
     .locator('.xterm-viewport')
     .evaluate((element) => getComputedStyle(element).backgroundColor)
   await step(
     'OpenCode terminal inherits theme changes while mounted',
-    graphiteBackground === 'rgb(15, 17, 21)',
+    graphiteBackground === 'rgb(22, 25, 32)',
     graphiteBackground,
   )
   const spawned = [...opencodePids()].filter((pid) => !before.has(pid))

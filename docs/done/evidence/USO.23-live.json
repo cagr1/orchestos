@@ -1,0 +1,22 @@
+{
+  "item": "USO.23",
+  "date": "2026-11-19",
+  "where": "navegador del panel de Claude, dashboard local :4242",
+  "orchestos": {
+    "devCenter": "rgb(14, 19, 32)",
+    "leftAside": "rgb(8, 12, 20)",
+    "rightAside": "rgb(8, 12, 20)",
+    "rightWidth": 300,
+    "fileSizeLabels": 0
+  },
+  "carbon": {
+    "composer": "rgb(18, 18, 21)",
+    "terminal": "rgb(18, 18, 21)",
+    "leftAside": "rgb(9, 9, 11)",
+    "rightAside": "rgb(9, 9, 11)"
+  },
+  "gates": {
+    "shell-look": "PASS 75/75",
+    "opencode-terminal": "FAIL previo y ajeno: 'Launch new agent button not visible' (también en la nocturna del 2026-11-19, antes de este cambio)"
+  }
+}

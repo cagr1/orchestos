@@ -2,7 +2,7 @@ import { type ReactNode, useEffect, useRef, useState } from 'react'
 
 const limits = {
   left: { min: 200, max: 420, initial: 256 },
-  right: { min: 280, max: 640, initial: 384 },
+  right: { min: 280, max: 640, initial: 300 },
 }
 
 export function ResizableAside({
@@ -15,7 +15,8 @@ export function ResizableAside({
   children: ReactNode
 }) {
   const { min, max, initial } = limits[side]
-  const storageKey = `orchestos-aside-${side}-width`
+  // v2: until 2026-11-19 every first load saved the default, so a new `initial` never reached anyone.
+  const storageKey = `orchestos-aside-${side}-width-v2`
   const [width, setWidth] = useState(() => {
     try {
       const saved = Number(localStorage.getItem(storageKey))
@@ -33,11 +34,12 @@ export function ResizableAside({
 
   useEffect(() => {
     try {
-      localStorage.setItem(storageKey, String(width))
+      if (width === initial) localStorage.removeItem(storageKey)
+      else localStorage.setItem(storageKey, String(width))
     } catch {
       /* Storage may be disabled. */
     }
-  }, [storageKey, width])
+  }, [storageKey, width, initial])
 
   useEffect(() => {
     const workspace = aside.current?.closest('[data-shell-workspace]')

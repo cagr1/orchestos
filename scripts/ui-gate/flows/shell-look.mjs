@@ -788,9 +788,11 @@ export default async function shellLook({
     const card = button.closest('[data-dev-assistant-message]').firstElementChild
     const cardBox = card.getBoundingClientRect()
     const buttonBox = button.getBoundingClientRect()
+    // USO.17: the meta row is time + actions, so its left edge (not Copy's) meets the response's.
+    const rowBox = button.parentElement.parentElement.getBoundingClientRect()
     return {
       top: buttonBox.top,
-      left: buttonBox.left,
+      left: rowBox.left,
       cardBottom: cardBox.bottom,
       cardLeft: cardBox.left,
     }
@@ -897,7 +899,7 @@ export default async function shellLook({
       .evaluate((el) => el.getBoundingClientRect().width)
   for (const [side, initial, delta, min, max] of [
     ['left', 256, 64, 200, 420],
-    ['right', 384, -80, 280, 640],
+    ['right', 300, -80, 280, 640],
   ]) {
     const separator = page.locator(`[data-resizable-aside="${side}"] hr[aria-label^="Resize"]`)
     await separator.dblclick()
