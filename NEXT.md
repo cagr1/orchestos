@@ -4,14 +4,16 @@ Un solo presente: orden y trampas vivas del lote. Lo cerrado vive en `docs/done/
 `AGENTS.md`. Versión anterior completa: `docs/done/poda-instrucciones-2026-11-03.md` (histórico).
 Arranque: `bun run agent:preflight -- --item <ID> --agent claude`. Lista viva: `bun run next`.
 
-## Sesión 2026-11-17 — empezar por aquí
+## Sesión 2026-11-19 — empezar por aquí
 
-Cerrado/subido hoy: CHK.1 lotes 1–3 (`3527c3ca`, `5495b957`, `d39a62b1`), CHK.2 `8f845bfa`, CMD.1 `035b91c7`,
-CMD.2 `910db5b1`, **USO.19 `da045cb3`** (el texto del diálogo New chat en Chat es el primer mensaje; va a la cola
-del composer del hilo nuevo, que lo envía con su CLI/modelo cuando `activeCli` coincide con `lockedCli ?? defaultCli`)
-y **USO.20 F1 `a9a283d4`** (pestaña Preview en Dev: iframe con URL por proyecto, Reload, Open in browser; botón
-junto a Terminal; hecho por Sol, revisado por el cerebro). Abiertos hoy: USO.21 (F2: el agente ve la página con
-Playwright en el MCP de OrchestOS) y CMD.3 (`/cut` como comando de OrchestOS).
+Cerrado/subido hoy: **MUT.2 (C) `7369fbcd`** (tope de 2 GB RSS por `bun test` en `mutation-test-shard.ts`: un mutante
+llevó `bun test` a 11,4 GB y el OOM tumba el runner; los logs de los shards muertos no existen, BlobNotFound),
+IDEAS #75 `a596a717` (limpiar caché de los CLIs desde Settings), lint 87→86 `62f999e4`, **USO.22 `f4be44fd`** (tooltip
+del menú `/` oscuro), **USO.23 `2b8d1968`** (Dev con contraste de Chat; panel derecho 300 px, ancho guardado solo si
+el usuario lo cambia; Files sin peso), **USO.24 `f8ae0945`** (OpenCode se redibuja al cambiar el ancho: sesión propia
+del PTY + SIGWINCH directo), **USO.25 `77f72eed`** (pestaña OpenCode negra `#0a0a0a`). Gates `shell-look` 75/75 y
+`opencode-terminal` 13/13 al día.
+Abierto: OpenCode avisa "Plugin failed" con `.opencode/plugin/context-budget.ts` del repo (sin revisar).
 
 La demo de e-commerce agropecuario (AgroTienda) y la prueba oficial las hace Carlos en macOS por el hardware.
 Este pase de Windows se dedica a las correcciones y sus pruebas focalizadas. WIN.1 queda como prueba de humo
@@ -27,21 +29,22 @@ Orden:
 1. **Demo AgroTienda en macOS** (Carlos, 2026-11-18: mejor hardware): es el uso real de la Etapa 2; cada fallo se
    abre como ítem USO con su evidencia y va primero. **Windows aparte**, en sesiones de corrección en esa máquina:
    continuar los ítems WIN abiertos. WIN.1 queda para una sesión posterior.
-2. **MUT.1 y MUT.2 — leer la nocturna** desde cualquier máquina (`gh run list --workflow "Mutation Shards"`; la del
-   17-11, run 44075536272, seguía corriendo a las 22 h). `gh run view <id> --log | grep '\[res\]'` por shard.
-   Procesos o RSS que crecen → aislar cada `bun test` y matar el árbol al salir en `scripts/mutation-test-shard.ts`
-   (`src/run/process-tree.ts:18,26`). Todo plano → otra causa. Cerrar con la nocturna verde. Spec: `docs/specs/MUT-2.md`.
-3. **ui-gates nocturnos (solo Mac)**: la corrida previa es inválida por sueño del Mac; el Mac debe quedar enchufado
-   y despierto esa noche. Leer `~/.orchestos/nightly/ui-gates-latest.json`.
+2. **MUT.1 y MUT.2 — leer la nocturna del 20-11** (la del 19-11 arrancó antes del tope de memoria):
+   `gh run list --workflow "Mutation Shards"`; `gh run view --job <id> --log | grep '\[res\]'` en los verdes y
+   buscar `RSS … MB > 2048 MB, kill` en los logs. Sin rojos "lost communication" → cerrar MUT.2. Si sigue → el mutante
+   crece entre muestras de 2 s o la causa es otra.
+3. **ui-gates nocturnos (solo Mac)**: la del 19-11 también inválida (batería y tapa cerrada: `caffeinate -i -s`
+   no basta). El Mac debe quedar enchufado y con la tapa abierta. Leer `~/.orchestos/nightly/ui-gates-latest.json`.
 4. **En macOS al volver**: CMD.3 (`/cut` en OrchestOS, plan y GO antes de código; luego probar en Windows) y
    USO.21 tras usar Preview en la demo, con Playwright local en la versión web.
-5. **Pendientes chicos**: Codex `/review` solo si Carlos lo pide. (Hechos 2026-11-19: lint 87→86 `62f999e4`,
-   tooltip del menú `/` oscuro USO.22 `f4be44fd`.)
+5. **Pendientes chicos**: plugin `context-budget.ts` que falla en OpenCode; Codex `/review` solo si Carlos lo pide.
 6. **Electron, etapa 4**: iniciar el empaquetado cuando Carlos confirme que OrchestOS ya funciona en el navegador
    (decisión del 2026-11-18). Al abrir la etapa, medir tamaño del paquete y RAM del prototipo (`IDEAS.md` #41).
 7. Lo de abajo, en su orden. LRN.1 F2 espera datos de uso; LRN.2 va después de F2.
 
-Trampas nuevas: `delegate` en modo write exige un ítem ABIERTO en `PLAN.md`. Cerrar un ítem: "Could not prove a
+Trampas nuevas: los ui-gates buscan procesos por nombre en todo el Mac; con un dashboard abierto en paralelo hay
+que filtrar por `ctx.dashboardPid()` (USO.24). `PLAN.md` se escribe y luego `bun run plan:reconcile`, o el pre-commit
+lo rechaza. `delegate` en modo write exige un ítem ABIERTO en `PLAN.md`. Cerrar un ítem: "Could not prove a
 closing commit SHA" → reabrir, reconciliar, cerrar, reconciliar, commitear. El gate de UI exige `[x]` y la línea
 "Gate en vivo:" (con "navegador"/"browser" y el archivo de evidencia) en el MISMO commit que el código, y
 "Texto visible:" como línea AÑADIDA en ese commit (no vale la de un commit previo). Un spec commiteado se borra en el
