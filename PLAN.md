@@ -299,6 +299,13 @@ esta etapa: `docs/done/bloque-AUD.md` (AUD.16, AUD.17), `docs/done/bloque-SES.md
   si no, el handoff es el último mensaje), commitea por rutas y sube. Mitad mecánica (servidor, sin tokens): comprueba
   `git status` sin cambios y rama igual al remoto, suelta el candado y muestra una tarjeta con el resultado y el botón
   "Continuar en sesión nueva" (pestaña Dev nueva que arranca desde el handoff). Spec: `docs/specs/CMD.3.md`.
+- [ ] **GOV.4 — El cerebro no gasta su cupo en trabajo que es de Codex.** (Carlos, 2026-11-19: "¿cómo evito que eso
+  vuelva a pasar? ya sucedió una vez… quiero evidencia") Evidencia: la sesión de USO.21 (201 turnos de Opus, 36,3 M de
+  contexto releído) gastó el 49 % en Bash del cerebro, 17 % en navegador, 8 % en sus Edit y solo 7 % en delegar;
+  `cost-report` 19-11: Claude US$ 53 con 8 corridas de Codex frente a US$ 33 el 17-11 con 34. Causas en el método:
+  `rules.md:124` mandaba `Explore` (corregido en MemoriesMD `14dc514`), `brain-no-code.js` permite fixes chicos sin
+  tope, `subagent-budget.js` no mira el tipo de subagente y nada cuenta turnos. Plan con GO de Carlos ("go"): tres
+  controles en hooks, spec `docs/specs/GOV.4.md`. Solo rigen en este repo (hooks del proyecto).
 - [x] **USO.19 — En Chat, el primer mensaje de un chat nuevo se pierde.** (encontrado al verificar CMD.1, 2026-11-17)
   "New chat" → escribir → Enter: la sesión se crea con el título del mensaje pero con 0 mensajes y la vista queda
   vacía; en un chat que ya existe el envío funciona. Se reprodujo con texto normal y con el código de `master` sin

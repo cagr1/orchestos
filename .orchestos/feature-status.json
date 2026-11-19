@@ -204,6 +204,14 @@
       "closedDate": null
     },
     {
+      "id": "GOV.4",
+      "sprint": "Etapa 2 — Uso real",
+      "block": null,
+      "title": "El cerebro no gasta su cupo en trabajo que es de Codex",
+      "status": "open",
+      "closedDate": null
+    },
+    {
       "id": "USO.19",
       "sprint": "Etapa 2 — Uso real",
       "block": null,
