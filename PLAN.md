@@ -361,6 +361,13 @@ esta etapa: `docs/done/bloque-AUD.md` (AUD.16, AUD.17), `docs/done/bloque-SES.md
   Gate en vivo: navegador del panel, OpenCode a 1500/1600/1000 px redibuja a 117/130 columnas y angosto; `docs/done/evidence/USO.24-live.json`
   Texto visible: "OpenCode"
   Sin delegación: diagnóstico en vivo y fix de pocas líneas con test que lo prueba.
+- [x] **USO.25 — La pestaña de OpenCode es negra entera.** (Carlos, 2026-11-19) OpenCode pinta sus celdas con
+  `#0a0a0a`; alrededor quedaba el marco y el fondo de xterm con el tono del tema. Ahora la sección y xterm de la pestaña
+  OpenCode usan ese mismo negro en cualquier tema (`OPENCODE_BLACK`, `OpenCodeTerminal.tsx`); la terminal de shell
+  sigue en la superficie del centro (USO.23).
+  Gate en vivo: navegador del panel, pestaña OpenCode con sección y xterm en rgb(10, 10, 10); `docs/done/evidence/USO.25-live.json`
+  Texto visible: "OpenCode"
+  Sin delegación: una constante y dos estilos, verificados en vivo y con `opencode-terminal` 13/13.
 - [ ] **LRN.2 — Una lección probada se gradúa a check, no solo a `AGENTS.md`.** (Carlos, 2026-11-17; mismo principio
   que CHK.1, aplicado al producto) LRN.1 gradúa lecciones a texto de `AGENTS.md`
   (`docs/specs/LRN-1-opinion-fable.md:79`). Agregar un segundo destino: si la firma del fallo es detectable en el diff

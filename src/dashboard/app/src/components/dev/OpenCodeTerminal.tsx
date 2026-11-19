@@ -17,6 +17,9 @@ type Props = {
   onInputConsumed?: (id: string) => void
 }
 
+/** OpenCode's own background (measured 2026-11-19 from its TUI cells), so the tab reads as one black surface. */
+const OPENCODE_BLACK = '#0a0a0a'
+
 export function OpenCodeTerminal({
   projectId,
   kind = 'opencode',
@@ -67,7 +70,10 @@ export function OpenCodeTerminal({
       const styles = getComputedStyle(host)
       return {
         // USO.23: the center of Dev is the lighter surface; the terminal sits on it, not on the dark frame.
-        background: styles.getPropertyValue('--app-surface').trim() || '#111827',
+        // USO.25: OpenCode paints its own #0a0a0a; matching it makes the whole tab one black surface.
+        background: isShell
+          ? styles.getPropertyValue('--app-surface').trim() || '#111827'
+          : OPENCODE_BLACK,
         foreground: styles.getPropertyValue('--app-text').trim() || '#e5e7eb',
         cursor: styles.getPropertyValue('--app-accent').trim() || '#8b5cf6',
       }
@@ -204,6 +210,7 @@ export function OpenCodeTerminal({
   return (
     <section
       className="flex-1 min-w-0 h-full flex flex-col overflow-hidden"
+      style={isShell ? undefined : { backgroundColor: OPENCODE_BLACK }}
       aria-label={isShell ? 'Project terminal' : 'OpenCode terminal'}
     >
       <div className="relative flex-1 min-h-0 p-2">

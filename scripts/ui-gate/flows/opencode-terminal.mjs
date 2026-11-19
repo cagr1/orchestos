@@ -154,24 +154,23 @@ export default async function opencodeTerminal({
     .locator('.xterm-viewport')
     .evaluate((element) => getComputedStyle(element).backgroundColor)
   await step(
-    'OpenCode terminal sits on the Carbon surface',
-    carbonBackground === 'rgb(18, 18, 21)',
+    // USO.25: the OpenCode tab is one black surface, OpenCode's own #0a0a0a.
+    'OpenCode tab is OpenCode black',
+    carbonBackground === 'rgb(10, 10, 10)' &&
+      (await terminal.evaluate((element) => getComputedStyle(element).backgroundColor)) ===
+        'rgb(10, 10, 10)',
     carbonBackground,
   )
   await page
     .locator('div[data-theme]')
     .evaluate((element) => element.setAttribute('data-theme', 'graphite'))
-  await page.waitForFunction(
-    () =>
-      getComputedStyle(document.querySelector('.xterm-viewport')).backgroundColor ===
-      'rgb(22, 25, 32)',
-  )
+  await page.waitForTimeout(300)
   const graphiteBackground = await xterm
     .locator('.xterm-viewport')
     .evaluate((element) => getComputedStyle(element).backgroundColor)
   await step(
-    'OpenCode terminal inherits theme changes while mounted',
-    graphiteBackground === 'rgb(22, 25, 32)',
+    'OpenCode tab stays black when the theme changes',
+    graphiteBackground === 'rgb(10, 10, 10)',
     graphiteBackground,
   )
   const spawned = [...opencodePids()].filter(

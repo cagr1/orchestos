@@ -1,0 +1,8 @@
+{
+  "item": "USO.25",
+  "date": "2026-11-19",
+  "where": "navegador del panel de Claude, dashboard local :4242, tema carbon, pestaña OpenCode en Dev",
+  "opencodeCellBackground": "rgb(10, 10, 10) (89 celdas medidas en la TUI)",
+  "after": { "section": "rgb(10, 10, 10)", "xtermViewport": "rgb(10, 10, 10)" },
+  "gate": "opencode-terminal PASS 13/13 (negro también al cambiar a graphite)"
+}

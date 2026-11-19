@@ -252,6 +252,14 @@
       "closedDate": null
     },
     {
+      "id": "USO.25",
+      "sprint": "Etapa 2 — Uso real",
+      "block": null,
+      "title": "La pestaña de OpenCode es negra entera",
+      "status": "done",
+      "closedDate": null
+    },
+    {
       "id": "LRN.2",
       "sprint": "Etapa 2 — Uso real",
       "block": null,
