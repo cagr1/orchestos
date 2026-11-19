@@ -6,6 +6,10 @@ Arranque: `bun run agent:preflight -- --item <ID> --agent claude`. Lista viva: `
 
 ## Sesión 2026-11-19 — empezar por aquí
 
+Cerrado/subido hoy (tarde): plugin OpenCode retirado `8a69bff3`; OpenCode lee `rules.md` por enlace
+(MemoriesMD `30e46c2`); `AGENTS.md` alineado con el push `--no-verify` y NEXT recortado `204fa663`; **USO.21
+`60e5c4dd`** (el agente ve la app por MCP: `preview_*` con Playwright, solo localhost, captura en el hilo, Claude y
+Codex). Trampa nueva: `page.route` de Playwright no ve redirecciones ni pestañas nuevas; `qa` encontró 3 fugas.
 Cerrado/subido hoy: **MUT.2 (C) `7369fbcd`** (tope de 2 GB RSS por `bun test` en `mutation-test-shard.ts`: un mutante
 llevó `bun test` a 11,4 GB y el OOM tumba el runner; los logs de los shards muertos no existen, BlobNotFound),
 IDEAS #75 `a596a717` (limpiar caché de los CLIs desde Settings), lint 87→86 `62f999e4`, **USO.22 `f4be44fd`** (tooltip
@@ -36,8 +40,9 @@ Orden:
    crece entre muestras de 2 s o la causa es otra.
 3. **ui-gates nocturnos (solo Mac)**: la del 19-11 también inválida (batería y tapa cerrada: `caffeinate -i -s`
    no basta). El Mac debe quedar enchufado y con la tapa abierta. Leer `~/.orchestos/nightly/ui-gates-latest.json`.
-4. **En macOS al volver**: CMD.3 (`/cut` en OrchestOS, plan y GO antes de código; luego probar en Windows) y
-   USO.21 tras usar Preview en la demo, con Playwright local en la versión web.
+4. **CMD.3 — siguiente**: GO de Carlos (2026-11-19). Spec listo y verificado por grep: `docs/specs/CMD.3.md`.
+   Delegar a `criterio`, verificar en vivo en Dev con Claude y Codex sobre un repo de prueba (`/cut` → commit →
+   tarjeta → "Continue in new session") y `qa`. Probar en Windows en la etapa 3.
 5. **Pendientes chicos**: Codex `/review` solo si Carlos lo pide.
 6. **Electron, etapa 4**: iniciar el empaquetado cuando Carlos confirme que OrchestOS ya funciona en el navegador
    (decisión del 2026-11-18). Al abrir la etapa, medir tamaño del paquete y RAM del prototipo (`IDEAS.md` #41).
