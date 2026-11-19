@@ -7,11 +7,18 @@ import {
 } from '@/components/ui/thinking-steps'
 import { Tooltip } from '@/components/ui/tooltip'
 import type { TimelineStep } from '../../api/chat'
-import { buildTurnActivity, summarizeTools, toolCategory, toolLabel } from './activity'
+import {
+  buildTurnActivity,
+  previewShotName,
+  summarizeTools,
+  toolCategory,
+  toolLabel,
+} from './activity'
 import { ThreadMarkdown } from './ThreadMarkdown'
 import { formatDuration } from './thinking'
 
 interface TurnActivityProps {
+  projectId?: string | null
   steps: TimelineStep[]
   live?: { elapsed: string }
   /** La respuesta que se escribe en vivo: va tras la actividad y antes de la línea de estado. */
@@ -59,6 +66,37 @@ function Reasoning({
   )
 }
 
+function PreviewShot({ projectId, name }: { projectId: string; name: string }) {
+  const [image, setImage] = useState<{ source: string; url: string } | null>(null)
+  const source = `/api/projects/${encodeURIComponent(projectId)}/previews/${encodeURIComponent(name)}`
+  useEffect(() => {
+    const controller = new AbortController()
+    let url: string | undefined
+    void fetch(source, { signal: controller.signal })
+      .then(async (response) => (response.ok ? response.blob() : null))
+      .then((blob) => {
+        if (!blob || controller.signal.aborted) return
+        url = URL.createObjectURL(blob)
+        setImage({ source, url })
+      })
+      .catch(() => {})
+    return () => {
+      controller.abort()
+      if (url) URL.revokeObjectURL(url)
+    }
+  }, [source])
+  return image?.source === source ? (
+    <a href={image.url} target="_blank" rel="noopener noreferrer">
+      <img
+        src={image.url}
+        alt="Preview screenshot"
+        loading="lazy"
+        className="my-2 max-w-full w-[360px] rounded-control border border-app"
+      />
+    </a>
+  ) : null
+}
+
 function ToolRow({ step }: { step: TimelineStep }) {
   const Icon = toolIcons[toolCategory(step.tool)]
   const target = toolLabel(step)
@@ -93,17 +131,21 @@ function ToolRow({ step }: { step: TimelineStep }) {
       )}
     </span>
   )
-  return step.output ? (
-    <details className="min-w-0 py-1">
-      <summary className="flex cursor-pointer list-none [&::-webkit-details-marker]:hidden">
-        {row}
-      </summary>
-      <pre className="mt-1 max-h-60 overflow-auto whitespace-pre-wrap break-words bg-app-surface p-2 font-mono text-xs leading-5 text-app-muted">
-        {step.output}
-      </pre>
-    </details>
-  ) : (
-    <div className="py-1">{row}</div>
+  return (
+    <>
+      {step.output ? (
+        <details className="min-w-0 py-1">
+          <summary className="flex cursor-pointer list-none [&::-webkit-details-marker]:hidden">
+            {row}
+          </summary>
+          <pre className="mt-1 max-h-60 overflow-auto whitespace-pre-wrap break-words bg-app-surface p-2 font-mono text-xs leading-5 text-app-muted">
+            {step.output}
+          </pre>
+        </details>
+      ) : (
+        <div className="py-1">{row}</div>
+      )}
+    </>
   )
 }
 
@@ -137,7 +179,7 @@ function LiveStep({ step, elapsed }: { step?: TimelineStep; elapsed: string }) {
   )
 }
 
-export function TurnActivity({ steps, live, children }: TurnActivityProps) {
+export function TurnActivity({ steps, live, children, projectId }: TurnActivityProps) {
   const segments = buildTurnActivity(steps, { pending: Boolean(live) })
   const lastStep = [...steps]
     .sort((a, b) => a.seq - b.seq)
@@ -189,6 +231,15 @@ export function TurnActivity({ steps, live, children }: TurnActivityProps) {
                 </ThinkingStepsContent>
               </ThinkingSteps>
             )}
+            {/* USO.21 — las capturas de Preview se ven sin desplegar el grupo de herramientas. */}
+            {segment.kind === 'tools' &&
+              projectId &&
+              segment.items.map((step) => {
+                const shot = step.tool?.endsWith('preview_screenshot')
+                  ? previewShotName(step.output)
+                  : null
+                return shot && <PreviewShot key={step.seq} projectId={projectId} name={shot} />
+              })}
           </div>
         )
       })}

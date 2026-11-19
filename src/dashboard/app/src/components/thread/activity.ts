@@ -20,6 +20,7 @@ export type ActivitySegment =
 
 export function toolCategory(tool: string | null): ToolCategory {
   const name = (tool ?? '').toLowerCase()
+  if (/(^|__)preview_/.test(name)) return 'web'
   if (/^(bash|shell)$|^(exec|command)|(^|__)run(_|$)/.test(name)) return 'commands'
   if (['edit', 'write', 'apply_patch', 'multiedit'].includes(name)) return 'edits'
   if (name === 'read') return 'reads'
@@ -28,7 +29,14 @@ export function toolCategory(tool: string | null): ToolCategory {
   return 'other'
 }
 
+export function previewShotName(output: string | null): string | null {
+  const name = output?.match(/preview-shot:([\w.-]+\.png)(?=$|[\s"}\],])/u)?.[1]
+  return name && !name.includes('..') ? name : null
+}
+
 export function toolLabel(step: TimelineStep): string {
+  const preview = step.tool?.match(/(?:^|__)preview_(screenshot|console|click|navigate)$/)?.[1]
+  if (preview) return `Preview ${preview}`
   if (toolCategory(step.tool) === 'commands' && step.detail) {
     const shell = step.detail.match(/^\/bin\/(?:z|ba)?sh -lc (['"])([\s\S]*)\1$/)
     if (shell) return shell[2] ?? step.detail

@@ -3,6 +3,7 @@ import type { TimelineStep } from '../../api/chat'
 import {
   answerText,
   buildTurnActivity,
+  previewShotName,
   summarizeTools,
   toolCategory,
   toolLabel,
@@ -248,4 +249,27 @@ test('Open in Dev button is offered only by a tool step, for CLI and API turns',
   expect(turnOffersOpenDev([step(1, 'tool_use', { tool: 'create_task' })])).toBe(false)
   for (const tool of ['open_in_dev', 'mcp__orchestos__open_in_dev'])
     expect(turnOffersOpenDev([step(1, 'tool_use', { tool })])).toBe(true)
+})
+
+test('Preview tool labels and safe screenshot markers', () => {
+  for (const name of ['screenshot', 'console', 'click', 'navigate']) {
+    for (const prefix of ['', 'mcp__orchestos__']) {
+      expect(
+        toolLabel(step(1, 'tool_use', { tool: `${prefix}preview_${name}`, detail: '{}' })),
+      ).toBe(`Preview ${name}`)
+      expect(toolCategory(`${prefix}preview_${name}`)).toBe('web')
+    }
+  }
+  expect(previewShotName('preview-shot:20261119-143000-001.png')).toBe('20261119-143000-001.png')
+  expect(
+    previewShotName(JSON.stringify({ content: [{ type: 'text', text: 'preview-shot:shot.png' }] })),
+  ).toBe('shot.png')
+  for (const output of [
+    null,
+    '',
+    'preview-shot:../secret.png',
+    'preview-shot:x.png/secret',
+    'preview-shot:x.png.html',
+  ])
+    expect(previewShotName(output)).toBeNull()
 })

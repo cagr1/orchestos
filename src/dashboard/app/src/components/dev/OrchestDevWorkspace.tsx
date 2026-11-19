@@ -561,6 +561,7 @@ export const OrchestDevWorkspace: React.FC<OrchestDevWorkspaceProps> = ({
         {hasRealTurn && (
           <div className="space-y-1">
             <TurnActivity
+              projectId={activeAgent ? activeAgent.projectId : activeProject.id}
               steps={exchange.steps}
               live={
                 exchange.turn?.status === 'pending' || (exchange.optimistic && isWorking)

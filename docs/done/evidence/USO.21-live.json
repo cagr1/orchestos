@@ -1,0 +1,17 @@
+{
+  "item": "USO.21",
+  "date": "2026-11-19",
+  "where": "navegador del panel de Claude, dashboard local :4299 (código del árbol), proyecto erp-piloto, página de prueba en http://localhost:5199 con un console.error",
+  "steps": [
+    "Dev → Browser → URL localhost:5199 → Enter: ~/.orchestos/previews/<proyecto>/url = http://localhost:5199/",
+    "Sesión Dev Claude (Opus 5.5): preview_screenshot, preview_console, preview_click 'Agregar al carrito', screenshot → respuesta: carrito pasó a 'Carrito: 1 saco de maíz', consola 'error de prueba USO21'",
+    "Sesión Dev Codex (GPT-6-Luna): preview_screenshot + preview_console → misma lectura; miniatura visible en el hilo"
+  ],
+  "found_and_fixed_in_session": [
+    "Claude: el tool_result en lista se guardaba como JSON con el base64 y se cortaba a 4096: se perdía preview-shot. Ahora solo textos (step-event.ts toolResultText + test)",
+    "La miniatura quedaba recortada dentro del grupo plegado: ahora se dibuja debajo del grupo, siempre visible",
+    "boundary-budget 43>42: PUT con readBody(Zod); la UI usa api/projects.ts"
+  ],
+  "steps_db": "mcp__orchestos__preview_screenshot ok=1 output 'preview-shot:<YYYYMMDD-HHMMSS-mmm>.png'",
+  "not_verified": "URL remota desde la UI en vivo (cubierto por tests de local-url y del handler)"
+}

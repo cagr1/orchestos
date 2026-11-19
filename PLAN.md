@@ -333,7 +333,7 @@ esta etapa: `docs/done/bloque-AUD.md` (AUD.16, AUD.17), `docs/done/bloque-SES.md
   Gate en vivo: navegador (browser pane), dashboard 4242 con servidor de prueba en 5199 — carga, URL inválida, estado al cambiar de pestaña, Reload y URL guardada; `docs/done/evidence/USO.20-live.json`
   Texto visible: "Preview" (pestaña y botón de la barra de estado, como "Terminal" al lado: un globo solo no dice que es la vista de la app), "http://localhost:3000" (placeholder: muestra el formato esperado), "Enter an http:// or https:// URL" y "Run your dev server in the terminal and enter its URL above" (error y estado vacío: un ícono no explica qué hacer)
   Ejecutado por: gpt-6.1-sol · Spec: docs/specs/USO.20.md
-- [ ] **USO.21 — El agente ve la app que construye (F2 de USO.20).** (Carlos, 2026-11-17) Herramientas Playwright
+- [x] **USO.21 — El agente ve la app que construye (F2 de USO.20).** (Carlos, 2026-11-17) Herramientas Playwright
   en el MCP de OrchestOS (`src/mcp/server.ts`): captura, consola y clic sobre la URL de la pestaña Preview, con las
   capturas visibles en el hilo; funciona con cualquier CLI que hable MCP. Primero en la versión web: Playwright
   pasa a dependencia y descarga Chromium al primer uso para abrir la URL en una sesión local separada. En la etapa
@@ -343,6 +343,17 @@ esta etapa: `docs/done/bloque-AUD.md` (AUD.16, AUD.17), `docs/done/bloque-SES.md
   Chromium headless que vive lo que la sesión del CLI; URL por defecto = la de la pestaña Preview, guardada también en el
   servidor por proyecto; solo `localhost`/`127.0.0.1`; capturas en la carpeta del chat y visibles en el hilo (tarjeta
   de imagen nueva). Fuera: control de la vista embebida (Electron) y URLs remotas. Spec: `docs/specs/USO.21.md`.
+  Hecho: `src/mcp/preview.ts` (Playwright, Chromium headless por proceso MCP, `context.route`: la cadena de
+  redirecciones se recorre entera y una pestaña nueva se cierra; nada no local se carga), `src/preview/` (regla de URL
+  local y carpeta por proyecto), `PUT/GET /api/projects/:id/preview-url` y `GET …/previews/<png>`
+  (`handlers/previews.ts`), oferta en Dev con Claude y Codex, instrucción en `buildChatSystemPrompt`. El resultado MCP
+  ahora llega al paso en Codex (`codex-app-server.ts`, `step-event.ts`) y en Claude sin el base64
+  (`toolResultText`). Captura visible bajo el grupo de herramientas. qa (gpt-6.1-sol) en tres pasadas: 3 P1 de fuga a
+  hosts no locales (redirección, pestaña nueva, cadena de redirecciones) y 2 P2, todos corregidos; Chromium real:
+  `docs/done/evidence/USO.21-chromium-check.txt` (sin peticiones al destino no local).
+  Gate en vivo: navegador del panel, dashboard 4299, erp-piloto, Dev Claude y Codex → preview_screenshot/console/click sobre localhost:5199 con miniatura en el hilo; `docs/done/evidence/USO.21-live.json`
+  Texto visible: "The agent can only open localhost URLs", "Preview screenshot"
+  Ejecutado por: gpt-6.1-sol (criterio) y claude-opus-5-5 (fixes chicos tras qa) · Spec: docs/specs/USO.21.md
 - [x] **USO.22 — El tooltip del menú `/` es oscuro como el menú.** (Carlos, 2026-11-19: "Oscuro") El tooltip de
   cada comando usaba los colores invertidos del `Tooltip` común (`bg-foreground`): blanco junto al menú oscuro. Ahora
   usa la superficie del menú (`bg-app-elevated text-app border border-app`, `AgentComposer.tsx:1107`): oscuro en los

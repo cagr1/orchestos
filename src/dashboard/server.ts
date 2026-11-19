@@ -72,6 +72,7 @@ import {
   handleApiPlanPrepareClose,
 } from './handlers/plan.ts'
 import { handleApiPlanDoc } from './handlers/plan-doc.ts'
+import { handleApiPreviewShot, handleApiPreviewUrl } from './handlers/previews.ts'
 import { handleApiProfileGet, handleApiProfilePut } from './handlers/profile.ts'
 import {
   handleApiNatural,
@@ -485,6 +486,16 @@ export async function route(
       requireProject: true,
     })
   }
+
+  const previewUrlMatch = url.pathname.match(/^\/api\/projects\/([^/]+)\/preview-url$/)
+  if ((method === 'GET' || method === 'PUT') && previewUrlMatch)
+    return handleApiPreviewUrl(req, decodeURIComponent(previewUrlMatch[1] ?? ''))
+  const previewShotMatch = url.pathname.match(/^\/api\/projects\/([^/]+)\/previews\/([^/]+)$/)
+  if (method === 'GET' && previewShotMatch)
+    return handleApiPreviewShot(
+      decodeURIComponent(previewShotMatch[1] ?? ''),
+      decodeURIComponent(previewShotMatch[2] ?? ''),
+    )
 
   if (method === 'GET' && url.pathname === '/api/projects') {
     return handleApiProjects()

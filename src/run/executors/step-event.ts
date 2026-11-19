@@ -1,3 +1,4 @@
+import { mcpResultText } from '../../boundary/mcp-result.ts'
 import type { CliNotice } from './cli-failure.ts'
 import { claudeFailureKind, cliFailureNotice } from './cli-failure.ts'
 
@@ -195,8 +196,7 @@ export function claudeEventToStep(raw: unknown): ExecutorStepEvent[] {
         label: 'tool_result',
         toolUseId: block.tool_use_id,
         ok: !block.is_error,
-        output:
-          typeof block.content === 'string' ? block.content : JSON.stringify(block.content ?? ''),
+        output: toolResultText(block.content),
       }))
   }
 
@@ -216,6 +216,15 @@ export function claudeEventToStep(raw: unknown): ExecutorStepEvent[] {
 
 function lineCount(value: string): number {
   return value === '' ? 0 : value.split(/\r?\n/).length
+}
+
+/** USO.21 — un tool_result en lista guarda sus textos; las imágenes (base64) no entran al paso. */
+function toolResultText(content: unknown): string {
+  if (typeof content === 'string') return content
+  if (!Array.isArray(content)) return JSON.stringify(content ?? '')
+  const text = mcpResultText({ content })
+  if (text !== undefined) return text
+  return JSON.stringify(content.filter((block) => block?.type !== 'image'))
 }
 
 // -- opencode (NDJSON) -------------------------------------------------------
@@ -322,6 +331,7 @@ interface CodexItem {
   tool?: string
   arguments?: unknown
   status?: string
+  result?: unknown
 }
 
 interface CodexEvent {
@@ -370,6 +380,7 @@ export function codexEventToStep(raw: unknown): ExecutorStepEvent[] {
     }
     // AT.20 — llamada MCP en `codex exec`; mismo paso que emite el app-server.
     if (item.type === 'mcp_tool_call') {
+      const output = mcpResultText(item.result)
       const mcpTarget = (it: any) =>
         readonlyCommandTarget(
           it.server && it.tool ? `mcp__${it.server}__${it.tool}` : '',
@@ -382,6 +393,7 @@ export function codexEventToStep(raw: unknown): ExecutorStepEvent[] {
             item.server && item.tool ? `mcp__${item.server}__${item.tool}` : (item.tool ?? 'mcp'),
           detail: item.arguments === undefined ? item.server : JSON.stringify(item.arguments),
           ...(mcpTarget(item) === undefined ? {} : { target: mcpTarget(item) }),
+          ...(output === undefined ? {} : { output }),
           ok: item.status === 'failed' ? false : item.status === 'completed' ? true : undefined,
         },
       ]

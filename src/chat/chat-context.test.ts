@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'bun:test'
+import { describe, expect, it, test } from 'bun:test'
 import { buildChatSystemPrompt, chatProjectContext, displayRunModel } from './chat-context.ts'
 
 describe('chat system context', () => {
@@ -228,4 +228,14 @@ it('MSG.1 sessions are offered only with message_session, capped at eight with s
   expect(offered).toContain(`sibling-7 | ${'t'.repeat(60)} | codex |`)
   expect(offered).not.toContain('sibling-8')
   expect(offered).not.toContain('t'.repeat(61))
+})
+
+test('Preview prompt uses the tool names offered to the turn', () => {
+  for (const agent of ['claude', 'codex']) {
+    const input = { autoTaskInstruction: '', agent, offeredTools: ['preview_screenshot'] }
+    const prompt = buildChatSystemPrompt(input)
+    expect(prompt).toContain('mcp__orchestos__preview_screenshot')
+    expect(prompt).toContain('before saying a UI change works')
+    expect(buildChatSystemPrompt({ ...input, offeredTools: [] })).not.toContain('preview_')
+  }
 })

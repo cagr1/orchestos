@@ -13,6 +13,7 @@ import { check, parseJson, z } from '../boundary/index.ts'
  */
 
 import type { ApprovalMode } from '../run/approvals.ts'
+import { PREVIEW_TOOLS, PreviewSession, previewToolDefinitions } from './preview.ts'
 import { RUN_READONLY_TOOL, readonlyToolDefinition, runReadonly } from './readonly.ts'
 
 export const MCP_SERVER_NAME = 'orchestos'
@@ -179,6 +180,8 @@ export interface McpServerOptions {
   tools: string[]
   /** Raíz absoluta del proyecto (cwd y frontera de `run_readonly`). */
   root: string
+  previewDir?: string
+  previewSession?: PreviewSession
   approvalRun?: string
   approvalMode?: ApprovalMode
 }
@@ -271,6 +274,9 @@ export async function handleMcpMessage(
                 },
               ]
             : []),
+          ...(options.previewDir
+            ? previewToolDefinitions().filter((tool) => options.tools.includes(tool.name))
+            : []),
         ],
       })
     case 'tools/call': {
@@ -279,6 +285,11 @@ export async function handleMcpMessage(
         result({ content: [{ type: 'text', text: value }], isError })
       if (typeof name !== 'string' || !options.tools.includes(name))
         return failure(-32602, `Unknown tool: ${name}`)
+      if (PREVIEW_TOOLS.some((tool) => tool === name)) {
+        if (!options.previewDir) return failure(-32602, `Unknown tool: ${name}`)
+        options.previewSession ??= new PreviewSession(options.previewDir)
+        return result(await options.previewSession.call(name, message.params?.arguments))
+      }
       if (name === APPROVE_ACTION_TOOL) {
         const args = message.params?.arguments
         if (
@@ -355,16 +366,20 @@ export async function runMcpServer(
     const response = await handleMcpMessage(message.data as JsonRpcRequest, options)
     if (response) write(`${JSON.stringify(response)}\n`)
   }
-  for await (const chunk of input) {
-    buffer += typeof chunk === 'string' ? chunk : decoder.decode(chunk, { stream: true })
-    let newline = buffer.indexOf('\n')
-    while (newline >= 0) {
-      await flush(buffer.slice(0, newline))
-      buffer = buffer.slice(newline + 1)
-      newline = buffer.indexOf('\n')
+  try {
+    for await (const chunk of input) {
+      buffer += typeof chunk === 'string' ? chunk : decoder.decode(chunk, { stream: true })
+      let newline = buffer.indexOf('\n')
+      while (newline >= 0) {
+        await flush(buffer.slice(0, newline))
+        buffer = buffer.slice(newline + 1)
+        newline = buffer.indexOf('\n')
+      }
     }
+    await flush(buffer)
+  } finally {
+    await options.previewSession?.close()
   }
-  await flush(buffer)
 }
 
 /** `--tools a,b --root <abs>` → opciones; sin `--tools` solo `create_task`. */
@@ -378,6 +393,7 @@ export function parseServerArgs(argv: string[]): McpServerOptions {
   return {
     tools,
     root: value('--root') ?? process.cwd(),
+    previewDir: value('--preview-dir'),
     approvalRun: value('--approval-run'),
     approvalMode:
       mode === 'full' || mode === 'auto-edit' || mode === 'supervised' ? mode : undefined,

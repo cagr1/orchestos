@@ -1,0 +1,33 @@
+import { chromium } from '/Users/carlosgallardo/Projects/projects/orchestos/node_modules/playwright/index.mjs'
+import { PreviewSession } from '/Users/carlosgallardo/Projects/projects/orchestos/src/mcp/preview.ts'
+const hits: string[] = []
+Bun.serve({ port: 5302, hostname: '127.0.0.1', fetch: (r) => { hits.push(new URL(r.url).pathname); return new Response('<h1>REMOTO</h1>', { headers: { 'content-type': 'text/html' } }) } })
+Bun.serve({ port: 5301, hostname: '127.0.0.1', fetch: (r) => {
+  const p = new URL(r.url).pathname
+  if (p === '/redir') return new Response(null, { status: 302, headers: { location: 'http://preview.test:5302/via-redirect' } })
+  if (p === '/start') return new Response(null, { status: 302, headers: { location: '/middle' } })
+  if (p === '/middle') return new Response(null, { status: 302, headers: { location: 'http://preview.test:5302/via-chain' } })
+  if (p === '/chain-local') return new Response(null, { status: 302, headers: { location: '/redir-local' } })
+  if (p === '/redir-local') return new Response(null, { status: 302, headers: { location: '/ok' } })
+  if (p === '/blank') return new Response('<a target="_blank" href="http://preview.test:5302/via-popup">open</a>', { headers: { 'content-type': 'text/html' } })
+  return new Response('<h1>OK local</h1>', { headers: { 'content-type': 'text/html' } })
+} })
+const factory = async () => {
+  const browser = await chromium.launch({ headless: true, args: ['--host-resolver-rules=MAP preview.test 127.0.0.1'] })
+  return { browser, page: await browser.newPage() }
+}
+const show = (label: string, r: any) => console.log(label, JSON.stringify({ isError: r?.isError, text: r?.content?.filter((c: any) => c.type === 'text').map((c: any) => c.text).join(' | ').slice(0, 160) }))
+const fresh = () => new PreviewSession('/tmp/uso21-p1/dir', factory)
+const a = fresh(); show('redir-remoto', await a.call('preview_navigate', { url: 'http://localhost:5301/redir' })); await a.close()
+const d = fresh(); show('cadena-remota', await d.call('preview_navigate', { url: 'http://localhost:5301/start' })); await d.close()
+const e = fresh(); show('cadena-local', await e.call('preview_navigate', { url: 'http://localhost:5301/chain-local' })); await e.close()
+const b = fresh(); show('redir-local', await b.call('preview_navigate', { url: 'http://localhost:5301/redir-local' })); await b.close()
+const s = fresh()
+show('nav-blank', await s.call('preview_navigate', { url: 'http://localhost:5301/blank' }))
+show('click-popup', await s.call('preview_click', { text: 'open' }))
+await Bun.sleep(1500)
+show('tras-popup', await s.call('preview_navigate', { url: 'http://localhost:5301/ok' }))
+const c = fresh(); show('remoto-luego-local', await c.call('preview_navigate', { url: 'http://localhost:5301/redir' }))
+show('  segundo', await c.call('preview_navigate', { url: 'http://localhost:5301/ok' })); await c.close()
+console.log('HITS al destino no local:', JSON.stringify(hits))
+await s.close(); process.exit(0)

@@ -54,17 +54,27 @@ const SERVER_PATH = join(import.meta.dir, 'server.ts')
 export interface McpOffer {
   tools: string[]
   root: string
+  previewDir?: string
 }
 
 /** Clave estable del conjunto ofrecido; el hilo de Codex se reabre si cambia (herramientas o raíz). */
 export function mcpOfferKey(offer: McpOffer | undefined): string {
-  return offer?.tools.length ? `${offer.root}\0${[...offer.tools].sort().join(',')}` : ''
+  return offer?.tools.length
+    ? `${offer.root}\0${[...offer.tools].sort().join(',')}\0${offer.previewDir ?? ''}`
+    : ''
 }
 
 export function orchestosMcpServerCommand(offer: McpOffer): { command: string; args: string[] } {
   return {
     command: process.execPath,
-    args: [SERVER_PATH, '--tools', offer.tools.join(','), '--root', offer.root],
+    args: [
+      SERVER_PATH,
+      '--tools',
+      offer.tools.join(','),
+      '--root',
+      offer.root,
+      ...(offer.previewDir ? ['--preview-dir', offer.previewDir] : []),
+    ],
   }
 }
 

@@ -539,7 +539,7 @@ export const OrchestChatView: React.FC<OrchestChatViewProps> = ({
                       >
                         {msg.steps && msg.steps.length > 0 && (
                           <div className="mb-3 whitespace-normal">
-                            <TurnActivity steps={msg.steps} />
+                            <TurnActivity steps={msg.steps} projectId={thread?.projectId} />
                           </div>
                         )}
                         {(msg.notices?.length ?? 0) > 0 && (
@@ -671,6 +671,7 @@ export const OrchestChatView: React.FC<OrchestChatViewProps> = ({
                         (step) => step.type !== 'notice' && step.type !== 'step_finish',
                       ) ? (
                         <TurnActivity
+                          projectId={thread?.projectId}
                           steps={liveTurn.steps}
                           live={{ elapsed: formatElapsed(nowMs - workStartedAt) }}
                         >

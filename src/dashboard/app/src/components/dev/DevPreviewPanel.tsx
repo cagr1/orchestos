@@ -1,6 +1,8 @@
 import { ExternalLink, RotateCw } from 'lucide-react'
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
+import { getPreviewUrl, savePreviewUrl } from '@/api/projects'
 import { Tooltip } from '@/components/ui/tooltip'
+import { localPreviewUrl } from '../../../../../preview/local-url'
 import { normalizePreviewUrl, previewUrlKey } from './preview-url'
 
 export function DevPreviewPanel({ projectId }: { projectId: string }) {
@@ -10,6 +12,36 @@ export function DevPreviewPanel({ projectId }: { projectId: string }) {
   const [input, setInput] = useState(url ?? '')
   const [invalid, setInvalid] = useState(false)
   const [revision, setRevision] = useState(0)
+  const editVersion = useRef(0)
+  useEffect(() => {
+    const saved = normalizePreviewUrl(localStorage.getItem(previewUrlKey(projectId)) ?? '')
+    setUrl(saved)
+    setInput(saved ?? '')
+    setInvalid(false)
+    if (saved) {
+      // Una URL guardada antes de USO.21 solo vivía en el navegador: se sube para que el agente la vea.
+      if (localPreviewUrl(saved)) void savePreviewUrl(projectId, saved).catch(() => {})
+      return
+    }
+    const controller = new AbortController()
+    const version = editVersion.current
+    void getPreviewUrl(projectId, controller.signal)
+      .then((saved) => {
+        if (
+          controller.signal.aborted ||
+          editVersion.current !== version ||
+          typeof saved !== 'string'
+        )
+          return
+        const next = normalizePreviewUrl(saved)
+        if (!next) return
+        setUrl(next)
+        setInput(next)
+        localStorage.setItem(previewUrlKey(projectId), next)
+      })
+      .catch(() => {})
+    return () => controller.abort()
+  }, [projectId])
 
   return (
     <section className="flex flex-1 min-h-0 min-w-0 flex-col">
@@ -21,7 +53,10 @@ export function DevPreviewPanel({ projectId }: { projectId: string }) {
             value={input}
             aria-invalid={invalid}
             className="w-full min-w-0 rounded-control border border-app bg-app-bg px-2 py-1 text-app outline-none focus:border-app-accent"
-            onChange={(event) => setInput(event.target.value)}
+            onChange={(event) => {
+              editVersion.current++
+              setInput(event.target.value)
+            }}
             onKeyDown={(event) => {
               if (event.key !== 'Enter') return
               const next = normalizePreviewUrl(input)
@@ -29,9 +64,14 @@ export function DevPreviewPanel({ projectId }: { projectId: string }) {
               if (!next) return
               setUrl(next)
               setInput(next)
+              editVersion.current++
               localStorage.setItem(previewUrlKey(projectId), next)
+              void savePreviewUrl(projectId, next).catch(() => {})
             }}
           />
+          {url && !localPreviewUrl(url) && (
+            <p className="text-app-muted">The agent can only open localhost URLs</p>
+          )}
           {invalid && (
             <p role="alert" className="text-app-error">
               Enter an http:// or https:// URL

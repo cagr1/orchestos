@@ -59,6 +59,7 @@ import {
   type TaskProposal,
   taskProposalFromStep,
 } from '../../mcp/adapters.ts'
+import { PREVIEW_TOOLS } from '../../mcp/preview.ts'
 import { RUN_READONLY_TOOL } from '../../mcp/readonly.ts'
 import {
   CREATE_TASK_TOOL,
@@ -68,6 +69,7 @@ import {
   PROPOSE_LESSON_TOOL,
   type SessionMessageProposal,
 } from '../../mcp/server.ts'
+import { previewDir } from '../../preview/paths.ts'
 import {
   createToolRouter,
   FETCH_URL_TOOL,
@@ -1552,19 +1554,27 @@ async function handleApiChat(
             .filter((row) => row.id !== session.id)
             .slice(0, 8)
         : []
+    const previewOffered = !!(project.id && cliAdapter && readonlyOffered)
     const offeredTools = [
       // El bucle de herramientas API solo corre con proyecto: un chat general por API usa el
       // cliente de su proveedor y no recibe herramientas (qa USO.10).
       ...(!hasProjectContext && cliAdapter ? [OPEN_IN_DEV_TOOL] : []),
       ...(taskToolOffered ? [CREATE_TASK_TOOL] : []),
       ...(readonlyOffered ? [RUN_READONLY_TOOL] : []),
+      ...(previewOffered ? PREVIEW_TOOLS : []),
       ...(readonlyOffered && project.id ? [PROPOSE_LESSON_TOOL] : []),
       ...(readonlyOffered && project.id && session && siblings.length
         ? [MESSAGE_SESSION_TOOL]
         : []),
     ]
     const mcpOffer: McpOffer | undefined =
-      cliAdapter && offeredTools.length ? { tools: offeredTools, root } : undefined
+      cliAdapter && offeredTools.length
+        ? {
+            tools: offeredTools,
+            root,
+            ...(previewOffered && project.id ? { previewDir: previewDir(project.id) } : {}),
+          }
+        : undefined
     const autoTaskInstruction = buildAutoTaskInstruction({
       hasProjectContext,
       mode: session?.mode,

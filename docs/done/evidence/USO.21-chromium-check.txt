@@ -1,0 +1,10 @@
+redir-remoto {"isError":true,"text":"The agent can only open localhost URLs"}
+cadena-remota {"isError":true,"text":"The agent can only open localhost URLs"}
+cadena-local {"isError":false,"text":"{\"title\":\"\",\"url\":\"http://localhost:5301/ok\",\"status\":200}"}
+redir-local {"isError":false,"text":"{\"title\":\"\",\"url\":\"http://localhost:5301/ok\",\"status\":200}"}
+nav-blank {"isError":false,"text":"{\"title\":\"\",\"url\":\"http://localhost:5301/blank\",\"status\":200}"}
+click-popup {"isError":true,"text":"The agent can only open localhost URLs"}
+tras-popup {"isError":false,"text":"{\"title\":\"\",\"url\":\"http://localhost:5301/ok\",\"status\":200}"}
+remoto-luego-local {"isError":true,"text":"The agent can only open localhost URLs"}
+  segundo {"isError":false,"text":"{\"title\":\"\",\"url\":\"http://localhost:5301/ok\",\"status\":200}"}
+HITS al destino no local: []

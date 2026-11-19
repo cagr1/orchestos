@@ -62,6 +62,71 @@ function store() {
 }
 
 describe('Codex app-server', () => {
+  test.each([
+    { content: [{ type: 'text', text: 'preview-shot:x.png' }] },
+    {
+      content: [
+        { type: 'image', data: 'image-base64', mimeType: 'image/png' },
+        { type: 'text', text: 'preview-shot:x.png' },
+      ],
+    },
+    { structuredContent: { content: [{ type: 'text', text: 'preview-shot:x.png' }] } },
+  ])('USO.21: MCP result text reaches the completed step (%j)', async (result) => {
+    const steps: Array<{ output?: string }> = []
+    const server = new CodexAppServer({
+      binary: 'fake',
+      env: {},
+      store: store().api,
+      spawnProcess: () =>
+        fakeProcess((request, stdout) => {
+          if (request.method === 'initialize') reply(stdout, request, {})
+          if (request.method === 'thread/start') reply(stdout, request, { thread: { id: 't' } })
+          if (request.method !== 'turn/start') return
+          reply(stdout, request, { turn: { id: 'u' } })
+          queueMicrotask(() => {
+            stdout.write(
+              `${JSON.stringify({
+                method: 'item/completed',
+                params: {
+                  threadId: 't',
+                  turnId: 'u',
+                  item: {
+                    type: 'mcpToolCall',
+                    server: 'orchestos',
+                    tool: 'preview_screenshot',
+                    status: 'completed',
+                    result,
+                  },
+                },
+              })}\n`,
+            )
+            stdout.write(
+              `${JSON.stringify({
+                method: 'turn/completed',
+                params: { threadId: 't', turn: { id: 'u', status: 'completed' } },
+              })}\n`,
+            )
+          })
+        }),
+    })
+    try {
+      await server.turn({
+        sessionId: 'preview-result',
+        cwd: '/p',
+        systemPrompt: '',
+        message: 'capture preview',
+        timeoutMs: 1000,
+        onStep: (step) => {
+          if (step.type === 'tool_use') steps.push(step)
+        },
+      })
+      expect(steps).toHaveLength(1)
+      expect(steps[0]?.output).toBe('preview-shot:x.png')
+    } finally {
+      server.kill()
+    }
+  })
+
   test('AUD.22: late exit and error from a stopped child cannot break its replacement', async () => {
     const children: ReturnType<typeof fakeProcess>[] = []
     const server = new CodexAppServer({

@@ -5,6 +5,7 @@ import { mkdirSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { createInterface } from 'node:readline'
 import { check, parseJson, z } from '../../boundary/index.ts'
+import { mcpResultText } from '../../boundary/mcp-result.ts'
 import { redactSensitive } from '../../security/secrets.ts'
 import type { ApprovalAdapter } from '../approvals.ts'
 import { decideApproval } from '../approvals.ts'
@@ -621,6 +622,7 @@ export class CodexAppServer {
           target: paths || undefined,
         })
       } else if (item?.type === 'mcpToolCall') {
+        const output = mcpResultText(item.result)
         const label =
           item.server && item.tool ? `mcp__${item.server}__${item.tool}` : (item.tool ?? 'mcp')
         const target = readonlyCommandTarget(label, item.arguments)
@@ -628,6 +630,7 @@ export class CodexAppServer {
           type: 'tool_use',
           label,
           ...(target === undefined ? {} : { target }),
+          ...(output === undefined ? {} : { output }),
           detail: item.arguments === undefined ? item.server : JSON.stringify(item.arguments),
           ok: item.status === 'failed' ? false : item.status === 'completed' ? true : undefined,
         })

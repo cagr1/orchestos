@@ -75,6 +75,25 @@ describe('claudeEventToStep', () => {
     ])
   })
 
+  it('USO.21 — tool_result MCP con imagen guarda solo el texto, sin base64', () => {
+    const image = { type: 'image', source: { type: 'base64', data: 'A'.repeat(9000) } }
+    const [withText, onlyImage] = claudeEventToStep({
+      type: 'user',
+      message: {
+        content: [
+          {
+            type: 'tool_result',
+            tool_use_id: 't1',
+            content: [image, { type: 'text', text: 'preview-shot:a.png' }],
+          },
+          { type: 'tool_result', tool_use_id: 't2', content: [image] },
+        ],
+      },
+    })
+    expect(withText?.output).toBe('preview-shot:a.png')
+    expect(onlyImage?.output).toBe('[]')
+  })
+
   it('Edit cuenta líneas añadidas y eliminadas desde old_string/new_string', () => {
     const [step] = claudeEventToStep({
       type: 'assistant',
@@ -200,6 +219,35 @@ describe('opencodeEventToStep', () => {
 })
 
 describe('codexEventToStep', () => {
+  it.each([
+    { content: [{ type: 'text', text: 'preview-shot:x.png' }], expected: 'preview-shot:x.png' },
+    {
+      content: [
+        { type: 'image', data: 'image-base64', mimeType: 'image/png' },
+        { type: 'text', text: 'preview-shot:x.png' },
+        { type: 'text', text: 'captured' },
+      ],
+      expected: 'preview-shot:x.png\ncaptured',
+    },
+    {
+      content: [{ type: 'image', data: 'image-base64', mimeType: 'image/png' }],
+      expected: undefined,
+    },
+  ])('USO.21: preserves only MCP result text in output (%j)', ({ content, expected }) => {
+    const [step] = codexEventToStep({
+      type: 'item.completed',
+      item: {
+        type: 'mcp_tool_call',
+        server: 'orchestos',
+        tool: 'preview_screenshot',
+        status: 'completed',
+        result: { content },
+      },
+    })
+    expect(step?.output).toBe(expected)
+    if (expected === undefined) expect(step).not.toHaveProperty('output')
+  })
+
   it('item.completed reasoning → step reasoning', () => {
     expect(
       codexEventToStep({ type: 'item.completed', item: { type: 'reasoning', text: 'plan' } }),

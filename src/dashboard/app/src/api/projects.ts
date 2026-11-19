@@ -205,3 +205,17 @@ export async function projectBranches(projectId: string, signal?: AbortSignal): 
     )
   ).branches
 }
+
+/** USO.21 — URL de Preview guardada en el servidor para que el agente la abra. */
+export async function getPreviewUrl(projectId: string, signal?: AbortSignal): Promise<unknown> {
+  const path = `/api/projects/${encodeURIComponent(projectId)}/preview-url`
+  return (await request<{ url?: unknown }>(path, {}, signal)).url
+}
+
+export async function savePreviewUrl(projectId: string, url: string): Promise<void> {
+  await fetch(`/api/projects/${encodeURIComponent(projectId)}/preview-url`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ url }),
+  })
+}

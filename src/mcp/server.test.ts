@@ -1,4 +1,6 @@
 import { describe, expect, test } from 'bun:test'
+import { mkdtempSync, rmSync } from 'node:fs'
+import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { runToolLoop } from '../providers/tool-call.ts'
 import { buildCodexChatArgs } from '../run/executors/codex.ts'
@@ -19,12 +21,14 @@ import {
   type TaskProposal,
   taskProposalFromStep,
 } from './adapters.ts'
+import { PREVIEW_TOOLS } from './preview.ts'
 import {
   CREATE_TASK_RESPONSE,
   handleMcpMessage,
   PROPOSE_LESSON_RESPONSE,
   parseCreateTaskArgs,
   parseProposeLessonArgs,
+  parseServerArgs,
   runMcpServer,
 } from './server.ts'
 
@@ -503,4 +507,41 @@ describe('MSG.1 message_session', () => {
     ])
       expect(parseMessageSessionArgs(input).ok).toBe(false)
   })
+})
+
+test('Preview MCP tools require both opt-in and preview-dir; invalid URLs fail without Chromium', async () => {
+  const dir = mkdtempSync(join(tmpdir(), 'preview-tools-'))
+  try {
+    for (const [tools, previewDir, expected] of [
+      [[], dir, []],
+      [[...PREVIEW_TOOLS], undefined, []],
+      [[...PREVIEW_TOOLS], dir, [...PREVIEW_TOOLS]],
+    ] as const) {
+      const response = await handleMcpMessage(
+        { id: 1, method: 'tools/list' },
+        { tools: [...tools], root: dir, previewDir },
+      )
+      expect(response).toMatchObject({
+        result: { tools: expected.map((name) => expect.objectContaining({ name })) },
+      })
+    }
+    const options = parseServerArgs(['--tools', PREVIEW_TOOLS.join(','), '--preview-dir', dir])
+    expect(options.previewDir).toBe(dir)
+    for (const args of [{}, { url: 'https://example.com' }]) {
+      expect(
+        await handleMcpMessage(
+          { id: 1, method: 'tools/call', params: { name: 'preview_navigate', arguments: args } },
+          options,
+        ),
+      ).toMatchObject({ result: { isError: true } })
+    }
+    expect(
+      await handleMcpMessage(
+        { id: 1, method: 'tools/call', params: { name: 'preview_navigate' } },
+        { tools: [...PREVIEW_TOOLS], root: dir },
+      ),
+    ).toMatchObject({ error: { code: -32602 } })
+  } finally {
+    rmSync(dir, { recursive: true, force: true })
+  }
 })
