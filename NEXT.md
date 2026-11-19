@@ -35,8 +35,8 @@ Orden:
    y despierto esa noche. Leer `~/.orchestos/nightly/ui-gates-latest.json`.
 4. **En macOS al volver**: CMD.3 (`/cut` en OrchestOS, plan y GO antes de código; luego probar en Windows) y
    USO.21 tras usar Preview en la demo, con Playwright local en la versión web.
-5. **Pendientes chicos**: `noNonNullAssertion` 87→86 en `scripts/lint-budget.json` (va a `mecanico`); tooltip del
-   menú `/` oscuro o claro (pregunta a Carlos); Codex `/review` solo si Carlos lo pide.
+5. **Pendientes chicos**: Codex `/review` solo si Carlos lo pide. (Hechos 2026-11-19: lint 87→86 `62f999e4`,
+   tooltip del menú `/` oscuro USO.22 `f4be44fd`.)
 6. **Electron, etapa 4**: iniciar el empaquetado cuando Carlos confirme que OrchestOS ya funciona en el navegador
    (decisión del 2026-11-18). Al abrir la etapa, medir tamaño del paquete y RAM del prototipo (`IDEAS.md` #41).
 7. Lo de abajo, en su orden. LRN.1 F2 espera datos de uso; LRN.2 va después de F2.
