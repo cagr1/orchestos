@@ -235,20 +235,20 @@ export const ShellStatusBar: React.FC<ShellStatusBarProps> = ({
       </div>
 
       {onTogglePreview && (
-        <Tooltip content="Preview">
+        <Tooltip content="Browser">
           <button
             type="button"
             data-preview-toggle
             onClick={onTogglePreview}
             aria-pressed={previewOpen}
-            className={`ml-auto flex items-center gap-1.5 py-0.5 px-1.5 rounded-control transition-colors ${
+            aria-label="Browser"
+            className={`ml-auto flex items-center p-1 rounded-control transition-colors ${
               previewOpen
                 ? 'bg-app-elevated border border-app text-app'
                 : 'hover:bg-app-surface/60 text-app-muted hover:text-app'
             }`}
           >
             <Globe className="w-3.5 h-3.5" />
-            <span className="text-[11px]">Preview</span>
           </button>
         </Tooltip>
       )}
@@ -259,14 +259,14 @@ export const ShellStatusBar: React.FC<ShellStatusBarProps> = ({
             data-terminal-toggle
             onClick={onToggleTerminal}
             aria-pressed={terminalOpen}
-            className={`${onTogglePreview ? '' : 'ml-auto '}flex items-center gap-1.5 py-0.5 px-1.5 rounded-control transition-colors ${
+            aria-label="Terminal"
+            className={`${onTogglePreview ? '' : 'ml-auto '}flex items-center p-1 rounded-control transition-colors ${
               terminalOpen
                 ? 'bg-app-elevated border border-app text-app'
                 : 'hover:bg-app-surface/60 text-app-muted hover:text-app'
             }`}
           >
             <SquareTerminal className="w-3.5 h-3.5" />
-            <span className="text-[11px]">Terminal</span>
           </button>
         </Tooltip>
       )}

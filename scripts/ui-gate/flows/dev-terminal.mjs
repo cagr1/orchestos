@@ -42,6 +42,28 @@ export default async function devTerminal({ page, api, step, visible, cleanup, s
     .first()
     .click()
   await step('Dev muestra el botón Terminal', await visible(toggle))
+  // USO.26: Browser and Terminal are icon-only; the name shows on hover.
+  for (const [selector, name] of [
+    ['[data-terminal-toggle]', 'Terminal'],
+    ['[data-preview-toggle]', 'Browser'],
+  ]) {
+    const button = page.locator(selector)
+    await button.hover()
+    const tooltip = page.locator('[data-radix-popper-content-wrapper]', { hasText: name }).first()
+    const text = (await button.innerText()).trim()
+    const label = await button.getAttribute('aria-label')
+    const shown = await visible(tooltip)
+    const poppers = await page.evaluate(() =>
+      [...document.querySelectorAll('[data-radix-popper-content-wrapper]')].map(
+        (el) => el.textContent,
+      ),
+    )
+    await step(
+      `${name} es solo icono y su nombre sale al pasar el ratón`,
+      text === '' && label === name && shown,
+      JSON.stringify({ text, label, shown, poppers }),
+    )
+  }
   const sockets = []
   page.on('websocket', (socket) => {
     if (socket.url().includes('/api/terminal')) {

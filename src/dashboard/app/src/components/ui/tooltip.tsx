@@ -67,9 +67,12 @@ function TooltipProvider({
 }: TooltipProviderProps) {
   return (
     <TooltipGroupContext.Provider value={true}>
+      {/* USO.26: tooltips are text only. Hoverable content kept one open while the pointer crossed to an adjacent
+          trigger (footer Browser → Terminal), so the next one never showed. */}
       <TooltipPrimitive.Provider
         delayDuration={delayDuration}
         skipDelayDuration={skipDelayDuration}
+        disableHoverableContent
       >
         {children}
       </TooltipPrimitive.Provider>
@@ -244,7 +247,7 @@ function Tooltip({
   if (hasAmbientProvider) return tooltip;
 
   return (
-    <TooltipPrimitive.Provider delayDuration={delayDuration ?? DEFAULT_DELAY}>
+    <TooltipPrimitive.Provider delayDuration={delayDuration ?? DEFAULT_DELAY} disableHoverableContent>
       {tooltip}
     </TooltipPrimitive.Provider>
   );

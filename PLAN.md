@@ -368,6 +368,16 @@ esta etapa: `docs/done/bloque-AUD.md` (AUD.16, AUD.17), `docs/done/bloque-SES.md
   Gate en vivo: navegador del panel, pestaña OpenCode con sección y xterm en rgb(10, 10, 10); `docs/done/evidence/USO.25-live.json`
   Texto visible: "OpenCode"
   Sin delegación: una constante y dos estilos, verificados en vivo y con `opencode-terminal` 13/13.
+- [x] **USO.26 — Browser y Terminal del pie solo como iconos; botón del panel derecho sin fondo.** (Carlos,
+  2026-11-19) Los botones del pie dejan el texto: icono con `aria-label` y tooltip "Browser" / "Terminal (Ctrl+`)"
+  (`ShellStatusBar.tsx`). Al probarlo en vivo, pasar de uno al otro dejaba abierto el primer tooltip y el segundo no
+  salía: la zona de gracia de Radix (contenido "hoverable") entre botones contiguos. Los tooltips de la app son solo
+  texto: `disableHoverableContent` en los dos Provider (`tooltip.tsx`). El botón "Toggle Right Workspace Panel" ya no
+  pinta fondo cuando el panel está abierto: igual que los demás del header, estado en `aria-pressed`
+  (`ShellHeader.tsx`). Gate `dev-terminal` con el paso nuevo (ambos órdenes de hover).
+  Gate en vivo: navegador Chromium de ui-gate y navegador del panel, `dev-terminal` 18/18 y `shell-look` 75/75; `docs/done/evidence/USO.26-live.json`
+  Texto visible: "Browser"
+  Sin delegación: cambios de className y una prop, con el paso de gate que los prueba.
 - [ ] **LRN.2 — Una lección probada se gradúa a check, no solo a `AGENTS.md`.** (Carlos, 2026-11-17; mismo principio
   que CHK.1, aplicado al producto) LRN.1 gradúa lecciones a texto de `AGENTS.md`
   (`docs/specs/LRN-1-opinion-fable.md:79`). Agregar un segundo destino: si la firma del fallo es detectable en el diff

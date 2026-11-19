@@ -1,0 +1,10 @@
+{
+  "item": "USO.26",
+  "date": "2026-11-19",
+  "where": "Chromium de Playwright (ui-gate) y navegador del panel de Claude, dashboard local",
+  "liveBug": "panel de Claude, ratón real: Browser → Terminal dejaba abierto 'Browser' y Terminal sin tooltip (zona de gracia de Radix entre botones contiguos)",
+  "gates": {
+    "dev-terminal": "PASS 18/18 (Browser y Terminal solo icono, aria-label y tooltip al hover, en ambos órdenes)",
+    "shell-look": "PASS 75/75"
+  }
+}

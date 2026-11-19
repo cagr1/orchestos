@@ -65,11 +65,8 @@ export const ShellHeader: React.FC<ShellHeaderProps> = ({
             <button
               type="button"
               onClick={onToggleRightInspector}
-              className={`p-1.5 rounded-control transition-colors ${
-                isRightInspectorOpen
-                  ? 'text-app bg-app-surface'
-                  : 'text-app-muted hover:text-app hover:bg-app-surface'
-              }`}
+              aria-pressed={isRightInspectorOpen}
+              className="p-1.5 rounded-control text-app-muted hover:text-app hover:bg-app-surface transition-colors"
               aria-label="Toggle Right Workspace Panel"
             >
               <PanelRight className="w-3.5 h-3.5" />
