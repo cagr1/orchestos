@@ -10,6 +10,11 @@ Cerrado/subido hoy (tarde): plugin OpenCode retirado `8a69bff3`; OpenCode lee `r
 (MemoriesMD `30e46c2`); `AGENTS.md` alineado con el push `--no-verify` y NEXT recortado `204fa663`; **USO.21
 `60e5c4dd`** (el agente ve la app por MCP: `preview_*` con Playwright, solo localhost, captura en el hilo, Claude y
 Codex). Trampa nueva: `page.route` de Playwright no ve redirecciones ni pestañas nuevas; `qa` encontró 3 fugas.
+**GOV.4 `17b5a630`** (y MemoriesMD `14dc514`): el cerebro gastó el 76 % del cupo diario de Claude en USO.21 haciendo
+trabajo de Codex. Ahora hooks del repo: `Explore`/`general-purpose` negados → `delegate leer`; 3.er Edit chico del
+cerebro desde la última delegación negado → re-delegar a `criterio`; aviso de `/cut` a los 80 turnos. Hallazgos de
+`qa` van al spec y de vuelta a `criterio`, no los arregla el cerebro. Pendiente opcional: llevar estos hooks al método
+para que rijan en todos los repos.
 Cerrado/subido hoy: **MUT.2 (C) `7369fbcd`** (tope de 2 GB RSS por `bun test` en `mutation-test-shard.ts`: un mutante
 llevó `bun test` a 11,4 GB y el OOM tumba el runner; los logs de los shards muertos no existen, BlobNotFound),
 IDEAS #75 `a596a717` (limpiar caché de los CLIs desde Settings), lint 87→86 `62f999e4`, **USO.22 `f4be44fd`** (tooltip
