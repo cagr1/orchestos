@@ -204,6 +204,11 @@ esta etapa: `docs/done/bloque-AUD.md` (AUD.16, AUD.17), `docs/done/bloque-SES.md
   p. ej. el CLI falso con `setInterval` de `generic-cli.test.ts:209`, que solo muere si el kill bajo mutación funciona.
   Spec: `docs/specs/MUT-2.md` — (A) muestreo de memoria y procesos en el log del job, (B) el fixture mata su propio
   CLI falso. El aislamiento por grupo de procesos en `mutation-test-shard.ts` espera la evidencia de (A).
+  2026-11-19, evidencia de (A) en la nocturna 44293867573: rojos `executors-codex-server` y `-b`, misma causa; su log
+  no existe (BlobNotFound), así que el muestreo nunca sirve en el shard que muere. Los 13 verdes sí: procesos planos
+  (~170-204), `bun test` ≤ 371 MB, salvo `runtime-boundaries-checks`, donde un mutante llevó `bun test` a 11,4 GB en
+  116 s (13,1 de 16 GB). Fuga de procesos descartada; causa = mutante que asigna sin límite → OOM sobre el runner.
+  (C) tope de 2 GB RSS por `bun test` en `mutation-test-shard.ts`: spec `docs/specs/MUT-2-cap.md`.
 - [x] **CHK.1 — Las correcciones repetidas pasan a checks, no a texto.** (cerrado 2026-11-17) (Carlos, 2026-11-17; principio del equipo de
   Grok Bot: cada error de un agente se vuelve regla de lint o test en vez de otra instrucción en `AGENTS.md`). Hoy hay
   ~50 memorias `feedback-*` que el agente debe leer y obedecer, sin nada que las haga cumplir; los checks que ya lo

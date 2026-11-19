@@ -3,7 +3,12 @@ import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
 import { parse } from 'yaml'
-import { mutationFiles, mutationTestArgs, selectMutationShardTests } from './mutation-test-shard.ts'
+import {
+  mutationFiles,
+  mutationTestArgs,
+  runWithMemoryCap,
+  selectMutationShardTests,
+} from './mutation-test-shard.ts'
 
 describe('selectMutationShardTests', () => {
   for (const [parent, children] of [
@@ -90,6 +95,23 @@ describe('selectMutationShardTests', () => {
 
   test('mutation test args include --bail', () => {
     expect(mutationTestArgs(['src/__tests__/example.test.ts'])).toContain('--bail')
+  })
+
+  test('mata y reporta un proceso que supera el tope de memoria', async () => {
+    const result = await runWithMemoryCap(['bun', '-e', 'setInterval(()=>{},1000)'], {
+      capKb: 1,
+      intervalMs: 20,
+      readRss: async () => 5,
+    })
+    expect(result).toBe(1)
+  }, 5000)
+
+  test('devuelve el código de salida normal cuando no supera el tope', async () => {
+    const result = await runWithMemoryCap(['bun', '-e', 'process.exit(3)'], {
+      capKb: 10,
+      readRss: async () => 1,
+    })
+    expect(result).toBe(3)
   })
 
   test('mutationFiles resta archivos incluidos menos los patrones negados', async () => {

@@ -119,6 +119,56 @@ export function mutationTestArgs(selected: string[]): string[] {
   return ['bun', 'test', ...selected, '--timeout', '30000', '--bail']
 }
 
+// Pico normal ~370 MB; un mutante llegó a 11,4 GB.
+export const MUTATION_RSS_CAP_KB = 2 * 1024 * 1024
+
+async function readRssKb(pid: number): Promise<number | undefined> {
+  try {
+    const status = await Bun.file(`/proc/${pid}/status`).text()
+    const match = /^VmRSS:\s+(\d+)\s+kB/m.exec(status)
+    if (match) return Number(match[1])
+  } catch {}
+  const result = Bun.spawnSync(['ps', '-o', 'rss=', '-p', String(pid)])
+  const value = Number(result.stdout.toString().trim())
+  return result.exitCode === 0 && Number.isFinite(value) && value > 0 ? value : undefined
+}
+
+export async function runWithMemoryCap(
+  argv: string[],
+  opts: {
+    capKb?: number
+    intervalMs?: number
+    readRss?: (pid: number) => Promise<number | undefined>
+  } = {},
+): Promise<number> {
+  const capKb = opts.capKb ?? MUTATION_RSS_CAP_KB
+  const proc = Bun.spawn(argv, { stdout: 'inherit', stderr: 'inherit', stdin: 'inherit' })
+  let killed = false
+  const timer = setInterval(async () => {
+    if (killed) return
+    const rss = await (opts.readRss ?? readRssKb)(proc.pid)
+    if (
+      rss !== undefined &&
+      rss > capKb &&
+      !killed &&
+      proc.exitCode === null &&
+      proc.signalCode === null
+    ) {
+      killed = true
+      console.error(
+        `mutation-test-shard: RSS ${Math.round(rss / 1024)} MB > ${Math.round(capKb / 1024)} MB, kill`,
+      )
+      proc.kill('SIGKILL')
+    }
+  }, opts.intervalMs ?? 2000)
+  try {
+    const exitCode = await proc.exited
+    return killed ? 1 : exitCode
+  } finally {
+    clearInterval(timer)
+  }
+}
+
 async function main() {
   const configPath = process.argv[2]
   if (!configPath) throw new Error('Uso: bun run scripts/mutation-test-shard.ts <stryker-config>')
@@ -133,12 +183,8 @@ async function main() {
     return
   }
   console.error(`mutation-test-shard: ${selected.length}/${total} test files`)
-  const proc = Bun.spawn(mutationTestArgs(selected), {
-    stdout: 'inherit',
-    stderr: 'inherit',
-    stdin: 'inherit',
-  })
-  process.exitCode = await proc.exited
+  // El mutante que asigna sin límite tumba el runner; por encima del tope se mata y cuenta como detectado.
+  process.exitCode = await runWithMemoryCap(mutationTestArgs(selected))
 }
 
 if (import.meta.main) await main()
