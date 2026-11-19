@@ -80,6 +80,7 @@ dist/
 
 # AT.8 — estado del presupuesto de subagentes, aislado por session_id.
 .orchestos/subagent-budget/
+.orchestos/brain-fixes/
 
 # 2026-10-02 — artefactos locales del revisor adversarial (scripts/adversarial-review.ts:35) y lock de R.7.
 review-evidence/

@@ -130,6 +130,16 @@ function deny(reason) {
 }
 
 function handlePreToolUse(input) {
+  const subagentType = input?.tool_input?.subagent_type
+  if (
+    process.env.ORCHESTOS_ALLOW_CLAUDE_SUBAGENT !== '1' &&
+    (!subagentType || ['Explore', 'general-purpose', 'Plan', 'fork'].includes(subagentType))
+  ) {
+    deny(
+      'Mapear o leer código va a Codex: ~/.agent-method/bin/delegate leer "<pregunta>" (GOV.4). Subagentes de Claude solo para web-fetch o guías de Claude Code.',
+    )
+    return
+  }
   if (!input || typeof input.session_id !== 'string' || input.session_id.length === 0) {
     deny('No se pudo comprobar el presupuesto de subagentes; se deniega esta delegación.')
     return

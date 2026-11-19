@@ -19,6 +19,8 @@ function main(inputText) {
   )
     return
 
+  warnOnTurns(transcriptPath, sessionId)
+
   const budget = runBudget(transcriptPath)
   if (!budget) return
 
@@ -33,6 +35,36 @@ function main(inputText) {
   const firstTimeThisSession = readState()?.sessionId !== sessionId
   if (firstTimeThisSession && !writeHandoff(transcriptPath, sessionId)) return
   if (firstTimeThisSession || budget.level === 'critical') printWarning(budget)
+}
+
+function warnOnTurns(transcriptPath, sessionId) {
+  if (transcriptPath.startsWith('opencode-session:')) return
+  const state = readState()
+  if (state?.turnWarnings?.[sessionId] === true) return
+  const turns = new Set()
+  try {
+    for (const line of readFileSync(transcriptPath, 'utf8').split('\n')) {
+      const entry = parseJson(line)
+      if (
+        entry?.type === 'assistant' &&
+        typeof entry.message?.id === 'string' &&
+        Array.isArray(entry.message.content) &&
+        entry.message.content.some((block) => block?.type === 'tool_use')
+      )
+        turns.add(entry.message.id)
+    }
+    if (turns.size < 80) return
+    mkdirSync(dirname(STATE_PATH), { recursive: true })
+    writeFileSync(
+      STATE_PATH,
+      JSON.stringify({ ...state, turnWarnings: { ...state?.turnWarnings, [sessionId]: true } }),
+    )
+    console.log(
+      '80 turnos del cerebro en esta sesión: sugiero /cut (GOV.4). Cada turno relee todo el contexto.',
+    )
+  } catch {
+    // Un transcript incompleto o inaccesible no impide el aviso de tokens.
+  }
 }
 
 function parseJson(value) {
@@ -66,7 +98,10 @@ function writeHandoff(transcriptPath, sessionId) {
   if (!runBunCommand(['agent:handoff', '--', '--transcript', transcriptPath])) return false
   try {
     mkdirSync(dirname(STATE_PATH), { recursive: true })
-    writeFileSync(STATE_PATH, JSON.stringify({ sessionId, firedAt: new Date().toISOString() }))
+    writeFileSync(
+      STATE_PATH,
+      JSON.stringify({ ...readState(), sessionId, firedAt: new Date().toISOString() }),
+    )
     return true
   } catch {
     return false
@@ -76,7 +111,7 @@ function writeHandoff(transcriptPath, sessionId) {
 function readState() {
   try {
     const parsed = JSON.parse(readFileSync(STATE_PATH, 'utf8'))
-    return typeof parsed?.sessionId === 'string' ? parsed : null
+    return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : null
   } catch {
     return null
   }

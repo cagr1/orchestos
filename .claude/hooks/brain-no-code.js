@@ -5,14 +5,43 @@
  *
  * Spec: docs/specs/AT.1.md.
  */
-import { readFileSync } from 'node:fs'
-import { dirname, isAbsolute, posix, relative, resolve } from 'node:path'
+import { mkdirSync, readFileSync, writeFileSync } from 'node:fs'
+import { dirname, isAbsolute, join, posix, relative, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 const ROOT =
   process.env.BRAIN_GUARD_ROOT || resolve(dirname(fileURLToPath(import.meta.url)), '../..')
 const CODE_PREFIXES = ['src/', 'tests/', 'scripts/', '.claude/hooks/']
 const SMALL_FIX_MAX_LINES = 20
+const FIXES_ROOT = process.env.BRAIN_FIXES_ROOT || resolve(ROOT, '.orchestos/brain-fixes')
+const FIX_LIMIT_MESSAGE =
+  'Tercer Edit del cerebro desde la última delegación: reescribe el spec y re-delega a criterio (GOV.4).'
+
+function fixesPath(input) {
+  const sessionId = input?.session_id
+  if (typeof sessionId !== 'string' || sessionId.length === 0) return null
+  return join(FIXES_ROOT, `${encodeURIComponent(sessionId)}.json`)
+}
+
+function writeFixCount(path, count) {
+  mkdirSync(FIXES_ROOT, { recursive: true })
+  writeFileSync(path, JSON.stringify({ count }))
+}
+
+function countSmallFix(input) {
+  const path = fixesPath(input)
+  if (!path) return null
+  let count = 0
+  try {
+    const state = JSON.parse(readFileSync(path, 'utf8'))
+    if (Number.isInteger(state.count) && state.count >= 0) count = state.count
+  } catch {
+    // Una sesión nueva empieza sin contador.
+  }
+  if (count >= 2) return { reason: FIX_LIMIT_MESSAGE }
+  writeFixCount(path, count + 1)
+  return null
+}
 const MESSAGE_PREFIX =
   'Cerebro no escribe código (AGENTS.md § Protocolo de delegación): escribe el spec en docs/specs/<ID>.md y delega su ejecución a otro modelo. Ruta:'
 
@@ -131,7 +160,7 @@ function shouldDeny(input) {
     const size = toolName === 'Edit' ? editSize(toolInput) : multiEditSize(toolInput.edits)
     if (size === null || size > SMALL_FIX_MAX_LINES) return { path, sizeDenied: true }
     if (path.startsWith('.claude/hooks/')) return { path }
-    return null
+    return countSmallFix(input)
   }
   if (toolName === 'NotebookEdit') {
     const path = relativePath(toolInput.notebook_path)
@@ -150,6 +179,9 @@ function shouldDeny(input) {
       return relativePath(path) ?? path
     }
   }
+  const delegation = /agent-method\/bin\/delegate["']?\s+(?:mecanico|criterio-alt|criterio)(?=\s|$)/
+  const path = fixesPath(input)
+  if (path && delegation.test(toolInput.command)) writeFixCount(path, 0)
   return null
 }
 
@@ -164,7 +196,9 @@ function main() {
       hookSpecificOutput: {
         hookEventName: 'PreToolUse',
         permissionDecision: 'deny',
-        permissionDecisionReason: `${MESSAGE_PREFIX} ${denial.path}${denial.sizeDenied && (input.tool_name === 'Edit' || input.tool_name === 'MultiEdit') ? ' (fix chico: Edit de hasta 20 líneas sí se permite)' : ''}`,
+        permissionDecisionReason:
+          denial.reason ??
+          `${MESSAGE_PREFIX} ${denial.path}${denial.sizeDenied && (input.tool_name === 'Edit' || input.tool_name === 'MultiEdit') ? ' (fix chico: Edit de hasta 20 líneas sí se permite)' : ''}`,
       },
     }),
   )

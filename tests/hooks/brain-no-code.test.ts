@@ -19,6 +19,7 @@ function runHook(
         Object.entries(process.env).filter(([key]) => key !== 'ORCHESTOS_ROLE'),
       ),
       BRAIN_GUARD_ROOT: root,
+      BRAIN_FIXES_ROOT: join(root, 'fixes'),
       ...(role ? { ORCHESTOS_ROLE: role } : {}),
     },
   })
@@ -276,5 +277,74 @@ describe('brain-no-code hook', () => {
     const result = spawnSync('node', [HOOK_PATH], { encoding: 'utf8', input: '{ invalid' })
     expect(result.status).toBe(0)
     expect(result.stdout.trim()).toBe('')
+  })
+})
+
+describe('GOV.4 small fix budget', () => {
+  function fixture(role = '') {
+    const root = mkdtempSync(join(tmpdir(), 'brain-fixes-'))
+    return {
+      root,
+      run(tool_name: string, tool_input: Record<string, unknown>, session_id = 'brain') {
+        const result = spawnSync('node', [HOOK_PATH], {
+          encoding: 'utf8',
+          input: JSON.stringify({ tool_name, tool_input, session_id }),
+          env: {
+            ...process.env,
+            ORCHESTOS_ROLE: role,
+            BRAIN_GUARD_ROOT: root,
+            BRAIN_FIXES_ROOT: join(root, 'fixes'),
+          },
+        })
+        expect(result.status, result.stderr).toBe(0)
+        return result.stdout
+      },
+    }
+  }
+  const edit = { file_path: 'src/a.ts', old_string: 'a', new_string: 'b' }
+
+  it('allows two edits, denies the third, and isolates sessions', () => {
+    const { root, run } = fixture()
+    try {
+      expect(run('Edit', edit)).toBe('')
+      expect(run('MultiEdit', { file_path: 'tests/a.ts', edits: [edit] })).toBe('')
+      expect(run('Edit', edit)).toContain(
+        'Tercer Edit del cerebro desde la última delegación: reescribe el spec y re-delega a criterio (GOV.4).',
+      )
+      expect(run('Edit', edit, 'another')).toBe('')
+    } finally {
+      rmSync(root, { recursive: true, force: true })
+    }
+  })
+
+  it('resets only on writing delegations; denied and docs edits do not count', () => {
+    const { root, run } = fixture()
+    try {
+      expect(run('Edit', { ...edit, new_string: Array(21).fill('x').join('\n') })).toContain('deny')
+      expect(run('Edit', { ...edit, file_path: 'docs/a.md' })).toBe('')
+      expect(run('Edit', edit)).toBe('')
+      expect(run('Edit', edit)).toBe('')
+      for (const role of ['qa', 'leer', 'analizar']) {
+        expect(run('Bash', { command: `~/.agent-method/bin/delegate ${role} x.md` })).toBe('')
+        expect(run('Edit', edit)).toContain('Tercer Edit')
+      }
+      for (const role of ['criterio', 'mecanico', 'criterio-alt']) {
+        expect(run('Bash', { command: `~/.agent-method/bin/delegate ${role} x.md` })).toBe('')
+        expect(run('Edit', edit)).toBe('')
+        expect(run('Edit', edit)).toBe('')
+        expect(run('Edit', edit)).toContain('Tercer Edit')
+      }
+    } finally {
+      rmSync(root, { recursive: true, force: true })
+    }
+  })
+
+  it('never restricts executor edits', () => {
+    const { root, run } = fixture('executor')
+    try {
+      for (let i = 0; i < 4; i += 1) expect(run('Edit', edit)).toBe('')
+    } finally {
+      rmSync(root, { recursive: true, force: true })
+    }
   })
 })

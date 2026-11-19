@@ -12,12 +12,12 @@ function fixture() {
   return mkdtempSync(join(tmpdir(), 'subagent-budget-'))
 }
 
-function run(root: string, payload: Record<string, unknown>) {
+function run(root: string, payload: Record<string, unknown>, allow = '') {
   return spawnSync('node', [HOOK], {
     cwd: ROOT,
     input: JSON.stringify(payload),
     encoding: 'utf8',
-    env: { ...process.env, SUBAGENT_BUDGET_ROOT: root },
+    env: { ...process.env, SUBAGENT_BUDGET_ROOT: root, ORCHESTOS_ALLOW_CLAUDE_SUBAGENT: allow },
   })
 }
 
@@ -25,6 +25,7 @@ function pre(root: string, session = 's', id?: string) {
   return run(root, {
     hook_event_name: 'PreToolUse',
     tool_name: 'Agent',
+    tool_input: { subagent_type: 'web-fetch' },
     session_id: session,
     tool_use_id: id,
   })
@@ -138,7 +139,11 @@ describe('subagent budget hook', () => {
             new Promise<ReturnType<typeof run>>((resolveResult) => {
               const child = spawn('node', [HOOK], {
                 cwd: ROOT,
-                env: { ...process.env, SUBAGENT_BUDGET_ROOT: root },
+                env: {
+                  ...process.env,
+                  SUBAGENT_BUDGET_ROOT: root,
+                  ORCHESTOS_ALLOW_CLAUDE_SUBAGENT: '',
+                },
                 stdio: ['pipe', 'pipe', 'pipe'],
               })
               let stdout = ''
@@ -152,6 +157,7 @@ describe('subagent budget hook', () => {
                 JSON.stringify({
                   hook_event_name: 'PreToolUse',
                   tool_name: 'Agent',
+                  tool_input: { subagent_type: 'web-fetch' },
                   session_id: 's',
                   tool_use_id: randomUUID(),
                 }),
@@ -162,6 +168,34 @@ describe('subagent budget hook', () => {
       expect(
         results.filter((result) => decision(result)?.permissionDecision === 'deny'),
       ).toHaveLength(6)
+    } finally {
+      rmSync(root, { recursive: true, force: true })
+    }
+  })
+})
+
+describe('GOV.4 Claude subagent types', () => {
+  it('denies mapping types before reserving and permits the explicit escape', () => {
+    const root = fixture()
+    try {
+      for (const subagent_type of ['Explore', 'general-purpose', 'Plan', 'fork', undefined]) {
+        const payload = {
+          hook_event_name: 'PreToolUse',
+          tool_name: 'Agent',
+          tool_input: { subagent_type },
+          session_id: String(subagent_type),
+        }
+        expect(decision(run(root, payload))).toMatchObject({
+          permissionDecision: 'deny',
+          permissionDecisionReason:
+            'Mapear o leer código va a Codex: ~/.agent-method/bin/delegate leer "<pregunta>" (GOV.4). Subagentes de Claude solo para web-fetch o guías de Claude Code.',
+        })
+        expect(readdirSync(root)).toHaveLength(0)
+        expect(decision(run(root, payload, '1'))).toBeNull()
+        // Clear only the allowed reservation for the next case.
+        run(root, { hook_event_name: 'SessionStart', session_id: String(subagent_type) })
+      }
+      expect(decision(pre(root))).toBeNull()
     } finally {
       rmSync(root, { recursive: true, force: true })
     }
