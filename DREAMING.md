@@ -1,59 +1,63 @@
-# DREAMING.md — 2026-11-19
+# DREAMING.md — 2026-11-20
 
-> Análisis automático (scheduled task). `runs-summary.json` exportado 2026-11-18T15:41Z; último run 2026-11-17T21:17Z.
-> **Sin runs nuevos desde el análisis del 2026-11-18** (mismos 20 IDs; la DB local tampoco tiene runs posteriores).
-> Los patrones son los mismos; abajo solo cambia lo que se verificó hoy.
+> Análisis automático (scheduled task). `runs-summary.json` exportado 2026-11-19T21:43Z.
+> Ventana nueva: 13 de los 20 runs son del 2026-11-19. Los runs `gate:*` salieron de la ventana por antigüedad,
+> no porque el export los filtre (`scripts/export-runs-summary.ts` no tiene filtro; siguen en la DB local).
+> Causas de fallo leídas de la DB local (`~/.orchestos/db.sqlite`), porque el resumen no las exporta.
 
 ## Runs analizados
 - Total: 20 runs
-- Periodo: 2026-11-14T18:47:54Z → 2026-11-17T21:17:26Z
-- failed: 3 | blocked: 0 | done: 17 | qa_failed: 5
+- Periodo: 2026-11-17T17:34:17Z → 2026-11-19T21:24:22Z
+- failed: 3 | blocked: 0 | done: 17 | qa_failed: 1
 
-Distribución: 8 `chat` (6 claude-opus-5-5 done, 2 gpt-6.1-sol failed) y 12 `gate:*` (8 semillas con `elapsed_ms: 0`).
+Distribución: 19 `chat` (12 claude-opus-5-5, 5 gpt-6-luna, 2 gpt-6.1-sol) y 1 `doc` (gpt-6-luna).
 
 ## Patrones detectados
 
-### Chat con `gpt-6.1-sol` falla por cupo de Codex — y queda sin clasificar
-- Evidencia: `7bfc4ed4` y `0260c4e9` (2026-11-17, `chat`, codex, 0 tokens). En la DB local:
-  `result = "Codex CLI usage limit reached."`, `failure_kind = NULL`.
-- Verificado hoy: `'quota'` **ya existe** en `RUN_FAILURE_KINDS` (`src/db/runs.ts:22`, desde `dcae3e80`, AUD.4),
-  pero el camino de chat no lo asigna. La Propuesta 1 de ayer pedía crear el tipo; lo que falta es asignarlo.
-- Frecuencia: 2/20; 2/2 de `gpt-6.1-sol`; 2/8 de `chat` (25 %, bajo el umbral).
+### `doc` falla por `output_missing` en una tarea cuyo trabajo es commitear
+- Evidencia: `aa76c894` (2026-11-19, `doc`, gpt-6-luna, codex). Tarea creada desde chat: "cerrar la sesión" —
+  commitear el cambio pendiente de `README.md`, sobrescribir `NEXT.md` con el SHA. Outputs declarados: `README.md`, `NEXT.md`.
+  DB: `failure_kind = output_missing`, `result = "missing declared output(s): README.md, NEXT.md — reverted 0 file(s)"`.
+- Código: el chequeo (`src/run/harness.ts:661`) compara los outputs declarados con `contractResult.written`.
+  Hipótesis **no verificada**: `README.md` ya estaba modificado antes del run y el agente solo lo commitea, así que el run
+  no lo "escribe"; el chequeo lo marca como faltante aunque la tarea se cumplió. `NEXT.md` no está explicado por esto.
+- Frecuencia: 1/20; 1/1 de `doc` en la ventana (100 %, pero n=1). Histórico local: 14/47 `doc` fallidos, 13 con `failure_kind` NULL.
+- qa_reason recurrente: "missing declared output(s): README.md, NEXT.md" (1 vez).
+
+### Chat con `gpt-6.1-sol` falla por cupo de Codex — sigue sin clasificar (cuarto informe)
+- Evidencia: `7bfc4ed4` y `0260c4e9` (2026-11-17, `chat`, codex). DB: `result = "Codex CLI usage limit reached."`,
+  `failure_kind = NULL`. `'quota'` existe en `src/db/runs.ts:22`; el camino de chat no lo asigna.
+- Frecuencia: 2/20; 2/2 de `gpt-6.1-sol`; 2/19 de `chat` (10 %, bajo el umbral).
 - qa_reason recurrente: ninguna (chat no pasa por QA).
 
-### Fallos de QA = semillas del gate `chat-context` (tercer día seguido)
-- Evidencia: 5/5 `qa_verdict: fail` son `codex (cli default model) via Codex CLI`, `gate:uso.1{4,5}-chat-context:implement`,
-  `elapsed_ms: 0`, insertados por `scripts/ui-gate/flows/chat-context.mjs`.
-- Frecuencia: 5/20.
-- qa_reason recurrente: "criterion 2 missing: README line absent" (5/5, texto del fixture).
-
-### `checks_failed > 0` no es recurrente
-- Evidencia: solo `a6f7c6f1` (`gpt-6-luna`, `tsc` sobre `broken.ts` roto a propósito; el reintento pasó).
-- Frecuencia: 1/20.
+### Sin patrón en `checks_failed` ni en QA por modelo
+- `checks_failed = 0` en 20/20. Ningún modelo con `qa_verdict: fail` en 3+ runs (solo 1 fail en total).
+- `gpt-6-luna` en chat: 5/5 done.
 
 ## Propuestas
 
-### Propuesta 1 — Asignar `failure_kind: 'quota'` en los fallos de chat (corrige la Propuesta 1 del 2026-11-18)
-- Qué cambiar: el camino que guarda el run de chat debe pasar el error del CLI por el mismo clasificador que usa
-  `providerFailureKind` (`src/run/harness.ts`) en vez de dejar `failure_kind` nulo. El tipo `'quota'` ya existe.
-- Por qué: los 2 fallos reales de la ventana son cupo y figuran como `failed` sin causa; AUD.4 prometió
-  "cada run fallido guarda su causa clasificada" y en chat no se cumple.
+### Propuesta 1 — Diagnosticar el `output_missing` de tareas que commitean (`doc` desde chat)
+- Qué cambiar: reproducir `aa76c894` y decidir en `src/run/harness.ts:661` si un output declarado que el run deja
+  committed sin cambio de contenido cuenta como entregado (p. ej. comparar contra `HEAD` previo al run además de
+  `contractResult.written`), o que el chat no declare como `output` archivos que la tarea solo commitea.
+- Por qué: falso fallo probable en una tarea de cierre real; el run se marca `failed` cuando el trabajo se hizo.
+- Riesgo: medio (toca el chequeo determinista que protege contra outputs truncados).
+
+### Propuesta 2 — Asignar `failure_kind: 'quota'` en los fallos de chat (repite 2026-11-19)
+- Qué cambiar: el camino que guarda el run de chat debe clasificar el error del CLI como `providerFailureKind`
+  (`src/run/harness.ts`) en vez de dejar `failure_kind` nulo.
+- Por qué: 2/2 fallos de Sol son cupo y figuran sin causa; 13/14 fallos históricos de `doc` tampoco tienen causa.
 - Riesgo: bajo.
 
-### Propuesta 2 — Exportar `failure_kind` y motivo corto en `runs-summary.json` (repite 2026-11-18)
+### Propuesta 3 — Exportar `failure_kind` y motivo corto en `runs-summary.json` (repite 2026-11-18 y 2026-11-19)
 - Qué cambiar: `scripts/export-runs-summary.ts`, sumar `failure_kind` y ~120 chars redactadas de `result` si `status = 'failed'`.
-- Por qué: la corrida en la nube no ve la causa; hoy hubo que abrir la DB local otra vez.
+- Por qué: cuarto informe que necesita abrir la DB local para conocer la causa.
 - Riesgo: bajo.
 
-### Propuesta 3 — Excluir runs de gate y semillas del resumen (repite 2026-11-17 y 2026-11-18)
+### Propuesta 4 — Excluir runs de gate del resumen (repite; sigue vigente)
 - Qué cambiar: `scripts/export-runs-summary.ts`, filtrar `task_class LIKE 'gate:%'` o marcarlos `source: 'gate'`.
-- Por qué: 12/20 runs y 5/5 qa_failed son gates; tercer informe seguido con falsos patrones.
-- Riesgo: bajo.
-
-### Propuesta 4 — No reescribir DREAMING.md si no hay runs nuevos
-- Qué cambiar: la tarea programada `orchestos-dreaming`: si los IDs de `runs-summary.json` son los mismos que el
-  análisis anterior, escribir una línea "sin runs nuevos" en lugar del informe completo.
-- Por qué: hoy el uso del dashboard está parado (trabajo en WIN.*); el informe repetido gasta cupo y ruido.
+- Por qué: hoy no aparecen solo por antigüedad; la próxima corrida nocturna de gates los vuelve a meter (los
+  últimos 3 días dieron 5/5 qa_failed falsos).
 - Riesgo: bajo.
 
 ## Decisión (llenar manualmente)
