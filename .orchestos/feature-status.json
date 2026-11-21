@@ -292,6 +292,22 @@
       "closedDate": null
     },
     {
+      "id": "USO.29",
+      "sprint": "Etapa 2 — Uso real",
+      "block": null,
+      "title": "Color propio por CLI en el panel de uso",
+      "status": "done",
+      "closedDate": null
+    },
+    {
+      "id": "USO.30",
+      "sprint": "Etapa 2 — Uso real",
+      "block": null,
+      "title": "El panel de uso no se acopla al tema (carbon)",
+      "status": "open",
+      "closedDate": null
+    },
+    {
       "id": "CLI.1",
       "sprint": "Etapa 2 — Uso real",
       "block": null,

@@ -1,0 +1,17 @@
+{
+  "item": "USO.29",
+  "date": "2026-11-21",
+  "where": "navegador del panel de Claude contra el dashboard real (4242, DB real)",
+  "live": {
+    "tokensPorDia": "barras apiladas por agente: Claude Code naranja (#D97757), Codex blanco (var(--app-text)); output a 45 % de opacidad; leyenda 'Claude Code · Codex · ▲ input · ▼ output'",
+    "modelos": "franja Anthropic 91 % naranja / OpenAI 9 % blanco; barras de share por vendor del modelo",
+    "agentes": "punto y barra con el color de cada agente",
+    "heatmaps": "siguen con el acento (intensidad)"
+  },
+  "gates": {
+    "usage-stats.test.ts": "pass (incluye agentColor/vendorColor)",
+    "typecheck": "exit 0",
+    "lint": "exit 0",
+    "index.css": "sin cambios"
+  }
+}

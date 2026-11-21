@@ -112,6 +112,39 @@ export function vendorOf(model: string): string {
   return 'Other'
 }
 
+// Color de marca por agente y por proveedor (USO.29): en este panel cada CLI se distingue por su color.
+// Codex/OpenAI usan el color de texto del tema (blanco en oscuro, negro en claro).
+const AGENT_COLORS: Record<string, string> = {
+  'Claude Code': '#D97757',
+  Codex: 'var(--app-text)',
+  OpenCode: '#14B8A6',
+  OpenRouter: '#6366F1',
+  DeepSeek: '#8B5CF6',
+  Gemini: '#4285F4',
+  Grok: '#F43F5E',
+}
+const VENDOR_COLORS: Record<string, string> = {
+  Anthropic: '#D97757',
+  OpenAI: 'var(--app-text)',
+  Google: '#4285F4',
+  DeepSeek: '#8B5CF6',
+  xAI: '#F43F5E',
+  Other: '#71717A',
+}
+const FALLBACK_COLORS = ['#F59E0B', '#EC4899', '#22D3EE', '#84CC16', '#A78BFA']
+
+export function agentColor(agent: string): string {
+  const known = AGENT_COLORS[agent]
+  if (known) return known
+  let hash = 0
+  for (const char of agent) hash = (hash * 31 + char.charCodeAt(0)) >>> 0
+  return FALLBACK_COLORS[hash % FALLBACK_COLORS.length] as string
+}
+
+export function vendorColor(vendor: string): string {
+  return VENDOR_COLORS[vendor] ?? (VENDOR_COLORS.Other as string)
+}
+
 export function byVendor(rows: UsageHourRow[]) {
   return groups(rows, (row) => vendorOf(row.model)).map((row) => ({ ...row, vendor: row.id }))
 }

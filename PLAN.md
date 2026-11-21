@@ -437,6 +437,20 @@ esta etapa: `docs/done/bloque-AUD.md` (AUD.16, AUD.17), `docs/done/bloque-SES.md
   `shell-look` al cerrar USO.27: `context.window` 1000000, tooltip "15K / 1.1M"; el gate espera "15K / 1M 1%")
   `ContextRing.tsx:19` formatea `maxTokens`, que no es el `window` de `/context`. Diagnosticar de dónde sale ese
   valor (¿catálogo de Codex actualizado hoy?) antes de tocar. Va después de CLI.1.
+- [x] **USO.29 — Color propio por CLI en el panel de uso.** (Carlos, 2026-11-21: no distinguía a los agentes, todo
+  usaba el acento) Solo en Settings → Usage: `agentColor`/`vendorColor` en `lib/usage-stats.ts` (Claude Code
+  naranja #D97757, Codex con el color de texto del tema, DeepSeek morado, OpenRouter índigo, OpenCode turquesa,
+  Gemini azul); barras de tokens por día apiladas por agente con leyenda; tablas y franja de vendors con color de
+  marca. Los heatmaps siguen con el acento (miden intensidad).
+  Gate en vivo: navegador del panel contra el dashboard real — `docs/done/evidence/USO.29-live.json`
+  Texto visible: "▲ input · ▼ output" (leyenda del gráfico: sin ella no se sabe qué mitad es input y cuál output)
+  Ejecutado por: gpt-6-luna (mecanico) · Spec: docs/specs/USO.29.md
+- [ ] **USO.30 — El panel de uso no se acopla al tema (carbon).** (Carlos, 2026-11-21, con el tema carbon) Visto en
+  vivo: el hover card de los gráficos sale con fondo blanco sobre el tema oscuro, y los heatmaps/minigráficos usan
+  `--app-accent` (#38bdf8 en carbon) que no casa con ese tema. Hacer que superficie del tooltip, intensidades y
+  barras salgan de los tokens del tema activo (`--app-surface-elevated`, `--app-text`, acento del tema) y revisar
+  los colores de marca de USO.29 contra cada tema (en temas claros Codex ya usa el color de texto). Verificar en
+  vivo en todos los temas de Appearance.
 - [ ] **CLI.1 — Aviso de actualización de Codex/Claude y modelo de rol que ya no existe.** (Carlos, 2026-11-21, GO;
   va después de USO.27) Origen: `delegate criterio` falló con `model_not_found` para gpt-6.1-sol porque corría Codex
   0.155.1; con 0.171.0 funciona. (1) `cli-health` suma la última versión publicada (npm `@openai/codex`,

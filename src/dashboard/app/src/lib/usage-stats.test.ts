@@ -5,6 +5,7 @@ import {
   byDay,
   byModel,
   byVendor,
+  agentColor,
   dateKey,
   dayChartStats,
   delta,
@@ -14,6 +15,7 @@ import {
   formatUsd,
   kpis,
   vendorOf,
+  vendorColor,
   weekHourGrid,
   yearActivity,
 } from './usage-stats'
@@ -258,6 +260,16 @@ describe('usage aggregation', () => {
 })
 
 describe('vendors and formatting', () => {
+  test('agent and vendor brand colors are stable, with deterministic fallbacks', () => {
+    expect(agentColor('Claude Code')).toBe('#D97757')
+    expect(agentColor('Codex')).toBe('var(--app-text)')
+    expect(agentColor('Some New CLI')).toBe(agentColor('Some New CLI'))
+    expect(['#F59E0B', '#EC4899', '#22D3EE', '#84CC16', '#A78BFA']).toContain(
+      agentColor('Some New CLI'),
+    )
+    expect(vendorColor('Nadie')).toBe('#71717A')
+  })
+
   test('vendor families and provider-qualified model identifiers', () => {
     for (const model of [
       'claude-opus',

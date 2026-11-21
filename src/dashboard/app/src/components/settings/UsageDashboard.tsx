@@ -4,6 +4,7 @@ import { createPortal } from 'react-dom'
 import { usePrefersReducedMotion } from '@/hooks/use-prefers-reduced-motion'
 import { spring } from '@/lib/springs'
 import {
+  agentColor,
   byAgent,
   byDay,
   byModel,
@@ -17,6 +18,8 @@ import {
   kpis,
   type UsageDay,
   type UsageRange,
+  vendorColor,
+  vendorOf,
   weekHourGrid,
   yearActivity,
 } from '@/lib/usage-stats'
@@ -30,16 +33,18 @@ const levels = [
   'bg-app-accent/70',
   'bg-app-accent',
 ]
-const vendorLevels = [
-  'bg-app-accent',
-  'bg-app-accent/70',
-  'bg-app-accent/45',
-  'bg-app-accent/20',
-  'bg-app-muted/60',
-  'bg-app-muted/30',
-]
 const focusClass =
   'outline-none focus-visible:ring-2 focus-visible:ring-app-accent focus-visible:ring-offset-1'
+const agentSegments = (day: UsageDay) => {
+  const byAgentName = new Map<string, { agent: string; input: number; output: number }>()
+  for (const model of day.models) {
+    const entry = byAgentName.get(model.agent) ?? { agent: model.agent, input: 0, output: 0 }
+    entry.input += model.inputTokens
+    entry.output += model.outputTokens
+    byAgentName.set(model.agent, entry)
+  }
+  return [...byAgentName.values()].sort((a, b) => a.agent.localeCompare(b.agent))
+}
 const intensity = (value: number, maximum: number) =>
   value === 0 ? 0 : Math.min(4, Math.max(1, Math.ceil((value / Math.max(1, maximum)) * 4)))
 const localeOf = (es: boolean) => (es ? 'es-ES' : 'en-US')
@@ -518,15 +523,17 @@ export function UsageDashboard({
                   <h2 className="text-sm font-medium text-app">
                     {es ? 'Tokens por día' : 'Tokens per day'}
                   </h2>
-                  <div className="flex gap-3 text-[10px] text-app-muted">
-                    <span className="flex items-center gap-1">
-                      <i className="size-2 rounded-xs bg-app-accent" />
-                      input
-                    </span>
-                    <span className="flex items-center gap-1">
-                      <i className="size-2 rounded-xs bg-app-accent/40" />
-                      output
-                    </span>
+                  <div className="flex flex-wrap justify-end gap-x-3 gap-y-1 text-[10px] text-app-muted">
+                    {agents.map((row) => (
+                      <span key={row.agent} className="flex items-center gap-1">
+                        <i
+                          className="size-2 rounded-xs"
+                          style={{ backgroundColor: agentColor(row.agent) }}
+                        />
+                        {row.agent}
+                      </span>
+                    ))}
+                    <span>▲ input · ▼ output</span>
                   </div>
                 </div>
                 <HoverChart>
@@ -540,17 +547,29 @@ export function UsageDashboard({
                           className={`relative flex h-full min-w-0 flex-1 flex-col ${focusClass}`}
                           {...bind(<DayDetails day={day} es={es} />, daySummary(day, es))}
                         >
-                          <span className="relative block h-1/2 w-full">
-                            <span
-                              className="absolute inset-x-0 bottom-0 rounded-t-xs bg-app-accent"
-                              style={{ height: `${(day.inputTokens / chart.maxInput) * 100}%` }}
-                            />
+                          <span className="relative flex h-1/2 w-full flex-col-reverse">
+                            {agentSegments(day).map((segment, index, segments) => (
+                              <span
+                                key={segment.agent}
+                                className={index === segments.length - 1 ? 'rounded-t-xs' : ''}
+                                style={{
+                                  height: `${(segment.input / chart.maxInput) * 100}%`,
+                                  backgroundColor: agentColor(segment.agent),
+                                }}
+                              />
+                            ))}
                           </span>
-                          <span className="relative block h-1/2 w-full">
-                            <span
-                              className="absolute inset-x-0 top-0 rounded-b-xs bg-app-accent/40"
-                              style={{ height: `${(day.outputTokens / chart.maxOutput) * 100}%` }}
-                            />
+                          <span className="relative flex h-1/2 w-full flex-col">
+                            {agentSegments(day).map((segment, index, segments) => (
+                              <span
+                                key={segment.agent}
+                                className={`opacity-45 ${index === segments.length - 1 ? 'rounded-b-xs' : ''}`}
+                                style={{
+                                  height: `${(segment.output / chart.maxOutput) * 100}%`,
+                                  backgroundColor: agentColor(segment.agent),
+                                }}
+                              />
+                            ))}
                           </span>
                         </button>
                       ))}
@@ -635,19 +654,22 @@ export function UsageDashboard({
             <div data-settings-anchor="usage-models" className="space-y-4 p-4">
               <h2 className="text-sm font-medium text-app">{es ? 'Modelos' : 'Models'}</h2>
               <div className="flex h-2 overflow-hidden rounded-control bg-app-elevated" aria-hidden>
-                {vendors.map((vendor, index) => (
+                {vendors.map((vendor) => (
                   <div
                     key={vendor.vendor}
-                    className={vendorLevels[index % vendorLevels.length]}
-                    style={{ width: `${vendor.share * 100}%` }}
+                    style={{
+                      width: `${vendor.share * 100}%`,
+                      backgroundColor: vendorColor(vendor.vendor),
+                    }}
                   />
                 ))}
               </div>
               <div className="flex flex-wrap gap-x-3 gap-y-1 text-[10px] tabular-nums text-app-muted">
-                {vendors.map((vendor, index) => (
+                {vendors.map((vendor) => (
                   <span key={vendor.vendor} className="flex items-center gap-1">
                     <i
-                      className={`size-2 rounded-xs ${vendorLevels[index % vendorLevels.length]}`}
+                      className="size-2 rounded-xs"
+                      style={{ backgroundColor: vendorColor(vendor.vendor) }}
                     />
                     {vendor.vendor} {Math.round(vendor.share * 100)} %
                   </span>
@@ -677,8 +699,11 @@ export function UsageDashboard({
                           <div className="break-all font-mono text-app">{model.model}</div>
                           <div className="mt-1 h-1 rounded-control bg-app-elevated">
                             <div
-                              className="h-full rounded-control bg-app-accent/60"
-                              style={{ width: `${model.share * 100}%` }}
+                              className="h-full rounded-control"
+                              style={{
+                                width: `${model.share * 100}%`,
+                                backgroundColor: vendorColor(vendorOf(model.model)),
+                              }}
                             />
                           </div>
                         </td>
@@ -730,11 +755,20 @@ export function UsageDashboard({
                       className={`grid w-full grid-cols-[minmax(90px,1fr)_48px_48px_60px] items-center gap-2 rounded-control px-2 py-3 text-left text-xs tabular-nums text-app-muted transition-colors hover:bg-app-elevated ${focusClass} ${agent === row.agent ? 'bg-app-elevated ring-1 ring-app-accent/40' : ''}`}
                     >
                       <span>
-                        <span className="text-app">{row.agent}</span>
+                        <span className="inline-flex items-center gap-1.5 text-app">
+                          <i
+                            className="size-2 rounded-full"
+                            style={{ backgroundColor: agentColor(row.agent) }}
+                          />
+                          {row.agent}
+                        </span>
                         <span className="mt-1 block h-1 rounded-control bg-app-elevated">
                           <span
-                            className="block h-full rounded-control bg-app-accent/60"
-                            style={{ width: `${row.share * 100}%` }}
+                            className="block h-full rounded-control"
+                            style={{
+                              width: `${row.share * 100}%`,
+                              backgroundColor: agentColor(row.agent),
+                            }}
                           />
                         </span>
                       </span>
