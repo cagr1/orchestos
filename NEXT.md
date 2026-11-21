@@ -4,36 +4,28 @@ Un solo presente: orden y trampas vivas del lote. Lo cerrado vive en `docs/done/
 `AGENTS.md`. Versión anterior completa: `docs/done/poda-instrucciones-2026-11-03.md` (histórico).
 Arranque: `bun run agent:preflight -- --item <ID> --agent claude`. Lista viva: `bun run next`.
 
-## Sesión 2026-11-19 — empezar por aquí
+## Sesión 2026-11-21 — empezar por aquí
 
-Cerrado/subido al final: **CMD.3 `8a64178e`** (`/cut` en Dev: el agente cierra él mismo con git + NEXT.md solo en
-ese turno; tarjeta "Session wrapped up"/"Wrap-up incomplete" con recomprobación al cerrar tareas y "Continue in new
-session"). Vivo: Claude, Codex app-server y Codex exec; `docs/done/evidence/CMD.3-live.json`.
-Trampas CMD.3: el cierre por tarea no sirve (la tarea no arranca con árbol sucio; "Commit & Run" commitea con
-`chore(tasks)`); Codex app-server protege `.git` en workspaceWrite → hay que añadir el gitdir a `writableRoots`;
-`turn/start` no admite developer instructions (el system de `/cut` va como context-update); `delegate` no trabaja
-sobre un ítem ya `[x]`; cada edición de PLAN.md tras cerrar exige reabrir→reconcile→cerrar→reconcile; la línea
-"Gate en vivo:" debe citar el archivo de evidencia en la misma línea; texto JSX nuevo → `Texto visible:` en el ítem.
-Pendiente de Carlos: su cambio en `orchestos.config.yaml` (auxiliary `effort: medium`) sigue sin commitear.
+Cerrado/subido: **USO.27 `0886e352`** (panel de uso tipo agentlytics: `byHour` en `/api/usage`, runs CLI = sesiones
+por día, `UsageDashboard.tsx` + `lib/usage-stats.ts`), **USO.29 `7d9bd087`** (color de marca por CLI en el panel),
+**CLI.1 `dde94d7d`** (aviso de versión nueva de Codex/Claude con botón Update en Providers; modelo de rol fuera del
+catálogo marcado con sugerencia), MemoriesMD **`56212e9`** (`delegate` sale con 4 ante `model_not_found`).
 
-Cerrado/subido hoy (tarde): plugin OpenCode retirado `8a69bff3`; OpenCode lee `rules.md` por enlace
-(MemoriesMD `30e46c2`); `AGENTS.md` alineado con el push `--no-verify` y NEXT recortado `204fa663`; **USO.21
-`60e5c4dd`** (el agente ve la app por MCP: `preview_*` con Playwright, solo localhost, captura en el hilo, Claude y
-Codex). Trampa nueva: `page.route` de Playwright no ve redirecciones ni pestañas nuevas; `qa` encontró 3 fugas.
-**GOV.4 `17b5a630`** (y MemoriesMD `14dc514`): el cerebro gastó el 76 % del cupo diario de Claude en USO.21 haciendo
-trabajo de Codex. Ahora hooks del repo: `Explore`/`general-purpose` negados → `delegate leer`; 3.er Edit chico del
-cerebro desde la última delegación negado → re-delegar a `criterio`; aviso de `/cut` a los 80 turnos. Hallazgos de
-`qa` van al spec y de vuelta a `criterio`, no los arregla el cerebro. Pendiente opcional: llevar estos hooks al método
-para que rijan en todos los repos.
-Cerrado/subido hoy: **MUT.2 (C) `7369fbcd`** (tope de 2 GB RSS por `bun test` en `mutation-test-shard.ts`: un mutante
-llevó `bun test` a 11,4 GB y el OOM tumba el runner; los logs de los shards muertos no existen, BlobNotFound),
-IDEAS #75 `a596a717` (limpiar caché de los CLIs desde Settings), lint 87→86 `62f999e4`, **USO.22 `f4be44fd`** (tooltip
-del menú `/` oscuro), **USO.23 `2b8d1968`** (Dev con contraste de Chat; panel derecho 300 px, ancho guardado solo si
-el usuario lo cambia; Files sin peso), **USO.24 `f8ae0945`** (OpenCode se redibuja al cambiar el ancho: sesión propia
-del PTY + SIGWINCH directo), **USO.25 `77f72eed`** (pestaña OpenCode negra `#0a0a0a`), **USO.26 `5b7c0e9a`** (Browser/Terminal del pie solo iconos;
-tooltips sin zona de gracia de Radix; toggle del panel derecho sin fondo). Gates `shell-look` 75/75 y
-`opencode-terminal` 13/13 al día.
-Plugin `.opencode/plugin/context-budget.ts` retirado: OpenCode 2.3 solo carga plugins v2 (`export default {id, setup}`), cuyo contexto no da eventos de sesión ni toasts; el aviso de contexto ya no corría y el plugin solo dejaba "Plugin failed".
+Siguiente, en orden:
+1. **USO.30** — el panel de uso no se acopla al tema: en carbon el hover card sale blanco y heatmaps/minigráficos usan
+   `--app-accent` (#38bdf8). Tokens del tema activo; verificar en vivo en todos los temas de Appearance.
+2. **USO.28** — `ContextRing.tsx:19` muestra "1.1M" para `window` 1000000 (rojo de `shell-look`, ajeno a USO.27).
+   Diagnosticar de dónde sale `maxTokens` antes de tocar.
+
+Trampas vivas: el hook del repo niega al cerebro editar código en `src/` (lib, executors…) también por Bash → spec +
+`delegate`; `delegate` necesita el ítem abierto en PLAN.md o el preflight para al ejecutor; no editar
+`~/.agent-method/bin/delegate` con un delegate corriendo (bash lee el script mientras corre); cada edición de PLAN.md
+tras cerrar exige reabrir→reconcile→cerrar→reconcile (si reconcile dice "Could not prove a closing commit SHA",
+es eso); `boundary-budget` cuenta cada `.json()` → validar con `src/boundary`; texto JSX nuevo → `Texto visible:`;
+evidencia JSON escrita a mano → `biome format --write` antes del commit. Codex viejo (0.155) rechaza modelos nuevos:
+si un delegate falla con exit 4, actualizar Codex.
+
+Pendiente de Carlos: pasar `roster.conf` (criterio/qa/analizar) de gpt-6.1-sol a gpt-6.2-sol (no decidido).
 
 La demo de e-commerce agropecuario (AgroTienda) y la prueba oficial las hace Carlos en macOS por el hardware.
 Este pase de Windows se dedica a las correcciones y sus pruebas focalizadas. WIN.1 queda como prueba de humo
