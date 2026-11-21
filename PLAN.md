@@ -422,6 +422,31 @@ esta etapa: `docs/done/bloque-AUD.md` (AUD.16, AUD.17), `docs/done/bloque-SES.md
   Gate en vivo: navegador Chromium de ui-gate y navegador del panel, `dev-terminal` 18/18 y `shell-look` 75/75; `docs/done/evidence/USO.26-live.json`
   Texto visible: "Browser"
   Sin delegación: cambios de className y una prop, con el paso de gate que los prueba.
+- [x] **USO.27 — Panel de uso tipo agentlytics en Settings → Usage.** (Carlos, 2026-11-21, GO a las 3 fases) El
+  tooltip del heatmap solo decía "N runs". Parte A (datos): `/api/usage` suma `byHour` (día×hora×agente×modelo, con
+  turnos y tiempo de agente: `elapsed_ms` en OrchestOS, deltas ≤ 5 min en transcripts de CLI); `byDayModel` se deriva
+  de ahí y los runs de CLI cuentan sesiones por día (antes, 1 por día y por modelo). Parte B (UI):
+  `UsageDashboard.tsx` + `lib/usage-stats.ts` (con test): rango 7/30/90/todo, 5 KPIs con variación, tokens por día,
+  mapa día×hora, heatmap anual con tooltip de gasto/runs/tokens/modelos, tablas de modelos (franja por vendor) y de
+  agentes con filtro por clic. Fuera: buscador de sesiones, relay y suscripciones de agentlytics; transcripts de
+  OpenCode.
+  Gate en vivo: navegador del panel contra el dashboard real y `shell-look` (pasos del heatmap) — `docs/done/evidence/USO.27-live.json`
+  Texto visible: "Usage & Spend", "Input", "Output", "runs ·", "tokens" (etiquetas de datos y leyendas de gráfico: un número o una barra sin nombre no dice qué mide)
+  Ejecutado por: gpt-6.1-sol (criterio, partes A y B) + claude-opus-5-5 (3 ajustes tras el gate en vivo) · Spec: docs/specs/USO.27-A.md, docs/specs/USO.27-B.md
+- [ ] **USO.28 — El aro de contexto del composer muestra "1.1M" para una ventana de 1M.** (visto 2026-11-21 en
+  `shell-look` al cerrar USO.27: `context.window` 1000000, tooltip "15K / 1.1M"; el gate espera "15K / 1M 1%")
+  `ContextRing.tsx:19` formatea `maxTokens`, que no es el `window` de `/context`. Diagnosticar de dónde sale ese
+  valor (¿catálogo de Codex actualizado hoy?) antes de tocar. Va después de CLI.1.
+- [ ] **CLI.1 — Aviso de actualización de Codex/Claude y modelo de rol que ya no existe.** (Carlos, 2026-11-21, GO;
+  va después de USO.27) Origen: `delegate criterio` falló con `model_not_found` para gpt-6.1-sol porque corría Codex
+  0.155.1; con 0.171.0 funciona. (1) `cli-health` suma la última versión publicada (npm `@openai/codex`,
+  `@anthropic-ai/claude-code`), consultada 1 vez al día con caché; si hay nueva, aviso en el dashboard con botón
+  "Actualizar" que corre `codex update` / `claude update` y muestra el resultado. Ojo: hay dos `claude` (nativo en
+  `~/.local/bin` y npm en nvm); se revisa el que usa OrchestOS. (2) Un rol de routing con modelo ausente del catálogo
+  del CLI (`chat-cli-models.ts`) o rechazado con `model_not_found` se marca en Settings y sugiere el más nuevo de la
+  familia; no se cambia solo. (3) Fuera de este repo, `method/bin/delegate`: verificar el modelo de `roster.conf`
+  contra el catálogo antes de lanzar y fallar claro (con versión del CLI) ante `model_not_found`, no exit 0.
+  Pendiente de Carlos: pasar `roster.conf` de gpt-6.1-sol a gpt-6.2-sol (no decidido).
 - [ ] **LRN.2 — Una lección probada se gradúa a check, no solo a `AGENTS.md`.** (Carlos, 2026-11-17; mismo principio
   que CHK.1, aplicado al producto) LRN.1 gradúa lecciones a texto de `AGENTS.md`
   (`docs/specs/LRN-1-opinion-fable.md:79`). Agregar un segundo destino: si la firma del fallo es detectable en el diff

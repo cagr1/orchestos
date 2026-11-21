@@ -276,6 +276,30 @@
       "closedDate": null
     },
     {
+      "id": "USO.27",
+      "sprint": "Etapa 2 — Uso real",
+      "block": null,
+      "title": "Panel de uso tipo agentlytics en Settings → Usage",
+      "status": "done",
+      "closedDate": null
+    },
+    {
+      "id": "USO.28",
+      "sprint": "Etapa 2 — Uso real",
+      "block": null,
+      "title": "El aro de contexto del composer muestra \"1.1M\" para una ventana de 1M",
+      "status": "open",
+      "closedDate": null
+    },
+    {
+      "id": "CLI.1",
+      "sprint": "Etapa 2 — Uso real",
+      "block": null,
+      "title": "Aviso de actualización de Codex/Claude y modelo de rol que ya no existe",
+      "status": "open",
+      "closedDate": null
+    },
+    {
       "id": "LRN.2",
       "sprint": "Etapa 2 — Uso real",
       "block": null,

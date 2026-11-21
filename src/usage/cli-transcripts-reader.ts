@@ -6,6 +6,9 @@ import { globSync } from 'glob'
 
 export interface CliTranscriptUsage {
   date: string
+  hour: number
+  turns: number
+  activeMs: number
   provider: 'claude' | 'codex'
   model: string
   sessionId: string
@@ -16,7 +19,8 @@ export interface CliTranscriptUsage {
   outputTokens: number
 }
 
-type ParsedFile = { size: number; mtimeMs: number; rows: CliTranscriptUsage[] }
+type ParsedUsage = Omit<CliTranscriptUsage, 'hour' | 'turns' | 'activeMs'> & { timestamp: number }
+type ParsedFile = { size: number; mtimeMs: number; rows: ParsedUsage[] }
 const parsedFiles = new Map<string, ParsedFile>()
 
 const object = (value: unknown): Record<string, any> | null =>
@@ -53,7 +57,7 @@ function belongsToProject(cwd: unknown, roots: string[]): boolean {
   )
 }
 
-export async function cachedParse(path: string, parser: (content: string) => CliTranscriptUsage[]) {
+export async function cachedParse(path: string, parser: (content: string) => ParsedUsage[]) {
   try {
     const stat = statSync(path)
     const cached = parsedFiles.get(path)
@@ -66,10 +70,10 @@ export async function cachedParse(path: string, parser: (content: string) => Cli
   }
 }
 
-function parseClaude(content: string): CliTranscriptUsage[] {
+function parseClaude(content: string): ParsedUsage[] {
   let sessionId: string | undefined
   const seen = new Set<string>()
-  const rows: CliTranscriptUsage[] = []
+  const rows: ParsedUsage[] = []
   for (const line of content.split('\n')) {
     try {
       const entry = object(JSON.parse(line))
@@ -93,6 +97,7 @@ function parseClaude(content: string): CliTranscriptUsage[] {
             : 0
       rows.push({
         date,
+        timestamp: Date.parse(entry.timestamp),
         provider: 'claude',
         model: message.model,
         sessionId,
@@ -109,12 +114,12 @@ function parseClaude(content: string): CliTranscriptUsage[] {
   return rows
 }
 
-function parseCodex(content: string, roots: string[]): CliTranscriptUsage[] {
+function parseCodex(content: string, roots: string[]): ParsedUsage[] {
   let sessionId: string | undefined
   let model: string | undefined
   let cwd: unknown
   let previous: Record<string, unknown> = {}
-  const rows: CliTranscriptUsage[] = []
+  const rows: ParsedUsage[] = []
   for (const line of content.split('\n')) {
     try {
       const entry = object(JSON.parse(line))
@@ -142,6 +147,7 @@ function parseCodex(content: string, roots: string[]): CliTranscriptUsage[] {
       if (!inputTokens && !cacheReadTokens && !cacheWriteTokens && !outputTokens) continue
       rows.push({
         date,
+        timestamp: Date.parse(entry.timestamp),
         provider: 'codex',
         model,
         sessionId,
@@ -229,16 +235,32 @@ export async function readCliTranscriptUsage(
     }),
   )
   const aggregated = new Map<string, CliTranscriptUsage>()
+  const sessions = new Map<string, ParsedUsage[]>()
   const seenCodexSessions = new Set<string>()
   for (const fileRows of rows) {
     const codexSession = fileRows.find((row) => row.provider === 'codex')?.sessionId
     if (codexSession && seenCodexSessions.has(codexSession)) continue
     if (codexSession) seenCodexSessions.add(codexSession)
     for (const row of fileRows) {
-      const key = `${row.date}\u0000${row.provider}\u0000${row.sessionId}\u0000${row.model}`
+      const key = `${row.provider}\u0000${row.sessionId}`
+      const session = sessions.get(key) ?? []
+      session.push(row)
+      sessions.set(key, session)
+    }
+  }
+  for (const session of sessions.values()) {
+    session.sort((a, b) => a.timestamp - b.timestamp)
+    for (const [index, parsed] of session.entries()) {
+      const { timestamp, ...row } = parsed
+      const hour = new Date(timestamp).getHours()
+      const delta = timestamp - (session[index - 1]?.timestamp ?? timestamp)
+      const activeMs = delta <= 300_000 ? delta : 0
+      const key = `${row.date}\u0000${hour}\u0000${row.provider}\u0000${row.sessionId}\u0000${row.model}`
       const current = aggregated.get(key)
-      if (!current) aggregated.set(key, { ...row })
+      if (!current) aggregated.set(key, { ...row, hour, turns: 1, activeMs })
       else {
+        current.turns += 1
+        current.activeMs += activeMs
         current.inputTokens += row.inputTokens
         current.cacheReadTokens += row.cacheReadTokens
         current.cacheWriteTokens += row.cacheWriteTokens

@@ -3,10 +3,13 @@ import { listProjects } from '../../db/projects.ts'
 import { db } from '../../db/sqlite.ts'
 import { knownCostWithCache } from '../../router/pricing.ts'
 import { readCliTranscriptUsage } from '../../usage/cli-transcripts.ts'
+import type { UsageRow as DayUsageRow, UsageHourRow } from '../app/src/api/settings.ts'
 import { jsonResponse } from '../http.ts'
 
 type UsageRow = {
   date: string
+  hour: string
+  activeMs: number | null
   model: string
   provider: string
   usd: number | null
@@ -16,6 +19,33 @@ type UsageRow = {
   cacheReadTokens: number | null
   cacheWriteTokens: number | null
   source: 'orchestos'
+}
+
+export function agentOf(provider: string, _source: 'orchestos' | 'cli'): string {
+  switch (provider) {
+    case 'claude':
+    case 'claude-plain':
+      return 'Claude Code'
+    case 'codex':
+    case 'role:codex':
+      return 'Codex'
+    case 'opencode':
+      return 'OpenCode'
+    case 'openrouter':
+      return 'OpenRouter'
+    default:
+      return provider
+  }
+}
+
+function addUsage(target: DayUsageRow, row: DayUsageRow): void {
+  target.runs += row.runs
+  target.inputTokens += row.inputTokens
+  target.outputTokens += row.outputTokens
+  target.cacheReadTokens = (target.cacheReadTokens ?? 0) + (row.cacheReadTokens ?? 0)
+  target.cacheWriteTokens = (target.cacheWriteTokens ?? 0) + (row.cacheWriteTokens ?? 0)
+  target.usd = target.usd === null || row.usd === null ? null : target.usd + row.usd
+  target.priced = target.priced && row.priced
 }
 
 export async function handleApiUsage(agentHome?: string): Promise<Response> {
@@ -33,18 +63,24 @@ export async function handleApiUsage(agentHome?: string): Promise<Response> {
     )
     const rows = db
       .query<UsageRow, []>(
-        `SELECT strftime('%Y-%m-%d', runs.created_at, 'localtime') AS date, runs.model, runs.provider, SUM(runs.usd_cost) AS usd, COUNT(*) AS runs, SUM(runs.input_tokens) AS inputTokens, SUM(runs.output_tokens) AS outputTokens, SUM(runs.cache_read_tokens) AS cacheReadTokens, SUM(runs.cache_write_tokens) AS cacheWriteTokens, 'orchestos' AS source
+        `SELECT strftime('%Y-%m-%d', runs.created_at, 'localtime') AS date, strftime('%H', runs.created_at, 'localtime') AS hour, SUM(runs.elapsed_ms) AS activeMs, runs.model, runs.provider, SUM(runs.usd_cost) AS usd, COUNT(*) AS runs, SUM(runs.input_tokens) AS inputTokens, SUM(runs.output_tokens) AS outputTokens, SUM(runs.cache_read_tokens) AS cacheReadTokens, SUM(runs.cache_write_tokens) AS cacheWriteTokens, 'orchestos' AS source
        FROM runs
        LEFT JOIN eval_trials ON eval_trials.run_id = runs.id
        WHERE runs.created_at >= datetime('now', '-400 days')
          AND eval_trials.run_id IS NULL
-       GROUP BY date, model, provider
-       ORDER BY date ASC`,
+         AND runs.provider != 'fixture'
+       GROUP BY date, hour, model, provider
+       ORDER BY date ASC, hour ASC`,
       )
       .all()
 
-    const orchestosRows = rows.map((row) => ({
+    const orchestosHours: UsageHourRow[] = rows.map((row) => ({
       date: row.date,
+      hour: Number(row.hour),
+      agent: agentOf(row.provider, 'orchestos'),
+      turns: row.runs ?? 0,
+      activeMs: row.activeMs ?? 0,
+      priced: true,
       model: row.model,
       provider: row.provider,
       usd: row.usd ?? 0,
@@ -56,7 +92,9 @@ export async function handleApiUsage(agentHome?: string): Promise<Response> {
       source: 'orchestos' as const,
     }))
 
-    const cliRows = await Promise.all(
+    const countedSessionDays = new Set<string>()
+    const cliHours = new Map<string, UsageHourRow>()
+    const cliRowsWithCost = await Promise.all(
       transcriptRows
         .filter((row) => !usedSessions.has(row.sessionId))
         .map(async (row) => {
@@ -72,6 +110,11 @@ export async function handleApiUsage(agentHome?: string): Promise<Response> {
             : null
           return {
             date: row.date,
+            hour: row.hour,
+            agent: agentOf(row.provider, 'cli'),
+            turns: row.turns,
+            activeMs: row.activeMs,
+            sessionId: row.sessionId,
             model: row.model,
             provider: row.provider,
             source: 'cli' as const,
@@ -85,23 +128,53 @@ export async function handleApiUsage(agentHome?: string): Promise<Response> {
           }
         }),
     )
-    const byDayModel = [...orchestosRows.map((row) => ({ ...row, priced: true })), ...cliRows]
+    for (const { sessionId, ...row } of cliRowsWithCost.sort((a, b) => a.hour - b.hour)) {
+      const sessionDay = `${row.date}\u0000${row.provider}\u0000${sessionId}`
+      row.runs = countedSessionDays.has(sessionDay) ? 0 : 1
+      countedSessionDays.add(sessionDay)
+      const key = `${row.date}\u0000${row.hour}\u0000${row.provider}\u0000${row.model}`
+      const current = cliHours.get(key)
+      if (!current) cliHours.set(key, row)
+      else {
+        addUsage(current, row)
+        current.turns += row.turns
+        current.activeMs += row.activeMs
+      }
+    }
+    const byHour = [...orchestosHours, ...cliHours.values()]
+    const days = new Map<string, DayUsageRow>()
+    for (const {
+      hour: _hour,
+      agent: _agent,
+      turns: _turns,
+      activeMs: _activeMs,
+      ...row
+    } of byHour) {
+      const key = `${row.date}\u0000${row.provider}\u0000${row.model}\u0000${row.source}`
+      const current = days.get(key)
+      if (!current) days.set(key, { ...row })
+      else addUsage(current, row)
+    }
+    const byDayModel = [...days.values()]
+    const orchestosRows = byDayModel.filter((row) => row.source === 'orchestos')
+    const cliRows = byDayModel.filter((row) => row.source === 'cli')
 
     return jsonResponse({
       byDayModel,
+      byHour,
       totalUsd: byDayModel.reduce((total, row) => total + (row.usd ?? 0), 0),
       totalRuns: byDayModel.reduce((total, row) => total + row.runs, 0),
       totals: {
         orchestos: {
-          usd: orchestosRows.reduce((total, row) => total + row.usd, 0),
+          usd: orchestosRows.reduce((total, row) => total + (row.usd ?? 0), 0),
           runs: orchestosRows.reduce((total, row) => total + row.runs, 0),
           tokens: orchestosRows.reduce(
             (total, row) =>
               total +
               row.inputTokens +
               row.outputTokens +
-              row.cacheReadTokens +
-              row.cacheWriteTokens,
+              (row.cacheReadTokens ?? 0) +
+              (row.cacheWriteTokens ?? 0),
             0,
           ),
         },
@@ -117,8 +190,8 @@ export async function handleApiUsage(agentHome?: string): Promise<Response> {
               total +
               row.inputTokens +
               row.outputTokens +
-              row.cacheReadTokens +
-              row.cacheWriteTokens,
+              (row.cacheReadTokens ?? 0) +
+              (row.cacheWriteTokens ?? 0),
             0,
           ),
           unpricedSessions: cliRows.filter((row) => !row.priced).length,
@@ -126,6 +199,6 @@ export async function handleApiUsage(agentHome?: string): Promise<Response> {
       },
     })
   } catch {
-    return jsonResponse({ byDayModel: [], totalUsd: 0, totalRuns: 0 })
+    return jsonResponse({ byHour: [], byDayModel: [], totalUsd: 0, totalRuns: 0 })
   }
 }

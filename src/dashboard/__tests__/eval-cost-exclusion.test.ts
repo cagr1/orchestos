@@ -15,7 +15,7 @@ function insertFixtureRun(id: string, model: string, cost: number): void {
   db.run(
     `INSERT INTO runs
       (id, prompt, task_class, model, provider, status, input_tokens, output_tokens, usd_cost, elapsed_ms, created_at)
-     VALUES (?, 'fixture', 'test', ?, 'fixture', 'done', 10, 5, ?, 1, ?)`,
+     VALUES (?, 'fixture', 'test', ?, 'claude', 'done', 10, 5, ?, 1, ?)`,
     [id, model, cost, now],
   )
 }

@@ -11,7 +11,8 @@ import { afterAll, describe, expect, it } from 'bun:test'
 import { mkdirSync, mkdtempSync, realpathSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { handleApiUsage } from '../dashboard/handlers/usage.ts'
+import type { UsageResponse } from '../dashboard/app/src/api/settings.ts'
+import { agentOf, handleApiUsage } from '../dashboard/handlers/usage.ts'
 import { deleteProject, getProject, upsertProject } from '../db/projects.ts'
 import { insertRun } from '../db/runs.ts'
 import { db } from '../db/sqlite.ts'
@@ -53,7 +54,9 @@ describe('GET /api/usage', () => {
            import { handleApiUsage } from './src/dashboard/handlers/usage.ts';
            runMigrations();
            db.run("INSERT INTO runs (id, prompt, task_class, model, provider, status, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)",
-             ['local-day', 'fixture', 'chat', 'local-day-model', 'fixture', 'done', '2026-10-22T00:30:00Z']);
+             ['local-day', 'fixture', 'chat', 'local-day-model', 'claude-plain', 'done', '2026-10-22T00:30:00Z']);
+           db.run("UPDATE runs SET elapsed_ms = 1234 WHERE id = 'local-day'");
+           db.run("INSERT INTO runs (id, prompt, task_class, model, provider, status, created_at) VALUES ('excluded-fixture', 'fixture', 'chat', 'fixture-model', 'fixture', 'done', '2026-10-22T00:30:00Z')");
            const response = await handleApiUsage(${JSON.stringify(agentHome)});
            console.log(JSON.stringify(await response.json()));`,
         ],
@@ -68,6 +71,15 @@ describe('GET /api/usage', () => {
       const error = await new Response(child.stderr).text()
       expect(await child.exited, error).toBe(0)
       const data = JSON.parse(output)
+      expect(data.byHour).toHaveLength(1)
+      expect(data.byHour[0]).toMatchObject({
+        date: expected,
+        hour: tz === 'UTC' ? 0 : 19,
+        agent: 'Claude Code',
+        turns: 1,
+        activeMs: 1234,
+        source: 'orchestos',
+      })
       expect(data.byDayModel).toHaveLength(1)
       expect(data.byDayModel[0]).toMatchObject({
         date: expected,
@@ -117,11 +129,11 @@ describe('GET /api/usage', () => {
     expect(data.totalRuns).toBe(sumRuns)
   })
 
-  it('runs de cada fila es siempre > 0 (GROUP BY nunca produce grupos vacíos)', async () => {
+  it('runs de cada fila no es negativo (modelos CLI posteriores pueden contar cero sesiones)', async () => {
     const res = await handleApiUsage(agentHome)
     const data = (await res.json()) as { byDayModel: Array<{ runs: number }> }
     for (const row of data.byDayModel) {
-      expect(row.runs).toBeGreaterThan(0)
+      expect(row.runs).toBeGreaterThanOrEqual(0)
     }
   })
 
@@ -176,5 +188,107 @@ describe('GET /api/usage', () => {
     expect(cli).toHaveLength(1)
     expect(cli[0]).toMatchObject({ model: 'unlisted-model-cx5', usd: null, priced: false })
     expect(data.totals.cli.unpricedSessions).toBe(1)
+  })
+})
+
+describe('USO.27 hourly usage', () => {
+  it('normaliza todos los proveedores sin depender del origen', () => {
+    for (const source of ['cli', 'orchestos'] as const) {
+      for (const [provider, agent] of Object.entries({
+        claude: 'Claude Code',
+        'claude-plain': 'Claude Code',
+        codex: 'Codex',
+        'role:codex': 'Codex',
+        opencode: 'OpenCode',
+        openrouter: 'OpenRouter',
+        fixture: 'fixture',
+        custom: 'custom',
+      }))
+        expect(agentOf(provider, source)).toBe(agent)
+    }
+  })
+
+  it('cuenta sesiones por día, turnos y tiempo activo sin sumar pausas largas', async () => {
+    const key = realpathSync(registeredRoot).replace(/[^a-zA-Z0-9]/g, '-')
+    const dir = join(agentHome, '.claude', 'projects', key)
+    mkdirSync(dir, { recursive: true })
+    const before = (await (await handleApiUsage(agentHome)).json()) as UsageResponse
+    const path = join(dir, 'hourly.jsonl')
+    const t0 = new Date(2026, 9, 5, 10, 0).getTime()
+    const midnight = new Date(2026, 9, 6, 0, 0).getTime()
+    const entry = (sessionId: string, timestamp: number, model: string) => ({
+      type: 'assistant',
+      sessionId,
+      timestamp: new Date(timestamp).toISOString(),
+      message: {
+        id: `${sessionId}-${timestamp}`,
+        model,
+        usage: { input_tokens: 3, output_tokens: 2 },
+      },
+    })
+    writeFileSync(
+      path,
+      [
+        entry('hourly-session', t0, 'hourly-first'),
+        entry('hourly-session', t0 + 60_000, 'hourly-second'),
+        entry('hourly-session', t0 + 120_000, 'hourly-first'),
+        entry('hourly-session', t0 + 1_800_000, 'hourly-second'),
+      ]
+        .map((entry) => JSON.stringify(entry))
+        .join('\n'),
+    )
+    const crossPath = join(dir, 'cross-midnight.jsonl')
+    writeFileSync(
+      crossPath,
+      [
+        entry('midnight-session', midnight - 60_000, 'midnight-model'),
+        entry('midnight-session', midnight + 60_000, 'midnight-model'),
+      ]
+        .map((entry) => JSON.stringify(entry))
+        .join('\n'),
+    )
+    try {
+      const data = (await (await handleApiUsage(agentHome)).json()) as UsageResponse
+      const hourly = data.byHour.filter((row) => row.model.startsWith('hourly-'))
+      expect(hourly).toHaveLength(2)
+      expect(hourly.reduce((sum, row) => sum + row.runs, 0)).toBe(1)
+      expect(hourly.reduce((sum, row) => sum + row.turns, 0)).toBe(4)
+      expect(hourly.reduce((sum, row) => sum + row.activeMs, 0)).toBe(120_000)
+      expect(hourly.find((row) => row.model === 'hourly-first')).toMatchObject({
+        runs: 1,
+        hour: 10,
+        turns: 2,
+        activeMs: 60_000,
+      })
+      expect(hourly.find((row) => row.model === 'hourly-second')).toMatchObject({
+        runs: 0,
+        turns: 2,
+        activeMs: 60_000,
+      })
+      const crossing = data.byHour.filter((row) => row.model === 'midnight-model')
+      expect(crossing).toHaveLength(2)
+      expect(crossing.map((row) => [row.date, row.hour, row.runs, row.activeMs])).toEqual([
+        ['2026-10-06', 0, 1, 120_000],
+        ['2026-10-05', 23, 1, 0],
+      ])
+      expect(data.byDayModel.reduce((sum, row) => sum + row.runs, 0)).toBe(
+        data.byHour.reduce((sum, row) => sum + row.runs, 0),
+      )
+      expect(data.totals?.cli.sessions).toBe((before.totals?.cli.sessions ?? 0) + 2)
+      for (const daily of data.byDayModel) {
+        const hours = data.byHour.filter(
+          (row) =>
+            row.date === daily.date &&
+            row.provider === daily.provider &&
+            row.model === daily.model &&
+            row.source === daily.source,
+        )
+        expect(daily.runs).toBe(hours.reduce((sum, row) => sum + row.runs, 0))
+        expect(daily.inputTokens).toBe(hours.reduce((sum, row) => sum + row.inputTokens, 0))
+      }
+    } finally {
+      rmSync(path)
+      rmSync(crossPath)
+    }
   })
 })

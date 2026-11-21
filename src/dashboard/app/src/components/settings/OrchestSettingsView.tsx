@@ -32,7 +32,7 @@ import {
   Trash2,
   Zap,
 } from 'lucide-react'
-import { AnimatePresence, animate, motion } from 'motion/react'
+import { AnimatePresence, motion } from 'motion/react'
 import React, { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { PageHeader } from '@/components/layout/page'
@@ -89,7 +89,6 @@ import {
   getSetup,
   getUsage,
   mapSettingsKeys,
-  mapUsageByModel,
   resetSystem,
   saveApiKey,
   saveClis,
@@ -139,6 +138,7 @@ import {
   routingAssignment,
   suggestUnassignedRoles,
 } from './routing-roles'
+import { UsageDashboard } from './UsageDashboard'
 
 const PROVIDER_INSTALL_URLS: Record<string, string> = {
   claude: 'https://code.claude.com/docs/en/setup',
@@ -1208,68 +1208,6 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
     closeSettingsSearch()
   }
 
-  const activityTooltipRef = useRef<HTMLDivElement>(null)
-  const activityTotalRef = useRef(0)
-  const [activityTotal, setActivityTotal] = useState(0)
-  // One tooltip persists while moving between cells.
-  const [hoveredActivityDay, setHoveredActivityDay] = useState<{
-    tooltip: string
-    visible: boolean
-    x: number
-    y: number
-  } | null>(null)
-  const activityScrollRef = React.useRef<HTMLDivElement>(null)
-
-  // Single source of truth for usage telemetry (KPIs & table in sync)
-  const modelUsageRows = usage
-    ? mapUsageByModel(usage).map((row) => ({ ...row, tokens: row.tokens.toLocaleString() }))
-    : []
-  const usageGroups = React.useMemo(() => {
-    const normalized = modelUsageRows.flatMap((row) => {
-      const raw = row.model.replace(/^(anthropic|openai|google|xai|mistral)\//, '')
-      const cliMatch = `${row.provider ?? ''} ${raw}`.match(
-        /(claude|codex|opencode)\s*(?:code)?\s*cli/i,
-      )
-      const cli =
-        cliMatch?.[1]?.toLowerCase() ??
-        (['claude', 'codex', 'opencode'].includes(row.provider ?? '') ? row.provider : null)
-      const model = raw
-        .replace(/\s+via\s+(?:Claude|Codex|OpenCode) CLI/i, '')
-        .replace(/\s*\(effort: [^)]+\)/i, '')
-        .replace(/\s*\([^)]*model[^)]*\)/i, '')
-        .trim()
-      if (/^unknown$/i.test(model)) return []
-      return [{ ...row, model: model || 'default', provider: cli ?? row.provider }]
-    })
-    const grouped = new Map<string, (typeof normalized)[number]>()
-    for (const row of normalized) {
-      const key = `${row.source ?? 'orchestos'}\u0000${row.provider ?? ''}\u0000${row.model}`
-      const current = grouped.get(key)
-      if (current) {
-        current.runs += row.runs
-        current.tokens = (
-          Number(current.tokens.replaceAll(',', '')) + Number(row.tokens.replaceAll(',', ''))
-        ).toLocaleString()
-        current.spend =
-          current.spend === null || row.spend === null ? null : current.spend + row.spend
-      } else grouped.set(key, { ...row })
-    }
-    const rows = [...grouped.values()]
-    const cliTabs = rows.filter((row) => row.source === 'cli')
-    const orchestosRows = rows.filter((row) => row.source !== 'cli')
-    const cli = orchestosRows.filter((row) =>
-      ['claude', 'codex', 'opencode'].includes(row.provider ?? ''),
-    )
-    const api = orchestosRows.filter((row) => !cli.includes(row))
-    return [
-      { id: 'cli', label: 'CLI', rows: cli },
-      { id: 'api', label: 'API', rows: api },
-      { id: 'cli-tabs', label: 'CLI tabs', rows: cliTabs },
-    ].filter((group) => group.rows.length > 0)
-  }, [modelUsageRows])
-  const totalRunsUsage = usage?.totalRuns ?? 0
-  const totalSpendUsage = usage?.totalUsd ?? 0
-  const avgCostUsage = totalRunsUsage ? (totalSpendUsage / totalRunsUsage).toFixed(3) : '0.000'
   // A config request for a project being purged must never reach the server after the
   // purge: the effect's in-flight request is aborted on confirm and the id is excluded.
   const purgingProjectId = React.useRef<string | null>(null)
@@ -1595,78 +1533,6 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
       setEditingCli(null)
     }
   }, [activeSection])
-
-  // Daily activity cells with uniform style and date tooltips
-  const dailyActivityCells = React.useMemo(() => {
-    const cells: Array<{
-      id: number
-      dateKey: string
-      dateStr: string
-      runs: number
-      intensity: 0 | 1 | 2 | 3 | 4
-      tooltip: string
-    }> = []
-    const now = new Date()
-    for (let i = 370; i >= 0; i--) {
-      const d = new Date(now)
-      d.setDate(d.getDate() - i)
-      const dateKey = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
-      const runs = (usage?.byDayModel ?? [])
-        .filter((row) => row.date === dateKey)
-        .reduce((total, row) => total + row.runs, 0)
-      const intensity: 0 | 1 | 2 | 3 | 4 =
-        runs === 0 ? 0 : runs < 2 ? 1 : runs < 5 ? 2 : runs < 10 ? 3 : 4
-      const dateStr = d.toLocaleDateString(language === 'es' ? 'es-ES' : 'en-US', {
-        month: 'short',
-        day: 'numeric',
-        year: 'numeric',
-      })
-      const tooltip =
-        runs === 0
-          ? language === 'es'
-            ? `Sin actividad el ${dateStr}`
-            : `No activity on ${dateStr}`
-          : language === 'es'
-            ? `${runs} ${runs === 1 ? 'ejecución' : 'ejecuciones'} el ${dateStr}`
-            : `${runs} ${runs === 1 ? 'run' : 'runs'} on ${dateStr}`
-
-      cells.push({
-        id: i,
-        dateKey,
-        dateStr,
-        runs,
-        intensity,
-        tooltip,
-      })
-    }
-    return cells
-  }, [language, usage])
-
-  // biome-ignore lint/correctness/useExhaustiveDependencies: al cambiar la cantidad de celdas hay que volver al extremo reciente del calendario.
-  React.useEffect(() => {
-    if (activeSection !== 'usage') return
-    const element = activityScrollRef.current
-    if (element) element.scrollLeft = element.scrollWidth
-  }, [activeSection, dailyActivityCells.length])
-
-  const dailyActivityTotal = dailyActivityCells.reduce((total, cell) => total + cell.runs, 0)
-
-  React.useEffect(() => {
-    if (activeSection !== 'usage') return
-    if (reduceActivityMotion) {
-      activityTotalRef.current = dailyActivityTotal
-      setActivityTotal(dailyActivityTotal)
-      return
-    }
-    const controls = animate(activityTotalRef.current, dailyActivityTotal, {
-      ...spring.slow,
-      onUpdate: (value) => {
-        activityTotalRef.current = value
-        setActivityTotal(Math.round(value))
-      },
-    })
-    return () => controls.stop()
-  }, [activeSection, dailyActivityTotal, reduceActivityMotion])
 
   const AGENTS_LIST = [
     {
@@ -3949,283 +3815,13 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
 
         {/* SECTION: USAGE */}
         {activeSection === 'usage' && (
-          <SettingsPage
-            title="Usage & Spend"
-            status={
-              usageLoading ? (
-                <span role="status" className="text-xs text-app-muted">
-                  {language === 'es' ? 'Cargando…' : 'Loading…'}
-                </span>
-              ) : undefined
-            }
-          >
-            {usageError && (
-              <p role="alert" className="text-xs text-app-muted">
-                {usageError}
-              </p>
-            )}
-            {/* 3 KPI cards at the top (exact same numbers computed from table data) */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-              <div
-                data-settings-anchor="usage-spend"
-                className="space-y-1 rounded-card border border-[color:color-mix(in_srgb,var(--app-border)_50%,transparent)] bg-app-surface p-3.5"
-              >
-                <div className="text-xs uppercase text-app-muted">Total Spend</div>
-                <div className="text-xl font-bold tabular-nums text-app font-mono">
-                  ${totalSpendUsage.toFixed(2)}
-                </div>
-                <div className="text-[10px] text-app-success">
-                  {usage
-                    ? `OrchestOS $${(usage.totals?.orchestos.usd ?? totalSpendUsage).toFixed(2)} · CLI tabs $${(usage.totals?.cli.usd ?? 0).toFixed(2)}`
-                    : 'Loading telemetry'}
-                </div>
-              </div>
-
-              <div
-                data-settings-anchor="usage-runs"
-                className="space-y-1 rounded-card border border-[color:color-mix(in_srgb,var(--app-border)_50%,transparent)] bg-app-surface p-3.5"
-              >
-                <div className="text-xs uppercase text-app-muted">Total Runs</div>
-                <div className="text-xl font-bold tabular-nums text-app font-mono">
-                  {totalRunsUsage}
-                </div>
-                <div className="text-[10px] text-app-muted">
-                  {modelUsageRows.length} models observed
-                </div>
-              </div>
-
-              <div
-                data-settings-anchor="usage-average"
-                className="space-y-1 rounded-card border border-[color:color-mix(in_srgb,var(--app-border)_50%,transparent)] bg-app-surface p-3.5"
-              >
-                <div className="text-xs uppercase text-app-muted">Avg. Cost / Run</div>
-                <div className="text-xl font-bold tabular-nums text-app font-mono">
-                  ${avgCostUsage}
-                </div>
-                <div className="text-[10px] text-app-muted">
-                  {modelUsageRows[0]?.model
-                    ? `Top model: ${modelUsageRows[0].model}`
-                    : 'No model activity yet'}
-                </div>
-              </div>
-            </div>
-
-            {/* Daily Activity Heatmap */}
-            <div
-              data-settings-anchor="usage-activity"
-              className="space-y-3 rounded-card border border-[color:color-mix(in_srgb,var(--app-border)_50%,transparent)] bg-app-surface p-4"
-            >
-              <div className="flex items-center justify-between text-xs">
-                <div className="flex items-center gap-2">
-                  <span className="font-semibold text-app">Daily activity</span>
-                  <span data-heatmap-total className="text-[11px] tabular-nums text-app-success">
-                    {reduceActivityMotion ? dailyActivityTotal : activityTotal}{' '}
-                    {language === 'es' ? 'ejecuciones' : 'runs'}
-                  </span>
-                </div>
-                <div className="flex items-center gap-1.5 text-[10px] text-app-muted">
-                  <span>less</span>
-                  <span className="h-2.5 w-2.5 rounded-xs bg-app-elevated" />
-                  <span className="h-2.5 w-2.5 rounded-xs bg-app-success/20" />
-                  <span className="h-2.5 w-2.5 rounded-xs bg-app-success/45" />
-                  <span className="h-2.5 w-2.5 rounded-xs bg-app-success/70" />
-                  <span className="h-2.5 w-2.5 rounded-xs bg-app-success" />
-                  <span>more</span>
-                </div>
-              </div>
-
-              {/* Heatmap grid */}
-              <div ref={activityTooltipRef} className="relative">
-                <motion.div
-                  data-heatmap-tooltip
-                  role="tooltip"
-                  initial={false}
-                  animate={{
-                    opacity: hoveredActivityDay?.visible ? 1 : 0,
-                    x: hoveredActivityDay?.x ?? 0,
-                    y: hoveredActivityDay?.y ?? 0,
-                  }}
-                  transition={
-                    reduceActivityMotion
-                      ? { duration: 0 }
-                      : {
-                          x: spring.moderate,
-                          y: spring.moderate,
-                          opacity: hoveredActivityDay?.visible ? spring.fast : spring.fast.exit,
-                        }
-                  }
-                  className="pointer-events-none absolute left-0 top-0 z-10 -translate-y-full whitespace-nowrap rounded-card border border-app bg-app-elevated px-2 py-1 text-[11px] text-app shadow-sm"
-                >
-                  {hoveredActivityDay?.tooltip}
-                </motion.div>
-                <div
-                  ref={activityScrollRef}
-                  className="overflow-x-auto pb-1"
-                  onScroll={() =>
-                    setHoveredActivityDay((previous) =>
-                      previous ? { ...previous, visible: false } : null,
-                    )
-                  }
-                >
-                  <div className="grid grid-cols-[repeat(53,minmax(8px,1fr))] gap-[3px] mb-1 text-[10px] text-app-muted">
-                    {Array.from({ length: 53 }, (_, week) => {
-                      const first = dailyActivityCells[week * 7]
-                      const previous = dailyActivityCells[(week - 1) * 7]
-                      const [year, monthNumber, day] = (first?.dateKey ?? '').split('-').map(Number)
-                      const month = first ? new Date(year, monthNumber - 1, day) : null
-                      const previousMonth = previous ? Number(previous.dateKey.slice(5, 7)) - 1 : -1
-                      return (
-                        <span key={`month-${week}`} className="min-w-0">
-                          {month && month.getMonth() !== previousMonth
-                            ? month.toLocaleDateString(language === 'es' ? 'es-ES' : 'en-US', {
-                                month: 'short',
-                              })
-                            : ''}
-                        </span>
-                      )
-                    })}
-                  </div>
-                  {/* biome-ignore lint/a11y/noNoninteractiveElementInteractions: MouseLeave oculta el tooltip del heatmap; no es una acción por clic. */}
-                  {/* biome-ignore lint/a11y/noStaticElementInteractions: MouseLeave oculta el tooltip del heatmap; no es una acción por clic. */}
-                  <div
-                    key={`${dailyActivityTotal}-${dailyActivityCells.at(-1)?.dateKey}`}
-                    data-heatmap-grid
-                    className="grid grid-cols-[repeat(53,minmax(8px,1fr))] gap-[3px]"
-                    onMouseLeave={() =>
-                      setHoveredActivityDay((previous) =>
-                        previous ? { ...previous, visible: false } : null,
-                      )
-                    }
-                  >
-                    {Array.from({ length: 53 }, (_, week) => (
-                      <div key={`week-${week}`} className="flex min-w-0 flex-col gap-[3px]">
-                        {dailyActivityCells.slice(week * 7, week * 7 + 7).map((cell) => {
-                          const bgClass =
-                            cell.intensity === 0
-                              ? 'bg-app-elevated hover:bg-app-elevated/70'
-                              : cell.intensity === 1
-                                ? 'bg-app-success/20 hover:bg-app-success/30'
-                                : cell.intensity === 2
-                                  ? 'bg-app-success/45 hover:bg-app-success/55'
-                                  : cell.intensity === 3
-                                    ? 'bg-app-success/70 hover:bg-app-success/80'
-                                    : 'bg-app-success hover:bg-app-success/90'
-
-                          return (
-                            <motion.div
-                              key={cell.id}
-                              data-heatmap-cell
-                              data-date={cell.dateKey}
-                              initial={reduceActivityMotion ? false : { opacity: 0, scale: 0.6 }}
-                              animate={{ opacity: 1, scale: 1 }}
-                              transition={
-                                reduceActivityMotion
-                                  ? { duration: 0 }
-                                  : {
-                                      ...spring.fast,
-                                      delay: (week / 52) * spring.slow.duration * 2,
-                                    }
-                              }
-                              className={`aspect-square w-full rounded-[2px] transition-colors cursor-pointer ${bgClass}`}
-                              onMouseEnter={(event) => {
-                                const root = activityTooltipRef.current?.getBoundingClientRect()
-                                if (!root) return
-                                const rect = event.currentTarget.getBoundingClientRect()
-                                const tooltipWidth =
-                                  activityTooltipRef.current
-                                    ?.querySelector('[data-heatmap-tooltip]')
-                                    ?.getBoundingClientRect().width ?? 0
-                                setHoveredActivityDay({
-                                  tooltip: cell.tooltip,
-                                  visible: true,
-                                  x: Math.max(
-                                    0,
-                                    Math.min(rect.left - root.left, root.width - tooltipWidth),
-                                  ),
-                                  y: rect.top - root.top - 4,
-                                })
-                              }}
-                            />
-                          )
-                        })}
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Spend by Model Table */}
-            <div
-              data-settings-anchor="usage-models"
-              className="overflow-hidden rounded-card border border-[color:color-mix(in_srgb,var(--app-border)_50%,transparent)] bg-app-surface text-xs"
-            >
-              <div className="flex items-center justify-between border-b border-[color:color-mix(in_srgb,var(--app-border)_50%,transparent)] p-3 font-semibold text-app">
-                <span>Spend by model</span>
-                <span className="text-[11px] tabular-nums text-app-muted">
-                  {totalRunsUsage} total runs · ${totalSpendUsage.toFixed(2)}
-                </span>
-              </div>
-
-              <table className="w-full text-left">
-                <thead className="text-app-muted border-b border-[color:color-mix(in_srgb,var(--app-border)_50%,transparent)] text-xs">
-                  <tr>
-                    <th className="p-2.5 font-medium">Model</th>
-                    <th className="p-2.5 font-medium">Runs</th>
-                    <th className="p-2.5 font-medium">Tokens</th>
-                    <th className="p-2.5 font-medium">Spend</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-[color:color-mix(in_srgb,var(--app-border)_50%,transparent)]">
-                  {usageGroups.map((group) => (
-                    <React.Fragment key={group.id}>
-                      <tr>
-                        <th
-                          colSpan={4}
-                          className="p-2 text-left text-[10px] uppercase tracking-wider text-app-muted"
-                        >
-                          {group.label}
-                        </th>
-                      </tr>
-                      {group.rows.map((row) => {
-                        const model = row.model.replace(
-                          /^(anthropic|openai|google|xai|mistral)\//,
-                          '',
-                        )
-                        const displayModel = model
-                        const logo = /gpt/i.test(model)
-                          ? model
-                          : group.id === 'cli'
-                            ? row.provider === 'claude' || /Claude/i.test(row.model)
-                              ? 'claude'
-                              : row.provider === 'codex' || /Codex/i.test(row.model)
-                                ? 'chatgpt'
-                                : 'opencode'
-                            : 'api'
-                        return (
-                          <tr
-                            key={`${group.id}-${row.model}`}
-                            className="transition-colors hover:bg-app-elevated"
-                          >
-                            <td className="p-2.5 font-mono text-app">
-                              <span className="inline-flex items-center gap-2">
-                                <ProviderLogo id={logo} size={14} />
-                                <span>{displayModel}</span>
-                              </span>
-                            </td>
-                            <td className="p-2.5 tabular-nums text-app-muted">{row.runs}</td>
-                            <td className="p-2.5 tabular-nums text-app-muted">{row.tokens}</td>
-                            <td className="p-2.5 font-mono font-semibold tabular-nums text-app">
-                              {row.spend === null ? '—' : `$${row.spend.toFixed(2)}`}
-                            </td>
-                          </tr>
-                        )
-                      })}
-                    </React.Fragment>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+          <SettingsPage title="Usage & Spend">
+            <UsageDashboard
+              usage={usage}
+              loading={usageLoading}
+              error={usageError}
+              language={language}
+            />
           </SettingsPage>
         )}
 

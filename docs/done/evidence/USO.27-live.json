@@ -1,0 +1,24 @@
+{
+  "item": "USO.27",
+  "date": "2026-11-21",
+  "where": "navegador del panel de Claude contra el dashboard real (puerto 4242, DB real) y Chromium de ui-gate",
+  "live": {
+    "kpis": "Spend $381.89 · Runs 521 / 8 704 turns · Input 981.5M (98 % cached) · Output 4.0M · Agent time ~40.3 h, con variación vs período anterior (30 d)",
+    "tooltipDia": "jueves 19 nov 2026: gasto $37.85 + unpriced, 49 runs · 914 turns, input 120.5M (98 % caché), output 412.1K, ~3.2 h, y modelos claude-opus-5-5, gpt-6.1-sol, gpt-6-luna, codex-auto-review con runs, gasto y tokens",
+    "tooltipHora": "Thursday 10–11 h · 18 runs · 42.5M tokens · $14.34 + unpriced · ~1.2 h",
+    "filtroAgente": "clic en Codex: aria-pressed=true, la tabla de agentes sigue mostrando Claude Code (false) y Codex (true); heatmap anual filtrado 855 runs",
+    "totalAnual": "sin filtro, data-heatmap-total 1330 runs = suma de byDayModel[].runs de /api/usage (1330)"
+  },
+  "ajustesDelCerebroTrasElGate": [
+    "la tabla de agentes ignora el filtro de agente (antes desaparecían los demás)",
+    "la leyenda de vendors oculta los de 0 %",
+    "el tooltip de día lleva una sola fecha (día de la semana · fecha corta), que es la que exige shell-look"
+  ],
+  "gates": {
+    "bun test (6 archivos de uso)": "37 pass, 0 fail",
+    "typecheck": "exit 0",
+    "lint": "exit 0",
+    "index.css": "sin cambios",
+    "shell-look": "los pasos del heatmap de Usage pasan; falla 'context popover shows only compact window and percent' (ContextRing muestra 1.1M para window 1000000), ajeno a USO.27 → USO.28"
+  }
+}

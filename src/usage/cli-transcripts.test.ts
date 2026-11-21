@@ -45,7 +45,7 @@ describe('readCliTranscriptUsage', () => {
     expect(parser).toHaveBeenCalledTimes(4)
   })
 
-  it('agrupa Claude y Codex por día local, también cuando el host de CI usa UTC', async () => {
+  it('agrupa Claude y Codex por día y hora local, también cuando el host de CI usa UTC', async () => {
     const { root, agentHome } = fixture()
     const key = realpathSync(root).replace(/[^a-zA-Z0-9]/g, '-')
     const claudeDir = join(agentHome, '.claude', 'projects', key)
@@ -99,6 +99,15 @@ describe('readCliTranscriptUsage', () => {
       const rows = JSON.parse(output)
       expect(rows).toHaveLength(2)
       expect(rows.map((row: { date: string }) => row.date)).toEqual([expected, expected])
+      expect(rows.map((row: { hour: number }) => row.hour)).toEqual(
+        tz === 'UTC' ? [0, 0] : [19, 19],
+      )
+      expect(
+        rows.every(
+          (row: Record<string, unknown>) =>
+            row.turns === 1 && row.activeMs === 0 && !('timestamp' in row),
+        ),
+      ).toBe(true)
     }
   })
 
@@ -198,15 +207,21 @@ describe('readCliTranscriptUsage', () => {
 
     // Explicit isolated agentHome represents an alternate CODEX_HOME in tests.
     const rows = await readCliTranscriptUsage([root], agentHome)
-    expect(rows).toHaveLength(1)
-    expect(rows[0]).toMatchObject({
-      sessionId: 'codex-good',
-      model: 'gpt-6-luna',
-      inputTokens: 120,
-      cacheReadTokens: 40,
-      cacheWriteTokens: 8,
-      outputTokens: 25,
-    })
+    expect(rows).toHaveLength(2)
+    expect(
+      rows.map((row) => [
+        row.inputTokens,
+        row.cacheReadTokens,
+        row.cacheWriteTokens,
+        row.outputTokens,
+      ]),
+    ).toEqual([
+      [80, 20, 5, 10],
+      [40, 20, 3, 15],
+    ])
+    expect(
+      rows.every((row) => row.sessionId === 'codex-good' && row.turns === 1 && row.activeMs === 0),
+    ).toBe(true)
   })
 })
 

@@ -69,7 +69,26 @@ export interface UsageRow {
   priced?: boolean
 }
 
+export interface UsageHourRow {
+  date: string
+  hour: number
+  agent: string
+  provider: string
+  model: string
+  source: 'orchestos' | 'cli'
+  runs: number
+  turns: number
+  inputTokens: number
+  outputTokens: number
+  cacheReadTokens: number
+  cacheWriteTokens: number
+  usd: number | null
+  priced: boolean
+  activeMs: number
+}
+
 export interface UsageResponse {
+  byHour: UsageHourRow[]
   byDayModel: UsageRow[]
   totalUsd: number
   totalRuns: number

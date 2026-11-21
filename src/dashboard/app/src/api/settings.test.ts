@@ -22,6 +22,7 @@ describe('settings API mappers', () => {
   it('aggregates usage rows by model and preserves real totals', () => {
     expect(
       mapUsageByModel({
+        byHour: [],
         byDayModel: [
           {
             date: '2026-09-01',
