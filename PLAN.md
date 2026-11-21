@@ -458,6 +458,11 @@ esta etapa: `docs/done/bloque-AUD.md` (AUD.16, AUD.17), `docs/done/bloque-SES.md
   Revisión: gpt-6.1-sol (qa) "sin defectos".
   Sin delegación: fix chico (1 archivo, 7 líneas), lo hizo el cerebro.
   Ejecutado por: claude-opus-5-5
+- [x] **USO.31 — Icono del proveedor antes de cada modelo en Settings → Usage.** (Carlos, 2026-11-21, señalando
+  la tabla Models) Cada fila de la tabla de modelos lleva el logo de su proveedor (`ProviderLogo` con
+  `vendorOf(model)`) antes del nombre.
+  Gate en vivo: navegador del panel contra el dashboard real (logo Claude/OpenAI por fila) — `docs/done/evidence/USO.31-live.json`
+  Ejecutado por: gpt-6-luna (mecanico) · revisión: claude-opus-5-5 · Spec: docs/specs/USO.31.md (nunca commiteado, borrado)
 - [x] **CLI.1 — Aviso de actualización de Codex/Claude y modelo de rol que ya no existe.** (Carlos, 2026-11-21, GO)
   Origen: `delegate criterio` falló con `model_not_found` para gpt-6.1-sol porque corría Codex 0.155.1; con 0.171.0
   funciona. (1) `cli-updates.ts`: última versión en npm (`@openai/codex`, `@anthropic-ai/claude-code`), validada con

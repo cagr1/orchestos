@@ -1,0 +1,15 @@
+{
+  "item": "USO.31",
+  "date": "2026-11-21",
+  "where": "navegador del panel de Claude contra el dashboard real (4242, DB real), Settings → Usage → Models",
+  "live": [
+    "claude-opus-5-5 → logo Claude (img, 14 px)",
+    "gpt-6.1-sol → logo OpenAI (máscara chatgpt.svg, 14 px)",
+    "gpt-6-luna → logo OpenAI",
+    "claude-fable-5-2 → logo Claude",
+    "claude-sonnet-5-5 → logo Claude",
+    "openai/gpt-6-luna → logo OpenAI"
+  ],
+  "gates": { "typecheck": "exit 0", "biome": "exit 0", "build:app": "ok" },
+  "review": "diff de gpt-6-luna (mecanico) leído por claude-opus-5-5: idéntico al spec"
+}

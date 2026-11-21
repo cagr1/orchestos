@@ -24,6 +24,7 @@ import {
   yearActivity,
 } from '@/lib/usage-stats'
 import type { UsageResponse } from '../../api/settings'
+import { ProviderLogo } from '../common/ProviderLogos'
 import { SettingsGroup, SettingsSegmented } from './primitives'
 
 const levels = [
@@ -696,7 +697,13 @@ export function UsageDashboard({
                     {(expanded ? models : models.slice(0, 6)).map((model) => (
                       <tr key={model.model} className="text-app-muted">
                         <td className="max-w-44 px-1 py-2">
-                          <div className="break-all font-mono text-app">{model.model}</div>
+                          <div className="flex items-center gap-1.5">
+                            <ProviderLogo
+                              id={vendorOf(model.model)}
+                              className="size-3.5 shrink-0"
+                            />
+                            <span className="break-all font-mono text-app">{model.model}</span>
+                          </div>
                           <div className="mt-1 h-1 rounded-control bg-app-elevated">
                             <div
                               className="h-full rounded-control"

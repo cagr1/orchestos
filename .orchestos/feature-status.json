@@ -308,6 +308,14 @@
       "closedDate": null
     },
     {
+      "id": "USO.31",
+      "sprint": "Etapa 2 — Uso real",
+      "block": null,
+      "title": "Icono del proveedor antes de cada modelo en Settings → Usage",
+      "status": "done",
+      "closedDate": null
+    },
+    {
       "id": "CLI.1",
       "sprint": "Etapa 2 — Uso real",
       "block": null,
