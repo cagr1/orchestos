@@ -469,6 +469,12 @@ esta etapa: `docs/done/bloque-AUD.md` (AUD.16, AUD.17), `docs/done/bloque-SES.md
   Gate en vivo: navegador del panel contra el dashboard real a 1800 px — `docs/done/evidence/USO.32-live.json`
   Sin delegación: fix chico (2 clases), lo hizo el cerebro.
   Ejecutado por: claude-opus-5-5
+- [x] **USO.33 — La tabla Models muestra etiquetas y placeholders como modelos.** (Carlos, 2026-11-21: "<synthetic>",
+  "default", "codex (cli default model) via Codex CLI") Runs viejos guardan etiquetas en `model`. La tabla normaliza
+  "X via … CLI …" a X y descarta placeholders (`modelIdOf` en `lib/usage-stats.ts`). Mismo commit: el mapa "When
+  they work" baja a `max-w-[480px]` centrado (Carlos: seguía grande y debía ir al centro; ~15 px por cuadro).
+  Gate en vivo: navegador del panel contra el dashboard real (tabla Models expandida y mapa a 1800 px) — `docs/done/evidence/USO.33-live.json`
+  Ejecutado por: gpt-6-luna (mecanico, normalización y test) + claude-opus-5-5 (mapa) · Spec: docs/specs/USO.33.md (nunca commiteado, borrado)
 - [x] **CLI.1 — Aviso de actualización de Codex/Claude y modelo de rol que ya no existe.** (Carlos, 2026-11-21, GO)
   Origen: `delegate criterio` falló con `model_not_found` para gpt-6.1-sol porque corría Codex 0.155.1; con 0.171.0
   funciona. (1) `cli-updates.ts`: última versión en npm (`@openai/codex`, `@anthropic-ai/claude-code`), validada con

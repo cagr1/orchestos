@@ -93,7 +93,17 @@ function groups(rows: UsageHourRow[], keyOf: (row: UsageHourRow) => string) {
 }
 
 export function byModel(rows: UsageHourRow[]) {
-  return groups(rows, (row) => row.model).map((row) => ({ ...row, model: row.id }))
+  return groups(
+    rows.filter((row) => modelIdOf(row.model) !== null),
+    (row) => modelIdOf(row.model) as string,
+  ).map((row) => ({ ...row, model: row.id }))
+}
+
+// USO.33: runs viejos guardan etiquetas en `model`; la tabla solo muestra modelos reales.
+export function modelIdOf(model: string): string | null {
+  const id = model.replace(/\s+via\s+.*$/i, '').trim()
+  if (!id || /\s/.test(id) || /^<.*>$/.test(id) || /^(default|unknown|auto)$/i.test(id)) return null
+  return id
 }
 
 export function byAgent(rows: UsageHourRow[]) {

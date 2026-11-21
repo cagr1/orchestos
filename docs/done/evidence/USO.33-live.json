@@ -1,0 +1,30 @@
+{
+  "item": "USO.33",
+  "date": "2026-11-21",
+  "where": "navegador del panel de Claude contra el dashboard real (4242, DB real), Settings → Usage → Models expandido",
+  "live": {
+    "models": [
+      "claude-opus-5-5",
+      "gpt-6.1-sol",
+      "gpt-6-luna",
+      "claude-fable-5-2",
+      "claude-sonnet-5-5",
+      "openai/gpt-6-luna",
+      "codex-auto-review",
+      "claude-sonnet-5",
+      "haiku",
+      "anthropic/haiku",
+      "claude-haiku-5-5",
+      "gpt-reserve"
+    ],
+    "removed": [
+      "<synthetic>",
+      "default",
+      "codex (cli default model) via Codex CLI",
+      "gpt-6-luna via Codex CLI (unido a gpt-6-luna)"
+    ],
+    "heatmap": "USO.32 ajuste: cuadro 15 px, grilla centrada (128 px a cada lado a 1800 px)"
+  },
+  "gates": { "usage-stats.test.ts": "18 pass", "typecheck": "exit 0", "biome": "exit 0" },
+  "review": "diff de gpt-6-luna (mecanico) leído por claude-opus-5-5: conforme al spec"
+}

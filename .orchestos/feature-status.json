@@ -324,6 +324,14 @@
       "closedDate": null
     },
     {
+      "id": "USO.33",
+      "sprint": "Etapa 2 — Uso real",
+      "block": null,
+      "title": "La tabla Models muestra etiquetas y placeholders como modelos",
+      "status": "done",
+      "closedDate": null
+    },
+    {
       "id": "CLI.1",
       "sprint": "Etapa 2 — Uso real",
       "block": null,

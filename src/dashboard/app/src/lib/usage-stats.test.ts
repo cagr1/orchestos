@@ -1,11 +1,11 @@
 import { describe, expect, test } from 'bun:test'
 import type { UsageHourRow } from '../api/settings'
 import {
+  agentColor,
   byAgent,
   byDay,
   byModel,
   byVendor,
-  agentColor,
   dateKey,
   dayChartStats,
   delta,
@@ -14,8 +14,9 @@ import {
   formatTokens,
   formatUsd,
   kpis,
-  vendorOf,
+  modelIdOf,
   vendorColor,
+  vendorOf,
   weekHourGrid,
   yearActivity,
 } from './usage-stats'
@@ -98,6 +99,29 @@ describe('usage periods', () => {
 })
 
 describe('usage aggregation', () => {
+  test('model IDs strip CLI labels and exclude placeholders from model groups', () => {
+    expect(modelIdOf('gpt-6-luna via Codex CLI (effort: medium)')).toBe('gpt-6-luna')
+    for (const model of [
+      'codex (cli default model) via Codex CLI',
+      'claude (cli default)',
+      'default',
+      '<synthetic>',
+      '',
+    ]) {
+      expect(modelIdOf(model)).toBeNull()
+    }
+    expect(modelIdOf('anthropic/claude-sonnet-5 via Claude Code CLI')).toBe(
+      'anthropic/claude-sonnet-5',
+    )
+    expect(
+      byModel([
+        row({ model: 'gpt-6-luna' }),
+        row({ model: 'gpt-6-luna via Codex CLI' }),
+        row({ model: 'default' }),
+      ]).map((model) => [model.model, model.runs]),
+    ).toEqual([['gpt-6-luna', 2]])
+  })
+
   test('KPIs count cache in input, cache ratio, output per turn and known costs', () => {
     expect(kpis([row(), row({ usd: null, priced: false })])).toEqual({
       usd: 0.2,
