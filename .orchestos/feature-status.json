@@ -316,6 +316,14 @@
       "closedDate": null
     },
     {
+      "id": "USO.32",
+      "sprint": "Etapa 2 — Uso real",
+      "block": null,
+      "title": "El mapa \"When they work\" no crece sin tope",
+      "status": "done",
+      "closedDate": null
+    },
+    {
       "id": "CLI.1",
       "sprint": "Etapa 2 — Uso real",
       "block": null,

@@ -1,0 +1,11 @@
+{
+  "item": "USO.32",
+  "date": "2026-11-21",
+  "where": "navegador del panel de Claude contra el dashboard real (4242), viewport 1800x1000, Settings → Usage",
+  "live": {
+    "section": "735 px",
+    "cell": "22 px (antes crecía con el ancho)",
+    "cap": "max-w-[640px] en grilla y leyenda"
+  },
+  "gates": { "typecheck": "exit 0", "build:app": "ok" }
+}

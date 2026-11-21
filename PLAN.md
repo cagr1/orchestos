@@ -463,6 +463,12 @@ esta etapa: `docs/done/bloque-AUD.md` (AUD.16, AUD.17), `docs/done/bloque-SES.md
   `vendorOf(model)`) antes del nombre.
   Gate en vivo: navegador del panel contra el dashboard real (logo Claude/OpenAI por fila) — `docs/done/evidence/USO.31-live.json`
   Ejecutado por: gpt-6-luna (mecanico) · revisión: claude-opus-5-5 · Spec: docs/specs/USO.31.md (nunca commiteado, borrado)
+- [x] **USO.32 — El mapa "When they work" no crece sin tope.** (Carlos, 2026-11-21: en pantallas anchas los
+  cuadros quedaban demasiado grandes) Grilla y leyenda con `max-w-[640px]`: responsive hacia abajo, tope de ~22 px por
+  cuadro hacia arriba.
+  Gate en vivo: navegador del panel contra el dashboard real a 1800 px — `docs/done/evidence/USO.32-live.json`
+  Sin delegación: fix chico (2 clases), lo hizo el cerebro.
+  Ejecutado por: claude-opus-5-5
 - [x] **CLI.1 — Aviso de actualización de Codex/Claude y modelo de rol que ya no existe.** (Carlos, 2026-11-21, GO)
   Origen: `delegate criterio` falló con `model_not_found` para gpt-6.1-sol porque corría Codex 0.155.1; con 0.171.0
   funciona. (1) `cli-updates.ts`: última versión en npm (`@openai/codex`, `@anthropic-ai/claude-code`), validada con

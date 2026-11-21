@@ -596,7 +596,7 @@ export function UsageDashboard({
                 <HoverChart>
                   {(bind) => (
                     <div className="overflow-x-auto">
-                      <div className="min-w-72 space-y-1">
+                      <div className="min-w-72 max-w-[640px] space-y-1">
                         <div className="flex gap-1 text-[10px] text-app-muted">
                           <span className="w-4 shrink-0" />
                           <div className="grid flex-1 grid-cols-24 gap-1">
@@ -633,7 +633,7 @@ export function UsageDashboard({
                     </div>
                   )}
                 </HoverChart>
-                <div className="flex flex-wrap justify-between gap-2">
+                <div className="flex max-w-[640px] flex-wrap justify-between gap-2">
                   <Legend es={es} />
                   <span className="text-[10px] text-app-muted">
                     {grid.max
