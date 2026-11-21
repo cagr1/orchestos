@@ -5,7 +5,7 @@ You ask in a chat; the orchestrator turns the request into a task with a declare
 writes only those files inside a git worktree, deterministic checks and a QA reviewer validate the result, and
 the outcome comes back to the same chat thread. Every run produces evidence in SQLite.
 
-<!-- readme-sync:tests -->2296 tests · 0 failures · coverage gate in CI<!-- /readme-sync:tests -->
+<!-- readme-sync:tests -->2362 tests · 0 failures · coverage gate in CI<!-- /readme-sync:tests -->
 
 ---
 
