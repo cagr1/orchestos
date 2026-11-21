@@ -1,9 +1,10 @@
-# DREAMING.md — 2026-11-20
+# DREAMING.md — 2026-11-21
 
-> Análisis automático (scheduled task). `runs-summary.json` exportado 2026-11-19T21:43Z.
-> Ventana nueva: 13 de los 20 runs son del 2026-11-19. Los runs `gate:*` salieron de la ventana por antigüedad,
-> no porque el export los filtre (`scripts/export-runs-summary.ts` no tiene filtro; siguen en la DB local).
-> Causas de fallo leídas de la DB local (`~/.orchestos/db.sqlite`), porque el resumen no las exporta.
+> Análisis automático (scheduled task). `runs-summary.json` exportado 2026-11-20T14:59Z.
+> **Sin runs nuevos desde el informe del 2026-11-20**: el run más reciente en el resumen y en la DB local
+> (`~/.orchestos/db.sqlite`, 1087 runs) sigue siendo 2026-11-19T21:24Z. Los patrones y propuestas de abajo son los
+> mismos del 2026-11-20; ninguna propuesta se aplicó (`scripts/export-runs-summary.ts` sigue sin `failure_kind` ni
+> filtro `gate:`; ni ese archivo ni `src/run/harness.ts` cambiaron desde entonces).
 
 ## Runs analizados
 - Total: 20 runs
