@@ -445,12 +445,19 @@ esta etapa: `docs/done/bloque-AUD.md` (AUD.16, AUD.17), `docs/done/bloque-SES.md
   Gate en vivo: navegador del panel contra el dashboard real — `docs/done/evidence/USO.29-live.json`
   Texto visible: "▲ input · ▼ output" (leyenda del gráfico: sin ella no se sabe qué mitad es input y cuál output)
   Ejecutado por: gpt-6-luna (mecanico) · Spec: docs/specs/USO.29.md
-- [ ] **USO.30 — El panel de uso no se acopla al tema (carbon).** (Carlos, 2026-11-21, con el tema carbon) Visto en
+- [x] **USO.30 — El panel de uso no se acopla al tema (carbon).** (Carlos, 2026-11-21, con el tema carbon) Visto en
   vivo: el hover card de los gráficos sale con fondo blanco sobre el tema oscuro, y los heatmaps/minigráficos usan
   `--app-accent` (#38bdf8 en carbon) que no casa con ese tema. Hacer que superficie del tooltip, intensidades y
   barras salgan de los tokens del tema activo (`--app-surface-elevated`, `--app-text`, acento del tema) y revisar
   los colores de marca de USO.29 contra cada tema (en temas claros Codex ya usa el color de texto). Verificar en
   vivo en todos los temas de Appearance.
+  Causa: tooltip con `bg-foreground text-background` (invertido) y gráficos con `app-accent`. Arreglo: heatmaps y
+  minigráficos con `in-data-[theme=carbon]:bg-zinc-300/*` (index.css no crece), y
+  tooltip con `bg-app-elevated text-app-text border-app-border`. Colores de marca de USO.29 legibles en los 4 temas.
+  Gate en vivo: navegador del panel contra el dashboard real, colores computados en los 4 temas — `docs/done/evidence/USO.30-live.json`
+  Revisión: gpt-6.1-sol (qa) "sin defectos".
+  Sin delegación: fix chico (1 archivo, 7 líneas), lo hizo el cerebro.
+  Ejecutado por: claude-opus-5-5
 - [x] **CLI.1 — Aviso de actualización de Codex/Claude y modelo de rol que ya no existe.** (Carlos, 2026-11-21, GO)
   Origen: `delegate criterio` falló con `model_not_found` para gpt-6.1-sol porque corría Codex 0.155.1; con 0.171.0
   funciona. (1) `cli-updates.ts`: última versión en npm (`@openai/codex`, `@anthropic-ai/claude-code`), validada con

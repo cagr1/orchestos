@@ -28,10 +28,10 @@ import { SettingsGroup, SettingsSegmented } from './primitives'
 
 const levels = [
   'bg-app-elevated',
-  'bg-app-accent/20',
-  'bg-app-accent/45',
-  'bg-app-accent/70',
-  'bg-app-accent',
+  'bg-app-accent/20 in-data-[theme=carbon]:bg-zinc-300/20',
+  'bg-app-accent/45 in-data-[theme=carbon]:bg-zinc-300/45',
+  'bg-app-accent/70 in-data-[theme=carbon]:bg-zinc-300/70',
+  'bg-app-accent in-data-[theme=carbon]:bg-zinc-300',
 ]
 const focusClass =
   'outline-none focus-visible:ring-2 focus-visible:ring-app-accent focus-visible:ring-offset-1'
@@ -212,7 +212,7 @@ function HoverChart({
                   opacity: hover?.visible ? spring.fast : spring.fast.exit,
                 }
           }
-          className="pointer-events-none fixed left-0 top-0 z-50 w-80 max-w-[calc(100vw-16px)] rounded-card bg-foreground px-3 py-2 text-xs text-background shadow-lg tabular-nums"
+          className="pointer-events-none fixed left-0 top-0 z-50 w-80 max-w-[calc(100vw-16px)] rounded-card border border-app-border bg-app-elevated px-3 py-2 text-xs text-app-text shadow-lg tabular-nums"
         >
           {hover?.content}
         </motion.div>,
@@ -316,7 +316,7 @@ function AnnualActivity({
                               ? { duration: 0 }
                               : { ...spring.fast, delay: (week / 52) * spring.slow.duration * 2 }
                           }
-                          className={`aspect-square w-full cursor-pointer rounded-[2px] transition-colors hover:ring-1 hover:ring-app-accent ${focusClass} ${levels[day.runs === 0 ? 0 : day.runs < 2 ? 1 : day.runs < 5 ? 2 : day.runs < 10 ? 3 : 4]}`}
+                          className={`aspect-square w-full cursor-pointer rounded-[2px] transition-colors hover:ring-1 hover:ring-app-accent in-data-[theme=carbon]:hover:ring-zinc-300 ${focusClass} ${levels[day.runs === 0 ? 0 : day.runs < 2 ? 1 : day.runs < 5 ? 2 : day.runs < 10 ? 3 : 4]}`}
                           {...bind(<DayDetails day={day} es={es} />, daySummary(day, es))}
                         />
                       ))}
@@ -494,7 +494,7 @@ export function UsageDashboard({
                               {...bind(<DayDetails day={day} es={es} />, daySummary(day, es))}
                             >
                               <span
-                                className="absolute inset-x-0 bottom-0 rounded-t-xs bg-app-accent/70"
+                                className="absolute inset-x-0 bottom-0 rounded-t-xs bg-app-accent/70 in-data-[theme=carbon]:bg-zinc-300/70"
                                 style={{
                                   height: `${day[metric.key] > 0 ? Math.max(5, (day[metric.key] / max) * 100) : 0}%`,
                                 }}

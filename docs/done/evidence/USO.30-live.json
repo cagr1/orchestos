@@ -1,0 +1,35 @@
+{
+  "item": "USO.30",
+  "date": "2026-11-21",
+  "where": "navegador del panel de Claude contra el dashboard real (4242, DB real)",
+  "cause": "tooltip con bg-foreground/text-background (invertido: blanco en temas oscuros); heatmaps y minigráficos con app-accent (#38bdf8, azul sobre carbon neutro)",
+  "live": {
+    "carbon": {
+      "chart": "zinc-300 oklch(0.871 0.006 286.286) vía in-data-[theme=carbon]",
+      "tooltipBg": "rgb(28, 28, 34)",
+      "tooltipText": "rgb(250, 250, 250)",
+      "tooltipBorder": "rgb(39, 39, 42)"
+    },
+    "graphite": {
+      "chart": "rgb(96, 165, 250)",
+      "tooltipBg": "rgb(32, 36, 46)",
+      "tooltipText": "rgb(243, 244, 246)"
+    },
+    "orchestos": {
+      "chart": "rgb(56, 189, 248)",
+      "tooltipBg": "rgb(21, 29, 48)",
+      "tooltipText": "rgb(244, 244, 245)"
+    },
+    "light": {
+      "chart": "rgb(2, 132, 199)",
+      "tooltipBg": "rgb(241, 245, 249)",
+      "tooltipText": "rgb(15, 23, 42)"
+    },
+    "brandColors": "USO.29 sin cambios: Codex usa var(--app-text), legible en los 4 temas"
+  },
+  "gates": {
+    "typecheck": "exit 0",
+    "build:app": "ok"
+  },
+  "fix": "variantes Tailwind in-data-[theme=carbon]:bg-zinc-300/* en UsageDashboard.tsx (index.css sin cambios: presupuesto de CSS)"
+}
