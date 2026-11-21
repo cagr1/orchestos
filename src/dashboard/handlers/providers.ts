@@ -9,7 +9,8 @@ import {
   readCliHealth,
   systemCliHealthProbe,
 } from '../../run/executors/cli-health.ts'
-import { configuredClis, detectInstalledClis } from '../../run/executors/cli-registry.ts'
+import { allClis, configuredClis, detectInstalledClis } from '../../run/executors/cli-registry.ts'
+import { compareVersions, readCliLatest } from '../../run/executors/cli-updates.ts'
 import { taskEngineForCli } from '../../run/executors/task-engines.ts'
 import { type CliModelCatalog, readCliModelCatalogsCached } from '../chat-cli-models.ts'
 import { jsonResponse } from '../http.ts'
@@ -26,6 +27,8 @@ export interface ProviderSnapshot {
   installed: boolean
   path: string | null
   version: string | null
+  latestVersion: string | null
+  updateAvailable: boolean
   auth: ProviderAuth
   models: string[]
   defaultModel?: string
@@ -112,6 +115,7 @@ function readIdentity(id: string, probe: ProviderProbe): Pick<ProviderAuth, 'acc
 export function createProviderReader(
   probe: ProviderProbe = systemProviderProbe,
   dependencies: {
+    latest?: typeof readCliLatest
     health?: (refresh?: boolean) => Promise<CliHealth[]>
     detect?: () => ReturnType<typeof detectInstalledClis>
     models?: (clis: ReturnType<typeof detectInstalledClis>) => Promise<CliModelCatalog[]>
@@ -124,6 +128,7 @@ export function createProviderReader(
   const health =
     dependencies.health ??
     (probe === systemProviderProbe ? readCliHealth : createCliHealthReader(probe))
+  const latest = dependencies.latest ?? readCliLatest
   const cache = new Map<string, { expires: number; value: ProviderSnapshot }>()
   let pending: Promise<ProviderSnapshot[]> | undefined
   let generation = 0
@@ -134,7 +139,7 @@ export function createProviderReader(
       (await readCliModelCatalogsCached()).filter((catalog) =>
         clis.some((cli) => cli.id === catalog.id),
       ))
-  return async (root: string, refresh = false): Promise<ProviderSnapshot[]> => {
+  const read = async (root: string, refresh = false): Promise<ProviderSnapshot[]> => {
     if (refresh) {
       cache.clear()
       pending = undefined
@@ -147,12 +152,18 @@ export function createProviderReader(
         const cached = new Map(cache)
         const request = (async () => {
           const clis = detected.filter((cli) => (cache.get(cli.id)?.expires ?? -1) <= probe.now())
-          const [catalogs, states] = await Promise.all([
+          const [catalogs, states, versions] = await Promise.all([
             models(clis).catch(() => [] as CliModelCatalog[]),
             statesPromise,
+            Promise.all(
+              clis.map(async (cli) => {
+                const update = allClis().find((entry) => entry.id === cli.id)?.update
+                return update ? latest(update.npmPackage, refresh) : null
+              }),
+            ),
           ])
           const custom = (dependencies.customClis ?? configuredClis)()
-          const fresh = clis.map((cli): ProviderSnapshot => {
+          const fresh = clis.map((cli, index): ProviderSnapshot => {
             const state = states.find((entry) => entry.id === cli.id)
             if (!state) throw new Error(`Missing CLI health for ${cli.id}`)
             const own = custom.find((entry) => entry.id === cli.id)
@@ -162,6 +173,8 @@ export function createProviderReader(
               installed: cli.installed,
               path: cli.path,
               version: state.version,
+              latestVersion: versions[index] ?? null,
+              updateAvailable: hasUpdate(state.version, versions[index] ?? null),
               auth: { ...readIdentity(cli.id, probe), status: state.auth },
               functional: state.functional,
               authDetail: state.authDetail,
@@ -211,6 +224,14 @@ export function createProviderReader(
     )
   }
 
+  return Object.assign(read, {
+    invalidate: () => {
+      cache.clear()
+      pending = undefined
+      generation++
+    },
+  })
+
   function withDefault(
     value: ProviderSnapshot[],
     root: string,
@@ -227,6 +248,7 @@ export function createProviderReader(
         installed: state.installed,
         path: state.path,
         version: state.version,
+        updateAvailable: hasUpdate(state.version, cli.latestVersion),
         auth: { ...cli.auth, status: state.auth },
         functional: state.functional,
         authDetail: state.authDetail,
@@ -237,7 +259,11 @@ export function createProviderReader(
   }
 }
 
-const readProviders = createProviderReader()
+function hasUpdate(installed: string | null, latest: string | null): boolean {
+  return Boolean(installed && latest && compareVersions(installed, latest) < 0)
+}
+
+export const readProviders = createProviderReader()
 
 export async function handleApiProviders(
   url: URL,

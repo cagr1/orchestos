@@ -92,6 +92,7 @@ import {
   handleApiProjectPurge,
   handleApiProjects,
 } from './handlers/projects.ts'
+import { handleApiProviderUpdate } from './handlers/provider-update.ts'
 import { handleApiProviders } from './handlers/providers.ts'
 import { handleApiRunGraph, handleApiRunGraphStatus } from './handlers/run-graph.ts'
 import {
@@ -735,6 +736,9 @@ export async function route(
   if (method === 'GET' && url.pathname === '/api/providers') {
     return withDashboardProject(req, (project) => handleApiProviders(url, project.root))
   }
+  if (method === 'POST' && /^\/api\/providers\/[^/]+\/update$/.test(url.pathname)) {
+    return handleApiProviderUpdate(url.pathname.split('/')[3] ?? '')
+  }
   if (method === 'GET' && url.pathname === '/api/clis') {
     return handleApiClisGet()
   }
@@ -815,6 +819,8 @@ export function startServer(
       const denied = guardRequest(req, server.port ?? port, dashboardToken)
       if (denied) return denied
       const url = new URL(req.url)
+      if (req.method === 'POST' && /^\/api\/providers\/[^/]+\/update$/.test(url.pathname))
+        server.timeout(req, 0)
       if (url.pathname !== '/api/terminal')
         return withPageToken(await route(req, server.port ?? port, dashboardBuild), dashboardToken)
       if (req.method !== 'GET') return errorResponse('Method not allowed', 405)

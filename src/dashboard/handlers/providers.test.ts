@@ -51,6 +51,7 @@ afterEach(() => rmSync(home, { recursive: true, force: true }))
 
 function reader() {
   return createProviderReader(probe, {
+    latest: async () => null,
     models: async () => [
       ...['claude', 'codex', 'opencode'].map((id) => ({
         id,
@@ -254,6 +255,7 @@ for (const failure of ['empty', 'error', 'throw']) {
     let attempts = 0
     const batches: string[][] = []
     const read = createProviderReader(probe, {
+      latest: async () => null,
       models: async (clis) => {
         batches.push(clis.map((cli) => cli.id))
         attempts++
@@ -290,6 +292,7 @@ it('keeps an in-flight retry intact when refresh clears the cache', async () => 
     release = resolve
   })
   const read = createProviderReader(probe, {
+    latest: async () => null,
     models: async (clis) => {
       const attempt = ++attempts
       if (attempt === 2) await waiting
@@ -327,6 +330,7 @@ it('includes configured CLIs and their Model routing catalog', async () => {
     )
     probe.which = (binary) => (binary === 'custom-bin' ? '/login/bin/custom-bin' : null)
     const read = createProviderReader(probe, {
+      latest: async () => null,
       models: async () => [],
       executor: () => ({ agent: 'custom', model: 'large' }),
     })
@@ -340,6 +344,8 @@ it('includes configured CLIs and their Model routing catalog', async () => {
       installed: true,
       path: '/login/bin/custom-bin',
       version: '1.2.3',
+      latestVersion: null,
+      updateAvailable: false,
       auth: { status: 'unknown' },
       models: ['default', 'small', 'large'],
       defaultModel: 'large',
@@ -371,7 +377,11 @@ it('shares the default model catalog with concurrent providers and refresh witho
         }))
       },
     })
-    const read = createProviderReader(probe, { executor: () => undefined, customClis: () => [] })
+    const read = createProviderReader(probe, {
+      latest: async () => null,
+      executor: () => undefined,
+      customClis: () => [],
+    })
     const first = read('/project')
     const refreshed = read('/project', true)
     expect(catalogReads).toBe(1)
@@ -434,4 +444,35 @@ it('exposes shared session health in /api/providers, keeps signed-out CLIs and r
   expect(
     (await refreshed.json()).providers.find((cli: { id: string }) => cli.id === 'claude'),
   ).toMatchObject({ auth: { status: 'ok' }, functional: true, checkedAt: now })
+})
+
+it('reports published versions, compares installed versions and forces latest refresh', async () => {
+  const latestCalls: [string, boolean | undefined][] = []
+  const read = createProviderReader(probe, {
+    latest: async (name, refresh) => {
+      latestCalls.push([name, refresh])
+      return name === '@openai/codex' ? '1.2.4' : '1.2.3'
+    },
+    models: async () => [],
+    executor: () => undefined,
+    customClis: () => [],
+  })
+  const result = await read('/project')
+  expect(result.find((cli) => cli.id === 'codex')).toMatchObject({
+    latestVersion: '1.2.4',
+    updateAvailable: true,
+  })
+  expect(result.find((cli) => cli.id === 'claude')).toMatchObject({
+    latestVersion: '1.2.3',
+    updateAvailable: false,
+  })
+  expect(result.find((cli) => cli.id === 'opencode')).toMatchObject({
+    latestVersion: null,
+    updateAvailable: false,
+  })
+  await read('/project', true)
+  expect(latestCalls.filter(([, refresh]) => refresh)).toHaveLength(2)
+  probe.command = async () => '2.0.0'
+  const newer = await read('/project', true)
+  expect(newer.find((cli) => cli.id === 'codex')?.updateAvailable).toBe(false)
 })

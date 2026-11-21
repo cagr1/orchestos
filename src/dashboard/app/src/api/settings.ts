@@ -284,6 +284,8 @@ export async function saveClis(clis: CustomCliConfig[], projectId?: string): Pro
 }
 
 export interface ProviderSnapshot {
+  latestVersion: string | null
+  updateAvailable: boolean
   functional: boolean
   authDetail?: string
   checkedAt: number
@@ -304,6 +306,14 @@ export async function getProviders(
     ...(projectId ? { headers: { 'x-orchestos-project-id': projectId } } : {}),
     signal,
   })
+}
+
+export async function updateProvider(id: string): Promise<{
+  ok: boolean
+  exitCode: number | null
+  output: string
+}> {
+  return request(`/api/providers/${encodeURIComponent(id)}/update`, { method: 'POST' })
 }
 
 export async function saveHiddenClis(hiddenClis: string[], projectId?: string): Promise<void> {

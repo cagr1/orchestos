@@ -631,7 +631,8 @@ describe('CHAT.3 Claude API failure fixtures', () => {
     ).catch((error) => error)
     expect(error.notice).toEqual({
       kind: 'invalid-model',
-      message: "Model 'modelo-inexistente-xyz' is not available for Claude Code CLI.",
+      message:
+        "Model 'modelo-inexistente-xyz' is not available for Claude Code CLI; update the CLI or pick another model in Model routing.",
       detail,
     })
     expect(steps[0]?.notice?.kind).toBe('invalid-model')

@@ -451,16 +451,18 @@ esta etapa: `docs/done/bloque-AUD.md` (AUD.16, AUD.17), `docs/done/bloque-SES.md
   barras salgan de los tokens del tema activo (`--app-surface-elevated`, `--app-text`, acento del tema) y revisar
   los colores de marca de USO.29 contra cada tema (en temas claros Codex ya usa el color de texto). Verificar en
   vivo en todos los temas de Appearance.
-- [ ] **CLI.1 — Aviso de actualización de Codex/Claude y modelo de rol que ya no existe.** (Carlos, 2026-11-21, GO;
-  va después de USO.27) Origen: `delegate criterio` falló con `model_not_found` para gpt-6.1-sol porque corría Codex
-  0.155.1; con 0.171.0 funciona. (1) `cli-health` suma la última versión publicada (npm `@openai/codex`,
-  `@anthropic-ai/claude-code`), consultada 1 vez al día con caché; si hay nueva, aviso en el dashboard con botón
-  "Actualizar" que corre `codex update` / `claude update` y muestra el resultado. Ojo: hay dos `claude` (nativo en
-  `~/.local/bin` y npm en nvm); se revisa el que usa OrchestOS. (2) Un rol de routing con modelo ausente del catálogo
-  del CLI (`chat-cli-models.ts`) o rechazado con `model_not_found` se marca en Settings y sugiere el más nuevo de la
-  familia; no se cambia solo. (3) Fuera de este repo, `method/bin/delegate`: verificar el modelo de `roster.conf`
-  contra el catálogo antes de lanzar y fallar claro (con versión del CLI) ante `model_not_found`, no exit 0.
-  Pendiente de Carlos: pasar `roster.conf` de gpt-6.1-sol a gpt-6.2-sol (no decidido).
+- [x] **CLI.1 — Aviso de actualización de Codex/Claude y modelo de rol que ya no existe.** (Carlos, 2026-11-21, GO)
+  Origen: `delegate criterio` falló con `model_not_found` para gpt-6.1-sol porque corría Codex 0.155.1; con 0.171.0
+  funciona. (1) `cli-updates.ts`: última versión en npm (`@openai/codex`, `@anthropic-ai/claude-code`), validada con
+  `src/boundary`, caché 24 h (1 h si falla); `ProviderSnapshot.latestVersion/updateAvailable`. (2)
+  `POST /api/providers/:id/update` corre `codex update` / `claude update` con el binario que usa OrchestOS e invalida
+  salud, providers y catálogo; en Providers, "0.171.0 → 0.172.0" + botón "Update" y punto en la navegación. (3)
+  Model routing marca el rol cuyo modelo no está en el catálogo del CLI y ofrece "Use <más nuevo de la familia>"
+  (conserva el esfuerzo); el aviso `invalid-model` suma la pista de actualizar o cambiar el modelo. (4) Fuera del
+  repo: `method/bin/delegate` sale con 4 y mensaje claro ante `model_not_found` (MemoriesMD 56212e9).
+  Gate en vivo: navegador del panel contra el dashboard real (versión publicada simulada para ver el botón) — `docs/done/evidence/CLI.1-live.json`
+  Texto visible: "Update", "Update failed", "No está en el catálogo de", "Use" (acción y estado de actualización y de modelo ausente: un ícono no dice qué versión ni qué modelo)
+  Ejecutado por: gpt-6.1-sol (criterio) + gpt-6-luna (ajuste boundary) + claude-opus-5-5 (idioma y esfuerzo) · Spec: docs/specs/CLI.1.md
 - [ ] **LRN.2 — Una lección probada se gradúa a check, no solo a `AGENTS.md`.** (Carlos, 2026-11-17; mismo principio
   que CHK.1, aplicado al producto) LRN.1 gradúa lecciones a texto de `AGENTS.md`
   (`docs/specs/LRN-1-opinion-fable.md:79`). Agregar un segundo destino: si la firma del fallo es detectable en el diff

@@ -85,8 +85,8 @@ export function cliFailureNotice(
     network: `${cli} could not reach the model — network connection failed.`,
     overloaded: `${cli} model provider is overloaded.`,
     'invalid-model': model
-      ? `Model '${model}' is not available for ${cli}.`
-      : `The selected model is not available for ${cli}.`,
+      ? `Model '${model}' is not available for ${cli}; update the CLI or pick another model in Model routing.`
+      : `The selected model is not available for ${cli}; update the CLI or pick another model in Model routing.`,
     'no-response': `No response from ${model || cli} yet.`,
     'process-exit': `${cli} process exited before completing the response.`,
     timeout: `${cli} timed out waiting for ${model || 'the model'}.`,

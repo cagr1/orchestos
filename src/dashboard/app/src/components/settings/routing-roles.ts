@@ -19,6 +19,40 @@ export type RoutingAgent = {
 export type RoutingRoles = Record<string, { agent: string; model: string; effort?: string } | null>
 export const ROUTING_ROLE_KEYS = ['orchestrator', 'executor', 'reviewer', 'auxiliary'] as const
 
+export function missingRoleModels(roles: RoutingRoles, catalog: RoutingAgent[]): string[] {
+  return Object.keys(roles).filter((role) => {
+    const assignment = roles[role]
+    const models = catalog.find((entry) => entry.id === assignment?.agent)?.models ?? []
+    return assignment && models.length > 0 && !models.some((model) => model.id === assignment.model)
+  })
+}
+
+export function suggestReplacement(
+  model: string,
+  catalogModels: RoutingAgent['models'],
+): string | null {
+  const family = (id: string) => {
+    const suffix = id.replace(/^.*\d/, '').replace(/^-+/, '')
+    if (/\d/.test(id) && suffix) return suffix
+    return id
+      .replace(/(?:[.-]\d+)+$/, '')
+      .split('-')
+      .at(-1)
+  }
+  const version = (id: string) => (id.match(/\d+/g) ?? []).map(Number)
+  const candidates = catalogModels.filter((candidate) => family(candidate.id) === family(model))
+  candidates.sort((a, b) => {
+    const left = version(a.id)
+    const right = version(b.id)
+    for (let i = 0; i < Math.max(left.length, right.length); i++) {
+      const difference = (right[i] ?? 0) - (left[i] ?? 0)
+      if (difference) return difference
+    }
+    return 0
+  })
+  return candidates[0]?.id ?? null
+}
+
 export function routingAgentAllowed(
   role: string,
   entry: RoutingAgent,

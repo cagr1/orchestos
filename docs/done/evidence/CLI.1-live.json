@@ -1,0 +1,132 @@
+{
+  "item": "CLI.1",
+  "implementationBase": "0886e35271066602f4e38a7f2587791e14a0be75",
+  "executor": "gpt-6.1-sol (criterio)",
+  "status": "verificado en vivo por el cerebro",
+  "gates": [
+    {
+      "id": "baseline-types",
+      "command": "bunx tsc --noEmit",
+      "exitCode": 0,
+      "rawLog": "/tmp/CLI.1-baseline-typecheck.log"
+    },
+    {
+      "id": "baseline-tests",
+      "command": "bun test src/dashboard/handlers/providers.test.ts src/dashboard/app/src/components/settings/routing-roles.test.ts src/run/executors/cli-failure.test.ts",
+      "exitCode": 0,
+      "rawLog": "/tmp/CLI.1-baseline-tests.log"
+    },
+    {
+      "id": "typecheck-first",
+      "command": "bun run typecheck",
+      "exitCode": 2,
+      "rawLog": "/tmp/CLI.1-typecheck.log"
+    },
+    {
+      "id": "tests-sandbox",
+      "command": "bun test src/dashboard src/run/executors src/__tests__/cli-failure.test.ts src/__tests__/claude-chat.test.ts",
+      "exitCode": 1,
+      "rawLog": "/tmp/CLI.1-tests.log"
+    },
+    {
+      "id": "typecheck-r1",
+      "command": "bun run typecheck",
+      "exitCode": 0,
+      "rawLog": "/tmp/CLI.1-typecheck-r1.log"
+    },
+    {
+      "id": "lint-first",
+      "command": "bun run lint",
+      "exitCode": 0,
+      "rawLog": "/tmp/CLI.1-lint.log"
+    },
+    {
+      "id": "tests-outside-sandbox",
+      "command": "bun test src/dashboard src/run/executors src/__tests__/cli-failure.test.ts src/__tests__/claude-chat.test.ts",
+      "exitCode": 0,
+      "rawLog": "/tmp/CLI.1-tests-outside-sandbox.log"
+    },
+    {
+      "id": "build-first",
+      "command": "bun run build:app",
+      "exitCode": 0,
+      "rawLog": "/tmp/CLI.1-build.log"
+    },
+    {
+      "id": "live",
+      "command": "ORCHESTOS_CLAUDE_USAGE_LIVE=0 bun /tmp/CLI.1-live.ts",
+      "exitCode": 0,
+      "rawLog": "/tmp/CLI.1-live.log"
+    },
+    {
+      "id": "targeted-final",
+      "command": "bun test src/dashboard/handlers/provider-update.test.ts src/dashboard/app/src/components/settings/routing-roles.test.ts",
+      "exitCode": 0,
+      "rawLog": "/tmp/CLI.1-final-targeted-tests.log"
+    },
+    {
+      "id": "typecheck-final",
+      "command": "bun run typecheck",
+      "exitCode": 0,
+      "rawLog": "/tmp/CLI.1-typecheck-final.log"
+    },
+    {
+      "id": "lint-final",
+      "command": "bun run lint",
+      "exitCode": 0,
+      "rawLog": "/tmp/CLI.1-lint-final.log"
+    },
+    {
+      "id": "build-final",
+      "command": "bun run build:app",
+      "exitCode": 0,
+      "rawLog": "/tmp/CLI.1-build-final.log"
+    },
+    {
+      "id": "flow-lint",
+      "command": "bunx biome lint --only=correctness/noUndeclaredVariables scripts/ui-gate/flows",
+      "exitCode": 0,
+      "rawLog": "/tmp/CLI.1-flow-lint.log"
+    }
+  ],
+  "live": {
+    "request": "curl -s --fail --max-time 40 -H \"x-orchestos-token: <dashboard token>\" http://localhost:<free-port>/api/providers?refresh=1",
+    "providers": [
+      {
+        "id": "claude",
+        "version": "2.1.330",
+        "latestVersion": "2.1.330",
+        "updateAvailable": false
+      },
+      {
+        "id": "codex",
+        "version": "0.171.0",
+        "latestVersion": "0.171.0",
+        "updateAvailable": false
+      }
+    ],
+    "updatesExecuted": false,
+    "browserExecuted": false
+  },
+  "notes": [
+    "Initial suite failed with 7 sandbox EADDRINUSE errors; the same suite passed outside the sandbox (953 pass, 0 fail).",
+    "Final targeted tests after the family adjustment and route auth test: 14 pass, 0 fail.",
+    "Invalid-model callers do not hold CliHealth: added the requested hint without a CLI version.",
+    "No commits; PLAN.md and NEXT.md unchanged.",
+    "Pre-existing untracked docs/specs/CLI.1.md preserved. docs/specs/USO.29.md appeared during execution and was not modified.",
+    "The brain must declare visible UI strings in the item: Update, Update failed, Exit <code>, → <version>, No está en el catálogo de <CLI> <version>, Use <model>."
+  ],
+  "brainLive": {
+    "api": "/api/providers real: claude 2.1.330 = latest 2.1.330, codex 0.171.0 = latest 0.171.0, updateAvailable false en ambos (sin botón: correcto)",
+    "botonSimulado": "respuesta de /api/providers interceptada en el navegador con codex latest 0.172.0: fila \"Codex 0.171.0 → 0.172.0\" con botón \"Update\" y punto en \"Providers\" de la navegación de Settings; no se pulsó (correría codex update real)",
+    "modelRouting": "los 4 roles tienen modelo en el catálogo: sin aviso (correcto); el aviso y \"Use <modelo>\" quedan cubiertos por routing-roles.test.ts, no vistos en vivo",
+    "ajustesDelCerebro": [
+      "aviso de modelo ausente en es/en según el idioma (estaba fijo en español)",
+      "\"Use <modelo>\" conserva el esfuerzo del rol (lo borraba)"
+    ]
+  },
+  "brainGates": {
+    "bun test (7 archivos de CLI.1 y USO.29)": "117 pass, 0 fail",
+    "typecheck": "exit 0"
+  }
+}

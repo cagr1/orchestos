@@ -1,9 +1,11 @@
 import { describe, expect, test } from 'bun:test'
 import {
+  missingRoleModels,
   ROUTING_ROLE_KEYS,
   type RoutingAgent,
   routingAgentAllowed,
   routingAssignment,
+  suggestReplacement,
   suggestUnassignedRoles,
 } from './routing-roles'
 
@@ -64,5 +66,43 @@ describe('ONB.2 routing suggestions', () => {
       expect(suggestUnassignedRoles(empty, [candidate], 'codex', [])).toBe(empty)
     expect(suggestUnassignedRoles(empty, [cli], 'codex', ['codex'])).toBe(empty)
     expect(routingAgentAllowed('executor', cli, ['codex'], 'codex')).toBe(true)
+  })
+})
+
+describe('CLI.1 missing role models', () => {
+  test('only judges assigned roles with a populated catalog for their agent', () => {
+    expect(
+      missingRoleModels(
+        {
+          executor: { agent: 'codex', model: 'missing' },
+          reviewer: { agent: 'codex', model: 'preferred' },
+          auxiliary: null,
+          orchestrator: { agent: 'claude', model: 'unknown' },
+        },
+        [cli],
+      ),
+    ).toEqual(['executor'])
+    expect(
+      missingRoleModels({ executor: { agent: 'codex', model: 'missing' } }, [
+        { ...cli, models: [] },
+      ]),
+    ).toEqual([])
+  })
+  test('suggests the highest numeric version in the same family', () => {
+    const models = (ids: string[]) => ids.map((id) => ({ id, name: id }))
+    expect(suggestReplacement('gpt-6.1-sol', models(['gpt-6.2-sol', 'gpt-6-luna']))).toBe(
+      'gpt-6.2-sol',
+    )
+    expect(
+      suggestReplacement('gpt-6.1-sol', models(['gpt-6.9-sol', 'gpt-6.10-sol', 'gpt-7-sol'])),
+    ).toBe('gpt-7-sol')
+    expect(
+      suggestReplacement(
+        'claude-opus-4-5',
+        models(['claude-opus-4-6', 'claude-opus-4-10', 'claude-sonnet-5']),
+      ),
+    ).toBe('claude-opus-4-10')
+    expect(suggestReplacement('gpt-6.1-sol', models(['gpt-6-luna']))).toBeNull()
+    expect(suggestReplacement('gpt-6.1-sol', [])).toBeNull()
   })
 })

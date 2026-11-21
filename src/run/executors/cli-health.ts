@@ -134,7 +134,7 @@ export function createCliHealthReader(
   definitions: () => CliDefinition[] = allClis,
 ) {
   const cache = new Map<string, { expires: number; value: Promise<CliHealth> }>()
-  return async (refresh = false): Promise<CliHealth[]> => {
+  const read = async (refresh = false): Promise<CliHealth[]> => {
     if (refresh) cache.clear()
     const searchPath = cliSearchPath(probe)
     return Promise.all(
@@ -176,6 +176,9 @@ export function createCliHealthReader(
       }),
     )
   }
+  return Object.assign(read, { invalidate: () => cache.clear() })
 }
 
-export const readCliHealth = createCliHealthReader()
+const systemHealthReader = createCliHealthReader()
+export const readCliHealth: (refresh?: boolean) => Promise<CliHealth[]> = systemHealthReader
+export const invalidateCliHealth = systemHealthReader.invalidate

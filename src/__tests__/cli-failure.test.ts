@@ -83,3 +83,12 @@ test('Claude assistant API error fixture maps code directly', () => {
   expect(claudeFailureKind('overloaded')).toBe('overloaded')
   expect(claudeFailureKind('invalid_request')).toBe('unknown')
 })
+
+test('invalid models include the update and Model routing hint', () => {
+  for (const model of ['gpt-6.1-sol', undefined]) {
+    const notice = cliFailureNotice('model_not_found', 'Codex CLI', model)
+    expect(notice.kind).toBe('invalid-model')
+    expect(notice.message).toContain('update the CLI or pick another model in Model routing')
+    if (model) expect(notice.message).toContain(model)
+  }
+})

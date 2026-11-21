@@ -95,6 +95,7 @@ import {
   saveConfig,
   saveHiddenClis,
   saveSettings,
+  updateProvider,
 } from '../../api/settings'
 import { isTaskRunnable } from '../../api/tasks'
 import { useUserProfile } from '../../hooks/useUserProfile'
@@ -132,10 +133,12 @@ import {
   SettingsStepper,
 } from './primitives'
 import {
+  missingRoleModels,
   type RoutingAgent,
   routingAgentAllowed,
   routingAgentEnabled,
   routingAssignment,
+  suggestReplacement,
   suggestUnassignedRoles,
 } from './routing-roles'
 import { UsageDashboard } from './UsageDashboard'
@@ -1014,6 +1017,29 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
   const [providerNow, setProviderNow] = useState(Date.now())
   const [providerRefreshing, setProviderRefreshing] = useState(false)
   const [providerError, setProviderError] = useState<string | null>(null)
+  const [updatingProvider, setUpdatingProvider] = useState<string | null>(null)
+  const [providerUpdateErrors, setProviderUpdateErrors] = useState<Record<string, string>>({})
+  const updateProviderCli = async (id: string) => {
+    setUpdatingProvider(id)
+    setProviderUpdateErrors((current) => ({ ...current, [id]: '' }))
+    try {
+      const result = await updateProvider(id)
+      if (!result.ok) {
+        setProviderUpdateErrors((current) => ({
+          ...current,
+          [id]: result.output || `Exit ${result.exitCode}`,
+        }))
+        return
+      }
+      await refreshProviders()
+      const catalog = await fetch('/api/models/catalog').then((response) => response.json())
+      setRoutingCatalog(catalog.agents ?? [])
+    } catch (error) {
+      setProviderUpdateErrors((current) => ({ ...current, [id]: String(error) }))
+    } finally {
+      setUpdatingProvider(null)
+    }
+  }
   const [visibilitySaving, setVisibilitySaving] = useState(false)
   useEffect(() => {
     const timer = window.setInterval(() => setProviderNow(Date.now()), 60_000)
@@ -1920,6 +1946,13 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
                     {activeSection === id && navHighlight}
                     <Icon className="w-4 h-4 text-app-muted" />
                     <span>{label}</span>
+                    {id === 'providers' && providers.some((cli) => cli.updateAvailable) && (
+                      <span
+                        data-provider-update-dot
+                        aria-hidden="true"
+                        className="ml-auto size-1.5 rounded-full bg-app-warning"
+                      />
+                    )}
                     {id === 'health' && health && (
                       <span
                         data-health-dot
@@ -2629,6 +2662,29 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
                               <span className="font-mono text-xs font-normal text-app-muted">
                                 {cli.version}
                               </span>
+                              {cli.updateAvailable && (
+                                <>
+                                  <span className="font-mono text-xs font-normal text-app-muted">
+                                    → {cli.latestVersion}
+                                  </span>
+                                  <Button
+                                    variant="secondary"
+                                    size="sm"
+                                    leadingIcon={
+                                      updatingProvider === cli.id ? RefreshCw : undefined
+                                    }
+                                    className={
+                                      updatingProvider === cli.id
+                                        ? '[&_svg]:animate-spin'
+                                        : undefined
+                                    }
+                                    disabled={updatingProvider !== null}
+                                    onClick={() => void updateProviderCli(cli.id)}
+                                  >
+                                    Update
+                                  </Button>
+                                </>
+                              )}
                             </span>
                           }
                           description={
@@ -2671,6 +2727,14 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
                             </label>
                           </div>
                         </SettingsRow>
+                        {providerUpdateErrors[cli.id] && (
+                          <details role="alert" className="px-4 pb-3 text-xs text-app-muted">
+                            <summary>Update failed</summary>
+                            <pre className="mt-2 whitespace-pre-wrap break-all">
+                              {providerUpdateErrors[cli.id]}
+                            </pre>
+                          </details>
+                        )}
                         {cli.auth.status === 'missing' &&
                           (cli.id === 'claude' || cli.id === 'codex') && (
                             <div className="flex items-center gap-2 px-4 pb-3 text-xs text-app-muted">
@@ -3199,6 +3263,11 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
               ).map(([key, label, desc]) => {
                 const assignment = routingRoles[key] ?? null
                 const agent = routingCatalog.find((entry) => entry.id === assignment?.agent)
+                const missingModel = missingRoleModels(routingRoles, routingCatalog).includes(key)
+                const replacement = assignment
+                  ? suggestReplacement(assignment.model, agent?.models ?? [])
+                  : null
+                const provider = providers.find((entry) => entry.id === assignment?.agent)
                 const selectedModels = agent?.models ?? []
                 const matchingModels = selectedModels.filter((model) =>
                   `${model.name} ${model.vendor ?? ''} ${model.id}`
@@ -3226,6 +3295,31 @@ export const OrchestSettingsView: React.FC<OrchestSettingsViewProps> = ({
                       <div className="text-[13px] font-medium text-app">{label}</div>
                       <div className="text-xs text-app-muted">{desc}</div>
                     </div>
+                    {missingModel && assignment && (
+                      <div className="space-y-1 text-xs text-app-muted">
+                        <p>
+                          {language === 'es'
+                            ? 'No está en el catálogo de'
+                            : 'Not in the catalog of'}{' '}
+                          {routingAgentName(assignment.agent)}
+                          {provider?.version ? ` ${provider.version}` : ''}
+                        </p>
+                        {replacement && (
+                          <Button
+                            variant="secondary"
+                            size="sm"
+                            onClick={() =>
+                              setRoutingRoles((current) => ({
+                                ...current,
+                                [key]: { ...assignment, model: replacement },
+                              }))
+                            }
+                          >
+                            Use {replacement}
+                          </Button>
+                        )}
+                      </div>
+                    )}
                     <div className="relative">
                       <button
                         type="button"

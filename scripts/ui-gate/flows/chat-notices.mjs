@@ -56,7 +56,8 @@ export default async function chatNotices(ctx) {
   await page.getByRole('button', { name: 'Send message', exact: true }).last().click()
   const failed = await response
   const body = await failed.json()
-  const message = "Model 'modelo-inexistente-xyz' is not available for Codex CLI."
+  const message =
+    "Model 'modelo-inexistente-xyz' is not available for Codex CLI; update the CLI or pick another model in Model routing."
   const alert = page.getByRole('alert').filter({ hasText: message })
   await step(
     'invalid Codex model is classified by the real server',
