@@ -19,7 +19,9 @@ Siguiente, en orden:
    Propuesta pendiente de GO de Carlos: (a) antes del catálogo usar la última ventana medida en `runs` para ese
    provider+modelo; (b) `shell-look.mjs:1072` debe comparar contra la misma petición del composer (con `model`).
 2. "Yearly activity" también crece con el ancho (Carlos solo pidió el mapa día×hora): preguntar si va el mismo tope.
-3. Codex expone modelos `visibility: "hide"` (gpt-reserve) en el selector: revisar si el catálogo los filtra.
+3. ~~Codex `visibility: "hide"` en el selector~~: ya filtrado en `chat-cli-models.ts:80` desde `8e11385d` (USO.3,
+   2026-11-13); los runs `gpt-reserve` son de ese mismo día. Nada que hacer.
+4. **MUT.2**: la del 20-11 bajó a 1 rojo (antes 5); leer la del 21-11 (`44895977056`) al terminar. Detalle en PLAN.md.
 
 Trampas vivas: el hook del repo niega al cerebro editar código en `src/` (lib, executors…) también por Bash → spec +
 `delegate`; `delegate` necesita el ítem abierto en PLAN.md o el preflight para al ejecutor; no editar
