@@ -6,16 +6,20 @@ Arranque: `bun run agent:preflight -- --item <ID> --agent claude`. Lista viva: `
 
 ## Sesión 2026-11-21 — empezar por aquí
 
-Cerrado/subido: **USO.27 `0886e352`** (panel de uso tipo agentlytics: `byHour` en `/api/usage`, runs CLI = sesiones
-por día, `UsageDashboard.tsx` + `lib/usage-stats.ts`), **USO.29 `7d9bd087`** (color de marca por CLI en el panel),
-**CLI.1 `dde94d7d`** (aviso de versión nueva de Codex/Claude con botón Update en Providers; modelo de rol fuera del
-catálogo marcado con sugerencia), MemoriesMD **`56212e9`** (`delegate` sale con 4 ante `model_not_found`).
+Cerrado/subido hoy: USO.27 `0886e352`, USO.29 `7d9bd087`, CLI.1 `dde94d7d`, **USO.30 `f8d75e7f`** (panel de uso con
+tokens del tema; carbon neutro), **USO.31 `a99a71bc`** (logo del proveedor por modelo), **USO.32 `bfa7ca13`** y
+**USO.33 `c0dd0245`** (tabla Models solo con modelos reales vía `modelIdOf`; mapa día×hora `max-w-[480px]` centrado).
+Borrados de la DB (pedido de Carlos): los 2 runs `gpt-reserve` del 2026-11-13 (chat_turns quedan con `run_id` NULL;
+copia previa en `/tmp/db-before-gpt-reserve-delete.sqlite`).
 
 Siguiente, en orden:
-1. **USO.30** — el panel de uso no se acopla al tema: en carbon el hover card sale blanco y heatmaps/minigráficos usan
-   `--app-accent` (#38bdf8). Tokens del tema activo; verificar en vivo en todos los temas de Appearance.
-2. **USO.28** — `ContextRing.tsx:19` muestra "1.1M" para `window` 1000000 (rojo de `shell-look`, ajeno a USO.27).
-   Diagnosticar de dónde sale `maxTokens` antes de tocar.
+1. **USO.28** — diagnosticado, sin tocar: el composer pide `/context?model=<modelo del selector>`; si difiere del
+   modelo del run, `handleApiChatSessionContext` (`src/dashboard/handlers/chat-sessions.ts`) estima la ventana con
+   `contextWindowFor` = catálogo (1 050 000 para gpt-6*), pero Codex mide 475 000 (gpt-6.1-sol) y 258 400 (luna).
+   Propuesta pendiente de GO de Carlos: (a) antes del catálogo usar la última ventana medida en `runs` para ese
+   provider+modelo; (b) `shell-look.mjs:1072` debe comparar contra la misma petición del composer (con `model`).
+2. "Yearly activity" también crece con el ancho (Carlos solo pidió el mapa día×hora): preguntar si va el mismo tope.
+3. Codex expone modelos `visibility: "hide"` (gpt-reserve) en el selector: revisar si el catálogo los filtra.
 
 Trampas vivas: el hook del repo niega al cerebro editar código en `src/` (lib, executors…) también por Bash → spec +
 `delegate`; `delegate` necesita el ítem abierto en PLAN.md o el preflight para al ejecutor; no editar
@@ -23,7 +27,10 @@ Trampas vivas: el hook del repo niega al cerebro editar código en `src/` (lib, 
 tras cerrar exige reabrir→reconcile→cerrar→reconcile (si reconcile dice "Could not prove a closing commit SHA",
 es eso); `boundary-budget` cuenta cada `.json()` → validar con `src/boundary`; texto JSX nuevo → `Texto visible:`;
 evidencia JSON escrita a mano → `biome format --write` antes del commit. Codex viejo (0.155) rechaza modelos nuevos:
-si un delegate falla con exit 4, actualizar Codex.
+si un delegate falla con exit 4, actualizar Codex. Nuevas (USO.30–33): `check-css-budget` cuenta líneas de
+`index.css` (no puede crecer) → variantes por tema en el className (`in-data-[theme=carbon]:…`); GOV.4 bloquea el
+tercer Edit del cerebro tras una delegación → spec + `delegate mecanico`; "Sin delegación:" va en su propia línea del
+ítem o el plan gate lo rechaza; `data-theme` está en `<html>` y en un DIV interno (al simular temas, cambiar ambos).
 
 Pendiente de Carlos: pasar `roster.conf` (criterio/qa/analizar) de gpt-6.1-sol a gpt-6.2-sol (no decidido).
 
