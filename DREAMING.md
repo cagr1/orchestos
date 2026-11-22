@@ -1,10 +1,11 @@
-# DREAMING.md — 2026-11-21
+# DREAMING.md — 2026-11-22
 
-> Análisis automático (scheduled task). `runs-summary.json` exportado 2026-11-20T14:59Z.
-> **Sin runs nuevos desde el informe del 2026-11-20**: el run más reciente en el resumen y en la DB local
-> (`~/.orchestos/db.sqlite`, 1087 runs) sigue siendo 2026-11-19T21:24Z. Los patrones y propuestas de abajo son los
-> mismos del 2026-11-20; ninguna propuesta se aplicó (`scripts/export-runs-summary.ts` sigue sin `failure_kind` ni
-> filtro `gate:`; ni ese archivo ni `src/run/harness.ts` cambiaron desde entonces).
+> Análisis automático (scheduled task). `runs-summary.json` exportado 2026-11-22T01:50Z.
+> **Sin runs nuevos por tercer informe seguido**: el run más reciente en el resumen y en la DB local
+> (`~/.orchestos/db.sqlite`, 1085 runs; 1087 el 21-11, 2 borrados) sigue siendo 2026-11-19T21:24Z. Patrones y propuestas
+> iguales a los del 2026-11-20; ninguna se aplicó (`scripts/export-runs-summary.ts` sigue sin `failure_kind` ni filtro
+> `gate:`; el único cambio desde entonces en `src/db/runs.ts` es `getLatestMeasuredContextWindow` de USO.28, ajeno a esto).
+> Mientras no haya runs nuevos, este informe no aporta: el siguiente cambio útil es decidir las propuestas de abajo.
 
 ## Runs analizados
 - Total: 20 runs
