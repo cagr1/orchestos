@@ -288,6 +288,18 @@ export function getRun(id: string): RunRecord | null {
   return db.query<RunRecord, string>('SELECT * FROM runs WHERE id = ?').get(id) ?? null
 }
 
+export function getLatestMeasuredContextWindow(
+  provider: string,
+  matches: (model: string) => boolean,
+): number | null {
+  const rows = db
+    .query<Pick<RunRecord, 'model' | 'context_window_tokens'>, string>(
+      'SELECT model, context_window_tokens FROM runs WHERE provider = ? AND context_window_tokens > 0 ORDER BY created_at DESC LIMIT 200',
+    )
+    .all(provider)
+  return rows.find((row) => matches(row.model))?.context_window_tokens ?? null
+}
+
 // I.8 (Mes 18) — Runs no tenía forma de borrar registros viejos desde el dashboard.
 export function deleteRun(id: string): boolean {
   return db.transaction(() => {

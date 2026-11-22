@@ -1070,6 +1070,10 @@ export default async function shellLook({
     { stdio: 'pipe' },
   )
   const context = await api(`/api/chat/sessions/${contextSession.id}/context?project=none`)
+  const composerContext = page.waitForResponse(
+    (r) =>
+      /\/api\/chat\/sessions\/[^/]+\/context/.test(r.url()) && r.url().includes(contextSession.id),
+  )
   await page.reload({ waitUntil: 'domcontentloaded' })
   await page.getByRole('button', { name: 'Dev', exact: true }).click()
   await page.locator('[data-dev-session-tabs]').waitFor({ state: 'visible' })
@@ -1100,14 +1104,28 @@ export default async function shellLook({
   const tooltip = page.locator('[data-composer-region] [role="tooltip"]')
   await tooltip.waitFor({ state: 'visible' })
   const tooltipText = await tooltip.innerText()
+  const composerResponse = await composerContext
+  const composerContextData = await composerResponse.json()
+  const compact = (value) => {
+    const tokens = Number(value)
+    if (tokens < 1000) return `${tokens}`
+    if (tokens < 1_000_000) return `${Math.round(tokens / 1000)}K`
+    return `${Number((tokens / 1_000_000).toFixed(1))}M`
+  }
+  const expectedTooltip = `${compact(composerContextData.used)} / ${compact(composerContextData.window)} ${Math.round(Math.min(100, Math.max(0, composerContextData.pct)))}%`
   await step(
     'context popover shows only compact window and percent',
     context.data?.used === 14661 &&
       context.data?.window === 1000000 &&
-      tooltipText.replace(/\s+/g, ' ').trim() === '15K / 1M 1%' &&
+      tooltipText.replace(/\s+/g, ' ').trim() === expectedTooltip &&
       !/gpt|claude|codex|medido|estimado/i.test(tooltipText) &&
       (await ring.getAttribute('title')) === null,
-    JSON.stringify({ context: context.data, tooltipText }),
+    JSON.stringify({
+      context: context.data,
+      composerContext: composerContextData,
+      composerContextUrl: composerResponse.url(),
+      tooltipText,
+    }),
   )
   const ringLayout = await page.evaluate(() => {
     const header = document.querySelector('[data-shell-header]')

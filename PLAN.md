@@ -436,10 +436,16 @@ esta etapa: `docs/done/bloque-AUD.md` (AUD.16, AUD.17), `docs/done/bloque-SES.md
   Gate en vivo: navegador del panel contra el dashboard real y `shell-look` (pasos del heatmap) — `docs/done/evidence/USO.27-live.json`
   Texto visible: "Usage & Spend", "Input", "Output", "runs ·", "tokens" (etiquetas de datos y leyendas de gráfico: un número o una barra sin nombre no dice qué mide)
   Ejecutado por: gpt-6.1-sol (criterio, partes A y B) + claude-opus-5-5 (3 ajustes tras el gate en vivo) · Spec: docs/specs/USO.27-A.md, docs/specs/USO.27-B.md
-- [ ] **USO.28 — El aro de contexto del composer muestra "1.1M" para una ventana de 1M.** (visto 2026-11-21 en
+- [x] **USO.28 — El aro de contexto del composer muestra "1.1M" para una ventana de 1M.** (visto 2026-11-21 en
   `shell-look` al cerrar USO.27: `context.window` 1000000, tooltip "15K / 1.1M"; el gate espera "15K / 1M 1%")
   `ContextRing.tsx:19` formatea `maxTokens`, que no es el `window` de `/context`. Diagnosticar de dónde sale ese
   valor (¿catálogo de Codex actualizado hoy?) antes de tocar. Va después de CLI.1.
+  Causa (2026-11-21): el composer pide `/context?model=<selector>`; si difiere del run, la ventana sale del catálogo.
+  GO de Carlos (a)+(b): ventana medida más reciente del mismo provider+modelo antes del catálogo
+  (`getLatestMeasuredContextWindow`, `src/db/runs.ts`); `shell-look` compara el tooltip con la respuesta que recibió el
+  composer.
+  Gate en vivo: `shell-look` contra dashboard real con home temporal (pasos del aro) — `docs/done/evidence/USO.28-live.json`
+  Ejecutado por: gpt-6.1-sol (criterio) · Spec: docs/specs/USO.28.md
 - [x] **USO.29 — Color propio por CLI en el panel de uso.** (Carlos, 2026-11-21: no distinguía a los agentes, todo
   usaba el acento) Solo en Settings → Usage: `agentColor`/`vendorColor` en `lib/usage-stats.ts` (Claude Code
   naranja #D97757, Codex con el color de texto del tema, DeepSeek morado, OpenRouter índigo, OpenCode turquesa,
@@ -478,6 +484,9 @@ esta etapa: `docs/done/bloque-AUD.md` (AUD.16, AUD.17), `docs/done/bloque-SES.md
   they work" baja a `max-w-[480px]` centrado (Carlos: seguía grande y debía ir al centro; ~15 px por cuadro).
   Gate en vivo: navegador del panel contra el dashboard real (tabla Models expandida y mapa a 1800 px) — `docs/done/evidence/USO.33-live.json`
   Ejecutado por: gpt-6-luna (mecanico, normalización y test) + claude-opus-5-5 (mapa) · Spec: docs/specs/USO.33.md (nunca commiteado, borrado)
+- [ ] **USO.34 — Yearly activity con tope de ancho; carbon sin clases de paleta en Usage.** (Carlos, 2026-11-21: mismo
+  tope que el mapa día×hora) Además `shell-look` "settings usage no palette" en rojo por `in-data-[theme=carbon]:…zinc-300`
+  de USO.30 en `UsageDashboard.tsx`: pasar a `app-text`. Spec: `docs/specs/USO.34.md`.
 - [x] **CLI.1 — Aviso de actualización de Codex/Claude y modelo de rol que ya no existe.** (Carlos, 2026-11-21, GO)
   Origen: `delegate criterio` falló con `model_not_found` para gpt-6.1-sol porque corría Codex 0.155.1; con 0.171.0
   funciona. (1) `cli-updates.ts`: última versión en npm (`@openai/codex`, `@anthropic-ai/claude-code`), validada con

@@ -290,6 +290,49 @@ describe('CC.2 — chat sessions backend', () => {
     expect(result.missing).toBe(404)
   })
 
+  it('uses the latest measured window for the selected model from the same provider', async () => {
+    const result = await runIsolated(`
+      const { runMigrations } = await import('./src/db/migrate.ts')
+      const { db } = await import('./src/db/sqlite.ts')
+      const fs = await import('node:fs')
+      const path = await import('node:path')
+      fs.writeFileSync(path.join(process.env.ORCHESTOS_HOME, '.orchestos/cache/models.json'), JSON.stringify({ schemaVersion: 2, fetchedAt: Date.now(), models: { 'catalog/test-model': { contextLength: 20000, priceIn: 1, priceOut: 1, supportsReasoning: false, supportsTools: false, maxOutputTokens: 1000, supportsVision: false } } }))
+      const sessions = await import('./src/db/chat-sessions.ts')
+      const turns = await import('./src/db/chat-turns.ts')
+      const { handleApiChatSessionContext } = await import('./src/dashboard/handlers/chat-sessions.ts')
+      runMigrations()
+      const session = sessions.createChatSession({ projectId: null, agent: 'codex' })
+      const claimed = turns.beginTurn({ sessionId: session.id, projectId: null, requestKey: 'measured-window', inputFingerprint: 'measured-window', owner: 'test' })
+      const fixtures = [
+        ['older-sol', 'gpt-6.1-sol via Codex CLI', 'codex', 470000, '2026-11-18T00:00:00.000Z'],
+        ['sol', 'gpt-6.1-sol via Codex CLI', 'codex', 475000, '2026-11-19T00:00:00.000Z'],
+        ['claude-sol', 'gpt-6.1-sol via Codex CLI', 'claude', 999000, '2026-11-20T00:00:00.000Z'],
+        ['luna', 'gpt-6-luna via Codex CLI', 'codex', 258400, '2026-11-21T00:00:00.000Z'],
+      ]
+      for (const [id, model, provider, window, created] of fixtures) {
+        db.run('INSERT INTO runs (id, prompt, task_class, model, provider, status, input_tokens, output_tokens, context_used_tokens, context_window_tokens, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', [id, 'test', 'chat', model, provider, 'done', 30000, 2569, 32569, window, created])
+      }
+      db.run('UPDATE chat_turns SET run_id = ? WHERE id = ?', ['luna', claimed.turn.id])
+      const context = async (model) => (await handleApiChatSessionContext(new URL('http://localhost/api/chat/sessions/' + session.id + '/context?model=' + encodeURIComponent(model)))).json()
+      const selected = await context('gpt-6.1-sol')
+      const catalog = await context('catalog/test-model')
+      db.run('UPDATE runs SET context_used_tokens = NULL WHERE id = ?', ['luna'])
+      const tokenFallback = await context('gpt-6.1-sol')
+      process.stdout.write(JSON.stringify({ selected, catalog, tokenFallback }))
+      db.close()
+    `)
+    expect(result.selected).toEqual({
+      used: 32569,
+      window: 475000,
+      pct: (32569 / 475000) * 100,
+      model: 'gpt-6.1-sol',
+      source: 'estimated',
+      engine: 'codex',
+    })
+    expect(result.catalog).toMatchObject({ window: 20000, source: 'estimated', used: 32569 })
+    expect(result.tokenFallback).toEqual(result.selected)
+  })
+
   it('ignores legacy auxiliary-unassigned envelope fields', async () => {
     const result = await runIsolated(
       `

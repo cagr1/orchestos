@@ -33,7 +33,7 @@ import {
 } from '../../db/chat-turns.ts'
 import { insertConsoleCommand, listConsoleCommands } from '../../db/console-commands.ts'
 import { getRunSteps } from '../../db/run-steps.ts'
-import { getRun } from '../../db/runs.ts'
+import { getLatestMeasuredContextWindow, getRun } from '../../db/runs.ts'
 import {
   approveSessionMessage,
   discardSessionMessage,
@@ -521,7 +521,7 @@ export async function handleApiChatSessionContext(url: URL): Promise<Response> {
   // CX.6.1 — lo medido se conserva; la ventana se estima si el CLI no la dio o el modelo pedido es otro.
   if (run.context_used_tokens != null) {
     const used = run.context_used_tokens
-    const window = await contextWindowFor(model)
+    const window = await windowFor(engine, model)
     return jsonResponse({
       used,
       window,
@@ -532,7 +532,7 @@ export async function handleApiChatSessionContext(url: URL): Promise<Response> {
     })
   }
   const used = run.input_tokens + run.cache_read_tokens + run.cache_write_tokens + run.output_tokens
-  const window = await contextWindowFor(model)
+  const window = await windowFor(engine, model)
   return jsonResponse({
     used,
     window,
@@ -541,6 +541,14 @@ export async function handleApiChatSessionContext(url: URL): Promise<Response> {
     source: 'estimated',
     engine,
   })
+}
+
+async function windowFor(engine: string | null, model: string): Promise<number | null> {
+  return (
+    (engine
+      ? getLatestMeasuredContextWindow(engine, (m) => cleanContextModel(m) === model)
+      : null) ?? (await contextWindowFor(model))
+  )
 }
 
 function cleanContextModel(model: string): string {

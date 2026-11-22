@@ -1,0 +1,24 @@
+{
+  "item": "USO.28",
+  "date": "2026-11-21",
+  "command": "bun run gate:evidence -- --label USO.28-shell-look -- node scripts/ui-gate/run.mjs shell-look",
+  "note": "pasos del aro en verde; el rojo 'settings usage no palette' es regresión de USO.30, va en USO.34",
+  "unit": "bun test src/dashboard/__tests__/chat-sessions.test.ts: 33 pass 0 fail",
+  "steps": [
+    {
+      "nombre": "settings usage no palette",
+      "ok": false,
+      "detalle": "size-2.5 rounded-xs bg-app-accent/20 in-data-[theme=carbon]:bg-zinc-300/20 || size-2.5 rounded-xs bg-app-accent/45 in-data-[theme=carbon]:bg-zinc-300/45 || size-2.5 rounded-xs bg-app-accent/70 in-data-[theme=carbon]:bg-zinc-300/70"
+    },
+    {
+      "nombre": "context popover shows only compact window and percent",
+      "ok": true,
+      "detalle": "{\"context\":{\"used\":14661,\"window\":1000000,\"pct\":1.4661,\"model\":\"gpt-6-luna\",\"source\":\"measured\",\"engine\":\"codex\"},\"composerContext\":{\"used\":14661,\"window\":1000000,\"pct\":1.4661,\"model\":\"gpt-6-luna\",\"source\":\"measured\",\"engine\":\"codex\"},\"composerContextUrl\":\"http://127.0.0.1:51333/api/chat/sessions/557ea752-aab9-4acb-9f7d-68dd9bad4193/context?project=none\",\"tooltipText\":\"15K / 1M\\n1%\"}"
+    },
+    {
+      "nombre": "context ring lives in composer next to send, absent from header",
+      "ok": true,
+      "detalle": "{\"providerLogos\":0,\"headerRings\":0,\"composerRings\":1,\"pageRings\":1,\"ringSharesSendParent\":true,\"tooltipAboveRing\":true}"
+    }
+  ]
+}
