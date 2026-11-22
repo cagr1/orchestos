@@ -228,6 +228,9 @@ esta etapa: `docs/done/bloque-AUD.md` (AUD.16, AUD.17), `docs/done/bloque-SES.md
   37 líneas `[res] scope` de 1984–2335 MB con `oom 0 oom_kill 0`, `[scope] exit 0`; los otros 15 jobs, steps
   skipped. Cierre: una nocturna con 16/16 verdes, o un rojo con log y `[res] scope … oom_kill N>0` (OOM contenido, sin
   "lost communication"). Si vuelve "lost communication" con el scope, la causa no es memoria del árbol del shard.
+  2026-11-22: sin cron desde CI.85 (nocturnas en pausa), la nocturna se reemplaza por una corrida manual completa:
+  https://github.com/cagr1/orchestos/actions/runs/45082749243 (`48279b83`, sin `shard`); con el mismo criterio de
+  cierre, esa corrida cierra MUT.2 o lo deja abierto.
 - [x] **CI.85 — Nocturnas en pausa durante la etapa 2.** (cerrado 2026-11-22; decisión de Carlos del mismo día) Sin
   `schedule` en `.github/workflows/mutation-nightly.yml` (queda `workflow_dispatch` con `shard`); LaunchAgent
   `dev.cagr1.orchestos.nightly-ui-gates` descargado con `launchctl bootout` (el plist sigue). Marca única:
