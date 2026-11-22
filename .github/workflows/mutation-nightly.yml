@@ -4,6 +4,11 @@ on:
   schedule:
     - cron: '0 3 * * *'
   workflow_dispatch:
+    inputs:
+      shard:
+        description: 'Correr solo este shard (vacío = todos)'
+        required: false
+        default: ''
 
 permissions:
   contents: read
@@ -52,10 +57,15 @@ jobs:
             command: mutation:run:context-routing
     steps:
       - uses: actions/checkout@v4
+        if: ${{ !inputs.shard || inputs.shard == matrix.shard }}
       - uses: oven-sh/setup-bun@v2
+        if: ${{ !inputs.shard || inputs.shard == matrix.shard }}
       - run: bun install --frozen-lockfile
+        if: ${{ !inputs.shard || inputs.shard == matrix.shard }}
       - run: bun run typecheck
+        if: ${{ !inputs.shard || inputs.shard == matrix.shard }}
       - name: Mutation run (with resource sampler)
+        if: ${{ !inputs.shard || inputs.shard == matrix.shard }}
         shell: bash
         run: |
           (
@@ -71,10 +81,15 @@ jobs:
                 "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "$mem" "$memory_pressure" "$cpu_pressure" "$process_count"
               ps -eo pid,ppid,pgid,etimes,rss,pcpu,args --sort=-rss | head -6 | \
                 cut -c1-120 | sed 's/^/[res] /'
+              scope_dir=/sys/fs/cgroup/system.slice/mutation-shard.scope
+              if [ -r "$scope_dir/memory.current" ]; then
+                printf '[res] scope %s MB | %s\n' "$(( $(cat "$scope_dir/memory.current") / 1048576 ))" \
+                  "$(grep -E '^(oom|oom_kill) ' "$scope_dir/memory.events" | tr '\n' ' ')"
+              fi
             done
           ) &
           sampler_pid=$!
-          bun run ${{ matrix.command }} &
+          bash scripts/mutation-scope.sh bun run ${{ matrix.command }} &
           command_pid=$!
           if wait "$command_pid"; then
             command_status=0
@@ -85,7 +100,7 @@ jobs:
           wait "$sampler_pid" 2>/dev/null || true
           exit "$command_status"
       - name: Upload mutation report
-        if: always()
+        if: ${{ always() && (!inputs.shard || inputs.shard == matrix.shard) }}
         uses: actions/upload-artifact@v4
         with:
           name: mutation-${{ matrix.shard }}

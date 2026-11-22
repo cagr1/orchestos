@@ -217,6 +217,12 @@ esta etapa: `docs/done/bloque-AUD.md` (AUD.16, AUD.17), `docs/done/bloque-SES.md
   rojo cambia cada noche (16-11 routing-c/engines-b/codex-server-c; 18-11 codex-server/-b; 20-11 codex-server-b;
   21-11 routing-b): no apunta a un mutante fijo. Sin el log del que muere, no hay causa; siguiente paso: que el
   muestreo sobreviva al runner (escribir `[res]` a un artefacto subido por un job aparte o a un step `if: always()`).
+  2026-11-22, la nocturna 45014677461 lleva 2 rojos más ("lost communication": `executors-routing`, `-engines-b`).
+  Descartado el muestreo fuera del runner: un step `if: always()` muere con el runner. (D) tope del kernel para el árbol
+  entero del shard: `scripts/mutation-scope.sh` lo corre en un scope de systemd (`MemoryMax=75%`, sin swap,
+  `OOMPolicy=continue`) con autoprueba de OOM al arrancar; el sampler imprime `[res] scope … MB | oom N oom_kill N`.
+  Spec `docs/specs/MUT-2-scope.md`; `workflow_dispatch` acepta `shard` para probar uno solo. Límite conocido (`qa`):
+  el OOM podría elegir a Stryker en vez del mutante; entonces el shard queda rojo pero con log.
 - [x] **CHK.1 — Las correcciones repetidas pasan a checks, no a texto.** (cerrado 2026-11-17) (Carlos, 2026-11-17; principio del equipo de
   Grok Bot: cada error de un agente se vuelve regla de lint o test en vez de otra instrucción en `AGENTS.md`). Hoy hay
   ~50 memorias `feedback-*` que el agente debe leer y obedecer, sin nada que las haga cumplir; los checks que ya lo
