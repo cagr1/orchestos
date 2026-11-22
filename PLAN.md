@@ -223,6 +223,11 @@ esta etapa: `docs/done/bloque-AUD.md` (AUD.16, AUD.17), `docs/done/bloque-SES.md
   `OOMPolicy=continue`) con autoprueba de OOM al arrancar; el sampler imprime `[res] scope … MB | oom N oom_kill N`.
   Spec `docs/specs/MUT-2-scope.md`; `workflow_dispatch` acepta `shard` para probar uno solo. Límite conocido (`qa`):
   el OOM podría elegir a Stryker en vez del mutante; entonces el shard queda rojo pero con log.
+  Gate en vivo (`1233be00`): dispatch 45041775154 con `shard=context-routing`, verde en 37 min, artefacto subido; log:
+  `[scope] autoprueba ok` (kernel: `oom-kill … oom_memcg=/system.slice/mutation-shard-probe.scope … python3`),
+  37 líneas `[res] scope` de 1984–2335 MB con `oom 0 oom_kill 0`, `[scope] exit 0`; los otros 15 jobs, steps
+  skipped. Cierre: una nocturna con 16/16 verdes, o un rojo con log y `[res] scope … oom_kill N>0` (OOM contenido, sin
+  "lost communication"). Si vuelve "lost communication" con el scope, la causa no es memoria del árbol del shard.
 - [x] **CHK.1 — Las correcciones repetidas pasan a checks, no a texto.** (cerrado 2026-11-17) (Carlos, 2026-11-17; principio del equipo de
   Grok Bot: cada error de un agente se vuelve regla de lint o test en vez de otra instrucción en `AGENTS.md`). Hoy hay
   ~50 memorias `feedback-*` que el agente debe leer y obedecer, sin nada que las haga cumplir; los checks que ya lo
