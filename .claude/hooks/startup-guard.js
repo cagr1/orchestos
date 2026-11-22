@@ -279,6 +279,14 @@ async function checkActions(findings) {
 }
 
 function checkNightlyUiGates(findings) {
+  const pause = readJson(resolve(ROOT, 'scripts/nightly-pause.json'))
+  if (pause?.paused === true) {
+    const since = pause.since ? ` desde ${pause.since}` : ''
+    findings.push(
+      `nocturnas en pausa${since} (CI.85) — reanudar: paused:false en scripts/nightly-pause.json, restaurar el cron de mutation-nightly.yml y bun run nightly:install`,
+    )
+    return
+  }
   const path = resolve(HOME, '.orchestos/nightly/ui-gates-latest.json')
   const result = readJson(path)
   if (result?.preparationError) {

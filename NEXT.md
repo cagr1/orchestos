@@ -86,11 +86,11 @@ auditoría AUD.1–AUD.28 en el orden de la segunda auditoría; lo cerrado está
 4. **Aparcados, no se toman** (`docs/done/aparcados-2026-11-12.md`): CI.19, CI.54, CI.55, CI.57, CI.69, CI.76, CI.81,
    AUD.8, AUD.9, AUD.10, AUD.27, AUD.28. Si uno de esos gates falla, se lee su JSON el mismo día (CI.62 borra el
    `runDir` a las 24 h) y se reabre solo si es producto roto.
-5. **Decisión pendiente de Carlos, con recomendación del cerebro**: pausar la nocturna de ui-gates y la mutación
-   mientras dure la etapa 2. Hoy `AGENTS.md` § "Gates y tests" manda resolver cada rojo nocturno antes del siguiente
-   ítem; medido el 2026-11-10, desde el 2026-11-08 solo 2 de ~30 commits fueron de producto porque cada rojo se volvía
-   un CI.\* prioritario y muchos eran gate desfasado, no producto roto. Sin GO, la regla sigue vigente. Otras
-   pendientes: tamaño por reanudabilidad de ODD; qué ideas de `IDEAS.md` entran al cierre.
+5. **Nocturnas en pausa durante la etapa 2 — decidido por Carlos el 2026-11-22 (CI.85)**: sin ui-gates nocturnos
+   (LaunchAgent descargado, plist intacto) ni cron de mutación; la regla de resolver cada rojo nocturno antes del
+   siguiente ítem queda suspendida (`AGENTS.md` § "Gates y tests"). Motivo: medido el 2026-11-10, desde el 2026-11-08
+   solo 2 de ~30 commits fueron de producto. Reanudar: `paused: false` en `scripts/nightly-pause.json`, restaurar el
+   `schedule` de `.github/workflows/mutation-nightly.yml` y `bun run nightly:install`. Decisiones pendientes: tamaño por reanudabilidad de ODD; qué ideas de `IDEAS.md` entran al cierre.
    - **Aprendizaje de errores (propuesto 2026-11-13, espera GO, va después de SES.1)**: hoy los instincts solo entran a
      tareas (`run/middlewares/instinct-apply.ts`), no al chat; nada se propone solo (`runs analyze` manual, rol
      auxiliary en `analyze/patterns.ts:144`). Diseño propuesto según investigación (Copilot memory, ACE, ExpeL): fallo →

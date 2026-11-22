@@ -228,6 +228,17 @@ esta etapa: `docs/done/bloque-AUD.md` (AUD.16, AUD.17), `docs/done/bloque-SES.md
   37 líneas `[res] scope` de 1984–2335 MB con `oom 0 oom_kill 0`, `[scope] exit 0`; los otros 15 jobs, steps
   skipped. Cierre: una nocturna con 16/16 verdes, o un rojo con log y `[res] scope … oom_kill N>0` (OOM contenido, sin
   "lost communication"). Si vuelve "lost communication" con el scope, la causa no es memoria del árbol del shard.
+- [x] **CI.85 — Nocturnas en pausa durante la etapa 2.** (cerrado 2026-11-22; decisión de Carlos del mismo día) Sin
+  `schedule` en `.github/workflows/mutation-nightly.yml` (queda `workflow_dispatch` con `shard`); LaunchAgent
+  `dev.cagr1.orchestos.nightly-ui-gates` descargado con `launchctl bootout` (el plist sigue). Marca única:
+  `scripts/nightly-pause.json` (`paused: true`); con ella `startup-guard.js` no avisa de ui-gates viejos ni inválidos
+  y dice en una línea que están en pausa y cómo reanudar. Regla "lo rojo de la noche se resuelve a la mañana"
+  suspendida en `AGENTS.md`. Reanudar: `paused: false`, restaurar el cron y `bun run nightly:install`.
+  Evidencia: `bun test tests/hooks/startup-guard.test.ts` 23 pass (2 nuevos: pausa y `paused: false`), `tsc` y biome
+  limpios. Guard en vivo antes: "corrida inválida en 6730e56 — el Mac durmió 30 veces…"; después: "nocturnas en pausa
+  desde 2026-11-22 (CI.85) — reanudar: …". Revisión qa (gpt-6.1-sol): sin defectos en el código; solo marcó como fuera
+  de alcance del spec el workflow y los docs, que edita el cerebro.
+  Ejecutado por: gpt-6-luna (mecanico; workflow y docs: claude-opus-5-5) · Spec: docs/specs/CI-85.md
 - [x] **CHK.1 — Las correcciones repetidas pasan a checks, no a texto.** (cerrado 2026-11-17) (Carlos, 2026-11-17; principio del equipo de
   Grok Bot: cada error de un agente se vuelve regla de lint o test en vez de otra instrucción en `AGENTS.md`). Hoy hay
   ~50 memorias `feedback-*` que el agente debe leer y obedecer, sin nada que las haga cumplir; los checks que ya lo

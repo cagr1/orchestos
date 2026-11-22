@@ -370,6 +370,35 @@ describe('ui-gates nocturnos al arrancar', () => {
       expect(runHook(home, root).stdout).toContain('ui-gates nocturnos: sin corrida en 36 h')
     }
   })
+  it('omite los avisos de nocturnas cuando están en pausa', () => {
+    const { home, root } = makeFixtures({})
+    mkdirSync(join(root, 'scripts'), { recursive: true })
+    writeFileSync(
+      join(root, 'scripts/nightly-pause.json'),
+      JSON.stringify({ paused: true, since: '2026-11-22', reason: 'etapa 2 (CI.85)' }),
+    )
+    writeFileSync(
+      join(home, '.orchestos/nightly/ui-gates-latest.json'),
+      JSON.stringify({
+        finishedAt: new Date(Date.now() - 37 * 3600000).toISOString(),
+        sleeps: [{ at: '2026-11-22T00:00:00Z' }],
+      }),
+    )
+    const output = runHook(home, root).stdout
+    expect(output).toContain('nocturnas en pausa desde 2026-11-22')
+    expect(output).not.toContain('sin corrida en 36 h')
+    expect(output).not.toContain('corrida inválida')
+  })
+  it('reanuda los avisos cuando paused es false', () => {
+    const { home, root } = makeFixtures({})
+    mkdirSync(join(root, 'scripts'), { recursive: true })
+    writeFileSync(join(root, 'scripts/nightly-pause.json'), JSON.stringify({ paused: false }))
+    writeFileSync(
+      join(home, '.orchestos/nightly/ui-gates-latest.json'),
+      JSON.stringify({ finishedAt: new Date(Date.now() - 37 * 3600000).toISOString() }),
+    )
+    expect(runHook(home, root).stdout).toContain('sin corrida en 36 h')
+  })
   it('separa rojos y flaky con SHA y evidencia sin superar ocho líneas', () => {
     const { home, root } = makeFixtures({})
     const path = join(home, '.orchestos/nightly/ui-gates-latest.json')

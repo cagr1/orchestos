@@ -1,8 +1,10 @@
 name: Mutation Shards
 
 on:
-  schedule:
-    - cron: '0 3 * * *'
+  # Nocturna en pausa durante la etapa 2 (CI.85, Carlos 2026-11-22). Reanudar: restaurar
+  #   schedule:
+  #     - cron: '0 3 * * *'
+  # y poner `paused: false` en scripts/nightly-pause.json.
   workflow_dispatch:
     inputs:
       shard:
