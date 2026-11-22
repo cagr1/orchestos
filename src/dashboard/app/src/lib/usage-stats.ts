@@ -54,6 +54,8 @@ export function kpis(rows: UsageHourRow[]) {
     runs,
     turns,
     inputTokens,
+    cacheReadTokens: cacheRead,
+    freshInputTokens: inputTokens - cacheRead,
     outputTokens,
     activeMs,
     cachePct: inputTokens ? (cacheRead / inputTokens) * 100 : 0,

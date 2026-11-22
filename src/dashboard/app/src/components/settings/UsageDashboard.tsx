@@ -29,18 +29,34 @@ import { SettingsGroup, SettingsSegmented } from './primitives'
 
 const levels = [
   'bg-app-elevated',
-  'bg-app-accent/20 in-data-[theme=carbon]:bg-zinc-300/20',
-  'bg-app-accent/45 in-data-[theme=carbon]:bg-zinc-300/45',
-  'bg-app-accent/70 in-data-[theme=carbon]:bg-zinc-300/70',
-  'bg-app-accent in-data-[theme=carbon]:bg-zinc-300',
+  'bg-app-accent/20 in-data-[theme=carbon]:bg-app-text/20',
+  'bg-app-accent/45 in-data-[theme=carbon]:bg-app-text/45',
+  'bg-app-accent/70 in-data-[theme=carbon]:bg-app-text/70',
+  'bg-app-accent in-data-[theme=carbon]:bg-app-text',
 ]
 const focusClass =
   'outline-none focus-visible:ring-2 focus-visible:ring-app-accent focus-visible:ring-offset-1'
+type TokenMetric = 'fresh' | 'cache' | 'output'
+const tokenValue = (day: UsageDay, metric: TokenMetric) =>
+  metric === 'fresh'
+    ? day.freshInputTokens
+    : metric === 'cache'
+      ? day.cacheReadTokens
+      : day.outputTokens
 const agentSegments = (day: UsageDay) => {
-  const byAgentName = new Map<string, { agent: string; input: number; output: number }>()
+  const byAgentName = new Map<
+    string,
+    { agent: string; fresh: number; cache: number; output: number }
+  >()
   for (const model of day.models) {
-    const entry = byAgentName.get(model.agent) ?? { agent: model.agent, input: 0, output: 0 }
-    entry.input += model.inputTokens
+    const entry = byAgentName.get(model.agent) ?? {
+      agent: model.agent,
+      fresh: 0,
+      cache: 0,
+      output: 0,
+    }
+    entry.fresh += model.freshInputTokens
+    entry.cache += model.cacheReadTokens
     entry.output += model.outputTokens
     byAgentName.set(model.agent, entry)
   }
@@ -50,13 +66,6 @@ const intensity = (value: number, maximum: number) =>
   value === 0 ? 0 : Math.min(4, Math.max(1, Math.ceil((value / Math.max(1, maximum)) * 4)))
 const localeOf = (es: boolean) => (es ? 'es-ES' : 'en-US')
 const dayDate = (date: string) => new Date(`${date}T12:00:00`)
-const longDate = (date: string, es: boolean) =>
-  dayDate(date).toLocaleDateString(localeOf(es), {
-    weekday: 'long',
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric',
-  })
 const shortDate = (date: string, es: boolean) =>
   dayDate(date).toLocaleDateString(localeOf(es), {
     year: 'numeric',
@@ -64,63 +73,59 @@ const shortDate = (date: string, es: boolean) =>
     day: 'numeric',
   })
 
-function daySummary(day: UsageDay, es: boolean) {
-  return `${longDate(day.date, es)} · ${formatUsd(day.usd)}${day.unpriced ? (es ? ' + sin precio' : ' + unpriced') : ''} · ${day.runs} runs · ${day.turns} ${es ? 'turnos' : 'turns'} · input ${formatTokens(day.inputTokens)} (${Math.round(day.cachePct)} % ${es ? 'de caché' : 'cached'}) · output ${formatTokens(day.outputTokens)} · ~${formatDuration(day.activeMs)}`
+const unpricedSuffix = (day: UsageDay, es: boolean) =>
+  day.unpriced ? (es ? ' + sin precio' : ' + unpriced') : ''
+const activitySummary = (day: UsageDay, es: boolean) =>
+  `${shortDate(day.date, es)} · ${day.runs} runs · ${formatUsd(day.usd)}${unpricedSuffix(day, es)}`
+
+function metricSummary(
+  day: UsageDay,
+  key: 'usd' | 'runs' | 'inputTokens' | 'outputTokens' | 'activeMs',
+  es: boolean,
+) {
+  const value =
+    key === 'usd'
+      ? `${formatUsd(day.usd)}${unpricedSuffix(day, es)}`
+      : key === 'runs'
+        ? `${day.runs.toLocaleString(localeOf(es))} · ${day.turns.toLocaleString(localeOf(es))} ${es ? 'turnos' : 'turns'}`
+        : key === 'inputTokens'
+          ? `${formatTokens(day.inputTokens)} · ${Math.round(day.cachePct)} % ${es ? 'de caché' : 'cached'}`
+          : key === 'outputTokens'
+            ? formatTokens(day.outputTokens)
+            : `~${formatDuration(day.activeMs)}`
+  return `${shortDate(day.date, es)} · ${value}`
 }
 
-function DayDetails({ day, es }: { day: UsageDay; es: boolean }) {
-  const active =
-    day.runs || day.turns || day.inputTokens || day.outputTokens || day.usd || day.activeMs
+function TokenDetails({ day, metric, es }: { day: UsageDay; metric: TokenMetric; es: boolean }) {
   return (
     <div className="space-y-2">
-      <div className="font-medium">
-        <span className="capitalize">
-          {dayDate(day.date).toLocaleDateString(localeOf(es), { weekday: 'long' })}
-        </span>
-        {' · '}
-        {shortDate(day.date, es)}
+      <div className="font-medium">{shortDate(day.date, es)}</div>
+      {agentSegments(day).map((segment) => (
+        <div key={segment.agent} className="flex items-center justify-between gap-5">
+          <span className="flex items-center gap-1">
+            <i
+              className="size-2 rounded-xs"
+              style={{ backgroundColor: agentColor(segment.agent) }}
+            />
+            {segment.agent}
+          </span>
+          <span>{formatTokens(segment[metric])}</span>
+        </div>
+      ))}
+      <div className="flex justify-between gap-5 border-t border-current/20 pt-2">
+        <span>Total</span>
+        <span>{formatTokens(tokenValue(day, metric))}</span>
       </div>
-      {active ? (
-        <>
-          <div className="flex justify-between gap-5">
-            <span>{es ? 'Gasto' : 'Spend'}</span>
-            <span>
-              {formatUsd(day.usd)}
-              {day.unpriced ? (es ? ' + sin precio' : ' + unpriced') : ''}
-            </span>
-          </div>
-          <div>
-            {day.runs} runs · {day.turns} {es ? 'turnos' : 'turns'}
-          </div>
-          <div>
-            Input {formatTokens(day.inputTokens)} · {Math.round(day.cachePct)} %{' '}
-            {es ? 'de caché' : 'cached'}
-          </div>
-          <div>
-            Output {formatTokens(day.outputTokens)} · ~{formatDuration(day.activeMs)}
-          </div>
-          <div className="space-y-1 border-t border-current/20 pt-2">
-            {day.models.slice(0, 5).map((model) => (
-              <div key={`${model.model}-${model.agent}`} className="text-[10px]">
-                <span className="font-mono break-all">{model.model}</span> · {model.agent} —{' '}
-                {model.runs} runs · {formatUsd(model.usd)}
-                {model.unpriced ? ' +' : ''} ·{' '}
-                {formatTokens(model.inputTokens + model.outputTokens)} tokens
-              </div>
-            ))}
-            {day.models.length > 5 && (
-              <div>
-                +{day.models.length - 5} {es ? 'más' : 'more'}
-              </div>
-            )}
-          </div>
-        </>
-      ) : (
-        <div>{es ? 'Sin actividad' : 'No activity'}</div>
-      )}
     </div>
   )
 }
+
+const tokenSummary = (day: UsageDay, metric: TokenMetric, es: boolean) =>
+  [
+    shortDate(day.date, es),
+    ...agentSegments(day).map((segment) => `${segment.agent} ${formatTokens(segment[metric])}`),
+    `Total ${formatTokens(tokenValue(day, metric))}`,
+  ].join(' · ')
 
 type HoverBinding = (
   content: ReactNode,
@@ -285,44 +290,46 @@ function AnnualActivity({
           {(bind) => (
             <div className="relative">
               <div ref={scroll} className="overflow-x-auto pb-1">
-                <div className="mb-1 grid grid-cols-[repeat(53,minmax(8px,1fr))] gap-[3px] text-[10px] text-app-muted">
-                  {Array.from({ length: 53 }, (_, week) => {
-                    const day = days[week * 7]
-                    const previous = days[(week - 1) * 7]
-                    return (
-                      <span key={day.date}>
-                        {!previous || day.date.slice(0, 7) !== previous.date.slice(0, 7)
-                          ? dayDate(day.date).toLocaleDateString(localeOf(es), { month: 'short' })
-                          : ''}
-                      </span>
-                    )
-                  })}
-                </div>
-                <div
-                  data-heatmap-grid
-                  className="grid grid-cols-[repeat(53,minmax(8px,1fr))] gap-[3px]"
-                >
-                  {Array.from({ length: 53 }, (_, week) => (
-                    <div key={days[week * 7].date} className="flex min-w-0 flex-col gap-[3px]">
-                      {days.slice(week * 7, week * 7 + 7).map((day) => (
-                        <motion.button
-                          key={day.date}
-                          type="button"
-                          data-heatmap-cell
-                          data-date={day.date}
-                          initial={reduce ? false : { opacity: 0, scale: 0.6 }}
-                          animate={{ opacity: 1, scale: 1 }}
-                          transition={
-                            reduce
-                              ? { duration: 0 }
-                              : { ...spring.fast, delay: (week / 52) * spring.slow.duration * 2 }
-                          }
-                          className={`aspect-square w-full cursor-pointer rounded-[2px] transition-colors hover:ring-1 hover:ring-app-accent in-data-[theme=carbon]:hover:ring-zinc-300 ${focusClass} ${levels[day.runs === 0 ? 0 : day.runs < 2 ? 1 : day.runs < 5 ? 2 : day.runs < 10 ? 3 : 4]}`}
-                          {...bind(<DayDetails day={day} es={es} />, daySummary(day, es))}
-                        />
-                      ))}
-                    </div>
-                  ))}
+                <div className="mx-auto max-w-[960px]">
+                  <div className="mb-1 grid grid-cols-[repeat(53,minmax(8px,1fr))] gap-[3px] text-[10px] text-app-muted">
+                    {Array.from({ length: 53 }, (_, week) => {
+                      const day = days[week * 7]
+                      const previous = days[(week - 1) * 7]
+                      return (
+                        <span key={day.date}>
+                          {!previous || day.date.slice(0, 7) !== previous.date.slice(0, 7)
+                            ? dayDate(day.date).toLocaleDateString(localeOf(es), { month: 'short' })
+                            : ''}
+                        </span>
+                      )
+                    })}
+                  </div>
+                  <div
+                    data-heatmap-grid
+                    className="grid grid-cols-[repeat(53,minmax(8px,1fr))] gap-[3px]"
+                  >
+                    {Array.from({ length: 53 }, (_, week) => (
+                      <div key={days[week * 7].date} className="flex min-w-0 flex-col gap-[3px]">
+                        {days.slice(week * 7, week * 7 + 7).map((day) => (
+                          <motion.button
+                            key={day.date}
+                            type="button"
+                            data-heatmap-cell
+                            data-date={day.date}
+                            initial={reduce ? false : { opacity: 0, scale: 0.6 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            transition={
+                              reduce
+                                ? { duration: 0 }
+                                : { ...spring.fast, delay: (week / 52) * spring.slow.duration * 2 }
+                            }
+                            className={`aspect-square w-full cursor-pointer rounded-[2px] transition-colors hover:ring-1 hover:ring-app-accent in-data-[theme=carbon]:hover:ring-app-text ${focusClass} ${levels[day.runs === 0 ? 0 : day.runs < 2 ? 1 : day.runs < 5 ? 2 : day.runs < 10 ? 3 : 4]}`}
+                            {...bind(activitySummary(day, es), activitySummary(day, es))}
+                          />
+                        ))}
+                      </div>
+                    ))}
+                  </div>
                 </div>
               </div>
             </div>
@@ -348,6 +355,7 @@ export function UsageDashboard({
   const [range, setRange] = useState<UsageRange>('30d')
   const [agent, setAgent] = useState<string | null>(null)
   const [expanded, setExpanded] = useState(false)
+  const [tokenMetric, setTokenMetric] = useState<'fresh' | 'cache' | 'output'>('fresh')
   const now = new Date()
   if (loading)
     return (
@@ -382,6 +390,10 @@ export function UsageDashboard({
   const before = previous === null ? null : kpis(previous)
   const days = byDay(current, range, now)
   const chart = dayChartStats(days)
+  const maxMetric = Math.max(1, ...days.map((day) => tokenValue(day, tokenMetric)))
+  const tokensPerDay = days.length
+    ? days.reduce((sum, day) => sum + tokenValue(day, tokenMetric), 0) / days.length
+    : 0
   const grid = weekHourGrid(current)
   const models = byModel(current)
   // La tabla de agentes ignora el filtro de agente: así se puede pasar de uno a otro.
@@ -492,10 +504,13 @@ export function UsageDashboard({
                               key={day.date}
                               type="button"
                               className={`relative h-full min-w-0 flex-1 ${focusClass}`}
-                              {...bind(<DayDetails day={day} es={es} />, daySummary(day, es))}
+                              {...bind(
+                                metricSummary(day, metric.key, es),
+                                metricSummary(day, metric.key, es),
+                              )}
                             >
                               <span
-                                className="absolute inset-x-0 bottom-0 rounded-t-xs bg-app-accent/70 in-data-[theme=carbon]:bg-zinc-300/70"
+                                className="absolute inset-x-0 bottom-0 rounded-t-xs bg-app-accent/70 in-data-[theme=carbon]:bg-app-text/70"
                                 style={{
                                   height: `${day[metric.key] > 0 ? Math.max(5, (day[metric.key] / max) * 100) : 0}%`,
                                 }}
@@ -524,56 +539,74 @@ export function UsageDashboard({
                   <h2 className="text-sm font-medium text-app">
                     {es ? 'Tokens por día' : 'Tokens per day'}
                   </h2>
-                  <div className="flex flex-wrap justify-end gap-x-3 gap-y-1 text-[10px] text-app-muted">
-                    {agents.map((row) => (
-                      <span key={row.agent} className="flex items-center gap-1">
-                        <i
-                          className="size-2 rounded-xs"
-                          style={{ backgroundColor: agentColor(row.agent) }}
-                        />
-                        {row.agent}
-                      </span>
-                    ))}
-                    <span>▲ input · ▼ output</span>
-                  </div>
+                  <SettingsSegmented<TokenMetric>
+                    value={tokenMetric}
+                    onChange={setTokenMetric}
+                    ariaLabel={es ? 'Métrica de tokens' : 'Token metric'}
+                    options={[
+                      { value: 'fresh', label: 'Input' },
+                      { value: 'cache', label: es ? 'Caché' : 'Cache' },
+                      { value: 'output', label: 'Output' },
+                    ]}
+                  />
+                </div>
+                <div className="flex flex-wrap gap-x-3 gap-y-1 text-[10px] text-app-muted">
+                  {agents.map((row) => (
+                    <span key={row.agent} className="flex items-center gap-1">
+                      <i
+                        className="size-2 rounded-xs"
+                        style={{ backgroundColor: agentColor(row.agent) }}
+                      />
+                      {row.agent}
+                    </span>
+                  ))}
                 </div>
                 <HoverChart>
                   {(bind) => (
-                    <div className="relative flex h-44 gap-0.5">
-                      <div aria-hidden className="absolute inset-x-0 top-1/2 border-t border-app" />
-                      {days.map((day) => (
-                        <button
-                          type="button"
-                          key={day.date}
-                          className={`relative flex h-full min-w-0 flex-1 flex-col ${focusClass}`}
-                          {...bind(<DayDetails day={day} es={es} />, daySummary(day, es))}
-                        >
-                          <span className="relative flex h-1/2 w-full flex-col-reverse">
-                            {agentSegments(day).map((segment, index, segments) => (
-                              <span
-                                key={segment.agent}
-                                className={index === segments.length - 1 ? 'rounded-t-xs' : ''}
-                                style={{
-                                  height: `${(segment.input / chart.maxInput) * 100}%`,
-                                  backgroundColor: agentColor(segment.agent),
-                                }}
-                              />
-                            ))}
-                          </span>
-                          <span className="relative flex h-1/2 w-full flex-col">
-                            {agentSegments(day).map((segment, index, segments) => (
-                              <span
-                                key={segment.agent}
-                                className={`opacity-45 ${index === segments.length - 1 ? 'rounded-b-xs' : ''}`}
-                                style={{
-                                  height: `${(segment.output / chart.maxOutput) * 100}%`,
-                                  backgroundColor: agentColor(segment.agent),
-                                }}
-                              />
-                            ))}
-                          </span>
-                        </button>
-                      ))}
+                    <div className="flex h-44 gap-2">
+                      <div className="flex w-10 shrink-0 flex-col justify-between text-right text-[10px] tabular-nums text-app-muted">
+                        <span>{formatTokens(maxMetric)}</span>
+                        <span>{formatTokens(maxMetric / 2)}</span>
+                        <span>0</span>
+                      </div>
+                      <div className="relative flex h-full min-w-0 flex-1 gap-0.5">
+                        <div
+                          aria-hidden
+                          className="pointer-events-none absolute inset-x-0 top-0 border-t border-app/50"
+                        />
+                        <div
+                          aria-hidden
+                          className="pointer-events-none absolute inset-x-0 top-1/2 border-t border-app/50"
+                        />
+                        <div
+                          aria-hidden
+                          className="pointer-events-none absolute inset-x-0 bottom-0 border-t border-app/50"
+                        />
+                        {days.map((day) => (
+                          <button
+                            type="button"
+                            key={day.date}
+                            className={`relative flex h-full min-w-0 flex-1 flex-col-reverse ${focusClass}`}
+                            {...bind(
+                              <TokenDetails day={day} metric={tokenMetric} es={es} />,
+                              tokenSummary(day, tokenMetric, es),
+                            )}
+                          >
+                            {agentSegments(day)
+                              .filter((segment) => segment[tokenMetric] > 0)
+                              .map((segment, index, segments) => (
+                                <span
+                                  key={segment.agent}
+                                  className={index === segments.length - 1 ? 'rounded-t-xs' : ''}
+                                  style={{
+                                    height: `${(segment[tokenMetric] / maxMetric) * 100}%`,
+                                    backgroundColor: agentColor(segment.agent),
+                                  }}
+                                />
+                              ))}
+                          </button>
+                        ))}
+                      </div>
                     </div>
                   )}
                 </HoverChart>
@@ -583,7 +616,7 @@ export function UsageDashboard({
                 </div>
                 <p className="text-xs tabular-nums text-app-muted">
                   {chart.activeDays} {es ? 'de' : 'of'} {days.length}{' '}
-                  {es ? 'días con actividad' : 'active days'} · {formatTokens(chart.tokensPerDay)}/
+                  {es ? 'días con actividad' : 'active days'} · {formatTokens(tokensPerDay)}/
                   {es ? 'día' : 'day'}
                 </p>
               </div>

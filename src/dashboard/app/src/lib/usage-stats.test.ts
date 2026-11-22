@@ -129,6 +129,8 @@ describe('usage aggregation', () => {
       runs: 2,
       turns: 4,
       inputTokens: 400,
+      cacheReadTokens: 120,
+      freshInputTokens: 280,
       outputTokens: 100,
       cachePct: 30,
       outputPerTurn: 25,
@@ -138,6 +140,13 @@ describe('usage aggregation', () => {
     expect(kpis([row({ priced: false })]).unpriced).toBe(true)
     expect(kpis([row({ usd: null })]).unpriced).toBe(true)
   })
+  test('KPIs separate cache reads from fresh input including cache writes', () => {
+    expect(kpis([row({ inputTokens: 10, cacheReadTokens: 90, cacheWriteTokens: 5 })])).toMatchObject({
+      inputTokens: 105,
+      cacheReadTokens: 90,
+      freshInputTokens: 15,
+    })
+  })
   test('empty KPIs are finite zeroes', () => {
     expect(kpis([])).toEqual({
       usd: 0,
@@ -145,6 +154,8 @@ describe('usage aggregation', () => {
       runs: 0,
       turns: 0,
       inputTokens: 0,
+      cacheReadTokens: 0,
+      freshInputTokens: 0,
       cachePct: 0,
       outputTokens: 0,
       outputPerTurn: 0,

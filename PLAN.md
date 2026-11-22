@@ -484,9 +484,14 @@ esta etapa: `docs/done/bloque-AUD.md` (AUD.16, AUD.17), `docs/done/bloque-SES.md
   they work" baja a `max-w-[480px]` centrado (Carlos: seguía grande y debía ir al centro; ~15 px por cuadro).
   Gate en vivo: navegador del panel contra el dashboard real (tabla Models expandida y mapa a 1800 px) — `docs/done/evidence/USO.33-live.json`
   Ejecutado por: gpt-6-luna (mecanico, normalización y test) + claude-opus-5-5 (mapa) · Spec: docs/specs/USO.33.md (nunca commiteado, borrado)
-- [ ] **USO.34 — Yearly activity con tope de ancho; carbon sin clases de paleta en Usage.** (Carlos, 2026-11-21: mismo
-  tope que el mapa día×hora) Además `shell-look` "settings usage no palette" en rojo por `in-data-[theme=carbon]:…zinc-300`
-  de USO.30 en `UsageDashboard.tsx`: pasar a `app-text`. Spec: `docs/specs/USO.34.md`.
+- [x] **USO.34 — Settings → Usage: gráficos que dicen lo que miden.** (Carlos, 2026-11-21) (1) Tokens per day: input y
+  output tenían escalas distintas por mitad (50 M y 213 K del mismo alto) → selector Input/Cache/Output, una escala,
+  eje Y rotulado; input sin caché aparte. (2) Las tres series de días mostraban el mismo tooltip completo → cada
+  gráfico muestra solo lo suyo. (3) Yearly activity con tope de ancho centrado, como el mapa día×hora. (4) `shell-look`
+  "settings usage no palette" en rojo por `zinc-300` de USO.30 → `app-text`. Spec: `docs/specs/USO.34.md`.
+  Texto visible: "Input", "Cache", "Caché", "Output", "Total", "Token metric", "Métrica de tokens" (selector y tooltip de un gráfico de datos: sin nombre la barra no dice qué mide)
+  Gate en vivo: `shell-look` (paso nuevo "heatmap capped and centered") + navegador del panel contra el dashboard real — `docs/done/evidence/USO.34-live.json`
+  Ejecutado por: gpt-6.1-sol (criterio, partes 1-4) + mecanico (gate) · Spec: docs/specs/USO.34.md
 - [x] **CLI.1 — Aviso de actualización de Codex/Claude y modelo de rol que ya no existe.** (Carlos, 2026-11-21, GO)
   Origen: `delegate criterio` falló con `model_not_found` para gpt-6.1-sol porque corría Codex 0.155.1; con 0.171.0
   funciona. (1) `cli-updates.ts`: última versión en npm (`@openai/codex`, `@anthropic-ai/claude-code`), validada con

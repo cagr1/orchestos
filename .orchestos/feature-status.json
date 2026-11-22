@@ -335,8 +335,8 @@
       "id": "USO.34",
       "sprint": "Etapa 2 — Uso real",
       "block": null,
-      "title": "Yearly activity con tope de ancho; carbon sin clases de paleta en Usage",
-      "status": "open",
+      "title": "Settings → Usage: gráficos que dicen lo que miden",
+      "status": "done",
       "closedDate": null
     },
     {

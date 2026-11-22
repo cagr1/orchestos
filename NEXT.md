@@ -13,12 +13,12 @@ Borrados de la DB (pedido de Carlos): los 2 runs `gpt-reserve` del 2026-11-13 (c
 copia previa en `/tmp/db-before-gpt-reserve-delete.sqlite`).
 
 Siguiente, en orden:
-1. **USO.28** — diagnosticado, sin tocar: el composer pide `/context?model=<modelo del selector>`; si difiere del
+1. ~~**USO.28**~~ cerrado `7e8204e8`. Era: el composer pide `/context?model=<modelo del selector>`; si difiere del
    modelo del run, `handleApiChatSessionContext` (`src/dashboard/handlers/chat-sessions.ts`) estima la ventana con
    `contextWindowFor` = catálogo (1 050 000 para gpt-6*), pero Codex mide 475 000 (gpt-6.1-sol) y 258 400 (luna).
    Propuesta pendiente de GO de Carlos: (a) antes del catálogo usar la última ventana medida en `runs` para ese
    provider+modelo; (b) `shell-look.mjs:1072` debe comparar contra la misma petición del composer (con `model`).
-2. "Yearly activity" también crece con el ancho (Carlos solo pidió el mapa día×hora): preguntar si va el mismo tope.
+2. ~~Yearly activity~~ + Tokens per day con una escala + tooltip propio por gráfico: USO.34.
 3. ~~Codex `visibility: "hide"` en el selector~~: ya filtrado en `chat-cli-models.ts:80` desde `8e11385d` (USO.3,
    2026-11-13); los runs `gpt-reserve` son de ese mismo día. Nada que hacer.
 4. **MUT.2**: la del 20-11 bajó a 1 rojo (antes 5); leer la del 21-11 (`44895977056`) al terminar. Detalle en PLAN.md.

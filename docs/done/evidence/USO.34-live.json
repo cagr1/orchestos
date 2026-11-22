@@ -1,0 +1,122 @@
+{
+  "item": "USO.34",
+  "date": "2026-11-21",
+  "command": "bun run gate:evidence -- --label USO.34-shell-look -- node scripts/ui-gate/run.mjs shell-look",
+  "result": "pass",
+  "live": {
+    "dashboard": "localhost:4242 con datos reales",
+    "tokensTooltip": "Nov 17, 2026 · Claude Code 444.4K · Codex 2.2M (solo la métrica Input, sin caché)",
+    "kpiAria": "Nov 21, 2026 · $7.27 + unpriced",
+    "yearlyAria": "Nov 21, 2026 · 17 runs · $7.27 + unpriced",
+    "heatmapWidthPx": 698,
+    "paletteClassesInUsage": 0
+  },
+  "unit": "usage-stats.test.ts 19 pass 0 fail",
+  "steps": [
+    {
+      "nombre": "chat: no palette classes in chrome",
+      "ok": true,
+      "detalle": "ninguna"
+    },
+    {
+      "nombre": "settings: no palette classes in chrome",
+      "ok": true,
+      "detalle": "ninguna"
+    },
+    {
+      "nombre": "settings palette text not stretched",
+      "ok": true,
+      "detalle": "{\"settled\":{\"input\":18,\"option\":34},\"samples\":[{\"ms\":60,\"input\":18,\"option\":34},{\"ms\":120,\"input\":18,\"option\":34},{\"ms\":200,\"input\":18,\"option\":34}]}"
+    },
+    {
+      "nombre": "settings palette opaque",
+      "ok": true,
+      "detalle": "rgb(14, 19, 32); alpha=1"
+    },
+    {
+      "nombre": "settings palette opens",
+      "ok": true,
+      "detalle": "{\"searchBox\":{\"x\":14,\"y\":102,\"width\":228,\"height\":28},\"paletteBox\":{\"x\":432,\"y\":229,\"width\":576,\"height\":542}}"
+    },
+    {
+      "nombre": "settings palette finds",
+      "ok": true,
+      "detalle": "first=Ollama Local; no results for zzzz"
+    },
+    {
+      "nombre": "settings palette closes clean",
+      "ok": true,
+      "detalle": "{\"searchBox\":{\"x\":14,\"y\":102,\"width\":228,\"height\":28},\"restoredBox\":{\"x\":14,\"y\":102,\"width\":228,\"height\":28},\"remainingDialogs\":0,\"remainingBackdrops\":0,\"sidebarNavigation\":16,\"navigationVisibility\":[true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true]}"
+    },
+    {
+      "nombre": "settings palette navigates",
+      "ok": true,
+      "detalle": "{\"row\":{\"x\":281,\"y\":130.44065856933594,\"width\":1134,\"height\":52,\"top\":130.44065856933594,\"right\":1415,\"bottom\":182.44065856933594,\"left\":281},\"viewport\":{\"width\":1440,\"height\":1000}}"
+    },
+    {
+      "nombre": "settings palette shortcut",
+      "ok": true,
+      "detalle": "Meta+k"
+    },
+    {
+      "nombre": "settings shortcut does not open the general command palette",
+      "ok": true,
+      "detalle": "general palette count while settings shortcut is open=0"
+    },
+    {
+      "nombre": "settings health no palette",
+      "ok": true,
+      "detalle": "ninguna"
+    },
+    {
+      "nombre": "settings api no palette",
+      "ok": true,
+      "detalle": "ninguna"
+    },
+    {
+      "nombre": "settings model routing no palette",
+      "ok": true,
+      "detalle": "ninguna"
+    },
+    {
+      "nombre": "settings usage no palette",
+      "ok": true,
+      "detalle": "ninguna"
+    },
+    {
+      "nombre": "heatmap capped and centered",
+      "ok": true,
+      "detalle": "{\"grid\":960,\"inner\":1102,\"left\":71,\"right\":71}"
+    },
+    {
+      "nombre": "heatmap tooltip slides",
+      "ok": true,
+      "detalle": "{\"sameNode\":true,\"firstText\":\"Dec 7, 2025 · 0 runs · $0.00\",\"secondText\":\"Nov 1, 2026 · 0 runs · $0.00\",\"firstBox\":{\"x\":422.5,\"y\":346.34375,\"width\":320,\"height\":33.390625},\"secondBox\":{\"x\":1112,\"y\":346.34375,\"width\":320,\"height\":33.390625}}"
+    },
+    {
+      "nombre": "heatmap total",
+      "ok": true,
+      "detalle": "expected=0, actual=0 runs, cells=371"
+    },
+    {
+      "nombre": "heatmap reduced motion",
+      "ok": true,
+      "detalle": "cells=371, opacities=1"
+    },
+    {
+      "nombre": "settings danger zone no palette",
+      "ok": true,
+      "detalle": "ninguna"
+    },
+    {
+      "nombre": "settings language no palette",
+      "ok": true,
+      "detalle": "ninguna"
+    },
+    {
+      "nombre": "command palette shortcut opens and Escape closes in Chat",
+      "ok": true,
+      "detalle": "Meta+k; opened=true; closed=true"
+    }
+  ]
+}

@@ -436,21 +436,31 @@ export default async function shellLook({
         const grid = page.locator('[data-heatmap-grid]')
         await visible(grid)
         const widths = await grid.evaluate((element) => {
-          const card = element.parentElement.parentElement.parentElement
+          const card = element.closest('[data-settings-anchor="usage-activity"]')
           const cs = getComputedStyle(card)
+          const gridRect = element.getBoundingClientRect()
+          const cardRect = card.getBoundingClientRect()
+          const left = gridRect.left - cardRect.left - Number.parseFloat(cs.paddingLeft)
+          const right = cardRect.right - Number.parseFloat(cs.paddingRight) - gridRect.right
           return {
-            grid: element.getBoundingClientRect().width,
+            grid: gridRect.width,
             inner:
               card.clientWidth -
               Number.parseFloat(cs.paddingLeft) -
               Number.parseFloat(cs.paddingRight),
+            left,
+            right,
           }
         })
         await step(
-          'heatmap fills width',
-          widths.inner > 0 && widths.grid >= widths.inner * 0.95,
+          'heatmap capped and centered',
+          widths.inner > 0 &&
+            widths.grid <= 961 &&
+            widths.grid >= Math.min(widths.inner, 960) * 0.95 &&
+            Math.abs(widths.left - widths.right) <= 2,
           JSON.stringify(widths),
         )
+        // USO.34 — tope y centrado como el mapa día×hora (Carlos, 2026-11-21); antes llenaba el ancho.
         // Let the entry wave settle before measuring pointer targets.
         await page.waitForTimeout(600)
         const cells = grid.locator('[data-heatmap-cell]')
