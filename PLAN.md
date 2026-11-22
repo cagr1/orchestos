@@ -212,6 +212,11 @@ esta etapa: `docs/done/bloque-AUD.md` (AUD.16, AUD.17), `docs/done/bloque-SES.md
   2026-11-21, nocturna 44724733840 (20-11, con el tope): 1 de 16 rojo (`executors-codex-server-b`, "lost
   communication", 16:48→18:03; upload falló, log inexistente) frente a 5 el 19-11 y 2 el 18-11. Verdes: pico de memoria
   del runner 3,6–4,5 GB de 16, `bun test` ≤ 368 MB. Mejora, no cierre; falta la nocturna del 21-11 (44895977056).
+  2026-11-22, nocturna 44895977056 (21-11): otra vez 1 de 16 rojo, ahora `executors-routing-b` ("lost communication",
+  13:15→15:15, a las 2h01 de un shard de ~2h15; sin log ni artefacto). Verdes: pico del runner 3,5–4,4 GB. El shard
+  rojo cambia cada noche (16-11 routing-c/engines-b/codex-server-c; 18-11 codex-server/-b; 20-11 codex-server-b;
+  21-11 routing-b): no apunta a un mutante fijo. Sin el log del que muere, no hay causa; siguiente paso: que el
+  muestreo sobreviva al runner (escribir `[res]` a un artefacto subido por un job aparte o a un step `if: always()`).
 - [x] **CHK.1 — Las correcciones repetidas pasan a checks, no a texto.** (cerrado 2026-11-17) (Carlos, 2026-11-17; principio del equipo de
   Grok Bot: cada error de un agente se vuelve regla de lint o test en vez de otra instrucción en `AGENTS.md`). Hoy hay
   ~50 memorias `feedback-*` que el agente debe leer y obedecer, sin nada que las haga cumplir; los checks que ya lo
