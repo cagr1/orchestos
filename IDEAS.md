@@ -67,6 +67,7 @@ _(`#6` graduó a Bloque AA el 2026-08-15. `#31`, `#35` y `#50` fueron ABSORBIDAS
 5. `#42` Auto-repair dirigido.
 8. `#45` Visibilidad de gasto real — API vs CLI (movida desde Medio el 2026-08-18; va **antes**
    que `#57`, que depende de su paso 0).
+9. `#76` Comunicación ejecutor ↔ orquestador: informe estructurado y preguntas a mitad de tarea.
 
 ### Alto
 
@@ -1817,3 +1818,35 @@ de ahí; su estado vive en su SQLite. Propuesta: en Settings del proyecto, tama�
 que borra solo `cache/`, `plugins/cache/` y los logs. Nunca `sessions/`/`thread_history`/`state`: son los hilos que
 retoma `thread/resume` (`codex-app-server.ts:791`). Extra: si Codex permite no descargar el catálogo remoto,
 escribirlo en el config al crear la carpeta (no verificado). No afecta al desarrollo hoy.
+
+### `#76` — Comunicación ejecutor ↔ orquestador: informe estructurado y preguntas a mitad de tarea (2026-11-22, pedido de Carlos)
+
+**Medio-alto. Idea a futuro: no entra en la etapa 2 sin GO de Carlos.** Origen: investigación en solo lectura del
+código (Codex) y de prior art con fuentes (Codex), pedida por Carlos para no inventar lo que ya existe. Informes
+completos fuera del repo: `~/.orca/bots/new-bot/reports/agent-comms-proposal-2026-11-22.txt` y
+`agent-comms-prior-art-2026-11-22.md`.
+
+**Hueco 1 — informe del ejecutor y hallazgos de QA.** Hoy QA persiste `qa_reason` y `qa_criteria_json`
+(`src/run/harness.ts:985`), pero el reintento solo recibe una línea, `Opinión del juez QA: <reason>`
+(`src/run/harness.ts:1033`), recortada a 2.000 caracteres (`src/run/prompt.ts:57`). El ejecutor no devuelve qué hizo,
+qué no, dudas ni hallazgos fuera de contrato; OpenCode ni siquiera devuelve su texto final
+(`src/run/executors/opencode.ts:373`).
+- No inventar el transporte: los tres CLIs ya dan salida JSON validada contra un schema (Claude Agent SDK
+  `structured_output`, `codex exec --output-schema`, OpenCode `format: json_schema`). OrchestOS define solo los campos.
+- Lo que sí es nuestro (ningún estándar lo cubre): el reintento se arma desde un registro inmutable del intento
+  fallido con todos los criterios de QA y checks, ligado a tarea + intento, no desde `retry_reason`.
+
+**Hueco 2 — el ejecutor pregunta a mitad de tarea.** Hoy no existe canal: `TaskStatus` no tiene un estado de espera
+(`src/tasks/schema.ts:13`), las aprobaciones solo cubren comando/edición (`src/run/approvals.ts:10`) y `blocked` termina
+la corrida y descarta el worktree (`src/run/harness.ts:1184`).
+- Puentear la herramienta nativa de cada CLI, como ya hacen T3 Code y Vibe Kanban: Claude `AskUserQuestion` vía
+  `canUseTool`, Codex app-server `item/tool/requestUserInput` (experimental), OpenCode `question`.
+- Respaldo: guardar la pregunta y salir, retomar con la respuesta (OpenHands `ask_user`, Claude `defer` + `--resume`,
+  LangGraph `interrupt()`). Sin proceso residente esperando: costo en KB de SQLite, no en RAM.
+- Modelo de estados: el de A2A (`input-required` distinto de fallo; mensajes y artefactos por tarea), sin montar un
+  servidor A2A. Separar tarea de intento como Orca (`worker_done` / `question` / `reply` por dispatch), para que una
+  respuesta tardía no cierre el reintento equivocado.
+
+**Antes de implementar:** probar en vivo cada mecanismo con la versión instalada de cada CLI; fijar la versión de MCP
+si se usa elicitation (cambió en 2026-07-28). Relacionadas: `#56`, `#65`, `#72`, LRN.1.
+
