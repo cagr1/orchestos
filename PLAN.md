@@ -525,6 +525,20 @@ esta etapa: `docs/done/bloque-AUD.md` (AUD.16, AUD.17), `docs/done/bloque-SES.md
   (`docs/specs/LRN-1-opinion-fable.md:79`). Agregar un segundo destino: si la firma del fallo es detectable en el diff
   o en un test, la graduación propone un test o regla de lint en el repo del usuario, con aprobación humana igual que
   hoy. Va después de LRN.1 F2 (necesita firmas reales). Spec antes de código.
+- [x] **USO.35 — El ejecutor recibe los criterios de aceptación.** (Carlos, 2026-11-22, de IDEAS.md #76) QA los
+  recibe (`src/run/harness.ts:913`) pero el prompt del ejecutor no (`src/run/prompt.ts:42`,
+  `src/run/executors/task-prompt.ts:11`): un requisito que solo está en `acceptance_criteria` falla en QA sin que el
+  ejecutor lo haya visto. Bloque numerado en `userContent`, antes de los inputs. Spec: `docs/specs/USO.35.md`.
+  Gate en vivo: proyecto temporal, Codex gpt-6-luna escribe `note.txt` con los dos requisitos que solo estaban en
+  `acceptance_criteria` y el juez QA (claude-sonnet-5-5) pasa; prompt real leído del rollout de Codex —
+  `docs/done/evidence/USO.35-live.json`
+  Revisión qa (gpt-6.1-sol): sin hallazgos en USO.35.
+  Ejecutado por: claude-sonnet-5-5 (criterio-alt) · Spec: docs/specs/USO.35.md
+- [ ] **USO.36 — El chat ve el diagnóstico de la tarea fallida.** (Carlos, 2026-11-22, de IDEAS.md #76) La tarjeta lleva
+  `taskReport.diagnosis` (`src/dashboard/handlers/task-report.ts:75`), pero el historial que va al modelo es solo
+  role+content (`src/dashboard/handlers/chat.ts:1354`): el modelo ve un resumen de 300 caracteres. Formateador puro que
+  agrega el diagnóstico acotado al contenido del mensaje, marcado como evidencia no confiable. Spec:
+  `docs/specs/USO.36.md`.
 
 ## Etapa 3 — Windows
 

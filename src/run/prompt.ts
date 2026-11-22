@@ -40,6 +40,12 @@ export function buildPrompt(
     .join('\n')
 
   let userContent = `Task: ${task.description}\n`
+  const criteria = (task.acceptance_criteria ?? [])
+    .map((c) => c.replace(/\s+/g, ' ').trim())
+    .filter(Boolean)
+  if (criteria.length > 0) {
+    userContent += `\n## ACCEPTANCE CRITERIA\nThe result is reviewed against each of these criteria; satisfy every one:\n${criteria.map((c, i) => `${i + 1}. ${c}`).join('\n')}\n`
+  }
   for (const file of task.input) {
     let fullPath: string
     try {

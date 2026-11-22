@@ -1,0 +1,31 @@
+{
+  "item": "USO.35",
+  "date": "2026-11-22",
+  "command": "bun run gate:evidence -- --label uso.35-live -- bun src/cli.ts task run --id write-note --sandbox worktree <tmp project>",
+  "fixture": {
+    "description": "Create note.txt with a friendly greeting.",
+    "acceptance_criteria": [
+      "note.txt contains the exact token OKAPI-7731 on its own line",
+      "The last line of note.txt is exactly: end-of-note-ZQ"
+    ],
+    "executor": "codex gpt-6-luna (engine codex)",
+    "reviewer": "claude-sonnet-5-5"
+  },
+  "executorPromptFromCodexRollout": "Task: Create note.txt with a friendly greeting.\n\n## ACCEPTANCE CRITERIA\nThe result is reviewed against each of these criteria; satisfy every one:\n1. note.txt contains the exact token OKAPI-7731 on its own line\n2. The last line of note.txt is exactly: end-of-note-ZQ\n",
+  "producedNoteTxt": "Hello! Hope you’re having a lovely day.\nOKAPI-7731\nend-of-note-ZQ\n",
+  "run": [
+    "[task] Running: write-note",
+    "[task] ✓ write-note done · QA pass — note.txt has 3 lines (confirmed by a line count). OKAPI-7731 is on its own line, and the last line is end-of-note-ZQ.",
+    "[gate:evidence] evidence: 1 exported, 0 duplicate(s)"
+  ],
+  "exit": 0,
+  "firstAttempt": {
+    "note": "fixture v1 said 'one-line greeting', which contradicted criterion 1; the executor wrote both tokens ('Hello there! OKAPI-7731\\nend-of-note-ZQ') and QA failed criterion 1. Fixture fixed, task reset, rerun above.",
+    "run": [
+      "[task] Running: write-note",
+      "[task] ✗ QA fail — The last line is correct, but the token OKAPI-7731 is not on its own line (it shares a line with the greeting).",
+      "[gate:evidence] evidence: 1 exported, 0 duplicate(s)"
+    ]
+  },
+  "cleanup": "rm -rf /tmp/uso35-live-WFx5 (seeded project, its worktrees and agent homes); gate:evidence removed its temporary ORCHESTOS_HOME"
+}

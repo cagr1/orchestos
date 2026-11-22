@@ -1,4 +1,7 @@
 import { describe, expect, it } from 'bun:test'
+import { mkdtempSync, rmSync, writeFileSync } from 'node:fs'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
 import { buildPrompt } from '../run/prompt.ts'
 import type { Task } from '../tasks/schema.ts'
 
@@ -95,5 +98,57 @@ describe('buildPrompt — F1.1 retry feedback', () => {
     const blockIdx = userContent.indexOf('## PREVIOUS ATTEMPT FAILED')
     expect(descIdx).toBeGreaterThan(-1)
     expect(blockIdx).toBeGreaterThan(descIdx)
+  })
+})
+
+describe('buildPrompt — USO.35 acceptance criteria', () => {
+  const block =
+    '\n## ACCEPTANCE CRITERIA\nThe result is reviewed against each of these criteria; satisfy every one:\n1. A\n2. B\n'
+
+  it('leaves userContent unchanged without criteria', () => {
+    for (const acceptance_criteria of [undefined, [], ['  ']]) {
+      const { userContent } = buildPrompt(makeTask({ acceptance_criteria }), '# context', '/tmp')
+      expect(userContent).toBe('Task: do the thing\n')
+    }
+  })
+
+  it('adds the numbered block to userContent only', () => {
+    const { system, userContent } = buildPrompt(
+      makeTask({ acceptance_criteria: ['A', 'B'] }),
+      '# context',
+      '/tmp',
+    )
+    expect(userContent).toBe(`Task: do the thing\n${block}`)
+    expect(system).not.toContain('ACCEPTANCE CRITERIA')
+  })
+
+  it('collapses multi-line criteria to one line', () => {
+    const { userContent } = buildPrompt(
+      makeTask({ acceptance_criteria: ['A\n  x', ' B '] }),
+      '# context',
+      '/tmp',
+    )
+    expect(userContent).toContain('1. A x\n2. B\n')
+  })
+
+  it('places the block after Task, before inputs and before the previous failure', () => {
+    const dir = mkdtempSync(join(tmpdir(), 'uso35-'))
+    try {
+      writeFileSync(join(dir, 'in.txt'), 'hello')
+      const { userContent } = buildPrompt(
+        makeTask({ acceptance_criteria: ['A', 'B'], input: ['in.txt'] }),
+        '# context',
+        dir,
+        undefined,
+        undefined,
+        'boom',
+      )
+      const at = userContent.indexOf('## ACCEPTANCE CRITERIA')
+      expect(at).toBeGreaterThan(userContent.indexOf('Task:'))
+      expect(at).toBeLessThan(userContent.indexOf('### in.txt'))
+      expect(at).toBeLessThan(userContent.indexOf('## PREVIOUS ATTEMPT FAILED'))
+    } finally {
+      rmSync(dir, { recursive: true, force: true })
+    }
   })
 })

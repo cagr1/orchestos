@@ -14,6 +14,7 @@ import { genericCliEngine } from '../run/executors/generic-cli.ts'
 import { taskEngineForCli, validTaskEngineIds } from '../run/executors/task-engines.ts'
 import { buildCliTaskPrompt } from '../run/executors/task-prompt.ts'
 import type { RunContext } from '../run/middleware.ts'
+import { buildPrompt } from '../run/prompt.ts'
 import { validateTask } from '../tasks/schema.ts'
 
 let root: string
@@ -199,6 +200,23 @@ it('substitutes prompt and model literally, reads the actual diff and marks meas
   expect(result.costByIteration[0]?.source).toBe('unknown')
   expect(result.log.join('\n')).not.toContain(ctx.prompt.userContent)
   expect(result.log.join('\n')).toContain('<contract>')
+})
+it('USO.35: the CLI task prompt carries the acceptance criteria', () => {
+  const task = {
+    id: 't1',
+    description: 'do it',
+    executor: 'claude',
+    input: [],
+    output: ['out.txt'],
+    depends_on: [],
+    status: 'pending',
+    retry_count: 0,
+    acceptance_criteria: ['must print ZETA-42'],
+  } as const
+  const prompt = buildPrompt(task as never, 'context', root, 'skill')
+  const text = buildCliTaskPrompt({ ...context(), prompt, task } as unknown as RunContext)
+  expect(text).toContain('## ACCEPTANCE CRITERIA')
+  expect(text).toContain('1. must print ZETA-42')
 })
 it('sends the prompt to stdin and omits modelArgs for default', async () => {
   cli.command = script(

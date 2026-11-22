@@ -356,6 +356,22 @@
       "closedDate": null
     },
     {
+      "id": "USO.35",
+      "sprint": "Etapa 2 — Uso real",
+      "block": null,
+      "title": "El ejecutor recibe los criterios de aceptación",
+      "status": "done",
+      "closedDate": null
+    },
+    {
+      "id": "USO.36",
+      "sprint": "Etapa 2 — Uso real",
+      "block": null,
+      "title": "El chat ve el diagnóstico de la tarea fallida",
+      "status": "open",
+      "closedDate": null
+    },
+    {
       "id": "WIN.1",
       "sprint": "Etapa 3 — Windows",
       "block": null,
