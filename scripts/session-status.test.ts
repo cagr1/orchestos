@@ -21,6 +21,7 @@ import {
   readClaudeStatuslineWiring,
   recordClaudeRateLimitEvent,
   refreshClaudeUsageLive,
+  rememberCodexLimits,
   resetClaudeUsageThrottleForTests,
 } from './session-status.ts'
 
@@ -518,6 +519,24 @@ describe('session status', () => {
         windows: [{ id: 'primary', usedPct: 14, windowMinutes: 300 }],
       },
     })
+  })
+
+  test('USO.37: un timeout de Codex conserva la última lectura buena hasta 15 min', () => {
+    const reader = {}
+    const window = { id: 'primary', usedPct: 14, remainingPct: 86, windowMinutes: 300, resetsAt: 1 }
+    const good = {
+      windows: [window],
+      resetCredits: null,
+    }
+    const empty = { windows: [], resetCredits: null }
+    expect(rememberCodexLimits(reader, empty, 0)).toBe(empty)
+    expect(rememberCodexLimits(reader, good, 1_000)).toBe(good)
+    expect(rememberCodexLimits(reader, empty, 1_000 + 15 * 60_000)).toEqual({
+      windows: [{ ...window, observedAt: new Date(1_000).toISOString() }],
+      resetCredits: null,
+    })
+    expect(rememberCodexLimits(reader, empty, 1_001 + 15 * 60_000)).toBe(empty)
+    expect(rememberCodexLimits({}, empty, 2_000)).toBe(empty)
   })
 
   test('con el mismo reset gana el mayor uso y borra sesiones de más de 7 días', async () => {

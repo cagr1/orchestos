@@ -1,0 +1,135 @@
+{
+  "item": "USO.37",
+  "codex": "codex-cli 0.171.0",
+  "measurement": {
+    "method": "cold spawn `codex app-server`, initialize → initialized → account/rateLimits/read, ms desde el spawn. Percentiles = 30 corridas secuenciales con CODEX_HOME por defecto. Corridas sueltas (salida en consola, no en archivo): 10 secuenciales + 4 pipelined (420–630 ms), 10 con el CODEX_HOME del dashboard (464–852 ms), 4 y 10 en paralelo (473–855 ms); 0 fallos en 68.",
+    "runs": 30,
+    "ok": 30,
+    "initP50": 85,
+    "initMax": 92,
+    "totalP50": 516,
+    "totalP95": 685,
+    "totalMax": 893
+  },
+  "gate": {
+    "how": "dashboard del worktree en :4343 vía gate:evidence (home aislado), proyecto vacío sin transcripts; GET /api/session/status cada 11 s; fase stall = wrapper de codex en PATH que cuelga `app-server` 30 s",
+    "item": "USO.37",
+    "port": 4343,
+    "steps": [
+      {
+        "phase": "normal",
+        "at": "2026-11-22T18:37:54.778Z",
+        "ms": 613,
+        "codexAvailable": true,
+        "source": "codex",
+        "windows": ["primary:2%", "secondary:73%"],
+        "warningsSoFar": 0
+      },
+      {
+        "phase": "normal",
+        "at": "2026-11-22T18:38:06.281Z",
+        "ms": 500,
+        "codexAvailable": true,
+        "source": "codex",
+        "windows": ["primary:2%", "secondary:73%"],
+        "warningsSoFar": 0
+      },
+      {
+        "phase": "normal",
+        "at": "2026-11-22T18:38:17.826Z",
+        "ms": 542,
+        "codexAvailable": true,
+        "source": "codex",
+        "windows": ["primary:2%", "secondary:73%"],
+        "warningsSoFar": 0
+      },
+      {
+        "phase": "normal",
+        "at": "2026-11-22T18:38:29.298Z",
+        "ms": 469,
+        "codexAvailable": true,
+        "source": "codex",
+        "windows": ["primary:2%", "secondary:73%"],
+        "warningsSoFar": 0
+      },
+      {
+        "phase": "normal",
+        "at": "2026-11-22T18:38:40.843Z",
+        "ms": 542,
+        "codexAvailable": true,
+        "source": "codex",
+        "windows": ["primary:2%", "secondary:73%"],
+        "warningsSoFar": 0
+      },
+      {
+        "phase": "normal",
+        "at": "2026-11-22T18:38:52.413Z",
+        "ms": 567,
+        "codexAvailable": true,
+        "source": "codex",
+        "windows": ["primary:2%", "secondary:73%"],
+        "warningsSoFar": 0
+      },
+      {
+        "phase": "stall",
+        "at": "2026-11-22T18:39:06.491Z",
+        "ms": 3075,
+        "codexAvailable": true,
+        "source": "codex",
+        "windows": ["primary:2%", "secondary:73%"],
+        "warningsSoFar": 0
+      },
+      {
+        "phase": "stall",
+        "at": "2026-11-22T18:39:17.626Z",
+        "ms": 79,
+        "codexAvailable": true,
+        "source": "codex",
+        "windows": [
+          "primary:2% observedAt=2026-11-22T18:38:52.412Z",
+          "secondary:73% observedAt=2026-11-22T18:38:52.412Z"
+        ],
+        "warningsSoFar": 1
+      },
+      {
+        "phase": "stall",
+        "at": "2026-11-22T18:39:28.698Z",
+        "ms": 69,
+        "codexAvailable": true,
+        "source": "codex",
+        "windows": [
+          "primary:2% observedAt=2026-11-22T18:38:52.412Z",
+          "secondary:73% observedAt=2026-11-22T18:38:52.412Z"
+        ],
+        "warningsSoFar": 2
+      },
+      {
+        "phase": "stall",
+        "at": "2026-11-22T18:39:39.767Z",
+        "ms": 67,
+        "codexAvailable": true,
+        "source": "codex",
+        "windows": [
+          "primary:2% observedAt=2026-11-22T18:38:52.412Z",
+          "secondary:73% observedAt=2026-11-22T18:38:52.412Z"
+        ],
+        "warningsSoFar": 3
+      },
+      {
+        "phase": "after",
+        "at": "2026-11-22T18:40:01.340Z",
+        "ms": 567,
+        "codexAvailable": true,
+        "source": "codex",
+        "windows": ["primary:2%", "secondary:73%"],
+        "warningsSoFar": 4
+      }
+    ],
+    "warnings": [
+      "[rate-limits] codex app-server sin respuesta de account/rateLimits/read tras 8003 ms (tope 8000 ms)",
+      "[rate-limits] codex app-server sin respuesta de account/rateLimits/read tras 8002 ms (tope 8000 ms)",
+      "[rate-limits] codex app-server sin respuesta de account/rateLimits/read tras 8003 ms (tope 8000 ms)",
+      "[rate-limits] codex app-server sin respuesta de account/rateLimits/read tras 8003 ms (tope 8000 ms)"
+    ]
+  }
+}

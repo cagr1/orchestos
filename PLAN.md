@@ -547,6 +547,21 @@ esta etapa: `docs/done/bloque-AUD.md` (AUD.16, AUD.17), `docs/done/bloque-SES.md
   `docs/done/evidence/USO.36-live.json`
   Revisión qa (gpt-6.1-sol): 1 hallazgo bajo (el sufijo de truncado pasaba el tope por 13 caracteres), corregido.
   Ejecutado por: claude-sonnet-5-5 (criterio-alt) + claude-opus-5-5 (fix del tope) · Spec: docs/specs/USO.36.md
+- [x] **USO.37 — Un timeout del app-server de Codex ya no borra el cupo.** (Carlos, 2026-11-22: `[rate-limits] codex
+  app-server sin respuesta … tras 8004 ms (tope 8000 ms)` en la terminal del dashboard) Medido (codex-cli 0.171.0, spawn
+  en frío, 68 corridas, con el `CODEX_HOME` del dashboard y sin él, hasta 10 en paralelo, 0 fallos): spawn+`initialize`
+  40–90 ms, `account/rateLimits/read` ~400–800 ms; total p50 516 ms, p95 685 ms, máx 893 ms (30 secuenciales). El tope
+  de 8 s está a más de 9× el p95: lo que se ve es un atasco esporádico, no un tope corto, y subirlo no aporta (el
+  handler ya corta la espera del usuario a 3 s, `src/dashboard/handlers/session-status.ts:17`). Arreglo:
+  `rememberCodexLimits` (`scripts/session-status.ts`) conserva la última lectura buena hasta 15 min cuando la lectura
+  en vivo vuelve vacía, con su `observedAt` original por ventana (la UI no la toma por posterior a un reset).
+  Gate en vivo: dashboard del worktree en :4343 vía `gate:evidence`, proyecto sin transcripts, `/api/session/status`
+  cada 11 s (API, sin navegador): 6/6 lecturas normales con el % de Codex y 0 avisos; con `app-server` colgado a
+  propósito, 4/4 respuestas conservan 2 %/73 % con `observedAt` de la última lectura buena (antes: tarjeta sin cupo) —
+  `docs/done/evidence/USO.37-live.json`
+  Revisión qa (gpt-6.1-sol): 1 hallazgo medio (la lectura retenida sin fecha podía pasar por posterior al reset),
+  corregido en r1; segunda revisión sin defectos.
+  Ejecutado por: claude-opus-5-5 (fix chico) + mecanico (test, r1, r2) · Spec: docs/specs/USO.37.md
 
 ## Etapa 3 — Windows
 

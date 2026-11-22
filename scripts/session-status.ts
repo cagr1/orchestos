@@ -389,6 +389,32 @@ interface SessionStatusOptions {
   detectClis?: typeof detectInstalledClis
 }
 
+type CodexLimits = Awaited<ReturnType<typeof readCodexRateLimitsLive>>
+const lastCodexLimits = new WeakMap<object, { limits: CodexLimits; at: number }>()
+export const CODEX_LIMITS_STALE_MS = 15 * 60_000
+
+/** Un atasco esporádico del app-server (USO.37) no borra el cupo: vuelve la última lectura buena reciente. */
+export function rememberCodexLimits(
+  reader: object,
+  limits: CodexLimits,
+  now = Date.now(),
+): CodexLimits {
+  if (limits.windows.length > 0 || limits.resetCredits !== null) {
+    lastCodexLimits.set(reader, { limits, at: now })
+    return limits
+  }
+  const last = lastCodexLimits.get(reader)
+  if (!last || now - last.at > CODEX_LIMITS_STALE_MS) return limits
+  const observedAt = new Date(last.at).toISOString()
+  return {
+    ...last.limits,
+    windows: last.limits.windows.map((window) => ({
+      ...window,
+      observedAt: window.observedAt ?? observedAt,
+    })),
+  }
+}
+
 /** No expone paths ni contenido del transcript: solo métricas normalizadas. */
 export async function readActiveSessionStatus(
   options: SessionStatusOptions = {},
@@ -438,9 +464,12 @@ export async function readActiveSessionStatuses(
   const readCodexLimits = options.readCodexRateLimits ?? readCodexRateLimitsLive
   const liveLimits =
     !explicit && codex?.installed
-      ? await readCodexLimits({
-          binary: codex.binary,
-        })
+      ? rememberCodexLimits(
+          readCodexLimits,
+          await readCodexLimits({
+            binary: codex.binary,
+          }),
+        )
       : { windows: [], resetCredits: null }
 
   for (const [id, candidate] of selected) {
