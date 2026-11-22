@@ -13,6 +13,7 @@ import {
   snapshotChatDocuments,
 } from '../../chat/documents.ts'
 import { extractTextFromImage } from '../../chat/ocr.ts'
+import { modelHistoryFromMessages } from '../../chat/task-diagnosis-context.ts'
 import { loadOrcheConfig } from '../../config/load.ts'
 import type { RoleAgent } from '../../config/schema.ts'
 import { readUserProfile } from '../../config/user-profile.ts'
@@ -1351,7 +1352,7 @@ async function handleApiChat(
     // CC.2 — una sesión es la fuente de verdad de su historia. Ignorar el array
     // enviado por el cliente evita mezclar/injectar mensajes de otra sesión.
     const rawHistory = session
-      ? listChatMessages(session.id).map((row) => ({ role: row.role, content: row.content }))
+      ? modelHistoryFromMessages(listChatMessages(session.id))
       : Array.isArray(body.history)
         ? body.history
         : []

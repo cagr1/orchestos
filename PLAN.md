@@ -534,11 +534,19 @@ esta etapa: `docs/done/bloque-AUD.md` (AUD.16, AUD.17), `docs/done/bloque-SES.md
   `docs/done/evidence/USO.35-live.json`
   Revisión qa (gpt-6.1-sol): sin hallazgos en USO.35.
   Ejecutado por: claude-sonnet-5-5 (criterio-alt) · Spec: docs/specs/USO.35.md
-- [ ] **USO.36 — El chat ve el diagnóstico de la tarea fallida.** (Carlos, 2026-11-22, de IDEAS.md #76) La tarjeta lleva
+- [x] **USO.36 — El chat ve el diagnóstico de la tarea fallida.** (Carlos, 2026-11-22, de IDEAS.md #76) La tarjeta lleva
   `taskReport.diagnosis` (`src/dashboard/handlers/task-report.ts:75`), pero el historial que va al modelo es solo
   role+content (`src/dashboard/handlers/chat.ts:1354`): el modelo ve un resumen de 300 caracteres. Formateador puro que
   agrega el diagnóstico acotado al contenido del mensaje, marcado como evidencia no confiable. Spec:
   `docs/specs/USO.36.md`.
+  `src/chat/task-diagnosis-context.ts`: diagnóstico redactado, tope 6000 caracteres y envuelto en
+  `<untrusted-data source="task-report:diagnosis">`; la historia sigue saliendo solo de la sesión actual.
+  Gate en vivo: dashboard aislado, dos proyectos con una tarea que falla en un check (marcas QUASAR-5521 y
+  NEBULA-8842, fuera del resumen de 300); el chat de A (Codex gpt-6-luna) cita `QUASAR-5521` y `vault/ledger.bin`,
+  no menciona la de B ni crea tarea; contraprueba con `HEAD` sin el arreglo: no la cita —
+  `docs/done/evidence/USO.36-live.json`
+  Revisión qa (gpt-6.1-sol): 1 hallazgo bajo (el sufijo de truncado pasaba el tope por 13 caracteres), corregido.
+  Ejecutado por: claude-sonnet-5-5 (criterio-alt) + claude-opus-5-5 (fix del tope) · Spec: docs/specs/USO.36.md
 
 ## Etapa 3 — Windows
 

@@ -1,0 +1,42 @@
+{
+  "item": "USO.36",
+  "date": "2026-11-22",
+  "command": "bun run gate:evidence -- --label uso.36-live -- bun run ui:gate uso36-live (temporary flow, not committed; spec docs/specs/USO.36-live.md)",
+  "fixture": "two temporary projects a/b; task engine codex gpt-6-luna; check `sh verify.sh` prints 12 noise lines then `FATAL <marker>: ledger checksum mismatch in vault/ledger.bin`, exit 3; markers QUASAR-5521 (a), NEBULA-8842 (b); tasks run via POST /api/tasks/<id>/run with the chat sessionId",
+  "result": "PASS uso36-live 5/5",
+  "steps": [
+    {
+      "name": "a: failed report carries the marker only in the diagnosis",
+      "ok": true,
+      "detail": "content (300-char summary) ends at 'progress line 3 ...…' without the marker; diagnosis.cause and diagnosis.failedCheck.output end with 'FATAL QUASAR-5521: ledger checksum mismatch in vault/ledger.bin (expected 0x51AB, got 0x0000)'"
+    },
+    {
+      "name": "b: failed report carries the marker only in the diagnosis",
+      "ok": true,
+      "detail": "same with NEBULA-8842"
+    },
+    {
+      "name": "chat answer cites the diagnosis details",
+      "ok": true,
+      "detail": "The task failed because `sh verify.sh` exited with code 3 after detecting a ledger checksum mismatch. The exact check output was: `FATAL QUASAR-5521: ledger checksum mismatch in vault/ledger.bin (expected 0x51AB, got 0x0000)`."
+    },
+    {
+      "name": "chat answer has no detail from project b",
+      "ok": true,
+      "detail": "NEBULA-8842 absent"
+    },
+    {
+      "name": "chat created no new task",
+      "ok": true,
+      "detail": "tasks.yaml ids=write-note-a, autoTask=null, taskSuggestion.isTask=false"
+    }
+  ],
+  "chatModel": "gpt-6-luna via Codex CLI (effort: medium)",
+  "counterproof": {
+    "command": "same flow run from `git archive HEAD` (chat.ts without USO.36) in /tmp/uso36-head, label uso.36-counter",
+    "result": "FAIL uso36-live — only 'chat answer cites the diagnosis details' failed",
+    "reply": "The task failed because its QA check, `sh verify.sh`, exited with code **3** (expected 0). The check output identifies `verify.sh` as the file; its stderr began with `progress line 0 ...`. The output shown here does not include any other error detail.",
+    "why": "rules out the chat model reading verify.sh itself: without the fix it never cites the marker"
+  },
+  "cleanup": "flow cleanup purged both projects through /api/projects/<id>/purge and removed their roots; the chat Codex process re-created <root>/.orchestos/agent-home/codex/thread-writer-locks after the purge (residue only, removed by hand); /tmp/uso36-head, ui-gate run dirs and the flow file removed"
+}
