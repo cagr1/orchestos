@@ -1,0 +1,24 @@
+# USO.43 — evidencia en vivo (2026-11-23), bun run src/dashboard/server.ts, ORCHESTOS_HOME temporal, puerto 4391
+
+## 1. Fuente tocada (placeholder 'Search agents… USO43-LIVE' en AgentLauncher.tsx), bundle 10:30
+[dashboard] newer source: src/dashboard/app/src/components/common/AgentLauncher.tsx — running bun run build:app...
+[dashboard] UI bundle rebuilt.
+[dashboard] Server running at http://localhost:4391
+main.js tras arrancar: 10:34; GET /app/dist/main.js contiene: Search agents… USO43-LIVE
+
+## 2. Fuente con error de sintaxis: build falla
+[dashboard] newer source: src/dashboard/app/src/components/common/AgentLauncher.tsx — running bun run build:app...
+[dashboard] The dashboard UI is out of date (newer source: src/dashboard/app/src/components/common/AgentLauncher.tsx) and the rebuild failed. Run "bun run build:app" and restart the dashboard. $ bun run scripts/build-app.ts
+[dashboard] Server running at http://localhost:4391
+GET / contiene: <div role="alert" data-ui-bundle-warning>The dashboard UI is out of date (...) Run "bun run build:app" and restart the dashboard.
+
+## 3. Fuente restaurada (el build fallido borró dist/)
+[dashboard] UI bundle missing — running bun run build:app...
+[dashboard] UI bundle rebuilt.
+[dashboard] Server running at http://localhost:4391
+
+## 4. Rearranque con bundle al día: sin build
+[dashboard] Server running at http://localhost:4391
+
+## Gates
+typecheck 0 · lint 0 · ui-bundle.test.ts 10/0 · test:coverage 3205/0

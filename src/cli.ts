@@ -15,6 +15,7 @@ import { resolveRole } from './config/load.ts'
 import { orchestosDir } from './config/orchestos-home.ts'
 import { buildContextMd, estimateTokens } from './context/compress.ts'
 import { refreshProjectContext } from './context/load.ts'
+import { ensureFreshUiBundle } from './dashboard/ui-bundle.ts'
 import { listConflicts, resolveConflict } from './db/memory.ts'
 import { runMigrations } from './db/migrate.ts'
 import { getProject, listProjects, upsertProject } from './db/projects.ts'
@@ -2164,7 +2165,7 @@ program
     const port = parseInt(opts.port ?? '4242', 10)
 
     // I3: Auto-run bun install if lockfile exists but node_modules missing
-    const { packageRoot, uiBundle } = resolveDashboardPaths(import.meta.url)
+    const { packageRoot } = resolveDashboardPaths(import.meta.url)
     const root = packageRoot
     const hasLock = existsSync(join(root, 'bun.lock')) || existsSync(join(root, 'bun.lockb'))
     const hasMods = existsSync(join(root, 'node_modules'))
@@ -2181,16 +2182,7 @@ program
       }
     }
 
-    if (!existsSync(uiBundle)) {
-      console.log('[dashboard] UI bundle missing — running build:app...')
-      const uiProc = Bun.spawnSync(['bun', 'run', 'build:app'], { cwd: root })
-      if (uiProc.exitCode !== 0) {
-        console.error(
-          `[dashboard] build:app failed (exit ${uiProc.exitCode}): ${uiProc.stderr.toString()}`,
-        )
-        console.error('[dashboard] Run "bun run build:app" manually in the project directory.')
-      }
-    }
+    ensureFreshUiBundle(root)
 
     const { url } = startServer(port)
     console.log(`[dashboard] Open ${url} in your browser`)

@@ -171,6 +171,7 @@ import {
 import { installShutdownSignals } from './shutdown-signals.ts'
 import { createTerminalSession, resolveShellCommand, stopTerminalSessions } from './terminal.ts'
 import { DEFAULT_PORT } from './types.ts'
+import { ensureFreshUiBundle, uiBundleWarning, withUiBundleWarning } from './ui-bundle.ts'
 
 async function withDashboardProject(
   req: Request,
@@ -825,7 +826,13 @@ export function startServer(
       if (req.method === 'POST' && /^\/api\/providers\/[^/]+\/update$/.test(url.pathname))
         server.timeout(req, 0)
       if (url.pathname !== '/api/terminal')
-        return withPageToken(await route(req, server.port ?? port, dashboardBuild), dashboardToken)
+        return withUiBundleWarning(
+          await withPageToken(
+            await route(req, server.port ?? port, dashboardBuild),
+            dashboardToken,
+          ),
+          uiBundleWarning(),
+        )
       if (req.method !== 'GET') return errorResponse('Method not allowed', 405)
       const origin = req.headers.get('origin')
       if (!origin || !isSameOrigin(req, server.port ?? port)) return errorResponse('Forbidden', 403)
@@ -940,5 +947,7 @@ export function startServer(
 
 if (import.meta.main) {
   const port = parseInt(process.env.PORT ?? String(DEFAULT_PORT), 10)
+  const { packageRoot } = resolveDashboardPaths(new URL('../cli.ts', import.meta.url).href)
+  ensureFreshUiBundle(packageRoot)
   startServer(port)
 }

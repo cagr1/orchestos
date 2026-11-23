@@ -206,6 +206,17 @@ esta etapa: `docs/done/bloque-AUD.md` (AUD.16, AUD.17), `docs/done/bloque-SES.md
   revisión `qa`: sin defectos.
   Gate en vivo: navegador Playwright contra el dashboard real, `docs/done/evidence/USO.42-live.json` (`ui:gate agent-launcher` 21/21 bajo `gate:evidence`).
   Ejecutado por: claude-opus-5-5 (fix chico) + gpt-6-luna (mecanico, tests y flujo) · Spec: docs/specs/USO.42.md
+- [x] **USO.43 — El dashboard sirve un bundle de UI viejo tras `git pull`.** (Carlos, 2026-11-23)
+  `bun run src/dashboard/server.ts` servía `src/dashboard/app/dist` sin mirar si correspondía al código (bundle del
+  21-11 tras traer USO.40/42); `orchestos dashboard` solo construía si faltaba. Al arrancar, ambos entrypoints
+  reconstruyen si el bundle falta o es más viejo que `src/dashboard/app` o `scripts/build-app.ts`; si el build falla,
+  aviso en terminal y banner en la página con el comando. `ui:gate` ya construye antes: no cambia.
+  Hecho: `src/dashboard/ui-bundle.ts` (`ensureFreshUiBundle` compara mtimes de `dist/main.js` contra las fuentes,
+  `withUiBundleWarning` inyecta el banner tras `<body>`), llamado desde `server.ts` (`import.meta.main`) y
+  `cli.ts dashboard`. Tests con build inyectado: ausente, viejo, al día, `dist/` ignorado, fallo + banner (10/0).
+  Gates del cerebro: typecheck 0, lint 0, `test:coverage` 3205/0.
+  Gate en vivo: `bun run src/dashboard/server.ts` con fuente tocada, con build roto y al día — `docs/done/evidence/USO.43-live.log`.
+  Ejecutado por: gpt-6.1-sol (criterio) · Spec: docs/specs/USO.43.md
 - [ ] **USO.41 — `ui:gate dev-session-tabs` y `project-isolation` rojos en `HEAD`.** (visto en USO.40, 2026-11-23)
   Ambos fallan en cb5620de sin cambios: `dev-session-tabs` espera `[data-thread-id]` en Chat (`reloadChat`,
   `flows/dev-session-tabs.mjs:149-153`) y desde USO.10 el Chat no lista sesiones de proyecto; `project-isolation`

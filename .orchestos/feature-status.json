@@ -148,6 +148,14 @@
       "closedDate": null
     },
     {
+      "id": "USO.43",
+      "sprint": "Etapa 2 — Uso real",
+      "block": null,
+      "title": "El dashboard sirve un bundle de UI viejo tras `git pull`",
+      "status": "done",
+      "closedDate": null
+    },
+    {
       "id": "USO.41",
       "sprint": "Etapa 2 — Uso real",
       "block": null,
