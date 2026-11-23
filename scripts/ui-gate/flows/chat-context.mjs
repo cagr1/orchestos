@@ -66,16 +66,16 @@ async function startChat(page, agent, projectName) {
     .locator('..')
     .getByRole('button', { name: 'Launch new agent', exact: true })
     .click()
-  const dialog = page.getByRole('dialog')
-  const agentOption = dialog.getByRole('button', { name: new RegExp(agent, 'i') }).first()
+  const dialog = page.getByRole('dialog', { name: 'Launch agent' })
+  const agentOption = dialog.getByRole('option', { name: new RegExp(agent, 'i') }).first()
   await agentOption.waitFor({ state: 'visible', timeout: 15_000 })
-  await agentOption.click()
+
   const responsePromise = page.waitForResponse(
     (response) =>
       response.request().method() === 'POST' &&
       new URL(response.url()).pathname === '/api/chat/sessions',
   )
-  await dialog.getByRole('button', { name: 'Launch Agent', exact: true }).click()
+  await agentOption.click()
   const response = await responsePromise
   const session = await response.json()
   if (session.agent !== agent.toLowerCase())

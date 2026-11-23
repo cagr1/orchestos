@@ -1,0 +1,122 @@
+[
+  {
+    "flujo": "agent-launcher",
+    "pass": true,
+    "steps": [
+      {
+        "nombre": "launcher focuses search on open",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "search filters agents without case sensitivity",
+        "ok": true,
+        "detalle": "Codex\nAgent settings…"
+      },
+      {
+        "nombre": "disabled agent ignores click without creating a tab or session",
+        "ok": true,
+        "detalle": "Gate Missing\nNot installed"
+      },
+      {
+        "nombre": "Enter cannot launch a disabled filtered agent",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "ArrowDown skips disabled agents and wraps: 1",
+        "ok": true,
+        "detalle": "Codex"
+      },
+      {
+        "nombre": "ArrowDown skips disabled agents and wraps: 2",
+        "ok": true,
+        "detalle": "OpenCode"
+      },
+      {
+        "nombre": "ArrowDown skips disabled agents and wraps: 3",
+        "ok": true,
+        "detalle": "Claude"
+      },
+      {
+        "nombre": "ArrowUp skips disabled agents and wraps: 1",
+        "ok": true,
+        "detalle": "OpenCode"
+      },
+      {
+        "nombre": "ArrowUp skips disabled agents and wraps: 2",
+        "ok": true,
+        "detalle": "Codex"
+      },
+      {
+        "nombre": "ArrowUp skips disabled agents and wraps: 3",
+        "ok": true,
+        "detalle": "Claude"
+      },
+      {
+        "nombre": "Escape closes launcher without creating and restores opener focus",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "Enter opens active New session for the selected agent",
+        "ok": true,
+        "detalle": "Claude"
+      },
+      {
+        "nombre": "sidebar click creates a project session and activates its tab",
+        "ok": true,
+        "detalle": "{\"id\":\"600faa49-fcc2-4884-ab35-1496c89359b0\",\"projectId\":\"70037b6ed47616b6\",\"agent\":\"claude\",\"mode\":\"code\",\"title\":\"Agent: Claude on orchestos-agent-launcher-6NZY7J\",\"createdAt\":\"2026-11-23T14:58:18.065Z\",\"updatedAt\":\"2026-11-23T14:58:18.065Z\",\"archivedAt\":null,\"running\":false,\"hasPersistentWork\":false,\"lastPersistentTaskId\":null,\"lastModel\":null,\"lastEffort\":null}"
+      },
+      {
+        "nombre": "launcher uses surface token: orchestos tabs",
+        "ok": true,
+        "detalle": "{\"actual\":\"rgb(14, 19, 32)\",\"expected\":\"rgb(14, 19, 32)\",\"theme\":\"orchestos\"}"
+      },
+      {
+        "nombre": "agent settings opens Providers from tabs in orchestos",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "launcher uses surface token: orchestos sidebar",
+        "ok": true,
+        "detalle": "{\"actual\":\"rgb(14, 19, 32)\",\"expected\":\"rgb(14, 19, 32)\",\"theme\":\"orchestos\"}"
+      },
+      {
+        "nombre": "agent settings opens Providers from sidebar in orchestos",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "launcher uses surface token: light tabs",
+        "ok": true,
+        "detalle": "{\"actual\":\"rgb(255, 255, 255)\",\"expected\":\"rgb(255, 255, 255)\",\"theme\":\"light\"}"
+      },
+      {
+        "nombre": "agent settings opens Providers from tabs in light",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "launcher uses surface token: light sidebar",
+        "ok": true,
+        "detalle": "{\"actual\":\"rgb(255, 255, 255)\",\"expected\":\"rgb(255, 255, 255)\",\"theme\":\"light\"}"
+      },
+      {
+        "nombre": "agent settings opens Providers from sidebar in light",
+        "ok": true,
+        "detalle": "ok"
+      }
+    ],
+    "notes": [],
+    "errores": [],
+    "capturas": [
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-83398/agent-launcher/new-session-agent-menu.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-83398/agent-launcher/agent-launcher-orchestos-tabs.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-83398/agent-launcher/agent-launcher-orchestos-sidebar.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-83398/agent-launcher/agent-launcher-light-tabs.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-83398/agent-launcher/agent-launcher-light-sidebar.png"
+    ]
+  }
+]

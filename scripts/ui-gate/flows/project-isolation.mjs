@@ -17,16 +17,16 @@ async function startChat(page, projectName, agent) {
   const projectButton = page.getByRole('button', { name: projectName, exact: true })
   await projectButton.hover()
   await page.getByRole('button', { name: 'Launch new agent', exact: true }).click()
-  const dialog = page.getByRole('dialog')
-  const option = dialog.getByRole('button', { name: new RegExp(agent, 'i') }).first()
+  const dialog = page.getByRole('dialog', { name: 'Launch agent' })
+  const option = dialog.getByRole('option', { name: new RegExp(agent, 'i') }).first()
   await option.waitFor({ state: 'visible', timeout: 15_000 })
-  await option.click()
+
   const started = page.waitForResponse(
     (response) =>
       response.request().method() === 'POST' &&
       new URL(response.url()).pathname === '/api/chat/sessions',
   )
-  await dialog.getByRole('button', { name: 'Launch Agent', exact: true }).click()
+  await option.click()
   const response = await started
   if (!response.ok()) throw new Error(`Starting ${agent} chat failed: HTTP ${response.status()}`)
   const session = await response.json()

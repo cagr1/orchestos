@@ -58,12 +58,11 @@ async function startChat(page, agentName, step, visible, projectRoot) {
     .locator('..')
     .getByRole('button', { name: 'Launch new agent', exact: true })
     .click()
-  const dialog = page.getByRole('dialog')
-  const agent = dialog.getByRole('button', { name: new RegExp(agentName, 'i') }).first()
+  const dialog = page.getByRole('dialog', { name: 'Launch agent' })
+  const agent = dialog.getByRole('option', { name: new RegExp(agentName, 'i') }).first()
   await step(`select ${agentName} for new chat`, await visible(agent), 'agent option visible')
   if (!(await agent.isVisible())) return false
   await agent.click()
-  await dialog.getByRole('button', { name: 'Launch Agent', exact: true }).click()
   const composer = page.locator('textarea').last()
   await step(
     'composer visible',

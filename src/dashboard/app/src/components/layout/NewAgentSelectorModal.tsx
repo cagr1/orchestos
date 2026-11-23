@@ -105,7 +105,7 @@ export const NewAgentSelectorModal: React.FC<NewAgentSelectorModalProps> = ({
       role="dialog"
       aria-modal="true"
       aria-labelledby="new-agent-title"
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-xs"
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-app-bg/70 backdrop-blur-xs"
     >
       <div className="w-full max-w-md rounded-card bg-app-surface border border-app p-5 shadow-2xl space-y-4">
         <div className="flex items-center justify-between border-b border-app pb-3">
@@ -187,7 +187,7 @@ export const NewAgentSelectorModal: React.FC<NewAgentSelectorModalProps> = ({
             <button
               type="submit"
               disabled={!selectedCli}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-control bg-app-accent text-zinc-950 font-semibold hover:opacity-90 transition-opacity"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-control bg-app-accent text-app-bg font-semibold hover:opacity-90 transition-opacity"
             >
               <Plus className="w-3.5 h-3.5" />
               <span>{isChatMode ? 'Start Chat' : 'Launch Agent'}</span>

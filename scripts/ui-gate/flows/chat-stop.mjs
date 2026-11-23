@@ -115,14 +115,19 @@ export default async function chatStop({ page, api, step, shot, visible, cleanup
       await projectRow.hover()
       await page.getByRole('button', { name: 'Launch new agent', exact: true }).click()
     }
-    const dialog = page.getByRole('dialog')
-    await dialog
-      .getByRole('button', { name: /Claude/ })
-      .first()
-      .click()
-    await dialog
-      .getByRole('button', { name: view === 'Chat' ? 'Start Chat' : 'Launch Agent', exact: true })
-      .click()
+    if (view === 'Chat') {
+      const dialog = page.getByRole('dialog')
+      await dialog
+        .getByRole('button', { name: /Claude/ })
+        .first()
+        .click()
+      await dialog.getByRole('button', { name: 'Start Chat', exact: true }).click()
+    } else {
+      await page
+        .getByRole('dialog', { name: 'Launch agent' })
+        .getByRole('option', { name: /Claude/ })
+        .click()
+    }
     const modelControl = page
       .locator('[data-composer-region] button.font-mono:not([aria-label])')
       .last()

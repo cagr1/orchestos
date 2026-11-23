@@ -72,16 +72,16 @@ export default async function chatAttachments({ page, api, step, shot, visible, 
   await step('temporary project visible', await visible(projectButton), basename(projectRoot))
   await projectButton.hover()
   await page.getByRole('button', { name: 'Launch new agent', exact: true }).click()
-  const dialog = page.getByRole('dialog')
-  const codexOption = dialog.getByRole('button', { name: /Codex/ }).first()
+  const dialog = page.getByRole('dialog', { name: 'Launch agent' })
+  const codexOption = dialog.getByRole('option', { name: /Codex/ }).first()
   await step('Codex agent available', await visible(codexOption), 'Codex option')
-  await codexOption.click()
+
   const startResponse = page.waitForResponse(
     (response) =>
       response.request().method() === 'POST' &&
       new URL(response.url()).pathname === '/api/chat/sessions',
   )
-  await dialog.getByRole('button', { name: 'Launch Agent', exact: true }).click()
+  await codexOption.click()
   const session = await (await startResponse).json()
   if (session.agent !== 'codex')
     throw new Error(`Expected Codex session, received ${session.agent}`)

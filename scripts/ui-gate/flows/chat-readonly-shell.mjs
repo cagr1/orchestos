@@ -50,17 +50,16 @@ async function startChat(page, agent, projectName) {
     .locator('..')
     .getByRole('button', { name: 'Launch new agent', exact: true })
     .click()
-  const dialog = page.getByRole('dialog')
-  await dialog
-    .getByRole('button', { name: new RegExp(agent, 'i') })
-    .first()
-    .click()
   const responsePromise = page.waitForResponse(
     (response) =>
       response.request().method() === 'POST' &&
       new URL(response.url()).pathname === '/api/chat/sessions',
   )
-  await dialog.getByRole('button', { name: 'Launch Agent', exact: true }).click()
+  await page
+    .getByRole('dialog', { name: 'Launch agent' })
+    .getByRole('option', { name: new RegExp(agent, 'i') })
+    .first()
+    .click()
   const session = await (await responsePromise).json()
   if (session.agent !== agent.toLowerCase())
     throw new Error(`Expected ${agent} session, received ${session.agent}`)

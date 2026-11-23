@@ -113,12 +113,11 @@ export default async function chatRestartInterrupted({
 
   await projectRow.hover()
   await page.getByRole('button', { name: 'Launch new agent', exact: true }).click()
-  const dialog = page.getByRole('dialog')
-  await dialog
-    .getByRole('button', { name: /Claude/ })
+  await page
+    .getByRole('dialog', { name: 'Launch agent' })
+    .getByRole('option', { name: /Claude/ })
     .first()
     .click()
-  await dialog.getByRole('button', { name: 'Launch Agent', exact: true }).click()
   await page.locator('[data-composer-region] button.font-mono:not([aria-label])').last().click()
   await page.getByRole('button', { name: /haiku/i }).first().click()
   await page.keyboard.press('Escape')

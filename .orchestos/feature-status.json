@@ -132,6 +132,22 @@
       "closedDate": null
     },
     {
+      "id": "USO.40",
+      "sprint": "Etapa 2 — Uso real",
+      "block": null,
+      "title": "Un solo selector para lanzar agentes, con búsqueda y colores del tema",
+      "status": "done",
+      "closedDate": null
+    },
+    {
+      "id": "USO.41",
+      "sprint": "Etapa 2 — Uso real",
+      "block": null,
+      "title": "`ui:gate dev-session-tabs` y `project-isolation` rojos en `HEAD`",
+      "status": "open",
+      "closedDate": null
+    },
+    {
       "id": "LRN.1",
       "sprint": "Etapa 2 — Uso real",
       "block": null,

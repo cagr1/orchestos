@@ -307,11 +307,10 @@ export default async function chatSettings({ page, api, step, shot, visible, hid
   await projectRow.hover()
   await page.getByRole('button', { name: 'Launch new agent', exact: true }).click()
   await page
-    .getByRole('dialog')
-    .getByRole('button', { name: /Claude/ })
+    .getByRole('dialog', { name: 'Launch agent' })
+    .getByRole('option', { name: /Claude/ })
     .first()
     .click()
-  await page.getByRole('dialog').getByRole('button', { name: 'Launch Agent', exact: true }).click()
   await projectRow.hover()
   const expand = page.getByRole('button', { name: 'Expand agents', exact: true })
   if (await expand.isVisible()) await expand.click()

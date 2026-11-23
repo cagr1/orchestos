@@ -146,13 +146,11 @@ export default async function chatTurnDetails({
     .locator('..')
     .getByRole('button', { name: 'Launch new agent', exact: true })
     .click()
-  const dialog = page.getByRole('dialog')
-  const codex = dialog.getByRole('button', { name: /Codex/ }).first()
+  const dialog = page.getByRole('dialog', { name: 'Launch agent' })
+  const codex = dialog.getByRole('option', { name: /Codex/ }).first()
   await step('select Codex for new chat', await visible(codex), 'visible agent selector')
   if (!(await codex.isVisible())) return
   await codex.click()
-  await page.getByRole('button', { name: 'Launch Agent', exact: true }).click()
-
   const modelControl = page.locator('[data-composer-region] button.font-mono:not([aria-label])')
   await step(
     'model and effort controls visible',

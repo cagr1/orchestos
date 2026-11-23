@@ -232,14 +232,16 @@ export default async function composerPicker({ page, api, step, shot, visible, c
     .locator('..')
     .getByRole('button', { name: 'Launch new agent', exact: true })
     .click()
-  const devDialog = page.getByRole('dialog')
-  await devDialog.getByRole('button', { name: /Codex/ }).first().click()
   const devCreated = page.waitForResponse(
     (response) =>
       response.request().method() === 'POST' &&
       new URL(response.url()).pathname === '/api/chat/sessions',
   )
-  await devDialog.getByRole('button', { name: 'Launch Agent', exact: true }).click()
+  await page
+    .getByRole('dialog', { name: 'Launch agent' })
+    .getByRole('option', { name: /Codex/ })
+    .first()
+    .click()
   const devSession = await (await devCreated).json()
   await page.locator(`[data-thread-id="${devSession.id}"]`).waitFor()
   await page.locator(`[data-session-tab="${devSession.id}"][aria-selected="true"]`).waitFor()

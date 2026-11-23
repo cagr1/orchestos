@@ -17,6 +17,7 @@ import type React from 'react'
 import { useEffect, useState } from 'react'
 import { Tooltip } from '@/components/ui/tooltip'
 import type { AppMode, ChatThread, ProjectItem } from '../../types/orchestos'
+import { AgentLauncher } from '../common/AgentLauncher'
 import { type ProjectAddAction, ProjectAddButton } from '../common/ProjectAddButton'
 import { ProjectIcon } from '../common/ProjectIcon'
 import { ProviderLogo } from '../common/ProviderLogos'
@@ -43,6 +44,7 @@ interface ShellSidebarProps {
   activeProjectId: string
   onSelectProject: (id: string) => void
   onNewProject?: (action: ProjectAddAction) => void
+  onOpenAgentSettings: () => void
   onOpenSettings?: () => void
   onOpenProjectSettings?: (projectId: string) => void
   onDeleteProject?: (projectId: string) => void
@@ -65,6 +67,7 @@ export const ShellSidebar: React.FC<ShellSidebarProps> = ({
   onSelectProject,
   onNewProject,
   onOpenSettings,
+  onOpenAgentSettings,
   onOpenProjectSettings,
   onDeleteProject,
   activeAgentId,
@@ -80,7 +83,11 @@ export const ShellSidebar: React.FC<ShellSidebarProps> = ({
   })
 
   // Modals state
-  const [projectForNewAgent, setProjectForNewAgent] = useState<ProjectItem | null>(null)
+  const [launcher, setLauncher] = useState<{
+    project: ProjectItem
+    anchor: { left: number; top: number }
+    lastAgent: string
+  } | null>(null)
   const [projectToDelete, setProjectToDelete] = useState<ProjectItem | null>(null)
   const [activeMenuProjectId, setActiveMenuProjectId] = useState<string | null>(null)
   const [isNewChatAgentModalOpen, setIsNewChatAgentModalOpen] = useState(false)
@@ -322,10 +329,18 @@ export const ShellSidebar: React.FC<ShellSidebarProps> = ({
                             type="button"
                             onClick={(e) => {
                               e.stopPropagation()
-                              setProjectForNewAgent(proj)
+                              const rect = e.currentTarget.getBoundingClientRect()
+                              setLauncher({
+                                project: proj,
+                                anchor: { left: rect.left, top: rect.bottom + 4 },
+                                lastAgent:
+                                  localStorage.getItem(`orchestos-dev-agent:${proj.id}`) ?? '',
+                              })
                             }}
                             className="p-1 rounded-control text-app-muted hover:text-app hover:bg-app-elevated transition-colors"
                             aria-label="Launch new agent"
+                            aria-haspopup="dialog"
+                            aria-expanded={launcher?.project.id === proj.id}
                           >
                             <Plus className="w-3 h-3" />
                           </button>
@@ -503,16 +518,21 @@ export const ShellSidebar: React.FC<ShellSidebarProps> = ({
         />
       )}
 
-      {/* New Agent Selector Modal */}
-      {projectForNewAgent && (
-        <NewAgentSelectorModal
-          isOpen={!!projectForNewAgent}
-          projectName={projectForNewAgent.name}
-          onClose={() => setProjectForNewAgent(null)}
-          onCreateAgent={(cliId, model, title) => {
-            if (onCreateAgentInProject) {
-              onCreateAgentInProject(projectForNewAgent.id, cliId, model, title)
-            }
+      {launcher && (
+        <AgentLauncher
+          anchor={launcher.anchor}
+          lastAgent={launcher.lastAgent}
+          onClose={() => setLauncher(null)}
+          onOpenSettings={onOpenAgentSettings}
+          onChoose={(option) => {
+            localStorage.setItem(`orchestos-dev-agent:${launcher.project.id}`, option.id)
+            onCreateAgentInProject?.(
+              launcher.project.id,
+              option.id,
+              '',
+              `Agent: ${option.label} on ${launcher.project.name}`,
+            )
+            setLauncher(null)
           }}
         />
       )}

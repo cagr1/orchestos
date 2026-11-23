@@ -306,17 +306,16 @@ export default async function notifications({
   await page.getByRole('button', { name: 'Dev', exact: true }).click()
   await projectRow.hover()
   await page.getByRole('button', { name: 'Launch new agent', exact: true }).click()
-  await page
-    .getByRole('dialog')
-    .getByRole('button', { name: /Claude/ })
-    .first()
-    .click()
   const created = page.waitForResponse(
     (response) =>
       response.request().method() === 'POST' &&
       new URL(response.url()).pathname === '/api/chat/sessions',
   )
-  await page.getByRole('dialog').getByRole('button', { name: 'Launch Agent', exact: true }).click()
+  await page
+    .getByRole('dialog', { name: 'Launch agent' })
+    .getByRole('option', { name: /Claude/ })
+    .first()
+    .click()
   const devSession = await (await created).json()
   sessionId = devSession.id
   const devTab = page.locator(`[data-session-tab="${sessionId}"]`)

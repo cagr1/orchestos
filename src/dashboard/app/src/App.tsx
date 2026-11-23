@@ -2155,6 +2155,7 @@ export default function App() {
               onNewProject={(action) => {
                 void handleNewProject(action)
               }}
+              onOpenAgentSettings={() => handleOpenSettings('providers')}
               onOpenSettings={() => handleOpenSettings(undefined, 'tasks')}
               onOpenProjectSettings={handleOpenProjectSettings}
               activeAgentId={activeAgentId}
@@ -2216,6 +2217,7 @@ export default function App() {
               {mode === 'dev' && (
                 <div className="flex-1 min-w-0 flex flex-col overflow-hidden">
                   <DevSessionTabs
+                    onOpenSettings={() => handleOpenSettings('providers')}
                     agents={currentProject?.agents ?? []}
                     state={activeDevTabs}
                     runningSessionIds={runningSessionIds}

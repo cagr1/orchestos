@@ -1,15 +1,14 @@
 import { GitCompare, Globe, Loader2, Plus, SquareTerminal, X } from 'lucide-react'
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { createPortal } from 'react-dom'
 import { Tooltip } from '@/components/ui/tooltip'
-import { type CliModelCatalog, getCliModels } from '../../api/chat'
 import { getConfig } from '../../api/settings'
 import type { AgentItem } from '../../types/orchestos'
-import { cliDisplayName } from '../common/AgentComposer'
+import { AgentLauncher } from '../common/AgentLauncher'
+import type { LaunchOption } from '../common/agent-launcher'
 import { ProviderLogo } from '../common/ProviderLogos'
 import { FileIcon } from '../ui/file-icon'
 import type { OpenPathRequest } from './file-tabs'
-import { devSessionAction, isFunctionalDevCli } from './new-session-agent'
+import { devSessionAction } from './new-session-agent'
 import type { SessionTabs } from './session-tabs'
 
 export function DevSessionTabs({
@@ -19,6 +18,7 @@ export function DevSessionTabs({
   onSelect,
   onClose,
   onNew,
+  onOpenSettings,
   onPin,
   runningSessionIds,
   dirtyFileTabs,
@@ -29,6 +29,7 @@ export function DevSessionTabs({
   onSelect: (id: string) => void
   onClose: (id: string) => void
   onNew: (action: ReturnType<typeof devSessionAction>) => void
+  onOpenSettings: () => void
   onPin: (request: OpenPathRequest) => void
   runningSessionIds: Set<string>
   dirtyFileTabs: Set<string>
@@ -46,26 +47,12 @@ export function DevSessionTabs({
       disposed = true
     }
   }, [projectId])
-  const [catalogs, setCatalogs] = useState<CliModelCatalog[]>([])
   const [lastAgent, setLastAgent] = useState('')
-  const [menu, setMenu] = useState<{ left: number; top: number } | null>(null)
-  const [selected, setSelected] = useState(0)
+  const [anchor, setAnchor] = useState<{ left: number; top: number } | null>(null)
   const buttonRef = useRef<HTMLButtonElement>(null)
   const tablistRef = useRef<HTMLDivElement>(null)
-  const menuRef = useRef<HTMLDivElement>(null)
   useEffect(() => {
-    let disposed = false
-    void getCliModels()
-      .then((catalogs) => {
-        if (!disposed) setCatalogs(catalogs.filter(isFunctionalDevCli))
-      })
-      .catch(() => {})
-    return () => {
-      disposed = true
-    }
-  }, [])
-  useEffect(() => {
-    setMenu(null)
+    setAnchor(null)
     setLastAgent(localStorage.getItem(`orchestos-dev-agent:${projectId}`) ?? '')
   }, [projectId])
   useEffect(() => {
@@ -109,36 +96,17 @@ export function DevSessionTabs({
       ?.scrollIntoView({ inline: 'nearest', block: 'nearest' })
   }, [state.activeId])
   const fade = `linear-gradient(to right, ${hidden.left ? 'transparent' : '#000'}, #000 24px, #000 calc(100% - 24px), ${hidden.right ? 'transparent' : '#000'})`
-  const options = [...catalogs].sort(
-    (a, b) => Number(b.id === lastAgent) - Number(a.id === lastAgent),
-  )
-  useEffect(() => {
-    if (!menu) return
-    menuRef.current?.querySelectorAll<HTMLButtonElement>('button')[selected]?.focus()
-  }, [menu, selected])
-  useEffect(() => {
-    if (!menu) return
-    const close = (event: MouseEvent) => {
-      if (
-        !menuRef.current?.contains(event.target as Node) &&
-        !buttonRef.current?.contains(event.target as Node)
-      )
-        setMenu(null)
-    }
-    const dismiss = () => setMenu(null)
-    document.addEventListener('mousedown', close)
-    window.addEventListener('resize', dismiss)
-    return () => {
-      document.removeEventListener('mousedown', close)
-      window.removeEventListener('resize', dismiss)
-    }
-  }, [menu])
-  const choose = (agent: string) => {
-    setMenu(null)
-    setLastAgent(agent)
-    localStorage.setItem(`orchestos-dev-agent:${projectId}`, agent)
-    const cli = catalogs.find((cli) => cli.id === agent)
-    if (cli) onNew(devSessionAction(cli))
+  const choose = (option: LaunchOption) => {
+    setAnchor(null)
+    setLastAgent(option.id)
+    localStorage.setItem(`orchestos-dev-agent:${projectId}`, option.id)
+    onNew(
+      devSessionAction({
+        id: option.id,
+        terminal: option.mode.session === 'terminal',
+        chat: option.mode.session === 'chat',
+      }),
+    )
   }
   return (
     <div
@@ -298,67 +266,25 @@ export function DevSessionTabs({
         type="button"
         ref={buttonRef}
         aria-label="New session"
-        aria-haspopup="menu"
-        aria-expanded={!!menu}
-        disabled={!options.length}
-        onClick={() => {
-          if (options.length === 1) return choose(options[0].id)
-          const rect = buttonRef.current!.getBoundingClientRect()
-          setSelected(0)
-          setMenu(
-            menu
-              ? null
-              : { left: Math.min(rect.left, window.innerWidth - 224), top: rect.bottom + 4 },
-          )
+        aria-haspopup="dialog"
+        aria-expanded={!!anchor}
+        onClick={(event) => {
+          const rect = event.currentTarget.getBoundingClientRect()
+          setAnchor(anchor ? null : { left: rect.left, top: rect.bottom + 4 })
         }}
         className="shrink-0 rounded-lg p-2 text-app-muted hover:bg-app-hover hover:text-app"
       >
         <Plus size={16} />
       </button>
-      {menu &&
-        createPortal(
-          <div
-            ref={menuRef}
-            role="menu"
-            aria-label="New session agent"
-            style={menu}
-            className="fixed z-50 w-56 rounded-card bg-app-surface border border-app shadow-2xl p-2 text-xs text-app"
-            onKeyDown={(event) => {
-              if (event.key === 'Escape' || event.key === 'Tab') {
-                setMenu(null)
-                if (event.key === 'Escape') {
-                  event.preventDefault()
-                  buttonRef.current?.focus()
-                }
-              } else if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
-                event.preventDefault()
-                setSelected(
-                  (index) =>
-                    (index + (event.key === 'ArrowDown' ? 1 : -1) + options.length) %
-                    options.length,
-                )
-              }
-            }}
-          >
-            {options.map((option, index) => (
-              <button
-                key={option.id}
-                type="button"
-                role="menuitemradio"
-                aria-label={cliDisplayName(option.id, option.label)}
-                aria-checked={selected === index}
-                tabIndex={selected === index ? 0 : -1}
-                onFocus={() => setSelected(index)}
-                onClick={() => choose(option.id)}
-                className={`w-full flex items-center gap-2 px-2 py-1.5 rounded-control text-left text-app-muted hover:text-app hover:bg-app-elevated/40 ${selected === index ? 'bg-app-elevated/40 text-app' : ''}`}
-              >
-                <ProviderLogo id={option.id} size={14} />
-                {cliDisplayName(option.id, option.label)}
-              </button>
-            ))}
-          </div>,
-          document.body,
-        )}
+      {anchor && (
+        <AgentLauncher
+          anchor={anchor}
+          lastAgent={lastAgent}
+          onChoose={choose}
+          onClose={() => setAnchor(null)}
+          onOpenSettings={onOpenSettings}
+        />
+      )}
     </div>
   )
 }

@@ -699,14 +699,16 @@ export default async function shellLook({
   )
   await page.getByRole('button', { name: basename(projectRoot), exact: true }).click()
   await page.getByRole('button', { name: 'Launch new agent', exact: true }).click()
-  const launchDialog = page.getByRole('dialog')
-  await launchDialog.getByRole('button', { name: /Codex/ }).first().click()
   const sessionResponse = page.waitForResponse(
     (response) =>
       response.request().method() === 'POST' &&
       new URL(response.url()).pathname === '/api/chat/sessions',
   )
-  await launchDialog.getByRole('button', { name: 'Launch Agent', exact: true }).click()
+  await page
+    .getByRole('dialog', { name: 'Launch agent' })
+    .getByRole('option', { name: /Codex/ })
+    .first()
+    .click()
   const devSession = await (await sessionResponse).json()
   await api(`/api/chat/sessions/${devSession.id}`, {
     method: 'PATCH',

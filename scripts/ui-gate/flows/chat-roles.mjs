@@ -65,16 +65,16 @@ export default async function chatRoles({ page, api, step, shot, visible, cleanu
     .locator('..')
     .getByRole('button', { name: 'Launch new agent', exact: true })
     .click()
-  const dialog = page.getByRole('dialog')
-  const codexOption = dialog.getByRole('button', { name: /Codex/ }).first()
+  const dialog = page.getByRole('dialog', { name: 'Launch agent' })
+  const codexOption = dialog.getByRole('option', { name: /Codex/ }).first()
   await step(
     'Codex available for Dev session',
     await visible(codexOption),
     `Codex option visible: ${await codexOption.innerText()}`,
   )
-  await codexOption.click()
+
   await shot('dev-agent-selected')
-  await dialog.getByRole('button', { name: 'Launch Agent', exact: true }).click()
+  await codexOption.click()
   // No wait for the agent tab: text typed in the "new" tab while the agent launches must
   // reach the launched session (USO.12 moves the draft).
 

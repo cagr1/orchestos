@@ -76,12 +76,11 @@ export default async function chatPermissions({ page, api, step, shot, visible, 
     .locator('..')
     .getByRole('button', { name: 'Launch new agent', exact: true })
     .click()
-  const dialog = page.getByRole('dialog')
-  const codex = dialog.getByRole('button', { name: /Codex/ }).first()
+  const dialog = page.getByRole('dialog', { name: 'Launch agent' })
+  const codex = dialog.getByRole('option', { name: /Codex/ }).first()
   await step('select Codex for new chat', await visible(codex), 'Codex option visible')
   if (!(await codex.isVisible())) return
   await codex.click()
-  await page.getByRole('button', { name: 'Launch Agent', exact: true }).click()
 
   // 1 — Yolo por defecto
   const composerRegion = page.locator('[data-composer-region]')

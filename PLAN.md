@@ -179,6 +179,28 @@ esta etapa: `docs/done/bloque-AUD.md` (AUD.16, AUD.17), `docs/done/bloque-SES.md
   del turno y el error de envío. Revisión: el cerebro.
   Gate en vivo: navegador interno en dashboard aislado (`gate:evidence uso17-uso18-final`), fallo de Ollama real, fallo previo a la ejecución de Claude y fixture de cuota con salida real del CLI — `docs/done/evidence/USO.18-live.json`.
   Ejecutado por: gpt-6.1-sol · Spec: docs/specs/USO.18.md
+- [x] **USO.40 — Un solo selector para lanzar agentes, con búsqueda y colores del tema.** (Carlos, 2026-11-23)
+  El modal "Launch Agent" del proyecto y el menú "+" de pestañas de Dev eran dos caminos; el modal fijaba colores
+  fuera del tema (`bg-black/70`, `text-zinc-950`). Ahora ambos abren `components/common/AgentLauncher.tsx`: búsqueda
+  con foco al abrir, lista con logo y nombre, no instalados atenuados con `Not installed`/`Setup required`,
+  flechas/Enter/Esc y "Agent settings…" (Settings › Providers). La lista sale de `/api/system/executor-modes` +
+  `/api/chat/cli-models` (`agent-launcher.ts`), sin listas fijas; solo tokens del tema. El arranque no cambia
+  (`onCreateAgentInProject`, `devSessionAction`). El modal de nuevo chat sigue igual, con los dos colores pasados a
+  tokens. 20 flujos `ui:gate` adaptados al clic en la opción; flujo nuevo `agent-launcher`.
+  Gates del cerebro: typecheck 0, lint 0, `agent-launcher.test.ts` 4/0, `test:coverage` 3194/0;
+  `ui:gate read-boundary` 7/7 y `composer-picker` 11/11. `dev-session-tabs` y `project-isolation` ya fallaban en
+  `HEAD` cb5620de sin estos cambios (comprobado en worktree temporal): no son de este ítem.
+  Texto visible: `Search agents…` (placeholder: dice qué filtra el campo), `Agent settings…` (destino del acceso;
+  un engranaje solo se confunde con los Settings generales), `Not installed` y `Setup required` (por qué la fila
+  está atenuada; un ícono no explica cómo proceder).
+  Gate en vivo: navegador Playwright contra el dashboard real, `docs/done/evidence/USO.40-live.json` (`ui:gate agent-launcher` 21/21 bajo `gate:evidence`).
+  Comprueba filtrado, teclado, fila no instalada inerte, Settings y fondo = `--app-surface` en `orchestos` y `light`,
+  desde pestañas y sidebar. Capturas miradas.
+  Ejecutado por: gpt-6.1-sol (criterio, 2 rondas) · Spec: docs/specs/USO.40.md
+- [ ] **USO.41 — `ui:gate dev-session-tabs` y `project-isolation` rojos en `HEAD`.** (visto en USO.40, 2026-11-23)
+  Ambos fallan en cb5620de sin cambios: `dev-session-tabs` espera `[data-thread-id]` en Chat (`reloadChat`,
+  `flows/dev-session-tabs.mjs:149-153`) y desde USO.10 el Chat no lista sesiones de proyecto; `project-isolation`
+  muere con `page.waitForResponse: Target page … closed`. Las nocturnas están en pausa (CI.85), por eso nadie lo vio.
 - [ ] **LRN.1 — OrchestOS aprende de los errores.** (abierto 2026-11-13; GO de Carlos a D1–D6; va después de SES.1 y
   no bloquea el uso real) Diseño: `docs/specs/LRN-1-opinion-fable.md`. Decisiones: D1 alcance por proyecto, global
   solo por promoción manual; D2 tope 1.000 tokens o 15 lecciones; D3 proponer ante firma repetida ≥2, par

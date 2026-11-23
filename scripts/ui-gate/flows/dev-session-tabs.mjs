@@ -348,18 +348,16 @@ for (const probe of [systemCliDiscoveryProbe, systemCliHealthProbe]) {
     'Beta active; Alpha remains in API',
   )
   await page.getByRole('button', { name: 'New session', exact: true }).click()
-  const agentMenu = page.getByRole('menu', { name: 'New session agent', exact: true })
+  const agentMenu = page.getByRole('dialog', { name: 'Launch agent', exact: true })
   await agentMenu.waitFor()
+  await agentMenu.locator('[role=option][aria-selected=true]').waitFor()
   await step(
     'plus opens usable agents including OpenCode with last used agent preselected',
-    (await agentMenu.getByRole('menuitemradio').first().innerText()) === 'Claude' &&
-      (await agentMenu.getByRole('menuitemradio').first().getAttribute('aria-checked')) ===
-        'true' &&
-      (await agentMenu.getByRole('menuitemradio', { name: 'OpenCode', exact: true }).count()) ===
-        1 &&
-      (await agentMenu
-        .getByRole('menuitemradio', { name: 'OpenCode', exact: true })
-        .innerText()) === 'OpenCode',
+    (await agentMenu.getByRole('option').first().innerText()) === 'Claude' &&
+      (await agentMenu.getByRole('option').first().getAttribute('aria-selected')) === 'true' &&
+      (await agentMenu.getByRole('option', { name: 'OpenCode', exact: true }).count()) === 1 &&
+      (await agentMenu.getByRole('option', { name: 'OpenCode', exact: true }).innerText()) ===
+        'OpenCode',
     await agentMenu.innerText(),
   )
   await shot('new-session-agent-menu')
@@ -372,6 +370,7 @@ for (const probe of [systemCliDiscoveryProbe, systemCliHealthProbe]) {
   )
   await page.getByRole('button', { name: 'New session', exact: true }).click()
   await agentMenu.waitFor()
+  await agentMenu.locator('[role=option][aria-selected=true]').waitFor()
   await page.keyboard.press('Enter')
   const fresh = page.locator('[data-dev-new-session]')
   await fresh.getByText('CLI default', { exact: true }).waitFor()
@@ -389,15 +388,16 @@ for (const probe of [systemCliDiscoveryProbe, systemCliHealthProbe]) {
   await page.getByRole('button', { name: 'Close tab New session', exact: true }).click()
   await page.getByRole('button', { name: 'New session', exact: true }).click()
   await agentMenu.waitFor()
+  await agentMenu.locator('[role=option][aria-selected=true]').waitFor()
   await page.keyboard.press('ArrowDown')
   await step(
     'arrow keys move the preselected agent',
     (await agentMenu
-      .getByRole('menuitemradio', { name: 'Codex', exact: true })
-      .getAttribute('aria-checked')) === 'true',
+      .getByRole('option', { name: 'Codex', exact: true })
+      .getAttribute('aria-selected')) === 'true',
     'Codex selected',
   )
-  await agentMenu.getByRole('menuitemradio', { name: 'Codex', exact: true }).click()
+  await agentMenu.getByRole('option', { name: 'Codex', exact: true }).click()
   await fresh
     .getByRole('heading', { name: `What should we work on in ${basename(root)}?`, exact: true })
     .waitFor()
@@ -421,10 +421,11 @@ for (const probe of [systemCliDiscoveryProbe, systemCliHealthProbe]) {
   await shot('new-session')
   await page.getByRole('button', { name: 'New session', exact: true }).click()
   await agentMenu.waitFor()
+  await agentMenu.locator('[role=option][aria-selected=true]').waitFor()
   await step(
     'chosen Codex becomes first and preselected',
-    (await agentMenu.getByRole('menuitemradio').first().innerText()) === 'Codex' &&
-      (await agentMenu.getByRole('menuitemradio').first().getAttribute('aria-checked')) === 'true',
+    (await agentMenu.getByRole('option').first().innerText()) === 'Codex' &&
+      (await agentMenu.getByRole('option').first().getAttribute('aria-selected')) === 'true',
     await agentMenu.innerText(),
   )
   await fresh.getByRole('heading').click()
@@ -512,10 +513,10 @@ for (const probe of [systemCliDiscoveryProbe, systemCliHealthProbe]) {
   )
   await shot('eight-session-tabs-plus-visible')
   await plus.click()
-  const crowdedMenu = page.getByRole('menu', { name: 'New session agent', exact: true })
+  const crowdedMenu = page.getByRole('dialog', { name: 'Launch agent', exact: true })
   await crowdedMenu.waitFor()
   await step('visible plus opens the new session menu', await visible(crowdedMenu))
-  await crowdedMenu.getByRole('menuitemradio', { name: 'Codex', exact: true }).click()
+  await crowdedMenu.getByRole('option', { name: 'Codex', exact: true }).click()
   const activeNewTab = tabs.locator('[data-new-session-tab][aria-selected="true"]')
   await activeNewTab.waitFor()
   await step(
@@ -541,6 +542,7 @@ for (const probe of [systemCliDiscoveryProbe, systemCliHealthProbe]) {
   )
   await page.getByRole('button', { name: 'New session', exact: true }).click()
   await agentMenu.waitFor()
+  await agentMenu.locator('[role=option][aria-selected=true]').waitFor()
   await page.screenshot({ path: '/tmp/UI.47-menu.png' })
   const [createdTerminal] = await Promise.all([
     page.waitForResponse(
@@ -548,7 +550,7 @@ for (const probe of [systemCliDiscoveryProbe, systemCliHealthProbe]) {
         new URL(response.url()).pathname === '/api/chat/sessions' &&
         response.request().method() === 'POST',
     ),
-    agentMenu.getByRole('menuitemradio', { name: 'OpenCode', exact: true }).click(),
+    agentMenu.getByRole('option', { name: 'OpenCode', exact: true }).click(),
   ])
   const terminalSession = await createdTerminal.json()
   const terminalTab = tabs.locator(`[data-session-tab="${terminalSession.id}"]`)
@@ -574,11 +576,11 @@ for (const probe of [systemCliDiscoveryProbe, systemCliHealthProbe]) {
   await page.screenshot({ path: '/tmp/UI.47-opencode.png' })
   await page.getByRole('button', { name: 'New session', exact: true }).click()
   await agentMenu.waitFor()
+  await agentMenu.locator('[role=option][aria-selected=true]').waitFor()
   await step(
     'OpenCode counts as last used agent',
-    (await agentMenu.getByRole('menuitemradio').first().getAttribute('aria-label')) ===
-      'OpenCode' &&
-      (await agentMenu.getByRole('menuitemradio').first().getAttribute('aria-checked')) === 'true',
+    (await agentMenu.getByRole('option').first().getAttribute('aria-label')) === 'OpenCode' &&
+      (await agentMenu.getByRole('option').first().getAttribute('aria-selected')) === 'true',
     await agentMenu.innerText(),
   )
   await page.keyboard.press('Escape')
