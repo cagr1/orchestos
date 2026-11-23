@@ -1856,14 +1856,6 @@ la corrida y descarta el worktree (`src/run/harness.ts:1184`).
 si se usa elicitation (cambió en 2026-07-28). Relacionadas: `#56`, `#65`, `#72`, LRN.1.
 
 
-### `#77` — Herramientas de solo lectura de tareas y runs para el chat (2026-11-23, hallado en USO.39)
-
-El chat con proyecto ve tareas y runs solo como una foto en el prompt (`src/chat/chat-context.ts`, últimas tareas y
-10 runs): no puede pedir el detalle de un run, su log o el diagnóstico de una tarea fuera de esa foto. Sumar al MCP de
-OrchestOS herramientas de solo lectura acotadas al proyecto de la sesión, por ejemplo `list_tasks` y
-`get_run_status(run_id)`, con el mismo límite que `run_readonly` (sin proyecto, no se ofrecen). USO.39 solo reescribió
-el prompt para no prometer más de lo que la foto da.
-
 ### `#78` — Conectores de la cuenta de Codex visibles en el chat de solo lectura (2026-11-23, hallado en USO.39)
 
 En el gate en vivo de USO.39, Codex (gpt-6-luna) en una sesión de proyecto en modo chat dijo tener herramientas que

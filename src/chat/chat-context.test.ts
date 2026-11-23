@@ -25,6 +25,18 @@ describe('chat system context', () => {
     commands: ['bun run test'],
   }
 
+  it('names task status tools only when offered', () => {
+    const withTools = buildChatSystemPrompt({
+      ...base,
+      agent: 'codex',
+      offeredTools: ['list_tasks'],
+    })
+    expect(withTools).toContain('mcp__orchestos__list_tasks')
+    expect(withTools).toContain('mcp__orchestos__get_task_status')
+    const without = buildChatSystemPrompt({ ...base, agent: 'codex', offeredTools: [] })
+    expect(without).toContain('you have no tool to query more tasks or runs')
+  })
+
   it('renders only known project facts without agent notes', () => {
     const context = chatProjectContext(profile)
     expect(context).toBe(

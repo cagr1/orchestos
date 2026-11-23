@@ -217,6 +217,35 @@ esta etapa: `docs/done/bloque-AUD.md` (AUD.16, AUD.17), `docs/done/bloque-SES.md
   Gates del cerebro: typecheck 0, lint 0, `test:coverage` 3205/0.
   Gate en vivo: `bun run src/dashboard/server.ts` con fuente tocada, con build roto y al día — `docs/done/evidence/USO.43-live.log`.
   Ejecutado por: gpt-6.1-sol (criterio) · Spec: docs/specs/USO.43.md
+- [x] **USO.47 — Pedir una tarea desde el chat de un proyecto nuevo no arranca nada, sin aviso útil.** (Carlos,
+  2026-11-23, uso real en `Agro`, proyecto sin git) Causa en la base: el turno de las 10:35 llamó `create_task`, el
+  servidor MCP respondió "propuesta recibida" y al cerrar el turno `buildNaturalDraft` lanzó `RoleUnassignedError`
+  (el proyecto no tiene `orchestos.config.yaml` ni hay config global: ningún rol asignado). El único rastro fue la
+  línea `⚠ Could not auto-create the task…` al final del mensaje; el agente no la vio (el CLI reanuda su propio
+  historial) y le dijo a Carlos que la tarea arrancaría. Segunda causa, vista en el gate en vivo con roles asignados:
+  sin `.git` el run cae a `cwd` (`sandbox-policy.ts:95`) y los motores CLI se niegan a correr ahí (`codex engine
+  requires worktree sandbox mode…`), así que la tarea se crea y falla al instante. Alcance: `create_task` falla en la
+  llamada con el error real y qué hacer (roles faltantes; proyecto sin git con ejecutor CLI); aviso "Initialize git"
+  en el chat de un proyecto sin git (`POST /api/projects/:id/git-init`, sin tocar `git config`); herramientas
+  `list_tasks` y `get_task_status` de solo lectura (IDEAS `#77`); el prompt las nombra.
+  Hecho: `taskCreationBlocker` (`src/config/load.ts`; roles, regla efectiva y git según el agente que correría la
+  tarea) usado por `create_task` MCP/API y por `settleTaskIntent`; `src/mcp/task-status.ts` (runs solo del proyecto
+  registrado); `POST /api/projects/:id/git-init` (sin `git config`; secretos a `.git/info/exclude` e informados; 422
+  si ya hay secretos preparados); `ProjectGitNotice` en Chat y en el composer de Dev; flujo
+  `scripts/ui-gate/flows/chat-task-roles.mjs`; `#77` sale de `IDEAS.md`.
+  Gates del cerebro: typecheck 0, lint 0 errores, 565/0 en `src/mcp src/chat src/dashboard/__tests__` y componentes.
+  Revisión `qa` (Sol), 4 rondas: runs de otros proyectos, Executor con reglas, regla `api` sin modelo y secretos en
+  git-init — todos cerrados; la ronda 4 no deja defectos tras el último arreglo (revisado por el cerebro).
+  Texto visible: "This folder is not a git repository. Agents need git to run tasks.", "Initialize git", "Git initialized. Not committed (may contain secrets):" (aviso y acción que ningún ícono explica: qué falta, qué hace el botón y qué archivos quedaron fuera del commit)
+  Gate en vivo: navegador Playwright contra el dashboard real, `docs/done/evidence/USO.47-live.json`
+  (`ui:gate chat-task-roles` bajo `gate:evidence`): sin roles → error real en el chat y sin tarea; oferta "Initialize git"
+  visible; sin git → error real; tras inicializar, la tarea arranca, termina `done` y existe el archivo; el agente
+  respondió con el estado real y el turno registró `get_task_status`. Dos aserciones del flujo (texto "Run requested"
+  y el id en la respuesta) se relajaron después y no se re-corrió: por orden de Carlos, la prueba visual final la hace
+  él. `chat-followup-task` pasó 9/9 en la primera corrida y luego falló 2 veces antes de enviar (hidratación de la
+  pestaña, flujo existente, sin cambios de este ítem).
+  Ejecutado por: gpt-6-luna (mecanico: herramientas, tests, flujo y arreglos) + gpt-6.1-sol (criterio: git) +
+  claude-opus-5-5 (`taskCreationBlocker` inicial y montaje en Dev, fixes chicos) · Specs: docs/specs/USO.47*.md (borrados al cerrar)
 - [ ] **USO.41 — `ui:gate dev-session-tabs` y `project-isolation` rojos en `HEAD`.** (visto en USO.40, 2026-11-23)
   Ambos fallan en cb5620de sin cambios: `dev-session-tabs` espera `[data-thread-id]` en Chat (`reloadChat`,
   `flows/dev-session-tabs.mjs:149-153`) y desde USO.10 el Chat no lista sesiones de proyecto; `project-isolation`

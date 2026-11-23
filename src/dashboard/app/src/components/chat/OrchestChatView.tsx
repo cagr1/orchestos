@@ -31,6 +31,7 @@ import {
   noteLocalSend,
   noteStreamed,
 } from '../thread/entrance'
+import { ProjectGitNotice } from '../thread/ProjectGitNotice'
 import { SessionMessageCard } from '../thread/SessionMessageCard'
 import { StoppedResponse } from '../thread/StoppedResponse'
 import { TaskCard } from '../thread/TaskCard'
@@ -732,6 +733,9 @@ export const OrchestChatView: React.FC<OrchestChatViewProps> = ({
           )}
         </div>
 
+        {thread?.projectId && projectExists && (
+          <ProjectGitNotice key={`${thread.projectId}:${sessionId}`} projectId={thread.projectId} />
+        )}
         {/* Shared Composer (Nothing under composer: no status line) */}
         {documentError && (
           <div role="alert" className="px-3 text-sm text-app-muted">

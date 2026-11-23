@@ -1,6 +1,15 @@
-import { lstatSync, mkdirSync, realpathSync, rmSync, statSync } from 'node:fs'
+import {
+  existsSync,
+  lstatSync,
+  mkdirSync,
+  readFileSync,
+  realpathSync,
+  rmSync,
+  statSync,
+  writeFileSync,
+} from 'node:fs'
 import { homedir } from 'node:os'
-import { join, resolve } from 'node:path'
+import { basename, dirname, isAbsolute, join, resolve } from 'node:path'
 import {
   deleteProject,
   getProjectById,
@@ -11,6 +20,7 @@ import {
   updateProjectSettings,
 } from '../../db/projects.ts'
 import { ensureProject } from '../../projects/ensure.ts'
+import { excludeRuntimeArtifacts } from '../../run/git-exclude.ts'
 import { errorResponse, jsonResponse } from '../http.ts'
 import type { ProjectRow } from '../types.ts'
 
@@ -60,6 +70,91 @@ export async function handleApiProjectPatch(req: Request, url: URL): Promise<Res
       : errorResponse('Project not found', 404)
   } catch (error) {
     return errorResponse(error instanceof Error ? error.message : String(error), 400)
+  }
+}
+
+export function handleApiProjectGitInit(url: URL): Response {
+  const id = decodeURIComponent(url.pathname.slice('/api/projects/'.length, -'/git-init'.length))
+  const project = getProjectById(id)
+  if (!project || project.removed_at) return errorResponse('Project not found', 404)
+  const run = (args: string[]) =>
+    Bun.spawnSync(['git', ...args], {
+      cwd: project.path,
+      env: { ...process.env },
+      stdout: 'pipe',
+      stderr: 'pipe',
+      stdin: 'ignore',
+    })
+  try {
+    if (
+      existsSync(join(project.path, '.git')) &&
+      run(['rev-parse', '--verify', 'HEAD']).exitCode === 0
+    )
+      return errorResponse('Project already has git commits', 409)
+    if (!existsSync(join(project.path, '.git'))) {
+      const init = run(['init'])
+      if (init.exitCode !== 0) return errorResponse(init.stderr.toString().trim(), 422)
+    }
+    excludeRuntimeArtifacts(project.path)
+    const patterns = [
+      '.env',
+      '.env.*',
+      '*.pem',
+      '*.key',
+      'id_rsa*',
+      '*.p12',
+      'credentials*.json',
+      '.npmrc',
+    ]
+    const exclude = run(['rev-parse', '--git-path', 'info/exclude'])
+    if (exclude.exitCode !== 0) return errorResponse(exclude.stderr.toString().trim(), 422)
+    const gitPath = exclude.stdout.toString().trim()
+    const excludePath = isAbsolute(gitPath) ? gitPath : resolve(project.path, gitPath)
+    mkdirSync(dirname(excludePath), { recursive: true })
+    const current = existsSync(excludePath) ? readFileSync(excludePath, 'utf8') : ''
+    const lines = current.split(/\r?\n/)
+    const additions = patterns.filter((pattern) => !lines.includes(pattern))
+    if (additions.length) {
+      const prefix = current.length && !current.endsWith('\n') ? '\n' : ''
+      writeFileSync(
+        excludePath,
+        `${current}${prefix}# Files that may contain secrets\n${additions.join('\n')}\n`,
+      )
+    }
+    const ignored = run(['ls-files', '--others', '--ignored', '--exclude-standard', '-z'])
+    if (ignored.exitCode !== 0) return errorResponse(ignored.stderr.toString().trim(), 422)
+    const excluded = ignored.stdout
+      .toString()
+      .split('\0')
+      .filter(
+        (file) => file && patterns.some((pattern) => new Bun.Glob(pattern).match(basename(file))),
+      )
+    const staged = run(['diff', '--cached', '--name-only', '-z'])
+    if (staged.exitCode !== 0) return errorResponse(staged.stderr.toString().trim(), 422)
+    const stagedSecrets = staged.stdout
+      .toString()
+      .split('\0')
+      .filter(
+        (file) => file && patterns.some((pattern) => new Bun.Glob(pattern).match(basename(file))),
+      )
+    if (stagedSecrets.length) {
+      return errorResponse(
+        `Staged files may contain secrets: ${stagedSecrets.join(', ')}. Unstage them (git rm --cached <file>) or make the first commit yourself.`,
+        422,
+      )
+    }
+    for (const args of [
+      ['add', '-A'],
+      ['commit', '--allow-empty', '-m', 'Initial commit'],
+    ]) {
+      const result = run(args)
+      if (result.exitCode !== 0) return errorResponse(result.stderr.toString().trim(), 422)
+    }
+    const head = run(['rev-parse', '--short', 'HEAD'])
+    if (head.exitCode !== 0) return errorResponse(head.stderr.toString().trim(), 422)
+    return jsonResponse({ ok: true, commit: head.stdout.toString().trim(), excluded })
+  } catch (error) {
+    return errorResponse(error instanceof Error ? error.message : String(error), 422)
   }
 }
 

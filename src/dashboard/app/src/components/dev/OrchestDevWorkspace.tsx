@@ -23,6 +23,7 @@ import type {
 import { AgentComposer, type CliId } from '../common/AgentComposer'
 import { answerText } from '../thread/activity'
 import { CutReportCard, cutContinuation } from '../thread/CutReportCard'
+import { ProjectGitNotice } from '../thread/ProjectGitNotice'
 import { InboundSessionMessageBlock, SessionMessageCard } from '../thread/SessionMessageCard'
 import { StoppedResponse } from '../thread/StoppedResponse'
 import { TaskCard } from '../thread/TaskCard'
@@ -874,6 +875,7 @@ export const OrchestDevWorkspace: React.FC<OrchestDevWorkspaceProps> = ({
           </h1>
         )}
         <div className="max-w-3xl lg:max-w-4xl mx-auto">
+          <ProjectGitNotice key={activeProject.id} projectId={activeProject.id} />
           {sendError &&
             !timeline?.turns.some(
               (turn) =>

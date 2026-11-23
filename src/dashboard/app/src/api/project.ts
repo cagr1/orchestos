@@ -20,3 +20,28 @@ export async function getProjectContext(projectId: string): Promise<ProjectConte
     isCleanWorktree: git.isCleanWorktree,
   }
 }
+
+export interface ProjectGitStatus {
+  isGitRepo: boolean
+  hasCommits: boolean
+}
+
+export function getProjectGit(projectId: string): Promise<ProjectGitStatus> {
+  return getJson<ProjectGitStatus>('/api/project/git', projectId)
+}
+
+export async function initializeProjectGit(
+  projectId: string,
+): Promise<{ ok: boolean; commit: string; excluded: string[] }> {
+  const response = await fetch(`/api/projects/${encodeURIComponent(projectId)}/git-init`, {
+    method: 'POST',
+  })
+  const data = (await response.json()) as {
+    ok: boolean
+    commit: string
+    excluded: string[]
+    error?: string
+  }
+  if (!response.ok) throw new Error(data.error ?? `Request failed (${response.status})`)
+  return data
+}

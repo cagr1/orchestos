@@ -1,13 +1,14 @@
+import { existsSync } from 'node:fs'
+import { join } from 'node:path'
 import { check, parseJson, z } from '../boundary/index.ts'
 /**
  * src/mcp/server.ts — AT.20
  *
  * Servidor MCP stdio de OrchestOS (JSON-RPC 2.0 delimitado por líneas), sin SDK.
  * Herramientas (AT.21: se ofrecen por herramienta, `tools/list` solo lista las pedidas):
- *  - `create_task`: NO crea nada, solo valida los argumentos y responde que la propuesta
- *    se envió. La fuente de verdad es la llamada que aparece en el stream del CLI de chat
- *    (la lee `chat.ts`).
+ *  - `create_task`: valida la propuesta y comprueba que los roles del proyecto permitan crearla.
  *  - `run_readonly`: shell de solo lectura (git/ls/rg) en la raíz del proyecto (`readonly.ts`).
+ *  - `list_tasks` / `get_task_status`: consultan tareas y runs del proyecto, solo lectura.
  *
  * Uso: `bun src/mcp/server.ts --tools create_task,run_readonly --root <abs>`.
  */
@@ -15,6 +16,14 @@ import { check, parseJson, z } from '../boundary/index.ts'
 import type { ApprovalMode } from '../run/approvals.ts'
 import { PREVIEW_TOOLS, PreviewSession, previewToolDefinitions } from './preview.ts'
 import { RUN_READONLY_TOOL, readonlyToolDefinition, runReadonly } from './readonly.ts'
+import {
+  GET_TASK_STATUS_DEFINITION,
+  GET_TASK_STATUS_TOOL,
+  getTaskStatus,
+  LIST_TASKS_DEFINITION,
+  LIST_TASKS_TOOL,
+  listTasks,
+} from './task-status.ts'
 
 export const MCP_SERVER_NAME = 'orchestos'
 export const APPROVE_ACTION_TOOL = 'approve_action'
@@ -274,6 +283,12 @@ export async function handleMcpMessage(
                 },
               ]
             : []),
+          ...(options.tools.includes(LIST_TASKS_TOOL)
+            ? [{ name: LIST_TASKS_TOOL, ...LIST_TASKS_DEFINITION }]
+            : []),
+          ...(options.tools.includes(GET_TASK_STATUS_TOOL)
+            ? [{ name: GET_TASK_STATUS_TOOL, ...GET_TASK_STATUS_DEFINITION }]
+            : []),
           ...(options.previewDir
             ? previewToolDefinitions().filter((tool) => options.tools.includes(tool.name))
             : []),
@@ -323,6 +338,14 @@ export async function handleMcpMessage(
         const out = await runReadonly(message.params?.arguments, options.root)
         return text(out.text, out.isError)
       }
+      if (name === LIST_TASKS_TOOL) {
+        const out = listTasks(message.params?.arguments, options.root)
+        return text(out.text, out.isError)
+      }
+      if (name === GET_TASK_STATUS_TOOL) {
+        const out = getTaskStatus(message.params?.arguments, options.root)
+        return text(out.text, out.isError)
+      }
       if (name === MESSAGE_SESSION_TOOL) {
         const parsed = parseMessageSessionArgs(message.params?.arguments)
         return parsed.ok ? text(MESSAGE_SESSION_RESPONSE, false) : text(parsed.error, true)
@@ -333,7 +356,14 @@ export async function handleMcpMessage(
         return parsed.ok ? text(PROPOSE_LESSON_RESPONSE, false) : text(parsed.error, true)
       }
       const parsed = parseCreateTaskArgs(message.params?.arguments)
-      return parsed.ok ? text(CREATE_TASK_RESPONSE, false) : text(parsed.error, true)
+      if (!parsed.ok) return text(parsed.error, true)
+      const { loadOrcheConfig, taskCreationBlocker } = await import('../config/load.ts')
+      const blocker = taskCreationBlocker(loadOrcheConfig(options.root), parsed.args.outputs, {
+        isGitRepo: existsSync(join(options.root, '.git')),
+      })
+      return blocker
+        ? text(`Task not created: ${blocker}`, true)
+        : text(CREATE_TASK_RESPONSE, false)
     }
     default:
       return failure(-32601, `Method not found: ${message.method}`)

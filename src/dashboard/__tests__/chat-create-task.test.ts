@@ -19,6 +19,10 @@ describe('create_task en el chat', () => {
     )
     expect(instruction).toContain('you have no tool for those actions')
     expect(instruction).toContain('must not claim to have performed them')
+    expect(instruction).toContain('If create_task returns an error, tell the user that exact error')
+    expect(
+      buildAutoTaskInstruction({ hasProjectContext: true, mode: 'code', statusToolsOffered: true }),
+    ).toContain('get_task_status` or `list_tasks')
   })
 
   it('manual espera Run y auto espera aprobación solo si el output ya existe', () => {

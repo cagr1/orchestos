@@ -156,6 +156,14 @@
       "closedDate": null
     },
     {
+      "id": "USO.47",
+      "sprint": "Etapa 2 — Uso real",
+      "block": null,
+      "title": "Pedir una tarea desde el chat de un proyecto nuevo no arranca nada, sin aviso útil",
+      "status": "done",
+      "closedDate": null
+    },
+    {
       "id": "USO.41",
       "sprint": "Etapa 2 — Uso real",
       "block": null,

@@ -38,10 +38,14 @@ function gitValue(root: string, args: string[], emptyAsNull = true): string | nu
 }
 
 function handleApiProjectGit(root: string): Response {
-  const gitBranch = gitValue(root, ['rev-parse', '--abbrev-ref', 'HEAD'])
-  const gitStatus = gitValue(root, ['status', '--porcelain'], false)
+  const isGitRepo = existsSync(join(root, '.git'))
+  const hasCommits = isGitRepo && gitValue(root, ['rev-parse', '--verify', 'HEAD']) !== null
+  const gitBranch = isGitRepo ? gitValue(root, ['rev-parse', '--abbrev-ref', 'HEAD']) : null
+  const gitStatus = isGitRepo ? gitValue(root, ['status', '--porcelain'], false) : null
   return jsonResponse({
     gitBranch,
+    isGitRepo,
+    hasCommits,
     isCleanWorktree: gitStatus === null ? null : gitStatus === '',
   })
 }

@@ -2,7 +2,12 @@ import { afterEach, describe, expect, it, spyOn } from 'bun:test'
 import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { loadOrcheConfig, RoleUnassignedError, resolveRole } from '../config/load.ts'
+import {
+  loadOrcheConfig,
+  RoleUnassignedError,
+  resolveRole,
+  taskCreationBlocker,
+} from '../config/load.ts'
 import { handleApiConfigGet, handleApiConfigSet } from '../dashboard/handlers/config.ts'
 
 const cwd = process.cwd()
@@ -12,6 +17,54 @@ const request = (body: unknown) =>
 const temp = () => mkdtempSync(join(tmpdir(), 'model-roles-'))
 
 describe('model roles config', () => {
+  it('blocks chat task creation only when required roles are missing', () => {
+    const root = temp()
+    try {
+      writeFileSync(
+        join(root, 'orchestos.config.yaml'),
+        'roles:\n  orchestrator: { agent: codex, model: m }\n  executor: { agent: codex, model: m }\n  reviewer: { agent: codex, model: m }\n',
+      )
+      expect(taskCreationBlocker(loadOrcheConfig(root))).toBeNull()
+      const gitCfg = loadOrcheConfig(root)
+      expect(taskCreationBlocker(gitCfg, [], { isGitRepo: false })).toContain(
+        'not a git repository',
+      )
+      expect(taskCreationBlocker(gitCfg, [], { isGitRepo: true })).toBeNull()
+      gitCfg.taskAgentRules = [{ match: { output: ['**'] }, agent: 'api' }]
+      expect(taskCreationBlocker(gitCfg, ['src/app.ts'], { isGitRepo: false })).toContain(
+        'codex agent',
+      )
+      gitCfg.taskAgentRules[0]!.model = 'api-model'
+      expect(taskCreationBlocker(gitCfg, ['src/app.ts'], { isGitRepo: false })).toBeNull()
+      gitCfg.roles.executor = { agent: 'api', model: 'm' }
+      expect(taskCreationBlocker(gitCfg, [], { isGitRepo: false })).toBeNull()
+
+      writeFileSync(join(root, 'orchestos.config.yaml'), '')
+      const missing = taskCreationBlocker(loadOrcheConfig(root))!
+      expect(missing).toContain('Orchestrator, Executor and Reviewer')
+      expect(missing).toContain('Settings → Model routing')
+      expect(taskCreationBlocker(loadOrcheConfig(root), [], { isGitRepo: false })).toBe(missing)
+      writeFileSync(
+        join(root, 'orchestos.config.yaml'),
+        'roles:\n  orchestrator: { agent: codex, model: m }\n  executor: { agent: codex, model: m }\n',
+      )
+      expect(taskCreationBlocker(loadOrcheConfig(root))).toContain('Reviewer role. Assign it')
+      writeFileSync(
+        join(root, 'orchestos.config.yaml'),
+        'taskAgentRules:\n  - match: { output: ["src/**"] }\n    agent: codex\nroles:\n  orchestrator: { agent: codex, model: m }\n  reviewer: { agent: codex, model: m }\n',
+      )
+      const cfg = loadOrcheConfig(root)
+      expect(taskCreationBlocker(cfg, ['src/app.ts'])).toContain('Task rule for codex has no model')
+      cfg.taskAgentRules![0]!.model = 'm'
+      expect(taskCreationBlocker(cfg, ['src/app.ts'])).toBeNull()
+      expect(taskCreationBlocker(cfg, ['src/app.ts'], { isGitRepo: false })).toContain(
+        'codex agent',
+      )
+      expect(taskCreationBlocker(cfg, ['docs/hola.md'])).toContain('Executor role. Assign it')
+    } finally {
+      rmSync(root, { recursive: true, force: true })
+    }
+  })
   it('migrates legacy API model values in memory', () => {
     const root = temp()
     try {

@@ -1,0 +1,112 @@
+[
+  {
+    "flujo": "chat-task-roles",
+    "pass": false,
+    "steps": [
+      {
+        "nombre": "temporary project visible",
+        "ok": true,
+        "detalle": "project in Dev sidebar"
+      },
+      {
+        "nombre": "composer visible",
+        "ok": true,
+        "detalle": "chat composer visible after session hydration"
+      },
+      {
+        "nombre": "no roles: no task created",
+        "ok": true,
+        "detalle": "no new task in /api/tasks"
+      },
+      {
+        "nombre": "no roles: error visible in chat",
+        "ok": true,
+        "detalle": "No pude crear la tarea. OrchestOS devolvió este error:\n\nTask not created: This project has no model assigned for the Orchestrator, Executor and Reviewer roles. Assign them in Settings → Model routing, then ask again.\n\nPara solucionarlo, ve a Settings → Model routing y asigna un modelo a los roles Orchestrator, Executor y Reviewer. Después pídemelo otra vez y creo la tarea para notas/hola.md.\n\n⚠ Could not auto-create the task: This project has no model assigned for the Orchestrator, Executor and "
+      },
+      {
+        "nombre": "git initialization offered",
+        "ok": true,
+        "detalle": "git offer above composer"
+      },
+      {
+        "nombre": "no git: real blocker and no task",
+        "ok": true,
+        "detalle": "Tampoco se pudo crear la tarea esta vez. Los modelos ya no son el problema, pero OrchestOS devolvió otro error:\n\nTask not created: This project is not a git repository, and the codex agent runs tasks only in an isolated git copy. Click \"Initialize git\" in the chat, or run git init and make a first commit, then ask again.\n\nPara solucionarlo, pulsa \"Initialize git\" en el chat, o ejecuta git init y haz un primer commit. Cuando esté listo, pídemelo de nuevo y vuelvo a crear la tarea para notas/hola."
+      },
+      {
+        "nombre": "git initialized",
+        "ok": true,
+        "detalle": ".git exists and offer disappeared"
+      },
+      {
+        "nombre": "roles: task created and started",
+        "ok": false,
+        "detalle": "{\"taskId\":\"chat-cd967b4a-8a7f-4b80-bc18-a37850a14128\",\"status\":\"running\",\"reply\":\"Esta vez se aceptó la propuesta de la tarea \\\"Crear notas/hola.md\\\", que escribirá notas/hola.md con la línea hola. Todavía no puedo confirmar si OrchestOS la creó y la arrancó, ni si quedó esperando tu aprobación. Puedes verlo en la tarjeta de la tarea, o pregúntame en tu próximo mensaje y lo reviso.\"}"
+      },
+      {
+        "nombre": "roles: task finishes after git initialization",
+        "ok": true,
+        "detalle": "{\"status\":\"done\",\"fileExists\":true}"
+      },
+      {
+        "nombre": "agent verifies with get_task_status",
+        "ok": false,
+        "detalle": "{\"taskId\":\"chat-cd967b4a-8a7f-4b80-bc18-a37850a14128\",\"reply\":\"Sí, la tarea terminó y el archivo está bien:\\n\\nEstado: done, sin reintentos. La ejecutó codex con gpt-6-luna.\\nArchivo: notas/hola.md tiene una sola línea, hola.\\nGit: está guardado en el commit 1b0907c, que solo añade esa línea a notas/hola.md.\\n\\nLa revisión de calidad se saltó (QA skipped) porque la tarea no tenía criterios de aceptación ni checks automáticos, así que OrchestOS no verificó el result\",\"toolRecorded\":true,\"sessionId\":\"401528f3-0a67-48ea-b95b-381e8f3aef92\"}"
+      }
+    ],
+    "notes": [],
+    "errores": [
+      "HTTP 502: http://127.0.0.1:64452/api/chat/models",
+      "HTTP 502: http://127.0.0.1:64452/api/chat/models",
+      "HTTP 502: http://127.0.0.1:64452/api/chat/models",
+      "HTTP 502: http://127.0.0.1:64452/api/chat/models",
+      "HTTP 502: http://127.0.0.1:64452/api/chat/models",
+      "HTTP 502: http://127.0.0.1:64452/api/chat/models",
+      "HTTP 502: http://127.0.0.1:64452/api/chat/models"
+    ],
+    "capturas": [
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-40619/chat-task-roles/no-roles-error.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-40619/chat-task-roles/git-offer.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-40619/chat-task-roles/roles-task-started.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-40619/chat-task-roles/task-status-verified.png"
+    ]
+  },
+  {
+    "flujo": "chat-followup-task",
+    "pass": false,
+    "steps": [
+      {
+        "nombre": "temporary project visible",
+        "ok": true,
+        "detalle": "project in Dev sidebar"
+      },
+      {
+        "nombre": "select Codex for new chat",
+        "ok": true,
+        "detalle": "agent option visible"
+      },
+      {
+        "nombre": "composer visible",
+        "ok": true,
+        "detalle": "chat composer visible after Launch Agent"
+      },
+      {
+        "nombre": "chat request sent",
+        "ok": false,
+        "detalle": "no /api/chat response for: Quiero un archivo `notas/seguimiento.md` con una sola línea:"
+      }
+    ],
+    "notes": [],
+    "errores": [
+      "HTTP 502: http://127.0.0.1:64452/api/chat/models",
+      "HTTP 502: http://127.0.0.1:64452/api/chat/models",
+      "HTTP 502: http://127.0.0.1:64452/api/chat/models",
+      "HTTP 502: http://127.0.0.1:64452/api/chat/models",
+      "HTTP 502: http://127.0.0.1:64452/api/chat/models",
+      "HTTP 502: http://127.0.0.1:64452/api/chat/models"
+    ],
+    "capturas": [
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-40619/chat-followup-task/send-timeout.png"
+    ]
+  }
+]

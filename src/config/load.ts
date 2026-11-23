@@ -18,8 +18,14 @@ import {
   TimeoutMsSchema,
 } from '../boundary/config-limits.ts'
 import { check } from '../boundary/index.ts'
-import { taskAgentIds } from '../router/engine-cascade.ts'
+import { autoRoute } from '../router/auto-route.ts'
+import {
+  resolveProjectAgentRule,
+  taskAgentIds,
+  taskFieldsFromRule,
+} from '../router/engine-cascade.ts'
 import { allClis, configuredClis } from '../run/executors/cli-registry.ts'
+import type { Task } from '../tasks/schema.ts'
 import { orchestosDir } from './orchestos-home.ts'
 import {
   type AgentChoice,
@@ -204,6 +210,39 @@ export function resolveRole(cfg: OrcheConfig, role: RoleName): RoleAssignment {
   const assignment = cfg.roles[role]
   if (!assignment) throw new RoleUnassignedError(role)
   return assignment
+}
+
+/**
+ * USO.44 — roles sin los que una tarea pedida desde el chat no se crea ni arranca: el orquestador redacta el
+ * borrador, el ejecutor la corre (salvo que una regla `taskAgentRules` elija el agente) y el revisor la valida
+ * (mismo requisito que `launchTask`). `null` = se puede crear.
+ */
+export function taskCreationBlocker(
+  cfg: OrcheConfig,
+  outputs: string[] = [],
+  options: { isGitRepo: boolean } = { isGitRepo: true },
+): string | null {
+  const needed: RoleName[] = [
+    'orchestrator',
+    ...(resolveProjectAgentRule(cfg.taskAgentRules, { output: outputs })
+      ? []
+      : (['executor'] as RoleName[])),
+    'reviewer',
+  ]
+  const missing = needed.filter((role) => !cfg.roles[role])
+  if (!missing.length) {
+    const rule = resolveProjectAgentRule(cfg.taskAgentRules, { output: outputs })
+    const fields = rule ? taskFieldsFromRule(rule, cfg) : {}
+    if ('error' in fields) return fields.error
+    const agent = autoRoute({ ...fields } as Task, cfg)?.agent
+    if (!options.isGitRepo && agent && agent !== 'api' && agent !== 'local')
+      return `This project is not a git repository, and the ${agent} agent runs tasks only in an isolated git copy. Click "Initialize git" in the chat, or run git init and make a first commit, then ask again.`
+    return null
+  }
+  const names = missing.map((role) => `${role.charAt(0).toUpperCase()}${role.slice(1)}`)
+  const list =
+    names.length === 1 ? names[0] : `${names.slice(0, -1).join(', ')} and ${names.at(-1)}`
+  return `This project has no model assigned for the ${list} role${missing.length > 1 ? 's' : ''}. Assign ${missing.length > 1 ? 'them' : 'it'} in Settings → Model routing, then ask again.`
 }
 
 /** Avisa en vez de descartar en silencio — un typo no debe cambiar el agente sin decirlo. */

@@ -89,6 +89,7 @@ import {
   handleApiProjectClone,
   handleApiProjectCloneLocation,
   handleApiProjectDelete,
+  handleApiProjectGitInit,
   handleApiProjectPatch,
   handleApiProjectPurge,
   handleApiProjects,
@@ -504,6 +505,8 @@ export async function route(
   if (method === 'GET' && url.pathname === '/api/projects') {
     return handleApiProjects()
   }
+  if (method === 'POST' && url.pathname.match(/^\/api\/projects\/[^/]+\/git-init$/))
+    return handleApiProjectGitInit(url)
   if (method === 'PATCH' && url.pathname.match(/^\/api\/projects\/[^/]+$/))
     return handleApiProjectPatch(req, url)
   if (method === 'GET' && url.pathname.match(/^\/api\/projects\/[^/]+\/branches$/))

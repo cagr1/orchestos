@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test'
-import { mkdtempSync, rmSync } from 'node:fs'
+import { mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { runToolLoop } from '../providers/tool-call.ts'
@@ -34,11 +34,16 @@ import {
 
 const SERVER = join(import.meta.dir, 'server.ts')
 
-async function talk(args: string[], requests: object[]): Promise<any[]> {
+async function talk(
+  args: string[],
+  requests: object[],
+  env: NodeJS.ProcessEnv = process.env,
+): Promise<any[]> {
   const proc = Bun.spawn([process.execPath, SERVER, ...args], {
     stdin: 'pipe',
     stdout: 'pipe',
     stderr: 'pipe',
+    env: { ...env },
   })
   proc.stdin.write(`${requests.map((r) => JSON.stringify(r)).join('\n')}\n`)
   proc.stdin.end()
@@ -53,6 +58,56 @@ async function talk(args: string[], requests: object[]): Promise<any[]> {
 const validArgs = { title: 'Create hello', description: 'Create hello.txt', outputs: ['hello.txt'] }
 
 describe('servidor MCP de OrchestOS (stdio real)', () => {
+  test('expone herramientas de estado y create_task devuelve el blocker real', async () => {
+    const root = mkdtempSync(join(tmpdir(), 'mcp-task-status-'))
+    const home = mkdtempSync(join(tmpdir(), 'mcp-task-home-'))
+    try {
+      const env = { ...process.env, ORCHESTOS_HOME: home }
+      const [list, blocked] = await talk(
+        ['--tools', 'list_tasks,get_task_status,create_task', '--root', root],
+        [
+          { jsonrpc: '2.0', id: 1, method: 'tools/list' },
+          {
+            jsonrpc: '2.0',
+            id: 2,
+            method: 'tools/call',
+            params: { name: 'create_task', arguments: validArgs },
+          },
+        ],
+        env,
+      )
+      expect(list.result.tools.map((tool: any) => tool.name)).toEqual([
+        'create_task',
+        'list_tasks',
+        'get_task_status',
+      ])
+      expect(blocked.result.isError).toBe(true)
+      expect(blocked.result.content[0].text).toContain(
+        'Task not created: This project has no model assigned',
+      )
+      writeFileSync(
+        join(root, 'orchestos.config.yaml'),
+        'roles:\n  orchestrator: { agent: codex, model: m }\n  executor: { agent: codex, model: m }\n  reviewer: { agent: codex, model: m }\n',
+      )
+      const [allowed] = await talk(
+        ['--tools', 'create_task', '--root', root],
+        [
+          {
+            jsonrpc: '2.0',
+            id: 3,
+            method: 'tools/call',
+            params: { name: 'create_task', arguments: validArgs },
+          },
+        ],
+        env,
+      )
+      expect(allowed.result.isError).toBe(true)
+      expect(allowed.result.content[0].text).toContain('not a git repository')
+    } finally {
+      rmSync(root, { recursive: true, force: true })
+      rmSync(home, { recursive: true, force: true })
+    }
+  })
   test('initialize, tools/list y tools/call; las notificaciones no tienen respuesta', async () => {
     const replies = await talk(
       [],
@@ -348,6 +403,17 @@ describe('AT.20 ronda 2', () => {
       if (prevKey === undefined) delete process.env.OPENROUTER_API_KEY
       else process.env.OPENROUTER_API_KEY = prevKey
     }
+  })
+
+  test('create_task API rechaza propuestas cuando el blocker está activo', async () => {
+    const proposals: TaskProposal[] = []
+    const api = createTaskApiTool(
+      (proposal) => proposals.push(proposal),
+      () => 'Missing roles',
+    )
+    const response = await api.execute('create_task', validArgs)
+    expect(proposals).toEqual([{ ok: false, error: 'Missing roles' }])
+    expect(response).toBe('[Error: Task not created: Missing roles]')
   })
 })
 

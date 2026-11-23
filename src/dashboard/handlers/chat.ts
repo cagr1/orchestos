@@ -14,7 +14,7 @@ import {
 } from '../../chat/documents.ts'
 import { extractTextFromImage } from '../../chat/ocr.ts'
 import { modelHistoryFromMessages } from '../../chat/task-diagnosis-context.ts'
-import { loadOrcheConfig } from '../../config/load.ts'
+import { loadOrcheConfig, taskCreationBlocker } from '../../config/load.ts'
 import type { RoleAgent } from '../../config/schema.ts'
 import { readUserProfile } from '../../config/user-profile.ts'
 import { estimateTokens } from '../../context/compress.ts'
@@ -54,7 +54,9 @@ import { AUTO_DEFAULTS } from '../../instincts/schema.ts'
 import { insertInstinct, listApplicable, recordInjected } from '../../instincts/store.ts'
 import {
   createTaskApiTool,
+  getTaskStatusApiTool,
   lessonProposalFromStep,
+  listTasksApiTool,
   type McpOffer,
   messageSessionApiTool,
   messageSessionProposalFromStep,
@@ -73,6 +75,7 @@ import {
   PROPOSE_LESSON_TOOL,
   type SessionMessageProposal,
 } from '../../mcp/server.ts'
+import { LIST_TASKS_TOOL, TASK_STATUS_TOOLS } from '../../mcp/task-status.ts'
 import { previewDir } from '../../preview/paths.ts'
 import {
   createToolRouter,
@@ -154,12 +157,14 @@ export function buildAutoTaskInstruction({
   mode,
   taskToolOffered = true,
   permissionMode,
+  statusToolsOffered = false,
 }: {
   hasProjectContext: boolean
   mode: string | null | undefined
   /** AT.20 — el CLI de este turno recibió la herramienta `create_task`. */
   taskToolOffered?: boolean
   permissionMode?: 'yolo' | 'manual'
+  statusToolsOffered?: boolean
 }): string {
   if (!hasProjectContext)
     return 'This chat has no associated project; creating or modifying project files must be done in Dev.'
@@ -171,7 +176,7 @@ export function buildAutoTaskInstruction({
     permissionMode === 'manual'
       ? 'Created tasks wait until the user clicks Run on the task card (Manual permissions).'
       : 'Created tasks start automatically unless an output file already exists; then they wait for approval on the task card.'
-  return `If files must be created or modified, call \`create_task\`; answer everything else yourself. ${execution} Never claim a waiting task is running. Automatic checks verify declared outputs and run applicable task/project checks. Pass \`acceptance_criteria\` only for results those checks do not cover; an LLM reviewer runs when criteria or review gates apply. To retry, cancel or delete a task, direct the user to its task card: you have no tool for those actions and must not claim to have performed them.`
+  return `If files must be created or modified, call \`create_task\`; answer everything else yourself. ${execution} Never claim a waiting task is running. Automatic checks verify declared outputs and run applicable task/project checks. Pass \`acceptance_criteria\` only for results those checks do not cover; an LLM reviewer runs when criteria or review gates apply. To retry, cancel or delete a task, direct the user to its task card: you have no tool for those actions and must not claim to have performed them. create_task only proposes the task; OrchestOS creates it after your reply. If create_task returns an error, tell the user that exact error and what to do; never say the task was created.${statusToolsOffered ? ' In a later turn, check it with `get_task_status` or `list_tasks` before saying it started, finished or failed.' : ''}`
 }
 
 export function buildChatTranscript(history: { role: string; content: string }[]): string {
@@ -1375,63 +1380,69 @@ async function handleApiChat(
       taskSuggestion = { isTask, reason: isTask ? 'create_task' : '' }
       if (proposal && !proposal.ok) autoTask = { error: `create_task: ${proposal.error}` }
       else if (proposal && hasProjectContext && sessionAllowsTaskExecution(session?.mode ?? null)) {
-        try {
-          const draft = await buildNaturalDraft(
-            message,
-            root,
-            {
-              history,
-              assistantReply: text,
-            },
-            signal,
-          )
-          signal?.throwIfAborted()
-          // Salidas y descripción son las que el modelo pasó a la herramienta, no las que adivina el borrador.
-          draft.description = proposal.args.description
-          const output = dropIgnoredOutputs(root, proposal.args.outputs)
-          if (output.length === 0) autoTaskSkipped = true
-          else {
-            const skill = pickAutoSkill(draft.skillOptions, root)
-            const cfg = loadOrcheConfig(root)
-            const projectRule = resolveProjectAgentRule(cfg.taskAgentRules, {
-              output,
-              skill,
-            })
-            const ruleFields = projectRule ? taskFieldsFromRule(projectRule, cfg) : {}
-            if ('error' in ruleFields) {
-              autoTask = { error: ruleFields.error }
-            } else {
-              const existingFiles = output.filter((f: string) => existsSync(join(root, f)))
-              signal?.throwIfAborted()
-              const reservedId = activeTurnId
-                ? reserveTurnTask(activeTurnId, CHAT_TURN_OWNER)
-                : null
-              const created = createTaskRecord(
-                root,
-                {
-                  id: reservedId ?? draft.id,
-                  description: draft.description,
-                  output,
-                  acceptance_criteria: proposal.args.acceptance_criteria,
-                  approvalMode,
-                  task_class: draft.taskClass,
-                  ...ruleFields,
-                  skill,
-                },
-                { reservedId: reservedId !== null },
-              )
-              if ('error' in created) autoTask = { error: created.error }
-              else if (existingFiles.length || cfg.permissionMode === 'manual')
-                autoTask = { id: created.id, held: true, existingFiles }
-              else {
-                if (activeTurnId) requireTurnOwner(activeTurnId, CHAT_TURN_OWNER)
-                spawnTaskRun(root, created.id, undefined, undefined, session?.id)
-                autoTask = { id: created.id }
+        const blocker = taskCreationBlocker(loadOrcheConfig(root), proposal.args.outputs, {
+          isGitRepo: existsSync(join(root, '.git')),
+        })
+        if (blocker) autoTask = { error: blocker }
+        else {
+          try {
+            const draft = await buildNaturalDraft(
+              message,
+              root,
+              {
+                history,
+                assistantReply: text,
+              },
+              signal,
+            )
+            signal?.throwIfAborted()
+            // Salidas y descripción son las que el modelo pasó a la herramienta, no las que adivina el borrador.
+            draft.description = proposal.args.description
+            const output = dropIgnoredOutputs(root, proposal.args.outputs)
+            if (output.length === 0) autoTaskSkipped = true
+            else {
+              const skill = pickAutoSkill(draft.skillOptions, root)
+              const cfg = loadOrcheConfig(root)
+              const projectRule = resolveProjectAgentRule(cfg.taskAgentRules, {
+                output,
+                skill,
+              })
+              const ruleFields = projectRule ? taskFieldsFromRule(projectRule, cfg) : {}
+              if ('error' in ruleFields) {
+                autoTask = { error: ruleFields.error }
+              } else {
+                const existingFiles = output.filter((f: string) => existsSync(join(root, f)))
+                signal?.throwIfAborted()
+                const reservedId = activeTurnId
+                  ? reserveTurnTask(activeTurnId, CHAT_TURN_OWNER)
+                  : null
+                const created = createTaskRecord(
+                  root,
+                  {
+                    id: reservedId ?? draft.id,
+                    description: draft.description,
+                    output,
+                    acceptance_criteria: proposal.args.acceptance_criteria,
+                    approvalMode,
+                    task_class: draft.taskClass,
+                    ...ruleFields,
+                    skill,
+                  },
+                  { reservedId: reservedId !== null },
+                )
+                if ('error' in created) autoTask = { error: created.error }
+                else if (existingFiles.length || cfg.permissionMode === 'manual')
+                  autoTask = { id: created.id, held: true, existingFiles }
+                else {
+                  if (activeTurnId) requireTurnOwner(activeTurnId, CHAT_TURN_OWNER)
+                  spawnTaskRun(root, created.id, undefined, undefined, session?.id)
+                  autoTask = { id: created.id }
+                }
               }
             }
+          } catch (e: any) {
+            autoTask = { error: e.message }
           }
-        } catch (e: any) {
-          autoTask = { error: e.message }
         }
       }
       const note = autoTaskSkipped
@@ -1572,6 +1583,7 @@ async function handleApiChat(
       ...(!hasProjectContext && cliAdapter ? [OPEN_IN_DEV_TOOL] : []),
       ...(taskToolOffered ? [CREATE_TASK_TOOL] : []),
       ...(readonlyOffered ? [RUN_READONLY_TOOL] : []),
+      ...(readonlyOffered ? TASK_STATUS_TOOLS : []),
       ...(previewOffered ? PREVIEW_TOOLS : []),
       ...(readonlyOffered && project.id ? [PROPOSE_LESSON_TOOL] : []),
       ...(readonlyOffered && project.id && session && siblings.length
@@ -1590,6 +1602,7 @@ async function handleApiChat(
       hasProjectContext,
       mode: session?.mode,
       taskToolOffered,
+      statusToolsOffered: offeredTools.includes(LIST_TASKS_TOOL),
       permissionMode: orcheConfig.permissionMode,
     })
 
@@ -2068,10 +2081,18 @@ async function handleApiChat(
         const auditedReader = createAuditedProjectReader(root, readCollector)
         const readonlyTool = runReadonlyApiTool(root)
         const createTaskTool = taskToolOffered
-          ? createTaskApiTool((proposal) => {
-              taskProposal = proposal
-            })
+          ? createTaskApiTool(
+              (proposal) => {
+                taskProposal = proposal
+              },
+              (args) =>
+                taskCreationBlocker(loadOrcheConfig(root), args.outputs, {
+                  isGitRepo: existsSync(join(root, '.git')),
+                }),
+            )
           : null
+        const listTasksTool = listTasksApiTool(root)
+        const getTaskStatusTool = getTaskStatusApiTool(root)
         const lessonTool = offeredTools.includes(PROPOSE_LESSON_TOOL)
           ? proposeLessonApiTool(collectLessonProposal)
           : null
@@ -2094,6 +2115,7 @@ async function handleApiChat(
               : []),
             ...(createTaskTool ? [createTaskTool.tool] : []),
             ...(hasProjectContext ? [readonlyTool.tool] : []),
+            ...(hasProjectContext ? [listTasksTool.tool, getTaskStatusTool.tool] : []),
             ...(lessonTool ? [lessonTool.tool] : []),
             ...(sessionMessageTool ? [sessionMessageTool.tool] : []),
           ],
@@ -2102,6 +2124,8 @@ async function handleApiChat(
             ...(hasProjectContext
               ? {
                   [readonlyTool.tool.name]: readonlyTool.execute,
+                  [listTasksTool.tool.name]: listTasksTool.execute,
+                  [getTaskStatusTool.tool.name]: getTaskStatusTool.execute,
                   ...(lessonTool ? { [lessonTool.tool.name]: lessonTool.execute } : {}),
                   ...(sessionMessageTool
                     ? { [sessionMessageTool.tool.name]: sessionMessageTool.execute }

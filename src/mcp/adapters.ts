@@ -42,6 +42,14 @@ import {
   parseProposeLessonArgs,
   type SessionMessageProposal,
 } from './server.ts'
+import {
+  GET_TASK_STATUS_DEFINITION,
+  GET_TASK_STATUS_TOOL,
+  getTaskStatus,
+  LIST_TASKS_DEFINITION,
+  LIST_TASKS_TOOL,
+  listTasks,
+} from './task-status.ts'
 
 export const CREATE_TASK_STEP_LABEL = `mcp__${MCP_SERVER_NAME}__${CREATE_TASK_TOOL}`
 export const RUN_READONLY_STEP_LABEL = `mcp__${MCP_SERVER_NAME}__${RUN_READONLY_TOOL}`
@@ -128,7 +136,10 @@ export function taskProposalFromStep(step: ExecutorStepEvent): TaskProposal | nu
 }
 
 /** Chat por API (OpenRouter): `create_task` como herramienta nativa, mismo schema y validación que el servidor MCP. */
-export function createTaskApiTool(onProposal: (proposal: TaskProposal) => void): {
+export function createTaskApiTool(
+  onProposal: (proposal: TaskProposal) => void,
+  blocker?: (args: CreateTaskArgs) => string | null,
+): {
   tool: ToolDef
   execute: ToolExecutor
 } {
@@ -141,8 +152,42 @@ export function createTaskApiTool(onProposal: (proposal: TaskProposal) => void):
     },
     execute: async (_name, input) => {
       const parsed = parseCreateTaskArgs(input)
+      const blocked = parsed.ok ? blocker?.(parsed.args) : null
+      if (parsed.ok && blocked) {
+        const message = blocked
+        onProposal({ ok: false, error: message })
+        return `[Error: Task not created: ${message}]`
+      }
       onProposal(parsed)
       return parsed.ok ? CREATE_TASK_RESPONSE : `[Error: ${parsed.error}]`
+    },
+  }
+}
+
+export function listTasksApiTool(root: string): { tool: ToolDef; execute: ToolExecutor } {
+  return {
+    tool: {
+      name: LIST_TASKS_TOOL,
+      description: LIST_TASKS_DEFINITION.description,
+      input_schema: LIST_TASKS_DEFINITION.inputSchema as unknown as ToolDef['input_schema'],
+    },
+    execute: async (_name, input) => {
+      const out = listTasks(input, root)
+      return out.isError ? `[Error: ${out.text}]` : out.text
+    },
+  }
+}
+
+export function getTaskStatusApiTool(root: string): { tool: ToolDef; execute: ToolExecutor } {
+  return {
+    tool: {
+      name: GET_TASK_STATUS_TOOL,
+      description: GET_TASK_STATUS_DEFINITION.description,
+      input_schema: GET_TASK_STATUS_DEFINITION.inputSchema as unknown as ToolDef['input_schema'],
+    },
+    execute: async (_name, input) => {
+      const out = getTaskStatus(input, root)
+      return out.isError ? `[Error: ${out.text}]` : out.text
     },
   }
 }

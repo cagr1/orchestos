@@ -48,7 +48,7 @@ async function isolated(body: string): Promise<any> {
       writeFileSync(join(home, '.orchestos/cache/models.json'), JSON.stringify({ schemaVersion: 2, fetchedAt: Date.now(), models: {
         'deepseek/deepseek-v4-flash': { contextLength: 64000, priceIn: 0, priceOut: 0, supportsTools: false, maxOutputTokens: 8192 }
       }}))
-      writeFileSync(join(root, 'orchestos.config.yaml'), 'roles:\\n  orchestrator: { agent: api, provider: openrouter, model: mock/orchestrator }\\n  auxiliary: { agent: api, provider: openrouter, model: mock/auxiliary }\\n  executor: { agent: api, provider: openrouter, model: mock/executor }\\n')
+      writeFileSync(join(root, 'orchestos.config.yaml'), 'roles:\\n  orchestrator: { agent: api, provider: openrouter, model: mock/orchestrator }\\n  auxiliary: { agent: api, provider: openrouter, model: mock/auxiliary }\\n  executor: { agent: api, provider: openrouter, model: mock/executor }\\n  reviewer: { agent: api, provider: openrouter, model: mock/reviewer }\\n')
       writeFileSync(join(root, 'tasks.yaml'), 'version: 1\\nproject: fixture\\ntasks: []\\n')
       writeFileSync(join(root, 'existing.txt'), 'unchanged')
       db.run('INSERT INTO projects (id,path,stack_profile,agents_md,last_updated) VALUES (?,?,?,?,?)', ['fixture', root, '{}', '', new Date().toISOString()])
@@ -199,6 +199,23 @@ it('rejects createTaskRecord without touching tasks.yaml when output is empty', 
     status: 400,
   })
   expect(result.sameYaml).toBe(true)
+})
+
+it('chat does not draft or create a task when required model roles are missing', async () => {
+  const result = await isolated(`
+    useTaskTool({ title: 'Modify fixture', description: 'Modify existing fixture', outputs: ['existing.txt'] })
+    writeFileSync(join(root, 'orchestos.config.yaml'), 'roles:\\n  orchestrator: { agent: api, provider: openrouter, model: mock/orchestrator }\\n')
+    const response = await request('missing-roles')
+    const payload = await response.json()
+    const { loadTasks } = await import('./src/tasks/loader.ts')
+    console.log(JSON.stringify({ status: response.status, payload, tasks: loadTasks(root).tasks, calls }))
+  `)
+  expect(result.status, JSON.stringify(result.payload)).toBe(200)
+  expect(result.payload.text).toContain(
+    '⚠ Could not auto-create the task: This project has no model assigned',
+  )
+  expect(result.tasks).toEqual([])
+  expect(result.calls).toBe(0)
 })
 
 for (const mode of ['supervised', 'auto-edit', 'full', undefined]) {

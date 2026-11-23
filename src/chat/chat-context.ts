@@ -293,9 +293,12 @@ export function buildChatSystemPrompt(input: ChatPromptInput): string {
     : taskTool
       ? 'Answer in this chat whatever can be answered with text (writing text, code or lists in your reply is not a file change); only requests to change files in the project go through `create_task`, described below.'
       : 'Answer in this chat whatever can be answered with text (writing text, code or lists in your reply is not a file change).'
+  const taskStatusGuidance = input.offeredTools?.includes('list_tasks')
+    ? `That state is a snapshot: to check any task and its runs, call \`${input.agent === 'claude' || input.agent === 'codex' ? 'mcp__orchestos__list_tasks' : 'list_tasks'}\` or \`${input.agent === 'claude' || input.agent === 'codex' ? 'mcp__orchestos__get_task_status' : 'get_task_status'}\`.`
+    : 'That state is a snapshot: you have no tool to query more tasks or runs, so for anything not listed point the user to the task card.'
   const role = noProject
     ? "You are the assistant of OrchestOS, an AI agent orchestrator. This chat has no project: you cannot see any project's files, tasks or runs, so if asked about them say they are available from a chat inside that project. Be concise unless the user asks for detail. If the user writes in Spanish, respond in Spanish."
-    : `You are the assistant of OrchestOS, an AI agent orchestrator. Answer questions about this project using the project state below (tasks, recent runs${input.memory?.length ? ', memory' : ''}${input.specs?.length ? ', specs' : ''}) and your tools. That state is a snapshot: you have no tool to query more tasks or runs, so for anything not listed point the user to the task card. Be concise unless the user asks for detail. If the user writes in Spanish, respond in Spanish.`
+    : `You are the assistant of OrchestOS, an AI agent orchestrator. Answer questions about this project using the project state below (tasks, recent runs${input.memory?.length ? ', memory' : ''}${input.specs?.length ? ', specs' : ''}) and your tools. ${taskStatusGuidance} Be concise unless the user asks for detail. If the user writes in Spanish, respond in Spanish.`
   const model = input.modelLabel ? `\n\nYou are running as model: ${input.modelLabel}.` : ''
   const projectContext = input.projectProfile ? chatProjectContext(input.projectProfile) : ''
   const project = projectContext ? `\n\nProject context:\n${projectContext}` : ''

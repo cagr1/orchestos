@@ -40,11 +40,25 @@ describe('handleApiProjectGit', () => {
     runGit(root, ['-c', 'user.name=t', '-c', 'user.email=t@t', 'commit', '-m', 'fixture'])
 
     expect(await status(root)).toBe(true)
+    expect(await handleApiProjectGit(root).json()).toMatchObject({
+      isGitRepo: true,
+      hasCommits: true,
+    })
     writeFileSync(join(root, 'uncommitted.txt'), 'dirty\n')
     expect(await status(root)).toBe(false)
   })
 
   it('reports null when the directory is not a git repository', async () => {
-    expect(await status(makeRoot())).toBeNull()
+    const root = makeRoot()
+    expect(await status(root)).toBeNull()
+    expect(await handleApiProjectGit(root).json()).toMatchObject({
+      isGitRepo: false,
+      hasCommits: false,
+    })
+    runGit(root, ['init'])
+    expect(await handleApiProjectGit(root).json()).toMatchObject({
+      isGitRepo: true,
+      hasCommits: false,
+    })
   })
 })
