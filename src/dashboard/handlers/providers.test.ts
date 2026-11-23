@@ -450,8 +450,12 @@ it('reports published versions, compares installed versions and forces latest re
   const latestCalls: [string, boolean | undefined][] = []
   const read = createProviderReader(probe, {
     latest: async (name, refresh) => {
-      latestCalls.push([name, refresh])
-      return name === '@openai/codex' ? '1.2.4' : '1.2.3'
+      latestCalls.push([name.kind === 'npm' ? name.pkg : name.repo, refresh])
+      return name.kind === 'npm' && name.pkg === '@openai/codex'
+        ? '1.2.4'
+        : name.kind === 'github'
+          ? '2.3.2'
+          : '1.2.3'
     },
     models: async () => [],
     executor: () => undefined,
@@ -467,11 +471,12 @@ it('reports published versions, compares installed versions and forces latest re
     updateAvailable: false,
   })
   expect(result.find((cli) => cli.id === 'opencode')).toMatchObject({
-    latestVersion: null,
-    updateAvailable: false,
+    latestVersion: '2.3.2',
+    updateAvailable: true,
   })
   await read('/project', true)
-  expect(latestCalls.filter(([, refresh]) => refresh)).toHaveLength(2)
+  expect(latestCalls.filter(([, refresh]) => refresh)).toHaveLength(3)
+  expect(latestCalls).toContainEqual(['anomalyco/opencode', true])
   probe.command = async () => '2.0.0'
   const newer = await read('/project', true)
   expect(newer.find((cli) => cli.id === 'codex')?.updateAvailable).toBe(false)

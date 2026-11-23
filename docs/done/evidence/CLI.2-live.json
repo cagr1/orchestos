@@ -1,0 +1,139 @@
+{
+  "item": "CLI.2",
+  "date": "2026-11-22",
+  "where": "Worktree build of this commit served on http://localhost:4343 against the real ~/.orchestos home and the real CLIs on macOS (the 4242 dashboard runs from the main checkout and was not touched); headless Chromium via Playwright",
+  "before": "opencode v2.3.0 (curl install, ~/.opencode/bin/opencode)",
+  "after": "opencode v2.3.2",
+  "note": "OpenCode had been updated externally at 21:35:49 (opencode log: upgrade --method curl, not from OrchestOS; most likely Orca). It was put back to 2.3.0 with `opencode upgrade 2.3.0 --method curl` so the Update button could be exercised live; end state is 2.3.2 again.",
+  "rounds": [
+    "first live pass: entry stayed after a successful update (stale snapshot) -> round 2 (refreshNow awaited before the POST response); this log is the re-check after the fix"
+  ],
+  "gates": ["typecheck 0", "lint 0", " 98 pass", " 0 fail"],
+  "steps": [
+    {
+      "name": "api",
+      "at": "2026-11-23T02:44:17.816Z",
+      "url": "/api/cli-updates",
+      "status": 200,
+      "body": {
+        "checking": true,
+        "checkedAt": null,
+        "clis": []
+      }
+    },
+    {
+      "name": "api",
+      "at": "2026-11-23T02:44:21.819Z",
+      "url": "/api/cli-updates",
+      "status": 200,
+      "body": {
+        "checking": false,
+        "checkedAt": 1795401859389,
+        "clis": [
+          {
+            "id": "claude",
+            "label": "Claude Code",
+            "version": "2.1.330",
+            "latestVersion": "2.1.330",
+            "updateAvailable": false,
+            "method": "npm",
+            "canUpdate": true
+          },
+          {
+            "id": "codex",
+            "label": "Codex",
+            "version": "0.171.0",
+            "latestVersion": "0.171.0",
+            "updateAvailable": false,
+            "method": "standalone",
+            "canUpdate": true
+          },
+          {
+            "id": "opencode",
+            "label": "opencode",
+            "version": "2.3.0",
+            "latestVersion": "2.3.2",
+            "updateAvailable": true,
+            "method": "curl",
+            "canUpdate": true
+          }
+        ]
+      }
+    },
+    {
+      "name": "entry visible",
+      "at": "2026-11-23T02:44:21.918Z",
+      "text": "1 CLI update"
+    },
+    {
+      "name": "popover row",
+      "at": "2026-11-23T02:44:22.061Z",
+      "text": "opencode\nUpdate\n2.3.0 → 2.3.2"
+    },
+    {
+      "name": "api",
+      "at": "2026-11-23T02:44:27.569Z",
+      "url": "/api/providers/opencode/update",
+      "status": 200,
+      "body": {
+        "ok": true,
+        "exitCode": 0,
+        "output": "┌  Upgrade\n│\n●  Using method: curl\n│\n●  From 2.3.0 → 2.3.2\n│\n◇  Upgrade complete\n│\n└  Done\n\n",
+        "method": "curl",
+        "version": "2.3.2"
+      }
+    },
+    {
+      "name": "api",
+      "at": "2026-11-23T02:44:27.569Z",
+      "url": "/api/cli-updates",
+      "status": 200,
+      "body": {
+        "checking": false,
+        "checkedAt": 1795401867565,
+        "clis": [
+          {
+            "id": "claude",
+            "label": "Claude Code",
+            "version": "2.1.330",
+            "latestVersion": "2.1.330",
+            "updateAvailable": false,
+            "method": "npm",
+            "canUpdate": true
+          },
+          {
+            "id": "codex",
+            "label": "Codex",
+            "version": "0.171.0",
+            "latestVersion": "0.171.0",
+            "updateAvailable": false,
+            "method": "standalone",
+            "canUpdate": true
+          },
+          {
+            "id": "opencode",
+            "label": "opencode",
+            "version": "2.3.2",
+            "latestVersion": "2.3.2",
+            "updateAvailable": false,
+            "method": "curl",
+            "canUpdate": true
+          }
+        ]
+      }
+    },
+    {
+      "name": "result",
+      "at": "2026-11-23T02:44:28.070Z",
+      "kind": "ok",
+      "text": "Updated to 2.3.2",
+      "row": "opencode\nUpdate\n2.3.2 → 2.3.2\nUpdated to 2.3.2"
+    },
+    {
+      "name": "entry after close",
+      "at": "2026-11-23T02:44:29.671Z",
+      "count": 0
+    }
+  ],
+  "screenshots": "looked at in /tmp/cli2-live (footer, popover, updating, result, after); not versioned per AGENTS.md"
+}

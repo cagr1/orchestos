@@ -308,10 +308,28 @@ export async function getProviders(
   })
 }
 
+export interface CliUpdateEntry {
+  id: string
+  label: string
+  version: string | null
+  latestVersion: string | null
+  updateAvailable: boolean
+  method: 'npm' | 'bun' | 'brew' | 'curl' | 'standalone' | 'native' | 'unknown'
+  canUpdate: boolean
+  reason?: string
+}
+export function getCliUpdates(
+  refresh = false,
+): Promise<{ checking: boolean; checkedAt: number | null; clis: CliUpdateEntry[] }> {
+  return request(`/api/cli-updates${refresh ? '?refresh=1' : ''}`)
+}
+
 export async function updateProvider(id: string): Promise<{
   ok: boolean
   exitCode: number | null
   output: string
+  method: CliUpdateEntry['method']
+  version: string | null
 }> {
   return request(`/api/providers/${encodeURIComponent(id)}/update`, { method: 'POST' })
 }

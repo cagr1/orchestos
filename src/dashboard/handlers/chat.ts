@@ -1162,7 +1162,7 @@ async function handleApiChat(
       root = isolatedCwd
     }
     if (session && activeTurnId) {
-      signal = registerChatTurn(session.id, activeTurnId)
+      signal = registerChatTurn(session.id, activeTurnId, chatAgent)
       const turnId = activeTurnId
       leaseTimer = setInterval(() => {
         try {

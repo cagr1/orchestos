@@ -335,7 +335,10 @@ describe('mapQuotas eligibility', () => {
     expect(mapQuotas(status)).toEqual([])
     expect(mapQuotas(null)).toEqual([])
     const html = renderToStaticMarkup(createElement(ShellStatusBar, { status, onRefresh() {} }))
-    expect(html).toBe('')
+    // CLI.2: the footer stays mounted (hidden) so the CLI updates entry can poll and reveal it.
+    expect(html).toMatch(/^<footer class="hidden /)
+    expect(html).not.toContain('data-quota-cli')
+    expect(html).not.toContain('Refresh usage')
   })
 })
 

@@ -4,6 +4,7 @@ import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { Tooltip } from '@/components/ui/tooltip'
 import type { SessionStatus } from '../../types/orchestos'
 import { ProviderLogo } from '../common/ProviderLogos'
+import { CliUpdatesEntry } from './CliUpdatesEntry'
 
 export interface CliQuotaInfo {
   id: string
@@ -126,6 +127,7 @@ export const ShellStatusBar: React.FC<ShellStatusBarProps> = ({
   onTogglePreview,
   previewOpen = false,
 }) => {
+  const [hasUpdates, setHasUpdates] = useState(false)
   const [activeCliId, setActiveCliId] = useState<string | null>(null)
   const [status, setStatus] = useState<SessionStatus | null>(incomingStatus ?? null)
   const [, setNow] = useState(Date.now())
@@ -165,14 +167,14 @@ export const ShellStatusBar: React.FC<ShellStatusBarProps> = ({
     }
   }, [activeCliId])
 
-  if (quotas.length === 0 && !onToggleTerminal && !onTogglePreview) return null
-
   const activeCli = quotas.find((c) => c.id === activeCliId)
   const fiveHourTone = quotaTone(activeCli?.quota5h ?? null)
   const weeklyTone = quotaTone(activeCli?.quotaWeekly ?? null)
 
   return (
-    <footer className="h-7 border-t border-app bg-app-bg px-3 flex items-center justify-between select-none text-xs flex-shrink-0 z-30 relative font-mono">
+    <footer
+      className={`${quotas.length === 0 && !onToggleTerminal && !onTogglePreview && !hasUpdates ? 'hidden' : 'flex'} h-7 border-t border-app bg-app-bg px-3 items-center justify-between select-none text-xs flex-shrink-0 z-30 relative font-mono`}
+    >
       {/* Functional CLIs with a quota source */}
       <div className="flex items-center gap-4">
         {quotas.map((cli) => {
@@ -234,6 +236,7 @@ export const ShellStatusBar: React.FC<ShellStatusBarProps> = ({
         )}
       </div>
 
+      <CliUpdatesEntry onVisibilityChange={setHasUpdates} />
       {onTogglePreview && (
         <Tooltip content="Browser">
           <button
@@ -242,7 +245,7 @@ export const ShellStatusBar: React.FC<ShellStatusBarProps> = ({
             onClick={onTogglePreview}
             aria-pressed={previewOpen}
             aria-label="Browser"
-            className={`ml-auto flex items-center p-1 rounded-control transition-colors ${
+            className={`${hasUpdates ? '' : 'ml-auto '}flex items-center p-1 rounded-control transition-colors ${
               previewOpen
                 ? 'bg-app-elevated border border-app text-app'
                 : 'hover:bg-app-surface/60 text-app-muted hover:text-app'
@@ -260,7 +263,7 @@ export const ShellStatusBar: React.FC<ShellStatusBarProps> = ({
             onClick={onToggleTerminal}
             aria-pressed={terminalOpen}
             aria-label="Terminal"
-            className={`${onTogglePreview ? '' : 'ml-auto '}flex items-center p-1 rounded-control transition-colors ${
+            className={`${onTogglePreview || hasUpdates ? '' : 'ml-auto '}flex items-center p-1 rounded-control transition-colors ${
               terminalOpen
                 ? 'bg-app-elevated border border-app text-app'
                 : 'hover:bg-app-surface/60 text-app-muted hover:text-app'

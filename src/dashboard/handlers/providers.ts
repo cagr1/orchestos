@@ -9,8 +9,9 @@ import {
   readCliHealth,
   systemCliHealthProbe,
 } from '../../run/executors/cli-health.ts'
-import { allClis, configuredClis, detectInstalledClis } from '../../run/executors/cli-registry.ts'
-import { compareVersions, readCliLatest } from '../../run/executors/cli-updates.ts'
+import { detectCliInstall } from '../../run/executors/cli-install-method.ts'
+import { configuredClis, detectInstalledClis } from '../../run/executors/cli-registry.ts'
+import { compareVersions, readLatestFor } from '../../run/executors/cli-updates.ts'
 import { taskEngineForCli } from '../../run/executors/task-engines.ts'
 import { type CliModelCatalog, readCliModelCatalogsCached } from '../chat-cli-models.ts'
 import { jsonResponse } from '../http.ts'
@@ -115,7 +116,8 @@ function readIdentity(id: string, probe: ProviderProbe): Pick<ProviderAuth, 'acc
 export function createProviderReader(
   probe: ProviderProbe = systemProviderProbe,
   dependencies: {
-    latest?: typeof readCliLatest
+    latest?: typeof readLatestFor
+    install?: typeof detectCliInstall
     health?: (refresh?: boolean) => Promise<CliHealth[]>
     detect?: () => ReturnType<typeof detectInstalledClis>
     models?: (clis: ReturnType<typeof detectInstalledClis>) => Promise<CliModelCatalog[]>
@@ -128,7 +130,7 @@ export function createProviderReader(
   const health =
     dependencies.health ??
     (probe === systemProviderProbe ? readCliHealth : createCliHealthReader(probe))
-  const latest = dependencies.latest ?? readCliLatest
+  const latest = dependencies.latest ?? readLatestFor
   const cache = new Map<string, { expires: number; value: ProviderSnapshot }>()
   let pending: Promise<ProviderSnapshot[]> | undefined
   let generation = 0
@@ -157,8 +159,11 @@ export function createProviderReader(
             statesPromise,
             Promise.all(
               clis.map(async (cli) => {
-                const update = allClis().find((entry) => entry.id === cli.id)?.update
-                return update ? latest(update.npmPackage, refresh) : null
+                const source = (dependencies.install ?? detectCliInstall)(
+                  cli.id,
+                  cli.path ?? '',
+                ).latest
+                return source ? latest(source, refresh) : null
               }),
             ),
           ])

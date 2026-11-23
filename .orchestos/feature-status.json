@@ -356,6 +356,14 @@
       "closedDate": null
     },
     {
+      "id": "CLI.2",
+      "sprint": "Etapa 2 — Uso real",
+      "block": null,
+      "title": "Actualizaciones de CLI en la barra inferior, con OpenCode y método de instalación detectado",
+      "status": "done",
+      "closedDate": null
+    },
+    {
       "id": "LRN.2",
       "sprint": "Etapa 2 — Uso real",
       "block": null,

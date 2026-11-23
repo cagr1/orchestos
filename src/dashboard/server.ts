@@ -35,6 +35,7 @@ import {
   handleApiSessionMessageDecision,
 } from './handlers/chat-sessions.ts'
 import { interruptActiveChatTurns } from './handlers/chat-turn-registry.ts'
+import { handleApiCliUpdates } from './handlers/cli-update-status.ts'
 import { handleApiClisGet, handleApiClisSet } from './handlers/clis.ts'
 import { handleApiConfigGet, handleApiConfigInit, handleApiConfigSet } from './handlers/config.ts'
 import { createDashboardBuildHandler } from './handlers/dashboard-build.ts'
@@ -733,6 +734,7 @@ export async function route(
     // Legacy cwd fallback remains only for unscoped config reads.
     return withDashboardProject(req, (project) => handleApiConfigGet(project.root))
   }
+  if (method === 'GET' && url.pathname === '/api/cli-updates') return handleApiCliUpdates(url)
   if (method === 'GET' && url.pathname === '/api/providers') {
     return withDashboardProject(req, (project) => handleApiProviders(url, project.root))
   }

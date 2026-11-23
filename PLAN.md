@@ -534,6 +534,19 @@ esta etapa: `docs/done/bloque-AUD.md` (AUD.16, AUD.17), `docs/done/bloque-SES.md
   Gate en vivo: navegador del panel contra el dashboard real (versión publicada simulada para ver el botón) — `docs/done/evidence/CLI.1-live.json`
   Texto visible: "Update", "Update failed", "No está en el catálogo de", "Use" (acción y estado de actualización y de modelo ausente: un ícono no dice qué versión ni qué modelo)
   Ejecutado por: gpt-6.1-sol (criterio) + gpt-6-luna (ajuste boundary) + claude-opus-5-5 (idioma y esfuerzo) · Spec: docs/specs/CLI.1.md
+- [x] **CLI.2 — Actualizaciones de CLI en la barra inferior, con OpenCode y método de instalación detectado.** (Carlos, 2026-11-22, GO)
+  Como Orca: entrada "N CLI updates" en `ShellStatusBar` → popover con "actual → última", "Update" por CLI y
+  "Update all". Sobre CLI.1 (solo Codex/Claude, solo en Settings › Providers, `<cli> update` sin mirar cómo se
+  instaló). Suma: OpenCode (curl → última de GitHub releases; npm `latest` es la línea 1.x), detección del método por
+  la ruta real del binario (`cli-install-method.ts`; desconocido → 409 sin ejecutar nada), negativa si una tarea o
+  turno de chat usa ese CLI (falla cerrado), `GET /api/cli-updates` que nunca espera red (caché, refresco en fondo).
+  Rondas: qa r1 (guarda de tareas abierta si `ps` no lee el comando; respuestas viejas del polling) y r2 (en vivo: la
+  entrada seguía tras actualizar → el POST espera la instantánea nueva). Sin probar en Windows: los shims `.cmd` de npm
+  caen en "método desconocido" (se niega, no rompe). Límite: la guarda de chat ve solo los turnos del mismo proceso
+  de dashboard.
+  Texto visible: "CLI update", "CLI updates", "Update all", "Updated to", "Update failed" (aviso y resultado de una acción con versión: un ícono no dice cuántos CLIs ni a qué versión quedó)
+  Gate en vivo: navegador (Playwright) contra el dashboard real con el home real — Update de OpenCode 2.3.0 → 2.3.2 — `docs/done/evidence/CLI.2-live.json`
+  Ejecutado por: gpt-6.1-sol (criterio) + gpt-6-luna (mecanico, r1 y r2) + claude-opus-5-5 (test de ShellStatusBar); qa gpt-6.1-sol sin defectos en r2 · Spec: docs/specs/CLI.2.md
 - [ ] **LRN.2 — Una lección probada se gradúa a check, no solo a `AGENTS.md`.** (Carlos, 2026-11-17; mismo principio
   que CHK.1, aplicado al producto) LRN.1 gradúa lecciones a texto de `AGENTS.md`
   (`docs/specs/LRN-1-opinion-fable.md:79`). Agregar un segundo destino: si la firma del fallo es detectable en el diff

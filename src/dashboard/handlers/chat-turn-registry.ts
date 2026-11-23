@@ -3,6 +3,7 @@ import { interruptChatTurn } from '../../db/chat-turns.ts'
 
 interface ActiveChatTurn {
   turnId: string
+  agent?: string
   controller: AbortController
   stopping: boolean
 }
@@ -17,10 +18,10 @@ export function interruptActiveChatTurns(): void {
   }
 }
 
-export function registerChatTurn(sessionId: string, turnId: string): AbortSignal {
+export function registerChatTurn(sessionId: string, turnId: string, agent?: string): AbortSignal {
   if (activeTurns.has(sessionId)) throw new Error('Chat session already registered')
   const controller = new AbortController()
-  activeTurns.set(sessionId, { turnId, controller, stopping: false })
+  activeTurns.set(sessionId, { turnId, agent, controller, stopping: false })
   return controller.signal
 }
 
@@ -54,4 +55,8 @@ export function waitForChatWork<T>(work: Promise<T>, signal?: AbortSignal): Prom
     if (signal.aborted) abort()
     work.then(resolve, reject).finally(() => signal.removeEventListener('abort', abort))
   })
+}
+
+export function activeChatTurnAgents(): Array<string | undefined> {
+  return Array.from(activeTurns.values(), (turn) => turn.agent)
 }

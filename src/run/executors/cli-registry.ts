@@ -58,7 +58,6 @@ export type CliMcpAdapter =
   | { kind: 'none'; reason: string }
 
 export interface CliDefinition {
-  update?: { npmPackage: string; args: string[] }
   id: string
   binary: string
   label: string
@@ -96,7 +95,6 @@ Do not load or reference user-level configuration, personal instructions, or pri
 export const KNOWN_CLIS: CliDefinition[] = [
   {
     id: 'claude',
-    update: { npmPackage: '@anthropic-ai/claude-code', args: ['update'] },
     quotaSource: true,
     supportsActionApproval: true,
     binary: 'claude',
@@ -113,7 +111,6 @@ export const KNOWN_CLIS: CliDefinition[] = [
   },
   {
     id: 'codex',
-    update: { npmPackage: '@openai/codex', args: ['update'] },
     quotaSource: true,
     supportsActionApproval: true,
     binary: 'codex',
