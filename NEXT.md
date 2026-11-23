@@ -4,6 +4,18 @@ Un solo presente: orden y trampas vivas del lote. Lo cerrado vive en `docs/done/
 `AGENTS.md`. Versión anterior completa: `docs/done/poda-instrucciones-2026-11-03.md` (histórico).
 Arranque: `bun run agent:preflight -- --item <ID> --agent claude`. Lista viva: `bun run next`.
 
+## Pausa 2026-11-23 — al volver, decidir esto primero
+
+Carlos pospone OrchestOS para atender Agro (cliente); no lo abandona y quiere terminarlo. Motivo para seguir: bajo
+uso de RAM frente a Orca. Pregunta abierta de Carlos, antes de más ítems: ¿el desgaste viene de *obligar* a los
+agentes por código (chat `--restricted` solo a la carpeta del proyecto, juez QA con criterios que rechazan "no
+verificado", reintentos que quedan `pending` sin aviso claro) cuando Orca/T3 son capas delgadas sobre el CLI?
+Propuesta para la recta final: por defecto, comportamiento de capa delgada (el CLI tal cual, como Orca); los
+controles (frontera de lectura, QA, criterios) quedan opcionales por proyecto. Hallazgos del 2026-11-23 que lo
+motivan: el chat de Agro no pudo leer `~/Projects/MemoriesMD` (`external.ts:483-517`); la tarea `chat-88da5540`
+la rechazó QA por un dato marcado "no verificado" y quedó `pending` (retry 1/3) sin reintentarse. USO.48 cerrado
+(`29f4cda8`, effort manual por sesión).
+
 ## Sesión 2026-11-23 — empezar por aquí
 
 Cerrado/subido hoy (uso real): USO.38 `1c46a9c4` (Ctrl+C), USO.39 `58d7682a`+`cb5620de` (prompt del chat), USO.40
