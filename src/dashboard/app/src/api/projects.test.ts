@@ -51,7 +51,7 @@ describe('projects API mappings', () => {
     expect(mapSessionToAgent(session, { kind: 'none' }).status).toBe('completed')
   })
 
-  test('Dev uses the orchestrator only for sessions without a last model', () => {
+  test('Dev preserves the last model and uses the routing effort', () => {
     const session = {
       id: 's1',
       projectId: 'p1',
@@ -72,10 +72,24 @@ describe('projects API mappings', () => {
         { kind: 'none' },
         role,
       ),
-    ).toMatchObject({ model: 'gpt-6.1-sol', effort: 'high' })
+    ).toMatchObject({ model: 'gpt-6.1-sol', effort: 'medium' })
     expect(
       mapSessionToAgent({ ...session, lastModel: 'gpt-6.1-sol' }, { kind: 'none' }, role).effort,
-    ).toBeUndefined()
+    ).toBe('medium')
+    expect(
+      mapSessionToAgent(
+        { ...session, agent: 'claude', lastModel: 'sonnet', lastEffort: 'high' },
+        { kind: 'none' },
+        role,
+      ).effort,
+    ).toBe('high')
+    expect(
+      mapSessionToAgent(
+        { ...session, lastEffort: 'high' },
+        { kind: 'none' },
+        { ...role, effort: undefined },
+      ).effort,
+    ).toBe('high')
     expect(
       mapSessionToAgent(
         { ...session, lastModel: 'sonnet', agent: 'claude' },

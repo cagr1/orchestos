@@ -79,15 +79,16 @@ export function mapSessionToAgent(
 ): AgentSession {
   const assignment =
     !session.lastModel && orchestrator?.agent === session.agent ? orchestrator : undefined
+  // USO.44: routing effort overrides previous turns without changing the session model.
+  const effort =
+    (orchestrator?.agent === session.agent ? orchestrator.effort : undefined) || session.lastEffort
   return {
     id: session.id,
     projectId: session.projectId ?? null,
     name: session.title,
     agent: session.agent,
     model: assignment?.model || session.lastModel || session.agent,
-    ...(assignment?.effort || session.lastEffort
-      ? { effort: assignment?.effort || session.lastEffort }
-      : {}),
+    ...(effort ? { effort } : {}),
     duration: timeSince(session.updatedAt),
     status:
       status.kind === 'pending'

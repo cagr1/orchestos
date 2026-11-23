@@ -162,13 +162,13 @@ function attachmentFromFile(file: File): ChatAttachment {
 export function selectionFromDefaults(
   defaultCli: CliId,
   defaultModel: string | undefined,
-  defaultEffort: EffortLevel,
+  defaultEffort?: EffortLevel,
   lockedCli?: CliId,
 ) {
   return {
     cli: lockedCli ?? defaultCli,
     model: defaultModel ?? '',
-    effort: defaultEffort,
+    effort: defaultEffort ?? '',
   }
 }
 
@@ -348,7 +348,7 @@ export const AgentComposer: React.FC<AgentComposerProps> = ({
   defaultCli = 'claude',
   defaultModel,
   useCliDefaultModel = false,
-  defaultEffort = 'high',
+  defaultEffort,
   lockedCli,
   orchestratorLoading = false,
   busy = false,
@@ -385,7 +385,7 @@ export const AgentComposer: React.FC<AgentComposerProps> = ({
   const [selectedModel, setSelectedModel] = useState<string>(
     initialModel || currentCliConfig.defaultModel || '',
   )
-  const [selectedEffort, setSelectedEffort] = useState<EffortLevel>(defaultEffort)
+  const [selectedEffort, setSelectedEffort] = useState<EffortLevel>(defaultEffort ?? '')
 
   useEffect(() => {
     const next = selectionFromDefaults(defaultCli, defaultModel, defaultEffort, lockedCli)
@@ -608,7 +608,11 @@ export const AgentComposer: React.FC<AgentComposerProps> = ({
   }, [currentCliConfig, selectedModel, useCliDefaultModel, defaultModel])
 
   useEffect(() => {
-    if (currentCliConfig.efforts.length > 0 && !currentCliConfig.efforts.includes(selectedEffort)) {
+    if (
+      selectedEffort !== '' &&
+      currentCliConfig.efforts.length > 0 &&
+      !currentCliConfig.efforts.includes(selectedEffort)
+    ) {
       setSelectedEffort(currentCliConfig.efforts[0] ?? '')
     }
   }, [currentCliConfig, selectedEffort])

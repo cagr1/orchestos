@@ -2,7 +2,7 @@ import { expect, test } from 'bun:test'
 import { queueDevSessionMessage, readChatQueue, discardChatQueue } from './chat-queue'
 import { mapSessionToAgent } from '../api/projects'
 
-test('Dev continuation queues the source model and effort instead of configured defaults', () => {
+test('Dev continuation queues the source model with the routing effort (USO.44)', () => {
   const source = mapSessionToAgent(
     {
       id: 'source',
@@ -25,7 +25,7 @@ test('Dev continuation queues the source model and effort instead of configured 
       content: 'Continue.',
       cli: 'codex',
       model: 'gpt',
-      effort: 'high',
+      effort: 'medium',
     })
     expect(readChatQueue('source')).toEqual([])
   } finally {

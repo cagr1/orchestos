@@ -91,6 +91,14 @@ test('Stop click calls the endpoint with the current turn rather than sending a 
 })
 
 describe('AgentComposer defaults', () => {
+  test('leaves effort to the CLI when no default is known', () => {
+    expect(selectionFromDefaults('claude', undefined)).toEqual({
+      cli: 'claude',
+      model: '',
+      effort: '',
+    })
+  })
+
   test('syncs a mounted API composer to its Codex orchestrator defaults', () => {
     expect(selectionFromDefaults('codex', 'gpt-6-luna', 'medium')).toEqual({
       cli: 'codex',

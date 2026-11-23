@@ -167,8 +167,8 @@
       "id": "USO.44",
       "sprint": "Etapa 2 — Uso real",
       "block": null,
-      "title": "El effort del composer cambia solo al hacer clic fuera",
-      "status": "open",
+      "title": "El composer de Dev no respeta el effort de Model routing",
+      "status": "done",
       "closedDate": null
     },
     {

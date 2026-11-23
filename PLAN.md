@@ -246,7 +246,18 @@ esta etapa: `docs/done/bloque-AUD.md` (AUD.16, AUD.17), `docs/done/bloque-SES.md
   pestaña, flujo existente, sin cambios de este ítem).
   Ejecutado por: gpt-6-luna (mecanico: herramientas, tests, flujo y arreglos) + gpt-6.1-sol (criterio: git) +
   claude-opus-5-5 (`taskCreationBlocker` inicial y montaje en Dev, fixes chicos) · Specs: docs/specs/USO.47*.md (borrados al cerrar)
-- [ ] **USO.44 — El effort del composer cambia solo al hacer clic fuera.** (Carlos, 2026-11-23, uso real)
+- [x] **USO.44 — El composer de Dev no respeta el effort de Model routing.** (Carlos, 2026-11-23, uso real)
+  Aclarado por Carlos: en Dev el effort vuelve a (o arranca en) `high` con `medium` en Model routing; no es el clic.
+  Causa: sesión real de Agro con 4 turnos `effort: high`; el routing `medium` se guardó después. Sin routing el
+  composer caía al `'high'` fijo (`AgentComposer.tsx`); con routing, `mapSessionToAgent` (`api/projects.ts`) solo lo
+  aplicaba a sesiones sin `lastModel` y luego repetía `lastEffort`. Hecho: el effort de routing gana siempre para el
+  agente del orquestador (el modelo conserva su regla); sin effort conocido el composer no envía ninguno y el
+  servidor usa el de routing. Tests: `projects.test.ts`, `AgentComposer.test.ts`, `chat-queue.test.ts` (continuación
+  con el effort de routing). `test:coverage` 3203/5: los 5 son timeouts por carga, sus archivos solos 34/0.
+  Revisión: `qa` sin defectos; el cerebro leyó el diff de `criterio`.
+  Gate en vivo: navegador Playwright, `ui:gate dev-routing-effort` 5/5 — `docs/done/evidence/USO.44-live.json`
+  (sesión existente con turno `high` → composer `· medium`, clics fuera, POST y spawn `medium`, pestaña nueva `medium`).
+  Ejecutado por: gpt-6.1-sol (criterio) + gpt-6-luna (mecanico, test) · Spec: docs/specs/USO.44.md
 - [x] **USO.45 — Copiar una respuesta no copia el markdown completo.** (Carlos, 2026-11-23, uso real)
   Causa: Copy copiaba `answerText` (solo lo posterior a la última herramienta). Mensaje real 735 (informe con
   títulos y listas → `propose_lesson` → cierre): 3084 chars guardados, Copy daba 639. Hecho: `answerCopyText`

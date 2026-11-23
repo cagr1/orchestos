@@ -1,0 +1,40 @@
+[
+  {
+    "flujo": "dev-routing-effort",
+    "pass": true,
+    "steps": [
+      {
+        "nombre": "existing Dev session has a previous high turn",
+        "ok": true,
+        "detalle": "{\"id\":\"1459af27-99da-429b-bff3-cc8f312122a6\",\"projectId\":\"481733566e8fb53f\",\"agent\":\"claude\",\"mode\":\"code\",\"title\":\"USO44 existing\",\"createdAt\":\"2026-11-23T20:27:57.429Z\",\"updatedAt\":\"2026-11-23T20:27:57.429Z\",\"archivedAt\":null,\"running\":false,\"hasPersistentWork\":false,\"lastPersistentTaskId\":null,\"lastModel\":\"claude-opus-5-5\",\"lastEffort\":\"high\"}"
+      },
+      {
+        "nombre": "existing session starts with routing medium",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "thread and sidebar clicks preserve medium",
+        "ok": true,
+        "detalle": "ok"
+      },
+      {
+        "nombre": "POST sends medium and completed session persists medium",
+        "ok": true,
+        "detalle": "{\"status\":200,\"body\":{\"sessionId\":\"1459af27-99da-429b-bff3-cc8f312122a6\",\"history\":[],\"message\":\"responde solo: ok\",\"requestKey\":\"3a730b65-3142-43c2-a94b-f84364687b3f\",\"approvalMode\":\"auto-edit\",\"agent\":\"claude\",\"model\":\"claude-opus-5-5\",\"effort\":\"medium\"},\"session\":{\"id\":\"1459af27-99da-429b-bff3-cc8f312122a6\",\"projectId\":\"481733566e8fb53f\",\"agent\":\"claude\",\"mode\":\"code\",\"title\":\"USO44 existing\",\"createdAt\":\"2026-11-23T20:27:57.429Z\",\"updatedAt\":\"2026-11-23T20:28:01.553Z\",\"archivedAt\":null,\"running\":false,\"hasPersistentWork\":false,\"lastPersistentTaskId\":null,\"lastModel\":\"claude-opus-5-5\",\"lastEffort\":\"medium\"}}"
+      },
+      {
+        "nombre": "new session tab starts with routing medium",
+        "ok": true,
+        "detalle": "ok"
+      }
+    ],
+    "notes": [],
+    "errores": [],
+    "capturas": [
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-63776/dev-routing-effort/existing-routing-medium.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-63776/dev-routing-effort/clicks-preserve-medium.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-63776/dev-routing-effort/completed-medium-turn.png"
+    ]
+  }
+]
