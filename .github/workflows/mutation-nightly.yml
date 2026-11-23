@@ -83,15 +83,10 @@ jobs:
                 "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "$mem" "$memory_pressure" "$cpu_pressure" "$process_count"
               ps -eo pid,ppid,pgid,etimes,rss,pcpu,args --sort=-rss | head -6 | \
                 cut -c1-120 | sed 's/^/[res] /'
-              scope_dir=/sys/fs/cgroup/system.slice/mutation-shard.scope
-              if [ -r "$scope_dir/memory.current" ]; then
-                printf '[res] scope %s MB | %s\n' "$(( $(cat "$scope_dir/memory.current") / 1048576 ))" \
-                  "$(grep -E '^(oom|oom_kill) ' "$scope_dir/memory.events" | tr '\n' ' ')"
-              fi
             done
           ) &
           sampler_pid=$!
-          bash scripts/mutation-scope.sh bun run ${{ matrix.command }} &
+          bun run ${{ matrix.command }} &
           command_pid=$!
           if wait "$command_pid"; then
             command_status=0

@@ -198,39 +198,6 @@ esta etapa: `docs/done/bloque-AUD.md` (AUD.16, AUD.17), `docs/done/bloque-SES.md
   (antes 2h14–2h29; 793 mutantes, dry run de 49 s). Esa corrida arrancó antes de MUT.2 (`52c93ccb`), sin muestreo.
   Corte por mutantes ejecutables del reporte del 11-16: `routing-b` = `step-event.ts` (295); `routing-d` nuevo =
   `chat-adapters.ts` (96) + `task-engines.ts` (77). Test de particiones 11/0.
-- [ ] **MUT.2 — Shards de mutación: el runner se queda sin recursos.** (2026-11-17) La nocturna del 11-16 tuvo 3 de
-  15 shards rojos (`executors-routing-c`, `executors-engines-b`, `executors-codex-server-c`) por "runner lost
-  communication", no por timeout. Hipótesis de `analizar` (Sol), sin confirmar: procesos que sobreviven a un mutante,
-  p. ej. el CLI falso con `setInterval` de `generic-cli.test.ts:209`, que solo muere si el kill bajo mutación funciona.
-  Spec: `docs/specs/MUT-2.md` — (A) muestreo de memoria y procesos en el log del job, (B) el fixture mata su propio
-  CLI falso. El aislamiento por grupo de procesos en `mutation-test-shard.ts` espera la evidencia de (A).
-  2026-11-19, evidencia de (A) en la nocturna 44293867573: rojos `executors-codex-server` y `-b`, misma causa; su log
-  no existe (BlobNotFound), así que el muestreo nunca sirve en el shard que muere. Los 13 verdes sí: procesos planos
-  (~170-204), `bun test` ≤ 371 MB, salvo `runtime-boundaries-checks`, donde un mutante llevó `bun test` a 11,4 GB en
-  116 s (13,1 de 16 GB). Fuga de procesos descartada; causa = mutante que asigna sin límite → OOM sobre el runner.
-  (C) tope de 2 GB RSS por `bun test` en `mutation-test-shard.ts`: spec `docs/specs/MUT-2-cap.md`.
-  2026-11-21, nocturna 44724733840 (20-11, con el tope): 1 de 16 rojo (`executors-codex-server-b`, "lost
-  communication", 16:48→18:03; upload falló, log inexistente) frente a 5 el 19-11 y 2 el 18-11. Verdes: pico de memoria
-  del runner 3,6–4,5 GB de 16, `bun test` ≤ 368 MB. Mejora, no cierre; falta la nocturna del 21-11 (44895977056).
-  2026-11-22, nocturna 44895977056 (21-11): otra vez 1 de 16 rojo, ahora `executors-routing-b` ("lost communication",
-  13:15→15:15, a las 2h01 de un shard de ~2h15; sin log ni artefacto). Verdes: pico del runner 3,5–4,4 GB. El shard
-  rojo cambia cada noche (16-11 routing-c/engines-b/codex-server-c; 18-11 codex-server/-b; 20-11 codex-server-b;
-  21-11 routing-b): no apunta a un mutante fijo. Sin el log del que muere, no hay causa; siguiente paso: que el
-  muestreo sobreviva al runner (escribir `[res]` a un artefacto subido por un job aparte o a un step `if: always()`).
-  2026-11-22, la nocturna 45014677461 lleva 2 rojos más ("lost communication": `executors-routing`, `-engines-b`).
-  Descartado el muestreo fuera del runner: un step `if: always()` muere con el runner. (D) tope del kernel para el árbol
-  entero del shard: `scripts/mutation-scope.sh` lo corre en un scope de systemd (`MemoryMax=75%`, sin swap,
-  `OOMPolicy=continue`) con autoprueba de OOM al arrancar; el sampler imprime `[res] scope … MB | oom N oom_kill N`.
-  Spec `docs/specs/MUT-2-scope.md`; `workflow_dispatch` acepta `shard` para probar uno solo. Límite conocido (`qa`):
-  el OOM podría elegir a Stryker en vez del mutante; entonces el shard queda rojo pero con log.
-  Gate en vivo (`1233be00`): dispatch 45041775154 con `shard=context-routing`, verde en 37 min, artefacto subido; log:
-  `[scope] autoprueba ok` (kernel: `oom-kill … oom_memcg=/system.slice/mutation-shard-probe.scope … python3`),
-  37 líneas `[res] scope` de 1984–2335 MB con `oom 0 oom_kill 0`, `[scope] exit 0`; los otros 15 jobs, steps
-  skipped. Cierre: una nocturna con 16/16 verdes, o un rojo con log y `[res] scope … oom_kill N>0` (OOM contenido, sin
-  "lost communication"). Si vuelve "lost communication" con el scope, la causa no es memoria del árbol del shard.
-  2026-11-22: sin cron desde CI.85 (nocturnas en pausa), la nocturna se reemplaza por una corrida manual completa:
-  https://github.com/cagr1/orchestos/actions/runs/45082749243 (`48279b83`, sin `shard`); con el mismo criterio de
-  cierre, esa corrida cierra MUT.2 o lo deja abierto.
 - [x] **CI.85 — Nocturnas en pausa durante la etapa 2.** (cerrado 2026-11-22; decisión de Carlos del mismo día) Sin
   `schedule` en `.github/workflows/mutation-nightly.yml` (queda `workflow_dispatch` con `shard`); LaunchAgent
   `dev.cagr1.orchestos.nightly-ui-gates` descargado con `launchctl bootout` (el plist sigue). Marca única:
@@ -817,6 +784,8 @@ esta etapa: `docs/done/bloque-AUD.md` (AUD.16, AUD.17), `docs/done/bloque-SES.md
 
 → [12 ítems fuera del plan desde el 2026-11-12: CI.19, CI.54, CI.55, CI.57, CI.69, CI.76, CI.81, AUD.8, AUD.9,
 AUD.10, AUD.27, AUD.28](docs/done/aparcados-2026-11-12.md)
+
+→ [MUT.2 aparcado el 2026-11-23 (tope de memoria del kernel revertido; retomar al reanudar la mutación)](docs/done/aparcados-2026-11-23.md)
 
 ## Retirados
 

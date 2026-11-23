@@ -21,7 +21,8 @@ Siguiente, en orden:
 2. ~~Yearly activity~~ + Tokens per day con una escala + tooltip propio por gráfico: USO.34.
 3. ~~Codex `visibility: "hide"` en el selector~~: ya filtrado en `chat-cli-models.ts:80` desde `8e11385d` (USO.3,
    2026-11-13); los runs `gpt-reserve` son de ese mismo día. Nada que hacer.
-4. **MUT.2**: la del 20-11 bajó a 1 rojo (antes 5); leer la del 21-11 (`44895977056`) al terminar. Detalle en PLAN.md.
+4. ~~**MUT.2**~~ aparcado 2026-11-23 (Carlos): la corrida manual 45082749243 con el scope dio 5 rojos; scope revertido.
+   Retomar al reanudar la mutación: [docs/done/aparcados-2026-11-23.md](docs/done/aparcados-2026-11-23.md).
 
 Trampas vivas: el hook del repo niega al cerebro editar código en `src/` (lib, executors…) también por Bash → spec +
 `delegate`; `delegate` necesita el ítem abierto en PLAN.md o el preflight para al ejecutor; no editar
@@ -50,10 +51,8 @@ Orden:
 1. **Demo AgroTienda en macOS** (Carlos, 2026-11-18: mejor hardware): es el uso real de la Etapa 2; cada fallo se
    abre como ítem USO con su evidencia y va primero. **Windows aparte**, en sesiones de corrección en esa máquina:
    continuar los ítems WIN abiertos. WIN.1 queda para una sesión posterior.
-2. **MUT.1 y MUT.2 — leer la nocturna del 20-11** (la del 19-11 arrancó antes del tope de memoria):
-   `gh run list --workflow "Mutation Shards"`; `gh run view --job <id> --log | grep '\[res\]'` en los verdes y
-   buscar `RSS … MB > 2048 MB, kill` en los logs. Sin rojos "lost communication" → cerrar MUT.2. Si sigue → el mutante
-   crece entre muestras de 2 s o la causa es otra.
+2. **MUT.2 aparcado** (2026-11-23) con la mutación en pausa (CI.85); al reanudarla, primero un shard por
+   `workflow_dispatch` según [docs/done/aparcados-2026-11-23.md](docs/done/aparcados-2026-11-23.md).
 3. **ui-gates nocturnos (solo Mac)**: la del 19-11 también inválida (batería y tapa cerrada: `caffeinate -i -s`
    no basta). El Mac debe quedar enchufado y con la tapa abierta. Leer `~/.orchestos/nightly/ui-gates-latest.json`.
 4. **CMD.3 en Windows** (etapa 3): `/cut` con Claude y Codex sobre un repo de prueba con remoto.
