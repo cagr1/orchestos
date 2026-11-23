@@ -29,6 +29,7 @@ describe('buildChatSystemPrompt rejectedTasks', () => {
   it('con rechazadas incluye la sección', () => {
     const p = buildChatSystemPrompt({
       ...base,
+      offeredTools: ['create_task'],
       rejectedTasks: [{ id: 't1', description: 'Crear a.txt' }],
     })
     expect(p).toContain('Rejected by the user (deleted, nothing was run):')
