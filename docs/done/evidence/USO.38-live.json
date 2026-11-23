@@ -1,0 +1,43 @@
+{
+  "item": "USO.38",
+  "date": "2026-11-23",
+  "cause": "src/run/executors/cli-discovery.ts:19 ran `$SHELL -lic 'printenv PATH'` sharing the dashboard's tty; interactive zsh took the terminal foreground process group (tcsetpgrp) and left it on a dead group, so ^C never reached bun. Measured in a pty: tcgetpgrp(fd)=60766 vs dashboard pid 60765; `kill -INT <pid>` stopped it, the ^C byte did not.",
+  "counterproof_HEAD_beffd665": {
+    "command": "bun run src/dashboard/server.ts in a pty (python pty.fork), ORCHESTOS_HOME scratch, PORT 4399, ^C after 8 s",
+    "result": "STILL ALIVE after 10 s; lsof shows TCP localhost:4399 (LISTEN) still open"
+  },
+  "spawnSync_probe": {
+    "without_detached": "fg 61356 != pid 61355",
+    "with_detached_true": "fg == pid 61608, PATH still returned"
+  },
+  "gate": {
+    "command": "bun run gate:evidence -- --label uso38-ctrl-c -- /tmp/uso38-gate.sh",
+    "what": "real pty, chat session + POST /api/chat (claude, claude-haiku-5-5) in flight, one ^C after 3 s, ps of descendants before/after, chat_turns status",
+    "output": [
+      "$ bun run scripts/run-evidence-gate.ts --label \"uso38-ctrl-c\" -- \"/tmp/uso38-gate.sh\"",
+      "[gate:evidence] isolated home: <tmp> durable home: /Users/carlosgallardo",
+      "=== exec bun run src/dashboard/server.ts",
+      "fg==pid True",
+      "   88912 88650 88912 /Users/carlosgallardo/.nvm/versions/node/v24.18.0/lib/node_modules/@anthropic-ai/claude-code/bin/claude.exe -p --output-format stream-json --i",
+      "   88918 88912 88912 /Users/carlosgallardo/orca/workspaces/orchestos/oscar/node_modules/bun/bin/bun.exe /Users/carlosgallardo/orca/workspaces/orchestos/oscar/src/m",
+      "exited after 0.1s code 130",
+      "leftover from before: []",
+      "turn status: interrupted",
+      "=== exec bun run src/cli.ts dashboard --port 4399 --no-open",
+      "fg==pid True",
+      "   89341 88947 89341 /Users/carlosgallardo/.nvm/versions/node/v24.18.0/lib/node_modules/@anthropic-ai/claude-code/bin/claude.exe -p --output-format stream-json --i",
+      "   89347 89341 89341 /Users/carlosgallardo/orca/workspaces/orchestos/oscar/node_modules/bun/bin/bun.exe /Users/carlosgallardo/orca/workspaces/orchestos/oscar/src/m",
+      "exited after 0.1s code 130",
+      "leftover from before: []",
+      "turn status: interrupted",
+      "[gate:evidence] evidence: 0 exported, 0 duplicate(s)"
+    ]
+  },
+  "unit": "bun test src/__tests__/codex-app-server.test.ts src/dashboard/__tests__/shutdown-signals.test.ts src/dashboard/__tests__/csrf-origin.test.ts src/run/executors/cli-search-path.test.ts: 71 pass, 0 fail; bun run typecheck exit 0; bun run lint exit 0",
+  "qa": [
+    "r0 (gpt-6.1-sol): high, process.exit cut the SIGKILL escalation of Codex app-servers -> fixed r1",
+    "r1: high x2, grandchildren of the group survived / second kill() did not wait -> fixed r2 with terminateTree",
+    "r2: medium, kill() pending forever when spawn failed (error without exit) -> fixed r3",
+    "r3: no defects"
+  ]
+}

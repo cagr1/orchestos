@@ -17,6 +17,8 @@ export const systemCliDiscoveryProbe: CliDiscoveryProbe = {
     loginPath = null
     try {
       const result = Bun.spawnSync([shell, '-lic', 'printenv PATH'], {
+        // USO.38: -i sin sesión propia se queda el primer plano de la terminal y ^C no llega.
+        detached: true,
         env: process.env,
         timeout: 3_000,
         stderr: 'ignore',

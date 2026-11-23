@@ -168,6 +168,7 @@ import {
   DashboardProjectError,
   isGeneralScopeRequest,
 } from './project-context.ts'
+import { installShutdownSignals } from './shutdown-signals.ts'
 import { createTerminalSession, resolveShellCommand, stopTerminalSessions } from './terminal.ts'
 import { DEFAULT_PORT } from './types.ts'
 
@@ -913,23 +914,25 @@ export function startServer(
     console.error('[dashboard] Could not reconcile task runs', error)
   }
   let stopped = false
-  const onSignal = () => server.stop(true)
+  let childrenStopped = Promise.resolve()
+  let uninstallSignals = () => {}
   const stopWithCodex = (...args: any[]) => {
     if (!stopped) {
       stopped = true
       taskRunReconcile?.stop()
-      process.off('SIGINT', onSignal)
-      process.off('SIGTERM', onSignal)
+      uninstallSignals()
       interruptActiveChatTurns()
-      stopCodexAppServers()
+      const codexStopped = stopCodexAppServers()
       killAllTrees()
-      void stopTerminalSessions()
+      childrenStopped = Promise.all([codexStopped, stopTerminalSessions()]).then(() => {})
     }
     return stop(...args)
   }
   server.stop = stopWithCodex
-  process.once('SIGINT', onSignal)
-  process.once('SIGTERM', onSignal)
+  uninstallSignals = installShutdownSignals(async () => {
+    await server.stop(true)
+    await childrenStopped
+  })
   const url = `http://localhost:${server.port}`
   console.log(`[dashboard] Server running at ${url}`)
   return { server, url }

@@ -556,6 +556,21 @@ esta etapa: `docs/done/bloque-AUD.md` (AUD.16, AUD.17), `docs/done/bloque-SES.md
   Revisión qa (gpt-6.1-sol): 1 hallazgo medio (la lectura retenida sin fecha podía pasar por posterior al reset),
   corregido en r1; segunda revisión sin defectos.
   Ejecutado por: claude-opus-5-5 (fix chico) + mecanico (test, r1, r2) · Spec: docs/specs/USO.37.md
+- [x] **USO.38 — Ctrl+C no detiene el dashboard.** (Carlos, 2026-11-23: `bun run src/dashboard/server.ts` en una
+  terminal y Ctrl+C no lo para) Reproducido en una pty: tras arrancar, el grupo en primer plano de la terminal ya no es
+  el del dashboard. Causa: `systemCliDiscoveryProbe.loginPath` (`src/run/executors/cli-discovery.ts:19`) lanza
+  `$SHELL -lic` heredando la terminal; el shell interactivo se queda el primer plano y al salir lo deja en un grupo
+  muerto, así que `^C` no llega a bun (`kill -INT` directo sí lo cierra). Arreglo: el shell corre en su propia sesión
+  (`detached`); `src/dashboard/shutdown-signals.ts` hace la limpieza de SES.1c, sale con 130/143 con tope de 3 s y una
+  segunda señal sale al instante; `CodexAppServer.kill()` usa `terminateTree` (grupo entero, espera pendiente
+  compartida, resuelve si el arranque falló) y el apagado la espera.
+  Gate en vivo: pty real vía `gate:evidence`, `bun run src/dashboard/server.ts` y `orchestos dashboard`, cada uno con
+  un turno de chat de Claude en curso: una `^C` → sale en 0,1 s con 130, 0 descendientes vivos, turno `interrupted`;
+  contraprueba en `HEAD` sin el arreglo: sigue vivo a los 10 s con el puerto escuchando —
+  `docs/done/evidence/USO.38-live.json`
+  Revisión qa (gpt-6.1-sol): r0 alto (el exit cortaba el SIGKILL de los app-servers), r1 dos altos (nietos del grupo,
+  segunda llamada a `kill()`), r2 medio (`kill()` pendiente si el arranque falló); todos corregidos, r3 sin defectos.
+  Ejecutado por: gpt-6-luna (mecanico, spec base) + gpt-6.1-sol (criterio, r1 y r2) + claude-opus-5-5 (fix chico r3) · Spec: docs/specs/USO.38.md
 
 ## Etapa 3 — Windows
 

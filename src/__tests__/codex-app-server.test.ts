@@ -1,6 +1,7 @@
 import { Database } from 'bun:sqlite'
 import { describe, expect, spyOn, test } from 'bun:test'
-import { EventEmitter } from 'node:events'
+import { type ChildProcessWithoutNullStreams, spawn } from 'node:child_process'
+import { EventEmitter, once } from 'node:events'
 import { mkdtempSync, readFileSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
@@ -62,6 +63,161 @@ function store() {
 }
 
 describe('Codex app-server', () => {
+  test('USO.38 r3: kill resolves when the app-server binary never started', async () => {
+    const server = new CodexAppServer({
+      binary: '/nonexistent/uso38-codex',
+      env: {},
+      store: store().api,
+    })
+    await expect(server.listSkills(process.cwd())).rejects.toThrow()
+    const settled = await Promise.race([
+      server.kill().then(() => 'resolved'),
+      Bun.sleep(1000).then(() => 'pending'),
+    ])
+    expect(settled).toBe('resolved')
+  })
+
+  for (const hasGrandchild of [true, false]) {
+    test(`USO.38 r2: ${hasGrandchild ? 'A kills a grandchild ignoring SIGTERM after its leader exits' : 'B a second kill waits for the pending termination'}`, async () => {
+      const dir = mkdtempSync(join(tmpdir(), 'uso38-r2-'))
+      const pidFile = join(dir, 'grandchild.pid')
+      let child: ChildProcessWithoutNullStreams | undefined
+      const grandchildCode = `
+        process.on('SIGTERM', () => {});
+        require('node:fs').writeFileSync(${JSON.stringify(pidFile)}, String(process.pid));
+        setInterval(() => {}, 1000);
+      `
+      const server = new CodexAppServer({
+        binary: 'fake',
+        env: {},
+        store: store().api,
+        spawnProcess: () => {
+          child = spawn(
+            process.execPath,
+            [
+              '-e',
+              `
+              const { createInterface } = require('node:readline');
+              ${hasGrandchild ? `require('node:child_process').spawn(process.execPath, ['-e', ${JSON.stringify(grandchildCode)}], { stdio: 'ignore' });` : "process.on('SIGTERM', () => {});"}
+              setInterval(() => {}, 1000);
+              createInterface({ input: process.stdin }).on('line', (line) => {
+                const request = JSON.parse(line);
+                if (request.id === undefined) return;
+                const result = request.method === 'skills/list' ? { data: [] } : {};
+                process.stdout.write(JSON.stringify({ id: request.id, result }) + '\\n');
+              });
+              `,
+            ],
+            { stdio: 'pipe', detached: process.platform !== 'win32' },
+          )
+          return child
+        },
+      })
+      try {
+        await server.listSkills(process.cwd())
+        const pid = child!.pid!
+        if (hasGrandchild) {
+          const readyDeadline = performance.now() + 1000
+          while (!Bun.file(pidFile).size && performance.now() < readyDeadline) await Bun.sleep(10)
+          const grandchildPid = Number(readFileSync(pidFile, 'utf8'))
+          expect(grandchildPid).toBeGreaterThan(0)
+          const started = performance.now()
+          await server.kill()
+          while (performance.now() - started < 3000) {
+            try {
+              process.kill(grandchildPid, 0)
+            } catch {
+              break
+            }
+            await Bun.sleep(10)
+          }
+          expect(() => process.kill(grandchildPid, 0)).toThrow()
+          expect(performance.now() - started).toBeLessThanOrEqual(3000)
+        } else {
+          const first = server.kill()
+          await server.kill()
+          expect(() => process.kill(pid, 0)).toThrow()
+          await first
+        }
+      } finally {
+        const exited =
+          child && child.exitCode === null && child.signalCode === null
+            ? once(child, 'exit')
+            : Promise.resolve()
+        if (child?.pid) {
+          try {
+            process.kill(-child.pid, 'SIGKILL')
+          } catch {
+            child.kill('SIGKILL')
+          }
+        }
+        await exited
+        await server.kill()
+        rmSync(dir, { recursive: true, force: true })
+      }
+    })
+  }
+
+  for (const ignoresSigterm of [true, false]) {
+    test(`USO.38: kill waits for ${ignoresSigterm ? 'SIGKILL when the child ignores SIGTERM' : 'a normal child to exit quickly'}`, async () => {
+      let child: ChildProcessWithoutNullStreams | undefined
+      const server = new CodexAppServer({
+        binary: 'fake',
+        env: {},
+        store: store().api,
+        spawnProcess: () => {
+          child = spawn(
+            process.execPath,
+            [
+              '-e',
+              `
+            const { createInterface } = require('node:readline');
+            ${ignoresSigterm ? "process.on('SIGTERM', () => {});" : ''}
+            setInterval(() => {}, 1000);
+            createInterface({ input: process.stdin }).on('line', (line) => {
+              const request = JSON.parse(line);
+              if (request.id === undefined) return;
+              const result = request.method === 'skills/list' ? { data: [] } : {};
+              process.stdout.write(JSON.stringify({ id: request.id, result }) + '\\n');
+            });
+          `,
+            ],
+            { stdio: 'pipe', detached: process.platform !== 'win32' },
+          )
+          return child
+        },
+      })
+      let deadline: ReturnType<typeof setTimeout> | undefined
+      try {
+        await server.listSkills(process.cwd())
+        const pid = child!.pid!
+        const started = performance.now()
+        await Promise.race([
+          server.kill(),
+          new Promise<never>((_, reject) => {
+            deadline = setTimeout(
+              () => reject(new Error('kill did not resolve within 3500ms')),
+              3500,
+            )
+          }),
+        ])
+        const elapsed = performance.now() - started
+        if (ignoresSigterm) expect(elapsed).toBeGreaterThanOrEqual(1500)
+        else expect(elapsed).toBeLessThan(1500)
+        expect(elapsed).toBeLessThan(3500)
+        expect(() => process.kill(pid, 0)).toThrow()
+      } finally {
+        clearTimeout(deadline)
+        if (child && child.exitCode === null && child.signalCode === null) {
+          const exited = once(child, 'exit')
+          child.kill('SIGKILL')
+          await exited
+        }
+        await server.kill()
+      }
+    })
+  }
+
   test('CMD.3: cut grants the absolute gitdir only for that turn and preserves thread rules', async () => {
     const calls: any[] = []
     const gitDir = (cwd: string) => {

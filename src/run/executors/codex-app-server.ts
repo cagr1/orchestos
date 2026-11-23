@@ -9,7 +9,7 @@ import { mcpResultText } from '../../boundary/mcp-result.ts'
 import { redactSensitive } from '../../security/secrets.ts'
 import type { ApprovalAdapter } from '../approvals.ts'
 import { decideApproval } from '../approvals.ts'
-import { killTree, treeSpawnOptions } from '../process-tree.ts'
+import { terminateTree, treeSpawnOptions } from '../process-tree.ts'
 import { CliFailure, type CliNotice, classifyCliFailure, cliFailureNotice } from './cli-failure.ts'
 import { codexApprovalRequest } from './codex-approval.ts'
 import { type ExecutorStepEvent, readonlyCommandTarget } from './step-event.ts'
@@ -91,6 +91,7 @@ export const chatContextHash = codexContextHash
 
 export class CodexAppServer {
   private child: Child | null = null
+  private stopping: Promise<void> = Promise.resolve()
   private reader: ReturnType<typeof createInterface> | null = null
   private nextId = 1
   private pending = new Map<
@@ -1135,26 +1136,30 @@ export class CodexAppServer {
     }
   }
 
-  kill(): void {
+  /** USO.38: termina el grupo y conserva la espera pendiente entre llamadas al apagado. */
+  kill(): Promise<void> {
     this.failAll(new CodexAppServerError('app-server stopped', true))
     this.reader?.close()
     this.reader = null
     if (this.child) {
       const child = this.child
-      // killTree: grupo POSIX o taskkill /T en Windows (codex.cmd → node → binario).
-      const kill = (signal: NodeJS.Signals) => killTree(child, signal)
-      kill('SIGTERM')
-      if (child.exitCode === null && child.signalCode === null) {
-        const timer = setTimeout(() => {
-          if (child.exitCode === null && child.signalCode === null) kill('SIGKILL')
-        }, 2000)
-        timer.unref()
-        child.once('exit', () => clearTimeout(timer))
-      }
+      const exited = new Promise<number>((resolve) => {
+        if (child.pid === undefined || child.exitCode !== null || child.signalCode !== null)
+          return resolve(child.exitCode ?? 0)
+        child.once('exit', (code) => resolve(code ?? 0))
+        // Arranque fallido (ENOENT): Bun emite `error` sin `exit`.
+        child.once('error', () => resolve(1))
+      })
+      // terminateTree: grupo POSIX o taskkill /T en Windows (codex.cmd → node → binario).
+      this.stopping = terminateTree(
+        { pid: child.pid, kill: (signal) => child.kill(signal), exited },
+        2000,
+      ).then(() => {})
       this.child = null
     }
     this.ready = null
     this.resumed.clear()
+    return this.stopping
   }
 }
 
@@ -1178,7 +1183,8 @@ export function getCodexAppServer(
   }
   return server
 }
-export function stopCodexAppServers(): void {
-  for (const server of servers.values()) server.kill()
+export function stopCodexAppServers(): Promise<void> {
+  const exited = [...servers.values()].map((server) => server.kill())
   servers.clear()
+  return Promise.all(exited).then(() => {})
 }
