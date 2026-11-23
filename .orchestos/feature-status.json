@@ -396,6 +396,14 @@
       "closedDate": null
     },
     {
+      "id": "USO.39",
+      "sprint": "Etapa 2 — Uso real",
+      "block": null,
+      "title": "El prompt del chat dice solo las herramientas que la sesión tiene",
+      "status": "done",
+      "closedDate": null
+    },
+    {
       "id": "WIN.1",
       "sprint": "Etapa 3 — Windows",
       "block": null,

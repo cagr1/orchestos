@@ -90,7 +90,16 @@ describe('global user profile', () => {
 })
 
 describe('chat profile instructions', () => {
-  const input = { autoTaskInstruction: 'task instruction', now: new Date('2026-11-07T12:00:00Z') }
+  const input = {
+    autoTaskInstruction: 'task instruction',
+    now: new Date('2026-11-07T12:00:00Z'),
+    offeredTools: ['create_task'],
+  }
+  test('USO.39 no create_task interview when the tool is not offered', () => {
+    const prompt = buildChatSystemPrompt({ ...input, offeredTools: [], userCodes: false })
+    expect(prompt).toContain('The user does not write code.')
+    expect(prompt).not.toContain('create_task')
+  })
   test('true, null and absent keep the same prompt, independent of the stored profile', () => {
     writeUserProfile({ codes: false })
     const original = buildChatSystemPrompt(input)

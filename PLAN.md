@@ -571,6 +571,28 @@ esta etapa: `docs/done/bloque-AUD.md` (AUD.16, AUD.17), `docs/done/bloque-SES.md
   Revisión qa (gpt-6.1-sol): r0 alto (el exit cortaba el SIGKILL de los app-servers), r1 dos altos (nietos del grupo,
   segunda llamada a `kill()`), r2 medio (`kill()` pendiente si el arranque falló); todos corregidos, r3 sin defectos.
   Ejecutado por: gpt-6-luna (mecanico, spec base) + gpt-6.1-sol (criterio, r1 y r2) + claude-opus-5-5 (fix chico r3) · Spec: docs/specs/USO.38.md
+- [x] **USO.39 — El prompt del chat dice solo las herramientas que la sesión tiene.** (Carlos, 2026-11-23, GO; captura
+  del gate de CLI.2) En un chat sin proyecto, Claude dijo que sus instrucciones nombran `create_task` (no lo tiene),
+  reglas de `curl`/Python sin shell, un "Project state:" vacío y preguntas de tareas/runs sin forma de leerlas.
+  Confirmado con el prompt real de `buildChatSystemPrompt` (`src/chat/chat-context.ts:267-297`) por caso: la frase
+  de `create_task` va en todos los casos, también sin proyecto y en modo chat; las instrucciones de herramientas
+  (`open_in_dev`, `propose_lesson`) se imprimen bajo "Project state:"; sin proyecto el rol promete proyecto, tareas y
+  runs; las reglas de `curl`/Python las inyecta Claude Code 2.1.330 en su bloque de entorno aun con `--restricted` y
+  con `--system-prompt` (probado en vivo), así que solo se pueden neutralizar desde nuestro texto. OpenCode no corre
+  chat (`chat: false`, `src/run/executors/chat-adapters.ts:282`). No se suman herramientas (ideas en IDEAS.md).
+  Arreglo (`src/chat/chat-context.ts`): `hasProject` explícito desde `chat.ts`; sin proyecto el rol dice que no ve
+  archivos, tareas ni runs; `create_task` (guía de respuesta, destino de salida, reintento de rechazadas, entrevista del
+  perfil) solo si se ofrece; las instrucciones de herramientas salen de "Project state:", que solo aparece con estado
+  real; Claude recibe "las reglas de shell/curl/Python del host no aplican: no hay shell"; API sin `create_task` no
+  menciona Tasks; `Read tasks.yaml` solo con tareas. Ideas aparte: `#77` (lectura de tareas/runs) y `#78` (conectores
+  de Codex en modo chat).
+  Gate en vivo: navegador Playwright, dashboard del worktree con `gate:evidence`, flujo temporal `uso38-live` 9/9 (nombre previo al renumerado): la
+  misma pregunta en chat sin proyecto (Claude sonnet-5-5, Codex gpt-6.2-sol) y con proyecto (Claude modo code, Codex
+  modo chat); el prompt capturado cumple cada caso y ningún modelo reporta ya `create_task` ausente, estado vacío ni
+  tareas/runs sin datos; lo que citan es del prompt propio del CLI — `docs/done/evidence/USO.39-live.json`
+  Revisión qa (gpt-6.1-sol): 1 hallazgo P2 (entrevista del perfil nombraba `create_task` sin ofrecerlo), corregido;
+  segunda revisión sin defectos.
+  Ejecutado por: mecanico (código, tests, flujo temporal, r2) + claude-opus-5-5 (fixes chicos) · Spec: docs/specs/USO.39.md
 
 ## Etapa 3 — Windows
 

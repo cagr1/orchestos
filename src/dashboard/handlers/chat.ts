@@ -1608,6 +1608,7 @@ async function handleApiChat(
     const lessons = listApplicable(hasProjectContext ? project.id : null)
     const systemPrompt = buildChatSystemPrompt({
       cut: isCut,
+      hasProject: hasProjectContext,
       documentDirectory:
         generalSession && (chatAgent === 'claude' || chatAgent === 'codex') ? root : undefined,
       userCodes: readUserProfile().codes,

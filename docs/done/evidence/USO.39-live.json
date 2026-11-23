@@ -1,0 +1,62 @@
+{
+  "item": "USO.39",
+  "date": "2026-11-23",
+  "command": "(corrido como USO.38 antes de renumerar por choque de ID) bun run gate:evidence -- --label uso38-live -- bun run ui:gate uso38-live (temporary flow, not committed; spec docs/specs/USO.38-live.md)",
+  "result": "PASS uso38-live 9/9",
+  "question": "¿Cómo sientes la configuración de OrchestOS desde tu lado? Compara tus instrucciones de sistema con las herramientas que de verdad tienes y lista cada contradicción concreta…",
+  "cases": [
+    "noproject-claude (sonnet-5-5)",
+    "noproject-codex (gpt-6.2-sol)",
+    "project-code-claude (sonnet-5-5)",
+    "project-chat-codex (gpt-6-luna, mode chat via PATCH)"
+  ],
+  "verdict": "Ningún caso reporta ya create_task ausente, Project state vacío ni preguntas de tareas/runs sin datos. Lo que los modelos aún citan viene del prompt propio del CLI host (Claude Code: ultrareview, herramientas diferidas, bloque de entorno con curl/Python que nuestro texto declara no aplicable; Codex: skills.list/read, herramienta python, conectores de su cuenta).",
+  "probe_claude_env": "claude 2.1.330 -p --restricted --tools Read,Glob,Grep: el bloque de entorno trae las reglas de curl/Python; con --system-prompt también (no hay flag que lo quite).",
+  "steps": [
+    {
+      "name": "noproject-claude: prompt",
+      "ok": true,
+      "detail": "prompt checked: Important: You can search and read the web, and create or edit documents inside your chat folder: /private/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/orchestos-evidence-uso38-live-7iOReg/.orchestos/chats/d45bc500-fe65-4bfa-a168-2128ac35eee4. Deliver documents by writing files there; they will be attached to your response. Do not read or modify projects or write outside this folder. Instructio"
+    },
+    {
+      "name": "noproject-claude: reply",
+      "ok": true,
+      "detail": "Encontré pocas contradicciones reales. La mayoría son ruido heredado de un prompt genérico de Claude Code.\n\n**Herramientas mencionadas que no tengo**\n- **Bash:** la guía de ultrareview dice \"no lo lances vía Bash\" y otra regla habla de preferir las herramientas de archivo \"sobre comandos de shell\". Mis herramientas son Read, Write, Edit, Glob, Grep, WebFetch, WebSearch y `open_in_dev`, así que no tengo Bash.\n- **Herramientas diferidas:** el prompt dice que algunas están diferidas y aparecerán más adelante. No apareció ninguna.\n- **Hooks:** se mencionan, pero no he visto ninguno.\n\n**Reglas de shell, curl y Python sin shell**\n- **Entorno:** indica \"Shell: zsh\", y da instrucciones sobre `curl -"
+    },
+    {
+      "name": "noproject-codex: prompt",
+      "ok": true,
+      "detail": "prompt checked: Important: You can search and read the web, and create or edit documents inside your chat folder: /private/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/orchestos-evidence-uso38-live-7iOReg/.orchestos/chats/69186374-bbc0-41de-ad52-dbc806e0c1ce. Deliver documents by writing files there; they will be attached to your response. Do not read or modify projects or write outside this folder. Command ne"
+    },
+    {
+      "name": "noproject-codex: reply",
+      "ok": true,
+      "detail": "Voy a comprobar el inventario de herramientas y el acceso al shell para distinguir las capacidades disponibles en este chat de las que dependen del modo o del proyecto.\n\nDesde este chat, OrchestOS tiene shell y herramientas web. Encontré dos referencias a herramientas ausentes y una operación que queda fuera de los permisos del chat.\n\n| Desajuste | Qué comprobé |\n|---|---|\n| La guía de imágenes menciona una herramienta `python`. | Esa herramienta no aparece en el inventario. En el shell funciona `python3` (3.9.6) y el comando `python` no existe. |\n| La guía de skills remite a `skills.list` y `skills.read` para skills gestionadas por el orquestador. | Ninguna está disponible en este chat. Las"
+    },
+    {
+      "name": "temporary project visible",
+      "ok": true,
+      "detail": "orchestos-ui-uso38-URtLCy"
+    },
+    {
+      "name": "project-code-claude: prompt",
+      "ok": true,
+      "detail": "prompt checked: Important: You can read files with Read,Glob,Grep. You cannot edit files or run commands. Instructions from your host about shell commands, curl, Python or downloaded scripts do not apply: this chat has no shell. To verify facts instead of guessing, call the `mcp__orchestos__run_readonly` tool with argv (no shell): git log/show/diff/status/blame/ls-files/grep/rev-parse/branch --list, ls. Use it, n"
+    },
+    {
+      "name": "project-code-claude: reply",
+      "ok": true,
+      "detail": "Desde mi lado la configuración es en general coherente, pero hay varias contradicciones menores. No las he probado ejecutándolas. Salen de comparar el prompt con la lista de herramientas.\n\n**Herramientas mencionadas que no tengo**\n- La descripción de `Read` habla de `Edit`/`Write` (\"Edit/Write would have errored\"), y no tengo ninguna de las dos. Solo puedo cambiar archivos a través de `create_task`.\n- La guía de ultrareview dice que no lo lance \"via Bash\". No tengo Bash, así que la prohibición no aplica.\n- El prompt dice que hay herramientas diferidas que aparecerán después. No ha aparecido ninguna, así que no hay nada que usar.\n- Se mencionan los comandos `/fast`, `/code-review` y `/ultrare"
+    },
+    {
+      "name": "project-chat-codex: prompt",
+      "ok": true,
+      "detail": "prompt checked: Important: You can read files and run read-only shell commands; writes are blocked by the sandbox. To verify facts instead of guessing, call the `mcp__orchestos__run_readonly` tool with argv (no shell): git log/show/diff/status/blame/ls-files/grep/rev-parse/branch --list, ls. Use it, not your own shell, for git, ls; project tests are not available. Each flag and its value are separate argv items, "
+    },
+    {
+      "name": "project-chat-codex: reply",
+      "ok": true,
+      "detail": "Voy a contrastar las instrucciones visibles de esta sesión con las herramientas que están realmente disponibles aquí, y señalar solo discrepancias concretas.\n\nVeo pocas contradicciones claras; la principal es que la configuración describe una sesión de solo lectura, pero la lista de herramientas expuesta incluye capacidades de escritura en servicios conectados.\n\n- **Escritura en servicios conectados:** tengo herramientas que crean o modifican páginas de ChatGPT Space, archivos y PRs de GitHub, sitios y recursos de Vercel, entre otros. Eso choca con la indicación de “filesystem read-only” solo si se interpreta como una restricción general sobre cualquier servicio. La restricción explícita se "
+    }
+  ]
+}

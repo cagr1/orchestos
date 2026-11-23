@@ -86,7 +86,7 @@ describe('chat system context', () => {
       ['codex', 'read-only shell commands'],
       ['api', 'cannot modify files'],
     ] as const) {
-      const prompt = buildChatSystemPrompt({ ...base, agent })
+      const prompt = buildChatSystemPrompt({ ...base, agent, offeredTools: ['create_task'] })
       expect(prompt).toContain(phrase)
       expect(prompt).toContain(
         'Answer in this chat whatever can be answered with text (writing text, code or lists in your reply is not a file change); only requests to change files in the project go through `create_task`, described below.',
@@ -119,6 +119,18 @@ describe('chat system context', () => {
     const task = prompt.split('\n').find((line) => line.includes('T-1 [failed]'))!
     expect(task.split(': ').slice(1).join(': ').split(' — qa:')[0]!.length).toBeLessThanOrEqual(80)
     expect(prompt).toContain('Now: 2026-09-27 07:00:00 (America/Guayaquil, UTC-05:00)')
+  })
+
+  it('omits tasks.yaml guidance when there are no tasks', () => {
+    const empty = buildChatSystemPrompt({ ...base, tasks: [] })
+    expect(empty).toContain('Tasks (0 total')
+    expect(empty).not.toContain('tasks.yaml')
+
+    const populated = buildChatSystemPrompt({
+      ...base,
+      tasks: [{ id: 'T-1', status: 'pending', description: 'A task' }],
+    })
+    expect(populated).toContain('tasks.yaml')
   })
   it('shows truncation, output paths, and duplicate descriptions for tasks', () => {
     const tasks = [
@@ -175,6 +187,105 @@ describe('chat system context', () => {
     expect(displayRunModel('gpt-6-luna', 'codex')).toBe('codex · gpt-6-luna')
     expect(displayRunModel('unknown', 'codex')).toBe('codex · codex default')
     expect(displayRunModel('openai/gpt-5.4', 'openrouter')).toBe('openrouter · openai/gpt-5.4')
+  })
+})
+
+describe('USO.39 prompt por caso', () => {
+  const base = {
+    autoTaskInstruction: 'When the user asks for work, offer a task.',
+    now: new Date('2026-11-23T12:00:00Z'),
+    timeZone: 'UTC',
+    readonlyProbe: () => 'rg',
+  }
+  const rejectedTasks = [{ id: 'rejected-1', description: 'Change the project' }]
+  const state = { tasks: [], rejectedTasks }
+
+  it('sin proyecto, Claude con carpeta de documentos', () => {
+    const prompt = buildChatSystemPrompt({
+      ...base,
+      hasProject: false,
+      agent: 'claude',
+      documentDirectory: '/tmp/doc',
+      offeredTools: ['open_in_dev'],
+    })
+    expect(prompt).not.toContain('create_task')
+    expect(prompt).not.toContain('Project state:')
+    expect(prompt).not.toContain('tasks, recent runs')
+    expect(prompt).toContain('open_in_dev')
+    expect(prompt).toContain('this chat has no shell')
+    expect(prompt).toContain('This chat has no project')
+    expect(prompt).not.toContain('You have no shell access.')
+  })
+
+  it('sin proyecto, Codex', () => {
+    const prompt = buildChatSystemPrompt({
+      ...base,
+      hasProject: false,
+      agent: 'codex',
+      documentDirectory: '/tmp/doc',
+      offeredTools: ['open_in_dev'],
+    })
+    expect(prompt).not.toContain('create_task')
+    expect(prompt).not.toContain('Project state:')
+    expect(prompt).not.toContain('no shell')
+  })
+
+  it('sin proyecto, API', () => {
+    const prompt = buildChatSystemPrompt({
+      ...base,
+      hasProject: false,
+      agent: 'api',
+      offeredTools: [],
+    })
+    expect(prompt).toContain('You cannot read or modify files')
+    expect(prompt).not.toContain('create_task')
+    expect(prompt).not.toContain('Tasks → agent runs')
+    expect(prompt).not.toContain('every task writes ONLY')
+    expect(prompt).not.toContain('Project state:')
+  })
+
+  it('proyecto en modo chat muestra herramientas antes del estado y omite reglas de tareas', () => {
+    for (const agent of ['claude', 'codex']) {
+      const prompt = buildChatSystemPrompt({
+        ...base,
+        hasProject: true,
+        agent,
+        offeredTools: ['run_readonly', 'propose_lesson'],
+        ...state,
+      })
+      expect(prompt).not.toContain('create_task')
+      expect(prompt).not.toContain('every task writes ONLY')
+      expect(prompt).toContain('Project state:')
+      expect(prompt).toContain('propose_lesson')
+      expect(prompt.indexOf('propose_lesson')).toBeLessThan(prompt.indexOf('Project state:'))
+    }
+  })
+
+  it('proyecto en modo code conserva reglas de tareas', () => {
+    for (const agent of ['claude', 'codex']) {
+      const prompt = buildChatSystemPrompt({
+        ...base,
+        hasProject: true,
+        agent,
+        offeredTools: ['create_task', 'run_readonly'],
+        ...state,
+      })
+      expect(prompt).toContain(
+        'only requests to change files in the project go through `create_task`',
+      )
+      expect(prompt).toContain('every task writes ONLY')
+      expect(prompt).toContain('call create_task again')
+    }
+  })
+
+  it('sin estado pero con lecciones omite Project state', () => {
+    const prompt = buildChatSystemPrompt({
+      ...base,
+      hasProject: false,
+      lessons: [{ id: 'lesson', trigger: 'corrected', action: 'remember' }],
+    })
+    expect(prompt).toContain('## Lessons')
+    expect(prompt).not.toContain('Project state:')
   })
 })
 
