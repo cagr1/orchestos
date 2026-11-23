@@ -1,6 +1,9 @@
 import { afterEach, beforeEach, expect, test } from 'bun:test'
 import {
   moveComposerDraft,
+  moveComposerEffort,
+  readComposerEffort,
+  writeComposerEffort,
   readComposerDraft,
   subscribeComposerDrafts,
   writeComposerDraft,
@@ -92,4 +95,35 @@ test('never overwrites a session that already has its own draft', () => {
   expect(readComposerDraft('new:project')).toBe('new text')
   writeComposerDraft('session', '')
   writeComposerDraft('new:project', '')
+})
+
+test('USO.48: el effort elegido por sesión persiste y la pestaña nueva lo pasa a su sesión', () => {
+  const stored = new Map<string, string>()
+  const original = Object.getOwnPropertyDescriptor(globalThis, 'localStorage')
+  Object.defineProperty(globalThis, 'localStorage', {
+    configurable: true,
+    value: {
+      getItem: (key: string) => stored.get(key) ?? null,
+      setItem: (key: string, value: string) => stored.set(key, value),
+      removeItem: (key: string) => stored.delete(key),
+    },
+  })
+  try {
+    expect(readComposerEffort('s1')).toBeUndefined()
+    writeComposerEffort('s1', 'high')
+    writeComposerEffort('s2', 'low')
+    expect(readComposerEffort('s1')).toBe('high')
+    expect(readComposerEffort('s2')).toBe('low')
+
+    writeComposerEffort('new:p', 'xhigh')
+    moveComposerEffort('new:p', 's3')
+    expect(readComposerEffort('s3')).toBe('xhigh')
+    expect(readComposerEffort('new:p')).toBeUndefined()
+
+    writeComposerEffort('s1', '')
+    expect(readComposerEffort('s1')).toBeUndefined()
+  } finally {
+    if (original) Object.defineProperty(globalThis, 'localStorage', original)
+    else Reflect.deleteProperty(globalThis, 'localStorage')
+  }
 })

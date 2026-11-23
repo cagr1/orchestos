@@ -137,6 +137,31 @@ export default async function devRoutingEffort({ page, api, step, shot, cleanup,
     JSON.stringify({ status: completed.status(), body, session: after }),
   )
   await shot('completed-medium-turn')
+  // USO.48: lo elegido a mano se queda al irse a otra vista y volver, y tras recargar.
+  await control.click()
+  await page.getByRole('button', { name: 'High', exact: true }).click()
+  await page.keyboard.press('Escape')
+  await control.filter({ hasText: /· high\s*$/ }).waitFor()
+  await page.getByRole('button', { name: 'Chat', exact: true }).click()
+  await page.waitForTimeout(500)
+  await page.getByRole('button', { name: 'Dev', exact: true }).click()
+  await page.getByText('USO44 previous high turn', { exact: true }).waitFor()
+  await page.waitForTimeout(1000)
+  await step(
+    'manual high survives leaving Dev and coming back',
+    (await control.innerText()).trim().endsWith('· high'),
+    await control.innerText(),
+  )
+  await shot('manual-high-after-return')
+  await page.reload({ waitUntil: 'domcontentloaded' })
+  await page.getByRole('button', { name: 'Dev', exact: true }).click()
+  await page.getByText('USO44 previous high turn', { exact: true }).waitFor()
+  await page.waitForTimeout(1000)
+  await step(
+    'manual high survives a reload',
+    (await control.innerText()).trim().endsWith('· high'),
+    await control.innerText(),
+  )
   await page.getByRole('button', { name: 'New session', exact: true }).click()
   await page
     .getByRole('dialog', { name: 'Launch agent' })
@@ -146,6 +171,46 @@ export default async function devRoutingEffort({ page, api, step, shot, cleanup,
   await control.filter({ hasText: /· medium\s*$/ }).waitFor()
   await step(
     'new session tab starts with routing medium',
+    (await control.innerText()).trim().endsWith('· medium'),
+  )
+  // USO.48: en la pestaña nueva, elegir high y enviar crea la sesión con high y la pestaña siguiente vuelve a routing.
+  await control.click()
+  await page.getByRole('button', { name: 'High', exact: true }).click()
+  await page.keyboard.press('Escape')
+  await control.filter({ hasText: /· high\s*$/ }).waitFor()
+  const newTabResponse = page.waitForResponse(
+    (response) =>
+      response.request().method() === 'POST' && new URL(response.url()).pathname === '/api/chat',
+    { timeout: 240_000 },
+  )
+  await box.fill('responde solo: ok')
+  await box.press('Enter')
+  const newTabCompleted = await newTabResponse
+  await newTabCompleted.finished()
+  const newTabBody = newTabCompleted.request().postDataJSON()
+  await page.waitForTimeout(1500)
+  await step(
+    'new tab sends high and the created session keeps high',
+    newTabCompleted.ok() &&
+      newTabBody.effort === 'high' &&
+      newTabBody.sessionId !== sessionId &&
+      (await control.innerText()).trim().endsWith('· high'),
+    JSON.stringify({
+      effort: newTabBody.effort,
+      sessionId: newTabBody.sessionId,
+      control: await control.innerText(),
+    }),
+  )
+  await shot('new-tab-session-high')
+  await page.getByRole('button', { name: 'New session', exact: true }).click()
+  await page
+    .getByRole('dialog', { name: 'Launch agent' })
+    .getByRole('option', { name: 'Claude', exact: true })
+    .click()
+  await page.locator('[data-new-session-tab][aria-selected="true"]').waitFor()
+  await control.filter({ hasText: /· medium\s*$/ }).waitFor()
+  await step(
+    'next new tab is back on routing medium',
     (await control.innerText()).trim().endsWith('· medium'),
   )
 }

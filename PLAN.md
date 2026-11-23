@@ -217,6 +217,18 @@ esta etapa: `docs/done/bloque-AUD.md` (AUD.16, AUD.17), `docs/done/bloque-SES.md
   Gates del cerebro: typecheck 0, lint 0, `test:coverage` 3205/0.
   Gate en vivo: `bun run src/dashboard/server.ts` con fuente tocada, con build roto y al día — `docs/done/evidence/USO.43-live.log`.
   Ejecutado por: gpt-6.1-sol (criterio) · Spec: docs/specs/USO.43.md
+- [x] **USO.48 — En Dev, el effort elegido en el composer vuelve a `medium`.** (Carlos, 2026-11-23, uso real)
+  Esperado: cambio el effort en una sesión, me voy a otra vista/sesión, regreso y sigue donde lo dejé.
+  Causa: USO.44 hace que `defaultEffort` sea siempre el de routing y el `useEffect` de defaults
+  (`AgentComposer.tsx`) lo reaplica en cada recarga de sesiones o remontaje; la elección manual no se guardaba.
+  Hecho: effort manual por hilo en localStorage (`composer-drafts.ts` `read/write/moveComposerEffort`); el composer
+  lo prefiere sobre el default y reacciona al cambio de hilo; la pestaña nueva lo pasa a la sesión que crea (lanzar
+  agente o enviar directo, hallazgo de `qa`) y vuelve a routing. Sin elección manual, sigue el routing (USO.44 intacto).
+  Gates: tsc 0, lint 0, tests composer/projects 45/0. Revisión `qa`: 1 P1 (envío directo desde pestaña nueva), corregido.
+  Gate en vivo: navegador Playwright, `ui:gate dev-routing-effort` 9/9 — `docs/done/evidence/USO.48-live.json`
+  (high se mantiene al ir a Chat y volver y tras recargar; pestaña nueva con high → sesión creada en high; la
+  siguiente pestaña nueva vuelve a medium).
+  Ejecutado por: claude-opus-5-5 (fix chico) + gpt-6-luna (mecanico, gate)
 - [x] **USO.47 — Pedir una tarea desde el chat de un proyecto nuevo no arranca nada, sin aviso útil.** (Carlos,
   2026-11-23, uso real en `Agro`, proyecto sin git) Causa en la base: el turno de las 10:35 llamó `create_task`, el
   servidor MCP respondió "propuesta recibida" y al cerrar el turno `buildNaturalDraft` lanzó `RoleUnassignedError`

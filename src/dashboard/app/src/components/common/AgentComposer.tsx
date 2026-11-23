@@ -39,8 +39,10 @@ import {
 import { isMacPlatform, sendIntent, useChatSettings } from '../../lib/chat-settings'
 import {
   readComposerDraft,
+  readComposerEffort,
   subscribeComposerDrafts,
   writeComposerDraft,
+  writeComposerEffort,
 } from '../../lib/composer-drafts'
 import type { ApprovalMode, ChatAttachment } from '../../types/orchestos'
 import { Button } from '../ui/button'
@@ -385,14 +387,21 @@ export const AgentComposer: React.FC<AgentComposerProps> = ({
   const [selectedModel, setSelectedModel] = useState<string>(
     initialModel || currentCliConfig.defaultModel || '',
   )
-  const [selectedEffort, setSelectedEffort] = useState<EffortLevel>(defaultEffort ?? '')
+  const [selectedEffort, setSelectedEffort] = useState<EffortLevel>(
+    readComposerEffort(queueThread) ?? defaultEffort ?? '',
+  )
+  // USO.48: lo elegido a mano en esta sesión gana sobre el effort de routing.
+  const chooseEffort = (effort: EffortLevel) => {
+    setSelectedEffort(effort)
+    writeComposerEffort(queueThread, effort)
+  }
 
   useEffect(() => {
     const next = selectionFromDefaults(defaultCli, defaultModel, defaultEffort, lockedCli)
     setActiveCli(next.cli)
     setSelectedModel(useCliDefaultModel && !defaultModel ? '' : next.model)
-    setSelectedEffort(next.effort)
-  }, [lockedCli, defaultCli, defaultModel, defaultEffort, useCliDefaultModel])
+    setSelectedEffort(readComposerEffort(queueThread) ?? next.effort)
+  }, [queueThread, lockedCli, defaultCli, defaultModel, defaultEffort, useCliDefaultModel])
 
   const inputText = useSyncExternalStore(subscribeComposerDrafts, () =>
     readComposerDraft(queueThread),
@@ -1200,7 +1209,7 @@ export const AgentComposer: React.FC<AgentComposerProps> = ({
                               type="button"
                               onClick={() => {
                                 setSelectedModel(m.id)
-                                setSelectedEffort(
+                                chooseEffort(
                                   m.efforts?.[0] ??
                                     (currentCliConfig.id === 'api'
                                       ? (currentCliConfig.efforts[0] ?? '')
@@ -1228,7 +1237,7 @@ export const AgentComposer: React.FC<AgentComposerProps> = ({
                             type="button"
                             onClick={() => {
                               setSelectedModel(m.id)
-                              setSelectedEffort(
+                              chooseEffort(
                                 m.efforts?.[0] ??
                                   (currentCliConfig.id === 'api'
                                     ? (currentCliConfig.efforts[0] ?? '')
@@ -1271,7 +1280,7 @@ export const AgentComposer: React.FC<AgentComposerProps> = ({
                       <button
                         key={step}
                         type="button"
-                        onClick={() => setSelectedEffort(step)}
+                        onClick={() => chooseEffort(step)}
                         className={`flex items-center gap-2 px-2 py-1 rounded-control text-xs transition-colors text-left ${
                           isActive
                             ? 'text-app font-semibold bg-app-elevated border border-app'

@@ -156,6 +156,14 @@
       "closedDate": null
     },
     {
+      "id": "USO.48",
+      "sprint": "Etapa 2 — Uso real",
+      "block": null,
+      "title": "En Dev, el effort elegido en el composer vuelve a `medium`",
+      "status": "done",
+      "closedDate": null
+    },
+    {
       "id": "USO.47",
       "sprint": "Etapa 2 — Uso real",
       "block": null,

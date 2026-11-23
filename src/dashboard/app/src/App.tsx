@@ -118,7 +118,7 @@ import {
 } from './lib/appearance-settings'
 import { discardChatQueue, queueDevSessionMessage, writeChatQueue } from './lib/chat-queue'
 import { readChatSettings, writeChatSettings } from './lib/chat-settings'
-import { moveComposerDraft } from './lib/composer-drafts'
+import { moveComposerDraft, moveComposerEffort } from './lib/composer-drafts'
 import {
   type CommandId,
   KEYBINDINGS,
@@ -1368,7 +1368,10 @@ export default function App() {
       .then(async (thread) => {
         if (firstMessage) queueDevSessionMessage(thread.id, firstMessage, cliId, model, effort)
         // Lo escrito en la pestaña nueva mientras se lanzaba el agente pasa a su sesión (USO.12).
-        if (launchedFromNewTab) moveComposerDraft(`new:${projectId}`, thread.id)
+        if (launchedFromNewTab) {
+          moveComposerDraft(`new:${projectId}`, thread.id)
+          moveComposerEffort(`new:${projectId}`, thread.id)
+        }
         setActiveProjectId(projectId)
         updateDevTabs(projectId, (tabs) => openSessionTab(tabs, thread.id))
         localStorage.setItem(
@@ -1509,6 +1512,8 @@ export default function App() {
           ...current.filter((item) => item.id !== resolvedThread.id),
         ])
         setActiveThreadId(thread.id)
+        // USO.48: el effort elegido en la pestaña nueva sigue en la sesión que se crea al enviar.
+        moveComposerEffort(`new:${currentProject.id}`, resolvedThread.id)
         updateDevTabs(currentProject.id, (tabs) =>
           convertNewTab(tabs, activeDevTab?.id ?? null, resolvedThread.id),
         )

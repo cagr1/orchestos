@@ -40,3 +40,31 @@ export function moveComposerDraft(from: string, to: string): void {
   writeComposerDraft(to, text)
   writeComposerDraft(from, '')
 }
+
+// USO.48: el effort elegido a mano en una sesión se recuerda al salir y volver (y tras recargar).
+const effortKey = (threadId: string) => `orchestos:composer-effort:${threadId}`
+
+export function readComposerEffort(threadId: string): string | undefined {
+  try {
+    return localStorage.getItem(effortKey(threadId)) || undefined
+  } catch {
+    return undefined
+  }
+}
+
+export function writeComposerEffort(threadId: string, effort: string): void {
+  try {
+    if (effort) localStorage.setItem(effortKey(threadId), effort)
+    else localStorage.removeItem(effortKey(threadId))
+  } catch {
+    /* Storage may be unavailable. */
+  }
+}
+
+/** La pestaña nueva de Dev pasa su effort a la sesión que lanzó, y vuelve a arrancar en routing. */
+export function moveComposerEffort(from: string, to: string): void {
+  const effort = readComposerEffort(from)
+  if (!effort) return
+  if (!readComposerEffort(to)) writeComposerEffort(to, effort)
+  writeComposerEffort(from, '')
+}
