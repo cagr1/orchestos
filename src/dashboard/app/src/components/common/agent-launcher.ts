@@ -16,22 +16,26 @@ export function buildLaunchOptions(
   catalogs: CliModelCatalog[],
   lastAgent?: string,
 ): LaunchOption[] {
-  return modes
-    .filter((mode) => mode.session != null)
-    .map((mode): LaunchOption => {
-      const catalog = catalogs.find((catalog) => catalog.id === mode.id)
-      return {
-        id: mode.id,
-        label: cliDisplayName(mode.id, mode.label),
-        mode,
-        state: !mode.detected
-          ? 'not-installed'
-          : catalog && !isFunctionalDevCli(catalog)
-            ? 'setup-required'
-            : 'ready',
-      }
-    })
-    .sort((a, b) => Number(b.id === lastAgent) - Number(a.id === lastAgent))
+  return (
+    modes
+      .filter((mode) => mode.session != null)
+      .map((mode): LaunchOption => {
+        const catalog = catalogs.find((catalog) => catalog.id === mode.id)
+        return {
+          id: mode.id,
+          label: cliDisplayName(mode.id, mode.label),
+          mode,
+          state: !mode.detected
+            ? 'not-installed'
+            : catalog && !isFunctionalDevCli(catalog)
+              ? 'setup-required'
+              : 'ready',
+        }
+      })
+      .sort((a, b) => Number(b.id === lastAgent) - Number(a.id === lastAgent))
+      // Instalados primero; `sort` es estable y conserva el orden dentro de cada grupo (USO.42).
+      .sort((a, b) => Number(a.state === 'not-installed') - Number(b.state === 'not-installed'))
+  )
 }
 
 export function filterLaunchOptions(options: LaunchOption[], query: string): LaunchOption[] {

@@ -140,6 +140,14 @@
       "closedDate": null
     },
     {
+      "id": "USO.42",
+      "sprint": "Etapa 2 — Uso real",
+      "block": null,
+      "title": "En el selector de agentes, los instalados primero",
+      "status": "done",
+      "closedDate": null
+    },
+    {
       "id": "USO.41",
       "sprint": "Etapa 2 — Uso real",
       "block": null,

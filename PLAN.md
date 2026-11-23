@@ -197,6 +197,15 @@ esta etapa: `docs/done/bloque-AUD.md` (AUD.16, AUD.17), `docs/done/bloque-SES.md
   Comprueba filtrado, teclado, fila no instalada inerte, Settings y fondo = `--app-surface` en `orchestos` y `light`,
   desde pestañas y sidebar. Capturas miradas.
   Ejecutado por: gpt-6.1-sol (criterio, 2 rondas) · Spec: docs/specs/USO.40.md
+- [x] **USO.42 — En el selector de agentes, los instalados primero.** (Carlos, 2026-11-23, al aprobar USO.40)
+  `buildLaunchOptions` (`components/common/agent-launcher.ts`) ordena instalados (incluye `Setup required`) antes que
+  `Not installed`, con un segundo `sort` estable: se conservan el orden y el último usado dentro de cada grupo; un no
+  instalado usado por última vez no sube. Test de orden en `agent-launcher.test.ts` (5/0). El flujo leía el
+  placeholder del composer aún en `Loading models…` (medido en vivo) y ahora espera `Message <agente>`.
+  Gates del cerebro: typecheck 0, `test:coverage` 3194/1 (`aud22-processes` por carga en paralelo; solo 10/0),
+  revisión `qa`: sin defectos.
+  Gate en vivo: navegador Playwright contra el dashboard real, `docs/done/evidence/USO.42-live.json` (`ui:gate agent-launcher` 21/21 bajo `gate:evidence`).
+  Ejecutado por: claude-opus-5-5 (fix chico) + gpt-6-luna (mecanico, tests y flujo) · Spec: docs/specs/USO.42.md
 - [ ] **USO.41 — `ui:gate dev-session-tabs` y `project-isolation` rojos en `HEAD`.** (visto en USO.40, 2026-11-23)
   Ambos fallan en cb5620de sin cambios: `dev-session-tabs` espera `[data-thread-id]` en Chat (`reloadChat`,
   `flows/dev-session-tabs.mjs:149-153`) y desde USO.10 el Chat no lista sesiones de proyecto; `project-isolation`

@@ -173,6 +173,7 @@ export default async function agentLauncher({ page, api, step, shot, cleanup, vi
   const fresh = page.locator('[data-dev-new-session]')
   await tabs.locator('[data-new-session-tab][aria-selected=true]').waitFor()
   await fresh.locator('textarea').waitFor()
+  await fresh.locator(`textarea[placeholder^="Message ${activeAgent}"]`).waitFor()
   await step(
     'Enter opens active New session for the selected agent',
     (await tabs.getByRole('tab').count()) === beforeTabs + 1 &&
