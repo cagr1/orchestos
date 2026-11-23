@@ -640,6 +640,11 @@ procedencia. El molde multi-proveedor (ex-#31) fue absorbido por PLAN.md § Spri
 - **DeerFlow** (ByteDance, ~70K⭐) — https://github.com/bytedance/deer-flow · SuperAgent
   harness Python/LangGraph. Aportó: middleware chain, tool policy, memoria en capas,
   subagent executor con status tracking. NO aplica: LangGraph, sandbox Docker, JWT gateway.
+  Reevaluado 2026-11-23 a pedido de Carlos ("solo si aporta algo útil de verdad"): **no se adopta LangGraph.js/LangChain.js**.
+  Ninguna ganancia visible para el usuario que la arquitectura SQLite + CLIs no dé más barata; el patrón útil
+  (interrupt + checkpoint) ya está en `#76` sin la dependencia. Medido en Bun 1.3.14: el saver SQLite oficial falla;
+  uno comunitario reanuda entre procesos con 84–85 MiB RSS propios. Orca y T3 Code usan runtime propio; open-swe sí
+  usa LangGraph. Informe completo fuera del repo: `~/.orca/bots/new-bot/reports/langgraph-eval-2026-11-23.md`.
 - **ECC** (affaan-m, ~197K⭐) — https://github.com/affaan-m/ECC · ops para harnesses.
   Aportó: instincts con confidence, context monitor hook, continuous learning v2 (hooks
   100% confiables vs skills probabilísticas), cost tracker. NO aplica: reglas por harness,
