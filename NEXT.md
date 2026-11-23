@@ -4,6 +4,25 @@ Un solo presente: orden y trampas vivas del lote. Lo cerrado vive en `docs/done/
 `AGENTS.md`. Versión anterior completa: `docs/done/poda-instrucciones-2026-11-03.md` (histórico).
 Arranque: `bun run agent:preflight -- --item <ID> --agent claude`. Lista viva: `bun run next`.
 
+## Sesión 2026-11-23 — empezar por aquí
+
+Cerrado/subido hoy (uso real): USO.38 `1c46a9c4` (Ctrl+C), USO.39 `58d7682a`+`cb5620de` (prompt del chat), USO.40
+`ed43b6ba` + USO.42 `5332e685` (selector de agentes), USO.43 `25fd127e` (el servidor reconstruye el bundle viejo),
+USO.47 `3fd873c9` (create_task: error real, oferta git, list_tasks/get_task_status), USO.44–46 `de30231f`+`6c5b332d`
+(effort de Model routing en Dev, Copy completo, texto seleccionable).
+
+Pendiente de Carlos (prueba a mano, dashboard reiniciado): Copy largo, selección en Dev, effort = Model routing;
+en Agro: error sin roles → oferta "Initialize git" → la tarea arranca tras init.
+
+Siguiente: 3 comentarios/fixture aún dicen USO.44 en vez de USO.47 (`src/config/load.ts:216`,
+`scripts/ui-gate/flows/chat-task-roles.mjs:89,263`) → con el próximo cambio. USO.41 (2 ui:gates rojos previos) sigue
+abierto. 5 tests caen por timeout solo en `test:coverage` en paralelo (aud22-processes, run-revert, cli-updates,
+plan-worktree-home; solos 34/0).
+
+Trampas nuevas: el servidor sirve `src/dashboard/app/dist` (ya se autoreconstruye desde USO.43); tras `git pull`
+reiniciar el dashboard. Pruebas en vivo/visuales las hace Carlos, no el agente (cupo de Opus). Dos ramas en paralelo
+chocan en `PLAN.md` y `.orchestos/feature-status.json` y pueden repetir IDs USO: reservar el ID antes de abrir otra.
+
 ## Sesión 2026-11-21 — empezar por aquí
 
 Cerrado/subido hoy: USO.27 `0886e352`, USO.29 `7d9bd087`, CLI.1 `dde94d7d`, **USO.30 `f8d75e7f`** (panel de uso con
