@@ -164,6 +164,30 @@
       "closedDate": null
     },
     {
+      "id": "USO.44",
+      "sprint": "Etapa 2 — Uso real",
+      "block": null,
+      "title": "El effort del composer cambia solo al hacer clic fuera",
+      "status": "open",
+      "closedDate": null
+    },
+    {
+      "id": "USO.45",
+      "sprint": "Etapa 2 — Uso real",
+      "block": null,
+      "title": "Copiar una respuesta no copia el markdown completo",
+      "status": "done",
+      "closedDate": null
+    },
+    {
+      "id": "USO.46",
+      "sprint": "Etapa 2 — Uso real",
+      "block": null,
+      "title": "El texto de las respuestas del chat no se puede seleccionar con el mouse",
+      "status": "done",
+      "closedDate": null
+    },
+    {
       "id": "USO.41",
       "sprint": "Etapa 2 — Uso real",
       "block": null,

@@ -21,7 +21,7 @@ import type {
   ChatMessage as ThreadMessage,
 } from '../../types/orchestos'
 import { AgentComposer, type CliId } from '../common/AgentComposer'
-import { answerText } from '../thread/activity'
+import { answerCopyText, answerText } from '../thread/activity'
 import { CutReportCard, cutContinuation } from '../thread/CutReportCard'
 import { ProjectGitNotice } from '../thread/ProjectGitNotice'
 import { InboundSessionMessageBlock, SessionMessageCard } from '../thread/SessionMessageCard'
@@ -477,10 +477,11 @@ export const OrchestDevWorkspace: React.FC<OrchestDevWorkspaceProps> = ({
         (isCurrentExchange && timeline?.pending),
     )
     // Lo intermedio ya está en la actividad; Codex emite su paso `text` al final, así que se filtra por contenido.
-    const rawAssistantMessage =
+    const fullAssistantMessage =
       isCurrentExchange && timeline?.live?.text
-        ? answerText(timeline.live.text, steps)
-        : answerText(exchange.assistantMessage?.content ?? '', steps)
+        ? timeline.live.text
+        : (exchange.assistantMessage?.content ?? '')
+    const rawAssistantMessage = answerText(fullAssistantMessage, steps)
     const messageId = String(exchange.assistantMessage?.id)
     const card = [...taskCards.byTask.values()].find((item) => item.anchorId === messageId)
     const visibleAssistantMessage = taskCards.hidden.has(messageId)
@@ -490,7 +491,12 @@ export const OrchestDevWorkspace: React.FC<OrchestDevWorkspaceProps> = ({
           ? card.anchorText
           : ''
         : rawAssistantMessage
-    const assistantCopy = assistantCopyTarget(exchange, visibleAssistantMessage)
+    const assistantCopy = assistantCopyTarget(
+      exchange,
+      card
+        ? visibleAssistantMessage
+        : answerCopyText(fullAssistantMessage, visibleAssistantMessage),
+    )
     const assistantTimestamp = exchange.assistantMessage?.createdAt
     const parsedAssistantTime = assistantTimestamp ? parseDbTime(assistantTimestamp) : Number.NaN
     return (

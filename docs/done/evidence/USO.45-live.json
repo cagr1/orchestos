@@ -1,0 +1,48 @@
+[
+  {
+    "flujo": "chat-answer-actions",
+    "pass": true,
+    "steps": [
+      {
+        "nombre": "USO.45 chat: Copy delivers the full markdown",
+        "ok": true,
+        "detalle": "copied 1242/1242 chars; head \"# Informe de cierre\\n\\nPrimer párrafo con \""
+      },
+      {
+        "nombre": "USO.46 chat: dragging over the answer selects heading to list",
+        "ok": true,
+        "detalle": "selection \"Informe de cierre\\nPrimer párrafo con negrita y código.\\n\\nPasos\\nLeer el plan\\nEscri\""
+      },
+      {
+        "nombre": "USO.44 chat: chosen effort survives outside clicks",
+        "ok": true,
+        "detalle": "{\"efforts\":[\"Low\",\"Medium\",\"High\",\"Xhigh\",\"Max\"],\"target\":\"Low\",\"before\":\"GPT-6.2-Sol\",\"chosen\":\"GPT-6.2-Sol · low\",\"afterAnswer\":\"GPT-6.2-Sol · low\",\"afterSide\":\"GPT-6.2-Sol · low\"}"
+      },
+      {
+        "nombre": "USO.45 dev: Copy delivers the full markdown",
+        "ok": true,
+        "detalle": "copied 1242/1242 chars; head \"# Informe de cierre\\n\\nPrimer párrafo con \""
+      },
+      {
+        "nombre": "USO.46 dev: dragging over the answer selects heading to list",
+        "ok": true,
+        "detalle": "selection \"Informe de cierre\\nPrimer párrafo con negrita y código.\\n\\nPasos\\nLeer el plan\\nEscri\""
+      },
+      {
+        "nombre": "USO.44 dev: chosen effort survives outside clicks",
+        "ok": true,
+        "detalle": "{\"efforts\":[\"Low\",\"Medium\",\"High\",\"Xhigh\",\"Max\"],\"target\":\"Low\",\"before\":\"GPT-6.2-Sol\",\"chosen\":\"GPT-6.2-Sol · low\",\"afterAnswer\":\"GPT-6.2-Sol · low\",\"afterSide\":\"GPT-6.2-Sol · low\"}"
+      }
+    ],
+    "notes": [],
+    "errores": [],
+    "capturas": [
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-22897/chat-answer-actions/chat-answer.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-22897/chat-answer-actions/chat-selected.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-22897/chat-answer-actions/chat-effort-after-outside-click.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-22897/chat-answer-actions/dev-answer.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-22897/chat-answer-actions/dev-selected.png",
+      "/var/folders/wv/rp5p2q612rn3t4lq69w5tj9w0000gn/T/ui-gate-22897/chat-answer-actions/dev-effort-after-outside-click.png"
+    ]
+  }
+]

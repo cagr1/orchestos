@@ -70,6 +70,14 @@ export function answerText(content: string, steps: TimelineStep[]): string {
   return answer.trim()
 }
 
+// USO.45 — Copy entrega el turno entero en markdown (también lo plegado en la actividad);
+// si lo persistido no contiene lo visible (respuesta en vivo más larga), copia lo visible.
+export function answerCopyText(full: string, visible: string): string {
+  if (!visible) return ''
+  const whole = full.trim()
+  return whole.includes(visible.trim()) ? whole : visible
+}
+
 export function buildTurnActivity(
   steps: TimelineStep[],
   opts: { pending: boolean },

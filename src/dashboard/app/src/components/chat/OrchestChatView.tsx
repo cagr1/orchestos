@@ -21,7 +21,7 @@ import { useStopChatTurn } from '../../hooks/useStopChatTurn'
 import { useUserProfile } from '../../hooks/useUserProfile'
 import type { ChatAttachment, ChatThread, SessionStatus, TaskItem } from '../../types/orchestos'
 import { AgentComposer, type CliId } from '../common/AgentComposer'
-import { answerText, turnOffersOpenDev } from '../thread/activity'
+import { answerCopyText, answerText, turnOffersOpenDev } from '../thread/activity'
 import {
   type EntranceMode,
   enterSession,
@@ -490,6 +490,9 @@ export const OrchestChatView: React.FC<OrchestChatViewProps> = ({
                       !showCard || showCard.showAnchorText
                         ? answerText(showCard ? showCard.anchorText : msg.content, msg.steps ?? [])
                         : ''
+                    const copyText = showCard
+                      ? visibleAnswer
+                      : answerCopyText(msg.content, visibleAnswer)
                     return (
                       <ChatMessage
                         key={msg.id}
@@ -505,7 +508,7 @@ export const OrchestChatView: React.FC<OrchestChatViewProps> = ({
                               <Tooltip content="Copy">
                                 <button
                                   type="button"
-                                  onClick={() => void copyMessage(msg.id, visibleAnswer)}
+                                  onClick={() => void copyMessage(msg.id, copyText)}
                                   className="p-1 rounded-control text-app-muted hover:text-app transition-colors"
                                   aria-label="Copy"
                                 >
@@ -693,7 +696,11 @@ export const OrchestChatView: React.FC<OrchestChatViewProps> = ({
                       ) : (
                         <>
                           {/* Sin pasos (OpenRouter con herramientas) la respuesta en vivo igual se ve. */}
-                          {liveText && <ThreadMarkdown text={liveText} streaming />}
+                          {liveText && (
+                            <div className="select-text">
+                              <ThreadMarkdown text={liveText} streaming />
+                            </div>
+                          )}
                           <ThreadThinking
                             active
                             label={livePhase(liveTurn, Boolean(liveText))}

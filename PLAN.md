@@ -246,6 +246,22 @@ esta etapa: `docs/done/bloque-AUD.md` (AUD.16, AUD.17), `docs/done/bloque-SES.md
   pestaña, flujo existente, sin cambios de este ítem).
   Ejecutado por: gpt-6-luna (mecanico: herramientas, tests, flujo y arreglos) + gpt-6.1-sol (criterio: git) +
   claude-opus-5-5 (`taskCreationBlocker` inicial y montaje en Dev, fixes chicos) · Specs: docs/specs/USO.47*.md (borrados al cerrar)
+- [ ] **USO.44 — El effort del composer cambia solo al hacer clic fuera.** (Carlos, 2026-11-23, uso real)
+- [x] **USO.45 — Copiar una respuesta no copia el markdown completo.** (Carlos, 2026-11-23, uso real)
+  Causa: Copy copiaba `answerText` (solo lo posterior a la última herramienta). Mensaje real 735 (informe con
+  títulos y listas → `propose_lesson` → cierre): 3084 chars guardados, Copy daba 639. Hecho: `answerCopyText`
+  (`thread/activity.ts`) entrega el turno entero en Chat y Dev (lo visible si lo persistido es más corto; las
+  tarjetas de tarea siguen copiando su texto). Test en `activity.test.ts`. Revisión `qa`: sin defectos.
+  Gate en vivo: navegador Playwright, `ui:gate chat-answer-actions` 6/6 — `docs/done/evidence/USO.45-live.json`
+  (bajo `gate:evidence uso45-uso46`; antes del fix: Copy 79/1242 chars).
+  Ejecutado por: gpt-6-luna (mecanico) · Spec: docs/specs/USO.45.md
+- [x] **USO.46 — El texto de las respuestas del chat no se puede seleccionar con el mouse.** (Carlos, 2026-11-23, uso real)
+  Causa: en Dev, `TurnActivity` (texto intermedio del turno, p. ej. el informe del 735) cuelga de
+  `main.select-none` sin `select-text`; la respuesta en vivo sin pasos del Chat tampoco. Hecho: `select-text`
+  en la raíz de `TurnActivity` y en la respuesta en vivo. Test `TurnActivity.test.ts`. Revisión `qa`: sin defectos.
+  Gate en vivo: navegador Playwright, `chat-answer-actions` — `docs/done/evidence/USO.45-live.json`
+  (arrastre título → lista en Chat y Dev; antes del fix Dev seleccionaba `""`).
+  Ejecutado por: gpt-6-luna (mecanico) + gpt-6.1-sol (criterio, test) · Spec: docs/specs/USO.45.md
 - [ ] **USO.41 — `ui:gate dev-session-tabs` y `project-isolation` rojos en `HEAD`.** (visto en USO.40, 2026-11-23)
   Ambos fallan en cb5620de sin cambios: `dev-session-tabs` espera `[data-thread-id]` en Chat (`reloadChat`,
   `flows/dev-session-tabs.mjs:149-153`) y desde USO.10 el Chat no lista sesiones de proyecto; `project-isolation`

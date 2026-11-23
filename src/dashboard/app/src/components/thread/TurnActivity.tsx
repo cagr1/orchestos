@@ -188,7 +188,7 @@ export function TurnActivity({ steps, live, children, projectId }: TurnActivityP
   const activeReasoning = Boolean(live && lastStep?.type === 'reasoning')
   return (
     <div
-      className="space-y-1"
+      className="space-y-1 select-text"
       data-turn-activity=""
       {...(live
         ? { 'data-thread-working': '', role: 'status', 'aria-live': 'polite' as const }

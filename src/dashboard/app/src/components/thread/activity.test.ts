@@ -1,6 +1,7 @@
 import { describe, expect, test } from 'bun:test'
 import type { TimelineStep } from '../../api/chat'
 import {
+  answerCopyText,
   answerText,
   buildTurnActivity,
   previewShotName,
@@ -33,6 +34,30 @@ function step(
 }
 
 describe('turn activity', () => {
+  test('copies the full markdown turn when its visible closing follows tool use', () => {
+    const report = [
+      '# Informe de cierre',
+      '',
+      '1. Leer el plan',
+      '2. Escribir el test',
+      '',
+      '```ts',
+      'const answer = 42',
+      '```',
+    ].join('\n')
+    const closing = 'Dejé la lección propuesta.'
+    const content = `${report}\n\n${closing}`
+    const steps = [
+      step(1, 'text', { detail: report }),
+      step(2, 'tool_use'),
+      step(3, 'text', { detail: closing }),
+    ]
+    expect(answerCopyText(content, answerText(content, steps))).toBe(content.trim())
+    expect(answerCopyText(content, '')).toBe('')
+    expect(answerCopyText('short persisted text', 'longer visible answer')).toBe(
+      'longer visible answer',
+    )
+  })
   test('classifies run_readonly as a command', () => {
     expect(toolCategory('mcp__orchestos__run_readonly')).toBe('commands')
     const [segment] = buildTurnActivity(
