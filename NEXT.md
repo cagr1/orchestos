@@ -7,11 +7,15 @@ Arranque: `bun run agent:preflight -- --item <ID> --agent claude`. Lista viva: `
 ## Pausa 2026-11-23 — al volver, decidir esto primero
 
 Carlos pospone OrchestOS para atender Agro (cliente); no lo abandona y quiere terminarlo. Motivo para seguir: bajo
-uso de RAM frente a Orca. Pregunta abierta de Carlos, antes de más ítems: ¿el desgaste viene de *obligar* a los
+uso de RAM frente a Orca. Pregunta de Carlos: ¿el desgaste viene de *obligar* a los
 agentes por código (chat `--restricted` solo a la carpeta del proyecto, juez QA con criterios que rechazan "no
 verificado", reintentos que quedan `pending` sin aviso claro) cuando Orca/T3 son capas delgadas sobre el CLI?
-Propuesta para la recta final: por defecto, comportamiento de capa delgada (el CLI tal cual, como Orca); los
-controles (frontera de lectura, QA, criterios) quedan opcionales por proyecto. Hallazgos del 2026-11-23 que lo
+Decisión de Carlos (mismo día): los controles SE QUEDAN, son el producto (equipo de agentes por tarea, memoria,
+contexto, QA con evidencia: lo que un usuario de Orca sufre sin ellos). Lo que falla es la calibración: fueron
+excesivos. Criterio para la recta final: un control guía y verifica, no bloquea sin salida. Revisar cada uno con esa
+regla: frontera de lectura → carpetas del usuario autorizables (solo lectura); QA → "no verificado" honesto no es
+fallo, rechaza solo lo que la evidencia contradice; reintento → visible y con botón. (Antes, ese mismo día, se
+propuso capa delgada por defecto; Carlos la descartó.) Hallazgos del 2026-11-23 que lo
 motivan: el chat de Agro no pudo leer `~/Projects/MemoriesMD` (`external.ts:483-517`); la tarea `chat-88da5540`
 la rechazó QA por un dato marcado "no verificado" y quedó `pending` (retry 1/3) sin reintentarse. USO.48 cerrado
 (`29f4cda8`, effort manual por sesión).
