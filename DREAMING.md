@@ -1,69 +1,89 @@
-# DREAMING.md — 2026-11-23
+# DREAMING.md — 2026-11-24
 
-> Análisis automático (scheduled task). `runs-summary.json` exportado 2026-11-22T16:51Z.
-> **Sin runs de producto nuevos por cuarto informe seguido**: el último run de chat/tarea sigue siendo 2026-11-19T21:24Z.
-> La DB local (`~/.orchestos/db.sqlite`) tiene 1091 runs (1085 el 22-11); los 6 nuevos son **runs de gate** del
-> 2026-11-22 17:07–17:12Z, posteriores al export: `gate:uso.35-live` (1 done, 1 `failure_kind=qa`) y
-> `gate:uso.36-live` / `gate:uso.36-counter` (4 `failure_kind=check`), todos gpt-6-luna. Son fallos provocados por los
-> gates USO.35/USO.36, no fallos de producto; el próximo export los meterá en el resumen (ver Propuesta 4).
-> Ninguna propuesta se aplicó: `scripts/export-runs-summary.ts` sigue sin `failure_kind` ni filtro `gate:`, y no hay
-> commits desde el 22-11 en ese script, `src/run/harness.ts` ni `src/db/runs.ts`.
+> Análisis automático (scheduled task). `runs-summary.json` exportado 2026-11-23T21:44Z. DB local: 1105 runs.
+> Primer informe con runs de producto nuevos desde el 2026-11-19 (10 chat + 1 doc del 2026-11-23).
+> **9 de 20 runs son de gate** (`gate:uso.35/36/44-*`) y concentran 6 de los 7 fallos: la Propuesta 4 de ayer
+> (excluir gates del resumen) ya distorsiona las cifras. Ninguna propuesta previa se aplicó: sin commits desde el
+> 22-11 en `scripts/export-runs-summary.ts`, `src/run/harness.ts` ni `src/db/runs.ts`.
 
 ## Runs analizados
 - Total: 20 runs
-- Periodo: 2026-11-17T17:34:17Z → 2026-11-19T21:24:22Z
-- failed: 3 | blocked: 0 | done: 17 | qa_failed: 1
+- Periodo: 2026-11-22T17:07:01Z → 2026-11-23T21:26:59Z
+- failed: 7 | blocked: 0 | done: 13 | qa_failed: 6
 
-Distribución: 19 `chat` (12 claude-opus-5-5, 5 gpt-6-luna, 2 gpt-6.1-sol) y 1 `doc` (gpt-6-luna).
+Distribución: 10 `chat` (claude-opus-5-5, 10/10 done), 1 `doc` (gpt-6-luna, failed), 9 `gate:*:implement`
+(gpt-6-luna: 3 done, 6 failed). Sin runs de producto: tasa de fallo real 1/11.
 
 ## Patrones detectados
 
-### `doc` falla por `output_missing` en una tarea cuyo trabajo es commitear
-- Evidencia: `aa76c894` (2026-11-19, `doc`, gpt-6-luna, codex). Tarea creada desde chat: "cerrar la sesión" —
-  commitear el cambio pendiente de `README.md`, sobrescribir `NEXT.md` con el SHA. Outputs declarados: `README.md`, `NEXT.md`.
-  DB: `failure_kind = output_missing`, `result = "missing declared output(s): README.md, NEXT.md — reverted 0 file(s)"`.
-- Código: el chequeo (`src/run/harness.ts:661`) compara los outputs declarados con `contractResult.written`.
-  Hipótesis **no verificada**: `README.md` ya estaba modificado antes del run y el agente solo lo commitea, así que el run
-  no lo "escribe"; el chequeo lo marca como faltante aunque la tarea se cumplió. `NEXT.md` no está explicado por esto.
-- Frecuencia: 1/20; 1/1 de `doc` en la ventana (100 %, pero n=1). Histórico local: 14/47 `doc` fallidos, 13 con `failure_kind` NULL.
-- qa_reason recurrente: "missing declared output(s): README.md, NEXT.md" (1 vez).
+### `doc` con gpt-6-luna falla en QA — segundo `doc` fallido seguido
+- Evidencia: `804fca61` (2026-11-23, `doc`, gpt-6-luna). DB: `failure_kind = qa`, `result = "QA fail - reverted 1 file(s)"`.
+  El anterior `doc` (`aa76c894`, 2026-11-19) falló por `output_missing`. Causas distintas, misma clase.
+- Frecuencia: 1/20 en la ventana; 1/1 `doc` (100 %, n=1); 2/2 `doc` en los dos últimos informes.
+- qa_reason: "El documento reúne seis referentes, pero no describe el flujo de ficha, cantidad y carrito en al menos cinco."
+- Lectura: el QA funcionó (criterio explícito incumplido). El fallo es de ejecución; el run se revirtió entero,
+  perdiendo un documento casi completo. No hay reintento con el motivo de QA en el resumen.
 
-### Chat con `gpt-6.1-sol` falla por cupo de Codex — sigue sin clasificar (quinto informe)
-- Evidencia: `7bfc4ed4` y `0260c4e9` (2026-11-17, `chat`, codex). DB: `result = "Codex CLI usage limit reached."`,
-  `failure_kind = NULL`. `'quota'` existe en `src/db/runs.ts:22`; el camino de chat no lo asigna.
-- Frecuencia: 2/20; 2/2 de `gpt-6.1-sol`; 2/19 de `chat` (10 %, bajo el umbral).
-- qa_reason recurrente: ninguna (chat no pasa por QA).
+### gpt-6-luna con `qa_verdict: fail` en 6 runs — 5 provocados por gates
+- Evidencia: `82559864` (gate:uso.35-live), `fe30dba4`, `8f86d74a` (gate:uso.36-live), `28580907`, `c00cba9e`
+  (gate:uso.36-counter), `804fca61` (doc, real).
+- Frecuencia: 6/20 runs; 6/15 runs de gpt-6-luna.
+- Lectura: dispara el criterio "mismo modelo con fail en 3+ runs", pero solo `804fca61` es producto. Sin filtro de
+  gates el patrón es ruido (ver Propuesta 3).
 
-### Sin patrón en `checks_failed` ni en QA por modelo
-- `checks_failed = 0` en 20/20. Ningún modelo con `qa_verdict: fail` en 3+ runs (solo 1 fail en total).
-- `gpt-6-luna` en chat: 5/5 done.
+### `checks_failed > 0` recurrente — todo de un gate
+- Evidencia: 4 runs `gate:uso.36-*` (2026-11-22 17:11–17:12Z), todos `check failed: sh verify.sh exit 3 (expected 0)`.
+- Frecuencia: 4/20 runs; 4/4 de `gate:uso.36-*` (tasa de fallo 100 %, > 50 %).
+- qa_reason recurrente: "check failed: sh verify.sh exit 3 (expected 0)" (4 veces).
+- Lectura: fallo buscado por el gate USO.36 (salida larga de progreso + exit ≠ 0). No es defecto de producto.
+
+### Fallo de configuración clasificado como `unknown`
+- Evidencia: `b3bd9385` (2026-11-23, gate:uso.44-live, gpt-6-luna, codex). DB: `failure_kind = unknown`,
+  `result = "codex engine requires worktree sandbox mode — refusing to run an uncontrolled external process..."`.
+  Mensaje emitido en `src/run/executors/generic-cli.ts:15` (hermanos: `external.ts:739`, `opencode.ts:323`).
+- Frecuencia: 1/20. `qa_reason` vacío en el resumen: el motivo no es visible sin abrir la DB.
+- Lectura: es un error de configuración determinista (modo de sandbox), no desconocido; a la vez el run 30 min
+  después (`0d9fc6d5`) pasó, así que la config se corrigió a mano.
+
+### Run `done` sin ninguna verificación
+- Evidencia: `da0a0db5` (2026-11-23, gate:uso.44-live, gpt-6-luna): `status = done`, `qa_verdict = skipped`,
+  "Sin revisión LLM y sin checks: nada verificó esta tarea".
+- Frecuencia: 1/20. Es un gate; el aviso existe y funciona, pero el run queda `done` igual.
+
+### Chat estable
+- 10/10 chat con claude-opus-5-5 done, sin checks fallidos. El patrón de cupo de `gpt-6.1-sol` (informes
+  anteriores) no aparece porque no hubo chats con Sol en la ventana: ni confirmado ni descartado.
 
 ## Propuestas
 
-### Propuesta 1 — Diagnosticar el `output_missing` de tareas que commitean (`doc` desde chat)
-- Qué cambiar: reproducir `aa76c894` y decidir en `src/run/harness.ts:661` si un output declarado que el run deja
-  committed sin cambio de contenido cuenta como entregado (p. ej. comparar contra `HEAD` previo al run además de
-  `contractResult.written`), o que el chat no declare como `output` archivos que la tarea solo commitea.
-- Por qué: falso fallo probable en una tarea de cierre real; el run se marca `failed` cuando el trabajo se hizo.
-- Riesgo: medio (toca el chequeo determinista que protege contra outputs truncados).
+### Propuesta 1 — Clasificar "requires worktree sandbox mode" como fallo de configuración
+- Qué cambiar: donde se asigna `failure_kind` a errores de executor externo (`ExecutorExternalError` de
+  `src/run/executors/generic-cli.ts:15`, `external.ts:739`, `opencode.ts:323`), mapear este error a un kind propio
+  (p. ej. `config`) y exportarlo con el motivo corto.
+- Por qué: `b3bd9385` quedó `unknown` con un motivo determinista y accionable.
+- Riesgo: bajo
 
-### Propuesta 2 — Asignar `failure_kind: 'quota'` en los fallos de chat (repite 2026-11-19)
-- Qué cambiar: el camino que guarda el run de chat debe clasificar el error del CLI como `providerFailureKind`
-  (`src/run/harness.ts`) en vez de dejar `failure_kind` nulo.
-- Por qué: 2/2 fallos de Sol son cupo y figuran sin causa; 13/14 fallos históricos de `doc` tampoco tienen causa.
-- Riesgo: bajo.
+### Propuesta 2 — Reintento de `doc` con el motivo de QA antes de revertir
+- Qué cambiar: en el flujo de QA fail de `src/run/harness.ts`, para tareas `doc`, un reintento único pasando
+  `qa_reason` al ejecutor antes del revert. Diagnosticar primero si ya existe y por qué no se usó en `804fca61`.
+- Por qué: 2/2 `doc` recientes fallaron; `804fca61` perdió un documento casi completo por un criterio parcial.
+- Riesgo: medio (más gasto por run; no debe enmascarar fallos reales)
 
-### Propuesta 3 — Exportar `failure_kind` y motivo corto en `runs-summary.json` (repite 2026-11-18 y 2026-11-19)
-- Qué cambiar: `scripts/export-runs-summary.ts`, sumar `failure_kind` y ~120 chars redactadas de `result` si `status = 'failed'`.
-- Por qué: quinto informe que necesita abrir la DB local para conocer la causa.
-- Riesgo: bajo.
+### Propuesta 3 — Excluir runs `gate:*` del resumen (repite 2026-11-23; ahora prioritaria)
+- Qué cambiar: `scripts/export-runs-summary.ts` — filtrar `task_class LIKE 'gate:%'` del arreglo `runs` y de
+  `stats`, o exportarlos en un bloque aparte.
+- Por qué: 9/20 runs y 6/7 fallos de esta ventana son gates; los patrones "modelo con 3+ fail" y `checks_failed`
+  recurrente salen solo de fallos provocados a propósito.
+- Riesgo: bajo
 
-### Propuesta 4 — Excluir runs de gate del resumen (repite; sigue vigente)
-- Qué cambiar: `scripts/export-runs-summary.ts`, filtrar `task_class LIKE 'gate:%'` o marcarlos `source: 'gate'`.
-- Por qué: ya pasó: el 22-11 entraron 6 runs `gate:uso.35/36` (5 failed provocados) a la DB después del export;
-  el próximo `runs-summary.json` los contará como fallos de gpt-6-luna y dispararía falsamente el patrón
-  "mismo modelo con qa fail en 3+ runs".
-- Riesgo: bajo.
+### Propuesta 4 — Exportar `failure_kind` y motivo corto (repite 2026-11-18, -19 y -23)
+- Qué cambiar: `scripts/export-runs-summary.ts` — añadir `failure_kind` y `result` truncado (≤ 200 chars).
+- Por qué: `b3bd9385` aparece como `failed` sin causa; hizo falta abrir la DB para saberla.
+- Riesgo: bajo
+
+### Propuestas previas sin cambios
+- 2026-11-23 P1 (`output_missing` en `doc` que commitea) y P2 (`failure_kind: 'quota'` en chat) siguen vigentes;
+  sin datos nuevos en esta ventana.
 
 ## Decisión (llenar manualmente)
 - [ ] Aplicar propuesta 1
