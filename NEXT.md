@@ -10,7 +10,8 @@ Lote acordado con Carlos (GO): calibrar controles para que guíen, no bloqueen. 
 "no verificado"), USO.51 (carpetas de solo lectura). Datos que lo respaldan: de 13 runs de tareas en proyectos
 reales, 6 rechazos y solo 1 error real (tsc); 2 revirtieron trabajo bueno por un archivo generado faltante.
 
-- **USO.49**: código, tests y flujo **sin commitear en el árbol** (el hook `agent:live-gate` no admite código de
+- **USO.49**: código, tests y flujo guardados en `docs/specs/USO.49.patch` (recuperar: `git apply
+  docs/specs/USO.49.patch`; borrarlo al cerrar) (el hook `agent:live-gate` no admite código de
   dashboard sin el cierre con evidencia en vivo); tsc 0, lint 0, tests 26/0 + 19/0, `qa` con 1 P2 corregido. Falta el gate en vivo:
   `bun run gate:evidence -- --label USO.49 -- bun run ui:gate chat-retry-report` murió en el primer turno de chat
   (`chat-retry-report.mjs:173`, composer vacío, el error real quedó tapado por un `waitForResponse` huérfano), antes
