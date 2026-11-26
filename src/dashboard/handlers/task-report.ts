@@ -73,7 +73,10 @@ function buildTaskReportData(
   const normalizedCause = cause?.replace(/\s+/g, ' ').trim()
   const normalizedQaReason = qaReason?.replace(/\s+/g, ' ').trim()
   const diagnosis =
-    !interrupted && (status === 'failed' || (status === 'pending' && task?.retry_count))
+    !interrupted &&
+    (status === 'failed' ||
+      status === 'failed_permanent' ||
+      (status === 'pending' && task?.retry_count))
       ? {
           ...(run?.failure_kind ? { kind: run.failure_kind } : {}),
           ...(cause ? { cause: bounded(cause, 2048) } : {}),
@@ -101,7 +104,7 @@ function buildTaskReportData(
     ? `✓ Task \`${taskId}\` done${providerModel}`
     : status === 'done'
       ? `Task \`${taskId}\` marked done in tasks.yaml · ${run ? `latest run ${run.status}${providerModel}` : 'no matching run recorded'}`
-      : status === 'pending'
+      : status === 'pending' || status === 'failed_permanent'
         ? task?.retry_count
           ? `✗ Task \`${taskId}\` failed · attempt ${task.retry_count}/${MAX_RETRIES}${providerModel}`
           : `✗ Task \`${taskId}\` pending${providerModel}`
@@ -112,7 +115,7 @@ function buildTaskReportData(
   const summary =
     rawSummary && rawSummary.length > 300 ? `${rawSummary.slice(0, 299)}…` : rawSummary
   const attempt =
-    status === 'pending' && task?.retry_count
+    (status === 'pending' || status === 'failed_permanent') && task?.retry_count
       ? { attempt: task.retry_count, maxAttempts: MAX_RETRIES }
       : {}
   return {

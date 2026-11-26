@@ -217,7 +217,7 @@ esta etapa: `docs/done/bloque-AUD.md` (AUD.16, AUD.17), `docs/done/bloque-SES.md
   Gates del cerebro: typecheck 0, lint 0, `test:coverage` 3205/0.
   Gate en vivo: `bun run src/dashboard/server.ts` con fuente tocada, con build roto y al día — `docs/done/evidence/USO.43-live.log`.
   Ejecutado por: gpt-6.1-sol (criterio) · Spec: docs/specs/USO.43.md
-- [ ] **USO.49 — Una tarea rechazada por QA queda `pending` sin reintentarse ni botón.** (Carlos, 2026-11-23, uso real
+- [x] **USO.49 — Una tarea rechazada por QA queda `pending` sin reintentarse ni botón.** (Carlos, 2026-11-23, uso real
   en `Agro`, `chat-88da5540` retry 1/3) Causa: el chat lanza `task run <root> --id <id>` (`tasks.ts:393`) y la rama
   `--id` de `src/cli.ts:1414` ejecuta un solo intento; el loop de reintentos solo existe en `--all` y en
   `graph-runner.ts:442`. La tarjeta muestra "attempt 1/3" pero el botón solo aparece si `interrupted`
@@ -228,8 +228,10 @@ esta etapa: `docs/done/bloque-AUD.md` (AUD.16, AUD.17), `docs/done/bloque-SES.md
   interrumpidas (`Resume` sigue para las interrumpidas).
   Gates: tsc 0, lint 0, `aud21-task-execution` + `handlers/tasks` 26/0 (test nuevo: QA falla, reintenta y pasa en una
   sola invocación). Revisión `qa`: 1 P2 (`failed_permanent` no reiniciaba el contador), corregido.
-  Prueba en vivo: pendiente de Carlos (tarea de Agro rechazada → se reintenta sola; botón Retry en agotada).
-  Ejecutado por: gpt-6-luna (mecanico) · Spec: docs/specs/USO.49.md (borrado al cerrar)
+  Gate en vivo: navegador (Playwright) `docs/done/evidence/USO.49-live.json` — `chat-retry-report` 30/30: agota
+  3/3 solo, Retry reinicia el contador y termina done. Una corrida previa cayó en Commit & Run por
+  `SQLITE_IOERR_VNODE` (no reproducido; anotado en NEXT.md).
+  Ejecutado por: gpt-6-luna (mecanico) · Spec: docs/specs/USO.49.md
 - [ ] **USO.50 — QA rechaza un dato "no verificado" honesto.** (Carlos, 2026-11-23) Causa: `qa.ts:120-132` y
   `254-278` solo admiten pass/fail con evidencia literal. Alcance: criterio `unverified` con motivo, aceptado solo
   si depende de algo fuera de los archivos escritos; veredicto falla solo si un criterio queda contradicho; aprobado

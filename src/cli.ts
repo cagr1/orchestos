@@ -1412,7 +1412,13 @@ task
       }
 
       if (opts?.id) {
-        if ((await executeTask(opts.id)) !== 'done') process.exitCode = 1
+        let result: Awaited<ReturnType<typeof executeTask>> = 'retry'
+        let iterations = 0
+        while (result === 'retry' && iterations < MAX_RETRIES + 1) {
+          iterations++
+          result = await executeTask(opts.id)
+        }
+        if (result !== 'done') process.exitCode = 1
         return
       }
 

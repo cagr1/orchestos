@@ -174,6 +174,7 @@ export default async function chatRetryReport({ page, api, step, shot, visible, 
     (response) => response.request().method() === 'POST' && /\/api\/chat$/.test(response.url()),
     { timeout: 180_000 },
   )
+  firstTurn.catch(() => {})
   await composer.fill(heldPrompt)
   await page.getByRole('button', { name: 'Send message', exact: true }).click()
   await (await firstTurn).finished()
@@ -189,27 +190,27 @@ export default async function chatRetryReport({ page, api, step, shot, visible, 
   await step('held task id obtained', Boolean(taskId), taskId || 'task id unavailable')
   if (!taskId) return
   await page.getByRole('button', { name: /^Approve & Run$/i }).click()
-  const firstAttempt = await waitForTask(
+  const exhaustedTask = await waitForTask(
     api,
     project.id,
     taskId,
-    (item) => item.status === 'pending' && item.retryCount === 1,
+    (item) => item.status === 'failed_permanent' && item.retryCount === 3,
     5 * 60_000,
   )
-  const retryReason = firstAttempt?.retryReason ?? ''
+  const retryReason = exhaustedTask?.retryReason ?? ''
   await step(
-    'first attempt fails on a check',
-    firstAttempt?.status === 'pending' &&
-      firstAttempt.retryCount === 1 &&
+    'first launch exhausts automatic retries on a check',
+    exhaustedTask?.status === 'failed_permanent' &&
+      exhaustedTask.retryCount === 3 &&
       /check failed/i.test(retryReason),
-    `status=${firstAttempt?.status ?? 'missing'} retryCount=${firstAttempt?.retryCount ?? 'missing'} retryReason=${retryReason}`,
+    `status=${exhaustedTask?.status ?? 'missing'} retryCount=${exhaustedTask?.retryCount ?? 'missing'} retryReason=${retryReason}`,
   )
   const failedReport = page.locator(`[data-task-id="${taskId}"][data-task-state="failed"]`)
   const reportVisible = await visible(failedReport, 60_000)
   const failedText = (await failedReport.innerText().catch(() => 'report not visible')).trim()
   await step(
     'failed attempt report visible without reload',
-    reportVisible && /Attempt 1\/3/.test(failedText),
+    reportVisible && /Attempt 3\/3/.test(failedText),
     failedText,
   )
   const failedMessage = (await messagesFor(api, project.id, session.id, taskId)).at(-1)
@@ -289,8 +290,9 @@ export default async function chatRetryReport({ page, api, step, shot, visible, 
     JSON.stringify({ kind: diagnosis?.kind, classifiedCause: await classifiedCause.innerText() }),
   )
   await step(
-    'failed attempt has no Retry or Resume action',
-    (await failedReport.getByRole('button', { name: /^(Retry|Resume)$/ }).count()) === 0,
+    'failed attempt offers Retry without Resume',
+    (await visible(failedReport.getByRole('button', { name: 'Retry', exact: true }))) &&
+      (await failedReport.getByRole('button', { name: 'Resume', exact: true }).count()) === 0,
     await failedReport.innerText(),
   )
   const diagnosisText = await diagnosisBlock.innerText()
@@ -320,6 +322,48 @@ export default async function chatRetryReport({ page, api, step, shot, visible, 
     diagnosis?.runId ?? 'missing run',
   )
   await page.getByRole('button', { name: 'Back to app', exact: true }).click()
+
+  const retryResponse = page.waitForResponse(
+    (response) =>
+      response.request().method() === 'POST' &&
+      new URL(response.url()).pathname === `/api/tasks/${encodeURIComponent(taskId)}/run`,
+  )
+  await failedReport.getByRole('button', { name: 'Retry', exact: true }).click()
+  const retryLaunch = await retryResponse
+  await retryLaunch.finished()
+  const restartedTask = await waitForTask(
+    api,
+    project.id,
+    taskId,
+    (item) => ['pending', 'running'].includes(item.status) && item.retryCount === 0,
+    30_000,
+  )
+  await step(
+    'Retry relaunches the exhausted task with retryCount reset',
+    retryLaunch.ok() &&
+      ['pending', 'running'].includes(restartedTask?.status) &&
+      restartedTask?.retryCount === 0,
+    `http=${retryLaunch.status()} status=${restartedTask?.status ?? 'missing'} retryCount=${restartedTask?.retryCount ?? 'missing'}`,
+  )
+  const retriedTask = await waitForTask(
+    api,
+    project.id,
+    taskId,
+    (item) => item.status === 'done',
+    10 * 60_000,
+  )
+  await step(
+    'Retry finishes the same task done without consuming another retry',
+    retriedTask?.status === 'done' && retriedTask.retryCount === 0,
+    `status=${retriedTask?.status ?? 'missing'} retryCount=${retriedTask?.retryCount ?? 'missing'}`,
+  )
+  if (retriedTask?.status !== 'done') return
+  const retriedDone = page.locator(`[data-task-id="${taskId}"][data-task-state="done"]`)
+  await step(
+    'Retry done report appears without reload',
+    await visible(retriedDone, 90_000),
+    (await retriedDone.innerText().catch(() => 'report not visible')).trim(),
+  )
 
   // Tramo 2 — árbol sucio: la tarea queda pending y el hilo ofrece "Commit & Run".
   writeFileSync(join(projectRoot, 'sucio.txt'), 'sin commitear\n')

@@ -140,6 +140,23 @@ describe('reportTaskOutcome', () => {
     })
   })
 
+  it('failed_permanent conserva diagnóstico, proveedor/modelo e intento 3/3', () => {
+    const { root, session, taskId, projectId } = setup('failed_permanent', 'check failed', 3)
+    const runId = addRun(taskId, 'check failed', projectId, 'failed')
+    db.run('UPDATE runs SET failure_kind = ? WHERE id = ?', ['check', runId])
+    reportTaskOutcome(root, session.id, taskId, projectId)
+    const message = listChatMessages(session.id)[0]
+    expect(message?.content).toContain(
+      `✗ Task \`${taskId}\` failed · attempt 3/3 · unit-provider/unit-model`,
+    )
+    expect(message?.taskReport).toMatchObject({
+      outcome: 'failed_permanent',
+      attempt: 3,
+      maxAttempts: 3,
+      diagnosis: { kind: 'check', cause: 'check failed', runId },
+    })
+  })
+
   it('done sin run del proyecto no afirma éxito ni adjunta un run ajeno', () => {
     const { root, session, taskId, projectId } = setup('done')
     const other = setup('done')

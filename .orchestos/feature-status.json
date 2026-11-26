@@ -160,7 +160,7 @@
       "sprint": "Etapa 2 — Uso real",
       "block": null,
       "title": "Una tarea rechazada por QA queda `pending` sin reintentarse ni botón",
-      "status": "open",
+      "status": "done",
       "closedDate": null
     },
     {

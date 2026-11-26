@@ -516,10 +516,10 @@ export function TaskCard({
             </Button>
           </div>
         )}
-        {interrupted && (
+        {(interrupted || card.state === 'failed') && (
           <div className="flex items-center gap-2 pt-1">
             <Button variant="primary" leadingIcon={RotateCw} disabled={busy} onClick={onRetry}>
-              Resume
+              {interrupted ? 'Resume' : 'Retry'}
             </Button>
           </div>
         )}

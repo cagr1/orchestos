@@ -520,6 +520,7 @@ function launchTask(
   const taskResult = mutateTasks(root, (file) => {
     const task = file.tasks.find((t: any) => t.id === id)
     if (!task) return false
+    if (task.status === 'failed' || task.status === 'failed_permanent') task.retry_count = 0
     if (clarification)
       task.description = `${task.description}\n\nUser clarification: ${clarification}`
     if (task.status !== 'pending') task.status = 'pending'

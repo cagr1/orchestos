@@ -164,6 +164,37 @@ describe('dashboard task commit-run (ERP.4.13)', () => {
     }
   })
 
+  test.each(['failed', 'failed_permanent'] as const)(
+    'reinicia retry_count al relanzar manualmente una tarea %s agotada',
+    async (status) => {
+      const root = fixture()
+      const path = join(root, 'tasks.yaml')
+      writeFileSync(
+        path,
+        readFileSync(path, 'utf8')
+          .replace('status: pending', `status: ${status}`)
+          .replace('retry_count: 0', 'retry_count: 3'),
+      )
+      const originalSpawn = Bun.spawn
+      Bun.spawn = (() => ({
+        pid: 424244,
+        exited: Promise.resolve(0),
+      })) as unknown as typeof Bun.spawn
+      try {
+        const response = await handleApiTasksRun(
+          new Request('http://localhost/api/tasks/task-dirty/run', { method: 'POST', body: '{}' }),
+          new URL('http://localhost/api/tasks/task-dirty/run'),
+          root,
+        )
+        expect(response.status).toBe(200)
+        expect(readFileSync(path, 'utf8')).toContain('retry_count: 0')
+        expect(readFileSync(path, 'utf8')).toContain('status: pending')
+      } finally {
+        Bun.spawn = originalSpawn
+      }
+    },
+  )
+
   test('sin identidad git el commit se rechaza con 409 y la tarea no se lanza', async () => {
     const root = fixture()
     // Una identidad local vacía tapa la identidad global del host.

@@ -10,15 +10,10 @@ Lote acordado con Carlos (GO): calibrar controles para que guíen, no bloqueen. 
 "no verificado"), USO.51 (carpetas de solo lectura). Datos que lo respaldan: de 13 runs de tareas en proyectos
 reales, 6 rechazos y solo 1 error real (tsc); 2 revirtieron trabajo bueno por un archivo generado faltante.
 
-- **USO.49**: código, tests y flujo guardados en `docs/specs/USO.49.patch` (recuperar: `git apply
-  docs/specs/USO.49.patch`; borrarlo al cerrar) (el hook `agent:live-gate` no admite código de
-  dashboard sin el cierre con evidencia en vivo); tsc 0, lint 0, tests 26/0 + 19/0, `qa` con 1 P2 corregido. Falta el gate en vivo:
-  `bun run gate:evidence -- --label USO.49 -- bun run ui:gate chat-retry-report` murió en el primer turno de chat
-  (`chat-retry-report.mjs:173`, composer vacío, el error real quedó tapado por un `waitForResponse` huérfano), antes
-  de cualquier paso de USO.49. Primero: hacer que el flujo deje el error real (`firstTurn.catch(() => {})` tras crear la
-  espera, vía `delegate`: el hook niega al cerebro editar `scripts/`) y ver si también cae en HEAD~ (posible hermano de USO.41). Luego cerrar con
-  `docs/done/evidence/USO.49-live.json`. El botón Retry reemplaza la decisión RUN.1 (`6bce134f`, "sin Retry") por la
-  del 2026-11-23 ("reintento visible y con botón"). Spec del flujo: `docs/specs/USO.49-gate.md`.
+- **USO.49** cerrado (gate en vivo 30/30, `docs/done/evidence/USO.49-live.json`). Intermitente sin causa: una
+  corrida de `chat-retry-report` cayó en Commit & Run con `SQLiteError: disk I/O error` (`SQLITE_IOERR_VNODE`,
+  `run-steps.ts:40`) y tumbó el dashboard; la siguiente pasó. Si reaparece, diagnosticar qué cambia `db.sqlite` bajo
+  el handle abierto.
 - **USO.50**: spec listo `docs/specs/USO.50.md` (caso real: run `804fca61…` de Agro) → `delegate criterio`.
 - **USO.51**: mapeado, sin spec. Ajuste por proyecto en tabla `projects` como `setup_script`
   (`src/db/projects.ts:87,131`, PATCH `handlers/projects.ts:46-67`, UI `ProjectGeneralSettings.tsx:112-124`);

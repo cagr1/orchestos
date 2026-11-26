@@ -201,6 +201,59 @@ describe('AUD.21 + AUD.5 task execution with isolated fake CLIs', () => {
     }
   }, 15000)
 
+  it('retries a QA failure within one task run invocation', async () => {
+    const counter = join(dir, 'qa-counter')
+    const criterion = 'The output contains the fixture text'
+    const qaTask = Object.assign(task(), { acceptance_criteria: [criterion] })
+    tasks([qaTask])
+    git('add', 'tasks.yaml')
+    git('-c', 'user.name=t', '-c', 'user.email=t@t', 'commit', '-m', 'add QA criterion')
+    const qaEvent = (verdict: 'fail' | 'pass') =>
+      JSON.stringify({
+        type: 'assistant',
+        message: {
+          content: [
+            {
+              type: 'text',
+              text: JSON.stringify({
+                verdict,
+                reason: verdict === 'fail' ? 'first review rejects' : 'second review passes',
+                criteria: [
+                  {
+                    text: criterion,
+                    pass: verdict === 'pass',
+                    ...(verdict === 'pass'
+                      ? { evidence: { file: 'out.txt', excerpt: 'fixture' } }
+                      : {}),
+                  },
+                ],
+              }),
+            },
+          ],
+        },
+      })
+    const resultEvent = JSON.stringify({ type: 'result', result: '', total_cost_usd: 0.01 })
+    fakeClaude(
+      [
+        'if [ "$1" = "--help" ]; then echo "  --restricted Run in restricted mode"; exit 0; fi',
+        'case "$*" in',
+        '  *fixture-reviewer*)',
+        '    count=$(cat "' + counter + '" 2>/dev/null || echo 0)',
+        '    count=$((count + 1))',
+        '    echo "$count" > "' + counter + '"',
+        `    if [ "$count" -eq 1 ]; then printf '%s\\n' '${qaEvent('fail')}'; else printf '%s\\n' '${qaEvent('pass')}'; fi`,
+        `    printf '%s\\n' '${resultEvent}'`,
+        '    ;;',
+        `  *) echo fixture > out.txt; echo '{"type":"result","result":"written","total_cost_usd":0.01}';;`,
+        'esac',
+      ].join('\n'),
+    )
+    const result = await cli('task', 'run', '--id', 'fixture-task')
+    expect(result.code, result.stderr).toBe(0)
+    expect(loadTasks()[0]).toMatchObject({ status: 'done', retry_count: 1 })
+    expect(readFileSync(counter, 'utf8').trim()).toBe('2')
+  }, 30000)
+
   it('--all lists unfinished states instead of claiming all tasks are done', async () => {
     tasks([
       task('a', 'done'),

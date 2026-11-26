@@ -1,0 +1,133 @@
+{
+  "item": "USO.49",
+  "date": "2026-11-26",
+  "machine": "Mac de Carlos (macOS 25.6, Bun 1.4.0)",
+  "live": "bun run gate:evidence -- --label USO.49 -- bun run ui:gate chat-retry-report → PASS 30/30 (dashboard real, Codex gpt-6-luna): la tarea con check roto agota 3/3 sola (failed_permanent), la tarjeta ofrece Retry sin Resume, Retry relanza con retryCount 0 y termina done sin reload.",
+  "previousRun": "Corrida anterior del mismo día: 26/27 pasos de USO.49 en verde; cayó en el escenario Commit & Run (no tocado por USO.49) con SQLiteError disk I/O error SQLITE_IOERR_VNODE en insertRunStep (run-steps.ts:40) y caída del dashboard. No se reprodujo en la segunda corrida; el flujo pasó 27/27 en las nocturnas del 2026-11-20 y 21.",
+  "gates": [
+    "bunx tsc --noEmit: 0",
+    "lint 0, aud21-task-execution + handlers/tasks 26/0, task-report 19/0 (sesión 2026-11-25)"
+  ],
+  "steps": [
+    {
+      "nombre": "select Codex for new chat",
+      "ok": true
+    },
+    {
+      "nombre": "select gpt-6-luna",
+      "ok": true
+    },
+    {
+      "nombre": "select medium effort",
+      "ok": true
+    },
+    {
+      "nombre": "assistant reply has no duplicated paragraph",
+      "ok": true
+    },
+    {
+      "nombre": "held task card visible",
+      "ok": true
+    },
+    {
+      "nombre": "held task id obtained",
+      "ok": true
+    },
+    {
+      "nombre": "first launch exhausts automatic retries on a check",
+      "ok": true
+    },
+    {
+      "nombre": "failed attempt report visible without reload",
+      "ok": true
+    },
+    {
+      "nombre": "failed attempt shows diagnosis",
+      "ok": true
+    },
+    {
+      "nombre": "no uuid text",
+      "ok": true
+    },
+    {
+      "nombre": "project clean before dirty-tree scenario",
+      "ok": true
+    },
+    {
+      "nombre": "failed attempt shows its recorded cause and failed check output",
+      "ok": true
+    },
+    {
+      "nombre": "failed attempt shows its classified cause (AUD.4)",
+      "ok": true
+    },
+    {
+      "nombre": "failed attempt offers Retry without Resume",
+      "ok": true
+    },
+    {
+      "nombre": "diagnosis shows the cause once and removes worktree prefixes",
+      "ok": true
+    },
+    {
+      "nombre": "View evidence offered for the recorded run",
+      "ok": true
+    },
+    {
+      "nombre": "View evidence opens the selected run in Runs",
+      "ok": true
+    },
+    {
+      "nombre": "Retry relaunches the exhausted task with retryCount reset",
+      "ok": true
+    },
+    {
+      "nombre": "Retry finishes the same task done without consuming another retry",
+      "ok": true
+    },
+    {
+      "nombre": "Retry done report appears without reload",
+      "ok": true
+    },
+    {
+      "nombre": "assistant reply has no duplicated paragraph",
+      "ok": true
+    },
+    {
+      "nombre": "second held task card visible",
+      "ok": true
+    },
+    {
+      "nombre": "second task id obtained",
+      "ok": true
+    },
+    {
+      "nombre": "dirty tree leaves the task pending with the uncommitted-changes reason",
+      "ok": true
+    },
+    {
+      "nombre": "thread lists the uncommitted file without reload",
+      "ok": true
+    },
+    {
+      "nombre": "dirty task held card is hidden",
+      "ok": true
+    },
+    {
+      "nombre": "Commit & Run commits the file with the dashboard message",
+      "ok": true
+    },
+    {
+      "nombre": "sucio.txt is no longer listed as uncommitted",
+      "ok": true
+    },
+    {
+      "nombre": "relaunched task finishes done",
+      "ok": true
+    },
+    {
+      "nombre": "done report of the relaunched task appears without reload",
+      "ok": true
+    }
+  ]
+}
