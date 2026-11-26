@@ -1,65 +1,73 @@
-# DREAMING.md — 2026-11-25
+# DREAMING.md — 2026-11-26
 
-> Análisis automático (scheduled task). `runs-summary.json` exportado 2026-11-24T20:15Z.
-> **Sin datos nuevos:** los 20 runs son exactamente los del informe del 2026-11-24 (último run 2026-11-23T21:26Z;
-> 0 runs posteriores). Único commit desde entonces: `270310a1` (el propio informe de ayer). Ninguna propuesta se
-> aplicó: sin cambios en `scripts/export-runs-summary.ts`, `src/run/harness.ts`, `src/run/executors/` ni `src/db/`.
-> El análisis de patrones detallado está en el informe del 2026-11-24 (`git show 270310a1:DREAMING.md`).
+> Análisis automático (scheduled task). `runs-summary.json` exportado 2026-11-26T11:56Z. 17 runs nuevos desde el
+> informe anterior, todos de gates en vivo de USO.49 y USO.50 del 2026-11-26. Ninguna propuesta previa se aplicó.
 
 ## Runs analizados
 - Total: 20 runs
-- Periodo: 2026-11-22T17:07:01Z → 2026-11-23T21:26:59Z
-- failed: 7 | blocked: 0 | done: 13 | qa_failed: 6
+- Periodo: 2026-11-23T21:24:34Z → 2026-11-26T11:55:45Z
+- failed: 8 | blocked: 0 | done: 12 | qa_failed: 8
 
-Distribución: 10 `chat` (claude-opus-5-5, 10/10 done), 1 `doc` (gpt-6-luna, failed), 9 `gate:*:implement`
-(gpt-6-luna: 3 done, 6 failed). Sin gates: 1/11 fallos.
+Distribución: 3 `chat` (claude-opus-5-5, 3/3 done), 9 `gate:uso.49:implement` (gpt-6-luna: 3 done, 6 failed),
+8 `gate:uso.50:implement` (`openai/gpt-6-luna` 6, `anthropic/haiku` 2: 6 done, 2 failed). Sin gates: 0/3 fallos.
 
 ## Patrones detectados
 
-### `doc` con gpt-6-luna falla en QA (sin cambios)
-- Evidencia: `804fca61` (2026-11-23, `doc`, gpt-6-luna, `qa_verdict: fail`). Precedente `aa76c894` (2026-11-19).
-- Frecuencia: 1/20; 1/1 `doc` en la ventana (n=1).
-- qa_reason recurrente: "El documento reúne seis referentes, pero no describe el flujo de ficha, cantidad y carrito en al menos cinco."
+### Gate USO.49: tres rechazos seguidos y luego pase
+- Evidencia: dos rondas idénticas — `5db164a4`, `a539d52e`, `231e0525` → `050d1e2a` (pass) y `050d7fb7`,
+  `9bb9c14c`, `cecd53c7` → `cc33ae6f` (pass); más `5b742245` (pass). Todos gpt-6-luna.
+- Frecuencia: 6/20 fallidos; `gate:uso.49:implement` con 67 % de fallo (> 50 %).
+- qa_reason recurrente: "check failed: bunx tsc --noEmit exit 2 (expected 0) … broken.ts(1,7): error TS2322" (6 veces).
+- Lectura: fallo provocado por el gate (archivo `broken.ts` sembrado) para probar el reintento automático de USO.49.
+  Cada intento rechazado queda como run `failed` propio, así que un reintento que termina bien suma 3 fallos al resumen.
 
-### gpt-6-luna con `qa_verdict: fail` en 6 runs — 5 son gates (sin cambios)
-- Evidencia: `82559864`, `fe30dba4`, `8f86d74a`, `28580907`, `c00cba9e` (gates USO.35/36) + `804fca61` (doc).
+### Gate USO.50: un rechazo y pase en el reintento
+- Evidencia: `0e022895` → `f9cee405` y `38d62634` → `8f1e0257` (openai/gpt-6-luna).
+- Frecuencia: 2/20.
+- qa_reason recurrente: "nota.txt contains ROJO, not the required AZUL line." (2 veces, fallo buscado).
+
+### `checks_failed > 0` recurrente — solo gate USO.49
+- Evidencia: los 6 fallos de USO.49 tienen `checks_failed: 1`; ningún otro run.
 - Frecuencia: 6/20.
-- qa_reason recurrente: "check failed: sh verify.sh exit 3 (expected 0)" (4 veces, todas gate USO.36, fallo buscado).
 
-### `checks_failed > 0` recurrente — solo gate USO.36 (sin cambios)
-- Evidencia: 4 runs `gate:uso.36-*` del 2026-11-22 17:11–17:12Z.
-- Frecuencia: 4/20; `gate:uso.36-*` con 100 % de fallo (> 50 %), provocado a propósito.
+### gpt-6-luna con `qa_verdict: fail` en 8 runs, nombre de modelo inconsistente
+- Evidencia: USO.49 registra `gpt-6-luna`; USO.50 registra `openai/gpt-6-luna` (y `anthropic/haiku`). Es el mismo
+  modelo con dos identificadores: cualquier agregado por `model` lo parte en dos.
+- Frecuencia: 8/20 con fail (6 + 2); los 8 son fallos buscados por los gates.
 
-### Fallo sin causa visible en el resumen (sin cambios)
-- Evidencia: `b3bd9385` (gate:uso.44-live) `failed` con `qa_reason` vacío; la causa ("codex engine requires
-  worktree sandbox mode") solo se ve en la DB.
-- Frecuencia: 1/20.
-
-### Ventana estancada
-- Evidencia: `runs-summary.json` se regenera en cada commit, pero no hubo runs el 2026-11-24. Con el mismo export
-  el análisis diario repite el anterior y gasta una corrida sin información nueva.
-- Frecuencia: 2 informes consecutivos sobre los mismos 20 runs.
+### Los gates desplazan el uso real de la ventana
+- Evidencia: 17/20 runs y 8/8 fallos son `gate:*`. La ventana de 20 dejó fuera los 7 `chat` y el `doc` del informe
+  anterior. Es la tercera vez que se ve (P3 del 2026-11-24), ahora más marcado.
 
 ## Propuestas
 
-### Propuesta 1 — Saltar el informe cuando no hay runs nuevos
-- Qué cambiar: el prompt del scheduled task `orchestos-dreaming` (fuera del repo): si el `created_at` más reciente
-  de `runs-summary.json` no supera al del último `DREAMING.md`, escribir solo "Sin runs nuevos desde <fecha>" y
-  commitear, sin rehacer el análisis.
-- Por qué: este informe y el del 2026-11-24 cubren los mismos 20 runs.
+### Propuesta 1 — Separar los gates del resumen (P3 del 2026-11-24, reforzada)
+- Qué cambiar: `scripts/export-runs-summary.ts` — excluir `task_class` `gate:*` de la ventana de 20 o exportarlos en
+  un bloque aparte con su propio conteo.
+- Por qué: 17/20 runs y el 100 % de los fallos de esta ventana son fallos provocados; el análisis no ve uso real.
 - Riesgo: bajo
 
-### Propuestas vigentes del 2026-11-24 (sin aplicar, sin datos nuevos)
-- P1: clasificar "requires worktree sandbox mode" como `failure_kind` de configuración
-  (`src/run/executors/generic-cli.ts`, `external.ts`, `opencode.ts`). Riesgo bajo.
-- P2: reintento único de `doc` con el `qa_reason` antes de revertir (`src/run/harness.ts`). Riesgo medio.
-- P3: excluir `gate:*` del resumen o separarlos (`scripts/export-runs-summary.ts`) — 9/20 runs y 6/7 fallos son
-  gates. Riesgo bajo. Prioritaria.
-- P4: exportar `failure_kind` y motivo corto (`scripts/export-runs-summary.ts`) — cuarta repetición. Riesgo bajo.
-- 2026-11-23 P1 (`output_missing` en `doc`) y P2 (`failure_kind: 'quota'` en chat) siguen vigentes.
+### Propuesta 2 — Normalizar el identificador de modelo
+- Qué cambiar: el punto donde se guarda `model` del run (`src/run/harness.ts` o el adaptador del executor) o, como
+  mínimo, `scripts/export-runs-summary.ts`: un solo formato (`proveedor/modelo` o sin prefijo).
+- Por qué: `gpt-6-luna` y `openai/gpt-6-luna` aparecen el mismo día para el mismo modelo.
+- Riesgo: bajo (verificar qué consume el campo antes de cambiar el formato guardado).
+
+### Propuesta 3 — Agrupar los intentos de un reintento
+- Qué cambiar: `scripts/export-runs-summary.ts` — exportar el id de la tarea y el número de intento, o contar como
+  fallo solo el último intento de cada tarea.
+- Por qué: con el reintento de USO.49 una tarea que termina `done` aporta hasta 3 runs `failed` al resumen.
+- Riesgo: bajo
+
+### Propuestas vigentes sin aplicar
+- 2026-11-24 P1: `failure_kind` de configuración para "requires worktree sandbox mode". Riesgo bajo.
+- 2026-11-24 P2: reintento de `doc` con el `qa_reason` — posiblemente cubierto por el reintento de USO.49; verificar.
+- 2026-11-24 P4: exportar `failure_kind` y motivo corto. Riesgo bajo.
+- 2026-11-25 P1: saltar el informe sin runs nuevos (prompt del scheduled task). Riesgo bajo.
 
 ## Decisión (llenar manualmente)
 - [ ] Aplicar propuesta 1
-- [ ] Aplicar propuestas vigentes del 2026-11-24 (P1–P4)
+- [ ] Aplicar propuesta 2
+- [ ] Aplicar propuesta 3
 - [ ] Ignorar
 - [ ] Requiere revisión
