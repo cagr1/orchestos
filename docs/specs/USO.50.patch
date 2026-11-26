@@ -1,0 +1,270 @@
+diff --git a/src/__tests__/qa-core.test.ts b/src/__tests__/qa-core.test.ts
+index 50b2b139..23c9b2ef 100644
+--- a/src/__tests__/qa-core.test.ts
++++ b/src/__tests__/qa-core.test.ts
+@@ -121,6 +121,45 @@ describe('computeFileDiffs', () => {
+ })
+ 
+ describe('runQA and parseVerdict', () => {
++  for (const scenario of [
++    { pass: true, real: true, verdict: 'pass', unverified: true },
++    { pass: false, real: true, verdict: 'fail', unverified: undefined },
++    { pass: true, real: false, verdict: 'fail', unverified: undefined },
++  ] as const) {
++    it(`handles unverified external facts with pass=${scenario.pass} and real evidence=${scenario.real}`, async () => {
++      const text = 'Report the current price'
++      const passage = 'Price: no verificado; the third-party website could not be accessed.'
++      const result = await runQA({
++        description: 'Research an external price',
++        output: ['report.md'],
++        written: [{ path: 'report.md', content: passage }],
++        model: 'test-model',
++        acceptance_criteria: [text],
++        checksResults: [],
++        provider: providerReply(
++          JSON.stringify({
++            verdict: 'pass',
++            reason: 'External fact addressed',
++            criteria: [
++              {
++                text,
++                pass: scenario.pass,
++                unverified: true,
++                evidence: { file: 'report.md', excerpt: scenario.real ? passage : 'fabricated' },
++              },
++            ],
++          }),
++        ),
++      })
++      expect(result.verdict).toBe(scenario.verdict)
++      expect(result.criteria?.[0]?.pass).toBe(scenario.verdict === 'pass')
++      expect(result.criteria?.[0]?.unverified).toBe(scenario.unverified)
++      expect(result.reason).toBe(
++        `External fact addressed${scenario.verdict === 'pass' ? ' (1 unverified)' : ''}`,
++      )
++    })
++  }
++
+   const criterion = (text: string) => ({
+     text,
+     pass: true,
+diff --git a/src/dashboard/app/src/api/projects.test.ts b/src/dashboard/app/src/api/projects.test.ts
+index 476a4f49..fa817e93 100644
+--- a/src/dashboard/app/src/api/projects.test.ts
++++ b/src/dashboard/app/src/api/projects.test.ts
+@@ -209,6 +209,12 @@ describe('projects API mappings', () => {
+       qaCriteria: [
+         { text: 'bad criterion', pass: false },
+         { text: 'good criterion', pass: true, evidence: { file: 'ok.txt', excerpt: 'VERDE' } },
++        {
++          text: 'external price',
++          pass: true,
++          unverified: true,
++          evidence: { file: 'report.md', excerpt: 'Price unverified: website unavailable' },
++        },
+       ],
+       model: 'codex',
+       provider: 'codex',
+@@ -224,6 +230,12 @@ describe('projects API mappings', () => {
+       createdAt: '2026-01-01T00:00:00Z',
+     })
+     expect(run.qaModel).toBe('judge-model')
++    expect(run.qaEvaluation).toContainEqual({
++      kind: 'criterion',
++      criterion: 'external price',
++      passed: true,
++      rationale: 'Unverified — report.md: Price unverified: website unavailable',
++    })
+     expect(run.qaEvaluation[0]).toEqual({
+       kind: 'judge',
+       criterion: 'QA verdict: fail',
+diff --git a/src/dashboard/app/src/api/runs.ts b/src/dashboard/app/src/api/runs.ts
+index c192b72b..3136133f 100644
+--- a/src/dashboard/app/src/api/runs.ts
++++ b/src/dashboard/app/src/api/runs.ts
+@@ -23,7 +23,12 @@ interface RunRow {
+   result?: string | null
+   executorReply?: string | null
+   qaModel?: string | null
+-  qaCriteria?: Array<{ text: string; pass: boolean; evidence?: { file: string; excerpt: string } }>
++  qaCriteria?: Array<{
++    text: string
++    pass: boolean
++    unverified?: boolean
++    evidence?: { file: string; excerpt: string }
++  }>
+   model: string
+   provider: string
+   inputTokens: number
+@@ -62,9 +67,9 @@ export function mapRunRow(row: RunRow): RunItem {
+       kind: 'criterion' as const,
+       criterion: c.text,
+       passed: c.pass,
+-      rationale: c.evidence
+-        ? `${c.evidence.file}: ${c.evidence.excerpt}`
+-        : 'no evidence in written files',
++      rationale:
++        (c.unverified ? 'Unverified — ' : '') +
++        (c.evidence ? `${c.evidence.file}: ${c.evidence.excerpt}` : 'no evidence in written files'),
+     })),
+   ].filter((item): item is NonNullable<typeof item> => item !== null)
+   return {
+diff --git a/src/dashboard/handlers/runs.test.ts b/src/dashboard/handlers/runs.test.ts
+index 900a30cc..0c455498 100644
+--- a/src/dashboard/handlers/runs.test.ts
++++ b/src/dashboard/handlers/runs.test.ts
+@@ -24,7 +24,15 @@ describe('runRecordToRow', () => {
+       snapshot_after: null,
+       qa_verdict: 'fail',
+       qa_reason: 'missing line',
+-      qa_criteria_json: JSON.stringify([{ text: 'target line exists', pass: false }]),
++      qa_criteria_json: JSON.stringify([
++        { text: 'target line exists', pass: false },
++        {
++          text: 'External price',
++          pass: true,
++          unverified: true,
++          evidence: { file: 'report.md', excerpt: 'Price unverified: website unavailable' },
++        },
++      ]),
+       checks_json: null,
+       context_source: null,
+       context_tokens: null,
+@@ -45,6 +53,12 @@ describe('runRecordToRow', () => {
+       if (!saved) throw new Error('inserted run was not persisted')
+       expect(runRecordToRow(saved).qaCriteria).toEqual([
+         { text: 'target line exists', pass: false },
++        {
++          text: 'External price',
++          pass: true,
++          unverified: true,
++          evidence: { file: 'report.md', excerpt: 'Price unverified: website unavailable' },
++        },
+       ])
+     } finally {
+       db.run('DELETE FROM runs WHERE id = ?', [id])
+diff --git a/src/dashboard/handlers/runs.ts b/src/dashboard/handlers/runs.ts
+index 73d4644d..5119c0f7 100644
+--- a/src/dashboard/handlers/runs.ts
++++ b/src/dashboard/handlers/runs.ts
+@@ -127,6 +127,7 @@ export function runRecordToRow(r: RunRecord): RunRow {
+     qaCriteria: parseJsonArray<{
+       text: string
+       pass: boolean
++      unverified?: boolean
+       evidence?: { file: string; excerpt: string }
+     }>(r.qa_criteria_json),
+     model: r.model,
+diff --git a/src/dashboard/handlers/task-report.test.ts b/src/dashboard/handlers/task-report.test.ts
+index aa9dffbc..7638d00f 100644
+--- a/src/dashboard/handlers/task-report.test.ts
++++ b/src/dashboard/handlers/task-report.test.ts
+@@ -86,6 +86,28 @@ function addRun(
+ }
+ 
+ describe('reportTaskOutcome', () => {
++  it('adds the unverified criterion count to a verified done headline', () => {
++    const { root, session, taskId, projectId } = setup('done')
++    const runId = addRun(taskId, 'External facts documented', projectId)
++    db.run('UPDATE runs SET qa_verdict = ?, qa_criteria_json = ? WHERE id = ?', [
++      'pass',
++      JSON.stringify([
++        {
++          text: 'Current price',
++          pass: true,
++          unverified: true,
++          evidence: { file: 'report.md', excerpt: 'Price unverified: website unavailable' },
++        },
++        { text: 'Report in English', pass: true },
++      ]),
++      runId,
++    ])
++    reportTaskOutcome(root, session.id, taskId, projectId)
++    expect(listChatMessages(session.id)[0]?.content.split('\n')[0]).toBe(
++      `✓ Task \`${taskId}\` done · unit-provider/unit-model · 1 unverified`,
++    )
++  })
++
+   it('persists diagnosis.kind and restores it in chat history', () => {
+     const { root, session, taskId, projectId } = setup('failed', 'check failed')
+     const runId = addRun(taskId, 'check failed', projectId, 'failed')
+diff --git a/src/dashboard/handlers/task-report.ts b/src/dashboard/handlers/task-report.ts
+index c7ade79c..71be9ae4 100644
+--- a/src/dashboard/handlers/task-report.ts
++++ b/src/dashboard/handlers/task-report.ts
+@@ -100,8 +100,10 @@ function buildTaskReportData(
+   const verifiedDone = status === 'done' && run?.status === 'done'
+   const outcome = status === 'done' && !verifiedDone ? (run?.status ?? 'pending') : status
+   const providerModel = run ? ` · ${run.provider}/${run.model}` : ''
++  const unverifiedCount =
++    evidence?.qaCriteria.filter((criterion) => criterion.unverified).length ?? 0
+   const headline = verifiedDone
+-    ? `✓ Task \`${taskId}\` done${providerModel}`
++    ? `✓ Task \`${taskId}\` done${providerModel}${unverifiedCount > 0 ? ` · ${unverifiedCount} unverified` : ''}`
+     : status === 'done'
+       ? `Task \`${taskId}\` marked done in tasks.yaml · ${run ? `latest run ${run.status}${providerModel}` : 'no matching run recorded'}`
+       : status === 'pending' || status === 'failed_permanent'
+diff --git a/src/dashboard/types.ts b/src/dashboard/types.ts
+index 45e856df..12bf85f6 100644
+--- a/src/dashboard/types.ts
++++ b/src/dashboard/types.ts
+@@ -235,7 +235,12 @@ export interface RunRow {
+   /** ERP.4.8 — último mensaje del ejecutor en runs fallidos/bloqueados; null si no hay. */
+   executorReply: string | null
+   qaModel: string | null
+-  qaCriteria: Array<{ text: string; pass: boolean; evidence?: { file: string; excerpt: string } }>
++  qaCriteria: Array<{
++    text: string
++    pass: boolean
++    unverified?: boolean
++    evidence?: { file: string; excerpt: string }
++  }>
+   model: string
+   provider: string
+   skillId: string | null
+diff --git a/src/run/qa.ts b/src/run/qa.ts
+index 2345323a..87adef51 100644
+--- a/src/run/qa.ts
++++ b/src/run/qa.ts
+@@ -15,6 +15,7 @@ interface QAEvidence {
+ interface QACriterionResult {
+   text: string
+   pass: boolean
++  unverified?: boolean
+   evidence?: QAEvidence
+ }
+ 
+@@ -124,10 +125,12 @@ export async function runQA(opts: {
+           'Evaluate EACH criterion independently. A single failing criterion makes the whole verdict "fail".',
+           'For criteria in WHEN/THEN format: verify that the implementation handles the WHEN condition and produces the THEN result.',
+           'Respond with ONLY a JSON object — no markdown fences, no prose:',
+-          '{ "verdict": "pass" | "fail", "reason": "one short sentence summarizing result", "criteria": [ { "text": "...", "pass": true | false, "evidence": { "file": "path/to/file", "excerpt": "literal excerpt from that file" } } ] }',
++          '{ "verdict": "pass" | "fail", "reason": "one short sentence summarizing result", "criteria": [ { "text": "...", "pass": true | false, "unverified": true | false (optional), "evidence": { "file": "path/to/file", "excerpt": "literal excerpt from that file" } } ] }',
+           'The "criteria" array must have one entry per criterion, in the same order as given.',
+           'Copy each criterion into "text" EXACTLY as given, without the numbering. Do not paraphrase, duplicate, replace, or omit criteria.',
+           'For every criterion with pass: true, evidence is REQUIRED: cite a literal excerpt from one of the written files using its relative path.',
++          'A criterion requesting external facts (websites, prices, third-party data, or live behavior) is satisfied if the file addresses it with the fact, or explicitly marks it as unverified and explains why. In the latter case, set unverified: true and pass: true, and cite the literal passage marking the fact as unverified with its reason.',
++          'Never use unverified for anything verifiable in the written files themselves, such as structure, tables, language, or code. Missing content, placeholders, or evidence contradicting a criterion must fail.',
+           'If no written file contains evidence that satisfies a criterion, mark that criterion pass: false.',
+           'If the checks block says that no mechanical verification ran, be maximally skeptical: a pass can only rely on reading the files.',
+         ].join('\n')
+@@ -268,14 +271,18 @@ function parseVerdict(
+     return {
+       text: expectedText,
+       pass,
++      ...(pass && cr.unverified === true ? { unverified: true } : {}),
+       ...(evidence ? { evidence } : {}),
+     }
+   })
+ 
+   // If any criterion failed, force verdict to fail regardless of what LLM said
+   const anyFailed = criteria.some((c) => !c.pass)
++  const verdict = anyFailed ? 'fail' : v
++  const unverifiedCount = criteria.filter((c) => c.unverified).length
++  if (verdict === 'pass' && unverifiedCount > 0) reason += ` (${unverifiedCount} unverified)`
+   return {
+-    verdict: anyFailed ? 'fail' : v,
++    verdict,
+     reason,
+     criteria,
+   }

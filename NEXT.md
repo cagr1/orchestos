@@ -14,8 +14,16 @@ reales, 6 rechazos y solo 1 error real (tsc); 2 revirtieron trabajo bueno por un
   corrida de `chat-retry-report` cayó en Commit & Run con `SQLiteError: disk I/O error` (`SQLITE_IOERR_VNODE`,
   `run-steps.ts:40`) y tumbó el dashboard; la siguiente pasó. Si reaparece, diagnosticar qué cambia `db.sqlite` bajo
   el handle abierto.
-- **USO.50**: spec listo `docs/specs/USO.50.md` (caso real: run `804fca61…` de Agro) → `delegate criterio`.
-- **USO.51**: mapeado, sin spec. Ajuste por proyecto en tabla `projects` como `setup_script`
+- **USO.50**: código y tests en `docs/specs/USO.50.patch` (`git apply`; borrarlo y `docs/specs/USO.50.md` al cerrar).
+  Gates del cerebro: tsc 0, biome 0 errores, qa-core/projects/runs/task-report 77/0. Diff leído: correcto. Falta gate
+  en vivo: `qa-negative` cae 2/2 en "executor wrote the incorrect output" — **regresión de USO.49** (`a0efbcd5`): el
+  `--id` ahora reintenta solo, el 2.º intento escribe AZUL y el flujo lee solo el último run
+  (`scripts/ui-gate/flows/qa-negative.mjs:307-372`, espera `pending` + `retryCount 1`). Primero: arreglar el flujo
+  (evaluar el primer run rechazado —ROJO, QA fail, criterio fail, revertido— y que el reintento termine `done`),
+  vía `delegate criterio`; luego `gate:evidence -- --label USO.50 -- bun run ui:gate qa-negative` y cerrar USO.50.
+  Revisar si otros flujos asumen "un intento por `--id`" (grep `retryCount === 1`).
+- **USO.51**: spec listo `docs/specs/USO.51.md` (solo Claude tiene frontera; Codex ya lee fuera) → `delegate criterio`
+  tras cerrar USO.50. Mapa previo: Ajuste por proyecto en tabla `projects` como `setup_script`
   (`src/db/projects.ts:87,131`, PATCH `handlers/projects.ts:46-67`, UI `ProjectGeneralSettings.tsx:112-124`);
   Claude `--add-dir` por carpeta (`external.ts:533`); Codex `readOnly` sin evidencia de lectura fuera de cwd; nada
   detecta hoy el rechazo de `--restricted`.
