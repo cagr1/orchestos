@@ -11,21 +11,25 @@ las 01:30; mutación en pausa hasta MUT.1), **USO.41 `b3d6d5c5`** (era producto:
 `listProjects()` y lo escrito al lanzar se perdía; gates esperan la pestaña activa), **GOV.5** (`0997eef1` podas,
 `ace4e988` `bun run item:close`).
 
+**RUN.3.1** `b485a247` (`settled` por turno de chat), **RUN.3.2** `a342d36d` (por lanzamiento de tarea),
+**RUN.3.3** `3b281ded` (los tres gates de los incidentes); **RUN.3.4** subido sin cerrar `2754a913`.
+
 Siguiente, en orden:
 1. **Leer la primera nocturna** (01:30 del 2026-11-28, startup-guard) y resolver lo rojo con triage (`AGENTS.md`).
-   Mirar en especial los 8 flujos de lanzamiento sin espera de pestaña (`auto-flow`, `chat-settings`,
-   `chat-followup-task`, `chat-permissions`, `chat-restart-interrupted`, `chat-roles`, `chat-stop`, `chat-task-undo`).
-2. **RUN.3** (GO de Carlos 2026-11-27) — diagnóstico en `docs/specs/RUN.3-diagnostico.md`: `settled: null |
-   {outcome, reason}` por turno y por lanzamiento; `pending` hoy también significa "terminó sin éxito"
-   (`src/cli.ts:1356`); `/turn-status` trata `cancelled` como `pending`. Migrar primero `chat-retry-report`,
-   `read-boundary`, `project-isolation`. Partir en sub-ítems (RUN.3.1…) como GOV.5; cerrar con `item:close`.
+   Ya corre con los flujos migrados a `settled`. Mirar en especial los 8 flujos de lanzamiento sin espera de pestaña
+   (`auto-flow`, `chat-settings`, `chat-followup-task`, `chat-permissions`, `chat-restart-interrupted`, `chat-roles`,
+   `chat-stop`, `chat-task-undo`) y `chat-streaming`: el 2026-11-27 cayó en el diálogo "Launch new agent" de Dev
+   sin botón Claude (código no tocado por RUN.3).
+2. **Cerrar RUN.3.4** con esa nocturna: faltan en vivo `restart-mid-run`, `chat-attachments` (cupo de Codex agotado
+   el 2026-11-27) y el resto de flujos migrados. Cerrar RUN.3.4 y el padre RUN.3 con `item:close`.
 
 Trampas: cerrar ítem con `bun run item:close` (`AGENTS.md` § PLAN.md y su DB; escribir antes el "Hecho:";
 `--dry-run` primero). Hook `brain-no-code`: el cerebro no usa Bash/Write en `src/`, `scripts/`, `tests/`; `Edit` hasta
 20 líneas por edición y 40 acumuladas desde la última delegación. Commit a mano con `git commit -- <rutas>` y cambio
 de formato de Biome: el commit sale bien pero el índice real queda sin formatear (`git reset -q -- <ruta>` si
 `git diff HEAD` está vacío); `item:close` lo evita. El spec delegado necesita ítem abierto en PLAN (preflight).
-Intermitente sin causa: `SQLITE_IOERR_VNODE` (`run-steps.ts:40`); si reaparece, diagnosticar.
+`item:close`: la línea "Gate en vivo" debe decir navegador/browser/Playwright ("Chromium" solo no
+pasa). Intermitente sin causa: `SQLITE_IOERR_VNODE` (`run-steps.ts:40`); si reaparece, diagnosticar.
 
 Pendiente de Carlos: ¿borrar la rama remota `origin/cagr1/fix-dashboard-ui-bugs`?; ¿USO.52 (salida declarada
 faltante no revierte lo escrito) y USO.53 (el ejecutor puede preguntar/escalar)?; ¿evidencia en vivo estricta por
