@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto'
 import { existsSync } from 'node:fs'
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -10,6 +11,13 @@ import { getProject } from '../../db/projects.ts'
 import { getRunSteps } from '../../db/run-steps.ts'
 import { getRun } from '../../db/runs.ts'
 import { db } from '../../db/sqlite.ts'
+import {
+  getTaskLaunch,
+  insertTaskLaunch,
+  latestTaskLaunch,
+  settleTaskLaunch,
+  taskLaunchSettled,
+} from '../../db/task-launches.ts'
 import { getTaskRunWatch, upsertTaskRunWatch } from '../../db/task-run-watch.ts'
 import { autoRoute, describeTaskExecutor, formatRoute } from '../../router/auto-route.ts'
 import { resolveProjectAgentRule, taskFieldsFromRule } from '../../router/engine-cascade.ts'
@@ -131,9 +139,13 @@ function buildTaskRow(
   projectId: string | null,
   root: string,
 ): TaskRow {
+  const launch = latestTaskLaunch(root, t.id)
   const approvalRunId = t.status === 'running' ? activeApprovalRun(t.id, projectId) : null
   return {
     id: t.id,
+    launch: launch
+      ? { id: launch.id, startedAt: launch.started_at, settled: taskLaunchSettled(launch) }
+      : null,
     description: t.description,
     status: t.status,
     retryReason: t.retry_reason ?? null,
@@ -388,7 +400,7 @@ function spawnTaskRun(
   model?: string,
   projectId?: string | null,
   sessionId?: string | null,
-): void {
+): string {
   commitTasksYaml(root, `chore(tasks): run ${id} (dashboard)`)
   const args = [process.execPath, 'run', ORCHESTOS_CLI_PATH, 'task', 'run', root, '--id', id]
   if (model) args.push('--model', model)
@@ -404,14 +416,33 @@ function spawnTaskRun(
   })
   // R.8.4 — el reporte pendiente se persiste (también sin chat): si el dashboard
   // se reinicia a mitad del run, `reconcileTaskRuns` lo cierra al arrancar.
-  const watch = upsertTaskRunWatch({
-    root,
-    task_id: id,
-    project_id: selectedProjectId ?? null,
-    session_id: sessionId ?? null,
-    pid: proc.pid,
-  })
+  const launchId = randomUUID()
+  const watch = db
+    .transaction(() => {
+      // Relanzar reemplaza la fila de watch: el lanzamiento anterior se cierra aquí o queda sin `settled`.
+      const previous = getTaskRunWatch(root, id)?.launch_id
+      if (previous) settleTaskLaunch(previous, 'interrupted', 'Superseded by a new launch')
+      insertTaskLaunch({
+        id: launchId,
+        root,
+        task_id: id,
+        project_id: selectedProjectId ?? null,
+        session_id: sessionId ?? null,
+        pid: proc.pid,
+        started_at: new Date().toISOString(),
+      })
+      return upsertTaskRunWatch({
+        launch_id: launchId,
+        root,
+        task_id: id,
+        project_id: selectedProjectId ?? null,
+        session_id: sessionId ?? null,
+        pid: proc.pid,
+      })
+    })
+    .immediate()
   void proc.exited.then(() => settleExitedTaskRun(watch)).catch(() => {})
+  return launchId
 }
 
 async function handleApiTasksCreate(req: Request, root: string): Promise<Response> {
@@ -530,8 +561,8 @@ function launchTask(
     return true
   })
   if (!taskResult) return errorResponse('Task not found', 404)
-  spawnTaskRun(root, id, model, projectId, session?.id)
-  return jsonResponse({ ok: true, id })
+  const launchId = spawnTaskRun(root, id, model, projectId, session?.id)
+  return jsonResponse({ ok: true, id, launchId })
 }
 
 /**
@@ -723,4 +754,17 @@ export {
   isKnownSkillId,
   loadTaskRows,
   spawnTaskRun,
+}
+
+export function handleApiTaskLaunch(url: URL, root: string, projectId: string | null): Response {
+  const id = decodeURIComponent(url.pathname.split('/')[4] ?? '')
+  const launch = getTaskLaunch(id)
+  if (!launch || launch.root !== root || launch.project_id !== projectId)
+    return errorResponse('Task launch not found', 404)
+  return jsonResponse({
+    id: launch.id,
+    taskId: launch.task_id,
+    startedAt: launch.started_at,
+    settled: taskLaunchSettled(launch),
+  })
 }

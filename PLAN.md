@@ -397,9 +397,18 @@ esta etapa: `docs/done/bloque-AUD.md` (AUD.16, AUD.17), `docs/done/bloque-SES.md
   Gate en vivo: navegador (Chromium) en Chat y Dev vía gate:evidence: selector data-settled=completed por turnId
   — `docs/done/evidence/RUN.3.1-live.json`
   Ejecutado por: gpt-6.1-sol (criterio) · Spec: docs/specs/RUN.3.1.md
-- [ ] **RUN.3.2 — `settled` por lanzamiento de tarea.** (GO de Carlos 2026-11-27) Un lanzamiento tiene ID y resultado
+- [x] **RUN.3.2 — `settled` por lanzamiento de tarea.** (GO de Carlos 2026-11-27) Un lanzamiento tiene ID y resultado
   durable (`completed|failed|blocked|interrupted` + motivo) escrito una vez al cerrarse; `pending` por presupuesto o
   árbol sucio sale como `blocked`, no como espera. Va después de RUN.3.1.
+  Hecho: tabla `task_launches` (migración 45) y `task_run_watch.launch_id`; `spawnTaskRun` crea el lanzamiento y
+  `settleTaskRun` escribe el resultado una sola vez (`taskRunSettled` mapea estado + runner vivo). `/run`,
+  `/commit-run` y la auto-tarea del chat devuelven `launchId`; `TaskRow.launch`; `GET /api/tasks/launches/:id`
+  (404 fuera del proyecto). Fix del cerebro en la revisión: relanzar reemplazaba la fila de watch y dejaba el
+  lanzamiento anterior sin `settled` para siempre; ahora se cierra `interrupted` ("Superseded by a new launch"), con
+  test. 19 tests nuevos; cobertura 3282 pass (ejecutor); cerebro: tsc, 66 tests focalizados y lint verdes.
+  Gate en vivo: navegador Chromium (Playwright) contra el dashboard real: launchId en /run y settled blocked en
+  /api/tasks/launches/:id — `docs/done/evidence/RUN.3.2-live.json`
+  Ejecutado por: gpt-6.1-sol (criterio) · Spec: docs/specs/RUN.3.2.md
 - [ ] **RUN.3.3 — Migrar `chat-retry-report`, `read-boundary`, `project-isolation` a `settled`.** (GO de Carlos
   2026-11-27) Esperan el `settled` del turno/lanzamiento, no el POST ni la prosa visible. Va después de RUN.3.2.
 - [ ] **RUN.3.4 — Migrar el resto de flujos a `settled`.** (GO de Carlos 2026-11-27) Los que aceptan cambio de

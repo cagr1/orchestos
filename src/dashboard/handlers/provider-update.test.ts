@@ -262,6 +262,7 @@ test('waits for the update status refresh before returning the response', async 
 
 const watchedTask = {
   root: '/project',
+  launch_id: null,
   task_id: 'task-1',
   project_id: null,
   session_id: null,

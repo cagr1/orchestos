@@ -7,7 +7,9 @@ import { createChatSession, deleteChatSession, listChatMessages } from '../../db
 import { getProject, purgeProject, upsertProject } from '../../db/projects.ts'
 import { insertRun } from '../../db/runs.ts'
 import { db } from '../../db/sqlite.ts'
+import { getTaskLaunch, insertTaskLaunch, taskLaunchSettled } from '../../db/task-launches.ts'
 import { listTaskRunWatch, upsertTaskRunWatch } from '../../db/task-run-watch.ts'
+import { DIRTY_TREE_REASON_PREFIX } from '../../run/sandbox-policy.ts'
 import { loadTasks } from '../../tasks/loader.ts'
 import { settleTaskRun } from './task-report.ts'
 import {
@@ -16,6 +18,7 @@ import {
   type RunnerProbe,
   reconcileTaskRuns,
   settleExitedTaskRun,
+  taskRunSettled,
 } from './task-run-reconcile.ts'
 
 const roots: string[] = []
@@ -30,6 +33,7 @@ afterAll(() => {
     const project = getProject(root)
     if (project) purgeProject(project.id)
     db.run('DELETE FROM task_run_watch WHERE root = ?', [root])
+    db.run('DELETE FROM task_launches WHERE root = ?', [root])
     rmSync(root, { recursive: true, force: true })
   }
 })
@@ -38,7 +42,10 @@ const noSchedule = () => ({ stop() {} })
 const alive: RunnerProbe = () => true
 const dead: RunnerProbe = () => false
 
-function setup(status: string, opts: { withSession?: boolean; registerProject?: boolean } = {}) {
+function setup(
+  status: string,
+  opts: { withSession?: boolean; registerProject?: boolean; withLaunch?: boolean } = {},
+) {
   const retryCount = status === 'pending' ? 1 : 0
   const root = mkdtempSync(join(tmpdir(), 'orchestos-reconcile-'))
   roots.push(root)
@@ -53,7 +60,19 @@ function setup(status: string, opts: { withSession?: boolean; registerProject?: 
     sessionId = createChatSession({ agent: 'api' }).id
     sessions.push(sessionId)
   }
+  const launchId = opts.withLaunch ? randomUUID() : null
+  if (launchId)
+    insertTaskLaunch({
+      id: launchId,
+      root,
+      task_id: taskId,
+      project_id: getProject(root)?.id ?? null,
+      session_id: sessionId,
+      pid: 999_999,
+      started_at: new Date().toISOString(),
+    })
   const row = upsertTaskRunWatch({
+    launch_id: launchId,
     root,
     task_id: taskId,
     project_id: null,
@@ -231,19 +250,19 @@ describe('settleExitedTaskRun', () => {
 describe('settleTaskRun', () => {
   it('es idempotente: un segundo cierre no duplica el reporte', () => {
     const { root, taskId, sessionId, row } = setup('done')
-    settleTaskRun(row)
+    settleTaskRun(row, { outcome: 'completed', reason: null })
     expect(reports(sessionId as string, taskId)).toHaveLength(1)
-    settleTaskRun(row)
+    settleTaskRun(row, { outcome: 'completed', reason: null })
     expect(reports(sessionId as string, taskId)).toHaveLength(1)
     expect(watching(root)).toHaveLength(0)
   })
 
   it('revierte el reclamo si falla el reporte y permite reintentar', () => {
-    const { root, taskId, sessionId, row } = setup('done')
+    const { root, taskId, sessionId, row } = setup('done', { withLaunch: true })
     const originalError = console.error
     console.error = () => {}
     try {
-      settleTaskRun(row, () => {
+      settleTaskRun(row, { outcome: 'completed', reason: null }, () => {
         throw new Error('injected append failure')
       })
     } finally {
@@ -251,7 +270,8 @@ describe('settleTaskRun', () => {
     }
     expect(reports(sessionId as string, taskId)).toHaveLength(0)
     expect(watching(root)).toHaveLength(1)
-    settleTaskRun(row)
+    expect(taskLaunchSettled(required(getTaskLaunch(required(row.launch_id))))).toBeNull()
+    settleTaskRun(row, { outcome: 'completed', reason: null })
     expect(reports(sessionId as string, taskId)).toHaveLength(1)
     expect(watching(root)).toHaveLength(0)
   })
@@ -318,3 +338,92 @@ it('AUD.20 deleting a run clears required trials and nullable turn references wi
     db.exec(`PRAGMA foreign_keys = ${prior}`)
   }
 })
+
+describe('task launch result mapping', () => {
+  const cases = [
+    ['done', 'ignored', 'completed', null],
+    ['failed', 'QA failed', 'failed', 'QA failed'],
+    ['failed_permanent', 'exhausted', 'failed', 'exhausted'],
+    ['blocked', undefined, 'blocked', null],
+    ['blocked', 'approval', 'blocked', 'approval'],
+    ['pending', `${DIRTY_TREE_REASON_PREFIX}a.txt`, 'blocked', `${DIRTY_TREE_REASON_PREFIX}a.txt`],
+    ['pending', 'Context budget exhausted', 'blocked', 'Context budget exhausted'],
+    ['pending', undefined, 'interrupted', INTERRUPTED_REASON],
+    ['running', undefined, 'interrupted', INTERRUPTED_REASON],
+  ] as const
+  for (const [status, reason, outcome, expectedReason] of cases) {
+    it(`${status} / ${reason ?? 'no reason'}`, () => {
+      expect(taskRunSettled({ status, retry_reason: reason }, false)).toEqual({
+        outcome,
+        reason: expectedReason,
+      })
+      expect(taskRunSettled({ status, retry_reason: reason }, true)).toBeNull()
+    })
+  }
+  it('removed task or project', () => {
+    expect(taskRunSettled(null, false)).toEqual({
+      outcome: 'interrupted',
+      reason: 'Task or project removed',
+    })
+  })
+})
+
+describe('durable task launch reconciliation', () => {
+  it('running with dead runner persists interrupted once, preserving existing task behavior', () => {
+    const { row, root } = setup('running', { withLaunch: true })
+    reconcileTaskRuns({ probe: dead, schedule: noSchedule }).stop()
+    const launch = required(getTaskLaunch(required(row.launch_id)))
+    expect(taskLaunchSettled(launch)).toEqual({
+      outcome: 'interrupted',
+      reason: INTERRUPTED_REASON,
+    })
+    expect(loadTasks(root).tasks[0]?.status).toBe('failed')
+    expect(watching(root)).toHaveLength(0)
+    settleExitedTaskRun(row)
+    expect(getTaskLaunch(required(row.launch_id))).toEqual(launch)
+  })
+
+  it('keeps the same launch unsettled through internal QA retries while the runner lives', () => {
+    const { root, row, sessionId, taskId } = setup('failed', { withLaunch: true })
+    reconcileTaskRuns({ probe: alive, schedule: noSchedule }).stop()
+    expect(taskLaunchSettled(required(getTaskLaunch(required(row.launch_id))))).toBeNull()
+    expect(watching(root)).toHaveLength(1)
+    expect(reports(required(sessionId), taskId)).toHaveLength(0)
+    writeFileSync(
+      join(root, 'tasks.yaml'),
+      `version: 1
+project: test
+tasks:
+  - id: ${taskId}
+    description: Retry
+    output: [out.txt]
+    status: done
+`,
+    )
+    settleExitedTaskRun(row)
+    expect(taskLaunchSettled(required(getTaskLaunch(required(row.launch_id))))).toEqual({
+      outcome: 'completed',
+      reason: null,
+    })
+  })
+
+  it('settles removed tasks and projects without reporting', () => {
+    const removedProject = setup('running', { withLaunch: true, registerProject: false })
+    const removedTask = setup('running', { withLaunch: true })
+    writeFileSync(join(removedTask.root, 'tasks.yaml'), 'version: 1\nproject: test\ntasks: []\n')
+    reconcileTaskRuns({ probe: dead, schedule: noSchedule }).stop()
+    for (const { row, root, sessionId, taskId } of [removedProject, removedTask]) {
+      expect(taskLaunchSettled(required(getTaskLaunch(required(row.launch_id))))).toEqual({
+        outcome: 'interrupted',
+        reason: 'Task or project removed',
+      })
+      expect(watching(root)).toHaveLength(0)
+      expect(reports(required(sessionId), taskId)).toHaveLength(0)
+    }
+  })
+})
+
+function required<T>(value: T | null | undefined): T {
+  if (value == null) throw new Error('Missing fixture value')
+  return value
+}

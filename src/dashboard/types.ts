@@ -1,4 +1,5 @@
 import type { RunFailureKind } from '../db/runs.ts'
+import type { TaskLaunchSettled } from '../db/task-launches.ts'
 import type { CutReport } from './cut-check.ts'
 /**
  * src/dashboard/types.ts — S36.1
@@ -296,6 +297,7 @@ export interface DiagnoseRow {
 // ── /api/tasks ────────────────────────────────────────────────────────────────
 
 export interface TaskRow {
+  launch: { id: string; startedAt: string; settled: TaskLaunchSettled } | null
   phaseSkills: string[]
   id: string
   description: string

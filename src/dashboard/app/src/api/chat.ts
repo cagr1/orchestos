@@ -1,4 +1,5 @@
 import type { RunFailureKind } from '../../../../db/runs'
+import type { TaskLaunchSettled } from '../../../../db/task-launches.ts'
 import type { CliNotice } from '../../../../run/executors/cli-failure'
 import type { CutReport } from '../../../cut-check.ts'
 import { thoughtMs } from '../components/thread/thinking'
@@ -140,7 +141,7 @@ export interface ChatSendResponse {
     args: Record<string, unknown>
     status: ToolExecution['status']
   }>
-  autoTask?: { id: string; held?: boolean; existingFiles?: string[] } | null
+  autoTask?: { id: string; launchId?: string; held?: boolean; existingFiles?: string[] } | null
   readBoundaryWarning?: string
 }
 
@@ -223,6 +224,7 @@ export interface TimelineResponse {
 }
 
 export interface ProjectTaskRow {
+  launch?: { id: string; startedAt: string; settled: TaskLaunchSettled } | null
   id: string
   description: string
   status: 'pending' | 'running' | 'done' | 'failed' | 'failed_permanent' | 'blocked'
@@ -636,14 +638,17 @@ export async function runProjectTask(
   sessionId?: string,
 ): Promise<void> {
   const taskBeforeRun = await getTaskBeforeRun(taskId, projectId)
-  await request(`/api/tasks/${encodeURIComponent(taskId)}/run`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      ...(projectId ? { 'x-orchestos-project-id': projectId } : {}),
+  await request<{ ok: boolean; id: string; launchId: string }>(
+    `/api/tasks/${encodeURIComponent(taskId)}/run`,
+    {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(projectId ? { 'x-orchestos-project-id': projectId } : {}),
+      },
+      body: JSON.stringify(sessionId ? { sessionId } : {}),
     },
-    body: JSON.stringify(sessionId ? { sessionId } : {}),
-  })
+  )
   await waitForTaskRun(taskBeforeRun, projectId, onStarted)
 }
 
@@ -656,14 +661,17 @@ export async function commitAndRunProjectTask(
   sessionId?: string,
 ): Promise<void> {
   const taskBeforeRun = await getTaskBeforeRun(taskId, projectId)
-  await request(`/api/tasks/${encodeURIComponent(taskId)}/commit-run`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      ...(projectId ? { 'x-orchestos-project-id': projectId } : {}),
+  await request<{ ok: boolean; id: string; launchId: string }>(
+    `/api/tasks/${encodeURIComponent(taskId)}/commit-run`,
+    {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(projectId ? { 'x-orchestos-project-id': projectId } : {}),
+      },
+      body: JSON.stringify(sessionId ? { files, sessionId } : { files }),
     },
-    body: JSON.stringify(sessionId ? { files, sessionId } : { files }),
-  })
+  )
   await waitForTaskRun(taskBeforeRun, projectId, onStarted)
 }
 

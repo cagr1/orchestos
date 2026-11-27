@@ -6,18 +6,29 @@ export interface TaskRunWatchRow {
   task_id: string
   project_id: string | null
   session_id: string | null
+  launch_id: string | null
   pid: number
   created_at: string
 }
 
-export function upsertTaskRunWatch(row: Omit<TaskRunWatchRow, 'created_at'>): TaskRunWatchRow {
+export function upsertTaskRunWatch(
+  row: Omit<TaskRunWatchRow, 'created_at' | 'launch_id'> & { launch_id?: string | null },
+): TaskRunWatchRow {
   const created_at = new Date().toISOString()
   db.run(
-    `INSERT OR REPLACE INTO task_run_watch (root, task_id, project_id, session_id, pid, created_at)
-     VALUES (?, ?, ?, ?, ?, ?)`,
-    [row.root, row.task_id, row.project_id, row.session_id, row.pid, created_at],
+    `INSERT OR REPLACE INTO task_run_watch (root, task_id, project_id, session_id, pid, created_at, launch_id)
+     VALUES (?, ?, ?, ?, ?, ?, ?)`,
+    [
+      row.root,
+      row.task_id,
+      row.project_id,
+      row.session_id,
+      row.pid,
+      created_at,
+      row.launch_id ?? null,
+    ],
   )
-  return { ...row, created_at }
+  return { ...row, launch_id: row.launch_id ?? null, created_at }
 }
 
 export function listTaskRunWatch(): TaskRunWatchRow[] {

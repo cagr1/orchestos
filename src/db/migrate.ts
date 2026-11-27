@@ -1388,6 +1388,58 @@ export const FUTURE_MIGRATIONS: readonly SchemaMigrationStep[] = [
         throw new Error('Migration 44 did not add chat_messages.cut_report')
     },
   },
+  {
+    version: 45,
+    name: 'task-launches',
+    precondition: (database) => {
+      if (
+        !database
+          .query("SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'task_run_watch'")
+          .get()
+      )
+        throw new Error('Migration 45 requires task_run_watch table')
+    },
+    apply: (database) => {
+      database.exec(`CREATE TABLE task_launches (
+        id TEXT PRIMARY KEY, root TEXT NOT NULL, task_id TEXT NOT NULL, project_id TEXT,
+        session_id TEXT, pid INTEGER NOT NULL, started_at TEXT NOT NULL,
+        settled_at TEXT, outcome TEXT, reason TEXT
+      );
+      CREATE INDEX task_launches_task_started ON task_launches(root, task_id, started_at);
+      ALTER TABLE task_run_watch ADD COLUMN launch_id TEXT;`)
+    },
+    postcondition: (database) => {
+      const columns = database.query<{ name: string }, []>('PRAGMA table_info(task_launches)').all()
+      for (const name of [
+        'id',
+        'root',
+        'task_id',
+        'project_id',
+        'session_id',
+        'pid',
+        'started_at',
+        'settled_at',
+        'outcome',
+        'reason',
+      ])
+        if (!columns.some((column) => column.name === name))
+          throw new Error(`Migration 45 did not add task_launches.${name}`)
+      if (
+        !database
+          .query<{ name: string }, []>('PRAGMA index_list(task_launches)')
+          .all()
+          .some((index) => index.name === 'task_launches_task_started')
+      )
+        throw new Error('Migration 45 did not add task_launches_task_started')
+      if (
+        !database
+          .query<{ name: string }, []>('PRAGMA table_info(task_run_watch)')
+          .all()
+          .some((column) => column.name === 'launch_id')
+      )
+        throw new Error('Migration 45 did not add task_run_watch.launch_id')
+    },
+  },
 ]
 
 function appliedVersions(database: Database): Set<number> {

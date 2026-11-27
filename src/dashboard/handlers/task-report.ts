@@ -1,6 +1,7 @@
 import { appendTaskReport, type TaskReportData } from '../../db/chat-sessions.ts'
 import { listRunsByTaskId } from '../../db/runs.ts'
 import { db } from '../../db/sqlite.ts'
+import { settleTaskLaunch, type TaskLaunchSettled } from '../../db/task-launches.ts'
 import { deleteTaskRunWatch, type TaskRunWatchRow } from '../../db/task-run-watch.ts'
 import { actionApprovalPolicy } from '../../run/executors/cli-registry.ts'
 import { taskEngineForCli } from '../../run/executors/task-engines.ts'
@@ -142,12 +143,14 @@ function buildTaskReportData(
 /** Reclama y cierra únicamente el lanzamiento representado por esta fila. */
 export function settleTaskRun(
   row: TaskRunWatchRow,
-  appendReport: typeof appendTaskReport = appendTaskReport,
+  result: NonNullable<TaskLaunchSettled>,
+  appendReport: typeof appendTaskReport | null = appendTaskReport,
 ): void {
   try {
     db.transaction(() => {
       if (!deleteTaskRunWatch(row)) return
-      if (row.session_id) {
+      if (row.launch_id) settleTaskLaunch(row.launch_id, result.outcome, result.reason)
+      if (row.session_id && appendReport) {
         const report = buildTaskReportData(row.root, row.task_id, row.project_id)
         appendReport(row.session_id, row.task_id, report.content, report.data)
         recheckCutAfterTask(row.session_id, row.root)

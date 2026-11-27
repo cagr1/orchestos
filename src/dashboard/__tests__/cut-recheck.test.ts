@@ -74,7 +74,7 @@ test('task completion rechecks only the latest cut, preserving its base, handoff
       const row = upsertTaskRunWatch({ root, task_id: 'closure-task', session_id: codexId, project_id: null, pid: process.pid })
       let appendCalls = 0
       const beforeSettle = checks.length
-      settleTaskRun(row, (...args) => {
+      settleTaskRun(row, { outcome: 'completed', reason: null }, (...args) => {
         appendCalls++
         assert.equal(checks.length, beforeSettle, 'append the task report before rechecking')
         return appendTaskReport(...args)
@@ -85,7 +85,7 @@ test('task completion rechecks only the latest cut, preserving its base, handoff
       messages = listChatMessages(codexId)
       assert.equal(messages.at(-2).taskReport.outcome, 'missing')
       assert.equal(messages.at(-1).cutReport.baseHead, 'before-turn')
-      settleTaskRun(row)
+      settleTaskRun(row, { outcome: 'completed', reason: null })
       assert.equal(checks.length, beforeSettle + 1, 'settling twice must not add duplicate cards')
       const warning = console.warn
       const warnings = []

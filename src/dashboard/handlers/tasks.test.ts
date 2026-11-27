@@ -3,6 +3,7 @@ import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { db } from '../../db/sqlite.ts'
+import { getTaskLaunch, taskLaunchSettled } from '../../db/task-launches.ts'
 import { deleteTaskRunWatch, getTaskRunWatch, upsertTaskRunWatch } from '../../db/task-run-watch.ts'
 import {
   createApprovalRun,
@@ -11,15 +12,23 @@ import {
   resolveApproval,
 } from '../../run/approvals.ts'
 import {
+  handleApiTaskLaunch,
   handleApiTasks,
   handleApiTasksCommitRun,
   handleApiTasksRun,
   loadTaskRows,
   resolveTaskRunProjectId,
+  spawnTaskRun,
 } from './tasks.ts'
 
 const roots: string[] = []
-afterAll(() => roots.forEach((root) => rmSync(root, { recursive: true, force: true })))
+afterAll(() =>
+  roots.forEach((root) => {
+    db.run('DELETE FROM task_run_watch WHERE root = ?', [root])
+    db.run('DELETE FROM task_launches WHERE root = ?', [root])
+    rmSync(root, { recursive: true, force: true })
+  }),
+)
 
 describe('dashboard task run project binding', () => {
   test('uses the request-selected project id instead of re-resolving by path', () => {
@@ -134,6 +143,94 @@ describe('dashboard task commit-run (ERP.4.13)', () => {
     expect(git(root, 'rev-parse', 'HEAD')).toBe(head)
   })
 
+  test('spawnTaskRun returns a launch ID bound to its watch and exposes scoped results', async () => {
+    const root = fixture()
+    const originalSpawn = Bun.spawn
+    let exit!: (code: number) => void
+    Bun.spawn = (() => ({
+      pid: 424246,
+      exited: new Promise<number>((resolve) => {
+        exit = resolve
+      }),
+    })) as unknown as typeof Bun.spawn
+    try {
+      const id = spawnTaskRun(root, 'task-dirty', undefined, 'selected-project')
+      const watch = required(getTaskRunWatch(root, 'task-dirty'))
+      expect(watch.launch_id).toBe(id)
+      expect(getTaskLaunch(id)).toMatchObject({
+        root,
+        task_id: 'task-dirty',
+        pid: watch.pid,
+        project_id: 'selected-project',
+      })
+      expect(taskLaunchSettled(required(getTaskLaunch(id)))).toBeNull()
+      expect(loadTaskRows(root)[0]?.launch).toEqual({
+        id,
+        startedAt: required(getTaskLaunch(id)).started_at,
+        settled: null,
+      })
+      const url = new URL(`http://localhost/api/tasks/launches/${id}`)
+      expect(await handleApiTaskLaunch(url, root, 'selected-project').json()).toEqual({
+        id,
+        taskId: 'task-dirty',
+        startedAt: required(getTaskLaunch(id)).started_at,
+        settled: null,
+      })
+      expect(handleApiTaskLaunch(url, root, 'another-project').status).toBe(404)
+      expect(handleApiTaskLaunch(url, '/another-root', 'selected-project').status).toBe(404)
+      expect(
+        handleApiTaskLaunch(
+          new URL('http://localhost/api/tasks/launches/missing'),
+          root,
+          'selected-project',
+        ).status,
+      ).toBe(404)
+    } finally {
+      exit(0)
+      await new Promise((resolve) => setTimeout(resolve, 0))
+      Bun.spawn = originalSpawn
+    }
+  })
+
+  test('run returns ok, task id and launchId and stores the watch binding', async () => {
+    const root = fixture()
+    const originalSpawn = Bun.spawn
+    let exit!: (code: number) => void
+    Bun.spawn = (() => ({
+      pid: 424247,
+      exited: new Promise<number>((resolve) => {
+        exit = resolve
+      }),
+    })) as unknown as typeof Bun.spawn
+    try {
+      const response = await handleApiTasksRun(
+        new Request('http://localhost/api/tasks/task-dirty/run', { method: 'POST', body: '{}' }),
+        new URL('http://localhost/api/tasks/task-dirty/run'),
+        root,
+      )
+      expect(response.status).toBe(200)
+      const body = await response.json()
+      expect(body).toEqual({ ok: true, id: 'task-dirty', launchId: expect.any(String) })
+      expect(getTaskRunWatch(root, 'task-dirty')?.launch_id).toBe(body.launchId)
+      expect(getTaskLaunch(body.launchId)?.task_id).toBe('task-dirty')
+      const again = await handleApiTasksRun(
+        new Request('http://localhost/api/tasks/task-dirty/run', { method: 'POST', body: '{}' }),
+        new URL('http://localhost/api/tasks/task-dirty/run'),
+        root,
+      )
+      const second = await again.json()
+      expect(second.launchId).not.toBe(body.launchId)
+      expect(getTaskLaunch(body.launchId)).toMatchObject({
+        outcome: 'interrupted',
+        reason: 'Superseded by a new launch',
+      })
+    } finally {
+      exit(0)
+      await new Promise((resolve) => setTimeout(resolve, 0))
+      Bun.spawn = originalSpawn
+    }
+  })
+
   test('commitea solo los archivos pedidos y lanza la tarea', async () => {
     const root = fixture()
     const originalSpawn = Bun.spawn
@@ -146,6 +243,9 @@ describe('dashboard task commit-run (ERP.4.13)', () => {
       const response = await call(root, { files: ['a.txt'] })
       expect(response.status).toBe(200)
       expect(spawned).toBe(1)
+      const payload = await response.json()
+      expect(payload).toEqual({ ok: true, id: 'task-dirty', launchId: expect.any(String) })
+      expect(getTaskLaunch(payload.launchId)?.task_id).toBe('task-dirty')
       const message = git(root, 'log', '--grep=chore: commit pending changes', '-1', '--format=%s')
       expect(message).toBe('chore: commit pending changes before task-dirty (dashboard)')
       const files = git(
@@ -360,3 +460,8 @@ describe('ONB.2 unassigned task roles', () => {
     })
   }
 })
+
+function required<T>(value: T | null | undefined): T {
+  if (value == null) throw new Error('Missing fixture value')
+  return value
+}

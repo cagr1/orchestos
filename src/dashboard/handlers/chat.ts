@@ -1383,7 +1383,7 @@ async function handleApiChat(
     const barShownByCount = rawHistory.length + 1 >= 3
     let taskSuggestion = { isTask: false, reason: '' }
     let autoTask:
-      | { id: string }
+      | { id: string; launchId: string }
       | { id: string; held: true; existingFiles: string[] }
       | { error: string }
       | null = null
@@ -1451,8 +1451,8 @@ async function handleApiChat(
                   autoTask = { id: created.id, held: true, existingFiles }
                 else {
                   if (activeTurnId) requireTurnOwner(activeTurnId, CHAT_TURN_OWNER)
-                  spawnTaskRun(root, created.id, undefined, undefined, session?.id)
-                  autoTask = { id: created.id }
+                  const launchId = spawnTaskRun(root, created.id, undefined, undefined, session?.id)
+                  autoTask = { id: created.id, launchId }
                 }
               }
             }

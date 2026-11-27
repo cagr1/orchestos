@@ -1,10 +1,6 @@
 import { getProject } from '../../db/projects.ts'
-import {
-  deleteTaskRunWatch,
-  getTaskRunWatch,
-  listTaskRunWatch,
-  type TaskRunWatchRow,
-} from '../../db/task-run-watch.ts'
+import type { TaskLaunchSettled } from '../../db/task-launches.ts'
+import { getTaskRunWatch, listTaskRunWatch, type TaskRunWatchRow } from '../../db/task-run-watch.ts'
 import { DIRTY_TREE_REASON_PREFIX } from '../../run/sandbox-policy.ts'
 import { loadTasks, updateTaskStatus } from '../../tasks/loader.ts'
 import { settleTaskRun } from './task-report.ts'
@@ -68,6 +64,32 @@ const defaultSchedule: NonNullable<ReconcileOptions['schedule']> = (fn, ms) => {
   return { stop: () => clearInterval(timer) }
 }
 
+/** El estado durable solo es terminal cuando el runner del lanzamiento ya salió. */
+export function taskRunSettled(
+  task: { status: string; retry_reason?: string | null } | null,
+  runnerAlive: boolean,
+): TaskLaunchSettled {
+  if (!task) return { outcome: 'interrupted', reason: 'Task or project removed' }
+  if (runnerAlive) return null
+  const reason = task.retry_reason ?? null
+  switch (task.status) {
+    case 'done':
+      return { outcome: 'completed', reason: null }
+    case 'failed':
+    case 'failed_permanent':
+      return { outcome: 'failed', reason }
+    case 'blocked':
+      return { outcome: 'blocked', reason }
+    case 'pending':
+      if (reason) return { outcome: 'blocked', reason }
+      return { outcome: 'interrupted', reason: INTERRUPTED_REASON }
+    case 'running':
+      return { outcome: 'interrupted', reason: INTERRUPTED_REASON }
+    default:
+      return null
+  }
+}
+
 function reconcileRow(
   row: TaskRunWatchRow,
   probe: RunnerProbe,
@@ -75,7 +97,7 @@ function reconcileRow(
   const current = getTaskRunWatch(row.root, row.task_id)
   if (!current || current.pid !== row.pid || current.created_at !== row.created_at) return 'dropped'
   if (!getProject(row.root)) {
-    deleteTaskRunWatch(row)
+    settleTaskRun(row, { outcome: 'interrupted', reason: 'Task or project removed' }, null)
     return 'dropped'
   }
   let task: ReturnType<typeof loadTasks>['tasks'][number] | undefined
@@ -85,9 +107,13 @@ function reconcileRow(
     return 'watching'
   }
   if (!task) {
-    deleteTaskRunWatch(row)
+    settleTaskRun(row, { outcome: 'interrupted', reason: 'Task or project removed' }, null)
     return 'dropped'
   }
+  const alive = probe(row.pid, row.task_id)
+  const result = taskRunSettled(task, false)
+  if (!result) return 'watching'
+  if (row.launch_id && alive) return 'watching'
   const terminal =
     task.status === 'done' ||
     task.status === 'failed' ||
@@ -96,12 +122,11 @@ function reconcileRow(
     // ERP.4.13: bloqueada por árbol sucio sin intento — ya terminó aunque siga `pending`
     (task.status === 'pending' && Boolean(task.retry_reason?.startsWith(DIRTY_TREE_REASON_PREFIX)))
   if (terminal) {
-    settleTaskRun(row)
+    settleTaskRun(row, result)
     return 'settled'
   }
   // `pending` justo tras lanzar (el runner aún no pasó a running) con runner vivo
   // se vigila; `pending` con runner muerto es un reintento programado.
-  const alive = probe(row.pid, row.task_id)
   if (alive) return 'watching'
   if (task.status === 'running') {
     updateTaskStatus(row.root, row.task_id, {
@@ -109,7 +134,7 @@ function reconcileRow(
       retry_reason: INTERRUPTED_REASON,
     })
   }
-  settleTaskRun(row)
+  settleTaskRun(row, result)
   return 'settled'
 }
 

@@ -1,4 +1,5 @@
 import type { RunFailureKind } from '../../../../db/runs'
+import type { TaskLaunchSettled } from '../../../../db/task-launches.ts'
 import type { TaskClass } from '../../../../router/classify'
 import type { CliNotice } from '../../../../run/executors/cli-failure'
 import type { CutReport } from '../../../cut-check.ts'
@@ -12,6 +13,7 @@ export type QaVerdict = 'pass' | 'fail' | 'skipped' | null
 export type ExecutionEngine = 'single-shot' | 'agentic' | (string & {})
 
 export interface TaskItem {
+  launch?: { id: string; startedAt: string; settled: TaskLaunchSettled } | null
   id: string
   title?: string
   description: string

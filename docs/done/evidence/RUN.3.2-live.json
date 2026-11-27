@@ -1,0 +1,120 @@
+{
+  "item": "RUN.3.2",
+  "verifiedAt": "2026-11-27T17:13:23.372Z",
+  "transport": "navegador Chromium (Playwright) contra el dashboard real (startServer), home aislado vía gate:evidence; fetch desde la página",
+  "launchResponse": {
+    "ok": true,
+    "id": "launch-live",
+    "launchId": "89f440d7-1341-49a1-b896-42d2ec00a226"
+  },
+  "finalResponse": {
+    "id": "89f440d7-1341-49a1-b896-42d2ec00a226",
+    "taskId": "launch-live",
+    "startedAt": "2026-11-27T17:13:23.109Z",
+    "settled": {
+      "outcome": "blocked",
+      "reason": "uncommitted changes: dirty.txt"
+    }
+  },
+  "observations": [
+    {
+      "method": "POST",
+      "path": "/api/tasks/launch-live/run",
+      "status": 200,
+      "body": {
+        "ok": true,
+        "id": "launch-live",
+        "launchId": "89f440d7-1341-49a1-b896-42d2ec00a226"
+      }
+    },
+    {
+      "method": "GET",
+      "path": "/api/tasks/launches/89f440d7-1341-49a1-b896-42d2ec00a226",
+      "status": 200,
+      "body": {
+        "id": "89f440d7-1341-49a1-b896-42d2ec00a226",
+        "taskId": "launch-live",
+        "startedAt": "2026-11-27T17:13:23.109Z",
+        "settled": {
+          "outcome": "blocked",
+          "reason": "uncommitted changes: dirty.txt"
+        }
+      }
+    },
+    {
+      "method": "GET",
+      "path": "/api/tasks",
+      "status": 200,
+      "body": {
+        "exists": true,
+        "tasks": [
+          {
+            "id": "launch-live",
+            "launch": {
+              "id": "89f440d7-1341-49a1-b896-42d2ec00a226",
+              "startedAt": "2026-11-27T17:13:23.109Z",
+              "settled": {
+                "outcome": "blocked",
+                "reason": "uncommitted changes: dirty.txt"
+              }
+            },
+            "description": "Verify blocked launch",
+            "status": "pending",
+            "retryReason": "uncommitted changes: dirty.txt",
+            "skill": null,
+            "assignedAgent": "codex",
+            "assignedModel": "test",
+            "retryCount": 0,
+            "qaVerdict": null,
+            "failureKind": null,
+            "runId": null,
+            "pendingApprovals": 0,
+            "sessionId": null,
+            "lastRunAt": null,
+            "phaseSkills": [],
+            "engine": null,
+            "output": ["result.txt"],
+            "dependsOn": [],
+            "acceptanceCriteria": [],
+            "executorModel": null
+          }
+        ]
+      }
+    },
+    {
+      "method": "GET",
+      "path": "/api/tasks/launches/89f440d7-1341-49a1-b896-42d2ec00a226?project=none",
+      "status": 404,
+      "body": {
+        "error": "Task launch not found"
+      }
+    },
+    {
+      "method": "GET",
+      "path": "/api/tasks/launches/missing",
+      "status": 404,
+      "body": {
+        "error": "Task launch not found"
+      }
+    },
+    {
+      "method": "GET",
+      "path": "/api/tasks/launches/89f440d7-1341-49a1-b896-42d2ec00a226",
+      "status": 200,
+      "body": {
+        "id": "89f440d7-1341-49a1-b896-42d2ec00a226",
+        "taskId": "launch-live",
+        "startedAt": "2026-11-27T17:13:23.109Z",
+        "settled": {
+          "outcome": "blocked",
+          "reason": "uncommitted changes: dirty.txt"
+        }
+      }
+    }
+  ],
+  "cleanup": {
+    "projects": 0,
+    "watches": 0,
+    "launches": 0
+  }
+}

@@ -37,6 +37,7 @@ beforeEach(() => {
 afterEach(() => {
   __resetDepsForTests()
   db.run('DELETE FROM task_run_watch WHERE root = ?', [root])
+  db.run('DELETE FROM task_launches WHERE root = ?', [root])
   if (originalHome === undefined) delete process.env.ORCHESTOS_HOME
   else process.env.ORCHESTOS_HOME = originalHome
   rmSync(root, { recursive: true, force: true })
@@ -187,7 +188,7 @@ for (const body of [undefined, '{broken']) {
     try {
       const res = await handleApiTasksRun(new Request(url, { method: 'POST', body }), url, root)
       expect(res.status).toBe(200)
-      expect(await res.json()).toEqual({ ok: true, id: 't1' })
+      expect(await res.json()).toEqual({ ok: true, id: 't1', launchId: expect.any(String) })
       expect(spawn).toHaveBeenCalledTimes(1)
     } finally {
       spawn.mockRestore()

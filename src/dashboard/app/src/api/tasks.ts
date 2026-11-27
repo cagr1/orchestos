@@ -1,6 +1,7 @@
 import type { TaskItem, TaskStatus } from '../types/orchestos'
 
 export interface TaskRowResponse {
+  launch: TaskItem['launch']
   id: string
   description: string
   status: TaskStatus
@@ -32,6 +33,7 @@ export interface TasksResponse {
 function mapTask(row: TaskRowResponse): TaskItem {
   return {
     id: row.id,
+    launch: row.launch ?? null,
     description: row.description,
     status: row.status,
     output: row.output,
@@ -179,7 +181,13 @@ export async function runTask(
     },
     body: JSON.stringify({}),
   })
-  const body = (await response.json().catch(() => null)) as { error?: string; code?: string } | null
+  const body = (await response.json().catch(() => null)) as {
+    ok?: boolean
+    id?: string
+    launchId?: string
+    error?: string
+    code?: string
+  } | null
   if (!response.ok)
     throw new TaskRunError(body?.error || `Request failed (${response.status})`, body?.code)
 

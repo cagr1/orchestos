@@ -150,6 +150,7 @@ import {
 import { reconcileTaskRuns } from './handlers/task-run-reconcile.ts'
 import {
   handleApiSystemExecutorModes,
+  handleApiTaskLaunch,
   handleApiTasks,
   handleApiTasksBulkDelete,
   handleApiTasksCommitRun,
@@ -298,6 +299,11 @@ export async function route(
   if (method === 'GET' && url.pathname === '/api/tasks') {
     return withDashboardProject(req, (project) =>
       project.id ? handleApiTasks(project.root) : jsonResponse({ exists: false, tasks: [] }),
+    )
+  }
+  if (method === 'GET' && /^\/api\/tasks\/launches\/[^/]+$/.test(url.pathname)) {
+    return withDashboardProject(req, (project) =>
+      handleApiTaskLaunch(url, project.root, project.id),
     )
   }
   // v0.12 / Bloque D.1.a — ruta literal DEBE ir antes de los regex `/api/tasks/[^/]+/...`
