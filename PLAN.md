@@ -335,11 +335,16 @@ esta etapa: `docs/done/bloque-AUD.md` (AUD.16, AUD.17), `docs/done/bloque-SES.md
   visible. Nuevo síntoma en `read-boundary`: en la pestaña nueva de Codex el compositor visible queda vacío tras
   `fill` y Send sigue disabled (`ui-gate-81922/read-boundary/failure.png`) — ¿borrador que se resetea al crear la
   sesión (`composer-drafts.ts`, USO.48)? Diagnosticar si es producto antes de tocar el flujo.
-- [ ] **CI.86 — Reanudar las nocturnas de ui-gates.** (GO de Carlos 2026-11-27, análisis de pi.dev) USO.49 rompió
+- [x] **CI.86 — Reanudar las nocturnas de ui-gates.** (GO de Carlos 2026-11-27, análisis de pi.dev) USO.49 rompió
   `qa-negative` y nadie lo vio: la pausa de CI.85 dejó sin red los cambios de comportamiento. Alcance: `paused:
   false`, `bun run nightly:install`, regla de la mañana vigente otra vez con triage (gate desfasado → se arregla el
   gate; producto roto → ítem). Mutación sigue en pausa hasta MUT.1 (shards de más de 3 h). Junto: al cerrar un
   cambio de comportamiento, grep de los flujos que lo asumen.
+  Hecho: `scripts/nightly-pause.json` `paused: false`; `bun run nightly:install` → `launchctl list` muestra
+  `dev.cagr1.orchestos.nightly-ui-gates` cargado, `StartCalendarInterval` 01:30; regla de la mañana con triage y grep
+  de flujos al cerrar cambios de comportamiento en `AGENTS.md`. Riesgo abierto: si el Mac duerme a las 01:30 la
+  corrida sale inválida (ya pasó antes de CI.85); lo dirá el startup-guard.
+  Sin delegación: flag y regla, cambio del cerebro.
 - [ ] **GOV.5 — Cerrar un ítem cuesta más que hacerlo.** (GO de Carlos 2026-11-27) Evidencia de 2026-11-26: cerrar
   USO.49 tomó ~6 intentos de commit (`plan:render` exige `plan:reconcile`, y tras cerrar hay que reabrir/recerrar
   para cambiar texto; `agent:live-gate` exige ruta en la misma línea de "Gate en vivo:" con navegador/Playwright;

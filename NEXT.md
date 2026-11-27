@@ -15,7 +15,7 @@ reales, 6 rechazos y solo 1 error real (tsc); 2 revirtieron trabajo bueno por un
   `run-steps.ts:40`) y tumbó el dashboard; la siguiente pasó. Si reaparece, diagnosticar qué cambia `db.sqlite` bajo
   el handle abierto.
 - **USO.50** cerrado (`qa-negative` 26/26 tras adaptarlo al reintento automático de USO.49).
-- **USO.51** cerrado (Claude lee la ruta nombrada; Codex sin verificar en vivo → USO.41). Siguen CI.86 → GOV.5 → RUN.3
+- **USO.51** cerrado (Claude lee la ruta nombrada; Codex sin verificar en vivo → USO.41). CI.86 cerrado (nocturnas de ui-gates a las 01:30). Siguen GOV.5 → RUN.3
   (GO 2026-11-27, análisis de pi.dev en PLAN.md); GOV.5 ya en `analizar` (`/tmp/gov5-analizar.txt`).
 - Pendiente de Carlos: ¿sumar USO.52 (salida declarada faltante no revierte lo escrito) y USO.53 (el ejecutor puede
   preguntar/escalar en vez de fallar, como el `question` de Orca)? Investigación Orca/T3: `/tmp/investigar-orca-t3.txt`

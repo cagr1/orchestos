@@ -82,11 +82,12 @@ Reglas vigentes, una por línea. Texto anterior e incidentes que las motivaron:
 - **Cada prueba corre una vez** (Carlos, 2026-11-08: "pasamos más tiempo en pruebas que en código… no quiero que
   se corra 3 veces"). Ejecutor: tests del ítem + su flujo nuevo, sin `test:coverage` ni otros flujos. Cerebro: el
   flujo nuevo **1 vez** + los flujos que cubren los archivos tocados. Pre-push: `tsc`, lint y `test:coverage`. Todos
-  los flujos: de noche (`scripts/nightly-ui-gates.ts`, CI.70). **En pausa durante la etapa 2** (Carlos, 2026-11-22,
-  CI.85): sin nocturna de ui-gates ni de mutación; marca `scripts/nightly-pause.json`, reanudar con `paused: false`, el
-  cron de `mutation-nightly.yml` y `bun run nightly:install`. Mientras dure, queda suspendida la regla "lo rojo o
-  intermitente de la noche se resuelve a la mañana antes del siguiente ítem" (vigente desde CI.70; motivo: cada rojo
-  se volvía un CI.\* prioritario, muchos por gate desfasado y no producto roto). Un flujo que falla una vez y pasa al repetir no se repite tres veces: se abre ítem
+  los flujos: de noche (`scripts/nightly-ui-gates.ts`, CI.70). Lo rojo de la noche se resuelve a la mañana antes del
+  siguiente ítem, con triage: gate desfasado → se arregla el gate (no se abre CI.\* prioritario); producto roto → ítem.
+  Al cerrar un cambio de comportamiento, grep de los flujos que lo asumen (CI.86, 2026-11-27: USO.49 rompió
+  `qa-negative` sin que nadie lo viera). Mutación nocturna sigue en pausa hasta MUT.1 (cron comentado en
+  `mutation-nightly.yml`). Antes: ui-gates y mutación en pausa del 2026-11-22 al 27 (CI.85; marca
+  `scripts/nightly-pause.json`). Un flujo que falla una vez y pasa al repetir no se repite tres veces: se abre ítem
   CI con su evidencia. La mutación y los nocturnos se leen al arrancar (startup-guard), no se siguen durante la
   sesión. Antes: el cerebro corría cada flujo nuevo 3 veces (desde ADE.4) y el pre-push 17 flujos + chat.
 - Verificar con el comando de CI (`bun run test:coverage`), nunca `bun test` a secas. Flaky bajo carga

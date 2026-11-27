@@ -1,1 +1,5 @@
-{ "paused": true, "since": "2026-11-22", "reason": "etapa 2 (CI.85)" }
+{
+  "paused": false,
+  "since": null,
+  "reason": "reanudadas 2026-11-27 (CI.86); mutación sigue en pausa hasta MUT.1"
+}
