@@ -15,13 +15,16 @@ las 01:30; mutación en pausa hasta MUT.1), **USO.41 `b3d6d5c5`** (era producto:
 **RUN.3.3** `3b281ded` (los tres gates de los incidentes); **RUN.3.4** subido sin cerrar `2754a913`.
 
 Siguiente, en orden:
+0. **Antes de la nocturna, si hay tiempo:** diagnosticar `chat-streaming` en Dev (diálogo "Launch new agent" sin
+   botón Claude, `scripts/ui-gate/flows/chat-streaming.mjs:848`): ¿gate desfasado tras USO.41 o producto?
 1. **Leer la primera nocturna** (01:30 del 2026-11-28, startup-guard) y resolver lo rojo con triage (`AGENTS.md`).
    Ya corre con los flujos migrados a `settled`. Mirar en especial los 8 flujos de lanzamiento sin espera de pestaña
    (`auto-flow`, `chat-settings`, `chat-followup-task`, `chat-permissions`, `chat-restart-interrupted`, `chat-roles`,
    `chat-stop`, `chat-task-undo`) y `chat-streaming`: el 2026-11-27 cayó en el diálogo "Launch new agent" de Dev
    sin botón Claude (código no tocado por RUN.3).
 2. **Cerrar RUN.3.4** con esa nocturna: faltan en vivo `restart-mid-run`, `chat-attachments` (cupo de Codex agotado
-   el 2026-11-27) y el resto de flujos migrados. Cerrar RUN.3.4 y el padre RUN.3 con `item:close`.
+   el 2026-11-27) y el resto de flujos migrados. Cerrar RUN.3.4 y el padre RUN.3 con `item:close`
+   (spec versionado en `docs/specs/RUN.3.4.md`; `item:close` lo borra).
 
 Trampas: cerrar ítem con `bun run item:close` (`AGENTS.md` § PLAN.md y su DB; escribir antes el "Hecho:";
 `--dry-run` primero). Hook `brain-no-code`: el cerebro no usa Bash/Write en `src/`, `scripts/`, `tests/`; `Edit` hasta
