@@ -843,19 +843,22 @@ export default async function chatStreaming({ page, api, step, shot, visible, cl
   await page.getByRole('button', { name: 'Dev', exact: true }).click()
   const projectRow = page.getByRole('button', { name: basename(projectRoot), exact: true })
   await projectRow.hover()
-  await page.getByRole('button', { name: 'Launch new agent' }).click()
-  const devDialog = page.getByRole('dialog')
-  const devClaudeOption = devDialog.getByRole('button', { name: /Claude/ }).first()
+  await projectRow
+    .locator('..')
+    .getByRole('button', { name: 'Launch new agent', exact: true })
+    .click()
+  // USO.40: the launcher lists agents as options; choosing one launches the session.
+  const devDialog = page.getByRole('dialog', { name: 'Launch agent' })
+  const devClaudeOption = devDialog.getByRole('option', { name: /Claude/ }).first()
   if (!(await visible(devClaudeOption, 15_000))) {
     throw new Error(`Claude Dev option is unavailable: ${await devDialog.innerText()}`)
   }
-  await devClaudeOption.click()
   const devSessionResponsePromise = page.waitForResponse(
     (response) =>
       response.request().method() === 'POST' &&
       new URL(response.url()).pathname === '/api/chat/sessions',
   )
-  await devDialog.getByRole('button', { name: /Launch|Start/i }).click()
+  await devClaudeOption.click()
   const devSessionResponse = await devSessionResponsePromise
   const devSession = await devSessionResponse.json()
   if (devSession.agent !== 'claude')

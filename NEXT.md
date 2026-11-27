@@ -15,8 +15,8 @@ las 01:30; mutación en pausa hasta MUT.1), **USO.41 `b3d6d5c5`** (era producto:
 **RUN.3.3** `3b281ded` (los tres gates de los incidentes); **RUN.3.4** subido sin cerrar `2754a913`.
 
 Siguiente, en orden:
-0. **Antes de la nocturna, si hay tiempo:** diagnosticar `chat-streaming` en Dev (diálogo "Launch new agent" sin
-   botón Claude, `scripts/ui-gate/flows/chat-streaming.mjs:848`): ¿gate desfasado tras USO.41 o producto?
+0. ~~Diagnosticar `chat-streaming` en Dev~~: gate desfasado tras USO.40 (el selector usa `role="option"` y lanza al
+   clic, sin botón Launch). Arreglado; en vivo 27/27.
 1. **Leer la primera nocturna** (01:30 del 2026-11-28, startup-guard) y resolver lo rojo con triage (`AGENTS.md`).
    Ya corre con los flujos migrados a `settled`. Mirar en especial los 8 flujos de lanzamiento sin espera de pestaña
    (`auto-flow`, `chat-settings`, `chat-followup-task`, `chat-permissions`, `chat-restart-interrupted`, `chat-roles`,
