@@ -6,31 +6,31 @@ Arranque: `bun run agent:preflight -- --item <ID> --agent claude`. Lista viva: `
 
 ## Sesión 2026-11-27 — empezar por aquí
 
-Cerrado/subido: USO.49 `a0efbcd5` (reintento automático + Retry), USO.50 `f4e25dcb` (QA acepta "no verificado" con
-motivo; `qa-negative` adaptado al reintento), USO.51 `1b804e03` (el chat lee una ruta que Carlos escribe, solo
-lectura; runner de ui:gate ya no pierde el error por espera huérfana; 28 flujos usan el compositor visible), CI.86
-`08dcd1ad` (nocturnas de ui-gates otra vez a las 01:30; mutación en pausa hasta MUT.1). Worktree de Orca `numbfish`
-y ramas locales `cagr1/research-agro-demo`, `cagr1/fix-dashboard-ui-bugs` borradas (aporte integrado en `a705c09b`).
+Cerrado/subido: USO.49 `a0efbcd5`, USO.50 `f4e25dcb`, USO.51 `1b804e03`, CI.86 `08dcd1ad` (nocturnas de ui-gates a
+las 01:30; mutación en pausa hasta MUT.1), **USO.41 `b3d6d5c5`** (era producto: la pestaña se activaba antes de
+`listProjects()` y lo escrito al lanzar se perdía; gates esperan la pestaña activa), **GOV.5** (`0997eef1` podas,
+`ace4e988` `bun run item:close`).
 
-Siguiente, en orden (GO de Carlos a A→B→C del análisis de pi.dev; B y C esperan GO de su propuesta):
-1. **Leer el resultado de la nocturna** (startup-guard) y resolver lo rojo con triage (`AGENTS.md`).
-2. ~~GOV.5~~ cerrado (`0997eef1` podas, `ace4e988` `item:close`).
-3. **RUN.3** — diagnóstico en `docs/specs/RUN.3-diagnostico.md`: `settled: null | {outcome, reason}` por turno y por
-   lanzamiento; `pending` hoy también significa "terminó sin éxito" (`src/cli.ts:1356`); `/turn-status` trata
-   `cancelled` como `pending`. Migrar primero `chat-retry-report`, `read-boundary`, `project-isolation`.
-   **GO de Carlos a la propuesta (2026-11-27, misma sesión): empezar aquí**, partido en sub-ítems como GOV.5.
-4. ~~USO.41~~ cerrado: era producto (pestaña activa antes de `listProjects()` → lo escrito al lanzar se perdía).
-   Los 8 flujos de lanzamiento sin id de sesión a mano (`auto-flow`, `chat-settings`, …) se ven en la nocturna.
+Siguiente, en orden:
+1. **Leer la primera nocturna** (01:30 del 2026-11-28, startup-guard) y resolver lo rojo con triage (`AGENTS.md`).
+   Mirar en especial los 8 flujos de lanzamiento sin espera de pestaña (`auto-flow`, `chat-settings`,
+   `chat-followup-task`, `chat-permissions`, `chat-restart-interrupted`, `chat-roles`, `chat-stop`, `chat-task-undo`).
+2. **RUN.3** (GO de Carlos 2026-11-27) — diagnóstico en `docs/specs/RUN.3-diagnostico.md`: `settled: null |
+   {outcome, reason}` por turno y por lanzamiento; `pending` hoy también significa "terminó sin éxito"
+   (`src/cli.ts:1356`); `/turn-status` trata `cancelled` como `pending`. Migrar primero `chat-retry-report`,
+   `read-boundary`, `project-isolation`. Partir en sub-ítems (RUN.3.1…) como GOV.5; cerrar con `item:close`.
 
-Trampas: el hook `brain-no-code` niega al cerebro Bash/Write en `src/` y `scripts/` (incluso un JSON) pero permite
-`Edit` ≤20 líneas: usar `Edit` para fixes chicos. Cerrar ítem: `bun run item:close` (AGENTS.md § PLAN.md y su DB). A mano: `plan:reconcile` tras editar PLAN (desde GOV.5.1 un cierre sin commit se edita sin reabrir; `Spec:`
-ya no tiene que ir al final de la línea; la ruta de evidencia puede ir en cualquier línea del cierre); el spec delegado necesita
-ítem abierto en PLAN (preflight). Intermitente sin causa: `SQLITE_IOERR_VNODE` (`run-steps.ts:40`) tumbó el
-dashboard una vez en `chat-retry-report`; si reaparece, diagnosticar.
+Trampas: cerrar ítem con `bun run item:close` (`AGENTS.md` § PLAN.md y su DB; escribir antes el "Hecho:";
+`--dry-run` primero). Hook `brain-no-code`: el cerebro no usa Bash/Write en `src/`, `scripts/`, `tests/`; `Edit` hasta
+20 líneas por edición y 40 acumuladas desde la última delegación. Commit a mano con `git commit -- <rutas>` y cambio
+de formato de Biome: el commit sale bien pero el índice real queda sin formatear (`git reset -q -- <ruta>` si
+`git diff HEAD` está vacío); `item:close` lo evita. El spec delegado necesita ítem abierto en PLAN (preflight).
+Intermitente sin causa: `SQLITE_IOERR_VNODE` (`run-steps.ts:40`); si reaparece, diagnosticar.
 
-GOV.5 cerrado (`0997eef1`, `ace4e988`): cerrar con `bun run item:close`. Pendiente de Carlos: ¿borrar la rama remota `origin/cagr1/fix-dashboard-ui-bugs`?; ¿USO.52
-(salida declarada faltante no revierte lo escrito) y USO.53 (el ejecutor puede preguntar/escalar)?; 4 worktrees
-`sync-*` en MemoriesMD (uno con cambios sin commitear en `projects/orchestos/decisions.md`, `estado.md`).
+Pendiente de Carlos: ¿borrar la rama remota `origin/cagr1/fix-dashboard-ui-bugs`?; ¿USO.52 (salida declarada
+faltante no revierte lo escrito) y USO.53 (el ejecutor puede preguntar/escalar)?; ¿evidencia en vivo estricta por
+ítem? (`qa` lo pidió en GOV.5.1; hoy un cierre sin "Gate en vivo" no la exige); 4 worktrees `sync-*` en MemoriesMD
+(uno con cambios sin commitear en `projects/orchestos/decisions.md`, `estado.md`).
 
 ## Pausa 2026-11-23 — al volver, decidir esto primero
 
