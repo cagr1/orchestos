@@ -1,7 +1,8 @@
-# DREAMING.md — 2026-11-26
+# DREAMING.md — 2026-11-27
 
-> Análisis automático (scheduled task). `runs-summary.json` exportado 2026-11-26T11:56Z. 17 runs nuevos desde el
-> informe anterior, todos de gates en vivo de USO.49 y USO.50 del 2026-11-26. Ninguna propuesta previa se aplicó.
+> Análisis automático (scheduled task). `runs-summary.json` exportado 2026-11-26T13:29Z: **sin runs nuevos** desde el
+> informe del 2026-11-26 (mismos 20 runs, mismos ids). Los patrones y propuestas se mantienen; ninguna se aplicó.
+> Segundo informe consecutivo sin datos nuevos: refuerza la propuesta 4.
 
 ## Runs analizados
 - Total: 20 runs
@@ -59,15 +60,21 @@ Distribución: 3 `chat` (claude-opus-5-5, 3/3 done), 9 `gate:uso.49:implement` (
 - Por qué: con el reintento de USO.49 una tarea que termina `done` aporta hasta 3 runs `failed` al resumen.
 - Riesgo: bajo
 
+### Propuesta 4 — No repetir el informe sin runs nuevos (2026-11-25 P1, reforzada)
+- Qué cambiar: prompt del scheduled task `orchestos-dreaming` — si el `exported_at` o los ids de runs no cambiaron
+  desde el último DREAMING.md, actualizar solo la fecha o no commitear.
+- Por qué: el informe de hoy y el de ayer analizan exactamente los mismos 20 runs; el commit diario no aporta.
+- Riesgo: bajo
+
 ### Propuestas vigentes sin aplicar
 - 2026-11-24 P1: `failure_kind` de configuración para "requires worktree sandbox mode". Riesgo bajo.
 - 2026-11-24 P2: reintento de `doc` con el `qa_reason` — posiblemente cubierto por el reintento de USO.49; verificar.
 - 2026-11-24 P4: exportar `failure_kind` y motivo corto. Riesgo bajo.
-- 2026-11-25 P1: saltar el informe sin runs nuevos (prompt del scheduled task). Riesgo bajo.
 
 ## Decisión (llenar manualmente)
 - [ ] Aplicar propuesta 1
 - [ ] Aplicar propuesta 2
 - [ ] Aplicar propuesta 3
+- [ ] Aplicar propuesta 4
 - [ ] Ignorar
 - [ ] Requiere revisión
