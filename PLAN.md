@@ -232,10 +232,17 @@ esta etapa: `docs/done/bloque-AUD.md` (AUD.16, AUD.17), `docs/done/bloque-SES.md
   3/3 solo, Retry reinicia el contador y termina done. Una corrida previa cayó en Commit & Run por
   `SQLITE_IOERR_VNODE` (no reproducido; anotado en NEXT.md).
   Ejecutado por: gpt-6-luna (mecanico) · Spec: docs/specs/USO.49.md
-- [ ] **USO.50 — QA rechaza un dato "no verificado" honesto.** (Carlos, 2026-11-23) Causa: `qa.ts:120-132` y
+- [x] **USO.50 — QA rechaza un dato "no verificado" honesto.** (Carlos, 2026-11-23) Causa: `qa.ts:120-132` y
   `254-278` solo admiten pass/fail con evidencia literal. Alcance: criterio `unverified` con motivo, aceptado solo
   si depende de algo fuera de los archivos escritos; veredicto falla solo si un criterio queda contradicho; aprobado
   con aviso visible "N sin verificar".
+  Hecho: criterio `unverified` (solo con `pass:true` y evidencia literal real; nunca salva un fallo); el juez lo usa
+  para hechos externos marcados "no verificado" con motivo; reason `(N unverified)`, QA Assertions `Unverified — …`,
+  titular del reporte `· N unverified`. Gate `qa-negative` actualizado al reintento automático de USO.49.
+  Gates: tsc 0, biome 0, qa-core/projects/runs/task-report 77/0.
+  Gate en vivo: navegador (Playwright) `docs/done/evidence/USO.50-live.json` — `qa-negative` 26/26; el caso
+  `unverified` en vivo no se ejercitó (cubierto por unitarios).
+  Ejecutado por: gpt-6.1-sol (criterio) · Spec: docs/specs/USO.50.md
 - [ ] **USO.51 — El chat no puede leer carpetas del usuario fuera del proyecto.** (Carlos, 2026-11-23, Agro no leyó
   `~/Projects/MemoriesMD`) Causa: `external.ts:487-535` solo pasa `--add-dir` del proyecto y adjuntos. Alcance:
   lista de carpetas de solo lectura por proyecto en Settings → `--add-dir` por cada una; el choque con la frontera

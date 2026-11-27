@@ -235,7 +235,12 @@ export interface RunRow {
   /** ERP.4.8 — último mensaje del ejecutor en runs fallidos/bloqueados; null si no hay. */
   executorReply: string | null
   qaModel: string | null
-  qaCriteria: Array<{ text: string; pass: boolean; evidence?: { file: string; excerpt: string } }>
+  qaCriteria: Array<{
+    text: string
+    pass: boolean
+    unverified?: boolean
+    evidence?: { file: string; excerpt: string }
+  }>
   model: string
   provider: string
   skillId: string | null

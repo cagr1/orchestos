@@ -1,0 +1,117 @@
+{
+  "item": "USO.50",
+  "date": "2026-11-27",
+  "machine": "Mac de Carlos (macOS 25.6, Bun 1.4.0)",
+  "live": "bun run gate:evidence -- --label USO.50 -- bun run ui:gate qa-negative → PASS 26/26 con el prompt nuevo del juez: el control pasa con evidencia literal, la salida incorrecta (ROJO) se rechaza con el criterio en fail, se reintenta sola y termina AZUL. No ejercitado en vivo: un criterio que salga 'unverified' (lo cubren qa-core, runs, projects y task-report).",
+  "gates": [
+    "bunx tsc --noEmit: 0",
+    "biome: 0 errores",
+    "qa-core + projects + runs + task-report: 77/0"
+  ],
+  "steps": [
+    {
+      "nombre": "temporary project visible",
+      "ok": true
+    },
+    {
+      "nombre": "project settings visible",
+      "ok": true
+    },
+    {
+      "nombre": "Run Next Task enabled",
+      "ok": true
+    },
+    {
+      "nombre": "control task passes QA",
+      "ok": true
+    },
+    {
+      "nombre": "control check executed",
+      "ok": true
+    },
+    {
+      "nombre": "control criterion passed with literal evidence",
+      "ok": true
+    },
+    {
+      "nombre": "control output on disk",
+      "ok": true
+    },
+    {
+      "nombre": "task rollout written inside the project agent home",
+      "ok": true
+    },
+    {
+      "nombre": "rollout contains the OrchestOS generated instructions",
+      "ok": true
+    },
+    {
+      "nombre": "rollout does not contain the host AGENTS.md distinctive line",
+      "ok": true
+    },
+    {
+      "nombre": "Claude task transcript was found",
+      "ok": true
+    },
+    {
+      "nombre": "Claude task transcript does not contain the host CLAUDE.md distinctive line",
+      "ok": true
+    },
+    {
+      "nombre": "executor wrote the incorrect output",
+      "ok": true
+    },
+    {
+      "nombre": "QA rejects the incorrect output",
+      "ok": true
+    },
+    {
+      "nombre": "check executed before QA",
+      "ok": true
+    },
+    {
+      "nombre": "failed criterion recorded",
+      "ok": true
+    },
+    {
+      "nombre": "rejection retried automatically",
+      "ok": true
+    },
+    {
+      "nombre": "final output is not the rejected output",
+      "ok": true
+    },
+    {
+      "nombre": "rejected run visible",
+      "ok": true
+    },
+    {
+      "nombre": "executor reply stored by API",
+      "ok": true
+    },
+    {
+      "nombre": "executor reply visible in Contract tab",
+      "ok": true
+    },
+    {
+      "nombre": "QA tab is active and Contract tab is inactive",
+      "ok": true
+    },
+    {
+      "nombre": "measured check and judge opinion are separated in QA tab",
+      "ok": true
+    },
+    {
+      "nombre": "failed criterion visible in QA tab",
+      "ok": true
+    },
+    {
+      "nombre": "control run visible",
+      "ok": true
+    },
+    {
+      "nombre": "passed criterion visible with evidence",
+      "ok": true
+    }
+  ]
+}

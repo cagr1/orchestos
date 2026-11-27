@@ -24,7 +24,15 @@ describe('runRecordToRow', () => {
       snapshot_after: null,
       qa_verdict: 'fail',
       qa_reason: 'missing line',
-      qa_criteria_json: JSON.stringify([{ text: 'target line exists', pass: false }]),
+      qa_criteria_json: JSON.stringify([
+        { text: 'target line exists', pass: false },
+        {
+          text: 'External price',
+          pass: true,
+          unverified: true,
+          evidence: { file: 'report.md', excerpt: 'Price unverified: website unavailable' },
+        },
+      ]),
       checks_json: null,
       context_source: null,
       context_tokens: null,
@@ -45,6 +53,12 @@ describe('runRecordToRow', () => {
       if (!saved) throw new Error('inserted run was not persisted')
       expect(runRecordToRow(saved).qaCriteria).toEqual([
         { text: 'target line exists', pass: false },
+        {
+          text: 'External price',
+          pass: true,
+          unverified: true,
+          evidence: { file: 'report.md', excerpt: 'Price unverified: website unavailable' },
+        },
       ])
     } finally {
       db.run('DELETE FROM runs WHERE id = ?', [id])

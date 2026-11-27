@@ -209,6 +209,12 @@ describe('projects API mappings', () => {
       qaCriteria: [
         { text: 'bad criterion', pass: false },
         { text: 'good criterion', pass: true, evidence: { file: 'ok.txt', excerpt: 'VERDE' } },
+        {
+          text: 'external price',
+          pass: true,
+          unverified: true,
+          evidence: { file: 'report.md', excerpt: 'Price unverified: website unavailable' },
+        },
       ],
       model: 'codex',
       provider: 'codex',
@@ -224,6 +230,12 @@ describe('projects API mappings', () => {
       createdAt: '2026-01-01T00:00:00Z',
     })
     expect(run.qaModel).toBe('judge-model')
+    expect(run.qaEvaluation).toContainEqual({
+      kind: 'criterion',
+      criterion: 'external price',
+      passed: true,
+      rationale: 'Unverified — report.md: Price unverified: website unavailable',
+    })
     expect(run.qaEvaluation[0]).toEqual({
       kind: 'judge',
       criterion: 'QA verdict: fail',

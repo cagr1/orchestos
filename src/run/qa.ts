@@ -15,6 +15,7 @@ interface QAEvidence {
 interface QACriterionResult {
   text: string
   pass: boolean
+  unverified?: boolean
   evidence?: QAEvidence
 }
 
@@ -124,10 +125,12 @@ export async function runQA(opts: {
           'Evaluate EACH criterion independently. A single failing criterion makes the whole verdict "fail".',
           'For criteria in WHEN/THEN format: verify that the implementation handles the WHEN condition and produces the THEN result.',
           'Respond with ONLY a JSON object — no markdown fences, no prose:',
-          '{ "verdict": "pass" | "fail", "reason": "one short sentence summarizing result", "criteria": [ { "text": "...", "pass": true | false, "evidence": { "file": "path/to/file", "excerpt": "literal excerpt from that file" } } ] }',
+          '{ "verdict": "pass" | "fail", "reason": "one short sentence summarizing result", "criteria": [ { "text": "...", "pass": true | false, "unverified": true | false (optional), "evidence": { "file": "path/to/file", "excerpt": "literal excerpt from that file" } } ] }',
           'The "criteria" array must have one entry per criterion, in the same order as given.',
           'Copy each criterion into "text" EXACTLY as given, without the numbering. Do not paraphrase, duplicate, replace, or omit criteria.',
           'For every criterion with pass: true, evidence is REQUIRED: cite a literal excerpt from one of the written files using its relative path.',
+          'A criterion requesting external facts (websites, prices, third-party data, or live behavior) is satisfied if the file addresses it with the fact, or explicitly marks it as unverified and explains why. In the latter case, set unverified: true and pass: true, and cite the literal passage marking the fact as unverified with its reason.',
+          'Never use unverified for anything verifiable in the written files themselves, such as structure, tables, language, or code. Missing content, placeholders, or evidence contradicting a criterion must fail.',
           'If no written file contains evidence that satisfies a criterion, mark that criterion pass: false.',
           'If the checks block says that no mechanical verification ran, be maximally skeptical: a pass can only rely on reading the files.',
         ].join('\n')
@@ -268,14 +271,18 @@ function parseVerdict(
     return {
       text: expectedText,
       pass,
+      ...(pass && cr.unverified === true ? { unverified: true } : {}),
       ...(evidence ? { evidence } : {}),
     }
   })
 
   // If any criterion failed, force verdict to fail regardless of what LLM said
   const anyFailed = criteria.some((c) => !c.pass)
+  const verdict = anyFailed ? 'fail' : v
+  const unverifiedCount = criteria.filter((c) => c.unverified).length
+  if (verdict === 'pass' && unverifiedCount > 0) reason += ` (${unverifiedCount} unverified)`
   return {
-    verdict: anyFailed ? 'fail' : v,
+    verdict,
     reason,
     criteria,
   }

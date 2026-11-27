@@ -86,6 +86,28 @@ function addRun(
 }
 
 describe('reportTaskOutcome', () => {
+  it('adds the unverified criterion count to a verified done headline', () => {
+    const { root, session, taskId, projectId } = setup('done')
+    const runId = addRun(taskId, 'External facts documented', projectId)
+    db.run('UPDATE runs SET qa_verdict = ?, qa_criteria_json = ? WHERE id = ?', [
+      'pass',
+      JSON.stringify([
+        {
+          text: 'Current price',
+          pass: true,
+          unverified: true,
+          evidence: { file: 'report.md', excerpt: 'Price unverified: website unavailable' },
+        },
+        { text: 'Report in English', pass: true },
+      ]),
+      runId,
+    ])
+    reportTaskOutcome(root, session.id, taskId, projectId)
+    expect(listChatMessages(session.id)[0]?.content.split('\n')[0]).toBe(
+      `✓ Task \`${taskId}\` done · unit-provider/unit-model · 1 unverified`,
+    )
+  })
+
   it('persists diagnosis.kind and restores it in chat history', () => {
     const { root, session, taskId, projectId } = setup('failed', 'check failed')
     const runId = addRun(taskId, 'check failed', projectId, 'failed')

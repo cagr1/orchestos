@@ -14,14 +14,28 @@ function rolloutFiles(dir) {
   })
 }
 
-async function waitForTaskChange(api, projectId, taskId, previousRetryCount, previousRunId) {
+async function waitForTaskChange(
+  api,
+  projectId,
+  taskId,
+  previousRetryCount,
+  previousRunId,
+  terminalOnly = false,
+) {
   const deadline = Date.now() + 10 * 60_000
   let task
   while (Date.now() <= deadline) {
     const response = await api('/api/tasks', { headers: { 'x-orchestos-project-id': projectId } })
     task = (response.data?.tasks ?? []).find((item) => item.id === taskId)
-    if (task && task.status !== 'pending' && task.status !== 'running') return task
     if (
+      task &&
+      (terminalOnly
+        ? task.status === 'done' || task.status === 'failed_permanent'
+        : task.status !== 'pending' && task.status !== 'running')
+    )
+      return task
+    if (
+      !terminalOnly &&
       task?.status === 'pending' &&
       (task.retryCount !== previousRetryCount || task.runId !== previousRunId)
     )
@@ -49,6 +63,20 @@ async function taskAndRun(api, projectId, taskId) {
     ? await api(`/api/runs/${encodeURIComponent(summary.id)}`, {
         headers: { 'x-orchestos-project-id': projectId },
       })
+    : null
+  return { task, run: detail?.data ?? detail ?? null }
+}
+
+async function taskAndRejectedRun(api, projectId, taskId) {
+  const headers = { 'x-orchestos-project-id': projectId }
+  const taskResponse = await api('/api/tasks', { headers })
+  const task = (taskResponse.data?.tasks ?? []).find((item) => item.id === taskId)
+  const listed = await api('/api/runs', { headers })
+  const summary = [...(listed.data ?? [])]
+    .reverse()
+    .find((item) => item.taskId === taskId && item.qaVerdict === 'fail')
+  const detail = summary
+    ? await api(`/api/runs/${encodeURIComponent(summary.id)}`, { headers })
     : null
   return { task, run: detail?.data ?? detail ?? null }
 }
@@ -312,8 +340,9 @@ export default async function qaNegative({ page, api, step, shot, visible, clean
     'gate-qa-bad',
     prior.task?.retryCount ?? 0,
     prior.task?.runId ?? null,
+    true,
   )
-  const rejected = await taskAndRun(api, project.id, 'gate-qa-bad')
+  const rejected = await taskAndRejectedRun(api, project.id, 'gate-qa-bad')
   const badDiffs = rejected.run?.fileDiffs ?? []
   const diffText = badDiffs.map((d) => d.diff ?? '').join('\n')
   const wroteIncorrect = diffText.includes('+ROJO') && !diffText.includes('AZUL')
@@ -353,26 +382,33 @@ export default async function qaNegative({ page, api, step, shot, visible, clean
       criteria[0]?.pass === false,
     diagnostic,
   )
+  const finalOutput = existsSync(join(projectRoot, 'nota.txt'))
+    ? readFileSync(join(projectRoot, 'nota.txt'), 'utf8').trim()
+    : null
   await step(
-    'task returns to pending with retry',
-    rejected.task?.status === 'pending' &&
-      rejected.task?.retryCount === 1 &&
-      rejected.run?.qaVerdict === 'fail',
+    'rejection retried automatically',
+    (rejected.task?.status === 'done' || rejected.task?.status === 'failed_permanent') &&
+      rejected.task?.retryCount >= 1 &&
+      (rejected.task?.status !== 'done' || finalOutput === 'AZUL'),
     JSON.stringify({
       status: rejected.task?.status,
       retryCount: rejected.task?.retryCount,
       qaVerdict: rejected.run?.qaVerdict,
+      finalOutput,
     }),
   )
   await step(
-    'rejected output reverted',
-    !existsSync(join(projectRoot, 'nota.txt')),
-    JSON.stringify({ exists: existsSync(join(projectRoot, 'nota.txt')) }),
+    'final output is not the rejected output',
+    finalOutput !== 'ROJO',
+    JSON.stringify({ finalOutput }),
   )
 
   await page.getByRole('button', { name: 'Runs', exact: true }).click()
-  let runRow = page.locator('tr').filter({ hasText: 'gate-qa-bad' }).first()
-  await step('rejected run visible', await visible(runRow), 'gate-qa-bad appears in Runs')
+  let runRow = page
+    .locator('tr')
+    .filter({ hasText: 'gate-qa-bad' })
+    .filter({ has: page.getByText(rejected.run.id, { exact: true }) })
+  await step('rejected run visible', await visible(runRow), rejected.run.id)
   if (!(await runRow.isVisible())) return
   await runRow.click()
   const executorReply = rejected.run?.executorReply ?? ''

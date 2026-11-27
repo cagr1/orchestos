@@ -100,8 +100,10 @@ function buildTaskReportData(
   const verifiedDone = status === 'done' && run?.status === 'done'
   const outcome = status === 'done' && !verifiedDone ? (run?.status ?? 'pending') : status
   const providerModel = run ? ` · ${run.provider}/${run.model}` : ''
+  const unverifiedCount =
+    evidence?.qaCriteria.filter((criterion) => criterion.unverified).length ?? 0
   const headline = verifiedDone
-    ? `✓ Task \`${taskId}\` done${providerModel}`
+    ? `✓ Task \`${taskId}\` done${providerModel}${unverifiedCount > 0 ? ` · ${unverifiedCount} unverified` : ''}`
     : status === 'done'
       ? `Task \`${taskId}\` marked done in tasks.yaml · ${run ? `latest run ${run.status}${providerModel}` : 'no matching run recorded'}`
       : status === 'pending' || status === 'failed_permanent'

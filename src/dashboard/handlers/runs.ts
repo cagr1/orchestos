@@ -127,6 +127,7 @@ export function runRecordToRow(r: RunRecord): RunRow {
     qaCriteria: parseJsonArray<{
       text: string
       pass: boolean
+      unverified?: boolean
       evidence?: { file: string; excerpt: string }
     }>(r.qa_criteria_json),
     model: r.model,

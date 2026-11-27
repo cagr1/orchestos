@@ -121,6 +121,45 @@ describe('computeFileDiffs', () => {
 })
 
 describe('runQA and parseVerdict', () => {
+  for (const scenario of [
+    { pass: true, real: true, verdict: 'pass', unverified: true },
+    { pass: false, real: true, verdict: 'fail', unverified: undefined },
+    { pass: true, real: false, verdict: 'fail', unverified: undefined },
+  ] as const) {
+    it(`handles unverified external facts with pass=${scenario.pass} and real evidence=${scenario.real}`, async () => {
+      const text = 'Report the current price'
+      const passage = 'Price: no verificado; the third-party website could not be accessed.'
+      const result = await runQA({
+        description: 'Research an external price',
+        output: ['report.md'],
+        written: [{ path: 'report.md', content: passage }],
+        model: 'test-model',
+        acceptance_criteria: [text],
+        checksResults: [],
+        provider: providerReply(
+          JSON.stringify({
+            verdict: 'pass',
+            reason: 'External fact addressed',
+            criteria: [
+              {
+                text,
+                pass: scenario.pass,
+                unverified: true,
+                evidence: { file: 'report.md', excerpt: scenario.real ? passage : 'fabricated' },
+              },
+            ],
+          }),
+        ),
+      })
+      expect(result.verdict).toBe(scenario.verdict)
+      expect(result.criteria?.[0]?.pass).toBe(scenario.verdict === 'pass')
+      expect(result.criteria?.[0]?.unverified).toBe(scenario.unverified)
+      expect(result.reason).toBe(
+        `External fact addressed${scenario.verdict === 'pass' ? ' (1 unverified)' : ''}`,
+      )
+    })
+  }
+
   const criterion = (text: string) => ({
     text,
     pass: true,

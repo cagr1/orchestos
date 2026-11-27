@@ -1,7 +1,67 @@
 {
-  "exported_at": "2026-11-27T14:44:47.763Z",
+  "exported_at": "2026-11-27T14:59:40.985Z",
   "total_runs": 20,
   "runs": [
+    {
+      "id": "525fbd8d-9c94-4e00-99d9-b58b3b77d877",
+      "task_class": "gate:uso.50:implement",
+      "model": "openai/gpt-6-luna",
+      "provider": "codex",
+      "status": "done",
+      "qa_verdict": "pass",
+      "qa_reason": "The file contains the required line AZUL.",
+      "files_blocked": [],
+      "checks_failed": 0,
+      "usd_cost": 0.00140786,
+      "elapsed_ms": 15266,
+      "tokens": 9305,
+      "created_at": "2026-11-27T14:59:03.508Z"
+    },
+    {
+      "id": "52bf608e-3344-4d2c-9402-b61359f8b6cb",
+      "task_class": "gate:uso.50:implement",
+      "model": "openai/gpt-6-luna",
+      "provider": "codex",
+      "status": "failed",
+      "qa_verdict": "fail",
+      "qa_reason": "nota.txt contains ROJO, not the required AZUL.",
+      "files_blocked": [],
+      "checks_failed": 0,
+      "usd_cost": 0.00141212,
+      "elapsed_ms": 16316,
+      "tokens": 7818,
+      "created_at": "2026-11-27T14:58:47.996Z"
+    },
+    {
+      "id": "d8119e91-98e2-49ca-8804-2bc89f9a57f9",
+      "task_class": "gate:uso.50:implement",
+      "model": "anthropic/haiku",
+      "provider": "claude",
+      "status": "done",
+      "qa_verdict": "pass",
+      "qa_reason": "claude.txt contains the required line, and the declared grep check passed.",
+      "files_blocked": [],
+      "checks_failed": 0,
+      "usd_cost": 0.00379792,
+      "elapsed_ms": 8658,
+      "tokens": 4591,
+      "created_at": "2026-11-27T14:58:30.315Z"
+    },
+    {
+      "id": "920e5d0f-ac0b-47cb-bb55-db8d2b04b593",
+      "task_class": "gate:uso.50:implement",
+      "model": "openai/gpt-6-luna",
+      "provider": "codex",
+      "status": "done",
+      "qa_verdict": "pass",
+      "qa_reason": "ok.txt contains the required line VERDE.",
+      "files_blocked": [],
+      "checks_failed": 0,
+      "usd_cost": 0.0012096199999999998,
+      "elapsed_ms": 17585,
+      "tokens": 7209,
+      "created_at": "2026-11-27T14:58:19.304Z"
+    },
     {
       "id": "8f1e0257-d100-41d4-afde-e8fefaaaf8bb",
       "task_class": "gate:uso.50:implement",
@@ -241,66 +301,6 @@
       "elapsed_ms": 13033,
       "tokens": 10065,
       "created_at": "2026-11-26T11:39:27.192Z"
-    },
-    {
-      "id": "5db164a4-bf00-46be-9a09-5baca91a8e26",
-      "task_class": "gate:uso.49:implement",
-      "model": "gpt-6-luna",
-      "provider": "codex",
-      "status": "failed",
-      "qa_verdict": "fail",
-      "qa_reason": "check failed: bunx tsc --noEmit exit 2 (expected 0)\n--- stdout (tail) ---\nbroken.ts(1,7): error TS2322: Type 'string' is not assignable to type 'number'.\n",
-      "files_blocked": [],
-      "checks_failed": 1,
-      "usd_cost": 0.0014391599999999999,
-      "elapsed_ms": 12685,
-      "tokens": 9614,
-      "created_at": "2026-11-26T11:39:13.997Z"
-    },
-    {
-      "id": "4e47e360-b1be-48f4-9828-a8bf816ddb45",
-      "task_class": "chat",
-      "model": "claude-opus-5-5",
-      "provider": "claude",
-      "status": "done",
-      "qa_verdict": null,
-      "qa_reason": null,
-      "files_blocked": [],
-      "checks_failed": 0,
-      "usd_cost": 0.1933184,
-      "elapsed_ms": 8171,
-      "tokens": 653,
-      "created_at": "2026-11-23T21:26:59.860Z"
-    },
-    {
-      "id": "f426f498-6d59-47c5-ae2d-3003df61a6d7",
-      "task_class": "chat",
-      "model": "claude-opus-5-5",
-      "provider": "claude",
-      "status": "done",
-      "qa_verdict": null,
-      "qa_reason": null,
-      "files_blocked": [],
-      "checks_failed": 0,
-      "usd_cost": 0.1588436,
-      "elapsed_ms": 18736,
-      "tokens": 1610,
-      "created_at": "2026-11-23T21:26:17.219Z"
-    },
-    {
-      "id": "07c1105d-d688-4028-bc84-dd851d1868ef",
-      "task_class": "chat",
-      "model": "claude-opus-5-5",
-      "provider": "claude",
-      "status": "done",
-      "qa_verdict": null,
-      "qa_reason": null,
-      "files_blocked": [],
-      "checks_failed": 0,
-      "usd_cost": 0.1145788,
-      "elapsed_ms": 15649,
-      "tokens": 1404,
-      "created_at": "2026-11-23T21:24:34.873Z"
     }
   ],
   "stats": {
@@ -308,6 +308,6 @@
     "blocked": 0,
     "done": 12,
     "qa_failed": 8,
-    "total_cost_usd": "0.4943"
+    "total_cost_usd": "0.0339"
   }
 }

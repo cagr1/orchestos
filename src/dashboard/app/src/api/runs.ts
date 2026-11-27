@@ -23,7 +23,12 @@ interface RunRow {
   result?: string | null
   executorReply?: string | null
   qaModel?: string | null
-  qaCriteria?: Array<{ text: string; pass: boolean; evidence?: { file: string; excerpt: string } }>
+  qaCriteria?: Array<{
+    text: string
+    pass: boolean
+    unverified?: boolean
+    evidence?: { file: string; excerpt: string }
+  }>
   model: string
   provider: string
   inputTokens: number
@@ -62,9 +67,9 @@ export function mapRunRow(row: RunRow): RunItem {
       kind: 'criterion' as const,
       criterion: c.text,
       passed: c.pass,
-      rationale: c.evidence
-        ? `${c.evidence.file}: ${c.evidence.excerpt}`
-        : 'no evidence in written files',
+      rationale:
+        (c.unverified ? 'Unverified — ' : '') +
+        (c.evidence ? `${c.evidence.file}: ${c.evidence.excerpt}` : 'no evidence in written files'),
     })),
   ].filter((item): item is NonNullable<typeof item> => item !== null)
   return {
