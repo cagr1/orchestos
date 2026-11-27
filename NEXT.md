@@ -22,7 +22,8 @@ reales, 6 rechazos y solo 1 error real (tsc); 2 revirtieron trabajo bueno por un
   (evaluar el primer run rechazado —ROJO, QA fail, criterio fail, revertido— y que el reintento termine `done`),
   vía `delegate criterio`; luego `gate:evidence -- --label USO.50 -- bun run ui:gate qa-negative` y cerrar USO.50.
   Revisar si otros flujos asumen "un intento por `--id`" (grep `retryCount === 1`).
-- **USO.51**: spec listo `docs/specs/USO.51.md` (solo Claude tiene frontera; Codex ya lee fuera) → `delegate criterio`
+- **USO.51**: borrador `docs/specs/USO.51.md` — **sin GO**: Carlos pide antes comparar con Orca/T3 (resumen en
+  `/tmp/investigar-orca-t3.txt` si aún existe; si no, `delegate investigar`) y proponer diseño que cubra cualquier CLI (solo Claude tiene frontera; Codex ya lee fuera) → `delegate criterio`
   tras cerrar USO.50. Mapa previo: Ajuste por proyecto en tabla `projects` como `setup_script`
   (`src/db/projects.ts:87,131`, PATCH `handlers/projects.ts:46-67`, UI `ProjectGeneralSettings.tsx:112-124`);
   Claude `--add-dir` por carpeta (`external.ts:533`); Codex `readOnly` sin evidencia de lectura fuera de cwd; nada

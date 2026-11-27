@@ -2,6 +2,10 @@
 
 Ítem: PLAN.md USO.51. Rol: criterio. No commitear ni tocar PLAN.md/NEXT.md.
 
+**BORRADOR — no delegar sin GO de Carlos** (condición del 2026-11-27, ver PLAN.md USO.51): falta comparar con Orca/T3,
+cubrir Codex (prompt base `cli-registry.ts:88` prohíbe "private vaults"; sin frontera técnica) y extender
+`ui:gate read-boundary`.
+
 ## Caso real
 El chat de Agro (Claude) no pudo leer `~/Projects/MemoriesMD`: el chat de proyecto corre con `--restricted` y un solo
 `--add-dir` (el proyecto). Regla de producto: un control guía, no bloquea sin salida → el usuario autoriza carpetas

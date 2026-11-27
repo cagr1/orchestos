@@ -240,6 +240,11 @@ esta etapa: `docs/done/bloque-AUD.md` (AUD.16, AUD.17), `docs/done/bloque-SES.md
   `~/Projects/MemoriesMD`) Causa: `external.ts:487-535` solo pasa `--add-dir` del proyecto y adjuntos. Alcance:
   lista de carpetas de solo lectura por proyecto en Settings → `--add-dir` por cada una; el choque con la frontera
   ofrece "Autorizar carpeta". Fuera: escritura fuera del proyecto.
+  Debe valer con cualquier CLI: Codex no tiene frontera (`readBoundary: none`) y el prompt base prohíbe leer
+  "private vaults" (`cli-registry.ts:88`), que choca con una carpeta declarada. **Condición de Carlos (2026-11-27):**
+  antes de implementar, investigar cómo lo hacen Orca y T3 (qué se declara, cómo se muestra, qué se bloquea) y
+  proponerle el diseño; sin GO no se implementa. Gate: extender `ui:gate read-boundary` (la carpeta declarada se
+  lee, la no declarada sigue bloqueada).
 - [x] **USO.48 — En Dev, el effort elegido en el composer vuelve a `medium`.** (Carlos, 2026-11-23, uso real)
   Esperado: cambio el effort en una sesión, me voy a otra vista/sesión, regreso y sigue donde lo dejé.
   Causa: USO.44 hace que `defaultEffort` sea siempre el de routing y el `useEffect` de defaults
